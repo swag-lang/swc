@@ -1,68 +1,54 @@
 @echo off
-setlocal EnableDelayedExpansion
-
-for %%I in ("%~dp0..") do set "ROOT=%%~fI"
-set "EXTRA_ARGS=%*"
-set "NATIVE_OUTPUT=%ROOT%\.output"
-set "EXE_OUTPUT=%NATIVE_OUTPUT%\exe"
-set "DLL_OUTPUT=%NATIVE_OUTPUT%\dll"
-set "LIB_OUTPUT=%NATIVE_OUTPUT%\lib"
-set "RUN_OUTPUT=%NATIVE_OUTPUT%\native-run"
-set "EXE_WORKDIR=%NATIVE_OUTPUT%\work\exe"
-set "DLL_WORKDIR=%NATIVE_OUTPUT%\work\dll"
-set "LIB_WORKDIR=%NATIVE_OUTPUT%\work\lib"
-set "RUN_WORKDIR=%NATIVE_OUTPUT%\work\native-run"
-set "REFERENCE_OUTPUT=%NATIVE_OUTPUT%\reference"
-set "REFERENCE_WORKDIR=%NATIVE_OUTPUT%\work\reference"
-
-call :run_cfg release
-if errorlevel 1 exit /b %errorlevel%
-call :run_cfg debug
-if errorlevel 1 exit /b %errorlevel%
-call :run_cfg fast-debug
-if errorlevel 1 exit /b %errorlevel%
-call :run_cfg fast-compile
-if errorlevel 1 exit /b %errorlevel%
-
-exit /b 0
-
-:run_cfg
-set "BUILD_CFG=%~1"
-
-for %%S in (lexer parser errors\lexer errors\parser sema errors\sema jit safety) do (
-    set "STAGE_ARGS="
-    set "MODULE_NAMESPACE="
-    if /I "%%S"=="lexer" set "STAGE_ARGS=--lex-only"
-    if /I "%%S"=="lexer" set "MODULE_NAMESPACE=Lexer"
-    if /I "%%S"=="parser" set "STAGE_ARGS=--syntax-only"
-    if /I "%%S"=="parser" set "MODULE_NAMESPACE=Parser"
-    if /I "%%S"=="errors\lexer" set "STAGE_ARGS=--lex-only"
-    if /I "%%S"=="errors\lexer" set "MODULE_NAMESPACE=Lexer"
-    if /I "%%S"=="errors\parser" set "STAGE_ARGS=--syntax-only"
-    if /I "%%S"=="errors\parser" set "MODULE_NAMESPACE=Parser"
-    if /I "%%S"=="sema" set "STAGE_ARGS=--sema-only"
-    if /I "%%S"=="sema" set "MODULE_NAMESPACE=Sema"
-    if /I "%%S"=="errors\sema" set "STAGE_ARGS=--sema-only"
-    if /I "%%S"=="errors\sema" set "MODULE_NAMESPACE=Sema"
-    if /I "%%S"=="jit" set "STAGE_ARGS=--no-output"
-    if /I "%%S"=="jit" set "MODULE_NAMESPACE=Jit"
-    if /I "%%S"=="safety" set "STAGE_ARGS=--no-output"
-    if /I "%%S"=="safety" set "MODULE_NAMESPACE=Safety"
-    swc test -d "%ROOT%\bin\tests\%%S" --module-namespace !MODULE_NAMESPACE! --build-cfg !BUILD_CFG! !STAGE_ARGS! !EXTRA_ARGS!
-    if errorlevel 1 exit /b 1
-)
-
-swc test --artifact-kind exe -d "%ROOT%\bin\tests\native" --module-namespace Native --out-dir "%EXE_OUTPUT%\!BUILD_CFG!" --work-dir "%EXE_WORKDIR%\!BUILD_CFG!" --build-cfg !BUILD_CFG! !EXTRA_ARGS!
-if errorlevel 1 exit /b 1
-swc run -d "%ROOT%\bin\tests\native" --module-namespace Native --out-dir "%RUN_OUTPUT%\!BUILD_CFG!" --work-dir "%RUN_WORKDIR%\!BUILD_CFG!" --build-cfg !BUILD_CFG! !EXTRA_ARGS!
-if errorlevel 1 exit /b 1
-powershell -NoProfile -Command "Start-Sleep -Seconds 1" >nul
-for %%K in (dll lib) do (
-    swc test --artifact-kind %%K -d "%ROOT%\bin\tests\native" --module-namespace Native --out-dir "%NATIVE_OUTPUT%\%%K\!BUILD_CFG!" --work-dir "%NATIVE_OUTPUT%\work\%%K\!BUILD_CFG!" --build-cfg !BUILD_CFG! !EXTRA_ARGS!
-    if errorlevel 1 exit /b 1
-)
-
-swc test -m "%ROOT%\bin\reference\tests\language" --artifact-kind exe --module-namespace Language --out-dir "%REFERENCE_OUTPUT%\!BUILD_CFG!" --work-dir "%REFERENCE_WORKDIR%\!BUILD_CFG!" --build-cfg !BUILD_CFG! !EXTRA_ARGS!
-if errorlevel 1 exit /b 1
-
+call "%~dp0test_module.bat" %* --test-dir-rel "bin\tests\lexer" --module-label "lexer" --module-namespace "Lexer" --artifact-label "lex-only" --build-cfg "release" --lex-only || exit /b 1
+call "%~dp0test_module.bat" %* --test-dir-rel "bin\tests\parser" --module-label "parser" --module-namespace "Parser" --artifact-label "syntax-only" --build-cfg "release" --syntax-only || exit /b 1
+call "%~dp0test_module.bat" %* --test-dir-rel "bin\tests\errors\lexer" --module-label "errors\lexer" --module-namespace "Lexer" --artifact-label "lex-only" --build-cfg "release" --lex-only || exit /b 1
+call "%~dp0test_module.bat" %* --test-dir-rel "bin\tests\errors\parser" --module-label "errors\parser" --module-namespace "Parser" --artifact-label "syntax-only" --build-cfg "release" --syntax-only || exit /b 1
+call "%~dp0test_module.bat" %* --test-dir-rel "bin\tests\sema" --module-label "sema" --module-namespace "Sema" --artifact-label "sema-only" --build-cfg "release" --sema-only || exit /b 1
+call "%~dp0test_module.bat" %* --test-dir-rel "bin\tests\errors\sema" --module-label "errors\sema" --module-namespace "Sema" --artifact-label "sema-only" --build-cfg "release" --sema-only || exit /b 1
+call "%~dp0test_module.bat" %* --test-dir-rel "bin\tests\jit" --module-label "jit" --module-namespace "Jit" --artifact-label "no-output" --build-cfg "release" --no-output || exit /b 1
+call "%~dp0test_module.bat" %* --test-dir-rel "bin\tests\safety" --module-label "safety" --module-namespace "Safety" --artifact-label "no-output" --build-cfg "release" --no-output || exit /b 1
+call "%~dp0native.bat" %* --artifact-kind "exe" --build-cfg "release" || exit /b 1
+call "%~dp0native.bat" %* --artifact-kind "run" --build-cfg "release" || exit /b 1
+call "%~dp0native.bat" %* --artifact-kind "dll" --build-cfg "release" || exit /b 1
+call "%~dp0native.bat" %* --artifact-kind "lib" --build-cfg "release" || exit /b 1
+call "%~dp0reference.bat" %* --build-cfg "release" || exit /b 1
+call "%~dp0test_module.bat" %* --test-dir-rel "bin\tests\lexer" --module-label "lexer" --module-namespace "Lexer" --artifact-label "lex-only" --build-cfg "debug" --lex-only || exit /b 1
+call "%~dp0test_module.bat" %* --test-dir-rel "bin\tests\parser" --module-label "parser" --module-namespace "Parser" --artifact-label "syntax-only" --build-cfg "debug" --syntax-only || exit /b 1
+call "%~dp0test_module.bat" %* --test-dir-rel "bin\tests\errors\lexer" --module-label "errors\lexer" --module-namespace "Lexer" --artifact-label "lex-only" --build-cfg "debug" --lex-only || exit /b 1
+call "%~dp0test_module.bat" %* --test-dir-rel "bin\tests\errors\parser" --module-label "errors\parser" --module-namespace "Parser" --artifact-label "syntax-only" --build-cfg "debug" --syntax-only || exit /b 1
+call "%~dp0test_module.bat" %* --test-dir-rel "bin\tests\sema" --module-label "sema" --module-namespace "Sema" --artifact-label "sema-only" --build-cfg "debug" --sema-only || exit /b 1
+call "%~dp0test_module.bat" %* --test-dir-rel "bin\tests\errors\sema" --module-label "errors\sema" --module-namespace "Sema" --artifact-label "sema-only" --build-cfg "debug" --sema-only || exit /b 1
+call "%~dp0test_module.bat" %* --test-dir-rel "bin\tests\jit" --module-label "jit" --module-namespace "Jit" --artifact-label "no-output" --build-cfg "debug" --no-output || exit /b 1
+call "%~dp0test_module.bat" %* --test-dir-rel "bin\tests\safety" --module-label "safety" --module-namespace "Safety" --artifact-label "no-output" --build-cfg "debug" --no-output || exit /b 1
+call "%~dp0native.bat" %* --artifact-kind "exe" --build-cfg "debug" || exit /b 1
+call "%~dp0native.bat" %* --artifact-kind "run" --build-cfg "debug" || exit /b 1
+call "%~dp0native.bat" %* --artifact-kind "dll" --build-cfg "debug" || exit /b 1
+call "%~dp0native.bat" %* --artifact-kind "lib" --build-cfg "debug" || exit /b 1
+call "%~dp0reference.bat" %* --build-cfg "debug" || exit /b 1
+call "%~dp0test_module.bat" %* --test-dir-rel "bin\tests\lexer" --module-label "lexer" --module-namespace "Lexer" --artifact-label "lex-only" --build-cfg "fast-debug" --lex-only || exit /b 1
+call "%~dp0test_module.bat" %* --test-dir-rel "bin\tests\parser" --module-label "parser" --module-namespace "Parser" --artifact-label "syntax-only" --build-cfg "fast-debug" --syntax-only || exit /b 1
+call "%~dp0test_module.bat" %* --test-dir-rel "bin\tests\errors\lexer" --module-label "errors\lexer" --module-namespace "Lexer" --artifact-label "lex-only" --build-cfg "fast-debug" --lex-only || exit /b 1
+call "%~dp0test_module.bat" %* --test-dir-rel "bin\tests\errors\parser" --module-label "errors\parser" --module-namespace "Parser" --artifact-label "syntax-only" --build-cfg "fast-debug" --syntax-only || exit /b 1
+call "%~dp0test_module.bat" %* --test-dir-rel "bin\tests\sema" --module-label "sema" --module-namespace "Sema" --artifact-label "sema-only" --build-cfg "fast-debug" --sema-only || exit /b 1
+call "%~dp0test_module.bat" %* --test-dir-rel "bin\tests\errors\sema" --module-label "errors\sema" --module-namespace "Sema" --artifact-label "sema-only" --build-cfg "fast-debug" --sema-only || exit /b 1
+call "%~dp0test_module.bat" %* --test-dir-rel "bin\tests\jit" --module-label "jit" --module-namespace "Jit" --artifact-label "no-output" --build-cfg "fast-debug" --no-output || exit /b 1
+call "%~dp0test_module.bat" %* --test-dir-rel "bin\tests\safety" --module-label "safety" --module-namespace "Safety" --artifact-label "no-output" --build-cfg "fast-debug" --no-output || exit /b 1
+call "%~dp0native.bat" %* --artifact-kind "exe" --build-cfg "fast-debug" || exit /b 1
+call "%~dp0native.bat" %* --artifact-kind "run" --build-cfg "fast-debug" || exit /b 1
+call "%~dp0native.bat" %* --artifact-kind "dll" --build-cfg "fast-debug" || exit /b 1
+call "%~dp0native.bat" %* --artifact-kind "lib" --build-cfg "fast-debug" || exit /b 1
+call "%~dp0reference.bat" %* --build-cfg "fast-debug" || exit /b 1
+call "%~dp0test_module.bat" %* --test-dir-rel "bin\tests\lexer" --module-label "lexer" --module-namespace "Lexer" --artifact-label "lex-only" --build-cfg "fast-compile" --lex-only || exit /b 1
+call "%~dp0test_module.bat" %* --test-dir-rel "bin\tests\parser" --module-label "parser" --module-namespace "Parser" --artifact-label "syntax-only" --build-cfg "fast-compile" --syntax-only || exit /b 1
+call "%~dp0test_module.bat" %* --test-dir-rel "bin\tests\errors\lexer" --module-label "errors\lexer" --module-namespace "Lexer" --artifact-label "lex-only" --build-cfg "fast-compile" --lex-only || exit /b 1
+call "%~dp0test_module.bat" %* --test-dir-rel "bin\tests\errors\parser" --module-label "errors\parser" --module-namespace "Parser" --artifact-label "syntax-only" --build-cfg "fast-compile" --syntax-only || exit /b 1
+call "%~dp0test_module.bat" %* --test-dir-rel "bin\tests\sema" --module-label "sema" --module-namespace "Sema" --artifact-label "sema-only" --build-cfg "fast-compile" --sema-only || exit /b 1
+call "%~dp0test_module.bat" %* --test-dir-rel "bin\tests\errors\sema" --module-label "errors\sema" --module-namespace "Sema" --artifact-label "sema-only" --build-cfg "fast-compile" --sema-only || exit /b 1
+call "%~dp0test_module.bat" %* --test-dir-rel "bin\tests\jit" --module-label "jit" --module-namespace "Jit" --artifact-label "no-output" --build-cfg "fast-compile" --no-output || exit /b 1
+call "%~dp0test_module.bat" %* --test-dir-rel "bin\tests\safety" --module-label "safety" --module-namespace "Safety" --artifact-label "no-output" --build-cfg "fast-compile" --no-output || exit /b 1
+call "%~dp0native.bat" %* --artifact-kind "exe" --build-cfg "fast-compile" || exit /b 1
+call "%~dp0native.bat" %* --artifact-kind "run" --build-cfg "fast-compile" || exit /b 1
+call "%~dp0native.bat" %* --artifact-kind "dll" --build-cfg "fast-compile" || exit /b 1
+call "%~dp0native.bat" %* --artifact-kind "lib" --build-cfg "fast-compile" || exit /b 1
+call "%~dp0reference.bat" %* --build-cfg "fast-compile" || exit /b 1
 exit /b 0

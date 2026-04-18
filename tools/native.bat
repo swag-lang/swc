@@ -1,12 +1,10 @@
 @echo off
-setlocal EnableDelayedExpansion
+setlocal
 
-for %%I in ("%~dp0..") do set "ROOT=%%~fI"
-set "NATIVE_OUTPUT=%ROOT%\.output"
-set "EXE_OUTPUT=%NATIVE_OUTPUT%\exe"
-set "RUN_OUTPUT=%NATIVE_OUTPUT%\native-run"
-set "EXE_WORKDIR=%NATIVE_OUTPUT%\work\exe"
-set "RUN_WORKDIR=%NATIVE_OUTPUT%\work\native-run"
+for %%I in ("%~f0") do set "TOOLS_DIR=%%~dpI"
+call "%TOOLS_DIR%common.bat" :init "%TOOLS_DIR%" "%~1"
+if errorlevel 1 exit /b %errorlevel%
+if /I "%~1"=="dm" shift
 
 set "BUILD_CFG=fast-debug"
 set "ARTIFACT_KIND=exe"
@@ -24,16 +22,20 @@ if /I "%~1"=="--artifact-kind" (
     shift & shift
     goto parse_args
 )
-set "EXTRA_ARGS=!EXTRA_ARGS! %~1"
+set "EXTRA_ARGS=%EXTRA_ARGS% %1"
 shift
 goto parse_args
 
 :run
-if /I "!ARTIFACT_KIND!"=="run" (
-    swc run -d "%ROOT%\bin\tests\native" --module-namespace Native --out-dir "%RUN_OUTPUT%\!BUILD_CFG!" --work-dir "%RUN_WORKDIR%\!BUILD_CFG!" --build-cfg !BUILD_CFG! !EXTRA_ARGS!
+if /I "%ARTIFACT_KIND%"=="run" (
+    call "%TOOLS_DIR%common.bat" :set_paths tests "native" "run" "%BUILD_CFG%"
+    if errorlevel 1 exit /b %errorlevel%
+    %SWC_EXE% run -d "%ROOT%\bin\tests\native" --module-namespace Native --out-dir "%OUT_DIR%" --work-dir "%WORK_DIR%" --build-cfg %BUILD_CFG%%EXTRA_ARGS%
     if errorlevel 1 exit /b 1
 ) else (
-    swc test --artifact-kind !ARTIFACT_KIND! -d "%ROOT%\bin\tests\native" --module-namespace Native --out-dir "%NATIVE_OUTPUT%\!ARTIFACT_KIND!\!BUILD_CFG!" --work-dir "%NATIVE_OUTPUT%\work\!ARTIFACT_KIND!\!BUILD_CFG!" --build-cfg !BUILD_CFG! !EXTRA_ARGS!
+    call "%TOOLS_DIR%common.bat" :set_paths tests "native" "%ARTIFACT_KIND%" "%BUILD_CFG%"
+    if errorlevel 1 exit /b %errorlevel%
+    %SWC_EXE% test --artifact-kind %ARTIFACT_KIND% -d "%ROOT%\bin\tests\native" --module-namespace Native --out-dir "%OUT_DIR%" --work-dir "%WORK_DIR%" --build-cfg %BUILD_CFG%%EXTRA_ARGS%
     if errorlevel 1 exit /b 1
 )
 

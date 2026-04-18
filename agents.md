@@ -10,11 +10,11 @@
 
 - After any change:
     1. Compile a **DevMode** build.
-    2. Run `test_dm.bat`.
+    2. Run `test.bat dm`.
     3. If either step fails, fix the issue before proceeding.
-    4. Run `all_dm.bat`.
+    4. Run `all.bat dm`.
 
-- When `all_dm.bat` completes successfully (no crashes or errors):
+- When `all.bat dm` completes successfully (no crashes or errors):
     1. Compile `swc` in **Release** mode.
     2. Run `all.bat`.
     3. Ensure no regressions occur.

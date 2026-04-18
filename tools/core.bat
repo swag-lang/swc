@@ -1,18 +1,22 @@
 @echo off
-setlocal EnableDelayedExpansion
+setlocal
 
-for %%I in ("%~dp0..") do set "ROOT=%%~fI"
+for %%I in ("%~f0") do set "TOOLS_DIR=%%~dpI"
+call "%TOOLS_DIR%common.bat" :init "%TOOLS_DIR%" "%~1"
+if errorlevel 1 exit /b %errorlevel%
+if /I "%~1"=="dm" shift
+
 set "CORE_MODULE=%ROOT%\bin\std\modules\core"
 set "EXTRA_ARGS="
 
 :parse_args
 if "%~1"=="" goto run
-set "EXTRA_ARGS=!EXTRA_ARGS! %~1"
+set "EXTRA_ARGS=%EXTRA_ARGS% %1"
 shift
 goto parse_args
 
 :run
-swc sema -m "%CORE_MODULE%" --module-namespace Core !EXTRA_ARGS!
+%SWC_EXE% sema -m "%CORE_MODULE%" --module-namespace Core%EXTRA_ARGS%
 if errorlevel 1 exit /b 1
 
 exit /b 0

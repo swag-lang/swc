@@ -3,6 +3,7 @@
 #include "Main/Command/CommandLine.h"
 #include "Main/Global.h"
 #include "Main/TaskContext.h"
+#include "Support/Core/Utf8Helper.h"
 #include "Support/Os/Os.h"
 #include "Support/Report/LogColor.h"
 
@@ -14,6 +15,85 @@ namespace
     {
         static std::mutex mutex;
         return mutex;
+    }
+
+    void appendSpaces(Utf8& out, const size_t count)
+    {
+        out.append(count, ' ');
+    }
+
+    void appendColoredText(Utf8& out, const TaskContext& ctx, const LogColor color, const std::string_view text)
+    {
+        out += LogColorHelper::toAnsi(ctx, color);
+        out += text;
+        out += LogColorHelper::toAnsi(ctx, LogColor::Reset);
+    }
+
+    size_t displayWidth(const std::string_view text)
+    {
+        return Utf8Helper::countChars(text);
+    }
+
+    size_t entryIndentWidth(const Logger::FieldEntry& entry, const Logger::FieldGroupStyle& style)
+    {
+        return style.lineIndent + style.indentPerLevel * entry.indentLevel;
+    }
+
+    size_t entryLabelWidth(const Logger::FieldEntry& entry, const Logger::FieldGroupStyle& style)
+    {
+        return entryIndentWidth(entry, style) + displayWidth(entry.label);
+    }
+
+    size_t computeLabelColumn(const std::vector<Logger::FieldEntry>& entries, const Logger::FieldGroupStyle& style)
+    {
+        size_t width = style.minLabelWidth;
+        for (const Logger::FieldEntry& entry : entries)
+            width = std::max(width, entryLabelWidth(entry, style));
+
+        return std::min(width, style.maxLabelWidth);
+    }
+
+    void appendValueLines(Utf8& out, const TaskContext& ctx, const std::string_view value, const LogColor color, const size_t indentWidth)
+    {
+        size_t lineStart = 0;
+        while (true)
+        {
+            const size_t lineEnd = value.find('\n', lineStart);
+            const auto   line    = lineEnd == std::string_view::npos ? value.substr(lineStart) : value.substr(lineStart, lineEnd - lineStart);
+            appendSpaces(out, indentWidth);
+            appendColoredText(out, ctx, color, line);
+            out += "\n";
+
+            if (lineEnd == std::string_view::npos)
+                return;
+
+            lineStart = lineEnd + 1;
+        }
+    }
+
+    Utf8 formatFieldEntry(const TaskContext& ctx, const Logger::FieldEntry& entry, const Logger::FieldGroupStyle& style, const size_t labelColumn)
+    {
+        const LogColor labelColor  = entry.labelColor == LogColor::Reset ? style.defaultLabelColor : entry.labelColor;
+        const LogColor valueColor  = entry.valueColor == LogColor::Reset ? style.defaultValueColor : entry.valueColor;
+        const size_t   indentWidth = entryIndentWidth(entry, style);
+        const size_t   labelWidth  = entryLabelWidth(entry, style);
+        const bool     stackValue  = entry.value.find('\n') != std::string_view::npos || labelWidth > labelColumn || labelColumn + 2 + displayWidth(entry.value) > style.maxLineWidth;
+
+        Utf8 out;
+        appendSpaces(out, indentWidth);
+        appendColoredText(out, ctx, labelColor, entry.label);
+
+        if (!stackValue)
+        {
+            appendSpaces(out, labelColumn - labelWidth + 2);
+            appendColoredText(out, ctx, valueColor, entry.value);
+            out += "\n";
+            return out;
+        }
+
+        out += "\n";
+        appendValueLines(out, ctx, entry.value, valueColor, indentWidth + style.indentPerLevel);
+        return out;
     }
 }
 
@@ -138,6 +218,40 @@ void Logger::printStdErr(const LogColor color, const std::string_view message, c
     (void) std::fflush(stderr);
 }
 
+void Logger::printField(const TaskContext& ctx, const FieldEntry& entry, FieldGroupStyle style)
+{
+    if (ctx.cmdLine().silent)
+        return;
+
+    const ScopedLock              lock(ctx.global().logger());
+    const std::vector<FieldEntry> entries = {entry};
+    std::cout << formatFieldEntry(ctx, entry, style, computeLabelColumn(entries, style));
+}
+
+void Logger::printFieldGroup(const TaskContext& ctx, const std::string_view title, const std::vector<FieldEntry>& entries, FieldGroupStyle style)
+{
+    if (ctx.cmdLine().silent || entries.empty())
+        return;
+
+    const ScopedLock lock(ctx.global().logger());
+    if (!title.empty())
+    {
+        if (style.blankLineBefore)
+            std::cout << "\n";
+        std::cout << LogColorHelper::toAnsi(ctx, style.titleColor);
+        std::cout << title;
+        std::cout << LogColorHelper::toAnsi(ctx, LogColor::Reset);
+        std::cout << "\n";
+    }
+
+    const size_t labelColumn = computeLabelColumn(entries, style);
+    for (const FieldEntry& entry : entries)
+        std::cout << formatFieldEntry(ctx, entry, style, labelColumn);
+
+    if (style.blankLineAfter)
+        std::cout << "\n";
+}
+
 void Logger::printHeaderDot(const TaskContext& ctx, LogColor headerColor, std::string_view header, LogColor msgColor, std::string_view message, std::string_view dot, size_t messageColumn)
 {
     printHeaderDot(ctx, headerColor, header, msgColor, message, LogColor::Gray, dot, messageColumn);
@@ -145,20 +259,22 @@ void Logger::printHeaderDot(const TaskContext& ctx, LogColor headerColor, std::s
 
 void Logger::printHeaderDot(const TaskContext& ctx, LogColor headerColor, std::string_view header, LogColor msgColor, std::string_view message, LogColor dotColor, std::string_view dot, size_t messageColumn)
 {
-    if (ctx.cmdLine().silent)
-        return;
+    (void) dotColor;
+    (void) dot;
 
-    const ScopedLock lock(ctx.global().logger());
-    std::cout << LogColorHelper::toAnsi(ctx, headerColor);
-    std::cout << header;
-    std::cout << LogColorHelper::toAnsi(ctx, dotColor);
-    for (size_t i = header.size(); i < messageColumn - 1; ++i)
-        std::cout << dot;
-    std::cout << " ";
-    std::cout << LogColorHelper::toAnsi(ctx, msgColor);
-    std::cout << message;
-    std::cout << LogColorHelper::toAnsi(ctx, LogColor::Reset);
-    std::cout << "\n";
+    FieldEntry entry;
+    entry.label      = Utf8(header);
+    entry.value      = Utf8(message);
+    entry.labelColor = headerColor;
+    entry.valueColor = msgColor;
+
+    FieldGroupStyle style;
+    const size_t legacyColumn = messageColumn > 2 ? messageColumn - 2 : 0;
+    style.blankLineBefore = false;
+    style.minLabelWidth   = std::min(legacyColumn, static_cast<size_t>(28));
+    style.maxLabelWidth   = style.minLabelWidth;
+    style.maxLineWidth    = std::max(style.maxLineWidth, style.minLabelWidth + 2 + displayWidth(message));
+    printField(ctx, entry, style);
 }
 
 void Logger::printHeaderCentered(const TaskContext& ctx, LogColor headerColor, std::string_view header, LogColor msgColor, std::string_view message, size_t centerColumn)

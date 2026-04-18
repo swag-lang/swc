@@ -9,6 +9,7 @@
 #include "Main/FileSystem.h"
 #include "Main/Global.h"
 #include "Main/TaskContext.h"
+#include "Support/Core/Utf8Helper.h"
 #include "Support/Os/Os.h"
 #include "Support/Report/LogColor.h"
 #include "Support/Report/Logger.h"
@@ -17,11 +18,6 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    Utf8 boolToUtf8(const bool value)
-    {
-        return value ? "true" : "false";
-    }
-
     Utf8 targetOsName(const Runtime::TargetOs value)
     {
         switch (value)
@@ -48,143 +44,163 @@ namespace
         SWC_UNREACHABLE();
     }
 
-    void printGroupHeader(const TaskContext& ctx, const char* title)
+    Logger::FieldGroupStyle infoGroupStyle(const bool blankLineBefore, const size_t maxLabelWidth = 24)
     {
-        Logger::print(ctx, "\n");
-        Logger::print(ctx, "[Info] ");
-        Logger::print(ctx, title);
-        Logger::print(ctx, "\n");
+        Logger::FieldGroupStyle style;
+        style.blankLineBefore = blankLineBefore;
+        style.maxLabelWidth   = maxLabelWidth;
+        return style;
     }
 
-    void printInfoLine(const TaskContext& ctx, const char* name, const Utf8& value, const LogColor color = LogColor::White)
+    Logger::FieldGroupStyle nextInfoGroupStyle(bool& hasPrintedGroup, const size_t maxLabelWidth = 24)
     {
-        Logger::printHeaderDot(ctx, LogColor::Cyan, name, color, value.empty() ? "<empty>" : value);
+        const Logger::FieldGroupStyle style = infoGroupStyle(hasPrintedGroup, maxLabelWidth);
+        hasPrintedGroup                     = true;
+        return style;
     }
 
-    void printInfoLine(const TaskContext& ctx, const Utf8& name, const Utf8& value, const LogColor color = LogColor::White)
+    void addInfoEntry(std::vector<Logger::FieldEntry>& entries, const std::string_view label, Utf8 value, LogColor color = LogColor::White, const uint32_t indentLevel = 0)
     {
-        Logger::printHeaderDot(ctx, LogColor::Cyan, name, color, value.empty() ? "<empty>" : value);
+        if (value.empty())
+        {
+            value = "<empty>";
+            if (color == LogColor::White)
+                color = LogColor::Gray;
+        }
+
+        Logger::FieldEntry entry;
+        entry.label       = Utf8(label);
+        entry.value       = std::move(value);
+        entry.valueColor  = color;
+        entry.indentLevel = indentLevel;
+        entries.push_back(std::move(entry));
     }
 
-    void printInfoLine(const TaskContext& ctx, const Utf8& name, const fs::path& value, const LogColor color = LogColor::White)
+    void addInfoEntry(std::vector<Logger::FieldEntry>& entries, const std::string_view label, const char* value, const LogColor color = LogColor::White, const uint32_t indentLevel = 0)
     {
-        printInfoLine(ctx, name, Utf8(value), color);
+        addInfoEntry(entries, label, Utf8(value), color, indentLevel);
     }
 
-    void printInfoLine(const TaskContext& ctx, const char* name, const char* value, const LogColor color = LogColor::White)
+    void addInfoEntry(std::vector<Logger::FieldEntry>& entries, const std::string_view label, const std::string& value, const LogColor color = LogColor::White, const uint32_t indentLevel = 0)
     {
-        printInfoLine(ctx, name, Utf8(value), color);
+        addInfoEntry(entries, label, Utf8(value), color, indentLevel);
     }
 
-    void printInfoLine(const TaskContext& ctx, const char* name, const std::string& value, const LogColor color = LogColor::White)
+    void addInfoEntry(std::vector<Logger::FieldEntry>& entries, const std::string_view label, const std::string_view value, const LogColor color = LogColor::White, const uint32_t indentLevel = 0)
     {
-        printInfoLine(ctx, name, Utf8(value), color);
+        addInfoEntry(entries, label, Utf8(value), color, indentLevel);
     }
 
-    void printInfoLine(const TaskContext& ctx, const char* name, const fs::path& value, const LogColor color = LogColor::White)
+    void addInfoEntry(std::vector<Logger::FieldEntry>& entries, const std::string_view label, const fs::path& value, const LogColor color = LogColor::White, const uint32_t indentLevel = 0)
     {
-        printInfoLine(ctx, name, Utf8(value), color);
+        addInfoEntry(entries, label, Utf8(value), color, indentLevel);
     }
 
-    void printStringSet(const TaskContext& ctx, const char* name, const std::set<Utf8>& values)
+    void addBoolEntry(std::vector<Logger::FieldEntry>& entries, const std::string_view label, const bool enabled)
+    {
+        addInfoEntry(entries, label, enabled ? "on" : "off", enabled ? LogColor::BrightGreen : LogColor::Gray);
+    }
+
+    void addUtf8Set(std::vector<Logger::FieldEntry>& entries, const std::string_view label, const std::set<Utf8>& values)
     {
         if (values.empty())
         {
-            printInfoLine(ctx, name, "<empty>");
+            addInfoEntry(entries, label, "<empty>", LogColor::Gray);
             return;
         }
 
+        addInfoEntry(entries, label, Utf8Helper::countWithLabel(values.size(), "entry"));
         uint32_t index = 0;
         for (const Utf8& value : values)
-        {
-            const Utf8 label = std::format("{}[{}]", name, index++);
-            printInfoLine(ctx, label, value);
-        }
+            addInfoEntry(entries, std::format("[{}]", index++), value, LogColor::White, 1);
     }
 
-    void printPathSet(const TaskContext& ctx, const char* name, const std::set<fs::path>& values)
+    void addPathSet(std::vector<Logger::FieldEntry>& entries, const std::string_view label, const std::set<fs::path>& values)
     {
         if (values.empty())
         {
-            printInfoLine(ctx, name, "<empty>");
+            addInfoEntry(entries, label, "<empty>", LogColor::Gray);
             return;
         }
 
+        addInfoEntry(entries, label, Utf8Helper::countWithLabel(values.size(), "entry"));
         uint32_t index = 0;
         for (const fs::path& value : values)
-        {
-            const Utf8 label = std::format("{}[{}]", name, index++);
-            printInfoLine(ctx, label, value);
-        }
+            addInfoEntry(entries, std::format("[{}]", index++), value, LogColor::White, 1);
     }
 
-    void printCommandLineOptions(const TaskContext& ctx)
+    void printCommandLineOptions(const TaskContext& ctx, bool& hasPrintedGroup)
     {
-        const CommandLine&       cmdLine  = ctx.cmdLine();
-        const Runtime::BuildCfg& buildCfg = cmdLine.defaultBuildCfg;
+        const CommandLine&             cmdLine  = ctx.cmdLine();
+        const Runtime::BuildCfg&       buildCfg = cmdLine.defaultBuildCfg;
+        std::vector<Logger::FieldEntry> entries;
 
-        printInfoLine(ctx, "command", COMMANDS[static_cast<int>(cmdLine.command)].name, LogColor::Yellow);
-        printInfoLine(ctx, "targetOs", targetOsName(cmdLine.targetOs));
-        printInfoLine(ctx, "targetArch", commandLineTargetArchName(cmdLine.targetArch));
-        printInfoLine(ctx, "targetCpu", cmdLine.targetCpu);
-        printInfoLine(ctx, "buildCfg", cmdLine.buildCfg);
-        printInfoLine(ctx, "targetArchName", commandLineTargetArchName(cmdLine.targetArch));
-        printInfoLine(ctx, "backendKind", commandLineBackendKindName(buildCfg.backendKind));
-        printInfoLine(ctx, "name", Utf8(buildCfg.name));
-        printInfoLine(ctx, "moduleNamespace", Utf8(buildCfg.moduleNamespace));
-        printInfoLine(ctx, "workDir", Utf8(buildCfg.workDir));
-        printInfoLine(ctx, "backendOptimize", boolToUtf8(buildCfg.backend.optimize));
-        printInfoLine(ctx, "logColor", boolToUtf8(cmdLine.logColor));
-        printInfoLine(ctx, "logAscii", boolToUtf8(cmdLine.logAscii));
-        printInfoLine(ctx, "syntaxColor", boolToUtf8(cmdLine.syntaxColor));
-        printInfoLine(ctx, "diagOneLine", boolToUtf8(cmdLine.diagOneLine));
-        printInfoLine(ctx, "errorId", boolToUtf8(cmdLine.errorId));
-        printInfoLine(ctx, "silent", boolToUtf8(cmdLine.silent));
-        printInfoLine(ctx, "stats", boolToUtf8(cmdLine.stats));
-        printInfoLine(ctx, "clear", boolToUtf8(cmdLine.clear));
-        printInfoLine(ctx, "dryRun", boolToUtf8(cmdLine.dryRun));
-        printInfoLine(ctx, "verboseVerify", boolToUtf8(cmdLine.verboseVerify));
-        printInfoLine(ctx, "sourceDrivenTest", boolToUtf8(cmdLine.isTestMode()));
-        printInfoLine(ctx, "testNative", boolToUtf8(cmdLine.testNative));
-        printInfoLine(ctx, "testJit", boolToUtf8(cmdLine.testJit));
-        printInfoLine(ctx, "lexOnly", boolToUtf8(cmdLine.lexOnly));
-        printInfoLine(ctx, "syntaxOnly", boolToUtf8(cmdLine.syntaxOnly));
-        printInfoLine(ctx, "semaOnly", boolToUtf8(cmdLine.semaOnly));
-        printInfoLine(ctx, "output", boolToUtf8(cmdLine.output));
-        printInfoLine(ctx, "runtime", boolToUtf8(cmdLine.runtime));
+        addInfoEntry(entries, "Command", COMMANDS[static_cast<int>(cmdLine.command)].name, LogColor::BrightYellow);
+        addInfoEntry(entries, "Target OS", targetOsName(cmdLine.targetOs));
+        addInfoEntry(entries, "Target architecture", commandLineTargetArchName(cmdLine.targetArch));
+        addInfoEntry(entries, "Target CPU", cmdLine.targetCpu);
+        addInfoEntry(entries, "Build config", cmdLine.buildCfg);
+        addInfoEntry(entries, "Backend", commandLineBackendKindName(buildCfg.backendKind));
+        addInfoEntry(entries, "Name", Utf8(buildCfg.name));
+        addInfoEntry(entries, "Module namespace", Utf8(buildCfg.moduleNamespace));
+        addInfoEntry(entries, "Work directory", Utf8(buildCfg.workDir));
+        addBoolEntry(entries, "Backend optimize", buildCfg.backend.optimize);
+        Logger::printFieldGroup(ctx, "Command Line", entries, nextInfoGroupStyle(hasPrintedGroup));
 
-        printInfoLine(ctx, "devFull", boolToUtf8(cmdLine.devFull));
+        entries.clear();
+        addBoolEntry(entries, "Log colors", cmdLine.logColor);
+        addBoolEntry(entries, "ASCII logs", cmdLine.logAscii);
+        addBoolEntry(entries, "Syntax colors", cmdLine.syntaxColor);
+        addBoolEntry(entries, "One-line diagnostics", cmdLine.diagOneLine);
+        addBoolEntry(entries, "Error ids", cmdLine.errorId);
+        addBoolEntry(entries, "Silent", cmdLine.silent);
+        addBoolEntry(entries, "Stats", cmdLine.stats);
+        addBoolEntry(entries, "Clear screen", cmdLine.clear);
+        addBoolEntry(entries, "Dry run", cmdLine.dryRun);
+        addBoolEntry(entries, "Verbose verify", cmdLine.verboseVerify);
+        addBoolEntry(entries, "Source-driven tests", cmdLine.isTestMode());
+        addBoolEntry(entries, "Test native", cmdLine.testNative);
+        addBoolEntry(entries, "Test JIT", cmdLine.testJit);
+        addBoolEntry(entries, "Lexer only", cmdLine.lexOnly);
+        addBoolEntry(entries, "Syntax only", cmdLine.syntaxOnly);
+        addBoolEntry(entries, "Sema only", cmdLine.semaOnly);
+        addBoolEntry(entries, "Emit output", cmdLine.output);
+        addBoolEntry(entries, "Runtime", cmdLine.runtime);
+        addBoolEntry(entries, "Dev full", cmdLine.devFull);
 
 #if SWC_HAS_UNITTEST
-        printInfoLine(ctx, "unittest", boolToUtf8(cmdLine.unittest));
-        printInfoLine(ctx, "verboseUnittest", boolToUtf8(cmdLine.verboseUnittest));
+        addBoolEntry(entries, "Unittest", cmdLine.unittest);
+        addBoolEntry(entries, "Verbose unittest", cmdLine.verboseUnittest);
 #endif
 
 #if SWC_HAS_VALIDATE_MICRO
-        printInfoLine(ctx, "validateMicro", boolToUtf8(cmdLine.validateMicro));
+        addBoolEntry(entries, "Validate micro", cmdLine.validateMicro);
 #endif
 
 #if SWC_HAS_VALIDATE_NATIVE
-        printInfoLine(ctx, "validateNative", boolToUtf8(cmdLine.validateNative));
+        addBoolEntry(entries, "Validate native", cmdLine.validateNative);
 #endif
 
 #if SWC_DEV_MODE
-        printInfoLine(ctx, "randomize", boolToUtf8(cmdLine.randomize));
-        printInfoLine(ctx, "randSeed", std::to_string(cmdLine.randSeed));
+        addBoolEntry(entries, "Randomize", cmdLine.randomize);
+        addInfoEntry(entries, "Random seed", std::to_string(cmdLine.randSeed));
 #endif
 
-        printInfoLine(ctx, "syntaxColorLum", std::to_string(cmdLine.syntaxColorLum));
-        printInfoLine(ctx, "numCores", std::to_string(cmdLine.numCores));
-        printInfoLine(ctx, "tabSize", std::to_string(cmdLine.tabSize));
-        printInfoLine(ctx, "diagMaxColumn", std::to_string(cmdLine.diagMaxColumn));
-        printInfoLine(ctx, "filePathDisplay", filePathDisplayModeName(cmdLine.filePathDisplay));
-        printInfoLine(ctx, "verboseVerifyFilter", cmdLine.verboseVerifyFilter);
-        printStringSet(ctx, "fileFilter", cmdLine.fileFilter);
-        printPathSet(ctx, "directories", cmdLine.directories);
-        printPathSet(ctx, "files", cmdLine.files);
-        printInfoLine(ctx, "modulePath", cmdLine.modulePath);
-        printInfoLine(ctx, "outDir", Utf8(buildCfg.outDir));
-        printInfoLine(ctx, "workDir", Utf8(buildCfg.workDir));
+        addInfoEntry(entries, "Syntax color luminance", std::to_string(cmdLine.syntaxColorLum));
+        addInfoEntry(entries, "Core count", std::to_string(cmdLine.numCores));
+        addInfoEntry(entries, "Tab size", std::to_string(cmdLine.tabSize));
+        addInfoEntry(entries, "Diagnostic max column", std::to_string(cmdLine.diagMaxColumn));
+        addInfoEntry(entries, "File path display", filePathDisplayModeName(cmdLine.filePathDisplay));
+        addInfoEntry(entries, "Verify filter", cmdLine.verboseVerifyFilter);
+        Logger::printFieldGroup(ctx, "Modes & Diagnostics", entries, nextInfoGroupStyle(hasPrintedGroup, 26));
+
+        entries.clear();
+        addInfoEntry(entries, "Module path", cmdLine.modulePath);
+        addInfoEntry(entries, "Output directory", Utf8(buildCfg.outDir));
+        addPathSet(entries, "Source directories", cmdLine.directories);
+        addPathSet(entries, "Source files", cmdLine.files);
+        addUtf8Set(entries, "File filters", cmdLine.fileFilter);
+        Logger::printFieldGroup(ctx, "Inputs", entries, nextInfoGroupStyle(hasPrintedGroup, 24));
     }
 }
 
@@ -204,46 +220,52 @@ namespace Command
         Os::WindowsToolchainPaths toolchain;
         const auto                toolchainResult = NativeLinker::queryToolchainPaths(nativeBuilder, toolchain);
         artifactBuilder.queryPaths(nativePaths);
+        bool                      hasPrintedGroup = false;
+        std::vector<Logger::FieldEntry> entries;
 
-        printGroupHeader(ctx, "Command Line");
-        printCommandLineOptions(ctx);
+        printCommandLineOptions(ctx, hasPrintedGroup);
 
-        printGroupHeader(ctx, "Process");
-        printInfoLine(ctx, "hostOs", Os::hostOsName());
-        printInfoLine(ctx, "hostCpu", Os::hostCpuName());
-        printInfoLine(ctx, "exePath", Os::getExeFullName());
-        printInfoLine(ctx, "tempPath", tempPath);
+        entries.clear();
+        addInfoEntry(entries, "Host OS", Os::hostOsName());
+        addInfoEntry(entries, "Host CPU", Os::hostCpuName());
+        addInfoEntry(entries, "Executable", Os::getExeFullName());
+        addInfoEntry(entries, "Temp path", tempPath);
         if (!ec)
-            printInfoLine(ctx, "currentDir", currentDir);
+            addInfoEntry(entries, "Current directory", currentDir);
+        Logger::printFieldGroup(ctx, "Process", entries, nextInfoGroupStyle(hasPrintedGroup));
 
-        printGroupHeader(ctx, "Native Paths");
-        printInfoLine(ctx, "name", nativePaths.name, LogColor::Yellow);
-        printInfoLine(ctx, "workDir", nativePaths.workDir, LogColor::Yellow);
+        entries.clear();
+        addInfoEntry(entries, "Name", nativePaths.name, LogColor::BrightYellow);
+        addInfoEntry(entries, "Work directory", nativePaths.workDir);
         if (!nativePaths.buildDir.empty())
-            printInfoLine(ctx, "buildDir", nativePaths.buildDir, LogColor::Yellow);
-        printInfoLine(ctx, "outDir", nativePaths.outDir, LogColor::Yellow);
-        printInfoLine(ctx, "artifactPath", nativePaths.artifactPath, LogColor::Yellow);
-        printInfoLine(ctx, "pdbPath", nativePaths.pdbPath, LogColor::Yellow);
+            addInfoEntry(entries, "Build directory", nativePaths.buildDir);
+        addInfoEntry(entries, "Output directory", nativePaths.outDir);
+        addInfoEntry(entries, "Artifact path", nativePaths.artifactPath);
+        addInfoEntry(entries, "PDB path", nativePaths.pdbPath);
+        Logger::printFieldGroup(ctx, "Native Paths", entries, nextInfoGroupStyle(hasPrintedGroup));
 
-        printGroupHeader(ctx, "Native Toolchain");
+        entries.clear();
         switch (toolchainResult)
         {
             case Os::WindowsToolchainDiscoveryResult::Ok:
-                printInfoLine(ctx, "native.linkExe", toolchain.linkExe, LogColor::Green);
-                printInfoLine(ctx, "native.libExe", toolchain.libExe, LogColor::Green);
-                printInfoLine(ctx, "native.vcLibPath", toolchain.vcLibPath, LogColor::Green);
-                printInfoLine(ctx, "native.sdkUmLibPath", toolchain.sdkUmLibPath, LogColor::Green);
-                printInfoLine(ctx, "native.sdkUcrtLibPath", toolchain.sdkUcrtLibPath, LogColor::Green);
+                addInfoEntry(entries, "Status", "ready", LogColor::BrightGreen);
+                addInfoEntry(entries, "Linker", toolchain.linkExe);
+                addInfoEntry(entries, "Librarian", toolchain.libExe);
+                addInfoEntry(entries, "MSVC library path", toolchain.vcLibPath);
+                addInfoEntry(entries, "Windows SDK UM libs", toolchain.sdkUmLibPath);
+                addInfoEntry(entries, "Windows SDK UCRT libs", toolchain.sdkUcrtLibPath);
                 break;
 
             case Os::WindowsToolchainDiscoveryResult::MissingMsvcToolchain:
-                printInfoLine(ctx, "native.toolchain", "missing msvc toolchain", LogColor::BrightRed);
+                addInfoEntry(entries, "Status", "missing MSVC toolchain", LogColor::BrightRed);
                 break;
 
             case Os::WindowsToolchainDiscoveryResult::MissingWindowsSdk:
-                printInfoLine(ctx, "native.toolchain", "missing windows sdk", LogColor::BrightRed);
+                addInfoEntry(entries, "Status", "missing Windows SDK", LogColor::BrightRed);
                 break;
         }
+
+        Logger::printFieldGroup(ctx, "Native Toolchain", entries, nextInfoGroupStyle(hasPrintedGroup, 26));
     }
 }
 

@@ -13,11 +13,43 @@
 
 SWC_BEGIN_NAMESPACE();
 
+namespace
+{
+    Logger::FieldGroupStyle statsGroupStyle(const bool blankLineBefore, const size_t maxLabelWidth = 32)
+    {
+        Logger::FieldGroupStyle style;
+        style.blankLineBefore = blankLineBefore;
+        style.maxLabelWidth   = maxLabelWidth;
+        return style;
+    }
+
+    Logger::FieldGroupStyle nextStatsGroupStyle(bool& hasPrintedGroup, const size_t maxLabelWidth = 32)
+    {
+        const Logger::FieldGroupStyle style = statsGroupStyle(hasPrintedGroup, maxLabelWidth);
+        hasPrintedGroup                     = true;
+        return style;
+    }
+
+    void addField(std::vector<Logger::FieldEntry>& entries, const std::string_view label, Utf8 value, LogColor valueColor = LogColor::White, const uint32_t indentLevel = 0)
+    {
+        if (value.empty())
+        {
+            value      = "<empty>";
+            valueColor = LogColor::Gray;
+        }
+
+        Logger::FieldEntry entry;
+        entry.label       = Utf8(label);
+        entry.value       = std::move(value);
+        entry.valueColor  = valueColor;
+        entry.indentLevel = indentLevel;
+        entries.push_back(std::move(entry));
+    }
+}
+
 #if SWC_HAS_STATS
 namespace
 {
-    constexpr size_t K_NAME_COLUMN = 40;
-
     struct TreeNode
     {
         Utf8                                      segment;
@@ -93,62 +125,29 @@ namespace
         }
     }
 
-    void printMemLine(const TaskContext& ctx, const Utf8& name, const size_t nameIndent, const size_t totalPeakBytes, const size_t peakBytes, const size_t totalBytes, const size_t allocCount, const MemoryProfile::CategorySnapshot* leaf)
+    Utf8 formatMemoryValue(const size_t totalPeakBytes, const size_t peakBytes, const size_t totalBytes, const size_t allocCount, const MemoryProfile::CategorySnapshot* leaf)
     {
-        const auto   gray    = LogColorHelper::toAnsi(ctx, LogColor::Gray);
-        const auto   white   = LogColorHelper::toAnsi(ctx, LogColor::White);
         const double peakPct = totalPeakBytes ? 100.0 * static_cast<double>(peakBytes) / static_cast<double>(totalPeakBytes) : 0.0;
 
-        // Name with indent
-        std::cout << LogColorHelper::toAnsi(ctx, LogColor::Yellow);
-        for (size_t i = 0; i < nameIndent; ++i)
-            std::cout << ' ';
-        std::cout << name;
-
-        // Dots to fill
-        const size_t usedCols = nameIndent + name.length();
-        std::cout << gray;
-        if (usedCols < K_NAME_COLUMN)
-        {
-            std::cout << ' ';
-            for (size_t i = usedCols + 1; i < K_NAME_COLUMN; ++i)
-                std::cout << '.';
-        }
-        else
-        {
-            std::cout << "..";
-        }
-
-        // Peak (always shown)
-        std::cout << ' ' << gray << "peak " << white << std::format("{:>9s} ({:5.1f}%)", Utf8Helper::toNiceSize(peakBytes), peakPct);
-
-        // Churn (fixed width)
+        Utf8 value = std::format("peak {} ({:.1f}%)", Utf8Helper::toNiceSize(peakBytes), peakPct);
         if (totalBytes && totalBytes != peakBytes)
-            std::cout << "  " << gray << "churn " << white << std::format("{:>9s}", Utf8Helper::toNiceSize(totalBytes));
-        else
-            std::cout << std::format("{:17s}", "");
-
-        // Allocs (fixed width)
+            value += std::format(", churn {}", Utf8Helper::toNiceSize(totalBytes));
         if (allocCount)
-            std::cout << "  " << gray << "allocs " << white << std::format("{:>9s}", Utf8Helper::toNiceBigNumber(allocCount));
-        else
-            std::cout << std::format("{:18s}", "");
+            value += std::format(", allocs {}", Utf8Helper::toNiceBigNumber(allocCount));
 
-        // File:line for leaf nodes (now aligned)
         if (leaf && leaf->file)
         {
             std::string_view filePath = leaf->file;
-            const auto       lastSep  = filePath.find_last_of("\\/");
+            const size_t     lastSep  = filePath.find_last_of("\\/");
             if (lastSep != std::string_view::npos)
                 filePath = filePath.substr(lastSep + 1);
-            std::cout << "  " << gray << std::format("[{}:{}]", filePath, leaf->line);
+            value += std::format(", {}:{}", filePath, leaf->line);
         }
 
-        std::cout << LogColorHelper::toAnsi(ctx, LogColor::Reset);
-        std::cout << '\n';
+        return value;
     }
 
-    void printTree(const TaskContext& ctx, const TreeNode& node, const size_t totalPeakBytes, const uint32_t depth)
+    void appendMemoryTree(std::vector<Logger::FieldEntry>& entries, const TreeNode& node, const size_t totalPeakBytes, const uint32_t depth)
     {
         std::vector<const TreeNode*> sorted;
         sorted.reserve(node.children.size());
@@ -156,15 +155,14 @@ namespace
             sorted.push_back(child.get());
         std::ranges::sort(sorted, comparePeakBytesDesc);
 
-        for (const auto* child : sorted)
+        for (const TreeNode* child : sorted)
         {
             if (!child->peakBytes && !child->totalBytes)
                 continue;
 
-            printMemLine(ctx, child->segment, depth * 2ull, totalPeakBytes, child->peakBytes, child->totalBytes, child->allocCount, child->leaf);
-
+            addField(entries, child->segment, formatMemoryValue(totalPeakBytes, child->peakBytes, child->totalBytes, child->allocCount, child->leaf), LogColor::White, depth);
             if (!child->children.empty())
-                printTree(ctx, *child, totalPeakBytes, depth + 1);
+                appendMemoryTree(entries, *child, totalPeakBytes, depth + 1);
         }
     }
 
@@ -194,42 +192,42 @@ namespace
 void Stats::print(const TaskContext& ctx) const
 {
     const Logger::ScopedLock loggerLock(ctx.global().logger());
-
-    constexpr auto colorHeader = LogColor::Yellow;
-    constexpr auto colorMsg    = LogColor::White;
+    bool                     hasPrintedGroup = false;
+    std::vector<Logger::FieldEntry> entries;
 
     if (ctx.cmdLine().stats)
     {
-        Logger::printHeaderDot(ctx, colorHeader, "numWorkers", colorMsg, Utf8Helper::toNiceBigNumber(ctx.global().jobMgr().numWorkers()));
-        Logger::printHeaderDot(ctx, colorHeader, "timeTotal", colorMsg, Utf8Helper::toNiceTime(Timer::toSeconds(timeTotal.load())));
-        Logger::printHeaderDot(ctx, colorHeader, "osMaxAllocated", colorMsg, Utf8Helper::toNiceSize(Os::peakProcessMemoryUsage()));
+        entries.clear();
+        addField(entries, "Workers", Utf8Helper::toNiceBigNumber(ctx.global().jobMgr().numWorkers()));
+        addField(entries, "Total time", Utf8Helper::toNiceTime(Timer::toSeconds(timeTotal.load())));
+        addField(entries, "OS peak memory", Utf8Helper::toNiceSize(Os::peakProcessMemoryUsage()));
+        Logger::printFieldGroup(ctx, "Session", entries, nextStatsGroupStyle(hasPrintedGroup));
     }
 
 #if SWC_HAS_STATS
     if (ctx.cmdLine().stats)
     {
-        // Frontend counts
-        Logger::print(ctx, "\n");
-        Logger::printHeaderDot(ctx, colorHeader, "count.frontend.numFiles", colorMsg, Utf8Helper::toNiceBigNumber(numFiles.load()));
-        Logger::printHeaderDot(ctx, colorHeader, "count.frontend.numTokens", colorMsg, Utf8Helper::toNiceBigNumber(numTokens.load()));
-        Logger::printHeaderDot(ctx, colorHeader, "count.frontend.numAstNodes", colorMsg, Utf8Helper::toNiceBigNumber(numAstNodes.load()));
-        Logger::printHeaderDot(ctx, colorHeader, "count.frontend.numVisitedAstNodes", colorMsg, Utf8Helper::toNiceBigNumber(numVisitedAstNodes.load()));
+        entries.clear();
+        addField(entries, "Files", Utf8Helper::toNiceBigNumber(numFiles.load()));
+        addField(entries, "Tokens", Utf8Helper::toNiceBigNumber(numTokens.load()));
+        addField(entries, "AST nodes", Utf8Helper::toNiceBigNumber(numAstNodes.load()));
+        addField(entries, "Visited AST nodes", Utf8Helper::toNiceBigNumber(numVisitedAstNodes.load()));
+        Logger::printFieldGroup(ctx, "Frontend", entries, nextStatsGroupStyle(hasPrintedGroup));
 
-        // Semantic model counts
-        Logger::print(ctx, "\n");
-        Logger::printHeaderDot(ctx, colorHeader, "count.sema.numConstants", colorMsg, Utf8Helper::toNiceBigNumber(numConstants.load()));
-        Logger::printHeaderDot(ctx, colorHeader, "count.sema.constantBuiltinFastHits", colorMsg, Utf8Helper::toNiceBigNumber(numConstantBuiltinFastHits.load()));
-        Logger::printHeaderDot(ctx, colorHeader, "count.sema.constantSmallScalarCacheHits", colorMsg, Utf8Helper::toNiceBigNumber(numConstantSmallScalarCacheHits.load()));
-        Logger::printHeaderDot(ctx, colorHeader, "count.sema.constantSmallScalarCacheMisses", colorMsg, Utf8Helper::toNiceBigNumber(numConstantSmallScalarCacheMisses.load()));
-        Logger::printHeaderDot(ctx, colorHeader, "count.sema.constantSlowPathCalls", colorMsg, Utf8Helper::toNiceBigNumber(numConstantSlowPathCalls.load()));
-        Logger::printHeaderDot(ctx, colorHeader, "count.sema.constantMaterializedPayloadFastPath", colorMsg, Utf8Helper::toNiceBigNumber(numConstantMaterializedPayloadFastPath.load()));
-        Logger::printHeaderDot(ctx, colorHeader, "count.sema.numTypes", colorMsg, Utf8Helper::toNiceBigNumber(numTypes.load()));
-        Logger::printHeaderDot(ctx, colorHeader, "count.sema.numIdentifiers", colorMsg, Utf8Helper::toNiceBigNumber(numIdentifiers.load()));
-        Logger::printHeaderDot(ctx, colorHeader, "count.sema.numSymbols", colorMsg, Utf8Helper::toNiceBigNumber(numSymbols.load()));
-        Logger::printHeaderDot(ctx, colorHeader, "count.sema.numCodeGenFunctions", colorMsg, Utf8Helper::toNiceBigNumber(numCodeGenFunctions.load()));
+        entries.clear();
+        addField(entries, "Constants", Utf8Helper::toNiceBigNumber(numConstants.load()));
+        addField(entries, "Builtin fast hits", Utf8Helper::toNiceBigNumber(numConstantBuiltinFastHits.load()));
+        addField(entries, "Small scalar cache hits", Utf8Helper::toNiceBigNumber(numConstantSmallScalarCacheHits.load()));
+        addField(entries, "Small scalar cache misses", Utf8Helper::toNiceBigNumber(numConstantSmallScalarCacheMisses.load()));
+        addField(entries, "Slow path calls", Utf8Helper::toNiceBigNumber(numConstantSlowPathCalls.load()));
+        addField(entries, "Materialized payload fast path", Utf8Helper::toNiceBigNumber(numConstantMaterializedPayloadFastPath.load()));
+        addField(entries, "Types", Utf8Helper::toNiceBigNumber(numTypes.load()));
+        addField(entries, "Identifiers", Utf8Helper::toNiceBigNumber(numIdentifiers.load()));
+        addField(entries, "Symbols", Utf8Helper::toNiceBigNumber(numSymbols.load()));
+        addField(entries, "Codegen functions", Utf8Helper::toNiceBigNumber(numCodeGenFunctions.load()));
+        Logger::printFieldGroup(ctx, "Semantic Model", entries, nextStatsGroupStyle(hasPrintedGroup, 34));
 
-        // Backend micro counts
-        Logger::print(ctx, "\n");
+        entries.clear();
         const size_t numMicroInitial          = numMicroInstrInitial.load();
         const size_t numMicroAfterStart       = numMicroInstrAfterStart.load();
         const size_t numMicroAfterPreRaOptim  = numMicroInstrAfterPreRaOptim.load();
@@ -238,68 +236,69 @@ void Stats::print(const TaskContext& ctx) const
         const size_t numMicroAfterPostRaOptim = numMicroInstrAfterPostRaOptim.load();
         const size_t numMicroFinal            = numMicroInstrFinal.load();
 
-        Logger::printHeaderDot(ctx, colorHeader, "count.micro.instrInitialLowered", colorMsg, Utf8Helper::toNiceBigNumber(numMicroInitial));
+        addField(entries, "Initial lowered instructions", Utf8Helper::toNiceBigNumber(numMicroInitial));
 
         const std::array transitions = {
-            MicroStageTransition{"count.micro.instrAfterStackAdjustNormalize", numMicroInitial, numMicroAfterStart},
-            MicroStageTransition{"count.micro.instrAfterPreRAOptimLoop", numMicroAfterStart, numMicroAfterPreRaOptim},
-            MicroStageTransition{"count.micro.instrAfterLegalizeRegAllocLoop", numMicroAfterPreRaOptim, numMicroAfterRa},
-            MicroStageTransition{"count.micro.instrAfterPrologEpilogSetup", numMicroAfterRa, numMicroAfterPostRaSetup},
-            MicroStageTransition{"count.micro.instrAfterPostRAOptimPasses", numMicroAfterPostRaSetup, numMicroAfterPostRaOptim},
-            MicroStageTransition{"count.micro.instrFinalAfterSanitizeEmit", numMicroAfterPostRaOptim, numMicroFinal},
+            MicroStageTransition{"After stack adjust normalize", numMicroInitial, numMicroAfterStart},
+            MicroStageTransition{"After pre-RA optim loop", numMicroAfterStart, numMicroAfterPreRaOptim},
+            MicroStageTransition{"After legalize/regalloc loop", numMicroAfterPreRaOptim, numMicroAfterRa},
+            MicroStageTransition{"After prolog/epilog setup", numMicroAfterRa, numMicroAfterPostRaSetup},
+            MicroStageTransition{"After post-RA optim passes", numMicroAfterPostRaSetup, numMicroAfterPostRaOptim},
+            MicroStageTransition{"Final sanitized instructions", numMicroAfterPostRaOptim, numMicroFinal},
         };
 
         for (const MicroStageTransition& transition : transitions)
-            Logger::printHeaderDot(ctx, colorHeader, transition.countLabel, colorMsg, formatMicroInstrTotalWithDelta(transition.currentCount, transition.previousCount));
+            addField(entries, transition.countLabel, formatMicroInstrTotalWithDelta(transition.currentCount, transition.previousCount));
 
         const int64_t pipelineDelta = static_cast<int64_t>(numMicroFinal) - static_cast<int64_t>(numMicroInitial);
-        Logger::printHeaderDot(ctx, colorHeader, "count.micro.instrDeltaInitialToFinal", colorMsg, formatMicroInstrDelta(pipelineDelta, numMicroInitial));
-        Logger::printHeaderDot(ctx, colorHeader, "count.micro.ssaBuilds", colorMsg, Utf8Helper::toNiceBigNumber(numMicroSsaBuilds.load()));
-        Logger::printHeaderDot(ctx, colorHeader, "count.micro.ssaInvalidations", colorMsg, Utf8Helper::toNiceBigNumber(numMicroSsaInvalidations.load()));
+        addField(entries, "Initial to final delta", formatMicroInstrDelta(pipelineDelta, numMicroInitial));
+        addField(entries, "SSA builds", Utf8Helper::toNiceBigNumber(numMicroSsaBuilds.load()));
+        addField(entries, "SSA invalidations", Utf8Helper::toNiceBigNumber(numMicroSsaInvalidations.load()));
+        Logger::printFieldGroup(ctx, "Micro Pipeline", entries, nextStatsGroupStyle(hasPrintedGroup, 36));
 
-        // Time
-        Logger::print(ctx, "\n");
-        Logger::printHeaderDot(ctx, colorHeader, "time.frontend.loadFile", colorMsg, Utf8Helper::toNiceTime(Timer::toSeconds(timeLoadFile.load())));
-        Logger::printHeaderDot(ctx, colorHeader, "time.frontend.lexer", colorMsg, Utf8Helper::toNiceTime(Timer::toSeconds(timeLexer.load())));
-        Logger::printHeaderDot(ctx, colorHeader, "time.frontend.parser", colorMsg, Utf8Helper::toNiceTime(Timer::toSeconds(timeParser.load())));
-        Logger::printHeaderDot(ctx, colorHeader, "time.sema.analysis", colorMsg, Utf8Helper::toNiceTime(Timer::toSeconds(timeSema.load())));
-        Logger::printHeaderDot(ctx, colorHeader, "time.backend.codegen", colorMsg, Utf8Helper::toNiceTime(Timer::toSeconds(timeCodeGen.load())));
-        Logger::printHeaderDot(ctx, colorHeader, "time.backend.microLower", colorMsg, Utf8Helper::toNiceTime(Timer::toSeconds(timeMicroLower.load())));
-        Logger::printHeaderDot(ctx, colorHeader, "time.backend.microSsaBuild", colorMsg, Utf8Helper::toNiceTime(Timer::toSeconds(timeMicroSsaBuild.load())));
-        Logger::printHeaderDot(ctx, colorHeader, "time.backend.microSsaBlocks", colorMsg, Utf8Helper::toNiceTime(Timer::toSeconds(timeMicroSsaBlocks.load())));
-        Logger::printHeaderDot(ctx, colorHeader, "time.backend.microSsaDominators", colorMsg, Utf8Helper::toNiceTime(Timer::toSeconds(timeMicroSsaDominators.load())));
-        Logger::printHeaderDot(ctx, colorHeader, "time.backend.microSsaPhiPlacement", colorMsg, Utf8Helper::toNiceTime(Timer::toSeconds(timeMicroSsaPhiPlacement.load())));
-        Logger::printHeaderDot(ctx, colorHeader, "time.backend.microSsaRename", colorMsg, Utf8Helper::toNiceTime(Timer::toSeconds(timeMicroSsaRename.load())));
+        entries.clear();
+        addField(entries, "Load file", Utf8Helper::toNiceTime(Timer::toSeconds(timeLoadFile.load())));
+        addField(entries, "Lexer", Utf8Helper::toNiceTime(Timer::toSeconds(timeLexer.load())));
+        addField(entries, "Parser", Utf8Helper::toNiceTime(Timer::toSeconds(timeParser.load())));
+        addField(entries, "Semantic analysis", Utf8Helper::toNiceTime(Timer::toSeconds(timeSema.load())));
+        addField(entries, "Codegen", Utf8Helper::toNiceTime(Timer::toSeconds(timeCodeGen.load())));
+        addField(entries, "Micro lower", Utf8Helper::toNiceTime(Timer::toSeconds(timeMicroLower.load())));
+        addField(entries, "Micro SSA build", Utf8Helper::toNiceTime(Timer::toSeconds(timeMicroSsaBuild.load())));
+        addField(entries, "Micro SSA blocks", Utf8Helper::toNiceTime(Timer::toSeconds(timeMicroSsaBlocks.load())));
+        addField(entries, "Micro SSA dominators", Utf8Helper::toNiceTime(Timer::toSeconds(timeMicroSsaDominators.load())));
+        addField(entries, "Micro SSA phi placement", Utf8Helper::toNiceTime(Timer::toSeconds(timeMicroSsaPhiPlacement.load())));
+        addField(entries, "Micro SSA rename", Utf8Helper::toNiceTime(Timer::toSeconds(timeMicroSsaRename.load())));
+        Logger::printFieldGroup(ctx, "Timings", entries, nextStatsGroupStyle(hasPrintedGroup, 34));
     }
 
-    // Memory profile
     if (ctx.cmdLine().statsMem)
     {
         MemoryProfile::Summary summary;
         MemoryProfile::buildSummary(summary);
 
-        Logger::print(ctx, "\n");
-        Logger::printHeaderDot(ctx, colorHeader, "mem.trackedPeak", colorMsg, Utf8Helper::toNiceSize(summary.totalPeakBytes));
-        Logger::printHeaderDot(ctx, colorHeader, "mem.trackedCurrent", colorMsg, Utf8Helper::toNiceSize(summary.totalCurrentBytes));
+        entries.clear();
+        addField(entries, "Tracked peak", Utf8Helper::toNiceSize(summary.totalPeakBytes));
+        addField(entries, "Tracked current", Utf8Helper::toNiceSize(summary.totalCurrentBytes));
+        Logger::printFieldGroup(ctx, "Memory Summary", entries, nextStatsGroupStyle(hasPrintedGroup));
 
         if (!summary.categories.empty())
         {
-            Logger::print(ctx, "\n");
-
             TreeNode root;
             for (const auto& cat : summary.categories)
                 insertIntoTree(root, cat);
             propagateStats(root);
 
-            // Untagged
+            entries.clear();
             const size_t taggedPeak = root.peakBytes;
             if (taggedPeak < summary.totalPeakBytes)
             {
                 const size_t untaggedPeak = summary.totalPeakBytes - taggedPeak;
-                printMemLine(ctx, Utf8("(untagged)"), 0, summary.totalPeakBytes, untaggedPeak, 0, 0, nullptr);
+                addField(entries, "Untagged", formatMemoryValue(summary.totalPeakBytes, untaggedPeak, 0, 0, nullptr));
             }
 
-            printTree(ctx, root, summary.totalPeakBytes, 0);
+            appendMemoryTree(entries, root, summary.totalPeakBytes, 0);
+            if (!entries.empty())
+                Logger::printFieldGroup(ctx, "Memory Breakdown", entries, nextStatsGroupStyle(hasPrintedGroup, 30));
         }
     }
 #endif

@@ -14,7 +14,7 @@ namespace
 {
     using CommandPrint::addInfoEntry;
     using CommandPrint::helpArgumentLabelColor;
-    using CommandPrint::nextInfoGroupStyle;
+    using CommandPrint::nextHelpGroupStyle;
 
     struct HelpOptionEntry
     {
@@ -224,7 +224,7 @@ void CommandLineParser::printHelp(const TaskContext& ctx, const Utf8& command)
     if (!command.empty())
         addInfoEntry(entries, "Command", command, LogColor::BrightYellow);
 
-    Logger::FieldGroupStyle headerStyle = nextInfoGroupStyle(hasPrintedGroup, 16);
+    Logger::FieldGroupStyle headerStyle = nextHelpGroupStyle(hasPrintedGroup, 16);
     headerStyle.blankLineBefore         = false;
     Logger::printFieldGroup(ctx, "swc", entries, headerStyle);
 
@@ -233,19 +233,19 @@ void CommandLineParser::printHelp(const TaskContext& ctx, const Utf8& command)
     {
         addInfoEntry(entries, "swc", "<command> [options]", LogColor::White, 0, helpArgumentLabelColor());
         addInfoEntry(entries, "swc help", "<command>", LogColor::White, 0, helpArgumentLabelColor());
-        Logger::printFieldGroup(ctx, "Usage", entries, nextInfoGroupStyle(hasPrintedGroup, 18));
+        Logger::printFieldGroup(ctx, "Usage", entries, nextHelpGroupStyle(hasPrintedGroup, 18));
 
         entries.clear();
         std::vector commands(std::begin(COMMANDS), std::end(COMMANDS));
         std::ranges::sort(commands, commandInfoLess);
         for (const CommandInfo& cmd : commands)
             addInfoEntry(entries, cmd.name, cmd.description, LogColor::White, 0, helpArgumentLabelColor());
-        Logger::printFieldGroup(ctx, "Commands", entries, nextInfoGroupStyle(hasPrintedGroup, 12));
+        Logger::printFieldGroup(ctx, "Commands", entries, nextHelpGroupStyle(hasPrintedGroup, 12));
         return;
     }
 
     addInfoEntry(entries, std::format("swc {}", command), "[options]", LogColor::White, 0, helpArgumentLabelColor());
-    Logger::printFieldGroup(ctx, "Usage", entries, nextInfoGroupStyle(hasPrintedGroup, 18));
+    Logger::printFieldGroup(ctx, "Usage", entries, nextHelpGroupStyle(hasPrintedGroup, 18));
 
     const Utf8 oldCommand = command_;
     command_              = command;
@@ -275,7 +275,7 @@ void CommandLineParser::printHelp(const TaskContext& ctx, const Utf8& command)
         {
             if (!groupEntries.empty())
             {
-                Logger::printFieldGroup(ctx, optionGroupName(currentGroup), groupEntries, nextInfoGroupStyle(hasPrintedGroup, 34));
+                Logger::printFieldGroup(ctx, optionGroupName(currentGroup), groupEntries, nextHelpGroupStyle(hasPrintedGroup, 34));
                 groupEntries.clear();
             }
 
@@ -290,7 +290,7 @@ void CommandLineParser::printHelp(const TaskContext& ctx, const Utf8& command)
     }
 
     if (!groupEntries.empty())
-        Logger::printFieldGroup(ctx, optionGroupName(currentGroup), groupEntries, nextInfoGroupStyle(hasPrintedGroup, 34));
+        Logger::printFieldGroup(ctx, optionGroupName(currentGroup), groupEntries, nextHelpGroupStyle(hasPrintedGroup, 34));
 
     command_ = oldCommand;
 }

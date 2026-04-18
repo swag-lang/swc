@@ -27,6 +27,21 @@ namespace CommandPrint
         return style;
     }
 
+    inline Logger::FieldGroupStyle helpGroupStyle(const bool blankLineBefore, const size_t maxLabelWidth = 34)
+    {
+        Logger::FieldGroupStyle style = infoGroupStyle(blankLineBefore, maxLabelWidth);
+        if (style.maxLabelWidth < style.minLabelWidth)
+            style.maxLabelWidth = style.minLabelWidth;
+        return style;
+    }
+
+    inline Logger::FieldGroupStyle nextHelpGroupStyle(bool& hasPrintedGroup, const size_t maxLabelWidth = 34)
+    {
+        const Logger::FieldGroupStyle style = helpGroupStyle(hasPrintedGroup, maxLabelWidth);
+        hasPrintedGroup                     = true;
+        return style;
+    }
+
     inline void addInfoEntry(std::vector<Logger::FieldEntry>& entries, const std::string_view label, Utf8 value, LogColor valueColor = LogColor::White, const uint32_t indentLevel = 0, const LogColor labelColor = LogColor::Gray)
     {
         if (value.empty())

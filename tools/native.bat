@@ -8,7 +8,7 @@ if /I "%~1"=="dm" shift
 
 set "BIN_REL=tests\native"
 set "BUILD_CFG=fast-debug"
-set "ARTIFACT_KIND=exe"
+set "ARTIFACT_KIND=executable"
 set "EXTRA_ARGS="
 
 :parse_args

@@ -23,10 +23,10 @@ shift
 goto parse_args
 
 :run
-call "%TOOLS_DIR%common.bat" :set_paths "%BIN_REL%" "exe" "%BUILD_CFG%"
+call "%TOOLS_DIR%common.bat" :set_paths "%BIN_REL%" "executable" "%BUILD_CFG%"
 if errorlevel 1 exit /b %errorlevel%
 
-%SWC_EXE% test -m "%ROOT%\bin\%BIN_REL%" --artifact-kind exe --module-namespace Language --out-dir "%OUT_DIR%" --work-dir "%WORK_DIR%" --build-cfg %BUILD_CFG%%EXTRA_ARGS%
+%SWC_EXE% test -m "%ROOT%\bin\%BIN_REL%" --artifact-kind executable --module-namespace Language --out-dir "%OUT_DIR%" --work-dir "%WORK_DIR%" --build-cfg %BUILD_CFG%%EXTRA_ARGS%
 if errorlevel 1 exit /b 1
 
 exit /b 0

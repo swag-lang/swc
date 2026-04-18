@@ -9,7 +9,7 @@ if /I "%~1"=="dm" shift
 set "BIN_REL="
 set "MODULE_NAMESPACE="
 set "BUILD_CFG=fast-debug"
-set "ARTIFACT_LABEL=exe"
+set "ARTIFACT_LABEL=executable"
 set "STAGE_ARGS="
 set "EXTRA_ARGS="
 
@@ -70,7 +70,7 @@ if not defined MODULE_NAMESPACE exit /b 1
 call "%TOOLS_DIR%common.bat" :set_paths "%BIN_REL%" "%ARTIFACT_LABEL%" "%BUILD_CFG%"
 if errorlevel 1 exit /b %errorlevel%
 
-%SWC_EXE% test --artifact-kind exe -d "%ROOT%\bin\%BIN_REL%" --module-namespace %MODULE_NAMESPACE% --out-dir "%OUT_DIR%" --work-dir "%WORK_DIR%" --build-cfg %BUILD_CFG%%STAGE_ARGS%%EXTRA_ARGS%
+%SWC_EXE% test --artifact-kind executable -d "%ROOT%\bin\%BIN_REL%" --module-namespace %MODULE_NAMESPACE% --out-dir "%OUT_DIR%" --work-dir "%WORK_DIR%" --build-cfg %BUILD_CFG%%STAGE_ARGS%%EXTRA_ARGS%
 if errorlevel 1 exit /b %errorlevel%
 
 exit /b 0

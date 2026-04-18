@@ -1037,9 +1037,9 @@ CommandLineParser::CommandLineParser(Global& global, CommandLine& cmdLine) :
     addEnum(HelpOptionGroup::Target, "sema test build run", "--artifact-kind", "-ak",
             &cmdLine_->backendKind,
             {
-                {"exe", Runtime::BuildCfgBackendKind::Executable},
-                {"dll", Runtime::BuildCfgBackendKind::SharedLibrary},
-                {"lib", Runtime::BuildCfgBackendKind::StaticLibrary},
+                {"executable", Runtime::BuildCfgBackendKind::Executable},
+                {"shared-library", Runtime::BuildCfgBackendKind::SharedLibrary},
+                {"static-library", Runtime::BuildCfgBackendKind::StaticLibrary},
             },
             "Select the native artifact kind exposed through @compiler.getBuildCfg() and used by the native backend.");
     add(HelpOptionGroup::Target, "sema test build run", "--cpu", "-cpu",

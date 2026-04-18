@@ -23,10 +23,10 @@ shift
 goto parse_args
 
 :run
- call "%TOOLS_DIR%common.bat" :set_paths "%BIN_REL%" "dll" "%BUILD_CFG%"
+ call "%TOOLS_DIR%common.bat" :set_paths "%BIN_REL%" "shared-library" "%BUILD_CFG%"
 if errorlevel 1 exit /b %errorlevel%
 
-%SWC_EXE% build -m "%ROOT%\bin\%BIN_REL%" --artifact-kind dll --module-namespace Win32 --out-dir "%OUT_DIR%" --work-dir "%WORK_DIR%" --build-cfg %BUILD_CFG%%EXTRA_ARGS%
+%SWC_EXE% build -m "%ROOT%\bin\%BIN_REL%" --artifact-kind shared-library --module-namespace Win32 --out-dir "%OUT_DIR%" --work-dir "%WORK_DIR%" --build-cfg %BUILD_CFG%%EXTRA_ARGS%
 if errorlevel 1 exit /b 1
 
 exit /b 0

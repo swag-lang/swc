@@ -496,11 +496,11 @@ namespace
         switch (backendKind)
         {
             case Runtime::BuildCfgBackendKind::Executable:
-                return "exe";
+                return "executable";
             case Runtime::BuildCfgBackendKind::SharedLibrary:
-                return "dll";
+                return "shared-library";
             case Runtime::BuildCfgBackendKind::StaticLibrary:
-                return "lib";
+                return "static-library";
             case Runtime::BuildCfgBackendKind::None:
                 return "none";
         }

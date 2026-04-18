@@ -152,7 +152,6 @@
         <ClCompile Include="src\Unittest\UnittestHelpers.cpp"/>
         <ClCompile Include="src\Unittest\Test.ABI.FFI.cpp"/>
         <ClCompile Include="src\Unittest\Test.Compiler.ConstantManager.cpp"/>
-        <ClCompile Include="src\Unittest\Test.Compiler.Format.cpp"/>
         <ClCompile Include="src\Unittest\Test.Compiler.InMemorySource.cpp"/>
         <ClCompile Include="src\Unittest\Test.Compiler.Tags.cpp"/>
         <ClCompile Include="src\Unittest\Test.Debug.DebugInfo.cpp"/>

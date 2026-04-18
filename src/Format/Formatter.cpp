@@ -48,7 +48,7 @@ namespace
     }
 }
 
-Result Format::prepareFile(TaskContext& ctx, const SourceFile& file, const Options& options, PreparedFile& outFile)
+void Format::prepareFile(const SourceFile& file, const Options& options, PreparedFile& outFile)
 {
     outFile.file = &file;
     if (shouldSkipFormatting(file.ast()))
@@ -56,23 +56,20 @@ Result Format::prepareFile(TaskContext& ctx, const SourceFile& file, const Optio
         outFile.text    = file.sourceView();
         outFile.changed = false;
         outFile.skipped = true;
-        return Result::Continue;
+        return;
     }
 
     Context formatCtx = {
-        .task    = &ctx,
-        .file    = &file,
         .ast     = &file.ast(),
         .srcView = file.ast().hasSourceView() ? &file.ast().srcView() : nullptr,
         .options = &options,
     };
 
-    SWC_RESULT(AstSourceWriter::write(formatCtx));
+    AstSourceWriter::write(formatCtx);
 
     outFile.text    = std::move(formatCtx.output);
     outFile.changed = outFile.text.view() != file.sourceView();
     outFile.skipped = false;
-    return Result::Continue;
 }
 
 Result Format::writeFile(TaskContext& ctx, const PreparedFile& preparedFile)

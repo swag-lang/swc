@@ -12,10 +12,11 @@ class Verify;
 enum class FileFlagsE : uint32_t
 {
     Zero = 0,
-    CustomSrc,
-    ModuleSrc,
-    Module,
-    Runtime
+    CustomSrc = 1 << 0,
+    ModuleSrc = 1 << 1,
+    Module    = 1 << 2,
+    Runtime   = 1 << 3,
+    SkipFmt   = 1 << 4,
 };
 using FileFlags = EnumFlags<FileFlagsE>;
 
@@ -41,6 +42,8 @@ public:
     bool             hasFlag(FileFlags flag) const { return flags_.has(flag); }
     void             addFlag(FileFlags flag) { flags_.add(flag); }
     bool             isRuntime() const { return (flags_.has(FileFlagsE::Runtime)); }
+    bool             mustSkipFormat() const { return flags_.has(FileFlagsE::SkipFmt); }
+    void             setMustSkipFormat() { flags_.add(FileFlagsE::SkipFmt); }
 
     NodePayload&           nodePayloadContext() { return *nodePayloadContext_; }
     const NodePayload&     nodePayloadContext() const { return *nodePayloadContext_; }

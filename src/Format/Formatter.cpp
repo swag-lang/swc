@@ -16,7 +16,7 @@ Formatter::Formatter(const FormatOptions& options) :
 void Formatter::prepare(const SourceFile& file)
 {
     file_ = &file;
-    if (shouldSkipFormatting(file.ast()))
+    if (file.mustSkipFormat())
     {
         text_    = file.sourceView();
         changed_ = false;
@@ -60,33 +60,6 @@ bool Formatter::changed() const
 bool Formatter::skipped() const
 {
     return skipped_;
-}
-
-bool Formatter::shouldSkipFormatting(const Ast& ast)
-{
-    if (ast.root().isInvalid())
-        return false;
-
-    const AstNode& rootNode = ast.node(ast.root());
-    if (!rootNode.is(AstNodeId::File))
-        return false;
-
-    const auto&             fileNode = rootNode.cast<AstFile>();
-    SmallVector<AstNodeRef> globals;
-    ast.appendNodes(globals, fileNode.spanGlobalsRef);
-
-    for (const AstNodeRef globalRef : globals)
-    {
-        const AstNode& globalNode = ast.node(globalRef);
-        if (!globalNode.is(AstNodeId::CompilerGlobal))
-            continue;
-
-        const auto& compilerGlobal = globalNode.cast<AstCompilerGlobal>();
-        if (compilerGlobal.mode == AstCompilerGlobal::Mode::SkipFmt)
-            return true;
-    }
-
-    return false;
 }
 
 Result Formatter::reportFormatFailure(TaskContext& ctx, const SourceFile& file, const Utf8& because)

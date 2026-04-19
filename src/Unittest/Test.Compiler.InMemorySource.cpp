@@ -63,6 +63,38 @@ SWC_TEST_BEGIN(Compiler_InMemorySourceRunsSemaWithoutDiskIO)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(Compiler_InMemorySourceTracksSkipFmtOnFile)
+{
+    static constexpr std::string_view SOURCE     = R"(#global skipfmt
+func A() {}
+)";
+    const fs::path                    sourcePath = Unittest::makeTestSourcePath("Compiler", "InMemorySourceTracksSkipFmtOnFile");
+
+    CommandLine cmdLine;
+    cmdLine.command = CommandKind::Syntax;
+    cmdLine.name    = "compiler_in_memory_source_skipfmt";
+
+    CompilerInstance compiler(ctx.global(), cmdLine);
+    Unittest::registerTestSource(compiler, sourcePath, SOURCE);
+    TaskContext compilerCtx(compiler);
+
+    SourceFile& sourceFile = compiler.addFile(sourcePath, FileFlagsE::CustomSrc);
+    SWC_RESULT(sourceFile.loadContent(compilerCtx));
+
+    Lexer lexer;
+    lexer.tokenize(compilerCtx, sourceFile.ast().srcView(), LexerFlagsE::Default);
+    if (sourceFile.ast().srcView().mustSkip())
+        return Result::Error;
+
+    Parser parser;
+    parser.parse(compilerCtx, sourceFile.ast());
+    if (compilerCtx.hasError())
+        return Result::Error;
+    if (!sourceFile.mustSkipFormat())
+        return Result::Error;
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

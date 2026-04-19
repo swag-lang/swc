@@ -5,7 +5,6 @@
 
 SWC_BEGIN_NAMESPACE();
 
-class Ast;
 class SourceFile;
 class TaskContext;
 
@@ -21,7 +20,6 @@ public:
     bool skipped() const;
 
 private:
-    static bool   shouldSkipFormatting(const Ast& ast);
     static Result reportFormatFailure(TaskContext& ctx, const SourceFile& file, const Utf8& because);
 
     FormatOptions     options_;

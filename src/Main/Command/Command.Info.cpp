@@ -113,23 +113,14 @@ namespace
                 continue;
 
             outSummary.totalFiles++;
-            switch (file->flags().get())
-            {
-                case static_cast<std::underlying_type_t<FileFlagsE>>(FileFlagsE::CustomSrc):
-                    outSummary.customFiles++;
-                    break;
-                case static_cast<std::underlying_type_t<FileFlagsE>>(FileFlagsE::Module):
-                    outSummary.moduleFiles++;
-                    break;
-                case static_cast<std::underlying_type_t<FileFlagsE>>(FileFlagsE::ModuleSrc):
-                    outSummary.moduleSrc++;
-                    break;
-                case static_cast<std::underlying_type_t<FileFlagsE>>(FileFlagsE::Runtime):
-                    outSummary.runtimeFiles++;
-                    break;
-                default:
-                    break;
-            }
+            if (file->hasFlag(FileFlagsE::CustomSrc))
+                outSummary.customFiles++;
+            else if (file->hasFlag(FileFlagsE::Module))
+                outSummary.moduleFiles++;
+            else if (file->hasFlag(FileFlagsE::ModuleSrc))
+                outSummary.moduleSrc++;
+            else if (file->hasFlag(FileFlagsE::Runtime))
+                outSummary.runtimeFiles++;
         }
     }
 
@@ -422,16 +413,16 @@ namespace
             case CommandKind::Format:
                 addPlanEntry(entries, index++, "Would", LogColor::BrightGreen, std::format("parse {}", inputCount));
                 addPlanEntry(entries, index++, "Would", LogColor::BrightGreen, "validate the parsed AST can be written back as source");
-                addPlanEntry(entries, index++, "Would", LogColor::BrightGreen, "rewrite source files in place when formatted output differs");
+                addPlanEntry(entries, index, "Would", LogColor::BrightGreen, "rewrite source files in place when formatted output differs");
                 break;
 
             case CommandKind::Syntax:
-                addPlanEntry(entries, index++, "Would", LogColor::BrightGreen, std::format("parse {} and stop after syntax", inputCount));
+                addPlanEntry(entries, index, "Would", LogColor::BrightGreen, std::format("parse {} and stop after syntax", inputCount));
                 break;
 
             case CommandKind::Sema:
                 addPlanEntry(entries, index++, "Would", LogColor::BrightGreen, std::format("parse {}", inputCount));
-                addPlanEntry(entries, index++, "Would", LogColor::BrightGreen, "run semantic analysis, including compile-time evaluation when required");
+                addPlanEntry(entries, index, "Would", LogColor::BrightGreen, "run semantic analysis, including compile-time evaluation when required");
                 break;
 
             case CommandKind::Build:
@@ -444,7 +435,7 @@ namespace
                 addPlanEntry(entries, index++, "Would", LogColor::BrightGreen, std::format("write object files matching {}", objectFilePattern(nativePreview.paths)));
                 addPlanEntry(entries, index++, "Would", LogColor::BrightGreen, std::format("invoke the native toolchain to produce {}", Utf8(nativePreview.paths.artifactPath)));
                 if (cmdLine.command == CommandKind::Run && nativePreview.backendKind == Runtime::BuildCfgBackendKind::Executable)
-                    addPlanEntry(entries, index++, "Would", LogColor::BrightGreen, std::format("run {}", Utf8(nativePreview.paths.artifactPath)));
+                    addPlanEntry(entries, index, "Would", LogColor::BrightGreen, std::format("run {}", Utf8(nativePreview.paths.artifactPath)));
                 break;
 
             case CommandKind::Test:
@@ -463,11 +454,9 @@ namespace
                         addPlanEntry(entries, index++, "May", LogColor::BrightYellow, std::format("run {}", Utf8(nativePreview.paths.artifactPath)));
                 }
                 else if (cmdLine.testNative && !cmdLine.output)
-                {
                     addPlanEntry(entries, index++, "Skip", LogColor::Gray, "native test artifact generation because output is disabled");
-                }
 
-                addPlanEntry(entries, index++, "Would", LogColor::BrightGreen, "verify expected diagnostics and untouched markers");
+                addPlanEntry(entries, index, "Would", LogColor::BrightGreen, "verify expected diagnostics and untouched markers");
                 break;
 
             default:

@@ -325,6 +325,7 @@ AstNodeRef Parser::parseCompilerGlobal()
     {
         nodePtr->mode        = AstCompilerGlobal::Mode::SkipFmt;
         nodePtr->nodeModeRef = AstNodeRef::invalid();
+        const_cast<SourceFile*>(ast_->srcView().file())->setMustSkipFormat();
         consume();
     }
     else if (tokStr == Token::toName(TokenId::KwdGenerated))

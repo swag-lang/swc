@@ -47,7 +47,7 @@ namespace
     }
 }
 
-void Format::prepareFile(const SourceFile& file, const Options& options, PreparedFile& outFile)
+void prepareFormatFile(const SourceFile& file, const FormatOptions& options, FormatPreparedFile& outFile)
 {
     outFile.file = &file;
     if (shouldSkipFormatting(file.ast()))
@@ -58,7 +58,7 @@ void Format::prepareFile(const SourceFile& file, const Options& options, Prepare
         return;
     }
 
-    Context formatCtx = {
+    FormatContext formatCtx = {
         .ast     = &file.ast(),
         .srcView = file.ast().hasSourceView() ? &file.ast().srcView() : nullptr,
         .options = &options,
@@ -72,7 +72,7 @@ void Format::prepareFile(const SourceFile& file, const Options& options, Prepare
     outFile.skipped = false;
 }
 
-Result Format::writeFile(TaskContext& ctx, const PreparedFile& preparedFile)
+Result writeFormatFile(TaskContext& ctx, const FormatPreparedFile& preparedFile)
 {
     if (!preparedFile.file)
         return Result::Continue;

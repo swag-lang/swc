@@ -23,7 +23,7 @@ namespace
     }
 }
 
-Format::AstSourceWriter::AstSourceWriter(Context& formatCtx) :
+AstSourceWriter::AstSourceWriter(FormatContext& formatCtx) :
     formatCtx_(&formatCtx),
     ast_(formatCtx.ast),
     srcView_(formatCtx.srcView),
@@ -38,7 +38,7 @@ Format::AstSourceWriter::AstSourceWriter(Context& formatCtx) :
     eofByte_           = sourceTokenByteStart(*srcView_, tokens.back());
 }
 
-void Format::AstSourceWriter::write()
+void AstSourceWriter::write()
 {
     beginOutput();
     writeNode(ast_->root());
@@ -46,7 +46,7 @@ void Format::AstSourceWriter::write()
     SWC_ASSERT(cursorByte_ == eofByte_);
 }
 
-void Format::AstSourceWriter::beginOutput()
+void AstSourceWriter::beginOutput()
 {
     const uint32_t prefixOffset = srcView_->sourceStartOffset();
     SWC_ASSERT(prefixOffset <= eofByte_);
@@ -61,7 +61,7 @@ void Format::AstSourceWriter::beginOutput()
     cursorByte_ = prefixOffset;
 }
 
-void Format::AstSourceWriter::writeNode(AstNodeRef nodeRef)
+void AstSourceWriter::writeNode(AstNodeRef nodeRef)
 {
     if (!shouldVisitNode(nodeRef))
         return;
@@ -72,7 +72,7 @@ void Format::AstSourceWriter::writeNode(AstNodeRef nodeRef)
         writeNodeFormatted(nodeRef);
 }
 
-void Format::AstSourceWriter::writeNodeExact(AstNodeRef nodeRef)
+void AstSourceWriter::writeNodeExact(AstNodeRef nodeRef)
 {
     const AstNode& node = ast_->node(nodeRef);
     if (hasCheckpoint(node))
@@ -81,13 +81,13 @@ void Format::AstSourceWriter::writeNodeExact(AstNodeRef nodeRef)
     writeNodeChildren(node);
 }
 
-void Format::AstSourceWriter::writeNodeFormatted(AstNodeRef nodeRef)
+void AstSourceWriter::writeNodeFormatted(AstNodeRef nodeRef)
 {
     // Formatting policies will plug in here incrementally, but the traversal stays AST-first.
     writeNodeExact(nodeRef);
 }
 
-void Format::AstSourceWriter::writeNodeChildren(const AstNode& node)
+void AstSourceWriter::writeNodeChildren(const AstNode& node)
 {
     SmallVector<AstNodeRef> children;
     collectSourceOrderedChildren(children, node);
@@ -95,7 +95,7 @@ void Format::AstSourceWriter::writeNodeChildren(const AstNode& node)
         writeNode(childRef);
 }
 
-void Format::AstSourceWriter::collectSourceOrderedChildren(SmallVector<AstNodeRef>& out, const AstNode& node) const
+void AstSourceWriter::collectSourceOrderedChildren(SmallVector<AstNodeRef>& out, const AstNode& node) const
 {
     Ast::nodeIdInfos(node.id()).collectChildren(out, *ast_, node);
     std::ranges::stable_sort(out, [this](const AstNodeRef left, const AstNodeRef right) {
@@ -103,19 +103,19 @@ void Format::AstSourceWriter::collectSourceOrderedChildren(SmallVector<AstNodeRe
     });
 }
 
-bool Format::AstSourceWriter::shouldVisitNode(AstNodeRef nodeRef) const
+bool AstSourceWriter::shouldVisitNode(AstNodeRef nodeRef) const
 {
     return nodeRef.isValid() && !ast_->isAdditionalNode(nodeRef);
 }
 
-bool Format::AstSourceWriter::hasCheckpoint(const AstNode& node) const
+bool AstSourceWriter::hasCheckpoint(const AstNode& node) const
 {
     if (!node.tokRef().isValid())
         return false;
     return srcView_->token(node.tokRef()).isNot(TokenId::EndOfFile);
 }
 
-uint32_t Format::AstSourceWriter::nodeCheckpointByte(AstNodeRef nodeRef) const
+uint32_t AstSourceWriter::nodeCheckpointByte(AstNodeRef nodeRef) const
 {
     const AstNode& node = ast_->node(nodeRef);
     SWC_ASSERT(hasCheckpoint(node));
@@ -128,7 +128,7 @@ uint32_t Format::AstSourceWriter::nodeCheckpointByte(AstNodeRef nodeRef) const
     return sourceTokenByteStart(*srcView_, srcView_->token(tokRef));
 }
 
-uint32_t Format::AstSourceWriter::nodeSortByte(AstNodeRef nodeRef) const
+uint32_t AstSourceWriter::nodeSortByte(AstNodeRef nodeRef) const
 {
     if (!shouldVisitNode(nodeRef))
         return INVALID_BYTE;
@@ -146,7 +146,7 @@ uint32_t Format::AstSourceWriter::nodeSortByte(AstNodeRef nodeRef) const
     return result;
 }
 
-void Format::AstSourceWriter::flushUntilByte(uint32_t targetByte)
+void AstSourceWriter::flushUntilByte(uint32_t targetByte)
 {
     SWC_ASSERT(targetByte <= eofByte_);
     if (targetByte <= cursorByte_)
@@ -162,7 +162,7 @@ void Format::AstSourceWriter::flushUntilByte(uint32_t targetByte)
     }
 }
 
-Format::AstSourceWriter::SourcePiece Format::AstSourceWriter::peekNextSourcePiece() const
+AstSourceWriter::SourcePiece AstSourceWriter::peekNextSourcePiece() const
 {
     const auto& tokens      = srcView_->tokens();
     uint32_t    tokenIndex  = nextTokenIndex_;
@@ -185,7 +185,7 @@ Format::AstSourceWriter::SourcePiece Format::AstSourceWriter::peekNextSourcePiec
     return {};
 }
 
-void Format::AstSourceWriter::appendNextSourcePiece()
+void AstSourceWriter::appendNextSourcePiece()
 {
     const auto& tokens = srcView_->tokens();
     while (nextTokenIndex_ < tokens.size())
@@ -211,7 +211,7 @@ void Format::AstSourceWriter::appendNextSourcePiece()
     SWC_UNREACHABLE();
 }
 
-void Format::AstSourceWriter::appendSourcePiece(const SourcePiece& piece)
+void AstSourceWriter::appendSourcePiece(const SourcePiece& piece)
 {
     const uint32_t sourceSize = static_cast<uint32_t>(srcView_->stringView().size());
     SWC_ASSERT(piece.byteStart <= sourceSize);
@@ -223,7 +223,7 @@ void Format::AstSourceWriter::appendSourcePiece(const SourcePiece& piece)
     cursorByte_ += piece.byteLength;
 }
 
-Format::AstSourceWriter::SourcePiece Format::AstSourceWriter::makeTriviaPiece(uint32_t triviaIndex) const
+AstSourceWriter::SourcePiece AstSourceWriter::makeTriviaPiece(uint32_t triviaIndex) const
 {
     const SourceTrivia& trivia = srcView_->trivia()[triviaIndex];
     return {
@@ -233,7 +233,7 @@ Format::AstSourceWriter::SourcePiece Format::AstSourceWriter::makeTriviaPiece(ui
     };
 }
 
-Format::AstSourceWriter::SourcePiece Format::AstSourceWriter::makeTokenPiece(uint32_t tokenIndex) const
+AstSourceWriter::SourcePiece AstSourceWriter::makeTokenPiece(uint32_t tokenIndex) const
 {
     const Token& token = srcView_->tokens()[tokenIndex];
     SWC_ASSERT(token.isNot(TokenId::EndOfFile));

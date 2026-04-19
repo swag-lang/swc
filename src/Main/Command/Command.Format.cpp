@@ -55,7 +55,7 @@ namespace
 
     Utf8 formatStageStat(const size_t totalFiles, const size_t rewrittenFiles, const size_t skippedFmtFiles, const size_t skippedInvalidFiles)
     {
-        Utf8 stat = Utf8Helper::countWithLabel(totalFiles, "file");
+        Utf8              stat = Utf8Helper::countWithLabel(totalFiles, "file");
         std::vector<Utf8> details;
         if (rewrittenFiles)
             details.push_back(Utf8Helper::countWithLabel(rewrittenFiles, "rewritten file"));
@@ -91,13 +91,13 @@ namespace Command
         if (compiler.collectFiles(ctx) == Result::Error)
             return;
 
-        ParserJobOptions parserOptions = {
+        constexpr ParserJobOptions parserOptions = {
             .emitTrivia       = true,
             .ignoreGlobalSkip = true,
         };
 
-        Format::Options                   options;
-        std::vector<Format::PreparedFile> preparedFiles;
+        constexpr FormatOptions         options;
+        std::vector<FormatPreparedFile> preparedFiles;
         preparedFiles.reserve(compiler.files().size());
 
         size_t totalFiles          = 0;
@@ -117,16 +117,16 @@ namespace Command
                 continue;
             }
 
-            Format::PreparedFile preparedFile;
-            Format::prepareFile(*file, options, preparedFile);
+            FormatPreparedFile preparedFile;
+            prepareFormatFile(*file, options, preparedFile);
             preparedFiles.push_back(std::move(preparedFile));
         }
 
-        size_t rewrittenFiles = 0;
+        size_t rewrittenFiles  = 0;
         size_t skippedFmtFiles = 0;
-        for (const Format::PreparedFile& preparedFile : preparedFiles)
+        for (const FormatPreparedFile& preparedFile : preparedFiles)
         {
-            if (Format::writeFile(ctx, preparedFile) != Result::Continue)
+            if (writeFormatFile(ctx, preparedFile) != Result::Continue)
                 return;
             if (preparedFile.skipped)
                 skippedFmtFiles++;

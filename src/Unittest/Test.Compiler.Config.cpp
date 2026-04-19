@@ -7,7 +7,9 @@
 #include "Main/Command/CommandLineParser.h"
 #include "Main/FileSystem.h"
 #include "Main/Stats.h"
+#include "Support/Core/Utf8Helper.h"
 #include "Support/Os/Os.h"
+#include "Support/Report/ScopedTimedAction.h"
 #include "Unittest/Unittest.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -201,6 +203,37 @@ artifact-kind = static-library
     if (cmdLine.backendKind != Runtime::BuildCfgBackendKind::Executable)
         return Result::Error;
     if (!cmdLine.artifactKindExplicit)
+        return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(Compiler_FormatSummaryLineShowsWrittenFilesAfterTime)
+{
+    Stats::resetCommandMetrics();
+
+    Stats& stats = Stats::get();
+    stats.numFiles.store(3, std::memory_order_relaxed);
+    stats.timeTotal.store(1'000'000'000, std::memory_order_relaxed);
+    stats.numFormatRewrittenFiles.store(2, std::memory_order_relaxed);
+
+    CommandLine cmdLine;
+    cmdLine.command  = CommandKind::Format;
+    cmdLine.logColor = false;
+
+    TaskContext                         formatCtx(ctx.global(), cmdLine);
+    const TimedActionLog::StatsSnapshot snapshot        = TimedActionLog::StatsSnapshot::capture();
+    const Utf8                          summaryLine     = TimedActionLog::formatSummaryLine(formatCtx, snapshot);
+    const Utf8                          expectedTime    = Utf8Helper::toNiceTime(1.0);
+    const Utf8                          expectedWritten = Utf8Helper::countWithLabel(2, "written file");
+    const size_t                        landedPos       = summaryLine.find("Landed");
+    const size_t                        timePos         = summaryLine.find(expectedTime);
+    const size_t                        writtenPos      = summaryLine.find(expectedWritten);
+
+    Stats::resetCommandMetrics();
+
+    if (landedPos == Utf8::npos || timePos == Utf8::npos || writtenPos == Utf8::npos)
+        return Result::Error;
+    if (!(landedPos < timePos && timePos < writtenPos))
         return Result::Error;
 }
 SWC_TEST_END()

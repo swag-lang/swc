@@ -491,6 +491,7 @@ TimedActionLog::StatsSnapshot TimedActionLog::StatsSnapshot::capture()
     result.numWarnings = stats.numWarnings.load(std::memory_order_relaxed);
     result.numFiles    = stats.numFiles.load(std::memory_order_relaxed);
     result.numTokens   = stats.numTokens.load(std::memory_order_relaxed);
+    result.numFormatRewrittenFiles = stats.numFormatRewrittenFiles.load(std::memory_order_relaxed);
 
     return result;
 }
@@ -614,6 +615,8 @@ Utf8 TimedActionLog::formatSummaryLine(const TaskContext& ctx, const StatsSnapsh
     if (snapshot.numFiles)
         parts.push_back({Utf8Helper::countWithLabel(snapshot.numFiles, "file"), LogColor::White});
     parts.push_back({Utf8Helper::toNiceTime(Timer::toSeconds(snapshot.timeTotal)), LogColor::White});
+    if (ctx.cmdLine().command == CommandKind::Format && snapshot.numErrors == 0)
+        parts.push_back({Utf8Helper::countWithLabel(snapshot.numFormatRewrittenFiles, "written file"), LogColor::Gray});
     if (snapshot.numWarnings)
         parts.push_back({Utf8Helper::countWithLabel(snapshot.numWarnings, "warning"), LogColor::BrightYellow});
     if (snapshot.numErrors)

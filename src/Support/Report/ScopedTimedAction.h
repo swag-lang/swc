@@ -37,6 +37,7 @@ namespace TimedActionLog
         size_t   numWarnings = 0;
         size_t   numFiles    = 0;
         size_t   numTokens   = 0;
+        size_t   numFormatRewrittenFiles = 0;
 
         static StatsSnapshot capture();
     };

@@ -55,9 +55,7 @@ JobResult FormatJob::exec()
     rewritten_               = writeResult == Result::Continue && formatter.changed();
     if (rewritten_)
     {
-#if SWC_HAS_STATS
         Stats::get().numFormatRewrittenFiles.fetch_add(1, std::memory_order_relaxed);
-#endif
     }
     return toJobResult(jobCtx, writeResult);
 }

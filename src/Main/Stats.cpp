@@ -273,6 +273,7 @@ void Stats::resetCommandMetrics()
     stats.numWarnings.store(0, std::memory_order_relaxed);
     stats.numFiles.store(0, std::memory_order_relaxed);
     stats.numTokens.store(0, std::memory_order_relaxed);
+    stats.numFormatRewrittenFiles.store(0, std::memory_order_relaxed);
 
 #if SWC_HAS_STATS
     stats.timeLoadFile.store(0, std::memory_order_relaxed);
@@ -284,7 +285,6 @@ void Stats::resetCommandMetrics()
     stats.timeFormat.store(0, std::memory_order_relaxed);
     stats.timeFormatWrite.store(0, std::memory_order_relaxed);
 
-    stats.numFormatRewrittenFiles.store(0, std::memory_order_relaxed);
     stats.numFormatSkipFmtFiles.store(0, std::memory_order_relaxed);
     stats.numFormatSkippedInvalidFiles.store(0, std::memory_order_relaxed);
     stats.numAstNodes.store(0, std::memory_order_relaxed);

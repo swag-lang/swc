@@ -1,8 +1,6 @@
 #include "pch.h"
 #include "Main/Command/Command.h"
-#include "Compiler/Parser/Parser/ParserJob.h"
-#include "Compiler/SourceFile.h"
-#include "Format/Formatter.h"
+#include "Format/FormatJob.h"
 #include "Main/CompilerInstance.h"
 #include "Main/Global.h"
 #include "Main/Stats.h"
@@ -15,63 +13,6 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    class FormatJob final : public Job
-    {
-    public:
-        FormatJob(const TaskContext& ctx, SourceFile* file, const FormatOptions& formatOptions, const ParserJobOptions parserOptions) :
-            Job(ctx, JobKind::Format),
-            file_(file),
-            formatOptions_(formatOptions),
-            parserOptions_(parserOptions)
-        {
-        }
-
-        JobResult exec() override
-        {
-            TaskContext& jobCtx = ctx();
-            if (file_->loadContent(jobCtx) != Result::Continue)
-                return JobResult::Done;
-
-            const bool savedMuteOutput    = jobCtx.muteOutput();
-            const bool savedReportToStats = jobCtx.reportToStats();
-            jobCtx.setMuteOutput(true);
-            jobCtx.setReportToStats(false);
-
-            const Result parseResult = parseLoadedSourceFile(jobCtx, *file_, parserOptions_);
-
-            jobCtx.setReportToStats(savedReportToStats);
-            jobCtx.setMuteOutput(savedMuteOutput);
-
-            if (parseResult != Result::Continue)
-                return toJobResult(jobCtx, parseResult);
-            if (jobCtx.hasError())
-            {
-                skippedInvalid_ = true;
-                return JobResult::Done;
-            }
-
-            Formatter formatter(formatOptions_);
-            formatter.prepare(*file_);
-            skippedFmt_ = formatter.skipped();
-
-            const Result writeResult = formatter.write(jobCtx);
-            rewritten_               = writeResult == Result::Continue && formatter.changed();
-            return toJobResult(jobCtx, writeResult);
-        }
-
-        bool rewritten() const { return rewritten_; }
-        bool skippedFmt() const { return skippedFmt_; }
-        bool skippedInvalid() const { return skippedInvalid_; }
-
-    private:
-        SourceFile*      file_ = nullptr;
-        FormatOptions    formatOptions_{};
-        ParserJobOptions parserOptions_{};
-        bool             rewritten_      = false;
-        bool             skippedFmt_     = false;
-        bool             skippedInvalid_ = false;
-    };
-
     Utf8 formatStageStat(const size_t totalFiles, const size_t rewrittenFiles, const size_t skippedFmtFiles, const size_t skippedInvalidFiles)
     {
         Utf8              stat = Utf8Helper::countWithLabel(totalFiles, "file");

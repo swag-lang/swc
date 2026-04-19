@@ -104,7 +104,7 @@ private:
 
     StructConfigEntry& addImpl(const char* name, const char* description, const StructConfigTarget& target, StructConfigAssignHook hook);
 
-    std::vector<StructConfigEntry>   entries_;
+    std::vector<StructConfigEntry>      entries_;
     std::map<Utf8, size_t, std::less<>> entriesMap_;
 };
 
@@ -119,13 +119,13 @@ public:
 private:
     const StructConfigSchema* schema_ = nullptr;
 
-    static bool  parseBool(std::string_view value, bool& result);
-    static bool  parseInt(std::string_view value, int& result);
-    static bool  parseUInt(std::string_view value, uint32_t& result);
+    static bool   parseBool(std::string_view value, bool& result);
+    static bool   parseInt(std::string_view value, int& result);
+    static bool   parseUInt(std::string_view value, uint32_t& result);
     static Utf8   stripInlineComment(std::string_view line, bool& unterminatedQuote);
     static size_t findAssignment(std::string_view line);
-    static Utf8  unquoteValue(std::string_view value);
-    static void  attachSuggestion(Diagnostic& diag, std::optional<Utf8> suggestion);
+    static Utf8   unquoteValue(std::string_view value);
+    static void   attachSuggestion(Diagnostic& diag, std::optional<Utf8> suggestion);
 
     bool applyEntry(TaskContext& ctx, const StructConfigEntry& entry, const fs::path& sourcePath, uint32_t lineNo, std::string_view value, const fs::path& baseDir) const;
     bool reportUnknownKey(TaskContext& ctx, const fs::path& sourcePath, uint32_t lineNo, const Utf8& key) const;

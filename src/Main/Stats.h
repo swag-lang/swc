@@ -5,28 +5,28 @@ class TaskContext;
 
 struct Stats
 {
-    std::atomic<uint64_t> timeTotal   = 0;
-    std::atomic<size_t>   numErrors   = 0;
-    std::atomic<size_t>   numWarnings = 0;
-    std::atomic<size_t>   numFiles    = 0;
-    std::atomic<size_t>   numTokens   = 0;
+    std::atomic<uint64_t> timeTotal               = 0;
+    std::atomic<size_t>   numErrors               = 0;
+    std::atomic<size_t>   numWarnings             = 0;
+    std::atomic<size_t>   numFiles                = 0;
+    std::atomic<size_t>   numTokens               = 0;
     std::atomic<size_t>   numFormatRewrittenFiles = 0;
 
 #if SWC_HAS_STATS
-    std::atomic<uint64_t> timeLoadFile   = 0;
-    std::atomic<uint64_t> timeLexer      = 0;
-    std::atomic<uint64_t> timeParser     = 0;
-    std::atomic<uint64_t> timeSema       = 0;
-    std::atomic<uint64_t> timeCodeGen    = 0;
-    std::atomic<uint64_t> timeMicroLower = 0;
-    std::atomic<uint64_t> timeFormat     = 0;
+    std::atomic<uint64_t> timeLoadFile    = 0;
+    std::atomic<uint64_t> timeLexer       = 0;
+    std::atomic<uint64_t> timeParser      = 0;
+    std::atomic<uint64_t> timeSema        = 0;
+    std::atomic<uint64_t> timeCodeGen     = 0;
+    std::atomic<uint64_t> timeMicroLower  = 0;
+    std::atomic<uint64_t> timeFormat      = 0;
     std::atomic<uint64_t> timeFormatWrite = 0;
 
     std::atomic<size_t> memAllocated    = 0;
     std::atomic<size_t> memMaxAllocated = 0;
 
-    std::atomic<size_t>   numFormatSkipFmtFiles        = 0;
-    std::atomic<size_t>   numFormatSkippedInvalidFiles = 0;
+    std::atomic<size_t>   numFormatSkipFmtFiles                  = 0;
+    std::atomic<size_t>   numFormatSkippedInvalidFiles           = 0;
     std::atomic<size_t>   numAstNodes                            = 0;
     std::atomic<size_t>   numVisitedAstNodes                     = 0;
     std::atomic<size_t>   numConstants                           = 0;

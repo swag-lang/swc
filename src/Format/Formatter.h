@@ -16,15 +16,15 @@ public:
     void   prepare(const SourceFile& file);
     Result write(TaskContext& ctx) const;
 
-    bool changed() const;
-    bool skipped() const;
+    bool             changed() const;
+    bool             skipped() const;
     std::string_view text() const { return text_.view(); }
 
 private:
     static Result reportFormatFailure(TaskContext& ctx, const SourceFile& file, const Utf8& because);
 
     FormatOptions     options_;
-    const SourceFile* file_    = nullptr;
+    const SourceFile* file_ = nullptr;
     Utf8              text_;
     bool              changed_ = false;
     bool              skipped_ = false;

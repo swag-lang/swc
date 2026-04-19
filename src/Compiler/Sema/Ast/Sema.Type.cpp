@@ -539,7 +539,7 @@ Result AstLambdaType::semaPostNode(Sema& sema) const
 
     for (const auto& paramRef : params)
     {
-        const AstLambdaParam& param = sema.node(paramRef).cast<AstLambdaParam>();
+        const AstLambdaParam& param        = sema.node(paramRef).cast<AstLambdaParam>();
         TypeRef               paramTypeRef = TypeRef::invalid();
         if (param.nodeTypeRef.isValid())
             paramTypeRef = sema.viewType(param.nodeTypeRef).typeRef();

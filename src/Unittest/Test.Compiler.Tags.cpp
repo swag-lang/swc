@@ -94,7 +94,7 @@ SWC_TEST_BEGIN(Compiler_TestCommandEnablesSourceDrivenModeWhenParsed)
     char*       argv[] = {arg0, arg1};
 
     CommandLineParser parser(const_cast<Global&>(ctx.global()), parserCmdLine);
-    if (parser.parse(static_cast<int>(std::size(argv)), argv) != Result::Continue)
+    if (parser.parse(std::size(argv), argv) != Result::Continue)
         return Result::Error;
 
     if (parserCmdLine.command != CommandKind::Test)

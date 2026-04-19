@@ -1004,7 +1004,7 @@ Result CompilerInstance::exportModuleApi(TaskContext& ctx)
         const fs::path dstPath = exportApiDir / relativePath;
         SWC_RESULT(ensureModuleApiDirectory(ctx, dstPath.parent_path()));
 
-        const Utf8 content = buildExportedModuleApiContent(*file, moduleNamespace.view(), info.hasModuleNamespace);
+        const Utf8              content = buildExportedModuleApiContent(*file, moduleNamespace.view(), info.hasModuleNamespace);
         FileSystem::IoErrorInfo ioError;
         if (FileSystem::writeBinaryFile(dstPath, content.data(), content.size(), ioError) != Result::Continue)
             return reportModuleApiError(ctx, DiagnosticId::cmd_err_api_file_write_failed, dstPath, FileSystem::describeIoFailure(ioError));

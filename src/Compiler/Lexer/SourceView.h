@@ -96,7 +96,7 @@ private:
     std::vector<uint32_t>         triviaStart_;
     std::vector<SourceIdentifier> identifiers_;
     uint32_t                      sourceStartOffset_ = 0;
-    SourceViewFlags               parseFlags_ = SourceViewFlagsE::Zero;
+    SourceViewFlags               parseFlags_        = SourceViewFlagsE::Zero;
 };
 
 SWC_END_NAMESPACE();

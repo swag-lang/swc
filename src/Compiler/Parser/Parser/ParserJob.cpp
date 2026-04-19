@@ -45,7 +45,7 @@ JobResult ParserJob::exec()
     if (file_->loadContent(jobCtx) != Result::Continue)
         return JobResult::Done;
 
-    return Job::toJobResult(jobCtx, parseLoadedSourceFile(jobCtx, *file_, options_));
+    return toJobResult(jobCtx, parseLoadedSourceFile(jobCtx, *file_, options_));
 }
 
 SWC_END_NAMESPACE();

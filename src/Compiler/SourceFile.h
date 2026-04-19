@@ -11,12 +11,12 @@ class Verify;
 
 enum class FileFlagsE : uint32_t
 {
-    Zero = 0,
-    CustomSrc = 1 << 0,
-    ModuleSrc = 1 << 1,
-    Module    = 1 << 2,
-    Runtime   = 1 << 3,
-    SkipFmt   = 1 << 4,
+    Zero        = 0,
+    CustomSrc   = 1 << 0,
+    ModuleSrc   = 1 << 1,
+    Module      = 1 << 2,
+    Runtime     = 1 << 3,
+    SkipFmt     = 1 << 4,
     ImportedApi = 1 << 5,
 };
 using FileFlags = EnumFlags<FileFlagsE>;

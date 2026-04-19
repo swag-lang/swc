@@ -329,7 +329,6 @@ namespace
 
     // ── Helpers ────────────────────────────────────────────────────────
 
-
     TimedActionLog::StageOutcome classifyOutcome(const TimedActionLog::StatsSnapshot& before, const TimedActionLog::StatsSnapshot& after)
     {
         if (after.numErrors > before.numErrors)
@@ -486,11 +485,11 @@ TimedActionLog::StatsSnapshot TimedActionLog::StatsSnapshot::capture()
     const Stats& stats = Stats::get();
 
     StatsSnapshot result;
-    result.timeTotal   = stats.timeTotal.load(std::memory_order_relaxed);
-    result.numErrors   = stats.numErrors.load(std::memory_order_relaxed);
-    result.numWarnings = stats.numWarnings.load(std::memory_order_relaxed);
-    result.numFiles    = stats.numFiles.load(std::memory_order_relaxed);
-    result.numTokens   = stats.numTokens.load(std::memory_order_relaxed);
+    result.timeTotal               = stats.timeTotal.load(std::memory_order_relaxed);
+    result.numErrors               = stats.numErrors.load(std::memory_order_relaxed);
+    result.numWarnings             = stats.numWarnings.load(std::memory_order_relaxed);
+    result.numFiles                = stats.numFiles.load(std::memory_order_relaxed);
+    result.numTokens               = stats.numTokens.load(std::memory_order_relaxed);
     result.numFormatRewrittenFiles = stats.numFormatRewrittenFiles.load(std::memory_order_relaxed);
 
     return result;

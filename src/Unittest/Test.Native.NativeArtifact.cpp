@@ -246,10 +246,10 @@ SWC_TEST_END()
 
 SWC_TEST_BEGIN(NativeArtifact_ImportedApiKeepsLocalOutputTree)
 {
-    CommandLine       cmdLine   = makeNativeArtifactCmdLine(ctx);
-    const fs::path    inputRoot = inputRootForTest(cmdLine);
-    CompilerInstance  compiler(ctx.global(), cmdLine);
-    NativeBackendBuilder nativeBuilder(compiler, false);
+    CommandLine                 cmdLine   = makeNativeArtifactCmdLine(ctx);
+    const fs::path              inputRoot = inputRootForTest(cmdLine);
+    CompilerInstance            compiler(ctx.global(), cmdLine);
+    NativeBackendBuilder        nativeBuilder(compiler, false);
     const NativeArtifactBuilder artifactBuilder(nativeBuilder);
 
     if (inputRoot.empty())

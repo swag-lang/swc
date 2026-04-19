@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "Main/Command/CommandLineParser.h"
-#include "Main/Command/CommandPrint.h"
 #include "Main/Command/CommandLine.h"
+#include "Main/Command/CommandPrint.h"
 #include "Main/Global.h"
 #include "Main/TaskContext.h"
 #include "Main/Version.h"

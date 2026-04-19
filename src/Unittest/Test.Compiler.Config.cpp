@@ -3,8 +3,8 @@
 #if SWC_HAS_UNITTEST
 
 #include "Compiler/Parser/Parser/ParserJob.h"
-#include "Format/Formatter.h"
 #include "Format/FormatOptionsLoader.h"
+#include "Format/Formatter.h"
 #include "Main/Command/CommandLine.h"
 #include "Main/Command/CommandLineParser.h"
 #include "Main/CompilerInstance.h"
@@ -44,7 +44,7 @@ namespace
             fs::remove_all(root_, ec);
         }
 
-        bool           ready() const { return ready_; }
+        bool            ready() const { return ready_; }
         const fs::path& root() const { return root_; }
 
     private:
@@ -157,9 +157,9 @@ work-dir = ./work
 )"))
         return Result::Error;
 
-    CommandLine cmdLine;
-    const uint64_t errorsBefore = Stats::getNumErrors();
-    const std::vector<std::string> args = {
+    CommandLine                    cmdLine;
+    const uint64_t                 errorsBefore = Stats::getNumErrors();
+    const std::vector<std::string> args         = {
         "swc_devmode",
         "--config-file",
         configPath.string(),
@@ -209,9 +209,9 @@ artifact-kind = static-library
 )"))
         return Result::Error;
 
-    CommandLine cmdLine;
-    const uint64_t errorsBefore = Stats::getNumErrors();
-    const std::vector<std::string> args = {
+    CommandLine                    cmdLine;
+    const uint64_t                 errorsBefore = Stats::getNumErrors();
+    const std::vector<std::string> args         = {
         "swc_devmode",
         "build",
         "--config-file",
@@ -303,8 +303,8 @@ end-of-line-style = lf
     if (!writeTextFile(sourcePath, "func main() {}\n"))
         return Result::Error;
 
-    FormatOptions formatOptions;
-    const uint64_t errorsBefore = Stats::getNumErrors();
+    FormatOptions       formatOptions;
+    const uint64_t      errorsBefore = Stats::getNumErrors();
     FormatOptionsLoader loader(ctx);
     if (loader.resolve(sourcePath, formatOptions) != Result::Continue)
         return Result::Error;

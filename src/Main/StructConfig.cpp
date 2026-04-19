@@ -28,7 +28,7 @@ StructConfigEntry& StructConfigSchema::addImpl(const char* name, const char* des
     SWC_ASSERT(!entry.name.empty());
     SWC_ASSERT(!entriesMap_.contains(entry.name));
 
-    const size_t index = entries_.size();
+    const size_t index      = entries_.size();
     entriesMap_[entry.name] = index;
     entries_.push_back(std::move(entry));
     return entries_.back();
@@ -477,7 +477,7 @@ Result StructConfigReader::readFile(TaskContext& ctx, const fs::path& path) cons
             rawLine.pop_back();
 
         bool unterminatedQuote = false;
-        Utf8 line = stripInlineComment(rawLine, unterminatedQuote);
+        Utf8 line              = stripInlineComment(rawLine, unterminatedQuote);
         if (unterminatedQuote)
         {
             reportInvalidEntry(ctx, normalizedPath, lineNo, "unterminated quoted value");
@@ -495,7 +495,7 @@ Result StructConfigReader::readFile(TaskContext& ctx, const fs::path& path) cons
             return Result::Error;
         }
 
-        Utf8 key = Utf8(Utf8Helper::trim(line.view().substr(0, assignPos)));
+        auto key = Utf8(Utf8Helper::trim(line.view().substr(0, assignPos)));
         if (key.empty())
         {
             reportInvalidEntry(ctx, normalizedPath, lineNo, "missing config key");

@@ -32,11 +32,11 @@ namespace TimedActionLog
 
     struct StatsSnapshot
     {
-        uint64_t timeTotal   = 0;
-        size_t   numErrors   = 0;
-        size_t   numWarnings = 0;
-        size_t   numFiles    = 0;
-        size_t   numTokens   = 0;
+        uint64_t timeTotal               = 0;
+        size_t   numErrors               = 0;
+        size_t   numWarnings             = 0;
+        size_t   numFiles                = 0;
+        size_t   numTokens               = 0;
         size_t   numFormatRewrittenFiles = 0;
 
         static StatsSnapshot capture();

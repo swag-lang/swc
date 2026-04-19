@@ -23,8 +23,8 @@ public:
     JobResult exec() override;
 
 private:
-    SourceFile*       file_    = nullptr;
-    ParserJobOptions  options_{};
+    SourceFile*      file_ = nullptr;
+    ParserJobOptions options_{};
 };
 
 SWC_END_NAMESPACE();

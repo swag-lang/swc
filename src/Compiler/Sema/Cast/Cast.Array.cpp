@@ -84,10 +84,10 @@ namespace
 
     Result checkElemCast(const CastArrayArgs& args, TypeRef srcElemType, TypeRef dstElemType, const ArrayElemLocation& location, ConstantRef valueRef = ConstantRef::invalid())
     {
-        CastRequest  elemCtx = makeElemCastRequest(args, location);
+        CastRequest elemCtx = makeElemCastRequest(args, location);
         if (valueRef.isValid())
             elemCtx.setConstantFoldingSrc(valueRef);
-        const Result res     = Cast::castAllowed(*args.sema, elemCtx, srcElemType, dstElemType);
+        const Result res = Cast::castAllowed(*args.sema, elemCtx, srcElemType, dstElemType);
         if (res != Result::Continue)
             args.castRequest->failure = elemCtx.failure;
         return res;
@@ -181,10 +181,10 @@ namespace
 
     Result castAggregateToArray(const CastArrayArgs& args)
     {
-        const auto&   dstDims        = args.dstType->payloadArrayDims();
-        const TypeRef dstElemTypeRef = args.dstType->payloadArrayElemTypeRef();
-        const auto&   srcTypes       = args.srcType->payloadAggregate().types;
-        const std::vector<ConstantRef>* srcValues = nullptr;
+        const auto&                     dstDims        = args.dstType->payloadArrayDims();
+        const TypeRef                   dstElemTypeRef = args.dstType->payloadArrayElemTypeRef();
+        const auto&                     srcTypes       = args.srcType->payloadAggregate().types;
+        const std::vector<ConstantRef>* srcValues      = nullptr;
         SWC_RESULT(getAggregateConstantValues(args, srcValues));
 
         const bool hasNestedSource = dstDims.size() > 1 &&

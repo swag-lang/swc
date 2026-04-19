@@ -232,6 +232,35 @@ namespace
         size_t      previousCount = 0;
         size_t      currentCount  = 0;
     };
+
+    void printFormatStats(const TaskContext& ctx, const Stats& stats, bool& hasPrintedGroup)
+    {
+        std::vector<Logger::FieldEntry> entries;
+
+        const size_t totalFiles         = stats.numFiles.load();
+        const size_t rewrittenFiles     = stats.numFormatRewrittenFiles.load();
+        const size_t skippedFmtFiles    = stats.numFormatSkipFmtFiles.load();
+        const size_t skippedInvalidFile = stats.numFormatSkippedInvalidFiles.load();
+        const size_t classifiedFiles    = rewrittenFiles + skippedFmtFiles + skippedInvalidFile;
+        const size_t unchangedFiles     = totalFiles >= classifiedFiles ? totalFiles - classifiedFiles : 0;
+
+        addField(entries, "Files", Utf8Helper::countWithLabel(totalFiles, "file"));
+        addField(entries, "Rewritten", Utf8Helper::countWithLabel(rewrittenFiles, "file"));
+        addField(entries, "Unchanged", Utf8Helper::countWithLabel(unchangedFiles, "file"));
+        addField(entries, "SkipFmt", Utf8Helper::countWithLabel(skippedFmtFiles, "file"));
+        addField(entries, "Skipped invalid", Utf8Helper::countWithLabel(skippedInvalidFile, "file"));
+        addField(entries, "Tokens", Utf8Helper::toNiceBigNumber(stats.numTokens.load()));
+        addField(entries, "AST nodes", Utf8Helper::toNiceBigNumber(stats.numAstNodes.load()));
+        Logger::printFieldGroup(ctx, "Format", entries, nextStatsGroupStyle(hasPrintedGroup));
+
+        entries.clear();
+        addField(entries, "Load file", Utf8Helper::toNiceTime(Timer::toSeconds(stats.timeLoadFile.load())));
+        addField(entries, "Lexer", Utf8Helper::toNiceTime(Timer::toSeconds(stats.timeLexer.load())));
+        addField(entries, "Parser", Utf8Helper::toNiceTime(Timer::toSeconds(stats.timeParser.load())));
+        addField(entries, "Format emit", Utf8Helper::toNiceTime(Timer::toSeconds(stats.timeFormat.load())));
+        addField(entries, "File write", Utf8Helper::toNiceTime(Timer::toSeconds(stats.timeFormatWrite.load())));
+        Logger::printFieldGroup(ctx, "Timings", entries, nextStatsGroupStyle(hasPrintedGroup, 30));
+    }
 }
 #endif
 
@@ -252,7 +281,12 @@ void Stats::resetCommandMetrics()
     stats.timeSema.store(0, std::memory_order_relaxed);
     stats.timeCodeGen.store(0, std::memory_order_relaxed);
     stats.timeMicroLower.store(0, std::memory_order_relaxed);
+    stats.timeFormat.store(0, std::memory_order_relaxed);
+    stats.timeFormatWrite.store(0, std::memory_order_relaxed);
 
+    stats.numFormatRewrittenFiles.store(0, std::memory_order_relaxed);
+    stats.numFormatSkipFmtFiles.store(0, std::memory_order_relaxed);
+    stats.numFormatSkippedInvalidFiles.store(0, std::memory_order_relaxed);
     stats.numAstNodes.store(0, std::memory_order_relaxed);
     stats.numVisitedAstNodes.store(0, std::memory_order_relaxed);
     stats.numConstants.store(0, std::memory_order_relaxed);
@@ -300,68 +334,75 @@ void Stats::print(const TaskContext& ctx) const
 #if SWC_HAS_STATS
     if (ctx.cmdLine().stats)
     {
-        entries.clear();
-        addField(entries, "Files", Utf8Helper::toNiceBigNumber(numFiles.load()));
-        addField(entries, "Tokens", Utf8Helper::toNiceBigNumber(numTokens.load()));
-        addField(entries, "AST nodes", Utf8Helper::toNiceBigNumber(numAstNodes.load()));
-        addField(entries, "Visited AST nodes", Utf8Helper::toNiceBigNumber(numVisitedAstNodes.load()));
-        Logger::printFieldGroup(ctx, "Frontend", entries, nextStatsGroupStyle(hasPrintedGroup));
+        if (ctx.cmdLine().command == CommandKind::Format)
+        {
+            printFormatStats(ctx, *this, hasPrintedGroup);
+        }
+        else
+        {
+            entries.clear();
+            addField(entries, "Files", Utf8Helper::toNiceBigNumber(numFiles.load()));
+            addField(entries, "Tokens", Utf8Helper::toNiceBigNumber(numTokens.load()));
+            addField(entries, "AST nodes", Utf8Helper::toNiceBigNumber(numAstNodes.load()));
+            addField(entries, "Visited AST nodes", Utf8Helper::toNiceBigNumber(numVisitedAstNodes.load()));
+            Logger::printFieldGroup(ctx, "Frontend", entries, nextStatsGroupStyle(hasPrintedGroup));
 
-        entries.clear();
-        addField(entries, "Constants", Utf8Helper::toNiceBigNumber(numConstants.load()));
-        addField(entries, "Builtin fast hits", Utf8Helper::toNiceBigNumber(numConstantBuiltinFastHits.load()));
-        addField(entries, "Small scalar cache hits", Utf8Helper::toNiceBigNumber(numConstantSmallScalarCacheHits.load()));
-        addField(entries, "Small scalar cache misses", Utf8Helper::toNiceBigNumber(numConstantSmallScalarCacheMisses.load()));
-        addField(entries, "Slow path calls", Utf8Helper::toNiceBigNumber(numConstantSlowPathCalls.load()));
-        addField(entries, "Materialized payload fast path", Utf8Helper::toNiceBigNumber(numConstantMaterializedPayloadFastPath.load()));
-        addField(entries, "Types", Utf8Helper::toNiceBigNumber(numTypes.load()));
-        addField(entries, "Identifiers", Utf8Helper::toNiceBigNumber(numIdentifiers.load()));
-        addField(entries, "Symbols", Utf8Helper::toNiceBigNumber(numSymbols.load()));
-        addField(entries, "Codegen functions", Utf8Helper::toNiceBigNumber(numCodeGenFunctions.load()));
-        Logger::printFieldGroup(ctx, "Semantic Model", entries, nextStatsGroupStyle(hasPrintedGroup, 34));
+            entries.clear();
+            addField(entries, "Constants", Utf8Helper::toNiceBigNumber(numConstants.load()));
+            addField(entries, "Builtin fast hits", Utf8Helper::toNiceBigNumber(numConstantBuiltinFastHits.load()));
+            addField(entries, "Small scalar cache hits", Utf8Helper::toNiceBigNumber(numConstantSmallScalarCacheHits.load()));
+            addField(entries, "Small scalar cache misses", Utf8Helper::toNiceBigNumber(numConstantSmallScalarCacheMisses.load()));
+            addField(entries, "Slow path calls", Utf8Helper::toNiceBigNumber(numConstantSlowPathCalls.load()));
+            addField(entries, "Materialized payload fast path", Utf8Helper::toNiceBigNumber(numConstantMaterializedPayloadFastPath.load()));
+            addField(entries, "Types", Utf8Helper::toNiceBigNumber(numTypes.load()));
+            addField(entries, "Identifiers", Utf8Helper::toNiceBigNumber(numIdentifiers.load()));
+            addField(entries, "Symbols", Utf8Helper::toNiceBigNumber(numSymbols.load()));
+            addField(entries, "Codegen functions", Utf8Helper::toNiceBigNumber(numCodeGenFunctions.load()));
+            Logger::printFieldGroup(ctx, "Semantic Model", entries, nextStatsGroupStyle(hasPrintedGroup, 34));
 
-        entries.clear();
-        const size_t numMicroInitial          = numMicroInstrInitial.load();
-        const size_t numMicroAfterStart       = numMicroInstrAfterStart.load();
-        const size_t numMicroAfterPreRaOptim  = numMicroInstrAfterPreRaOptim.load();
-        const size_t numMicroAfterRa          = numMicroInstrAfterRa.load();
-        const size_t numMicroAfterPostRaSetup = numMicroInstrAfterPostRaSetup.load();
-        const size_t numMicroAfterPostRaOptim = numMicroInstrAfterPostRaOptim.load();
-        const size_t numMicroFinal            = numMicroInstrFinal.load();
+            entries.clear();
+            const size_t numMicroInitial          = numMicroInstrInitial.load();
+            const size_t numMicroAfterStart       = numMicroInstrAfterStart.load();
+            const size_t numMicroAfterPreRaOptim  = numMicroInstrAfterPreRaOptim.load();
+            const size_t numMicroAfterRa          = numMicroInstrAfterRa.load();
+            const size_t numMicroAfterPostRaSetup = numMicroInstrAfterPostRaSetup.load();
+            const size_t numMicroAfterPostRaOptim = numMicroInstrAfterPostRaOptim.load();
+            const size_t numMicroFinal            = numMicroInstrFinal.load();
 
-        addField(entries, "Initial lowered instructions", Utf8Helper::toNiceBigNumber(numMicroInitial));
+            addField(entries, "Initial lowered instructions", Utf8Helper::toNiceBigNumber(numMicroInitial));
 
-        const std::array transitions = {
-            MicroStageTransition{"After stack adjust normalize", numMicroInitial, numMicroAfterStart},
-            MicroStageTransition{"After pre-RA optim loop", numMicroAfterStart, numMicroAfterPreRaOptim},
-            MicroStageTransition{"After legalize/regalloc loop", numMicroAfterPreRaOptim, numMicroAfterRa},
-            MicroStageTransition{"After prolog/epilog setup", numMicroAfterRa, numMicroAfterPostRaSetup},
-            MicroStageTransition{"After post-RA optim passes", numMicroAfterPostRaSetup, numMicroAfterPostRaOptim},
-            MicroStageTransition{"Final sanitized instructions", numMicroAfterPostRaOptim, numMicroFinal},
-        };
+            const std::array transitions = {
+                MicroStageTransition{"After stack adjust normalize", numMicroInitial, numMicroAfterStart},
+                MicroStageTransition{"After pre-RA optim loop", numMicroAfterStart, numMicroAfterPreRaOptim},
+                MicroStageTransition{"After legalize/regalloc loop", numMicroAfterPreRaOptim, numMicroAfterRa},
+                MicroStageTransition{"After prolog/epilog setup", numMicroAfterRa, numMicroAfterPostRaSetup},
+                MicroStageTransition{"After post-RA optim passes", numMicroAfterPostRaSetup, numMicroAfterPostRaOptim},
+                MicroStageTransition{"Final sanitized instructions", numMicroAfterPostRaOptim, numMicroFinal},
+            };
 
-        for (const MicroStageTransition& transition : transitions)
-            addField(entries, transition.countLabel, formatMicroInstrTotalWithDelta(transition.currentCount, transition.previousCount));
+            for (const MicroStageTransition& transition : transitions)
+                addField(entries, transition.countLabel, formatMicroInstrTotalWithDelta(transition.currentCount, transition.previousCount));
 
-        const int64_t pipelineDelta = static_cast<int64_t>(numMicroFinal) - static_cast<int64_t>(numMicroInitial);
-        addField(entries, "Initial to final delta", formatMicroInstrDelta(pipelineDelta, numMicroInitial));
-        addField(entries, "SSA builds", Utf8Helper::toNiceBigNumber(numMicroSsaBuilds.load()));
-        addField(entries, "SSA invalidations", Utf8Helper::toNiceBigNumber(numMicroSsaInvalidations.load()));
-        Logger::printFieldGroup(ctx, "Micro Pipeline", entries, nextStatsGroupStyle(hasPrintedGroup, 36));
+            const int64_t pipelineDelta = static_cast<int64_t>(numMicroFinal) - static_cast<int64_t>(numMicroInitial);
+            addField(entries, "Initial to final delta", formatMicroInstrDelta(pipelineDelta, numMicroInitial));
+            addField(entries, "SSA builds", Utf8Helper::toNiceBigNumber(numMicroSsaBuilds.load()));
+            addField(entries, "SSA invalidations", Utf8Helper::toNiceBigNumber(numMicroSsaInvalidations.load()));
+            Logger::printFieldGroup(ctx, "Micro Pipeline", entries, nextStatsGroupStyle(hasPrintedGroup, 36));
 
-        entries.clear();
-        addField(entries, "Load file", Utf8Helper::toNiceTime(Timer::toSeconds(timeLoadFile.load())));
-        addField(entries, "Lexer", Utf8Helper::toNiceTime(Timer::toSeconds(timeLexer.load())));
-        addField(entries, "Parser", Utf8Helper::toNiceTime(Timer::toSeconds(timeParser.load())));
-        addField(entries, "Semantic analysis", Utf8Helper::toNiceTime(Timer::toSeconds(timeSema.load())));
-        addField(entries, "Codegen", Utf8Helper::toNiceTime(Timer::toSeconds(timeCodeGen.load())));
-        addField(entries, "Micro lower", Utf8Helper::toNiceTime(Timer::toSeconds(timeMicroLower.load())));
-        addField(entries, "Micro SSA build", Utf8Helper::toNiceTime(Timer::toSeconds(timeMicroSsaBuild.load())));
-        addField(entries, "Micro SSA blocks", Utf8Helper::toNiceTime(Timer::toSeconds(timeMicroSsaBlocks.load())));
-        addField(entries, "Micro SSA dominators", Utf8Helper::toNiceTime(Timer::toSeconds(timeMicroSsaDominators.load())));
-        addField(entries, "Micro SSA phi placement", Utf8Helper::toNiceTime(Timer::toSeconds(timeMicroSsaPhiPlacement.load())));
-        addField(entries, "Micro SSA rename", Utf8Helper::toNiceTime(Timer::toSeconds(timeMicroSsaRename.load())));
-        Logger::printFieldGroup(ctx, "Timings", entries, nextStatsGroupStyle(hasPrintedGroup, 34));
+            entries.clear();
+            addField(entries, "Load file", Utf8Helper::toNiceTime(Timer::toSeconds(timeLoadFile.load())));
+            addField(entries, "Lexer", Utf8Helper::toNiceTime(Timer::toSeconds(timeLexer.load())));
+            addField(entries, "Parser", Utf8Helper::toNiceTime(Timer::toSeconds(timeParser.load())));
+            addField(entries, "Semantic analysis", Utf8Helper::toNiceTime(Timer::toSeconds(timeSema.load())));
+            addField(entries, "Codegen", Utf8Helper::toNiceTime(Timer::toSeconds(timeCodeGen.load())));
+            addField(entries, "Micro lower", Utf8Helper::toNiceTime(Timer::toSeconds(timeMicroLower.load())));
+            addField(entries, "Micro SSA build", Utf8Helper::toNiceTime(Timer::toSeconds(timeMicroSsaBuild.load())));
+            addField(entries, "Micro SSA blocks", Utf8Helper::toNiceTime(Timer::toSeconds(timeMicroSsaBlocks.load())));
+            addField(entries, "Micro SSA dominators", Utf8Helper::toNiceTime(Timer::toSeconds(timeMicroSsaDominators.load())));
+            addField(entries, "Micro SSA phi placement", Utf8Helper::toNiceTime(Timer::toSeconds(timeMicroSsaPhiPlacement.load())));
+            addField(entries, "Micro SSA rename", Utf8Helper::toNiceTime(Timer::toSeconds(timeMicroSsaRename.load())));
+            Logger::printFieldGroup(ctx, "Timings", entries, nextStatsGroupStyle(hasPrintedGroup, 34));
+        }
     }
 
     if (ctx.cmdLine().statsMem)

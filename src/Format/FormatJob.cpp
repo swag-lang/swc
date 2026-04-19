@@ -2,6 +2,7 @@
 #include "Format/FormatJob.h"
 #include "Compiler/SourceFile.h"
 #include "Format/Formatter.h"
+#include "Main/Stats.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -34,15 +35,20 @@ JobResult FormatJob::exec()
     if (jobCtx.hasError())
     {
         skippedInvalid_ = true;
+        Stats::get().numFormatSkippedInvalidFiles.fetch_add(1, std::memory_order_relaxed);
         return JobResult::Done;
     }
 
     Formatter formatter(formatOptions_);
     formatter.prepare(*file_);
     skippedFmt_ = formatter.skipped();
+    if (skippedFmt_)
+        Stats::get().numFormatSkipFmtFiles.fetch_add(1, std::memory_order_relaxed);
 
     const Result writeResult = formatter.write(jobCtx);
     rewritten_               = writeResult == Result::Continue && formatter.changed();
+    if (rewritten_)
+        Stats::get().numFormatRewrittenFiles.fetch_add(1, std::memory_order_relaxed);
     return toJobResult(jobCtx, writeResult);
 }
 

@@ -4,6 +4,8 @@
 #include "Compiler/SourceFile.h"
 #include "Format/AstSourceWriter.h"
 #include "Main/FileSystem.h"
+#include "Main/Stats.h"
+#include "Support/Core/Timer.h"
 #include "Support/Report/Diagnostic.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -15,6 +17,7 @@ Formatter::Formatter(const FormatOptions& options) :
 
 void Formatter::prepare(const SourceFile& file)
 {
+    Timer time(&Stats::get().timeFormat);
     file_ = &file;
     if (file.mustSkipFormat())
     {
@@ -45,6 +48,7 @@ Result Formatter::write(TaskContext& ctx) const
     if (!changed_)
         return Result::Continue;
 
+    Timer time(&Stats::get().timeFormatWrite);
     FileSystem::IoErrorInfo ioError;
     if (FileSystem::writeBinaryFile(file_->path(), text_.data(), text_.size(), ioError) != Result::Continue)
         return reportFormatFailure(ctx, *file_, FileSystem::describeIoFailure(ioError));

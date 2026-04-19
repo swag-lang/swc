@@ -3,6 +3,7 @@
 ## Hard Rules
 
 - Always fix the **root cause** of problems. Do not introduce hacks or workarounds.
+- Follow the rules defined in `@coding-rules.md` when designing and writing code.
 
 ---
 
@@ -37,7 +38,7 @@
 - **C++ unit tests**:
     - Must be placed in `src/Unittest`
 
-- Individual tests must not exceed **40 seconds** of runtime  
+- Individual tests must not exceed **40 seconds** of runtime
   (compilation time excluded).
 
 ---
@@ -45,9 +46,3 @@
 ### Clean Workspace
 
 - Remove any **temporary files or folders** created during debugging or investigation before finishing.
-
----
-
-## Coding Rules
-
-- Follow the rules defined in `@coding-rules.md` when designing and writing code.

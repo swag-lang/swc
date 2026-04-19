@@ -123,3 +123,18 @@ const SemaLitArr4 = [[0'u16, 31], [59, 90]]
 #assert(#typeof(SemaLitArr4) == #type [2][2] u16)
 #assert(SemaLitArr4[0][1] == 31'u16)
 #assert(SemaLitArr4[1][1] == 90'u16)
+
+fileprivate
+{
+    const HexFill = 0xF0
+}
+
+const SemaLitArr5: [2] u8 = [HexFill, HexFill]
+#assert(#typeof(SemaLitArr5) == #type [2] u8)
+#assert(SemaLitArr5[0] == 0xF0'u8)
+#assert(SemaLitArr5[1] == 0xF0'u8)
+
+const SemaLitArr6: [3] u8 = HexFill
+#assert(#typeof(SemaLitArr6) == #type [3] u8)
+#assert(SemaLitArr6[0] == 0xF0'u8)
+#assert(SemaLitArr6[2] == 0xF0'u8)

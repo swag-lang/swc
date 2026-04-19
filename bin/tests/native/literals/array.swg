@@ -133,3 +133,22 @@ const AB2: [?] u32 = [[1], [2]]
     @assert(a[0, 0] == 1.5)
     @assert(a[1, 2] == 1.5)
 }
+
+fileprivate
+{
+    const HexFill = 0xF0
+}
+
+#test
+{
+    const a: [2] u8 = [HexFill, HexFill]
+    @assert(a[0] == 0xF0'u8)
+    @assert(a[1] == 0xF0'u8)
+}
+
+#test
+{
+    const a: [3] u8 = HexFill
+    @assert(a[0] == 0xF0'u8)
+    @assert(a[2] == 0xF0'u8)
+}

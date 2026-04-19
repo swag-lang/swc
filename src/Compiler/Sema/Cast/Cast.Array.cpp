@@ -82,9 +82,11 @@ namespace
         return elemCtx;
     }
 
-    Result checkElemCast(const CastArrayArgs& args, TypeRef srcElemType, TypeRef dstElemType, const ArrayElemLocation& location)
+    Result checkElemCast(const CastArrayArgs& args, TypeRef srcElemType, TypeRef dstElemType, const ArrayElemLocation& location, ConstantRef valueRef = ConstantRef::invalid())
     {
         CastRequest  elemCtx = makeElemCastRequest(args, location);
+        if (valueRef.isValid())
+            elemCtx.setConstantFoldingSrc(valueRef);
         const Result res     = Cast::castAllowed(*args.sema, elemCtx, srcElemType, dstElemType);
         if (res != Result::Continue)
             args.castRequest->failure = elemCtx.failure;
@@ -118,6 +120,20 @@ namespace
         const ConstantRef result = ConstantHelpers::materializeStaticPayloadConstant(*args.sema, args.dstTypeRef, ByteSpan{bytes.data(), bytes.size()});
         SWC_ASSERT(result.isValid());
         return result;
+    }
+
+    Result getAggregateConstantValues(const CastArrayArgs& args, const std::vector<ConstantRef>*& outValues)
+    {
+        outValues = nullptr;
+        if (!args.castRequest->isConstantFolding())
+            return Result::Continue;
+
+        const ConstantValue& cst = args.sema->cstMgr().get(args.castRequest->constantFoldingSrc());
+        if (!cst.isAggregateArray())
+            return failArrayConst(args, DiagnosticId::sema_err_array_cast_expected_aggregate_constant);
+
+        outValues = &cst.getAggregateArray();
+        return Result::Continue;
     }
 
     Result castArrayToArray(const CastArrayArgs& args)
@@ -168,6 +184,8 @@ namespace
         const auto&   dstDims        = args.dstType->payloadArrayDims();
         const TypeRef dstElemTypeRef = args.dstType->payloadArrayElemTypeRef();
         const auto&   srcTypes       = args.srcType->payloadAggregate().types;
+        const std::vector<ConstantRef>* srcValues = nullptr;
+        SWC_RESULT(getAggregateConstantValues(args, srcValues));
 
         const bool hasNestedSource = dstDims.size() > 1 &&
                                      std::ranges::all_of(srcTypes, [&](const TypeRef srcElemTypeRef) {
@@ -192,28 +210,24 @@ namespace
             for (size_t i = 0; i < srcTypes.size(); ++i)
             {
                 const ArrayElemLocation location = arrayElemLocation(args, i);
-                SWC_RESULT(checkElemCast(args, srcTypes[i], dstSubArrayType, location));
+                const ConstantRef       valueRef = srcValues ? (*srcValues)[i] : ConstantRef::invalid();
+                SWC_RESULT(checkElemCast(args, srcTypes[i], dstSubArrayType, location, valueRef));
             }
 
             if (!args.castRequest->isConstantFolding())
                 return Result::Continue;
 
-            const ConstantValue& cst = args.sema->cstMgr().get(args.castRequest->constantFoldingSrc());
-            if (!cst.isAggregateArray())
-                return failArrayConst(args, DiagnosticId::sema_err_array_cast_expected_aggregate_constant);
-
-            const auto&            values    = cst.getAggregateArray();
             TaskContext&           ctx       = args.sema->ctx();
             const uint64_t         arraySize = args.dstType->sizeOf(ctx);
             std::vector<std::byte> buffer(arraySize);
             const ByteSpanRW       bytes        = asByteSpan(buffer);
             const uint64_t         subArraySize = typeMgr.get(dstSubArrayType).sizeOf(ctx);
 
-            for (size_t i = 0; i < values.size(); ++i)
+            for (size_t i = 0; i < srcValues->size(); ++i)
             {
                 const ArrayElemLocation location = arrayElemLocation(args, i);
                 ConstantRef             castedRef;
-                SWC_RESULT(foldElemCast(args, srcTypes[i], dstSubArrayType, location, values[i], castedRef));
+                SWC_RESULT(foldElemCast(args, srcTypes[i], dstSubArrayType, location, (*srcValues)[i], castedRef));
                 const ByteSpanRW dstChunk{bytes.data() + (i * subArraySize), subArraySize};
                 SWC_RESULT(ConstantLower::lowerToBytes(*args.sema, dstChunk, castedRef, dstSubArrayType));
             }
@@ -233,25 +247,21 @@ namespace
         for (size_t i = 0; i < srcTypes.size(); ++i)
         {
             const ArrayElemLocation location = arrayElemLocation(args, i);
-            SWC_RESULT(checkElemCast(args, srcTypes[i], dstElemTypeRef, location));
+            const ConstantRef       valueRef = srcValues ? (*srcValues)[i] : ConstantRef::invalid();
+            SWC_RESULT(checkElemCast(args, srcTypes[i], dstElemTypeRef, location, valueRef));
         }
 
         if (!args.castRequest->isConstantFolding())
             return Result::Continue;
 
-        const ConstantValue& cst = args.sema->cstMgr().get(args.castRequest->constantFoldingSrc());
-        if (!cst.isAggregateArray())
-            return failArrayConst(args, DiagnosticId::sema_err_array_cast_expected_aggregate_constant);
-
-        const auto&              values = cst.getAggregateArray();
         SmallVector<ConstantRef> newValues;
-        newValues.reserve(values.size());
+        newValues.reserve(srcValues->size());
 
-        for (size_t i = 0; i < values.size(); ++i)
+        for (size_t i = 0; i < srcValues->size(); ++i)
         {
             const ArrayElemLocation location = arrayElemLocation(args, i);
             ConstantRef             castedRef;
-            SWC_RESULT(foldElemCast(args, srcTypes[i], dstElemTypeRef, location, values[i], castedRef));
+            SWC_RESULT(foldElemCast(args, srcTypes[i], dstElemTypeRef, location, (*srcValues)[i], castedRef));
             newValues.push_back(castedRef);
         }
 
@@ -269,7 +279,8 @@ namespace
         while (args.sema->typeMgr().get(leafTypeRef).isArray())
             leafTypeRef = args.sema->typeMgr().get(leafTypeRef).payloadArrayElemTypeRef();
 
-        SWC_RESULT(checkElemCast(args, args.srcTypeRef, leafTypeRef, {}));
+        const ConstantRef valueRef = args.castRequest->isConstantFolding() ? args.castRequest->constantFoldingSrc() : ConstantRef::invalid();
+        SWC_RESULT(checkElemCast(args, args.srcTypeRef, leafTypeRef, {}, valueRef));
 
         if (!args.castRequest->isConstantFolding())
             return Result::Continue;

@@ -30,7 +30,7 @@ JobResult FormatJob::exec()
     jobCtx.setMuteOutput(savedMuteOutput);
 
     if (parseResult != Result::Continue)
-        return Job::toJobResult(jobCtx, parseResult);
+        return toJobResult(jobCtx, parseResult);
     if (jobCtx.hasError())
     {
         skippedInvalid_ = true;
@@ -43,7 +43,7 @@ JobResult FormatJob::exec()
 
     const Result writeResult = formatter.write(jobCtx);
     rewritten_               = writeResult == Result::Continue && formatter.changed();
-    return Job::toJobResult(jobCtx, writeResult);
+    return toJobResult(jobCtx, writeResult);
 }
 
 SWC_END_NAMESPACE();

@@ -35,6 +35,7 @@ private:
     static constexpr uint32_t INVALID_BYTE = 0xFFFFFFFFu;
 
     void        beginOutput();
+    void        finalizeOutput();
     void        writeNode(AstNodeRef nodeRef);
     void        writeNodeChildren(const AstNode& node);
     void        collectSourceOrderedChildren(SmallVector<AstNodeRef>& out, const AstNode& node) const;
@@ -48,11 +49,13 @@ private:
     void        appendSourcePiece(const SourcePiece& piece);
     bool        shouldRewriteIndentation() const;
     bool        shouldRewriteEndOfLine() const;
+    bool        hasTrailingLineBreak() const;
     bool        isAtLineStart() const;
     void        appendWhitespacePiece(const SourcePiece& piece) const;
     void        appendCommentPiece(const SourcePiece& piece) const;
     void        appendNormalizedIndent(std::string_view text) const;
     void        appendConfiguredEndOfLine() const;
+    std::string_view resolveFinalNewline() const;
     SourcePiece makeTriviaPiece(uint32_t triviaIndex) const;
     SourcePiece makeTokenPiece(uint32_t tokenIndex) const;
 

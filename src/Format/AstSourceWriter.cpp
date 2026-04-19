@@ -58,6 +58,7 @@ void AstSourceWriter::write()
     writeNode(ast_->root());
     flushUntilByte(eofByte_);
     SWC_ASSERT(cursorByte_ == eofByte_);
+    finalizeOutput();
 }
 
 void AstSourceWriter::beginOutput()
@@ -73,6 +74,14 @@ void AstSourceWriter::beginOutput()
         formatCtx_->output += srcView_->codeView(0, prefixOffset);
 
     cursorByte_ = prefixOffset;
+}
+
+void AstSourceWriter::finalizeOutput()
+{
+    if (!options_->insertFinalNewline || hasTrailingLineBreak())
+        return;
+
+    formatCtx_->output += resolveFinalNewline();
 }
 
 void AstSourceWriter::writeNode(AstNodeRef nodeRef)
@@ -243,6 +252,13 @@ bool AstSourceWriter::shouldRewriteEndOfLine() const
     return options_->endOfLineStyle != FormatEndOfLineStyle::Preserve;
 }
 
+bool AstSourceWriter::hasTrailingLineBreak() const
+{
+    if (formatCtx_->output.empty())
+        return false;
+    return formatCtx_->output.back() == '\n' || formatCtx_->output.back() == '\r';
+}
+
 bool AstSourceWriter::isAtLineStart() const
 {
     return formatCtx_->output.empty() || formatCtx_->output.back() == '\n';
@@ -393,6 +409,37 @@ void AstSourceWriter::appendConfiguredEndOfLine() const
         case FormatEndOfLineStyle::Preserve:
             SWC_UNREACHABLE();
     }
+}
+
+std::string_view AstSourceWriter::resolveFinalNewline() const
+{
+    switch (options_->endOfLineStyle)
+    {
+        case FormatEndOfLineStyle::LF:
+            return "\n";
+
+        case FormatEndOfLineStyle::CRLF:
+            return "\r\n";
+
+        case FormatEndOfLineStyle::Preserve:
+            break;
+    }
+
+    const std::string_view text = formatCtx_->output.view();
+    for (size_t i = text.size(); i != 0; --i)
+    {
+        if (text[i - 1] == '\n')
+        {
+            if (i >= 2 && text[i - 2] == '\r')
+                return "\r\n";
+            return "\n";
+        }
+
+        if (text[i - 1] == '\r')
+            return "\r";
+    }
+
+    return "\n";
 }
 
 AstSourceWriter::SourcePiece AstSourceWriter::makeTriviaPiece(uint32_t triviaIndex) const

@@ -7,6 +7,7 @@
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Generic/SemaGeneric.h"
+#include "Compiler/Sema/Helpers/SemaCheck.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Compiler/Sema/Helpers/SemaRuntime.h"
@@ -70,6 +71,20 @@ namespace
             return TypeRef::invalid();
 
         return pointeeTypeRef;
+    }
+
+    Result normalizeTypeInfoCallArgument(Sema& sema, AstNodeRef argValueRef, TypeRef paramTypeRef, SemaNodeView& argView)
+    {
+        if (!argValueRef.isValid() || !paramTypeRef.isValid())
+            return Result::Continue;
+
+        const TypeInfo& paramType = sema.typeMgr().get(paramTypeRef);
+        if (!paramType.isAnyTypeInfo(sema.ctx()))
+            return Result::Continue;
+        if (sema.isValue(argValueRef))
+            return Result::Continue;
+
+        return SemaCheck::isValueOrTypeInfo(sema, argView);
     }
 
     using SemaHelpers::callableTypeFunction;
@@ -918,7 +933,8 @@ namespace
             return Result::Continue;
         }
 
-        const SemaNodeView argNodeView(sema, argRef, SemaNodeViewPartE::Node | SemaNodeViewPartE::Constant);
+        const AstNodeRef   argValueRef = Match::resolveCallArgumentValueRef(sema, argRef);
+        SemaNodeView       argNodeView(sema, argValueRef, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
         auto               castKind  = CastKind::Parameter;
         CastFlags          castFlags = CastFlagsE::Zero;
         SWC_ASSERT(argNodeView.node() != nullptr);
@@ -934,17 +950,19 @@ namespace
         if (argNodeView.cstRef().isValid() && sema.isFoldedTypedConst(argRef))
             castFlags.add(CastFlagsE::FoldedTypedConst);
 
+        TypeRef bindValueTypeRef = implicitConstReferenceBindingValueTypeRef(sema, to, from);
+        TypeRef castToTypeRef    = bindValueTypeRef.isValid() ? bindValueTypeRef : to;
+        SWC_RESULT(normalizeTypeInfoCallArgument(sema, argValueRef, castToTypeRef, argNodeView));
+        from = argNodeView.typeRef().isValid() ? argNodeView.typeRef() : from;
+
         CastRequest castRequest(castKind);
         castRequest.flags        = castFlags;
-        castRequest.errorNodeRef = argRef;
+        castRequest.errorNodeRef = argValueRef;
         castRequest.setConstantFoldingSrc(argNodeView.cstRef());
         if (isUfcsArgument)
             castRequest.flags.add(CastFlagsE::UfcsArgument);
         if (allowUserDefinedLiteralSuffix)
             castRequest.flags.add(CastFlagsE::LiteralSuffixConsume);
-
-        const TypeRef bindValueTypeRef = implicitConstReferenceBindingValueTypeRef(sema, to, from);
-        const TypeRef castToTypeRef    = bindValueTypeRef.isValid() ? bindValueTypeRef : to;
         const Result  castResult       = Cast::castAllowed(sema, castRequest, from, castToTypeRef);
         if (castResult == Result::Pause)
             return Result::Pause;
@@ -1668,6 +1686,7 @@ namespace
             const TypeRef    bindValueTypeRef = implicitConstReferenceBindingValueTypeRef(sema, paramTypeRef, argView.typeRef());
             if (bindValueTypeRef.isValid())
                 castTypeRef = bindValueTypeRef;
+            SWC_RESULT(normalizeTypeInfoCallArgument(sema, argValueRef, castTypeRef, argView));
 
             CastFlags flags = CastFlagsE::Zero;
             if (castTypeRef == paramTypeRef && allowsImplicitAddressBinding(selectedFn, i, appliedUfcsArg))
@@ -1701,6 +1720,7 @@ namespace
         if (fixedVariadicArg.argRef.isValid())
         {
             SemaNodeView              argView(sema, fixedVariadicArg.argRef, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
+            SWC_RESULT(normalizeTypeInfoCallArgument(sema, fixedVariadicArg.argRef, variadicTy, argView));
             const DiagnosticArguments errorArguments = makeCallCastErrorArguments(selectedFn, fixedVariadicArg.callArgIndex, sema.ctx());
             SWC_RESULT(Cast::cast(sema, argView, variadicTy, CastKind::Implicit, CastFlagsE::Zero, &errorArguments));
         }
@@ -1708,6 +1728,7 @@ namespace
         for (const CallArgEntry& entry : mapping.variadicArgs)
         {
             SemaNodeView              argView(sema, entry.argRef, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
+            SWC_RESULT(normalizeTypeInfoCallArgument(sema, entry.argRef, variadicTy, argView));
             const DiagnosticArguments errorArguments = makeCallCastErrorArguments(selectedFn, entry.callArgIndex, sema.ctx());
             SWC_RESULT(Cast::cast(sema, argView, variadicTy, CastKind::Implicit, CastFlagsE::Zero, &errorArguments));
         }

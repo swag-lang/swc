@@ -1634,8 +1634,10 @@ Result SemaHelpers::resolveMemberAccess(Sema& sema, AstNodeRef memberRef, AstMem
     }
     else if (typeInfo->isTypeInfo())
     {
-        TypeRef typeInfoRef = TypeRef::invalid();
-        SWC_RESULT(sema.waitPredefined(IdentifierManager::PredefinedName::TypeInfo, typeInfoRef, {node.srcViewRef(), tokNameRef}));
+        TypeRef typeInfoRef = sema.typeMgr().structTypeInfo();
+        if (!typeInfoRef.isValid())
+            SWC_RESULT(sema.waitPredefined(IdentifierManager::PredefinedName::TypeInfo, typeInfoRef, {node.srcViewRef(), tokNameRef}));
+        SWC_ASSERT(typeInfoRef.isValid());
         typeInfo = &sema.typeMgr().get(typeInfoRef);
     }
     else if (typeInfo->isAnyPointer() || typeInfo->isReference())

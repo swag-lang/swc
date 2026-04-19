@@ -262,7 +262,7 @@ namespace
 
     Result checkDRef(Sema& sema, const SemaNodeView& view)
     {
-        if (!view.type()->isAnyPointer())
+        if (!view.type()->isPointerOrReference())
             return SemaError::raiseUnaryOperandType(sema, sema.curNodeRef(), view.nodeRef(), view.typeRef());
         return Result::Continue;
     }

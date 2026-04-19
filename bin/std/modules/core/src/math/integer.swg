@@ -40,7 +40,7 @@ func hasZeroByte(v: u64)->bool
 #[ConstExpr, Inline]
 func makeRepeat16(v: u8)->u16
 {
-    return (~0'u16 / 255 * v)
+    return (~0'u16 / 255'u16 * cast(u16) v)
 }
 
 // Make a 32 bits by repeating a given byte

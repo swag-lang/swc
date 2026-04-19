@@ -973,6 +973,37 @@ Result Cast::castToFloat(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRe
     return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
 }
 
+Result Cast::castToEnum(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef)
+{
+    if (castRequest.kind != CastKind::Explicit)
+        return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
+
+    const TypeInfo& dstType           = sema.typeMgr().get(dstTypeRef);
+    const TypeRef   underlyingTypeRef = dstType.payloadSymEnum().underlyingTypeRef();
+
+    CastRequest underlyingRequest(castRequest.kind);
+    underlyingRequest.flags        = castRequest.flags;
+    underlyingRequest.errorNodeRef = castRequest.errorNodeRef;
+    underlyingRequest.errorCodeRef = castRequest.errorCodeRef;
+    underlyingRequest.setConstantFoldingSrc(castRequest.constantFoldingSrc());
+
+    const Result res = castAllowed(sema, underlyingRequest, srcTypeRef, underlyingTypeRef);
+    if (res != Result::Continue)
+    {
+        castRequest.failure = underlyingRequest.failure;
+        setEnumUnderlyingCastNote(castRequest, dstTypeRef, underlyingTypeRef);
+        return res;
+    }
+
+    if (underlyingRequest.constantFoldingResult().isValid())
+    {
+        const ConstantValue enumCst = ConstantValue::makeEnumValue(sema.ctx(), underlyingRequest.constantFoldingResult(), dstTypeRef);
+        castRequest.setConstantFoldingResult(sema.cstMgr().addConstant(sema.ctx(), enumCst));
+    }
+
+    return Result::Continue;
+}
+
 Result Cast::castFromEnum(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef)
 {
     if (castRequest.kind != CastKind::Explicit)
@@ -1745,6 +1776,8 @@ Result Cast::castAllowed(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRe
         res = castFromNull(sema, castRequest, srcTypeRef, dstTypeRef);
     else if (srcType.isUndefined())
         res = castFromUndefined(sema, castRequest, srcTypeRef, dstTypeRef);
+    else if (dstType.isEnum())
+        res = castToEnum(sema, castRequest, srcTypeRef, dstTypeRef);
     else if (dstType.isBool())
         res = castToBool(sema, castRequest, srcTypeRef, dstTypeRef);
     else if (dstType.isIntLike())

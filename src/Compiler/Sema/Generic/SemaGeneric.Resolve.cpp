@@ -153,13 +153,18 @@ namespace SemaGeneric
         outArg = {};
 
         const SemaNodeView typeView = sema.viewNodeType(nodeRef);
-        if (typeView.typeRef().isValid() && !sema.isValue(nodeRef))
+        if (typeView.typeRef().isValid())
         {
-            // Explicit type arguments only need the resolved type. Avoid forcing symbol payload
-            // queries on complex type syntax such as quoted generic specializations.
-            outArg.typeRef = typeView.typeRef();
-            outArg.present = true;
-            return Result::Continue;
+            const TypeInfo& typeInfo = sema.typeMgr().get(typeView.typeRef());
+            if (!sema.isValue(nodeRef) || typeInfo.isAggregate())
+            {
+                // Explicit type arguments only need the resolved type. Avoid forcing symbol payload
+                // queries on complex type syntax such as quoted generic specializations or
+                // anonymous aggregate type expressions.
+                outArg.typeRef = typeView.typeRef();
+                outArg.present = true;
+                return Result::Continue;
+            }
         }
 
         const SemaNodeView view = sema.viewNodeTypeSymbol(nodeRef);

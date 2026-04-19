@@ -89,6 +89,66 @@ namespace
         }
     }
 
+    void addPersistedUsingSymMaps(MatchContext& lookUpCxt, const SymbolMap* symMap, const MatchContext::Priority& priority)
+    {
+        if (!symMap)
+            return;
+
+        SmallVector<const SymbolMap*> usingSymMaps;
+        symMap->copyUsingSymMaps(usingSymMaps);
+        for (const SymbolMap* usingSymMap : usingSymMaps)
+        {
+            MatchContext::Priority usingPriority;
+            usingPriority.scopeDepth = priority.scopeDepth;
+            usingPriority.visibility = MatchContext::VisibilityTier::UsingDirective;
+            addSymMap(lookUpCxt, usingSymMap, usingPriority);
+        }
+    }
+
+    const SymbolMap* followNamespacePath(const SymbolMap* root, std::span<const IdentifierRef> nsPath)
+    {
+        if (!root)
+            return nullptr;
+
+        const SymbolMap* current = root;
+        for (const IdentifierRef idRef : nsPath)
+        {
+            MatchContext matchCxt;
+            MatchContext::Priority priority;
+            priority.scopeDepth = 0;
+            priority.visibility = MatchContext::VisibilityTier::LocalScope;
+            matchCxt.beginSymMapLookup(priority);
+            current->lookupAppend(idRef, matchCxt);
+
+            const Symbol* nextNamespace = nullptr;
+            for (const Symbol* symbol : matchCxt.symbols())
+            {
+                if (symbol && symbol->isNamespace())
+                {
+                    nextNamespace = symbol;
+                    break;
+                }
+            }
+
+            if (!nextNamespace)
+                return nullptr;
+
+            current = nextNamespace->asSymMap();
+        }
+
+        return current;
+    }
+
+    void addNamespacePathSymMap(Sema& sema, MatchContext& lookUpCxt, const SymbolMap* root, const MatchContext::Priority& priority)
+    {
+        const SymbolMap* symMap = followNamespacePath(root, sema.frame().nsPath());
+        if (!symMap)
+            return;
+
+        addSymMap(lookUpCxt, symMap, priority);
+        addPersistedUsingSymMaps(lookUpCxt, symMap, priority);
+    }
+
     void addUsingMemberSymMaps(Sema& sema, MatchContext& lookUpCxt, const SymbolStruct& symStruct, uint16_t& searchOrder, SmallVector<const SymbolStruct*>& visited)
     {
         for (const Symbol* s : visited)
@@ -148,16 +208,7 @@ namespace
             }
 
             addSymMap(lookUpCxt, lookUpCxt.symMapHint, priority);
-
-            SmallVector<const SymbolMap*> usingSymMaps;
-            lookUpCxt.symMapHint->copyUsingSymMaps(usingSymMaps);
-            for (const SymbolMap* usingSymMap : usingSymMaps)
-            {
-                MatchContext::Priority usingPriority;
-                usingPriority.scopeDepth = 0;
-                usingPriority.visibility = MatchContext::VisibilityTier::UsingDirective;
-                addSymMap(lookUpCxt, usingSymMap, usingPriority);
-            }
+            addPersistedUsingSymMaps(lookUpCxt, lookUpCxt.symMapHint, priority);
 
             // Struct member lookup must also see members of `using` fields.
             if (lookUpCxt.symMapHint->isStruct())
@@ -182,6 +233,7 @@ namespace
                 priority.scopeDepth = scopeDepth;
                 priority.visibility = MatchContext::VisibilityTier::LocalScope;
                 addSymMap(lookUpCxt, symMap, priority);
+                addPersistedUsingSymMaps(lookUpCxt, symMap, priority);
             }
 
             for (const Symbol* symbol : scope->symbols())
@@ -205,23 +257,29 @@ namespace
             ++scopeDepth;
         }
 
-        // File-level namespace: conceptually outer than lexical scopes.
-        {
-            MatchContext::Priority priority;
-            priority.scopeDepth = scopeDepth;
-            priority.visibility = MatchContext::VisibilityTier::FileNamespace;
-            addSymMap(lookUpCxt, &sema.fileNamespace(), priority);
-        }
+        MatchContext::Priority filePathPriority;
+        filePathPriority.scopeDepth = scopeDepth;
+        filePathPriority.visibility = MatchContext::VisibilityTier::FileNamespace;
+        addNamespacePathSymMap(sema, lookUpCxt, &sema.fileNamespace(), filePathPriority);
 
-        // Module-level namespace: outer than file-level.
-        {
-            MatchContext::Priority priority;
-            priority.scopeDepth = static_cast<uint16_t>(scopeDepth + 1);
-            priority.visibility = MatchContext::VisibilityTier::ModuleNamespace;
-            addSymMap(lookUpCxt, &sema.moduleNamespace(), priority);
-        }
+        MatchContext::Priority fileRootPriority;
+        fileRootPriority.scopeDepth = static_cast<uint16_t>(scopeDepth + 1);
+        fileRootPriority.visibility = MatchContext::VisibilityTier::FileNamespace;
+        addSymMap(lookUpCxt, &sema.fileNamespace(), fileRootPriority);
+        addPersistedUsingSymMaps(lookUpCxt, &sema.fileNamespace(), fileRootPriority);
 
-        addCurrentModuleNamespaceSymbol(sema, lookUpCxt, static_cast<uint16_t>(scopeDepth + 2));
+        MatchContext::Priority modulePathPriority;
+        modulePathPriority.scopeDepth = static_cast<uint16_t>(scopeDepth + 1);
+        modulePathPriority.visibility = MatchContext::VisibilityTier::ModuleNamespace;
+        addNamespacePathSymMap(sema, lookUpCxt, &sema.moduleNamespace(), modulePathPriority);
+
+        MatchContext::Priority moduleRootPriority;
+        moduleRootPriority.scopeDepth = static_cast<uint16_t>(scopeDepth + 2);
+        moduleRootPriority.visibility = MatchContext::VisibilityTier::ModuleNamespace;
+        addSymMap(lookUpCxt, &sema.moduleNamespace(), moduleRootPriority);
+        addPersistedUsingSymMaps(lookUpCxt, &sema.moduleNamespace(), moduleRootPriority);
+
+        addCurrentModuleNamespaceSymbol(sema, lookUpCxt, static_cast<uint16_t>(scopeDepth + 3));
     }
 
     void lookup(MatchContext& lookUpCxt, IdentifierRef idRef)

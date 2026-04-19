@@ -26,6 +26,29 @@ namespace
         return symbol != nullptr && symbol->isIgnored();
     }
 
+    const Symbol* findPredefinedRuntimeSymbol(const Sema& sema, IdentifierManager::PredefinedName name)
+    {
+        const IdentifierRef swagIdRef   = sema.idMgr().predefined(IdentifierManager::PredefinedName::Swag);
+        const IdentifierRef targetIdRef = sema.idMgr().predefined(name);
+        std::vector<const Symbol*> moduleSymbols;
+        sema.moduleNamespace().getAllSymbols(moduleSymbols);
+        for (const Symbol* moduleSym : moduleSymbols)
+        {
+            if (!moduleSym || !moduleSym->isNamespace() || moduleSym->idRef() != swagIdRef)
+                continue;
+
+            std::vector<const Symbol*> namespaceSymbols;
+            moduleSym->asSymMap()->getAllSymbols(namespaceSymbols);
+            for (const Symbol* candidate : namespaceSymbols)
+            {
+                if (candidate && candidate->idRef() == targetIdRef)
+                    return candidate;
+            }
+        }
+
+        return nullptr;
+    }
+
     SemaScope* remapScopeFromParent(const std::vector<std::unique_ptr<SemaScope>>& parentScopes,
                                     const std::vector<std::unique_ptr<SemaScope>>& childScopes,
                                     const SemaScope*                               oldScope)
@@ -450,6 +473,15 @@ Result Sema::waitPredefined(IdentifierManager::PredefinedName name, TypeRef& typ
     typeRef = typeMgr().runtimeType(name);
     if (typeRef.isValid())
         return Result::Continue;
+
+    if (const Symbol* predefinedSym = findPredefinedRuntimeSymbol(*this, name))
+    {
+        SWC_RESULT(waitSemaCompleted(predefinedSym, codeRef));
+        typeRef = typeMgr().runtimeType(name);
+        if (typeRef.isValid())
+            return Result::Continue;
+    }
+
     return waitIdentifier(idMgr().predefined(name), codeRef);
 }
 

@@ -66,6 +66,8 @@ struct Stats
         return get().numErrors.load(std::memory_order_relaxed) > 0;
     }
 
+    static void resetCommandMetrics();
+
     static void addError()
     {
         get().numErrors.fetch_add(1, std::memory_order_relaxed);

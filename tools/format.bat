@@ -6,5 +6,14 @@ call "%TOOLS_DIR%common.bat" :init "%TOOLS_DIR%" "%~1"
 if errorlevel 1 exit /b %errorlevel%
 if /I "%~1"=="dm" shift
 
-%SWC_EXE% format -d "%ROOT%\bin"
+set "EXTRA_ARGS="
+
+:parse_args
+if "%~1"=="" goto run
+set "EXTRA_ARGS=%EXTRA_ARGS% %1"
+shift
+goto parse_args
+
+:run
+%SWC_EXE% format -d "%ROOT%\bin"%EXTRA_ARGS%
 exit /b %ERRORLEVEL%

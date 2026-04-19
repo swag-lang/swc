@@ -235,6 +235,53 @@ namespace
 }
 #endif
 
+void Stats::resetCommandMetrics()
+{
+    Stats& stats = get();
+
+    stats.timeTotal.store(0, std::memory_order_relaxed);
+    stats.numErrors.store(0, std::memory_order_relaxed);
+    stats.numWarnings.store(0, std::memory_order_relaxed);
+    stats.numFiles.store(0, std::memory_order_relaxed);
+    stats.numTokens.store(0, std::memory_order_relaxed);
+
+#if SWC_HAS_STATS
+    stats.timeLoadFile.store(0, std::memory_order_relaxed);
+    stats.timeLexer.store(0, std::memory_order_relaxed);
+    stats.timeParser.store(0, std::memory_order_relaxed);
+    stats.timeSema.store(0, std::memory_order_relaxed);
+    stats.timeCodeGen.store(0, std::memory_order_relaxed);
+    stats.timeMicroLower.store(0, std::memory_order_relaxed);
+
+    stats.numAstNodes.store(0, std::memory_order_relaxed);
+    stats.numVisitedAstNodes.store(0, std::memory_order_relaxed);
+    stats.numConstants.store(0, std::memory_order_relaxed);
+    stats.numConstantBuiltinFastHits.store(0, std::memory_order_relaxed);
+    stats.numConstantSmallScalarCacheHits.store(0, std::memory_order_relaxed);
+    stats.numConstantSmallScalarCacheMisses.store(0, std::memory_order_relaxed);
+    stats.numConstantSlowPathCalls.store(0, std::memory_order_relaxed);
+    stats.numConstantMaterializedPayloadFastPath.store(0, std::memory_order_relaxed);
+    stats.numTypes.store(0, std::memory_order_relaxed);
+    stats.numIdentifiers.store(0, std::memory_order_relaxed);
+    stats.numSymbols.store(0, std::memory_order_relaxed);
+    stats.numMicroInstrInitial.store(0, std::memory_order_relaxed);
+    stats.numMicroInstrAfterStart.store(0, std::memory_order_relaxed);
+    stats.numMicroInstrAfterPreRaOptim.store(0, std::memory_order_relaxed);
+    stats.numMicroInstrAfterRa.store(0, std::memory_order_relaxed);
+    stats.numMicroInstrAfterPostRaSetup.store(0, std::memory_order_relaxed);
+    stats.numMicroInstrAfterPostRaOptim.store(0, std::memory_order_relaxed);
+    stats.numMicroInstrFinal.store(0, std::memory_order_relaxed);
+    stats.numCodeGenFunctions.store(0, std::memory_order_relaxed);
+    stats.numMicroSsaBuilds.store(0, std::memory_order_relaxed);
+    stats.numMicroSsaInvalidations.store(0, std::memory_order_relaxed);
+    stats.timeMicroSsaBuild.store(0, std::memory_order_relaxed);
+    stats.timeMicroSsaBlocks.store(0, std::memory_order_relaxed);
+    stats.timeMicroSsaDominators.store(0, std::memory_order_relaxed);
+    stats.timeMicroSsaPhiPlacement.store(0, std::memory_order_relaxed);
+    stats.timeMicroSsaRename.store(0, std::memory_order_relaxed);
+#endif
+}
+
 void Stats::print(const TaskContext& ctx) const
 {
     const Logger::ScopedLock        loggerLock(ctx.global().logger());

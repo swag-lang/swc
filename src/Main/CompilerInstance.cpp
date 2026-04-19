@@ -536,6 +536,7 @@ std::vector<SymbolFunction*> CompilerInstance::jitPreparedFunctionsSnapshot() co
 
 ExitCode CompilerInstance::run()
 {
+    Stats::resetCommandMetrics();
     logBefore();
     processCommand();
     logAfter();

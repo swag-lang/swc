@@ -29,17 +29,6 @@ namespace
     using CommandPrint::addUtf8Set;
     using CommandPrint::nextInfoGroupStyle;
 
-    Utf8 targetOsName(const Runtime::TargetOs value)
-    {
-        switch (value)
-        {
-            case Runtime::TargetOs::Windows:
-                return "Windows";
-        }
-
-        SWC_UNREACHABLE();
-    }
-
     Utf8 filePathDisplayModeName(const FileSystem::FilePathDisplayMode value)
     {
         switch (value)
@@ -54,6 +43,7 @@ namespace
 
         SWC_UNREACHABLE();
     }
+    
     void addPlanEntry(std::vector<Logger::FieldEntry>& entries, const uint32_t index, const std::string_view status, const LogColor statusColor, Utf8 detail)
     {
         std::vector<Logger::FieldValuePart> valueParts;

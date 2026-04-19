@@ -31,4 +31,15 @@ inline Utf8 backendKindName(const Runtime::BuildCfgBackendKind backendKind)
     SWC_UNREACHABLE();
 }
 
+inline Utf8 targetOsName(const Runtime::TargetOs value)
+{
+    switch (value)
+    {
+        case Runtime::TargetOs::Windows:
+            return "Windows";
+    }
+
+    SWC_UNREACHABLE();
+}
+
 SWC_END_NAMESPACE();

@@ -2,6 +2,7 @@
 #include "Main/FileSystem.h"
 #include "Main/Command/CommandLine.h"
 #include "Main/TaskContext.h"
+#include "Support/Os/Os.h"
 #include "Support/Report/Diagnostic.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -15,20 +16,105 @@ namespace
         return ctx->cmdLine().filePathDisplay;
     }
 
-    fs::path toAbsolutePathNoThrow(const fs::path& filePath)
+    fs::path lexicallyNormalize(const fs::path& path)
     {
+        if (path.empty())
+            return path;
+        return path.lexically_normal();
+    }
+
+    Utf8 fallbackIoBecause(const FileSystem::IoProblem problem)
+    {
+        Utf8 because = FileSystem::currentSystemMessage();
+        if (!because.empty())
+            return because;
+        return FileSystem::describeIoProblem(problem);
+    }
+
+    FileSystem::PathProblem expectedPathProblem(const bool expectFile)
+    {
+        return expectFile ? FileSystem::PathProblem::NotRegularFile : FileSystem::PathProblem::NotDirectory;
+    }
+
+    Result resolveExistingPath(fs::path& path, Utf8& because, const bool expectFile)
+    {
+        SWC_RESULT(FileSystem::normalizeAbsolutePath(path, because));
+
         std::error_code ec;
-        fs::path        absolutePath = fs::absolute(filePath, ec);
-        if (ec)
-            return filePath;
-        return absolutePath;
+        if (!fs::exists(path, ec))
+        {
+            because = ec ? FileSystem::normalizeSystemMessage(ec) : FileSystem::describePathProblem(FileSystem::PathProblem::DoesNotExist);
+            return Result::Error;
+        }
+
+        ec.clear();
+        const bool validType = expectFile ? fs::is_regular_file(path, ec) : fs::is_directory(path, ec);
+        if (!validType)
+        {
+            because = ec ? FileSystem::normalizeSystemMessage(ec) : FileSystem::describePathProblem(expectedPathProblem(expectFile));
+            return Result::Error;
+        }
+
+        return Result::Continue;
+    }
+
+    template<typename TByte>
+    Result readBinaryFileImpl(const fs::path& path, std::vector<TByte>& outData, FileSystem::IoErrorInfo& error)
+    {
+        static_assert(sizeof(TByte) == 1);
+
+        outData.clear();
+        error = {};
+
+        std::ifstream file(path, std::ios::binary | std::ios::ate);
+        if (!file.is_open())
+        {
+            error.problem = FileSystem::IoProblem::OpenRead;
+            error.because = fallbackIoBecause(error.problem);
+            return Result::Error;
+        }
+
+        const std::streampos fileSize = file.tellg();
+        if (fileSize < 0)
+        {
+            error.problem = FileSystem::IoProblem::DetermineSize;
+            error.because = FileSystem::describeIoProblem(error.problem);
+            return Result::Error;
+        }
+
+        file.seekg(0, std::ios::beg);
+        if (!file)
+        {
+            error.problem = FileSystem::IoProblem::Seek;
+            error.because = fallbackIoBecause(error.problem);
+            return Result::Error;
+        }
+
+        outData.resize(static_cast<size_t>(fileSize));
+        if (!outData.empty() && !file.read(reinterpret_cast<char*>(outData.data()), fileSize))
+        {
+            outData.clear();
+            error.problem = FileSystem::IoProblem::Read;
+            error.because = fallbackIoBecause(error.problem);
+            return Result::Error;
+        }
+
+        file.close();
+        if (!file)
+        {
+            outData.clear();
+            error.problem = FileSystem::IoProblem::CloseRead;
+            error.because = fallbackIoBecause(error.problem);
+            return Result::Error;
+        }
+
+        return Result::Continue;
     }
 
     Result reportClearDirectoryError(TaskContext& ctx, const DiagnosticId diagId, const fs::path& path, const Utf8& because)
     {
         Diagnostic diag = Diagnostic::get(diagId);
-        diag.addArgument(Diagnostic::ARG_PATH, Utf8(path));
-        diag.addArgument(Diagnostic::ARG_BECAUSE, because);
+        FileSystem::setDiagnosticPathAndBecause(diag, &ctx, path, because);
         diag.report(ctx);
         return Result::Error;
     }
@@ -40,101 +126,102 @@ namespace
     }
 }
 
-Result FileSystem::resolveFile(TaskContext& ctx, fs::path& file)
+fs::path FileSystem::normalizePath(const fs::path& path)
 {
-    std::error_code ec;
+    if (path.empty())
+        return path;
 
-    // Make absolute first (preserves input if it's already absolute)
-    fs::path resolved = fs::absolute(file, ec);
+    std::error_code ec;
+    fs::path        result = path;
+    if (!result.is_absolute())
+    {
+        const fs::path absolutePath = fs::absolute(result, ec);
+        if (!ec)
+            result = absolutePath;
+    }
+    else
+    {
+        ec.clear();
+    }
+
+    ec.clear();
+    const fs::path normalized = fs::weakly_canonical(result, ec);
+    if (!ec)
+        result = normalized;
+
+    return lexicallyNormalize(result);
+}
+
+Utf8 FileSystem::formatDiagnosticPath(const TaskContext* ctx, const fs::path& path)
+{
+    switch (resolveDisplayMode(ctx))
+    {
+        case FilePathDisplayMode::AsIs:
+            return lexicallyNormalize(path).string();
+
+        case FilePathDisplayMode::BaseName:
+            return lexicallyNormalize(path).filename().string();
+
+        case FilePathDisplayMode::Absolute:
+            return normalizePath(path).string();
+
+        default:
+            SWC_UNREACHABLE();
+    }
+}
+
+Result FileSystem::normalizeAbsolutePath(fs::path& path, Utf8& because)
+{
+    because.clear();
+
+    std::error_code ec;
+    fs::path        absolutePath = fs::absolute(path, ec);
     if (ec)
     {
-        Diagnostic diag = Diagnostic::get(DiagnosticId::cmdline_err_invalid_file);
-        diag.addArgument(Diagnostic::ARG_PATH, formatFileName(&ctx, file));
-        diag.addArgument(Diagnostic::ARG_BECAUSE, normalizeSystemMessage(ec));
-        diag.report(ctx);
+        path    = lexicallyNormalize(path);
+        because = normalizeSystemMessage(ec);
         return Result::Error;
     }
 
-    // Normalize/symlink-resolve if possible (does not throw)
-    const fs::path normalized = fs::weakly_canonical(resolved, ec);
-    if (!ec)
-        resolved = normalized;
-    ec.clear();
+    path = normalizePath(absolutePath);
+    return Result::Continue;
+}
 
-    // Check existence and type; don't conflate errors with "not found"
-    if (!fs::exists(resolved, ec))
+Result FileSystem::resolveExistingFile(fs::path& file, Utf8& because)
+{
+    return resolveExistingPath(file, because, true);
+}
+
+Result FileSystem::resolveExistingFolder(fs::path& folder, Utf8& because)
+{
+    return resolveExistingPath(folder, because, false);
+}
+
+Result FileSystem::resolveFile(TaskContext& ctx, fs::path& file)
+{
+    Utf8 because;
+    if (resolveExistingFile(file, because) != Result::Continue)
     {
         Diagnostic diag = Diagnostic::get(DiagnosticId::cmdline_err_invalid_file);
-        diag.addArgument(Diagnostic::ARG_PATH, formatFileName(&ctx, file));
-        if (ec)
-            diag.addArgument(Diagnostic::ARG_BECAUSE, normalizeSystemMessage(ec));
-        diag.report(ctx);
-        return Result::Error;
-    }
-    ec.clear();
-
-    // Be sure it's a regular file
-    if (!fs::is_regular_file(resolved, ec))
-    {
-        Diagnostic diag = Diagnostic::get(DiagnosticId::cmdline_err_invalid_file);
-        diag.addArgument(Diagnostic::ARG_PATH, formatFileName(&ctx, file));
-        if (ec)
-            diag.addArgument(Diagnostic::ARG_BECAUSE, normalizeSystemMessage(ec));
+        setDiagnosticPathAndBecause(diag, &ctx, file, because);
         diag.report(ctx);
         return Result::Error;
     }
 
-    file = resolved;
     return Result::Continue;
 }
 
 Result FileSystem::resolveFolder(TaskContext& ctx, fs::path& folder)
 {
-    std::error_code ec;
-
-    // Make absolute first (preserves input if it's already absolute)
-    fs::path resolved = fs::absolute(folder, ec);
-    if (ec)
+    Utf8 because;
+    if (resolveExistingFolder(folder, because) != Result::Continue)
     {
         Diagnostic diag = Diagnostic::get(DiagnosticId::cmdline_err_invalid_folder);
-        diag.addArgument(Diagnostic::ARG_PATH, formatFileName(&ctx, folder));
-        diag.addArgument(Diagnostic::ARG_BECAUSE, normalizeSystemMessage(ec));
+        setDiagnosticPathAndBecause(diag, &ctx, folder, because);
         diag.report(ctx);
         return Result::Error;
     }
 
-    // Normalize/symlink-resolve if possible (does not throw)
-    const fs::path normalized = fs::weakly_canonical(resolved, ec);
-    if (!ec)
-        resolved = normalized;
-    ec.clear();
-
-    // Check existence and type; don't conflate errors with "not found"
-    if (!fs::exists(resolved, ec))
-    {
-        Diagnostic diag = Diagnostic::get(DiagnosticId::cmdline_err_invalid_folder);
-        diag.addArgument(Diagnostic::ARG_PATH, formatFileName(&ctx, folder));
-        if (ec)
-            diag.addArgument(Diagnostic::ARG_BECAUSE, normalizeSystemMessage(ec));
-        else
-            diag.addArgument(Diagnostic::ARG_BECAUSE, "path does not exist");
-        diag.report(ctx);
-        return Result::Error;
-    }
-    ec.clear();
-
-    // Be sure it's a folder
-    if (!fs::is_directory(resolved, ec))
-    {
-        Diagnostic diag = Diagnostic::get(DiagnosticId::cmdline_err_invalid_folder);
-        diag.addArgument(Diagnostic::ARG_PATH, formatFileName(&ctx, folder));
-        if (ec)
-            diag.addArgument(Diagnostic::ARG_BECAUSE, normalizeSystemMessage(ec));
-        diag.report(ctx);
-        return Result::Error;
-    }
-
-    folder = resolved;
     return Result::Continue;
 }
 
@@ -154,7 +241,7 @@ Result FileSystem::clearDirectoryContents(TaskContext& ctx, const fs::path& path
     if (ec)
         return reportClearDirectoryError(ctx, diagId, path, ec);
     if (!isDirectory)
-        return reportClearDirectoryError(ctx, diagId, path, "path is not a directory");
+        return reportClearDirectoryError(ctx, diagId, path, describePathProblem(PathProblem::NotDirectory));
 
     for (fs::directory_iterator it(path, fs::directory_options::skip_permission_denied, ec), end; it != end; it.increment(ec))
     {
@@ -170,9 +257,147 @@ Result FileSystem::clearDirectoryContents(TaskContext& ctx, const fs::path& path
     return Result::Continue;
 }
 
+Result FileSystem::readBinaryFile(const fs::path& path, std::vector<char>& outData, IoErrorInfo& error)
+{
+    return readBinaryFileImpl(path, outData, error);
+}
+
+Result FileSystem::readBinaryFile(const fs::path& path, std::vector<char8_t>& outData, IoErrorInfo& error)
+{
+    return readBinaryFileImpl(path, outData, error);
+}
+
+Result FileSystem::readBinaryFile(const fs::path& path, std::vector<std::byte>& outData, IoErrorInfo& error)
+{
+    return readBinaryFileImpl(path, outData, error);
+}
+
+Result FileSystem::readTextFile(const fs::path& path, std::string& outText, IoErrorInfo& error)
+{
+    std::vector<char> buffer;
+    const Result      result = readBinaryFile(path, buffer, error);
+    if (result != Result::Continue)
+    {
+        outText.clear();
+        return result;
+    }
+
+    outText.assign(buffer.begin(), buffer.end());
+    return Result::Continue;
+}
+
+Result FileSystem::writeBinaryFile(const fs::path& path, const void* data, const size_t size, IoErrorInfo& error)
+{
+    error = {};
+
+    std::ofstream file(path, std::ios::binary | std::ios::trunc);
+    if (!file.is_open())
+    {
+        error.problem = IoProblem::OpenWrite;
+        error.because = fallbackIoBecause(error.problem);
+        return Result::Error;
+    }
+
+    if (size && !file.write(reinterpret_cast<const char*>(data), static_cast<std::streamsize>(size)))
+    {
+        error.problem = IoProblem::Write;
+        error.because = fallbackIoBecause(error.problem);
+        return Result::Error;
+    }
+
+    file.close();
+    if (!file)
+    {
+        error.problem = IoProblem::CloseWrite;
+        error.because = fallbackIoBecause(error.problem);
+        return Result::Error;
+    }
+
+    return Result::Continue;
+}
+
 bool FileSystem::pathEquals(const fs::path& lhs, const fs::path& rhs)
 {
     return lhs.lexically_normal() == rhs.lexically_normal();
+}
+
+void FileSystem::setDiagnosticPath(Diagnostic& diag, const TaskContext* ctx, const fs::path& path)
+{
+    diag.addArgument(Diagnostic::ARG_PATH, formatDiagnosticPath(ctx, path));
+}
+
+void FileSystem::setDiagnosticPathAndBecause(Diagnostic& diag, const TaskContext* ctx, const fs::path& path, const Utf8& because)
+{
+    setDiagnosticPath(diag, ctx, path);
+    diag.addArgument(Diagnostic::ARG_BECAUSE, because);
+}
+
+Utf8 FileSystem::currentSystemMessage()
+{
+    return Os::systemError();
+}
+
+Utf8 FileSystem::describePathProblem(const PathProblem problem)
+{
+    switch (problem)
+    {
+        case PathProblem::DoesNotExist:
+            return "path does not exist";
+
+        case PathProblem::NotRegularFile:
+            return "path is not a regular file";
+
+        case PathProblem::NotDirectory:
+            return "path is not a directory";
+
+        default:
+            SWC_UNREACHABLE();
+    }
+}
+
+Utf8 FileSystem::describeIoProblem(const IoProblem problem)
+{
+    switch (problem)
+    {
+        case IoProblem::OpenRead:
+            return "cannot open file";
+
+        case IoProblem::OpenWrite:
+            return "cannot open file for writing";
+
+        case IoProblem::DetermineSize:
+            return "cannot determine file size";
+
+        case IoProblem::Seek:
+            return "cannot reposition file cursor";
+
+        case IoProblem::Read:
+            return "cannot read file";
+
+        case IoProblem::Write:
+            return "cannot write file";
+
+        case IoProblem::CloseRead:
+            return "cannot finalize file read";
+
+        case IoProblem::CloseWrite:
+            return "cannot finalize file write";
+
+        default:
+            SWC_UNREACHABLE();
+    }
+}
+
+Utf8 FileSystem::describeIoFailure(const IoErrorInfo& error)
+{
+    const Utf8 prefix = describeIoProblem(error.problem);
+    if (error.because.empty() || error.because == prefix)
+        return prefix;
+
+    Utf8 result = prefix;
+    result += ": ";
+    result += error.because;
+    return result;
 }
 
 Utf8 FileSystem::formatFileName(const TaskContext* ctx, const fs::path& filePath)
@@ -187,7 +412,7 @@ Utf8 FileSystem::formatFileName(const TaskContext* ctx, const fs::path& filePath
             return filePath.filename().string();
 
         case FilePathDisplayMode::Absolute:
-            return toAbsolutePathNoThrow(filePath).string();
+            return normalizePath(filePath).string();
 
         default:
             SWC_UNREACHABLE();

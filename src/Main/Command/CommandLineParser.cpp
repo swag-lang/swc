@@ -344,46 +344,40 @@ Result CommandLineParser::expandResponseFiles(TaskContext& ctx, const std::vecto
 
 Result CommandLineParser::expandOneResponseFile(TaskContext& ctx, const fs::path& path, std::vector<Utf8>& out, std::set<fs::path>& visited, uint32_t depth)
 {
+    const fs::path normalizedPath = FileSystem::normalizePath(path);
     if (depth >= RSP_MAX_DEPTH)
     {
         Diagnostic diag = Diagnostic::get(DiagnosticId::cmdline_err_rsp_file_depth);
-        diag.addArgument(Diagnostic::ARG_PATH, Utf8(path));
+        FileSystem::setDiagnosticPath(diag, &ctx, normalizedPath);
         diag.report(ctx);
         return Result::Error;
     }
 
-    std::error_code ec;
-    fs::path        canonical = fs::weakly_canonical(path, ec);
-    if (ec)
-        canonical = fs::absolute(path, ec);
+    const fs::path canonical = normalizedPath;
 
     if (!visited.insert(canonical).second)
     {
         Diagnostic diag = Diagnostic::get(DiagnosticId::cmdline_err_rsp_file_cycle);
-        diag.addArgument(Diagnostic::ARG_PATH, Utf8(path));
+        FileSystem::setDiagnosticPath(diag, &ctx, canonical);
         diag.report(ctx);
         return Result::Error;
     }
 
-    std::ifstream file(canonical, std::ios::binary);
-    if (!file)
+    std::string              content;
+    FileSystem::IoErrorInfo  ioError;
+    if (FileSystem::readTextFile(canonical, content, ioError) != Result::Continue)
     {
         Diagnostic diag = Diagnostic::get(DiagnosticId::cmdline_err_rsp_file_failed);
-        diag.addArgument(Diagnostic::ARG_PATH, Utf8(path));
-        diag.addArgument(Diagnostic::ARG_BECAUSE, FileSystem::normalizeSystemMessage(std::make_error_code(std::errc::no_such_file_or_directory)));
+        FileSystem::setDiagnosticPathAndBecause(diag, &ctx, canonical, FileSystem::describeIoFailure(ioError));
         diag.report(ctx);
         return Result::Error;
     }
-
-    std::stringstream buffer;
-    buffer << file.rdbuf();
-    const std::string content = buffer.str();
 
     std::vector<Utf8> tokens;
     if (!tokenizeResponseFile(content, tokens))
     {
         Diagnostic diag = Diagnostic::get(DiagnosticId::cmdline_err_rsp_file_unterminated);
-        diag.addArgument(Diagnostic::ARG_PATH, Utf8(path));
+        FileSystem::setDiagnosticPath(diag, &ctx, canonical);
         diag.report(ctx);
         return Result::Error;
     }
@@ -959,13 +953,12 @@ Result CommandLineParser::checkCommandLine(TaskContext& ctx) const
 
     if (!cmdLine_->outDir.empty())
     {
-        std::error_code ec;
-        fs::path        temp = fs::absolute(cmdLine_->outDir, ec);
-        if (ec)
+        fs::path temp = cmdLine_->outDir;
+        Utf8     because;
+        if (FileSystem::normalizeAbsolutePath(temp, because) != Result::Continue)
         {
             Diagnostic diag = Diagnostic::get(DiagnosticId::cmdline_err_invalid_folder);
-            diag.addArgument(Diagnostic::ARG_PATH, Utf8(cmdLine_->outDir));
-            diag.addArgument(Diagnostic::ARG_BECAUSE, FileSystem::normalizeSystemMessage(ec));
+            FileSystem::setDiagnosticPathAndBecause(diag, &ctx, temp, because);
             diag.report(ctx);
             return Result::Error;
         }
@@ -980,13 +973,12 @@ Result CommandLineParser::checkCommandLine(TaskContext& ctx) const
 
     if (!cmdLine_->workDir.empty())
     {
-        std::error_code ec;
-        fs::path        temp = fs::absolute(cmdLine_->workDir, ec);
-        if (ec)
+        fs::path temp = cmdLine_->workDir;
+        Utf8     because;
+        if (FileSystem::normalizeAbsolutePath(temp, because) != Result::Continue)
         {
             Diagnostic diag = Diagnostic::get(DiagnosticId::cmdline_err_invalid_folder);
-            diag.addArgument(Diagnostic::ARG_PATH, Utf8(cmdLine_->workDir));
-            diag.addArgument(Diagnostic::ARG_BECAUSE, FileSystem::normalizeSystemMessage(ec));
+            FileSystem::setDiagnosticPathAndBecause(diag, &ctx, temp, because);
             diag.report(ctx);
             return Result::Error;
         }

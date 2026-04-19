@@ -3,11 +3,11 @@
 #include "Compiler/Sema/Core/NodePayload.h"
 #include "Compiler/Verify.h"
 #include "Main/CompilerInstance.h"
+#include "Main/FileSystem.h"
 #include "Main/Stats.h"
 #include "Main/TaskContext.h"
 #include "Support/Core/Timer.h"
 #include "Support/Memory/MemoryProfile.h"
-#include "Support/Os/Os.h"
 #include "Support/Report/Diagnostic.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -114,27 +114,12 @@ Result SourceFile::loadContent(TaskContext& ctx)
     Timer time(&Stats::get().timeLoadFile);
 #endif
 
-    std::ifstream file(path_, std::ios::binary | std::ios::ate);
-
-    if (!file)
+    FileSystem::IoErrorInfo ioError;
+    if (FileSystem::readBinaryFile(path_, content_, ioError) != Result::Continue)
     {
-        Diagnostic diag = Diagnostic::get(DiagnosticId::io_err_open_file, ref());
-        diag.addArgument(Diagnostic::ARG_PATH, path_.string());
-        diag.addArgument(Diagnostic::ARG_BECAUSE, Os::systemError());
-        diag.report(ctx);
-        return Result::Error;
-    }
-
-    const std::streampos fileSize = file.tellg();
-    file.seekg(0, std::ios::beg);
-    content_.reserve(static_cast<size_t>(fileSize) + TRAILING_0);
-    content_.resize(fileSize);
-
-    if (!file.read(reinterpret_cast<char*>(content_.data()), fileSize))
-    {
-        Diagnostic diag = Diagnostic::get(DiagnosticId::io_err_read_file, ref());
-        diag.addArgument(Diagnostic::ARG_PATH, path_.string());
-        diag.addArgument(Diagnostic::ARG_BECAUSE, Os::systemError());
+        const DiagnosticId diagId = ioError.problem == FileSystem::IoProblem::OpenRead ? DiagnosticId::io_err_open_file : DiagnosticId::io_err_read_file;
+        Diagnostic         diag   = Diagnostic::get(diagId, ref());
+        FileSystem::setDiagnosticPathAndBecause(diag, &ctx, path_, ioError.because);
         diag.report(ctx);
         return Result::Error;
     }

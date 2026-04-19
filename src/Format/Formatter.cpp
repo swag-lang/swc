@@ -3,7 +3,6 @@
 #include "Compiler/Parser/Ast/Ast.h"
 #include "Compiler/SourceFile.h"
 #include "Main/FileSystem.h"
-#include "Support/Os/Os.h"
 #include "Support/Report/Diagnostic.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -37,11 +36,10 @@ namespace
         return false;
     }
 
-    Result reportFormatFailure(TaskContext& ctx, const SourceFile& file, const std::string_view because)
+    Result reportFormatFailure(TaskContext& ctx, const SourceFile& file, const Utf8& because)
     {
         Diagnostic diag = Diagnostic::get(DiagnosticId::cmd_err_format_failed);
-        diag.addArgument(Diagnostic::ARG_PATH, FileSystem::formatFileName(&ctx, file.path()));
-        diag.addArgument(Diagnostic::ARG_BECAUSE, Utf8(because));
+        FileSystem::setDiagnosticPathAndBecause(diag, &ctx, file.path(), because);
         diag.report(ctx);
         return Result::Error;
     }
@@ -79,13 +77,9 @@ Result writeFormatFile(TaskContext& ctx, const FormatPreparedFile& preparedFile)
     if (!preparedFile.changed)
         return Result::Continue;
 
-    std::ofstream stream(preparedFile.file->path(), std::ios::binary | std::ios::trunc);
-    if (!stream.is_open())
-        return reportFormatFailure(ctx, *preparedFile.file, std::format("cannot open file for writing: {}", FileSystem::normalizeSystemMessage(Os::systemError())));
-
-    stream.write(preparedFile.text.data(), static_cast<std::streamsize>(preparedFile.text.size()));
-    if (!stream)
-        return reportFormatFailure(ctx, *preparedFile.file, "failed to write formatted source");
+    FileSystem::IoErrorInfo ioError;
+    if (FileSystem::writeBinaryFile(preparedFile.file->path(), preparedFile.text.data(), preparedFile.text.size(), ioError) != Result::Continue)
+        return reportFormatFailure(ctx, *preparedFile.file, FileSystem::describeIoFailure(ioError));
 
     return Result::Continue;
 }

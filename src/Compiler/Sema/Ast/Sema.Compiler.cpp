@@ -20,7 +20,6 @@
 #include "Main/FileSystem.h"
 #include "Main/Global.h"
 #include "Main/Version.h"
-#include "Support/Os/Os.h"
 #include "Support/Report/Diagnostic.h"
 #include "Support/Report/DiagnosticDef.h"
 #include "Support/Report/Logger.h"
@@ -103,8 +102,7 @@ namespace
         Diagnostic diag = Diagnostic::get(id, sema.ast().srcView().fileRef());
         diag.last().addSpan(sema.node(nodeRef).codeRangeWithChildren(sema.ctx(), sema.ast()), "", DiagnosticSeverity::Error);
         SemaError::setReportArguments(sema, diag, nodeRef);
-        diag.addArgument(Diagnostic::ARG_PATH, FileSystem::formatFileName(&sema.ctx(), path));
-        diag.addArgument(Diagnostic::ARG_BECAUSE, because);
+        FileSystem::setDiagnosticPathAndBecause(diag, &sema.ctx(), path, because);
         diag.report(sema.ctx());
         return Result::Error;
     }
@@ -119,28 +117,10 @@ namespace
                 includePath = sourceFile->path().parent_path() / includePath;
         }
 
-        std::error_code ec;
-        fs::path        resolvedPath = fs::absolute(includePath, ec);
-        if (ec)
-            return reportCompilerFileError(sema, DiagnosticId::cmdline_err_invalid_file, nodeRef, includePath, FileSystem::normalizeSystemMessage(ec));
-
-        const fs::path normalizedPath = fs::weakly_canonical(resolvedPath, ec);
-        if (!ec)
-            resolvedPath = normalizedPath;
-        ec.clear();
-
-        if (!fs::exists(resolvedPath, ec))
-        {
-            const Utf8 because = ec ? FileSystem::normalizeSystemMessage(ec) : Utf8{"path does not exist"};
+        fs::path resolvedPath = includePath;
+        Utf8     because;
+        if (FileSystem::resolveExistingFile(resolvedPath, because) != Result::Continue)
             return reportCompilerFileError(sema, DiagnosticId::cmdline_err_invalid_file, nodeRef, resolvedPath, because);
-        }
-
-        ec.clear();
-        if (!fs::is_regular_file(resolvedPath, ec))
-        {
-            const Utf8 because = ec ? FileSystem::normalizeSystemMessage(ec) : Utf8{"path is not a regular file"};
-            return reportCompilerFileError(sema, DiagnosticId::cmdline_err_invalid_file, nodeRef, resolvedPath, because);
-        }
 
         outPath = std::move(resolvedPath);
         return Result::Continue;
@@ -148,18 +128,12 @@ namespace
 
     Result loadCompilerIncludeBytes(Sema& sema, AstNodeRef nodeRef, const fs::path& resolvedPath, std::vector<std::byte>& outBytes)
     {
-        std::ifstream file(resolvedPath, std::ios::binary | std::ios::ate);
-        if (!file)
-            return reportCompilerFileError(sema, DiagnosticId::io_err_open_file, nodeRef, resolvedPath, FileSystem::normalizeSystemMessage(Os::systemError()));
-
-        const std::streampos fileSize = file.tellg();
-        if (fileSize < 0)
-            return reportCompilerFileError(sema, DiagnosticId::io_err_read_file, nodeRef, resolvedPath, "cannot determine file size");
-
-        outBytes.resize(fileSize);
-        file.seekg(0, std::ios::beg);
-        if (!outBytes.empty() && !file.read(reinterpret_cast<char*>(outBytes.data()), fileSize))
-            return reportCompilerFileError(sema, DiagnosticId::io_err_read_file, nodeRef, resolvedPath, FileSystem::normalizeSystemMessage(Os::systemError()));
+        FileSystem::IoErrorInfo ioError;
+        if (FileSystem::readBinaryFile(resolvedPath, outBytes, ioError) != Result::Continue)
+        {
+            const DiagnosticId diagId = ioError.problem == FileSystem::IoProblem::OpenRead ? DiagnosticId::io_err_open_file : DiagnosticId::io_err_read_file;
+            return reportCompilerFileError(sema, diagId, nodeRef, resolvedPath, ioError.because);
+        }
 
         return Result::Continue;
     }

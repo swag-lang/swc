@@ -1,21 +1,34 @@
 #pragma once
-#include "Format/AstSourceWriter.h"
+#include "Format/FormatOptions.h"
 #include "Support/Core/Result.h"
+#include "Support/Core/Utf8.h"
 
 SWC_BEGIN_NAMESPACE();
 
+class Ast;
 class SourceFile;
 class TaskContext;
 
-struct FormatPreparedFile
+class Formatter
 {
-    const SourceFile* file = nullptr;
-    Utf8              text;
-    bool              changed = false;
-    bool              skipped = false;
-};
+public:
+    explicit Formatter(const FormatOptions& options = {});
 
-void   prepareFormatFile(const SourceFile& file, const FormatOptions& options, FormatPreparedFile& outFile);
-Result writeFormatFile(TaskContext& ctx, const FormatPreparedFile& preparedFile);
+    void   prepare(const SourceFile& file);
+    Result write(TaskContext& ctx) const;
+
+    bool changed() const;
+    bool skipped() const;
+
+private:
+    static bool   shouldSkipFormatting(const Ast& ast);
+    static Result reportFormatFailure(TaskContext& ctx, const SourceFile& file, const Utf8& because);
+
+    FormatOptions     options_;
+    const SourceFile* file_    = nullptr;
+    Utf8              text_;
+    bool              changed_ = false;
+    bool              skipped_ = false;
+};
 
 SWC_END_NAMESPACE();

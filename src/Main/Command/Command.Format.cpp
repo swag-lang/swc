@@ -96,9 +96,9 @@ namespace Command
             .ignoreGlobalSkip = true,
         };
 
-        constexpr FormatOptions         options;
-        std::vector<FormatPreparedFile> preparedFiles;
-        preparedFiles.reserve(compiler.files().size());
+        constexpr FormatOptions options;
+        std::vector<Formatter>  formatters;
+        formatters.reserve(compiler.files().size());
 
         size_t totalFiles          = 0;
         size_t skippedInvalidFiles = 0;
@@ -117,20 +117,20 @@ namespace Command
                 continue;
             }
 
-            FormatPreparedFile preparedFile;
-            prepareFormatFile(*file, options, preparedFile);
-            preparedFiles.push_back(std::move(preparedFile));
+            Formatter formatter(options);
+            formatter.prepare(*file);
+            formatters.push_back(std::move(formatter));
         }
 
         size_t rewrittenFiles  = 0;
         size_t skippedFmtFiles = 0;
-        for (const FormatPreparedFile& preparedFile : preparedFiles)
+        for (const Formatter& formatter : formatters)
         {
-            if (writeFormatFile(ctx, preparedFile) != Result::Continue)
+            if (formatter.write(ctx) != Result::Continue)
                 return;
-            if (preparedFile.skipped)
+            if (formatter.skipped())
                 skippedFmtFiles++;
-            if (preparedFile.changed)
+            if (formatter.changed())
                 rewrittenFiles++;
         }
 

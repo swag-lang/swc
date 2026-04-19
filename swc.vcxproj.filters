@@ -573,6 +573,9 @@
     <ClCompile Include="src\Main\Command\CommandLineParser.cpp">
       <Filter>src\Main\Command</Filter>
     </ClCompile>
+    <ClCompile Include="src\Main\Command\CommandLineParser.Commands.cpp">
+      <Filter>src\Main\Command</Filter>
+    </ClCompile>
     <ClCompile Include="src\Main\Command\CommandLineParser.Help.cpp">
       <Filter>src\Main\Command</Filter>
     </ClCompile>

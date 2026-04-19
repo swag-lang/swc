@@ -301,6 +301,7 @@
         <ClCompile Include="src\Main\Command\Command.Test.cpp"/>
         <ClCompile Include="src\Main\Command\Command.Build.cpp"/>
         <ClCompile Include="src\Main\Command\CommandLineParser.cpp"/>
+        <ClCompile Include="src\Main\Command\CommandLineParser.Commands.cpp"/>
         <ClCompile Include="src\Main\Command\CommandLineParser.Help.cpp"/>
         <ClCompile Include="src\Main\FileSystem.cpp"/>
         <ClCompile Include="src\Main\Global.cpp"/>

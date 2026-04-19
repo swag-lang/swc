@@ -101,6 +101,7 @@ private:
     Result                     checkCommandLine(TaskContext& ctx) const;
     static void                markAssigned(void* target);
     void                       registerConfigEntry(const ArgInfo& info, StructConfigAssignHook hook);
+    void                       registerCommands();
 
     ArgInfo& addImpl(HelpOptionGroup group, const char* commands, const char* longForm, const char* shortForm, const char* description, const ArgTarget& target);
 

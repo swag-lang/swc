@@ -49,7 +49,7 @@ private:
     bool        shouldRewriteIndentation() const;
     bool        shouldRewriteEndOfLine() const;
     bool        isAtLineStart() const;
-    void        appendWhitespacePiece(const SourcePiece& piece);
+    void        appendWhitespacePiece(const SourcePiece& piece) const;
     void        appendCommentPiece(const SourcePiece& piece);
     void        appendNormalizedIndent(std::string_view text) const;
     void        appendConfiguredEndOfLine() const;

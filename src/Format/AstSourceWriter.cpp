@@ -235,12 +235,12 @@ void AstSourceWriter::appendSourcePiece(const SourcePiece& piece)
 
 bool AstSourceWriter::shouldRewriteIndentation() const
 {
-    return !options_->preserveWhitespace && options_->indentStyle != FormatIndentStyle::Preserve;
+    return options_->indentStyle != FormatIndentStyle::Preserve;
 }
 
 bool AstSourceWriter::shouldRewriteEndOfLine() const
 {
-    return !options_->preserveEndOfLine && options_->endOfLineStyle != FormatEndOfLineStyle::Preserve;
+    return options_->endOfLineStyle != FormatEndOfLineStyle::Preserve;
 }
 
 bool AstSourceWriter::isAtLineStart() const
@@ -248,7 +248,7 @@ bool AstSourceWriter::isAtLineStart() const
     return formatCtx_->output.empty() || formatCtx_->output.back() == '\n';
 }
 
-void AstSourceWriter::appendWhitespacePiece(const SourcePiece& piece)
+void AstSourceWriter::appendWhitespacePiece(const SourcePiece& piece) const
 {
     if (!shouldRewriteIndentation() && !shouldRewriteEndOfLine())
     {

@@ -20,8 +20,6 @@ struct FormatOptions
 {
     bool preserveComments           = true;
     bool preserveBlankLines         = true;
-    bool preserveWhitespace         = true;
-    bool preserveEndOfLine          = true;
     bool preserveBom                = true;
     bool preserveTrailingWhitespace = true;
     bool insertFinalNewline         = false;
@@ -29,7 +27,7 @@ struct FormatOptions
     uint32_t indentWidth             = 4;
     uint32_t continuationIndentWidth = 4;
 
-    FormatIndentStyle    indentStyle    = FormatIndentStyle::Spaces;
+    FormatIndentStyle    indentStyle    = FormatIndentStyle::Preserve;
     FormatEndOfLineStyle endOfLineStyle = FormatEndOfLineStyle::Preserve;
 };
 

@@ -2,7 +2,6 @@
 #include "Format/FormatOptionsLoader.h"
 #include "Main/FileSystem.h"
 #include "Main/StructConfig.h"
-#include "Main/TaskContext.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -17,7 +16,7 @@ namespace
         schema.add("insert-final-newline", &options.insertFinalNewline, "Ensure formatted files end with a newline.");
         schema.add("indent-width", &options.indentWidth, "Indent width used when formatting with spaces.");
         schema.add("continuation-indent-width", &options.continuationIndentWidth, "Indent width for wrapped constructs.");
-        
+
         schema.addEnum("indent-style", &options.indentStyle,
                        {
                            {"preserve", FormatIndentStyle::Preserve},
@@ -40,12 +39,12 @@ FormatOptionsLoader::FormatOptionsLoader(TaskContext& ctx) :
 {
 }
 
-Result FormatOptionsLoader::applyConfigFile(FormatOptions& options, const fs::path& configPath)
+Result FormatOptionsLoader::applyConfigFile(FormatOptions& options, const fs::path& configPath) const
 {
     StructConfigSchema schema;
     bindFormatOptionsSchema(schema, options);
 
-    StructConfigReader reader(schema);
+    const StructConfigReader reader(schema);
     return reader.readFile(*ctx_, configPath);
 }
 
@@ -69,7 +68,7 @@ Result FormatOptionsLoader::resolveDirectory(const fs::path& directory, FormatOp
             SWC_RESULT(resolveDirectory(parent, options));
     }
 
-    const fs::path configPath = normalizedDirectory / FORMAT_CONFIG_FILE;
+    const fs::path  configPath = normalizedDirectory / FORMAT_CONFIG_FILE;
     std::error_code ec;
     const bool      exists = fs::exists(configPath, ec);
     if (!ec && exists)

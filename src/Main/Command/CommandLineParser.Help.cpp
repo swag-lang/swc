@@ -1,6 +1,6 @@
 #include "pch.h"
 #include "Main/Command/CommandLineParser.h"
-#include "Main/Command/Command.Print.h"
+#include "Main/Command/CommandPrint.h"
 #include "Main/Command/CommandLine.h"
 #include "Main/Global.h"
 #include "Main/TaskContext.h"

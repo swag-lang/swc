@@ -295,8 +295,9 @@
         <ClCompile Include="src\Format\Formatter.cpp"/>
         <ClCompile Include="src\main.cpp"/>
         <ClCompile Include="src\Main\Command\Command.Format.cpp"/>
-        <ClCompile Include="src\Main\Command\Command.Info.cpp"/>
+        <ClCompile Include="src\Main\Command\Command.DryRun.cpp"/>
         <ClCompile Include="src\Main\Command\Command.Sema.cpp"/>
+        <ClCompile Include="src\Main\Command\Command.ShowConfig.cpp"/>
         <ClCompile Include="src\Main\Command\Command.Syntax.cpp"/>
         <ClCompile Include="src\Main\Command\Command.Test.cpp"/>
         <ClCompile Include="src\Main\Command\Command.Build.cpp"/>
@@ -535,7 +536,7 @@
         <ClInclude Include="src\Support\Core\RefTypes.h"/>
         <ClInclude Include="src\Main\Command\CommandLine.h"/>
         <ClInclude Include="src\Main\Command\CommandLineParser.h"/>
-        <ClInclude Include="src\Main\Command\Command.Print.h"/>
+        <ClInclude Include="src\Main\Command\CommandPrint.h"/>
         <ClInclude Include="src\Main\Command\Command.h"/>
         <ClInclude Include="src\Main\Stats.h"/>
         <ClInclude Include="src\Main\StructConfig.h"/>

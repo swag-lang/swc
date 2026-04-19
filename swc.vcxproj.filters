@@ -558,7 +558,10 @@
     <ClCompile Include="src\Main\Command\Command.Format.cpp">
       <Filter>src\Main\Command</Filter>
     </ClCompile>
-    <ClCompile Include="src\Main\Command\Command.Info.cpp">
+    <ClCompile Include="src\Main\Command\Command.DryRun.cpp">
+      <Filter>src\Main\Command</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Main\Command\Command.ShowConfig.cpp">
       <Filter>src\Main\Command</Filter>
     </ClCompile>
     <ClCompile Include="src\Main\Command\Command.Sema.cpp">
@@ -1226,7 +1229,7 @@
     <ClInclude Include="src\Main\Command\CommandLineParser.h">
       <Filter>src\Main\Command</Filter>
     </ClInclude>
-    <ClInclude Include="src\Main\Command\Command.Print.h">
+    <ClInclude Include="src\Main\Command\CommandPrint.h">
       <Filter>src\Main\Command</Filter>
     </ClInclude>
     <ClInclude Include="src\Main\Command\Command.h">

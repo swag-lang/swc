@@ -1,0 +1,22 @@
+# Preserve UTF-8 BOM markers.
+preserve-bom = true
+
+# Preserve trailing whitespace already present in source.
+preserve-trailing-whitespace = true
+
+# Ensure formatted files end with a newline.
+insert-final-newline = false
+
+# Indent width used when formatting with spaces.
+indent-width = 4
+
+# Indent width for wrapped constructs.
+continuation-indent-width = 4
+
+# Indent style used by the formatter.
+# Possible values: preserve, spaces, tabs
+indent-style = preserve
+
+# End-of-line style used by the formatter.
+# Possible values: preserve, lf, crlf
+end-of-line-style = preserve

@@ -16,7 +16,7 @@ private:
     std::map<fs::path, FormatOptions> cache_;
 
     Result resolveDirectory(const fs::path& directory, FormatOptions& outOptions);
-    Result applyConfigFile(FormatOptions& options, const fs::path& configPath);
+    Result applyConfigFile(FormatOptions& options, const fs::path& configPath) const;
 };
 
 SWC_END_NAMESPACE();

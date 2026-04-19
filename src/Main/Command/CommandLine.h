@@ -109,9 +109,12 @@ struct CommandLine
 
     std::set<fs::path> directories;
     std::set<fs::path> files;
+    std::set<fs::path> importApiDirs;
+    std::set<fs::path> importApiFiles;
 
     fs::path          configFile;
     fs::path          modulePath;
+    fs::path          exportApiDir;
     fs::path          outDir;
     fs::path          workDir;
     Runtime::BuildCfg defaultBuildCfg{};

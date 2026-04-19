@@ -244,6 +244,36 @@ SWC_TEST_BEGIN(NativeArtifact_DefaultsToLocalOutputTree)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(NativeArtifact_ImportedApiKeepsLocalOutputTree)
+{
+    CommandLine       cmdLine   = makeNativeArtifactCmdLine(ctx);
+    const fs::path    inputRoot = inputRootForTest(cmdLine);
+    CompilerInstance  compiler(ctx.global(), cmdLine);
+    NativeBackendBuilder nativeBuilder(compiler, false);
+    const NativeArtifactBuilder artifactBuilder(nativeBuilder);
+
+    if (inputRoot.empty())
+        return Result::Error;
+
+    cmdLine.importApiDirs.insert(inputRoot.parent_path().parent_path() / ".output" / "dep" / "win32");
+    CompilerInstance            compilerWithImport(ctx.global(), cmdLine);
+    NativeBackendBuilder        nativeBuilderWithImport(compilerWithImport, false);
+    const NativeArtifactBuilder artifactBuilderWithImport(nativeBuilderWithImport);
+
+    NativeArtifactPaths pathsWithoutImport;
+    artifactBuilder.queryPaths(pathsWithoutImport, 1);
+
+    NativeArtifactPaths pathsWithImport;
+    artifactBuilderWithImport.queryPaths(pathsWithImport, 1);
+
+    const fs::path expectedOutputRoot = inputRoot / ".output";
+    if (!FileSystem::pathEquals(pathsWithImport.workDir.parent_path(), expectedOutputRoot))
+        return Result::Error;
+    if (!FileSystem::pathEquals(pathsWithoutImport.workDir.parent_path(), pathsWithImport.workDir.parent_path()))
+        return Result::Error;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(NativeArtifact_ModuleNamespaceDefaultsFromModulePath)
 {
     CommandLine cmdLine;

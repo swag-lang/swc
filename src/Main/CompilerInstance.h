@@ -137,6 +137,7 @@ public:
     const SourceView* findSourceViewByFileName(std::string_view fileName) const;
 
     Result                       collectFiles(TaskContext& ctx);
+    Result                       exportModuleApi(TaskContext& ctx);
     std::span<SourceFile* const> files() const;
 
     template<typename T, typename... ARGS>
@@ -168,6 +169,7 @@ private:
     SourceFile& addResolvedFile(fs::path path, FileFlags flags);
     void        appendResolvedFiles(std::vector<fs::path>& paths, FileFlags flags);
     void        collectFolderFiles(const fs::path& folder, FileFlags flags, bool canFilter);
+    Result      collectImportedApiFiles(TaskContext& ctx);
 
     const CommandLine*                       cmdLine_ = nullptr;
     const Global*                            global_  = nullptr;

@@ -59,6 +59,15 @@ void CommandLineParser::registerCommands()
     add(HelpOptionGroup::Input, "all", "--module", "-m",
         &cmdLine_->modulePath,
         "Specify a module path to compile.");
+    add(HelpOptionGroup::Input, "sema build run", "--import-api-dir", nullptr,
+        &cmdLine_->importApiDirs,
+        "Add a directory of generated public API files (.swg/.swgs) to the compilation input.");
+    add(HelpOptionGroup::Input, "sema build run", "--import-api-file", nullptr,
+        &cmdLine_->importApiFiles,
+        "Add one generated public API file (.swg/.swgs) to the compilation input.");
+    add(HelpOptionGroup::Input, "sema build run", "--export-api-dir", nullptr,
+        &cmdLine_->exportApiDir,
+        "Generate the module public API into this directory after a successful semantic pass.");
     add(HelpOptionGroup::Input, "all", "--runtime", "-rt",
         &cmdLine_->runtime,
         "Include runtime files in the input set.");

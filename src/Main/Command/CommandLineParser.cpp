@@ -1014,6 +1014,24 @@ Result CommandLineParser::checkCommandLine(TaskContext& ctx) const
     }
     cmdLine_->files = std::move(resolvedFiles);
 
+    std::set<fs::path> resolvedImportApiDirs;
+    for (const fs::path& folder : cmdLine_->importApiDirs)
+    {
+        fs::path temp = folder;
+        SWC_RESULT(FileSystem::resolveFolder(ctx, temp));
+        resolvedImportApiDirs.insert(std::move(temp));
+    }
+    cmdLine_->importApiDirs = std::move(resolvedImportApiDirs);
+
+    std::set<fs::path> resolvedImportApiFiles;
+    for (const fs::path& file : cmdLine_->importApiFiles)
+    {
+        fs::path temp = file;
+        SWC_RESULT(FileSystem::resolveFile(ctx, temp));
+        resolvedImportApiFiles.insert(std::move(temp));
+    }
+    cmdLine_->importApiFiles = std::move(resolvedImportApiFiles);
+
     // Module path should exist
     if (!cmdLine_->modulePath.empty())
     {
@@ -1067,6 +1085,21 @@ Result CommandLineParser::checkCommandLine(TaskContext& ctx) const
     else
     {
         cmdLine_->workDirStorage.clear();
+    }
+
+    if (!cmdLine_->exportApiDir.empty())
+    {
+        fs::path temp = cmdLine_->exportApiDir;
+        Utf8     because;
+        if (FileSystem::normalizeAbsolutePath(temp, because) != Result::Continue)
+        {
+            Diagnostic diag = Diagnostic::get(DiagnosticId::cmdline_err_invalid_folder);
+            FileSystem::setDiagnosticPathAndBecause(diag, &ctx, temp, because);
+            diag.report(ctx);
+            return Result::Error;
+        }
+
+        cmdLine_->exportApiDir = std::move(temp);
     }
 
     updateDefaultBuildCfg(*cmdLine_);

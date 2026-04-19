@@ -17,6 +17,7 @@ enum class FileFlagsE : uint32_t
     Module    = 1 << 2,
     Runtime   = 1 << 3,
     SkipFmt   = 1 << 4,
+    ImportedApi = 1 << 5,
 };
 using FileFlags = EnumFlags<FileFlagsE>;
 
@@ -42,6 +43,7 @@ public:
     bool             hasFlag(FileFlags flag) const { return flags_.has(flag); }
     void             addFlag(FileFlags flag) { flags_.add(flag); }
     bool             isRuntime() const { return (flags_.has(FileFlagsE::Runtime)); }
+    bool             isImportedApi() const { return flags_.has(FileFlagsE::ImportedApi); }
     bool             mustSkipFormat() const { return flags_.has(FileFlagsE::SkipFmt); }
     void             setMustSkipFormat() { flags_.add(FileFlagsE::SkipFmt); }
 

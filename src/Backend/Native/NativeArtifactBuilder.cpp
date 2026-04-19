@@ -259,6 +259,20 @@ Utf8 NativeArtifactBuilder::automaticWorkDirName(const Utf8& name) const
         key += ";";
     }
 
+    for (const fs::path& file : cmdLine.importApiFiles)
+    {
+        key += "import-api-file=";
+        key += Utf8(file);
+        key += ";";
+    }
+
+    for (const fs::path& directory : cmdLine.importApiDirs)
+    {
+        key += "import-api-dir=";
+        key += Utf8(directory);
+        key += ";";
+    }
+
     // Keep the auto-generated work dir deterministic for a given command line so cleanup
     // and incremental native builds operate in the same location.
     const uint32_t hash = static_cast<uint32_t>(std::hash<std::string_view>{}(key.view()));

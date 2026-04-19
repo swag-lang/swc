@@ -92,6 +92,8 @@ namespace Command
         }
 
         Sema::waitDone(ctx, clientId);
+        if (!Stats::hasError() && compiler.exportModuleApi(ctx) == Result::Error)
+            return;
 
         stage.setStat(Utf8Helper::countWithLabel(Stats::get().numTokens.load(std::memory_order_relaxed), "token"));
     }

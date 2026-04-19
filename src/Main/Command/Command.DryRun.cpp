@@ -36,11 +36,12 @@ namespace
 
     struct DryRunInputSummary
     {
-        uint32_t totalFiles   = 0;
-        uint32_t customFiles  = 0;
-        uint32_t moduleFiles  = 0;
-        uint32_t moduleSrc    = 0;
-        uint32_t runtimeFiles = 0;
+        uint32_t totalFiles       = 0;
+        uint32_t customFiles      = 0;
+        uint32_t moduleFiles      = 0;
+        uint32_t moduleSrc        = 0;
+        uint32_t importedApiFiles = 0;
+        uint32_t runtimeFiles     = 0;
     };
 
     struct DryRunNativePreview
@@ -92,6 +93,8 @@ namespace
                 outSummary.moduleFiles++;
             else if (file->hasFlag(FileFlagsE::ModuleSrc))
                 outSummary.moduleSrc++;
+            else if (file->hasFlag(FileFlagsE::ImportedApi))
+                outSummary.importedApiFiles++;
             else if (file->hasFlag(FileFlagsE::Runtime))
                 outSummary.runtimeFiles++;
         }
@@ -225,10 +228,14 @@ namespace
         addInfoEntry(entries, "Custom source files", Utf8Helper::countWithLabel(inputSummary.customFiles, "file"));
         addInfoEntry(entries, "Module files", Utf8Helper::countWithLabel(inputSummary.moduleFiles, "file"));
         addInfoEntry(entries, "Module source files", Utf8Helper::countWithLabel(inputSummary.moduleSrc, "file"));
+        addInfoEntry(entries, "Imported API files", Utf8Helper::countWithLabel(inputSummary.importedApiFiles, "file"));
         addInfoEntry(entries, "Runtime files", Utf8Helper::countWithLabel(inputSummary.runtimeFiles, "file"));
         addInfoEntry(entries, "Module path", cmdLine.modulePath);
+        addInfoEntry(entries, "Export API directory", cmdLine.exportApiDir);
         addPathSet(entries, "Source directories", cmdLine.directories);
         addPathSet(entries, "Source files", cmdLine.files);
+        addPathSet(entries, "Import API directories", cmdLine.importApiDirs);
+        addPathSet(entries, "Import API files", cmdLine.importApiFiles);
         Logger::printFieldGroup(ctx, "Resolved Inputs", entries, nextInfoGroupStyle(hasPrintedGroup, 24));
     }
 
@@ -260,13 +267,17 @@ namespace
 
             case CommandKind::Sema:
                 addPlanEntry(entries, index++, "Would", LogColor::BrightGreen, std::format("parse {}", inputCount));
-                addPlanEntry(entries, index, "Would", LogColor::BrightGreen, "run semantic analysis, including compile-time evaluation when required");
+                addPlanEntry(entries, index++, "Would", LogColor::BrightGreen, "run semantic analysis, including compile-time evaluation when required");
+                if (!cmdLine.exportApiDir.empty())
+                    addPlanEntry(entries, index, "Would", LogColor::BrightGreen, std::format("write generated module API files under {}", Utf8(cmdLine.exportApiDir)));
                 break;
 
             case CommandKind::Build:
             case CommandKind::Run:
                 addPlanEntry(entries, index++, "Would", LogColor::BrightGreen, std::format("parse {}", inputCount));
                 addPlanEntry(entries, index++, "Would", LogColor::BrightGreen, "run semantic analysis, including compile-time evaluation when required");
+                if (!cmdLine.exportApiDir.empty())
+                    addPlanEntry(entries, index++, "Would", LogColor::BrightGreen, std::format("write generated module API files under {}", Utf8(cmdLine.exportApiDir)));
                 addPlanEntry(entries, index++, "Would", LogColor::BrightGreen, std::format("generate native {}", backendKindName(nativePreview.backendKind)));
                 if (cmdLine.clear)
                     addPlanEntry(entries, index++, "Would", LogColor::BrightGreen, std::format("clear native outputs under {}", Utf8(nativePreview.paths.workDir)));

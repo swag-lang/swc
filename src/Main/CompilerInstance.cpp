@@ -3,6 +3,8 @@
 #include "Backend/JIT/JITExecManager.h"
 #include "Backend/JIT/JITMemoryManager.h"
 #include "Compiler/Lexer/SourceView.h"
+#include "Compiler/Parser/Ast/Ast.h"
+#include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Symbol/IdentifierManager.h"
 #include "Compiler/Sema/Symbol/Symbol.Impl.h"
@@ -68,6 +70,146 @@ namespace
             return true;
 
         return owner->isNamespace() && owner->idRef().isValid();
+    }
+
+    const SourceFile* sourceFileFromRef(const CompilerInstance& compiler, const SourceViewRef srcViewRef)
+    {
+        if (!srcViewRef.isValid())
+            return nullptr;
+
+        const SourceView& srcView = compiler.srcView(srcViewRef);
+        return srcView.file();
+    }
+
+    template<typename T>
+    bool isImportedApiSource(const CompilerInstance& compiler, const T& symbol)
+    {
+        const SourceFile* sourceFile = sourceFileFromRef(compiler, symbol.srcViewRef());
+        return sourceFile && sourceFile->isImportedApi();
+    }
+
+    struct ModuleApiFileInfo
+    {
+        bool exported           = false;
+        bool hasModuleNamespace = false;
+    };
+
+    ModuleApiFileInfo analyzeModuleApiFile(const SourceFile& file, std::string_view moduleNamespace)
+    {
+        ModuleApiFileInfo result;
+        const AstNodeRef  rootRef = file.ast().root();
+        if (rootRef.isInvalid())
+            return result;
+
+        const AstNode& rootNode = file.ast().node(rootRef);
+        if (rootNode.isNot(AstNodeId::File))
+            return result;
+
+        const auto& fileNode = rootNode.cast<AstFile>();
+
+        SmallVector<AstNodeRef> globalRefs;
+        file.ast().appendNodes(globalRefs, fileNode.spanGlobalsRef);
+        for (uint32_t i = 0; i < globalRefs.size(); ++i)
+        {
+            const AstNodeRef globalRef = globalRefs[i];
+            if (globalRef.isInvalid())
+                continue;
+
+            const AstNode& globalNode = file.ast().node(globalRef);
+            if (globalNode.isNot(AstNodeId::CompilerGlobal))
+                continue;
+
+            const auto& global = globalNode.cast<AstCompilerGlobal>();
+            if (i == 0 && global.mode == AstCompilerGlobal::Mode::Export)
+                result.exported = true;
+
+            if (global.mode != AstCompilerGlobal::Mode::Namespace)
+                continue;
+
+            SmallVector<TokenRef> nameRefs;
+            file.ast().appendTokens(nameRefs, global.spanNameRef);
+            if (nameRefs.size() != 1)
+                continue;
+
+            const std::string_view namespaceName = file.ast().srcView().tokenString(nameRefs[0]);
+            if (namespaceName == moduleNamespace)
+                result.hasModuleNamespace = true;
+        }
+
+        return result;
+    }
+
+    std::string_view preferredLineEnding(const SourceFile& file)
+    {
+        const std::string_view content = file.sourceView();
+        if (content.find("\r\n") != std::string_view::npos)
+            return "\r\n";
+        if (content.find('\n') != std::string_view::npos)
+            return "\n";
+        return "\r\n";
+    }
+
+    Utf8 buildExportedModuleApiContent(const SourceFile& file, std::string_view moduleNamespace, const bool hasModuleNamespace)
+    {
+        const std::string_view source = file.sourceView();
+        if (hasModuleNamespace)
+            return Utf8{source};
+
+        uint32_t insertOffset = file.ast().srcView().sourceStartOffset();
+        if (file.ast().srcView().numTokens())
+        {
+            const Token& firstToken = file.ast().srcView().token(TokenRef(0));
+            if (firstToken.id != TokenId::EndOfFile)
+                insertOffset = firstToken.byteStart;
+        }
+
+        insertOffset = std::min<uint32_t>(insertOffset, static_cast<uint32_t>(source.size()));
+
+        Utf8 content;
+        content.reserve(source.size() + moduleNamespace.size() + 32);
+        content.append(source.substr(0, insertOffset));
+        content += "#global namespace ";
+        content += moduleNamespace;
+        content += preferredLineEnding(file);
+        content.append(source.substr(insertOffset));
+        return content;
+    }
+
+    bool pathStartsWith(const fs::path& path, const fs::path& prefix)
+    {
+        auto pathIt   = path.begin();
+        auto prefixIt = prefix.begin();
+        while (prefixIt != prefix.end())
+        {
+            if (pathIt == path.end() || *pathIt != *prefixIt)
+                return false;
+
+            ++pathIt;
+            ++prefixIt;
+        }
+
+        return true;
+    }
+
+    Result reportModuleApiError(TaskContext& ctx, const DiagnosticId diagId, const fs::path& path, const Utf8& because)
+    {
+        Diagnostic diag = Diagnostic::get(diagId);
+        FileSystem::setDiagnosticPathAndBecause(diag, &ctx, path, because);
+        diag.report(ctx);
+        return Result::Error;
+    }
+
+    Result ensureModuleApiDirectory(TaskContext& ctx, const fs::path& path)
+    {
+        if (path.empty())
+            return Result::Continue;
+
+        std::error_code ec;
+        fs::create_directories(path, ec);
+        if (ec)
+            return reportModuleApiError(ctx, DiagnosticId::cmd_err_api_dir_create_failed, path, FileSystem::normalizeSystemMessage(ec));
+
+        return Result::Continue;
     }
 
     void initRuntimeContextTlsId()
@@ -357,6 +499,8 @@ void CompilerInstance::registerNativeCodeFunction(SymbolFunction* symbol)
     SWC_ASSERT(symbol->isSemaCompleted());
     if (!shouldRegisterNativeFunction(*symbol))
         return;
+    if (isImportedApiSource(*this, *symbol))
+        return;
     if (!isNativeRootFunction(*symbol))
         return;
 
@@ -376,6 +520,8 @@ void CompilerInstance::registerNativeTestFunction(SymbolFunction* symbol)
     SWC_ASSERT(symbol->isSemaCompleted());
     if (!shouldRegisterNativeFunction(*symbol))
         return;
+    if (isImportedApiSource(*this, *symbol))
+        return;
 
     bool inserted = false;
     {
@@ -393,6 +539,8 @@ void CompilerInstance::registerNativeInitFunction(SymbolFunction* symbol)
     SWC_ASSERT(symbol != nullptr);
     SWC_ASSERT(symbol->isSemaCompleted());
     if (!shouldRegisterNativeFunction(*symbol))
+        return;
+    if (isImportedApiSource(*this, *symbol))
         return;
 
     bool inserted = false;
@@ -412,6 +560,8 @@ void CompilerInstance::registerNativePreMainFunction(SymbolFunction* symbol)
     SWC_ASSERT(symbol->isSemaCompleted());
     if (!shouldRegisterNativeFunction(*symbol))
         return;
+    if (isImportedApiSource(*this, *symbol))
+        return;
 
     bool inserted = false;
     {
@@ -429,6 +579,8 @@ void CompilerInstance::registerNativeDropFunction(SymbolFunction* symbol)
     SWC_ASSERT(symbol != nullptr);
     SWC_ASSERT(symbol->isSemaCompleted());
     if (!shouldRegisterNativeFunction(*symbol))
+        return;
+    if (isImportedApiSource(*this, *symbol))
         return;
 
     bool inserted = false;
@@ -448,6 +600,8 @@ void CompilerInstance::registerNativeMainFunction(SymbolFunction* symbol)
     SWC_ASSERT(symbol->isSemaCompleted());
     if (!shouldRegisterNativeFunction(*symbol))
         return;
+    if (isImportedApiSource(*this, *symbol))
+        return;
 
     bool inserted = false;
     {
@@ -464,6 +618,8 @@ void CompilerInstance::registerNativeGlobalVariable(SymbolVariable* symbol)
 {
     SWC_ASSERT(symbol != nullptr);
     SWC_ASSERT(symbol->isSemaCompleted());
+    if (isImportedApiSource(*this, *symbol))
+        return;
     if (!symbol->hasGlobalStorage())
         return;
     if (symbol->globalStorageKind() == DataSegmentKind::Compiler)
@@ -482,6 +638,8 @@ void CompilerInstance::registerNativeGlobalVariable(SymbolVariable* symbol)
 void CompilerInstance::registerNativeGlobalFunctionInitTarget(SymbolFunction* symbol)
 {
     SWC_ASSERT(symbol != nullptr);
+    if (isImportedApiSource(*this, *symbol))
+        return;
 
     bool inserted = false;
     {
@@ -751,6 +909,24 @@ void CompilerInstance::collectFolderFiles(const fs::path& folder, FileFlags flag
     appendResolvedFiles(paths, flags);
 }
 
+Result CompilerInstance::collectImportedApiFiles(TaskContext& ctx)
+{
+    const CommandLine& cmdLine = ctx.cmdLine();
+
+    for (const fs::path& folder : cmdLine.importApiDirs)
+        collectFolderFiles(folder, FileFlagsE::ImportedApi, false);
+
+    if (cmdLine.importApiFiles.empty())
+        return Result::Continue;
+
+    files_.reserve(files_.size() + cmdLine.importApiFiles.size());
+    filePtrs_.reserve(filePtrs_.size() + cmdLine.importApiFiles.size());
+    for (const fs::path& file : cmdLine.importApiFiles)
+        addResolvedFile(file, FileFlagsE::ImportedApi);
+
+    return Result::Continue;
+}
+
 Result CompilerInstance::collectFiles(TaskContext& ctx)
 {
     const CommandLine& cmdLine = ctx.cmdLine();
@@ -780,6 +956,8 @@ Result CompilerInstance::collectFiles(TaskContext& ctx)
         collectFolderFiles(modulePathSrc_, FileFlagsE::ModuleSrc, true);
     }
 
+    SWC_RESULT(collectImportedApiFiles(ctx));
+
     // Collect runtime files
     if (cmdLine.runtime)
     {
@@ -795,6 +973,41 @@ Result CompilerInstance::collectFiles(TaskContext& ctx)
         const Diagnostic diag = Diagnostic::get(DiagnosticId::cmd_err_no_input);
         diag.report(ctx);
         return Result::Error;
+    }
+
+    return Result::Continue;
+}
+
+Result CompilerInstance::exportModuleApi(TaskContext& ctx)
+{
+    const fs::path& exportApiDir = cmdLine().exportApiDir;
+    if (exportApiDir.empty() || modulePathSrc_.empty())
+        return Result::Continue;
+
+    SWC_RESULT(ensureModuleApiDirectory(ctx, exportApiDir));
+    SWC_RESULT(FileSystem::clearDirectoryContents(ctx, exportApiDir, DiagnosticId::cmd_err_api_dir_clear_failed));
+
+    const Utf8 moduleNamespace = buildCfg().moduleNamespace.ptr ? Utf8(buildCfg().moduleNamespace) : Utf8{};
+    for (SourceFile* file : files())
+    {
+        if (!file || !file->hasFlag(FileFlagsE::ModuleSrc))
+            continue;
+
+        const ModuleApiFileInfo info = analyzeModuleApiFile(*file, moduleNamespace.view());
+        if (!info.exported)
+            continue;
+
+        fs::path relativePath = file->path().lexically_relative(modulePathSrc_);
+        if (relativePath.empty() || relativePath == "." || !pathStartsWith(file->path(), modulePathSrc_))
+            relativePath = file->path().filename();
+
+        const fs::path dstPath = exportApiDir / relativePath;
+        SWC_RESULT(ensureModuleApiDirectory(ctx, dstPath.parent_path()));
+
+        const Utf8 content = buildExportedModuleApiContent(*file, moduleNamespace.view(), info.hasModuleNamespace);
+        FileSystem::IoErrorInfo ioError;
+        if (FileSystem::writeBinaryFile(dstPath, content.data(), content.size(), ioError) != Result::Continue)
+            return reportModuleApiError(ctx, DiagnosticId::cmd_err_api_file_write_failed, dstPath, FileSystem::describeIoFailure(ioError));
     }
 
     return Result::Continue;

@@ -152,6 +152,7 @@
         <ClCompile Include="src\Unittest\UnittestHelpers.cpp"/>
         <ClCompile Include="src\Unittest\Test.ABI.FFI.cpp"/>
         <ClCompile Include="src\Unittest\Test.Compiler.ConstantManager.cpp"/>
+        <ClCompile Include="src\Unittest\Test.Compiler.Config.cpp"/>
         <ClCompile Include="src\Unittest\Test.Compiler.InMemorySource.cpp"/>
         <ClCompile Include="src\Unittest\Test.Compiler.Tags.cpp"/>
         <ClCompile Include="src\Unittest\Test.Debug.DebugInfo.cpp"/>
@@ -290,6 +291,7 @@
         <ClCompile Include="src\Compiler\Lexer\Token.cpp"/>
         <ClCompile Include="src\Format\AstSourceWriter.cpp"/>
         <ClCompile Include="src\Format\FormatJob.cpp"/>
+        <ClCompile Include="src\Format\FormatOptionsLoader.cpp"/>
         <ClCompile Include="src\Format\Formatter.cpp"/>
         <ClCompile Include="src\main.cpp"/>
         <ClCompile Include="src\Main\Command\Command.Format.cpp"/>
@@ -306,6 +308,7 @@
         <ClCompile Include="src\Main\CompilerInstance.cpp"/>
         <ClCompile Include="src\Main\ExternalModuleManager.cpp"/>
         <ClCompile Include="src\Main\Stats.cpp"/>
+        <ClCompile Include="src\Main\StructConfig.cpp"/>
         <ClCompile Include="src\Main\TakeContext.cpp"/>
         <ClCompile Include="src\Main\TaskState.cpp"/>
         <ClCompile Include="src\Support\Math\ApFloat.cpp"/>
@@ -526,6 +529,7 @@
         <ClInclude Include="src\Format\FormatJob.h"/>
         <ClInclude Include="src\Format\Formatter.h"/>
         <ClInclude Include="src\Format\FormatOptions.h"/>
+        <ClInclude Include="src\Format\FormatOptionsLoader.h"/>
         <ClInclude Include="src\Compiler\Lexer\Tokens.Def.inc"/>
         <ClInclude Include="src\Support\Core\RefTypes.h"/>
         <ClInclude Include="src\Main\Command\CommandLine.h"/>
@@ -533,6 +537,7 @@
         <ClInclude Include="src\Main\Command\Command.Print.h"/>
         <ClInclude Include="src\Main\Command\Command.h"/>
         <ClInclude Include="src\Main\Stats.h"/>
+        <ClInclude Include="src\Main\StructConfig.h"/>
         <ClInclude Include="src\Main\TaskContext.h"/>
         <ClInclude Include="src\Main\TaskState.h"/>
         <ClInclude Include="src\Main\FileSystem.h"/>

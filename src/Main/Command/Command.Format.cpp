@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Main/Command/Command.h"
 #include "Format/FormatJob.h"
+#include "Format/FormatOptionsLoader.h"
 #include "Main/CompilerInstance.h"
 #include "Main/Global.h"
 #include "Main/Stats.h"
@@ -60,7 +61,7 @@ namespace Command
             .ignoreGlobalSkip = true,
         };
 
-        constexpr FormatOptions formatOptions;
+        FormatOptionsLoader     optionsLoader(ctx);
         std::vector<FormatJob*> jobs;
         jobs.reserve(compiler.files().size());
 
@@ -68,6 +69,10 @@ namespace Command
         {
             if (!file)
                 continue;
+
+            FormatOptions formatOptions;
+            if (optionsLoader.resolve(file->path(), formatOptions) != Result::Continue)
+                return;
 
             auto* job = heapNew<FormatJob>(ctx, file, formatOptions, parserOptions);
             jobs.push_back(job);

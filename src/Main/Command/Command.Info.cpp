@@ -284,6 +284,7 @@ namespace
         Logger::printFieldGroup(ctx, "Modes & Diagnostics", entries, nextInfoGroupStyle(hasPrintedGroup, 26));
 
         entries.clear();
+        addInfoEntry(entries, "Config file", cmdLine.configFile);
         addInfoEntry(entries, "Module path", cmdLine.modulePath);
         addInfoEntry(entries, "Output directory", Utf8(buildCfg.outDir));
         addPathSet(entries, "Source directories", cmdLine.directories);

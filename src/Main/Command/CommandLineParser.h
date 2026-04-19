@@ -1,5 +1,6 @@
 #pragma once
 #include "Main/Command/CommandLine.h"
+#include "Main/StructConfig.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -19,24 +20,8 @@ enum class HelpOptionGroup : uint8_t
     Other
 };
 
-struct EnumIntTarget
-{
-    void (*setter)(void*, int) = nullptr;
-    int (*getter)(const void*) = nullptr;
-    void* target               = nullptr;
-};
-
-using ArgTarget = std::variant<
-    bool*,
-    int*,
-    uint32_t*,
-    Utf8*,
-    fs::path*,
-    std::vector<Utf8>*,
-    std::set<Utf8>*,
-    std::set<fs::path>*,
-    std::optional<bool>*,
-    EnumIntTarget>;
+using EnumIntTarget = StructConfigEnumIntTarget;
+using ArgTarget     = StructConfigTarget;
 
 struct ArgInfo
 {
@@ -81,6 +66,7 @@ private:
     std::vector<ArgInfo>   args_;
     std::map<Utf8, size_t> longFormMap_;
     std::map<Utf8, size_t> shortFormMap_;
+    StructConfigSchema     configSchema_;
     CommandLine*           cmdLine_     = nullptr;
     Global*                global_      = nullptr;
     bool                   errorRaised_ = false;
@@ -94,6 +80,7 @@ private:
     bool                       getNextValue(TaskContext& ctx, const Utf8& arg, const Utf8* inlineValue, size_t& index, const std::vector<Utf8>& args, Utf8& value);
     static Result              expandResponseFiles(TaskContext& ctx, const std::vector<Utf8>& in, std::vector<Utf8>& out);
     static Result              expandOneResponseFile(TaskContext& ctx, const fs::path& path, std::vector<Utf8>& out, std::set<fs::path>& visited, uint32_t depth);
+    Result                     applyConfigFile(TaskContext& ctx, const std::vector<Utf8>& args);
     bool                       commandMatches(const Utf8& commandList) const;
     bool                       parseEnumString(TaskContext& ctx, const ArgInfo& info, const Utf8& arg, const Utf8& value, Utf8* target);
     bool                       parseEnumInt(TaskContext& ctx, const ArgInfo& info, const Utf8& arg, const Utf8& value, const EnumIntTarget& target);
@@ -112,23 +99,25 @@ private:
     bool                       reportEnumError(TaskContext& ctx, const ArgInfo& info, const Utf8& arg, const Utf8& value);
     bool                       reportIntError(TaskContext& ctx, const ArgInfo& info, const Utf8& arg, const Utf8& value);
     Result                     checkCommandLine(TaskContext& ctx) const;
+    static void                markAssigned(void* target);
+    void                       registerConfigEntry(const ArgInfo& info, StructConfigAssignHook hook);
 
     ArgInfo& addImpl(HelpOptionGroup group, const char* commands, const char* longForm, const char* shortForm, const char* description, const ArgTarget& target);
 
-    void add(HelpOptionGroup g, const char* cmds, const char* lf, const char* sf, bool* target, const char* desc);
-    void add(HelpOptionGroup g, const char* cmds, const char* lf, const char* sf, int* target, const char* desc);
-    void add(HelpOptionGroup g, const char* cmds, const char* lf, const char* sf, uint32_t* target, const char* desc);
-    void add(HelpOptionGroup g, const char* cmds, const char* lf, const char* sf, Utf8* target, const char* desc);
-    void add(HelpOptionGroup g, const char* cmds, const char* lf, const char* sf, fs::path* target, const char* desc);
-    void add(HelpOptionGroup g, const char* cmds, const char* lf, const char* sf, std::vector<Utf8>* target, const char* desc);
-    void add(HelpOptionGroup g, const char* cmds, const char* lf, const char* sf, std::set<Utf8>* target, const char* desc);
-    void add(HelpOptionGroup g, const char* cmds, const char* lf, const char* sf, std::set<fs::path>* target, const char* desc);
-    void add(HelpOptionGroup g, const char* cmds, const char* lf, const char* sf, std::optional<bool>* target, const char* desc);
+    void add(HelpOptionGroup g, const char* cmds, const char* lf, const char* sf, bool* target, const char* desc, bool allowInConfig = true, StructConfigAssignHook hook = {});
+    void add(HelpOptionGroup g, const char* cmds, const char* lf, const char* sf, int* target, const char* desc, bool allowInConfig = true, StructConfigAssignHook hook = {});
+    void add(HelpOptionGroup g, const char* cmds, const char* lf, const char* sf, uint32_t* target, const char* desc, bool allowInConfig = true, StructConfigAssignHook hook = {});
+    void add(HelpOptionGroup g, const char* cmds, const char* lf, const char* sf, Utf8* target, const char* desc, bool allowInConfig = true, StructConfigAssignHook hook = {});
+    void add(HelpOptionGroup g, const char* cmds, const char* lf, const char* sf, fs::path* target, const char* desc, bool allowInConfig = true, StructConfigAssignHook hook = {});
+    void add(HelpOptionGroup g, const char* cmds, const char* lf, const char* sf, std::vector<Utf8>* target, const char* desc, bool allowInConfig = true, StructConfigAssignHook hook = {});
+    void add(HelpOptionGroup g, const char* cmds, const char* lf, const char* sf, std::set<Utf8>* target, const char* desc, bool allowInConfig = true, StructConfigAssignHook hook = {});
+    void add(HelpOptionGroup g, const char* cmds, const char* lf, const char* sf, std::set<fs::path>* target, const char* desc, bool allowInConfig = true, StructConfigAssignHook hook = {});
+    void add(HelpOptionGroup g, const char* cmds, const char* lf, const char* sf, std::optional<bool>* target, const char* desc, bool allowInConfig = true, StructConfigAssignHook hook = {});
 
-    void addEnum(HelpOptionGroup g, const char* cmds, const char* lf, const char* sf, Utf8* target, std::vector<Utf8> choices, const char* desc);
+    void addEnum(HelpOptionGroup g, const char* cmds, const char* lf, const char* sf, Utf8* target, std::vector<Utf8> choices, const char* desc, bool allowInConfig = true, StructConfigAssignHook hook = {});
 
     template<typename E>
-    void addEnum(HelpOptionGroup g, const char* cmds, const char* lf, const char* sf, E* target, std::initializer_list<std::pair<const char*, E>> choices, const char* desc)
+    void addEnum(HelpOptionGroup g, const char* cmds, const char* lf, const char* sf, E* target, std::initializer_list<std::pair<const char*, E>> choices, const char* desc, bool allowInConfig = true, StructConfigAssignHook hook = {})
     {
         EnumIntTarget et;
         et.target = target;
@@ -141,6 +130,9 @@ private:
             info.choices.emplace_back(name);
             info.choiceIntValues.push_back(static_cast<int>(val));
         }
+
+        if (allowInConfig)
+            registerConfigEntry(info, hook);
     }
 };
 

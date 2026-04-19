@@ -33,6 +33,12 @@ SWC_DIAG_DEF(cmdline_err_tag_float_invalid_literal, Error, "invalid compiler tag
 SWC_DIAG_DEF(cmdline_err_tag_float_non_finite, Error, "invalid compiler tag '{arg}'; floating-point compiler tag values must be finite")
 
 SWC_DIAG_DEF(cmd_err_no_input, Error, "no input file specified")
+SWC_DIAG_DEF(cmd_err_config_read_failed, Error, "cannot read config file '{path}': {because}")
+SWC_DIAG_DEF(cmd_err_config_invalid_entry, Error, "invalid config entry at '{path}': {because}")
+SWC_DIAG_DEF(cmd_err_config_unknown_key, Error, "unknown config key '{arg}' at '{path}'")
+SWC_DIAG_DEF(cmd_err_config_invalid_bool, Error, "invalid boolean value '{value}' for config key '{arg}' at '{path}'")
+SWC_DIAG_DEF(cmd_err_config_invalid_int, Error, "invalid integer value '{value}' for config key '{arg}' at '{path}'")
+SWC_DIAG_DEF(cmd_err_config_invalid_enum, Error, "invalid value '{value}' for config key '{arg}' at '{path}'; expected one of '{values}'")
 SWC_DIAG_DEF(cmd_err_format_failed, Error, "cannot format '{path}': {because}")
 SWC_DIAG_DEF(cmd_err_native_linker_not_implemented, Error, "native linker is not implemented for this target OS")
 SWC_DIAG_DEF(cmd_err_native_object_writer_not_implemented, Error, "native object file writer is not implemented for this target OS")

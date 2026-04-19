@@ -132,7 +132,7 @@
     <ClCompile Include="src\Unittest\Test.Compiler.ConstantManager.cpp">
       <Filter>src\Unittest</Filter>
     </ClCompile>
-    <ClCompile Include="src\Unittest\Test.Compiler.Format.cpp">
+    <ClCompile Include="src\Unittest\Test.Compiler.Config.cpp">
       <Filter>src\Unittest</Filter>
     </ClCompile>
     <ClCompile Include="src\Unittest\Test.Compiler.InMemorySource.cpp">
@@ -546,6 +546,9 @@
     <ClCompile Include="src\Format\AstSourceWriter.cpp">
       <Filter>src\Format</Filter>
     </ClCompile>
+    <ClCompile Include="src\Format\FormatOptionsLoader.cpp">
+      <Filter>src\Format</Filter>
+    </ClCompile>
     <ClCompile Include="src\Format\Formatter.cpp">
       <Filter>src\Format</Filter>
     </ClCompile>
@@ -592,6 +595,9 @@
       <Filter>src\Main</Filter>
     </ClCompile>
     <ClCompile Include="src\Main\Stats.cpp">
+      <Filter>src\Main</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Main\StructConfig.cpp">
       <Filter>src\Main</Filter>
     </ClCompile>
     <ClCompile Include="src\Main\TakeContext.cpp">
@@ -1202,6 +1208,9 @@
     <ClInclude Include="src\Format\FormatOptions.h">
       <Filter>src\Format</Filter>
     </ClInclude>
+    <ClInclude Include="src\Format\FormatOptionsLoader.h">
+      <Filter>src\Format</Filter>
+    </ClInclude>
     <ClInclude Include="src\Compiler\Lexer\Tokens.Def.inc">
       <Filter>src\Compiler\Lexer</Filter>
     </ClInclude>
@@ -1221,6 +1230,9 @@
       <Filter>src\Main\Command</Filter>
     </ClInclude>
     <ClInclude Include="src\Main\Stats.h">
+      <Filter>src\Main</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Main\StructConfig.h">
       <Filter>src\Main</Filter>
     </ClInclude>
     <ClInclude Include="src\Main\TaskContext.h">

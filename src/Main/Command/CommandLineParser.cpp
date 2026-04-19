@@ -357,7 +357,7 @@ Result CommandLineParser::expandOneResponseFile(TaskContext& ctx, const fs::path
         return Result::Error;
     }
 
-    const fs::path canonical = normalizedPath;
+    const fs::path& canonical = normalizedPath;
 
     if (!visited.insert(canonical).second)
     {
@@ -367,8 +367,8 @@ Result CommandLineParser::expandOneResponseFile(TaskContext& ctx, const fs::path
         return Result::Error;
     }
 
-    std::string              content;
-    FileSystem::IoErrorInfo  ioError;
+    std::string             content;
+    FileSystem::IoErrorInfo ioError;
     if (FileSystem::readTextFile(canonical, content, ioError) != Result::Continue)
     {
         Diagnostic diag = Diagnostic::get(DiagnosticId::cmdline_err_rsp_file_failed);
@@ -423,6 +423,56 @@ bool CommandLineParser::getNextValue(TaskContext& ctx, const Utf8& arg, const Ut
 
     value = args[++index];
     return true;
+}
+
+Result CommandLineParser::applyConfigFile(TaskContext& ctx, const std::vector<Utf8>& args)
+{
+    fs::path configPath;
+
+    for (size_t i = 0; i < args.size(); i++)
+    {
+        const Utf8& raw = args[i];
+
+        Utf8                lookup = raw;
+        std::optional<Utf8> inlineValue;
+        if (raw.substr(0, SHORT_PREFIX_LEN) == SHORT_PREFIX)
+        {
+            const size_t eq = raw.find('=');
+            if (eq != Utf8::npos)
+            {
+                lookup      = raw.substr(0, eq);
+                inlineValue = raw.substr(eq + 1);
+            }
+        }
+
+        if (lookup != "--config-file" && lookup != "-cf")
+            continue;
+
+        Utf8        value;
+        const Utf8* inlinePtr = inlineValue.has_value() ? &inlineValue.value() : nullptr;
+        if (!getNextValue(ctx, raw, inlinePtr, i, args, value))
+            return Result::Error;
+
+        fs::path path = value.c_str();
+        Utf8     because;
+        if (FileSystem::resolveExistingFile(path, because) != Result::Continue)
+        {
+            Diagnostic diag = Diagnostic::get(DiagnosticId::cmdline_err_invalid_file);
+            FileSystem::setDiagnosticPathAndBecause(diag, &ctx, path, because);
+            diag.report(ctx);
+            return Result::Error;
+        }
+
+        configPath = std::move(path);
+    }
+
+    if (configPath.empty())
+        return Result::Continue;
+
+    cmdLine_->configFile = configPath;
+
+    const StructConfigReader reader(configSchema_);
+    return reader.readFile(ctx, configPath);
 }
 
 bool CommandLineParser::commandMatches(const Utf8& commandList) const
@@ -519,6 +569,24 @@ bool CommandLineParser::reportIntError(TaskContext& ctx, const ArgInfo& info, co
     return false;
 }
 
+void CommandLineParser::markAssigned(void* target)
+{
+    *static_cast<bool*>(target) = true;
+}
+
+void CommandLineParser::registerConfigEntry(const ArgInfo& info, const StructConfigAssignHook hook)
+{
+    if (info.longForm.empty())
+        return;
+
+    SWC_ASSERT(info.longForm.substr(0, LONG_PREFIX_LEN) == LONG_PREFIX);
+
+    StructConfigEntry& entry = configSchema_.add(info.longForm.substr(LONG_PREFIX_LEN).c_str(), info.target, info.description.c_str(), hook);
+    entry.target             = info.target;
+    entry.choices            = info.choices;
+    entry.choiceIntValues    = info.choiceIntValues;
+}
+
 ArgInfo& CommandLineParser::addImpl(HelpOptionGroup group, const char* commands, const char* longForm, const char* shortForm, const char* description, const ArgTarget& target)
 {
     ArgInfo info;
@@ -541,55 +609,75 @@ ArgInfo& CommandLineParser::addImpl(HelpOptionGroup group, const char* commands,
     return args_.back();
 }
 
-void CommandLineParser::add(HelpOptionGroup g, const char* cmds, const char* lf, const char* sf, bool* target, const char* desc)
+void CommandLineParser::add(HelpOptionGroup g, const char* cmds, const char* lf, const char* sf, bool* target, const char* desc, const bool allowInConfig, const StructConfigAssignHook hook)
 {
-    addImpl(g, cmds, lf, sf, desc, target);
+    const ArgInfo& info = addImpl(g, cmds, lf, sf, desc, target);
+    if (allowInConfig)
+        registerConfigEntry(info, hook);
 }
 
-void CommandLineParser::add(HelpOptionGroup g, const char* cmds, const char* lf, const char* sf, int* target, const char* desc)
+void CommandLineParser::add(HelpOptionGroup g, const char* cmds, const char* lf, const char* sf, int* target, const char* desc, const bool allowInConfig, const StructConfigAssignHook hook)
 {
-    addImpl(g, cmds, lf, sf, desc, target);
+    const ArgInfo& info = addImpl(g, cmds, lf, sf, desc, target);
+    if (allowInConfig)
+        registerConfigEntry(info, hook);
 }
 
-void CommandLineParser::add(HelpOptionGroup g, const char* cmds, const char* lf, const char* sf, uint32_t* target, const char* desc)
+void CommandLineParser::add(HelpOptionGroup g, const char* cmds, const char* lf, const char* sf, uint32_t* target, const char* desc, const bool allowInConfig, const StructConfigAssignHook hook)
 {
-    addImpl(g, cmds, lf, sf, desc, target);
+    const ArgInfo& info = addImpl(g, cmds, lf, sf, desc, target);
+    if (allowInConfig)
+        registerConfigEntry(info, hook);
 }
 
-void CommandLineParser::add(HelpOptionGroup g, const char* cmds, const char* lf, const char* sf, Utf8* target, const char* desc)
+void CommandLineParser::add(HelpOptionGroup g, const char* cmds, const char* lf, const char* sf, Utf8* target, const char* desc, const bool allowInConfig, const StructConfigAssignHook hook)
 {
-    addImpl(g, cmds, lf, sf, desc, target);
+    const ArgInfo& info = addImpl(g, cmds, lf, sf, desc, target);
+    if (allowInConfig)
+        registerConfigEntry(info, hook);
 }
 
-void CommandLineParser::add(HelpOptionGroup g, const char* cmds, const char* lf, const char* sf, fs::path* target, const char* desc)
+void CommandLineParser::add(HelpOptionGroup g, const char* cmds, const char* lf, const char* sf, fs::path* target, const char* desc, const bool allowInConfig, const StructConfigAssignHook hook)
 {
-    addImpl(g, cmds, lf, sf, desc, target);
+    const ArgInfo& info = addImpl(g, cmds, lf, sf, desc, target);
+    if (allowInConfig)
+        registerConfigEntry(info, hook);
 }
 
-void CommandLineParser::add(HelpOptionGroup g, const char* cmds, const char* lf, const char* sf, std::vector<Utf8>* target, const char* desc)
+void CommandLineParser::add(HelpOptionGroup g, const char* cmds, const char* lf, const char* sf, std::vector<Utf8>* target, const char* desc, const bool allowInConfig, const StructConfigAssignHook hook)
 {
-    addImpl(g, cmds, lf, sf, desc, target);
+    const ArgInfo& info = addImpl(g, cmds, lf, sf, desc, target);
+    if (allowInConfig)
+        registerConfigEntry(info, hook);
 }
 
-void CommandLineParser::add(HelpOptionGroup g, const char* cmds, const char* lf, const char* sf, std::set<Utf8>* target, const char* desc)
+void CommandLineParser::add(HelpOptionGroup g, const char* cmds, const char* lf, const char* sf, std::set<Utf8>* target, const char* desc, const bool allowInConfig, const StructConfigAssignHook hook)
 {
-    addImpl(g, cmds, lf, sf, desc, target);
+    const ArgInfo& info = addImpl(g, cmds, lf, sf, desc, target);
+    if (allowInConfig)
+        registerConfigEntry(info, hook);
 }
 
-void CommandLineParser::add(HelpOptionGroup g, const char* cmds, const char* lf, const char* sf, std::set<fs::path>* target, const char* desc)
+void CommandLineParser::add(HelpOptionGroup g, const char* cmds, const char* lf, const char* sf, std::set<fs::path>* target, const char* desc, const bool allowInConfig, const StructConfigAssignHook hook)
 {
-    addImpl(g, cmds, lf, sf, desc, target);
+    const ArgInfo& info = addImpl(g, cmds, lf, sf, desc, target);
+    if (allowInConfig)
+        registerConfigEntry(info, hook);
 }
 
-void CommandLineParser::add(HelpOptionGroup g, const char* cmds, const char* lf, const char* sf, std::optional<bool>* target, const char* desc)
+void CommandLineParser::add(HelpOptionGroup g, const char* cmds, const char* lf, const char* sf, std::optional<bool>* target, const char* desc, const bool allowInConfig, const StructConfigAssignHook hook)
 {
-    addImpl(g, cmds, lf, sf, desc, target);
+    const ArgInfo& info = addImpl(g, cmds, lf, sf, desc, target);
+    if (allowInConfig)
+        registerConfigEntry(info, hook);
 }
 
-void CommandLineParser::addEnum(HelpOptionGroup g, const char* cmds, const char* lf, const char* sf, Utf8* target, std::vector<Utf8> choices, const char* desc)
+void CommandLineParser::addEnum(HelpOptionGroup g, const char* cmds, const char* lf, const char* sf, Utf8* target, std::vector<Utf8> choices, const char* desc, const bool allowInConfig, const StructConfigAssignHook hook)
 {
     ArgInfo& info = addImpl(g, cmds, lf, sf, desc, target);
     info.choices  = std::move(choices);
+    if (allowInConfig)
+        registerConfigEntry(info, hook);
 }
 
 const ArgInfo* CommandLineParser::findArgument(TaskContext& ctx, const Utf8& arg, bool& invertBoolean)
@@ -772,16 +860,24 @@ Result CommandLineParser::parse(int argc, char* argv[])
 {
     TaskContext ctx(*global_, *cmdLine_);
 
-    if (argc == 1 || (argc == 2 && (Utf8(argv[1]) == "--help" || Utf8(argv[1]) == "help")))
+    std::vector<Utf8> rawArgs;
+    rawArgs.reserve(argc > 1 ? static_cast<size_t>(argc) - 1 : 0);
+    for (int i = 1; i < argc; i++)
+        rawArgs.emplace_back(argv[i]);
+
+    std::vector<Utf8> args;
+    SWC_RESULT(expandResponseFiles(ctx, rawArgs, args));
+
+    if (args.empty() || (args.size() == 1 && (args[0] == "--help" || args[0] == "help")))
     {
         CommandLineParser parser(*global_, *cmdLine_);
         parser.printHelp(ctx);
         return Result::Error;
     }
 
-    if (argc >= 2 && Utf8(argv[1]) == "help")
+    if (!args.empty() && args[0] == "help")
     {
-        const Utf8        command = argc >= 3 ? argv[2] : "";
+        const Utf8        command = args.size() >= 2 ? args[1] : "";
         CommandLineParser parser(*global_, *cmdLine_);
         if (!command.empty() && isAllowedCommand(command) == CommandKind::Invalid)
         {
@@ -797,44 +893,43 @@ Result CommandLineParser::parse(int argc, char* argv[])
         return Result::Error;
     }
 
-    // Require a command as the first positional token (no leading '-').
-    if (argc <= 1 || argv[1][0] == '-')
-    {
-        const Diagnostic diag = Diagnostic::get(DiagnosticId::cmdline_err_missing_command);
-        diag.report(ctx);
-        return Result::Error;
-    }
+    SWC_RESULT(applyConfigFile(ctx, args));
 
-    // Validate and set the command.
+    size_t argStartIndex = 0;
+    if (!args.empty() && !args[0].empty() && args[0][0] != '-')
     {
-        const Utf8 candidate = argv[1];
-        cmdLine_->command    = isAllowedCommand(candidate);
+        const Utf8& candidate = args[0];
+        cmdLine_->command     = isAllowedCommand(candidate);
         if (cmdLine_->command == CommandKind::Invalid)
         {
             Diagnostic diag = Diagnostic::get(DiagnosticId::cmdline_err_invalid_command);
-            setReportArguments(diag, argv[1]);
+            setReportArguments(diag, candidate);
             diag.addArgument(Diagnostic::ARG_VALUES, getAllowedCommands());
             attachSuggestion(diag, suggestCommand(candidate));
             diag.report(ctx);
             return Result::Error;
         }
 
-        command_ = candidate;
-
-        if (cmdLine_->command == CommandKind::Format)
-            cmdLine_->runtime = false;
+        cmdLine_->commandExplicit = true;
+        command_                  = candidate;
+        argStartIndex             = 1;
+    }
+    else if (cmdLine_->commandExplicit)
+    {
+        command_ = COMMANDS[static_cast<int>(cmdLine_->command)].name;
+    }
+    else
+    {
+        const Diagnostic diag = Diagnostic::get(DiagnosticId::cmdline_err_missing_command);
+        diag.report(ctx);
+        return Result::Error;
     }
 
-    std::vector<Utf8> rawArgs;
-    rawArgs.reserve(static_cast<size_t>(argc) - 2);
-    for (int i = 2; i < argc; i++)
-        rawArgs.emplace_back(argv[i]);
-
-    std::vector<Utf8> args;
-    SWC_RESULT(expandResponseFiles(ctx, rawArgs, args));
+    if (cmdLine_->command == CommandKind::Format)
+        cmdLine_->runtime = false;
 
     bool endOfOptions = false;
-    for (size_t i = 0; i < args.size(); i++)
+    for (size_t i = argStartIndex; i < args.size(); i++)
     {
         const Utf8& raw = args[i];
 
@@ -948,6 +1043,13 @@ Result CommandLineParser::checkCommandLine(TaskContext& ctx) const
         cmdLine_->modulePath = std::move(temp);
     }
 
+    if (!cmdLine_->configFile.empty())
+    {
+        fs::path temp = cmdLine_->configFile;
+        SWC_RESULT(FileSystem::resolveFile(ctx, temp));
+        cmdLine_->configFile = std::move(temp);
+    }
+
     if (!cmdLine_->outDir.empty())
     {
         fs::path temp = cmdLine_->outDir;
@@ -1000,6 +1102,22 @@ CommandLineParser::CommandLineParser(Global& global, CommandLine& cmdLine) :
     updateDefaultBuildCfg(*cmdLine_);
     const std::string_view registeredBuildCfgs{cmdLine_->defaultBuildCfg.registeredConfigs.ptr, cmdLine_->defaultBuildCfg.registeredConfigs.length};
 
+    configSchema_.addEnum("command", &cmdLine_->command,
+                          {
+                              {"format", CommandKind::Format},
+                              {"syntax", CommandKind::Syntax},
+                              {"sema", CommandKind::Sema},
+                              {"test", CommandKind::Test},
+                              {"build", CommandKind::Build},
+                              {"run", CommandKind::Run},
+                          },
+                          "Select the command to execute.",
+                          {&CommandLineParser::markAssigned, &cmdLine_->commandExplicit});
+
+    add(HelpOptionGroup::Input, "all", "--config-file", "-cf",
+        &cmdLine_->configFile,
+        "Read command options from a config file before applying explicit CLI flags. Relative paths inside the file are resolved from the config file directory.",
+        false);
     add(HelpOptionGroup::Input, "all", "--directory", "-d",
         &cmdLine_->directories,
         "Specify one or more directories to process recursively for input files.");
@@ -1033,7 +1151,9 @@ CommandLineParser::CommandLineParser(Global& global, CommandLine& cmdLine) :
                 {"shared-library", Runtime::BuildCfgBackendKind::SharedLibrary},
                 {"static-library", Runtime::BuildCfgBackendKind::StaticLibrary},
             },
-            "Select the native artifact kind exposed through @compiler.getBuildCfg() and used by the native backend.");
+            "Select the native artifact kind exposed through @compiler.getBuildCfg() and used by the native backend.",
+            true,
+            {&CommandLineParser::markAssigned, &cmdLine_->artifactKindExplicit});
     add(HelpOptionGroup::Target, "sema test build run", "--cpu", "-cpu",
         &cmdLine_->targetCpu,
         "Set the target CPU string used by #cpu and compiler target queries.");

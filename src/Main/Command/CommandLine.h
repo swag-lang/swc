@@ -68,6 +68,7 @@ struct CommandLine
     bool verboseVerify        = false;
     bool sourceDrivenTest     = false;
     bool artifactKindExplicit = false;
+    bool commandExplicit      = false;
     bool testNative           = true;
     bool testJit              = true;
     bool lexOnly              = false;
@@ -109,6 +110,7 @@ struct CommandLine
     std::set<fs::path> directories;
     std::set<fs::path> files;
 
+    fs::path          configFile;
     fs::path          modulePath;
     fs::path          outDir;
     fs::path          workDir;

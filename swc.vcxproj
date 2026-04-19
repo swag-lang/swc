@@ -582,6 +582,7 @@
         <ClInclude Include="src\Support\Report\Msg\Notes.Parser.inc"/>
         <ClInclude Include="src\Support\Report\Msg\Notes.Sema.inc"/>
         <ClInclude Include="src\\Backend\\Runtime.h"/>
+        <ClInclude Include="src\\Backend\\RuntimeName.h"/>
         <ClInclude Include="src\Backend\Native\NativeArtifactBuilder.h"/>
         <ClInclude Include="src\Backend\Native\NativeRDataCollector.h"/>
         <ClInclude Include="src\Backend\Native\NativeValidate.h"/>

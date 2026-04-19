@@ -2,6 +2,7 @@
 #include "Backend/Native/NativeArtifactBuilder.h"
 #include "Backend/ABI/ABICall.h"
 #include "Backend/Native/NativeRDataCollector.h"
+#include "Main/Command/CommandLineParser.h"
 #include "Main/FileSystem.h"
 #include "Main/Global.h"
 #if SWC_HAS_VALIDATE_NATIVE
@@ -15,27 +16,6 @@ namespace
     Utf8 objectFileName(const Utf8& name, const Utf8& extension, const uint32_t objectIndex)
     {
         return std::format("{}_{:02}{}", name, objectIndex, extension);
-    }
-
-    const std::set<fs::path>& inputDirectories(const CommandLine& cmdLine)
-    {
-        if (!cmdLine.originalDirectories.empty())
-            return cmdLine.originalDirectories;
-        return cmdLine.directories;
-    }
-
-    const std::set<fs::path>& inputFiles(const CommandLine& cmdLine)
-    {
-        if (!cmdLine.originalFiles.empty())
-            return cmdLine.originalFiles;
-        return cmdLine.files;
-    }
-
-    const fs::path& inputModulePath(const CommandLine& cmdLine)
-    {
-        if (!cmdLine.originalModulePath.empty())
-            return cmdLine.originalModulePath;
-        return cmdLine.modulePath;
     }
 
     fs::path absolutePathNoThrow(const fs::path& path)
@@ -82,12 +62,11 @@ namespace
     fs::path inputRootPath(const CommandLine& cmdLine)
     {
         std::vector<fs::path> roots;
-        const auto&           modulePath = inputModulePath(cmdLine);
-        if (!modulePath.empty())
-            roots.push_back(absolutePathNoThrow(modulePath.parent_path()));
+        if (!cmdLine.modulePath.empty())
+            roots.push_back(absolutePathNoThrow(cmdLine.modulePath.parent_path()));
 
-        appendInputRoots(roots, inputFiles(cmdLine), true);
-        appendInputRoots(roots, inputDirectories(cmdLine), false);
+        appendInputRoots(roots, cmdLine.files, true);
+        appendInputRoots(roots, cmdLine.directories, false);
 
         if (roots.empty())
             return {};
@@ -190,7 +169,7 @@ Utf8 NativeArtifactBuilder::artifactName() const
     const auto buildCfgName = Utf8(builder_->compiler().buildCfg().name);
     if (!buildCfgName.empty())
         return FileSystem::sanitizeFileName(buildCfgName);
-    return builder_->ctx().cmdLine().defaultArtifactName();
+    return defaultArtifactName(builder_->ctx().cmdLine());
 }
 
 Utf8 NativeArtifactBuilder::artifactExtension() const
@@ -254,29 +233,26 @@ fs::path NativeArtifactBuilder::configuredWorkDir() const
 
 Utf8 NativeArtifactBuilder::automaticWorkDirName(const Utf8& name) const
 {
-    const CommandLine& cmdLine     = builder_->ctx().cmdLine();
-    const auto&        directories = inputDirectories(cmdLine);
-    const auto&        files       = inputFiles(cmdLine);
-    const auto&        modulePath  = inputModulePath(cmdLine);
+    const CommandLine& cmdLine = builder_->ctx().cmdLine();
     Utf8               key;
 
     key += std::format("cmd={};os={};arch={};backend={};sub={};name={};", static_cast<int>(cmdLine.command), static_cast<int>(cmdLine.targetOs), static_cast<int>(cmdLine.targetArch), static_cast<int>(builder_->compiler().buildCfg().backendKind), static_cast<int>(builder_->compiler().buildCfg().backendSubKind), name);
 
-    if (!modulePath.empty())
+    if (!cmdLine.modulePath.empty())
     {
         key += "module=";
-        key += Utf8(modulePath);
+        key += Utf8(cmdLine.modulePath);
         key += ";";
     }
 
-    for (const fs::path& file : files)
+    for (const fs::path& file : cmdLine.files)
     {
         key += "file=";
         key += Utf8(file);
         key += ";";
     }
 
-    for (const fs::path& directory : directories)
+    for (const fs::path& directory : cmdLine.directories)
     {
         key += "directory=";
         key += Utf8(directory);

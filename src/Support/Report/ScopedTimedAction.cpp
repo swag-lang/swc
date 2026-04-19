@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Support/Report/ScopedTimedAction.h"
 #include "Backend/Runtime.h"
+#include "Backend/RuntimeName.h"
 #include "Main/Command/CommandLine.h"
 #include "Main/CompilerInstance.h"
 #include "Main/Global.h"
@@ -328,22 +329,6 @@ namespace
 
     // ── Helpers ────────────────────────────────────────────────────────
 
-    Utf8 buildCfgBackendKindName(const Runtime::BuildCfgBackendKind value)
-    {
-        switch (value)
-        {
-            case Runtime::BuildCfgBackendKind::Executable:
-                return "executable";
-            case Runtime::BuildCfgBackendKind::SharedLibrary:
-                return "shared-library";
-            case Runtime::BuildCfgBackendKind::StaticLibrary:
-                return "static-library";
-            case Runtime::BuildCfgBackendKind::None:
-                return "none";
-        }
-
-        SWC_UNREACHABLE();
-    }
 
     TimedActionLog::StageOutcome classifyOutcome(const TimedActionLog::StatsSnapshot& before, const TimedActionLog::StatsSnapshot& after)
     {
@@ -492,7 +477,7 @@ namespace
     {
         const CommandLine&       cmdLine  = ctx.cmdLine();
         const Runtime::BuildCfg& buildCfg = cmdLine.defaultBuildCfg;
-        return joinParts(ctx, {cmdLine.buildCfg, buildCfgBackendKindName(buildCfg.backendKind), CommandLine::targetArchName(cmdLine.targetArch)}, LogColor::Gray);
+        return joinParts(ctx, {cmdLine.buildCfg, backendKindName(buildCfg.backendKind), targetArchName(cmdLine.targetArch)}, LogColor::Gray);
     }
 }
 

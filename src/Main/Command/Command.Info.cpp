@@ -6,7 +6,9 @@
 #include "Backend/Runtime.h"
 #include "Compiler/SourceFile.h"
 #include "Main/Command/Command.Print.h"
+#include "Backend/RuntimeName.h"
 #include "Main/Command/CommandLine.h"
+#include "Main/Command/CommandLineParser.h"
 #include "Main/CompilerInstance.h"
 #include "Main/FileSystem.h"
 #include "Main/Global.h"
@@ -132,7 +134,7 @@ namespace
             return result;
 
         result.enabled        = true;
-        result.backendKind    = cmdLine.effectiveBackendKind(compiler.buildCfg().backendKind);
+        result.backendKind    = effectiveBackendKind(cmdLine, compiler.buildCfg().backendKind);
         result.mayRunArtifact = (cmdLine.command == CommandKind::Test && result.backendKind == Runtime::BuildCfgBackendKind::Executable) ||
                                 (commandRunsArtifact(cmdLine) && result.backendKind == Runtime::BuildCfgBackendKind::Executable);
 
@@ -233,10 +235,10 @@ namespace
 
         addInfoEntry(entries, "Command", COMMANDS[static_cast<int>(cmdLine.command)].name, LogColor::BrightYellow);
         addInfoEntry(entries, "Target OS", targetOsName(cmdLine.targetOs));
-        addInfoEntry(entries, "Target architecture", CommandLine::targetArchName(cmdLine.targetArch));
+        addInfoEntry(entries, "Target architecture", targetArchName(cmdLine.targetArch));
         addInfoEntry(entries, "Target CPU", cmdLine.targetCpu);
         addInfoEntry(entries, "Build config", cmdLine.buildCfg);
-        addInfoEntry(entries, "Backend", CommandLine::backendKindName(buildCfg.backendKind));
+        addInfoEntry(entries, "Backend", backendKindName(buildCfg.backendKind));
         addInfoEntry(entries, "Name", Utf8(buildCfg.name));
         addInfoEntry(entries, "Module namespace", Utf8(buildCfg.moduleNamespace));
         addInfoEntry(entries, "Work directory", Utf8(buildCfg.workDir));
@@ -255,7 +257,7 @@ namespace
         addBoolEntry(entries, "Dry run", cmdLine.dryRun);
         addBoolEntry(entries, "Show config", cmdLine.showConfig);
         addBoolEntry(entries, "Verbose verify", cmdLine.verboseVerify);
-        addBoolEntry(entries, "Source-driven tests", cmdLine.isTestMode());
+        addBoolEntry(entries, "Source-driven tests", cmdLine.sourceDrivenTest);
         addBoolEntry(entries, "Test native", cmdLine.testNative);
         addBoolEntry(entries, "Test JIT", cmdLine.testJit);
         addBoolEntry(entries, "Lexer only", cmdLine.lexOnly);
@@ -369,7 +371,7 @@ namespace
         addInfoEntry(entries, "Build config", cmdLine.buildCfg);
         addInfoEntry(entries, "Resolved inputs", Utf8Helper::countWithLabel(inputSummary.totalFiles, "file"), LogColor::BrightGreen);
         if (nativePreview.enabled)
-            addInfoEntry(entries, "Backend", CommandLine::backendKindName(nativePreview.backendKind));
+            addInfoEntry(entries, "Backend", backendKindName(nativePreview.backendKind));
         addInfoEntry(entries, "Compile-time execution", "suppressed", LogColor::BrightGreen);
         addInfoEntry(entries, "Filesystem mutation", "suppressed", LogColor::BrightGreen);
         addInfoEntry(entries, "External processes", "suppressed", LogColor::BrightGreen);
@@ -388,9 +390,9 @@ namespace
         addInfoEntry(entries, "Module files", Utf8Helper::countWithLabel(inputSummary.moduleFiles, "file"));
         addInfoEntry(entries, "Module source files", Utf8Helper::countWithLabel(inputSummary.moduleSrc, "file"));
         addInfoEntry(entries, "Runtime files", Utf8Helper::countWithLabel(inputSummary.runtimeFiles, "file"));
-        addInfoEntry(entries, "Module path", cmdLine.inputModulePath());
-        addPathSet(entries, "Source directories", cmdLine.inputDirectories());
-        addPathSet(entries, "Source files", cmdLine.inputFiles());
+        addInfoEntry(entries, "Module path", cmdLine.modulePath);
+        addPathSet(entries, "Source directories", cmdLine.directories);
+        addPathSet(entries, "Source files", cmdLine.files);
         Logger::printFieldGroup(ctx, "Resolved Inputs", entries, nextInfoGroupStyle(hasPrintedGroup, 24));
     }
 
@@ -429,7 +431,7 @@ namespace
             case CommandKind::Run:
                 addPlanEntry(entries, index++, "Would", LogColor::BrightGreen, std::format("parse {}", inputCount));
                 addPlanEntry(entries, index++, "Would", LogColor::BrightGreen, "run semantic analysis, including compile-time evaluation when required");
-                addPlanEntry(entries, index++, "Would", LogColor::BrightGreen, std::format("generate native {}", CommandLine::backendKindName(nativePreview.backendKind)));
+                addPlanEntry(entries, index++, "Would", LogColor::BrightGreen, std::format("generate native {}", backendKindName(nativePreview.backendKind)));
                 if (cmdLine.clear)
                     addPlanEntry(entries, index++, "Would", LogColor::BrightGreen, std::format("clear native outputs under {}", Utf8(nativePreview.paths.workDir)));
                 addPlanEntry(entries, index++, "Would", LogColor::BrightGreen, std::format("write object files matching {}", objectFilePattern(nativePreview.paths)));
@@ -445,7 +447,7 @@ namespace
                     addPlanEntry(entries, index++, "May", LogColor::BrightYellow, "compile and execute eligible JIT #test functions discovered during semantic analysis");
                 if (nativePreview.enabled)
                 {
-                    addPlanEntry(entries, index++, "May", LogColor::BrightYellow, std::format("build a native {} test artifact when eligible entry points are discovered", CommandLine::backendKindName(nativePreview.backendKind)));
+                    addPlanEntry(entries, index++, "May", LogColor::BrightYellow, std::format("build a native {} test artifact when eligible entry points are discovered", backendKindName(nativePreview.backendKind)));
                     if (cmdLine.clear)
                         addPlanEntry(entries, index++, "May", LogColor::BrightYellow, std::format("clear native outputs under {}", Utf8(nativePreview.paths.workDir)));
                     addPlanEntry(entries, index++, "May", LogColor::BrightYellow, std::format("write object files matching {}", objectFilePattern(nativePreview.paths)));
@@ -475,7 +477,7 @@ namespace
 
         std::vector<Logger::FieldEntry> entries;
 
-        addInfoEntry(entries, "Backend", CommandLine::backendKindName(nativePreview.backendKind), LogColor::BrightYellow);
+        addInfoEntry(entries, "Backend", backendKindName(nativePreview.backendKind), LogColor::BrightYellow);
         addInfoEntry(entries, "Work directory", nativePreview.paths.workDir);
         addInfoEntry(entries, "Build directory", nativePreview.paths.buildDir);
         addInfoEntry(entries, "Output directory", nativePreview.paths.outDir);

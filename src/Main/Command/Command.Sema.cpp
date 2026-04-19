@@ -5,7 +5,7 @@
 #include "Compiler/Sema/Symbol/IdentifierManager.h"
 #include "Compiler/Sema/Symbol/Symbols.h"
 #include "Compiler/SourceFile.h"
-#include "Main/Command/CommandLine.h"
+#include "Main/Command/CommandLineParser.h"
 #include "Main/CompilerInstance.h"
 #include "Main/Global.h"
 #include "Main/Stats.h"
@@ -68,7 +68,7 @@ namespace Command
         auto* symModule = Symbol::make<SymbolModule>(ctx, nullptr, TokenRef::invalid(), IdentifierRef::invalid(), SymbolFlagsE::Zero);
         Utf8  moduleNamespaceName(compiler.buildCfg().moduleNamespace);
         if (moduleNamespaceName.empty())
-            moduleNamespaceName = CommandLine::defaultModuleNamespace(compiler.cmdLine().defaultArtifactName());
+            moduleNamespaceName = defaultModuleNamespace(defaultArtifactName(compiler.cmdLine()));
 
         constexpr SymbolFlags namespaceFlags  = SymbolFlagsE::Declared | SymbolFlagsE::Typed | SymbolFlagsE::SemaCompleted;
         const IdentifierRef   idRef           = ctx.idMgr().addIdentifierOwned(moduleNamespaceName, Math::hash(moduleNamespaceName));

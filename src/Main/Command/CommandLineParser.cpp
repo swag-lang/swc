@@ -238,6 +238,8 @@ namespace
 
     void updateDefaultBuildCfg(CommandLine& cmdLine)
     {
+        cmdLine.sourceDrivenTest = cmdLine.command == CommandKind::Test;
+
         Runtime::BuildCfg buildCfg{};
         if (cmdLine.defaultBuildCfg.registeredConfigs.ptr && cmdLine.defaultBuildCfg.registeredConfigs.length)
             buildCfg.registeredConfigs = cmdLine.defaultBuildCfg.registeredConfigs;
@@ -250,7 +252,7 @@ namespace
 
         buildCfg.backendKind = cmdLine.backendKind;
 
-        if (cmdLine.isTestMode())
+        if (cmdLine.sourceDrivenTest)
         {
             buildCfg.backend.debugInfo        = true;
             buildCfg.backend.enableExceptions = true;
@@ -258,7 +260,7 @@ namespace
 
         cmdLine.moduleNamespaceStorage = cmdLine.moduleNamespace;
         if (cmdLine.moduleNamespaceStorage.empty())
-            cmdLine.moduleNamespaceStorage = CommandLine::defaultModuleNamespace(cmdLine.defaultArtifactName());
+            cmdLine.moduleNamespaceStorage = defaultModuleNamespace(defaultArtifactName(cmdLine));
 
         buildCfg.moduleNamespace = Utf8Helper::runtimeStringFromUtf8(cmdLine.moduleNamespaceStorage);
         buildCfg.name            = Utf8Helper::runtimeStringFromUtf8(cmdLine.name);
@@ -270,6 +272,8 @@ namespace
 
 void CommandLineParser::refreshBuildCfg(CommandLine& cmdLine)
 {
+    if (cmdLine.command == CommandKind::Test)
+        cmdLine.sourceDrivenTest = true;
     updateDefaultBuildCfg(cmdLine);
 }
 
@@ -889,10 +893,7 @@ Result CommandLineParser::parse(int argc, char* argv[])
 
 Result CommandLineParser::checkCommandLine(TaskContext& ctx) const
 {
-    if (cmdLine_->isTestCommand())
-        cmdLine_->sourceDrivenTest = true;
-
-    if (cmdLine_->isTestCommand() && !validateStageSelection(ctx, *cmdLine_))
+    if (cmdLine_->command == CommandKind::Test && !validateStageSelection(ctx, *cmdLine_))
         return Result::Error;
 
     if (!cmdLine_->verboseVerifyFilter.empty())
@@ -946,10 +947,6 @@ Result CommandLineParser::checkCommandLine(TaskContext& ctx) const
         SWC_RESULT(FileSystem::resolveFolder(ctx, temp));
         cmdLine_->modulePath = std::move(temp);
     }
-
-    cmdLine_->originalDirectories = cmdLine_->directories;
-    cmdLine_->originalFiles       = cmdLine_->files;
-    cmdLine_->originalModulePath  = cmdLine_->modulePath;
 
     if (!cmdLine_->outDir.empty())
     {

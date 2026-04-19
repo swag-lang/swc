@@ -159,7 +159,7 @@ namespace
 
 void Verify::tokenize(TaskContext& ctx)
 {
-    if (!ctx.cmdLine().isTestMode())
+    if (!ctx.cmdLine().sourceDrivenTest)
         return;
 
     srcView_ = &file_->ast().srcView();

@@ -2,6 +2,7 @@
 #include "Backend/Debug/DebugInfoCodeView.h"
 #include "Backend/Native/NativeBackendBuilder.h"
 #include "Backend/Runtime.h"
+#include "Backend/RuntimeName.h"
 #include "Compiler/Lexer/SourceView.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Constant/ConstantValue.h"
@@ -491,30 +492,13 @@ namespace
         return {fs::path(primarySource.c_str()).filename().string()};
     }
 
-    std::string_view buildInfoBackendKindName(const Runtime::BuildCfgBackendKind backendKind)
-    {
-        switch (backendKind)
-        {
-            case Runtime::BuildCfgBackendKind::Executable:
-                return "executable";
-            case Runtime::BuildCfgBackendKind::SharedLibrary:
-                return "shared-library";
-            case Runtime::BuildCfgBackendKind::StaticLibrary:
-                return "static-library";
-            case Runtime::BuildCfgBackendKind::None:
-                return "none";
-        }
-
-        SWC_UNREACHABLE();
-    }
-
     Utf8 buildInfoCommandLine(const TaskContext& ctx)
     {
         return std::format("{} --build-cfg {} --artifact-kind {} --arch {}",
                            codeViewPathString(Os::getExeFullName()),
                            ctx.cmdLine().buildCfg,
-                           buildInfoBackendKindName(ctx.compiler().buildCfg().backendKind),
-                           CommandLine::targetArchName(ctx.cmdLine().targetArch));
+                           backendKindName(ctx.compiler().buildCfg().backendKind),
+                           targetArchName(ctx.cmdLine().targetArch));
     }
 
     FunctionLines collectFunctionLines(TaskContext& ctx, const MachineCode& code)

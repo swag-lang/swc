@@ -81,7 +81,7 @@ namespace
     bool shouldReportExpectedFrontEndError(const TaskContext& ctx, const Diagnostic& diagnostic)
     {
         const CommandLine& cmdLine = ctx.cmdLine();
-        if (!cmdLine.isTestCommand())
+        if (cmdLine.command != CommandKind::Test)
             return false;
         if (cmdLine.lexOnly || cmdLine.syntaxOnly || cmdLine.semaOnly)
             return false;

@@ -1,12 +1,11 @@
 #pragma once
+#include "Main/Command/CommandLine.h"
 
 SWC_BEGIN_NAMESPACE();
 
 class Diagnostic;
 class TaskContext;
-struct CommandLine;
 class Global;
-enum class CommandKind;
 
 enum class HelpOptionGroup : uint8_t
 {
@@ -144,5 +143,37 @@ private:
         }
     }
 };
+
+inline Runtime::BuildCfgBackendKind effectiveBackendKind(const CommandLine& cmdLine, const Runtime::BuildCfgBackendKind currentKind)
+{
+    if (cmdLine.artifactKindExplicit)
+        return cmdLine.backendKind;
+    return currentKind;
+}
+
+inline Utf8 defaultArtifactName(const CommandLine& cmdLine)
+{
+    if (!cmdLine.name.empty())
+        return FileSystem::sanitizeFileName(cmdLine.name);
+
+    if (!cmdLine.modulePath.empty())
+        return FileSystem::sanitizeFileName(Utf8(cmdLine.modulePath.filename().string()));
+
+    if (cmdLine.files.size() == 1)
+        return FileSystem::sanitizeFileName(Utf8(cmdLine.files.begin()->stem().string()));
+
+    if (cmdLine.directories.size() == 1)
+        return FileSystem::sanitizeFileName(Utf8(cmdLine.directories.begin()->filename().string()));
+
+    return "native";
+}
+
+inline Utf8 defaultModuleNamespace(const Utf8& artifactName)
+{
+    Utf8 result = artifactName;
+    if (!result.empty() && result[0] >= 'a' && result[0] <= 'z')
+        result[0] = static_cast<char>(result[0] - 'a' + 'A');
+    return result;
+}
 
 SWC_END_NAMESPACE();

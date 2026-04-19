@@ -460,7 +460,7 @@ Result NativeBackendBuilder::runGeneratedArtifact()
     }
 
     const uint32_t expectedTestCount = expectedTestFunctionCount();
-    if (compiler_.cmdLine().isTestCommand() &&
+    if (compiler_.cmdLine().command == CommandKind::Test &&
         expectedTestCount &&
         (exitCode & ~K_NATIVE_TEST_COUNT_MISMATCH_EXIT_VALUE_MASK) == K_NATIVE_TEST_COUNT_MISMATCH_EXIT_TAG)
     {

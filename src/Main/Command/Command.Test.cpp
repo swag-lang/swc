@@ -8,6 +8,7 @@
 #include "Compiler/SourceFile.h"
 #include "Compiler/Verify.h"
 #include "Main/Command/CommandLine.h"
+#include "Main/Command/CommandLineParser.h"
 #include "Main/CompilerInstance.h"
 #include "Main/Stats.h"
 #include "Support/Core/Utf8Helper.h"
@@ -322,7 +323,7 @@ namespace
 
     bool runNativeBackends(CompilerInstance& compiler)
     {
-        const Runtime::BuildCfgBackendKind backendKind = compiler.cmdLine().effectiveBackendKind(compiler.buildCfg().backendKind);
+        const Runtime::BuildCfgBackendKind backendKind = effectiveBackendKind(compiler.cmdLine(), compiler.buildCfg().backendKind);
         if (!runNativeBackend(compiler, backendKind, backendKind == Runtime::BuildCfgBackendKind::Executable))
             return false;
 
@@ -529,7 +530,7 @@ namespace Command
 {
     void test(CompilerInstance& compiler)
     {
-        SWC_ASSERT(compiler.cmdLine().isTestCommand());
+        SWC_ASSERT(compiler.cmdLine().command == CommandKind::Test);
         runNativeTestCommand(compiler);
     }
 }

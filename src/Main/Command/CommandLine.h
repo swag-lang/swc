@@ -108,113 +108,11 @@ struct CommandLine
 
     std::set<fs::path> directories;
     std::set<fs::path> files;
-    std::set<fs::path> originalDirectories;
-    std::set<fs::path> originalFiles;
 
     fs::path          modulePath;
-    fs::path          originalModulePath;
     fs::path          outDir;
     fs::path          workDir;
     Runtime::BuildCfg defaultBuildCfg{};
-
-    bool isTestCommand() const noexcept
-    {
-        return command == CommandKind::Test;
-    }
-
-    bool isTestMode() const noexcept
-    {
-        return sourceDrivenTest || isTestCommand();
-    }
-
-    bool isExecutionPreviewOnly() const noexcept
-    {
-        return dryRun || showConfig;
-    }
-
-    const std::set<fs::path>& inputDirectories() const
-    {
-        if (!originalDirectories.empty())
-            return originalDirectories;
-        return directories;
-    }
-
-    const std::set<fs::path>& inputFiles() const
-    {
-        if (!originalFiles.empty())
-            return originalFiles;
-        return files;
-    }
-
-    const fs::path& inputModulePath() const
-    {
-        if (!originalModulePath.empty())
-            return originalModulePath;
-        return modulePath;
-    }
-
-    Utf8 defaultArtifactName() const
-    {
-        if (!name.empty())
-            return FileSystem::sanitizeFileName(name);
-
-        const auto& mp = inputModulePath();
-        if (!mp.empty())
-            return FileSystem::sanitizeFileName(Utf8(mp.filename().string()));
-
-        const auto& f = inputFiles();
-        if (f.size() == 1)
-            return FileSystem::sanitizeFileName(Utf8(f.begin()->stem().string()));
-
-        const auto& d = inputDirectories();
-        if (d.size() == 1)
-            return FileSystem::sanitizeFileName(Utf8(d.begin()->filename().string()));
-
-        return "native";
-    }
-
-    Runtime::BuildCfgBackendKind effectiveBackendKind(const Runtime::BuildCfgBackendKind currentKind) const
-    {
-        if (artifactKindExplicit)
-            return backendKind;
-        return currentKind;
-    }
-
-    static Utf8 defaultModuleNamespace(const Utf8& artifactName)
-    {
-        Utf8 result = artifactName;
-        if (!result.empty() && result[0] >= 'a' && result[0] <= 'z')
-            result[0] = static_cast<char>(result[0] - 'a' + 'A');
-        return result;
-    }
-
-    static Utf8 targetArchName(const Runtime::TargetArch targetArch)
-    {
-        switch (targetArch)
-        {
-            case Runtime::TargetArch::X86_64:
-                return "x86_64";
-        }
-
-        SWC_UNREACHABLE();
-    }
-
-    static Utf8 backendKindName(const Runtime::BuildCfgBackendKind backendKind)
-    {
-        switch (backendKind)
-        {
-            case Runtime::BuildCfgBackendKind::Executable:
-                return "executable";
-            case Runtime::BuildCfgBackendKind::SharedLibrary:
-                return "shared-library";
-            case Runtime::BuildCfgBackendKind::StaticLibrary:
-                return "static-library";
-            case Runtime::BuildCfgBackendKind::None:
-                return "none";
-        }
-
-        SWC_UNREACHABLE();
-    }
 };
 
 SWC_END_NAMESPACE();

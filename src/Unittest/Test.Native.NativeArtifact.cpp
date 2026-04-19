@@ -85,10 +85,7 @@ namespace
         cmdLine.verboseUnittest  = false;
         cmdLine.directories.clear();
         cmdLine.files.clear();
-        cmdLine.originalDirectories.clear();
-        cmdLine.originalFiles.clear();
         cmdLine.modulePath.clear();
-        cmdLine.originalModulePath.clear();
         cmdLine.outDir.clear();
         cmdLine.workDir.clear();
         cmdLine.outDirStorage.clear();
@@ -293,13 +290,13 @@ SWC_TEST_BEGIN(NativeArtifact_ExplicitArtifactKindOverridesBuildCfgMutation)
     cmdLine.artifactKindExplicit = true;
     CommandLineParser::refreshBuildCfg(cmdLine);
 
-    if (cmdLine.effectiveBackendKind(Runtime::BuildCfgBackendKind::StaticLibrary) != Runtime::BuildCfgBackendKind::SharedLibrary)
+    if (effectiveBackendKind(cmdLine, Runtime::BuildCfgBackendKind::StaticLibrary) != Runtime::BuildCfgBackendKind::SharedLibrary)
         return Result::Error;
-    if (cmdLine.effectiveBackendKind(Runtime::BuildCfgBackendKind::Executable) != Runtime::BuildCfgBackendKind::SharedLibrary)
+    if (effectiveBackendKind(cmdLine, Runtime::BuildCfgBackendKind::Executable) != Runtime::BuildCfgBackendKind::SharedLibrary)
         return Result::Error;
 
     cmdLine.artifactKindExplicit = false;
-    if (cmdLine.effectiveBackendKind(Runtime::BuildCfgBackendKind::StaticLibrary) != Runtime::BuildCfgBackendKind::StaticLibrary)
+    if (effectiveBackendKind(cmdLine, Runtime::BuildCfgBackendKind::StaticLibrary) != Runtime::BuildCfgBackendKind::StaticLibrary)
         return Result::Error;
 }
 SWC_TEST_END()
@@ -660,8 +657,6 @@ SWC_TEST_BEGIN(NativeArtifact_TestCountMismatchIsReportedBeforeStartupBuild)
     cmdLine.command     = CommandKind::Test;
     cmdLine.files.insert(sourcePath);
     cmdLine.directories.clear();
-    cmdLine.originalFiles.clear();
-    cmdLine.originalDirectories.clear();
     CommandLineParser::refreshBuildCfg(cmdLine);
 
     const uint64_t   errorsBefore = Stats::getNumErrors();

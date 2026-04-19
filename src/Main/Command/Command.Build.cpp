@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Main/Command/Command.h"
 #include "Backend/Native/NativeBackendBuilder.h"
+#include "Main/Command/CommandLineParser.h"
 #include "Main/CompilerInstance.h"
 #include "Main/Stats.h"
 #include "Support/Report/ScopedTimedAction.h"
@@ -34,7 +35,7 @@ namespace
         if (hasErrors(errorsBefore))
             return;
 
-        const Runtime::BuildCfgBackendKind backendKind = compiler.cmdLine().effectiveBackendKind(compiler.buildCfg().backendKind);
+        const Runtime::BuildCfgBackendKind backendKind = effectiveBackendKind(compiler.cmdLine(), compiler.buildCfg().backendKind);
         runNativeBackend(compiler, backendKind, runArtifact && backendKind == Runtime::BuildCfgBackendKind::Executable);
     }
 }

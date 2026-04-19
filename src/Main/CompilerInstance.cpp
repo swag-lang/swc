@@ -265,7 +265,7 @@ void CompilerInstance::processCommand()
     const Timer time(&Stats::get().timeTotal);
     clearLastArtifactLabel();
 
-    if (cmdLine().isExecutionPreviewOnly())
+    if (cmdLine().dryRun || cmdLine().showConfig)
     {
         if (cmdLine().dryRun)
             Command::dryRun(*this);

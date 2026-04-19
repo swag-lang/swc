@@ -17,7 +17,6 @@ enum class FormatEndOfLineStyle : uint8_t
 
 struct FormatOptions
 {
-    bool exactRoundTrip             = true;
     bool preserveComments           = true;
     bool preserveBlankLines         = true;
     bool preserveWhitespace         = true;

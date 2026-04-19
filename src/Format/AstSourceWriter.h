@@ -34,8 +34,6 @@ private:
 
     void        beginOutput();
     void        writeNode(AstNodeRef nodeRef);
-    void        writeNodeExact(AstNodeRef nodeRef);
-    void        writeNodeFormatted(AstNodeRef nodeRef);
     void        writeNodeChildren(const AstNode& node);
     void        collectSourceOrderedChildren(SmallVector<AstNodeRef>& out, const AstNode& node) const;
     bool        shouldVisitNode(AstNodeRef nodeRef) const;

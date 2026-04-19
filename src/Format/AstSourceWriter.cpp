@@ -65,26 +65,10 @@ void AstSourceWriter::writeNode(AstNodeRef nodeRef)
 {
     if (!shouldVisitNode(nodeRef))
         return;
-
-    if (options_->exactRoundTrip)
-        writeNodeExact(nodeRef);
-    else
-        writeNodeFormatted(nodeRef);
-}
-
-void AstSourceWriter::writeNodeExact(AstNodeRef nodeRef)
-{
     const AstNode& node = ast_->node(nodeRef);
     if (hasCheckpoint(node))
         flushUntilByte(nodeCheckpointByte(nodeRef));
-
     writeNodeChildren(node);
-}
-
-void AstSourceWriter::writeNodeFormatted(AstNodeRef nodeRef)
-{
-    // Formatting policies will plug in here incrementally, but the traversal stays AST-first.
-    writeNodeExact(nodeRef);
 }
 
 void AstSourceWriter::writeNodeChildren(const AstNode& node)

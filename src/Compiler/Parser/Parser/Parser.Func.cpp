@@ -37,6 +37,18 @@ AstNodeRef Parser::parseLambdaParam(bool isType)
         consumeAssert(TokenId::SymColon);
         nodeType = parseType();
     }
+    else if (isType && is(TokenId::Identifier) && nextIs(TokenId::SymEqual))
+    {
+        tokName = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_before);
+        flags.add(AstLambdaParamFlagsE::Named);
+        nodeType = AstNodeRef::invalid();
+    }
+    else if (isType && is(TokenId::SymQuestion) && nextIs(TokenId::SymEqual))
+    {
+        tokName = consume();
+        flags.add(AstLambdaParamFlagsE::Named);
+        nodeType = AstNodeRef::invalid();
+    }
     else if (isType)
     {
         nodeType = parseType();

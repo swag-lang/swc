@@ -17,6 +17,33 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    Result deduceLambdaTypeParameterFromDefault(Sema& sema, AstNodeRef defaultValueRef, TypeRef& outTypeRef)
+    {
+        outTypeRef = TypeRef::invalid();
+        if (defaultValueRef.isInvalid())
+            return Result::Continue;
+
+        SemaNodeView defaultView = sema.viewNodeTypeConstant(defaultValueRef);
+        SWC_RESULT(SemaCheck::isValueOrTypeInfo(sema, defaultView));
+
+        if (defaultView.typeRef().isInvalid() && defaultView.cstRef().isValid())
+        {
+            ConstantRef newCstRef;
+            SWC_RESULT(Cast::concretizeConstant(sema, newCstRef, defaultView.nodeRef(), defaultView.cstRef(), TypeInfo::Sign::Unknown));
+            sema.setConstant(defaultView.nodeRef(), newCstRef);
+            defaultView.recompute(sema, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
+        }
+
+        if (defaultView.type() && defaultView.type()->isInt())
+        {
+            const TypeRef promotedTypeRef = sema.typeMgr().promote(defaultView.typeRef(), defaultView.typeRef(), false);
+            SWC_RESULT(Cast::cast(sema, defaultView, promotedTypeRef, CastKind::Implicit));
+        }
+
+        outTypeRef = defaultView.typeRef();
+        return Result::Continue;
+    }
+
     Result finalizeLambdaTypeParameterDefault(Sema& sema, const AstLambdaParam& param, SymbolVariable& symVar)
     {
         if (param.nodeDefaultValueRef.isInvalid())
@@ -512,8 +539,13 @@ Result AstLambdaType::semaPostNode(Sema& sema) const
 
     for (const auto& paramRef : params)
     {
-        const AstLambdaParam& param        = sema.node(paramRef).cast<AstLambdaParam>();
-        const TypeRef         paramTypeRef = sema.viewType(param.nodeTypeRef).typeRef();
+        const AstLambdaParam& param = sema.node(paramRef).cast<AstLambdaParam>();
+        TypeRef               paramTypeRef = TypeRef::invalid();
+        if (param.nodeTypeRef.isValid())
+            paramTypeRef = sema.viewType(param.nodeTypeRef).typeRef();
+        else if (param.nodeDefaultValueRef.isValid())
+            SWC_RESULT(deduceLambdaTypeParameterFromDefault(sema, param.nodeDefaultValueRef, paramTypeRef));
+
         SWC_ASSERT(paramTypeRef.isValid());
 
         IdentifierRef idRef = IdentifierRef::invalid();

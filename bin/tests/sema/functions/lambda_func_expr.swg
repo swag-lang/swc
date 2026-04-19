@@ -28,6 +28,14 @@ alias LambdaBinaryPredicate = func(s32, s32)->bool
 alias LambdaDefaultUnary = func(value: s32 = 11)->s32
 alias LambdaDefaultBool = func(bool)->bool
 
+enum LambdaDefaultCategory
+{
+    Default
+    Effects
+}
+
+alias LambdaDefaultCategoryFn = func(category = LambdaDefaultCategory.Effects)->LambdaDefaultCategory
+
 struct LambdaHolder
 {
     cb: LambdaAggregate
@@ -217,6 +225,13 @@ func makeArrayHolder()->LambdaArrayHolder
 
     #assert(#typeof(doubled) == LambdaUnary)
     #assert(#typeof(defaulted) == LambdaDefaultUnary)
+}
+
+#test
+{
+    let defaulted: LambdaDefaultCategoryFn = func(category) => category
+
+    #assert(#typeof(defaulted) == LambdaDefaultCategoryFn)
 }
 
 #test

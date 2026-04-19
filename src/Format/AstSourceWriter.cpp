@@ -21,6 +21,20 @@ namespace
         SWC_ASSERT(!tokens.empty());
         SWC_ASSERT(tokens.back().is(TokenId::EndOfFile));
     }
+
+    uint32_t indentColumns(const std::string_view text, const uint32_t indentWidth)
+    {
+        uint32_t columns = 0;
+        for (const char c : text)
+        {
+            if (c == '\t')
+                columns += indentWidth;
+            else if (c == ' ')
+                columns++;
+        }
+
+        return columns;
+    }
 }
 
 AstSourceWriter::AstSourceWriter(FormatContext& formatCtx) :
@@ -203,8 +217,177 @@ void AstSourceWriter::appendSourcePiece(const SourcePiece& piece)
     SWC_ASSERT(piece.byteStart == cursorByte_);
     SWC_ASSERT(piece.text.size() == piece.byteLength);
 
-    formatCtx_->output += piece.text;
+    switch (piece.tokenId)
+    {
+        case TokenId::Whitespace:
+            appendWhitespacePiece(piece);
+            break;
+        case TokenId::CommentBlock:
+            appendCommentPiece(piece);
+            break;
+        default:
+            formatCtx_->output += piece.text;
+            break;
+    }
+
     cursorByte_ += piece.byteLength;
+}
+
+bool AstSourceWriter::shouldRewriteIndentation() const
+{
+    return !options_->preserveWhitespace && options_->indentStyle != FormatIndentStyle::Preserve;
+}
+
+bool AstSourceWriter::shouldRewriteEndOfLine() const
+{
+    return !options_->preserveEndOfLine && options_->endOfLineStyle != FormatEndOfLineStyle::Preserve;
+}
+
+bool AstSourceWriter::isAtLineStart() const
+{
+    return formatCtx_->output.empty() || formatCtx_->output.back() == '\n';
+}
+
+void AstSourceWriter::appendWhitespacePiece(const SourcePiece& piece)
+{
+    if (!shouldRewriteIndentation() && !shouldRewriteEndOfLine())
+    {
+        formatCtx_->output += piece.text;
+        return;
+    }
+
+    const bool rewriteIndent = shouldRewriteIndentation();
+    const bool rewriteEol    = shouldRewriteEndOfLine();
+
+    const auto flushIndent = [this, &piece, rewriteIndent](const size_t indentStart, const size_t indentLen) {
+        if (!indentLen)
+            return;
+
+        const std::string_view indentText = piece.text.substr(indentStart, indentLen);
+        if (rewriteIndent)
+            appendNormalizedIndent(indentText);
+        else
+            formatCtx_->output += indentText;
+    };
+
+    bool   atLineStart = isAtLineStart();
+    size_t indentStart = 0;
+    size_t indentLen   = 0;
+    size_t index       = 0;
+
+    while (index < piece.text.size())
+    {
+        const char c = piece.text[index];
+        if (c == '\r' || c == '\n')
+        {
+            flushIndent(indentStart, indentLen);
+            indentLen = 0;
+
+            if (c == '\r' && index + 1 < piece.text.size() && piece.text[index + 1] == '\n')
+                index++;
+
+            if (rewriteEol)
+                appendConfiguredEndOfLine();
+            else if (c == '\r' && index < piece.text.size() && piece.text[index] == '\n')
+                formatCtx_->output += "\r\n";
+            else
+                formatCtx_->output += c;
+
+            atLineStart = true;
+            index++;
+            indentStart = index;
+            continue;
+        }
+
+        if (atLineStart && (c == ' ' || c == '\t'))
+        {
+            if (!indentLen)
+                indentStart = index;
+            indentLen++;
+            index++;
+            continue;
+        }
+
+        flushIndent(indentStart, indentLen);
+        indentLen   = 0;
+        atLineStart = false;
+        formatCtx_->output += c;
+        index++;
+    }
+
+    flushIndent(indentStart, indentLen);
+}
+
+void AstSourceWriter::appendCommentPiece(const SourcePiece& piece)
+{
+    if (!shouldRewriteEndOfLine())
+    {
+        formatCtx_->output += piece.text;
+        return;
+    }
+
+    size_t index = 0;
+    while (index < piece.text.size())
+    {
+        const char c = piece.text[index];
+        if (c == '\r')
+        {
+            if (index + 1 < piece.text.size() && piece.text[index + 1] == '\n')
+                index++;
+            appendConfiguredEndOfLine();
+            index++;
+            continue;
+        }
+
+        if (c == '\n')
+        {
+            appendConfiguredEndOfLine();
+            index++;
+            continue;
+        }
+
+        formatCtx_->output += c;
+        index++;
+    }
+}
+
+void AstSourceWriter::appendNormalizedIndent(const std::string_view text) const
+{
+    const uint32_t columns     = indentColumns(text, std::max(options_->indentWidth, 1u));
+    const uint32_t indentWidth = std::max(options_->indentWidth, 1u);
+
+    switch (options_->indentStyle)
+    {
+        case FormatIndentStyle::Tabs:
+        {
+            formatCtx_->output.append(columns / indentWidth, '\t');
+            formatCtx_->output.append(columns % indentWidth, ' ');
+            break;
+        }
+
+        case FormatIndentStyle::Spaces:
+            formatCtx_->output.append(columns, ' ');
+            break;
+
+        case FormatIndentStyle::Preserve:
+            formatCtx_->output += text;
+            break;
+    }
+}
+
+void AstSourceWriter::appendConfiguredEndOfLine() const
+{
+    switch (options_->endOfLineStyle)
+    {
+        case FormatEndOfLineStyle::LF:
+            formatCtx_->output += '\n';
+            break;
+        case FormatEndOfLineStyle::CRLF:
+            formatCtx_->output += "\r\n";
+            break;
+        case FormatEndOfLineStyle::Preserve:
+            SWC_UNREACHABLE();
+    }
 }
 
 AstSourceWriter::SourcePiece AstSourceWriter::makeTriviaPiece(uint32_t triviaIndex) const
@@ -213,6 +396,7 @@ AstSourceWriter::SourcePiece AstSourceWriter::makeTriviaPiece(uint32_t triviaInd
     return {
         .byteStart  = trivia.tok.byteStart,
         .byteLength = trivia.tok.byteLength,
+        .tokenId    = trivia.tok.id,
         .text       = trivia.tok.string(*srcView_),
     };
 }
@@ -224,6 +408,7 @@ AstSourceWriter::SourcePiece AstSourceWriter::makeTokenPiece(uint32_t tokenIndex
     return {
         .byteStart  = sourceTokenByteStart(*srcView_, token),
         .byteLength = token.byteLength,
+        .tokenId    = token.id,
         .text       = token.string(*srcView_),
     };
 }

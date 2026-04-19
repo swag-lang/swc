@@ -35,7 +35,9 @@ JobResult FormatJob::exec()
     if (jobCtx.hasError())
     {
         skippedInvalid_ = true;
+#if SWC_HAS_STATS
         Stats::get().numFormatSkippedInvalidFiles.fetch_add(1, std::memory_order_relaxed);
+#endif
         return JobResult::Done;
     }
 
@@ -43,12 +45,20 @@ JobResult FormatJob::exec()
     formatter.prepare(*file_);
     skippedFmt_ = formatter.skipped();
     if (skippedFmt_)
+    {
+#if SWC_HAS_STATS
         Stats::get().numFormatSkipFmtFiles.fetch_add(1, std::memory_order_relaxed);
+#endif
+    }
 
     const Result writeResult = formatter.write(jobCtx);
     rewritten_               = writeResult == Result::Continue && formatter.changed();
     if (rewritten_)
+    {
+#if SWC_HAS_STATS
         Stats::get().numFormatRewrittenFiles.fetch_add(1, std::memory_order_relaxed);
+#endif
+    }
     return toJobResult(jobCtx, writeResult);
 }
 

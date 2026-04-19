@@ -4,6 +4,7 @@ SWC_BEGIN_NAMESPACE();
 
 enum class FormatIndentStyle : uint8_t
 {
+    Preserve,
     Spaces,
     Tabs,
 };

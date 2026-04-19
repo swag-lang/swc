@@ -1,4 +1,5 @@
 #pragma once
+#include "Compiler/Lexer/Token.h"
 #include "Compiler/Parser/Ast/AstNode.h"
 #include "Format/FormatOptions.h"
 #include "Support/Core/Utf8.h"
@@ -27,6 +28,7 @@ private:
     {
         uint32_t         byteStart  = 0;
         uint32_t         byteLength = 0;
+        TokenId          tokenId    = TokenId::Invalid;
         std::string_view text;
     };
 
@@ -44,6 +46,13 @@ private:
     SourcePiece peekNextSourcePiece() const;
     void        appendNextSourcePiece();
     void        appendSourcePiece(const SourcePiece& piece);
+    bool        shouldRewriteIndentation() const;
+    bool        shouldRewriteEndOfLine() const;
+    bool        isAtLineStart() const;
+    void        appendWhitespacePiece(const SourcePiece& piece);
+    void        appendCommentPiece(const SourcePiece& piece);
+    void        appendNormalizedIndent(std::string_view text) const;
+    void        appendConfiguredEndOfLine() const;
     SourcePiece makeTriviaPiece(uint32_t triviaIndex) const;
     SourcePiece makeTokenPiece(uint32_t tokenIndex) const;
 

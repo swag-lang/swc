@@ -514,7 +514,7 @@ namespace
                            codeViewPathString(Os::getExeFullName()),
                            ctx.cmdLine().buildCfg,
                            buildInfoBackendKindName(ctx.compiler().buildCfg().backendKind),
-                           commandLineTargetArchName(ctx.cmdLine().targetArch));
+                           CommandLine::targetArchName(ctx.cmdLine().targetArch));
     }
 
     FunctionLines collectFunctionLines(TaskContext& ctx, const MachineCode& code)

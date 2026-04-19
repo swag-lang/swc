@@ -131,90 +131,90 @@ struct CommandLine
     {
         return dryRun || showConfig;
     }
+
+    const std::set<fs::path>& inputDirectories() const
+    {
+        if (!originalDirectories.empty())
+            return originalDirectories;
+        return directories;
+    }
+
+    const std::set<fs::path>& inputFiles() const
+    {
+        if (!originalFiles.empty())
+            return originalFiles;
+        return files;
+    }
+
+    const fs::path& inputModulePath() const
+    {
+        if (!originalModulePath.empty())
+            return originalModulePath;
+        return modulePath;
+    }
+
+    Utf8 defaultArtifactName() const
+    {
+        if (!name.empty())
+            return FileSystem::sanitizeFileName(name);
+
+        const auto& mp = inputModulePath();
+        if (!mp.empty())
+            return FileSystem::sanitizeFileName(Utf8(mp.filename().string()));
+
+        const auto& f = inputFiles();
+        if (f.size() == 1)
+            return FileSystem::sanitizeFileName(Utf8(f.begin()->stem().string()));
+
+        const auto& d = inputDirectories();
+        if (d.size() == 1)
+            return FileSystem::sanitizeFileName(Utf8(d.begin()->filename().string()));
+
+        return "native";
+    }
+
+    Runtime::BuildCfgBackendKind effectiveBackendKind(const Runtime::BuildCfgBackendKind currentKind) const
+    {
+        if (artifactKindExplicit)
+            return backendKind;
+        return currentKind;
+    }
+
+    static Utf8 defaultModuleNamespace(const Utf8& artifactName)
+    {
+        Utf8 result = artifactName;
+        if (!result.empty() && result[0] >= 'a' && result[0] <= 'z')
+            result[0] = static_cast<char>(result[0] - 'a' + 'A');
+        return result;
+    }
+
+    static Utf8 targetArchName(const Runtime::TargetArch targetArch)
+    {
+        switch (targetArch)
+        {
+            case Runtime::TargetArch::X86_64:
+                return "x86_64";
+        }
+
+        SWC_UNREACHABLE();
+    }
+
+    static Utf8 backendKindName(const Runtime::BuildCfgBackendKind backendKind)
+    {
+        switch (backendKind)
+        {
+            case Runtime::BuildCfgBackendKind::Executable:
+                return "executable";
+            case Runtime::BuildCfgBackendKind::SharedLibrary:
+                return "shared-library";
+            case Runtime::BuildCfgBackendKind::StaticLibrary:
+                return "static-library";
+            case Runtime::BuildCfgBackendKind::None:
+                return "none";
+        }
+
+        SWC_UNREACHABLE();
+    }
 };
-
-inline const std::set<fs::path>& commandLineInputDirectories(const CommandLine& cmdLine)
-{
-    if (!cmdLine.originalDirectories.empty())
-        return cmdLine.originalDirectories;
-    return cmdLine.directories;
-}
-
-inline const std::set<fs::path>& commandLineInputFiles(const CommandLine& cmdLine)
-{
-    if (!cmdLine.originalFiles.empty())
-        return cmdLine.originalFiles;
-    return cmdLine.files;
-}
-
-inline const fs::path& commandLineInputModulePath(const CommandLine& cmdLine)
-{
-    if (!cmdLine.originalModulePath.empty())
-        return cmdLine.originalModulePath;
-    return cmdLine.modulePath;
-}
-
-inline Utf8 commandLineDefaultArtifactName(const CommandLine& cmdLine)
-{
-    if (!cmdLine.name.empty())
-        return FileSystem::sanitizeFileName(cmdLine.name);
-
-    const auto& modulePath = commandLineInputModulePath(cmdLine);
-    if (!modulePath.empty())
-        return FileSystem::sanitizeFileName(Utf8(modulePath.filename().string()));
-
-    const auto& files = commandLineInputFiles(cmdLine);
-    if (files.size() == 1)
-        return FileSystem::sanitizeFileName(Utf8(files.begin()->stem().string()));
-
-    const auto& directories = commandLineInputDirectories(cmdLine);
-    if (directories.size() == 1)
-        return FileSystem::sanitizeFileName(Utf8(directories.begin()->filename().string()));
-
-    return "native";
-}
-
-inline Utf8 commandLineDefaultModuleNamespace(const Utf8& artifactName)
-{
-    Utf8 result = artifactName;
-    if (!result.empty() && result[0] >= 'a' && result[0] <= 'z')
-        result[0] = static_cast<char>(result[0] - 'a' + 'A');
-    return result;
-}
-
-inline Utf8 commandLineTargetArchName(const Runtime::TargetArch targetArch)
-{
-    switch (targetArch)
-    {
-        case Runtime::TargetArch::X86_64:
-            return "x86_64";
-    }
-
-    SWC_UNREACHABLE();
-}
-
-inline Utf8 commandLineBackendKindName(const Runtime::BuildCfgBackendKind backendKind)
-{
-    switch (backendKind)
-    {
-        case Runtime::BuildCfgBackendKind::Executable:
-            return "executable";
-        case Runtime::BuildCfgBackendKind::SharedLibrary:
-            return "shared-library";
-        case Runtime::BuildCfgBackendKind::StaticLibrary:
-            return "static-library";
-        case Runtime::BuildCfgBackendKind::None:
-            return "none";
-    }
-
-    SWC_UNREACHABLE();
-}
-
-inline Runtime::BuildCfgBackendKind commandLineEffectiveBackendKind(const CommandLine& cmdLine, const Runtime::BuildCfgBackendKind currentKind)
-{
-    if (cmdLine.artifactKindExplicit)
-        return cmdLine.backendKind;
-    return currentKind;
-}
 
 SWC_END_NAMESPACE();

@@ -293,13 +293,13 @@ SWC_TEST_BEGIN(NativeArtifact_ExplicitArtifactKindOverridesBuildCfgMutation)
     cmdLine.artifactKindExplicit = true;
     CommandLineParser::refreshBuildCfg(cmdLine);
 
-    if (commandLineEffectiveBackendKind(cmdLine, Runtime::BuildCfgBackendKind::StaticLibrary) != Runtime::BuildCfgBackendKind::SharedLibrary)
+    if (cmdLine.effectiveBackendKind(Runtime::BuildCfgBackendKind::StaticLibrary) != Runtime::BuildCfgBackendKind::SharedLibrary)
         return Result::Error;
-    if (commandLineEffectiveBackendKind(cmdLine, Runtime::BuildCfgBackendKind::Executable) != Runtime::BuildCfgBackendKind::SharedLibrary)
+    if (cmdLine.effectiveBackendKind(Runtime::BuildCfgBackendKind::Executable) != Runtime::BuildCfgBackendKind::SharedLibrary)
         return Result::Error;
 
     cmdLine.artifactKindExplicit = false;
-    if (commandLineEffectiveBackendKind(cmdLine, Runtime::BuildCfgBackendKind::StaticLibrary) != Runtime::BuildCfgBackendKind::StaticLibrary)
+    if (cmdLine.effectiveBackendKind(Runtime::BuildCfgBackendKind::StaticLibrary) != Runtime::BuildCfgBackendKind::StaticLibrary)
         return Result::Error;
 }
 SWC_TEST_END()

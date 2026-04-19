@@ -258,7 +258,7 @@ namespace
 
         cmdLine.moduleNamespaceStorage = cmdLine.moduleNamespace;
         if (cmdLine.moduleNamespaceStorage.empty())
-            cmdLine.moduleNamespaceStorage = commandLineDefaultModuleNamespace(commandLineDefaultArtifactName(cmdLine));
+            cmdLine.moduleNamespaceStorage = CommandLine::defaultModuleNamespace(cmdLine.defaultArtifactName());
 
         buildCfg.moduleNamespace = Utf8Helper::runtimeStringFromUtf8(cmdLine.moduleNamespaceStorage);
         buildCfg.name            = Utf8Helper::runtimeStringFromUtf8(cmdLine.name);

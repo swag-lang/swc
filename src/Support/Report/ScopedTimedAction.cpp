@@ -492,7 +492,7 @@ namespace
     {
         const CommandLine&       cmdLine  = ctx.cmdLine();
         const Runtime::BuildCfg& buildCfg = cmdLine.defaultBuildCfg;
-        return joinParts(ctx, {cmdLine.buildCfg, buildCfgBackendKindName(buildCfg.backendKind), commandLineTargetArchName(cmdLine.targetArch)}, LogColor::Gray);
+        return joinParts(ctx, {cmdLine.buildCfg, buildCfgBackendKindName(buildCfg.backendKind), CommandLine::targetArchName(cmdLine.targetArch)}, LogColor::Gray);
     }
 }
 

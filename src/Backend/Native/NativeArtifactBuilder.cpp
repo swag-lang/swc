@@ -190,7 +190,7 @@ Utf8 NativeArtifactBuilder::artifactName() const
     const auto buildCfgName = Utf8(builder_->compiler().buildCfg().name);
     if (!buildCfgName.empty())
         return FileSystem::sanitizeFileName(buildCfgName);
-    return commandLineDefaultArtifactName(builder_->ctx().cmdLine());
+    return builder_->ctx().cmdLine().defaultArtifactName();
 }
 
 Utf8 NativeArtifactBuilder::artifactExtension() const

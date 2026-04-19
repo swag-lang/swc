@@ -322,7 +322,7 @@ namespace
 
     bool runNativeBackends(CompilerInstance& compiler)
     {
-        const Runtime::BuildCfgBackendKind backendKind = commandLineEffectiveBackendKind(compiler.cmdLine(), compiler.buildCfg().backendKind);
+        const Runtime::BuildCfgBackendKind backendKind = compiler.cmdLine().effectiveBackendKind(compiler.buildCfg().backendKind);
         if (!runNativeBackend(compiler, backendKind, backendKind == Runtime::BuildCfgBackendKind::Executable))
             return false;
 

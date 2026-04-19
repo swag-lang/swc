@@ -34,7 +34,7 @@ namespace
         if (hasErrors(errorsBefore))
             return;
 
-        const Runtime::BuildCfgBackendKind backendKind = commandLineEffectiveBackendKind(compiler.cmdLine(), compiler.buildCfg().backendKind);
+        const Runtime::BuildCfgBackendKind backendKind = compiler.cmdLine().effectiveBackendKind(compiler.buildCfg().backendKind);
         runNativeBackend(compiler, backendKind, runArtifact && backendKind == Runtime::BuildCfgBackendKind::Executable);
     }
 }

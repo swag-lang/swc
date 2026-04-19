@@ -834,18 +834,13 @@ namespace
         }
     }
 
-    Result errorGenericInstantiationFailure(Sema& sema, const SemaNodeView& nodeCallee, const Attempt& primary, const SmallVector<SortedAttempt>& sorted, std::span<AstNodeRef> args, AstNodeRef ufcsArg)
+    Result errorGenericInstantiationFailure(Sema& sema, const SemaNodeView& nodeCallee, const Attempt& primary, std::span<AstNodeRef> args, AstNodeRef ufcsArg)
     {
         TaskContext& ctx = sema.ctx();
 
         Diagnostic diag = SemaError::report(sema, DiagnosticId::sema_err_generic_function_instantiation_failed, nodeCallee.nodeRef());
         diag.last().addArgument(Diagnostic::ARG_SYM, primary.fn->name(ctx));
-
-        diag.addNote(overloadCandidateDiagnosticId(primary.fail));
-        diag.last().addArgument(Diagnostic::ARG_SYM, primary.fn->isTyped() ? primary.fn->type(ctx).toName(ctx) : Utf8{primary.fn->name(ctx)});
-        fillMatchDiagnostic(sema, diag.last(), diag, *primary.fn, primary.fail, args, ufcsArg, true);
-
-        addOverloadFailureNotes(sema, diag, sorted, args, ufcsArg, [&](const Attempt& a) { return &a == &primary; });
+        fillMatchDiagnostic(sema, diag.last(), diag, *primary.fn, primary.fail, args, ufcsArg, false);
         diag.report(sema.ctx());
         return Result::Error;
     }
@@ -897,7 +892,7 @@ namespace
 
                 const Attempt& a = *sa.a;
                 if (a.fail.kind == MatchFailKind::InvalidArgumentType && isGenericInstantiationFailure(a.fail.castFailure.diagId))
-                    return errorGenericInstantiationFailure(sema, nodeCallee, a, sorted, args, ufcsArg);
+                    return errorGenericInstantiationFailure(sema, nodeCallee, a, args, ufcsArg);
             }
         }
 

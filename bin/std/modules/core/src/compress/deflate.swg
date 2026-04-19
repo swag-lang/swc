@@ -158,8 +158,8 @@ impl Deflate
     func createCompFlagsFromZipParams(level: CompressionLevel, strategy: CompressionStrategy)->u32
     {
         var compFlags = 0'u32
-        compFlags = NumProbes[Math.min(10'u32, level)]
-        if level <= 3 do
+        compFlags = NumProbes[Math.min(10'u32, cast(u32) level)]
+        if cast(u32) level <= 3 do
             compFlags |= GreedyParsing
 
         if level == .NoCompression do

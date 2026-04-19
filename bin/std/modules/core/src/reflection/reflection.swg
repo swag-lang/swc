@@ -99,7 +99,7 @@ using Swag
     // Make an union of flags of all types
     func orFlags(v: const [..] typeinfo)->Swag.TypeInfoFlags
     {
-        var res: Swag.TypeInfoFlags = Zero
+        var res: Swag.TypeInfoFlags = .Zero
         foreach p in v do
             res |= p.flags
         return res

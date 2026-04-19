@@ -20,7 +20,7 @@ namespace
         if (!rootNode.is(AstNodeId::File))
             return false;
 
-        const auto& fileNode = rootNode.cast<AstFile>();
+        const auto&             fileNode = rootNode.cast<AstFile>();
         SmallVector<AstNodeRef> globals;
         ast.appendNodes(globals, fileNode.spanGlobalsRef);
 

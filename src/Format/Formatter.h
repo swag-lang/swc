@@ -11,7 +11,7 @@ namespace Format
 {
     struct PreparedFile
     {
-        const SourceFile* file    = nullptr;
+        const SourceFile* file = nullptr;
         Utf8              text;
         bool              changed = false;
         bool              skipped = false;

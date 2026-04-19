@@ -1,4 +1,5 @@
 #pragma once
+#include "Compiler/Parser/Ast/AstNode.h"
 #include "Format/FormatOptions.h"
 #include "Support/Core/Utf8.h"
 
@@ -11,16 +12,54 @@ namespace Format
 {
     struct Context
     {
-        const Ast*         ast     = nullptr;
-        const SourceView*  srcView = nullptr;
-        const Options*     options = nullptr;
-        Utf8               output;
+        const Ast*        ast     = nullptr;
+        const SourceView* srcView = nullptr;
+        const Options*    options = nullptr;
+        Utf8              output;
     };
 
     class AstSourceWriter
     {
     public:
+        explicit AstSourceWriter(Context& formatCtx);
         static void write(Context& formatCtx);
+
+    private:
+        struct SourcePiece
+        {
+            uint32_t         byteStart  = 0;
+            uint32_t         byteLength = 0;
+            std::string_view text;
+        };
+
+        static constexpr uint32_t INVALID_BYTE = 0xFFFFFFFFu;
+
+        void        write();
+        void        beginOutput();
+        void        writeNode(AstNodeRef nodeRef);
+        void        writeNodeExact(AstNodeRef nodeRef);
+        void        writeNodeFormatted(AstNodeRef nodeRef);
+        void        writeNodeChildren(const AstNode& node);
+        void        collectSourceOrderedChildren(SmallVector<AstNodeRef>& out, const AstNode& node) const;
+        bool        shouldVisitNode(AstNodeRef nodeRef) const;
+        bool        hasCheckpoint(const AstNode& node) const;
+        uint32_t    nodeCheckpointByte(AstNodeRef nodeRef) const;
+        uint32_t    nodeSortByte(AstNodeRef nodeRef) const;
+        void        flushUntilByte(uint32_t targetByte);
+        SourcePiece peekNextSourcePiece() const;
+        void        appendNextSourcePiece();
+        void        appendSourcePiece(const SourcePiece& piece);
+        SourcePiece makeTriviaPiece(uint32_t triviaIndex) const;
+        SourcePiece makeTokenPiece(uint32_t tokenIndex) const;
+
+        Context*          formatCtx_       = nullptr;
+        const Ast*        ast_             = nullptr;
+        const SourceView* srcView_         = nullptr;
+        const Options*    options_         = nullptr;
+        uint32_t          cursorByte_      = 0;
+        uint32_t          nextTokenIndex_  = 0;
+        uint32_t          nextTriviaIndex_ = 0;
+        uint32_t          eofByte_         = 0;
     };
 }
 

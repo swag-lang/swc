@@ -19,14 +19,14 @@ namespace Format
 
     struct Options
     {
-        bool exactRoundTrip            = true;
-        bool preserveComments          = true;
-        bool preserveBlankLines        = true;
-        bool preserveWhitespace        = true;
-        bool preserveEndOfLine         = true;
-        bool preserveBom               = true;
+        bool exactRoundTrip             = true;
+        bool preserveComments           = true;
+        bool preserveBlankLines         = true;
+        bool preserveWhitespace         = true;
+        bool preserveEndOfLine          = true;
+        bool preserveBom                = true;
         bool preserveTrailingWhitespace = true;
-        bool insertFinalNewline        = false;
+        bool insertFinalNewline         = false;
 
         uint32_t indentWidth             = 4;
         uint32_t continuationIndentWidth = 4;

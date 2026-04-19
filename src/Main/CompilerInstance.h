@@ -169,7 +169,7 @@ private:
     SourceFile& addResolvedFile(fs::path path, FileFlags flags);
     void        appendResolvedFiles(std::vector<fs::path>& paths, FileFlags flags);
     void        collectFolderFiles(const fs::path& folder, FileFlags flags, bool canFilter);
-    Result      collectImportedApiFiles(TaskContext& ctx);
+    Result      collectImportedApiFiles(const TaskContext& ctx);
 
     const CommandLine*                       cmdLine_ = nullptr;
     const Global*                            global_  = nullptr;

@@ -119,7 +119,7 @@ namespace
     }
 
     template<typename F>
-    SymbolVariable& getOrCreateLoopLocalSymbol(LoopSemaPayload& payload, size_t index, F&& createSymbol)
+    SymbolVariable& getOrCreateLoopLocalSymbol(LoopSemaPayload& payload, size_t index, const F& createSymbol)
     {
         if (payload.localSymbols.size() > index)
             return payload.localSymbols[index]->cast<SymbolVariable>();

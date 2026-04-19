@@ -87,7 +87,7 @@ namespace
         return false;
     }
 
-    Result parseCommandLine(TaskContext& ctx, CommandLine& cmdLine, const std::vector<std::string>& args)
+    Result parseCommandLine(const TaskContext& ctx, CommandLine& cmdLine, const std::vector<std::string>& args)
     {
         std::vector<char*> argv;
         argv.reserve(args.size());
@@ -128,7 +128,7 @@ namespace
 
 SWC_TEST_BEGIN(Compiler_CommandLineConfigFileSetsCommandAndResolvesRelativePaths)
 {
-    ScopedTempTree tempTree("compiler_config_file_sets_command");
+    const ScopedTempTree tempTree("compiler_config_file_sets_command");
     if (!tempTree.ready())
         return Result::Error;
 
@@ -198,7 +198,7 @@ SWC_TEST_END()
 
 SWC_TEST_BEGIN(Compiler_CommandLineConfigFileAllowsCliOverrides)
 {
-    ScopedTempTree tempTree("compiler_config_file_cli_override");
+    const ScopedTempTree tempTree("compiler_config_file_cli_override");
     if (!tempTree.ready())
         return Result::Error;
 
@@ -251,7 +251,7 @@ SWC_TEST_BEGIN(Compiler_FormatSummaryLineShowsWrittenFilesAfterTime)
     cmdLine.command  = CommandKind::Format;
     cmdLine.logColor = false;
 
-    TaskContext                         formatCtx(ctx.global(), cmdLine);
+    const TaskContext                         formatCtx(ctx.global(), cmdLine);
     const TimedActionLog::StatsSnapshot snapshot        = TimedActionLog::StatsSnapshot::capture();
     const Utf8                          summaryLine     = TimedActionLog::formatSummaryLine(formatCtx, snapshot);
     const Utf8                          expectedTime    = Utf8Helper::toNiceTime(1.0);
@@ -271,7 +271,7 @@ SWC_TEST_END()
 
 SWC_TEST_BEGIN(Compiler_FormatOptionsLoaderMergesHierarchy)
 {
-    ScopedTempTree tempTree("compiler_format_options_loader");
+    const ScopedTempTree tempTree("compiler_format_options_loader");
     if (!tempTree.ready())
         return Result::Error;
 

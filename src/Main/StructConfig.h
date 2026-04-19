@@ -127,12 +127,12 @@ private:
     static Utf8   unquoteValue(std::string_view value);
     static void   attachSuggestion(Diagnostic& diag, std::optional<Utf8> suggestion);
 
-    bool applyEntry(TaskContext& ctx, const StructConfigEntry& entry, const fs::path& sourcePath, uint32_t lineNo, std::string_view value, const fs::path& baseDir) const;
-    bool reportUnknownKey(TaskContext& ctx, const fs::path& sourcePath, uint32_t lineNo, const Utf8& key) const;
-    bool reportInvalidEntry(TaskContext& ctx, const fs::path& sourcePath, uint32_t lineNo, const Utf8& because) const;
-    bool reportInvalidBool(TaskContext& ctx, const fs::path& sourcePath, uint32_t lineNo, const Utf8& key, const Utf8& value) const;
-    bool reportInvalidInt(TaskContext& ctx, const fs::path& sourcePath, uint32_t lineNo, const Utf8& key, const Utf8& value) const;
-    bool reportInvalidEnum(TaskContext& ctx, const StructConfigEntry& entry, const fs::path& sourcePath, uint32_t lineNo, const Utf8& value) const;
+    bool        applyEntry(TaskContext& ctx, const StructConfigEntry& entry, const fs::path& sourcePath, uint32_t lineNo, std::string_view valueText, const fs::path& baseDir) const;
+    bool        reportUnknownKey(TaskContext& ctx, const fs::path& sourcePath, uint32_t lineNo, const Utf8& key) const;
+    static bool reportInvalidEntry(TaskContext& ctx, const fs::path& sourcePath, uint32_t lineNo, const Utf8& because);
+    static bool reportInvalidBool(TaskContext& ctx, const fs::path& sourcePath, uint32_t lineNo, const Utf8& key, const Utf8& value);
+    static bool reportInvalidInt(TaskContext& ctx, const fs::path& sourcePath, uint32_t lineNo, const Utf8& key, const Utf8& value);
+    static bool reportInvalidEnum(TaskContext& ctx, const StructConfigEntry& entry, const fs::path& sourcePath, uint32_t lineNo, const Utf8& value);
 };
 
 SWC_END_NAMESPACE();

@@ -34,17 +34,6 @@ namespace
         return Utf8Helper::countChars(text);
     }
 
-    size_t valueDisplayWidth(const Logger::FieldEntry& entry)
-    {
-        if (entry.valueParts.empty())
-            return displayWidth(entry.value);
-
-        size_t width = 0;
-        for (const Logger::FieldValuePart& part : entry.valueParts)
-            width += displayWidth(part.text);
-        return width;
-    }
-
     size_t entryIndentWidth(const Logger::FieldEntry& entry, const Logger::FieldGroupStyle& style)
     {
         return style.lineIndent + style.indentPerLevel * entry.indentLevel;
@@ -218,17 +207,17 @@ void Logger::printStdErr(const LogColor color, const std::string_view message, c
     (void) std::fflush(stderr);
 }
 
-void Logger::printField(const TaskContext& ctx, const FieldEntry& entry, FieldGroupStyle style)
+void Logger::printField(const TaskContext& ctx, const FieldEntry& entry, const FieldGroupStyle& style)
 {
     if (ctx.cmdLine().silent || ctx.muteOutput())
         return;
 
-    const ScopedLock              lock(ctx.global().logger());
-    const std::vector<FieldEntry> entries = {entry};
+    const ScopedLock  lock(ctx.global().logger());
+    const std::vector entries = {entry};
     std::cout << formatFieldEntry(ctx, entry, style, computeLabelColumn(entries, style));
 }
 
-void Logger::printFieldGroup(const TaskContext& ctx, const std::string_view title, const std::vector<FieldEntry>& entries, FieldGroupStyle style)
+void Logger::printFieldGroup(const TaskContext& ctx, const std::string_view title, const std::vector<FieldEntry>& entries, const FieldGroupStyle& style)
 {
     if (ctx.cmdLine().silent || ctx.muteOutput() || entries.empty())
         return;

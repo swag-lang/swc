@@ -909,7 +909,7 @@ void CompilerInstance::collectFolderFiles(const fs::path& folder, FileFlags flag
     appendResolvedFiles(paths, flags);
 }
 
-Result CompilerInstance::collectImportedApiFiles(TaskContext& ctx)
+Result CompilerInstance::collectImportedApiFiles(const TaskContext& ctx)
 {
     const CommandLine& cmdLine = ctx.cmdLine();
 
@@ -988,7 +988,7 @@ Result CompilerInstance::exportModuleApi(TaskContext& ctx)
     SWC_RESULT(FileSystem::clearDirectoryContents(ctx, exportApiDir, DiagnosticId::cmd_err_api_dir_clear_failed));
 
     const Utf8 moduleNamespace = buildCfg().moduleNamespace.ptr ? Utf8(buildCfg().moduleNamespace) : Utf8{};
-    for (SourceFile* file : files())
+    for (const SourceFile* file : files())
     {
         if (!file || !file->hasFlag(FileFlagsE::ModuleSrc))
             continue;

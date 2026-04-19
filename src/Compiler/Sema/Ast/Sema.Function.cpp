@@ -1220,7 +1220,7 @@ namespace
         return Result::Continue;
     }
 
-    SymbolVariable* findClosureCaptureSymbol(SymbolFunction& sym, const SymbolVariable& sourceVar)
+    SymbolVariable* findClosureCaptureSymbol(const SymbolFunction& sym, const SymbolVariable& sourceVar)
     {
         std::vector<const Symbol*> symbols;
         sym.getAllSymbols(symbols, true);

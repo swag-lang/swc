@@ -2,7 +2,6 @@
 #include "Backend/Micro/MachineCode.h"
 #include "Backend/Encoder/X64Encoder.h"
 #include "Backend/Micro/MicroPassContext.h"
-#include "Backend/Micro/MicroPassManager.h"
 #include "Main/CompilerInstance.h"
 #include "Main/Stats.h"
 

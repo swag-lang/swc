@@ -35,7 +35,7 @@ private:
     static constexpr uint32_t INVALID_BYTE = 0xFFFFFFFFu;
 
     void             beginOutput();
-    void             finalizeOutput();
+    void             finalizeOutput() const;
     void             writeNode(AstNodeRef nodeRef);
     void             writeNodeChildren(const AstNode& node);
     void             collectSourceOrderedChildren(SmallVector<AstNodeRef>& out, const AstNode& node) const;

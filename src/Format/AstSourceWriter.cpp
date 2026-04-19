@@ -76,7 +76,7 @@ void AstSourceWriter::beginOutput()
     cursorByte_ = prefixOffset;
 }
 
-void AstSourceWriter::finalizeOutput()
+void AstSourceWriter::finalizeOutput() const
 {
     if (!options_->insertFinalNewline || hasTrailingLineBreak())
         return;

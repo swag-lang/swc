@@ -1,7 +1,6 @@
 #include "pch.h"
 #include "Main/StructConfig.h"
 #include "Main/FileSystem.h"
-#include "Main/TaskContext.h"
 #include "Support/Core/Utf8Helper.h"
 #include "Support/Report/Diagnostic.h"
 
@@ -249,10 +248,10 @@ Utf8 StructConfigReader::unquoteValue(const std::string_view value)
         const char first = value.front();
         const char last  = value.back();
         if ((first == '\'' || first == '"') && last == first)
-            return Utf8(value.substr(1, value.size() - 2));
+            return Utf8{value.substr(1, value.size() - 2)};
     }
 
-    return Utf8(value);
+    return Utf8{value};
 }
 
 void StructConfigReader::attachSuggestion(Diagnostic& diag, std::optional<Utf8> suggestion)
@@ -275,7 +274,7 @@ bool StructConfigReader::reportUnknownKey(TaskContext& ctx, const fs::path& sour
     return false;
 }
 
-bool StructConfigReader::reportInvalidEntry(TaskContext& ctx, const fs::path& sourcePath, const uint32_t lineNo, const Utf8& because) const
+bool StructConfigReader::reportInvalidEntry(TaskContext& ctx, const fs::path& sourcePath, const uint32_t lineNo, const Utf8& because)
 {
     Diagnostic diag = Diagnostic::get(DiagnosticId::cmd_err_config_invalid_entry);
     diag.addArgument(Diagnostic::ARG_PATH, configLocation(ctx, sourcePath, lineNo));
@@ -284,7 +283,7 @@ bool StructConfigReader::reportInvalidEntry(TaskContext& ctx, const fs::path& so
     return false;
 }
 
-bool StructConfigReader::reportInvalidBool(TaskContext& ctx, const fs::path& sourcePath, const uint32_t lineNo, const Utf8& key, const Utf8& value) const
+bool StructConfigReader::reportInvalidBool(TaskContext& ctx, const fs::path& sourcePath, const uint32_t lineNo, const Utf8& key, const Utf8& value)
 {
     Diagnostic diag = Diagnostic::get(DiagnosticId::cmd_err_config_invalid_bool);
     diag.addArgument(Diagnostic::ARG_ARG, key);
@@ -294,7 +293,7 @@ bool StructConfigReader::reportInvalidBool(TaskContext& ctx, const fs::path& sou
     return false;
 }
 
-bool StructConfigReader::reportInvalidInt(TaskContext& ctx, const fs::path& sourcePath, const uint32_t lineNo, const Utf8& key, const Utf8& value) const
+bool StructConfigReader::reportInvalidInt(TaskContext& ctx, const fs::path& sourcePath, const uint32_t lineNo, const Utf8& key, const Utf8& value)
 {
     Diagnostic diag = Diagnostic::get(DiagnosticId::cmd_err_config_invalid_int);
     diag.addArgument(Diagnostic::ARG_ARG, key);
@@ -304,7 +303,7 @@ bool StructConfigReader::reportInvalidInt(TaskContext& ctx, const fs::path& sour
     return false;
 }
 
-bool StructConfigReader::reportInvalidEnum(TaskContext& ctx, const StructConfigEntry& entry, const fs::path& sourcePath, const uint32_t lineNo, const Utf8& value) const
+bool StructConfigReader::reportInvalidEnum(TaskContext& ctx, const StructConfigEntry& entry, const fs::path& sourcePath, const uint32_t lineNo, const Utf8& value)
 {
     Diagnostic diag = Diagnostic::get(DiagnosticId::cmd_err_config_invalid_enum);
     diag.addArgument(Diagnostic::ARG_ARG, entry.name);

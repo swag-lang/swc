@@ -58,10 +58,10 @@ namespace
         return Result::Continue;
     }
 
-    template<typename TByte>
-    Result readBinaryFileImpl(const fs::path& path, std::vector<TByte>& outData, FileSystem::IoErrorInfo& error)
+    template<typename T>
+    Result readBinaryFileImpl(const fs::path& path, std::vector<T>& outData, FileSystem::IoErrorInfo& error)
     {
-        static_assert(sizeof(TByte) == 1);
+        static_assert(sizeof(T) == 1);
 
         outData.clear();
         error = {};
@@ -175,7 +175,7 @@ Result FileSystem::normalizeAbsolutePath(fs::path& path, Utf8& because)
     because.clear();
 
     std::error_code ec;
-    fs::path        absolutePath = fs::absolute(path, ec);
+    const fs::path  absolutePath = fs::absolute(path, ec);
     if (ec)
     {
         path    = lexicallyNormalize(path);
@@ -298,7 +298,7 @@ Result FileSystem::writeBinaryFile(const fs::path& path, const void* data, const
         return Result::Error;
     }
 
-    if (size && !file.write(reinterpret_cast<const char*>(data), static_cast<std::streamsize>(size)))
+    if (size && !file.write(static_cast<const char*>(data), static_cast<std::streamsize>(size)))
     {
         error.problem = IoProblem::Write;
         error.because = fallbackIoBecause(error.problem);
@@ -390,7 +390,7 @@ Utf8 FileSystem::describeIoProblem(const IoProblem problem)
 
 Utf8 FileSystem::describeIoFailure(const IoErrorInfo& error)
 {
-    const Utf8 prefix = describeIoProblem(error.problem);
+    Utf8 prefix = describeIoProblem(error.problem);
     if (error.because.empty() || error.because == prefix)
         return prefix;
 

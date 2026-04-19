@@ -298,7 +298,7 @@ namespace
         outResolvedArgs.push_back(resolvedArg);
     }
 
-    Result prepareStructOpCast(Sema& sema, StructOpCastData& outData, const SemaNodeView& view, CastRequest& castRequest, CastFlags castFlags)
+    Result prepareStructOpCast(Sema& sema, StructOpCastData& outData, const SemaNodeView& view, const CastRequest& castRequest, CastFlags castFlags)
     {
         outData.calledFn     = castRequest.selectedStructOpCast;
         outData.sourceArgRef = sourceArgRefForStructSpecCast(sema, view, castFlags);

@@ -224,7 +224,7 @@ impl Window
 
 #test
 {
-    kind(true) // swc-expected-error {{sema_err_no_overload_match}}
+    kind(true) // swc-expected-error {{sema_err_generic_function_instantiation_failed}}
 }
 
 #test

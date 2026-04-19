@@ -180,6 +180,23 @@ namespace
         bool            viable    = false;
     };
 
+    struct SortedAttempt
+    {
+        const Attempt* a     = nullptr;
+        uint32_t       rank  = 0;
+        uint32_t       order = 0;
+    };
+
+    struct SortedAttemptByRankDesc
+    {
+        bool operator()(const SortedAttempt& a, const SortedAttempt& b) const
+        {
+            if (a.rank != b.rank)
+                return a.rank > b.rank;
+            return a.order < b.order;
+        }
+    };
+
     struct VariadicInfo
     {
         bool isVariadic      = false;
@@ -530,6 +547,14 @@ namespace
                diagId == DiagnosticId::sema_err_function_where_failed;
     }
 
+    bool isGenericInstantiationFailure(DiagnosticId diagId)
+    {
+        return diagId == DiagnosticId::sema_err_generic_type_deduction_conflict ||
+               diagId == DiagnosticId::sema_err_generic_value_deduction_conflict ||
+               diagId == DiagnosticId::sema_err_generic_parameter_not_deduced ||
+               isFunctionWhereFailure(diagId);
+    }
+
     const Utf8* castFailureUtf8Argument(const CastFailure& failure, std::string_view name)
     {
         for (const auto& arg : failure.arguments)
@@ -776,29 +801,68 @@ namespace
         return Result::Error;
     }
 
+    template<typename AddNoteFn>
+    void addOverloadFailureNotes(Sema& sema, Diagnostic& diag, const SmallVector<SortedAttempt>& sorted, std::span<AstNodeRef> args, AstNodeRef ufcsArg, AddNoteFn&& shouldSkip)
+    {
+        TaskContext& ctx = sema.ctx();
+
+        int count = 0;
+        for (const auto& sa : sorted)
+        {
+            const Attempt& a = *(sa.a);
+            if (shouldSkip(a))
+                continue;
+
+            if (count >= 5)
+            {
+                int remaining = 0;
+                for (const auto& sb : sorted)
+                {
+                    if (!shouldSkip(*sb.a))
+                        remaining++;
+                }
+
+                diag.addNote(DiagnosticId::sema_note_too_many_overloads);
+                diag.last().addArgument(Diagnostic::ARG_VALUE, static_cast<uint32_t>(remaining - count));
+                break;
+            }
+
+            count++;
+            diag.addNote(overloadCandidateDiagnosticId(a.fail));
+            diag.last().addArgument(Diagnostic::ARG_SYM, a.fn->isTyped() ? a.fn->type(ctx).toName(ctx) : Utf8{a.fn->name(ctx)});
+            fillMatchDiagnostic(sema, diag.last(), diag, *a.fn, a.fail, args, ufcsArg, true);
+        }
+    }
+
+    Result errorGenericInstantiationFailure(Sema& sema, const SemaNodeView& nodeCallee, const Attempt& primary, const SmallVector<SortedAttempt>& sorted, std::span<AstNodeRef> args, AstNodeRef ufcsArg)
+    {
+        TaskContext& ctx = sema.ctx();
+
+        Diagnostic diag = SemaError::report(sema, DiagnosticId::sema_err_generic_function_instantiation_failed, nodeCallee.nodeRef());
+        diag.last().addArgument(Diagnostic::ARG_SYM, primary.fn->name(ctx));
+
+        diag.addNote(overloadCandidateDiagnosticId(primary.fail));
+        diag.last().addArgument(Diagnostic::ARG_SYM, primary.fn->isTyped() ? primary.fn->type(ctx).toName(ctx) : Utf8{primary.fn->name(ctx)});
+        fillMatchDiagnostic(sema, diag.last(), diag, *primary.fn, primary.fail, args, ufcsArg, true);
+
+        addOverloadFailureNotes(sema, diag, sorted, args, ufcsArg, [&](const Attempt& a) { return &a == &primary; });
+        diag.report(sema.ctx());
+        return Result::Error;
+    }
+
     Result errorNoOverloadMatch(Sema& sema, const SemaNodeView& nodeCallee, const SmallVector<Attempt>& attempts, std::span<AstNodeRef> args, AstNodeRef ufcsArg)
     {
         TaskContext& ctx = sema.ctx();
 
-        struct SortedAttempt
-        {
-            const Attempt* a;
-            uint32_t       rank;
-        };
-
-        struct SortedAttemptByRankDesc
-        {
-            bool operator()(const SortedAttempt& a, const SortedAttempt& b) const
-            {
-                return a.rank > b.rank;
-            }
-        };
-
         SmallVector<SortedAttempt> sorted;
+        uint32_t                   order = 0;
         for (const Attempt& a : attempts)
         {
             if (!a.fn || a.viable)
+            {
+                order++;
                 continue;
+            }
 
             uint32_t rank = 0;
             switch (a.fail.kind)
@@ -817,33 +881,31 @@ namespace
                     break;
             }
 
-            sorted.push_back({.a = &a, .rank = rank});
+            sorted.push_back({.a = &a, .rank = rank, .order = order});
+            order++;
         }
 
         std::ranges::sort(sorted, SortedAttemptByRankDesc{});
+
+        if (!sorted.empty())
+        {
+            const uint32_t bestRank = sorted.front().rank;
+            for (const auto& sa : sorted)
+            {
+                if (sa.rank != bestRank)
+                    break;
+
+                const Attempt& a = *sa.a;
+                if (a.fail.kind == MatchFailKind::InvalidArgumentType && isGenericInstantiationFailure(a.fail.castFailure.diagId))
+                    return errorGenericInstantiationFailure(sema, nodeCallee, a, sorted, args, ufcsArg);
+            }
+        }
 
         Diagnostic diag = SemaError::report(sema, DiagnosticId::sema_err_no_overload_match, nodeCallee.nodeRef());
         if (!attempts.empty())
             diag.last().addArgument(Diagnostic::ARG_SYM, attempts.front().fn->name(ctx));
 
-        // One note per overload attempt describing why it failed (and where when possible).
-        int count = 0;
-        for (const auto& sa : sorted)
-        {
-            if (count >= 5)
-            {
-                diag.addNote(DiagnosticId::sema_note_too_many_overloads);
-                diag.last().addArgument(Diagnostic::ARG_VALUE, static_cast<uint32_t>(sorted.size() - count));
-                break;
-            }
-
-            count++;
-            const Attempt& a = *(sa.a);
-
-            diag.addNote(overloadCandidateDiagnosticId(a.fail));
-            diag.last().addArgument(Diagnostic::ARG_SYM, a.fn->isTyped() ? a.fn->type(ctx).toName(ctx) : Utf8{a.fn->name(ctx)});
-            fillMatchDiagnostic(sema, diag.last(), diag, *a.fn, a.fail, args, ufcsArg, true);
-        }
+        addOverloadFailureNotes(sema, diag, sorted, args, ufcsArg, [](const Attempt&) { return false; });
 
         diag.report(sema.ctx());
         return Result::Error;

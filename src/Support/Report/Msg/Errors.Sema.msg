@@ -208,6 +208,7 @@ SWC_DIAG_DEF(sema_err_generic_type_deduction_conflict, Error, "cannot deduce gen
 SWC_DIAG_DEF(sema_err_generic_value_deduction_conflict, Error, "cannot deduce generic parameter '{value}': argument {index} implies value {right}, but argument {prev-index} previously deduced {left}; [help] make the argument values agree, or specify '{value}' explicitly")
 SWC_DIAG_DEF(sema_err_generic_value_deduction_conflict, Error, "cannot deduce generic parameter '{value}': conflicting argument values {left} and {right}")
 SWC_DIAG_DEF(sema_err_generic_parameter_not_deduced, Error, "cannot deduce generic parameter '{value}' from the provided arguments; [help] specify '{value}' explicitly, or pass an argument that determines it")
+SWC_DIAG_DEF(sema_err_generic_function_instantiation_failed, Error, "cannot instantiate generic function '{sym}' from the provided arguments")
 SWC_DIAG_DEF(sema_err_generic_struct_where_not_bool, Error, "generic struct '{sym}' has a 'where' constraint of type '{type}', but it must evaluate to 'bool'; [help] make the constraint expression return 'bool'")
 SWC_DIAG_DEF(sema_err_generic_struct_where_not_const, Error, "generic struct '{sym}' has a 'where' constraint that is not a compile-time constant; [help] make the constraint depend only on generic parameters and other compile-time values")
 SWC_DIAG_DEF(sema_err_generic_struct_where_failed, Error, "cannot instantiate generic struct '{sym}' because its 'where' constraint evaluated to false; [help] choose generic arguments that satisfy the constraint")

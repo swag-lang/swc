@@ -22,8 +22,7 @@ struct FormatOptions
     bool preserveTrailingWhitespace = true;
     bool insertFinalNewline         = false;
 
-    uint32_t indentWidth             = 4;
-    uint32_t continuationIndentWidth = 4;
+    uint32_t indentWidth = 4;
 
     FormatIndentStyle    indentStyle    = FormatIndentStyle::Preserve;
     FormatEndOfLineStyle endOfLineStyle = FormatEndOfLineStyle::Preserve;

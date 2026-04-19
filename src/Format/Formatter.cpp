@@ -10,6 +10,54 @@
 
 SWC_BEGIN_NAMESPACE();
 
+namespace
+{
+    bool hasTrailingLineBreak(const std::string_view text)
+    {
+        if (text.empty())
+            return false;
+        return text.back() == '\n' || text.back() == '\r';
+    }
+
+    std::string_view resolveFinalNewline(std::string_view text, const FormatOptions& options)
+    {
+        switch (options.endOfLineStyle)
+        {
+            case FormatEndOfLineStyle::LF:
+                return "\n";
+
+            case FormatEndOfLineStyle::CRLF:
+                return "\r\n";
+
+            case FormatEndOfLineStyle::Preserve:
+                break;
+        }
+
+        for (size_t i = text.size(); i != 0; --i)
+        {
+            if (text[i - 1] == '\n')
+            {
+                if (i >= 2 && text[i - 2] == '\r')
+                    return "\r\n";
+                return "\n";
+            }
+
+            if (text[i - 1] == '\r')
+                return "\r";
+        }
+
+        return "\n";
+    }
+
+    void ensureFinalNewline(Utf8& text, const FormatOptions& options)
+    {
+        if (hasTrailingLineBreak(text))
+            return;
+
+        text += resolveFinalNewline(text.view(), options);
+    }
+}
+
 Formatter::Formatter(const FormatOptions& options) :
     options_(options)
 {
@@ -38,7 +86,10 @@ void Formatter::prepare(const SourceFile& file)
     AstSourceWriter writer(formatCtx);
     writer.write();
 
-    text_    = std::move(formatCtx.output);
+    text_ = std::move(formatCtx.output);
+    if (options_.insertFinalNewline)
+        ensureFinalNewline(text_, options_);
+
     changed_ = text_.view() != file.sourceView();
     skipped_ = false;
 }

@@ -69,7 +69,7 @@ void AstSourceWriter::beginOutput()
     formatCtx_->output.clear();
     formatCtx_->output.reserve(srcView_->stringView().size());
 
-    if (prefixOffset)
+    if (prefixOffset && options_->preserveBom)
         formatCtx_->output += srcView_->codeView(0, prefixOffset);
 
     cursorByte_ = prefixOffset;
@@ -250,20 +250,21 @@ bool AstSourceWriter::isAtLineStart() const
 
 void AstSourceWriter::appendWhitespacePiece(const SourcePiece& piece) const
 {
-    if (!shouldRewriteIndentation() && !shouldRewriteEndOfLine())
+    const bool rewriteIndent = shouldRewriteIndentation();
+    const bool rewriteEol    = shouldRewriteEndOfLine();
+    const bool trimTrailing  = !options_->preserveTrailingWhitespace;
+    if (!rewriteIndent && !rewriteEol && !trimTrailing)
     {
         formatCtx_->output += piece.text;
         return;
     }
 
-    const bool rewriteIndent = shouldRewriteIndentation();
-    const bool rewriteEol    = shouldRewriteEndOfLine();
+    const bool pieceEndsAtEof = piece.byteStart + piece.byteLength == eofByte_;
 
-    const auto flushIndent = [this, &piece, rewriteIndent](const size_t indentStart, const size_t indentLen) {
-        if (!indentLen)
+    const auto emitIndent = [this, rewriteIndent](const std::string_view indentText) {
+        if (indentText.empty())
             return;
 
-        const std::string_view indentText = piece.text.substr(indentStart, indentLen);
         if (rewriteIndent)
             appendNormalizedIndent(indentText);
         else
@@ -271,8 +272,6 @@ void AstSourceWriter::appendWhitespacePiece(const SourcePiece& piece) const
     };
 
     bool   atLineStart = isAtLineStart();
-    size_t indentStart = 0;
-    size_t indentLen   = 0;
     size_t index       = 0;
 
     while (index < piece.text.size())
@@ -280,9 +279,6 @@ void AstSourceWriter::appendWhitespacePiece(const SourcePiece& piece) const
         const char c = piece.text[index];
         if (c == '\r' || c == '\n')
         {
-            flushIndent(indentStart, indentLen);
-            indentLen = 0;
-
             if (c == '\r' && index + 1 < piece.text.size() && piece.text[index + 1] == '\n')
                 index++;
 
@@ -295,30 +291,39 @@ void AstSourceWriter::appendWhitespacePiece(const SourcePiece& piece) const
 
             atLineStart = true;
             index++;
-            indentStart = index;
             continue;
         }
 
-        if (atLineStart && (c == ' ' || c == '\t'))
+        if (c != ' ' && c != '\t')
         {
-            if (!indentLen)
-                indentStart = index;
-            indentLen++;
+            formatCtx_->output += c;
+            atLineStart = false;
             index++;
             continue;
         }
 
-        flushIndent(indentStart, indentLen);
-        indentLen   = 0;
-        atLineStart = false;
-        formatCtx_->output += c;
-        index++;
-    }
+        const size_t runStart = index;
+        while (index < piece.text.size() && (piece.text[index] == ' ' || piece.text[index] == '\t'))
+            index++;
 
-    flushIndent(indentStart, indentLen);
+        const bool nextIsEol = index < piece.text.size() && (piece.text[index] == '\r' || piece.text[index] == '\n');
+        const bool nextIsEof = index == piece.text.size() && pieceEndsAtEof;
+        if (trimTrailing && (nextIsEol || nextIsEof))
+        {
+            continue;
+        }
+
+        const std::string_view runText = piece.text.substr(runStart, index - runStart);
+        if (atLineStart)
+            emitIndent(runText);
+        else
+            formatCtx_->output += runText;
+
+        atLineStart = false;
+    }
 }
 
-void AstSourceWriter::appendCommentPiece(const SourcePiece& piece)
+void AstSourceWriter::appendCommentPiece(const SourcePiece& piece) const
 {
     if (!shouldRewriteEndOfLine())
     {

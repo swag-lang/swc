@@ -15,7 +15,6 @@ namespace
         schema.add("preserve-trailing-whitespace", &options.preserveTrailingWhitespace, "Preserve trailing whitespace already present in source.");
         schema.add("insert-final-newline", &options.insertFinalNewline, "Ensure formatted files end with a newline.");
         schema.add("indent-width", &options.indentWidth, "Indent width used when formatting with spaces.");
-        schema.add("continuation-indent-width", &options.continuationIndentWidth, "Indent width for wrapped constructs.");
 
         schema.addEnum("indent-style", &options.indentStyle,
                        {

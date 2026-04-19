@@ -18,6 +18,7 @@ public:
 
     bool changed() const;
     bool skipped() const;
+    std::string_view text() const { return text_.view(); }
 
 private:
     static Result reportFormatFailure(TaskContext& ctx, const SourceFile& file, const Utf8& because);

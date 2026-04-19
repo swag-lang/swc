@@ -10,9 +10,6 @@ insert-final-newline = false
 # Indent width used when formatting with spaces.
 indent-width = 4
 
-# Indent width for wrapped constructs.
-continuation-indent-width = 4
-
 # Indent style used by the formatter.
 # Possible values: preserve, spaces, tabs
 indent-style = preserve

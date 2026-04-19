@@ -50,7 +50,7 @@ private:
     bool        shouldRewriteEndOfLine() const;
     bool        isAtLineStart() const;
     void        appendWhitespacePiece(const SourcePiece& piece) const;
-    void        appendCommentPiece(const SourcePiece& piece);
+    void        appendCommentPiece(const SourcePiece& piece) const;
     void        appendNormalizedIndent(std::string_view text) const;
     void        appendConfiguredEndOfLine() const;
     SourcePiece makeTriviaPiece(uint32_t triviaIndex) const;

@@ -2,15 +2,19 @@
 
 #if SWC_HAS_UNITTEST
 
+#include "Compiler/Parser/Parser/ParserJob.h"
+#include "Format/Formatter.h"
 #include "Format/FormatOptionsLoader.h"
 #include "Main/Command/CommandLine.h"
 #include "Main/Command/CommandLineParser.h"
+#include "Main/CompilerInstance.h"
 #include "Main/FileSystem.h"
 #include "Main/Stats.h"
 #include "Support/Core/Utf8Helper.h"
 #include "Support/Os/Os.h"
 #include "Support/Report/ScopedTimedAction.h"
 #include "Unittest/Unittest.h"
+#include "Unittest/UnittestSource.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -92,6 +96,33 @@ namespace
 
         CommandLineParser parser(const_cast<Global&>(ctx.global()), cmdLine);
         return parser.parse(static_cast<int>(argv.size()), argv.data());
+    }
+
+    Result formatSourceText(const Global& global, std::string_view source, const FormatOptions& options, Utf8& outText)
+    {
+        CommandLine cmdLine;
+        cmdLine.command = CommandKind::Format;
+        cmdLine.name    = "compiler_format_options_apply";
+
+        CompilerInstance compiler(global, cmdLine);
+        TaskContext      compilerCtx(compiler);
+
+        SourceFile& sourceFile = Unittest::addTestSource(compilerCtx, "Compiler", "FormatOptionsApply", source);
+        SWC_RESULT(sourceFile.loadContent(compilerCtx));
+
+        constexpr ParserJobOptions parserOptions = {
+            .emitTrivia       = true,
+            .ignoreGlobalSkip = true,
+        };
+
+        SWC_RESULT(parseLoadedSourceFile(compilerCtx, sourceFile, parserOptions));
+        if (compilerCtx.hasError())
+            return Result::Error;
+
+        Formatter formatter(options);
+        formatter.prepare(sourceFile);
+        outText = formatter.text();
+        return Result::Continue;
     }
 }
 
@@ -254,7 +285,6 @@ preserve-bom = false
 preserve-trailing-whitespace = true
 insert-final-newline = false
 indent-width = 3
-continuation-indent-width = 5
 indent-style = tabs
 end-of-line-style = crlf
 )"))
@@ -266,7 +296,6 @@ indent-width = 2
     if (!writeTextFile(packageConfig, R"(# More specific folders override only the settings they care about.
 preserve-trailing-whitespace = false
 indent-width = 6
-continuation-indent-width = 8
 indent-style = spaces
 end-of-line-style = lf
 )"))
@@ -290,11 +319,51 @@ end-of-line-style = lf
         return Result::Error;
     if (formatOptions.indentWidth != 6)
         return Result::Error;
-    if (formatOptions.continuationIndentWidth != 8)
-        return Result::Error;
     if (formatOptions.indentStyle != FormatIndentStyle::Spaces)
         return Result::Error;
     if (formatOptions.endOfLineStyle != FormatEndOfLineStyle::LF)
+        return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(Compiler_FormatterAppliesFormatOptions)
+{
+    static constexpr std::string_view SOURCE = "\xEF\xBB\xBF"
+                                               "func A() {\r\n\tlet a  = 1  \r\n\tlet b = 2\t \r\n}";
+
+    FormatOptions formatOptions;
+    formatOptions.preserveBom                = false;
+    formatOptions.preserveTrailingWhitespace = false;
+    formatOptions.insertFinalNewline         = true;
+    formatOptions.indentWidth                = 2;
+    formatOptions.indentStyle                = FormatIndentStyle::Spaces;
+    formatOptions.endOfLineStyle             = FormatEndOfLineStyle::LF;
+
+    Utf8 formatted;
+    SWC_RESULT(formatSourceText(ctx.global(), SOURCE, formatOptions, formatted));
+
+    if (formatted != "func A() {\n  let a  = 1\n  let b = 2\n}\n")
+        return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(Compiler_FormatterPreservesTriviaAndInfersFinalNewlineStyle)
+{
+    static constexpr std::string_view SOURCE = "\xEF\xBB\xBF"
+                                               "func A() {\r\n\tlet a = 1  \r\n}";
+
+    FormatOptions formatOptions;
+    formatOptions.preserveBom                = true;
+    formatOptions.preserveTrailingWhitespace = true;
+    formatOptions.insertFinalNewline         = true;
+    formatOptions.indentStyle                = FormatIndentStyle::Preserve;
+    formatOptions.endOfLineStyle             = FormatEndOfLineStyle::Preserve;
+
+    Utf8 formatted;
+    SWC_RESULT(formatSourceText(ctx.global(), SOURCE, formatOptions, formatted));
+
+    if (formatted != "\xEF\xBB\xBF"
+                     "func A() {\r\n\tlet a = 1  \r\n}\r\n")
         return Result::Error;
 }
 SWC_TEST_END()

@@ -18,8 +18,6 @@ enum class FormatEndOfLineStyle : uint8_t
 
 struct FormatOptions
 {
-    bool preserveComments           = true;
-    bool preserveBlankLines         = true;
     bool preserveBom                = true;
     bool preserveTrailingWhitespace = true;
     bool insertFinalNewline         = false;

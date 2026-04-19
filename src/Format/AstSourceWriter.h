@@ -22,7 +22,7 @@ namespace Format
     {
     public:
         explicit AstSourceWriter(Context& formatCtx);
-        static void write(Context& formatCtx);
+        void write();
 
     private:
         struct SourcePiece
@@ -34,7 +34,6 @@ namespace Format
 
         static constexpr uint32_t INVALID_BYTE = 0xFFFFFFFFu;
 
-        void        write();
         void        beginOutput();
         void        writeNode(AstNodeRef nodeRef);
         void        writeNodeExact(AstNodeRef nodeRef);

@@ -32,6 +32,7 @@ Format::AstSourceWriter::AstSourceWriter(Context& formatCtx) :
     SWC_ASSERT(ast_ != nullptr);
     SWC_ASSERT(srcView_ != nullptr);
     SWC_ASSERT(options_ != nullptr);
+    validateAst(*ast_, *srcView_);
 
     const auto& tokens = srcView_->tokens();
     eofByte_           = sourceTokenByteStart(*srcView_, tokens.back());
@@ -241,17 +242,6 @@ Format::AstSourceWriter::SourcePiece Format::AstSourceWriter::makeTokenPiece(uin
         .byteLength = token.byteLength,
         .text       = token.string(*srcView_),
     };
-}
-
-void Format::AstSourceWriter::write(Context& formatCtx)
-{
-    SWC_ASSERT(formatCtx.ast != nullptr);
-    SWC_ASSERT(formatCtx.srcView != nullptr);
-    SWC_ASSERT(formatCtx.options != nullptr);
-
-    validateAst(*formatCtx.ast, *formatCtx.srcView);
-    AstSourceWriter writer(formatCtx);
-    writer.write();
 }
 
 SWC_END_NAMESPACE();

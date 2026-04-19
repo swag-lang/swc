@@ -3,7 +3,6 @@
 #include "Compiler/Parser/Ast/Ast.h"
 #include "Compiler/SourceFile.h"
 #include "Main/FileSystem.h"
-#include "Main/TaskContext.h"
 #include "Support/Os/Os.h"
 #include "Support/Report/Diagnostic.h"
 
@@ -65,7 +64,8 @@ void Format::prepareFile(const SourceFile& file, const Options& options, Prepare
         .options = &options,
     };
 
-    AstSourceWriter::write(formatCtx);
+    AstSourceWriter writer(formatCtx);
+    writer.write();
 
     outFile.text    = std::move(formatCtx.output);
     outFile.changed = outFile.text.view() != file.sourceView();

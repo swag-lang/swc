@@ -89,7 +89,7 @@ impl Serializer
     }
 
     // Serialize one value
-    #[Swag.Optimize(.All, false), Swag.Overload]
+    #[Swag.Optimize(false), Swag.Overload]
     mtd(MT) serialize(name: string, crc: u32, res: *MT) throw
     {
         var value: Swag.TypeValue

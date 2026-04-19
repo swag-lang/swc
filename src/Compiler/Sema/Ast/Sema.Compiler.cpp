@@ -687,6 +687,7 @@ Result AstCompilerGlobal::semaPreDecl(Sema& sema) const
 {
     switch (mode)
     {
+        case Mode::Export:
         case Mode::AccessPublic:
             sema.frame().setCurrentAccess(SymbolAccess::Public);
             break;
@@ -746,7 +747,6 @@ Result AstCompilerGlobal::semaPostNode(Sema& sema) const
         case Mode::CompilerIf:
             return semaCompilerGlobalIf(sema, *this);
 
-        case Mode::Export:
         case Mode::Using:
         case Mode::SkipFmt:
             // TODO

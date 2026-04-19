@@ -13,34 +13,39 @@ ParserJob::ParserJob(const TaskContext& ctx, SourceFile* file, const ParserJobOp
 {
 }
 
+Result parseLoadedSourceFile(TaskContext& ctx, SourceFile& file, const ParserJobOptions options)
+{
+    Ast& ast = file.ast();
+
+    file.unitTest().tokenize(ctx);
+
+    LexerFlags lexerFlags = LexerFlagsE::Default;
+    if (options.emitTrivia)
+        lexerFlags.add(LexerFlagsE::EmitTrivia);
+    if (options.ignoreGlobalSkip)
+        lexerFlags.add(LexerFlagsE::IgnoreGlobalSkip);
+
+    Lexer lexer;
+    lexer.tokenize(ctx, ast.srcView(), lexerFlags);
+    if (ast.srcView().mustSkip())
+        return Result::Continue;
+
+    if (!ast.srcView().runsParser())
+        return Result::Continue;
+
+    Parser parser;
+    parser.parse(ctx, ast);
+
+    return Result::Continue;
+}
+
 JobResult ParserJob::exec()
 {
     TaskContext& jobCtx = ctx();
     if (file_->loadContent(jobCtx) != Result::Continue)
         return JobResult::Done;
 
-    Ast& ast = file_->ast();
-
-    file_->unitTest().tokenize(jobCtx);
-
-    LexerFlags lexerFlags = LexerFlagsE::Default;
-    if (options_.emitTrivia)
-        lexerFlags.add(LexerFlagsE::EmitTrivia);
-    if (options_.ignoreGlobalSkip)
-        lexerFlags.add(LexerFlagsE::IgnoreGlobalSkip);
-
-    Lexer lexer;
-    lexer.tokenize(jobCtx, ast.srcView(), lexerFlags);
-    if (ast.srcView().mustSkip())
-        return JobResult::Done;
-
-    if (!ast.srcView().runsParser())
-        return JobResult::Done;
-
-    Parser parser;
-    parser.parse(jobCtx, ast);
-
-    return JobResult::Done;
+    return Job::toJobResult(jobCtx, parseLoadedSourceFile(jobCtx, *file_, options_));
 }
 
 SWC_END_NAMESPACE();

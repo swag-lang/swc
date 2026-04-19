@@ -12,6 +12,7 @@ using JobClientId = uint32_t;
 enum class JobKind
 {
     Invalid,
+    Format,
     Parser,
     Sema,
     CodeGen,

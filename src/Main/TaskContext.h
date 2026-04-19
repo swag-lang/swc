@@ -39,6 +39,8 @@ public:
 
     bool                      silentDiagnostic() const { return silentDiagnostic_; }
     void                      setSilentDiagnostic(bool silent) { silentDiagnostic_ = silent; }
+    bool                      reportToStats() const { return reportToStats_; }
+    void                      setReportToStats(bool reportToStats) { reportToStats_ = reportToStats; }
     bool                      muteOutput() const { return muteOutput_; }
     void                      setMuteOutput(bool mute) { muteOutput_ = mute; }
     void                      setHasError() { hasError_ = true; }
@@ -55,6 +57,7 @@ private:
     const CommandLine*                            cmdLine_          = nullptr;
     CompilerInstance*                             compilerInstance_ = nullptr;
     bool                                          silentDiagnostic_ = false;
+    bool                                          reportToStats_    = true;
     bool                                          muteOutput_       = false;
     bool                                          hasError_         = false;
     bool                                          hasWarning_       = false;

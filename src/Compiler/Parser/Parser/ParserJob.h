@@ -1,7 +1,10 @@
 #pragma once
+#include "Support/Core/Result.h"
 #include "Support/Thread/Job.h"
 
 SWC_BEGIN_NAMESPACE();
+
+class SourceFile;
 
 struct ParserJobOptions
 {
@@ -9,10 +12,12 @@ struct ParserJobOptions
     bool ignoreGlobalSkip = false;
 };
 
+Result parseLoadedSourceFile(TaskContext& ctx, SourceFile& file, ParserJobOptions options);
+
 class ParserJob : public Job
 {
 public:
-    static constexpr auto K = JobKind::Sema;
+    static constexpr auto K = JobKind::Parser;
     ParserJob(const TaskContext& ctx, SourceFile* file, ParserJobOptions options = {});
 
     JobResult exec() override;

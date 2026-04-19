@@ -242,7 +242,7 @@ void Diagnostic::report(TaskContext& ctx) const
     switch (elements_.front()->severity())
     {
         case DiagnosticSeverity::Error:
-            if (!dismiss)
+            if (!dismiss && ctx.reportToStats())
                 Stats::addError();
             ctx.setHasError();
             if (ctx.hasCompiler())
@@ -258,7 +258,7 @@ void Diagnostic::report(TaskContext& ctx) const
             }
             break;
         case DiagnosticSeverity::Warning:
-            if (!dismiss)
+            if (!dismiss && ctx.reportToStats())
                 Stats::get().numWarnings.fetch_add(1);
             ctx.setHasWarning();
             if (ctx.hasCompiler())

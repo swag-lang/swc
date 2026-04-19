@@ -4,54 +4,73 @@
 #include "Compiler/SourceFile.h"
 #include "Format/Formatter.h"
 #include "Main/CompilerInstance.h"
+#include "Main/Global.h"
 #include "Main/Stats.h"
 #include "Support/Core/Utf8Helper.h"
+#include "Support/Memory/Heap.h"
 #include "Support/Report/ScopedTimedAction.h"
+#include "Support/Thread/JobManager.h"
 
 SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    struct DiagnosticCounters
+    class FormatJob final : public Job
     {
-        size_t errors   = 0;
-        size_t warnings = 0;
+    public:
+        FormatJob(const TaskContext& ctx, SourceFile* file, const FormatOptions& formatOptions, const ParserJobOptions parserOptions) :
+            Job(ctx, JobKind::Format),
+            file_(file),
+            formatOptions_(formatOptions),
+            parserOptions_(parserOptions)
+        {
+        }
+
+        JobResult exec() override
+        {
+            TaskContext& jobCtx = ctx();
+            if (file_->loadContent(jobCtx) != Result::Continue)
+                return JobResult::Done;
+
+            const bool savedMuteOutput    = jobCtx.muteOutput();
+            const bool savedReportToStats = jobCtx.reportToStats();
+            jobCtx.setMuteOutput(true);
+            jobCtx.setReportToStats(false);
+
+            const Result parseResult = parseLoadedSourceFile(jobCtx, *file_, parserOptions_);
+
+            jobCtx.setReportToStats(savedReportToStats);
+            jobCtx.setMuteOutput(savedMuteOutput);
+
+            if (parseResult != Result::Continue)
+                return toJobResult(jobCtx, parseResult);
+            if (jobCtx.hasError())
+            {
+                skippedInvalid_ = true;
+                return JobResult::Done;
+            }
+
+            Formatter formatter(formatOptions_);
+            formatter.prepare(*file_);
+            skippedFmt_ = formatter.skipped();
+
+            const Result writeResult = formatter.write(jobCtx);
+            rewritten_               = writeResult == Result::Continue && formatter.changed();
+            return toJobResult(jobCtx, writeResult);
+        }
+
+        bool rewritten() const { return rewritten_; }
+        bool skippedFmt() const { return skippedFmt_; }
+        bool skippedInvalid() const { return skippedInvalid_; }
+
+    private:
+        SourceFile*      file_ = nullptr;
+        FormatOptions    formatOptions_{};
+        ParserJobOptions parserOptions_{};
+        bool             rewritten_      = false;
+        bool             skippedFmt_     = false;
+        bool             skippedInvalid_ = false;
     };
-
-    DiagnosticCounters captureDiagnosticCounters()
-    {
-        const Stats& stats = Stats::get();
-        return {
-            .errors   = stats.numErrors.load(std::memory_order_relaxed),
-            .warnings = stats.numWarnings.load(std::memory_order_relaxed),
-        };
-    }
-
-    void restoreDiagnosticCounters(const DiagnosticCounters& counters)
-    {
-        Stats& stats = Stats::get();
-        stats.numErrors.store(counters.errors, std::memory_order_relaxed);
-        stats.numWarnings.store(counters.warnings, std::memory_order_relaxed);
-    }
-
-    Result parseFileForFormat(CompilerInstance& compiler, TaskContext& ctx, SourceFile& file, const ParserJobOptions& parserOptions, bool& parsedOk)
-    {
-        parsedOk = false;
-        SWC_RESULT(file.loadContent(ctx));
-
-        const DiagnosticCounters counters = captureDiagnosticCounters();
-        TaskContext              parseCtx(compiler);
-        parseCtx.setMuteOutput(true);
-
-        ParserJob parseJob(parseCtx, &file, parserOptions);
-        parseJob.exec();
-
-        parsedOk = !file.hasError() && Stats::getNumErrors() == counters.errors;
-        if (!parsedOk)
-            restoreDiagnosticCounters(counters);
-
-        return Result::Continue;
-    }
 
     Utf8 formatStageStat(const size_t totalFiles, const size_t rewrittenFiles, const size_t skippedFmtFiles, const size_t skippedInvalidFiles)
     {
@@ -87,6 +106,10 @@ namespace Command
     {
         TaskContext                 ctx(compiler);
         TimedActionLog::ScopedStage stage(ctx, TimedActionLog::Stage::Format);
+        const Global&               global       = ctx.global();
+        JobManager&                 jobMgr       = global.jobMgr();
+        const JobClientId           clientId     = compiler.jobClientId();
+        const uint64_t              errorsBefore = Stats::getNumErrors();
 
         if (compiler.collectFiles(ctx) == Result::Error)
             return;
@@ -96,45 +119,38 @@ namespace Command
             .ignoreGlobalSkip = true,
         };
 
-        constexpr FormatOptions options;
-        std::vector<Formatter>  formatters;
-        formatters.reserve(compiler.files().size());
+        constexpr FormatOptions formatOptions;
+        std::vector<FormatJob*> jobs;
+        jobs.reserve(compiler.files().size());
 
-        size_t totalFiles          = 0;
-        size_t skippedInvalidFiles = 0;
         for (SourceFile* file : compiler.files())
         {
             if (!file)
                 continue;
-            totalFiles++;
 
-            bool parsedOk = false;
-            if (parseFileForFormat(compiler, ctx, *file, parserOptions, parsedOk) != Result::Continue)
-                return;
-            if (!parsedOk)
-            {
-                skippedInvalidFiles++;
-                continue;
-            }
-
-            Formatter formatter(options);
-            formatter.prepare(*file);
-            formatters.push_back(std::move(formatter));
+            auto* job = heapNew<FormatJob>(ctx, file, formatOptions, parserOptions);
+            jobs.push_back(job);
+            jobMgr.enqueue(*job, JobPriority::Normal, clientId);
         }
 
-        size_t rewrittenFiles  = 0;
-        size_t skippedFmtFiles = 0;
-        for (const Formatter& formatter : formatters)
+        jobMgr.waitAll(clientId);
+        if (Stats::getNumErrors() != errorsBefore)
+            return;
+
+        size_t rewrittenFiles      = 0;
+        size_t skippedFmtFiles     = 0;
+        size_t skippedInvalidFiles = 0;
+        for (const FormatJob* job : jobs)
         {
-            if (formatter.write(ctx) != Result::Continue)
-                return;
-            if (formatter.skipped())
-                skippedFmtFiles++;
-            if (formatter.changed())
+            if (job->rewritten())
                 rewrittenFiles++;
+            if (job->skippedFmt())
+                skippedFmtFiles++;
+            if (job->skippedInvalid())
+                skippedInvalidFiles++;
         }
 
-        stage.setStat(formatStageStat(totalFiles, rewrittenFiles, skippedFmtFiles, skippedInvalidFiles));
+        stage.setStat(formatStageStat(jobs.size(), rewrittenFiles, skippedFmtFiles, skippedInvalidFiles));
     }
 }
 

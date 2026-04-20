@@ -615,6 +615,12 @@ namespace
             diag.addNote(DiagnosticId::sema_note_generic_where_declared_here);
             SemaError::addSpan(sema, diag.last(), failure.noteNodeRef);
         }
+        else if (failure.noteCodeRef.isValid())
+        {
+            diag.addNote(DiagnosticId::sema_note_generic_where_declared_here);
+            const SourceView& srcView = sema.ctx().compiler().srcView(failure.noteCodeRef.srcViewRef);
+            diag.last().addSpan(srcView.tokenCodeRange(sema.ctx(), failure.noteCodeRef.tokRef));
+        }
     }
 
     Utf8 makeCandidateFailureText(const SymbolFunction& fn, const MatchFailure& fail, const TaskContext& ctx)

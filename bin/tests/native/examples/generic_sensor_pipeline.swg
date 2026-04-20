@@ -78,7 +78,7 @@ impl TelemetrySeries
     {
         let oldestIndex = .next % Count
         let newestIndex = (.next + Count - 1) % Count
-        return interpolate(.samples[oldestIndex], .samples[newestIndex], cast(T) 0.5)
+        return interpolate'(T)(.samples[oldestIndex], .samples[newestIndex], cast(T) 0.5)
     }
 
     func(U = Unit) sameUnit(const me, other: U)->bool
@@ -96,7 +96,7 @@ impl TelemetrySeries
     func(U = T) midpoint(const me, left: U, right: U)->T
         where T == U
     {
-        return interpolate(left, right, cast(T) 0.5)
+        return interpolate'(T)(left, right, cast(T) 0.5)
     }
 }
 

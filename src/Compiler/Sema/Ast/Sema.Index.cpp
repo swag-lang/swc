@@ -378,9 +378,8 @@ Result AstIndexListExpr::semaPostNode(Sema& sema)
             return Result::Error;
         }
 
-        bool                            allConstant = nodeExprView.cst() != nullptr;
-        SmallVector<int64_t>            constIndexes;
-        const std::vector<ConstantRef>* curValues = allConstant ? &nodeExprView.cst()->getAggregateArray() : nullptr;
+        bool        allConstant    = nodeExprView.cst() != nullptr;
+        ConstantRef currentCstRef  = nodeExprView.cstRef();
 
         for (size_t i = 0; i < numGot; i++)
         {
@@ -393,24 +392,13 @@ Result AstIndexListExpr::semaPostNode(Sema& sema)
 
             if (hasConstIndex)
             {
-                constIndexes.push_back(constIndex);
                 if (allConstant)
                 {
-                    if (std::cmp_greater_equal(constIndex, curValues->size()))
-                        return SemaError::raiseIndexOutOfRange(sema, nodeRef, constIndex, curValues->size());
-
-                    const ConstantValue& nextCst = sema.cstMgr().get((*curValues)[constIndex]);
-                    if (i < numGot - 1)
-                    {
-                        if (nextCst.isAggregateArray())
-                            curValues = &nextCst.getAggregateArray();
-                        else
-                            allConstant = false;
-                    }
-                    else
-                    {
-                        sema.setConstant(sema.curNodeRef(), (*curValues)[constIndex]);
-                    }
+                    ConstantRef nextCstRef = ConstantRef::invalid();
+                    SWC_RESULT(ConstantExtract::atIndexRef(sema, sema.cstMgr().get(currentCstRef), constIndex, nodeRef, nextCstRef));
+                    currentCstRef = nextCstRef;
+                    if (currentCstRef.isInvalid())
+                        allConstant = false;
                 }
             }
             else
@@ -432,6 +420,9 @@ Result AstIndexListExpr::semaPostNode(Sema& sema)
         {
             sema.setType(sema.curNodeRef(), leafElemTypeRef);
         }
+
+        if (allConstant && currentCstRef.isValid())
+            sema.setConstant(sema.curNodeRef(), currentCstRef);
 
         if (sema.isLValue(nodeExprRef))
             sema.setIsLValue(*this);

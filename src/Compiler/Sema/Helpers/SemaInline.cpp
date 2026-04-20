@@ -16,6 +16,22 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    bool isInlineRecursion(Sema& sema, const SymbolFunction& fn)
+    {
+        if (sema.currentFunction() == &fn)
+            return true;
+
+        const auto frames = sema.frames();
+        for (size_t i = frames.size(); i > 0; --i)
+        {
+            const SemaInlinePayload* inlinePayload = frames[i - 1].currentInlinePayload();
+            if (inlinePayload && inlinePayload->sourceFunction == &fn)
+                return true;
+        }
+
+        return false;
+    }
+
     bool isInlineReexpandableCall(const AstNode& node)
     {
         return node.is(AstNodeId::CallExpr) ||
@@ -948,6 +964,9 @@ bool SemaInline::canInlineCall(Sema& sema, const SymbolFunction& fn)
 Result SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFunction& fn, std::span<AstNodeRef> args, AstNodeRef ufcsArg)
 {
     if (sema.hasSubstitute(callRef))
+        return Result::Continue;
+
+    if (isInlineRecursion(sema, fn))
         return Result::Continue;
 
     if (!canInlineCall(sema, fn))

@@ -221,12 +221,12 @@ namespace
         return root->decl() ? root->decl()->safeCast<AstFunctionDecl>() : nullptr;
     }
 
-    bool hasSpecOpGenericValueType(Sema& sema, AstNodeRef typeRef, TokenId expectedType)
+    bool hasSpecOpGenericValueType(const Sema& sema, const Ast& ast, AstNodeRef typeRef, TokenId expectedType)
     {
         if (typeRef.isInvalid())
             return false;
 
-        const AstNode& typeNode = sema.node(typeRef);
+        const AstNode& typeNode = ast.node(typeRef);
         if (typeNode.isNot(AstNodeId::BuiltinType))
             return false;
 
@@ -235,9 +235,8 @@ namespace
 
     bool hasSpecOpGenericSignature(Sema& sema, const SymbolFunction& sym, SpecOpKind kind)
     {
-        const auto                                 expected = expectedSpecOpGenericValueTypes(kind);
-        const auto*                                decl     = specOpDeclForGenericSignature(sym);
-        SmallVector<SemaGeneric::GenericParamDesc> params;
+        const auto  expected = expectedSpecOpGenericValueTypes(kind);
+        const auto* decl     = specOpDeclForGenericSignature(sym);
 
         if (!decl)
             return expected.empty();
@@ -245,19 +244,24 @@ namespace
         if (!decl->spanGenericParamsRef.isValid())
             return expected.empty();
 
-        SemaGeneric::collectGenericParams(sema, *decl, decl->spanGenericParamsRef, params);
         if (expected.empty())
             return false;
+
+        const SourceView&       declSrcView = sema.compiler().srcView(decl->srcViewRef());
+        const Ast&              declAst     = declSrcView.file()->ast();
+        SmallVector<AstNodeRef> params;
+        declAst.appendNodes(params, decl->spanGenericParamsRef);
         if (params.size() != expected.size())
             return false;
 
         for (size_t i = 0; i < params.size(); ++i)
         {
-            if (params[i].kind != SemaGeneric::GenericParamKind::Value)
+            const auto* nodeValue = declAst.node(params[i]).safeCast<AstGenericParamValue>();
+            if (!nodeValue)
                 return false;
-            if (params[i].defaultRef.isValid())
+            if (nodeValue->nodeAssignRef.isValid())
                 return false;
-            if (!hasSpecOpGenericValueType(sema, params[i].explicitType, expected[i]))
+            if (!hasSpecOpGenericValueType(sema, declAst, nodeValue->nodeTypeRef, expected[i]))
                 return false;
         }
 

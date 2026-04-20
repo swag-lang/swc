@@ -472,12 +472,13 @@ namespace
         return diag;
     }
 
-    void fillFunctionConstraintFailure(CastFailure& outFailure, DiagnosticId diagId, AstNodeRef whereRef, TypeRef typeRef, const Utf8& bindings)
+    void fillFunctionConstraintFailure(Sema& sema, CastFailure& outFailure, DiagnosticId diagId, AstNodeRef whereRef, TypeRef typeRef, const Utf8& bindings)
     {
         outFailure             = {};
         outFailure.diagId      = diagId;
-        outFailure.noteNodeRef = whereRef;
         outFailure.srcTypeRef  = typeRef;
+        if (whereRef.isValid())
+            outFailure.noteCodeRef = sema.node(whereRef).codeRef();
         if (!bindings.empty())
             outFailure.addArgument(Diagnostic::ARG_VALUES, bindings);
     }
@@ -530,7 +531,7 @@ namespace
                 outSatisfied = false;
                 if (outFailure)
                 {
-                    fillFunctionConstraintFailure(*outFailure, DiagnosticId::sema_err_function_where_not_bool, constraintRef, whereView.typeRef(), bindingText);
+                    fillFunctionConstraintFailure(sema, *outFailure, DiagnosticId::sema_err_function_where_not_bool, constraintRef, whereView.typeRef(), bindingText);
                     return Result::Continue;
                 }
 
@@ -542,7 +543,7 @@ namespace
                 outSatisfied = false;
                 if (outFailure)
                 {
-                    fillFunctionConstraintFailure(*outFailure, DiagnosticId::sema_err_function_where_not_const, constraintRef, TypeRef::invalid(), bindingText);
+                    fillFunctionConstraintFailure(sema, *outFailure, DiagnosticId::sema_err_function_where_not_const, constraintRef, TypeRef::invalid(), bindingText);
                     return Result::Continue;
                 }
 
@@ -554,7 +555,7 @@ namespace
                 outSatisfied = false;
                 if (outFailure)
                 {
-                    fillFunctionConstraintFailure(*outFailure, DiagnosticId::sema_err_function_where_failed, constraintRef, TypeRef::invalid(), bindingText);
+                    fillFunctionConstraintFailure(sema, *outFailure, DiagnosticId::sema_err_function_where_failed, constraintRef, TypeRef::invalid(), bindingText);
                     return Result::Continue;
                 }
 

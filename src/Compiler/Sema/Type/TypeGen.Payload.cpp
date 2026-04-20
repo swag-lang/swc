@@ -56,6 +56,8 @@ namespace
             addFlag(rtType, Runtime::TypeInfoFlags::Const);
         if (type.isNullable())
             addFlag(rtType, Runtime::TypeInfoFlags::Nullable);
+        if (type.isTypeInfo())
+            addFlag(rtType, Runtime::TypeInfoFlags::PointerTypeInfo);
 
         const Utf8 name        = type.toName(ctx);
         rtType.fullname.length = storage.addString(offset, offsetof(Runtime::TypeInfo, fullname.ptr), name);
@@ -177,6 +179,13 @@ namespace
     const TypeGen::TypeGenCache::Entry& payloadDepEntry(const TypeManager& typeMgr, const TypeGen::TypeGenCache& cache, TypeRef key)
     {
         return requireCacheEntry(cache, typeMgr.get(key).payloadTypeRef());
+    }
+
+    TypeRef pointerLayoutDepTypeRef(const TypeManager& typeMgr, const TypeInfo& type)
+    {
+        if (type.isTypeInfo())
+            return typeMgr.structTypeInfo();
+        return type.payloadTypeRef();
     }
 
     void wireTypeValueArrayPointedRelocations(const TypeGen::TypeGenCache& cache, DataSegment& storage, const SmallVector<TypeRef>& types, uint32_t baseOffset)
@@ -655,8 +664,12 @@ void TypeGen::wireRelocations(Sema& sema, const TypeGenCache& cache, DataSegment
         }
 
         case LayoutKind::Pointer:
-            addTypeRelocation(storage, entry.offset, offsetof(Runtime::TypeInfoPointer, pointedType), payloadDepEntry(typeMgr, cache, key).offset);
+        {
+            const TypeRef depKey = pointerLayoutDepTypeRef(typeMgr, typeMgr.get(key));
+            const auto&   dep    = requireCacheEntry(cache, depKey);
+            addTypeRelocation(storage, entry.offset, offsetof(Runtime::TypeInfoPointer, pointedType), dep.offset);
             break;
+        }
 
         case LayoutKind::Slice:
             addTypeRelocation(storage, entry.offset, offsetof(Runtime::TypeInfoSlice, pointedType), payloadDepEntry(typeMgr, cache, key).offset);

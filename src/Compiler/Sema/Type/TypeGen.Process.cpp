@@ -13,6 +13,15 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    TypeRef pointerLayoutDepTypeRef(TypeManager& tm, const TypeInfo& type)
+    {
+        // `typeinfo` values point to the runtime `Swag.TypeInfo` hierarchy even though the
+        // compiler builtin type itself does not carry an explicit payload type.
+        if (type.isTypeInfo())
+            return tm.structTypeInfo();
+        return type.payloadTypeRef();
+    }
+
     void appendAttributeDeps(SmallVector<TypeRef>& deps, const TaskContext& ctx, const AttributeList& attributes)
     {
         for (const AttributeInstance& attribute : attributes.attributes)
@@ -74,6 +83,9 @@ SmallVector<TypeRef> TypeGen::computeDeps(TypeManager& tm, const TaskContext& ct
         }
 
         case LayoutKind::Pointer:
+            deps.push_back(pointerLayoutDepTypeRef(tm, type));
+            break;
+
         case LayoutKind::Slice:
         case LayoutKind::Alias:
         case LayoutKind::TypedVariadic:

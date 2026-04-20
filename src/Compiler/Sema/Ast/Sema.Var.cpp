@@ -34,7 +34,10 @@ namespace
         if (!owner)
             return false;
 
-        return owner->isModule() || owner->isNamespace();
+        // Variables declared in impl/interface scopes are static storage owned by the
+        // enclosing type namespace, not per-instance fields. They therefore need the
+        // same standalone global storage path as module/namespace variables.
+        return owner->isModule() || owner->isNamespace() || owner->isImpl() || owner->isInterface();
     }
 
     bool needsStandaloneVariableStorage(const SymbolVariable& symVar)

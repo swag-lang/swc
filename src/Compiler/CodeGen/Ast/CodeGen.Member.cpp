@@ -307,7 +307,21 @@ Result AstMemberAccessExpr::codeGenPostNode(CodeGen& codeGen) const
     }
 
     const CodeGenNodePayload* rightPayload = codeGen.safePayload(nodeRightRef);
-    SWC_ASSERT(rightPayload && rightPayload->reg.isValid());
+    if ((!rightPayload || !rightPayload->reg.isValid()) && rightView.sym())
+    {
+        // Member access does not visit the RHS child during the normal walk. Scoped values such as
+        // `Namespace.globalVar` still need the same payload materialization as a standalone identifier.
+        SWC_RESULT(codeGen.emitNodeNow(nodeRightRef));
+        rightPayload = codeGen.safePayload(nodeRightRef);
+    }
+
+    if (!rightPayload || !rightPayload->reg.isValid())
+    {
+        // Member access skips visiting the RHS at codegen time. If semantic analysis already rejected
+        // that member, there may be no materialized payload to inherit, and codegen must not hard-assert.
+        return Result::Continue;
+    }
+
     codeGen.inheritPayload(codeGen.curNodeRef(), nodeRightRef, codeGen.curViewType().typeRef());
     return Result::Continue;
 }

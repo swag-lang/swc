@@ -20,6 +20,7 @@
 #include "Main/FileSystem.h"
 #include "Main/Global.h"
 #include "Main/Version.h"
+#include "Support/Core/Utf8Helper.h"
 #include "Support/Report/Diagnostic.h"
 #include "Support/Report/DiagnosticDef.h"
 #include "Support/Report/Logger.h"
@@ -1151,6 +1152,45 @@ namespace
         sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(ctx, value));
         return Result::Continue;
     }
+
+    Result semaCompilerRunes(Sema& sema, const AstCompilerCallOne& node)
+    {
+        TaskContext&    ctx      = sema.ctx();
+        const AstNodeRef childRef = node.nodeArgRef;
+        SWC_RESULT(SemaCheck::isConstant(sema, childRef));
+
+        const SemaNodeView view = sema.viewConstant(childRef);
+        SWC_ASSERT(view.cst());
+        if (!view.cst()->isString())
+            return SemaError::raiseInvalidType(sema, childRef, view.cst()->typeRef(), sema.typeMgr().typeString());
+
+        const std::string_view str = view.cst()->getString();
+        std::vector<char32_t>  runes;
+        runes.reserve(str.size());
+
+        const auto* cur = reinterpret_cast<const char8_t*>(str.data());
+        const auto* end = cur + str.size();
+        while (cur < end)
+        {
+            const auto [next, cp, eat] = Utf8Helper::decodeOneChar(cur, end);
+            if (!next)
+            {
+                // Keep constexpr conversion robust for any non-literal string payload by mirroring runtime UTF-8 decoding.
+                runes.push_back(0xFFFD);
+                ++cur;
+                continue;
+            }
+
+            SWC_ASSERT(eat != 0);
+            runes.push_back(cp);
+            cur = next;
+        }
+
+        const ByteSpan      bytes = {reinterpret_cast<const std::byte*>(runes.data()), runes.size() * sizeof(char32_t)};
+        const ConstantValue value = ConstantValue::makeSlice(ctx, sema.typeMgr().typeRune(), bytes, TypeInfoFlagsE::Const);
+        sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(ctx, value));
+        return Result::Continue;
+    }
 }
 
 Result AstCompilerCallOne::semaPostNode(Sema& sema) const
@@ -1192,8 +1232,9 @@ Result AstCompilerCallOne::semaPostNode(Sema& sema) const
             return substituteCompilerInject(sema, sema.curNodeRef(), nodeArgRef);
         case TokenId::CompilerHasTag:
             return semaCompilerHasTag(sema, *this);
-
         case TokenId::CompilerRunes:
+            return semaCompilerRunes(sema, *this);
+
         case TokenId::CompilerLoad:
             // TODO
             SWC_INTERNAL_ERROR();
@@ -1212,6 +1253,7 @@ Result AstCompilerCallOne::semaPreNodeChild(Sema& sema, const AstNodeRef& childR
     if (tok.id == TokenId::CompilerForeignLib ||
         tok.id == TokenId::CompilerHasTag ||
         tok.id == TokenId::CompilerInclude ||
+        tok.id == TokenId::CompilerRunes ||
         tok.id == TokenId::CompilerDeclType)
         SemaHelpers::pushConstExprRequirement(sema, childRef);
 

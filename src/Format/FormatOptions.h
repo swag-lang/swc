@@ -56,14 +56,6 @@ enum class FormatOperatorWrapStyle : uint8_t
     None,
 };
 
-enum class FormatPointerAlignment : uint8_t
-{
-    Preserve,
-    Left,   // `*void`
-    Middle, // `* void`
-    Right,  // `void*` / `void *`
-};
-
 enum class FormatSpaceBeforeParens : uint8_t
 {
     Never,
@@ -140,9 +132,9 @@ struct FormatOptions
     // -----------------------------------------------------------------------
     uint32_t                columnLimit                 = 0;                                 // Soft column limit (0 disables wrapping)
     FormatOperatorWrapStyle breakBeforeBinaryOperators  = FormatOperatorWrapStyle::Preserve; // Where to wrap around binary operators
-    bool                    breakBeforeTernaryOperators = false;                             // Break before `?` and `:` in ternaries
-    bool                    breakAfterReturnType        = false;                             // `func foo(...)` newline before `->`
-    bool                    breakBeforeDo               = false;                             // Break before trailing `do`
+    bool                    breakBeforeTernaryOperators = false;                             // Break before `?` and `:` in `cond ? a : b`
+    bool                    breakAfterReturnType        = false;                             // Newline before `->` in `func foo(...)->T`
+    bool                    breakBeforeDo               = false;                             // Break before trailing `do` (`if x do ...`)
     bool                    breakBeforeElse             = true;                              // Place `else` on its own line
     FormatBinPackStyle      binPackArguments            = FormatBinPackStyle::Preserve;      // Call argument layout when wrapping
     FormatBinPackStyle      binPackParameters           = FormatBinPackStyle::Preserve;      // Declaration parameter layout when wrapping
@@ -166,9 +158,9 @@ struct FormatOptions
     FormatAlignMode alignConsecutiveAssignments  = FormatAlignMode::Consecutive; // Align `=` in adjacent assignments
     FormatAlignMode alignConsecutiveDeclarations = FormatAlignMode::Consecutive; // Align names/types of adjacent `let`/`var` declarations
     FormatAlignMode alignConsecutiveConstants    = FormatAlignMode::Consecutive; // Align values of adjacent `const` declarations
-    FormatAlignMode alignStructFields            = FormatAlignMode::Consecutive; // Align `:` and types of struct fields
+    FormatAlignMode alignStructFields            = FormatAlignMode::Consecutive; // Align `:` and types of adjacent struct fields
     FormatAlignMode alignEnumValues              = FormatAlignMode::Consecutive; // Align `=` on enum value definitions
-    FormatAlignMode alignAttributes              = FormatAlignMode::None;        // Align adjacent attribute annotations
+    FormatAlignMode alignAttributes              = FormatAlignMode::None;        // Align adjacent `#[...]` attributes
     bool            alignTrailingComments        = true;                         // Align `//` trailing comments into a shared column
     uint32_t        trailingCommentMinSpaces     = 5;                            // Minimum spaces before a trailing `//`
     uint32_t        trailingCommentMaxColumn     = 0;                            // 0 = no limit on trailing comment column
@@ -178,13 +170,13 @@ struct FormatOptions
     // -----------------------------------------------------------------------
     // Spacing
     // -----------------------------------------------------------------------
-    bool                    spaceBeforeColonInDeclarations = false;                           // `a : int`
-    bool                    spaceAfterColonInDeclarations  = true;                            // `a: int`
+    bool                    spaceBeforeColonInDeclarations = false;                           // `a : u8`
+    bool                    spaceAfterColonInDeclarations  = true;                            // `a: u8`
     bool                    spaceBeforeColonInBaseClause   = false;                           // `enum E: u32`
     bool                    spaceAroundAssignmentOperator  = true;                            // `a = 1`
     bool                    spaceAroundBinaryOperators     = true;                            // `a + b`
-    bool                    spaceAroundArrow               = false;                           // `func()->int`
-    bool                    spaceAroundRangeOperator       = false;                           // `0..10`
+    bool                    spaceAroundArrow               = false;                           // `func()->int` vs `func() -> int`
+    bool                    spaceAroundRangeOperator       = false;                           // `0..10` vs `0 .. 10`
     bool                    spaceAfterComma                = true;                            // `a, b`
     bool                    spaceBeforeComma               = false;                           // `a ,b`
     bool                    spaceAfterCast                 = true;                            // `cast(int) x`
@@ -199,12 +191,6 @@ struct FormatOptions
     FormatSpaceBeforeParens spaceBeforeParentheses         = FormatSpaceBeforeParens::Never; // When to insert a space between an identifier and `(`
 
     // -----------------------------------------------------------------------
-    // Pointer / reference alignment
-    // -----------------------------------------------------------------------
-    FormatPointerAlignment pointerAlignment   = FormatPointerAlignment::Left; // Placement of `*` relative to the pointed-to type
-    FormatPointerAlignment referenceAlignment = FormatPointerAlignment::Left; // Placement of `&` relative to the referenced type
-
-    // -----------------------------------------------------------------------
     // Attributes
     // -----------------------------------------------------------------------
     FormatAttributePlacement attributePlacement       = FormatAttributePlacement::Preserve; // How to place `#[Attr]` relative to its declaration
@@ -217,8 +203,7 @@ struct FormatOptions
     // -----------------------------------------------------------------------
     FormatCommentReflow commentReflow               = FormatCommentReflow::Preserve; // How aggressively to rewrite comments for the column limit
     bool                normalizeSectionSeparators  = true;                          // Rewrite `// ####...` banners to a common width
-    uint32_t            sectionSeparatorWidth       = 57;                            // Target width for `// ### ... ###`
-    bool                preserveDocComments         = true;                          // Never rewrap `///` / `//!` lines
+    uint32_t            sectionSeparatorWidth       = 57;                            // Target column count for `// ### ... ###` banners
     bool                spaceAfterLineCommentPrefix = true;                          // `// text` vs `//text`
 
     // -----------------------------------------------------------------------
@@ -229,15 +214,14 @@ struct FormatOptions
     bool            blankLineAfterUsingBlock = true;                      // Guarantee a blank line after the initial `using` block
 
     // -----------------------------------------------------------------------
-    // Numeric & string literals
+    // Numeric literals
     // -----------------------------------------------------------------------
     FormatLiteralCase hexLiteralCase           = FormatLiteralCase::Preserve; // Case of hex digits (`0xABCD` vs `0xabcd`)
     FormatLiteralCase hexLiteralPrefixCase     = FormatLiteralCase::Lower;    // `0x` vs `0X`
-    FormatLiteralCase integerSuffixCase        = FormatLiteralCase::Preserve; // `1'u32` suffix case
-    FormatLiteralCase floatExponentCase        = FormatLiteralCase::Preserve; // `1e10` / `1E10`
+    FormatLiteralCase integerSuffixCase        = FormatLiteralCase::Preserve; // `1'u32` vs `1'U32`
+    FormatLiteralCase floatExponentCase        = FormatLiteralCase::Preserve; // `1e10` vs `1E10`
     bool              normalizeDigitSeparators = false;                       // Add `_` every N digits in long literals
     uint32_t          digitSeparatorGroupSize  = 4;                           // Group size for hex ints when normalizing separators
-    bool              preferSingleQuoteStrings = false;                       // Prefer `'x'` over `"x"` when the content allows it
 
     // -----------------------------------------------------------------------
     // Region / disable pragmas

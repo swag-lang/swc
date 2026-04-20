@@ -20,6 +20,17 @@ namespace
         schema.add("keep-empty-lines-at-end-of-block", &options.keepEmptyLinesAtEndOfBlock, "Keep blank lines at the end of a `{ ... }` block.");
     }
 
+    void bindEndOfLineSchema(StructConfigSchema& schema, FormatOptions& options)
+    {
+        schema.addEnum("end-of-line-style", &options.endOfLineStyle,
+                       {
+                           {"preserve", FormatEndOfLineStyle::Preserve},
+                           {"lf", FormatEndOfLineStyle::LF},
+                           {"crlf", FormatEndOfLineStyle::CRLF},
+                       },
+                       "End-of-line style used by the formatter.");
+    }
+
     void bindIndentationSchema(StructConfigSchema& schema, FormatOptions& options)
     {
         schema.addEnum("indent-style", &options.indentStyle,
@@ -43,17 +54,6 @@ namespace
         schema.add("indent-inside-parens", &options.indentInsideParens, "Indent wrapped arguments relative to the opening parenthesis.");
     }
 
-    void bindEndOfLineSchema(StructConfigSchema& schema, FormatOptions& options)
-    {
-        schema.addEnum("end-of-line-style", &options.endOfLineStyle,
-                       {
-                           {"preserve", FormatEndOfLineStyle::Preserve},
-                           {"lf", FormatEndOfLineStyle::LF},
-                           {"crlf", FormatEndOfLineStyle::CRLF},
-                       },
-                       "End-of-line style used by the formatter.");
-    }
-
     void bindWrappingSchema(StructConfigSchema& schema, FormatOptions& options)
     {
         schema.add("column-limit", &options.columnLimit, "Soft column limit used when wrapping (0 disables wrapping).");
@@ -67,7 +67,7 @@ namespace
                        },
                        "Where to break long expressions relative to their binary operator.");
 
-        schema.add("break-before-ternary-operators", &options.breakBeforeTernaryOperators, "Break long ternary expressions before `?` and `:`.");
+        schema.add("break-before-ternary-operators", &options.breakBeforeTernaryOperators, "Break long `cond ? a : b` expressions before `?` and `:`.");
         schema.add("break-after-return-type", &options.breakAfterReturnType, "Insert a line break before `->` in function signatures that don't fit.");
         schema.add("break-before-do", &options.breakBeforeDo, "Place trailing `do` on a new line when its statement is wrapped.");
         schema.add("break-before-else", &options.breakBeforeElse, "Place `else` on its own line (Stroustrup style).");
@@ -134,8 +134,8 @@ namespace
 
     void bindSpacingSchema(StructConfigSchema& schema, FormatOptions& options)
     {
-        schema.add("space-before-colon-in-declarations", &options.spaceBeforeColonInDeclarations, "Insert a space before `:` in declarations like `a : int`.");
-        schema.add("space-after-colon-in-declarations", &options.spaceAfterColonInDeclarations, "Insert a space after `:` in declarations like `a: int`.");
+        schema.add("space-before-colon-in-declarations", &options.spaceBeforeColonInDeclarations, "Insert a space before `:` in declarations like `a : u8`.");
+        schema.add("space-after-colon-in-declarations", &options.spaceAfterColonInDeclarations, "Insert a space after `:` in declarations like `a: u8`.");
         schema.add("space-before-colon-in-base-clause", &options.spaceBeforeColonInBaseClause, "Insert a space before `:` in `enum E: u32` / `using base: Foo`.");
         schema.add("space-around-assignment-operator", &options.spaceAroundAssignmentOperator, "Insert spaces around `=` in assignments.");
         schema.add("space-around-binary-operators", &options.spaceAroundBinaryOperators, "Insert spaces around binary operators (`+`, `*`, `&`, ...).");
@@ -143,7 +143,7 @@ namespace
         schema.add("space-around-range-operator", &options.spaceAroundRangeOperator, "Insert spaces around `..` / `..<` range operators.");
         schema.add("space-after-comma", &options.spaceAfterComma, "Insert a space after `,`.");
         schema.add("space-before-comma", &options.spaceBeforeComma, "Insert a space before `,`.");
-        schema.add("space-after-cast", &options.spaceAfterCast, "Insert a space after a C-style `cast(...)` expression.");
+        schema.add("space-after-cast", &options.spaceAfterCast, "Insert a space after a `cast(...)` expression.");
         schema.add("space-after-keyword", &options.spaceAfterKeyword, "Insert a space after control keywords such as `if`, `while`, `for`.");
         schema.add("space-after-unary-operator", &options.spaceAfterUnaryOperator, "Insert a space after unary operators like `-` or `!`.");
         schema.add("space-inside-parentheses", &options.spaceInsideParentheses, "Insert spaces just inside `(` and `)`.");
@@ -162,15 +162,6 @@ namespace
                            {"non-empty", FormatSpaceBeforeParens::NonEmpty},
                        },
                        "When to insert a space between an identifier and `(`.");
-
-        const std::initializer_list<std::pair<const char*, FormatPointerAlignment>> pointerChoices = {
-            {"preserve", FormatPointerAlignment::Preserve},
-            {"left", FormatPointerAlignment::Left},
-            {"middle", FormatPointerAlignment::Middle},
-            {"right", FormatPointerAlignment::Right},
-        };
-        schema.addEnum("pointer-alignment", &options.pointerAlignment, pointerChoices, "How to place `*` relative to the pointed-to type.");
-        schema.addEnum("reference-alignment", &options.referenceAlignment, pointerChoices, "How to place `&` relative to the referenced type.");
     }
 
     void bindAttributeSchema(StructConfigSchema& schema, FormatOptions& options)
@@ -201,7 +192,6 @@ namespace
 
         schema.add("normalize-section-separators", &options.normalizeSectionSeparators, "Rewrite `// ####...` banners so they share a common width.");
         schema.add("section-separator-width", &options.sectionSeparatorWidth, "Target column count for normalized `// ####...` banners.");
-        schema.add("preserve-doc-comments", &options.preserveDocComments, "Never rewrap `///` or `//!` documentation comments.");
         schema.add("space-after-line-comment-prefix", &options.spaceAfterLineCommentPrefix, "Insert a space after `//` when rewriting line comments.");
     }
 
@@ -233,7 +223,6 @@ namespace
 
         schema.add("normalize-digit-separators", &options.normalizeDigitSeparators, "Rewrite long numeric literals using `_` digit separators.");
         schema.add("digit-separator-group-size", &options.digitSeparatorGroupSize, "Digit grouping size used when normalizing separators (e.g. 4 for hex).");
-        schema.add("prefer-single-quote-strings", &options.preferSingleQuoteStrings, "Prefer single-quoted string literals when the content allows it.");
     }
 
     void bindPragmaSchema(StructConfigSchema& schema, FormatOptions& options)
@@ -245,8 +234,8 @@ namespace
     void bindFormatOptionsSchema(StructConfigSchema& schema, FormatOptions& options)
     {
         bindFileLevelSchema(schema, options);
-        bindIndentationSchema(schema, options);
         bindEndOfLineSchema(schema, options);
+        bindIndentationSchema(schema, options);
         bindWrappingSchema(schema, options);
         bindBraceSchema(schema, options);
         bindAlignmentSchema(schema, options);

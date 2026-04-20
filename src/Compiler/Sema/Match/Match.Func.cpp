@@ -822,8 +822,8 @@ namespace
         return Result::Error;
     }
 
-    template<typename AddNoteFn>
-    void addOverloadFailureNotes(Sema& sema, Diagnostic& diag, const SmallVector<SortedAttempt>& sorted, std::span<AstNodeRef> args, AstNodeRef ufcsArg, AddNoteFn&& shouldSkip)
+    template<typename ADD_NOTE_FN>
+    void addOverloadFailureNotes(Sema& sema, Diagnostic& diag, const SmallVector<SortedAttempt>& sorted, std::span<AstNodeRef> args, AstNodeRef ufcsArg, const ADD_NOTE_FN& shouldSkip)
     {
         TaskContext& ctx = sema.ctx();
 
@@ -857,7 +857,7 @@ namespace
 
     Result errorGenericInstantiationFailure(Sema& sema, const SemaNodeView& nodeCallee, const Attempt& primary, std::span<AstNodeRef> args, AstNodeRef ufcsArg)
     {
-        TaskContext& ctx = sema.ctx();
+        const TaskContext& ctx = sema.ctx();
 
         Diagnostic diag = SemaError::report(sema, DiagnosticId::sema_err_generic_function_instantiation_failed, nodeCallee.nodeRef());
         diag.last().addArgument(Diagnostic::ARG_SYM, primary.fn->name(ctx));
@@ -868,7 +868,7 @@ namespace
 
     Result errorNoOverloadMatch(Sema& sema, const SemaNodeView& nodeCallee, const SmallVector<Attempt>& attempts, std::span<AstNodeRef> args, AstNodeRef ufcsArg)
     {
-        TaskContext& ctx = sema.ctx();
+        const TaskContext& ctx = sema.ctx();
 
         SmallVector<SortedAttempt> sorted;
         uint32_t                   order = 0;

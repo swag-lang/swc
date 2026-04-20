@@ -324,7 +324,7 @@ bool StructConfigReader::reportInvalidEnum(TaskContext& ctx, const StructConfigE
     return false;
 }
 
-bool StructConfigReader::applyEntry(TaskContext& ctx, const StructConfigEntry& entry, const fs::path& sourcePath, const uint32_t lineNo, const std::string_view valueText, const fs::path& baseDir) const
+bool StructConfigReader::applyEntry(TaskContext& ctx, const StructConfigEntry& entry, const fs::path& sourcePath, const uint32_t lineNo, const std::string_view valueText, const fs::path& baseDir)
 {
     const Utf8 value = unquoteValue(Utf8Helper::trim(valueText));
 

@@ -145,14 +145,14 @@ namespace
             return false;
 
         outLayout.reserve(elementRefs.size());
-        std::vector<bool> fieldUsed(fields.size(), false);
-        bool              seenNamed = false;
-        size_t            nextPos   = 0;
-        for (size_t i = 0; i < elementRefs.size(); ++i)
+        std::vector fieldUsed(fields.size(), false);
+        bool        seenNamed = false;
+        size_t      nextPos   = 0;
+        for (auto elementRef : elementRefs)
         {
-            AstNodeRef    valueRef  = elementRefs[i];
+            AstNodeRef    valueRef  = elementRef;
             IdentifierRef fieldName = IdentifierRef::invalid();
-            if (const AstNode& valueNode = codeGen.node(elementRefs[i]); valueNode.is(AstNodeId::NamedArgument))
+            if (const AstNode& valueNode = codeGen.node(elementRef); valueNode.is(AstNodeId::NamedArgument))
             {
                 seenNamed = true;
                 fieldName = codeGen.idMgr().addIdentifier(codeGen.ctx(), valueNode.codeRef());

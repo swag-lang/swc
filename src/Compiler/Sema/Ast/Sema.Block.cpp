@@ -150,8 +150,8 @@ Result AstEmbeddedBlock::semaPreNode(Sema& sema)
 
 Result AstDeferStmt::semaPreNode(Sema& sema)
 {
-    const auto&      node    = sema.curNode().cast<AstDeferStmt>();
-    AstModifierFlags allowed = AstModifierFlagsE::Err | AstModifierFlagsE::NoErr;
+    const auto&                node    = sema.curNode().cast<AstDeferStmt>();
+    constexpr AstModifierFlags allowed = AstModifierFlagsE::Err | AstModifierFlagsE::NoErr;
     SWC_RESULT(SemaCheck::modifiers(sema, node, node.modifierFlags, allowed));
 
     if (node.modifierFlags.has(AstModifierFlagsE::Err) && node.modifierFlags.has(AstModifierFlagsE::NoErr))

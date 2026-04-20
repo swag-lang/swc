@@ -14,8 +14,8 @@
 
 SWC_BEGIN_NAMESPACE();
 
-Formatter::Formatter(const FormatOptions& options) :
-    options_(options)
+Formatter::Formatter(FormatOptions options) :
+    options_(std::move(options))
 {
 }
 

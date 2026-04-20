@@ -2156,7 +2156,7 @@ Result AstReturnStmt::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) c
     return Result::Continue;
 }
 
-Result AstTryCatchExpr::semaPreNode(Sema& sema) const
+Result AstTryCatchExpr::semaPreNode(Sema& sema)
 {
     return semaTryCatchPreNodeCommon(sema);
 }
@@ -2185,7 +2185,7 @@ Result AstTryCatchExpr::semaPostNode(Sema& sema) const
     return Result::Continue;
 }
 
-Result AstTryCatchStmt::semaPreNode(Sema& sema) const
+Result AstTryCatchStmt::semaPreNode(Sema& sema)
 {
     return semaTryCatchPreNodeCommon(sema);
 }

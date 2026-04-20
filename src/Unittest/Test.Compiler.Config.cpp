@@ -321,7 +321,7 @@ end-of-line-style = lf
         return Result::Error;
     if (formatOptions.indentStyle != FormatIndentStyle::Spaces)
         return Result::Error;
-    if (formatOptions.endOfLineStyle != FormatEndOfLineStyle::LF)
+    if (formatOptions.endOfLineStyle != FormatEndOfLineStyle::Lf)
         return Result::Error;
 }
 SWC_TEST_END()
@@ -337,7 +337,7 @@ SWC_TEST_BEGIN(Compiler_FormatterAppliesFormatOptions)
     formatOptions.insertFinalNewline         = true;
     formatOptions.indentWidth                = 2;
     formatOptions.indentStyle                = FormatIndentStyle::Spaces;
-    formatOptions.endOfLineStyle             = FormatEndOfLineStyle::LF;
+    formatOptions.endOfLineStyle             = FormatEndOfLineStyle::Lf;
 
     Utf8 formatted;
     SWC_RESULT(formatSourceText(ctx.global(), SOURCE, formatOptions, formatted));

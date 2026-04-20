@@ -25,8 +25,8 @@ namespace
         schema.addEnum("end-of-line-style", &options.endOfLineStyle,
                        {
                            {"preserve", FormatEndOfLineStyle::Preserve},
-                           {"lf", FormatEndOfLineStyle::LF},
-                           {"crlf", FormatEndOfLineStyle::CRLF},
+                           {"lf", FormatEndOfLineStyle::Lf},
+                           {"crlf", FormatEndOfLineStyle::CrLf},
                        },
                        "End-of-line style used by the formatter.");
     }

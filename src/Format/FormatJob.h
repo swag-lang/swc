@@ -9,7 +9,7 @@ class SourceFile;
 class FormatJob final : public Job
 {
 public:
-    FormatJob(const TaskContext& ctx, SourceFile* file, const FormatOptions& formatOptions, ParserJobOptions parserOptions);
+    FormatJob(const TaskContext& ctx, SourceFile* file, FormatOptions formatOptions, ParserJobOptions parserOptions);
 
     JobResult exec() override;
 

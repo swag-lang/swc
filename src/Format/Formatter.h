@@ -12,7 +12,7 @@ class TaskContext;
 class Formatter
 {
 public:
-    explicit Formatter(const FormatOptions& options = {});
+    explicit Formatter(FormatOptions options = {});
 
     void   prepare(const SourceFile& file);
     Result prepare(const Global& global, std::string_view source);

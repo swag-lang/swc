@@ -13,7 +13,7 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    TypeRef pointerLayoutDepTypeRef(TypeManager& tm, const TypeInfo& type)
+    TypeRef pointerLayoutDepTypeRef(const TypeManager& tm, const TypeInfo& type)
     {
         // `typeinfo` values point to the runtime `Swag.TypeInfo` hierarchy even though the
         // compiler builtin type itself does not carry an explicit payload type.

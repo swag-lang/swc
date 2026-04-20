@@ -6,10 +6,10 @@
 
 SWC_BEGIN_NAMESPACE();
 
-FormatJob::FormatJob(const TaskContext& ctx, SourceFile* file, const FormatOptions& formatOptions, const ParserJobOptions parserOptions) :
+FormatJob::FormatJob(const TaskContext& ctx, SourceFile* file, FormatOptions formatOptions, const ParserJobOptions parserOptions) :
     Job(ctx, JobKind::Format),
     file_(file),
-    formatOptions_(formatOptions),
+    formatOptions_(std::move(formatOptions)),
     parserOptions_(parserOptions)
 {
 }

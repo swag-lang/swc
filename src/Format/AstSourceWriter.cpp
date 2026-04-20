@@ -614,10 +614,10 @@ void AstSourceWriter::appendConfiguredEndOfLine() const
 {
     switch (options_->endOfLineStyle)
     {
-        case FormatEndOfLineStyle::LF:
+        case FormatEndOfLineStyle::Lf:
             formatCtx_->output += '\n';
             break;
-        case FormatEndOfLineStyle::CRLF:
+        case FormatEndOfLineStyle::CrLf:
             formatCtx_->output += "\r\n";
             break;
         case FormatEndOfLineStyle::Preserve:
@@ -629,10 +629,10 @@ std::string_view AstSourceWriter::resolveFinalNewline() const
 {
     switch (options_->endOfLineStyle)
     {
-        case FormatEndOfLineStyle::LF:
+        case FormatEndOfLineStyle::Lf:
             return "\n";
 
-        case FormatEndOfLineStyle::CRLF:
+        case FormatEndOfLineStyle::CrLf:
             return "\r\n";
 
         case FormatEndOfLineStyle::Preserve:

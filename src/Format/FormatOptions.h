@@ -12,8 +12,8 @@ enum class FormatIndentStyle : uint8_t
 enum class FormatEndOfLineStyle : uint8_t
 {
     Preserve,
-    LF,
-    CRLF,
+    Lf,
+    CrLf,
 };
 
 enum class FormatBraceStyle : uint8_t

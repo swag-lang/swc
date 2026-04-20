@@ -320,7 +320,7 @@ namespace
         return Result::Continue;
     }
 
-    Result emitZeroThrowableExprResult(CodeGen& codeGen, CodeGenNodePayload& resultPayload, TypeRef typeRef)
+    Result emitZeroThrowableExprResult(CodeGen& codeGen, const CodeGenNodePayload& resultPayload, TypeRef typeRef)
     {
         if (!typeRef.isValid() || typeRef == codeGen.typeMgr().typeVoid())
             return Result::Continue;

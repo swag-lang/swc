@@ -6,6 +6,12 @@ struct ErrValue
     code: s32 = 0
 }
 
+struct OtherErrValue
+{
+    using base: Swag.BaseError
+    code: s32 = 0
+}
+
 struct CatchInfo
 {
     value: s32
@@ -51,6 +57,26 @@ struct AggregateTraceInfo
     trace: s64
 }
 
+struct ErrCastInfo
+{
+    exactType: bool
+    baseType: bool
+    wrongType: bool
+    exactCastOk: bool
+    baseCastOk: bool
+    wrongCastNull: bool
+    code: s32
+    messageOk: bool
+}
+
+struct ErrNullCastInfo
+{
+    exactType: bool
+    baseType: bool
+    exactCastNull: bool
+    baseCastNull: bool
+}
+
 var ErrorTrace: s64 = 0
 
 func resetErrorTrace()
@@ -80,6 +106,11 @@ func alwaysThrowValue(code: s32)->s32 throw
 func alwaysThrowVoid(code: s32) throw
 {
     throw ErrValue{code: code}
+}
+
+func alwaysThrowTypedVoid(code: s32) throw
+{
+    throw ErrValue{base: Swag.BaseError{"typed error"}, code: code}
 }
 
 func currentErrCode()->s32
@@ -554,6 +585,40 @@ func aggregateDeferThrowInfo()->AggregateTraceInfo
     return result
 }
 
+func errIsAsFailureInfo()->ErrCastInfo
+{
+    var result: ErrCastInfo
+    catch alwaysThrowTypedVoid(86)
+
+    let exactErr = @err as ErrValue
+    let baseErr  = @err as Swag.BaseError
+    let otherErr = @err as OtherErrValue
+
+    result.exactType     = @err is ErrValue
+    result.baseType      = @err is Swag.BaseError
+    result.wrongType     = @err is OtherErrValue
+    result.exactCastOk   = exactErr != null
+    result.baseCastOk    = baseErr != null
+    result.wrongCastNull = otherErr == null
+    if exactErr != null do
+        result.code = exactErr.code
+    if baseErr != null do
+        result.messageOk = baseErr.message == "typed error"
+    return result
+}
+
+func errIsAsNullInfo()->ErrNullCastInfo
+{
+    var result: ErrNullCastInfo
+    catch mayThrowVoid()
+
+    result.exactType    = @err is ErrValue
+    result.baseType     = @err is Swag.BaseError
+    result.exactCastNull = @err as ErrValue == null
+    result.baseCastNull  = @err as Swag.BaseError == null
+    return result
+}
+
 #test
 {
     let value = catch propagateBareSuccess()
@@ -603,6 +668,28 @@ func aggregateDeferThrowInfo()->AggregateTraceInfo
     @assert(info.value == 0)
     @assert(info.hasErr)
     @assert(info.code == 18)
+}
+
+#test
+{
+    let info = errIsAsFailureInfo()
+    @assert(info.exactType)
+    @assert(info.baseType)
+    @assert(!info.wrongType)
+    @assert(info.exactCastOk)
+    @assert(info.baseCastOk)
+    @assert(info.wrongCastNull)
+    @assert(info.code == 86)
+    @assert(info.messageOk)
+}
+
+#test
+{
+    let info = errIsAsNullInfo()
+    @assert(!info.exactType)
+    @assert(!info.baseType)
+    @assert(info.exactCastNull)
+    @assert(info.baseCastNull)
 }
 
 #test

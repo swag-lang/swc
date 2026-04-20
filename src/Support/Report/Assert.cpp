@@ -13,6 +13,34 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    void appendCallStack(Utf8& msg, const TaskContext* ctx)
+    {
+        std::array<uintptr_t, 32> frames{};
+        const uint32_t            numFrames = Os::captureCallStack(frames, 2);
+        if (!numFrames)
+            return;
+
+        msg += "Call stack:\n";
+        for (uint32_t i = 0; i < numFrames; ++i)
+        {
+            const uintptr_t address = frames[i];
+            msg += std::format("  [{:02}] 0x{:016X}", i, address);
+
+            Os::ResolvedAddress resolved;
+            if (Os::resolveAddress(resolved, address, ctx))
+            {
+                if (!resolved.moduleName.empty())
+                    msg += std::format(" {}", resolved.moduleName);
+                if (!resolved.symbolName.empty())
+                    msg += std::format(" | {}", resolved.symbolName);
+                if (!resolved.sourceLocation.empty())
+                    msg += std::format(" | {}", resolved.sourceLocation);
+            }
+
+            msg += "\n";
+        }
+    }
+
     void appendContextField(Utf8& msg, const std::string_view label, const std::string_view value)
     {
         if (value.empty())
@@ -104,8 +132,10 @@ void swcAssert(const char* expr, const char* file, int line)
 {
     const Utf8 fileLoc = FileSystem::formatFileLocation(nullptr, fs::path(file ? file : "<null>"), static_cast<uint32_t>(line));
     Utf8       msg     = std::format("Assertion Failed!\nFile: {}\nExpression: {}\n", fileLoc, expr);
-    if (const TaskContext* const ctx = TaskContext::current())
+    const TaskContext* const ctx = TaskContext::current();
+    if (ctx)
         appendInternalErrorTaskContext(msg, *ctx);
+    appendCallStack(msg, ctx);
     Os::panicBox(msg.c_str());
 }
 
@@ -115,8 +145,10 @@ void swcInternalError(const char* file, int line, const char* expr)
     Utf8       msg     = std::format("Internal Error!\nFile: {}\n", fileLoc);
     if (expr)
         msg += std::format("Expression: {}\n", expr);
-    if (const TaskContext* const ctx = TaskContext::current())
+    const TaskContext* const ctx = TaskContext::current();
+    if (ctx)
         appendInternalErrorTaskContext(msg, *ctx);
+    appendCallStack(msg, ctx);
     Os::panicBox(msg.c_str());
 }
 

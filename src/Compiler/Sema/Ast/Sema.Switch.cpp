@@ -348,7 +348,7 @@ Result AstSwitchStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) 
         const TypeInfo& type      = sema.typeMgr().get(exprView.typeRef());
         const TypeRef   ultimate  = type.unwrap(sema.ctx(), exprView.typeRef(), TypeExpandE::Alias | TypeExpandE::Enum);
         const TypeInfo& finalType = sema.typeMgr().get(ultimate);
-        if (!finalType.isIntLike() && !finalType.isFloat() && !finalType.isBool() && !finalType.isString() && !finalType.isTypeInfo() && !finalType.isInterface() && !finalType.isAny())
+        if (!finalType.isIntLike() && !finalType.isFloat() && !finalType.isBool() && !finalType.isString() && !finalType.isAnyTypeInfo(sema.ctx()) && !finalType.isInterface() && !finalType.isAny())
             return SemaError::raise(sema, DiagnosticId::sema_err_switch_invalid_type, nodeExprRef);
 
         auto* payload        = sema.semaPayload<SwitchPayload>(sema.curNodeRef());

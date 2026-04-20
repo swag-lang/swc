@@ -76,6 +76,20 @@ const PA = cast(const *Swag.TypeInfoStruct) #typeof(A)
     #assert((cast(const *Swag.TypeInfoPointer) p).pointedType == s32)
 }
 
+#[Swag.ConstExpr]
+func switchFieldTypeHit()->bool
+{
+    switch PA.fields[2].pointedType
+    {
+        case s32:
+            return true
+        default:
+            return false
+    }
+}
+
+#assert(switchFieldTypeHit())
+
 #test
 {
     const t = #typeof(A)

@@ -89,6 +89,22 @@ const PA = cast(const *Swag.TypeInfoStruct) #typeof(A)
 
 #test
 {
+    var hit = false
+    switch PA.fields[2].pointedType
+    {
+        case s32:
+            hit = true
+            break
+        default:
+            hit = false
+            break
+    }
+
+    @assert(hit)
+}
+
+#test
+{
     const t = #typeof(A)
     #assert((cast(const *Swag.TypeInfo) t).name == "A")
     @assert((cast(const *Swag.TypeInfo) t).name == "A")

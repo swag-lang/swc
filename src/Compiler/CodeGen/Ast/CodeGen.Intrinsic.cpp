@@ -1205,7 +1205,7 @@ namespace
         SWC_ASSERT(exprTypeRef.isValid());
         const TypeInfo& exprType = codeGen.typeMgr().get(exprTypeRef);
 
-        if (exprType.isIntUnsigned())
+        if (exprType.isInt())
         {
             const CodeGenNodePayload& resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), resultTypeRef);
             const uint32_t            intBits       = exprType.payloadIntBitsOr(64);

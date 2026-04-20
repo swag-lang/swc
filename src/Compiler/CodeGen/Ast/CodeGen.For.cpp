@@ -5,6 +5,7 @@
 #include "Compiler/CodeGen/Core/CodeGenCompareHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenLoopHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenReferenceHelpers.h"
+#include "Compiler/CodeGen/Core/CodeGenSafety.h"
 #include "Compiler/CodeGen/Core/CodeGenTypeHelpers.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Ast/Sema.Loop.h"
@@ -149,7 +150,7 @@ namespace
         const TypeInfo& exprType = codeGen.typeMgr().get(exprTypeRef);
         MicroBuilder&   builder  = codeGen.builder();
 
-        if (exprType.isIntUnsigned())
+        if (exprType.isInt())
         {
             outReg = materializeLoopValueReg(codeGen, exprPayload, resultTypeRef);
             return Result::Continue;
@@ -284,6 +285,9 @@ namespace
         const MicroOpBits opBits    = CodeGenTypeHelpers::conditionBits(indexType, codeGen.ctx());
         loopState.unsignedCmp       = indexType.isIntUnsigned();
         loopState.indexReg          = codeGen.nextVirtualIntRegister();
+
+        const bool loopBoundCheckInclusive = semaPayload->isRangeLoop ? loopState.inclusive : true;
+        SWC_RESULT(CodeGenSafety::emitLoopBoundCheck(codeGen, exprRef, lowerReg, upperReg, indexType, loopBoundCheckInclusive));
 
         if (loopState.reverse)
         {

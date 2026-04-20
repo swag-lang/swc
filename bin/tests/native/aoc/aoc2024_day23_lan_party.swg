@@ -158,10 +158,12 @@ func countTrianglesWithT(g: *Graph) -> u64
     for ii in nn
     {
         let i = nodes[ii]
+        if ii + 1 >= nn do continue
         for jj in ii + 1 until nn
         {
             let j = nodes[jj]
             if !g.edge(i, j) do continue
+            if jj + 1 >= nn do continue
             for kk in jj + 1 until nn
             {
                 let k = nodes[kk]
@@ -290,6 +292,7 @@ func formatClique(state: *CliqueState, buf: [*] u8, bufLen: u32) -> u32
     // Bubble sort the best clique (small, at most ~15 elements)
     for i in state.bestSize
     {
+        if i + 1 >= state.bestSize do continue
         for j in i + 1 until state.bestSize
         {
             if state.best[j] < state.best[i]
@@ -429,10 +432,12 @@ func solve(text: string) -> SolveResult
     for ii in nn
     {
         let i = nodes[ii]
+        if ii + 1 >= nn do continue
         for jj in ii + 1 until nn
         {
             let j = nodes[jj]
             if !g.edge(i, j) do continue
+            if jj + 1 >= nn do continue
             for kk in jj + 1 until nn
             {
                 let k = nodes[kk]

@@ -94,6 +94,14 @@ impl RefCountedRuntime
 
 #test
 {
+    func countSigned32(value: s32)->s32 { return @countof(value) }
+    const V0 = #run countSigned32(42's32)
+    #assert(#typeof(V0) == s32)
+    #assert(V0 == 42's32)
+}
+
+#test
+{
     func countUnsigned64(value: u64)->u64 { return @countof(value) }
     const V0 = #run countUnsigned64(1000'u64)
     #assert(#typeof(V0) == u64)
@@ -121,6 +129,19 @@ impl RefCountedRuntime
     const V1 = #run countStruct({0})
     #assert(V0 == 7'u64)
     #assert(V1 == 0'u64)
+}
+
+#test
+{
+    const V0 = #run @countof(3's8)
+    const V1 = #run @countof(4's32)
+    const V2 = #run @countof(5's64)
+    #assert(#typeof(V0) == s8)
+    #assert(#typeof(V1) == s32)
+    #assert(#typeof(V2) == s64)
+    #assert(V0 == 3's8)
+    #assert(V1 == 4's32)
+    #assert(V2 == 5's64)
 }
 
 #test
@@ -240,6 +261,32 @@ impl RefCountedRuntime
     #assert(#typeof(V0) == u32)
     #assert(V0 == 7'u32)
     #assert(V1 == 7'u32)
+}
+
+#test
+{
+    func countSignedRef()->s32
+    {
+        var value: s32 = 7
+        var valueRef: &s32 = &value
+        return @countof(valueRef)
+    }
+
+    func loopSignedRef()->s32
+    {
+        var value: s32 = 7
+        let valueRef: &s32 = &value
+        var count: s32 = 0
+        for valueRef do
+            count += 1
+        return count
+    }
+
+    const V0 = #run countSignedRef()
+    const V1 = #run loopSignedRef()
+    #assert(#typeof(V0) == s32)
+    #assert(V0 == 7's32)
+    #assert(V1 == 7's32)
 }
 
 #test

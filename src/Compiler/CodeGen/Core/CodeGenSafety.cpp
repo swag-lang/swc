@@ -45,8 +45,11 @@ namespace
         return payload;
     }
 
-    SymbolFunction* runtimeSafetyPanicFunction(CodeGen& codeGen)
+    SymbolFunction* runtimeSafetyPanicFunction(CodeGen& codeGen, const CodeGenNodePayload* nodePayload = nullptr)
     {
+        if (nodePayload && nodePayload->runtimeFunctionSymbol != nullptr)
+            return nodePayload->runtimeFunctionSymbol;
+
         if (const auto* payload = codeGen.sema().codeGenPayload<CodeGenNodePayload>(codeGen.curNodeRef());
             payload && payload->runtimeFunctionSymbol != nullptr)
         {
@@ -224,6 +227,35 @@ Result CodeGenSafety::emitBoundCheck(CodeGen& codeGen, AstNodeRef indexRef, cons
     builder.emitCmpRegReg(indexReg, countReg, MicroOpBits::B64);
     builder.emitJumpToLabel(MicroCond::Below, MicroOpBits::B32, inBoundsRef);
     SWC_RESULT(emitRuntimeDiagnosticCall(codeGen, *panicFunction, codeGen.node(indexRef), DiagnosticId::safety_err_bound_check));
+    builder.placeLabel(inBoundsRef);
+    return Result::Continue;
+}
+
+Result CodeGenSafety::emitLoopBoundCheck(CodeGen& codeGen, AstNodeRef nodeRef, MicroReg lowerReg, MicroReg upperReg, const TypeInfo& indexType, bool inclusive)
+{
+    if (!indexType.isInt())
+        return Result::Continue;
+
+    nodeRef = codeGen.resolvedNodeRef(nodeRef);
+    if (nodeRef.isInvalid())
+        return Result::Continue;
+
+    const auto* nodePayload = codeGen.sema().codeGenPayload<CodeGenNodePayload>(nodeRef);
+    if (!nodePayload || !nodePayload->hasRuntimeSafety(Runtime::SafetyWhat::BoundCheck))
+        return Result::Continue;
+
+    SymbolFunction* panicFunction = runtimeSafetyPanicFunction(codeGen, nodePayload);
+    SWC_ASSERT(panicFunction != nullptr);
+
+    const MicroOpBits opBits = CodeGenTypeHelpers::conditionBits(indexType, codeGen.ctx());
+    SWC_ASSERT(opBits != MicroOpBits::Zero);
+
+    MicroBuilder&       builder     = codeGen.builder();
+    const MicroLabelRef inBoundsRef = builder.createLabel();
+    builder.emitCmpRegReg(lowerReg, upperReg, opBits);
+    const auto cpuCond = inclusive ? CodeGenCompareHelpers::lessEqualCond(indexType.isIntUnsigned()) : CodeGenCompareHelpers::lessCond(indexType.isIntUnsigned());
+    builder.emitJumpToLabel(cpuCond, MicroOpBits::B32, inBoundsRef);
+    SWC_RESULT(emitRuntimeDiagnosticCall(codeGen, *panicFunction, codeGen.node(nodeRef), DiagnosticId::safety_err_bound_check));
     builder.placeLabel(inBoundsRef);
     return Result::Continue;
 }

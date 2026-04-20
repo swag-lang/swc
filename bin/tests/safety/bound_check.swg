@@ -258,6 +258,51 @@ func boundCheckEnabled()->bool
     const value = #run stringExactBoundary(3)
 }
 
+#test
+{
+    #[Swag.Safety(.BoundCheck, true)]
+    func loopNegativeCount(count: s32)->s32
+    {
+        var result: s32 = 0
+        for count do // swc-expected-error {{safety_err_runtime}}
+            result += 1
+        return result
+    }
+
+    const value = #run loopNegativeCount(-1)
+    @assert(value == 0)
+}
+
+#test
+{
+    #[Swag.Safety(.BoundCheck, true)]
+    func loopInvalidSignedRange(low: s32, high: s32)->s32
+    {
+        var result: s32 = 0
+        for i in low to high do // swc-expected-error {{safety_err_runtime}}
+            result += i
+        return result
+    }
+
+    const value = #run loopInvalidSignedRange(5, 4)
+    @assert(value == 0)
+}
+
+#test
+{
+    #[Swag.Safety(.BoundCheck, true)]
+    func loopInvalidUnsignedRange(low: u32, high: u32)->u32
+    {
+        var result: u32 = 0
+        for i in low until high do // swc-expected-error {{safety_err_runtime}}
+            result += i
+        return result
+    }
+
+    const value = #run loopInvalidUnsignedRange(4, 4)
+    @assert(value == 0)
+}
+
 // When bound check is disabled, out-of-bounds access must not call the safety panic
 #test
 {
@@ -273,4 +318,19 @@ func boundCheckEnabled()->bool
 
     const value = #run arrayBoundCheckDisabled()
     @assert(value == 2)
+}
+
+#test
+{
+    #[Swag.Safety(.BoundCheck, false)]
+    func loopNegativeCountDisabled(count: s32)->s32
+    {
+        var result: s32 = 0
+        for count do
+            result += 1
+        return result
+    }
+
+    const value = #run loopNegativeCountDisabled(-1)
+    @assert(value == 0)
 }

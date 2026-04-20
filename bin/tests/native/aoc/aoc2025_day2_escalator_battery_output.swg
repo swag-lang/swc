@@ -35,6 +35,7 @@ func bestBankOutput(bank: string)->s32
     for i in @countof(digits)
     {
         let first = digitValue(digits[i])
+        if i + 1 >= @countof(digits) do continue
 
         for j in i + 1 to cast(u64) @countof(digits) - 1
         {

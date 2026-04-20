@@ -90,6 +90,34 @@ namespace
         return enumTypeExprSymbol(sema, exprView) != nullptr;
     }
 
+    bool hasDynamicLoopBound(Sema& sema, AstNodeRef boundRef)
+    {
+        if (boundRef.isInvalid())
+            return false;
+        return !sema.viewNodeTypeConstant(boundRef).hasConstant();
+    }
+
+    Result setupForLoopBoundCheck(Sema& sema, const AstForStmt& node, const LoopSemaPayload& payload)
+    {
+        if (payload.isRangeLoop)
+        {
+            if (!hasDynamicLoopBound(sema, payload.lowerBoundRef) && !hasDynamicLoopBound(sema, payload.upperBoundRef))
+                return Result::Continue;
+
+            return SemaHelpers::setupRuntimeSafetyPanic(sema, node.nodeExprRef, Runtime::SafetyWhat::BoundCheck, sema.node(node.nodeExprRef).codeRef());
+        }
+
+        const TypeRef countTypeRef = SemaHelpers::unwrapAliasRefType(sema.ctx(), payload.indexTypeRef);
+        if (!countTypeRef.isValid())
+            return Result::Continue;
+
+        const TypeInfo& countType = sema.typeMgr().get(countTypeRef);
+        if (!countType.isIntSigned() || payload.countCstRef.isValid())
+            return Result::Continue;
+
+        return SemaHelpers::setupRuntimeSafetyPanic(sema, node.nodeExprRef, Runtime::SafetyWhat::BoundCheck, sema.node(node.nodeExprRef).codeRef());
+    }
+
     Result validateForeachAliasCount(Sema& sema, const AstForeachStmt& node)
     {
         SmallVector<TokenRef> tokNames;
@@ -410,6 +438,9 @@ Result AstForStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) con
                 payload.upperBoundRef = rangeExpr.nodeExprUpRef;
             }
         }
+
+        if (const auto* payload = sema.semaPayload<LoopSemaPayload>(sema.curNodeRef()))
+            SWC_RESULT(setupForLoopBoundCheck(sema, *this, *payload));
     }
 
     if (childRef == nodeWhereRef)

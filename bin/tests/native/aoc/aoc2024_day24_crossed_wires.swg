@@ -505,6 +505,7 @@ func formatSwapped(result: *SwappedResult, buf: [*] u8, bufLen: u32) -> u32
     // Bubble sort by name
     for i in result.count
     {
+        if i + 1 >= result.count do continue
         for j in i + 1 until result.count
         {
             var swap = false

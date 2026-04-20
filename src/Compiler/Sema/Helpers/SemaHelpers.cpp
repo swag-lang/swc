@@ -873,7 +873,7 @@ Result SemaHelpers::resolveCountOfResult(Sema& sema, CountOfResultInfo& outResul
         return Result::Continue;
     }
 
-    if (countType.isIntUnsigned())
+    if (countType.isInt())
     {
         outResult.typeRef = countTypeRef;
         return Result::Continue;

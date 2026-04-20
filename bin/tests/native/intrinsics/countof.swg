@@ -69,12 +69,24 @@ const EmptyConst = ""
     const a = @countof(3)
     const b = @countof(0)
     const c = @countof(100)
+    const d = @countof(3's8)
+    const e = @countof(4's32)
+    const f = @countof(5's64)
     #assert(a == 3)
     #assert(b == 0)
     #assert(c == 100)
+    #assert(#typeof(d) == s8)
+    #assert(#typeof(e) == s32)
+    #assert(#typeof(f) == s64)
+    #assert(d == 3's8)
+    #assert(e == 4's32)
+    #assert(f == 5's64)
     @assert(a == 3)
     @assert(b == 0)
     @assert(c == 100)
+    @assert(d == 3's8)
+    @assert(e == 4's32)
+    @assert(f == 5's64)
 }
 
 // ============================================================
@@ -203,6 +215,11 @@ func countUnsignedRef(value: &u32)->u32
     return @countof(value)
 }
 
+func countSignedRef(value: &s32)->s32
+{
+    return @countof(value)
+}
+
 func countEnumRef(value: &RefCountKind)->u64
 {
     return @countof(value)
@@ -240,6 +257,14 @@ func loopSliceRef(value: const &[..] u8)->u64
 func loopUnsignedRef(value: &u32)->u32
 {
     var count: u32 = 0
+    for value do
+        count += 1
+    return count
+}
+
+func loopSignedRef(value: &s32)->s32
+{
+    var count: s32 = 0
     for value do
         count += 1
     return count
@@ -285,6 +310,16 @@ func loopUnsignedRef(value: &u32)->u32
     @assert(@countof(numberRef) == 7)
     @assert(countUnsignedRef(numberRef) == 7)
     @assert(loopUnsignedRef(numberRef) == 7)
+}
+
+#test
+{
+    var number: s32 = 7
+    var numberRef: &s32 = &number
+    @assert(#typeof(@countof(numberRef)) == s32)
+    @assert(@countof(numberRef) == 7)
+    @assert(countSignedRef(numberRef) == 7)
+    @assert(loopSignedRef(numberRef) == 7)
 }
 
 #test

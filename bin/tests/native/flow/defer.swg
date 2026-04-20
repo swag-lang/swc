@@ -455,6 +455,31 @@ func deferConditionalTryCatchTrace()->s64
     return DeferTrace
 }
 
+func deferNoErrAfterCaughtFailureTrace()->s64
+{
+    struct ErrSticky {}
+
+    func failWithErrDefer() throw
+    {
+        defer #err appendDeferTrace(1)
+        defer #noerr appendDeferTrace(2)
+        appendDeferTrace(3)
+        throw ErrSticky{}
+    }
+
+    func succeedWithNoErrDefer() throw
+    {
+        defer #err appendDeferTrace(4)
+        defer #noerr appendDeferTrace(5)
+        appendDeferTrace(6)
+    }
+
+    resetDeferTrace()
+    catch failWithErrDefer()
+    catch succeedWithNoErrDefer()
+    return DeferTrace
+}
+
 func deferBreakToScope()->s64
 {
     resetDeferTrace()
@@ -495,6 +520,11 @@ func deferBreakToScope()->s64
 {
     @assert(deferIfSingleStmtExecutesImmediately(true) == 12)
     @assert(deferIfSingleStmtExecutesImmediately(false) == 2)
+}
+
+#test
+{
+    @assert(deferNoErrAfterCaughtFailureTrace() == 3165)
 }
 
 #test

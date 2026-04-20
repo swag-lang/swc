@@ -968,25 +968,49 @@ namespace
         return Utf8Helper::truncate(trimmed, {.maxChars = kAssertMessageMaxChars, .mode = Utf8Helper::TruncateMode::Middle});
     }
 
-    void decodeCompilerDiagnosticException(const Runtime::SourceCodeLocation*& outLocation, std::string_view& outMessage, uint64_t& outKindRaw)
+    void decodeCompilerDiagnosticException(const void* platformExceptionPointers, const Runtime::SourceCodeLocation*& outLocation, std::string_view& outMessage, uint64_t& outKindRaw)
     {
         Runtime::Context* runtimeContext = CompilerInstance::runtimeContextFromTls();
-        SWC_ASSERT(runtimeContext != nullptr);
 
-        outLocation         = &runtimeContext->exceptionLoc;
-        auto       msgPtr   = static_cast<const char*>(runtimeContext->exceptionParams[1]);
-        const auto msgCount = reinterpret_cast<uintptr_t>(runtimeContext->exceptionParams[2]);
-        outKindRaw          = reinterpret_cast<uintptr_t>(runtimeContext->exceptionParams[3]);
-        if (msgPtr && msgCount)
-            outMessage = {msgPtr, msgCount};
+#ifdef _WIN32
+        // Compiler-side diagnostics are raised with RaiseException and already carry
+        // the full payload in the SEH record. Prefer that transport so we keep the
+        // exact location and message even if the runtime context layout changes.
+        const auto* const args   = static_cast<const EXCEPTION_POINTERS*>(platformExceptionPointers);
+        const auto* const record = args ? args->ExceptionRecord : nullptr;
+        if (record && record->NumberParameters >= 4)
+        {
+            outLocation         = reinterpret_cast<const Runtime::SourceCodeLocation*>(record->ExceptionInformation[0]);
+            auto       msgPtr   = reinterpret_cast<const char*>(record->ExceptionInformation[1]);
+            const auto msgCount = static_cast<uint64_t>(record->ExceptionInformation[2]);
+            outKindRaw          = static_cast<uint64_t>(record->ExceptionInformation[3]);
+            if (msgPtr && msgCount)
+                outMessage = {msgPtr, static_cast<size_t>(msgCount)};
+        }
+#endif
 
-        runtimeContext->exceptionParams[0] = nullptr;
-        runtimeContext->exceptionParams[1] = nullptr;
-        runtimeContext->exceptionParams[2] = nullptr;
-        runtimeContext->exceptionParams[3] = nullptr;
+        if (!outLocation && runtimeContext)
+            outLocation = &runtimeContext->exceptionLoc;
+
+        if (outMessage.empty() && runtimeContext)
+        {
+            auto       msgPtr   = static_cast<const char*>(runtimeContext->exceptionParams[1]);
+            const auto msgCount = reinterpret_cast<uintptr_t>(runtimeContext->exceptionParams[2]);
+            outKindRaw          = reinterpret_cast<uintptr_t>(runtimeContext->exceptionParams[3]);
+            if (msgPtr && msgCount)
+                outMessage = {msgPtr, msgCount};
+        }
+
+        if (runtimeContext)
+        {
+            runtimeContext->exceptionParams[0] = nullptr;
+            runtimeContext->exceptionParams[1] = nullptr;
+            runtimeContext->exceptionParams[2] = nullptr;
+            runtimeContext->exceptionParams[3] = nullptr;
+        }
     }
 
-    bool tryReportRuntimeException(TaskContext& ctx, const uint32_t exceptionCode, JITCallErrorKind* outErrorKind, int& outExceptionAction)
+    bool tryReportRuntimeException(TaskContext& ctx, const uint32_t exceptionCode, const void* platformExceptionPointers, JITCallErrorKind* outErrorKind, int& outExceptionAction)
     {
         if (exceptionCode != K_COMPILER_EXCEPTION_CODE)
             return false;
@@ -994,7 +1018,7 @@ namespace
         const Runtime::SourceCodeLocation* location = nullptr;
         std::string_view                   message;
         uint64_t                           kindRaw = 0;
-        decodeCompilerDiagnosticException(location, message, kindRaw);
+        decodeCompilerDiagnosticException(platformExceptionPointers, location, message, kindRaw);
 
         const auto kind = static_cast<Runtime::ExceptionKind>(kindRaw);
 
@@ -1193,7 +1217,7 @@ namespace
         SWC_UNUSED(exceptionAddress);
 
         int compilerDiagAction = SWC_EXCEPTION_EXECUTE_HANDLER;
-        if (tryReportRuntimeException(ctx, exceptionCode, &outErrorKind, compilerDiagAction))
+        if (tryReportRuntimeException(ctx, exceptionCode, platformExceptionPointers, &outErrorKind, compilerDiagAction))
             return compilerDiagAction;
 
         if (!exceptionCode)

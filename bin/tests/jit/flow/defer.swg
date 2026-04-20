@@ -604,3 +604,34 @@ func deferReturnDropInfo()->DeferDropInfo
     const V = #run deferBreakToScope()
     #assert(V == 213)
 }
+
+#test
+{
+    struct ErrSticky {}
+
+    func failWithErrDefer() throw
+    {
+        defer #err appendDeferTrace(1)
+        defer #noerr appendDeferTrace(2)
+        appendDeferTrace(3)
+        throw ErrSticky{}
+    }
+
+    func succeedWithNoErrDefer() throw
+    {
+        defer #err appendDeferTrace(4)
+        defer #noerr appendDeferTrace(5)
+        appendDeferTrace(6)
+    }
+
+    func deferNoErrAfterCaughtFailureTrace()->s64
+    {
+        resetDeferTrace()
+        catch failWithErrDefer()
+        catch succeedWithNoErrDefer()
+        return DeferTrace
+    }
+
+    const V = #run deferNoErrAfterCaughtFailureTrace()
+    #assert(V == 3165)
+}

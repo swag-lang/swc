@@ -59,6 +59,7 @@ func __pushErr()
     cxt.errors[cxt.errorIndex].pushHasError   = cxt.hasError
 
     cxt.hasError = 0
+    cxt.curError = null
     cxt.errorIndex += 1
 }
 

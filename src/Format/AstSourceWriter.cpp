@@ -54,13 +54,6 @@ namespace
         return c;
     }
 
-    void appendCased(Utf8& out, const std::string_view text, const FormatLiteralCase mode)
-    {
-        out.reserve(out.size() + text.size());
-        for (const char c : text)
-            out += applyLiteralCase(c, mode);
-    }
-
     void appendRegrouped(Utf8& out, const std::string_view digits, const uint32_t groupSize)
     {
         if (groupSize == 0 || digits.size() <= groupSize)
@@ -111,6 +104,33 @@ namespace
                 cleaned += applyLiteralCase(c, digitCase);
         }
         appendRegrouped(out, cleaned, groupSize);
+    }
+
+    void appendDigitsRegroupedFromStart(Utf8& out, const std::string_view digits, const uint32_t groupSize, const FormatLiteralCase digitCase)
+    {
+        std::string cleaned;
+        cleaned.reserve(digits.size());
+        for (const char c : digits)
+        {
+            if (c != '_')
+                cleaned += applyLiteralCase(c, digitCase);
+        }
+
+        if (groupSize == 0 || cleaned.size() <= groupSize)
+        {
+            out += cleaned;
+            return;
+        }
+
+        size_t index = 0;
+        while (index < cleaned.size())
+        {
+            const size_t chunkSize = std::min<size_t>(groupSize, cleaned.size() - index);
+            out.append(cleaned.data() + index, chunkSize);
+            index += chunkSize;
+            if (index < cleaned.size())
+                out += '_';
+        }
     }
 }
 
@@ -523,7 +543,7 @@ void AstSourceWriter::appendNumberPiece(const SourcePiece& piece) const
         {
             appendDigitsRegrouped(out, mantissa.substr(0, dotPos), groupSize, FormatLiteralCase::Preserve);
             out += '.';
-            appendDigitsRegrouped(out, mantissa.substr(dotPos + 1), groupSize, FormatLiteralCase::Preserve);
+            appendDigitsRegroupedFromStart(out, mantissa.substr(dotPos + 1), groupSize, FormatLiteralCase::Preserve);
         }
 
         if (expPos != std::string_view::npos)
@@ -562,6 +582,8 @@ void AstSourceWriter::appendNumberPiece(const SourcePiece& piece) const
         else
             out += body;
     }
+
+    out += suffix;
 }
 
 void AstSourceWriter::appendNormalizedIndent(const std::string_view text) const

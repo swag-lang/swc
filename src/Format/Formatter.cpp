@@ -1,8 +1,7 @@
 #include "pch.h"
 #include "Format/Formatter.h"
-#include "Compiler/Lexer/Lexer.h"
 #include "Compiler/Parser/Ast/Ast.h"
-#include "Compiler/Parser/Parser/Parser.h"
+#include "Compiler/Parser/Parser/ParserJob.h"
 #include "Compiler/SourceFile.h"
 #include "Format/AstSourceWriter.h"
 #include "Main/Command/CommandLine.h"
@@ -63,13 +62,12 @@ Result Formatter::prepare(const Global& global, const std::string_view source)
     SourceFile& sourceFile = compiler.addFile(path, FileFlagsE::CustomSrc);
     SWC_RESULT(sourceFile.loadContent(ctx));
 
-    Lexer lexer;
-    lexer.tokenize(ctx, sourceFile.ast().srcView(), LexerFlagsE::Default);
-    if (sourceFile.ast().srcView().mustSkip())
-        return Result::Error;
+    constexpr ParserJobOptions parserOptions = {
+        .emitTrivia       = true,
+        .ignoreGlobalSkip = true,
+    };
 
-    Parser parser;
-    parser.parse(ctx, sourceFile.ast());
+    SWC_RESULT(parseLoadedSourceFile(ctx, sourceFile, parserOptions));
     if (ctx.hasError())
         return Result::Error;
 

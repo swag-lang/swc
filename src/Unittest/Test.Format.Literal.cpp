@@ -8,7 +8,6 @@
 #include "Unittest/Unittest.h"
 
 SWC_BEGIN_NAMESPACE();
-/*
 namespace
 {
     Result checkLiteralRewrite(const TaskContext& parentCtx, std::string_view source, std::string_view expected, const FormatOptions& options)
@@ -167,7 +166,7 @@ SWC_TEST_BEGIN(FormatLiteral_CombinedHexCaseAndNormalization)
     return checkLiteralRewrite(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
-*/
+
 SWC_END_NAMESPACE();
 
 #endif

@@ -150,7 +150,7 @@ namespace
         size_t            nextPos   = 0;
         for (size_t i = 0; i < elementRefs.size(); ++i)
         {
-            AstNodeRef   valueRef  = elementRefs[i];
+            AstNodeRef    valueRef  = elementRefs[i];
             IdentifierRef fieldName = IdentifierRef::invalid();
             if (const AstNode& valueNode = codeGen.node(elementRefs[i]); valueNode.is(AstNodeId::NamedArgument))
             {
@@ -263,7 +263,7 @@ namespace
 
             if (existingPayload->runtimeStorageSym != nullptr)
             {
-                outPayload = *existingPayload;
+                outPayload     = *existingPayload;
                 outPayload.reg = codeGen.runtimeStorageAddressReg(valueRef);
                 outPayload.setIsAddress();
                 if (!outPayload.typeRef.isValid())
@@ -302,9 +302,9 @@ namespace
 
         for (const AggregateElementLayout& entry : layout)
         {
-            CodeGenNodePayload        elementPayload;
+            CodeGenNodePayload elementPayload;
             SWC_RESULT(resolveAggregateElementPayload(elementPayload, codeGen, entry.valueRef, entry.typeRef));
-            const uint64_t            elementSize    = codeGen.typeMgr().get(entry.typeRef).sizeOf(codeGen.ctx());
+            const uint64_t elementSize = codeGen.typeMgr().get(entry.typeRef).sizeOf(codeGen.ctx());
             if (!elementSize)
                 continue;
 

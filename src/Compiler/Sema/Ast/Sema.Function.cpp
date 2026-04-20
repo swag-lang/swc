@@ -388,8 +388,7 @@ namespace
                 return;
         }
 
-        const auto attachWrapper = [&](AstNodeRef targetRef)
-        {
+        const auto attachWrapper = [&](AstNodeRef targetRef) {
             if (!targetRef.isValid())
                 return;
 
@@ -402,8 +401,7 @@ namespace
 
         attachWrapper(ownerRef);
 
-        const auto attachInlineRootIfCallLike = [&](AstNodeRef targetRef)
-        {
+        const auto attachInlineRootIfCallLike = [&](AstNodeRef targetRef) {
             if (!targetRef.isValid())
                 return;
 
@@ -574,7 +572,7 @@ namespace
         if (childRef != managedChildRef || childRef.isInvalid())
             return Result::Continue;
 
-        auto frame = sema.frame();
+        auto          frame   = sema.frame();
         const TokenId tokenId = effectiveErrorManagementTokenId(sema, sema.token(sema.curNode().codeRef()).id);
         frame.setCurrentErrorContext(sema.curNodeRef(), errorContextMode(tokenId));
         sema.pushFramePopOnPostChild(frame, childRef);
@@ -583,8 +581,8 @@ namespace
 
     Result semaTryCatchPostNodeCommon(Sema& sema, AstNodeRef managedChildRef)
     {
-        auto&        payload = ensureErrorManagementPayload(sema, sema.curNodeRef());
-        const Token& tok     = sema.token(sema.curNode().codeRef());
+        auto&         payload = ensureErrorManagementPayload(sema, sema.curNodeRef());
+        const Token&  tok     = sema.token(sema.curNode().codeRef());
         const TokenId tokenId = effectiveErrorManagementTokenId(sema, tok.id);
 
         if (tokenId == TokenId::KwdTry && !canPropagateThrowableResult(sema))
@@ -2172,8 +2170,8 @@ Result AstTryCatchExpr::semaPostNode(Sema& sema) const
 {
     SWC_RESULT(semaTryCatchPostNodeCommon(sema, nodeExprRef));
 
-    const AstNodeRef resolvedExprRef = sema.viewZero(nodeExprRef).nodeRef();
-    const SemaNodeView exprView      = sema.viewNodeTypeConstant(resolvedExprRef);
+    const AstNodeRef   resolvedExprRef = sema.viewZero(nodeExprRef).nodeRef();
+    const SemaNodeView exprView        = sema.viewNodeTypeConstant(resolvedExprRef);
     sema.inheritPayloadFlags(sema.curNode(), resolvedExprRef);
     sema.setType(sema.curNodeRef(), exprView.typeRef());
     if (exprView.cstRef().isValid())

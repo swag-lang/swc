@@ -28,8 +28,8 @@ namespace
 
     const Symbol* findPredefinedRuntimeSymbol(const Sema& sema, IdentifierManager::PredefinedName name)
     {
-        const IdentifierRef swagIdRef   = sema.idMgr().predefined(IdentifierManager::PredefinedName::Swag);
-        const IdentifierRef targetIdRef = sema.idMgr().predefined(name);
+        const IdentifierRef        swagIdRef   = sema.idMgr().predefined(IdentifierManager::PredefinedName::Swag);
+        const IdentifierRef        targetIdRef = sema.idMgr().predefined(name);
         std::vector<const Symbol*> moduleSymbols;
         sema.moduleNamespace().getAllSymbols(moduleSymbols);
         for (const Symbol* moduleSym : moduleSymbols)

@@ -42,7 +42,7 @@ SWC_TEST_BEGIN(FormatLiteral_HexDigitCaseUpperAndLower)
 
     {
         FormatOptions options;
-        options.hexLiteralCase                     = FormatLiteralCase::Upper;
+        options.hexLiteralCase = FormatLiteralCase::Upper;
         static constexpr std::string_view EXPECTED =
             "#assert(0xABCD == 0xABCD)\n"
             "#assert(0xDEAD_BEEF == 0xDEAD_BEEF)\n";
@@ -51,7 +51,7 @@ SWC_TEST_BEGIN(FormatLiteral_HexDigitCaseUpperAndLower)
 
     {
         FormatOptions options;
-        options.hexLiteralCase                     = FormatLiteralCase::Lower;
+        options.hexLiteralCase = FormatLiteralCase::Lower;
         static constexpr std::string_view EXPECTED =
             "#assert(0xabcd == 0xabcd)\n"
             "#assert(0xdead_beef == 0xdead_beef)\n";

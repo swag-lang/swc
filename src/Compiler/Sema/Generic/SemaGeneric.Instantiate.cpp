@@ -474,9 +474,9 @@ namespace
 
     void fillFunctionConstraintFailure(Sema& sema, CastFailure& outFailure, DiagnosticId diagId, AstNodeRef whereRef, TypeRef typeRef, const Utf8& bindings)
     {
-        outFailure             = {};
-        outFailure.diagId      = diagId;
-        outFailure.srcTypeRef  = typeRef;
+        outFailure            = {};
+        outFailure.diagId     = diagId;
+        outFailure.srcTypeRef = typeRef;
         if (whereRef.isValid())
             outFailure.noteCodeRef = sema.node(whereRef).codeRef();
         if (!bindings.empty())

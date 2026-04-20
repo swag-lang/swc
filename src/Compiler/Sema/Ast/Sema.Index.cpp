@@ -378,8 +378,8 @@ Result AstIndexListExpr::semaPostNode(Sema& sema)
             return Result::Error;
         }
 
-        bool        allConstant    = nodeExprView.cst() != nullptr;
-        ConstantRef currentCstRef  = nodeExprView.cstRef();
+        bool        allConstant   = nodeExprView.cst() != nullptr;
+        ConstantRef currentCstRef = nodeExprView.cstRef();
 
         for (size_t i = 0; i < numGot; i++)
         {

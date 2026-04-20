@@ -39,7 +39,7 @@ namespace
         VariableSymbolCodeGenPayload* payload = safeVariableSymbolPayload(sym);
         if (!payload)
         {
-            payload = codeGen.compiler().allocate<VariableSymbolCodeGenPayload>();
+            payload  = codeGen.compiler().allocate<VariableSymbolCodeGenPayload>();
             *payload = {};
             sym.setCodeGenPayload(payload);
         }
@@ -1107,7 +1107,7 @@ bool CodeGen::containsNodeId(AstNodeRef nodeRef, const AstNodeId nodeId)
         return false;
 
     std::unordered_set<AstNodeRef> visited;
-    SmallVector<AstNodeRef> stack;
+    SmallVector<AstNodeRef>        stack;
     stack.push_back(nodeRef);
     while (!stack.empty())
     {

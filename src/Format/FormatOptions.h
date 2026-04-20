@@ -170,24 +170,24 @@ struct FormatOptions
     // -----------------------------------------------------------------------
     // Spacing
     // -----------------------------------------------------------------------
-    bool                    spaceBeforeColonInDeclarations = false;                           // `a : u8`
-    bool                    spaceAfterColonInDeclarations  = true;                            // `a: u8`
-    bool                    spaceBeforeColonInBaseClause   = false;                           // `enum E: u32`
-    bool                    spaceAroundAssignmentOperator  = true;                            // `a = 1`
-    bool                    spaceAroundBinaryOperators     = true;                            // `a + b`
-    bool                    spaceAroundArrow               = false;                           // `func()->int` vs `func() -> int`
-    bool                    spaceAroundRangeOperator       = false;                           // `0..10` vs `0 .. 10`
-    bool                    spaceAfterComma                = true;                            // `a, b`
-    bool                    spaceBeforeComma               = false;                           // `a ,b`
-    bool                    spaceAfterCast                 = true;                            // `cast(int) x`
-    bool                    spaceAfterKeyword              = true;                            // `if (x)` vs `if(x)`
-    bool                    spaceAfterUnaryOperator        = false;                           // `- x` vs `-x`
-    bool                    spaceInsideParentheses         = false;                           // `( a, b )`
-    bool                    spaceInsideBrackets            = false;                           // `[ 0 ]`
-    bool                    spaceInsideBraces              = false;                           // `{ 1, 2 }`
-    bool                    spaceInEmptyParentheses        = false;                           // `( )`
-    bool                    spaceInEmptyBraces             = false;                           // `{ }`
-    bool                    spaceBeforeAttributeBracket    = false;                           // `foo #[attr]`
+    bool                    spaceBeforeColonInDeclarations = false;                          // `a : u8`
+    bool                    spaceAfterColonInDeclarations  = true;                           // `a: u8`
+    bool                    spaceBeforeColonInBaseClause   = false;                          // `enum E: u32`
+    bool                    spaceAroundAssignmentOperator  = true;                           // `a = 1`
+    bool                    spaceAroundBinaryOperators     = true;                           // `a + b`
+    bool                    spaceAroundArrow               = false;                          // `func()->int` vs `func() -> int`
+    bool                    spaceAroundRangeOperator       = false;                          // `0..10` vs `0 .. 10`
+    bool                    spaceAfterComma                = true;                           // `a, b`
+    bool                    spaceBeforeComma               = false;                          // `a ,b`
+    bool                    spaceAfterCast                 = true;                           // `cast(int) x`
+    bool                    spaceAfterKeyword              = true;                           // `if (x)` vs `if(x)`
+    bool                    spaceAfterUnaryOperator        = false;                          // `- x` vs `-x`
+    bool                    spaceInsideParentheses         = false;                          // `( a, b )`
+    bool                    spaceInsideBrackets            = false;                          // `[ 0 ]`
+    bool                    spaceInsideBraces              = false;                          // `{ 1, 2 }`
+    bool                    spaceInEmptyParentheses        = false;                          // `( )`
+    bool                    spaceInEmptyBraces             = false;                          // `{ }`
+    bool                    spaceBeforeAttributeBracket    = false;                          // `foo #[attr]`
     FormatSpaceBeforeParens spaceBeforeParentheses         = FormatSpaceBeforeParens::Never; // When to insert a space between an identifier and `(`
 
     // -----------------------------------------------------------------------

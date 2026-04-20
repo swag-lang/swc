@@ -99,17 +99,17 @@ public:
         currentErrorScope_       = nodeRef;
         currentErrorContextMode_ = mode;
     }
-    TypeRef             currentLoopIndexTypeRef() const { return currentLoopIndexTypeRef_; }
-    void                setCurrentLoopIndexTypeRef(TypeRef typeRef) { currentLoopIndexTypeRef_ = typeRef; }
-    AstNodeRef          currentLoopIndexOwnerRef() const { return currentLoopIndexOwnerRef_; }
-    void                setCurrentLoopIndexOwnerRef(AstNodeRef nodeRef) { currentLoopIndexOwnerRef_ = nodeRef; }
-    AstNodeRef          currentSwitch() const { return currentSwitch_; }
-    void                setCurrentSwitch(AstNodeRef nodeRef) { currentSwitch_ = nodeRef; }
-    AstNodeRef          currentSwitchCase() const { return currentSwitchCase_; }
-    void                setCurrentSwitchCase(AstNodeRef nodeRef) { currentSwitchCase_ = nodeRef; }
-    AstNodeRef          currentRuntimeStorageNodeRef() const { return runtimeStorageNodeRef_; }
-    SymbolVariable*     currentRuntimeStorageSym() const { return runtimeStorageSym_; }
-    void                setCurrentRuntimeStorage(AstNodeRef nodeRef, SymbolVariable* sym)
+    TypeRef         currentLoopIndexTypeRef() const { return currentLoopIndexTypeRef_; }
+    void            setCurrentLoopIndexTypeRef(TypeRef typeRef) { currentLoopIndexTypeRef_ = typeRef; }
+    AstNodeRef      currentLoopIndexOwnerRef() const { return currentLoopIndexOwnerRef_; }
+    void            setCurrentLoopIndexOwnerRef(AstNodeRef nodeRef) { currentLoopIndexOwnerRef_ = nodeRef; }
+    AstNodeRef      currentSwitch() const { return currentSwitch_; }
+    void            setCurrentSwitch(AstNodeRef nodeRef) { currentSwitch_ = nodeRef; }
+    AstNodeRef      currentSwitchCase() const { return currentSwitchCase_; }
+    void            setCurrentSwitchCase(AstNodeRef nodeRef) { currentSwitchCase_ = nodeRef; }
+    AstNodeRef      currentRuntimeStorageNodeRef() const { return runtimeStorageNodeRef_; }
+    SymbolVariable* currentRuntimeStorageSym() const { return runtimeStorageSym_; }
+    void            setCurrentRuntimeStorage(AstNodeRef nodeRef, SymbolVariable* sym)
     {
         runtimeStorageNodeRef_ = nodeRef;
         runtimeStorageSym_     = sym;
@@ -140,8 +140,8 @@ private:
     SemaScope*                    upLookupScope_       = nullptr;
     bool                          ignoreRuntimeAccess_ = false;
     BreakContext                  breakable_;
-    AstNodeRef                    currentErrorScope_       = AstNodeRef::invalid();
-    ErrorContextMode              currentErrorContextMode_ = ErrorContextMode::None;
+    AstNodeRef                    currentErrorScope_        = AstNodeRef::invalid();
+    ErrorContextMode              currentErrorContextMode_  = ErrorContextMode::None;
     TypeRef                       currentLoopIndexTypeRef_  = TypeRef::invalid();
     AstNodeRef                    currentLoopIndexOwnerRef_ = AstNodeRef::invalid();
     AstNodeRef                    currentSwitch_            = AstNodeRef::invalid();

@@ -189,7 +189,7 @@ namespace
 {
     Result extractAtIndexAggregateArray(Sema& sema, const ConstantValue& cst, int64_t constIndex, AstNodeRef nodeArgRef, ConstantRef& outCstRef)
     {
-        outCstRef = ConstantRef::invalid();
+        outCstRef          = ConstantRef::invalid();
         const auto& values = cst.getAggregateArray();
         if (std::cmp_greater_equal(constIndex, values.size()))
             return SemaError::raiseIndexOutOfRange(sema, nodeArgRef, constIndex, values.size());
@@ -199,18 +199,18 @@ namespace
 
     Result extractAtIndexString(Sema& sema, const ConstantValue& cst, int64_t constIndex, AstNodeRef nodeArgRef, ConstantRef& outCstRef)
     {
-        outCstRef = ConstantRef::invalid();
+        outCstRef                = ConstantRef::invalid();
         const std::string_view s = cst.getString();
         if (std::cmp_greater_equal(constIndex, s.size()))
             return SemaError::raiseIndexOutOfRange(sema, nodeArgRef, constIndex, s.size());
         const ConstantValue cstInt = ConstantValue::makeIntSized(sema.ctx(), static_cast<uint8_t>(s[constIndex]));
-        outCstRef = sema.cstMgr().addConstant(sema.ctx(), cstInt);
+        outCstRef                  = sema.cstMgr().addConstant(sema.ctx(), cstInt);
         return Result::Continue;
     }
 
     Result extractAtIndexBytes(Sema& sema, ByteSpan bytes, TypeRef elemTypeRef, int64_t constIndex, uint64_t count, AstNodeRef nodeArgRef, ConstantRef& outCstRef)
     {
-        outCstRef = ConstantRef::invalid();
+        outCstRef                = ConstantRef::invalid();
         TaskContext&    ctx      = sema.ctx();
         const TypeInfo& elemType = sema.typeMgr().get(elemTypeRef);
         SWC_RESULT(sema.waitSemaCompleted(&elemType, nodeArgRef));
@@ -232,7 +232,7 @@ namespace
 
     Result extractAtIndexArray(Sema& sema, const ConstantValue& cst, int64_t constIndex, AstNodeRef nodeArgRef, ConstantRef& outCstRef)
     {
-        outCstRef = ConstantRef::invalid();
+        outCstRef                = ConstantRef::invalid();
         TaskContext&    ctx      = sema.ctx();
         const TypeInfo& typeInfo = sema.typeMgr().get(cst.typeRef());
         const auto&     dims     = typeInfo.payloadArrayDims();
@@ -246,10 +246,10 @@ namespace
             for (size_t i = 1; i < dims.size(); ++i)
                 remainingDims.push_back(dims[i]);
 
-            const TypeRef nextTypeRef = sema.typeMgr().addType(TypeInfo::makeArray(remainingDims.span(), typeInfo.payloadArrayElemTypeRef(), typeInfo.flags()));
-            const uint64_t nextSize    = sema.typeMgr().get(nextTypeRef).sizeOf(ctx);
-            const ByteSpan nextBytes   = {cst.getArray().data() + (constIndex * nextSize), nextSize};
-            const ConstantRef nextCstRef = ConstantHelpers::materializeStaticPayloadConstant(sema, nextTypeRef, nextBytes);
+            const TypeRef     nextTypeRef = sema.typeMgr().addType(TypeInfo::makeArray(remainingDims.span(), typeInfo.payloadArrayElemTypeRef(), typeInfo.flags()));
+            const uint64_t    nextSize    = sema.typeMgr().get(nextTypeRef).sizeOf(ctx);
+            const ByteSpan    nextBytes   = {cst.getArray().data() + (constIndex * nextSize), nextSize};
+            const ConstantRef nextCstRef  = ConstantHelpers::materializeStaticPayloadConstant(sema, nextTypeRef, nextBytes);
             if (nextCstRef.isInvalid())
                 return Result::Continue;
 

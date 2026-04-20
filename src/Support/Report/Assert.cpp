@@ -130,9 +130,9 @@ namespace
 
 void swcAssert(const char* expr, const char* file, int line)
 {
-    const Utf8 fileLoc = FileSystem::formatFileLocation(nullptr, fs::path(file ? file : "<null>"), static_cast<uint32_t>(line));
-    Utf8       msg     = std::format("Assertion Failed!\nFile: {}\nExpression: {}\n", fileLoc, expr);
-    const TaskContext* const ctx = TaskContext::current();
+    const Utf8               fileLoc = FileSystem::formatFileLocation(nullptr, fs::path(file ? file : "<null>"), static_cast<uint32_t>(line));
+    Utf8                     msg     = std::format("Assertion Failed!\nFile: {}\nExpression: {}\n", fileLoc, expr);
+    const TaskContext* const ctx     = TaskContext::current();
     if (ctx)
         appendInternalErrorTaskContext(msg, *ctx);
     appendCallStack(msg, ctx);

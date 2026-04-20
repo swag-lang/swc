@@ -251,7 +251,7 @@ SWC_TEST_BEGIN(Compiler_FormatSummaryLineShowsWrittenFilesAfterTime)
     cmdLine.command  = CommandKind::Format;
     cmdLine.logColor = false;
 
-    const TaskContext                         formatCtx(ctx.global(), cmdLine);
+    const TaskContext                   formatCtx(ctx.global(), cmdLine);
     const TimedActionLog::StatsSnapshot snapshot        = TimedActionLog::StatsSnapshot::capture();
     const Utf8                          summaryLine     = TimedActionLog::formatSummaryLine(formatCtx, snapshot);
     const Utf8                          expectedTime    = Utf8Helper::toNiceTime(1.0);

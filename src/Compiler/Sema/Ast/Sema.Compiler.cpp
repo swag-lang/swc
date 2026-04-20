@@ -1155,7 +1155,7 @@ namespace
 
     Result semaCompilerRunes(Sema& sema, const AstCompilerCallOne& node)
     {
-        TaskContext&    ctx      = sema.ctx();
+        TaskContext&     ctx      = sema.ctx();
         const AstNodeRef childRef = node.nodeArgRef;
         SWC_RESULT(SemaCheck::isConstant(sema, childRef));
 

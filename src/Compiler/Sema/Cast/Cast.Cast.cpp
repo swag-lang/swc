@@ -1783,10 +1783,10 @@ Result Cast::castAllowed(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRe
 
     if (srcType.isAlias() || dstType.isAlias())
     {
-        const TypeRef resolvedSrcTypeRef = unwrapAliasEnumTypeRef(sema.typeMgr(), sema.ctx(), srcTypeRef);
-        const TypeRef resolvedDstTypeRef = unwrapAliasEnumTypeRef(sema.typeMgr(), sema.ctx(), dstTypeRef);
-        const TypeInfo& resolvedSrcType  = sema.typeMgr().get(resolvedSrcTypeRef);
-        const TypeInfo& resolvedDstType  = sema.typeMgr().get(resolvedDstTypeRef);
+        const TypeRef   resolvedSrcTypeRef = unwrapAliasEnumTypeRef(sema.typeMgr(), sema.ctx(), srcTypeRef);
+        const TypeRef   resolvedDstTypeRef = unwrapAliasEnumTypeRef(sema.typeMgr(), sema.ctx(), dstTypeRef);
+        const TypeInfo& resolvedSrcType    = sema.typeMgr().get(resolvedSrcTypeRef);
+        const TypeInfo& resolvedDstType    = sema.typeMgr().get(resolvedDstTypeRef);
 
         const bool allowAliasBoolCast = isTruthyBoolCastKind(castRequest.kind) && dstType.isBool();
         const bool allowAliasNullCast = resolvedSrcType.isNull() && resolvedDstType.isPointerLike();

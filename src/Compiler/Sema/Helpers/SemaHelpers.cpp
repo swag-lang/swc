@@ -351,7 +351,7 @@ CodeGenNodePayload& SemaHelpers::ensureCodeGenNodePayload(Sema& sema, AstNodeRef
     if (payload)
         return *payload;
 
-    payload = sema.compiler().allocate<CodeGenNodePayload>();
+    payload  = sema.compiler().allocate<CodeGenNodePayload>();
     *payload = {};
     sema.setCodeGenPayload(nodeRef, payload);
     return *payload;

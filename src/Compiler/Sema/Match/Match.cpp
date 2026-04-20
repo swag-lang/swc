@@ -113,7 +113,7 @@ namespace
         const SymbolMap* current = root;
         for (const IdentifierRef idRef : nsPath)
         {
-            MatchContext matchCxt;
+            MatchContext           matchCxt;
             MatchContext::Priority priority;
             priority.scopeDepth = 0;
             priority.visibility = MatchContext::VisibilityTier::LocalScope;

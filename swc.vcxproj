@@ -149,6 +149,7 @@
         </Link>
     </ItemDefinitionGroup>
     <ItemGroup>
+        <ClCompile Include="src\Unittest\Test.Format.Literal.cpp"/>
         <ClCompile Include="src\Unittest\UnittestHelpers.cpp"/>
         <ClCompile Include="src\Unittest\Test.ABI.FFI.cpp"/>
         <ClCompile Include="src\Unittest\Test.Compiler.ConstantManager.cpp"/>

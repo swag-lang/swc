@@ -356,6 +356,7 @@ Result CodeGen::exec(SymbolFunction& symbolFunc, AstNodeRef root)
         currentFunctionIndirectReturnReg_ = MicroReg::invalid();
         currentFunctionClosureContextReg_ = MicroReg::invalid();
         deferScopes_.clear();
+        deferredEmissionCursors_.clear();
         deferredEmitDepth_                = 0;
         currentDeferredAddressGeneration_ = 0;
         nextDeferredAddressGeneration_    = 1;
@@ -892,65 +893,116 @@ void CodeGen::registerImplicitParameterDrops()
 
 namespace
 {
-    Result emitDeferredDeferStmt(CodeGen& codeGen, const CodeGenDeferredAction& action)
+}
+
+Result CodeGen::emitDeferredAction(const CodeGenDeferredAction& action)
+{
+    switch (action.kind)
     {
-        if (action.bodyRef.isInvalid())
-            return Result::Continue;
-
-        const bool needsErr   = action.modifierFlags.has(AstModifierFlagsE::Err);
-        const bool needsNoErr = action.modifierFlags.has(AstModifierFlagsE::NoErr);
-        if (!needsErr && !needsNoErr)
-            return codeGen.emitNodeNow(action.bodyRef);
-
-        const IdentifierRef idRef = codeGen.idMgr().runtimeFunction(IdentifierManager::RuntimeFunctionKind::IsErrContext);
-        SWC_ASSERT(idRef.isValid());
-        if (idRef.isInvalid())
-            return Result::Error;
-
-        SymbolFunction* runtimeIsErrContext = codeGen.compiler().runtimeFunctionSymbol(idRef);
-        SWC_ASSERT(runtimeIsErrContext != nullptr);
-        if (!runtimeIsErrContext)
-            return Result::Error;
-
-        const MicroReg      errContextReg = codeGen.nextVirtualIntRegister();
-        MicroBuilder&       builder       = codeGen.builder();
-        const MicroLabelRef skipLabel     = builder.createLabel();
-        SWC_RESULT(CodeGenCallHelpers::emitRuntimeCallWithDirectArgsToReg(codeGen, *runtimeIsErrContext, std::span<const MicroReg>{}, errContextReg));
-        builder.emitCmpRegImm(errContextReg, ApInt(0, 64), MicroOpBits::B8);
-        builder.emitJumpToLabel(needsErr ? MicroCond::Equal : MicroCond::NotEqual, MicroOpBits::B32, skipLabel);
-        SWC_RESULT(codeGen.emitNodeNow(action.bodyRef));
-        builder.placeLabel(skipLabel);
-        return Result::Continue;
-    }
-
-    Result emitDeferredActions(CodeGen& codeGen, const CodeGenDeferScope& deferScope)
-    {
-        for (size_t i = deferScope.actions.size(); i != 0; --i)
+        case CodeGenDeferredAction::Kind::DeferStmt:
         {
-            const auto& action = deferScope.actions[i - 1];
-            switch (action.kind)
-            {
-                case CodeGenDeferredAction::Kind::DeferStmt:
-                    SWC_RESULT(emitDeferredDeferStmt(codeGen, action));
-                    break;
+            if (action.bodyRef.isInvalid())
+                return Result::Continue;
 
-                case CodeGenDeferredAction::Kind::ImplicitDrop:
-                {
-                    if (!action.variable || action.lifecycleTypeRef.isInvalid())
-                        continue;
+            const bool needsErr   = action.modifierFlags.has(AstModifierFlagsE::Err);
+            const bool needsNoErr = action.modifierFlags.has(AstModifierFlagsE::NoErr);
+            if (!needsErr && !needsNoErr)
+                return emitNodeNow(action.bodyRef);
 
-                    CodeGenNodePayload variablePayload;
-                    if (!resolveDeferredVariableAddress(codeGen, *action.variable, variablePayload))
-                        continue;
+            const IdentifierRef idRef = idMgr().runtimeFunction(IdentifierManager::RuntimeFunctionKind::IsErrContext);
+            SWC_ASSERT(idRef.isValid());
+            if (idRef.isInvalid())
+                return Result::Error;
 
-                    SWC_RESULT(codeGen.emitLifecycle(action.lifecycleTypeRef, action.lifecycleKind, variablePayload.reg));
-                    break;
-                }
-            }
+            SymbolFunction* runtimeIsErrContext = compiler().runtimeFunctionSymbol(idRef);
+            SWC_ASSERT(runtimeIsErrContext != nullptr);
+            if (!runtimeIsErrContext)
+                return Result::Error;
+
+            const MicroReg      errContextReg = nextVirtualIntRegister();
+            MicroBuilder&       builder       = this->builder();
+            const MicroLabelRef skipLabel     = builder.createLabel();
+            SWC_RESULT(CodeGenCallHelpers::emitRuntimeCallWithDirectArgsToReg(*this, *runtimeIsErrContext, std::span<const MicroReg>{}, errContextReg));
+            builder.emitCmpRegImm(errContextReg, ApInt(0, 64), MicroOpBits::B8);
+            builder.emitJumpToLabel(needsErr ? MicroCond::Equal : MicroCond::NotEqual, MicroOpBits::B32, skipLabel);
+            SWC_RESULT(emitNodeNow(action.bodyRef));
+            builder.placeLabel(skipLabel);
+            return Result::Continue;
         }
 
-        return Result::Continue;
+        case CodeGenDeferredAction::Kind::ImplicitDrop:
+        {
+            if (!action.variable || action.lifecycleTypeRef.isInvalid())
+                return Result::Continue;
+
+            CodeGenNodePayload variablePayload;
+            if (!resolveDeferredVariableAddress(*this, *action.variable, variablePayload))
+                return Result::Continue;
+
+            return emitLifecycle(action.lifecycleTypeRef, action.lifecycleKind, variablePayload.reg);
+        }
     }
+
+    return Result::Continue;
+}
+
+Result CodeGen::emitDeferredActionsInScope(const size_t scopeIndex, const size_t actionCount)
+{
+    SWC_ASSERT(scopeIndex < deferScopes_.size());
+    if (scopeIndex >= deferScopes_.size())
+        return Result::Continue;
+
+    const auto& deferScope = deferScopes_[scopeIndex];
+    const size_t clampedActionCount = std::min(actionCount, deferScope.actions.size());
+    deferredEmissionCursors_.push_back({
+        .scopeIndex      = scopeIndex,
+        .nextActionCount = clampedActionCount,
+    });
+
+    Result result = Result::Continue;
+    for (size_t i = clampedActionCount; i != 0; --i)
+    {
+        deferredEmissionCursors_.back().nextActionCount = i - 1;
+        const auto& action = deferScope.actions[i - 1];
+        result             = emitDeferredAction(action);
+        if (result != Result::Continue)
+            break;
+    }
+
+    deferredEmissionCursors_.pop_back();
+    return result;
+}
+
+Result CodeGen::emitDeferredActionsFrom(const size_t startScopeIndex, const size_t startActionCount, const size_t stopScopeIndex, const bool hasStopScope)
+{
+    if (startScopeIndex >= deferScopes_.size())
+        return Result::Continue;
+
+    for (size_t scopeCursor = startScopeIndex + 1; scopeCursor != 0; --scopeCursor)
+    {
+        const size_t scopeIndex   = scopeCursor - 1;
+        const size_t actionCount  = scopeIndex == startScopeIndex ? startActionCount : deferScopes_[scopeIndex].actions.size();
+        SWC_RESULT(emitDeferredActionsInScope(scopeIndex, actionCount));
+        if (hasStopScope && scopeIndex == stopScopeIndex)
+            break;
+    }
+
+    return Result::Continue;
+}
+
+bool CodeGen::findInnermostDeferScopeIndex(AstNodeRef scopeRef, size_t& outScopeIndex) const
+{
+    outScopeIndex = 0;
+    for (size_t i = deferScopes_.size(); i != 0; --i)
+    {
+        if (deferScopes_[i - 1].scopeRef == scopeRef)
+        {
+            outScopeIndex = i - 1;
+            return true;
+        }
+    }
+
+    return false;
 }
 
 Result CodeGen::popDeferScope()
@@ -968,7 +1020,9 @@ Result CodeGen::popDeferScope()
     if (currentInstructionBlocksFallthrough())
         return Result::Continue;
 
-    return emitDeferredActions(*this, deferScope);
+    for (size_t i = deferScope.actions.size(); i != 0; --i)
+        SWC_RESULT(emitDeferredAction(deferScope.actions[i - 1]));
+    return Result::Continue;
 }
 
 Result CodeGen::emitDeferredActionsForReturn()
@@ -976,14 +1030,16 @@ Result CodeGen::emitDeferredActionsForReturn()
     if (!hasDeferredStatements_)
         return Result::Continue;
 
-    SmallVector<CodeGenDeferScope> pendingScopes;
-    pendingScopes.reserve(deferScopes_.size());
-    for (size_t i = deferScopes_.size(); i != 0; --i)
-        pendingScopes.push_back(deferScopes_[i - 1]);
+    if (deferScopes_.empty())
+        return Result::Continue;
 
-    for (const auto& deferScope : pendingScopes)
-        SWC_RESULT(emitDeferredActions(*this, deferScope));
-    return Result::Continue;
+    if (!deferredEmissionCursors_.empty())
+    {
+        const auto& cursor = deferredEmissionCursors_.back();
+        return emitDeferredActionsFrom(cursor.scopeIndex, cursor.nextActionCount, 0, false);
+    }
+
+    return emitDeferredActionsFrom(deferScopes_.size() - 1, deferScopes_.back().actions.size(), 0, false);
 }
 
 Result CodeGen::emitDeferredActionsUntilScopeRef(AstNodeRef scopeRef)
@@ -995,18 +1051,17 @@ Result CodeGen::emitDeferredActionsUntilScopeRef(AstNodeRef scopeRef)
     if (scopeRef.isInvalid())
         return Result::Continue;
 
-    SmallVector<CodeGenDeferScope> pendingScopes;
-    for (size_t i = deferScopes_.size(); i != 0; --i)
+    size_t stopScopeIndex = 0;
+    if (!findInnermostDeferScopeIndex(scopeRef, stopScopeIndex))
+        return Result::Continue;
+
+    if (!deferredEmissionCursors_.empty())
     {
-        const auto& deferScope = deferScopes_[i - 1];
-        pendingScopes.push_back(deferScope);
-        if (deferScope.scopeRef == scopeRef)
-            break;
+        const auto& cursor = deferredEmissionCursors_.back();
+        return emitDeferredActionsFrom(cursor.scopeIndex, cursor.nextActionCount, stopScopeIndex, true);
     }
 
-    for (const auto& deferScope : pendingScopes)
-        SWC_RESULT(emitDeferredActions(*this, deferScope));
-    return Result::Continue;
+    return emitDeferredActionsFrom(deferScopes_.size() - 1, deferScopes_.back().actions.size(), stopScopeIndex, true);
 }
 
 Result CodeGen::emitDeferredActionsUntilBreakOwner(AstNodeRef breakOwnerRef)
@@ -1018,18 +1073,28 @@ Result CodeGen::emitDeferredActionsUntilBreakOwner(AstNodeRef breakOwnerRef)
     if (breakOwnerRef.isInvalid())
         return Result::Continue;
 
-    SmallVector<CodeGenDeferScope> pendingScopes;
+    size_t stopScopeIndex = 0;
+    bool   foundStopScope = false;
     for (size_t i = deferScopes_.size(); i != 0; --i)
     {
-        const auto& deferScope = deferScopes_[i - 1];
-        pendingScopes.push_back(deferScope);
-        if (deferScope.breakOwnerRef == breakOwnerRef)
+        if (deferScopes_[i - 1].breakOwnerRef == breakOwnerRef)
+        {
+            stopScopeIndex = i - 1;
+            foundStopScope = true;
             break;
+        }
     }
 
-    for (const auto& deferScope : pendingScopes)
-        SWC_RESULT(emitDeferredActions(*this, deferScope));
-    return Result::Continue;
+    if (!foundStopScope)
+        return Result::Continue;
+
+    if (!deferredEmissionCursors_.empty())
+    {
+        const auto& cursor = deferredEmissionCursors_.back();
+        return emitDeferredActionsFrom(cursor.scopeIndex, cursor.nextActionCount, stopScopeIndex, true);
+    }
+
+    return emitDeferredActionsFrom(deferScopes_.size() - 1, deferScopes_.back().actions.size(), stopScopeIndex, true);
 }
 
 Result CodeGen::emitDeferredActionsUntilSwitchCase(AstNodeRef switchCaseRef)
@@ -1041,18 +1106,28 @@ Result CodeGen::emitDeferredActionsUntilSwitchCase(AstNodeRef switchCaseRef)
     if (switchCaseRef.isInvalid())
         return Result::Continue;
 
-    SmallVector<CodeGenDeferScope> pendingScopes;
+    size_t stopScopeIndex = 0;
+    bool   foundStopScope = false;
     for (size_t i = deferScopes_.size(); i != 0; --i)
     {
-        const auto& deferScope = deferScopes_[i - 1];
-        pendingScopes.push_back(deferScope);
-        if (deferScope.switchCaseRef == switchCaseRef)
+        if (deferScopes_[i - 1].switchCaseRef == switchCaseRef)
+        {
+            stopScopeIndex = i - 1;
+            foundStopScope = true;
             break;
+        }
     }
 
-    for (const auto& deferScope : pendingScopes)
-        SWC_RESULT(emitDeferredActions(*this, deferScope));
-    return Result::Continue;
+    if (!foundStopScope)
+        return Result::Continue;
+
+    if (!deferredEmissionCursors_.empty())
+    {
+        const auto& cursor = deferredEmissionCursors_.back();
+        return emitDeferredActionsFrom(cursor.scopeIndex, cursor.nextActionCount, stopScopeIndex, true);
+    }
+
+    return emitDeferredActionsFrom(deferScopes_.size() - 1, deferScopes_.back().actions.size(), stopScopeIndex, true);
 }
 
 bool CodeGen::currentInstructionBlocksFallthrough() const

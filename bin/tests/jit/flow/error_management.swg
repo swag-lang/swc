@@ -28,6 +28,29 @@ struct AggregateInfo
     messageOk: bool
 }
 
+struct NullInfo
+{
+    isNull: bool
+    hasErr: bool
+    code: s32
+}
+
+struct TraceInfo
+{
+    value: s32
+    hasErr: bool
+    code: s32
+    trace: s64
+}
+
+struct AggregateTraceInfo
+{
+    value: AggregateResult
+    hasErr: bool
+    code: s32
+    trace: s64
+}
+
 var ErrorTrace: s64 = 0
 
 func resetErrorTrace()
@@ -57,6 +80,15 @@ func alwaysThrowValue(code: s32)->s32 throw
 func alwaysThrowVoid(code: s32) throw
 {
     throw ErrValue{code: code}
+}
+
+func currentErrCode()->s32
+{
+    if @err == null do
+        return 0
+
+    let err = cast(ErrValue) @err
+    return err.code
 }
 
 #[Swag.Inline]
@@ -116,6 +148,81 @@ func aggregateSuccess(seed: s32)->AggregateResult throw
 func aggregateFailure(code: s32)->AggregateResult throw
 {
     throw ErrValue{base: Swag.BaseError{"aggregate failure"}, code: code}
+}
+
+func nullablePointerFailure(code: s32)->#null *s32 throw
+{
+    throw ErrValue{code: code}
+}
+
+func nullableStringFailure(code: s32)->#null string throw
+{
+    throw ErrValue{code: code}
+}
+
+func nullableSliceFailure(code: s32)->#null [..] s32 throw
+{
+    throw ErrValue{code: code}
+}
+
+func chainTryLeaf()->s32 throw
+{
+    defer appendErrorTrace(1)
+    return try alwaysThrowValue(81)
+}
+
+func chainTryMid()->s32 throw
+{
+    defer appendErrorTrace(2)
+    return try chainTryLeaf()
+}
+
+func chainTryTop()->s32 throw
+{
+    defer appendErrorTrace(4)
+    return try chainTryMid()
+}
+
+func deferThrowAfterReturn()->s32 throw
+{
+    defer appendErrorTrace(3)
+    defer
+    {
+        appendErrorTrace(2)
+        throw ErrValue{code: 82}
+    }
+
+    appendErrorTrace(1)
+    return 99
+}
+
+func errDeferOverrideFailure()->s32 throw
+{
+    defer appendErrorTrace(3)
+    defer #err
+    {
+        appendErrorTrace(2)
+        throw ErrValue{code: 84}
+    }
+
+    appendErrorTrace(1)
+    throw ErrValue{code: 83}
+}
+
+func aggregateDeferThrow()->AggregateResult throw
+{
+    defer
+    {
+        appendErrorTrace(2)
+        throw ErrValue{code: 85}
+    }
+
+    appendErrorTrace(1)
+    return AggregateResult{
+        first: 10,
+        second: 11,
+        payload: [12, 13, 14],
+    }
 }
 
 func catchSuccessValue()->s32
@@ -319,6 +426,126 @@ func traceThrowCatch()->s64
     return ErrorTrace
 }
 
+func catchNullablePointerFailureInfo()->NullInfo
+{
+    var result: NullInfo
+    let value: #null *s32 = catch nullablePointerFailure(73)
+    result.isNull = value == null
+    result.hasErr = @err != null
+    result.code   = currentErrCode()
+    return result
+}
+
+func catchNullableStringFailureInfo()->NullInfo
+{
+    var result: NullInfo
+    let value: #null string = catch nullableStringFailure(74)
+    result.isNull = value == null
+    result.hasErr = @err != null
+    result.code   = currentErrCode()
+    return result
+}
+
+func catchNullableSliceFailureInfo()->NullInfo
+{
+    var result: NullInfo
+    let value: #null [..] s32 = catch nullableSliceFailure(75)
+    result.isNull = value == null
+    result.hasErr = @err != null
+    result.code   = currentErrCode()
+    return result
+}
+
+func tryCatchNullablePointerFailureInfo()->NullInfo
+{
+    var result: NullInfo
+    let value: #null *s32 = trycatch nullablePointerFailure(76)
+    result.isNull = value == null
+    result.hasErr = @err != null
+    result.code   = currentErrCode()
+    return result
+}
+
+func tryCatchNullableStringFailureInfo()->NullInfo
+{
+    var result: NullInfo
+    let value: #null string = trycatch nullableStringFailure(77)
+    result.isNull = value == null
+    result.hasErr = @err != null
+    result.code   = currentErrCode()
+    return result
+}
+
+func tryCatchNullableSliceFailureInfo()->NullInfo
+{
+    var result: NullInfo
+    let value: #null [..] s32 = trycatch nullableSliceFailure(78)
+    result.isNull = value == null
+    result.hasErr = @err != null
+    result.code   = currentErrCode()
+    return result
+}
+
+func chainedTryFailureInfo()->TraceInfo
+{
+    resetErrorTrace()
+
+    var result: TraceInfo
+    result.value  = catch chainTryTop()
+    result.trace  = ErrorTrace
+    result.hasErr = @err != null
+    result.code   = currentErrCode()
+    return result
+}
+
+func deferThrowAfterReturnInfo()->TraceInfo
+{
+    resetErrorTrace()
+
+    var result: TraceInfo
+    result.value  = catch deferThrowAfterReturn()
+    result.trace  = ErrorTrace
+    result.hasErr = @err != null
+    result.code   = currentErrCode()
+    return result
+}
+
+func errDeferOverrideFailureInfo()->TraceInfo
+{
+    resetErrorTrace()
+
+    var result: TraceInfo
+    result.value  = catch errDeferOverrideFailure()
+    result.trace  = ErrorTrace
+    result.hasErr = @err != null
+    result.code   = currentErrCode()
+    return result
+}
+
+func tryCatchErrDeferOverrideFailureInfo()->TraceInfo
+{
+    resetErrorTrace()
+
+    var result: TraceInfo
+    result.value  = trycatch errDeferOverrideFailure()
+    result.trace  = ErrorTrace
+    result.hasErr = @err != null
+    result.code   = currentErrCode()
+    return result
+}
+
+func aggregateDeferThrowInfo()->AggregateTraceInfo
+{
+    resetErrorTrace()
+
+    var result: AggregateTraceInfo
+    result.value  = catch aggregateDeferThrow()
+    result.trace  = ErrorTrace
+    result.hasErr = @err != null
+    result.code   = currentErrCode()
+    return result
+}
+
 func assumeSuccess()->s32
 {
     return assume mayThrowValue(77)
@@ -467,6 +694,103 @@ func tryCatchSuccessValue()->s32
 {
     const V = #run traceThrowCatch()
     #assert(V == 124)
+}
+
+#test
+{
+    const V = #run catchNullablePointerFailureInfo()
+    #assert(V.isNull)
+    #assert(V.hasErr)
+    #assert(V.code == 73)
+}
+
+#test
+{
+    const V = #run catchNullableStringFailureInfo()
+    #assert(V.isNull)
+    #assert(V.hasErr)
+    #assert(V.code == 74)
+}
+
+#test
+{
+    const V = #run catchNullableSliceFailureInfo()
+    #assert(V.isNull)
+    #assert(V.hasErr)
+    #assert(V.code == 75)
+}
+
+#test
+{
+    const V = #run tryCatchNullablePointerFailureInfo()
+    #assert(V.isNull)
+    #assert(!V.hasErr)
+    #assert(V.code == 0)
+}
+
+#test
+{
+    const V = #run tryCatchNullableStringFailureInfo()
+    #assert(V.isNull)
+    #assert(!V.hasErr)
+    #assert(V.code == 0)
+}
+
+#test
+{
+    const V = #run tryCatchNullableSliceFailureInfo()
+    #assert(V.isNull)
+    #assert(!V.hasErr)
+    #assert(V.code == 0)
+}
+
+#test
+{
+    const V = #run chainedTryFailureInfo()
+    #assert(V.value == 0)
+    #assert(V.hasErr)
+    #assert(V.code == 81)
+    #assert(V.trace == 124)
+}
+
+#test
+{
+    const V = #run deferThrowAfterReturnInfo()
+    #assert(V.value == 0)
+    #assert(V.hasErr)
+    #assert(V.code == 82)
+    #assert(V.trace == 123)
+}
+
+#test
+{
+    const V = #run errDeferOverrideFailureInfo()
+    #assert(V.value == 0)
+    #assert(V.hasErr)
+    #assert(V.code == 84)
+    #assert(V.trace == 123)
+}
+
+#test
+{
+    const V = #run tryCatchErrDeferOverrideFailureInfo()
+    #assert(V.value == 0)
+    #assert(!V.hasErr)
+    #assert(V.code == 0)
+    #assert(V.trace == 123)
+}
+
+#test
+{
+    const V = #run aggregateDeferThrowInfo()
+    #assert(V.value.first == 0)
+    #assert(V.value.second == 0)
+    #assert(V.value.payload[0] == 0)
+    #assert(V.value.payload[1] == 0)
+    #assert(V.value.payload[2] == 0)
+    #assert(V.hasErr)
+    #assert(V.code == 85)
+    #assert(V.trace == 12)
 }
 
 #test

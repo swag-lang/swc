@@ -168,6 +168,12 @@ struct CodeGenDeferScope
     SmallVector<CodeGenDeferredAction, 4> actions;
 };
 
+struct CodeGenDeferredEmissionCursor
+{
+    size_t scopeIndex      = 0;
+    size_t nextActionCount = 0;
+};
+
 class CodeGenFrame
 {
 public:
@@ -405,6 +411,10 @@ private:
     Result preNodeChild(AstNode& node, AstNodeRef& childRef);
     Result postNodeChild(AstNode& node, AstNodeRef& childRef);
     Result emitConstant(AstNodeRef nodeRef);
+    Result emitDeferredAction(const CodeGenDeferredAction& action);
+    Result emitDeferredActionsInScope(size_t scopeIndex, size_t actionCount);
+    Result emitDeferredActionsFrom(size_t startScopeIndex, size_t startActionCount, size_t stopScopeIndex, bool hasStopScope);
+    bool   findInnermostDeferScopeIndex(AstNodeRef scopeRef, size_t& outScopeIndex) const;
 
     Sema*                              sema_ = nullptr;
     AstVisit                           visit_;
@@ -417,6 +427,7 @@ private:
     MicroReg                           currentFunctionIndirectReturnReg_;
     MicroReg                           currentFunctionClosureContextReg_;
     SmallVector<CodeGenDeferScope, 32> deferScopes_;
+    SmallVector<CodeGenDeferredEmissionCursor, 16> deferredEmissionCursors_;
     uint32_t                           deferredEmitDepth_                = 0;
     uint32_t                           currentDeferredAddressGeneration_ = 0;
     uint32_t                           nextDeferredAddressGeneration_    = 1;

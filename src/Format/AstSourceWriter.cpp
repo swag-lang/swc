@@ -35,6 +35,83 @@ namespace
 
         return columns;
     }
+
+    char applyLiteralCase(const char c, const FormatLiteralCase mode)
+    {
+        switch (mode)
+        {
+            case FormatLiteralCase::Upper:
+                if (c >= 'a' && c <= 'z')
+                    return static_cast<char>(c - ('a' - 'A'));
+                break;
+            case FormatLiteralCase::Lower:
+                if (c >= 'A' && c <= 'Z')
+                    return static_cast<char>(c + ('a' - 'A'));
+                break;
+            case FormatLiteralCase::Preserve:
+                break;
+        }
+        return c;
+    }
+
+    void appendCased(Utf8& out, const std::string_view text, const FormatLiteralCase mode)
+    {
+        out.reserve(out.size() + text.size());
+        for (const char c : text)
+            out += applyLiteralCase(c, mode);
+    }
+
+    void appendRegrouped(Utf8& out, const std::string_view digits, const uint32_t groupSize)
+    {
+        if (groupSize == 0 || digits.size() <= groupSize)
+        {
+            out += digits;
+            return;
+        }
+
+        const size_t headSize = digits.size() % groupSize;
+        size_t       index    = 0;
+
+        if (headSize != 0)
+        {
+            out.append(digits.data(), headSize);
+            index = headSize;
+            if (index < digits.size())
+                out += '_';
+        }
+
+        while (index < digits.size())
+        {
+            out.append(digits.data() + index, groupSize);
+            index += groupSize;
+            if (index < digits.size())
+                out += '_';
+        }
+    }
+
+    void appendDigitsPreservingSeparators(Utf8& out, const std::string_view digits, const FormatLiteralCase digitCase)
+    {
+        out.reserve(out.size() + digits.size());
+        for (const char c : digits)
+        {
+            if (c == '_')
+                out += '_';
+            else
+                out += applyLiteralCase(c, digitCase);
+        }
+    }
+
+    void appendDigitsRegrouped(Utf8& out, const std::string_view digits, const uint32_t groupSize, const FormatLiteralCase digitCase)
+    {
+        std::string cleaned;
+        cleaned.reserve(digits.size());
+        for (const char c : digits)
+        {
+            if (c != '_')
+                cleaned += applyLiteralCase(c, digitCase);
+        }
+        appendRegrouped(out, cleaned, groupSize);
+    }
 }
 
 AstSourceWriter::AstSourceWriter(FormatContext& formatCtx) :
@@ -234,6 +311,12 @@ void AstSourceWriter::appendSourcePiece(const SourcePiece& piece)
         case TokenId::CommentBlock:
             appendCommentPiece(piece);
             break;
+        case TokenId::NumberHex:
+        case TokenId::NumberBin:
+        case TokenId::NumberInteger:
+        case TokenId::NumberFloat:
+            appendNumberPiece(piece);
+            break;
         default:
             formatCtx_->output += piece.text;
             break;
@@ -369,6 +452,115 @@ void AstSourceWriter::appendCommentPiece(const SourcePiece& piece) const
 
         formatCtx_->output += c;
         index++;
+    }
+}
+
+void AstSourceWriter::appendNumberPiece(const SourcePiece& piece) const
+{
+    SWC_ASSERT(piece.tokenId == TokenId::NumberHex ||
+               piece.tokenId == TokenId::NumberBin ||
+               piece.tokenId == TokenId::NumberInteger ||
+               piece.tokenId == TokenId::NumberFloat);
+
+    Utf8&            out  = formatCtx_->output;
+    std::string_view text = piece.text;
+
+    // Split off the optional `'suffix` (e.g. `'u32`, `'f64`).
+    std::string_view body;
+    std::string_view suffix;
+    if (const size_t sufPos = text.find('\''); sufPos != std::string_view::npos)
+    {
+        body   = text.substr(0, sufPos);
+        suffix = text.substr(sufPos);
+    }
+    else
+    {
+        body = text;
+    }
+
+    // Split off the `0x` / `0b` radix prefix for hex / binary literals.
+    std::string_view prefix;
+    const bool       isHex = piece.tokenId == TokenId::NumberHex;
+    const bool       isBin = piece.tokenId == TokenId::NumberBin;
+    if ((isHex || isBin) && body.size() >= 2 && body[0] == '0')
+    {
+        prefix = body.substr(0, 2);
+        body   = body.substr(2);
+    }
+
+    // Emit the radix prefix with the configured prefix case.
+    if (!prefix.empty())
+    {
+        out += prefix[0];
+        out += applyLiteralCase(prefix[1], options_->hexLiteralPrefixCase);
+    }
+
+    // Emit the digit body (with fractional and exponent parts for floats).
+    if (piece.tokenId == TokenId::NumberFloat)
+    {
+        size_t expPos = std::string_view::npos;
+        for (size_t i = 0; i < body.size(); ++i)
+        {
+            if (body[i] == 'e' || body[i] == 'E')
+            {
+                expPos = i;
+                break;
+            }
+        }
+
+        const std::string_view mantissa  = expPos == std::string_view::npos ? body : body.substr(0, expPos);
+        const uint32_t         groupSize = options_->decimalDigitSeparatorGroupSize;
+
+        if (!options_->normalizeDigitSeparators)
+        {
+            out += mantissa;
+        }
+        else if (const size_t dotPos = mantissa.find('.'); dotPos == std::string_view::npos)
+        {
+            appendDigitsRegrouped(out, mantissa, groupSize, FormatLiteralCase::Preserve);
+        }
+        else
+        {
+            appendDigitsRegrouped(out, mantissa.substr(0, dotPos), groupSize, FormatLiteralCase::Preserve);
+            out += '.';
+            appendDigitsRegrouped(out, mantissa.substr(dotPos + 1), groupSize, FormatLiteralCase::Preserve);
+        }
+
+        if (expPos != std::string_view::npos)
+        {
+            out += applyLiteralCase(body[expPos], options_->floatExponentCase);
+            std::string_view expTail = body.substr(expPos + 1);
+            if (!expTail.empty() && (expTail[0] == '+' || expTail[0] == '-'))
+            {
+                out += expTail[0];
+                expTail = expTail.substr(1);
+            }
+            if (options_->normalizeDigitSeparators)
+                appendDigitsRegrouped(out, expTail, groupSize, FormatLiteralCase::Preserve);
+            else
+                out += expTail;
+        }
+    }
+    else if (isHex)
+    {
+        if (options_->normalizeDigitSeparators)
+            appendDigitsRegrouped(out, body, options_->hexDigitSeparatorGroupSize, options_->hexLiteralCase);
+        else
+            appendDigitsPreservingSeparators(out, body, options_->hexLiteralCase);
+    }
+    else if (isBin)
+    {
+        if (options_->normalizeDigitSeparators)
+            appendDigitsRegrouped(out, body, options_->hexDigitSeparatorGroupSize, FormatLiteralCase::Preserve);
+        else
+            out += body;
+    }
+    else // NumberInteger
+    {
+        if (options_->normalizeDigitSeparators)
+            appendDigitsRegrouped(out, body, options_->decimalDigitSeparatorGroupSize, FormatLiteralCase::Preserve);
+        else
+            out += body;
     }
 }
 

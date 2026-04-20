@@ -217,11 +217,12 @@ namespace
             {"lower", FormatLiteralCase::Lower},
         };
         schema.addEnum("hex-literal-case", &options.hexLiteralCase, caseChoices, "Case of hexadecimal digits (`0xABCD` vs `0xabcd`).");
-        schema.addEnum("hex-literal-prefix-case", &options.hexLiteralPrefixCase, caseChoices, "Case of the `0x` / `0X` hexadecimal prefix.");
+        schema.addEnum("hex-literal-prefix-case", &options.hexLiteralPrefixCase, caseChoices, "Case of the `0x` / `0X` hexadecimal prefix (also applies to `0b` / `0B`).");
         schema.addEnum("float-exponent-case", &options.floatExponentCase, caseChoices, "Case of the floating-point exponent letter (`1e10` vs `1E10`).");
 
         schema.add("normalize-digit-separators", &options.normalizeDigitSeparators, "Rewrite long numeric literals using `_` digit separators.");
-        schema.add("digit-separator-group-size", &options.digitSeparatorGroupSize, "Digit grouping size used when normalizing separators (e.g. 4 for hex).");
+        schema.add("hex-digit-separator-group-size", &options.hexDigitSeparatorGroupSize, "Digit grouping size used for `0x` and `0b` literals when normalizing separators.");
+        schema.add("decimal-digit-separator-group-size", &options.decimalDigitSeparatorGroupSize, "Digit grouping size used for decimal and float literals when normalizing separators.");
     }
 
     void bindPragmaSchema(StructConfigSchema& schema, FormatOptions& options)

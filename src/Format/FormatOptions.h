@@ -216,11 +216,12 @@ struct FormatOptions
     // -----------------------------------------------------------------------
     // Numeric literals
     // -----------------------------------------------------------------------
-    FormatLiteralCase hexLiteralCase           = FormatLiteralCase::Preserve; // Case of hex digits (`0xABCD` vs `0xabcd`)
-    FormatLiteralCase hexLiteralPrefixCase     = FormatLiteralCase::Preserve; // `0x` vs `0X`
-    FormatLiteralCase floatExponentCase        = FormatLiteralCase::Preserve; // `1e10` vs `1E10`
-    bool              normalizeDigitSeparators = false;                       // Add `_` every N digits in long literals
-    uint32_t          digitSeparatorGroupSize  = 4;                           // Group size for hex ints when normalizing separators
+    FormatLiteralCase hexLiteralCase                 = FormatLiteralCase::Preserve; // Case of hex digits (`0xABCD` vs `0xabcd`)
+    FormatLiteralCase hexLiteralPrefixCase           = FormatLiteralCase::Preserve; // `0x` vs `0X` (also applies to `0b` / `0B`)
+    FormatLiteralCase floatExponentCase              = FormatLiteralCase::Preserve; // `1e10` vs `1E10`
+    bool              normalizeDigitSeparators       = false;                       // Rewrite literals to use canonical `_` digit separators
+    uint32_t          hexDigitSeparatorGroupSize     = 4;                           // Group size for `0x` / `0b` literals when normalizing separators
+    uint32_t          decimalDigitSeparatorGroupSize = 3;                           // Group size for decimal and float literals when normalizing separators
 
     // -----------------------------------------------------------------------
     // Region / disable pragmas

@@ -53,6 +53,7 @@ private:
     bool             isAtLineStart() const;
     void             appendWhitespacePiece(const SourcePiece& piece) const;
     void             appendCommentPiece(const SourcePiece& piece) const;
+    void             appendNumberPiece(const SourcePiece& piece) const;
     void             appendNormalizedIndent(std::string_view text) const;
     void             appendConfiguredEndOfLine() const;
     std::string_view resolveFinalNewline() const;

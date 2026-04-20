@@ -282,6 +282,7 @@ func recordAssumePanic(message: string, loc: SourceCodeLocation)
     cxt.user1 = cast(u64) loc.lineStart
 }
 
+#[Swag.Safety(.Assume, true)]
 func assumeFailureInfo()->CatchInfo
 {
     let cxt = @getcontext()
@@ -292,6 +293,22 @@ func assumeFailureInfo()->CatchInfo
 
     var result: CatchInfo
     result.value = assume alwaysThrowValue(29)
+    result.hasErr = cxt.user0 == 1
+    result.code = cast(s32) cxt.user1
+    return result
+}
+
+#[Swag.Safety(.Assume, false)]
+func assumeFailureNoSafety()->CatchInfo
+{
+    let cxt = @getcontext()
+    cxt.user0 = 0
+    cxt.user1 = 0
+    cxt.panic = &recordAssumePanic
+    defer cxt.panic = null
+
+    var result: CatchInfo
+    result.value = assume alwaysThrowValue(30)
     result.hasErr = cxt.user0 == 1
     result.code = cast(s32) cxt.user1
     return result
@@ -467,6 +484,16 @@ func repeatedCatchFailureSum()->s32
     let info = assumeFailureInfo()
     @assert(info.value == 0)
     @assert(info.hasErr)
+    @assert(@err == null)
+}
+
+#test
+{
+    let info = assumeFailureNoSafety()
+    @assert(info.value == 0)
+    @assert(!info.hasErr)
+    @assert(info.code == 0)
+    @assert(@err == null)
 }
 
 #test

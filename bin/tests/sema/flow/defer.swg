@@ -525,13 +525,34 @@ func deferThrowTop() throw
     #assert(V == 213)
 }
 
-// Legacy cases intentionally left commented until #err/#noerr/catch defer modes land.
-// compiler2731
-// compiler2732
-// compiler2738
-// compiler2739
-// compiler3692
-// compiler3719
-// compiler3775
-// compiler4563
-// compiler5208
+#test
+{
+    func deferConditionalCatchTrace()->s64
+    {
+        resetDeferTrace()
+        {
+            defer #err appendDeferTrace(1)
+            defer #noerr appendDeferTrace(2)
+            catch deferThrowTop()
+        }
+
+        return DeferTrace
+    }
+
+    func deferConditionalTryCatchTrace()->s64
+    {
+        resetDeferTrace()
+        {
+            defer #err appendDeferTrace(1)
+            defer #noerr appendDeferTrace(2)
+            trycatch deferThrowTop()
+        }
+
+        return DeferTrace
+    }
+
+    const catchTrace = #run deferConditionalCatchTrace()
+    const tryTrace   = #run deferConditionalTryCatchTrace()
+    #assert(catchTrace == 1241)
+    #assert(tryTrace == 1242)
+}

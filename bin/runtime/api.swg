@@ -169,6 +169,7 @@ namespace Swag
         Unreachable = 0x0080     // Check if unreachable is... reached
         Null        = 0x0100     // Check on dereferencing some null pointers
         Memory      = 0x0200     // Check some memory things (mostly in sanity pass)
+        Assume      = 0x0400     // Check if 'assume' must panic on an unexpected runtime error
         None        = 0x0000
         All         = 0xFFFF
     }

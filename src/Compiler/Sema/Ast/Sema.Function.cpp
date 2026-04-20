@@ -612,7 +612,12 @@ namespace
             case TokenId::KwdAssume:
                 SWC_RESULT(SemaHelpers::requireRuntimeFunctionDependency(sema, IdentifierManager::RuntimeFunctionKind::PushErr, sema.curNode().codeRef()));
                 SWC_RESULT(SemaHelpers::requireRuntimeFunctionDependency(sema, IdentifierManager::RuntimeFunctionKind::PopErr, sema.curNode().codeRef()));
-                SWC_RESULT(SemaHelpers::requireRuntimeFunctionDependency(sema, IdentifierManager::RuntimeFunctionKind::FailedAssume, sema.curNode().codeRef()));
+                if (sema.frame().currentAttributes().hasRuntimeSafety(sema.buildCfg().safetyGuards, Runtime::SafetyWhat::Assume))
+                {
+                    auto& codeGenPayload = SemaHelpers::ensureCodeGenNodePayload(sema, sema.curNodeRef());
+                    codeGenPayload.addRuntimeSafety(Runtime::SafetyWhat::Assume);
+                    SWC_RESULT(SemaHelpers::requireRuntimeFunctionDependency(sema, IdentifierManager::RuntimeFunctionKind::FailedAssume, sema.curNode().codeRef()));
+                }
                 break;
 
             default:

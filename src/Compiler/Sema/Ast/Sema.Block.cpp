@@ -4,6 +4,8 @@
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Helpers/SemaCheck.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
+#include "Compiler/Sema/Helpers/SemaHelpers.h"
+#include "Compiler/Sema/Symbol/IdentifierManager.h"
 #include "Compiler/Sema/Symbol/Symbol.h"
 #include "Compiler/Sema/Symbol/Symbols.h"
 #include "Main/CompilerInstance.h"
@@ -149,7 +151,21 @@ Result AstEmbeddedBlock::semaPreNode(Sema& sema)
 Result AstDeferStmt::semaPreNode(Sema& sema)
 {
     const auto& node = sema.curNode().cast<AstDeferStmt>();
-    return SemaCheck::modifiers(sema, node, node.modifierFlags, AstModifierFlagsE::Zero);
+    AstModifierFlags allowed = AstModifierFlagsE::Err | AstModifierFlagsE::NoErr;
+    SWC_RESULT(SemaCheck::modifiers(sema, node, node.modifierFlags, allowed));
+
+    if (node.modifierFlags.has(AstModifierFlagsE::Err) && node.modifierFlags.has(AstModifierFlagsE::NoErr))
+    {
+        auto diag = SemaError::report(sema, DiagnosticId::sema_err_modifier_unsupported, node.codeRef());
+        diag.addArgument(Diagnostic::ARG_WHAT, "#err/#noerr");
+        diag.report(sema.ctx());
+        return Result::Error;
+    }
+
+    if (node.modifierFlags.has(AstModifierFlagsE::Err) || node.modifierFlags.has(AstModifierFlagsE::NoErr))
+        SWC_RESULT(SemaHelpers::requireRuntimeFunctionDependency(sema, IdentifierManager::RuntimeFunctionKind::IsErrContext, node.codeRef()));
+
+    return Result::Continue;
 }
 
 Result AstNamedArgument::semaPostNode(Sema& sema)

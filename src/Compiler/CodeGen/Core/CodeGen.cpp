@@ -5,6 +5,7 @@
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroInstrInfo.h"
 #include "Backend/Micro/MicroReg.h"
+#include "Compiler/CodeGen/Core/CodeGenCallHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenFunctionHelpers.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Helpers/SemaInline.h"
@@ -891,6 +892,37 @@ void CodeGen::registerImplicitParameterDrops()
 
 namespace
 {
+    Result emitDeferredDeferStmt(CodeGen& codeGen, const CodeGenDeferredAction& action)
+    {
+        if (action.bodyRef.isInvalid())
+            return Result::Continue;
+
+        const bool needsErr   = action.modifierFlags.has(AstModifierFlagsE::Err);
+        const bool needsNoErr = action.modifierFlags.has(AstModifierFlagsE::NoErr);
+        if (!needsErr && !needsNoErr)
+            return codeGen.emitNodeNow(action.bodyRef);
+
+        const IdentifierRef idRef = codeGen.idMgr().runtimeFunction(IdentifierManager::RuntimeFunctionKind::IsErrContext);
+        SWC_ASSERT(idRef.isValid());
+        if (idRef.isInvalid())
+            return Result::Error;
+
+        SymbolFunction* runtimeIsErrContext = codeGen.compiler().runtimeFunctionSymbol(idRef);
+        SWC_ASSERT(runtimeIsErrContext != nullptr);
+        if (!runtimeIsErrContext)
+            return Result::Error;
+
+        const MicroReg      errContextReg = codeGen.nextVirtualIntRegister();
+        MicroBuilder&       builder       = codeGen.builder();
+        const MicroLabelRef skipLabel     = builder.createLabel();
+        SWC_RESULT(CodeGenCallHelpers::emitRuntimeCallWithDirectArgsToReg(codeGen, *runtimeIsErrContext, std::span<const MicroReg>{}, errContextReg));
+        builder.emitCmpRegImm(errContextReg, ApInt(0, 64), MicroOpBits::B8);
+        builder.emitJumpToLabel(needsErr ? MicroCond::Equal : MicroCond::NotEqual, MicroOpBits::B32, skipLabel);
+        SWC_RESULT(codeGen.emitNodeNow(action.bodyRef));
+        builder.placeLabel(skipLabel);
+        return Result::Continue;
+    }
+
     Result emitDeferredActions(CodeGen& codeGen, const CodeGenDeferScope& deferScope)
     {
         for (size_t i = deferScope.actions.size(); i != 0; --i)
@@ -899,11 +931,7 @@ namespace
             switch (action.kind)
             {
                 case CodeGenDeferredAction::Kind::DeferStmt:
-                    SWC_ASSERT(action.modifierFlags == AstModifierFlagsE::Zero);
-                    if (action.bodyRef.isInvalid())
-                        continue;
-
-                    SWC_RESULT(codeGen.emitNodeNow(action.bodyRef));
+                    SWC_RESULT(emitDeferredDeferStmt(codeGen, action));
                     break;
 
                 case CodeGenDeferredAction::Kind::ImplicitDrop:

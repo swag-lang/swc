@@ -20,6 +20,8 @@ struct CompilerDeferReturnInfo
     trace: s64
 }
 
+struct ErrCompilerDefer {}
+
 #[Swag.Mixin]
 func mixinAddDefer()
 {
@@ -39,6 +41,15 @@ func mixinParamTrace(value: s64)
 {
     defer appendDeferTrace(value)
     appendDeferTrace(1)
+}
+
+#[Swag.Mixin]
+func mixinConditionalDefer(shouldThrow: bool) throw
+{
+    defer #err appendDeferTrace(1)
+    defer #noerr appendDeferTrace(2)
+    if shouldThrow do
+        throw ErrCompilerDefer{}
 }
 
 #[Swag.Macro]
@@ -157,6 +168,19 @@ func runMacroScopeTrace()->s64
     @assert(runMixinParamTrace() == 12)
 }
 
+#test
+{
+    func runMixinConditionalDefer(shouldThrow: bool)->s64
+    {
+        resetDeferTrace()
+        catch mixinConditionalDefer(shouldThrow)
+        return DeferTrace
+    }
+
+    @assert(runMixinConditionalDefer(true) == 1)
+    @assert(runMixinConditionalDefer(false) == 2)
+}
+
 /*
 #test
 {
@@ -172,7 +196,3 @@ func runMacroScopeTrace()->s64
 }
 */
 
-// Legacy cases intentionally left commented until #err/#noerr/catch defer modes land.
-// compiler3719
-// compiler3775
-// compiler5208

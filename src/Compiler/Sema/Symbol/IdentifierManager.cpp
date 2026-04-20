@@ -109,6 +109,7 @@ void IdentifierManager::setup(const TaskContext& ctx)
         {.name = PredefinedName::RuntimeTestCountInit, .str = "__testCountInit"},
         {.name = PredefinedName::RuntimeTestCountTick, .str = "__testCountTick"},
         {.name = PredefinedName::RuntimeHasErr, .str = "__hasErr"},
+        {.name = PredefinedName::RuntimeIsErrContext, .str = "__isErrContext"},
         {.name = PredefinedName::RuntimeSetErrRaw, .str = "__setErrRaw"},
         {.name = PredefinedName::RuntimePushErr, .str = "__pushErr"},
         {.name = PredefinedName::RuntimePopErr, .str = "__popErr"},
@@ -133,6 +134,7 @@ void IdentifierManager::setup(const TaskContext& ctx)
     runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::TestCountInit)]  = predefined(PredefinedName::RuntimeTestCountInit);
     runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::TestCountTick)]  = predefined(PredefinedName::RuntimeTestCountTick);
     runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::HasErr)]         = predefined(PredefinedName::RuntimeHasErr);
+    runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::IsErrContext)]   = predefined(PredefinedName::RuntimeIsErrContext);
     runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::SetErrRaw)]      = predefined(PredefinedName::RuntimeSetErrRaw);
     runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::PushErr)]        = predefined(PredefinedName::RuntimePushErr);
     runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::PopErr)]         = predefined(PredefinedName::RuntimePopErr);

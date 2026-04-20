@@ -205,6 +205,16 @@ namespace
         return CodeGenTypeHelpers::scalarStoreBits(typeInfo, codeGen.ctx()) == MicroOpBits::Zero;
     }
 
+    bool hasAssumeRuntimeSafety(CodeGen& codeGen, AstNodeRef nodeRef)
+    {
+        const AstNodeRef resolvedNodeRef = codeGen.viewZero(nodeRef).nodeRef();
+        if (!resolvedNodeRef.isValid())
+            return false;
+
+        const auto* payload = codeGen.sema().codeGenPayload<CodeGenNodePayload>(resolvedNodeRef);
+        return payload && payload->hasRuntimeSafety(Runtime::SafetyWhat::Assume);
+    }
+
     Result emitPayloadToAddress(CodeGen& codeGen, MicroReg dstAddressReg, const CodeGenNodePayload& srcPayload, TypeRef typeRef);
 
     void assignThrowableExprResult(CodeGen& codeGen, const CodeGenNodePayload& dstPayload, const CodeGenNodePayload& srcPayload, TypeRef typeRef)
@@ -310,7 +320,7 @@ namespace
 
             case ThrowableHandlerKind::Assume:
             {
-                if (failurePath)
+                if (failurePath && hasAssumeRuntimeSafety(codeGen, nodeRef))
                 {
                     SymbolFunction* runtimeFailedAssume = runtimeFunctionByKind(codeGen, IdentifierManager::RuntimeFunctionKind::FailedAssume);
                     SWC_ASSERT(runtimeFailedAssume != nullptr);

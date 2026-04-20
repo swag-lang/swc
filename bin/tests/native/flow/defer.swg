@@ -400,6 +400,61 @@ func deferThrowTrace()->s64
     return DeferTrace
 }
 
+func deferConditionalReturnTrace()->DeferReturnInfo throw
+{
+    resetDeferTrace()
+    with var result: retval
+    {
+        .value = 7
+        .trace = -1
+    }
+
+    defer result.trace = DeferTrace
+    defer #err appendDeferTrace(1)
+    defer #noerr appendDeferTrace(2)
+    appendDeferTrace(3)
+    return result
+}
+
+func deferConditionalThrowImpl() throw
+{
+    resetDeferTrace()
+    defer #err appendDeferTrace(1)
+    defer #noerr appendDeferTrace(2)
+    appendDeferTrace(3)
+    throw ErrDefer{}
+}
+
+func deferConditionalThrowTrace()->s64
+{
+    catch deferConditionalThrowImpl()
+    return DeferTrace
+}
+
+func deferConditionalCatchTrace()->s64
+{
+    resetDeferTrace()
+    {
+        defer #err appendDeferTrace(1)
+        defer #noerr appendDeferTrace(2)
+        catch deferThrowTop()
+    }
+
+    return DeferTrace
+}
+
+func deferConditionalTryCatchTrace()->s64
+{
+    resetDeferTrace()
+    {
+        defer #err appendDeferTrace(1)
+        defer #noerr appendDeferTrace(2)
+        trycatch deferThrowTop()
+    }
+
+    return DeferTrace
+}
+
 func deferBreakToScope()->s64
 {
     resetDeferTrace()
@@ -520,6 +575,20 @@ func deferBreakToScope()->s64
 #test
 {
     @assert(deferBreakToScope() == 213)
+}
+
+#test
+{
+    let v = catch deferConditionalReturnTrace()
+    @assert(v.value == 7)
+    @assert(v.trace == 32)
+}
+
+#test
+{
+    @assert(deferConditionalThrowTrace() == 31)
+    @assert(deferConditionalCatchTrace() == 1241)
+    @assert(deferConditionalTryCatchTrace() == 1242)
 }
 
 #test

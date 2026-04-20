@@ -45,6 +45,12 @@ func __hasErr()->bool
     return @getcontext().hasError != 0
 }
 
+func __isErrContext()->bool
+{
+    let cxt = @getcontext()
+    return cxt.hasError != 0 or cxt.curError != null
+}
+
 func __pushErr()
 {
     let cxt = @getcontext()

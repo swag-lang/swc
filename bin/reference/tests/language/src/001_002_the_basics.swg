@@ -283,31 +283,26 @@ func divide(a: s32, b: s32)->s32 throw
     return a / b
 }
 
-// @TODO: Re-enable this example when the local variadic 'print' helper no longer trips codegen.
-// #test
-// {
-//     let result = try divide(10, 2)
-//     print("Result: ", result, "\n") // Outputs 5
-// }
+#test
+{
+    let result = try divide(10, 2)
+    @assert(result == 5)
+}
 
 /**
 # Handling Errors with 'catch'
 
 Use 'catch' to handle errors locally. The intrinsic '@err' holds the error value.
 */
-// @TODO: Re-enable this example when the local variadic 'print' helper no longer trips codegen.
-// #test
-// {
-//     let result = catch divide(10, 0)
-//     if @err != null
-//     {
-//         print("Error: ", @err, "\n")
-//     }
-//     else
-//     {
-//         print("Result: ", result, "\n")
-//     }
-// }
+#test
+{
+    let result = catch divide(10, 0)
+    @assert(result == 0)
+    @assert(@err != null)
+
+    let err = cast(Swag.BaseError) @err
+    @assert(err.message == "Division by zero!")
+}
 
 /**
 # Dismissing Errors with 'trycatch'
@@ -315,15 +310,15 @@ Use 'catch' to handle errors locally. The intrinsic '@err' holds the error value
 'trycatch' dismisses errors and continues execution,
 assigning a default value to the target variable.
 */
-// @TODO: Re-enable this example when the 'trycatch' helper path no longer trips semantic analysis.
-// func safeDivide(a: s32, b: s32)->s32
-// {
-//     return trycatch divide(a, b)
-// }
-//
-// @TODO: Re-enable this example when the local variadic 'print' helper no longer trips codegen.
-// #test
-// {
-//     let result = safeDivide(10, 0)
-//     print("Result: ", result, "\n") // Outputs 0 (default value)
-// }
+func safeDivide(a: s32, b: s32)->s32
+{
+    return trycatch divide(a, b)
+}
+
+#test
+{
+    @assert(safeDivide(10, 2) == 5)
+    @assert(@err == null)
+    @assert(safeDivide(10, 0) == 0)
+    @assert(@err == null)
+}

@@ -459,7 +459,6 @@ func deferReturnDropInfo()->DeferDropInfo
     #assert(V3 == 5)
 }
 
-/*
 #test
 {
     // compiler2346
@@ -511,7 +510,6 @@ func deferReturnDropInfo()->DeferDropInfo
     const V = #run deferThrowTrace()
     #assert(V == 124)
 }
-*/
 
 #test
 {

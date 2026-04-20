@@ -439,6 +439,27 @@ namespace
         return currentFn && currentFn->isThrowable();
     }
 
+    bool isCompilerTestFunctionContext(const Sema& sema)
+    {
+        const auto* currentFn = sema.currentFunction();
+        if (!currentFn)
+            return false;
+
+        const AstNode* decl = currentFn->decl();
+        if (!decl || decl->id() != AstNodeId::CompilerFunc)
+            return false;
+
+        return sema.token(decl->codeRef()).id == TokenId::CompilerFuncTest;
+    }
+
+    TokenId effectiveErrorManagementTokenId(const Sema& sema, TokenId tokenId)
+    {
+        if (tokenId == TokenId::KwdTry && isCompilerTestFunctionContext(sema))
+            return TokenId::KwdAssume;
+
+        return tokenId;
+    }
+
     bool canPropagateThrowableResult(const Sema& sema)
     {
         return isThrowableFunctionContext(sema) || sema.frame().currentErrorContextMode() != SemaFrame::ErrorContextMode::None;
@@ -554,7 +575,8 @@ namespace
             return Result::Continue;
 
         auto frame = sema.frame();
-        frame.setCurrentErrorContext(sema.curNodeRef(), errorContextMode(sema.token(sema.curNode().codeRef()).id));
+        const TokenId tokenId = effectiveErrorManagementTokenId(sema, sema.token(sema.curNode().codeRef()).id);
+        frame.setCurrentErrorContext(sema.curNodeRef(), errorContextMode(tokenId));
         sema.pushFramePopOnPostChild(frame, childRef);
         return Result::Continue;
     }
@@ -563,18 +585,19 @@ namespace
     {
         auto&        payload = ensureErrorManagementPayload(sema, sema.curNodeRef());
         const Token& tok     = sema.token(sema.curNode().codeRef());
+        const TokenId tokenId = effectiveErrorManagementTokenId(sema, tok.id);
 
-        if (tok.id == TokenId::KwdTry && !canPropagateThrowableResult(sema))
+        if (tokenId == TokenId::KwdTry && !canPropagateThrowableResult(sema))
             return reportTryOutsideThrowableContext(sema, sema.curNodeRef());
 
         if (!payload.containsThrowable)
             return reportErrorManagementOperandNotThrowable(sema, sema.curNodeRef(), managedChildRef);
 
-        payload.isThrowableResult = tok.id == TokenId::KwdTry;
+        payload.isThrowableResult = tokenId == TokenId::KwdTry;
         if (payload.isThrowableResult)
             markCurrentErrorScopeThrowable(sema);
 
-        switch (tok.id)
+        switch (tokenId)
         {
             case TokenId::KwdCatch:
                 SWC_RESULT(SemaHelpers::requireRuntimeFunctionDependency(sema, IdentifierManager::RuntimeFunctionKind::PushErr, sema.curNode().codeRef()));
@@ -596,7 +619,7 @@ namespace
                 break;
         }
 
-        attachThrowableWrapperToManagedChild(sema, sema.curNodeRef(), managedChildRef, tok.id);
+        attachThrowableWrapperToManagedChild(sema, sema.curNodeRef(), managedChildRef, tokenId);
 
         return Result::Continue;
     }
@@ -2152,7 +2175,7 @@ Result AstTryCatchExpr::semaPostNode(Sema& sema) const
         sema.setConstant(sema.curNodeRef(), exprView.cstRef());
     sema.copyResolvedCallArguments(sema.curNodeRef(), resolvedExprRef);
 
-    const TokenId tokenId = sema.token(codeRef()).id;
+    const TokenId tokenId = effectiveErrorManagementTokenId(sema, sema.token(codeRef()).id);
     if (tokenId != TokenId::KwdTry && exprView.typeRef().isValid() && exprView.typeRef() != sema.typeMgr().typeVoid())
         SWC_RESULT(SemaHelpers::attachRuntimeStorageIfNeeded(sema, resolvedExprRef, *this, exprView.typeRef(), "__trycatch_runtime_storage"));
 

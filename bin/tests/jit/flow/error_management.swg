@@ -13,6 +13,21 @@ struct CatchInfo
     code: s32
 }
 
+struct AggregateResult
+{
+    first: s32 = 0
+    second: s32 = 0
+    payload: [3] s32
+}
+
+struct AggregateInfo
+{
+    value: AggregateResult
+    hasErr: bool
+    code: s32
+    messageOk: bool
+}
+
 var ErrorTrace: s64 = 0
 
 func resetErrorTrace()
@@ -87,6 +102,20 @@ func propagateTryBlockVoidFailure() throw
     {
         try alwaysThrowVoid(21)
     }
+}
+
+func aggregateSuccess(seed: s32)->AggregateResult throw
+{
+    return AggregateResult{
+        first: seed,
+        second: seed + 1,
+        payload: [seed + 2, seed + 3, seed + 4],
+    }
+}
+
+func aggregateFailure(code: s32)->AggregateResult throw
+{
+    throw ErrValue{base: Swag.BaseError{"aggregate failure"}, code: code}
 }
 
 func catchSuccessValue()->s32
@@ -193,6 +222,59 @@ func catchTryBlockVoidFailureCode()->s32
 
     let err = cast(ErrValue) @err
     return err.code
+}
+
+func catchAggregateSuccess()->AggregateResult
+{
+    return catch aggregateSuccess(70)
+}
+
+func catchAggregateFailureInfo()->AggregateInfo
+{
+    var result: AggregateInfo
+    result.value = catch aggregateFailure(71)
+    result.hasErr = @err != null
+    if @err != null
+    {
+        let err = cast(ErrValue) @err
+        result.code = err.code
+        result.messageOk = err.message == "aggregate failure"
+    }
+
+    return result
+}
+
+func tryCatchAggregateSuccess()->AggregateResult
+{
+    return trycatch aggregateSuccess(80)
+}
+
+func tryCatchAggregateFailureInfo()->AggregateInfo
+{
+    var result: AggregateInfo
+    result.value = trycatch aggregateFailure(72)
+    result.hasErr = @err != null
+    if @err != null
+    {
+        let err = cast(ErrValue) @err
+        result.code = err.code
+        result.messageOk = err.message == "aggregate failure"
+    }
+
+    return result
+}
+
+func repeatedCatchFailureSum()->s32
+{
+    var result: s32 = 0
+    for 40
+    {
+        catch alwaysThrowVoid(cast(s32) @index + 1)
+        let err = cast(ErrValue) @err
+        result += err.code
+    }
+
+    return result
 }
 
 func nestedTryHandled()->s32
@@ -303,6 +385,29 @@ func tryCatchSuccessValue()->s32
 
 #test
 {
+    const V = #run catchAggregateSuccess()
+    #assert(V.first == 70)
+    #assert(V.second == 71)
+    #assert(V.payload[0] == 72)
+    #assert(V.payload[1] == 73)
+    #assert(V.payload[2] == 74)
+}
+
+#test
+{
+    const V = #run catchAggregateFailureInfo()
+    #assert(V.value.first == 0)
+    #assert(V.value.second == 0)
+    #assert(V.value.payload[0] == 0)
+    #assert(V.value.payload[1] == 0)
+    #assert(V.value.payload[2] == 0)
+    #assert(V.hasErr)
+    #assert(V.code == 71)
+    #assert(V.messageOk)
+}
+
+#test
+{
     const V = #run tryCatchSuccessValue()
     #assert(V == 51)
 }
@@ -315,10 +420,33 @@ func tryCatchSuccessValue()->s32
 
 #test
 {
+    const V = #run tryCatchAggregateSuccess()
+    #assert(V.first == 80)
+    #assert(V.second == 81)
+    #assert(V.payload[0] == 82)
+    #assert(V.payload[1] == 83)
+    #assert(V.payload[2] == 84)
+}
+
+#test
+{
     const V = #run tryCatchFailureInfo()
     #assert(V.value == 0)
     #assert(!V.hasErr)
     #assert(V.code == 0)
+}
+
+#test
+{
+    const V = #run tryCatchAggregateFailureInfo()
+    #assert(V.value.first == 0)
+    #assert(V.value.second == 0)
+    #assert(V.value.payload[0] == 0)
+    #assert(V.value.payload[1] == 0)
+    #assert(V.value.payload[2] == 0)
+    #assert(!V.hasErr)
+    #assert(V.code == 0)
+    #assert(!V.messageOk)
 }
 
 #test
@@ -339,6 +467,12 @@ func tryCatchSuccessValue()->s32
 {
     const V = #run traceThrowCatch()
     #assert(V == 124)
+}
+
+#test
+{
+    const V = #run repeatedCatchFailureSum()
+    #assert(V == 820)
 }
 
 #test

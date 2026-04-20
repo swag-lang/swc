@@ -13,6 +13,21 @@ struct CatchInfo
     code: s32
 }
 
+struct AggregateResult
+{
+    first: s32 = 0
+    second: s32 = 0
+    payload: [3] s32
+}
+
+struct AggregateInfo
+{
+    value: AggregateResult
+    hasErr: bool
+    code: s32
+    messageOk: bool
+}
+
 var ErrorTrace: s64 = 0
 
 func resetErrorTrace()
@@ -94,6 +109,20 @@ func propagateTryBlockVoidFailure() throw
     }
 }
 
+func aggregateSuccess(seed: s32)->AggregateResult throw
+{
+    return AggregateResult{
+        first: seed,
+        second: seed + 1,
+        payload: [seed + 2, seed + 3, seed + 4],
+    }
+}
+
+func aggregateFailure(code: s32)->AggregateResult throw
+{
+    throw ErrValue{base: Swag.BaseError{"aggregate failure"}, code: code}
+}
+
 func nestedTryHandled()->s32
 {
     catch
@@ -136,6 +165,11 @@ func traceThrowCatch()->s64
     return ErrorTrace
 }
 
+func catchAggregateSuccess()->AggregateResult
+{
+    return catch aggregateSuccess(70)
+}
+
 func inlineCatchFailureInfo()->CatchInfo
 {
     var result: CatchInfo
@@ -164,6 +198,21 @@ func catchFailureInfo()->CatchInfo
     return result
 }
 
+func catchAggregateFailureInfo()->AggregateInfo
+{
+    var result: AggregateInfo
+    result.value = catch aggregateFailure(71)
+    result.hasErr = @err != null
+    if @err != null
+    {
+        let err = cast(ErrValue) @err
+        result.code = err.code
+        result.messageOk = err.message == "aggregate failure"
+    }
+
+    return result
+}
+
 func catchTryFailureInfo()->CatchInfo
 {
     var result: CatchInfo
@@ -176,6 +225,11 @@ func catchTryFailureInfo()->CatchInfo
     }
 
     return result
+}
+
+func tryCatchAggregateSuccess()->AggregateResult
+{
+    return trycatch aggregateSuccess(80)
 }
 
 func inlineTryCatchFailureInfo()->CatchInfo
@@ -206,6 +260,21 @@ func tryCatchFailureInfo()->CatchInfo
     return result
 }
 
+func tryCatchAggregateFailureInfo()->AggregateInfo
+{
+    var result: AggregateInfo
+    result.value = trycatch aggregateFailure(72)
+    result.hasErr = @err != null
+    if @err != null
+    {
+        let err = cast(ErrValue) @err
+        result.code = err.code
+        result.messageOk = err.message == "aggregate failure"
+    }
+
+    return result
+}
+
 func recordAssumePanic(message: string, loc: SourceCodeLocation)
 {
     let cxt = @getcontext()
@@ -225,6 +294,19 @@ func assumeFailureInfo()->CatchInfo
     result.value = assume alwaysThrowValue(29)
     result.hasErr = cxt.user0 == 1
     result.code = cast(s32) cxt.user1
+    return result
+}
+
+func repeatedCatchFailureSum()->s32
+{
+    var result: s32 = 0
+    for 40
+    {
+        catch alwaysThrowVoid(cast(s32) @index + 1)
+        let err = cast(ErrValue) @err
+        result += err.code
+    }
+
     return result
 }
 
@@ -281,6 +363,30 @@ func assumeFailureInfo()->CatchInfo
 
 #test
 {
+    let value = catchAggregateSuccess()
+    @assert(value.first == 70)
+    @assert(value.second == 71)
+    @assert(value.payload[0] == 72)
+    @assert(value.payload[1] == 73)
+    @assert(value.payload[2] == 74)
+    @assert(@err == null)
+}
+
+#test
+{
+    let info = catchAggregateFailureInfo()
+    @assert(info.value.first == 0)
+    @assert(info.value.second == 0)
+    @assert(info.value.payload[0] == 0)
+    @assert(info.value.payload[1] == 0)
+    @assert(info.value.payload[2] == 0)
+    @assert(info.hasErr)
+    @assert(info.code == 71)
+    @assert(info.messageOk)
+}
+
+#test
+{
     catch propagateBareVoidFailure()
     @assert(@err != null)
     let err = cast(ErrValue) @err
@@ -311,6 +417,17 @@ func assumeFailureInfo()->CatchInfo
 
 #test
 {
+    let value = trycatch aggregateSuccess(80)
+    @assert(value.first == 80)
+    @assert(value.second == 81)
+    @assert(value.payload[0] == 82)
+    @assert(value.payload[1] == 83)
+    @assert(value.payload[2] == 84)
+    @assert(@err == null)
+}
+
+#test
+{
     let info = tryCatchFailureInfo()
     @assert(info.value == 0)
     @assert(!info.hasErr)
@@ -323,6 +440,19 @@ func assumeFailureInfo()->CatchInfo
     @assert(info.value == 0)
     @assert(!info.hasErr)
     @assert(info.code == 0)
+}
+
+#test
+{
+    let info = tryCatchAggregateFailureInfo()
+    @assert(info.value.first == 0)
+    @assert(info.value.second == 0)
+    @assert(info.value.payload[0] == 0)
+    @assert(info.value.payload[1] == 0)
+    @assert(info.value.payload[2] == 0)
+    @assert(!info.hasErr)
+    @assert(info.code == 0)
+    @assert(!info.messageOk)
 }
 
 #test
@@ -347,4 +477,9 @@ func assumeFailureInfo()->CatchInfo
 #test
 {
     @assert(traceThrowCatch() == 124)
+}
+
+#test
+{
+    @assert(repeatedCatchFailureSum() == 820)
 }

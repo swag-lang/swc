@@ -1322,6 +1322,10 @@ struct AstTryCatchExpr : AstNodeT<AstNodeId::TryCatchExpr>
     AstNodeRef nodeExprRef;
 
     void       collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeExprRef}); }
+    Result     semaPreNode(Sema& sema) const;
+    Result     semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;
+    Result     semaPostNode(Sema& sema) const;
+    Result     codeGenPostNode(CodeGen& codeGen) const;
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
@@ -1588,6 +1592,10 @@ struct AstTryCatchStmt : AstNodeT<AstNodeId::TryCatchStmt>
     AstNodeRef nodeBodyRef;
 
     void       collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeBodyRef}); }
+    Result     semaPreNode(Sema& sema) const;
+    Result     semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;
+    Result     semaPostNode(Sema& sema) const;
+    static Result codeGenPostNode(CodeGen& codeGen);
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
@@ -1597,6 +1605,8 @@ struct AstThrowExpr : AstNodeT<AstNodeId::ThrowExpr>
     AstNodeRef nodeExprRef;
 
     void       collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeExprRef}); }
+    Result     semaPostNode(Sema& sema) const;
+    Result     codeGenPostNode(CodeGen& codeGen) const;
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 

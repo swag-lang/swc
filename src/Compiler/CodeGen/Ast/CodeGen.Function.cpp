@@ -1097,4 +1097,26 @@ Result AstAliasCallExpr::codeGenPostNode(CodeGen& codeGen) const
     return CodeGenCallHelpers::codeGenCallExprCommon(codeGen, nodeExprRef);
 }
 
+Result AstTryCatchExpr::codeGenPostNode(CodeGen& codeGen) const
+{
+    // @TODO(codegen): lower try/catch/trycatch/assume control flow and error paths.
+    // For now these wrappers are transparent so sema-only coverage does not assert in codegen.
+    codeGen.inheritPayload(codeGen.curNodeRef(), nodeExprRef, codeGen.curViewType().typeRef());
+    return Result::Continue;
+}
+
+Result AstTryCatchStmt::codeGenPostNode(CodeGen& codeGen)
+{
+    // @TODO(codegen): lower statement-form try/catch/trycatch control flow and error paths.
+    SWC_UNUSED(codeGen);
+    return Result::Continue;
+}
+
+Result AstThrowExpr::codeGenPostNode(CodeGen& codeGen) const
+{
+    // @TODO(codegen): lower throw to runtime error propagation/unwind once error management has a backend implementation.
+    codeGen.inheritPayload(codeGen.curNodeRef(), nodeExprRef, codeGen.curViewType().typeRef());
+    return Result::Continue;
+}
+
 SWC_END_NAMESPACE();

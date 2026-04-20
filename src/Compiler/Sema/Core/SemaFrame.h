@@ -41,6 +41,15 @@ public:
         Switch,
     };
 
+    enum class ErrorContextMode : uint8_t
+    {
+        None,
+        Try,
+        Catch,
+        TryCatch,
+        Assume,
+    };
+
     struct BreakContext
     {
         AstNodeRef       nodeRef = AstNodeRef::invalid();
@@ -83,6 +92,13 @@ public:
     const BreakContext& currentBreakContext() const { return breakable_; }
     void                setCurrentBreakContent(AstNodeRef nodeRef, BreakContextKind kind);
     BreakContextKind    currentBreakableKind() const { return breakable_.kind; }
+    AstNodeRef          currentErrorScope() const { return currentErrorScope_; }
+    ErrorContextMode    currentErrorContextMode() const { return currentErrorContextMode_; }
+    void                setCurrentErrorContext(AstNodeRef nodeRef, ErrorContextMode mode)
+    {
+        currentErrorScope_       = nodeRef;
+        currentErrorContextMode_ = mode;
+    }
     TypeRef             currentLoopIndexTypeRef() const { return currentLoopIndexTypeRef_; }
     void                setCurrentLoopIndexTypeRef(TypeRef typeRef) { currentLoopIndexTypeRef_ = typeRef; }
     AstNodeRef          currentLoopIndexOwnerRef() const { return currentLoopIndexOwnerRef_; }
@@ -124,6 +140,8 @@ private:
     SemaScope*                    upLookupScope_       = nullptr;
     bool                          ignoreRuntimeAccess_ = false;
     BreakContext                  breakable_;
+    AstNodeRef                    currentErrorScope_       = AstNodeRef::invalid();
+    ErrorContextMode              currentErrorContextMode_ = ErrorContextMode::None;
     TypeRef                       currentLoopIndexTypeRef_  = TypeRef::invalid();
     AstNodeRef                    currentLoopIndexOwnerRef_ = AstNodeRef::invalid();
     AstNodeRef                    currentSwitch_            = AstNodeRef::invalid();

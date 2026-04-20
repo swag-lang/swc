@@ -210,6 +210,7 @@ Result AstFunctionDecl::semaPreNode(Sema& sema) const
     frame.setCurrentImpl(declImpl);
     frame.setCurrentInterface(declItf);
     frame.setCurrentFunction(&sym);
+    frame.setCurrentErrorContext(AstNodeRef::invalid(), SemaFrame::ErrorContextMode::None);
     sema.pushFramePopOnPostNode(frame);
     return Result::Continue;
 }
@@ -236,6 +237,7 @@ Result AstFunctionExpr::semaPreNode(Sema& sema) const
     auto&     sym   = sema.curViewSymbol().sym()->cast<SymbolFunction>();
     SemaFrame frame = sema.frame();
     frame.setCurrentFunction(&sym);
+    frame.setCurrentErrorContext(AstNodeRef::invalid(), SemaFrame::ErrorContextMode::None);
     sema.pushFramePopOnPostNode(frame);
     return Result::Continue;
 }
@@ -262,6 +264,7 @@ Result AstClosureExpr::semaPreNode(Sema& sema) const
     auto&     sym   = sema.curViewSymbol().sym()->cast<SymbolFunction>();
     SemaFrame frame = sema.frame();
     frame.setCurrentFunction(&sym);
+    frame.setCurrentErrorContext(AstNodeRef::invalid(), SemaFrame::ErrorContextMode::None);
     sema.pushFramePopOnPostNode(frame);
     return Result::Continue;
 }
@@ -348,10 +351,190 @@ namespace
             case AstNodeId::FunctionBody:
             case AstNodeId::SwitchCaseBody:
             case AstNodeId::TopLevelBlock:
+            case AstNodeId::TryCatchStmt:
                 return true;
             default:
                 return false;
         }
+    }
+
+    struct ErrorManagementPayload
+    {
+        bool containsThrowable = false;
+        bool isThrowableResult = false;
+    };
+
+    ErrorManagementPayload& ensureErrorManagementPayload(Sema& sema, AstNodeRef nodeRef)
+    {
+        auto* payload = sema.semaPayload<ErrorManagementPayload>(nodeRef);
+        if (!payload)
+        {
+            payload = sema.compiler().allocate<ErrorManagementPayload>();
+            sema.setSemaPayload(nodeRef, payload);
+        }
+
+        return *payload;
+    }
+
+    SemaFrame::ErrorContextMode errorContextMode(TokenId tokenId)
+    {
+        switch (tokenId)
+        {
+            case TokenId::KwdTry:
+                return SemaFrame::ErrorContextMode::Try;
+            case TokenId::KwdCatch:
+                return SemaFrame::ErrorContextMode::Catch;
+            case TokenId::KwdTryCatch:
+                return SemaFrame::ErrorContextMode::TryCatch;
+            case TokenId::KwdAssume:
+                return SemaFrame::ErrorContextMode::Assume;
+            default:
+                return SemaFrame::ErrorContextMode::None;
+        }
+    }
+
+    bool isThrowableFunctionContext(const Sema& sema)
+    {
+        const auto* currentFn = sema.currentFunction();
+        return currentFn && currentFn->isThrowable();
+    }
+
+    bool canPropagateThrowableResult(const Sema& sema)
+    {
+        return isThrowableFunctionContext(sema) || sema.frame().currentErrorContextMode() != SemaFrame::ErrorContextMode::None;
+    }
+
+    void addFunctionDeclaredHereNote(Sema& sema, Diagnostic& diag, const SymbolFunction& fn)
+    {
+        const SourceCodeRange codeRange = fn.codeRange(sema.ctx());
+        if (codeRange.srcView == nullptr)
+            return;
+
+        diag.addNote(DiagnosticId::sema_note_function_declared_here);
+        diag.last().addArgument(Diagnostic::ARG_SYM, fn.name(sema.ctx()));
+        diag.last().addSpan(codeRange);
+    }
+
+    Result reportTryOutsideThrowableContext(Sema& sema, AstNodeRef errorRef)
+    {
+        auto diag = SemaError::report(sema, DiagnosticId::sema_err_try_outside_throwable_context, errorRef);
+        if (const auto* currentFn = sema.currentFunction())
+            addFunctionDeclaredHereNote(sema, diag, *currentFn);
+        diag.report(sema.ctx());
+        return Result::Error;
+    }
+
+    Result reportThrowOutsideThrowableContext(Sema& sema, AstNodeRef errorRef)
+    {
+        auto diag = SemaError::report(sema, DiagnosticId::sema_err_throw_outside_throwable_context, errorRef);
+        if (const auto* currentFn = sema.currentFunction())
+            addFunctionDeclaredHereNote(sema, diag, *currentFn);
+        diag.report(sema.ctx());
+        return Result::Error;
+    }
+
+    Result reportThrowableCallRequiresContext(Sema& sema, const SymbolFunction& fn, AstNodeRef errorRef)
+    {
+        auto diag = SemaError::report(sema, DiagnosticId::sema_err_throwable_call_requires_handler, errorRef);
+        diag.addArgument(Diagnostic::ARG_SYM, fn.name(sema.ctx()));
+        addFunctionDeclaredHereNote(sema, diag, fn);
+        diag.report(sema.ctx());
+        return Result::Error;
+    }
+
+    const SymbolFunction* calledFunctionFromNode(Sema& sema, AstNodeRef nodeRef)
+    {
+        if (nodeRef.isInvalid())
+            return nullptr;
+
+        const AstNodeRef resolvedRef = sema.viewZero(nodeRef).nodeRef();
+        if (resolvedRef.isInvalid())
+            return nullptr;
+
+        const AstNode& resolvedNode = sema.node(resolvedRef);
+        if (resolvedNode.isNot(AstNodeId::CallExpr) &&
+            resolvedNode.isNot(AstNodeId::AliasCallExpr) &&
+            resolvedNode.isNot(AstNodeId::IntrinsicCallExpr))
+            return nullptr;
+
+        const Symbol* sym = sema.viewSymbol(resolvedRef).sym();
+        if (!sym || !sym->isFunction())
+            return nullptr;
+
+        return &sym->cast<SymbolFunction>();
+    }
+
+    Result reportErrorManagementOperandNotThrowable(Sema& sema, AstNodeRef errorRef, AstNodeRef childRef)
+    {
+        auto diag = SemaError::report(sema, DiagnosticId::sema_err_error_mgmt_operand_not_throwable, errorRef);
+        diag.addArgument(Diagnostic::ARG_TOK, Diagnostic::tokenErrorString(sema.ctx(), sema.curNode().codeRef()));
+
+        if (const auto* fn = calledFunctionFromNode(sema, childRef); fn && !fn->isThrowable())
+            addFunctionDeclaredHereNote(sema, diag, *fn);
+
+        diag.report(sema.ctx());
+        return Result::Error;
+    }
+
+    void markCurrentErrorScopeThrowable(Sema& sema)
+    {
+        const AstNodeRef errorScopeRef = sema.frame().currentErrorScope();
+        if (errorScopeRef.isInvalid())
+            return;
+
+        ensureErrorManagementPayload(sema, errorScopeRef).containsThrowable = true;
+    }
+
+    TypeRef preferredThrowResultType(Sema& sema)
+    {
+        const auto frames = sema.frames();
+        for (size_t frameIndex = frames.size(); frameIndex > 0; --frameIndex)
+        {
+            const std::span<const TypeRef> bindingTypes = frames[frameIndex - 1].bindingTypes();
+            for (size_t bindingIndex = bindingTypes.size(); bindingIndex > 0; --bindingIndex)
+            {
+                const TypeRef bindingTypeRef = bindingTypes[bindingIndex - 1];
+                if (bindingTypeRef.isValid())
+                    return bindingTypeRef;
+            }
+        }
+
+        return sema.typeMgr().typeVoid();
+    }
+
+    Result semaTryCatchPreNodeCommon(Sema& sema)
+    {
+        ensureErrorManagementPayload(sema, sema.curNodeRef());
+        return Result::Continue;
+    }
+
+    Result semaTryCatchPreNodeChildCommon(Sema& sema, AstNodeRef managedChildRef, const AstNodeRef& childRef)
+    {
+        if (childRef != managedChildRef || childRef.isInvalid())
+            return Result::Continue;
+
+        auto frame = sema.frame();
+        frame.setCurrentErrorContext(sema.curNodeRef(), errorContextMode(sema.token(sema.curNode().codeRef()).id));
+        sema.pushFramePopOnPostChild(frame, childRef);
+        return Result::Continue;
+    }
+
+    Result semaTryCatchPostNodeCommon(Sema& sema, AstNodeRef managedChildRef)
+    {
+        auto&        payload = ensureErrorManagementPayload(sema, sema.curNodeRef());
+        const Token& tok     = sema.token(sema.curNode().codeRef());
+
+        if (tok.id == TokenId::KwdTry && !canPropagateThrowableResult(sema))
+            return reportTryOutsideThrowableContext(sema, sema.curNodeRef());
+
+        if (!payload.containsThrowable)
+            return reportErrorManagementOperandNotThrowable(sema, sema.curNodeRef(), managedChildRef);
+
+        payload.isThrowableResult = tok.id == TokenId::KwdTry;
+        if (payload.isThrowableResult)
+            markCurrentErrorScopeThrowable(sema);
+
+        return Result::Continue;
     }
 
     TypeRef deduceHomogeneousAggregateArrayType(Sema& sema, TypeRef typeRef)
@@ -1501,6 +1684,13 @@ namespace
             !isMacroCall)
             currentFn->addCallDependency(&calledFn);
 
+        if (calledFn.isThrowable())
+        {
+            markCurrentErrorScopeThrowable(sema);
+            if (!canPropagateThrowableResult(sema))
+                return reportThrowableCallRequiresContext(sema, calledFn, sema.curNodeRef());
+        }
+
         const TypeInfo& returnType = sema.typeMgr().get(calledFn.returnTypeRef());
         if (!returnType.isVoid() &&
             !calledFn.attributes().hasRtFlag(RtAttributeFlagsE::Discardable) &&
@@ -1579,6 +1769,7 @@ Result AstFunctionDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef)
         frame.setLookupScope(nullptr);
         frame.setUpLookupScope(nullptr);
         frame.setIgnoreRuntimeAccess(false);
+        frame.setCurrentErrorContext(AstNodeRef::invalid(), SemaFrame::ErrorContextMode::None);
         frame.pushBindingType(sym.returnTypeRef());
         sema.pushFramePopOnPostNode(frame);
 
@@ -1601,6 +1792,7 @@ Result AstFunctionExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef)
     frame.setLookupScope(nullptr);
     frame.setUpLookupScope(nullptr);
     frame.setIgnoreRuntimeAccess(false);
+    frame.setCurrentErrorContext(AstNodeRef::invalid(), SemaFrame::ErrorContextMode::None);
     if (sym.returnTypeRef().isValid())
         frame.pushBindingType(sym.returnTypeRef());
     sema.pushFramePopOnPostNode(frame);
@@ -1623,6 +1815,7 @@ Result AstClosureExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) 
     frame.setLookupScope(nullptr);
     frame.setUpLookupScope(nullptr);
     frame.setIgnoreRuntimeAccess(false);
+    frame.setCurrentErrorContext(AstNodeRef::invalid(), SemaFrame::ErrorContextMode::None);
     if (sym.returnTypeRef().isValid())
         frame.pushBindingType(sym.returnTypeRef());
     sema.pushFramePopOnPostNode(frame);
@@ -1864,6 +2057,59 @@ Result AstReturnStmt::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) c
     auto frame = sema.frame();
     frame.pushBindingType(returnTypeRef);
     sema.pushFramePopOnPostChild(frame, childRef);
+    return Result::Continue;
+}
+
+Result AstTryCatchExpr::semaPreNode(Sema& sema) const
+{
+    return semaTryCatchPreNodeCommon(sema);
+}
+
+Result AstTryCatchExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const
+{
+    return semaTryCatchPreNodeChildCommon(sema, nodeExprRef, childRef);
+}
+
+Result AstTryCatchExpr::semaPostNode(Sema& sema) const
+{
+    SWC_RESULT(semaTryCatchPostNodeCommon(sema, nodeExprRef));
+
+    sema.inheritPayload(sema.curNode(), nodeExprRef);
+    sema.copyResolvedCallArguments(sema.curNodeRef(), nodeExprRef);
+    return Result::Continue;
+}
+
+Result AstTryCatchStmt::semaPreNode(Sema& sema) const
+{
+    return semaTryCatchPreNodeCommon(sema);
+}
+
+Result AstTryCatchStmt::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const
+{
+    return semaTryCatchPreNodeChildCommon(sema, nodeBodyRef, childRef);
+}
+
+Result AstTryCatchStmt::semaPostNode(Sema& sema) const
+{
+    return semaTryCatchPostNodeCommon(sema, nodeBodyRef);
+}
+
+Result AstThrowExpr::semaPostNode(Sema& sema) const
+{
+    const SemaNodeView exprView = sema.viewNodeTypeConstant(nodeExprRef);
+    SWC_RESULT(SemaCheck::isValue(sema, exprView.nodeRef()));
+
+    if (!canPropagateThrowableResult(sema))
+        return reportThrowOutsideThrowableContext(sema, sema.curNodeRef());
+
+    auto& payload             = ensureErrorManagementPayload(sema, sema.curNodeRef());
+    payload.containsThrowable = true;
+    payload.isThrowableResult = true;
+    markCurrentErrorScopeThrowable(sema);
+
+    sema.setType(sema.curNodeRef(), preferredThrowResultType(sema));
+    sema.setIsValue(sema.curNodeRef());
+    sema.unsetIsLValue(sema.curNodeRef());
     return Result::Continue;
 }
 

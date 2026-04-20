@@ -1,4 +1,5 @@
 SWC_DIAG_DEF(io_err_open_file)
 SWC_DIAG_DEF(io_err_read_file)
+SWC_DIAG_DEF(misc_err_internal_codegen_failure)
 
 SWC_DIAG_DEF(unittest_err_not_raised)

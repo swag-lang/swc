@@ -4,14 +4,15 @@
 #include "Backend/ABI/ABITypeNormalize.h"
 #include "Backend/ABI/CallConv.h"
 #include "Compiler/CodeGen/Core/CodeGenCallHelpers.h"
-#include "Compiler/CodeGen/Core/CodeGenTypeHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenFunctionHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenMemoryHelpers.h"
+#include "Compiler/CodeGen/Core/CodeGenTypeHelpers.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Constant/ConstantHelpers.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Constant/ConstantValue.h"
 #include "Compiler/Sema/Core/Sema.h"
+#include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Helpers/SemaInline.h"
 #include "Compiler/Sema/Symbol/IdentifierManager.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
@@ -215,6 +216,38 @@ namespace
         return payload && payload->hasRuntimeSafety(Runtime::SafetyWhat::Assume);
     }
 
+    AstNodeRef resolveCodeGenErrorNodeRef(CodeGen& codeGen, AstNodeRef preferredNodeRef)
+    {
+        if (preferredNodeRef.isValid())
+        {
+            preferredNodeRef = codeGen.viewZero(preferredNodeRef).nodeRef();
+            if (preferredNodeRef.isValid())
+                return preferredNodeRef;
+        }
+
+        const AstNodeRef currentNodeRef = codeGen.viewZero(codeGen.curNodeRef()).nodeRef();
+        if (currentNodeRef.isValid())
+            return currentNodeRef;
+
+        const AstNodeRef functionDeclRef = codeGen.viewZero(codeGen.function().declNodeRef()).nodeRef();
+        SWC_ASSERT(functionDeclRef.isValid());
+        return functionDeclRef;
+    }
+
+    Result raiseInternalCodeGenError(CodeGen& codeGen, std::string_view because, AstNodeRef nodeRef = AstNodeRef::invalid(), SemaError::ReportLocation location = SemaError::ReportLocation::Token)
+    {
+        SWC_ASSERT(!because.empty());
+
+        const AstNodeRef errorNodeRef = resolveCodeGenErrorNodeRef(codeGen, nodeRef);
+        SWC_ASSERT(errorNodeRef.isValid());
+
+        auto diag = SemaError::report(codeGen.sema(), DiagnosticId::misc_err_internal_codegen_failure, errorNodeRef, location);
+        diag.addArgument(Diagnostic::ARG_WHAT, codeGen.function().getFullScopedName(codeGen.ctx()));
+        diag.addArgument(Diagnostic::ARG_BECAUSE, because);
+        diag.report(codeGen.ctx());
+        return Result::Error;
+    }
+
     Result emitPayloadToAddress(CodeGen& codeGen, MicroReg dstAddressReg, const CodeGenNodePayload& srcPayload, TypeRef typeRef);
 
     void assignThrowableExprResult(CodeGen& codeGen, const CodeGenNodePayload& dstPayload, const CodeGenNodePayload& srcPayload, TypeRef typeRef)
@@ -227,8 +260,8 @@ namespace
             return;
         }
 
-        const TypeInfo&   typeInfo   = codeGen.typeMgr().get(typeRef);
-        const MicroOpBits storeBits  = CodeGenTypeHelpers::scalarStoreBits(typeInfo, codeGen.ctx());
+        const TypeInfo&   typeInfo  = codeGen.typeMgr().get(typeRef);
+        const MicroOpBits storeBits = CodeGenTypeHelpers::scalarStoreBits(typeInfo, codeGen.ctx());
         SWC_ASSERT(storeBits != MicroOpBits::Zero);
         if (srcPayload.isAddress())
             builder.emitLoadRegMem(dstPayload.reg, srcPayload.reg, 0, storeBits);
@@ -242,16 +275,17 @@ namespace
         if (!typeRef.isValid() || typeRef == codeGen.typeMgr().typeVoid())
             return Result::Continue;
 
-        TaskContext&    ctx         = codeGen.ctx();
-        const TypeInfo& originalType = codeGen.typeMgr().get(typeRef);
+        TaskContext&    ctx            = codeGen.ctx();
+        const TypeInfo& originalType   = codeGen.typeMgr().get(typeRef);
         TypeRef         storageTypeRef = originalType.unwrap(ctx, typeRef, TypeExpandE::Alias | TypeExpandE::Enum);
         if (storageTypeRef.isInvalid())
             storageTypeRef = typeRef;
 
         const TypeInfo& typeInfo = codeGen.typeMgr().get(storageTypeRef);
         const uint64_t  sizeOf   = typeInfo.sizeOf(codeGen.ctx());
+        SWC_ASSERT(sizeOf && sizeOf <= std::numeric_limits<uint32_t>::max());
         if (!sizeOf || sizeOf > std::numeric_limits<uint32_t>::max())
-            return Result::Error;
+            return raiseInternalCodeGenError(codeGen, "invalid zero constant storage size");
 
         SmallVector<std::byte> rawBytes;
         rawBytes.resize(sizeOf);
@@ -265,13 +299,13 @@ namespace
         else
             zeroValue = ConstantValue::make(ctx, rawBytes.data(), storageTypeRef, ConstantValue::PayloadOwnership::Borrowed);
         if (zeroValue.kind() == ConstantKind::Invalid)
-            return Result::Error;
+            return raiseInternalCodeGenError(codeGen, "failed to materialize the synthesized zero constant");
 
         if (originalType.isEnum())
         {
             const ConstantRef storageCstRef = codeGen.cstMgr().addConstant(ctx, zeroValue);
             if (storageCstRef.isInvalid())
-                return Result::Error;
+                return raiseInternalCodeGenError(codeGen, "failed to cache the synthesized enum zero constant");
 
             zeroValue = ConstantValue::makeEnumValue(ctx, storageCstRef, typeRef);
         }
@@ -281,7 +315,9 @@ namespace
         }
 
         outCstRef = codeGen.cstMgr().addConstant(ctx, zeroValue);
-        return outCstRef.isValid() ? Result::Continue : Result::Error;
+        if (!outCstRef.isValid())
+            return raiseInternalCodeGenError(codeGen, "failed to cache the synthesized zero constant");
+        return Result::Continue;
     }
 
     Result emitZeroThrowableExprResult(CodeGen& codeGen, CodeGenNodePayload& resultPayload, TypeRef typeRef)
@@ -294,7 +330,7 @@ namespace
 
         CodeGenNodePayload zeroPayload;
         if (!CodeGenCallHelpers::materializeTypedConstantPayload(codeGen, zeroPayload, typeRef, zeroCstRef))
-            return Result::Error;
+            return raiseInternalCodeGenError(codeGen, "failed to materialize the synthesized zero throwable result payload");
 
         assignThrowableExprResult(codeGen, resultPayload, zeroPayload, typeRef);
         return Result::Continue;
@@ -330,7 +366,7 @@ namespace
                 SymbolFunction* runtimeCatchErr = runtimeFunctionByKind(codeGen, IdentifierManager::RuntimeFunctionKind::CatchErr);
                 SWC_ASSERT(runtimeCatchErr != nullptr);
                 if (!runtimeCatchErr)
-                    return Result::Error;
+                    return raiseInternalCodeGenError(codeGen, "missing runtime helper '__catchErr'", nodeRef);
                 return CodeGenCallHelpers::emitRuntimeCallWithDirectArgs(codeGen, *runtimeCatchErr, std::span<const MicroReg>{});
             }
 
@@ -339,7 +375,7 @@ namespace
                 SymbolFunction* runtimePopErr = runtimeFunctionByKind(codeGen, IdentifierManager::RuntimeFunctionKind::PopErr);
                 SWC_ASSERT(runtimePopErr != nullptr);
                 if (!runtimePopErr)
-                    return Result::Error;
+                    return raiseInternalCodeGenError(codeGen, "missing runtime helper '__popErr'", nodeRef);
                 return CodeGenCallHelpers::emitRuntimeCallWithDirectArgs(codeGen, *runtimePopErr, std::span<const MicroReg>{});
             }
 
@@ -350,7 +386,7 @@ namespace
                     SymbolFunction* runtimeFailedAssume = runtimeFunctionByKind(codeGen, IdentifierManager::RuntimeFunctionKind::FailedAssume);
                     SWC_ASSERT(runtimeFailedAssume != nullptr);
                     if (!runtimeFailedAssume)
-                        return Result::Error;
+                        return raiseInternalCodeGenError(codeGen, "missing runtime helper '__failedAssume'", nodeRef);
 
                     ConstantRef sourceLocCstRef = ConstantRef::invalid();
                     SWC_RESULT(ConstantHelpers::makeSourceCodeLocation(codeGen.sema(), sourceLocCstRef, codeGen.node(nodeRef)));
@@ -358,7 +394,7 @@ namespace
                     CodeGenNodePayload sourceLocPayload;
                     const TypeRef      sourceLocTypeRef = runtimeFailedAssume->parameters().front()->typeRef();
                     if (!CodeGenCallHelpers::materializeTypedConstantPayload(codeGen, sourceLocPayload, sourceLocTypeRef, sourceLocCstRef))
-                        return Result::Error;
+                        return raiseInternalCodeGenError(codeGen, "failed to materialize the failed-assume source location payload", nodeRef);
 
                     const std::array args = {sourceLocPayload.reg};
                     SWC_RESULT(CodeGenCallHelpers::emitRuntimeCallWithDirectArgs(codeGen, *runtimeFailedAssume, args));
@@ -367,7 +403,7 @@ namespace
                 SymbolFunction* runtimePopErr = runtimeFunctionByKind(codeGen, IdentifierManager::RuntimeFunctionKind::PopErr);
                 SWC_ASSERT(runtimePopErr != nullptr);
                 if (!runtimePopErr)
-                    return Result::Error;
+                    return raiseInternalCodeGenError(codeGen, "missing runtime helper '__popErr'", nodeRef);
                 return CodeGenCallHelpers::emitRuntimeCallWithDirectArgs(codeGen, *runtimePopErr, std::span<const MicroReg>{});
             }
 
@@ -1222,9 +1258,8 @@ namespace
 
     ThrowableTarget resolveThrowableTarget(CodeGen& codeGen)
     {
-        const auto tryResolveHandlerTarget = [&](AstNodeRef candidateRef, ThrowableTarget& outTarget)
-        {
-            CodeGenNodePayload* breadcrumbPayload = throwableWrapperBreadcrumbPayload(codeGen, candidateRef);
+        const auto tryResolveHandlerTarget = [&](AstNodeRef candidateRef, ThrowableTarget& outTarget) {
+            const CodeGenNodePayload* breadcrumbPayload = throwableWrapperBreadcrumbPayload(codeGen, candidateRef);
             if (!breadcrumbPayload || !isHandledThrowableContext(breadcrumbPayload->throwableWrapperTokenId))
                 return false;
 
@@ -1232,14 +1267,14 @@ namespace
             if (!ownerRef.isValid())
                 ownerRef = codeGen.viewZero(candidateRef).nodeRef();
 
-            CodeGenNodePayload* ownerPayload = throwableWrapperOwnerPayload(codeGen, ownerRef);
+            const CodeGenNodePayload* ownerPayload = throwableWrapperOwnerPayload(codeGen, ownerRef);
             if (!ownerPayload || !ownerPayload->throwableFailLabel.isValid())
                 return false;
 
             outTarget = {
                 .kind      = ThrowableTarget::Kind::Handler,
-                .scopeRef   = codeGen.viewZero(ownerRef).nodeRef(),
-                .failLabel  = ownerPayload->throwableFailLabel,
+                .scopeRef  = codeGen.viewZero(ownerRef).nodeRef(),
+                .failLabel = ownerPayload->throwableFailLabel,
             };
             return true;
         };
@@ -1269,20 +1304,20 @@ namespace
                 return handlerTarget;
         }
 
-        AstNodeRef functionDeclRef = codeGen.viewZero(codeGen.function().declNodeRef()).nodeRef();
+        const AstNodeRef functionDeclRef = codeGen.viewZero(codeGen.function().declNodeRef()).nodeRef();
         SWC_ASSERT(functionDeclRef.isValid());
         CodeGenNodePayload& payload = ensureThrowableFunctionPayload(codeGen, functionDeclRef);
         if (!payload.throwableFunctionFailLabel.isValid())
         {
-            MicroBuilder& builder = codeGen.builder();
+            MicroBuilder& builder              = codeGen.builder();
             payload.throwableFunctionFailLabel = builder.createLabel();
             payload.throwableFunctionDoneLabel = builder.createLabel();
         }
 
         return {
             .kind      = ThrowableTarget::Kind::FunctionReturn,
-            .scopeRef   = functionDeclRef,
-            .failLabel  = payload.throwableFunctionFailLabel,
+            .scopeRef  = functionDeclRef,
+            .failLabel = payload.throwableFunctionFailLabel,
         };
     }
 
@@ -1350,8 +1385,8 @@ namespace
         }
         else
         {
-            const MicroReg returnValueReg = codeGen.nextVirtualRegisterForType(returnTypeRef);
-            const MicroOpBits retBits     = normalizedRet.numBits ? microOpBitsFromBitWidth(normalizedRet.numBits) : MicroOpBits::B64;
+            const MicroReg    returnValueReg = codeGen.nextVirtualRegisterForType(returnTypeRef);
+            const MicroOpBits retBits        = normalizedRet.numBits ? microOpBitsFromBitWidth(normalizedRet.numBits) : MicroOpBits::B64;
             SWC_ASSERT(retBits != MicroOpBits::Zero);
             if (exprPayload->isAddress())
                 builder.emitLoadRegMem(returnValueReg, exprPayload->reg, 0, retBits);
@@ -1382,7 +1417,7 @@ namespace
 
         CodeGenNodePayload zeroPayload;
         if (!CodeGenCallHelpers::materializeTypedConstantPayload(codeGen, zeroPayload, symbolFunc.returnTypeRef(), zeroCstRef))
-            return Result::Error;
+            return raiseInternalCodeGenError(codeGen, "failed to materialize the synthesized throwable failure return payload");
 
         return emitFunctionLikeReturnNoDefers(codeGen, symbolFunc, &zeroPayload);
     }
@@ -1515,13 +1550,13 @@ Result CodeGenCallHelpers::emitThrowableFailureJumpIfHasError(CodeGen& codeGen)
     SymbolFunction* runtimeHasErr = runtimeFunctionByKind(codeGen, IdentifierManager::RuntimeFunctionKind::HasErr);
     SWC_ASSERT(runtimeHasErr != nullptr);
     if (!runtimeHasErr)
-        return Result::Error;
+        return raiseInternalCodeGenError(codeGen, "missing runtime helper '__hasErr'");
 
     const MicroReg hasErrReg = codeGen.nextVirtualIntRegister();
     SWC_RESULT(emitRuntimeCallWithDirectArgsToReg(codeGen, *runtimeHasErr, std::span<const MicroReg>{}, hasErrReg));
 
-    MicroBuilder&        builder      = codeGen.builder();
-    const MicroLabelRef  continueLabel = builder.createLabel();
+    MicroBuilder&       builder       = codeGen.builder();
+    const MicroLabelRef continueLabel = builder.createLabel();
     builder.emitCmpRegImm(hasErrReg, ApInt(0, 64), MicroOpBits::B8);
     builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, continueLabel);
     SWC_RESULT(emitThrowableJump(codeGen));
@@ -1535,7 +1570,7 @@ Result CodeGenFunctionHelpers::emitThrowableWrapperPreNode(CodeGen& codeGen, Ast
     if (!payload || !isHandledThrowableContext(payload->throwableWrapperTokenId))
         return Result::Continue;
 
-    MicroBuilder& builder      = codeGen.builder();
+    MicroBuilder& builder       = codeGen.builder();
     payload->throwableFailLabel = builder.createLabel();
     payload->throwableDoneLabel = builder.createLabel();
     codeGen.pushDeferScope(nodeRef);
@@ -1543,7 +1578,7 @@ Result CodeGenFunctionHelpers::emitThrowableWrapperPreNode(CodeGen& codeGen, Ast
     SymbolFunction* runtimePushErr = runtimeFunctionByKind(codeGen, IdentifierManager::RuntimeFunctionKind::PushErr);
     SWC_ASSERT(runtimePushErr != nullptr);
     if (!runtimePushErr)
-        return Result::Error;
+        return raiseInternalCodeGenError(codeGen, "missing runtime helper '__pushErr'", nodeRef);
 
     return CodeGenCallHelpers::emitRuntimeCallWithDirectArgs(codeGen, *runtimePushErr, std::span<const MicroReg>{});
 }
@@ -1554,12 +1589,12 @@ Result CodeGenFunctionHelpers::emitThrowableWrapperPostNode(CodeGen& codeGen, As
     if (!payload || !payload->throwableFailLabel.isValid() || !isHandledThrowableContext(payload->throwableWrapperTokenId))
         return Result::Continue;
 
-    const ThrowableHandlerKind kind        = throwableHandlerKind(payload->throwableWrapperTokenId);
-    const AstNodeRef           ownerRef    = payload->throwableWrapperOwnerRef.isValid() ? payload->throwableWrapperOwnerRef : nodeRef;
-    const TypeRef              resultType  = codeGen.curViewType().typeRef();
-    const bool                 hasResult   = resultType.isValid() && resultType != codeGen.typeMgr().typeVoid();
+    const ThrowableHandlerKind kind           = throwableHandlerKind(payload->throwableWrapperTokenId);
+    const AstNodeRef           ownerRef       = payload->throwableWrapperOwnerRef.isValid() ? payload->throwableWrapperOwnerRef : nodeRef;
+    const TypeRef              resultType     = codeGen.curViewType().typeRef();
+    const bool                 hasResult      = resultType.isValid() && resultType != codeGen.typeMgr().typeVoid();
     const bool                 hasFallthrough = !codeGen.currentInstructionBlocksFallthrough();
-    MicroBuilder&              builder     = codeGen.builder();
+    MicroBuilder&              builder        = codeGen.builder();
     SWC_ASSERT(kind != ThrowableHandlerKind::None);
 
     if (hasFallthrough)
@@ -1718,7 +1753,7 @@ Result AstThrowExpr::codeGenPostNode(CodeGen& codeGen) const
     SymbolFunction* runtimeSetErrRaw = runtimeFunctionByKind(codeGen, IdentifierManager::RuntimeFunctionKind::SetErrRaw);
     SWC_ASSERT(runtimeSetErrRaw != nullptr);
     if (!runtimeSetErrRaw)
-        return Result::Error;
+        return raiseInternalCodeGenError(codeGen, "missing runtime helper '__setErrRaw'", codeGen.curNodeRef());
 
     ConstantRef typeInfoCstRef = ConstantRef::invalid();
     SWC_RESULT(codeGen.cstMgr().makeTypeInfo(codeGen.sema(), typeInfoCstRef, exprTypeRef, nodeExprRef));
@@ -1726,7 +1761,7 @@ Result AstThrowExpr::codeGenPostNode(CodeGen& codeGen) const
     CodeGenNodePayload typeInfoPayload;
     const TypeRef      typeInfoTypeRef = runtimeSetErrRaw->parameters()[1]->typeRef();
     if (!CodeGenCallHelpers::materializeTypedConstantPayload(codeGen, typeInfoPayload, typeInfoTypeRef, typeInfoCstRef))
-        return Result::Error;
+        return raiseInternalCodeGenError(codeGen, "failed to materialize the thrown-value type info payload", codeGen.curNodeRef());
 
     const std::array args = {storageReg, typeInfoPayload.reg};
     SWC_RESULT(CodeGenCallHelpers::emitRuntimeCallWithDirectArgs(codeGen, *runtimeSetErrRaw, args));

@@ -2074,8 +2074,13 @@ Result AstTryCatchExpr::semaPostNode(Sema& sema) const
 {
     SWC_RESULT(semaTryCatchPostNodeCommon(sema, nodeExprRef));
 
-    sema.inheritPayload(sema.curNode(), nodeExprRef);
-    sema.copyResolvedCallArguments(sema.curNodeRef(), nodeExprRef);
+    const AstNodeRef resolvedExprRef = sema.viewZero(nodeExprRef).nodeRef();
+    const SemaNodeView exprView      = sema.viewNodeTypeConstant(resolvedExprRef);
+    sema.inheritPayloadFlags(sema.curNode(), resolvedExprRef);
+    sema.setType(sema.curNodeRef(), exprView.typeRef());
+    if (exprView.cstRef().isValid())
+        sema.setConstant(sema.curNodeRef(), exprView.cstRef());
+    sema.copyResolvedCallArguments(sema.curNodeRef(), resolvedExprRef);
     return Result::Continue;
 }
 

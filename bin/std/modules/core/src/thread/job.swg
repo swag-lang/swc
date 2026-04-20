@@ -15,7 +15,7 @@ public struct Job
     data:       *void
 
     // Internal state
-    state:            JobState = Zero
+    state:            JobState = .Zero
     pendingIndex:     u32 = Swag.U32.Max
 }
 

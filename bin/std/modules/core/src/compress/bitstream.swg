@@ -69,14 +69,14 @@ impl BitStream
     {
         if .numBits < width do
             .refill()
-        return .codeBuffer & ~(0xffffffff << width)
+        return .codeBuffer & ~(0xffffffff'u64 << width)
     }
 
     // Like peekBits, but assumes enough bits are already available
     mtd peekBitsNoRefill(width: u8)->u32
     {
         Debug.assert(.numBits >= width)
-        return .codeBuffer & ~(0xffffffff << width)
+        return .codeBuffer & ~(0xffffffff'u64 << width)
     }
 
     // Reads and consumes 'width' bits from the buffer

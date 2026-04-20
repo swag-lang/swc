@@ -69,7 +69,7 @@ impl BitStream
     {
         if .numBits < width do
             .refill()
-        return .codeBuffer & ~(0xffffffff'u64 << width)
+        return cast(u32) (.codeBuffer & ~(0xffffffff'u64 << width))
     }
 
     // Like peekBits, but assumes enough bits are already available

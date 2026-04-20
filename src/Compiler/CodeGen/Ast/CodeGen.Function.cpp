@@ -242,7 +242,13 @@ namespace
         if (!typeRef.isValid() || typeRef == codeGen.typeMgr().typeVoid())
             return Result::Continue;
 
-        const TypeInfo& typeInfo = codeGen.typeMgr().get(typeRef);
+        TaskContext&    ctx         = codeGen.ctx();
+        const TypeInfo& originalType = codeGen.typeMgr().get(typeRef);
+        TypeRef         storageTypeRef = originalType.unwrap(ctx, typeRef, TypeExpandE::Alias | TypeExpandE::Enum);
+        if (storageTypeRef.isInvalid())
+            storageTypeRef = typeRef;
+
+        const TypeInfo& typeInfo = codeGen.typeMgr().get(storageTypeRef);
         const uint64_t  sizeOf   = typeInfo.sizeOf(codeGen.ctx());
         if (!sizeOf || sizeOf > std::numeric_limits<uint32_t>::max())
             return Result::Error;
@@ -251,11 +257,30 @@ namespace
         rawBytes.resize(sizeOf);
         std::memset(rawBytes.data(), 0, rawBytes.size());
 
-        const ConstantValue zeroValue = ConstantValue::make(codeGen.ctx(), rawBytes.data(), typeRef, ConstantValue::PayloadOwnership::Borrowed);
+        ConstantValue zeroValue;
+        if (typeInfo.isStruct() || typeInfo.isAny() || typeInfo.isInterface())
+            zeroValue = ConstantValue::makeStructBorrowed(ctx, storageTypeRef, ByteSpan{rawBytes.data(), rawBytes.size()});
+        else if (typeInfo.isArray())
+            zeroValue = ConstantValue::makeArrayBorrowed(ctx, storageTypeRef, ByteSpan{rawBytes.data(), rawBytes.size()});
+        else
+            zeroValue = ConstantValue::make(ctx, rawBytes.data(), storageTypeRef, ConstantValue::PayloadOwnership::Borrowed);
         if (zeroValue.kind() == ConstantKind::Invalid)
             return Result::Error;
 
-        outCstRef = codeGen.cstMgr().addConstant(codeGen.ctx(), zeroValue);
+        if (originalType.isEnum())
+        {
+            const ConstantRef storageCstRef = codeGen.cstMgr().addConstant(ctx, zeroValue);
+            if (storageCstRef.isInvalid())
+                return Result::Error;
+
+            zeroValue = ConstantValue::makeEnumValue(ctx, storageCstRef, typeRef);
+        }
+        else
+        {
+            zeroValue.setTypeRef(typeRef);
+        }
+
+        outCstRef = codeGen.cstMgr().addConstant(ctx, zeroValue);
         return outCstRef.isValid() ? Result::Continue : Result::Error;
     }
 

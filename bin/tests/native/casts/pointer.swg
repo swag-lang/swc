@@ -108,4 +108,21 @@
     @assert(y == null)
 }
 
+#[Swag.Strict]
+alias StrictHandle = const *void
+
+#test
+{
+    var handle: StrictHandle = null
+    @assert(handle == null)
+}
+
+#test
+{
+    let text = "hello"
+    let ptr  = cast(const [*] u8) text
+    @assert(ptr == @dataof(text))
+    @assert(ptr[0] == 'h')
+}
+
 

@@ -144,3 +144,19 @@
     var a: [2] s32
     var p1: const *void = a
 }
+
+#[Swag.Strict]
+alias StrictHandle = const *void
+
+#test
+{
+    var handle: StrictHandle = null
+    #assert(#typeof(handle) == StrictHandle)
+}
+
+#test
+{
+    let text = "hello"
+    let ptr  = cast(const [*] u8) text
+    #assert(#typeof(ptr) == const [*] u8)
+}

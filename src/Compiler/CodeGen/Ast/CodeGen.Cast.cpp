@@ -923,6 +923,17 @@ namespace
             return Result::Continue;
         }
 
+        if (srcType.isString() &&
+            dstType.isAnyPointer() &&
+            dstType.isConst() &&
+            (dstType.payloadTypeRef() == typeMgr.typeU8() || dstType.payloadTypeRef() == typeMgr.typeVoid()))
+        {
+            CodeGenNodePayload& dstPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), dstTypeRef);
+            dstPayload.reg                 = codeGen.nextVirtualIntRegister();
+            builder.emitLoadRegMem(dstPayload.reg, srcPayload.reg, offsetof(Runtime::String, ptr), MicroOpBits::B64);
+            return Result::Continue;
+        }
+
         if (tryEmitAddressBackedPointerLikeCast(codeGen, srcPayload, sourceTypeRef, dstTypeRef))
             return Result::Continue;
 

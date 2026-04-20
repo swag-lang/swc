@@ -1208,6 +1208,7 @@ Result Cast::castPointerToPointer(Sema& sema, CastRequest& castRequest, TypeRef 
 
 Result Cast::castToPointer(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef)
 {
+    TaskContext&       ctx     = sema.ctx();
     const TypeManager& typeMgr = sema.typeMgr();
     const TypeInfo&    srcType = typeMgr.get(srcTypeRef);
     const TypeInfo&    dstType = typeMgr.get(dstTypeRef);
@@ -1245,6 +1246,32 @@ Result Cast::castToPointer(Sema& sema, CastRequest& castRequest, TypeRef srcType
         }
 
         return castPointerToPointer(sema, castRequest, srcTypeRef, dstTypeRef);
+    }
+
+    if (srcType.isString())
+    {
+        const TypeRef dstPointeeTypeRef = dstType.payloadTypeRef();
+        if (castRequest.kind == CastKind::Explicit &&
+            dstType.isConst() &&
+            (dstPointeeTypeRef == typeMgr.typeU8() || dstPointeeTypeRef == typeMgr.typeVoid()))
+        {
+            if (castRequest.isConstantFolding())
+            {
+                const ConstantValue& srcCst = sema.cstMgr().get(castRequest.constantFoldingSrc());
+                SWC_ASSERT(srcCst.isString());
+                const uint64_t ptrValue = reinterpret_cast<uint64_t>(srcCst.getString().data());
+
+                ConstantValue ptrCst;
+                if (dstType.isBlockPointer())
+                    ptrCst = ConstantValue::makeBlockPointer(ctx, dstPointeeTypeRef, ptrValue, dstType.flags());
+                else
+                    ptrCst = ConstantValue::makeValuePointer(ctx, dstPointeeTypeRef, ptrValue, dstType.flags());
+
+                castRequest.setConstantFoldingResult(sema.cstMgr().addConstant(ctx, ptrCst));
+            }
+
+            return Result::Continue;
+        }
     }
 
     if (srcType.isTypeInfo())
@@ -1756,8 +1783,14 @@ Result Cast::castAllowed(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRe
 
     if (srcType.isAlias() || dstType.isAlias())
     {
+        const TypeRef resolvedSrcTypeRef = unwrapAliasEnumTypeRef(sema.typeMgr(), sema.ctx(), srcTypeRef);
+        const TypeRef resolvedDstTypeRef = unwrapAliasEnumTypeRef(sema.typeMgr(), sema.ctx(), dstTypeRef);
+        const TypeInfo& resolvedSrcType  = sema.typeMgr().get(resolvedSrcTypeRef);
+        const TypeInfo& resolvedDstType  = sema.typeMgr().get(resolvedDstTypeRef);
+
         const bool allowAliasBoolCast = isTruthyBoolCastKind(castRequest.kind) && dstType.isBool();
-        if (castRequest.kind != CastKind::Explicit && !allowAliasBoolCast)
+        const bool allowAliasNullCast = resolvedSrcType.isNull() && resolvedDstType.isPointerLike();
+        if (castRequest.kind != CastKind::Explicit && !allowAliasBoolCast && !allowAliasNullCast)
             return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
     }
 

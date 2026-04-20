@@ -12,7 +12,7 @@ func __dropErr(err: any)
         type.opDrop(data)
 }
 
-func __setErr(err: any)
+func __setErrRaw(data: *void, type: const *Swag.TypeInfoStruct)
 {
     let cxt = @getcontext()
     if cxt.errorIndex >= MaxErrors do
@@ -23,16 +23,26 @@ func __setErr(err: any)
     // We check that the contextual error allocator has been initialized.
     // In case an error is raised at a very very early stage (in #init)
     if !cxt.errorAllocator.capacity do
-        cxt.errorAllocator.setCapacity(cast() __buildCfg.errorAllocatorCapacity, cxt.allocator)
+        cxt.errorAllocator.setCapacity(cast() __buildCfg.errorAllocatorCapacity, __runtimeAllocator())
 
-    let data = @dataof(err)
-    let type = cast(const *Swag.TypeInfoStruct) @kindof(err)
     let ptr  = cxt.errorAllocator.alloc(cast(u64) type.sizeof)
     @memcpy(ptr, data, cast(u64) type.sizeof)
     if type.opPostCopy do
         type.opPostCopy(ptr)
     cxt.errors[cxt.errorIndex].value = @mkany(ptr, type)
     cxt.hasError                     = 1
+}
+
+func __setErr(err: any)
+{
+    let data = @dataof(err)
+    let type = cast(const *Swag.TypeInfoStruct) @kindof(err)
+    __setErrRaw(data, type)
+}
+
+func __hasErr()->bool
+{
+    return @getcontext().hasError != 0
 }
 
 func __pushErr()
@@ -69,6 +79,8 @@ func __catchErr()
         cxt.curError = cxt.errors[cxt.errorIndex].value
     cxt.errorAllocator.used = cxt.errorIndex ? cxt.errors[cxt.errorIndex - 1].pushUsedAlloc : 0
     cxt.hasError            = 0
+    if cxt.errorIndex do
+        cxt.errorIndex -= 1
 }
 
 // Returns the current raised error, or null if none
@@ -126,7 +138,6 @@ func __failedAssume(loc: SourceCodeLocation)
     }
 
     cxt.hasError = 0
-    @assert(cxt.errorIndex == 0)
 
     str[len] = 0
     @panic(@mkstring(&str[0], len), loc)

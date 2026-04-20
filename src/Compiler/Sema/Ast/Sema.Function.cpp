@@ -376,6 +376,46 @@ namespace
         return *payload;
     }
 
+    void attachThrowableWrapperToManagedChild(Sema& sema, AstNodeRef ownerRef, AstNodeRef managedChildRef, TokenId tokenId)
+    {
+        switch (tokenId)
+        {
+            case TokenId::KwdCatch:
+            case TokenId::KwdTryCatch:
+            case TokenId::KwdAssume:
+                break;
+            default:
+                return;
+        }
+
+        const auto attachWrapper = [&](AstNodeRef targetRef)
+        {
+            if (!targetRef.isValid())
+                return;
+
+            CodeGenNodePayload& payload      = SemaHelpers::ensureCodeGenNodePayload(sema, targetRef);
+            payload.throwableWrapperOwnerRef = ownerRef;
+            payload.throwableWrapperTokenId  = tokenId;
+            payload.throwableFailLabel       = MicroLabelRef::invalid();
+            payload.throwableDoneLabel       = MicroLabelRef::invalid();
+        };
+
+        attachWrapper(ownerRef);
+
+        const auto attachInlineRootIfCallLike = [&](AstNodeRef targetRef)
+        {
+            if (!targetRef.isValid())
+                return;
+
+            const AstNodeId nodeId = sema.node(targetRef).id();
+            if (nodeId == AstNodeId::CallExpr || nodeId == AstNodeId::AliasCallExpr)
+                attachWrapper(targetRef);
+        };
+
+        attachInlineRootIfCallLike(managedChildRef);
+        attachInlineRootIfCallLike(sema.viewZero(managedChildRef).nodeRef());
+    }
+
     SemaFrame::ErrorContextMode errorContextMode(TokenId tokenId)
     {
         switch (tokenId)
@@ -533,6 +573,30 @@ namespace
         payload.isThrowableResult = tok.id == TokenId::KwdTry;
         if (payload.isThrowableResult)
             markCurrentErrorScopeThrowable(sema);
+
+        switch (tok.id)
+        {
+            case TokenId::KwdCatch:
+                SWC_RESULT(SemaHelpers::requireRuntimeFunctionDependency(sema, IdentifierManager::RuntimeFunctionKind::PushErr, sema.curNode().codeRef()));
+                SWC_RESULT(SemaHelpers::requireRuntimeFunctionDependency(sema, IdentifierManager::RuntimeFunctionKind::CatchErr, sema.curNode().codeRef()));
+                break;
+
+            case TokenId::KwdTryCatch:
+                SWC_RESULT(SemaHelpers::requireRuntimeFunctionDependency(sema, IdentifierManager::RuntimeFunctionKind::PushErr, sema.curNode().codeRef()));
+                SWC_RESULT(SemaHelpers::requireRuntimeFunctionDependency(sema, IdentifierManager::RuntimeFunctionKind::PopErr, sema.curNode().codeRef()));
+                break;
+
+            case TokenId::KwdAssume:
+                SWC_RESULT(SemaHelpers::requireRuntimeFunctionDependency(sema, IdentifierManager::RuntimeFunctionKind::PushErr, sema.curNode().codeRef()));
+                SWC_RESULT(SemaHelpers::requireRuntimeFunctionDependency(sema, IdentifierManager::RuntimeFunctionKind::PopErr, sema.curNode().codeRef()));
+                SWC_RESULT(SemaHelpers::requireRuntimeFunctionDependency(sema, IdentifierManager::RuntimeFunctionKind::FailedAssume, sema.curNode().codeRef()));
+                break;
+
+            default:
+                break;
+        }
+
+        attachThrowableWrapperToManagedChild(sema, sema.curNodeRef(), managedChildRef, tok.id);
 
         return Result::Continue;
     }
@@ -1689,6 +1753,8 @@ namespace
             markCurrentErrorScopeThrowable(sema);
             if (!canPropagateThrowableResult(sema))
                 return reportThrowableCallRequiresContext(sema, calledFn, sema.curNodeRef());
+
+            SWC_RESULT(SemaHelpers::requireRuntimeFunctionDependency(sema, IdentifierManager::RuntimeFunctionKind::HasErr, sema.curNode().codeRef()));
         }
 
         const TypeInfo& returnType = sema.typeMgr().get(calledFn.returnTypeRef());
@@ -1709,8 +1775,12 @@ namespace
             if (sema.viewConstant(sema.curNodeRef()).hasConstant())
                 return Result::Continue;
             SWC_RESULT(SemaInline::tryInlineCall(sema, sema.curNodeRef(), calledFn, args, ufcsArg));
-            SWC_RESULT(SemaHelpers::attachIndirectReturnRuntimeStorageIfNeeded(sema, node, calledFn, "__call_runtime_storage"));
         }
+
+        if (sema.viewConstant(sema.curNodeRef()).hasConstant())
+            return Result::Continue;
+
+        SWC_RESULT(SemaHelpers::attachIndirectReturnRuntimeStorageIfNeeded(sema, node, calledFn, "__call_runtime_storage"));
 
         return Result::Continue;
     }
@@ -2081,6 +2151,11 @@ Result AstTryCatchExpr::semaPostNode(Sema& sema) const
     if (exprView.cstRef().isValid())
         sema.setConstant(sema.curNodeRef(), exprView.cstRef());
     sema.copyResolvedCallArguments(sema.curNodeRef(), resolvedExprRef);
+
+    const TokenId tokenId = sema.token(codeRef()).id;
+    if (tokenId != TokenId::KwdTry && exprView.typeRef().isValid() && exprView.typeRef() != sema.typeMgr().typeVoid())
+        SWC_RESULT(SemaHelpers::attachRuntimeStorageIfNeeded(sema, resolvedExprRef, *this, exprView.typeRef(), "__trycatch_runtime_storage"));
+
     return Result::Continue;
 }
 
@@ -2111,6 +2186,8 @@ Result AstThrowExpr::semaPostNode(Sema& sema) const
     payload.containsThrowable = true;
     payload.isThrowableResult = true;
     markCurrentErrorScopeThrowable(sema);
+    SWC_RESULT(SemaHelpers::requireRuntimeFunctionDependency(sema, IdentifierManager::RuntimeFunctionKind::SetErrRaw, codeRef()));
+    SWC_RESULT(SemaHelpers::attachRuntimeStorageIfNeeded(sema, sema.curNodeRef(), *this, exprView.typeRef(), "__throw_runtime_storage"));
 
     sema.setType(sema.curNodeRef(), preferredThrowResultType(sema));
     sema.setIsValue(sema.curNodeRef());

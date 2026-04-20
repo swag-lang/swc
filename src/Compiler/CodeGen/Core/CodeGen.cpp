@@ -39,6 +39,7 @@ namespace
         if (!payload)
         {
             payload = codeGen.compiler().allocate<VariableSymbolCodeGenPayload>();
+            *payload = {};
             sym.setCodeGenPayload(payload);
         }
 
@@ -63,6 +64,31 @@ namespace
         if (rawTypeRef.isValid())
             return rawTypeRef;
         return typeRef;
+    }
+
+    void mergeSupplementalNodePayloadMetadata(CodeGenNodePayload& dst, const CodeGenNodePayload& src)
+    {
+        if (!dst.runtimeStorageSym && src.runtimeStorageSym)
+            dst.runtimeStorageSym = src.runtimeStorageSym;
+        if (!dst.runtimeFunctionSymbol && src.runtimeFunctionSymbol)
+            dst.runtimeFunctionSymbol = src.runtimeFunctionSymbol;
+        if (!dst.runtimeArrayFillTypeRef.isValid() && src.runtimeArrayFillTypeRef.isValid())
+            dst.runtimeArrayFillTypeRef = src.runtimeArrayFillTypeRef;
+        if (!dst.runtimeArrayFillCstRef.isValid() && src.runtimeArrayFillCstRef.isValid())
+            dst.runtimeArrayFillCstRef = src.runtimeArrayFillCstRef;
+        dst.runtimeSafetyMask |= src.runtimeSafetyMask;
+        if (!dst.hasThrowableWrapper() && src.hasThrowableWrapper())
+        {
+            dst.throwableWrapperOwnerRef = src.throwableWrapperOwnerRef;
+            dst.throwableWrapperTokenId  = src.throwableWrapperTokenId;
+            dst.throwableFailLabel       = src.throwableFailLabel;
+            dst.throwableDoneLabel       = src.throwableDoneLabel;
+        }
+        if (!dst.hasThrowableFunctionTarget() && src.hasThrowableFunctionTarget())
+        {
+            dst.throwableFunctionFailLabel = src.throwableFunctionFailLabel;
+            dst.throwableFunctionDoneLabel = src.throwableFunctionDoneLabel;
+        }
     }
 
     SymbolFunction* resolveDirectLifecycleFunction(const TypeInfo& typeInfo, const CodeGenLifecycleKind lifecycleKind)
@@ -525,11 +551,20 @@ CodeGenNodePayload* CodeGen::safePayload(AstNodeRef nodeRef)
     const AstNodeRef resolvedRef = resolvedNodeRef(nodeRef);
     if (resolvedRef.isInvalid())
         return nullptr;
-    auto* payload = sema().codeGenPayload<CodeGenNodePayload>(resolvedRef);
-    // Implicit casts created by Cast::createCast substitute the original node
-    // but are never visited by CodeGen. Fall back to the original node's payload.
-    if (!payload && resolvedRef != nodeRef)
-        payload = sema().codeGenPayload<CodeGenNodePayload>(nodeRef);
+
+    CodeGenNodePayload* payload = sema().codeGenPayload<CodeGenNodePayload>(resolvedRef);
+    if (resolvedRef == nodeRef)
+        return payload;
+
+    CodeGenNodePayload* originalPayload = sema().codeGenPayload<CodeGenNodePayload>(nodeRef);
+    if (!payload)
+        return originalPayload;
+
+    // Preserve sema-time metadata attached to the original syntax node when
+    // codegen later operates on a substituted node.
+    if (originalPayload && originalPayload != payload)
+        mergeSupplementalNodePayloadMetadata(*payload, *originalPayload);
+
     return payload;
 }
 
@@ -577,10 +612,8 @@ CodeGenNodePayload& CodeGen::setPayload(AstNodeRef nodeRef, TypeRef typeRef)
     CodeGenNodePayload* nodePayload = safePayload(nodeRef);
     if (!nodePayload)
     {
-        nodePayload                        = compiler().allocate<CodeGenNodePayload>();
-        nodePayload->runtimeStorageSym     = nullptr;
-        nodePayload->runtimeFunctionSymbol = nullptr;
-        nodePayload->runtimeSafetyMask     = 0;
+        nodePayload  = compiler().allocate<CodeGenNodePayload>();
+        *nodePayload = {};
         sema().setCodeGenPayload(nodeRef, nodePayload);
     }
 
@@ -1040,17 +1073,24 @@ void CodeGen::invalidateNodePayloadRegs(AstNodeRef nodeRef)
     }
 }
 
-bool CodeGen::containsNodeId(AstNodeRef nodeRef, const AstNodeId nodeId) const
+bool CodeGen::containsNodeId(AstNodeRef nodeRef, const AstNodeId nodeId)
 {
     if (nodeRef.isInvalid())
         return false;
 
+    std::unordered_set<AstNodeRef> visited;
     SmallVector<AstNodeRef> stack;
     stack.push_back(nodeRef);
     while (!stack.empty())
     {
-        const AstNodeRef currentRef = stack.back();
+        const AstNodeRef rawRef = stack.back();
         stack.pop_back();
+
+        const AstNodeRef currentRef = sema().viewZero(rawRef).nodeRef();
+        if (currentRef.isInvalid())
+            continue;
+        if (!visited.insert(currentRef).second)
+            continue;
 
         const AstNode& currentNode = ast().node(currentRef);
         if (currentNode.id() == nodeId)
@@ -1237,6 +1277,7 @@ Result CodeGen::postNode(AstNode& node)
             builder().placeLabel(inlineCtx.doneLabel);
 
         auto* inlineNodePayload    = compiler().allocate<CodeGenNodePayload>();
+        *inlineNodePayload         = {};
         inlineNodePayload->typeRef = inlineCtx.payload->returnTypeRef;
         if (inlineCtx.payload->returnTypeRef != typeMgr().typeVoid())
         {

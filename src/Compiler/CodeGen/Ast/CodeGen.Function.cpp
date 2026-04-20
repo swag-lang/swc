@@ -4,11 +4,16 @@
 #include "Backend/ABI/ABITypeNormalize.h"
 #include "Backend/ABI/CallConv.h"
 #include "Compiler/CodeGen/Core/CodeGenCallHelpers.h"
+#include "Compiler/CodeGen/Core/CodeGenTypeHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenFunctionHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenMemoryHelpers.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
+#include "Compiler/Sema/Constant/ConstantHelpers.h"
+#include "Compiler/Sema/Constant/ConstantManager.h"
+#include "Compiler/Sema/Constant/ConstantValue.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Helpers/SemaInline.h"
+#include "Compiler/Sema/Symbol/IdentifierManager.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.Module.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
@@ -65,6 +70,277 @@ namespace
     bool tryBuildGvtdEntry(const CodeGen& codeGen, TypeRef typeRef, SymbolFunction*& outOpDrop, uint32_t& outSizeOf, uint32_t& outCount)
     {
         return codeGen.tryBuildLifecycleAction(typeRef, CodeGen::LifecycleKind::Drop, outOpDrop, outSizeOf, outCount);
+    }
+
+    enum class ThrowableHandlerKind : uint8_t
+    {
+        None,
+        Catch,
+        TryCatch,
+        Assume,
+    };
+
+    struct ThrowableTarget
+    {
+        enum class Kind : uint8_t
+        {
+            Handler,
+            FunctionReturn,
+        };
+
+        Kind          kind      = Kind::FunctionReturn;
+        AstNodeRef    scopeRef  = AstNodeRef::invalid();
+        MicroLabelRef failLabel = MicroLabelRef::invalid();
+    };
+
+    bool isThrowableWrapperOwnerNode(AstNodeId nodeId)
+    {
+        return nodeId == AstNodeId::TryCatchExpr || nodeId == AstNodeId::TryCatchStmt;
+    }
+
+    bool isThrowableWrapperBreadcrumbNode(AstNodeId nodeId)
+    {
+        return isThrowableWrapperOwnerNode(nodeId) || nodeId == AstNodeId::CallExpr || nodeId == AstNodeId::AliasCallExpr;
+    }
+
+    CodeGenNodePayload* throwableWrapperOwnerPayload(CodeGen& codeGen, AstNodeRef nodeRef)
+    {
+        if (!nodeRef.isValid())
+            return nullptr;
+
+        const AstNodeRef resolvedNodeRef = codeGen.viewZero(nodeRef).nodeRef();
+        if (!resolvedNodeRef.isValid())
+            return nullptr;
+
+        if (!isThrowableWrapperOwnerNode(codeGen.node(resolvedNodeRef).id()))
+            return nullptr;
+
+        CodeGenNodePayload* payload = codeGen.safePayload(resolvedNodeRef);
+        if (!payload || !payload->hasThrowableWrapper())
+            return nullptr;
+        return payload;
+    }
+
+    CodeGenNodePayload* throwableWrapperBreadcrumbPayload(CodeGen& codeGen, AstNodeRef nodeRef)
+    {
+        if (!nodeRef.isValid())
+            return nullptr;
+
+        const AstNodeRef resolvedNodeRef = codeGen.viewZero(nodeRef).nodeRef();
+        if (!resolvedNodeRef.isValid())
+            return nullptr;
+
+        if (!isThrowableWrapperBreadcrumbNode(codeGen.node(resolvedNodeRef).id()))
+            return nullptr;
+
+        CodeGenNodePayload* payload = codeGen.safePayload(nodeRef);
+        if (!payload || !payload->hasThrowableWrapper())
+            return nullptr;
+        return payload;
+    }
+
+    void clearThrowableWrapperPayload(CodeGenNodePayload& payload)
+    {
+        payload.clearThrowableWrapper();
+    }
+
+    CodeGenNodePayload* throwableFunctionPayload(CodeGen& codeGen, AstNodeRef nodeRef)
+    {
+        return codeGen.safePayload(nodeRef);
+    }
+
+    CodeGenNodePayload& ensureThrowableFunctionPayload(CodeGen& codeGen, AstNodeRef nodeRef)
+    {
+        return codeGen.ensureNodePayload<CodeGenNodePayload>(nodeRef);
+    }
+
+    void clearThrowableFunctionPayload(CodeGen& codeGen, AstNodeRef nodeRef)
+    {
+        if (CodeGenNodePayload* payload = throwableFunctionPayload(codeGen, nodeRef))
+            payload->clearThrowableFunctionTarget();
+    }
+
+    SymbolFunction* runtimeFunctionByKind(CodeGen& codeGen, IdentifierManager::RuntimeFunctionKind kind)
+    {
+        const IdentifierRef idRef = codeGen.idMgr().runtimeFunction(kind);
+        if (idRef.isInvalid())
+            return nullptr;
+
+        return codeGen.compiler().runtimeFunctionSymbol(idRef);
+    }
+
+    ThrowableHandlerKind throwableHandlerKind(TokenId tokenId)
+    {
+        switch (tokenId)
+        {
+            case TokenId::KwdCatch:
+                return ThrowableHandlerKind::Catch;
+
+            case TokenId::KwdTryCatch:
+                return ThrowableHandlerKind::TryCatch;
+
+            case TokenId::KwdAssume:
+                return ThrowableHandlerKind::Assume;
+
+            default:
+                return ThrowableHandlerKind::None;
+        }
+    }
+
+    bool isHandledThrowableContext(TokenId tokenId)
+    {
+        return throwableHandlerKind(tokenId) != ThrowableHandlerKind::None;
+    }
+
+    bool usesAddressBackedThrowableExprResult(CodeGen& codeGen, TypeRef typeRef)
+    {
+        if (!typeRef.isValid() || typeRef == codeGen.typeMgr().typeVoid())
+            return false;
+
+        const TypeInfo& typeInfo = codeGen.typeMgr().get(typeRef);
+        const uint64_t  sizeOf   = typeInfo.sizeOf(codeGen.ctx());
+        if (sizeOf > sizeof(uint64_t))
+            return true;
+
+        return CodeGenTypeHelpers::scalarStoreBits(typeInfo, codeGen.ctx()) == MicroOpBits::Zero;
+    }
+
+    Result emitPayloadToAddress(CodeGen& codeGen, MicroReg dstAddressReg, const CodeGenNodePayload& srcPayload, TypeRef typeRef);
+
+    void assignThrowableExprResult(CodeGen& codeGen, const CodeGenNodePayload& dstPayload, const CodeGenNodePayload& srcPayload, TypeRef typeRef)
+    {
+        MicroBuilder& builder = codeGen.builder();
+        if (dstPayload.isAddress())
+        {
+            const Result storeResult = emitPayloadToAddress(codeGen, dstPayload.reg, srcPayload, typeRef);
+            SWC_INTERNAL_CHECK(storeResult == Result::Continue);
+            return;
+        }
+
+        const TypeInfo&   typeInfo   = codeGen.typeMgr().get(typeRef);
+        const MicroOpBits storeBits  = CodeGenTypeHelpers::scalarStoreBits(typeInfo, codeGen.ctx());
+        SWC_ASSERT(storeBits != MicroOpBits::Zero);
+        if (srcPayload.isAddress())
+            builder.emitLoadRegMem(dstPayload.reg, srcPayload.reg, 0, storeBits);
+        else
+            builder.emitLoadRegReg(dstPayload.reg, srcPayload.reg, storeBits);
+    }
+
+    Result makeZeroConstantRefForType(CodeGen& codeGen, ConstantRef& outCstRef, TypeRef typeRef)
+    {
+        outCstRef = ConstantRef::invalid();
+        if (!typeRef.isValid() || typeRef == codeGen.typeMgr().typeVoid())
+            return Result::Continue;
+
+        const TypeInfo& typeInfo = codeGen.typeMgr().get(typeRef);
+        const uint64_t  sizeOf   = typeInfo.sizeOf(codeGen.ctx());
+        if (!sizeOf || sizeOf > std::numeric_limits<uint32_t>::max())
+            return Result::Error;
+
+        SmallVector<std::byte> rawBytes;
+        rawBytes.resize(sizeOf);
+        std::memset(rawBytes.data(), 0, rawBytes.size());
+
+        const ConstantValue zeroValue = ConstantValue::make(codeGen.ctx(), rawBytes.data(), typeRef, ConstantValue::PayloadOwnership::Borrowed);
+        if (zeroValue.kind() == ConstantKind::Invalid)
+            return Result::Error;
+
+        outCstRef = codeGen.cstMgr().addConstant(codeGen.ctx(), zeroValue);
+        return outCstRef.isValid() ? Result::Continue : Result::Error;
+    }
+
+    Result emitZeroThrowableExprResult(CodeGen& codeGen, CodeGenNodePayload& resultPayload, TypeRef typeRef)
+    {
+        if (!typeRef.isValid() || typeRef == codeGen.typeMgr().typeVoid())
+            return Result::Continue;
+
+        ConstantRef zeroCstRef = ConstantRef::invalid();
+        SWC_RESULT(makeZeroConstantRefForType(codeGen, zeroCstRef, typeRef));
+
+        CodeGenNodePayload zeroPayload;
+        if (!CodeGenCallHelpers::materializeTypedConstantPayload(codeGen, zeroPayload, typeRef, zeroCstRef))
+            return Result::Error;
+
+        assignThrowableExprResult(codeGen, resultPayload, zeroPayload, typeRef);
+        return Result::Continue;
+    }
+
+    Result emitPayloadToAddress(CodeGen& codeGen, MicroReg dstAddressReg, const CodeGenNodePayload& srcPayload, TypeRef typeRef)
+    {
+        const TypeInfo& typeInfo = codeGen.typeMgr().get(typeRef);
+        const uint32_t  sizeOf   = CodeGenFunctionHelpers::checkedTypeSizeInBytes(codeGen, typeInfo);
+        if (srcPayload.isAddress())
+        {
+            CodeGenMemoryHelpers::emitMemCopy(codeGen, dstAddressReg, srcPayload.reg, sizeOf);
+            return Result::Continue;
+        }
+
+        const MicroOpBits storeBits = CodeGenTypeHelpers::scalarStoreBits(typeInfo, codeGen.ctx());
+        if (storeBits != MicroOpBits::Zero)
+        {
+            codeGen.builder().emitLoadMemReg(dstAddressReg, 0, srcPayload.reg, storeBits);
+            return Result::Continue;
+        }
+
+        CodeGenMemoryHelpers::emitMemCopy(codeGen, dstAddressReg, srcPayload.reg, sizeOf);
+        return Result::Continue;
+    }
+
+    Result emitThrowableCleanup(CodeGen& codeGen, ThrowableHandlerKind kind, AstNodeRef nodeRef, bool failurePath)
+    {
+        switch (kind)
+        {
+            case ThrowableHandlerKind::Catch:
+            {
+                SymbolFunction* runtimeCatchErr = runtimeFunctionByKind(codeGen, IdentifierManager::RuntimeFunctionKind::CatchErr);
+                SWC_ASSERT(runtimeCatchErr != nullptr);
+                if (!runtimeCatchErr)
+                    return Result::Error;
+                return CodeGenCallHelpers::emitRuntimeCallWithDirectArgs(codeGen, *runtimeCatchErr, std::span<const MicroReg>{});
+            }
+
+            case ThrowableHandlerKind::TryCatch:
+            {
+                SymbolFunction* runtimePopErr = runtimeFunctionByKind(codeGen, IdentifierManager::RuntimeFunctionKind::PopErr);
+                SWC_ASSERT(runtimePopErr != nullptr);
+                if (!runtimePopErr)
+                    return Result::Error;
+                return CodeGenCallHelpers::emitRuntimeCallWithDirectArgs(codeGen, *runtimePopErr, std::span<const MicroReg>{});
+            }
+
+            case ThrowableHandlerKind::Assume:
+            {
+                if (failurePath)
+                {
+                    SymbolFunction* runtimeFailedAssume = runtimeFunctionByKind(codeGen, IdentifierManager::RuntimeFunctionKind::FailedAssume);
+                    SWC_ASSERT(runtimeFailedAssume != nullptr);
+                    if (!runtimeFailedAssume)
+                        return Result::Error;
+
+                    ConstantRef sourceLocCstRef = ConstantRef::invalid();
+                    SWC_RESULT(ConstantHelpers::makeSourceCodeLocation(codeGen.sema(), sourceLocCstRef, codeGen.node(nodeRef)));
+
+                    CodeGenNodePayload sourceLocPayload;
+                    const TypeRef      sourceLocTypeRef = runtimeFailedAssume->parameters().front()->typeRef();
+                    if (!CodeGenCallHelpers::materializeTypedConstantPayload(codeGen, sourceLocPayload, sourceLocTypeRef, sourceLocCstRef))
+                        return Result::Error;
+
+                    const std::array args = {sourceLocPayload.reg};
+                    SWC_RESULT(CodeGenCallHelpers::emitRuntimeCallWithDirectArgs(codeGen, *runtimeFailedAssume, args));
+                }
+
+                SymbolFunction* runtimePopErr = runtimeFunctionByKind(codeGen, IdentifierManager::RuntimeFunctionKind::PopErr);
+                SWC_ASSERT(runtimePopErr != nullptr);
+                if (!runtimePopErr)
+                    return Result::Error;
+                return CodeGenCallHelpers::emitRuntimeCallWithDirectArgs(codeGen, *runtimePopErr, std::span<const MicroReg>{});
+            }
+
+            case ThrowableHandlerKind::None:
+                break;
+        }
+
+        return Result::Continue;
     }
 
     void collectGvtdEntriesRec(CodeGen& codeGen, const SymbolMap& symbolMap, SmallVector<CodeGenGvtdEntry>& outEntries)
@@ -375,24 +651,11 @@ namespace
         SWC_ASSERT(inlinePayload.resultVar != nullptr);
         SWC_ASSERT(exprRef.isValid());
 
-        const TypeInfo& returnType = codeGen.typeMgr().get(inlinePayload.returnTypeRef);
-        const uint32_t  copySize   = CodeGenFunctionHelpers::checkedTypeSizeInBytes(codeGen, returnType);
-
         const SymbolVariable& resultVar  = *inlinePayload.resultVar;
         const MicroReg        resultAddr = inlineResultAddressReg(codeGen, resultVar);
 
         const CodeGenNodePayload& exprPayload = codeGen.payload(exprRef);
-        if (exprPayload.isAddress())
-        {
-            CodeGenMemoryHelpers::emitMemCopy(codeGen, resultAddr, exprPayload.reg, copySize);
-            return Result::Continue;
-        }
-
-        const MicroOpBits storeBits = microOpBitsFromChunkSize(copySize);
-        SWC_ASSERT(storeBits != MicroOpBits::Zero);
-        MicroBuilder& builder = codeGen.builder();
-        builder.emitLoadMemReg(resultAddr, 0, exprPayload.reg, storeBits);
-        return Result::Continue;
+        return emitPayloadToAddress(codeGen, resultAddr, exprPayload, inlinePayload.returnTypeRef);
     }
 
     Result emitInlineReturn(CodeGen& codeGen, const SemaInlinePayload& inlinePayload, AstNodeRef exprRef)
@@ -922,6 +1185,185 @@ namespace
         return currentDeclRef == declRef && activeDeclRef == declRef;
     }
 
+    ThrowableTarget resolveThrowableTarget(CodeGen& codeGen)
+    {
+        const auto tryResolveHandlerTarget = [&](AstNodeRef candidateRef, ThrowableTarget& outTarget)
+        {
+            CodeGenNodePayload* breadcrumbPayload = throwableWrapperBreadcrumbPayload(codeGen, candidateRef);
+            if (!breadcrumbPayload || !isHandledThrowableContext(breadcrumbPayload->throwableWrapperTokenId))
+                return false;
+
+            AstNodeRef ownerRef = breadcrumbPayload->throwableWrapperOwnerRef;
+            if (!ownerRef.isValid())
+                ownerRef = codeGen.viewZero(candidateRef).nodeRef();
+
+            CodeGenNodePayload* ownerPayload = throwableWrapperOwnerPayload(codeGen, ownerRef);
+            if (!ownerPayload || !ownerPayload->throwableFailLabel.isValid())
+                return false;
+
+            outTarget = {
+                .kind      = ThrowableTarget::Kind::Handler,
+                .scopeRef   = codeGen.viewZero(ownerRef).nodeRef(),
+                .failLabel  = ownerPayload->throwableFailLabel,
+            };
+            return true;
+        };
+
+        ThrowableTarget handlerTarget;
+        if (tryResolveHandlerTarget(codeGen.curNodeRef(), handlerTarget))
+            return handlerTarget;
+
+        for (size_t parentIndex = 0;; ++parentIndex)
+        {
+            const AstNodeRef parentRef = codeGen.visit().parentNodeRef(parentIndex);
+            if (!parentRef.isValid())
+                break;
+
+            if (tryResolveHandlerTarget(parentRef, handlerTarget))
+                return handlerTarget;
+        }
+
+        for (size_t frameIndex = codeGen.frames().size(); frameIndex != 0; --frameIndex)
+        {
+            const CodeGenFrame& frame = codeGen.frames()[frameIndex - 1];
+            if (!frame.hasCurrentInlineContext())
+                continue;
+
+            const CodeGenFrame::InlineContext& inlineCtx = frame.currentInlineContext();
+            if (inlineCtx.payload && tryResolveHandlerTarget(inlineCtx.payload->callRef, handlerTarget))
+                return handlerTarget;
+        }
+
+        AstNodeRef functionDeclRef = codeGen.viewZero(codeGen.function().declNodeRef()).nodeRef();
+        SWC_ASSERT(functionDeclRef.isValid());
+        CodeGenNodePayload& payload = ensureThrowableFunctionPayload(codeGen, functionDeclRef);
+        if (!payload.throwableFunctionFailLabel.isValid())
+        {
+            MicroBuilder& builder = codeGen.builder();
+            payload.throwableFunctionFailLabel = builder.createLabel();
+            payload.throwableFunctionDoneLabel = builder.createLabel();
+        }
+
+        return {
+            .kind      = ThrowableTarget::Kind::FunctionReturn,
+            .scopeRef   = functionDeclRef,
+            .failLabel  = payload.throwableFunctionFailLabel,
+        };
+    }
+
+    Result emitFunctionLikeReturnNoDefers(CodeGen& codeGen, const SymbolFunction& symbolFunc, const CodeGenNodePayload* exprPayload)
+    {
+        MicroBuilder&                          builder       = codeGen.builder();
+        const CallConvKind                     callConvKind  = symbolFunc.callConvKind();
+        const CallConv&                        callConv      = CallConv::get(callConvKind);
+        const TypeRef                          returnTypeRef = symbolFunc.returnTypeRef();
+        const ABITypeNormalize::NormalizedType normalizedRet = ABITypeNormalize::normalize(codeGen.ctx(), callConv, returnTypeRef, ABITypeNormalize::Usage::Return);
+
+        if (isCompilerRunBlockFunction(codeGen))
+        {
+            const MicroReg outputStorageReg = codeGen.currentFunctionIndirectReturnReg();
+            SWC_ASSERT(outputStorageReg.isValid());
+            if (!normalizedRet.isVoid)
+            {
+                SWC_ASSERT(exprPayload != nullptr);
+                if (normalizedRet.isIndirect)
+                {
+                    if (exprPayload->isAddress())
+                        CodeGenMemoryHelpers::emitMemCopy(codeGen, outputStorageReg, exprPayload->reg, normalizedRet.indirectSize);
+                    else
+                    {
+                        const MicroOpBits copyBits = CodeGenTypeHelpers::bitsFromStorageSize(normalizedRet.indirectSize);
+                        SWC_ASSERT(copyBits != MicroOpBits::Zero);
+                        builder.emitLoadMemReg(outputStorageReg, 0, exprPayload->reg, copyBits);
+                    }
+                }
+                else
+                {
+                    ABICall::storeValueToReturnBuffer(builder, callConvKind, outputStorageReg, exprPayload->reg, exprPayload->isAddress(), normalizedRet);
+                }
+            }
+
+            const ScopedDebugNoStep noStep(builder, true);
+            emitCompilerRunBlockStackEpilogue(codeGen, callConvKind);
+            builder.emitRet();
+            return Result::Continue;
+        }
+
+        if (normalizedRet.isVoid)
+        {
+            const ScopedDebugNoStep noStep(builder, true);
+            emitLocalStackFrameEpilogue(codeGen, callConvKind);
+            builder.emitRet();
+            return Result::Continue;
+        }
+
+        SWC_ASSERT(exprPayload != nullptr);
+        if (normalizedRet.isIndirect)
+        {
+            const MicroReg outputStorageReg = codeGen.currentFunctionIndirectReturnReg();
+            SWC_ASSERT(outputStorageReg.isValid());
+            if (exprPayload->isAddress())
+                CodeGenMemoryHelpers::emitMemCopy(codeGen, outputStorageReg, exprPayload->reg, normalizedRet.indirectSize);
+            else
+            {
+                const MicroOpBits copyBits = CodeGenTypeHelpers::bitsFromStorageSize(normalizedRet.indirectSize);
+                SWC_ASSERT(copyBits != MicroOpBits::Zero);
+                builder.emitLoadMemReg(outputStorageReg, 0, exprPayload->reg, copyBits);
+            }
+
+            builder.emitLoadRegReg(callConv.intReturn, outputStorageReg, MicroOpBits::B64);
+        }
+        else
+        {
+            const MicroReg returnValueReg = codeGen.nextVirtualRegisterForType(returnTypeRef);
+            const MicroOpBits retBits     = normalizedRet.numBits ? microOpBitsFromBitWidth(normalizedRet.numBits) : MicroOpBits::B64;
+            SWC_ASSERT(retBits != MicroOpBits::Zero);
+            if (exprPayload->isAddress())
+                builder.emitLoadRegMem(returnValueReg, exprPayload->reg, 0, retBits);
+            else
+                builder.emitLoadRegReg(returnValueReg, exprPayload->reg, retBits);
+            ABICall::materializeValueToReturnRegs(builder, callConvKind, returnValueReg, false, normalizedRet);
+        }
+
+        {
+            const ScopedDebugNoStep noStep(builder, true);
+            emitLocalStackFrameEpilogue(codeGen, callConvKind);
+            builder.emitRet();
+        }
+
+        return Result::Continue;
+    }
+
+    Result emitThrowableFunctionFailureReturn(CodeGen& codeGen)
+    {
+        const SymbolFunction&                  symbolFunc    = codeGen.function();
+        const CallConv&                        callConv      = CallConv::get(symbolFunc.callConvKind());
+        const ABITypeNormalize::NormalizedType normalizedRet = ABITypeNormalize::normalize(codeGen.ctx(), callConv, symbolFunc.returnTypeRef(), ABITypeNormalize::Usage::Return);
+        if (normalizedRet.isVoid)
+            return emitFunctionLikeReturnNoDefers(codeGen, symbolFunc, nullptr);
+
+        ConstantRef zeroCstRef = ConstantRef::invalid();
+        SWC_RESULT(makeZeroConstantRefForType(codeGen, zeroCstRef, symbolFunc.returnTypeRef()));
+
+        CodeGenNodePayload zeroPayload;
+        if (!CodeGenCallHelpers::materializeTypedConstantPayload(codeGen, zeroPayload, symbolFunc.returnTypeRef(), zeroCstRef))
+            return Result::Error;
+
+        return emitFunctionLikeReturnNoDefers(codeGen, symbolFunc, &zeroPayload);
+    }
+
+    Result emitThrowableJump(CodeGen& codeGen)
+    {
+        const ThrowableTarget target = resolveThrowableTarget(codeGen);
+        if (target.kind == ThrowableTarget::Kind::Handler)
+            SWC_RESULT(codeGen.emitDeferredActionsUntilScopeRef(target.scopeRef));
+        else
+            SWC_RESULT(codeGen.emitDeferredActionsForReturn());
+
+        codeGen.builder().emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, target.failLabel);
+        return Result::Continue;
+    }
+
     Result codeGenFunctionLikePreBody(CodeGen& codeGen, AstNodeRef declRef, AstNodeRef childRef, AstNodeRef bodyRef)
     {
         declRef = codeGen.viewZero(declRef).nodeRef();
@@ -940,6 +1382,7 @@ namespace
 
         codeGen.setCurrentFunctionIndirectReturnReg(MicroReg::invalid());
         codeGen.setCurrentFunctionClosureContextReg(MicroReg::invalid());
+        clearThrowableFunctionPayload(codeGen, declRef);
         if (normalizedRet.isIndirect)
         {
             SWC_ASSERT(!callConv.intArgRegs.empty());
@@ -999,17 +1442,109 @@ namespace
         {
             SWC_ASSERT(bodyRef.isValid());
             SWC_RESULT(emitFunctionReturn(codeGen, symbolFunc, bodyRef));
-            return codeGen.popDeferScope();
+            SWC_RESULT(codeGen.popDeferScope());
         }
-
-        if (normalizedRet.isVoid)
+        else if (normalizedRet.isVoid)
         {
             SWC_RESULT(emitFunctionReturn(codeGen, symbolFunc, AstNodeRef::invalid()));
-            return codeGen.popDeferScope();
+            SWC_RESULT(codeGen.popDeferScope());
+        }
+        else
+        {
+            SWC_RESULT(codeGen.popDeferScope());
         }
 
-        return codeGen.popDeferScope();
+        if (CodeGenNodePayload* payload = throwableFunctionPayload(codeGen, declRef); payload && payload->throwableFunctionFailLabel.isValid())
+        {
+            MicroBuilder& builder = codeGen.builder();
+            if (!codeGen.currentInstructionBlocksFallthrough())
+                builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, payload->throwableFunctionDoneLabel);
+
+            builder.placeLabel(payload->throwableFunctionFailLabel);
+            SWC_RESULT(emitThrowableFunctionFailureReturn(codeGen));
+            builder.placeLabel(payload->throwableFunctionDoneLabel);
+            payload->clearThrowableFunctionTarget();
+        }
+
+        return Result::Continue;
     }
+}
+
+Result CodeGenCallHelpers::emitThrowableFailureJump(CodeGen& codeGen)
+{
+    return emitThrowableJump(codeGen);
+}
+
+Result CodeGenCallHelpers::emitThrowableFailureJumpIfHasError(CodeGen& codeGen)
+{
+    SymbolFunction* runtimeHasErr = runtimeFunctionByKind(codeGen, IdentifierManager::RuntimeFunctionKind::HasErr);
+    SWC_ASSERT(runtimeHasErr != nullptr);
+    if (!runtimeHasErr)
+        return Result::Error;
+
+    const MicroReg hasErrReg = codeGen.nextVirtualIntRegister();
+    SWC_RESULT(emitRuntimeCallWithDirectArgsToReg(codeGen, *runtimeHasErr, std::span<const MicroReg>{}, hasErrReg));
+
+    MicroBuilder&        builder      = codeGen.builder();
+    const MicroLabelRef  continueLabel = builder.createLabel();
+    builder.emitCmpRegImm(hasErrReg, ApInt(0, 64), MicroOpBits::B8);
+    builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, continueLabel);
+    SWC_RESULT(emitThrowableJump(codeGen));
+    builder.placeLabel(continueLabel);
+    return Result::Continue;
+}
+
+Result CodeGenFunctionHelpers::emitThrowableWrapperPreNode(CodeGen& codeGen, AstNodeRef nodeRef)
+{
+    CodeGenNodePayload* payload = throwableWrapperOwnerPayload(codeGen, nodeRef);
+    if (!payload || !isHandledThrowableContext(payload->throwableWrapperTokenId))
+        return Result::Continue;
+
+    MicroBuilder& builder      = codeGen.builder();
+    payload->throwableFailLabel = builder.createLabel();
+    payload->throwableDoneLabel = builder.createLabel();
+    codeGen.pushDeferScope(nodeRef);
+
+    SymbolFunction* runtimePushErr = runtimeFunctionByKind(codeGen, IdentifierManager::RuntimeFunctionKind::PushErr);
+    SWC_ASSERT(runtimePushErr != nullptr);
+    if (!runtimePushErr)
+        return Result::Error;
+
+    return CodeGenCallHelpers::emitRuntimeCallWithDirectArgs(codeGen, *runtimePushErr, std::span<const MicroReg>{});
+}
+
+Result CodeGenFunctionHelpers::emitThrowableWrapperPostNode(CodeGen& codeGen, AstNodeRef nodeRef)
+{
+    CodeGenNodePayload* payload = throwableWrapperOwnerPayload(codeGen, nodeRef);
+    if (!payload || !payload->throwableFailLabel.isValid() || !isHandledThrowableContext(payload->throwableWrapperTokenId))
+        return Result::Continue;
+
+    const ThrowableHandlerKind kind        = throwableHandlerKind(payload->throwableWrapperTokenId);
+    const AstNodeRef           ownerRef    = payload->throwableWrapperOwnerRef.isValid() ? payload->throwableWrapperOwnerRef : nodeRef;
+    const TypeRef              resultType  = codeGen.curViewType().typeRef();
+    const bool                 hasResult   = resultType.isValid() && resultType != codeGen.typeMgr().typeVoid();
+    const bool                 hasFallthrough = !codeGen.currentInstructionBlocksFallthrough();
+    MicroBuilder&              builder     = codeGen.builder();
+    SWC_ASSERT(kind != ThrowableHandlerKind::None);
+
+    if (hasFallthrough)
+        SWC_RESULT(emitThrowableCleanup(codeGen, kind, ownerRef, false));
+
+    SWC_RESULT(codeGen.popDeferScope());
+    if (hasFallthrough && !codeGen.currentInstructionBlocksFallthrough())
+        builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, payload->throwableDoneLabel);
+
+    builder.placeLabel(payload->throwableFailLabel);
+    SWC_RESULT(emitThrowableCleanup(codeGen, kind, ownerRef, true));
+    if (hasResult)
+    {
+        CodeGenNodePayload& resultPayload = codeGen.payload(nodeRef);
+        SWC_RESULT(emitZeroThrowableExprResult(codeGen, resultPayload, resultType));
+    }
+
+    builder.placeLabel(payload->throwableDoneLabel);
+    clearThrowableWrapperPayload(*payload);
+    return Result::Continue;
 }
 
 Result AstFunctionDecl::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const
@@ -1097,26 +1632,70 @@ Result AstAliasCallExpr::codeGenPostNode(CodeGen& codeGen) const
     return CodeGenCallHelpers::codeGenCallExprCommon(codeGen, nodeExprRef);
 }
 
+Result AstTryCatchExpr::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const
+{
+    const AstNodeRef resolvedChildRef = codeGen.viewZero(childRef).nodeRef();
+    const AstNodeRef managedExprRef   = codeGen.viewZero(nodeExprRef).nodeRef();
+    if (resolvedChildRef == managedExprRef)
+        SWC_RESULT(CodeGenFunctionHelpers::emitThrowableWrapperPreNode(codeGen, codeGen.curNodeRef()));
+
+    return Result::Continue;
+}
+
 Result AstTryCatchExpr::codeGenPostNode(CodeGen& codeGen) const
 {
-    // @TODO(codegen): lower try/catch/trycatch/assume control flow and error paths.
-    // For now these wrappers are transparent so sema-only coverage does not assert in codegen.
     codeGen.inheritPayload(codeGen.curNodeRef(), nodeExprRef, codeGen.curViewType().typeRef());
+    return CodeGenFunctionHelpers::emitThrowableWrapperPostNode(codeGen, codeGen.curNodeRef());
+}
+
+Result AstTryCatchStmt::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const
+{
+    const AstNodeRef resolvedChildRef = codeGen.viewZero(childRef).nodeRef();
+    const AstNodeRef managedBodyRef   = codeGen.viewZero(nodeBodyRef).nodeRef();
+    if (resolvedChildRef == managedBodyRef)
+        SWC_RESULT(CodeGenFunctionHelpers::emitThrowableWrapperPreNode(codeGen, codeGen.curNodeRef()));
+
     return Result::Continue;
 }
 
 Result AstTryCatchStmt::codeGenPostNode(CodeGen& codeGen)
 {
-    // @TODO(codegen): lower statement-form try/catch/trycatch control flow and error paths.
-    SWC_UNUSED(codeGen);
-    return Result::Continue;
+    return CodeGenFunctionHelpers::emitThrowableWrapperPostNode(codeGen, codeGen.curNodeRef());
 }
 
 Result AstThrowExpr::codeGenPostNode(CodeGen& codeGen) const
 {
-    // @TODO(codegen): lower throw to runtime error propagation/unwind once error management has a backend implementation.
-    codeGen.inheritPayload(codeGen.curNodeRef(), nodeExprRef, codeGen.curViewType().typeRef());
-    return Result::Continue;
+    const TypeRef resultTypeRef = codeGen.curViewType().typeRef();
+    if (resultTypeRef.isValid() && resultTypeRef != codeGen.typeMgr().typeVoid())
+    {
+        CodeGenNodePayload& resultPayload = usesAddressBackedThrowableExprResult(codeGen, resultTypeRef)
+                                                ? codeGen.setPayloadAddressReg(codeGen.curNodeRef(), codeGen.runtimeStorageAddressReg(codeGen.curNodeRef()), resultTypeRef)
+                                                : codeGen.setPayloadValue(codeGen.curNodeRef(), resultTypeRef);
+        SWC_RESULT(emitZeroThrowableExprResult(codeGen, resultPayload, resultTypeRef));
+    }
+
+    const SemaNodeView        exprView    = codeGen.viewType(nodeExprRef);
+    const CodeGenNodePayload& exprPayload = codeGen.payload(nodeExprRef);
+    const TypeRef             exprTypeRef = exprView.typeRef();
+    const MicroReg            storageReg  = codeGen.runtimeStorageAddressReg(codeGen.curNodeRef());
+    SWC_RESULT(emitPayloadToAddress(codeGen, storageReg, exprPayload, exprTypeRef));
+
+    SymbolFunction* runtimeSetErrRaw = runtimeFunctionByKind(codeGen, IdentifierManager::RuntimeFunctionKind::SetErrRaw);
+    SWC_ASSERT(runtimeSetErrRaw != nullptr);
+    if (!runtimeSetErrRaw)
+        return Result::Error;
+
+    ConstantRef typeInfoCstRef = ConstantRef::invalid();
+    SWC_RESULT(codeGen.cstMgr().makeTypeInfo(codeGen.sema(), typeInfoCstRef, exprTypeRef, nodeExprRef));
+
+    CodeGenNodePayload typeInfoPayload;
+    const TypeRef      typeInfoTypeRef = runtimeSetErrRaw->parameters()[1]->typeRef();
+    if (!CodeGenCallHelpers::materializeTypedConstantPayload(codeGen, typeInfoPayload, typeInfoTypeRef, typeInfoCstRef))
+        return Result::Error;
+
+    const std::array args = {storageReg, typeInfoPayload.reg};
+    SWC_RESULT(CodeGenCallHelpers::emitRuntimeCallWithDirectArgs(codeGen, *runtimeSetErrRaw, args));
+    return CodeGenCallHelpers::emitThrowableFailureJump(codeGen);
 }
 
 SWC_END_NAMESPACE();

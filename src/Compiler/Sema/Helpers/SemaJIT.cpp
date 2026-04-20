@@ -406,6 +406,10 @@ namespace
     {
         if (calledFn.attributes().hasRtFlag(RtAttributeFlagsE::Macro) || calledFn.attributes().hasRtFlag(RtAttributeFlagsE::Mixin))
             return false;
+        // Throwable calls depend on the runtime error context and must preserve
+        // their TLS-visible side effects instead of being folded to a plain value.
+        if (calledFn.isThrowable())
+            return false;
         if (!calledFn.isPure() && !calledFn.attributes().hasRtFlag(RtAttributeFlagsE::ConstExpr))
             return false;
         if (calledFn.isForeign() || calledFn.isEmpty())
@@ -425,6 +429,8 @@ namespace
     bool supportsConstAffectCallJit(Sema& sema, const SymbolFunction& calledFn, const TypeRef receiverTypeRef)
     {
         if (calledFn.attributes().hasRtFlag(RtAttributeFlagsE::Macro) || calledFn.attributes().hasRtFlag(RtAttributeFlagsE::Mixin))
+            return false;
+        if (calledFn.isThrowable())
             return false;
         if (!calledFn.attributes().hasRtFlag(RtAttributeFlagsE::ConstExpr))
             return false;

@@ -39,6 +39,12 @@ struct CodeGenNodePayload
     SymbolFunction* runtimeFunctionSymbol        = nullptr;
     ConstantRef     runtimeArrayFillCstRef       = ConstantRef::invalid();
     uint16_t        runtimeSafetyMask            = 0;
+    AstNodeRef      throwableWrapperOwnerRef     = AstNodeRef::invalid();
+    TokenId         throwableWrapperTokenId      = TokenId::Invalid;
+    MicroLabelRef   throwableFailLabel           = MicroLabelRef::invalid();
+    MicroLabelRef   throwableDoneLabel           = MicroLabelRef::invalid();
+    MicroLabelRef   throwableFunctionFailLabel   = MicroLabelRef::invalid();
+    MicroLabelRef   throwableFunctionDoneLabel   = MicroLabelRef::invalid();
 
     void setIsValue() { storageKind = StorageKind::Value; }
     bool isValue() const { return storageKind == StorageKind::Value; }
@@ -77,6 +83,30 @@ struct CodeGenNodePayload
     bool hasRuntimeArrayFill() const
     {
         return runtimeArrayFillTypeRef.isValid() && runtimeArrayFillCstRef.isValid();
+    }
+
+    bool hasThrowableWrapper() const
+    {
+        return throwableWrapperTokenId != TokenId::Invalid;
+    }
+
+    bool hasThrowableFunctionTarget() const
+    {
+        return throwableFunctionFailLabel.isValid();
+    }
+
+    void clearThrowableWrapper()
+    {
+        throwableWrapperOwnerRef = AstNodeRef::invalid();
+        throwableWrapperTokenId  = TokenId::Invalid;
+        throwableFailLabel       = MicroLabelRef::invalid();
+        throwableDoneLabel       = MicroLabelRef::invalid();
+    }
+
+    void clearThrowableFunctionTarget()
+    {
+        throwableFunctionFailLabel = MicroLabelRef::invalid();
+        throwableFunctionDoneLabel = MicroLabelRef::invalid();
     }
 };
 
@@ -350,7 +380,7 @@ public:
     Result                    emitDeferredActionsUntilSwitchCase(AstNodeRef switchCaseRef);
     Result                    emitNodeNow(AstNodeRef nodeRef);
     void                      invalidateNodePayloadRegs(AstNodeRef nodeRef);
-    bool                      containsNodeId(AstNodeRef nodeRef, AstNodeId nodeId) const;
+    bool                      containsNodeId(AstNodeRef nodeRef, AstNodeId nodeId);
     bool                      currentInstructionBlocksFallthrough() const;
     bool                      inDeferredEmission() const { return deferredEmitDepth_ != 0; }
 

@@ -1325,6 +1325,7 @@ struct AstTryCatchExpr : AstNodeT<AstNodeId::TryCatchExpr>
     Result     semaPreNode(Sema& sema) const;
     Result     semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;
     Result     semaPostNode(Sema& sema) const;
+    Result     codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const;
     Result     codeGenPostNode(CodeGen& codeGen) const;
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
@@ -1595,6 +1596,7 @@ struct AstTryCatchStmt : AstNodeT<AstNodeId::TryCatchStmt>
     Result     semaPreNode(Sema& sema) const;
     Result     semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;
     Result     semaPostNode(Sema& sema) const;
+    Result     codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const;
     static Result codeGenPostNode(CodeGen& codeGen);
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };

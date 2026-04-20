@@ -1129,6 +1129,33 @@ Result CodeGenCallHelpers::emitRuntimeCallWithDirectArgsToReg(CodeGen& codeGen, 
     return Result::Continue;
 }
 
+Result CodeGenCallHelpers::emitRuntimeCallWithDirectArgs(CodeGen& codeGen, SymbolFunction& runtimeFunction, std::span<const MicroReg> argRegs)
+{
+    codeGen.function().addCallDependency(&runtimeFunction);
+
+    const CallConvKind                callConvKind = runtimeFunction.callConvKind();
+    const CallConv&                   callConv     = CallConv::get(callConvKind);
+    SmallVector<ABICall::PreparedArg> preparedArgs;
+    preparedArgs.reserve(argRegs.size());
+
+    const auto& params = runtimeFunction.parameters();
+    SWC_ASSERT(params.size() == argRegs.size());
+    for (size_t i = 0; i < argRegs.size(); ++i)
+    {
+        SWC_ASSERT(params[i] != nullptr);
+        appendDirectPreparedArg(preparedArgs, codeGen, callConv, params[i]->typeRef(), argRegs[i]);
+    }
+
+    MicroBuilder&               builder      = codeGen.builder();
+    const ABICall::PreparedCall preparedCall = ABICall::prepareArgs(builder, callConvKind, preparedArgs.span());
+    if (runtimeFunction.isForeign())
+        ABICall::callExtern(builder, callConvKind, &runtimeFunction, preparedCall);
+    else
+        ABICall::callLocal(builder, callConvKind, &runtimeFunction, preparedCall);
+
+    return Result::Continue;
+}
+
 void CodeGenCallHelpers::appendDirectPreparedArg(SmallVector<ABICall::PreparedArg>& outArgs,
                                                  CodeGen&                           codeGen,
                                                  const CallConv&                    callConv,
@@ -1210,8 +1237,15 @@ Result CodeGenCallHelpers::codeGenCallExprCommon(CodeGen& codeGen, AstNodeRef ca
 
     ABICall::materializeReturnToReg(builder, nodePayload.reg, callConvKind, normalizedRet);
     setPayloadStorageKind(nodePayload, normalizedRet.isIndirect);
+    if (calledFunction.isThrowable())
+        SWC_RESULT(emitThrowableFailureJumpIfHasError(codeGen));
 
     return Result::Continue;
+}
+
+bool CodeGenCallHelpers::materializeTypedConstantPayload(CodeGen& codeGen, CodeGenNodePayload& outPayload, TypeRef targetTypeRef, ConstantRef constantRef)
+{
+    return materializeDefaultConstantPayload(codeGen, outPayload, targetTypeRef, constantRef);
 }
 
 Result CodeGenCallHelpers::emitCallWithResolvedArgsToReg(CodeGen& codeGen, AstNodeRef callRef, SymbolFunction& calledFunction, std::span<const ResolvedCallArgument> args, MicroReg resultReg)
@@ -1239,6 +1273,32 @@ Result CodeGenCallHelpers::emitCallWithResolvedArgsToReg(CodeGen& codeGen, AstNo
         builder.emitOpBinaryRegImm(callConv.stackPointer, ApInt(transientStackSize, 64), MicroOp::Add, MicroOpBits::B64);
 
     ABICall::materializeReturnToReg(builder, resultReg, callConvKind, normalizedRet);
+    return Result::Continue;
+}
+
+Result CodeGenCallHelpers::emitCallWithResolvedArgs(CodeGen& codeGen, AstNodeRef callRef, SymbolFunction& calledFunction, std::span<const ResolvedCallArgument> args)
+{
+    codeGen.function().addCallDependency(&calledFunction);
+
+    const CallConvKind                     callConvKind  = calledFunction.callConvKind();
+    const CallConv&                        callConv      = CallConv::get(callConvKind);
+    const ABITypeNormalize::NormalizedType normalizedRet = ABITypeNormalize::normalize(codeGen.ctx(), callConv, calledFunction.returnTypeRef(), ABITypeNormalize::Usage::Return);
+    SWC_ASSERT(normalizedRet.isVoid);
+
+    SmallVector<ABICall::PreparedArg> preparedArgs;
+    uint32_t                          transientStackSize = 0;
+    SWC_RESULT(buildPreparedABIArguments(codeGen, callRef, calledFunction, MicroReg::invalid(), args, preparedArgs, transientStackSize));
+
+    MicroBuilder&               builder      = codeGen.builder();
+    const ABICall::PreparedCall preparedCall = ABICall::prepareArgs(builder, callConvKind, preparedArgs.span());
+    if (calledFunction.isForeign())
+        ABICall::callExtern(builder, callConvKind, &calledFunction, preparedCall);
+    else
+        ABICall::callLocal(builder, callConvKind, &calledFunction, preparedCall);
+
+    if (transientStackSize)
+        builder.emitOpBinaryRegImm(callConv.stackPointer, ApInt(transientStackSize, 64), MicroOp::Add, MicroOpBits::B64);
+
     return Result::Continue;
 }
 

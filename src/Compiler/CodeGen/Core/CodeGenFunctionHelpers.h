@@ -40,6 +40,8 @@ namespace CodeGenFunctionHelpers
     bool                  tryUseCurrentFunctionReturnStorageForDirectExpr(CodeGen& codeGen, AstNodeRef nodeRef, MicroReg& outStorageReg);
     bool                  needsPersistentCompilerRunReturn(const Sema& sema, TypeRef typeRef);
     void                  emitPersistCompilerRunValue(CodeGen& codeGen, TypeRef typeRef, MicroReg dstStorageReg, MicroReg srcStorageReg, MicroReg localStackBaseReg, uint32_t localStackSize);
+    Result                emitThrowableWrapperPreNode(CodeGen& codeGen, AstNodeRef nodeRef);
+    Result                emitThrowableWrapperPostNode(CodeGen& codeGen, AstNodeRef nodeRef);
 }
 
 SWC_END_NAMESPACE();

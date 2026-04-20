@@ -237,6 +237,19 @@ func @dbgalloc() => cast(*DebugAllocator) @getcontext().debugAllocator
 func @sysalloc() => &__sysAlloc
 func @jit()->bool => @getcontext().runtimeFlags & .FromCompiler ? true : false
 
+func __systemAllocator()->IAllocator
+{
+    return @mkinterface(&__sysAlloc, #typeof(__sysAlloc), IAllocator)
+}
+
+func __runtimeAllocator()->IAllocator
+{
+    let cxt = @getcontext()
+    if cxt.allocator == null do
+        cxt.allocator = __systemAllocator()
+    return cxt.allocator
+}
+
 func __testCountInit(expected: u64)
 {
     let cxt = @getcontext()
@@ -256,9 +269,10 @@ func __setupRuntime(flags: RuntimeFlags)
 {
     let cxt = @getcontext()
     cxt.runtimeFlags = flags
+    let allocator    = __runtimeAllocator()
 
-    cxt.tempAllocator.setCapacity(__buildCfg.tempAllocatorCapacity, cxt.allocator)
-    cxt.errorAllocator.setCapacity(__buildCfg.errorAllocatorCapacity, cxt.allocator)
+    cxt.tempAllocator.setCapacity(__buildCfg.tempAllocatorCapacity, allocator)
+    cxt.errorAllocator.setCapacity(__buildCfg.errorAllocatorCapacity, allocator)
 
     if __buildCfg.debugAllocator
     {
@@ -266,7 +280,7 @@ func __setupRuntime(flags: RuntimeFlags)
         @init(alloc, 1)
         alloc.captureAllocStack = __buildCfg.debugAllocatorCaptureStack
         alloc.detectLeaks       = __buildCfg.debugAllocatorLeaks
-        alloc.setup(cxt.allocator)
+        alloc.setup(allocator)
         cxt.allocator      = dref alloc
         cxt.debugAllocator = alloc
     }

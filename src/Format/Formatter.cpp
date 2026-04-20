@@ -1,10 +1,15 @@
 #include "pch.h"
 #include "Format/Formatter.h"
+#include "Compiler/Lexer/Lexer.h"
 #include "Compiler/Parser/Ast/Ast.h"
+#include "Compiler/Parser/Parser/Parser.h"
 #include "Compiler/SourceFile.h"
 #include "Format/AstSourceWriter.h"
+#include "Main/Command/CommandLine.h"
+#include "Main/CompilerInstance.h"
 #include "Main/FileSystem.h"
 #include "Main/Stats.h"
+#include "Main/TaskContext.h"
 #include "Support/Core/Timer.h"
 #include "Support/Report/Diagnostic.h"
 
@@ -41,6 +46,36 @@ void Formatter::prepare(const SourceFile& file)
     text_    = std::move(formatCtx.output);
     changed_ = text_.view() != file.sourceView();
     skipped_ = false;
+}
+
+Result Formatter::prepare(const Global& global, const std::string_view source)
+{
+    CommandLine cmdLine;
+    cmdLine.command = CommandKind::Syntax;
+    cmdLine.name    = "formatter_inline";
+
+    CompilerInstance compiler(global, cmdLine);
+    TaskContext      ctx(compiler);
+
+    const fs::path path = "formatter_inline.swg";
+    compiler.registerInMemoryFile(path, source);
+
+    SourceFile& sourceFile = compiler.addFile(path, FileFlagsE::CustomSrc);
+    SWC_RESULT(sourceFile.loadContent(ctx));
+
+    Lexer lexer;
+    lexer.tokenize(ctx, sourceFile.ast().srcView(), LexerFlagsE::Default);
+    if (sourceFile.ast().srcView().mustSkip())
+        return Result::Error;
+
+    Parser parser;
+    parser.parse(ctx, sourceFile.ast());
+    if (ctx.hasError())
+        return Result::Error;
+
+    prepare(sourceFile);
+    file_ = nullptr;
+    return Result::Continue;
 }
 
 Result Formatter::write(TaskContext& ctx) const

@@ -5,6 +5,7 @@
 
 SWC_BEGIN_NAMESPACE();
 
+class Global;
 class SourceFile;
 class TaskContext;
 
@@ -14,6 +15,7 @@ public:
     explicit Formatter(const FormatOptions& options = {});
 
     void   prepare(const SourceFile& file);
+    Result prepare(const Global& global, std::string_view source);
     Result write(TaskContext& ctx) const;
 
     bool             changed() const;

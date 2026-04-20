@@ -312,10 +312,6 @@ hex-literal-case = preserve
 # Possible values: preserve, upper, lower
 hex-literal-prefix-case = preserve
 
-# Case of integer literal suffixes (`1'u32` vs `1'U32`).
-# Possible values: preserve, upper, lower
-integer-suffix-case = preserve
-
 # Case of the floating-point exponent letter (`1e10` vs `1E10`).
 # Possible values: preserve, upper, lower
 float-exponent-case = preserve

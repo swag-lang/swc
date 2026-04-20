@@ -218,7 +218,6 @@ namespace
         };
         schema.addEnum("hex-literal-case", &options.hexLiteralCase, caseChoices, "Case of hexadecimal digits (`0xABCD` vs `0xabcd`).");
         schema.addEnum("hex-literal-prefix-case", &options.hexLiteralPrefixCase, caseChoices, "Case of the `0x` / `0X` hexadecimal prefix.");
-        schema.addEnum("integer-suffix-case", &options.integerSuffixCase, caseChoices, "Case of integer literal suffixes (`1'u32` vs `1'U32`).");
         schema.addEnum("float-exponent-case", &options.floatExponentCase, caseChoices, "Case of the floating-point exponent letter (`1e10` vs `1E10`).");
 
         schema.add("normalize-digit-separators", &options.normalizeDigitSeparators, "Rewrite long numeric literals using `_` digit separators.");

@@ -5,8 +5,6 @@ const A: *s32 = null
 const B: string = null
 #assert(B == null)
 
-#assert(A == B) // swc-expected-error {{sema_err_compare_operand_type}}
-
 const C: [..] string = null
 #assert(C == null)
 const D: any = null

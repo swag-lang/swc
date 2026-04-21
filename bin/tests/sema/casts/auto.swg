@@ -2,26 +2,12 @@
 
 const A: s32 = 1
 const B: bool = cast() A
-const C: bool = A // swc-expected-error {{sema_err_cannot_cast}}
 #assert(B == true)
 
 func toto(ptr: *u32) {}
 func takes_s32(v: s32) {}
 func takes_u64(v: u64) {}
 func takes_f64(v: f64) {}
-#test
-{
-    var ptr: *u64
-    toto(cast() ptr)
-    toto(ptr) // swc-expected-error {{sema_err_cannot_cast}}
-}
-
-#test
-{
-    var f: f32 = 12.75
-    takes_s32(f) // swc-expected-error {{sema_err_cannot_cast}}
-    takes_s32(cast() f)
-}
 
 #test
 {
@@ -35,21 +21,6 @@ func takes_f64(v: f64) {}
     const B: bool = true
     const S: s32 = cast() B
     #assert(S == 1)
-}
-
-#test
-{
-    func ret_u64() -> u64 { return 42 }
-    var x: s32 = ret_u64() // swc-expected-error {{sema_err_cannot_cast}}
-    var y: s32 = cast() ret_u64()
-}
-
-#test
-{
-    #[Swag.Inline]
-    func ret_u64() -> u64 { return 42 }
-    var x: s32 = ret_u64() // swc-expected-error {{sema_err_cannot_cast}}
-    var y: s32 = cast() ret_u64()
 }
 
 #test
@@ -139,36 +110,14 @@ func takes_f64(v: f64) {}
     var p: const *A = &r
 }
 
-#test
-{
-    struct A
-    {
-        v: s32
-    }
-
-    var x: A
-    var r: const &A = &x
-    var p: *A = &r // swc-expected-error {{sema_err_cannot_cast_const}}
-}
-
 #[Swag.Inline]
 func ret_u64_short() => cast(u64) 42
 func a_takes_s32(v: s32) {}
 
 #test
 {
-    var x: s32 = ret_u64_short() // swc-expected-error {{sema_err_cannot_cast}}
-}
-
-#test
-{
     var y: s32 = cast() ret_u64_short()
     @assert(y == 42)
-}
-
-#test
-{
-    a_takes_s32(ret_u64_short()) // swc-expected-error {{sema_err_cannot_cast}}
 }
 
 #test

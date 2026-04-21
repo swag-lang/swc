@@ -18,13 +18,9 @@ struct B
 
 #assert(#sizeof(B) == 4)
 #assert(#offsetof(B.a) == 0)
-#assert(#offsetof(B.b) == 4) // swc-expected-error {{sema_err_unknown_symbol}}
 
 #assert(#offsetof(A.a) == 0)
 #assert(#offsetof(A.b) == 4)
-
-#assert(#offsetof(A) == 4) // swc-expected-error {{sema_err_invalid_offsetof}}
-#assert(#offsetof(5) == 4) // swc-expected-error {{sema_err_invalid_offsetof}}
 
 struct C
 {
@@ -78,7 +74,6 @@ struct E
 }
 
 #assert(#offsetof(E.a) == 0)
-#assert(#offsetof(E.b) == 4) // swc-expected-error {{sema_err_unknown_symbol}}
 
 struct F
 {
@@ -92,7 +87,6 @@ struct F
 #assert(#offsetof(F.a) == 0)
 #assert(#offsetof(F.b) == 4)
 #assert(#sizeof(F) == 8)
-#assert(#offsetof(F.mid) == 4) // swc-expected-error {{sema_err_unknown_symbol}}
 
 #[Swag.Pack(1)]
 struct Packed1

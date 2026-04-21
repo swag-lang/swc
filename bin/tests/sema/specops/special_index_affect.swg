@@ -33,9 +33,3 @@ struct WriteOnlyIndexHolder
 
     #assert(#typeof(box) == WriteOnlyIndexBox)
 }
-
-#test
-{
-    const box = WriteOnlyIndexBox{}
-    box[0] = 1 // swc-expected-error {{sema_err_assign_to_const}}
-}

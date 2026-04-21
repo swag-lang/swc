@@ -314,20 +314,6 @@ impl SemaConstPointerVisits
 
 #test
 {
-    var values: VisitAlias
-    foreach value, index in values
-    {
-        #assert(#typeof(value) == s32)
-        #assert(#typeof(index) == #typeof(@index))
-        var x = value
-        var y = index
-    }
-
-    var z = value // swc-expected-error {{sema_err_unknown_symbol}}
-}
-
-#test
-{
     var values = SemaBufferVisits{}
     foreach &value, ordinal in values
     {

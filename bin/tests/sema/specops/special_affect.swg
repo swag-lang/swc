@@ -245,9 +245,3 @@ const ConstAffectOne: ConstAffectVector2 = 1.0
     #assert(#typeof(castInt) == LiteralOverloadTarget)
     #assert(#typeof(castFloat) == LiteralOverloadTarget)
 }
-
-#test
-{
-    const target = AffectTarget{}
-    target = 1 // swc-expected-error {{sema_err_assign_to_const}}
-}

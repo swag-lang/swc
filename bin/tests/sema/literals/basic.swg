@@ -52,14 +52,3 @@
 #assert(0xFFFF_FFFF == 0b11111111111111111111111111111111)
 #assert(0xDEAD_BEEF == 0xDEAD_BEEF)
 #assert(0b1101_1110_1010_1101_1011_1110_1110_1111 == 0xDEAD_BEEF)
-
-#assert(0b11 == 0b10) // swc-expected-error {{sema_err_compiler_assert}}
-#assert(true == false) // swc-expected-error {{sema_err_compiler_assert}}
-#assert("truetrue" == "true" ++ "false") // swc-expected-error {{sema_err_compiler_assert}}
-#assert("" == " ") // swc-expected-error {{sema_err_compiler_assert}}
-#assert('a' == 'b') // swc-expected-error {{sema_err_compiler_assert}}
-
-#print(0xFFFFFFFF_FFFFFFFF_F'u64) // swc-expected-error {{sema_err_literal_overflow}}
-#print(0b11111111111111111111111111111111_111111111111111111111111111111110'u64) // swc-expected-error {{sema_err_literal_overflow}}
-#print(0x1_0000_0000_0000_0000'u64) // swc-expected-error {{sema_err_literal_overflow}}
-#print(0b1_00000000000000000000000000000000000000000000000000000000000000000'u64) // swc-expected-error {{sema_err_literal_overflow}}

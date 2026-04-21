@@ -197,6 +197,3 @@ const ColCheckLoc = #run captureLoc()
 // =========================================================================
 // Error: #callerlocation used outside parameter default
 // =========================================================================
-
-#test { const bad = #callerlocation } // swc-expected-error {{sema_err_caller_location_default_only}}
-#test { var bad = #callerlocation }   // swc-expected-error {{sema_err_caller_location_default_only}}

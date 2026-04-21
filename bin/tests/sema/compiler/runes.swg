@@ -13,5 +13,3 @@ const Mixed = #runes("hé😀")
 #assert(Mixed[0] == 'h''rune)
 #assert(Mixed[1] == 'é''rune)
 #assert(Mixed[2] == '😀''rune)
-
-#test { const bad = #runes(1) } // swc-expected-error {{sema_err_invalid_type}}

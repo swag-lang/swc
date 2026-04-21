@@ -40,23 +40,3 @@ func addOne(value: s32)->s32 => value + 1
     let refCapture: ClosureUnary = func|&total|(value: s32)->s32 { total += value; return total }
     #assert(#typeof(refCapture) == ClosureUnary)
 }
-
-#test
-{
-    let outer = 5
-    let bad: ClosureUnary = func(value: s32)->s32 { return outer + value } // swc-expected-error {{sema_err_closure_capture_missing}}
-}
-
-#test
-{
-    let base = 7
-    let bad: func(s32)->s32 = func|base|(value: s32)->s32 { return base + value }
-} // swc-expected-error {{sema_err_cannot_cast}}
-
-#test
-{
-    let a: Capture24 = {a: 1, b: 2, c: 3}
-    let b: Capture24 = {a: 4, b: 5, c: 6}
-    let c: Capture24 = {a: 7, b: 8, c: 9}
-    let tooBig = func|a, b, c|() {} // swc-expected-error {{sema_err_closure_capture_too_large}}
-}

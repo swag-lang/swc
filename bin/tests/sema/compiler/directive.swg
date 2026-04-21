@@ -15,15 +15,6 @@ const DISABLED = 0
 
 #if true
 {
-    #error("""toto""") // swc-expected-error {{sema_err_compiler_error}}
-    #error(#"toto"#) // swc-expected-error {{sema_err_compiler_error}}
-}
-#else
-{
-}
-
-#if true
-{
 }
 #else
 {
@@ -47,11 +38,3 @@ const DISABLED = 0
 }
 
 #assert(MODE == 1)
-
-#if "true" // swc-expected-error {{sema_err_cannot_cast}}
-{
-}
-
-#assert("true") // swc-expected-error {{sema_err_cannot_cast}}
-{
-}

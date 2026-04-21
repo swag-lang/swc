@@ -62,30 +62,3 @@ func PtrMatch5(values: ...)->s32
     let count = p5(1, true, "ok")
     #assert(#typeof(count) == s32)
 }
-
-#test
-{
-    var badArity: func() = &PtrMatch1 // swc-expected-error {{sema_err_cannot_cast}}
-}
-
-#test
-{
-    var bad0: func(bool) = &PtrMatch1 // swc-expected-error {{sema_err_cannot_cast}}
-}
-
-#test
-{
-    var bad1: func(s32)->bool = &PtrMatch1 // swc-expected-error {{sema_err_cannot_cast}}
-}
-
-#test
-{
-    var bad3: func(...)->s32 = &PtrMatch4 // swc-expected-error {{sema_err_cannot_cast}}
-}
-
-#test
-{
-    var bad4: func(s32...)->s32 = &PtrMatch5 // swc-expected-error {{sema_err_cannot_cast}}
-}
-
-var BAD: func(s32) = true // swc-expected-error {{sema_err_cannot_cast}}

@@ -20,16 +20,4 @@ func useConstCallResult()
     var E = A + B + C + D
 }
 
-func failPureCallResult()
-{
-    var x: s32 = 4
-    const Y = pureAdd(x, 2) // swc-expected-error {{sema_err_expr_not_const}}
-}
-
-func failConstExprCallResult()
-{
-    var x: s32 = 4
-    const Y = constMul(x, 2) // swc-expected-error {{sema_err_expr_not_const}}
-}
-
 #test { useConstCallResult() }

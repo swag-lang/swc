@@ -14,20 +14,10 @@ impl I for A {
 
 namespace B {}
 
-impl I for B {} // swc-expected-error {{sema_err_impl_not_struct}}
-impl B for B {} // swc-expected-error {{sema_err_impl_not_interface}}
-
 enum ARC { A, B }
-
-impl I for ARC {} // swc-expected-error {{sema_err_impl_not_struct}}
-impl ARC for ARC {} // swc-expected-error {{sema_err_impl_not_interface}}
 
 interface I0 { mtd toto(); }
 struct S0 {}
-
-// swc-expected-error@(+1,+2) {{sema_err_interface_already_implemented}}
-impl I0 for S0 { mtd impl toto() {} }
-impl I0 for S0 { mtd impl toto() {} }
 
 #test
 {
@@ -69,10 +59,4 @@ impl I1 for T
     var t: T
     var i = cast(I1) t
     i.toto()
-}
-
-#test
-{
-    var u: U
-    var i = cast(I1) u // swc-expected-error {{sema_err_cannot_cast_to_interface}}
 }

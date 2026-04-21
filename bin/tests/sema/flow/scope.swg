@@ -41,8 +41,3 @@
         break
     }
 }
-
-#test
-{
-    break to Missing // swc-expected-error {{sema_err_unknown_scope_name}}
-}

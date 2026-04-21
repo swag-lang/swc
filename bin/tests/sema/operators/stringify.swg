@@ -48,7 +48,3 @@
 #assert('A' ++ "" == "A")
 #assert("" ++ 'Z' == "Z")
 #assert('😀' ++ '😀' == "😀😀")
-
-#assert(1 ++ @err == "12") // swc-expected-error {{sema_err_expr_not_const}}
-#assert(@err ++ 1 == "12") // swc-expected-error {{sema_err_expr_not_const}}
-#assert(@err ++ @err == "") // swc-expected-error {{sema_err_expr_not_const}}

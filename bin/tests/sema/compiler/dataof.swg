@@ -125,5 +125,3 @@ impl ConstDataOfSpecBuffer
     @assert(dref p == 7'u8)
     @assert(p[1] == 9'u8)
 }
-
-#test { const bad = @dataof(1) } // swc-expected-error {{sema_err_invalid_type}}

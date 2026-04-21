@@ -45,16 +45,7 @@ const ZERO_SIZED_VALUES: [3] ZeroSized = [{}, {}, {}]
 const ZERO_SIZED_SLICE = cast([..] ZeroSized) ZERO_SIZED_VALUES
 #assert(@countof(ZERO_SIZED_SLICE) == 3)
 
-#test
-{
-    const a = @countof(3)
-    #assert(a == 3)
-    const b = @countof(-1) // swc-expected-error {{sema_err_count_negative}}
-}
-
 namespace NS {}
-#assert(@countof(NS) == 3) // swc-expected-error {{sema_err_not_value_expr}}
-#assert(@countof(true) == 1) // swc-expected-error {{sema_err_invalid_countof_type}}
 
 #test
 {

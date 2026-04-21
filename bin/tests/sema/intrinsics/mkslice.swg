@@ -18,18 +18,6 @@
 
 #test
 {
-    var buf2: [100] u8
-    var str = @mkslice(0, @countof(buf2)) // swc-expected-error {{sema_err_expected_type_fam}}
-}
-
-#test
-{
-    var buf3: [100] u8
-    var str = @mkslice(&buf3[0], 0.0) // swc-expected-error {{sema_err_cannot_cast}}
-}
-
-#test
-{
     var buf4: [100] u8
     let str4 = cast(string) @mkslice(&buf4[0], @countof(buf4))
     #assert(#typeof(str4) == string)

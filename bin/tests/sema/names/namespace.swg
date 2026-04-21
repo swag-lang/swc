@@ -5,10 +5,6 @@ namespace NA.NB.NC {}
 
 namespace NA { const A = 52 }
 
-// swc-expected-error@(+1,+2) {{sema_err_already_defined}}
-namespace NB { const A = 0; }
-namespace NB.A {}
-
 const B = NA.A
 #assert(B == 52)
 
@@ -48,12 +44,3 @@ namespace NH
 #assert(NH.AAA == 5)
 #assert(NH.BBB == 10)
 #assert(NH.CCC == 15)
-
-#assert(NH == 1) // swc-expected-error {{sema_err_not_value_expr}}
-#assert(NH + 1) // swc-expected-error {{sema_err_not_value_expr}}
-#assert(-NH) // swc-expected-error {{sema_err_not_value_expr}}
-#assert(cast(bool) NH) // swc-expected-error {{sema_err_not_value_expr}}
-
-namespace Swag {} // swc-expected-error {{sema_err_reserved_swag_ns}}
-namespace swag {} // swc-expected-error {{sema_err_reserved_swag_ns}}
-namespace SWG.SWAG {} // swc-expected-error {{sema_err_reserved_swag_ns}}

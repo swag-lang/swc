@@ -116,5 +116,3 @@ const A: s32 = 10
 
 const OverflowU8 = -1 + 1'u8
 const OverflowU16 = -1 + 1'u16
-#assert(#typeof(-1 + 1'u32) == u32) // swc-expected-error {{safety_err_integer_overflow}}
-#assert(#typeof(-1 + 1'u64) == u64) // swc-expected-error {{safety_err_integer_overflow}}

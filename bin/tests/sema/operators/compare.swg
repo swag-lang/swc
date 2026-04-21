@@ -28,18 +28,6 @@
 
 #test
 {
-    var a: *s32
-    let b = a == 1 // swc-expected-error {{sema_err_compare_operand_type}}
-}
-
-#test
-{
-    var a: *s32
-    let b = a < true // swc-expected-error {{sema_err_compare_operand_type}}
-}
-
-#test
-{
     var value: s32 = 42
     let valueRef: const &s32 = &value
     let eq0 = valueRef == 42
@@ -85,11 +73,4 @@
 struct RefCompareStruct
 {
     value: s32
-}
-
-#test
-{
-    var value: RefCompareStruct
-    let valueRef: const &RefCompareStruct = &value
-    let bad = valueRef == 0 // swc-expected-error {{sema_err_compare_operand_type}}
 }

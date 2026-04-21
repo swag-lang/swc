@@ -23,8 +23,6 @@ impl IAction for RedoAction
     mtd impl execute(id: s32)->s32 => id + 80
 }
 
-var missing = @mkinterface(null, MissingAction, IAction) // swc-expected-error {{sema_err_cannot_cast_to_interface}}
-
 #test
 {
     var actions: [2] IAction

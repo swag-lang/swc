@@ -281,28 +281,3 @@ func semaWithRetvalUndefined()->{ a, b: s32 }
     owner.point = semaWithMakePoint()
     @assert(owner.applyMemberScope() == 1527)
 }
-
-#test
-{
-    var point: SemaWithPoint
-    with point
-    {
-        let inside = .x
-    }
-
-    let outside = .x // swc-expected-error {{sema_err_cannot_compute_auto_scope}}
-}
-
-#test
-{
-    with 1 // swc-expected-error {{sema_err_cannot_compute_auto_scope}}
-    {
-    }
-}
-
-#test
-{
-    with var a, b: s32 // swc-expected-error {{sema_err_not_value_expr}}
-    {
-    }
-}

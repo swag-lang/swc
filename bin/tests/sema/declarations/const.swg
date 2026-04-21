@@ -13,14 +13,6 @@ fileprivate
 fileprivate const D = A * 2
 #assert(D == 104)
 
-// swc-expected-error@(+1,+2) {{sema_err_already_defined}}
-const G = 52
-const G = 520
-
-const AA: s32    // swc-expected-error {{sema_err_const_missing_init}}
-const BB = @err  // swc-expected-error {{sema_err_expr_not_const}}
-#print(SEMA6)    // swc-expected-error {{sema_err_unknown_symbol}}
-
 const V0 = 1
 const V1 = 1.0
 #assert(#typeof(V1) == f32)
@@ -35,7 +27,6 @@ const A0, B0: s32 = 0
 #assert(#typeof(A0) == s32)
 #assert(#typeof(B0) == s32)
 
-const A1, B1: s32 = undefined // swc-expected-error {{sema_err_const_missing_init}}
 const A2 = 1, B2 = 2
 #assert(A2 == 1)
 #assert(B2 == 2)

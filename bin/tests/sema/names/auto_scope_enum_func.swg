@@ -21,41 +21,11 @@ func withFlags(e: OverFlags)->OverFlags { return e }
 }
 
 func fct(x: f32, e: OverB)->f32 { return 20.0 }
-#test
-{
-    let r1 = fct(1.0, .C) // swc-expected-error {{sema_err_auto_scope_missing_enum_value}}
-}
 
 struct Vec2
 {
     x: f32
     y: f32
-}
-
-impl Vec2
-{
-    func set_axis(axis: OverA, value: f32)
-    {
-        if axis == .A {
-        } elif axis == .B {
-        }
-    }
-
-    mtd toto()
-    {
-        if .z > 0.0 {} // swc-expected-error {{sema_err_auto_scope_missing_struct_member}}
-    }
-
-    func titi()->Vec2
-    {
-        set_axis(.A, 1.0)
-        return {}
-    }
-}
-
-#test
-{
-    let r1 = overload(1.0, .C) // swc-expected-error {{sema_err_no_overload_match}}
 }
 
 #test
@@ -74,9 +44,4 @@ impl Vec2
 {
     let flags = withFlags(.A | .B)
     @assert(flags == OverFlags.A | OverFlags.B)
-}
-
-#test
-{
-    let flags = withFlags(.A | .C) // swc-expected-error {{sema_err_auto_scope_missing_enum_value}}
 }

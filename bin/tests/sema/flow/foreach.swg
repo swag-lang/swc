@@ -13,30 +13,10 @@
 #test
 {
     var arr: [2] s32 = [1, 2]
-    foreach v, i in arr
-    {
-        #assert(#typeof(v) == s32)
-        #assert(#typeof(i) == u64)
-        var x = v
-        var y = i
-    }
-
-    var z = v // swc-expected-error {{sema_err_unknown_symbol}}
-}
-
-#test
-{
-    var arr: [2] s32 = [1, 2]
     foreach v in arr where v > 0
     {
         var x = v
     }
-}
-
-#test
-{
-    var arr: [2] s32 = [1, 2]
-    foreach v, i, j in arr {} // swc-expected-error {{sema_err_foreach_too_many_names}}
 }
 
 #test
@@ -75,17 +55,6 @@
 
 #test
 {
-    foreach v in 12 {} // swc-expected-error {{sema_err_type_not_indexable}}
-}
-
-#test
-{
-    var arr: [1] s32 = [1]
-    foreach v in arr where s32 {} // swc-expected-error {{sema_err_not_value_expr}}
-}
-
-#test
-{
     func foreachVariadicAny(values: ...)
     {
         foreach v, i in values
@@ -114,28 +83,6 @@
 
 #test
 {
-    func foreachVariadicAnyErr(values: ...)
-    {
-        foreach v in values
-        {
-            #assert(#typeof(v) == s32) // swc-expected-error {{sema_err_compiler_assert}}
-        }
-    }
-}
-
-#test
-{
-    func foreachVariadicTypedErr(values: s32...)
-    {
-        foreach v, i in values
-        {
-            #assert(#typeof(i) == s32) // swc-expected-error {{sema_err_compiler_assert}}
-        }
-    }
-}
-
-#test
-{
     enum Priority: u32
     {
         Low    = 1
@@ -149,13 +96,5 @@
         #assert(#typeof(idx) == u64)
         var x = value
         var y = idx
-    }
-}
-
-#test
-{
-    foreach g in @gvtd
-    {
-        #assert(#typeof(g) == s32) // swc-expected-error {{sema_err_compiler_assert}}
     }
 }

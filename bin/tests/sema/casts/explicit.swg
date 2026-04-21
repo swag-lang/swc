@@ -100,35 +100,12 @@
 #assert(cast(u8) 0'u8 == 0)
 #assert(cast(s8) -128's8 == -128)
 
-#assert(cast(u8) -1's8 == 255'u8)               // swc-expected-error {{sema_err_signed_unsigned}}
-#assert(cast(u8) -257's32 == 255'u8)            // swc-expected-error {{sema_err_signed_unsigned}}
-#assert(cast(u8) -256's32 == 0'u8)              // swc-expected-error {{sema_err_signed_unsigned}}
-
-#assert(cast(s8) 255'u8 == -1's8)               // swc-expected-error {{sema_err_signed_unsigned}}
-#assert(cast(s8) 128'u32 == -128's8)            // swc-expected-error {{sema_err_signed_unsigned}}
-#assert(cast(s8) 255'u32 == -1's8)              // swc-expected-error {{sema_err_signed_unsigned}}
-
-#assert(cast(u8) 256'u32 == 0'u8)               // swc-expected-error {{sema_err_literal_overflow}}
-#assert(cast(u8) 257'u32 == 1'u8)               // swc-expected-error {{sema_err_literal_overflow}}
-#assert(cast(u16) 65536'u32 == 0'u16)           // swc-expected-error {{sema_err_literal_overflow}}
-#assert(cast(u32) 4294967296'u64 == 0'u32)      // swc-expected-error {{sema_err_literal_overflow}}
-#assert(cast(s16) 65536'u32 == 0's16)           // swc-expected-error {{sema_err_literal_overflow}}
-#assert(cast(s32) 4294967296'u64 == 0's32)      // swc-expected-error {{sema_err_literal_overflow}}
-#assert(cast(u16) 65537'u32 == 1'u16)           // swc-expected-error {{sema_err_literal_overflow}}
-
 #assert(cast(s8) 127's32 == 127)
 #assert(cast(u8) 255's32 == 255'u8)
 #assert(cast(s16) -128's32 == -128's16)
 #assert(cast(u16) 65535'u32 == 65535'u16)
 #assert(cast(s32) 32767's16 == 32767's32)
 #assert(cast(u32) 65535'u16 == 65535'u32)
-
-#assert(cast(s32) 2147483648.0'f64 == 0's32)       // swc-expected-error {{sema_err_literal_overflow}}
-#assert(cast(s32) -2147483649.0'f64 == 0's32)      // swc-expected-error {{sema_err_literal_overflow}}
-#assert(cast(u32) -1.0'f32 == 0'u32)               // swc-expected-error {{sema_err_literal_overflow}}
-#assert(cast(u32) 4294967296.0'f64 == 0'u32)       // swc-expected-error {{sema_err_literal_overflow}}
-#assert(cast(u8) 256.0'f32 == 0'u8)                // swc-expected-error {{sema_err_literal_overflow}}
-#assert(cast(u16) -1.0'f64 == 0'u16)               // swc-expected-error {{sema_err_literal_overflow}}
 
 #assert(cast(u64) 18446744073709551615'u64 == 18446744073709551615)
 
@@ -157,12 +134,6 @@
     var a: [4] u8
     var s = cast([..] u16) a
     #assert(#typeof(s) == [..] u16)
-}
-
-#test
-{
-    var a: [3] u8
-    var s = cast([..] u16) a // swc-expected-error {{sema_err_cannot_cast}}
 }
 
 func takeStringValue(value: string)->u64

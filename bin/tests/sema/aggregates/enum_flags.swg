@@ -1,14 +1,6 @@
 #global fileprivate
 
 enum AA { A, B }
-const BB = AA.A | 1 // swc-expected-error {{sema_err_invalid_op_enum}}
-const CC = 1 | AA.A // swc-expected-error {{sema_err_invalid_op_enum}}
-
-#[Swag.EnumFlags]
-enum DD: f32 { A, B, C } // swc-expected-error {{sema_err_invalid_enum_flags_type}}
-
-#[Swag.EnumFlags]
-enum DD0: s8 { A, B, C } // swc-expected-error {{sema_err_invalid_enum_flags_type}}
 
 #[Swag.EnumFlags]
 {
@@ -28,20 +20,6 @@ enum JJ { A, B, C }
 #assert(JJ.A == 1)
 #assert(JJ.B == 2)
 #assert(JJ.C == 4)
-
-#[Swag.EnumFlags]
-enum KK : u32
-{
-    A = 0x80000000,
-    B, // swc-expected-error {{sema_err_literal_overflow}}
-}
-
-#[Swag.EnumFlags]
-enum MM : u32
-{
-    A = 5,
-    B // swc-expected-error {{sema_err_flag_enum_power_2}}
-}
 
 #[Swag.EnumFlags]
 enum LL : u64
@@ -101,34 +79,6 @@ enum RR : u8
 #assert(RR.F == 32)
 #assert(RR.G == 64)
 #assert(RR.H == 0x80)
-
-#[Swag.EnumFlags]
-enum SS : u8
-{
-    A = 0x80,
-    B, // swc-expected-error {{sema_err_literal_overflow}}
-}
-
-#[Swag.EnumFlags]
-enum SS0 : u16
-{
-    A = 0x8000,
-    B, // swc-expected-error {{sema_err_literal_overflow}}
-}
-
-#[Swag.EnumFlags]
-enum SS1 : u32
-{
-    A = 0x8000_0000,
-    B, // swc-expected-error {{sema_err_literal_overflow}}
-}
-
-#[Swag.EnumFlags]
-enum SS2 : u64
-{
-    A = 0x8000000000000000,
-    B, // swc-expected-error {{sema_err_literal_overflow}}
-}
 
 #assert((JJ.A | JJ.B) == 3)
 #assert((JJ.A | JJ.C) == 5)

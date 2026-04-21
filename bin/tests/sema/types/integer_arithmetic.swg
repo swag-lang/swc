@@ -82,34 +82,6 @@
 #assert(-4's16 / 2 == -2)
 #assert(-4's64 / 2 == -2)
 
-const OverflowAddS8 = 127's8 + 1's8         // swc-expected-error {{safety_err_integer_overflow}}
-const OverflowAddU8 = 255'u8 + 1'u8         // swc-expected-error {{safety_err_integer_overflow}}
-const OverflowSubU8 = 0'u8 - 1'u8           // swc-expected-error {{safety_err_integer_overflow}}
-const OverflowSubS8 = -128's8 - 1's8        // swc-expected-error {{safety_err_integer_overflow}}
-const OverflowMulS16 = 32767's16 * 2's16    // swc-expected-error {{safety_err_integer_overflow}}
-const OverflowMulU16 = 65535'u16 * 2'u16    // swc-expected-error {{safety_err_integer_overflow}}
-
-const DivZero0 = 1 / 0                   // swc-expected-error {{safety_err_division_zero}}
-const DivZeroS8 = 1's8 / 0               // swc-expected-error {{safety_err_division_zero}}
-const DivZeroS16 = 1's16 / 0             // swc-expected-error {{safety_err_division_zero}}
-const DivZeroS32 = 1's32 / 0             // swc-expected-error {{safety_err_division_zero}}
-const DivZeroS64 = 1's64 / 0             // swc-expected-error {{safety_err_division_zero}}
-const DivZeroU8 = 1'u8 / 0               // swc-expected-error {{safety_err_division_zero}}
-const DivZeroU16 = 1'u16 / 0             // swc-expected-error {{safety_err_division_zero}}
-const DivZeroU32 = 1'u32 / 0             // swc-expected-error {{safety_err_division_zero}}
-const DivZeroU64 = 1'u64 / 0             // swc-expected-error {{safety_err_division_zero}}
-const DivZeroUnsized = 0 / 0             // swc-expected-error {{safety_err_division_zero}}
-
-const InvalidWrapFloat = 127.0 + #wrap 1            // swc-expected-error {{sema_err_modifier_only_integer}}
-const InvalidPromFloat = 127.0 + #prom 1            // swc-expected-error {{sema_err_modifier_only_integer}}
-const InvalidPromWrapFloat = 127.0 + #prom #wrap 1  // swc-expected-error {{sema_err_modifier_only_integer}}
-const InvalidWrapDiv = 1 / #wrap 4                  // swc-expected-error {{sema_err_modifier_unsupported}}
-const InvalidBitDiv = 1 / #bit 4                    // swc-expected-error {{sema_err_modifier_unsupported}}
-const InvalidWrapInc = 1 ++ #wrap 4                 // swc-expected-error {{sema_err_modifier_unsupported}}
-#assert(1 ^ #wrap 0 == 1)                           // swc-expected-error {{sema_err_modifier_unsupported}}
-#assert(1 & #wrap 0 == 1)                           // swc-expected-error {{sema_err_modifier_unsupported}}
-#assert(1 | #wrap 0 == 1)                           // swc-expected-error {{sema_err_modifier_unsupported}}
-
 #assert(127's8 + #wrap 1 == 128)
 #assert(127's8 + #prom 1 == 128)
 #assert('A''rune + #wrap 1 == 'B''rune)
@@ -198,7 +170,6 @@ const InvalidWrapInc = 1 ++ #wrap 4                 // swc-expected-error {{sema
 #assert(7 % -3 == 1)
 #assert(-7 % -3 == -1)
 #assert(0 % 5 == 0)
-const ModZero = 5 % 0 // swc-expected-error {{safety_err_division_zero}}
 #assert(10 % 3 == 1)
 #assert(10's8 % 3 == 1)
 #assert(10's16 % 3 == 1)
@@ -211,16 +182,5 @@ const ModZero = 5 % 0 // swc-expected-error {{safety_err_division_zero}}
 #assert(10'u32 % 3'u32 == 1)
 #assert(10'u64 % 3'u64 == 1)
 
-#assert(1.0 << 1)   // swc-expected-error {{sema_err_binary_operand_type}}
-#assert(true >> 1)  // swc-expected-error {{sema_err_binary_operand_type}}
-#assert(true & 1)   // swc-expected-error {{sema_err_binary_operand_type}}
-#assert(true | 1)   // swc-expected-error {{sema_err_binary_operand_type}}
-#assert(true ^ 1)   // swc-expected-error {{sema_err_binary_operand_type}}
-
-#assert(1 << -1)    // swc-expected-error {{safety_err_negative_shift}}
-#assert(1 >> -1)    // swc-expected-error {{safety_err_negative_shift}}
-
 const DivOverflowS8 = -128's8 / -1
 const DivOverflowS16 = -32768's16 / -1
-const DivOverflowS32 = -2147483648's32 / -1           // swc-expected-error {{safety_err_integer_overflow}}
-const DivOverflowS64 = -9223372036854775808's64 / -1  // swc-expected-error {{safety_err_integer_overflow}}

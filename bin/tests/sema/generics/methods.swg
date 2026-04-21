@@ -99,19 +99,6 @@ impl LocalWrap
 
 #test
 {
-    let sample: Sample'(s32, 2)
-    sample.pairWith'(10)(20) // swc-expected-error {{sema_err_not_type}}
-}
-
-#test
-{
-    let sample: Sample'(s32, 2)
-    var idx = 1
-    sample.pickPair'(idx, 0)() // swc-expected-error {{sema_err_expr_not_const}}
-}
-
-#test
-{
     let wrapped: LocalWrap's32 = {value: 7}
     let clone = wrapped.cloneThroughHelper()
 

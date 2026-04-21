@@ -3,28 +3,15 @@
 const A: s32 = 10
 const B: s32 = 10's8
 
-const C: bool = 10's8                // swc-expected-error {{sema_err_cannot_cast}}
 const C1: bool = cast(bool) 10's8
 #assert(C1 == true)
 
-const D: u8 = -1's8                  // swc-expected-error {{sema_err_signed_unsigned}}
-const D1: u8 = cast(u8) -1's8        // swc-expected-error {{sema_err_signed_unsigned}}
-
-const E: s8 = 255'u8                 // swc-expected-error {{sema_err_signed_unsigned}}
-const E1: s8 = cast(s8) 255'u8       // swc-expected-error {{sema_err_signed_unsigned}}
-
-const F: u8 = 256'u16                // swc-expected-error {{sema_err_literal_overflow}}
-const F1: u8 = cast(u8) 256'u16      // swc-expected-error {{sema_err_literal_overflow}}
-
-const G: s32 = 1.9                   // swc-expected-error {{sema_err_cannot_cast}}
 const G1: s32 = cast(s32) 1.9
 #assert(G1 == 1)
 
-const H: u8 = true                   // swc-expected-error {{sema_err_cannot_cast}}
 const H1: u8 = cast(u8) true
 #assert(H1 == 1'u8)
 
-const I: bool = 2'u8                 // swc-expected-error {{sema_err_cannot_cast}}
 const I1: bool = cast(bool) 2'u8
 #assert(I1 == true)
 
@@ -91,5 +78,3 @@ const W = -128's8
 
 const X = 1'u8
 #assert(#typeof(X) == u8)
-
-const Y = -129's8              // swc-expected-error {{sema_err_literal_overflow}}

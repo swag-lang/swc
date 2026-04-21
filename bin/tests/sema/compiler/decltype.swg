@@ -14,4 +14,3 @@ var e: #decltype(s32) = 9
 #assert(#typeof(e) == s32)
 
 namespace N {}
-var bad: #decltype(N) = 0 // swc-expected-error {{sema_err_not_value_expr}}

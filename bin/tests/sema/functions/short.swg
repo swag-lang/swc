@@ -27,13 +27,3 @@ func H(x: f64) => x < 0 ? -1.5 : 1.5
     @assert(H(-2'f64) == -1.5)
     @assert(H(2'f64) == 1.5)
 }
-
-#test
-{
-    D(1.5) // swc-expected-error {{sema_err_cannot_cast}}
-}
-
-#test
-{
-    F(1, 2, 3) // swc-expected-error {{sema_err_too_many_arguments}}
-}

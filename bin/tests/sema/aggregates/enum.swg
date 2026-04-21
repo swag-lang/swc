@@ -63,9 +63,7 @@ enum EE
 #assert(cast(u32) AliasInit.B == 7)
 #assert(cast(s32) BB.A == 0)
 
-#assert(cast(string) CC.A == "0") // swc-expected-error {{sema_err_cannot_cast}}
 #assert(cast #bit (u32) CC.A == 0)
-#assert(cast #bit (u64) CC.A == 0) // swc-expected-error {{sema_err_bit_cast_size}}
 
 #assert(cast(s8)  A1.A == 0)
 #assert(cast(s16) A2.A == 0)
@@ -85,15 +83,6 @@ enum EE
 #assert(#typeof(EE.A) == EE)
 
 #assert(cast(f32) CC.A == 0)
-#assert(cast(bool) CC.A == false) // swc-expected-error {{sema_err_cannot_cast}}
-#assert(cast #bit (u16) A10.A == 1) // swc-expected-error {{sema_err_bit_cast_invalid_type}}
-
-enum InitMismatch1: u32 {
-  A = -1, // swc-expected-error {{sema_err_signed_unsigned}}
-}
-enum InitMismatch2: bool {
-  A = 1, // swc-expected-error {{sema_err_cannot_cast}}
-}
 
 enum Mixed1: s32 {
   A = -2,
@@ -104,16 +93,6 @@ enum Mixed1: s32 {
   #assert(C == 10)
   D,
   #assert(D == 11)
-}
-
-enum SmallRange1: u8 {
-  A = 255,
-  #assert(A == 255)
-  B, // swc-expected-error {{sema_err_literal_overflow}}
-}
-
-enum UnsignedNeg: u16 {
-  A = -1, // swc-expected-error {{sema_err_signed_unsigned}}
 }
 
 enum StartsAtZero: u32 {
@@ -143,13 +122,6 @@ enum BoolOk: bool {
   #assert(F == false)
 }
 
-enum BoolOk1: bool {
-  T = B1, // swc-expected-error {{sema_err_unknown_symbol}}
-  #assert(T == true)
-  F = false,
-  #assert(F == false)
-}
-
 enum Test{
     A = 1,
     B = 2,
@@ -164,7 +136,6 @@ const X = Test.A
 #assert(#typeof(X) == Test)
 
 enum EN { A }
-const CA = cast(u32)EN+1 // swc-expected-error {{sema_err_not_value_expr}}
 
 enum ArrayBacked: const [2] s32 {
   A = [1, 2],

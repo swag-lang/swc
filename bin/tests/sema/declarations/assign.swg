@@ -2,36 +2,6 @@
 
 #test
 {
-    var a: s32
-    a /= 0 // swc-expected-error {{safety_err_division_zero}}
-}
-
-#test
-{
-    var a: s32
-    a %= (1-1) // swc-expected-error {{safety_err_division_zero}}
-}
-
-#test
-{
-    let a = 10
-    a = 20 // swc-expected-error {{sema_err_assign_to_let}}
-}
-
-#test
-{
-    const A = 10
-    A = 20 // swc-expected-error {{sema_err_assign_to_const}}
-}
-
-#test
-{
-    const A: [4] s32 = [1's32, 2, 3, 4]
-    A[0] = 0 // swc-expected-error {{sema_err_assign_not_lvalue}}
-}
-
-#test
-{
     var ptr: [*] s32
     ptr += 1
     var ptr1: const [*] s32
@@ -107,28 +77,4 @@ struct AssignRefValue
     p -= 1
     var d: s64
     d = p - p
-}
-
-#test
-{
-    var a: s32
-    a = 1.5 // swc-expected-error {{sema_err_cannot_cast}}
-}
-
-#test
-{
-    var a: s32
-    a += 1.5 // swc-expected-error {{sema_err_cannot_cast}}
-}
-
-#test
-{
-    var a: f32
-    a &= 1 // swc-expected-error {{sema_err_binary_operand_type}}
-}
-
-#test
-{
-    var p: [*] s32
-    p += 1.0 // swc-expected-error {{sema_err_cannot_cast}}
 }

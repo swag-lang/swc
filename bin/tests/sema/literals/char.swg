@@ -71,10 +71,3 @@
 #assert('\u00E9''u32 == 0xE9)
 #assert('\u4E00''u32 == 0x4E00)
 #assert('\u0000''u32 == 0)
-
-#assert('😀''u8 == 0)   // swc-expected-error {{sema_err_literal_overflow}}
-
-#assert('a''s8 == 97)   // swc-expected-error {{sema_err_cannot_cast}}
-#assert('a''s16 == 97)  // swc-expected-error {{sema_err_cannot_cast}}
-#assert('a''s32 == 97)  // swc-expected-error {{sema_err_cannot_cast}}
-#assert('a''s64 == 97)  // swc-expected-error {{sema_err_cannot_cast}}

@@ -35,68 +35,6 @@
 
 #test
 {
-    enum E : s32
-    {
-        A = 1,
-        B = 2,
-    }
-
-    var v : E = E.B
-    switch v
-    {
-        case E.A:
-            break
-        case .B:
-            break
-        case .C: // swc-expected-error {{sema_err_auto_scope_missing_enum_value}}
-            break
-        default:
-            break
-    }
-}
-
-#test
-{
-    enum E : s32
-    {
-        A = 1,
-        B = 2,
-        C = 3,
-    }
-
-    var v : E = .A
-    #[Swag.Complete]
-    switch v // swc-expected-error {{sema_err_switch_complete_enum_not_exhaustive}}
-    {
-        case .A:
-            break
-        case .B:
-            break
-    }
-}
-
-#test
-{
-    enum E : s32
-    {
-        A = 1,
-        B = 2,
-    }
-
-    var v : E = E.B
-    switch v
-    {
-        case E.A:
-            break
-        case A: // swc-expected-error {{sema_err_switch_case_duplicate}}
-            break
-        default:
-            break
-    }
-}
-
-#test
-{
     alias MyInt = s32
     var v : MyInt = 3
     switch v

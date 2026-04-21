@@ -112,6 +112,7 @@ const InvalidWrapInc = 1 ++ #wrap 4                 // swc-expected-error {{sema
 
 #assert(127's8 + #wrap 1 == 128)
 #assert(127's8 + #prom 1 == 128)
+#assert('A''rune + #wrap 1 == 'B''rune)
 
 #assert(1 | 2 == 3)
 #assert(1 & 2 == 0)

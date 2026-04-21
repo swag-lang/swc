@@ -115,3 +115,14 @@
     @assert(c == cast(rune) 130'u32)
     @assert(d == 'A''rune)
 }
+
+#test
+{
+    var r = 'A''rune
+    let next = r + #wrap 1
+    r += #wrap 1
+
+    #assert(#typeof(next) == rune)
+    @assert(next == 'B''rune)
+    @assert(r == 'B''rune)
+}

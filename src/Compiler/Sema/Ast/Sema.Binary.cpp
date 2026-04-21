@@ -25,7 +25,7 @@ namespace
         if (!node.modifierFlags.hasAny({AstModifierFlagsE::Wrap, AstModifierFlagsE::Promote}))
             return Result::Continue;
 
-        if (nodeLeftView.type()->isInt())
+        if (nodeLeftView.type()->isIntLike())
             return Result::Continue;
 
         const SourceView& srcView = sema.compiler().srcView(node.srcViewRef());
@@ -117,10 +117,10 @@ namespace
         const ConstantValue& rightCst = sema.cstMgr().get(rightCstRef);
         const TypeInfo&      type     = leftCst.type(sema.ctx());
 
-        // Wrap and promote modifiers can only be applied to integers
+        // Wrap and promote modifiers can only be applied to int-like values.
         if (node.modifierFlags.hasAny({AstModifierFlagsE::Wrap, AstModifierFlagsE::Promote}))
         {
-            if (!type.isInt())
+            if (!type.isIntLike())
             {
                 const SourceView& srcView = sema.compiler().srcView(node.srcViewRef());
                 const TokenRef    mdfRef  = srcView.findRightFrom(node.tokRef(), {TokenId::ModifierWrap, TokenId::ModifierPromote});

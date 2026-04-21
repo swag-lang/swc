@@ -94,7 +94,7 @@ namespace
             return Result::Continue;
 
         const auto targetLeftView = assignmentTargetView(sema, nodeLeftView, false);
-        if (targetLeftView.type()->isInt())
+        if (targetLeftView.type()->isIntLike())
             return Result::Continue;
 
         const SourceView& srcView = sema.compiler().srcView(node.srcViewRef());

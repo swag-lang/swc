@@ -382,7 +382,7 @@ namespace
             return reportCompilerFileError(sema, DiagnosticId::sema_err_ast_file_write_failed, ownerRef, errorPath, because);
         }
 
-        sema.compiler().registerInMemoryFile(appendResult.path, appendResult.snapshot);
+        sema.compiler().registerInMemoryFile(appendResult.path, appendResult.snapshot.view());
         SourceFile& sourceFile = sema.compiler().addFile(appendResult.path, FileFlagsE::CustomSrc | FileFlagsE::SkipFmt);
         SWC_RESULT(sourceFile.loadContent(sema.ctx()));
 

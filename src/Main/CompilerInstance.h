@@ -33,9 +33,9 @@ class CompilerInstance
 public:
     struct GeneratedSourceAppendResult
     {
-        fs::path         path;
-        std::string_view snapshot;
-        uint32_t         codeStartOffset = 0;
+        fs::path path;
+        Utf8     snapshot;
+        uint32_t codeStartOffset = 0;
     };
 
     CompilerInstance(const Global& global, const CommandLine& cmdLine);
@@ -212,13 +212,11 @@ private:
     {
         Arena            arena;
         Runtime::Context runtimeContext{};
-        fs::path         generatedSourcePath;
-        Utf8             generatedSourceContent;
-        bool             generatedSourceInitialized = false;
     };
 
     std::vector<PerThreadData>                         perThreadData_;
     std::atomic<uint32_t>                              atomicId_                 = 0;
+    std::atomic<uint32_t>                              generatedSourceId_        = 0;
     std::atomic<bool>                                  nativeOutputsCleared_     = false;
     std::atomic<uint32_t>                              pendingImplRegistrations_ = 0;
     AstCompilerFunc*                                   mainFunc_                 = nullptr;

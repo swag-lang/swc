@@ -25,13 +25,20 @@ class Ast
 public:
     static constexpr const AstNodeIdInfo& nodeIdInfos(AstNodeId id) { return AST_NODE_ID_INFOS[static_cast<size_t>(id)]; }
     static constexpr std::string_view     nodeIdName(AstNodeId id) { return nodeIdInfos(id).name; }
+    static SourceView*                    setThreadSourceViewOverride(SourceView* srcView)
+    {
+        SourceView* const previous = threadSourceViewOverride_;
+        threadSourceViewOverride_  = srcView;
+        return previous;
+    }
 
     AstNodeRef        root() const { return root_; }
     void              setRoot(AstNodeRef root) { root_ = root; }
-    bool              hasSourceView() const { return srcView_ != nullptr; }
-    SourceView&       srcView() { return *(srcView_); }
-    const SourceView& srcView() const { return *(srcView_); }
+    bool              hasSourceView() const { return threadSourceViewOverride_ != nullptr || srcView_ != nullptr; }
+    SourceView&       srcView() { return *(threadSourceViewOverride_ ? threadSourceViewOverride_ : srcView_); }
+    const SourceView& srcView() const { return *(threadSourceViewOverride_ ? threadSourceViewOverride_ : srcView_); }
     void              setSourceView(SourceView& srcView) { srcView_ = &srcView; }
+    std::mutex&       generatedParseMutex() { return generatedParseMutex_; }
     bool              hasFlag(AstFlags flag) const { return flags_.has(flag); }
     void              addFlag(AstFlags flag) { flags_.add(flag); }
     void              captureParsedNodeBoundary();
@@ -78,6 +85,7 @@ public:
     auto makeNode(TokenRef tokRef)
     {
         using NodeType = AstTypeOf<ID>::type;
+        const SourceView& activeSrcView = srcView();
 
         const uint32_t            shard = chooseShard();
         std::pair<Ref, NodeType*> local;
@@ -90,7 +98,7 @@ public:
             const uint32_t localByteRef = local.first;
             globalRef                   = AstNodeRef{packRef(shard, localByteRef)};
             ::new (local.second) NodeType{};
-            local.second->setCodeRef(SourceCodeRef(srcView_->ref(), tokRef));
+            local.second->setCodeRef(SourceCodeRef(activeSrcView.ref(), tokRef));
         }
 
 #if SWC_HAS_STATS
@@ -148,8 +156,10 @@ private:
     SourceView* srcView_                                = nullptr;
     AstNodeRef  root_                                   = AstNodeRef::invalid();
     AstFlags    flags_                                  = AstFlagsE::Zero;
+    std::mutex  generatedParseMutex_;
     uint32_t    parsedNodeBoundaryByShard_[SHARD_COUNT] = {};
     bool        hasParsedNodeBoundary_                  = false;
+    inline static thread_local SourceView* threadSourceViewOverride_ = nullptr;
 };
 
 SWC_END_NAMESPACE();

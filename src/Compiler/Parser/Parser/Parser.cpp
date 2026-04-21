@@ -109,6 +109,11 @@ AstNodeRef Parser::parseGenerated(TaskContext& ctx, Ast& ast, SourceView& srcVie
     ctx_ = &ctx;
     ast_ = &ast;
 
+    // Generated parsing temporarily swaps the owner AST source view so token/code
+    // locations are wired to the generated snippet. That state lives on the shared
+    // AST, so concurrent #ast parses for the same source file must serialize here.
+    const std::scoped_lock generatedParseLock(ast_->generatedParseMutex());
+
     firstToken_     = &srcView.tokens().front();
     lastToken_      = &srcView.tokens().back();
     curToken_       = startTokRef.isValid() ? &srcView.tokens()[startTokRef.get()] : firstToken_;
@@ -117,14 +122,9 @@ AstNodeRef Parser::parseGenerated(TaskContext& ctx, Ast& ast, SourceView& srcVie
     depthCurly_     = 0;
     lastErrorToken_ = TokenRef::invalid();
 
-    SourceView* previousSrcView = nullptr;
-    if (ast_->hasSourceView())
-        previousSrcView = &ast_->srcView();
-
-    ast_->setSourceView(srcView);
+    SourceView* const previousSrcView = Ast::setThreadSourceViewOverride(&srcView);
     const AstNodeRef result = parseGeneratedContent(mode);
-    if (previousSrcView)
-        ast_->setSourceView(*previousSrcView);
+    Ast::setThreadSourceViewOverride(previousSrcView);
 
     return result;
 }

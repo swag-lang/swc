@@ -62,6 +62,8 @@ struct(T) ApiPatch
     {
         var buffer: [4096] u8
         var len = appendPatchFields(&buffer[0], 0, #typeof(T))
+        if len == 0 do
+            return ""
         return cast(string) @mkslice(&buffer[0], len)
     }
 }
@@ -79,6 +81,8 @@ func(T) clearPatch(patch: &ApiPatch'T)
             len = appendAst(&buffer[0], len, field.name)
             len = appendAst(&buffer[0], len, " = false\n")
         }
+        if len == 0 do
+            return ""
         return cast(string) @mkslice(&buffer[0], len)
     }
 }
@@ -101,6 +105,8 @@ func(T) capturePatch(patch: &ApiPatch'T, value: const &T)
             len = appendAst(&buffer[0], len, field.name)
             len = appendAst(&buffer[0], len, "\n")
         }
+        if len == 0 do
+            return ""
         return cast(string) @mkslice(&buffer[0], len)
     }
 }
@@ -120,6 +126,8 @@ func(T) patchChangedCount(patch: const &ApiPatch'T)->s32
             len = appendAst(&buffer[0], len, " do\n")
             len = appendAst(&buffer[0], len, "    count += 1\n")
         }
+        if len == 0 do
+            return ""
         return cast(string) @mkslice(&buffer[0], len)
     }
     return count
@@ -142,6 +150,8 @@ func(T) patchChangedMask(patch: const &ApiPatch'T)->u64
             len = appendAst(&buffer[0], len, "    mask |= bit\n")
             len = appendAst(&buffer[0], len, "bit <<= 1\n")
         }
+        if len == 0 do
+            return ""
         return cast(string) @mkslice(&buffer[0], len)
     }
     return mask
@@ -166,6 +176,8 @@ func(T) applyPatch(patch: const &ApiPatch'T, base: T)->T
             len = appendAst(&buffer[0], len, field.name)
             len = appendAst(&buffer[0], len, "\n")
         }
+        if len == 0 do
+            return ""
         return cast(string) @mkslice(&buffer[0], len)
     }
     return result

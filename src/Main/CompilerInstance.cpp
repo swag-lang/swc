@@ -849,30 +849,12 @@ Result CompilerInstance::appendGeneratedSource(GeneratedSourceAppendResult& outR
     SWC_ASSERT(directory.is_absolute());
     SWC_ASSERT(codeOffsetInSection <= sectionText.size());
 
-    const auto     threadIndex = static_cast<uint32_t>(JobManager::threadIndex());
-    PerThreadData& td          = perThreadData_[threadIndex];
-    bool           resetFile   = false;
-    if (!td.generatedSourceInitialized || !FileSystem::pathEquals(td.generatedSourcePath.parent_path(), directory))
-    {
-        td.generatedSourcePath        = (directory / std::format("thread-{}-c{}-p{}.swg", threadIndex, jobClientId_, Os::currentProcessId())).lexically_normal();
-        td.generatedSourceContent.clear();
-        td.generatedSourceInitialized = true;
-        resetFile                     = true;
-    }
+    const auto threadIndex = static_cast<uint32_t>(JobManager::threadIndex());
+    const auto sourceId    = generatedSourceId_.fetch_add(1, std::memory_order_relaxed);
 
-    outResult.path = td.generatedSourcePath;
-
-    uint32_t sectionStartOffset = static_cast<uint32_t>(td.generatedSourceContent.size());
-    bool     prependLineBreak   = false;
-    if (!td.generatedSourceContent.empty() && td.generatedSourceContent.back() != '\n')
-    {
-        td.generatedSourceContent += '\n';
-        sectionStartOffset++;
-        prependLineBreak = true;
-    }
-
-    outResult.codeStartOffset = sectionStartOffset + codeOffsetInSection;
-    td.generatedSourceContent += sectionText;
+    outResult.path = (directory / std::format("thread-{}-g{}-c{}-p{}.swg", threadIndex, sourceId, jobClientId_, Os::currentProcessId())).lexically_normal();
+    outResult.codeStartOffset = codeOffsetInSection;
+    outResult.snapshot        = sectionText;
 
     std::error_code ec;
     fs::create_directories(directory, ec);
@@ -882,10 +864,7 @@ Result CompilerInstance::appendGeneratedSource(GeneratedSourceAppendResult& outR
         return Result::Error;
     }
 
-    // Generated files are append-only per worker thread, which keeps writes linear and contention-free.
-    std::ios::openmode openMode = std::ios::binary;
-    openMode |= resetFile ? std::ios::trunc : std::ios::app;
-    std::ofstream generatedStream(td.generatedSourcePath, openMode);
+    std::ofstream generatedStream(outResult.path, std::ios::binary | std::ios::trunc);
     if (!generatedStream.is_open())
     {
         outBecause = FileSystem::currentSystemMessage();
@@ -895,9 +874,6 @@ Result CompilerInstance::appendGeneratedSource(GeneratedSourceAppendResult& outR
             outBecause = FileSystem::normalizeSystemMessage(outBecause);
         return Result::Error;
     }
-
-    if (prependLineBreak)
-        generatedStream.put('\n');
 
     if (!sectionText.empty())
         generatedStream.write(sectionText.data(), static_cast<std::streamsize>(sectionText.size()));
@@ -922,8 +898,6 @@ Result CompilerInstance::appendGeneratedSource(GeneratedSourceAppendResult& outR
         return Result::Error;
     }
 
-    outResult.path     = td.generatedSourcePath;
-    outResult.snapshot = td.generatedSourceContent.view();
     return Result::Continue;
 }
 

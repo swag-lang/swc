@@ -164,3 +164,21 @@
     var a: [3] u8
     var s = cast([..] u16) a // swc-expected-error {{sema_err_cannot_cast}}
 }
+
+func takeStringValue(value: string)->u64
+{
+    return @countof(value)
+}
+
+#test
+{
+    var text = "abcd"
+    var textRef: &string = &text
+    let textValue = cast(string) textRef
+    let textSize = takeStringValue(textRef)
+
+    #assert(#typeof(textValue) == string)
+    #assert(#typeof(textSize) == u64)
+    @assert(textValue == "abcd")
+    @assert(textSize == 4'u64)
+}

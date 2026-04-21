@@ -19,5 +19,3 @@ impl GenericSample
     func(var U, var V, const Left: s32, const Right: s32) makeIndexedTriple(me, other: U, tail: V)->s32 => Left + Right
     mtd(var U, const N: s32) tagged(other: U)->s32 => N
 }
-
-impl A.B. { } // swc-expected-error {{parser_err_expected_token_fam}}

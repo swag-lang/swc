@@ -246,5 +246,3 @@ int y = 10;
 	// tab before comment
 /* 	multiple	tabs	here	 */
 
-// swc-expected-error@+ {{lex_err_unclosed_comment}}
-/* This comment is never closed

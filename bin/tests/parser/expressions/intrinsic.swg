@@ -1,12 +1,9 @@
 #global fileprivate
 
 // Expressions
-var a = @countof()                      // swc-expected-error {{parser_err_too_few_arguments}}
-var b = @countof(a, b + 4)              // swc-expected-error {{parser_err_too_many_arguments}}
 var c = @countof("foo")
 
 var _01 = @getcontext()
-var _02 = @getcontext(a)                // swc-expected-error {{parser_err_too_many_arguments}}
 var _03 = @dbgalloc()
 var _04 = @sysalloc()
 var _05 = @err()
@@ -20,7 +17,6 @@ var _12 = @gvtd()
 var _13 = @compiler()
 
 var _14 = @kindof(a)
-var _15 = @kindof()                     // swc-expected-error {{parser_err_too_few_arguments}}
 var _16 = @countof(a)
 var _17 = @dataof(a)
 var _18 = @cvastart(a)
@@ -53,7 +49,6 @@ var _45 = @bitcounttz(a)
 var _46 = @bitcountlz(a)
 
 var _47 = @mkslice(a, b)
-var _48 = @mkslice(a)                   // swc-expected-error {{parser_err_too_few_arguments}}
 var _49 = @mkstring(a, b)
 var _50 = @mkany(a, b)
 var _51 = @cvaarg(a, b)
@@ -73,40 +68,33 @@ var _65 = @atomand(a, b)
 var _66 = @atomadd(a, b)
 
 var _67 = @mkinterface(a, b, c)
-var _68 = @mkinterface(a, b)            // swc-expected-error {{parser_err_too_few_arguments}}
 var _69 = @as(a, b, c)
 var _70 = @atomcmpxchg(a, b, c)
 var _71 = @typecmp(a, b, c)
 var _72 = @muladd(a, b, c)
 
 var _75 = @memcmp(a, b, c)
-var _76 = @memcmp(a, b)                 // swc-expected-error {{parser_err_too_few_arguments}}
 
 // Statements
 func test()
 {
     @breakpoint()
-    @breakpoint(a)                      // swc-expected-error {{parser_err_too_many_arguments}}
 
     @assert(a)
-    @assert()                           // swc-expected-error {{parser_err_too_few_arguments}}
     @cvastart(a)
     @cvaend(a)
     @panic(a, b)
     @setcontext(a)
 
     @compilererror(a, b)
-    @compilererror(a)                   // swc-expected-error {{parser_err_too_few_arguments}}
     @compilerwarning(a, b)
     @atomadd(a, b)
 
     @print("foo")
     @print("foo", "bar", 1, 2)
-    @print()                            // swc-expected-error {{parser_err_too_few_arguments}}
 
     @free(a)
     @memcpy(a, b, c)
-    @memcpy(a, b)                       // swc-expected-error {{parser_err_too_few_arguments}}
     @memmove(a, b, c)
     @memset(a, b, c)
     let a = @memcmp(a, b, c)

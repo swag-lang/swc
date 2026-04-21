@@ -30,3 +30,28 @@
     var asByte = cast(u8) flag
     @assert(asByte == 1)
 }
+
+func takeStringValue(value: string)->u64
+{
+    return @countof(value)
+}
+
+#test
+{
+    var text = "seed"
+    var textRef: &string = &text
+    let textValue = cast(string) textRef
+
+    @assert(textValue == "seed")
+    @assert(takeStringValue(textRef) == 4'u64)
+}
+
+#test
+{
+    var text = "seed"
+    var textRef: &string = &text
+    var snapshot: const &string = cast(string) textRef
+    text = "changed"
+
+    @assert(snapshot == "seed")
+}

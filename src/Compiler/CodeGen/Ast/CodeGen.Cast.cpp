@@ -6,6 +6,7 @@
 #include "Compiler/CodeGen/Core/CodeGenConstantHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenInterfaceHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenMemoryHelpers.h"
+#include "Compiler/CodeGen/Core/CodeGenReferenceHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenSafety.h"
 #include "Compiler/CodeGen/Core/CodeGenTypeHelpers.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
@@ -165,6 +166,46 @@ namespace
         CodeGenNodePayload& dstPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), dstTypeRef);
         dstPayload.reg                 = pointeeAddressReg;
         dstPayload.markMaterializedPointerLikeValue();
+        return true;
+    }
+
+    bool tryEmitReferenceValueCast(CodeGen& codeGen, AstNodeRef srcNodeRef, TypeRef sourceTypeRef, TypeRef dstTypeRef)
+    {
+        if (!Cast::referenceValueCastTypeRef(codeGen.sema(), sourceTypeRef, dstTypeRef).isValid())
+            return false;
+
+        TypeRef            readTypeRef = sourceTypeRef;
+        CodeGenNodePayload readPayload = codeGen.payload(srcNodeRef);
+        CodeGenReferenceHelpers::unwrapAliasRefPayload(codeGen, readPayload, readTypeRef);
+        SWC_ASSERT(readTypeRef.isValid());
+        SWC_ASSERT(!codeGen.typeMgr().get(readTypeRef).isReference());
+        SWC_ASSERT(readPayload.isAddress());
+
+        const TypeRef     resolvedReadTypeRef = codeGen.typeMgr().unwrapAliasEnum(codeGen.ctx(), readTypeRef);
+        const TypeInfo&   readType            = codeGen.typeMgr().get(resolvedReadTypeRef.isValid() ? resolvedReadTypeRef : readTypeRef);
+        const MicroOpBits directBits          = CodeGenTypeHelpers::scalarStoreBits(readType, codeGen.ctx());
+        MicroBuilder&     builder             = codeGen.builder();
+        if (directBits != MicroOpBits::Zero)
+        {
+            CodeGenNodePayload& dstPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), dstTypeRef);
+            dstPayload.reg                 = codeGen.nextVirtualRegisterForType(dstTypeRef);
+            builder.emitLoadRegMem(dstPayload.reg, readPayload.reg, 0, directBits);
+            return true;
+        }
+
+        const auto* castPayload = codeGen.sema().codeGenPayload<CodeGenNodePayload>(codeGen.curNodeRef());
+        SWC_ASSERT(castPayload != nullptr);
+        SWC_ASSERT(castPayload->runtimeStorageSym != nullptr);
+
+        const MicroReg storageReg = codeGen.runtimeStorageAddressReg(codeGen.curNodeRef());
+        const uint64_t valueSize  = readType.sizeOf(codeGen.ctx());
+        if (valueSize)
+        {
+            SWC_ASSERT(valueSize <= std::numeric_limits<uint32_t>::max());
+            CodeGenMemoryHelpers::emitMemCopy(codeGen, storageReg, readPayload.reg, static_cast<uint32_t>(valueSize));
+        }
+
+        codeGen.setPayloadAddressReg(codeGen.curNodeRef(), storageReg, dstTypeRef);
         return true;
     }
 
@@ -933,6 +974,9 @@ namespace
             builder.emitLoadRegMem(dstPayload.reg, srcPayload.reg, offsetof(Runtime::String, ptr), MicroOpBits::B64);
             return Result::Continue;
         }
+
+        if (tryEmitReferenceValueCast(codeGen, srcNodeRef, sourceTypeRef, dstTypeRef))
+            return Result::Continue;
 
         if (tryEmitAddressBackedPointerLikeCast(codeGen, srcPayload, sourceTypeRef, dstTypeRef))
             return Result::Continue;

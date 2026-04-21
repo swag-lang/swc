@@ -193,6 +193,39 @@ namespace
         return Result::Continue;
     }
 
+    ConstantRef readReferenceValueConstant(Sema& sema, ConstantRef refCstRef, TypeRef valueTypeRef)
+    {
+        if (refCstRef.isInvalid() || !valueTypeRef.isValid())
+            return ConstantRef::invalid();
+
+        const ConstantValue& refCst = sema.cstMgr().get(refCstRef);
+        if (!refCst.isValuePointer() || !refCst.getValuePointer())
+            return ConstantRef::invalid();
+
+        const void* const valuePtr = reinterpret_cast<const void*>(refCst.getValuePointer());
+        const TypeRef     aliasResolvedTypeRef = sema.typeMgr().get(valueTypeRef).unwrap(sema.ctx(), valueTypeRef, TypeExpandE::Alias);
+        const TypeRef     valueNoAliasTypeRef  = aliasResolvedTypeRef.isValid() ? aliasResolvedTypeRef : valueTypeRef;
+        const TypeInfo&   valueNoAliasType     = sema.typeMgr().get(valueNoAliasTypeRef);
+        if (valueNoAliasType.isEnum())
+        {
+            const TypeRef       underlyingTypeRef = valueNoAliasType.payloadSymEnum().underlyingTypeRef();
+            const ConstantValue underlyingCst     = ConstantValue::make(sema.ctx(), valuePtr, underlyingTypeRef, ConstantValue::PayloadOwnership::Borrowed);
+            if (!underlyingCst.isValid())
+                return ConstantRef::invalid();
+
+            const ConstantRef   underlyingCstRef = sema.cstMgr().addConstant(sema.ctx(), underlyingCst);
+            const ConstantValue enumCst          = ConstantValue::makeEnumValue(sema.ctx(), underlyingCstRef, valueNoAliasTypeRef);
+            return sema.cstMgr().addConstant(sema.ctx(), enumCst);
+        }
+
+        const TypeRef       loadTypeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), valueTypeRef);
+        const ConstantValue valueCst    = ConstantValue::make(sema.ctx(), valuePtr, loadTypeRef.isValid() ? loadTypeRef : valueTypeRef, ConstantValue::PayloadOwnership::Borrowed);
+        if (!valueCst.isValid())
+            return ConstantRef::invalid();
+
+        return sema.cstMgr().addConstant(sema.ctx(), valueCst);
+    }
+
     Result setupCastOverflowRuntimeSafety(Sema& sema, AstNodeRef nodeRef, TypeRef srcTypeRef, TypeRef dstTypeRef, CastFlags castFlags)
     {
         if (!castNeedsOverflowRuntimeSafety(sema, srcTypeRef, dstTypeRef, castFlags))
@@ -1053,6 +1086,23 @@ Result Cast::castFromUndefined(const Sema& sema, const CastRequest& castRequest,
     return Result::Continue;
 }
 
+Result Cast::castFromReference(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef)
+{
+    const TypeRef valueTypeRef = referenceValueCastTypeRef(sema, srcTypeRef, dstTypeRef);
+    if (!valueTypeRef.isValid())
+        return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
+
+    if (!castRequest.isConstantFolding())
+        return Result::Continue;
+
+    const ConstantRef valueCstRef = readReferenceValueConstant(sema, castRequest.constantFoldingSrc(), valueTypeRef);
+    if (!valueCstRef.isValid())
+        return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
+
+    castRequest.setConstantFoldingResult(valueCstRef);
+    return Result::Continue;
+}
+
 Result Cast::castToReference(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef)
 {
     TypeManager&    typeMgr = sema.typeMgr();
@@ -1801,6 +1851,8 @@ Result Cast::castAllowed(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRe
         res = castFromAny(sema, castRequest, srcTypeRef, dstTypeRef);
     else if (dstType.isAlias())
         res = castAllowed(sema, castRequest, srcTypeRef, dstType.payloadSymAlias().underlyingTypeRef());
+    else if (referenceValueCastTypeRef(sema, srcTypeRef, dstTypeRef).isValid())
+        res = castFromReference(sema, castRequest, srcTypeRef, dstTypeRef);
     else if (castRequest.flags.has(CastFlagsE::BitCast))
         res = castBit(sema, castRequest, srcTypeRef, dstTypeRef);
     else if (shouldRouteEnumViaUnderlying(castRequest, srcType, dstType))

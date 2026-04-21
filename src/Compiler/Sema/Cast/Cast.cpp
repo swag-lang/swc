@@ -27,6 +27,26 @@ namespace
 
 }
 
+TypeRef Cast::referenceValueCastTypeRef(const Sema& sema, TypeRef srcTypeRef, TypeRef dstTypeRef)
+{
+    if (!srcTypeRef.isValid() || !dstTypeRef.isValid())
+        return TypeRef::invalid();
+
+    const TypeRef srcResolvedTypeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), srcTypeRef);
+    const TypeRef dstResolvedTypeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), dstTypeRef);
+    const TypeRef srcTypeToCheck     = srcResolvedTypeRef.isValid() ? srcResolvedTypeRef : srcTypeRef;
+    const TypeRef dstTypeToCheck     = dstResolvedTypeRef.isValid() ? dstResolvedTypeRef : dstTypeRef;
+    const TypeInfo& srcType          = sema.typeMgr().get(srcTypeToCheck);
+    if (!srcType.isReference() || srcType.isMoveReference())
+        return TypeRef::invalid();
+
+    const TypeRef pointeeTypeRef = srcType.payloadTypeRef();
+    if (pointeeTypeRef != dstTypeRef && pointeeTypeRef != dstTypeToCheck)
+        return TypeRef::invalid();
+
+    return pointeeTypeRef;
+}
+
 TypeRef Cast::runtimeStorageTypeRef(Sema& sema, TypeRef srcTypeRef, TypeRef dstTypeRef, ConstantRef srcConstRef)
 {
     if (!srcTypeRef.isValid() || !dstTypeRef.isValid())
@@ -52,6 +72,9 @@ TypeRef Cast::runtimeStorageTypeRef(Sema& sema, TypeRef srcTypeRef, TypeRef dstT
 
     if (srcConstRef.isValid())
         return TypeRef::invalid();
+
+    if (referenceValueCastTypeRef(sema, srcTypeRef, dstTypeRef).isValid())
+        return dstTypeRef;
 
     if (srcType.isArray() && (dstType.isSlice() || dstType.isString()))
         return dstTypeRef;

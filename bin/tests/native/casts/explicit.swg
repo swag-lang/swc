@@ -50,7 +50,7 @@ func takeStringValue(value: string)->u64
 {
     var text = "seed"
     var textRef: &string = &text
-    var snapshot: const &string = cast(string) textRef
+    let snapshot = cast(string) textRef
     text = "changed"
 
     @assert(snapshot == "seed")

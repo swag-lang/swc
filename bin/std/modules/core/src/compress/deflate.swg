@@ -150,7 +150,7 @@ public struct Deflate
 {
     state:         *Compressor                    // Internal compressor state
     adler:         Hash.Adler32                   // Adler-32 checksum calculator
-    initFlags:     CompressionFlags = Default     // Initialization flags (e.g. compute checksum)
+    initFlags:     CompressionFlags = CompressionFlags.Default // Initialization flags (e.g. compute checksum)
 }
 
 impl Deflate
@@ -353,7 +353,7 @@ impl Deflate
 
         var curSym    = sym0
         var newSym    = sym1
-        var passShift = 0
+        var passShift = 0'u16
         for pass in totalPasses
         {
             let pHist  = &hist[pass << 8]
@@ -368,13 +368,14 @@ impl Deflate
 
             for i in numSyms
             {
-                var ptr = &offsets[(curSym[i].key >> passShift) & 0xFF]
+                let offsetIndex = (curSym[i].key >> passShift) & 0xFF'u16
+                var ptr         = &offsets[offsetIndex]
                 newSym[dref ptr] = curSym[i]
                 dref ptr += 1
             }
 
             swap(&curSym, &newSym)
-            passShift += 8
+            passShift += 8'u16
         }
 
         return curSym
@@ -500,11 +501,9 @@ impl Deflate
             var syms1: [MaxHuffSymbols] SymFreq
 
             var numUsedSyms = 0'u32
-            let symCount    = &d.huffCount[tableNum, 0]
-
-            for i in tableLen where symCount[i]
+            for i in tableLen where d.huffCount[tableNum, i]
             {
-                syms0[numUsedSyms].key      = cast(u16) symCount[i]
+                syms0[numUsedSyms].key      = cast(u16) d.huffCount[tableNum, i]
                 syms0[numUsedSyms].symIndex = cast(u16) i
                 numUsedSyms += 1
             }
@@ -561,34 +560,29 @@ impl Deflate
     mtd startStaticBlock()
     {
         let d = .state
-        var p = &d.huffCodeSizes[0, 0]
 
         var i = 0
         while i <= 143
         {
-            dref p = 8
-            p += 1
+            d.huffCodeSizes[0, i] = 8
             i += 1
         }
 
         while i <= 255
         {
-            dref p = 9
-            p += 1
+            d.huffCodeSizes[0, i] = 9
             i += 1
         }
 
         while i <= 279
         {
-            dref p = 7
-            p += 1
+            d.huffCodeSizes[0, i] = 7
             i += 1
         }
 
         while i <= 287
         {
-            dref p = 8
-            p += 1
+            d.huffCodeSizes[0, i] = 8
             i += 1
         }
 
@@ -857,7 +851,8 @@ impl Deflate
 
         d.outputFlushOfs = 0
 
-        dref d.lzFlags = cast(u8) (dref d.lzFlags >> d.numFlagsLeft)
+        let numFlagsLeft = cast(u8) d.numFlagsLeft
+        dref d.lzFlags = cast(u8) (dref d.lzFlags >> numFlagsLeft)
         d.lzCodeBufAddr -= (d.numFlagsLeft == 8) ? 1 : 0
 
         .putBits(finish ? 1 : 0, 1)
@@ -1141,8 +1136,12 @@ public impl Deflate
     #[Swag.Overload]
     mtd compress(result: *Array'u8, src: const [..] u8) throw
     {
-        if @countof(src) > Swag.U32.Max do
-            throw UnsupportedFormatError{"source buffer too big"}
+        if @countof(src) > Swag.U32.Max
+        {
+            var err: UnsupportedFormatError
+            err.message = "source buffer too big"
+            throw err
+        }
 
         Debug.assert(.state != null, "'init' not called")
 
@@ -1156,7 +1155,7 @@ public impl Deflate
         .flushBlock(true)
         Debug.assert(!.state.lookaheadSize and !.state.srcBufLeft)
 
-        if .initFlags.has(.ComputeAdler32)
+        if has(.initFlags, CompressionFlags.ComputeAdler32)
         {
             .adler.init()
             .adler.update(src)

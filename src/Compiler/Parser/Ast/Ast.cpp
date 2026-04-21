@@ -17,6 +17,21 @@ const AstNode& Ast::node(AstNodeRef nodeRef) const
     return *(nodePtr(g));
 }
 
+bool Ast::hasNode(AstNodeRef nodeRef) const
+{
+    if (nodeRef.isInvalid())
+        return false;
+
+    const uint32_t globalRef = nodeRef.get();
+    const uint32_t shard     = refShard(globalRef);
+    if (shard >= SHARD_COUNT)
+        return false;
+
+    const uint32_t localRef = refLocal(globalRef);
+    std::shared_lock lock(shards_[shard].mutex);
+    return shards_[shard].store.containsRef(localRef);
+}
+
 void Ast::recordParsedNodeBoundary(AstNodeRef nodeRef)
 {
     const uint32_t globalRef = nodeRef.get();

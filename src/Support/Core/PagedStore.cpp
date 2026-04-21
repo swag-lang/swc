@@ -548,6 +548,27 @@ void PagedStore::decodeRef(uint32_t pageSize, Ref ref, uint32_t& pageIndex, uint
     offset    = ref % pageSize;
 }
 
+bool PagedStore::containsRef(Ref ref, uint32_t minSize) const noexcept
+{
+    if (ref == INVALID_REF || minSize == 0)
+        return false;
+
+    uint32_t pageIndex = 0;
+    uint32_t offset    = 0;
+    decodeRef(pageSizeValue_, ref, pageIndex, offset);
+
+    const auto* pages = snapshotPages();
+    if (!pages || pageIndex >= pages->size())
+        return false;
+    if (!(*pages)[pageIndex])
+        return false;
+    if (offset + minSize > pageSizeValue_)
+        return false;
+
+    const uint32_t pageUsed = (*pages)[pageIndex]->used.load(std::memory_order_relaxed);
+    return offset < pageUsed && offset + minSize <= pageUsed;
+}
+
 std::pair<Ref, void*> PagedStore::allocate(uint32_t size, uint32_t align)
 {
     SWC_ASSERT(size <= pageSizeValue_ && (align & (align - 1)) == 0 && align <= alignof(std::max_align_t));

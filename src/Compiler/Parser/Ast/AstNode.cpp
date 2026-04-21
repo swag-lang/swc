@@ -23,9 +23,15 @@ namespace
             const AstNodeRef childRef = walkLeft ? children.front() : children.back();
             if (childRef.isInvalid())
                 break;
+            if (!ast.hasNode(childRef))
+                break;
 
             const AstNode& child = ast.node(childRef);
             if (child.srcViewRef() != baseViewRef)
+                break;
+            if (child.tokRef().isInvalid())
+                break;
+            if (child.tokRef().get() >= view.tokens().size())
                 break;
 
             const SourceCodeRange childLoc = view.token(child.tokRef()).codeRange(ctx, view);
@@ -86,6 +92,8 @@ SourceCodeRange AstNode::codeRangeWithChildren(const TaskContext& ctx, const Ast
     if (view.ref() != baseViewRef)
         return codeRange;
     if (codeRef_.tokRef.isInvalid() || view.tokens().empty())
+        return codeRange;
+    if (codeRef_.tokRef.get() >= view.tokens().size())
         return codeRange;
 
     const Token&          baseTok  = view.token(codeRef_.tokRef);

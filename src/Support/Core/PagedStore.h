@@ -32,6 +32,7 @@ public:
 #if SWC_HAS_STATS
     uint64_t allocatedBytes() const noexcept;
 #endif
+    bool     containsRef(Ref ref, uint32_t minSize = 1) const noexcept;
     uint8_t* seekPtr() const noexcept { return lastPtr_; }
     void     clear() noexcept;
     void     copyTo(ByteSpanRW dst) const;

@@ -270,8 +270,6 @@ namespace
                 addPlanEntry(entries, index++, "Would", LogColor::BrightGreen, "run semantic analysis, including compile-time evaluation when required");
                 if (!cmdLine.exportApiDir.empty())
                     addPlanEntry(entries, index++, "Would", LogColor::BrightGreen, std::format("write generated module API files under {}", Utf8(cmdLine.exportApiDir)));
-                if (!cmdLine.genDir.empty())
-                    addPlanEntry(entries, index, "May", LogColor::BrightYellow, std::format("materialize generated #ast sources under {}", Utf8(cmdLine.genDir)));
                 break;
 
             case CommandKind::Build:
@@ -280,8 +278,6 @@ namespace
                 addPlanEntry(entries, index++, "Would", LogColor::BrightGreen, "run semantic analysis, including compile-time evaluation when required");
                 if (!cmdLine.exportApiDir.empty())
                     addPlanEntry(entries, index++, "Would", LogColor::BrightGreen, std::format("write generated module API files under {}", Utf8(cmdLine.exportApiDir)));
-                if (!cmdLine.genDir.empty())
-                    addPlanEntry(entries, index++, "May", LogColor::BrightYellow, std::format("materialize generated #ast sources under {}", Utf8(cmdLine.genDir)));
                 addPlanEntry(entries, index++, "Would", LogColor::BrightGreen, std::format("generate native {}", backendKindName(nativePreview.backendKind)));
                 if (cmdLine.clear)
                     addPlanEntry(entries, index++, "Would", LogColor::BrightGreen, std::format("clear native outputs under {}", Utf8(nativePreview.paths.workDir)));
@@ -294,8 +290,6 @@ namespace
             case CommandKind::Test:
                 addPlanEntry(entries, index++, "Would", LogColor::BrightGreen, std::format("parse {}", inputCount));
                 addPlanEntry(entries, index++, "Would", LogColor::BrightGreen, "run semantic analysis, including compile-time evaluation when required");
-                if (!cmdLine.genDir.empty())
-                    addPlanEntry(entries, index++, "May", LogColor::BrightYellow, std::format("materialize generated #ast sources under {}", Utf8(cmdLine.genDir)));
                 if (cmdLine.testJit)
                     addPlanEntry(entries, index++, "May", LogColor::BrightYellow, "compile and execute eligible JIT #test functions discovered during semantic analysis");
                 if (nativePreview.enabled)

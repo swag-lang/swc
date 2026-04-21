@@ -1102,26 +1102,6 @@ Result CommandLineParser::checkCommandLine(TaskContext& ctx) const
         cmdLine_->exportApiDir = std::move(temp);
     }
 
-    if (!cmdLine_->genDir.empty())
-    {
-        fs::path temp = cmdLine_->genDir;
-        Utf8     because;
-        if (FileSystem::normalizeAbsolutePath(temp, because) != Result::Continue)
-        {
-            Diagnostic diag = Diagnostic::get(DiagnosticId::cmdline_err_invalid_folder);
-            FileSystem::setDiagnosticPathAndBecause(diag, &ctx, temp, because);
-            diag.report(ctx);
-            return Result::Error;
-        }
-
-        cmdLine_->genDir        = std::move(temp);
-        cmdLine_->genDirStorage = Utf8(cmdLine_->genDir);
-    }
-    else
-    {
-        cmdLine_->genDirStorage.clear();
-    }
-
     updateDefaultBuildCfg(*cmdLine_);
 
     return Result::Continue;

@@ -50,7 +50,6 @@ struct CommandLine
     Utf8                name;
     Utf8                moduleNamespace;
     Utf8                moduleNamespaceStorage;
-    Utf8                genDirStorage;
     Utf8                outDirStorage;
     Utf8                workDirStorage;
     std::optional<bool> backendOptimize;
@@ -116,7 +115,6 @@ struct CommandLine
     fs::path          configFile;
     fs::path          modulePath;
     fs::path          exportApiDir;
-    fs::path          genDir;
     fs::path          outDir;
     fs::path          workDir;
     Runtime::BuildCfg defaultBuildCfg{};

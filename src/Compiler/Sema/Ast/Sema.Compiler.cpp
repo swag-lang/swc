@@ -255,17 +255,12 @@ namespace
         return sema.typeMgr().get(unwrappedTypeRef).isString();
     }
 
-    Utf8 compilerAstGeneratedDirectoryName()
-    {
-        return "generated-ast";
-    }
-
     fs::path compilerAstGeneratedDirectory(const Sema& sema)
     {
-        if (!sema.ctx().cmdLine().genDir.empty())
-            return sema.ctx().cmdLine().genDir;
+        if (!sema.ctx().cmdLine().workDir.empty())
+            return sema.ctx().cmdLine().workDir;
 
-        return (Os::getTemporaryPath() / "swag" / compilerAstGeneratedDirectoryName().view()).lexically_normal();
+        return Os::getTemporaryPath().lexically_normal();
     }
 
     std::string_view compilerAstLineEnding(const SourceView& srcView)

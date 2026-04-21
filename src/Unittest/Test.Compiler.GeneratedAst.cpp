@@ -32,7 +32,7 @@ namespace
     public:
         explicit ScopedGeneratedAstDirectory(std::string_view testName)
         {
-            root_ = (Os::getTemporaryPath() / "swc_unittest" / "generated-ast" / testName).lexically_normal();
+            root_ = (Os::getTemporaryPath() / "swc_unittest" / "generated-ast" / std::format("{}_p{}", testName, Os::currentProcessId())).lexically_normal();
 
             std::error_code ec;
             fs::remove_all(root_, ec);
@@ -119,14 +119,14 @@ SWC_TEST_BEGIN(Compiler_GeneratedAstMaterializesPerThreadFiles)
 #assert(GeneratedA + GeneratedB == 3)
 )";
     const fs::path                    sourcePath = Unittest::makeTestSourcePath("Compiler", "GeneratedAstMaterializesPerThreadFiles");
-    ScopedGeneratedAstDirectory       generatedDir("GeneratedAstMaterializesPerThreadFiles");
-    if (!generatedDir.ready())
+    ScopedGeneratedAstDirectory       workDir("GeneratedAstMaterializesPerThreadFiles");
+    if (!workDir.ready())
         return Result::Error;
 
     CommandLine cmdLine;
     cmdLine.command = CommandKind::Sema;
-    cmdLine.name    = "compiler_generated_ast_temp_files";
-    cmdLine.genDir  = generatedDir.root();
+    cmdLine.name    = "compiler_generated_ast_thread_files";
+    cmdLine.workDir = workDir.root();
     cmdLine.files.insert(sourcePath);
     CommandLineParser::refreshBuildCfg(cmdLine);
 
@@ -145,7 +145,7 @@ SWC_TEST_BEGIN(Compiler_GeneratedAstMaterializesPerThreadFiles)
     std::vector<const SourceFile*> generatedFiles;
     for (const SourceFile* file : compiler.files())
     {
-        if (file && isGeneratedAstFile(*file, generatedDir.root()))
+        if (file && isGeneratedAstFile(*file, workDir.root()))
             generatedFiles.push_back(file);
     }
 
@@ -169,7 +169,7 @@ SWC_TEST_BEGIN(Compiler_GeneratedAstMaterializesPerThreadFiles)
         appendUniquePath(generatedPaths, file->path());
     }
 
-    if (countRegularFiles(generatedDir.root()) != generatedPaths.size())
+    if (countRegularFiles(workDir.root()) != generatedPaths.size())
         return Result::Error;
 
     bool foundGeneratedA = false;
@@ -203,15 +203,15 @@ SWC_TEST_BEGIN(Compiler_GeneratedAstDiagnosticsUseMaterializedSourceFile)
 #ast "const BrokenValue: UnknownType"
 )";
     const fs::path                    sourcePath = Unittest::makeTestSourcePath("Compiler", "GeneratedAstDiagnosticsUseMaterializedSourceFile");
-    ScopedGeneratedAstDirectory       generatedDir("GeneratedAstDiagnosticsUseMaterializedSourceFile");
-    if (!generatedDir.ready())
+    ScopedGeneratedAstDirectory       workDir("GeneratedAstDiagnosticsUseMaterializedSourceFile");
+    if (!workDir.ready())
         return Result::Error;
 
     CommandLine cmdLine;
     cmdLine.command = CommandKind::Sema;
     cmdLine.name    = "compiler_generated_ast_diagnostics";
     cmdLine.silent  = true;
-    cmdLine.genDir  = generatedDir.root();
+    cmdLine.workDir = workDir.root();
     cmdLine.files.insert(sourcePath);
     CommandLineParser::refreshBuildCfg(cmdLine);
 
@@ -230,7 +230,7 @@ SWC_TEST_BEGIN(Compiler_GeneratedAstDiagnosticsUseMaterializedSourceFile)
     const SourceFile* generatedFile = nullptr;
     for (const SourceFile* file : compiler.files())
     {
-        if (file && isGeneratedAstFile(*file, generatedDir.root()) && file->hasError())
+        if (file && isGeneratedAstFile(*file, workDir.root()) && file->hasError())
         {
             generatedFile = file;
             break;

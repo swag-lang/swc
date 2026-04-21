@@ -15,5 +15,5 @@ shift
 goto parse_args
 
 :run
-%SWC_EXE% format -d "%ROOT%\bin" --gen-dir "%GEN_DIR%"%EXTRA_ARGS%
+%SWC_EXE% format -d "%ROOT%\bin"%EXTRA_ARGS%
 exit /b %ERRORLEVEL%

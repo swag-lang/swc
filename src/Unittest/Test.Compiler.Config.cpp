@@ -28,7 +28,7 @@ namespace
             const fs::path tempRoot = Os::getTemporaryPath();
             SWC_ASSERT(!tempRoot.empty());
 
-            root_ = (tempRoot / "swc_unittest" / name).lexically_normal();
+            root_ = (tempRoot / "swc_unittest" / std::format("{}_p{}", name, Os::currentProcessId())).lexically_normal();
 
             std::error_code ec;
             fs::remove_all(root_, ec);

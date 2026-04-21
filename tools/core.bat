@@ -18,7 +18,7 @@ shift
 goto parse_args
 
 :run
-%SWC_EXE% sema -m "%CORE_MODULE%" --module-namespace Core --import-api-dir "%WIN32_API_DIR%" --import-api-dir "%XINPUT_API_DIR%" --gen-dir "%GEN_DIR%"%EXTRA_ARGS%
+%SWC_EXE% sema -m "%CORE_MODULE%" --module-namespace Core --import-api-dir "%WIN32_API_DIR%" --import-api-dir "%XINPUT_API_DIR%"%EXTRA_ARGS%
 if errorlevel 1 exit /b 1
 
 exit /b 0

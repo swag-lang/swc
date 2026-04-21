@@ -108,7 +108,6 @@ namespace
         addInfoEntry(entries, "Config file", cmdLine.configFile);
         addInfoEntry(entries, "Module path", cmdLine.modulePath);
         addInfoEntry(entries, "Export API directory", cmdLine.exportApiDir);
-        addInfoEntry(entries, "Generated source directory", cmdLine.genDir);
         addInfoEntry(entries, "Output directory", Utf8(buildCfg.outDir));
         addPathSet(entries, "Source directories", cmdLine.directories);
         addPathSet(entries, "Source files", cmdLine.files);

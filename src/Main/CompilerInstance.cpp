@@ -852,7 +852,7 @@ Result CompilerInstance::appendGeneratedSource(GeneratedSourceAppendResult& outR
     PerThreadData& td = perThreadData_[JobManager::threadIndex()];
     if (!td.generatedSourceInitialized || !FileSystem::pathEquals(td.generatedSourcePath.parent_path(), directory))
     {
-        td.generatedSourcePath        = (directory / std::format("thread-{}.swg", JobManager::threadIndex())).lexically_normal();
+        td.generatedSourcePath        = (directory / std::format("thread-{}-p{}.swg", JobManager::threadIndex(), Os::currentProcessId())).lexically_normal();
         td.generatedSourceContent.clear();
         td.generatedSourceInitialized = true;
     }

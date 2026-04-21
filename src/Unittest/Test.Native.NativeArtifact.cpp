@@ -107,7 +107,7 @@ namespace
         const fs::path tempRoot = Os::getTemporaryPath();
         SWC_ASSERT(!tempRoot.empty());
 
-        const fs::path outputRoot = tempRoot / "swc_unittest" / "native_artifact";
+        const fs::path outputRoot = tempRoot / "swc_unittest" / std::format("native_artifact_p{}", Os::currentProcessId());
         cmdLine.outDir            = outputRoot / testName;
         cmdLine.workDir           = outputRoot / std::format("{}_work", testName);
         cmdLine.outDirStorage     = Utf8(cmdLine.outDir.lexically_normal().string());

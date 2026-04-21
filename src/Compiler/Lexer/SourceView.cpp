@@ -12,9 +12,10 @@ SourceView::SourceView(SourceViewRef ref, const SourceFile* file) :
 {
     if (file)
     {
-        file_       = file;
-        fileRef_    = file->ref();
-        stringView_ = file->sourceView();
+        file_         = file;
+        fileRef_      = file->ref();
+        ownerFileRef_ = fileRef_;
+        stringView_   = file->sourceView();
     }
 
 #if SWC_HAS_REF_DEBUG_INFO

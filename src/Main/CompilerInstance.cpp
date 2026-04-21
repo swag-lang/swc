@@ -862,6 +862,7 @@ SourceFile& CompilerInstance::addFile(fs::path path, FileFlags flags)
 
 SourceFile& CompilerInstance::addResolvedFile(fs::path path, FileFlags flags)
 {
+    const std::unique_lock lock(mutex_);
     SWC_RACE_CONDITION_WRITE(rcFiles_);
     SWC_ASSERT(path.is_absolute());
     path = path.lexically_normal();
@@ -874,12 +875,9 @@ SourceFile& CompilerInstance::addResolvedFile(fs::path path, FileFlags flags)
 #endif
 
     const Utf8 key = Utf8Helper::normalizePathForCompare(files_.back()->path());
-    {
-        const std::shared_lock lock(mutex_);
-        const auto             it = inMemoryFiles_.find(key);
-        if (it != inMemoryFiles_.end())
-            files_.back()->setContent(it->second.view());
-    }
+    const auto it = inMemoryFiles_.find(key);
+    if (it != inMemoryFiles_.end())
+        files_.back()->setContent(it->second.view());
 
     return *files_.back();
 }

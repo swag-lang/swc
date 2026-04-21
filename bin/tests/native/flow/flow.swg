@@ -29,12 +29,12 @@ namespace compiler213
         {
             state += 1
         }
-    
+
         if true
         {
             state += 10
         }
-    
+
         if 1 + 1 == 2 + 1
         {
             state += 100
@@ -62,11 +62,11 @@ namespace compiler216
         {
             @assert(true)
         }
-    
+
         @assert(true)
         return true
     }
-    
+
     #test
     {
         @assert(main())
@@ -85,12 +85,12 @@ namespace compiler230
         while (a > 0)
         {
             a = a - 1; b = b + 1; }
-    
+
         @assert(a == 0)
         @assert(b == 10)
         return b
     }
-    
+
     #test
     {
         @assert(main() == 10)
@@ -113,7 +113,7 @@ namespace compiler241
         @assert(a == 5)
         return a
     }
-    
+
     #test
     {
         @assert(main() == 5)
@@ -138,11 +138,11 @@ namespace compiler242
             }
             @assert(false)
         }
-    
+
         @assert(a == 1)
         return a
     }
-    
+
     #test
     {
         @assert(main() == 1)
@@ -165,11 +165,11 @@ namespace compiler243
                 break
             }
         }
-    
+
         @assert(a == 10)
         return a
     }
-    
+
     #test
     {
         @assert(toto() == 10)
@@ -186,7 +186,7 @@ namespace compiler256
         while i > 0
         {
             i -= 1; }
-    
+
         @assert(i == 0)
     }
 }
@@ -203,7 +203,7 @@ namespace compiler260
         let res = fact(v - 1) * v
         return res
     }
-    
+
     #test
     {
         @assert(fact(5) == 120)
@@ -225,7 +225,7 @@ namespace compiler262
         let res = v * fact(v - 1)
         return res
     }
-    
+
     #test
     {
         @assert(fact(5) == 120)
@@ -246,7 +246,7 @@ namespace compiler265
             return 1
         return v * test1(v - 1)
     }
-    
+
     //#[Swag.PrintBc]
     func test1(v: s32)->s32
     {
@@ -254,7 +254,7 @@ namespace compiler265
             return 1
         return v * test2(v - 1)
     }
-    
+
     #test
     {
         @assert(test2(5) == 120)
@@ -287,14 +287,14 @@ namespace compiler303
     
     	return true;
     }*/
-    
+
     //#[Swag.PrintBc]
     func compare(str: string)
     {
         let count = @countof(str)
         @assert(count == 4)
     }
-    
+
     //#[Swag.PrintBc]
     #test
     {
@@ -310,7 +310,7 @@ namespace compiler304
     var g:  bool = true
     var g1: s32 = 666
     var g2: u64 = 0xF000_000F
-    
+
     /*
     func compare: (str1: string, str2: string)-> bool
     {
@@ -332,7 +332,7 @@ namespace compiler304
     
     	return true;
     }*/
-    
+
     //#[Swag.PrintBc]
     #test
     {
@@ -355,11 +355,11 @@ namespace compiler314
             l += 1
             p += 1
         }
-    
+
         @assert(l == @countof(str))
         return l
     }
-    
+
     #test
     {
         @assert(len("toto") == 4)

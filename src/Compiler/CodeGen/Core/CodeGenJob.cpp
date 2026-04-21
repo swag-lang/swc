@@ -42,7 +42,7 @@ CodeGenJob::CodeGenJob(const TaskContext& ctx, Sema& sema, SymbolFunction& symbo
 {
     // Resolve the NodePayload now (cheap pointer lookup), defer Sema/CodeGen creation to exec().
     const SourceView& symbolSrcView = sema.compiler().srcView(symbolFunc.srcViewRef());
-    const FileRef     symbolFileRef = symbolSrcView.fileRef();
+    const FileRef     symbolFileRef = symbolSrcView.ownerFileRef();
     if (symbolFileRef.isValid())
         nodePayloadCtx_ = &sema.compiler().file(symbolFileRef).nodePayloadContext();
 

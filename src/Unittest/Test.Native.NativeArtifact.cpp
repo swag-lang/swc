@@ -562,7 +562,8 @@ var GValue: s32 = 0
         return Result::Error;
 
     NativeBackendBuilder nativeBuilder(compiler, false);
-    SWC_RESULT(nativeBuilder.prepare());
+    if (nativeBuilder.prepare() != Result::Continue)
+        return Result::Error;
     if (Stats::getNumErrors() != errorsBefore)
         return Result::Error;
 
@@ -586,9 +587,10 @@ var GValue: s32 = 0
     if (nativeFunctions.empty())
         return Result::Error;
 
-    SWC_RESULT(runAfterPauses(compilerCtx, [&] {
-        return SymbolFunction::jitBatch(compilerCtx, nativeFunctions);
-    }));
+    if (runAfterPauses(compilerCtx, [&] {
+            return SymbolFunction::jitBatch(compilerCtx, nativeFunctions);
+        }) != Result::Continue)
+        return Result::Error;
     if (Stats::getNumErrors() != errorsBefore)
         return Result::Error;
 
@@ -603,7 +605,8 @@ var GValue: s32 = 0
     request.nodeRef      = testFn->declNodeRef();
     request.codeRef      = testFn->decl() ? testFn->decl()->codeRef() : SourceCodeRef::invalid();
     request.runImmediate = true;
-    SWC_RESULT(compiler.jitExecMgr().submit(compilerCtx, request));
+    if (compiler.jitExecMgr().submit(compilerCtx, request) != Result::Continue)
+        return Result::Error;
     if (Stats::getNumErrors() != errorsBefore)
         return Result::Error;
 
@@ -662,7 +665,8 @@ impl Buffer
         return Result::Error;
 
     NativeBackendBuilder nativeBuilder(compiler, false);
-    SWC_RESULT(nativeBuilder.prepare());
+    if (nativeBuilder.prepare() != Result::Continue)
+        return Result::Error;
     if (Stats::getNumErrors() != errorsBefore)
         return Result::Error;
     if (nativeBuilder.testFunctions.size() != 2)
@@ -697,7 +701,8 @@ SWC_TEST_BEGIN(NativeArtifact_TestCountMismatchIsReportedBeforeStartupBuild)
         return Result::Error;
 
     NativeBackendBuilder nativeBuilder(compiler, false);
-    SWC_RESULT(nativeBuilder.prepare());
+    if (nativeBuilder.prepare() != Result::Continue)
+        return Result::Error;
     if (nativeBuilder.testFunctions.size() != 2)
         return Result::Error;
 

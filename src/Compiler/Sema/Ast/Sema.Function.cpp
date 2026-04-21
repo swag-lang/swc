@@ -743,6 +743,18 @@ namespace
         return Result::Continue;
     }
 
+    bool canInferImplicitCompilerReturnType(const Sema& sema, const SymbolFunction& sym)
+    {
+        const AstNode* declNode = sym.decl();
+        if (!declNode)
+            return false;
+        if (declNode->is(AstNodeId::CompilerRunBlock))
+            return true;
+        if (declNode->is(AstNodeId::CompilerFunc))
+            return sema.token(declNode->codeRef()).id == TokenId::CompilerAst;
+        return false;
+    }
+
     Result resolveReturnTypeRef(Sema& sema, AstNodeRef exprRef, TypeRef& outTypeRef)
     {
         outTypeRef                             = TypeRef::invalid();
@@ -759,7 +771,7 @@ namespace
             return Result::Error;
 
         outTypeRef = sym->returnTypeRef();
-        if (!outTypeRef.isValid() && sym->decl() && sym->decl()->is(AstNodeId::CompilerRunBlock))
+        if (!outTypeRef.isValid() && canInferImplicitCompilerReturnType(sema, *sym))
             return inferCompilerRunBlockReturnType(sema, *sym, exprRef, outTypeRef);
 
         return Result::Continue;

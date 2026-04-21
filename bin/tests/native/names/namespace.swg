@@ -7,12 +7,12 @@ namespace compiler163
 {
     //
     using A.B
-    
+
     namespace A.B
     {
         func main()->bool { return true }
     }
-    
+
     #test
     {
         @assert(main())
@@ -24,12 +24,12 @@ namespace compiler1650
 {
     //
     func aa(x: u32, y: any) {}
-    
+
     namespace aa1650
     {
         struct B {}
     }
-    
+
     //#[Swag.PrintBc]
     #test
     {

@@ -41,6 +41,8 @@ public:
     SourceViewRef                        ref() const { return ref_; }
     const SourceFile*                    file() const { return file_; }
     FileRef                              fileRef() const { return fileRef_; }
+    FileRef                              ownerFileRef() const { return ownerFileRef_; }
+    void                                 setOwnerFileRef(FileRef fileRef) { ownerFileRef_ = fileRef; }
     std::string_view                     stringView() const { return stringView_; }
     const std::vector<SourceTrivia>&     trivia() const { return trivia_; }
     std::vector<SourceTrivia>&           trivia() { return trivia_; }
@@ -89,6 +91,7 @@ private:
     SourceViewRef                 ref_     = SourceViewRef::invalid();
     const SourceFile*             file_    = nullptr;
     FileRef                       fileRef_ = FileRef::invalid();
+    FileRef                       ownerFileRef_ = FileRef::invalid();
     std::string_view              stringView_;
     std::vector<Token>            tokens_;
     std::vector<uint32_t>         lines_;

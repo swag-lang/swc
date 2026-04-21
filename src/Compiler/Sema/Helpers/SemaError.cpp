@@ -117,8 +117,8 @@ Diagnostic SemaError::report(Sema& sema, DiagnosticId id, const SourceCodeRef& a
 {
     ignoreCurrentFunctionOnError(sema, id);
 
-    Diagnostic        diag    = Diagnostic::get(id, sema.ast().srcView().fileRef());
     const SourceView& srcView = sema.srcView(atCodeRef.srcViewRef);
+    Diagnostic        diag    = Diagnostic::get(id, srcView.fileRef());
     diag.last().addSpan(srcView.tokenCodeRange(sema.ctx(), atCodeRef.tokRef), "", DiagnosticSeverity::Error);
 
     setReportArguments(sema, diag, atCodeRef);
@@ -136,7 +136,8 @@ Diagnostic SemaError::report(Sema& sema, DiagnosticId id, AstNodeRef atNodeRef, 
 {
     ignoreCurrentFunctionOnError(sema, id);
 
-    Diagnostic diag = Diagnostic::get(id, sema.ast().srcView().fileRef());
+    const FileRef fileRef = sema.srcView(sema.node(atNodeRef).srcViewRef()).fileRef();
+    Diagnostic    diag    = Diagnostic::get(id, fileRef);
     diag.last().addSpan(getNodeCodeRange(sema, atNodeRef, location), "", DiagnosticSeverity::Error);
     setReportArguments(sema, diag, atNodeRef);
     return diag;

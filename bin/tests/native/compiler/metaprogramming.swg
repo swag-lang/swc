@@ -14,7 +14,7 @@ namespace compiler1064
         else do
             return fibonacci(num - 1) + fibonacci(num - 2)
     }
-    
+
     var fibonacciOfAge: s32 = #run fibonacci(16)
 
     // #run fibonacci result persists at runtime
@@ -32,7 +32,7 @@ namespace compiler1386
     {
         AA
     }
-    
+
     enum B
     {
         BB
@@ -51,13 +51,13 @@ namespace compiler1504
 {
     //
     var X: u32 = undefined
-    
+
     #[Swag.Compiler]
     func set()
     {
         X = 6
     }
-    
+
     //#[Swag.PrintBc]
     #test
     {
@@ -75,7 +75,7 @@ namespace compiler1505
         @assert(x == "inside function set")
         //@print(x)
     }
-    
+
     //#[Swag.PrintBc]
     #test
     {
@@ -96,7 +96,7 @@ namespace compiler1506
         @assert(x == "inside function set")
         //@print(x)
     }
-    
+
     //#[Swag.PrintBc]
     #test
     {
@@ -131,12 +131,12 @@ namespace compiler1665
     //
     //
     //#global testerror
-    
+
     struct TT
     {
         x, y, z:  s64 = 456
     }
-    
+
     //#[Swag.PrintBc]
     func C(x: ...)
     {
@@ -146,7 +146,7 @@ namespace compiler1665
         @assert(ptr2.y == 456)
         ptr2.x = 100
         @assert(ptr1.x == 456)
-    
+
         /*@print(@kindof(x[0]).name); @print("\n")
         @print(#typeof(ptr1).name); @print("\n")
         @print(#typeof(ptr2).name); @print("\n")*/
@@ -168,12 +168,12 @@ namespace compiler1667
     //
     //
     //#global testerror
-    
+
     struct TT
     {
         value: s64 = 456
     }
-    
+
     //#[Swag.PrintBc]
     func C(x: ...)
     {
@@ -197,7 +197,7 @@ namespace compiler1672
     //
     //
     //#global testerror
-    
+
     //#[Swag.PrintBc]
     func toto(x: ...)->typeinfo
     {
@@ -219,7 +219,7 @@ namespace compiler1888
     {
         @assert(x == 666)
     }
-    
+
     //#[Swag.PrintBc]
     func titi()
     {
@@ -236,7 +236,7 @@ namespace compiler1893
     {
         @assert(x == 666)
     }
-    
+
     //#[Swag.PrintBc]
     func titi(x: bool)
     {
@@ -253,10 +253,10 @@ namespace compiler239
 {
     //
     func main1()->s32 { return 77; }
-    
+
     #[ConstExpr]
     func main2()->s32 { return 666; }
-    
+
     func main()
     {
         let a = #run main1()
@@ -293,10 +293,10 @@ namespace compiler2447
 {
     //#global skip
     func N() => 10
-    
+
     #assert(#typeof(N()) == #typeof(10))
     #assert(#typeof(#run N()) == #typeof(10))
-    
+
     const ArrCount = cast(s32) #run N()
     var arr: [ArrCount] s32
 
@@ -312,13 +312,13 @@ namespace compiler250
 {
     //
     func value()->s32 { return 55; }
-    
+
     func main(a: s32 = #run value()
     )->s32
     {
         return a
     }
-    
+
     //#[PrintBc]
     func main1()
     {
@@ -339,16 +339,16 @@ namespace compiler2634
     //
     #[Compiler]
     var G = 0
-    
+
     #[Compiler]
     func toto()->s32
     {
         for 10 do
             G += 1
-    
+
         return G
     }
-    
+
     #assert(#run toto() == 10)
 }
 
@@ -379,12 +379,12 @@ namespace compiler2957
 {
     #[Swag.ConstExpr]
     struct V { x, y, z: f32 = 666 }
-    
+
     func toto()->V
     {
         return {1, 2, 3}
     }
-    
+
     const C = #run toto()
     #assert(C.x == 1)
     #assert(C.y == 2)
@@ -396,12 +396,12 @@ namespace compiler2959
 {
     #[Swag.ConstExpr]
     struct V { x, y: f32 = 0 }
-    
+
     func toto(x, y: V)->V
     {
         return {x.x + y.x, x.y + y.y}
     }
-    
+
     const C = #run toto({1, 2}, {10, 20})
     #assert(C.x == 11)
     #assert(C.y == 22)
@@ -428,14 +428,14 @@ namespace compiler2979
     //
     #[Swag.Compiler]
     const X: [2] s32 = [10, 20]
-    
+
     #[Swag.Optimize(false), Swag.Compiler]
     func test()->bool
     {
         let val = X[1]
         return val == 20 and X[1] == 20
     }
-    
+
     #assert(#run test())
 }
 
@@ -450,7 +450,7 @@ namespace compiler3029
         result.y = y * y * y
         return result
     }
-    
+
     //#[Swag.PrintBc]
     #test
     {
@@ -464,9 +464,9 @@ namespace compiler3029
 namespace compiler3100
 {
     //#global skip
-    
+
     //#global testerror
-    
+
     func msg() => "msg"
 
     // #if false skips #error with #run
@@ -501,7 +501,7 @@ namespace compiler3121
     //
     #[Swag.Compiler]
     func titi()->bool { return true }
-    
+
     #assert(#run titi())
 }
 
@@ -519,7 +519,7 @@ namespace compiler3324
                 ret += 66
             return ret
         }
-    
+
         @assert(a == 660)
     }
 }
@@ -546,13 +546,13 @@ namespace compiler3325
                 case 2:
                     T = bool
                 }
-    
+
                 sum += @countof(T.name)
             }
-    
+
             return sum
         }
-    
+
         const A = #run init()
         #assert(A == 9)
     }
@@ -623,7 +623,7 @@ namespace compiler4102
     //#[Swag.ConstExpr]
     struct A { x: s32 }
     func toto()->A { return A{1}; }
-    
+
     const C = #run toto()
     #assert(C.x == 1)
 }
@@ -641,7 +641,7 @@ namespace compiler4266
     {
         return true
     }
-    
+
     #if #run isThisRelease() == false
     {
         #warning("this should not be called !")
@@ -662,7 +662,7 @@ namespace compiler4844
                 arr[i] = 1 << cast(u32) i
             return arr
         }
-    
+
         #assert(PowerOfTwo[0] == 1)
         #assert(PowerOfTwo[1] == 2)
         #assert(PowerOfTwo[2] == 4)
@@ -733,9 +733,9 @@ namespace compiler4849
         str[2] = str[1] + 1
         return cast(string) str
     }
-    
+
     #assert(MyString == "abc")
-    
+
     struct Carrier
     {
         item: any
@@ -752,7 +752,7 @@ namespace compiler4849
             payload.other = "def"
             return payload
         }
-    
+
         let values = #run
         {
             var words: [2] any
@@ -760,7 +760,7 @@ namespace compiler4849
             words[1] = "second"
             return words
         }
-    
+
         @assert(cast(string) value.item == "abc")
         @assert(cast(string) value.other == "def")
         @assert(cast(string) values[0] == "first")

@@ -136,10 +136,10 @@ namespace
     Sema& semaForGenericDecl(Sema& sema, const Symbol& root, std::unique_ptr<Sema>& ownedSema)
     {
         const SourceView& srcView = sema.compiler().srcView(root.srcViewRef());
-        if (sema.ast().srcView().fileRef() == srcView.fileRef())
+        if (sema.ast().srcView().fileRef() == srcView.ownerFileRef())
             return sema;
 
-        SourceFile& sourceFile = sema.compiler().file(srcView.fileRef());
+        SourceFile& sourceFile = sema.compiler().file(srcView.ownerFileRef());
         AstNodeRef  declRef    = genericDeclNodeRef(root);
         if (declRef.isInvalid() && root.decl())
             declRef = root.decl()->nodeRef(sourceFile.ast());

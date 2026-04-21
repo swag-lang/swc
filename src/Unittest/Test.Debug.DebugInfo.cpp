@@ -865,7 +865,8 @@ SWC_TEST_BEGIN(DebugInfo_CompilerTestFunctionsPreserveStackDebugMetadata)
         return Result::Error;
 
     NativeBackendBuilder nativeBuilder(compiler, false);
-    SWC_RESULT(nativeBuilder.prepare());
+    if (nativeBuilder.prepare() != Result::Continue)
+        return Result::Error;
     if (Stats::getNumErrors() != errorsBefore)
         return Result::Error;
 
@@ -928,7 +929,8 @@ var GValue: s32 = 7
         return Result::Error;
 
     NativeBackendBuilder nativeBuilder(compiler, false);
-    SWC_RESULT(nativeBuilder.prepare());
+    if (nativeBuilder.prepare() != Result::Continue)
+        return Result::Error;
     if (Stats::getNumErrors() != errorsBefore)
         return Result::Error;
 
@@ -970,7 +972,8 @@ var GValue: s32 = 7
         .emitCodeView = true,
     };
 
-    SWC_RESULT(DebugInfo::buildObject(request, debugInfo));
+    if (DebugInfo::buildObject(request, debugInfo) != Result::Continue)
+        return Result::Error;
 
     const NativeSectionData* debugSection = findSection(debugInfo, ".debug$S");
     if (!debugSection)

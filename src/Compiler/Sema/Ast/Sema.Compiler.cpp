@@ -1,6 +1,8 @@
 #include "pch.h"
 #include "Compiler/Sema/Core/Sema.h"
+#include "Compiler/Lexer/Lexer.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
+#include "Compiler/Parser/Parser/Parser.h"
 #include "Compiler/Sema/Cast/Cast.h"
 #include "Compiler/Sema/Constant/ConstantHelpers.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
@@ -19,8 +21,10 @@
 #include "Main/Command/CommandLine.h"
 #include "Main/FileSystem.h"
 #include "Main/Global.h"
+#include "Main/Stats.h"
 #include "Main/Version.h"
 #include "Support/Core/Utf8Helper.h"
+#include "Support/Os/Os.h"
 #include "Support/Report/Diagnostic.h"
 #include "Support/Report/DiagnosticDef.h"
 #include "Support/Report/Logger.h"
@@ -83,8 +87,9 @@ namespace
             if (scopeNode.tokNameRef.isInvalid())
                 continue;
 
-            const Token& scopeTok = sema.token({scopeNode.srcViewRef(), scopeNode.tokNameRef});
-            if (scopeTok.string(sema.ast().srcView()) == scopeName)
+            const SourceCodeRef scopeCodeRef{scopeNode.srcViewRef(), scopeNode.tokNameRef};
+            const Token&        scopeTok = sema.token(scopeCodeRef);
+            if (scopeTok.string(sema.srcView(scopeCodeRef.srcViewRef)) == scopeName)
                 return parentRef;
         }
     }
@@ -100,7 +105,8 @@ namespace
 
     Result reportCompilerFileError(Sema& sema, DiagnosticId id, AstNodeRef nodeRef, const fs::path& path, const Utf8& because)
     {
-        Diagnostic diag = Diagnostic::get(id, sema.ast().srcView().fileRef());
+        const FileRef fileRef = sema.srcView(sema.node(nodeRef).srcViewRef()).fileRef();
+        Diagnostic    diag    = Diagnostic::get(id, fileRef);
         diag.last().addSpan(sema.node(nodeRef).codeRangeWithChildren(sema.ctx(), sema.ast()), "", DiagnosticSeverity::Error);
         SemaError::setReportArguments(sema, diag, nodeRef);
         FileSystem::setDiagnosticPathAndBecause(diag, &sema.ctx(), path, because);
@@ -238,6 +244,155 @@ namespace
         return Result::Continue;
     }
 
+    bool compilerAstStringType(Sema& sema, TypeRef typeRef)
+    {
+        if (!typeRef.isValid())
+            return false;
+
+        const TypeRef unwrappedTypeRef = sema.typeMgr().get(typeRef).unwrap(sema.ctx(), typeRef, TypeExpandE::Alias | TypeExpandE::Enum);
+        if (!unwrappedTypeRef.isValid())
+            return false;
+        return sema.typeMgr().get(unwrappedTypeRef).isString();
+    }
+
+    Utf8 compilerAstGeneratedDirectoryName()
+    {
+        return "generated-ast";
+    }
+
+    fs::path compilerAstGeneratedDirectory()
+    {
+        return (Os::getTemporaryPath() / "swag" / compilerAstGeneratedDirectoryName().view()).lexically_normal();
+    }
+
+    fs::path compilerAstGeneratedPath(Sema& sema, AstNodeRef nodeRef)
+    {
+        const SourceCodeRange   codeRange = sema.node(nodeRef).codeRange(sema.ctx());
+        const SourceView&       srcView   = sema.srcView(sema.node(nodeRef).srcViewRef());
+        const SourceFile*       file      = srcView.file();
+        const Utf8              baseName  = file ? FileSystem::sanitizeFileName(Utf8{file->path().stem().string()}) : Utf8{"generated"};
+        const uint32_t          uniqueId  = sema.compiler().atomicId().fetch_add(1, std::memory_order_relaxed);
+        return compilerAstGeneratedDirectory() / std::format("{}_l{}_c{}_p{}_{}.swg",
+                                                             baseName.view(),
+                                                             codeRange.line,
+                                                             codeRange.column,
+                                                             Os::currentProcessId(),
+                                                             uniqueId);
+    }
+
+    ParserGeneratedMode compilerAstParseMode(const Sema& sema, AstNodeRef ownerRef)
+    {
+        auto parseModeForNodeId = [](const AstNodeId nodeId) {
+            switch (nodeId)
+            {
+                case AstNodeId::AggregateBody:
+                    return ParserGeneratedMode::Aggregate;
+
+                case AstNodeId::EnumBody:
+                    return ParserGeneratedMode::Enum;
+
+                case AstNodeId::File:
+                case AstNodeId::TopLevelBlock:
+                    return ParserGeneratedMode::TopLevel;
+
+                default:
+                    return ParserGeneratedMode::Embedded;
+            }
+        };
+
+        const AstNodeRef parentRef = sema.visit().parentNodeRef();
+        if (!parentRef.isValid())
+            return ParserGeneratedMode::TopLevel;
+
+        const AstNode& parentNode = sema.node(parentRef);
+        if (parentNode.is(AstNodeId::AccessModifier))
+        {
+            const AstNodeRef grandParentRef = sema.visit().parentNodeRef(1);
+            if (grandParentRef.isValid())
+                return parseModeForNodeId(sema.node(grandParentRef).id());
+        }
+
+        SWC_UNUSED(ownerRef);
+        return parseModeForNodeId(parentNode.id());
+    }
+
+    Result createCompilerAstGeneratedSource(Sema& sema, AstNodeRef ownerRef, std::string_view generatedCode, SourceView*& outSrcView)
+    {
+        outSrcView = nullptr;
+
+        const fs::path directory = compilerAstGeneratedDirectory();
+        std::error_code ec;
+        fs::create_directories(directory, ec);
+        if (ec)
+            return reportCompilerFileError(sema, DiagnosticId::sema_err_ast_file_write_failed, ownerRef, directory, FileSystem::normalizeSystemMessage(ec));
+
+        const fs::path generatedPath = compilerAstGeneratedPath(sema, ownerRef);
+        FileSystem::IoErrorInfo ioError;
+        if (FileSystem::writeBinaryFile(generatedPath, generatedCode.data(), generatedCode.size(), ioError) != Result::Continue)
+            return reportCompilerFileError(sema, DiagnosticId::sema_err_ast_file_write_failed, ownerRef, generatedPath, FileSystem::describeIoFailure(ioError));
+
+        sema.compiler().registerInMemoryFile(generatedPath, generatedCode);
+        SourceFile& sourceFile = sema.compiler().addFile(generatedPath, FileFlagsE::CustomSrc | FileFlagsE::SkipFmt);
+        SWC_RESULT(sourceFile.loadContent(sema.ctx()));
+
+        SourceView& srcView = sourceFile.ast().srcView();
+        if (const SourceFile* ownerFile = sema.file())
+            srcView.setOwnerFileRef(ownerFile->ref());
+
+        const uint64_t errorsBefore = Stats::getNumErrors();
+        Lexer          lexer;
+        lexer.tokenize(sema.ctx(), srcView, LexerFlagsE::Default);
+        if (Stats::getNumErrors() != errorsBefore)
+            return Result::Error;
+        if (srcView.mustSkip())
+            return Result::Error;
+
+        outSrcView = &srcView;
+        return Result::Continue;
+    }
+
+    Result parseCompilerAstGenerated(Sema& sema, AstNodeRef ownerRef, std::string_view generatedCode, AstNodeRef& outGeneratedRef)
+    {
+        outGeneratedRef = AstNodeRef::invalid();
+
+        SourceView* generatedSrcView = nullptr;
+        SWC_RESULT(createCompilerAstGeneratedSource(sema, ownerRef, generatedCode, generatedSrcView));
+        SWC_ASSERT(generatedSrcView != nullptr);
+        if (!generatedSrcView)
+            return Result::Error;
+
+        const uint64_t errorsBefore = Stats::getNumErrors();
+        Parser         parser;
+        outGeneratedRef = parser.parseGenerated(sema.ctx(), sema.ast(), *generatedSrcView, compilerAstParseMode(sema, ownerRef));
+        if (Stats::getNumErrors() != errorsBefore)
+            return Result::Error;
+        if (!outGeneratedRef.isValid())
+            return Result::Error;
+
+        return Result::Continue;
+    }
+
+    Result substituteCompilerAstString(Sema& sema, AstNodeRef ownerRef, std::string_view generatedCode)
+    {
+        AstNodeRef generatedRef = AstNodeRef::invalid();
+        SWC_RESULT(parseCompilerAstGenerated(sema, ownerRef, generatedCode, generatedRef));
+        sema.setSubstitute(ownerRef, generatedRef);
+        sema.visit().restartCurrentNode(generatedRef);
+        return Result::Continue;
+    }
+
+    Result requireCompilerAstStringResult(Sema& sema, AstNodeRef nodeRef, TypeRef typeRef)
+    {
+        if (compilerAstStringType(sema, typeRef))
+            return Result::Continue;
+
+        const TypeRef reportedTypeRef = typeRef.isValid() ? typeRef : sema.typeMgr().typeVoid();
+        auto diag = SemaError::report(sema, DiagnosticId::sema_err_ast_requires_string, nodeRef);
+        diag.addArgument(Diagnostic::ARG_TYPE, sema.typeMgr().get(reportedTypeRef).toName(sema.ctx()));
+        diag.report(sema.ctx());
+        return Result::Error;
+    }
+
     bool tryGetCodeString(Sema& sema, AstNodeRef nodeRef, Utf8& outValue)
     {
         const AstNodeRef rawRef = rawInjectedNodeRef(sema, nodeRef);
@@ -349,13 +504,14 @@ Result AstCompilerScope::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef
 Result AstScopedBreakStmt::semaPreNode(Sema& sema)
 {
     const auto&      node         = sema.curNode().cast<AstScopedBreakStmt>();
-    const Token&     tokScopeName = sema.token({node.srcViewRef(), node.tokNameRef});
-    const AstNodeRef scopeRef     = findNamedCompilerScope(sema, tokScopeName.string(sema.ast().srcView()));
+    const SourceCodeRef nameCodeRef{node.srcViewRef(), node.tokNameRef};
+    const Token&        tokScopeName = sema.token(nameCodeRef);
+    const AstNodeRef    scopeRef     = findNamedCompilerScope(sema, tokScopeName.string(sema.srcView(nameCodeRef.srcViewRef)));
     if (scopeRef.isValid())
         return Result::Continue;
 
     auto diag = SemaError::report(sema, DiagnosticId::sema_err_unknown_scope_name, SourceCodeRef{node.srcViewRef(), node.tokNameRef});
-    diag.addArgument(Diagnostic::ARG_SYM, tokScopeName.string(sema.ast().srcView()));
+    diag.addArgument(Diagnostic::ARG_SYM, tokScopeName.string(sema.srcView(nameCodeRef.srcViewRef)));
     diag.report(sema.ctx());
     return Result::Error;
 }
@@ -563,13 +719,13 @@ Result AstCompilerLiteral::semaPostNode(Sema& sema)
 {
     const TaskContext& ctx     = sema.ctx();
     const Token&       tok     = sema.token(codeRef());
-    const SourceView&  srcView = sema.ast().srcView();
+    const SourceView&  srcView = sema.srcView(codeRef().srcViewRef);
 
     switch (tok.id)
     {
         case TokenId::CompilerFile:
         {
-            const SourceFile*      file     = sema.ast().srcView().file();
+            const SourceFile*      file     = srcView.file();
             const std::string_view nameView = sema.cstMgr().addString(ctx, file ? file->path().string() : "");
             const ConstantValue    val      = ConstantValue::makeString(ctx, nameView);
             sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(ctx, val));
@@ -1320,6 +1476,30 @@ Result AstCompilerCall::semaPostNode(Sema& sema) const
     }
 }
 
+Result AstCompilerShortFunc::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const
+{
+    if (childRef != nodeBodyRef)
+        return Result::Continue;
+
+    if (sema.token(codeRef()).id == TokenId::CompilerAst)
+        SemaHelpers::pushConstExprRequirement(sema, childRef);
+    return Result::Continue;
+}
+
+Result AstCompilerShortFunc::semaPostNode(Sema& sema) const
+{
+    if (sema.token(codeRef()).id != TokenId::CompilerAst)
+        return Result::Continue;
+
+    SWC_RESULT(SemaCheck::isConstant(sema, nodeBodyRef));
+    const SemaNodeView view = sema.viewTypeConstant(nodeBodyRef);
+    SWC_RESULT(requireCompilerAstStringResult(sema, nodeBodyRef, view.typeRef()));
+    if (!view.cst() || !view.cst()->isString())
+        return Result::Error;
+
+    return substituteCompilerAstString(sema, sema.curNodeRef(), view.cst()->getString());
+}
+
 Result AstCompilerFunc::semaPreDecl(Sema& sema)
 {
     TaskContext& ctx                = sema.ctx();
@@ -1389,6 +1569,7 @@ Result AstCompilerFunc::semaPreDecl(Sema& sema)
 
 Result AstCompilerFunc::semaPreNode(Sema& sema)
 {
+    const TokenId tokenId = sema.token(sema.curNode().codeRef()).id;
     if (sema.enteringState())
     {
         const AstNodeRef curNodeRef = sema.curNodeRef();
@@ -1404,7 +1585,10 @@ Result AstCompilerFunc::semaPreNode(Sema& sema)
     if (sym.isIgnored())
         return Result::SkipChildren;
 
-    sym.setReturnTypeRef(sema.typeMgr().typeVoid());
+    if (tokenId == TokenId::CompilerAst)
+        sym.setReturnTypeRef(TypeRef::invalid());
+    else
+        sym.setReturnTypeRef(sema.typeMgr().typeVoid());
 
     auto frame                = sema.frame();
     frame.currentAttributes() = sym.attributes();
@@ -1422,9 +1606,24 @@ Result AstCompilerFunc::semaPostNode(Sema& sema) const
     if (sym.isIgnored())
         return Result::Continue;
 
+    const TokenId tokenId = sema.token(codeRef()).id;
+    if (tokenId == TokenId::CompilerAst)
+    {
+        SWC_RESULT(requireCompilerAstStringResult(sema, sema.curNodeRef(), sym.returnTypeRef()));
+        sym.setTyped(sema.ctx());
+        sym.setSemaCompleted(sema.ctx());
+        SWC_RESULT(SemaJIT::runFunctionResult(sema, sym, sema.curNodeRef()));
+
+        const SemaNodeView resultView = sema.viewConstant(sema.curNodeRef());
+        SWC_ASSERT(resultView.cst() != nullptr && resultView.cst()->isString());
+        if (!resultView.cst() || !resultView.cst()->isString())
+            return Result::Error;
+
+        return substituteCompilerAstString(sema, sema.curNodeRef(), resultView.cst()->getString());
+    }
+
     sym.setSemaCompleted(sema.ctx());
 
-    const TokenId tokenId = sema.token(codeRef()).id;
     switch (tokenId)
     {
         case TokenId::CompilerFuncTest:

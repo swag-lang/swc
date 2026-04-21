@@ -21,6 +21,114 @@ namespace
     }
 }
 
+AstNodeRef Parser::parseGeneratedValue(const ParserGeneratedMode mode)
+{
+    switch (mode)
+    {
+        case ParserGeneratedMode::TopLevel:
+            return parseTopLevelStmt();
+
+        case ParserGeneratedMode::Embedded:
+            return parseEmbeddedStmt();
+
+        case ParserGeneratedMode::Aggregate:
+            return parseAggregateValue();
+
+        case ParserGeneratedMode::Enum:
+            return parseEnumValue();
+    }
+
+    SWC_UNREACHABLE();
+}
+
+AstNodeRef Parser::parseGeneratedContent(const ParserGeneratedMode mode)
+{
+    SmallVector<AstNodeRef> childrenRefs;
+    const TokenRef          containerTokRef  = ref();
+    const AstNodeId         separatorNodeId = mode == ParserGeneratedMode::Aggregate ? AstNodeId::AggregateBody :
+                                              mode == ParserGeneratedMode::Enum      ? AstNodeId::EnumBody :
+                                                                                      AstNodeId::TopLevelBlock;
+
+    while (!atEnd() && isNot(TokenId::EndOfFile))
+    {
+        const Token*      loopStartToken = curToken_;
+        const AstNodeRef  childRef       = parseGeneratedValue(mode);
+        if (childRef.isValid())
+            childrenRefs.push_back(childRef);
+
+        if (parseCompoundSeparator(separatorNodeId, TokenId::EndOfFile) == Result::Error)
+        {
+            if (depthParen_ && is(TokenId::SymRightParen))
+                break;
+            if (depthBracket_ && is(TokenId::SymRightBracket))
+                break;
+            if (depthCurly_ && is(TokenId::SymRightCurly))
+                break;
+        }
+
+        if (loopStartToken == curToken_)
+            consume();
+    }
+
+    const SpanRef spanChildrenRef = ast_->pushSpan(childrenRefs.span());
+    switch (mode)
+    {
+        case ParserGeneratedMode::TopLevel:
+        case ParserGeneratedMode::Embedded:
+        {
+            auto [nodeRef, nodePtr]  = ast_->makeNode<AstNodeId::TopLevelBlock>(containerTokRef);
+            nodePtr->spanChildrenRef = spanChildrenRef;
+            return nodeRef;
+        }
+
+        case ParserGeneratedMode::Aggregate:
+        {
+            auto [nodeRef, nodePtr]  = ast_->makeNode<AstNodeId::AggregateBody>(containerTokRef);
+            nodePtr->spanChildrenRef = spanChildrenRef;
+            return nodeRef;
+        }
+
+        case ParserGeneratedMode::Enum:
+        {
+            auto [nodeRef, nodePtr]  = ast_->makeNode<AstNodeId::EnumBody>(containerTokRef);
+            nodePtr->spanChildrenRef = spanChildrenRef;
+            return nodeRef;
+        }
+    }
+
+    SWC_UNREACHABLE();
+}
+
+AstNodeRef Parser::parseGenerated(TaskContext& ctx, Ast& ast, SourceView& srcView, const ParserGeneratedMode mode)
+{
+    SWC_MEM_SCOPE("Frontend/Parser");
+#if SWC_HAS_STATS
+    Timer time(&Stats::get().timeParser);
+#endif
+
+    ctx_ = &ctx;
+    ast_ = &ast;
+
+    firstToken_     = &srcView.tokens().front();
+    lastToken_      = &srcView.tokens().back();
+    curToken_       = firstToken_;
+    depthParen_     = 0;
+    depthBracket_   = 0;
+    depthCurly_     = 0;
+    lastErrorToken_ = TokenRef::invalid();
+
+    SourceView* previousSrcView = nullptr;
+    if (ast_->hasSourceView())
+        previousSrcView = &ast_->srcView();
+
+    ast_->setSourceView(srcView);
+    const AstNodeRef result = parseGeneratedContent(mode);
+    if (previousSrcView)
+        ast_->setSourceView(*previousSrcView);
+
+    return result;
+}
+
 void Parser::setReportArguments(Diagnostic& diag, TokenRef tokRef) const
 {
     const Token& token = ast_->srcView().token(tokRef);

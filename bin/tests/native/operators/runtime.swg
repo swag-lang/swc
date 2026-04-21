@@ -7,7 +7,7 @@ namespace compiler1382
 {
     //
     func toto()->bool { return true }
-    
+
     #test
     {
         @assert(toto())
@@ -22,7 +22,7 @@ namespace compiler150
     {
         @assert(main())
     }
-    
+
     func main()->bool
     {
         return true
@@ -52,7 +52,7 @@ namespace compiler165
         @assert(true)
         return true
     }
-    
+
     #test
     {
         @assert(main())
@@ -120,7 +120,7 @@ namespace compiler210
     {
         return a + 1
     }
-    
+
     #test
     {
         @assert(main(6) == 7)
@@ -136,7 +136,7 @@ namespace compiler211
     {
         return a + 1
     }
-    
+
     #test
     {
         @assert(main(main(6)) == 8)
@@ -153,14 +153,14 @@ namespace compiler217
     {
         return a + 1
     }
-    
+
     //#[PrintBc]
     func main1()
     {
         @assert(main(6) == 7)
         @assert(main(4 + 6) == 11)
     }
-    
+
     #test
     {
         main1()
@@ -185,13 +185,13 @@ namespace compiler226
         }
         return true
     }
-    
+
     //#[PrintBc]
     func main1()->bool
     {
         return main()
     }
-    
+
     #test
     {
         @assert(main1())
@@ -203,7 +203,7 @@ namespace compiler257
 {
     //
     func test1()->s32 { return 666; }
-    
+
     #test
     {
         @assert(test1() == 666)
@@ -218,7 +218,7 @@ namespace compiler258
     {
         return a - b
     }
-    
+
     #test
     {
         @assert(test1(60, 40) == 20)
@@ -235,7 +235,7 @@ namespace compiler259
     {
         return a - b
     }
-    
+
     #test
     {
         @assert(test1(60.0, 40.0) == 20)
@@ -255,7 +255,7 @@ namespace compiler284
         var p1: *s32 = cast(*s32) &v
         return p1 == cast(*s32) &v
     }
-    
+
     #test
     {
         @assert(main())
@@ -268,7 +268,7 @@ namespace compiler307
     //
     func toto()->bool { return true; }
     func toto1()->bool { return true; }
-    
+
     #test
     {
         @assert(toto() == toto1())

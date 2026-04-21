@@ -812,6 +812,41 @@ Result SemaJIT::runExprImmediate(Sema& sema, SymbolFunction& symFn, AstNodeRef n
     return Result::Continue;
 }
 
+Result SemaJIT::runFunctionResult(Sema& sema, SymbolFunction& symFn, AstNodeRef nodeRef)
+{
+    ///////////////////////////////////////////
+    // Resume path: consume deferred completion if present.
+    if (const std::optional<Result> completion = consumeJitExecCompletionAndApply(sema, nodeRef))
+        return *completion;
+
+    ///////////////////////////////////////////
+    // Fast exits and prerequisites.
+    if (sema.viewConstant(nodeRef).hasConstant())
+        return Result::Continue;
+    if (hasPendingJitNode(sema, nodeRef))
+        return waitPendingJitNode(sema, symFn, nodeRef);
+    if (!symFn.returnTypeRef().isValid())
+        return Result::Error;
+
+    const JITCallResultMeta resultMeta = computeJitCallResultMeta(sema, symFn.returnTypeRef());
+    SWC_RESULT(prepareJitFunction(sema, symFn));
+
+    ///////////////////////////////////////////
+    // Build payload and submit with shared node lifecycle.
+    const auto payload = std::make_shared<JITNodePayload>();
+    payload->resultStorage.resize(resultMeta.resultSize);
+
+    JITExecManager::Request request;
+    request.function     = &symFn;
+    request.nodeRef      = nodeRef;
+    request.codeRef      = sema.node(nodeRef).codeRef();
+    request.jitReturn    = JITReturn{.typeRef = symFn.returnTypeRef(), .valuePtr = payload->resultStorage.data()};
+    request.hasJitReturn = true;
+    request.runImmediate = false;
+
+    return submitJitNode(sema, nodeRef, request, payload, resultMeta, false);
+}
+
 Result SemaJIT::tryRunConstCall(Sema& sema, SymbolFunction& calledFn, AstNodeRef callRef, std::span<const ResolvedCallArgument> resolvedArgs)
 {
     ///////////////////////////////////////////

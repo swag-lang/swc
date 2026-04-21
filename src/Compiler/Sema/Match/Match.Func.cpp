@@ -25,10 +25,10 @@ namespace
     Sema& semaForFunctionDecl(Sema& sema, const SymbolFunction& fn, std::unique_ptr<Sema>& ownedSema)
     {
         const SourceView& srcView = sema.compiler().srcView(fn.srcViewRef());
-        if (sema.ast().srcView().fileRef() == srcView.fileRef())
+        if (sema.ast().srcView().fileRef() == srcView.ownerFileRef())
             return sema;
 
-        SourceFile& sourceFile = sema.compiler().file(srcView.fileRef());
+        SourceFile& sourceFile = sema.compiler().file(srcView.ownerFileRef());
         AstNodeRef  declRef    = fn.declNodeRef();
         if (declRef.isInvalid() && fn.decl())
             declRef = fn.decl()->nodeRef(sourceFile.ast());
@@ -1207,10 +1207,10 @@ namespace
             for (const AstNodeRef paramRef : paramNodes)
                 appendGenericRootCallParams(declSema, paramRef, params);
 
-            const uint32_t numParams = static_cast<uint32_t>(params.size());
+            const uint32_t numParams      = static_cast<uint32_t>(params.size());
             const bool     prependUfcsArg = ufcsArg.isValid() && (!fn.isMethod() || genericRootParamsExposeReceiver(params.span()));
             const uint32_t numArgs        = static_cast<uint32_t>(args.size()) + (prependUfcsArg ? 1u : 0u);
-            const bool     variadic  = !params.empty() && params.back().isVariadic;
+            const bool     variadic       = !params.empty() && params.back().isVariadic;
 
             if (!variadic && numArgs > numParams)
             {

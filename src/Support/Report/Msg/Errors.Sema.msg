@@ -40,6 +40,8 @@ SWC_DIAG_DEF(sema_err_compiler_assert, Error, "compile-time assertion evaluated 
 SWC_DIAG_DEF(sema_err_runtime_uses_compiler_only_symbol, Error, "runtime function '{what}' cannot reference compile-time-only symbol '{sym}'")
 SWC_DIAG_DEF(sema_err_code_type_restricted, Error, "type '{type}' can only be used as a parameter of a #[Swag.Macro] function; [help] move it to a macro-function parameter")
 SWC_DIAG_DEF(sema_err_inject_requires_code, Error, "#inject requires a value of type '#code', found '{type}'; [help] pass a '#code' value or captured code fragment")
+SWC_DIAG_DEF(sema_err_ast_requires_string, Error, "'#ast' must produce a string, found '{type}'; [help] return or provide a string containing valid Swag source")
+SWC_DIAG_DEF(sema_err_ast_file_write_failed, Error, "cannot materialize generated '#ast' source at '{path}': {because}")
 SWC_DIAG_DEF(sema_err_macro_requires_macro_fn, Error, "'#macro' can only be used inside a #[Swag.Macro] function; [help] mark the enclosing function with '#[Swag.Macro]'")
 SWC_DIAG_DEF(sema_err_assert_failed, Error, "assertion failed: {because}")
 SWC_DIAG_DEF(sema_err_assert_failed, Error, "assertion failed")

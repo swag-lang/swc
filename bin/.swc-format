@@ -14,7 +14,7 @@
 preserve-bom = true
 
 # Keep trailing whitespace on existing lines unchanged.
-preserve-trailing-whitespace = true
+preserve-trailing-whitespace = false
 
 # Ensure the file ends with a single newline.
 insert-final-newline = false

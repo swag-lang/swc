@@ -25,6 +25,39 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    AstNodeRef resolvePreparedArgSourceRef(CodeGen& codeGen, AstNodeRef argRef)
+    {
+        AstNodeRef sourceRef = codeGen.resolvedNodeRef(argRef);
+        if (sourceRef.isInvalid())
+            sourceRef = argRef;
+
+        while (sourceRef.isValid())
+        {
+            const AstNode& sourceNode = codeGen.node(sourceRef);
+            if (sourceNode.is(AstNodeId::AutoCastExpr))
+            {
+                sourceRef = sourceNode.cast<AstAutoCastExpr>().nodeExprRef;
+                continue;
+            }
+
+            if (sourceNode.is(AstNodeId::CastExpr))
+            {
+                sourceRef = sourceNode.cast<AstCastExpr>().nodeExprRef;
+                continue;
+            }
+
+            if (sourceNode.is(AstNodeId::AsCastExpr))
+            {
+                sourceRef = sourceNode.cast<AstAsCastExpr>().nodeExprRef;
+                continue;
+            }
+
+            return sourceRef;
+        }
+
+        return sourceRef;
+    }
+
     std::optional<CodeGenNodePayload> resolveVariableArgumentPayload(CodeGen& codeGen, AstNodeRef argRef)
     {
         if (argRef.isInvalid())
@@ -515,6 +548,38 @@ namespace
         argPayload.setIsValue();
     }
 
+    void materializePreparedPointerDecayArg(CodeGen& codeGen, CodeGenNodePayload& argPayload, TypeRef normalizedTypeRef, AstNodeRef argRef)
+    {
+        if (argRef.isInvalid() || normalizedTypeRef.isInvalid())
+            return;
+        if (!argPayload.isAddress() || argPayload.hasMaterializedPointerLikeValue())
+            return;
+
+        TaskContext&    ctx            = codeGen.ctx();
+        const TypeInfo& normalizedType = ctx.typeMgr().get(normalizedTypeRef);
+        if (!normalizedType.isAnyPointer() && !normalizedType.isCString())
+            return;
+
+        const AstNodeRef sourceRef = resolvePreparedArgSourceRef(codeGen, argRef);
+        if (sourceRef.isInvalid())
+            return;
+
+        const TypeRef sourceTypeRef = codeGen.sema().viewStored(sourceRef, SemaNodeViewPartE::Type).typeRef();
+        if (!sourceTypeRef.isValid())
+            return;
+
+        const TypeInfo& sourceType    = ctx.typeMgr().get(sourceTypeRef);
+        if (!sourceType.isArray() && !sourceType.isAggregateArray())
+            return;
+
+        // Array-to-pointer decay passes the address itself as the runtime pointer value.
+        // Keeping the payload address-backed makes ABI lowering load the first array bytes instead,
+        // which turns zero-initialized buffers into null pointer arguments.
+        argPayload.typeRef = normalizedTypeRef;
+        argPayload.setIsValue();
+        argPayload.markMaterializedPointerLikeValue();
+    }
+
     void fillPreparedDirectArgType(ABICall::PreparedArg&       outPreparedArg,
                                    CodeGen&                    codeGen,
                                    const CallConv&             callConv,
@@ -657,6 +722,7 @@ namespace
             }
 
             materializePreparedReferenceArg(codeGen, argPayload, normalizedTypeRef, arg, argRef);
+            materializePreparedPointerDecayArg(codeGen, argPayload, normalizedTypeRef, argRef);
             const ABITypeNormalize::NormalizedType normalizedArg = ABITypeNormalize::normalize(codeGen.ctx(), callConv, normalizedTypeRef, ABITypeNormalize::Usage::Argument);
             materializePreparedDirectScalarArg(codeGen, argPayload, normalizedTypeRef, normalizedArg);
         }

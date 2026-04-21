@@ -50,14 +50,14 @@ namespace compiler1673
     //
     //
     //#global testerror
-    
+
     //#[Swag.PrintBc]
     func toto(x: ...)->typeinfo
     {
         @assert(@kindof(x[0]).fullname == "s32")
         return @kindof(x[0])
     }
-    
+
     #test
     {
         @assert(toto(5) == s32)
@@ -74,7 +74,7 @@ namespace compiler169
         //@print("toto\n");
         return 666
     }
-    
+
     #test
     {
         var r = main()
@@ -93,21 +93,21 @@ namespace compiler247
         //@print("1");
         return a
     }
-    
+
     #[Swag.Overload]
     func main(a: s32, b: s32)->s32
     {
         //@print("2");
         return b
     }
-    
+
     func main1()
     {
         @assert(main() == 6)
         @assert(main(5) == 5)
         @assert(main(5, 7) == 7)
     }
-    
+
     #test
     {
         main1()
@@ -126,7 +126,7 @@ namespace compiler291
         //@print(v1);
         return v == "toto" and v1 == "titi"
     }
-    
+
     //#[PrintBc]
     #test
     {
@@ -170,7 +170,7 @@ namespace compiler297
     {
         return "toto1"
     }
-    
+
     #test
     {
         let c = test1()
@@ -187,13 +187,13 @@ namespace compiler298
     {
         return "toto1"
     }
-    
+
     //#[PrintBc]
     #test
     {
         var res = test2()
         //@op(res, count) == 5;
-    
+
         //@print(res);
         //@print(test2.count);
         @assert(res == "toto1")
@@ -223,7 +223,7 @@ namespace compiler301
         var str = "toto"
         var c   = @countof(str)
         @assert(c == 4)
-    
+
         str = "totototo"; c   = @countof(str); @assert(c == 8)
     }
 }
@@ -249,7 +249,7 @@ namespace compiler308
 {
     //
     var g = "toto"
-    
+
     //#[Swag.PrintBc]
     #test
     {
@@ -276,7 +276,7 @@ namespace compiler311
 {
     //
     var g: string
-    
+
     //#[Swag.PrintBc]
     #test
     {

@@ -72,9 +72,6 @@ namespace
             if (!srcString->ptr || !srcString->length)
                 return Result::Continue;
 
-            if (!stackContainsRange(localStackBase, localStackSize, srcString->ptr, srcString->length))
-                return Result::Continue;
-
             SWC_ASSERT(srcString->length <= std::numeric_limits<uint32_t>::max());
             const auto [dataOffset, dataStorage] = segment.reserveBytes(static_cast<uint32_t>(srcString->length), 1, false);
             SWC_UNUSED(dataOffset);

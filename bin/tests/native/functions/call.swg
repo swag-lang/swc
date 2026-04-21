@@ -25,13 +25,13 @@ namespace compiler1580
             Green
             Blue
         }
-    
+
         let a = Color.Green
         @assert(a == 1)
     }
-    
+
     func toto()->bool { return true }
-    
+
     #test
     {
         @assert(toto())
@@ -60,7 +60,7 @@ namespace compiler1633
         x:     u32
         y:     u32
     }
-    
+
     #test
     {
         var st: A
@@ -79,7 +79,7 @@ namespace compiler1637
         x:     u32
         y:     u32
     }
-    
+
     #test
     {
         var st: A
@@ -93,13 +93,13 @@ namespace compiler1638
 {
     //
     //#global testerror
-    
+
     struct A
     {
         x:     u32
         y:     u32
     }
-    
+
     #test
     {
         var st: A
@@ -132,7 +132,7 @@ namespace compiler1648
     {
         var x = 0xFFFFFFFF'u64
         x %= 16'u32
-    
+
         let m: u32 = 16
         x %= cast(u64) m
         @assert(x == 15)
@@ -150,7 +150,7 @@ namespace compiler1651
         @assert(v == 100)
         return v
     }
-    
+
     #test
     {
         @assert(toto1(100) == 100)
@@ -162,9 +162,9 @@ namespace compiler1653
 {
     //
     func toto(x: ...)->u64 { return @countof(x) }
-    
+
     func toto1(x: u32...)->u64 { return @countof(x) }
-    
+
     #test
     {
         @assert(toto() == 0)
@@ -193,17 +193,17 @@ namespace compiler1661
     {
         value: s64 = 456
     }
-    
+
     //#[Swag.PrintBc]
     #test
     {
         var addr:  [1] **TT
         var addr1: *TT
         var value: TT
-    
+
         addr[0] = &addr1
         //addr1[0] = &value
-    
+
         //@print(addr[0].value)
         @assert(addr[0] == &addr1)
     }
@@ -217,17 +217,17 @@ namespace compiler1662
     {
         value: s64 = 456
     }
-    
+
     //#[Swag.PrintBc]
     #test
     {
         var addr:  [1] [*] [*] s64
         var addr1: [*] s64
         var value: s64 = 666
-    
+
         addr[0] = cast([*] [*] s64) &addr1
         addr1   = cast([*] s64) &value
-    
+
         @assert(addr[0][0][0] == 666)
     }
 }
@@ -240,17 +240,17 @@ namespace compiler1663
     {
         value: s64 = 456
     }
-    
+
     //#[Swag.PrintBc]
     #test
     {
         var addr:  [1] [*] [*] TT
         var addr1: [*] TT
         var value: TT
-    
+
         addr[0] = cast([*] [*] TT) &addr1
         addr1   = cast([*] TT) &value
-    
+
         //@print(addr1.value)
         @assert(addr[0][0].value == 456)
     }
@@ -264,15 +264,15 @@ namespace compiler1664
     {
         value: s64 = 456
     }
-    
+
     //#[Swag.PrintBc]
     #test
     {
         var addr:  [2, 2] *TT
         var value: TT
-    
+
         addr[0, 0] = &value
-    
+
         //@print(addr[0,0].value)
         @assert(addr[0, 0].value == 456)
     }
@@ -288,7 +288,7 @@ namespace compiler1666
         value1:     s64 = 456
         value2:     s64 = 456
     }
-    
+
     //#[Swag.PrintBc]
     func C(x: ...)
     {
@@ -296,7 +296,7 @@ namespace compiler1666
         //@print(cast(s64) ptr1.value)
         @assert(ptr1.value == 456)
     }
-    
+
     #test
     {
         var x: TT
@@ -315,7 +315,7 @@ namespace compiler1668
         @assert(y == 100)
         return y
     }
-    
+
     #test
     {
         let ptr = &function
@@ -332,7 +332,7 @@ namespace compiler1669
         @assert(x == 50)
         return @countof(y)
     }
-    
+
     #test
     {
         let ptr = &function
@@ -348,12 +348,12 @@ namespace compiler167
     {
         @assert(1 == 1)
     }
-    
+
     #test
     {
         @assert(2 > 1)
     }
-    
+
     #test
     {
         @assert(!false)
@@ -366,14 +366,14 @@ namespace compiler1671
     //
     //
     //#global testerror
-    
+
     //#[Swag.PrintBc]
     func toto(x: ...)->typeinfo
     {
         @assert(@kindof(x[0]) == s32)
         return @kindof(x[0])
     }
-    
+
     #test
     {
         @assert(toto(5) == s32)
@@ -390,13 +390,13 @@ namespace compiler1677
         value1: s64 = 456
         value2: s64 = 456
     }
-    
+
     func C(x: const &TT)->s64
     {
         @assert(x.value == 456)
         return x.value
     }
-    
+
     #test
     {
         var x: TT
@@ -414,20 +414,20 @@ namespace compiler1678
         value1:     s64 = 456
         value2:     s64 = 456
     }
-    
+
     func D(x: TT)->s64
     {
         //@print(cast(s64) x.value)
         @assert(x.value == 456)
         return x.value
     }
-    
+
     //#[Swag.PrintBc]
     func C(x: any)->s64
     {
         return D(cast(TT) x)
     }
-    
+
     #test
     {
         var x: TT
@@ -447,13 +447,13 @@ namespace compiler1679
         value3:     s64 = 456
         value4:     s64 = 456
     }
-    
+
     //#[Swag.PrintBc]
     func D(x: ...)->s64
     {
         return E(x[0])
     }
-    
+
     //#[Swag.PrintBc]
     func E(x: any)->s64
     {
@@ -461,7 +461,7 @@ namespace compiler1679
         //C(cast(TT) x)
         return C(ptr)
     }
-    
+
     //#[Swag.PrintBc]
     func C(x: TT)->s64
     {
@@ -469,7 +469,7 @@ namespace compiler1679
         @assert(x.value == 456)
         return x.value
     }
-    
+
     #test
     {
         var x: TT
@@ -489,19 +489,19 @@ namespace compiler1680
         value3:     s64 = 456
         value4:     s64 = 456
     }
-    
+
     //#[Swag.PrintBc]
     func D(x: ...)->s64
     {
         return E(x[0])
     }
-    
+
     //#[Swag.PrintBc]
     func E(x: any)->s64
     {
         return C(cast(TT) x)
     }
-    
+
     //#[Swag.PrintBc]
     func C(x: TT)->s64
     {
@@ -509,7 +509,7 @@ namespace compiler1680
         @assert(x.value == 456)
         return x.value
     }
-    
+
     #test
     {
         var x: TT
@@ -529,9 +529,9 @@ namespace compiler1681
         value3:     s64 = 456
         value4:     s64 = 456
     }
-    
+
     alias myStruct = TT
-    
+
     //#[Swag.PrintBc]
     func C(x: myStruct)->s64
     {
@@ -539,7 +539,7 @@ namespace compiler1681
         @assert(x.value == 456)
         return x.value
     }
-    
+
     #test
     {
         var x: myStruct
@@ -559,9 +559,9 @@ namespace compiler1682
         value3:     s64 = 456
         value4:     s64 = 456
     }
-    
+
     alias myStruct = TT
-    
+
     //#[Swag.PrintBc]
     func C(x: any)->s64
     {
@@ -570,7 +570,7 @@ namespace compiler1682
         @assert(val.value == 456)
         return val.value
     }
-    
+
     #test
     {
         var x: myStruct
@@ -588,13 +588,13 @@ namespace compiler1788
         G += 1
         @assert(G == 1)
     }
-    
+
     //#[Swag.PrintBc]
     #init
     {
         //@assert(G == 1)
     }
-    
+
     var G: s64
 }
 
@@ -618,7 +618,7 @@ namespace compiler208
         @assert(a == 666)
         return a
     }
-    
+
     #test
     {
         @assert(main(666's64) == 666)
@@ -635,7 +635,7 @@ namespace compiler209
         @assert(b == 555)
         return a + b
     }
-    
+
     #test
     {
         @assert(main(666'f64, 555'f64) == 1221.0)
@@ -649,7 +649,7 @@ namespace compiler218
     const g: s64 = 5
     const h  = 5555
     const i  = 1.5
-    
+
     #test
     {
         @assert(g == 5)
@@ -664,9 +664,9 @@ namespace compiler219
     //
     #[ConstExpr]
     func main()->s32 { return 555; }
-    
+
     const v = main()
-    
+
     #test
     {
         @assert(v == 555)
@@ -678,7 +678,7 @@ namespace compiler221
 {
     //
     var v = 50
-    
+
     #test
     {
         v = 6; v = (5 * 3) + 11;
@@ -691,14 +691,14 @@ namespace compiler223
 {
     //
     var v = 50
-    
+
     //#[PrintBc]
     func main()
     {
         @assert(v == 50)
         v = 666; @assert(v == 666)
     }
-    
+
     #test
     {
         main()
@@ -715,7 +715,7 @@ namespace compiler224
     var b2: u16 = 2
     var b3: u32 = 3
     var b4: u64 = 4
-    
+
     //#[PrintBc]
     func main()
     {
@@ -725,7 +725,7 @@ namespace compiler224
         @assert(b3 == 3)
         @assert(b4 == 4)
     }
-    
+
     #test
     {
         main()
@@ -741,20 +741,20 @@ namespace compiler225
     var b0: bool = true
     var b1: u64 = 666
     var b2: f32 = 1.5
-    
+
     //#[PrintBc]
     func main()
     {
         @assert(b0 == true)
         b0 = false; @assert(b0 == false)
-    
+
         @assert(b1 == 666)
         b1 = 50; @assert(b1 == 50)
-    
+
         @assert(b2 == 1.5)
         b2 = 1 + 3; @assert(b2 == 4.0)
     }
-    
+
     #test
     {
         main()
@@ -778,13 +778,13 @@ namespace compiler227
         @assert(b == 100)
         return a + b
     }
-    
+
     //#[PrintBc]
     func main1()->s32
     {
         return main()
     }
-    
+
     #test
     {
         @assert(main1() == 600)
@@ -805,7 +805,7 @@ namespace compiler228
         @assert(a == 666)
         return a
     }
-    
+
     #test
     {
         @assert(main() == 666)
@@ -825,7 +825,7 @@ namespace compiler229
         @assert(b == 555)
         return a + b
     }
-    
+
     #test
     {
         @assert(main() == 1221)
@@ -841,12 +841,12 @@ namespace compiler231
     {
         var a = 10
         a += 1; @assert(a == 11)
-    
+
         var b = 1.0'f64
         b += 1.5'f64; @assert(b == 2.5)
         return cast(f64) a + b
     }
-    
+
     #test
     {
         @assert(main() == 13.5)
@@ -862,7 +862,7 @@ namespace compiler234
         var a = 1
         a *= 2; @assert(a == 2)
         a *= 2; @assert(a == 4)
-    
+
         var b = 1.0'f32
         b /= 2; @assert(b == 0.5)
     }
@@ -878,12 +878,12 @@ namespace compiler235
         var a = 0xFFFFFF45
         a &= 0xFF; @assert(a == 0x45)
         a |= 0x100; @assert(a == 0x145)
-    
+
         var b = 0b1001
         b ^= 0b1111; @assert(b == 0b0110)
         return a + b
     }
-    
+
     #test
     {
         @assert(main() == 331)
@@ -901,7 +901,7 @@ namespace compiler236
         a <<= 2; @assert(a == 0b101010100)
         return a
     }
-    
+
     #test
     {
         @assert(main() == 0b101010100)
@@ -921,7 +921,7 @@ namespace compiler238
         b = 10; a += b; @assert(a == 676)
         return a
     }
-    
+
     #test
     {
         @assert(main() == 676)
@@ -938,13 +938,13 @@ namespace compiler246
         @assert(a == 6)
         return a
     }
-    
+
     //#[PrintBc]
     func main1()->s32
     {
         return main()
     }
-    
+
     #test
     {
         @assert(main1() == 6)
@@ -957,18 +957,18 @@ namespace compiler249
     //
     #[ConstExpr]
     func value()->s32 { return 55; }
-    
+
     func main(a: s32 = value())->s32
     {
         return a
     }
-    
+
     //#[PrintBc]
     func main1()
     {
         @assert(main() == 55)
     }
-    
+
     #test
     {
         main1()
@@ -988,7 +988,7 @@ namespace compiler287
         let c  = dref b
         @assert(c == true)
     }
-    
+
     #test
     {
         var a: s32 = 666
@@ -1003,7 +1003,7 @@ namespace compiler310
 {
     //
     var g = false
-    
+
     //#[Swag.PrintBc]
     #test
     {
@@ -1080,7 +1080,7 @@ namespace compiler333
 {
     //
     var a: [2] s32 = [50, 60]
-    
+
     //#[Swag.PrintBc]
     #test
     {

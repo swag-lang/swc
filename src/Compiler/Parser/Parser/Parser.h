@@ -32,10 +32,19 @@ enum class ParserContextFlagsE : uint32_t
 };
 using ParserContextFlags = EnumFlags<ParserContextFlagsE>;
 
+enum class ParserGeneratedMode : uint8_t
+{
+    TopLevel,
+    Embedded,
+    Aggregate,
+    Enum,
+};
+
 class Parser
 {
 public:
-    void parse(TaskContext& ctx, Ast& ast);
+    void       parse(TaskContext& ctx, Ast& ast);
+    AstNodeRef parseGenerated(TaskContext& ctx, Ast& ast, SourceView& srcView, ParserGeneratedMode mode);
 
 private:
     ParserContextFlags contextFlags_   = ParserContextFlagsE::Zero;
@@ -90,6 +99,8 @@ private:
     Result     parseCompoundSeparator(AstNodeId blockNodeId, TokenId tokenEndId);
     SpanRef    parseCompoundContent(AstNodeId blockNodeId, TokenId tokenStartId);
     SpanRef    parseCompoundContentInside(AstNodeId blockNodeId, TokenRef openTokRef, TokenId tokenStartId);
+    AstNodeRef parseGeneratedValue(ParserGeneratedMode mode);
+    AstNodeRef parseGeneratedContent(ParserGeneratedMode mode);
 
     AstNodeRef       parseInitializerList(AstNodeRef nodeWhat);
     AstNodeRef       parseFunctionArguments(AstNodeRef nodeExpr);

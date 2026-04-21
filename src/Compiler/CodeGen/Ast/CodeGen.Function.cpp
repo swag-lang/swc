@@ -1081,6 +1081,8 @@ namespace
         return false;
     }
 
+    bool isCompilerFunctionDecl(CodeGen& codeGen);
+
     Result emitFunctionReturn(CodeGen& codeGen, const SymbolFunction& symbolFunc, AstNodeRef exprRef)
     {
         MicroBuilder&                          builder       = codeGen.builder();
@@ -1088,6 +1090,7 @@ namespace
         const CallConv&                        callConv      = CallConv::get(callConvKind);
         const TypeRef                          returnTypeRef = symbolFunc.returnTypeRef();
         const ABITypeNormalize::NormalizedType normalizedRet = ABITypeNormalize::normalize(codeGen.ctx(), callConv, returnTypeRef, ABITypeNormalize::Usage::Return);
+        const bool needsPersistentCompilerReturn = isCompilerFunctionDecl(codeGen) && CodeGenFunctionHelpers::needsPersistentCompilerRunReturn(codeGen.sema(), returnTypeRef);
 
         if (normalizedRet.isVoid)
         {
@@ -1108,7 +1111,11 @@ namespace
             // Hidden first argument points to caller-provided return storage.
             const MicroReg outputStorageReg = codeGen.currentFunctionIndirectReturnReg();
             SWC_ASSERT(outputStorageReg.isValid());
-            if (!delayReturnMaterialization && exprPayload.isAddress())
+            if (!delayReturnMaterialization && needsPersistentCompilerReturn)
+            {
+                CodeGenFunctionHelpers::emitPersistCompilerRunValue(codeGen, returnTypeRef, outputStorageReg, exprPayload.reg, codeGen.localStackBaseReg(), codeGen.localStackFrameSize());
+            }
+            else if (!delayReturnMaterialization && exprPayload.isAddress())
             {
                 if (exprPayload.reg != outputStorageReg)
                     CodeGenMemoryHelpers::emitMemCopy(codeGen, outputStorageReg, exprPayload.reg, normalizedRet.indirectSize);
@@ -1126,7 +1133,9 @@ namespace
             }
 
             SWC_RESULT(codeGen.emitDeferredActionsForReturn());
-            if (delayReturnMaterialization && exprPayload.isAddress() && exprPayload.reg != outputStorageReg)
+            if (delayReturnMaterialization && needsPersistentCompilerReturn)
+                CodeGenFunctionHelpers::emitPersistCompilerRunValue(codeGen, returnTypeRef, outputStorageReg, exprPayload.reg, codeGen.localStackBaseReg(), codeGen.localStackFrameSize());
+            else if (delayReturnMaterialization && exprPayload.isAddress() && exprPayload.reg != outputStorageReg)
                 CodeGenMemoryHelpers::emitMemCopy(codeGen, outputStorageReg, exprPayload.reg, normalizedRet.indirectSize);
             builder.emitLoadRegReg(callConv.intReturn, outputStorageReg, MicroOpBits::B64);
         }
@@ -1184,6 +1193,12 @@ namespace
         if (exprNode.isNot(AstNodeId::CallExpr))
             return false;
         return payload.isValue();
+    }
+
+    bool isCompilerFunctionDecl(CodeGen& codeGen)
+    {
+        const AstNodeRef declRef = codeGen.function().declNodeRef();
+        return declRef.isValid() && codeGen.node(declRef).is(AstNodeId::CompilerFunc);
     }
 
     Result emitCompilerRunBlockReturn(CodeGen& codeGen, AstNodeRef exprRef)
@@ -1328,6 +1343,8 @@ namespace
         const CallConv&                        callConv      = CallConv::get(callConvKind);
         const TypeRef                          returnTypeRef = symbolFunc.returnTypeRef();
         const ABITypeNormalize::NormalizedType normalizedRet = ABITypeNormalize::normalize(codeGen.ctx(), callConv, returnTypeRef, ABITypeNormalize::Usage::Return);
+        const bool needsPersistentCompilerBlockReturn = isCompilerRunBlockFunction(codeGen) && CodeGenFunctionHelpers::needsPersistentCompilerRunReturn(codeGen.sema(), returnTypeRef);
+        const bool needsPersistentCompilerReturn      = isCompilerFunctionDecl(codeGen) && CodeGenFunctionHelpers::needsPersistentCompilerRunReturn(codeGen.sema(), returnTypeRef);
 
         if (isCompilerRunBlockFunction(codeGen))
         {
@@ -1338,7 +1355,9 @@ namespace
                 SWC_ASSERT(exprPayload != nullptr);
                 if (normalizedRet.isIndirect)
                 {
-                    if (exprPayload->isAddress())
+                    if (needsPersistentCompilerBlockReturn)
+                        CodeGenFunctionHelpers::emitPersistCompilerRunValue(codeGen, returnTypeRef, outputStorageReg, exprPayload->reg, codeGen.localStackBaseReg(), codeGen.localStackFrameSize());
+                    else if (exprPayload->isAddress())
                         CodeGenMemoryHelpers::emitMemCopy(codeGen, outputStorageReg, exprPayload->reg, normalizedRet.indirectSize);
                     else
                     {
@@ -1350,6 +1369,8 @@ namespace
                 else
                 {
                     ABICall::storeValueToReturnBuffer(builder, callConvKind, outputStorageReg, exprPayload->reg, exprPayload->isAddress(), normalizedRet);
+                    if (needsPersistentCompilerBlockReturn)
+                        CodeGenFunctionHelpers::emitPersistCompilerRunValue(codeGen, returnTypeRef, outputStorageReg, outputStorageReg, codeGen.localStackBaseReg(), codeGen.localStackFrameSize());
                 }
             }
 
@@ -1372,7 +1393,9 @@ namespace
         {
             const MicroReg outputStorageReg = codeGen.currentFunctionIndirectReturnReg();
             SWC_ASSERT(outputStorageReg.isValid());
-            if (exprPayload->isAddress())
+            if (needsPersistentCompilerReturn)
+                CodeGenFunctionHelpers::emitPersistCompilerRunValue(codeGen, returnTypeRef, outputStorageReg, exprPayload->reg, codeGen.localStackBaseReg(), codeGen.localStackFrameSize());
+            else if (exprPayload->isAddress())
                 CodeGenMemoryHelpers::emitMemCopy(codeGen, outputStorageReg, exprPayload->reg, normalizedRet.indirectSize);
             else
             {

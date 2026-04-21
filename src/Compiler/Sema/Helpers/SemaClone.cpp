@@ -579,6 +579,14 @@ AstNodeRef AstCompilerShortFunc::semaClone(Sema& sema, const CloneContext& clone
     return newRef;
 }
 
+AstNodeRef AstCompilerFunc::semaClone(Sema& sema, const CloneContext& cloneContext) const
+{
+    const AstNodeRef newRef = cloneNodeCopy<AstNodeId::CompilerFunc>(sema, *this);
+    auto&            cloned = sema.node(newRef).cast<AstCompilerFunc>();
+    cloned.nodeBodyRef      = cloneNodeRef(sema, nodeBodyRef, cloneContextAsInline(cloneContext));
+    return newRef;
+}
+
 AstNodeRef AstCompilerMessageFunc::semaClone(Sema& sema, const CloneContext& cloneContext) const
 {
     const AstNodeRef newRef = cloneNodeCopy<AstNodeId::CompilerMessageFunc>(sema, *this);

@@ -349,6 +349,7 @@ struct AstCompilerFunc : AstNodeT<AstNodeId::CompilerFunc>
     AstNodeRef nodeBodyRef;
 
     void          collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeBodyRef}); }
+    AstNodeRef    semaClone(Sema& sema, const CloneContext& cloneContext) const;
     Result        semaPreDecl(Sema& sema);
     static Result semaPreNode(Sema& sema);
     Result        semaPostNode(Sema& sema) const;
@@ -427,6 +428,8 @@ struct AstCompilerShortFunc : AstNodeT<AstNodeId::CompilerShortFunc>
     AstNodeRef nodeBodyRef;
 
     void       collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeBodyRef}); }
+    Result     semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;
+    Result     semaPostNode(Sema& sema) const;
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 

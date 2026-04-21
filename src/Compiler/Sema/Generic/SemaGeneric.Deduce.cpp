@@ -16,10 +16,10 @@ namespace
     Sema& semaForFunctionDecl(Sema& sema, const SymbolFunction& fn, std::unique_ptr<Sema>& ownedSema)
     {
         const SourceView& srcView = sema.compiler().srcView(fn.srcViewRef());
-        if (sema.ast().srcView().fileRef() == srcView.fileRef())
+        if (sema.ast().srcView().fileRef() == srcView.ownerFileRef())
             return sema;
 
-        SourceFile& sourceFile = sema.compiler().file(srcView.fileRef());
+        SourceFile& sourceFile = sema.compiler().file(srcView.ownerFileRef());
         AstNodeRef  declRef    = fn.declNodeRef();
         if (declRef.isInvalid() && fn.decl())
             declRef = fn.decl()->nodeRef(sourceFile.ast());

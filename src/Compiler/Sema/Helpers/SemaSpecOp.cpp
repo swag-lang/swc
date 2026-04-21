@@ -528,7 +528,7 @@ namespace
     Result reportSpecOpError(Sema& sema, const SymbolFunction& sym, SpecOpKind kind)
     {
         const auto& codeRef = sym.codeRef();
-        Diagnostic  diag    = Diagnostic::get(DiagnosticId::sema_err_spec_op_signature, sema.ast().srcView().fileRef());
+        Diagnostic  diag    = Diagnostic::get(DiagnosticId::sema_err_spec_op_signature, sema.srcView(codeRef.srcViewRef).fileRef());
         diag.last().addSpan(sema.srcView(codeRef.srcViewRef).tokenCodeRange(sema.ctx(), codeRef.tokRef), "", DiagnosticSeverity::Error);
         SemaError::setReportArguments(sema, diag, codeRef);
         SemaError::setReportArguments(sema, diag, &sym);

@@ -841,6 +841,54 @@ bool CompilerInstance::tryRegisterReportedDiagnostic(const std::string_view mess
     return reportedDiagnostics_.insert(Utf8{message}).second;
 }
 
+Result CompilerInstance::appendGeneratedSource(GeneratedSourceAppendResult& outResult, Utf8& outBecause, const fs::path& directory, const std::string_view sectionText, const uint32_t codeOffsetInSection)
+{
+    outResult  = {};
+    outBecause.clear();
+
+    SWC_ASSERT(directory.is_absolute());
+    SWC_ASSERT(codeOffsetInSection <= sectionText.size());
+
+    PerThreadData& td = perThreadData_[JobManager::threadIndex()];
+    if (!td.generatedSourceInitialized || !FileSystem::pathEquals(td.generatedSourcePath.parent_path(), directory))
+    {
+        td.generatedSourcePath        = (directory / std::format("thread-{}.swg", JobManager::threadIndex())).lexically_normal();
+        td.generatedSourceContent.clear();
+        td.generatedSourceInitialized = true;
+    }
+
+    outResult.path = td.generatedSourcePath;
+
+    std::error_code ec;
+    fs::create_directories(directory, ec);
+    if (ec)
+    {
+        outBecause = FileSystem::normalizeSystemMessage(ec);
+        return Result::Error;
+    }
+
+    uint32_t sectionStartOffset = static_cast<uint32_t>(td.generatedSourceContent.size());
+    if (!td.generatedSourceContent.empty() && td.generatedSourceContent.back() != '\n')
+    {
+        td.generatedSourceContent += '\n';
+        sectionStartOffset++;
+    }
+
+    outResult.codeStartOffset = sectionStartOffset + codeOffsetInSection;
+    td.generatedSourceContent += sectionText;
+
+    FileSystem::IoErrorInfo ioError;
+    if (FileSystem::writeBinaryFile(td.generatedSourcePath, td.generatedSourceContent.data(), td.generatedSourceContent.size(), ioError) != Result::Continue)
+    {
+        outBecause = FileSystem::describeIoFailure(ioError);
+        return Result::Error;
+    }
+
+    outResult.path     = td.generatedSourcePath;
+    outResult.snapshot = td.generatedSourceContent.view();
+    return Result::Continue;
+}
+
 void CompilerInstance::registerInMemoryFile(fs::path path, const std::string_view content)
 {
     if (!path.is_absolute())

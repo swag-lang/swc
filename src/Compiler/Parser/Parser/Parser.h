@@ -44,7 +44,7 @@ class Parser
 {
 public:
     void       parse(TaskContext& ctx, Ast& ast);
-    AstNodeRef parseGenerated(TaskContext& ctx, Ast& ast, SourceView& srcView, ParserGeneratedMode mode);
+    AstNodeRef parseGenerated(TaskContext& ctx, Ast& ast, SourceView& srcView, ParserGeneratedMode mode, TokenRef startTokRef = TokenRef::invalid());
 
 private:
     ParserContextFlags contextFlags_   = ParserContextFlagsE::Zero;

@@ -99,7 +99,7 @@ AstNodeRef Parser::parseGeneratedContent(const ParserGeneratedMode mode)
     SWC_UNREACHABLE();
 }
 
-AstNodeRef Parser::parseGenerated(TaskContext& ctx, Ast& ast, SourceView& srcView, const ParserGeneratedMode mode)
+AstNodeRef Parser::parseGenerated(TaskContext& ctx, Ast& ast, SourceView& srcView, const ParserGeneratedMode mode, const TokenRef startTokRef)
 {
     SWC_MEM_SCOPE("Frontend/Parser");
 #if SWC_HAS_STATS
@@ -111,7 +111,7 @@ AstNodeRef Parser::parseGenerated(TaskContext& ctx, Ast& ast, SourceView& srcVie
 
     firstToken_     = &srcView.tokens().front();
     lastToken_      = &srcView.tokens().back();
-    curToken_       = firstToken_;
+    curToken_       = startTokRef.isValid() ? &srcView.tokens()[startTokRef.get()] : firstToken_;
     depthParen_     = 0;
     depthBracket_   = 0;
     depthCurly_     = 0;

@@ -260,24 +260,78 @@ namespace
         return "generated-ast";
     }
 
-    fs::path compilerAstGeneratedDirectory()
+    fs::path compilerAstGeneratedDirectory(const Sema& sema)
     {
+        if (!sema.ctx().cmdLine().genDir.empty())
+            return sema.ctx().cmdLine().genDir;
+
         return (Os::getTemporaryPath() / "swag" / compilerAstGeneratedDirectoryName().view()).lexically_normal();
     }
 
-    fs::path compilerAstGeneratedPath(Sema& sema, AstNodeRef nodeRef)
+    std::string_view compilerAstLineEnding(const SourceView& srcView)
     {
-        const SourceCodeRange   codeRange = sema.node(nodeRef).codeRange(sema.ctx());
-        const SourceView&       srcView   = sema.srcView(sema.node(nodeRef).srcViewRef());
-        const SourceFile*       file      = srcView.file();
-        const Utf8              baseName  = file ? FileSystem::sanitizeFileName(Utf8{file->path().stem().string()}) : Utf8{"generated"};
-        const uint32_t          uniqueId  = sema.compiler().atomicId().fetch_add(1, std::memory_order_relaxed);
-        return compilerAstGeneratedDirectory() / std::format("{}_l{}_c{}_p{}_{}.swg",
-                                                             baseName.view(),
-                                                             codeRange.line,
-                                                             codeRange.column,
-                                                             Os::currentProcessId(),
-                                                             uniqueId);
+        const std::string_view source = srcView.stringView();
+        if (source.find("\r\n") != std::string_view::npos)
+            return "\r\n";
+
+        return "\n";
+    }
+
+    Utf8 compilerAstSourcePath(const SourceView& srcView)
+    {
+        if (const SourceFile* file = srcView.file())
+            return Utf8{file->path().string()};
+
+        return "<unknown>";
+    }
+
+    Utf8 buildCompilerAstGeneratedSection(Sema& sema, AstNodeRef ownerRef, std::string_view generatedCode, uint32_t& outCodeOffset)
+    {
+        const AstNode&         ownerNode    = sema.node(ownerRef);
+        const SourceView&      ownerSrcView = sema.srcView(ownerNode.srcViewRef());
+        const SourceCodeRange  codeRange    = ownerNode.codeRange(sema.ctx());
+        const std::string_view eol          = compilerAstLineEnding(ownerSrcView);
+        const Utf8             sourcePath   = compilerAstSourcePath(ownerSrcView);
+
+        Utf8 section;
+        section.reserve(sourcePath.size() + generatedCode.size() + 64);
+        section += "// #ast source: ";
+        section += sourcePath;
+        section += eol;
+        section += "// #ast line: ";
+        section += std::to_string(codeRange.line);
+        section += eol;
+
+        outCodeOffset = static_cast<uint32_t>(section.size());
+        section += generatedCode;
+        if (!section.empty() && section.back() != '\n' && section.back() != '\r')
+            section += eol;
+
+        return section;
+    }
+
+    uint32_t compilerAstTokenStartOffset(const SourceView& srcView, const Token& token)
+    {
+        if (token.id == TokenId::Identifier)
+            return srcView.identifiers()[token.byteStart].byteStart;
+
+        return token.byteStart;
+    }
+
+    TokenRef findCompilerAstStartTokenRef(const SourceView& srcView, const uint32_t codeStartOffset)
+    {
+        const uint32_t numTokens = srcView.numTokens();
+        if (!numTokens)
+            return TokenRef::invalid();
+
+        for (uint32_t i = 0; i < numTokens; i++)
+        {
+            const TokenRef tokRef(i);
+            if (compilerAstTokenStartOffset(srcView, srcView.token(tokRef)) >= codeStartOffset)
+                return tokRef;
+        }
+
+        return TokenRef(numTokens - 1);
     }
 
     ParserGeneratedMode compilerAstParseMode(const Sema& sema, AstNodeRef ownerRef)
@@ -316,23 +370,25 @@ namespace
         return parseModeForNodeId(parentNode.id());
     }
 
-    Result createCompilerAstGeneratedSource(Sema& sema, AstNodeRef ownerRef, std::string_view generatedCode, SourceView*& outSrcView)
+    Result createCompilerAstGeneratedSource(Sema& sema, AstNodeRef ownerRef, std::string_view generatedCode, SourceView*& outSrcView, TokenRef& outStartTokRef)
     {
-        outSrcView = nullptr;
+        outSrcView     = nullptr;
+        outStartTokRef = TokenRef::invalid();
 
-        const fs::path directory = compilerAstGeneratedDirectory();
-        std::error_code ec;
-        fs::create_directories(directory, ec);
-        if (ec)
-            return reportCompilerFileError(sema, DiagnosticId::sema_err_ast_file_write_failed, ownerRef, directory, FileSystem::normalizeSystemMessage(ec));
+        uint32_t sectionCodeOffset = 0;
+        const Utf8 sectionText = buildCompilerAstGeneratedSection(sema, ownerRef, generatedCode, sectionCodeOffset);
+        const fs::path directory = compilerAstGeneratedDirectory(sema);
 
-        const fs::path generatedPath = compilerAstGeneratedPath(sema, ownerRef);
-        FileSystem::IoErrorInfo ioError;
-        if (FileSystem::writeBinaryFile(generatedPath, generatedCode.data(), generatedCode.size(), ioError) != Result::Continue)
-            return reportCompilerFileError(sema, DiagnosticId::sema_err_ast_file_write_failed, ownerRef, generatedPath, FileSystem::describeIoFailure(ioError));
+        CompilerInstance::GeneratedSourceAppendResult appendResult;
+        Utf8                                          because;
+        if (sema.compiler().appendGeneratedSource(appendResult, because, directory, sectionText.view(), sectionCodeOffset) != Result::Continue)
+        {
+            const fs::path errorPath = appendResult.path.empty() ? directory : appendResult.path;
+            return reportCompilerFileError(sema, DiagnosticId::sema_err_ast_file_write_failed, ownerRef, errorPath, because);
+        }
 
-        sema.compiler().registerInMemoryFile(generatedPath, generatedCode);
-        SourceFile& sourceFile = sema.compiler().addFile(generatedPath, FileFlagsE::CustomSrc | FileFlagsE::SkipFmt);
+        sema.compiler().registerInMemoryFile(appendResult.path, appendResult.snapshot);
+        SourceFile& sourceFile = sema.compiler().addFile(appendResult.path, FileFlagsE::CustomSrc | FileFlagsE::SkipFmt);
         SWC_RESULT(sourceFile.loadContent(sema.ctx()));
 
         SourceView& srcView = sourceFile.ast().srcView();
@@ -347,7 +403,8 @@ namespace
         if (srcView.mustSkip())
             return Result::Error;
 
-        outSrcView = &srcView;
+        outStartTokRef = findCompilerAstStartTokenRef(srcView, appendResult.codeStartOffset);
+        outSrcView     = &srcView;
         return Result::Continue;
     }
 
@@ -356,14 +413,15 @@ namespace
         outGeneratedRef = AstNodeRef::invalid();
 
         SourceView* generatedSrcView = nullptr;
-        SWC_RESULT(createCompilerAstGeneratedSource(sema, ownerRef, generatedCode, generatedSrcView));
+        TokenRef    generatedStartTokRef;
+        SWC_RESULT(createCompilerAstGeneratedSource(sema, ownerRef, generatedCode, generatedSrcView, generatedStartTokRef));
         SWC_ASSERT(generatedSrcView != nullptr);
         if (!generatedSrcView)
             return Result::Error;
 
         const uint64_t errorsBefore = Stats::getNumErrors();
         Parser         parser;
-        outGeneratedRef = parser.parseGenerated(sema.ctx(), sema.ast(), *generatedSrcView, compilerAstParseMode(sema, ownerRef));
+        outGeneratedRef = parser.parseGenerated(sema.ctx(), sema.ast(), *generatedSrcView, compilerAstParseMode(sema, ownerRef), generatedStartTokRef);
         if (Stats::getNumErrors() != errorsBefore)
             return Result::Error;
         if (!outGeneratedRef.isValid())

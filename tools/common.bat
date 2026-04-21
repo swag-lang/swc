@@ -12,6 +12,7 @@ set "TOOLS_DIR=%~1"
 for %%I in ("%TOOLS_DIR%..") do set "ROOT=%%~fI"
 set "OUTPUT_ROOT=%ROOT%\bin\.output"
 set "TMP_ROOT=%ROOT%\bin\.tmp"
+set "GEN_DIR=%TMP_ROOT%\gen"
 set "SWC_EXE=swc"
 set "SWC_MODE=release"
 if /I "%~2"=="dm" (

@@ -31,6 +31,13 @@ struct CommandLine;
 class CompilerInstance
 {
 public:
+    struct GeneratedSourceAppendResult
+    {
+        fs::path         path;
+        std::string_view snapshot;
+        uint32_t         codeStartOffset = 0;
+    };
+
     CompilerInstance(const Global& global, const CommandLine& cmdLine);
     ~CompilerInstance();
 
@@ -125,6 +132,7 @@ public:
     void                            registerRuntimeFunctionSymbol(IdentifierRef idRef, SymbolFunction* symbol);
     SymbolFunction*                 runtimeFunctionSymbol(IdentifierRef idRef) const;
     bool                            tryRegisterReportedDiagnostic(std::string_view message);
+    Result                          appendGeneratedSource(GeneratedSourceAppendResult& outResult, Utf8& outBecause, const fs::path& directory, std::string_view sectionText, uint32_t codeOffsetInSection);
     void                            registerInMemoryFile(fs::path path, std::string_view content);
 
     SourceFile& addFile(fs::path path, FileFlags flags);
@@ -204,6 +212,9 @@ private:
     {
         Arena            arena;
         Runtime::Context runtimeContext{};
+        fs::path         generatedSourcePath;
+        Utf8             generatedSourceContent;
+        bool             generatedSourceInitialized = false;
     };
 
     std::vector<PerThreadData>                         perThreadData_;

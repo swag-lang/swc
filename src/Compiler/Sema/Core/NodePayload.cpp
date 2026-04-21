@@ -217,6 +217,8 @@ ConstantRef NodePayload::getConstantRef(const TaskContext& ctx, AstNodeRef nodeR
         case NodePayloadKind::ConstantRef:
         {
             ConstantRef value{info.ref};
+            if (!value.isValid())
+                return ConstantRef::invalid();
 #if SWC_HAS_REF_DEBUG_INFO
             value.dbgPtr = &ctx.cstMgr().get(value);
 #endif

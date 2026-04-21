@@ -1109,8 +1109,7 @@ namespace
         if (normalizedRet.isIndirect)
         {
             // Hidden first argument points to caller-provided return storage.
-            const MicroReg outputStorageReg = codeGen.currentFunctionIndirectReturnReg();
-            SWC_ASSERT(outputStorageReg.isValid());
+            const MicroReg outputStorageReg = codeGen.ensureCurrentFunctionIndirectReturnReg(callConvKind);
             if (!delayReturnMaterialization && needsPersistentCompilerReturn)
             {
                 CodeGenFunctionHelpers::emitPersistCompilerRunValue(codeGen, returnTypeRef, outputStorageReg, exprPayload.reg, codeGen.localStackBaseReg(), codeGen.localStackFrameSize());
@@ -1208,10 +1207,8 @@ namespace
         const CallConv&                        callConv         = CallConv::get(callConvKind);
         const TypeRef                          returnTypeRef    = symbolFunc.returnTypeRef();
         const ABITypeNormalize::NormalizedType normalizedRet    = ABITypeNormalize::normalize(codeGen.ctx(), callConv, returnTypeRef, ABITypeNormalize::Usage::Return);
-        const MicroReg                         outputStorageReg = codeGen.currentFunctionIndirectReturnReg();
+        const MicroReg                         outputStorageReg = codeGen.ensureCurrentFunctionIndirectReturnReg(callConvKind);
         MicroBuilder&                          builder          = codeGen.builder();
-
-        SWC_ASSERT(outputStorageReg.isValid());
 
         if (exprRef.isValid() && !normalizedRet.isVoid)
         {
@@ -1348,8 +1345,7 @@ namespace
 
         if (isCompilerRunBlockFunction(codeGen))
         {
-            const MicroReg outputStorageReg = codeGen.currentFunctionIndirectReturnReg();
-            SWC_ASSERT(outputStorageReg.isValid());
+            const MicroReg outputStorageReg = codeGen.ensureCurrentFunctionIndirectReturnReg(callConvKind);
             if (!normalizedRet.isVoid)
             {
                 SWC_ASSERT(exprPayload != nullptr);
@@ -1391,8 +1387,7 @@ namespace
         SWC_ASSERT(exprPayload != nullptr);
         if (normalizedRet.isIndirect)
         {
-            const MicroReg outputStorageReg = codeGen.currentFunctionIndirectReturnReg();
-            SWC_ASSERT(outputStorageReg.isValid());
+            const MicroReg outputStorageReg = codeGen.ensureCurrentFunctionIndirectReturnReg(callConvKind);
             if (needsPersistentCompilerReturn)
                 CodeGenFunctionHelpers::emitPersistCompilerRunValue(codeGen, returnTypeRef, outputStorageReg, exprPayload->reg, codeGen.localStackBaseReg(), codeGen.localStackFrameSize());
             else if (exprPayload->isAddress())

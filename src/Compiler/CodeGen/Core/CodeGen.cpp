@@ -681,6 +681,22 @@ CodeGenNodePayload CodeGen::resolveLocalStackPayload(const SymbolVariable& sym, 
     return localPayload;
 }
 
+MicroReg CodeGen::ensureCurrentFunctionIndirectReturnReg(const CallConvKind callConvKind)
+{
+    if (currentFunctionIndirectReturnReg_.isValid())
+        return currentFunctionIndirectReturnReg_;
+
+    const CallConv& callConv = CallConv::get(callConvKind);
+    SWC_ASSERT(!callConv.intArgRegs.empty());
+
+    MicroBuilder&           builder = this->builder();
+    const ScopedDebugNoStep noStep(builder, true);
+    const MicroReg          outputStorageReg = nextVirtualIntRegister();
+    builder.emitLoadRegReg(outputStorageReg, callConv.intArgRegs[0], MicroOpBits::B64);
+    currentFunctionIndirectReturnReg_ = outputStorageReg;
+    return outputStorageReg;
+}
+
 MicroReg CodeGen::runtimeStorageAddressReg(AstNodeRef nodeRef)
 {
     const CodeGenNodePayload* nodePayload = sema().codeGenPayload<CodeGenNodePayload>(nodeRef);
@@ -689,10 +705,7 @@ MicroReg CodeGen::runtimeStorageAddressReg(AstNodeRef nodeRef)
     SWC_ASSERT(nodePayload != nullptr);
     SWC_ASSERT(nodePayload->runtimeStorageSym != nullptr);
     if (CodeGenFunctionHelpers::usesCallerReturnStorage(*this, *nodePayload->runtimeStorageSym))
-    {
-        SWC_ASSERT(currentFunctionIndirectReturnReg().isValid());
-        return currentFunctionIndirectReturnReg();
-    }
+        return ensureCurrentFunctionIndirectReturnReg(function().callConvKind());
 
     const CodeGenNodePayload storagePayload = resolveLocalStackPayload(*(nodePayload->runtimeStorageSym), !inDeferredEmission());
     SWC_ASSERT(storagePayload.isAddress());

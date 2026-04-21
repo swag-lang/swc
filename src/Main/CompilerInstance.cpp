@@ -849,15 +849,30 @@ Result CompilerInstance::appendGeneratedSource(GeneratedSourceAppendResult& outR
     SWC_ASSERT(directory.is_absolute());
     SWC_ASSERT(codeOffsetInSection <= sectionText.size());
 
-    PerThreadData& td = perThreadData_[JobManager::threadIndex()];
+    const auto     threadIndex = static_cast<uint32_t>(JobManager::threadIndex());
+    PerThreadData& td          = perThreadData_[threadIndex];
+    bool           resetFile   = false;
     if (!td.generatedSourceInitialized || !FileSystem::pathEquals(td.generatedSourcePath.parent_path(), directory))
     {
-        td.generatedSourcePath        = (directory / std::format("thread-{}-p{}.swg", JobManager::threadIndex(), Os::currentProcessId())).lexically_normal();
+        td.generatedSourcePath        = (directory / std::format("thread-{}-c{}-p{}.swg", threadIndex, jobClientId_, Os::currentProcessId())).lexically_normal();
         td.generatedSourceContent.clear();
         td.generatedSourceInitialized = true;
+        resetFile                     = true;
     }
 
     outResult.path = td.generatedSourcePath;
+
+    uint32_t sectionStartOffset = static_cast<uint32_t>(td.generatedSourceContent.size());
+    bool     prependLineBreak   = false;
+    if (!td.generatedSourceContent.empty() && td.generatedSourceContent.back() != '\n')
+    {
+        td.generatedSourceContent += '\n';
+        sectionStartOffset++;
+        prependLineBreak = true;
+    }
+
+    outResult.codeStartOffset = sectionStartOffset + codeOffsetInSection;
+    td.generatedSourceContent += sectionText;
 
     std::error_code ec;
     fs::create_directories(directory, ec);
@@ -867,20 +882,43 @@ Result CompilerInstance::appendGeneratedSource(GeneratedSourceAppendResult& outR
         return Result::Error;
     }
 
-    uint32_t sectionStartOffset = static_cast<uint32_t>(td.generatedSourceContent.size());
-    if (!td.generatedSourceContent.empty() && td.generatedSourceContent.back() != '\n')
+    // Generated files are append-only per worker thread, which keeps writes linear and contention-free.
+    std::ios::openmode openMode = std::ios::binary;
+    openMode |= resetFile ? std::ios::trunc : std::ios::app;
+    std::ofstream generatedStream(td.generatedSourcePath, openMode);
+    if (!generatedStream.is_open())
     {
-        td.generatedSourceContent += '\n';
-        sectionStartOffset++;
+        outBecause = FileSystem::currentSystemMessage();
+        if (outBecause.empty())
+            outBecause = FileSystem::describeIoProblem(FileSystem::IoProblem::OpenWrite);
+        else
+            outBecause = FileSystem::normalizeSystemMessage(outBecause);
+        return Result::Error;
     }
 
-    outResult.codeStartOffset = sectionStartOffset + codeOffsetInSection;
-    td.generatedSourceContent += sectionText;
+    if (prependLineBreak)
+        generatedStream.put('\n');
 
-    FileSystem::IoErrorInfo ioError;
-    if (FileSystem::writeBinaryFile(td.generatedSourcePath, td.generatedSourceContent.data(), td.generatedSourceContent.size(), ioError) != Result::Continue)
+    if (!sectionText.empty())
+        generatedStream.write(sectionText.data(), static_cast<std::streamsize>(sectionText.size()));
+
+    if (!generatedStream)
     {
-        outBecause = FileSystem::describeIoFailure(ioError);
+        outBecause = FileSystem::currentSystemMessage();
+        if (outBecause.empty())
+            outBecause = FileSystem::describeIoProblem(FileSystem::IoProblem::Write);
+        else
+            outBecause = FileSystem::normalizeSystemMessage(outBecause);
+        return Result::Error;
+    }
+    generatedStream.close();
+    if (!generatedStream)
+    {
+        outBecause = FileSystem::currentSystemMessage();
+        if (outBecause.empty())
+            outBecause = FileSystem::describeIoProblem(FileSystem::IoProblem::CloseWrite);
+        else
+            outBecause = FileSystem::normalizeSystemMessage(outBecause);
         return Result::Error;
     }
 

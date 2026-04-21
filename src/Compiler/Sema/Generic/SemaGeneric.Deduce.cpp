@@ -150,6 +150,11 @@ namespace
         }
     }
 
+    bool genericFunctionParamsExposeReceiver(const Sema& sema, std::span<const SemaGeneric::GenericFunctionParamDesc> params)
+    {
+        return !params.empty() && params.front().idRef == sema.idMgr().predefined(IdentifierManager::PredefinedName::Me);
+    }
+
     bool tryBindGenericTypeParam(Sema&                                          sema,
                                  std::span<const SemaGeneric::GenericParamDesc> params,
                                  std::span<SemaGeneric::GenericResolvedArg>     resolvedArgs,
@@ -616,7 +621,7 @@ namespace SemaGeneric
         collectFunctionParamDescs(declSema, root, *decl, params);
 
         SmallVector<GenericCallArgEntry> mapping;
-        const bool                       prependUfcsArg = ufcsArg.isValid() && !root.isMethod();
+        const bool                       prependUfcsArg = ufcsArg.isValid() && (!root.isMethod() || genericFunctionParamsExposeReceiver(sema, params.span()));
         if (!buildGenericCallArgMapping(sema, params.span(), args, ufcsArg, prependUfcsArg, mapping))
             return Result::Continue;
 

@@ -243,6 +243,7 @@ namespace
     {
         bool hasDefault = false;
         bool isVariadic = false;
+        bool isReceiver = false;
     };
 
     AstNodeRef getCallArg(uint32_t callArgIndex, std::span<AstNodeRef> args, AstNodeRef ufcsArg)
@@ -1154,7 +1155,12 @@ namespace
         }
 
         if (paramNode->is(AstNodeId::FunctionParamMe))
-            outParams.push_back({});
+            outParams.push_back({.isReceiver = true});
+    }
+
+    bool genericRootParamsExposeReceiver(std::span<const GenericRootCallParam> params)
+    {
+        return !params.empty() && params.front().isReceiver;
     }
 
     uint32_t minRequiredGenericRootArgs(std::span<const GenericRootCallParam> params)
@@ -1199,7 +1205,8 @@ namespace
                 appendGenericRootCallParams(declSema, paramRef, params);
 
             const uint32_t numParams = static_cast<uint32_t>(params.size());
-            const uint32_t numArgs   = countCallArgs(args, ufcsArg);
+            const bool     prependUfcsArg = ufcsArg.isValid() && (!fn.isMethod() || genericRootParamsExposeReceiver(params.span()));
+            const uint32_t numArgs        = static_cast<uint32_t>(args.size()) + (prependUfcsArg ? 1u : 0u);
             const bool     variadic  = !params.empty() && params.back().isVariadic;
 
             if (!variadic && numArgs > numParams)

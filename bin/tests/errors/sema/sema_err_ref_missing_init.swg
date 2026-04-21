@@ -1,9 +1,15 @@
 #global fileprivate
 
-struct A {}
+struct S {}
+
+// References must be bound at declaration time; every reference-typed binding without an initializer is an error.
+#test
+{
+    var a: S
+    var b: const &S              // swc-expected-error {{sema_err_ref_missing_init}}
+}
 
 #test
 {
-    var a: A
-    var b: const &A // swc-expected-error {{sema_err_ref_missing_init}}
+    var x: const &s32            // swc-expected-error {{sema_err_ref_missing_init}}
 }

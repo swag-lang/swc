@@ -2,7 +2,8 @@
 
 namespace NS {}
 
+// '#alignof' cannot be applied to things that are not types or typed expressions (namespaces, attributes, ...).
 #test
 {
-    const x = #alignof(NS) // swc-expected-error {{sema_err_invalid_alignof}}
+    const a = #alignof(NS)                   // swc-expected-error {{sema_err_invalid_alignof}}
 }

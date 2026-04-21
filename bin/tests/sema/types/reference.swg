@@ -57,7 +57,26 @@ struct RefPair
     y: s32
 }
 
+struct RefFloatBox
+{
+    value: f32
+}
+
 func sumConstPair(value: const &RefPair)->s32 { return value.x + value.y }
+func(T) addRefValue(value: &T, rhs: T)->T { return value + rhs }
+func(T) dampRefValue(currentVelocity: &T, omega, clampedChange, deltaTime: T)->T
+{
+    let temp = (currentVelocity + omega * clampedChange) * deltaTime
+    return temp
+}
+
+func(T) dampRefValueWithLiterals(current, target: T, currentVelocity: &T, smoothTime, deltaTime: T)->T
+{
+    let omega = 2.0 / smoothTime
+    let change = current - target
+    let temp = (currentVelocity + omega * change) * deltaTime
+    return temp
+}
 
 #test
 {
@@ -74,4 +93,49 @@ func sumConstPair(value: const &RefPair)->s32 { return value.x + value.y }
 
     #assert(#typeof(tupleSum) == s32)
     #assert(#typeof(pairSum) == s32)
+}
+
+#test
+{
+    var value: f32 = 1.5
+    let valueRef: const &f32 = &value
+    let copied = cast(f32) valueRef
+    let sum = valueRef + 2.5'f32
+
+    #assert(#typeof(copied) == f32)
+    #assert(#typeof(sum) == f32)
+}
+
+#test
+{
+    var value: f32 = 1.5
+    let sum = addRefValue(&value, 2.5'f32)
+
+    #assert(#typeof(sum) == f32)
+}
+
+#test
+{
+    var value: f32 = 1.5
+    let temp = dampRefValue(&value, 2.0'f32, 3.0'f32, 0.5'f32)
+
+    #assert(#typeof(temp) == f32)
+}
+
+#test
+{
+    var box: RefFloatBox = {value: 1.5}
+    let sum = addRefValue(&box.value, 2.5'f32)
+    let temp = dampRefValue(&box.value, 2.0'f32, 3.0'f32, 0.5'f32)
+
+    #assert(#typeof(sum) == f32)
+    #assert(#typeof(temp) == f32)
+}
+
+#test
+{
+    var value: f32 = 1.5
+    let temp = dampRefValueWithLiterals(4.0'f32, 1.0'f32, &value, 0.5'f32, 0.25'f32)
+
+    #assert(#typeof(temp) == f32)
 }

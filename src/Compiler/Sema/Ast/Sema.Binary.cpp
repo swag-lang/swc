@@ -20,6 +20,30 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    bool shouldReadReferenceValue(Sema& sema, TypeRef typeRef)
+    {
+        if (!typeRef.isValid())
+            return false;
+
+        const TypeRef normalizedTypeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), typeRef);
+        if (!normalizedTypeRef.isValid())
+            return false;
+
+        const TypeInfo& normalizedType = sema.typeMgr().get(normalizedTypeRef);
+        return normalizedType.isReference() && !normalizedType.isMoveReference();
+    }
+
+    Result readReferenceValue(Sema& sema, SemaNodeView& view)
+    {
+        if (!shouldReadReferenceValue(sema, view.typeRef()))
+            return Result::Continue;
+
+        const TypeRef normalizedTypeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), view.typeRef());
+        const TypeRef valueTypeRef      = sema.typeMgr().get(normalizedTypeRef).payloadTypeRef();
+        SWC_RESULT(Cast::cast(sema, view, valueTypeRef, CastKind::Implicit));
+        return Result::Continue;
+    }
+
     Result checkIntegerModifiers(Sema& sema, const AstBinaryExpr& node, const SemaNodeView& nodeLeftView)
     {
         if (!node.modifierFlags.hasAny({AstModifierFlagsE::Wrap, AstModifierFlagsE::Promote}))
@@ -514,6 +538,8 @@ Result AstBinaryExpr::semaPostNode(Sema& sema)
     if (handledSpecialOp)
         return Result::Continue;
 
+    SWC_RESULT(readReferenceValue(sema, nodeLeftView));
+    SWC_RESULT(readReferenceValue(sema, nodeRightView));
     SWC_RESULT(promote(sema, op, sema.curNodeRef(), *this, nodeLeftView, nodeRightView));
     SWC_RESULT(check(sema, op, sema.curNodeRef(), *this, nodeLeftView, nodeRightView));
     SWC_RESULT(castAndResultType(sema, op, *this, nodeLeftView, nodeRightView));

@@ -102,8 +102,9 @@ alias ConstF64 = Const'f64
         let newTarget     = current - clampedChange
 
         // Calculate new velocity and position
-        let temp = (currentVelocity + omega * clampedChange) * deltaTime
-        currentVelocity = (currentVelocity - omega * temp) * exp
+        let currentVelocityValue = cast(T) currentVelocity
+        let temp = (currentVelocityValue + omega * clampedChange) * deltaTime
+        currentVelocity = (currentVelocityValue - omega * temp) * exp
         var result = newTarget + (clampedChange + temp) * exp
 
         // Prevent overshooting

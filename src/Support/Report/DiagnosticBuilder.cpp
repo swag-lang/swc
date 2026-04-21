@@ -333,8 +333,16 @@ void DiagnosticBuilder::writeHighlightedMessage(DiagnosticSeverity sev, std::str
             // Watch for escaped '\'' and closing '\''
             if (ch == '\\')
             {
-                // Lookahead for escaped quote
-                if (i + 1 < msg.size() && msg[i + 1] == '\'')
+                // Lookahead: '\\' is a literal backslash; '\'' is a literal single quote.
+                // Handling '\\' first is essential, otherwise '\\'' would be misparsed as
+                // a backslash followed by an escaped quote instead of an escaped backslash
+                // followed by the closing delimiter.
+                if (i + 1 < msg.size() && msg[i + 1] == '\\')
+                {
+                    quotedBuf += '\\';
+                    ++i;
+                }
+                else if (i + 1 < msg.size() && msg[i + 1] == '\'')
                 {
                     quotedBuf += '\''; // Keep a literal single quote in the content
                     ++i;               // Consume the escape

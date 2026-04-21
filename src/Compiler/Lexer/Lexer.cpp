@@ -254,7 +254,20 @@ void Lexer::lexEscape(TokenId containerToken, bool eatEol)
     }
 
     if (!langSpec_->isEscape(buffer_[1]))
-        raiseTokenError(DiagnosticId::lex_err_invalid_escape, static_cast<uint32_t>(buffer_ - startBuffer_), 2);
+    {
+        auto diag = reportTokenError(DiagnosticId::lex_err_invalid_escape, static_cast<uint32_t>(buffer_ - startBuffer_), 2);
+        const uint8_t c = buffer_[1];
+        if (c >= 'A' && c <= 'Z')
+        {
+            const uint8_t lower = c + 32;
+            if (langSpec_->isEscape(lower) && lower != 'x' && lower != 'u')
+            {
+                const char suggestion[2] = {'\\', static_cast<char>(lower)};
+                diag.addArgument(Diagnostic::ARG_VALUE, std::string_view(suggestion, 2));
+            }
+        }
+        diag.report(*ctx_);
+    }
 
     // pos points to the backslash
     if (buffer_[1] != 'x' && buffer_[1] != 'u' && buffer_[1] != 'U')
@@ -356,7 +369,12 @@ void Lexer::lexSingleLineStringLiteral()
 
     // Handle newline in string literal
     if (buffer_[0] == '\n' || buffer_[0] == '\r')
-        raiseTokenError(DiagnosticId::lex_err_string_eol, static_cast<uint32_t>(buffer_ - startBuffer_));
+    {
+        auto diag = reportTokenError(DiagnosticId::lex_err_string_eol, static_cast<uint32_t>(buffer_ - startBuffer_));
+        if (!diag.elements().empty())
+            diag.last().addSpan(srcView_, startTokenOffset_, 1, DiagnosticSeverity::Note, "unterminated string starts here");
+        diag.report(*ctx_);
+    }
 
     // Handle EOF
     if (buffer_ >= endBuffer_)
@@ -513,7 +531,11 @@ void Lexer::lexCharacterLiteral()
 
     // Check for too many characters
     if (charCount > 1)
-        raiseTokenError(DiagnosticId::lex_err_too_many_char_char, startTokenOffset_, static_cast<uint32_t>(buffer_ - startToken_));
+    {
+        auto diag = reportTokenError(DiagnosticId::lex_err_too_many_char_char, startTokenOffset_, static_cast<uint32_t>(buffer_ - startToken_));
+        diag.addArgument(Diagnostic::ARG_VALUE, charCount);
+        diag.report(*ctx_);
+    }
 
     pushToken();
 }
@@ -607,8 +629,9 @@ void Lexer::lexBinNumber()
     if (lastWasSep)
         raiseTokenError(DiagnosticId::lex_err_trailing_num_sep, static_cast<uint32_t>(buffer_ - startBuffer_ - 1));
 
-    // Letters immediately following the literal
-    if (langSpec_->isLetter(buffer_[0]))
+    // Letters or stray decimal digits immediately following the literal
+    if (langSpec_->isLetter(buffer_[0]) ||
+        (langSpec_->isDigit(buffer_[0]) && !langSpec_->isBinNumber(buffer_[0])))
         raiseTokenError(DiagnosticId::lex_err_invalid_bin_digit, static_cast<uint32_t>(buffer_ - startBuffer_), 1);
 
     pushToken();
@@ -758,7 +781,14 @@ void Lexer::lexNumber()
 
     // Letters immediately following the literal
     if (langSpec_->isLetter(buffer_[0]))
-        raiseTokenError(DiagnosticId::lex_err_invalid_number_suffix, static_cast<uint32_t>(buffer_ - startBuffer_));
+    {
+        const uint32_t       suffixOffset = static_cast<uint32_t>(buffer_ - startBuffer_);
+        const char8_t* const suffixStart  = buffer_;
+        const char8_t*       suffixEnd    = suffixStart;
+        while (langSpec_->isIdentifierPart(suffixEnd[0]))
+            suffixEnd++;
+        raiseTokenError(DiagnosticId::lex_err_invalid_number_suffix, suffixOffset, static_cast<uint32_t>(suffixEnd - suffixStart));
+    }
 }
 
 void Lexer::lexIdentifier()
@@ -1131,8 +1161,24 @@ void Lexer::lexSymbol()
             break;
 
         default:
-            eatUtf8Char();
-            raiseTokenError(DiagnosticId::lex_err_invalid_char, startTokenOffset_, static_cast<uint32_t>(buffer_ - startToken_));
+        {
+            auto [buf, wc, eat] = Utf8Helper::decodeOneChar(buffer_, endBuffer_);
+            if (buf)
+                buffer_ = buf;
+            else
+            {
+                raiseTokenError(DiagnosticId::lex_err_not_utf8, static_cast<uint32_t>(buffer_ - startBuffer_));
+                hasUtf8Error_  = true;
+                hasTokenError_ = true;
+                buffer_++;
+                break;
+            }
+
+            const uint32_t tokenLen = static_cast<uint32_t>(buffer_ - startToken_);
+            auto           diag     = reportTokenError(DiagnosticId::lex_err_invalid_char, startTokenOffset_, tokenLen);
+            diag.addArgument(Diagnostic::ARG_VALUE, std::format("{:04X}", static_cast<uint32_t>(wc)));
+            diag.report(*ctx_);
+        }
             break;
     }
 

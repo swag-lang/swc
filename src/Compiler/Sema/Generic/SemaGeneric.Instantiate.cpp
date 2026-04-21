@@ -904,6 +904,35 @@ namespace
         return genericArgNodes[std::min(paramIndex, genericArgNodes.size() - 1)];
     }
 
+    Result finalizeResolvedGenericType(Sema& sema, SemaGeneric::GenericResolvedArg& ioArg)
+    {
+        if (!ioArg.typeRef.isValid())
+            return Result::Continue;
+
+        const TypeInfo& typeInfo = sema.typeMgr().get(ioArg.typeRef);
+        if (!typeInfo.isFloatUnsized())
+            return Result::Continue;
+
+        TypeRef concreteTypeRef = sema.typeMgr().typeF64();
+        if (ioArg.diagRef.isValid())
+        {
+            const SemaNodeView diagView = sema.viewNodeTypeConstant(ioArg.diagRef);
+            if (diagView.cstRef().isValid())
+            {
+                ConstantRef newCstRef = ConstantRef::invalid();
+                SWC_RESULT(Cast::concretizeConstant(sema, newCstRef, ioArg.diagRef, diagView.cstRef(), TypeInfo::Sign::Unknown));
+                if (newCstRef.isValid())
+                {
+                    sema.setConstant(ioArg.diagRef, newCstRef);
+                    concreteTypeRef = sema.cstMgr().get(newCstRef).typeRef();
+                }
+            }
+        }
+
+        ioArg.typeRef = concreteTypeRef;
+        return Result::Continue;
+    }
+
     Result materializeGenericArgs(Sema& sema, const Symbol& root, std::span<const SemaGeneric::GenericParamDesc> params, std::span<SemaGeneric::GenericResolvedArg> ioResolvedArgs, std::span<const AstNodeRef> genericArgNodes, AstNodeRef fallbackNodeRef)
     {
         for (size_t i = 0; i < params.size(); ++i)
@@ -922,7 +951,9 @@ namespace
         {
             if (!ioResolvedArgs[i].present)
                 return Result::Continue;
-            if (params[i].kind == SemaGeneric::GenericParamKind::Value)
+            if (params[i].kind == SemaGeneric::GenericParamKind::Type)
+                SWC_RESULT(finalizeResolvedGenericType(sema, ioResolvedArgs[i]));
+            else
                 SWC_RESULT(finalizeResolvedGenericValue(sema, root, params, ioResolvedArgs, i, genericErrorNodeRef(genericArgNodes, i, fallbackNodeRef)));
         }
 

@@ -760,8 +760,6 @@ namespace
                         if (diagElement.id() == DiagnosticId::sema_note_overload_candidate_argument_type)
                         {
                             diagElement.addArgument(Diagnostic::ARG_INDEX, fail.argIndex + 1);
-                            if (const SymbolVariable* param = declaredFailedParameter(fn, fail))
-                                diagElement.addArgument(Diagnostic::ARG_TOK, Utf8{param->name(ctx)});
                         }
                         else
                         {
@@ -769,6 +767,11 @@ namespace
                         }
                     }
                     (void) addCastFailureArgs(diagElement, fail.castFailure);
+                    if (isNote && diagElement.id() == DiagnosticId::sema_note_overload_candidate_argument_type)
+                    {
+                        if (const SymbolVariable* param = declaredFailedParameter(fn, fail))
+                            diagElement.addArgument(Diagnostic::ARG_TOK, Utf8{param->name(ctx)});
+                    }
                     addCastFailureNote(sema, diag, fail.castFailure);
                     addFunctionWhereFailureNotes(sema, diag, fail.castFailure);
                     if (!isNote)

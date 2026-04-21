@@ -182,6 +182,17 @@ namespace
             if (arg.typeRef == typeRef)
                 return true;
 
+            const TypeInfo& previousType = sema.typeMgr().get(arg.typeRef);
+            const TypeInfo& newType      = sema.typeMgr().get(typeRef);
+            if (previousType.isScalarUnsized() && !newType.isScalarUnsized())
+            {
+                arg.typeRef = typeRef;
+                return true;
+            }
+
+            if (!previousType.isScalarUnsized() && newType.isScalarUnsized())
+                return true;
+
             if (outFailure)
                 setGenericTypeDeductionFailure(sema, *outFailure, idRef, arg, typeRef);
             return false;
@@ -640,7 +651,7 @@ namespace SemaGeneric
             if (argView.cstRef().isValid())
             {
                 const TypeInfo& argType = sema.typeMgr().get(argTypeRef);
-                if (argType.isIntUnsized() || argType.isFloatUnsized())
+                if (argType.isIntUnsized())
                 {
                     ConstantRef newCstRef = ConstantRef::invalid();
                     SWC_RESULT(Cast::concretizeConstant(sema, newCstRef, valueArgRef, argView.cstRef(), TypeInfo::Sign::Unknown));

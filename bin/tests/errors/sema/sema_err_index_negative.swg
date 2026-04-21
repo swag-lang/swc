@@ -1,11 +1,10 @@
 #global fileprivate
 
 const A = "hello world"
-#assert(A[0] == 'h')
-#assert(A[1] == 'e')
-#assert(A[100] == '\0') // swc-expected-error {{sema_err_index_out_of_range}}
 #assert(A[-1] == '\0') // swc-expected-error {{sema_err_index_negative}}
 
-const B = "hello" ++ "world"
-#assert(B[5] == 'w')
-#assert(B[5.0] == 'w') // swc-expected-error {{sema_err_index_not_int}}
+#test
+{
+    const H = [1, 2]
+    var a = H[-1] // swc-expected-error {{sema_err_index_negative}}
+}

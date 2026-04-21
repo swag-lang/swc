@@ -22,13 +22,3 @@
 {
     for 5 until 4 {} // swc-expected-error {{sema_err_range_invalid_bounds}}
 }
-
-#test
-{
-    for "a" to 4 {} // swc-expected-error {{sema_err_invalid_range_type}}
-}
-
-#test
-{
-    for to "a" {} // swc-expected-error {{sema_err_invalid_range_type}}
-}

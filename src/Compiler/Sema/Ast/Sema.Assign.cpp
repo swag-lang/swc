@@ -307,7 +307,7 @@ namespace
                 continue;
 
             const SemaNodeView leftView = sema.viewNodeTypeSymbol(leftRef);
-            SWC_RESULT(SemaCheck::isAssignable(sema, sema.curNodeRef(), leftView));
+            SWC_RESULT(SemaCheck::isAssignable(sema, sema.curNodeRef(), leftRef, leftView));
             markAssignmentTargetAddressableStorage(leftView, false);
 
             SWC_RESULT(tryAssignmentCast(sema, leftRef, leftView, fields[i]->typeRef(), false));
@@ -342,7 +342,7 @@ namespace
 
             const SemaNodeView leftView        = sema.viewNodeTypeSymbol(leftRef);
             const bool         rebindReference = isReferenceRebindAssignment(sema, tok.id, leftView);
-            SWC_RESULT(SemaCheck::isAssignable(sema, sema.curNodeRef(), leftView));
+            SWC_RESULT(SemaCheck::isAssignable(sema, sema.curNodeRef(), leftRef, leftView));
             markAssignmentTargetAddressableStorage(leftView, rebindReference);
 
             if (tok.id != TokenId::SymEqual)
@@ -406,7 +406,7 @@ Result AstAssignStmt::semaPostNode(Sema& sema) const
         return Result::Continue;
 
     const bool rebindReference = isReferenceRebindAssignment(sema, tok.id, nodeLeftView);
-    SWC_RESULT(SemaCheck::isAssignable(sema, sema.curNodeRef(), nodeLeftView));
+    SWC_RESULT(SemaCheck::isAssignable(sema, sema.curNodeRef(), nodeLeftRef, nodeLeftView));
     markAssignmentTargetAddressableStorage(nodeLeftView, rebindReference);
     SWC_RESULT(SemaSpecOp::tryResolveAssign(sema, *this, nodeLeftView, handled));
     if (handled)

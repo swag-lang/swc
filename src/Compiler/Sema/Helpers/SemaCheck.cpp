@@ -192,14 +192,14 @@ Result SemaCheck::isValidSignature(Sema& sema, const std::vector<SymbolVariable*
     return Result::Continue;
 }
 
-Result SemaCheck::isAssignable(Sema& sema, AstNodeRef nodeRef, const SemaNodeView& leftView)
+Result SemaCheck::isAssignable(Sema& sema, AstNodeRef errorNodeRef, AstNodeRef leftExprRef, const SemaNodeView& leftView)
 {
     // Disallow assignment to immutable lvalues:
     if (leftView.sym())
     {
         if (leftView.sym()->isLetVariable())
         {
-            auto diag = SemaError::report(sema, DiagnosticId::sema_err_assign_to_let, nodeRef);
+            auto diag = SemaError::report(sema, DiagnosticId::sema_err_assign_to_let, errorNodeRef);
             SemaError::setReportArguments(sema, diag, leftView.sym());
             diag.addNote(DiagnosticId::sema_note_let_variable_declared_here);
             diag.last().addArgument(Diagnostic::ARG_SYM, leftView.sym()->name(sema.ctx()));
@@ -210,7 +210,7 @@ Result SemaCheck::isAssignable(Sema& sema, AstNodeRef nodeRef, const SemaNodeVie
 
         if (leftView.sym()->isConstant())
         {
-            auto diag = SemaError::report(sema, DiagnosticId::sema_err_assign_to_const, nodeRef);
+            auto diag = SemaError::report(sema, DiagnosticId::sema_err_assign_to_const, errorNodeRef);
             SemaError::setReportArguments(sema, diag, leftView.sym());
             diag.addNote(DiagnosticId::sema_note_constant_declared_here);
             diag.last().addArgument(Diagnostic::ARG_SYM, leftView.sym()->name(sema.ctx()));
@@ -221,11 +221,11 @@ Result SemaCheck::isAssignable(Sema& sema, AstNodeRef nodeRef, const SemaNodeVie
     }
 
     // Left must be a l-value
-    if (!sema.isLValue(leftView.nodeRef()))
+    if (!sema.isLValue(leftExprRef) && !sema.isLValueStored(leftExprRef))
     {
-        auto diag = SemaError::report(sema, DiagnosticId::sema_err_assign_not_lvalue, nodeRef);
+        auto diag = SemaError::report(sema, DiagnosticId::sema_err_assign_not_lvalue, errorNodeRef);
         diag.addNote(DiagnosticId::sema_note_expression_not_assignable);
-        SemaError::addSpan(sema, diag.last(), leftView.nodeRef());
+        SemaError::addSpan(sema, diag.last(), leftExprRef);
         diag.report(sema.ctx());
         return Result::Error;
     }

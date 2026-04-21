@@ -31,23 +31,19 @@ impl RuntimeRefMutBox
     @assert(v2 == 30)
 }
 
-// @TODO: write through opIndex returning &T is rejected by the compiler
-// ("cannot assign to this expression because it is not assignable")
-// This should arguably work since opIndex returns a mutable reference.
-//#test
-//{
-//    var box = RuntimeRefMutBox{buffer: [10, 20, 30]}
-//    box[1] = 99
-//    @assert(box.buffer[1] == 99)
-//}
+#test
+{
+    var box = RuntimeRefMutBox{buffer: [10, 20, 30]}
+    box[1] = 99
+    @assert(box.buffer[1] == 99)
+}
 
-// @TODO: read-modify-write through opIndex returning &T is also rejected
-//#test
-//{
-//    var box = RuntimeRefMutBox{buffer: [5, 10, 15]}
-//    box[0] += 100
-//    @assert(box.buffer[0] == 105)
-//}
+#test
+{
+    var box = RuntimeRefMutBox{buffer: [5, 10, 15]}
+    box[0] += 100
+    @assert(box.buffer[0] == 105)
+}
 
 // ============================================================================
 // opIndex: overloaded index types (s32 key and u64 key)
@@ -221,12 +217,10 @@ impl RuntimeConstMutBox
     @assert(v == 8)
 }
 
-// @TODO: write through mutable opIndex returning &T is rejected by the compiler
-// ("cannot assign to this expression because it is not assignable")
-//#test
-//{
-//    var box = RuntimeConstMutBox{data: [1, 2]}
-//    box[0] = 100
-//    @assert(box.data[0] == 100)
-//    @assert(box.mutReads == 1)
-//}
+#test
+{
+    var box = RuntimeConstMutBox{data: [1, 2]}
+    box[0] = 100
+    @assert(box.data[0] == 100)
+    @assert(box.mutReads == 1)
+}

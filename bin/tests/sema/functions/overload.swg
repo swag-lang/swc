@@ -47,6 +47,28 @@ impl S
     A(1.0) // swc-expected-error {{sema_err_no_overload_match}}
 }
 
+struct ConstMethodOverload {}
+impl ConstMethodOverload
+{
+    #[Swag.Overload]
+    mtd select()->s32 => 1
+
+    #[Swag.Overload]
+    mtd const select()->bool => true
+}
+
+#test
+{
+    var value = ConstMethodOverload{}
+    #assert(#typeof(value.select()) == s32)
+}
+
+#test
+{
+    let value = ConstMethodOverload{}
+    #assert(#typeof(value.select()) == bool)
+}
+
 #[Swag.ConstExpr]
 func preferConcrete(x, y: u64)->u64 => x
 

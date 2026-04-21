@@ -1433,9 +1433,8 @@ namespace
     // Compares two candidates and returns -1 if 'a' is better than 'b', 1 if 'b' is better, or 0 if they are equivalent.
     // Selection is based on:
     // 1. Better conversion ranks (Exact > Standard > Bad)
-    // 2. UFCS usage (non-UFCS is generally preferred)
-    // 3. Number of default arguments used (fewer is better)
-    // 4. Prefer concrete overloads over instantiated generic fallbacks
+    // 2. Number of default arguments used (fewer is better)
+    // 3. Prefer concrete overloads over instantiated generic fallbacks
     int compareCandidates(const Candidate& a, const Candidate& b)
     {
         const auto     na = static_cast<uint32_t>(a.perArg.size());
@@ -1461,6 +1460,72 @@ namespace
             return aGenericInstance ? 1 : -1;
 
         return 0;
+    }
+
+    enum class ReceiverConstness
+    {
+        Unknown,
+        Mutable,
+        Const,
+    };
+
+    ReceiverConstness candidateReceiverConstness(Sema& sema, const Candidate& candidate)
+    {
+        if (!candidate.fn || candidate.fn->parameters().empty())
+            return ReceiverConstness::Unknown;
+
+        const SymbolVariable* receiver = candidate.fn->parameters().front();
+        if (!receiver || !receiver->typeRef().isValid())
+            return ReceiverConstness::Unknown;
+
+        return sema.typeMgr().get(receiver->typeRef()).isConst() ? ReceiverConstness::Const : ReceiverConstness::Mutable;
+    }
+
+    bool receiverArgIsConst(Sema& sema, AstNodeRef ufcsArg)
+    {
+        if (ufcsArg.isInvalid())
+            return false;
+
+        const AstNodeRef receiverRef = Match::resolveCallArgumentValueRef(sema, ufcsArg);
+        if (receiverRef.isInvalid())
+            return false;
+
+        const SemaNodeView receiverView(sema, receiverRef, SemaNodeViewPartE::Type | SemaNodeViewPartE::Symbol);
+        if (receiverView.typeRef().isValid() && sema.typeMgr().get(receiverView.typeRef()).isConst())
+            return true;
+        if (receiverView.sym() && receiverView.sym()->isConstant())
+            return true;
+
+        return !sema.isLValue(receiverRef);
+    }
+
+    int compareReceiverConstness(Sema& sema, const Candidate& a, const Candidate& b, AstNodeRef ufcsArg)
+    {
+        if (ufcsArg.isInvalid())
+            return 0;
+
+        const ReceiverConstness aConstness = candidateReceiverConstness(sema, a);
+        const ReceiverConstness bConstness = candidateReceiverConstness(sema, b);
+        if (aConstness == bConstness || aConstness == ReceiverConstness::Unknown || bConstness == ReceiverConstness::Unknown)
+            return 0;
+
+        // UFCS/member calls should favor the overload whose receiver mutability matches the
+        // call-site receiver. This keeps mutable methods preferred from mutable contexts while
+        // still selecting const overloads for const receivers and temporaries.
+        const bool preferConstReceiver = receiverArgIsConst(sema, ufcsArg);
+        if (preferConstReceiver)
+            return aConstness == ReceiverConstness::Const ? -1 : 1;
+
+        return aConstness == ReceiverConstness::Mutable ? -1 : 1;
+    }
+
+    int compareCallCandidates(Sema& sema, const Candidate& a, const Candidate& b, AstNodeRef ufcsArg)
+    {
+        const int cmp = compareCandidates(a, b);
+        if (cmp != 0)
+            return cmp;
+
+        return compareReceiverConstness(sema, a, b, ufcsArg);
     }
 
     // Evaluate each function symbol to see how well it matches the given arguments.
@@ -1609,12 +1674,12 @@ namespace
         return Result::Continue;
     }
 
-    Result raiseAmbiguousBest(Sema& sema, AstNodeRef calleeRef, const SmallVector<const Attempt*>& viable, const Candidate& best)
+    Result raiseAmbiguousBest(Sema& sema, AstNodeRef calleeRef, const SmallVector<const Attempt*>& viable, const Candidate& best, AstNodeRef ufcsArg)
     {
         SmallVector<const Symbol*> ambiguousSymbols;
         for (const Attempt* a : viable)
         {
-            if (compareCandidates(a->candidate, best) == 0)
+            if (compareCallCandidates(sema, a->candidate, best, ufcsArg) == 0)
                 ambiguousSymbols.push_back(a->candidate.fn);
         }
 
@@ -1643,7 +1708,7 @@ namespace
 
         for (size_t i = 1; i < viable.size(); ++i)
         {
-            const int cmp = compareCandidates(viable[i]->candidate, outSelected->candidate);
+            const int cmp = compareCallCandidates(sema, viable[i]->candidate, outSelected->candidate, ufcsArg);
             if (cmp < 0)
             {
                 outSelected = viable[i];
@@ -1656,7 +1721,7 @@ namespace
         }
 
         if (ambiguous)
-            return raiseAmbiguousBest(sema, nodeCallee.nodeRef(), viable, outSelected->candidate);
+            return raiseAmbiguousBest(sema, nodeCallee.nodeRef(), viable, outSelected->candidate, ufcsArg);
 
         return Result::Continue;
     }

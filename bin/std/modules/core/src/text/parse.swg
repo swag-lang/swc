@@ -222,7 +222,7 @@ func parseS64(str: string)->{ value: s64, eat: u32, ovf: bool } throw
 
     // Does the number starts with the negative/positive sign ?
     var signed   = false
-    let c        = dref str
+    let c        = str[0]
     var maxValue = cast(u64) Swag.S64.Max
     if c == g_CultureInfo.numberFormat.negativeSign
     {

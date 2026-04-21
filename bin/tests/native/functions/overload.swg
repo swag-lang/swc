@@ -35,6 +35,40 @@ impl S
     @assert(gOverloadFoo1Last == 10)
 }
 
+struct ReceiverConstMethodOverload
+{
+    mutableCalls: s32
+}
+
+impl ReceiverConstMethodOverload
+{
+    #[Swag.Overload]
+    mtd select()->s32
+    {
+        .mutableCalls += 1
+        return 1
+    }
+
+    #[Swag.Overload]
+    mtd const select()->s32
+    {
+        return 2
+    }
+}
+
+#test
+{
+    var value = ReceiverConstMethodOverload{}
+    @assert(value.select() == 1)
+    @assert(value.mutableCalls == 1)
+}
+
+#test
+{
+    let value = ReceiverConstMethodOverload{}
+    @assert(value.select() == 2)
+}
+
 #test
 {
     var s: S

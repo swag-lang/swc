@@ -450,6 +450,7 @@
         <ClInclude Include="src\Compiler\Sema\Generic\GenericInstanceStorage.h"/>
         <ClInclude Include="src\Compiler\Sema\Generic\GenericSemaGate.h"/>
         <ClInclude Include="src\Compiler\Sema\Helpers\SemaRuntime.h"/>
+        <ClInclude Include="src\Main\Command\CommandRun.h" />
         <ClInclude Include="src\Support\Report\ScopedTimedAction.h"/>
         <ClInclude Include="src\\Backend\\Micro\\MicroInstrInfo.h"/>
         <ClInclude Include="src\\Backend\\Micro\\MicroPassHelpers.h"/>

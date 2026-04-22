@@ -796,15 +796,33 @@ namespace
         return collectSpecOpCandidates(sema, ownerStruct, opId, std::span<const AstNodeRef>{}, outCandidates);
     }
 
-    Result matchSyntheticCall(Sema&                              sema,
-                              std::span<Symbol*>                 candidates,
-                              std::span<AstNodeRef>              args,
-                              AstNodeRef                         ufcsArg,
-                              bool                               allowNoMatch,
-                              SmallVector<ResolvedCallArgument>& outResolvedArgs,
-                              bool&                              outMatched);
+    Result matchSyntheticCall(Sema& sema, std::span<Symbol*> candidates, std::span<AstNodeRef> args, AstNodeRef ufcsArg, bool allowNoMatch, SmallVector<ResolvedCallArgument>& outResolvedArgs, bool& outMatched)
+    {
+        outResolvedArgs.clear();
+        outMatched = false;
 
-    SymbolFunction* indexReadSpecOpFunction(Sema& sema, AstNodeRef leftExprRef)
+        const SemaNodeView calleeView(sema, sema.curNodeRef(), SemaNodeViewPartE::Node);
+        if (allowNoMatch)
+        {
+            const bool savedSilent = sema.ctx().silentDiagnostic();
+            sema.ctx().setSilentDiagnostic(true);
+            const Result matchResult = Match::resolveFunctionCandidates(sema, calleeView, candidates, args, ufcsArg, &outResolvedArgs);
+            sema.ctx().setSilentDiagnostic(savedSilent);
+            if (matchResult == Result::Pause)
+                return Result::Pause;
+            if (matchResult != Result::Continue)
+                return Result::Continue;
+        }
+        else
+        {
+            SWC_RESULT(Match::resolveFunctionCandidates(sema, calleeView, candidates, args, ufcsArg, &outResolvedArgs));
+        }
+
+        outMatched = true;
+        return Result::Continue;
+    }
+
+    SymbolFunction* indexReadSpecOpFunction(const Sema& sema, AstNodeRef leftExprRef)
     {
         const auto* payloadBase = sema.semaPayload<IndexSpecOpPayloadBase>(leftExprRef);
         if (!payloadBase || payloadBase->kind != IndexSpecOpPayloadKind::Read)
@@ -932,46 +950,7 @@ namespace
         return false;
     }
 
-    Result matchSyntheticCall(Sema&                              sema,
-                              std::span<Symbol*>                 candidates,
-                              std::span<AstNodeRef>              args,
-                              AstNodeRef                         ufcsArg,
-                              bool                               allowNoMatch,
-                              SmallVector<ResolvedCallArgument>& outResolvedArgs,
-                              bool&                              outMatched)
-    {
-        outResolvedArgs.clear();
-        outMatched = false;
-
-        const SemaNodeView calleeView(sema, sema.curNodeRef(), SemaNodeViewPartE::Node);
-        if (allowNoMatch)
-        {
-            const bool savedSilent = sema.ctx().silentDiagnostic();
-            sema.ctx().setSilentDiagnostic(true);
-            const Result matchResult = Match::resolveFunctionCandidates(sema, calleeView, candidates, args, ufcsArg, &outResolvedArgs);
-            sema.ctx().setSilentDiagnostic(savedSilent);
-            if (matchResult == Result::Pause)
-                return Result::Pause;
-            if (matchResult != Result::Continue)
-                return Result::Continue;
-        }
-        else
-        {
-            SWC_RESULT(Match::resolveFunctionCandidates(sema, calleeView, candidates, args, ufcsArg, &outResolvedArgs));
-        }
-
-        outMatched = true;
-        return Result::Continue;
-    }
-
-    Result resolveSyntheticCall(Sema&                 sema,
-                                const AstNode&        node,
-                                std::span<Symbol*>    candidates,
-                                std::span<AstNodeRef> args,
-                                AstNodeRef            ufcsArg,
-                                bool                  allowNoMatch   = false,
-                                bool*                 outMatched     = nullptr,
-                                bool                  allowConstEval = true)
+    Result resolveSyntheticCall(Sema& sema, const AstNode& node, std::span<Symbol*> candidates, std::span<AstNodeRef> args, AstNodeRef ufcsArg, bool allowNoMatch = false, bool* outMatched = nullptr, bool allowConstEval = true)
     {
         SmallVector<ResolvedCallArgument> resolvedArgs;
         bool                              matched = false;

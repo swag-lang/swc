@@ -30,6 +30,12 @@ namespace SemaGeneric
 class Sema
 {
 public:
+    struct ActiveCompilerAstExpansion
+    {
+        Utf8            generatedCode;
+        SourceCodeRange codeRange;
+    };
+
     Sema(TaskContext& ctx, NodePayload& payloadContext, bool declPass);
     Sema(TaskContext& ctx, Sema& parent, AstNodeRef root);
     Sema(TaskContext& ctx, Sema& parent, AstNodeRef root, bool declPass);
@@ -77,6 +83,8 @@ public:
     std::string_view         tokenString(const SourceCodeRef& codeRef) const { return srcView(codeRef.srcViewRef).tokenString(codeRef.tokRef); }
     Utf8                     fileName() const;
     const SourceFile*        file() const;
+    std::vector<ActiveCompilerAstExpansion>&       compilerAstExpansions() { return compilerAstExpansions_; }
+    const std::vector<ActiveCompilerAstExpansion>& compilerAstExpansions() const { return compilerAstExpansions_; }
 
     SemaFrame&                 frame() { return frames_.back(); }
     const SemaFrame&           frame() const { return frames_.back(); }
@@ -327,6 +335,7 @@ private:
         std::function<Result(Sema&, AstNodeRef)> callback;
     };
     std::vector<DeferredPostNodeAction> deferredPostNodeActions_;
+    std::vector<ActiveCompilerAstExpansion> compilerAstExpansions_;
 };
 
 SWC_END_NAMESPACE();

@@ -85,7 +85,6 @@ Result AstImpl::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const
     {
         const SemaNodeView identView = sema.viewType(nodeIdentRef);
         const SemaNodeView forView   = sema.viewSymbol(nodeForRef);
-        SWC_ASSERT(forView.sym());
         if (!forView.sym()->isStruct())
             return SemaError::raise(sema, DiagnosticId::sema_err_impl_not_struct, nodeForRef);
 

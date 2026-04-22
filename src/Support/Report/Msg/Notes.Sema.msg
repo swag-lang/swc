@@ -14,6 +14,7 @@ SWC_DIAG_DEF(sema_note_previous_default_case, Note, "previous default case is he
 SWC_DIAG_DEF(sema_note_switch_missing_enum_value, Note, "missing enum value '{value}'")
 SWC_DIAG_DEF(sema_note_switch_missing_enum_value_here, Note, "missing enum value is declared here")
 SWC_DIAG_DEF(sema_note_other_implementation, Note, "previous implementation is here")
+SWC_DIAG_DEF(sema_note_other_ast_expansion, Note, "same generated '#ast' source is already being expanded here")
 SWC_DIAG_DEF(sema_note_could_be, Note, "could refer to {a-sym-fam} '{sym}'")
 SWC_DIAG_DEF(sema_note_could_be, Note, "could be")
 SWC_DIAG_DEF(sema_note_cyclic_dependency_link, Note, "depends on '{tok}' here")

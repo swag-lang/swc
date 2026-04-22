@@ -370,7 +370,7 @@ void Lexer::lexSingleLineStringLiteral()
     // Handle newline in string literal
     if (buffer_[0] == '\n' || buffer_[0] == '\r')
     {
-        auto diag = reportTokenError(DiagnosticId::lex_err_string_eol, static_cast<uint32_t>(buffer_ - startBuffer_));
+        const auto diag = reportTokenError(DiagnosticId::lex_err_string_eol, static_cast<uint32_t>(buffer_ - startBuffer_));
         if (!diag.elements().empty())
             diag.last().addSpan(srcView_, startTokenOffset_, 1, DiagnosticSeverity::Note, "unterminated string starts here");
         diag.report(*ctx_);

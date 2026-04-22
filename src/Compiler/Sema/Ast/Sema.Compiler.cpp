@@ -18,6 +18,7 @@
 #include "Compiler/Sema/Symbol/Symbols.h"
 #include "Compiler/Sema/Type/TypeManager.h"
 #include "Compiler/SourceFile.h"
+#include "Compiler/Verify.h"
 #include "Main/Command/CommandLine.h"
 #include "Main/FileSystem.h"
 #include "Main/Global.h"
@@ -33,6 +34,8 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    constexpr size_t K_COMPILER_AST_MAX_EXPANSION_DEPTH = 64;
+
     AstNodeRef compilerRunFunctionStorageRef(const AstNode& node)
     {
         if (const auto* runBlock = node.safeCast<AstCompilerRunBlock>())
@@ -255,6 +258,72 @@ namespace
         return sema.typeMgr().get(unwrappedTypeRef).isString();
     }
 
+    const Sema::ActiveCompilerAstExpansion* findActiveCompilerAstExpansion(const Sema& sema, std::string_view generatedCode)
+    {
+        const auto& stack = sema.compilerAstExpansions();
+        for (auto it = stack.rbegin(); it != stack.rend(); ++it)
+        {
+            if (it->generatedCode.view() == generatedCode)
+                return &(*it);
+        }
+
+        return nullptr;
+    }
+
+    Result reportCompilerAstRecursiveExpansion(Sema& sema, AstNodeRef ownerRef, const Sema::ActiveCompilerAstExpansion& previous)
+    {
+        auto diag = SemaError::report(sema, DiagnosticId::sema_err_ast_recursive_expansion, ownerRef);
+        if (previous.codeRange.srcView && previous.codeRange.len)
+        {
+            auto& note = diag.addElement(DiagnosticId::sema_note_other_ast_expansion);
+            note.setSeverity(DiagnosticSeverity::Note);
+            note.addSpan(previous.codeRange, "");
+        }
+
+        diag.report(sema.ctx());
+        return Result::Error;
+    }
+
+    Result reportCompilerAstExpansionTooDeep(Sema& sema, AstNodeRef ownerRef)
+    {
+        auto diag = SemaError::report(sema, DiagnosticId::sema_err_ast_expansion_too_deep, ownerRef);
+        diag.addArgument(Diagnostic::ARG_COUNT, static_cast<uint32_t>(K_COMPILER_AST_MAX_EXPANSION_DEPTH));
+        diag.report(sema.ctx());
+        return Result::Error;
+    }
+
+    Result validateCompilerAstExpansion(Sema& sema, AstNodeRef ownerRef, std::string_view generatedCode)
+    {
+        const auto& stack = sema.compilerAstExpansions();
+        if (stack.size() >= K_COMPILER_AST_MAX_EXPANSION_DEPTH)
+            return reportCompilerAstExpansionTooDeep(sema, ownerRef);
+
+        if (const auto* previous = findActiveCompilerAstExpansion(sema, generatedCode))
+            return reportCompilerAstRecursiveExpansion(sema, ownerRef, *previous);
+
+        return Result::Continue;
+    }
+
+    void pushCompilerAstExpansion(Sema& sema, AstNodeRef ownerRef, std::string_view generatedCode)
+    {
+        auto& stack = sema.compilerAstExpansions();
+        stack.push_back({});
+        stack.back().generatedCode = Utf8{generatedCode};
+        stack.back().codeRange     = sema.node(ownerRef).codeRangeWithChildren(sema.ctx(), sema.ast());
+    }
+
+    Result popCompilerAstExpansion(Sema& sema, AstNodeRef nodeRef)
+    {
+        SWC_UNUSED(nodeRef);
+
+        auto& stack = sema.compilerAstExpansions();
+        SWC_ASSERT(!stack.empty());
+        if (!stack.empty())
+            stack.pop_back();
+
+        return Result::Continue;
+    }
+
     fs::path compilerAstGeneratedDirectory(const Sema& sema)
     {
         if (!sema.ctx().cmdLine().workDir.empty())
@@ -385,6 +454,7 @@ namespace
         sema.compiler().registerInMemoryFile(appendResult.path, appendResult.snapshot.view());
         SourceFile& sourceFile = sema.compiler().addFile(appendResult.path, FileFlagsE::CustomSrc | FileFlagsE::SkipFmt);
         SWC_RESULT(sourceFile.loadContent(sema.ctx()));
+        sourceFile.unitTest().tokenize(sema.ctx());
 
         SourceView& srcView = sourceFile.ast().srcView();
         if (const SourceFile* ownerFile = sema.file())
@@ -427,8 +497,12 @@ namespace
 
     Result substituteCompilerAstString(Sema& sema, AstNodeRef ownerRef, std::string_view generatedCode)
     {
+        SWC_RESULT(validateCompilerAstExpansion(sema, ownerRef, generatedCode));
+
         AstNodeRef generatedRef = AstNodeRef::invalid();
         SWC_RESULT(parseCompilerAstGenerated(sema, ownerRef, generatedCode, generatedRef));
+        pushCompilerAstExpansion(sema, ownerRef, generatedCode);
+        sema.deferPostNodeAction(generatedRef, popCompilerAstExpansion);
         sema.setSubstitute(ownerRef, generatedRef);
         sema.visit().restartCurrentNode(generatedRef);
         return Result::Continue;

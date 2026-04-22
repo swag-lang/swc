@@ -135,6 +135,7 @@ Sema::Sema(TaskContext& ctx, Sema& parent, NodePayload& payloadContext, AstNodeR
     pushFrame(parent.frame());
     frame().setCurrentInlinePayload(nullptr);
     setVisitors();
+    compilerAstExpansions_ = parent.compilerAstExpansions_;
 
     for (const auto& scope : parent.scopes_)
     {

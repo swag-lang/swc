@@ -1626,7 +1626,7 @@ Result CodeGenFunctionHelpers::emitThrowableWrapperPostNode(CodeGen& codeGen, As
     SWC_RESULT(emitThrowableCleanup(codeGen, kind, ownerRef, true));
     if (hasResult)
     {
-        CodeGenNodePayload& resultPayload = codeGen.payload(nodeRef);
+        const CodeGenNodePayload& resultPayload = codeGen.payload(nodeRef);
         SWC_RESULT(emitZeroThrowableExprResult(codeGen, resultPayload, resultType));
     }
 
@@ -1756,9 +1756,9 @@ Result AstThrowExpr::codeGenPostNode(CodeGen& codeGen) const
     const TypeRef resultTypeRef = codeGen.curViewType().typeRef();
     if (resultTypeRef.isValid() && resultTypeRef != codeGen.typeMgr().typeVoid())
     {
-        CodeGenNodePayload& resultPayload = usesAddressBackedThrowableExprResult(codeGen, resultTypeRef)
-                                                ? codeGen.setPayloadAddressReg(codeGen.curNodeRef(), codeGen.runtimeStorageAddressReg(codeGen.curNodeRef()), resultTypeRef)
-                                                : codeGen.setPayloadValue(codeGen.curNodeRef(), resultTypeRef);
+        const CodeGenNodePayload& resultPayload = usesAddressBackedThrowableExprResult(codeGen, resultTypeRef)
+                                                      ? codeGen.setPayloadAddressReg(codeGen.curNodeRef(), codeGen.runtimeStorageAddressReg(codeGen.curNodeRef()), resultTypeRef)
+                                                      : codeGen.setPayloadValue(codeGen.curNodeRef(), resultTypeRef);
         SWC_RESULT(emitZeroThrowableExprResult(codeGen, resultPayload, resultTypeRef));
     }
 

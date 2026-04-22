@@ -426,7 +426,7 @@ namespace
         return true;
     }
 
-    bool supportsConstAffectCallJit(Sema& sema, const SymbolFunction& calledFn, const TypeRef receiverTypeRef)
+    bool supportsConstSetCallJit(Sema& sema, const SymbolFunction& calledFn, const TypeRef receiverTypeRef)
     {
         if (calledFn.attributes().hasRtFlag(RtAttributeFlagsE::Macro) || calledFn.attributes().hasRtFlag(RtAttributeFlagsE::Mixin))
             return false;
@@ -591,7 +591,7 @@ namespace
         return Result::Continue;
     }
 
-    Result buildConstAffectCallArguments(Sema&                                 sema,
+    Result buildConstSetCallArguments(Sema&                                 sema,
                                          bool&                                 outBuilt,
                                          const SymbolFunction&                 calledFn,
                                          AstNodeRef                            callRef,
@@ -900,7 +900,7 @@ Result SemaJIT::tryRunConstCall(Sema& sema, SymbolFunction& calledFn, AstNodeRef
     return submitJitNode(sema, callRef, request, payload, resultMeta, true);
 }
 
-Result SemaJIT::tryRunConstAffectCall(Sema&                                 sema,
+Result SemaJIT::tryRunConstSetCall(Sema&                                 sema,
                                       SymbolFunction&                       calledFn,
                                       AstNodeRef                            callRef,
                                       std::span<const ResolvedCallArgument> resolvedArgs,
@@ -908,7 +908,7 @@ Result SemaJIT::tryRunConstAffectCall(Sema&                                 sema
                                       const ConstantRef                     receiverInitCstRef,
                                       const bool                            forceEvaluation)
 {
-    if (!supportsConstAffectCallJit(sema, calledFn, receiverTypeRef))
+    if (!supportsConstSetCallJit(sema, calledFn, receiverTypeRef))
         return Result::Continue;
     if (sema.isRunExprContext())
         return Result::Continue;
@@ -926,7 +926,7 @@ Result SemaJIT::tryRunConstAffectCall(Sema&                                 sema
     SmallVector<JITArgument>            jitArgs;
     const std::byte*                    receiverStorage = nullptr;
     bool                                built           = false;
-    SWC_RESULT(buildConstAffectCallArguments(sema, built, calledFn, callRef, resolvedArgs, receiverTypeRef, receiverInitCstRef, receiverStorage, argStorage, jitArgs));
+    SWC_RESULT(buildConstSetCallArguments(sema, built, calledFn, callRef, resolvedArgs, receiverTypeRef, receiverInitCstRef, receiverStorage, argStorage, jitArgs));
     if (!built)
         return Result::Continue;
 

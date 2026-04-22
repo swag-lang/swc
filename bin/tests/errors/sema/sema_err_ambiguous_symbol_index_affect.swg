@@ -12,7 +12,7 @@ impl AmbiguousIndexWrite
         return &.data[index]
     }
 
-    mtd opIndexAffect(index: s32, value: s32)
+    mtd opIndexSet(index: s32, value: s32)
     {
         .data[index] = value
     }

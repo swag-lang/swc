@@ -11,13 +11,13 @@ struct Duration
 impl Duration
 {
     #[ConstExpr, Implicit, Inline]
-    mtd opAffect(valueMs: s32)
+    mtd opSet(valueMs: s32)
     {
         .timeInSeconds = valueMs / 1000.0
     }
 
     #[ConstExpr, Implicit, Inline]
-    mtd(suffix: string) opAffectLiteral(value: s32)
+    mtd(suffix: string) opSetLiteral(value: s32)
     {
         #if suffix == "s" do
             .timeInSeconds = value

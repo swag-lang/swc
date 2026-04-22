@@ -18,7 +18,7 @@ impl Point
     // Set both coordinates to the same scalar value.
     // This allows assignment like 'point = 5.0' to set both coordinates to 5.0.
     #[Swag.Complete]
-    mtd opAffect(value: f32)
+    mtd opSet(value: f32)
     {
         .x, .y = value
     }

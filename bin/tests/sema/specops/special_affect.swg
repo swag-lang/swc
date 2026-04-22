@@ -1,71 +1,71 @@
 #global fileprivate
 
-struct AffectSource
+struct SetSource
 {
     value: s32
 }
 
-struct AffectTarget
+struct SetTarget
 {
     value: s32
     tag: s32
     sentinel: s32 = 1234
 }
 
-impl AffectTarget
+impl SetTarget
 {
     #[Swag.Overload]
-    mtd opAffect(value: s32)
+    mtd opSet(value: s32)
     {
         .value = value
         .tag = 10
     }
 
     #[Swag.Overload]
-    mtd opAffect(value: f32)
+    mtd opSet(value: f32)
     {
         .value = cast(s32) value
         .tag = 20
     }
 
     #[Swag.Overload]
-    mtd opAffect(other: AffectSource)
+    mtd opSet(other: SetSource)
     {
         .value = other.value + 1
         .tag = 30
     }
 }
 
-struct AffectHolder
+struct SetHolder
 {
-    target: AffectTarget
+    target: SetTarget
 }
 
-struct ParamAffectTarget
+struct ParamSetTarget
 {
     value: s32
     tag: s32
     sentinel: s32 = 777
 }
 
-impl ParamAffectTarget
+impl ParamSetTarget
 {
     #[Swag.Overload]
-    mtd opAffect(value: s32)
+    mtd opSet(value: s32)
     {
         .value = value
         .tag = 10
     }
 
     #[Swag.Implicit, Swag.Overload]
-    mtd opAffect(value: u16)
+    mtd opSet(value: u16)
     {
         .value = cast(s32) value
         .tag = 20
     }
 
     #[Swag.Complete, Swag.Overload]
-    mtd opAffect(value: u64)
+    mtd opSet(value: u64)
     {
         .value = cast(s32) value
         .tag = 30
@@ -73,29 +73,29 @@ impl ParamAffectTarget
     }
 }
 
-struct ConstAffectVector2
+struct ConstSetVector2
 {
     x, y: f32
 }
 
-impl ConstAffectVector2
+impl ConstSetVector2
 {
     #[Swag.ConstExpr]
-    mtd opAffect(one: f32)
+    mtd opSet(one: f32)
     {
         .x, .y = one
     }
 }
 
-struct LiteralAffectTarget
+struct LiteralSetTarget
 {
     timeInSeconds: f32
 }
 
-impl LiteralAffectTarget
+impl LiteralSetTarget
 {
     #[Swag.Implicit]
-    mtd(suffix: string) opAffectLiteral(value: s32)
+    mtd(suffix: string) opSetLiteral(value: s32)
     {
         #if suffix == "s" do
             .timeInSeconds = value
@@ -119,7 +119,7 @@ struct LiteralOverloadTarget
 impl LiteralOverloadTarget
 {
     #[Swag.Implicit, Swag.Overload]
-    mtd(suffix: string) opAffectLiteral(value: s32)
+    mtd(suffix: string) opSetLiteral(value: s32)
     {
         .tag = 10
 
@@ -136,7 +136,7 @@ impl LiteralOverloadTarget
     }
 
     #[Swag.Implicit, Swag.Overload]
-    mtd(suffix: string) opAffectLiteral(value: f32)
+    mtd(suffix: string) opSetLiteral(value: f32)
     {
         .tag = 20
 
@@ -153,79 +153,79 @@ impl LiteralOverloadTarget
     }
 }
 
-const ConstAffectOne: ConstAffectVector2 = 1.0
-#assert(ConstAffectOne.x == 1.0)
-#assert(ConstAffectOne.y == 1.0)
+const ConstSetOne: ConstSetVector2 = 1.0
+#assert(ConstSetOne.x == 1.0)
+#assert(ConstSetOne.y == 1.0)
 
 #test
 {
-    var target = AffectTarget{}
+    var target = SetTarget{}
     target = 42's32
     target = 3.5'f32
-    let source = AffectSource{value: 8}
+    let source = SetSource{value: 8}
     target = source
 
-    #assert(#typeof(target) == AffectTarget)
+    #assert(#typeof(target) == SetTarget)
 }
 
 #test
 {
-    let fromInt: AffectTarget = 42's32
-    var fromFloat: AffectTarget = 3.5'f32
+    let fromInt: SetTarget = 42's32
+    var fromFloat: SetTarget = 3.5'f32
 
-    #assert(#typeof(fromInt) == AffectTarget)
-    #assert(#typeof(fromFloat) == AffectTarget)
+    #assert(#typeof(fromInt) == SetTarget)
+    #assert(#typeof(fromFloat) == SetTarget)
 }
 
 #test
 {
-    var lhs = AffectTarget{value: 1, tag: 2}
-    var rhs = AffectTarget{value: 9, tag: 11}
+    var lhs = SetTarget{value: 1, tag: 2}
+    var rhs = SetTarget{value: 9, tag: 11}
     lhs = rhs
 
-    #assert(#typeof(lhs) == AffectTarget)
+    #assert(#typeof(lhs) == SetTarget)
 }
 
 #test
 {
-    var holder = AffectHolder{}
+    var holder = SetHolder{}
     holder.target = 77's32
 }
 
 #test
 {
-    var target = AffectTarget{}
+    var target = SetTarget{}
     let ptr = &target
     dref ptr = 99's32
 }
 
 #test
 {
-    func takesExplicit(value: ParamAffectTarget) {}
-    func takesImplicit(value: ParamAffectTarget) {}
+    func takesExplicit(value: ParamSetTarget) {}
+    func takesImplicit(value: ParamSetTarget) {}
 
-    takesExplicit(cast(ParamAffectTarget) 5's32)
+    takesExplicit(cast(ParamSetTarget) 5's32)
     takesImplicit(7'u16)
 
-    let complete: ParamAffectTarget = 2'u64
-    #assert(#typeof(complete) == ParamAffectTarget)
+    let complete: ParamSetTarget = 2'u64
+    #assert(#typeof(complete) == ParamSetTarget)
 }
 
 #test
 {
-    let delay1: LiteralAffectTarget = 5's
-    let delay2: LiteralAffectTarget = 500'ms
-    let delay3 = cast(LiteralAffectTarget) 2'min
-    var delay4 = LiteralAffectTarget{}
+    let delay1: LiteralSetTarget = 5's
+    let delay2: LiteralSetTarget = 500'ms
+    let delay3 = cast(LiteralSetTarget) 2'min
+    var delay4 = LiteralSetTarget{}
     delay4 = 1'h
 
-    func takesImplicit(value: LiteralAffectTarget) {}
+    func takesImplicit(value: LiteralSetTarget) {}
     takesImplicit(5'ms)
 
-    #assert(#typeof(delay1) == LiteralAffectTarget)
-    #assert(#typeof(delay2) == LiteralAffectTarget)
-    #assert(#typeof(delay3) == LiteralAffectTarget)
-    #assert(#typeof(delay4) == LiteralAffectTarget)
+    #assert(#typeof(delay1) == LiteralSetTarget)
+    #assert(#typeof(delay2) == LiteralSetTarget)
+    #assert(#typeof(delay3) == LiteralSetTarget)
+    #assert(#typeof(delay4) == LiteralSetTarget)
 }
 
 #test

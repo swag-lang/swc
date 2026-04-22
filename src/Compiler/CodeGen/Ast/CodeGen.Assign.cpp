@@ -677,10 +677,10 @@ Result AstAssignStmt::codeGenPostNode(CodeGen& codeGen) const
         assignPayload && assignPayload->calledFn != nullptr)
     {
         codeGen.sema().setSymbol(codeGen.curNodeRef(), assignPayload->calledFn);
-        if (assignPayload->calledFn->specOpKind() == SpecOpKind::OpAffect ||
-            assignPayload->calledFn->specOpKind() == SpecOpKind::OpAffectLiteral ||
+        if (assignPayload->calledFn->specOpKind() == SpecOpKind::OpSet ||
+            assignPayload->calledFn->specOpKind() == SpecOpKind::OpSetLiteral ||
             assignPayload->calledFn->specOpKind() == SpecOpKind::OpAssign ||
-            assignPayload->calledFn->specOpKind() == SpecOpKind::OpIndexAffect ||
+            assignPayload->calledFn->specOpKind() == SpecOpKind::OpIndexSet ||
             assignPayload->calledFn->specOpKind() == SpecOpKind::OpIndexAssign)
             return CodeGenCallHelpers::codeGenCallExprCommon(codeGen, AstNodeRef::invalid());
     }

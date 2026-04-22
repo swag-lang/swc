@@ -37,7 +37,7 @@ struct Int128
 
 impl Int128
 {
-    mtd const opCmp(other: Int128)->s32
+    mtd const opCompare(other: Int128)->s32
     {
         if .hi != other.hi do
             return .hi <=> other.hi

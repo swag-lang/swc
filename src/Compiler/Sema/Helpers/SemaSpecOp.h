@@ -60,17 +60,17 @@ enum class SpecOpKind : uint8_t
     OpIndexAssign,
     OpCast,
     OpEquals,
-    OpCmp,
+    OpCompare,
     OpPostCopy,
     OpPostMove,
     OpDrop,
     OpCount,
     OpData,
-    OpAffect,
-    OpAffectLiteral,
+    OpSet,
+    OpSetLiteral,
     OpSlice,
     OpIndex,
-    OpIndexAffect,
+    OpIndexSet,
     OpVisit,
 };
 
@@ -79,10 +79,10 @@ namespace SemaSpecOp
     SpecOpKind computeSymbolKind(const Sema& sema, const SymbolFunction& sym);
     Result     validateSymbol(Sema& sema, SymbolFunction& sym);
     Result     registerSymbol(Sema& sema, SymbolFunction& sym);
-    Result     collectAffectCandidates(Sema& sema, const SymbolStruct& ownerStruct, const SourceCodeRef& codeRef, AstNodeRef valueRef, SmallVector<Symbol*>& outCandidates);
+    Result     collectSetCandidates(Sema& sema, const SymbolStruct& ownerStruct, const SourceCodeRef& codeRef, AstNodeRef valueRef, SmallVector<Symbol*>& outCandidates);
     Result     canResolveVisit(Sema& sema, const AstForeachStmt& node, bool& outMatched);
 
-    Result tryResolveVarInitAffect(Sema& sema, AstNodeRef receiverRef, AstNodeRef valueRef, bool& outHandled);
+    Result tryResolveVarInitSet(Sema& sema, AstNodeRef receiverRef, AstNodeRef valueRef, bool& outHandled);
     Result tryResolveCountOf(Sema& sema, AstNodeRef exprRef, SymbolFunction*& outCalledFn, bool& outHandled);
     Result tryResolveDataOf(Sema& sema, AstNodeRef exprRef, SymbolFunction*& outCalledFn, bool& outHandled);
     Result tryResolveVisit(Sema& sema, const AstForeachStmt& node, bool& outHandled);

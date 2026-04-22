@@ -189,7 +189,7 @@ namespace
 
     bool shouldStripLiteralSuffixInlineValue(const SymbolFunction& fn, size_t paramIndex, size_t numFixed)
     {
-        return fn.specOpKind() == SpecOpKind::OpAffectLiteral && paramIndex + 1 == numFixed;
+        return fn.specOpKind() == SpecOpKind::OpSetLiteral && paramIndex + 1 == numFixed;
     }
 
     AstNodeRef bindingInlineArgumentRef(Sema& sema, const InlineArgumentMapContext& context, const SymbolVariable& param, size_t paramIndex, size_t numFixed, AstNodeRef argRef)

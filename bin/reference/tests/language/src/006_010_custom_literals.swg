@@ -22,13 +22,13 @@ struct Duration
 }
 
 /**
-Use the special function 'opAffectLiteral' to convert a value plus suffix.
+Use the special function 'opSetLiteral' to convert a value plus suffix.
 */
 impl Duration
 {
     // Handle literals like '5's', '500'ms', '2'min', '1'h'
     #[Swag.ConstExpr, Swag.Implicit, Swag.Inline]
-    mtd(suffix: string) opAffectLiteral(value: s32)
+    mtd(suffix: string) opSetLiteral(value: s32)
     {
         #if suffix == "s" do
             me.timeInSeconds = value

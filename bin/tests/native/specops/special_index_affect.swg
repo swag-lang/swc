@@ -20,7 +20,7 @@ impl RuntimeIndexBox
     }
 
     #[Swag.Overload, Swag.NoInline]
-    mtd opIndexAffect(index: s32, value: s32)
+    mtd opIndexSet(index: s32, value: s32)
     {
         .writes += 1
         if index == 0 do
@@ -40,7 +40,7 @@ struct RuntimeWriteOnlyIndexBox
 impl RuntimeWriteOnlyIndexBox
 {
     #[Swag.Overload, Swag.NoInline]
-    mtd opIndexAffect(index: s32, value: s32)
+    mtd opIndexSet(index: s32, value: s32)
     {
         .writes += 1
         if index == 0 do

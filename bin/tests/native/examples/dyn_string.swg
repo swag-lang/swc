@@ -1,10 +1,10 @@
 #global fileprivate
 
 // Real-life example: a heap-backed dynamic string that drives every
-// lifecycle hook — opAffect to build from a string literal, opPostCopy to
+// lifecycle hook — opSet to build from a string literal, opPostCopy to
 // deep-copy the owned buffer on assignment, opPostMove to fix up the
 // destination after a move, opDrop to release the heap buffer, plus
-// opIndex / opIndexAffect / opAssign("+=") / opEquals for day-to-day use.
+// opIndex / opIndexSet / opAssign("+=") / opEquals for day-to-day use.
 
 const MinCapacity = 8'u64
 
@@ -100,7 +100,7 @@ impl DynString
     }
 
     // Build from a string literal: `s = "hello"` when s is a DynString.
-    mtd opAffect(text: string)
+    mtd opSet(text: string)
     {
         .data = null
         .count = 0
@@ -120,7 +120,7 @@ impl DynString
     }
 
     // Write a byte: `s[i] = c`
-    mtd opIndexAffect(index: u64, value: u8)
+    mtd opIndexSet(index: u64, value: u8)
     {
         @assert(index < .count)
         .data[index] = value
@@ -168,7 +168,7 @@ impl DynString
 }
 
 // ---------------------------------------------------------------------------
-// Test: opAffect builds, opDrop frees, content is reachable via .count / []
+// Test: opSet builds, opDrop frees, content is reachable via .count / []
 // ---------------------------------------------------------------------------
 
 #test
@@ -226,7 +226,7 @@ impl DynString
 }
 
 // ---------------------------------------------------------------------------
-// Test: opIndex / opIndexAffect — mutate bytes through indexing.
+// Test: opIndex / opIndexSet — mutate bytes through indexing.
 // ---------------------------------------------------------------------------
 
 #test
@@ -234,7 +234,7 @@ impl DynString
     var s: DynString
     s = "abcdef"
 
-    // Uppercase each byte via opIndex + opIndexAffect
+    // Uppercase each byte via opIndex + opIndexSet
     for i in s.count
     {
         let c = s[i]
@@ -309,7 +309,7 @@ impl DynString
 }
 
 // ---------------------------------------------------------------------------
-// Test: empty-string edge cases exercise the opAffect / opPostCopy / opDrop
+// Test: empty-string edge cases exercise the opSet / opPostCopy / opDrop
 // paths with a zero-length buffer.
 // ---------------------------------------------------------------------------
 

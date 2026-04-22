@@ -1,7 +1,7 @@
 #global fileprivate
 
 // ============================================================================
-// Standalone opEquals (no opCmp defined)
+// Standalone opEquals (no opCompare defined)
 // ============================================================================
 
 struct RuntimeEqualOnlyBox
@@ -75,7 +75,7 @@ impl RuntimeFloatCmpBox
     }
 
     #[Swag.Overload, Swag.NoInline]
-    mtd const opCmp(other: f32)->s32
+    mtd const opCompare(other: f32)->s32
     {
         if .value < other do return -1
         if .value > other do return 1
@@ -92,7 +92,7 @@ impl RuntimeFloatCmpBox
     @assert(box != 2.71'f32)
 }
 
-// Test: opCmp with f32 - less than
+// Test: opCompare with f32 - less than
 #test
 {
     var box = RuntimeFloatCmpBox{value: 1.0}
@@ -102,7 +102,7 @@ impl RuntimeFloatCmpBox
     @assert(box <= 2.0'f32)
 }
 
-// Test: opCmp with f32 - greater than
+// Test: opCompare with f32 - greater than
 #test
 {
     var box = RuntimeFloatCmpBox{value: 5.0}
@@ -112,7 +112,7 @@ impl RuntimeFloatCmpBox
     @assert(box >= 3.0'f32)
 }
 
-// Test: opCmp spaceship with f32
+// Test: opCompare spaceship with f32
 #test
 {
     var box = RuntimeFloatCmpBox{value: 2.0}
@@ -182,7 +182,7 @@ impl RuntimeTripleEqBox
 }
 
 // ============================================================================
-// opCmp with three overloaded types
+// opCompare with three overloaded types
 // ============================================================================
 
 struct RuntimeTripleCmpBox
@@ -193,7 +193,7 @@ struct RuntimeTripleCmpBox
 impl RuntimeTripleCmpBox
 {
     #[Swag.Overload, Swag.NoInline]
-    mtd const opCmp(other: const &RuntimeTripleCmpBox)->s32
+    mtd const opCompare(other: const &RuntimeTripleCmpBox)->s32
     {
         if .value < other.value do return -1
         if .value > other.value do return 1
@@ -201,7 +201,7 @@ impl RuntimeTripleCmpBox
     }
 
     #[Swag.Overload, Swag.NoInline]
-    mtd const opCmp(other: s32)->s32
+    mtd const opCompare(other: s32)->s32
     {
         if .value < other do return -1
         if .value > other do return 1
@@ -209,7 +209,7 @@ impl RuntimeTripleCmpBox
     }
 
     #[Swag.Overload, Swag.NoInline]
-    mtd const opCmp(other: u64)->s32
+    mtd const opCompare(other: u64)->s32
     {
         let self64 = cast(u64) .value
         if self64 < other do return -1

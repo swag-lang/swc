@@ -238,14 +238,14 @@ namespace
         return Result::Continue;
     }
 
-    enum class AffectCastRank : uint8_t
+    enum class SetCastRank : uint8_t
     {
         Bad,
         Standard,
         Exact,
     };
 
-    bool allowsStructAffectCast(const SymbolFunction& calledFn, const CastKind castKind)
+    bool allowsStructSetCast(const SymbolFunction& calledFn, const CastKind castKind)
     {
         switch (castKind)
         {
@@ -309,26 +309,26 @@ namespace
         return OpCastRank::ConstReceiver;
     }
 
-    AffectCastRank rankStructAffectCandidate(Sema& sema, const SourceCodeRef& codeRef, TypeRef srcTypeRef, TypeRef dstTypeRef, const SymbolFunction& calledFn)
+    SetCastRank rankStructSetCandidate(Sema& sema, const SourceCodeRef& codeRef, TypeRef srcTypeRef, TypeRef dstTypeRef, const SymbolFunction& calledFn)
     {
         if (calledFn.parameters().size() < 2)
-            return AffectCastRank::Bad;
+            return SetCastRank::Bad;
 
         const TypeRef paramTypeRef = calledFn.parameters()[1]->typeRef();
         if (!paramTypeRef.isValid())
-            return AffectCastRank::Bad;
+            return SetCastRank::Bad;
         if (paramTypeRef == dstTypeRef && srcTypeRef != paramTypeRef)
-            return AffectCastRank::Bad;
+            return SetCastRank::Bad;
         if (srcTypeRef == paramTypeRef)
-            return AffectCastRank::Exact;
+            return SetCastRank::Exact;
 
         CastRequest castRequest(CastKind::Parameter);
         castRequest.errorCodeRef = codeRef;
         const Result castResult  = Cast::castAllowed(sema, castRequest, srcTypeRef, paramTypeRef);
         if (castResult != Result::Continue)
-            return AffectCastRank::Bad;
+            return SetCastRank::Bad;
 
-        return AffectCastRank::Standard;
+        return SetCastRank::Standard;
     }
 
     Result castStructToStruct(const CastStructArgs& args)
@@ -559,7 +559,7 @@ Result Cast::castToStruct(Sema& sema, CastRequest& castRequest, TypeRef srcTypeR
 
     SymbolFunction* calledFn     = nullptr;
     TypeRef         paramTypeRef = TypeRef::invalid();
-    SWC_RESULT(resolveStructAffectCastCandidate(sema, codeRef, srcTypeRef, dstTypeRef, castRequest.kind, calledFn, paramTypeRef, castRequest.errorNodeRef));
+    SWC_RESULT(resolveStructSetCastCandidate(sema, codeRef, srcTypeRef, dstTypeRef, castRequest.kind, calledFn, paramTypeRef, castRequest.errorNodeRef));
     if (calledFn)
         return Result::Continue;
 
@@ -612,7 +612,7 @@ Result Cast::resolveStructOpCastCandidate(Sema& sema, const SourceCodeRef& codeR
     return Result::Continue;
 }
 
-Result Cast::resolveStructAffectCastCandidate(Sema& sema, const SourceCodeRef& codeRef, TypeRef srcTypeRef, TypeRef dstTypeRef, const CastKind castKind, SymbolFunction*& outCalledFn, TypeRef& outParamTypeRef, AstNodeRef srcNodeRef)
+Result Cast::resolveStructSetCastCandidate(Sema& sema, const SourceCodeRef& codeRef, TypeRef srcTypeRef, TypeRef dstTypeRef, const CastKind castKind, SymbolFunction*& outCalledFn, TypeRef& outParamTypeRef, AstNodeRef srcNodeRef)
 {
     outCalledFn     = nullptr;
     outParamTypeRef = TypeRef::invalid();
@@ -628,11 +628,11 @@ Result Cast::resolveStructAffectCastCandidate(Sema& sema, const SourceCodeRef& c
     SWC_RESULT(sema.waitSemaCompleted(&dstType.payloadSymStruct(), codeRef));
 
     SmallVector<Symbol*> candidates;
-    SWC_RESULT(SemaSpecOp::collectAffectCandidates(sema, dstType.payloadSymStruct(), codeRef, srcNodeRef, candidates));
+    SWC_RESULT(SemaSpecOp::collectSetCandidates(sema, dstType.payloadSymStruct(), codeRef, srcNodeRef, candidates));
     if (candidates.empty())
         return Result::Continue;
 
-    auto            bestRank = AffectCastRank::Bad;
+    auto            bestRank = SetCastRank::Bad;
     SymbolFunction* bestFn   = nullptr;
     for (Symbol* candidate : candidates)
     {
@@ -644,11 +644,11 @@ Result Cast::resolveStructAffectCastCandidate(Sema& sema, const SourceCodeRef& c
         // signature itself has finished semantic resolution.
         SWC_RESULT(sema.waitSemaCompleted(calledFn, codeRef));
 
-        if (!allowsStructAffectCast(*calledFn, castKind))
+        if (!allowsStructSetCast(*calledFn, castKind))
             continue;
 
-        const AffectCastRank rank = rankStructAffectCandidate(sema, codeRef, srcTypeRef, dstTypeRef, *calledFn);
-        if (rank == AffectCastRank::Bad)
+        const SetCastRank rank = rankStructSetCandidate(sema, codeRef, srcTypeRef, dstTypeRef, *calledFn);
+        if (rank == SetCastRank::Bad)
             continue;
 
         if (bestFn == nullptr || rank > bestRank)

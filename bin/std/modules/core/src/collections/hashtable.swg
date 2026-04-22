@@ -42,7 +42,7 @@ impl HashTable
     }
 
     // Replaces the content of the me.table with key-value pairs from a slice.
-    mtd opAffect(slice: const [..] { k: K, v: V })
+    mtd opSet(slice: const [..] { k: K, v: V })
     {
         foreach v in slice do
             .add(v.k, v.v)
@@ -92,7 +92,7 @@ impl HashTable
 
     // Provides mutable access to the value associated with a key.
     // If the key does not exist, this will exhibit undefined behavior. Use with caution.
-    // See [[opIndexAffect]] for safe insertion/update.
+    // See [[opIndexSet]] for safe insertion/update.
     #[Overload]
     mtd opIndex(key: K)->&V
     {
@@ -106,7 +106,7 @@ impl HashTable
     }
 
     // Assigns a value to a key, updating it if it exists or adding it if it doesn't.
-    mtd opIndexAffect(key: K, val: V)
+    mtd opIndexSet(key: K, val: V)
     {
         let it = .tryFind(key)
         if it do

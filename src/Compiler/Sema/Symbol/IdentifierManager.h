@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #include "Compiler/Lexer/SourceCodeRange.h"
 #include "Support/Core/PagedStore.h"
 #include "Support/Core/StringMap.h"
@@ -82,17 +82,17 @@ public:
         OpIndexAssign,
         OpCast,
         OpEquals,
-        OpCmp,
+        OpCompare,
         OpPostCopy,
         OpPostMove,
         OpDrop,
         OpCount,
         OpData,
-        OpAffect,
-        OpAffectLiteral,
+        OpSet,
+        OpSetLiteral,
         OpSlice,
         OpIndex,
-        OpIndexAffect,
+        OpIndexSet,
         OpVisit,
         TypeInfo,
         TypeInfoNative,

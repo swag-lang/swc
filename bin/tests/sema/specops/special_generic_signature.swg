@@ -15,7 +15,7 @@ struct ExtraAssignGeneric
     value: s32
 }
 
-struct MissingAffectLiteralGeneric
+struct MissingSetLiteralGeneric
 {
     value: s32
 }
@@ -25,7 +25,7 @@ struct MissingIndexAssignGeneric
     value: s32
 }
 
-struct UnexpectedIndexAffectGeneric
+struct UnexpectedIndexSetGeneric
 {
     value: s32
 }

@@ -9,7 +9,7 @@ struct WriteOnlyIndexBox
 impl WriteOnlyIndexBox
 {
     #[Swag.Overload]
-    mtd opIndexAffect(index: s32, value: s32)
+    mtd opIndexSet(index: s32, value: s32)
     {
         if index == 0 do
             .first = value

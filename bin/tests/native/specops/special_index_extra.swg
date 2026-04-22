@@ -109,7 +109,7 @@ impl RuntimeMultiKeyBox
 }
 
 // ============================================================================
-// opIndexAffect: overloaded value types
+// opIndexSet: overloaded value types
 // ============================================================================
 
 struct RuntimeMultiValueBox
@@ -123,21 +123,21 @@ struct RuntimeMultiValueBox
 impl RuntimeMultiValueBox
 {
     #[Swag.Overload, Swag.NoInline]
-    mtd opIndexAffect(index: s32, value: s32)
+    mtd opIndexSet(index: s32, value: s32)
     {
         .intWrites += 1
         .intVal = value + index
     }
 
     #[Swag.Overload, Swag.NoInline]
-    mtd opIndexAffect(index: s32, value: f32)
+    mtd opIndexSet(index: s32, value: f32)
     {
         .fltWrites += 1
         .floatVal = value + cast(f32) index
     }
 }
 
-// Test: dispatch opIndexAffect to s32 value overload
+// Test: dispatch opIndexSet to s32 value overload
 #test
 {
     var box = RuntimeMultiValueBox{}
@@ -148,7 +148,7 @@ impl RuntimeMultiValueBox
     @assert(box.fltWrites == 0)
 }
 
-// Test: dispatch opIndexAffect to f32 value overload
+// Test: dispatch opIndexSet to f32 value overload
 #test
 {
     var box = RuntimeMultiValueBox{}

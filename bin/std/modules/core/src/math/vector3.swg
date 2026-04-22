@@ -27,7 +27,7 @@ impl Vector3
     // Set all components to the same scalar value.
     // This allows assignment like 'vec = 5.0' to set all components to 5.0.
     #[Swag.Complete, Swag.Inline]
-    mtd opAffect(value: f32)
+    mtd opSet(value: f32)
     {
         .x, .y, .z = value
     }

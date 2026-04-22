@@ -71,9 +71,9 @@ impl Struct
 
     // Three-way comparison; returns -1, 0, or 1 (used for '<', '>', '<=', '>=', '<=>')
     #[Swag.Overload]
-    func opCmp(me, other: OneType)->s32 { return 0; }
+    func opCompare(me, other: OneType)->s32 { return 0; }
     #[Swag.Overload]
-    func opCmp(me, other: AnotherType)->s32 { return 0; }
+    func opCompare(me, other: AnotherType)->s32 { return 0; }
 
     // -------------------------------------------------------------------------
     // Assignment
@@ -81,21 +81,21 @@ impl Struct
 
     // Direct assignment via '='
     #[Swag.Overload]
-    func opAffect(me, other: OneType) {}
+    func opSet(me, other: OneType) {}
     #[Swag.Overload]
-    func opAffect(me, other: AnotherType) {}
+    func opSet(me, other: AnotherType) {}
 
     // Assign a literal value with a specific suffix to the struct (generic)
     #[Swag.Overload]
-    func(suffix: string) opAffectLiteral(me, value: OneType) {}
+    func(suffix: string) opSetLiteral(me, value: OneType) {}
     #[Swag.Overload]
-    func(suffix: string) opAffectLiteral(me, value: AnotherType) {}
+    func(suffix: string) opSetLiteral(me, value: AnotherType) {}
 
     // Assign to an indexed position via '[?] ='
     #[Swag.Overload]
-    func opIndexAffect(me, index: OneType, value: OneType) {}
+    func opIndexSet(me, index: OneType, value: OneType) {}
     #[Swag.Overload]
-    func opIndexAffect(me, index: OneType, value: AnotherType) {}
+    func opIndexSet(me, index: OneType, value: AnotherType) {}
 
     // -------------------------------------------------------------------------
     // Operators (binary, unary, compound assignment)

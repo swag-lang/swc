@@ -100,7 +100,7 @@ impl Array
 
     // Assigns a new value to the element at the specified index.
     #[Inline]
-    mtd opIndexAffect(index: u64, value: T)
+    mtd opIndexSet(index: u64, value: T)
         where Reflection.canCopy(T)
     {
         Debug.safetyBoundCheck(index < .count, "index out of range")
@@ -117,7 +117,7 @@ impl Array
     }
 
     // Replaces the content of the array with elements copied from a slice.
-    mtd opAffect(arr: const [..] T)
+    mtd opSet(arr: const [..] T)
         where Reflection.canCopy(T)
     {
         .clear()

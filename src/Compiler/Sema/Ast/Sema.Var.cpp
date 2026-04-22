@@ -112,7 +112,7 @@ namespace
         return nodeTypeRef.isValid() && sema.node(nodeTypeRef).is(AstNodeId::RetValType);
     }
 
-    struct VarDeclAffectInitInfo
+    struct VarDeclSetInitInfo
     {
         bool        handled            = false;
         ConstantRef defaultValueCstRef = ConstantRef::invalid();
@@ -567,7 +567,7 @@ namespace
         EnumFlags<AstVarDeclFlagsE> flags;
     };
 
-    Result tryResolveVarDeclAffectInit(Sema&                      sema,
+    Result tryResolveVarDeclSetInit(Sema&                      sema,
                                        const SemaPostVarDeclArgs& context,
                                        const std::span<Symbol*>&  symbols,
                                        bool                       isConst,
@@ -575,7 +575,7 @@ namespace
                                        TypeRef                    explicitTypeRef,
                                        const TypeInfo*            explicitType,
                                        SemaNodeView&              nodeInitView,
-                                       VarDeclAffectInitInfo&     outInfo)
+                                       VarDeclSetInitInfo&     outInfo)
     {
         outInfo = {};
 
@@ -596,7 +596,7 @@ namespace
 
         const AstNodeRef receiverRef = makeVarInitReceiverRef(sema, *symVar, context.nodeInitRef);
         bool             handled     = false;
-        SWC_RESULT(SemaSpecOp::tryResolveVarInitAffect(sema, receiverRef, context.nodeInitRef, handled));
+        SWC_RESULT(SemaSpecOp::tryResolveVarInitSet(sema, receiverRef, context.nodeInitRef, handled));
         if (!handled)
         {
             CastRequest castRequest(CastKind::Initialization);
@@ -905,14 +905,14 @@ namespace
         const bool            codeParameterDefault    = isParameter && explicitType && explicitType->isCodeBlock();
         bool                  isExplicitUndefinedInit = false;
         SymbolFunction*       globalFunctionInit      = nullptr;
-        VarDeclAffectInitInfo affectInitInfo;
+        VarDeclSetInitInfo setInitInfo;
 
         SWC_RESULT(checkUndefinedInit(sema, context, symbols, isConst, isLet, isParameter, explicitTypeRef, explicitType, nodeInitView, isExplicitUndefinedInit));
-        SWC_RESULT(tryResolveVarDeclAffectInit(sema, context, symbols, isConst, isParameter, explicitTypeRef, explicitType, nodeInitView, affectInitInfo));
-        if (!affectInitInfo.handled)
+        SWC_RESULT(tryResolveVarDeclSetInit(sema, context, symbols, isConst, isParameter, explicitTypeRef, explicitType, nodeInitView, setInitInfo));
+        if (!setInitInfo.handled)
             SWC_RESULT(castOrConcretizeInit(sema, context, codeParameterDefault, explicitTypeRef, nodeInitView));
 
-        if (context.nodeInitRef.isValid() && !affectInitInfo.handled)
+        if (context.nodeInitRef.isValid() && !setInitInfo.handled)
             storeFieldDefaultConstants(symbols, nodeInitView.cstRef());
 
         const bool allowGlobalFunctionAddressInit = !sema.curScope().isLocal() &&
@@ -972,8 +972,8 @@ namespace
         if (!isLet && !isParameter && isRefType && context.nodeInitRef.isInvalid())
             return reportRefMissingInit(sema, SourceCodeRef{context.owner->srcViewRef(), context.tokDiag}, finalTypeRef);
 
-        const ConstantRef initCstRef        = affectInitInfo.handled ? ConstantRef::invalid() : (context.nodeInitRef.isValid() ? nodeInitView.cstRef() : implicitStructCstRef);
-        const ConstantRef variableDefaultCf = affectInitInfo.handled ? affectInitInfo.defaultValueCstRef : initCstRef;
+        const ConstantRef initCstRef        = setInitInfo.handled ? ConstantRef::invalid() : (context.nodeInitRef.isValid() ? nodeInitView.cstRef() : implicitStructCstRef);
+        const ConstantRef variableDefaultCf = setInitInfo.handled ? setInitInfo.defaultValueCstRef : initCstRef;
         storeLetConstants(symbols, isLet, initCstRef);
         storeGlobalVariableConstants(symbols, initCstRef);
         storeParameterDefaultConstants(symbols, isParameter, context.nodeInitRef.isValid() ? initCstRef : ConstantRef::invalid());

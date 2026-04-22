@@ -18,7 +18,7 @@ struct WorkflowTarget
 impl WorkflowTarget
 {
     #[Swag.Overload, Swag.NoInline]
-    mtd opAffect(value: s32)
+    mtd opSet(value: s32)
     {
         .value = value
         .tag = 10
@@ -26,7 +26,7 @@ impl WorkflowTarget
     }
 
     #[Swag.Overload, Swag.NoInline]
-    mtd opAffect(source: WorkflowSource)
+    mtd opSet(source: WorkflowSource)
     {
         .value = source.value + 5
         .tag = 20
@@ -90,7 +90,7 @@ impl WorkflowIndexBox
     }
 
     #[Swag.Overload, Swag.NoInline]
-    mtd opIndexAffect(index: s32, value: s32)
+    mtd opIndexSet(index: s32, value: s32)
     {
         .writes += 1
         if index == 0 do
@@ -143,7 +143,7 @@ struct WorkflowState
 }
 
 // ---------------------------------------------------------------------------
-// Secondary example: values flow from affect/assign into indexed storage
+// Secondary example: values flow from set/assign into indexed storage
 // ---------------------------------------------------------------------------
 
 #test

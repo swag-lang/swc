@@ -87,7 +87,7 @@ struct LocalMinimum
 
 impl LocalMinimum
 {
-    mtd opCmp(other: LocalMinimum)->s32
+    mtd opCompare(other: LocalMinimum)->s32
     {
         return other.y <=> .y
     }

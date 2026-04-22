@@ -43,26 +43,26 @@ namespace
                 return "mtd opCast() -> <type>";
             case SpecOpKind::OpEquals:
                 return "mtd opEquals(value: <type>) -> bool";
-            case SpecOpKind::OpCmp:
-                return "mtd opCmp(value: <type>) -> s32";
+            case SpecOpKind::OpCompare:
+                return "mtd opCompare(value: <type>) -> s32";
             case SpecOpKind::OpBinary:
                 return "mtd(op: string) const opBinary(other: <type>) -> <struct>";
             case SpecOpKind::OpUnary:
                 return "mtd(op: string) const opUnary() -> <struct>";
             case SpecOpKind::OpAssign:
                 return "mtd(op: string) opAssign(value: <type>) -> void";
-            case SpecOpKind::OpAffect:
-                return "mtd opAffect(value: <type>) -> void";
-            case SpecOpKind::OpAffectLiteral:
-                return "mtd(suffix: string) opAffectLiteral(value: <type>) -> void";
+            case SpecOpKind::OpSet:
+                return "mtd opSet(value: <type>) -> void";
+            case SpecOpKind::OpSetLiteral:
+                return "mtd(suffix: string) opSetLiteral(value: <type>) -> void";
             case SpecOpKind::OpSlice:
                 return "mtd opSlice(low: u64, up: u64) -> <string or slice>";
             case SpecOpKind::OpIndex:
                 return "mtd opIndex(index: <type>) -> <type>";
             case SpecOpKind::OpIndexAssign:
                 return "mtd(op: string) opIndexAssign(index: <type>, value: <type>) -> void";
-            case SpecOpKind::OpIndexAffect:
-                return "mtd opIndexAffect(index: <type>, value: <type>) -> void";
+            case SpecOpKind::OpIndexSet:
+                return "mtd opIndexSet(index: <type>, value: <type>) -> void";
             case SpecOpKind::OpVisit:
                 return "mtd(ptr: bool, back: bool) opVisit(stmt: #code) -> void";
             case SpecOpKind::None:
@@ -200,7 +200,7 @@ namespace
             case SpecOpKind::OpBinary:
             case SpecOpKind::OpUnary:
             case SpecOpKind::OpAssign:
-            case SpecOpKind::OpAffectLiteral:
+            case SpecOpKind::OpSetLiteral:
             case SpecOpKind::OpIndexAssign:
                 return K_STRING;
 
@@ -515,7 +515,7 @@ namespace
         // queried from `foreach` before the declaration is fully ready in some build modes, so make
         // both cases wait for declaration completion unless we are currently resolving that same
         // special operator.
-        if (symFunc.specOpKind() != SpecOpKind::OpAffectLiteral &&
+        if (symFunc.specOpKind() != SpecOpKind::OpSetLiteral &&
             symFunc.specOpKind() != SpecOpKind::OpVisit)
             return Result::Continue;
         if (currentSpecOpWaiterSymbol(sema) == &symFunc)
@@ -601,7 +601,7 @@ namespace
                     return reportSpecOpError(sema, sym, kind);
                 break;
 
-            case SpecOpKind::OpCmp:
+            case SpecOpKind::OpCompare:
                 if (params.size() != 2 || returnTypeRef != s32TypeRef)
                     return reportSpecOpError(sema, sym, kind);
                 break;
@@ -621,8 +621,8 @@ namespace
                     return reportSpecOpError(sema, sym, kind);
                 break;
 
-            case SpecOpKind::OpAffect:
-            case SpecOpKind::OpAffectLiteral:
+            case SpecOpKind::OpSet:
+            case SpecOpKind::OpSetLiteral:
             {
                 if (params.size() != 2 || !returnIsVoid)
                     return reportSpecOpError(sema, sym, kind);
@@ -646,7 +646,7 @@ namespace
                 break;
 
             case SpecOpKind::OpIndexAssign:
-            case SpecOpKind::OpIndexAffect:
+            case SpecOpKind::OpIndexSet:
                 if (params.size() < 3 || !returnIsVoid)
                     return reportSpecOpError(sema, sym, kind);
                 break;
@@ -714,7 +714,7 @@ namespace
             return Result::Continue;
 
         const bool          isSimpleAssign = tokId == TokenId::SymEqual;
-        const IdentifierRef opId           = isSimpleAssign ? sema.idMgr().predefined(IdentifierManager::PredefinedName::OpAffect) : sema.idMgr().predefined(IdentifierManager::PredefinedName::OpAssign);
+        const IdentifierRef opId           = isSimpleAssign ? sema.idMgr().predefined(IdentifierManager::PredefinedName::OpSet) : sema.idMgr().predefined(IdentifierManager::PredefinedName::OpAssign);
         AstNodeRef          genericArg     = AstNodeRef::invalid();
         if (!isSimpleAssign)
         {
@@ -782,7 +782,7 @@ namespace
             return Result::Continue;
 
         const bool          isSimpleAssign = tokId == TokenId::SymEqual;
-        const IdentifierRef opId           = isSimpleAssign ? sema.idMgr().predefined(IdentifierManager::PredefinedName::OpIndexAffect) : sema.idMgr().predefined(IdentifierManager::PredefinedName::OpIndexAssign);
+        const IdentifierRef opId           = isSimpleAssign ? sema.idMgr().predefined(IdentifierManager::PredefinedName::OpIndexSet) : sema.idMgr().predefined(IdentifierManager::PredefinedName::OpIndexAssign);
         AstNodeRef          genericArg     = AstNodeRef::invalid();
         if (!isSimpleAssign)
         {
@@ -982,14 +982,14 @@ namespace
         {
             case SpecOpKind::OpCast:
             case SpecOpKind::OpEquals:
-            case SpecOpKind::OpCmp:
+            case SpecOpKind::OpCompare:
             case SpecOpKind::OpBinary:
             case SpecOpKind::OpAssign:
-            case SpecOpKind::OpAffect:
-            case SpecOpKind::OpAffectLiteral:
+            case SpecOpKind::OpSet:
+            case SpecOpKind::OpSetLiteral:
             case SpecOpKind::OpIndex:
             case SpecOpKind::OpIndexAssign:
-            case SpecOpKind::OpIndexAffect:
+            case SpecOpKind::OpIndexSet:
                 return true;
             default:
                 return false;
@@ -1153,15 +1153,15 @@ Result SemaSpecOp::registerSymbol(Sema& sema, SymbolFunction& sym)
     return ownerStruct->registerSpecOp(sym, kind);
 }
 
-Result SemaSpecOp::collectAffectCandidates(Sema& sema, const SymbolStruct& ownerStruct, const SourceCodeRef& codeRef, AstNodeRef valueRef, SmallVector<Symbol*>& outCandidates)
+Result SemaSpecOp::collectSetCandidates(Sema& sema, const SymbolStruct& ownerStruct, const SourceCodeRef& codeRef, AstNodeRef valueRef, SmallVector<Symbol*>& outCandidates)
 {
     UserDefinedLiteralSuffixInfo suffixInfo;
     if (!Cast::resolveUserDefinedLiteralSuffix(sema, valueRef, suffixInfo))
         return collectAssignSpecOpCandidates(sema, ownerStruct, codeRef, TokenId::SymEqual, outCandidates);
 
-    const IdentifierRef opAffectLiteralId = sema.idMgr().predefined(IdentifierManager::PredefinedName::OpAffectLiteral);
+    const IdentifierRef opSetLiteralId = sema.idMgr().predefined(IdentifierManager::PredefinedName::OpSetLiteral);
     const AstNodeRef    genericArg        = makeSyntheticStringConstantArg(sema, codeRef, suffixInfo.suffix);
-    return collectSpecOpCandidates(sema, ownerStruct, opAffectLiteralId, std::span{&genericArg, 1}, outCandidates);
+    return collectSpecOpCandidates(sema, ownerStruct, opSetLiteralId, std::span{&genericArg, 1}, outCandidates);
 }
 
 SpecOpKind SemaSpecOp::computeSymbolKind(const Sema& sema, const SymbolFunction& sym)
@@ -1189,17 +1189,17 @@ SpecOpKind SemaSpecOp::computeSymbolKind(const Sema& sema, const SymbolFunction&
         {Pn::OpIndexAssign, SpecOpKind::OpIndexAssign},
         {Pn::OpCast, SpecOpKind::OpCast},
         {Pn::OpEquals, SpecOpKind::OpEquals},
-        {Pn::OpCmp, SpecOpKind::OpCmp},
+        {Pn::OpCompare, SpecOpKind::OpCompare},
         {Pn::OpPostCopy, SpecOpKind::OpPostCopy},
         {Pn::OpPostMove, SpecOpKind::OpPostMove},
         {Pn::OpDrop, SpecOpKind::OpDrop},
         {Pn::OpCount, SpecOpKind::OpCount},
         {Pn::OpData, SpecOpKind::OpData},
-        {Pn::OpAffect, SpecOpKind::OpAffect},
-        {Pn::OpAffectLiteral, SpecOpKind::OpAffectLiteral},
+        {Pn::OpSet, SpecOpKind::OpSet},
+        {Pn::OpSetLiteral, SpecOpKind::OpSetLiteral},
         {Pn::OpSlice, SpecOpKind::OpSlice},
         {Pn::OpIndex, SpecOpKind::OpIndex},
-        {Pn::OpIndexAffect, SpecOpKind::OpIndexAffect},
+        {Pn::OpIndexSet, SpecOpKind::OpIndexSet},
     };
 
     for (const auto& e : K_MAP)
@@ -1245,7 +1245,7 @@ Result SemaSpecOp::tryResolveAssign(Sema& sema, const AstAssignStmt& node, const
 
     SmallVector<Symbol*> candidates;
     if (tok.id == TokenId::SymEqual)
-        SWC_RESULT(collectAffectCandidates(sema, *ownerStruct, node.codeRef(), node.nodeRightRef, candidates));
+        SWC_RESULT(collectSetCandidates(sema, *ownerStruct, node.codeRef(), node.nodeRightRef, candidates));
     else
         SWC_RESULT(collectAssignSpecOpCandidates(sema, *ownerStruct, node.codeRef(), tok.id, candidates));
     if (candidates.empty())
@@ -1275,7 +1275,7 @@ Result SemaSpecOp::tryResolveAssign(Sema& sema, const AstAssignStmt& node, const
     return Result::Continue;
 }
 
-Result SemaSpecOp::tryResolveVarInitAffect(Sema& sema, AstNodeRef receiverRef, AstNodeRef valueRef, bool& outHandled)
+Result SemaSpecOp::tryResolveVarInitSet(Sema& sema, AstNodeRef receiverRef, AstNodeRef valueRef, bool& outHandled)
 {
     outHandled = false;
 
@@ -1287,7 +1287,7 @@ Result SemaSpecOp::tryResolveVarInitAffect(Sema& sema, AstNodeRef receiverRef, A
     SWC_RESULT(sema.waitSemaCompleted(ownerStruct, sema.node(valueRef).codeRef()));
 
     SmallVector<Symbol*> candidates;
-    SWC_RESULT(collectAffectCandidates(sema, *ownerStruct, sema.node(valueRef).codeRef(), valueRef, candidates));
+    SWC_RESULT(collectSetCandidates(sema, *ownerStruct, sema.node(valueRef).codeRef(), valueRef, candidates));
     if (candidates.empty())
         return Result::Continue;
 
@@ -1693,18 +1693,18 @@ Result SemaSpecOp::tryResolveIndexAssign(Sema& sema, const AstAssignStmt& node, 
         bool               canAssignThroughRef = false;
         SWC_RESULT(canAssignThroughIndexLValue(sema, node, leftNodeRef, leftView, canAssignThroughRef));
 
-        SymbolFunction* affectFn      = nullptr;
-        bool            affectMatched = false;
-        SWC_RESULT(probeIndexAssignSpecOp(sema, node, indexNode, candidates.span(), affectFn, affectMatched));
+        SymbolFunction* setFn      = nullptr;
+        bool            setMatched = false;
+        SWC_RESULT(probeIndexAssignSpecOp(sema, node, indexNode, candidates.span(), setFn, setMatched));
 
-        if (affectMatched && canAssignThroughRef)
+        if (setMatched && canAssignThroughRef)
         {
             if (SymbolFunction* const readFn = indexReadSpecOpFunction(sema, leftNodeRef))
-                return raiseAmbiguousIndexWrite(sema, sema.curNodeRef(), *readFn, *affectFn);
+                return raiseAmbiguousIndexWrite(sema, sema.curNodeRef(), *readFn, *setFn);
             return Result::Continue;
         }
 
-        if (!affectMatched)
+        if (!setMatched)
         {
             if (!canAssignThroughRef)
             {
@@ -1874,7 +1874,7 @@ Result SemaSpecOp::tryResolveRelational(Sema& sema, const AstRelationalExpr& nod
         case TokenId::SymGreater:
         case TokenId::SymGreaterEqual:
         case TokenId::SymLessEqualGreater:
-            opIdRef = sema.idMgr().predefined(IdentifierManager::PredefinedName::OpCmp);
+            opIdRef = sema.idMgr().predefined(IdentifierManager::PredefinedName::OpCompare);
             break;
 
         default:

@@ -624,7 +624,7 @@ SWC_TEST_BEGIN(NativeArtifact_SilentSpecOpProbeDoesNotDropStructCopyTests)
 }
 impl Buffer
 {
-    mtd opAffect(text: string)
+    mtd opSet(text: string)
     {
         .value = cast(u32) @countof(text)
     }

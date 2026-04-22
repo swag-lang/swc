@@ -52,7 +52,7 @@ impl String
     }
 
     #[Implicit]
-    mtd opAffect(value: string)
+    mtd opSet(value: string)
     {
         if @dataof(value) == null
         {
@@ -82,7 +82,7 @@ impl String
         return Memory.compare(.buffer, @dataof(other), .length) == 0
     }
 
-    mtd const opCmp(other: string)->s32
+    mtd const opCompare(other: string)->s32
     {
         return Utf8.compare(.toString(), other, Utf8.ComparisonType.Latin1)
     }
@@ -98,7 +98,7 @@ impl String
             #error("invalid operator '" ++ op ++ "'")
     }
 
-    mtd opIndexAffect(index: u64, value: u8)
+    mtd opIndexSet(index: u64, value: u8)
     {
         Debug.safetyBoundCheck(index < .length, "index out of range")
         .buffer[index] = value

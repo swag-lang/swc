@@ -57,7 +57,7 @@ impl DateTime
     }
 
     // Compares two DateTime values. Returns -1, 0, or 1.
-    mtd const opCmp(other: DateTime)->s32
+    mtd const opCompare(other: DateTime)->s32
     {
         if .year < other.year do
             return -1

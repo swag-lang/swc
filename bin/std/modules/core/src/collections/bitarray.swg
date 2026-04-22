@@ -67,13 +67,13 @@ public impl BitArray
     }
 
     // Sets the value of the bit at a specific position.
-    mtd opIndexAffect(index: u64, value: bool)
+    mtd opIndexSet(index: u64, value: bool)
     {
         .set(index, value)
     }
 
     // Replaces the content of the bit array with values from a slice of booleans.
-    mtd opAffect(what: const [..] bool)
+    mtd opSet(what: const [..] bool)
     {
         let len = @countof(what)
         .reserve(len)

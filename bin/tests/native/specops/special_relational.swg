@@ -20,7 +20,7 @@ impl RuntimeCompareBox
     }
 
     #[Swag.Overload, Swag.NoInline]
-    mtd const opCmp(other: const &RuntimeCompareBox)->s32
+    mtd const opCompare(other: const &RuntimeCompareBox)->s32
     {
         if .value < other.value do return -7
         if .value > other.value do return 9
@@ -28,7 +28,7 @@ impl RuntimeCompareBox
     }
 
     #[Swag.Overload, Swag.NoInline]
-    mtd const opCmp(value: s32)->s32
+    mtd const opCompare(value: s32)->s32
     {
         if .value < value do return -3
         if .value > value do return 4

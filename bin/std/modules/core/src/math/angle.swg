@@ -14,7 +14,7 @@ impl Angle
     // Assign a radian value directly to the angle.
     // Allows implicit conversion from floating-point values representing radians.
     #[ConstExpr, Implicit, Inline]
-    mtd opAffect(valueRad: f32)
+    mtd opSet(valueRad: f32)
     {
         .rad = valueRad
     }
@@ -22,7 +22,7 @@ impl Angle
     // Assign angle values with unit suffixes (rad or deg).
     // Supports literal syntax like '90'deg' or '1.57'rad' for convenient angle creation.
     #[ConstExpr, Implicit, Inline]
-    mtd(suffix: string) opAffectLiteral(value: f32)
+    mtd(suffix: string) opSetLiteral(value: f32)
     {
         #if suffix == "rad" do
             .rad = value

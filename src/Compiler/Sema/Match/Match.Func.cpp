@@ -1375,7 +1375,7 @@ namespace
             }
 
             const bool isUfcsArgument                = allowsImplicitAddressBinding(fn, i, ufcsArg);
-            const bool allowUserDefinedLiteralSuffix = fn.idRef() == sema.idMgr().predefined(IdentifierManager::PredefinedName::OpAffectLiteral);
+            const bool allowUserDefinedLiteralSuffix = fn.idRef() == sema.idMgr().predefined(IdentifierManager::PredefinedName::OpSetLiteral);
             auto       r                             = ConvRank::Bad;
             SWC_RESULT(probeImplicitConversion(sema, r, argRef, argTy, paramTy, cf, isUfcsArgument, allowUserDefinedLiteralSuffix));
             if (r == ConvRank::Bad)
@@ -1772,7 +1772,7 @@ namespace
             CastFlags flags = CastFlagsE::Zero;
             if (castTypeRef == paramTypeRef && allowsImplicitAddressBinding(selectedFn, i, appliedUfcsArg))
                 flags.add(CastFlagsE::UfcsArgument);
-            if (selectedFn.idRef() == sema.idMgr().predefined(IdentifierManager::PredefinedName::OpAffectLiteral))
+            if (selectedFn.idRef() == sema.idMgr().predefined(IdentifierManager::PredefinedName::OpSetLiteral))
                 flags.add(CastFlagsE::LiteralSuffixConsume);
             const DiagnosticArguments errorArguments = makeCallCastErrorArguments(selectedFn, mapping.paramArgs[i].callArgIndex, sema.ctx());
             SWC_RESULT(Cast::cast(sema, argView, castTypeRef, CastKind::Parameter, flags, &errorArguments));

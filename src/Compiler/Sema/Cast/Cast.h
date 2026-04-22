@@ -14,12 +14,12 @@ class SymbolFunction;
 enum class CastSpecialOpPayloadKind : uint8_t
 {
     OpCast,
-    Affect,
+    Set,
 };
 
-struct CastAffectPayload
+struct CastSetPayload
 {
-    CastSpecialOpPayloadKind kind               = CastSpecialOpPayloadKind::Affect;
+    CastSpecialOpPayloadKind kind               = CastSpecialOpPayloadKind::Set;
     SymbolFunction*          calledFn           = nullptr;
     ConstantRef              receiverInitCstRef = ConstantRef::invalid();
 };
@@ -76,7 +76,7 @@ struct Cast
     static bool       resolveUserDefinedLiteralSuffix(const Sema& sema, AstNodeRef nodeRef, UserDefinedLiteralSuffixInfo& outInfo);
     static TokenRef   userDefinedLiteralValueTokRef(const Sema& sema, AstNodeRef nodeRef);
     static Result     resolveStructOpCastCandidate(Sema& sema, const SourceCodeRef& codeRef, TypeRef srcTypeRef, TypeRef dstTypeRef, CastKind castKind, SymbolFunction*& outCalledFn, AstNodeRef srcNodeRef = AstNodeRef::invalid());
-    static Result     resolveStructAffectCastCandidate(Sema& sema, const SourceCodeRef& codeRef, TypeRef srcTypeRef, TypeRef dstTypeRef, CastKind castKind, SymbolFunction*& outCalledFn, TypeRef& outParamTypeRef, AstNodeRef srcNodeRef = AstNodeRef::invalid());
+    static Result     resolveStructSetCastCandidate(Sema& sema, const SourceCodeRef& codeRef, TypeRef srcTypeRef, TypeRef dstTypeRef, CastKind castKind, SymbolFunction*& outCalledFn, TypeRef& outParamTypeRef, AstNodeRef srcNodeRef = AstNodeRef::invalid());
 
 private:
     static Result castIdentity(const Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef);

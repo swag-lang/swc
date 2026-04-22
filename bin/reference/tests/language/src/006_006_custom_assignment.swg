@@ -1,9 +1,9 @@
 #global fileprivate
 /**
-# Custom Assignment Behavior with 'opAffect'
+# Custom Assignment Behavior with 'opSet'
 
-The 'opAffect' method in Swag allows you to define custom assignment behaviors
-for your struct using the '=' operator. By overloading 'opAffect', you can handle
+The 'opSet' method in Swag allows you to define custom assignment behaviors
+for your struct using the '=' operator. By overloading 'opSet', you can handle
 assignments of different types and control how your struct responds.
 */
 
@@ -16,14 +16,14 @@ impl Struct
 {
     // Overload for 's32'
     #[Swag.Overload]
-    mtd opAffect(value: s32)
+    mtd opSet(value: s32)
     {
         me.x, me.y = value
     }
 
     // Overload for 'bool'
     #[Swag.Overload]
-    mtd opAffect(value: bool)
+    mtd opSet(value: bool)
     {
         me.x, me.y = value ? 1 : 0
     }
@@ -46,20 +46,20 @@ impl Struct
 /**
 # Optimizing Initialization with 'Swag.Complete'
 
-When 'opAffect' completely initializes the struct, mark it with '#[Swag.Complete]'.
+When 'opSet' completely initializes the struct, mark it with '#[Swag.Complete]'.
 This avoids default initialization before assignment for better performance.
 */
 
 impl Struct
 {
     #[Swag.Complete, Swag.Overload]
-    mtd opAffect(value: u64)
+    mtd opSet(value: u64)
     {
         me.x, me.y, me.z = cast(s32) value
     }
 
     #[Swag.Implicit, Swag.Overload]
-    mtd opAffect(value: u16)
+    mtd opSet(value: u16)
     {
         me.x, me.y = cast(s32) value
     }
@@ -76,7 +76,7 @@ impl Struct
 /**
 # Handling Function Arguments and Automatic Conversion
 
-Function arguments are not automatically converted through 'opAffect' unless
+Function arguments are not automatically converted through 'opSet' unless
 'Swag.Implicit' is used. Otherwise, an explicit cast is required.
 */
 
@@ -96,17 +96,17 @@ Function arguments are not automatically converted through 'opAffect' unless
         @assert(v.z == 666)
     }
 
-    // Explicit cast triggers 'opAffect(s32)'
+    // Explicit cast triggers 'opSet(s32)'
     takesExplicit(cast(Struct) 5's32)
 
-    // Implicit conversion via 'opAffect(u16)'
+    // Implicit conversion via 'opSet(u16)'
     takesImplicit(5'u16)
 }
 
 /**
-# Using 'opAffect' in Constant Expressions
+# Using 'opSet' in Constant Expressions
 
-To allow compile-time initialization through 'opAffect', mark it with
+To allow compile-time initialization through 'opSet', mark it with
 '#[Swag.ConstExpr]'.
 */
 
@@ -115,7 +115,7 @@ struct Vector2 { x, y: f32 }
 impl Vector2
 {
     #[Swag.ConstExpr]
-    mtd opAffect(one: f32)
+    mtd opSet(one: f32)
     {
         me.x, me.y = one
     }

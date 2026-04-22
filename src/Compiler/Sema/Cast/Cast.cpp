@@ -66,7 +66,7 @@ TypeRef Cast::runtimeStorageTypeRef(Sema& sema, TypeRef srcTypeRef, TypeRef dstT
         SymbolFunction* calledFn     = nullptr;
         TypeRef         paramTypeRef = TypeRef::invalid();
         const auto      codeRef      = sema.node(sema.curNodeRef()).codeRef();
-        if (resolveStructAffectCastCandidate(sema, codeRef, srcTypeRef, dstTypeRef, CastKind::Initialization, calledFn, paramTypeRef, sema.curNodeRef()) == Result::Continue && calledFn)
+        if (resolveStructSetCastCandidate(sema, codeRef, srcTypeRef, dstTypeRef, CastKind::Initialization, calledFn, paramTypeRef, sema.curNodeRef()) == Result::Continue && calledFn)
             return dstTypeRef;
     }
 

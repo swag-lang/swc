@@ -1,11 +1,11 @@
 #global fileprivate
 
-struct RuntimeAffectSource
+struct RuntimeSetSource
 {
     value: s32
 }
 
-struct RuntimeAffectTarget
+struct RuntimeSetTarget
 {
     value: s32
     tag: s32
@@ -13,10 +13,10 @@ struct RuntimeAffectTarget
     sentinel: s32 = 1234
 }
 
-impl RuntimeAffectTarget
+impl RuntimeSetTarget
 {
     #[Swag.Overload, Swag.NoInline]
-    mtd opAffect(value: s32)
+    mtd opSet(value: s32)
     {
         .value = value
         .tag = 10
@@ -24,7 +24,7 @@ impl RuntimeAffectTarget
     }
 
     #[Swag.Overload, Swag.NoInline]
-    mtd opAffect(value: f32)
+    mtd opSet(value: f32)
     {
         .value = cast(s32) value * 2
         .tag = 20
@@ -32,7 +32,7 @@ impl RuntimeAffectTarget
     }
 
     #[Swag.Overload, Swag.NoInline]
-    mtd opAffect(other: RuntimeAffectSource)
+    mtd opSet(other: RuntimeSetSource)
     {
         .value = other.value + 5
         .tag = 30
@@ -40,36 +40,36 @@ impl RuntimeAffectTarget
     }
 }
 
-struct RuntimeAffectHolder
+struct RuntimeSetHolder
 {
-    target: RuntimeAffectTarget
+    target: RuntimeSetTarget
 }
 
-struct RuntimeParamAffectTarget
+struct RuntimeParamSetTarget
 {
     value: s32
     tag: s32
     sentinel: s32 = 777
 }
 
-impl RuntimeParamAffectTarget
+impl RuntimeParamSetTarget
 {
     #[Swag.Overload, Swag.NoInline]
-    mtd opAffect(value: s32)
+    mtd opSet(value: s32)
     {
         .value = value
         .tag = 10
     }
 
     #[Swag.Implicit, Swag.Overload, Swag.NoInline]
-    mtd opAffect(value: u16)
+    mtd opSet(value: u16)
     {
         .value = cast(s32) value
         .tag = 20
     }
 
     #[Swag.Complete, Swag.Overload, Swag.NoInline]
-    mtd opAffect(value: u64)
+    mtd opSet(value: u64)
     {
         .value = cast(s32) value
         .tag = 30
@@ -77,31 +77,31 @@ impl RuntimeParamAffectTarget
     }
 }
 
-struct RuntimeConstAffectVector2
+struct RuntimeConstSetVector2
 {
     x, y: f32
 }
 
-impl RuntimeConstAffectVector2
+impl RuntimeConstSetVector2
 {
     #[Swag.ConstExpr]
-    mtd opAffect(one: f32)
+    mtd opSet(one: f32)
     {
         .x, .y = one
     }
 }
 
-struct RuntimeLiteralAffectTarget
+struct RuntimeLiteralSetTarget
 {
     timeInSeconds: f32
     calls: s32
     sentinel: s32 = 1234
 }
 
-impl RuntimeLiteralAffectTarget
+impl RuntimeLiteralSetTarget
 {
     #[Swag.Implicit, Swag.NoInline]
-    mtd(suffix: string) opAffectLiteral(value: s32)
+    mtd(suffix: string) opSetLiteral(value: s32)
     {
         .calls += 1
 
@@ -129,7 +129,7 @@ struct RuntimeLiteralOverloadTarget
 impl RuntimeLiteralOverloadTarget
 {
     #[Swag.Implicit, Swag.Overload, Swag.NoInline]
-    mtd(suffix: string) opAffectLiteral(value: s32)
+    mtd(suffix: string) opSetLiteral(value: s32)
     {
         .tag = 10
         .calls += 1
@@ -147,7 +147,7 @@ impl RuntimeLiteralOverloadTarget
     }
 
     #[Swag.Implicit, Swag.Overload, Swag.NoInline]
-    mtd(suffix: string) opAffectLiteral(value: f32)
+    mtd(suffix: string) opSetLiteral(value: f32)
     {
         .tag = 20
         .calls += 1
@@ -165,18 +165,18 @@ impl RuntimeLiteralOverloadTarget
     }
 }
 
-const RuntimeConstAffectOne: RuntimeConstAffectVector2 = 1.0
-#assert(RuntimeConstAffectOne.x == 1.0)
-#assert(RuntimeConstAffectOne.y == 1.0)
+const RuntimeConstSetOne: RuntimeConstSetVector2 = 1.0
+#assert(RuntimeConstSetOne.x == 1.0)
+#assert(RuntimeConstSetOne.y == 1.0)
 
-func assertRuntimeLiteralAffect(value: RuntimeLiteralAffectTarget, expectedSeconds: f32)
+func assertRuntimeLiteralSet(value: RuntimeLiteralSetTarget, expectedSeconds: f32)
 {
     @assert(value.timeInSeconds == expectedSeconds)
     @assert(value.calls == 1)
     @assert(value.sentinel == 1234)
 }
 
-func assertRuntimeLiteralOverloadAffect(value: RuntimeLiteralOverloadTarget, expectedSeconds: f32, expectedTag: s32)
+func assertRuntimeLiteralOverloadSet(value: RuntimeLiteralOverloadTarget, expectedSeconds: f32, expectedTag: s32)
 {
     @assert(value.timeInSeconds == expectedSeconds)
     @assert(value.tag == expectedTag)
@@ -186,10 +186,10 @@ func assertRuntimeLiteralOverloadAffect(value: RuntimeLiteralOverloadTarget, exp
 
 #test
 {
-    var target = RuntimeAffectTarget{}
+    var target = RuntimeSetTarget{}
     target = 42's32
 
-    #assert(#typeof(target) == RuntimeAffectTarget)
+    #assert(#typeof(target) == RuntimeSetTarget)
     @assert(target.value == 42)
     @assert(target.tag == 10)
     @assert(target.calls == 1)
@@ -198,7 +198,7 @@ func assertRuntimeLiteralOverloadAffect(value: RuntimeLiteralOverloadTarget, exp
 
 #test
 {
-    var target = RuntimeAffectTarget{}
+    var target = RuntimeSetTarget{}
     target = 3.5'f32
 
     @assert(target.value == 6)
@@ -209,8 +209,8 @@ func assertRuntimeLiteralOverloadAffect(value: RuntimeLiteralOverloadTarget, exp
 
 #test
 {
-    var source = RuntimeAffectSource{value: 37}
-    var target = RuntimeAffectTarget{}
+    var source = RuntimeSetSource{value: 37}
+    var target = RuntimeSetTarget{}
     target = source
 
     @assert(target.value == 42)
@@ -221,7 +221,7 @@ func assertRuntimeLiteralOverloadAffect(value: RuntimeLiteralOverloadTarget, exp
 
 #test
 {
-    let target: RuntimeAffectTarget = 42's32
+    let target: RuntimeSetTarget = 42's32
 
     @assert(target.value == 42)
     @assert(target.tag == 10)
@@ -231,7 +231,7 @@ func assertRuntimeLiteralOverloadAffect(value: RuntimeLiteralOverloadTarget, exp
 
 #test
 {
-    let target: RuntimeAffectTarget = 3.5'f32
+    let target: RuntimeSetTarget = 3.5'f32
 
     @assert(target.value == 6)
     @assert(target.tag == 20)
@@ -241,7 +241,7 @@ func assertRuntimeLiteralOverloadAffect(value: RuntimeLiteralOverloadTarget, exp
 
 #test
 {
-    var holder = RuntimeAffectHolder{}
+    var holder = RuntimeSetHolder{}
     holder.target = 77's32
 
     @assert(holder.target.value == 77)
@@ -252,7 +252,7 @@ func assertRuntimeLiteralOverloadAffect(value: RuntimeLiteralOverloadTarget, exp
 
 #test
 {
-    var target = RuntimeAffectTarget{}
+    var target = RuntimeSetTarget{}
     let ptr = &target
     dref ptr = 12's32
 
@@ -264,7 +264,7 @@ func assertRuntimeLiteralOverloadAffect(value: RuntimeLiteralOverloadTarget, exp
 
 #test
 {
-    let target: RuntimeParamAffectTarget = 2'u64
+    let target: RuntimeParamSetTarget = 2'u64
 
     @assert(target.value == 2)
     @assert(target.tag == 30)
@@ -273,95 +273,95 @@ func assertRuntimeLiteralOverloadAffect(value: RuntimeLiteralOverloadTarget, exp
 
 #test
 {
-    func takesExplicit(value: RuntimeParamAffectTarget)
+    func takesExplicit(value: RuntimeParamSetTarget)
     {
         @assert(value.value == 5)
         @assert(value.tag == 10)
         @assert(value.sentinel == 777)
     }
 
-    func takesImplicit(value: RuntimeParamAffectTarget)
+    func takesImplicit(value: RuntimeParamSetTarget)
     {
         @assert(value.value == 7)
         @assert(value.tag == 20)
         @assert(value.sentinel == 777)
     }
 
-    takesExplicit(cast(RuntimeParamAffectTarget) 5's32)
+    takesExplicit(cast(RuntimeParamSetTarget) 5's32)
     takesImplicit(7'u16)
 }
 
 #test
 {
-    let delay: RuntimeLiteralAffectTarget = 5's
+    let delay: RuntimeLiteralSetTarget = 5's
 
-    assertRuntimeLiteralAffect(delay, 5.0)
+    assertRuntimeLiteralSet(delay, 5.0)
 }
 
 #test
 {
-    let delay: RuntimeLiteralAffectTarget = 500'ms
+    let delay: RuntimeLiteralSetTarget = 500'ms
 
-    assertRuntimeLiteralAffect(delay, 0.5)
+    assertRuntimeLiteralSet(delay, 0.5)
 }
 
 #test
 {
-    var delay = RuntimeLiteralAffectTarget{}
+    var delay = RuntimeLiteralSetTarget{}
     delay = 2'min
 
-    assertRuntimeLiteralAffect(delay, 120.0)
+    assertRuntimeLiteralSet(delay, 120.0)
 }
 
 #test
 {
-    func takesImplicit(value: RuntimeLiteralAffectTarget)
+    func takesImplicit(value: RuntimeLiteralSetTarget)
     {
-        assertRuntimeLiteralAffect(value, 0.5)
+        assertRuntimeLiteralSet(value, 0.5)
     }
 
-    func takesExplicit(value: RuntimeLiteralAffectTarget)
+    func takesExplicit(value: RuntimeLiteralSetTarget)
     {
-        assertRuntimeLiteralAffect(value, 3600.0)
+        assertRuntimeLiteralSet(value, 3600.0)
     }
 
     takesImplicit(500'ms)
-    takesExplicit(cast(RuntimeLiteralAffectTarget) 1'h)
+    takesExplicit(cast(RuntimeLiteralSetTarget) 1'h)
 }
 
 #test
 {
     let delay: RuntimeLiteralOverloadTarget = 5's
 
-    assertRuntimeLiteralOverloadAffect(delay, 5.0, 10)
+    assertRuntimeLiteralOverloadSet(delay, 5.0, 10)
 }
 
 #test
 {
     let delay: RuntimeLiteralOverloadTarget = 1.5's
 
-    assertRuntimeLiteralOverloadAffect(delay, 1.5, 20)
+    assertRuntimeLiteralOverloadSet(delay, 1.5, 20)
 }
 
 #test
 {
     let intDelay = cast(RuntimeLiteralOverloadTarget) 250'ms
-    assertRuntimeLiteralOverloadAffect(intDelay, 0.25, 10)
+    assertRuntimeLiteralOverloadSet(intDelay, 0.25, 10)
 
     let floatDelay = cast(RuntimeLiteralOverloadTarget) 0.5'h
-    assertRuntimeLiteralOverloadAffect(floatDelay, 1800.0, 20)
+    assertRuntimeLiteralOverloadSet(floatDelay, 1800.0, 20)
 }
 
 #test
 {
     func takesInt(value: RuntimeLiteralOverloadTarget)
     {
-        assertRuntimeLiteralOverloadAffect(value, 120.0, 10)
+        assertRuntimeLiteralOverloadSet(value, 120.0, 10)
     }
 
     func takesFloat(value: RuntimeLiteralOverloadTarget)
     {
-        assertRuntimeLiteralOverloadAffect(value, 0.25, 20)
+        assertRuntimeLiteralOverloadSet(value, 0.25, 20)
     }
 
     takesInt(2'min)
@@ -370,14 +370,14 @@ func assertRuntimeLiteralOverloadAffect(value: RuntimeLiteralOverloadTarget, exp
 
 #test
 {
-    @assert(RuntimeConstAffectOne.x == 1.0)
-    @assert(RuntimeConstAffectOne.y == 1.0)
+    @assert(RuntimeConstSetOne.x == 1.0)
+    @assert(RuntimeConstSetOne.y == 1.0)
 }
 
 #test
 {
-    var lhs = RuntimeAffectTarget{value: 1, tag: 2, calls: 3}
-    var rhs = RuntimeAffectTarget{value: 9, tag: 11, calls: 13}
+    var lhs = RuntimeSetTarget{value: 1, tag: 2, calls: 3}
+    var rhs = RuntimeSetTarget{value: 9, tag: 11, calls: 13}
     lhs = rhs
 
     @assert(lhs.value == 9)

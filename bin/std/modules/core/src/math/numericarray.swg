@@ -82,14 +82,14 @@ impl NumericArray
     }
 
     #[Safety(.BoundCheck, false), Complete, Overload]
-    mtd opAffect(what: T)
+    mtd opSet(what: T)
     {
         for i in NumericArray.N do
             .buf[i] = what
     }
 
     #[Safety(.BoundCheck, false), Complete, Overload]
-    mtd opAffect(what: const [..] T)
+    mtd opSet(what: const [..] T)
     {
         Debug.assert(@countof(what) == NumericArray.N)
         for i in NumericArray.N do

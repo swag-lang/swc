@@ -1,4 +1,4 @@
-﻿#include "pch.h"
+#include "pch.h"
 #include "Compiler/Sema/Symbol/IdentifierManager.h"
 #include "Compiler/Lexer/SourceView.h"
 #include "Compiler/Lexer/Token.h"
@@ -63,17 +63,17 @@ void IdentifierManager::setup(const TaskContext& ctx)
         {.name = PredefinedName::OpIndexAssign, .str = "opIndexAssign"},
         {.name = PredefinedName::OpCast, .str = "opCast"},
         {.name = PredefinedName::OpEquals, .str = "opEquals"},
-        {.name = PredefinedName::OpCmp, .str = "opCmp"},
+        {.name = PredefinedName::OpCompare, .str = "opCompare"},
         {.name = PredefinedName::OpPostCopy, .str = "opPostCopy"},
         {.name = PredefinedName::OpPostMove, .str = "opPostMove"},
         {.name = PredefinedName::OpDrop, .str = "opDrop"},
         {.name = PredefinedName::OpCount, .str = "opCount"},
         {.name = PredefinedName::OpData, .str = "opData"},
-        {.name = PredefinedName::OpAffect, .str = "opAffect"},
-        {.name = PredefinedName::OpAffectLiteral, .str = "opAffectLiteral"},
+        {.name = PredefinedName::OpSet, .str = "opSet"},
+        {.name = PredefinedName::OpSetLiteral, .str = "opSetLiteral"},
         {.name = PredefinedName::OpSlice, .str = "opSlice"},
         {.name = PredefinedName::OpIndex, .str = "opIndex"},
-        {.name = PredefinedName::OpIndexAffect, .str = "opIndexAffect"},
+        {.name = PredefinedName::OpIndexSet, .str = "opIndexSet"},
         {.name = PredefinedName::OpVisit, .str = "opVisit"},
         {.name = PredefinedName::TypeInfo, .str = "TypeInfo"},
         {.name = PredefinedName::TypeInfoNative, .str = "TypeInfoNative"},

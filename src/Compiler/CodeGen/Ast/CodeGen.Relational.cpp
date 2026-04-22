@@ -435,7 +435,7 @@ namespace
                     return emitSpecialEqualsNotEqual(codeGen);
                 break;
 
-            case SpecOpKind::OpCmp:
+            case SpecOpKind::OpCompare:
                 if (tokId == TokenId::SymLessEqualGreater)
                     return CodeGenCallHelpers::codeGenCallExprCommon(codeGen, AstNodeRef::invalid());
                 if (tokId == TokenId::SymLess || tokId == TokenId::SymLessEqual || tokId == TokenId::SymGreater || tokId == TokenId::SymGreaterEqual)
@@ -564,7 +564,7 @@ Result AstRelationalExpr::codeGenPostNode(CodeGen& codeGen) const
     {
         codeGen.sema().setSymbol(codeGen.curNodeRef(), relationalPayload->calledFn);
         const auto& calledFn = *relationalPayload->calledFn;
-        if (calledFn.specOpKind() == SpecOpKind::OpEquals || calledFn.specOpKind() == SpecOpKind::OpCmp)
+        if (calledFn.specOpKind() == SpecOpKind::OpEquals || calledFn.specOpKind() == SpecOpKind::OpCompare)
             return emitSpecialRelational(codeGen, tok.id, calledFn);
     }
 

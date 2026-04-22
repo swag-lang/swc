@@ -813,7 +813,7 @@ namespace
         return Result::Continue;
     }
 
-    Result initializeStructAffectReceiverStorage(CodeGen& codeGen, MicroReg storageReg, TypeRef dstTypeRef, ConstantRef initCstRef)
+    Result initializeStructSetReceiverStorage(CodeGen& codeGen, MicroReg storageReg, TypeRef dstTypeRef, ConstantRef initCstRef)
     {
         if (!initCstRef.isValid())
             return Result::Continue;
@@ -836,21 +836,21 @@ namespace
         return Result::Continue;
     }
 
-    Result emitStructAffectCast(CodeGen& codeGen, AstNodeRef srcNodeRef, TypeRef dstTypeRef, const CastAffectPayload& affectPayload)
+    Result emitStructSetCast(CodeGen& codeGen, AstNodeRef srcNodeRef, TypeRef dstTypeRef, const CastSetPayload& setPayload)
     {
         SWC_UNUSED(srcNodeRef);
 
         const auto* castPayload = codeGen.sema().codeGenPayload<CodeGenNodePayload>(codeGen.curNodeRef());
         SWC_ASSERT(castPayload != nullptr);
         SWC_ASSERT(castPayload->runtimeStorageSym != nullptr);
-        SWC_ASSERT(affectPayload.calledFn != nullptr);
+        SWC_ASSERT(setPayload.calledFn != nullptr);
 
         SmallVector<ResolvedCallArgument> resolvedArgs;
         codeGen.appendResolvedCallArguments(codeGen.curNodeRef(), resolvedArgs);
         SWC_ASSERT(!resolvedArgs.empty() && resolvedArgs[0].argRef.isValid());
 
         const MicroReg runtimeStorageReg = codeGen.runtimeStorageAddressReg(codeGen.curNodeRef());
-        SWC_RESULT(initializeStructAffectReceiverStorage(codeGen, runtimeStorageReg, dstTypeRef, affectPayload.receiverInitCstRef));
+        SWC_RESULT(initializeStructSetReceiverStorage(codeGen, runtimeStorageReg, dstTypeRef, setPayload.receiverInitCstRef));
 
         CodeGenNodePayload& receiverArg = codeGen.setPayload(resolvedArgs[0].argRef, dstTypeRef);
         receiverArg.reg                 = runtimeStorageReg;
@@ -861,7 +861,7 @@ namespace
             receiverSym && receiverSym->isVariable())
             codeGen.setVariablePayload(receiverSym->cast<SymbolVariable>(), receiverArg);
 
-        codeGen.sema().setSymbol(codeGen.curNodeRef(), affectPayload.calledFn);
+        codeGen.sema().setSymbol(codeGen.curNodeRef(), setPayload.calledFn);
         SWC_RESULT(CodeGenCallHelpers::codeGenCallExprCommon(codeGen, AstNodeRef::invalid()));
         codeGen.setPayloadAddressReg(codeGen.curNodeRef(), runtimeStorageReg, dstTypeRef);
         return Result::Continue;
@@ -904,11 +904,11 @@ namespace
             specOpPayload->calledFn != nullptr)
             return emitStructOpCast(codeGen, *specOpPayload);
 
-        if (const auto* affectPayload = codeGen.sema().semaPayload<CastAffectPayload>(codeGen.curNodeRef());
-            affectPayload &&
-            affectPayload->kind == CastSpecialOpPayloadKind::Affect &&
-            affectPayload->calledFn != nullptr)
-            return emitStructAffectCast(codeGen, srcNodeRef, dstTypeRef, *affectPayload);
+        if (const auto* setPayload = codeGen.sema().semaPayload<CastSetPayload>(codeGen.curNodeRef());
+            setPayload &&
+            setPayload->kind == CastSpecialOpPayloadKind::Set &&
+            setPayload->calledFn != nullptr)
+            return emitStructSetCast(codeGen, srcNodeRef, dstTypeRef, *setPayload);
 
         const AstNodeRef resolvedSrcNodeRef = codeGen.viewZero(srcNodeRef).nodeRef();
         const AstNode&   srcNode            = codeGen.node(resolvedSrcNodeRef);

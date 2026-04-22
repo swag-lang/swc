@@ -113,7 +113,7 @@ impl SmallVec
     }
 
     // Build from an initializer count: `var v: SmallVec = 3` fills with zeros.
-    mtd opAffect(n: u64)
+    mtd opSet(n: u64)
     {
         .init()
         for n do

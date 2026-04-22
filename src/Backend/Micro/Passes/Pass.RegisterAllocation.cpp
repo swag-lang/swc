@@ -722,6 +722,8 @@ void MicroRegisterAllocationPass::analyzeLiveness()
         }
     }
 
+    computeReachability();
+
     worklist_.clear();
     worklist_.reserve(instructionCount_);
     inWorklist_.assign(instructionCount_, 0);
@@ -833,6 +835,32 @@ void MicroRegisterAllocationPass::analyzeLiveness()
     }
 }
 
+void MicroRegisterAllocationPass::computeReachability()
+{
+    reachableInstructions_.assign(instructionCount_, 0);
+    if (!instructionCount_ || controlFlowGraph_ == nullptr)
+        return;
+
+    SmallVector<uint32_t> pending;
+    pending.push_back(0);
+    reachableInstructions_[0] = 1;
+
+    while (!pending.empty())
+    {
+        const uint32_t instructionIndex = pending.back();
+        pending.pop_back();
+
+        for (const uint32_t succIdx : controlFlowGraph_->successors(instructionIndex))
+        {
+            if (succIdx >= instructionCount_ || reachableInstructions_[succIdx])
+                continue;
+
+            reachableInstructions_[succIdx] = 1;
+            pending.push_back(succIdx);
+        }
+    }
+}
+
 void MicroRegisterAllocationPass::computeCurrentLiveOutBits(const uint32_t instructionIndex)
 {
     SWC_ASSERT(controlFlowGraph_ != nullptr);
@@ -901,6 +929,14 @@ bool MicroRegisterAllocationPass::isCurrentConcreteLiveOut(MicroReg key) const
     if (denseIndex == MicroDenseRegIndex::K_INVALID_INDEX)
         return false;
     return DenseBits::contains(tempOutConcrete_, denseIndex);
+}
+
+bool MicroRegisterAllocationPass::isInstructionReachable(uint32_t instructionIndex) const
+{
+    if (instructionIndex >= reachableInstructions_.size())
+        return false;
+
+    return reachableInstructions_[instructionIndex] != 0;
 }
 
 void MicroRegisterAllocationPass::setupPools()
@@ -1689,14 +1725,18 @@ void MicroRegisterAllocationPass::rewriteInstructions()
         markCurrentVirtualLiveOut(stamp);
         rebuildCurrentConcreteLiveOutRegs();
         advanceCurrentPositionCursors(idx);
+        const bool currentReachable = !hasControlFlow_ || isInstructionReachable(idx);
 
         if (it->op == MicroInstrOpcode::Label)
         {
-            const MicroInstrOperand* const ops = it->ops(*operands_);
-            const MicroLabelRef            labelRef(static_cast<uint32_t>(ops[0].valueU64));
-            const auto                     labelIt = labelStackDepth_.find(labelRef);
-            if (labelIt != labelStackDepth_.end())
-                stackDepth = labelIt->second;
+            if (currentReachable)
+            {
+                const MicroInstrOperand* const ops = it->ops(*operands_);
+                const MicroLabelRef            labelRef(static_cast<uint32_t>(ops[0].valueU64));
+                const auto                     labelIt = labelStackDepth_.find(labelRef);
+                if (labelIt != labelStackDepth_.end())
+                    stackDepth = labelIt->second;
+            }
         }
 
         const MicroInstrRef instructionRef = it.current;
@@ -1990,12 +2030,16 @@ void MicroRegisterAllocationPass::rewriteInstructions()
 
         if (it->op == MicroInstrOpcode::JumpCond)
         {
-            const MicroInstrOperand* const ops = it->ops(*operands_);
-            const MicroLabelRef            labelRef(static_cast<uint32_t>(ops[2].valueU64));
-            mergeLabelStackDepth(labelStackDepth_, labelRef, stackDepth);
+            if (currentReachable)
+            {
+                const MicroInstrOperand* const ops = it->ops(*operands_);
+                const MicroLabelRef            labelRef(static_cast<uint32_t>(ops[2].valueU64));
+                mergeLabelStackDepth(labelStackDepth_, labelRef, stackDepth);
+            }
         }
 
-        applyStackPointerDelta(stackDepth, *it);
+        if (currentReachable)
+            applyStackPointerDelta(stackDepth, *it);
 
         if (hasControlFlow_ && isTerminator)
             clearAllMappedVirtuals();
@@ -2073,6 +2117,7 @@ void MicroRegisterAllocationPass::clearState()
     liveInVirtualBits_.clear();
     liveInConcreteBits_.clear();
     predecessors_.clear();
+    reachableInstructions_.clear();
     worklist_.clear();
     inWorklist_.clear();
     tempOutVirtual_.clear();

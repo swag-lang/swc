@@ -655,11 +655,13 @@ namespace
             return;
         if (!codeGen.hasLocalStackFrame())
             return;
+        SWC_ASSERT(codeGen.localStackBaseReg().isValid());
 
         // Once parameter payloads are materialized, mirror them into the synthetic debug slots so the
-        // debugger can recover them from a single stack location.
+        // debugger can recover them from a single stack location. Use the local-frame base instead of
+        // raw SP so later spill-frame insertion does not slide these stores into the allocator spill area.
         MicroBuilder&                       builder = codeGen.builder();
-        const MicroReg                      baseReg = CallConv::get(symbolFunc.callConvKind()).stackPointer;
+        const MicroReg                      baseReg = codeGen.localStackBaseReg();
         const std::vector<SymbolVariable*>& params  = symbolFunc.parameters();
         for (const SymbolVariable* symVar : params)
         {

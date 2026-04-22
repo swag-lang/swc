@@ -97,10 +97,12 @@ private:
     uint32_t         distanceToNextUse(MicroReg key, uint32_t instructionIndex) const;
     void             advanceCurrentPositionCursors(uint32_t instructionIndex);
     void             prepareInstructionData();
+    void             computeReachability();
     void             analyzeLiveness();
     void             computeCurrentLiveOutBits(uint32_t instructionIndex);
     void             markCurrentVirtualLiveOut(uint32_t stamp);
     void             rebuildCurrentConcreteLiveOutRegs();
+    bool             isInstructionReachable(uint32_t instructionIndex) const;
     bool             canEraseCoalescedCopy(MicroInstrRef copyRef, MicroReg dstReg) const;
     void             mergeVirtualForbiddenRegs(MicroReg dstReg, MicroReg srcReg) const;
     bool             isCurrentConcreteLiveOut(MicroReg key) const;
@@ -165,6 +167,7 @@ private:
     std::vector<uint64_t>                 liveInVirtualBits_;
     std::vector<uint64_t>                 liveInConcreteBits_;
     std::vector<SmallVector<uint32_t, 2>> predecessors_;
+    std::vector<uint8_t>                  reachableInstructions_;
     std::vector<uint32_t>                 worklist_;
     std::vector<uint8_t>                  inWorklist_;
     std::vector<uint64_t>                 tempOutVirtual_;

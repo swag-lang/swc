@@ -94,15 +94,39 @@ namespace
         return sourceFile && sourceFile->isImportedApi();
     }
 
-    uint64_t compilerMessageBit(const Runtime::CompilerMsgKind kind)
+    constexpr uint64_t compilerMessageBit(const Runtime::CompilerMsgKind kind)
     {
         return 1ull << static_cast<uint32_t>(kind);
+    }
+
+    constexpr uint64_t trackedCompilerMessageSemaMask()
+    {
+        return compilerMessageBit(Runtime::CompilerMsgKind::SemFunctions) |
+               compilerMessageBit(Runtime::CompilerMsgKind::SemTypes) |
+               compilerMessageBit(Runtime::CompilerMsgKind::SemGlobals);
     }
 
     struct DeferredCompilerGeneratedSource
     {
         Utf8                   text;
         const SymbolNamespace* moduleNamespace = nullptr;
+    };
+
+    struct CompilerMessageBacklogEntry
+    {
+        Symbol*                  symbol = nullptr;
+        Runtime::CompilerMsgKind kind   = Runtime::CompilerMsgKind::PassAfterSemantic;
+        Utf8                     key;
+    };
+
+    struct CompilerMessageDispatchStep
+    {
+        size_t                                 listenerIndex = 0;
+        size_t                                 eventIndex    = 0;
+        bool                                   fromReplay    = false;
+        CompilerInstance::CompilerMessageEvent event;
+        SymbolFunction*                        function      = nullptr;
+        AstNodeRef                             nodeRef       = AstNodeRef::invalid();
     };
 
     struct CompilerMessageDispatchState
@@ -275,12 +299,24 @@ namespace
         return std::nullopt;
     }
 
-    struct CompilerMessageBacklogEntry
+    bool tryBuildCompilerMessageBacklogEntry(CompilerMessageBacklogEntry& out, const CompilerInstance& compiler, const Symbol& symbol, const uint64_t activationMask)
     {
-        Symbol*                  symbol = nullptr;
-        Runtime::CompilerMsgKind kind   = Runtime::CompilerMsgKind::PassAfterSemantic;
-        Utf8                     key;
-    };
+        const std::optional<Runtime::CompilerMsgKind> kind = compilerMessageKindForSymbol(compiler, symbol, activationMask);
+        if (!kind.has_value())
+            return false;
+
+        out.symbol = const_cast<Symbol*>(&symbol);
+        out.kind   = *kind;
+        out.key    = SymbolSort::locationKey(compiler, symbol);
+        return true;
+    }
+
+    bool sortCompilerMessageBacklogEntry(const CompilerMessageBacklogEntry& lhs, const CompilerMessageBacklogEntry& rhs)
+    {
+        if (lhs.key != rhs.key)
+            return lhs.key < rhs.key;
+        return static_cast<uint32_t>(lhs.kind) < static_cast<uint32_t>(rhs.kind);
+    }
 
     void collectCompilerMessageBacklogRec(const CompilerInstance& compiler, const SymbolMap& symMap, std::unordered_set<const SymbolMap*>& visited, uint64_t activationMask, std::vector<CompilerMessageBacklogEntry>& out)
     {
@@ -294,25 +330,9 @@ namespace
             if (!symbol)
                 continue;
 
-            if ((activationMask & compilerMessageBit(Runtime::CompilerMsgKind::SemFunctions)) &&
-                symbol->isFunction() &&
-                shouldTrackCompilerMessageFunction(compiler, symbol->cast<SymbolFunction>()))
-            {
-                out.push_back({.symbol = const_cast<Symbol*>(symbol), .kind = Runtime::CompilerMsgKind::SemFunctions, .key = SymbolSort::locationKey(compiler, *symbol)});
-            }
-
-            if ((activationMask & compilerMessageBit(Runtime::CompilerMsgKind::SemTypes)) &&
-                shouldTrackCompilerMessageType(compiler, *symbol))
-            {
-                out.push_back({.symbol = const_cast<Symbol*>(symbol), .kind = Runtime::CompilerMsgKind::SemTypes, .key = SymbolSort::locationKey(compiler, *symbol)});
-            }
-
-            if ((activationMask & compilerMessageBit(Runtime::CompilerMsgKind::SemGlobals)) &&
-                symbol->isVariable() &&
-                shouldTrackCompilerMessageGlobal(compiler, symbol->cast<SymbolVariable>()))
-            {
-                out.push_back({.symbol = const_cast<Symbol*>(symbol), .kind = Runtime::CompilerMsgKind::SemGlobals, .key = SymbolSort::locationKey(compiler, *symbol)});
-            }
+            CompilerMessageBacklogEntry entry;
+            if (tryBuildCompilerMessageBacklogEntry(entry, compiler, *symbol, activationMask))
+                out.push_back(std::move(entry));
 
             if (symbol->isSymMap())
                 collectCompilerMessageBacklogRec(compiler, *symbol->asSymMap(), visited, activationMask, out);
@@ -338,11 +358,7 @@ namespace
             collectCompilerMessageBacklogRec(compiler, *fileNamespace->asSymMap(), visited, activationMask, entries);
         }
 
-        std::ranges::stable_sort(entries, [](const CompilerMessageBacklogEntry& lhs, const CompilerMessageBacklogEntry& rhs) {
-            if (lhs.key != rhs.key)
-                return lhs.key < rhs.key;
-            return static_cast<uint32_t>(lhs.kind) < static_cast<uint32_t>(rhs.kind);
-        });
+        std::ranges::stable_sort(entries, sortCompilerMessageBacklogEntry);
 
         out.reserve(out.size() + entries.size());
         for (const CompilerMessageBacklogEntry& entry : entries)
@@ -364,6 +380,89 @@ namespace
             const uint64_t bit = compilerMessageBit(kind);
             if ((executedMask & bit) && (listenerMask & bit))
                 out.push_back({.kind = kind, .symbol = nullptr});
+        }
+    }
+
+    bool trySelectReplayCompilerMessage(CompilerMessageDispatchStep& out, const CompilerInstance::CompilerMessageListener& listener, const size_t listenerIndex)
+    {
+        if (listener.nextReplayIndex >= listener.replayEvents.size())
+            return false;
+
+        out.listenerIndex = listenerIndex;
+        out.eventIndex    = listener.nextReplayIndex;
+        out.fromReplay    = true;
+        out.event         = listener.replayEvents[listener.nextReplayIndex];
+        out.function      = listener.function;
+        out.nodeRef       = listener.nodeRef;
+        return true;
+    }
+
+    bool trySelectLoggedCompilerMessage(CompilerMessageDispatchStep& out, CompilerInstance::CompilerMessageListener& listener, const std::vector<CompilerInstance::CompilerMessageEvent>& log, const size_t listenerIndex)
+    {
+        while (listener.nextEventIndex < log.size())
+        {
+            const CompilerInstance::CompilerMessageEvent& event = log[listener.nextEventIndex];
+            if (!(listener.mask & compilerMessageBit(event.kind)))
+            {
+                listener.nextEventIndex++;
+                continue;
+            }
+
+            if (event.symbol)
+            {
+                const auto it = listener.replayedSymbols.find(event.symbol);
+                if (it != listener.replayedSymbols.end())
+                {
+                    listener.replayedSymbols.erase(it);
+                    listener.nextEventIndex++;
+                    continue;
+                }
+            }
+
+            out.listenerIndex = listenerIndex;
+            out.eventIndex    = listener.nextEventIndex;
+            out.fromReplay    = false;
+            out.event         = event;
+            out.function      = listener.function;
+            out.nodeRef       = listener.nodeRef;
+            return true;
+        }
+
+        return false;
+    }
+
+    bool trySelectCompilerMessageDispatchStep(CompilerMessageDispatchStep& out, std::deque<CompilerInstance::CompilerMessageListener>& listeners, const std::vector<CompilerInstance::CompilerMessageEvent>& log)
+    {
+        for (size_t i = 0; i < listeners.size(); ++i)
+        {
+            CompilerInstance::CompilerMessageListener& listener = listeners[i];
+            if (trySelectReplayCompilerMessage(out, listener, i))
+                return true;
+            if (trySelectLoggedCompilerMessage(out, listener, log, i))
+                return true;
+        }
+
+        return false;
+    }
+
+    void finalizeCompilerMessageDispatchStep(CompilerInstance::CompilerMessageListener& listener, const CompilerMessageDispatchStep& dispatch, const size_t logSize)
+    {
+        if (dispatch.fromReplay)
+        {
+            if (listener.nextReplayIndex == dispatch.eventIndex)
+                listener.nextReplayIndex++;
+        }
+        else if (listener.nextEventIndex == dispatch.eventIndex)
+        {
+            listener.nextEventIndex++;
+        }
+
+        if (listener.nextReplayIndex >= listener.replayEvents.size() &&
+            listener.nextEventIndex >= logSize &&
+            !listener.replayedSymbols.empty())
+        {
+            listener.replayedSymbols.clear();
+            listener.replayedSymbols.rehash(0);
         }
     }
 
@@ -1263,10 +1362,7 @@ void CompilerInstance::registerCompilerMessageFunction(SymbolFunction* symbol, c
 
         compilerMessageActiveMask_.fetch_or(mask, std::memory_order_release);
 
-        const uint64_t trackedSemaMask = mask &
-                                         (compilerMessageBit(Runtime::CompilerMsgKind::SemFunctions) |
-                                          compilerMessageBit(Runtime::CompilerMsgKind::SemTypes) |
-                                          compilerMessageBit(Runtime::CompilerMsgKind::SemGlobals));
+        const uint64_t trackedSemaMask = mask & trackedCompilerMessageSemaMask();
         if (trackedSemaMask)
             appendCompilerMessageBacklog(*this, trackedSemaMask, listener.replayEvents);
 
@@ -1347,74 +1443,14 @@ Result CompilerInstance::executePendingCompilerMessages(TaskContext& ctx)
     }
 
     std::vector<DeferredCompilerGeneratedSource> deferredGeneratedSources;
+    deferredGeneratedSources.reserve(4);
     while (true)
     {
-        struct DispatchStep
-        {
-            size_t               listenerIndex = 0;
-            size_t               eventIndex    = 0;
-            bool                 fromReplay    = false;
-            CompilerMessageEvent event;
-            SymbolFunction*      function = nullptr;
-            AstNodeRef           nodeRef   = AstNodeRef::invalid();
-        };
-
-        DispatchStep dispatch;
-        bool         found = false;
+        CompilerMessageDispatchStep dispatch;
+        bool                        found = false;
         {
             const std::scoped_lock lock(compilerMessageMutex_);
-            for (size_t i = 0; i < compilerMessageListeners_.size(); ++i)
-            {
-                auto& listener = compilerMessageListeners_[i];
-                if (listener.nextReplayIndex < listener.replayEvents.size())
-                {
-                    dispatch = {
-                        .listenerIndex = i,
-                        .eventIndex    = listener.nextReplayIndex,
-                        .fromReplay    = true,
-                        .event         = listener.replayEvents[listener.nextReplayIndex],
-                        .function      = listener.function,
-                        .nodeRef       = listener.nodeRef,
-                    };
-                    found = true;
-                    break;
-                }
-
-                while (listener.nextEventIndex < compilerMessageLog_.size())
-                {
-                    const CompilerMessageEvent& event = compilerMessageLog_[listener.nextEventIndex];
-                    if (!(listener.mask & compilerMessageBit(event.kind)))
-                    {
-                        listener.nextEventIndex++;
-                        continue;
-                    }
-
-                    if (event.symbol)
-                    {
-                        const auto it = listener.replayedSymbols.find(event.symbol);
-                        if (it != listener.replayedSymbols.end())
-                        {
-                            listener.replayedSymbols.erase(it);
-                            listener.nextEventIndex++;
-                            continue;
-                        }
-                    }
-
-                    dispatch = {
-                        .listenerIndex = i,
-                        .eventIndex    = listener.nextEventIndex,
-                        .fromReplay    = false,
-                        .event         = event,
-                        .function      = listener.function,
-                        .nodeRef       = listener.nodeRef,
-                    };
-                    found = true;
-                    break;
-                }
-
-                if (found)
-                    break;
-            }
+            found = trySelectCompilerMessageDispatchStep(dispatch, compilerMessageListeners_, compilerMessageLog_);
         }
 
         if (!found)
@@ -1440,23 +1476,7 @@ Result CompilerInstance::executePendingCompilerMessages(TaskContext& ctx)
 
         const std::scoped_lock lock(compilerMessageMutex_);
         auto&                  listener = compilerMessageListeners_[dispatch.listenerIndex];
-        if (dispatch.fromReplay)
-        {
-            if (listener.nextReplayIndex == dispatch.eventIndex)
-                listener.nextReplayIndex++;
-        }
-        else if (listener.nextEventIndex == dispatch.eventIndex)
-        {
-            listener.nextEventIndex++;
-        }
-
-        if (listener.nextReplayIndex >= listener.replayEvents.size() &&
-            listener.nextEventIndex >= compilerMessageLog_.size() &&
-            !listener.replayedSymbols.empty())
-        {
-            listener.replayedSymbols.clear();
-            listener.replayedSymbols.rehash(0);
-        }
+        finalizeCompilerMessageDispatchStep(listener, dispatch, compilerMessageLog_.size());
     }
 }
 

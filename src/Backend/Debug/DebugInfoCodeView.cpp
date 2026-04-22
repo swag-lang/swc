@@ -636,12 +636,10 @@ namespace
             }
 
             case ConstantKind::ValuePointer:
-                writeEncodedUnsigned(bytes, value.getValuePointer());
-                return true;
-
             case ConstantKind::BlockPointer:
-                writeEncodedUnsigned(bytes, value.getBlockPointer());
-                return true;
+                // Object debug constants cannot represent relocatable pointers here, and
+                // serializing the compiler's transient host address makes .debug$S nondeterministic.
+                return false;
 
             case ConstantKind::Null:
                 writeEncodedUnsigned(bytes, 0);

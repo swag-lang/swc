@@ -10,13 +10,42 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    SourceViewRef safeSymbolSrcViewRef(const Symbol& symbol)
+    {
+        if (const AstNode* decl = symbol.decl())
+            return decl->srcViewRef();
+        return SourceViewRef::invalid();
+    }
+
+    struct SymbolSortEntry
+    {
+        const Symbol* symbol     = nullptr;
+        SourceViewRef srcViewRef = SourceViewRef::invalid();
+        TokenRef      tokRef     = TokenRef::invalid();
+        SymbolKind    kind       = SymbolKind::Invalid;
+        IdentifierRef idRef      = IdentifierRef::invalid();
+    };
+
     bool symbolDeclaredBefore(const Symbol& lhs, const Symbol& rhs)
     {
-        if (lhs.srcViewRef() != rhs.srcViewRef())
-            return lhs.srcViewRef() < rhs.srcViewRef();
+        const auto lhsSrcViewRef = safeSymbolSrcViewRef(lhs);
+        const auto rhsSrcViewRef = safeSymbolSrcViewRef(rhs);
+        if (lhsSrcViewRef != rhsSrcViewRef)
+            return lhsSrcViewRef < rhsSrcViewRef;
         if (lhs.tokRef() != rhs.tokRef())
             return lhs.tokRef() < rhs.tokRef();
         return lhs.kind() < rhs.kind();
+    }
+
+    bool symbolDeclaredBefore(const SymbolSortEntry& lhs, const SymbolSortEntry& rhs)
+    {
+        if (lhs.srcViewRef != rhs.srcViewRef)
+            return lhs.srcViewRef < rhs.srcViewRef;
+        if (lhs.tokRef != rhs.tokRef)
+            return lhs.tokRef < rhs.tokRef;
+        if (lhs.kind != rhs.kind)
+            return lhs.kind < rhs.kind;
+        return lhs.idRef < rhs.idRef;
     }
 
     Symbol* insertSymbolOrdered(Symbol*& head, Symbol* symbol)
@@ -35,6 +64,44 @@ namespace
         symbol->setNextHomonym(current->nextHomonym());
         current->setNextHomonym(symbol);
         return head;
+    }
+
+    void appendSymbolsForSort(std::vector<SymbolSortEntry>& out, const Symbol* head, bool includeIgnored)
+    {
+        for (const Symbol* cur = head; cur; cur = cur->nextHomonym())
+        {
+            if (!includeIgnored && cur->isIgnored())
+                continue;
+
+            SymbolSortEntry entry;
+            entry.symbol     = cur;
+            entry.srcViewRef = safeSymbolSrcViewRef(*cur);
+            entry.tokRef     = cur->tokRef();
+            entry.kind       = cur->kind();
+            entry.idRef      = cur->idRef();
+            out.push_back(entry);
+        }
+    }
+
+    void sortSymbolsByDeclaration(std::vector<const Symbol*>& symbols, std::vector<SymbolSortEntry>& entries)
+    {
+        if (entries.size() < 2)
+        {
+            symbols.clear();
+            symbols.reserve(entries.size());
+            for (const auto& entry : entries)
+                symbols.push_back(entry.symbol);
+            return;
+        }
+
+        std::ranges::stable_sort(entries, [](const SymbolSortEntry& lhs, const SymbolSortEntry& rhs) {
+            return symbolDeclaredBefore(lhs, rhs);
+        });
+
+        symbols.clear();
+        symbols.reserve(entries.size());
+        for (const auto& entry : entries)
+            symbols.push_back(entry.symbol);
     }
 
 }
@@ -202,6 +269,8 @@ void SymbolMap::lookupAppend(IdentifierRef idRef, MatchContext& lookUpCxt) const
 void SymbolMap::getAllSymbols(std::vector<const Symbol*>& out, bool includeIgnored) const
 {
     out.clear();
+    std::vector<SymbolSortEntry> ordered;
+    ordered.reserve(count_);
 
     if (const Shard* shards = shards_.load(std::memory_order_acquire))
     {
@@ -210,15 +279,10 @@ void SymbolMap::getAllSymbols(std::vector<const Symbol*>& out, bool includeIgnor
             const Shard&           shard = shards[i];
             const std::shared_lock lock(shard.mutex);
             for (const auto& val : shard.map | std::views::values)
-            {
-                for (const Symbol* cur = val; cur; cur = cur->nextHomonym())
-                {
-                    if (includeIgnored || !cur->isIgnored())
-                        out.push_back(cur);
-                }
-            }
+                appendSymbolsForSort(ordered, val, includeIgnored);
         }
 
+        sortSymbolsByDeclaration(out, ordered);
         return;
     }
 
@@ -233,40 +297,25 @@ void SymbolMap::getAllSymbols(std::vector<const Symbol*>& out, bool includeIgnor
             const Shard&           shard = shards[i];
             const std::shared_lock lock(shard.mutex);
             for (const auto& val : shard.map | std::views::values)
-            {
-                for (const Symbol* cur = val; cur; cur = cur->nextHomonym())
-                {
-                    if (includeIgnored || !cur->isIgnored())
-                        out.push_back(cur);
-                }
-            }
+                appendSymbolsForSort(ordered, val, includeIgnored);
         }
 
+        sortSymbolsByDeclaration(out, ordered);
         return;
     }
 
     if (isBig())
     {
         for (const auto& val : bigMap_ | std::views::values)
-        {
-            for (const Symbol* cur = val; cur; cur = cur->nextHomonym())
-            {
-                if (includeIgnored || !cur->isIgnored())
-                    out.push_back(cur);
-            }
-        }
+            appendSymbolsForSort(ordered, val, includeIgnored);
     }
     else
     {
         for (uint32_t i = 0; i < smallSize_; ++i)
-        {
-            for (const Symbol* cur = small_[i].head; cur; cur = cur->nextHomonym())
-            {
-                if (includeIgnored || !cur->isIgnored())
-                    out.push_back(cur);
-            }
-        }
+            appendSymbolsForSort(ordered, small_[i].head, includeIgnored);
     }
+
+    sortSymbolsByDeclaration(out, ordered);
 }
 
 Symbol* SymbolMap::addSymbol(TaskContext& ctx, Symbol* symbol, bool acceptHomonyms)

@@ -45,6 +45,11 @@ namespace
         SWC_ASSERT(bytes.size() == count * elementSize);
     }
 
+    bool sameByteSpan(ByteSpan lhs, ByteSpan rhs) noexcept
+    {
+        return lhs.size() == rhs.size() && (lhs.empty() || std::memcmp(lhs.data(), rhs.data(), lhs.size()) == 0);
+    }
+
     bool compareSameKind(const ConstantValue& lhs, const ConstantValue& rhs, NumericCmp numericCmp) noexcept
     {
         SWC_ASSERT(lhs.kind() == rhs.kind());
@@ -59,9 +64,9 @@ namespace
             case ConstantKind::String:
                 return lhs.getString() == rhs.getString();
             case ConstantKind::Struct:
-                return lhs.getStruct().data() == rhs.getStruct().data();
+                return sameByteSpan(lhs.getStruct(), rhs.getStruct());
             case ConstantKind::Array:
-                return lhs.getArray().data() == rhs.getArray().data();
+                return sameByteSpan(lhs.getArray(), rhs.getArray());
             case ConstantKind::AggregateStruct:
             case ConstantKind::AggregateArray:
                 return lhs.getAggregate() == rhs.getAggregate();
@@ -78,7 +83,7 @@ namespace
             case ConstantKind::BlockPointer:
                 return lhs.getBlockPointer() == rhs.getBlockPointer();
             case ConstantKind::Slice:
-                return lhs.getSlice().data() == rhs.getSlice().data() && lhs.getSliceCount() == rhs.getSliceCount();
+                return sameByteSpan(lhs.getSlice(), rhs.getSlice()) && lhs.getSliceCount() == rhs.getSliceCount();
             case ConstantKind::Null:
                 return true;
             case ConstantKind::Undefined:

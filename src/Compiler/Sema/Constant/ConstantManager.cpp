@@ -116,6 +116,34 @@ namespace
         return resolveBorrowedPayloadRef(ref, manager, value);
     }
 
+    uint32_t payloadByteSize(const ConstantValue& value)
+    {
+        if (value.isStruct())
+            return static_cast<uint32_t>(value.getStruct().size());
+        if (value.isArray())
+            return static_cast<uint32_t>(value.getArray().size());
+        SWC_ASSERT(value.isSlice());
+        return static_cast<uint32_t>(value.getSlice().size());
+    }
+
+    bool borrowedPayloadHasRelocations(const ConstantManager& manager, const ConstantValue& value)
+    {
+        if (!(value.isStruct() || value.isArray() || value.isSlice()) || !value.isPayloadBorrowed())
+            return false;
+
+        const DataSegmentRef ref = value.dataSegmentRef();
+        if (ref.isInvalid())
+            return false;
+
+        const uint32_t payloadSize = payloadByteSize(value);
+        if (!payloadSize)
+            return false;
+
+        std::vector<DataSegmentRelocation> relocations;
+        manager.shardDataSegment(ref.shardIndex).copyRelocations(relocations, ref.offset, payloadSize);
+        return !relocations.empty();
+    }
+
     ConstantRef addCstFinalize(const ConstantManager& manager, ConstantRef cstRef)
     {
 #if SWC_HAS_STATS
@@ -130,8 +158,21 @@ namespace
 
     ConstantRef addCstSpanPayload(const ConstantManager& manager, ConstantManager::Shard& shard, uint32_t shardIndex, const ConstantValue& value)
     {
+        {
+            const std::shared_lock lk(shard.mutex);
+            const auto             it = shard.map.find(value);
+            if (it != shard.map.end())
+                return it->second;
+        }
+
         ConstantValue stored     = value;
         uint32_t      localIndex = INVALID_REF;
+        ConstantRef   result;
+
+        const std::unique_lock lk(shard.mutex);
+        const auto             existing = shard.map.find(value);
+        if (existing != shard.map.end())
+            return existing->second;
 
         if (value.isStruct())
         {
@@ -142,6 +183,7 @@ namespace
         else if (value.isArray())
         {
             const auto [view, ref] = shard.dataSegment.addSpan(value.getArray());
+            stored = value;
             stored.setPayloadArray(view);
             stored.setDataSegmentRef({.shardIndex = shardIndex, .offset = ref});
         }
@@ -149,14 +191,15 @@ namespace
         {
             SWC_ASSERT(value.isSlice());
             const auto [view, ref] = shard.dataSegment.addSpan(value.getSlice());
+            stored = value;
             stored.setPayloadSlice(view, value.getSliceCount());
             stored.setDataSegmentRef({.shardIndex = shardIndex, .offset = ref});
         }
 
         localIndex = shard.dataSegment.add(stored);
-
         SWC_ASSERT(localIndex < ConstantManager::LOCAL_MASK);
-        const ConstantRef result{(shardIndex << ConstantManager::LOCAL_BITS) | localIndex};
+        result = ConstantRef{(shardIndex << ConstantManager::LOCAL_BITS) | localIndex};
+        shard.map.emplace(stored, result);
         return addCstFinalize(manager, result);
     }
 
@@ -224,10 +267,10 @@ namespace
             value.setDataSegmentRef(ref);
     }
 
-    ConstantRef addCstOther(const ConstantManager& manager, ConstantManager::Shard& shard, uint32_t shardIndex, const TaskContext& ctx, const ConstantValue& value)
+    ConstantRef addCstOther(const ConstantManager& manager, ConstantManager::Shard& shard, uint32_t shardIndex, const ConstantValue& value)
     {
-        SWC_UNUSED(ctx);
         ConstantValue stored = value;
+        bool          canDeduplicateByValue = true;
         enrichPointerDataSegmentRef(manager, stored);
         if ((stored.isStruct() || stored.isArray() || stored.isSlice()) && stored.isPayloadBorrowed())
         {
@@ -235,15 +278,18 @@ namespace
             SWC_ASSERT(isBorrowedPayloadBackedByDataSegment(manager, stored));
             if (resolveBorrowedPayloadRef(ref, manager, stored))
                 stored.setDataSegmentRef(ref);
+            // Borrowed payload equality only captures bytes. Allocations that also carry relocations
+            // need their own constant entries because the relocation graph changes the runtime value.
+            canDeduplicateByValue = !borrowedPayloadHasRelocations(manager, stored);
         }
-        if (stored.dataSegmentRef().isInvalid())
+        if (canDeduplicateByValue && stored.dataSegmentRef().isInvalid())
         {
             const std::shared_lock lk(shard.mutex);
             const auto             it = shard.map.find(stored);
             if (it != shard.map.end())
                 return it->second;
         }
-        else
+        else if (canDeduplicateByValue)
         {
             const std::unique_lock lk(shard.mutex);
             const auto             it = shard.map.find(stored);
@@ -258,17 +304,26 @@ namespace
         ConstantRef result;
         {
             const std::unique_lock lk(shard.mutex);
-            auto [it, inserted] = shard.map.try_emplace(stored, ConstantRef{});
-            if (!inserted)
+            if (canDeduplicateByValue)
             {
-                updateStoredDataSegmentRef(shard, it->second, stored.dataSegmentRef());
-                return it->second;
-            }
+                auto [it, inserted] = shard.map.try_emplace(stored, ConstantRef{});
+                if (!inserted)
+                {
+                    updateStoredDataSegmentRef(shard, it->second, stored.dataSegmentRef());
+                    return it->second;
+                }
 
-            localIndex = shard.dataSegment.add(stored);
-            SWC_ASSERT(localIndex < ConstantManager::LOCAL_MASK);
-            result     = ConstantRef{(shardIndex << ConstantManager::LOCAL_BITS) | localIndex};
-            it->second = result;
+                localIndex = shard.dataSegment.add(stored);
+                SWC_ASSERT(localIndex < ConstantManager::LOCAL_MASK);
+                result     = ConstantRef{(shardIndex << ConstantManager::LOCAL_BITS) | localIndex};
+                it->second = result;
+            }
+            else
+            {
+                localIndex = shard.dataSegment.add(stored);
+                SWC_ASSERT(localIndex < ConstantManager::LOCAL_MASK);
+                result = ConstantRef{(shardIndex << ConstantManager::LOCAL_BITS) | localIndex};
+            }
         }
 
         return addCstFinalize(manager, result);
@@ -377,14 +432,14 @@ ConstantRef ConstantManager::addConstantSlow(const TaskContext& ctx, const Const
     if (isSpanValue)
     {
         if (keepBorrowedPayload)
-            return addCstOther(*this, shard, shardIndex, ctx, valueToAdd);
+            return addCstOther(*this, shard, shardIndex, valueToAdd);
         return addCstSpanPayload(*this, shard, shardIndex, valueToAdd);
     }
 
     if (valueToAdd.isString())
         return addCstString(*this, shard, shardIndex, ctx, valueToAdd);
 
-    return addCstOther(*this, shard, shardIndex, ctx, valueToAdd);
+    return addCstOther(*this, shard, shardIndex, valueToAdd);
 }
 
 ConstantRef ConstantManager::addMaterializedPayloadConstant(const ConstantValue& value)
@@ -396,13 +451,9 @@ ConstantRef ConstantManager::addMaterializedPayloadConstant(const ConstantValue&
     SWC_ASSERT(dataRef.isValid());
     SWC_ASSERT(dataRef.shardIndex < SHARD_COUNT);
 
-    Shard&         shard      = shards_[dataRef.shardIndex];
-    const uint32_t localIndex = shard.dataSegment.add(value);
-    SWC_ASSERT(localIndex < LOCAL_MASK);
-
     recordConstantMaterializedPayloadFastPath();
-    const ConstantRef result{(dataRef.shardIndex << LOCAL_BITS) | localIndex};
-    return addCstFinalize(*this, result);
+    Shard& shard = shards_[dataRef.shardIndex];
+    return addCstOther(*this, shard, dataRef.shardIndex, value);
 }
 
 ConstantRef ConstantManager::cachedS32(int32_t value) const

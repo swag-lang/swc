@@ -1497,7 +1497,9 @@ Result CompilerInstance::appendGeneratedSource(GeneratedSourceAppendResult& outR
     const auto threadIndex = static_cast<uint32_t>(JobManager::threadIndex());
     const auto sourceId    = generatedSourceId_.fetch_add(1, std::memory_order_relaxed);
 
-    outResult.path            = (directory / std::format("thread-{}-g{}-c{}-p{}.swg", threadIndex, sourceId, jobClientId_, Os::currentProcessId())).lexically_normal();
+    // Keep generated source paths stable across identical compiler runs so debug/source
+    // metadata and any path-derived constants remain deterministic.
+    outResult.path            = (directory / std::format("thread-{}-g{}-c{}.swg", threadIndex, sourceId, jobClientId_)).lexically_normal();
     outResult.codeStartOffset = codeOffsetInSection;
     outResult.snapshot        = sectionText;
 

@@ -309,6 +309,7 @@ public:
     static TypeInfo makeCodeBlock(TypeRef typeRef);
 
     uint32_t hash() const;
+    uint32_t runtimeHash(const TaskContext& ctx) const;
     uint64_t sizeOf(TaskContext& ctx) const;
     uint32_t alignOf(TaskContext& ctx) const;
     bool     isCompleted(TaskContext& ctx) const;

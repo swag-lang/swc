@@ -49,7 +49,9 @@ namespace
         TaskContext& ctx = sema.ctx();
 
         rtType.sizeofType = static_cast<uint32_t>(type.sizeOf(ctx));
-        rtType.crc        = type.hash();
+        // Runtime metadata must stay stable across identical builds, so do not reuse the
+        // allocator-dependent interning hash here.
+        rtType.crc = type.runtimeHash(ctx);
 
         rtType.flags = Runtime::TypeInfoFlags::Zero;
         if (type.isConst())

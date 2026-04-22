@@ -295,6 +295,7 @@ bool NativeBackendBuilder::tryMapRDataSourceOffset(uint32_t& outOffset, const ui
 Result NativeBackendBuilder::run()
 {
     SWC_MEM_SCOPE("Backend/Native");
+    SWC_RESULT(compiler_.ensureCompilerMessagePass(Runtime::CompilerMsgKind::PassBeforeOutput));
     SWC_RESULT(validateTarget());
 
     const NativeArtifactBuilder artifactBuilder(*this);

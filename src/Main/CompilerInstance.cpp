@@ -2,10 +2,15 @@
 #include "Main/CompilerInstance.h"
 #include "Backend/JIT/JITExecManager.h"
 #include "Backend/JIT/JITMemoryManager.h"
+#include "Backend/Native/SymbolSort.h"
 #include "Compiler/Lexer/SourceView.h"
 #include "Compiler/Parser/Ast/Ast.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
+#include "Compiler/Parser/Parser/ParserJob.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
+#include "Compiler/Sema/Core/Sema.h"
+#include "Compiler/Sema/Core/SemaJob.h"
+#include "Compiler/Sema/Helpers/SemaJIT.h"
 #include "Compiler/Sema/Symbol/IdentifierManager.h"
 #include "Compiler/Sema/Symbol/Symbol.Impl.h"
 #include "Compiler/Sema/Symbol/Symbols.h"
@@ -21,6 +26,7 @@
 #include "Main/TaskContext.h"
 #include "Support/Core/Timer.h"
 #include "Support/Core/Utf8Helper.h"
+#include "Support/Memory/Heap.h"
 #include "Support/Os/Os.h"
 #include "Support/Report/Diagnostic.h"
 #include "Support/Report/Logger.h"
@@ -86,6 +92,331 @@ namespace
     {
         const SourceFile* sourceFile = sourceFileFromRef(compiler, symbol.srcViewRef());
         return sourceFile && sourceFile->isImportedApi();
+    }
+
+    uint64_t compilerMessageBit(const Runtime::CompilerMsgKind kind)
+    {
+        return 1ull << static_cast<uint32_t>(kind);
+    }
+
+    struct DeferredCompilerGeneratedSource
+    {
+        Utf8                   text;
+        const SymbolNamespace* moduleNamespace = nullptr;
+    };
+
+    struct CompilerMessageDispatchState
+    {
+        const CompilerInstance*                        compiler         = nullptr;
+        const SymbolNamespace*                         moduleNamespace  = nullptr;
+        std::vector<DeferredCompilerGeneratedSource>*  generatedSources = nullptr;
+    };
+
+    thread_local CompilerMessageDispatchState* g_CompilerMessageDispatchState = nullptr;
+
+    struct ScopedCompilerMessageDispatchState
+    {
+        explicit ScopedCompilerMessageDispatchState(const CompilerInstance& compiler, const SymbolNamespace* moduleNamespace, std::vector<DeferredCompilerGeneratedSource>& generatedSources)
+        {
+            previous_                              = g_CompilerMessageDispatchState;
+            state_.compiler                        = &compiler;
+            state_.moduleNamespace                 = moduleNamespace;
+            state_.generatedSources                = &generatedSources;
+            g_CompilerMessageDispatchState         = &state_;
+        }
+
+        ~ScopedCompilerMessageDispatchState()
+        {
+            g_CompilerMessageDispatchState = previous_;
+        }
+
+        ScopedCompilerMessageDispatchState(const ScopedCompilerMessageDispatchState&)            = delete;
+        ScopedCompilerMessageDispatchState& operator=(const ScopedCompilerMessageDispatchState&) = delete;
+
+    private:
+        CompilerMessageDispatchState  state_;
+        CompilerMessageDispatchState* previous_ = nullptr;
+    };
+
+    bool deferCompilerMessageGeneratedSource(const CompilerInstance& compiler, const std::string_view generatedCode)
+    {
+        const CompilerMessageDispatchState* state = g_CompilerMessageDispatchState;
+        if (!state)
+            return false;
+        if (state->compiler != &compiler || !state->generatedSources)
+            return false;
+
+        DeferredCompilerGeneratedSource generatedSource;
+        generatedSource.text            = generatedCode;
+        generatedSource.moduleNamespace = state->moduleNamespace;
+        state->generatedSources->push_back(std::move(generatedSource));
+        return true;
+    }
+
+    Runtime::String runtimeString(std::string_view value)
+    {
+        return Runtime::String{.ptr = value.data(), .length = value.size()};
+    }
+
+    const SymbolNamespace* firstModuleNamespace(const CompilerInstance& compiler)
+    {
+        for (const SourceFile* file : compiler.filesSnapshot())
+        {
+            if (!file)
+                continue;
+
+            if (const SymbolNamespace* moduleNamespace = file->moduleNamespace())
+                return moduleNamespace;
+        }
+
+        return nullptr;
+    }
+
+    const SymbolNamespace* currentModuleNamespace(const TaskContext& ctx)
+    {
+        const TaskState& state = ctx.state();
+        if (state.codeRef.srcViewRef.isValid())
+        {
+            const SourceFile* file = sourceFileFromRef(ctx.compiler(), state.codeRef.srcViewRef);
+            if (file && file->moduleNamespace())
+                return file->moduleNamespace();
+        }
+
+        return firstModuleNamespace(ctx.compiler());
+    }
+
+    fs::path compilerGeneratedSourceDirectory(const TaskContext& ctx)
+    {
+        if (!ctx.cmdLine().workDir.empty())
+            return ctx.cmdLine().workDir;
+
+        return Os::getTemporaryPath().lexically_normal();
+    }
+
+    bool isModuleLevelSymbol(const Symbol& symbol)
+    {
+        const SymbolMap* owner = symbol.ownerSymMap();
+        if (!owner)
+            return false;
+
+        while (owner)
+        {
+            if (owner->isFunction())
+                return false;
+            owner = owner->ownerSymMap();
+        }
+
+        return true;
+    }
+
+    bool shouldTrackCompilerMessageFunction(const CompilerInstance& compiler, const SymbolFunction& symbol)
+    {
+        if (!symbol.isSemaCompleted() || symbol.isIgnored())
+            return false;
+        if (!shouldRegisterNativeFunction(symbol))
+            return false;
+        if (isImportedApiSource(compiler, symbol))
+            return false;
+        if (!isModuleLevelSymbol(symbol))
+            return false;
+
+        const SourceFile* sourceFile = sourceFileFromRef(compiler, symbol.srcViewRef());
+        return sourceFile && !sourceFile->isRuntime();
+    }
+
+    bool shouldTrackCompilerMessageType(const CompilerInstance& compiler, const Symbol& symbol)
+    {
+        if (!symbol.isSemaCompleted() || symbol.isIgnored())
+            return false;
+        if (!symbol.isType())
+            return false;
+        if (!symbol.idRef().isValid())
+            return false;
+        if (isImportedApiSource(compiler, symbol))
+            return false;
+        if (!isModuleLevelSymbol(symbol))
+            return false;
+
+        const SourceFile* sourceFile = sourceFileFromRef(compiler, symbol.srcViewRef());
+        return sourceFile && !sourceFile->isRuntime();
+    }
+
+    bool shouldTrackCompilerMessageGlobal(const CompilerInstance& compiler, const SymbolVariable& symbol)
+    {
+        if (!symbol.isSemaCompleted() || symbol.isIgnored())
+            return false;
+        if (!symbol.hasGlobalStorage() || symbol.globalStorageKind() == DataSegmentKind::Compiler)
+            return false;
+        if (isImportedApiSource(compiler, symbol))
+            return false;
+        if (!isModuleLevelSymbol(symbol))
+            return false;
+
+        const SourceFile* sourceFile = sourceFileFromRef(compiler, symbol.srcViewRef());
+        return sourceFile && !sourceFile->isRuntime();
+    }
+
+    std::optional<Runtime::CompilerMsgKind> compilerMessageKindForSymbol(const CompilerInstance& compiler, const Symbol& symbol, const uint64_t activeMask)
+    {
+        if ((activeMask & compilerMessageBit(Runtime::CompilerMsgKind::SemFunctions)) &&
+            symbol.isFunction() &&
+            shouldTrackCompilerMessageFunction(compiler, symbol.cast<SymbolFunction>()))
+            return Runtime::CompilerMsgKind::SemFunctions;
+
+        if ((activeMask & compilerMessageBit(Runtime::CompilerMsgKind::SemTypes)) &&
+            shouldTrackCompilerMessageType(compiler, symbol))
+            return Runtime::CompilerMsgKind::SemTypes;
+
+        if ((activeMask & compilerMessageBit(Runtime::CompilerMsgKind::SemGlobals)) &&
+            symbol.isVariable() &&
+            shouldTrackCompilerMessageGlobal(compiler, symbol.cast<SymbolVariable>()))
+            return Runtime::CompilerMsgKind::SemGlobals;
+
+        return std::nullopt;
+    }
+
+    struct CompilerMessageBacklogEntry
+    {
+        Symbol*                  symbol = nullptr;
+        Runtime::CompilerMsgKind kind   = Runtime::CompilerMsgKind::PassAfterSemantic;
+        Utf8                     key;
+    };
+
+    void collectCompilerMessageBacklogRec(const CompilerInstance& compiler, const SymbolMap& symMap, std::unordered_set<const SymbolMap*>& visited, uint64_t activationMask, std::vector<CompilerMessageBacklogEntry>& out)
+    {
+        if (!visited.insert(&symMap).second)
+            return;
+
+        std::vector<const Symbol*> symbols;
+        symMap.getAllSymbols(symbols);
+        for (const Symbol* symbol : symbols)
+        {
+            if (!symbol)
+                continue;
+
+            if ((activationMask & compilerMessageBit(Runtime::CompilerMsgKind::SemFunctions)) &&
+                symbol->isFunction() &&
+                shouldTrackCompilerMessageFunction(compiler, symbol->cast<SymbolFunction>()))
+            {
+                out.push_back({.symbol = const_cast<Symbol*>(symbol), .kind = Runtime::CompilerMsgKind::SemFunctions, .key = SymbolSort::locationKey(compiler, *symbol)});
+            }
+
+            if ((activationMask & compilerMessageBit(Runtime::CompilerMsgKind::SemTypes)) &&
+                shouldTrackCompilerMessageType(compiler, *symbol))
+            {
+                out.push_back({.symbol = const_cast<Symbol*>(symbol), .kind = Runtime::CompilerMsgKind::SemTypes, .key = SymbolSort::locationKey(compiler, *symbol)});
+            }
+
+            if ((activationMask & compilerMessageBit(Runtime::CompilerMsgKind::SemGlobals)) &&
+                symbol->isVariable() &&
+                shouldTrackCompilerMessageGlobal(compiler, symbol->cast<SymbolVariable>()))
+            {
+                out.push_back({.symbol = const_cast<Symbol*>(symbol), .kind = Runtime::CompilerMsgKind::SemGlobals, .key = SymbolSort::locationKey(compiler, *symbol)});
+            }
+
+            if (symbol->isSymMap())
+                collectCompilerMessageBacklogRec(compiler, *symbol->asSymMap(), visited, activationMask, out);
+        }
+    }
+
+    void appendCompilerMessageBacklog(const CompilerInstance& compiler, uint64_t activationMask, std::vector<CompilerInstance::CompilerMessageEvent>& out)
+    {
+        std::unordered_set<const SymbolMap*>     visited;
+        std::vector<CompilerMessageBacklogEntry> entries;
+        for (const SourceFile* file : compiler.filesSnapshot())
+        {
+            if (!file)
+                continue;
+
+            if (const SymbolNamespace* moduleNamespace = file->moduleNamespace())
+                collectCompilerMessageBacklogRec(compiler, *moduleNamespace->asSymMap(), visited, activationMask, entries);
+
+            const SymbolNamespace* fileNamespace = file->fileNamespace();
+            if (!fileNamespace)
+                continue;
+
+            collectCompilerMessageBacklogRec(compiler, *fileNamespace->asSymMap(), visited, activationMask, entries);
+        }
+
+        std::ranges::stable_sort(entries, [](const CompilerMessageBacklogEntry& lhs, const CompilerMessageBacklogEntry& rhs) {
+            if (lhs.key != rhs.key)
+                return lhs.key < rhs.key;
+            return static_cast<uint32_t>(lhs.kind) < static_cast<uint32_t>(rhs.kind);
+        });
+
+        out.reserve(out.size() + entries.size());
+        for (const CompilerMessageBacklogEntry& entry : entries)
+            out.push_back({.kind = entry.kind, .symbol = entry.symbol});
+    }
+
+    void appendCompilerMessageExecutedPasses(const uint64_t executedMask, const uint64_t listenerMask, std::vector<CompilerInstance::CompilerMessageEvent>& out)
+    {
+        static constexpr Runtime::CompilerMsgKind kinds[] = {
+            Runtime::CompilerMsgKind::PassAfterSemantic,
+            Runtime::CompilerMsgKind::PassBeforeRunByteCode,
+            Runtime::CompilerMsgKind::PassBeforeOutput,
+            Runtime::CompilerMsgKind::PassAllDone,
+            Runtime::CompilerMsgKind::AttributeGen,
+        };
+
+        for (const Runtime::CompilerMsgKind kind : kinds)
+        {
+            const uint64_t bit = compilerMessageBit(kind);
+            if ((executedMask & bit) && (listenerMask & bit))
+                out.push_back({.kind = kind, .symbol = nullptr});
+        }
+    }
+
+    std::string_view compilerMessageModuleName(const TaskContext& ctx)
+    {
+        if (const SymbolNamespace* moduleNamespace = firstModuleNamespace(ctx.compiler()))
+            return moduleNamespace->name(ctx);
+
+        const Runtime::BuildCfg& buildCfg = ctx.compiler().buildCfg();
+        if (buildCfg.moduleNamespace.ptr && buildCfg.moduleNamespace.length)
+            return {buildCfg.moduleNamespace.ptr, buildCfg.moduleNamespace.length};
+
+        return {};
+    }
+
+    Result enqueueGeneratedSource(TaskContext& ctx, std::string_view generatedCode, const SymbolNamespace* moduleNamespace = nullptr)
+    {
+        if (generatedCode.empty())
+            return Result::Continue;
+
+        CompilerInstance& compiler  = ctx.compiler();
+        const fs::path    directory = compilerGeneratedSourceDirectory(ctx);
+
+        CompilerInstance::GeneratedSourceAppendResult appendResult;
+        Utf8                                          because;
+        if (compiler.appendGeneratedSource(appendResult, because, directory, generatedCode, 0) != Result::Continue)
+        {
+            Diagnostic diag = Diagnostic::get(DiagnosticId::sema_err_ast_file_write_failed);
+            diag.addArgument(Diagnostic::ARG_PATH, Utf8(appendResult.path.empty() ? directory : appendResult.path));
+            diag.addArgument(Diagnostic::ARG_BECAUSE, because);
+            diag.report(ctx);
+            return Result::Error;
+        }
+
+        compiler.registerInMemoryFile(appendResult.path, appendResult.snapshot.view());
+        SourceFile& sourceFile = compiler.addFile(appendResult.path, FileFlagsE::CustomSrc | FileFlagsE::SkipFmt);
+        const SymbolNamespace* generatedModuleNamespace = moduleNamespace ? moduleNamespace : currentModuleNamespace(ctx);
+        if (generatedModuleNamespace)
+            sourceFile.setModuleNamespace(*const_cast<SymbolNamespace*>(generatedModuleNamespace));
+
+        if (sourceFile.loadContent(ctx) != Result::Continue)
+            return Result::Error;
+        if (parseLoadedSourceFile(ctx, sourceFile, {}) != Result::Continue)
+            return Result::Error;
+
+        const SourceView& srcView = sourceFile.ast().srcView();
+        if (sourceFile.hasError() || srcView.mustSkip() || !srcView.runsSema())
+            return Result::Continue;
+
+        auto* declJob = heapNew<SemaJob>(ctx, sourceFile.nodePayloadContext(), true, true);
+        ctx.global().jobMgr().enqueue(*declJob, JobPriority::Normal, compiler.jobClientId());
+        compiler.notifyAlive();
+        return Result::Continue;
     }
 
     struct ModuleApiFileInfo
@@ -282,8 +613,19 @@ namespace
     void runtimeCompilerCompileString(const CompilerInstance* owner, Runtime::String str)
     {
         SWC_ASSERT(owner != nullptr);
-        const TaskContext ctx(owner->global(), owner->cmdLine());
-        Logger::print(ctx, std::string_view(str.ptr, str.length));
+        const TaskContext* currentCtx = TaskContext::current();
+        if (!currentCtx || !currentCtx->hasCompiler())
+            return;
+
+        TaskContext& ctx = *const_cast<TaskContext*>(currentCtx);
+        if (&ctx.compiler() != owner)
+            return;
+
+        const std::string_view generatedCode(str.ptr, str.length);
+        if (deferCompilerMessageGeneratedSource(*owner, generatedCode))
+            return;
+
+        (void) enqueueGeneratedSource(ctx, generatedCode);
     }
 }
 
@@ -837,6 +1179,287 @@ SymbolFunction* CompilerInstance::runtimeFunctionSymbol(const IdentifierRef idRe
     return it->second;
 }
 
+bool CompilerInstance::hasCompilerMessageInterest(const Runtime::CompilerMsgKind kind) const
+{
+    return (compilerMessageActiveMask_.load(std::memory_order_acquire) & compilerMessageBit(kind)) != 0;
+}
+
+bool CompilerInstance::tryGetCompilerMessageTypeInfo(const TypeRef typeRef, const Runtime::TypeInfo*& outType)
+{
+    outType = nullptr;
+    const std::scoped_lock lock(compilerMessageMutex_);
+    const auto             it = compilerMessageTypeInfoCache_.find(typeRef);
+    if (it == compilerMessageTypeInfoCache_.end())
+        return false;
+
+    outType = it->second;
+    return true;
+}
+
+void CompilerInstance::cacheCompilerMessageTypeInfo(const TypeRef typeRef, const Runtime::TypeInfo* const runtimeTypeInfo)
+{
+    const std::scoped_lock lock(compilerMessageMutex_);
+    compilerMessageTypeInfoCache_[typeRef] = runtimeTypeInfo;
+}
+
+Result CompilerInstance::fillRuntimeCompilerMessage(Sema& sema, const AstNodeRef ownerNodeRef, const CompilerMessageEvent& event)
+{
+    Runtime::CompilerMessage& message = runtimeCompilerMessage();
+    message.moduleName                = runtimeString(compilerMessageModuleName(sema.ctx()));
+    message.name                      = {};
+    message.type                      = nullptr;
+    message.kind                      = event.kind;
+
+    if (!event.symbol)
+        return Result::Continue;
+
+    message.name = runtimeString(event.symbol->name(sema.ctx()));
+
+    const TypeRef typeRef = event.symbol->typeRef();
+    if (typeRef.isInvalid())
+        return Result::Continue;
+
+    if (tryGetCompilerMessageTypeInfo(typeRef, message.type))
+        return Result::Continue;
+
+    if (ownerNodeRef.isInvalid())
+        return Result::Continue;
+
+    ConstantRef typeInfoCstRef = ConstantRef::invalid();
+    SWC_RESULT(sema.cstMgr().makeTypeInfo(sema, typeInfoCstRef, typeRef, ownerNodeRef));
+
+    const ConstantValue& typeInfoCst = sema.cstMgr().get(typeInfoCstRef);
+    SWC_ASSERT(typeInfoCst.isValuePointer());
+    DataSegmentRef typeInfoRef;
+    if (!sema.cstMgr().resolveConstantDataSegmentRef(typeInfoRef, typeInfoCstRef, reinterpret_cast<const void*>(typeInfoCst.getValuePointer())))
+        return Result::Error;
+
+    const Runtime::TypeInfo* const runtimeTypeInfo = sema.cstMgr().shardDataSegment(typeInfoRef.shardIndex).ptr<Runtime::TypeInfo>(typeInfoRef.offset);
+    if (!runtimeTypeInfo)
+        return Result::Error;
+
+    cacheCompilerMessageTypeInfo(typeRef, runtimeTypeInfo);
+    message.type = runtimeTypeInfo;
+    return Result::Continue;
+}
+
+void CompilerInstance::registerCompilerMessageFunction(SymbolFunction* symbol, const AstNodeRef nodeRef, const uint64_t mask)
+{
+    if (!symbol || !mask)
+        return;
+
+    {
+        const std::scoped_lock lock(compilerMessageMutex_);
+        for (const CompilerMessageListener& listener : compilerMessageListeners_)
+        {
+            if (listener.function == symbol && listener.nodeRef == nodeRef)
+                return;
+        }
+
+        CompilerMessageListener listener;
+        listener.function = symbol;
+        listener.nodeRef  = nodeRef;
+        listener.mask     = mask;
+
+        compilerMessageActiveMask_.fetch_or(mask, std::memory_order_release);
+
+        const uint64_t trackedSemaMask = mask &
+                                         (compilerMessageBit(Runtime::CompilerMsgKind::SemFunctions) |
+                                          compilerMessageBit(Runtime::CompilerMsgKind::SemTypes) |
+                                          compilerMessageBit(Runtime::CompilerMsgKind::SemGlobals));
+        if (trackedSemaMask)
+            appendCompilerMessageBacklog(*this, trackedSemaMask, listener.replayEvents);
+
+        const uint64_t executedMask = compilerMessageExecutedPassMask_.load(std::memory_order_relaxed);
+        appendCompilerMessageExecutedPasses(executedMask, mask, listener.replayEvents);
+
+        listener.nextEventIndex = compilerMessageLog_.size();
+        if (!listener.replayEvents.empty())
+        {
+            listener.replayedSymbols.reserve(listener.replayEvents.size());
+            for (const CompilerMessageEvent& event : listener.replayEvents)
+            {
+                if (event.symbol)
+                    listener.replayedSymbols.insert(event.symbol);
+            }
+        }
+
+        compilerMessageListeners_.push_back(std::move(listener));
+    }
+
+    notifyAlive();
+}
+
+void CompilerInstance::onSymbolSemaCompleted(Symbol& symbol)
+{
+    const uint64_t activeMask = compilerMessageActiveMask_.load(std::memory_order_acquire);
+    if (!activeMask)
+        return;
+
+    const std::optional<Runtime::CompilerMsgKind> kind = compilerMessageKindForSymbol(*this, symbol, activeMask);
+    if (!kind.has_value())
+        return;
+
+    {
+        const std::scoped_lock lock(compilerMessageMutex_);
+        compilerMessageLog_.push_back({
+            .kind   = *kind,
+            .symbol = &symbol,
+        });
+    }
+
+    notifyAlive();
+}
+
+Result CompilerInstance::ensureCompilerMessagePass(const Runtime::CompilerMsgKind kind)
+{
+    if (!hasCompilerMessageInterest(kind))
+        return Result::Continue;
+
+    const uint64_t passBit = compilerMessageBit(kind);
+    if (compilerMessageExecutedPassMask_.load(std::memory_order_acquire) & passBit)
+        return Result::Continue;
+
+    {
+        const std::scoped_lock lock(compilerMessageMutex_);
+        const uint64_t         executedMask = compilerMessageExecutedPassMask_.load(std::memory_order_relaxed);
+        if (executedMask & passBit)
+            return Result::Continue;
+
+        compilerMessageLog_.push_back({
+            .kind   = kind,
+            .symbol = nullptr,
+        });
+
+        compilerMessageExecutedPassMask_.store(executedMask | passBit, std::memory_order_release);
+    }
+
+    notifyAlive();
+    return Result::Pause;
+}
+
+Result CompilerInstance::executePendingCompilerMessages(TaskContext& ctx)
+{
+    {
+        const std::scoped_lock lock(compilerMessageMutex_);
+        if (compilerMessageListeners_.empty())
+            return Result::Continue;
+    }
+
+    std::vector<DeferredCompilerGeneratedSource> deferredGeneratedSources;
+    while (true)
+    {
+        struct DispatchStep
+        {
+            size_t               listenerIndex = 0;
+            size_t               eventIndex    = 0;
+            bool                 fromReplay    = false;
+            CompilerMessageEvent event;
+            SymbolFunction*      function = nullptr;
+            AstNodeRef           nodeRef   = AstNodeRef::invalid();
+        };
+
+        DispatchStep dispatch;
+        bool         found = false;
+        {
+            const std::scoped_lock lock(compilerMessageMutex_);
+            for (size_t i = 0; i < compilerMessageListeners_.size(); ++i)
+            {
+                auto& listener = compilerMessageListeners_[i];
+                if (listener.nextReplayIndex < listener.replayEvents.size())
+                {
+                    dispatch = {
+                        .listenerIndex = i,
+                        .eventIndex    = listener.nextReplayIndex,
+                        .fromReplay    = true,
+                        .event         = listener.replayEvents[listener.nextReplayIndex],
+                        .function      = listener.function,
+                        .nodeRef       = listener.nodeRef,
+                    };
+                    found = true;
+                    break;
+                }
+
+                while (listener.nextEventIndex < compilerMessageLog_.size())
+                {
+                    const CompilerMessageEvent& event = compilerMessageLog_[listener.nextEventIndex];
+                    if (!(listener.mask & compilerMessageBit(event.kind)))
+                    {
+                        listener.nextEventIndex++;
+                        continue;
+                    }
+
+                    if (event.symbol)
+                    {
+                        const auto it = listener.replayedSymbols.find(event.symbol);
+                        if (it != listener.replayedSymbols.end())
+                        {
+                            listener.replayedSymbols.erase(it);
+                            listener.nextEventIndex++;
+                            continue;
+                        }
+                    }
+
+                    dispatch = {
+                        .listenerIndex = i,
+                        .eventIndex    = listener.nextEventIndex,
+                        .fromReplay    = false,
+                        .event         = event,
+                        .function      = listener.function,
+                        .nodeRef       = listener.nodeRef,
+                    };
+                    found = true;
+                    break;
+                }
+
+                if (found)
+                    break;
+            }
+        }
+
+        if (!found)
+        {
+            if (deferredGeneratedSources.empty())
+                return Result::Continue;
+
+            for (const DeferredCompilerGeneratedSource& generatedSource : deferredGeneratedSources)
+                SWC_RESULT(enqueueGeneratedSource(ctx, generatedSource.text.view(), generatedSource.moduleNamespace));
+            return Result::Pause;
+        }
+
+        const SourceFile* listenerFile = sourceFileFromRef(*this, dispatch.function->srcViewRef());
+        if (!listenerFile)
+            return Result::Error;
+
+        Sema sema(ctx, const_cast<SourceFile*>(listenerFile)->nodePayloadContext(), false);
+        SWC_RESULT(fillRuntimeCompilerMessage(sema, dispatch.nodeRef, dispatch.event));
+        {
+            ScopedCompilerMessageDispatchState dispatchScope(*this, listenerFile->moduleNamespace(), deferredGeneratedSources);
+            SWC_RESULT(SemaJIT::runStatement(sema, *dispatch.function, dispatch.nodeRef));
+        }
+
+        const std::scoped_lock lock(compilerMessageMutex_);
+        auto&                  listener = compilerMessageListeners_[dispatch.listenerIndex];
+        if (dispatch.fromReplay)
+        {
+            if (listener.nextReplayIndex == dispatch.eventIndex)
+                listener.nextReplayIndex++;
+        }
+        else if (listener.nextEventIndex == dispatch.eventIndex)
+        {
+            listener.nextEventIndex++;
+        }
+
+        if (listener.nextReplayIndex >= listener.replayEvents.size() &&
+            listener.nextEventIndex >= compilerMessageLog_.size() &&
+            !listener.replayedSymbols.empty())
+        {
+            listener.replayedSymbols.clear();
+            listener.replayedSymbols.rehash(0);
+        }
+    }
+}
+
 bool CompilerInstance::tryRegisterReportedDiagnostic(const std::string_view message)
 {
     const std::scoped_lock lock(reportedDiagnosticsMutex_);
@@ -920,6 +1543,25 @@ SourceFile& CompilerInstance::addFile(fs::path path, FileFlags flags)
         path = fs::absolute(path);
 
     return addResolvedFile(path.lexically_normal(), flags);
+}
+
+SourceFile& CompilerInstance::file(const FileRef ref) const
+{
+    const std::shared_lock lock(mutex_);
+    SWC_RACE_CONDITION_READ(rcFiles_);
+    SWC_ASSERT(ref.isValid());
+    SWC_ASSERT(ref.get() < files_.size());
+
+    SourceFile* const file = files_[ref.get()].get();
+    SWC_ASSERT(file != nullptr);
+    return *file;
+}
+
+std::vector<SourceFile*> CompilerInstance::filesSnapshot() const
+{
+    const std::shared_lock lock(mutex_);
+    SWC_RACE_CONDITION_READ(rcFiles_);
+    return filePtrs_;
 }
 
 SourceFile& CompilerInstance::addResolvedFile(fs::path path, FileFlags flags)

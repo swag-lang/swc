@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Main/Command/Command.h"
 #include "Backend/Native/NativeBackendBuilder.h"
+#include "Compiler/Sema/Core/Sema.h"
 #include "Main/Command/CommandLineParser.h"
 #include "Main/CompilerInstance.h"
 #include "Main/Stats.h"
@@ -15,12 +16,30 @@ namespace
         return Stats::getNumErrors() != errorsBefore;
     }
 
+    template<typename FUNC>
+    Result runAfterPauses(TaskContext& ctx, const FUNC& func)
+    {
+        while (true)
+        {
+            const Result result = func();
+            if (result != Result::Pause)
+                return result;
+
+            Sema::waitDone(ctx, ctx.compiler().jobClientId());
+            if (Stats::hasError())
+                return Result::Error;
+        }
+    }
+
     bool runNativeBackend(CompilerInstance& compiler, const Runtime::BuildCfgBackendKind backendKind, const bool runArtifact)
     {
         compiler.buildCfg().backendKind = backendKind;
+        TaskContext ctx(compiler);
 
         NativeBackendBuilder builder(compiler, runArtifact);
-        if (builder.run() != Result::Continue)
+        if (runAfterPauses(ctx, [&] {
+                return builder.run();
+            }) != Result::Continue)
             return false;
 
         return !Stats::hasError();

@@ -29,6 +29,8 @@ namespace SemaGeneric
 
 class Sema
 {
+    friend class SemaJob;
+
 public:
     struct ActiveCompilerAstExpansion
     {

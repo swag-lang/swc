@@ -250,11 +250,7 @@ public:
         return *(payloadFunction_.sym);
     }
 
-    TypeRef payloadTypeRef() const noexcept
-    {
-        SWC_ASSERT(isTypeValue() || isAnyPointer() || isReference() || isSlice() || isAlias() || isTypedVariadic() || isCodeBlock());
-        return payloadTypeRef_.typeRef;
-    }
+    TypeRef payloadTypeRef() const noexcept;
 
     auto& payloadArrayDims() const noexcept
     {

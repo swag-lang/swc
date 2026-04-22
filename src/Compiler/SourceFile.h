@@ -52,6 +52,8 @@ public:
     Ast&                   ast();
     const Ast&             ast() const;
     void                   setModuleNamespace(SymbolNamespace& ns) const;
+    const SymbolNamespace* moduleNamespace() const;
+    void                   setFileNamespace(SymbolNamespace& ns) const;
     const SymbolNamespace* fileNamespace() const;
     Verify&                unitTest() { return *unitTest_; }
     const Verify&          unitTest() const { return *unitTest_; }

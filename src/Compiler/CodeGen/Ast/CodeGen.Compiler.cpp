@@ -241,51 +241,71 @@ namespace
             codeGen.setVariablePayload(*symVar, symbolPayload);
         }
     }
+
+    Result codeGenCompilerFunctionBody(CodeGen& codeGen, const AstNodeRef childRef, const AstNodeRef bodyRef)
+    {
+        if (!isActiveCompilerRunRoot(codeGen))
+            return Result::SkipChildren;
+
+        if (childRef != bodyRef)
+            return Result::SkipChildren;
+
+        const CallConvKind callConvKind  = codeGen.function().callConvKind();
+        const CallConv&    callConv      = CallConv::get(callConvKind);
+        const TypeRef      returnTypeRef = codeGen.function().returnTypeRef();
+        if (returnTypeRef.isValid())
+        {
+            const ABITypeNormalize::NormalizedType normalizedRet = ABITypeNormalize::normalize(codeGen.ctx(), callConv, returnTypeRef, ABITypeNormalize::Usage::Return);
+            if (normalizedRet.isIndirect)
+            {
+                SWC_ASSERT(!callConv.intArgRegs.empty());
+
+                MicroBuilder&  builder          = codeGen.builder();
+                const MicroReg outputStorageReg = codeGen.nextVirtualIntRegister();
+                builder.emitLoadRegReg(outputStorageReg, callConv.intArgRegs[0], MicroOpBits::B64);
+                codeGen.setCurrentFunctionIndirectReturnReg(outputStorageReg);
+            }
+        }
+
+        SmallVector<CodeGenFunctionHelpers::FunctionParameterInfo> paramInfos;
+        collectCompilerFunctionParameterInfos(paramInfos, codeGen, codeGen.function());
+        materializeCompilerRegisterParameters(codeGen, codeGen.function(), paramInfos.span());
+        buildCompilerFunctionStackLayout(codeGen);
+        emitCompilerFunctionStackPrologue(codeGen, callConvKind);
+        return Result::Continue;
+    }
+
+    Result codeGenCompilerFunctionEpilogue(CodeGen& codeGen)
+    {
+        if (!isActiveCompilerRunRoot(codeGen))
+            return Result::Continue;
+
+        const CallConvKind callConvKind = codeGen.function().callConvKind();
+        MicroBuilder&      builder      = codeGen.builder();
+        emitCompilerFunctionStackEpilogue(codeGen, callConvKind);
+        builder.emitRet();
+        return Result::Continue;
+    }
 }
 
 Result AstCompilerFunc::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const
 {
-    if (!isActiveCompilerRunRoot(codeGen))
-        return Result::SkipChildren;
-
-    if (childRef != nodeBodyRef)
-        return Result::SkipChildren;
-
-    const CallConvKind callConvKind  = codeGen.function().callConvKind();
-    const CallConv&    callConv      = CallConv::get(callConvKind);
-    const TypeRef      returnTypeRef = codeGen.function().returnTypeRef();
-    if (returnTypeRef.isValid())
-    {
-        const ABITypeNormalize::NormalizedType normalizedRet = ABITypeNormalize::normalize(codeGen.ctx(), callConv, returnTypeRef, ABITypeNormalize::Usage::Return);
-        if (normalizedRet.isIndirect)
-        {
-            SWC_ASSERT(!callConv.intArgRegs.empty());
-
-            MicroBuilder&  builder          = codeGen.builder();
-            const MicroReg outputStorageReg = codeGen.nextVirtualIntRegister();
-            builder.emitLoadRegReg(outputStorageReg, callConv.intArgRegs[0], MicroOpBits::B64);
-            codeGen.setCurrentFunctionIndirectReturnReg(outputStorageReg);
-        }
-    }
-
-    SmallVector<CodeGenFunctionHelpers::FunctionParameterInfo> paramInfos;
-    collectCompilerFunctionParameterInfos(paramInfos, codeGen, codeGen.function());
-    materializeCompilerRegisterParameters(codeGen, codeGen.function(), paramInfos.span());
-    buildCompilerFunctionStackLayout(codeGen);
-    emitCompilerFunctionStackPrologue(codeGen, callConvKind);
-    return Result::Continue;
+    return codeGenCompilerFunctionBody(codeGen, childRef, nodeBodyRef);
 }
 
 Result AstCompilerFunc::codeGenPostNode(CodeGen& codeGen)
 {
-    if (!isActiveCompilerRunRoot(codeGen))
-        return Result::Continue;
+    return codeGenCompilerFunctionEpilogue(codeGen);
+}
 
-    const CallConvKind callConvKind = codeGen.function().callConvKind();
-    MicroBuilder&      builder      = codeGen.builder();
-    emitCompilerFunctionStackEpilogue(codeGen, callConvKind);
-    builder.emitRet();
-    return Result::Continue;
+Result AstCompilerMessageFunc::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const
+{
+    return codeGenCompilerFunctionBody(codeGen, childRef, nodeBodyRef);
+}
+
+Result AstCompilerMessageFunc::codeGenPostNode(CodeGen& codeGen)
+{
+    return codeGenCompilerFunctionEpilogue(codeGen);
 }
 
 Result AstCompilerRunBlock::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const

@@ -141,6 +141,9 @@
     <ClCompile Include="src\Unittest\Test.Compiler.InMemorySource.cpp">
       <Filter>src\Unittest</Filter>
     </ClCompile>
+    <ClCompile Include="src\Unittest\Test.Compiler.Messages.cpp">
+      <Filter>src\Unittest</Filter>
+    </ClCompile>
     <ClCompile Include="src\Unittest\Test.Compiler.Tags.cpp">
       <Filter>src\Unittest</Filter>
     </ClCompile>

@@ -43,6 +43,14 @@ TypeInfo::~TypeInfo()
     }
 }
 
+TypeRef TypeInfo::payloadTypeRef() const noexcept
+{
+    SWC_ASSERT(isTypeValue() || isAnyPointer() || isReference() || isSlice() || isAlias() || isTypedVariadic() || isCodeBlock());
+    if (isAlias())
+        return payloadAlias_.sym->underlyingTypeRef();
+    return payloadTypeRef_.typeRef;
+}
+
 TypeInfo::TypeInfo(const TypeInfo& other) :
     kind_(other.kind_),
     flags_(other.flags_)

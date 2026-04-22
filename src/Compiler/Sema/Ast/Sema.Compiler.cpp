@@ -1627,6 +1627,79 @@ Result AstCompilerShortFunc::semaPostNode(Sema& sema) const
     return substituteCompilerAstString(sema, sema.curNodeRef(), view.cst()->getString());
 }
 
+namespace
+{
+    SymbolFunction& registerCompilerBodyFunction(Sema& sema, const AstNode& node, std::string_view name)
+    {
+        auto& sym = SemaHelpers::registerUniqueSymbol<SymbolFunction>(sema, node, name);
+        sym.setSpecOpKind(SemaSpecOp::computeSymbolKind(sema, sym));
+        sym.setDeclNodeRef(sema.curNodeRef());
+        return sym;
+    }
+
+    Result enterCompilerBodyFunction(Sema& sema, SymbolFunction& symFn, TypeRef returnTypeRef)
+    {
+        if (symFn.isIgnored())
+            return Result::SkipChildren;
+
+        symFn.setReturnTypeRef(returnTypeRef);
+
+        auto frame                = sema.frame();
+        frame.currentAttributes() = symFn.attributes();
+        frame.setCurrentFunction(&symFn);
+
+        sema.pushFramePopOnPostNode(frame);
+        sema.pushScopePopOnPostNode(SemaScopeFlagsE::Local);
+        sema.curScope().setSymMap(&symFn);
+        return Result::Continue;
+    }
+}
+
+Result AstCompilerMessageFunc::semaPreNode(Sema& sema)
+{
+    if (sema.enteringState())
+    {
+        const AstNodeRef curNodeRef = sema.curNodeRef();
+        if (!sema.viewSymbol(curNodeRef).hasSymbol())
+            registerCompilerBodyFunction(sema, sema.curNode(), "message");
+
+        auto& declaredSym = sema.viewSymbol(curNodeRef).sym()->cast<SymbolFunction>();
+        declaredSym.registerAttributes(sema);
+        declaredSym.setDeclared(sema.ctx());
+    }
+
+    auto& sym = sema.curViewSymbol().sym()->cast<SymbolFunction>();
+    return enterCompilerBodyFunction(sema, sym, sema.typeMgr().typeVoid());
+}
+
+Result AstCompilerMessageFunc::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const
+{
+    if (childRef == nodeParamRef)
+        SemaHelpers::pushConstExprRequirement(sema, childRef);
+    return Result::Continue;
+}
+
+Result AstCompilerMessageFunc::semaPostNode(Sema& sema) const
+{
+    auto& sym = sema.curViewSymbol().sym()->cast<SymbolFunction>();
+    if (sym.isIgnored())
+        return Result::Continue;
+
+    SWC_RESULT(SemaCheck::isConstant(sema, nodeParamRef));
+    const SemaNodeView finalMaskView = sema.viewConstant(nodeParamRef);
+    SWC_ASSERT(finalMaskView.cst() != nullptr);
+    const ConstantValue* maskValue = finalMaskView.cst();
+    if (maskValue->isEnumValue())
+        maskValue = &sema.cstMgr().get(maskValue->getEnumValue());
+
+    if (!maskValue->isInt())
+        return SemaError::raiseInvalidType(sema, nodeParamRef, finalMaskView.typeRef(), sema.typeMgr().typeU64());
+
+    sym.setSemaCompleted(sema.ctx());
+    sema.compiler().registerCompilerMessageFunction(&sym, sema.curNodeRef(), maskValue->getInt().as64());
+    return Result::Continue;
+}
+
 Result AstCompilerFunc::semaPreDecl(Sema& sema)
 {
     TaskContext& ctx                = sema.ctx();
@@ -1709,22 +1782,7 @@ Result AstCompilerFunc::semaPreNode(Sema& sema)
     }
 
     auto& sym = sema.curViewSymbol().sym()->cast<SymbolFunction>();
-    if (sym.isIgnored())
-        return Result::SkipChildren;
-
-    if (tokenId == TokenId::CompilerAst)
-        sym.setReturnTypeRef(TypeRef::invalid());
-    else
-        sym.setReturnTypeRef(sema.typeMgr().typeVoid());
-
-    auto frame                = sema.frame();
-    frame.currentAttributes() = sym.attributes();
-    frame.setCurrentFunction(&sym);
-
-    sema.pushFramePopOnPostNode(frame);
-    sema.pushScopePopOnPostNode(SemaScopeFlagsE::Local);
-    sema.curScope().setSymMap(&sym);
-    return Result::Continue;
+    return enterCompilerBodyFunction(sema, sym, tokenId == TokenId::CompilerAst ? TypeRef::invalid() : sema.typeMgr().typeVoid());
 }
 
 Result AstCompilerFunc::semaPostNode(Sema& sema) const
@@ -1812,7 +1870,6 @@ namespace
 
         SemaFrame frame = sema.frame();
         auto&     symFn = sema.viewSymbol(symRef).sym()->cast<SymbolFunction>();
-
         // `#run` lowers to a helper function that is executed during sema. The enclosing
         // runtime function must not keep it as a normal runtime call dependency, or JIT/native
         // test discovery will try to prepare a compile-time-only helper that never survives

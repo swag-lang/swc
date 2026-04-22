@@ -10,11 +10,13 @@ class SemaJob : public Job
 {
     Sema             sema_;
     SymbolNamespace* moduleNamespace_ = nullptr;
+    bool             enqueueFullPassAfterDecl_ = false;
 
 public:
     static constexpr auto K = JobKind::Sema;
 
     SemaJob(const TaskContext& ctx, NodePayload& nodePayloadContext, bool declPass);
+    SemaJob(const TaskContext& ctx, NodePayload& nodePayloadContext, bool declPass, bool enqueueFullPassAfterDecl);
     SemaJob(const TaskContext& ctx, Sema& parentSema, AstNodeRef root);
     JobResult exec() override;
 

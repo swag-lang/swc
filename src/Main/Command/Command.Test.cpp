@@ -314,8 +314,11 @@ namespace
     {
         compiler.buildCfg().backendKind = backendKind;
 
+        TaskContext          ctx(compiler);
         NativeBackendBuilder builder(compiler, runArtifact);
-        if (builder.run() != Result::Continue)
+        if (runAfterPauses(ctx, [&] {
+                return builder.run();
+            }) != Result::Continue)
             return false;
 
         return !Stats::hasError();
@@ -413,6 +416,11 @@ namespace
         TaskContext                 ctx(compiler);
         TimedActionLog::ScopedStage stage(ctx, TimedActionLog::Stage::JIT);
         uint32_t                    expectedTestCount = 0;
+
+        if (runAfterPauses(ctx, [&] {
+                return compiler.ensureCompilerMessagePass(Runtime::CompilerMsgKind::PassBeforeRunByteCode);
+            }) != Result::Continue)
+            return false;
 
         std::vector<SymbolFunction*> allFunctions;
         std::vector<SymbolFunction*> initFunctions;

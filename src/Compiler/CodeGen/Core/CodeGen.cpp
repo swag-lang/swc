@@ -572,6 +572,9 @@ CodeGenNodePayload* CodeGen::safePayload(AstNodeRef nodeRef)
 
 void CodeGen::setVariablePayload(const SymbolVariable& sym, const CodeGenNodePayload& payload)
 {
+    if (sym.hasGlobalStorage())
+        return;
+
     VariableSymbolCodeGenPayload& symbolPayload = ensureVariableSymbolPayload(*this, sym);
     symbolPayload.payload                       = payload;
     symbolPayload.hasPayload                    = true;
@@ -580,6 +583,9 @@ void CodeGen::setVariablePayload(const SymbolVariable& sym, const CodeGenNodePay
 
 const CodeGenNodePayload* CodeGen::variablePayload(const SymbolVariable& sym) const
 {
+    if (sym.hasGlobalStorage())
+        return nullptr;
+
     const VariableSymbolCodeGenPayload* symbolPayload = safeVariableSymbolPayload(sym);
     if (!symbolPayload || !symbolPayload->hasPayload)
         return nullptr;

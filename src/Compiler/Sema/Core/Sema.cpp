@@ -931,6 +931,26 @@ void Sema::waitDone(TaskContext& ctx, JobClientId clientId)
             continue;
         }
 
+        const Result compilerMessageResult = compiler.executePendingCompilerMessages(ctx);
+        if (compilerMessageResult == Result::Pause)
+        {
+            jobMgr.wakeAll(clientId);
+            continue;
+        }
+
+        if (compilerMessageResult == Result::Error)
+            break;
+
+        const Result afterSemanticResult = compiler.ensureCompilerMessagePass(Runtime::CompilerMsgKind::PassAfterSemantic);
+        if (afterSemanticResult == Result::Pause)
+        {
+            jobMgr.wakeAll(clientId);
+            continue;
+        }
+
+        if (afterSemanticResult == Result::Error)
+            break;
+
         if (compiler.consumeChanged())
         {
             compiler.jitExecMgr().wakeWaiting();

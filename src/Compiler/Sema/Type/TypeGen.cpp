@@ -9,7 +9,8 @@ TypeRef TypeGen::resolveArrayPointedTypeRef(TypeManager& tm, const TypeInfo& arr
 {
     SWC_ASSERT(arrayType.isArray());
     const auto& dims = arrayType.payloadArrayDims();
-    SWC_ASSERT(!dims.empty());
+    if (dims.empty())
+        return arrayType.payloadArrayElemTypeRef();
 
     if (dims.size() == 1)
         return arrayType.payloadArrayElemTypeRef();

@@ -156,6 +156,7 @@
         <ClCompile Include="src\Unittest\Test.Compiler.Config.cpp"/>
         <ClCompile Include="src\Unittest\Test.Compiler.GeneratedAst.cpp"/>
         <ClCompile Include="src\Unittest\Test.Compiler.InMemorySource.cpp"/>
+        <ClCompile Include="src\Unittest\Test.Compiler.Messages.cpp"/>
         <ClCompile Include="src\Unittest\Test.Compiler.Tags.cpp"/>
         <ClCompile Include="src\Unittest\Test.Debug.DebugInfo.cpp"/>
         <ClCompile Include="src\Unittest\Test.Encoder.EncodeX64.cpp"/>

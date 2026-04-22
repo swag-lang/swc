@@ -8,16 +8,20 @@
 #include "Support/Memory/Arena.h"
 #include "Support/Thread/JobManager.h"
 #include "Support/Thread/RaceCondition.h"
+#include <deque>
+#include <unordered_set>
 
 SWC_BEGIN_NAMESPACE();
 
 struct AstCompilerFunc;
 class SourceView;
+class Sema;
 class TaskContext;
 class TypeManager;
 class TypeGen;
 class ConstantManager;
 class IdentifierManager;
+class Symbol;
 class SymbolModule;
 class SymbolFunction;
 class SymbolVariable;
@@ -31,6 +35,23 @@ struct CommandLine;
 class CompilerInstance
 {
 public:
+    struct CompilerMessageEvent
+    {
+        Runtime::CompilerMsgKind kind   = Runtime::CompilerMsgKind::PassAfterSemantic;
+        Symbol*                  symbol = nullptr;
+    };
+
+    struct CompilerMessageListener
+    {
+        SymbolFunction*                    function        = nullptr;
+        AstNodeRef                         nodeRef         = AstNodeRef::invalid();
+        uint64_t                           mask            = 0;
+        size_t                             nextReplayIndex = 0;
+        size_t                             nextEventIndex  = 0;
+        std::vector<CompilerMessageEvent>  replayEvents;
+        std::unordered_set<const Symbol*>  replayedSymbols;
+    };
+
     struct GeneratedSourceAppendResult
     {
         fs::path path;
@@ -132,11 +153,17 @@ public:
     void                            registerRuntimeFunctionSymbol(IdentifierRef idRef, SymbolFunction* symbol);
     SymbolFunction*                 runtimeFunctionSymbol(IdentifierRef idRef) const;
     bool                            tryRegisterReportedDiagnostic(std::string_view message);
+    void                            registerCompilerMessageFunction(SymbolFunction* symbol, AstNodeRef nodeRef, uint64_t mask);
+    void                            onSymbolSemaCompleted(Symbol& symbol);
+    Result                          ensureCompilerMessagePass(Runtime::CompilerMsgKind kind);
+    Result                          executePendingCompilerMessages(TaskContext& ctx);
+    bool                            hasCompilerMessageInterest(Runtime::CompilerMsgKind kind) const;
     Result                          appendGeneratedSource(GeneratedSourceAppendResult& outResult, Utf8& outBecause, const fs::path& directory, std::string_view sectionText, uint32_t codeOffsetInSection);
     void                            registerInMemoryFile(fs::path path, std::string_view content);
 
-    SourceFile& addFile(fs::path path, FileFlags flags);
-    SourceFile& file(FileRef ref) const { return *(files_[ref.get()].get()); }
+    SourceFile&               addFile(fs::path path, FileFlags flags);
+    SourceFile&               file(FileRef ref) const;
+    std::vector<SourceFile*>  filesSnapshot() const;
 
     SourceView&       addSourceView();
     SourceView&       addSourceView(FileRef fileRef);
@@ -226,6 +253,12 @@ private:
     std::unordered_map<Utf8, Utf8>                     inMemoryFiles_;
     std::mutex                                         reportedDiagnosticsMutex_;
     std::unordered_set<Utf8>                           reportedDiagnostics_;
+    std::mutex                                         compilerMessageMutex_;
+    std::deque<CompilerMessageListener>                compilerMessageListeners_;
+    std::vector<CompilerMessageEvent>                  compilerMessageLog_;
+    std::unordered_map<TypeRef, const Runtime::TypeInfo*> compilerMessageTypeInfoCache_;
+    std::atomic<uint64_t>                              compilerMessageActiveMask_ = 0;
+    std::atomic<uint64_t>                              compilerMessageExecutedPassMask_ = 0;
     std::once_flag                                     nativeRuntimeContextTlsIdOffsetOnce_;
     uint32_t                                           nativeRuntimeContextTlsIdOffset_ = UINT32_MAX;
     std::vector<SymbolFunction*>                       nativeCodeSegment_;
@@ -245,6 +278,9 @@ private:
     void logStats();
     void processCommand();
     void setupRuntimeCompiler();
+    bool tryGetCompilerMessageTypeInfo(TypeRef typeRef, const Runtime::TypeInfo*& outType);
+    void cacheCompilerMessageTypeInfo(TypeRef typeRef, const Runtime::TypeInfo* runtimeTypeInfo);
+    Result fillRuntimeCompilerMessage(Sema& sema, AstNodeRef ownerNodeRef, const CompilerMessageEvent& event);
 };
 
 SWC_END_NAMESPACE();

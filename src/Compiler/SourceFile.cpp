@@ -28,6 +28,16 @@ void SourceFile::setModuleNamespace(SymbolNamespace& ns) const
     nodePayloadContext_->setModuleNamespace(ns);
 }
 
+const SymbolNamespace* SourceFile::moduleNamespace() const
+{
+    return nodePayloadContext_->moduleNamespace_;
+}
+
+void SourceFile::setFileNamespace(SymbolNamespace& ns) const
+{
+    nodePayloadContext_->setFileNamespace(ns);
+}
+
 const SymbolNamespace* SourceFile::fileNamespace() const
 {
     return nodePayloadContext_->fileNamespace_;

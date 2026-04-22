@@ -251,8 +251,8 @@ Result AstCompilerFunc::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef& 
     if (childRef != nodeBodyRef)
         return Result::SkipChildren;
 
-    const CallConvKind callConvKind = codeGen.function().callConvKind();
-    const CallConv&    callConv     = CallConv::get(callConvKind);
+    const CallConvKind callConvKind  = codeGen.function().callConvKind();
+    const CallConv&    callConv      = CallConv::get(callConvKind);
     const TypeRef      returnTypeRef = codeGen.function().returnTypeRef();
     if (returnTypeRef.isValid())
     {
@@ -413,7 +413,7 @@ Result AstCompilerScope::codeGenPostNode(CodeGen& codeGen)
 
 Result AstScopedBreakStmt::codeGenPostNode(CodeGen& codeGen)
 {
-    const auto&      node         = codeGen.curNode().cast<AstScopedBreakStmt>();
+    const auto&         node = codeGen.curNode().cast<AstScopedBreakStmt>();
     const SourceCodeRef nameCodeRef{node.srcViewRef(), node.tokNameRef};
     const Token&        tokScopeName = codeGen.token(nameCodeRef);
     const AstNodeRef    scopeRef     = findNamedCompilerScope(codeGen, tokScopeName.string(codeGen.srcView(nameCodeRef.srcViewRef)));

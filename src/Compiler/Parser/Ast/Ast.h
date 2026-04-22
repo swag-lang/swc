@@ -85,7 +85,7 @@ public:
     template<AstNodeId ID>
     auto makeNode(TokenRef tokRef)
     {
-        using NodeType = AstTypeOf<ID>::type;
+        using NodeType                  = AstTypeOf<ID>::type;
         const SourceView& activeSrcView = srcView();
 
         const uint32_t            shard = chooseShard();
@@ -153,14 +153,14 @@ private:
         mutable std::shared_mutex mutex;
     };
 
-    Shard       shards_[SHARD_COUNT];
-    SourceView* srcView_                                = nullptr;
-    AstNodeRef  root_                                   = AstNodeRef::invalid();
-    AstFlags    flags_                                  = AstFlagsE::Zero;
-    std::mutex  generatedParseMutex_;
-    uint32_t    parsedNodeBoundaryByShard_[SHARD_COUNT] = {};
-    bool        hasParsedNodeBoundary_                  = false;
-    inline static thread_local SourceView* threadSourceViewOverride_ = nullptr;
+    Shard                                  shards_[SHARD_COUNT];
+    SourceView*                            srcView_ = nullptr;
+    AstNodeRef                             root_    = AstNodeRef::invalid();
+    AstFlags                               flags_   = AstFlagsE::Zero;
+    std::mutex                             generatedParseMutex_;
+    uint32_t                               parsedNodeBoundaryByShard_[SHARD_COUNT] = {};
+    bool                                   hasParsedNodeBoundary_                  = false;
+    inline static thread_local SourceView* threadSourceViewOverride_               = nullptr;
 };
 
 SWC_END_NAMESPACE();

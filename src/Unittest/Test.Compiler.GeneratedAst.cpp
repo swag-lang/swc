@@ -130,9 +130,9 @@ SWC_TEST_BEGIN(Compiler_GeneratedAstMaterializesPerThreadFiles)
     cmdLine.files.insert(sourcePath);
     CommandLineParser::refreshBuildCfg(cmdLine);
 
-    const uint64_t   errorsBefore = Stats::getNumErrors();
+    const uint64_t          errorsBefore = Stats::getNumErrors();
     const RestoreErrorCount restoreErrors{errorsBefore};
-    CompilerInstance compiler(ctx.global(), cmdLine);
+    CompilerInstance        compiler(ctx.global(), cmdLine);
     Unittest::registerTestSource(compiler, sourcePath, SOURCE);
     Command::sema(compiler);
     if (Stats::getNumErrors() != errorsBefore)
@@ -215,9 +215,9 @@ SWC_TEST_BEGIN(Compiler_GeneratedAstDiagnosticsUseMaterializedSourceFile)
     cmdLine.files.insert(sourcePath);
     CommandLineParser::refreshBuildCfg(cmdLine);
 
-    const uint64_t   errorsBefore = Stats::getNumErrors();
+    const uint64_t          errorsBefore = Stats::getNumErrors();
     const RestoreErrorCount restoreErrors{errorsBefore};
-    CompilerInstance compiler(ctx.global(), cmdLine);
+    CompilerInstance        compiler(ctx.global(), cmdLine);
     Unittest::registerTestSource(compiler, sourcePath, SOURCE);
     Command::sema(compiler);
     if (Stats::getNumErrors() == errorsBefore)

@@ -1085,12 +1085,12 @@ namespace
 
     Result emitFunctionReturn(CodeGen& codeGen, const SymbolFunction& symbolFunc, AstNodeRef exprRef)
     {
-        MicroBuilder&                          builder       = codeGen.builder();
-        const CallConvKind                     callConvKind  = symbolFunc.callConvKind();
-        const CallConv&                        callConv      = CallConv::get(callConvKind);
-        const TypeRef                          returnTypeRef = symbolFunc.returnTypeRef();
-        const ABITypeNormalize::NormalizedType normalizedRet = ABITypeNormalize::normalize(codeGen.ctx(), callConv, returnTypeRef, ABITypeNormalize::Usage::Return);
-        const bool needsPersistentCompilerReturn = isCompilerFunctionDecl(codeGen) && CodeGenFunctionHelpers::needsPersistentCompilerRunReturn(codeGen.sema(), returnTypeRef);
+        MicroBuilder&                          builder                       = codeGen.builder();
+        const CallConvKind                     callConvKind                  = symbolFunc.callConvKind();
+        const CallConv&                        callConv                      = CallConv::get(callConvKind);
+        const TypeRef                          returnTypeRef                 = symbolFunc.returnTypeRef();
+        const ABITypeNormalize::NormalizedType normalizedRet                 = ABITypeNormalize::normalize(codeGen.ctx(), callConv, returnTypeRef, ABITypeNormalize::Usage::Return);
+        const bool                             needsPersistentCompilerReturn = isCompilerFunctionDecl(codeGen) && CodeGenFunctionHelpers::needsPersistentCompilerRunReturn(codeGen.sema(), returnTypeRef);
 
         if (normalizedRet.isVoid)
         {
@@ -1335,13 +1335,13 @@ namespace
 
     Result emitFunctionLikeReturnNoDefers(CodeGen& codeGen, const SymbolFunction& symbolFunc, const CodeGenNodePayload* exprPayload)
     {
-        MicroBuilder&                          builder       = codeGen.builder();
-        const CallConvKind                     callConvKind  = symbolFunc.callConvKind();
-        const CallConv&                        callConv      = CallConv::get(callConvKind);
-        const TypeRef                          returnTypeRef = symbolFunc.returnTypeRef();
-        const ABITypeNormalize::NormalizedType normalizedRet = ABITypeNormalize::normalize(codeGen.ctx(), callConv, returnTypeRef, ABITypeNormalize::Usage::Return);
-        const bool needsPersistentCompilerBlockReturn = isCompilerRunBlockFunction(codeGen) && CodeGenFunctionHelpers::needsPersistentCompilerRunReturn(codeGen.sema(), returnTypeRef);
-        const bool needsPersistentCompilerReturn      = isCompilerFunctionDecl(codeGen) && CodeGenFunctionHelpers::needsPersistentCompilerRunReturn(codeGen.sema(), returnTypeRef);
+        MicroBuilder&                          builder                            = codeGen.builder();
+        const CallConvKind                     callConvKind                       = symbolFunc.callConvKind();
+        const CallConv&                        callConv                           = CallConv::get(callConvKind);
+        const TypeRef                          returnTypeRef                      = symbolFunc.returnTypeRef();
+        const ABITypeNormalize::NormalizedType normalizedRet                      = ABITypeNormalize::normalize(codeGen.ctx(), callConv, returnTypeRef, ABITypeNormalize::Usage::Return);
+        const bool                             needsPersistentCompilerBlockReturn = isCompilerRunBlockFunction(codeGen) && CodeGenFunctionHelpers::needsPersistentCompilerRunReturn(codeGen.sema(), returnTypeRef);
+        const bool                             needsPersistentCompilerReturn      = isCompilerFunctionDecl(codeGen) && CodeGenFunctionHelpers::needsPersistentCompilerRunReturn(codeGen.sema(), returnTypeRef);
 
         if (isCompilerRunBlockFunction(codeGen))
         {

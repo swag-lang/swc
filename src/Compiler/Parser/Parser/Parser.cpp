@@ -44,15 +44,14 @@ AstNodeRef Parser::parseGeneratedValue(const ParserGeneratedMode mode)
 AstNodeRef Parser::parseGeneratedContent(const ParserGeneratedMode mode)
 {
     SmallVector<AstNodeRef> childrenRefs;
-    const TokenRef          containerTokRef  = ref();
-    const AstNodeId         separatorNodeId = mode == ParserGeneratedMode::Aggregate ? AstNodeId::AggregateBody :
-                                              mode == ParserGeneratedMode::Enum      ? AstNodeId::EnumBody :
-                                                                                      AstNodeId::TopLevelBlock;
+    const TokenRef          containerTokRef = ref();
+    const AstNodeId         separatorNodeId = mode == ParserGeneratedMode::Aggregate ? AstNodeId::AggregateBody : mode == ParserGeneratedMode::Enum ? AstNodeId::EnumBody
+                                                                                                                                                    : AstNodeId::TopLevelBlock;
 
     while (!atEnd() && isNot(TokenId::EndOfFile))
     {
-        const Token*      loopStartToken = curToken_;
-        const AstNodeRef  childRef       = parseGeneratedValue(mode);
+        const Token*     loopStartToken = curToken_;
+        const AstNodeRef childRef       = parseGeneratedValue(mode);
         if (childRef.isValid())
             childrenRefs.push_back(childRef);
 
@@ -123,7 +122,7 @@ AstNodeRef Parser::parseGenerated(TaskContext& ctx, Ast& ast, SourceView& srcVie
     lastErrorToken_ = TokenRef::invalid();
 
     SourceView* const previousSrcView = Ast::setThreadSourceViewOverride(&srcView);
-    const AstNodeRef result = parseGeneratedContent(mode);
+    const AstNodeRef  result          = parseGeneratedContent(mode);
     Ast::setThreadSourceViewOverride(previousSrcView);
 
     return result;

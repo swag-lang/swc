@@ -370,9 +370,9 @@ namespace
         outSrcView     = nullptr;
         outStartTokRef = TokenRef::invalid();
 
-        uint32_t sectionCodeOffset = 0;
-        const Utf8 sectionText = buildCompilerAstGeneratedSection(sema, ownerRef, generatedCode, sectionCodeOffset);
-        const fs::path directory = compilerAstGeneratedDirectory(sema);
+        uint32_t       sectionCodeOffset = 0;
+        const Utf8     sectionText       = buildCompilerAstGeneratedSection(sema, ownerRef, generatedCode, sectionCodeOffset);
+        const fs::path directory         = compilerAstGeneratedDirectory(sema);
 
         CompilerInstance::GeneratedSourceAppendResult appendResult;
         Utf8                                          because;
@@ -440,7 +440,7 @@ namespace
             return Result::Continue;
 
         const TypeRef reportedTypeRef = typeRef.isValid() ? typeRef : sema.typeMgr().typeVoid();
-        auto diag = SemaError::report(sema, DiagnosticId::sema_err_ast_requires_string, nodeRef);
+        auto          diag            = SemaError::report(sema, DiagnosticId::sema_err_ast_requires_string, nodeRef);
         diag.addArgument(Diagnostic::ARG_TYPE, sema.typeMgr().get(reportedTypeRef).toName(sema.ctx()));
         diag.report(sema.ctx());
         return Result::Error;
@@ -556,7 +556,7 @@ Result AstCompilerScope::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef
 
 Result AstScopedBreakStmt::semaPreNode(Sema& sema)
 {
-    const auto&      node         = sema.curNode().cast<AstScopedBreakStmt>();
+    const auto&         node = sema.curNode().cast<AstScopedBreakStmt>();
     const SourceCodeRef nameCodeRef{node.srcViewRef(), node.tokNameRef};
     const Token&        tokScopeName = sema.token(nameCodeRef);
     const AstNodeRef    scopeRef     = findNamedCompilerScope(sema, tokScopeName.string(sema.srcView(nameCodeRef.srcViewRef)));

@@ -1710,7 +1710,7 @@ Result SemaSpecOp::tryResolveIndexAssign(Sema& sema, const AstAssignStmt& node, 
 
     if (tok.id == TokenId::SymEqual)
     {
-        const SemaNodeView leftView = sema.viewNodeTypeSymbol(leftNodeRef);
+        const SemaNodeView leftView            = sema.viewNodeTypeSymbol(leftNodeRef);
         bool               canAssignThroughRef = false;
         SWC_RESULT(canAssignThroughIndexLValue(sema, node, leftNodeRef, leftView, canAssignThroughRef));
 

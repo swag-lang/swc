@@ -568,7 +568,7 @@ namespace
         if (!sourceTypeRef.isValid())
             return;
 
-        const TypeInfo& sourceType    = ctx.typeMgr().get(sourceTypeRef);
+        const TypeInfo& sourceType = ctx.typeMgr().get(sourceTypeRef);
         if (!sourceType.isArray() && !sourceType.isAggregateArray())
             return;
 

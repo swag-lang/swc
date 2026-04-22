@@ -88,9 +88,9 @@ private:
     uint32_t                      clampLine(uint32_t line) const;
     std::pair<uint32_t, uint32_t> lineBounds(uint32_t line) const;
 
-    SourceViewRef                 ref_     = SourceViewRef::invalid();
-    const SourceFile*             file_    = nullptr;
-    FileRef                       fileRef_ = FileRef::invalid();
+    SourceViewRef                 ref_          = SourceViewRef::invalid();
+    const SourceFile*             file_         = nullptr;
+    FileRef                       fileRef_      = FileRef::invalid();
     FileRef                       ownerFileRef_ = FileRef::invalid();
     std::string_view              stringView_;
     std::vector<Token>            tokens_;

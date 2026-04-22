@@ -202,10 +202,10 @@ namespace
         if (!refCst.isValuePointer() || !refCst.getValuePointer())
             return ConstantRef::invalid();
 
-        const void* const valuePtr = reinterpret_cast<const void*>(refCst.getValuePointer());
-        const TypeRef     aliasResolvedTypeRef = sema.typeMgr().get(valueTypeRef).unwrap(sema.ctx(), valueTypeRef, TypeExpandE::Alias);
-        const TypeRef     valueNoAliasTypeRef  = aliasResolvedTypeRef.isValid() ? aliasResolvedTypeRef : valueTypeRef;
-        const TypeInfo&   valueNoAliasType     = sema.typeMgr().get(valueNoAliasTypeRef);
+        const auto      valuePtr             = reinterpret_cast<const void*>(refCst.getValuePointer());
+        const TypeRef   aliasResolvedTypeRef = sema.typeMgr().get(valueTypeRef).unwrap(sema.ctx(), valueTypeRef, TypeExpandE::Alias);
+        const TypeRef   valueNoAliasTypeRef  = aliasResolvedTypeRef.isValid() ? aliasResolvedTypeRef : valueTypeRef;
+        const TypeInfo& valueNoAliasType     = sema.typeMgr().get(valueNoAliasTypeRef);
         if (valueNoAliasType.isEnum())
         {
             const TypeRef       underlyingTypeRef = valueNoAliasType.payloadSymEnum().underlyingTypeRef();

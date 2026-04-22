@@ -27,7 +27,7 @@ bool Ast::hasNode(AstNodeRef nodeRef) const
     if (shard >= SHARD_COUNT)
         return false;
 
-    const uint32_t localRef = refLocal(globalRef);
+    const uint32_t   localRef = refLocal(globalRef);
     std::shared_lock lock(shards_[shard].mutex);
     return shards_[shard].store.containsRef(localRef);
 }

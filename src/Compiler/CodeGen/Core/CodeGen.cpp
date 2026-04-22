@@ -965,19 +965,19 @@ Result CodeGen::emitDeferredActionsInScope(const size_t scopeIndex, const size_t
     if (scopeIndex >= deferScopes_.size())
         return Result::Continue;
 
-    const auto& deferScope = deferScopes_[scopeIndex];
+    const auto&  deferScope         = deferScopes_[scopeIndex];
     const size_t clampedActionCount = std::min(actionCount, deferScope.actions.size());
     deferredEmissionCursors_.push_back({
         .scopeIndex      = scopeIndex,
         .nextActionCount = clampedActionCount,
     });
 
-    Result result = Result::Continue;
+    auto result = Result::Continue;
     for (size_t i = clampedActionCount; i != 0; --i)
     {
         deferredEmissionCursors_.back().nextActionCount = i - 1;
-        const auto& action = deferScope.actions[i - 1];
-        result             = emitDeferredAction(action);
+        const auto& action                              = deferScope.actions[i - 1];
+        result                                          = emitDeferredAction(action);
         if (result != Result::Continue)
             break;
     }
@@ -993,8 +993,8 @@ Result CodeGen::emitDeferredActionsFrom(const size_t startScopeIndex, const size
 
     for (size_t scopeCursor = startScopeIndex + 1; scopeCursor != 0; --scopeCursor)
     {
-        const size_t scopeIndex   = scopeCursor - 1;
-        const size_t actionCount  = scopeIndex == startScopeIndex ? startActionCount : deferScopes_[scopeIndex].actions.size();
+        const size_t scopeIndex  = scopeCursor - 1;
+        const size_t actionCount = scopeIndex == startScopeIndex ? startActionCount : deferScopes_[scopeIndex].actions.size();
         SWC_RESULT(emitDeferredActionsInScope(scopeIndex, actionCount));
         if (hasStopScope && scopeIndex == stopScopeIndex)
             break;

@@ -720,8 +720,8 @@ SourceView& CompilerInstance::addSourceView(FileRef fileRef)
     const std::unique_lock lock(mutex_);
     SWC_RACE_CONDITION_READ(rcFiles_);
     SWC_ASSERT(fileRef.get() < files_.size());
-    auto                      srcViewRef = static_cast<SourceViewRef>(static_cast<uint32_t>(srcViews_.size()));
-    SourceFile* const         ownerFile  = files_[fileRef.get()].get();
+    auto              srcViewRef = static_cast<SourceViewRef>(static_cast<uint32_t>(srcViews_.size()));
+    SourceFile* const ownerFile  = files_[fileRef.get()].get();
     srcViews_.emplace_back(std::make_unique<SourceView>(srcViewRef, ownerFile));
 #if SWC_HAS_REF_DEBUG_INFO
     srcViewRef.dbgPtr = srcViews_.back().get();
@@ -845,7 +845,7 @@ bool CompilerInstance::tryRegisterReportedDiagnostic(const std::string_view mess
 
 Result CompilerInstance::appendGeneratedSource(GeneratedSourceAppendResult& outResult, Utf8& outBecause, const fs::path& directory, const std::string_view sectionText, const uint32_t codeOffsetInSection)
 {
-    outResult  = {};
+    outResult = {};
     outBecause.clear();
 
     SWC_ASSERT(directory.is_absolute());
@@ -854,7 +854,7 @@ Result CompilerInstance::appendGeneratedSource(GeneratedSourceAppendResult& outR
     const auto threadIndex = static_cast<uint32_t>(JobManager::threadIndex());
     const auto sourceId    = generatedSourceId_.fetch_add(1, std::memory_order_relaxed);
 
-    outResult.path = (directory / std::format("thread-{}-g{}-c{}-p{}.swg", threadIndex, sourceId, jobClientId_, Os::currentProcessId())).lexically_normal();
+    outResult.path            = (directory / std::format("thread-{}-g{}-c{}-p{}.swg", threadIndex, sourceId, jobClientId_, Os::currentProcessId())).lexically_normal();
     outResult.codeStartOffset = codeOffsetInSection;
     outResult.snapshot        = sectionText;
 
@@ -937,7 +937,7 @@ SourceFile& CompilerInstance::addResolvedFile(fs::path path, FileFlags flags)
 #endif
 
     const Utf8 key = Utf8Helper::normalizePathForCompare(files_.back()->path());
-    const auto it = inMemoryFiles_.find(key);
+    const auto it  = inMemoryFiles_.find(key);
     if (it != inMemoryFiles_.end())
         files_.back()->setContent(it->second.view());
 

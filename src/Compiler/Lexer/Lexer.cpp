@@ -255,8 +255,8 @@ void Lexer::lexEscape(TokenId containerToken, bool eatEol)
 
     if (!langSpec_->isEscape(buffer_[1]))
     {
-        auto diag = reportTokenError(DiagnosticId::lex_err_invalid_escape, static_cast<uint32_t>(buffer_ - startBuffer_), 2);
-        const uint8_t c = buffer_[1];
+        auto          diag = reportTokenError(DiagnosticId::lex_err_invalid_escape, static_cast<uint32_t>(buffer_ - startBuffer_), 2);
+        const uint8_t c    = buffer_[1];
         if (c >= 'A' && c <= 'Z')
         {
             const uint8_t lower = c + 32;
@@ -1179,7 +1179,7 @@ void Lexer::lexSymbol()
             diag.addArgument(Diagnostic::ARG_VALUE, std::format("{:04X}", static_cast<uint32_t>(wc)));
             diag.report(*ctx_);
         }
-            break;
+        break;
     }
 
     pushToken();

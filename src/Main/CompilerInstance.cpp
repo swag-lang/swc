@@ -716,11 +716,13 @@ SourceView& CompilerInstance::addSourceView()
 SourceView& CompilerInstance::addSourceView(FileRef fileRef)
 {
     SWC_ASSERT(fileRef.isValid());
-    SWC_RACE_CONDITION_READ(rcFiles_);
 
     const std::unique_lock lock(mutex_);
-    auto                   srcViewRef = static_cast<SourceViewRef>(static_cast<uint32_t>(srcViews_.size()));
-    srcViews_.emplace_back(std::make_unique<SourceView>(srcViewRef, &file(fileRef)));
+    SWC_RACE_CONDITION_READ(rcFiles_);
+    SWC_ASSERT(fileRef.get() < files_.size());
+    auto                      srcViewRef = static_cast<SourceViewRef>(static_cast<uint32_t>(srcViews_.size()));
+    SourceFile* const         ownerFile  = files_[fileRef.get()].get();
+    srcViews_.emplace_back(std::make_unique<SourceView>(srcViewRef, ownerFile));
 #if SWC_HAS_REF_DEBUG_INFO
     srcViewRef.dbgPtr = srcViews_.back().get();
 #endif

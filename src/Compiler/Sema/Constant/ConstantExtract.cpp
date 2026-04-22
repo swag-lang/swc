@@ -148,6 +148,7 @@ namespace
 
     Result makeFieldConstantFromBytes(Sema& sema, TypeRef fieldTypeRef, const TypeInfo& typeField, ByteSpan bytes, ConstantRef& outCstRef, const SymbolVariable& symVar, AstNodeRef nodeMemberRef)
     {
+        SWC_RESULT(ConstantHelpers::waitStaticPayloadTypeReady(sema, fieldTypeRef, nodeMemberRef));
         SWC_UNUSED(typeField);
         SWC_RESULT(makeScalarFieldConstantFromBytes(sema, fieldTypeRef, bytes, outCstRef));
         if (outCstRef.isValid())
@@ -213,7 +214,7 @@ namespace
         outCstRef                = ConstantRef::invalid();
         TaskContext&    ctx      = sema.ctx();
         const TypeInfo& elemType = sema.typeMgr().get(elemTypeRef);
-        SWC_RESULT(sema.waitSemaCompleted(&elemType, nodeArgRef));
+        SWC_RESULT(ConstantHelpers::waitStaticPayloadTypeReady(sema, elemTypeRef, nodeArgRef));
         const uint64_t elemSize = elemType.sizeOf(ctx);
         SWC_ASSERT(elemSize);
 
@@ -247,6 +248,7 @@ namespace
                 remainingDims.push_back(dims[i]);
 
             const TypeRef     nextTypeRef = sema.typeMgr().addType(TypeInfo::makeArray(remainingDims.span(), typeInfo.payloadArrayElemTypeRef(), typeInfo.flags()));
+            SWC_RESULT(ConstantHelpers::waitStaticPayloadTypeReady(sema, nextTypeRef, nodeArgRef));
             const uint64_t    nextSize    = sema.typeMgr().get(nextTypeRef).sizeOf(ctx);
             const ByteSpan    nextBytes   = {cst.getArray().data() + (constIndex * nextSize), nextSize};
             const ConstantRef nextCstRef  = ConstantHelpers::materializeStaticPayloadConstant(sema, nextTypeRef, nextBytes);

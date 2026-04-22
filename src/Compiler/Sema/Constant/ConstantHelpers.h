@@ -8,6 +8,7 @@ struct SourceCodeRange;
 
 namespace ConstantHelpers
 {
+    Result      waitStaticPayloadTypeReady(Sema& sema, TypeRef typeRef, AstNodeRef waitNodeRef);
     ConstantRef materializeStaticPayloadConstant(Sema& sema, TypeRef typeRef, ByteSpan payload);
     Result      makeSourceCodeLocation(Sema& sema, ConstantRef& outCstRef, const AstNode& node, const SymbolFunction* function = nullptr);
     Result      makeSourceCodeLocation(Sema& sema, ConstantRef& outCstRef, const SourceCodeRange& codeRange, const SymbolFunction* function = nullptr);

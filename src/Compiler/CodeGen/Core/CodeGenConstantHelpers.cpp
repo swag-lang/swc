@@ -76,8 +76,34 @@ namespace
         if (typeInfo.isFunction() && typeInfo.isLambdaClosure())
             return resolveClosureStaticPayloadRequiredShardIndex(outShardIndex, hasRequiredShard, codeGen, payload);
 
-        if (typeInfo.isBool() || typeInfo.isChar() || typeInfo.isRune() || typeInfo.isInt() || typeInfo.isFloat() || typeInfo.isString() || typeInfo.isSlice())
+        if (typeInfo.isBool() || typeInfo.isChar() || typeInfo.isRune() || typeInfo.isInt() || typeInfo.isFloat() || typeInfo.isString())
             return true;
+
+        if (typeInfo.isSlice())
+        {
+            if (payload.size() != sizeof(Runtime::Slice<std::byte>))
+                return false;
+
+            const auto*     runtimeSlice   = reinterpret_cast<const Runtime::Slice<std::byte>*>(payload.data());
+            const TypeRef   elementTypeRef = typeInfo.payloadTypeRef();
+            const TypeInfo& elementType    = typeMgr.get(elementTypeRef);
+            const uint64_t  elementSize    = elementType.sizeOf(ctx);
+            if (runtimeSlice->count == 0 || elementSize == 0)
+                return true;
+            if (!runtimeSlice->ptr)
+                return false;
+
+            SWC_ASSERT(runtimeSlice->count <= std::numeric_limits<uint64_t>::max() / elementSize);
+            for (uint64_t idx = 0; idx < runtimeSlice->count; ++idx)
+            {
+                const uint64_t elementOffset = idx * elementSize;
+                const auto     elementBytes  = ByteSpan{reinterpret_cast<const std::byte*>(runtimeSlice->ptr) + elementOffset, static_cast<size_t>(elementSize)};
+                if (!resolveStaticPayloadRequiredShardIndex(outShardIndex, hasRequiredShard, codeGen, elementTypeRef, elementBytes))
+                    return false;
+            }
+
+            return true;
+        }
 
         if (typeInfo.isAny())
         {

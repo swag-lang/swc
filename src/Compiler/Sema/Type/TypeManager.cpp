@@ -50,9 +50,9 @@ namespace
 
     constexpr std::array<RuntimeTypeKind, static_cast<size_t>(IdentifierManager::PredefinedName::Count)> PREDEFINED_RUNTIME_MAP = makePredefinedRuntimeMap();
 
-    uint32_t stableShardHash(const TaskContext* ctx, const TypeInfo& typeInfo)
+    uint32_t stableShardHash(CompilerInstance* compiler, const TypeInfo& typeInfo)
     {
-        if (!ctx)
+        if (!compiler)
             return typeInfo.hash();
 
         switch (typeInfo.kind())
@@ -64,7 +64,10 @@ namespace
             case TypeInfoKind::Function:
             case TypeInfoKind::AggregateStruct:
             case TypeInfoKind::AggregateArray:
-                return typeInfo.runtimeHash(*ctx);
+            {
+                const TaskContext ctx(*compiler);
+                return typeInfo.runtimeHash(ctx);
+            }
 
             default:
                 return typeInfo.hash();
@@ -74,7 +77,8 @@ namespace
 
 void TypeManager::setup(TaskContext& ctx)
 {
-    ctx_ = &ctx;
+    SWC_ASSERT(ctx.hasCompiler());
+    compiler_                      = &ctx.compiler();
     const IdentifierManager& idMgr = ctx.idMgr();
     for (size_t i = 0; i < PREDEFINED_RUNTIME_MAP.size(); ++i)
     {
@@ -192,7 +196,7 @@ TypeRef TypeManager::typeFloat(uint32_t bits) const
 
 TypeRef TypeManager::addType(const TypeInfo& typeInfo)
 {
-    const uint32_t stableHash = stableShardHash(ctx_, typeInfo);
+    const uint32_t stableHash = stableShardHash(compiler_, typeInfo);
     const uint32_t shardIndex = stableHash & (SHARD_COUNT - 1);
     SWC_ASSERT(shardIndex < SHARD_COUNT);
     auto& shard = shards_[shardIndex];

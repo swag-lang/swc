@@ -11,6 +11,128 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    constexpr uint32_t K_TYPE_HASH_CYCLE     = 0xB71A5C1Eu;
+    constexpr uint32_t K_CONSTANT_HASH_CYCLE = 0xC06A71CEu;
+    constexpr uint32_t K_FUNCTION_HASH_CYCLE = 0xF0C7A11Du;
+
+    struct RuntimeHashState
+    {
+        SmallVector<TypeRef, 64>               types;
+        SmallVector<ConstantRef, 32>           constants;
+        SmallVector<const SymbolFunction*, 32> functions;
+    };
+
+    thread_local RuntimeHashState g_RuntimeHashState;
+    thread_local uint32_t         g_RuntimeHashDepth = 0;
+
+    void clearRuntimeHashState()
+    {
+        g_RuntimeHashState.types.clear();
+        g_RuntimeHashState.constants.clear();
+        g_RuntimeHashState.functions.clear();
+    }
+
+    class RuntimeHashRootScope
+    {
+    public:
+        RuntimeHashRootScope()
+        {
+            ownsState_ = g_RuntimeHashDepth == 0;
+            if (ownsState_)
+                clearRuntimeHashState();
+            ++g_RuntimeHashDepth;
+        }
+
+        ~RuntimeHashRootScope()
+        {
+            SWC_ASSERT(g_RuntimeHashDepth != 0);
+            --g_RuntimeHashDepth;
+            if (ownsState_)
+                clearRuntimeHashState();
+        }
+
+    private:
+        bool ownsState_ = false;
+    };
+
+    template<class T, std::size_t InlineCapacity>
+    class RuntimeHashStackScope
+    {
+    public:
+        RuntimeHashStackScope(SmallVector<T, InlineCapacity>& stack, const T& value) :
+            stack_(&stack)
+        {
+            stack.push_back(value);
+        }
+
+        ~RuntimeHashStackScope()
+        {
+            stack_->pop_back();
+        }
+
+    private:
+        SmallVector<T, InlineCapacity>* stack_ = nullptr;
+    };
+
+    RuntimeHashState& runtimeHashState()
+    {
+        SWC_ASSERT(g_RuntimeHashDepth != 0);
+        return g_RuntimeHashState;
+    }
+
+    template<class T, std::size_t InlineCapacity>
+    bool findStackDistance(uint32_t& outDistance, const SmallVector<T, InlineCapacity>& stack, const T& value) noexcept
+    {
+        for (size_t i = stack.size(); i > 0; --i)
+        {
+            const size_t index = i - 1;
+            if (stack[index] != value)
+                continue;
+
+            outDistance = static_cast<uint32_t>(stack.size() - index);
+            return true;
+        }
+
+        return false;
+    }
+
+    uint32_t cycleHash(uint32_t tag, uint32_t distance)
+    {
+        uint32_t h = Math::hash(tag);
+        h          = Math::hashCombine(h, distance);
+        return h;
+    }
+
+    uint32_t typeCycleHash(const TaskContext& ctx, TypeRef typeRef, uint32_t distance)
+    {
+        const TypeInfo& typeInfo = ctx.typeMgr().get(typeRef);
+        uint32_t        h        = cycleHash(K_TYPE_HASH_CYCLE, distance);
+        h                       = Math::hashCombine(h, static_cast<uint32_t>(typeInfo.kind()));
+        h                       = Math::hashCombine(h, static_cast<uint32_t>(typeInfo.flags().get()));
+        return h;
+    }
+
+    uint32_t constantCycleHash(const TaskContext& ctx, ConstantRef cstRef, uint32_t distance)
+    {
+        const ConstantValue& value = ctx.cstMgr().get(cstRef);
+        uint32_t             h     = cycleHash(K_CONSTANT_HASH_CYCLE, distance);
+        h                          = Math::hashCombine(h, static_cast<uint32_t>(value.kind()));
+        return h;
+    }
+
+    uint32_t functionCycleHash(const SymbolFunction& function, uint32_t distance)
+    {
+        uint32_t h = cycleHash(K_FUNCTION_HASH_CYCLE, distance);
+        h          = Math::hashCombine(h, static_cast<uint32_t>(function.callConvKind()));
+        h          = Math::hashCombine(h, function.isClosure());
+        h          = Math::hashCombine(h, function.isMethod());
+        h          = Math::hashCombine(h, function.isThrowable());
+        h          = Math::hashCombine(h, function.isConst());
+        h          = Math::hashCombine(h, function.hasVariadicParam());
+        h          = Math::hashCombine(h, static_cast<uint32_t>(function.parameters().size()));
+        return h;
+    }
+
     Symbol* typeBlockingSymbol(TaskContext& ctx, TypeRef tr)
     {
         if (!tr.isValid())
@@ -109,6 +231,12 @@ namespace
 
     uint32_t stableFunctionTypeHash(const TaskContext& ctx, const SymbolFunction& function)
     {
+        RuntimeHashState& state = runtimeHashState();
+        uint32_t          cycleDistance;
+        if (findStackDistance(cycleDistance, state.functions, &function))
+            return functionCycleHash(function, cycleDistance);
+
+        RuntimeHashStackScope<const SymbolFunction*, 32> functionScope(state.functions, &function);
         uint32_t h = Math::hash(static_cast<uint32_t>(function.callConvKind()));
         h          = Math::hashCombine(h, function.isClosure());
         h          = Math::hashCombine(h, function.isMethod());
@@ -131,6 +259,12 @@ namespace
         if (!cstRef.isValid())
             return 0;
 
+        RuntimeHashState& state = runtimeHashState();
+        uint32_t          cycleDistance;
+        if (findStackDistance(cycleDistance, state.constants, cstRef))
+            return constantCycleHash(ctx, cstRef, cycleDistance);
+
+        RuntimeHashStackScope<ConstantRef, 32> constantScope(state.constants, cstRef);
         const ConstantValue& value = ctx.cstMgr().get(cstRef);
         uint32_t             h     = Math::hash(static_cast<uint32_t>(value.kind()));
         h                          = Math::hashCombine(h, stableTypeHash(ctx, value.typeRef()));
@@ -198,6 +332,13 @@ namespace
     {
         if (!typeRef.isValid())
             return 0;
+
+        RuntimeHashState& state = runtimeHashState();
+        uint32_t          cycleDistance;
+        if (findStackDistance(cycleDistance, state.types, typeRef))
+            return typeCycleHash(ctx, typeRef, cycleDistance);
+
+        RuntimeHashStackScope<TypeRef, 64> typeScope(state.types, typeRef);
         return ctx.typeMgr().get(typeRef).runtimeHash(ctx);
     }
 }
@@ -461,6 +602,7 @@ uint32_t TypeInfo::hash() const
 
 uint32_t TypeInfo::runtimeHash(const TaskContext& ctx) const
 {
+    RuntimeHashRootScope runtimeHashScope;
     uint32_t h = Math::hash(static_cast<uint32_t>(kind_));
     h          = Math::hashCombine(h, static_cast<uint32_t>(flags_.get()));
 

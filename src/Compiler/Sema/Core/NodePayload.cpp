@@ -78,6 +78,31 @@ namespace
             return false;
         return symVar.typeRef().isValid();
     }
+
+    ConstantRef constantRefFromSymbol(const AstNode& node, const Symbol& sym)
+    {
+        if (sym.isConstant())
+            return sym.cast<SymbolConstant>().cstRef();
+        if (sym.isEnumValue())
+            return sym.cast<SymbolEnumValue>().cstRef();
+        if (canFoldLetVariable(node, sym))
+            return sym.cast<SymbolVariable>().cstRef();
+        return ConstantRef::invalid();
+    }
+
+    ConstantRef constantRefFromSymbolList(const AstNode& node, std::span<const Symbol* const> symbols)
+    {
+        if (symbols.size() != 1)
+            return ConstantRef::invalid();
+
+        SWC_ASSERT(symbols.front() != nullptr);
+        return constantRefFromSymbol(node, *symbols.front());
+    }
+
+    std::span<Symbol*> mutableSymbolSpan(std::span<const Symbol* const> symbols)
+    {
+        return {const_cast<Symbol**>(symbols.data()), symbols.size()};
+    }
 }
 
 NodePayload::~NodePayload()
@@ -227,34 +252,14 @@ ConstantRef NodePayload::getConstantRef(const TaskContext& ctx, AstNodeRef nodeR
 
         case NodePayloadKind::SymbolRef:
         {
-            const Symbol& sym = getSymbol(ctx, nodeRef);
-            if (sym.isConstant())
-                return sym.cast<SymbolConstant>().cstRef();
-            if (sym.isEnumValue())
-                return sym.cast<SymbolEnumValue>().cstRef();
-            if (canFoldLetVariable(node, sym))
-            {
-                const auto& symVar = sym.cast<SymbolVariable>();
-                return symVar.cstRef();
-            }
-            break;
+            const Symbol& sym = getSymbolImpl(info);
+            return constantRefFromSymbol(node, sym);
         }
 
         case NodePayloadKind::SymbolList:
         {
-            const auto symList = getSymbolList(nodeRef);
-            if (symList.size() > 1)
-                return ConstantRef::invalid();
-            if (symList.front()->isConstant())
-                return symList.front()->cast<SymbolConstant>().cstRef();
-            if (symList.front()->isEnumValue())
-                return symList.front()->cast<SymbolEnumValue>().cstRef();
-            if (canFoldLetVariable(node, *symList.front()))
-            {
-                const auto& symVar = symList.front()->cast<SymbolVariable>();
-                return symVar.cstRef();
-            }
-            break;
+            const auto symList = getSymbolListImpl(info);
+            return constantRefFromSymbolList(node, symList);
         }
 
         default:
@@ -357,17 +362,22 @@ TypeRef NodePayload::getTypeRef(const TaskContext& ctx, AstNodeRef nodeRef) cons
     switch (kind)
     {
         case NodePayloadKind::ConstantRef:
-            value = getConstant(ctx, nodeRef).typeRef();
+        {
+            const ConstantRef constantRef{info.ref};
+            if (!constantRef.isValid())
+                return TypeRef::invalid();
+            value = ctx.cstMgr().get(constantRef).typeRef();
             break;
+        }
         case NodePayloadKind::TypeRef:
             value = TypeRef{info.ref};
             break;
         case NodePayloadKind::SymbolRef:
-            value = getSymbol(ctx, nodeRef).typeRef();
+            value = getSymbolImpl(info).typeRef();
             break;
         case NodePayloadKind::SymbolList:
         {
-            const auto symbols = getSymbolList(nodeRef);
+            const auto symbols = getSymbolListImpl(info);
             SWC_ASSERT(!symbols.empty());
             value = symbols.back()->typeRef();
             break;
@@ -382,6 +392,98 @@ TypeRef NodePayload::getTypeRef(const TaskContext& ctx, AstNodeRef nodeRef) cons
         value.dbgPtr = &ctx.typeMgr().get(value);
 #endif
     return unwrapFunctionReturnTypeIfCall(*this, ctx, nodeRef, node, value);
+}
+
+void NodePayload::fillViewData(const TaskContext& ctx, ViewData& out, AstNodeRef nodeRef, const ViewRequest& request) const
+{
+    out = {};
+    if (nodeRef.isInvalid())
+        return;
+
+    const AstNode& node = ast().node(nodeRef);
+    if (request.node)
+        out.node = &node;
+
+    if (!request.type && !request.constant && !request.symbol)
+        return;
+
+    const PayloadInfo info = payloadInfo(node);
+    TypeRef           typeRef;
+    switch (info.kind)
+    {
+        case NodePayloadKind::ConstantRef:
+        {
+            const ConstantRef constantRef{info.ref};
+            if (constantRef.isValid())
+            {
+                const ConstantValue& constantValue = ctx.cstMgr().get(constantRef);
+                if (request.constant)
+                    out.constantRef = constantRef;
+
+                if (request.type)
+                    typeRef = constantValue.typeRef();
+
+#if SWC_HAS_REF_DEBUG_INFO
+                if (request.constant)
+                    out.constantRef.dbgPtr = &constantValue;
+#endif
+            }
+            break;
+        }
+
+        case NodePayloadKind::TypeRef:
+            if (request.type)
+                typeRef = TypeRef{info.ref};
+            break;
+
+        case NodePayloadKind::SymbolRef:
+        {
+            const Symbol& sym = getSymbolImpl(info);
+            if (request.symbol)
+            {
+                out.hasSymbol = true;
+                out.symbol    = const_cast<Symbol*>(&sym);
+            }
+
+            if (request.type)
+                typeRef = sym.typeRef();
+
+            if (request.constant)
+                out.constantRef = constantRefFromSymbol(node, sym);
+            break;
+        }
+
+        case NodePayloadKind::SymbolList:
+        {
+            const auto symbols = getSymbolListImpl(info);
+            if (request.symbol)
+            {
+                out.hasSymbolList = true;
+                out.symbolList    = mutableSymbolSpan(symbols);
+                out.hasSymbol     = !out.symbolList.empty();
+                if (out.hasSymbol)
+                    out.symbol = out.symbolList.front();
+            }
+
+            if (request.type && !symbols.empty())
+                typeRef = symbols.back()->typeRef();
+
+            if (request.constant)
+                out.constantRef = constantRefFromSymbolList(node, symbols);
+            break;
+        }
+
+        default:
+            break;
+    }
+
+    if (!request.type || !typeRef.isValid())
+        return;
+
+    out.typeRef = unwrapFunctionReturnTypeIfCall(*this, ctx, nodeRef, node, typeRef);
+#if SWC_HAS_REF_DEBUG_INFO
+    out.typeRef.dbgPtr = &ctx.typeMgr().get(out.typeRef);
+#endif
 }
 
 void NodePayload::setType(AstNodeRef nodeRef, TypeRef ref)
@@ -405,28 +507,38 @@ const Symbol& NodePayload::getSymbol(const TaskContext& ctx, AstNodeRef nodeRef)
 {
     SWC_UNUSED(ctx);
     SWC_ASSERT(hasSymbol(nodeRef));
-    const AstNode&    node     = ast().node(nodeRef);
-    const PayloadInfo info     = payloadInfo(node);
-    const uint32_t    shardIdx = info.shardIdx;
-    const Shard*      shard    = tryGetShard(shardIdx);
-    SWC_ASSERT(shard != nullptr);
-    const Symbol* const* slot  = (shard->store.ptr<Symbol*>(info.ref));
-    const Symbol&        value = *(*slot);
-    return value;
+    const AstNode&    node = ast().node(nodeRef);
+    const PayloadInfo info = payloadInfo(node);
+    return getSymbolImpl(info);
 }
 
 Symbol& NodePayload::getSymbol(const TaskContext& ctx, AstNodeRef nodeRef)
 {
     SWC_UNUSED(ctx);
     SWC_ASSERT(hasSymbol(nodeRef));
-    const AstNode&    node     = ast().node(nodeRef);
-    const PayloadInfo info     = payloadInfo(node);
-    const uint32_t    shardIdx = info.shardIdx;
-    Shard*            shard    = tryGetShard(shardIdx);
+    const AstNode&    node = ast().node(nodeRef);
+    const PayloadInfo info = payloadInfo(node);
+    return getSymbolImpl(info);
+}
+
+const Symbol& NodePayload::getSymbolImpl(const PayloadInfo& info) const
+{
+    SWC_ASSERT(info.kind == NodePayloadKind::SymbolRef);
+    const Shard* shard = tryGetShard(info.shardIdx);
     SWC_ASSERT(shard != nullptr);
-    Symbol** slot  = (shard->store.ptr<Symbol*>(info.ref));
-    Symbol&  value = *(*slot);
-    return value;
+    const Symbol* const* slot = shard->store.ptr<Symbol*>(info.ref);
+    SWC_ASSERT(slot != nullptr);
+    return *(*slot);
+}
+
+Symbol& NodePayload::getSymbolImpl(const PayloadInfo& info)
+{
+    SWC_ASSERT(info.kind == NodePayloadKind::SymbolRef);
+    Shard* shard = tryGetShard(info.shardIdx);
+    SWC_ASSERT(shard != nullptr);
+    Symbol** slot = shard->store.ptr<Symbol*>(info.ref);
+    SWC_ASSERT(slot != nullptr);
+    return *(*slot);
 }
 
 void NodePayload::setSymbol(AstNodeRef nodeRef, const Symbol* symbol)
@@ -456,10 +568,15 @@ bool NodePayload::hasSymbolList(AstNodeRef nodeRef) const
 std::span<const Symbol* const> NodePayload::getSymbolListImpl(AstNodeRef nodeRef) const
 {
     SWC_ASSERT(hasSymbolList(nodeRef));
-    const AstNode&    node     = ast().node(nodeRef);
-    const PayloadInfo info     = payloadInfo(node);
-    const uint32_t    shardIdx = info.shardIdx;
-    const Shard*      shard    = tryGetShard(shardIdx);
+    const AstNode&    node = ast().node(nodeRef);
+    const PayloadInfo info = payloadInfo(node);
+    return getSymbolListImpl(info);
+}
+
+std::span<const Symbol* const> NodePayload::getSymbolListImpl(const PayloadInfo& info) const
+{
+    SWC_ASSERT(info.kind == NodePayloadKind::SymbolList);
+    const Shard* shard = tryGetShard(info.shardIdx);
     SWC_ASSERT(shard != nullptr);
     const auto spanView = shard->store.span<const Symbol*>(info.ref);
 

@@ -275,6 +275,15 @@ private:
     Symbol&                  symbolOfRaw(AstNodeRef n) { return nodePayloadContext().getSymbol(ctx(), n); }
     bool                     hasSymbolListRaw(AstNodeRef n) const { return nodePayloadContext().hasSymbolList(n); }
     std::span<Symbol*>       getSymbolListRaw(AstNodeRef n) { return nodePayloadContext().getSymbolList(n); }
+    void                     fillViewData(NodePayload::ViewData& out, AstNodeRef n, SemaNodeViewPart part) const
+    {
+        NodePayload::ViewRequest request;
+        request.node     = part.has(SemaNodeViewPartE::Node);
+        request.type     = part.has(SemaNodeViewPartE::Type);
+        request.constant = part.has(SemaNodeViewPartE::Constant);
+        request.symbol   = part.has(SemaNodeViewPartE::Symbol);
+        nodePayloadContext().fillViewData(ctx(), out, n, request);
+    }
 
     SemaScope*         pushScope(SemaScopeFlags flags);
     void               popScope();

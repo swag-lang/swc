@@ -56,7 +56,6 @@ struct SemaNodeView
 
 private:
     void assignSymbolList(std::span<Symbol*> symbols);
-    bool loadResolvedSymbols(Sema& sema, AstNodeRef targetRef, SemaNodeViewResolveE resolveMode);
 
     const AstNode*       node_         = nullptr;
     const ConstantValue* cst_          = nullptr;

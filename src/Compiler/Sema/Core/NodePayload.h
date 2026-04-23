@@ -7,6 +7,7 @@ SWC_BEGIN_NAMESPACE();
 class SymbolNamespace;
 class Symbol;
 class SemaScope;
+struct SemaNodeView;
 
 constexpr uint16_t        NODE_PAYLOAD_KIND_MASK   = 0x000F;
 constexpr uint16_t        NODE_PAYLOAD_SHARD_MASK  = 0x00F0;
@@ -61,6 +62,7 @@ class NodePayload
     friend class Sema;
     friend class SourceFile;
     friend class SemaJob;
+    friend struct SemaNodeView;
 
 public:
     NodePayload() = default;
@@ -68,6 +70,25 @@ public:
     bool hasResolvedCallArguments(AstNodeRef nodeRef) const;
 
 protected:
+    struct ViewRequest
+    {
+        bool node     = false;
+        bool type     = false;
+        bool constant = false;
+        bool symbol   = false;
+    };
+
+    struct ViewData
+    {
+        const AstNode*     node          = nullptr;
+        TypeRef            typeRef       = TypeRef::invalid();
+        ConstantRef        constantRef   = ConstantRef::invalid();
+        Symbol*            symbol        = nullptr;
+        std::span<Symbol*> symbolList    = {};
+        bool               hasSymbol     = false;
+        bool               hasSymbolList = false;
+    };
+
     Ast&       ast() { return ast_; }
     const Ast& ast() const { return ast_; }
 
@@ -100,6 +121,7 @@ protected:
     bool    hasType(const TaskContext& ctx, AstNodeRef nodeRef) const;
     TypeRef getTypeRef(const TaskContext& ctx, AstNodeRef nodeRef) const;
     void    setType(AstNodeRef nodeRef, TypeRef ref);
+    void    fillViewData(const TaskContext& ctx, ViewData& out, AstNodeRef nodeRef, const ViewRequest& request) const;
 
     bool          hasSymbol(AstNodeRef nodeRef) const;
     const Symbol& getSymbol(const TaskContext& ctx, AstNodeRef nodeRef) const;
@@ -149,7 +171,10 @@ private:
         uint32_t        shardIdx = 0;
     };
 
+    const Symbol&                  getSymbolImpl(const PayloadInfo& info) const;
+    Symbol&                        getSymbolImpl(const PayloadInfo& info);
     std::span<const Symbol* const> getSymbolListImpl(AstNodeRef nodeRef) const;
+    std::span<const Symbol* const> getSymbolListImpl(const PayloadInfo& info) const;
     void                           setSymbolListImpl(AstNodeRef nodeRef, std::span<const Symbol*> symbols);
     void                           setSymbolListImpl(AstNodeRef nodeRef, std::span<Symbol*> symbols);
     static void                    updatePayloadFlags(AstNode& node, std::span<const Symbol*> symbols);

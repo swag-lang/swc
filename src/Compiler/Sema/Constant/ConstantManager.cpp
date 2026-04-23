@@ -43,6 +43,17 @@ namespace
         Stats::get().numConstantMaterializedPayloadFastPath.fetch_add(1, std::memory_order_relaxed);
 #endif
     }
+
+    uint32_t internStripeIndex(const ConstantValue& value)
+    {
+        const uint32_t hash = Math::hash(value.hash());
+        return (hash >> ConstantManager::SHARD_BITS) & (ConstantManager::INTERN_STRIPE_COUNT - 1);
+    }
+
+    ConstantManager::InternStripe& internStripe(ConstantManager::Shard& shard, const ConstantValue& value)
+    {
+        return shard.internStripes[internStripeIndex(value)];
+    }
 }
 
 ConstantManager::ConstantManager()
@@ -194,10 +205,11 @@ namespace
 
     ConstantRef addCstSpanPayload(const ConstantManager& manager, ConstantManager::Shard& shard, uint32_t shardIndex, const ConstantValue& value)
     {
+        ConstantManager::InternStripe& stripe = internStripe(shard, value);
         {
-            const std::shared_lock lk(shard.mutex);
-            const auto             it = shard.map.find(value);
-            if (it != shard.map.end())
+            const std::shared_lock lk(stripe.mutex);
+            const auto             it = stripe.map.find(value);
+            if (it != stripe.map.end())
                 return it->second;
         }
 
@@ -205,9 +217,9 @@ namespace
         uint32_t      localIndex = INVALID_REF;
         ConstantRef   result;
 
-        const std::unique_lock lk(shard.mutex);
-        const auto             existing = shard.map.find(value);
-        if (existing != shard.map.end())
+        const std::unique_lock lk(stripe.mutex);
+        const auto             existing = stripe.map.find(value);
+        if (existing != stripe.map.end())
             return existing->second;
 
         if (value.isStruct())
@@ -235,16 +247,17 @@ namespace
         localIndex = shard.dataSegment.add(stored);
         SWC_ASSERT(localIndex < ConstantManager::LOCAL_MASK);
         result = ConstantRef{(shardIndex << ConstantManager::LOCAL_BITS) | localIndex};
-        shard.map.emplace(stored, result);
+        stripe.map.emplace(stored, result);
         return addCstFinalize(manager, result);
     }
 
     ConstantRef addCstString(const ConstantManager& manager, ConstantManager::Shard& shard, uint32_t shardIndex, const TaskContext& ctx, const ConstantValue& value)
     {
+        ConstantManager::InternStripe& stripe = internStripe(shard, value);
         {
-            const std::shared_lock lk(shard.mutex);
-            const auto             it = shard.map.find(value);
-            if (it != shard.map.end())
+            const std::shared_lock lk(stripe.mutex);
+            const auto             it = stripe.map.find(value);
+            if (it != stripe.map.end())
                 return it->second;
         }
 
@@ -252,9 +265,9 @@ namespace
         ConstantRef result;
 
         {
-            const std::unique_lock lk(shard.mutex);
-            const auto             it = shard.map.find(value);
-            if (it != shard.map.end())
+            const std::unique_lock lk(stripe.mutex);
+            const auto             it = stripe.map.find(value);
+            if (it != stripe.map.end())
                 return it->second;
 
             const std::pair<std::string_view, Ref> res      = shard.dataSegment.addString(value.getString());
@@ -263,7 +276,7 @@ namespace
             localIndex = shard.dataSegment.add(strValue);
             SWC_ASSERT(localIndex < ConstantManager::LOCAL_MASK);
             result = ConstantRef{(shardIndex << ConstantManager::LOCAL_BITS) | localIndex};
-            shard.map.emplace(strValue, result);
+            stripe.map.emplace(strValue, result);
         }
 
         return addCstFinalize(manager, result);
@@ -318,18 +331,20 @@ namespace
             // need their own constant entries because the relocation graph changes the runtime value.
             canDeduplicateByValue = !borrowedPayloadHasRelocations(manager, stored);
         }
+
+        ConstantManager::InternStripe* stripe = canDeduplicateByValue ? &internStripe(shard, stored) : nullptr;
         if (canDeduplicateByValue && stored.dataSegmentRef().isInvalid())
         {
-            const std::shared_lock lk(shard.mutex);
-            const auto             it = shard.map.find(stored);
-            if (it != shard.map.end())
+            const std::shared_lock lk(stripe->mutex);
+            const auto             it = stripe->map.find(stored);
+            if (it != stripe->map.end())
                 return it->second;
         }
         else if (canDeduplicateByValue)
         {
-            const std::unique_lock lk(shard.mutex);
-            const auto             it = shard.map.find(stored);
-            if (it != shard.map.end())
+            const std::unique_lock lk(stripe->mutex);
+            const auto             it = stripe->map.find(stored);
+            if (it != stripe->map.end())
             {
                 updateStoredDataSegmentRef(shard, it->second, stored.dataSegmentRef());
                 return it->second;
@@ -339,10 +354,10 @@ namespace
         uint32_t    localIndex = INVALID_REF;
         ConstantRef result;
         {
-            const std::unique_lock lk(shard.mutex);
             if (canDeduplicateByValue)
             {
-                auto [it, inserted] = shard.map.try_emplace(stored, ConstantRef{});
+                const std::unique_lock lk(stripe->mutex);
+                auto [it, inserted] = stripe->map.try_emplace(stored, ConstantRef{});
                 if (!inserted)
                 {
                     updateStoredDataSegmentRef(shard, it->second, stored.dataSegmentRef());
@@ -505,12 +520,9 @@ ConstantRef ConstantManager::addUniqueMaterializedPayloadConstant(const Constant
     Shard&      shard      = shards_[dataRef.shardIndex];
     uint32_t    localIndex = INVALID_REF;
     ConstantRef result;
-    {
-        const std::unique_lock lk(shard.mutex);
-        localIndex = shard.dataSegment.add(value);
-        SWC_ASSERT(localIndex < LOCAL_MASK);
-        result = ConstantRef{(dataRef.shardIndex << LOCAL_BITS) | localIndex};
-    }
+    localIndex = shard.dataSegment.add(value);
+    SWC_ASSERT(localIndex < LOCAL_MASK);
+    result = ConstantRef{(dataRef.shardIndex << LOCAL_BITS) | localIndex};
 
     return addCstFinalize(*this, result);
 }

@@ -135,11 +135,20 @@ public:
     TypeRef enumTypeValueFlags() const { return runtimeType(RuntimeTypeKind::TypeValueFlags); }
 
 private:
-    struct Shard
+    static constexpr uint32_t INTERN_STRIPE_BITS  = 4;
+    static constexpr uint32_t INTERN_STRIPE_COUNT = 1u << INTERN_STRIPE_BITS;
+
+    struct InternStripe
     {
-        PagedStore                                          store;
         std::unordered_map<TypeInfo, TypeRef, TypeInfoHash> map;
         mutable std::shared_mutex                           mutex;
+    };
+
+    struct Shard
+    {
+        PagedStore                                     store;
+        std::array<InternStripe, INTERN_STRIPE_COUNT> internStripes;
+        mutable std::mutex                            storeMutex;
     };
 
     static constexpr uint32_t SHARD_BITS  = 3;

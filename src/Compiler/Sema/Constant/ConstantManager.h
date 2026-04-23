@@ -82,19 +82,27 @@ public:
         }
     };
 
+    static constexpr uint32_t INTERN_STRIPE_BITS  = 4;
+    static constexpr uint32_t INTERN_STRIPE_COUNT = 1u << INTERN_STRIPE_BITS;
+
+    struct InternStripe
+    {
+        std::unordered_map<ConstantValue, ConstantRef, ConstantValueHash> map;
+        mutable std::shared_mutex                                         mutex;
+    };
+
     struct Shard
     {
-        DataSegment                                                                                                     dataSegment;
-        std::unordered_map<ConstantValue, ConstantRef, ConstantValueHash>                                               map;
-        std::unordered_map<TypeRef, ConstantRef>                                                                        typeInfoMap;
-        std::unordered_map<TypeRef, ConstantRef>                                                                        zeroPayloadMap;
-        std::unordered_map<RuntimeBufferConstantCacheKey, ConstantRef, RuntimeBufferConstantCacheKeyHash>               runtimeBufferMap;
-        std::unordered_map<RuntimeStringConstantCacheKey, ConstantRef, RuntimeStringConstantCacheKeyHash>               runtimeStringMap;
-        mutable std::shared_mutex                                                                                       mutex;
-        mutable std::shared_mutex                                                                                       typeInfoMutex;
-        mutable std::shared_mutex                                                                                       zeroPayloadMutex;
-        mutable std::shared_mutex                                                                                       runtimeBufferMutex;
-        mutable std::shared_mutex                                                                                       runtimeStringMutex;
+        DataSegment                                                                                       dataSegment;
+        std::array<InternStripe, INTERN_STRIPE_COUNT>                                                     internStripes;
+        std::unordered_map<TypeRef, ConstantRef>                                                          typeInfoMap;
+        std::unordered_map<TypeRef, ConstantRef>                                                          zeroPayloadMap;
+        std::unordered_map<RuntimeBufferConstantCacheKey, ConstantRef, RuntimeBufferConstantCacheKeyHash> runtimeBufferMap;
+        std::unordered_map<RuntimeStringConstantCacheKey, ConstantRef, RuntimeStringConstantCacheKeyHash> runtimeStringMap;
+        mutable std::shared_mutex                                                                         typeInfoMutex;
+        mutable std::shared_mutex                                                                         zeroPayloadMutex;
+        mutable std::shared_mutex                                                                         runtimeBufferMutex;
+        mutable std::shared_mutex                                                                         runtimeStringMutex;
     };
 
     static constexpr uint32_t SHARD_BITS  = 4;

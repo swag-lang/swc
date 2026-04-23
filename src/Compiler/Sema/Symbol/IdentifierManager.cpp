@@ -192,25 +192,28 @@ IdentifierRef IdentifierManager::addIdentifierInternal(std::string_view name, ui
     const uint32_t shardIndex = hash & (SHARD_COUNT - 1);
     SWC_ASSERT(shardIndex < SHARD_COUNT);
     auto& shard = shards_[shardIndex];
+    const uint32_t stripeIndex = (hash >> SHARD_BITS) & (INTERN_STRIPE_COUNT - 1);
+    auto& stripe = shard.internStripes[stripeIndex];
 
     {
-        const std::shared_lock lk(shard.mutex);
-        if (const auto* it = shard.map.find(name, hash))
+        const std::shared_lock lk(stripe.mutex);
+        if (const auto* it = stripe.map.find(name, hash))
             return *it;
     }
 
-    const std::unique_lock lk(shard.mutex);
-    if (const auto* it = shard.map.find(name, hash))
+    const std::unique_lock lk(stripe.mutex);
+    if (const auto* it = stripe.map.find(name, hash))
         return *it;
 
     std::string_view storedName = name;
     if (copyName && !name.empty())
     {
+        const std::scoped_lock storeLock(shard.storeMutex);
         const auto [span, _] = shard.stringStore.pushCopySpan(asByteSpan(name));
-        storedName           = asStringView(span);
+        storedName = asStringView(span);
     }
 
-    const auto [it, inserted] = shard.map.try_emplace(storedName, hash, IdentifierRef{});
+    const auto [it, inserted] = stripe.map.try_emplace(storedName, hash, IdentifierRef{});
     if (!inserted)
         return *it;
 
@@ -218,8 +221,12 @@ IdentifierRef IdentifierManager::addIdentifierInternal(std::string_view name, ui
     Stats::get().numIdentifiers.fetch_add(1);
 #endif
 
-    const uint32_t localIndex = shard.store.pushBack(Identifier{storedName});
-    SWC_ASSERT(localIndex < LOCAL_MASK);
+    uint32_t localIndex = INVALID_REF;
+    {
+        const std::scoped_lock storeLock(shard.storeMutex);
+        localIndex = shard.store.pushBack(Identifier{storedName});
+        SWC_ASSERT(localIndex < LOCAL_MASK);
+    }
 
     auto result = IdentifierRef{(shardIndex << LOCAL_BITS) | localIndex};
 #if SWC_HAS_REF_DEBUG_INFO

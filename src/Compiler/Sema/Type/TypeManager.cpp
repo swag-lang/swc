@@ -200,16 +200,18 @@ TypeRef TypeManager::addType(const TypeInfo& typeInfo)
     const uint32_t shardIndex = stableHash & (SHARD_COUNT - 1);
     SWC_ASSERT(shardIndex < SHARD_COUNT);
     auto& shard = shards_[shardIndex];
+    const uint32_t stripeIndex = (stableHash >> SHARD_BITS) & (INTERN_STRIPE_COUNT - 1);
+    auto& stripe = shard.internStripes[stripeIndex];
 
     {
-        const std::shared_lock lk(shard.mutex);
-        const auto             it = shard.map.find(typeInfo);
-        if (it != shard.map.end())
+        const std::shared_lock lk(stripe.mutex);
+        const auto             it = stripe.map.find(typeInfo);
+        if (it != stripe.map.end())
             return it->second;
     }
 
-    const std::unique_lock lk(shard.mutex);
-    const auto [it, inserted] = shard.map.try_emplace(typeInfo, TypeRef{});
+    const std::unique_lock lk(stripe.mutex);
+    const auto [it, inserted] = stripe.map.try_emplace(typeInfo, TypeRef{});
     if (!inserted)
         return it->second;
 
@@ -217,10 +219,15 @@ TypeRef TypeManager::addType(const TypeInfo& typeInfo)
     Stats::get().numTypes.fetch_add(1);
 #endif
 
-    const uint32_t localIndex = shard.store.pushBack(typeInfo);
-    SWC_ASSERT(localIndex < LOCAL_MASK);
+    uint32_t localIndex = INVALID_REF;
+    TypeInfo* ptr       = nullptr;
+    {
+        const std::scoped_lock storeLock(shard.storeMutex);
+        localIndex = shard.store.pushBack(typeInfo);
+        SWC_ASSERT(localIndex < LOCAL_MASK);
+        ptr = shard.store.ptr<TypeInfo>(localIndex);
+    }
 
-    auto*   ptr = shard.store.ptr<TypeInfo>(localIndex);
     TypeRef result{(shardIndex << LOCAL_BITS) | localIndex};
     ptr->typeRef_ = result;
 

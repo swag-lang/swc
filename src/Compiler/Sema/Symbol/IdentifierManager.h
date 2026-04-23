@@ -161,12 +161,21 @@ public:
 private:
     IdentifierRef addIdentifierInternal(std::string_view name, uint32_t hash, bool copyName);
 
+    static constexpr uint32_t INTERN_STRIPE_BITS  = 4;
+    static constexpr uint32_t INTERN_STRIPE_COUNT = 1u << INTERN_STRIPE_BITS;
+
+    struct InternStripe
+    {
+        StringMap<IdentifierRef> map;
+        mutable std::shared_mutex mutex;
+    };
+
     struct Shard
     {
-        PagedStore                store;
-        PagedStore                stringStore;
-        StringMap<IdentifierRef>  map;
-        mutable std::shared_mutex mutex;
+        PagedStore                                     store;
+        PagedStore                                     stringStore;
+        std::array<InternStripe, INTERN_STRIPE_COUNT> internStripes;
+        mutable std::mutex                            storeMutex;
     };
 
     static constexpr uint32_t SHARD_BITS  = 3;

@@ -1642,7 +1642,10 @@ namespace
         if (symFn.isIgnored())
             return Result::SkipChildren;
 
-        symFn.setReturnTypeRef(returnTypeRef);
+        // Generic instantiation can restart a completed compiler body while its JIT codegen is still joining.
+        // Keep the inferred `#ast` return type stable once a return statement has established it.
+        if (returnTypeRef.isValid() || !symFn.returnTypeRef().isValid())
+            symFn.setReturnTypeRef(returnTypeRef);
 
         auto frame                = sema.frame();
         frame.currentAttributes() = symFn.attributes();

@@ -104,6 +104,8 @@ public:
     void                    appendJitOrder(SmallVector<SymbolFunction*>& out) const;
     void*                   jitPatchAddress() const noexcept { return jitPreparedAddress_.load(std::memory_order_acquire); }
     void*                   jitEntryAddress() const noexcept { return jitEntryAddress_.load(std::memory_order_acquire); }
+    uint64_t                jitReadyVersion() const noexcept { return jitReadyVersion_.load(std::memory_order_acquire); }
+    void                    setJitReadyVersion(uint64_t version) noexcept { jitReadyVersion_.store(version, std::memory_order_release); }
     void                    resetJitState() noexcept;
     Result                  emit(TaskContext& ctx);
     Result                  ensureClosureAdapter(TaskContext& ctx, SymbolFunction*& outAdapter);
@@ -178,6 +180,7 @@ private:
     std::atomic<void*>                jitPreparedAddress_   = nullptr;
     std::atomic<void*>                jitEntryAddress_      = nullptr;
     std::atomic_bool                  jitPatchJobScheduled_ = false;
+    std::atomic<uint64_t>             jitReadyVersion_{0};
     mutable std::atomic<GenericData*> genericData_          = nullptr;
 };
 

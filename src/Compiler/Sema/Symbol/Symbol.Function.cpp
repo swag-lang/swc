@@ -776,6 +776,7 @@ void SymbolFunction::resetJitState() noexcept
     jitPreparedAddress_.store(nullptr, std::memory_order_release);
     jitEntryAddress_.store(nullptr, std::memory_order_release);
     jitPatchJobScheduled_.store(false, std::memory_order_release);
+    jitReadyVersion_.store(0, std::memory_order_release);
 }
 
 Result SymbolFunction::ensureClosureAdapter(TaskContext& ctx, SymbolFunction*& outAdapter)

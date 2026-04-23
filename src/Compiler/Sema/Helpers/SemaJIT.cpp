@@ -197,6 +197,11 @@ namespace
     {
         TaskContext& ctx             = sema.ctx();
         ctx.state().jitEmissionError = false;
+        const uint64_t initTargetsVersion = sema.compiler().nativeGlobalFunctionInitTargetsVersion();
+        if (symFn.jitEntryAddress() &&
+            symFn.jitReadyVersion() == initTargetsVersion)
+            return Result::Continue;
+
         if (symFn.tryMarkCodeGenJobScheduled())
         {
             auto* job = heapNew<CodeGenJob>(ctx, sema, symFn, symFn.declNodeRef());
@@ -268,6 +273,9 @@ namespace
 
         if (ctx.state().jitEmissionError || !symFn.jitEntryAddress())
             return reportJitEvaluationFailure(sema, symFn);
+
+        if (sema.compiler().nativeGlobalFunctionInitTargetsVersion() == initTargetsVersion)
+            symFn.setJitReadyVersion(initTargetsVersion);
 
         return Result::Continue;
     }
@@ -972,6 +980,25 @@ Result SemaJIT::runStatement(Sema& sema, SymbolFunction& symFn, AstNodeRef nodeR
     request.codeRef      = sema.node(nodeRef).codeRef();
     request.hasArg0      = false;
     request.runImmediate = false;
+    return sema.compiler().jitExecMgr().submit(ctx, request);
+}
+
+Result SemaJIT::prepareFunction(Sema& sema, SymbolFunction& symFn)
+{
+    return prepareJitFunction(sema, symFn);
+}
+
+Result SemaJIT::runStatementImmediate(Sema& sema, SymbolFunction& symFn, AstNodeRef nodeRef)
+{
+    SWC_RESULT(prepareFunction(sema, symFn));
+
+    TaskContext&            ctx = sema.ctx();
+    JITExecManager::Request request;
+    request.function     = &symFn;
+    request.nodeRef      = nodeRef;
+    request.codeRef      = sema.node(nodeRef).codeRef();
+    request.hasArg0      = false;
+    request.runImmediate = true;
     return sema.compiler().jitExecMgr().submit(ctx, request);
 }
 

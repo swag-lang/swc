@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "Backend/JIT/JIT.h"
 #include "Main/CompilerInstance.h"
 #include "Backend/JIT/JITExecManager.h"
 #include "Backend/JIT/JITMemoryManager.h"
@@ -136,6 +137,13 @@ namespace
         std::vector<DeferredCompilerGeneratedSource>*  generatedSources = nullptr;
     };
 
+    struct CompilerMessageListenerExecutionState
+    {
+        size_t                 listenerIndex = static_cast<size_t>(-1);
+        const SourceFile*      file          = nullptr;
+        std::unique_ptr<Sema>  sema;
+    };
+
     thread_local CompilerMessageDispatchState* g_CompilerMessageDispatchState = nullptr;
 
     struct ScopedCompilerMessageDispatchState
@@ -175,6 +183,29 @@ namespace
         generatedSource.moduleNamespace = state->moduleNamespace;
         state->generatedSources->push_back(std::move(generatedSource));
         return true;
+    }
+
+    Result ensureCompilerMessageListenerSema(CompilerMessageListenerExecutionState& state, TaskContext& ctx, const CompilerMessageDispatchStep& dispatch, const SourceFile*& outFile, Sema*& outSema)
+    {
+        if (state.listenerIndex == dispatch.listenerIndex &&
+            state.file != nullptr &&
+            state.sema != nullptr)
+        {
+            outFile = state.file;
+            outSema = state.sema.get();
+            return Result::Continue;
+        }
+
+        const SourceFile* listenerFile = sourceFileFromRef(ctx.compiler(), dispatch.function->srcViewRef());
+        if (!listenerFile)
+            return Result::Error;
+
+        state.listenerIndex = dispatch.listenerIndex;
+        state.file          = listenerFile;
+        state.sema          = std::make_unique<Sema>(ctx, const_cast<SourceFile*>(listenerFile)->nodePayloadContext(), false);
+        outFile             = listenerFile;
+        outSema             = state.sema.get();
+        return Result::Continue;
     }
 
     Runtime::String runtimeString(std::string_view value)
@@ -1073,7 +1104,12 @@ void CompilerInstance::registerNativeGlobalVariable(SymbolVariable* symbol)
     }
 
     if (inserted)
+    {
+        if (symbol->globalStorageKind() == DataSegmentKind::GlobalInit &&
+            symbol->globalFunctionInit() != nullptr)
+            invalidateGlobalFunctionBindings();
         notifyAlive();
+    }
 }
 
 void CompilerInstance::registerNativeGlobalFunctionInitTarget(SymbolFunction* symbol)
@@ -1089,7 +1125,11 @@ void CompilerInstance::registerNativeGlobalFunctionInitTarget(SymbolFunction* sy
     }
 
     if (inserted)
+    {
+        nativeGlobalFunctionInitTargetsVersion_.fetch_add(1, std::memory_order_release);
+        invalidateGlobalFunctionBindings();
         notifyAlive();
+    }
 }
 
 void CompilerInstance::registerPreparedJitFunction(SymbolFunction* symbol)
@@ -1097,7 +1137,31 @@ void CompilerInstance::registerPreparedJitFunction(SymbolFunction* symbol)
     SWC_ASSERT(symbol != nullptr);
 
     const std::unique_lock lock(mutex_);
-    appendUnique(jitPreparedFunctions_, symbol);
+    if (appendUnique(jitPreparedFunctions_, symbol))
+        invalidateGlobalFunctionBindings();
+}
+
+void CompilerInstance::invalidateGlobalFunctionBindings()
+{
+    globalFunctionBindingsVersion_.fetch_add(1, std::memory_order_release);
+}
+
+Result CompilerInstance::ensurePatchedGlobalFunctionBindings(TaskContext& ctx)
+{
+    const uint64_t wantedVersion = globalFunctionBindingsVersion_.load(std::memory_order_acquire);
+    if (patchedGlobalFunctionBindingsVersion_.load(std::memory_order_acquire) == wantedVersion)
+        return Result::Continue;
+
+    const std::scoped_lock patchLock(globalFunctionBindingsMutex_);
+    const uint64_t         lockedVersion = globalFunctionBindingsVersion_.load(std::memory_order_acquire);
+    if (patchedGlobalFunctionBindingsVersion_.load(std::memory_order_relaxed) == lockedVersion)
+        return Result::Continue;
+
+    SWC_RESULT(JIT::patchGlobalFunctionVariables(ctx));
+    if (globalFunctionBindingsVersion_.load(std::memory_order_acquire) == lockedVersion)
+        patchedGlobalFunctionBindingsVersion_.store(lockedVersion, std::memory_order_release);
+
+    return Result::Continue;
 }
 
 void CompilerInstance::resetPreparedJitFunctions()
@@ -1444,6 +1508,7 @@ Result CompilerInstance::executePendingCompilerMessages(TaskContext& ctx)
 
     std::vector<DeferredCompilerGeneratedSource> deferredGeneratedSources;
     deferredGeneratedSources.reserve(4);
+    CompilerMessageListenerExecutionState        listenerState;
     while (true)
     {
         CompilerMessageDispatchStep dispatch;
@@ -1463,20 +1528,27 @@ Result CompilerInstance::executePendingCompilerMessages(TaskContext& ctx)
             return Result::Pause;
         }
 
-        const SourceFile* listenerFile = sourceFileFromRef(*this, dispatch.function->srcViewRef());
-        if (!listenerFile)
-            return Result::Error;
-
-        Sema sema(ctx, const_cast<SourceFile*>(listenerFile)->nodePayloadContext(), false);
-        SWC_RESULT(fillRuntimeCompilerMessage(sema, dispatch.nodeRef, dispatch.event));
+        const SourceFile* listenerFile = nullptr;
+        Sema*             sema         = nullptr;
+        SWC_RESULT(ensureCompilerMessageListenerSema(listenerState, ctx, dispatch, listenerFile, sema));
+        SWC_ASSERT(sema != nullptr);
+        SWC_RESULT(fillRuntimeCompilerMessage(*sema, dispatch.nodeRef, dispatch.event));
         {
             ScopedCompilerMessageDispatchState dispatchScope(*this, listenerFile->moduleNamespace(), deferredGeneratedSources);
-            SWC_RESULT(SemaJIT::runStatement(sema, *dispatch.function, dispatch.nodeRef));
+            SWC_RESULT(SemaJIT::runStatementImmediate(*sema, *dispatch.function, dispatch.nodeRef));
         }
 
         const std::scoped_lock lock(compilerMessageMutex_);
         auto&                  listener = compilerMessageListeners_[dispatch.listenerIndex];
         finalizeCompilerMessageDispatchStep(listener, dispatch, compilerMessageLog_.size());
+
+        if (!deferredGeneratedSources.empty())
+        {
+            for (const DeferredCompilerGeneratedSource& generatedSource : deferredGeneratedSources)
+                SWC_RESULT(enqueueGeneratedSource(ctx, generatedSource.text.view(), generatedSource.moduleNamespace));
+            deferredGeneratedSources.clear();
+            return Result::Pause;
+        }
     }
 }
 

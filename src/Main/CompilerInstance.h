@@ -119,7 +119,10 @@ public:
     void                                registerNativeGlobalVariable(SymbolVariable* symbol);
     void                                registerNativeGlobalFunctionInitTarget(SymbolFunction* symbol);
     void                                registerPreparedJitFunction(SymbolFunction* symbol);
+    void                                invalidateGlobalFunctionBindings();
+    Result                              ensurePatchedGlobalFunctionBindings(TaskContext& ctx);
     void                                resetPreparedJitFunctions();
+    uint64_t                            nativeGlobalFunctionInitTargetsVersion() const noexcept { return nativeGlobalFunctionInitTargetsVersion_.load(std::memory_order_acquire); }
     std::vector<SymbolFunction*>        nativeGlobalFunctionInitTargetsSnapshot() const;
     std::vector<SymbolVariable*>        nativeGlobalVariablesSnapshot() const;
     std::vector<SymbolFunction*>        jitPreparedFunctionsSnapshot() const;
@@ -234,6 +237,10 @@ private:
     void*                                    runtimeCompilerITable_[4]{};
     mutable std::shared_mutex                mutex_;
     std::atomic<bool>                        changed_{true};
+    std::mutex                               globalFunctionBindingsMutex_;
+    std::atomic<uint64_t>                    globalFunctionBindingsVersion_{1};
+    std::atomic<uint64_t>                    patchedGlobalFunctionBindingsVersion_{0};
+    std::atomic<uint64_t>                    nativeGlobalFunctionInitTargetsVersion_{1};
 
     struct PerThreadData
     {

@@ -2,6 +2,7 @@
 #include "Backend/JIT/JITExecManager.h"
 #include "Backend/JIT/JIT.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
+#include "Main/CompilerInstance.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -18,7 +19,7 @@ Result JITExecManager::executeItem(const Item& item)
     const TaskScopedState   scopedState(ctx);
     ctx.state().setRunJit(fn, item.request.nodeRef, item.request.codeRef);
 
-    SWC_RESULT(JIT::patchGlobalFunctionVariables(ctx));
+    SWC_RESULT(ctx.compiler().ensurePatchedGlobalFunctionBindings(ctx));
 
     Result callResult;
     if (!item.request.jitArgs.empty() || item.request.hasJitReturn)

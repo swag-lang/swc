@@ -9,7 +9,9 @@ struct ResolvedCallArgument;
 
 namespace SemaJIT
 {
+    Result prepareFunction(Sema& sema, SymbolFunction& symFn);
     Result runStatement(Sema& sema, SymbolFunction& symFn, AstNodeRef nodeRef);
+    Result runStatementImmediate(Sema& sema, SymbolFunction& symFn, AstNodeRef nodeRef);
     Result runExpr(Sema& sema, SymbolFunction& symFn, AstNodeRef nodeExprRef);
     Result runExprImmediate(Sema& sema, SymbolFunction& symFn, AstNodeRef nodeExprRef);
     Result runFunctionResult(Sema& sema, SymbolFunction& symFn, AstNodeRef nodeRef);

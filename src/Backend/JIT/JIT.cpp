@@ -180,6 +180,22 @@ namespace
         wait.waiterSymbol = ownerFunction;
     }
 
+    void setWaitJitCompleted(TaskContext& ctx, const SymbolFunction* ownerFunction, const SymbolFunction& targetFunction)
+    {
+        ownerFunction = waitOwnerFunction(ctx, ownerFunction, targetFunction);
+
+        TaskState& wait = ctx.state();
+        wait.kind       = TaskStateKind::SemaWaitSymJitCompleted;
+        wait.nodeRef    = fallbackWaitNodeRef(ctx, ownerFunction);
+        if (wait.nodeRef.isInvalid())
+            wait.nodeRef = targetFunction.declNodeRef();
+        wait.codeRef = fallbackWaitCodeRef(ctx, ownerFunction);
+        if (!wait.codeRef.isValid())
+            wait.codeRef = symbolCodeRef(targetFunction);
+        wait.symbol       = &targetFunction;
+        wait.waiterSymbol = ownerFunction;
+    }
+
     Result ensureLocalFunctionTargetPrepared(TaskContext& ctx, SymbolFunction& targetFunction, const SymbolFunction* ownerFunction)
     {
         if (targetFunction.jitPatchAddress())
@@ -221,6 +237,48 @@ namespace
             return Result::Continue;
 
         setWaitJitPrepared(ctx, ownerFunction, targetFunction);
+        return Result::Pause;
+    }
+
+    Result ensureLocalFunctionTargetCallable(TaskContext& ctx, SymbolFunction& targetFunction, const SymbolFunction* ownerFunction)
+    {
+        if (targetFunction.jitEntryAddress())
+            return Result::Continue;
+
+        if (!targetFunction.isCodeGenCompleted())
+        {
+            if (targetFunction.isIgnored())
+                return Result::Error;
+
+            const SourceView& targetSrcView = ctx.compiler().srcView(targetFunction.srcViewRef());
+            const FileRef     fileRef       = targetSrcView.fileRef();
+            if (!fileRef.isValid())
+                return Result::Error;
+
+            SourceFile& targetFile = ctx.compiler().file(fileRef);
+            Sema        baseSema(ctx, targetFile.nodePayloadContext(), false);
+            if (targetFunction.tryMarkCodeGenJobScheduled())
+            {
+                const AstNodeRef declRoot = targetFunction.declNodeRef();
+                if (declRoot.isInvalid())
+                    return Result::Error;
+
+                auto* job = heapNew<CodeGenJob>(ctx, baseSema, targetFunction, declRoot);
+                ctx.compiler().global().jobMgr().enqueue(*job, JobPriority::Normal, ctx.compiler().jobClientId());
+            }
+
+            setWaitCodeGenCompleted(ctx, ownerFunction, targetFunction);
+            return Result::Pause;
+        }
+
+        if (targetFunction.loweredCode().bytes.empty())
+            return Result::Error;
+
+        JITPatchJob::schedule(ctx, targetFunction);
+        if (targetFunction.jitEntryAddress())
+            return Result::Continue;
+
+        setWaitJitCompleted(ctx, ownerFunction, targetFunction);
         return Result::Pause;
     }
 
@@ -691,7 +749,36 @@ Result JIT::patchGlobalFunctionVariables(TaskContext& ctx)
 
         uint64_t                 targetAddress = 0;
         RelocationResolveFailure failure;
-        const Result             resolveResult = targetFunction->isForeign() ? (resolveForeignFunctionTargetAddress(ctx, targetAddress, reloc, nullptr, &failure, &patchContext) ? Result::Continue : Result::Error) : resolveLocalFunctionTargetAddress(ctx, targetAddress, reloc, nullptr, nullptr, &failure, &patchContext);
+        Result                   resolveResult = Result::Continue;
+        if (targetFunction->isForeign())
+        {
+            resolveResult = resolveForeignFunctionTargetAddress(ctx, targetAddress, reloc, nullptr, &failure, &patchContext) ? Result::Continue : Result::Error;
+        }
+        else
+        {
+            resolveResult = ensureLocalFunctionTargetCallable(ctx, *targetFunction, nullptr);
+            if (resolveResult == Result::Continue)
+            {
+                void* const entryAddress = targetFunction->jitEntryAddress();
+                if (!entryAddress)
+                {
+                    failure.kind         = RelocationResolveFailureKind::LocalTargetUnavailable;
+                    failure.targetSymbol = targetFunction;
+                    resolveResult        = Result::Error;
+                }
+                else
+                {
+                    targetAddress = reinterpret_cast<uint64_t>(entryAddress);
+                    patchContext.resolvedFunctionAddresses.try_emplace(targetFunction, targetAddress);
+                }
+            }
+            else if (resolveResult == Result::Error)
+            {
+                failure.kind         = RelocationResolveFailureKind::LocalTargetUnavailable;
+                failure.targetSymbol = targetFunction;
+            }
+        }
+
         if (resolveResult == Result::Pause)
             return Result::Pause;
         if (resolveResult != Result::Continue)

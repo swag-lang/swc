@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include "Compiler/Lexer/SourceCodeRange.h"
 #include "Support/Core/PagedStore.h"
 #include "Support/Core/StringMap.h"
@@ -166,14 +166,14 @@ private:
 
     struct InternStripe
     {
-        StringMap<IdentifierRef> map;
+        StringMap<IdentifierRef>  map;
         mutable std::shared_mutex mutex;
     };
 
     struct Shard
     {
-        PagedStore                                     store;
-        PagedStore                                     stringStore;
+        PagedStore                                    store;
+        PagedStore                                    stringStore;
         std::array<InternStripe, INTERN_STRIPE_COUNT> internStripes;
         mutable std::mutex                            storeMutex;
     };

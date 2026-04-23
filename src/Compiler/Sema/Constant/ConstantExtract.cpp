@@ -247,11 +247,11 @@ namespace
             for (size_t i = 1; i < dims.size(); ++i)
                 remainingDims.push_back(dims[i]);
 
-            const TypeRef     nextTypeRef = sema.typeMgr().addType(TypeInfo::makeArray(remainingDims.span(), typeInfo.payloadArrayElemTypeRef(), typeInfo.flags()));
+            const TypeRef nextTypeRef = sema.typeMgr().addType(TypeInfo::makeArray(remainingDims.span(), typeInfo.payloadArrayElemTypeRef(), typeInfo.flags()));
             SWC_RESULT(ConstantHelpers::waitStaticPayloadTypeReady(sema, nextTypeRef, nodeArgRef));
-            const uint64_t    nextSize    = sema.typeMgr().get(nextTypeRef).sizeOf(ctx);
-            const ByteSpan    nextBytes   = {cst.getArray().data() + (constIndex * nextSize), nextSize};
-            const ConstantRef nextCstRef  = ConstantHelpers::materializeStaticPayloadConstant(sema, nextTypeRef, nextBytes);
+            const uint64_t    nextSize   = sema.typeMgr().get(nextTypeRef).sizeOf(ctx);
+            const ByteSpan    nextBytes  = {cst.getArray().data() + (constIndex * nextSize), nextSize};
+            const ConstantRef nextCstRef = ConstantHelpers::materializeStaticPayloadConstant(sema, nextTypeRef, nextBytes);
             if (nextCstRef.isInvalid())
                 return Result::Continue;
 

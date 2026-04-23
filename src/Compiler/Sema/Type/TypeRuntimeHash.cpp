@@ -105,8 +105,8 @@ namespace
     {
         const TypeInfo& typeInfo = ctx.typeMgr().get(typeRef);
         uint32_t        h        = cycleHash(K_TYPE_HASH_CYCLE, distance);
-        h                       = Math::hashCombine(h, static_cast<uint32_t>(typeInfo.kind()));
-        h                       = Math::hashCombine(h, static_cast<uint32_t>(typeInfo.flags().get()));
+        h                        = Math::hashCombine(h, static_cast<uint32_t>(typeInfo.kind()));
+        h                        = Math::hashCombine(h, static_cast<uint32_t>(typeInfo.flags().get()));
         return h;
     }
 
@@ -221,14 +221,14 @@ namespace
             return functionCycleHash(function, cycleDistance);
 
         RuntimeHashStackScope<const SymbolFunction*, 32> functionScope(state.functions, &function);
-        uint32_t h = Math::hash(static_cast<uint32_t>(function.callConvKind()));
-        h          = Math::hashCombine(h, function.isClosure());
-        h          = Math::hashCombine(h, function.isMethod());
-        h          = Math::hashCombine(h, function.isThrowable());
-        h          = Math::hashCombine(h, function.isConst());
-        h          = Math::hashCombine(h, function.hasVariadicParam());
-        h          = Math::hashCombine(h, stableTypeHash(ctx, function.returnTypeRef()));
-        h          = Math::hashCombine(h, static_cast<uint32_t>(function.parameters().size()));
+        uint32_t                                         h = Math::hash(static_cast<uint32_t>(function.callConvKind()));
+        h                                                  = Math::hashCombine(h, function.isClosure());
+        h                                                  = Math::hashCombine(h, function.isMethod());
+        h                                                  = Math::hashCombine(h, function.isThrowable());
+        h                                                  = Math::hashCombine(h, function.isConst());
+        h                                                  = Math::hashCombine(h, function.hasVariadicParam());
+        h                                                  = Math::hashCombine(h, stableTypeHash(ctx, function.returnTypeRef()));
+        h                                                  = Math::hashCombine(h, static_cast<uint32_t>(function.parameters().size()));
         for (const SymbolVariable* param : function.parameters())
         {
             SWC_ASSERT(param != nullptr);
@@ -249,9 +249,9 @@ namespace
             return constantCycleHash(ctx, cstRef, cycleDistance);
 
         RuntimeHashStackScope<ConstantRef, 32> constantScope(state.constants, cstRef);
-        const ConstantValue& value = ctx.cstMgr().get(cstRef);
-        uint32_t             h     = Math::hash(static_cast<uint32_t>(value.kind()));
-        h                          = Math::hashCombine(h, stableTypeHash(ctx, value.typeRef()));
+        const ConstantValue&                   value = ctx.cstMgr().get(cstRef);
+        uint32_t                               h     = Math::hash(static_cast<uint32_t>(value.kind()));
+        h                                            = Math::hashCombine(h, stableTypeHash(ctx, value.typeRef()));
 
         switch (value.kind())
         {
@@ -259,10 +259,10 @@ namespace
                 h = Math::hashCombine(h, value.getBool());
                 break;
             case ConstantKind::Char:
-                h = Math::hashCombine(h, static_cast<uint32_t>(value.getChar()));
+                h = Math::hashCombine(h, value.getChar());
                 break;
             case ConstantKind::Rune:
-                h = Math::hashCombine(h, static_cast<uint32_t>(value.getRune()));
+                h = Math::hashCombine(h, value.getRune());
                 break;
             case ConstantKind::String:
                 h = Math::hashCombine(h, Math::hash(value.getString()));
@@ -330,8 +330,8 @@ namespace
 uint32_t TypeRuntimeHash::compute(const TaskContext& ctx, const TypeInfo& typeInfo)
 {
     RuntimeHashRootScope runtimeHashScope;
-    uint32_t h = Math::hash(static_cast<uint32_t>(typeInfo.kind_));
-    h          = Math::hashCombine(h, static_cast<uint32_t>(typeInfo.flags_.get()));
+    uint32_t             h = Math::hash(static_cast<uint32_t>(typeInfo.kind_));
+    h                      = Math::hashCombine(h, static_cast<uint32_t>(typeInfo.flags_.get()));
 
     switch (typeInfo.kind_)
     {

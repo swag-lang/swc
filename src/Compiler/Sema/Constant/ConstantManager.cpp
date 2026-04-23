@@ -231,7 +231,7 @@ namespace
         else if (value.isArray())
         {
             const auto [view, ref] = shard.dataSegment.addSpan(value.getArray());
-            stored = value;
+            stored                 = value;
             stored.setPayloadArray(view);
             stored.setDataSegmentRef({.shardIndex = shardIndex, .offset = ref});
         }
@@ -239,7 +239,7 @@ namespace
         {
             SWC_ASSERT(value.isSlice());
             const auto [view, ref] = shard.dataSegment.addSpan(value.getSlice());
-            stored = value;
+            stored                 = value;
             stored.setPayloadSlice(view, value.getSliceCount());
             stored.setDataSegmentRef({.shardIndex = shardIndex, .offset = ref});
         }
@@ -318,7 +318,7 @@ namespace
 
     ConstantRef addCstOther(const ConstantManager& manager, ConstantManager::Shard& shard, uint32_t shardIndex, const ConstantValue& value)
     {
-        ConstantValue stored = value;
+        ConstantValue stored                = value;
         bool          canDeduplicateByValue = true;
         enrichPointerDataSegmentRef(manager, stored);
         if ((stored.isStruct() || stored.isArray() || stored.isSlice()) && stored.isPayloadBorrowed())
@@ -639,9 +639,9 @@ ConstantRef ConstantManager::findZeroPayloadConstant(const uint32_t shardIndex, 
     SWC_ASSERT(shardIndex < SHARD_COUNT);
     SWC_ASSERT(typeRef.isValid());
 
-    const Shard& shard = shards_[shardIndex];
+    const Shard&           shard = shards_[shardIndex];
     const std::shared_lock lock(shard.zeroPayloadMutex);
-    const auto it = shard.zeroPayloadMap.find(typeRef);
+    const auto             it = shard.zeroPayloadMap.find(typeRef);
     if (it == shard.zeroPayloadMap.end())
         return ConstantRef::invalid();
     return it->second;
@@ -653,7 +653,7 @@ ConstantRef ConstantManager::publishZeroPayloadConstant(const uint32_t shardInde
     SWC_ASSERT(typeRef.isValid());
     SWC_ASSERT(cstRef.isValid());
 
-    Shard& shard = shards_[shardIndex];
+    Shard&                 shard = shards_[shardIndex];
     const std::unique_lock lock(shard.zeroPayloadMutex);
     auto [it, inserted] = shard.zeroPayloadMap.try_emplace(typeRef, cstRef);
     if (!inserted)
@@ -908,9 +908,9 @@ ConstantRef ConstantManager::findRuntimeBufferConstant(const uint32_t shardIndex
         .count     = count,
     };
 
-    const Shard& shard = shards_[shardIndex];
+    const Shard&           shard = shards_[shardIndex];
     const std::shared_lock lock(shard.runtimeBufferMutex);
-    const auto it = shard.runtimeBufferMap.find(key);
+    const auto             it = shard.runtimeBufferMap.find(key);
     if (it == shard.runtimeBufferMap.end())
         return ConstantRef::invalid();
     return it->second;
@@ -926,7 +926,7 @@ ConstantRef ConstantManager::publishRuntimeBufferConstant(const uint32_t shardIn
         .count     = count,
     };
 
-    Shard& shard = shards_[shardIndex];
+    Shard&                 shard = shards_[shardIndex];
     const std::unique_lock lock(shard.runtimeBufferMutex);
     auto [it, inserted] = shard.runtimeBufferMap.try_emplace(key, cstRef);
     return inserted ? cstRef : it->second;
@@ -947,9 +947,9 @@ ConstantRef ConstantManager::findRuntimeStringConstant(const uint32_t shardIndex
     key.typeRef = typeRef;
     key.value   = Utf8(value);
 
-    const Shard& shard = shards_[shardIndex];
+    const Shard&           shard = shards_[shardIndex];
     const std::shared_lock lock(shard.runtimeStringMutex);
-    const auto it = shard.runtimeStringMap.find(key);
+    const auto             it = shard.runtimeStringMap.find(key);
     if (it == shard.runtimeStringMap.end())
         return ConstantRef::invalid();
     return it->second;
@@ -963,7 +963,7 @@ ConstantRef ConstantManager::publishRuntimeStringConstant(const uint32_t shardIn
     key.typeRef = typeRef;
     key.value   = Utf8(value);
 
-    Shard& shard = shards_[shardIndex];
+    Shard&                 shard = shards_[shardIndex];
     const std::unique_lock lock(shard.runtimeStringMutex);
     auto [it, inserted] = shard.runtimeStringMap.try_emplace(std::move(key), cstRef);
     return inserted ? cstRef : it->second;

@@ -749,7 +749,7 @@ Result JIT::patchGlobalFunctionVariables(TaskContext& ctx)
 
         uint64_t                 targetAddress = 0;
         RelocationResolveFailure failure;
-        Result                   resolveResult = Result::Continue;
+        auto                     resolveResult = Result::Continue;
         if (targetFunction->isForeign())
         {
             resolveResult = resolveForeignFunctionTargetAddress(ctx, targetAddress, reloc, nullptr, &failure, &patchContext) ? Result::Continue : Result::Error;

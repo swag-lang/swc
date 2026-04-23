@@ -66,25 +66,25 @@ public:
     bool                            isDeclPass() const { return declPass_; }
     bool                            enteringState() const { return visit_.enteringState(); }
 
-    ConstantManager&         cstMgr();
-    const ConstantManager&   cstMgr() const;
-    TypeManager&             typeMgr();
-    const TypeManager&       typeMgr() const;
-    TypeGen&                 typeGen();
-    const TypeGen&           typeGen() const;
-    IdentifierManager&       idMgr();
-    const IdentifierManager& idMgr() const;
-    SourceView&              srcView(SourceViewRef srcViewRef);
-    const SourceView&        srcView(SourceViewRef srcViewRef) const;
-    Ast&                     ast();
-    const Ast&               ast() const;
-    AstNode&                 node(AstNodeRef nodeRef) { return ast().node(nodeRef); }
-    const AstNode&           node(AstNodeRef nodeRef) const { return ast().node(nodeRef); }
-    const Token&             token(const SourceCodeRef& codeRef) const { return srcView(codeRef.srcViewRef).token(codeRef.tokRef); }
-    SourceCodeRange          tokenCodeRange(const SourceCodeRef& codeRef) const { return srcView(codeRef.srcViewRef).tokenCodeRange(ctx(), codeRef.tokRef); }
-    std::string_view         tokenString(const SourceCodeRef& codeRef) const { return srcView(codeRef.srcViewRef).tokenString(codeRef.tokRef); }
-    Utf8                     fileName() const;
-    const SourceFile*        file() const;
+    ConstantManager&                               cstMgr();
+    const ConstantManager&                         cstMgr() const;
+    TypeManager&                                   typeMgr();
+    const TypeManager&                             typeMgr() const;
+    TypeGen&                                       typeGen();
+    const TypeGen&                                 typeGen() const;
+    IdentifierManager&                             idMgr();
+    const IdentifierManager&                       idMgr() const;
+    SourceView&                                    srcView(SourceViewRef srcViewRef);
+    const SourceView&                              srcView(SourceViewRef srcViewRef) const;
+    Ast&                                           ast();
+    const Ast&                                     ast() const;
+    AstNode&                                       node(AstNodeRef nodeRef) { return ast().node(nodeRef); }
+    const AstNode&                                 node(AstNodeRef nodeRef) const { return ast().node(nodeRef); }
+    const Token&                                   token(const SourceCodeRef& codeRef) const { return srcView(codeRef.srcViewRef).token(codeRef.tokRef); }
+    SourceCodeRange                                tokenCodeRange(const SourceCodeRef& codeRef) const { return srcView(codeRef.srcViewRef).tokenCodeRange(ctx(), codeRef.tokRef); }
+    std::string_view                               tokenString(const SourceCodeRef& codeRef) const { return srcView(codeRef.srcViewRef).tokenString(codeRef.tokRef); }
+    Utf8                                           fileName() const;
+    const SourceFile*                              file() const;
     std::vector<ActiveCompilerAstExpansion>&       compilerAstExpansions() { return compilerAstExpansions_; }
     const std::vector<ActiveCompilerAstExpansion>& compilerAstExpansions() const { return compilerAstExpansions_; }
 
@@ -324,9 +324,9 @@ private:
     AstVisit     visit_;
 
     std::vector<std::unique_ptr<SemaScope>> scopes_;
-    SymbolMap*                              startSymMap_ = nullptr;
-    SemaScope*                              curScope_    = nullptr;
-    bool                                    declPass_    = false;
+    SymbolMap*                              startSymMap_   = nullptr;
+    SemaScope*                              curScope_      = nullptr;
+    bool                                    declPass_      = false;
     bool                                    rootVisitDone_ = false;
 
     std::vector<SemaFrame> frames_;
@@ -357,15 +357,15 @@ private:
         AstNodeRef                               nodeRef;
         std::function<Result(Sema&, AstNodeRef)> callback;
     };
-    std::vector<DeferredPostNodeAction>       deferredPostNodeActions_;
-    std::vector<ActiveCompilerAstExpansion>   compilerAstExpansions_;
-    std::vector<DeferredTopLevelItem>         deferredTopLevelItems_;
-    std::vector<AstNodeRef>                   pendingTopLevelCompilerRunRefs_;
-    uint32_t                                  deferredTopLevelItemIndex_       = 0;
-    uint32_t                                  deferredTopLevelItemInsertIndex_ = 0;
-    uint32_t                                  pendingTopLevelCompilerRunIndex_ = 0;
-    bool                                      deferTopLevelItems_              = false;
-    bool                                      deferredTopLevelItemRunning_     = false;
+    std::vector<DeferredPostNodeAction>     deferredPostNodeActions_;
+    std::vector<ActiveCompilerAstExpansion> compilerAstExpansions_;
+    std::vector<DeferredTopLevelItem>       deferredTopLevelItems_;
+    std::vector<AstNodeRef>                 pendingTopLevelCompilerRunRefs_;
+    uint32_t                                deferredTopLevelItemIndex_       = 0;
+    uint32_t                                deferredTopLevelItemInsertIndex_ = 0;
+    uint32_t                                pendingTopLevelCompilerRunIndex_ = 0;
+    bool                                    deferTopLevelItems_              = false;
+    bool                                    deferredTopLevelItemRunning_     = false;
 };
 
 SWC_END_NAMESPACE();

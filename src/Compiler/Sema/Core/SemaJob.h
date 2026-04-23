@@ -9,7 +9,7 @@ class SymbolNamespace;
 class SemaJob : public Job
 {
     Sema             sema_;
-    SymbolNamespace* moduleNamespace_ = nullptr;
+    SymbolNamespace* moduleNamespace_          = nullptr;
     bool             enqueueFullPassAfterDecl_ = false;
 
 public:

@@ -181,7 +181,7 @@ private:
     std::atomic<void*>                jitEntryAddress_      = nullptr;
     std::atomic_bool                  jitPatchJobScheduled_ = false;
     std::atomic<uint64_t>             jitReadyVersion_{0};
-    mutable std::atomic<GenericData*> genericData_          = nullptr;
+    mutable std::atomic<GenericData*> genericData_ = nullptr;
 };
 
 SWC_END_NAMESPACE();

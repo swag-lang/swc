@@ -146,7 +146,7 @@ private:
 
     struct Shard
     {
-        PagedStore                                     store;
+        PagedStore                                    store;
         std::array<InternStripe, INTERN_STRIPE_COUNT> internStripes;
         mutable std::mutex                            storeMutex;
     };
@@ -155,8 +155,8 @@ private:
     static constexpr uint32_t SHARD_COUNT = 1u << SHARD_BITS;
     static constexpr uint32_t LOCAL_BITS  = 32 - SHARD_BITS;
     static constexpr uint32_t LOCAL_MASK  = (1u << LOCAL_BITS) - 1;
-    CompilerInstance* compiler_ = nullptr;
-    Shard             shards_[SHARD_COUNT];
+    CompilerInstance*         compiler_   = nullptr;
+    Shard                     shards_[SHARD_COUNT];
 
     // Runtime types
     mutable std::shared_mutex                                          mutexRt_;

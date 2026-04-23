@@ -752,8 +752,8 @@ Result Sema::preNodeChild(AstNode& node, AstNodeRef& childRef)
 
     if (curScope_->isTopLevel())
     {
-        const AstNode&       child     = ast().node(childRef);
-        const AstNodeIdInfo& childInfo = Ast::nodeIdInfos(child.id());
+        const AstNode&       child       = ast().node(childRef);
+        const AstNodeIdInfo& childInfo   = Ast::nodeIdInfos(child.id());
         const bool           compilerRun = isCompilerRunFunction(*this, child);
         const bool           compilerAst = isCompilerAstFunction(*this, child);
 
@@ -1011,7 +1011,7 @@ Result Sema::execResult()
 
     ctx().state().reset();
 
-    Result semaResult = Result::Continue;
+    auto semaResult = Result::Continue;
     if (!rootVisitDone_)
     {
         semaResult = runCurrentVisit();

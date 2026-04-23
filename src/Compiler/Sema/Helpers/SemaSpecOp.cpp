@@ -1160,7 +1160,7 @@ Result SemaSpecOp::collectSetCandidates(Sema& sema, const SymbolStruct& ownerStr
         return collectAssignSpecOpCandidates(sema, ownerStruct, codeRef, TokenId::SymEqual, outCandidates);
 
     const IdentifierRef opSetLiteralId = sema.idMgr().predefined(IdentifierManager::PredefinedName::OpSetLiteral);
-    const AstNodeRef    genericArg        = makeSyntheticStringConstantArg(sema, codeRef, suffixInfo.suffix);
+    const AstNodeRef    genericArg     = makeSyntheticStringConstantArg(sema, codeRef, suffixInfo.suffix);
     return collectSpecOpCandidates(sema, ownerStruct, opSetLiteralId, std::span{&genericArg, 1}, outCandidates);
 }
 

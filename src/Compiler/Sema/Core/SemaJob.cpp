@@ -40,7 +40,7 @@ JobResult SemaJob::exec()
         enqueueFullPassAfterDecl_ &&
         sema_.isDeclPass())
     {
-        auto* fullPassJob = heapNew<SemaJob>(Job::ctx(), sema_.nodePayloadContext(), false);
+        auto* fullPassJob = heapNew<SemaJob>(ctx(), sema_.nodePayloadContext(), false);
         sema_.compiler().global().jobMgr().enqueue(*fullPassJob, JobPriority::Normal, sema_.compiler().jobClientId());
         sema_.compiler().notifyAlive();
     }

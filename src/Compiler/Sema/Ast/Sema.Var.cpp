@@ -568,14 +568,14 @@ namespace
     };
 
     Result tryResolveVarDeclSetInit(Sema&                      sema,
-                                       const SemaPostVarDeclArgs& context,
-                                       const std::span<Symbol*>&  symbols,
-                                       bool                       isConst,
-                                       bool                       isParameter,
-                                       TypeRef                    explicitTypeRef,
-                                       const TypeInfo*            explicitType,
-                                       SemaNodeView&              nodeInitView,
-                                       VarDeclSetInitInfo&     outInfo)
+                                    const SemaPostVarDeclArgs& context,
+                                    const std::span<Symbol*>&  symbols,
+                                    bool                       isConst,
+                                    bool                       isParameter,
+                                    TypeRef                    explicitTypeRef,
+                                    const TypeInfo*            explicitType,
+                                    SemaNodeView&              nodeInitView,
+                                    VarDeclSetInitInfo&        outInfo)
     {
         outInfo = {};
 
@@ -898,13 +898,13 @@ namespace
 
         const TypeInfo* explicitType = explicitTypeRef.isValid() ? &sema.typeMgr().get(explicitTypeRef) : nullptr;
 
-        const bool            isConst                 = context.flags.has(AstVarDeclFlagsE::Const);
-        const bool            isLet                   = context.flags.has(AstVarDeclFlagsE::Let);
-        const bool            isParameter             = context.flags.has(AstVarDeclFlagsE::Parameter);
-        const bool            isUsing                 = context.flags.has(AstVarDeclFlagsE::Using);
-        const bool            codeParameterDefault    = isParameter && explicitType && explicitType->isCodeBlock();
-        bool                  isExplicitUndefinedInit = false;
-        SymbolFunction*       globalFunctionInit      = nullptr;
+        const bool         isConst                 = context.flags.has(AstVarDeclFlagsE::Const);
+        const bool         isLet                   = context.flags.has(AstVarDeclFlagsE::Let);
+        const bool         isParameter             = context.flags.has(AstVarDeclFlagsE::Parameter);
+        const bool         isUsing                 = context.flags.has(AstVarDeclFlagsE::Using);
+        const bool         codeParameterDefault    = isParameter && explicitType && explicitType->isCodeBlock();
+        bool               isExplicitUndefinedInit = false;
+        SymbolFunction*    globalFunctionInit      = nullptr;
         VarDeclSetInitInfo setInitInfo;
 
         SWC_RESULT(checkUndefinedInit(sema, context, symbols, isConst, isLet, isParameter, explicitTypeRef, explicitType, nodeInitView, isExplicitUndefinedInit));

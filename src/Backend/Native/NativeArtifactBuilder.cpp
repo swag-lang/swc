@@ -366,10 +366,10 @@ Result NativeArtifactBuilder::buildStartupAndDataSectionsParallel() const
 {
     resetDataSections();
 
-    JobManager&            jobMgr     = builder_->ctx().global().jobMgr();
-    auto*                  startupJob = heapNew<NativeStartupBuildJob>(builder_->ctx(), *this);
-    NativeRDataCollector   collector(*builder_);
-    const JobClientId      clientId   = builder_->compiler().jobClientId();
+    JobManager&          jobMgr     = builder_->ctx().global().jobMgr();
+    auto*                startupJob = heapNew<NativeStartupBuildJob>(builder_->ctx(), *this);
+    NativeRDataCollector collector(*builder_);
+    const JobClientId    clientId = builder_->compiler().jobClientId();
     jobMgr.enqueue(*startupJob, JobPriority::Normal, clientId);
 
     const Result dataResult = prepareDataSectionsWithoutStartup(collector);
@@ -409,7 +409,7 @@ Result NativeArtifactBuilder::prepareDataSectionsWithoutStartup(NativeRDataColle
     SWC_RESULT(rdataCollector.collectFunctionRoots());
 
     CompilerInstance& compiler = builder_->compiler();
-    const uint32_t dataSize = compiler.globalInitSegment().extentSize();
+    const uint32_t    dataSize = compiler.globalInitSegment().extentSize();
     if (dataSize)
     {
         builder_->mergedData.bytes.resize(dataSize);

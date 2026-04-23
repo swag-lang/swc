@@ -44,13 +44,13 @@ public:
 
     struct CompilerMessageListener
     {
-        SymbolFunction*                    function        = nullptr;
-        AstNodeRef                         nodeRef         = AstNodeRef::invalid();
-        uint64_t                           mask            = 0;
-        size_t                             nextReplayIndex = 0;
-        size_t                             nextEventIndex  = 0;
-        std::vector<CompilerMessageEvent>  replayEvents;
-        std::unordered_set<const Symbol*>  replayedSymbols;
+        SymbolFunction*                   function        = nullptr;
+        AstNodeRef                        nodeRef         = AstNodeRef::invalid();
+        uint64_t                          mask            = 0;
+        size_t                            nextReplayIndex = 0;
+        size_t                            nextEventIndex  = 0;
+        std::vector<CompilerMessageEvent> replayEvents;
+        std::unordered_set<const Symbol*> replayedSymbols;
     };
 
     struct GeneratedSourceAppendResult
@@ -165,9 +165,9 @@ public:
     Result                          appendGeneratedSource(GeneratedSourceAppendResult& outResult, Utf8& outBecause, const fs::path& directory, std::string_view sectionText, uint32_t codeOffsetInSection);
     void                            registerInMemoryFile(fs::path path, std::string_view content);
 
-    SourceFile&               addFile(fs::path path, FileFlags flags);
-    SourceFile&               file(FileRef ref) const;
-    std::vector<SourceFile*>  filesSnapshot() const;
+    SourceFile&              addFile(fs::path path, FileFlags flags);
+    SourceFile&              file(FileRef ref) const;
+    std::vector<SourceFile*> filesSnapshot() const;
 
     SourceView&       addSourceView();
     SourceView&       addSourceView(FileRef fileRef);
@@ -258,52 +258,52 @@ private:
         Runtime::Context runtimeContext{};
     };
 
-    std::vector<PerThreadData>                         perThreadData_;
-    std::atomic<uint32_t>                              atomicId_                 = 0;
-    std::atomic<uint32_t>                              generatedSourceId_        = 0;
-    std::atomic<bool>                                  nativeOutputsCleared_     = false;
-    std::atomic<uint32_t>                              pendingImplRegistrations_ = 0;
-    AstCompilerFunc*                                   mainFunc_                 = nullptr;
-    std::vector<Utf8>                                  foreignLibs_;
-    CompilerTagRegistry                                compilerTags_;
-    std::unordered_map<IdentifierRef, SymbolFunction*> runtimeFunctionSymbols_;
-    std::unordered_map<Utf8, Utf8>                     inMemoryFiles_;
-    std::mutex                                         reportedDiagnosticsMutex_;
-    std::unordered_set<Utf8>                           reportedDiagnostics_;
-    std::mutex                                         compilerMessageMutex_;
-    std::deque<CompilerMessageListener>                compilerMessageListeners_;
-    std::vector<CompilerMessageEvent>                  compilerMessageLog_;
+    std::vector<PerThreadData>                            perThreadData_;
+    std::atomic<uint32_t>                                 atomicId_                 = 0;
+    std::atomic<uint32_t>                                 generatedSourceId_        = 0;
+    std::atomic<bool>                                     nativeOutputsCleared_     = false;
+    std::atomic<uint32_t>                                 pendingImplRegistrations_ = 0;
+    AstCompilerFunc*                                      mainFunc_                 = nullptr;
+    std::vector<Utf8>                                     foreignLibs_;
+    CompilerTagRegistry                                   compilerTags_;
+    std::unordered_map<IdentifierRef, SymbolFunction*>    runtimeFunctionSymbols_;
+    std::unordered_map<Utf8, Utf8>                        inMemoryFiles_;
+    std::mutex                                            reportedDiagnosticsMutex_;
+    std::unordered_set<Utf8>                              reportedDiagnostics_;
+    std::mutex                                            compilerMessageMutex_;
+    std::deque<CompilerMessageListener>                   compilerMessageListeners_;
+    std::vector<CompilerMessageEvent>                     compilerMessageLog_;
     std::unordered_map<TypeRef, const Runtime::TypeInfo*> compilerMessageTypeInfoCache_;
-    std::unordered_set<TypeRef>                        compilerMessageTypeInfoPrepScheduled_;
-    std::deque<CompilerMessageTypeInfoPrepRequest>     compilerMessageTypeInfoPrepQueue_;
-    std::atomic<uint64_t>                              compilerMessageActiveMask_ = 0;
-    std::atomic<uint64_t>                              compilerMessageExecutedPassMask_ = 0;
-    std::atomic<bool>                                  compilerMessageTypeInfoPrepFailed_ = false;
-    bool                                               compilerMessageTypeInfoPrepJobQueued_ = false;
-    std::once_flag                                     nativeRuntimeContextTlsIdOffsetOnce_;
-    uint32_t                                           nativeRuntimeContextTlsIdOffset_ = UINT32_MAX;
-    std::vector<SymbolFunction*>                       nativeCodeSegment_;
-    std::vector<SymbolFunction*>                       nativeTestFunctions_;
-    std::vector<SymbolFunction*>                       nativeInitFunctions_;
-    std::vector<SymbolFunction*>                       nativePreMainFunctions_;
-    std::vector<SymbolFunction*>                       nativeDropFunctions_;
-    std::vector<SymbolFunction*>                       nativeMainFunctions_;
-    std::vector<SymbolFunction*>                       nativeGlobalFunctionInitTargets_;
-    std::vector<SymbolVariable*>                       nativeGlobalVariables_;
-    std::vector<SymbolFunction*>                       jitPreparedFunctions_;
+    std::unordered_set<TypeRef>                           compilerMessageTypeInfoPrepScheduled_;
+    std::deque<CompilerMessageTypeInfoPrepRequest>        compilerMessageTypeInfoPrepQueue_;
+    std::atomic<uint64_t>                                 compilerMessageActiveMask_            = 0;
+    std::atomic<uint64_t>                                 compilerMessageExecutedPassMask_      = 0;
+    std::atomic<bool>                                     compilerMessageTypeInfoPrepFailed_    = false;
+    bool                                                  compilerMessageTypeInfoPrepJobQueued_ = false;
+    std::once_flag                                        nativeRuntimeContextTlsIdOffsetOnce_;
+    uint32_t                                              nativeRuntimeContextTlsIdOffset_ = UINT32_MAX;
+    std::vector<SymbolFunction*>                          nativeCodeSegment_;
+    std::vector<SymbolFunction*>                          nativeTestFunctions_;
+    std::vector<SymbolFunction*>                          nativeInitFunctions_;
+    std::vector<SymbolFunction*>                          nativePreMainFunctions_;
+    std::vector<SymbolFunction*>                          nativeDropFunctions_;
+    std::vector<SymbolFunction*>                          nativeMainFunctions_;
+    std::vector<SymbolFunction*>                          nativeGlobalFunctionInitTargets_;
+    std::vector<SymbolVariable*>                          nativeGlobalVariables_;
+    std::vector<SymbolFunction*>                          jitPreparedFunctions_;
 
     SWC_RACE_CONDITION_INSTANCE(rcFiles_);
 
-    void logBefore();
-    void logAfter();
-    void logStats();
-    void processCommand();
-    void setupRuntimeCompiler();
-    bool tryGetCompilerMessageTypeInfo(TypeRef typeRef, const Runtime::TypeInfo*& outType);
-    void cacheCompilerMessageTypeInfo(TypeRef typeRef, const Runtime::TypeInfo* runtimeTypeInfo);
-    bool tryPopCompilerMessageTypeInfoPreparation(CompilerMessageTypeInfoPrepRequest& outRequest);
-    void markCompilerMessageTypeInfoPreparationFailed();
-    void enqueueCompilerMessageTypeInfoPreparation(TaskContext& ctx, SymbolFunction* listenerFunction, AstNodeRef ownerNodeRef, const CompilerMessageEvent& event);
+    void   logBefore();
+    void   logAfter();
+    void   logStats();
+    void   processCommand();
+    void   setupRuntimeCompiler();
+    bool   tryGetCompilerMessageTypeInfo(TypeRef typeRef, const Runtime::TypeInfo*& outType);
+    void   cacheCompilerMessageTypeInfo(TypeRef typeRef, const Runtime::TypeInfo* runtimeTypeInfo);
+    bool   tryPopCompilerMessageTypeInfoPreparation(CompilerMessageTypeInfoPrepRequest& outRequest);
+    void   markCompilerMessageTypeInfoPreparationFailed();
+    void   enqueueCompilerMessageTypeInfoPreparation(TaskContext& ctx, SymbolFunction* listenerFunction, AstNodeRef ownerNodeRef, const CompilerMessageEvent& event);
     Result ensureCompilerMessageTypeInfoPrepared(TaskContext& ctx, SymbolFunction* listenerFunction, AstNodeRef ownerNodeRef, const CompilerMessageEvent& event);
     Result prepareCompilerMessageTypeInfo(Sema& sema, TypeRef typeRef, AstNodeRef ownerNodeRef);
     Result fillRuntimeCompilerMessage(Sema& sema, AstNodeRef ownerNodeRef, const CompilerMessageEvent& event);

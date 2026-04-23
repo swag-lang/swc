@@ -131,7 +131,7 @@ SWC_TEST_BEGIN(ConstantManager_DeduplicatesBorrowedArrayPayloadsByValue)
     std::array    dims{first.size()};
     const TypeRef arrayTypeRef = ctx.typeMgr().addType(TypeInfo::makeArray(std::span<uint64_t>{dims}, ctx.typeMgr().typeU8()));
 
-    const ConstantRef firstRef = ctx.cstMgr().addConstant(ctx, ConstantValue::makeArrayBorrowed(ctx, arrayTypeRef, ByteSpan{first.data(), first.size()}));
+    const ConstantRef firstRef  = ctx.cstMgr().addConstant(ctx, ConstantValue::makeArrayBorrowed(ctx, arrayTypeRef, ByteSpan{first.data(), first.size()}));
     const ConstantRef secondRef = ctx.cstMgr().addConstant(ctx, ConstantValue::makeArrayBorrowed(ctx, arrayTypeRef, ByteSpan{second.data(), second.size()}));
     if (firstRef != secondRef)
         return Result::Error;
@@ -140,8 +140,8 @@ SWC_TEST_END()
 
 SWC_TEST_BEGIN(ConstantManager_CachesZeroPayloadConstantsByType)
 {
-    const TypeRef    stringTypeRef  = ctx.typeMgr().typeString();
-    const ConstantRef firstStringRef = ctx.cstMgr().addZeroPayloadConstant(ctx, stringTypeRef);
+    const TypeRef     stringTypeRef   = ctx.typeMgr().typeString();
+    const ConstantRef firstStringRef  = ctx.cstMgr().addZeroPayloadConstant(ctx, stringTypeRef);
     const ConstantRef secondStringRef = ctx.cstMgr().addZeroPayloadConstant(ctx, stringTypeRef);
     if (!firstStringRef.isValid() || firstStringRef != secondStringRef)
         return Result::Error;
@@ -155,9 +155,9 @@ SWC_TEST_BEGIN(ConstantManager_CachesZeroPayloadConstantsByType)
             return Result::Error;
     }
 
-    std::array    dims{4ULL};
-    const TypeRef arrayTypeRef = ctx.typeMgr().addType(TypeInfo::makeArray(std::span<uint64_t>{dims}, ctx.typeMgr().typeU8()));
-    const ConstantRef firstArrayRef = ctx.cstMgr().addZeroPayloadConstant(ctx, arrayTypeRef);
+    std::array        dims{4ULL};
+    const TypeRef     arrayTypeRef   = ctx.typeMgr().addType(TypeInfo::makeArray(std::span<uint64_t>{dims}, ctx.typeMgr().typeU8()));
+    const ConstantRef firstArrayRef  = ctx.cstMgr().addZeroPayloadConstant(ctx, arrayTypeRef);
     const ConstantRef secondArrayRef = ctx.cstMgr().addZeroPayloadConstant(ctx, arrayTypeRef);
     if (!firstArrayRef.isValid() || firstArrayRef != secondArrayRef || firstArrayRef == firstStringRef)
         return Result::Error;
@@ -211,7 +211,7 @@ SWC_TEST_BEGIN(ConstantManager_DeduplicatesMaterializedArrayPayloadConstants)
     std::array    dims{source.size()};
     const TypeRef arrayTypeRef = ctx.typeMgr().addType(TypeInfo::makeArray(std::span<uint64_t>{dims}, ctx.typeMgr().typeU8()));
 
-    DataSegment& segment = ctx.cstMgr().shardDataSegment(0);
+    DataSegment& segment             = ctx.cstMgr().shardDataSegment(0);
     const auto [storedBytes, offset] = segment.addSpan(ByteSpan{source.data(), source.size()});
 
     ConstantValue value = ConstantValue::makeArrayBorrowed(ctx, arrayTypeRef, storedBytes);
@@ -229,19 +229,19 @@ SWC_TEST_BEGIN(ConstantManager_DoesNotDeduplicateMaterializedArrayPayloadsWithDi
     std::array    dims{sizeof(void*)};
     const TypeRef arrayTypeRef = ctx.typeMgr().addType(TypeInfo::makeArray(std::span<uint64_t>{dims}, ctx.typeMgr().typeU8()));
 
-    DataSegment& segment = ctx.cstMgr().shardDataSegment(0);
+    DataSegment&   segment = ctx.cstMgr().shardDataSegment(0);
     const uint32_t targetA = segment.reserveBlock(1, 1, true);
     const uint32_t targetB = segment.reserveBlock(1, 1, true);
 
-    const auto [firstOffset, firstStorage] = segment.reserveBytes(static_cast<uint32_t>(dims[0]), 1, true);
+    const auto [firstOffset, firstStorage]   = segment.reserveBytes(static_cast<uint32_t>(dims[0]), 1, true);
     const auto [secondOffset, secondStorage] = segment.reserveBytes(static_cast<uint32_t>(dims[0]), 1, true);
     segment.addRelocation(firstOffset, targetA);
     segment.addRelocation(secondOffset, targetB);
 
-    ConstantValue firstValue = ConstantValue::makeArrayBorrowed(ctx, arrayTypeRef, ByteSpan{firstStorage, static_cast<size_t>(dims[0])});
+    ConstantValue firstValue = ConstantValue::makeArrayBorrowed(ctx, arrayTypeRef, ByteSpan{firstStorage, (dims[0])});
     firstValue.setDataSegmentRef({.shardIndex = 0, .offset = firstOffset});
 
-    ConstantValue secondValue = ConstantValue::makeArrayBorrowed(ctx, arrayTypeRef, ByteSpan{secondStorage, static_cast<size_t>(dims[0])});
+    ConstantValue secondValue = ConstantValue::makeArrayBorrowed(ctx, arrayTypeRef, ByteSpan{secondStorage, (dims[0])});
     secondValue.setDataSegmentRef({.shardIndex = 0, .offset = secondOffset});
 
     const ConstantRef firstRef  = ctx.cstMgr().addMaterializedPayloadConstant(firstValue);

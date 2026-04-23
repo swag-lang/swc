@@ -195,8 +195,8 @@ namespace
 
     Result prepareJitFunction(Sema& sema, SymbolFunction& symFn)
     {
-        TaskContext& ctx             = sema.ctx();
-        ctx.state().jitEmissionError = false;
+        TaskContext& ctx                  = sema.ctx();
+        ctx.state().jitEmissionError      = false;
         const uint64_t initTargetsVersion = sema.compiler().nativeGlobalFunctionInitTargetsVersion();
         if (symFn.jitEntryAddress() &&
             symFn.jitReadyVersion() == initTargetsVersion)
@@ -600,15 +600,15 @@ namespace
     }
 
     Result buildConstSetCallArguments(Sema&                                 sema,
-                                         bool&                                 outBuilt,
-                                         const SymbolFunction&                 calledFn,
-                                         AstNodeRef                            callRef,
-                                         std::span<const ResolvedCallArgument> resolvedArgs,
-                                         TypeRef                               receiverTypeRef,
-                                         ConstantRef                           receiverInitCstRef,
-                                         const std::byte*&                     outReceiverStorage,
-                                         SmallVector<SmallVector<std::byte>>&  outArgStorage,
-                                         SmallVector<JITArgument>&             outJitArgs)
+                                      bool&                                 outBuilt,
+                                      const SymbolFunction&                 calledFn,
+                                      AstNodeRef                            callRef,
+                                      std::span<const ResolvedCallArgument> resolvedArgs,
+                                      TypeRef                               receiverTypeRef,
+                                      ConstantRef                           receiverInitCstRef,
+                                      const std::byte*&                     outReceiverStorage,
+                                      SmallVector<SmallVector<std::byte>>&  outArgStorage,
+                                      SmallVector<JITArgument>&             outJitArgs)
     {
         outBuilt           = false;
         outReceiverStorage = nullptr;
@@ -909,12 +909,12 @@ Result SemaJIT::tryRunConstCall(Sema& sema, SymbolFunction& calledFn, AstNodeRef
 }
 
 Result SemaJIT::tryRunConstSetCall(Sema&                                 sema,
-                                      SymbolFunction&                       calledFn,
-                                      AstNodeRef                            callRef,
-                                      std::span<const ResolvedCallArgument> resolvedArgs,
-                                      const TypeRef                         receiverTypeRef,
-                                      const ConstantRef                     receiverInitCstRef,
-                                      const bool                            forceEvaluation)
+                                   SymbolFunction&                       calledFn,
+                                   AstNodeRef                            callRef,
+                                   std::span<const ResolvedCallArgument> resolvedArgs,
+                                   const TypeRef                         receiverTypeRef,
+                                   const ConstantRef                     receiverInitCstRef,
+                                   const bool                            forceEvaluation)
 {
     if (!supportsConstSetCallJit(sema, calledFn, receiverTypeRef))
         return Result::Continue;

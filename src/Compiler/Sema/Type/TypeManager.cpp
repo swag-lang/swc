@@ -199,9 +199,9 @@ TypeRef TypeManager::addType(const TypeInfo& typeInfo)
     const uint32_t stableHash = stableShardHash(compiler_, typeInfo);
     const uint32_t shardIndex = stableHash & (SHARD_COUNT - 1);
     SWC_ASSERT(shardIndex < SHARD_COUNT);
-    auto& shard = shards_[shardIndex];
+    auto&          shard       = shards_[shardIndex];
     const uint32_t stripeIndex = (stableHash >> SHARD_BITS) & (INTERN_STRIPE_COUNT - 1);
-    auto& stripe = shard.internStripes[stripeIndex];
+    auto&          stripe      = shard.internStripes[stripeIndex];
 
     {
         const std::shared_lock lk(stripe.mutex);
@@ -219,8 +219,8 @@ TypeRef TypeManager::addType(const TypeInfo& typeInfo)
     Stats::get().numTypes.fetch_add(1);
 #endif
 
-    uint32_t localIndex = INVALID_REF;
-    TypeInfo* ptr       = nullptr;
+    uint32_t  localIndex = INVALID_REF;
+    TypeInfo* ptr        = nullptr;
     {
         const std::scoped_lock storeLock(shard.storeMutex);
         localIndex = shard.store.pushBack(typeInfo);

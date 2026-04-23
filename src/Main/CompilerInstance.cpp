@@ -1,6 +1,6 @@
 #include "pch.h"
-#include "Backend/JIT/JIT.h"
 #include "Main/CompilerInstance.h"
+#include "Backend/JIT/JIT.h"
 #include "Backend/JIT/JITExecManager.h"
 #include "Backend/JIT/JITMemoryManager.h"
 #include "Backend/Native/SymbolSort.h"
@@ -173,22 +173,22 @@ namespace
         size_t                                 eventIndex    = 0;
         bool                                   fromReplay    = false;
         CompilerInstance::CompilerMessageEvent event;
-        SymbolFunction*                        function      = nullptr;
-        AstNodeRef                             nodeRef       = AstNodeRef::invalid();
+        SymbolFunction*                        function = nullptr;
+        AstNodeRef                             nodeRef  = AstNodeRef::invalid();
     };
 
     struct CompilerMessageDispatchState
     {
-        const CompilerInstance*                        compiler         = nullptr;
-        const SymbolNamespace*                         moduleNamespace  = nullptr;
-        std::vector<DeferredCompilerGeneratedSource>*  generatedSources = nullptr;
+        const CompilerInstance*                       compiler         = nullptr;
+        const SymbolNamespace*                        moduleNamespace  = nullptr;
+        std::vector<DeferredCompilerGeneratedSource>* generatedSources = nullptr;
     };
 
     struct CompilerMessageListenerExecutionState
     {
-        size_t                 listenerIndex = static_cast<size_t>(-1);
-        const SourceFile*      file          = nullptr;
-        std::unique_ptr<Sema>  sema;
+        size_t                listenerIndex = static_cast<size_t>(-1);
+        const SourceFile*     file          = nullptr;
+        std::unique_ptr<Sema> sema;
     };
 
     TypeRef compilerMessageEventTypeRef(const CompilerInstance::CompilerMessageEvent& event)
@@ -213,11 +213,11 @@ namespace
     {
         explicit ScopedCompilerMessageDispatchState(const CompilerInstance& compiler, const SymbolNamespace* moduleNamespace, std::vector<DeferredCompilerGeneratedSource>& generatedSources)
         {
-            previous_                              = g_CompilerMessageDispatchState;
-            state_.compiler                        = &compiler;
-            state_.moduleNamespace                 = moduleNamespace;
-            state_.generatedSources                = &generatedSources;
-            g_CompilerMessageDispatchState         = &state_;
+            previous_                      = g_CompilerMessageDispatchState;
+            state_.compiler                = &compiler;
+            state_.moduleNamespace         = moduleNamespace;
+            state_.generatedSources        = &generatedSources;
+            g_CompilerMessageDispatchState = &state_;
         }
 
         ~ScopedCompilerMessageDispatchState()
@@ -592,7 +592,7 @@ namespace
         }
 
         compiler.registerInMemoryFile(appendResult.path, appendResult.snapshot.view());
-        SourceFile& sourceFile = compiler.addFile(appendResult.path, FileFlagsE::CustomSrc | FileFlagsE::SkipFmt);
+        SourceFile&            sourceFile               = compiler.addFile(appendResult.path, FileFlagsE::CustomSrc | FileFlagsE::SkipFmt);
         const SymbolNamespace* generatedModuleNamespace = moduleNamespace ? moduleNamespace : currentModuleNamespace(ctx);
         if (generatedModuleNamespace)
             sourceFile.setModuleNamespace(*const_cast<SymbolNamespace*>(generatedModuleNamespace));
@@ -1487,7 +1487,7 @@ void CompilerInstance::enqueueCompilerMessageTypeInfoPreparation(TaskContext& ct
         request.typeRef      = typeRef;
         compilerMessageTypeInfoPrepQueue_.push_back(request);
 
-        enqueueJob = !compilerMessageTypeInfoPrepJobQueued_;
+        enqueueJob                            = !compilerMessageTypeInfoPrepJobQueued_;
         compilerMessageTypeInfoPrepJobQueued_ = true;
     }
 
@@ -1708,7 +1708,7 @@ Result CompilerInstance::executePendingCompilerMessages(TaskContext& ctx)
 
     std::vector<DeferredCompilerGeneratedSource> deferredGeneratedSources;
     deferredGeneratedSources.reserve(4);
-    CompilerMessageListenerExecutionState        listenerState;
+    CompilerMessageListenerExecutionState listenerState;
     while (true)
     {
         CompilerMessageDispatchStep dispatch;

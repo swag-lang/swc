@@ -456,6 +456,29 @@ ConstantRef ConstantManager::addMaterializedPayloadConstant(const ConstantValue&
     return addCstOther(*this, shard, dataRef.shardIndex, value);
 }
 
+ConstantRef ConstantManager::addUniqueMaterializedPayloadConstant(const ConstantValue& value)
+{
+    SWC_ASSERT(value.isStruct() || value.isArray() || value.isSlice());
+    SWC_ASSERT(value.isPayloadBorrowed());
+
+    const DataSegmentRef dataRef = value.dataSegmentRef();
+    SWC_ASSERT(dataRef.isValid());
+    SWC_ASSERT(dataRef.shardIndex < SHARD_COUNT);
+
+    recordConstantMaterializedPayloadFastPath();
+    Shard&      shard      = shards_[dataRef.shardIndex];
+    uint32_t    localIndex = INVALID_REF;
+    ConstantRef result;
+    {
+        const std::unique_lock lk(shard.mutex);
+        localIndex = shard.dataSegment.add(value);
+        SWC_ASSERT(localIndex < LOCAL_MASK);
+        result = ConstantRef{(dataRef.shardIndex << LOCAL_BITS) | localIndex};
+    }
+
+    return addCstFinalize(*this, result);
+}
+
 ConstantRef ConstantManager::cachedS32(int32_t value) const
 {
     switch (value)
@@ -779,6 +802,86 @@ bool ConstantManager::resolveConstantDataSegmentRef(DataSegmentRef& outRef, cons
     }
 
     return resolveDataSegmentRef(outRef, ptr);
+}
+
+uint32_t ConstantManager::runtimeBufferConstantCacheShard(const TypeRef typeRef, const void* targetPtr, const uint64_t count) const
+{
+    const RuntimeBufferConstantCacheKey key{
+        .typeRef   = typeRef,
+        .targetPtr = reinterpret_cast<uintptr_t>(targetPtr),
+        .count     = count,
+    };
+    return static_cast<uint32_t>(RuntimeBufferConstantCacheKeyHash{}(key)) & (SHARD_COUNT - 1);
+}
+
+ConstantRef ConstantManager::findRuntimeBufferConstant(const uint32_t shardIndex, const TypeRef typeRef, const void* targetPtr, const uint64_t count) const
+{
+    SWC_ASSERT(shardIndex < SHARD_COUNT);
+    const RuntimeBufferConstantCacheKey key{
+        .typeRef   = typeRef,
+        .targetPtr = reinterpret_cast<uintptr_t>(targetPtr),
+        .count     = count,
+    };
+
+    const Shard& shard = shards_[shardIndex];
+    const std::shared_lock lock(shard.runtimeBufferMutex);
+    const auto it = shard.runtimeBufferMap.find(key);
+    if (it == shard.runtimeBufferMap.end())
+        return ConstantRef::invalid();
+    return it->second;
+}
+
+ConstantRef ConstantManager::publishRuntimeBufferConstant(const uint32_t shardIndex, const TypeRef typeRef, const void* targetPtr, const uint64_t count, const ConstantRef cstRef)
+{
+    SWC_ASSERT(shardIndex < SHARD_COUNT);
+    SWC_ASSERT(cstRef.isValid());
+    const RuntimeBufferConstantCacheKey key{
+        .typeRef   = typeRef,
+        .targetPtr = reinterpret_cast<uintptr_t>(targetPtr),
+        .count     = count,
+    };
+
+    Shard& shard = shards_[shardIndex];
+    const std::unique_lock lock(shard.runtimeBufferMutex);
+    auto [it, inserted] = shard.runtimeBufferMap.try_emplace(key, cstRef);
+    return inserted ? cstRef : it->second;
+}
+
+uint32_t ConstantManager::runtimeStringConstantCacheShard(const TypeRef typeRef, const std::string_view value) const
+{
+    RuntimeStringConstantCacheKey key;
+    key.typeRef = typeRef;
+    key.value   = Utf8(value);
+    return static_cast<uint32_t>(RuntimeStringConstantCacheKeyHash{}(key)) & (SHARD_COUNT - 1);
+}
+
+ConstantRef ConstantManager::findRuntimeStringConstant(const uint32_t shardIndex, const TypeRef typeRef, const std::string_view value) const
+{
+    SWC_ASSERT(shardIndex < SHARD_COUNT);
+    RuntimeStringConstantCacheKey key;
+    key.typeRef = typeRef;
+    key.value   = Utf8(value);
+
+    const Shard& shard = shards_[shardIndex];
+    const std::shared_lock lock(shard.runtimeStringMutex);
+    const auto it = shard.runtimeStringMap.find(key);
+    if (it == shard.runtimeStringMap.end())
+        return ConstantRef::invalid();
+    return it->second;
+}
+
+ConstantRef ConstantManager::publishRuntimeStringConstant(const uint32_t shardIndex, const TypeRef typeRef, const std::string_view value, const ConstantRef cstRef)
+{
+    SWC_ASSERT(shardIndex < SHARD_COUNT);
+    SWC_ASSERT(cstRef.isValid());
+    RuntimeStringConstantCacheKey key;
+    key.typeRef = typeRef;
+    key.value   = Utf8(value);
+
+    Shard& shard = shards_[shardIndex];
+    const std::unique_lock lock(shard.runtimeStringMutex);
+    auto [it, inserted] = shard.runtimeStringMap.try_emplace(std::move(key), cstRef);
+    return inserted ? cstRef : it->second;
 }
 
 SWC_END_NAMESPACE();

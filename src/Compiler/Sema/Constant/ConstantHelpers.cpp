@@ -10,11 +10,22 @@
 #include "Compiler/Sema/Symbol/Symbol.Struct.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Compiler/Sema/Type/TypeManager.h"
+#include "Support/Math/Hash.h"
 
 SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    uint32_t sourceCodeLocationShardIndex(const SourceCodeRange& codeRange, const SymbolFunction* function)
+    {
+        uint32_t hash = Math::hash(codeRange.srcView ? codeRange.srcView->ref().get() : 0);
+        hash          = Math::hashCombine(hash, reinterpret_cast<uint64_t>(function));
+        hash          = Math::hashCombine(hash, codeRange.line);
+        hash          = Math::hashCombine(hash, codeRange.column);
+        hash          = Math::hashCombine(hash, codeRange.len);
+        return hash & (ConstantManager::SHARD_COUNT - 1);
+    }
+
     Result waitStaticPayloadTypeReadyRec(Sema& sema, TypeRef typeRef, AstNodeRef waitNodeRef, SmallVector<TypeRef>& visited)
     {
         if (typeRef.isInvalid())
@@ -323,9 +334,8 @@ Result ConstantHelpers::makeSourceCodeLocation(Sema& sema, ConstantRef& outCstRe
     const Utf8        fileName = file ? Utf8(file->path().string()) : Utf8{};
     const Utf8        funcName = function ? function->getFullScopedName(ctx) : Utf8{};
 
-    const std::string_view shardKey   = !fileName.empty() ? fileName.view() : funcName.view();
-    const uint32_t         shardIndex = std::hash<std::string_view>{}(shardKey) & (ConstantManager::SHARD_COUNT - 1);
-    DataSegment&           segment    = sema.cstMgr().shardDataSegment(shardIndex);
+    const uint32_t shardIndex = sourceCodeLocationShardIndex(codeRange, function);
+    DataSegment&   segment    = sema.cstMgr().shardDataSegment(shardIndex);
 
     const auto [offset, storage] = segment.reserveBytes(sizeof(Runtime::SourceCodeLocation), alignof(Runtime::SourceCodeLocation), true);
     auto* const rtLoc            = reinterpret_cast<Runtime::SourceCodeLocation*>(storage);
@@ -350,7 +360,7 @@ Result ConstantHelpers::makeSourceCodeLocation(Sema& sema, ConstantRef& outCstRe
     const auto    bytes  = ByteSpan{storage, sizeof(Runtime::SourceCodeLocation)};
     ConstantValue cstVal = ConstantValue::makeStructBorrowed(ctx, typeRef, bytes);
     cstVal.setDataSegmentRef({.shardIndex = shardIndex, .offset = offset});
-    outCstRef = sema.cstMgr().addMaterializedPayloadConstant(cstVal);
+    outCstRef = sema.cstMgr().addUniqueMaterializedPayloadConstant(cstVal);
     return Result::Continue;
 }
 

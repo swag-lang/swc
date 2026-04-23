@@ -73,10 +73,7 @@ namespace
         SmallVector<ABICall::PreparedArg> preparedArgs;
         preparedArgs.reserve(2);
 
-        const ConstantValue  messageTextValue = ConstantValue::makeString(codeGen.ctx(), message);
-        const ConstantRef    messageTextRef   = codeGen.cstMgr().addConstant(codeGen.ctx(), messageTextValue);
-        const ConstantValue& messageTextCst   = codeGen.cstMgr().get(messageTextRef);
-        const ConstantRef    messageCstRef    = CodeGenConstantHelpers::materializeRuntimeBufferConstant(codeGen, codeGen.typeMgr().typeString(), messageTextCst.getString().data(), messageTextCst.getString().size());
+        const ConstantRef messageCstRef = CodeGenConstantHelpers::materializeRuntimeStringConstant(codeGen, codeGen.typeMgr().typeString(), message);
         SWC_ASSERT(messageCstRef.isValid());
         const auto messageArg = makeAddressPayloadFromConstant(codeGen, messageCstRef);
         CodeGenCallHelpers::appendDirectPreparedArg(preparedArgs, codeGen, callConv, runtimeFunction.parameters()[0]->typeRef(), messageArg.reg);

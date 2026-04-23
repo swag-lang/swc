@@ -303,15 +303,21 @@ ConstantRef CodeGenConstantHelpers::materializeStaticPayloadConstant(CodeGen& co
 
 ConstantRef CodeGenConstantHelpers::materializeRuntimeBufferConstant(CodeGen& codeGen, TypeRef typeRef, const void* targetPtr, uint64_t count)
 {
+    ConstantManager& cstMgr          = codeGen.cstMgr();
+    const uint32_t   cacheShardIndex = cstMgr.runtimeBufferConstantCacheShard(typeRef, targetPtr, count);
+    const ConstantRef cached         = cstMgr.findRuntimeBufferConstant(cacheShardIndex, typeRef, targetPtr, count);
+    if (cached.isValid())
+        return cached;
+
     DataSegmentRef targetRef;
     if (targetPtr)
-        codeGen.cstMgr().resolveDataSegmentRef(targetRef, targetPtr);
+        cstMgr.resolveDataSegmentRef(targetRef, targetPtr);
 
     if (targetPtr && targetRef.isInvalid())
         return ConstantRef::invalid();
 
     const uint32_t shardIndex    = targetRef.isInvalid() ? 0 : targetRef.shardIndex;
-    DataSegment&   segment       = codeGen.cstMgr().shardDataSegment(shardIndex);
+    DataSegment&   segment       = cstMgr.shardDataSegment(shardIndex);
     const auto [offset, storage] = segment.reserveBytes(sizeof(Runtime::Slice<std::byte>), alignof(Runtime::Slice<std::byte>), true);
     auto* const runtimeValue     = reinterpret_cast<Runtime::Slice<std::byte>*>(storage);
     runtimeValue->ptr            = const_cast<std::byte*>(static_cast<const std::byte*>(targetPtr));
@@ -322,7 +328,24 @@ ConstantRef CodeGenConstantHelpers::materializeRuntimeBufferConstant(CodeGen& co
 
     ConstantValue runtimeValueCst = ConstantValue::makeStructBorrowed(codeGen.ctx(), typeRef, ByteSpan{storage, sizeof(Runtime::Slice<std::byte>)});
     runtimeValueCst.setDataSegmentRef({.shardIndex = shardIndex, .offset = offset});
-    return codeGen.cstMgr().addMaterializedPayloadConstant(runtimeValueCst);
+    const ConstantRef cstRef = cstMgr.addUniqueMaterializedPayloadConstant(runtimeValueCst);
+    return cstMgr.publishRuntimeBufferConstant(cacheShardIndex, typeRef, targetPtr, count, cstRef);
+}
+
+ConstantRef CodeGenConstantHelpers::materializeRuntimeStringConstant(CodeGen& codeGen, TypeRef typeRef, const std::string_view value)
+{
+    ConstantManager& cstMgr          = codeGen.cstMgr();
+    const uint32_t   cacheShardIndex = cstMgr.runtimeStringConstantCacheShard(typeRef, value);
+    const ConstantRef cached         = cstMgr.findRuntimeStringConstant(cacheShardIndex, typeRef, value);
+    if (cached.isValid())
+        return cached;
+
+    const std::string_view storedValue = cstMgr.addString(codeGen.ctx(), value);
+    const ConstantRef      cstRef      = materializeRuntimeBufferConstant(codeGen, typeRef, storedValue.data(), storedValue.size());
+    if (cstRef.isInvalid())
+        return ConstantRef::invalid();
+
+    return cstMgr.publishRuntimeStringConstant(cacheShardIndex, typeRef, value, cstRef);
 }
 
 Result CodeGenConstantHelpers::loadTypeInfoConstantReg(MicroReg& outReg, CodeGen& codeGen, TypeRef typeRef)

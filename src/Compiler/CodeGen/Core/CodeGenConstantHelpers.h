@@ -14,6 +14,7 @@ namespace CodeGenConstantHelpers
     ConstantRef materializeStaticPayloadConstant(CodeGen& codeGen, TypeRef typeRef, ByteSpan payload);
     ConstantRef materializeStaticArrayBufferConstant(CodeGen& codeGen, TypeRef elementTypeRef, ByteSpan payload, uint64_t count);
     ConstantRef materializeRuntimeBufferConstant(CodeGen& codeGen, TypeRef typeRef, const void* targetPtr, uint64_t count);
+    ConstantRef materializeRuntimeStringConstant(CodeGen& codeGen, TypeRef typeRef, std::string_view value);
     Result      loadTypeInfoConstantReg(MicroReg& outReg, CodeGen& codeGen, TypeRef typeRef);
 }
 

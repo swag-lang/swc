@@ -19,6 +19,7 @@ public:
     std::string_view addString(const TaskContext& ctx, std::string_view str);
     ConstantRef      addConstant(const TaskContext& ctx, const ConstantValue& value);
     ConstantRef      addMaterializedPayloadConstant(const ConstantValue& value);
+    ConstantRef      addUniqueMaterializedPayloadConstant(const ConstantValue& value);
     std::string_view addPayloadBuffer(std::string_view payload, DataSegmentRef* outRef = nullptr);
 
     ConstantRef          cstNull() const { return cstNull_; }
@@ -35,14 +36,62 @@ public:
     const DataSegment&   shardDataSegment(uint32_t index) const;
     bool                 resolveDataSegmentRef(DataSegmentRef& outRef, const void* ptr) const noexcept;
     bool                 resolveConstantDataSegmentRef(DataSegmentRef& outRef, ConstantRef cstRef, const void* ptr) const noexcept;
+    uint32_t             runtimeBufferConstantCacheShard(TypeRef typeRef, const void* targetPtr, uint64_t count) const;
+    ConstantRef          findRuntimeBufferConstant(uint32_t shardIndex, TypeRef typeRef, const void* targetPtr, uint64_t count) const;
+    ConstantRef          publishRuntimeBufferConstant(uint32_t shardIndex, TypeRef typeRef, const void* targetPtr, uint64_t count, ConstantRef cstRef);
+    uint32_t             runtimeStringConstantCacheShard(TypeRef typeRef, std::string_view value) const;
+    ConstantRef          findRuntimeStringConstant(uint32_t shardIndex, TypeRef typeRef, std::string_view value) const;
+    ConstantRef          publishRuntimeStringConstant(uint32_t shardIndex, TypeRef typeRef, std::string_view value, ConstantRef cstRef);
+
+    struct RuntimeBufferConstantCacheKey
+    {
+        TypeRef   typeRef;
+        uintptr_t targetPtr = 0;
+        uint64_t  count     = 0;
+
+        bool operator==(const RuntimeBufferConstantCacheKey& rhs) const noexcept { return typeRef == rhs.typeRef && targetPtr == rhs.targetPtr && count == rhs.count; }
+    };
+
+    struct RuntimeBufferConstantCacheKeyHash
+    {
+        size_t operator()(const RuntimeBufferConstantCacheKey& key) const noexcept
+        {
+            size_t h = std::hash<uint32_t>{}(key.typeRef.get());
+            h ^= std::hash<uintptr_t>{}(key.targetPtr) + 0x9e3779b97f4a7c15ull + (h << 6) + (h >> 2);
+            h ^= std::hash<uint64_t>{}(key.count) + 0x9e3779b97f4a7c15ull + (h << 6) + (h >> 2);
+            return h;
+        }
+    };
+
+    struct RuntimeStringConstantCacheKey
+    {
+        TypeRef typeRef;
+        Utf8    value;
+
+        bool operator==(const RuntimeStringConstantCacheKey& rhs) const noexcept { return typeRef == rhs.typeRef && value == rhs.value; }
+    };
+
+    struct RuntimeStringConstantCacheKeyHash
+    {
+        size_t operator()(const RuntimeStringConstantCacheKey& key) const noexcept
+        {
+            size_t h = std::hash<uint32_t>{}(key.typeRef.get());
+            h ^= std::hash<Utf8>{}(key.value) + 0x9e3779b97f4a7c15ull + (h << 6) + (h >> 2);
+            return h;
+        }
+    };
 
     struct Shard
     {
-        DataSegment                                                       dataSegment;
-        std::unordered_map<ConstantValue, ConstantRef, ConstantValueHash> map;
-        std::unordered_map<TypeRef, ConstantRef>                          typeInfoMap;
-        mutable std::shared_mutex                                         mutex;
-        mutable std::shared_mutex                                         typeInfoMutex;
+        DataSegment                                                                                                     dataSegment;
+        std::unordered_map<ConstantValue, ConstantRef, ConstantValueHash>                                               map;
+        std::unordered_map<TypeRef, ConstantRef>                                                                        typeInfoMap;
+        std::unordered_map<RuntimeBufferConstantCacheKey, ConstantRef, RuntimeBufferConstantCacheKeyHash>               runtimeBufferMap;
+        std::unordered_map<RuntimeStringConstantCacheKey, ConstantRef, RuntimeStringConstantCacheKeyHash>               runtimeStringMap;
+        mutable std::shared_mutex                                                                                       mutex;
+        mutable std::shared_mutex                                                                                       typeInfoMutex;
+        mutable std::shared_mutex                                                                                       runtimeBufferMutex;
+        mutable std::shared_mutex                                                                                       runtimeStringMutex;
     };
 
     static constexpr uint32_t SHARD_BITS  = 4;

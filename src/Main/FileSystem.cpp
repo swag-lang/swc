@@ -419,28 +419,32 @@ Utf8 FileSystem::formatFileName(const TaskContext* ctx, const fs::path& filePath
     }
 }
 
-Utf8 FileSystem::formatFileLocation(const TaskContext* ctx, const fs::path& filePath, const uint32_t line, const uint32_t column, const uint32_t columnEnd)
+Utf8 FileSystem::formatFileLocation(Utf8 fileName, const uint32_t line, const uint32_t column, const uint32_t columnEnd)
 {
-    Utf8 out = formatFileName(ctx, filePath);
     if (line)
     {
-        out += ":";
-        out += std::to_string(line);
+        fileName += ":";
+        fileName += std::to_string(line);
     }
 
     if (column)
     {
-        out += ":";
-        out += std::to_string(column);
+        fileName += ":";
+        fileName += std::to_string(column);
     }
 
     if (columnEnd)
     {
-        out += "-";
-        out += std::to_string(columnEnd);
+        fileName += "-";
+        fileName += std::to_string(columnEnd);
     }
 
-    return out;
+    return fileName;
+}
+
+Utf8 FileSystem::formatFileLocation(const TaskContext* ctx, const fs::path& filePath, const uint32_t line, const uint32_t column, const uint32_t columnEnd)
+{
+    return formatFileLocation(formatFileName(ctx, filePath), line, column, columnEnd);
 }
 
 Utf8 FileSystem::sanitizeFileName(Utf8 value)

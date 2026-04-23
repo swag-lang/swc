@@ -61,6 +61,7 @@ namespace FileSystem
     Utf8     describeIoProblem(IoProblem problem);
     Utf8     describeIoFailure(const IoErrorInfo& error);
     Utf8     formatFileName(const TaskContext* ctx, const fs::path& filePath);
+    Utf8     formatFileLocation(Utf8 fileName, uint32_t line, uint32_t column = 0, uint32_t columnEnd = 0);
     Utf8     formatFileLocation(const TaskContext* ctx, const fs::path& filePath, uint32_t line, uint32_t column = 0, uint32_t columnEnd = 0);
     Utf8     sanitizeFileName(Utf8 value);
     Utf8     normalizeSystemMessage(const Utf8& msg);

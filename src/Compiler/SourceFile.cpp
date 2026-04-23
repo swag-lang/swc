@@ -3,6 +3,7 @@
 #include "Compiler/Sema/Core/NodePayload.h"
 #include "Compiler/Verify.h"
 #include "Main/CompilerInstance.h"
+#include "Main/Command/CommandLine.h"
 #include "Main/FileSystem.h"
 #include "Main/Stats.h"
 #include "Main/TaskContext.h"
@@ -12,16 +13,58 @@
 
 SWC_BEGIN_NAMESPACE();
 
+namespace
+{
+    size_t filePathDisplayModeIndex(const FileSystem::FilePathDisplayMode mode)
+    {
+        switch (mode)
+        {
+            case FileSystem::FilePathDisplayMode::AsIs:
+                return 0;
+
+            case FileSystem::FilePathDisplayMode::BaseName:
+                return 1;
+
+            case FileSystem::FilePathDisplayMode::Absolute:
+                return 2;
+
+            default:
+                SWC_UNREACHABLE();
+        }
+    }
+
+    FileSystem::FilePathDisplayMode filePathDisplayMode(const TaskContext* ctx)
+    {
+        if (!ctx)
+            return FileSystem::FilePathDisplayMode::AsIs;
+        return ctx->cmdLine().filePathDisplay;
+    }
+}
+
 SourceFile::SourceFile(FileRef fileRef, fs::path path, FileFlags flags) :
     fileRef_(fileRef),
     path_(std::move(path)),
     flags_(flags)
 {
+    formattedFileNames_[filePathDisplayModeIndex(FileSystem::FilePathDisplayMode::AsIs)]     = path_.string();
+    formattedFileNames_[filePathDisplayModeIndex(FileSystem::FilePathDisplayMode::BaseName)] = path_.filename().string();
+    formattedFileNames_[filePathDisplayModeIndex(FileSystem::FilePathDisplayMode::Absolute)] = FileSystem::normalizePath(path_).string();
+
     nodePayloadContext_ = std::make_unique<NodePayload>();
     unitTest_           = std::make_unique<Verify>(this);
 }
 
 SourceFile::~SourceFile() = default;
+
+const Utf8& SourceFile::formattedFileName(const TaskContext* ctx) const
+{
+    return formattedFileNames_[filePathDisplayModeIndex(filePathDisplayMode(ctx))];
+}
+
+Utf8 SourceFile::formatFileLocation(const TaskContext* ctx, const uint32_t line, const uint32_t column, const uint32_t columnEnd) const
+{
+    return FileSystem::formatFileLocation(formattedFileName(ctx), line, column, columnEnd);
+}
 
 void SourceFile::setModuleNamespace(SymbolNamespace& ns) const
 {

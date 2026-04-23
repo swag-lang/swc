@@ -391,7 +391,7 @@ void DiagnosticBuilder::writeLocation(const DiagnosticElement& el)
     if (el.srcView()->fileRef().isValid())
     {
         const SourceFile& file = ctx_->compiler().file(el.srcView()->fileRef());
-        fileLocation           = FileSystem::formatFileLocation(ctx_, file.path(), codeRange.line, codeRange.column, codeRange.column + codeRange.len);
+        fileLocation           = file.formatFileLocation(ctx_, codeRange.line, codeRange.column, codeRange.column + codeRange.len);
     }
     else
     {

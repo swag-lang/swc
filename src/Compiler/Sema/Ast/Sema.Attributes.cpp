@@ -12,7 +12,6 @@
 #include "Compiler/Sema/Symbol/Symbols.h"
 #include "Compiler/Sema/Type/TypeInfo.h"
 #include "Compiler/SourceFile.h"
-#include "Main/FileSystem.h"
 #include "Main/Global.h"
 #include "Support/Report/Logger.h"
 #include "Support/Report/SyntaxColor.h"
@@ -42,7 +41,7 @@ namespace
         const SourceCodeRange codeLoc  = node.codeRange(ctx);
         const SourceView&     srcView  = sema.srcView(node.srcViewRef());
         const SourceFile*     srcFile  = srcView.file();
-        const Utf8            filePath = srcFile ? FileSystem::formatFileLocation(&ctx, srcFile->path(), codeLoc.line) : Utf8("<unknown-file>");
+        const Utf8            filePath = srcFile ? srcFile->formatFileLocation(&ctx, codeLoc.line) : Utf8("<unknown-file>");
 
         const Logger::ScopedLock lock(ctx.global().logger());
         Logger::print(ctx, "\n");

@@ -34,6 +34,8 @@ public:
 
     fs::path                    path() const { return path_; }
     Utf8                        name() const { return path_.filename().string().c_str(); }
+    const Utf8&                 formattedFileName(const TaskContext* ctx) const;
+    Utf8                        formatFileLocation(const TaskContext* ctx, uint32_t line, uint32_t column = 0, uint32_t columnEnd = 0) const;
     size_t                      size() const { return content_.empty() ? 0 : content_.size() - TRAILING_0; }
     const std::vector<char8_t>& content() const { return content_; }
     std::string_view            sourceView() const { return std::string_view(reinterpret_cast<std::string_view::const_pointer>(content_.data()), size()); }
@@ -77,6 +79,7 @@ private:
     fs::path  path_;
     FileFlags flags_ = FileFlagsE::Zero;
 
+    std::array<Utf8, 3>         formattedFileNames_;
     std::vector<char8_t>         content_;
     std::unique_ptr<NodePayload> nodePayloadContext_;
     std::unique_ptr<Verify>      unitTest_;

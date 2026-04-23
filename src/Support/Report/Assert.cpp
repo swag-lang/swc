@@ -85,7 +85,7 @@ namespace
         const Utf8        codeLine      = codeRange.srcView->codeLine(ctx, codeRange.line);
         const Utf8        lineNoStr     = std::to_string(codeRange.line);
         const SourceFile* sourceFile    = codeRange.srcView->file();
-        const Utf8        fileLoc       = sourceFile ? FileSystem::formatFileLocation(&ctx, sourceFile->path(), codeRange.line, codeRange.column, codeRange.column + tokenLenChars) : FileSystem::formatFileLocation(&ctx, fs::path{}, codeRange.line, codeRange.column, codeRange.column + tokenLenChars);
+        const Utf8        fileLoc       = sourceFile ? sourceFile->formatFileLocation(&ctx, codeRange.line, codeRange.column, codeRange.column + tokenLenChars) : FileSystem::formatFileLocation(&ctx, fs::path{}, codeRange.line, codeRange.column, codeRange.column + tokenLenChars);
 
         msg += "Source context:\n";
         msg += std::format("  --> {}\n", fileLoc);

@@ -4,7 +4,6 @@
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Main/Command/CommandLine.h"
 #include "Main/CompilerInstance.h"
-#include "Main/FileSystem.h"
 #include "Main/TaskContext.h"
 #include "Support/Os/Os.h"
 #include "Support/Report/LogColor.h"
@@ -49,7 +48,7 @@ namespace
             const SourceFile*     sourceFile = srcView.file();
             if (sourceFile)
             {
-                HardwareException::appendField(outMsg, "source", FileSystem::formatFileLocation(ctx, sourceFile->path(), codeRange.line, codeRange.column));
+                HardwareException::appendField(outMsg, "source", sourceFile->formatFileLocation(ctx, codeRange.line, codeRange.column));
             }
         }
 

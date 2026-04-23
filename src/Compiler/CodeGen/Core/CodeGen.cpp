@@ -16,7 +16,6 @@
 #include "Compiler/Sema/Type/TypeInfo.h"
 #include "Compiler/SourceFile.h"
 #include "Main/CompilerInstance.h"
-#include "Main/FileSystem.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -409,7 +408,7 @@ Result CodeGen::exec(SymbolFunction& symbolFunc, AstNodeRef root)
         const SourceCodeRange codeRange = symbolFunc.codeRange(ctx());
         const SourceView&     srcView   = this->srcView(symbolFunc.srcViewRef());
         const SourceFile*     file      = srcView.file();
-        const Utf8            fileName  = file ? FileSystem::formatFileName(&ctx(), file->path()) : Utf8{};
+        const Utf8            fileName  = file ? file->formattedFileName(&ctx()) : Utf8{};
         builder_->setPrintPassOptions(symbolFunc.attributes().printMicroPassOptions);
         builder_->setPrintLocation(symbolFunc.getFullScopedName(ctx()), fileName, codeRange.line);
 

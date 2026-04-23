@@ -61,8 +61,9 @@ uint32_t MicroSsaState::findRegValue(const std::span<const RegValueEntry> entrie
 void MicroSsaState::build(MicroBuilder& builder, MicroStorage& storage, MicroOperandStorage& operands, const Encoder* encoder)
 {
 #if SWC_HAS_STATS
-    Stats::get().numMicroSsaBuilds.fetch_add(1, std::memory_order_relaxed);
-    const Timer buildTimer(&Stats::get().timeMicroSsaBuild);
+    if (Stats::enabledRuntime())
+        Stats::get().numMicroSsaBuilds.fetch_add(1, std::memory_order_relaxed);
+    const Timer buildTimer(Stats::timedMetric(Stats::get().timeMicroSsaBuild));
 #endif
 
     resetForBuild(builder, storage, operands, encoder);
@@ -112,25 +113,25 @@ void MicroSsaState::build(MicroBuilder& builder, MicroStorage& storage, MicroOpe
 
     {
 #if SWC_HAS_STATS
-        const Timer timer(&Stats::get().timeMicroSsaBlocks);
+        const Timer timer(Stats::timedMetric(Stats::get().timeMicroSsaBlocks));
 #endif
         buildBlocks(controlFlowGraph);
     }
     {
 #if SWC_HAS_STATS
-        const Timer timer(&Stats::get().timeMicroSsaDominators);
+        const Timer timer(Stats::timedMetric(Stats::get().timeMicroSsaDominators));
 #endif
         computeDominators();
     }
     {
 #if SWC_HAS_STATS
-        const Timer timer(&Stats::get().timeMicroSsaPhiPlacement);
+        const Timer timer(Stats::timedMetric(Stats::get().timeMicroSsaPhiPlacement));
 #endif
         placePhiNodes();
     }
     {
 #if SWC_HAS_STATS
-        const Timer timer(&Stats::get().timeMicroSsaRename);
+        const Timer timer(Stats::timedMetric(Stats::get().timeMicroSsaRename));
 #endif
         renameIntoSsa();
     }
@@ -223,7 +224,7 @@ void MicroSsaState::clear()
 void MicroSsaState::invalidate()
 {
 #if SWC_HAS_STATS
-    if (valid_)
+    if (valid_ && Stats::enabledRuntime())
         Stats::get().numMicroSsaInvalidations.fetch_add(1, std::memory_order_relaxed);
 #endif
 

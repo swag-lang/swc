@@ -120,7 +120,7 @@ JobResult CodeGenJob::exec()
     {
         SWC_ASSERT(root_.isValid());
 #if SWC_HAS_STATS
-        Timer timeCodeGen(&Stats::get().timeCodeGen);
+        Timer timeCodeGen(Stats::timedMetric(Stats::get().timeCodeGen));
 #endif
         const Result codeGenResult = codeGen_->exec(*symbolFunc_, root_);
         if (codeGenResult != Result::Continue)

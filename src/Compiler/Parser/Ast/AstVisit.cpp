@@ -86,7 +86,8 @@ AstVisitResult AstVisit::stepPreStage(Frame& frame)
         SWC_ASSERT(frame.node->id() < AstNodeId::Count);
 
 #if SWC_HAS_STATS
-        Stats::get().numVisitedAstNodes.fetch_add(1);
+        if (Stats::enabledRuntime())
+            Stats::get().numVisitedAstNodes.fetch_add(1, std::memory_order_relaxed);
 #endif
     }
 

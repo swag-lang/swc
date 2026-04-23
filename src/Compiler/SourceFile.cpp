@@ -162,9 +162,9 @@ Result SourceFile::loadContent(TaskContext& ctx)
     }
 
     SWC_MEM_SCOPE("Frontend/LoadFile");
-    Stats::get().numFiles.fetch_add(1);
+    Stats::get().numFiles.fetch_add(1, std::memory_order_relaxed);
 #if SWC_HAS_STATS
-    Timer time(&Stats::get().timeLoadFile);
+    Timer time(Stats::timedMetric(Stats::get().timeLoadFile));
 #endif
 
     FileSystem::IoErrorInfo ioError;

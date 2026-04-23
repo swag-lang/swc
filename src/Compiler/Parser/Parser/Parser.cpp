@@ -102,7 +102,7 @@ AstNodeRef Parser::parseGenerated(TaskContext& ctx, Ast& ast, SourceView& srcVie
 {
     SWC_MEM_SCOPE("Frontend/Parser");
 #if SWC_HAS_STATS
-    Timer time(&Stats::get().timeParser);
+    Timer time(Stats::timedMetric(Stats::get().timeParser));
 #endif
 
     ctx_ = &ctx;
@@ -526,7 +526,7 @@ void Parser::parse(TaskContext& ctx, Ast& ast)
 {
     SWC_MEM_SCOPE("Frontend/Parser");
 #if SWC_HAS_STATS
-    Timer time(&Stats::get().timeParser);
+    Timer time(Stats::timedMetric(Stats::get().timeParser));
 #endif
 
     ctx_ = &ctx;

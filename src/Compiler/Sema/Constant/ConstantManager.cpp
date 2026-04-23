@@ -12,35 +12,40 @@ namespace
     void recordConstantBuiltinFastHit()
     {
 #if SWC_HAS_STATS
-        Stats::get().numConstantBuiltinFastHits.fetch_add(1, std::memory_order_relaxed);
+        if (Stats::enabledRuntime())
+            Stats::get().numConstantBuiltinFastHits.fetch_add(1, std::memory_order_relaxed);
 #endif
     }
 
     void recordConstantSmallScalarCacheHit()
     {
 #if SWC_HAS_STATS
-        Stats::get().numConstantSmallScalarCacheHits.fetch_add(1, std::memory_order_relaxed);
+        if (Stats::enabledRuntime())
+            Stats::get().numConstantSmallScalarCacheHits.fetch_add(1, std::memory_order_relaxed);
 #endif
     }
 
     void recordConstantSmallScalarCacheMiss()
     {
 #if SWC_HAS_STATS
-        Stats::get().numConstantSmallScalarCacheMisses.fetch_add(1, std::memory_order_relaxed);
+        if (Stats::enabledRuntime())
+            Stats::get().numConstantSmallScalarCacheMisses.fetch_add(1, std::memory_order_relaxed);
 #endif
     }
 
     void recordConstantSlowPathCall()
     {
 #if SWC_HAS_STATS
-        Stats::get().numConstantSlowPathCalls.fetch_add(1, std::memory_order_relaxed);
+        if (Stats::enabledRuntime())
+            Stats::get().numConstantSlowPathCalls.fetch_add(1, std::memory_order_relaxed);
 #endif
     }
 
     void recordConstantMaterializedPayloadFastPath()
     {
 #if SWC_HAS_STATS
-        Stats::get().numConstantMaterializedPayloadFastPath.fetch_add(1, std::memory_order_relaxed);
+        if (Stats::enabledRuntime())
+            Stats::get().numConstantMaterializedPayloadFastPath.fetch_add(1, std::memory_order_relaxed);
 #endif
     }
 
@@ -194,7 +199,8 @@ namespace
     ConstantRef addCstFinalize(const ConstantManager& manager, ConstantRef cstRef)
     {
 #if SWC_HAS_STATS
-        Stats::get().numConstants.fetch_add(1);
+        if (Stats::enabledRuntime())
+            Stats::get().numConstants.fetch_add(1, std::memory_order_relaxed);
 #endif
 
 #if SWC_HAS_REF_DEBUG_INFO

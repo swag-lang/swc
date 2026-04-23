@@ -216,7 +216,8 @@ TypeRef TypeManager::addType(const TypeInfo& typeInfo)
         return it->second;
 
 #if SWC_HAS_STATS
-    Stats::get().numTypes.fetch_add(1);
+    if (Stats::enabledRuntime())
+        Stats::get().numTypes.fetch_add(1, std::memory_order_relaxed);
 #endif
 
     uint32_t  localIndex = INVALID_REF;

@@ -103,7 +103,8 @@ public:
         }
 
 #if SWC_HAS_STATS
-        Stats::get().numAstNodes.fetch_add(1, std::memory_order_relaxed);
+        if (Stats::enabledRuntime())
+            Stats::get().numAstNodes.fetch_add(1, std::memory_order_relaxed);
 #endif
 
         std::pair<AstNodeRef, NodeType*> value{globalRef, local.second};

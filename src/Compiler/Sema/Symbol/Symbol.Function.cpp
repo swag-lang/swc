@@ -694,7 +694,7 @@ Result SymbolFunction::emit(TaskContext& ctx)
     }
     SWC_MEM_SCOPE("Backend/MicroLower");
 #if SWC_HAS_STATS
-    Timer timeMicroLower(&Stats::get().timeMicroLower);
+    Timer timeMicroLower(Stats::timedMetric(Stats::get().timeMicroLower));
 #endif
     const Result emitResult = loweredMicroCode_.emit(ctx, builder);
     if (emitResult != Result::Continue)
@@ -708,7 +708,8 @@ Result SymbolFunction::emit(TaskContext& ctx)
     builder.releaseMemory();
 
 #if SWC_HAS_STATS
-    Stats::get().numCodeGenFunctions.fetch_add(1, std::memory_order_relaxed);
+    if (Stats::enabledRuntime())
+        Stats::get().numCodeGenFunctions.fetch_add(1, std::memory_order_relaxed);
 #endif
     ctx.compiler().notifyAlive();
     return Result::Continue;

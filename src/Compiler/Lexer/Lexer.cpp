@@ -1329,7 +1329,7 @@ void Lexer::tokenize(TaskContext& ctx, SourceView& srcView, LexerFlags flags)
 {
     SWC_MEM_SCOPE("Frontend/Lexer");
 #if SWC_HAS_STATS
-    Timer time(&Stats::get().timeLexer);
+    Timer time(Stats::timedMetric(Stats::get().timeLexer));
 #endif
 
     srcView_ = &srcView;
@@ -1486,7 +1486,7 @@ void Lexer::tokenize(TaskContext& ctx, SourceView& srcView, LexerFlags flags)
         srcView_->setLexOnly();
 
     if (!isRawMode())
-        Stats::get().numTokens.fetch_add(srcView_->tokens().size());
+        Stats::get().numTokens.fetch_add(srcView_->tokens().size(), std::memory_order_relaxed);
 }
 
 void Lexer::buildTriviaIndex() const

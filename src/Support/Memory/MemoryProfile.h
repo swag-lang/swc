@@ -16,7 +16,10 @@ namespace MemoryProfile
         ScopedSuppress& operator=(const ScopedSuppress&) = delete;
     };
 
+    void                setTrackingEnabled(bool enabled);
     void                setDetailedTrackingEnabled(bool enabled);
+    [[nodiscard]] bool  isTrackingEnabled();
+    [[nodiscard]] bool  isDetailedTrackingEnabled();
     [[nodiscard]] void* allocateHeap(size_t size, size_t alignment, bool throwOnFailure);
     void                freeHeap(void* block) noexcept;
     void                trackExternalAlloc(const void* ptr, size_t size, const char* category = nullptr, const char* file = nullptr, uint32_t line = 0);

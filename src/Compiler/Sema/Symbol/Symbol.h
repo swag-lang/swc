@@ -181,7 +181,8 @@ public:
     static T* make(TaskContext& ctx, const AstNode* decl, TokenRef tokRef, IdentifierRef idRef, SymbolFlags flags)
     {
 #if SWC_HAS_STATS
-        Stats::get().numSymbols.fetch_add(1);
+        if (Stats::enabledRuntime())
+            Stats::get().numSymbols.fetch_add(1, std::memory_order_relaxed);
 #endif
         return ctx.compiler().allocate<T>(decl, tokRef, idRef, flags);
     }

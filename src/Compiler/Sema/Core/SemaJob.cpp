@@ -33,7 +33,7 @@ JobResult SemaJob::exec()
 {
     SWC_MEM_SCOPE("Sema");
 #if SWC_HAS_STATS
-    Timer time(&Stats::get().timeSema);
+    Timer time(Stats::timedMetric(Stats::get().timeSema));
 #endif
     const JobResult result = sema_.exec();
     if (result == JobResult::Done &&

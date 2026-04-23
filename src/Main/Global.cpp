@@ -3,6 +3,7 @@
 #include "Backend/ABI/CallConv.h"
 #include "Compiler/Lexer/LangSpec.h"
 #include "Main/Command/CommandLine.h"
+#include "Main/Stats.h"
 #include "Support/Memory/MemoryProfile.h"
 #include "Support/Os/Os.h"
 #include "Support/Report/Logger.h"
@@ -23,6 +24,8 @@ Global::Global()
 
 void Global::initialize(const CommandLine& cmdLine) const
 {
+    Stats::setEnabled(cmdLine.stats);
+    MemoryProfile::setTrackingEnabled(cmdLine.statsMem);
     MemoryProfile::setDetailedTrackingEnabled(cmdLine.statsMem);
     Os::initialize();
     CallConv::setup();

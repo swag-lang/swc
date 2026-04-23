@@ -12,20 +12,10 @@ namespace
 {
     struct AllocationHeader
     {
-        void*    rawPtr        = nullptr;
         size_t   trackedBytes  = 0;
         uint32_t categoryIndex = std::numeric_limits<uint32_t>::max();
         uint32_t flags         = 0;
     };
-
-#if SWC_HAS_STATS
-    [[nodiscard]] uintptr_t alignUpAddress(const uintptr_t value, const size_t alignment)
-    {
-        SWC_ASSERT(alignment != 0);
-        const uintptr_t mask = alignment - 1;
-        return (value + mask) & ~mask;
-    }
-#endif
 
 #if SWC_HAS_STATS
     constexpr uint32_t K_EXTERNAL_CAPACITY       = 16 * 1024;
@@ -42,6 +32,7 @@ namespace
 
     struct MemoryProfileState
     {
+        std::atomic<bool>                                                      trackingEnabled         = false;
         std::atomic<bool>                                                      detailedTrackingEnabled = false;
         std::array<MemoryProfile::CategoryInfo, MemoryProfile::MAX_CATEGORIES> categories{};
         std::atomic<uint32_t>                                                  categoryCount = 0;
@@ -69,9 +60,14 @@ namespace
         return !isTrackingSuppressed();
     }
 
-    [[nodiscard]] bool isDetailedTrackingEnabled()
+    [[nodiscard]] bool isTrackingEnabledInternal()
     {
-        return shouldTrack() && memoryProfileState().detailedTrackingEnabled.load(std::memory_order_relaxed);
+        return shouldTrack() && memoryProfileState().trackingEnabled.load(std::memory_order_relaxed);
+    }
+
+    [[nodiscard]] bool isDetailedTrackingEnabledInternal()
+    {
+        return isTrackingEnabledInternal() && memoryProfileState().detailedTrackingEnabled.load(std::memory_order_relaxed);
     }
 
     uint32_t findOrRegisterCategory(const char* name, const char* file, const uint32_t line)
@@ -189,6 +185,15 @@ namespace
 
 namespace MemoryProfile
 {
+    void setTrackingEnabled(const bool enabled)
+    {
+#if SWC_HAS_STATS
+        memoryProfileState().trackingEnabled.store(enabled, std::memory_order_relaxed);
+#else
+        SWC_UNUSED(enabled);
+#endif
+    }
+
     ScopedSuppress::ScopedSuppress()
     {
         ++g_SuppressDepth;
@@ -209,6 +214,24 @@ namespace MemoryProfile
 #endif
     }
 
+    bool isTrackingEnabled()
+    {
+#if SWC_HAS_STATS
+        return memoryProfileState().trackingEnabled.load(std::memory_order_relaxed);
+#else
+        return false;
+#endif
+    }
+
+    bool isDetailedTrackingEnabled()
+    {
+#if SWC_HAS_STATS
+        return memoryProfileState().detailedTrackingEnabled.load(std::memory_order_relaxed);
+#else
+        return false;
+#endif
+    }
+
     void* allocateHeap(size_t size, size_t alignment, const bool throwOnFailure)
     {
         if (size == 0)
@@ -216,9 +239,14 @@ namespace MemoryProfile
 
 #if SWC_HAS_STATS
         const size_t effectiveAlignment = std::max(alignment, alignof(AllocationHeader));
-        const size_t requestSize        = size + effectiveAlignment + sizeof(AllocationHeader);
+        if (size > std::numeric_limits<size_t>::max() - sizeof(AllocationHeader))
+        {
+            if (throwOnFailure)
+                throw std::bad_alloc();
+            return nullptr;
+        }
 
-        void* rawPtr = mi_malloc(requestSize);
+        void* rawPtr = mi_malloc_aligned_at(size + sizeof(AllocationHeader), effectiveAlignment, sizeof(AllocationHeader));
         if (!rawPtr)
         {
             if (throwOnFailure)
@@ -226,22 +254,19 @@ namespace MemoryProfile
             return nullptr;
         }
 
-        const auto   rawAddress  = reinterpret_cast<uintptr_t>(rawPtr);
-        const auto   userAddress = alignUpAddress(rawAddress + sizeof(AllocationHeader), effectiveAlignment);
-        auto* const  header      = reinterpret_cast<AllocationHeader*>(userAddress - sizeof(AllocationHeader));
-        const size_t usableSize  = mi_usable_size(rawPtr);
-        const size_t userOffset  = userAddress - rawAddress;
+        auto* const header      = static_cast<AllocationHeader*>(rawPtr);
+        const bool  trackAlloc  = isTrackingEnabledInternal();
+        const size_t usableSize = trackAlloc ? mi_usable_size(rawPtr) : 0;
 
-        header->rawPtr        = rawPtr;
-        header->trackedBytes  = usableSize > userOffset ? usableSize - userOffset : size;
+        header->trackedBytes  = usableSize > sizeof(AllocationHeader) ? usableSize - sizeof(AllocationHeader) : size;
         header->categoryIndex = K_INVALID_CATEGORY;
         header->flags         = 0;
 
-        if (shouldTrack())
+        if (trackAlloc)
         {
             header->flags = K_ALLOCATION_FLAG_TRACKED;
 
-            if (isDetailedTrackingEnabled())
+            if (isDetailedTrackingEnabledInternal())
             {
                 header->categoryIndex = g_CurrentCategory;
                 applyCategoryAlloc(header->categoryIndex, header->trackedBytes);
@@ -250,7 +275,7 @@ namespace MemoryProfile
             applyGlobalAlloc(header->trackedBytes);
         }
 
-        return reinterpret_cast<void*>(userAddress);
+        return header + 1;
 #else
         void* ptr = mi_malloc_aligned(size, alignment);
         if (!ptr && throwOnFailure)
@@ -272,7 +297,7 @@ namespace MemoryProfile
             applyGlobalFree(header->trackedBytes);
         }
 
-        mi_free(header->rawPtr);
+        mi_free(const_cast<AllocationHeader*>(header));
 #else
         mi_free(block);
 #endif
@@ -281,10 +306,10 @@ namespace MemoryProfile
     void trackExternalAlloc(const void* ptr, const size_t size, const char* category, const char* file, const uint32_t line)
     {
 #if SWC_HAS_STATS
-        if (!ptr || size == 0 || isTrackingSuppressed())
+        if (!ptr || size == 0 || !isTrackingEnabledInternal())
             return;
 
-        const bool trackDetailed = isDetailedTrackingEnabled();
+        const bool trackDetailed = isDetailedTrackingEnabledInternal();
         uint32_t   catIndex      = K_INVALID_CATEGORY;
         if (trackDetailed)
         {
@@ -347,6 +372,8 @@ namespace MemoryProfile
     ScopedCategory::ScopedCategory(const char* category, const char* file, const uint32_t line)
     {
         prevIndex_        = g_CurrentCategory;
+        if (!isDetailedTrackingEnabledInternal())
+            return;
         g_CurrentCategory = findOrRegisterCategory(category, file, line);
     }
 

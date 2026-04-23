@@ -8,9 +8,11 @@ struct Timer
     using Tick  = Clock::time_point;
 
     explicit Timer(std::atomic<uint64_t>* dest) :
-        destValue_{dest}
+        destValue_{dest},
+        started_{destValue_ != nullptr}
     {
-        start();
+        if (started_)
+            start();
     }
 
     ~Timer()
@@ -40,7 +42,7 @@ struct Timer
 private:
     std::atomic<uint64_t>* destValue_;
     Tick                   timeBefore_{};
-    bool                   started_ = true;
+    bool                   started_ = false;
 };
 
 SWC_END_NAMESPACE();

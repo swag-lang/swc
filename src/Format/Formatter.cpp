@@ -22,7 +22,7 @@ Formatter::Formatter(FormatOptions options) :
 void Formatter::prepare(const SourceFile& file)
 {
 #if SWC_HAS_STATS
-    Timer time(&Stats::get().timeFormat);
+    Timer time(Stats::timedMetric(Stats::get().timeFormat));
 #endif
     file_ = &file;
     if (file.mustSkipFormat())
@@ -84,7 +84,7 @@ Result Formatter::write(TaskContext& ctx) const
         return Result::Continue;
 
 #if SWC_HAS_STATS
-    Timer time(&Stats::get().timeFormatWrite);
+    Timer time(Stats::timedMetric(Stats::get().timeFormatWrite));
 #endif
     FileSystem::IoErrorInfo ioError;
     if (FileSystem::writeBinaryFile(file_->path(), text_.data(), text_.size(), ioError) != Result::Continue)

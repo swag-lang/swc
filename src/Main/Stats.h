@@ -13,6 +13,8 @@ struct Stats
     std::atomic<size_t>   numFormatRewrittenFiles = 0;
 
 #if SWC_HAS_STATS
+    std::atomic<bool> enabled = false;
+
     std::atomic<uint64_t> timeLoadFile    = 0;
     std::atomic<uint64_t> timeLexer       = 0;
     std::atomic<uint64_t> timeParser      = 0;
@@ -76,6 +78,34 @@ struct Stats
     static void addError()
     {
         get().numErrors.fetch_add(1, std::memory_order_relaxed);
+    }
+
+    static void setEnabled(bool enabled)
+    {
+#if SWC_HAS_STATS
+        get().enabled.store(enabled, std::memory_order_relaxed);
+#else
+        SWC_UNUSED(enabled);
+#endif
+    }
+
+    static bool enabledRuntime()
+    {
+#if SWC_HAS_STATS
+        return get().enabled.load(std::memory_order_relaxed);
+#else
+        return false;
+#endif
+    }
+
+    static std::atomic<uint64_t>* timedMetric(std::atomic<uint64_t>& metric)
+    {
+#if SWC_HAS_STATS
+        if (enabledRuntime())
+            return &metric;
+#endif
+        SWC_UNUSED(metric);
+        return nullptr;
     }
 
     static void setMax(const std::atomic<size_t>& valCur, std::atomic<size_t>& valMax)

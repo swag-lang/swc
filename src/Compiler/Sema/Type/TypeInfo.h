@@ -11,6 +11,12 @@ class SymbolAlias;
 class SymbolFunction;
 class TaskContext;
 class TypeManager;
+class TypeInfo;
+
+namespace TypeRuntimeHash
+{
+    uint32_t compute(const TaskContext& ctx, const TypeInfo& typeInfo);
+}
 
 enum class TypeInfoFlagsE : uint8_t
 {
@@ -72,6 +78,7 @@ class TypeInfo
 {
     friend struct TypeInfoHash;
     friend class TypeManager;
+    friend uint32_t TypeRuntimeHash::compute(const TaskContext& ctx, const TypeInfo& typeInfo);
 
 public:
     enum class Sign : uint8_t

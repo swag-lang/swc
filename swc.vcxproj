@@ -433,6 +433,7 @@
         <ClCompile Include="src\Compiler\Sema\Type\TypeGen.Process.cpp"/>
         <ClCompile Include="src\Compiler\Sema\Type\TypeInfo.cpp"/>
         <ClCompile Include="src\Compiler\Sema\Type\TypeManager.cpp"/>
+        <ClCompile Include="src\Compiler\Sema\Type\TypeRuntimeHash.cpp"/>
         <ClCompile Include="src\Support\Thread\JobManager.cpp"/>
         <ClCompile Include="src\Support\Thread\RaceCondition.cpp"/>
         <ClCompile Include="src\Compiler\SourceFile.cpp"/>
@@ -646,6 +647,7 @@
         <ClInclude Include="src\Compiler\Sema\Type\TypeGen.h"/>
         <ClInclude Include="src\Compiler\Sema\Type\TypeInfo.h"/>
         <ClInclude Include="src\Compiler\Sema\Type\TypeManager.h"/>
+        <ClInclude Include="src\Compiler\Sema\Type\TypeRuntimeHash.h"/>
         <ClInclude Include="src\Support\Thread\Job.h"/>
         <ClInclude Include="src\Support\Thread\JobManager.h"/>
         <ClInclude Include="src\Support\Thread\RaceCondition.h"/>

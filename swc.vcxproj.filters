@@ -945,6 +945,9 @@
     <ClCompile Include="src\Compiler\Sema\Type\TypeManager.cpp">
       <Filter>src\Compiler\Sema\Type</Filter>
     </ClCompile>
+    <ClCompile Include="src\Compiler\Sema\Type\TypeRuntimeHash.cpp">
+      <Filter>src\Compiler\Sema\Type</Filter>
+    </ClCompile>
     <ClCompile Include="src\Support\Thread\JobManager.cpp">
       <Filter>src\Support\Thread</Filter>
     </ClCompile>
@@ -1557,6 +1560,9 @@
       <Filter>src\Compiler\Sema\Type</Filter>
     </ClInclude>
     <ClInclude Include="src\Compiler\Sema\Type\TypeManager.h">
+      <Filter>src\Compiler\Sema\Type</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Compiler\Sema\Type\TypeRuntimeHash.h">
       <Filter>src\Compiler\Sema\Type</Filter>
     </ClInclude>
     <ClInclude Include="src\Support\Thread\Job.h">

@@ -12,15 +12,21 @@ NativeRDataCollector::NativeRDataCollector(NativeBackendBuilder& builder) :
 
 Result NativeRDataCollector::collectAndEmit()
 {
-    SWC_RESULT(collectRoots());
-    return emitReachableAllocations();
+    SWC_RESULT(collectStartupRoots());
+    SWC_RESULT(collectFunctionRoots());
+    return emitCollectedRoots();
 }
 
-Result NativeRDataCollector::collectRoots()
+Result NativeRDataCollector::collectStartupRoots()
 {
     if (builder_->startup)
         SWC_RESULT(collectCodeRoots(builder_->startup->debugName, builder_->startup->code.codeRelocations));
 
+    return Result::Continue;
+}
+
+Result NativeRDataCollector::collectFunctionRoots()
+{
     for (const NativeFunctionInfo& info : builder_->functionInfos)
     {
         if (!info.machineCode)
@@ -30,6 +36,17 @@ Result NativeRDataCollector::collectRoots()
         SWC_RESULT(collectCodeRoots(ownerName, info.machineCode->codeRelocations));
     }
 
+    return Result::Continue;
+}
+
+Result NativeRDataCollector::emitCollectedRoots()
+{
+    SWC_RESULT(collectPendingAllocations());
+    return emitReachableAllocations();
+}
+
+Result NativeRDataCollector::collectPendingAllocations()
+{
     std::vector<DataSegmentRelocation> allocationRelocations;
     while (!pending_.empty())
     {

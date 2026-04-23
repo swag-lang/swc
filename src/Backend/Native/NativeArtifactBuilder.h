@@ -4,6 +4,9 @@
 
 SWC_BEGIN_NAMESPACE();
 
+class NativeRDataCollector;
+class NativeStartupBuildJob;
+
 struct NativeArtifactPaths
 {
     Utf8                  name;
@@ -26,6 +29,8 @@ public:
     void   queryPaths(NativeArtifactPaths& outPaths, uint32_t numObjects = 0) const;
 
 private:
+    friend class NativeStartupBuildJob;
+
     Result          clearOutputFolders(const NativeArtifactPaths& paths) const;
     Utf8            artifactName() const;
     Utf8            artifactExtension() const;
@@ -38,9 +43,13 @@ private:
     Result          createBuildDir(const fs::path& buildDir) const;
 
     Result prepareDataSections() const;
+    Result buildStartupAndDataSectionsParallel() const;
+    void   resetDataSections() const;
+    Result prepareDataSectionsWithoutStartup(NativeRDataCollector& rdataCollector) const;
+    Result finishDataSections(NativeRDataCollector& rdataCollector) const;
     Result resolveFunctionRelocationName(Utf8& outName, const SymbolFunction* targetFunction) const;
     Result partitionObjects() const;
-    Result buildStartup() const;
+    Result buildStartup(TaskContext& ctx) const;
 
     NativeBackendBuilder* builder_ = nullptr;
 };

@@ -30,6 +30,7 @@ class ExternalModuleManager;
 class Global;
 class SourceFile;
 class JITExecManager;
+class CompilerMessageTypeInfoJob;
 struct CommandLine;
 
 class CompilerInstance
@@ -204,6 +205,15 @@ public:
     static bool dbgDevStop;
 
 private:
+    friend class CompilerMessageTypeInfoJob;
+
+    struct CompilerMessageTypeInfoPrepRequest
+    {
+        SourceFile* listenerFile = nullptr;
+        AstNodeRef  ownerNodeRef = AstNodeRef::invalid();
+        TypeRef     typeRef      = TypeRef::invalid();
+    };
+
     SourceFile& addResolvedFile(fs::path path, FileFlags flags);
     void        appendResolvedFiles(std::vector<fs::path>& paths, FileFlags flags);
     void        collectFolderFiles(const fs::path& folder, FileFlags flags, bool canFilter);
@@ -264,8 +274,12 @@ private:
     std::deque<CompilerMessageListener>                compilerMessageListeners_;
     std::vector<CompilerMessageEvent>                  compilerMessageLog_;
     std::unordered_map<TypeRef, const Runtime::TypeInfo*> compilerMessageTypeInfoCache_;
+    std::unordered_set<TypeRef>                        compilerMessageTypeInfoPrepScheduled_;
+    std::deque<CompilerMessageTypeInfoPrepRequest>     compilerMessageTypeInfoPrepQueue_;
     std::atomic<uint64_t>                              compilerMessageActiveMask_ = 0;
     std::atomic<uint64_t>                              compilerMessageExecutedPassMask_ = 0;
+    std::atomic<bool>                                  compilerMessageTypeInfoPrepFailed_ = false;
+    bool                                               compilerMessageTypeInfoPrepJobQueued_ = false;
     std::once_flag                                     nativeRuntimeContextTlsIdOffsetOnce_;
     uint32_t                                           nativeRuntimeContextTlsIdOffset_ = UINT32_MAX;
     std::vector<SymbolFunction*>                       nativeCodeSegment_;
@@ -287,6 +301,11 @@ private:
     void setupRuntimeCompiler();
     bool tryGetCompilerMessageTypeInfo(TypeRef typeRef, const Runtime::TypeInfo*& outType);
     void cacheCompilerMessageTypeInfo(TypeRef typeRef, const Runtime::TypeInfo* runtimeTypeInfo);
+    bool tryPopCompilerMessageTypeInfoPreparation(CompilerMessageTypeInfoPrepRequest& outRequest);
+    void markCompilerMessageTypeInfoPreparationFailed();
+    void enqueueCompilerMessageTypeInfoPreparation(TaskContext& ctx, SymbolFunction* listenerFunction, AstNodeRef ownerNodeRef, const CompilerMessageEvent& event);
+    Result ensureCompilerMessageTypeInfoPrepared(TaskContext& ctx, SymbolFunction* listenerFunction, AstNodeRef ownerNodeRef, const CompilerMessageEvent& event);
+    Result prepareCompilerMessageTypeInfo(Sema& sema, TypeRef typeRef, AstNodeRef ownerNodeRef);
     Result fillRuntimeCompilerMessage(Sema& sema, AstNodeRef ownerNodeRef, const CompilerMessageEvent& event);
 };
 

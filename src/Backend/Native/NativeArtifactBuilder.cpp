@@ -5,6 +5,9 @@
 #include "Main/Command/CommandLineParser.h"
 #include "Main/FileSystem.h"
 #include "Main/Global.h"
+#include "Support/Memory/Heap.h"
+#include "Support/Memory/MemoryProfile.h"
+#include "Support/Thread/JobManager.h"
 #if SWC_HAS_VALIDATE_NATIVE
 #include "Backend/Native/NativeValidate.h"
 #endif
@@ -94,6 +97,34 @@ namespace
     }
 }
 
+class NativeStartupBuildJob final : public Job
+{
+public:
+    NativeStartupBuildJob(const TaskContext& ctx, const NativeArtifactBuilder& artifactBuilder) :
+        Job(ctx, JobKind::NativeArtifact),
+        artifactBuilder_(&artifactBuilder)
+    {
+    }
+
+    JobResult exec() override
+    {
+        SWC_MEM_SCOPE("Backend/Native/Startup");
+        ctx().state().reset();
+        SWC_ASSERT(artifactBuilder_ != nullptr);
+        result_.store(artifactBuilder_->buildStartup(ctx()), std::memory_order_release);
+        return JobResult::Done;
+    }
+
+    Result result() const noexcept
+    {
+        return result_.load(std::memory_order_acquire);
+    }
+
+private:
+    const NativeArtifactBuilder* artifactBuilder_ = nullptr;
+    std::atomic<Result>          result_          = Result::Continue;
+};
+
 NativeArtifactBuilder::NativeArtifactBuilder(NativeBackendBuilder& builder) :
     builder_(&builder)
 {
@@ -108,8 +139,16 @@ Result NativeArtifactBuilder::build() const
         nativeValidate.validate();
     }
 #endif
-    SWC_RESULT(buildStartup());
-    SWC_RESULT(prepareDataSections());
+    if (builder_->ctx().global().jobMgr().numWorkers() == 0)
+    {
+        SWC_RESULT(buildStartup(builder_->ctx()));
+        SWC_RESULT(prepareDataSections());
+    }
+    else
+    {
+        SWC_RESULT(buildStartupAndDataSectionsParallel());
+    }
+
     return partitionObjects();
 }
 
@@ -315,6 +354,35 @@ Result NativeArtifactBuilder::resolveFunctionRelocationName(Utf8& outName, const
 
 Result NativeArtifactBuilder::prepareDataSections() const
 {
+    resetDataSections();
+
+    NativeRDataCollector collector(*builder_);
+    SWC_RESULT(collector.collectStartupRoots());
+    SWC_RESULT(prepareDataSectionsWithoutStartup(collector));
+    return finishDataSections(collector);
+}
+
+Result NativeArtifactBuilder::buildStartupAndDataSectionsParallel() const
+{
+    resetDataSections();
+
+    JobManager&            jobMgr     = builder_->ctx().global().jobMgr();
+    auto*                  startupJob = heapNew<NativeStartupBuildJob>(builder_->ctx(), *this);
+    NativeRDataCollector   collector(*builder_);
+    const JobClientId      clientId   = builder_->compiler().jobClientId();
+    jobMgr.enqueue(*startupJob, JobPriority::Normal, clientId);
+
+    const Result dataResult = prepareDataSectionsWithoutStartup(collector);
+    jobMgr.waitAll(clientId);
+
+    SWC_RESULT(startupJob->result());
+    SWC_RESULT(dataResult);
+    SWC_RESULT(collector.collectStartupRoots());
+    return finishDataSections(collector);
+}
+
+void NativeArtifactBuilder::resetDataSections() const
+{
     builder_->mergedRData.name            = ".rdata";
     builder_->mergedRData.characteristics = IMAGE_SCN_CNT_INITIALIZED_DATA | IMAGE_SCN_MEM_READ | IMAGE_SCN_ALIGN_16BYTES;
     builder_->mergedData.name             = ".data";
@@ -332,12 +400,15 @@ Result NativeArtifactBuilder::prepareDataSections() const
     builder_->mergedBss.bss     = builder_->mergedBss.bssSize != 0;
     for (auto& mappings : builder_->rdataAllocationMap)
         mappings.clear();
+}
 
-    // Emitted machine code is the source of truth for native constant roots.
-    // Global initializers are already materialized into .data/.bss and do not need shard-wide .rdata copies.
-    NativeRDataCollector collector(*builder_);
-    SWC_RESULT(collector.collectAndEmit());
+Result NativeArtifactBuilder::prepareDataSectionsWithoutStartup(NativeRDataCollector& rdataCollector) const
+{
+    // Emitted function code is the source of truth for native constant roots.
+    // Startup roots are collected after startup lowering has completed.
+    SWC_RESULT(rdataCollector.collectFunctionRoots());
 
+    CompilerInstance& compiler = builder_->compiler();
     const uint32_t dataSize = compiler.globalInitSegment().extentSize();
     if (dataSize)
     {
@@ -390,6 +461,11 @@ Result NativeArtifactBuilder::prepareDataSections() const
     return Result::Continue;
 }
 
+Result NativeArtifactBuilder::finishDataSections(NativeRDataCollector& rdataCollector) const
+{
+    return rdataCollector.emitCollectedRoots();
+}
+
 Result NativeArtifactBuilder::partitionObjects() const
 {
     builder_->objectDescriptions.clear();
@@ -431,7 +507,7 @@ Result NativeArtifactBuilder::partitionObjects() const
     return Result::Continue;
 }
 
-Result NativeArtifactBuilder::buildStartup() const
+Result NativeArtifactBuilder::buildStartup(TaskContext& ctx) const
 {
     builder_->startup.reset();
 
@@ -460,8 +536,8 @@ Result NativeArtifactBuilder::buildStartup() const
     SymbolFunction* testCountTickFn = nullptr;
     if (expectedTestCount)
     {
-        const IdentifierRef testCountInitIdRef = builder_->ctx().idMgr().runtimeFunction(IdentifierManager::RuntimeFunctionKind::TestCountInit);
-        const IdentifierRef testCountTickIdRef = builder_->ctx().idMgr().runtimeFunction(IdentifierManager::RuntimeFunctionKind::TestCountTick);
+        const IdentifierRef testCountInitIdRef = ctx.idMgr().runtimeFunction(IdentifierManager::RuntimeFunctionKind::TestCountInit);
+        const IdentifierRef testCountTickIdRef = ctx.idMgr().runtimeFunction(IdentifierManager::RuntimeFunctionKind::TestCountTick);
         testCountInitFn                        = builder_->compiler().runtimeFunctionSymbol(testCountInitIdRef);
         testCountTickFn                        = builder_->compiler().runtimeFunctionSymbol(testCountTickIdRef);
         SWC_ASSERT(testCountInitFn != nullptr);
@@ -508,7 +584,7 @@ Result NativeArtifactBuilder::buildStartup() const
     for (SymbolFunction* symbol : builder_->dropFunctions)
         ABICall::callLocal(builder, symbol->callConvKind(), symbol, {});
 
-    const IdentifierRef exitIdRef = builder_->ctx().idMgr().runtimeFunction(IdentifierManager::RuntimeFunctionKind::Exit);
+    const IdentifierRef exitIdRef = ctx.idMgr().runtimeFunction(IdentifierManager::RuntimeFunctionKind::Exit);
     SymbolFunction*     exitFn    = builder_->compiler().runtimeFunctionSymbol(exitIdRef);
     SWC_ASSERT(exitFn != nullptr);
 
@@ -518,7 +594,7 @@ Result NativeArtifactBuilder::buildStartup() const
     ABICall::callLocal(builder, exitFn->callConvKind(), exitFn, preparedExit);
     builder.emitRet();
 
-    if (startup->code.emit(builder_->ctx(), builder) != Result::Continue)
+    if (startup->code.emit(ctx, builder) != Result::Continue)
         return builder_->reportError(DiagnosticId::cmd_err_native_test_entry_lower_failed);
 
     builder_->startup = std::move(startup);

@@ -295,6 +295,26 @@ private:
 
     void errorCleanupNode(AstNodeRef nodeRef, AstNode& node);
 
+    enum class DeferredTopLevelItemKind : uint8_t
+    {
+        SemaJob,
+        CompilerRun,
+        CompilerAst,
+    };
+
+    struct DeferredTopLevelItem
+    {
+        AstNodeRef               nodeRef;
+        DeferredTopLevelItemKind kind;
+    };
+
+    Result runCurrentVisit();
+    Result processDeferredTopLevelItems();
+    Result processDeferredTopLevelNode(AstNodeRef nodeRef, uint32_t insertIndex);
+    Result processPendingTopLevelCompilerRuns(uint32_t insertIndex);
+    void   deferTopLevelItem(AstNodeRef nodeRef, DeferredTopLevelItemKind kind);
+    void   enqueueTopLevelSemaJob(AstNodeRef nodeRef);
+
     void   processDeferredPopsPostChild(AstNodeRef nodeRef, AstNodeRef childRef);
     void   processDeferredPopsPostNode(AstNodeRef nodeRef);
     Result processDeferredPostNodeActions(AstNodeRef nodeRef);
@@ -307,6 +327,7 @@ private:
     SymbolMap*                              startSymMap_ = nullptr;
     SemaScope*                              curScope_    = nullptr;
     bool                                    declPass_    = false;
+    bool                                    rootVisitDone_ = false;
 
     std::vector<SemaFrame> frames_;
 
@@ -336,8 +357,15 @@ private:
         AstNodeRef                               nodeRef;
         std::function<Result(Sema&, AstNodeRef)> callback;
     };
-    std::vector<DeferredPostNodeAction> deferredPostNodeActions_;
-    std::vector<ActiveCompilerAstExpansion> compilerAstExpansions_;
+    std::vector<DeferredPostNodeAction>       deferredPostNodeActions_;
+    std::vector<ActiveCompilerAstExpansion>   compilerAstExpansions_;
+    std::vector<DeferredTopLevelItem>         deferredTopLevelItems_;
+    std::vector<AstNodeRef>                   pendingTopLevelCompilerRunRefs_;
+    uint32_t                                  deferredTopLevelItemIndex_       = 0;
+    uint32_t                                  deferredTopLevelItemInsertIndex_ = 0;
+    uint32_t                                  pendingTopLevelCompilerRunIndex_ = 0;
+    bool                                      deferTopLevelItems_              = false;
+    bool                                      deferredTopLevelItemRunning_     = false;
 };
 
 SWC_END_NAMESPACE();

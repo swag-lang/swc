@@ -38,6 +38,53 @@ SWC_BEGIN_NAMESPACE();
 
 bool CompilerInstance::dbgDevStop = false;
 
+class CompilerMessageTypeInfoJob : public Job
+{
+public:
+    static constexpr auto K = JobKind::CompilerMessage;
+
+    explicit CompilerMessageTypeInfoJob(const TaskContext& ctx) :
+        Job(ctx, JobKind::CompilerMessage)
+    {
+    }
+
+    JobResult exec() override
+    {
+        while (true)
+        {
+            if (!hasCurrentRequest_)
+            {
+                if (!ctx().compiler().tryPopCompilerMessageTypeInfoPreparation(currentRequest_))
+                    return JobResult::Done;
+                hasCurrentRequest_ = true;
+            }
+
+            ctx().state().reset();
+            if (!currentRequest_.listenerFile || currentRequest_.ownerNodeRef.isInvalid() || currentRequest_.typeRef.isInvalid())
+            {
+                hasCurrentRequest_ = false;
+                continue;
+            }
+
+            Sema         sema(ctx(), currentRequest_.listenerFile->nodePayloadContext(), false);
+            const Result result = ctx().compiler().prepareCompilerMessageTypeInfo(sema, currentRequest_.typeRef, currentRequest_.ownerNodeRef);
+            if (result == Result::Pause)
+                return JobResult::Sleep;
+
+            hasCurrentRequest_ = false;
+            if (result == Result::Error)
+            {
+                ctx().compiler().markCompilerMessageTypeInfoPreparationFailed();
+                return JobResult::Done;
+            }
+        }
+    }
+
+private:
+    CompilerInstance::CompilerMessageTypeInfoPrepRequest currentRequest_;
+    bool                                                 hasCurrentRequest_ = false;
+};
+
 namespace
 {
     uint64_t       g_RuntimeContextTlsId;
@@ -143,6 +190,22 @@ namespace
         const SourceFile*      file          = nullptr;
         std::unique_ptr<Sema>  sema;
     };
+
+    TypeRef compilerMessageEventTypeRef(const CompilerInstance::CompilerMessageEvent& event)
+    {
+        if (!event.symbol)
+            return TypeRef::invalid();
+
+        return event.symbol->typeRef();
+    }
+
+    bool canPrepareCompilerMessageTypeInfo(const CompilerInstance& compiler, const SymbolFunction* listenerFunction, AstNodeRef ownerNodeRef)
+    {
+        if (!listenerFunction || ownerNodeRef.isInvalid())
+            return false;
+
+        return sourceFileFromRef(compiler, listenerFunction->srcViewRef()) != nullptr;
+    }
 
     thread_local CompilerMessageDispatchState* g_CompilerMessageDispatchState = nullptr;
 
@@ -1363,6 +1426,127 @@ void CompilerInstance::cacheCompilerMessageTypeInfo(const TypeRef typeRef, const
 {
     const std::scoped_lock lock(compilerMessageMutex_);
     compilerMessageTypeInfoCache_[typeRef] = runtimeTypeInfo;
+    compilerMessageTypeInfoPrepScheduled_.erase(typeRef);
+}
+
+bool CompilerInstance::tryPopCompilerMessageTypeInfoPreparation(CompilerMessageTypeInfoPrepRequest& outRequest)
+{
+    const std::scoped_lock lock(compilerMessageMutex_);
+    while (!compilerMessageTypeInfoPrepQueue_.empty())
+    {
+        outRequest = compilerMessageTypeInfoPrepQueue_.front();
+        compilerMessageTypeInfoPrepQueue_.pop_front();
+
+        if (compilerMessageTypeInfoCache_.contains(outRequest.typeRef))
+        {
+            compilerMessageTypeInfoPrepScheduled_.erase(outRequest.typeRef);
+            continue;
+        }
+
+        return true;
+    }
+
+    compilerMessageTypeInfoPrepJobQueued_ = false;
+    return false;
+}
+
+void CompilerInstance::markCompilerMessageTypeInfoPreparationFailed()
+{
+    compilerMessageTypeInfoPrepFailed_.store(true, std::memory_order_release);
+    notifyAlive();
+}
+
+void CompilerInstance::enqueueCompilerMessageTypeInfoPreparation(TaskContext& ctx, SymbolFunction* listenerFunction, const AstNodeRef ownerNodeRef, const CompilerMessageEvent& event)
+{
+    if (compilerMessageTypeInfoPrepFailed_.load(std::memory_order_acquire))
+        return;
+
+    const TypeRef typeRef = compilerMessageEventTypeRef(event);
+    if (typeRef.isInvalid())
+        return;
+
+    if (!canPrepareCompilerMessageTypeInfo(*this, listenerFunction, ownerNodeRef))
+        return;
+
+    const SourceFile* listenerFile = sourceFileFromRef(*this, listenerFunction->srcViewRef());
+    if (!listenerFile)
+        return;
+
+    bool enqueueJob = false;
+    {
+        const std::scoped_lock lock(compilerMessageMutex_);
+        if (compilerMessageTypeInfoCache_.contains(typeRef))
+            return;
+
+        if (!compilerMessageTypeInfoPrepScheduled_.insert(typeRef).second)
+            return;
+
+        CompilerMessageTypeInfoPrepRequest request;
+        request.listenerFile = const_cast<SourceFile*>(listenerFile);
+        request.ownerNodeRef = ownerNodeRef;
+        request.typeRef      = typeRef;
+        compilerMessageTypeInfoPrepQueue_.push_back(request);
+
+        enqueueJob = !compilerMessageTypeInfoPrepJobQueued_;
+        compilerMessageTypeInfoPrepJobQueued_ = true;
+    }
+
+    if (enqueueJob)
+    {
+        auto* job = heapNew<CompilerMessageTypeInfoJob>(ctx);
+        global().jobMgr().enqueue(*job, JobPriority::Normal, jobClientId());
+    }
+    notifyAlive();
+}
+
+Result CompilerInstance::ensureCompilerMessageTypeInfoPrepared(TaskContext& ctx, SymbolFunction* listenerFunction, const AstNodeRef ownerNodeRef, const CompilerMessageEvent& event)
+{
+    if (compilerMessageTypeInfoPrepFailed_.load(std::memory_order_acquire))
+        return Result::Error;
+
+    const TypeRef typeRef = compilerMessageEventTypeRef(event);
+    if (typeRef.isInvalid())
+        return Result::Continue;
+
+    const Runtime::TypeInfo* runtimeTypeInfo = nullptr;
+    if (tryGetCompilerMessageTypeInfo(typeRef, runtimeTypeInfo))
+        return Result::Continue;
+
+    if (!canPrepareCompilerMessageTypeInfo(*this, listenerFunction, ownerNodeRef))
+        return Result::Continue;
+
+    enqueueCompilerMessageTypeInfoPreparation(ctx, listenerFunction, ownerNodeRef, event);
+
+    if (tryGetCompilerMessageTypeInfo(typeRef, runtimeTypeInfo))
+        return Result::Continue;
+
+    return Result::Pause;
+}
+
+Result CompilerInstance::prepareCompilerMessageTypeInfo(Sema& sema, const TypeRef typeRef, const AstNodeRef ownerNodeRef)
+{
+    const Runtime::TypeInfo* runtimeTypeInfo = nullptr;
+    if (tryGetCompilerMessageTypeInfo(typeRef, runtimeTypeInfo))
+        return Result::Continue;
+
+    if (typeRef.isInvalid() || ownerNodeRef.isInvalid())
+        return Result::Continue;
+
+    ConstantRef typeInfoCstRef = ConstantRef::invalid();
+    SWC_RESULT(sema.cstMgr().makeTypeInfo(sema, typeInfoCstRef, typeRef, ownerNodeRef));
+
+    const ConstantValue& typeInfoCst = sema.cstMgr().get(typeInfoCstRef);
+    SWC_ASSERT(typeInfoCst.isValuePointer());
+    DataSegmentRef typeInfoRef;
+    if (!sema.cstMgr().resolveConstantDataSegmentRef(typeInfoRef, typeInfoCstRef, reinterpret_cast<const void*>(typeInfoCst.getValuePointer())))
+        return Result::Error;
+
+    runtimeTypeInfo = sema.cstMgr().shardDataSegment(typeInfoRef.shardIndex).ptr<Runtime::TypeInfo>(typeInfoRef.offset);
+    if (!runtimeTypeInfo)
+        return Result::Error;
+
+    cacheCompilerMessageTypeInfo(typeRef, runtimeTypeInfo);
+    return Result::Continue;
 }
 
 Result CompilerInstance::fillRuntimeCompilerMessage(Sema& sema, const AstNodeRef ownerNodeRef, const CompilerMessageEvent& event)
@@ -1388,21 +1572,9 @@ Result CompilerInstance::fillRuntimeCompilerMessage(Sema& sema, const AstNodeRef
     if (ownerNodeRef.isInvalid())
         return Result::Continue;
 
-    ConstantRef typeInfoCstRef = ConstantRef::invalid();
-    SWC_RESULT(sema.cstMgr().makeTypeInfo(sema, typeInfoCstRef, typeRef, ownerNodeRef));
+    if (!tryGetCompilerMessageTypeInfo(typeRef, message.type))
+        return Result::Pause;
 
-    const ConstantValue& typeInfoCst = sema.cstMgr().get(typeInfoCstRef);
-    SWC_ASSERT(typeInfoCst.isValuePointer());
-    DataSegmentRef typeInfoRef;
-    if (!sema.cstMgr().resolveConstantDataSegmentRef(typeInfoRef, typeInfoCstRef, reinterpret_cast<const void*>(typeInfoCst.getValuePointer())))
-        return Result::Error;
-
-    const Runtime::TypeInfo* const runtimeTypeInfo = sema.cstMgr().shardDataSegment(typeInfoRef.shardIndex).ptr<Runtime::TypeInfo>(typeInfoRef.offset);
-    if (!runtimeTypeInfo)
-        return Result::Error;
-
-    cacheCompilerMessageTypeInfo(typeRef, runtimeTypeInfo);
-    message.type = runtimeTypeInfo;
     return Result::Continue;
 }
 
@@ -1411,6 +1583,7 @@ void CompilerInstance::registerCompilerMessageFunction(SymbolFunction* symbol, c
     if (!symbol || !mask)
         return;
 
+    std::vector<CompilerMessageEvent> replayEventsToPrepare;
     {
         const std::scoped_lock lock(compilerMessageMutex_);
         for (const CompilerMessageListener& listener : compilerMessageListeners_)
@@ -1444,8 +1617,13 @@ void CompilerInstance::registerCompilerMessageFunction(SymbolFunction* symbol, c
             }
         }
 
+        replayEventsToPrepare = listener.replayEvents;
         compilerMessageListeners_.push_back(std::move(listener));
     }
+
+    TaskContext ctx(*this);
+    for (const CompilerMessageEvent& event : replayEventsToPrepare)
+        enqueueCompilerMessageTypeInfoPreparation(ctx, symbol, nodeRef, event);
 
     notifyAlive();
 }
@@ -1460,12 +1638,34 @@ void CompilerInstance::onSymbolSemaCompleted(Symbol& symbol)
     if (!kind.has_value())
         return;
 
+    const CompilerMessageEvent event{
+        .kind   = *kind,
+        .symbol = &symbol,
+    };
+
+    SymbolFunction* preparationFunction = nullptr;
+    AstNodeRef      preparationNodeRef  = AstNodeRef::invalid();
     {
         const std::scoped_lock lock(compilerMessageMutex_);
-        compilerMessageLog_.push_back({
-            .kind   = *kind,
-            .symbol = &symbol,
-        });
+        compilerMessageLog_.push_back(event);
+
+        for (const CompilerMessageListener& listener : compilerMessageListeners_)
+        {
+            if (!(listener.mask & compilerMessageBit(event.kind)))
+                continue;
+            if (!canPrepareCompilerMessageTypeInfo(*this, listener.function, listener.nodeRef))
+                continue;
+
+            preparationFunction = listener.function;
+            preparationNodeRef  = listener.nodeRef;
+            break;
+        }
+    }
+
+    if (preparationFunction)
+    {
+        TaskContext ctx(*this);
+        enqueueCompilerMessageTypeInfoPreparation(ctx, preparationFunction, preparationNodeRef, event);
     }
 
     notifyAlive();
@@ -1532,6 +1732,7 @@ Result CompilerInstance::executePendingCompilerMessages(TaskContext& ctx)
         Sema*             sema         = nullptr;
         SWC_RESULT(ensureCompilerMessageListenerSema(listenerState, ctx, dispatch, listenerFile, sema));
         SWC_ASSERT(sema != nullptr);
+        SWC_RESULT(ensureCompilerMessageTypeInfoPrepared(ctx, dispatch.function, dispatch.nodeRef, dispatch.event));
         SWC_RESULT(fillRuntimeCompilerMessage(*sema, dispatch.nodeRef, dispatch.event));
         {
             ScopedCompilerMessageDispatchState dispatchScope(*this, listenerFile->moduleNamespace(), deferredGeneratedSources);

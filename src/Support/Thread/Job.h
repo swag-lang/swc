@@ -17,6 +17,8 @@ enum class JobKind
     Sema,
     CodeGen,
     JitPatch,
+    CompilerMessage,
+    NativeArtifact,
     NativeObj,
 };
 

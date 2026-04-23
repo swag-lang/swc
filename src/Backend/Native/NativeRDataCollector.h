@@ -12,6 +12,9 @@ public:
     explicit NativeRDataCollector(NativeBackendBuilder& builder);
 
     Result collectAndEmit();
+    Result collectStartupRoots();
+    Result collectFunctionRoots();
+    Result emitCollectedRoots();
 
 private:
     struct PendingRDataAllocation
@@ -21,7 +24,7 @@ private:
         Utf8     ownerName;
     };
 
-    Result collectRoots();
+    Result collectPendingAllocations();
     Result collectCodeRoots(const Utf8& ownerName, std::span<const MicroRelocation> relocations);
     Result enqueueConstantRelocation(const Utf8& ownerName, const MicroRelocation& relocation);
     Result enqueueSourceOffset(const Utf8& ownerName, uint32_t shardIndex, uint32_t sourceOffset);

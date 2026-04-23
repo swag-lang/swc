@@ -97,6 +97,22 @@ namespace
         for (const AstNodeRef childRef : children)
             cleanupPendingImplRegistrations(sema, childRef);
     }
+
+    bool isCompilerRunFunction(const Sema& sema, const AstNode& node)
+    {
+        if (node.isNot(AstNodeId::CompilerFunc))
+            return false;
+
+        return sema.token(node.codeRef()).id == TokenId::CompilerRun;
+    }
+
+    bool isCompilerAstFunction(const Sema& sema, const AstNode& node)
+    {
+        if (node.isNot(AstNodeId::CompilerFunc) && node.isNot(AstNodeId::CompilerShortFunc))
+            return false;
+
+        return sema.token(node.codeRef()).id == TokenId::CompilerAst;
+    }
 }
 
 Sema::Sema(TaskContext& ctx, NodePayload& payloadContext, bool declPass) :
@@ -738,10 +754,32 @@ Result Sema::preNodeChild(AstNode& node, AstNodeRef& childRef)
     {
         const AstNode&       child     = ast().node(childRef);
         const AstNodeIdInfo& childInfo = Ast::nodeIdInfos(child.id());
+        const bool           compilerRun = isCompilerRunFunction(*this, child);
+        const bool           compilerAst = isCompilerAstFunction(*this, child);
+
+        if (!compilerAstExpansions_.empty() && (compilerRun || compilerAst))
+            return Result::Continue;
+
+        if (compilerRun)
+        {
+            deferTopLevelItems_ = true;
+            deferTopLevelItem(childRef, DeferredTopLevelItemKind::CompilerRun);
+            return Result::SkipChildren;
+        }
+
+        if (compilerAst)
+        {
+            deferTopLevelItems_ = true;
+            deferTopLevelItem(childRef, DeferredTopLevelItemKind::CompilerAst);
+            return Result::SkipChildren;
+        }
+
         if (childInfo.hasFlag(AstNodeIdFlagsE::SemaJob))
         {
-            auto* job = heapNew<SemaJob>(ctx(), *this, childRef);
-            compiler().global().jobMgr().enqueue(*job, JobPriority::Normal, compiler().jobClientId());
+            if (deferTopLevelItems_)
+                deferTopLevelItem(childRef, DeferredTopLevelItemKind::SemaJob);
+            else
+                enqueueTopLevelSemaJob(childRef);
             return Result::SkipChildren;
         }
     }
@@ -829,18 +867,31 @@ Result Sema::processDeferredPostNodeActions(AstNodeRef nodeRef)
     return Result::Continue;
 }
 
-Result Sema::execResult()
+void Sema::deferTopLevelItem(AstNodeRef nodeRef, DeferredTopLevelItemKind kind)
 {
-    if (!curScope_ && scopes_.empty())
+    DeferredTopLevelItem item;
+    item.nodeRef = nodeRef;
+    item.kind    = kind;
+
+    if (!deferredTopLevelItemRunning_)
     {
-        scopes_.emplace_back(std::make_unique<SemaScope>(SemaScopeFlagsE::TopLevel, nullptr));
-        curScope_ = scopes_.back().get();
-        curScope_->setSymMap(startSymMap_);
+        deferredTopLevelItems_.push_back(item);
+        return;
     }
 
-    ctx().state().reset();
+    auto insertIt = deferredTopLevelItems_.begin() + deferredTopLevelItemInsertIndex_;
+    deferredTopLevelItems_.insert(insertIt, item);
+    deferredTopLevelItemInsertIndex_++;
+}
 
-    auto semaResult = Result::Continue;
+void Sema::enqueueTopLevelSemaJob(AstNodeRef nodeRef)
+{
+    auto* job = heapNew<SemaJob>(ctx(), *this, nodeRef);
+    compiler().global().jobMgr().enqueue(*job, JobPriority::Normal, compiler().jobClientId());
+}
+
+Result Sema::runCurrentVisit()
+{
     while (true)
     {
         const AstNodeRef nodeRef = visit_.currentNodeRef();
@@ -848,10 +899,7 @@ Result Sema::execResult()
 
         const AstVisitResult result = visit_.step(ctx());
         if (result == AstVisitResult::Pause)
-        {
-            semaResult = Result::Pause;
-            break;
-        }
+            return Result::Pause;
 
         if (result == AstVisitResult::Error)
         {
@@ -870,16 +918,109 @@ Result Sema::execResult()
             // Resolve their pending registration bookkeeping so struct completion barriers cannot stall.
             cleanupPendingImplRegistrations(*this, visit_.root());
 
-            semaResult = Result::Error;
-            break;
+            return Result::Error;
         }
 
         if (result == AstVisitResult::Stop)
+            return Result::Continue;
+    }
+}
+
+Result Sema::processDeferredTopLevelNode(AstNodeRef nodeRef, uint32_t insertIndex)
+{
+    if (!deferredTopLevelItemRunning_)
+    {
+        visit_.start(ast(), nodeRef);
+        deferredTopLevelItemRunning_     = true;
+        deferredTopLevelItemInsertIndex_ = insertIndex;
+    }
+
+    const Result result = runCurrentVisit();
+    if (result != Result::Continue)
+        return result;
+
+    deferredTopLevelItemRunning_ = false;
+    return Result::Continue;
+}
+
+Result Sema::processPendingTopLevelCompilerRuns(uint32_t insertIndex)
+{
+    while (pendingTopLevelCompilerRunIndex_ < pendingTopLevelCompilerRunRefs_.size())
+    {
+        const AstNodeRef nodeRef = pendingTopLevelCompilerRunRefs_[pendingTopLevelCompilerRunIndex_];
+        SWC_RESULT(processDeferredTopLevelNode(nodeRef, insertIndex));
+        pendingTopLevelCompilerRunIndex_++;
+    }
+
+    pendingTopLevelCompilerRunRefs_.clear();
+    pendingTopLevelCompilerRunIndex_ = 0;
+
+    return Result::Continue;
+}
+
+Result Sema::processDeferredTopLevelItems()
+{
+    while (deferredTopLevelItemIndex_ < deferredTopLevelItems_.size())
+    {
+        const DeferredTopLevelItem item = deferredTopLevelItems_[deferredTopLevelItemIndex_];
+        switch (item.kind)
         {
-            semaResult = Result::Continue;
-            break;
+            case DeferredTopLevelItemKind::SemaJob:
+            {
+                enqueueTopLevelSemaJob(item.nodeRef);
+                deferredTopLevelItemIndex_++;
+                break;
+            }
+
+            case DeferredTopLevelItemKind::CompilerRun:
+            {
+                pendingTopLevelCompilerRunRefs_.push_back(item.nodeRef);
+                deferredTopLevelItemIndex_++;
+                break;
+            }
+
+            case DeferredTopLevelItemKind::CompilerAst:
+            {
+                if (!pendingTopLevelCompilerRunRefs_.empty())
+                {
+                    SWC_RESULT(processPendingTopLevelCompilerRuns(deferredTopLevelItemIndex_));
+                    break;
+                }
+
+                SWC_RESULT(processDeferredTopLevelNode(item.nodeRef, deferredTopLevelItemIndex_ + 1));
+                deferredTopLevelItemIndex_++;
+                break;
+            }
         }
     }
+
+    if (!pendingTopLevelCompilerRunRefs_.empty())
+        SWC_RESULT(processPendingTopLevelCompilerRuns(static_cast<uint32_t>(deferredTopLevelItems_.size())));
+
+    return Result::Continue;
+}
+
+Result Sema::execResult()
+{
+    if (!curScope_ && scopes_.empty())
+    {
+        scopes_.emplace_back(std::make_unique<SemaScope>(SemaScopeFlagsE::TopLevel, nullptr));
+        curScope_ = scopes_.back().get();
+        curScope_->setSymMap(startSymMap_);
+    }
+
+    ctx().state().reset();
+
+    Result semaResult = Result::Continue;
+    if (!rootVisitDone_)
+    {
+        semaResult = runCurrentVisit();
+        if (semaResult == Result::Continue)
+            rootVisitDone_ = true;
+    }
+
+    if (semaResult == Result::Continue)
+        semaResult = processDeferredTopLevelItems();
 
     if (semaResult != Result::Pause)
         scopes_.clear();

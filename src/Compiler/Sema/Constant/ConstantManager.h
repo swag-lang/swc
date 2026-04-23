@@ -16,6 +16,7 @@ public:
     void             setup(const TaskContext& ctx);
     ConstantRef      addS32(const TaskContext& ctx, int32_t value);
     ConstantRef      addInt(const TaskContext& ctx, uint64_t value);
+    ConstantRef      addZeroPayloadConstant(TaskContext& ctx, TypeRef typeRef);
     std::string_view addString(const TaskContext& ctx, std::string_view str);
     ConstantRef      addConstant(const TaskContext& ctx, const ConstantValue& value);
     ConstantRef      addMaterializedPayloadConstant(const ConstantValue& value);
@@ -86,10 +87,12 @@ public:
         DataSegment                                                                                                     dataSegment;
         std::unordered_map<ConstantValue, ConstantRef, ConstantValueHash>                                               map;
         std::unordered_map<TypeRef, ConstantRef>                                                                        typeInfoMap;
+        std::unordered_map<TypeRef, ConstantRef>                                                                        zeroPayloadMap;
         std::unordered_map<RuntimeBufferConstantCacheKey, ConstantRef, RuntimeBufferConstantCacheKeyHash>               runtimeBufferMap;
         std::unordered_map<RuntimeStringConstantCacheKey, ConstantRef, RuntimeStringConstantCacheKeyHash>               runtimeStringMap;
         mutable std::shared_mutex                                                                                       mutex;
         mutable std::shared_mutex                                                                                       typeInfoMutex;
+        mutable std::shared_mutex                                                                                       zeroPayloadMutex;
         mutable std::shared_mutex                                                                                       runtimeBufferMutex;
         mutable std::shared_mutex                                                                                       runtimeStringMutex;
     };
@@ -108,6 +111,9 @@ private:
     ConstantRef        tryGetBuiltinConstant(const TaskContext& ctx, const ConstantValue& value) const;
     ConstantRef        tryGetSmallScalarCache(uint32_t cacheIndex) const;
     static ConstantRef tryGetTypeInfoCache(const Shard& shard, TypeRef typeRef);
+    uint32_t           zeroPayloadConstantCacheShard(TypeRef typeRef) const;
+    ConstantRef        findZeroPayloadConstant(uint32_t shardIndex, TypeRef typeRef) const;
+    ConstantRef        publishZeroPayloadConstant(uint32_t shardIndex, TypeRef typeRef, ConstantRef cstRef);
     bool               smallScalarCacheIndex(uint32_t& outIndex, const TaskContext& ctx, const ConstantValue& value) const;
     static uint32_t    smallIntTypeIndex(const TaskContext& ctx, TypeRef typeRef);
 

@@ -35,16 +35,9 @@ namespace
 
     ConstantRef makeZeroStructConstant(CodeGen& codeGen, TypeRef typeRef)
     {
-        const TypeInfo& type   = codeGen.typeMgr().get(typeRef);
-        const uint64_t  sizeOf = type.sizeOf(codeGen.ctx());
-
-        std::vector<std::byte> bytes;
-        bytes.resize(sizeOf);
-
-        const std::string_view storedPayload(reinterpret_cast<const char*>(bytes.data()), bytes.size());
-        const std::string_view persistentStorage = codeGen.cstMgr().addPayloadBuffer(storedPayload);
-        const ByteSpan         persistentBytes{reinterpret_cast<const std::byte*>(persistentStorage.data()), persistentStorage.size()};
-        return codeGen.cstMgr().addConstant(codeGen.ctx(), ConstantValue::makeStructBorrowed(codeGen.ctx(), typeRef, persistentBytes));
+        const ConstantRef cstRef = codeGen.cstMgr().addZeroPayloadConstant(codeGen.ctx(), typeRef);
+        SWC_ASSERT(cstRef.isValid());
+        return cstRef;
     }
 
     CodeGenNodePayload makeAddressPayloadFromConstant(CodeGen& codeGen, ConstantRef cstRef)

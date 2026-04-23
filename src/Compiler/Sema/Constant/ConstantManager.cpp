@@ -80,6 +80,42 @@ ConstantRef ConstantManager::addInt(const TaskContext& ctx, uint64_t value)
     return addConstant(ctx, cstVal);
 }
 
+ConstantRef ConstantManager::addZeroPayloadConstant(TaskContext& ctx, const TypeRef typeRef)
+{
+    SWC_ASSERT(typeRef.isValid());
+    if (typeRef.isInvalid())
+        return ConstantRef::invalid();
+
+    const uint32_t    cacheShardIndex = zeroPayloadConstantCacheShard(typeRef);
+    const ConstantRef cached          = findZeroPayloadConstant(cacheShardIndex, typeRef);
+    if (cached.isValid())
+        return cached;
+
+    const TypeInfo& type = ctx.typeMgr().get(typeRef);
+    SWC_ASSERT(type.isStruct() || type.isString() || type.isAny() || type.isInterface() || type.isArray());
+
+    const uint64_t sizeOf = type.sizeOf(ctx);
+    SWC_ASSERT(sizeOf && sizeOf <= std::numeric_limits<uint32_t>::max());
+    if (!sizeOf || sizeOf > std::numeric_limits<uint32_t>::max())
+        return ConstantRef::invalid();
+
+    SmallVector<std::byte> bytes;
+    bytes.resize(sizeOf);
+    std::memset(bytes.data(), 0, bytes.size());
+
+    ConstantValue value;
+    if (type.isArray())
+        value = ConstantValue::makeArrayBorrowed(ctx, typeRef, ByteSpan{bytes.data(), bytes.size()});
+    else
+        value = ConstantValue::makeStructBorrowed(ctx, typeRef, ByteSpan{bytes.data(), bytes.size()});
+
+    const ConstantRef cstRef = addConstant(ctx, value);
+    if (cstRef.isInvalid())
+        return ConstantRef::invalid();
+
+    return publishZeroPayloadConstant(cacheShardIndex, typeRef, cstRef);
+}
+
 std::string_view ConstantManager::addString(const TaskContext& ctx, std::string_view str)
 {
     SWC_UNUSED(ctx);
@@ -578,6 +614,43 @@ ConstantRef ConstantManager::tryGetTypeInfoCache(const Shard& shard, const TypeR
     if (it == shard.typeInfoMap.end())
         return ConstantRef::invalid();
     return it->second;
+}
+
+uint32_t ConstantManager::zeroPayloadConstantCacheShard(const TypeRef typeRef) const
+{
+    SWC_ASSERT(typeRef.isValid());
+    return typeRef.get() & (SHARD_COUNT - 1);
+}
+
+ConstantRef ConstantManager::findZeroPayloadConstant(const uint32_t shardIndex, const TypeRef typeRef) const
+{
+    SWC_ASSERT(shardIndex < SHARD_COUNT);
+    SWC_ASSERT(typeRef.isValid());
+
+    const Shard& shard = shards_[shardIndex];
+    const std::shared_lock lock(shard.zeroPayloadMutex);
+    const auto it = shard.zeroPayloadMap.find(typeRef);
+    if (it == shard.zeroPayloadMap.end())
+        return ConstantRef::invalid();
+    return it->second;
+}
+
+ConstantRef ConstantManager::publishZeroPayloadConstant(const uint32_t shardIndex, const TypeRef typeRef, const ConstantRef cstRef)
+{
+    SWC_ASSERT(shardIndex < SHARD_COUNT);
+    SWC_ASSERT(typeRef.isValid());
+    SWC_ASSERT(cstRef.isValid());
+
+    Shard& shard = shards_[shardIndex];
+    const std::unique_lock lock(shard.zeroPayloadMutex);
+    auto [it, inserted] = shard.zeroPayloadMap.try_emplace(typeRef, cstRef);
+    if (!inserted)
+    {
+        SWC_ASSERT(it->second == cstRef);
+        return it->second;
+    }
+
+    return cstRef;
 }
 
 bool ConstantManager::smallScalarCacheIndex(uint32_t& outIndex, const TaskContext& ctx, const ConstantValue& value) const

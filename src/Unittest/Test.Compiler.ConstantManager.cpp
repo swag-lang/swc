@@ -138,6 +138,41 @@ SWC_TEST_BEGIN(ConstantManager_DeduplicatesBorrowedArrayPayloadsByValue)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(ConstantManager_CachesZeroPayloadConstantsByType)
+{
+    const TypeRef    stringTypeRef  = ctx.typeMgr().typeString();
+    const ConstantRef firstStringRef = ctx.cstMgr().addZeroPayloadConstant(ctx, stringTypeRef);
+    const ConstantRef secondStringRef = ctx.cstMgr().addZeroPayloadConstant(ctx, stringTypeRef);
+    if (!firstStringRef.isValid() || firstStringRef != secondStringRef)
+        return Result::Error;
+
+    const ConstantValue& stringValue = ctx.cstMgr().get(firstStringRef);
+    if (!stringValue.isStruct() || stringValue.typeRef() != stringTypeRef)
+        return Result::Error;
+    for (const std::byte byte : stringValue.getStruct())
+    {
+        if (byte != std::byte{0})
+            return Result::Error;
+    }
+
+    std::array    dims{4ULL};
+    const TypeRef arrayTypeRef = ctx.typeMgr().addType(TypeInfo::makeArray(std::span<uint64_t>{dims}, ctx.typeMgr().typeU8()));
+    const ConstantRef firstArrayRef = ctx.cstMgr().addZeroPayloadConstant(ctx, arrayTypeRef);
+    const ConstantRef secondArrayRef = ctx.cstMgr().addZeroPayloadConstant(ctx, arrayTypeRef);
+    if (!firstArrayRef.isValid() || firstArrayRef != secondArrayRef || firstArrayRef == firstStringRef)
+        return Result::Error;
+
+    const ConstantValue& arrayValue = ctx.cstMgr().get(firstArrayRef);
+    if (!arrayValue.isArray() || arrayValue.typeRef() != arrayTypeRef)
+        return Result::Error;
+    for (const std::byte byte : arrayValue.getArray())
+    {
+        if (byte != std::byte{0})
+            return Result::Error;
+    }
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(ConstantManager_CopiesBorrowedSlicePayloadOutsideDataSegment)
 {
     std::array source{

@@ -91,9 +91,9 @@ private:
 
     static Result processTypeInfo(Sema& sema, TypeGenResult& result, DataSegment& storage, TypeRef typeRef, AstNodeRef ownerNodeRef, TypeGenCache& cache);
 
-    mutable std::mutex                                                    cachesMutex_;
+    mutable std::shared_mutex                                             cachesMutex_;
     std::unordered_map<const DataSegment*, std::unique_ptr<TypeGenCache>> caches_;
-    mutable std::mutex                                                    ptrToTypeMutex_;
+    mutable std::shared_mutex                                             ptrToTypeMutex_;
     std::unordered_map<const void*, TypeRef>                              ptrToType_;
 };
 

@@ -133,6 +133,35 @@ namespace
         return static_cast<uint8_t>(ops[maskOperandIndex].valueU32);
     }
 
+    size_t countMaskedCallArgRegs(const MicroRegSpan regs, const uint8_t mask)
+    {
+        if (mask == K_CALL_ARG_MASK_ALL)
+            return regs.size();
+
+        const auto maskableCount = std::min<size_t>(regs.size(), 8);
+        size_t     count         = 0;
+        for (size_t i = 0; i < maskableCount; ++i)
+        {
+            if (mask & static_cast<uint8_t>(1u << i))
+                ++count;
+        }
+
+        return count;
+    }
+
+    void reserveCallUseDefCapacity(MicroInstrUseDef& useDef, const MicroInstr& inst, const MicroInstrOperand* ops, const CallConv& callConv)
+    {
+        const uint8_t intMask      = resolveCallArgMask(inst, ops, false);
+        const uint8_t floatMask    = resolveCallArgMask(inst, ops, true);
+        const size_t  implicitUses = countMaskedCallArgRegs(callConv.intArgRegs, intMask) +
+                                     countMaskedCallArgRegs(callConv.floatArgRegs, floatMask);
+        const size_t  explicitUses = inst.op == MicroInstrOpcode::CallIndirect ? 1u : 0u;
+        const size_t  implicitDefs = callConv.intTransientRegs.size() + callConv.floatTransientRegs.size();
+
+        useDef.uses.reserve(implicitUses + explicitUses);
+        useDef.defs.reserve(implicitDefs);
+    }
+
     void addMaskedCallArgRegs(MicroInstrUseDef& useDef, const MicroRegSpan regs, const uint8_t mask)
     {
         if (mask == K_CALL_ARG_MASK_ALL)
@@ -169,6 +198,7 @@ MicroInstrUseDef MicroInstr::collectUseDef(const MicroOperandStorage& operands, 
 {
     const MicroInstrDef&     opcodeInfo = info(op);
     const MicroInstrOperand* ops        = this->ops(operands);
+    const auto               modes      = resolveRegModes(opcodeInfo, ops);
 
     MicroInstrUseDef useDef;
     if (opcodeInfo.flags.has(MicroInstrFlagsE::IsCallInstruction))
@@ -179,6 +209,7 @@ MicroInstrUseDef MicroInstr::collectUseDef(const MicroOperandStorage& operands, 
         // Call instructions consume ABI argument registers implicitly. Keep them live so
         // register allocation and later rewrites cannot reuse them before the call.
         const CallConv& callConv = CallConv::get(useDef.callConv);
+        reserveCallUseDefCapacity(useDef, *this, ops, callConv);
         addMaskedCallArgRegs(useDef, callConv.intArgRegs, resolveCallArgMask(*this, ops, false));
         addMaskedCallArgRegs(useDef, callConv.floatArgRegs, resolveCallArgMask(*this, ops, true));
         for (const MicroReg reg : callConv.intTransientRegs)
@@ -187,7 +218,6 @@ MicroInstrUseDef MicroInstr::collectUseDef(const MicroOperandStorage& operands, 
             useDef.addDef(reg);
     }
 
-    const auto modes = resolveRegModes(opcodeInfo, ops);
     collectRegUseDefFromModes(useDef, ops, modes);
 
     if (encoder)

@@ -36,8 +36,14 @@ TypeRef TypeGen::resolveArrayFinalTypeRef(const TypeManager& tm, const TaskConte
 
 TypeGen::TypeGenCache& TypeGen::cacheFor(const DataSegment& storage)
 {
-    std::scoped_lock lk(cachesMutex_);
+    {
+        const std::shared_lock lk(cachesMutex_);
+        const auto             it = caches_.find(&storage);
+        if (it != caches_.end())
+            return *it->second;
+    }
 
+    const std::unique_lock lk(cachesMutex_);
     auto [it, inserted] = caches_.try_emplace(&storage);
     if (!it->second)
         it->second = std::make_unique<TypeGenCache>();
@@ -48,6 +54,7 @@ TypeGen::TypeGenCache& TypeGen::cacheFor(const DataSegment& storage)
 Result TypeGen::makeTypeInfo(Sema& sema, DataSegment& storage, TypeRef typeRef, AstNodeRef ownerNodeRef, TypeGenResult& result)
 {
     auto& cache = cacheFor(storage);
+    std::vector<std::pair<const void*, TypeRef>> backRefsToPublish;
 
     // Each call progresses as much as possible without relying on recursion.
     // It returns Result::Continue only when the requested type AND all its dependencies are fully done.
@@ -57,7 +64,7 @@ Result TypeGen::makeTypeInfo(Sema& sema, DataSegment& storage, TypeRef typeRef, 
 
         if (!cache.pendingBackRefs.empty())
         {
-            const std::scoped_lock lk2(ptrToTypeMutex_);
+            backRefsToPublish.reserve(cache.pendingBackRefs.size());
             for (const TypeRef cachedTypeRef : cache.pendingBackRefs)
             {
                 auto it = cache.entries.find(cachedTypeRef);
@@ -70,7 +77,7 @@ Result TypeGen::makeTypeInfo(Sema& sema, DataSegment& storage, TypeRef typeRef, 
                     continue;
 
                 const auto* ptr        = storage.ptr<std::byte>(entry.offset);
-                ptrToType_[ptr]        = cachedTypeRef;
+                backRefsToPublish.emplace_back(ptr, cachedTypeRef);
                 entry.backRefPublished = true;
             }
 
@@ -78,12 +85,19 @@ Result TypeGen::makeTypeInfo(Sema& sema, DataSegment& storage, TypeRef typeRef, 
         }
     }
 
+    if (!backRefsToPublish.empty())
+    {
+        const std::unique_lock lk(ptrToTypeMutex_);
+        for (const auto& [ptr, cachedTypeRef] : backRefsToPublish)
+            ptrToType_[ptr] = cachedTypeRef;
+    }
+
     return Result::Continue;
 }
 
 TypeRef TypeGen::getBackTypeRef(const void* ptr) const
 {
-    const std::scoped_lock lk(ptrToTypeMutex_);
+    const std::shared_lock lk(ptrToTypeMutex_);
     const auto             it = ptrToType_.find(ptr);
     if (it != ptrToType_.end())
         return it->second;

@@ -114,25 +114,23 @@ uint32_t DataSegment::addString(uint32_t baseOffset, uint32_t fieldOffset, const
 void DataSegment::addRelocation(uint32_t offset, uint32_t targetOffset)
 {
     const std::unique_lock lock(mutex_);
-    relocations_.push_back({
+    appendRelocationLocked({
         .offset       = offset,
         .kind         = DataSegmentRelocationKind::DataSegmentOffset,
         .targetOffset = targetOffset,
         .targetSymbol = nullptr,
     });
-    relocationsByOffsetDirty_ = true;
 }
 
 void DataSegment::addFunctionRelocation(uint32_t offset, const SymbolFunction* targetSymbol)
 {
     const std::unique_lock lock(mutex_);
-    relocations_.push_back({
+    appendRelocationLocked({
         .offset       = offset,
         .kind         = DataSegmentRelocationKind::FunctionSymbol,
         .targetOffset = INVALID_REF,
         .targetSymbol = targetSymbol,
     });
-    relocationsByOffsetDirty_ = true;
 }
 
 Ref DataSegment::findRef(const void* ptr) const noexcept
@@ -337,6 +335,36 @@ std::pair<uint32_t, std::byte*> DataSegment::allocateStorageLocked(uint32_t size
         std::memset(ptr, 0, size);
     recordAllocation(res.second, size, align);
     return {res.second, ptr};
+}
+
+void DataSegment::appendRelocationLocked(const DataSegmentRelocation& relocation)
+{
+    const uint32_t relocationIndex = static_cast<uint32_t>(relocations_.size());
+    relocations_.push_back(relocation);
+
+    if (relocationsByOffsetDirty_ || relocationsByOffset_.size() != relocationIndex)
+    {
+        relocationsByOffsetDirty_ = true;
+        return;
+    }
+
+    if (relocationsByOffset_.empty())
+    {
+        relocationsByOffset_.push_back(relocationIndex);
+        return;
+    }
+
+    const DataSegmentRelocation& prevRelocation = relocations_[relocationsByOffset_.back()];
+    if (prevRelocation.offset <= relocation.offset)
+    {
+        relocationsByOffset_.push_back(relocationIndex);
+        return;
+    }
+
+    // Most relocations are appended in storage order. Keep the indexed view hot
+    // on that fast path and fall back to a rebuild only when an out-of-order
+    // append would break the sorted offset invariant.
+    relocationsByOffsetDirty_ = true;
 }
 
 std::byte* DataSegment::findPtrLocked(const Ref ref, const uint32_t size) noexcept

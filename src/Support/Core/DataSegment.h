@@ -130,6 +130,7 @@ public:
 private:
     uint32_t                                                               currentExtentLocked() const noexcept;
     std::pair<uint32_t, std::byte*>                                        allocateStorageLocked(uint32_t size, uint32_t align, bool zeroInit);
+    void                                                                   appendRelocationLocked(const DataSegmentRelocation& relocation);
     std::byte*                                                             findPtrLocked(Ref ref, uint32_t size) noexcept;
     const std::byte*                                                       findPtrLocked(Ref ref, uint32_t size) const noexcept;
     Ref                                                                    findLargeBlockRefLocked(const void* ptr) const noexcept;

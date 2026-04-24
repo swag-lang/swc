@@ -281,14 +281,14 @@ ConstantRef CodeGenConstantHelpers::materializeStaticPayloadConstant(CodeGen& co
     if (!resolveStaticPayloadRequiredShardIndex(shardIndex, hasRequiredShard, codeGen, typeRef, payload))
         return ConstantRef::invalid();
 
-    DataSegment&                             segment = codeGen.cstMgr().shardDataSegment(hasRequiredShard ? shardIndex : 0);
-    ConstantLower::MaterializedPayloadResult materialized;
-    if (ConstantLower::materializeStaticPayload(materialized, codeGen.sema(), segment, typeRef, payload) != Result::Continue)
+    DataSegment& segment = codeGen.cstMgr().shardDataSegment(hasRequiredShard ? shardIndex : 0);
+    uint32_t     offset  = INVALID_REF;
+    if (ConstantLower::materializeStaticPayload(offset, codeGen.sema(), segment, typeRef, payload) != Result::Continue)
         return ConstantRef::invalid();
 
-    SWC_ASSERT(sizeOf != 0 || materialized.offset == INVALID_REF);
-    const ByteSpan       storedBytes = sizeOf ? ByteSpan{materialized.bytes.data(), materialized.bytes.size()} : ByteSpan{};
-    const DataSegmentRef dataRef{.shardIndex = hasRequiredShard ? shardIndex : 0, .offset = materialized.offset};
+    SWC_ASSERT(sizeOf != 0 || offset == INVALID_REF);
+    const ByteSpan       storedBytes = sizeOf ? ByteSpan{segment.ptr<std::byte>(offset), sizeOf} : ByteSpan{};
+    const DataSegmentRef dataRef{.shardIndex = hasRequiredShard ? shardIndex : 0, .offset = offset};
     if (typeInfo.isArray())
     {
         ConstantValue value = ConstantValue::makeArrayBorrowed(ctx, typeRef, storedBytes);

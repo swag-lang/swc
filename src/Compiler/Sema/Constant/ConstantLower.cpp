@@ -114,15 +114,6 @@ namespace
         SWC_ASSERT(bytes.size() == sizeof(T));
     }
 
-    template<typename TString>
-    void assignStoredString(DataSegment& segment, TString& dstString, const uint32_t relocationOffset, const Utf8& value)
-    {
-        const auto [storedValue, targetOffset] = segment.addString(value);
-        dstString.ptr                          = storedValue.data();
-        dstString.length                       = static_cast<decltype(dstString.length)>(storedValue.size());
-        segment.addRelocation(relocationOffset, targetOffset);
-    }
-
     void assertByteRange(const uint64_t offset, const uint64_t size, const uint64_t totalSize)
     {
         SWC_ASSERT(offset <= totalSize && size <= totalSize - offset);
@@ -222,7 +213,7 @@ namespace
             return Result::Continue;
         }
 
-        assignStoredString(segment, dstString, payload.baseOffset + offsetof(Runtime::String, ptr), Utf8{std::string_view(srcString.ptr, srcString.length)});
+        dstString.length = segment.addString(payload.baseOffset, offsetof(Runtime::String, ptr), std::string_view(srcString.ptr, srcString.length));
         return Result::Continue;
     }
 
@@ -250,15 +241,15 @@ namespace
         const uint64_t valueSize = sema.typeMgr().get(valueTypeRef).sizeOf(ctx);
         SWC_ASSERT(valueSize <= std::numeric_limits<uint32_t>::max());
 
-        ConstantLower::MaterializedPayloadResult valuePayload;
+        uint32_t valueOffset = INVALID_REF;
         // Nested `any` values get their own static storage so relocations can target them.
-        SWC_RESULT(ConstantLower::materializeStaticPayload(valuePayload,
+        SWC_RESULT(ConstantLower::materializeStaticPayload(valueOffset,
                                                            sema,
                                                            segment,
                                                            valueTypeRef,
                                                            rawBytes(srcAny.value, valueSize)));
-        dstAny.value = valuePayload.bytes.data();
-        segment.addRelocation(payload.baseOffset + offsetof(Runtime::Any, value), valuePayload.offset);
+        dstAny.value = segment.ptr<std::byte>(valueOffset);
+        segment.addRelocation(payload.baseOffset + offsetof(Runtime::Any, value), valueOffset);
         return Result::Continue;
     }
 
@@ -890,9 +881,9 @@ Result ConstantLower::lowerAggregateStructToBytes(Sema& sema, ByteSpanRW dstByte
     return Result::Continue;
 }
 
-Result ConstantLower::materializeStaticPayload(MaterializedPayloadResult& outPayload, Sema& sema, DataSegment& segment, TypeRef typeRef, const ByteSpan srcBytes)
+Result ConstantLower::materializeStaticPayload(uint32_t& outOffset, Sema& sema, DataSegment& segment, TypeRef typeRef, const ByteSpan srcBytes)
 {
-    outPayload = {};
+    outOffset = INVALID_REF;
     SWC_INTERNAL_CHECK(typeRef.isValid());
 
     const TypeInfo& typeInfo = sema.typeMgr().get(typeRef);
@@ -902,17 +893,8 @@ Result ConstantLower::materializeStaticPayload(MaterializedPayloadResult& outPay
     SWC_INTERNAL_CHECK(sizeOf == srcBytes.size());
 
     const auto [offset, storage] = segment.reserveBytes(static_cast<uint32_t>(sizeOf), alignOf, true);
-    outPayload.offset            = offset;
-    outPayload.bytes             = rawBytes(storage, sizeOf);
-    return materializeStaticPayloadInPlace(sema, segment, typeRef, {.baseOffset = offset, .dstBytes = outPayload.bytes, .srcBytes = srcBytes});
-}
-
-Result ConstantLower::materializeStaticPayload(uint32_t& outOffset, Sema& sema, DataSegment& segment, TypeRef typeRef, const ByteSpan srcBytes)
-{
-    MaterializedPayloadResult outPayload;
-    const Result              result = materializeStaticPayload(outPayload, sema, segment, typeRef, srcBytes);
-    outOffset                        = outPayload.offset;
-    return result;
+    outOffset                    = offset;
+    return materializeStaticPayloadInPlace(sema, segment, typeRef, {.baseOffset = offset, .dstBytes = rawBytes(storage, sizeOf), .srcBytes = srcBytes});
 }
 
 SWC_END_NAMESPACE();

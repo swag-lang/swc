@@ -81,7 +81,7 @@ public:
     template<typename T>
     std::pair<uint32_t, T*> reserve()
     {
-        std::unique_lock lock(storageMutex_);
+        std::unique_lock lock(mutex_);
         const auto [offset, ptr] = allocateStorageLocked(static_cast<uint32_t>(sizeof(T)), static_cast<uint32_t>(alignof(T)), true);
         return {offset, reinterpret_cast<T*>(ptr)};
     }
@@ -91,7 +91,7 @@ public:
     {
         if (!count)
             return {INVALID_REF, nullptr};
-        std::unique_lock lock(storageMutex_);
+        std::unique_lock lock(mutex_);
         const uint32_t   bytes   = static_cast<uint32_t>(sizeof(T)) * count;
         const auto [offset, ptr] = allocateStorageLocked(bytes, static_cast<uint32_t>(alignof(T)), true);
         return {offset, reinterpret_cast<T*>(ptr)};
@@ -100,7 +100,7 @@ public:
     template<typename T>
     uint32_t add(const T& value)
     {
-        std::unique_lock lock(storageMutex_);
+        std::unique_lock lock(mutex_);
         const auto [offset, ptr] = allocateStorageLocked(static_cast<uint32_t>(sizeof(T)), static_cast<uint32_t>(alignof(T)), false);
         if constexpr (std::is_trivially_copyable_v<T>)
         {
@@ -116,14 +116,14 @@ public:
     template<class T>
     T* ptr(Ref ref) noexcept
     {
-        const std::shared_lock lock(storageMutex_);
+        const std::shared_lock lock(mutex_);
         return reinterpret_cast<T*>(findPtrLocked(ref, static_cast<uint32_t>(sizeof(T))));
     }
 
     template<class T>
     const T* ptr(Ref ref) const noexcept
     {
-        const std::shared_lock lock(storageMutex_);
+        const std::shared_lock lock(mutex_);
         return reinterpret_cast<const T*>(findPtrLocked(ref, static_cast<uint32_t>(sizeof(T))));
     }
 
@@ -145,8 +145,7 @@ private:
     mutable std::vector<uint32_t>                                          relocationsByOffset_;
     mutable bool                                                           relocationsByOffsetDirty_ = false;
     std::vector<DataSegmentAllocation>                                     allocations_;
-    mutable std::shared_mutex                                              storageMutex_;
-    mutable std::shared_mutex                                              relocationsMutex_;
+    mutable std::shared_mutex                                              mutex_;
     mutable std::mutex                                                     allocationMutexesMutex_;
     mutable std::unordered_map<uint32_t, std::unique_ptr<std::mutex>>      allocationMutexes_;
 };

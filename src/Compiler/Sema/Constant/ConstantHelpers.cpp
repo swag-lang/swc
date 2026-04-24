@@ -16,15 +16,6 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    template<typename TString>
-    void assignStoredString(DataSegment& segment, TString& dstString, const uint32_t relocationOffset, const Utf8& value)
-    {
-        const auto [storedValue, targetOffset] = segment.addString(value);
-        dstString.ptr                          = storedValue.data();
-        dstString.length                       = static_cast<decltype(dstString.length)>(storedValue.size());
-        segment.addRelocation(relocationOffset, targetOffset);
-    }
-
     uint32_t sourceCodeLocationShardIndex(const SourceCodeRange& codeRange, const SymbolFunction* function)
     {
         uint32_t hash = Math::hash(codeRange.srcView ? codeRange.srcView->ref().get() : 0);
@@ -312,14 +303,14 @@ ConstantRef ConstantHelpers::materializeStaticPayloadConstant(Sema& sema, TypeRe
     if (!resolveStaticPayloadRequiredShardIndex(shardIndex, hasRequiredShard, sema, typeRef, payload))
         return ConstantRef::invalid();
 
-    DataSegment&                               segment = sema.cstMgr().shardDataSegment(hasRequiredShard ? shardIndex : 0);
-    ConstantLower::MaterializedPayloadResult   materialized;
-    if (ConstantLower::materializeStaticPayload(materialized, sema, segment, typeRef, payload) != Result::Continue)
+    DataSegment& segment = sema.cstMgr().shardDataSegment(hasRequiredShard ? shardIndex : 0);
+    uint32_t     offset  = INVALID_REF;
+    if (ConstantLower::materializeStaticPayload(offset, sema, segment, typeRef, payload) != Result::Continue)
         return ConstantRef::invalid();
 
-    SWC_ASSERT(sizeOf != 0 || materialized.offset == INVALID_REF);
-    const DataSegmentRef dataRef{.shardIndex = hasRequiredShard ? shardIndex : 0, .offset = materialized.offset};
-    const ByteSpan       storedBytes = sizeOf ? ByteSpan{materialized.bytes.data(), materialized.bytes.size()} : ByteSpan{};
+    SWC_ASSERT(sizeOf != 0 || offset == INVALID_REF);
+    const DataSegmentRef dataRef{.shardIndex = hasRequiredShard ? shardIndex : 0, .offset = offset};
+    const ByteSpan       storedBytes = sizeOf ? ByteSpan{segment.ptr<std::byte>(offset), sizeOf} : ByteSpan{};
     const ConstantValue  result      = makeMaterializedConstantValue(sema, typeRef, storedBytes, dataRef);
     if (!result.isValid())
         return ConstantRef::invalid();
@@ -349,7 +340,7 @@ Result ConstantHelpers::makeSourceCodeLocation(Sema& sema, ConstantRef& outCstRe
     const auto [offset, storage] = segment.reserveBytes(sizeof(Runtime::SourceCodeLocation), alignof(Runtime::SourceCodeLocation), true);
     auto* const rtLoc            = reinterpret_cast<Runtime::SourceCodeLocation*>(storage);
 
-    assignStoredString(segment, rtLoc->fileName, offset + offsetof(Runtime::SourceCodeLocation, fileName.ptr), fileName);
+    rtLoc->fileName.length = segment.addString(offset, offsetof(Runtime::SourceCodeLocation, fileName.ptr), fileName);
 
     if (funcName.empty())
     {
@@ -358,7 +349,7 @@ Result ConstantHelpers::makeSourceCodeLocation(Sema& sema, ConstantRef& outCstRe
     }
     else
     {
-        assignStoredString(segment, rtLoc->funcName, offset + offsetof(Runtime::SourceCodeLocation, funcName.ptr), funcName);
+        rtLoc->funcName.length = segment.addString(offset, offsetof(Runtime::SourceCodeLocation, funcName.ptr), funcName);
     }
 
     rtLoc->lineStart = codeRange.line;

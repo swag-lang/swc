@@ -1,5 +1,4 @@
 #pragma once
-#include "Compiler/Sema/Type/TypeInfo.h"
 
 SWC_BEGIN_NAMESPACE();
 

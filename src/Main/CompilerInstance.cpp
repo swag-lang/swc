@@ -41,8 +41,6 @@ bool CompilerInstance::dbgDevStop = false;
 class CompilerMessageTypeInfoJob : public Job
 {
 public:
-    static constexpr auto K = JobKind::CompilerMessage;
-
     explicit CompilerMessageTypeInfoJob(const TaskContext& ctx) :
         Job(ctx, JobKind::CompilerMessage)
     {
@@ -461,7 +459,7 @@ namespace
 
     void appendCompilerMessageExecutedPasses(const uint64_t executedMask, const uint64_t listenerMask, std::vector<CompilerInstance::CompilerMessageEvent>& out)
     {
-        static constexpr Runtime::CompilerMsgKind kinds[] = {
+        static constexpr Runtime::CompilerMsgKind KINDS[] = {
             Runtime::CompilerMsgKind::PassAfterSemantic,
             Runtime::CompilerMsgKind::PassBeforeRunByteCode,
             Runtime::CompilerMsgKind::PassBeforeOutput,
@@ -469,7 +467,7 @@ namespace
             Runtime::CompilerMsgKind::AttributeGen,
         };
 
-        for (const Runtime::CompilerMsgKind kind : kinds)
+        for (const Runtime::CompilerMsgKind kind : KINDS)
         {
             const uint64_t bit = compilerMessageBit(kind);
             if ((executedMask & bit) && (listenerMask & bit))
@@ -1456,7 +1454,7 @@ void CompilerInstance::markCompilerMessageTypeInfoPreparationFailed()
     notifyAlive();
 }
 
-void CompilerInstance::enqueueCompilerMessageTypeInfoPreparation(TaskContext& ctx, SymbolFunction* listenerFunction, const AstNodeRef ownerNodeRef, const CompilerMessageEvent& event)
+void CompilerInstance::enqueueCompilerMessageTypeInfoPreparation(TaskContext& ctx, const SymbolFunction* listenerFunction, const AstNodeRef ownerNodeRef, const CompilerMessageEvent& event)
 {
     if (compilerMessageTypeInfoPrepFailed_.load(std::memory_order_acquire))
         return;

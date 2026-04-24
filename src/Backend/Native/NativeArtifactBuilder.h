@@ -42,14 +42,14 @@ private:
     static fs::path buildDir(const fs::path& workDir);
     Result          createBuildDir(const fs::path& buildDir) const;
 
-    Result prepareDataSections() const;
-    Result buildStartupAndDataSectionsParallel() const;
-    void   resetDataSections() const;
-    Result prepareDataSectionsWithoutStartup(NativeRDataCollector& rdataCollector) const;
-    Result finishDataSections(NativeRDataCollector& rdataCollector) const;
-    Result resolveFunctionRelocationName(Utf8& outName, const SymbolFunction* targetFunction) const;
-    Result partitionObjects() const;
-    Result buildStartup(TaskContext& ctx) const;
+    Result        prepareDataSections() const;
+    Result        buildStartupAndDataSectionsParallel() const;
+    void          resetDataSections() const;
+    Result        prepareDataSectionsWithoutStartup(NativeRDataCollector& rdataCollector) const;
+    static Result finishDataSections(NativeRDataCollector& rdataCollector);
+    Result        resolveFunctionRelocationName(Utf8& outName, const SymbolFunction* targetFunction) const;
+    Result        partitionObjects() const;
+    Result        buildStartup(TaskContext& ctx) const;
 
     NativeBackendBuilder* builder_ = nullptr;
 };

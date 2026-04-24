@@ -53,11 +53,11 @@ namespace
         bool ownsState_ = false;
     };
 
-    template<class T, std::size_t InlineCapacity>
+    template<class T, std::size_t N>
     class RuntimeHashStackScope
     {
     public:
-        RuntimeHashStackScope(SmallVector<T, InlineCapacity>& stack, const T& value) :
+        RuntimeHashStackScope(SmallVector<T, N>& stack, const T& value) :
             stack_(&stack)
         {
             stack.push_back(value);
@@ -69,7 +69,7 @@ namespace
         }
 
     private:
-        SmallVector<T, InlineCapacity>* stack_ = nullptr;
+        SmallVector<T, N>* stack_ = nullptr;
     };
 
     RuntimeHashState& runtimeHashState()
@@ -78,8 +78,8 @@ namespace
         return g_RuntimeHashState;
     }
 
-    template<class T, std::size_t InlineCapacity>
-    bool findStackDistance(uint32_t& outDistance, const SmallVector<T, InlineCapacity>& stack, const T& value) noexcept
+    template<class T, std::size_t N>
+    bool findStackDistance(uint32_t& outDistance, const SmallVector<T, N>& stack, const T& value) noexcept
     {
         for (size_t i = stack.size(); i > 0; --i)
         {
@@ -220,15 +220,15 @@ namespace
         if (findStackDistance(cycleDistance, state.functions, &function))
             return functionCycleHash(function, cycleDistance);
 
-        RuntimeHashStackScope<const SymbolFunction*, 32> functionScope(state.functions, &function);
-        uint32_t                                         h = Math::hash(static_cast<uint32_t>(function.callConvKind()));
-        h                                                  = Math::hashCombine(h, function.isClosure());
-        h                                                  = Math::hashCombine(h, function.isMethod());
-        h                                                  = Math::hashCombine(h, function.isThrowable());
-        h                                                  = Math::hashCombine(h, function.isConst());
-        h                                                  = Math::hashCombine(h, function.hasVariadicParam());
-        h                                                  = Math::hashCombine(h, stableTypeHash(ctx, function.returnTypeRef()));
-        h                                                  = Math::hashCombine(h, static_cast<uint32_t>(function.parameters().size()));
+        RuntimeHashStackScope functionScope(state.functions, &function);
+        uint32_t              h = Math::hash(static_cast<uint32_t>(function.callConvKind()));
+        h                       = Math::hashCombine(h, function.isClosure());
+        h                       = Math::hashCombine(h, function.isMethod());
+        h                       = Math::hashCombine(h, function.isThrowable());
+        h                       = Math::hashCombine(h, function.isConst());
+        h                       = Math::hashCombine(h, function.hasVariadicParam());
+        h                       = Math::hashCombine(h, stableTypeHash(ctx, function.returnTypeRef()));
+        h                       = Math::hashCombine(h, static_cast<uint32_t>(function.parameters().size()));
         for (const SymbolVariable* param : function.parameters())
         {
             SWC_ASSERT(param != nullptr);
@@ -248,10 +248,10 @@ namespace
         if (findStackDistance(cycleDistance, state.constants, cstRef))
             return constantCycleHash(ctx, cstRef, cycleDistance);
 
-        RuntimeHashStackScope<ConstantRef, 32> constantScope(state.constants, cstRef);
-        const ConstantValue&                   value = ctx.cstMgr().get(cstRef);
-        uint32_t                               h     = Math::hash(static_cast<uint32_t>(value.kind()));
-        h                                            = Math::hashCombine(h, stableTypeHash(ctx, value.typeRef()));
+        RuntimeHashStackScope constantScope(state.constants, cstRef);
+        const ConstantValue&  value = ctx.cstMgr().get(cstRef);
+        uint32_t              h     = Math::hash(static_cast<uint32_t>(value.kind()));
+        h                           = Math::hashCombine(h, stableTypeHash(ctx, value.typeRef()));
 
         switch (value.kind())
         {

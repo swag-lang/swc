@@ -119,7 +119,7 @@ SWC_TEST_BEGIN(Compiler_GeneratedAstMaterializesPerThreadFiles)
 #assert(GeneratedA + GeneratedB == 3)
 )";
     const fs::path                    sourcePath = Unittest::makeTestSourcePath("Compiler", "GeneratedAstMaterializesPerThreadFiles");
-    ScopedGeneratedAstDirectory       workDir("GeneratedAstMaterializesPerThreadFiles");
+    const ScopedGeneratedAstDirectory workDir("GeneratedAstMaterializesPerThreadFiles");
     if (!workDir.ready())
         return Result::Error;
 
@@ -203,7 +203,7 @@ SWC_TEST_BEGIN(Compiler_GeneratedAstDiagnosticsUseMaterializedSourceFile)
 #ast "const BrokenValue: UnknownType"
 )";
     const fs::path                    sourcePath = Unittest::makeTestSourcePath("Compiler", "GeneratedAstDiagnosticsUseMaterializedSourceFile");
-    ScopedGeneratedAstDirectory       workDir("GeneratedAstDiagnosticsUseMaterializedSourceFile");
+    const ScopedGeneratedAstDirectory workDir("GeneratedAstDiagnosticsUseMaterializedSourceFile");
     if (!workDir.ready())
         return Result::Error;
 

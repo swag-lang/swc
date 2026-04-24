@@ -879,7 +879,7 @@ void Sema::deferTopLevelItem(AstNodeRef nodeRef, DeferredTopLevelItemKind kind)
         return;
     }
 
-    auto insertIt = deferredTopLevelItems_.begin() + deferredTopLevelItemInsertIndex_;
+    const auto insertIt = deferredTopLevelItems_.begin() + deferredTopLevelItemInsertIndex_;
     deferredTopLevelItems_.insert(insertIt, item);
     deferredTopLevelItemInsertIndex_++;
 }

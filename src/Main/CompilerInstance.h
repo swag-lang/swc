@@ -301,7 +301,7 @@ private:
     void   cacheCompilerMessageTypeInfo(TypeRef typeRef, const Runtime::TypeInfo* runtimeTypeInfo);
     bool   tryPopCompilerMessageTypeInfoPreparation(CompilerMessageTypeInfoPrepRequest& outRequest);
     void   markCompilerMessageTypeInfoPreparationFailed();
-    void   enqueueCompilerMessageTypeInfoPreparation(TaskContext& ctx, SymbolFunction* listenerFunction, AstNodeRef ownerNodeRef, const CompilerMessageEvent& event);
+    void   enqueueCompilerMessageTypeInfoPreparation(TaskContext& ctx, const SymbolFunction* listenerFunction, AstNodeRef ownerNodeRef, const CompilerMessageEvent& event);
     Result ensureCompilerMessageTypeInfoPrepared(TaskContext& ctx, SymbolFunction* listenerFunction, AstNodeRef ownerNodeRef, const CompilerMessageEvent& event);
     Result prepareCompilerMessageTypeInfo(Sema& sema, TypeRef typeRef, AstNodeRef ownerNodeRef);
     Result fillRuntimeCompilerMessage(Sema& sema, AstNodeRef ownerNodeRef, const CompilerMessageEvent& event);

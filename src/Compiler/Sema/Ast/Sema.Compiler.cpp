@@ -1,5 +1,6 @@
+#include <ranges>
+
 #include "pch.h"
-#include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Lexer/Lexer.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Parser/Parser/Parser.h"
@@ -7,6 +8,7 @@
 #include "Compiler/Sema/Constant/ConstantHelpers.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Constant/ConstantValue.h"
+#include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Helpers/SemaCheck.h"
 #include "Compiler/Sema/Helpers/SemaClone.h"
@@ -261,10 +263,10 @@ namespace
     const Sema::ActiveCompilerAstExpansion* findActiveCompilerAstExpansion(const Sema& sema, std::string_view generatedCode)
     {
         const auto& stack = sema.compilerAstExpansions();
-        for (auto it = stack.rbegin(); it != stack.rend(); ++it)
+        for (const auto& it : std::views::reverse(stack))
         {
-            if (it->generatedCode.view() == generatedCode)
-                return &(*it);
+            if (it.generatedCode.view() == generatedCode)
+                return &it;
         }
 
         return nullptr;

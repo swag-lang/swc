@@ -523,12 +523,11 @@ ConstantRef ConstantManager::addUniqueMaterializedPayloadConstant(const Constant
     SWC_ASSERT(dataRef.shardIndex < SHARD_COUNT);
 
     recordConstantMaterializedPayloadFastPath();
-    Shard&      shard      = shards_[dataRef.shardIndex];
-    uint32_t    localIndex = INVALID_REF;
-    ConstantRef result;
-    localIndex = shard.dataSegment.add(value);
+    Shard&   shard      = shards_[dataRef.shardIndex];
+    uint32_t localIndex = INVALID_REF;
+    localIndex          = shard.dataSegment.add(value);
     SWC_ASSERT(localIndex < LOCAL_MASK);
-    result = ConstantRef{(dataRef.shardIndex << LOCAL_BITS) | localIndex};
+    const auto result = ConstantRef{(dataRef.shardIndex << LOCAL_BITS) | localIndex};
 
     return addCstFinalize(*this, result);
 }
@@ -634,7 +633,7 @@ ConstantRef ConstantManager::tryGetTypeInfoCache(const Shard& shard, const TypeR
     return it->second;
 }
 
-uint32_t ConstantManager::zeroPayloadConstantCacheShard(const TypeRef typeRef) const
+uint32_t ConstantManager::zeroPayloadConstantCacheShard(const TypeRef typeRef)
 {
     SWC_ASSERT(typeRef.isValid());
     return typeRef.get() & (SHARD_COUNT - 1);
@@ -895,7 +894,7 @@ bool ConstantManager::resolveConstantDataSegmentRef(DataSegmentRef& outRef, cons
     return resolveDataSegmentRef(outRef, ptr);
 }
 
-uint32_t ConstantManager::runtimeBufferConstantCacheShard(const TypeRef typeRef, const void* targetPtr, const uint64_t count) const
+uint32_t ConstantManager::runtimeBufferConstantCacheShard(const TypeRef typeRef, const void* targetPtr, const uint64_t count)
 {
     const RuntimeBufferConstantCacheKey key{
         .typeRef   = typeRef,
@@ -938,7 +937,7 @@ ConstantRef ConstantManager::publishRuntimeBufferConstant(const uint32_t shardIn
     return inserted ? cstRef : it->second;
 }
 
-uint32_t ConstantManager::runtimeStringConstantCacheShard(const TypeRef typeRef, const std::string_view value) const
+uint32_t ConstantManager::runtimeStringConstantCacheShard(const TypeRef typeRef, const std::string_view value)
 {
     RuntimeStringConstantCacheKey key;
     key.typeRef = typeRef;

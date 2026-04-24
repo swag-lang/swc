@@ -461,7 +461,7 @@ Result NativeArtifactBuilder::prepareDataSectionsWithoutStartup(NativeRDataColle
     return Result::Continue;
 }
 
-Result NativeArtifactBuilder::finishDataSections(NativeRDataCollector& rdataCollector) const
+Result NativeArtifactBuilder::finishDataSections(NativeRDataCollector& rdataCollector)
 {
     return rdataCollector.emitCollectedRoots();
 }

@@ -35,10 +35,10 @@ public:
     const DataSegment&   shardDataSegment(uint32_t index) const;
     bool                 resolveDataSegmentRef(DataSegmentRef& outRef, const void* ptr) const noexcept;
     bool                 resolveConstantDataSegmentRef(DataSegmentRef& outRef, ConstantRef cstRef, const void* ptr) const noexcept;
-    uint32_t             runtimeBufferConstantCacheShard(TypeRef typeRef, const void* targetPtr, uint64_t count) const;
+    static uint32_t      runtimeBufferConstantCacheShard(TypeRef typeRef, const void* targetPtr, uint64_t count);
     ConstantRef          findRuntimeBufferConstant(uint32_t shardIndex, TypeRef typeRef, const void* targetPtr, uint64_t count) const;
     ConstantRef          publishRuntimeBufferConstant(uint32_t shardIndex, TypeRef typeRef, const void* targetPtr, uint64_t count, ConstantRef cstRef);
-    uint32_t             runtimeStringConstantCacheShard(TypeRef typeRef, std::string_view value) const;
+    static uint32_t      runtimeStringConstantCacheShard(TypeRef typeRef, std::string_view value);
     ConstantRef          findRuntimeStringConstant(uint32_t shardIndex, TypeRef typeRef, std::string_view value) const;
     ConstantRef          publishRuntimeStringConstant(uint32_t shardIndex, TypeRef typeRef, std::string_view value, ConstantRef cstRef);
 
@@ -117,7 +117,7 @@ private:
     ConstantRef        tryGetBuiltinConstant(const TaskContext& ctx, const ConstantValue& value) const;
     ConstantRef        tryGetSmallScalarCache(uint32_t cacheIndex) const;
     static ConstantRef tryGetTypeInfoCache(const Shard& shard, TypeRef typeRef);
-    uint32_t           zeroPayloadConstantCacheShard(TypeRef typeRef) const;
+    static uint32_t    zeroPayloadConstantCacheShard(TypeRef typeRef);
     ConstantRef        findZeroPayloadConstant(uint32_t shardIndex, TypeRef typeRef) const;
     ConstantRef        publishZeroPayloadConstant(uint32_t shardIndex, TypeRef typeRef, ConstantRef cstRef);
     bool               smallScalarCacheIndex(uint32_t& outIndex, const TaskContext& ctx, const ConstantValue& value) const;

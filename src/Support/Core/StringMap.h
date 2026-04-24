@@ -1,6 +1,5 @@
 // ReSharper disable CppInconsistentNaming
 #pragma once
-#include <tuple>
 
 SWC_BEGIN_NAMESPACE();
 

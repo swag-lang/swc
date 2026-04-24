@@ -1,6 +1,5 @@
 #pragma once
 #include "Backend/Micro/MicroReg.h"
-#include <array>
 
 SWC_BEGIN_NAMESPACE();
 

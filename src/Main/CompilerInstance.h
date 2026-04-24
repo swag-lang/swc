@@ -8,8 +8,6 @@
 #include "Support/Memory/Arena.h"
 #include "Support/Thread/JobManager.h"
 #include "Support/Thread/RaceCondition.h"
-#include <deque>
-#include <unordered_set>
 
 SWC_BEGIN_NAMESPACE();
 

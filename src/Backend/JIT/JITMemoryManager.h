@@ -1,7 +1,6 @@
 #pragma once
 #include "Backend/JIT/JITMemory.h"
 #include "Support/Core/ByteSpan.h"
-#include <atomic>
 
 SWC_BEGIN_NAMESPACE();
 

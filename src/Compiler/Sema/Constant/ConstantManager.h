@@ -2,8 +2,6 @@
 #include "Compiler/Sema/Constant/ConstantValue.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Support/Core/DataSegment.h"
-#include <array>
-#include <atomic>
 
 SWC_BEGIN_NAMESPACE();
 class CompilerInstance;

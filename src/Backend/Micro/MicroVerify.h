@@ -1,7 +1,5 @@
 #pragma once
 #include "Support/Core/Result.h"
-#include <cstdint>
-#include <string_view>
 
 SWC_BEGIN_NAMESPACE();
 

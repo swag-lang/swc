@@ -1,6 +1,5 @@
 #pragma once
 #include "Support/Core/SmallVector.h"
-#include <unordered_map>
 
 SWC_BEGIN_NAMESPACE();
 

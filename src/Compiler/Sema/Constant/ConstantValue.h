@@ -3,7 +3,6 @@
 #include "Support/Core/DataSegment.h"
 #include "Support/Math/ApFloat.h"
 #include "Support/Math/ApsInt.h"
-#include <atomic>
 
 SWC_BEGIN_NAMESPACE();
 class TaskContext;

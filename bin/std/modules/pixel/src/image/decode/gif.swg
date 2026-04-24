@@ -7,7 +7,6 @@ using Swag, Core, Core.Errors
 
 moduleprivate
 {
-
     struct Entry
     {
         length:     u16

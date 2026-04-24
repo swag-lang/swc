@@ -19,7 +19,3 @@ struct Pair { a: s32; b: bool }
     (a, ?) = s
     @assert(a == 0)
 }
-
-
-
-

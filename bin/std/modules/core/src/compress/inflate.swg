@@ -10,7 +10,6 @@ using Core.Errors
 
 moduleprivate
 {
-
     const FastBits        = 9
     const FastMask        = (1 << FastBits) - 1
     const HuffmanMaxBits  = 16

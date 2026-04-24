@@ -23,4 +23,3 @@
     @assert(count == 1)
     @assert(last == 0)
 }
-

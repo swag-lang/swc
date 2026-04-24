@@ -152,5 +152,3 @@ func arrayDefaultSum(values: [3] s32 = [1, 2, 3])->s32
     @assert(arrayDefaultSum([5, 6, 7]) == 18)
     @assert(arrayDefaultSum(values: [9, 0, 1]) == 10)
 }
-
-

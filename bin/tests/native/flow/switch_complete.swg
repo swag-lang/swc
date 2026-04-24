@@ -45,4 +45,3 @@ enum Color {
     }
     @assert(hit == 2)
 }
-

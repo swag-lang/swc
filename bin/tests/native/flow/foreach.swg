@@ -93,7 +93,6 @@
 }
 
 
-
 #test
 {
     func foreachVariadicAny(values: ...)->u64

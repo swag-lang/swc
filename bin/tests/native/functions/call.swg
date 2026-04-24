@@ -1174,5 +1174,3 @@ namespace compiler344
         @assert(b == null)
     }
 }
-
-

@@ -1,10 +1,6 @@
 #global fileprivate // 
 
 
-
-
-
-
 #test
 {
     var ptr: [*] s32
@@ -49,7 +45,3 @@ enum R { A, B }
     d = p - p
     @assert(d == 0)
 }
-
-
-
-

@@ -69,5 +69,3 @@
     @assert(@countof(str) == 4)
     @assert(str == "test")
 }
-
-

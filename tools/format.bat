@@ -15,5 +15,10 @@ shift
 goto parse_args
 
 :run
-%SWC_EXE% format -d "%ROOT%\bin"%EXTRA_ARGS%
+%SWC_EXE% format ^
+ -d "%ROOT%\bin\examples" ^
+ -d "%ROOT%\bin\reference" ^
+ -d "%ROOT%\bin\runtime" ^
+ -d "%ROOT%\bin\std" ^
+ -d "%ROOT%\bin\tests"%EXTRA_ARGS%
 exit /b %ERRORLEVEL%

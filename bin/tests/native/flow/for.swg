@@ -60,10 +60,6 @@ impl FixedCountedLoop
 }
 
 
-
-
-
-
 #test
 {
     var count = 0

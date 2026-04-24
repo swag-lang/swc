@@ -20,4 +20,3 @@ var GMulTwo: UnaryFn = &mulTwo
     @assert(GAddOne(41) == 42)
     @assert(GMulTwo(21) == 42)
 }
-

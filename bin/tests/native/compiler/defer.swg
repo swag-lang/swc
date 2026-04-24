@@ -195,4 +195,3 @@ func runMacroScopeTrace()->s64
     @assert(MacroState == 1)
 }
 */
-

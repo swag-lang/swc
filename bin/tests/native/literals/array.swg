@@ -34,7 +34,6 @@ const A2 = [1, true, 3]
 }
 
 
-
 const G: [2] f32 = [1.0, 2]
 #assert(#typeof(G) == #type [2] f32)
 #assert(#typeof(G[0]) == f32)
@@ -47,7 +46,6 @@ const G1: [3] [1] f32 = [[1.0], [2.0], [3.0]]
 #assert(#typeof(G1[0]) == #type [1] f32)
 #assert(#typeof(G1[0][0]) == f32)
 #assert(G1[2][0] == 3.0)
-
 
 
 const I: [2] s32 = [1, cast(s32) 2.2]

@@ -94,5 +94,3 @@ func(T) preferFloatLiteral(x, y: T)->T => y
     @assert(f32Value > 1.0'f32)
     @assert(f64Value > 1.0'f64)
 }
-
-

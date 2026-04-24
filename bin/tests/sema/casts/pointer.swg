@@ -10,7 +10,6 @@
 
     var v2 = cast(*s32) b
     #assert(#typeof(v2) == *s32)
-
 }
 
 #test

@@ -6,10 +6,6 @@ func takes_u8(v: u8) {}
 func takes_s32(v: s32) {}
 
 
-
-
-
-
 #test
 {
     const A: u64 = 255
@@ -17,7 +13,6 @@ func takes_s32(v: s32) {}
     #assert(B == 255'u8)
     @assert(B == 255'u8)
 }
-
 
 
 #test
@@ -38,11 +33,6 @@ func takes_s32(v: s32) {}
 }
 
 
-
-
-
-
-
 #test
 {
     const A: s32 = 42
@@ -50,4 +40,3 @@ func takes_s32(v: s32) {}
     #assert(B == 42'u8)
     @assert(B == 42'u8)
 }
-

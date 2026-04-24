@@ -323,6 +323,3 @@ func(T) dampRefValueWithLiterals(current, target: T, currentVelocity: &T, smooth
     #assert(#typeof(temp) == f32)
     @assert(temp == 3.375'f32)
 }
-
-
-

@@ -64,10 +64,8 @@ namespace NS {}
 }
 
 
-
 func F0() { gBasicF0Calls += 1 }
 func F1(x: s32) { gBasicF1Last = x }
-
 
 
 func F5(a: s32, b: s32 = 0) { gBasicF5Last = a * 10 + b }

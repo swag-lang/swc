@@ -41,4 +41,3 @@ func ForeignReturnTriple()->Triple64;
     @assert(pair.b == 2)
     @assert(triple.c == 3)
 }
-

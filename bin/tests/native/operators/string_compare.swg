@@ -19,4 +19,3 @@ func stringNe(a: string, b: string)->bool
     @assert(stringNe("toto", "titi"))
     @assert(!stringNe("toto", "toto"))
 }
-

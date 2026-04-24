@@ -366,5 +366,3 @@ namespace compiler314
         @assert(len("tonton") == 6)
     }
 }
-
-

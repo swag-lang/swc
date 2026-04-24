@@ -343,6 +343,7 @@ void AstSourceWriter::appendSourcePiece(const SourcePiece& piece)
     }
 
     cursorByte_ += piece.byteLength;
+    lastPieceTokenId_ = piece.tokenId;
 }
 
 bool AstSourceWriter::shouldRewriteIndentation() const
@@ -367,12 +368,62 @@ bool AstSourceWriter::isAtLineStart() const
     return formatCtx_->output.empty() || formatCtx_->output.back() == '\n';
 }
 
+TokenId AstSourceWriter::peekNextPieceTokenId() const
+{
+    const auto& tokens = srcView_->tokens();
+    if (nextTokenIndex_ >= tokens.size())
+        return TokenId::Invalid;
+
+    const auto [triviaStart, triviaEnd] = srcView_->triviaRangeForToken(TokenRef(nextTokenIndex_));
+    if (nextTriviaIndex_ + 1 < triviaEnd)
+        return srcView_->trivia()[nextTriviaIndex_ + 1].tok.id;
+
+    return tokens[nextTokenIndex_].id;
+}
+
+uint32_t AstSourceWriter::computeMaxNewlines(const SourcePiece& piece) const
+{
+    uint32_t maxNewlines = std::numeric_limits<uint32_t>::max();
+
+    if (options_->maxConsecutiveEmptyLines > 0)
+        maxNewlines = std::min(maxNewlines, options_->maxConsecutiveEmptyLines + 1);
+
+    if (!options_->keepEmptyLinesAtStartOfBlock && lastPieceTokenId_ == TokenId::SymLeftCurly)
+        maxNewlines = std::min(maxNewlines, 1u);
+
+    if (!options_->keepEmptyLinesAtEndOfBlock && peekNextPieceTokenId() == TokenId::SymRightCurly)
+        maxNewlines = std::min(maxNewlines, 1u);
+
+    const bool pieceEndsAtEof = piece.byteStart + piece.byteLength == eofByte_;
+    if (options_->trimTrailingNewlines && pieceEndsAtEof)
+        maxNewlines = std::min(maxNewlines, 1u);
+
+    return maxNewlines;
+}
+
 void AstSourceWriter::appendWhitespacePiece(const SourcePiece& piece) const
 {
-    const bool rewriteIndent = shouldRewriteIndentation();
-    const bool rewriteEol    = shouldRewriteEndOfLine();
-    const bool trimTrailing  = !options_->preserveTrailingWhitespace;
-    if (!rewriteIndent && !rewriteEol && !trimTrailing)
+    const bool     rewriteIndent = shouldRewriteIndentation();
+    const bool     rewriteEol    = shouldRewriteEndOfLine();
+    const bool     trimTrailing  = !options_->preserveTrailingWhitespace;
+    const uint32_t maxNewlines   = computeMaxNewlines(piece);
+
+    uint32_t totalNewlines = 0;
+    for (size_t i = 0; i < piece.text.size(); ++i)
+    {
+        const char c = piece.text[i];
+        if (c == '\n')
+            totalNewlines++;
+        else if (c == '\r')
+        {
+            totalNewlines++;
+            if (i + 1 < piece.text.size() && piece.text[i + 1] == '\n')
+                i++;
+        }
+    }
+
+    const bool limitsNewlines = totalNewlines > maxNewlines;
+    if (!rewriteIndent && !rewriteEol && !trimTrailing && !limitsNewlines)
     {
         formatCtx_->output += piece.text;
         return;
@@ -390,26 +441,35 @@ void AstSourceWriter::appendWhitespacePiece(const SourcePiece& piece) const
             formatCtx_->output += indentText;
     };
 
-    bool   atLineStart = isAtLineStart();
-    size_t index       = 0;
+    const auto emitEol = [this, rewriteEol](const char firstChar, const bool isCrLf) {
+        if (rewriteEol)
+            appendConfiguredEndOfLine();
+        else if (isCrLf)
+            formatCtx_->output += "\r\n";
+        else
+            formatCtx_->output += firstChar;
+    };
+
+    bool     atLineStart     = isAtLineStart();
+    size_t   index           = 0;
+    uint32_t emittedNewlines = 0;
 
     while (index < piece.text.size())
     {
         const char c = piece.text[index];
         if (c == '\r' || c == '\n')
         {
-            if (c == '\r' && index + 1 < piece.text.size() && piece.text[index + 1] == '\n')
-                index++;
+            const bool   isCrLf      = c == '\r' && index + 1 < piece.text.size() && piece.text[index + 1] == '\n';
+            const size_t newlineSize = isCrLf ? 2 : 1;
 
-            if (rewriteEol)
-                appendConfiguredEndOfLine();
-            else if (c == '\r' && index < piece.text.size() && piece.text[index] == '\n')
-                formatCtx_->output += "\r\n";
-            else
-                formatCtx_->output += c;
+            if (emittedNewlines < maxNewlines)
+            {
+                emitEol(c, isCrLf);
+                emittedNewlines++;
+                atLineStart = true;
+            }
 
-            atLineStart = true;
-            index++;
+            index += newlineSize;
             continue;
         }
 
@@ -428,9 +488,11 @@ void AstSourceWriter::appendWhitespacePiece(const SourcePiece& piece) const
         const bool nextIsEol = index < piece.text.size() && (piece.text[index] == '\r' || piece.text[index] == '\n');
         const bool nextIsEof = index == piece.text.size() && pieceEndsAtEof;
         if (trimTrailing && (nextIsEol || nextIsEof))
-        {
             continue;
-        }
+
+        // Drop whitespace that lives on a blank line we are collapsing away.
+        if (emittedNewlines >= maxNewlines && nextIsEol)
+            continue;
 
         const std::string_view runText = piece.text.substr(runStart, index - runStart);
         if (atLineStart)

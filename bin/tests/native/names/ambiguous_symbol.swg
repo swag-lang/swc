@@ -36,8 +36,6 @@ namespace N
 }
 
 
-
-
 func DeclAndDef();
 func DeclAndDef() { gDeclAndDefCalls += 1 }
 
@@ -51,4 +49,3 @@ func DeclAndDef() { gDeclAndDefCalls += 1 }
 
 func DeclOnly();
 func DeclOnly(a: s32);
-

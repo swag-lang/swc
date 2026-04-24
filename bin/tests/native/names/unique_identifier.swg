@@ -29,4 +29,3 @@ func computeUniq(value: s32)->s32
 {
     @assert(computeUniq(3) == 148)
 }
-

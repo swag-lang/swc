@@ -13,4 +13,3 @@ func(T) crossFileDampRefValue(currentVelocity: &T, omega, clampedChange, deltaTi
     let temp = (currentVelocity + omega * clampedChange) * deltaTime
     return temp
 }
-

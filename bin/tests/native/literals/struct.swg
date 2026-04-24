@@ -57,7 +57,6 @@ struct Single2 {x: f32}
 struct InvalidCast {x: s32, y: s32}
 
 
-
 struct Vec3FDefault {x, y, z: f32 = 10}
 const VEC3F_DEFAULTS: Vec3FDefault = {x: 1, y: 1}
 #assert(VEC3F_DEFAULTS.z == 10)

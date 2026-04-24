@@ -33,7 +33,6 @@
 }
 
 
-
 namespace NC{}
 
 #assert((true ? (false ? 1 : 2) : 3) == 2)
@@ -42,5 +41,3 @@ namespace NC{}
 const VAL1 = 10
 var var2 = 20
 #assert((true ? VAL1 : var2) == 10)
-
-

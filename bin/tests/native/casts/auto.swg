@@ -51,11 +51,6 @@ func takes_f64(v: f64) { gAutoF64 = v }
 }
 
 
-
-
-
-
-
 #test
 {
     var v: u16 = 7
@@ -64,8 +59,6 @@ func takes_f64(v: f64) { gAutoF64 = v }
     @assert(gAutoU64 == 7)
     @assert(gAutoF64 == 7.0)
 }
-
-
 
 
 #test

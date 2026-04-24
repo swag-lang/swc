@@ -767,5 +767,3 @@ namespace compiler4849
         @assert(cast(string) values[1] == "second")
     }
 }
-
-

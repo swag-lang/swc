@@ -71,7 +71,6 @@ func auditSplitterRack(plan: const [..] string)->SplitterAudit
 
         for column in width
         {
-
             if current[column] == false do
                 continue
 

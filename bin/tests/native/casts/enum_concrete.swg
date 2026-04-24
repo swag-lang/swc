@@ -79,7 +79,3 @@ struct TinyCodeBytes
     bytes.value = TinyCode.Zero
     @assert(cast(u32) bytes.value == 0'u32)
 }
-
-
-
-

@@ -6,4 +6,3 @@ interface I1
 {
     mtd ok();
 }
-

@@ -59,8 +59,6 @@ const PA = cast(const *Swag.TypeInfoStruct) #typeof(A)
 #assert(PA.fields[2].offset == 8)
 
 
-
-
 #test
 {
     const a = #typeof(s32)

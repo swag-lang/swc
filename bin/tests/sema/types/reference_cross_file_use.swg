@@ -17,4 +17,3 @@
     #assert(#typeof(sum) == f32)
     #assert(#typeof(temp) == f32)
 }
-

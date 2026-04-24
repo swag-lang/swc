@@ -209,5 +209,3 @@ enum StressKind: u16
     #assert(#typeof(V) == s32)
     #assert(V == 209)
 }
-
-

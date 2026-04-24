@@ -55,7 +55,6 @@
 }
 
 
-
 #test
 {
     var x: const *s32 = null
@@ -86,10 +85,6 @@
     @assert(v1 == null)
     @assert(x2 == 0)
 }
-
-
-
-
 
 
 #test
@@ -124,5 +119,3 @@ alias StrictHandle = const *void
     @assert(ptr == @dataof(text))
     @assert(ptr[0] == 'h')
 }
-
-

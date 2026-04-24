@@ -11,7 +11,6 @@ func day4B()
 {
     #if #cfg == "release"
     {
-
         if @jit do
             return
 

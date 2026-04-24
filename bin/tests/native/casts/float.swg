@@ -6,8 +6,6 @@ func takes_f32(v: f32) { gFloatF32 = v }
 func takes_f64(v: f64) { gFloatF64 = v }
 
 
-
-
 #test
 {
     var a: s32 = -10
@@ -33,6 +31,3 @@ func takes_f64(v: f64) { gFloatF64 = v }
     @assert(gFloatF32 == 10.0)
     @assert(gFloatF64 == 10.0)
 }
-
-
-

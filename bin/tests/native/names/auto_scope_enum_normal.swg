@@ -70,4 +70,3 @@ func isGreen(value: A)->bool
     @assert(total == 111)
     @assert(value == .B)
 }
-

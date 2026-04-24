@@ -274,5 +274,3 @@ namespace compiler307
         @assert(toto() == toto1())
     }
 }
-
-

@@ -107,4 +107,3 @@ struct OuterAmbiguous
     using a: Inner
     using b: Inner2
 }
-

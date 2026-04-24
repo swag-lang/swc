@@ -62,7 +62,6 @@
 }
 
 
-
 #test
 {
     var a: [4] s32
@@ -209,4 +208,3 @@
     #assert(#typeof(p) == const [*] u8)
     @assert(p[0] == 3)
 }
-

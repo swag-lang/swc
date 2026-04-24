@@ -27,4 +27,3 @@ func Sum3Default(a: s32, b: s32 = 5, c: s32 = 6)->s32
     var R = Sum3Default(c: 3, a: 1)
     @assert(R == 9)
 }
-

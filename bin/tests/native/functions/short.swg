@@ -37,5 +37,3 @@ func I(current, target, speed: f32)->f32
     @assert(H(2'f64) == 1.5)
     @assert(I(1'f32, 3'f32, 0.25'f32) == 1.25'f32)
 }
-
-

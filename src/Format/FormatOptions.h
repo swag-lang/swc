@@ -116,102 +116,102 @@ struct FormatOptions
     // -----------------------------------------------------------------------
     FormatIndentStyle indentStyle             = FormatIndentStyle::Preserve; // Use spaces, tabs, or keep the existing style
     uint32_t          indentWidth             = 4;                           // Width of one indent level when using spaces
-    uint32_t          tabWidth                = 4;                           // Visual width assumed for a tab character
-    uint32_t          continuationIndentWidth = 4;                           // Extra indent for wrapped statements
-    bool              indentNamespaceBody     = true;                        // Indent content inside `namespace { ... }`
-    bool              indentImplBody          = true;                        // Indent content inside `impl ... { ... }`
-    bool              indentStructBody        = true;                        // Indent content inside `struct { ... }`
-    bool              indentEnumBody          = true;                        // Indent content inside `enum { ... }`
-    bool              indentCaseLabels        = false;                       // Indent `case X:` one extra level under `switch`
-    bool              indentCaseBlocks        = true;                        // Indent the block inside a case
-    bool              indentAttributes        = true;                        // Attributes follow the declaration's indent
-    bool              indentInsideParens      = false;                       // Indent wrapped args relative to the open paren
+    uint32_t          tabWidth                = 4;                           // @TODO Visual width assumed for a tab character
+    uint32_t          continuationIndentWidth = 4;                           // @TODO Extra indent for wrapped statements
+    bool              indentNamespaceBody     = true;                        // @TODO Indent content inside `namespace { ... }`
+    bool              indentImplBody          = true;                        // @TODO Indent content inside `impl ... { ... }`
+    bool              indentStructBody        = true;                        // @TODO Indent content inside `struct { ... }`
+    bool              indentEnumBody          = true;                        // @TODO Indent content inside `enum { ... }`
+    bool              indentCaseLabels        = false;                       // @TODO Indent `case X:` one extra level under `switch`
+    bool              indentCaseBlocks        = true;                        // @TODO Indent the block inside a case
+    bool              indentAttributes        = true;                        // @TODO Attributes follow the declaration's indent
+    bool              indentInsideParens      = false;                       // @TODO Indent wrapped args relative to the open paren
 
     // -----------------------------------------------------------------------
     // Column limit & wrapping
     // -----------------------------------------------------------------------
-    uint32_t                columnLimit                 = 0;                                 // Soft column limit (0 disables wrapping)
-    FormatOperatorWrapStyle breakBeforeBinaryOperators  = FormatOperatorWrapStyle::Preserve; // Where to wrap around binary operators
-    bool                    breakBeforeTernaryOperators = false;                             // Break before `?` and `:` in `cond ? a : b`
-    bool                    breakAfterReturnType        = false;                             // Newline before `->` in `func foo(...)->T`
-    bool                    breakBeforeDo               = false;                             // Break before trailing `do` (`if x do ...`)
-    bool                    breakBeforeElse             = true;                              // Place `else` on its own line
-    FormatBinPackStyle      binPackArguments            = FormatBinPackStyle::Preserve;      // Call argument layout when wrapping
-    FormatBinPackStyle      binPackParameters           = FormatBinPackStyle::Preserve;      // Declaration parameter layout when wrapping
+    uint32_t                columnLimit                 = 0;                                 // @TODO Soft column limit (0 disables wrapping)
+    FormatOperatorWrapStyle breakBeforeBinaryOperators  = FormatOperatorWrapStyle::Preserve; // @TODO Where to wrap around binary operators
+    bool                    breakBeforeTernaryOperators = false;                             // @TODO Break before `?` and `:` in `cond ? a : b`
+    bool                    breakAfterReturnType        = false;                             // @TODO Newline before `->` in `func foo(...)->T`
+    bool                    breakBeforeDo               = false;                             // @TODO Break before trailing `do` (`if x do ...`)
+    bool                    breakBeforeElse             = true;                              // @TODO Place `else` on its own line
+    FormatBinPackStyle      binPackArguments            = FormatBinPackStyle::Preserve;      // @TODO Call argument layout when wrapping
+    FormatBinPackStyle      binPackParameters           = FormatBinPackStyle::Preserve;      // @TODO Declaration parameter layout when wrapping
 
     // -----------------------------------------------------------------------
     // Braces & short bodies
     // -----------------------------------------------------------------------
-    FormatBraceStyle      braceStyle                         = FormatBraceStyle::Allman;     // Opening brace placement policy
-    bool                  compactEmptyBraces                 = true;                         // Keep `{}` inline on the opening line
-    FormatShortBlockStyle allowShortFunctionsOnSingleLine    = FormatShortBlockStyle::Empty; // When to keep function bodies on one line
-    FormatShortBlockStyle allowShortBlocksOnSingleLine       = FormatShortBlockStyle::Empty; // When to keep generic `{ ... }` blocks on one line
-    FormatShortBlockStyle allowShortEnumsOnSingleLine        = FormatShortBlockStyle::Empty; // When to keep `enum` bodies on one line
-    FormatShortBlockStyle allowShortStructsOnSingleLine      = FormatShortBlockStyle::Empty; // When to keep `struct` bodies on one line
-    bool                  allowShortIfStatementsOnSingleLine = true;                         // Allow `if cond do stmt` on one line
-    bool                  allowShortLoopsOnSingleLine        = true;                         // Allow short `while`/`for`/`foreach` bodies on one line
-    bool                  allowShortCaseOnSingleLine         = true;                         // Allow single-statement `case` arms on one line
+    FormatBraceStyle      braceStyle                         = FormatBraceStyle::Allman;     // @TODO Opening brace placement policy
+    bool                  compactEmptyBraces                 = true;                         // @TODO Keep `{}` inline on the opening line
+    FormatShortBlockStyle allowShortFunctionsOnSingleLine    = FormatShortBlockStyle::Empty; // @TODO When to keep function bodies on one line
+    FormatShortBlockStyle allowShortBlocksOnSingleLine       = FormatShortBlockStyle::Empty; // @TODO When to keep generic `{ ... }` blocks on one line
+    FormatShortBlockStyle allowShortEnumsOnSingleLine        = FormatShortBlockStyle::Empty; // @TODO When to keep `enum` bodies on one line
+    FormatShortBlockStyle allowShortStructsOnSingleLine      = FormatShortBlockStyle::Empty; // @TODO When to keep `struct` bodies on one line
+    bool                  allowShortIfStatementsOnSingleLine = true;                         // @TODO Allow `if cond do stmt` on one line
+    bool                  allowShortLoopsOnSingleLine        = true;                         // @TODO Allow short `while`/`for`/`foreach` bodies on one line
+    bool                  allowShortCaseOnSingleLine         = true;                         // @TODO Allow single-statement `case` arms on one line
 
     // -----------------------------------------------------------------------
     // Alignment
     // -----------------------------------------------------------------------
-    FormatAlignMode alignConsecutiveAssignments  = FormatAlignMode::Consecutive; // Align `=` in adjacent assignments
-    FormatAlignMode alignConsecutiveDeclarations = FormatAlignMode::Consecutive; // Align names/types of adjacent `let`/`var` declarations
-    FormatAlignMode alignConsecutiveConstants    = FormatAlignMode::Consecutive; // Align values of adjacent `const` declarations
-    FormatAlignMode alignStructFields            = FormatAlignMode::Consecutive; // Align `:` and types of adjacent struct fields
-    FormatAlignMode alignEnumValues              = FormatAlignMode::Consecutive; // Align `=` on enum value definitions
-    FormatAlignMode alignAttributes              = FormatAlignMode::None;        // Align adjacent `#[...]` attributes
-    bool            alignTrailingComments        = true;                         // Align `//` trailing comments into a shared column
-    uint32_t        trailingCommentMinSpaces     = 5;                            // Minimum spaces before a trailing `//`
-    uint32_t        trailingCommentMaxColumn     = 0;                            // 0 = no limit on trailing comment column
-    bool            alignOperands                = false;                        // Align operands of wrapped binary expressions
-    bool            alignAfterOpenBracket        = false;                        // Align wrapped args with the opening `(` / `[`
+    FormatAlignMode alignConsecutiveAssignments  = FormatAlignMode::Consecutive; // @TODO Align `=` in adjacent assignments
+    FormatAlignMode alignConsecutiveDeclarations = FormatAlignMode::Consecutive; // @TODO Align names/types of adjacent `let`/`var` declarations
+    FormatAlignMode alignConsecutiveConstants    = FormatAlignMode::Consecutive; // @TODO Align values of adjacent `const` declarations
+    FormatAlignMode alignStructFields            = FormatAlignMode::Consecutive; // @TODO Align `:` and types of adjacent struct fields
+    FormatAlignMode alignEnumValues              = FormatAlignMode::Consecutive; // @TODO Align `=` on enum value definitions
+    FormatAlignMode alignAttributes              = FormatAlignMode::None;        // @TODO Align adjacent `#[...]` attributes
+    bool            alignTrailingComments        = true;                         // @TODO Align `//` trailing comments into a shared column
+    uint32_t        trailingCommentMinSpaces     = 5;                            // @TODO Minimum spaces before a trailing `//`
+    uint32_t        trailingCommentMaxColumn     = 0;                            // @TODO 0 = no limit on trailing comment column
+    bool            alignOperands                = false;                        // @TODO Align operands of wrapped binary expressions
+    bool            alignAfterOpenBracket        = false;                        // @TODO Align wrapped args with the opening `(` / `[`
 
     // -----------------------------------------------------------------------
     // Spacing
     // -----------------------------------------------------------------------
-    bool                    spaceBeforeColonInDeclarations = false;                          // `a : u8`
-    bool                    spaceAfterColonInDeclarations  = true;                           // `a: u8`
-    bool                    spaceBeforeColonInBaseClause   = false;                          // `enum E: u32`
-    bool                    spaceAroundAssignmentOperator  = true;                           // `a = 1`
-    bool                    spaceAroundBinaryOperators     = true;                           // `a + b`
-    bool                    spaceAroundArrow               = false;                          // `func()->int` vs `func() -> int`
-    bool                    spaceAroundRangeOperator       = false;                          // `0..10` vs `0 .. 10`
-    bool                    spaceAfterComma                = true;                           // `a, b`
-    bool                    spaceBeforeComma               = false;                          // `a ,b`
-    bool                    spaceAfterCast                 = true;                           // `cast(int) x`
-    bool                    spaceAfterKeyword              = true;                           // `if (x)` vs `if(x)`
-    bool                    spaceAfterUnaryOperator        = false;                          // `- x` vs `-x`
-    bool                    spaceInsideParentheses         = false;                          // `( a, b )`
-    bool                    spaceInsideBrackets            = false;                          // `[ 0 ]`
-    bool                    spaceInsideBraces              = false;                          // `{ 1, 2 }`
-    bool                    spaceInEmptyParentheses        = false;                          // `( )`
-    bool                    spaceInEmptyBraces             = false;                          // `{ }`
-    bool                    spaceBeforeAttributeBracket    = false;                          // `foo #[attr]`
-    FormatSpaceBeforeParens spaceBeforeParentheses         = FormatSpaceBeforeParens::Never; // When to insert a space between an identifier and `(`
+    bool                    spaceBeforeColonInDeclarations = false;                          // @TODO `a : u8`
+    bool                    spaceAfterColonInDeclarations  = true;                           // @TODO `a: u8`
+    bool                    spaceBeforeColonInBaseClause   = false;                          // @TODO `enum E: u32`
+    bool                    spaceAroundAssignmentOperator  = true;                           // @TODO `a = 1`
+    bool                    spaceAroundBinaryOperators     = true;                           // @TODO `a + b`
+    bool                    spaceAroundArrow               = false;                          // @TODO `func()->int` vs `func() -> int`
+    bool                    spaceAroundRangeOperator       = false;                          // @TODO `0..10` vs `0 .. 10`
+    bool                    spaceAfterComma                = true;                           // @TODO `a, b`
+    bool                    spaceBeforeComma               = false;                          // @TODO `a ,b`
+    bool                    spaceAfterCast                 = true;                           // @TODO `cast(int) x`
+    bool                    spaceAfterKeyword              = true;                           // @TODO `if (x)` vs `if(x)`
+    bool                    spaceAfterUnaryOperator        = false;                          // @TODO `- x` vs `-x`
+    bool                    spaceInsideParentheses         = false;                          // @TODO `( a, b )`
+    bool                    spaceInsideBrackets            = false;                          // @TODO `[ 0 ]`
+    bool                    spaceInsideBraces              = false;                          // @TODO `{ 1, 2 }`
+    bool                    spaceInEmptyParentheses        = false;                          // @TODO `( )`
+    bool                    spaceInEmptyBraces             = false;                          // @TODO `{ }`
+    bool                    spaceBeforeAttributeBracket    = false;                          // @TODO `foo #[attr]`
+    FormatSpaceBeforeParens spaceBeforeParentheses         = FormatSpaceBeforeParens::Never; // @TODO When to insert a space between an identifier and `(`
 
     // -----------------------------------------------------------------------
     // Attributes
     // -----------------------------------------------------------------------
-    FormatAttributePlacement attributePlacement       = FormatAttributePlacement::Preserve; // How to place `#[Attr]` relative to its declaration
-    bool                     breakAfterAttribute      = true;                               // Force a line break between attribute and declaration
-    bool                     spaceAfterAttributeComma = true;                               // Insert a space after `,` inside `#[A, B, C]`
-    bool                     sortAttributeArguments   = false;                              // Sort attribute argument lists alphabetically
+    FormatAttributePlacement attributePlacement       = FormatAttributePlacement::Preserve; // @TODO How to place `#[Attr]` relative to its declaration
+    bool                     breakAfterAttribute      = true;                               // @TODO Force a line break between attribute and declaration
+    bool                     spaceAfterAttributeComma = true;                               // @TODO Insert a space after `,` inside `#[A, B, C]`
+    bool                     sortAttributeArguments   = false;                              // @TODO Sort attribute argument lists alphabetically
 
     // -----------------------------------------------------------------------
     // Comments
     // -----------------------------------------------------------------------
-    FormatCommentReflow commentReflow               = FormatCommentReflow::Preserve; // How aggressively to rewrite comments for the column limit
-    bool                normalizeSectionSeparators  = true;                          // Rewrite `// ####...` banners to a common width
-    uint32_t            sectionSeparatorWidth       = 57;                            // Target column count for `// ### ... ###` banners
-    bool                spaceAfterLineCommentPrefix = true;                          // `// text` vs `//text`
+    FormatCommentReflow commentReflow               = FormatCommentReflow::Preserve; // @TODO How aggressively to rewrite comments for the column limit
+    bool                normalizeSectionSeparators  = true;                          // @TODO Rewrite `// ####...` banners to a common width
+    uint32_t            sectionSeparatorWidth       = 57;                            // @TODO Target column count for `// ### ... ###` banners
+    bool                spaceAfterLineCommentPrefix = true;                          // @TODO `// text` vs `//text`
 
     // -----------------------------------------------------------------------
     // Imports / using
     // -----------------------------------------------------------------------
-    FormatSortOrder sortUsingStatements      = FormatSortOrder::Preserve; // Sort order for top-of-file `using` statements
-    bool            mergeUsingStatements     = false;                     // Collapse adjacent `using` onto one line
-    bool            blankLineAfterUsingBlock = true;                      // Guarantee a blank line after the initial `using` block
+    FormatSortOrder sortUsingStatements      = FormatSortOrder::Preserve; // @TODO Sort order for top-of-file `using` statements
+    bool            mergeUsingStatements     = false;                     // @TODO Collapse adjacent `using` onto one line
+    bool            blankLineAfterUsingBlock = true;                      // @TODO Guarantee a blank line after the initial `using` block
 
     // -----------------------------------------------------------------------
     // Numeric literals
@@ -226,8 +226,8 @@ struct FormatOptions
     // -----------------------------------------------------------------------
     // Region / disable pragmas
     // -----------------------------------------------------------------------
-    Utf8 formatOffComment = "swc-format off"; // Comment marker that disables formatting until the matching on-comment
-    Utf8 formatOnComment  = "swc-format on";  // Comment marker that re-enables formatting after a format-off marker
+    Utf8 formatOffComment = "swc-format off"; // @TODO Comment marker that disables formatting until the matching on-comment
+    Utf8 formatOnComment  = "swc-format on";  // @TODO Comment marker that re-enables formatting after a format-off marker
 };
 
 SWC_END_NAMESPACE();

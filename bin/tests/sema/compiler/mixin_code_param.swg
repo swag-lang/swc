@@ -39,4 +39,3 @@ func mixinInjectValue(value: s32, stmt: #code void)
 
     @assert(total == 12)
 }
-

@@ -10,7 +10,6 @@ using Core, Core.Errors
 
 moduleprivate
 {
-
     const Adam7StartX: [7] u32 = [0, 4, 0, 2, 0, 1, 0]
     const Adam7StartY: [7] u32 = [0, 0, 4, 0, 2, 0, 1]
     const Adam7DeltaX: [7] u32 = [8, 8, 4, 4, 2, 2, 1]

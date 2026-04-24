@@ -163,4 +163,3 @@ func multiplyUfcs(c: *UfcsComplex, other: *UfcsComplex)
     c1.multiplyUfcs(&c2)
     @assert(c1.real == -14.0 and c1.imag == 44.0)
 }
-

@@ -41,5 +41,3 @@ namespace compiler1650
         }
     }
 }
-
-

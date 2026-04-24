@@ -59,4 +59,3 @@ func tutu(a: s32, b: s32...)
     @assert(gVariadicTutuTotal == 3)
     @assert(gVariadicTutuHead == 1)
 }
-

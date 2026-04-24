@@ -1,7 +1,6 @@
 #include "pch.h"
 #include "Backend/Micro/MicroUseDefMap.h"
 #include "Backend/Micro/MicroInstrInfo.h"
-#include "Backend/Micro/MicroPassContext.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -77,30 +76,6 @@ void MicroUseDefMap::build(MicroStorage& storage, MicroOperandStorage& operands,
         if (info.useDef.isCall)
             currentDefs.clear();
     }
-}
-
-const MicroUseDefMap* MicroUseDefMap::ensureFor(const MicroPassContext& context, MicroUseDefMap& localMap)
-{
-    if (context.useDefMap)
-    {
-        if (!context.useDefMap->isValid())
-        {
-            if (!context.instructions || !context.operands)
-                return nullptr;
-
-            context.useDefMap->build(*context.instructions, *context.operands, context.encoder);
-        }
-
-        return context.useDefMap;
-    }
-
-    if (!context.instructions || !context.operands)
-        return nullptr;
-
-    if (!localMap.isValid())
-        localMap.build(*context.instructions, *context.operands, context.encoder);
-
-    return &localMap;
 }
 
 void MicroUseDefMap::invalidate()

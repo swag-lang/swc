@@ -5,7 +5,6 @@
 SWC_BEGIN_NAMESPACE();
 
 class MicroOperandStorage;
-struct MicroPassContext;
 
 // Cached use-def analysis shared across pre-RA optimization passes.
 //
@@ -36,7 +35,6 @@ public:
     };
 
     void build(MicroStorage& storage, MicroOperandStorage& operands, const Encoder* encoder);
-    static const MicroUseDefMap* ensureFor(const MicroPassContext& context, MicroUseDefMap& localMap);
     void invalidate();
     bool isValid() const { return valid_; }
 

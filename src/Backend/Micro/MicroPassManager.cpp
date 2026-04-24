@@ -294,11 +294,6 @@ namespace
         }
 #endif
 
-        MicroUseDefMap useDefMap;
-        const bool     useSharedUseDefMap = context.builder && context.instructions && context.operands;
-        if (useSharedUseDefMap)
-            context.useDefMap = &useDefMap;
-
         MicroSsaState ssaState;
         const bool    useSharedSsa = buildSsa && context.builder && context.instructions && context.operands;
         if (useSharedSsa)

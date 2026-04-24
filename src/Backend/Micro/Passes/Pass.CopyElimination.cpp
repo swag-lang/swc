@@ -19,10 +19,9 @@
 //         SSA value we resolved (otherwise the canonical reg has been
 //         redefined and we'd alias the wrong value).
 //
-// Step 3: erase copies that are already dead in the current SSA snapshot.
-//         If Step 2 rewrote uses, the pass manager's fixed-point loop reruns
-//         copy elimination / DCE on a fresh analysis instead of rebuilding SSA
-//         immediately inside this pass.
+// Step 3: rebuild SSA (live ranges and uses are now stale) and erase any copy
+//         whose destination is no longer used afterwards. Self-copies are
+//         removed unconditionally.
 //
 // Example: mov v2, v1; add v3, v2  ->  add v3, v1  (then drop the dead copy).
 
@@ -232,23 +231,23 @@ Result MicroCopyEliminationPass::run(MicroPassContext& context)
     computeCanonicalValues(canonicalValues, canonicalFlags, *ssaState, storage, operands);
 
     const bool rewroteUses = rewriteCanonicalUses(context.builder, *ssaState, canonicalValues, canonicalFlags, storage, operands);
-    bool       erasedCopies = false;
-    if (!rewroteUses)
+
+    if (rewroteUses)
     {
-        erasedCopies = eraseDeadCopies(storage, operands, *ssaState);
-    }
-    else if (!context.ssaState)
-    {
-        localSsaState.invalidate();
+        if (context.ssaState)
+            context.ssaState->invalidate();
+        else
+            localSsaState.invalidate();
+
         ssaState = MicroSsaState::ensureFor(context, localSsaState);
         if (!ssaState || !ssaState->isValid())
         {
             context.passChanged = true;
             return Result::Continue;
         }
-
-        erasedCopies = eraseDeadCopies(storage, operands, *ssaState);
     }
+
+    const bool erasedCopies = eraseDeadCopies(storage, operands, *ssaState);
 
     if (rewroteUses || erasedCopies)
         context.passChanged = true;

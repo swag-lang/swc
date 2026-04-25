@@ -1427,7 +1427,6 @@ namespace
         const TypeInfo ti      = TypeInfo::makeFunction(&sym, TypeInfoFlagsE::Zero);
         const TypeRef  typeRef = sema.typeMgr().addType(ti);
         sym.setTypeRef(typeRef);
-        SemaPurity::computePurityFlag(sema, sym);
         sym.setTyped(sema.ctx());
 
         SWC_RESULT(SemaCheck::isValidSignature(sema, sym.parameters(), false));
@@ -1981,7 +1980,6 @@ Result AstFunctionDecl::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef
         const TypeInfo ti      = TypeInfo::makeFunction(&sym, TypeInfoFlagsE::Zero);
         const TypeRef  typeRef = sema.typeMgr().addType(ti);
         sym.setTypeRef(typeRef);
-        SemaPurity::computePurityFlag(sema, sym);
         sym.setTyped(sema.ctx());
 
         SWC_RESULT(SemaCheck::isValidSignature(sema, sym.parameters(), false));
@@ -2023,6 +2021,7 @@ Result AstFunctionDecl::semaPostNode(Sema& sema)
     if (sym.isForeign() && !sym.isEmpty())
         return SemaError::raise(sema, DiagnosticId::sema_err_foreign_cannot_have_body, sema.curNodeRef());
 
+    SemaPurity::computePurityFlag(sema, sym);
     sym.setSemaCompleted(sema.ctx());
     if (!sym.attributes().hasRtFlag(RtAttributeFlagsE::Macro) && !sym.attributes().hasRtFlag(RtAttributeFlagsE::Mixin))
         sema.compiler().registerNativeCodeFunction(&sym);
@@ -2035,6 +2034,7 @@ Result AstFunctionExpr::semaPostNode(Sema& sema) const
     if (!sym.isTyped())
         SWC_RESULT(finalizeFunctionExprSignature(sema, *this, sym));
 
+    SemaPurity::computePurityFlag(sema, sym);
     sym.setSemaCompleted(sema.ctx());
     if (!sym.attributes().hasRtFlag(RtAttributeFlagsE::Macro) && !sym.attributes().hasRtFlag(RtAttributeFlagsE::Mixin))
         sema.compiler().registerNativeCodeFunction(&sym);
@@ -2048,6 +2048,7 @@ Result AstClosureExpr::semaPostNode(Sema& sema) const
         SWC_RESULT(finalizeFunctionExprSignature(sema, *this, sym));
 
     SWC_RESULT(attachClosureExprRuntimeStorageIfNeeded(sema, *this, sym));
+    SemaPurity::computePurityFlag(sema, sym);
     sym.setSemaCompleted(sema.ctx());
     if (!sym.attributes().hasRtFlag(RtAttributeFlagsE::Macro) && !sym.attributes().hasRtFlag(RtAttributeFlagsE::Mixin))
         sema.compiler().registerNativeCodeFunction(&sym);

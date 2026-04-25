@@ -46,6 +46,36 @@ namespace
         return var->isFunctionLocalVariable(fn);
     }
 
+    bool isFunctionParameter(const SymbolFunction& fn, const SymbolVariable& var)
+    {
+        const auto& params = fn.parameters();
+        return std::ranges::find(params, &var) != params.end();
+    }
+
+    bool isFunctionLocalVariable(const SymbolFunction& fn, const SymbolVariable& var)
+    {
+        if (var.isFunctionLocalVariable(fn))
+            return true;
+
+        const auto& locals = fn.localVariables();
+        return std::ranges::find(locals, &var) != locals.end();
+    }
+
+    bool isFunctionInputOrLocalVariable(const SymbolFunction& fn, const SymbolVariable& var)
+    {
+        return isFunctionParameter(fn, var) || isFunctionLocalVariable(fn, var);
+    }
+
+    bool isPureVariableRead(Sema& sema, const SymbolFunction& fn, AstNodeRef nodeRef)
+    {
+        const SemaNodeView view = sema.viewSymbol(nodeRef);
+        if (!view.hasSymbol() || !view.sym() || !view.sym()->isVariable())
+            return true;
+
+        const auto& var = view.sym()->cast<SymbolVariable>();
+        return isFunctionInputOrLocalVariable(fn, var);
+    }
+
     bool isWritableAssignmentTarget(Sema& sema, const SymbolFunction& fn, AstNodeRef leftRef)
     {
         if (leftRef.isInvalid())
@@ -106,6 +136,9 @@ namespace
                 return false;
 
             const AstNode& node = sema.node(currentRef);
+            if (node.is(AstNodeId::Identifier) && !isPureVariableRead(sema, fn, currentRef))
+                return false;
+
             if (node.is(AstNodeId::AssignStmt))
             {
                 const auto& assignStmt = node.cast<AstAssignStmt>();
@@ -114,6 +147,14 @@ namespace
 
                 if (assignStmt.nodeRightRef.isValid())
                     toScan.push_back(assignStmt.nodeRightRef);
+                continue;
+            }
+
+            if (node.is(AstNodeId::MemberAccessExpr))
+            {
+                const auto& memberAccess = node.cast<AstMemberAccessExpr>();
+                if (memberAccess.nodeLeftRef.isValid())
+                    toScan.push_back(memberAccess.nodeLeftRef);
                 continue;
             }
 

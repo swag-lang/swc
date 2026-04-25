@@ -226,8 +226,8 @@ struct FormatOptions
     // -----------------------------------------------------------------------
     // Region / disable pragmas
     // -----------------------------------------------------------------------
-    Utf8 formatOffComment = "swc-format off"; // @TODO Comment marker that disables formatting until the matching on-comment
-    Utf8 formatOnComment  = "swc-format on";  // @TODO Comment marker that re-enables formatting after a format-off marker
+    Utf8 formatOffComment = "swc-format off"; // Comment marker that disables formatting until the matching on-comment
+    Utf8 formatOnComment  = "swc-format on";  // Comment marker that re-enables formatting after a format-off marker
 };
 
 SWC_END_NAMESPACE();

@@ -64,15 +64,16 @@ private:
     SourcePiece      makeTriviaPiece(uint32_t triviaIndex) const;
     SourcePiece      makeTokenPiece(uint32_t tokenIndex) const;
 
-    FormatContext*       formatCtx_        = nullptr;
-    const Ast*           ast_              = nullptr;
-    const SourceView*    srcView_          = nullptr;
-    const FormatOptions* options_          = nullptr;
-    uint32_t             cursorByte_       = 0;
-    uint32_t             nextTokenIndex_   = 0;
-    uint32_t             nextTriviaIndex_  = 0;
-    uint32_t             eofByte_          = 0;
-    TokenId              lastPieceTokenId_ = TokenId::Invalid;
+    FormatContext*       formatCtx_          = nullptr;
+    const Ast*           ast_                = nullptr;
+    const SourceView*    srcView_            = nullptr;
+    const FormatOptions* options_            = nullptr;
+    uint32_t             cursorByte_         = 0;
+    uint32_t             nextTokenIndex_     = 0;
+    uint32_t             nextTriviaIndex_    = 0;
+    uint32_t             eofByte_            = 0;
+    TokenId              lastPieceTokenId_   = TokenId::Invalid;
+    bool                 formattingEnabled_  = true;
 };
 
 SWC_END_NAMESPACE();

@@ -323,23 +323,47 @@ void AstSourceWriter::appendSourcePiece(const SourcePiece& piece)
     SWC_ASSERT(piece.byteStart == cursorByte_);
     SWC_ASSERT(piece.text.size() == piece.byteLength);
 
-    switch (piece.tokenId)
+    const bool isComment = piece.tokenId == TokenId::CommentLine ||
+                           piece.tokenId == TokenId::CommentBlock;
+
+    // Re-enable formatting before emitting so the on-comment is itself formatted.
+    if (isComment && !formattingEnabled_ && !options_->formatOnComment.empty() &&
+        piece.text.contains(options_->formatOnComment.view()))
     {
-        case TokenId::Whitespace:
-            appendWhitespacePiece(piece);
-            break;
-        case TokenId::CommentBlock:
-            appendCommentPiece(piece);
-            break;
-        case TokenId::NumberHex:
-        case TokenId::NumberBin:
-        case TokenId::NumberInteger:
-        case TokenId::NumberFloat:
-            appendNumberPiece(piece);
-            break;
-        default:
-            formatCtx_->output += piece.text;
-            break;
+        formattingEnabled_ = true;
+    }
+
+    if (!formattingEnabled_)
+    {
+        formatCtx_->output += piece.text;
+    }
+    else
+    {
+        switch (piece.tokenId)
+        {
+            case TokenId::Whitespace:
+                appendWhitespacePiece(piece);
+                break;
+            case TokenId::CommentBlock:
+                appendCommentPiece(piece);
+                break;
+            case TokenId::NumberHex:
+            case TokenId::NumberBin:
+            case TokenId::NumberInteger:
+            case TokenId::NumberFloat:
+                appendNumberPiece(piece);
+                break;
+            default:
+                formatCtx_->output += piece.text;
+                break;
+        }
+    }
+
+    // Disable formatting after emitting so the off-comment is itself formatted.
+    if (isComment && formattingEnabled_ && !options_->formatOffComment.empty() &&
+        piece.text.contains(options_->formatOffComment.view()))
+    {
+        formattingEnabled_ = false;
     }
 
     cursorByte_ += piece.byteLength;

@@ -864,8 +864,6 @@ Result SemaJIT::tryRunConstCall(Sema& sema, SymbolFunction& calledFn, AstNodeRef
 
     ///////////////////////////////////////////
     // Eligibility and prerequisites.
-    if (!supportsConstCallJit(sema, calledFn))
-        return Result::Continue;
     if (sema.isRunExprContext())
         return Result::Continue;
     if (!sema.isOptimizeEnabled() &&
@@ -874,13 +872,22 @@ Result SemaJIT::tryRunConstCall(Sema& sema, SymbolFunction& calledFn, AstNodeRef
     if (sema.viewConstant(callRef).hasConstant())
         return Result::Continue;
 
-    if (hasPendingJitNode(sema, callRef))
-        return waitPendingJitNode(sema, calledFn, callRef);
-
     const SymbolFunction* currentFn = sema.currentFunction();
     if (currentFn == &calledFn)
         return Result::Continue;
+
+    if (sema.isConstExprRequired())
+        SWC_RESULT(sema.waitSemaCompleted(&calledFn, sema.node(callRef).codeRef()));
+
+    if (!supportsConstCallJit(sema, calledFn))
+        return Result::Continue;
+
+    if (hasPendingJitNode(sema, callRef))
+        return waitPendingJitNode(sema, calledFn, callRef);
+
     SWC_RESULT(sema.waitSemaCompleted(&calledFn, sema.node(callRef).codeRef()));
+    if (!supportsConstCallJit(sema, calledFn))
+        return Result::Continue;
 
     ///////////////////////////////////////////
     // Build payload and arguments for call folding.

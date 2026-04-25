@@ -14,63 +14,6 @@
 
 SWC_BEGIN_NAMESPACE();
 
-namespace
-{
-    void appendInputRoots(std::vector<fs::path>& outRoots, const std::set<fs::path>& inputs, const bool useParentDirectory)
-    {
-        for (const fs::path& input : inputs)
-        {
-            fs::path root = useParentDirectory ? input.parent_path() : input;
-            if (root.empty())
-                root = input;
-
-            root = FileSystem::absolutePathNoThrow(root);
-            if (!root.empty())
-                outRoots.push_back(root);
-        }
-    }
-
-    fs::path commonPathPrefix(const fs::path& lhs, const fs::path& rhs)
-    {
-        fs::path result;
-        auto     lhsIt = lhs.begin();
-        auto     rhsIt = rhs.begin();
-        while (lhsIt != lhs.end() && rhsIt != rhs.end() && *lhsIt == *rhsIt)
-        {
-            result /= *lhsIt;
-            ++lhsIt;
-            ++rhsIt;
-        }
-
-        return result;
-    }
-
-    fs::path inputRootPath(const CommandLine& cmdLine)
-    {
-        std::vector<fs::path> roots;
-        if (!cmdLine.modulePath.empty())
-            roots.push_back(FileSystem::absolutePathNoThrow(cmdLine.modulePath.parent_path()));
-
-        appendInputRoots(roots, cmdLine.files, true);
-        appendInputRoots(roots, cmdLine.directories, false);
-
-        if (roots.empty())
-            return {};
-
-        fs::path root = roots.front();
-        for (size_t i = 1; i < roots.size(); ++i)
-        {
-            root = commonPathPrefix(root, roots[i]);
-            if (root.empty())
-                return roots.front();
-        }
-
-        if (!root.empty() && root != root.root_path())
-            return root;
-        return roots.front();
-    }
-}
-
 class NativeStartupBuildJob final : public Job
 {
 public:
@@ -147,7 +90,57 @@ void NativeArtifactBuilder::queryPaths(NativeArtifactPaths& outPaths, const uint
     outPaths.workDir = configuredWorkDir();
     if (outPaths.workDir.empty())
     {
-        fs::path sourceRoot = inputRootPath(builder_->ctx().cmdLine());
+        const CommandLine& cmdLine = builder_->ctx().cmdLine();
+        std::vector<fs::path> roots;
+        if (!cmdLine.modulePath.empty())
+            roots.push_back(FileSystem::absolutePathNoThrow(cmdLine.modulePath.parent_path()));
+
+        for (const fs::path& input : cmdLine.files)
+        {
+            fs::path root = input.parent_path();
+            if (root.empty())
+                root = input;
+
+            root = FileSystem::absolutePathNoThrow(root);
+            if (!root.empty())
+                roots.push_back(root);
+        }
+
+        for (const fs::path& input : cmdLine.directories)
+        {
+            fs::path root = FileSystem::absolutePathNoThrow(input);
+            if (!root.empty())
+                roots.push_back(root);
+        }
+
+        fs::path sourceRoot;
+        if (!roots.empty())
+        {
+            sourceRoot = roots.front();
+            for (size_t i = 1; i < roots.size(); ++i)
+            {
+                fs::path commonRoot;
+                auto     lhsIt = sourceRoot.begin();
+                auto     rhsIt = roots[i].begin();
+                while (lhsIt != sourceRoot.end() && rhsIt != roots[i].end() && *lhsIt == *rhsIt)
+                {
+                    commonRoot /= *lhsIt;
+                    ++lhsIt;
+                    ++rhsIt;
+                }
+
+                sourceRoot = std::move(commonRoot);
+                if (sourceRoot.empty())
+                {
+                    sourceRoot = roots.front();
+                    break;
+                }
+            }
+
+            if (sourceRoot == sourceRoot.root_path())
+                sourceRoot = roots.front();
+        }
+
         if (sourceRoot.empty())
             sourceRoot = FileSystem::currentPathNoThrow();
         outPaths.workDir = sourceRoot / ".output" / automaticWorkDirName(outPaths.name).c_str();

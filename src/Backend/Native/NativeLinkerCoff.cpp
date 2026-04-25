@@ -4,34 +4,6 @@
 
 SWC_BEGIN_NAMESPACE();
 
-namespace
-{
-    Utf8 normalizeLibraryFileName(const std::string_view value)
-    {
-        Utf8 out(value);
-        out.make_lower();
-        if (fs::path(std::string(out)).extension().empty())
-            out += ".lib";
-        return out;
-    }
-
-    void collectForeignLibrariesFromCode(std::set<Utf8>& out, const MachineCode& code)
-    {
-        for (const auto& relocation : code.codeRelocations)
-        {
-            if (relocation.kind != MicroRelocation::Kind::ForeignFunctionAddress || !relocation.targetSymbol)
-                continue;
-            const auto* function = relocation.targetSymbol->safeCast<SymbolFunction>();
-            if (!function)
-                continue;
-            const std::string_view libraryName = function->foreignLinkModuleName().empty() ? function->foreignModuleName() : function->foreignLinkModuleName();
-            if (!libraryName.empty())
-                out.emplace(normalizeLibraryFileName(libraryName));
-        }
-    }
-
-}
-
 NativeLinkerCoff::NativeLinkerCoff(NativeBackendBuilder& builder) :
     NativeLinker(builder)
 {
@@ -181,12 +153,59 @@ void NativeLinkerCoff::collectLinkLibraries(std::set<Utf8>& out) const
 {
     SWC_ASSERT(builder_ != nullptr);
     for (const Utf8& library : builder_->compiler().foreignLibs())
-        out.emplace(normalizeLibraryFileName(library));
+    {
+        Utf8 normalizedLibrary(library);
+        normalizedLibrary.make_lower();
+        if (fs::path(std::string(normalizedLibrary)).extension().empty())
+            normalizedLibrary += ".lib";
+        out.emplace(std::move(normalizedLibrary));
+    }
 
     for (const auto& info : builder_->functionInfos)
-        collectForeignLibrariesFromCode(out, *info.machineCode);
+    {
+        for (const auto& relocation : info.machineCode->codeRelocations)
+        {
+            if (relocation.kind != MicroRelocation::Kind::ForeignFunctionAddress || !relocation.targetSymbol)
+                continue;
+
+            const auto* function = relocation.targetSymbol->safeCast<SymbolFunction>();
+            if (!function)
+                continue;
+
+            const std::string_view libraryName = function->foreignLinkModuleName().empty() ? function->foreignModuleName() : function->foreignLinkModuleName();
+            if (libraryName.empty())
+                continue;
+
+            Utf8 normalizedLibrary(libraryName);
+            normalizedLibrary.make_lower();
+            if (fs::path(std::string(normalizedLibrary)).extension().empty())
+                normalizedLibrary += ".lib";
+            out.emplace(std::move(normalizedLibrary));
+        }
+    }
+
     if (builder_->startup)
-        collectForeignLibrariesFromCode(out, builder_->startup->code);
+    {
+        for (const auto& relocation : builder_->startup->code.codeRelocations)
+        {
+            if (relocation.kind != MicroRelocation::Kind::ForeignFunctionAddress || !relocation.targetSymbol)
+                continue;
+
+            const auto* function = relocation.targetSymbol->safeCast<SymbolFunction>();
+            if (!function)
+                continue;
+
+            const std::string_view libraryName = function->foreignLinkModuleName().empty() ? function->foreignModuleName() : function->foreignLinkModuleName();
+            if (libraryName.empty())
+                continue;
+
+            Utf8 normalizedLibrary(libraryName);
+            normalizedLibrary.make_lower();
+            if (fs::path(std::string(normalizedLibrary)).extension().empty())
+                normalizedLibrary += ".lib";
+            out.emplace(std::move(normalizedLibrary));
+        }
+    }
 }
 
 void NativeLinkerCoff::appendUserLinkerArgs(std::vector<Utf8>& args) const

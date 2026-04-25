@@ -23,60 +23,6 @@ namespace
         HelpOptionGroup group = HelpOptionGroup::Other;
     };
 
-    Utf8 formatStringSetValue(const std::set<Utf8>& values)
-    {
-        if (values.empty())
-            return {};
-
-        Utf8 result;
-        bool first = true;
-        for (const Utf8& value : values)
-        {
-            if (!first)
-                result += ", ";
-            result += value;
-            first = false;
-        }
-
-        return result;
-    }
-
-    Utf8 formatPathSetValue(const std::set<fs::path>& values)
-    {
-        if (values.empty())
-            return {};
-
-        Utf8 result;
-        bool first = true;
-        for (const fs::path& value : values)
-        {
-            if (!first)
-                result += ", ";
-            result += value.string();
-            first = false;
-        }
-
-        return result;
-    }
-
-    Utf8 formatVectorValue(const std::vector<Utf8>& values)
-    {
-        if (values.empty())
-            return {};
-
-        Utf8 result;
-        bool first = true;
-        for (const Utf8& value : values)
-        {
-            if (!first)
-                result += ", ";
-            result += value;
-            first = false;
-        }
-
-        return result;
-    }
-
     Utf8 defaultValueToString(const ArgInfo& arg)
     {
         if (auto* t = std::get_if<bool*>(&arg.target))
@@ -94,17 +40,44 @@ namespace
         }
         if (auto* t = std::get_if<std::vector<Utf8>*>(&arg.target))
         {
-            Utf8 value = formatVectorValue(**t);
+            Utf8 value;
+            bool first = true;
+            for (const Utf8& entry : **t)
+            {
+                if (!first)
+                    value += ", ";
+                value += entry;
+                first = false;
+            }
+
             return value.empty() ? Utf8("(none)") : value;
         }
         if (auto* t = std::get_if<std::set<Utf8>*>(&arg.target))
         {
-            Utf8 value = formatStringSetValue(**t);
+            Utf8 value;
+            bool first = true;
+            for (const Utf8& entry : **t)
+            {
+                if (!first)
+                    value += ", ";
+                value += entry;
+                first = false;
+            }
+
             return value.empty() ? Utf8("(none)") : value;
         }
         if (auto* t = std::get_if<std::set<fs::path>*>(&arg.target))
         {
-            Utf8 value = formatPathSetValue(**t);
+            Utf8 value;
+            bool first = true;
+            for (const fs::path& entry : **t)
+            {
+                if (!first)
+                    value += ", ";
+                value += entry.string();
+                first = false;
+            }
+
             return value.empty() ? Utf8("(none)") : value;
         }
         if (auto* t = std::get_if<std::optional<bool>*>(&arg.target))
@@ -126,31 +99,6 @@ namespace
         }
 
         SWC_UNREACHABLE();
-    }
-
-    const char* optionGroupName(const HelpOptionGroup group)
-    {
-        switch (group)
-        {
-            case HelpOptionGroup::Input:
-                return "Input";
-            case HelpOptionGroup::Target:
-                return "Target";
-            case HelpOptionGroup::Compiler:
-                return "Compiler";
-            case HelpOptionGroup::Diagnostics:
-                return "Diagnostics";
-            case HelpOptionGroup::Logging:
-                return "Logging";
-            case HelpOptionGroup::Testing:
-                return "Testing";
-            case HelpOptionGroup::Development:
-                return "Development";
-            case HelpOptionGroup::Other:
-                return "Other";
-        }
-
-        return "Other";
     }
 
 }
@@ -232,7 +180,35 @@ void CommandLineParser::printHelp(const TaskContext& ctx, const Utf8& command)
         {
             if (!groupEntries.empty())
             {
-                Logger::printFieldGroup(ctx, optionGroupName(currentGroup), groupEntries, nextHelpGroupStyle(hasPrintedGroup, 34));
+                const char* groupName = "Other";
+                switch (currentGroup)
+                {
+                    case HelpOptionGroup::Input:
+                        groupName = "Input";
+                        break;
+                    case HelpOptionGroup::Target:
+                        groupName = "Target";
+                        break;
+                    case HelpOptionGroup::Compiler:
+                        groupName = "Compiler";
+                        break;
+                    case HelpOptionGroup::Diagnostics:
+                        groupName = "Diagnostics";
+                        break;
+                    case HelpOptionGroup::Logging:
+                        groupName = "Logging";
+                        break;
+                    case HelpOptionGroup::Testing:
+                        groupName = "Testing";
+                        break;
+                    case HelpOptionGroup::Development:
+                        groupName = "Development";
+                        break;
+                    case HelpOptionGroup::Other:
+                        break;
+                }
+
+                Logger::printFieldGroup(ctx, groupName, groupEntries, nextHelpGroupStyle(hasPrintedGroup, 34));
                 groupEntries.clear();
             }
 
@@ -242,12 +218,54 @@ void CommandLineParser::printHelp(const TaskContext& ctx, const Utf8& command)
 
         addInfoEntry(groupEntries, entry.displayName, entry.arg->description, LogColor::White, 0, helpArgumentLabelColor());
         if (entry.arg->isEnum())
-            addInfoEntry(groupEntries, "choices", formatVectorValue(entry.arg->choices), LogColor::Yellow, 1, LogColor::Dim);
+        {
+            Utf8 choices;
+            bool first = true;
+            for (const Utf8& choice : entry.arg->choices)
+            {
+                if (!first)
+                    choices += ", ";
+                choices += choice;
+                first = false;
+            }
+
+            addInfoEntry(groupEntries, "choices", std::move(choices), LogColor::Yellow, 1, LogColor::Dim);
+        }
         addInfoEntry(groupEntries, "default", defaultValueToString(*entry.arg), LogColor::BrightGreen, 1, LogColor::Dim);
     }
 
     if (!groupEntries.empty())
-        Logger::printFieldGroup(ctx, optionGroupName(currentGroup), groupEntries, nextHelpGroupStyle(hasPrintedGroup, 34));
+    {
+        const char* groupName = "Other";
+        switch (currentGroup)
+        {
+            case HelpOptionGroup::Input:
+                groupName = "Input";
+                break;
+            case HelpOptionGroup::Target:
+                groupName = "Target";
+                break;
+            case HelpOptionGroup::Compiler:
+                groupName = "Compiler";
+                break;
+            case HelpOptionGroup::Diagnostics:
+                groupName = "Diagnostics";
+                break;
+            case HelpOptionGroup::Logging:
+                groupName = "Logging";
+                break;
+            case HelpOptionGroup::Testing:
+                groupName = "Testing";
+                break;
+            case HelpOptionGroup::Development:
+                groupName = "Development";
+                break;
+            case HelpOptionGroup::Other:
+                break;
+        }
+
+        Logger::printFieldGroup(ctx, groupName, groupEntries, nextHelpGroupStyle(hasPrintedGroup, 34));
+    }
 
     command_ = oldCommand;
 }

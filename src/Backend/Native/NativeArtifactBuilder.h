@@ -32,14 +32,10 @@ private:
     friend class NativeStartupBuildJob;
 
     Result          clearOutputFolders(const NativeArtifactPaths& paths) const;
-    Utf8            artifactName() const;
     Utf8            artifactExtension() const;
     Utf8            objectExtension() const;
-    fs::path        configuredOutDir(const fs::path& defaultOutDir) const;
     Result          createOutDir(const fs::path& outDir) const;
-    fs::path        configuredWorkDir() const;
     Utf8            automaticWorkDirName(const Utf8& name) const;
-    static fs::path buildDir(const fs::path& workDir);
     Result          createBuildDir(const fs::path& buildDir) const;
 
     Result        prepareDataSections() const;

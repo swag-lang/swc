@@ -32,7 +32,7 @@ namespace
 
         const TaskState& state = ctx->state();
         HardwareException::appendSectionHeader(outMsg, "task");
-        HardwareException::appendField(outMsg, "state", state.kindName());
+        HardwareException::appendField(outMsg, "state", TaskState::kindName(state.kind));
 
         if (state.nodeRef.isValid())
             HardwareException::appendField(outMsg, "node ref", std::format("{}", state.nodeRef.get()));

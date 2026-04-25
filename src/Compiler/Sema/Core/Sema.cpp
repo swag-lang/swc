@@ -1009,7 +1009,7 @@ Result Sema::execResult()
         curScope_->setSymMap(startSymMap_);
     }
 
-    ctx().state().reset();
+    ctx().state().setNone();
 
     auto semaResult = Result::Continue;
     if (!rootVisitDone_)

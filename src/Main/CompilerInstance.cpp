@@ -57,7 +57,7 @@ public:
                 hasCurrentRequest_ = true;
             }
 
-            ctx().state().reset();
+            ctx().state().setNone();
             if (!currentRequest_.listenerFile || currentRequest_.ownerNodeRef.isInvalid() || currentRequest_.typeRef.isInvalid())
             {
                 hasCurrentRequest_ = false;

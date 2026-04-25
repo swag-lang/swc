@@ -44,11 +44,6 @@ const char* TaskState::kindName(const TaskStateKind kind)
     }
 }
 
-const char* TaskState::kindName() const
-{
-    return kindName(kind);
-}
-
 bool TaskState::hasPauseReason() const
 {
     switch (kind)
@@ -166,11 +161,6 @@ void TaskState::setSemaWaitMainThreadRunJit(const SymbolFunction* function, AstN
     idRef           = IdentifierRef::invalid();
     symbol          = nullptr;
     waiterSymbol    = nullptr;
-}
-
-void TaskState::reset()
-{
-    setNone();
 }
 
 SWC_END_NAMESPACE();

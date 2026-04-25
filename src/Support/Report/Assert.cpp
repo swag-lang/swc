@@ -41,14 +41,6 @@ namespace
         }
     }
 
-    void appendContextField(Utf8& msg, const std::string_view label, const std::string_view value)
-    {
-        if (value.empty())
-            return;
-
-        msg += std::format("{}: {}\n", label, value);
-    }
-
     bool tryGetTaskStateCodeRange(const TaskContext& ctx, SourceCodeRange& outCodeRange)
     {
         const TaskState& state = ctx.state();
@@ -96,18 +88,18 @@ namespace
             !state.waiterSymbol)
             return;
 
-        appendContextField(msg, "Phase", std::string_view(state.kindName()));
+        msg += std::format("Phase: {}\n", TaskState::kindName(state.kind));
 
         if (state.codeGenFunction)
-            appendContextField(msg, "Codegen function", state.codeGenFunction->getFullScopedName(ctx).view());
+            msg += std::format("Codegen function: {}\n", state.codeGenFunction->getFullScopedName(ctx));
         if (state.runJitFunction)
-            appendContextField(msg, "JIT function", state.runJitFunction->getFullScopedName(ctx).view());
+            msg += std::format("JIT function: {}\n", state.runJitFunction->getFullScopedName(ctx));
         if (state.waiterSymbol)
-            appendContextField(msg, "Current symbol", state.waiterSymbol->getFullScopedName(ctx).view());
+            msg += std::format("Current symbol: {}\n", state.waiterSymbol->getFullScopedName(ctx));
         if (state.symbol)
-            appendContextField(msg, "Blocking symbol", state.symbol->getFullScopedName(ctx).view());
+            msg += std::format("Blocking symbol: {}\n", state.symbol->getFullScopedName(ctx));
         if (state.codeRef.isValid())
-            appendContextField(msg, "Token", Diagnostic::tokenErrorString(ctx, state.codeRef).view());
+            msg += std::format("Token: {}\n", Diagnostic::tokenErrorString(ctx, state.codeRef));
 
         if (hasCodeRange)
             appendSourceContext(msg, ctx, codeRange);

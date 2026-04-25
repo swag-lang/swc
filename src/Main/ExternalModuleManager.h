@@ -18,8 +18,6 @@ private:
         void* moduleHandle = nullptr;
     };
 
-    bool findLoadedModule(void*& outModuleHandle, std::string_view moduleName) const;
-
     mutable std::mutex       mutex_;
     std::vector<ModuleEntry> modules_;
 };

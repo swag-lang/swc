@@ -28,7 +28,7 @@ bool JITPatchJob::schedule(TaskContext& ctx, SymbolFunction& symbolFunc)
 JobResult JITPatchJob::exec()
 {
     SWC_ASSERT(symbolFunc_ != nullptr);
-    ctx().state().reset();
+    ctx().state().setNone();
 
     const Result result = symbolFunc_->jitMaterialize(ctx());
     if (result == Result::Error)

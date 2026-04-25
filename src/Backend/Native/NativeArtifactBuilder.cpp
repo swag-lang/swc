@@ -26,7 +26,7 @@ public:
     JobResult exec() override
     {
         SWC_MEM_SCOPE("Backend/Native/Startup");
-        ctx().state().reset();
+        ctx().state().setNone();
         SWC_ASSERT(artifactBuilder_ != nullptr);
         result_.store(artifactBuilder_->buildStartup(ctx()), std::memory_order_release);
         return JobResult::Done;
@@ -85,9 +85,15 @@ void NativeArtifactBuilder::queryPaths(NativeArtifactPaths& outPaths, const uint
     outPaths.workDir.clear();
     outPaths.buildDir.clear();
     outPaths.objectPaths.clear();
-    outPaths.name = artifactName();
+    const auto buildCfgName = Utf8(builder_->compiler().buildCfg().name);
+    if (!buildCfgName.empty())
+        outPaths.name = FileSystem::sanitizeFileName(buildCfgName);
+    else
+        outPaths.name = defaultArtifactName(builder_->ctx().cmdLine());
 
-    outPaths.workDir = configuredWorkDir();
+    const auto buildCfgWorkDir = Utf8(builder_->compiler().buildCfg().workDir);
+    if (!buildCfgWorkDir.empty())
+        outPaths.workDir = fs::path(buildCfgWorkDir.c_str());
     if (outPaths.workDir.empty())
     {
         const CommandLine& cmdLine = builder_->ctx().cmdLine();
@@ -146,9 +152,13 @@ void NativeArtifactBuilder::queryPaths(NativeArtifactPaths& outPaths, const uint
         outPaths.workDir = sourceRoot / ".output" / automaticWorkDirName(outPaths.name).c_str();
     }
 
-    outPaths.buildDir          = buildDir(outPaths.workDir);
+    outPaths.buildDir          = outPaths.workDir;
     outPaths.artifactExtension = artifactExtension();
-    outPaths.outDir            = configuredOutDir(outPaths.workDir);
+    const auto buildCfgOutDir = Utf8(builder_->compiler().buildCfg().outDir);
+    if (!buildCfgOutDir.empty())
+        outPaths.outDir = fs::path(buildCfgOutDir.c_str());
+    else
+        outPaths.outDir = outPaths.workDir;
     outPaths.artifactPath      = outPaths.outDir / std::format("{}{}", outPaths.name, outPaths.artifactExtension);
     outPaths.pdbPath           = outPaths.outDir / std::format("{}.pdb", outPaths.name);
 
@@ -168,14 +178,6 @@ Result NativeArtifactBuilder::clearOutputFolders(const NativeArtifactPaths& path
     if (!FileSystem::pathEquals(paths.outDir, paths.workDir))
         SWC_RESULT(FileSystem::clearDirectoryContents(builder_->ctx(), paths.outDir, DiagnosticId::cmd_err_native_output_dir_clear_failed));
     return Result::Continue;
-}
-
-Utf8 NativeArtifactBuilder::artifactName() const
-{
-    const auto buildCfgName = Utf8(builder_->compiler().buildCfg().name);
-    if (!buildCfgName.empty())
-        return FileSystem::sanitizeFileName(buildCfgName);
-    return defaultArtifactName(builder_->ctx().cmdLine());
 }
 
 Utf8 NativeArtifactBuilder::artifactExtension() const
@@ -212,14 +214,6 @@ Utf8 NativeArtifactBuilder::objectExtension() const
     SWC_UNREACHABLE();
 }
 
-fs::path NativeArtifactBuilder::configuredOutDir(const fs::path& defaultOutDir) const
-{
-    const auto buildCfgOutDir = Utf8(builder_->compiler().buildCfg().outDir);
-    if (!buildCfgOutDir.empty())
-        return {buildCfgOutDir.c_str()};
-    return defaultOutDir;
-}
-
 Result NativeArtifactBuilder::createOutDir(const fs::path& outDir) const
 {
     std::error_code ec;
@@ -227,14 +221,6 @@ Result NativeArtifactBuilder::createOutDir(const fs::path& outDir) const
     if (ec)
         return builder_->reportError(DiagnosticId::cmd_err_native_work_dir_create_failed, Diagnostic::ARG_PATH, Utf8(outDir), Diagnostic::ARG_BECAUSE, ec.message());
     return Result::Continue;
-}
-
-fs::path NativeArtifactBuilder::configuredWorkDir() const
-{
-    const auto buildCfgWorkDir = Utf8(builder_->compiler().buildCfg().workDir);
-    if (!buildCfgWorkDir.empty())
-        return {buildCfgWorkDir.c_str()};
-    return {};
 }
 
 Utf8 NativeArtifactBuilder::automaticWorkDirName(const Utf8& name) const
@@ -283,11 +269,6 @@ Utf8 NativeArtifactBuilder::automaticWorkDirName(const Utf8& name) const
     // and incremental native builds operate in the same location.
     const uint32_t hash = static_cast<uint32_t>(std::hash<std::string_view>{}(key.view()));
     return std::format("{}_{:08x}", FileSystem::sanitizeFileName(name), hash);
-}
-
-fs::path NativeArtifactBuilder::buildDir(const fs::path& workDir)
-{
-    return workDir;
 }
 
 Result NativeArtifactBuilder::createBuildDir(const fs::path& buildDir) const

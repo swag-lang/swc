@@ -66,7 +66,7 @@ JobResult CodeGenJob::exec()
 {
     SWC_MEM_SCOPE("Backend/CodeGen");
     SWC_ASSERT(symbolFunc_);
-    ctx().state().reset();
+    ctx().state().setNone();
     if (symbolFunc_->isIgnored())
         return abortCodeGen(ctx(), *symbolFunc_, Result::Error);
     if (symbolFunc_->isCodeGenCompleted())

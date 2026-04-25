@@ -14,11 +14,6 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    uint32_t clampLine(int32_t v) noexcept
-    {
-        return (v > 0) ? static_cast<uint32_t>(v) : 1u;
-    }
-
     // Consumes optional "@..." at position i and applies constraint to directive.
     // Returns a new index (i advanced), or leaves the directive at default if malformed.
     size_t parseLineConstraint(const LangSpec& langSpec, std::string_view comment, size_t i, VerifyDirective& directive)
@@ -65,9 +60,14 @@ namespace
                 }
 
                 if (hasSign)
-                    lines.push_back(clampLine(static_cast<int32_t>(baseLine) + v));
+                {
+                    const int32_t lineValue = static_cast<int32_t>(baseLine) + v;
+                    lines.push_back(lineValue > 0 ? static_cast<uint32_t>(lineValue) : 1u);
+                }
                 else
-                    lines.push_back(clampLine(v));
+                {
+                    lines.push_back(v > 0 ? static_cast<uint32_t>(v) : 1u);
+                }
 
                 while (i < comment.size() && langSpec.isBlank(static_cast<char8_t>(comment[i])))
                     ++i;
@@ -110,7 +110,8 @@ namespace
                 return i;
             }
 
-            const uint32_t lineA = clampLine(static_cast<int32_t>(baseLine) + offA);
+            const int32_t  lineAValue = static_cast<int32_t>(baseLine) + offA;
+            const uint32_t lineA      = lineAValue > 0 ? static_cast<uint32_t>(lineAValue) : 1u;
 
             // range?
             if (i + 1 < comment.size() && comment[i] == '.' && comment[i + 1] == '.')
@@ -128,7 +129,8 @@ namespace
                     return i;
                 }
 
-                const uint32_t lineB = clampLine(static_cast<int32_t>(baseLine) + offB);
+                const int32_t  lineBValue = static_cast<int32_t>(baseLine) + offB;
+                const uint32_t lineB      = lineBValue > 0 ? static_cast<uint32_t>(lineBValue) : 1u;
                 directive.allowedLines.clear();
                 directive.lineMin = std::min(lineA, lineB);
                 directive.lineMax = std::max(lineA, lineB);

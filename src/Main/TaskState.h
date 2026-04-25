@@ -39,7 +39,6 @@ struct TaskState
     bool                  jitEmissionError = false;
 
     static const char* kindName(TaskStateKind kind);
-    const char*        kindName() const;
     bool               hasPauseReason() const;
     bool               canPause() const;
     void               setNone();
@@ -47,7 +46,6 @@ struct TaskState
     void               setSemaParsing(AstNodeRef currentNodeRef, const SourceCodeRef& currentCodeRef);
     void               setCodeGenParsing(const SymbolFunction* function, AstNodeRef currentNodeRef, const SourceCodeRef& currentCodeRef);
     void               setSemaWaitMainThreadRunJit(const SymbolFunction* function, AstNodeRef currentNodeRef, const SourceCodeRef& currentCodeRef);
-    void               reset();
 };
 
 SWC_END_NAMESPACE();

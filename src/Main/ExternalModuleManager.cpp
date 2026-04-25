@@ -4,21 +4,6 @@
 
 SWC_BEGIN_NAMESPACE();
 
-bool ExternalModuleManager::findLoadedModule(void*& outModuleHandle, std::string_view moduleName) const
-{
-    outModuleHandle = nullptr;
-    for (const ModuleEntry& loadedModule : modules_)
-    {
-        if (loadedModule.moduleName == moduleName)
-        {
-            outModuleHandle = loadedModule.moduleHandle;
-            return true;
-        }
-    }
-
-    return false;
-}
-
 bool ExternalModuleManager::loadModule(void*& outModuleHandle, std::string_view moduleName)
 {
     outModuleHandle = nullptr;
@@ -26,8 +11,14 @@ bool ExternalModuleManager::loadModule(void*& outModuleHandle, std::string_view 
         return false;
 
     const std::unique_lock lock(mutex_);
-    if (findLoadedModule(outModuleHandle, moduleName))
+    for (const ModuleEntry& loadedModule : modules_)
+    {
+        if (loadedModule.moduleName != moduleName)
+            continue;
+
+        outModuleHandle = loadedModule.moduleHandle;
         return true;
+    }
 
     if (!Os::loadExternalModule(outModuleHandle, moduleName))
         return false;

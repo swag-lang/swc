@@ -7,20 +7,6 @@
 
 SWC_BEGIN_NAMESPACE();
 
-namespace
-{
-    template<typename T>
-    void collectWaitingRecordsForClient(std::vector<T*>& out, const std::unordered_set<JobRecord*>& liveRecs, const JobClientId client)
-    {
-        out.reserve(liveRecs.size());
-        for (JobRecord* rec : liveRecs)
-        {
-            if (rec && rec->clientId == client && rec->state == JobRecord::State::Waiting)
-                out.push_back(static_cast<T*>(rec));
-        }
-    }
-}
-
 struct JobManager::RecordPool
 {
     // Thread-local free list (LIFO for cache locality).
@@ -168,7 +154,13 @@ void JobManager::waitingJobs(std::vector<Job*>& waiting, JobClientId client) con
         return;
 
     std::vector<const JobRecord*> temp;
-    collectWaitingRecordsForClient(temp, liveRecs_, client);
+    temp.reserve(liveRecs_.size());
+    for (const JobRecord* rec : liveRecs_)
+    {
+        if (rec && rec->clientId == client && rec->state == JobRecord::State::Waiting)
+            temp.push_back(rec);
+    }
+
     std::ranges::sort(temp, [](const JobRecord* lhs, const JobRecord* rhs) { return lhs->index < rhs->index; });
 
     for (const JobRecord* t : temp)
@@ -298,7 +290,13 @@ bool JobManager::wakeAll(JobClientId client)
     if (singleThreaded_)
     {
         std::vector<JobRecord*> temp;
-        collectWaitingRecordsForClient(temp, liveRecs_, client);
+        temp.reserve(liveRecs_.size());
+        for (JobRecord* rec : liveRecs_)
+        {
+            if (rec && rec->clientId == client && rec->state == JobRecord::State::Waiting)
+                temp.push_back(rec);
+        }
+
         std::ranges::sort(temp, [](const JobRecord* lhs, const JobRecord* rhs) { return lhs->index < rhs->index; });
         for (JobRecord* rec : temp)
         {

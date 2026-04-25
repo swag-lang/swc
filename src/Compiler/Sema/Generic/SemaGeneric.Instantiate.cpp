@@ -82,6 +82,23 @@ namespace
             SemaGeneric::appendResolvedGenericBinding(params[i], resolvedArgs[i], outBindings);
     }
 
+    void appendGenericInstanceCloneBindings(Sema& sema, std::span<const SemaGeneric::GenericParamDesc> params, std::span<const GenericInstanceKey> args, SmallVector<SemaClone::ParamBinding>& outBindings)
+    {
+        if (params.size() != args.size())
+            return;
+
+        for (size_t i = 0; i < args.size(); ++i)
+        {
+            SemaGeneric::GenericResolvedArg resolvedArg;
+            resolvedArg.present = args[i].typeRef.isValid() || args[i].cstRef.isValid();
+            resolvedArg.typeRef = args[i].typeRef;
+            resolvedArg.cstRef  = args[i].cstRef;
+            if (resolvedArg.cstRef.isValid() && !resolvedArg.typeRef.isValid())
+                resolvedArg.typeRef = sema.cstMgr().get(resolvedArg.cstRef).typeRef();
+            SemaGeneric::appendResolvedGenericBinding(params[i], resolvedArg, outBindings);
+        }
+    }
+
     SymbolFlags clonedGenericSymbolFlags(const Symbol& root)
     {
         SymbolFlags flags = SymbolFlagsE::Zero;
@@ -189,19 +206,32 @@ namespace
         SmallVector<GenericInstanceKey> ownerArgs;
         if (!ownerRoot->tryGetGenericInstanceArgs(*ownerInstance, ownerArgs))
             return;
-        if (ownerArgs.size() != ownerParams.size())
+        appendGenericInstanceCloneBindings(sema, ownerParams.span(), ownerArgs.span(), outBindings);
+    }
+
+    void appendFunctionInstanceCloneBindings(Sema& sema, const SymbolFunction& function, SmallVector<SemaClone::ParamBinding>& outBindings)
+    {
+        if (!function.isGenericInstance())
             return;
 
-        for (size_t i = 0; i < ownerArgs.size(); ++i)
-        {
-            SemaGeneric::GenericResolvedArg resolvedArg;
-            resolvedArg.present = ownerArgs[i].typeRef.isValid() || ownerArgs[i].cstRef.isValid();
-            resolvedArg.typeRef = ownerArgs[i].typeRef;
-            resolvedArg.cstRef  = ownerArgs[i].cstRef;
-            if (resolvedArg.cstRef.isValid() && !resolvedArg.typeRef.isValid())
-                resolvedArg.typeRef = sema.cstMgr().get(resolvedArg.cstRef).typeRef();
-            SemaGeneric::appendResolvedGenericBinding(ownerParams[i], resolvedArg, outBindings);
-        }
+        const SymbolFunction* root = function.genericRootSym();
+        if (!root)
+            return;
+
+        const auto* decl = genericFunctionDecl(*root);
+        if (!decl || decl->spanGenericParamsRef.isInvalid())
+            return;
+
+        SmallVector<SemaGeneric::GenericParamDesc> params;
+        SemaGeneric::collectGenericParams(sema, *decl, decl->spanGenericParamsRef, params);
+        if (params.empty())
+            return;
+
+        SmallVector<GenericInstanceKey> args;
+        if (!root->genericInstanceStorage(sema.ctx()).tryGetArgs(function, args))
+            return;
+
+        appendGenericInstanceCloneBindings(sema, params.span(), args.span(), outBindings);
     }
 
     void appendEnclosingGenericCloneBindings(Sema& sema, const Symbol& root, SmallVector<SemaClone::ParamBinding>& outBindings)
@@ -1202,7 +1232,10 @@ namespace SemaGeneric
         std::unique_ptr<Sema> sourceSemaHolder;
         Sema&                 sourceSema  = semaForGenericDecl(sema, function, sourceSemaHolder);
         const Utf8            bindingText = formatFunctionWhereBindings(sourceSema, function);
-        return checkFunctionWhereConstraints(sourceSema, outSatisfied, function, {}, bindingText, outFailure, genericDeclNodeRef(function));
+        SmallVector<SemaClone::ParamBinding> cloneBindings;
+        appendFunctionInstanceCloneBindings(sourceSema, function, cloneBindings);
+        appendEnclosingGenericCloneBindings(sourceSema, function, cloneBindings);
+        return checkFunctionWhereConstraints(sourceSema, outSatisfied, function, cloneBindings.span(), bindingText, outFailure, genericDeclNodeRef(function));
     }
 
     Result instantiateFunctionExplicit(Sema& sema, SymbolFunction& genericRoot, std::span<const AstNodeRef> genericArgNodes, SymbolFunction*& outInstance)

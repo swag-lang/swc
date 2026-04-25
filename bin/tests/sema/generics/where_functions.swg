@@ -76,6 +76,13 @@ func(T, U = T) sameTypeBlock(left: T, right: U)->bool
     return true
 }
 
+func(T, U = T) interpolateWithWhere(left: T, right: U, ratio: T)->T
+    where T == U
+    where T == f32 or T == f64
+{
+    return left + (right - left) * ratio
+}
+
 func(T, U) secondIfLeftIsSigned(pair: Pair'(T, U))->U
     where T == s32 or T == s64
 {
@@ -151,6 +158,13 @@ struct(T, Count: s32) Window
     values: [Count] T
 }
 
+struct(T, Count: s32) InterpolationWindow
+    where Count >= 3
+    where T == f32 or T == f64
+{
+    values: [Count] T
+}
+
 impl Window
 {
     func(const Index: s32) at(const me)->T
@@ -172,6 +186,15 @@ impl Window
         where T == f32 or T == f64
     {
         return me.values[0]
+    }
+}
+
+impl InterpolationWindow
+{
+    func midpoint(const me)->T
+        where Count >= 3
+    {
+        return interpolateWithWhere'(T)(me.values[0], me.values[Count - 1], cast(T) 0.5)
     }
 }
 
@@ -205,9 +228,11 @@ impl Window
 
     let floatWindow: Window'(f32, 3) = {values: [10.0'f32, 20.0, 30.0]}
     let intWindow: Window'(s32, 3) = {values: [1, 2, 3]}
+    let interpolated: InterpolationWindow'(f64, 3) = {values: [10.0'f64, 20.0, 30.0]}
     @assert(floatWindow.at'1() == 20.0'f32)
     @assert(intWindow.at'2() == 3)
     @assert(floatWindow.sameSample(77.0'f32) == 77.0'f32)
     @assert(intWindow.sameSample(9's32) == 9)
     @assert(floatWindow.firstIfFloat() == 10.0'f32)
+    @assert(interpolated.midpoint() == 20.0'f64)
 }

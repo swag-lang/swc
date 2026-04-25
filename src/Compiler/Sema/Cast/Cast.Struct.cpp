@@ -271,11 +271,48 @@ namespace
         return calledFn.attributes().hasRtFlag(RtAttributeFlagsE::Implicit);
     }
 
+    bool opCastReturnTypeMatches(const TypeManager& typeMgr, const TypeRef returnTypeRef, const TypeRef dstTypeRef)
+    {
+        if (returnTypeRef == dstTypeRef)
+            return true;
+
+        if (!returnTypeRef.isValid() || !dstTypeRef.isValid())
+            return false;
+
+        const TypeInfo& returnType = typeMgr.get(returnTypeRef);
+        const TypeInfo& dstType    = typeMgr.get(dstTypeRef);
+        if (returnType.isNullable() || !dstType.isNullable())
+            return false;
+        if (!returnType.supportsNullableQualifier() || !dstType.supportsNullableQualifier())
+            return false;
+        if (returnType.kind() != dstType.kind())
+            return false;
+        if (returnType.isConst() != dstType.isConst())
+            return false;
+
+        switch (returnType.kind())
+        {
+            case TypeInfoKind::ValuePointer:
+            case TypeInfoKind::BlockPointer:
+            case TypeInfoKind::Slice:
+                return returnType.payloadTypeRef() == dstType.payloadTypeRef();
+
+            case TypeInfoKind::String:
+            case TypeInfoKind::CString:
+            case TypeInfoKind::Any:
+            case TypeInfoKind::TypeInfo:
+                return true;
+
+            default:
+                return false;
+        }
+    }
+
     OpCastRank rankStructOpCastCandidate(Sema& sema, const SourceCodeRef& codeRef, TypeRef srcTypeRef, TypeRef dstTypeRef, const SymbolFunction& calledFn, AstNodeRef srcNodeRef)
     {
         if (calledFn.parameters().size() != 1)
             return OpCastRank::Bad;
-        if (calledFn.returnTypeRef() != dstTypeRef)
+        if (!opCastReturnTypeMatches(sema.typeMgr(), calledFn.returnTypeRef(), dstTypeRef))
             return OpCastRank::Bad;
 
         const TypeRef receiverTypeRef = calledFn.parameters()[0]->typeRef();
@@ -493,6 +530,44 @@ namespace
         return Result::Continue;
     }
 
+    Result foldSingleFieldStructConstant(const CastStructArgs& args, const SymbolVariable& field, ConstantRef fieldValueRef)
+    {
+        const uint64_t structSize = args.dstType->sizeOf(args.sema->ctx());
+        SWC_ASSERT(structSize);
+
+        std::vector<std::byte> buffer(structSize);
+        const ByteSpanRW       bytes = asByteSpan(buffer);
+        const TypeRef          fieldTypeRef = field.typeRef();
+        const TypeInfo&        fieldType    = args.sema->typeMgr().get(fieldTypeRef);
+        const uint64_t         fieldSize    = fieldType.sizeOf(args.sema->ctx());
+        const uint64_t         fieldOffset  = field.offset();
+        SWC_ASSERT(fieldOffset + fieldSize <= bytes.size());
+        SWC_RESULT(ConstantLower::lowerToBytes(*args.sema, ByteSpanRW{bytes.data() + fieldOffset, fieldSize}, fieldValueRef, fieldTypeRef));
+
+        args.castRequest->outConstRef = ConstantHelpers::materializeStaticPayloadConstant(*args.sema, args.dstTypeRef, ByteSpan{bytes.data(), bytes.size()});
+        SWC_ASSERT(args.castRequest->outConstRef.isValid());
+        return Result::Continue;
+    }
+
+    Result castToSingleFieldStruct(const CastStructArgs& args)
+    {
+        const auto& dstFields = args.dstType->payloadSymStruct().fields();
+        if (dstFields.size() != 1 || !dstFields.front())
+            return args.castRequest->fail(DiagnosticId::sema_err_cannot_cast, args.srcTypeRef, args.dstTypeRef);
+
+        const SymbolVariable& field = *dstFields.front();
+        const AstNodeRef      fieldNodeRef = args.castRequest->errorNodeRef;
+        const SourceCodeRef   fieldRef     = args.castRequest->errorCodeRef;
+        SWC_RESULT(checkElemCast(args, args.srcTypeRef, field.typeRef(), fieldNodeRef, fieldRef));
+
+        if (!args.castRequest->isConstantFolding())
+            return Result::Continue;
+
+        ConstantRef castedRef;
+        SWC_RESULT(foldElemCast(args, args.srcTypeRef, field.typeRef(), fieldNodeRef, fieldRef, args.castRequest->constantFoldingSrc(), castedRef));
+        return foldSingleFieldStructConstant(args, field, castedRef);
+    }
+
 }
 
 bool Cast::resolveUserDefinedLiteralSuffix(const Sema& sema, AstNodeRef nodeRef, UserDefinedLiteralSuffixInfo& outInfo)
@@ -562,6 +637,10 @@ Result Cast::castToStruct(Sema& sema, CastRequest& castRequest, TypeRef srcTypeR
     SWC_RESULT(resolveStructSetCastCandidate(sema, codeRef, srcTypeRef, dstTypeRef, castRequest.kind, calledFn, paramTypeRef, castRequest.errorNodeRef));
     if (calledFn)
         return Result::Continue;
+
+    const auto& dstFields = dstType.payloadSymStruct().fields();
+    if (dstFields.size() == 1 && dstFields.front() && castRequest.kind != CastKind::Parameter)
+        return castToSingleFieldStruct(ctx);
 
     return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
 }

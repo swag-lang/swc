@@ -119,7 +119,13 @@ namespace
         if (outParams.empty())
             return false;
 
-        return root->genericInstanceStorage(sema.ctx()).tryGetArgs(function, outArgs);
+        if (!root->genericInstanceStorage(sema.ctx()).tryGetArgs(function, outArgs))
+            return false;
+        if (outArgs.size() < outParams.size())
+            return false;
+        if (outArgs.size() > outParams.size())
+            outArgs.resize(outParams.size());
+        return true;
     }
 
     bool loadOwnerStructGenericArgs(Sema& sema, const SymbolFunction& function, SmallVector<SemaGeneric::GenericParamDesc>& outParams, SmallVector<GenericInstanceKey>& outArgs)
@@ -307,6 +313,13 @@ namespace
             root.cast<SymbolStruct>().cacheGenericEvalNode(sourceRef, bindings, evalRef);
     }
 
+    std::recursive_mutex& genericEvalRunMutex()
+    {
+        static std::recursive_mutex mutex;
+        return mutex;
+    }
+
+
     Utf8 formatGenericInstanceKey(Sema& sema, const GenericInstanceKey& key)
     {
         if (key.typeRef.isValid())
@@ -445,6 +458,7 @@ namespace
 
         if (sema.node(constraintRef).is(AstNodeId::ConstraintBlock))
         {
+            const std::scoped_lock lock(genericEvalRunMutex());
             outEvalRef = findCachedGenericEvalNode(sema, root, constraintRef, bindings);
             if (outEvalRef.isValid())
             {
@@ -816,6 +830,7 @@ namespace
         if (sourceRef.isInvalid())
             return Result::Continue;
 
+        const std::scoped_lock lock(genericEvalRunMutex());
         outClonedRef = findCachedGenericEvalNode(sema, root, sourceRef, bindings);
         if (outClonedRef.isValid())
         {
@@ -988,6 +1003,17 @@ namespace
         }
     }
 
+    void appendOwnerStructGenericKeys(Sema& sema, const SymbolFunction& function, SmallVector<GenericInstanceKey>& outKeys)
+    {
+        SmallVector<SemaGeneric::GenericParamDesc> ownerParams;
+        SmallVector<GenericInstanceKey>            ownerArgs;
+        if (!loadOwnerStructGenericArgs(sema, function, ownerParams, ownerArgs))
+            return;
+
+        for (const GenericInstanceKey& arg : ownerArgs)
+            outKeys.push_back(arg);
+    }
+
     Symbol* createGenericInstanceSymbol(Sema& sema, Symbol& root, AstNodeRef cloneRef)
     {
         if (auto* function = root.safeCast<SymbolFunction>())
@@ -1070,6 +1096,8 @@ namespace
     {
         SmallVector<GenericInstanceKey> keys;
         buildGenericKeys(params, resolvedArgs, keys);
+        if (const auto* function = root.safeCast<SymbolFunction>())
+            appendOwnerStructGenericKeys(sema, *function, keys);
 
         GenericInstanceStorage& storage = root.isFunction() ? root.cast<SymbolFunction>().genericInstanceStorage(sema.ctx()) : root.cast<SymbolStruct>().genericInstanceStorage();
 

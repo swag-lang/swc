@@ -37,6 +37,16 @@ Result AstImpl::semaPostDeclChild(Sema& sema, const AstNodeRef& childRef) const
             idRef = sema.idMgr().addIdentifier(sema.ctx(), identView.node()->codeRef());
         auto* sym = Symbol::make<SymbolImpl>(sema.ctx(), this, tokRef(), idRef, SymbolFlagsE::Zero);
         sema.setSymbol(sema.curNodeRef(), sym);
+        if (identView.hasSymbol())
+        {
+            Symbol* const target = identView.sym();
+            if (target->isStruct())
+                sym->setSymStruct(&target->cast<SymbolStruct>());
+            else if (target->isEnum())
+                sym->setSymEnum(&target->cast<SymbolEnum>());
+            else if (target->isInterface())
+                sym->setSymInterface(&target->cast<SymbolInterface>());
+        }
 
         // An `impl` block will be registered to its target (struct/enum/interface) only in the
         // second pass, once the name lookup has run. Track pending registrations so completion of

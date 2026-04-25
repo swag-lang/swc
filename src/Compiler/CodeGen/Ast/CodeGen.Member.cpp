@@ -322,7 +322,7 @@ Result AstMemberAccessExpr::codeGenPostNode(CodeGen& codeGen) const
         return Result::Continue;
     }
 
-    codeGen.inheritPayload(codeGen.curNodeRef(), nodeRightRef, codeGen.curViewType().typeRef());
+    codeGen.inheritPayload(codeGen.curNodeRef(), nodeRightRef, codeGen.transparentPayloadTypeRef());
     return Result::Continue;
 }
 

@@ -776,7 +776,7 @@ Result AstNullLiteral::codeGenPostNode(CodeGen& codeGen)
 
 Result AstInitializerExpr::codeGenPostNode(CodeGen& codeGen) const
 {
-    codeGen.inheritPayload(codeGen.curNodeRef(), nodeExprRef, codeGen.curViewType().typeRef());
+    codeGen.inheritPayload(codeGen.curNodeRef(), nodeExprRef, codeGen.transparentPayloadTypeRef());
     return Result::Continue;
 }
 

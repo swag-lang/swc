@@ -41,6 +41,7 @@ public:
     void beginSymMapLookup(const Priority& priority);
     void addSymbol(const Symbol* symbol, const Priority& priority);
     void addIgnoredSymbol(const Priority& priority);
+    void collectCallFallbackSymbols(SmallVector<const Symbol*>& outSymbols) const;
 
     struct LocalSymbol
     {
@@ -73,7 +74,14 @@ public:
     SmallVector<Priority>         symMapPriorities;
 
 private:
+    struct CandidateSymbol
+    {
+        const Symbol* symbol;
+        Priority      priority;
+    };
+
     SmallVector<const Symbol*> symbols_;
+    SmallVector<CandidateSymbol> allSymbols_;
 
     Priority bestPriority_        = {};
     Priority ignoredBestPriority_ = {};

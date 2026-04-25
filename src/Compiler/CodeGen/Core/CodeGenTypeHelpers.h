@@ -71,7 +71,7 @@ namespace CodeGenTypeHelpers
 
     inline uint64_t blockPointerStride(TaskContext& ctx, const TypeInfo& pointerType)
     {
-        SWC_ASSERT(pointerType.isBlockPointer());
+        SWC_ASSERT(pointerType.isAnyPointer());
         const uint64_t stride = ctx.typeMgr().get(pointerType.payloadTypeRef()).sizeOf(ctx);
         SWC_ASSERT(stride > 0);
         return stride;

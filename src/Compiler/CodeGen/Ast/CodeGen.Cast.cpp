@@ -17,6 +17,7 @@
 #include "Compiler/Sema/Constant/ConstantValue.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Symbol/IdentifierManager.h"
+#include "Compiler/Sema/Symbol/Symbol.Enum.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.Struct.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
@@ -61,6 +62,18 @@ namespace
             return unwrappedTypeRef;
 
         return typeRef;
+    }
+
+    CodeGenNodePayload sourcePayloadForCast(CodeGen& codeGen, AstNodeRef srcNodeRef)
+    {
+        if (codeGen.resolvedNodeRef(srcNodeRef) == codeGen.curNodeRef())
+        {
+            const auto* payload = codeGen.sema().codeGenPayload<CodeGenNodePayload>(srcNodeRef);
+            if (payload && payload->reg.isValid())
+                return *payload;
+        }
+
+        return codeGen.payload(srcNodeRef);
     }
 
     bool usingPathHasPointerStep(const SmallVector<SymbolStructUsingPathStep>& usingPath)
@@ -157,7 +170,10 @@ namespace
         {
             const TypeRef resolvedDstPointeeRef = unwrapAliasEnumTypeRef(typeMgr, codeGen.ctx(), dstType.payloadTypeRef());
             const TypeRef dstPointeeTypeRef     = resolvedDstPointeeRef.isValid() ? resolvedDstPointeeRef : dstType.payloadTypeRef();
-            if (!dstPointeeTypeRef.isValid() || sourceTypeToCheck != dstPointeeTypeRef)
+            if (!dstPointeeTypeRef.isValid())
+                return false;
+
+            if (sourceTypeToCheck != dstPointeeTypeRef && dstPointeeTypeRef != typeMgr.typeVoid())
                 return false;
         }
 
@@ -175,7 +191,7 @@ namespace
             return false;
 
         TypeRef            readTypeRef = sourceTypeRef;
-        CodeGenNodePayload readPayload = codeGen.payload(srcNodeRef);
+        CodeGenNodePayload readPayload = sourcePayloadForCast(codeGen, srcNodeRef);
         CodeGenReferenceHelpers::unwrapAliasRefPayload(codeGen, readPayload, readTypeRef);
         SWC_ASSERT(readTypeRef.isValid());
         SWC_ASSERT(!codeGen.typeMgr().get(readTypeRef).isReference());
@@ -214,7 +230,7 @@ namespace
         const TypeRef resolvedSourceTypeRef = unwrapAliasEnumTypeRef(codeGen.typeMgr(), codeGen.ctx(), sourceTypeRef);
         SWC_ASSERT(resolvedSourceTypeRef.isValid());
 
-        const CodeGenNodePayload& srcPayload = codeGen.payload(srcNodeRef);
+        const CodeGenNodePayload srcPayload = sourcePayloadForCast(codeGen, srcNodeRef);
         MicroBuilder&             builder    = codeGen.builder();
 
         MicroReg objectReg = srcPayload.reg;
@@ -412,7 +428,7 @@ namespace
     Result emitArrayToStringCast(CodeGen& codeGen, AstNodeRef srcNodeRef, TypeRef dstTypeRef, const TypeInfo& srcType)
     {
         MicroBuilder&             builder    = codeGen.builder();
-        const CodeGenNodePayload& srcPayload = codeGen.payload(srcNodeRef);
+        const CodeGenNodePayload srcPayload = sourcePayloadForCast(codeGen, srcNodeRef);
 
         const SemaNodeView srcConstView = codeGen.viewConstant(srcNodeRef);
         if (srcConstView.hasConstant())
@@ -459,7 +475,7 @@ namespace
         const uint64_t  elementCount   = sliceCountFromArrayCast(codeGen, srcType, dstElementType);
 
         MicroBuilder&             builder    = codeGen.builder();
-        const CodeGenNodePayload& srcPayload = codeGen.payload(srcNodeRef);
+        const CodeGenNodePayload srcPayload = sourcePayloadForCast(codeGen, srcNodeRef);
 
         const SemaNodeView srcConstView = codeGen.viewConstant(srcNodeRef);
         if (srcConstView.hasConstant())
@@ -682,7 +698,7 @@ namespace
             return Result::Continue;
         }
 
-        const CodeGenNodePayload& srcPayload = codeGen.payload(srcNodeRef);
+        const CodeGenNodePayload srcPayload = sourcePayloadForCast(codeGen, srcNodeRef);
 
         const SemaNodeView srcView = codeGen.viewType(srcNodeRef);
         SWC_ASSERT(srcView.type());
@@ -792,7 +808,7 @@ namespace
         codeGen.function().addCallDependency(adapter);
 
         MicroBuilder&             builder         = codeGen.builder();
-        const CodeGenNodePayload& srcPayload      = codeGen.payload(srcNodeRef);
+        const CodeGenNodePayload srcPayload       = sourcePayloadForCast(codeGen, srcNodeRef);
         const MicroReg            runtimeValueReg = codeGen.runtimeStorageAddressReg(codeGen.curNodeRef());
         CodeGenMemoryHelpers::emitMemZero(codeGen, runtimeValueReg, sizeof(Runtime::ClosureValue));
 
@@ -877,7 +893,7 @@ namespace
     Result emitNumericCast(CodeGen& codeGen, AstNodeRef srcNodeRef, TypeRef dstTypeRef)
     {
         MicroBuilder&             builder             = codeGen.builder();
-        const CodeGenNodePayload& srcPayload          = codeGen.payload(srcNodeRef);
+        const CodeGenNodePayload srcPayload           = sourcePayloadForCast(codeGen, srcNodeRef);
         const auto*               castPayload         = codeGen.sema().codeGenPayload<CodeGenNodePayload>(codeGen.curNodeRef());
         const bool                needsRuntimeStorage = castPayload && castPayload->runtimeStorageSym != nullptr;
 
@@ -937,6 +953,11 @@ namespace
         if (srcType.isFunction() && dstType.isFunction() && !srcType.isLambdaClosure() && dstType.isLambdaClosure())
             return emitFunctionToClosureCast(codeGen, srcNodeRef, sourceTypeRef, dstTypeRef);
 
+        const bool srcFloatType   = resolvedSrcType.isFloat();
+        const bool srcIntLikeType = resolvedSrcType.isNumericIntLike();
+        const bool dstFloatType   = resolvedDstType.isFloat();
+        const bool dstIntLikeType = resolvedDstType.isNumericIntLike();
+
         if (resolvedSrcType.isNull() && resolvedDstType.isPointerLike())
         {
             const uint64_t dstSize = dstType.sizeOf(codeGen.ctx());
@@ -972,6 +993,27 @@ namespace
             CodeGenNodePayload& dstPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), dstTypeRef);
             dstPayload.reg                 = codeGen.nextVirtualIntRegister();
             builder.emitLoadRegMem(dstPayload.reg, srcPayload.reg, offsetof(Runtime::String, ptr), MicroOpBits::B64);
+            return Result::Continue;
+        }
+
+        if (srcIntLikeType && resolvedDstType.isAnyPointer())
+        {
+            const MicroOpBits srcOpBits = CodeGenTypeHelpers::numericOrBoolBits(resolvedSrcType);
+            SWC_ASSERT(srcOpBits != MicroOpBits::Zero);
+
+            MicroReg srcReg = srcPayload.reg;
+            if (srcPayload.isAddress())
+            {
+                srcReg = codeGen.nextVirtualIntRegister();
+                builder.emitLoadRegMem(srcReg, srcPayload.reg, 0, srcOpBits);
+            }
+
+            CodeGenNodePayload& dstPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), dstTypeRef);
+            dstPayload.reg                 = codeGen.nextVirtualIntRegister();
+            if (srcOpBits == MicroOpBits::B64)
+                builder.emitLoadRegReg(dstPayload.reg, srcReg, MicroOpBits::B64);
+            else
+                builder.emitLoadZeroExtendRegReg(dstPayload.reg, srcReg, MicroOpBits::B64, srcOpBits);
             return Result::Continue;
         }
 
@@ -1106,10 +1148,26 @@ namespace
         if (resolveUsingPointerLikeCastPath(codeGen, sourceTypeRef, dstTypeRef, usingPath))
             return emitUsingPointerLikeCast(codeGen, srcNodeRef, sourceTypeRef, dstTypeRef, usingPath);
 
-        const bool srcFloatType   = resolvedSrcType.isFloat();
-        const bool srcIntLikeType = resolvedSrcType.isNumericIntLike();
-        const bool dstFloatType   = resolvedDstType.isFloat();
-        const bool dstIntLikeType = resolvedDstType.isNumericIntLike();
+        if (resolvedDstType.isBool() && srcType.isEnum())
+        {
+            const TypeRef   enumSourceTypeRef = srcType.payloadSymEnum().underlyingTypeRef();
+            const TypeInfo& enumSourceType    = typeMgr.get(enumSourceTypeRef);
+            const MicroOpBits srcOpBits       = CodeGenTypeHelpers::numericOrBoolBits(enumSourceType);
+            SWC_ASSERT(srcOpBits != MicroOpBits::Zero);
+
+            MicroReg srcReg = srcPayload.reg;
+            if (srcPayload.isAddress())
+            {
+                srcReg = codeGen.nextVirtualRegisterForType(enumSourceTypeRef);
+                builder.emitLoadRegMem(srcReg, srcPayload.reg, 0, srcOpBits);
+            }
+
+            CodeGenNodePayload& dstPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), dstTypeRef);
+            dstPayload.reg                 = codeGen.nextVirtualIntRegister();
+            builder.emitCmpRegImm(srcReg, ApInt(0, 64), srcOpBits);
+            builder.emitSetCondReg(dstPayload.reg, MicroCond::NotEqual);
+            return Result::Continue;
+        }
 
         if (resolvedDstType.isBool() && (resolvedSrcType.isPointerLike() || resolvedSrcType.isReference() || resolvedSrcType.isMoveReference() || resolvedSrcType.isNull()))
         {
@@ -1124,6 +1182,21 @@ namespace
             dstPayload.reg                 = codeGen.nextVirtualIntRegister();
             builder.emitCmpRegImm(srcReg, ApInt(0, 64), MicroOpBits::B64);
             builder.emitSetCondReg(dstPayload.reg, MicroCond::NotEqual);
+            return Result::Continue;
+        }
+
+        if (resolvedSrcType.isAnyPointer() && dstTypeRef == typeMgr.typeU64())
+        {
+            MicroReg srcReg = srcPayload.reg;
+            if (srcPayload.isAddress())
+            {
+                srcReg = codeGen.nextVirtualIntRegister();
+                builder.emitLoadRegMem(srcReg, srcPayload.reg, 0, MicroOpBits::B64);
+            }
+
+            CodeGenNodePayload& dstPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), dstTypeRef);
+            dstPayload.reg                 = codeGen.nextVirtualIntRegister();
+            builder.emitLoadRegReg(dstPayload.reg, srcReg, MicroOpBits::B64);
             return Result::Continue;
         }
 

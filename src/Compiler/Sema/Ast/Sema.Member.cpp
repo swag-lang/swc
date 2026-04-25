@@ -11,7 +11,9 @@ Result AstMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& child
     if (childRef != nodeRightRef)
         return Result::Continue;
 
-    const bool allowOverloadSet = hasFlag(AstMemberAccessExprFlagsE::CallCallee);
+    bool allowOverloadSet = hasFlag(AstMemberAccessExprFlagsE::CallCallee);
+    if (const auto* ident = sema.node(nodeRightRef).safeCast<AstIdentifier>())
+        allowOverloadSet = allowOverloadSet || ident->hasFlag(AstIdentifierFlagsE::InCompilerDefined);
     return SemaHelpers::resolveMemberAccess(sema, sema.curNodeRef(), *this, allowOverloadSet);
 }
 

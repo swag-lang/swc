@@ -86,6 +86,9 @@ namespace CodeGenCompareHelpers
 
     inline void emitConditionFalseJump(CodeGen& codeGen, const CodeGenNodePayload& payload, TypeRef typeRef, MicroLabelRef falseLabel)
     {
+        if (typeRef.isValid() && payload.typeRef.isValid() && codeGen.typeMgr().get(typeRef).isBool())
+            typeRef = payload.typeRef;
+
         const TypeInfo&   typeInfo = codeGen.typeMgr().get(typeRef);
         const MicroOpBits condBits = CodeGenTypeHelpers::conditionBits(typeInfo, codeGen.ctx());
         const MicroReg    condReg  = codeGen.nextVirtualIntRegister();

@@ -42,6 +42,16 @@ struct RelationalSpecOpPayload
     SymbolFunction* calledFn = nullptr;
 };
 
+struct UnarySpecOpPayload
+{
+    SymbolFunction* calledFn = nullptr;
+};
+
+struct BinarySpecOpPayload
+{
+    SymbolFunction* calledFn = nullptr;
+};
+
 struct DeferredIndexAssignSpecOpPayload : IndexSpecOpPayloadBase
 {
     DeferredIndexAssignSpecOpPayload()

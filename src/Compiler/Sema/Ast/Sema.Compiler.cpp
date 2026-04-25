@@ -17,6 +17,7 @@
 #include "Compiler/Sema/Helpers/SemaJIT.h"
 #include "Compiler/Sema/Helpers/SemaRuntime.h"
 #include "Compiler/Sema/Helpers/SemaSpecOp.h"
+#include "Compiler/Sema/Generic/SemaGeneric.h"
 #include "Compiler/Sema/Symbol/Symbols.h"
 #include "Compiler/Sema/Type/TypeManager.h"
 #include "Compiler/SourceFile.h"
@@ -1048,6 +1049,25 @@ Result AstCompilerGlobal::semaPostNode(Sema& sema) const
 
 namespace
 {
+    Result instantiateCompilerGenericTypeOperand(Sema& sema, SemaNodeView& view)
+    {
+        if (view.typeRef().isValid() || !view.sym() || !view.sym()->isStruct())
+            return Result::Continue;
+
+        auto& genericRoot = view.sym()->cast<SymbolStruct>();
+        if (!genericRoot.isGenericRoot())
+            return Result::Continue;
+
+        SymbolStruct* instance = nullptr;
+        SWC_RESULT(SemaGeneric::instantiateStructFromContext(sema, genericRoot, instance));
+        if (!instance)
+            return Result::Continue;
+
+        sema.setSymbol(view.nodeRef(), instance);
+        view.recompute(sema, SemaNodeViewPartE::Type | SemaNodeViewPartE::Symbol);
+        return Result::Continue;
+    }
+
     Result semaCompilerTypeOf(Sema& sema, const AstCompilerCallOne& node)
     {
         const AstNodeRef childRef = node.nodeArgRef;
@@ -1136,7 +1156,8 @@ namespace
     Result semaCompilerSizeOf(Sema& sema, const AstCompilerCallOne& node)
     {
         const AstNodeRef   childRef = node.nodeArgRef;
-        const SemaNodeView view     = sema.viewType(childRef);
+        SemaNodeView       view     = sema.viewTypeSymbol(childRef);
+        SWC_RESULT(instantiateCompilerGenericTypeOperand(sema, view));
         if (!view.type())
             return SemaError::raise(sema, DiagnosticId::sema_err_invalid_sizeof, childRef);
         SWC_RESULT(sema.waitSemaCompleted(view.type(), childRef));
@@ -1162,7 +1183,8 @@ namespace
     Result semaCompilerAlignOf(Sema& sema, const AstCompilerCallOne& node)
     {
         const AstNodeRef   childRef = node.nodeArgRef;
-        const SemaNodeView view     = sema.viewType(childRef);
+        SemaNodeView       view     = sema.viewTypeSymbol(childRef);
+        SWC_RESULT(instantiateCompilerGenericTypeOperand(sema, view));
         if (!view.type())
             return SemaError::raise(sema, DiagnosticId::sema_err_invalid_alignof, childRef);
         SWC_RESULT(sema.waitSemaCompleted(view.type(), childRef));
@@ -1249,7 +1271,7 @@ namespace
         const AstNodeRef   childRef = node.nodeArgRef;
         const SemaNodeView view     = sema.viewSymbol(childRef);
 
-        const bool          isDefined = view.sym() != nullptr;
+        const bool          isDefined = view.sym() != nullptr || (view.hasSymbolList() && !view.symList().empty());
         const ConstantValue value     = ConstantValue::makeBool(ctx, isDefined);
         sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(ctx, value));
         return Result::Continue;

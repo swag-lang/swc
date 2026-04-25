@@ -69,6 +69,8 @@ namespace
         const TypeInfo& sourceType             = sema.typeMgr().get(resolvedSourceTypeRef);
         if (sourceType.isPointerOrReference())
             return TypeRef::invalid();
+        if (sourceType.isStruct())
+            return TypeRef::invalid();
 
         return pointeeTypeRef;
     }
@@ -1538,6 +1540,15 @@ namespace
         return compareReceiverConstness(sema, a, b, ufcsArg);
     }
 
+    bool canKeepFirstSpecialOpTie(const Candidate& a, const Candidate& b)
+    {
+        if (!a.fn || !b.fn)
+            return false;
+
+        const SpecOpKind kind = a.fn->specOpKind();
+        return kind == SpecOpKind::OpAssign && b.fn->specOpKind() == kind;
+    }
+
     // Evaluate each function symbol to see how well it matches the given arguments.
     // This includes checking the number of parameters, types, and potential UFCS usage.
     Result collectAttempts(Sema& sema, SmallVector<Attempt>& outAttempts, SmallVector<SymbolFunction*>& outFunctionSymbols, std::span<Symbol*> symbols, std::span<AstNodeRef> args, AstNodeRef ufcsArg)
@@ -1726,7 +1737,8 @@ namespace
             }
             else if (cmp == 0)
             {
-                ambiguous = true;
+                if (!canKeepFirstSpecialOpTie(outSelected->candidate, viable[i]->candidate))
+                    ambiguous = true;
             }
         }
 
@@ -2207,6 +2219,33 @@ Result Match::resolveFunctionCandidates(Sema& sema, const SemaNodeView& nodeCall
     // Filter to keep only those that are compatible (viable)
     SmallVector<const Attempt*> viable;
     gatherViableAttempts(attempts, viable);
+
+    if (viable.empty() && mode == ResolveCallMode::Normal && !functions.empty())
+    {
+        SmallVector<Symbol*> fallbackSymbols;
+        SWC_RESULT(matchCallFallbackSymbols(sema, nodeCallee, fallbackSymbols));
+        if (!fallbackSymbols.empty())
+        {
+            SmallVector<Symbol*> fallbackRuntimeSymbols;
+            SmallVector<Symbol*> fallbackConcreteSymbols;
+            SWC_RESULT(SemaRuntime::filterRuntimeAccessibleSymbols(sema, nodeCallee.nodeRef(), fallbackSymbols.span(), fallbackRuntimeSymbols));
+            removeEmptyFunctionDeclarations(fallbackRuntimeSymbols, fallbackConcreteSymbols);
+
+            SmallVector<Attempt>         fallbackAttempts;
+            SmallVector<SymbolFunction*> fallbackFunctions;
+            SWC_RESULT(collectAttempts(sema, fallbackAttempts, fallbackFunctions, fallbackConcreteSymbols.span(), args, ufcsArg));
+
+            SmallVector<const Attempt*> fallbackViable;
+            gatherViableAttempts(fallbackAttempts, fallbackViable);
+            if (!fallbackViable.empty())
+            {
+                concreteSymbols = std::move(fallbackConcreteSymbols);
+                attempts        = std::move(fallbackAttempts);
+                functions       = std::move(fallbackFunctions);
+                gatherViableAttempts(attempts, viable);
+            }
+        }
+    }
 
     // From the viable ones, find the single best candidate.
     // This will raise an error if there are no viable candidates or if the best choice is ambiguous.

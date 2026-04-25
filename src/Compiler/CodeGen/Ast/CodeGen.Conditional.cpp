@@ -35,6 +35,9 @@ namespace
 
     MicroReg materializeTruthyOperand(CodeGen& codeGen, const CodeGenNodePayload& operandPayload, TypeRef operandTypeRef)
     {
+        if (operandTypeRef.isValid() && operandPayload.typeRef.isValid() && codeGen.typeMgr().get(operandTypeRef).isBool())
+            operandTypeRef = operandPayload.typeRef;
+
         const TypeInfo& typeInfo = codeGen.typeMgr().get(operandTypeRef);
         const uint64_t  sizeOf   = typeInfo.sizeOf(codeGen.ctx());
         if (sizeOf > 8)
@@ -122,8 +125,8 @@ Result AstConditionalExpr::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeR
     if (resolvedCondRef.isValid() && resolvedChildRef == resolvedCondRef)
     {
         // Conditional expressions must short-circuit to preserve branch semantics.
-        const SemaNodeView        condView    = codeGen.viewType(nodeCondRef);
-        const CodeGenNodePayload& condPayload = codeGen.payload(nodeCondRef);
+        const SemaNodeView        condView    = codeGen.viewType(resolvedCondRef);
+        const CodeGenNodePayload& condPayload = codeGen.payload(resolvedCondRef);
         const TypeRef             condTypeRef = condPayload.typeRef.isValid() ? condPayload.typeRef : condView.typeRef();
         const MicroOpBits         condBits    = CodeGenTypeHelpers::compareBits(codeGen.typeMgr().get(condTypeRef), codeGen.ctx());
         SWC_ASSERT(condBits != MicroOpBits::Zero);
@@ -144,7 +147,7 @@ Result AstConditionalExpr::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeR
         const ConditionalExprCodeGenPayload* state = conditionalExprCodeGenPayload(codeGen, codeGen.curNodeRef());
         SWC_ASSERT(state != nullptr);
 
-        const CodeGenNodePayload& truePayload = codeGen.payload(nodeTrueRef);
+        const CodeGenNodePayload& truePayload = codeGen.payload(resolvedTrueRef);
         // The first selected branch allocates the destination payload; the other branch writes into that
         // same storage after the join label.
         if (addressBacked)
@@ -170,7 +173,7 @@ Result AstConditionalExpr::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeR
         const ConditionalExprCodeGenPayload* state = conditionalExprCodeGenPayload(codeGen, codeGen.curNodeRef());
         SWC_ASSERT(state != nullptr);
 
-        const CodeGenNodePayload& falsePayload  = codeGen.payload(nodeFalseRef);
+        const CodeGenNodePayload& falsePayload  = codeGen.payload(resolvedFalseRef);
         const CodeGenNodePayload& resultPayload = codeGen.payload(codeGen.curNodeRef());
         if (addressBacked)
         {
@@ -209,8 +212,8 @@ Result AstNullCoalescingExpr::codeGenPostNodeChild(CodeGen& codeGen, const AstNo
 
     if (resolvedLeftRef.isValid() && resolvedChildRef == resolvedLeftRef)
     {
-        const SemaNodeView        leftView    = codeGen.viewType(nodeLeftRef);
-        const CodeGenNodePayload& leftPayload = codeGen.payload(nodeLeftRef);
+        const SemaNodeView        leftView    = codeGen.viewType(resolvedLeftRef);
+        const CodeGenNodePayload& leftPayload = codeGen.payload(resolvedLeftRef);
         const TypeRef             leftTypeRef = leftPayload.typeRef.isValid() ? leftPayload.typeRef : leftView.typeRef();
         const MicroOpBits         condBits    = CodeGenTypeHelpers::compareBits(codeGen.typeMgr().get(leftTypeRef), codeGen.ctx());
         SWC_ASSERT(condBits != MicroOpBits::Zero);
@@ -248,7 +251,7 @@ Result AstNullCoalescingExpr::codeGenPostNodeChild(CodeGen& codeGen, const AstNo
         const NullCoalescingCodeGenPayload* state = nullCoalescingCodeGenPayload(codeGen, codeGen.curNodeRef());
         SWC_ASSERT(state != nullptr);
 
-        const CodeGenNodePayload& rightPayload  = codeGen.payload(nodeRightRef);
+        const CodeGenNodePayload& rightPayload  = codeGen.payload(resolvedRightRef);
         const CodeGenNodePayload& resultPayload = codeGen.payload(codeGen.curNodeRef());
         if (addressBacked)
         {

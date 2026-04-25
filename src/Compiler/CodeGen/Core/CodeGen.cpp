@@ -540,6 +540,18 @@ void CodeGen::appendResolvedCallArguments(AstNodeRef nodeRef, SmallVector<Resolv
     sema().appendResolvedCallArguments(nodeRef, out);
 }
 
+TypeRef CodeGen::transparentPayloadTypeRef()
+{
+    if (resolvedNodeRef(curNodeRef()) != curNodeRef())
+    {
+        const TypeRef storedTypeRef = sema().viewStored(curNodeRef(), SemaNodeViewPartE::Type).typeRef();
+        if (storedTypeRef.isValid())
+            return storedTypeRef;
+    }
+
+    return curViewType().typeRef();
+}
+
 CodeGenNodePayload& CodeGen::payload(AstNodeRef nodeRef)
 {
     CodeGenNodePayload* nodePayload = safePayload(nodeRef);

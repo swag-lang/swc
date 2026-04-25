@@ -3,6 +3,7 @@
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
+#include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Compiler/Sema/Match/MatchContext.h"
 #include "Compiler/Sema/Symbol/Symbol.Impl.h"
 #include "Compiler/Sema/Symbol/SymbolMap.h"
@@ -338,6 +339,48 @@ Result Match::match(Sema& sema, MatchContext& lookUpCxt, IdentifierRef idRef)
             continue;
         SWC_RESULT(sema.waitTyped(other, lookUpCxt.codeRef));
     }
+
+    return Result::Continue;
+}
+
+Result Match::matchCallFallbackSymbols(Sema& sema, const SemaNodeView& nodeCallee, SmallVector<Symbol*>& outSymbols)
+{
+    outSymbols.clear();
+
+    const AstNode* calleeNode = nodeCallee.node();
+    if (!calleeNode || calleeNode->isNot(AstNodeId::Identifier))
+        return Result::Continue;
+
+    const AstIdentifier& callee = calleeNode->cast<AstIdentifier>();
+    const IdentifierRef  idRef  = SemaHelpers::resolveIdentifier(sema, callee.codeRef());
+
+    MatchContext lookUpCxt;
+    lookUpCxt.codeRef       = callee.codeRef();
+    lookUpCxt.noWaitOnEmpty = true;
+
+    collect(sema, lookUpCxt);
+    lookup(lookUpCxt, idRef);
+    if (lookUpCxt.empty())
+        return Result::Continue;
+
+    SmallVector<const Symbol*> fallbackSymbols;
+    lookUpCxt.collectCallFallbackSymbols(fallbackSymbols);
+    if (fallbackSymbols.size() <= lookUpCxt.count())
+        return Result::Continue;
+
+    for (const Symbol* other : fallbackSymbols)
+    {
+        SWC_RESULT(sema.waitDeclared(other, lookUpCxt.codeRef));
+        if (other->isFunction() && other->cast<SymbolFunction>().isGenericRoot())
+            continue;
+        if (other->isStruct() && other->cast<SymbolStruct>().isGenericRoot())
+            continue;
+        SWC_RESULT(sema.waitTyped(other, lookUpCxt.codeRef));
+    }
+
+    outSymbols.reserve(fallbackSymbols.size());
+    for (const Symbol* symbol : fallbackSymbols)
+        outSymbols.push_back(const_cast<Symbol*>(symbol));
 
     return Result::Continue;
 }

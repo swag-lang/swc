@@ -1736,7 +1736,7 @@ Result AstTryCatchExpr::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef& 
 
 Result AstTryCatchExpr::codeGenPostNode(CodeGen& codeGen) const
 {
-    codeGen.inheritPayload(codeGen.curNodeRef(), nodeExprRef, codeGen.curViewType().typeRef());
+    codeGen.inheritPayload(codeGen.curNodeRef(), nodeExprRef, codeGen.transparentPayloadTypeRef());
     return CodeGenFunctionHelpers::emitThrowableWrapperPostNode(codeGen, codeGen.curNodeRef());
 }
 

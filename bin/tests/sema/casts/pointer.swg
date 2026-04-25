@@ -95,6 +95,22 @@
     var p1: const *void = a
 }
 
+struct RawPointerCast
+{
+    x: u32
+}
+
+func acceptConstVoidPointer(ptr: const [*] void)
+{
+    #assert(#typeof(ptr) == const [*] void)
+}
+
+#test
+{
+    var value: RawPointerCast
+    acceptConstVoidPointer(value)
+}
+
 #[Swag.Strict]
 alias StrictHandle = const *void
 

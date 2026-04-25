@@ -79,7 +79,7 @@ bool Cast::foldConstantBitCast(Sema& sema, CastRequest& castRequest, TypeRef dst
 
     const uint32_t srcBits = srcType.payloadScalarNumericBits();
     const uint32_t dstBits = dstType.payloadScalarNumericBits();
-    SWC_ASSERT(srcBits == dstBits || !srcBits);
+    SWC_ASSERT(srcBits == dstBits || !srcBits || (srcType.isIntLike() && dstType.isIntLike()));
 
     if (srcInt && dstInt)
     {
@@ -88,6 +88,10 @@ bool Cast::foldConstantBitCast(Sema& sema, CastRequest& castRequest, TypeRef dst
         {
             const bool srcUnsigned = bitCastSourceUnsigned(srcType, value);
             value.setUnsigned(srcUnsigned);
+            value.resize(dstBits);
+        }
+        else if (srcBits != dstBits)
+        {
             value.resize(dstBits);
         }
 

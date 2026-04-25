@@ -9,6 +9,8 @@
 #include "Compiler/Sema/Match/Match.h"
 #include "Compiler/Sema/Match/MatchContext.h"
 #include "Compiler/Sema/Symbol/IdentifierManager.h"
+#include "Compiler/Sema/Symbol/Symbol.Function.h"
+#include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Compiler/Sema/Symbol/Symbol.h"
 #include "Compiler/Sema/Symbol/Symbols.h"
 #include "Compiler/Sema/Type/TypeManager.h"
@@ -348,6 +350,83 @@ namespace
         diag.report(sema.ctx());
         return Result::Error;
     }
+
+    SymbolVariable* activeReceiverBinding(Sema& sema)
+    {
+        const IdentifierRef meId = sema.idMgr().predefined(IdentifierManager::PredefinedName::Me);
+        const std::span<SymbolVariable* const> bindings = sema.frame().bindingVars();
+        for (size_t i = bindings.size(); i > 0; --i)
+        {
+            SymbolVariable* const binding = bindings[i - 1];
+            if (binding && binding->idRef() == meId)
+                return binding;
+        }
+
+        return nullptr;
+    }
+
+    bool callableSetNeedsReceiver(std::span<const Symbol*> symbols)
+    {
+        for (const Symbol* symbol : symbols)
+        {
+            if (!symbol || !symbol->isFunction())
+                continue;
+            if (symbol->cast<SymbolFunction>().isMethod())
+                return true;
+        }
+
+        return false;
+    }
+
+    AstNodeRef makeReceiverBoundLocalCallable(Sema& sema, TokenRef tokRef, AstNodeRef rightRef, std::span<const Symbol*> callableSymbols)
+    {
+        SymbolVariable* const receiver = activeReceiverBinding(sema);
+        if (!receiver)
+            return AstNodeRef::invalid();
+
+        auto [leftRef, leftPtr] = sema.ast().makeNode<AstNodeId::Identifier>(tokRef);
+        sema.setSymbol(leftRef, receiver);
+        sema.setIsValue(*leftPtr);
+        sema.setIsLValue(*leftPtr);
+
+        AstMemberAccessExpr* memberNode = nullptr;
+        const AstNodeRef     memberRef  = makeAutoMemberAccessExpr(sema, tokRef, {.baseExprRef = leftRef}, rightRef, memberNode);
+        sema.setSymbolList(memberRef, callableSymbols);
+        sema.setSymbolList(rightRef, callableSymbols);
+        sema.setIsValue(*memberNode);
+        return memberRef;
+    }
+
+    Result trySubstituteLocalCallable(Sema& sema, const SourceCodeRef& codeRef, TokenRef tokRef, AstNodeRef rightRef, IdentifierRef idRef, bool allowOverloadSet, bool& outHandled)
+    {
+        outHandled = false;
+        if (!allowOverloadSet)
+            return Result::Continue;
+
+        MatchContext lookUpCxt;
+        lookUpCxt.codeRef       = codeRef;
+        lookUpCxt.noWaitOnEmpty = true;
+        SWC_RESULT(Match::match(sema, lookUpCxt, idRef));
+
+        SmallVector<const Symbol*> callableSymbols;
+        if (!SemaSymbolLookup::filterCallCalleeCandidates(lookUpCxt.symbols().span(), callableSymbols))
+            return Result::Continue;
+
+        AstNodeRef nodeRef = AstNodeRef::invalid();
+        if (callableSetNeedsReceiver(callableSymbols.span()))
+            nodeRef = makeReceiverBoundLocalCallable(sema, tokRef, rightRef, callableSymbols.span());
+        if (nodeRef.isInvalid())
+        {
+            auto [identRef, identPtr] = sema.ast().makeNode<AstNodeId::Identifier>(tokRef);
+            SWC_RESULT(SemaSymbolLookup::bindResolvedSymbols(sema, identRef, true, callableSymbols.span()));
+            sema.setIsValue(*identPtr);
+            nodeRef = identRef;
+        }
+
+        sema.setSubstitute(sema.curNodeRef(), nodeRef);
+        outHandled = true;
+        return Result::Continue;
+    }
 }
 
 Result AstAutoMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const
@@ -387,6 +466,11 @@ Result AstAutoMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& c
     // If nothing matched, report a smart error.
     if (matches.empty())
     {
+        bool localCallableHandled = false;
+        SWC_RESULT(trySubstituteLocalCallable(sema, codeRef, nodeRightView.node()->tokRef(), nodeIdentRef, idRef, allowOverloadSet, localCallableHandled));
+        if (localCallableHandled)
+            return Result::SkipChildren;
+
         if (deferCallArgument)
         {
             // If we have candidates but none matched, we still want to try to defer if this is a function argument.

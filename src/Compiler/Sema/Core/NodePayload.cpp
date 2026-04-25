@@ -243,6 +243,8 @@ ConstantRef NodePayload::getConstantRef(const TaskContext& ctx, AstNodeRef nodeR
         case NodePayloadKind::SymbolList:
         {
             const auto symList = getSymbolList(nodeRef);
+            if (symList.empty())
+                return ConstantRef::invalid();
             if (symList.size() > 1)
                 return ConstantRef::invalid();
             if (symList.front()->isConstant())
@@ -368,7 +370,8 @@ TypeRef NodePayload::getTypeRef(const TaskContext& ctx, AstNodeRef nodeRef) cons
         case NodePayloadKind::SymbolList:
         {
             const auto symbols = getSymbolList(nodeRef);
-            SWC_ASSERT(!symbols.empty());
+            if (symbols.empty())
+                return TypeRef::invalid();
             value = symbols.back()->typeRef();
             break;
         }

@@ -475,14 +475,14 @@ namespace
 
         if (const auto* valuePtrType = patternNode.safeCast<AstValuePointerType>())
         {
-            if (!argType.isValuePointer())
+            if (!argType.isAnyPointer())
                 return Result::Continue;
             return deduceFromTypePattern(sema, params, resolvedArgs, valuePtrType->nodePointeeTypeRef, argType.payloadTypeRef(), argExprRef, callArgIndex, outFailure);
         }
 
         if (const auto* blockPtrType = patternNode.safeCast<AstBlockPointerType>())
         {
-            if (!argType.isBlockPointer())
+            if (!argType.isAnyPointer())
                 return Result::Continue;
             return deduceFromTypePattern(sema, params, resolvedArgs, blockPtrType->nodePointeeTypeRef, argType.payloadTypeRef(), argExprRef, callArgIndex, outFailure);
         }

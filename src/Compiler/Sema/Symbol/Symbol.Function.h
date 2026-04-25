@@ -31,6 +31,8 @@ enum class SymbolFunctionFlagsE : uint16_t
     UsesGvtd        = 1 << 8,
     GenericRoot     = 1 << 9,
     GenericInstance = 1 << 10,
+    LazyGenericBody = 1 << 11,
+    LazyGenericBodyRunning = 1 << 12,
 };
 using SymbolFunctionFlags = EnumFlags<SymbolFunctionFlagsE>;
 

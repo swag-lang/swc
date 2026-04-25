@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Compiler/Sema/Match/MatchContext.h"
+#include "Compiler/Sema/Symbol/Symbols.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -26,6 +27,7 @@ void MatchContext::clear()
 void MatchContext::resetCandidates()
 {
     symbols_.clear();
+    allSymbols_.clear();
     hasBestPriority_        = false;
     bestPriority_           = Priority{};
     hasIgnoredBestPriority_ = false;
@@ -49,6 +51,19 @@ void MatchContext::addSymbol(const Symbol* symbol, const Priority& priority)
             return;
         }
     }
+
+    bool found = false;
+    for (const CandidateSymbol& s : allSymbols_)
+    {
+        if (s.symbol == symbol)
+        {
+            found = true;
+            break;
+        }
+    }
+
+    if (!found)
+        allSymbols_.push_back({.symbol = symbol, .priority = priority});
 
     if (!hasBestPriority_)
     {
@@ -83,6 +98,40 @@ void MatchContext::addSymbol(const Symbol* symbol, const Priority& priority)
             return;
 
     symbols_.push_back(symbol);
+}
+
+void MatchContext::collectCallFallbackSymbols(SmallVector<const Symbol*>& outSymbols) const
+{
+    outSymbols.clear();
+
+    if (symbols_.empty())
+        return;
+
+    for (const Symbol* symbol : symbols_)
+    {
+        if (!symbol || !symbol->acceptOverloads())
+            return;
+    }
+
+    for (const CandidateSymbol& candidate : allSymbols_)
+    {
+        const Symbol* symbol = candidate.symbol;
+        if (!symbol || !symbol->acceptOverloads())
+            continue;
+
+        bool duplicate = false;
+        for (const Symbol* existing : outSymbols)
+        {
+            if (existing == symbol)
+            {
+                duplicate = true;
+                break;
+            }
+        }
+
+        if (!duplicate)
+            outSymbols.push_back(symbol);
+    }
 }
 
 void MatchContext::addIgnoredSymbol(const Priority& priority)

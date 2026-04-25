@@ -1108,6 +1108,7 @@ struct AstAttribute : AstNodeT<AstNodeId::Attribute>
     AstNodeRef nodeCallRef;
 
     void   collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeCallRef}); }
+    AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
     Result semaPostNode(Sema& sema) const;
 };
 
@@ -1125,6 +1126,7 @@ struct AstAttributeList : AstCompoundT<AstNodeId::AttributeList>
     static Result semaPreNode(Sema& sema);
     Result        semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;
     Result        semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const;
+    AstNodeRef    semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
 // -----------------------------------------------------------------------------
@@ -1208,6 +1210,7 @@ struct AstAccessModifier : AstNodeT<AstNodeId::AccessModifier>
     Result        semaPreDecl(Sema& sema) const;
     Result        semaPreNode(Sema& sema) const;
     static Result semaPostNode(const Sema& sema);
+    AstNodeRef    semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
 // -----------------------------------------------------------------------------

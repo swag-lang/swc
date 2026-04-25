@@ -37,7 +37,7 @@ TypeRef Cast::referenceValueCastTypeRef(const Sema& sema, TypeRef srcTypeRef, Ty
     const TypeRef   srcTypeToCheck     = srcResolvedTypeRef.isValid() ? srcResolvedTypeRef : srcTypeRef;
     const TypeRef   dstTypeToCheck     = dstResolvedTypeRef.isValid() ? dstResolvedTypeRef : dstTypeRef;
     const TypeInfo& srcType            = sema.typeMgr().get(srcTypeToCheck);
-    if (!srcType.isReference() || srcType.isMoveReference())
+    if (!srcType.isReference())
         return TypeRef::invalid();
 
     const TypeRef pointeeTypeRef = srcType.payloadTypeRef();

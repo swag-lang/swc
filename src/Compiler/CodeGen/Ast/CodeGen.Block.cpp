@@ -56,14 +56,14 @@ Result AstDeferStmt::codeGenPreNode(CodeGen& codeGen)
 Result AstParenExpr::codeGenPostNode(CodeGen& codeGen) const
 {
     // Parentheses are transparent at codegen time; only the wrapped expression carries the runtime payload.
-    codeGen.inheritPayload(codeGen.curNodeRef(), nodeExprRef, codeGen.curViewType().typeRef());
+    codeGen.inheritPayload(codeGen.curNodeRef(), nodeExprRef, codeGen.transparentPayloadTypeRef());
     return Result::Continue;
 }
 
 Result AstNamedArgument::codeGenPostNode(CodeGen& codeGen) const
 {
     // Named arguments only affect call matching earlier in the pipeline, not the lowered runtime value.
-    codeGen.inheritPayload(codeGen.curNodeRef(), nodeArgRef, codeGen.curViewType().typeRef());
+    codeGen.inheritPayload(codeGen.curNodeRef(), nodeArgRef, codeGen.transparentPayloadTypeRef());
     return Result::Continue;
 }
 

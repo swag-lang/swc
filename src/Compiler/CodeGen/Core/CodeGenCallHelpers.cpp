@@ -1296,7 +1296,10 @@ Result CodeGenCallHelpers::codeGenCallExprCommon(CodeGen& codeGen, AstNodeRef ca
 
     // prepareArgs handles register placement, stack slots, and hidden indirect return arg.
     const ABICall::PreparedCall preparedCall = ABICall::prepareArgs(builder, callConvKind, preparedArgs, normalizedRet, hiddenRetStorageReg);
-    CodeGenNodePayload&         nodePayload  = codeGen.setPayload(codeGen.curNodeRef(), currentView.typeRef());
+    TypeRef nodePayloadTypeRef = calledFunction.returnTypeRef();
+    if (!nodePayloadTypeRef.isValid())
+        nodePayloadTypeRef = currentView.typeRef();
+    CodeGenNodePayload& nodePayload = codeGen.setPayload(codeGen.curNodeRef(), nodePayloadTypeRef);
     emitFunctionCall(codeGen, calledFunction, preparedCall, callTargetReg);
     if (transientStackSize)
         builder.emitOpBinaryRegImm(callConv.stackPointer, ApInt(transientStackSize, 64), MicroOp::Add, MicroOpBits::B64);

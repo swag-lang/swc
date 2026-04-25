@@ -19,6 +19,7 @@ namespace Match
     };
 
     Result match(Sema& sema, MatchContext& lookUpCxt, IdentifierRef idRef);
+    Result matchCallFallbackSymbols(Sema& sema, const SemaNodeView& nodeCallee, SmallVector<Symbol*>& outSymbols);
     Result ghosting(Sema& sema, const Symbol& sym);
 
     AstNodeRef resolveCallArgumentRef(Sema& sema, AstNodeRef argRef);

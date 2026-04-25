@@ -34,6 +34,84 @@ namespace
         *ptrField             = storage.ptr<Runtime::TypeInfo>(targetOffset);
     }
 
+    struct LifecycleFlags
+    {
+        bool hasPostCopy = false;
+        bool hasPostMove = false;
+        bool hasDrop     = false;
+        bool canCopy     = true;
+    };
+
+    void mergeFieldLifecycle(LifecycleFlags& ioFlags, const LifecycleFlags& fieldFlags)
+    {
+        ioFlags.hasPostCopy = ioFlags.hasPostCopy || fieldFlags.hasPostCopy;
+        ioFlags.hasPostMove = ioFlags.hasPostMove || fieldFlags.hasPostMove;
+        ioFlags.hasDrop     = ioFlags.hasDrop || fieldFlags.hasDrop;
+        ioFlags.canCopy     = ioFlags.canCopy && fieldFlags.canCopy;
+    }
+
+    LifecycleFlags lifecycleFlagsOfType(TaskContext& ctx, const TypeInfo& type, SmallVector<TypeRef>& visiting);
+
+    LifecycleFlags lifecycleFlagsOfTypeRef(TaskContext& ctx, TypeRef typeRef, SmallVector<TypeRef>& visiting)
+    {
+        if (typeRef.isInvalid())
+            return {};
+
+        if (std::ranges::find(visiting, typeRef) != visiting.end())
+            return {};
+
+        visiting.push_back(typeRef);
+        LifecycleFlags flags = lifecycleFlagsOfType(ctx, ctx.typeMgr().get(typeRef), visiting);
+        visiting.pop_back();
+        return flags;
+    }
+
+    LifecycleFlags lifecycleFlagsOfFields(TaskContext& ctx, std::span<const TypeRef> fieldTypes, SmallVector<TypeRef>& visiting)
+    {
+        LifecycleFlags flags;
+        for (const TypeRef fieldTypeRef : fieldTypes)
+            mergeFieldLifecycle(flags, lifecycleFlagsOfTypeRef(ctx, fieldTypeRef, visiting));
+        return flags;
+    }
+
+    LifecycleFlags lifecycleFlagsOfType(TaskContext& ctx, const TypeInfo& type, SmallVector<TypeRef>& visiting)
+    {
+        if (type.isVoid() || type.isNull() || type.isUndefined())
+            return {.canCopy = false};
+
+        if (type.isArray())
+            return lifecycleFlagsOfTypeRef(ctx, type.payloadArrayElemTypeRef(), visiting);
+
+        if (type.isAggregateStruct() || type.isAggregateArray())
+            return lifecycleFlagsOfFields(ctx, type.payloadAggregate().types, visiting);
+
+        if (!type.isStruct())
+            return {};
+
+        const SymbolStruct& symStruct = type.payloadSymStruct();
+        LifecycleFlags      flags;
+        for (const SymbolVariable* field : symStruct.fields())
+        {
+            if (field)
+                mergeFieldLifecycle(flags, lifecycleFlagsOfTypeRef(ctx, field->typeRef(), visiting));
+        }
+
+        const bool hasDirectDrop     = symStruct.opDrop() != nullptr;
+        const bool hasDirectPostCopy = symStruct.opPostCopy() != nullptr;
+        const bool hasDirectPostMove = symStruct.opPostMove() != nullptr;
+        flags.hasDrop                = flags.hasDrop || hasDirectDrop;
+        flags.hasPostCopy            = flags.hasPostCopy || hasDirectPostCopy;
+        flags.hasPostMove            = flags.hasPostMove || hasDirectPostMove;
+        flags.canCopy                = hasDirectPostCopy || (!hasDirectDrop && flags.canCopy);
+        return flags;
+    }
+
+    LifecycleFlags lifecycleFlagsOfType(TaskContext& ctx, const TypeInfo& type)
+    {
+        SmallVector<TypeRef> visiting;
+        return lifecycleFlagsOfType(ctx, type, visiting);
+    }
+
     template<typename T>
     std::pair<uint32_t, Runtime::TypeInfo*> reservePayload(DataSegment& storage, Runtime::TypeInfoKind kind)
     {
@@ -60,6 +138,16 @@ namespace
             addFlag(rtType, Runtime::TypeInfoFlags::Nullable);
         if (type.isTypeInfo())
             addFlag(rtType, Runtime::TypeInfoFlags::PointerTypeInfo);
+
+        const LifecycleFlags lifecycle = lifecycleFlagsOfType(ctx, type);
+        if (lifecycle.hasPostCopy)
+            addFlag(rtType, Runtime::TypeInfoFlags::HasPostCopy);
+        if (lifecycle.hasPostMove)
+            addFlag(rtType, Runtime::TypeInfoFlags::HasPostMove);
+        if (lifecycle.hasDrop)
+            addFlag(rtType, Runtime::TypeInfoFlags::HasDrop);
+        if (lifecycle.canCopy)
+            addFlag(rtType, Runtime::TypeInfoFlags::CanCopy);
 
         const Utf8 name        = type.toName(ctx);
         rtType.fullname.length = storage.addString(offset, offsetof(Runtime::TypeInfo, fullname.ptr), name);

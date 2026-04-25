@@ -39,15 +39,15 @@ namespace
         switch (tokId)
         {
             case TokenId::SymPlus:
-                if ((leftType.isBlockPointer() && rightType.isScalarNumeric()) ||
-                    (leftType.isScalarNumeric() && rightType.isBlockPointer()))
+                if ((leftType.isAnyPointer() && rightType.isScalarNumeric()) ||
+                    (leftType.isScalarNumeric() && rightType.isAnyPointer()))
                     return BinaryEncodingKind::PointerOffset;
                 break;
 
             case TokenId::SymMinus:
-                if (leftType.isBlockPointer() && rightType.isScalarNumeric())
+                if (leftType.isAnyPointer() && rightType.isScalarNumeric())
                     return BinaryEncodingKind::PointerOffset;
-                if (leftType.isBlockPointer() && rightType.isBlockPointer())
+                if (leftType.isAnyPointer() && rightType.isAnyPointer())
                     return BinaryEncodingKind::PointerDiff;
                 break;
 
@@ -125,10 +125,20 @@ namespace
         ctx.rightOperandTypeRef = resolveBinaryOperandSourceTypeRef(codeGen, node.nodeRightRef, rightView, *ctx.rightPayload);
         ctx.leftOperandTypeRef  = typeMgr.get(ctx.leftOperandTypeRef).unwrapAliasEnum(codeGen.ctx(), ctx.leftOperandTypeRef);
         ctx.rightOperandTypeRef = typeMgr.get(ctx.rightOperandTypeRef).unwrapAliasEnum(codeGen.ctx(), ctx.rightOperandTypeRef);
-        ctx.resultTypeRef       = codeGen.curViewType().typeRef();
-        ctx.operationTypeRef    = typeMgr.get(leftView.typeRef()).unwrapAliasEnum(codeGen.ctx(), leftView.typeRef());
+        ctx.resultTypeRef = codeGen.curViewType().typeRef();
+        if (codeGen.resolvedNodeRef(codeGen.curNodeRef()) != codeGen.curNodeRef())
+        {
+            const TypeRef storedResultTypeRef = codeGen.sema().viewStored(codeGen.curNodeRef(), SemaNodeViewPartE::Type).typeRef();
+            if (storedResultTypeRef.isValid())
+                ctx.resultTypeRef = storedResultTypeRef;
+        }
+        ctx.operationTypeRef = typeMgr.get(leftView.typeRef()).unwrapAliasEnum(codeGen.ctx(), leftView.typeRef());
         if (!ctx.operationTypeRef.isValid())
             ctx.operationTypeRef = ctx.leftOperandTypeRef;
+        if (ctx.resultTypeRef.isValid() && typeMgr.get(ctx.resultTypeRef).isBool() && typeMgr.get(ctx.leftOperandTypeRef).isNumericIntLike())
+            ctx.operationTypeRef = ctx.leftOperandTypeRef;
+        if (ctx.resultTypeRef.isValid() && typeMgr.get(ctx.resultTypeRef).isBool() && typeMgr.get(ctx.operationTypeRef).isNumericIntLike())
+            ctx.resultTypeRef = ctx.operationTypeRef;
         SWC_ASSERT(ctx.leftOperandTypeRef.isValid());
         SWC_ASSERT(ctx.rightOperandTypeRef.isValid());
         SWC_ASSERT(ctx.resultTypeRef.isValid());
@@ -148,7 +158,7 @@ namespace
         // both offset and difference lowering.
         if (ctx.encodingKind == BinaryEncodingKind::PointerOffset)
         {
-            const TypeRef pointerTypeRef = leftSemanticType.isBlockPointer() ? leftSemanticTypeRef : rightSemanticTypeRef;
+            const TypeRef pointerTypeRef = leftSemanticType.isAnyPointer() ? leftSemanticTypeRef : rightSemanticTypeRef;
             ctx.pointerStride            = CodeGenTypeHelpers::blockPointerStride(codeGen.ctx(), pointerTypeRef);
         }
         else if (ctx.encodingKind == BinaryEncodingKind::PointerDiff)
@@ -395,7 +405,7 @@ namespace
         SWC_ASSERT(encodeCtx.pointerStride > 0);
 
         const TypeInfo& leftType = codeGen.typeMgr().get(encodeCtx.leftOperandTypeRef);
-        const bool      leftPtr  = leftType.isBlockPointer();
+        const bool      leftPtr  = leftType.isAnyPointer();
 
         const CodeGenNodePayload& pointerPayload = leftPtr ? *encodeCtx.leftPayload : *encodeCtx.rightPayload;
         const CodeGenNodePayload& indexPayload   = leftPtr ? *encodeCtx.rightPayload : *encodeCtx.leftPayload;
@@ -454,6 +464,14 @@ Result AstBinaryExpr::codeGenPostNode(CodeGen& codeGen) const
 {
     SmallVector<ResolvedCallArgument> resolvedArgs;
     codeGen.appendResolvedCallArguments(codeGen.curNodeRef(), resolvedArgs);
+
+    if (const auto* binaryPayload = codeGen.sema().semaPayload<BinarySpecOpPayload>(codeGen.curNodeRef());
+        binaryPayload && binaryPayload->calledFn != nullptr)
+    {
+        codeGen.sema().setSymbol(codeGen.curNodeRef(), binaryPayload->calledFn);
+        if (binaryPayload->calledFn->specOpKind() == SpecOpKind::OpBinary)
+            return CodeGenCallHelpers::codeGenCallExprCommon(codeGen, AstNodeRef::invalid());
+    }
 
     const SemaNodeView specialOpView = codeGen.curViewSymbol();
     if (!resolvedArgs.empty() && specialOpView.sym() && specialOpView.sym()->isFunction())

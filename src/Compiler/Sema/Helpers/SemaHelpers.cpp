@@ -676,38 +676,28 @@ Result SemaHelpers::checkBinaryOperandTypes(Sema& sema, AstNodeRef nodeRef, Toke
     switch (op)
     {
         case TokenId::SymPlus:
-            if (leftView.type()->isValuePointer())
-                return SemaError::raisePointerArithmeticValuePointer(sema, nodeRef, leftRef, leftView.typeRef());
-            if (rightView.type()->isValuePointer())
-                return SemaError::raisePointerArithmeticValuePointer(sema, nodeRef, rightRef, rightView.typeRef());
-
-            if (leftView.type()->isBlockPointer() && leftView.type()->payloadTypeRef() == sema.typeMgr().typeVoid())
+            if (leftView.type()->isAnyPointer() && leftView.type()->payloadTypeRef() == sema.typeMgr().typeVoid())
                 return SemaError::raisePointerArithmeticVoidPointer(sema, nodeRef, leftRef, leftView.typeRef());
-            if (rightView.type()->isBlockPointer() && rightView.type()->payloadTypeRef() == sema.typeMgr().typeVoid())
+            if (rightView.type()->isAnyPointer() && rightView.type()->payloadTypeRef() == sema.typeMgr().typeVoid())
                 return SemaError::raisePointerArithmeticVoidPointer(sema, nodeRef, rightRef, rightView.typeRef());
 
-            if (leftView.type()->isBlockPointer() && rightView.type()->isScalarNumeric())
+            if (leftView.type()->isAnyPointer() && rightView.type()->isScalarNumeric())
                 return Result::Continue;
-            if (leftView.type()->isBlockPointer() && rightView.type()->isBlockPointer())
+            if (leftView.type()->isAnyPointer() && rightView.type()->isAnyPointer())
                 return SemaError::raiseBinaryOperandType(sema, nodeRef, rightRef, leftView.typeRef(), rightView.typeRef());
-            if (leftView.type()->isScalarNumeric() && rightView.type()->isBlockPointer())
+            if (leftView.type()->isScalarNumeric() && rightView.type()->isAnyPointer())
                 return Result::Continue;
             break;
 
         case TokenId::SymMinus:
-            if (leftView.type()->isValuePointer())
-                return SemaError::raisePointerArithmeticValuePointer(sema, nodeRef, leftRef, leftView.typeRef());
-            if (rightView.type()->isValuePointer())
-                return SemaError::raisePointerArithmeticValuePointer(sema, nodeRef, rightRef, rightView.typeRef());
-
-            if (leftView.type()->isBlockPointer() && leftView.type()->payloadTypeRef() == sema.typeMgr().typeVoid())
+            if (leftView.type()->isAnyPointer() && leftView.type()->payloadTypeRef() == sema.typeMgr().typeVoid())
                 return SemaError::raisePointerArithmeticVoidPointer(sema, nodeRef, leftRef, leftView.typeRef());
-            if (rightView.type()->isBlockPointer() && rightView.type()->payloadTypeRef() == sema.typeMgr().typeVoid())
+            if (rightView.type()->isAnyPointer() && rightView.type()->payloadTypeRef() == sema.typeMgr().typeVoid())
                 return SemaError::raisePointerArithmeticVoidPointer(sema, nodeRef, rightRef, rightView.typeRef());
 
-            if (leftView.type()->isBlockPointer() && rightView.type()->isScalarNumeric())
+            if (leftView.type()->isAnyPointer() && rightView.type()->isScalarNumeric())
                 return Result::Continue;
-            if (leftView.type()->isBlockPointer() && rightView.type()->isBlockPointer())
+            if (leftView.type()->isAnyPointer() && rightView.type()->isAnyPointer())
                 return Result::Continue;
             break;
 
@@ -761,16 +751,16 @@ Result SemaHelpers::castBinaryRightToLeft(Sema& sema, TokenId op, AstNodeRef nod
     {
         case TokenId::SymPlus:
         case TokenId::SymMinus:
-            if (leftView.type()->isBlockPointer() && rightView.type()->isScalarNumeric())
+            if (leftView.type()->isAnyPointer() && rightView.type()->isScalarNumeric())
             {
                 SWC_RESULT(Cast::cast(sema, rightView, sema.typeMgr().typeS64(), CastKind::Implicit));
                 return Result::Continue;
             }
-            if (leftView.type()->isScalarNumeric() && rightView.type()->isBlockPointer())
+            if (leftView.type()->isScalarNumeric() && rightView.type()->isAnyPointer())
             {
                 return Result::Continue;
             }
-            if (leftView.type()->isBlockPointer() && rightView.type()->isBlockPointer())
+            if (leftView.type()->isAnyPointer() && rightView.type()->isAnyPointer())
             {
                 return Result::Continue;
             }
@@ -779,6 +769,9 @@ Result SemaHelpers::castBinaryRightToLeft(Sema& sema, TokenId op, AstNodeRef nod
         default:
             break;
     }
+
+    if (op == TokenId::SymGreaterGreater || op == TokenId::SymLowerLower)
+        return Result::Continue;
 
     SWC_RESULT(Cast::cast(sema, rightView, leftView.typeRef(), castKind));
     return Result::Continue;
@@ -889,6 +882,8 @@ Result SemaHelpers::resolveCountOfResult(Sema& sema, CountOfResultInfo& outResul
         outResult.typeRef             = resultView.typeRef();
         outResult.cstRef              = resultView.cstRef();
         outResult.calledFn            = calledFn;
+        if (!outResult.typeRef.isValid() && calledFn)
+            outResult.typeRef = calledFn->returnTypeRef();
         return Result::Continue;
     }
 
@@ -1383,6 +1378,25 @@ namespace
         return Result::Error;
     }
 
+    bool isCompilerDefinedMemberAccess(Sema& sema, const AstMemberAccessExpr& node)
+    {
+        const auto* ident = sema.node(node.nodeRightRef).safeCast<AstIdentifier>();
+        return ident && ident->hasFlag(AstIdentifierFlagsE::InCompilerDefined);
+    }
+
+    Result bindMissingCompilerDefinedMember(Sema& sema, AstNodeRef targetNodeRef, const AstMemberAccessExpr& node, bool& outHandled)
+    {
+        outHandled = false;
+        if (!isCompilerDefinedMemberAccess(sema, node))
+            return Result::Continue;
+
+        std::span<const Symbol*> empty;
+        sema.setSymbolList(targetNodeRef, empty);
+        sema.setSymbolList(node.nodeRightRef, empty);
+        outHandled = true;
+        return Result::Continue;
+    }
+
     Result tryBindUfcsFreeFunctions(Sema& sema, AstNodeRef targetNodeRef, const AstMemberAccessExpr& node, IdentifierRef idRef, TokenRef tokNameRef, bool allowOverloadSet, bool& outHandled)
     {
         outHandled = false;
@@ -1453,6 +1467,9 @@ namespace
         if (lookUpCxt.empty())
         {
             bool handled = false;
+            SWC_RESULT(bindMissingCompilerDefinedMember(sema, targetNodeRef, node, handled));
+            if (handled)
+                return Result::SkipChildren;
             SWC_RESULT(tryBindUfcsFreeFunctions(sema, targetNodeRef, node, idRef, tokNameRef, allowOverloadSet, handled));
             if (handled)
                 return Result::SkipChildren;
@@ -1667,10 +1684,13 @@ Result SemaHelpers::resolveMemberAccess(Sema& sema, AstNodeRef memberRef, AstMem
     }
 
     bool ufcsHandled = false;
-    SWC_RESULT(tryBindUfcsFreeFunctions(sema, memberRef, node, idRef, tokNameRef, allowOverloadSet, ufcsHandled));
+    SWC_RESULT(bindMissingCompilerDefinedMember(sema, memberRef, node, ufcsHandled));
     if (ufcsHandled)
         return Result::SkipChildren;
 
+    SWC_RESULT(tryBindUfcsFreeFunctions(sema, memberRef, node, idRef, tokNameRef, allowOverloadSet, ufcsHandled));
+    if (ufcsHandled)
+        return Result::SkipChildren;
     return reportUnknownMemberSymbol(sema, node, idRef, tokNameRef);
 }
 

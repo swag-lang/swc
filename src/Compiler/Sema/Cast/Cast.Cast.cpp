@@ -67,9 +67,9 @@ namespace
 
     bool isImplicitNullableQualificationCast(const TypeInfo& srcType, const TypeInfo& dstType)
     {
-        if (srcType.isNullable() || !dstType.isNullable())
+        if (srcType.isNullable() == dstType.isNullable())
             return false;
-        if (!dstType.supportsNullableQualifier())
+        if (!srcType.supportsNullableQualifier() || !dstType.supportsNullableQualifier())
             return false;
         if (srcType.kind() != dstType.kind())
             return false;
@@ -105,7 +105,18 @@ namespace
 
     bool isTruthyBoolCastKind(const CastKind castKind)
     {
-        return castKind == CastKind::Condition || castKind == CastKind::BoolExpr;
+        return castKind == CastKind::Condition ||
+               castKind == CastKind::BoolExpr ||
+               castKind == CastKind::Parameter ||
+               castKind == CastKind::Initialization ||
+               castKind == CastKind::Assignment;
+    }
+
+    bool isImplicitValueBoolCastKind(const CastKind castKind)
+    {
+        return castKind == CastKind::Parameter ||
+               castKind == CastKind::Initialization ||
+               castKind == CastKind::Assignment;
     }
 
     bool isStrictBoolExprCastKind(const CastKind castKind)
@@ -734,7 +745,8 @@ Result Cast::castBit(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, T
 
     const uint32_t sb = srcType->payloadScalarNumericBits();
     const uint32_t db = dstType.payloadScalarNumericBits();
-    if (!(sb == db || !sb))
+    const bool     bothIntLike = srcType->isIntLike() && dstType.isIntLike();
+    if (!(sb == db || !sb || bothIntLike))
     {
         const Result res = castRequest.fail(DiagnosticId::sema_err_bit_cast_size, orgSrcTypeRef, dstTypeRef);
         castRequest.failure.addArgument(Diagnostic::ARG_LEFT, sb);
@@ -776,6 +788,9 @@ Result Cast::castToBool(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef
     const TypeManager& typeMgr = sema.typeMgr();
     const TypeInfo&    srcType = typeMgr.get(srcTypeRef);
     if (!srcType.isConvertibleToBool())
+        return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
+
+    if (isImplicitValueBoolCastKind(castRequest.kind) && !srcType.isBool() && !srcType.isIntLike() && !srcType.isEnumFlags())
         return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
 
     if (castRequest.isConstantFolding())
@@ -973,7 +988,7 @@ Result Cast::castFloatToFloat(Sema& sema, CastRequest& castRequest, TypeRef srcT
         case CastKind::Parameter:
         case CastKind::Initialization:
         case CastKind::Assignment:
-            if (narrowing)
+            if (narrowing && castRequest.kind != CastKind::Parameter)
                 return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
             break;
 
@@ -1176,12 +1191,29 @@ Result Cast::castToReference(Sema& sema, CastRequest& castRequest, TypeRef srcTy
 
             return Result::Continue;
         }
+
+        SmallVector<SymbolStructUsingPathStep> usingPath;
+        bool                                   hasUsingPath = false;
+        SWC_RESULT(resolveUsingStructCastPath(sema, castRequest, srcTypeRef, dstPointeeTypeRef, usingPath, hasUsingPath));
+        if (hasUsingPath && !usingPathHasPointerStep(usingPath))
+            return Result::Continue;
     }
 
     // UFCS receiver: allow taking the address to bind a value to a reference.
     // Whether the value is actually addressable (lvalue) is validated later by `Cast::cast`.
-    if (castRequest.flags.has(CastFlagsE::UfcsArgument) && dstPointeeTypeRef == srcTypeRef)
+    if (castRequest.flags.has(CastFlagsE::UfcsArgument) && srcType.isStruct())
     {
+        bool receiverMatches = dstPointeeTypeRef == srcTypeRef;
+        if (!receiverMatches)
+        {
+            SmallVector<SymbolStructUsingPathStep> usingPath;
+            bool                                   hasUsingPath = false;
+            SWC_RESULT(resolveUsingStructCastPath(sema, castRequest, srcTypeRef, dstPointeeTypeRef, usingPath, hasUsingPath));
+            receiverMatches = hasUsingPath && !usingPathHasPointerStep(usingPath);
+        }
+        if (!receiverMatches)
+            return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
+
         const bool sourceIsConst = srcType.isConst() || castRequest.isConstantFolding();
         if (sourceIsConst && !dstType.isConst() && !castRequest.flags.has(CastFlagsE::UnConst))
             return castRequest.fail(DiagnosticId::sema_err_cannot_cast_const, srcTypeRef, dstTypeRef);
@@ -1273,9 +1305,33 @@ Result Cast::castToPointer(Sema& sema, CastRequest& castRequest, TypeRef srcType
         return Result::Continue;
     }
 
+    if (srcType.isReference())
+    {
+        if (srcType.isConst() && !dstType.isConst() && !castRequest.flags.has(CastFlagsE::UnConst))
+            return castRequest.fail(DiagnosticId::sema_err_cannot_cast_const, srcTypeRef, dstTypeRef);
+
+        const TypeRef dstPointeeTypeRef = dstType.payloadTypeRef();
+        if (srcType.payloadTypeRef() == dstPointeeTypeRef || dstPointeeTypeRef == typeMgr.typeVoid())
+            return Result::Continue;
+
+        SmallVector<SymbolStructUsingPathStep> usingPath;
+        bool                                   hasUsingPath = false;
+        SWC_RESULT(resolveUsingStructCastPath(sema, castRequest, srcType.payloadTypeRef(), dstPointeeTypeRef, usingPath, hasUsingPath));
+        if (hasUsingPath && !usingPathHasPointerStep(usingPath))
+            return Result::Continue;
+    }
+
     if (srcType.isAnyPointer())
     {
         const TypeInfo& srcPointeeType = typeMgr.get(srcType.payloadTypeRef());
+        if (srcPointeeType.isArray() && srcPointeeType.payloadArrayElemTypeRef() == dstType.payloadTypeRef())
+        {
+            if (srcType.isConst() && !dstType.isConst() && !castRequest.flags.has(CastFlagsE::UnConst))
+                return castRequest.fail(DiagnosticId::sema_err_cannot_cast_const, srcTypeRef, dstTypeRef);
+
+            return Result::Continue;
+        }
+
         if (srcPointeeType.isReference() && srcPointeeType.payloadTypeRef() == dstType.payloadTypeRef())
         {
             bool ok = false;
@@ -1369,8 +1425,13 @@ Result Cast::castToPointer(Sema& sema, CastRequest& castRequest, TypeRef srcType
     if (srcType.isStruct())
     {
         const auto dstElemTypeRef = dstType.payloadTypeRef();
-        if (srcTypeRef == dstElemTypeRef)
+        if (srcTypeRef == dstElemTypeRef || dstElemTypeRef == typeMgr.typeVoid())
+        {
+            if (srcType.isConst() && !dstType.isConst() && !castRequest.flags.has(CastFlagsE::UnConst))
+                return castRequest.fail(DiagnosticId::sema_err_cannot_cast_const, srcTypeRef, dstTypeRef);
+
             return Result::Continue;
+        }
     }
 
     return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);

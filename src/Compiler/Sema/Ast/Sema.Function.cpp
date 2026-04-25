@@ -28,14 +28,14 @@ namespace
 {
     const SymbolImpl* functionDeclImplContext(Sema& sema, const SymbolFunction* symFunc = nullptr)
     {
+        if (const auto* symImpl = sema.frame().currentImpl())
+            return symImpl;
+
         if (symFunc)
         {
             if (const auto* symImpl = symFunc->declImplContext())
                 return symImpl;
         }
-
-        if (const auto* symImpl = sema.frame().currentImpl())
-            return symImpl;
 
         for (SymbolMap* symMap = sema.curSymMap(); symMap; symMap = symMap->ownerSymMap())
         {
@@ -48,18 +48,18 @@ namespace
 
     const SymbolInterface* functionDeclInterfaceContext(Sema& sema, const SymbolFunction* symFunc = nullptr)
     {
-        if (symFunc)
-        {
-            if (const auto* symItf = symFunc->declInterfaceContext())
-                return symItf;
-        }
-
         if (const auto* symItf = sema.frame().currentInterface())
             return symItf;
 
         if (const auto* symImpl = sema.frame().currentImpl())
         {
             if (const auto* symItf = symImpl->symInterface())
+                return symItf;
+        }
+
+        if (symFunc)
+        {
+            if (const auto* symItf = symFunc->declInterfaceContext())
                 return symItf;
         }
 
@@ -76,6 +76,98 @@ namespace
         }
 
         return nullptr;
+    }
+
+    Result isGenericRootImplFunction(Sema& sema, const SymbolFunction& sym, const SymbolImpl* declImpl, bool& outResult)
+    {
+        outResult                 = false;
+        if (sym.isGenericInstance())
+            return Result::Continue;
+
+        const SymbolStruct* owner = sym.ownerStruct();
+        if (!owner && declImpl && declImpl->isForStruct())
+            owner = declImpl->symStruct();
+        if (!owner && declImpl)
+        {
+            MatchContext context;
+            context.codeRef       = declImpl->codeRef();
+            context.noWaitOnEmpty = true;
+            SWC_RESULT(Match::match(sema, context, declImpl->idRef()));
+
+            for (const Symbol* candidate : context.symbols())
+            {
+                if (!candidate || !candidate->isStruct())
+                    continue;
+
+                owner = &candidate->cast<SymbolStruct>();
+                break;
+            }
+        }
+
+        outResult = owner && owner->isGenericRoot() && !owner->isGenericInstance();
+        return Result::Continue;
+    }
+
+    bool isGenericInstanceImplFunction(const SymbolFunction& sym, const SymbolImpl* declImpl)
+    {
+        const SymbolStruct* owner = sym.ownerStruct();
+        if (!owner && declImpl && declImpl->isForStruct())
+            owner = declImpl->symStruct();
+
+        return owner && owner->isGenericInstance();
+    }
+
+    bool canDelayGenericInstanceFunctionBody(const AstFunctionDecl& node, const SymbolFunction& sym, const SymbolImpl* declImpl)
+    {
+        if (sym.hasExtraFlag(SymbolFunctionFlagsE::LazyGenericBodyRunning))
+            return false;
+        if (sym.isGenericRoot() || sym.isGenericInstance() || sym.isEmpty())
+            return false;
+        if (sym.specOpKind() != SpecOpKind::None)
+            return false;
+        if (!isGenericInstanceImplFunction(sym, declImpl))
+            return false;
+
+        // Expression-bodied functions without an explicit return type need their body to
+        // determine the signature, so they cannot participate in lazy body sema.
+        if (node.hasFlag(AstFunctionFlagsE::Short) && node.nodeReturnTypeRef.isInvalid())
+            return false;
+
+        return node.nodeBodyRef.isValid();
+    }
+
+    Result completeLazyGenericFunction(Sema& sema, SymbolFunction& calledFn)
+    {
+        if (calledFn.isSemaCompleted())
+            return Result::Continue;
+        if (!calledFn.hasExtraFlag(SymbolFunctionFlagsE::LazyGenericBody))
+            return Result::Continue;
+        if (calledFn.hasExtraFlag(SymbolFunctionFlagsE::LazyGenericBodyRunning))
+            return Result::Continue;
+
+        AstNodeRef declRef = calledFn.declNodeRef();
+        if (declRef.isInvalid())
+            return Result::Continue;
+
+        calledFn.addExtraFlag(SymbolFunctionFlagsE::LazyGenericBodyRunning);
+        const SourceView& srcView = sema.compiler().srcView(calledFn.srcViewRef());
+        std::unique_ptr<Sema> child;
+        if (sema.ast().srcView().fileRef() == srcView.ownerFileRef())
+        {
+            child = std::make_unique<Sema>(sema.ctx(), sema, declRef);
+        }
+        else
+        {
+            SourceFile& sourceFile = sema.compiler().file(srcView.ownerFileRef());
+            if (declRef.isInvalid() && calledFn.decl())
+                declRef = calledFn.decl()->nodeRef(sourceFile.ast());
+            SWC_ASSERT(declRef.isValid());
+            child = std::make_unique<Sema>(sema.ctx(), sema, sourceFile.nodePayloadContext(), declRef);
+        }
+
+        const Result result = child->execResult();
+        calledFn.removeExtraFlag(SymbolFunctionFlagsE::LazyGenericBodyRunning);
+        return result;
     }
 
     bool isNestedUfcsReceiverValue(Sema& sema, AstNodeRef nodeRef)
@@ -196,6 +288,15 @@ Result AstFunctionDecl::semaPreNode(Sema& sema) const
         const SourceView& srcView   = sema.srcView(srcViewRef());
         const TokenRef    mtdTokRef = srcView.findLeftFrom(tokNameRef, {TokenId::KwdMtd});
         return SemaError::raise(sema, DiagnosticId::sema_err_method_outside_impl, SourceCodeRef{srcViewRef(), mtdTokRef});
+    }
+
+    bool genericRootImplFunction = false;
+    SWC_RESULT(isGenericRootImplFunction(sema, sym, declImpl, genericRootImplFunction));
+    if (genericRootImplFunction)
+    {
+        SWC_RESULT(SemaSpecOp::validateSymbol(sema, sym));
+        sym.setSemaCompleted(sema.ctx());
+        return Result::SkipChildren;
     }
 
     if (sym.isGenericRoot() && !sym.isGenericInstance())
@@ -1329,6 +1430,18 @@ namespace
         return bodyRef.isValid() && sema.node(bodyRef).isNot(AstNodeId::EmbeddedBlock);
     }
 
+    TypeRef resolveGroupedFunctionExprParameterType(Sema& sema, const SmallVector<AstNodeRef>& params, size_t paramIndex)
+    {
+        for (size_t nextParamIndex = paramIndex + 1; nextParamIndex < params.size(); nextParamIndex++)
+        {
+            const AstLambdaParam& nextParam = sema.node(params[nextParamIndex]).cast<AstLambdaParam>();
+            if (nextParam.nodeTypeRef.isValid())
+                return sema.viewType(nextParam.nodeTypeRef).typeRef();
+        }
+
+        return TypeRef::invalid();
+    }
+
     template<typename T>
     Result buildFunctionExprParameters(Sema& sema, const T& node, SymbolFunction& sym)
     {
@@ -1351,6 +1464,8 @@ namespace
                 paramType = bindingFunction->parameters()[paramIndex]->typeRef();
             else if (param.nodeDefaultValueRef.isValid())
                 SWC_RESULT(deduceLambdaParameterTypeFromDefault(sema, param.nodeDefaultValueRef, paramType));
+            if (!paramType.isValid())
+                paramType = resolveGroupedFunctionExprParameterType(sema, params, paramIndex);
 
             SWC_ASSERT(paramType.isValid());
 
@@ -1774,6 +1889,8 @@ namespace
         SWC_ASSERT(nodeSymView.hasSymbol());
 
         auto&      calledFn    = nodeSymView.sym()->cast<SymbolFunction>();
+        SWC_RESULT(completeLazyGenericFunction(sema, calledFn));
+
         const bool isMixinCall = calledFn.attributes().hasRtFlag(RtAttributeFlagsE::Mixin);
         const bool isMacroCall = calledFn.attributes().hasRtFlag(RtAttributeFlagsE::Macro);
         auto*      currentFn   = sema.currentFunction();
@@ -1849,6 +1966,13 @@ Result AstFunctionDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef)
     else if (childRef == nodeBodyRef)
     {
         auto&      sym                 = sema.curViewSymbol().sym()->cast<SymbolFunction>();
+        const auto* declImpl           = functionDeclImplContext(sema, &sym);
+        if (sym.isTyped() && canDelayGenericInstanceFunctionBody(*this, sym, declImpl))
+        {
+            sym.addExtraFlag(SymbolFunctionFlagsE::LazyGenericBody);
+            return Result::SkipChildren;
+        }
+
         const bool deferInlineBodySema = sym.attributes().hasRtFlag(RtAttributeFlagsE::Mixin) || sym.attributes().hasRtFlag(RtAttributeFlagsE::Macro);
         if (deferInlineBodySema)
         {
@@ -2018,10 +2142,14 @@ Result AstFunctionDecl::semaPostNode(Sema& sema)
     if (sym.isGenericRoot() && !sym.isGenericInstance())
         return Result::Continue;
 
+    if (sym.hasExtraFlag(SymbolFunctionFlagsE::LazyGenericBody) && !sym.hasExtraFlag(SymbolFunctionFlagsE::LazyGenericBodyRunning))
+        return Result::Continue;
+
     if (sym.isForeign() && !sym.isEmpty())
         return SemaError::raise(sema, DiagnosticId::sema_err_foreign_cannot_have_body, sema.curNodeRef());
 
     SemaPurity::computePurityFlag(sema, sym);
+    sym.removeExtraFlag(SymbolFunctionFlagsE::LazyGenericBody);
     sym.setSemaCompleted(sema.ctx());
     if (!sym.attributes().hasRtFlag(RtAttributeFlagsE::Macro) && !sym.attributes().hasRtFlag(RtAttributeFlagsE::Mixin))
         sema.compiler().registerNativeCodeFunction(&sym);

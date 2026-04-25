@@ -264,7 +264,20 @@ void AstVisit::collectChildren(Frame& frame)
             continue;
 
         const AstNodeRef resolvedRef = nodeRefResolver_(childRef);
-        if (resolvedRef.isInvalid() || resolvedRef == frame.nodeRef)
+        if (resolvedRef.isInvalid())
+            continue;
+
+        bool resolvesToActiveFrame = false;
+        for (const Frame& activeFrame : stack_)
+        {
+            if (resolvedRef == activeFrame.nodeRef)
+            {
+                resolvesToActiveFrame = true;
+                break;
+            }
+        }
+
+        if (resolvesToActiveFrame)
             continue;
 
         children_[i] = resolvedRef;

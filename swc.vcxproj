@@ -151,6 +151,7 @@
     <ItemGroup>
         <ClCompile Include="src\Unittest\Test.Format.Blanks.cpp"/>
         <ClCompile Include="src\Unittest\Test.Format.Literal.cpp"/>
+        <ClCompile Include="src\Unittest\Test.Format.Off.cpp" />
         <ClCompile Include="src\Unittest\UnittestHelpers.cpp"/>
         <ClCompile Include="src\Unittest\Test.ABI.FFI.cpp"/>
         <ClCompile Include="src\Unittest\Test.Compiler.ConstantManager.cpp"/>

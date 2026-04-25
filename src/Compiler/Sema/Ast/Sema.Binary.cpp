@@ -117,6 +117,11 @@ namespace
         return nodeLeftView.typeRef() == nodeRightView.typeRef();
     }
 
+    bool canDeclineUnsafeConstantFold(Sema& sema)
+    {
+        return !sema.isConstExprRequired() && sema.frame().currentInlinePayload() != nullptr;
+    }
+
     Result constantFoldOp(Sema& sema, ConstantRef& result, TokenId op, const AstBinaryExpr& node, const SemaNodeView& nodeLeftView, const SemaNodeView& nodeRightView)
     {
         const TaskContext& ctx         = sema.ctx();
@@ -167,6 +172,8 @@ namespace
             const Math::FoldStatus foldStatus = Math::foldBinaryFloat(foldedValue, leftCst.getFloat(), rightCst.getFloat(), foldOp);
             if (foldStatus != Math::FoldStatus::Ok)
             {
+                if (Math::isSafetyError(foldStatus) && canDeclineUnsafeConstantFold(sema))
+                    return Result::Continue;
                 if (Math::isSafetyError(foldStatus))
                     return SemaError::raiseFoldSafety(sema, foldStatus, sema.curNodeRef(), node.nodeRightRef, SemaError::ReportLocation::Token);
                 return Result::Error;
@@ -200,11 +207,13 @@ namespace
 
             ApsInt           foldedValue;
             Math::FoldStatus foldStatus = Math::foldBinaryInt(foldedValue, val1, val2, foldOp, foldOptions);
-            if (foldStatus == Math::FoldStatus::Overflow && (wrap || type.payloadIntBits() == 0))
+            if (foldStatus == Math::FoldStatus::Overflow && (wrap || type.payloadIntLikeBits() == 0))
                 foldStatus = Math::FoldStatus::Ok;
 
             if (foldStatus != Math::FoldStatus::Ok)
             {
+                if (Math::isSafetyError(foldStatus) && canDeclineUnsafeConstantFold(sema))
+                    return Result::Continue;
                 if (foldStatus == Math::FoldStatus::Overflow)
                 {
                     auto diag = SemaError::reportFoldSafety(sema, foldStatus, sema.curNodeRef(), SemaError::ReportLocation::Children);
@@ -365,8 +374,11 @@ namespace
         {
             ConstantRef result;
             SWC_RESULT(constantFold(sema, result, op, node, nodeLeftView, nodeRightView));
-            sema.setConstant(sema.curNodeRef(), result);
-            return Result::Continue;
+            if (result.isValid())
+            {
+                sema.setConstant(sema.curNodeRef(), result);
+                return Result::Continue;
+            }
         }
 
         TypeRef resultTypeRef = nodeLeftView.typeRef();

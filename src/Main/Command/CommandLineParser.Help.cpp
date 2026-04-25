@@ -48,22 +48,6 @@ namespace
         SWC_UNREACHABLE();
     }
 
-    template<typename Range, typename ValueFn>
-    Utf8 formatJoinedDefaultValues(const Range& values, ValueFn valueFn)
-    {
-        Utf8 result;
-        bool first = true;
-        for (const auto& value : values)
-        {
-            if (!first)
-                result += ", ";
-            result += valueFn(value);
-            first = false;
-        }
-
-        return result.empty() ? Utf8("(none)") : result;
-    }
-
     Utf8 defaultValueToString(const ArgInfo& arg)
     {
         if (auto* t = std::get_if<bool*>(&arg.target))
@@ -80,11 +64,20 @@ namespace
             return value.empty() ? Utf8("(none)") : value;
         }
         if (auto* t = std::get_if<std::vector<Utf8>*>(&arg.target))
-            return formatJoinedDefaultValues(**t, [](const Utf8& entry) -> const Utf8& { return entry; });
+        {
+            const Utf8 value = Utf8Helper::join(**t, ", ");
+            return value.empty() ? Utf8("(none)") : value;
+        }
         if (auto* t = std::get_if<std::set<Utf8>*>(&arg.target))
-            return formatJoinedDefaultValues(**t, [](const Utf8& entry) -> const Utf8& { return entry; });
+        {
+            const Utf8 value = Utf8Helper::join(**t, ", ");
+            return value.empty() ? Utf8("(none)") : value;
+        }
         if (auto* t = std::get_if<std::set<fs::path>*>(&arg.target))
-            return formatJoinedDefaultValues(**t, [](const fs::path& entry) { return Utf8(entry.string()); });
+        {
+            const Utf8 value = Utf8Helper::join(**t, ", ", [](const fs::path& entry) { return Utf8(entry.string()); });
+            return value.empty() ? Utf8("(none)") : value;
+        }
         if (auto* t = std::get_if<std::optional<bool>*>(&arg.target))
         {
             if (!(*t)->has_value())
@@ -196,17 +189,7 @@ void CommandLineParser::printHelp(const TaskContext& ctx, const Utf8& command)
         addInfoEntry(groupEntries, entry.displayName, entry.arg->description, LogColor::White, 0, helpArgumentLabelColor());
         if (entry.arg->isEnum())
         {
-            Utf8 choices;
-            bool first = true;
-            for (const Utf8& choice : entry.arg->choices)
-            {
-                if (!first)
-                    choices += ", ";
-                choices += choice;
-                first = false;
-            }
-
-            addInfoEntry(groupEntries, "choices", std::move(choices), LogColor::Yellow, 1, LogColor::Dim);
+            addInfoEntry(groupEntries, "choices", Utf8Helper::join(entry.arg->choices, ", "), LogColor::Yellow, 1, LogColor::Dim);
         }
         addInfoEntry(groupEntries, "default", defaultValueToString(*entry.arg), LogColor::BrightGreen, 1, LogColor::Dim);
     }

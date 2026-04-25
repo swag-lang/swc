@@ -441,7 +441,7 @@ bool CommandLineParser::reportEnumError(TaskContext& ctx, const ArgInfo& info, c
     Diagnostic diag = Diagnostic::get(DiagnosticId::cmdline_err_invalid_enum);
     setReportArguments(diag, info, arg);
     diag.addArgument(Diagnostic::ARG_VALUE, value);
-    attachSuggestion(diag, Utf8Helper::bestMatch(value, info.choices));
+    diag.addDidYouMeanNote(Utf8Helper::bestMatch(value, info.choices));
     diag.report(ctx);
     return false;
 }
@@ -616,20 +616,8 @@ void CommandLineParser::reportInvalidArgument(TaskContext& ctx, const Utf8& arg)
 {
     Diagnostic diag = Diagnostic::get(DiagnosticId::cmdline_err_invalid_arg);
     setReportArguments(diag, arg);
-    attachSuggestion(diag, suggestArgument(arg));
+    diag.addDidYouMeanNote(suggestArgument(arg));
     diag.report(ctx);
-}
-
-void CommandLineParser::attachSuggestion(Diagnostic& diag, std::optional<Utf8> suggestion)
-{
-    if (!suggestion.has_value())
-        return;
-
-    // Bind {value} on the note element itself so it wins over any {value} the
-    // parent diagnostic already has (e.g. the invalid enum input).
-    DiagnosticElement& note = diag.addElement(DiagnosticId::cmd_note_did_you_mean);
-    note.setSeverity(DiagnosticSeverity::Note);
-    note.addArgument(Diagnostic::ARG_VALUE, suggestion.value());
 }
 
 std::optional<Utf8> CommandLineParser::suggestArgument(const Utf8& query) const
@@ -774,7 +762,7 @@ Result CommandLineParser::parse(int argc, char* argv[])
             Diagnostic diag = Diagnostic::get(DiagnosticId::cmdline_err_invalid_command);
             parser.setReportArguments(diag, command);
             diag.addArgument(Diagnostic::ARG_VALUES, getAllowedCommands());
-            attachSuggestion(diag, suggestCommand(command));
+            diag.addDidYouMeanNote(suggestCommand(command));
             diag.report(ctx);
             return Result::Error;
         }
@@ -795,7 +783,7 @@ Result CommandLineParser::parse(int argc, char* argv[])
             Diagnostic diag = Diagnostic::get(DiagnosticId::cmdline_err_invalid_command);
             setReportArguments(diag, candidate);
             diag.addArgument(Diagnostic::ARG_VALUES, getAllowedCommands());
-            attachSuggestion(diag, suggestCommand(candidate));
+            diag.addDidYouMeanNote(suggestCommand(candidate));
             diag.report(ctx);
             return Result::Error;
         }

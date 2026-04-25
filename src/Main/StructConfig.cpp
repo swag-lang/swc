@@ -189,13 +189,7 @@ bool StructConfigReader::reportUnknownKey(TaskContext& ctx, const fs::path& sour
     Diagnostic diag = Diagnostic::get(DiagnosticId::cmd_err_config_unknown_key);
     diag.addArgument(Diagnostic::ARG_ARG, key);
     diag.addArgument(Diagnostic::ARG_PATH, !lineNo ? FileSystem::formatDiagnosticPath(&ctx, sourcePath) : FileSystem::formatFileLocation(&ctx, sourcePath, lineNo));
-    if (const std::optional<Utf8> suggestion = schema_->suggest(key.view()); suggestion.has_value())
-    {
-        DiagnosticElement& note = diag.addElement(DiagnosticId::cmd_note_did_you_mean);
-        note.setSeverity(DiagnosticSeverity::Note);
-        note.addArgument(Diagnostic::ARG_VALUE, suggestion.value());
-    }
-
+    diag.addDidYouMeanNote(schema_->suggest(key.view()));
     diag.report(ctx);
     return false;
 }
@@ -206,23 +200,8 @@ bool StructConfigReader::reportInvalidEnum(TaskContext& ctx, const StructConfigE
     diag.addArgument(Diagnostic::ARG_ARG, entry.name);
     diag.addArgument(Diagnostic::ARG_VALUE, value);
     diag.addArgument(Diagnostic::ARG_PATH, !lineNo ? FileSystem::formatDiagnosticPath(&ctx, sourcePath) : FileSystem::formatFileLocation(&ctx, sourcePath, lineNo));
-
-    Utf8 choices;
-    for (const Utf8& choice : entry.choices)
-    {
-        if (!choices.empty())
-            choices += "|";
-        choices += choice;
-    }
-
-    diag.addArgument(Diagnostic::ARG_VALUES, choices);
-    if (const std::optional<Utf8> suggestion = Utf8Helper::bestMatch(value.view(), entry.choices); suggestion.has_value())
-    {
-        DiagnosticElement& note = diag.addElement(DiagnosticId::cmd_note_did_you_mean);
-        note.setSeverity(DiagnosticSeverity::Note);
-        note.addArgument(Diagnostic::ARG_VALUE, suggestion.value());
-    }
-
+    diag.addArgument(Diagnostic::ARG_VALUES, Utf8Helper::join(entry.choices, "|"));
+    diag.addDidYouMeanNote(Utf8Helper::bestMatch(value.view(), entry.choices));
     diag.report(ctx);
     return false;
 }

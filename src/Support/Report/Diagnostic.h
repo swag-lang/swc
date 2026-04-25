@@ -66,6 +66,7 @@ public:
 
     DiagnosticElement& addElement(DiagnosticId id);
     void               addNote(DiagnosticId id);
+    void               addDidYouMeanNote(std::optional<Utf8> suggestion);
     DiagnosticElement& last() const { return *(elements_.back().get()); }
     void               addArgument(std::string_view name, std::string_view arg);
 

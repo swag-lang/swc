@@ -20,11 +20,6 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    bool hasErrors(const uint64_t errorsBefore)
-    {
-        return Stats::getNumErrors() != errorsBefore;
-    }
-
     bool shouldRunNativeTests(const CommandLine& cmdLine)
     {
         return cmdLine.testNative && cmdLine.output;
@@ -512,7 +507,7 @@ namespace
         TimedActionLog::printBuildConfiguration(ctx);
         const uint64_t errorsBefore = Stats::getNumErrors();
         Command::sema(compiler);
-        if (hasErrors(errorsBefore))
+        if (Stats::getNumErrors() != errorsBefore)
             return;
 
         finishTestCommand(compiler);

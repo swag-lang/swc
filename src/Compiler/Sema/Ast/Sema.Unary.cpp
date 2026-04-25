@@ -17,11 +17,6 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    ConstantRef makeFoldedIntConstant(Sema& sema, const ApsInt& foldedValue, const TypeInfo& type, TypeInfo::Sign sign)
-    {
-        return sema.cstMgr().addConstant(sema.ctx(), ConstantValue::makeInt(sema.ctx(), foldedValue, type.payloadIntBits(), sign));
-    }
-
     Result constantFoldPlus(Sema& sema, ConstantRef& result, const SemaNodeView& view)
     {
         if (view.type()->isInt())
@@ -29,7 +24,7 @@ namespace
             ApsInt                 foldedValue;
             const Math::FoldStatus foldStatus = Math::foldUnaryInt(foldedValue, view.cst()->getInt(), Math::FoldUnaryOp::Plus);
             SWC_ASSERT(foldStatus == Math::FoldStatus::Ok);
-            result = makeFoldedIntConstant(sema, foldedValue, *view.type(), view.type()->payloadIntSign());
+            result = sema.cstMgr().addConstant(sema.ctx(), ConstantValue::makeInt(sema.ctx(), foldedValue, view.type()->payloadIntBits(), view.type()->payloadIntSign()));
             return Result::Continue;
         }
 
@@ -60,7 +55,7 @@ namespace
                 return Result::Error;
             }
 
-            result = makeFoldedIntConstant(sema, foldedValue, *view.type(), TypeInfo::Sign::Signed);
+            result = sema.cstMgr().addConstant(sema.ctx(), ConstantValue::makeInt(sema.ctx(), foldedValue, view.type()->payloadIntBits(), TypeInfo::Sign::Signed));
             return Result::Continue;
         }
 
@@ -102,7 +97,7 @@ namespace
         const Math::FoldStatus foldStatus = Math::foldUnaryInt(foldedValue, view.cst()->getInt(), Math::FoldUnaryOp::BitwiseNot);
         SWC_ASSERT(foldStatus == Math::FoldStatus::Ok);
 
-        result = makeFoldedIntConstant(sema, foldedValue, *view.type(), view.type()->payloadIntSign());
+        result = sema.cstMgr().addConstant(sema.ctx(), ConstantValue::makeInt(sema.ctx(), foldedValue, view.type()->payloadIntBits(), view.type()->payloadIntSign()));
         return Result::Continue;
     }
 

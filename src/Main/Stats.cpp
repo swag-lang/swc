@@ -1,6 +1,7 @@
 #include "pch.h"
 
 #include "Command/CommandLine.h"
+#include "Command/CommandPrint.h"
 #include "Main/Global.h"
 #include "Main/Stats.h"
 #include "Support/Core/Timer.h"
@@ -15,20 +16,7 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    Logger::FieldGroupStyle statsGroupStyle(const bool blankLineBefore, const size_t maxLabelWidth = 32)
-    {
-        Logger::FieldGroupStyle style;
-        style.blankLineBefore = blankLineBefore;
-        style.maxLabelWidth   = maxLabelWidth;
-        return style;
-    }
-
-    Logger::FieldGroupStyle nextStatsGroupStyle(bool& hasPrintedGroup, const size_t maxLabelWidth = 32)
-    {
-        const Logger::FieldGroupStyle style = statsGroupStyle(hasPrintedGroup, maxLabelWidth);
-        hasPrintedGroup                     = true;
-        return style;
-    }
+    using CommandPrint::nextInfoGroupStyle;
 
     void addField(std::vector<Logger::FieldEntry>& entries, const std::string_view label, Utf8 value, LogColor valueColor = LogColor::White, const uint32_t indentLevel = 0)
     {
@@ -251,7 +239,7 @@ namespace
         addField(entries, "Skipped invalid", Utf8Helper::countWithLabel(skippedInvalidFile, "file"));
         addField(entries, "Tokens", Utf8Helper::toNiceBigNumber(stats.numTokens.load()));
         addField(entries, "AST nodes", Utf8Helper::toNiceBigNumber(stats.numAstNodes.load()));
-        Logger::printFieldGroup(ctx, "Format", entries, nextStatsGroupStyle(hasPrintedGroup));
+        Logger::printFieldGroup(ctx, "Format", entries, nextInfoGroupStyle(hasPrintedGroup, 32));
 
         entries.clear();
         addField(entries, "Load file", Utf8Helper::toNiceTime(Timer::toSeconds(stats.timeLoadFile.load())));
@@ -259,7 +247,7 @@ namespace
         addField(entries, "Parser", Utf8Helper::toNiceTime(Timer::toSeconds(stats.timeParser.load())));
         addField(entries, "Format emit", Utf8Helper::toNiceTime(Timer::toSeconds(stats.timeFormat.load())));
         addField(entries, "File write", Utf8Helper::toNiceTime(Timer::toSeconds(stats.timeFormatWrite.load())));
-        Logger::printFieldGroup(ctx, "Timings", entries, nextStatsGroupStyle(hasPrintedGroup, 30));
+        Logger::printFieldGroup(ctx, "Timings", entries, nextInfoGroupStyle(hasPrintedGroup, 30));
     }
 }
 #endif
@@ -328,7 +316,7 @@ void Stats::print(const TaskContext& ctx) const
         addField(entries, "Workers", Utf8Helper::toNiceBigNumber(ctx.global().jobMgr().numWorkers()));
         addField(entries, "Total time", Utf8Helper::toNiceTime(Timer::toSeconds(timeTotal.load())));
         addField(entries, "OS peak memory", Utf8Helper::toNiceSize(Os::peakProcessMemoryUsage()));
-        Logger::printFieldGroup(ctx, "Session", entries, nextStatsGroupStyle(hasPrintedGroup));
+        Logger::printFieldGroup(ctx, "Session", entries, nextInfoGroupStyle(hasPrintedGroup, 32));
     }
 
 #if SWC_HAS_STATS
@@ -345,7 +333,7 @@ void Stats::print(const TaskContext& ctx) const
             addField(entries, "Tokens", Utf8Helper::toNiceBigNumber(numTokens.load()));
             addField(entries, "AST nodes", Utf8Helper::toNiceBigNumber(numAstNodes.load()));
             addField(entries, "Visited AST nodes", Utf8Helper::toNiceBigNumber(numVisitedAstNodes.load()));
-            Logger::printFieldGroup(ctx, "Frontend", entries, nextStatsGroupStyle(hasPrintedGroup));
+            Logger::printFieldGroup(ctx, "Frontend", entries, nextInfoGroupStyle(hasPrintedGroup, 32));
 
             entries.clear();
             addField(entries, "Constants", Utf8Helper::toNiceBigNumber(numConstants.load()));
@@ -358,7 +346,7 @@ void Stats::print(const TaskContext& ctx) const
             addField(entries, "Identifiers", Utf8Helper::toNiceBigNumber(numIdentifiers.load()));
             addField(entries, "Symbols", Utf8Helper::toNiceBigNumber(numSymbols.load()));
             addField(entries, "Codegen functions", Utf8Helper::toNiceBigNumber(numCodeGenFunctions.load()));
-            Logger::printFieldGroup(ctx, "Semantic Model", entries, nextStatsGroupStyle(hasPrintedGroup, 34));
+            Logger::printFieldGroup(ctx, "Semantic Model", entries, nextInfoGroupStyle(hasPrintedGroup, 34));
 
             entries.clear();
             const size_t numMicroInitial          = numMicroInstrInitial.load();
@@ -387,7 +375,7 @@ void Stats::print(const TaskContext& ctx) const
             addField(entries, "Initial to final delta", formatMicroInstrDelta(pipelineDelta, numMicroInitial));
             addField(entries, "SSA builds", Utf8Helper::toNiceBigNumber(numMicroSsaBuilds.load()));
             addField(entries, "SSA invalidations", Utf8Helper::toNiceBigNumber(numMicroSsaInvalidations.load()));
-            Logger::printFieldGroup(ctx, "Micro Pipeline", entries, nextStatsGroupStyle(hasPrintedGroup, 36));
+            Logger::printFieldGroup(ctx, "Micro Pipeline", entries, nextInfoGroupStyle(hasPrintedGroup, 36));
 
             entries.clear();
             addField(entries, "Load file", Utf8Helper::toNiceTime(Timer::toSeconds(timeLoadFile.load())));
@@ -401,7 +389,7 @@ void Stats::print(const TaskContext& ctx) const
             addField(entries, "Micro SSA dominators", Utf8Helper::toNiceTime(Timer::toSeconds(timeMicroSsaDominators.load())));
             addField(entries, "Micro SSA phi placement", Utf8Helper::toNiceTime(Timer::toSeconds(timeMicroSsaPhiPlacement.load())));
             addField(entries, "Micro SSA rename", Utf8Helper::toNiceTime(Timer::toSeconds(timeMicroSsaRename.load())));
-            Logger::printFieldGroup(ctx, "Timings", entries, nextStatsGroupStyle(hasPrintedGroup, 34));
+            Logger::printFieldGroup(ctx, "Timings", entries, nextInfoGroupStyle(hasPrintedGroup, 34));
         }
     }
 
@@ -413,7 +401,7 @@ void Stats::print(const TaskContext& ctx) const
         entries.clear();
         addField(entries, "Tracked peak", Utf8Helper::toNiceSize(summary.totalPeakBytes));
         addField(entries, "Tracked current", Utf8Helper::toNiceSize(summary.totalCurrentBytes));
-        Logger::printFieldGroup(ctx, "Memory Summary", entries, nextStatsGroupStyle(hasPrintedGroup));
+        Logger::printFieldGroup(ctx, "Memory Summary", entries, nextInfoGroupStyle(hasPrintedGroup, 32));
 
         if (!summary.categories.empty())
         {
@@ -432,7 +420,7 @@ void Stats::print(const TaskContext& ctx) const
 
             appendMemoryTree(entries, root, summary.totalPeakBytes, 0);
             if (!entries.empty())
-                Logger::printFieldGroup(ctx, "Memory Breakdown", entries, nextStatsGroupStyle(hasPrintedGroup, 30));
+                Logger::printFieldGroup(ctx, "Memory Breakdown", entries, nextInfoGroupStyle(hasPrintedGroup, 30));
         }
     }
 #endif

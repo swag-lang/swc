@@ -23,14 +23,6 @@ namespace
         HelpOptionGroup group = HelpOptionGroup::Other;
     };
 
-    Utf8 formatPathValue(const fs::path& value)
-    {
-        if (value.empty())
-            return {};
-
-        return value.string();
-    }
-
     Utf8 formatStringSetValue(const std::set<Utf8>& values)
     {
         if (values.empty())
@@ -96,21 +88,6 @@ namespace
         return std::to_string(value);
     }
 
-    Utf8 formatChoices(const std::vector<Utf8>& choices)
-    {
-        Utf8 result;
-        bool first = true;
-        for (const Utf8& value : choices)
-        {
-            if (!first)
-                result += ", ";
-            result += value;
-            first = false;
-        }
-
-        return result;
-    }
-
     Utf8 defaultValueToString(const ArgInfo& arg)
     {
         if (auto* t = std::get_if<bool*>(&arg.target))
@@ -123,7 +100,7 @@ namespace
             return (*t)->empty() ? Utf8("(none)") : **t;
         if (auto* t = std::get_if<fs::path*>(&arg.target))
         {
-            Utf8 value = formatPathValue(**t);
+            Utf8 value = (**t).empty() ? Utf8{} : Utf8((**t).string());
             return value.empty() ? Utf8("(none)") : value;
         }
         if (auto* t = std::get_if<std::vector<Utf8>*>(&arg.target))
@@ -153,23 +130,6 @@ namespace
         SWC_UNREACHABLE();
     }
 
-    Utf8 makeOptionDisplayName(const ArgInfo& arg)
-    {
-        Utf8 name = arg.longForm;
-        if (!arg.shortForm.empty())
-        {
-            name += ", ";
-            name += arg.shortForm;
-        }
-
-        return name;
-    }
-
-    int optionGroupOrder(const HelpOptionGroup group)
-    {
-        return static_cast<int>(group);
-    }
-
     const char* optionGroupName(const HelpOptionGroup group)
     {
         switch (group)
@@ -197,8 +157,8 @@ namespace
 
     bool optionEntryLess(const HelpOptionEntry& lhs, const HelpOptionEntry& rhs)
     {
-        const int leftOrder  = optionGroupOrder(lhs.group);
-        const int rightOrder = optionGroupOrder(rhs.group);
+        const int leftOrder  = static_cast<int>(lhs.group);
+        const int rightOrder = static_cast<int>(rhs.group);
         if (leftOrder != rightOrder)
             return leftOrder < rightOrder;
 
@@ -259,8 +219,14 @@ void CommandLineParser::printHelp(const TaskContext& ctx, const Utf8& command)
 
         HelpOptionEntry entry;
         entry.arg         = &arg;
-        entry.displayName = makeOptionDisplayName(arg);
-        entry.group       = arg.group;
+        entry.displayName = arg.longForm;
+        if (!arg.shortForm.empty())
+        {
+            entry.displayName += ", ";
+            entry.displayName += arg.shortForm;
+        }
+
+        entry.group = arg.group;
         helpEntries.push_back(std::move(entry));
     }
 
@@ -285,7 +251,7 @@ void CommandLineParser::printHelp(const TaskContext& ctx, const Utf8& command)
 
         addInfoEntry(groupEntries, entry.displayName, entry.arg->description, LogColor::White, 0, helpArgumentLabelColor());
         if (entry.arg->isEnum())
-            addInfoEntry(groupEntries, "choices", formatChoices(entry.arg->choices), LogColor::Yellow, 1, LogColor::Dim);
+            addInfoEntry(groupEntries, "choices", formatVectorValue(entry.arg->choices), LogColor::Yellow, 1, LogColor::Dim);
         addInfoEntry(groupEntries, "default", defaultValueToString(*entry.arg), LogColor::BrightGreen, 1, LogColor::Dim);
     }
 

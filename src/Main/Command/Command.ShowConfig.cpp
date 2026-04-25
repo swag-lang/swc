@@ -7,6 +7,7 @@
 #include "Main/Command/CommandLine.h"
 #include "Main/Command/CommandPrint.h"
 #include "Main/CompilerInstance.h"
+#include "Main/FileSystem.h"
 #include "Main/Global.h"
 #include "Main/TaskContext.h"
 #include "Support/Os/Os.h"
@@ -22,21 +23,6 @@ namespace
     using CommandPrint::addPathSet;
     using CommandPrint::addUtf8Set;
     using CommandPrint::nextInfoGroupStyle;
-
-    Utf8 filePathDisplayModeName(const FileSystem::FilePathDisplayMode value)
-    {
-        switch (value)
-        {
-            case FileSystem::FilePathDisplayMode::AsIs:
-                return "AsIs";
-            case FileSystem::FilePathDisplayMode::BaseName:
-                return "BaseName";
-            case FileSystem::FilePathDisplayMode::Absolute:
-                return "Absolute";
-        }
-
-        SWC_UNREACHABLE();
-    }
 
     void printCommandLineOptions(const TaskContext& ctx, bool& hasPrintedGroup)
     {
@@ -100,7 +86,7 @@ namespace
         addInfoEntry(entries, "Core count", std::to_string(cmdLine.numCores));
         addInfoEntry(entries, "Tab size", std::to_string(cmdLine.tabSize));
         addInfoEntry(entries, "Diagnostic max column", std::to_string(cmdLine.diagMaxColumn));
-        addInfoEntry(entries, "File path display", filePathDisplayModeName(cmdLine.filePathDisplay));
+        addInfoEntry(entries, "File path display", FileSystem::filePathDisplayModeName(cmdLine.filePathDisplay));
         addInfoEntry(entries, "Verify filter", cmdLine.verboseVerifyFilter);
         Logger::printFieldGroup(ctx, "Modes & Diagnostics", entries, nextInfoGroupStyle(hasPrintedGroup, 26));
 

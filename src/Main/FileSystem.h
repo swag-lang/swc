@@ -40,6 +40,7 @@ namespace FileSystem
         Utf8      because;
     };
 
+    const char* filePathDisplayModeName(FilePathDisplayMode mode);
     fs::path normalizePath(const fs::path& path);
     Utf8     formatDiagnosticPath(const TaskContext* ctx, const fs::path& path);
     Result   normalizeAbsolutePath(fs::path& path, Utf8& because);

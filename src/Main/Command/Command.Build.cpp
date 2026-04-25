@@ -11,11 +11,6 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    bool hasErrors(const uint64_t errorsBefore)
-    {
-        return Stats::getNumErrors() != errorsBefore;
-    }
-
     bool runNativeBackend(CompilerInstance& compiler, const Runtime::BuildCfgBackendKind backendKind, const bool runArtifact)
     {
         compiler.buildCfg().backendKind = backendKind;
@@ -36,7 +31,7 @@ namespace
         TimedActionLog::printBuildConfiguration(ctx);
         const uint64_t errorsBefore = Stats::getNumErrors();
         Command::sema(compiler);
-        if (hasErrors(errorsBefore))
+        if (Stats::getNumErrors() != errorsBefore)
             return;
 
         const Runtime::BuildCfgBackendKind backendKind = effectiveBackendKind(compiler.cmdLine(), compiler.buildCfg().backendKind);

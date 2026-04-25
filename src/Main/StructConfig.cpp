@@ -6,16 +6,6 @@
 
 SWC_BEGIN_NAMESPACE();
 
-namespace
-{
-    Utf8 configLocation(const TaskContext& ctx, const fs::path& sourcePath, const uint32_t lineNo)
-    {
-        if (!lineNo)
-            return FileSystem::formatDiagnosticPath(&ctx, sourcePath);
-        return FileSystem::formatFileLocation(&ctx, sourcePath, lineNo);
-    }
-}
-
 StructConfigEntry& StructConfigSchema::addImpl(const char* name, const char* description, const StructConfigTarget& target, const StructConfigAssignHook hook)
 {
     StructConfigEntry entry;
@@ -268,7 +258,7 @@ bool StructConfigReader::reportUnknownKey(TaskContext& ctx, const fs::path& sour
 {
     Diagnostic diag = Diagnostic::get(DiagnosticId::cmd_err_config_unknown_key);
     diag.addArgument(Diagnostic::ARG_ARG, key);
-    diag.addArgument(Diagnostic::ARG_PATH, configLocation(ctx, sourcePath, lineNo));
+    diag.addArgument(Diagnostic::ARG_PATH, !lineNo ? FileSystem::formatDiagnosticPath(&ctx, sourcePath) : FileSystem::formatFileLocation(&ctx, sourcePath, lineNo));
     attachSuggestion(diag, schema_->suggest(key.view()));
     diag.report(ctx);
     return false;
@@ -277,7 +267,7 @@ bool StructConfigReader::reportUnknownKey(TaskContext& ctx, const fs::path& sour
 bool StructConfigReader::reportInvalidEntry(TaskContext& ctx, const fs::path& sourcePath, const uint32_t lineNo, const Utf8& because)
 {
     Diagnostic diag = Diagnostic::get(DiagnosticId::cmd_err_config_invalid_entry);
-    diag.addArgument(Diagnostic::ARG_PATH, configLocation(ctx, sourcePath, lineNo));
+    diag.addArgument(Diagnostic::ARG_PATH, !lineNo ? FileSystem::formatDiagnosticPath(&ctx, sourcePath) : FileSystem::formatFileLocation(&ctx, sourcePath, lineNo));
     diag.addArgument(Diagnostic::ARG_BECAUSE, because);
     diag.report(ctx);
     return false;
@@ -288,7 +278,7 @@ bool StructConfigReader::reportInvalidBool(TaskContext& ctx, const fs::path& sou
     Diagnostic diag = Diagnostic::get(DiagnosticId::cmd_err_config_invalid_bool);
     diag.addArgument(Diagnostic::ARG_ARG, key);
     diag.addArgument(Diagnostic::ARG_VALUE, value);
-    diag.addArgument(Diagnostic::ARG_PATH, configLocation(ctx, sourcePath, lineNo));
+    diag.addArgument(Diagnostic::ARG_PATH, !lineNo ? FileSystem::formatDiagnosticPath(&ctx, sourcePath) : FileSystem::formatFileLocation(&ctx, sourcePath, lineNo));
     diag.report(ctx);
     return false;
 }
@@ -298,7 +288,7 @@ bool StructConfigReader::reportInvalidInt(TaskContext& ctx, const fs::path& sour
     Diagnostic diag = Diagnostic::get(DiagnosticId::cmd_err_config_invalid_int);
     diag.addArgument(Diagnostic::ARG_ARG, key);
     diag.addArgument(Diagnostic::ARG_VALUE, value);
-    diag.addArgument(Diagnostic::ARG_PATH, configLocation(ctx, sourcePath, lineNo));
+    diag.addArgument(Diagnostic::ARG_PATH, !lineNo ? FileSystem::formatDiagnosticPath(&ctx, sourcePath) : FileSystem::formatFileLocation(&ctx, sourcePath, lineNo));
     diag.report(ctx);
     return false;
 }
@@ -308,7 +298,7 @@ bool StructConfigReader::reportInvalidEnum(TaskContext& ctx, const StructConfigE
     Diagnostic diag = Diagnostic::get(DiagnosticId::cmd_err_config_invalid_enum);
     diag.addArgument(Diagnostic::ARG_ARG, entry.name);
     diag.addArgument(Diagnostic::ARG_VALUE, value);
-    diag.addArgument(Diagnostic::ARG_PATH, configLocation(ctx, sourcePath, lineNo));
+    diag.addArgument(Diagnostic::ARG_PATH, !lineNo ? FileSystem::formatDiagnosticPath(&ctx, sourcePath) : FileSystem::formatFileLocation(&ctx, sourcePath, lineNo));
 
     Utf8 choices;
     for (const Utf8& choice : entry.choices)

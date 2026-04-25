@@ -152,6 +152,21 @@ fs::path FileSystem::normalizePath(const fs::path& path)
     return lexicallyNormalize(result);
 }
 
+const char* FileSystem::filePathDisplayModeName(const FilePathDisplayMode mode)
+{
+    switch (mode)
+    {
+        case FilePathDisplayMode::AsIs:
+            return "AsIs";
+        case FilePathDisplayMode::BaseName:
+            return "BaseName";
+        case FilePathDisplayMode::Absolute:
+            return "Absolute";
+    }
+
+    SWC_UNREACHABLE();
+}
+
 Utf8 FileSystem::formatDiagnosticPath(const TaskContext* ctx, const fs::path& path)
 {
     switch (resolveDisplayMode(ctx))

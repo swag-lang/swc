@@ -733,73 +733,97 @@ namespace
         out += SyntaxColorHelper::toAnsi(ctx, SyntaxColor::Default);
     }
 
+    struct NaturalTokenContext
+    {
+        const TaskContext*               taskContext         = nullptr;
+        const LangSpec*                  langSpec            = nullptr;
+        const std::unordered_set<Utf8>*  concreteRegs        = nullptr;
+        const std::unordered_set<Utf8>*  virtualRegs         = nullptr;
+        const std::optional<Utf8>*       jumpTargetInstIndex = nullptr;
+        size_t                           jumpTargetIndexStart = std::string_view::npos;
+        bool                             expectCallTarget     = false;
+    };
+
+    void appendNaturalToken(Utf8& out, NaturalTokenContext& tokenContext, std::string_view token, size_t tokenStart)
+    {
+        SWC_ASSERT(tokenContext.taskContext);
+        SWC_ASSERT(tokenContext.langSpec);
+        SWC_ASSERT(tokenContext.concreteRegs);
+        SWC_ASSERT(tokenContext.virtualRegs);
+        SWC_ASSERT(tokenContext.jumpTargetInstIndex);
+
+        if (tokenStart == tokenContext.jumpTargetIndexStart && tokenContext.jumpTargetInstIndex->has_value() && token == **tokenContext.jumpTargetInstIndex)
+        {
+            appendColored(out, *tokenContext.taskContext, SyntaxColor::Function, token);
+            return;
+        }
+
+        const Utf8 tokenStr(token);
+        if (isRelocationImmediateToken(*tokenContext.langSpec, token))
+        {
+            appendColored(out, *tokenContext.taskContext, SyntaxColor::Compiler, token);
+        }
+        else if (tokenContext.expectCallTarget)
+        {
+            if (tokenContext.virtualRegs->contains(tokenStr))
+                appendColored(out, *tokenContext.taskContext, SyntaxColor::RegisterVirtual, token);
+            else if (tokenContext.concreteRegs->contains(tokenStr))
+                appendColored(out, *tokenContext.taskContext, SyntaxColor::Register, token);
+            else
+                appendColored(out, *tokenContext.taskContext, SyntaxColor::Function, token);
+            tokenContext.expectCallTarget = false;
+        }
+        else if (tokenContext.virtualRegs->contains(tokenStr))
+        {
+            appendColored(out, *tokenContext.taskContext, SyntaxColor::RegisterVirtual, token);
+        }
+        else if (tokenContext.concreteRegs->contains(tokenStr))
+        {
+            appendColored(out, *tokenContext.taskContext, SyntaxColor::Register, token);
+        }
+        else if (Utf8Helper::isHexToken(token))
+        {
+            appendColored(out, *tokenContext.taskContext, SyntaxColor::Number, token);
+        }
+        else if (isJumpLabelToken(*tokenContext.langSpec, token))
+        {
+            appendColored(out, *tokenContext.taskContext, SyntaxColor::Function, token);
+        }
+        else if (isNaturalTypeBitsToken(*tokenContext.langSpec, token))
+        {
+            appendColored(out, *tokenContext.taskContext, SyntaxColor::Type, token);
+        }
+        else if (isNaturalTypeCastArrowToken(token))
+        {
+            appendColored(out, *tokenContext.taskContext, SyntaxColor::Type, token);
+        }
+        else if (isNaturalLogicToken(token))
+        {
+            appendColored(out, *tokenContext.taskContext, SyntaxColor::Logic, token);
+        }
+        else
+        {
+            appendColored(out, *tokenContext.taskContext, SyntaxColor::Code, token);
+        }
+    }
+
     void appendNaturalColumn(Utf8& out, const TaskContext& ctx, Utf8 value, const std::unordered_set<Utf8>& concreteRegs, const std::unordered_set<Utf8>& virtualRegs, const std::optional<Utf8>& jumpTargetInstIndex)
     {
         const auto& langSpec             = ctx.global().langSpec();
         size_t      jumpTargetIndexStart = std::string_view::npos;
-        bool        expectCallTarget     = false;
+        NaturalTokenContext tokenContext;
+        tokenContext.taskContext         = &ctx;
+        tokenContext.langSpec            = &langSpec;
+        tokenContext.concreteRegs        = &concreteRegs;
+        tokenContext.virtualRegs         = &virtualRegs;
+        tokenContext.jumpTargetInstIndex = &jumpTargetInstIndex;
         if (jumpTargetInstIndex)
         {
             value += " ";
             jumpTargetIndexStart = value.size();
             value += *jumpTargetInstIndex;
         }
-
-        auto appendNaturalToken = [&](std::string_view token, size_t tokenStart) {
-            if (tokenStart == jumpTargetIndexStart && jumpTargetInstIndex && token == *jumpTargetInstIndex)
-            {
-                appendColored(out, ctx, SyntaxColor::Function, token);
-                return;
-            }
-
-            const Utf8 tokenStr(token);
-            if (isRelocationImmediateToken(langSpec, token))
-            {
-                appendColored(out, ctx, SyntaxColor::Compiler, token);
-            }
-            else if (expectCallTarget)
-            {
-                if (virtualRegs.contains(tokenStr))
-                    appendColored(out, ctx, SyntaxColor::RegisterVirtual, token);
-                else if (concreteRegs.contains(tokenStr))
-                    appendColored(out, ctx, SyntaxColor::Register, token);
-                else
-                    appendColored(out, ctx, SyntaxColor::Function, token);
-                expectCallTarget = false;
-            }
-            else if (virtualRegs.contains(tokenStr))
-            {
-                appendColored(out, ctx, SyntaxColor::RegisterVirtual, token);
-            }
-            else if (concreteRegs.contains(tokenStr))
-            {
-                appendColored(out, ctx, SyntaxColor::Register, token);
-            }
-            else if (Utf8Helper::isHexToken(token))
-            {
-                appendColored(out, ctx, SyntaxColor::Number, token);
-            }
-            else if (isJumpLabelToken(langSpec, token))
-            {
-                appendColored(out, ctx, SyntaxColor::Function, token);
-            }
-            else if (isNaturalTypeBitsToken(langSpec, token))
-            {
-                appendColored(out, ctx, SyntaxColor::Type, token);
-            }
-            else if (isNaturalTypeCastArrowToken(token))
-            {
-                appendColored(out, ctx, SyntaxColor::Type, token);
-            }
-            else if (isNaturalLogicToken(token))
-            {
-                appendColored(out, ctx, SyntaxColor::Logic, token);
-            }
-            else
-            {
-                appendColored(out, ctx, SyntaxColor::Code, token);
-            }
-        };
+        tokenContext.jumpTargetIndexStart = jumpTargetIndexStart;
 
         size_t pos = 0;
         while (pos < value.size())
@@ -818,27 +842,27 @@ namespace
                     {
                         case NaturalTagKind::Instruction:
                             appendColored(out, ctx, SyntaxColor::MicroInstruction, token);
-                            expectCallTarget = token == "call";
+                            tokenContext.expectCallTarget = token == "call";
                             break;
 
                         case NaturalTagKind::Compiler:
                             appendColored(out, ctx, SyntaxColor::Compiler, token);
-                            expectCallTarget = false;
+                            tokenContext.expectCallTarget = false;
                             break;
 
                         case NaturalTagKind::Function:
                             appendColored(out, ctx, SyntaxColor::Function, token);
-                            expectCallTarget = false;
+                            tokenContext.expectCallTarget = false;
                             break;
 
                         case NaturalTagKind::Constant:
                             appendColored(out, ctx, SyntaxColor::Constant, token);
-                            expectCallTarget = false;
+                            tokenContext.expectCallTarget = false;
                             break;
 
                         default:
                             appendColored(out, ctx, SyntaxColor::Code, token);
-                            expectCallTarget = false;
+                            tokenContext.expectCallTarget = false;
                             break;
                     }
 
@@ -864,7 +888,7 @@ namespace
                 if (end < value.size() && value[end] == '>')
                 {
                     const auto token = value.subView(pos, end - pos + 1);
-                    appendNaturalToken(token, pos);
+                    appendNaturalToken(out, tokenContext, token, pos);
                     pos = end + 1;
                     continue;
                 }
@@ -878,7 +902,7 @@ namespace
                     const auto three = value.subView(pos, 3);
                     if (three == "<<=" || three == ">>=")
                     {
-                        appendNaturalToken(three, pos);
+                        appendNaturalToken(out, tokenContext, three, pos);
                         pos += 3;
                         continue;
                     }
@@ -889,13 +913,13 @@ namespace
                     const auto two = value.subView(pos, 2);
                     if (two == "+=" || two == "-=" || two == "*=" || two == "/=" || two == "%=" || two == "&=" || two == "|=" || two == "^=" || two == "<<" || two == ">>" || two == "<-")
                     {
-                        appendNaturalToken(two, pos);
+                        appendNaturalToken(out, tokenContext, two, pos);
                         pos += 2;
                         continue;
                     }
                 }
 
-                appendNaturalToken(value.subView(pos, 1), pos);
+                appendNaturalToken(out, tokenContext, value.subView(pos, 1), pos);
                 ++pos;
                 continue;
             }
@@ -911,7 +935,7 @@ namespace
                 ++pos;
             }
 
-            appendNaturalToken(value.subView(start, pos - start), start);
+            appendNaturalToken(out, tokenContext, value.subView(start, pos - start), start);
         }
     }
 

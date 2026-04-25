@@ -26,6 +26,52 @@ namespace
         return hash & (ConstantManager::SHARD_COUNT - 1);
     }
 
+    Result waitStaticPayloadTypeReadyRec(Sema& sema, TypeRef typeRef, AstNodeRef waitNodeRef, SmallVector<TypeRef>& visited);
+
+    Result waitStaticPayloadTypeReadyRecImpl(Sema& sema, TypeRef typeRef, AstNodeRef waitNodeRef, SmallVector<TypeRef>& visited)
+    {
+        TaskContext&    ctx      = sema.ctx();
+        const TypeInfo& typeInfo = ctx.typeMgr().get(typeRef);
+
+        if (typeInfo.isAlias())
+        {
+            SWC_RESULT(sema.waitSemaCompleted(&typeInfo, waitNodeRef));
+            return waitStaticPayloadTypeReadyRec(sema, typeInfo.payloadTypeRef(), waitNodeRef, visited);
+        }
+
+        if (typeInfo.isEnum())
+        {
+            SWC_RESULT(sema.waitSemaCompleted(&typeInfo, waitNodeRef));
+            return waitStaticPayloadTypeReadyRec(sema, typeInfo.payloadSymEnum().underlyingTypeRef(), waitNodeRef, visited);
+        }
+
+        if (typeInfo.isSlice())
+            return waitStaticPayloadTypeReadyRec(sema, typeInfo.payloadTypeRef(), waitNodeRef, visited);
+
+        if (typeInfo.isArray())
+            return waitStaticPayloadTypeReadyRec(sema, typeInfo.payloadArrayElemTypeRef(), waitNodeRef, visited);
+
+        if (typeInfo.isStruct())
+        {
+            SWC_RESULT(sema.waitSemaCompleted(&typeInfo, waitNodeRef));
+            for (const SymbolVariable* field : typeInfo.payloadSymStruct().fields())
+            {
+                if (field)
+                    SWC_RESULT(waitStaticPayloadTypeReadyRec(sema, field->typeRef(), waitNodeRef, visited));
+            }
+
+            return Result::Continue;
+        }
+
+        if (typeInfo.isAggregateStruct() || typeInfo.isAggregateArray())
+        {
+            for (const TypeRef fieldTypeRef : typeInfo.payloadAggregate().types)
+                SWC_RESULT(waitStaticPayloadTypeReadyRec(sema, fieldTypeRef, waitNodeRef, visited));
+        }
+
+        return Result::Continue;
+    }
+
     Result waitStaticPayloadTypeReadyRec(Sema& sema, TypeRef typeRef, AstNodeRef waitNodeRef, SmallVector<TypeRef>& visited)
     {
         if (typeRef.isInvalid())
@@ -34,48 +80,7 @@ namespace
             return Result::Continue;
 
         visited.push_back(typeRef);
-        const Result result = [&]() -> Result {
-            TaskContext&    ctx      = sema.ctx();
-            const TypeInfo& typeInfo = ctx.typeMgr().get(typeRef);
-
-            if (typeInfo.isAlias())
-            {
-                SWC_RESULT(sema.waitSemaCompleted(&typeInfo, waitNodeRef));
-                return waitStaticPayloadTypeReadyRec(sema, typeInfo.payloadTypeRef(), waitNodeRef, visited);
-            }
-
-            if (typeInfo.isEnum())
-            {
-                SWC_RESULT(sema.waitSemaCompleted(&typeInfo, waitNodeRef));
-                return waitStaticPayloadTypeReadyRec(sema, typeInfo.payloadSymEnum().underlyingTypeRef(), waitNodeRef, visited);
-            }
-
-            if (typeInfo.isSlice())
-                return waitStaticPayloadTypeReadyRec(sema, typeInfo.payloadTypeRef(), waitNodeRef, visited);
-
-            if (typeInfo.isArray())
-                return waitStaticPayloadTypeReadyRec(sema, typeInfo.payloadArrayElemTypeRef(), waitNodeRef, visited);
-
-            if (typeInfo.isStruct())
-            {
-                SWC_RESULT(sema.waitSemaCompleted(&typeInfo, waitNodeRef));
-                for (const SymbolVariable* field : typeInfo.payloadSymStruct().fields())
-                {
-                    if (field)
-                        SWC_RESULT(waitStaticPayloadTypeReadyRec(sema, field->typeRef(), waitNodeRef, visited));
-                }
-
-                return Result::Continue;
-            }
-
-            if (typeInfo.isAggregateStruct() || typeInfo.isAggregateArray())
-            {
-                for (const TypeRef fieldTypeRef : typeInfo.payloadAggregate().types)
-                    SWC_RESULT(waitStaticPayloadTypeReadyRec(sema, fieldTypeRef, waitNodeRef, visited));
-            }
-
-            return Result::Continue;
-        }();
+        const Result result = waitStaticPayloadTypeReadyRecImpl(sema, typeRef, waitNodeRef, visited);
         visited.pop_back();
         return result;
     }

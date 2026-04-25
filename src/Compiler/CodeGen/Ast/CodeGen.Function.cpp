@@ -193,6 +193,28 @@ namespace
         return throwableHandlerKind(tokenId) != ThrowableHandlerKind::None;
     }
 
+    bool tryResolveThrowableHandlerTarget(CodeGen& codeGen, AstNodeRef candidateRef, ThrowableTarget& outTarget)
+    {
+        const CodeGenNodePayload* breadcrumbPayload = throwableWrapperBreadcrumbPayload(codeGen, candidateRef);
+        if (!breadcrumbPayload || !isHandledThrowableContext(breadcrumbPayload->throwableWrapperTokenId))
+            return false;
+
+        AstNodeRef ownerRef = breadcrumbPayload->throwableWrapperOwnerRef;
+        if (!ownerRef.isValid())
+            ownerRef = codeGen.viewZero(candidateRef).nodeRef();
+
+        const CodeGenNodePayload* ownerPayload = throwableWrapperOwnerPayload(codeGen, ownerRef);
+        if (!ownerPayload || !ownerPayload->throwableFailLabel.isValid())
+            return false;
+
+        outTarget = {
+            .kind      = ThrowableTarget::Kind::Handler,
+            .scopeRef  = codeGen.viewZero(ownerRef).nodeRef(),
+            .failLabel = ownerPayload->throwableFailLabel,
+        };
+        return true;
+    }
+
     bool usesAddressBackedThrowableExprResult(CodeGen& codeGen, TypeRef typeRef)
     {
         if (!typeRef.isValid() || typeRef == codeGen.typeMgr().typeVoid())
@@ -1272,29 +1294,8 @@ namespace
 
     ThrowableTarget resolveThrowableTarget(CodeGen& codeGen)
     {
-        const auto tryResolveHandlerTarget = [&](AstNodeRef candidateRef, ThrowableTarget& outTarget) {
-            const CodeGenNodePayload* breadcrumbPayload = throwableWrapperBreadcrumbPayload(codeGen, candidateRef);
-            if (!breadcrumbPayload || !isHandledThrowableContext(breadcrumbPayload->throwableWrapperTokenId))
-                return false;
-
-            AstNodeRef ownerRef = breadcrumbPayload->throwableWrapperOwnerRef;
-            if (!ownerRef.isValid())
-                ownerRef = codeGen.viewZero(candidateRef).nodeRef();
-
-            const CodeGenNodePayload* ownerPayload = throwableWrapperOwnerPayload(codeGen, ownerRef);
-            if (!ownerPayload || !ownerPayload->throwableFailLabel.isValid())
-                return false;
-
-            outTarget = {
-                .kind      = ThrowableTarget::Kind::Handler,
-                .scopeRef  = codeGen.viewZero(ownerRef).nodeRef(),
-                .failLabel = ownerPayload->throwableFailLabel,
-            };
-            return true;
-        };
-
         ThrowableTarget handlerTarget;
-        if (tryResolveHandlerTarget(codeGen.curNodeRef(), handlerTarget))
+        if (tryResolveThrowableHandlerTarget(codeGen, codeGen.curNodeRef(), handlerTarget))
             return handlerTarget;
 
         for (size_t parentIndex = 0;; ++parentIndex)
@@ -1303,7 +1304,7 @@ namespace
             if (!parentRef.isValid())
                 break;
 
-            if (tryResolveHandlerTarget(parentRef, handlerTarget))
+            if (tryResolveThrowableHandlerTarget(codeGen, parentRef, handlerTarget))
                 return handlerTarget;
         }
 
@@ -1314,7 +1315,7 @@ namespace
                 continue;
 
             const CodeGenFrame::InlineContext& inlineCtx = frame.currentInlineContext();
-            if (inlineCtx.payload && tryResolveHandlerTarget(inlineCtx.payload->callRef, handlerTarget))
+            if (inlineCtx.payload && tryResolveThrowableHandlerTarget(codeGen, inlineCtx.payload->callRef, handlerTarget))
                 return handlerTarget;
         }
 
@@ -1544,7 +1545,8 @@ namespace
             SWC_RESULT(codeGen.popDeferScope());
         }
 
-        if (CodeGenNodePayload* payload = throwableFunctionPayload(codeGen, declRef); payload && payload->throwableFunctionFailLabel.isValid())
+        CodeGenNodePayload* payload = throwableFunctionPayload(codeGen, declRef);
+        if (payload && payload->throwableFunctionFailLabel.isValid())
         {
             MicroBuilder& builder = codeGen.builder();
             if (!codeGen.currentInstructionBlocksFallthrough())

@@ -152,7 +152,8 @@ namespace
         {
             AstNodeRef    valueRef  = elementRef;
             IdentifierRef fieldName = IdentifierRef::invalid();
-            if (const AstNode& valueNode = codeGen.node(elementRef); valueNode.is(AstNodeId::NamedArgument))
+            const AstNode& valueNode = codeGen.node(elementRef);
+            if (valueNode.is(AstNodeId::NamedArgument))
             {
                 seenNamed = true;
                 fieldName = codeGen.idMgr().addIdentifier(codeGen.ctx(), valueNode.codeRef());

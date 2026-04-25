@@ -18,6 +18,37 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    struct DiagnosticArgumentToStringVisitor
+    {
+        const TaskContext* ctx = nullptr;
+
+        template<typename T0>
+        Utf8 operator()(const T0& v) const
+        {
+            using T = std::decay_t<T0>;
+            if constexpr (std::same_as<T, Utf8>)
+                return v;
+            else if constexpr (std::same_as<T, TokenId>)
+                return Token::toName(v);
+            else if constexpr (std::same_as<T, DiagnosticId>)
+                return Diagnostic::diagIdMessage(v);
+            else if constexpr (std::integral<T>)
+                return Utf8{std::to_string(v)};
+            else if constexpr (std::same_as<T, TypeRef>)
+            {
+                if (v.isInvalid())
+                    return Utf8{"<invalid type>"};
+                return ctx->compiler().typeMgr().get(v).toName(*ctx);
+            }
+            else if constexpr (std::same_as<T, ConstantRef>)
+                return ctx->compiler().cstMgr().get(v).toString(*ctx);
+            else if constexpr (std::same_as<T, IdentifierRef>)
+                return ctx->compiler().idMgr().get(v).name;
+            else
+                SWC_UNREACHABLE();
+        }
+    };
+
     // tag → severity mapping
     std::optional<DiagnosticSeverity> tagToSeverity(std::string_view s)
     {
@@ -824,31 +855,7 @@ std::string_view DiagnosticBuilder::resolveMessageTemplate(DiagnosticId id, cons
 // Helper function to convert variant argument to string
 Utf8 DiagnosticBuilder::argumentToString(const DiagnosticArgument& arg) const
 {
-    auto toUtf8 = [&]<typename T0>(const T0& v) -> Utf8 {
-        using T = std::decay_t<T0>;
-        if constexpr (std::same_as<T, Utf8>)
-            return v;
-        else if constexpr (std::same_as<T, TokenId>)
-            return Token::toName(v);
-        else if constexpr (std::same_as<T, DiagnosticId>)
-            return Diagnostic::diagIdMessage(v);
-        else if constexpr (std::integral<T>)
-            return Utf8{std::to_string(v)};
-        else if constexpr (std::same_as<T, TypeRef>)
-        {
-            if (v.isInvalid())
-                return Utf8{"<invalid type>"};
-            return ctx_->compiler().typeMgr().get(v).toName(*ctx_);
-        }
-        else if constexpr (std::same_as<T, ConstantRef>)
-            return ctx_->compiler().cstMgr().get(v).toString(*ctx_);
-        else if constexpr (std::same_as<T, IdentifierRef>)
-            return ctx_->compiler().idMgr().get(v).name;
-        else
-            SWC_UNREACHABLE();
-    };
-
-    return std::visit(toUtf8, arg.val);
+    return std::visit(DiagnosticArgumentToStringVisitor{ctx_}, arg.val);
 }
 
 void DiagnosticBuilder::expandMessageParts(SmallVector<std::unique_ptr<DiagnosticElement>>& elements) const

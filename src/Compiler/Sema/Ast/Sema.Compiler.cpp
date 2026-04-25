@@ -400,26 +400,27 @@ namespace
         return TokenRef(numTokens - 1);
     }
 
+    ParserGeneratedMode parseCompilerAstModeForNodeId(const AstNodeId nodeId)
+    {
+        switch (nodeId)
+        {
+            case AstNodeId::AggregateBody:
+                return ParserGeneratedMode::Aggregate;
+
+            case AstNodeId::EnumBody:
+                return ParserGeneratedMode::Enum;
+
+            case AstNodeId::File:
+            case AstNodeId::TopLevelBlock:
+                return ParserGeneratedMode::TopLevel;
+
+            default:
+                return ParserGeneratedMode::Embedded;
+        }
+    }
+
     ParserGeneratedMode compilerAstParseMode(const Sema& sema, AstNodeRef ownerRef)
     {
-        auto parseModeForNodeId = [](const AstNodeId nodeId) {
-            switch (nodeId)
-            {
-                case AstNodeId::AggregateBody:
-                    return ParserGeneratedMode::Aggregate;
-
-                case AstNodeId::EnumBody:
-                    return ParserGeneratedMode::Enum;
-
-                case AstNodeId::File:
-                case AstNodeId::TopLevelBlock:
-                    return ParserGeneratedMode::TopLevel;
-
-                default:
-                    return ParserGeneratedMode::Embedded;
-            }
-        };
-
         const AstNodeRef parentRef = sema.visit().parentNodeRef();
         if (!parentRef.isValid())
             return ParserGeneratedMode::TopLevel;
@@ -429,11 +430,11 @@ namespace
         {
             const AstNodeRef grandParentRef = sema.visit().parentNodeRef(1);
             if (grandParentRef.isValid())
-                return parseModeForNodeId(sema.node(grandParentRef).id());
+                return parseCompilerAstModeForNodeId(sema.node(grandParentRef).id());
         }
 
         SWC_UNUSED(ownerRef);
-        return parseModeForNodeId(parentNode.id());
+        return parseCompilerAstModeForNodeId(parentNode.id());
     }
 
     Result createCompilerAstGeneratedSource(Sema& sema, AstNodeRef ownerRef, std::string_view generatedCode, SourceView*& outSrcView, TokenRef& outStartTokRef)

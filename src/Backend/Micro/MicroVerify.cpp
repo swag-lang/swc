@@ -39,6 +39,15 @@ namespace
         return MicroVerify::reportError(context, phase, message);
     }
 
+    Result verifyVirtualRegisterOperand(const MicroPassContext& context, std::string_view phase, uint32_t instructionIdx, size_t operandIndex, MicroReg reg)
+    {
+        if (!reg.isValid())
+            return Result::Continue;
+        if (reg.isVirtual() || reg.isInstructionPointer() || reg.isNoBase())
+            return Result::Continue;
+        return reportError(context, phase, std::format("instruction #{} uses non-virtual register {} at operand {} before legalize/RA loop", instructionIdx, reg.packed, operandIndex));
+    }
+
     std::string formatVerifyContext(const MicroPassContext& context)
     {
         if (!context.builder)
@@ -518,20 +527,12 @@ Result MicroVerify::verifyAllRegistersVirtual(const MicroPassContext& context, s
         const auto           modes  = resolveRegModes(info, ops);
         const bool           hasMem = info.flags.has(MicroInstrFlagsE::HasMemBaseOffsetOperands);
 
-        const auto checkReg = [&](size_t operandIndex, const MicroReg reg) -> Result {
-            if (!reg.isValid())
-                return Result::Continue;
-            if (reg.isVirtual() || reg.isInstructionPointer() || reg.isNoBase())
-                return Result::Continue;
-            return reportError(context, phase, std::format("instruction #{} uses non-virtual register {} at operand {} before legalize/RA loop", instructionIdx, reg.packed, operandIndex));
-        };
-
         for (size_t operandIndex = 0; operandIndex < modes.size(); ++operandIndex)
         {
             const bool isMemBase = hasMem && operandIndex == info.memBaseOperandIndex;
             if (modes[operandIndex] == MicroInstrRegMode::None && !isMemBase)
                 continue;
-            SWC_RESULT(checkReg(operandIndex, ops[operandIndex].reg));
+            SWC_RESULT(verifyVirtualRegisterOperand(context, phase, instructionIdx, operandIndex, ops[operandIndex].reg));
         }
 
         switch (inst.op)
@@ -541,7 +542,7 @@ Result MicroVerify::verifyAllRegistersVirtual(const MicroPassContext& context, s
             case MicroInstrOpcode::LoadAmcMemImm:
             case MicroInstrOpcode::LoadAddrAmcRegMem:
                 if (inst.numOperands > 2)
-                    SWC_RESULT(checkReg(2, ops[2].reg));
+                    SWC_RESULT(verifyVirtualRegisterOperand(context, phase, instructionIdx, 2, ops[2].reg));
                 break;
 
             default:

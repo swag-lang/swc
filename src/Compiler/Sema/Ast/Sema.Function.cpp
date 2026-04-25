@@ -376,6 +376,28 @@ namespace
         return *payload;
     }
 
+    void attachThrowableWrapper(Sema& sema, AstNodeRef ownerRef, AstNodeRef targetRef, TokenId tokenId)
+    {
+        if (!targetRef.isValid())
+            return;
+
+        CodeGenNodePayload& payload      = SemaHelpers::ensureCodeGenNodePayload(sema, targetRef);
+        payload.throwableWrapperOwnerRef = ownerRef;
+        payload.throwableWrapperTokenId  = tokenId;
+        payload.throwableFailLabel       = MicroLabelRef::invalid();
+        payload.throwableDoneLabel       = MicroLabelRef::invalid();
+    }
+
+    void attachInlineRootThrowableWrapperIfCallLike(Sema& sema, AstNodeRef ownerRef, AstNodeRef targetRef, TokenId tokenId)
+    {
+        if (!targetRef.isValid())
+            return;
+
+        const AstNodeId nodeId = sema.node(targetRef).id();
+        if (nodeId == AstNodeId::CallExpr || nodeId == AstNodeId::AliasCallExpr)
+            attachThrowableWrapper(sema, ownerRef, targetRef, tokenId);
+    }
+
     void attachThrowableWrapperToManagedChild(Sema& sema, AstNodeRef ownerRef, AstNodeRef managedChildRef, TokenId tokenId)
     {
         switch (tokenId)
@@ -388,30 +410,9 @@ namespace
                 return;
         }
 
-        const auto attachWrapper = [&](AstNodeRef targetRef) {
-            if (!targetRef.isValid())
-                return;
-
-            CodeGenNodePayload& payload      = SemaHelpers::ensureCodeGenNodePayload(sema, targetRef);
-            payload.throwableWrapperOwnerRef = ownerRef;
-            payload.throwableWrapperTokenId  = tokenId;
-            payload.throwableFailLabel       = MicroLabelRef::invalid();
-            payload.throwableDoneLabel       = MicroLabelRef::invalid();
-        };
-
-        attachWrapper(ownerRef);
-
-        const auto attachInlineRootIfCallLike = [&](AstNodeRef targetRef) {
-            if (!targetRef.isValid())
-                return;
-
-            const AstNodeId nodeId = sema.node(targetRef).id();
-            if (nodeId == AstNodeId::CallExpr || nodeId == AstNodeId::AliasCallExpr)
-                attachWrapper(targetRef);
-        };
-
-        attachInlineRootIfCallLike(managedChildRef);
-        attachInlineRootIfCallLike(sema.viewZero(managedChildRef).nodeRef());
+        attachThrowableWrapper(sema, ownerRef, ownerRef, tokenId);
+        attachInlineRootThrowableWrapperIfCallLike(sema, ownerRef, managedChildRef, tokenId);
+        attachInlineRootThrowableWrapperIfCallLike(sema, ownerRef, sema.viewZero(managedChildRef).nodeRef(), tokenId);
     }
 
     SemaFrame::ErrorContextMode errorContextMode(TokenId tokenId)
@@ -528,7 +529,8 @@ namespace
         auto diag = SemaError::report(sema, DiagnosticId::sema_err_error_mgmt_operand_not_throwable, errorRef);
         diag.addArgument(Diagnostic::ARG_TOK, Diagnostic::tokenErrorString(sema.ctx(), sema.curNode().codeRef()));
 
-        if (const auto* fn = calledFunctionFromNode(sema, childRef); fn && !fn->isThrowable())
+        const auto* fn = calledFunctionFromNode(sema, childRef);
+        if (fn && !fn->isThrowable())
             addFunctionDeclaredHereNote(sema, diag, *fn);
 
         diag.report(sema.ctx());

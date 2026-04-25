@@ -33,7 +33,7 @@ void CommandLineParser::registerCommands()
                               {"run", CommandKind::Run},
                           },
                           "Select the command to execute.",
-                          {&CommandLineParser::markAssigned, &cmdLine_->commandExplicit});
+                          {&StructConfigAssignHook::setBoolTrue, &cmdLine_->commandExplicit});
 
     add(HelpOptionGroup::Input, "all", "--config-file", "-cf",
         &cmdLine_->configFile,
@@ -83,7 +83,7 @@ void CommandLineParser::registerCommands()
             },
             "Select the native artifact kind exposed through @compiler.getBuildCfg() and used by the native backend.",
             true,
-            {&CommandLineParser::markAssigned, &cmdLine_->artifactKindExplicit});
+            {&StructConfigAssignHook::setBoolTrue, &cmdLine_->artifactKindExplicit});
     add(HelpOptionGroup::Target, "sema test build run", "--cpu", "-cpu",
         &cmdLine_->targetCpu,
         "Set the target CPU string used by #cpu and compiler target queries.");

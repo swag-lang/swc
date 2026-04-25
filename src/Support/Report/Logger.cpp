@@ -17,11 +17,6 @@ namespace
         return mutex;
     }
 
-    void appendSpaces(Utf8& out, const size_t count)
-    {
-        out.append(count, ' ');
-    }
-
     void appendColoredText(Utf8& out, const TaskContext& ctx, const LogColor color, const std::string_view text)
     {
         out += LogColorHelper::toAnsi(ctx, color);
@@ -29,26 +24,11 @@ namespace
         out += LogColorHelper::toAnsi(ctx, LogColor::Reset);
     }
 
-    size_t displayWidth(const std::string_view text)
-    {
-        return Utf8Helper::countChars(text);
-    }
-
-    size_t entryIndentWidth(const Logger::FieldEntry& entry, const Logger::FieldGroupStyle& style)
-    {
-        return style.lineIndent + style.indentPerLevel * entry.indentLevel;
-    }
-
-    size_t entryLabelWidth(const Logger::FieldEntry& entry, const Logger::FieldGroupStyle& style)
-    {
-        return entryIndentWidth(entry, style) + displayWidth(entry.label);
-    }
-
     size_t computeLabelColumn(const std::vector<Logger::FieldEntry>& entries, const Logger::FieldGroupStyle& style)
     {
         size_t width = style.minLabelWidth;
         for (const Logger::FieldEntry& entry : entries)
-            width = std::max(width, entryLabelWidth(entry, style));
+            width = std::max(width, style.lineIndent + style.indentPerLevel * entry.indentLevel + Utf8Helper::countChars(entry.label));
 
         return std::min(width, style.maxLabelWidth);
     }
@@ -70,16 +50,16 @@ namespace
 
     Utf8 formatFieldEntry(const TaskContext& ctx, const Logger::FieldEntry& entry, const Logger::FieldGroupStyle& style, const size_t labelColumn)
     {
-        const LogColor labelColor  = entry.labelColor == LogColor::Reset ? style.defaultLabelColor : entry.labelColor;
-        const LogColor valueColor  = entry.valueColor == LogColor::Reset ? style.defaultValueColor : entry.valueColor;
-        const size_t   indentWidth = entryIndentWidth(entry, style);
-        const size_t   labelWidth  = entryLabelWidth(entry, style);
+        const LogColor labelColor = entry.labelColor == LogColor::Reset ? style.defaultLabelColor : entry.labelColor;
+        const LogColor valueColor = entry.valueColor == LogColor::Reset ? style.defaultValueColor : entry.valueColor;
+        const size_t indentWidth  = style.lineIndent + style.indentPerLevel * entry.indentLevel;
+        const size_t labelWidth   = indentWidth + Utf8Helper::countChars(entry.label);
 
         Utf8 out;
-        appendSpaces(out, indentWidth);
+        out.append(indentWidth, ' ');
         appendColoredText(out, ctx, labelColor, entry.label);
         const size_t padding = labelWidth < labelColumn ? labelColumn - labelWidth + 2 : 2;
-        appendSpaces(out, padding);
+        out.append(padding, ' ');
         appendValue(out, ctx, entry, valueColor);
         out += "\n";
         return out;
@@ -262,7 +242,7 @@ void Logger::printHeaderDot(const TaskContext& ctx, LogColor headerColor, std::s
     style.blankLineBefore        = false;
     style.minLabelWidth          = std::min(legacyColumn, static_cast<size_t>(28));
     style.maxLabelWidth          = style.minLabelWidth;
-    style.maxLineWidth           = std::max(style.maxLineWidth, style.minLabelWidth + 2 + displayWidth(message));
+    style.maxLineWidth           = std::max(style.maxLineWidth, style.minLabelWidth + 2 + Utf8Helper::countChars(message));
     printField(ctx, entry, style);
 }
 

@@ -17,6 +17,11 @@ struct StructConfigAssignHook
     void (*fn)(void*) = nullptr;
     void* data        = nullptr;
 
+    static void setBoolTrue(void* data)
+    {
+        *static_cast<bool*>(data) = true;
+    }
+
     void invoke() const
     {
         if (fn)
@@ -118,16 +123,11 @@ private:
     const StructConfigSchema* schema_ = nullptr;
 
     static bool   parseBool(std::string_view value, bool& result);
-    static bool   parseInt(std::string_view value, int& result);
-    static bool   parseUInt(std::string_view value, uint32_t& result);
     static Utf8   stripInlineComment(std::string_view line, bool& unterminatedQuote);
     static size_t findAssignment(std::string_view line);
 
     static bool applyEntry(TaskContext& ctx, const StructConfigEntry& entry, const fs::path& sourcePath, uint32_t lineNo, std::string_view valueText, const fs::path& baseDir);
     bool        reportUnknownKey(TaskContext& ctx, const fs::path& sourcePath, uint32_t lineNo, const Utf8& key) const;
-    static bool reportInvalidEntry(TaskContext& ctx, const fs::path& sourcePath, uint32_t lineNo, const Utf8& because);
-    static bool reportInvalidBool(TaskContext& ctx, const fs::path& sourcePath, uint32_t lineNo, const Utf8& key, const Utf8& value);
-    static bool reportInvalidInt(TaskContext& ctx, const fs::path& sourcePath, uint32_t lineNo, const Utf8& key, const Utf8& value);
     static bool reportInvalidEnum(TaskContext& ctx, const StructConfigEntry& entry, const fs::path& sourcePath, uint32_t lineNo, const Utf8& value);
 };
 

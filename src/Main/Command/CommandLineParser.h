@@ -84,22 +84,17 @@ private:
     bool                       commandMatches(const Utf8& commandList) const;
     bool                       parseEnumString(TaskContext& ctx, const ArgInfo& info, const Utf8& arg, const Utf8& value, Utf8* target);
     bool                       parseEnumInt(TaskContext& ctx, const ArgInfo& info, const Utf8& arg, const Utf8& value, const EnumIntTarget& target);
-    bool                       parseInt(TaskContext& ctx, const ArgInfo& info, const Utf8& arg, const Utf8& value, int* out);
-    bool                       parseUInt(TaskContext& ctx, const ArgInfo& info, const Utf8& arg, const Utf8& value, uint32_t* out);
     const ArgInfo*             findArgument(TaskContext& ctx, const Utf8& arg, bool& invertBoolean);
     const ArgInfo*             findLongFormArgument(TaskContext& ctx, const Utf8& arg, bool& invertBoolean);
-    const ArgInfo*             findShortFormArgument(const TaskContext& ctx, const Utf8& arg);
     const ArgInfo*             findNegatedArgument(TaskContext& ctx, const Utf8& arg, bool& invertBoolean);
     void                       reportInvalidArgument(TaskContext& ctx, const Utf8& arg);
     static void                attachSuggestion(Diagnostic& diag, std::optional<Utf8> suggestion);
     std::optional<Utf8>        suggestArgument(const Utf8& query) const;
     static std::optional<Utf8> suggestCommand(const Utf8& query);
-    static std::optional<Utf8> suggestChoice(const Utf8& query, const std::vector<Utf8>& choices);
     bool                       processArgument(TaskContext& ctx, const ArgInfo& info, const Utf8& arg, bool invertBoolean, const Utf8* inlineValue, size_t& index, const std::vector<Utf8>& args);
     bool                       reportEnumError(TaskContext& ctx, const ArgInfo& info, const Utf8& arg, const Utf8& value);
     bool                       reportIntError(TaskContext& ctx, const ArgInfo& info, const Utf8& arg, const Utf8& value);
     Result                     checkCommandLine(TaskContext& ctx) const;
-    static void                markAssigned(void* target);
     void                       registerConfigEntry(const ArgInfo& info, StructConfigAssignHook hook);
     void                       registerCommands();
 

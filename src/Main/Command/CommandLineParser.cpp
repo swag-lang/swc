@@ -436,38 +436,12 @@ bool CommandLineParser::parseEnumInt(TaskContext& ctx, const ArgInfo& info, cons
     return reportEnumError(ctx, info, arg, value);
 }
 
-bool CommandLineParser::parseInt(TaskContext& ctx, const ArgInfo& info, const Utf8& arg, const Utf8& value, int* out)
-{
-    const char* first    = value.data();
-    const char* last     = first + value.size();
-    int         tmp      = 0;
-    const auto [ptr, ec] = std::from_chars(first, last, tmp);
-    if (ec != std::errc{} || ptr != last || value.empty())
-        return reportIntError(ctx, info, arg, value);
-
-    *out = tmp;
-    return true;
-}
-
-bool CommandLineParser::parseUInt(TaskContext& ctx, const ArgInfo& info, const Utf8& arg, const Utf8& value, uint32_t* out)
-{
-    const char* first    = value.data();
-    const char* last     = first + value.size();
-    uint32_t    tmp      = 0;
-    const auto [ptr, ec] = std::from_chars(first, last, tmp);
-    if (ec != std::errc{} || ptr != last || value.empty())
-        return reportIntError(ctx, info, arg, value);
-
-    *out = tmp;
-    return true;
-}
-
 bool CommandLineParser::reportEnumError(TaskContext& ctx, const ArgInfo& info, const Utf8& arg, const Utf8& value)
 {
     Diagnostic diag = Diagnostic::get(DiagnosticId::cmdline_err_invalid_enum);
     setReportArguments(diag, info, arg);
     diag.addArgument(Diagnostic::ARG_VALUE, value);
-    attachSuggestion(diag, suggestChoice(value, info.choices));
+    attachSuggestion(diag, Utf8Helper::bestMatch(value, info.choices));
     diag.report(ctx);
     return false;
 }
@@ -479,11 +453,6 @@ bool CommandLineParser::reportIntError(TaskContext& ctx, const ArgInfo& info, co
     diag.addArgument(Diagnostic::ARG_VALUE, value);
     diag.report(ctx);
     return false;
-}
-
-void CommandLineParser::markAssigned(void* target)
-{
-    *static_cast<bool*>(target) = true;
 }
 
 void CommandLineParser::registerConfigEntry(const ArgInfo& info, const StructConfigAssignHook hook)
@@ -599,7 +568,12 @@ const ArgInfo* CommandLineParser::findArgument(TaskContext& ctx, const Utf8& arg
     if (arg.substr(0, LONG_PREFIX_LEN) == LONG_PREFIX)
         return findLongFormArgument(ctx, arg, invertBoolean);
     if (arg.substr(0, SHORT_PREFIX_LEN) == SHORT_PREFIX && arg.length() > SHORT_PREFIX_LEN)
-        return findShortFormArgument(ctx, arg);
+    {
+        SWC_UNUSED(ctx);
+        const auto it = shortFormMap_.find(arg);
+        if (it != shortFormMap_.end())
+            return &args_[it->second];
+    }
 
     return nullptr;
 }
@@ -611,15 +585,6 @@ const ArgInfo* CommandLineParser::findLongFormArgument(TaskContext& ctx, const U
         return &args_[it->second];
     if (arg.substr(0, LONG_NO_PREFIX_LEN) == LONG_NO_PREFIX && arg.length() > LONG_NO_PREFIX_LEN)
         return findNegatedArgument(ctx, arg, invertBoolean);
-    return nullptr;
-}
-
-const ArgInfo* CommandLineParser::findShortFormArgument(const TaskContext& ctx, const Utf8& arg)
-{
-    SWC_UNUSED(ctx);
-    const auto it = shortFormMap_.find(arg);
-    if (it != shortFormMap_.end())
-        return &args_[it->second];
     return nullptr;
 }
 
@@ -694,11 +659,6 @@ std::optional<Utf8> CommandLineParser::suggestCommand(const Utf8& query)
     return Utf8Helper::bestMatch(query, candidates);
 }
 
-std::optional<Utf8> CommandLineParser::suggestChoice(const Utf8& query, const std::vector<Utf8>& choices)
-{
-    return Utf8Helper::bestMatch(query, choices);
-}
-
 bool CommandLineParser::processArgument(TaskContext& ctx, const ArgInfo& info, const Utf8& arg, bool invertBoolean, const Utf8* inlineValue, size_t& index, const std::vector<Utf8>& args)
 {
     // Boolean-like flags never take a value.
@@ -727,9 +687,27 @@ bool CommandLineParser::processArgument(TaskContext& ctx, const ArgInfo& info, c
         return false;
 
     if (auto* t = std::get_if<int*>(&info.target))
-        return parseInt(ctx, info, arg, value, *t);
+    {
+        const char* first = value.data();
+        const char* last  = first + value.size();
+        int         parsedValue = 0;
+        const auto [ptr, ec] = std::from_chars(first, last, parsedValue);
+        if (value.empty() || ec != std::errc{} || ptr != last)
+            return reportIntError(ctx, info, arg, value);
+        **t = parsedValue;
+        return true;
+    }
     if (auto* t = std::get_if<uint32_t*>(&info.target))
-        return parseUInt(ctx, info, arg, value, *t);
+    {
+        const char* first = value.data();
+        const char* last  = first + value.size();
+        uint32_t    parsedValue = 0;
+        const auto [ptr, ec] = std::from_chars(first, last, parsedValue);
+        if (value.empty() || ec != std::errc{} || ptr != last)
+            return reportIntError(ctx, info, arg, value);
+        **t = parsedValue;
+        return true;
+    }
     if (auto* t = std::get_if<Utf8*>(&info.target))
     {
         if (info.isEnum())

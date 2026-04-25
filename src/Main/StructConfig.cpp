@@ -124,28 +124,6 @@ bool StructConfigReader::parseBool(const std::string_view value, bool& result)
     return false;
 }
 
-bool StructConfigReader::parseInt(const std::string_view value, int& result)
-{
-    const char* first = value.data();
-    const char* last  = first + value.size();
-    if (first == last)
-        return false;
-
-    const auto [ptr, ec] = std::from_chars(first, last, result);
-    return ec == std::errc{} && ptr == last;
-}
-
-bool StructConfigReader::parseUInt(const std::string_view value, uint32_t& result)
-{
-    const char* first = value.data();
-    const char* last  = first + value.size();
-    if (first == last)
-        return false;
-
-    const auto [ptr, ec] = std::from_chars(first, last, result);
-    return ec == std::errc{} && ptr == last;
-}
-
 Utf8 StructConfigReader::stripInlineComment(const std::string_view line, bool& unterminatedQuote)
 {
     Utf8 result;
@@ -222,35 +200,6 @@ bool StructConfigReader::reportUnknownKey(TaskContext& ctx, const fs::path& sour
     return false;
 }
 
-bool StructConfigReader::reportInvalidEntry(TaskContext& ctx, const fs::path& sourcePath, const uint32_t lineNo, const Utf8& because)
-{
-    Diagnostic diag = Diagnostic::get(DiagnosticId::cmd_err_config_invalid_entry);
-    diag.addArgument(Diagnostic::ARG_PATH, !lineNo ? FileSystem::formatDiagnosticPath(&ctx, sourcePath) : FileSystem::formatFileLocation(&ctx, sourcePath, lineNo));
-    diag.addArgument(Diagnostic::ARG_BECAUSE, because);
-    diag.report(ctx);
-    return false;
-}
-
-bool StructConfigReader::reportInvalidBool(TaskContext& ctx, const fs::path& sourcePath, const uint32_t lineNo, const Utf8& key, const Utf8& value)
-{
-    Diagnostic diag = Diagnostic::get(DiagnosticId::cmd_err_config_invalid_bool);
-    diag.addArgument(Diagnostic::ARG_ARG, key);
-    diag.addArgument(Diagnostic::ARG_VALUE, value);
-    diag.addArgument(Diagnostic::ARG_PATH, !lineNo ? FileSystem::formatDiagnosticPath(&ctx, sourcePath) : FileSystem::formatFileLocation(&ctx, sourcePath, lineNo));
-    diag.report(ctx);
-    return false;
-}
-
-bool StructConfigReader::reportInvalidInt(TaskContext& ctx, const fs::path& sourcePath, const uint32_t lineNo, const Utf8& key, const Utf8& value)
-{
-    Diagnostic diag = Diagnostic::get(DiagnosticId::cmd_err_config_invalid_int);
-    diag.addArgument(Diagnostic::ARG_ARG, key);
-    diag.addArgument(Diagnostic::ARG_VALUE, value);
-    diag.addArgument(Diagnostic::ARG_PATH, !lineNo ? FileSystem::formatDiagnosticPath(&ctx, sourcePath) : FileSystem::formatFileLocation(&ctx, sourcePath, lineNo));
-    diag.report(ctx);
-    return false;
-}
-
 bool StructConfigReader::reportInvalidEnum(TaskContext& ctx, const StructConfigEntry& entry, const fs::path& sourcePath, const uint32_t lineNo, const Utf8& value)
 {
     Diagnostic diag = Diagnostic::get(DiagnosticId::cmd_err_config_invalid_enum);
@@ -293,7 +242,14 @@ bool StructConfigReader::applyEntry(TaskContext& ctx, const StructConfigEntry& e
     {
         bool parsedValue = false;
         if (!parseBool(value.view(), parsedValue))
-            return reportInvalidBool(ctx, sourcePath, lineNo, entry.name, value);
+        {
+            Diagnostic diag = Diagnostic::get(DiagnosticId::cmd_err_config_invalid_bool);
+            diag.addArgument(Diagnostic::ARG_ARG, entry.name);
+            diag.addArgument(Diagnostic::ARG_VALUE, value);
+            diag.addArgument(Diagnostic::ARG_PATH, !lineNo ? FileSystem::formatDiagnosticPath(&ctx, sourcePath) : FileSystem::formatFileLocation(&ctx, sourcePath, lineNo));
+            diag.report(ctx);
+            return false;
+        }
         **target = parsedValue;
         entry.afterSet.invoke();
         return true;
@@ -301,9 +257,19 @@ bool StructConfigReader::applyEntry(TaskContext& ctx, const StructConfigEntry& e
 
     if (auto* target = std::get_if<int*>(&entry.target))
     {
+        const char* first = value.data();
+        const char* last  = first + value.size();
         int parsedValue = 0;
-        if (!parseInt(value.view(), parsedValue))
-            return reportInvalidInt(ctx, sourcePath, lineNo, entry.name, value);
+        const auto [ptr, ec] = std::from_chars(first, last, parsedValue);
+        if (value.empty() || ec != std::errc{} || ptr != last)
+        {
+            Diagnostic diag = Diagnostic::get(DiagnosticId::cmd_err_config_invalid_int);
+            diag.addArgument(Diagnostic::ARG_ARG, entry.name);
+            diag.addArgument(Diagnostic::ARG_VALUE, value);
+            diag.addArgument(Diagnostic::ARG_PATH, !lineNo ? FileSystem::formatDiagnosticPath(&ctx, sourcePath) : FileSystem::formatFileLocation(&ctx, sourcePath, lineNo));
+            diag.report(ctx);
+            return false;
+        }
         **target = parsedValue;
         entry.afterSet.invoke();
         return true;
@@ -311,9 +277,19 @@ bool StructConfigReader::applyEntry(TaskContext& ctx, const StructConfigEntry& e
 
     if (auto* target = std::get_if<uint32_t*>(&entry.target))
     {
+        const char* first = value.data();
+        const char* last  = first + value.size();
         uint32_t parsedValue = 0;
-        if (!parseUInt(value.view(), parsedValue))
-            return reportInvalidInt(ctx, sourcePath, lineNo, entry.name, value);
+        const auto [ptr, ec] = std::from_chars(first, last, parsedValue);
+        if (value.empty() || ec != std::errc{} || ptr != last)
+        {
+            Diagnostic diag = Diagnostic::get(DiagnosticId::cmd_err_config_invalid_int);
+            diag.addArgument(Diagnostic::ARG_ARG, entry.name);
+            diag.addArgument(Diagnostic::ARG_VALUE, value);
+            diag.addArgument(Diagnostic::ARG_PATH, !lineNo ? FileSystem::formatDiagnosticPath(&ctx, sourcePath) : FileSystem::formatFileLocation(&ctx, sourcePath, lineNo));
+            diag.report(ctx);
+            return false;
+        }
         **target = parsedValue;
         entry.afterSet.invoke();
         return true;
@@ -379,7 +355,14 @@ bool StructConfigReader::applyEntry(TaskContext& ctx, const StructConfigEntry& e
     {
         bool parsedValue = false;
         if (!parseBool(value.view(), parsedValue))
-            return reportInvalidBool(ctx, sourcePath, lineNo, entry.name, value);
+        {
+            Diagnostic diag = Diagnostic::get(DiagnosticId::cmd_err_config_invalid_bool);
+            diag.addArgument(Diagnostic::ARG_ARG, entry.name);
+            diag.addArgument(Diagnostic::ARG_VALUE, value);
+            diag.addArgument(Diagnostic::ARG_PATH, !lineNo ? FileSystem::formatDiagnosticPath(&ctx, sourcePath) : FileSystem::formatFileLocation(&ctx, sourcePath, lineNo));
+            diag.report(ctx);
+            return false;
+        }
         **target = parsedValue;
         entry.afterSet.invoke();
         return true;
@@ -440,7 +423,10 @@ Result StructConfigReader::readFile(TaskContext& ctx, const fs::path& path) cons
         Utf8 line              = stripInlineComment(rawLine, unterminatedQuote);
         if (unterminatedQuote)
         {
-            reportInvalidEntry(ctx, normalizedPath, lineNo, "unterminated quoted value");
+            Diagnostic diag = Diagnostic::get(DiagnosticId::cmd_err_config_invalid_entry);
+            diag.addArgument(Diagnostic::ARG_PATH, FileSystem::formatFileLocation(&ctx, normalizedPath, lineNo));
+            diag.addArgument(Diagnostic::ARG_BECAUSE, "unterminated quoted value");
+            diag.report(ctx);
             return Result::Error;
         }
 
@@ -451,14 +437,20 @@ Result StructConfigReader::readFile(TaskContext& ctx, const fs::path& path) cons
         const size_t assignPos = findAssignment(line.view());
         if (assignPos == std::string_view::npos)
         {
-            reportInvalidEntry(ctx, normalizedPath, lineNo, "expected 'key = value'");
+            Diagnostic diag = Diagnostic::get(DiagnosticId::cmd_err_config_invalid_entry);
+            diag.addArgument(Diagnostic::ARG_PATH, FileSystem::formatFileLocation(&ctx, normalizedPath, lineNo));
+            diag.addArgument(Diagnostic::ARG_BECAUSE, "expected 'key = value'");
+            diag.report(ctx);
             return Result::Error;
         }
 
         auto key = Utf8(Utf8Helper::trim(line.view().substr(0, assignPos)));
         if (key.empty())
         {
-            reportInvalidEntry(ctx, normalizedPath, lineNo, "missing config key");
+            Diagnostic diag = Diagnostic::get(DiagnosticId::cmd_err_config_invalid_entry);
+            diag.addArgument(Diagnostic::ARG_PATH, FileSystem::formatFileLocation(&ctx, normalizedPath, lineNo));
+            diag.addArgument(Diagnostic::ARG_BECAUSE, "missing config key");
+            diag.report(ctx);
             return Result::Error;
         }
 

@@ -49,11 +49,6 @@ namespace
         msg += std::format("{}: {}\n", label, value);
     }
 
-    void appendContextField(Utf8& msg, const std::string_view label, const Utf8& value)
-    {
-        appendContextField(msg, label, std::string_view(value));
-    }
-
     bool tryGetTaskStateCodeRange(const TaskContext& ctx, SourceCodeRange& outCodeRange)
     {
         const TaskState& state = ctx.state();
@@ -68,24 +63,15 @@ namespace
         return outCodeRange.srcView != nullptr && outCodeRange.line != 0;
     }
 
-    uint32_t codeRangeTokenLenChars(const SourceCodeRange& codeRange)
-    {
-        if (!codeRange.srcView || !codeRange.len)
-            return 1;
-
-        const uint32_t tokenLenChars = Utf8Helper::countChars(codeRange.srcView->codeView(codeRange.offset, codeRange.len));
-        return std::max(1u, tokenLenChars);
-    }
-
     void appendSourceContext(Utf8& msg, const TaskContext& ctx, const SourceCodeRange& codeRange)
     {
         SWC_ASSERT(codeRange.srcView != nullptr);
 
-        const uint32_t    tokenLenChars = codeRangeTokenLenChars(codeRange);
-        const Utf8        codeLine      = codeRange.srcView->codeLine(ctx, codeRange.line);
-        const Utf8        lineNoStr     = std::to_string(codeRange.line);
-        const SourceFile* sourceFile    = codeRange.srcView->file();
-        const Utf8        fileLoc       = sourceFile ? sourceFile->formatFileLocation(&ctx, codeRange.line, codeRange.column, codeRange.column + tokenLenChars) : FileSystem::formatFileLocation(&ctx, fs::path{}, codeRange.line, codeRange.column, codeRange.column + tokenLenChars);
+        const uint32_t tokenLenChars = !codeRange.len ? 1 : std::max(1u, Utf8Helper::countChars(codeRange.srcView->codeView(codeRange.offset, codeRange.len)));
+        const Utf8     codeLine   = codeRange.srcView->codeLine(ctx, codeRange.line);
+        const Utf8     lineNoStr  = std::to_string(codeRange.line);
+        const SourceFile* sourceFile = codeRange.srcView->file();
+        const Utf8     fileLoc    = sourceFile ? sourceFile->formatFileLocation(&ctx, codeRange.line, codeRange.column, codeRange.column + tokenLenChars) : FileSystem::formatFileLocation(&ctx, fs::path{}, codeRange.line, codeRange.column, codeRange.column + tokenLenChars);
 
         msg += "Source context:\n";
         msg += std::format("  --> {}\n", fileLoc);
@@ -113,15 +99,15 @@ namespace
         appendContextField(msg, "Phase", std::string_view(state.kindName()));
 
         if (state.codeGenFunction)
-            appendContextField(msg, "Codegen function", state.codeGenFunction->getFullScopedName(ctx));
+            appendContextField(msg, "Codegen function", state.codeGenFunction->getFullScopedName(ctx).view());
         if (state.runJitFunction)
-            appendContextField(msg, "JIT function", state.runJitFunction->getFullScopedName(ctx));
+            appendContextField(msg, "JIT function", state.runJitFunction->getFullScopedName(ctx).view());
         if (state.waiterSymbol)
-            appendContextField(msg, "Current symbol", state.waiterSymbol->getFullScopedName(ctx));
+            appendContextField(msg, "Current symbol", state.waiterSymbol->getFullScopedName(ctx).view());
         if (state.symbol)
-            appendContextField(msg, "Blocking symbol", state.symbol->getFullScopedName(ctx));
+            appendContextField(msg, "Blocking symbol", state.symbol->getFullScopedName(ctx).view());
         if (state.codeRef.isValid())
-            appendContextField(msg, "Token", Diagnostic::tokenErrorString(ctx, state.codeRef));
+            appendContextField(msg, "Token", Diagnostic::tokenErrorString(ctx, state.codeRef).view());
 
         if (hasCodeRange)
             appendSourceContext(msg, ctx, codeRange);

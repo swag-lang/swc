@@ -37,39 +37,6 @@ namespace
         return Result::Error;
     }
 
-    TypeRef compilerTagTypeByName(const TypeManager& typeMgr, std::string_view name)
-    {
-        if (name == "bool")
-            return typeMgr.typeBool();
-        if (name == "string")
-            return typeMgr.typeString();
-        if (name == "int")
-            return typeMgr.typeIntSigned();
-        if (name == "uint")
-            return typeMgr.typeIntUnsigned();
-        if (name == "s8")
-            return typeMgr.typeS8();
-        if (name == "u8")
-            return typeMgr.typeU8();
-        if (name == "s16")
-            return typeMgr.typeS16();
-        if (name == "u16")
-            return typeMgr.typeU16();
-        if (name == "s32")
-            return typeMgr.typeS32();
-        if (name == "u32")
-            return typeMgr.typeU32();
-        if (name == "s64")
-            return typeMgr.typeS64();
-        if (name == "u64")
-            return typeMgr.typeU64();
-        if (name == "f32")
-            return typeMgr.typeF32();
-        if (name == "f64")
-            return typeMgr.typeF64();
-        return TypeRef::invalid();
-    }
-
     bool tryParseIntegerLiteral(std::string_view rawValue, ParsedIntegerLiteral& outValue, CompilerTagError& outError)
     {
         outValue = {};
@@ -157,23 +124,6 @@ namespace
         return true;
     }
 
-    bool fitsUnsignedBits(const uint64_t value, const uint32_t bits)
-    {
-        if (!bits || bits >= 64)
-            return true;
-        return value <= ((uint64_t{1} << bits) - 1);
-    }
-
-    bool fitsSignedBits(const int64_t value, const uint32_t bits)
-    {
-        if (!bits || bits >= 64)
-            return true;
-
-        const int64_t minValue = -(int64_t{1} << (bits - 1));
-        const int64_t maxValue = (int64_t{1} << (bits - 1)) - 1;
-        return value >= minValue && value <= maxValue;
-    }
-
     Result makeCompilerTagInteger(TaskContext& ctx, TypeRef typeRef, std::string_view rawValue, ConstantRef& outCstRef, CompilerTagError& outError)
     {
         outCstRef = ConstantRef::invalid();
@@ -196,7 +146,7 @@ namespace
                 return Result::Error;
             }
 
-            if (!fitsUnsignedBits(literal.magnitude, bits))
+            if (bits && bits < 64 && literal.magnitude > ((uint64_t{1} << bits) - 1))
             {
                 outError.id   = DiagnosticId::cmdline_err_tag_int_out_of_range;
                 outError.type = type.toName(ctx);
@@ -231,11 +181,16 @@ namespace
             signedValue = static_cast<int64_t>(literal.magnitude);
         }
 
-        if (!fitsSignedBits(signedValue, bits))
+        if (bits && bits < 64)
         {
-            outError.id   = DiagnosticId::cmdline_err_tag_int_out_of_range;
-            outError.type = type.toName(ctx);
-            return Result::Error;
+            const int64_t minValue = -(int64_t{1} << (bits - 1));
+            const int64_t maxValue = (int64_t{1} << (bits - 1)) - 1;
+            if (signedValue < minValue || signedValue > maxValue)
+            {
+                outError.id   = DiagnosticId::cmdline_err_tag_int_out_of_range;
+                outError.type = type.toName(ctx);
+                return Result::Error;
+            }
         }
 
         const ApsInt value = bits ? ApsInt(signedValue, bits, false) : ApsInt::makeSigned(signedValue);
@@ -348,20 +303,6 @@ namespace
         return Result::Error;
     }
 
-    bool shouldUseUntypedValueDiagnostic(const DiagnosticId id)
-    {
-        switch (id)
-        {
-            case DiagnosticId::cmdline_err_tag_int_missing_value:
-            case DiagnosticId::cmdline_err_tag_int_missing_digits:
-            case DiagnosticId::cmdline_err_tag_int_invalid_literal:
-            case DiagnosticId::cmdline_err_tag_int_invalid_digit_base:
-                return true;
-            default:
-                return false;
-        }
-    }
-
     Result parseOneCompilerTag(TaskContext& ctx, std::string_view rawTag, CompilerTag& outTag)
     {
         rawTag = Utf8Helper::trim(rawTag);
@@ -443,8 +384,13 @@ namespace
             ConstantRef      cstRef = ConstantRef::invalid();
             if (makeCompilerTagInteger(ctx, ctx.typeMgr().typeS32(), rightPart, cstRef, error) != Result::Continue)
             {
-                if (shouldUseUntypedValueDiagnostic(error.id))
+                if (error.id == DiagnosticId::cmdline_err_tag_int_missing_value ||
+                    error.id == DiagnosticId::cmdline_err_tag_int_missing_digits ||
+                    error.id == DiagnosticId::cmdline_err_tag_int_invalid_literal ||
+                    error.id == DiagnosticId::cmdline_err_tag_int_invalid_digit_base)
+                {
                     error.id = DiagnosticId::cmdline_err_tag_untyped_value_invalid;
+                }
                 return reportCompilerTagError(ctx, rawTag, error);
             }
 
@@ -452,7 +398,36 @@ namespace
             return Result::Continue;
         }
 
-        const TypeRef typeRef = compilerTagTypeByName(ctx.typeMgr(), typePart);
+        TypeRef typeRef = TypeRef::invalid();
+        if (typePart == "bool")
+            typeRef = ctx.typeMgr().typeBool();
+        else if (typePart == "string")
+            typeRef = ctx.typeMgr().typeString();
+        else if (typePart == "int")
+            typeRef = ctx.typeMgr().typeIntSigned();
+        else if (typePart == "uint")
+            typeRef = ctx.typeMgr().typeIntUnsigned();
+        else if (typePart == "s8")
+            typeRef = ctx.typeMgr().typeS8();
+        else if (typePart == "u8")
+            typeRef = ctx.typeMgr().typeU8();
+        else if (typePart == "s16")
+            typeRef = ctx.typeMgr().typeS16();
+        else if (typePart == "u16")
+            typeRef = ctx.typeMgr().typeU16();
+        else if (typePart == "s32")
+            typeRef = ctx.typeMgr().typeS32();
+        else if (typePart == "u32")
+            typeRef = ctx.typeMgr().typeU32();
+        else if (typePart == "s64")
+            typeRef = ctx.typeMgr().typeS64();
+        else if (typePart == "u64")
+            typeRef = ctx.typeMgr().typeU64();
+        else if (typePart == "f32")
+            typeRef = ctx.typeMgr().typeF32();
+        else if (typePart == "f64")
+            typeRef = ctx.typeMgr().typeF64();
+
         if (typeRef.isInvalid())
         {
             CompilerTagError error;

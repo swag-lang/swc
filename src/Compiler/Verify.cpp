@@ -19,34 +19,6 @@ namespace
         return (v > 0) ? static_cast<uint32_t>(v) : 1u;
     }
 
-    void setAnywhere(VerifyDirective& d)
-    {
-        d.allowedLines.clear();
-        d.lineMin = 0;
-        d.lineMax = 0;
-    }
-
-    void setExact(VerifyDirective& d, uint32_t line)
-    {
-        d.allowedLines.clear();
-        d.lineMin = line;
-        d.lineMax = line;
-    }
-
-    void setRange(VerifyDirective& d, uint32_t a, uint32_t b)
-    {
-        d.allowedLines.clear();
-        d.lineMin = std::min(a, b);
-        d.lineMax = std::max(a, b);
-    }
-
-    void setAllowedList(VerifyDirective& d, std::vector<uint32_t> lines)
-    {
-        d.allowedLines = std::move(lines);
-        d.lineMin      = 0;
-        d.lineMax      = 0; // ignored when allowedLines non-empty
-    }
-
     // Consumes optional "@..." at position i and applies constraint to directive.
     // Returns a new index (i advanced), or leaves the directive at default if malformed.
     size_t parseLineConstraint(const LangSpec& langSpec, std::string_view comment, size_t i, VerifyDirective& directive)
@@ -54,7 +26,9 @@ namespace
         const uint32_t baseLine = directive.myCodeRange.line;
 
         // default is exact base line unless "@..." overrides it
-        setExact(directive, baseLine);
+        directive.allowedLines.clear();
+        directive.lineMin = baseLine;
+        directive.lineMax = baseLine;
 
         if (i >= comment.size() || comment[i] != '@')
             return i;
@@ -64,7 +38,9 @@ namespace
         if (i < comment.size() && comment[i] == '*')
         {
             ++i;
-            setAnywhere(directive);
+            directive.allowedLines.clear();
+            directive.lineMin = 0;
+            directive.lineMax = 0;
             return i;
         }
 
@@ -111,7 +87,11 @@ namespace
                 ++i;
 
             if (!lines.empty())
-                setAllowedList(directive, std::move(lines));
+            {
+                directive.allowedLines = std::move(lines);
+                directive.lineMin      = 0;
+                directive.lineMax      = 0;
+            }
             // else keep default exact(baseLine)
 
             return i;
@@ -142,16 +122,22 @@ namespace
                 if (!Utf8Helper::parseSignedOrAbs(langSpec, comment, i, offB, hasSignB) || !hasSignB)
                 {
                     // malformed range end -> just treat as exact lineA
-                    setExact(directive, lineA);
+                    directive.allowedLines.clear();
+                    directive.lineMin = lineA;
+                    directive.lineMax = lineA;
                     return i;
                 }
 
                 const uint32_t lineB = clampLine(static_cast<int32_t>(baseLine) + offB);
-                setRange(directive, lineA, lineB);
+                directive.allowedLines.clear();
+                directive.lineMin = std::min(lineA, lineB);
+                directive.lineMax = std::max(lineA, lineB);
                 return i;
             }
 
-            setExact(directive, lineA);
+            directive.allowedLines.clear();
+            directive.lineMin = lineA;
+            directive.lineMax = lineA;
             return i;
         }
     }

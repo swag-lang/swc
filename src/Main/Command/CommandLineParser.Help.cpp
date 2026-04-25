@@ -77,17 +77,6 @@ namespace
         return result;
     }
 
-    Utf8 enumIntNameFromValue(const ArgInfo& arg, const int value)
-    {
-        for (size_t i = 0; i < arg.choiceIntValues.size(); i++)
-        {
-            if (arg.choiceIntValues[i] == value)
-                return arg.choices[i];
-        }
-
-        return std::to_string(value);
-    }
-
     Utf8 defaultValueToString(const ArgInfo& arg)
     {
         if (auto* t = std::get_if<bool*>(&arg.target))
@@ -125,7 +114,16 @@ namespace
             return (*t)->value() ? "true" : "false";
         }
         if (auto* t = std::get_if<EnumIntTarget>(&arg.target))
-            return enumIntNameFromValue(arg, t->getter(t->target));
+        {
+            const int value = t->getter(t->target);
+            for (size_t i = 0; i < arg.choiceIntValues.size(); i++)
+            {
+                if (arg.choiceIntValues[i] == value)
+                    return arg.choices[i];
+            }
+
+            return std::to_string(value);
+        }
 
         SWC_UNREACHABLE();
     }
@@ -153,19 +151,6 @@ namespace
         }
 
         return "Other";
-    }
-
-    bool optionEntryLess(const HelpOptionEntry& lhs, const HelpOptionEntry& rhs)
-    {
-        const int leftOrder  = static_cast<int>(lhs.group);
-        const int rightOrder = static_cast<int>(rhs.group);
-        if (leftOrder != rightOrder)
-            return leftOrder < rightOrder;
-
-        if (lhs.displayName != rhs.displayName)
-            return lhs.displayName < rhs.displayName;
-
-        return lhs.arg->description < rhs.arg->description;
     }
 
 }
@@ -226,7 +211,17 @@ void CommandLineParser::printHelp(const TaskContext& ctx, const Utf8& command)
         helpEntries.push_back(std::move(entry));
     }
 
-    std::ranges::sort(helpEntries, optionEntryLess);
+    std::ranges::sort(helpEntries, [](const HelpOptionEntry& lhs, const HelpOptionEntry& rhs) {
+        const int leftOrder  = static_cast<int>(lhs.group);
+        const int rightOrder = static_cast<int>(rhs.group);
+        if (leftOrder != rightOrder)
+            return leftOrder < rightOrder;
+
+        if (lhs.displayName != rhs.displayName)
+            return lhs.displayName < rhs.displayName;
+
+        return lhs.arg->description < rhs.arg->description;
+    });
 
     auto                            currentGroup = HelpOptionGroup::Other;
     bool                            firstGroup   = true;

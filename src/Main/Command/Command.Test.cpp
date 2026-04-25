@@ -173,11 +173,6 @@ namespace
         }
     }
 
-    bool shouldRunJitFunction(const JitFunctionSelection& selection, const SymbolFunction& function)
-    {
-        return selection.functions.contains(&function);
-    }
-
     void tryAddJitFunction(JitFunctionSelection& selection, const CompilerInstance& compiler, const SymbolFunction* function)
     {
         if (!function)
@@ -219,7 +214,7 @@ namespace
         for (const SymbolFunction* function : compiler.nativeTestFunctions())
         {
             tryAddJitFunction(selection, compiler, function);
-            if (function && shouldRunJitFunction(selection, *function))
+            if (function && selection.functions.contains(function))
                 selection.expectedTestCount++;
         }
 
@@ -229,7 +224,7 @@ namespace
     void filterJitFunctions(std::vector<SymbolFunction*>& functions, const JitFunctionSelection& selection)
     {
         std::erase_if(functions, [&](const SymbolFunction* function) {
-            return function == nullptr || !shouldRunJitFunction(selection, *function);
+            return function == nullptr || !selection.functions.contains(function);
         });
     }
 
@@ -309,11 +304,6 @@ namespace
         TimedActionLog::ScopedStage stage(ctx, TimedActionLog::Stage::Verify);
         verifyExpectedMarkers(ctx);
         return !Stats::hasError();
-    }
-
-    void sortAndUniqueFunctions(std::vector<SymbolFunction*>& values, const TaskContext& ctx)
-    {
-        SymbolSort::sortAndUniqueByLocation(values, ctx.compiler());
     }
 
     struct DataSegmentSnapshot
@@ -420,10 +410,10 @@ namespace
             filterJitFunctions(testFunctions, jitSelection);
         }
 
-        sortAndUniqueFunctions(allFunctions, ctx);
-        sortAndUniqueFunctions(initFunctions, ctx);
-        sortAndUniqueFunctions(preMainFunctions, ctx);
-        sortAndUniqueFunctions(testFunctions, ctx);
+        SymbolSort::sortAndUniqueByLocation(allFunctions, ctx.compiler());
+        SymbolSort::sortAndUniqueByLocation(initFunctions, ctx.compiler());
+        SymbolSort::sortAndUniqueByLocation(preMainFunctions, ctx.compiler());
+        SymbolSort::sortAndUniqueByLocation(testFunctions, ctx.compiler());
 
         if (testFunctions.size() != expectedTestCount)
             return reportJitTestCountMismatch(ctx, expectedTestCount, static_cast<uint32_t>(testFunctions.size()));

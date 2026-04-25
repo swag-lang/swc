@@ -34,12 +34,6 @@ namespace
         addInfoEntryParts(entries, std::format("[{}]", index), std::move(valueParts));
     }
 
-    void addPlanStep(std::vector<Logger::FieldEntry>& entries, uint32_t& index, const char* label, const LogColor color, Utf8 detail)
-    {
-        addPlanEntry(entries, index, label, color, std::move(detail));
-        ++index;
-    }
-
     struct DryRunInputSummary
     {
         uint32_t totalFiles       = 0;
@@ -116,13 +110,6 @@ namespace
         artifactBuilder.queryPaths(result.paths);
         result.toolchainResult = NativeLinker::queryToolchainPaths(nativeBuilder, result.toolchain);
         return result;
-    }
-
-    Utf8 objectFilePattern(const NativeArtifactPaths& paths)
-    {
-        if (paths.buildDir.empty() || paths.name.empty())
-            return "<object-files>";
-        return Utf8{paths.buildDir / std::format("{}_<NN>.obj", paths.name).c_str()};
     }
 
     std::vector<Utf8> buildLinkPreviewArgs(const DryRunNativePreview& preview, const Runtime::BuildCfg& buildCfg)
@@ -228,67 +215,70 @@ namespace
         std::vector<Logger::FieldEntry> entries;
         uint32_t                        index      = 1;
         const Utf8                      inputCount = Utf8Helper::countWithLabel(inputSummary.totalFiles, "input file");
+        Utf8                            objectFiles = "<object-files>";
+        if (!nativePreview.paths.buildDir.empty() && !nativePreview.paths.name.empty())
+            objectFiles = Utf8(nativePreview.paths.buildDir / std::format("{}_<NN>.obj", nativePreview.paths.name).c_str());
 
 #if SWC_HAS_UNITTEST
         if (cmdLine.unittest)
-            addPlanStep(entries, index, "Skip", LogColor::Gray, "internal C++ unittests enabled by the active mode");
+            addPlanEntry(entries, index++, "Skip", LogColor::Gray, "internal C++ unittests enabled by the active mode");
 #endif
 
-        addPlanStep(entries, index, "Would", LogColor::BrightGreen, std::format("collect and classify {}", inputCount));
+        addPlanEntry(entries, index++, "Would", LogColor::BrightGreen, std::format("collect and classify {}", inputCount));
 
         switch (cmdLine.command)
         {
             case CommandKind::Format:
-                addPlanStep(entries, index, "Would", LogColor::BrightGreen, std::format("parse {}", inputCount));
-                addPlanStep(entries, index, "Would", LogColor::BrightGreen, "validate the parsed AST can be written back as source");
-                addPlanStep(entries, index, "Would", LogColor::BrightGreen, "rewrite source files in place when formatted output differs");
+                addPlanEntry(entries, index++, "Would", LogColor::BrightGreen, std::format("parse {}", inputCount));
+                addPlanEntry(entries, index++, "Would", LogColor::BrightGreen, "validate the parsed AST can be written back as source");
+                addPlanEntry(entries, index++, "Would", LogColor::BrightGreen, "rewrite source files in place when formatted output differs");
                 break;
 
             case CommandKind::Syntax:
-                addPlanStep(entries, index, "Would", LogColor::BrightGreen, std::format("parse {} and stop after syntax", inputCount));
+                addPlanEntry(entries, index++, "Would", LogColor::BrightGreen, std::format("parse {} and stop after syntax", inputCount));
                 break;
 
             case CommandKind::Sema:
-                addPlanStep(entries, index, "Would", LogColor::BrightGreen, std::format("parse {}", inputCount));
-                addPlanStep(entries, index, "Would", LogColor::BrightGreen, "run semantic analysis, including compile-time evaluation when required");
+                addPlanEntry(entries, index++, "Would", LogColor::BrightGreen, std::format("parse {}", inputCount));
+                addPlanEntry(entries, index++, "Would", LogColor::BrightGreen, "run semantic analysis, including compile-time evaluation when required");
                 if (!cmdLine.exportApiDir.empty())
-                    addPlanStep(entries, index, "Would", LogColor::BrightGreen, std::format("write generated module API files under {}", Utf8(cmdLine.exportApiDir)));
+                    addPlanEntry(entries, index++, "Would", LogColor::BrightGreen, std::format("write generated module API files under {}", Utf8(cmdLine.exportApiDir)));
                 break;
 
             case CommandKind::Build:
             case CommandKind::Run:
-                addPlanStep(entries, index, "Would", LogColor::BrightGreen, std::format("parse {}", inputCount));
-                addPlanStep(entries, index, "Would", LogColor::BrightGreen, "run semantic analysis, including compile-time evaluation when required");
+                addPlanEntry(entries, index++, "Would", LogColor::BrightGreen, std::format("parse {}", inputCount));
+                addPlanEntry(entries, index++, "Would", LogColor::BrightGreen, "run semantic analysis, including compile-time evaluation when required");
                 if (!cmdLine.exportApiDir.empty())
-                    addPlanStep(entries, index, "Would", LogColor::BrightGreen, std::format("write generated module API files under {}", Utf8(cmdLine.exportApiDir)));
-                addPlanStep(entries, index, "Would", LogColor::BrightGreen, std::format("generate native {}", backendKindName(nativePreview.backendKind)));
+                    addPlanEntry(entries, index++, "Would", LogColor::BrightGreen, std::format("write generated module API files under {}", Utf8(cmdLine.exportApiDir)));
+                addPlanEntry(entries, index++, "Would", LogColor::BrightGreen, std::format("generate native {}", backendKindName(nativePreview.backendKind)));
                 if (cmdLine.clear)
-                    addPlanStep(entries, index, "Would", LogColor::BrightGreen, std::format("clear native outputs under {}", Utf8(nativePreview.paths.workDir)));
-                addPlanStep(entries, index, "Would", LogColor::BrightGreen, std::format("write object files matching {}", objectFilePattern(nativePreview.paths)));
-                addPlanStep(entries, index, "Would", LogColor::BrightGreen, std::format("invoke the native toolchain to produce {}", Utf8(nativePreview.paths.artifactPath)));
+                    addPlanEntry(entries, index++, "Would", LogColor::BrightGreen, std::format("clear native outputs under {}", Utf8(nativePreview.paths.workDir)));
+                addPlanEntry(entries, index++, "Would", LogColor::BrightGreen, std::format("write object files matching {}", objectFiles));
+                addPlanEntry(entries, index++, "Would", LogColor::BrightGreen, std::format("invoke the native toolchain to produce {}", Utf8(nativePreview.paths.artifactPath)));
                 if (cmdLine.command == CommandKind::Run && nativePreview.backendKind == Runtime::BuildCfgBackendKind::Executable)
-                    addPlanStep(entries, index, "Would", LogColor::BrightGreen, std::format("run {}", Utf8(nativePreview.paths.artifactPath)));
+                    addPlanEntry(entries, index++, "Would", LogColor::BrightGreen, std::format("run {}", Utf8(nativePreview.paths.artifactPath)));
                 break;
 
             case CommandKind::Test:
-                addPlanStep(entries, index, "Would", LogColor::BrightGreen, std::format("parse {}", inputCount));
-                addPlanStep(entries, index, "Would", LogColor::BrightGreen, "run semantic analysis, including compile-time evaluation when required");
+                addPlanEntry(entries, index++, "Would", LogColor::BrightGreen, std::format("parse {}", inputCount));
+                addPlanEntry(entries, index++, "Would", LogColor::BrightGreen, "run semantic analysis, including compile-time evaluation when required");
                 if (cmdLine.testJit)
-                    addPlanStep(entries, index, "May", LogColor::BrightYellow, "compile and execute eligible JIT #test functions discovered during semantic analysis");
+                    addPlanEntry(entries, index++, "May", LogColor::BrightYellow, "compile and execute eligible JIT #test functions discovered during semantic analysis");
                 if (nativePreview.enabled)
                 {
-                    addPlanStep(entries, index, "May", LogColor::BrightYellow, std::format("build a native {} test artifact when eligible entry points are discovered", backendKindName(nativePreview.backendKind)));
+                    addPlanEntry(entries, index++, "May", LogColor::BrightYellow, std::format("build a native {} test artifact when eligible entry points are discovered", backendKindName(nativePreview.backendKind)));
                     if (cmdLine.clear)
-                        addPlanStep(entries, index, "May", LogColor::BrightYellow, std::format("clear native outputs under {}", Utf8(nativePreview.paths.workDir)));
-                    addPlanStep(entries, index, "May", LogColor::BrightYellow, std::format("write object files matching {}", objectFilePattern(nativePreview.paths)));
-                    addPlanStep(entries, index, "May", LogColor::BrightYellow, std::format("invoke the native toolchain to produce {}", Utf8(nativePreview.paths.artifactPath)));
+                        addPlanEntry(entries, index++, "May", LogColor::BrightYellow, std::format("clear native outputs under {}", Utf8(nativePreview.paths.workDir)));
+                    addPlanEntry(entries, index++, "May", LogColor::BrightYellow, std::format("write object files matching {}", objectFiles));
+                    addPlanEntry(entries, index++, "May", LogColor::BrightYellow, std::format("invoke the native toolchain to produce {}", Utf8(nativePreview.paths.artifactPath)));
                     if (nativePreview.mayRunArtifact)
-                        addPlanStep(entries, index, "May", LogColor::BrightYellow, std::format("run {}", Utf8(nativePreview.paths.artifactPath)));
+                        addPlanEntry(entries, index++, "May", LogColor::BrightYellow, std::format("run {}", Utf8(nativePreview.paths.artifactPath)));
                 }
                 else if (cmdLine.testNative && !cmdLine.output)
-                    addPlanStep(entries, index, "Skip", LogColor::Gray, "native test artifact generation because output is disabled");
+                    addPlanEntry(entries, index++, "Skip", LogColor::Gray, "native test artifact generation because output is disabled");
 
-                addPlanStep(entries, index, "Would", LogColor::BrightGreen, "verify expected diagnostics and untouched markers");
+                addPlanEntry(entries, index++, "Would", LogColor::BrightGreen, "verify expected diagnostics and untouched markers");
                 break;
 
             default:
@@ -306,6 +296,9 @@ namespace
             return;
 
         std::vector<Logger::FieldEntry> entries;
+        Utf8                            objectFiles = "<object-files>";
+        if (!nativePreview.paths.buildDir.empty() && !nativePreview.paths.name.empty())
+            objectFiles = Utf8(nativePreview.paths.buildDir / std::format("{}_<NN>.obj", nativePreview.paths.name).c_str());
 
         addInfoEntry(entries, "Backend", backendKindName(nativePreview.backendKind), LogColor::BrightYellow);
         addInfoEntry(entries, "Work directory", nativePreview.paths.workDir);
@@ -314,7 +307,7 @@ namespace
         addInfoEntry(entries, "Artifact path", nativePreview.paths.artifactPath);
         if (!nativePreview.paths.pdbPath.empty())
             addInfoEntry(entries, "PDB path", nativePreview.paths.pdbPath);
-        addInfoEntry(entries, "Object files", objectFilePattern(nativePreview.paths));
+        addInfoEntry(entries, "Object files", objectFiles);
         Logger::printFieldGroup(ctx, "Native Outputs", entries, nextInfoGroupStyle(hasPrintedGroup, 24));
     }
 

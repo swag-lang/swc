@@ -374,13 +374,6 @@ namespace
         return true;
     }
 
-    bool sortCompilerMessageBacklogEntry(const CompilerMessageBacklogEntry& lhs, const CompilerMessageBacklogEntry& rhs)
-    {
-        if (lhs.key != rhs.key)
-            return lhs.key < rhs.key;
-        return static_cast<uint32_t>(lhs.kind) < static_cast<uint32_t>(rhs.kind);
-    }
-
     void collectCompilerMessageBacklogRec(const CompilerInstance& compiler, const SymbolMap& symMap, std::unordered_set<const SymbolMap*>& visited, uint64_t activationMask, std::vector<CompilerMessageBacklogEntry>& out)
     {
         if (!visited.insert(&symMap).second)
@@ -421,7 +414,11 @@ namespace
             collectCompilerMessageBacklogRec(compiler, *fileNamespace->asSymMap(), visited, activationMask, entries);
         }
 
-        std::ranges::stable_sort(entries, sortCompilerMessageBacklogEntry);
+        std::ranges::stable_sort(entries, [](const CompilerMessageBacklogEntry& lhs, const CompilerMessageBacklogEntry& rhs) {
+            if (lhs.key != rhs.key)
+                return lhs.key < rhs.key;
+            return static_cast<uint32_t>(lhs.kind) < static_cast<uint32_t>(rhs.kind);
+        });
 
         out.reserve(out.size() + entries.size());
         for (const CompilerMessageBacklogEntry& entry : entries)

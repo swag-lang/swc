@@ -134,20 +134,15 @@ namespace
         return true;
     }
 
-    std::string_view registeredBuildCfgsView(const Runtime::BuildCfg& buildCfg)
-    {
-        if (!buildCfg.registeredConfigs.ptr || !buildCfg.registeredConfigs.length)
-            return {};
-
-        return {buildCfg.registeredConfigs.ptr, buildCfg.registeredConfigs.length};
-    }
-
     bool hasRegisteredBuildCfg(const Runtime::BuildCfg& buildCfg, const std::string_view cfgName)
     {
         if (cfgName.empty())
             return false;
 
-        const std::string_view registered = registeredBuildCfgsView(buildCfg);
+        if (!buildCfg.registeredConfigs.ptr || !buildCfg.registeredConfigs.length)
+            return false;
+
+        const std::string_view registered = {buildCfg.registeredConfigs.ptr, buildCfg.registeredConfigs.length};
         size_t                 start      = 0;
         while (start <= registered.size())
         {

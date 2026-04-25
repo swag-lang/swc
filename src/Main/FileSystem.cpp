@@ -9,13 +9,6 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    FileSystem::FilePathDisplayMode resolveDisplayMode(const TaskContext* ctx)
-    {
-        if (!ctx)
-            return FileSystem::FilePathDisplayMode::AsIs;
-        return ctx->cmdLine().filePathDisplay;
-    }
-
     fs::path lexicallyNormalize(const fs::path& path)
     {
         if (path.empty())
@@ -29,11 +22,6 @@ namespace
         if (!because.empty())
             return because;
         return FileSystem::describeIoProblem(problem);
-    }
-
-    FileSystem::PathProblem expectedPathProblem(const bool expectFile)
-    {
-        return expectFile ? FileSystem::PathProblem::NotRegularFile : FileSystem::PathProblem::NotDirectory;
     }
 
     Result resolveExistingPath(fs::path& path, Utf8& because, const bool expectFile)
@@ -51,7 +39,7 @@ namespace
         const bool validType = expectFile ? fs::is_regular_file(path, ec) : fs::is_directory(path, ec);
         if (!validType)
         {
-            because = ec ? FileSystem::normalizeSystemMessage(ec) : FileSystem::describePathProblem(expectedPathProblem(expectFile));
+            because = ec ? FileSystem::normalizeSystemMessage(ec) : FileSystem::describePathProblem(expectFile ? FileSystem::PathProblem::NotRegularFile : FileSystem::PathProblem::NotDirectory);
             return Result::Error;
         }
 
@@ -117,12 +105,6 @@ namespace
         FileSystem::setDiagnosticPathAndBecause(diag, &ctx, path, because);
         diag.report(ctx);
         return Result::Error;
-    }
-
-    Result reportClearDirectoryError(TaskContext& ctx, const DiagnosticId diagId, const fs::path& path, const std::error_code& ec)
-    {
-        SWC_ASSERT(ec);
-        return reportClearDirectoryError(ctx, diagId, path, FileSystem::normalizeSystemMessage(ec));
     }
 }
 
@@ -190,7 +172,8 @@ fs::path FileSystem::currentPathNoThrow()
 
 Utf8 FileSystem::formatDiagnosticPath(const TaskContext* ctx, const fs::path& path)
 {
-    switch (resolveDisplayMode(ctx))
+    const FilePathDisplayMode displayMode = ctx ? ctx->cmdLine().filePathDisplay : FilePathDisplayMode::AsIs;
+    switch (displayMode)
     {
         case FilePathDisplayMode::AsIs:
             return lexicallyNormalize(path).string();
@@ -269,25 +252,25 @@ Result FileSystem::clearDirectoryContents(TaskContext& ctx, const fs::path& path
     std::error_code ec;
     const bool      exists = fs::exists(path, ec);
     if (ec)
-        return reportClearDirectoryError(ctx, diagId, path, ec);
+        return reportClearDirectoryError(ctx, diagId, path, normalizeSystemMessage(ec));
     if (!exists)
         return Result::Continue;
 
     const bool isDirectory = fs::is_directory(path, ec);
     if (ec)
-        return reportClearDirectoryError(ctx, diagId, path, ec);
+        return reportClearDirectoryError(ctx, diagId, path, normalizeSystemMessage(ec));
     if (!isDirectory)
         return reportClearDirectoryError(ctx, diagId, path, describePathProblem(PathProblem::NotDirectory));
 
     for (fs::directory_iterator it(path, fs::directory_options::skip_permission_denied, ec), end; it != end; it.increment(ec))
     {
         if (ec)
-            return reportClearDirectoryError(ctx, diagId, path, ec);
+            return reportClearDirectoryError(ctx, diagId, path, normalizeSystemMessage(ec));
 
         std::error_code removeEc;
         fs::remove_all(it->path(), removeEc);
         if (removeEc)
-            return reportClearDirectoryError(ctx, diagId, it->path(), removeEc);
+            return reportClearDirectoryError(ctx, diagId, it->path(), normalizeSystemMessage(removeEc));
     }
 
     return Result::Continue;
@@ -438,8 +421,8 @@ Utf8 FileSystem::describeIoFailure(const IoErrorInfo& error)
 
 Utf8 FileSystem::formatFileName(const TaskContext* ctx, const fs::path& filePath)
 {
-    const FilePathDisplayMode resolvedMode = resolveDisplayMode(ctx);
-    switch (resolvedMode)
+    const FilePathDisplayMode displayMode = ctx ? ctx->cmdLine().filePathDisplay : FilePathDisplayMode::AsIs;
+    switch (displayMode)
     {
         case FilePathDisplayMode::AsIs:
             return filePath.string();

@@ -653,30 +653,6 @@ namespace
         return content;
     }
 
-    bool pathStartsWith(const fs::path& path, const fs::path& prefix)
-    {
-        auto pathIt   = path.begin();
-        auto prefixIt = prefix.begin();
-        while (prefixIt != prefix.end())
-        {
-            if (pathIt == path.end() || *pathIt != *prefixIt)
-                return false;
-
-            ++pathIt;
-            ++prefixIt;
-        }
-
-        return true;
-    }
-
-    Result reportModuleApiError(TaskContext& ctx, const DiagnosticId diagId, const fs::path& path, const Utf8& because)
-    {
-        Diagnostic diag = Diagnostic::get(diagId);
-        FileSystem::setDiagnosticPathAndBecause(diag, &ctx, path, because);
-        diag.report(ctx);
-        return Result::Error;
-    }
-
     Result ensureModuleApiDirectory(TaskContext& ctx, const fs::path& path)
     {
         if (path.empty())
@@ -685,7 +661,12 @@ namespace
         std::error_code ec;
         fs::create_directories(path, ec);
         if (ec)
-            return reportModuleApiError(ctx, DiagnosticId::cmd_err_api_dir_create_failed, path, FileSystem::normalizeSystemMessage(ec));
+        {
+            Diagnostic diag = Diagnostic::get(DiagnosticId::cmd_err_api_dir_create_failed);
+            FileSystem::setDiagnosticPathAndBecause(diag, &ctx, path, FileSystem::normalizeSystemMessage(ec));
+            diag.report(ctx);
+            return Result::Error;
+        }
 
         return Result::Continue;
     }
@@ -1753,7 +1734,7 @@ Result CompilerInstance::appendGeneratedSource(GeneratedSourceAppendResult& outR
     std::ofstream generatedStream(outResult.path, std::ios::binary | std::ios::trunc);
     if (!generatedStream.is_open())
     {
-        outBecause = FileSystem::currentSystemMessage();
+        outBecause = Os::systemError();
         if (outBecause.empty())
             outBecause = FileSystem::describeIoProblem(FileSystem::IoProblem::OpenWrite);
         else
@@ -1766,7 +1747,7 @@ Result CompilerInstance::appendGeneratedSource(GeneratedSourceAppendResult& outR
 
     if (!generatedStream)
     {
-        outBecause = FileSystem::currentSystemMessage();
+        outBecause = Os::systemError();
         if (outBecause.empty())
             outBecause = FileSystem::describeIoProblem(FileSystem::IoProblem::Write);
         else
@@ -1776,7 +1757,7 @@ Result CompilerInstance::appendGeneratedSource(GeneratedSourceAppendResult& outR
     generatedStream.close();
     if (!generatedStream)
     {
-        outBecause = FileSystem::currentSystemMessage();
+        outBecause = Os::systemError();
         if (outBecause.empty())
             outBecause = FileSystem::describeIoProblem(FileSystem::IoProblem::CloseWrite);
         else
@@ -1961,7 +1942,7 @@ Result CompilerInstance::exportModuleApi(TaskContext& ctx)
             continue;
 
         fs::path relativePath = file->path().lexically_relative(modulePathSrc_);
-        if (relativePath.empty() || relativePath == "." || !pathStartsWith(file->path(), modulePathSrc_))
+        if (relativePath.empty() || relativePath == "." || !FileSystem::pathStartsWith(file->path(), modulePathSrc_))
             relativePath = file->path().filename();
 
         const fs::path dstPath = exportApiDir / relativePath;
@@ -1970,7 +1951,12 @@ Result CompilerInstance::exportModuleApi(TaskContext& ctx)
         const Utf8              content = buildExportedModuleApiContent(*file, moduleNamespace.view(), info.hasModuleNamespace);
         FileSystem::IoErrorInfo ioError;
         if (FileSystem::writeBinaryFile(dstPath, content.data(), content.size(), ioError) != Result::Continue)
-            return reportModuleApiError(ctx, DiagnosticId::cmd_err_api_file_write_failed, dstPath, FileSystem::describeIoFailure(ioError));
+        {
+            Diagnostic diag = Diagnostic::get(DiagnosticId::cmd_err_api_file_write_failed);
+            FileSystem::setDiagnosticPathAndBecause(diag, &ctx, dstPath, FileSystem::describeIoFailure(ioError));
+            diag.report(ctx);
+            return Result::Error;
+        }
     }
 
     return Result::Continue;

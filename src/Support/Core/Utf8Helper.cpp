@@ -5,29 +5,6 @@
 
 SWC_BEGIN_NAMESPACE();
 
-namespace
-{
-    Utf8 prefixChars(std::string_view s, const uint32_t count)
-    {
-        if (!count || s.empty())
-            return {};
-
-        return Utf8Helper::substrChars(s, 1, count);
-    }
-
-    Utf8 suffixChars(std::string_view s, const uint32_t count)
-    {
-        if (!count || s.empty())
-            return {};
-
-        const uint32_t totalChars = Utf8Helper::countChars(s);
-        if (count >= totalChars)
-            return Utf8{s};
-
-        return Utf8Helper::substrChars(s, totalChars - count + 1, totalChars);
-    }
-}
-
 Runtime::String Utf8Helper::runtimeStringFromUtf8(const Utf8& value)
 {
     if (value.empty())
@@ -303,7 +280,7 @@ std::optional<Utf8> Utf8Helper::bestMatch(const std::string_view query, const st
     const Utf8* best     = nullptr;
     for (const Utf8& candidate : candidates)
     {
-        const size_t distance = Utf8Helper::levenshtein(query, candidate);
+        const size_t distance = levenshtein(query, candidate);
         if (distance < bestDist)
         {
             bestDist = distance;
@@ -453,7 +430,7 @@ Utf8 Utf8Helper::truncate(std::string_view s, const TruncateOptions& options)
     {
         case TruncateMode::End:
         {
-            Utf8 result = prefixChars(s, options.maxChars);
+            Utf8 result = options.maxChars ? substrChars(s, 1, options.maxChars) : Utf8{};
             result += ellipsis;
             return result;
         }
@@ -461,7 +438,10 @@ Utf8 Utf8Helper::truncate(std::string_view s, const TruncateOptions& options)
         case TruncateMode::Start:
         {
             Utf8 result = ellipsis;
-            result += suffixChars(s, options.maxChars);
+            if (options.maxChars >= totalChars)
+                result += Utf8{s};
+            else if (options.maxChars)
+                result += substrChars(s, totalChars - options.maxChars + 1, totalChars);
             return result;
         }
 
@@ -491,9 +471,12 @@ Utf8 Utf8Helper::truncate(std::string_view s, const TruncateOptions& options)
                 keepRightChars = std::min(keepRightChars, options.maxChars - keepLeftChars);
             }
 
-            Utf8 result = prefixChars(s, keepLeftChars);
+            Utf8 result = keepLeftChars ? substrChars(s, 1, keepLeftChars) : Utf8{};
             result += ellipsis;
-            result += suffixChars(s, keepRightChars);
+            if (keepRightChars >= totalChars)
+                result += Utf8{s};
+            else if (keepRightChars)
+                result += substrChars(s, totalChars - keepRightChars + 1, totalChars);
             return result;
         }
 

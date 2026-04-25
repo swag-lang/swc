@@ -18,7 +18,7 @@ namespace
 
     Utf8 fallbackIoBecause(const FileSystem::IoProblem problem)
     {
-        Utf8 because = FileSystem::currentSystemMessage();
+        Utf8 because = Os::systemError();
         if (!because.empty())
             return because;
         return FileSystem::describeIoProblem(problem);
@@ -132,6 +132,21 @@ fs::path FileSystem::normalizePath(const fs::path& path)
         result = normalized;
 
     return lexicallyNormalize(result);
+}
+
+fs::path FileSystem::commonPathPrefix(const fs::path& lhs, const fs::path& rhs)
+{
+    fs::path result;
+    auto     lhsIt = lhs.begin();
+    auto     rhsIt = rhs.begin();
+    while (lhsIt != lhs.end() && rhsIt != rhs.end() && *lhsIt == *rhsIt)
+    {
+        result /= *lhsIt;
+        ++lhsIt;
+        ++rhsIt;
+    }
+
+    return result;
 }
 
 const char* FileSystem::filePathDisplayModeName(const FilePathDisplayMode mode)
@@ -340,6 +355,22 @@ bool FileSystem::pathEquals(const fs::path& lhs, const fs::path& rhs)
     return lhs.lexically_normal() == rhs.lexically_normal();
 }
 
+bool FileSystem::pathStartsWith(const fs::path& path, const fs::path& prefix)
+{
+    auto pathIt   = path.begin();
+    auto prefixIt = prefix.begin();
+    while (prefixIt != prefix.end())
+    {
+        if (pathIt == path.end() || *pathIt != *prefixIt)
+            return false;
+
+        ++pathIt;
+        ++prefixIt;
+    }
+
+    return true;
+}
+
 void FileSystem::setDiagnosticPath(Diagnostic& diag, const TaskContext* ctx, const fs::path& path)
 {
     diag.addArgument(Diagnostic::ARG_PATH, formatDiagnosticPath(ctx, path));
@@ -349,11 +380,6 @@ void FileSystem::setDiagnosticPathAndBecause(Diagnostic& diag, const TaskContext
 {
     setDiagnosticPath(diag, ctx, path);
     diag.addArgument(Diagnostic::ARG_BECAUSE, because);
-}
-
-Utf8 FileSystem::currentSystemMessage()
-{
-    return Os::systemError();
 }
 
 Utf8 FileSystem::describePathProblem(const PathProblem problem)

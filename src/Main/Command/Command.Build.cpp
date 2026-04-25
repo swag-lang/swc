@@ -9,9 +9,9 @@
 
 SWC_BEGIN_NAMESPACE();
 
-namespace
+namespace Command
 {
-    void runNativeCommand(CompilerInstance& compiler, const bool runArtifact)
+    void build(CompilerInstance& compiler)
     {
         const TaskContext ctx(compiler);
         TimedActionLog::printBuildConfiguration(ctx);
@@ -24,27 +24,31 @@ namespace
         compiler.buildCfg().backendKind = backendKind;
 
         TaskContext          nativeCtx(compiler);
-        NativeBackendBuilder builder(compiler, runArtifact && backendKind == Runtime::BuildCfgBackendKind::Executable);
+        NativeBackendBuilder builder(compiler, false);
         if (CommandRun::afterPauses(nativeCtx, [&] {
                 return builder.run();
             }) != Result::Continue)
             return;
-
-        if (Stats::hasError())
-            return;
-    }
-}
-
-namespace Command
-{
-    void build(CompilerInstance& compiler)
-    {
-        runNativeCommand(compiler, false);
     }
 
     void run(CompilerInstance& compiler)
     {
-        runNativeCommand(compiler, true);
+        const TaskContext ctx(compiler);
+        TimedActionLog::printBuildConfiguration(ctx);
+        const uint64_t errorsBefore = Stats::getNumErrors();
+        Command::sema(compiler);
+        if (Stats::getNumErrors() != errorsBefore)
+            return;
+
+        const Runtime::BuildCfgBackendKind backendKind = effectiveBackendKind(compiler.cmdLine(), compiler.buildCfg().backendKind);
+        compiler.buildCfg().backendKind = backendKind;
+
+        TaskContext          nativeCtx(compiler);
+        NativeBackendBuilder builder(compiler, backendKind == Runtime::BuildCfgBackendKind::Executable);
+        if (CommandRun::afterPauses(nativeCtx, [&] {
+                return builder.run();
+            }) != Result::Continue)
+            return;
     }
 }
 

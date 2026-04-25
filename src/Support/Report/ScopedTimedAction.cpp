@@ -4,6 +4,7 @@
 #include "Backend/RuntimeName.h"
 #include "Main/Command/CommandLine.h"
 #include "Main/CompilerInstance.h"
+#include "Main/FileSystem.h"
 #include "Main/Global.h"
 #include "Main/Stats.h"
 #include "Support/Core/Timer.h"
@@ -241,21 +242,6 @@ namespace
 
     // ── Source root formatting ──────────────────────────────────────────
 
-    fs::path commonPathPrefix(const fs::path& lhs, const fs::path& rhs)
-    {
-        fs::path result;
-        auto     itLhs = lhs.begin();
-        auto     itRhs = rhs.begin();
-        while (itLhs != lhs.end() && itRhs != rhs.end() && *itLhs == *itRhs)
-        {
-            result /= *itLhs;
-            ++itLhs;
-            ++itRhs;
-        }
-
-        return result;
-    }
-
     Utf8 displayPath(const fs::path& path)
     {
         std::error_code ec;
@@ -284,7 +270,7 @@ namespace
             if (commonRoot.empty())
                 commonRoot = normalized;
             else
-                commonRoot = commonPathPrefix(commonRoot, normalized);
+                commonRoot = FileSystem::commonPathPrefix(commonRoot, normalized);
 
             labels.push_back(displayPath(normalized));
         }

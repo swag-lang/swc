@@ -9,33 +9,15 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    bool isWaitingJobForClient(const JobRecord* rec, const JobClientId client)
-    {
-        return rec && rec->clientId == client && rec->state == JobRecord::State::Waiting;
-    }
-
-    bool compareJobRecordIndex(const JobRecord* lhs, const JobRecord* rhs)
-    {
-        return lhs->index < rhs->index;
-    }
-
     template<typename T>
     void collectWaitingRecordsForClient(std::vector<T*>& out, const std::unordered_set<JobRecord*>& liveRecs, const JobClientId client)
     {
         out.reserve(liveRecs.size());
         for (JobRecord* rec : liveRecs)
         {
-            if (isWaitingJobForClient(rec, client))
+            if (rec && rec->clientId == client && rec->state == JobRecord::State::Waiting)
                 out.push_back(static_cast<T*>(rec));
         }
-    }
-
-    std::size_t readyRunningCountForClient(const std::unordered_map<JobClientId, std::size_t>& readyRunning, const JobClientId client)
-    {
-        const auto it = readyRunning.find(client);
-        if (it == readyRunning.end())
-            return 0;
-        return it->second;
     }
 }
 
@@ -187,7 +169,7 @@ void JobManager::waitingJobs(std::vector<Job*>& waiting, JobClientId client) con
 
     std::vector<const JobRecord*> temp;
     collectWaitingRecordsForClient(temp, liveRecs_, client);
-    std::ranges::sort(temp, compareJobRecordIndex);
+    std::ranges::sort(temp, [](const JobRecord* lhs, const JobRecord* rhs) { return lhs->index < rhs->index; });
 
     for (const JobRecord* t : temp)
         waiting.push_back(t->job);
@@ -317,7 +299,7 @@ bool JobManager::wakeAll(JobClientId client)
     {
         std::vector<JobRecord*> temp;
         collectWaitingRecordsForClient(temp, liveRecs_, client);
-        std::ranges::sort(temp, compareJobRecordIndex);
+        std::ranges::sort(temp, [](const JobRecord* lhs, const JobRecord* rhs) { return lhs->index < rhs->index; });
         for (JobRecord* rec : temp)
         {
             rec->state = JobRecord::State::Ready;
@@ -356,7 +338,8 @@ void JobManager::waitAll(JobClientId client)
         // Existing multithreaded behavior
         std::unique_lock lk(mtx_);
         idleCv_.wait(lk, [&] {
-            return readyRunningCountForClient(clientReadyRunning_, client) == 0;
+            const auto it = clientReadyRunning_.find(client);
+            return it == clientReadyRunning_.end() || it->second == 0;
         });
         return;
     }
@@ -370,7 +353,8 @@ void JobManager::waitAll(JobClientId client)
         {
             const std::unique_lock lk(mtx_);
 
-            if (readyRunningCountForClient(clientReadyRunning_, client) == 0)
+            const auto it = clientReadyRunning_.find(client);
+            if (it == clientReadyRunning_.end() || it->second == 0)
                 break;
 
             rec = popReadyForClientLocked(client);

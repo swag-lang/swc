@@ -80,11 +80,6 @@ namespace
         return *it->second;
     }
 
-    bool comparePeakBytesDesc(const TreeNode* lhs, const TreeNode* rhs)
-    {
-        return lhs->peakBytes > rhs->peakBytes;
-    }
-
     void insertIntoTree(TreeNode& root, const MemoryProfile::CategorySnapshot& snap)
     {
         TreeNode*        node = &root;
@@ -187,7 +182,7 @@ namespace
         sorted.reserve(node.children.size());
         for (const auto& child : node.children | std::views::values)
             sorted.push_back(child.get());
-        std::ranges::sort(sorted, comparePeakBytesDesc);
+        std::ranges::sort(sorted, [](const TreeNode* lhs, const TreeNode* rhs) { return lhs->peakBytes > rhs->peakBytes; });
 
         for (const TreeNode* child : sorted)
         {

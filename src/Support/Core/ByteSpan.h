@@ -36,6 +36,17 @@ inline ByteSpanR asByteSpan(ByteSpanRW v) noexcept
     return {v.data(), v.size()};
 }
 
+inline bool allZeroBytes(ByteSpanR v) noexcept
+{
+    for (const std::byte value : v)
+    {
+        if (value != std::byte{})
+            return false;
+    }
+
+    return true;
+}
+
 inline std::string_view asStringView(ByteSpanR v) noexcept
 {
     return {reinterpret_cast<const char*>(v.data()), v.size()};

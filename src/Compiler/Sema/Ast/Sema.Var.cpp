@@ -46,17 +46,6 @@ namespace
         return !owner || !owner->isStruct();
     }
 
-    bool isAllZeroBytes(ByteSpan bytes)
-    {
-        for (const std::byte value : bytes)
-        {
-            if (value != std::byte{})
-                return false;
-        }
-
-        return true;
-    }
-
     DataSegment& globalStorageSegment(CompilerInstance& compiler, DataSegmentKind kind)
     {
         switch (kind)
@@ -186,7 +175,7 @@ namespace
             const ByteSpanRW loweredBytesWrite{loweredBytes.data(), loweredBytes.size()};
             SWC_RESULT(ConstantLower::lowerToBytes(sema, loweredBytesWrite, symVar.cstRef(), storageTypeRef));
 
-            if (!isCompilerGlobal && !isAllZeroBytes(loweredBytes))
+            if (!isCompilerGlobal && !allZeroBytes(loweredBytes))
                 storageKind = DataSegmentKind::GlobalInit;
             else if (!isCompilerGlobal)
                 storageKind = DataSegmentKind::GlobalZero;

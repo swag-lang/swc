@@ -20,11 +20,6 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    bool shouldRunNativeTests(const CommandLine& cmdLine)
-    {
-        return cmdLine.testNative && cmdLine.output;
-    }
-
     bool hasJitEligibleInputs(const CompilerInstance& compiler)
     {
         for (SourceFile* file : compiler.files())
@@ -492,7 +487,7 @@ namespace
         if (compiler.cmdLine().testJit && !runJitTests(compiler))
             return false;
 
-        if (shouldRunNativeTests(compiler.cmdLine()) && hasArtifactEntryPoints(compiler))
+        if (compiler.cmdLine().testNative && compiler.cmdLine().output && hasArtifactEntryPoints(compiler))
             return runNativeBackends(compiler);
 
         TaskContext                 ctx(compiler);

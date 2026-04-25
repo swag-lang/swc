@@ -168,10 +168,6 @@ namespace
         return lhs.arg->description < rhs.arg->description;
     }
 
-    bool commandInfoLess(const CommandInfo& lhs, const CommandInfo& rhs)
-    {
-        return Utf8(lhs.name) < Utf8(rhs.name);
-    }
 }
 
 void CommandLineParser::printHelp(const TaskContext& ctx, const Utf8& command)
@@ -197,7 +193,7 @@ void CommandLineParser::printHelp(const TaskContext& ctx, const Utf8& command)
 
         entries.clear();
         std::vector commands(std::begin(COMMANDS), std::end(COMMANDS));
-        std::ranges::sort(commands, commandInfoLess);
+        std::ranges::sort(commands, [](const CommandInfo& lhs, const CommandInfo& rhs) { return Utf8(lhs.name) < Utf8(rhs.name); });
         for (const CommandInfo& cmd : commands)
             addInfoEntry(entries, cmd.name, cmd.description, LogColor::White, 0, helpArgumentLabelColor());
         Logger::printFieldGroup(ctx, "Commands", entries, nextHelpGroupStyle(hasPrintedGroup, 12));

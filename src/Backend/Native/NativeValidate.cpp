@@ -11,17 +11,6 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    bool isZeroFilled(const ByteSpan bytes)
-    {
-        for (const auto byte : bytes)
-        {
-            if (byte != std::byte{0})
-                return false;
-        }
-
-        return true;
-    }
-
     void validateFunctionSymbolRelocation(const NativeBackendBuilder& builder, const SymbolFunction* target)
     {
         SWC_ASSERT(target != nullptr);
@@ -268,7 +257,7 @@ void NativeValidate::validateNativeStaticPayload(const TypeRef typeRef, const ui
 
     if (typeInfo.isInterface())
     {
-        SWC_ASSERT(isZeroFilled(bytes));
+        SWC_ASSERT(allZeroBytes(bytes));
         return;
     }
 
@@ -441,7 +430,7 @@ void NativeValidate::validateNativeStaticPayload(const TypeRef typeRef, const ui
         const auto* value = reinterpret_cast<const Runtime::ClosureValue*>(bytes.data());
         if (!value->invoke)
         {
-            SWC_ASSERT(isZeroFilled(bytes));
+            SWC_ASSERT(allZeroBytes(bytes));
             return;
         }
 

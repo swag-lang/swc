@@ -41,6 +41,8 @@ namespace FileSystem
     };
 
     const char* filePathDisplayModeName(FilePathDisplayMode mode);
+    fs::path    absolutePathNoThrow(const fs::path& path);
+    fs::path    currentPathNoThrow();
     fs::path normalizePath(const fs::path& path);
     Utf8     formatDiagnosticPath(const TaskContext* ctx, const fs::path& path);
     Result   normalizeAbsolutePath(fs::path& path, Utf8& because);

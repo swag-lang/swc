@@ -16,23 +16,6 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    Utf8 objectFileName(const Utf8& name, const Utf8& extension, const uint32_t objectIndex)
-    {
-        return std::format("{}_{:02}{}", name, objectIndex, extension);
-    }
-
-    fs::path absolutePathNoThrow(const fs::path& path)
-    {
-        if (path.empty())
-            return {};
-
-        std::error_code ec;
-        const fs::path  absolutePath = fs::absolute(path, ec);
-        if (ec)
-            return path.lexically_normal();
-        return absolutePath.lexically_normal();
-    }
-
     void appendInputRoots(std::vector<fs::path>& outRoots, const std::set<fs::path>& inputs, const bool useParentDirectory)
     {
         for (const fs::path& input : inputs)
@@ -41,7 +24,7 @@ namespace
             if (root.empty())
                 root = input;
 
-            root = absolutePathNoThrow(root);
+            root = FileSystem::absolutePathNoThrow(root);
             if (!root.empty())
                 outRoots.push_back(root);
         }
@@ -66,7 +49,7 @@ namespace
     {
         std::vector<fs::path> roots;
         if (!cmdLine.modulePath.empty())
-            roots.push_back(absolutePathNoThrow(cmdLine.modulePath.parent_path()));
+            roots.push_back(FileSystem::absolutePathNoThrow(cmdLine.modulePath.parent_path()));
 
         appendInputRoots(roots, cmdLine.files, true);
         appendInputRoots(roots, cmdLine.directories, false);
@@ -85,15 +68,6 @@ namespace
         if (!root.empty() && root != root.root_path())
             return root;
         return roots.front();
-    }
-
-    fs::path currentPathNoThrow()
-    {
-        std::error_code ec;
-        const fs::path  currentDir = fs::current_path(ec);
-        if (ec)
-            return {};
-        return currentDir.lexically_normal();
     }
 }
 
@@ -175,7 +149,7 @@ void NativeArtifactBuilder::queryPaths(NativeArtifactPaths& outPaths, const uint
     {
         fs::path sourceRoot = inputRootPath(builder_->ctx().cmdLine());
         if (sourceRoot.empty())
-            sourceRoot = currentPathNoThrow();
+            sourceRoot = FileSystem::currentPathNoThrow();
         outPaths.workDir = sourceRoot / ".output" / automaticWorkDirName(outPaths.name).c_str();
     }
 
@@ -192,7 +166,7 @@ void NativeArtifactBuilder::queryPaths(NativeArtifactPaths& outPaths, const uint
     outPaths.objectPaths.reserve(numObjects);
     const Utf8 objectExt = objectExtension();
     for (uint32_t i = 0; i < numObjects; ++i)
-        outPaths.objectPaths.push_back(outPaths.buildDir / objectFileName(outPaths.name, objectExt, i).c_str());
+        outPaths.objectPaths.push_back(outPaths.buildDir / std::format("{}_{:02}{}", outPaths.name, i, objectExt).c_str());
 }
 
 Result NativeArtifactBuilder::clearOutputFolders(const NativeArtifactPaths& paths) const

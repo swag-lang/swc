@@ -167,6 +167,27 @@ const char* FileSystem::filePathDisplayModeName(const FilePathDisplayMode mode)
     SWC_UNREACHABLE();
 }
 
+fs::path FileSystem::absolutePathNoThrow(const fs::path& path)
+{
+    if (path.empty())
+        return {};
+
+    std::error_code ec;
+    const fs::path  absolutePath = fs::absolute(path, ec);
+    if (ec)
+        return path.lexically_normal();
+    return absolutePath.lexically_normal();
+}
+
+fs::path FileSystem::currentPathNoThrow()
+{
+    std::error_code ec;
+    const fs::path  currentDir = fs::current_path(ec);
+    if (ec)
+        return {};
+    return currentDir.lexically_normal();
+}
+
 Utf8 FileSystem::formatDiagnosticPath(const TaskContext* ctx, const fs::path& path)
 {
     switch (resolveDisplayMode(ctx))

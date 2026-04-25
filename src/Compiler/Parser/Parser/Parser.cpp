@@ -7,20 +7,6 @@
 
 SWC_BEGIN_NAMESPACE();
 
-namespace
-{
-    Utf8 makeArgumentCountText(uint32_t count, bool atLeast)
-    {
-        Utf8 result;
-        if (atLeast)
-            result += "at least ";
-
-        result += std::to_string(count);
-        result += count == 1 ? " argument" : " arguments";
-        return result;
-    }
-}
-
 AstNodeRef Parser::parseGeneratedValue(const ParserGeneratedMode mode)
 {
     switch (mode)
@@ -213,7 +199,10 @@ Diagnostic Parser::reportArgumentCountError(DiagnosticId id, TokenRef calleeRef,
     setReportSymbol(diag, calleeRef);
     diag.addArgument(Diagnostic::ARG_COUNT, expectedCount);
     diag.addArgument(Diagnostic::ARG_VALUE, actualCount);
-    diag.addArgument(Diagnostic::ARG_WHAT, makeArgumentCountText(expectedCount, atLeast));
+    Utf8 expectedWhat = atLeast ? Utf8("at least ") : Utf8{};
+    expectedWhat += std::to_string(expectedCount);
+    expectedWhat += expectedCount == 1 ? " argument" : " arguments";
+    diag.addArgument(Diagnostic::ARG_WHAT, expectedWhat);
     return diag;
 }
 
@@ -223,7 +212,10 @@ Diagnostic Parser::reportArgumentCountError(DiagnosticId id, TokenRef calleeRef,
     setReportSymbol(diag, calleeRef);
     diag.addArgument(Diagnostic::ARG_COUNT, expectedCount);
     diag.addArgument(Diagnostic::ARG_VALUE, actualCount);
-    diag.addArgument(Diagnostic::ARG_WHAT, makeArgumentCountText(expectedCount, atLeast));
+    Utf8 expectedWhat = atLeast ? Utf8("at least ") : Utf8{};
+    expectedWhat += std::to_string(expectedCount);
+    expectedWhat += expectedCount == 1 ? " argument" : " arguments";
+    diag.addArgument(Diagnostic::ARG_WHAT, expectedWhat);
     return diag;
 }
 

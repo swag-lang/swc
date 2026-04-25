@@ -30,11 +30,6 @@ namespace
         }
     }
 
-    bool shouldForwardSharedLibraryLinkerOutputLine(std::string_view line)
-    {
-        return NativeLinkerCoff::shouldForwardLinkerOutputLine(line, true);
-    }
-
 }
 
 NativeLinkerCoff::NativeLinkerCoff(NativeBackendBuilder& builder) :
@@ -83,7 +78,7 @@ Result NativeLinkerCoff::link()
         case Runtime::BuildCfgBackendKind::SharedLibrary:
             args                     = buildLinkArguments(true);
             exePath                  = &toolchain_.linkExe;
-            options.outputLineFilter = shouldForwardSharedLibraryLinkerOutputLine;
+            options.outputLineFilter = [](std::string_view line) { return NativeLinkerCoff::shouldForwardLinkerOutputLine(line, true); };
             runOptions = &options;
             break;
         case Runtime::BuildCfgBackendKind::StaticLibrary:

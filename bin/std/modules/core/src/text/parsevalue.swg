@@ -152,7 +152,7 @@ public func parseValue(addr: *void, type: typeinfo, buf: string)->string throw
             throw OverflowError{}
         dref cast(*s32) patch = val
 
-    case s64, s64:
+    case s64:
         var val: s64 = undefined
         (val, eat, ovf) = parseS64(one)
         if ovf do
@@ -180,7 +180,7 @@ public func parseValue(addr: *void, type: typeinfo, buf: string)->string throw
             throw OverflowError{}
         dref cast(*u32) patch = val
 
-    case u64, u64:
+    case u64:
         var val: u64 = undefined
         (val, eat, ovf) = parseU64(one)
         if ovf do

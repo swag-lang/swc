@@ -9,6 +9,28 @@ SWC_BEGIN_NAMESPACE();
 
 namespace SemaGeneric
 {
+    void appendCollectedGenericParam(Sema& sema, const AstNode& paramNode, AstNodeRef paramRef, SmallVector<GenericParamDesc>& outParams)
+    {
+        GenericParamDesc desc;
+        desc.paramRef = paramRef;
+        desc.idRef    = SemaHelpers::resolveIdentifier(sema, paramNode.codeRef());
+
+        if (const auto* nodeType = paramNode.safeCast<AstGenericParamType>())
+        {
+            desc.kind       = GenericParamKind::Type;
+            desc.defaultRef = nodeType->nodeAssignRef;
+        }
+        else
+        {
+            const auto& nodeValue = paramNode.cast<AstGenericParamValue>();
+            desc.kind             = GenericParamKind::Value;
+            desc.explicitType     = nodeValue.nodeTypeRef;
+            desc.defaultRef       = nodeValue.nodeAssignRef;
+        }
+
+        outParams.push_back(desc);
+    }
+
     void collectGenericParams(Sema& sema, const AstNode& declNode, SpanRef spanRef, SmallVector<GenericParamDesc>& outParams)
     {
         outParams.clear();
@@ -23,28 +45,7 @@ namespace SemaGeneric
         outParams.reserve(params.size());
 
         for (const AstNodeRef paramRef : params)
-        {
-            const AstNode& paramNode = ast.node(paramRef);
-
-            GenericParamDesc desc;
-            desc.paramRef = paramRef;
-            desc.idRef    = SemaHelpers::resolveIdentifier(sema, paramNode.codeRef());
-
-            if (const auto* nodeType = paramNode.safeCast<AstGenericParamType>())
-            {
-                desc.kind       = GenericParamKind::Type;
-                desc.defaultRef = nodeType->nodeAssignRef;
-            }
-            else
-            {
-                const auto& nodeValue = paramNode.cast<AstGenericParamValue>();
-                desc.kind             = GenericParamKind::Value;
-                desc.explicitType     = nodeValue.nodeTypeRef;
-                desc.defaultRef       = nodeValue.nodeAssignRef;
-            }
-
-            outParams.push_back(desc);
-        }
+            appendCollectedGenericParam(sema, ast.node(paramRef), paramRef, outParams);
     }
 
     void prepareGenericInstantiationContext(Sema& sema, SymbolMap* startSymMap, const SymbolImpl* impl, const SymbolInterface* itf, const AttributeList& attrs)
@@ -92,28 +93,7 @@ namespace SemaGeneric
         sema.ast().appendNodes(params, spanRef);
         outParams.reserve(params.size());
         for (const AstNodeRef paramRef : params)
-        {
-            const AstNode& paramNode = sema.node(paramRef);
-
-            GenericParamDesc desc;
-            desc.paramRef = paramRef;
-            desc.idRef    = SemaHelpers::resolveIdentifier(sema, paramNode.codeRef());
-
-            if (const auto* nodeType = paramNode.safeCast<AstGenericParamType>())
-            {
-                desc.kind       = GenericParamKind::Type;
-                desc.defaultRef = nodeType->nodeAssignRef;
-            }
-            else
-            {
-                const auto& nodeValue = paramNode.cast<AstGenericParamValue>();
-                desc.kind             = GenericParamKind::Value;
-                desc.explicitType     = nodeValue.nodeTypeRef;
-                desc.defaultRef       = nodeValue.nodeAssignRef;
-            }
-
-            outParams.push_back(desc);
-        }
+            appendCollectedGenericParam(sema, sema.node(paramRef), paramRef, outParams);
     }
 
     void appendResolvedGenericBinding(const GenericParamDesc& param, const GenericResolvedArg& arg, SmallVector<SemaClone::ParamBinding>& outBindings)

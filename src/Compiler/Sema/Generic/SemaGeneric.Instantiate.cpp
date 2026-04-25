@@ -16,6 +16,9 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    const AstFunctionDecl* genericFunctionDecl(const SymbolFunction& root);
+    const AstStructDecl*   genericStructDecl(const SymbolStruct& root);
+
     const SymbolFunction* declContextRoot(const SymbolFunction& function)
     {
         if (const auto* root = function.genericRootSym())
@@ -97,6 +100,47 @@ namespace
                 resolvedArg.typeRef = sema.cstMgr().get(resolvedArg.cstRef).typeRef();
             SemaGeneric::appendResolvedGenericBinding(params[i], resolvedArg, outBindings);
         }
+    }
+
+    bool loadFunctionInstanceGenericArgs(Sema& sema, const SymbolFunction& function, SmallVector<SemaGeneric::GenericParamDesc>& outParams, SmallVector<GenericInstanceKey>& outArgs)
+    {
+        if (!function.isGenericInstance())
+            return false;
+
+        const SymbolFunction* root = function.genericRootSym();
+        if (!root)
+            return false;
+
+        const auto* decl = genericFunctionDecl(*root);
+        if (!decl || decl->spanGenericParamsRef.isInvalid())
+            return false;
+
+        SemaGeneric::collectGenericParams(sema, *decl, decl->spanGenericParamsRef, outParams);
+        if (outParams.empty())
+            return false;
+
+        return root->genericInstanceStorage(sema.ctx()).tryGetArgs(function, outArgs);
+    }
+
+    bool loadOwnerStructGenericArgs(Sema& sema, const SymbolFunction& function, SmallVector<SemaGeneric::GenericParamDesc>& outParams, SmallVector<GenericInstanceKey>& outArgs)
+    {
+        const SymbolStruct* ownerInstance = function.ownerStruct();
+        if (!ownerInstance || !ownerInstance->isGenericInstance())
+            return false;
+
+        const SymbolStruct* ownerRoot = ownerInstance->genericRootSym();
+        if (!ownerRoot)
+            return false;
+
+        const auto* decl = genericStructDecl(*ownerRoot);
+        if (!decl || decl->spanGenericParamsRef.isInvalid())
+            return false;
+
+        SemaGeneric::collectGenericParams(sema, *decl, decl->spanGenericParamsRef, outParams);
+        if (outParams.empty())
+            return false;
+
+        return ownerRoot->tryGetGenericInstanceArgs(*ownerInstance, outArgs);
     }
 
     SymbolFlags clonedGenericSymbolFlags(const Symbol& root)
@@ -186,49 +230,19 @@ namespace
 
     void appendEnclosingFunctionGenericCloneBindings(Sema& sema, const SymbolFunction& root, SmallVector<SemaClone::ParamBinding>& outBindings)
     {
-        const SymbolStruct* ownerInstance = root.ownerStruct();
-        if (!ownerInstance || !ownerInstance->isGenericInstance())
-            return;
-
-        const SymbolStruct* ownerRoot = ownerInstance->genericRootSym();
-        if (!ownerRoot)
-            return;
-
-        const auto* structDecl = ownerRoot->decl() ? ownerRoot->decl()->safeCast<AstStructDecl>() : nullptr;
-        if (!structDecl || !structDecl->spanGenericParamsRef.isValid())
-            return;
-
         SmallVector<SemaGeneric::GenericParamDesc> ownerParams;
-        SemaGeneric::collectGenericParams(sema, *structDecl, structDecl->spanGenericParamsRef, ownerParams);
-        if (ownerParams.empty())
+        SmallVector<GenericInstanceKey> ownerArgs;
+        if (!loadOwnerStructGenericArgs(sema, root, ownerParams, ownerArgs))
             return;
 
-        SmallVector<GenericInstanceKey> ownerArgs;
-        if (!ownerRoot->tryGetGenericInstanceArgs(*ownerInstance, ownerArgs))
-            return;
         appendGenericInstanceCloneBindings(sema, ownerParams.span(), ownerArgs.span(), outBindings);
     }
 
     void appendFunctionInstanceCloneBindings(Sema& sema, const SymbolFunction& function, SmallVector<SemaClone::ParamBinding>& outBindings)
     {
-        if (!function.isGenericInstance())
-            return;
-
-        const SymbolFunction* root = function.genericRootSym();
-        if (!root)
-            return;
-
-        const auto* decl = genericFunctionDecl(*root);
-        if (!decl || decl->spanGenericParamsRef.isInvalid())
-            return;
-
         SmallVector<SemaGeneric::GenericParamDesc> params;
-        SemaGeneric::collectGenericParams(sema, *decl, decl->spanGenericParamsRef, params);
-        if (params.empty())
-            return;
-
         SmallVector<GenericInstanceKey> args;
-        if (!root->genericInstanceStorage(sema.ctx()).tryGetArgs(function, args))
+        if (!loadFunctionInstanceGenericArgs(sema, function, params, args))
             return;
 
         appendGenericInstanceCloneBindings(sema, params.span(), args.span(), outBindings);
@@ -344,24 +358,9 @@ namespace
 
     void appendFunctionInstanceBindingText(Sema& sema, const SymbolFunction& function, SmallVector<IdentifierRef>& seenIds, Utf8& out)
     {
-        if (!function.isGenericInstance())
-            return;
-
-        const SymbolFunction* root = function.genericRootSym();
-        if (!root)
-            return;
-
-        const auto* decl = genericFunctionDecl(*root);
-        if (!decl || decl->spanGenericParamsRef.isInvalid())
-            return;
-
         SmallVector<SemaGeneric::GenericParamDesc> params;
-        SemaGeneric::collectGenericParams(sema, *decl, decl->spanGenericParamsRef, params);
-        if (params.empty())
-            return;
-
         SmallVector<GenericInstanceKey> args;
-        if (!root->genericInstanceStorage(sema.ctx()).tryGetArgs(function, args))
+        if (!loadFunctionInstanceGenericArgs(sema, function, params, args))
             return;
 
         appendGenericInstanceBindingText(sema, params.span(), args.span(), seenIds, out);
@@ -369,25 +368,9 @@ namespace
 
     void appendOwnerStructBindingText(Sema& sema, const SymbolFunction& function, SmallVector<IdentifierRef>& seenIds, Utf8& out)
     {
-        const SymbolStruct* ownerInstance = function.ownerStruct();
-        if (!ownerInstance || !ownerInstance->isGenericInstance())
-            return;
-
-        const SymbolStruct* ownerRoot = ownerInstance->genericRootSym();
-        if (!ownerRoot)
-            return;
-
-        const auto* decl = genericStructDecl(*ownerRoot);
-        if (!decl || decl->spanGenericParamsRef.isInvalid())
-            return;
-
         SmallVector<SemaGeneric::GenericParamDesc> params;
-        SemaGeneric::collectGenericParams(sema, *decl, decl->spanGenericParamsRef, params);
-        if (params.empty())
-            return;
-
         SmallVector<GenericInstanceKey> args;
-        if (!ownerRoot->tryGetGenericInstanceArgs(*ownerInstance, args))
+        if (!loadOwnerStructGenericArgs(sema, function, params, args))
             return;
 
         appendGenericInstanceBindingText(sema, params.span(), args.span(), seenIds, out);

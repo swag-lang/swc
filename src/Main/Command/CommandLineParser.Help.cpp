@@ -23,6 +23,47 @@ namespace
         HelpOptionGroup group = HelpOptionGroup::Other;
     };
 
+    const char* helpOptionGroupName(const HelpOptionGroup group)
+    {
+        switch (group)
+        {
+            case HelpOptionGroup::Input:
+                return "Input";
+            case HelpOptionGroup::Target:
+                return "Target";
+            case HelpOptionGroup::Compiler:
+                return "Compiler";
+            case HelpOptionGroup::Diagnostics:
+                return "Diagnostics";
+            case HelpOptionGroup::Logging:
+                return "Logging";
+            case HelpOptionGroup::Testing:
+                return "Testing";
+            case HelpOptionGroup::Development:
+                return "Development";
+            case HelpOptionGroup::Other:
+                return "Other";
+        }
+
+        SWC_UNREACHABLE();
+    }
+
+    template<typename Range, typename ValueFn>
+    Utf8 formatJoinedDefaultValues(const Range& values, ValueFn valueFn)
+    {
+        Utf8 result;
+        bool first = true;
+        for (const auto& value : values)
+        {
+            if (!first)
+                result += ", ";
+            result += valueFn(value);
+            first = false;
+        }
+
+        return result.empty() ? Utf8("(none)") : result;
+    }
+
     Utf8 defaultValueToString(const ArgInfo& arg)
     {
         if (auto* t = std::get_if<bool*>(&arg.target))
@@ -39,47 +80,11 @@ namespace
             return value.empty() ? Utf8("(none)") : value;
         }
         if (auto* t = std::get_if<std::vector<Utf8>*>(&arg.target))
-        {
-            Utf8 value;
-            bool first = true;
-            for (const Utf8& entry : **t)
-            {
-                if (!first)
-                    value += ", ";
-                value += entry;
-                first = false;
-            }
-
-            return value.empty() ? Utf8("(none)") : value;
-        }
+            return formatJoinedDefaultValues(**t, [](const Utf8& entry) -> const Utf8& { return entry; });
         if (auto* t = std::get_if<std::set<Utf8>*>(&arg.target))
-        {
-            Utf8 value;
-            bool first = true;
-            for (const Utf8& entry : **t)
-            {
-                if (!first)
-                    value += ", ";
-                value += entry;
-                first = false;
-            }
-
-            return value.empty() ? Utf8("(none)") : value;
-        }
+            return formatJoinedDefaultValues(**t, [](const Utf8& entry) -> const Utf8& { return entry; });
         if (auto* t = std::get_if<std::set<fs::path>*>(&arg.target))
-        {
-            Utf8 value;
-            bool first = true;
-            for (const fs::path& entry : **t)
-            {
-                if (!first)
-                    value += ", ";
-                value += entry.string();
-                first = false;
-            }
-
-            return value.empty() ? Utf8("(none)") : value;
-        }
+            return formatJoinedDefaultValues(**t, [](const fs::path& entry) { return Utf8(entry.string()); });
         if (auto* t = std::get_if<std::optional<bool>*>(&arg.target))
         {
             if (!(*t)->has_value())
@@ -180,35 +185,7 @@ void CommandLineParser::printHelp(const TaskContext& ctx, const Utf8& command)
         {
             if (!groupEntries.empty())
             {
-                const char* groupName = "Other";
-                switch (currentGroup)
-                {
-                    case HelpOptionGroup::Input:
-                        groupName = "Input";
-                        break;
-                    case HelpOptionGroup::Target:
-                        groupName = "Target";
-                        break;
-                    case HelpOptionGroup::Compiler:
-                        groupName = "Compiler";
-                        break;
-                    case HelpOptionGroup::Diagnostics:
-                        groupName = "Diagnostics";
-                        break;
-                    case HelpOptionGroup::Logging:
-                        groupName = "Logging";
-                        break;
-                    case HelpOptionGroup::Testing:
-                        groupName = "Testing";
-                        break;
-                    case HelpOptionGroup::Development:
-                        groupName = "Development";
-                        break;
-                    case HelpOptionGroup::Other:
-                        break;
-                }
-
-                Logger::printFieldGroup(ctx, groupName, groupEntries, nextHelpGroupStyle(hasPrintedGroup, 34));
+                Logger::printFieldGroup(ctx, helpOptionGroupName(currentGroup), groupEntries, nextHelpGroupStyle(hasPrintedGroup, 34));
                 groupEntries.clear();
             }
 
@@ -235,37 +212,7 @@ void CommandLineParser::printHelp(const TaskContext& ctx, const Utf8& command)
     }
 
     if (!groupEntries.empty())
-    {
-        const char* groupName = "Other";
-        switch (currentGroup)
-        {
-            case HelpOptionGroup::Input:
-                groupName = "Input";
-                break;
-            case HelpOptionGroup::Target:
-                groupName = "Target";
-                break;
-            case HelpOptionGroup::Compiler:
-                groupName = "Compiler";
-                break;
-            case HelpOptionGroup::Diagnostics:
-                groupName = "Diagnostics";
-                break;
-            case HelpOptionGroup::Logging:
-                groupName = "Logging";
-                break;
-            case HelpOptionGroup::Testing:
-                groupName = "Testing";
-                break;
-            case HelpOptionGroup::Development:
-                groupName = "Development";
-                break;
-            case HelpOptionGroup::Other:
-                break;
-        }
-
-        Logger::printFieldGroup(ctx, groupName, groupEntries, nextHelpGroupStyle(hasPrintedGroup, 34));
-    }
+        Logger::printFieldGroup(ctx, helpOptionGroupName(currentGroup), groupEntries, nextHelpGroupStyle(hasPrintedGroup, 34));
 
     command_ = oldCommand;
 }

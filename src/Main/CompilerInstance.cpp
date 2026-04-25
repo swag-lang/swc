@@ -189,22 +189,6 @@ namespace
         std::unique_ptr<Sema> sema;
     };
 
-    TypeRef compilerMessageEventTypeRef(const CompilerInstance::CompilerMessageEvent& event)
-    {
-        if (!event.symbol)
-            return TypeRef::invalid();
-
-        return event.symbol->typeRef();
-    }
-
-    bool canPrepareCompilerMessageTypeInfo(const CompilerInstance& compiler, const SymbolFunction* listenerFunction, AstNodeRef ownerNodeRef)
-    {
-        if (!listenerFunction || ownerNodeRef.isInvalid())
-            return false;
-
-        return sourceFileFromRef(compiler, listenerFunction->srcViewRef()) != nullptr;
-    }
-
     thread_local CompilerMessageDispatchState* g_CompilerMessageDispatchState = nullptr;
 
     struct ScopedCompilerMessageDispatchState
@@ -269,11 +253,6 @@ namespace
         return Result::Continue;
     }
 
-    Runtime::String runtimeString(std::string_view value)
-    {
-        return Runtime::String{.ptr = value.data(), .length = value.size()};
-    }
-
     const SymbolNamespace* firstModuleNamespace(const CompilerInstance& compiler)
     {
         for (const SourceFile* file : compiler.filesSnapshot())
@@ -299,14 +278,6 @@ namespace
         }
 
         return firstModuleNamespace(ctx.compiler());
-    }
-
-    fs::path compilerGeneratedSourceDirectory(const TaskContext& ctx)
-    {
-        if (!ctx.cmdLine().workDir.empty())
-            return ctx.cmdLine().workDir;
-
-        return Os::getTemporaryPath().lexically_normal();
     }
 
     bool isModuleLevelSymbol(const Symbol& symbol)
@@ -558,25 +529,13 @@ namespace
         }
     }
 
-    std::string_view compilerMessageModuleName(const TaskContext& ctx)
-    {
-        if (const SymbolNamespace* moduleNamespace = firstModuleNamespace(ctx.compiler()))
-            return moduleNamespace->name(ctx);
-
-        const Runtime::BuildCfg& buildCfg = ctx.compiler().buildCfg();
-        if (buildCfg.moduleNamespace.ptr && buildCfg.moduleNamespace.length)
-            return {buildCfg.moduleNamespace.ptr, buildCfg.moduleNamespace.length};
-
-        return {};
-    }
-
     Result enqueueGeneratedSource(TaskContext& ctx, std::string_view generatedCode, const SymbolNamespace* moduleNamespace = nullptr)
     {
         if (generatedCode.empty())
             return Result::Continue;
 
         CompilerInstance& compiler  = ctx.compiler();
-        const fs::path    directory = compilerGeneratedSourceDirectory(ctx);
+        const fs::path    directory = !ctx.cmdLine().workDir.empty() ? ctx.cmdLine().workDir : Os::getTemporaryPath().lexically_normal();
 
         CompilerInstance::GeneratedSourceAppendResult appendResult;
         Utf8                                          because;
@@ -1459,11 +1418,11 @@ void CompilerInstance::enqueueCompilerMessageTypeInfoPreparation(TaskContext& ct
     if (compilerMessageTypeInfoPrepFailed_.load(std::memory_order_acquire))
         return;
 
-    const TypeRef typeRef = compilerMessageEventTypeRef(event);
+    const TypeRef typeRef = event.symbol ? event.symbol->typeRef() : TypeRef::invalid();
     if (typeRef.isInvalid())
         return;
 
-    if (!canPrepareCompilerMessageTypeInfo(*this, listenerFunction, ownerNodeRef))
+    if (!listenerFunction || ownerNodeRef.isInvalid() || sourceFileFromRef(*this, listenerFunction->srcViewRef()) == nullptr)
         return;
 
     const SourceFile* listenerFile = sourceFileFromRef(*this, listenerFunction->srcViewRef());
@@ -1502,7 +1461,7 @@ Result CompilerInstance::ensureCompilerMessageTypeInfoPrepared(TaskContext& ctx,
     if (compilerMessageTypeInfoPrepFailed_.load(std::memory_order_acquire))
         return Result::Error;
 
-    const TypeRef typeRef = compilerMessageEventTypeRef(event);
+    const TypeRef typeRef = event.symbol ? event.symbol->typeRef() : TypeRef::invalid();
     if (typeRef.isInvalid())
         return Result::Continue;
 
@@ -1510,7 +1469,7 @@ Result CompilerInstance::ensureCompilerMessageTypeInfoPrepared(TaskContext& ctx,
     if (tryGetCompilerMessageTypeInfo(typeRef, runtimeTypeInfo))
         return Result::Continue;
 
-    if (!canPrepareCompilerMessageTypeInfo(*this, listenerFunction, ownerNodeRef))
+    if (!listenerFunction || ownerNodeRef.isInvalid() || sourceFileFromRef(*this, listenerFunction->srcViewRef()) == nullptr)
         return Result::Continue;
 
     enqueueCompilerMessageTypeInfoPreparation(ctx, listenerFunction, ownerNodeRef, event);
@@ -1550,7 +1509,17 @@ Result CompilerInstance::prepareCompilerMessageTypeInfo(Sema& sema, const TypeRe
 Result CompilerInstance::fillRuntimeCompilerMessage(Sema& sema, const AstNodeRef ownerNodeRef, const CompilerMessageEvent& event)
 {
     Runtime::CompilerMessage& message = runtimeCompilerMessage();
-    message.moduleName                = runtimeString(compilerMessageModuleName(sema.ctx()));
+    std::string_view                  moduleName;
+    if (const SymbolNamespace* moduleNamespace = firstModuleNamespace(sema.ctx().compiler()))
+        moduleName = moduleNamespace->name(sema.ctx());
+    else
+    {
+        const Runtime::BuildCfg& buildCfg = sema.ctx().compiler().buildCfg();
+        if (buildCfg.moduleNamespace.ptr && buildCfg.moduleNamespace.length)
+            moduleName = {buildCfg.moduleNamespace.ptr, buildCfg.moduleNamespace.length};
+    }
+
+    message.moduleName                = Runtime::String{.ptr = moduleName.data(), .length = moduleName.size()};
     message.name                      = {};
     message.type                      = nullptr;
     message.kind                      = event.kind;
@@ -1558,7 +1527,8 @@ Result CompilerInstance::fillRuntimeCompilerMessage(Sema& sema, const AstNodeRef
     if (!event.symbol)
         return Result::Continue;
 
-    message.name = runtimeString(event.symbol->name(sema.ctx()));
+    const std::string_view symbolName = event.symbol->name(sema.ctx());
+    message.name                      = Runtime::String{.ptr = symbolName.data(), .length = symbolName.size()};
 
     const TypeRef typeRef = event.symbol->typeRef();
     if (typeRef.isInvalid())
@@ -1651,7 +1621,7 @@ void CompilerInstance::onSymbolSemaCompleted(Symbol& symbol)
         {
             if (!(listener.mask & compilerMessageBit(event.kind)))
                 continue;
-            if (!canPrepareCompilerMessageTypeInfo(*this, listener.function, listener.nodeRef))
+            if (!listener.function || listener.nodeRef.isInvalid() || sourceFileFromRef(*this, listener.function->srcViewRef()) == nullptr)
                 continue;
 
             preparationFunction = listener.function;

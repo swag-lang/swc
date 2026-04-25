@@ -44,12 +44,6 @@ namespace
         }
     }
 
-    Utf8 trimToolOutput(std::string_view output)
-    {
-        while (!output.empty() && (output.back() == '\n' || output.back() == '\r'))
-            output.remove_suffix(1);
-        return {output};
-    }
 }
 
 NativeLinker::NativeLinker(NativeBackendBuilder& builder) :
@@ -111,7 +105,10 @@ Result NativeLinker::runToolAndValidateArtifacts(const fs::path& exePath, const 
         diag.addArgument(Diagnostic::ARG_VALUE, exitCode);
         if (!toolOutput.empty())
         {
-            diag.addArgument(Diagnostic::ARG_BECAUSE, trimToolOutput(toolOutput));
+            std::string_view trimmedOutput = toolOutput;
+            while (!trimmedOutput.empty() && (trimmedOutput.back() == '\n' || trimmedOutput.back() == '\r'))
+                trimmedOutput.remove_suffix(1);
+            diag.addArgument(Diagnostic::ARG_BECAUSE, Utf8{trimmedOutput});
             diag.addNote(DiagnosticId::cmd_note_native_tool_output);
         }
 

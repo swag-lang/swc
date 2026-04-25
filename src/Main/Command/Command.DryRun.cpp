@@ -60,30 +60,6 @@ namespace
         Os::WindowsToolchainDiscoveryResult toolchainResult = Os::WindowsToolchainDiscoveryResult::Ok;
     };
 
-    bool commandUsesNativeOutputs(const CommandLine& cmdLine)
-    {
-        switch (cmdLine.command)
-        {
-            case CommandKind::Format:
-                return false;
-            case CommandKind::Build:
-            case CommandKind::Run:
-                return true;
-            case CommandKind::Test:
-                return cmdLine.output && cmdLine.testNative;
-            case CommandKind::Syntax:
-            case CommandKind::Sema:
-                return false;
-            default:
-                SWC_UNREACHABLE();
-        }
-    }
-
-    bool commandRunsArtifact(const CommandLine& cmdLine)
-    {
-        return cmdLine.command == CommandKind::Run;
-    }
-
     void collectDryRunInputSummary(DryRunInputSummary& outSummary, const CompilerInstance& compiler)
     {
         outSummary = {};
@@ -110,13 +86,30 @@ namespace
     {
         DryRunNativePreview result  = {};
         const CommandLine&  cmdLine = compiler.cmdLine();
-        if (!commandUsesNativeOutputs(cmdLine))
-            return result;
+        switch (cmdLine.command)
+        {
+            case CommandKind::Format:
+            case CommandKind::Syntax:
+            case CommandKind::Sema:
+                return result;
+
+            case CommandKind::Build:
+            case CommandKind::Run:
+                break;
+
+            case CommandKind::Test:
+                if (!cmdLine.output || !cmdLine.testNative)
+                    return result;
+                break;
+
+            default:
+                SWC_UNREACHABLE();
+        }
 
         result.enabled        = true;
         result.backendKind    = effectiveBackendKind(cmdLine, compiler.buildCfg().backendKind);
         result.mayRunArtifact = (cmdLine.command == CommandKind::Test && result.backendKind == Runtime::BuildCfgBackendKind::Executable) ||
-                                (commandRunsArtifact(cmdLine) && result.backendKind == Runtime::BuildCfgBackendKind::Executable);
+                                (cmdLine.command == CommandKind::Run && result.backendKind == Runtime::BuildCfgBackendKind::Executable);
 
         NativeBackendBuilder        nativeBuilder(compiler, false);
         const NativeArtifactBuilder artifactBuilder(nativeBuilder);
@@ -130,22 +123,6 @@ namespace
         if (paths.buildDir.empty() || paths.name.empty())
             return "<object-files>";
         return Utf8{paths.buildDir / std::format("{}_<NN>.obj", paths.name).c_str()};
-    }
-
-    const fs::path* nativeToolExecutable(const DryRunNativePreview& preview)
-    {
-        switch (preview.backendKind)
-        {
-            case Runtime::BuildCfgBackendKind::Executable:
-            case Runtime::BuildCfgBackendKind::SharedLibrary:
-                return &preview.toolchain.linkExe;
-            case Runtime::BuildCfgBackendKind::StaticLibrary:
-                return &preview.toolchain.libExe;
-            case Runtime::BuildCfgBackendKind::None:
-                return nullptr;
-        }
-
-        SWC_UNREACHABLE();
     }
 
     std::vector<Utf8> buildLinkPreviewArgs(const DryRunNativePreview& preview, const Runtime::BuildCfg& buildCfg)
@@ -347,7 +324,20 @@ namespace
             return;
 
         std::vector<Logger::FieldEntry> entries;
-        const fs::path*                 exePath = nativeToolExecutable(nativePreview);
+        const fs::path*                 exePath = nullptr;
+        switch (nativePreview.backendKind)
+        {
+            case Runtime::BuildCfgBackendKind::Executable:
+            case Runtime::BuildCfgBackendKind::SharedLibrary:
+                exePath = &nativePreview.toolchain.linkExe;
+                break;
+            case Runtime::BuildCfgBackendKind::StaticLibrary:
+                exePath = &nativePreview.toolchain.libExe;
+                break;
+            case Runtime::BuildCfgBackendKind::None:
+                break;
+        }
+
         if (exePath)
         {
             addInfoEntry(entries, "Native tool", *exePath);

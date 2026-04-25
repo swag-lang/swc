@@ -139,7 +139,7 @@ void Parser::setReportArguments(Diagnostic& diag, TokenRef tokRef) const
     }
     else
     {
-        diag.addArgument(Diagnostic::ARG_TOK, diagnosticTokenString(tokRef));
+        diag.addArgument(Diagnostic::ARG_TOK, Diagnostic::tokenErrorString(*ctx_, {ast_->srcView().ref(), tokRef}));
         diag.addArgument(Diagnostic::ARG_TOK_FAM, Token::toFamily(token.id));
         diag.addArgument(Diagnostic::ARG_A_TOK_FAM, Utf8Helper::addArticleAAn(Token::toFamily(token.id)));
     }
@@ -148,7 +148,7 @@ void Parser::setReportArguments(Diagnostic& diag, TokenRef tokRef) const
     if (tokRef.get() != 0)
     {
         const Token& tokenPrev = ast_->srcView().token(tokRef.offset(-1));
-        diag.addArgument(Diagnostic::ARG_PREV_TOK, diagnosticTokenString(tokRef.offset(-1)));
+        diag.addArgument(Diagnostic::ARG_PREV_TOK, Diagnostic::tokenErrorString(*ctx_, {ast_->srcView().ref(), tokRef.offset(-1)}));
         diag.addArgument(Diagnostic::ARG_PREV_TOK_FAM, Token::toFamily(tokenPrev.id));
         diag.addArgument(Diagnostic::ARG_PREV_A_TOK_FAM, Utf8Helper::addArticleAAn(Token::toFamily(tokenPrev.id)));
     }
@@ -156,16 +156,10 @@ void Parser::setReportArguments(Diagnostic& diag, TokenRef tokRef) const
     if (tokRef.get() < ast_->srcView().tokens().size() - 1)
     {
         const Token& tokenNext = ast_->srcView().token(tokRef.offset(1));
-        diag.addArgument(Diagnostic::ARG_NEXT_TOK, diagnosticTokenString(tokRef.offset(1)));
+        diag.addArgument(Diagnostic::ARG_NEXT_TOK, Diagnostic::tokenErrorString(*ctx_, {ast_->srcView().ref(), tokRef.offset(1)}));
         diag.addArgument(Diagnostic::ARG_NEXT_TOK_FAM, Token::toFamily(tokenNext.id));
         diag.addArgument(Diagnostic::ARG_NEXT_A_TOK_FAM, Utf8Helper::addArticleAAn(Token::toFamily(tokenNext.id)));
     }
-}
-
-Utf8 Parser::diagnosticTokenString(TokenRef tokRef) const
-{
-    const SourceCodeRef codeRef{ast_->srcView().ref(), tokRef};
-    return Diagnostic::tokenErrorString(*ctx_, codeRef);
 }
 
 void Parser::setReportExpected(Diagnostic& diag, TokenId expectedTknId)
@@ -180,7 +174,7 @@ void Parser::setReportSymbol(Diagnostic& diag, TokenRef tokRef) const
     if (!tokRef.isValid())
         return;
 
-    diag.addArgument(Diagnostic::ARG_SYM, diagnosticTokenString(tokRef));
+    diag.addArgument(Diagnostic::ARG_SYM, Diagnostic::tokenErrorString(*ctx_, {ast_->srcView().ref(), tokRef}));
 }
 
 Diagnostic Parser::reportExpectedDoBlock(TokenRef tknRefAfterHeader)

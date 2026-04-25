@@ -94,7 +94,6 @@ private:
     TokenRef expectAndConsumeClosing(TokenId closeId, TokenRef openRef, const SmallVector<TokenId>& skipIds = {}, bool skipToEol = true);
     TokenRef expectAndConsume(TokenId id, DiagnosticId diagId);
     void     expectEndStatement();
-    Utf8     diagnosticTokenString(TokenRef tokRef) const;
 
     AstNodeRef parseCompoundValue(AstNodeId blockNodeId);
     Result     parseCompoundSeparator(AstNodeId blockNodeId, TokenId tokenEndId);

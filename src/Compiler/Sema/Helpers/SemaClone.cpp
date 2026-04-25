@@ -316,7 +316,7 @@ AstNodeRef AstAccessModifier::semaClone(Sema& sema, const CloneContext& cloneCon
 {
     const AstNodeRef newRef = cloneNodeCopy<AstNodeId::AccessModifier>(sema, *this);
     auto&            cloned = sema.node(newRef).cast<AstAccessModifier>();
-    cloned.nodeWhatRef     = cloneNodeRef(sema, nodeWhatRef, cloneContextAsInline(cloneContext));
+    cloned.nodeWhatRef      = cloneNodeRef(sema, nodeWhatRef, cloneContextAsInline(cloneContext));
     return newRef;
 }
 

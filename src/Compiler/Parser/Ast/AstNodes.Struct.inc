@@ -1107,9 +1107,9 @@ struct AstAttribute : AstNodeT<AstNodeId::Attribute>
 {
     AstNodeRef nodeCallRef;
 
-    void   collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeCallRef}); }
+    void       collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeCallRef}); }
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
-    Result semaPostNode(Sema& sema) const;
+    Result     semaPostNode(Sema& sema) const;
 };
 
 // -----------------------------------------------------------------------------

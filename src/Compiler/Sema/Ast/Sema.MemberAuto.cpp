@@ -353,7 +353,7 @@ namespace
 
     SymbolVariable* activeReceiverBinding(Sema& sema)
     {
-        const IdentifierRef meId = sema.idMgr().predefined(IdentifierManager::PredefinedName::Me);
+        const IdentifierRef                    meId     = sema.idMgr().predefined(IdentifierManager::PredefinedName::Me);
         const std::span<SymbolVariable* const> bindings = sema.frame().bindingVars();
         for (size_t i = bindings.size(); i > 0; --i)
         {

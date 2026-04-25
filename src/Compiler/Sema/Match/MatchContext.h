@@ -80,7 +80,7 @@ private:
         Priority      priority;
     };
 
-    SmallVector<const Symbol*> symbols_;
+    SmallVector<const Symbol*>   symbols_;
     SmallVector<CandidateSymbol> allSymbols_;
 
     Priority bestPriority_        = {};

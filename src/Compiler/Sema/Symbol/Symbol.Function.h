@@ -19,19 +19,19 @@ class TaskContext;
 
 enum class SymbolFunctionFlagsE : uint16_t
 {
-    Zero            = 0,
-    Closure         = 1 << 0,
-    Method          = 1 << 1,
-    Throwable       = 1 << 2,
-    Const           = 1 << 3,
-    Empty           = 1 << 4,
-    Attribute       = 1 << 5,
-    Pure            = 1 << 6,
-    Variadic        = 1 << 7,
-    UsesGvtd        = 1 << 8,
-    GenericRoot     = 1 << 9,
-    GenericInstance = 1 << 10,
-    LazyGenericBody = 1 << 11,
+    Zero                   = 0,
+    Closure                = 1 << 0,
+    Method                 = 1 << 1,
+    Throwable              = 1 << 2,
+    Const                  = 1 << 3,
+    Empty                  = 1 << 4,
+    Attribute              = 1 << 5,
+    Pure                   = 1 << 6,
+    Variadic               = 1 << 7,
+    UsesGvtd               = 1 << 8,
+    GenericRoot            = 1 << 9,
+    GenericInstance        = 1 << 10,
+    LazyGenericBody        = 1 << 11,
     LazyGenericBodyRunning = 1 << 12,
 };
 using SymbolFunctionFlags = EnumFlags<SymbolFunctionFlagsE>;

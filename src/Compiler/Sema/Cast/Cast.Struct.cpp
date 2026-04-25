@@ -536,7 +536,7 @@ namespace
         SWC_ASSERT(structSize);
 
         std::vector<std::byte> buffer(structSize);
-        const ByteSpanRW       bytes = asByteSpan(buffer);
+        const ByteSpanRW       bytes        = asByteSpan(buffer);
         const TypeRef          fieldTypeRef = field.typeRef();
         const TypeInfo&        fieldType    = args.sema->typeMgr().get(fieldTypeRef);
         const uint64_t         fieldSize    = fieldType.sizeOf(args.sema->ctx());
@@ -555,7 +555,7 @@ namespace
         if (dstFields.size() != 1 || !dstFields.front())
             return args.castRequest->fail(DiagnosticId::sema_err_cannot_cast, args.srcTypeRef, args.dstTypeRef);
 
-        const SymbolVariable& field = *dstFields.front();
+        const SymbolVariable& field        = *dstFields.front();
         const AstNodeRef      fieldNodeRef = args.castRequest->errorNodeRef;
         const SourceCodeRef   fieldRef     = args.castRequest->errorCodeRef;
         SWC_RESULT(checkElemCast(args, args.srcTypeRef, field.typeRef(), fieldNodeRef, fieldRef));

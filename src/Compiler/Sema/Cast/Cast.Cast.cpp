@@ -743,8 +743,8 @@ Result Cast::castBit(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, T
         return res;
     }
 
-    const uint32_t sb = srcType->payloadScalarNumericBits();
-    const uint32_t db = dstType.payloadScalarNumericBits();
+    const uint32_t sb          = srcType->payloadScalarNumericBits();
+    const uint32_t db          = dstType.payloadScalarNumericBits();
     const bool     bothIntLike = srcType->isIntLike() && dstType.isIntLike();
     if (!(sb == db || !sb || bothIntLike))
     {

@@ -231,7 +231,7 @@ namespace
         SWC_ASSERT(resolvedSourceTypeRef.isValid());
 
         const CodeGenNodePayload srcPayload = sourcePayloadForCast(codeGen, srcNodeRef);
-        MicroBuilder&             builder    = codeGen.builder();
+        MicroBuilder&            builder    = codeGen.builder();
 
         MicroReg objectReg = srcPayload.reg;
         if (srcPayload.isAddress())
@@ -427,7 +427,7 @@ namespace
 
     Result emitArrayToStringCast(CodeGen& codeGen, AstNodeRef srcNodeRef, TypeRef dstTypeRef, const TypeInfo& srcType)
     {
-        MicroBuilder&             builder    = codeGen.builder();
+        MicroBuilder&            builder    = codeGen.builder();
         const CodeGenNodePayload srcPayload = sourcePayloadForCast(codeGen, srcNodeRef);
 
         const SemaNodeView srcConstView = codeGen.viewConstant(srcNodeRef);
@@ -474,7 +474,7 @@ namespace
         const TypeInfo& dstElementType = codeGen.typeMgr().get(dstType.payloadTypeRef());
         const uint64_t  elementCount   = sliceCountFromArrayCast(codeGen, srcType, dstElementType);
 
-        MicroBuilder&             builder    = codeGen.builder();
+        MicroBuilder&            builder    = codeGen.builder();
         const CodeGenNodePayload srcPayload = sourcePayloadForCast(codeGen, srcNodeRef);
 
         const SemaNodeView srcConstView = codeGen.viewConstant(srcNodeRef);
@@ -807,9 +807,9 @@ namespace
         SWC_ASSERT(adapter != nullptr);
         codeGen.function().addCallDependency(adapter);
 
-        MicroBuilder&             builder         = codeGen.builder();
-        const CodeGenNodePayload srcPayload       = sourcePayloadForCast(codeGen, srcNodeRef);
-        const MicroReg            runtimeValueReg = codeGen.runtimeStorageAddressReg(codeGen.curNodeRef());
+        MicroBuilder&            builder         = codeGen.builder();
+        const CodeGenNodePayload srcPayload      = sourcePayloadForCast(codeGen, srcNodeRef);
+        const MicroReg           runtimeValueReg = codeGen.runtimeStorageAddressReg(codeGen.curNodeRef());
         CodeGenMemoryHelpers::emitMemZero(codeGen, runtimeValueReg, sizeof(Runtime::ClosureValue));
 
         const MicroReg invokeReg = codeGen.nextVirtualIntRegister();
@@ -892,10 +892,10 @@ namespace
 
     Result emitNumericCast(CodeGen& codeGen, AstNodeRef srcNodeRef, TypeRef dstTypeRef)
     {
-        MicroBuilder&             builder             = codeGen.builder();
-        const CodeGenNodePayload srcPayload           = sourcePayloadForCast(codeGen, srcNodeRef);
-        const auto*               castPayload         = codeGen.sema().codeGenPayload<CodeGenNodePayload>(codeGen.curNodeRef());
-        const bool                needsRuntimeStorage = castPayload && castPayload->runtimeStorageSym != nullptr;
+        MicroBuilder&            builder             = codeGen.builder();
+        const CodeGenNodePayload srcPayload          = sourcePayloadForCast(codeGen, srcNodeRef);
+        const auto*              castPayload         = codeGen.sema().codeGenPayload<CodeGenNodePayload>(codeGen.curNodeRef());
+        const bool               needsRuntimeStorage = castPayload && castPayload->runtimeStorageSym != nullptr;
 
         const TypeRef storedSourceTypeRef = codeGen.sema().viewStored(srcNodeRef, SemaNodeViewPartE::Type).typeRef();
         TypeRef       sourceTypeRef       = storedSourceTypeRef;
@@ -1150,9 +1150,9 @@ namespace
 
         if (resolvedDstType.isBool() && srcType.isEnum())
         {
-            const TypeRef   enumSourceTypeRef = srcType.payloadSymEnum().underlyingTypeRef();
-            const TypeInfo& enumSourceType    = typeMgr.get(enumSourceTypeRef);
-            const MicroOpBits srcOpBits       = CodeGenTypeHelpers::numericOrBoolBits(enumSourceType);
+            const TypeRef     enumSourceTypeRef = srcType.payloadSymEnum().underlyingTypeRef();
+            const TypeInfo&   enumSourceType    = typeMgr.get(enumSourceTypeRef);
+            const MicroOpBits srcOpBits         = CodeGenTypeHelpers::numericOrBoolBits(enumSourceType);
             SWC_ASSERT(srcOpBits != MicroOpBits::Zero);
 
             MicroReg srcReg = srcPayload.reg;

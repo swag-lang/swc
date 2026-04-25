@@ -319,7 +319,6 @@ namespace
         return mutex;
     }
 
-
     Utf8 formatGenericInstanceKey(Sema& sema, const GenericInstanceKey& key)
     {
         if (key.typeRef.isValid())

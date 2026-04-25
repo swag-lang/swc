@@ -1602,7 +1602,7 @@ Result SemaSpecOp::tryResolveSlice(Sema& sema, const AstIndexExpr& node, const S
 
 Result SemaSpecOp::tryResolveIndex(Sema& sema, const AstIndexExpr& node, const SemaNodeView& indexedView, bool& outHandled)
 {
-    outHandled = false;
+    outHandled                    = false;
     const AstNodeRef indexExprRef = sema.curNodeRef();
 
     const SymbolStruct* ownerStruct = structSpecOpOwner(sema, indexedView);
@@ -1884,7 +1884,7 @@ Result SemaSpecOp::tryResolveUnary(Sema& sema, const AstUnaryExpr& node, const S
     }
 
     unaryPayload->calledFn = calledFn;
-    outHandled = true;
+    outHandled             = true;
     return Result::Continue;
 }
 
@@ -1946,7 +1946,7 @@ Result SemaSpecOp::tryResolveBinary(Sema& sema, const AstBinaryExpr& node, const
     }
 
     binaryPayload->calledFn = calledFn;
-    outHandled = true;
+    outHandled              = true;
     return Result::Continue;
 }
 

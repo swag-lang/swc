@@ -10,6 +10,7 @@
 #include "Compiler/Sema/Constant/ConstantValue.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
+#include "Compiler/Sema/Generic/SemaGeneric.h"
 #include "Compiler/Sema/Helpers/SemaCheck.h"
 #include "Compiler/Sema/Helpers/SemaClone.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
@@ -17,7 +18,6 @@
 #include "Compiler/Sema/Helpers/SemaJIT.h"
 #include "Compiler/Sema/Helpers/SemaRuntime.h"
 #include "Compiler/Sema/Helpers/SemaSpecOp.h"
-#include "Compiler/Sema/Generic/SemaGeneric.h"
 #include "Compiler/Sema/Symbol/Symbols.h"
 #include "Compiler/Sema/Type/TypeManager.h"
 #include "Compiler/SourceFile.h"
@@ -1155,8 +1155,8 @@ namespace
 
     Result semaCompilerSizeOf(Sema& sema, const AstCompilerCallOne& node)
     {
-        const AstNodeRef   childRef = node.nodeArgRef;
-        SemaNodeView       view     = sema.viewTypeSymbol(childRef);
+        const AstNodeRef childRef = node.nodeArgRef;
+        SemaNodeView     view     = sema.viewTypeSymbol(childRef);
         SWC_RESULT(instantiateCompilerGenericTypeOperand(sema, view));
         if (!view.type())
             return SemaError::raise(sema, DiagnosticId::sema_err_invalid_sizeof, childRef);
@@ -1182,8 +1182,8 @@ namespace
 
     Result semaCompilerAlignOf(Sema& sema, const AstCompilerCallOne& node)
     {
-        const AstNodeRef   childRef = node.nodeArgRef;
-        SemaNodeView       view     = sema.viewTypeSymbol(childRef);
+        const AstNodeRef childRef = node.nodeArgRef;
+        SemaNodeView     view     = sema.viewTypeSymbol(childRef);
         SWC_RESULT(instantiateCompilerGenericTypeOperand(sema, view));
         if (!view.type())
             return SemaError::raise(sema, DiagnosticId::sema_err_invalid_alignof, childRef);

@@ -80,7 +80,7 @@ namespace
 
     Result isGenericRootImplFunction(Sema& sema, const SymbolFunction& sym, const SymbolImpl* declImpl, bool& outResult)
     {
-        outResult                 = false;
+        outResult = false;
         if (sym.isGenericInstance())
             return Result::Continue;
 
@@ -150,7 +150,7 @@ namespace
             return Result::Continue;
 
         calledFn.addExtraFlag(SymbolFunctionFlagsE::LazyGenericBodyRunning);
-        const SourceView& srcView = sema.compiler().srcView(calledFn.srcViewRef());
+        const SourceView&     srcView = sema.compiler().srcView(calledFn.srcViewRef());
         std::unique_ptr<Sema> child;
         if (sema.ast().srcView().fileRef() == srcView.ownerFileRef())
         {
@@ -1888,7 +1888,7 @@ namespace
         const SemaNodeView nodeSymView = sema.curViewSymbol();
         SWC_ASSERT(nodeSymView.hasSymbol());
 
-        auto&      calledFn    = nodeSymView.sym()->cast<SymbolFunction>();
+        auto& calledFn = nodeSymView.sym()->cast<SymbolFunction>();
         SWC_RESULT(completeLazyGenericFunction(sema, calledFn));
 
         const bool isMixinCall = calledFn.attributes().hasRtFlag(RtAttributeFlagsE::Mixin);
@@ -1965,8 +1965,8 @@ Result AstFunctionDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef)
     }
     else if (childRef == nodeBodyRef)
     {
-        auto&      sym                 = sema.curViewSymbol().sym()->cast<SymbolFunction>();
-        const auto* declImpl           = functionDeclImplContext(sema, &sym);
+        auto&       sym      = sema.curViewSymbol().sym()->cast<SymbolFunction>();
+        const auto* declImpl = functionDeclImplContext(sema, &sym);
         if (sym.isTyped() && canDelayGenericInstanceFunctionBody(*this, sym, declImpl))
         {
             sym.addExtraFlag(SymbolFunctionFlagsE::LazyGenericBody);

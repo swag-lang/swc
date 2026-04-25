@@ -9,18 +9,6 @@
 
 SWC_BEGIN_NAMESPACE();
 
-namespace
-{
-    void validateFunctionSymbolRelocation(const NativeBackendBuilder& builder, const SymbolFunction* target)
-    {
-        SWC_ASSERT(target != nullptr);
-        if (target->isForeign())
-            return;
-
-        SWC_ASSERT(builder.functionBySymbol.contains(target));
-    }
-}
-
 NativeValidate::NativeValidate(NativeBackendBuilder& builder) :
     builder_(&builder)
 {
@@ -465,7 +453,9 @@ void NativeValidate::validateNativeStaticPayload(const TypeRef typeRef, const ui
 
         const SymbolFunction* targetFunction = nullptr;
         SWC_ASSERT(findFunctionSymbolRelocation(targetFunction, shardIndex, baseOffset));
-        validateFunctionSymbolRelocation(*builder_, targetFunction);
+        SWC_ASSERT(targetFunction != nullptr);
+        if (!targetFunction->isForeign())
+            SWC_ASSERT(builder_->functionBySymbol.contains(targetFunction));
         return;
     }
 

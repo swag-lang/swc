@@ -292,6 +292,31 @@ bool Utf8Helper::parseSignedOrAbs(const LangSpec& langSpec, std::string_view s, 
     return true;
 }
 
+std::optional<Utf8> Utf8Helper::bestMatch(const std::string_view query, const std::vector<Utf8>& candidates)
+{
+    if (candidates.empty() || query.length() < 3)
+        return std::nullopt;
+
+    const size_t maxDist = std::max<size_t>(1, std::min<size_t>(3, query.length() / 3));
+
+    size_t      bestDist = std::numeric_limits<size_t>::max();
+    const Utf8* best     = nullptr;
+    for (const Utf8& candidate : candidates)
+    {
+        const size_t distance = Utf8Helper::levenshtein(query, candidate);
+        if (distance < bestDist)
+        {
+            bestDist = distance;
+            best     = &candidate;
+        }
+    }
+
+    if (!best || bestDist > maxDist)
+        return std::nullopt;
+
+    return *best;
+}
+
 // whitespace helpers
 std::string_view Utf8Helper::trimLeft(std::string_view s)
 {

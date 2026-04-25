@@ -482,8 +482,13 @@ namespace
         return !Stats::hasError();
     }
 
-    void runNativeTestCommand(CompilerInstance& compiler)
+}
+
+namespace Command
+{
+    void test(CompilerInstance& compiler)
     {
+        SWC_ASSERT(compiler.cmdLine().command == CommandKind::Test);
         const TaskContext ctx(compiler);
         TimedActionLog::printBuildConfiguration(ctx);
         const uint64_t errorsBefore = Stats::getNumErrors();
@@ -492,15 +497,6 @@ namespace
             return;
 
         finishTestCommand(compiler);
-    }
-}
-
-namespace Command
-{
-    void test(CompilerInstance& compiler)
-    {
-        SWC_ASSERT(compiler.cmdLine().command == CommandKind::Test);
-        runNativeTestCommand(compiler);
     }
 }
 

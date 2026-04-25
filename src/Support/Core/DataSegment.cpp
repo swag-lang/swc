@@ -1,17 +1,11 @@
 #include "pch.h"
 #include "Support/Core/DataSegment.h"
+#include "Support/Math/Helpers.h"
 
 SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    uint32_t alignUpValue(const uint32_t value, const uint32_t align)
-    {
-        if (align <= 1)
-            return value;
-        return (value + (align - 1)) & ~(align - 1);
-    }
-
     bool containsLargeBlockRange(const DataSegment::LargeBlock& block, const Ref ref, const uint32_t size) noexcept
     {
         return ref >= block.offset && ref + size <= block.offset + block.size;
@@ -313,7 +307,7 @@ std::pair<uint32_t, std::byte*> DataSegment::allocateStorageLocked(uint32_t size
     if (!largeBlocks_.empty() || size > store_.pageSize())
     {
         LargeBlock block;
-        block.offset  = alignUpValue(currentExtentLocked(), align);
+        block.offset  = Math::alignUpU32(currentExtentLocked(), align);
         block.size    = size;
         block.storage = std::make_unique<std::byte[]>(size);
         if (zeroInit)

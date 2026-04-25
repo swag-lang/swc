@@ -18,30 +18,6 @@ constexpr std::string_view END_OF_OPTIONS     = "--";
 
 namespace
 {
-    std::optional<Utf8> bestMatch(std::string_view query, const std::vector<Utf8>& candidates)
-    {
-        if (candidates.empty() || query.length() < 3)
-            return std::nullopt;
-
-        const size_t maxDist = std::max<size_t>(1, std::min<size_t>(3, query.length() / 3));
-
-        size_t      bestDist = std::numeric_limits<size_t>::max();
-        const Utf8* best     = nullptr;
-        for (const Utf8& c : candidates)
-        {
-            const size_t d = Utf8Helper::levenshtein(query, c);
-            if (d < bestDist)
-            {
-                bestDist = d;
-                best     = &c;
-            }
-        }
-
-        if (!best || bestDist > maxDist)
-            return std::nullopt;
-        return *best;
-    }
-
     constexpr uint32_t RSP_MAX_DEPTH = 16;
 
     // Split response-file content into whitespace-separated tokens.
@@ -706,7 +682,7 @@ std::optional<Utf8> CommandLineParser::suggestArgument(const Utf8& query) const
         if (!a.shortForm.empty())
             candidates.push_back(a.shortForm);
     }
-    return bestMatch(query, candidates);
+    return Utf8Helper::bestMatch(query, candidates);
 }
 
 std::optional<Utf8> CommandLineParser::suggestCommand(const Utf8& query)
@@ -715,12 +691,12 @@ std::optional<Utf8> CommandLineParser::suggestCommand(const Utf8& query)
     candidates.reserve(std::size(COMMANDS));
     for (const CommandInfo& cmd : COMMANDS)
         candidates.emplace_back(cmd.name);
-    return bestMatch(query, candidates);
+    return Utf8Helper::bestMatch(query, candidates);
 }
 
 std::optional<Utf8> CommandLineParser::suggestChoice(const Utf8& query, const std::vector<Utf8>& choices)
 {
-    return bestMatch(query, choices);
+    return Utf8Helper::bestMatch(query, choices);
 }
 
 bool CommandLineParser::processArgument(TaskContext& ctx, const ArgInfo& info, const Utf8& arg, bool invertBoolean, const Utf8* inlineValue, size_t& index, const std::vector<Utf8>& args)

@@ -4,32 +4,24 @@
 
 SWC_BEGIN_NAMESPACE();
 
-namespace
-{
-    std::vector<Utf8> splitPipe(std::string_view s)
-    {
-        std::vector<Utf8> out;
-        if (s.empty())
-            return out;
-
-        size_t start = 0;
-        while (start <= s.size())
-        {
-            size_t end = s.find('|', start);
-            if (end == std::string_view::npos)
-                end = s.size();
-            out.emplace_back(s.substr(start, end - start));
-            if (end == s.size())
-                break;
-            start = end + 1;
-        }
-        return out;
-    }
-}
-
 void CommandLineParser::registerCommands()
 {
     const std::string_view registeredBuildCfgs{cmdLine_->defaultBuildCfg.registeredConfigs.ptr, cmdLine_->defaultBuildCfg.registeredConfigs.length};
+    std::vector<Utf8>      buildCfgChoices;
+    if (!registeredBuildCfgs.empty())
+    {
+        size_t start = 0;
+        while (start <= registeredBuildCfgs.size())
+        {
+            size_t end = registeredBuildCfgs.find('|', start);
+            if (end == std::string_view::npos)
+                end = registeredBuildCfgs.size();
+            buildCfgChoices.emplace_back(registeredBuildCfgs.substr(start, end - start));
+            if (end == registeredBuildCfgs.size())
+                break;
+            start = end + 1;
+        }
+    }
 
     configSchema_.addEnum("command", &cmdLine_->command,
                           {
@@ -80,7 +72,7 @@ void CommandLineParser::registerCommands()
             "Set the target architecture used by #arch and compiler target queries.");
     addEnum(HelpOptionGroup::Target, "sema test build run", "--build-cfg", "-bc",
             &cmdLine_->buildCfg,
-            splitPipe(registeredBuildCfgs),
+            std::move(buildCfgChoices),
             "Set the registered build configuration string used by #cfg and @compiler.getBuildCfg().");
     addEnum(HelpOptionGroup::Target, "sema test build run", "--artifact-kind", "-ak",
             &cmdLine_->backendKind,

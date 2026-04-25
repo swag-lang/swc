@@ -114,8 +114,6 @@ public:
     explicit StructConfigReader(const StructConfigSchema& schema);
     Result readFile(TaskContext& ctx, const fs::path& path) const;
 
-    static std::optional<Utf8> bestMatch(std::string_view query, const std::vector<Utf8>& candidates);
-
 private:
     const StructConfigSchema* schema_ = nullptr;
 
@@ -124,8 +122,6 @@ private:
     static bool   parseUInt(std::string_view value, uint32_t& result);
     static Utf8   stripInlineComment(std::string_view line, bool& unterminatedQuote);
     static size_t findAssignment(std::string_view line);
-    static Utf8   unquoteValue(std::string_view value);
-    static void   attachSuggestion(Diagnostic& diag, std::optional<Utf8> suggestion);
 
     static bool applyEntry(TaskContext& ctx, const StructConfigEntry& entry, const fs::path& sourcePath, uint32_t lineNo, std::string_view valueText, const fs::path& baseDir);
     bool        reportUnknownKey(TaskContext& ctx, const fs::path& sourcePath, uint32_t lineNo, const Utf8& key) const;

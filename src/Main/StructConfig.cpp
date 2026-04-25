@@ -96,7 +96,7 @@ std::optional<Utf8> StructConfigSchema::suggest(const std::string_view query) co
     for (const StructConfigEntry& entry : entries_)
         candidates.push_back(entry.name);
 
-    return StructConfigReader::bestMatch(query, candidates);
+    return Utf8Helper::bestMatch(query, candidates);
 }
 
 StructConfigReader::StructConfigReader(const StructConfigSchema& schema) :
@@ -144,31 +144,6 @@ bool StructConfigReader::parseUInt(const std::string_view value, uint32_t& resul
 
     const auto [ptr, ec] = std::from_chars(first, last, result);
     return ec == std::errc{} && ptr == last;
-}
-
-std::optional<Utf8> StructConfigReader::bestMatch(const std::string_view query, const std::vector<Utf8>& candidates)
-{
-    if (candidates.empty() || query.length() < 3)
-        return std::nullopt;
-
-    const size_t maxDist = std::max<size_t>(1, std::min<size_t>(3, query.length() / 3));
-
-    size_t      bestDist = std::numeric_limits<size_t>::max();
-    const Utf8* best     = nullptr;
-    for (const Utf8& candidate : candidates)
-    {
-        const size_t distance = Utf8Helper::levenshtein(query, candidate);
-        if (distance < bestDist)
-        {
-            bestDist = distance;
-            best     = &candidate;
-        }
-    }
-
-    if (!best || bestDist > maxDist)
-        return std::nullopt;
-
-    return *best;
 }
 
 Utf8 StructConfigReader::stripInlineComment(const std::string_view line, bool& unterminatedQuote)
@@ -231,35 +206,18 @@ size_t StructConfigReader::findAssignment(const std::string_view line)
     return std::string_view::npos;
 }
 
-Utf8 StructConfigReader::unquoteValue(const std::string_view value)
-{
-    if (value.size() >= 2)
-    {
-        const char first = value.front();
-        const char last  = value.back();
-        if ((first == '\'' || first == '"') && last == first)
-            return Utf8{value.substr(1, value.size() - 2)};
-    }
-
-    return Utf8{value};
-}
-
-void StructConfigReader::attachSuggestion(Diagnostic& diag, std::optional<Utf8> suggestion)
-{
-    if (!suggestion.has_value())
-        return;
-
-    DiagnosticElement& note = diag.addElement(DiagnosticId::cmd_note_did_you_mean);
-    note.setSeverity(DiagnosticSeverity::Note);
-    note.addArgument(Diagnostic::ARG_VALUE, suggestion.value());
-}
-
 bool StructConfigReader::reportUnknownKey(TaskContext& ctx, const fs::path& sourcePath, const uint32_t lineNo, const Utf8& key) const
 {
     Diagnostic diag = Diagnostic::get(DiagnosticId::cmd_err_config_unknown_key);
     diag.addArgument(Diagnostic::ARG_ARG, key);
     diag.addArgument(Diagnostic::ARG_PATH, !lineNo ? FileSystem::formatDiagnosticPath(&ctx, sourcePath) : FileSystem::formatFileLocation(&ctx, sourcePath, lineNo));
-    attachSuggestion(diag, schema_->suggest(key.view()));
+    if (const std::optional<Utf8> suggestion = schema_->suggest(key.view()); suggestion.has_value())
+    {
+        DiagnosticElement& note = diag.addElement(DiagnosticId::cmd_note_did_you_mean);
+        note.setSeverity(DiagnosticSeverity::Note);
+        note.addArgument(Diagnostic::ARG_VALUE, suggestion.value());
+    }
+
     diag.report(ctx);
     return false;
 }
@@ -309,14 +267,27 @@ bool StructConfigReader::reportInvalidEnum(TaskContext& ctx, const StructConfigE
     }
 
     diag.addArgument(Diagnostic::ARG_VALUES, choices);
-    attachSuggestion(diag, bestMatch(value.view(), entry.choices));
+    if (const std::optional<Utf8> suggestion = Utf8Helper::bestMatch(value.view(), entry.choices); suggestion.has_value())
+    {
+        DiagnosticElement& note = diag.addElement(DiagnosticId::cmd_note_did_you_mean);
+        note.setSeverity(DiagnosticSeverity::Note);
+        note.addArgument(Diagnostic::ARG_VALUE, suggestion.value());
+    }
+
     diag.report(ctx);
     return false;
 }
 
 bool StructConfigReader::applyEntry(TaskContext& ctx, const StructConfigEntry& entry, const fs::path& sourcePath, const uint32_t lineNo, const std::string_view valueText, const fs::path& baseDir)
 {
-    const Utf8 value = unquoteValue(Utf8Helper::trim(valueText));
+    Utf8 value{Utf8Helper::trim(valueText)};
+    if (value.size() >= 2)
+    {
+        const char first = value.front();
+        const char last  = value.back();
+        if ((first == '\'' || first == '"') && last == first)
+            value = value.substr(1, value.size() - 2);
+    }
 
     if (auto* target = std::get_if<bool*>(&entry.target))
     {

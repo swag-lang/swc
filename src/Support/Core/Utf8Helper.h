@@ -39,6 +39,7 @@ namespace Utf8Helper
     bool parseSignedOrAbs(const LangSpec& langSpec, std::string_view s, size_t& p, int& value, bool& hasSign) noexcept;
 
     size_t levenshtein(std::string_view a, std::string_view b);
+    std::optional<Utf8> bestMatch(std::string_view query, const std::vector<Utf8>& candidates);
 
     std::string_view trimLeft(std::string_view s);
     std::string_view trimRight(std::string_view s);

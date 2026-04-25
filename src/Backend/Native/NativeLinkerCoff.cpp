@@ -34,6 +34,12 @@ namespace
     {
         return NativeLinkerCoff::shouldForwardLinkerOutputLine(line, true);
     }
+
+    void appendFormattedPathArgument(std::vector<Utf8>& args, std::string_view prefix, const fs::path& path)
+    {
+        const Utf8 utf8Path(path);
+        args.emplace_back(std::format("{}{}", prefix, utf8Path));
+    }
 }
 
 NativeLinkerCoff::NativeLinkerCoff(NativeBackendBuilder& builder) :
@@ -122,7 +128,7 @@ std::vector<Utf8> NativeLinkerCoff::buildLinkArguments(const bool dll) const
     if (builder_->compiler().buildCfg().backend.debugInfo)
     {
         args.emplace_back("/DEBUG:FULL");
-        args.emplace_back(std::format("/PDB:{}", Utf8(builder_->pdbPath)));
+        appendFormattedPathArgument(args, "/PDB:", builder_->pdbPath);
     }
     if (dll)
     {
@@ -135,7 +141,7 @@ std::vector<Utf8> NativeLinkerCoff::buildLinkArguments(const bool dll) const
         args.emplace_back("/ENTRY:mainCRTStartup");
     }
 
-    args.emplace_back(std::format("/OUT:{}", Utf8(builder_->artifactPath)));
+    appendFormattedPathArgument(args, "/OUT:", builder_->artifactPath);
     appendLinkSearchPaths(args);
 
     for (const auto& object : builder_->objectDescriptions)
@@ -165,7 +171,7 @@ std::vector<Utf8> NativeLinkerCoff::buildLibArguments() const
     std::vector<Utf8> args;
     args.emplace_back("/NOLOGO");
     args.emplace_back("/MACHINE:X64");
-    args.emplace_back(std::format("/OUT:{}", Utf8(builder_->artifactPath)));
+    appendFormattedPathArgument(args, "/OUT:", builder_->artifactPath);
     for (const auto& object : builder_->objectDescriptions)
         args.emplace_back(object.objPath);
     return args;
@@ -174,11 +180,11 @@ std::vector<Utf8> NativeLinkerCoff::buildLibArguments() const
 void NativeLinkerCoff::appendLinkSearchPaths(std::vector<Utf8>& args) const
 {
     if (!toolchain_.vcLibPath.empty())
-        args.emplace_back(std::format("/LIBPATH:{}", Utf8(toolchain_.vcLibPath)));
+        appendFormattedPathArgument(args, "/LIBPATH:", toolchain_.vcLibPath);
     if (!toolchain_.sdkUmLibPath.empty())
-        args.emplace_back(std::format("/LIBPATH:{}", Utf8(toolchain_.sdkUmLibPath)));
+        appendFormattedPathArgument(args, "/LIBPATH:", toolchain_.sdkUmLibPath);
     if (!toolchain_.sdkUcrtLibPath.empty())
-        args.emplace_back(std::format("/LIBPATH:{}", Utf8(toolchain_.sdkUcrtLibPath)));
+        appendFormattedPathArgument(args, "/LIBPATH:", toolchain_.sdkUcrtLibPath);
 }
 
 void NativeLinkerCoff::collectLinkLibraries(std::set<Utf8>& out) const

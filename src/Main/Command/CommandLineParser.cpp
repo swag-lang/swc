@@ -676,10 +676,10 @@ bool CommandLineParser::processArgument(TaskContext& ctx, const ArgInfo& info, c
 
     if (auto* t = std::get_if<int*>(&info.target))
     {
-        const char* first = value.data();
-        const char* last  = first + value.size();
+        const char* first       = value.data();
+        const char* last        = first + value.size();
         int         parsedValue = 0;
-        const auto [ptr, ec] = std::from_chars(first, last, parsedValue);
+        const auto [ptr, ec]    = std::from_chars(first, last, parsedValue);
         if (value.empty() || ec != std::errc{} || ptr != last)
             return reportIntError(ctx, info, arg, value);
         **t = parsedValue;
@@ -687,10 +687,10 @@ bool CommandLineParser::processArgument(TaskContext& ctx, const ArgInfo& info, c
     }
     if (auto* t = std::get_if<uint32_t*>(&info.target))
     {
-        const char* first = value.data();
-        const char* last  = first + value.size();
+        const char* first       = value.data();
+        const char* last        = first + value.size();
         uint32_t    parsedValue = 0;
-        const auto [ptr, ec] = std::from_chars(first, last, parsedValue);
+        const auto [ptr, ec]    = std::from_chars(first, last, parsedValue);
         if (value.empty() || ec != std::errc{} || ptr != last)
             return reportIntError(ctx, info, arg, value);
         **t = parsedValue;

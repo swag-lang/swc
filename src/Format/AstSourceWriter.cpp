@@ -552,7 +552,7 @@ void AstSourceWriter::appendNumberPiece(const SourcePiece& piece) const
     // Split off the optional `'suffix` (e.g. `'u32`, `'f64`).
     std::string_view body;
     std::string_view suffix;
-    const size_t sufPos = text.find('\'');
+    const size_t     sufPos = text.find('\'');
     if (sufPos != std::string_view::npos)
     {
         body   = text.substr(0, sufPos);

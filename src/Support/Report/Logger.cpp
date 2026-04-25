@@ -50,10 +50,10 @@ namespace
 
     Utf8 formatFieldEntry(const TaskContext& ctx, const Logger::FieldEntry& entry, const Logger::FieldGroupStyle& style, const size_t labelColumn)
     {
-        const LogColor labelColor = entry.labelColor == LogColor::Reset ? style.defaultLabelColor : entry.labelColor;
-        const LogColor valueColor = entry.valueColor == LogColor::Reset ? style.defaultValueColor : entry.valueColor;
-        const size_t indentWidth  = style.lineIndent + style.indentPerLevel * entry.indentLevel;
-        const size_t labelWidth   = indentWidth + Utf8Helper::countChars(entry.label);
+        const LogColor labelColor  = entry.labelColor == LogColor::Reset ? style.defaultLabelColor : entry.labelColor;
+        const LogColor valueColor  = entry.valueColor == LogColor::Reset ? style.defaultValueColor : entry.valueColor;
+        const size_t   indentWidth = style.lineIndent + style.indentPerLevel * entry.indentLevel;
+        const size_t   labelWidth  = indentWidth + Utf8Helper::countChars(entry.label);
 
         Utf8 out;
         out.append(indentWidth, ' ');

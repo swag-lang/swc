@@ -254,8 +254,8 @@ namespace MemoryProfile
             return nullptr;
         }
 
-        auto* const header      = static_cast<AllocationHeader*>(rawPtr);
-        const bool  trackAlloc  = isTrackingEnabledInternal();
+        auto* const  header     = static_cast<AllocationHeader*>(rawPtr);
+        const bool   trackAlloc = isTrackingEnabledInternal();
         const size_t usableSize = trackAlloc ? mi_usable_size(rawPtr) : 0;
 
         header->trackedBytes  = usableSize > sizeof(AllocationHeader) ? usableSize - sizeof(AllocationHeader) : size;
@@ -371,7 +371,7 @@ namespace MemoryProfile
 #if SWC_HAS_STATS
     ScopedCategory::ScopedCategory(const char* category, const char* file, const uint32_t line)
     {
-        prevIndex_        = g_CurrentCategory;
+        prevIndex_ = g_CurrentCategory;
         if (!isDetailedTrackingEnabledInternal())
             return;
         g_CurrentCategory = findOrRegisterCategory(category, file, line);

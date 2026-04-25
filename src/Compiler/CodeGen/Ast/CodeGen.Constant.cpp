@@ -150,8 +150,8 @@ namespace
         size_t      nextPos   = 0;
         for (auto elementRef : elementRefs)
         {
-            AstNodeRef    valueRef  = elementRef;
-            IdentifierRef fieldName = IdentifierRef::invalid();
+            AstNodeRef     valueRef  = elementRef;
+            IdentifierRef  fieldName = IdentifierRef::invalid();
             const AstNode& valueNode = codeGen.node(elementRef);
             if (valueNode.is(AstNodeId::NamedArgument))
             {

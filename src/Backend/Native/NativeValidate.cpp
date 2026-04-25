@@ -215,7 +215,7 @@ void NativeValidate::validateConstantRelocation(const MicroRelocation& relocatio
     const auto* payloadBytes = segment.ptr<std::byte>(baseOffset);
     SWC_ASSERT(payloadBytes != nullptr);
 
-    const ByteSpan payloadSpan = asByteSpan(payloadBytes, static_cast<size_t>(sizeOf));
+    const ByteSpan payloadSpan = asByteSpan(payloadBytes, sizeOf);
     validateNativeStaticPayload(constant.typeRef(), shardIndex, baseOffset, payloadSpan);
 }
 
@@ -284,7 +284,7 @@ void NativeValidate::validateNativeStaticPayload(const TypeRef typeRef, const ui
         const auto* payloadBytes = segment.ptr<std::byte>(valueOffset);
         SWC_ASSERT(payloadBytes != nullptr);
 
-        const ByteSpan payloadSpan = asByteSpan(payloadBytes, static_cast<size_t>(valueSize));
+        const ByteSpan payloadSpan = asByteSpan(payloadBytes, valueSize);
         validateNativeStaticPayload(valueTypeRef, shardIndex, valueOffset, payloadSpan);
         return;
     }
@@ -464,7 +464,7 @@ void NativeValidate::validateNativeStaticPayload(const TypeRef typeRef, const ui
 
 bool NativeValidate::findDataSegmentRelocation(uint32_t& outTargetOffset, const uint32_t shardIndex, const uint32_t offset) const
 {
-    outTargetOffset         = 0;
+    outTargetOffset = 0;
     SWC_ASSERT(builder_ != nullptr);
     const auto& relocations = builder_->compiler().cstMgr().shardDataSegment(shardIndex).relocations();
     for (const auto& relocation : relocations)
@@ -483,7 +483,7 @@ bool NativeValidate::findDataSegmentRelocation(uint32_t& outTargetOffset, const 
 
 bool NativeValidate::findFunctionSymbolRelocation(const SymbolFunction*& outTargetSymbol, const uint32_t shardIndex, const uint32_t offset) const
 {
-    outTargetSymbol         = nullptr;
+    outTargetSymbol = nullptr;
     SWC_ASSERT(builder_ != nullptr);
     const auto& relocations = builder_->compiler().cstMgr().shardDataSegment(shardIndex).relocations();
     for (const auto& relocation : relocations)

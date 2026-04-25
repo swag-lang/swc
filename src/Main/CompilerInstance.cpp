@@ -1487,7 +1487,7 @@ Result CompilerInstance::prepareCompilerMessageTypeInfo(Sema& sema, const TypeRe
 Result CompilerInstance::fillRuntimeCompilerMessage(Sema& sema, const AstNodeRef ownerNodeRef, const CompilerMessageEvent& event)
 {
     Runtime::CompilerMessage& message = runtimeCompilerMessage();
-    std::string_view                  moduleName;
+    std::string_view          moduleName;
     if (const SymbolNamespace* moduleNamespace = firstModuleNamespace(sema.ctx().compiler()))
         moduleName = moduleNamespace->name(sema.ctx());
     else
@@ -1497,10 +1497,10 @@ Result CompilerInstance::fillRuntimeCompilerMessage(Sema& sema, const AstNodeRef
             moduleName = {buildCfg.moduleNamespace.ptr, buildCfg.moduleNamespace.length};
     }
 
-    message.moduleName                = Runtime::String{.ptr = moduleName.data(), .length = moduleName.size()};
-    message.name                      = {};
-    message.type                      = nullptr;
-    message.kind                      = event.kind;
+    message.moduleName = Runtime::String{.ptr = moduleName.data(), .length = moduleName.size()};
+    message.name       = {};
+    message.type       = nullptr;
+    message.kind       = event.kind;
 
     if (!event.symbol)
         return Result::Continue;
@@ -1702,7 +1702,7 @@ Result CompilerInstance::executePendingCompilerMessages(TaskContext& ctx)
 bool CompilerInstance::tryRegisterReportedDiagnostic(const std::string_view message)
 {
     const std::scoped_lock lock(reportedDiagnosticsMutex_);
-    Utf8 messageUtf8(message);
+    Utf8                   messageUtf8(message);
     return reportedDiagnostics_.insert(std::move(messageUtf8)).second;
 }
 

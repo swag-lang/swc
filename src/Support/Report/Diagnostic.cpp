@@ -166,7 +166,7 @@ void Diagnostic::addDidYouMeanNote(const std::optional<Utf8> suggestion)
     note.setSeverity(DiagnosticSeverity::Note);
     // Store {value} on the note itself so it does not get shadowed by a parent
     // diagnostic argument using the same placeholder.
-    note.addArgument(Diagnostic::ARG_VALUE, suggestion.value());
+    note.addArgument(ARG_VALUE, suggestion.value());
 }
 
 void Diagnostic::addArgument(std::string_view name, std::string_view arg)

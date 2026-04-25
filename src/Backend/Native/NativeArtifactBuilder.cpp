@@ -96,7 +96,7 @@ void NativeArtifactBuilder::queryPaths(NativeArtifactPaths& outPaths, const uint
         outPaths.workDir = fs::path(buildCfgWorkDir.c_str());
     if (outPaths.workDir.empty())
     {
-        const CommandLine& cmdLine = builder_->ctx().cmdLine();
+        const CommandLine&    cmdLine = builder_->ctx().cmdLine();
         std::vector<fs::path> roots;
         if (!cmdLine.modulePath.empty())
             roots.push_back(FileSystem::absolutePathNoThrow(cmdLine.modulePath.parent_path()));
@@ -154,13 +154,13 @@ void NativeArtifactBuilder::queryPaths(NativeArtifactPaths& outPaths, const uint
 
     outPaths.buildDir          = outPaths.workDir;
     outPaths.artifactExtension = artifactExtension();
-    const auto buildCfgOutDir = Utf8(builder_->compiler().buildCfg().outDir);
+    const auto buildCfgOutDir  = Utf8(builder_->compiler().buildCfg().outDir);
     if (!buildCfgOutDir.empty())
         outPaths.outDir = fs::path(buildCfgOutDir.c_str());
     else
         outPaths.outDir = outPaths.workDir;
-    outPaths.artifactPath      = outPaths.outDir / std::format("{}{}", outPaths.name, outPaths.artifactExtension);
-    outPaths.pdbPath           = outPaths.outDir / std::format("{}.pdb", outPaths.name);
+    outPaths.artifactPath = outPaths.outDir / std::format("{}{}", outPaths.name, outPaths.artifactExtension);
+    outPaths.pdbPath      = outPaths.outDir / std::format("{}.pdb", outPaths.name);
 
     if (!numObjects)
         return;

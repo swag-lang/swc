@@ -1422,7 +1422,7 @@ namespace
 
     Result memberEnum(Sema& sema, AstNodeRef targetNodeRef, const AstMemberAccessExpr& node, const SemaNodeView& nodeLeftView, const IdentifierRef& idRef, TokenRef tokNameRef, bool allowOverloadSet)
     {
-        const SymbolEnum& enumSym = nodeLeftView.type()->payloadSymEnum();
+        const SymbolEnum&   enumSym = nodeLeftView.type()->payloadSymEnum();
         const SourceCodeRef codeRef{node.srcViewRef(), tokNameRef};
         SWC_RESULT(sema.waitSemaCompleted(&enumSym, codeRef));
         return lookupScopedMember(sema, targetNodeRef, node, enumSym, idRef, tokNameRef, allowOverloadSet);

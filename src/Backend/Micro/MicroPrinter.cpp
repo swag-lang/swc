@@ -735,13 +735,13 @@ namespace
 
     struct NaturalTokenContext
     {
-        const TaskContext*               taskContext         = nullptr;
-        const LangSpec*                  langSpec            = nullptr;
-        const std::unordered_set<Utf8>*  concreteRegs        = nullptr;
-        const std::unordered_set<Utf8>*  virtualRegs         = nullptr;
-        const std::optional<Utf8>*       jumpTargetInstIndex = nullptr;
-        size_t                           jumpTargetIndexStart = std::string_view::npos;
-        bool                             expectCallTarget     = false;
+        const TaskContext*              taskContext          = nullptr;
+        const LangSpec*                 langSpec             = nullptr;
+        const std::unordered_set<Utf8>* concreteRegs         = nullptr;
+        const std::unordered_set<Utf8>* virtualRegs          = nullptr;
+        const std::optional<Utf8>*      jumpTargetInstIndex  = nullptr;
+        size_t                          jumpTargetIndexStart = std::string_view::npos;
+        bool                            expectCallTarget     = false;
     };
 
     void appendNaturalToken(Utf8& out, NaturalTokenContext& tokenContext, std::string_view token, size_t tokenStart)
@@ -809,8 +809,8 @@ namespace
 
     void appendNaturalColumn(Utf8& out, const TaskContext& ctx, Utf8 value, const std::unordered_set<Utf8>& concreteRegs, const std::unordered_set<Utf8>& virtualRegs, const std::optional<Utf8>& jumpTargetInstIndex)
     {
-        const auto& langSpec             = ctx.global().langSpec();
-        size_t      jumpTargetIndexStart = std::string_view::npos;
+        const auto&         langSpec             = ctx.global().langSpec();
+        size_t              jumpTargetIndexStart = std::string_view::npos;
         NaturalTokenContext tokenContext;
         tokenContext.taskContext         = &ctx;
         tokenContext.langSpec            = &langSpec;

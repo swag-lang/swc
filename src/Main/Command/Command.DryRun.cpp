@@ -213,8 +213,8 @@ namespace
     {
         const CommandLine&              cmdLine = ctx.cmdLine();
         std::vector<Logger::FieldEntry> entries;
-        uint32_t                        index      = 1;
-        const Utf8                      inputCount = Utf8Helper::countWithLabel(inputSummary.totalFiles, "input file");
+        uint32_t                        index       = 1;
+        const Utf8                      inputCount  = Utf8Helper::countWithLabel(inputSummary.totalFiles, "input file");
         Utf8                            objectFiles = "<object-files>";
         if (!nativePreview.paths.buildDir.empty() && !nativePreview.paths.name.empty())
             objectFiles = Utf8(nativePreview.paths.buildDir / std::format("{}_<NN>.obj", nativePreview.paths.name).c_str());

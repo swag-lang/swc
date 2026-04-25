@@ -350,7 +350,7 @@ namespace
 
         std::string_view namePart = leftPart;
         std::string_view typePart;
-        const size_t colonPos = leftPart.find(':');
+        const size_t     colonPos = leftPart.find(':');
         if (colonPos != std::string_view::npos)
         {
             namePart = Utf8Helper::trim(leftPart.substr(0, colonPos));

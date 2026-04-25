@@ -38,7 +38,7 @@ namespace Utf8Helper
     bool parseUInt(const LangSpec& langSpec, std::string_view s, size_t& p, int& out) noexcept;
     bool parseSignedOrAbs(const LangSpec& langSpec, std::string_view s, size_t& p, int& value, bool& hasSign) noexcept;
 
-    size_t levenshtein(std::string_view a, std::string_view b);
+    size_t              levenshtein(std::string_view a, std::string_view b);
     std::optional<Utf8> bestMatch(std::string_view query, const std::vector<Utf8>& candidates);
 
     std::string_view trimLeft(std::string_view s);
@@ -69,7 +69,7 @@ namespace Utf8Helper
         return join(values, separator, [](const auto& value) -> decltype(auto) { return value; });
     }
 
-    Utf8             countWithLabel(size_t value, std::string_view singular, const char* plural = nullptr);
+    Utf8 countWithLabel(size_t value, std::string_view singular, const char* plural = nullptr);
 }
 
 SWC_END_NAMESPACE();

@@ -236,10 +236,10 @@ bool StructConfigReader::applyEntry(TaskContext& ctx, const StructConfigEntry& e
 
     if (auto* target = std::get_if<int*>(&entry.target))
     {
-        const char* first = value.data();
-        const char* last  = first + value.size();
-        int parsedValue = 0;
-        const auto [ptr, ec] = std::from_chars(first, last, parsedValue);
+        const char* first       = value.data();
+        const char* last        = first + value.size();
+        int         parsedValue = 0;
+        const auto [ptr, ec]    = std::from_chars(first, last, parsedValue);
         if (value.empty() || ec != std::errc{} || ptr != last)
         {
             Diagnostic diag = Diagnostic::get(DiagnosticId::cmd_err_config_invalid_int);
@@ -256,10 +256,10 @@ bool StructConfigReader::applyEntry(TaskContext& ctx, const StructConfigEntry& e
 
     if (auto* target = std::get_if<uint32_t*>(&entry.target))
     {
-        const char* first = value.data();
-        const char* last  = first + value.size();
-        uint32_t parsedValue = 0;
-        const auto [ptr, ec] = std::from_chars(first, last, parsedValue);
+        const char* first       = value.data();
+        const char* last        = first + value.size();
+        uint32_t    parsedValue = 0;
+        const auto [ptr, ec]    = std::from_chars(first, last, parsedValue);
         if (value.empty() || ec != std::errc{} || ptr != last)
         {
             Diagnostic diag = Diagnostic::get(DiagnosticId::cmd_err_config_invalid_int);

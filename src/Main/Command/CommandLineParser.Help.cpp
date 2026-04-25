@@ -60,7 +60,7 @@ namespace
             return (*t)->empty() ? Utf8("(none)") : **t;
         if (auto* t = std::get_if<fs::path*>(&arg.target))
         {
-            Utf8 value = (**t).empty() ? Utf8{} : Utf8((**t).string());
+            Utf8 value = (*t)->empty() ? Utf8{} : Utf8((*t)->string());
             return value.empty() ? Utf8("(none)") : value;
         }
         if (auto* t = std::get_if<std::vector<Utf8>*>(&arg.target))

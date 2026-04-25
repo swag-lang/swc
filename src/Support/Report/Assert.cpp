@@ -59,11 +59,11 @@ namespace
     {
         SWC_ASSERT(codeRange.srcView != nullptr);
 
-        const uint32_t tokenLenChars = !codeRange.len ? 1 : std::max(1u, Utf8Helper::countChars(codeRange.srcView->codeView(codeRange.offset, codeRange.len)));
-        const Utf8     codeLine   = codeRange.srcView->codeLine(ctx, codeRange.line);
-        const Utf8     lineNoStr  = std::to_string(codeRange.line);
-        const SourceFile* sourceFile = codeRange.srcView->file();
-        const Utf8     fileLoc    = sourceFile ? sourceFile->formatFileLocation(&ctx, codeRange.line, codeRange.column, codeRange.column + tokenLenChars) : FileSystem::formatFileLocation(&ctx, fs::path{}, codeRange.line, codeRange.column, codeRange.column + tokenLenChars);
+        const uint32_t    tokenLenChars = !codeRange.len ? 1 : std::max(1u, Utf8Helper::countChars(codeRange.srcView->codeView(codeRange.offset, codeRange.len)));
+        const Utf8        codeLine      = codeRange.srcView->codeLine(ctx, codeRange.line);
+        const Utf8        lineNoStr     = std::to_string(codeRange.line);
+        const SourceFile* sourceFile    = codeRange.srcView->file();
+        const Utf8        fileLoc       = sourceFile ? sourceFile->formatFileLocation(&ctx, codeRange.line, codeRange.column, codeRange.column + tokenLenChars) : FileSystem::formatFileLocation(&ctx, fs::path{}, codeRange.line, codeRange.column, codeRange.column + tokenLenChars);
 
         msg += "Source context:\n";
         msg += std::format("  --> {}\n", fileLoc);

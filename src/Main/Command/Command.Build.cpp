@@ -16,12 +16,12 @@ namespace Command
         const TaskContext ctx(compiler);
         TimedActionLog::printBuildConfiguration(ctx);
         const uint64_t errorsBefore = Stats::getNumErrors();
-        Command::sema(compiler);
+        sema(compiler);
         if (Stats::getNumErrors() != errorsBefore)
             return;
 
         const Runtime::BuildCfgBackendKind backendKind = effectiveBackendKind(compiler.cmdLine(), compiler.buildCfg().backendKind);
-        compiler.buildCfg().backendKind = backendKind;
+        compiler.buildCfg().backendKind                = backendKind;
 
         TaskContext          nativeCtx(compiler);
         NativeBackendBuilder builder(compiler, false);
@@ -36,12 +36,12 @@ namespace Command
         const TaskContext ctx(compiler);
         TimedActionLog::printBuildConfiguration(ctx);
         const uint64_t errorsBefore = Stats::getNumErrors();
-        Command::sema(compiler);
+        sema(compiler);
         if (Stats::getNumErrors() != errorsBefore)
             return;
 
         const Runtime::BuildCfgBackendKind backendKind = effectiveBackendKind(compiler.cmdLine(), compiler.buildCfg().backendKind);
-        compiler.buildCfg().backendKind = backendKind;
+        compiler.buildCfg().backendKind                = backendKind;
 
         TaskContext          nativeCtx(compiler);
         NativeBackendBuilder builder(compiler, backendKind == Runtime::BuildCfgBackendKind::Executable);

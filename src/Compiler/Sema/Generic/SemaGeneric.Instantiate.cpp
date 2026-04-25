@@ -231,7 +231,7 @@ namespace
     void appendEnclosingFunctionGenericCloneBindings(Sema& sema, const SymbolFunction& root, SmallVector<SemaClone::ParamBinding>& outBindings)
     {
         SmallVector<SemaGeneric::GenericParamDesc> ownerParams;
-        SmallVector<GenericInstanceKey> ownerArgs;
+        SmallVector<GenericInstanceKey>            ownerArgs;
         if (!loadOwnerStructGenericArgs(sema, root, ownerParams, ownerArgs))
             return;
 
@@ -241,7 +241,7 @@ namespace
     void appendFunctionInstanceCloneBindings(Sema& sema, const SymbolFunction& function, SmallVector<SemaClone::ParamBinding>& outBindings)
     {
         SmallVector<SemaGeneric::GenericParamDesc> params;
-        SmallVector<GenericInstanceKey> args;
+        SmallVector<GenericInstanceKey>            args;
         if (!loadFunctionInstanceGenericArgs(sema, function, params, args))
             return;
 
@@ -359,7 +359,7 @@ namespace
     void appendFunctionInstanceBindingText(Sema& sema, const SymbolFunction& function, SmallVector<IdentifierRef>& seenIds, Utf8& out)
     {
         SmallVector<SemaGeneric::GenericParamDesc> params;
-        SmallVector<GenericInstanceKey> args;
+        SmallVector<GenericInstanceKey>            args;
         if (!loadFunctionInstanceGenericArgs(sema, function, params, args))
             return;
 
@@ -369,7 +369,7 @@ namespace
     void appendOwnerStructBindingText(Sema& sema, const SymbolFunction& function, SmallVector<IdentifierRef>& seenIds, Utf8& out)
     {
         SmallVector<SemaGeneric::GenericParamDesc> params;
-        SmallVector<GenericInstanceKey> args;
+        SmallVector<GenericInstanceKey>            args;
         if (!loadOwnerStructGenericArgs(sema, function, params, args))
             return;
 
@@ -1212,9 +1212,9 @@ namespace SemaGeneric
 {
     Result evaluateFunctionWhereConstraints(Sema& sema, bool& outSatisfied, const SymbolFunction& function, CastFailure* outFailure)
     {
-        std::unique_ptr<Sema> sourceSemaHolder;
-        Sema&                 sourceSema  = semaForGenericDecl(sema, function, sourceSemaHolder);
-        const Utf8            bindingText = formatFunctionWhereBindings(sourceSema, function);
+        std::unique_ptr<Sema>                sourceSemaHolder;
+        Sema&                                sourceSema  = semaForGenericDecl(sema, function, sourceSemaHolder);
+        const Utf8                           bindingText = formatFunctionWhereBindings(sourceSema, function);
         SmallVector<SemaClone::ParamBinding> cloneBindings;
         appendFunctionInstanceCloneBindings(sourceSema, function, cloneBindings);
         appendEnclosingGenericCloneBindings(sourceSema, function, cloneBindings);

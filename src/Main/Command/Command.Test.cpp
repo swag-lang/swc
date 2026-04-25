@@ -492,7 +492,7 @@ namespace Command
         const TaskContext ctx(compiler);
         TimedActionLog::printBuildConfiguration(ctx);
         const uint64_t errorsBefore = Stats::getNumErrors();
-        Command::sema(compiler);
+        sema(compiler);
         if (Stats::getNumErrors() != errorsBefore)
             return;
 

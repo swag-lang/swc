@@ -11,20 +11,6 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    bool runNativeBackend(CompilerInstance& compiler, const Runtime::BuildCfgBackendKind backendKind, const bool runArtifact)
-    {
-        compiler.buildCfg().backendKind = backendKind;
-        TaskContext ctx(compiler);
-
-        NativeBackendBuilder builder(compiler, runArtifact);
-        if (CommandRun::afterPauses(ctx, [&] {
-                return builder.run();
-            }) != Result::Continue)
-            return false;
-
-        return !Stats::hasError();
-    }
-
     void runNativeCommand(CompilerInstance& compiler, const bool runArtifact)
     {
         const TaskContext ctx(compiler);
@@ -35,7 +21,17 @@ namespace
             return;
 
         const Runtime::BuildCfgBackendKind backendKind = effectiveBackendKind(compiler.cmdLine(), compiler.buildCfg().backendKind);
-        runNativeBackend(compiler, backendKind, runArtifact && backendKind == Runtime::BuildCfgBackendKind::Executable);
+        compiler.buildCfg().backendKind = backendKind;
+
+        TaskContext          nativeCtx(compiler);
+        NativeBackendBuilder builder(compiler, runArtifact && backendKind == Runtime::BuildCfgBackendKind::Executable);
+        if (CommandRun::afterPauses(nativeCtx, [&] {
+                return builder.run();
+            }) != Result::Continue)
+            return;
+
+        if (Stats::hasError())
+            return;
     }
 }
 

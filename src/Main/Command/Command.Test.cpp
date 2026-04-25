@@ -110,12 +110,6 @@ namespace
         std::vector<const SymbolFunction*>        selfSkippedFunctions;
     };
 
-    bool functionRunsJitSource(const CompilerInstance& compiler, const SymbolFunction& function)
-    {
-        const SourceFile* file = compiler.srcView(function.srcViewRef()).file();
-        return !file || file->ast().srcView().runsJit();
-    }
-
     void collectTestFunctionGraph(TestFunctionGraph& graph, const CompilerInstance& compiler, const SymbolFunction* root)
     {
         SmallVector<const SymbolFunction*> stack;
@@ -177,7 +171,8 @@ namespace
     {
         if (!function)
             return;
-        if (!functionRunsJitSource(compiler, *function))
+        const SourceFile* file = compiler.srcView(function->srcViewRef()).file();
+        if (file && !file->ast().srcView().runsJit())
             return;
         if (selection.skippedFunctions.contains(function))
             return;
@@ -196,13 +191,21 @@ namespace
 
         for (const SymbolFunction* function : compiler.nativeCodeSegment())
         {
-            if (function && functionRunsJitSource(compiler, *function))
-                collectTestFunctionGraph(graph, compiler, function);
+            if (function)
+            {
+                const SourceFile* file = compiler.srcView(function->srcViewRef()).file();
+                if (!file || file->ast().srcView().runsJit())
+                    collectTestFunctionGraph(graph, compiler, function);
+            }
         }
 
         for (const SymbolFunction* function : compiler.nativeTestFunctions())
         {
-            if (function && functionRunsJitSource(compiler, *function))
+            if (!function)
+                continue;
+
+            const SourceFile* file = compiler.srcView(function->srcViewRef()).file();
+            if (!file || file->ast().srcView().runsJit())
                 collectTestFunctionGraph(graph, compiler, function);
         }
 
@@ -246,23 +249,6 @@ namespace
         return false;
     }
 
-    bool hasArtifactEntryPoints(const CompilerInstance& compiler)
-    {
-        for (const SymbolFunction* function : compiler.nativeTestFunctions())
-        {
-            if (function && shouldRunNativeArtifactFunction(compiler, *function))
-                return true;
-        }
-
-        for (const SymbolFunction* function : compiler.nativeMainFunctions())
-        {
-            if (function && shouldRunNativeArtifactFunction(compiler, *function))
-                return true;
-        }
-
-        return false;
-    }
-
     void verifyExpectedMarkers(TaskContext& ctx)
     {
         if (Stats::hasError())
@@ -278,32 +264,6 @@ namespace
                 continue;
             file->unitTest().verifyUntouchedExpected(ctx, srcView);
         }
-    }
-
-    bool runNativeBackend(CompilerInstance& compiler, const Runtime::BuildCfgBackendKind backendKind, const bool runArtifact)
-    {
-        compiler.buildCfg().backendKind = backendKind;
-
-        TaskContext          ctx(compiler);
-        NativeBackendBuilder builder(compiler, runArtifact);
-        if (CommandRun::afterPauses(ctx, [&] {
-                return builder.run();
-            }) != Result::Continue)
-            return false;
-
-        return !Stats::hasError();
-    }
-
-    bool runNativeBackends(CompilerInstance& compiler)
-    {
-        const Runtime::BuildCfgBackendKind backendKind = effectiveBackendKind(compiler.cmdLine(), compiler.buildCfg().backendKind);
-        if (!runNativeBackend(compiler, backendKind, backendKind == Runtime::BuildCfgBackendKind::Executable))
-            return false;
-
-        TaskContext                 ctx(compiler);
-        TimedActionLog::ScopedStage stage(ctx, TimedActionLog::Stage::Verify);
-        verifyExpectedMarkers(ctx);
-        return !Stats::hasError();
     }
 
     struct DataSegmentSnapshot
@@ -333,14 +293,6 @@ namespace
         return result;
     }
 
-    void restoreDataSegment(const DataSegment& segment, const std::vector<std::byte>& snapshot)
-    {
-        if (snapshot.empty())
-            return;
-
-        segment.restoreFromPreserveOffsets(ByteSpan{snapshot.data(), snapshot.size()});
-    }
-
     struct DataSegmentRestoreGuard
     {
         CompilerInstance*   compiler = nullptr;
@@ -351,8 +303,10 @@ namespace
             if (!compiler)
                 return;
 
-            restoreDataSegment(compiler->globalZeroSegment(), snapshot.globalZero);
-            restoreDataSegment(compiler->globalInitSegment(), snapshot.globalInit);
+            if (!snapshot.globalZero.empty())
+                compiler->globalZeroSegment().restoreFromPreserveOffsets(ByteSpan{snapshot.globalZero.data(), snapshot.globalZero.size()});
+            if (!snapshot.globalInit.empty())
+                compiler->globalInitSegment().restoreFromPreserveOffsets(ByteSpan{snapshot.globalInit.data(), snapshot.globalInit.size()});
         }
     };
 
@@ -477,8 +431,50 @@ namespace
         if (compiler.cmdLine().testJit && !runJitTests(compiler))
             return false;
 
-        if (compiler.cmdLine().testNative && compiler.cmdLine().output && hasArtifactEntryPoints(compiler))
-            return runNativeBackends(compiler);
+        if (compiler.cmdLine().testNative && compiler.cmdLine().output)
+        {
+            bool hasArtifactEntryPoints = false;
+            for (const SymbolFunction* function : compiler.nativeTestFunctions())
+            {
+                if (function && shouldRunNativeArtifactFunction(compiler, *function))
+                {
+                    hasArtifactEntryPoints = true;
+                    break;
+                }
+            }
+
+            if (!hasArtifactEntryPoints)
+            {
+                for (const SymbolFunction* function : compiler.nativeMainFunctions())
+                {
+                    if (function && shouldRunNativeArtifactFunction(compiler, *function))
+                    {
+                        hasArtifactEntryPoints = true;
+                        break;
+                    }
+                }
+            }
+
+            if (hasArtifactEntryPoints)
+            {
+                const Runtime::BuildCfgBackendKind backendKind = effectiveBackendKind(compiler.cmdLine(), compiler.buildCfg().backendKind);
+                compiler.buildCfg().backendKind                = backendKind;
+
+                TaskContext          ctx(compiler);
+                NativeBackendBuilder builder(compiler, backendKind == Runtime::BuildCfgBackendKind::Executable);
+                if (CommandRun::afterPauses(ctx, [&] {
+                        return builder.run();
+                    }) != Result::Continue)
+                    return false;
+
+                if (Stats::hasError())
+                    return false;
+
+                TimedActionLog::ScopedStage stage(ctx, TimedActionLog::Stage::Verify);
+                verifyExpectedMarkers(ctx);
+                return !Stats::hasError();
+            }
+        }
 
         TaskContext                 ctx(compiler);
         TimedActionLog::ScopedStage stage(ctx, TimedActionLog::Stage::Verify);

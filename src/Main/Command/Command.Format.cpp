@@ -12,36 +12,6 @@
 
 SWC_BEGIN_NAMESPACE();
 
-namespace
-{
-    Utf8 formatStageStat(const size_t totalFiles, const size_t rewrittenFiles, const size_t skippedFmtFiles, const size_t skippedInvalidFiles)
-    {
-        Utf8              stat = Utf8Helper::countWithLabel(totalFiles, "file");
-        std::vector<Utf8> details;
-        if (rewrittenFiles)
-            details.push_back(Utf8Helper::countWithLabel(rewrittenFiles, "rewritten file"));
-        if (skippedFmtFiles)
-            details.push_back(Utf8Helper::countWithLabel(skippedFmtFiles, "skipfmt file"));
-        if (skippedInvalidFiles)
-            details.push_back(Utf8Helper::countWithLabel(skippedInvalidFiles, "skipped invalid file"));
-
-        if (!details.empty())
-        {
-            stat += " (";
-            for (size_t i = 0; i < details.size(); ++i)
-            {
-                if (i)
-                    stat += ", ";
-                stat += details[i];
-            }
-
-            stat += ")";
-        }
-
-        return stat;
-    }
-}
-
 namespace Command
 {
     void format(CompilerInstance& compiler)
@@ -96,7 +66,29 @@ namespace Command
                 skippedInvalidFiles++;
         }
 
-        stage.setStat(formatStageStat(jobs.size(), rewrittenFiles, skippedFmtFiles, skippedInvalidFiles));
+        Utf8              stat = Utf8Helper::countWithLabel(jobs.size(), "file");
+        std::vector<Utf8> details;
+        if (rewrittenFiles)
+            details.push_back(Utf8Helper::countWithLabel(rewrittenFiles, "rewritten file"));
+        if (skippedFmtFiles)
+            details.push_back(Utf8Helper::countWithLabel(skippedFmtFiles, "skipfmt file"));
+        if (skippedInvalidFiles)
+            details.push_back(Utf8Helper::countWithLabel(skippedInvalidFiles, "skipped invalid file"));
+
+        if (!details.empty())
+        {
+            stat += " (";
+            for (size_t i = 0; i < details.size(); ++i)
+            {
+                if (i)
+                    stat += ", ";
+                stat += details[i];
+            }
+
+            stat += ")";
+        }
+
+        stage.setStat(std::move(stat));
     }
 }
 

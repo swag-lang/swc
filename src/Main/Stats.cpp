@@ -195,20 +195,6 @@ namespace
         }
     }
 
-    std::string formatMicroInstrDelta(const int64_t delta, const size_t base)
-    {
-        const char   sign = delta >= 0 ? '+' : '-';
-        const size_t abs  = static_cast<size_t>(std::abs(delta));
-        const double pct  = base != 0 ? 100.0 * static_cast<double>(delta) / static_cast<double>(base) : 0.0;
-        return std::format("{}{} ({:+.2f}%)", sign, Utf8Helper::toNiceBigNumber(abs), pct);
-    }
-
-    std::string formatMicroInstrTotalWithDelta(const size_t currentCount, const size_t previousCount)
-    {
-        const int64_t delta = static_cast<int64_t>(currentCount) - static_cast<int64_t>(previousCount);
-        return std::format("{} ({})", Utf8Helper::toNiceBigNumber(currentCount), formatMicroInstrDelta(delta, previousCount));
-    }
-
     struct MicroStageTransition
     {
         const char* countLabel    = nullptr;
@@ -364,10 +350,19 @@ void Stats::print(const TaskContext& ctx) const
             };
 
             for (const MicroStageTransition& transition : transitions)
-                addField(entries, transition.countLabel, formatMicroInstrTotalWithDelta(transition.currentCount, transition.previousCount));
+            {
+                const int64_t delta = static_cast<int64_t>(transition.currentCount) - static_cast<int64_t>(transition.previousCount);
+                const char    sign  = delta >= 0 ? '+' : '-';
+                const size_t  abs   = static_cast<size_t>(std::abs(delta));
+                const double  pct   = transition.previousCount != 0 ? 100.0 * static_cast<double>(delta) / static_cast<double>(transition.previousCount) : 0.0;
+                addField(entries, transition.countLabel, std::format("{} ({}{} ({:+.2f}%))", Utf8Helper::toNiceBigNumber(transition.currentCount), sign, Utf8Helper::toNiceBigNumber(abs), pct));
+            }
 
             const int64_t pipelineDelta = static_cast<int64_t>(numMicroFinal) - static_cast<int64_t>(numMicroInitial);
-            addField(entries, "Initial to final delta", formatMicroInstrDelta(pipelineDelta, numMicroInitial));
+            const char    pipelineSign  = pipelineDelta >= 0 ? '+' : '-';
+            const size_t  pipelineAbs   = static_cast<size_t>(std::abs(pipelineDelta));
+            const double  pipelinePct   = numMicroInitial != 0 ? 100.0 * static_cast<double>(pipelineDelta) / static_cast<double>(numMicroInitial) : 0.0;
+            addField(entries, "Initial to final delta", std::format("{}{} ({:+.2f}%)", pipelineSign, Utf8Helper::toNiceBigNumber(pipelineAbs), pipelinePct));
             addField(entries, "SSA builds", Utf8Helper::toNiceBigNumber(numMicroSsaBuilds.load()));
             addField(entries, "SSA invalidations", Utf8Helper::toNiceBigNumber(numMicroSsaInvalidations.load()));
             Logger::printFieldGroup(ctx, "Micro Pipeline", entries, nextInfoGroupStyle(hasPrintedGroup, 36));

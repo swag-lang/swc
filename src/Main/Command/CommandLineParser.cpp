@@ -18,16 +18,6 @@ constexpr std::string_view END_OF_OPTIONS     = "--";
 
 namespace
 {
-    void flushResponseFileToken(std::vector<Utf8>& out, Utf8& token, bool& inTok)
-    {
-        if (!inTok)
-            return;
-
-        out.push_back(std::move(token));
-        token.clear();
-        inTok = false;
-    }
-
     std::optional<Utf8> bestMatch(std::string_view query, const std::vector<Utf8>& candidates)
     {
         if (candidates.empty() || query.length() < 3)
@@ -83,7 +73,12 @@ namespace
 
             if (c == ' ' || c == '\t' || c == '\r' || c == '\n' || c == '\f' || c == '\v')
             {
-                flushResponseFileToken(out, token, inTok);
+                if (inTok)
+                {
+                    out.push_back(std::move(token));
+                    token.clear();
+                    inTok = false;
+                }
                 continue;
             }
 
@@ -94,7 +89,8 @@ namespace
         if (quote)
             return false;
 
-        flushResponseFileToken(out, token, inTok);
+        if (inTok)
+            out.push_back(std::move(token));
         return true;
     }
 

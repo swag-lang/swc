@@ -32,7 +32,8 @@ bool ExternalModuleManager::loadModule(void*& outModuleHandle, std::string_view 
     if (!Os::loadExternalModule(outModuleHandle, moduleName))
         return false;
 
-    modules_.push_back({.moduleName = Utf8{moduleName}, .moduleHandle = outModuleHandle});
+    ModuleEntry moduleEntry{.moduleName = Utf8(moduleName), .moduleHandle = outModuleHandle};
+    modules_.push_back(std::move(moduleEntry));
     return true;
 }
 

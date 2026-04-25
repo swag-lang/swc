@@ -1754,7 +1754,8 @@ Result CompilerInstance::executePendingCompilerMessages(TaskContext& ctx)
 bool CompilerInstance::tryRegisterReportedDiagnostic(const std::string_view message)
 {
     const std::scoped_lock lock(reportedDiagnosticsMutex_);
-    return reportedDiagnostics_.insert(Utf8{message}).second;
+    Utf8 messageUtf8(message);
+    return reportedDiagnostics_.insert(std::move(messageUtf8)).second;
 }
 
 Result CompilerInstance::appendGeneratedSource(GeneratedSourceAppendResult& outResult, Utf8& outBecause, const fs::path& directory, const std::string_view sectionText, const uint32_t codeOffsetInSection)

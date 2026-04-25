@@ -373,7 +373,8 @@ namespace
         if (nativePreview.mayRunArtifact)
         {
             addInfoEntry(entries, "Artifact working dir", nativePreview.paths.artifactPath.parent_path());
-            addInfoEntry(entries, "Artifact command", Os::formatProcessCommandLine(nativePreview.paths.artifactPath, std::span<const Utf8>{}));
+            constexpr std::span<const Utf8> noArguments;
+            addInfoEntry(entries, "Artifact command", Os::formatProcessCommandLine(nativePreview.paths.artifactPath, noArguments));
         }
 
         if (entries.empty())

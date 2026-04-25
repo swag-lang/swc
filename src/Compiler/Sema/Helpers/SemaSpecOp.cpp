@@ -87,6 +87,11 @@ namespace
         return unwrapAlias(ctx, typeRef);
     }
 
+    std::span<const AstNodeRef> emptyGenericArgNodes()
+    {
+        return {};
+    }
+
     TypeRef resolveIndexOperandTypeRef(Sema& sema, const SemaNodeView& argView)
     {
         TypeRef       indexTypeRef = argView.typeRef();
@@ -725,7 +730,7 @@ namespace
 
         if (genericArg.isValid())
             return collectSpecOpCandidates(sema, ownerStruct, opId, std::span{&genericArg, 1}, outCandidates);
-        return collectSpecOpCandidates(sema, ownerStruct, opId, std::span<const AstNodeRef>{}, outCandidates);
+        return collectSpecOpCandidates(sema, ownerStruct, opId, emptyGenericArgNodes(), outCandidates);
     }
 
     void splitMutableReceiverCandidates(Sema& sema, std::span<Symbol*> inCandidates, SmallVector<Symbol*>& outMutableCandidates, SmallVector<Symbol*>& outConstCandidates)
@@ -793,7 +798,7 @@ namespace
 
         if (genericArg.isValid())
             return collectSpecOpCandidates(sema, ownerStruct, opId, std::span{&genericArg, 1}, outCandidates);
-        return collectSpecOpCandidates(sema, ownerStruct, opId, std::span<const AstNodeRef>{}, outCandidates);
+        return collectSpecOpCandidates(sema, ownerStruct, opId, emptyGenericArgNodes(), outCandidates);
     }
 
     Result matchSyntheticCall(Sema& sema, std::span<Symbol*> candidates, std::span<AstNodeRef> args, AstNodeRef ufcsArg, bool allowNoMatch, SmallVector<ResolvedCallArgument>& outResolvedArgs, bool& outMatched)
@@ -1009,7 +1014,7 @@ namespace
         SWC_RESULT(sema.waitSemaCompleted(ownerStruct, sema.node(exprRef).codeRef()));
 
         SmallVector<Symbol*> candidates;
-        SWC_RESULT(collectSpecOpCandidates(sema, *ownerStruct, opId, std::span<const AstNodeRef>{}, candidates));
+        SWC_RESULT(collectSpecOpCandidates(sema, *ownerStruct, opId, emptyGenericArgNodes(), candidates));
         if (candidates.empty())
             return Result::Continue;
 
@@ -1433,7 +1438,7 @@ Result SemaSpecOp::tryResolveSlice(Sema& sema, const AstIndexExpr& node, const S
 
     SmallVector<Symbol*> candidates;
     const IdentifierRef  opSliceId = sema.idMgr().predefined(IdentifierManager::PredefinedName::OpSlice);
-    SWC_RESULT(collectSpecOpCandidates(sema, *ownerStruct, opSliceId, std::span<const AstNodeRef>{}, candidates));
+    SWC_RESULT(collectSpecOpCandidates(sema, *ownerStruct, opSliceId, emptyGenericArgNodes(), candidates));
     if (candidates.empty())
         return Result::Continue;
 
@@ -1442,7 +1447,7 @@ Result SemaSpecOp::tryResolveSlice(Sema& sema, const AstIndexExpr& node, const S
     {
         SmallVector<Symbol*> countCandidates;
         const IdentifierRef  opCountId = sema.idMgr().predefined(IdentifierManager::PredefinedName::OpCount);
-        SWC_RESULT(collectSpecOpCandidates(sema, *ownerStruct, opCountId, std::span<const AstNodeRef>{}, countCandidates));
+        SWC_RESULT(collectSpecOpCandidates(sema, *ownerStruct, opCountId, emptyGenericArgNodes(), countCandidates));
         countFn = selectReceiverOnlyCandidate(sema, countCandidates.span(), indexedView.type()->isConst());
         if (!countFn)
             return Result::Continue;
@@ -1565,7 +1570,7 @@ Result SemaSpecOp::tryResolveIndex(Sema& sema, const AstIndexExpr& node, const S
 
     SmallVector<Symbol*> candidates;
     const IdentifierRef  opIndexId = sema.idMgr().predefined(IdentifierManager::PredefinedName::OpIndex);
-    SWC_RESULT(collectSpecOpCandidates(sema, *ownerStruct, opIndexId, std::span<const AstNodeRef>{}, candidates));
+    SWC_RESULT(collectSpecOpCandidates(sema, *ownerStruct, opIndexId, emptyGenericArgNodes(), candidates));
     if (candidates.empty())
     {
         if (deferToSimpleAssignWriteSpecOp)
@@ -1901,7 +1906,7 @@ Result SemaSpecOp::tryResolveRelational(Sema& sema, const AstRelationalExpr& nod
     SWC_RESULT(sema.waitSemaCompleted(&ownerStruct, node.codeRef()));
 
     SmallVector<Symbol*> candidates;
-    SWC_RESULT(collectSpecOpCandidates(sema, ownerStruct, opIdRef, std::span<const AstNodeRef>{}, candidates));
+    SWC_RESULT(collectSpecOpCandidates(sema, ownerStruct, opIdRef, emptyGenericArgNodes(), candidates));
     if (candidates.empty())
         return Result::Continue;
 

@@ -1294,7 +1294,7 @@ namespace
 
         const IdentifierRef idRef      = SemaHelpers::resolveIdentifier(sema, identRight->codeRef());
         const TokenRef      tokNameRef = identRight->tokRef();
-        const auto          memberCode = SourceCodeRef{node.srcViewRef(), tokNameRef};
+        const SourceCodeRef memberCode{node.srcViewRef(), tokNameRef};
 
         const AstNodeRef           genericArgRef = node.nodeLeftRef;
         SmallVector<const Symbol*> specializedFunctions;
@@ -1376,7 +1376,8 @@ namespace
 
     Result reportUnknownMemberSymbol(Sema& sema, const AstMemberAccessExpr& node, IdentifierRef idRef, TokenRef tokNameRef)
     {
-        auto diag = SemaError::report(sema, DiagnosticId::sema_err_unknown_symbol, SourceCodeRef{node.srcViewRef(), tokNameRef});
+        const SourceCodeRef codeRef{node.srcViewRef(), tokNameRef};
+        auto                diag = SemaError::report(sema, DiagnosticId::sema_err_unknown_symbol, codeRef);
         diag.addArgument(Diagnostic::ARG_SYM, idRef);
         diag.report(sema.ctx());
         return Result::Error;
@@ -1422,14 +1423,16 @@ namespace
     Result memberEnum(Sema& sema, AstNodeRef targetNodeRef, const AstMemberAccessExpr& node, const SemaNodeView& nodeLeftView, const IdentifierRef& idRef, TokenRef tokNameRef, bool allowOverloadSet)
     {
         const SymbolEnum& enumSym = nodeLeftView.type()->payloadSymEnum();
-        SWC_RESULT(sema.waitSemaCompleted(&enumSym, {node.srcViewRef(), tokNameRef}));
+        const SourceCodeRef codeRef{node.srcViewRef(), tokNameRef};
+        SWC_RESULT(sema.waitSemaCompleted(&enumSym, codeRef));
         return lookupScopedMember(sema, targetNodeRef, node, enumSym, idRef, tokNameRef, allowOverloadSet);
     }
 
     Result memberInterface(Sema& sema, AstNodeRef targetNodeRef, const AstMemberAccessExpr& node, const SemaNodeView& nodeLeftView, const IdentifierRef& idRef, TokenRef tokNameRef, bool allowOverloadSet)
     {
         const SymbolInterface& symInterface = nodeLeftView.type()->payloadSymInterface();
-        SWC_RESULT(sema.waitSemaCompleted(&symInterface, {node.srcViewRef(), tokNameRef}));
+        const SourceCodeRef    codeRef{node.srcViewRef(), tokNameRef};
+        SWC_RESULT(sema.waitSemaCompleted(&symInterface, codeRef));
 
         const SymbolMap& lookupMap = nodeLeftView.sym() && nodeLeftView.sym()->isImpl() ? *nodeLeftView.sym()->asSymMap() : static_cast<const SymbolMap&>(symInterface);
         return lookupScopedMember(sema, targetNodeRef, node, lookupMap, idRef, tokNameRef, allowOverloadSet);
@@ -1438,10 +1441,11 @@ namespace
     Result memberStruct(Sema& sema, AstNodeRef targetNodeRef, AstMemberAccessExpr& node, const SemaNodeView& nodeLeftView, const IdentifierRef& idRef, TokenRef tokNameRef, bool allowOverloadSet, const TypeInfo& typeInfo)
     {
         const SymbolStruct& symStruct = typeInfo.payloadSymStruct();
-        SWC_RESULT(sema.waitSemaCompleted(&symStruct, {node.srcViewRef(), tokNameRef}));
+        const SourceCodeRef codeRef{node.srcViewRef(), tokNameRef};
+        SWC_RESULT(sema.waitSemaCompleted(&symStruct, codeRef));
 
         MatchContext lookUpCxt;
-        lookUpCxt.codeRef       = SourceCodeRef{node.srcViewRef(), tokNameRef};
+        lookUpCxt.codeRef       = codeRef;
         lookUpCxt.symMapHint    = &symStruct;
         lookUpCxt.noWaitOnEmpty = true;
 

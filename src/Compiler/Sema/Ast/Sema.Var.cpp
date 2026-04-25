@@ -183,7 +183,8 @@ namespace
         {
             loweredBytes.resize(size);
             std::memset(loweredBytes.data(), 0, loweredBytes.size());
-            SWC_RESULT(ConstantLower::lowerToBytes(sema, ByteSpanRW{loweredBytes.data(), loweredBytes.size()}, symVar.cstRef(), storageTypeRef));
+            const ByteSpanRW loweredBytesWrite{loweredBytes.data(), loweredBytes.size()};
+            SWC_RESULT(ConstantLower::lowerToBytes(sema, loweredBytesWrite, symVar.cstRef(), storageTypeRef));
 
             if (!isCompilerGlobal && !isAllZeroBytes(loweredBytes))
                 storageKind = DataSegmentKind::GlobalInit;
@@ -195,13 +196,14 @@ namespace
         uint32_t     offset  = 0;
         if (hasInitializerData)
         {
+            const ByteSpan loweredBytesRead{loweredBytes.data(), loweredBytes.size()};
             if (storageKind == DataSegmentKind::GlobalInit)
             {
-                SWC_RESULT(ConstantLower::materializeStaticPayload(offset, sema, segment, storageTypeRef, ByteSpan{loweredBytes.data(), loweredBytes.size()}));
+                SWC_RESULT(ConstantLower::materializeStaticPayload(offset, sema, segment, storageTypeRef, loweredBytesRead));
             }
             else
             {
-                const std::pair<ByteSpan, Ref> addRes = segment.addSpan(ByteSpan{loweredBytes.data(), loweredBytes.size()}, alignment);
+                const std::pair<ByteSpan, Ref> addRes = segment.addSpan(loweredBytesRead, alignment);
                 offset                                = addRes.second;
             }
         }
@@ -628,6 +630,7 @@ namespace
 
     Result reportMissingInitializer(Sema& sema, DiagnosticId id, const SemaPostVarDeclArgs& context, const std::span<Symbol*>& symbols)
     {
+        SWC_ASSERT(context.owner != nullptr);
         const SourceCodeRef where{context.owner->srcViewRef(), context.tokDiag};
         if (symbols.size() == 1 && symbols[0])
         {

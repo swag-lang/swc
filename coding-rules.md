@@ -4,8 +4,11 @@
 
 ### 1. Simplify and Clarify
 
-- Prefer **named functions** over lambdas only used as local functions.
-- Avoid **inline struct construction** in function calls. Use local variables or pass them as arguments instead.
+- Prefer **named functions** over lambdas only used as local functions, but only when the extracted helper adds
+  real meaning or isolates non-trivial logic.
+- Small **inline struct/aggregate construction** in function calls is acceptable when it stays short, obvious, and
+  does not pollute readability.
+- Do not introduce tiny helpers whose only purpose is to rename a short literal construction or a trivial expression.
 - Keep code easy to read and reason about.
 - Avoid if (init; condition) when the initialization is non-trivial; perform such setup separately before the if
   statement.
@@ -46,8 +49,12 @@
 ### 5. Code Reuse
 
 - Eliminate duplication:
-    - Extract **helper functions**
+    - Extract **helper functions** when they capture meaningful behavior, domain intent, or non-trivial repeated logic
     - Reuse existing utilities when available
+- Place helpers at the **best abstraction level**:
+    - A helper generic to a type or utility should live with that type or utility
+    - File-local helpers should remain file-local and domain-specific
+    - Do not create ad-hoc local helpers when an existing shared utility already fits
 - Avoid copy-paste logic.
 
 ---

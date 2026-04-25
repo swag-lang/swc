@@ -119,7 +119,7 @@ SWC_DIAG_DEF(sema_err_invalid_location, Error, "'#location' requires a symbol re
 SWC_DIAG_DEF(sema_err_caller_location_default_only, Error, "'#callerlocation' can only be used as the direct default value of a function parameter")
 SWC_DIAG_DEF(sema_err_invalid_countof_type, Error, "'@countof' does not support values of type '{type}'; [help] use an array, slice, string, enum, or unsigned integer")
 SWC_DIAG_DEF(sema_err_count_negative, Error, "count must be non-negative, found '{value}'; [help] use zero or a positive count")
-SWC_DIAG_DEF(sema_err_invalid_mkany_ptr, Error, "invalid pointer argument to '@mkany': got '{type}', but the pointee type must be '{requested-type}' or '*void'; [help] pass a matching pointer, or cast it to '*void'")
+SWC_DIAG_DEF(sema_err_invalid_mkany_ptr, Error, "invalid pointer argument to '@mkany': got '{type}', but the pointee type must be '{requested-type}' or 'void'; [help] pass a matching pointer, or cast it to a void pointer")
 SWC_DIAG_DEF(sema_err_too_many_aliases, Error, "too many call-site aliases: expected at most {count}, found {value}; [help] remove the extra aliases, or declare more alias slots")
 SWC_DIAG_DEF(sema_err_alias_hole, Error, "macro or mixin alias '#alias{value}' is invalid because '#alias{count}' is missing; [help] define '#alias{count}' first, or renumber this alias")
 SWC_DIAG_DEF(sema_err_struct_circular_reference, Error, "field '{value}' cannot have type '{sym}' because struct '{sym}' would contain itself by value")

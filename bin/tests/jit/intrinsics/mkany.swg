@@ -95,6 +95,21 @@ enum MkanyKind: u16
 
 #test
 {
+    func mkanyBlockVoidPointer()->s32
+    {
+        var x: s32 = 55
+        let ptr = cast([*] void) &x
+        let a: any = @mkany(ptr, s32)
+        let p = cast(*s32) @dataof(a)
+        return dref p
+    }
+
+    const V = #run mkanyBlockVoidPointer()
+    #assert(V == 55)
+}
+
+#test
+{
     func mkanyKindAndValue()->bool
     {
         var k: MkanyKind = MkanyKind.B

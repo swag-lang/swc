@@ -313,13 +313,14 @@ namespace
         SWC_RESULT(SemaCheck::isValue(sema, nodeViewPtr.nodeRef()));
         SWC_RESULT(SemaCheck::isValueOrTypeInfo(sema, viewType));
 
-        if (!nodeViewPtr.type()->isValuePointer())
+        const TypeInfo* ptrType = nodeViewPtr.type();
+        if (!ptrType->isAnyPointer())
             return SemaError::raiseRequestedTypeFam(sema, nodeViewPtr.nodeRef(), nodeViewPtr.typeRef(), sema.typeMgr().typeValuePtrVoid());
         if (!viewType.type()->isAnyTypeInfo(sema.ctx()))
             return SemaError::raiseRequestedTypeFam(sema, viewType.nodeRef(), viewType.typeRef(), sema.typeMgr().typeTypeInfo());
 
-        // Check if the pointer is void* or a pointer to the type defined in the right expression
-        const TypeRef typeRefPointee = nodeViewPtr.type()->payloadTypeRef();
+        // Check if the pointer is void or a pointer to the type defined in the right expression
+        const TypeRef typeRefPointee = ptrType->payloadTypeRef();
         if (!sema.typeMgr().get(typeRefPointee).isVoid() && viewType.cstRef().isValid())
         {
             const TypeRef typeRefTypeInfo = sema.cstMgr().makeTypeValue(sema, viewType.cstRef());
@@ -334,7 +335,7 @@ namespace
         }
 
         TypeInfoFlags flags = TypeInfoFlagsE::Zero;
-        if (nodeViewPtr.type()->isConst())
+        if (ptrType->isConst())
             flags.add(TypeInfoFlagsE::Const);
 
         const TypeRef typeRef = sema.typeMgr().addType(TypeInfo::makeAny(flags));

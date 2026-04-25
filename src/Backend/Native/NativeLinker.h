@@ -18,7 +18,7 @@ public:
 protected:
     Result runToolAndValidateArtifacts(const fs::path& exePath, const std::vector<Utf8>& args, const Os::ProcessRunOptions* options = nullptr) const;
 
-    NativeBackendBuilder& builder_;
+    NativeBackendBuilder* builder_ = nullptr;
 };
 
 SWC_END_NAMESPACE();

@@ -232,7 +232,7 @@ namespace
 
 NativeBackendBuilder::NativeBackendBuilder(CompilerInstance& compiler, const bool runArtifact) :
     ctx_(compiler),
-    compiler_(compiler),
+    compiler_(&compiler),
     runArtifact_(runArtifact)
 {
 }
@@ -249,18 +249,21 @@ const TaskContext& NativeBackendBuilder::ctx() const
 
 CompilerInstance& NativeBackendBuilder::compiler()
 {
-    return compiler_;
+    SWC_ASSERT(compiler_ != nullptr);
+    return *compiler_;
 }
 
 const CompilerInstance& NativeBackendBuilder::compiler() const
 {
-    return compiler_;
+    SWC_ASSERT(compiler_ != nullptr);
+    return *compiler_;
 }
 
 uint32_t NativeBackendBuilder::expectedTestFunctionCount() const
 {
     uint32_t result = 0;
-    for (const SymbolFunction* function : compiler_.nativeTestFunctions())
+    SWC_ASSERT(compiler_ != nullptr);
+    for (const SymbolFunction* function : compiler_->nativeTestFunctions())
     {
         if (!function || !shouldPrepareSymbol(*this, *function))
             continue;
@@ -295,18 +298,19 @@ bool NativeBackendBuilder::tryMapRDataSourceOffset(uint32_t& outOffset, const ui
 Result NativeBackendBuilder::run()
 {
     SWC_MEM_SCOPE("Backend/Native");
-    SWC_RESULT(compiler_.ensureCompilerMessagePass(Runtime::CompilerMsgKind::PassBeforeOutput));
+    SWC_ASSERT(compiler_ != nullptr);
+    SWC_RESULT(compiler_->ensureCompilerMessagePass(Runtime::CompilerMsgKind::PassBeforeOutput));
     SWC_RESULT(validateTarget());
 
     const NativeArtifactBuilder artifactBuilder(*this);
     NativeArtifactPaths         paths;
     artifactBuilder.queryPaths(paths);
-    compiler_.setLastArtifactLabel(paths.artifactPath.filename().empty() ? Utf8(paths.artifactPath) : Utf8(paths.artifactPath.filename()));
+    compiler_->setLastArtifactLabel(paths.artifactPath.filename().empty() ? Utf8(paths.artifactPath) : Utf8(paths.artifactPath.filename()));
     {
         TimedActionLog::ScopedStage stage(ctx_, TimedActionLog::Stage::Build);
 
         SWC_RESULT(prepare());
-        stage.setStat(Utf8Helper::countWithLabel(compiler_.nativeCodeSegment().size(), "function"));
+        stage.setStat(Utf8Helper::countWithLabel(compiler_->nativeCodeSegment().size(), "function"));
         SWC_RESULT(artifactBuilder.build());
         SWC_RESULT(writeObjects());
 
@@ -315,7 +319,7 @@ Result NativeBackendBuilder::run()
         SWC_RESULT(linker->link());
     }
 
-    if (runArtifact_ && compiler_.buildCfg().backendKind == Runtime::BuildCfgBackendKind::Executable)
+    if (runArtifact_ && compiler_->buildCfg().backendKind == Runtime::BuildCfgBackendKind::Executable)
         SWC_RESULT(runGeneratedArtifact());
 
     return Result::Continue;
@@ -325,12 +329,13 @@ Result NativeBackendBuilder::prepare()
 {
     functionInfos.clear();
     functionBySymbol.clear();
-    testFunctions    = compiler_.nativeTestFunctions();
-    initFunctions    = compiler_.nativeInitFunctions();
-    preMainFunctions = compiler_.nativePreMainFunctions();
-    dropFunctions    = compiler_.nativeDropFunctions();
-    mainFunctions    = compiler_.nativeMainFunctions();
-    regularGlobals   = compiler_.nativeGlobalVariables();
+    SWC_ASSERT(compiler_ != nullptr);
+    testFunctions    = compiler_->nativeTestFunctions();
+    initFunctions    = compiler_->nativeInitFunctions();
+    preMainFunctions = compiler_->nativePreMainFunctions();
+    dropFunctions    = compiler_->nativeDropFunctions();
+    mainFunctions    = compiler_->nativeMainFunctions();
+    regularGlobals   = compiler_->nativeGlobalVariables();
     filterPreparedSymbols(testFunctions, *this);
     filterPreparedSymbols(initFunctions, *this);
     filterPreparedSymbols(preMainFunctions, *this);
@@ -338,14 +343,14 @@ Result NativeBackendBuilder::prepare()
     filterPreparedSymbols(mainFunctions, *this);
     filterPreparedSymbols(regularGlobals, *this);
 
-    auto functions = compiler_.nativeCodeSegment();
+    auto functions = compiler_->nativeCodeSegment();
     filterPreparedSymbols(functions, *this);
-    SymbolSort::sortAndUniqueByLocation(testFunctions, compiler_);
-    SymbolSort::sortAndUniqueByLocation(initFunctions, compiler_);
-    SymbolSort::sortAndUniqueByLocation(preMainFunctions, compiler_);
-    SymbolSort::sortAndUniqueByLocation(dropFunctions, compiler_);
-    SymbolSort::sortAndUniqueByLocation(mainFunctions, compiler_);
-    SymbolSort::sortAndUniqueByLocation(regularGlobals, compiler_);
+    SymbolSort::sortAndUniqueByLocation(testFunctions, *compiler_);
+    SymbolSort::sortAndUniqueByLocation(initFunctions, *compiler_);
+    SymbolSort::sortAndUniqueByLocation(preMainFunctions, *compiler_);
+    SymbolSort::sortAndUniqueByLocation(dropFunctions, *compiler_);
+    SymbolSort::sortAndUniqueByLocation(mainFunctions, *compiler_);
+    SymbolSort::sortAndUniqueByLocation(regularGlobals, *compiler_);
     appendGlobalFunctionInitDependencies(*this, functions, regularGlobals);
 
     std::optional<TimedActionLog::ScopedStage> microStage;
@@ -357,7 +362,7 @@ Result NativeBackendBuilder::prepare()
     while (true)
     {
         appendCodeGenDependencies(*this, functions);
-        SymbolSort::sortAndUniqueByLocation(functions, compiler_);
+        SymbolSort::sortAndUniqueByLocation(functions, *compiler_);
         rebuildFunctionInfos(*this, functions);
         SWC_RESULT(scheduleCodeGen(*this));
 
@@ -403,7 +408,8 @@ Result NativeBackendBuilder::validateTarget()
         return reportError(DiagnosticId::cmd_err_native_target_arch_not_supported);
     }
 
-    const Runtime::BuildCfg& buildCfg = compiler_.buildCfg();
+    SWC_ASSERT(compiler_ != nullptr);
+    const Runtime::BuildCfg& buildCfg = compiler_->buildCfg();
     if (buildCfg.backendKind == Runtime::BuildCfgBackendKind::None)
     {
         return reportError(DiagnosticId::cmd_err_native_backend_kind_required);
@@ -430,10 +436,10 @@ Result NativeBackendBuilder::writeObjects()
     for (uint32_t i = 0; i < objectDescriptions.size(); ++i)
     {
         auto* job = heapNew<NativeObjJob>(ctx_, *this, i);
-        jobMgr.enqueue(*job, JobPriority::Normal, compiler_.jobClientId());
+        jobMgr.enqueue(*job, JobPriority::Normal, compiler_->jobClientId());
     }
 
-    jobMgr.waitAll(compiler_.jobClientId());
+    jobMgr.waitAll(compiler_->jobClientId());
     return objWriteFailed.load(std::memory_order_acquire) ? Result::Error : Result::Continue;
 }
 
@@ -461,7 +467,7 @@ Result NativeBackendBuilder::runGeneratedArtifact()
     }
 
     const uint32_t expectedTestCount = expectedTestFunctionCount();
-    if (compiler_.cmdLine().command == CommandKind::Test &&
+    if (compiler_->cmdLine().command == CommandKind::Test &&
         expectedTestCount &&
         (exitCode & ~K_NATIVE_TEST_COUNT_MISMATCH_EXIT_VALUE_MASK) == K_NATIVE_TEST_COUNT_MISMATCH_EXIT_TAG)
     {

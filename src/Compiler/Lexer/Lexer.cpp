@@ -129,12 +129,14 @@ Diagnostic Lexer::reportTokenError(DiagnosticId id, uint32_t offset, uint32_t le
 
         if (id == DiagnosticId::parser_err_invalid_compiler)
         {
-            if (const auto suggestion = findClosestTokenName(tkn, true); suggestion.has_value())
+            const auto suggestion = findClosestTokenName(tkn, true);
+            if (suggestion.has_value())
                 diag.addArgument(Diagnostic::ARG_VALUE, *suggestion);
         }
         else if (id == DiagnosticId::parser_err_invalid_intrinsic)
         {
-            if (const auto suggestion = findClosestTokenName(tkn, false); suggestion.has_value())
+            const auto suggestion = findClosestTokenName(tkn, false);
+            if (suggestion.has_value())
                 diag.addArgument(Diagnostic::ARG_VALUE, *suggestion);
         }
     }

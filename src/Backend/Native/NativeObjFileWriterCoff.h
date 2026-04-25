@@ -39,7 +39,8 @@ private:
         {
             if (name.size() <= IMAGE_SIZEOF_SHORT_NAME)
                 return 0;
-            if (const auto it = offsets.find(name); it != offsets.end())
+            const auto it = offsets.find(name);
+            if (it != offsets.end())
                 return it->second;
 
             const uint32_t offset = size;
@@ -68,7 +69,7 @@ private:
     static void   addUndefinedSymbols(const std::vector<CoffSectionBuild>& sections, std::vector<CoffSymbolRecord>& symbols, std::unordered_map<Utf8, uint32_t>& symbolIndices);
     Result        flushCoffFile(const fs::path& objPath, std::vector<CoffSectionBuild>& sections, const std::vector<CoffSymbolRecord>& symbols, const std::unordered_map<Utf8, uint32_t>& symbolIndices) const;
 
-    NativeBackendBuilder& builder_;
+    NativeBackendBuilder* builder_ = nullptr;
 };
 
 SWC_END_NAMESPACE();

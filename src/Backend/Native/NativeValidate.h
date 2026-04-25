@@ -20,7 +20,7 @@ private:
     bool findDataSegmentRelocation(uint32_t& outTargetOffset, uint32_t shardIndex, uint32_t offset) const;
     bool findFunctionSymbolRelocation(const SymbolFunction*& outTargetSymbol, uint32_t shardIndex, uint32_t offset) const;
 
-    NativeBackendBuilder& builder_;
+    NativeBackendBuilder* builder_ = nullptr;
 };
 
 #endif

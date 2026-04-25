@@ -147,9 +147,9 @@ private:
     Result runGeneratedArtifact();
 
     TaskContext       ctx_;
-    CompilerInstance& compiler_;
-    bool              runArtifact_ = false;
-    DiagnosticId      lastErrorId_ = DiagnosticId::None;
+    CompilerInstance* compiler_     = nullptr;
+    bool              runArtifact_  = false;
+    DiagnosticId      lastErrorId_  = DiagnosticId::None;
 };
 
 SWC_END_NAMESPACE();

@@ -22,6 +22,13 @@ namespace
     constexpr uint32_t K_MAX_TOKEN_TEXT = 48;
     constexpr uint32_t K_MAX_SEMA_TEXT  = 64;
 
+    AstNodeRef resolvePrintNodeRef(Sema* sema, AstNodeRef nodeRef)
+    {
+        if (!sema)
+            return nodeRef;
+        return sema->viewZero(nodeRef).nodeRef();
+    }
+
     void appendColored(Utf8& out, const TaskContext& ctx, SyntaxColor color, std::string_view value)
     {
         out += SyntaxColorHelper::toAnsi(ctx, color);
@@ -172,15 +179,10 @@ Utf8 AstPrinter::format(const TaskContext& ctx, Ast& ast, AstNodeRef root, Sema*
     std::unordered_map<AstNodeRef, AstPrintNodeEntry> nodeEntries;
     nodeEntries.reserve(256);
 
-    auto resolveNodeRef = [sema](AstNodeRef nodeRef) -> AstNodeRef {
-        if (!sema)
-            return nodeRef;
-        return sema->viewZero(nodeRef).nodeRef();
-    };
     // Count children per node
     AstVisit orderingVisit;
     orderingVisit.setMode(AstVisitMode::ResolveBeforeCallbacks);
-    orderingVisit.setNodeRefResolver(resolveNodeRef);
+    orderingVisit.setNodeRefResolver([sema](AstNodeRef nodeRef) { return resolvePrintNodeRef(sema, nodeRef); });
 
     orderingVisit.setPreChildVisitor([&](AstNode&, AstNodeRef&) -> Result {
         const AstNodeRef parentRef = orderingVisit.currentNodeRef();
@@ -196,7 +198,7 @@ Utf8 AstPrinter::format(const TaskContext& ctx, Ast& ast, AstNodeRef root, Sema*
     // Print
     AstVisit printVisit;
     printVisit.setMode(AstVisitMode::ResolveBeforeCallbacks);
-    printVisit.setNodeRefResolver(resolveNodeRef);
+    printVisit.setNodeRefResolver([sema](AstNodeRef nodeRef) { return resolvePrintNodeRef(sema, nodeRef); });
     printVisit.setPreChildVisitor([&](AstNode&, AstNodeRef&) -> Result {
         const AstNodeRef parentRef = printVisit.currentNodeRef();
         uint32_t&        numChild  = visitedChildrenByParent[parentRef];

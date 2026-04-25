@@ -130,6 +130,7 @@ private:
     AstNodeRef parseAssignStmt();
     AstNodeRef parseAggregateAccessModifier();
     AstNodeRef parseAggregateBody();
+    AstNodeRef parseAnonymousAggregateTypeBody();
     AstNodeRef parseAggregateValue();
     AstNodeRef parseAlias();
     AstNodeRef parseCompilerUp();

@@ -44,14 +44,15 @@ Os::WindowsToolchainDiscoveryResult NativeLinkerCoff::queryToolchainPaths(Os::Wi
 
 Result NativeLinkerCoff::discoverToolchain()
 {
+    SWC_ASSERT(builder_ != nullptr);
     switch (queryToolchainPaths(toolchain_))
     {
         case Os::WindowsToolchainDiscoveryResult::Ok:
             return Result::Continue;
         case Os::WindowsToolchainDiscoveryResult::MissingMsvcToolchain:
-            return builder_.reportError(DiagnosticId::cmd_err_native_toolchain_msvc_missing);
+            return builder_->reportError(DiagnosticId::cmd_err_native_toolchain_msvc_missing);
         case Os::WindowsToolchainDiscoveryResult::MissingWindowsSdk:
-            return builder_.reportError(DiagnosticId::cmd_err_native_toolchain_sdk_missing);
+            return builder_->reportError(DiagnosticId::cmd_err_native_toolchain_sdk_missing);
     }
 
     SWC_UNREACHABLE();
@@ -59,6 +60,7 @@ Result NativeLinkerCoff::discoverToolchain()
 
 Result NativeLinkerCoff::link()
 {
+    SWC_ASSERT(builder_ != nullptr);
     SWC_RESULT(discoverToolchain());
 
     std::vector<Utf8>            args;
@@ -66,7 +68,7 @@ Result NativeLinkerCoff::link()
     Os::ProcessRunOptions        options;
     const Os::ProcessRunOptions* runOptions = nullptr;
 
-    switch (builder_.compiler().buildCfg().backendKind)
+    switch (builder_->compiler().buildCfg().backendKind)
     {
         case Runtime::BuildCfgBackendKind::Executable:
             args    = buildLinkArguments(false);
@@ -108,15 +110,16 @@ bool NativeLinkerCoff::shouldForwardLinkerOutputLine(const std::string_view line
 
 std::vector<Utf8> NativeLinkerCoff::buildLinkArguments(const bool dll) const
 {
+    SWC_ASSERT(builder_ != nullptr);
     std::vector<Utf8> args;
     args.emplace_back("/NOLOGO");
     args.emplace_back("/NODEFAULTLIB");
     args.emplace_back("/INCREMENTAL:NO");
     args.emplace_back("/MACHINE:X64");
-    if (builder_.compiler().buildCfg().backend.debugInfo)
+    if (builder_->compiler().buildCfg().backend.debugInfo)
     {
         args.emplace_back("/DEBUG:FULL");
-        args.emplace_back(std::format("/PDB:{}", Utf8(builder_.pdbPath)));
+        args.emplace_back(std::format("/PDB:{}", Utf8(builder_->pdbPath)));
     }
     if (dll)
     {
@@ -129,10 +132,10 @@ std::vector<Utf8> NativeLinkerCoff::buildLinkArguments(const bool dll) const
         args.emplace_back("/ENTRY:mainCRTStartup");
     }
 
-    args.emplace_back(std::format("/OUT:{}", Utf8(builder_.artifactPath)));
+    args.emplace_back(std::format("/OUT:{}", Utf8(builder_->artifactPath)));
     appendLinkSearchPaths(args);
 
-    for (const auto& object : builder_.objectDescriptions)
+    for (const auto& object : builder_->objectDescriptions)
         args.emplace_back(object.objPath);
 
     std::set<Utf8> libraries;
@@ -142,7 +145,7 @@ std::vector<Utf8> NativeLinkerCoff::buildLinkArguments(const bool dll) const
 
     if (dll)
     {
-        for (const auto& info : builder_.functionInfos)
+        for (const auto& info : builder_->functionInfos)
         {
             if (info.exported)
                 args.emplace_back(std::format("/EXPORT:{}", info.symbolName));
@@ -155,11 +158,12 @@ std::vector<Utf8> NativeLinkerCoff::buildLinkArguments(const bool dll) const
 
 std::vector<Utf8> NativeLinkerCoff::buildLibArguments() const
 {
+    SWC_ASSERT(builder_ != nullptr);
     std::vector<Utf8> args;
     args.emplace_back("/NOLOGO");
     args.emplace_back("/MACHINE:X64");
-    args.emplace_back(std::format("/OUT:{}", Utf8(builder_.artifactPath)));
-    for (const auto& object : builder_.objectDescriptions)
+    args.emplace_back(std::format("/OUT:{}", Utf8(builder_->artifactPath)));
+    for (const auto& object : builder_->objectDescriptions)
         args.emplace_back(object.objPath);
     return args;
 }
@@ -176,18 +180,20 @@ void NativeLinkerCoff::appendLinkSearchPaths(std::vector<Utf8>& args) const
 
 void NativeLinkerCoff::collectLinkLibraries(std::set<Utf8>& out) const
 {
-    for (const Utf8& library : builder_.compiler().foreignLibs())
+    SWC_ASSERT(builder_ != nullptr);
+    for (const Utf8& library : builder_->compiler().foreignLibs())
         out.emplace(normalizeLibraryFileName(library));
 
-    for (const auto& info : builder_.functionInfos)
+    for (const auto& info : builder_->functionInfos)
         collectForeignLibrariesFromCode(out, *info.machineCode);
-    if (builder_.startup)
-        collectForeignLibrariesFromCode(out, builder_.startup->code);
+    if (builder_->startup)
+        collectForeignLibrariesFromCode(out, builder_->startup->code);
 }
 
 void NativeLinkerCoff::appendUserLinkerArgs(std::vector<Utf8>& args) const
 {
-    const Runtime::String& linkerArgs = builder_.compiler().buildCfg().linkerArgs;
+    SWC_ASSERT(builder_ != nullptr);
+    const Runtime::String& linkerArgs = builder_->compiler().buildCfg().linkerArgs;
     if (!linkerArgs.ptr || linkerArgs.length == 0)
         return;
 

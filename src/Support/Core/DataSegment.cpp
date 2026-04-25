@@ -85,7 +85,8 @@ std::pair<ByteSpan, Ref> DataSegment::addSpan(ByteSpan value, uint32_t align)
 std::pair<std::string_view, Ref> DataSegment::addString(const Utf8& value)
 {
     const std::unique_lock lock(mutex_);
-    if (const auto it = stringMap_.find(value); it != stringMap_.end())
+    const auto it = stringMap_.find(value);
+    if (it != stringMap_.end())
         return it->second;
 
     Utf8 zeroTerminated = value;

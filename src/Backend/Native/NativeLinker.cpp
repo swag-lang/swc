@@ -53,7 +53,7 @@ namespace
 }
 
 NativeLinker::NativeLinker(NativeBackendBuilder& builder) :
-    builder_(builder)
+    builder_(&builder)
 {
 }
 
@@ -81,6 +81,7 @@ Os::WindowsToolchainDiscoveryResult NativeLinker::queryToolchainPaths(const Nati
 
 Result NativeLinker::runToolAndValidateArtifacts(const fs::path& exePath, const std::vector<Utf8>& args, const Os::ProcessRunOptions* options) const
 {
+    SWC_ASSERT(builder_ != nullptr);
     uint32_t              exitCode = 0;
     std::string           toolOutput;
     Os::ProcessRunOptions runOptions;
@@ -88,19 +89,19 @@ Result NativeLinker::runToolAndValidateArtifacts(const fs::path& exePath, const 
         runOptions = *options;
     runOptions.capturedOutput = &toolOutput;
     runOptions.forwardOutput  = false;
-    runOptions.logCtx         = &builder_.ctx();
+    runOptions.logCtx         = &builder_->ctx();
 
-    const auto result = Os::runProcess(exitCode, exePath, args, builder_.buildDir, &runOptions);
+    const auto result = Os::runProcess(exitCode, exePath, args, builder_->buildDir, &runOptions);
     switch (result)
     {
         case Os::ProcessRunResult::Ok:
             break;
         case Os::ProcessRunResult::StartFailed:
-            return builder_.reportError(DiagnosticId::cmd_err_native_tool_start_failed, Diagnostic::ARG_PATH, Utf8(exePath), Diagnostic::ARG_BECAUSE, Os::systemError());
+            return builder_->reportError(DiagnosticId::cmd_err_native_tool_start_failed, Diagnostic::ARG_PATH, Utf8(exePath), Diagnostic::ARG_BECAUSE, Os::systemError());
         case Os::ProcessRunResult::WaitFailed:
-            return builder_.reportError(DiagnosticId::cmd_err_native_tool_wait_failed, Diagnostic::ARG_PATH, Utf8(exePath));
+            return builder_->reportError(DiagnosticId::cmd_err_native_tool_wait_failed, Diagnostic::ARG_PATH, Utf8(exePath));
         case Os::ProcessRunResult::ExitCodeFailed:
-            return builder_.reportError(DiagnosticId::cmd_err_native_tool_exit_code_failed, Diagnostic::ARG_PATH, Utf8(exePath), Diagnostic::ARG_BECAUSE, Os::systemError());
+            return builder_->reportError(DiagnosticId::cmd_err_native_tool_exit_code_failed, Diagnostic::ARG_PATH, Utf8(exePath), Diagnostic::ARG_BECAUSE, Os::systemError());
     }
 
     if (exitCode != 0)
@@ -114,18 +115,18 @@ Result NativeLinker::runToolAndValidateArtifacts(const fs::path& exePath, const 
             diag.addNote(DiagnosticId::cmd_note_native_tool_output);
         }
 
-        diag.report(builder_.ctx());
+        diag.report(builder_->ctx());
         return Result::Error;
     }
 
-    replayToolOutput(&builder_.ctx(), toolOutput, runOptions.outputLineFilter);
-    if (!fs::exists(builder_.artifactPath))
-        return builder_.reportError(DiagnosticId::cmd_err_native_artifact_missing, Diagnostic::ARG_PATH, Utf8(builder_.artifactPath));
-    if (builder_.compiler().buildCfg().backend.debugInfo &&
-        builder_.compiler().buildCfg().backendKind != Runtime::BuildCfgBackendKind::StaticLibrary &&
-        !fs::exists(builder_.pdbPath))
+    replayToolOutput(&builder_->ctx(), toolOutput, runOptions.outputLineFilter);
+    if (!fs::exists(builder_->artifactPath))
+        return builder_->reportError(DiagnosticId::cmd_err_native_artifact_missing, Diagnostic::ARG_PATH, Utf8(builder_->artifactPath));
+    if (builder_->compiler().buildCfg().backend.debugInfo &&
+        builder_->compiler().buildCfg().backendKind != Runtime::BuildCfgBackendKind::StaticLibrary &&
+        !fs::exists(builder_->pdbPath))
     {
-        return builder_.reportError(DiagnosticId::cmd_err_native_artifact_missing, Diagnostic::ARG_PATH, Utf8(builder_.pdbPath));
+        return builder_->reportError(DiagnosticId::cmd_err_native_artifact_missing, Diagnostic::ARG_PATH, Utf8(builder_->pdbPath));
     }
 
     return Result::Continue;

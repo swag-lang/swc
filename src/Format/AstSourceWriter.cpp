@@ -431,25 +431,6 @@ void AstSourceWriter::appendWhitespacePiece(const SourcePiece& piece) const
 
     const bool pieceEndsAtEof = piece.byteStart + piece.byteLength == eofByte_;
 
-    const auto emitIndent = [this, rewriteIndent](const std::string_view indentText) {
-        if (indentText.empty())
-            return;
-
-        if (rewriteIndent)
-            appendNormalizedIndent(indentText);
-        else
-            formatCtx_->output += indentText;
-    };
-
-    const auto emitEol = [this, rewriteEol](const char firstChar, const bool isCrLf) {
-        if (rewriteEol)
-            appendConfiguredEndOfLine();
-        else if (isCrLf)
-            formatCtx_->output += "\r\n";
-        else
-            formatCtx_->output += firstChar;
-    };
-
     bool     atLineStart     = isAtLineStart();
     size_t   index           = 0;
     uint32_t emittedNewlines = 0;
@@ -464,7 +445,7 @@ void AstSourceWriter::appendWhitespacePiece(const SourcePiece& piece) const
 
             if (emittedNewlines < maxNewlines)
             {
-                emitEol(c, isCrLf);
+                emitWhitespaceEndOfLine(c, isCrLf, rewriteEol);
                 emittedNewlines++;
                 atLineStart = true;
             }
@@ -496,12 +477,33 @@ void AstSourceWriter::appendWhitespacePiece(const SourcePiece& piece) const
 
         const std::string_view runText = piece.text.substr(runStart, index - runStart);
         if (atLineStart)
-            emitIndent(runText);
+            emitWhitespaceIndent(runText, rewriteIndent);
         else
             formatCtx_->output += runText;
 
         atLineStart = false;
     }
+}
+
+void AstSourceWriter::emitWhitespaceIndent(const std::string_view indentText, const bool rewriteIndent) const
+{
+    if (indentText.empty())
+        return;
+
+    if (rewriteIndent)
+        appendNormalizedIndent(indentText);
+    else
+        formatCtx_->output += indentText;
+}
+
+void AstSourceWriter::emitWhitespaceEndOfLine(const char firstChar, const bool isCrLf, const bool rewriteEol) const
+{
+    if (rewriteEol)
+        appendConfiguredEndOfLine();
+    else if (isCrLf)
+        formatCtx_->output += "\r\n";
+    else
+        formatCtx_->output += firstChar;
 }
 
 void AstSourceWriter::appendCommentPiece(const SourcePiece& piece) const
@@ -550,7 +552,8 @@ void AstSourceWriter::appendNumberPiece(const SourcePiece& piece) const
     // Split off the optional `'suffix` (e.g. `'u32`, `'f64`).
     std::string_view body;
     std::string_view suffix;
-    if (const size_t sufPos = text.find('\''); sufPos != std::string_view::npos)
+    const size_t sufPos = text.find('\'');
+    if (sufPos != std::string_view::npos)
     {
         body   = text.substr(0, sufPos);
         suffix = text.substr(sufPos);
@@ -597,15 +600,19 @@ void AstSourceWriter::appendNumberPiece(const SourcePiece& piece) const
         {
             out += mantissa;
         }
-        else if (const size_t dotPos = mantissa.find('.'); dotPos == std::string_view::npos)
-        {
-            appendDigitsRegrouped(out, mantissa, groupSize, FormatLiteralCase::Preserve);
-        }
         else
         {
-            appendDigitsRegrouped(out, mantissa.substr(0, dotPos), groupSize, FormatLiteralCase::Preserve);
-            out += '.';
-            appendDigitsRegroupedFromStart(out, mantissa.substr(dotPos + 1), groupSize, FormatLiteralCase::Preserve);
+            const size_t dotPos = mantissa.find('.');
+            if (dotPos == std::string_view::npos)
+            {
+                appendDigitsRegrouped(out, mantissa, groupSize, FormatLiteralCase::Preserve);
+            }
+            else
+            {
+                appendDigitsRegrouped(out, mantissa.substr(0, dotPos), groupSize, FormatLiteralCase::Preserve);
+                out += '.';
+                appendDigitsRegroupedFromStart(out, mantissa.substr(dotPos + 1), groupSize, FormatLiteralCase::Preserve);
+            }
         }
 
         if (expPos != std::string_view::npos)

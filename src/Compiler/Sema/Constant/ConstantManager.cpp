@@ -80,7 +80,8 @@ void ConstantManager::setup(const TaskContext& ctx)
 
 ConstantRef ConstantManager::addS32(const TaskContext& ctx, int32_t value)
 {
-    if (const ConstantRef cstRef = cachedS32(value); cstRef.isValid())
+    const ConstantRef cstRef = cachedS32(value);
+    if (cstRef.isValid())
     {
         recordConstantBuiltinFastHit();
         return cstRef;

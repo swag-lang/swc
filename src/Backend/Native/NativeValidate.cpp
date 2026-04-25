@@ -33,17 +33,18 @@ namespace
 }
 
 NativeValidate::NativeValidate(NativeBackendBuilder& builder) :
-    builder_(builder)
+    builder_(&builder)
 {
 }
 
 void NativeValidate::validate() const
 {
-    const auto& compiler = builder_.compiler();
+    SWC_ASSERT(builder_ != nullptr);
+    const auto& compiler = builder_->compiler();
 
     SWC_ASSERT(compiler.globalZeroSegment().relocations().empty());
 
-    for (const SymbolVariable* symbol : builder_.regularGlobals)
+    for (const SymbolVariable* symbol : builder_->regularGlobals)
     {
         if (!symbol)
             continue;
@@ -61,7 +62,7 @@ void NativeValidate::validate() const
         SWC_ASSERT(isNativeStaticType(symbol->typeRef()));
     }
 
-    for (const auto& info : builder_.functionInfos)
+    for (const auto& info : builder_->functionInfos)
     {
         SWC_ASSERT(info.symbol != nullptr);
         SWC_ASSERT(info.machineCode != nullptr);
@@ -74,10 +75,11 @@ bool NativeValidate::isNativeStaticType(const TypeRef typeRef) const
     if (typeRef.isInvalid())
         return false;
 
-    const TypeInfo& typeInfo = builder_.ctx().typeMgr().get(typeRef);
+    SWC_ASSERT(builder_ != nullptr);
+    const TypeInfo& typeInfo = builder_->ctx().typeMgr().get(typeRef);
     if (typeInfo.isAlias())
     {
-        const TypeRef unwrapped = typeInfo.unwrap(builder_.ctx(), typeRef, TypeExpandE::Alias);
+        const TypeRef unwrapped = typeInfo.unwrap(builder_->ctx(), typeRef, TypeExpandE::Alias);
         return unwrapped.isValid() && isNativeStaticType(unwrapped);
     }
 
@@ -136,7 +138,7 @@ void NativeValidate::validateRelocations(const SymbolFunction& owner, const Mach
             {
                 const auto* target = relocation.targetSymbol ? relocation.targetSymbol->safeCast<SymbolFunction>() : nullptr;
                 SWC_ASSERT(target != nullptr);
-                SWC_ASSERT(builder_.functionBySymbol.contains(target));
+                SWC_ASSERT(builder_->functionBySymbol.contains(target));
                 break;
             }
 
@@ -149,11 +151,11 @@ void NativeValidate::validateRelocations(const SymbolFunction& owner, const Mach
             }
 
             case MicroRelocation::Kind::GlobalZeroAddress:
-                SWC_ASSERT(builder_.compiler().globalZeroSegment().extentSize() != 0);
+                SWC_ASSERT(builder_->compiler().globalZeroSegment().extentSize() != 0);
                 break;
 
             case MicroRelocation::Kind::GlobalInitAddress:
-                SWC_ASSERT(builder_.compiler().globalInitSegment().extentSize() != 0);
+                SWC_ASSERT(builder_->compiler().globalInitSegment().extentSize() != 0);
                 break;
 
             case MicroRelocation::Kind::ConstantAddress:
@@ -167,7 +169,8 @@ void NativeValidate::validateConstantRelocation(const MicroRelocation& relocatio
 {
     SWC_ASSERT(relocation.constantRef.isValid());
 
-    const ConstantValue& constant = builder_.compiler().cstMgr().get(relocation.constantRef);
+    SWC_ASSERT(builder_ != nullptr);
+    const ConstantValue& constant = builder_->compiler().cstMgr().get(relocation.constantRef);
     if (constant.kind() == ConstantKind::ValuePointer || constant.kind() == ConstantKind::BlockPointer || constant.kind() == ConstantKind::Null)
         return;
 
@@ -176,7 +179,7 @@ void NativeValidate::validateConstantRelocation(const MicroRelocation& relocatio
     if (!relocation.hasConstantSource())
     {
         DataSegmentRef sourceRef;
-        const bool     hasSourceRef = builder_.compiler().cstMgr().resolveConstantDataSegmentRef(sourceRef, relocation.constantRef, reinterpret_cast<const void*>(relocation.targetAddress));
+        const bool     hasSourceRef = builder_->compiler().cstMgr().resolveConstantDataSegmentRef(sourceRef, relocation.constantRef, reinterpret_cast<const void*>(relocation.targetAddress));
         SWC_ASSERT(hasSourceRef);
         if (!hasSourceRef)
             return;
@@ -186,13 +189,13 @@ void NativeValidate::validateConstantRelocation(const MicroRelocation& relocatio
     SWC_ASSERT(baseOffset != INVALID_REF);
     SWC_ASSERT(shardIndex < ConstantManager::SHARD_COUNT);
 
-    const DataSegment& segment = builder_.compiler().cstMgr().shardDataSegment(shardIndex);
+    const DataSegment& segment = builder_->compiler().cstMgr().shardDataSegment(shardIndex);
 
     if (constant.kind() == ConstantKind::Struct)
     {
         const ByteSpan payload = constant.getStruct();
         DataSegmentRef payloadRef;
-        const bool     hasPayloadRef = builder_.compiler().cstMgr().resolveConstantDataSegmentRef(payloadRef, relocation.constantRef, payload.data());
+        const bool     hasPayloadRef = builder_->compiler().cstMgr().resolveConstantDataSegmentRef(payloadRef, relocation.constantRef, payload.data());
         SWC_ASSERT(hasPayloadRef);
         SWC_ASSERT(payloadRef.shardIndex == shardIndex);
         if (!hasPayloadRef)
@@ -211,7 +214,7 @@ void NativeValidate::validateConstantRelocation(const MicroRelocation& relocatio
     {
         const ByteSpan payload = constant.getArray();
         DataSegmentRef payloadRef;
-        const bool     hasPayloadRef = builder_.compiler().cstMgr().resolveConstantDataSegmentRef(payloadRef, relocation.constantRef, payload.data());
+        const bool     hasPayloadRef = builder_->compiler().cstMgr().resolveConstantDataSegmentRef(payloadRef, relocation.constantRef, payload.data());
         SWC_ASSERT(hasPayloadRef);
         SWC_ASSERT(payloadRef.shardIndex == shardIndex);
         if (!hasPayloadRef)
@@ -228,7 +231,7 @@ void NativeValidate::validateConstantRelocation(const MicroRelocation& relocatio
 
     SWC_ASSERT(constant.typeRef().isValid());
 
-    const uint64_t sizeOf = builder_.ctx().typeMgr().get(constant.typeRef()).sizeOf(builder_.ctx());
+    const uint64_t sizeOf = builder_->ctx().typeMgr().get(constant.typeRef()).sizeOf(builder_->ctx());
     SWC_ASSERT(sizeOf != 0);
     SWC_ASSERT(baseOffset + sizeOf <= segment.extentSize());
 
@@ -242,11 +245,12 @@ void NativeValidate::validateNativeStaticPayload(const TypeRef typeRef, const ui
 {
     SWC_ASSERT(typeRef.isValid());
 
-    const DataSegment& segment  = builder_.compiler().cstMgr().shardDataSegment(shardIndex);
-    const TypeInfo&    typeInfo = builder_.ctx().typeMgr().get(typeRef);
+    SWC_ASSERT(builder_ != nullptr);
+    const DataSegment& segment  = builder_->compiler().cstMgr().shardDataSegment(shardIndex);
+    const TypeInfo&    typeInfo = builder_->ctx().typeMgr().get(typeRef);
     if (typeInfo.isAlias())
     {
-        const TypeRef unwrapped = typeInfo.unwrap(builder_.ctx(), typeRef, TypeExpandE::Alias);
+        const TypeRef unwrapped = typeInfo.unwrap(builder_->ctx(), typeRef, TypeExpandE::Alias);
         SWC_ASSERT(unwrapped.isValid());
         validateNativeStaticPayload(unwrapped, shardIndex, baseOffset, bytes);
         return;
@@ -285,7 +289,7 @@ void NativeValidate::validateNativeStaticPayload(const TypeRef typeRef, const ui
         const auto* runtimeType = segment.ptr<Runtime::TypeInfo>(typeInfoOffset);
         SWC_ASSERT(runtimeType != nullptr);
 
-        const TypeRef valueTypeRef = builder_.ctx().typeGen().getBackTypeRef(runtimeType);
+        const TypeRef valueTypeRef = builder_->ctx().typeGen().getBackTypeRef(runtimeType);
         SWC_ASSERT(valueTypeRef.isValid());
 
         if (!value->value)
@@ -295,7 +299,7 @@ void NativeValidate::validateNativeStaticPayload(const TypeRef typeRef, const ui
         SWC_ASSERT(findDataSegmentRelocation(valueOffset, shardIndex, baseOffset + offsetof(Runtime::Any, value)));
         SWC_ASSERT(valueOffset < segment.extentSize());
 
-        const uint64_t valueSize = builder_.ctx().typeMgr().get(valueTypeRef).sizeOf(builder_.ctx());
+        const uint64_t valueSize = builder_->ctx().typeMgr().get(valueTypeRef).sizeOf(builder_->ctx());
         SWC_ASSERT(valueSize != 0);
         SWC_ASSERT(valueOffset + valueSize <= segment.extentSize());
 
@@ -335,8 +339,8 @@ void NativeValidate::validateNativeStaticPayload(const TypeRef typeRef, const ui
         }
 
         const TypeRef   elementTypeRef = typeInfo.payloadTypeRef();
-        const TypeInfo& elementType    = builder_.ctx().typeMgr().get(elementTypeRef);
-        const uint64_t  elementSize    = elementType.sizeOf(builder_.ctx());
+        const TypeInfo& elementType    = builder_->ctx().typeMgr().get(elementTypeRef);
+        const uint64_t  elementSize    = elementType.sizeOf(builder_->ctx());
         SWC_ASSERT(elementSize != 0);
 
         uint32_t targetOffset = 0;
@@ -363,8 +367,8 @@ void NativeValidate::validateNativeStaticPayload(const TypeRef typeRef, const ui
     if (typeInfo.isArray())
     {
         const TypeRef   elementTypeRef = typeInfo.payloadArrayElemTypeRef();
-        const TypeInfo& elementType    = builder_.ctx().typeMgr().get(elementTypeRef);
-        const uint64_t  elementSize    = elementType.sizeOf(builder_.ctx());
+        const TypeInfo& elementType    = builder_->ctx().typeMgr().get(elementTypeRef);
+        const uint64_t  elementSize    = elementType.sizeOf(builder_->ctx());
         SWC_ASSERT(elementSize != 0);
 
         uint64_t totalCount = 1;
@@ -390,8 +394,8 @@ void NativeValidate::validateNativeStaticPayload(const TypeRef typeRef, const ui
                 continue;
 
             const TypeRef   fieldTypeRef = field->typeRef();
-            const TypeInfo& fieldType    = builder_.ctx().typeMgr().get(fieldTypeRef);
-            const uint64_t  fieldSize    = fieldType.sizeOf(builder_.ctx());
+            const TypeInfo& fieldType    = builder_->ctx().typeMgr().get(fieldTypeRef);
+            const uint64_t  fieldSize    = fieldType.sizeOf(builder_->ctx());
             const uint64_t  fieldOffset  = field->offset();
             SWC_ASSERT(fieldOffset + fieldSize <= bytes.size());
 
@@ -407,9 +411,9 @@ void NativeValidate::validateNativeStaticPayload(const TypeRef typeRef, const ui
         uint64_t offset = 0;
         for (const TypeRef fieldTypeRef : typeInfo.payloadAggregate().types)
         {
-            const TypeInfo& fieldType = builder_.ctx().typeMgr().get(fieldTypeRef);
-            uint32_t        align     = fieldType.alignOf(builder_.ctx());
-            const uint64_t  fieldSize = fieldType.sizeOf(builder_.ctx());
+            const TypeInfo& fieldType = builder_->ctx().typeMgr().get(fieldTypeRef);
+            uint32_t        align     = fieldType.alignOf(builder_->ctx());
+            const uint64_t  fieldSize = fieldType.sizeOf(builder_->ctx());
             if (!align)
                 align = 1;
 
@@ -470,7 +474,7 @@ void NativeValidate::validateNativeStaticPayload(const TypeRef typeRef, const ui
 
         const SymbolFunction* targetFunction = nullptr;
         SWC_ASSERT(findFunctionSymbolRelocation(targetFunction, shardIndex, baseOffset));
-        validateFunctionSymbolRelocation(builder_, targetFunction);
+        validateFunctionSymbolRelocation(*builder_, targetFunction);
         return;
     }
 
@@ -480,7 +484,8 @@ void NativeValidate::validateNativeStaticPayload(const TypeRef typeRef, const ui
 bool NativeValidate::findDataSegmentRelocation(uint32_t& outTargetOffset, const uint32_t shardIndex, const uint32_t offset) const
 {
     outTargetOffset         = 0;
-    const auto& relocations = builder_.compiler().cstMgr().shardDataSegment(shardIndex).relocations();
+    SWC_ASSERT(builder_ != nullptr);
+    const auto& relocations = builder_->compiler().cstMgr().shardDataSegment(shardIndex).relocations();
     for (const auto& relocation : relocations)
     {
         if (relocation.offset != offset)
@@ -498,7 +503,8 @@ bool NativeValidate::findDataSegmentRelocation(uint32_t& outTargetOffset, const 
 bool NativeValidate::findFunctionSymbolRelocation(const SymbolFunction*& outTargetSymbol, const uint32_t shardIndex, const uint32_t offset) const
 {
     outTargetSymbol         = nullptr;
-    const auto& relocations = builder_.compiler().cstMgr().shardDataSegment(shardIndex).relocations();
+    SWC_ASSERT(builder_ != nullptr);
+    const auto& relocations = builder_->compiler().cstMgr().shardDataSegment(shardIndex).relocations();
     for (const auto& relocation : relocations)
     {
         if (relocation.offset != offset)

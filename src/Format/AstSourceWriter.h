@@ -56,6 +56,8 @@ private:
     void             appendWhitespacePiece(const SourcePiece& piece) const;
     void             appendCommentPiece(const SourcePiece& piece) const;
     void             appendNumberPiece(const SourcePiece& piece) const;
+    void             emitWhitespaceIndent(std::string_view indentText, bool rewriteIndent) const;
+    void             emitWhitespaceEndOfLine(char firstChar, bool isCrLf, bool rewriteEol) const;
     void             appendNormalizedIndent(std::string_view text) const;
     void             appendConfiguredEndOfLine() const;
     std::string_view resolveFinalNewline() const;

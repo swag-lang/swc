@@ -167,7 +167,7 @@ void AstSourceWriter::beginOutput()
     formatCtx_->output.clear();
     formatCtx_->output.reserve(srcView_->stringView().size());
 
-    if (prefixOffset && options_->preserveBom)
+    if (prefixOffset && options_->preserveBom.value_or(true))
         formatCtx_->output += srcView_->codeView(0, prefixOffset);
 
     cursorByte_ = prefixOffset;
@@ -175,7 +175,7 @@ void AstSourceWriter::beginOutput()
 
 void AstSourceWriter::finalizeOutput() const
 {
-    if (!options_->insertFinalNewline || hasTrailingLineBreak())
+    if (!options_->insertFinalNewline.value_or(false) || hasTrailingLineBreak())
         return;
 
     formatCtx_->output += resolveFinalNewline();
@@ -412,14 +412,14 @@ uint32_t AstSourceWriter::computeMaxNewlines(const SourcePiece& piece) const
     if (options_->maxConsecutiveEmptyLines > 0)
         maxNewlines = std::min(maxNewlines, options_->maxConsecutiveEmptyLines + 1);
 
-    if (!options_->keepEmptyLinesAtStartOfBlock && lastPieceTokenId_ == TokenId::SymLeftCurly)
+    if (!options_->keepEmptyLinesAtStartOfBlock.value_or(true) && lastPieceTokenId_ == TokenId::SymLeftCurly)
         maxNewlines = std::min(maxNewlines, 1u);
 
-    if (!options_->keepEmptyLinesAtEndOfBlock && peekNextPieceTokenId() == TokenId::SymRightCurly)
+    if (!options_->keepEmptyLinesAtEndOfBlock.value_or(true) && peekNextPieceTokenId() == TokenId::SymRightCurly)
         maxNewlines = std::min(maxNewlines, 1u);
 
     const bool pieceEndsAtEof = piece.byteStart + piece.byteLength == eofByte_;
-    if (options_->trimTrailingNewlines && pieceEndsAtEof)
+    if (options_->trimTrailingNewlines.value_or(false) && pieceEndsAtEof)
         maxNewlines = std::min(maxNewlines, 1u);
 
     return maxNewlines;
@@ -429,7 +429,7 @@ void AstSourceWriter::appendWhitespacePiece(const SourcePiece& piece) const
 {
     const bool     rewriteIndent = shouldRewriteIndentation();
     const bool     rewriteEol    = shouldRewriteEndOfLine();
-    const bool     trimTrailing  = !options_->preserveTrailingWhitespace;
+    const bool     trimTrailing  = !options_->preserveTrailingWhitespace.value_or(true);
     const uint32_t maxNewlines   = computeMaxNewlines(piece);
 
     uint32_t totalNewlines = 0;
@@ -620,7 +620,7 @@ void AstSourceWriter::appendNumberPiece(const SourcePiece& piece) const
         const std::string_view mantissa  = expPos == std::string_view::npos ? body : body.substr(0, expPos);
         const uint32_t         groupSize = options_->decimalDigitSeparatorGroupSize;
 
-        if (!options_->normalizeDigitSeparators)
+        if (!options_->normalizeDigitSeparators.value_or(false))
         {
             out += mantissa;
         }
@@ -648,7 +648,7 @@ void AstSourceWriter::appendNumberPiece(const SourcePiece& piece) const
                 out += expTail[0];
                 expTail = expTail.substr(1);
             }
-            if (options_->normalizeDigitSeparators)
+            if (options_->normalizeDigitSeparators.value_or(false))
                 appendDigitsRegrouped(out, expTail, groupSize, FormatLiteralCase::Preserve);
             else
                 out += expTail;
@@ -656,21 +656,21 @@ void AstSourceWriter::appendNumberPiece(const SourcePiece& piece) const
     }
     else if (isHex)
     {
-        if (options_->normalizeDigitSeparators)
+        if (options_->normalizeDigitSeparators.value_or(false))
             appendDigitsRegrouped(out, body, options_->hexDigitSeparatorGroupSize, options_->hexLiteralCase);
         else
             appendDigitsPreservingSeparators(out, body, options_->hexLiteralCase);
     }
     else if (isBin)
     {
-        if (options_->normalizeDigitSeparators)
+        if (options_->normalizeDigitSeparators.value_or(false))
             appendDigitsRegrouped(out, body, options_->hexDigitSeparatorGroupSize, FormatLiteralCase::Preserve);
         else
             out += body;
     }
     else // NumberInteger
     {
-        if (options_->normalizeDigitSeparators)
+        if (options_->normalizeDigitSeparators.value_or(false))
             appendDigitsRegrouped(out, body, options_->decimalDigitSeparatorGroupSize, FormatLiteralCase::Preserve);
         else
             out += body;

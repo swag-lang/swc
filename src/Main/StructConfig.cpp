@@ -332,6 +332,15 @@ bool StructConfigReader::applyEntry(TaskContext& ctx, const StructConfigEntry& e
 
     if (auto* target = std::get_if<std::optional<bool>*>(&entry.target))
     {
+        Utf8 normalized = value;
+        normalized.make_lower();
+        if (normalized == "preserve")
+        {
+            **target = std::nullopt;
+            entry.afterSet.invoke();
+            return true;
+        }
+
         bool parsedValue = false;
         if (!parseBool(value.view(), parsedValue))
         {

@@ -311,11 +311,11 @@ end-of-line-style = lf
     if (Stats::getNumErrors() != errorsBefore)
         return Result::Error;
 
-    if (formatOptions.preserveBom)
+    if (formatOptions.preserveBom.value_or(true))
         return Result::Error;
-    if (formatOptions.preserveTrailingWhitespace)
+    if (formatOptions.preserveTrailingWhitespace.value_or(true))
         return Result::Error;
-    if (!formatOptions.insertFinalNewline)
+    if (!formatOptions.insertFinalNewline.value_or(false))
         return Result::Error;
     if (formatOptions.indentWidth != 6)
         return Result::Error;

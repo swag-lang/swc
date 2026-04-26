@@ -11,6 +11,7 @@
 #include "Compiler/Sema/Helpers/SemaSpecOp.h"
 #include "Compiler/Sema/Symbol/IdentifierManager.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
+#include "Compiler/Sema/Symbol/Symbol.Struct.h"
 #include "Support/Report/Diagnostic.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -211,6 +212,34 @@ namespace
         }
 
         return result;
+    }
+
+    const SymbolStruct* specialOpOwnerStruct(Sema& sema, const SemaNodeView& view)
+    {
+        if (!view.type())
+            return nullptr;
+
+        TypeRef         typeRef = view.typeRef();
+        const TypeInfo& valueType = sema.typeMgr().get(typeRef);
+        if (valueType.isReference())
+            typeRef = valueType.payloadTypeRef();
+
+        typeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), typeRef);
+        if (!typeRef.isValid())
+            return nullptr;
+
+        const TypeInfo& type = sema.typeMgr().get(typeRef);
+        if (!type.isStruct())
+            return nullptr;
+
+        return &type.payloadSymStruct();
+    }
+
+    void addMissingRelationalSpecOpHelp(Sema& sema, Diagnostic& diag, const SemaNodeView& leftView, SpecOpKind kind)
+    {
+        const SymbolStruct* ownerStruct = specialOpOwnerStruct(sema, leftView);
+        if (ownerStruct)
+            SemaSpecOp::addMissingDeclarationHelp(sema, diag, *ownerStruct, kind);
     }
 
     bool isStringCompareOperands(Sema& sema, const SemaNodeView& nodeLeftView, const SemaNodeView& nodeRightView)
@@ -453,6 +482,7 @@ namespace
         Diagnostic diag = SemaError::report(sema, DiagnosticId::sema_err_compare_operand_type, node.codeRef());
         diag.addArgument(Diagnostic::ARG_LEFT, nodeLeftView.typeRef());
         diag.addArgument(Diagnostic::ARG_RIGHT, nodeRightView.typeRef());
+        addMissingRelationalSpecOpHelp(sema, diag, nodeLeftView, SpecOpKind::OpEquals);
         diag.report(sema.ctx());
         return Result::Error;
     }
@@ -469,6 +499,7 @@ namespace
         Diagnostic diag = SemaError::report(sema, DiagnosticId::sema_err_compare_operand_type, node.codeRef());
         diag.addArgument(Diagnostic::ARG_LEFT, nodeLeftView.typeRef());
         diag.addArgument(Diagnostic::ARG_RIGHT, nodeRightView.typeRef());
+        addMissingRelationalSpecOpHelp(sema, diag, nodeLeftView, SpecOpKind::OpCompare);
         diag.report(sema.ctx());
         return Result::Error;
     }

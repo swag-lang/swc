@@ -74,6 +74,55 @@ namespace
         }
     }
 
+    std::string_view specOpFunctionName(SpecOpKind kind)
+    {
+        switch (kind)
+        {
+            case SpecOpKind::OpDrop:
+                return "opDrop";
+            case SpecOpKind::OpPostCopy:
+                return "opPostCopy";
+            case SpecOpKind::OpPostMove:
+                return "opPostMove";
+            case SpecOpKind::OpCount:
+                return "opCount";
+            case SpecOpKind::OpData:
+                return "opData";
+            case SpecOpKind::OpCast:
+                return "opCast";
+            case SpecOpKind::OpEquals:
+                return "opEquals";
+            case SpecOpKind::OpCompare:
+                return "opCompare";
+            case SpecOpKind::OpBinary:
+                return "opBinary";
+            case SpecOpKind::OpBinaryRight:
+                return "opBinaryRight";
+            case SpecOpKind::OpUnary:
+                return "opUnary";
+            case SpecOpKind::OpAssign:
+                return "opAssign";
+            case SpecOpKind::OpSet:
+                return "opSet";
+            case SpecOpKind::OpSetLiteral:
+                return "opSetLiteral";
+            case SpecOpKind::OpSlice:
+                return "opSlice";
+            case SpecOpKind::OpIndex:
+                return "opIndex";
+            case SpecOpKind::OpIndexAssign:
+                return "opIndexAssign";
+            case SpecOpKind::OpIndexSet:
+                return "opIndexSet";
+            case SpecOpKind::OpVisit:
+                return "opVisit";
+            case SpecOpKind::None:
+            case SpecOpKind::Invalid:
+            default:
+                return "special function";
+        }
+    }
+
     TypeRef unwrapAlias(TaskContext& ctx, TypeRef typeRef)
     {
         if (typeRef.isInvalid())
@@ -1200,6 +1249,21 @@ namespace
         return Result::Continue;
     }
 
+}
+
+void SemaSpecOp::addMissingDeclarationHelp(Sema& sema, Diagnostic& diag, const SymbolStruct& ownerStruct, SpecOpKind kind)
+{
+    const SymbolStruct* rootStruct = &ownerStruct;
+    if (ownerStruct.isGenericInstance() && ownerStruct.genericRootSym())
+        rootStruct = ownerStruct.genericRootSym();
+
+    DiagnosticElement* help = SemaError::addCurrentModuleHelp(sema, diag, *rootStruct, DiagnosticId::sema_help_missing_spec_op);
+    if (!help)
+        return;
+
+    help->addArgument(Diagnostic::ARG_DECL_SYM, rootStruct->name(sema.ctx()));
+    help->addArgument(Diagnostic::ARG_SPEC_OP, specOpFunctionName(kind));
+    help->addArgument(Diagnostic::ARG_SPEC_OP_SIGNATURE, specOpSignatureHint(kind));
 }
 
 Result SemaSpecOp::validateSymbol(Sema& sema, SymbolFunction& sym)

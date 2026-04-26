@@ -207,6 +207,40 @@ SourceCodeRange SemaError::getNodeCodeRange(Sema& sema, AstNodeRef atNodeRef, Re
     SWC_UNREACHABLE();
 }
 
+SemaError::SymbolDiagnosticOrigin SemaError::symbolDiagnosticOrigin(Sema& sema, const Symbol& symbol)
+{
+    if (!symbol.decl() || symbol.srcViewRef().isInvalid())
+        return SymbolDiagnosticOrigin::Unknown;
+
+    const SourceView& srcView = sema.compiler().srcView(symbol.srcViewRef());
+    const FileRef     fileRef = srcView.ownerFileRef();
+    if (fileRef.isInvalid())
+        return SymbolDiagnosticOrigin::Unknown;
+
+    const SourceFile& sourceFile = sema.compiler().file(fileRef);
+    if (sourceFile.hasFlag(FileFlagsE::ImportedApi) || sourceFile.hasFlag(FileFlagsE::Runtime))
+        return SymbolDiagnosticOrigin::ExternalDependency;
+    if (sourceFile.hasFlag(FileFlagsE::Module) || sourceFile.hasFlag(FileFlagsE::ModuleSrc) || sourceFile.hasFlag(FileFlagsE::CustomSrc))
+        return SymbolDiagnosticOrigin::CurrentModule;
+
+    return SymbolDiagnosticOrigin::Unknown;
+}
+
+bool SemaError::isCurrentModuleSymbol(Sema& sema, const Symbol& symbol)
+{
+    return symbolDiagnosticOrigin(sema, symbol) == SymbolDiagnosticOrigin::CurrentModule;
+}
+
+DiagnosticElement* SemaError::addCurrentModuleHelp(Sema& sema, Diagnostic& diag, const Symbol& symbol, DiagnosticId id)
+{
+    if (!isCurrentModuleSymbol(sema, symbol))
+        return nullptr;
+
+    DiagnosticElement& element = diag.addElement(id);
+    element.addSpan(symbol.codeRange(sema.ctx()));
+    return &element;
+}
+
 void SemaError::setReportArguments(Sema& sema, Diagnostic& diag, const SourceCodeRef& codeRange)
 {
     SWC_ASSERT(codeRange.isValid());

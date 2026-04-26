@@ -12,10 +12,11 @@ set "TOOLS_DIR=%~1"
 for %%I in ("%TOOLS_DIR%..") do set "ROOT=%%~fI"
 set "OUTPUT_ROOT=%ROOT%\bin\.output"
 set "TMP_ROOT=%ROOT%\bin\.tmp"
-set "SWC_EXE=swc"
+set "SWC_BIN_DIR=%ROOT%\.output"
+set "SWC_EXE=%SWC_BIN_DIR%\swc.exe"
 set "SWC_MODE=release"
 if /I "%~2"=="dm" (
-    set "SWC_EXE=swc_devmode"
+    set "SWC_EXE=%SWC_BIN_DIR%\swc_devmode.exe"
     set "SWC_MODE=devmode"
 )
 exit /b 0

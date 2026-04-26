@@ -1,6 +1,6 @@
 @echo off
 setlocal
-set "REL_PATH=..\bin"
+set "REL_PATH=..\.output"
 rem Resolve to absolute path (remove trailing backslash if any)
 for %%I in ("%~dp0%REL_PATH%") do set "FULL_PATH=%%~fI"
 

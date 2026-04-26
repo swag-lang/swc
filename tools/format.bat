@@ -15,7 +15,7 @@ shift
 goto parse_args
 
 :run
-%SWC_EXE% format ^
+"%SWC_EXE%" format ^
  -d "%ROOT%\bin\examples" ^
  -d "%ROOT%\bin\reference" ^
  -d "%ROOT%\bin\runtime" ^

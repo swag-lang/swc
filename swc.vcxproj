@@ -61,23 +61,26 @@
         <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform"/>
     </ImportGroup>
     <PropertyGroup Label="UserMacros"/>
+    <PropertyGroup>
+        <SwcOutputDir>.output/</SwcOutputDir>
+    </PropertyGroup>
     <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
         <LinkIncremental>false</LinkIncremental>
-        <OutDir>bin/</OutDir>
+        <OutDir>$(SwcOutputDir)</OutDir>
         <IntDir>.tmp/x64/release/</IntDir>
         <TargetName>swc</TargetName>
         <IncludePath>src/;src/support/memory/mimalloc/include</IncludePath>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Stats|x64'">
         <LinkIncremental>false</LinkIncremental>
-        <OutDir>bin/</OutDir>
+        <OutDir>$(SwcOutputDir)</OutDir>
         <IntDir>.tmp/x64/stats/</IntDir>
         <TargetName>swc_stats</TargetName>
         <IncludePath>src/;src/support/memory/mimalloc/include</IncludePath>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DevMode|x64'">
         <LinkIncremental>false</LinkIncremental>
-        <OutDir>bin/</OutDir>
+        <OutDir>$(SwcOutputDir)</OutDir>
         <IntDir>.tmp/x64/devmode/</IntDir>
         <TargetName>swc_devmode</TargetName>
         <IncludePath>src/;src/support/memory/mimalloc/include</IncludePath>

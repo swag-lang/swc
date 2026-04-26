@@ -18,9 +18,39 @@ namespace
         return Cast::castAllowed(sema, castRequest, branchView.typeRef(), bindingTypeRef);
     }
 
+    bool isUnsizedScalarConstant(const SemaNodeView& view)
+    {
+        return view.cstRef().isValid() && view.type() && view.type()->isScalarUnsized();
+    }
+
+    Result resolveUnsizedConstantAgainstTypedBranch(Sema& sema, TypeRef& outTypeRef, const SemaNodeView& nodeTrueView, const SemaNodeView& nodeFalseView)
+    {
+        const bool trueUnsizedConstant  = isUnsizedScalarConstant(nodeTrueView);
+        const bool falseUnsizedConstant = isUnsizedScalarConstant(nodeFalseView);
+        if (trueUnsizedConstant == falseUnsizedConstant)
+            return Result::Continue;
+
+        const SemaNodeView& unsizedView = trueUnsizedConstant ? nodeTrueView : nodeFalseView;
+        const SemaNodeView& typedView   = trueUnsizedConstant ? nodeFalseView : nodeTrueView;
+        if (!typedView.type() || typedView.type()->isScalarUnsized())
+            return Result::Continue;
+
+        const Result castResult = tryImplicitBranchCast(sema, unsizedView, typedView.typeRef());
+        if (castResult == Result::Pause)
+            return Result::Pause;
+        if (castResult == Result::Continue)
+            outTypeRef = typedView.typeRef();
+
+        return Result::Continue;
+    }
+
     Result resolveConditionalResultType(Sema& sema, TypeRef& outTypeRef, const SemaNodeView& nodeTrueView, const SemaNodeView& nodeFalseView)
     {
         outTypeRef = TypeRef::invalid();
+
+        SWC_RESULT(resolveUnsizedConstantAgainstTypedBranch(sema, outTypeRef, nodeTrueView, nodeFalseView));
+        if (outTypeRef.isValid())
+            return Result::Continue;
 
         const std::span<const SemaFrame> frames = sema.frames();
         for (size_t frameIndex = frames.size(); frameIndex > 0; --frameIndex)

@@ -37,3 +37,16 @@ var var2 = 20
     var A: *s32
     var C = A ? A : null
 }
+
+#test
+{
+    func keepsTypedBranchWhenFunctionReturnBindsContext(flag: bool, bytes: const [..] u8)->s32
+    {
+        let fromTrue = flag ? bytes[0] : 0
+        let fromFalse = flag ? 0 : bytes[0]
+
+        #assert(#typeof(fromTrue) == u8)
+        #assert(#typeof(fromFalse) == u8)
+        return 0
+    }
+}

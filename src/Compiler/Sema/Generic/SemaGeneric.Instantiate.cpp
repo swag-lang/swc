@@ -1419,6 +1419,105 @@ namespace
 
         return createGenericInstance(sourceSema, genericRoot, params.span(), resolvedArgs.span(), outInstance, errorNodeRef);
     }
+
+    bool functionTypeParamShadowsTarget(Sema& sema, std::span<const SemaGeneric::GenericParamDesc> targetParams)
+    {
+        const auto* function = sema.currentFunction();
+        if (!function || !function->decl())
+            return false;
+
+        const auto* functionDecl = function->decl()->safeCast<AstFunctionDecl>();
+        if (!functionDecl || !functionDecl->spanGenericParamsRef.isValid())
+            return false;
+
+        SmallVector<SemaGeneric::GenericParamDesc> functionParams;
+        SemaGeneric::collectGenericParams(sema, *functionDecl, functionDecl->spanGenericParamsRef, functionParams);
+        for (const SemaGeneric::GenericParamDesc& functionParam : functionParams)
+        {
+            if (functionParam.kind != SemaGeneric::GenericParamKind::Type)
+                continue;
+
+            for (const SemaGeneric::GenericParamDesc& targetParam : targetParams)
+            {
+                if (targetParam.kind == SemaGeneric::GenericParamKind::Type && targetParam.idRef == functionParam.idRef)
+                    return true;
+            }
+        }
+
+        return false;
+    }
+
+    const SymbolStruct* genericStructInstanceFromImplFrames(const Sema& sema)
+    {
+        for (size_t i = sema.frames().size(); i > 0; --i)
+        {
+            const auto* impl = sema.frames()[i - 1].currentImpl();
+            if (!impl || !impl->isForStruct())
+                continue;
+
+            const auto* st = impl->symStruct();
+            if (st && st->isGenericInstance())
+                return st;
+        }
+
+        return nullptr;
+    }
+
+    const SymbolStruct* genericStructInstanceFromScopes(Sema& sema)
+    {
+        for (const SemaScope* scope = sema.curScopePtr(); scope; scope = scope->parent())
+        {
+            const auto* symMap = scope->symMap();
+            if (!symMap || !symMap->isStruct())
+                continue;
+
+            const auto& st = symMap->cast<SymbolStruct>();
+            if (st.isGenericInstance())
+                return &st;
+        }
+
+        return nullptr;
+    }
+
+    const SymbolStruct* enclosingGenericStructInstance(Sema& sema)
+    {
+        if (const SymbolStruct* instance = genericStructInstanceFromImplFrames(sema))
+            return instance;
+        return genericStructInstanceFromScopes(sema);
+    }
+
+    void resolveArgsFromEnclosingStruct(Sema& sema, const SymbolStruct& enclosingInstance, std::span<const SemaGeneric::GenericParamDesc> targetParams, std::span<SemaGeneric::GenericResolvedArg> resolvedArgs)
+    {
+        const SymbolStruct* enclosingRoot = enclosingInstance.genericRootSym();
+        if (!enclosingRoot)
+            return;
+
+        const auto* enclosingDecl = genericStructDecl(*enclosingRoot);
+        if (!enclosingDecl || !enclosingDecl->spanGenericParamsRef.isValid())
+            return;
+
+        SmallVector<SemaGeneric::GenericParamDesc> enclosingParams;
+        SemaGeneric::collectGenericParams(sema, *enclosingDecl, enclosingDecl->spanGenericParamsRef, enclosingParams);
+
+        SmallVector<GenericInstanceKey> enclosingArgs;
+        if (!enclosingRoot->tryGetGenericInstanceArgs(enclosingInstance, enclosingArgs) || enclosingArgs.size() != enclosingParams.size())
+            return;
+
+        for (size_t targetIndex = 0; targetIndex < targetParams.size(); ++targetIndex)
+        {
+            for (size_t enclosingIndex = 0; enclosingIndex < enclosingParams.size(); ++enclosingIndex)
+            {
+                if (targetParams[targetIndex].idRef != enclosingParams[enclosingIndex].idRef ||
+                    targetParams[targetIndex].kind != enclosingParams[enclosingIndex].kind)
+                    continue;
+
+                resolvedArgs[targetIndex].present = true;
+                resolvedArgs[targetIndex].typeRef = enclosingArgs[enclosingIndex].typeRef;
+                resolvedArgs[targetIndex].cstRef  = enclosingArgs[enclosingIndex].cstRef;
+                break;
+            }
+        }
+    }
 }
 
 namespace SemaGeneric
@@ -1512,105 +1611,6 @@ namespace SemaGeneric
         SWC_RESULT(instantiateGenericExplicit(sema, genericRoot, genericArgNodes, instance));
         outInstance = instance ? &instance->cast<SymbolStruct>() : nullptr;
         return Result::Continue;
-    }
-
-    bool functionTypeParamShadowsTarget(Sema& sema, std::span<const GenericParamDesc> targetParams)
-    {
-        const auto* function = sema.currentFunction();
-        if (!function || !function->decl())
-            return false;
-
-        const auto* functionDecl = function->decl()->safeCast<AstFunctionDecl>();
-        if (!functionDecl || !functionDecl->spanGenericParamsRef.isValid())
-            return false;
-
-        SmallVector<GenericParamDesc> functionParams;
-        collectGenericParams(sema, *functionDecl, functionDecl->spanGenericParamsRef, functionParams);
-        for (const GenericParamDesc& functionParam : functionParams)
-        {
-            if (functionParam.kind != GenericParamKind::Type)
-                continue;
-
-            for (const GenericParamDesc& targetParam : targetParams)
-            {
-                if (targetParam.kind == GenericParamKind::Type && targetParam.idRef == functionParam.idRef)
-                    return true;
-            }
-        }
-
-        return false;
-    }
-
-    const SymbolStruct* genericStructInstanceFromImplFrames(const Sema& sema)
-    {
-        for (size_t i = sema.frames().size(); i > 0; --i)
-        {
-            const auto* impl = sema.frames()[i - 1].currentImpl();
-            if (!impl || !impl->isForStruct())
-                continue;
-
-            const auto* st = impl->symStruct();
-            if (st && st->isGenericInstance())
-                return st;
-        }
-
-        return nullptr;
-    }
-
-    const SymbolStruct* genericStructInstanceFromScopes(Sema& sema)
-    {
-        for (const SemaScope* scope = sema.curScopePtr(); scope; scope = scope->parent())
-        {
-            const auto* symMap = scope->symMap();
-            if (!symMap || !symMap->isStruct())
-                continue;
-
-            const auto& st = symMap->cast<SymbolStruct>();
-            if (st.isGenericInstance())
-                return &st;
-        }
-
-        return nullptr;
-    }
-
-    const SymbolStruct* enclosingGenericStructInstance(Sema& sema)
-    {
-        if (const SymbolStruct* instance = genericStructInstanceFromImplFrames(sema))
-            return instance;
-        return genericStructInstanceFromScopes(sema);
-    }
-
-    void resolveArgsFromEnclosingStruct(Sema& sema, const SymbolStruct& enclosingInstance, std::span<const GenericParamDesc> targetParams, std::span<GenericResolvedArg> resolvedArgs)
-    {
-        const SymbolStruct* enclosingRoot = enclosingInstance.genericRootSym();
-        if (!enclosingRoot)
-            return;
-
-        const auto* enclosingDecl = genericStructDecl(*enclosingRoot);
-        if (!enclosingDecl || !enclosingDecl->spanGenericParamsRef.isValid())
-            return;
-
-        SmallVector<GenericParamDesc> enclosingParams;
-        collectGenericParams(sema, *enclosingDecl, enclosingDecl->spanGenericParamsRef, enclosingParams);
-
-        SmallVector<GenericInstanceKey> enclosingArgs;
-        if (!enclosingRoot->tryGetGenericInstanceArgs(enclosingInstance, enclosingArgs) || enclosingArgs.size() != enclosingParams.size())
-            return;
-
-        for (size_t targetIndex = 0; targetIndex < targetParams.size(); ++targetIndex)
-        {
-            for (size_t enclosingIndex = 0; enclosingIndex < enclosingParams.size(); ++enclosingIndex)
-            {
-                if (targetParams[targetIndex].idRef != enclosingParams[enclosingIndex].idRef ||
-                    targetParams[targetIndex].kind != enclosingParams[enclosingIndex].kind)
-                    continue;
-
-                resolvedArgs[targetIndex].present = true;
-                resolvedArgs[targetIndex].typeRef = enclosingArgs[enclosingIndex].typeRef;
-                resolvedArgs[targetIndex].cstRef  = enclosingArgs[enclosingIndex].cstRef;
-                break;
-            }
-        }
     }
 
     Result instantiateStructFromContext(Sema& sema, SymbolStruct& genericRoot, SymbolStruct*& outInstance)

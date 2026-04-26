@@ -304,7 +304,7 @@ ConstantRef CodeGenConstantHelpers::materializeStaticPayloadConstant(CodeGen& co
 ConstantRef CodeGenConstantHelpers::materializeRuntimeBufferConstant(CodeGen& codeGen, TypeRef typeRef, const void* targetPtr, uint64_t count)
 {
     ConstantManager&  cstMgr          = codeGen.cstMgr();
-    const uint32_t    cacheShardIndex = cstMgr.runtimeBufferConstantCacheShard(typeRef, targetPtr, count);
+    const uint32_t    cacheShardIndex = ConstantManager::runtimeBufferConstantCacheShard(typeRef, targetPtr, count);
     const ConstantRef cached          = cstMgr.findRuntimeBufferConstant(cacheShardIndex, typeRef, targetPtr, count);
     if (cached.isValid())
         return cached;
@@ -335,7 +335,7 @@ ConstantRef CodeGenConstantHelpers::materializeRuntimeBufferConstant(CodeGen& co
 ConstantRef CodeGenConstantHelpers::materializeRuntimeStringConstant(CodeGen& codeGen, TypeRef typeRef, const std::string_view value)
 {
     ConstantManager&  cstMgr          = codeGen.cstMgr();
-    const uint32_t    cacheShardIndex = cstMgr.runtimeStringConstantCacheShard(typeRef, value);
+    const uint32_t    cacheShardIndex = ConstantManager::runtimeStringConstantCacheShard(typeRef, value);
     const ConstantRef cached          = cstMgr.findRuntimeStringConstant(cacheShardIndex, typeRef, value);
     if (cached.isValid())
         return cached;

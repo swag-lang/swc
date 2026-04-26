@@ -2,34 +2,34 @@
 # Swag code formatter configuration
 # ============================================================================
 # This file configures the formatter run by `swc --format` on `.swg` sources.
-# Values listed below are the formatter defaults; edit to override them per
-# directory. Enum options list their accepted values on a `# Possible values:`
-# line.
+# All options below are set to their most passive value — the formatter is a
+# no-op by default. Override individual options per directory as needed.
+# Enum options list their accepted values on a `# Possible values:` line.
 
 # ----------------------------------------------------------------------------
 # File-level whitespace
 # ----------------------------------------------------------------------------
 
 # Preserve UTF-8 BOM markers already present in the file.
-preserve-bom = true
+preserve-bom = preserve
 
 # Keep trailing whitespace on existing lines unchanged.
-preserve-trailing-whitespace = false
+preserve-trailing-whitespace = preserve
 
 # Ensure the file ends with a single newline.
-insert-final-newline = false
+insert-final-newline = preserve
 
 # Collapse multiple trailing newlines to one.
-trim-trailing-newlines = true
+trim-trailing-newlines = preserve
 
 # Maximum blank lines allowed in a row (0 disables the limit).
-max-consecutive-empty-lines = 2
+max-consecutive-empty-lines = 0
 
 # Keep blank lines at the start of a `{ ... }` block.
-keep-empty-lines-at-start-of-block = false
+keep-empty-lines-at-start-of-block = preserve
 
 # Keep blank lines at the end of a `{ ... }` block.
-keep-empty-lines-at-end-of-block = false
+keep-empty-lines-at-end-of-block = preserve
 
 # ----------------------------------------------------------------------------
 # End-of-line
@@ -57,28 +57,28 @@ tab-width = 4
 continuation-indent-width = 4
 
 # Indent content nested inside a `namespace` block.
-indent-namespace-body = true
+indent-namespace-body = preserve
 
 # Indent content nested inside an `impl` block.
-indent-impl-body = true
+indent-impl-body = preserve
 
 # Indent content nested inside a `struct` block.
-indent-struct-body = true
+indent-struct-body = preserve
 
 # Indent content nested inside an `enum` block.
-indent-enum-body = true
+indent-enum-body = preserve
 
 # Indent `case` labels one level inside the enclosing `switch`.
-indent-case-labels = false
+indent-case-labels = preserve
 
 # Indent the body of a `case` relative to its label.
-indent-case-blocks = true
+indent-case-blocks = preserve
 
 # Attributes adopt the indentation of the declaration they apply to.
-indent-attributes = true
+indent-attributes = preserve
 
 # Indent wrapped arguments relative to the opening parenthesis.
-indent-inside-parens = false
+indent-inside-parens = preserve
 
 # ----------------------------------------------------------------------------
 # Column limit & wrapping
@@ -92,16 +92,16 @@ column-limit = 0
 break-before-binary-operators = preserve
 
 # Break long `cond ? a : b` expressions before `?` and `:`.
-break-before-ternary-operators = false
+break-before-ternary-operators = preserve
 
 # Insert a line break before `->` in function signatures that don't fit.
-break-after-return-type = false
+break-after-return-type = preserve
 
 # Place trailing `do` on a new line when its statement is wrapped.
-break-before-do = false
+break-before-do = preserve
 
 # Place `else` on its own line (Stroustrup / Allman style).
-break-before-else = true
+break-before-else = preserve
 
 # How to lay out arguments across lines in calls.
 # Possible values: preserve, pack, one-per-line
@@ -117,35 +117,35 @@ bin-pack-parameters = preserve
 
 # Opening brace placement policy.
 # Possible values: preserve, attach, allman, stroustrup
-brace-style = allman
+brace-style = preserve
 
 # Keep `{}` on the opening line.
-compact-empty-braces = true
+compact-empty-braces = preserve
 
 # When to keep function bodies on a single line.
 # Possible values: never, empty, inline, always
-allow-short-functions-on-single-line = empty
+allow-short-functions-on-single-line = never
 
 # When to keep generic `{ ... }` blocks on a single line.
 # Possible values: never, empty, inline, always
-allow-short-blocks-on-single-line = empty
+allow-short-blocks-on-single-line = never
 
 # When to keep `enum` bodies on a single line.
 # Possible values: never, empty, inline, always
-allow-short-enums-on-single-line = empty
+allow-short-enums-on-single-line = never
 
 # When to keep `struct` bodies on a single line.
 # Possible values: never, empty, inline, always
-allow-short-structs-on-single-line = empty
+allow-short-structs-on-single-line = never
 
 # Allow `if x do ...` / `if x { ... }` on one line.
-allow-short-if-statements-on-single-line = true
+allow-short-if-statements-on-single-line = preserve
 
 # Allow `while`/`for`/`foreach` bodies on one line.
-allow-short-loops-on-single-line = true
+allow-short-loops-on-single-line = preserve
 
 # Allow single-statement `case` arms to stay on one line.
-allow-short-case-on-single-line = true
+allow-short-case-on-single-line = preserve
 
 # ----------------------------------------------------------------------------
 # Alignment
@@ -153,30 +153,30 @@ allow-short-case-on-single-line = true
 
 # Align `=` signs in adjacent assignments.
 # Possible values: none, consecutive, across-blanks, all
-align-consecutive-assignments = consecutive
+align-consecutive-assignments = none
 
 # Align names/types of adjacent `let`/`var` declarations.
 # Possible values: none, consecutive, across-blanks, all
-align-consecutive-declarations = consecutive
+align-consecutive-declarations = none
 
 # Align values of adjacent `const` declarations.
 # Possible values: none, consecutive, across-blanks, all
-align-consecutive-constants = consecutive
+align-consecutive-constants = none
 
 # Align `:` and types of adjacent struct fields.
 # Possible values: none, consecutive, across-blanks, all
-align-struct-fields = consecutive
+align-struct-fields = none
 
 # Align `=` on adjacent enum value definitions.
 # Possible values: none, consecutive, across-blanks, all
-align-enum-values = consecutive
+align-enum-values = none
 
 # Align adjacent `#[...]` attributes.
 # Possible values: none, consecutive, across-blanks, all
 align-attributes = none
 
 # Align `//` trailing comments into a shared column.
-align-trailing-comments = true
+align-trailing-comments = preserve
 
 # Minimum number of spaces between code and a trailing `//` comment.
 trailing-comment-min-spaces = 5
@@ -185,68 +185,68 @@ trailing-comment-min-spaces = 5
 trailing-comment-max-column = 0
 
 # Align operands of wrapped binary expressions.
-align-operands = false
+align-operands = preserve
 
 # Align wrapped arguments with the opening `(` / `[`.
-align-after-open-bracket = false
+align-after-open-bracket = preserve
 
 # ----------------------------------------------------------------------------
 # Spacing
 # ----------------------------------------------------------------------------
 
 # Insert a space before `:` in declarations like `a : u8`.
-space-before-colon-in-declarations = false
+space-before-colon-in-declarations = preserve
 
 # Insert a space after `:` in declarations like `a: u8`.
-space-after-colon-in-declarations = true
+space-after-colon-in-declarations = preserve
 
 # Insert a space before `:` in `enum E: u32` / `using base: Foo`.
-space-before-colon-in-base-clause = false
+space-before-colon-in-base-clause = preserve
 
 # Insert spaces around `=` in assignments.
-space-around-assignment-operator = true
+space-around-assignment-operator = preserve
 
 # Insert spaces around binary operators (`+`, `*`, `&`, ...).
-space-around-binary-operators = true
+space-around-binary-operators = preserve
 
 # Insert spaces around `->` in function signatures.
-space-around-arrow = false
+space-around-arrow = preserve
 
 # Insert spaces around `..` / `..<` range operators.
-space-around-range-operator = false
+space-around-range-operator = preserve
 
 # Insert a space after `,`.
-space-after-comma = true
+space-after-comma = preserve
 
 # Insert a space before `,`.
-space-before-comma = false
+space-before-comma = preserve
 
 # Insert a space after a `cast(...)` expression.
-space-after-cast = true
+space-after-cast = preserve
 
 # Insert a space after control keywords such as `if`, `while`, `for`.
-space-after-keyword = true
+space-after-keyword = preserve
 
 # Insert a space after unary operators like `-` or `!`.
-space-after-unary-operator = false
+space-after-unary-operator = preserve
 
 # Insert spaces just inside `(` and `)`.
-space-inside-parentheses = false
+space-inside-parentheses = preserve
 
 # Insert spaces just inside `[` and `]`.
-space-inside-brackets = false
+space-inside-brackets = preserve
 
 # Insert spaces just inside `{` and `}` in initializer lists.
-space-inside-braces = false
+space-inside-braces = preserve
 
 # Insert a space inside `()` when empty.
-space-in-empty-parentheses = false
+space-in-empty-parentheses = preserve
 
 # Insert a space inside `{}` when empty.
-space-in-empty-braces = false
+space-in-empty-braces = preserve
 
 # Insert a space before `#[` when an attribute is placed inline.
-space-before-attribute-bracket = false
+space-before-attribute-bracket = preserve
 
 # When to insert a space between an identifier and `(`.
 # Possible values: never, always, control-statements, functions, non-empty
@@ -261,13 +261,13 @@ space-before-parentheses = never
 attribute-placement = preserve
 
 # Force a line break between an attribute and the declaration it applies to.
-break-after-attribute = true
+break-after-attribute = preserve
 
 # Insert a space after `,` inside `#[A, B, C]`.
-space-after-attribute-comma = true
+space-after-attribute-comma = preserve
 
 # Sort attribute argument lists alphabetically.
-sort-attribute-arguments = false
+sort-attribute-arguments = preserve
 
 # ----------------------------------------------------------------------------
 # Comments
@@ -278,13 +278,13 @@ sort-attribute-arguments = false
 comment-reflow = preserve
 
 # Rewrite `// ####...` banners so they share a common width.
-normalize-section-separators = true
+normalize-section-separators = preserve
 
 # Target column count for normalized `// ####...` banners.
 section-separator-width = 57
 
 # Insert a space after `//` when rewriting line comments.
-space-after-line-comment-prefix = true
+space-after-line-comment-prefix = preserve
 
 # ----------------------------------------------------------------------------
 # Imports / using
@@ -295,10 +295,10 @@ space-after-line-comment-prefix = true
 sort-using-statements = preserve
 
 # Collapse adjacent `using` statements onto a single line when possible.
-merge-using-statements = false
+merge-using-statements = preserve
 
 # Guarantee a blank line after the initial `using` block.
-blank-line-after-using-block = true
+blank-line-after-using-block = preserve
 
 # ----------------------------------------------------------------------------
 # Numeric literals
@@ -317,7 +317,7 @@ hex-literal-prefix-case = preserve
 float-exponent-case = preserve
 
 # Rewrite long numeric literals using `_` digit separators.
-normalize-digit-separators = false
+normalize-digit-separators = preserve
 
 # Digit grouping size used for `0x` and `0b` literals when normalizing separators.
 hex-digit-separator-group-size = 4

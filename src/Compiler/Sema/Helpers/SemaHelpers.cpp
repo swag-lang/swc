@@ -1390,7 +1390,7 @@ namespace
         if (!isCompilerDefinedMemberAccess(sema, node))
             return Result::Continue;
 
-        std::span<const Symbol*> empty;
+        constexpr std::span<const Symbol*> empty;
         sema.setSymbolList(targetNodeRef, empty);
         sema.setSymbolList(node.nodeRightRef, empty);
         outHandled = true;

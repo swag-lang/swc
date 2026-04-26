@@ -1,7 +1,9 @@
+#include <ranges>
+
 #include "pch.h"
-#include "Compiler/Sema/Generic/SemaGeneric.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Core/Sema.h"
+#include "Compiler/Sema/Generic/SemaGeneric.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Compiler/Sema/Symbol/Symbol.Enum.h"
@@ -10,60 +12,61 @@
 
 SWC_BEGIN_NAMESPACE();
 
-namespace SemaGeneric
+namespace
 {
-    namespace
+    void collectSymbolMapNamespacePath(const SymbolMap* symMap, SmallVector<IdentifierRef>& outPath)
     {
-        void collectSymbolMapNamespacePath(const SymbolMap* symMap, SmallVector<IdentifierRef>& outPath)
+        SmallVector<IdentifierRef> reversedPath;
+        for (const SymbolMap* current = symMap; current;)
         {
-            SmallVector<IdentifierRef> reversedPath;
-            for (const SymbolMap* current = symMap; current;)
+            const SymbolMap* owner = current->ownerSymMap();
+            if (current->isNamespace() && (!owner || !owner->isModule()))
+                reversedPath.push_back(current->idRef());
+
+            const SymbolMap* next = owner;
+            if (!next && current->isImpl())
             {
-                const SymbolMap* owner = current->ownerSymMap();
-                if (current->isNamespace() && (!owner || !owner->isModule()))
-                    reversedPath.push_back(current->idRef());
-
-                const SymbolMap* next = owner;
-                if (!next && current->isImpl())
-                {
-                    const auto& impl = current->cast<SymbolImpl>();
-                    if (impl.isForStruct())
-                        next = impl.symStruct()->ownerSymMap();
-                    else if (impl.isForEnum())
-                        next = impl.symEnum()->ownerSymMap();
-                }
-
-                current = next;
+                const auto& impl = current->cast<SymbolImpl>();
+                if (impl.isForStruct())
+                    next = impl.symStruct()->ownerSymMap();
+                else if (impl.isForEnum())
+                    next = impl.symEnum()->ownerSymMap();
             }
 
-            outPath.clear();
-            outPath.reserve(reversedPath.size());
-            for (auto it = reversedPath.rbegin(); it != reversedPath.rend(); ++it)
-                outPath.push_back(*it);
+            current = next;
         }
+
+        outPath.clear();
+        outPath.reserve(reversedPath.size());
+        for (auto& it : std::views::reverse(reversedPath))
+            outPath.push_back(it);
     }
 
-    void appendCollectedGenericParam(Sema& sema, const AstNode& paramNode, AstNodeRef paramRef, SmallVector<GenericParamDesc>& outParams)
+    void appendCollectedGenericParam(Sema& sema, const AstNode& paramNode, AstNodeRef paramRef, SmallVector<SemaGeneric::GenericParamDesc>& outParams)
     {
-        GenericParamDesc desc;
+        SemaGeneric::GenericParamDesc desc;
         desc.paramRef = paramRef;
         desc.idRef    = SemaHelpers::resolveIdentifier(sema, paramNode.codeRef());
 
         if (const auto* nodeType = paramNode.safeCast<AstGenericParamType>())
         {
-            desc.kind       = GenericParamKind::Type;
+            desc.kind       = SemaGeneric::GenericParamKind::Type;
             desc.defaultRef = nodeType->nodeAssignRef;
         }
         else
         {
             const auto& nodeValue = paramNode.cast<AstGenericParamValue>();
-            desc.kind             = GenericParamKind::Value;
+            desc.kind             = SemaGeneric::GenericParamKind::Value;
             desc.explicitType     = nodeValue.nodeTypeRef;
             desc.defaultRef       = nodeValue.nodeAssignRef;
         }
 
         outParams.push_back(desc);
     }
+}
+
+namespace SemaGeneric
+{
 
     void collectGenericParams(Sema& sema, const AstNode& declNode, SpanRef spanRef, SmallVector<GenericParamDesc>& outParams)
     {

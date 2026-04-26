@@ -39,8 +39,9 @@ impl Struct
     // Access a value by slicing with the [low..up] notation. Returns a string or a slice.
     func opSlice(me, low, up: u64)->string { return "true"; }
 
-    // Access a value by its index. The index is of type OneType, and it returns a WhateverType.
+    // Access a value by one or more indices. All index parameters must have the same type.
     func opIndex(me, index: OneType)->WhateverType { return true; }
+    func opIndex(me, row: OneType, column: OneType)->WhateverType { return true; }
 
     // Called when @countof is used (typically in a 'for' block) to return the count of elements
     func opCount(me)->u64 { return 0; }
@@ -91,9 +92,12 @@ impl Struct
     #[Swag.Overload]
     func(suffix: string) opSetLiteral(me, value: AnotherType) {}
 
-    // Assign to an indexed position via '[?] ='. When both opIndexSet and opIndex can write, opIndexSet is selected.
+    // Assign to an indexed position via '[?] ='. All index parameters must have the same type.
+    // When both opIndexSet and opIndex can write, opIndexSet is selected.
     #[Swag.Overload]
     func opIndexSet(me, index: OneType, value: OneType) {}
+    #[Swag.Overload]
+    func opIndexSet(me, row: OneType, column: OneType, value: OneType) {}
     #[Swag.Overload]
     func opIndexSet(me, index: OneType, value: AnotherType) {}
 
@@ -131,9 +135,12 @@ impl Struct
     #[Swag.Overload]
     func(op: string) opAssign(me, other: AnotherType) {}
 
-    // Indexed assignment with operator 'op'. When both opIndexAssign and opIndex can write, opIndexAssign is selected.
+    // Indexed assignment with operator 'op'. All index parameters must have the same type.
+    // When both opIndexAssign and opIndex can write, opIndexAssign is selected.
     #[Swag.Overload]
     func(op: string) opIndexAssign(me, index: OneType, value: OneType) {}
+    #[Swag.Overload]
+    func(op: string) opIndexAssign(me, row: OneType, column: OneType, value: OneType) {}
     #[Swag.Overload]
     func(op: string) opIndexAssign(me, index: OneType, value: AnotherType) {}
 

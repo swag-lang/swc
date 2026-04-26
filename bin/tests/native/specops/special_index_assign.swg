@@ -90,6 +90,33 @@ impl RuntimeRefIndexAssignBox
     }
 }
 
+struct RuntimeMultiIndexAssignBox
+{
+    values: [4] s32
+    reads:  s32
+    writes: s32
+}
+
+impl RuntimeMultiIndexAssignBox
+{
+    #[Swag.Overload, Swag.NoInline]
+    mtd opIndex(row: s32, col: s32) -> &s32
+    {
+        .reads += 1
+        return &.values[row * 2 + col]
+    }
+
+    #[Swag.Overload, Swag.NoInline]
+    mtd(op: string) opIndexAssign(row: s32, col: s32, value: s32)
+    {
+        .writes += 1
+        #if op == "+=" do
+            .values[row * 2 + col] += value
+        #else do
+            #error("unsupported opIndexAssign op [[" ++ op ++ "]]")
+    }
+}
+
 struct RuntimeIndexAssignHolder
 {
     value:     RuntimeIndexAssignBox
@@ -170,4 +197,15 @@ struct RuntimeIndexAssignHolder
     let observed = box[0]
     @assert(observed == 17)
     @assert(box.reads == 1)
+}
+
+#test
+{
+    var box = RuntimeMultiIndexAssignBox{values: [1, 2, 3, 4]}
+    box[0, 1] += 8
+
+    @assert(box.values[0] == 1)
+    @assert(box.values[1] == 10)
+    @assert(box.writes == 1)
+    @assert(box.reads == 0)
 }

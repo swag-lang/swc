@@ -394,6 +394,29 @@ namespace
         upperPayload.reg                 = upperReg;
         return Result::Continue;
     }
+
+    Result emitIndexSpecOpCall(CodeGen& codeGen, SymbolFunction& calledFn)
+    {
+        const TypeRef semanticTypeRef = codeGen.curViewType().typeRef();
+        const bool    wasLValue       = codeGen.sema().isLValue(codeGen.curNodeRef());
+
+        codeGen.sema().setSymbol(codeGen.curNodeRef(), &calledFn);
+        SWC_RESULT(CodeGenCallHelpers::codeGenCallExprCommon(codeGen, AstNodeRef::invalid()));
+        codeGen.sema().setType(codeGen.curNodeRef(), semanticTypeRef);
+        if (wasLValue)
+            codeGen.sema().setIsLValue(codeGen.curNodeRef());
+        else
+            codeGen.sema().unsetIsLValue(codeGen.curNodeRef());
+
+        const TypeInfo& returnType = codeGen.typeMgr().get(calledFn.returnTypeRef());
+        if (returnType.isReference())
+        {
+            const CodeGenNodePayload& callPayload = codeGen.payload(codeGen.curNodeRef());
+            codeGen.setPayloadAddressReg(codeGen.curNodeRef(), callPayload.reg, semanticTypeRef);
+        }
+
+        return Result::Continue;
+    }
 }
 
 Result AstIndexExpr::codeGenPostNode(CodeGen& codeGen) const
@@ -433,27 +456,7 @@ Result AstIndexExpr::codeGenPostNode(CodeGen& codeGen) const
         return emitSliceValue(codeGen, *this);
 
     if (calledFn != nullptr)
-    {
-        const TypeRef semanticTypeRef = codeGen.curViewType().typeRef();
-        const bool    wasLValue       = codeGen.sema().isLValue(codeGen.curNodeRef());
-
-        codeGen.sema().setSymbol(codeGen.curNodeRef(), calledFn);
-        SWC_RESULT(CodeGenCallHelpers::codeGenCallExprCommon(codeGen, AstNodeRef::invalid()));
-        codeGen.sema().setType(codeGen.curNodeRef(), semanticTypeRef);
-        if (wasLValue)
-            codeGen.sema().setIsLValue(codeGen.curNodeRef());
-        else
-            codeGen.sema().unsetIsLValue(codeGen.curNodeRef());
-
-        const TypeInfo& returnType = codeGen.typeMgr().get(calledFn->returnTypeRef());
-        if (returnType.isReference())
-        {
-            const CodeGenNodePayload& callPayload = codeGen.payload(codeGen.curNodeRef());
-            codeGen.setPayloadAddressReg(codeGen.curNodeRef(), callPayload.reg, semanticTypeRef);
-        }
-
-        return Result::Continue;
-    }
+        return emitIndexSpecOpCall(codeGen, *calledFn);
 
     CodeGenNodePayload indexedPayload = codeGen.payload(nodeExprRef);
     const SemaNodeView indexedView    = codeGen.viewType(nodeExprRef);
@@ -474,6 +477,34 @@ Result AstIndexExpr::codeGenPostNode(CodeGen& codeGen) const
 
 Result AstIndexListExpr::codeGenPostNode(CodeGen& codeGen) const
 {
+    const auto* payloadBase = codeGen.sema().semaPayload<IndexSpecOpPayloadBase>(codeGen.curNodeRef());
+    if (payloadBase && payloadBase->kind == IndexSpecOpPayloadKind::DeferredAssign)
+        return Result::Continue;
+
+    SymbolFunction* calledFn = nullptr;
+    if (payloadBase && payloadBase->kind == IndexSpecOpPayloadKind::Read)
+    {
+        const auto* specOpPayload = reinterpret_cast<const IndexSpecOpSemaPayload*>(payloadBase);
+        calledFn                  = specOpPayload->calledFn;
+    }
+    else
+    {
+        const SemaNodeView symView = codeGen.curViewSymbol();
+        if (symView.sym() && symView.sym()->isFunction())
+        {
+            calledFn = &symView.sym()->cast<SymbolFunction>();
+        }
+        else
+        {
+            const SemaNodeView storedSymView(codeGen.sema(), codeGen.curNodeRef(), SemaNodeViewPartE::Symbol, SemaNodeViewResolveE::Stored);
+            if (storedSymView.sym() && storedSymView.sym()->isFunction())
+                calledFn = &storedSymView.sym()->cast<SymbolFunction>();
+        }
+    }
+
+    if (calledFn != nullptr)
+        return emitIndexSpecOpCall(codeGen, *calledFn);
+
     SmallVector<AstNodeRef> indexRefs;
     codeGen.ast().appendNodes(indexRefs, spanChildrenRef);
     SWC_ASSERT(!indexRefs.empty());

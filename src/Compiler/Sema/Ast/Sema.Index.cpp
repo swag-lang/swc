@@ -342,9 +342,15 @@ Result AstIndexExpr::semaPostNode(Sema& sema)
 
 Result AstIndexListExpr::semaPostNode(Sema& sema)
 {
-    const SemaNodeView nodeExprView   = sema.viewTypeConstant(nodeExprRef);
-    const TypeRef      indexedTypeRef = resolveIndexedExprTypeRef(sema, nodeExprView);
-    const TypeInfo&    indexedType    = sema.typeMgr().get(indexedTypeRef);
+    const SemaNodeView nodeExprView = sema.viewTypeConstant(nodeExprRef);
+
+    bool handled = false;
+    SWC_RESULT(SemaSpecOp::tryResolveIndex(sema, *this, nodeExprView, handled));
+    if (handled)
+        return Result::Continue;
+
+    const TypeRef   indexedTypeRef = resolveIndexedExprTypeRef(sema, nodeExprView);
+    const TypeInfo& indexedType    = sema.typeMgr().get(indexedTypeRef);
 
     SmallVector<AstNodeRef> children;
     sema.ast().appendNodes(children, spanChildrenRef);

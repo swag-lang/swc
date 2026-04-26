@@ -12,6 +12,7 @@ struct SourceCodeRef;
 struct AstAssignStmt;
 struct AstBinaryExpr;
 struct AstIndexExpr;
+struct AstIndexListExpr;
 struct AstRelationalExpr;
 struct AstUnaryExpr;
 struct AstForeachStmt;
@@ -99,6 +100,7 @@ namespace SemaSpecOp
     Result tryResolveVisit(Sema& sema, const AstForeachStmt& node, bool& outHandled);
     Result tryResolveSlice(Sema& sema, const AstIndexExpr& node, const SemaNodeView& indexedView, bool& outHandled);
     Result tryResolveIndex(Sema& sema, const AstIndexExpr& node, const SemaNodeView& indexedView, bool& outHandled);
+    Result tryResolveIndex(Sema& sema, const AstIndexListExpr& node, const SemaNodeView& indexedView, bool& outHandled);
     Result tryResolveIndexAssign(Sema& sema, const AstAssignStmt& node, bool& outHandled);
     Result tryResolveAssign(Sema& sema, const AstAssignStmt& node, const SemaNodeView& leftView, bool& outHandled);
     Result tryResolveBinary(Sema& sema, const AstBinaryExpr& node, const SemaNodeView& leftView, const SemaNodeView& rightView, bool& outHandled);

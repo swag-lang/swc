@@ -37,6 +37,19 @@ impl RefIndexBox
     }
 }
 
+struct MultiIndexBox
+{
+    values: [4] s32
+}
+
+impl MultiIndexBox
+{
+    mtd opIndex(row: s32, col: s32) -> s32
+    {
+        return .values[row * 2 + col]
+    }
+}
+
 #test
 {
     var box = ValueIndexBox{first: 7, second: 9}
@@ -55,6 +68,14 @@ impl RefIndexBox
     const cbox = RefIndexBox{buffer: [11, 13]}
     let second = cbox[0]
     #assert(#typeof(second) == s32)
+}
+
+#test
+{
+    var box = MultiIndexBox{}
+    let value = box[1, 0]
+
+    #assert(#typeof(value) == s32)
 }
 
 #[Swag.EnumIndex]

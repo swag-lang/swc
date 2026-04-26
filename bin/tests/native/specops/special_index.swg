@@ -41,6 +41,22 @@ impl RuntimeRefIndexBox
     }
 }
 
+struct RuntimeMultiIndexBox
+{
+    values: [4] s32
+    reads:  s32
+}
+
+impl RuntimeMultiIndexBox
+{
+    #[Swag.Overload, Swag.NoInline]
+    mtd opIndex(row: s32, col: s32) -> s32
+    {
+        .reads += 1
+        return .values[row * 2 + col]
+    }
+}
+
 struct RuntimeIndexHolder
 {
     value: RuntimeValueIndexBox
@@ -75,6 +91,15 @@ struct RuntimeIndexHolder
     let value = box[0]
 
     @assert(value == 11)
+}
+
+#test
+{
+    var box = RuntimeMultiIndexBox{values: [10, 20, 30, 40]}
+    let value = box[1, 0]
+
+    @assert(value == 30)
+    @assert(box.reads == 1)
 }
 
 #test

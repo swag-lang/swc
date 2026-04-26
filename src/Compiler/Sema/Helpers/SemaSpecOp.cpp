@@ -60,11 +60,11 @@ namespace
             case SpecOpKind::OpSlice:
                 return "mtd opSlice(low: u64, up: u64) -> <string or slice>";
             case SpecOpKind::OpIndex:
-                return "mtd opIndex(index: <type>) -> <type>";
+                return "mtd opIndex(index: <type>[, index: <same type>...]) -> <type>";
             case SpecOpKind::OpIndexAssign:
-                return "mtd(op: string) opIndexAssign(index: <type>, value: <type>) -> void";
+                return "mtd(op: string) opIndexAssign(index: <type>[, index: <same type>...], value: <type>) -> void";
             case SpecOpKind::OpIndexSet:
-                return "mtd opIndexSet(index: <type>, value: <type>) -> void";
+                return "mtd opIndexSet(index: <type>[, index: <same type>...], value: <type>) -> void";
             case SpecOpKind::OpVisit:
                 return "mtd(ptr: bool, back: bool) opVisit(stmt: #code) -> void";
             case SpecOpKind::None:
@@ -211,6 +211,23 @@ namespace
         const CallConv&                        callConv   = CallConv::get(sym.callConvKind());
         const ABITypeNormalize::NormalizedType normalized = ABITypeNormalize::normalize(ctx, callConv, typeRef, ABITypeNormalize::Usage::Argument);
         return !normalized.isIndirect;
+    }
+
+    bool indexParametersHaveSameType(TaskContext& ctx, const std::vector<SymbolVariable*>& params, size_t firstIndex, size_t endIndex)
+    {
+        SWC_ASSERT(firstIndex < endIndex);
+        SWC_ASSERT(endIndex <= params.size());
+        SWC_ASSERT(params[firstIndex] != nullptr);
+
+        const TypeRef firstTypeRef = unwrapAlias(ctx, params[firstIndex]->typeRef());
+        for (size_t i = firstIndex + 1; i < endIndex; ++i)
+        {
+            SWC_ASSERT(params[i] != nullptr);
+            if (unwrapAlias(ctx, params[i]->typeRef()) != firstTypeRef)
+                return false;
+        }
+
+        return true;
     }
 
     std::span<const TokenId> expectedSpecOpGenericValueTypes(SpecOpKind kind)
@@ -668,13 +685,13 @@ namespace
                 break;
 
             case SpecOpKind::OpIndex:
-                if (params.size() < 2 || !returnIsNotVoid)
+                if (params.size() < 2 || !returnIsNotVoid || !indexParametersHaveSameType(ctx, params, 1, params.size()))
                     return reportSpecOpError(sema, sym, kind);
                 break;
 
             case SpecOpKind::OpIndexAssign:
             case SpecOpKind::OpIndexSet:
-                if (params.size() < 3 || !returnIsVoid)
+                if (params.size() < 3 || !returnIsVoid || !indexParametersHaveSameType(ctx, params, 1, params.size() - 1))
                     return reportSpecOpError(sema, sym, kind);
                 break;
 
@@ -856,6 +873,45 @@ namespace
         return collectSpecOpCandidates(sema, ownerStruct, opId, std::span<const AstNodeRef>{}, outCandidates);
     }
 
+    void appendIndexArgs(Ast& ast, const AstIndexListExpr& node, SmallVector<AstNodeRef>& outArgs)
+    {
+        ast.appendNodes(outArgs, node.spanChildrenRef);
+    }
+
+    bool collectIndexAccessArgs(Sema& sema, AstNodeRef& outIndexedExprRef, SmallVector<AstNodeRef>& outArgs, AstNodeRef indexNodeRef)
+    {
+        outIndexedExprRef = AstNodeRef::invalid();
+        outArgs.clear();
+        if (indexNodeRef.isInvalid())
+            return false;
+
+        const AstNode& node = sema.node(indexNodeRef);
+        if (node.is(AstNodeId::IndexExpr))
+        {
+            const auto& indexNode = node.cast<AstIndexExpr>();
+            if (sema.node(indexNode.nodeArgRef).is(AstNodeId::RangeExpr))
+                return false;
+            outIndexedExprRef = indexNode.nodeExprRef;
+            outArgs.push_back(indexNode.nodeArgRef);
+            return true;
+        }
+
+        if (node.is(AstNodeId::IndexListExpr))
+        {
+            const auto& indexNode = node.cast<AstIndexListExpr>();
+            outIndexedExprRef    = indexNode.nodeExprRef;
+            appendIndexArgs(sema.ast(), indexNode, outArgs);
+            for (const AstNodeRef argRef : outArgs)
+            {
+                if (sema.node(argRef).is(AstNodeId::RangeExpr))
+                    return false;
+            }
+            return !outArgs.empty();
+        }
+
+        return false;
+    }
+
     Result matchSyntheticCall(Sema& sema, std::span<Symbol*> candidates, std::span<AstNodeRef> args, AstNodeRef ufcsArg, bool allowNoMatch, SmallVector<ResolvedCallArgument>& outResolvedArgs, bool& outMatched)
     {
         outResolvedArgs.clear();
@@ -922,17 +978,17 @@ namespace
         return Result::Continue;
     }
 
-    Result probeIndexAssignSpecOp(Sema& sema, const AstAssignStmt& node, const AstIndexExpr& indexNode, std::span<Symbol*> candidates, SymbolFunction*& outCalledFn, bool& outMatched)
+    Result probeIndexAssignSpecOp(Sema& sema, const AstAssignStmt& node, AstNodeRef indexedExprRef, std::span<const AstNodeRef> indexArgRefs, std::span<Symbol*> candidates, SymbolFunction*& outCalledFn, bool& outMatched)
     {
         outCalledFn = nullptr;
         outMatched  = false;
 
         SmallVector<AstNodeRef> args;
-        args.push_back(indexNode.nodeArgRef);
+        args.append(indexArgRefs.data(), indexArgRefs.size());
         args.push_back(node.nodeRightRef);
 
         SmallVector<ResolvedCallArgument> resolvedArgs;
-        SWC_RESULT(matchSyntheticCall(sema, candidates, args.span(), indexNode.nodeExprRef, true, resolvedArgs, outMatched));
+        SWC_RESULT(matchSyntheticCall(sema, candidates, args.span(), indexedExprRef, true, resolvedArgs, outMatched));
         if (!outMatched)
             return Result::Continue;
 
@@ -1591,136 +1647,152 @@ Result SemaSpecOp::tryResolveSlice(Sema& sema, const AstIndexExpr& node, const S
     return Result::Continue;
 }
 
-Result SemaSpecOp::tryResolveIndex(Sema& sema, const AstIndexExpr& node, const SemaNodeView& indexedView, bool& outHandled)
+namespace
 {
-    outHandled                    = false;
-    const AstNodeRef indexExprRef = sema.curNodeRef();
-
-    const SymbolStruct* ownerStruct = structSpecOpOwner(sema, indexedView);
-    if (!ownerStruct)
-        return Result::Continue;
-
-    SWC_RESULT(sema.waitSemaCompleted(ownerStruct, node.codeRef()));
-
-    bool             deferToSimpleAssignWriteSpecOp = false;
-    const AstNodeRef parentRef                      = sema.visit().parentNodeRef();
-    if (parentRef.isValid() && sema.node(parentRef).is(AstNodeId::AssignStmt))
+    Result tryResolveIndexWithArgs(Sema& sema, AstNodeRef indexExprRef, AstNodeRef indexedExprRef, const SourceCodeRef& codeRef, std::span<const AstNodeRef> indexArgRefs, const SemaNodeView& indexedView, bool& outHandled)
     {
-        const auto& assignNode = sema.node(parentRef).cast<AstAssignStmt>();
-        if (assignNode.nodeLeftRef == sema.curNodeRef())
+        outHandled = false;
+
+        const SymbolStruct* ownerStruct = structSpecOpOwner(sema, indexedView);
+        if (!ownerStruct)
+            return Result::Continue;
+
+        SWC_RESULT(sema.waitSemaCompleted(ownerStruct, codeRef));
+
+        bool             deferToSimpleAssignWriteSpecOp = false;
+        const AstNodeRef parentRef                      = sema.visit().parentNodeRef();
+        if (parentRef.isValid() && sema.node(parentRef).is(AstNodeId::AssignStmt))
         {
-            const Token&         tok = sema.token(assignNode.codeRef());
-            SmallVector<Symbol*> candidates;
-            SWC_RESULT(collectIndexAssignSpecOpCandidates(sema, *ownerStruct, assignNode.codeRef(), tok.id, candidates));
-            if (tok.id == TokenId::SymEqual)
+            const auto& assignNode = sema.node(parentRef).cast<AstAssignStmt>();
+            if (assignNode.nodeLeftRef == indexExprRef)
             {
-                deferToSimpleAssignWriteSpecOp = !candidates.empty();
+                const Token&         tok = sema.token(assignNode.codeRef());
+                SmallVector<Symbol*> candidates;
+                SWC_RESULT(collectIndexAssignSpecOpCandidates(sema, *ownerStruct, assignNode.codeRef(), tok.id, candidates));
+                if (tok.id == TokenId::SymEqual)
+                {
+                    deferToSimpleAssignWriteSpecOp = !candidates.empty();
+                }
+                else if (!candidates.empty())
+                {
+                    auto* payload = sema.compiler().allocate<DeferredIndexAssignSpecOpPayload>();
+                    sema.setSemaPayload(indexExprRef, payload);
+                    outHandled = true;
+                    return Result::Continue;
+                }
             }
-            else if (!candidates.empty())
+        }
+
+        SmallVector<Symbol*> candidates;
+        const IdentifierRef  opIndexId = sema.idMgr().predefined(IdentifierManager::PredefinedName::OpIndex);
+        SWC_RESULT(collectSpecOpCandidates(sema, *ownerStruct, opIndexId, std::span<const AstNodeRef>{}, candidates));
+        if (candidates.empty())
+        {
+            if (deferToSimpleAssignWriteSpecOp)
             {
                 auto* payload = sema.compiler().allocate<DeferredIndexAssignSpecOpPayload>();
-                sema.setSemaPayload(sema.curNodeRef(), payload);
+                sema.setSemaPayload(indexExprRef, payload);
                 outHandled = true;
-                return Result::Continue;
+            }
+            return Result::Continue;
+        }
+
+        SmallVector<AstNodeRef> args;
+        args.append(indexArgRefs.data(), indexArgRefs.size());
+
+        bool            matched  = false;
+        SymbolFunction* calledFn = nullptr;
+        if (!indexedView.type()->isConst())
+        {
+            SmallVector<Symbol*> mutableCandidates;
+            SmallVector<Symbol*> constCandidates;
+            splitMutableReceiverCandidates(sema, candidates.span(), mutableCandidates, constCandidates);
+
+            if (!mutableCandidates.empty())
+            {
+                SWC_RESULT(resolveSyntheticCall(sema, sema.node(indexExprRef), mutableCandidates.span(), args.span(), indexedExprRef, true, &matched, true, true, &calledFn));
+                if (matched)
+                    candidates = std::move(mutableCandidates);
+                else if (!constCandidates.empty())
+                    candidates = std::move(constCandidates);
             }
         }
-    }
 
-    SmallVector<Symbol*> candidates;
-    const IdentifierRef  opIndexId = sema.idMgr().predefined(IdentifierManager::PredefinedName::OpIndex);
-    SWC_RESULT(collectSpecOpCandidates(sema, *ownerStruct, opIndexId, std::span<const AstNodeRef>{}, candidates));
-    if (candidates.empty())
-    {
-        if (deferToSimpleAssignWriteSpecOp)
+        if (!matched)
+            SWC_RESULT(resolveSyntheticCall(sema, sema.node(indexExprRef), candidates.span(), args.span(), indexedExprRef, true, &matched, true, true, &calledFn));
+        if (!matched)
+        {
+            if (deferToSimpleAssignWriteSpecOp)
+            {
+                auto* payload = sema.compiler().allocate<DeferredIndexAssignSpecOpPayload>();
+                sema.setSemaPayload(indexExprRef, payload);
+                outHandled = true;
+            }
+            return Result::Continue;
+        }
+        if (sema.hasSubstitute(indexExprRef))
+        {
+            outHandled = true;
+            return Result::Continue;
+        }
+
+        SWC_ASSERT(calledFn);
+
+        const TypeRef    returnTypeRef = calledFn->returnTypeRef();
+        const TypeInfo&  returnType    = sema.typeMgr().get(returnTypeRef);
+        const AstNodeRef resultNodeRef = sema.viewZero(indexExprRef).nodeRef();
+
+        if (deferToSimpleAssignWriteSpecOp && !returnType.isReference())
         {
             auto* payload = sema.compiler().allocate<DeferredIndexAssignSpecOpPayload>();
-            sema.setSemaPayload(sema.curNodeRef(), payload);
+            sema.setSemaPayload(indexExprRef, payload);
             outHandled = true;
+            return Result::Continue;
         }
+
+        if (!sema.viewConstant(indexExprRef).hasConstant())
+        {
+            auto* payload     = sema.compiler().allocate<IndexSpecOpSemaPayload>();
+            payload->calledFn = calledFn;
+            sema.setSemaPayload(indexExprRef, payload);
+
+            if (returnType.isReference())
+            {
+                sema.setType(indexExprRef, returnType.payloadTypeRef());
+                sema.setType(resultNodeRef, returnType.payloadTypeRef());
+                sema.setIsValue(indexExprRef);
+                sema.setIsValue(resultNodeRef);
+                sema.setIsLValue(indexExprRef);
+                sema.setIsLValue(resultNodeRef);
+            }
+            else
+            {
+                sema.setType(indexExprRef, returnTypeRef);
+                sema.setType(resultNodeRef, returnTypeRef);
+                sema.setIsValue(indexExprRef);
+                sema.setIsValue(resultNodeRef);
+                sema.unsetIsLValue(indexExprRef);
+                sema.unsetIsLValue(resultNodeRef);
+            }
+        }
+
+        outHandled = true;
         return Result::Continue;
     }
+}
 
+Result SemaSpecOp::tryResolveIndex(Sema& sema, const AstIndexExpr& node, const SemaNodeView& indexedView, bool& outHandled)
+{
     SmallVector<AstNodeRef> args;
     args.push_back(node.nodeArgRef);
+    return tryResolveIndexWithArgs(sema, sema.curNodeRef(), node.nodeExprRef, node.codeRef(), args.span(), indexedView, outHandled);
+}
 
-    bool            matched  = false;
-    SymbolFunction* calledFn = nullptr;
-    if (!indexedView.type()->isConst())
-    {
-        SmallVector<Symbol*> mutableCandidates;
-        SmallVector<Symbol*> constCandidates;
-        splitMutableReceiverCandidates(sema, candidates.span(), mutableCandidates, constCandidates);
-
-        if (!mutableCandidates.empty())
-        {
-            SWC_RESULT(resolveSyntheticCall(sema, node, mutableCandidates.span(), args.span(), node.nodeExprRef, true, &matched, true, true, &calledFn));
-            if (matched)
-                candidates = std::move(mutableCandidates);
-            else if (!constCandidates.empty())
-                candidates = std::move(constCandidates);
-        }
-    }
-
-    if (!matched)
-        SWC_RESULT(resolveSyntheticCall(sema, node, candidates.span(), args.span(), node.nodeExprRef, true, &matched, true, true, &calledFn));
-    if (!matched)
-    {
-        if (deferToSimpleAssignWriteSpecOp)
-        {
-            auto* payload = sema.compiler().allocate<DeferredIndexAssignSpecOpPayload>();
-            sema.setSemaPayload(sema.curNodeRef(), payload);
-            outHandled = true;
-        }
-        return Result::Continue;
-    }
-    if (sema.hasSubstitute(indexExprRef))
-    {
-        outHandled = true;
-        return Result::Continue;
-    }
-
-    SWC_ASSERT(calledFn);
-
-    const TypeRef    returnTypeRef = calledFn->returnTypeRef();
-    const TypeInfo&  returnType    = sema.typeMgr().get(returnTypeRef);
-    const AstNodeRef resultNodeRef = sema.viewZero(sema.curNodeRef()).nodeRef();
-
-    if (deferToSimpleAssignWriteSpecOp && !returnType.isReference())
-    {
-        auto* payload = sema.compiler().allocate<DeferredIndexAssignSpecOpPayload>();
-        sema.setSemaPayload(sema.curNodeRef(), payload);
-        outHandled = true;
-        return Result::Continue;
-    }
-
-    if (!sema.viewConstant(sema.curNodeRef()).hasConstant())
-    {
-        auto* payload     = sema.compiler().allocate<IndexSpecOpSemaPayload>();
-        payload->calledFn = calledFn;
-        sema.setSemaPayload(sema.curNodeRef(), payload);
-
-        if (returnType.isReference())
-        {
-            sema.setType(sema.curNodeRef(), returnType.payloadTypeRef());
-            sema.setType(resultNodeRef, returnType.payloadTypeRef());
-            sema.setIsValue(sema.curNodeRef());
-            sema.setIsValue(resultNodeRef);
-            sema.setIsLValue(sema.curNodeRef());
-            sema.setIsLValue(resultNodeRef);
-        }
-        else
-        {
-            sema.setType(sema.curNodeRef(), returnTypeRef);
-            sema.setType(resultNodeRef, returnTypeRef);
-            sema.setIsValue(sema.curNodeRef());
-            sema.setIsValue(resultNodeRef);
-            sema.unsetIsLValue(sema.curNodeRef());
-            sema.unsetIsLValue(resultNodeRef);
-        }
-    }
-
-    outHandled = true;
-    return Result::Continue;
+Result SemaSpecOp::tryResolveIndex(Sema& sema, const AstIndexListExpr& node, const SemaNodeView& indexedView, bool& outHandled)
+{
+    SmallVector<AstNodeRef> args;
+    appendIndexArgs(sema.ast(), node, args);
+    return tryResolveIndexWithArgs(sema, sema.curNodeRef(), node.nodeExprRef, node.codeRef(), args.span(), indexedView, outHandled);
 }
 
 Result SemaSpecOp::tryResolveIndexAssign(Sema& sema, const AstAssignStmt& node, bool& outHandled)
@@ -1734,20 +1806,19 @@ Result SemaSpecOp::tryResolveIndexAssign(Sema& sema, const AstAssignStmt& node, 
     const AstNodeRef leftNodeRef = node.nodeLeftRef;
     if (leftNodeRef.isInvalid())
         return Result::Continue;
-    if (sema.node(leftNodeRef).isNot(AstNodeId::IndexExpr))
+
+    AstNodeRef             indexedExprRef = AstNodeRef::invalid();
+    SmallVector<AstNodeRef> indexArgRefs;
+    if (!collectIndexAccessArgs(sema, indexedExprRef, indexArgRefs, leftNodeRef))
         return Result::Continue;
 
-    const auto& indexNode = sema.node(leftNodeRef).cast<AstIndexExpr>();
-    if (sema.node(indexNode.nodeArgRef).is(AstNodeId::RangeExpr))
-        return Result::Continue;
-
-    const SemaNodeView  indexedView = sema.viewType(indexNode.nodeExprRef);
+    const SemaNodeView  indexedView = sema.viewType(indexedExprRef);
     const SymbolStruct* ownerStruct = structSpecOpOwner(sema, indexedView);
     if (!ownerStruct)
         return Result::Continue;
 
     SWC_RESULT(sema.waitSemaCompleted(ownerStruct, node.codeRef()));
-    SWC_RESULT(SemaCheck::isAssignable(sema, sema.curNodeRef(), indexNode.nodeExprRef, sema.viewNodeTypeSymbol(indexNode.nodeExprRef)));
+    SWC_RESULT(SemaCheck::isAssignable(sema, sema.curNodeRef(), indexedExprRef, sema.viewNodeTypeSymbol(indexedExprRef)));
 
     SmallVector<Symbol*> candidates;
     SWC_RESULT(collectIndexAssignSpecOpCandidates(sema, *ownerStruct, node.codeRef(), tok.id, candidates));
@@ -1762,7 +1833,7 @@ Result SemaSpecOp::tryResolveIndexAssign(Sema& sema, const AstAssignStmt& node, 
 
         SymbolFunction* setFn      = nullptr;
         bool            setMatched = false;
-        SWC_RESULT(probeIndexAssignSpecOp(sema, node, indexNode, candidates.span(), setFn, setMatched));
+        SWC_RESULT(probeIndexAssignSpecOp(sema, node, indexedExprRef, indexArgRefs.span(), candidates.span(), setFn, setMatched));
 
         // A dedicated indexed write operator is more specific than mutating through an opIndex reference.
         if (setMatched)
@@ -1776,13 +1847,13 @@ Result SemaSpecOp::tryResolveIndexAssign(Sema& sema, const AstAssignStmt& node, 
             if (!canAssignThroughRef)
             {
                 SmallVector<AstNodeRef> args;
-                args.push_back(indexNode.nodeArgRef);
+                args.append(indexArgRefs.data(), indexArgRefs.size());
                 args.push_back(node.nodeRightRef);
                 sema.clearSemaPayload(leftNodeRef);
                 auto* deferredPayload = sema.compiler().allocate<DeferredIndexAssignSpecOpPayload>();
                 sema.setSemaPayload(leftNodeRef, deferredPayload);
                 SymbolFunction* calledFn = nullptr;
-                SWC_RESULT(resolveSyntheticCall(sema, node, candidates.span(), args.span(), indexNode.nodeExprRef, false, nullptr, true, true, &calledFn));
+                SWC_RESULT(resolveSyntheticCall(sema, node, candidates.span(), args.span(), indexedExprRef, false, nullptr, true, true, &calledFn));
 
                 auto* assignPayload = sema.semaPayload<AssignSpecOpPayload>(sema.curNodeRef());
                 if (!assignPayload)
@@ -1802,13 +1873,13 @@ Result SemaSpecOp::tryResolveIndexAssign(Sema& sema, const AstAssignStmt& node, 
     }
 
     SmallVector<AstNodeRef> args;
-    args.push_back(indexNode.nodeArgRef);
+    args.append(indexArgRefs.data(), indexArgRefs.size());
     args.push_back(node.nodeRightRef);
     sema.clearSemaPayload(leftNodeRef);
     auto* deferredPayload = sema.compiler().allocate<DeferredIndexAssignSpecOpPayload>();
     sema.setSemaPayload(leftNodeRef, deferredPayload);
     SymbolFunction* calledFn = nullptr;
-    SWC_RESULT(resolveSyntheticCall(sema, node, candidates.span(), args.span(), indexNode.nodeExprRef, false, nullptr, true, true, &calledFn));
+    SWC_RESULT(resolveSyntheticCall(sema, node, candidates.span(), args.span(), indexedExprRef, false, nullptr, true, true, &calledFn));
 
     auto* assignPayload = sema.semaPayload<AssignSpecOpPayload>(sema.curNodeRef());
     if (!assignPayload)

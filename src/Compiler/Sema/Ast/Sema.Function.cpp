@@ -2004,6 +2004,15 @@ namespace
 
         SWC_RESULT(SemaHelpers::attachIndirectReturnRuntimeStorageIfNeeded(sema, node, calledFn, "__call_runtime_storage"));
 
+        if (!returnType.isVoid())
+        {
+            sema.setIsValue(sema.curNodeRef());
+            if (returnType.isReference())
+                sema.setIsLValue(sema.curNodeRef());
+            else
+                sema.unsetIsLValue(sema.curNodeRef());
+        }
+
         return Result::Continue;
     }
 }

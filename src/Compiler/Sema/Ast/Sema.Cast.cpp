@@ -127,9 +127,15 @@ Result AstCastExpr::semaPostNode(Sema& sema)
         castFlags.add(CastFlagsE::NoOverflow);
     castFlags.add(CastFlagsE::FromExplicitNode);
 
-    sema.inheritPayload(*this, nodeExprView.nodeRef());
+    sema.inheritPayloadFlags(*this, nodeExprView.nodeRef());
+    if (srcTypeView.hasConstant())
+        sema.setConstant(sema.curNodeRef(), srcTypeView.cstRef());
+    else
+        sema.setType(sema.curNodeRef(), srcTypeView.typeRef());
+    if (sema.isFoldedTypedConst(nodeExprRef))
+        sema.setFoldedTypedConst(sema.curNodeRef());
+
     SemaNodeView view = sema.curViewNodeTypeConstant();
-    view.typeRef()    = view.type()->unwrap(sema.ctx(), view.typeRef(), TypeExpandE::Function);
     SWC_RESULT(Cast::cast(sema, view, nodeTypeView.typeRef(), CastKind::Explicit, castFlags));
     sema.setIsValue(*this);
 

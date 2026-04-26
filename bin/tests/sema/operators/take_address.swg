@@ -1,5 +1,12 @@
 #global fileprivate
 
+func functionAddressAsPointer()->s32 => 0
+
+func functionAddressReturnedReference(value: &s32)->&s32
+{
+    return &value
+}
+
 #test
 {
     var x: s32
@@ -110,4 +117,16 @@
     var i = 1's32
     var p = &a[i]
     #assert(#typeof(p) == [*] s32)
+}
+
+#test
+{
+    #assert(#typeof(&functionAddressAsPointer) == #type func()->s32)
+    #assert(#typeof(cast(u64) functionAddressAsPointer()) == u64)
+    let p = cast(const *void) &functionAddressAsPointer
+    #assert(#typeof(p) == const *void)
+
+    var value: s32
+    let rp = &functionAddressReturnedReference(&value)
+    #assert(#typeof(rp) == *s32)
 }

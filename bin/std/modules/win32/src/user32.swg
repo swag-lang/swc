@@ -828,6 +828,9 @@ struct MONITORINFO
     dwFlags:       DWORD
 }
 
+alias MONITORENUMPROC = func(HMONITOR, HDC, *RECT, LPARAM)->BOOL
+alias WNDENUMPROC     = func(HWND, LPARAM)->BOOL
+
 const SM_CXSCREEN                    = 0
 const SM_CYSCREEN                    = 1
 const SM_CXVSCROLL                   = 2
@@ -1060,8 +1063,8 @@ func GET_Y_LPARAM(lp: LPARAM) => cast(s32) HIWORD(lp)
     func SetWindowLongPtrA(hWnd: HWND, nIndex: s32, dwNewLong: *LONG)->*LONG;
     func SetWindowLongPtrW(hWnd: HWND, nIndex: s32, dwNewLong: *LONG)->*LONG;
 
-    func EnumDisplayMonitors(hdc: HDC, lprcClip: #null *RECT, lpfnEnum: const *void, dwData: LPARAM)->BOOL;
-    func EnumWindows(lpEnumFunc: const *void, lParam: LPARAM)->BOOL;
+    func EnumDisplayMonitors(hdc: HDC, lprcClip: #null *RECT, lpfnEnum: MONITORENUMPROC, dwData: LPARAM)->BOOL;
+    func EnumWindows(lpEnumFunc: WNDENUMPROC, lParam: LPARAM)->BOOL;
 }
 
 moduleprivate namespace User32Priv

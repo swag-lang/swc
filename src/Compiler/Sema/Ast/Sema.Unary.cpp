@@ -196,10 +196,27 @@ namespace
         return Result::Continue;
     }
 
+    bool isCallLikeNode(const AstNode& node)
+    {
+        return node.is(AstNodeId::CallExpr) ||
+               node.is(AstNodeId::IntrinsicCallExpr) ||
+               node.is(AstNodeId::AliasCallExpr) ||
+               node.is(AstNodeId::CompilerCall) ||
+               node.is(AstNodeId::CompilerCallOne);
+    }
+
+    bool isFunctionAddressOperand(const SemaNodeView& view)
+    {
+        return view.sym() &&
+               view.sym()->isFunction() &&
+               view.node() &&
+               !isCallLikeNode(*view.node());
+    }
+
     Result semaTakeAddress(Sema& sema, const AstUnaryExpr& node, const SemaNodeView& view)
     {
         SWC_UNUSED(node);
-        if (view.sym() && view.sym()->isFunction())
+        if (isFunctionAddressOperand(view))
         {
             auto& symFunc = view.sym()->cast<SymbolFunction>();
             SemaHelpers::addCurrentFunctionCallDependency(sema, &symFunc);
@@ -342,7 +359,7 @@ Result AstUnaryExpr::semaPostNode(Sema& sema)
     const Token& tok  = sema.token(codeRef());
 
     // Function declarations are addressable even if they are not plain value expressions.
-    const bool takesFunctionAddress = tok.id == TokenId::SymAmpersand && view.sym() && view.sym()->isFunction();
+    const bool takesFunctionAddress = tok.id == TokenId::SymAmpersand && isFunctionAddressOperand(view);
     if (!takesFunctionAddress)
         SWC_RESULT(SemaCheck::isValue(sema, view.nodeRef()));
     sema.setIsValue(*this);

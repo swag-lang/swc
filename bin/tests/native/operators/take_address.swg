@@ -1,5 +1,12 @@
 #global fileprivate // 
 
+func nativeFunctionAddressAsPointer()->s32 => 1
+
+func nativeFunctionAddressReturnedReference(value: &s32)->&s32
+{
+    return &value
+}
+
 #test
 {
     struct AA
@@ -207,4 +214,18 @@
     let p = &a[2]
     #assert(#typeof(p) == const [*] u8)
     @assert(p[0] == 3)
+}
+
+#test
+{
+    #assert(#typeof(&nativeFunctionAddressAsPointer) == #type func()->s32)
+    #assert(#typeof(cast(u64) nativeFunctionAddressAsPointer()) == u64)
+    let p = cast(const *void) &nativeFunctionAddressAsPointer
+    #assert(#typeof(p) == const *void)
+    @assert(p != null)
+
+    var value = 77
+    let rp = &nativeFunctionAddressReturnedReference(&value)
+    #assert(#typeof(rp) == *s32)
+    @assert(rp == &value)
 }

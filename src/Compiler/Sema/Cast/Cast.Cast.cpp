@@ -1305,6 +1305,13 @@ Result Cast::castToPointer(Sema& sema, CastRequest& castRequest, TypeRef srcType
         return Result::Continue;
     }
 
+    if (srcType.isFunction() &&
+        castRequest.kind == CastKind::Explicit &&
+        dstType.payloadTypeRef() == typeMgr.typeVoid())
+    {
+        return Result::Continue;
+    }
+
     if (srcType.isReference())
     {
         if (srcType.isConst() && !dstType.isConst() && !castRequest.flags.has(CastFlagsE::UnConst))

@@ -268,7 +268,9 @@ namespace
     {
         for (const SymbolVariable* symVar : symbolFunc.parameters())
         {
-            if (symVar && codeGen.hasLifecycle(symVar->typeRef(), CodeGen::LifecycleKind::Drop))
+            if (symVar &&
+                symVar->hasExtraFlag(SymbolVariableFlagsE::NeedsAddressableStorage) &&
+                codeGen.hasLifecycle(symVar->typeRef(), CodeGen::LifecycleKind::Drop))
                 return true;
         }
 
@@ -892,6 +894,9 @@ void CodeGen::registerImplicitDrop(const SymbolVariable& symVar)
     if (!hasDeferredStatements_)
         return;
     if (symVar.hasExtraFlag(SymbolVariableFlagsE::RetVal))
+        return;
+    if (symVar.hasExtraFlag(SymbolVariableFlagsE::Parameter) &&
+        !symVar.hasExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack))
         return;
     if (!symVar.hasExtraFlag(SymbolVariableFlagsE::Parameter) &&
         !symVar.hasExtraFlag(SymbolVariableFlagsE::Initialized))

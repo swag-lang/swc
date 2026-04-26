@@ -334,12 +334,16 @@ namespace
         return !sema.typeMgr().get(resolvedSourceTypeRef).isPointerOrReference();
     }
 
-    void buildStructOpCastResolvedArgs(Sema& sema, SmallVector<ResolvedCallArgument>& outResolvedArgs, AstNodeRef sourceArgRef, const SymbolFunction& calledFn)
+    Result buildStructOpCastResolvedArgs(Sema& sema, SmallVector<ResolvedCallArgument>& outResolvedArgs, AstNodeRef sourceArgRef, const SymbolFunction& calledFn)
     {
         ResolvedCallArgument resolvedArg;
         resolvedArg.argRef                = sourceArgRef;
         resolvedArg.bindsReferenceToValue = structOpCastBindsReferenceToValue(sema, calledFn, sourceArgRef);
+        if (!calledFn.parameters().empty())
+            SWC_RESULT(SemaHelpers::attachBorrowedAggregateArgumentRuntimeStorageIfNeeded(sema, calledFn, calledFn.parameters().front()->typeRef(), sourceArgRef));
+
         outResolvedArgs.push_back(resolvedArg);
+        return Result::Continue;
     }
 
     Result prepareStructOpCast(Sema& sema, StructOpCastData& outData, const SemaNodeView& view, const CastRequest& castRequest, CastFlags castFlags)
@@ -360,7 +364,7 @@ namespace
             return Result::Continue;
 
         SmallVector<ResolvedCallArgument> resolvedArgs;
-        buildStructOpCastResolvedArgs(sema, resolvedArgs, castData.sourceArgRef, *castData.calledFn);
+        SWC_RESULT(buildStructOpCastResolvedArgs(sema, resolvedArgs, castData.sourceArgRef, *castData.calledFn));
 
         SWC_RESULT(SemaJIT::tryRunConstCall(sema, *castData.calledFn, callRef, resolvedArgs.span()));
         const SemaNodeView callView(sema, callRef, SemaNodeViewPartE::Constant);
@@ -375,7 +379,7 @@ namespace
             return Result::Continue;
 
         SmallVector<ResolvedCallArgument> resolvedArgs;
-        buildStructOpCastResolvedArgs(sema, resolvedArgs, castData.sourceArgRef, *castData.calledFn);
+        SWC_RESULT(buildStructOpCastResolvedArgs(sema, resolvedArgs, castData.sourceArgRef, *castData.calledFn));
 
         sema.setResolvedCallArguments(castNodeRef, resolvedArgs);
         sema.setIsValue(castNodeRef);
@@ -439,11 +443,14 @@ namespace
         return receiverRef;
     }
 
-    void buildStructSetResolvedArgs(Sema& sema, SmallVector<ResolvedCallArgument>& outResolvedArgs, TypeRef dstTypeRef, AstNodeRef sourceArgRef, SymbolVariable* storageSym, ConstantRef receiverInitCstRef)
+    Result buildStructSetResolvedArgs(Sema& sema, SmallVector<ResolvedCallArgument>& outResolvedArgs, const SymbolFunction& calledFn, TypeRef dstTypeRef, AstNodeRef sourceArgRef, SymbolVariable* storageSym, ConstantRef receiverInitCstRef)
     {
         const AstNodeRef receiverRef = makeStructSetReceiverRef(sema, dstTypeRef, sourceArgRef, storageSym, receiverInitCstRef);
         outResolvedArgs.push_back({.argRef = receiverRef, .bindsReferenceToValue = true});
         outResolvedArgs.push_back({.argRef = sourceArgRef});
+        if (calledFn.parameters().size() > 1)
+            SWC_RESULT(SemaHelpers::attachBorrowedAggregateArgumentRuntimeStorageIfNeeded(sema, calledFn, calledFn.parameters()[1]->typeRef(), sourceArgRef));
+        return Result::Continue;
     }
 
     Result prepareStructSetCast(Sema& sema, StructSetCastData& outData, SemaNodeView& view, TypeRef dstTypeRef, CastKind castKind, CastFlags castFlags)
@@ -479,9 +486,9 @@ namespace
             return Result::Continue;
 
         SmallVector<ResolvedCallArgument> resolvedArgs;
-        buildStructSetResolvedArgs(sema, resolvedArgs, dstTypeRef, castData.sourceArgRef, nullptr, castData.receiverInitCstRef);
-
         SWC_ASSERT(castData.calledFn != nullptr);
+        SWC_RESULT(buildStructSetResolvedArgs(sema, resolvedArgs, *castData.calledFn, dstTypeRef, castData.sourceArgRef, nullptr, castData.receiverInitCstRef));
+
         SWC_RESULT(SemaJIT::tryRunConstSetCall(sema, *castData.calledFn, callRef, resolvedArgs.span(), dstTypeRef, castData.receiverInitCstRef, true));
         const SemaNodeView callView(sema, callRef, SemaNodeViewPartE::Constant);
         if (callView.cstRef().isValid() &&
@@ -499,7 +506,8 @@ namespace
         SWC_RESULT(SemaHelpers::ensureRuntimeStorageDeclaredAndCompleted(sema, storageSym, dstTypeRef));
 
         SmallVector<ResolvedCallArgument> resolvedArgs;
-        buildStructSetResolvedArgs(sema, resolvedArgs, dstTypeRef, castData.sourceArgRef, &storageSym, ConstantRef::invalid());
+        SWC_ASSERT(castData.calledFn != nullptr);
+        SWC_RESULT(buildStructSetResolvedArgs(sema, resolvedArgs, *castData.calledFn, dstTypeRef, castData.sourceArgRef, &storageSym, ConstantRef::invalid()));
 
         sema.setResolvedCallArguments(castNodeRef, resolvedArgs);
         sema.setIsValue(castNodeRef);

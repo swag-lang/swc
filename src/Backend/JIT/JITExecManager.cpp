@@ -24,7 +24,7 @@ Result JITExecManager::executeItem(const Item& item)
     Result callResult;
     if (!item.request.jitArgs.empty() || item.request.hasJitReturn)
     {
-        callResult = JIT::emitAndCall(ctx, fn->jitEntryAddress(), item.request.jitArgs, item.request.jitReturn);
+        callResult = JIT::emitAndCall(ctx, fn->jitEntryAddress(), item.request.jitArgs, item.request.jitReturn, fn->callConvKind());
     }
     else
     {

@@ -4,6 +4,7 @@
 #include "Backend/ABI/CallConv.h"
 #include "Compiler/Lexer/LangSpec.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
+#include "Compiler/Parser/Parser/Parser.h"
 #include "Compiler/Parser/Parser/ParserJob.h"
 #include "Compiler/Sema/Ast/Sema.Index.h"
 #include "Compiler/Sema/Cast/Cast.h"
@@ -1218,6 +1219,9 @@ namespace
                 }
             }
 
+            if (receiver)
+                SWC_RESULT(SemaHelpers::attachBorrowedAggregateArgumentRuntimeStorageIfNeeded(sema, *calledFn, receiver->typeRef(), exprRef));
+
             resolvedArgs.push_back(resolvedArg);
             sema.setResolvedCallArguments(sema.curNodeRef(), resolvedArgs);
             sema.setSymbol(sema.curNodeRef(), calledFn);
@@ -1265,6 +1269,12 @@ namespace
         if (attributes.generatedOperatorsCodeRef.isValid())
             return attributes.generatedOperatorsCodeRef;
         return ownerStruct.codeRef();
+    }
+
+    std::mutex& generatedOperatorGenerationMutex()
+    {
+        static std::mutex mutex;
+        return mutex;
     }
 
     std::string_view predefinedName(Sema& sema, IdentifierManager::PredefinedName name)
@@ -1454,6 +1464,39 @@ namespace
         }
     }
 
+    bool generatedOperatorAttributeMatches(Sema& sema, AstNodeRef nodeRef, IdentifierManager::PredefinedName attributeName)
+    {
+        if (nodeRef.isInvalid())
+            return false;
+
+        const AstNode& node = sema.node(nodeRef);
+        if (node.is(AstNodeId::Identifier))
+            return sema.idMgr().addIdentifier(sema.ctx(), node.codeRef()) == sema.idMgr().predefined(attributeName);
+
+        if (const auto* memberAccess = node.safeCast<AstMemberAccessExpr>())
+            return generatedOperatorAttributeMatches(sema, memberAccess->nodeRightRef, attributeName);
+
+        if (const auto* call = node.safeCast<AstCallExpr>())
+            return generatedOperatorAttributeMatches(sema, call->nodeExprRef, attributeName);
+
+        return false;
+    }
+
+    bool hasOperatorIgnoreAttribute(Sema& sema, const AstAttributeList& attrList)
+    {
+        SmallVector<AstNodeRef> attributes;
+        sema.ast().appendNodes(attributes, attrList.spanChildrenRef);
+        for (const AstNodeRef attrRef : attributes)
+        {
+            const AstNode& attrNode = sema.node(attrRef);
+            const auto*    attr     = attrNode.safeCast<AstAttribute>();
+            if (attr && generatedOperatorAttributeMatches(sema, attr->nodeCallRef, IdentifierManager::PredefinedName::OperatorIgnore))
+                return true;
+        }
+
+        return false;
+    }
+
     void collectGeneratedOperatorFieldNamesFromNode(Sema& sema, AstNodeRef nodeRef, SmallVector<Utf8>& outFields)
     {
         if (nodeRef.isInvalid())
@@ -1462,6 +1505,8 @@ namespace
         const AstNode& node = sema.node(nodeRef);
         if (const auto* attrList = node.safeCast<AstAttributeList>())
         {
+            if (hasOperatorIgnoreAttribute(sema, *attrList))
+                return;
             collectGeneratedOperatorFieldNamesFromNode(sema, attrList->nodeBodyRef, outFields);
             return;
         }
@@ -1475,7 +1520,7 @@ namespace
         if (const auto* singleVar = node.safeCast<AstSingleVarDecl>())
         {
             if (!singleVar->hasFlag(AstVarDeclFlagsE::Const))
-                outFields.push_back(Utf8{sema.tokenString(singleVar->codeRef())});
+                outFields.push_back(Utf8{sema.tokenString({singleVar->srcViewRef(), singleVar->tokNameRef})});
             return;
         }
 
@@ -1484,10 +1529,10 @@ namespace
             if (multiVar->hasFlag(AstVarDeclFlagsE::Const))
                 return;
 
-            SmallVector<AstNodeRef> names;
-            sema.ast().appendNodes(names, multiVar->spanNamesRef);
-            for (const AstNodeRef nameRef : names)
-                outFields.push_back(Utf8{sema.tokenString(sema.node(nameRef).codeRef())});
+            SmallVector<TokenRef> names;
+            sema.ast().appendTokens(names, multiVar->spanNamesRef);
+            for (const TokenRef nameRef : names)
+                outFields.push_back(Utf8{sema.tokenString({multiVar->srcViewRef(), nameRef})});
         }
     }
 
@@ -1665,20 +1710,26 @@ namespace
         SWC_RESULT(sourceFile.loadContent(ctx));
         SWC_RESULT(parseLoadedSourceFile(ctx, sourceFile, {}));
 
-        const SourceView& srcView = sourceFile.ast().srcView();
+        SourceView& srcView = sourceFile.ast().srcView();
+        srcView.setOwnerFileRef(sema.ast().srcView().fileRef());
         if (sourceFile.hasError() || srcView.mustSkip() || !srcView.runsSema())
             return Result::Continue;
 
-        Sema         generatedDeclSema(ctx, sourceFile.nodePayloadContext(), true);
+        Parser     parser;
+        AstNodeRef generatedRoot = parser.parseGenerated(ctx, sema.ast(), srcView, ParserGeneratedMode::TopLevel);
+        if (generatedRoot.isInvalid())
+            return Result::Continue;
+
+        Sema         generatedDeclSema(ctx, sema, generatedRoot, true);
         const Result declResult = generatedDeclSema.execResult();
         SWC_ASSERT(declResult != Result::Pause);
         SWC_RESULT(declResult);
 
         bool attached = false;
-        SWC_RESULT(attachDeclaredGeneratedImpls(sema, generatedDeclSema, sourceFile.ast().root(), ownerStruct, attached));
+        SWC_RESULT(attachDeclaredGeneratedImpls(sema, generatedDeclSema, generatedRoot, ownerStruct, attached));
         SWC_ASSERT(attached);
 
-        auto* job = heapNew<SemaJob>(ctx, sema, sourceFile.nodePayloadContext(), sourceFile.ast().root());
+        auto* job = heapNew<SemaJob>(ctx, sema, generatedRoot);
         compiler.global().jobMgr().enqueue(*job, JobPriority::Normal, compiler.jobClientId());
         compiler.notifyAlive();
         return Result::Continue;
@@ -1706,20 +1757,18 @@ Result SemaSpecOp::ensureGeneratedOperators(Sema& sema, SymbolStruct& ownerStruc
     const GeneratedOperatorFlags flags = ownerStruct.attributes().generatedOperators;
     if (flags.none())
         return Result::Continue;
-    if (ownerStruct.isGenericRoot() && !ownerStruct.isGenericInstance())
-    {
-        auto diag = SemaError::report(sema, DiagnosticId::sema_err_operator_generation_generic, operatorGenerationErrorCodeRef(ownerStruct));
-        diag.addArgument(Diagnostic::ARG_DECL_SYM, ownerStruct.name(sema.ctx()));
-        diag.report(sema.ctx());
-        return Result::Error;
-    }
+
     if (ownerStruct.isGenericInstance())
-        return Result::Continue;
+        return validateGeneratedOperatorFieldSupport(sema, ownerStruct, flags);
+
+    const std::scoped_lock lock(generatedOperatorGenerationMutex());
     if (!ownerStruct.tryMarkGeneratedOperators())
         return Result::Continue;
 
     SWC_RESULT(validateGeneratedOperatorDuplicates(sema, ownerStruct, flags));
-    SWC_RESULT(validateGeneratedOperatorFieldSupport(sema, ownerStruct, flags));
+    if (!ownerStruct.isGenericRoot())
+        SWC_RESULT(validateGeneratedOperatorFieldSupport(sema, ownerStruct, flags));
+
     const Utf8 source = makeGeneratedOperatorsSource(sema, ownerStruct, flags);
     return declareGeneratedOperatorSource(sema, ownerStruct, source.view());
 }

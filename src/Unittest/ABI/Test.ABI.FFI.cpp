@@ -309,9 +309,25 @@ SWC_TEST_BEGIN(FFI_CallNativePointerArg)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(ABI_HostStructArgsAreBorrowed)
+{
+    const CallConv& host = CallConv::host();
+    if (host.classifyStructArgPassing(sizeof(FFIStructPair32)) != StructArgPassingKind::ByReference)
+        return Result::Error;
+    if (host.structArgPassing.passByReferenceNeedsCopy)
+        return Result::Error;
+
+    const CallConv& c = CallConv::get(CallConvKind::C);
+    if (c.classifyStructArgPassing(sizeof(FFIStructPair32)) != StructArgPassingKind::ByValue)
+        return Result::Error;
+    if (!c.structArgPassing.passByReferenceNeedsCopy)
+        return Result::Error;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(FFI_CallNativeStructByValueRegister)
 {
-    if (CallConv::host().classifyStructArgPassing(sizeof(FFIStructPair32)) != StructArgPassingKind::ByValue)
+    if (CallConv::get(CallConvKind::C).classifyStructArgPassing(sizeof(FFIStructPair32)) != StructArgPassingKind::ByValue)
         return Result::Continue;
 
     const TypeManager& typeMgr = ctx.typeMgr();
@@ -336,7 +352,7 @@ SWC_TEST_END()
 
 SWC_TEST_BEGIN(FFI_CallNativeStructByValueStack)
 {
-    if (CallConv::host().classifyStructArgPassing(sizeof(FFIStructPair32)) != StructArgPassingKind::ByValue)
+    if (CallConv::get(CallConvKind::C).classifyStructArgPassing(sizeof(FFIStructPair32)) != StructArgPassingKind::ByValue)
         return Result::Continue;
 
     const TypeManager& typeMgr = ctx.typeMgr();
@@ -370,7 +386,7 @@ SWC_TEST_END()
 
 SWC_TEST_BEGIN(FFI_CallNativeStructByReferenceCopy)
 {
-    if (CallConv::host().classifyStructArgPassing(sizeof(FFIStructTriple64)) != StructArgPassingKind::ByReference)
+    if (CallConv::get(CallConvKind::C).classifyStructArgPassing(sizeof(FFIStructTriple64)) != StructArgPassingKind::ByReference)
         return Result::Continue;
 
     const TypeManager& typeMgr = ctx.typeMgr();
@@ -398,7 +414,7 @@ SWC_TEST_END()
 
 SWC_TEST_BEGIN(FFI_CallNativeStructReturnByValueRegister)
 {
-    if (CallConv::host().classifyStructReturnPassing(sizeof(FFIStructPair32)) != StructArgPassingKind::ByValue)
+    if (CallConv::get(CallConvKind::C).classifyStructReturnPassing(sizeof(FFIStructPair32)) != StructArgPassingKind::ByValue)
         return Result::Continue;
 
     const TypeManager& typeMgr = ctx.typeMgr();
@@ -425,7 +441,7 @@ SWC_TEST_END()
 
 SWC_TEST_BEGIN(FFI_CallNativeStructReturnByReference)
 {
-    if (CallConv::host().classifyStructReturnPassing(sizeof(FFIStructTriple64)) != StructArgPassingKind::ByReference)
+    if (CallConv::get(CallConvKind::C).classifyStructReturnPassing(sizeof(FFIStructTriple64)) != StructArgPassingKind::ByReference)
         return Result::Continue;
 
     const TypeManager& typeMgr = ctx.typeMgr();

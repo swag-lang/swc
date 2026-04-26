@@ -814,12 +814,11 @@ Result JIT::emit(TaskContext& ctx, JITMemory& outExecutableMemory, ByteSpan line
     return Result::Continue;
 }
 
-Result JIT::emitAndCall(TaskContext& ctx, void* targetFn, std::span<const JITArgument> args, const JITReturn& ret)
+Result JIT::emitAndCall(TaskContext& ctx, void* targetFn, std::span<const JITArgument> args, const JITReturn& ret, CallConvKind callConvKind)
 {
     const TaskScopedContext scopedContext(ctx);
     SWC_ASSERT(targetFn != nullptr);
 
-    constexpr auto                         callConvKind = CallConvKind::Host;
     const CallConv&                        conv         = CallConv::get(callConvKind);
     const ABITypeNormalize::NormalizedType retType      = ABITypeNormalize::normalize(ctx, conv, ret.typeRef, ABITypeNormalize::Usage::Return);
     SWC_ASSERT(retType.isVoid || ret.valuePtr);

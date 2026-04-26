@@ -797,20 +797,6 @@ namespace
         }
     }
 
-    void markDroppableParametersAddressable(CodeGen& codeGen, const SymbolFunction& symbolFunc)
-    {
-        for (SymbolVariable* symVar : symbolFunc.parameters())
-        {
-            if (!symVar)
-                continue;
-            if (!codeGen.hasLifecycle(symVar->typeRef(), CodeGen::LifecycleKind::Drop))
-                continue;
-            if (symVar->typeRef().isValid() && codeGen.typeMgr().get(symVar->typeRef()).isReference())
-                continue;
-            symVar->addExtraFlag(SymbolVariableFlagsE::NeedsAddressableStorage);
-        }
-    }
-
     void collectRegisterParameterIndices(SmallVector<uint32_t>& outIndices, const std::vector<SymbolVariable*>& params, std::span<const CodeGenFunctionHelpers::FunctionParameterInfo> paramInfos)
     {
         SWC_ASSERT(paramInfos.size() == params.size());
@@ -1499,7 +1485,6 @@ namespace
         }
 
         SmallVector<CodeGenFunctionHelpers::FunctionParameterInfo> paramInfos;
-        markDroppableParametersAddressable(codeGen, symbolFunc);
         collectFunctionParameterInfos(paramInfos, codeGen, symbolFunc);
         buildLocalStackLayout(codeGen);
         {

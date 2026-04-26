@@ -256,11 +256,15 @@ void CallConv::setup()
 {
     setupCallConvWindowsX64(g_CallConvs[static_cast<size_t>(CallConvKind::WindowsX64)]);
 
-    const auto hostCallConvKind                               = resolveHostCallConvKind();
-    g_CallConvs[static_cast<size_t>(CallConvKind::Host)]      = g_CallConvs[static_cast<size_t>(hostCallConvKind)];
-    g_CallConvs[static_cast<size_t>(CallConvKind::C)]         = g_CallConvs[static_cast<size_t>(hostCallConvKind)];
-    g_CallConvs[static_cast<size_t>(CallConvKind::Host)].name = "host";
-    g_CallConvs[static_cast<size_t>(CallConvKind::C)].name    = "c";
+    const auto hostCallConvKind                          = resolveHostCallConvKind();
+    auto&      host                                      = g_CallConvs[static_cast<size_t>(CallConvKind::Host)];
+    auto&      c                                         = g_CallConvs[static_cast<size_t>(CallConvKind::C)];
+    host                                                = g_CallConvs[static_cast<size_t>(hostCallConvKind)];
+    c                                                   = g_CallConvs[static_cast<size_t>(hostCallConvKind)];
+    host.name                                           = "host";
+    c.name                                              = "c";
+    host.structArgPassing.passByValueSizeMask           = 0;
+    host.structArgPassing.passByReferenceNeedsCopy      = false;
 }
 
 const CallConv& CallConv::get(CallConvKind kind)

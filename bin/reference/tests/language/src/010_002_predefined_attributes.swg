@@ -64,7 +64,7 @@ attr Complete()             // Following switch must be complete
 attr Commutative(operators: string...) // Allow opBinary as a right-operand fallback
 
 #[AttrUsage(AttributeUsage.Struct)]
-attr Operators(operators: string...) // Generate operator overloads for a struct
+attr Operators(operators: string...) // Generate operator overloads for a struct, including generic structs
 
 #[AttrUsage(AttributeUsage.StructVariable)]
 attr OperatorIgnore()      // Exclude a field from generated operator overloads

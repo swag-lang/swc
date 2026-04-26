@@ -253,10 +253,15 @@ namespace
 AstNodeRef SemaClone::cloneAst(Sema& sema, AstNodeRef nodeRef, const CloneContext& cloneContext)
 {
     SWC_ASSERT(nodeRef.isValid());
-    AstNode&   node      = sema.node(nodeRef);
+    AstNode&          node            = sema.node(nodeRef);
+    SourceView* const previousSrcView = Ast::setThreadSourceViewOverride(&sema.srcView(node.srcViewRef()));
+
     AstNodeRef clonedRef = cloneNodeReplacement(sema, node, cloneContext);
     if (clonedRef.isValid())
+    {
+        Ast::setThreadSourceViewOverride(previousSrcView);
         return clonedRef;
+    }
 
     clonedRef = Ast::nodeIdInfos(node.id()).semaClone(sema, node, cloneContext);
     if (!clonedRef.isValid())
@@ -265,6 +270,7 @@ AstNodeRef SemaClone::cloneAst(Sema& sema, AstNodeRef nodeRef, const CloneContex
         SWC_ASSERT(clonedRef.isValid());
     }
 
+    Ast::setThreadSourceViewOverride(previousSrcView);
     copyCallableClonePayload(sema, nodeRef, clonedRef);
     copyImplicitCastType(sema, node, nodeRef, clonedRef);
     return clonedRef;

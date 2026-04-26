@@ -31,6 +31,38 @@ Result SemaHelpers::attachIndirectReturnRuntimeStorageIfNeeded(Sema& sema, const
     return attachRuntimeStorageIfNeeded(sema, node, indirectReturnRuntimeStorageTypeRef(sema, calledFn), privateName);
 }
 
+TypeRef SemaHelpers::borrowedAggregateArgumentRuntimeStorageTypeRef(Sema& sema, const SymbolFunction& calledFn, TypeRef paramTypeRef)
+{
+    if (sema.isGlobalScope() || !paramTypeRef.isValid())
+        return TypeRef::invalid();
+
+    const TypeInfo& paramType      = sema.typeMgr().get(paramTypeRef);
+    TypeRef         storageTypeRef = paramType.unwrap(sema.ctx(), paramTypeRef, TypeExpandE::Alias | TypeExpandE::Enum);
+    if (storageTypeRef.isInvalid())
+        storageTypeRef = paramTypeRef;
+
+    const TypeInfo& storageType = sema.typeMgr().get(storageTypeRef);
+    const bool      isAggregate = storageType.isStruct() || storageType.isArray() || storageType.isAggregate() || (storageType.isFunction() && storageType.isLambdaClosure());
+    if (!isAggregate)
+        return TypeRef::invalid();
+
+    const CallConv&                        callConv       = CallConv::get(calledFn.callConvKind());
+    const ABITypeNormalize::NormalizedType normalizedType = ABITypeNormalize::normalize(sema.ctx(), callConv, paramTypeRef, ABITypeNormalize::Usage::Argument);
+    if (normalizedType.isIndirect && !normalizedType.needsIndirectCopy)
+        return storageTypeRef;
+
+    return TypeRef::invalid();
+}
+
+Result SemaHelpers::attachBorrowedAggregateArgumentRuntimeStorageIfNeeded(Sema& sema, const SymbolFunction& calledFn, TypeRef paramTypeRef, AstNodeRef argRef)
+{
+    if (argRef.isInvalid())
+        return Result::Continue;
+
+    const TypeRef storageTypeRef = borrowedAggregateArgumentRuntimeStorageTypeRef(sema, calledFn, paramTypeRef);
+    return attachRuntimeStorageIfNeeded(sema, argRef, sema.node(argRef), storageTypeRef, "__call_arg_ref_storage");
+}
+
 TypeRef SemaHelpers::indirectReturnRuntimeStorageTypeRef(Sema& sema, const SymbolFunction& calledFn)
 {
     if (sema.isGlobalScope())

@@ -80,7 +80,6 @@ Result AstStructDecl::semaPreNode(Sema& sema) const
             sym.setTyped(sema.ctx());
         }
 
-        SWC_RESULT(SemaSpecOp::ensureGeneratedOperators(sema, sym));
         sema.curViewSymbol().sym()->setSemaCompleted(sema.ctx());
         return Result::SkipChildren;
     }

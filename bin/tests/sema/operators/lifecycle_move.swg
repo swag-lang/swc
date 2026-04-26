@@ -90,6 +90,11 @@ func assignTracked(dst: &Tracked, src: Tracked)
     dst = src
 }
 
+func takeTracked(src: Tracked)->s32
+{
+    return src.value
+}
+
 func copyAssignInfo()->LifecycleInfo
 {
     resetLifecycleHooks()
@@ -186,6 +191,14 @@ func overloadMoveInfo()->LifecycleInfo
     var src = Tracked{9}
     assignTracked(&dst, moveref &src)
     return {dst.value, src.value, DropCount, DropTrace, PostCopyCount, PostMoveCount}
+}
+
+func borrowedParamInfo()->LifecycleInfo
+{
+    resetLifecycleHooks()
+    var src = Tracked{7}
+    let value = takeTracked(src)
+    return {value, src.value, DropCount, DropTrace, PostCopyCount, PostMoveCount}
 }
 
 func embeddedCopyAssignInfo()->LifecycleInfo
@@ -337,8 +350,8 @@ func embeddedOuterNoDropCopyAssignInfo()->LifecycleInfo
     const V = #run overloadCopyInfo()
     #assert(V.dst == 19)
     #assert(V.src == 9)
-    #assert(V.drops == 2)
-    #assert(V.dropTrace == 509)
+    #assert(V.drops == 1)
+    #assert(V.dropTrace == 5)
     #assert(V.postCopy == 1)
     #assert(V.postMove == 0)
 }
@@ -352,6 +365,17 @@ func embeddedOuterNoDropCopyAssignInfo()->LifecycleInfo
     #assert(V.dropTrace == 5)
     #assert(V.postCopy == 0)
     #assert(V.postMove == 1)
+}
+
+#test
+{
+    const V = #run borrowedParamInfo()
+    #assert(V.dst == 7)
+    #assert(V.src == 7)
+    #assert(V.drops == 0)
+    #assert(V.dropTrace == 0)
+    #assert(V.postCopy == 0)
+    #assert(V.postMove == 0)
 }
 
 #test

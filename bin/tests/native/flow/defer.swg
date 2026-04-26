@@ -584,15 +584,15 @@ func deferBreakToScope()->s64
 #test
 {
     let v = deferParameterDropInfo()
-    @assert(v.count == 1)
-    @assert(v.drops == 2)
+    @assert(v.count == 0)
+    @assert(v.drops == 1)
 }
 
 #test
 {
     let v = deferEmbeddedParameterDropInfo()
-    @assert(v.count == 1)
-    @assert(v.drops == 2)
+    @assert(v.count == 0)
+    @assert(v.drops == 1)
 }
 
 #test

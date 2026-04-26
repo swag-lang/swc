@@ -477,8 +477,8 @@ func deferThrowTop() throw
     }
 
     const V = #run deferEmbeddedParameterDropInfo()
-    #assert(V.count == 1)
-    #assert(V.drops == 2)
+    #assert(V.count == 0)
+    #assert(V.drops == 1)
 }
 
 #test

@@ -57,7 +57,11 @@ namespace
             return file->hasError();
 
         const TaskContext     ctx(compiler.global(), compiler.cmdLine());
-        const SourceCodeRange startRange = decl->codeRangeWithChildren(ctx, file->ast(), file->ast().srcView());
+        const Ast*            declAst = decl->sourceAst(ctx);
+        if (!declAst || declAst->findNodeRef(decl).isInvalid())
+            return file->hasError();
+
+        const SourceCodeRange startRange = decl->codeRangeWithChildren(ctx, *declAst, compiler.srcView(decl->srcViewRef()));
         if (!startRange.srcView || !startRange.len)
             return file->hasError();
 

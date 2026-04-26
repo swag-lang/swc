@@ -6,6 +6,7 @@
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
+#include "Compiler/Sema/Helpers/SemaSpecOp.h"
 #include "Compiler/Sema/Symbol/Symbol.Enum.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.Impl.h"
@@ -211,6 +212,25 @@ namespace
         AstNodeRef  declRef    = genericDeclNodeRef(root);
         if (declRef.isInvalid() && root.decl())
             declRef = root.decl()->nodeRef(sourceFile.ast());
+        SWC_ASSERT(declRef.isValid());
+
+        ownedSema = std::make_unique<Sema>(sema.ctx(), sema, sourceFile.nodePayloadContext(), declRef);
+        return *ownedSema;
+    }
+
+    Sema& semaForSymbolDecl(Sema& sema, const Symbol& symbol, std::unique_ptr<Sema>& ownedSema)
+    {
+        const AstNode* decl = symbol.decl();
+        if (!decl)
+            return sema;
+
+        const SourceView& srcView      = sema.compiler().srcView(decl->srcViewRef());
+        const FileRef     ownerFileRef = srcView.ownerFileRef();
+        if (!ownerFileRef.isValid() || sema.ast().srcView().fileRef() == ownerFileRef)
+            return sema;
+
+        SourceFile& sourceFile = sema.compiler().file(ownerFileRef);
+        AstNodeRef  declRef    = decl->nodeRef(sourceFile.ast());
         SWC_ASSERT(declRef.isValid());
 
         ownedSema = std::make_unique<Sema>(sema.ctx(), sema, sourceFile.nodePayloadContext(), declRef);
@@ -996,14 +1016,20 @@ namespace
         {
             if (!sourceImpl)
                 continue;
-            SWC_RESULT(instantiateGenericStructImpl(sema, *sourceImpl, instance, bindings.span()));
+
+            std::unique_ptr<Sema> implSemaHolder;
+            Sema&                 implSema = semaForSymbolDecl(sema, *sourceImpl, implSemaHolder);
+            SWC_RESULT(instantiateGenericStructImpl(implSema, *sourceImpl, instance, bindings.span()));
         }
 
         for (const auto* sourceImpl : rootInterfaces)
         {
             if (!sourceImpl)
                 continue;
-            SWC_RESULT(instantiateGenericStructInterface(sema, *sourceImpl, instance, bindings.span()));
+
+            std::unique_ptr<Sema> implSemaHolder;
+            Sema&                 implSema = semaForSymbolDecl(sema, *sourceImpl, implSemaHolder);
+            SWC_RESULT(instantiateGenericStructInterface(implSema, *sourceImpl, instance, bindings.span()));
         }
 
         return Result::Continue;
@@ -1316,8 +1342,9 @@ namespace
         // Keep impl cloning under the same generic-instance gate. Otherwise two callers can
         // both observe a completed struct instance with no impls yet and clone the same impls
         // twice, which later makes methods shadow themselves.
-        auto& rootStruct     = root.cast<SymbolStruct>();
+        auto& rootStruct     = const_cast<SymbolStruct&>(root.cast<SymbolStruct>());
         auto& instanceStruct = instance.cast<SymbolStruct>();
+        SWC_RESULT(SemaSpecOp::ensureGeneratedOperators(sema, rootStruct));
         SWC_RESULT(instantiateGenericStructImpls(sema, rootStruct, instanceStruct, params, resolvedArgs));
         SWC_RESULT(instanceStruct.registerSpecOps(sema));
         instanceStruct.setSemaCompleted(sema.ctx());

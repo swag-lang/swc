@@ -2151,6 +2151,8 @@ namespace
 
             if (resolvedArg.bindsReferenceToValue)
                 SWC_RESULT(attachReferenceBindingRuntimeStorageIfNeeded(sema, selectedFn.parameters()[i]->typeRef(), finalArgRef));
+            if (i < numParams)
+                SWC_RESULT(SemaHelpers::attachBorrowedAggregateArgumentRuntimeStorageIfNeeded(sema, selectedFn, selectedFn.parameters()[i]->typeRef(), finalArgRef));
 
             if (hasUntypedVariadic && i == variadicParamIdx)
                 SWC_RESULT(assignUntypedVariadicTypeInfo(sema, resolvedArg));

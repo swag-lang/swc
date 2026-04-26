@@ -14,6 +14,16 @@ struct Triple64
     c: u64
 }
 
+func MakePair32()->Pair32
+{
+    return {a: 20, b: 22}
+}
+
+func SumPair32(value: Pair32)->u32
+{
+    return value.a + value.b
+}
+
 #[Swag.Foreign("kernel32", "GetTickCount")]
 func ForeignTakePair(value: Pair32)->u32;
 
@@ -40,4 +50,9 @@ func ForeignReturnTriple()->Triple64;
     @assert(pair.a == 1)
     @assert(pair.b == 2)
     @assert(triple.c == 3)
+}
+
+#test
+{
+    @assert(SumPair32(MakePair32()) == 42)
 }

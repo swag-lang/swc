@@ -548,6 +548,46 @@ namespace
         argPayload.setIsValue();
     }
 
+    TypeRef borrowedAggregateStorageTypeRef(CodeGen& codeGen, TypeRef typeRef)
+    {
+        if (!typeRef.isValid())
+            return TypeRef::invalid();
+
+        const TypeInfo& typeInfo           = codeGen.typeMgr().get(typeRef);
+        const TypeRef   unwrappedTypeRef   = typeInfo.unwrap(codeGen.ctx(), typeRef, TypeExpandE::Alias | TypeExpandE::Enum);
+        const TypeRef   storageTypeRef     = unwrappedTypeRef.isValid() ? unwrappedTypeRef : typeRef;
+        const TypeInfo& storageType        = codeGen.typeMgr().get(storageTypeRef);
+        const bool      isBorrowedAggregate = storageType.isStruct() || storageType.isArray() || storageType.isAggregate() || (storageType.isFunction() && storageType.isLambdaClosure());
+        return isBorrowedAggregate ? storageTypeRef : TypeRef::invalid();
+    }
+
+    void materializePreparedBorrowedAggregateArg(CodeGen& codeGen, CodeGenNodePayload& argPayload, TypeRef normalizedTypeRef, const ABITypeNormalize::NormalizedType& normalizedArg, AstNodeRef argRef)
+    {
+        if (!normalizedArg.isIndirect || normalizedArg.needsIndirectCopy)
+            return;
+        if (argRef.isInvalid() || !argPayload.isValue())
+            return;
+
+        const TypeRef storageTypeRef = borrowedAggregateStorageTypeRef(codeGen, normalizedTypeRef);
+        if (storageTypeRef.isInvalid())
+            return;
+
+        const CodeGenNodePayload* storedPayload = codeGen.safePayload(argRef);
+        SWC_ASSERT(storedPayload != nullptr && storedPayload->runtimeStorageSym != nullptr);
+
+        const TypeInfo&   storageType = codeGen.typeMgr().get(storageTypeRef);
+        const uint32_t    copySize    = CodeGenFunctionHelpers::checkedTypeSizeInBytes(codeGen, storageType);
+        const MicroOpBits copyBits    = CodeGenTypeHelpers::bitsFromStorageSize(copySize);
+        SWC_ASSERT(copyBits != MicroOpBits::Zero);
+
+        const MicroReg storageReg = codeGen.runtimeStorageAddressReg(argRef);
+        codeGen.builder().emitLoadMemReg(storageReg, 0, argPayload.reg, copyBits);
+
+        argPayload.reg     = storageReg;
+        argPayload.typeRef = normalizedTypeRef;
+        argPayload.setIsAddress();
+    }
+
     void materializePreparedPointerDecayArg(CodeGen& codeGen, CodeGenNodePayload& argPayload, TypeRef normalizedTypeRef, AstNodeRef argRef)
     {
         if (argRef.isInvalid() || normalizedTypeRef.isInvalid())
@@ -724,6 +764,7 @@ namespace
             materializePreparedReferenceArg(codeGen, argPayload, normalizedTypeRef, arg, argRef);
             materializePreparedPointerDecayArg(codeGen, argPayload, normalizedTypeRef, argRef);
             const ABITypeNormalize::NormalizedType normalizedArg = ABITypeNormalize::normalize(codeGen.ctx(), callConv, normalizedTypeRef, ABITypeNormalize::Usage::Argument);
+            materializePreparedBorrowedAggregateArg(codeGen, argPayload, normalizedTypeRef, normalizedArg, argRef);
             materializePreparedDirectScalarArg(codeGen, argPayload, normalizedTypeRef, normalizedArg);
         }
 

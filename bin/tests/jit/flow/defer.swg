@@ -412,12 +412,12 @@ func deferReturnDropInfo()->DeferDropInfo
     let v3 = deferEmbeddedParameterDropInfo()
     @assert(v0.count == 2)
     @assert(v0.drops == 2)
-    @assert(v1.count == 1)
-    @assert(v1.drops == 2)
+    @assert(v1.count == 0)
+    @assert(v1.drops == 1)
     @assert(v2.count == 42)
     @assert(v2.drops == 1)
-    @assert(v3.count == 1)
-    @assert(v3.drops == 2)
+    @assert(v3.count == 0)
+    @assert(v3.drops == 1)
 }
 
 #test

@@ -465,7 +465,7 @@ void CodeGenFunctionHelpers::emitPersistCompilerRunValue(CodeGen& codeGen, TypeR
     SWC_ASSERT(dstStorageReg.isValid());
     SWC_ASSERT(srcStorageReg.isValid());
 
-    constexpr auto callConvKind = CallConvKind::Host;
+    constexpr auto callConvKind = CallConvKind::C;
 
     MicroBuilder&  builder   = codeGen.builder();
     const MicroReg targetReg = codeGen.nextVirtualIntRegister();

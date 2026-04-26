@@ -23,6 +23,12 @@ struct AutoComparable
     cachedHash: u64
 }
 
+#[Swag.Operators(opEquals, opCompare)]
+struct(T) AutoComparableBox
+{
+    value: T
+}
+
 // Implementation: lifecycle, accessors, conversions, comparisons, assignments,
 // indexing, binary/unary operators, and iteration hooks
 impl Struct

@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Compiler/Sema/Core/Sema.h"
+#include "Backend/ABI/CallConv.h"
 #include "Backend/Runtime.h"
 #include "Compiler/CodeGen/Core/CodeGen.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
@@ -345,6 +346,9 @@ Result AstFunctionDecl::semaPreNode(Sema& sema) const
         SemaHelpers::declareSymbol(sema, *this);
 
     auto&       sym      = sema.curViewSymbol().sym()->cast<SymbolFunction>();
+    if (sym.isForeign())
+        sym.setCallConvKind(CallConvKind::C);
+
     const auto* declImpl = functionDeclImplContext(sema, &sym);
     const auto* declItf  = functionDeclInterfaceContext(sema, &sym);
     if (sym.isMethod() && !declImpl && !declItf)

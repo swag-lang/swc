@@ -121,6 +121,8 @@ public:
     std::span<SymbolVariable* const> bindingVars() const { return bindingVars_.span(); }
     void                             pushBindingVar(SymbolVariable* sym);
     void                             popBindingVar();
+    void                             hideLookupSymbol(const Symbol* sym);
+    bool                             isLookupSymbolHidden(const Symbol* sym) const;
 
     static SymbolMap* currentSymMap(Sema& sema);
     SymbolFlags       flagsForCurrentAccess() const;
@@ -150,6 +152,7 @@ private:
     SymbolVariable*               runtimeStorageSym_        = nullptr;
     SmallVector2<TypeRef>         bindingTypes_;
     SmallVector2<SymbolVariable*> bindingVars_;
+    SmallVector4<const Symbol*>   hiddenLookupSymbols_;
 };
 
 SWC_END_NAMESPACE();

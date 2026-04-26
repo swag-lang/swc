@@ -65,6 +65,68 @@ namespace
         return typeRef;
     }
 
+    Result castAggregateStructToAggregateStruct(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef, const TypeInfo& srcType, const TypeInfo& dstType)
+    {
+        const auto& srcAggregate = srcType.payloadAggregate();
+        const auto& dstAggregate = dstType.payloadAggregate();
+        if (srcAggregate.types.size() != dstAggregate.types.size() ||
+            srcAggregate.names.size() != dstAggregate.names.size())
+            return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
+
+        for (size_t i = 0; i < srcAggregate.types.size(); ++i)
+        {
+            const IdentifierRef srcName = srcAggregate.names[i];
+            const IdentifierRef dstName = dstAggregate.names[i];
+            if (srcName.isValid() && (!dstName.isValid() || srcName != dstName))
+                return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
+
+            CastRequest  elemRequest = makeNestedCastRequest(castRequest);
+            const Result res         = Cast::castAllowed(sema, elemRequest, srcAggregate.types[i], dstAggregate.types[i]);
+            if (res != Result::Continue)
+            {
+                castRequest.failure = elemRequest.failure;
+                return res;
+            }
+        }
+
+        if (!castRequest.isConstantFolding())
+            return Result::Continue;
+
+        const ConstantValue& srcCst = sema.cstMgr().get(castRequest.constantFoldingSrc());
+        SWC_ASSERT(srcCst.isAggregateStruct());
+
+        const auto& srcValues = srcCst.getAggregateStruct();
+        SWC_ASSERT(srcValues.size() == srcAggregate.types.size());
+
+        SmallVector<ConstantRef> castedValues;
+        castedValues.reserve(srcValues.size());
+        for (size_t i = 0; i < srcValues.size(); ++i)
+        {
+            CastRequest elemRequest = makeNestedCastRequest(castRequest);
+            elemRequest.setConstantFoldingSrc(srcValues[i]);
+            const Result res = Cast::castAllowed(sema, elemRequest, srcAggregate.types[i], dstAggregate.types[i]);
+            if (res != Result::Continue)
+            {
+                castRequest.failure = elemRequest.failure;
+                return res;
+            }
+
+            ConstantRef castedRef = elemRequest.constantFoldingResult();
+            if (castedRef.isInvalid())
+                castedRef = srcValues[i];
+            castedValues.push_back(castedRef);
+        }
+
+        SmallVector<IdentifierRef> names;
+        names.reserve(dstAggregate.names.size());
+        for (const IdentifierRef name : dstAggregate.names)
+            names.push_back(name);
+
+        const ConstantValue result = ConstantValue::makeAggregateStruct(sema.ctx(), names, castedValues);
+        castRequest.setConstantFoldingResult(sema.cstMgr().addConstant(sema.ctx(), result));
+        return Result::Continue;
+    }
+
     bool isImplicitNullableQualificationCast(const TypeInfo& srcType, const TypeInfo& dstType)
     {
         if (srcType.isNullable() == dstType.isNullable())
@@ -541,6 +603,8 @@ namespace
             return false;
         if (dstType.isEnum() && castRequest.kind != CastKind::Explicit)
             return false;
+        if (dstType.isReference())
+            return false;
         if (dstType.isAny())
             return false;
 
@@ -653,6 +717,41 @@ namespace
         if (srcType.isValuePointer() && dstType.isBlockPointer() && castKind == CastKind::Explicit)
             return true;
         return false;
+    }
+
+    bool pointerPayloadsCompatible(Sema& sema, const CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef)
+    {
+        if (srcTypeRef == dstTypeRef)
+            return true;
+
+        srcTypeRef = unwrapAliasEnumTypeRef(sema.typeMgr(), sema.ctx(), srcTypeRef);
+        dstTypeRef = unwrapAliasEnumTypeRef(sema.typeMgr(), sema.ctx(), dstTypeRef);
+        if (srcTypeRef == dstTypeRef)
+            return true;
+        if (!srcTypeRef.isValid() || !dstTypeRef.isValid())
+            return false;
+
+        const TypeManager& typeMgr = sema.typeMgr();
+        const TypeInfo&    srcType = typeMgr.get(srcTypeRef);
+        const TypeInfo&    dstType = typeMgr.get(dstTypeRef);
+        if (!srcType.isAnyPointer() || !dstType.isAnyPointer())
+            return false;
+        if (srcType.isConst() && !dstType.isConst() && !castRequest.flags.has(CastFlagsE::UnConst))
+            return false;
+
+        const bool sameUnderlying = srcType.payloadTypeRef() == dstType.payloadTypeRef();
+        const bool srcIsVoid      = srcType.payloadTypeRef() == typeMgr.typeVoid();
+        const bool dstIsVoid      = dstType.payloadTypeRef() == typeMgr.typeVoid();
+
+        bool ok = pointerKindsCompatible(srcType, dstType, castRequest.kind);
+        if (!ok && (sameUnderlying || srcIsVoid || dstIsVoid))
+            ok = true;
+        if (!ok)
+            return false;
+
+        if (sameUnderlying || srcIsVoid || dstIsVoid)
+            return true;
+        return pointerPayloadsCompatible(sema, castRequest, srcType.payloadTypeRef(), dstType.payloadTypeRef());
     }
 
     bool sameFunctionSignatureRecursive(Sema& sema, const SymbolFunction& leftFunc, const SymbolFunction& rightFunc, const bool ignoreTopLevelClosure)
@@ -1209,10 +1308,10 @@ Result Cast::castToReference(Sema& sema, CastRequest& castRequest, TypeRef srcTy
 
     // UFCS receiver: allow taking the address to bind a value to a reference.
     // Whether the value is actually addressable (lvalue) is validated later by `Cast::cast`.
-    if (castRequest.flags.has(CastFlagsE::UfcsArgument) && srcType.isStruct())
+    if (castRequest.flags.has(CastFlagsE::UfcsArgument) && !srcType.isPointerOrReference())
     {
         bool receiverMatches = dstPointeeTypeRef == srcTypeRef;
-        if (!receiverMatches)
+        if (!receiverMatches && srcType.isStruct())
         {
             SmallVector<SymbolStructUsingPathStep> usingPath;
             bool                                   hasUsingPath = false;
@@ -1281,6 +1380,14 @@ Result Cast::castPointerToPointer(Sema& sema, CastRequest& castRequest, TypeRef 
 
     if (pointerKindsCompatible(srcType, dstType, castRequest.kind))
     {
+        if (pointerPayloadsCompatible(sema, castRequest, srcType.payloadTypeRef(), dstType.payloadTypeRef()))
+        {
+            if (srcType.isConst() && !dstType.isConst() && !castRequest.flags.has(CastFlagsE::UnConst))
+                return castRequest.fail(DiagnosticId::sema_err_cannot_cast_const, srcTypeRef, dstTypeRef);
+
+            return Result::Continue;
+        }
+
         SmallVector<SymbolStructUsingPathStep> usingPath;
         bool                                   hasUsingPath = false;
         SWC_RESULT(resolveUsingStructCastPath(sema, castRequest, srcType.payloadTypeRef(), dstType.payloadTypeRef(), usingPath, hasUsingPath));
@@ -1921,12 +2028,16 @@ Result Cast::castAllowed(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRe
     }
 
     auto res = Result::Error;
-    if (srcType.isAlias())
+    if (srcType.isAny() && dstType.isAny())
+        res = castIdentity(sema, castRequest, srcTypeRef, dstTypeRef);
+    else if (srcType.isAlias())
         res = castAllowed(sema, castRequest, srcType.payloadSymAlias().underlyingTypeRef(), dstTypeRef);
     else if (srcType.isAny())
         res = castFromAny(sema, castRequest, srcTypeRef, dstTypeRef);
     else if (dstType.isAlias())
         res = castAllowed(sema, castRequest, srcTypeRef, dstType.payloadSymAlias().underlyingTypeRef());
+    else if (srcType.isAggregateStruct() && dstType.isAggregateStruct())
+        res = castAggregateStructToAggregateStruct(sema, castRequest, srcTypeRef, dstTypeRef, srcType, dstType);
     else if (referenceValueCastTypeRef(sema, srcTypeRef, dstTypeRef).isValid())
         res = castFromReference(sema, castRequest, srcTypeRef, dstTypeRef);
     else if (castRequest.flags.has(CastFlagsE::BitCast))

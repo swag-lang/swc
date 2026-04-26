@@ -220,7 +220,7 @@ func readConstAddr(value: const &ConstAddrValue)->s32 { return value.x }
 func inspectConstScalar(value: const &s32, expected: s32)
 {
     let ptr = &value
-    #assert(#typeof(ptr) == const *s32)
+    #assert(#typeof(ptr) == *s32)
     @assert(value == expected)
     @assert(dref ptr == expected)
 }

@@ -166,7 +166,7 @@ func nativeFunctionAddressReturnedReference(value: &s32)->&s32
     func inspectConstRefPtr(x: const &s32, expected: s32)
     {
         let p = &x
-        #assert(#typeof(p) == const *s32)
+        #assert(#typeof(p) == *s32)
         @assert(dref p == expected)
     }
 

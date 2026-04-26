@@ -43,7 +43,7 @@ func readConstAddr(value: const &ConstAddrValue)->s32 { return value.x }
 func inspectConstScalar(value: const &s32)
 {
     let ptr = &value
-    #assert(#typeof(ptr) == const *s32)
+    #assert(#typeof(ptr) == *s32)
 }
 
 func sumConstAnon(value: const &{ x: s32, y: s32 })->s32

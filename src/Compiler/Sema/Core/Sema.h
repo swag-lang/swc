@@ -282,6 +282,7 @@ private:
     void               popFrame();
     NodePayload&       nodePayloadContext() { return *(nodePayloadContext_); }
     const NodePayload& nodePayloadContext() const { return *(nodePayloadContext_); }
+    static SymbolMap*  childStartSymMap(Sema& parent, NodePayload& payloadContext);
 
     void   setVisitors();
     Result preDecl(AstNode& node);

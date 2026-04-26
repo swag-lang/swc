@@ -261,6 +261,9 @@ namespace
 
             for (const Symbol* symbol : scope->symbols())
             {
+                if (sema.frame().isLookupSymbolHidden(symbol))
+                    continue;
+
                 MatchContext::Priority priority;
                 priority.scopeDepth = scopeDepth;
                 priority.visibility = MatchContext::VisibilityTier::LocalScope;

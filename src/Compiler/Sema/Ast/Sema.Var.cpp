@@ -1051,8 +1051,14 @@ Result AstSingleVarDecl::semaPreNode(Sema& sema) const
 
 Result AstSingleVarDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const
 {
-    if (childRef == nodeInitRef && requiresConstExprInitializer(sema, flags()))
-        SemaHelpers::pushConstExprRequirement(sema, childRef);
+    if (childRef == nodeInitRef)
+    {
+        auto frame = sema.frame();
+        if (requiresConstExprInitializer(sema, flags()))
+            frame.addContextFlag(SemaFrameContextFlagsE::RequireConstExpr);
+        frame.hideLookupSymbol(sema.curViewSymbol().sym());
+        sema.pushFramePopOnPostChild(frame, childRef);
+    }
     return Result::Continue;
 }
 
@@ -1151,8 +1157,15 @@ Result AstMultiVarDecl::semaPreNode(Sema& sema) const
 
 Result AstMultiVarDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const
 {
-    if (childRef == nodeInitRef && requiresConstExprInitializer(sema, flags()))
-        SemaHelpers::pushConstExprRequirement(sema, childRef);
+    if (childRef == nodeInitRef)
+    {
+        auto frame = sema.frame();
+        if (requiresConstExprInitializer(sema, flags()))
+            frame.addContextFlag(SemaFrameContextFlagsE::RequireConstExpr);
+        for (Symbol* sym : sema.curViewSymbolList().symList())
+            frame.hideLookupSymbol(sym);
+        sema.pushFramePopOnPostChild(frame, childRef);
+    }
     return Result::Continue;
 }
 

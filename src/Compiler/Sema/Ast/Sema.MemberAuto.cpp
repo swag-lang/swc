@@ -446,7 +446,7 @@ Result AstAutoMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& c
 
     SmallVector4<AutoMemberCandidate> candidates;
     SWC_RESULT(collectAutoMemberCandidates(sema, candidates));
-    const bool deferCallArgument = hasFlag(AstAutoMemberAccessExprFlagsE::CallArgument) && sema.frame().bindingTypes().empty();
+    const bool deferCallArgument = hasFlag(AstAutoMemberAccessExprFlagsE::CallArgument);
     if (candidates.empty())
     {
         // In a call-argument position, `.EnumValue` might need the selected overload's

@@ -671,7 +671,7 @@ Result Cast::resolveStructOpCastCandidate(Sema& sema, const SourceCodeRef& codeR
         if (!calledFn)
             continue;
 
-        SWC_RESULT(sema.waitSemaCompleted(calledFn, codeRef));
+        SWC_RESULT(sema.waitTyped(calledFn, codeRef));
 
         if (!allowsStructOpCast(*calledFn, castKind))
             continue;
@@ -719,9 +719,10 @@ Result Cast::resolveStructSetCastCandidate(Sema& sema, const SourceCodeRef& code
         if (!calledFn)
             continue;
 
-        // Special ops can be registered on the struct before the method
-        // signature itself has finished semantic resolution.
-        SWC_RESULT(sema.waitSemaCompleted(calledFn, codeRef));
+        // Struct conversion probing only needs the operator signature. Waiting
+        // on the body can create cycles when the operator itself uses values
+        // that need the same conversion machinery.
+        SWC_RESULT(sema.waitTyped(calledFn, codeRef));
 
         if (!allowsStructSetCast(*calledFn, castKind))
             continue;

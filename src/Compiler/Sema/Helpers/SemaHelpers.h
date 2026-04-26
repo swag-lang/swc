@@ -82,7 +82,9 @@ namespace SemaHelpers
     T& registerSymbol(Sema& sema, const AstNode& node, TokenRef tokNameRef)
     {
         TaskContext&        ctx   = sema.ctx();
-        const IdentifierRef idRef = resolveIdentifier(sema, {node.srcViewRef(), tokNameRef});
+        const SourceCodeRef nameRef{node.srcViewRef(), tokNameRef};
+        const Token&        tok   = sema.srcView(nameRef.srcViewRef).token(nameRef.tokRef);
+        const IdentifierRef idRef = Token::isCompilerUniq(tok.id) ? ensureCurrentScopeUniqIdentifier(sema, tok.id) : resolveIdentifier(sema, nameRef);
 
         const SymbolFlags flags = sema.frame().flagsForCurrentAccess();
 

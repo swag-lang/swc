@@ -202,6 +202,20 @@ namespace
         return root.cast<SymbolStruct>().declNodeRef();
     }
 
+    void prepareGenericDeclSemaContext(Sema& child, Sema& sema, const Symbol& root)
+    {
+        if (const auto* function = root.safeCast<SymbolFunction>())
+        {
+            SemaGeneric::prepareGenericInstantiationContext(child,
+                                                            functionDeclStartSymMap(*function),
+                                                            functionDeclImplContext(sema, *function),
+                                                            functionDeclInterfaceContext(sema, *function),
+                                                            function->attributes());
+        }
+        else
+            SemaGeneric::prepareGenericInstantiationContext(child, const_cast<SymbolMap*>(root.ownerSymMap()), nullptr, nullptr, root.attributes());
+    }
+
     Sema& semaForGenericDecl(Sema& sema, const Symbol& root, std::unique_ptr<Sema>& ownedSema)
     {
         const SourceView& srcView = sema.compiler().srcView(root.srcViewRef());
@@ -215,6 +229,7 @@ namespace
         SWC_ASSERT(declRef.isValid());
 
         ownedSema = std::make_unique<Sema>(sema.ctx(), sema, sourceFile.nodePayloadContext(), declRef);
+        prepareGenericDeclSemaContext(*ownedSema, sema, root);
         return *ownedSema;
     }
 
@@ -349,16 +364,7 @@ namespace
 
     void prepareGenericNodeRunContext(Sema& child, Sema& sema, const Symbol& root)
     {
-        if (const auto* function = root.safeCast<SymbolFunction>())
-        {
-            SemaGeneric::prepareGenericInstantiationContext(child,
-                                                            functionDeclStartSymMap(*function),
-                                                            functionDeclImplContext(sema, *function),
-                                                            functionDeclInterfaceContext(sema, *function),
-                                                            function->attributes());
-        }
-        else
-            SemaGeneric::prepareGenericInstantiationContext(child, const_cast<SymbolMap*>(root.ownerSymMap()), nullptr, nullptr, root.attributes());
+        prepareGenericDeclSemaContext(child, sema, root);
     }
 
     Result runGenericNode(Sema& sema, const Symbol& root, AstNodeRef nodeRef)

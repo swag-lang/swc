@@ -115,6 +115,20 @@ namespace
     }
 }
 
+SymbolMap* Sema::childStartSymMap(Sema& parent, NodePayload& payloadContext)
+{
+    if (&payloadContext != parent.nodePayloadContext_)
+        return &payloadContext.moduleNamespace();
+
+    if (!parent.curScope_)
+        return parent.startSymMap_;
+
+    if (parent.curScope_->isTopLevel())
+        return SemaFrame::currentSymMap(parent);
+
+    return parent.curScope_->symMap();
+}
+
 Sema::Sema(TaskContext& ctx, NodePayload& payloadContext, bool declPass) :
     ctx_(&ctx),
     nodePayloadContext_(&payloadContext),
@@ -144,7 +158,7 @@ Sema::Sema(TaskContext& ctx, Sema& parent, NodePayload& payloadContext, AstNodeR
 Sema::Sema(TaskContext& ctx, Sema& parent, NodePayload& payloadContext, AstNodeRef root, bool declPass) :
     ctx_(&ctx),
     nodePayloadContext_(&payloadContext),
-    startSymMap_(parent.curScope_ ? (parent.curScope_->isTopLevel() ? SemaFrame::currentSymMap(parent) : parent.curScope_->symMap()) : parent.startSymMap_),
+    startSymMap_(childStartSymMap(parent, payloadContext)),
     declPass_(declPass)
 {
     visit_.start(nodePayloadContext_->ast(), root);

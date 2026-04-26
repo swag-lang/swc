@@ -48,6 +48,30 @@ void SemaFrame::popBindingVar()
         bindingVars_.pop_back();
 }
 
+void SemaFrame::hideLookupSymbol(const Symbol* sym)
+{
+    if (!sym)
+        return;
+
+    for (const Symbol* hidden : hiddenLookupSymbols_)
+        if (hidden == sym)
+            return;
+
+    hiddenLookupSymbols_.push_back(sym);
+}
+
+bool SemaFrame::isLookupSymbolHidden(const Symbol* sym) const
+{
+    if (!sym)
+        return false;
+
+    for (const Symbol* hidden : hiddenLookupSymbols_)
+        if (hidden == sym)
+            return !sym->isSemaCompleted();
+
+    return false;
+}
+
 void SemaFrame::setCurrentBreakContent(AstNodeRef nodeRef, BreakContextKind kind)
 {
     breakable_.nodeRef = nodeRef;

@@ -251,6 +251,18 @@ bool SemaHelpers::canUseContextualBinding(Sema& sema, AstNodeRef nodeRef)
             return canUseContextualBinding(sema, binary.nodeLeftRef) || canUseContextualBinding(sema, binary.nodeRightRef);
         }
 
+        case AstNodeId::ConditionalExpr:
+        {
+            const auto& conditional = node.cast<AstConditionalExpr>();
+            return canUseContextualBinding(sema, conditional.nodeTrueRef) || canUseContextualBinding(sema, conditional.nodeFalseRef);
+        }
+
+        case AstNodeId::NullCoalescingExpr:
+        {
+            const auto& nullCoalescing = node.cast<AstNullCoalescingExpr>();
+            return canUseContextualBinding(sema, nullCoalescing.nodeLeftRef) || canUseContextualBinding(sema, nullCoalescing.nodeRightRef);
+        }
+
         case AstNodeId::ParenExpr:
             return canUseContextualBinding(sema, node.cast<AstParenExpr>().nodeExprRef);
 
@@ -656,6 +668,39 @@ SemaInlinePayload* SemaHelpers::mixinInlinePayloadForUniq(Sema& sema)
     return inlinePayload;
 }
 
+namespace
+{
+    bool isInsideInlineRoot(Sema& sema, AstNodeRef inlineRootRef)
+    {
+        if (inlineRootRef.isInvalid())
+            return false;
+
+        if (sema.curNodeRef() == inlineRootRef)
+            return true;
+
+        for (size_t parentIndex = 0;; parentIndex++)
+        {
+            const AstNodeRef parentRef = sema.visit().parentNodeRef(parentIndex);
+            if (parentRef.isInvalid())
+                return false;
+            if (parentRef == inlineRootRef)
+                return true;
+        }
+    }
+
+    const SemaInlinePayload* mixinInlinePayloadForNestedUniqUse(Sema& sema)
+    {
+        const auto* inlinePayload = sema.frame().currentInlinePayload();
+        if (!inlinePayload || !inlinePayload->sourceFunction)
+            return nullptr;
+        if (!inlinePayload->sourceFunction->attributes().hasRtFlag(RtAttributeFlagsE::Mixin))
+            return nullptr;
+        if (!isInsideInlineRoot(sema, inlinePayload->inlineRootRef))
+            return nullptr;
+        return inlinePayload;
+    }
+}
+
 IdentifierRef SemaHelpers::ensureCurrentScopeUniqIdentifier(Sema& sema, const TokenId tokenId)
 {
     SWC_ASSERT(Token::isCompilerUniq(tokenId));
@@ -693,7 +738,7 @@ IdentifierRef SemaHelpers::resolveUniqIdentifier(Sema& sema, const TokenId token
             return idRef;
     }
 
-    if (const auto* inlinePayload = mixinInlinePayloadForUniq(sema))
+    if (const auto* inlinePayload = mixinInlinePayloadForNestedUniqUse(sema))
     {
         const IdentifierRef idRef = inlinePayload->uniqIdentifiers[slot];
         if (idRef.isValid())
@@ -1471,7 +1516,24 @@ namespace
         const SymbolEnum&   enumSym = nodeLeftView.type()->payloadSymEnum();
         const SourceCodeRef codeRef{node.srcViewRef(), tokNameRef};
         SWC_RESULT(sema.waitSemaCompleted(&enumSym, codeRef));
-        return lookupScopedMember(sema, targetNodeRef, node, enumSym, idRef, tokNameRef, allowOverloadSet);
+
+        MatchContext lookUpCxt;
+        lookUpCxt.codeRef       = codeRef;
+        lookUpCxt.symMapHint    = &enumSym;
+        lookUpCxt.noWaitOnEmpty = true;
+
+        SWC_RESULT(Match::match(sema, lookUpCxt, idRef));
+        if (lookUpCxt.empty())
+        {
+            bool handled = false;
+            SWC_RESULT(tryBindUfcsFreeFunctions(sema, targetNodeRef, node, idRef, tokNameRef, allowOverloadSet, handled));
+            if (handled)
+                return Result::SkipChildren;
+            return reportUnknownMemberSymbol(sema, node, idRef, tokNameRef);
+        }
+
+        SWC_RESULT(bindMatchedMemberSymbols(sema, targetNodeRef, node.nodeRightRef, allowOverloadSet, lookUpCxt.symbols().span()));
+        return Result::SkipChildren;
     }
 
     Result memberInterface(Sema& sema, AstNodeRef targetNodeRef, const AstMemberAccessExpr& node, const SemaNodeView& nodeLeftView, const IdentifierRef& idRef, TokenRef tokNameRef, bool allowOverloadSet)

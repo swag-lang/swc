@@ -201,6 +201,10 @@ namespace
         {
             if (sema.currentFunction() == &calledFn)
                 return Result::Continue;
+            const std::scoped_lock lock(lazyGenericBodyRunMutex());
+            const auto             it = lazyGenericBodyRuns().find(&calledFn);
+            if (it != lazyGenericBodyRuns().end() && it->second.ownerCtx == &sema.ctx() && it->second.running)
+                return Result::Continue;
             return sema.waitSemaCompleted(&calledFn, calledFn.codeRef());
         }
 

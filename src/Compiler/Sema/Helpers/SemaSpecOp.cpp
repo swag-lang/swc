@@ -4,11 +4,13 @@
 #include "Backend/ABI/CallConv.h"
 #include "Compiler/Lexer/LangSpec.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
+#include "Compiler/Parser/Parser/ParserJob.h"
 #include "Compiler/Sema/Ast/Sema.Index.h"
 #include "Compiler/Sema/Cast/Cast.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Constant/ConstantValue.h"
 #include "Compiler/Sema/Core/Sema.h"
+#include "Compiler/Sema/Core/SemaJob.h"
 #include "Compiler/Sema/Generic/SemaGeneric.h"
 #include "Compiler/Sema/Helpers/SemaCheck.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
@@ -21,6 +23,14 @@
 #include "Compiler/Sema/Symbol/Symbol.Impl.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Compiler/Sema/Symbol/Symbols.h"
+#include "Compiler/SourceFile.h"
+#include "Main/Command/CommandLine.h"
+#include "Main/CompilerInstance.h"
+#include "Main/FileSystem.h"
+#include "Main/Global.h"
+#include "Support/Memory/Heap.h"
+#include "Support/Os/Os.h"
+#include "Support/Thread/JobManager.h"
 SWC_BEGIN_NAMESPACE();
 
 namespace
@@ -70,7 +80,7 @@ namespace
             case SpecOpKind::None:
             case SpecOpKind::Invalid:
             default:
-                return "valid special function signature";
+                return "valid operator overload signature";
         }
     }
 
@@ -119,7 +129,7 @@ namespace
             case SpecOpKind::None:
             case SpecOpKind::Invalid:
             default:
-                return "special function";
+                return "operator overload";
         }
     }
 
@@ -603,11 +613,11 @@ namespace
             return Result::Continue;
         }
 
-        // Literal special operators are published during pre-decl and can be specialized before
+        // Literal operator overloads are published during pre-decl and can be specialized before
         // declaration finishes, which silently drops the candidate. Generic `opVisit` can also be
         // queried from `foreach` before the declaration is fully ready in some build modes, so make
         // both cases wait for declaration completion unless we are currently resolving that same
-        // special operator.
+        // operator overload.
         if (symFunc.specOpKind() != SpecOpKind::OpSetLiteral &&
             symFunc.specOpKind() != SpecOpKind::OpVisit)
             return Result::Continue;
@@ -1249,6 +1259,318 @@ namespace
         return Result::Continue;
     }
 
+    SourceCodeRef operatorGenerationErrorCodeRef(const SymbolStruct& ownerStruct)
+    {
+        const AttributeList& attributes = ownerStruct.attributes();
+        if (attributes.generatedOperatorsCodeRef.isValid())
+            return attributes.generatedOperatorsCodeRef;
+        return ownerStruct.codeRef();
+    }
+
+    IdentifierRef specOpIdFromKind(Sema& sema, SpecOpKind kind)
+    {
+        switch (kind)
+        {
+            case SpecOpKind::OpEquals:
+                return sema.idMgr().predefined(IdentifierManager::PredefinedName::OpEquals);
+            case SpecOpKind::OpCompare:
+                return sema.idMgr().predefined(IdentifierManager::PredefinedName::OpCompare);
+            default:
+                return IdentifierRef::invalid();
+        }
+    }
+
+    const SymbolFunction* findDeclaredOperatorOverload(Sema& sema, const SymbolStruct& ownerStruct, SpecOpKind kind)
+    {
+        const IdentifierRef idRef = specOpIdFromKind(sema, kind);
+        if (!idRef.isValid())
+            return nullptr;
+
+        for (const SymbolImpl* impl : ownerStruct.impls())
+        {
+            if (!impl)
+                continue;
+
+            for (const SymbolFunction* function : impl->specOps())
+            {
+                if (function && function->idRef() == idRef)
+                    return function;
+            }
+        }
+
+        return nullptr;
+    }
+
+    Result reportGeneratedOperatorDuplicate(Sema& sema, const SymbolStruct& ownerStruct, SpecOpKind kind, const SymbolFunction& existing)
+    {
+        auto diag = SemaError::report(sema, DiagnosticId::sema_err_operator_generation_duplicate, operatorGenerationErrorCodeRef(ownerStruct));
+        diag.addArgument(Diagnostic::ARG_SPEC_OP, specOpFunctionName(kind));
+        diag.addArgument(Diagnostic::ARG_DECL_SYM, ownerStruct.name(sema.ctx()));
+        diag.addNote(DiagnosticId::sema_note_other_definition);
+        diag.last().addSpan(existing.codeRange(sema.ctx()));
+        diag.report(sema.ctx());
+        return Result::Error;
+    }
+
+    Result validateGeneratedOperatorDuplicates(Sema& sema, const SymbolStruct& ownerStruct, GeneratedOperatorFlags flags)
+    {
+        if (flags.has(GeneratedOperatorFlagsE::OpEquals))
+        {
+            if (const SymbolFunction* existing = findDeclaredOperatorOverload(sema, ownerStruct, SpecOpKind::OpEquals))
+                return reportGeneratedOperatorDuplicate(sema, ownerStruct, SpecOpKind::OpEquals, *existing);
+        }
+
+        if (flags.has(GeneratedOperatorFlagsE::OpCompare))
+        {
+            if (const SymbolFunction* existing = findDeclaredOperatorOverload(sema, ownerStruct, SpecOpKind::OpCompare))
+                return reportGeneratedOperatorDuplicate(sema, ownerStruct, SpecOpKind::OpCompare, *existing);
+        }
+
+        return Result::Continue;
+    }
+
+    void collectGeneratedOperatorFieldNamesFromSymbols(const TaskContext& ctx, const SymbolStruct& ownerStruct, SmallVector<Utf8>& outFields)
+    {
+        for (const SymbolVariable* field : ownerStruct.fields())
+        {
+            if (!field || field->isIgnored())
+                continue;
+            outFields.push_back(field->name(ctx));
+        }
+    }
+
+    void collectGeneratedOperatorFieldNamesFromNode(Sema& sema, AstNodeRef nodeRef, SmallVector<Utf8>& outFields)
+    {
+        if (nodeRef.isInvalid())
+            return;
+
+        const AstNode& node = sema.node(nodeRef);
+        if (const auto* attrList = node.safeCast<AstAttributeList>())
+        {
+            collectGeneratedOperatorFieldNamesFromNode(sema, attrList->nodeBodyRef, outFields);
+            return;
+        }
+
+        if (const auto* access = node.safeCast<AstAccessModifier>())
+        {
+            collectGeneratedOperatorFieldNamesFromNode(sema, access->nodeWhatRef, outFields);
+            return;
+        }
+
+        if (const auto* singleVar = node.safeCast<AstSingleVarDecl>())
+        {
+            if (!singleVar->hasFlag(AstVarDeclFlagsE::Const))
+                outFields.push_back(Utf8{sema.tokenString(singleVar->codeRef())});
+            return;
+        }
+
+        if (const auto* multiVar = node.safeCast<AstMultiVarDecl>())
+        {
+            if (multiVar->hasFlag(AstVarDeclFlagsE::Const))
+                return;
+
+            SmallVector<AstNodeRef> names;
+            sema.ast().appendNodes(names, multiVar->spanNamesRef);
+            for (const AstNodeRef nameRef : names)
+                outFields.push_back(Utf8{sema.tokenString(sema.node(nameRef).codeRef())});
+        }
+    }
+
+    void collectGeneratedOperatorFieldNamesFromAst(Sema& sema, const SymbolStruct& ownerStruct, SmallVector<Utf8>& outFields)
+    {
+        const AstNode* decl = ownerStruct.decl();
+        const auto*    node = decl ? decl->safeCast<AstStructDecl>() : nullptr;
+        if (!node || node->nodeBodyRef.isInvalid())
+            return;
+
+        SmallVector<AstNodeRef> children;
+        sema.node(node->nodeBodyRef).collectChildrenFromAst(children, sema.ast());
+        for (const AstNodeRef childRef : children)
+            collectGeneratedOperatorFieldNamesFromNode(sema, childRef, outFields);
+    }
+
+    void collectGeneratedOperatorFieldNames(Sema& sema, const SymbolStruct& ownerStruct, SmallVector<Utf8>& outFields)
+    {
+        outFields.clear();
+        if (ownerStruct.isGenericRoot() && !ownerStruct.isGenericInstance())
+            collectGeneratedOperatorFieldNamesFromAst(sema, ownerStruct, outFields);
+        else
+            collectGeneratedOperatorFieldNamesFromSymbols(sema.ctx(), ownerStruct, outFields);
+    }
+
+    void appendGeneratedCompareOperator(Utf8& source, std::string_view structName, std::span<const Utf8> fields)
+    {
+        source += "    mtd const opCompare(other: const &";
+        source += structName;
+        source += ")->s32\n";
+        source += "    {\n";
+        for (size_t i = 0; i < fields.size(); ++i)
+        {
+            const Utf8 tempName = Utf8("swagCmp") + std::to_string(i);
+            source += "        let ";
+            source += tempName;
+            source += " = .";
+            source += fields[i];
+            source += " <=> other.";
+            source += fields[i];
+            source += "\n";
+            source += "        if ";
+            source += tempName;
+            source += " != 0 do return ";
+            source += tempName;
+            source += "\n";
+        }
+
+        source += "        return 0\n";
+        source += "    }\n";
+    }
+
+    void appendGeneratedEqualsFieldComparison(Utf8& source, std::span<const Utf8> fields)
+    {
+        if (fields.empty())
+        {
+            source += "        return true\n";
+            return;
+        }
+
+        source += "        return ";
+        for (size_t i = 0; i < fields.size(); ++i)
+        {
+            if (i != 0)
+                source += " and ";
+            source += ".";
+            source += fields[i];
+            source += " == other.";
+            source += fields[i];
+        }
+        source += "\n";
+    }
+
+    void appendGeneratedEqualsOperator(Utf8& source, std::string_view structName, std::span<const Utf8> fields, bool useCompare)
+    {
+        source += "    mtd const opEquals(other: const &";
+        source += structName;
+        source += ")->bool\n";
+        source += "    {\n";
+        if (useCompare)
+            source += "        return .opCompare(other) == 0\n";
+        else
+            appendGeneratedEqualsFieldComparison(source, fields);
+        source += "    }\n";
+    }
+
+    Utf8 makeGeneratedOperatorsSource(Sema& sema, const SymbolStruct& ownerStruct, GeneratedOperatorFlags flags)
+    {
+        SmallVector<Utf8> fields;
+        collectGeneratedOperatorFieldNames(sema, ownerStruct, fields);
+
+        Utf8 source;
+        source += "// Generated by #[Swag.Operators].\n";
+        if (ownerStruct.isPublic())
+            source += "#global public\n";
+        source += "impl ";
+        source += ownerStruct.name(sema.ctx());
+        source += "\n{\n";
+
+        const bool generateCompare = flags.has(GeneratedOperatorFlagsE::OpCompare);
+        if (generateCompare)
+        {
+            appendGeneratedCompareOperator(source, ownerStruct.name(sema.ctx()), fields.span());
+            if (flags.has(GeneratedOperatorFlagsE::OpEquals))
+                source += "\n";
+        }
+
+        if (flags.has(GeneratedOperatorFlagsE::OpEquals))
+        {
+            const bool useCompare = generateCompare || findDeclaredOperatorOverload(sema, ownerStruct, SpecOpKind::OpCompare) != nullptr;
+            appendGeneratedEqualsOperator(source, ownerStruct.name(sema.ctx()), fields.span(), useCompare);
+        }
+
+        source += "}\n";
+        return source;
+    }
+
+    Result attachDeclaredGeneratedImpls(Sema& sema, Sema& generatedSema, AstNodeRef nodeRef, SymbolStruct& ownerStruct, bool& outAttached)
+    {
+        if (nodeRef.isInvalid())
+            return Result::Continue;
+
+        const SemaNodeView view = generatedSema.viewSymbol(nodeRef);
+        if (view.hasSymbol() && view.sym() && view.sym()->isImpl())
+        {
+            auto& symImpl = view.sym()->cast<SymbolImpl>();
+            SymbolStruct* implStruct = symImpl.isForStruct() ? symImpl.symStruct() : nullptr;
+            if (symImpl.idRef() == ownerStruct.idRef() && (!implStruct || implStruct == &ownerStruct))
+            {
+                if (!implStruct)
+                    symImpl.setSymStruct(&ownerStruct);
+                ownerStruct.addImpl(sema, symImpl);
+                if (!symImpl.isPendingRegistrationResolved())
+                {
+                    symImpl.setPendingRegistrationResolved();
+                    sema.compiler().decPendingImplRegistrations();
+                }
+                outAttached = true;
+            }
+        }
+
+        SmallVector<AstNodeRef> children;
+        generatedSema.node(nodeRef).collectChildrenFromAst(children, generatedSema.ast());
+        for (const AstNodeRef childRef : children)
+            SWC_RESULT(attachDeclaredGeneratedImpls(sema, generatedSema, childRef, ownerStruct, outAttached));
+
+        return Result::Continue;
+    }
+
+    Result reportGeneratedOperatorWriteFailure(Sema& sema, const fs::path& directory, const CompilerInstance::GeneratedSourceAppendResult& appendResult, const Utf8& because)
+    {
+        Diagnostic diag = Diagnostic::get(DiagnosticId::sema_err_ast_file_write_failed);
+        diag.addArgument(Diagnostic::ARG_PATH, Utf8(appendResult.path.empty() ? directory : appendResult.path));
+        diag.addArgument(Diagnostic::ARG_BECAUSE, because);
+        diag.report(sema.ctx());
+        return Result::Error;
+    }
+
+    Result declareGeneratedOperatorSource(Sema& sema, SymbolStruct& ownerStruct, std::string_view source)
+    {
+        if (source.empty())
+            return Result::Continue;
+
+        TaskContext&      ctx       = sema.ctx();
+        CompilerInstance& compiler  = sema.compiler();
+        const fs::path    directory = !ctx.cmdLine().workDir.empty() ? ctx.cmdLine().workDir : Os::getTemporaryPath().lexically_normal();
+
+        CompilerInstance::GeneratedSourceAppendResult appendResult;
+        Utf8                                          because;
+        if (compiler.appendGeneratedSource(appendResult, because, directory, source, 0) != Result::Continue)
+            return reportGeneratedOperatorWriteFailure(sema, directory, appendResult, because);
+
+        compiler.registerInMemoryFile(appendResult.path, appendResult.snapshot.view());
+        SourceFile& sourceFile = compiler.addFile(appendResult.path, FileFlagsE::CustomSrc | FileFlagsE::SkipFmt);
+        sourceFile.setModuleNamespace(sema.moduleNamespace());
+
+        SWC_RESULT(sourceFile.loadContent(ctx));
+        SWC_RESULT(parseLoadedSourceFile(ctx, sourceFile, {}));
+
+        const SourceView& srcView = sourceFile.ast().srcView();
+        if (sourceFile.hasError() || srcView.mustSkip() || !srcView.runsSema())
+            return Result::Continue;
+
+        Sema         generatedDeclSema(ctx, sourceFile.nodePayloadContext(), true);
+        const Result declResult = generatedDeclSema.execResult();
+        SWC_ASSERT(declResult != Result::Pause);
+        SWC_RESULT(declResult);
+
+        bool attached = false;
+        SWC_RESULT(attachDeclaredGeneratedImpls(sema, generatedDeclSema, sourceFile.ast().root(), ownerStruct, attached));
+        SWC_ASSERT(attached);
+
+        auto* job = heapNew<SemaJob>(ctx, sema, sourceFile.nodePayloadContext(), sourceFile.ast().root());
+        compiler.global().jobMgr().enqueue(*job, JobPriority::Normal, compiler.jobClientId());
+        compiler.notifyAlive();
+        return Result::Continue;
+    }
+
 }
 
 void SemaSpecOp::addMissingDeclarationHelp(Sema& sema, Diagnostic& diag, const SymbolStruct& ownerStruct, SpecOpKind kind)
@@ -1264,6 +1586,21 @@ void SemaSpecOp::addMissingDeclarationHelp(Sema& sema, Diagnostic& diag, const S
     help->addArgument(Diagnostic::ARG_DECL_SYM, rootStruct->name(sema.ctx()));
     help->addArgument(Diagnostic::ARG_SPEC_OP, specOpFunctionName(kind));
     help->addArgument(Diagnostic::ARG_SPEC_OP_SIGNATURE, specOpSignatureHint(kind));
+}
+
+Result SemaSpecOp::ensureGeneratedOperators(Sema& sema, SymbolStruct& ownerStruct)
+{
+    const GeneratedOperatorFlags flags = ownerStruct.attributes().generatedOperators;
+    if (flags.none())
+        return Result::Continue;
+    if (ownerStruct.isGenericInstance())
+        return Result::Continue;
+    if (!ownerStruct.tryMarkGeneratedOperators())
+        return Result::Continue;
+
+    SWC_RESULT(validateGeneratedOperatorDuplicates(sema, ownerStruct, flags));
+    const Utf8 source = makeGeneratedOperatorsSource(sema, ownerStruct, flags);
+    return declareGeneratedOperatorSource(sema, ownerStruct, source.view());
 }
 
 Result SemaSpecOp::validateSymbol(Sema& sema, SymbolFunction& sym)

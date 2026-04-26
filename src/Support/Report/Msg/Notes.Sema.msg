@@ -48,6 +48,6 @@ SWC_DIAG_DEF(sema_note_not_constant, Note, "'{sym}' is not compile-time constant
 SWC_DIAG_DEF(sema_note_not_constant, Note, "this subexpression is not compile-time constant")
 SWC_DIAG_DEF(sema_note_compiler_only_symbol, Note, "compile-time-only symbol '{sym}' is declared here")
 SWC_DIAG_DEF(sema_note_too_many_overloads, Note, "... and {value} more overloads")
-SWC_DIAG_DEF(sema_note_spec_op_reserved, Note, "function names starting with 'op' followed by an uppercase letter are reserved for struct special functions")
+SWC_DIAG_DEF(sema_note_spec_op_reserved, Note, "function names starting with 'op' followed by an uppercase letter are reserved for operator overloading")
 SWC_DIAG_DEF(sema_note_expected_signature, Note, "expected signature: '{value}'")
-SWC_DIAG_DEF(sema_help_missing_spec_op, Help, "special function '{spec-op}' is not implemented for current-module type '{decl-sym}'")
+SWC_DIAG_DEF(sema_help_missing_spec_op, Help, "operator overload '{spec-op}' is not implemented for current-module type '{decl-sym}'")

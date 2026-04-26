@@ -1,8 +1,8 @@
 #global fileprivate
 /**
-A struct in Swag can define special operations within the 'impl' block. These operations are
-predefined and recognized by the compiler. This enables the ability to overload operators and
-customize behavior when interacting with the struct.
+A struct in Swag can define operator overloads within the 'impl' block. These hooks are
+predefined and recognized by the compiler, which lets a struct customize operators and
+core interactions.
 */
 
 struct Struct
@@ -15,8 +15,14 @@ alias OneType      = bool // Alias for boolean type
 alias AnotherType  = s32 // Alias for signed 32-bit integer type
 alias WhateverType = bool // Another alias for boolean type
 
+#[Swag.Operators(opEquals, opCompare)]
+struct AutoComparable
+{
+    x, y: s32
+}
+
 // Implementation: lifecycle, accessors, conversions, comparisons, assignments,
-// indexing, operators, and iteration hooks
+// indexing, binary/unary operators, and iteration hooks
 impl Struct
 {
     // -------------------------------------------------------------------------

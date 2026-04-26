@@ -44,6 +44,7 @@ enum SpecialDirectory
 }
 
 // Describes a physical monitor.
+#[Swag.Operators(opEquals, opCompare)]
 struct Monitor
 {
     rect:         Math.Rectangle

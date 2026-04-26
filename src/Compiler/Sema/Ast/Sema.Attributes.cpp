@@ -3,6 +3,7 @@
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Parser/Ast/AstPrinter.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
+#include "Compiler/Sema/Constant/ConstantValue.h"
 #include "Compiler/Sema/Core/SemaFrame.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Helpers/SemaCheck.h"
@@ -308,6 +309,40 @@ namespace
         return Result::Continue;
     }
 
+    GeneratedOperatorFlags operatorFlagFromName(std::string_view name)
+    {
+        if (name == "opEquals")
+            return GeneratedOperatorFlagsE::OpEquals;
+        if (name == "opCompare")
+            return GeneratedOperatorFlagsE::OpCompare;
+        return GeneratedOperatorFlagsE::Zero;
+    }
+
+    Result collectOperatorOptions(Sema& sema, std::span<const AstNodeRef> args, AttributeList& outAttributes)
+    {
+        for (const AstNodeRef argValueRef : args)
+        {
+            SWC_RESULT(SemaCheck::isConstant(sema, argValueRef));
+            const SemaNodeView argView = sema.viewConstant(argValueRef);
+            SWC_ASSERT(argView.cst() != nullptr);
+            SWC_ASSERT(argView.cst()->isString());
+
+            const std::string_view     operatorName = argView.cst()->getString();
+            const GeneratedOperatorFlags flag        = operatorFlagFromName(operatorName);
+            if (flag.none())
+            {
+                auto diag = SemaError::report(sema, DiagnosticId::sema_err_operator_attribute_invalid_operator, argValueRef);
+                diag.addArgument(Diagnostic::ARG_VALUE, operatorName);
+                diag.report(sema.ctx());
+                return Result::Error;
+            }
+
+            outAttributes.addGeneratedOperator(flag, sema.node(argValueRef).codeRef());
+        }
+
+        return Result::Continue;
+    }
+
     Result normalizeAttributeParamConstantRef(Sema& sema, ConstantRef& ioCstRef, const TypeInfo& paramType, AstNodeRef ownerNodeRef)
     {
         if (!ioCstRef.isValid())
@@ -347,6 +382,8 @@ namespace
             return collectCanOverflowOption(sema, resolvedArgs, outAttributes);
         if (idRef == idMgr.predefined(IdentifierManager::PredefinedName::Foreign))
             return collectForeignOptions(sema, resolvedArgs, outAttributes);
+        if (idRef == idMgr.predefined(IdentifierManager::PredefinedName::Operators))
+            return collectOperatorOptions(sema, args, outAttributes);
         return Result::Continue;
     }
 

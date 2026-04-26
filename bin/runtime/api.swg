@@ -69,7 +69,7 @@ namespace Swag
     #[AttrUsage(AttributeUsage.Function)]
     attr Mixin()
 
-    // Can force an 'opCast' special function to work as implicit
+    // Can force an 'opCast' operator overload to work as implicit
     #[AttrUsage(AttributeUsage.Function)]
     attr Implicit()
 
@@ -77,10 +77,14 @@ namespace Swag
     #[AttrUsage(AttributeUsage.Function)]
     attr Complete()
 
-    // An opBinary special function can also be used when its receiver is the right operand.
+    // An opBinary operator overload can also be used when its receiver is the right operand.
     // Optional string parameters restrict the operators for generic opBinary implementations.
     #[AttrUsage(AttributeUsage.Function)]
     attr Commutative(operators: string...)
+
+    // Generate operator overloads for a struct.
+    #[AttrUsage(AttributeUsage.Struct)]
+    attr Operators(operators: string...)
 
     // A 'return' in the following macro/mixin function must be done in the callee context
     #[AttrUsage(AttributeUsage.Function)]

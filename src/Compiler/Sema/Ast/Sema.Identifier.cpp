@@ -1,6 +1,9 @@
 #include "pch.h"
 #include "Compiler/Sema/Core/Sema.h"
+#include "Compiler/Lexer/LangSpec.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
+#include "Compiler/Sema/Constant/ConstantManager.h"
+#include "Compiler/Sema/Constant/ConstantValue.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Generic/SemaGeneric.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
@@ -138,6 +141,84 @@ namespace
         }
 
         return false;
+    }
+
+    bool subtreeContains(Sema& sema, AstNodeRef rootRef, AstNodeRef needleRef)
+    {
+        if (rootRef.isInvalid())
+            return false;
+        if (rootRef == needleRef)
+            return true;
+
+        SmallVector<AstNodeRef> children;
+        sema.node(rootRef).collectChildrenFromAst(children, sema.ast());
+        for (const AstNodeRef childRef : children)
+        {
+            if (subtreeContains(sema, childRef, needleRef))
+                return true;
+        }
+
+        return false;
+    }
+
+    bool isSwagOperatorsAttributeCall(Sema& sema, const AstCallExpr& call)
+    {
+        if (!call.hasFlag(AstCallExprFlagsE::AttributeContext))
+            return false;
+
+        SmallVector<Symbol*> calleeSymbols;
+        sema.viewNodeSymbolList(call.nodeExprRef).getSymbols(calleeSymbols);
+        const IdentifierRef operatorsId = sema.idMgr().predefined(IdentifierManager::PredefinedName::Operators);
+        for (const Symbol* symbol : calleeSymbols)
+        {
+            if (!symbol || !symbol->isFunction())
+                continue;
+
+            const auto& function = symbol->cast<SymbolFunction>();
+            if (function.idRef() == operatorsId && function.isAttribute() && function.inSwagNamespace(sema.ctx()))
+                return true;
+        }
+
+        return false;
+    }
+
+    bool isBareSwagOperatorsArgument(Sema& sema)
+    {
+        const AstNodeRef currentRef = sema.curNodeRef();
+        for (size_t up = 0;; ++up)
+        {
+            const AstNodeRef parentRef = sema.visit().parentNodeRef(up);
+            if (parentRef.isInvalid())
+                return false;
+
+            const AstNode& parent = sema.node(parentRef);
+            if (const auto* call = parent.safeCast<AstCallExpr>())
+            {
+                if (subtreeContains(sema, call->nodeExprRef, currentRef))
+                    return false;
+                return isSwagOperatorsAttributeCall(sema, *call);
+            }
+        }
+    }
+
+    bool trySetSwagOperatorsNameConstant(Sema& sema, const AstIdentifier& node)
+    {
+        if (!node.codeRef().isValid())
+            return false;
+
+        const std::string_view operatorName = sema.tokenString(node.codeRef());
+        if (!LangSpec::isSpecOpName(operatorName))
+            return false;
+        if (!isBareSwagOperatorsArgument(sema))
+            return false;
+
+        const ConstantValue constant = ConstantValue::makeString(sema.ctx(), operatorName);
+        const ConstantRef   cstRef   = sema.cstMgr().addConstant(sema.ctx(), constant);
+        sema.setType(sema.curNodeRef(), sema.typeMgr().typeString());
+        sema.setConstant(sema.curNodeRef(), cstRef);
+        sema.setIsValue(sema.curNode());
+        sema.unsetIsLValue(sema.curNodeRef());
+        return true;
     }
 
     template<typename T>
@@ -309,6 +390,9 @@ Result AstIdentifier::semaPostNode(Sema& sema) const
         return Result::Continue;
 
     if (parentRef.isValid() && sema.node(parentRef).is(AstNodeId::SuffixLiteral))
+        return Result::Continue;
+
+    if (trySetSwagOperatorsNameConstant(sema, *this))
         return Result::Continue;
 
     if (sema.curViewType().typeRef().isValid())

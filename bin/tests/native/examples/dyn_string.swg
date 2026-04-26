@@ -17,7 +17,7 @@ struct DynString
 
 // ---------------------------------------------------------------------------
 // Internal helpers. These operate on raw storage and deliberately do NOT
-// call any special operator: they are used from inside the methods below.
+// call any operator overload hook: they are used from inside the methods below.
 // ---------------------------------------------------------------------------
 
 func reserve(s: *DynString, want: u64)
@@ -55,7 +55,7 @@ func appendBytes(s: *DynString, src: const [*] u8, len: u64)
 }
 
 // ---------------------------------------------------------------------------
-// Struct special operators
+// Struct operator overloads
 // ---------------------------------------------------------------------------
 
 impl DynString

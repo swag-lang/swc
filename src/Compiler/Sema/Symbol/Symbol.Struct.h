@@ -93,6 +93,7 @@ public:
     void                          finishGenericCompletion() const noexcept;
     bool                          isGenericNodeCompleted() const noexcept;
     void                          setGenericNodeCompleted() const noexcept;
+    bool                          tryMarkGeneratedOperators() const noexcept;
 
 private:
     struct GenericData;
@@ -112,6 +113,7 @@ private:
     SymbolFunction*                   opPostCopy_       = nullptr;
     SymbolFunction*                   opPostMove_       = nullptr;
     mutable std::atomic<GenericData*> genericData_      = nullptr;
+    mutable std::atomic_bool          generatedOperatorsDone_ = false;
     uint64_t                          sizeInBytes_      = 0;
     ConstantRef                       defaultStructCst_ = ConstantRef::invalid();
     uint32_t                          alignment_        = 0;

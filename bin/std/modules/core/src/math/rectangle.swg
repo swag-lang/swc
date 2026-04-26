@@ -3,7 +3,7 @@
 
 // A simple rectangle struct with position and dimensions.
 // Represents an axis-aligned rectangle using top-left position and width/height dimensions.
-#[Serialization.Final]
+#[Swag.Operators(opEquals, opCompare), Serialization.Final]
 struct Rectangle
 {
     x:          f32     // Left position
@@ -15,13 +15,6 @@ struct Rectangle
 impl Rectangle
 {
     const Zero: Rectangle{0, 0, 0, 0} // Rectangle with all coordinates set to zero
-
-    // Check if this rectangle is exactly equal to another rectangle.
-    // Performs exact floating-point comparison of all four components.
-    mtd const opEquals(other: Rectangle)->bool
-    {
-        return .x == other.x and .y == other.y and .width == other.width and .height == other.height
-    }
 
     // Scale the rectangle by a scalar value.
     // Multiplies all components (position and dimensions) by the given 'value'.

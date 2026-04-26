@@ -29,6 +29,12 @@ SemaJob::SemaJob(const TaskContext& ctx, Sema& parentSema, AstNodeRef root) :
 {
 }
 
+SemaJob::SemaJob(const TaskContext& ctx, Sema& parentSema, NodePayload& nodePayloadContext, AstNodeRef root) :
+    Job(ctx, JobKind::Sema),
+    sema_(Job::ctx(), parentSema, nodePayloadContext, root)
+{
+}
+
 JobResult SemaJob::exec()
 {
     SWC_MEM_SCOPE("Sema");

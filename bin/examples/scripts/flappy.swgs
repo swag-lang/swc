@@ -74,7 +74,7 @@ using Core, Pixel, Gui
 /**
 # Entry point
 
-The '#main' special function is usually the entry point of an executable. It's equivalent to the well known `main()` function, but without arguments. In the case of a script, this special function will be executed by the compiler as the program entry point.
+The '#main' entry-point hook is usually the entry point of an executable. It's equivalent to the well known `main()` function, but without arguments. In the case of a script, this hook will be executed by the compiler as the program entry point.
 
 > NOTE:
 > You might observe that the arrangement of global declarations doesn't make a difference, as we're using the 'onEvent' function before even defining it. Swag does not bother about the global declaration order.

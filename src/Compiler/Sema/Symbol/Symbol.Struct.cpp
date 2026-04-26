@@ -741,4 +741,10 @@ void SymbolStruct::setGenericNodeCompleted() const noexcept
     data->completionState.fetch_or(K_GENERIC_NODE_COMPLETED_MASK, std::memory_order_acq_rel);
 }
 
+bool SymbolStruct::tryMarkGeneratedOperators() const noexcept
+{
+    bool expected = false;
+    return generatedOperatorsDone_.compare_exchange_strong(expected, true, std::memory_order_acq_rel, std::memory_order_acquire);
+}
+
 SWC_END_NAMESPACE();

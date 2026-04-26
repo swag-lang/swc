@@ -6,6 +6,7 @@
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
+#include "Compiler/Sema/Helpers/SemaSpecOp.h"
 #include "Compiler/Sema/Match/Match.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 
@@ -94,7 +95,11 @@ Result AstStructDecl::semaPostNode(Sema& sema)
 {
     auto& sym = sema.curViewSymbol().sym()->cast<SymbolStruct>();
     if (sym.isGenericRoot() && !sym.isGenericInstance())
-        return Result::Continue;
+    {
+        if (sema.compiler().pendingImplRegistrations() != 0)
+            return sema.waitImplRegistrations(sym.idRef(), sym.codeRef());
+        return SemaSpecOp::ensureGeneratedOperators(sema, sym);
+    }
 
     // Ensure all `impl` blocks (including interface implementations) have been registered
     // before a struct can be marked as completed.
@@ -103,6 +108,7 @@ Result AstStructDecl::semaPostNode(Sema& sema)
 
     sym.removeIgnoredFields();
     SWC_RESULT(sym.canBeCompleted(sema));
+    SWC_RESULT(SemaSpecOp::ensureGeneratedOperators(sema, sym));
     SWC_RESULT(sym.registerSpecOps(sema));
     SWC_RESULT(sym.computeLayout(sema.ctx()));
 

@@ -292,7 +292,7 @@ namespace
         if (ufcsArg.isValid() && paramIndex == 0)
             return true;
 
-        // Binary special operators conceptually consume two operands. Keep the right operand
+        // Binary operator overloads conceptually consume two operands. Keep the right operand
         // addressable as well so invalid-but-diagnosed signatures like `other: &T` still
         // behave consistently with operator syntax while remaining reported to the user.
         const SpecOpKind kind = fn.specOpKind();

@@ -22,7 +22,7 @@ struct Duration
 }
 
 /**
-Use the special function 'opSetLiteral' to convert a value plus suffix.
+Use the operator overload hook 'opSetLiteral' to convert a value plus suffix.
 */
 impl Duration
 {

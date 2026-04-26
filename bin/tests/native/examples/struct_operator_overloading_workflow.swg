@@ -108,7 +108,7 @@ struct WorkflowState
 }
 
 // ---------------------------------------------------------------------------
-// Combined workflow: all special functions participate in one state update
+// Combined workflow: all operator overload hooks participate in one state update
 // ---------------------------------------------------------------------------
 
 #test

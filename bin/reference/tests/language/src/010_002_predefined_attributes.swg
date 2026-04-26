@@ -63,6 +63,9 @@ attr Complete()             // Following switch must be complete
 #[AttrUsage(AttributeUsage.Function)]
 attr Commutative(operators: string...) // Allow opBinary as a right-operand fallback
 
+#[AttrUsage(AttributeUsage.Struct)]
+attr Operators(operators: string...) // Generate operator overloads for a struct
+
 /**
 # Foreign Interop
 */

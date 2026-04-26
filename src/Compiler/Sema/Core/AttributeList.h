@@ -40,6 +40,14 @@ enum class RtAttributeFlagsE : uint64_t
 };
 using RtAttributeFlags = EnumFlags<RtAttributeFlagsE>;
 
+enum class GeneratedOperatorFlagsE : uint32_t
+{
+    Zero      = 0,
+    OpEquals  = 1 << 0,
+    OpCompare = 1 << 1,
+};
+using GeneratedOperatorFlags = EnumFlags<GeneratedOperatorFlagsE>;
+
 struct AttributeParamInstance
 {
     IdentifierRef nameIdRef   = IdentifierRef::invalid();
@@ -72,6 +80,8 @@ struct AttributeList
     Utf8                                foreignModuleName;
     Utf8                                foreignFunctionName;
     Utf8                                foreignLinkModuleName;
+    GeneratedOperatorFlags              generatedOperators = GeneratedOperatorFlagsE::Zero;
+    SourceCodeRef                       generatedOperatorsCodeRef;
 
     bool empty() const
     {
@@ -84,11 +94,19 @@ struct AttributeList
                !hasForeign &&
                foreignModuleName.empty() &&
                foreignFunctionName.empty() &&
-               foreignLinkModuleName.empty();
+               foreignLinkModuleName.empty() &&
+               generatedOperators.none();
     }
 
     bool hasRtFlag(RtAttributeFlagsE fl) const { return rtFlags.has(fl); }
     void addRtFlag(RtAttributeFlags fl) { rtFlags.add(fl); }
+    bool hasGeneratedOperators() const { return generatedOperators.any(); }
+    void addGeneratedOperator(GeneratedOperatorFlags fl, const SourceCodeRef& codeRef)
+    {
+        generatedOperators.add(fl);
+        if (!generatedOperatorsCodeRef.isValid())
+            generatedOperatorsCodeRef = codeRef;
+    }
 
     void addRuntimeSafetyOverride(Runtime::SafetyWhat what, bool value)
     {

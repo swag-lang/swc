@@ -18,6 +18,7 @@ public:
     SemaJob(const TaskContext& ctx, NodePayload& nodePayloadContext, bool declPass);
     SemaJob(const TaskContext& ctx, NodePayload& nodePayloadContext, bool declPass, bool enqueueFullPassAfterDecl);
     SemaJob(const TaskContext& ctx, Sema& parentSema, AstNodeRef root);
+    SemaJob(const TaskContext& ctx, Sema& parentSema, NodePayload& nodePayloadContext, AstNodeRef root);
     JobResult exec() override;
 
     Sema&       sema() { return sema_; }

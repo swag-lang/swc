@@ -1,10 +1,13 @@
 #include "pch.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
+#include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
+#include "Compiler/Sema/Generic/SemaGeneric.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Compiler/Sema/Symbol/Symbol.Enum.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
+#include "Compiler/Sema/Symbol/Symbol.Impl.h"
 #include "Compiler/Sema/Symbol/Symbol.Struct.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Support/Core/Utf8Helper.h"
@@ -47,6 +50,145 @@ namespace
 
         if (auto* currentFn = sema.currentFunction())
             currentFn->setIgnored(sema.ctx());
+    }
+
+    Utf8 formatGenericInstanceKey(Sema& sema, const GenericInstanceKey& key)
+    {
+        if (key.typeRef.isValid())
+            return sema.typeMgr().get(key.typeRef).toName(sema.ctx());
+        if (key.cstRef.isValid())
+            return sema.cstMgr().get(key.cstRef).toString(sema.ctx());
+        return "?";
+    }
+
+    void appendGenericBinding(Utf8& out, std::string_view name, const Utf8& value)
+    {
+        if (!out.empty())
+            out += ", ";
+
+        out += name;
+        out += " = ";
+        out += value;
+    }
+
+    bool hasSeenGenericContext(std::span<const Symbol*> seen, const Symbol* symbol)
+    {
+        for (const Symbol* it : seen)
+        {
+            if (it == symbol)
+                return true;
+        }
+
+        return false;
+    }
+
+    Utf8 formatGenericInstanceBindings(Sema& sema, const AstNode& rootDecl, SpanRef genericParamsRef, std::span<const GenericInstanceKey> args)
+    {
+        SmallVector<SemaGeneric::GenericParamDesc> params;
+        SemaGeneric::collectGenericParams(sema, rootDecl, genericParamsRef, params);
+        if (params.empty() || params.size() != args.size())
+            return {};
+
+        Utf8 out;
+        for (size_t i = 0; i < params.size(); ++i)
+        {
+            if (!params[i].idRef.isValid())
+                continue;
+
+            appendGenericBinding(out, sema.idMgr().get(params[i].idRef).name, formatGenericInstanceKey(sema, args[i]));
+        }
+
+        return out;
+    }
+
+    void addGenericContextNote(Sema& sema, Diagnostic& diag, const Symbol& root, std::string_view family, const Utf8& bindings)
+    {
+        if (bindings.empty())
+            return;
+
+        diag.addNote(DiagnosticId::sema_note_generic_context);
+        diag.last().addArgument(Diagnostic::ARG_GENERIC_SYM_FAM, family);
+        diag.last().addArgument(Diagnostic::ARG_GENERIC_SYM, root.name(sema.ctx()));
+        diag.last().addArgument(Diagnostic::ARG_GENERIC_VALUES, bindings);
+        diag.last().addSpan(root.codeRange(sema.ctx()));
+    }
+
+    void addFunctionGenericContext(Sema& sema, Diagnostic& diag, const SymbolFunction& function, SmallVector<const Symbol*>& seen)
+    {
+        if (!function.isGenericInstance())
+            return;
+
+        const SymbolFunction* root = function.genericRootSym();
+        if (!root || hasSeenGenericContext(seen.span(), root))
+            return;
+
+        seen.push_back(root);
+        const auto* decl = root->decl() ? root->decl()->safeCast<AstFunctionDecl>() : nullptr;
+        if (!decl || decl->spanGenericParamsRef.isInvalid())
+            return;
+
+        SmallVector<GenericInstanceKey> args;
+        if (!root->genericInstanceStorage(sema.ctx()).tryGetArgs(function, args))
+            return;
+
+        const Utf8 bindings = formatGenericInstanceBindings(sema, *decl, decl->spanGenericParamsRef, args.span());
+        addGenericContextNote(sema, diag, *root, "function", bindings);
+    }
+
+    void addStructGenericContext(Sema& sema, Diagnostic& diag, const SymbolStruct& st, SmallVector<const Symbol*>& seen)
+    {
+        if (!st.isGenericInstance())
+            return;
+
+        const SymbolStruct* root = st.genericRootSym();
+        if (!root || hasSeenGenericContext(seen.span(), root))
+            return;
+
+        seen.push_back(root);
+        const auto* decl = root->decl() ? root->decl()->safeCast<AstStructDecl>() : nullptr;
+        if (!decl || decl->spanGenericParamsRef.isInvalid())
+            return;
+
+        SmallVector<GenericInstanceKey> args;
+        if (!root->tryGetGenericInstanceArgs(st, args))
+            return;
+
+        const Utf8 bindings = formatGenericInstanceBindings(sema, *decl, decl->spanGenericParamsRef, args.span());
+        addGenericContextNote(sema, diag, *root, "struct", bindings);
+    }
+
+    void addGenericContextNotesFromSymbolMap(Sema& sema, Diagnostic& diag, const SymbolMap* symMap, SmallVector<const Symbol*>& seen)
+    {
+        for (const SymbolMap* current = symMap; current; current = current->ownerSymMap())
+        {
+            if (current->isFunction())
+                addFunctionGenericContext(sema, diag, current->cast<SymbolFunction>(), seen);
+            else if (current->isStruct())
+                addStructGenericContext(sema, diag, current->cast<SymbolStruct>(), seen);
+            else if (current->isImpl())
+            {
+                const auto& impl = current->cast<SymbolImpl>();
+                if (impl.isForStruct())
+                {
+                    if (const SymbolStruct* st = impl.symStruct())
+                        addStructGenericContext(sema, diag, *st, seen);
+                }
+            }
+        }
+    }
+
+    void addGenericContextNotes(Sema& sema, Diagnostic& diag, const DiagnosticId id)
+    {
+        if (Diagnostic::diagIdSeverity(id) != DiagnosticSeverity::Error)
+            return;
+        if (sema.ctx().silentDiagnostic())
+            return;
+
+        SmallVector<const Symbol*> seen;
+        if (const SymbolFunction* currentFn = sema.currentFunction())
+            addGenericContextNotesFromSymbolMap(sema, diag, currentFn, seen);
+        else
+            addGenericContextNotesFromSymbolMap(sema, diag, sema.curSymMap(), seen);
     }
 }
 
@@ -122,6 +264,7 @@ Diagnostic SemaError::report(Sema& sema, DiagnosticId id, const SourceCodeRef& a
     diag.last().addSpan(srcView.tokenCodeRange(sema.ctx(), atCodeRef.tokRef), "", DiagnosticSeverity::Error);
 
     setReportArguments(sema, diag, atCodeRef);
+    addGenericContextNotes(sema, diag, id);
     return diag;
 }
 
@@ -140,6 +283,7 @@ Diagnostic SemaError::report(Sema& sema, DiagnosticId id, AstNodeRef atNodeRef, 
     Diagnostic    diag    = Diagnostic::get(id, fileRef);
     diag.last().addSpan(getNodeCodeRange(sema, atNodeRef, location), "", DiagnosticSeverity::Error);
     setReportArguments(sema, diag, atNodeRef);
+    addGenericContextNotes(sema, diag, id);
     return diag;
 }
 

@@ -51,6 +51,9 @@ public:
     constexpr static std::string_view ARG_SYM                  = "{sym}";
     constexpr static std::string_view ARG_SYM_FAM              = "{sym-fam}";
     constexpr static std::string_view ARG_A_SYM_FAM            = "{a-sym-fam}";
+    constexpr static std::string_view ARG_GENERIC_SYM          = "{generic-sym}";
+    constexpr static std::string_view ARG_GENERIC_SYM_FAM      = "{generic-sym-fam}";
+    constexpr static std::string_view ARG_GENERIC_VALUES       = "{generic-values}";
     constexpr static std::string_view ARG_TARGET               = "{target}";
     constexpr static std::string_view ARG_TOOL                 = "{tool}";
 

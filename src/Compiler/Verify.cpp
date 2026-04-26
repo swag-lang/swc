@@ -186,8 +186,10 @@ bool Verify::verifyExpected(const TaskContext& ctx, const Diagnostic& diag) cons
     if (directives_.empty())
         return false;
 
-    for (const std::shared_ptr<DiagnosticElement>& elem : diag.elements())
+    bool dismiss = false;
+    for (size_t elemIndex = 0; elemIndex < diag.elements().size(); ++elemIndex)
     {
+        const std::shared_ptr<DiagnosticElement>& elem = diag.elements()[elemIndex];
         const SourceCodeRange codeRange = elem->codeRange(0, ctx);
         for (const VerifyDirective& directive : directives_)
         {
@@ -205,11 +207,13 @@ bool Verify::verifyExpected(const TaskContext& ctx, const Diagnostic& diag) cons
                 continue;
 
             directive.touched = true;
-            return true;
+            if (elemIndex == 0)
+                dismiss = true;
+            break;
         }
     }
 
-    return false;
+    return dismiss;
 }
 
 void Verify::verifyUntouchedExpected(TaskContext& ctx, const SourceView& srcView) const
@@ -248,7 +252,7 @@ void Verify::tokenizeExpected(const TaskContext& ctx, const SourceTrivia& trivia
 
         VerifyDirective directive;
 
-        // Parse directive kind ("error", "warning", etc.)
+        // Parse directive kind ("error", "warning", "note", etc.)
         const size_t start = pos + LangSpec::VERIFY_COMMENT_EXPECTED.size();
         size_t       i     = start;
         while (i < comment.size() && langSpec.isLetter(comment[i]))
@@ -258,6 +262,10 @@ void Verify::tokenizeExpected(const TaskContext& ctx, const SourceTrivia& trivia
             directive.kind = DiagnosticSeverity::Error;
         else if (word == "warning")
             directive.kind = DiagnosticSeverity::Warning;
+        else if (word == "note")
+            directive.kind = DiagnosticSeverity::Note;
+        else if (word == "help")
+            directive.kind = DiagnosticSeverity::Help;
         else
         {
             pos = i;

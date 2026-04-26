@@ -295,7 +295,8 @@ namespace
         // Binary special operators conceptually consume two operands. Keep the right operand
         // addressable as well so invalid-but-diagnosed signatures like `other: &T` still
         // behave consistently with operator syntax while remaining reported to the user.
-        return fn.specOpKind() == SpecOpKind::OpBinary && paramIndex == 1;
+        const SpecOpKind kind = fn.specOpKind();
+        return (kind == SpecOpKind::OpBinary || kind == SpecOpKind::OpBinaryRight) && paramIndex == 1;
     }
 
     VariadicInfo getVariadicInfo(Sema& sema, const SymbolFunction& fn)
@@ -1716,6 +1717,19 @@ namespace
         return errorNoOverloadMatch(sema, nodeCallee, attempts, args, ufcsArg);
     }
 
+    void fillFunctionCandidateProbe(Match::FunctionCandidateProbe& outProbe, const Attempt& selectedAttempt)
+    {
+        outProbe.perArgRanks.clear();
+        outProbe.perArgRanks.reserve(selectedAttempt.candidate.perArg.size());
+        for (const ConvRank rank : selectedAttempt.candidate.perArg)
+            outProbe.perArgRanks.push_back(static_cast<uint8_t>(rank));
+
+        outProbe.fn              = selectedAttempt.candidate.fn;
+        outProbe.usedDefaults    = selectedAttempt.candidate.usedDefaults;
+        outProbe.genericInstance = candidateUsesGenericInstance(selectedAttempt.candidate);
+        outProbe.matched         = true;
+    }
+
     // From a list of viable candidates, select the single best one based on conversion ranks
     // and other criteria. If there's no clear winner (ambiguity), or no viable candidate,
     // it raises the appropriate error.
@@ -2189,6 +2203,100 @@ void Match::resolveCallArgumentValues(Sema& sema, SmallVector<AstNodeRef>& outAr
     outArgs.reserve(args.size());
     for (const AstNodeRef argRef : args)
         outArgs.push_back(resolveCallArgumentValueRef(sema, argRef));
+}
+
+int Match::compareFunctionCandidateProbes(const FunctionCandidateProbe& a, const FunctionCandidateProbe& b)
+{
+    const auto     na = static_cast<uint32_t>(a.perArgRanks.size());
+    const auto     nb = static_cast<uint32_t>(b.perArgRanks.size());
+    const uint32_t n  = std::min(na, nb);
+
+    for (uint32_t i = 0; i < n; ++i)
+    {
+        if (a.perArgRanks[i] != b.perArgRanks[i])
+            return (a.perArgRanks[i] < b.perArgRanks[i]) ? -1 : 1;
+    }
+
+    if (na != nb)
+        return (na < nb) ? -1 : 1;
+
+    if (a.usedDefaults != b.usedDefaults)
+        return (a.usedDefaults < b.usedDefaults) ? -1 : 1;
+
+    if (a.genericInstance != b.genericInstance)
+        return a.genericInstance ? 1 : -1;
+
+    return 0;
+}
+
+Result Match::probeFunctionCandidates(Sema& sema, const SemaNodeView& nodeCallee, std::span<Symbol*> symbols, std::span<AstNodeRef> args, AstNodeRef ufcsArg, FunctionCandidateProbe& outProbe, bool allowNoMatch, ResolveCallMode mode)
+{
+    outProbe = {};
+
+    SmallVector<Symbol*> filteredSymbols;
+    filteredSymbols.reserve(symbols.size());
+    for (Symbol* sym : symbols)
+    {
+        if (!sym)
+            continue;
+        if (isCallableForMode(*sym, mode))
+            filteredSymbols.push_back(sym);
+    }
+
+    SmallVector<Symbol*> concreteSymbols;
+    SmallVector<Symbol*> runtimeSymbols;
+    SWC_RESULT(SemaRuntime::filterRuntimeAccessibleSymbols(sema, nodeCallee.nodeRef(), filteredSymbols.span(), runtimeSymbols));
+    removeEmptyFunctionDeclarations(runtimeSymbols, concreteSymbols);
+
+    if (mode == ResolveCallMode::AttributeOnly && !symbols.empty() && filteredSymbols.empty())
+        return SemaError::raise(sema, DiagnosticId::sema_err_not_attribute, nodeCallee.nodeRef());
+
+    SmallVector<Attempt>         attempts;
+    SmallVector<SymbolFunction*> functions;
+    SWC_RESULT(collectAttempts(sema, attempts, functions, concreteSymbols.span(), args, ufcsArg));
+
+    SmallVector<const Attempt*> viable;
+    gatherViableAttempts(attempts, viable);
+
+    if (viable.empty() && mode == ResolveCallMode::Normal && !functions.empty())
+    {
+        SmallVector<Symbol*> fallbackSymbols;
+        SWC_RESULT(matchCallFallbackSymbols(sema, nodeCallee, fallbackSymbols));
+        if (!fallbackSymbols.empty())
+        {
+            SmallVector<Symbol*> fallbackRuntimeSymbols;
+            SmallVector<Symbol*> fallbackConcreteSymbols;
+            SWC_RESULT(SemaRuntime::filterRuntimeAccessibleSymbols(sema, nodeCallee.nodeRef(), fallbackSymbols.span(), fallbackRuntimeSymbols));
+            removeEmptyFunctionDeclarations(fallbackRuntimeSymbols, fallbackConcreteSymbols);
+
+            SmallVector<Attempt>         fallbackAttempts;
+            SmallVector<SymbolFunction*> fallbackFunctions;
+            SWC_RESULT(collectAttempts(sema, fallbackAttempts, fallbackFunctions, fallbackConcreteSymbols.span(), args, ufcsArg));
+
+            SmallVector<const Attempt*> fallbackViable;
+            gatherViableAttempts(fallbackAttempts, fallbackViable);
+            if (!fallbackViable.empty())
+            {
+                concreteSymbols = std::move(fallbackConcreteSymbols);
+                attempts        = std::move(fallbackAttempts);
+                functions       = std::move(fallbackFunctions);
+                gatherViableAttempts(attempts, viable);
+            }
+        }
+    }
+
+    if (viable.empty())
+    {
+        if (allowNoMatch)
+            return Result::Continue;
+        return raiseNoSelection(sema, nodeCallee, functions, attempts, args, ufcsArg);
+    }
+
+    const Attempt* selectedAttempt = nullptr;
+    SWC_RESULT(selectBestAttempt(sema, nodeCallee, viable, functions, attempts, args, ufcsArg, selectedAttempt));
+    SWC_ASSERT(selectedAttempt != nullptr);
+    fillFunctionCandidateProbe(outProbe, *selectedAttempt);
+    return Result::Continue;
 }
 
 Result Match::resolveFunctionCandidates(Sema& sema, const SemaNodeView& nodeCallee, std::span<Symbol*> symbols, std::span<AstNodeRef> args, AstNodeRef ufcsArg, SmallVector<ResolvedCallArgument>* outResolvedArgs, ResolveCallMode mode)

@@ -469,7 +469,7 @@ Result AstBinaryExpr::codeGenPostNode(CodeGen& codeGen) const
         binaryPayload && binaryPayload->calledFn != nullptr)
     {
         codeGen.sema().setSymbol(codeGen.curNodeRef(), binaryPayload->calledFn);
-        if (binaryPayload->calledFn->specOpKind() == SpecOpKind::OpBinary)
+        if (binaryPayload->calledFn->specOpKind() == SpecOpKind::OpBinary || binaryPayload->calledFn->specOpKind() == SpecOpKind::OpBinaryRight)
             return CodeGenCallHelpers::codeGenCallExprCommon(codeGen, AstNodeRef::invalid());
     }
 
@@ -477,7 +477,7 @@ Result AstBinaryExpr::codeGenPostNode(CodeGen& codeGen) const
     if (!resolvedArgs.empty() && specialOpView.sym() && specialOpView.sym()->isFunction())
     {
         const auto& calledFn = specialOpView.sym()->cast<SymbolFunction>();
-        if (calledFn.specOpKind() == SpecOpKind::OpBinary)
+        if (calledFn.specOpKind() == SpecOpKind::OpBinary || calledFn.specOpKind() == SpecOpKind::OpBinaryRight)
             return CodeGenCallHelpers::codeGenCallExprCommon(codeGen, AstNodeRef::invalid());
     }
 

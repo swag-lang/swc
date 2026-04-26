@@ -56,6 +56,22 @@ impl Vector3
             #error("unsupported binary operation [[" ++ op ++ "]]")
     }
 
+    // Binary operators: scalar op vector
+    #[Swag.Overload]
+    func(op: string) opBinaryRight(const me, scalar: T)->Vector3'T
+    {
+        #if op == "+" do
+            return {x: scalar + me.x, y: scalar + me.y, z: scalar + me.z}
+        #elif op == "-" do
+            return {x: scalar - me.x, y: scalar - me.y, z: scalar - me.z}
+        #elif op == "*" do
+            return {x: scalar * me.x, y: scalar * me.y, z: scalar * me.z}
+        #elif op == "/" do
+            return {x: scalar / me.x, y: scalar / me.y, z: scalar / me.z}
+        #else do
+            #error("unsupported binary operation [[" ++ op ++ "]]")
+    }
+
     // Dot product helper
     func dot(a: const &Vector3'T, b: const &Vector3'T)->T
     {
@@ -228,6 +244,28 @@ impl Vector3
     @assert(result.x == -1)
     @assert(result.y == 2)
     @assert(result.z == -3)
+}
+
+// Test: scalar * vector (right-hand operator)
+#test
+{
+    var v: Vector3's32 = {x: 1, y: -2, z: 3}
+    let scaled = 3's32 * v
+
+    @assert(scaled.x == 3)
+    @assert(scaled.y == -6)
+    @assert(scaled.z == 9)
+}
+
+// Test: scalar - vector keeps operand order
+#test
+{
+    var v: Vector3's32 = {x: 1, y: 2, z: 3}
+    let result = 10's32 - v
+
+    @assert(result.x == 9)
+    @assert(result.y == 8)
+    @assert(result.z == 7)
 }
 
 // ---------------------------------------------------------------------------

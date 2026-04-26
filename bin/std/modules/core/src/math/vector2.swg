@@ -122,6 +122,23 @@ impl Vector2
             #error("unsupported binary operation [[" ++ op ++ "]]")
     }
 
+    // Binary operators for scalar-vector operations (+, -, *, /).
+    // Applies this vector as the right operand and returns the result.
+    #[Swag.Overload, Swag.Inline]
+    mtd(op: string) const opBinaryRight(value: f32)->Vector2
+    {
+        #if op == "+" do
+            return Vector2{value + .x, value + .y}
+        #elif op == "-" do
+            return Vector2{value - .x, value - .y}
+        #elif op == "*" do
+            return Vector2{value * .x, value * .y}
+        #elif op == "/" do
+            return Vector2{value / .x, value / .y}
+        #else do
+            #error("unsupported binary operation [[" ++ op ++ "]]")
+    }
+
     // Apply unary operations to the vector.
     // Currently supports negation (-) to return a vector with both components negated.
     #[Swag.Inline]

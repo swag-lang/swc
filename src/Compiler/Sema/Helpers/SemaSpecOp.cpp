@@ -47,6 +47,8 @@ namespace
                 return "mtd opCompare(value: <type>) -> s32";
             case SpecOpKind::OpBinary:
                 return "mtd(op: string) const opBinary(other: <type>) -> <struct>";
+            case SpecOpKind::OpBinaryRight:
+                return "mtd(op: string) const opBinaryRight(other: <type>) -> <struct>";
             case SpecOpKind::OpUnary:
                 return "mtd(op: string) const opUnary() -> <struct>";
             case SpecOpKind::OpAssign:
@@ -219,6 +221,7 @@ namespace
         switch (kind)
         {
             case SpecOpKind::OpBinary:
+            case SpecOpKind::OpBinaryRight:
             case SpecOpKind::OpUnary:
             case SpecOpKind::OpAssign:
             case SpecOpKind::OpSetLiteral:
@@ -630,6 +633,7 @@ namespace
                 break;
 
             case SpecOpKind::OpBinary:
+            case SpecOpKind::OpBinaryRight:
                 if (params.size() != 2 || !receiverIsConst || !isOpBinarySecondParamImmutable(ctx, sym, params[1]->typeRef()) || !returnIsStruct)
                     return reportSpecOpError(sema, sym, kind);
                 break;
@@ -1043,6 +1047,7 @@ namespace
             case SpecOpKind::OpEquals:
             case SpecOpKind::OpCompare:
             case SpecOpKind::OpBinary:
+            case SpecOpKind::OpBinaryRight:
             case SpecOpKind::OpAssign:
             case SpecOpKind::OpSet:
             case SpecOpKind::OpSetLiteral:
@@ -1256,6 +1261,7 @@ SpecOpKind SemaSpecOp::computeSymbolKind(const Sema& sema, const SymbolFunction&
     static constexpr Entry K_MAP[] = {
         {Pn::OpVisit, SpecOpKind::OpVisit},
         {Pn::OpBinary, SpecOpKind::OpBinary},
+        {Pn::OpBinaryRight, SpecOpKind::OpBinaryRight},
         {Pn::OpUnary, SpecOpKind::OpUnary},
         {Pn::OpAssign, SpecOpKind::OpAssign},
         {Pn::OpIndexAssign, SpecOpKind::OpIndexAssign},
@@ -1888,7 +1894,64 @@ Result SemaSpecOp::tryResolveUnary(Sema& sema, const AstUnaryExpr& node, const S
     return Result::Continue;
 }
 
-Result SemaSpecOp::tryResolveBinary(Sema& sema, const AstBinaryExpr& node, const SemaNodeView& leftView, bool& outHandled)
+namespace
+{
+    struct BinarySpecOpResolution
+    {
+        SmallVector<Symbol*>        candidates;
+        SmallVector<AstNodeRef>     args;
+        Match::FunctionCandidateProbe probe;
+        AstNodeRef                  receiverRef = AstNodeRef::invalid();
+
+        bool matched() const { return probe.matched && probe.fn != nullptr; }
+    };
+
+    Result probeBinarySpecOp(Sema& sema, const AstBinaryExpr& node, const SemaNodeView& receiverView, AstNodeRef receiverRef, AstNodeRef argRef, IdentifierRef opId, AstNodeRef genericArg, BinarySpecOpResolution& out)
+    {
+        out             = {};
+        out.receiverRef = receiverRef;
+
+        const SymbolStruct* ownerStruct = structSpecOpOwner(sema, receiverView);
+        if (!ownerStruct)
+            return Result::Continue;
+
+        SWC_RESULT(sema.waitSemaCompleted(ownerStruct, node.codeRef()));
+        SWC_RESULT(collectSpecOpCandidates(sema, *ownerStruct, opId, std::span{&genericArg, 1}, out.candidates));
+        if (out.candidates.empty())
+            return Result::Continue;
+
+        out.args.push_back(argRef);
+        const SemaNodeView calleeView(sema, sema.curNodeRef(), SemaNodeViewPartE::Node);
+        return Match::probeFunctionCandidates(sema, calleeView, out.candidates.span(), out.args.span(), receiverRef, out.probe, true);
+    }
+
+    Result finalizeBinarySpecOp(Sema& sema, const AstBinaryExpr& node, BinarySpecOpResolution& selected, bool& outHandled)
+    {
+        SymbolFunction* calledFn = nullptr;
+        SWC_RESULT(resolveSyntheticCall(sema, node, selected.candidates.span(), selected.args.span(), selected.receiverRef, false, nullptr, true, true, &calledFn));
+
+        auto* binaryPayload = sema.semaPayload<BinarySpecOpPayload>(sema.curNodeRef());
+        if (!binaryPayload)
+        {
+            binaryPayload = sema.compiler().allocate<BinarySpecOpPayload>();
+            sema.setSemaPayload(sema.curNodeRef(), binaryPayload);
+        }
+
+        binaryPayload->calledFn = calledFn;
+        outHandled              = true;
+        return Result::Continue;
+    }
+
+    Result raiseAmbiguousBinarySpecOp(Sema& sema, const BinarySpecOpResolution& left, const BinarySpecOpResolution& right)
+    {
+        SmallVector<const Symbol*> ambiguous;
+        ambiguous.push_back(left.probe.fn);
+        ambiguous.push_back(right.probe.fn);
+        return SemaError::raiseAmbiguousSymbol(sema, sema.curNodeRef(), ambiguous.span());
+    }
+}
+
+Result SemaSpecOp::tryResolveBinary(Sema& sema, const AstBinaryExpr& node, const SemaNodeView& leftView, const SemaNodeView& rightView, bool& outHandled)
 {
     outHandled = false;
 
@@ -1905,48 +1968,38 @@ Result SemaSpecOp::tryResolveBinary(Sema& sema, const AstBinaryExpr& node, const
                     TokenId::SymGreaterGreater}))
         return Result::Continue;
 
-    if (!leftView.type())
-        return Result::Continue;
-
-    TypeRef         unwrappedTypeRef = leftView.typeRef();
-    const TypeInfo& leftValueType    = sema.typeMgr().get(unwrappedTypeRef);
-    if (leftValueType.isReference())
-        unwrappedTypeRef = unwrapAlias(sema.ctx(), leftValueType.payloadTypeRef());
-    else
-        unwrappedTypeRef = unwrapAlias(sema.ctx(), unwrappedTypeRef);
-    if (!unwrappedTypeRef.isValid())
-        unwrappedTypeRef = leftView.typeRef();
-
-    const TypeInfo& leftType = sema.typeMgr().get(unwrappedTypeRef);
-    if (!leftType.isStruct())
-        return Result::Continue;
-
-    const auto& ownerStruct = leftType.payloadSymStruct();
-    SWC_RESULT(sema.waitSemaCompleted(&ownerStruct, node.codeRef()));
-
     const SourceView&      srcView    = sema.compiler().srcView(node.srcViewRef());
     const std::string_view opString   = tok.string(srcView);
     const AstNodeRef       genericArg = makeSyntheticStringConstantArg(sema, node.codeRef(), opString);
-    const IdentifierRef    opBinaryId = sema.idMgr().predefined(IdentifierManager::PredefinedName::OpBinary);
-    SmallVector<Symbol*>   candidates;
-    SWC_RESULT(collectSpecOpCandidates(sema, ownerStruct, opBinaryId, std::span{&genericArg, 1}, candidates));
-    if (candidates.empty())
-        return Result::Continue;
+    const IdentifierRef    opBinaryId      = sema.idMgr().predefined(IdentifierManager::PredefinedName::OpBinary);
+    const IdentifierRef    opBinaryRightId = sema.idMgr().predefined(IdentifierManager::PredefinedName::OpBinaryRight);
 
-    SmallVector<AstNodeRef> args;
-    args.push_back(node.nodeRightRef);
-    SymbolFunction* calledFn = nullptr;
-    SWC_RESULT(resolveSyntheticCall(sema, node, candidates.span(), args.span(), node.nodeLeftRef, false, nullptr, true, true, &calledFn));
+    BinarySpecOpResolution left;
+    SWC_RESULT(probeBinarySpecOp(sema, node, leftView, node.nodeLeftRef, node.nodeRightRef, opBinaryId, genericArg, left));
 
-    auto* binaryPayload = sema.semaPayload<BinarySpecOpPayload>(sema.curNodeRef());
-    if (!binaryPayload)
+    BinarySpecOpResolution right;
+    SWC_RESULT(probeBinarySpecOp(sema, node, rightView, node.nodeRightRef, node.nodeLeftRef, opBinaryRightId, genericArg, right));
+
+    if (left.matched() && right.matched())
     {
-        binaryPayload = sema.compiler().allocate<BinarySpecOpPayload>();
-        sema.setSemaPayload(sema.curNodeRef(), binaryPayload);
+        const int cmp = Match::compareFunctionCandidateProbes(left.probe, right.probe);
+        if (cmp == 0 && left.probe.fn != right.probe.fn)
+            return raiseAmbiguousBinarySpecOp(sema, left, right);
+        return finalizeBinarySpecOp(sema, node, cmp <= 0 ? left : right, outHandled);
     }
 
-    binaryPayload->calledFn = calledFn;
-    outHandled              = true;
+    if (left.matched())
+        return finalizeBinarySpecOp(sema, node, left, outHandled);
+
+    if (right.matched())
+        return finalizeBinarySpecOp(sema, node, right, outHandled);
+
+    if (!left.candidates.empty())
+        return finalizeBinarySpecOp(sema, node, left, outHandled);
+
+    if (!right.candidates.empty())
+        return finalizeBinarySpecOp(sema, node, right, outHandled);
+
     return Result::Continue;
 }
 

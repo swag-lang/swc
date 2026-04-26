@@ -65,6 +65,7 @@ enum class SpecOpKind : uint8_t
     None,
     Invalid,
     OpBinary,
+    OpBinaryRight,
     OpUnary,
     OpAssign,
     OpIndexAssign,
@@ -100,7 +101,7 @@ namespace SemaSpecOp
     Result tryResolveIndex(Sema& sema, const AstIndexExpr& node, const SemaNodeView& indexedView, bool& outHandled);
     Result tryResolveIndexAssign(Sema& sema, const AstAssignStmt& node, bool& outHandled);
     Result tryResolveAssign(Sema& sema, const AstAssignStmt& node, const SemaNodeView& leftView, bool& outHandled);
-    Result tryResolveBinary(Sema& sema, const AstBinaryExpr& node, const SemaNodeView& leftView, bool& outHandled);
+    Result tryResolveBinary(Sema& sema, const AstBinaryExpr& node, const SemaNodeView& leftView, const SemaNodeView& rightView, bool& outHandled);
     Result tryResolveRelational(Sema& sema, const AstRelationalExpr& node, const SemaNodeView& leftView, bool& outHandled);
     Result tryResolveUnary(Sema& sema, const AstUnaryExpr& node, const SemaNodeView& operandView, bool& outHandled);
 }

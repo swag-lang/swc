@@ -58,6 +58,7 @@ void IdentifierManager::setup(const TaskContext& ctx)
         {.name = PredefinedName::TargetOs, .str = "TargetOs"},
         {.name = PredefinedName::TargetArch, .str = "TargetArch"},
         {.name = PredefinedName::OpBinary, .str = "opBinary"},
+        {.name = PredefinedName::OpBinaryRight, .str = "opBinaryRight"},
         {.name = PredefinedName::OpUnary, .str = "opUnary"},
         {.name = PredefinedName::OpAssign, .str = "opAssign"},
         {.name = PredefinedName::OpIndexAssign, .str = "opIndexAssign"},

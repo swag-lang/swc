@@ -20,6 +20,22 @@ impl BinaryIntBox
     }
 }
 
+struct BinaryRightIntBox
+{
+    value: u32
+}
+
+impl BinaryRightIntBox
+{
+    mtd(op: string) const opBinaryRight(other: u32)->BinaryRightIntBox
+    {
+        #if op == "*" do
+            return {value: other * .value}
+        #else do
+            #error("unsupported binary operation [[" ++ op ++ "]]")
+    }
+}
+
 struct MissingConstMe
 {
     value: u64
@@ -63,4 +79,13 @@ struct IndirectOtherByValue
 
     #assert(#typeof(shift) == BinaryIntBox)
     #assert(#typeof(shift.value) == u32)
+}
+
+#test
+{
+    var value = BinaryRightIntBox{value: 5}
+    let scaled = 3'u32 * value
+
+    #assert(#typeof(scaled) == BinaryRightIntBox)
+    #assert(#typeof(scaled.value) == u32)
 }

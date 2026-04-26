@@ -77,6 +77,7 @@ public:
         TargetOs,
         TargetArch,
         OpBinary,
+        OpBinaryRight,
         OpUnary,
         OpAssign,
         OpIndexAssign,

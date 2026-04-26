@@ -235,6 +235,7 @@ impl IRichEditLexer for RichEditLexerSwag
 
         .mapWords.add("opSlice", State.FunctionSpecOp)
         .mapWords.add("opBinary", State.FunctionSpecOp)
+        .mapWords.add("opBinaryRight", State.FunctionSpecOp)
         .mapWords.add("opUnary", State.FunctionSpecOp)
         .mapWords.add("opAssign", State.FunctionSpecOp)
         .mapWords.add("opIndexAssign", State.FunctionSpecOp)

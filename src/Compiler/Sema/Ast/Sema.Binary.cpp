@@ -546,7 +546,7 @@ Result AstBinaryExpr::semaPostNode(Sema& sema)
     const TokenId op = Token::canonicalBinary(sema.token(codeRef()).id);
 
     bool handledSpecialOp = false;
-    SWC_RESULT(SemaSpecOp::tryResolveBinary(sema, *this, nodeLeftView, handledSpecialOp));
+    SWC_RESULT(SemaSpecOp::tryResolveBinary(sema, *this, nodeLeftView, nodeRightView, handledSpecialOp));
     if (handledSpecialOp)
         return Result::Continue;
 

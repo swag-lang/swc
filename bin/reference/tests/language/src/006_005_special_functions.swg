@@ -108,6 +108,13 @@ impl Struct
     #[Swag.Overload]
     func(op: string) opBinary(me, other: AnotherType)->Struct { return {1, 2}; }
 
+    // Binary operation when this struct is the right operand
+    // Examples: OneType + myStruct, AnotherType * myStruct
+    #[Swag.Overload]
+    func(op: string) opBinaryRight(me, other: OneType)->Struct { return {1, 2}; }
+    #[Swag.Overload]
+    func(op: string) opBinaryRight(me, other: AnotherType)->Struct { return {1, 2}; }
+
     // Unary operation with 'op' representing the operator as a string
     // Examples: '!', '-', '~'
     func(op: string) opUnary(me)->Struct { return {1, 2}; }

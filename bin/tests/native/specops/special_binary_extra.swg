@@ -207,3 +207,51 @@ impl RuntimeFullArithBox
     @assert(result.a == 5)
     @assert(result.b == 5)
 }
+
+// ============================================================================
+// opBinaryRight: scalar op struct
+// ============================================================================
+
+struct RuntimeRightArithBox
+{
+    a: s32
+    b: s32
+}
+
+impl RuntimeRightArithBox
+{
+    #[Swag.NoInline]
+    mtd(op: string) const opBinaryRight(scalar: s32)->RuntimeRightArithBox
+    {
+        #if op == "+" do
+            return {a: scalar + .a, b: scalar + .b}
+        #elif op == "-" do
+            return {a: scalar - .a, b: scalar - .b}
+        #elif op == "*" do
+            return {a: scalar * .a, b: scalar * .b}
+        #elif op == "/" do
+            return {a: scalar / .a, b: scalar / .b}
+        #else do
+            #error("unsupported binary operation [[" ++ op ++ "]]")
+    }
+}
+
+// Test: scalar * struct dispatches to right operand
+#test
+{
+    var box = RuntimeRightArithBox{a: 3, b: 7}
+    let result = 4 * box
+
+    @assert(result.a == 12)
+    @assert(result.b == 28)
+}
+
+// Test: non-commutative scalar - struct keeps the operand order
+#test
+{
+    var box = RuntimeRightArithBox{a: 3, b: 7}
+    let result = 10 - box
+
+    @assert(result.a == 7)
+    @assert(result.b == 3)
+}

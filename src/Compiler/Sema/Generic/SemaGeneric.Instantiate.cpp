@@ -261,9 +261,9 @@ namespace
         std::unique_ptr<Sema> sema;
     };
 
-    std::mutex& genericNodeRunMutex();
-    std::unordered_map<GenericNodeRunKey, GenericNodeRun, GenericNodeRunKeyHash>& genericNodeRuns();
-    std::mutex& genericInstanceNodeRunMutex();
+    std::mutex&                                                                                   genericNodeRunMutex();
+    std::unordered_map<GenericNodeRunKey, GenericNodeRun, GenericNodeRunKeyHash>&                 genericNodeRuns();
+    std::mutex&                                                                                   genericInstanceNodeRunMutex();
     std::unordered_map<GenericInstanceNodeRunKey, GenericNodeRun, GenericInstanceNodeRunKeyHash>& genericInstanceNodeRuns();
 
     struct GenericImplBlockRunKey
@@ -288,7 +288,7 @@ namespace
         }
     };
 
-    std::mutex& genericImplBlockRunMutex();
+    std::mutex&                                                                             genericImplBlockRunMutex();
     std::unordered_map<GenericImplBlockRunKey, GenericNodeRun, GenericImplBlockRunKeyHash>& genericImplBlockRuns();
 
     void prepareGenericNodeRunContext(Sema& child, Sema& sema, const Symbol& root)
@@ -923,15 +923,15 @@ namespace
         if (!implDecl)
             return Result::Error;
 
-        outBlockRef = cloneGenericImplBlock(sema, *implDecl, bindings);
-        outClone    = Symbol::make<SymbolImpl>(sema.ctx(), sourceImpl.decl(), sourceImpl.tokRef(), sourceImpl.idRef(), clonedGenericSymbolFlags(sourceImpl));
-        SymbolMap* ownerSymMap = const_cast<SymbolMap*>(sourceImpl.ownerSymMap());
+        outBlockRef      = cloneGenericImplBlock(sema, *implDecl, bindings);
+        outClone         = Symbol::make<SymbolImpl>(sema.ctx(), sourceImpl.decl(), sourceImpl.tokRef(), sourceImpl.idRef(), clonedGenericSymbolFlags(sourceImpl));
+        auto ownerSymMap = const_cast<SymbolMap*>(sourceImpl.ownerSymMap());
         if (!ownerSymMap)
         {
             if (sourceImpl.isForStruct())
-                ownerSymMap = const_cast<SymbolMap*>(sourceImpl.symStruct()->ownerSymMap());
+                ownerSymMap = sourceImpl.symStruct()->ownerSymMap();
             else if (sourceImpl.isForEnum())
-                ownerSymMap = const_cast<SymbolMap*>(sourceImpl.symEnum()->ownerSymMap());
+                ownerSymMap = sourceImpl.symEnum()->ownerSymMap();
         }
         outClone->setOwnerSymMap(ownerSymMap);
         outClone->setGenericBlockRef(outBlockRef);

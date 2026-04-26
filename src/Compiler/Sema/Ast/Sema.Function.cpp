@@ -138,8 +138,8 @@ namespace
 
     struct LazyGenericBodyRun
     {
-        const TaskContext*  ownerCtx = nullptr;
-        bool                running  = false;
+        const TaskContext*    ownerCtx = nullptr;
+        bool                  running  = false;
         std::unique_ptr<Sema> sema;
     };
 
@@ -185,7 +185,7 @@ namespace
             }
             else
             {
-                run.ownerCtx = &sema.ctx();
+                run.ownerCtx              = &sema.ctx();
                 const SourceView& srcView = sema.compiler().srcView(calledFn.srcViewRef());
                 if (sema.ast().srcView().fileRef() == srcView.ownerFileRef())
                 {

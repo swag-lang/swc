@@ -157,7 +157,7 @@ void Diagnostic::addNote(DiagnosticId id)
     elements_.emplace_back(std::move(ptr));
 }
 
-void Diagnostic::addDidYouMeanNote(const std::optional<Utf8> suggestion)
+void Diagnostic::addDidYouMeanNote(const std::optional<Utf8>& suggestion)
 {
     if (!suggestion.has_value())
         return;

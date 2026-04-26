@@ -157,7 +157,7 @@ namespace
 
     std::unique_ptr<Sema> makeLazyGenericBodySema(Sema& sema, SymbolFunction& calledFn, AstNodeRef declRef)
     {
-        const SourceView& srcView = sema.compiler().srcView(calledFn.srcViewRef());
+        const SourceView&     srcView = sema.compiler().srcView(calledFn.srcViewRef());
         std::unique_ptr<Sema> child;
         if (sema.ast().srcView().fileRef() == srcView.ownerFileRef())
         {
@@ -176,10 +176,10 @@ namespace
         return child;
     }
 
-    void finishLazyGenericBodyRun(SymbolFunction& calledFn, Result result)
+    void finishLazyGenericBodyRun(const SymbolFunction& calledFn, Result result)
     {
         const std::scoped_lock lock(lazyGenericBodyRunMutex());
-        auto                   it = lazyGenericBodyRuns().find(&calledFn);
+        const auto             it = lazyGenericBodyRuns().find(&calledFn);
         if (it == lazyGenericBodyRuns().end())
             return;
 
@@ -203,7 +203,7 @@ namespace
             return sema.waitSemaCompleted(&calledFn, calledFn.codeRef());
         }
 
-        AstNodeRef declRef = calledFn.declNodeRef();
+        const AstNodeRef declRef = calledFn.declNodeRef();
         if (declRef.isInvalid())
             return Result::Continue;
 

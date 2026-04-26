@@ -47,8 +47,9 @@ namespace Utf8Helper
     Utf8             normalizePathForCompare(const fs::path& path);
     bool             startsWith(std::string_view s, std::string_view pfx, bool matchCase = false);
     Utf8             addArticleAAn(std::string_view s);
-    template<typename Range, typename ValueFn>
-    Utf8 join(const Range& values, std::string_view separator, ValueFn valueFn)
+
+    template<typename R, typename V>
+    Utf8 join(const R& values, std::string_view separator, V valueFn)
     {
         Utf8 result;
         bool first = true;
@@ -63,8 +64,8 @@ namespace Utf8Helper
         return result;
     }
 
-    template<typename Range>
-    Utf8 join(const Range& values, std::string_view separator)
+    template<typename R>
+    Utf8 join(const R& values, std::string_view separator)
     {
         return join(values, separator, [](const auto& value) -> decltype(auto) { return value; });
     }

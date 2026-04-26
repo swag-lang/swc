@@ -322,7 +322,7 @@ namespace
         if (findStackDistance(cycleDistance, state.types, typeRef))
             return typeCycleHash(ctx, typeRef, cycleDistance);
 
-        RuntimeHashStackScope<TypeRef, 64> typeScope(state.types, typeRef);
+        RuntimeHashStackScope typeScope(state.types, typeRef);
         return ctx.typeMgr().get(typeRef).runtimeHash(ctx);
     }
 }

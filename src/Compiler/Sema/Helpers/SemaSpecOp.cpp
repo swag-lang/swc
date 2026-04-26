@@ -1775,7 +1775,7 @@ Result SemaSpecOp::tryResolveIndexAssign(Sema& sema, const AstAssignStmt& node, 
 
         if (setMatched && canAssignThroughRef)
         {
-            if (SymbolFunction* const readFn = indexReadSpecOpFunction(sema, leftNodeRef))
+            if (const SymbolFunction* readFn = indexReadSpecOpFunction(sema, leftNodeRef))
                 return raiseAmbiguousIndexWrite(sema, sema.curNodeRef(), *readFn, *setFn);
             return Result::Continue;
         }

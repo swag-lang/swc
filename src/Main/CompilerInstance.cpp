@@ -1434,7 +1434,7 @@ void CompilerInstance::enqueueCompilerMessageTypeInfoPreparation(TaskContext& ct
     notifyAlive();
 }
 
-Result CompilerInstance::ensureCompilerMessageTypeInfoPrepared(TaskContext& ctx, SymbolFunction* listenerFunction, const AstNodeRef ownerNodeRef, const CompilerMessageEvent& event)
+Result CompilerInstance::ensureCompilerMessageTypeInfoPrepared(TaskContext& ctx, const SymbolFunction* listenerFunction, const AstNodeRef ownerNodeRef, const CompilerMessageEvent& event)
 {
     if (compilerMessageTypeInfoPrepFailed_.load(std::memory_order_acquire))
         return Result::Error;
@@ -1589,8 +1589,8 @@ void CompilerInstance::onSymbolSemaCompleted(Symbol& symbol)
         .symbol = &symbol,
     };
 
-    SymbolFunction* preparationFunction = nullptr;
-    AstNodeRef      preparationNodeRef  = AstNodeRef::invalid();
+    const SymbolFunction* preparationFunction = nullptr;
+    AstNodeRef            preparationNodeRef  = AstNodeRef::invalid();
     {
         const std::scoped_lock lock(compilerMessageMutex_);
         compilerMessageLog_.push_back(event);

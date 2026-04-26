@@ -1,6 +1,5 @@
-#include <ranges>
-
 #include "pch.h"
+#include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Lexer/Lexer.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Parser/Parser/Parser.h"
@@ -8,7 +7,6 @@
 #include "Compiler/Sema/Constant/ConstantHelpers.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Constant/ConstantValue.h"
-#include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Generic/SemaGeneric.h"
 #include "Compiler/Sema/Helpers/SemaCheck.h"

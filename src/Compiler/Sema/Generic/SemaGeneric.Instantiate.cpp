@@ -266,10 +266,10 @@ namespace
         std::unique_ptr<Sema> sema;
     };
 
-    std::mutex&                                                                                     genericNodeRunMutex();
-    std::unordered_map<GenericNodeRunKey, CachedSemaRun, GenericNodeRunKeyHash>&                   genericNodeRuns();
-    std::mutex&                                                                                     genericInstanceNodeRunMutex();
-    std::unordered_map<GenericInstanceNodeRunKey, CachedSemaRun, GenericInstanceNodeRunKeyHash>&   genericInstanceNodeRuns();
+    std::mutex&                                                                                  genericNodeRunMutex();
+    std::unordered_map<GenericNodeRunKey, CachedSemaRun, GenericNodeRunKeyHash>&                 genericNodeRuns();
+    std::mutex&                                                                                  genericInstanceNodeRunMutex();
+    std::unordered_map<GenericInstanceNodeRunKey, CachedSemaRun, GenericInstanceNodeRunKeyHash>& genericInstanceNodeRuns();
 
     struct GenericImplBlockRunKey
     {
@@ -293,11 +293,11 @@ namespace
         }
     };
 
-    std::mutex&                                                                               genericImplBlockRunMutex();
+    std::mutex&                                                                            genericImplBlockRunMutex();
     std::unordered_map<GenericImplBlockRunKey, CachedSemaRun, GenericImplBlockRunKeyHash>& genericImplBlockRuns();
 
-    template<typename RunMap, typename Key, typename InitRun>
-    Result runCachedSema(Sema& sema, std::mutex& mutex, RunMap& runs, const Key& key, const Symbol& waitSymbol, InitRun&& initRun)
+    template<typename RUN, typename K, typename I>
+    Result runCachedSema(Sema& sema, std::mutex& mutex, RUN& runs, const K& key, const Symbol& waitSymbol, const I& initRun)
     {
         Sema* child = nullptr;
         {
@@ -346,7 +346,7 @@ namespace
         SWC_ASSERT(root.isFunction() || root.isStruct());
 
         const GenericNodeRunKey key{&sema.ctx(), nodeRef.get()};
-        auto initRun = [&]() {
+        auto                    initRun = [&] {
             auto child = std::make_unique<Sema>(sema.ctx(), sema, nodeRef);
             prepareGenericNodeRunContext(*child, sema, root);
             return child;
@@ -363,7 +363,7 @@ namespace
             return Result::Error;
 
         const GenericInstanceNodeRunKey key{&sema.ctx(), &instance};
-        auto initRun = [&]() {
+        auto                            initRun = [&] {
             auto child = std::make_unique<Sema>(sema.ctx(), sema, nodeRef);
             prepareGenericNodeRunContext(*child, sema, root);
             return child;
@@ -844,7 +844,7 @@ namespace
     Result runGenericImplBlockPass(Sema& sema, AstNodeRef blockRef, SymbolImpl& impl, const SymbolInterface* itf, const AttributeList& attrs, bool declPass)
     {
         const GenericImplBlockRunKey key{&sema.ctx(), &impl, declPass};
-        auto initRun = [&]() {
+        auto                         initRun = [&] {
             auto child = std::make_unique<Sema>(sema.ctx(), sema, blockRef, declPass);
             SemaGeneric::prepareGenericInstantiationContext(*child, impl.asSymMap(), &impl, itf, attrs);
             return child;
@@ -1541,7 +1541,7 @@ namespace SemaGeneric
         return false;
     }
 
-    const SymbolStruct* genericStructInstanceFromImplFrames(Sema& sema)
+    const SymbolStruct* genericStructInstanceFromImplFrames(const Sema& sema)
     {
         for (size_t i = sema.frames().size(); i > 0; --i)
         {

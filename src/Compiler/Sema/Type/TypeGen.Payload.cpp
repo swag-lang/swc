@@ -61,7 +61,7 @@ namespace
             return {};
 
         visiting.push_back(typeRef);
-        LifecycleFlags flags = lifecycleFlagsOfType(ctx, ctx.typeMgr().get(typeRef), visiting);
+        const LifecycleFlags flags = lifecycleFlagsOfType(ctx, ctx.typeMgr().get(typeRef), visiting);
         visiting.pop_back();
         return flags;
     }

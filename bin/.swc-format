@@ -123,20 +123,20 @@ brace-style = preserve
 compact-empty-braces = preserve
 
 # When to keep function bodies on a single line.
-# Possible values: never, empty, inline, always
-allow-short-functions-on-single-line = never
+# Possible values: preserve, never, empty, inline, always
+allow-short-functions-on-single-line = preserve
 
 # When to keep generic `{ ... }` blocks on a single line.
-# Possible values: never, empty, inline, always
-allow-short-blocks-on-single-line = never
+# Possible values: preserve, never, empty, inline, always
+allow-short-blocks-on-single-line = preserve
 
 # When to keep `enum` bodies on a single line.
-# Possible values: never, empty, inline, always
-allow-short-enums-on-single-line = never
+# Possible values: preserve, never, empty, inline, always
+allow-short-enums-on-single-line = preserve
 
 # When to keep `struct` bodies on a single line.
-# Possible values: never, empty, inline, always
-allow-short-structs-on-single-line = never
+# Possible values: preserve, never, empty, inline, always
+allow-short-structs-on-single-line = preserve
 
 # Allow `if x do ...` / `if x { ... }` on one line.
 allow-short-if-statements-on-single-line = preserve
@@ -152,28 +152,28 @@ allow-short-case-on-single-line = preserve
 # ----------------------------------------------------------------------------
 
 # Align `=` signs in adjacent assignments.
-# Possible values: none, consecutive, across-blanks, all
-align-consecutive-assignments = none
+# Possible values: preserve, none, consecutive, across-blanks, all
+align-consecutive-assignments = preserve
 
 # Align names/types of adjacent `let`/`var` declarations.
-# Possible values: none, consecutive, across-blanks, all
-align-consecutive-declarations = none
+# Possible values: preserve, none, consecutive, across-blanks, all
+align-consecutive-declarations = preserve
 
 # Align values of adjacent `const` declarations.
-# Possible values: none, consecutive, across-blanks, all
-align-consecutive-constants = none
+# Possible values: preserve, none, consecutive, across-blanks, all
+align-consecutive-constants = preserve
 
 # Align `:` and types of adjacent struct fields.
-# Possible values: none, consecutive, across-blanks, all
-align-struct-fields = none
+# Possible values: preserve, none, consecutive, across-blanks, all
+align-struct-fields = preserve
 
 # Align `=` on adjacent enum value definitions.
-# Possible values: none, consecutive, across-blanks, all
-align-enum-values = none
+# Possible values: preserve, none, consecutive, across-blanks, all
+align-enum-values = preserve
 
 # Align adjacent `#[...]` attributes.
-# Possible values: none, consecutive, across-blanks, all
-align-attributes = none
+# Possible values: preserve, none, consecutive, across-blanks, all
+align-attributes = preserve
 
 # Align `//` trailing comments into a shared column.
 align-trailing-comments = preserve
@@ -249,8 +249,8 @@ space-in-empty-braces = preserve
 space-before-attribute-bracket = preserve
 
 # When to insert a space between an identifier and `(`.
-# Possible values: never, always, control-statements, functions, non-empty
-space-before-parentheses = never
+# Possible values: preserve, never, always, control-statements, functions, non-empty
+space-before-parentheses = preserve
 
 # ----------------------------------------------------------------------------
 # Attributes

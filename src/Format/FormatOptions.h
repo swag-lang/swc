@@ -26,6 +26,7 @@ enum class FormatBraceStyle : uint8_t
 
 enum class FormatAlignMode : uint8_t
 {
+    Preserve,
     None,
     Consecutive,  // Align within contiguous groups only
     AcrossBlanks, // Align across single blank lines
@@ -34,6 +35,7 @@ enum class FormatAlignMode : uint8_t
 
 enum class FormatShortBlockStyle : uint8_t
 {
+    Preserve,
     Never,
     Empty,  // Only `{}` stays on the opening line
     Inline, // `do ...` / single-statement bodies may stay on one line
@@ -58,6 +60,7 @@ enum class FormatOperatorWrapStyle : uint8_t
 
 enum class FormatSpaceBeforeParens : uint8_t
 {
+    Preserve,
     Never,
     Always,
     ControlStatements, // Only for `if` / `while` / `for` / `foreach` / `switch`
@@ -144,10 +147,10 @@ struct FormatOptions
     // -----------------------------------------------------------------------
     FormatBraceStyle      braceStyle                         = FormatBraceStyle::Allman;     // @TODO Opening brace placement policy
     std::optional<bool>   compactEmptyBraces;                                                // @TODO Keep `{}` inline on the opening line
-    FormatShortBlockStyle allowShortFunctionsOnSingleLine    = FormatShortBlockStyle::Empty; // @TODO When to keep function bodies on one line
-    FormatShortBlockStyle allowShortBlocksOnSingleLine       = FormatShortBlockStyle::Empty; // @TODO When to keep generic `{ ... }` blocks on one line
-    FormatShortBlockStyle allowShortEnumsOnSingleLine        = FormatShortBlockStyle::Empty; // @TODO When to keep `enum` bodies on one line
-    FormatShortBlockStyle allowShortStructsOnSingleLine      = FormatShortBlockStyle::Empty; // @TODO When to keep `struct` bodies on one line
+    FormatShortBlockStyle allowShortFunctionsOnSingleLine    = FormatShortBlockStyle::Preserve; // @TODO When to keep function bodies on one line
+    FormatShortBlockStyle allowShortBlocksOnSingleLine       = FormatShortBlockStyle::Preserve; // @TODO When to keep generic `{ ... }` blocks on one line
+    FormatShortBlockStyle allowShortEnumsOnSingleLine        = FormatShortBlockStyle::Preserve; // @TODO When to keep `enum` bodies on one line
+    FormatShortBlockStyle allowShortStructsOnSingleLine      = FormatShortBlockStyle::Preserve; // @TODO When to keep `struct` bodies on one line
     std::optional<bool>   allowShortIfStatementsOnSingleLine;                                // @TODO Allow `if cond do stmt` on one line
     std::optional<bool>   allowShortLoopsOnSingleLine;                                       // @TODO Allow short `while`/`for`/`foreach` bodies on one line
     std::optional<bool>   allowShortCaseOnSingleLine;                                        // @TODO Allow single-statement `case` arms on one line
@@ -155,12 +158,12 @@ struct FormatOptions
     // -----------------------------------------------------------------------
     // Alignment
     // -----------------------------------------------------------------------
-    FormatAlignMode     alignConsecutiveAssignments  = FormatAlignMode::Consecutive; // @TODO Align `=` in adjacent assignments
-    FormatAlignMode     alignConsecutiveDeclarations = FormatAlignMode::Consecutive; // @TODO Align names/types of adjacent `let`/`var` declarations
-    FormatAlignMode     alignConsecutiveConstants    = FormatAlignMode::Consecutive; // @TODO Align values of adjacent `const` declarations
-    FormatAlignMode     alignStructFields            = FormatAlignMode::Consecutive; // @TODO Align `:` and types of adjacent struct fields
-    FormatAlignMode     alignEnumValues              = FormatAlignMode::Consecutive; // @TODO Align `=` on enum value definitions
-    FormatAlignMode     alignAttributes              = FormatAlignMode::None;        // @TODO Align adjacent `#[...]` attributes
+    FormatAlignMode     alignConsecutiveAssignments  = FormatAlignMode::Preserve; // @TODO Align `=` in adjacent assignments
+    FormatAlignMode     alignConsecutiveDeclarations = FormatAlignMode::Preserve; // @TODO Align names/types of adjacent `let`/`var` declarations
+    FormatAlignMode     alignConsecutiveConstants    = FormatAlignMode::Preserve; // @TODO Align values of adjacent `const` declarations
+    FormatAlignMode     alignStructFields            = FormatAlignMode::Preserve; // @TODO Align `:` and types of adjacent struct fields
+    FormatAlignMode     alignEnumValues              = FormatAlignMode::Preserve; // @TODO Align `=` on enum value definitions
+    FormatAlignMode     alignAttributes              = FormatAlignMode::Preserve; // @TODO Align adjacent `#[...]` attributes
     std::optional<bool> alignTrailingComments;                                       // @TODO Align `//` trailing comments into a shared column
     uint32_t            trailingCommentMinSpaces     = 5;                            // @TODO Minimum spaces before a trailing `//`
     uint32_t            trailingCommentMaxColumn     = 0;                            // @TODO 0 = no limit on trailing comment column
@@ -188,7 +191,7 @@ struct FormatOptions
     std::optional<bool>     spaceInEmptyParentheses;                                    // @TODO `( )`
     std::optional<bool>     spaceInEmptyBraces;                                         // @TODO `{ }`
     std::optional<bool>     spaceBeforeAttributeBracket;                                // @TODO `foo #[attr]`
-    FormatSpaceBeforeParens spaceBeforeParentheses = FormatSpaceBeforeParens::Never;    // @TODO When to insert a space between an identifier and `(`
+    FormatSpaceBeforeParens spaceBeforeParentheses = FormatSpaceBeforeParens::Preserve;  // @TODO When to insert a space between an identifier and `(`
 
     // -----------------------------------------------------------------------
     // Attributes

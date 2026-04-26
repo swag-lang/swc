@@ -95,6 +95,7 @@ namespace
         schema.add("compact-empty-braces", &options.compactEmptyBraces, "Keep `{}` on the opening line.");
 
         const std::initializer_list<std::pair<const char*, FormatShortBlockStyle>> shortChoices = {
+            {"preserve", FormatShortBlockStyle::Preserve},
             {"never", FormatShortBlockStyle::Never},
             {"empty", FormatShortBlockStyle::Empty},
             {"inline", FormatShortBlockStyle::Inline},
@@ -113,6 +114,7 @@ namespace
     void bindAlignmentSchema(StructConfigSchema& schema, FormatOptions& options)
     {
         const std::initializer_list<std::pair<const char*, FormatAlignMode>> alignChoices = {
+            {"preserve", FormatAlignMode::Preserve},
             {"none", FormatAlignMode::None},
             {"consecutive", FormatAlignMode::Consecutive},
             {"across-blanks", FormatAlignMode::AcrossBlanks},
@@ -155,6 +157,7 @@ namespace
 
         schema.addEnum("space-before-parentheses", &options.spaceBeforeParentheses,
                        {
+                           {"preserve", FormatSpaceBeforeParens::Preserve},
                            {"never", FormatSpaceBeforeParens::Never},
                            {"always", FormatSpaceBeforeParens::Always},
                            {"control-statements", FormatSpaceBeforeParens::ControlStatements},

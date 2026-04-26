@@ -103,11 +103,11 @@ struct FormatOptions
     // -----------------------------------------------------------------------
     std::optional<bool> preserveBom;                  // Preserve UTF-8 BOM markers already present in the file
     std::optional<bool> preserveTrailingWhitespace;   // Keep trailing whitespace on existing lines unchanged
-    std::optional<bool> insertFinalNewline;            // Ensure the file ends with a single newline
-    std::optional<bool> trimTrailingNewlines;          // Collapse multiple trailing newlines to one
-    uint32_t            maxConsecutiveEmptyLines = 2;  // Max blank lines in a row (0 = no limit)
-    std::optional<bool> keepEmptyLinesAtStartOfBlock;  // Preserve blank lines right after `{`
-    std::optional<bool> keepEmptyLinesAtEndOfBlock;    // Preserve blank lines right before `}`
+    std::optional<bool> insertFinalNewline;           // Ensure the file ends with a single newline
+    std::optional<bool> trimTrailingNewlines;         // Collapse multiple trailing newlines to one
+    uint32_t            maxConsecutiveEmptyLines = 2; // Max blank lines in a row (0 = no limit)
+    std::optional<bool> keepEmptyLinesAtStartOfBlock; // Preserve blank lines right after `{`
+    std::optional<bool> keepEmptyLinesAtEndOfBlock;   // Preserve blank lines right before `}`
 
     // -----------------------------------------------------------------------
     // End-of-line
@@ -133,24 +133,24 @@ struct FormatOptions
     // -----------------------------------------------------------------------
     // Column limit & wrapping
     // -----------------------------------------------------------------------
-    uint32_t                columnLimit                 = 0;                                 // @TODO Soft column limit (0 disables wrapping)
-    FormatOperatorWrapStyle breakBeforeBinaryOperators  = FormatOperatorWrapStyle::Preserve; // @TODO Where to wrap around binary operators
-    std::optional<bool>     breakBeforeTernaryOperators;                                     // @TODO Break before `?` and `:` in `cond ? a : b`
-    std::optional<bool>     breakAfterReturnType;                                            // @TODO Newline before `->` in `func foo(...)->T`
-    std::optional<bool>     breakBeforeDo;                                                   // @TODO Break before trailing `do` (`if x do ...`)
-    std::optional<bool>     breakBeforeElse;                                                 // @TODO Place `else` on its own line
-    FormatBinPackStyle      binPackArguments            = FormatBinPackStyle::Preserve;      // @TODO Call argument layout when wrapping
-    FormatBinPackStyle      binPackParameters           = FormatBinPackStyle::Preserve;      // @TODO Declaration parameter layout when wrapping
+    uint32_t                columnLimit                = 0;                                 // @TODO Soft column limit (0 disables wrapping)
+    FormatOperatorWrapStyle breakBeforeBinaryOperators = FormatOperatorWrapStyle::Preserve; // @TODO Where to wrap around binary operators
+    std::optional<bool>     breakBeforeTernaryOperators;                                    // @TODO Break before `?` and `:` in `cond ? a : b`
+    std::optional<bool>     breakAfterReturnType;                                           // @TODO Newline before `->` in `func foo(...)->T`
+    std::optional<bool>     breakBeforeDo;                                                  // @TODO Break before trailing `do` (`if x do ...`)
+    std::optional<bool>     breakBeforeElse;                                                // @TODO Place `else` on its own line
+    FormatBinPackStyle      binPackArguments  = FormatBinPackStyle::Preserve;               // @TODO Call argument layout when wrapping
+    FormatBinPackStyle      binPackParameters = FormatBinPackStyle::Preserve;               // @TODO Declaration parameter layout when wrapping
 
     // -----------------------------------------------------------------------
     // Braces & short bodies
     // -----------------------------------------------------------------------
-    FormatBraceStyle      braceStyle                         = FormatBraceStyle::Allman;     // @TODO Opening brace placement policy
+    FormatBraceStyle      braceStyle = FormatBraceStyle::Allman;                             // @TODO Opening brace placement policy
     std::optional<bool>   compactEmptyBraces;                                                // @TODO Keep `{}` inline on the opening line
-    FormatShortBlockStyle allowShortFunctionsOnSingleLine    = FormatShortBlockStyle::Preserve; // @TODO When to keep function bodies on one line
-    FormatShortBlockStyle allowShortBlocksOnSingleLine       = FormatShortBlockStyle::Preserve; // @TODO When to keep generic `{ ... }` blocks on one line
-    FormatShortBlockStyle allowShortEnumsOnSingleLine        = FormatShortBlockStyle::Preserve; // @TODO When to keep `enum` bodies on one line
-    FormatShortBlockStyle allowShortStructsOnSingleLine      = FormatShortBlockStyle::Preserve; // @TODO When to keep `struct` bodies on one line
+    FormatShortBlockStyle allowShortFunctionsOnSingleLine = FormatShortBlockStyle::Preserve; // @TODO When to keep function bodies on one line
+    FormatShortBlockStyle allowShortBlocksOnSingleLine    = FormatShortBlockStyle::Preserve; // @TODO When to keep generic `{ ... }` blocks on one line
+    FormatShortBlockStyle allowShortEnumsOnSingleLine     = FormatShortBlockStyle::Preserve; // @TODO When to keep `enum` bodies on one line
+    FormatShortBlockStyle allowShortStructsOnSingleLine   = FormatShortBlockStyle::Preserve; // @TODO When to keep `struct` bodies on one line
     std::optional<bool>   allowShortIfStatementsOnSingleLine;                                // @TODO Allow `if cond do stmt` on one line
     std::optional<bool>   allowShortLoopsOnSingleLine;                                       // @TODO Allow short `while`/`for`/`foreach` bodies on one line
     std::optional<bool>   allowShortCaseOnSingleLine;                                        // @TODO Allow single-statement `case` arms on one line
@@ -164,11 +164,11 @@ struct FormatOptions
     FormatAlignMode     alignStructFields            = FormatAlignMode::Preserve; // @TODO Align `:` and types of adjacent struct fields
     FormatAlignMode     alignEnumValues              = FormatAlignMode::Preserve; // @TODO Align `=` on enum value definitions
     FormatAlignMode     alignAttributes              = FormatAlignMode::Preserve; // @TODO Align adjacent `#[...]` attributes
-    std::optional<bool> alignTrailingComments;                                       // @TODO Align `//` trailing comments into a shared column
-    uint32_t            trailingCommentMinSpaces     = 5;                            // @TODO Minimum spaces before a trailing `//`
-    uint32_t            trailingCommentMaxColumn     = 0;                            // @TODO 0 = no limit on trailing comment column
-    std::optional<bool> alignOperands;                                               // @TODO Align operands of wrapped binary expressions
-    std::optional<bool> alignAfterOpenBracket;                                       // @TODO Align wrapped args with the opening `(` / `[`
+    std::optional<bool> alignTrailingComments;                                    // @TODO Align `//` trailing comments into a shared column
+    uint32_t            trailingCommentMinSpaces = 5;                             // @TODO Minimum spaces before a trailing `//`
+    uint32_t            trailingCommentMaxColumn = 0;                             // @TODO 0 = no limit on trailing comment column
+    std::optional<bool> alignOperands;                                            // @TODO Align operands of wrapped binary expressions
+    std::optional<bool> alignAfterOpenBracket;                                    // @TODO Align wrapped args with the opening `(` / `[`
 
     // -----------------------------------------------------------------------
     // Spacing
@@ -191,40 +191,40 @@ struct FormatOptions
     std::optional<bool>     spaceInEmptyParentheses;                                    // @TODO `( )`
     std::optional<bool>     spaceInEmptyBraces;                                         // @TODO `{ }`
     std::optional<bool>     spaceBeforeAttributeBracket;                                // @TODO `foo #[attr]`
-    FormatSpaceBeforeParens spaceBeforeParentheses = FormatSpaceBeforeParens::Preserve;  // @TODO When to insert a space between an identifier and `(`
+    FormatSpaceBeforeParens spaceBeforeParentheses = FormatSpaceBeforeParens::Preserve; // @TODO When to insert a space between an identifier and `(`
 
     // -----------------------------------------------------------------------
     // Attributes
     // -----------------------------------------------------------------------
-    FormatAttributePlacement attributePlacement       = FormatAttributePlacement::Preserve; // @TODO How to place `#[Attr]` relative to its declaration
-    std::optional<bool>      breakAfterAttribute;                                           // @TODO Force a line break between attribute and declaration
-    std::optional<bool>      spaceAfterAttributeComma;                                     // @TODO Insert a space after `,` inside `#[A, B, C]`
-    std::optional<bool>      sortAttributeArguments;                                        // @TODO Sort attribute argument lists alphabetically
+    FormatAttributePlacement attributePlacement = FormatAttributePlacement::Preserve; // @TODO How to place `#[Attr]` relative to its declaration
+    std::optional<bool>      breakAfterAttribute;                                     // @TODO Force a line break between attribute and declaration
+    std::optional<bool>      spaceAfterAttributeComma;                                // @TODO Insert a space after `,` inside `#[A, B, C]`
+    std::optional<bool>      sortAttributeArguments;                                  // @TODO Sort attribute argument lists alphabetically
 
     // -----------------------------------------------------------------------
     // Comments
     // -----------------------------------------------------------------------
-    FormatCommentReflow commentReflow               = FormatCommentReflow::Preserve; // @TODO How aggressively to rewrite comments for the column limit
-    std::optional<bool> normalizeSectionSeparators;                                  // @TODO Rewrite `// ####...` banners to a common width
-    uint32_t            sectionSeparatorWidth       = 57;                            // @TODO Target column count for `// ### ... ###` banners
-    std::optional<bool> spaceAfterLineCommentPrefix;                                 // @TODO `// text` vs `//text`
+    FormatCommentReflow commentReflow = FormatCommentReflow::Preserve; // @TODO How aggressively to rewrite comments for the column limit
+    std::optional<bool> normalizeSectionSeparators;                    // @TODO Rewrite `// ####...` banners to a common width
+    uint32_t            sectionSeparatorWidth = 57;                    // @TODO Target column count for `// ### ... ###` banners
+    std::optional<bool> spaceAfterLineCommentPrefix;                   // @TODO `// text` vs `//text`
 
     // -----------------------------------------------------------------------
     // Imports / using
     // -----------------------------------------------------------------------
-    FormatSortOrder     sortUsingStatements      = FormatSortOrder::Preserve; // @TODO Sort order for top-of-file `using` statements
-    std::optional<bool> mergeUsingStatements;                                  // @TODO Collapse adjacent `using` onto one line
-    std::optional<bool> blankLineAfterUsingBlock;                              // @TODO Guarantee a blank line after the initial `using` block
+    FormatSortOrder     sortUsingStatements = FormatSortOrder::Preserve; // @TODO Sort order for top-of-file `using` statements
+    std::optional<bool> mergeUsingStatements;                            // @TODO Collapse adjacent `using` onto one line
+    std::optional<bool> blankLineAfterUsingBlock;                        // @TODO Guarantee a blank line after the initial `using` block
 
     // -----------------------------------------------------------------------
     // Numeric literals
     // -----------------------------------------------------------------------
-    FormatLiteralCase   hexLiteralCase                 = FormatLiteralCase::Preserve; // Case of hex digits (`0xABCD` vs `0xabcd`)
-    FormatLiteralCase   hexLiteralPrefixCase           = FormatLiteralCase::Preserve; // `0x` vs `0X` (also applies to `0b` / `0B`)
-    FormatLiteralCase   floatExponentCase              = FormatLiteralCase::Preserve; // `1e10` vs `1E10`
-    std::optional<bool> normalizeDigitSeparators;                                     // Rewrite literals to use canonical `_` digit separators
-    uint32_t            hexDigitSeparatorGroupSize     = 4;                           // Group size for `0x` / `0b` literals when normalizing separators
-    uint32_t            decimalDigitSeparatorGroupSize = 3;                           // Group size for decimal and float literals when normalizing separators
+    FormatLiteralCase   hexLiteralCase       = FormatLiteralCase::Preserve; // Case of hex digits (`0xABCD` vs `0xabcd`)
+    FormatLiteralCase   hexLiteralPrefixCase = FormatLiteralCase::Preserve; // `0x` vs `0X` (also applies to `0b` / `0B`)
+    FormatLiteralCase   floatExponentCase    = FormatLiteralCase::Preserve; // `1e10` vs `1E10`
+    std::optional<bool> normalizeDigitSeparators;                           // Rewrite literals to use canonical `_` digit separators
+    uint32_t            hexDigitSeparatorGroupSize     = 4;                 // Group size for `0x` / `0b` literals when normalizing separators
+    uint32_t            decimalDigitSeparatorGroupSize = 3;                 // Group size for decimal and float literals when normalizing separators
 
     // -----------------------------------------------------------------------
     // Region / disable pragmas

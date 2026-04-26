@@ -247,16 +247,6 @@ namespace
         return result;
     }
 
-    Utf8 formatDryRunFormatOutcome(const DryRunFormatPreview& preview)
-    {
-        const std::vector<Utf8> parts = {
-            formatFileCountWithSuffix(preview.unchangedFiles, " skipped because unchanged"),
-            formatFileCountWithSuffix(preview.skippedFmtFiles, " ignored by skipfmt"),
-            formatFileCountWithSuffix(preview.skippedInvalidFiles, " ignored after errors"),
-        };
-        return Utf8Helper::join(parts, ", ");
-    }
-
     void printDryRunOverview(const TaskContext& ctx, const DryRunInputSummary& inputSummary, const DryRunNativePreview& nativePreview, bool& hasPrintedGroup)
     {
         const CommandLine&              cmdLine = ctx.cmdLine();
@@ -317,8 +307,11 @@ namespace
             case CommandKind::Format:
                 if (formatPreview.enabled)
                 {
-                    addPlanEntry(entries, index++, "Would", LogColor::BrightGreen, std::format("parse and format {} ({})", inputCount, formatDryRunFormatOutcome(formatPreview)));
-                    addPlanEntry(entries, index, "Would", LogColor::BrightGreen, std::format("rewrite {} whose formatted output differs", Utf8Helper::countWithLabel(formatPreview.rewrittenFiles, "file")));
+                    addPlanEntry(entries, index++, "Would", LogColor::BrightGreen, std::format("parse and format {}", inputCount));
+                    addPlanEntry(entries, index++, "Would", LogColor::BrightGreen, std::format("rewrite {}", formatFileCountWithSuffix(formatPreview.rewrittenFiles, " whose formatted output differs")));
+                    addPlanEntry(entries, index++, "Would", LogColor::BrightGreen, std::format("skip {}", formatFileCountWithSuffix(formatPreview.unchangedFiles, " because formatted output is unchanged")));
+                    addPlanEntry(entries, index++, "Would", LogColor::BrightGreen, std::format("ignore {}", formatFileCountWithSuffix(formatPreview.skippedFmtFiles, " marked skipfmt")));
+                    addPlanEntry(entries, index, "Would", LogColor::BrightGreen, std::format("ignore {}", formatFileCountWithSuffix(formatPreview.skippedInvalidFiles, " after parse errors")));
                 }
                 else
                 {

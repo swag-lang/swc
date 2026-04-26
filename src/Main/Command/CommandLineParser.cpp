@@ -52,7 +52,6 @@ namespace
                 if (inTok)
                 {
                     out.push_back(std::move(token));
-                    token.clear();
                     inTok = false;
                 }
                 continue;

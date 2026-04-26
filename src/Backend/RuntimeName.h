@@ -24,6 +24,8 @@ inline Utf8 backendKindName(const Runtime::BuildCfgBackendKind backendKind)
             return "shared-library";
         case Runtime::BuildCfgBackendKind::StaticLibrary:
             return "static-library";
+        case Runtime::BuildCfgBackendKind::Export:
+            return "export";
         case Runtime::BuildCfgBackendKind::None:
             return "none";
     }

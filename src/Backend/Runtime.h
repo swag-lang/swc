@@ -380,7 +380,15 @@ namespace Runtime
         SharedLibrary,
         Executable,
         StaticLibrary,
+        Export,
     };
+
+    inline constexpr bool backendKindProducesNativeArtifact(const BuildCfgBackendKind backendKind)
+    {
+        return backendKind == BuildCfgBackendKind::Executable ||
+               backendKind == BuildCfgBackendKind::SharedLibrary ||
+               backendKind == BuildCfgBackendKind::StaticLibrary;
+    }
 
     enum class BuildCfgBackendSubKind
     {

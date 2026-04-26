@@ -193,6 +193,7 @@ Utf8 NativeArtifactBuilder::artifactExtension() const
                     return ".dll";
                 case Runtime::BuildCfgBackendKind::StaticLibrary:
                     return ".lib";
+                case Runtime::BuildCfgBackendKind::Export:
                 case Runtime::BuildCfgBackendKind::None:
                     break;
             }

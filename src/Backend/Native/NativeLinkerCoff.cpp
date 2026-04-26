@@ -59,6 +59,7 @@ Result NativeLinkerCoff::link()
             args    = buildLibArguments();
             exePath = &toolchain_.libExe;
             break;
+        case Runtime::BuildCfgBackendKind::Export:
         case Runtime::BuildCfgBackendKind::None:
             SWC_UNREACHABLE();
     }

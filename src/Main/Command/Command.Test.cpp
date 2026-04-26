@@ -463,20 +463,22 @@ namespace
             {
                 const Runtime::BuildCfgBackendKind backendKind = effectiveBackendKind(compiler.cmdLine(), compiler.buildCfg().backendKind);
                 compiler.buildCfg().backendKind                = backendKind;
+                if (Runtime::backendKindProducesNativeArtifact(backendKind))
+                {
+                    TaskContext          ctx(compiler);
+                    NativeBackendBuilder builder(compiler, backendKind == Runtime::BuildCfgBackendKind::Executable);
+                    if (CommandRun::afterPauses(ctx, [&] {
+                            return builder.run();
+                        }) != Result::Continue)
+                        return false;
 
-                TaskContext          ctx(compiler);
-                NativeBackendBuilder builder(compiler, backendKind == Runtime::BuildCfgBackendKind::Executable);
-                if (CommandRun::afterPauses(ctx, [&] {
-                        return builder.run();
-                    }) != Result::Continue)
-                    return false;
+                    if (Stats::hasError())
+                        return false;
 
-                if (Stats::hasError())
-                    return false;
-
-                TimedActionLog::ScopedStage stage(ctx, TimedActionLog::Stage::Verify);
-                verifyExpectedMarkers(ctx);
-                return !Stats::hasError();
+                    TimedActionLog::ScopedStage stage(ctx, TimedActionLog::Stage::Verify);
+                    verifyExpectedMarkers(ctx);
+                    return !Stats::hasError();
+                }
             }
         }
 

@@ -741,6 +741,7 @@ namespace Swag
         SharedLibrary  // The module needs to be compiled as a shared library.
         Executable     // The module needs to be compiled to an executable application.
         StaticLibrary  // The module needs to be compiled as a static library.
+        Export         // The module only exports dependency metadata/API and does not produce a native artifact.
     }
 
     // The native backend sub category.
@@ -817,7 +818,7 @@ namespace Swag
         warnDefaultDisabled:           bool                                 // All warnings are disabled, except those specified above
         warnDefaultErrors:             bool                                 // All warnings are treated as errors, except those specified above
 
-        backendKind                    = BuildCfgBackendKind.Executable     // Backend type (executable, shared library, static library...)
+        backendKind                    = BuildCfgBackendKind.Executable     // Backend type (executable, shared library, static library, export...)
         backendSubKind                 = BuildCfgBackendSubKind.Console     // Backend sub kind
 
         linkerArgs:                    string                               // Additional linker arguments

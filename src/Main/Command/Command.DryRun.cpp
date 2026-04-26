@@ -117,6 +117,12 @@ namespace
 
         result.enabled        = true;
         result.backendKind    = effectiveBackendKind(cmdLine, compiler.buildCfg().backendKind);
+        if (!Runtime::backendKindProducesNativeArtifact(result.backendKind))
+        {
+            result.enabled = false;
+            return result;
+        }
+
         result.mayRunArtifact = (cmdLine.command == CommandKind::Test && result.backendKind == Runtime::BuildCfgBackendKind::Executable) ||
                                 (cmdLine.command == CommandKind::Run && result.backendKind == Runtime::BuildCfgBackendKind::Executable);
 
@@ -233,6 +239,7 @@ namespace
                 args.emplace_back("<object-files>");
                 break;
 
+            case Runtime::BuildCfgBackendKind::Export:
             case Runtime::BuildCfgBackendKind::None:
                 break;
         }
@@ -255,7 +262,7 @@ namespace
         addInfoEntry(entries, "Command", COMMANDS[static_cast<int>(cmdLine.command)].name, LogColor::BrightYellow);
         addInfoEntry(entries, "Build config", cmdLine.buildCfg);
         addInfoEntry(entries, "Resolved inputs", Utf8Helper::countWithLabel(inputSummary.totalFiles, "file"), LogColor::BrightGreen);
-        if (nativePreview.enabled)
+        if (nativePreview.enabled || nativePreview.backendKind != Runtime::BuildCfgBackendKind::None)
             addInfoEntry(entries, "Backend", backendKindName(nativePreview.backendKind));
         addInfoEntry(entries, "Compile-time execution", "suppressed", LogColor::BrightGreen);
         addInfoEntry(entries, "Filesystem mutation", "suppressed", LogColor::BrightGreen);
@@ -337,13 +344,20 @@ namespace
                 addPlanEntry(entries, index++, "Would", LogColor::BrightGreen, "run semantic analysis, including compile-time evaluation when required");
                 if (!cmdLine.exportApiDir.empty())
                     addPlanEntry(entries, index++, "Would", LogColor::BrightGreen, std::format("write generated module API files under {}", Utf8(cmdLine.exportApiDir)));
-                addPlanEntry(entries, index++, "Would", LogColor::BrightGreen, std::format("generate native {}", backendKindName(nativePreview.backendKind)));
-                if (cmdLine.clear)
-                    addPlanEntry(entries, index++, "Would", LogColor::BrightGreen, std::format("clear native outputs under {}", Utf8(nativePreview.paths.workDir)));
-                addPlanEntry(entries, index++, "Would", LogColor::BrightGreen, std::format("write object files matching {}", objectFiles));
-                addPlanEntry(entries, index++, "Would", LogColor::BrightGreen, std::format("invoke the native toolchain to produce {}", Utf8(nativePreview.paths.artifactPath)));
-                if (cmdLine.command == CommandKind::Run && nativePreview.backendKind == Runtime::BuildCfgBackendKind::Executable)
-                    addPlanEntry(entries, index, "Would", LogColor::BrightGreen, std::format("run {}", Utf8(nativePreview.paths.artifactPath)));
+                if (nativePreview.enabled)
+                {
+                    addPlanEntry(entries, index++, "Would", LogColor::BrightGreen, std::format("generate native {}", backendKindName(nativePreview.backendKind)));
+                    if (cmdLine.clear)
+                        addPlanEntry(entries, index++, "Would", LogColor::BrightGreen, std::format("clear native outputs under {}", Utf8(nativePreview.paths.workDir)));
+                    addPlanEntry(entries, index++, "Would", LogColor::BrightGreen, std::format("write object files matching {}", objectFiles));
+                    addPlanEntry(entries, index++, "Would", LogColor::BrightGreen, std::format("invoke the native toolchain to produce {}", Utf8(nativePreview.paths.artifactPath)));
+                    if (cmdLine.command == CommandKind::Run && nativePreview.backendKind == Runtime::BuildCfgBackendKind::Executable)
+                        addPlanEntry(entries, index, "Would", LogColor::BrightGreen, std::format("run {}", Utf8(nativePreview.paths.artifactPath)));
+                }
+                else
+                {
+                    addPlanEntry(entries, index, "Skip", LogColor::Gray, std::format("native artifact generation for {} backend", backendKindName(nativePreview.backendKind)));
+                }
                 break;
 
             case CommandKind::Test:
@@ -363,6 +377,8 @@ namespace
                 }
                 else if (cmdLine.testNative && !cmdLine.output)
                     addPlanEntry(entries, index++, "Skip", LogColor::Gray, "native test artifact generation because output is disabled");
+                else if (cmdLine.testNative && nativePreview.backendKind != Runtime::BuildCfgBackendKind::None)
+                    addPlanEntry(entries, index++, "Skip", LogColor::Gray, std::format("native test artifact generation for {} backend", backendKindName(nativePreview.backendKind)));
 
                 addPlanEntry(entries, index, "Would", LogColor::BrightGreen, "verify expected diagnostics and untouched markers");
                 break;
@@ -413,6 +429,7 @@ namespace
             case Runtime::BuildCfgBackendKind::StaticLibrary:
                 exePath = &nativePreview.toolchain.libExe;
                 break;
+            case Runtime::BuildCfgBackendKind::Export:
             case Runtime::BuildCfgBackendKind::None:
                 break;
         }

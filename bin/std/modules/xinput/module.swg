@@ -12,7 +12,7 @@
         cfg.moduleRevision  = #swcrevision
         cfg.moduleBuildNum  = #swcbuildnum
         cfg.moduleNamespace = "XInput"
-        cfg.backendKind     = .SharedLibrary
+        cfg.backendKind     = .Export
         cfg.repoPath        = "https://github.com/swag-lang/swag/blob/master/bin/std/modules/xinput"
 
         cfg.genDoc.kind            = .Api

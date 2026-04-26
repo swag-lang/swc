@@ -80,8 +80,9 @@ void CommandLineParser::registerCommands()
                 {"executable", Runtime::BuildCfgBackendKind::Executable},
                 {"shared-library", Runtime::BuildCfgBackendKind::SharedLibrary},
                 {"static-library", Runtime::BuildCfgBackendKind::StaticLibrary},
+                {"export", Runtime::BuildCfgBackendKind::Export},
             },
-            "Select the native artifact kind exposed through @compiler.getBuildCfg() and used by the native backend.",
+            "Select the backend kind exposed through @compiler.getBuildCfg(); export builds generate dependency/API output without a native artifact.",
             true,
             {&StructConfigAssignHook::setBoolTrue, &cmdLine_->artifactKindExplicit});
     add(HelpOptionGroup::Target, "sema test build run", "--cpu", "-cpu",

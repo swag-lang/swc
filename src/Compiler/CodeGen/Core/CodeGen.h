@@ -249,7 +249,7 @@ public:
     const Runtime::BuildCfgBackend& buildCfgBackend() const { return buildCfg().backend; }
     Runtime::BuildCfgBackendKind    buildCfgBackendKind() const { return buildCfg().backendKind; }
     bool                            isDebugInfoEnabled() const { return buildCfgBackend().debugInfo; }
-    bool                            isNativeBuild() const { return buildCfgBackendKind() != Runtime::BuildCfgBackendKind::None; }
+    bool                            isNativeBuild() const { return Runtime::backendKindProducesNativeArtifact(buildCfgBackendKind()); }
     bool                            isNativeExecutableBuild() const { return buildCfgBackendKind() == Runtime::BuildCfgBackendKind::Executable; }
     ConstantManager&                cstMgr();
     const ConstantManager&          cstMgr() const;

@@ -121,6 +121,9 @@ namespace
 
     void printNativeConfig(const TaskContext& ctx, CompilerInstance& compiler, bool& hasPrintedGroup)
     {
+        if (!Runtime::backendKindProducesNativeArtifact(compiler.buildCfg().backendKind))
+            return;
+
         NativeBackendBuilder            nativeBuilder(compiler, false);
         const NativeArtifactBuilder     artifactBuilder(nativeBuilder);
         NativeArtifactPaths             nativePaths;

@@ -11,7 +11,7 @@
         cfg.moduleRevision  = #swcrevision
         cfg.moduleBuildNum  = #swcbuildnum
         cfg.moduleNamespace = "Win32"
-        cfg.backendKind     = .SharedLibrary
+        cfg.backendKind     = .Export
         cfg.repoPath        = "https://github.com/swag-lang/swag/blob/master/bin/std/modules/win32"
 
         cfg.genDoc.kind            = .Api

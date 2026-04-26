@@ -410,7 +410,7 @@ Result NativeBackendBuilder::validateTarget()
 
     SWC_ASSERT(compiler_ != nullptr);
     const Runtime::BuildCfg& buildCfg = compiler_->buildCfg();
-    if (buildCfg.backendKind == Runtime::BuildCfgBackendKind::None)
+    if (!Runtime::backendKindProducesNativeArtifact(buildCfg.backendKind))
     {
         return reportError(DiagnosticId::cmd_err_native_backend_kind_required);
     }

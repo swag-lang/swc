@@ -54,7 +54,7 @@ public:
     const Runtime::BuildCfg&        buildCfg() const { return compiler().buildCfg(); }
     const Runtime::BuildCfgBackend& buildCfgBackend() const { return buildCfg().backend; }
     Runtime::BuildCfgBackendKind    buildCfgBackendKind() const { return buildCfg().backendKind; }
-    bool                            isNativeBuild() const { return buildCfgBackendKind() != Runtime::BuildCfgBackendKind::None; }
+    bool                            isNativeBuild() const { return Runtime::backendKindProducesNativeArtifact(buildCfgBackendKind()); }
     bool                            isNativeExecutableBuild() const { return buildCfgBackendKind() == Runtime::BuildCfgBackendKind::Executable; }
     SymbolFunction*                 currentFunction() { return frame().currentFunction(); }
     const SymbolFunction*           currentFunction() const { return frame().currentFunction(); }

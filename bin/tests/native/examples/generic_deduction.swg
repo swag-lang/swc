@@ -65,6 +65,11 @@ impl Rect
 
 impl Vec2
 {
+    func make(x: T, y: T)->Vec2
+    {
+        return {x: x, y: y}
+    }
+
     // Return type 'Vec2' is deduced as Vec2'T (self-type)
     func add(const me, other: const &Vec2)->Vec2
     {
@@ -74,6 +79,11 @@ impl Vec2
     func negate(const me)->Vec2
     {
         return {x: -me.x, y: -me.y}
+    }
+
+    func doubled(const me)->Vec2
+    {
+        return Vec2.make(me.x + me.x, me.y + me.y)
     }
 }
 
@@ -171,6 +181,17 @@ impl Container
     #assert(#typeof(neg) == Vec2's32)
     @assert(neg.x == -3)
     @assert(neg.y == 7)
+}
+
+// Test: member lookup on a bare generic root still uses the current specialization
+#test
+{
+    var v: Vec2's32 = {x: 3, y: 4}
+    let doubled = v.doubled()
+
+    #assert(#typeof(doubled) == Vec2's32)
+    @assert(doubled.x == 6)
+    @assert(doubled.y == 8)
 }
 
 // Test: deduction in Container (cross-struct matching T)

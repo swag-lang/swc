@@ -101,6 +101,18 @@ func inlineCascade(a: s32, b: s32, c: s32)->s32 => inlineAdd(a * b, c)
 #[Swag.Inline]
 func inlineSelect(flag: bool, a: s32, b: s32)->s32 => inlineBranch(flag, a, b)
 
+#[Swag.Inline]
+func inlineSeedS32()->s32 => 41
+
+#[Swag.Inline]
+func inlineArraySeed()->[3] s32 => [10, 42, 99]
+
+#[Swag.Inline]
+func inlineTakeS32(value: s32)->s32 => value
+
+#[Swag.Inline]
+func inlineTakeBool(value: bool)->bool => value
+
 #test
 {
     @assert(inlineConst() == 42)
@@ -196,4 +208,10 @@ func inlineSelect(flag: bool, a: s32, b: s32)->s32 => inlineBranch(flag, a, b)
     @assert(inlineAdd(inlinePack4(0, 0, 2, 0), inlinePack4(0, 0, 2, 2)) == 42)
     @assert(inlineAdd(inlineDefault1(30), inlineDefault1(1, 1)) == 42)
     @assert(inlineAdd(inlineNamed(10, 10, 1), inlineNamed(a: 10, c: 10, b: 1)) == 42)
+
+    @assert(inlineTakeS32(-inlineNeg(42)) == 42)
+    @assert(inlineTakeS32(inlineSeedS32() + 1) == 42)
+    @assert(inlineTakeBool(inlineSeedS32() == 41))
+    @assert(inlineTakeS32(inlineArraySeed()[1]) == 42)
+    @assert(inlineTakeS32(cast(s32) inlineAddU32(40, 2)) == 42)
 }

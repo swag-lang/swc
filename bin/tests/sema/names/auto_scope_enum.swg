@@ -49,3 +49,21 @@ impl E
     f.x = .G
     let a = f.x == .G
 }
+
+enum BindingDirection { North, South }
+alias BindingDirectionAlias = BindingDirection
+
+func reverseDirection(dir: BindingDirectionAlias)->BindingDirection
+{
+    switch dir
+    {
+        case North: return South
+        case South: return North
+    }
+}
+
+#test
+{
+    let dir: BindingDirectionAlias = .North
+    #assert(#typeof(reverseDirection(dir)) == BindingDirection)
+}

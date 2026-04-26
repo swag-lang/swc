@@ -155,6 +155,39 @@ namespace
         return runs;
     }
 
+    std::unique_ptr<Sema> makeLazyGenericBodySema(Sema& sema, SymbolFunction& calledFn, AstNodeRef declRef)
+    {
+        const SourceView& srcView = sema.compiler().srcView(calledFn.srcViewRef());
+        std::unique_ptr<Sema> child;
+        if (sema.ast().srcView().fileRef() == srcView.ownerFileRef())
+        {
+            child = std::make_unique<Sema>(sema.ctx(), sema, declRef);
+        }
+        else
+        {
+            SourceFile& sourceFile = sema.compiler().file(srcView.ownerFileRef());
+            if (declRef.isInvalid() && calledFn.decl())
+                declRef = calledFn.decl()->nodeRef(sourceFile.ast());
+            SWC_ASSERT(declRef.isValid());
+            child = std::make_unique<Sema>(sema.ctx(), sema, sourceFile.nodePayloadContext(), declRef);
+        }
+
+        SemaGeneric::prepareGenericInstantiationContext(*child, calledFn.ownerSymMap(), calledFn.declImplContext(), calledFn.declInterfaceContext(), calledFn.attributes());
+        return child;
+    }
+
+    void finishLazyGenericBodyRun(SymbolFunction& calledFn, Result result)
+    {
+        const std::scoped_lock lock(lazyGenericBodyRunMutex());
+        auto                   it = lazyGenericBodyRuns().find(&calledFn);
+        if (it == lazyGenericBodyRuns().end())
+            return;
+
+        it->second.running = false;
+        if (result != Result::Pause)
+            lazyGenericBodyRuns().erase(it);
+    }
+
     Result completeLazyGenericFunction(Sema& sema, SymbolFunction& calledFn)
     {
         if (calledFn.isSemaCompleted())
@@ -185,22 +218,8 @@ namespace
             }
             else
             {
-                run.ownerCtx              = &sema.ctx();
-                const SourceView& srcView = sema.compiler().srcView(calledFn.srcViewRef());
-                if (sema.ast().srcView().fileRef() == srcView.ownerFileRef())
-                {
-                    run.sema = std::make_unique<Sema>(sema.ctx(), sema, declRef);
-                }
-                else
-                {
-                    SourceFile& sourceFile = sema.compiler().file(srcView.ownerFileRef());
-                    if (declRef.isInvalid() && calledFn.decl())
-                        declRef = calledFn.decl()->nodeRef(sourceFile.ast());
-                    SWC_ASSERT(declRef.isValid());
-                    run.sema = std::make_unique<Sema>(sema.ctx(), sema, sourceFile.nodePayloadContext(), declRef);
-                }
-
-                SemaGeneric::prepareGenericInstantiationContext(*run.sema, calledFn.ownerSymMap(), calledFn.declImplContext(), calledFn.declInterfaceContext(), calledFn.attributes());
+                run.ownerCtx = &sema.ctx();
+                run.sema     = makeLazyGenericBodySema(sema, calledFn, declRef);
             }
 
             run.running = true;
@@ -211,16 +230,7 @@ namespace
         calledFn.addExtraFlag(SymbolFunctionFlagsE::LazyGenericBodyRunning);
         const Result result = child->execResult();
         calledFn.removeExtraFlag(SymbolFunctionFlagsE::LazyGenericBodyRunning);
-        {
-            const std::scoped_lock lock(lazyGenericBodyRunMutex());
-            auto                   it = lazyGenericBodyRuns().find(&calledFn);
-            if (it != lazyGenericBodyRuns().end())
-            {
-                it->second.running = false;
-                if (result != Result::Pause)
-                    lazyGenericBodyRuns().erase(it);
-            }
-        }
+        finishLazyGenericBodyRun(calledFn, result);
         return result;
     }
 

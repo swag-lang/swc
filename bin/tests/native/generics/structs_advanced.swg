@@ -196,3 +196,34 @@ impl Matrix
     let bb: BoxOfBox'u8
     #assert(#typeof(bb.inner.value.value) == u8)
 }
+
+struct(T) GenericAnonymousStructHolder
+{
+    using data: struct
+    {
+        value: T
+        count: u32
+    }
+}
+
+struct(T) GenericAnonymousUnionHolder
+{
+    using data: union
+    {
+        value: T
+        other: T
+    }
+}
+
+#test
+{
+    var st: GenericAnonymousStructHolder's32
+    st.value = 42
+    st.count = 1
+    @assert(st.data.value == 42)
+    @assert(st.count == 1)
+
+    var un: GenericAnonymousUnionHolder'u32
+    un.value = 42
+    @assert(un.data.value == 42)
+}

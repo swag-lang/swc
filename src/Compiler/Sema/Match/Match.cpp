@@ -186,16 +186,7 @@ namespace
             if (!typeRef.isValid())
                 continue;
 
-            TypeRef enumTypeRef = typeRef;
-            while (enumTypeRef.isValid())
-            {
-                const TypeInfo& typeInfo     = sema.typeMgr().get(enumTypeRef);
-                const TypeRef   unwrappedRef = typeInfo.unwrap(sema.ctx(), TypeRef::invalid(), TypeExpandE::Alias);
-                if (!unwrappedRef.isValid() || unwrappedRef == enumTypeRef)
-                    break;
-                enumTypeRef = unwrappedRef;
-            }
-
+            const TypeRef enumTypeRef = SemaHelpers::unwrapAliasRefType(sema.ctx(), typeRef);
             if (!enumTypeRef.isValid())
                 continue;
 

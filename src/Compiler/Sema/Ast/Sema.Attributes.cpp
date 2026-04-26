@@ -118,6 +118,7 @@ namespace
             {.name = IdentifierManager::PredefinedName::NoDoc, .flag = RtAttributeFlagsE::NoDoc},
             {.name = IdentifierManager::PredefinedName::Strict, .flag = RtAttributeFlagsE::Strict},
             {.name = IdentifierManager::PredefinedName::Global, .flag = RtAttributeFlagsE::Global},
+            {.name = IdentifierManager::PredefinedName::OperatorIgnore, .flag = RtAttributeFlagsE::OperatorIgnore},
         };
 
         for (const auto& mapping : PREDEFINED_RT_FLAGS)
@@ -309,12 +310,26 @@ namespace
         return Result::Continue;
     }
 
-    GeneratedOperatorFlags operatorFlagFromName(std::string_view name)
+    GeneratedOperatorFlags operatorFlagFromName(Sema& sema, std::string_view name)
     {
-        if (name == "opEquals")
-            return GeneratedOperatorFlagsE::OpEquals;
-        if (name == "opCompare")
-            return GeneratedOperatorFlagsE::OpCompare;
+        struct GeneratedOperatorName
+        {
+            IdentifierManager::PredefinedName name;
+            GeneratedOperatorFlags            flag;
+        };
+
+        static constexpr GeneratedOperatorName GENERATED_OPERATOR_NAMES[] = {
+            {.name = IdentifierManager::PredefinedName::OpEquals, .flag = GeneratedOperatorFlagsE::OpEquals},
+            {.name = IdentifierManager::PredefinedName::OpCompare, .flag = GeneratedOperatorFlagsE::OpCompare},
+        };
+
+        const IdentifierManager& idMgr = sema.idMgr();
+        for (const auto& mapping : GENERATED_OPERATOR_NAMES)
+        {
+            if (name == idMgr.get(idMgr.predefined(mapping.name)).name)
+                return mapping.flag;
+        }
+
         return GeneratedOperatorFlagsE::Zero;
     }
 
@@ -328,7 +343,7 @@ namespace
             SWC_ASSERT(argView.cst()->isString());
 
             const std::string_view     operatorName = argView.cst()->getString();
-            const GeneratedOperatorFlags flag        = operatorFlagFromName(operatorName);
+            const GeneratedOperatorFlags flag        = operatorFlagFromName(sema, operatorName);
             if (flag.none())
             {
                 auto diag = SemaError::report(sema, DiagnosticId::sema_err_operator_attribute_invalid_operator, argValueRef);

@@ -66,6 +66,9 @@ attr Commutative(operators: string...) // Allow opBinary as a right-operand fall
 #[AttrUsage(AttributeUsage.Struct)]
 attr Operators(operators: string...) // Generate operator overloads for a struct
 
+#[AttrUsage(AttributeUsage.StructVariable)]
+attr OperatorIgnore()      // Exclude a field from generated operator overloads
+
 /**
 # Foreign Interop
 */

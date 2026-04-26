@@ -14,17 +14,67 @@ struct GeneratedOuter
 }
 
 #[Swag.Operators(opEquals)]
-struct GeneratedEqualsFromCompare
+struct GeneratedEqualsIgnoresUserCompare
 {
     value: s32
 }
 
-impl GeneratedEqualsFromCompare
+impl GeneratedEqualsIgnoresUserCompare
 {
-    mtd const opCompare(other: const &GeneratedEqualsFromCompare)->s32
+    mtd const opCompare(other: const &GeneratedEqualsIgnoresUserCompare)->s32
     {
-        return .value <=> other.value
+        return 0
     }
+}
+
+#[Swag.Operators(opCompare)]
+struct GeneratedCompareOnly
+{
+    value: s32
+}
+
+struct EqualityOnlyField
+{
+    value: s32
+}
+
+impl EqualityOnlyField
+{
+    mtd const opEquals(other: const &EqualityOnlyField)->bool
+    {
+        return .value == other.value
+    }
+}
+
+#[Swag.Operators(opEquals)]
+struct GeneratedEqualityOnlyField
+{
+    field: EqualityOnlyField
+}
+
+struct NonComparableField
+{
+    value: s32
+}
+
+#[Swag.Operators(opEquals, opCompare)]
+struct GeneratedIgnoredField
+{
+    key: s32
+    #[Swag.OperatorIgnore]
+    cache: NonComparableField
+}
+
+#[Swag.Operators(opEquals, opCompare)]
+struct GeneratedOnlyIgnoredFields
+{
+    #[Swag.OperatorIgnore]
+    cache: NonComparableField
+}
+
+#[Swag.Operators(opEquals, opCompare)]
+struct GeneratedEmpty
+{
 }
 
 #test
@@ -51,10 +101,58 @@ impl GeneratedEqualsFromCompare
 
 #test
 {
-    let a = GeneratedEqualsFromCompare{value: 7}
-    let b = GeneratedEqualsFromCompare{value: 7}
-    let c = GeneratedEqualsFromCompare{value: 9}
+    let a = GeneratedEqualsIgnoresUserCompare{value: 7}
+    let b = GeneratedEqualsIgnoresUserCompare{value: 7}
+    let c = GeneratedEqualsIgnoresUserCompare{value: 9}
 
     @assert(a == b)
     @assert(a != c)
+}
+
+#test
+{
+    let a = GeneratedCompareOnly{value: 1}
+    let b = GeneratedCompareOnly{value: 2}
+
+    @assert(a < b)
+    @assert((b <=> a) > 0)
+}
+
+#test
+{
+    let a = GeneratedEqualityOnlyField{field: EqualityOnlyField{value: 4}}
+    let b = GeneratedEqualityOnlyField{field: EqualityOnlyField{value: 4}}
+    let c = GeneratedEqualityOnlyField{field: EqualityOnlyField{value: 5}}
+
+    @assert(a == b)
+    @assert(a != c)
+}
+
+#test
+{
+    let a = GeneratedIgnoredField{key: 1, cache: NonComparableField{value: 10}}
+    let b = GeneratedIgnoredField{key: 1, cache: NonComparableField{value: 20}}
+    let c = GeneratedIgnoredField{key: 2, cache: NonComparableField{value: 10}}
+
+    @assert(a == b)
+    @assert((a <=> b) == 0)
+    @assert(a < c)
+}
+
+#test
+{
+    let a = GeneratedOnlyIgnoredFields{cache: NonComparableField{value: 10}}
+    let b = GeneratedOnlyIgnoredFields{cache: NonComparableField{value: 20}}
+
+    @assert(a == b)
+    @assert((a <=> b) == 0)
+}
+
+#test
+{
+    let a = GeneratedEmpty{}
+    let b = GeneratedEmpty{}
+
+    @assert(a == b)
+    @assert((a <=> b) == 0)
 }

@@ -64,6 +64,7 @@ public:
         Complete,
         Commutative,
         Operators,
+        OperatorIgnore,
         CalleeReturn,
         Foreign,
         Discardable,

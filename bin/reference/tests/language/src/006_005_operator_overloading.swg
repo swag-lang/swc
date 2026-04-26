@@ -19,6 +19,8 @@ alias WhateverType = bool // Another alias for boolean type
 struct AutoComparable
 {
     x, y: s32
+    #[Swag.OperatorIgnore]
+    cachedHash: u64
 }
 
 // Implementation: lifecycle, accessors, conversions, comparisons, assignments,

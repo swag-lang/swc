@@ -2,6 +2,7 @@
 #global namespace Time
 
 // Represents an interval of time, stored as a 64-bit integer (in ticks)
+#[Swag.Operators(opCompare)]
 struct TimeSpan
 {
     ticks: Ticks // Duration represented in ticks
@@ -9,12 +10,6 @@ struct TimeSpan
 
 impl TimeSpan
 {
-    // Compares two TimeSpan values
-    mtd opCompare(other: TimeSpan)->s32
-    {
-        return .ticks <=> other.ticks
-    }
-
     // Returns the current time as a TimeSpan
     func now()->TimeSpan
     {

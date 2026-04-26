@@ -175,6 +175,7 @@ SWC_DIAG_DEF(sema_err_spec_op_signature, Error, "invalid signature for operator 
 SWC_DIAG_DEF(sema_err_operator_attribute_invalid_operator, Error, "'Swag.Operators' cannot generate operator overload '{value}'; [help] supported generated operators are 'opEquals' and 'opCompare'")
 SWC_DIAG_DEF(sema_err_operator_generation_duplicate, Error, "cannot generate operator overload '{spec-op}' for type '{decl-sym}' because an overload is already declared")
 SWC_DIAG_DEF(sema_err_operator_generation_generic, Error, "'Swag.Operators' cannot generate operator overloads for generic type '{decl-sym}'")
+SWC_DIAG_DEF(sema_err_operator_generation_field_unsupported, Error, "cannot generate operator overload '{spec-op}' for type '{decl-sym}' because field '{sym}' does not support it")
 SWC_DIAG_DEF(sema_err_break_outside_breakable, Error, "'break' is used outside a loop, scope, or switch statement; [help] use 'break' only inside a breakable construct")
 SWC_DIAG_DEF(sema_err_continue_outside_breakable, Error, "'continue' is used outside a loop or scope statement; [help] use 'continue' only inside a loop or scope")
 SWC_DIAG_DEF(sema_err_continue_not_in_loop, Error, "'continue' cannot be used inside a switch case; [help] use 'break' to leave the case, or move 'continue' into a loop")

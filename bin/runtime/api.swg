@@ -86,6 +86,10 @@ namespace Swag
     #[AttrUsage(AttributeUsage.Struct)]
     attr Operators(operators: string...)
 
+    // Exclude a struct field from generated operator overloads.
+    #[AttrUsage(AttributeUsage.StructVariable)]
+    attr OperatorIgnore()
+
     // A 'return' in the following macro/mixin function must be done in the callee context
     #[AttrUsage(AttributeUsage.Function)]
     attr CalleeReturn()

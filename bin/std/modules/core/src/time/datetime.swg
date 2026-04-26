@@ -35,7 +35,7 @@ enum DateTimeFormat
 }
 
 // Represents an instant in time, typically expressed as a date and time of day
-#[Serialization.Final]
+#[Swag.Operators(opEquals, opCompare), Serialization.Final]
 struct DateTime
 {
     year:            u16     // Year component (1 to 9999)
@@ -49,47 +49,6 @@ struct DateTime
 
 impl DateTime
 {
-    #[Swag.Inline]
-    // Compares if two DateTime instances are equal
-    mtd const opEquals(other: DateTime)->bool
-    {
-        return Memory.compare(me, other, cast(u64) #sizeof(DateTime)) == 0
-    }
-
-    // Compares two DateTime values. Returns -1, 0, or 1.
-    mtd const opCompare(other: DateTime)->s32
-    {
-        if .year < other.year do
-            return -1
-        if .year > other.year do
-            return 1
-        if .month < other.month do
-            return -1
-        if .month > other.month do
-            return 1
-        if .day < other.day do
-            return -1
-        if .day > other.day do
-            return 1
-        if .hour < other.hour do
-            return -1
-        if .hour > other.hour do
-            return 1
-        if .minute < other.minute do
-            return -1
-        if .minute > other.minute do
-            return 1
-        if .second < other.second do
-            return -1
-        if .second > other.second do
-            return 1
-        if .millisecond < other.millisecond do
-            return -1
-        if .millisecond > other.millisecond do
-            return 1
-        return 0
-    }
-
     // Returns true if this is a valid DateTime
     mtd const isValid()->bool
     {

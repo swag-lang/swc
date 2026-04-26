@@ -1267,6 +1267,11 @@ namespace
         return ownerStruct.codeRef();
     }
 
+    std::string_view predefinedName(Sema& sema, IdentifierManager::PredefinedName name)
+    {
+        return sema.idMgr().get(sema.idMgr().predefined(name)).name;
+    }
+
     IdentifierRef specOpIdFromKind(Sema& sema, SpecOpKind kind)
     {
         switch (kind)
@@ -1301,6 +1306,116 @@ namespace
         return nullptr;
     }
 
+    GeneratedOperatorFlags generatedOperatorFlagFromKind(SpecOpKind kind)
+    {
+        switch (kind)
+        {
+            case SpecOpKind::OpEquals:
+                return GeneratedOperatorFlagsE::OpEquals;
+            case SpecOpKind::OpCompare:
+                return GeneratedOperatorFlagsE::OpCompare;
+            default:
+                return GeneratedOperatorFlagsE::Zero;
+        }
+    }
+
+    TypeRef generatedOperatorFieldTypeRef(Sema& sema, TypeRef typeRef)
+    {
+        if (!typeRef.isValid())
+            return TypeRef::invalid();
+
+        const TypeInfo& fieldType = sema.typeMgr().get(typeRef);
+        if (fieldType.isReference())
+            typeRef = fieldType.payloadTypeRef();
+
+        const TypeRef unwrappedTypeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), typeRef);
+        return unwrappedTypeRef.isValid() ? unwrappedTypeRef : typeRef;
+    }
+
+    const SymbolStruct* generatedOperatorFieldStruct(Sema& sema, TypeRef typeRef)
+    {
+        typeRef = generatedOperatorFieldTypeRef(sema, typeRef);
+        if (!typeRef.isValid())
+            return nullptr;
+
+        const TypeInfo& type = sema.typeMgr().get(typeRef);
+        if (!type.isStruct())
+            return nullptr;
+
+        return &type.payloadSymStruct();
+    }
+
+    bool structSupportsGeneratedOperator(Sema& sema, const SymbolStruct& ownerStruct, SpecOpKind kind)
+    {
+        if (findDeclaredOperatorOverload(sema, ownerStruct, kind))
+            return true;
+
+        const GeneratedOperatorFlags flag = generatedOperatorFlagFromKind(kind);
+        return flag.any() && ownerStruct.attributes().generatedOperators.has(flag);
+    }
+
+    bool builtinTypeSupportsGeneratedOperator(Sema& sema, TypeRef typeRef, SpecOpKind kind)
+    {
+        typeRef = generatedOperatorFieldTypeRef(sema, typeRef);
+        if (!typeRef.isValid())
+            return false;
+
+        const TypeInfo& type = sema.typeMgr().get(typeRef);
+        switch (kind)
+        {
+            case SpecOpKind::OpEquals:
+                return type.isBool() || type.isScalarNumeric() || type.isPointerLike();
+            case SpecOpKind::OpCompare:
+                return type.isScalarNumeric() || type.isAnyPointer();
+            default:
+                return false;
+        }
+    }
+
+    bool fieldSupportsGeneratedOperator(Sema& sema, const SymbolVariable& field, SpecOpKind kind)
+    {
+        if (const SymbolStruct* fieldStruct = generatedOperatorFieldStruct(sema, field.typeRef()))
+            return structSupportsGeneratedOperator(sema, *fieldStruct, kind);
+
+        return builtinTypeSupportsGeneratedOperator(sema, field.typeRef(), kind);
+    }
+
+    bool isGeneratedOperatorField(const SymbolVariable& field)
+    {
+        return !field.isIgnored() && !field.attributes().hasRtFlag(RtAttributeFlagsE::OperatorIgnore);
+    }
+
+    Result reportGeneratedOperatorUnsupportedField(Sema& sema, const SymbolStruct& ownerStruct, const SymbolVariable& field, SpecOpKind kind)
+    {
+        auto diag = SemaError::report(sema, DiagnosticId::sema_err_operator_generation_field_unsupported, field);
+        diag.addArgument(Diagnostic::ARG_SPEC_OP, specOpFunctionName(kind));
+        diag.addArgument(Diagnostic::ARG_DECL_SYM, ownerStruct.name(sema.ctx()));
+        diag.addArgument(Diagnostic::ARG_SYM, field.name(sema.ctx()));
+
+        if (const SymbolStruct* fieldStruct = generatedOperatorFieldStruct(sema, field.typeRef()))
+            SemaSpecOp::addMissingDeclarationHelp(sema, diag, *fieldStruct, kind);
+
+        diag.report(sema.ctx());
+        return Result::Error;
+    }
+
+    Result validateGeneratedOperatorFieldSupport(Sema& sema, const SymbolStruct& ownerStruct, GeneratedOperatorFlags flags)
+    {
+        for (const SymbolVariable* field : ownerStruct.fields())
+        {
+            if (!field || !isGeneratedOperatorField(*field))
+                continue;
+
+            if (flags.has(GeneratedOperatorFlagsE::OpEquals) && !fieldSupportsGeneratedOperator(sema, *field, SpecOpKind::OpEquals))
+                return reportGeneratedOperatorUnsupportedField(sema, ownerStruct, *field, SpecOpKind::OpEquals);
+
+            if (flags.has(GeneratedOperatorFlagsE::OpCompare) && !fieldSupportsGeneratedOperator(sema, *field, SpecOpKind::OpCompare))
+                return reportGeneratedOperatorUnsupportedField(sema, ownerStruct, *field, SpecOpKind::OpCompare);
+        }
+
+        return Result::Continue;
+    }
+
     Result reportGeneratedOperatorDuplicate(Sema& sema, const SymbolStruct& ownerStruct, SpecOpKind kind, const SymbolFunction& existing)
     {
         auto diag = SemaError::report(sema, DiagnosticId::sema_err_operator_generation_duplicate, operatorGenerationErrorCodeRef(ownerStruct));
@@ -1333,7 +1448,7 @@ namespace
     {
         for (const SymbolVariable* field : ownerStruct.fields())
         {
-            if (!field || field->isIgnored())
+            if (!field || !isGeneratedOperatorField(*field))
                 continue;
             outFields.push_back(field->name(ctx));
         }
@@ -1398,9 +1513,11 @@ namespace
             collectGeneratedOperatorFieldNamesFromSymbols(sema.ctx(), ownerStruct, outFields);
     }
 
-    void appendGeneratedCompareOperator(Utf8& source, std::string_view structName, std::span<const Utf8> fields)
+    void appendGeneratedCompareOperator(Sema& sema, Utf8& source, std::string_view structName, std::span<const Utf8> fields)
     {
-        source += "    mtd const opCompare(other: const &";
+        source += "    mtd const ";
+        source += predefinedName(sema, IdentifierManager::PredefinedName::OpCompare);
+        source += "(other: const &";
         source += structName;
         source += ")->s32\n";
         source += "    {\n";
@@ -1446,16 +1563,15 @@ namespace
         source += "\n";
     }
 
-    void appendGeneratedEqualsOperator(Utf8& source, std::string_view structName, std::span<const Utf8> fields, bool useCompare)
+    void appendGeneratedEqualsOperator(Sema& sema, Utf8& source, std::string_view structName, std::span<const Utf8> fields)
     {
-        source += "    mtd const opEquals(other: const &";
+        source += "    mtd const ";
+        source += predefinedName(sema, IdentifierManager::PredefinedName::OpEquals);
+        source += "(other: const &";
         source += structName;
         source += ")->bool\n";
         source += "    {\n";
-        if (useCompare)
-            source += "        return .opCompare(other) == 0\n";
-        else
-            appendGeneratedEqualsFieldComparison(source, fields);
+        appendGeneratedEqualsFieldComparison(source, fields);
         source += "    }\n";
     }
 
@@ -1475,16 +1591,13 @@ namespace
         const bool generateCompare = flags.has(GeneratedOperatorFlagsE::OpCompare);
         if (generateCompare)
         {
-            appendGeneratedCompareOperator(source, ownerStruct.name(sema.ctx()), fields.span());
+            appendGeneratedCompareOperator(sema, source, ownerStruct.name(sema.ctx()), fields.span());
             if (flags.has(GeneratedOperatorFlagsE::OpEquals))
                 source += "\n";
         }
 
         if (flags.has(GeneratedOperatorFlagsE::OpEquals))
-        {
-            const bool useCompare = generateCompare || findDeclaredOperatorOverload(sema, ownerStruct, SpecOpKind::OpCompare) != nullptr;
-            appendGeneratedEqualsOperator(source, ownerStruct.name(sema.ctx()), fields.span(), useCompare);
-        }
+            appendGeneratedEqualsOperator(sema, source, ownerStruct.name(sema.ctx()), fields.span());
 
         source += "}\n";
         return source;
@@ -1606,6 +1719,7 @@ Result SemaSpecOp::ensureGeneratedOperators(Sema& sema, SymbolStruct& ownerStruc
         return Result::Continue;
 
     SWC_RESULT(validateGeneratedOperatorDuplicates(sema, ownerStruct, flags));
+    SWC_RESULT(validateGeneratedOperatorFieldSupport(sema, ownerStruct, flags));
     const Utf8 source = makeGeneratedOperatorsSource(sema, ownerStruct, flags);
     return declareGeneratedOperatorSource(sema, ownerStruct, source.view());
 }

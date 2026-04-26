@@ -26,6 +26,7 @@ fileprivate func initRng()
 
 // A 64-bit Globally Unique Identifier structure.
 // Provides compact GUID generation with multiple entropy strategies for different use cases.
+#[Swag.Operators(opEquals)]
 struct GUID64
 {
     guid: u64 // 64-bit unique identifier value
@@ -33,13 +34,6 @@ struct GUID64
 
 impl GUID64
 {
-    // Compare two GUID64 instances for equality.
-    // Returns 'true' if both GUIDs have identical values.
-    mtd opEquals(other: GUID64)->bool
-    {
-        return .guid == other.guid
-    }
-
     // Get a timestamp-based GUID64 with minimal collision risk
     // Structure: 32-bit timestamp + 16-bit microseconds + 12-bit counter + 4-bit random
     func getTimestamp()->GUID64

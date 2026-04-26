@@ -19,12 +19,6 @@ struct GeneratedEqualsFromCompare
     value: s32
 }
 
-#[Swag.Operators(opEquals, opCompare)]
-struct(T) GeneratedGenericBox
-{
-    value: T
-}
-
 impl GeneratedEqualsFromCompare
 {
     mtd const opCompare(other: const &GeneratedEqualsFromCompare)->s32
@@ -63,15 +57,4 @@ impl GeneratedEqualsFromCompare
 
     @assert(a == b)
     @assert(a != c)
-}
-
-#test
-{
-    let a = GeneratedGenericBox's32{value: 7}
-    let b = GeneratedGenericBox's32{value: 7}
-    let c = GeneratedGenericBox's32{value: 9}
-
-    @assert(a == b)
-    @assert(a != c)
-    @assert(a < c)
 }

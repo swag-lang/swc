@@ -1593,6 +1593,13 @@ Result SemaSpecOp::ensureGeneratedOperators(Sema& sema, SymbolStruct& ownerStruc
     const GeneratedOperatorFlags flags = ownerStruct.attributes().generatedOperators;
     if (flags.none())
         return Result::Continue;
+    if (ownerStruct.isGenericRoot() && !ownerStruct.isGenericInstance())
+    {
+        auto diag = SemaError::report(sema, DiagnosticId::sema_err_operator_generation_generic, operatorGenerationErrorCodeRef(ownerStruct));
+        diag.addArgument(Diagnostic::ARG_DECL_SYM, ownerStruct.name(sema.ctx()));
+        diag.report(sema.ctx());
+        return Result::Error;
+    }
     if (ownerStruct.isGenericInstance())
         return Result::Continue;
     if (!ownerStruct.tryMarkGeneratedOperators())

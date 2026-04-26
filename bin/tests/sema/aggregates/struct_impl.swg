@@ -66,3 +66,30 @@ impl HashNs.IHash32 for QualifiedInterfacesA
     let helperText = QualifiedInterfacesA.IConvert.helper()
     let helperHash = QualifiedInterfacesA.IHash32.helper()
 }
+
+struct ImplPendingOverloadSet
+{
+    padIndex: u32
+}
+
+impl ImplPendingOverloadSet
+{
+    mtd setVibration(left, right: f32)->u32
+    {
+        return setVibration(.padIndex, left, right)
+    }
+}
+
+impl ImplPendingOverloadSet
+{
+    func setVibration(padIndex: u32, left, right: f32)->u32
+    {
+        return padIndex
+    }
+}
+
+#test
+{
+    var pad = ImplPendingOverloadSet{}
+    let value = pad.setVibration(0.0, 1.0)
+}

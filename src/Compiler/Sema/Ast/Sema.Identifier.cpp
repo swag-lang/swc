@@ -8,7 +8,9 @@
 #include "Compiler/Sema/Helpers/SemaSymbolLookup.h"
 #include "Compiler/Sema/Match/Match.h"
 #include "Compiler/Sema/Match/MatchContext.h"
+#include "Compiler/Sema/Symbol/Symbol.Enum.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
+#include "Compiler/Sema/Symbol/Symbol.Impl.h"
 #include "Compiler/Sema/Symbol/Symbol.Struct.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Compiler/Sema/Symbol/Symbol.h"
@@ -99,6 +101,67 @@ namespace
             return false;
 
         return true;
+    }
+
+    bool isCurrentImplFamilySymbol(const SymbolImpl& currentImpl, const Symbol& symbol)
+    {
+        const SymbolMap* owner = symbol.ownerSymMap();
+        if (!owner)
+            return false;
+        if (owner == static_cast<const SymbolMap*>(&currentImpl))
+            return true;
+
+        if (currentImpl.isForStruct())
+        {
+            const SymbolStruct* target = currentImpl.symStruct();
+            if (!target)
+                return false;
+            if (owner->isStruct())
+                return &owner->cast<SymbolStruct>() == target;
+            if (!owner->isImpl())
+                return false;
+            const auto& ownerImpl = owner->cast<SymbolImpl>();
+            return ownerImpl.isForStruct() && ownerImpl.symStruct() == target;
+        }
+
+        if (currentImpl.isForEnum())
+        {
+            const SymbolEnum* target = currentImpl.symEnum();
+            if (!target)
+                return false;
+            if (owner->isEnum())
+                return &owner->cast<SymbolEnum>() == target;
+            if (!owner->isImpl())
+                return false;
+            const auto& ownerImpl = owner->cast<SymbolImpl>();
+            return ownerImpl.isForEnum() && ownerImpl.symEnum() == target;
+        }
+
+        return false;
+    }
+
+    template<typename T>
+    bool shouldWaitForPendingImplOverloads(Sema& sema, const bool allowOverloadSet, std::span<T> symbols)
+    {
+        if (!allowOverloadSet)
+            return false;
+        if (sema.compiler().pendingImplRegistrations() == 0)
+            return false;
+
+        const SymbolImpl* currentImpl = sema.frame().currentImpl();
+        if (!currentImpl)
+            return false;
+
+        bool hasCurrentImplFamilyCandidate = false;
+        for (const Symbol* symbol : symbols)
+        {
+            if (!symbol || !symbol->acceptOverloads())
+                return false;
+            if (isCurrentImplFamilySymbol(*currentImpl, *symbol))
+                hasCurrentImplFamilyCandidate = true;
+        }
+
+        return hasCurrentImplFamilyCandidate;
     }
 
     void collectQuotedGenericArgs(const Sema& sema, const AstQuotedExpr& node, SmallVector<AstNodeRef>& outArgs)
@@ -295,6 +358,11 @@ Result AstIdentifier::semaPostNode(Sema& sema) const
     if (ret == Result::Pause && hasFlag(AstIdentifierFlagsE::InCompilerDefined))
         return sema.waitCompilerDefined(idRef, codeRef());
     SWC_RESULT(ret);
+
+    // A call inside an impl can see the current impl before sibling impls have
+    // finished registering. Wait once so overload resolution sees the whole set.
+    if (shouldWaitForPendingImplOverloads(sema, allowOverloadSet, lookUpCxt.symbols().span()))
+        return sema.waitImplRegistrations(idRef, codeRef());
 
     SWC_RESULT(SemaSymbolLookup::bindResolvedSymbols(sema, sema.curNodeRef(), allowOverloadSet, lookUpCxt.symbols().span()));
     const Symbol* sym = sema.curViewSymbol().sym();

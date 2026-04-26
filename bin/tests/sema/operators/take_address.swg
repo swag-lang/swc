@@ -96,10 +96,10 @@ func functionAddressReturnedReference(value: &s32)->&s32
         return p
     }
 
-    func constRefPtr(x: const &s32)->*s32
+    func constRefPtr(x: const &s32)->const *s32
     {
         let p = &x
-        #assert(#typeof(p) == *s32)
+        #assert(#typeof(p) == const *s32)
         return p
     }
 
@@ -109,6 +109,10 @@ func functionAddressReturnedReference(value: &s32)->&s32
     r = #ref &y
     let p = &r
     #assert(#typeof(p) == *s32)
+
+    var cr: const &s32 = &x
+    let cp = &cr
+    #assert(#typeof(cp) == const *s32)
 }
 
 #test

@@ -166,7 +166,7 @@ func nativeFunctionAddressReturnedReference(value: &s32)->&s32
     func inspectConstRefPtr(x: const &s32, expected: s32)
     {
         let p = &x
-        #assert(#typeof(p) == *s32)
+        #assert(#typeof(p) == const *s32)
         @assert(dref p == expected)
     }
 
@@ -186,6 +186,11 @@ func nativeFunctionAddressReturnedReference(value: &s32)->&s32
     dref rebound = 123
     @assert(x == 55)
     @assert(y == 123)
+
+    var cr: const &s32 = &x
+    let constRefPtr = &cr
+    #assert(#typeof(constRefPtr) == const *s32)
+    @assert(dref constRefPtr == 55)
 }
 
 

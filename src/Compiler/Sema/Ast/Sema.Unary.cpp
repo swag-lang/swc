@@ -238,6 +238,8 @@ namespace
             pointeeTypeRef = view.type()->payloadTypeRef();
 
         TypeInfoFlags flags = TypeInfoFlagsE::Zero;
+        if (view.type()->isReference() && view.type()->isConst())
+            flags.add(TypeInfoFlagsE::Const);
         if ((view.sym() && (view.sym()->isLetVariable() || view.sym()->isConstant())) ||
             (view.node() && sema.isLValue(*view.node()) && view.cstRef().isValid()))
             flags.add(TypeInfoFlagsE::Const);

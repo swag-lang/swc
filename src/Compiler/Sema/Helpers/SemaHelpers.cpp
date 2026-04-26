@@ -1525,6 +1525,9 @@ namespace
         SWC_RESULT(Match::match(sema, lookUpCxt, idRef));
         if (lookUpCxt.empty())
         {
+            if (sema.compiler().pendingImplRegistrations() != 0)
+                return sema.waitImplRegistrations(idRef, codeRef);
+
             bool handled = false;
             SWC_RESULT(tryBindUfcsFreeFunctions(sema, targetNodeRef, node, idRef, tokNameRef, allowOverloadSet, handled));
             if (handled)

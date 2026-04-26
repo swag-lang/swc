@@ -439,7 +439,11 @@ Result SymbolStruct::canBeCompleted(Sema& sema) const
             return Result::Error;
         }
 
-        SWC_RESULT(sema.waitSemaCompleted(&type, typeNodeRef));
+        // Function values have pointer/closure storage. Their parameter and return
+        // types do not affect the enclosing struct layout, and waiting for them can
+        // create false cycles for signatures such as `func(Self)`.
+        if (!type.isFunction())
+            SWC_RESULT(sema.waitSemaCompleted(&type, typeNodeRef));
     }
 
     return Result::Continue;

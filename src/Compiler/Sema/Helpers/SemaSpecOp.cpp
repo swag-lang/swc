@@ -687,7 +687,7 @@ namespace
         return Result::Continue;
     }
 
-    Result collectSpecOpCandidatesRec(Sema& sema, const SymbolStruct& ownerStruct, IdentifierRef idRef, std::span<const AstNodeRef> genericArgNodes, SmallVector<Symbol*>& outCandidates, SmallVector<const SymbolStruct*>& visited)
+    Result collectSpecOpCandidatesRec(Sema& sema, const SymbolStruct& ownerStruct, IdentifierRef idRef, std::span<const AstNodeRef> genericArgNodes, SmallVector<Symbol*>& outCandidates, SmallVector<const SymbolStruct*>& visited, bool requireDeclaredGenericRoots)
     {
         for (const SymbolStruct* visitedStruct : visited)
         {
@@ -707,7 +707,10 @@ namespace
                 if (!symFunc || symFunc->idRef() != idRef)
                     continue;
 
-                SWC_RESULT(waitSpecOpCandidateReady(sema, *symFunc));
+                if (requireDeclaredGenericRoots && symFunc->isGenericRoot() && currentSpecOpWaiterSymbol(sema) != symFunc)
+                    SWC_RESULT(sema.waitDeclared(symFunc, symFunc->codeRef()));
+                else
+                    SWC_RESULT(waitSpecOpCandidateReady(sema, *symFunc));
 
                 if (!canExplicitlySpecializeSpecOp(sema, *symFunc, genericArgNodes))
                 {
@@ -749,18 +752,18 @@ namespace
                 continue;
 
             SWC_RESULT(sema.waitSemaCompleted(target, sema.curNode().codeRef()));
-            SWC_RESULT(collectSpecOpCandidatesRec(sema, *target, idRef, genericArgNodes, outCandidates, visited));
+            SWC_RESULT(collectSpecOpCandidatesRec(sema, *target, idRef, genericArgNodes, outCandidates, visited, requireDeclaredGenericRoots));
         }
 
         return Result::Continue;
     }
 
-    Result collectSpecOpCandidates(Sema& sema, const SymbolStruct& ownerStruct, IdentifierRef idRef, std::span<const AstNodeRef> genericArgNodes, SmallVector<Symbol*>& outCandidates)
+    Result collectSpecOpCandidates(Sema& sema, const SymbolStruct& ownerStruct, IdentifierRef idRef, std::span<const AstNodeRef> genericArgNodes, SmallVector<Symbol*>& outCandidates, bool requireDeclaredGenericRoots = false)
     {
         outCandidates.clear();
 
         SmallVector<const SymbolStruct*> visited;
-        SWC_RESULT(collectSpecOpCandidatesRec(sema, ownerStruct, idRef, genericArgNodes, outCandidates, visited));
+        SWC_RESULT(collectSpecOpCandidatesRec(sema, ownerStruct, idRef, genericArgNodes, outCandidates, visited, requireDeclaredGenericRoots));
         return Result::Continue;
     }
 
@@ -1906,23 +1909,94 @@ namespace
         bool matched() const { return probe.matched && probe.fn != nullptr; }
     };
 
-    Result probeBinarySpecOp(Sema& sema, const AstBinaryExpr& node, const SemaNodeView& receiverView, AstNodeRef receiverRef, AstNodeRef argRef, IdentifierRef opId, AstNodeRef genericArg, BinarySpecOpResolution& out)
+    struct BinarySpecOpProbeRequest
+    {
+        const SemaNodeView* receiverView   = nullptr;
+        AstNodeRef          receiverRef    = AstNodeRef::invalid();
+        AstNodeRef          argRef         = AstNodeRef::invalid();
+        IdentifierRef       opId           = IdentifierRef::invalid();
+        AstNodeRef          genericArg     = AstNodeRef::invalid();
+        std::string_view    opString;
+        bool                commutativeOnly = false;
+    };
+
+    std::optional<bool> commutativeAttributeApplies(Sema& sema, const SymbolFunction& fn, std::string_view opString)
+    {
+        const IdentifierRef commutativeId = sema.idMgr().predefined(IdentifierManager::PredefinedName::Commutative);
+        for (const AttributeInstance& attr : fn.attributes().attributes)
+        {
+            if (!attr.symbol || attr.symbol->idRef() != commutativeId || !attr.symbol->inSwagNamespace(sema.ctx()))
+                continue;
+            if (attr.params.empty())
+                return true;
+
+            for (const AttributeParamInstance& param : attr.params)
+            {
+                SWC_ASSERT(param.valueCstRef.isValid());
+                const ConstantValue& value = sema.cstMgr().get(param.valueCstRef);
+                SWC_ASSERT(value.isString());
+                if (value.getString() == opString)
+                    return true;
+            }
+
+            return false;
+        }
+
+        return std::nullopt;
+    }
+
+    bool isCommutativeForOp(Sema& sema, const SymbolFunction& fn, std::string_view opString)
+    {
+        const std::optional<bool> applies = commutativeAttributeApplies(sema, fn, opString);
+        if (applies.has_value())
+            return applies.value();
+
+        const SymbolFunction* root = fn.genericRootSym();
+        if (!root || root == &fn)
+            return false;
+
+        const std::optional<bool> rootApplies = commutativeAttributeApplies(sema, *root, opString);
+        if (rootApplies.has_value())
+            return rootApplies.value();
+
+        return false;
+    }
+
+    void filterCommutativeBinaryCandidates(Sema& sema, SmallVector<Symbol*>& candidates, std::string_view opString)
+    {
+        SmallVector<Symbol*> filtered;
+        filtered.reserve(candidates.size());
+        for (Symbol* candidate : candidates)
+        {
+            if (!candidate || !candidate->isFunction())
+                continue;
+            if (isCommutativeForOp(sema, candidate->cast<SymbolFunction>(), opString))
+                filtered.push_back(candidate);
+        }
+
+        candidates = std::move(filtered);
+    }
+
+    Result probeBinarySpecOp(Sema& sema, const AstBinaryExpr& node, const BinarySpecOpProbeRequest& request, BinarySpecOpResolution& out)
     {
         out             = {};
-        out.receiverRef = receiverRef;
+        out.receiverRef = request.receiverRef;
 
-        const SymbolStruct* ownerStruct = structSpecOpOwner(sema, receiverView);
+        SWC_ASSERT(request.receiverView != nullptr);
+        const SymbolStruct* ownerStruct = structSpecOpOwner(sema, *request.receiverView);
         if (!ownerStruct)
             return Result::Continue;
 
         SWC_RESULT(sema.waitSemaCompleted(ownerStruct, node.codeRef()));
-        SWC_RESULT(collectSpecOpCandidates(sema, *ownerStruct, opId, std::span{&genericArg, 1}, out.candidates));
+        SWC_RESULT(collectSpecOpCandidates(sema, *ownerStruct, request.opId, std::span{&request.genericArg, 1}, out.candidates, request.commutativeOnly));
+        if (request.commutativeOnly)
+            filterCommutativeBinaryCandidates(sema, out.candidates, request.opString);
         if (out.candidates.empty())
             return Result::Continue;
 
-        out.args.push_back(argRef);
+        out.args.push_back(request.argRef);
         const SemaNodeView calleeView(sema, sema.curNodeRef(), SemaNodeViewPartE::Node);
-        return Match::probeFunctionCandidates(sema, calleeView, out.candidates.span(), out.args.span(), receiverRef, out.probe, true);
+        return Match::probeFunctionCandidates(sema, calleeView, out.candidates.span(), out.args.span(), request.receiverRef, out.probe, true);
     }
 
     Result finalizeBinarySpecOp(Sema& sema, const AstBinaryExpr& node, BinarySpecOpResolution& selected, bool& outHandled)
@@ -1975,30 +2049,41 @@ Result SemaSpecOp::tryResolveBinary(Sema& sema, const AstBinaryExpr& node, const
     const IdentifierRef    opBinaryRightId = sema.idMgr().predefined(IdentifierManager::PredefinedName::OpBinaryRight);
 
     BinarySpecOpResolution left;
-    SWC_RESULT(probeBinarySpecOp(sema, node, leftView, node.nodeLeftRef, node.nodeRightRef, opBinaryId, genericArg, left));
+    SWC_RESULT(probeBinarySpecOp(sema, node, {.receiverView = &leftView, .receiverRef = node.nodeLeftRef, .argRef = node.nodeRightRef, .opId = opBinaryId, .genericArg = genericArg, .opString = opString}, left));
 
-    BinarySpecOpResolution right;
-    SWC_RESULT(probeBinarySpecOp(sema, node, rightView, node.nodeRightRef, node.nodeLeftRef, opBinaryRightId, genericArg, right));
+    BinarySpecOpResolution rightDirect;
+    SWC_RESULT(probeBinarySpecOp(sema, node, {.receiverView = &rightView, .receiverRef = node.nodeRightRef, .argRef = node.nodeLeftRef, .opId = opBinaryRightId, .genericArg = genericArg, .opString = opString}, rightDirect));
 
-    if (left.matched() && right.matched())
+    BinarySpecOpResolution rightCommutative;
+    if (!rightDirect.matched())
+        SWC_RESULT(probeBinarySpecOp(sema, node, {.receiverView = &rightView, .receiverRef = node.nodeRightRef, .argRef = node.nodeLeftRef, .opId = opBinaryId, .genericArg = genericArg, .opString = opString, .commutativeOnly = true}, rightCommutative));
+
+    BinarySpecOpResolution* right = &rightDirect;
+    if (!rightDirect.matched() && rightCommutative.matched())
+        right = &rightCommutative;
+
+    if (left.matched() && right->matched())
     {
-        const int cmp = Match::compareFunctionCandidateProbes(left.probe, right.probe);
-        if (cmp == 0 && left.probe.fn != right.probe.fn)
-            return raiseAmbiguousBinarySpecOp(sema, left, right);
-        return finalizeBinarySpecOp(sema, node, cmp <= 0 ? left : right, outHandled);
+        const int cmp = Match::compareFunctionCandidateProbes(left.probe, right->probe);
+        if (cmp == 0 && left.probe.fn != right->probe.fn)
+            return raiseAmbiguousBinarySpecOp(sema, left, *right);
+        return finalizeBinarySpecOp(sema, node, cmp <= 0 ? left : *right, outHandled);
     }
 
     if (left.matched())
         return finalizeBinarySpecOp(sema, node, left, outHandled);
 
-    if (right.matched())
-        return finalizeBinarySpecOp(sema, node, right, outHandled);
+    if (right->matched())
+        return finalizeBinarySpecOp(sema, node, *right, outHandled);
 
     if (!left.candidates.empty())
         return finalizeBinarySpecOp(sema, node, left, outHandled);
 
-    if (!right.candidates.empty())
-        return finalizeBinarySpecOp(sema, node, right, outHandled);
+    if (!rightDirect.candidates.empty())
+        return finalizeBinarySpecOp(sema, node, rightDirect, outHandled);
+
+    if (!rightCommutative.candidates.empty())
+        return finalizeBinarySpecOp(sema, node, rightCommutative, outHandled);
 
     return Result::Continue;
 }

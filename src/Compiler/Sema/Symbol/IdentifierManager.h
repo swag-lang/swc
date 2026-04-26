@@ -63,6 +63,7 @@ public:
         NoDuplicate,
         Complete,
         Overload,
+        Commutative,
         CalleeReturn,
         Foreign,
         Discardable,

@@ -41,7 +41,7 @@ impl Vector3
     }
 
     // Binary operators: vector op scalar
-    #[Swag.Overload]
+    #[Swag.Overload, Swag.Commutative("+", "*")]
     func(op: string) opBinary(const me, scalar: T)->Vector3'T
     {
         #if op == "+" do
@@ -56,16 +56,12 @@ impl Vector3
             #error("unsupported binary operation [[" ++ op ++ "]]")
     }
 
-    // Binary operators: scalar op vector
+    // Binary operators that need a distinct scalar op vector order
     #[Swag.Overload]
     func(op: string) opBinaryRight(const me, scalar: T)->Vector3'T
     {
-        #if op == "+" do
-            return {x: scalar + me.x, y: scalar + me.y, z: scalar + me.z}
-        #elif op == "-" do
+        #if op == "-" do
             return {x: scalar - me.x, y: scalar - me.y, z: scalar - me.z}
-        #elif op == "*" do
-            return {x: scalar * me.x, y: scalar * me.y, z: scalar * me.z}
         #elif op == "/" do
             return {x: scalar / me.x, y: scalar / me.y, z: scalar / me.z}
         #else do
@@ -246,7 +242,7 @@ impl Vector3
     @assert(result.z == -3)
 }
 
-// Test: scalar * vector (right-hand operator)
+// Test: scalar * vector (commutative right-hand fallback)
 #test
 {
     var v: Vector3's32 = {x: 1, y: -2, z: 3}

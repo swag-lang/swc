@@ -117,7 +117,7 @@ impl Vector3
 
     // Binary operators for vector-scalar operations (+, -, *, /).
     // Applies the scalar 'value' to all components and returns the result.
-    #[Swag.Overload, Swag.Inline]
+    #[Swag.Overload, Swag.Inline, Swag.Commutative("+", "*")]
     mtd(op: string) const opBinary(value: f32)->Vector3
     {
         #if op == "+" do
@@ -128,23 +128,6 @@ impl Vector3
             return Vector3{.x * value, .y * value, .z * value}
         #elif op == "/" do
             return Vector3{.x / value, .y / value, .z / value}
-        #else do
-            #error("unsupported binary operation [[" ++ op ++ "]]")
-    }
-
-    // Binary operators for scalar-vector operations (+, -, *, /).
-    // Applies this vector as the right operand and returns the result.
-    #[Swag.Overload, Swag.Inline]
-    mtd(op: string) const opBinaryRight(value: f32)->Vector3
-    {
-        #if op == "+" do
-            return Vector3{value + .x, value + .y, value + .z}
-        #elif op == "-" do
-            return Vector3{value - .x, value - .y, value - .z}
-        #elif op == "*" do
-            return Vector3{value * .x, value * .y, value * .z}
-        #elif op == "/" do
-            return Vector3{value / .x, value / .y, value / .z}
         #else do
             #error("unsupported binary operation [[" ++ op ++ "]]")
     }

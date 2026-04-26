@@ -209,7 +209,7 @@ impl RuntimeFullArithBox
 }
 
 // ============================================================================
-// opBinaryRight: scalar op struct
+// opBinaryRight and Commutative: scalar op struct
 // ============================================================================
 
 struct RuntimeRightArithBox
@@ -220,15 +220,22 @@ struct RuntimeRightArithBox
 
 impl RuntimeRightArithBox
 {
+    #[Swag.NoInline, Swag.Commutative("+", "*")]
+    mtd(op: string) const opBinary(scalar: s32)->RuntimeRightArithBox
+    {
+        #if op == "+" do
+            return {a: .a + scalar, b: .b + scalar}
+        #elif op == "*" do
+            return {a: .a * scalar, b: .b * scalar}
+        #else do
+            #error("unsupported binary operation [[" ++ op ++ "]]")
+    }
+
     #[Swag.NoInline]
     mtd(op: string) const opBinaryRight(scalar: s32)->RuntimeRightArithBox
     {
-        #if op == "+" do
-            return {a: scalar + .a, b: scalar + .b}
-        #elif op == "-" do
+        #if op == "-" do
             return {a: scalar - .a, b: scalar - .b}
-        #elif op == "*" do
-            return {a: scalar * .a, b: scalar * .b}
         #elif op == "/" do
             return {a: scalar / .a, b: scalar / .b}
         #else do
@@ -236,7 +243,7 @@ impl RuntimeRightArithBox
     }
 }
 
-// Test: scalar * struct dispatches to right operand
+// Test: scalar * struct uses Commutative opBinary on the right operand
 #test
 {
     var box = RuntimeRightArithBox{a: 3, b: 7}

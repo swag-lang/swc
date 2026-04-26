@@ -115,6 +115,11 @@ impl Struct
     #[Swag.Overload]
     func(op: string) opBinaryRight(me, other: AnotherType)->Struct { return {1, 2}; }
 
+    // A commutative opBinary can also be used when the struct is the right operand.
+    // Restrict the operators when a generic opBinary also handles non-commutative ones.
+    #[Swag.Overload, Swag.Commutative("+", "*")]
+    func(op: string) opBinary(me, other: u32)->Struct { return {1, 2}; }
+
     // Unary operation with 'op' representing the operator as a string
     // Examples: '!', '-', '~'
     func(op: string) opUnary(me)->Struct { return {1, 2}; }

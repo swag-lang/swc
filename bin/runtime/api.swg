@@ -81,6 +81,11 @@ namespace Swag
     #[AttrUsage(AttributeUsage.Function)]
     attr Overload()
 
+    // An opBinary special function can also be used when its receiver is the right operand.
+    // Optional string parameters restrict the operators for generic opBinary implementations.
+    #[AttrUsage(AttributeUsage.Function)]
+    attr Commutative(operators: string...)
+
     // A 'return' in the following macro/mixin function must be done in the callee context
     #[AttrUsage(AttributeUsage.Function)]
     attr CalleeReturn()

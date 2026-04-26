@@ -63,6 +63,9 @@ attr Complete()             // Following switch must be complete
 #[AttrUsage(AttributeUsage.Function)]
 attr Overload()             // Function can be overloaded
 
+#[AttrUsage(AttributeUsage.Function)]
+attr Commutative(operators: string...) // Allow opBinary as a right-operand fallback
+
 /**
 # Foreign Interop
 */

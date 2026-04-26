@@ -27,10 +27,11 @@ struct BinaryRightIntBox
 
 impl BinaryRightIntBox
 {
-    mtd(op: string) const opBinaryRight(other: u32)->BinaryRightIntBox
+    #[Swag.Commutative]
+    mtd(op: string) const opBinary(other: u32)->BinaryRightIntBox
     {
         #if op == "*" do
-            return {value: other * .value}
+            return {value: .value * other}
         #else do
             #error("unsupported binary operation [[" ++ op ++ "]]")
     }

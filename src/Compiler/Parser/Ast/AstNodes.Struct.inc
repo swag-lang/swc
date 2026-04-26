@@ -1158,6 +1158,7 @@ struct AstUnionDecl : AstAggregateDeclT<AstNodeId::UnionDecl>
     Result        semaPreDecl(Sema& sema) const;
     Result        semaPreNode(Sema& sema) const;
     Result        semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;
+    AstNodeRef    semaClone(Sema& sema, const CloneContext& cloneContext) const;
     static Result semaPostNode(Sema& sema);
 };
 
@@ -1168,6 +1169,7 @@ struct AstAnonymousStructDecl : AstAnonymousAggregateDeclT<AstNodeId::AnonymousS
     Result        semaPreDecl(Sema& sema) const;
     Result        semaPreNode(Sema& sema) const;
     Result        semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;
+    AstNodeRef    semaClone(Sema& sema, const CloneContext& cloneContext) const;
     static Result semaPostNode(Sema& sema);
 };
 
@@ -1178,6 +1180,7 @@ struct AstAnonymousUnionDecl : AstAnonymousAggregateDeclT<AstNodeId::AnonymousUn
     Result        semaPreDecl(Sema& sema) const;
     Result        semaPreNode(Sema& sema) const;
     Result        semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;
+    AstNodeRef    semaClone(Sema& sema, const CloneContext& cloneContext) const;
     static Result semaPostNode(Sema& sema);
 };
 

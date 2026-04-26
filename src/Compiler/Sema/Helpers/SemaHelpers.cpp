@@ -1593,11 +1593,13 @@ Result SemaHelpers::resolveMemberAccess(Sema& sema, AstNodeRef memberRef, AstMem
     if (nodeLeftView.sym() && nodeLeftView.sym()->isNamespace())
         return memberNamespace(sema, memberRef, node, nodeLeftView, idRef, tokNameRef, allowOverloadSet);
 
-    // Auto-deduce generic arguments for bare generic root structs in expression context
-    if (nodeLeftView.sym() && nodeLeftView.sym()->isStruct() && !nodeLeftView.type())
+    // Auto-deduce generic arguments for bare generic root structs in expression context.
+    // Generic roots have a type payload so they can be used as type values, but member
+    // lookup inside a generic impl must still happen on the current specialization.
+    if (nodeLeftView.sym() && nodeLeftView.sym()->isStruct())
     {
         auto& st = nodeLeftView.sym()->cast<SymbolStruct>();
-        if (st.isGenericRoot())
+        if (st.isGenericRoot() && !st.isGenericInstance())
         {
             SymbolStruct* instance = nullptr;
             SWC_RESULT(SemaGeneric::instantiateStructFromContext(sema, st, instance));

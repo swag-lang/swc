@@ -6,6 +6,7 @@
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
+#include "Compiler/Sema/Symbol/Symbol.Enum.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.Impl.h"
 #include "Compiler/Sema/Symbol/Symbol.Interface.h"
@@ -216,11 +217,82 @@ namespace
         return *ownedSema;
     }
 
-    Result runGenericNode(Sema& sema, const Symbol& root, AstNodeRef nodeRef)
+    struct GenericNodeRunKey
     {
-        SWC_ASSERT(root.isFunction() || root.isStruct());
+        const TaskContext* ctx     = nullptr;
+        uint32_t           nodeRef = 0;
 
-        Sema child(sema.ctx(), sema, nodeRef);
+        bool operator==(const GenericNodeRunKey& other) const noexcept
+        {
+            return ctx == other.ctx && nodeRef == other.nodeRef;
+        }
+    };
+
+    struct GenericNodeRunKeyHash
+    {
+        size_t operator()(const GenericNodeRunKey& key) const noexcept
+        {
+            return std::hash<const TaskContext*>{}(key.ctx) ^ std::hash<uint32_t>{}(key.nodeRef);
+        }
+    };
+
+    struct GenericInstanceNodeRunKey
+    {
+        const TaskContext* ctx      = nullptr;
+        const Symbol*      instance = nullptr;
+
+        bool operator==(const GenericInstanceNodeRunKey& other) const noexcept
+        {
+            return ctx == other.ctx && instance == other.instance;
+        }
+    };
+
+    struct GenericInstanceNodeRunKeyHash
+    {
+        size_t operator()(const GenericInstanceNodeRunKey& key) const noexcept
+        {
+            return std::hash<const TaskContext*>{}(key.ctx) ^ std::hash<const Symbol*>{}(key.instance);
+        }
+    };
+
+    struct GenericNodeRun
+    {
+        bool                  running = false;
+        std::unique_ptr<Sema> sema;
+    };
+
+    std::mutex& genericNodeRunMutex();
+    std::unordered_map<GenericNodeRunKey, GenericNodeRun, GenericNodeRunKeyHash>& genericNodeRuns();
+    std::mutex& genericInstanceNodeRunMutex();
+    std::unordered_map<GenericInstanceNodeRunKey, GenericNodeRun, GenericInstanceNodeRunKeyHash>& genericInstanceNodeRuns();
+
+    struct GenericImplBlockRunKey
+    {
+        const TaskContext* ctx      = nullptr;
+        const SymbolImpl*  impl     = nullptr;
+        bool               declPass = false;
+
+        bool operator==(const GenericImplBlockRunKey& other) const noexcept
+        {
+            return ctx == other.ctx && impl == other.impl && declPass == other.declPass;
+        }
+    };
+
+    struct GenericImplBlockRunKeyHash
+    {
+        size_t operator()(const GenericImplBlockRunKey& key) const noexcept
+        {
+            const size_t ctxHash  = std::hash<const TaskContext*>{}(key.ctx);
+            const size_t implHash = std::hash<const SymbolImpl*>{}(key.impl);
+            return ctxHash ^ implHash ^ (key.declPass ? 0x9e3779b97f4a7c15ull : 0);
+        }
+    };
+
+    std::mutex& genericImplBlockRunMutex();
+    std::unordered_map<GenericImplBlockRunKey, GenericNodeRun, GenericImplBlockRunKeyHash>& genericImplBlockRuns();
+
+    void prepareGenericNodeRunContext(Sema& child, Sema& sema, const Symbol& root)
+    {
         if (const auto* function = root.safeCast<SymbolFunction>())
         {
             SemaGeneric::prepareGenericInstantiationContext(child,
@@ -231,7 +303,80 @@ namespace
         }
         else
             SemaGeneric::prepareGenericInstantiationContext(child, const_cast<SymbolMap*>(root.ownerSymMap()), nullptr, nullptr, root.attributes());
-        return child.execResult();
+    }
+
+    Result runGenericNode(Sema& sema, const Symbol& root, AstNodeRef nodeRef)
+    {
+        SWC_ASSERT(root.isFunction() || root.isStruct());
+
+        const GenericNodeRunKey key{&sema.ctx(), nodeRef.get()};
+        Sema*                   child = nullptr;
+        {
+            const std::scoped_lock lock(genericNodeRunMutex());
+            auto&                  run = genericNodeRuns()[key];
+            if (!run.sema)
+            {
+                run.sema = std::make_unique<Sema>(sema.ctx(), sema, nodeRef);
+                prepareGenericNodeRunContext(*run.sema, sema, root);
+            }
+            if (run.running)
+                return sema.waitSemaCompleted(&root, root.codeRef());
+            run.running = true;
+            child       = run.sema.get();
+        }
+
+        const Result result = child->execResult();
+        {
+            const std::scoped_lock lock(genericNodeRunMutex());
+            auto                   it = genericNodeRuns().find(key);
+            if (it != genericNodeRuns().end())
+            {
+                it->second.running = false;
+                if (result != Result::Pause)
+                    genericNodeRuns().erase(it);
+            }
+        }
+
+        return result;
+    }
+
+    Result runGenericInstanceNode(Sema& sema, const Symbol& root, Symbol& instance)
+    {
+        SWC_ASSERT(root.isFunction() || root.isStruct());
+
+        const AstNodeRef nodeRef = genericDeclNodeRef(instance);
+        if (nodeRef.isInvalid())
+            return Result::Error;
+
+        const GenericInstanceNodeRunKey key{&sema.ctx(), &instance};
+        Sema*                           child = nullptr;
+        {
+            const std::scoped_lock lock(genericInstanceNodeRunMutex());
+            auto&                  run = genericInstanceNodeRuns()[key];
+            if (!run.sema)
+            {
+                run.sema = std::make_unique<Sema>(sema.ctx(), sema, nodeRef);
+                prepareGenericNodeRunContext(*run.sema, sema, root);
+            }
+            if (run.running)
+                return sema.waitSemaCompleted(&instance, instance.codeRef());
+            run.running = true;
+            child       = run.sema.get();
+        }
+
+        const Result result = child->execResult();
+        {
+            const std::scoped_lock lock(genericInstanceNodeRunMutex());
+            auto                   it = genericInstanceNodeRuns().find(key);
+            if (it != genericInstanceNodeRuns().end())
+            {
+                it->second.running = false;
+                if (result != Result::Pause)
+                    genericInstanceNodeRuns().erase(it);
+            }
+        }
+
+        return result;
     }
 
     void appendEnclosingFunctionGenericCloneBindings(Sema& sema, const SymbolFunction& root, SmallVector<SemaClone::ParamBinding>& outBindings)
@@ -317,6 +462,42 @@ namespace
     {
         static std::recursive_mutex mutex;
         return mutex;
+    }
+
+    std::mutex& genericNodeRunMutex()
+    {
+        static std::mutex mutex;
+        return mutex;
+    }
+
+    std::unordered_map<GenericNodeRunKey, GenericNodeRun, GenericNodeRunKeyHash>& genericNodeRuns()
+    {
+        static std::unordered_map<GenericNodeRunKey, GenericNodeRun, GenericNodeRunKeyHash> runs;
+        return runs;
+    }
+
+    std::mutex& genericInstanceNodeRunMutex()
+    {
+        static std::mutex mutex;
+        return mutex;
+    }
+
+    std::unordered_map<GenericInstanceNodeRunKey, GenericNodeRun, GenericInstanceNodeRunKeyHash>& genericInstanceNodeRuns()
+    {
+        static std::unordered_map<GenericInstanceNodeRunKey, GenericNodeRun, GenericInstanceNodeRunKeyHash> runs;
+        return runs;
+    }
+
+    std::mutex& genericImplBlockRunMutex()
+    {
+        static std::mutex mutex;
+        return mutex;
+    }
+
+    std::unordered_map<GenericImplBlockRunKey, GenericNodeRun, GenericImplBlockRunKeyHash>& genericImplBlockRuns()
+    {
+        static std::unordered_map<GenericImplBlockRunKey, GenericNodeRun, GenericImplBlockRunKeyHash> runs;
+        return runs;
     }
 
     Utf8 formatGenericInstanceKey(Sema& sema, const GenericInstanceKey& key)
@@ -670,9 +851,35 @@ namespace
 
     Result runGenericImplBlockPass(Sema& sema, AstNodeRef blockRef, SymbolImpl& impl, const SymbolInterface* itf, const AttributeList& attrs, bool declPass)
     {
-        Sema child(sema.ctx(), sema, blockRef, declPass);
-        SemaGeneric::prepareGenericInstantiationContext(child, impl.asSymMap(), &impl, itf, attrs);
-        return child.execResult();
+        const GenericImplBlockRunKey key{&sema.ctx(), &impl, declPass};
+        Sema*                        child = nullptr;
+        {
+            const std::scoped_lock lock(genericImplBlockRunMutex());
+            auto&                  run = genericImplBlockRuns()[key];
+            if (!run.sema)
+            {
+                run.sema = std::make_unique<Sema>(sema.ctx(), sema, blockRef, declPass);
+                SemaGeneric::prepareGenericInstantiationContext(*run.sema, impl.asSymMap(), &impl, itf, attrs);
+            }
+            if (run.running)
+                return sema.waitSemaCompleted(&impl, impl.codeRef());
+            run.running = true;
+            child       = run.sema.get();
+        }
+
+        const Result result = child->execResult();
+        {
+            const std::scoped_lock lock(genericImplBlockRunMutex());
+            auto                   it = genericImplBlockRuns().find(key);
+            if (it != genericImplBlockRuns().end())
+            {
+                it->second.running = false;
+                if (result != Result::Pause)
+                    genericImplBlockRuns().erase(it);
+            }
+        }
+
+        return result;
     }
 
     void completeGenericImplClone(TaskContext& ctx, SymbolImpl& implClone)
@@ -718,6 +925,15 @@ namespace
 
         outBlockRef = cloneGenericImplBlock(sema, *implDecl, bindings);
         outClone    = Symbol::make<SymbolImpl>(sema.ctx(), sourceImpl.decl(), sourceImpl.tokRef(), sourceImpl.idRef(), clonedGenericSymbolFlags(sourceImpl));
+        SymbolMap* ownerSymMap = const_cast<SymbolMap*>(sourceImpl.ownerSymMap());
+        if (!ownerSymMap)
+        {
+            if (sourceImpl.isForStruct())
+                ownerSymMap = const_cast<SymbolMap*>(sourceImpl.symStruct()->ownerSymMap());
+            else if (sourceImpl.isForEnum())
+                ownerSymMap = const_cast<SymbolMap*>(sourceImpl.symEnum()->ownerSymMap());
+        }
+        outClone->setOwnerSymMap(ownerSymMap);
         outClone->setGenericBlockRef(outBlockRef);
         return Result::Continue;
     }
@@ -772,7 +988,7 @@ namespace
         }
 
         const Result result = runGenericImplClonePasses(sema, *implClone, sourceImpl, instance.attributes());
-        if (result != Result::Continue && created && !implClone->isSemaCompleted())
+        if (result == Result::Error && created && !implClone->isSemaCompleted())
             implClone->setIgnored(sema.ctx());
         return result;
     }
@@ -1160,7 +1376,7 @@ namespace
                 if (root.isStruct())
                     result = validateGenericStructWhereConstraints(sema, root.cast<SymbolStruct>(), params, resolvedArgs, errorNodeRef);
                 if (result == Result::Continue)
-                    result = runGenericNode(sema, root, genericDeclNodeRef(*outInstance));
+                    result = runGenericInstanceNode(sema, root, *outInstance);
                 if (result == Result::Continue)
                     setGenericNodeCompleted(*outInstance);
             }
@@ -1338,62 +1554,6 @@ namespace SemaGeneric
         if (!hasGenericParams(genericRoot))
             return Result::Continue;
 
-        // Find enclosing generic struct instance from impl context or struct declaration scope
-        const SymbolStruct* enclosingInstance = nullptr;
-        for (size_t i = sema.frames().size(); i > 0; --i)
-        {
-            const auto* impl = sema.frames()[i - 1].currentImpl();
-            if (impl && impl->isForStruct())
-            {
-                const auto* st = impl->symStruct();
-                if (st && st->isGenericInstance())
-                {
-                    enclosingInstance = st;
-                    break;
-                }
-            }
-        }
-
-        // Also check scope chain for struct declaration context (field types during generic instantiation)
-        if (!enclosingInstance)
-        {
-            for (const SemaScope* scope = sema.curScopePtr(); scope; scope = scope->parent())
-            {
-                const auto* symMap = scope->symMap();
-                if (symMap && symMap->isStruct())
-                {
-                    const auto& st = symMap->cast<SymbolStruct>();
-                    if (st.isGenericInstance())
-                    {
-                        enclosingInstance = &st;
-                        break;
-                    }
-                }
-            }
-        }
-
-        if (!enclosingInstance)
-            return Result::Continue;
-
-        const SymbolStruct* enclosingRoot = enclosingInstance->genericRootSym();
-        if (!enclosingRoot)
-            return Result::Continue;
-
-        // Collect enclosing root's generic params and instance args
-        const auto* enclosingDecl = genericStructDecl(*enclosingRoot);
-        if (!enclosingDecl || !enclosingDecl->spanGenericParamsRef.isValid())
-            return Result::Continue;
-
-        SmallVector<GenericParamDesc> enclosingParams;
-        collectGenericParams(sema, *enclosingDecl, enclosingDecl->spanGenericParamsRef, enclosingParams);
-
-        SmallVector<GenericInstanceKey> enclosingArgs;
-        if (!enclosingRoot->tryGetGenericInstanceArgs(*enclosingInstance, enclosingArgs))
-            return Result::Continue;
-        if (enclosingArgs.size() != enclosingParams.size())
-            return Result::Continue;
-
-        // Collect target struct's generic params
         const auto* targetDecl = genericStructDecl(genericRoot);
         if (!targetDecl)
             return Result::Continue;
@@ -1401,7 +1561,9 @@ namespace SemaGeneric
         SmallVector<GenericParamDesc> targetParams;
         collectGenericParams(targetSema, *targetDecl, targetDecl->spanGenericParamsRef, targetParams);
 
-        // If the current function has generic type params that conflict with target params, skip deduction
+        SmallVector<GenericResolvedArg> resolvedArgs(targetParams.size());
+
+        bool allowEnclosingContext = true;
         if (const auto* func = sema.currentFunction())
         {
             const auto* funcDecl = func->decl() ? func->decl()->safeCast<AstFunctionDecl>() : nullptr;
@@ -1416,32 +1578,87 @@ namespace SemaGeneric
                     for (const auto& tp : targetParams)
                     {
                         if (tp.kind == GenericParamKind::Type && tp.idRef == fp.idRef)
-                            return Result::Continue;
+                        {
+                            allowEnclosingContext = false;
+                            break;
+                        }
+                    }
+
+                    if (!allowEnclosingContext)
+                        break;
+                }
+            }
+        }
+
+        const SymbolStruct* enclosingInstance = nullptr;
+        if (allowEnclosingContext)
+        {
+            // Find enclosing generic struct instance from impl context or struct declaration scope
+            for (size_t i = sema.frames().size(); i > 0; --i)
+            {
+                const auto* impl = sema.frames()[i - 1].currentImpl();
+                if (impl && impl->isForStruct())
+                {
+                    const auto* st = impl->symStruct();
+                    if (st && st->isGenericInstance())
+                    {
+                        enclosingInstance = st;
+                        break;
+                    }
+                }
+            }
+
+            // Also check scope chain for struct declaration context (field types during generic instantiation)
+            if (!enclosingInstance)
+            {
+                for (const SemaScope* scope = sema.curScopePtr(); scope; scope = scope->parent())
+                {
+                    const auto* symMap = scope->symMap();
+                    if (symMap && symMap->isStruct())
+                    {
+                        const auto& st = symMap->cast<SymbolStruct>();
+                        if (st.isGenericInstance())
+                        {
+                            enclosingInstance = &st;
+                            break;
+                        }
                     }
                 }
             }
         }
 
-        // Match target params against enclosing params by name
-        SmallVector<GenericResolvedArg> resolvedArgs(targetParams.size());
-        for (size_t i = 0; i < targetParams.size(); ++i)
+        if (enclosingInstance)
         {
-            bool found = false;
-            for (size_t j = 0; j < enclosingParams.size(); ++j)
+            const SymbolStruct* enclosingRoot = enclosingInstance->genericRootSym();
+            if (enclosingRoot)
             {
-                if (targetParams[i].idRef == enclosingParams[j].idRef &&
-                    targetParams[i].kind == enclosingParams[j].kind)
+                // Collect enclosing root's generic params and instance args
+                const auto* enclosingDecl = genericStructDecl(*enclosingRoot);
+                if (enclosingDecl && enclosingDecl->spanGenericParamsRef.isValid())
                 {
-                    resolvedArgs[i].present = true;
-                    resolvedArgs[i].typeRef = enclosingArgs[j].typeRef;
-                    resolvedArgs[i].cstRef  = enclosingArgs[j].cstRef;
-                    found                   = true;
-                    break;
+                    SmallVector<GenericParamDesc> enclosingParams;
+                    collectGenericParams(sema, *enclosingDecl, enclosingDecl->spanGenericParamsRef, enclosingParams);
+
+                    SmallVector<GenericInstanceKey> enclosingArgs;
+                    if (enclosingRoot->tryGetGenericInstanceArgs(*enclosingInstance, enclosingArgs) && enclosingArgs.size() == enclosingParams.size())
+                    {
+                        for (size_t i = 0; i < targetParams.size(); ++i)
+                        {
+                            for (size_t j = 0; j < enclosingParams.size(); ++j)
+                            {
+                                if (targetParams[i].idRef == enclosingParams[j].idRef &&
+                                    targetParams[i].kind == enclosingParams[j].kind)
+                                {
+                                    resolvedArgs[i].present = true;
+                                    resolvedArgs[i].typeRef = enclosingArgs[j].typeRef;
+                                    resolvedArgs[i].cstRef  = enclosingArgs[j].cstRef;
+                                    break;
+                                }
+                            }
+                        }
+                    }
                 }
             }
-
-            if (!found)
-                return Result::Continue;
         }
 
         // Materialize defaults and create instance

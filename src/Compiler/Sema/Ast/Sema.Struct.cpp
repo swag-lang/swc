@@ -66,11 +66,19 @@ Result AstStructDecl::semaPreNode(Sema& sema) const
 {
     if (sema.enteringState())
         SemaHelpers::declareSymbol(sema, *this);
-    const auto& sym = sema.curViewSymbol().sym()->cast<SymbolStruct>();
+    auto& sym = sema.curViewSymbol().sym()->cast<SymbolStruct>();
     if (!sym.isGenericInstance())
         SWC_RESULT(Match::ghosting(sema, sym));
     if (sym.isGenericRoot() && !sym.isGenericInstance())
     {
+        if (!sym.isTyped())
+        {
+            const TypeInfo structType    = TypeInfo::makeStruct(&sym);
+            const TypeRef  structTypeRef = sema.ctx().typeMgr().addType(structType);
+            sym.setTypeRef(structTypeRef);
+            sym.setTyped(sema.ctx());
+        }
+
         sema.curViewSymbol().sym()->setSemaCompleted(sema.ctx());
         return Result::SkipChildren;
     }

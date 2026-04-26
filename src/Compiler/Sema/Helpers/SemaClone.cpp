@@ -1170,6 +1170,32 @@ AstNodeRef AstStructDecl::semaClone(Sema& sema, const CloneContext& cloneContext
     return newRef;
 }
 
+AstNodeRef AstUnionDecl::semaClone(Sema& sema, const CloneContext& cloneContext) const
+{
+    const AstNodeRef newRef     = cloneNodeCopy<AstNodeId::UnionDecl>(sema, *this);
+    auto&            cloned     = sema.node(newRef).cast<AstUnionDecl>();
+    cloned.spanGenericParamsRef = SpanRef::invalid();
+    cloned.spanWhereRef         = SpanRef::invalid();
+    cloned.nodeBodyRef          = cloneNodeRef(sema, nodeBodyRef, cloneContextAsInline(cloneContext));
+    return newRef;
+}
+
+AstNodeRef AstAnonymousStructDecl::semaClone(Sema& sema, const CloneContext& cloneContext) const
+{
+    const AstNodeRef newRef = cloneNodeCopy<AstNodeId::AnonymousStructDecl>(sema, *this);
+    auto&            cloned = sema.node(newRef).cast<AstAnonymousStructDecl>();
+    cloned.nodeBodyRef      = cloneNodeRef(sema, nodeBodyRef, cloneContextAsInline(cloneContext));
+    return newRef;
+}
+
+AstNodeRef AstAnonymousUnionDecl::semaClone(Sema& sema, const CloneContext& cloneContext) const
+{
+    const AstNodeRef newRef = cloneNodeCopy<AstNodeId::AnonymousUnionDecl>(sema, *this);
+    auto&            cloned = sema.node(newRef).cast<AstAnonymousUnionDecl>();
+    cloned.nodeBodyRef      = cloneNodeRef(sema, nodeBodyRef, cloneContextAsInline(cloneContext));
+    return newRef;
+}
+
 AstNodeRef AstAggregateBody::semaClone(Sema& sema, const CloneContext& cloneContext) const
 {
     const AstNodeRef newRef = cloneNodeCopy<AstNodeId::AggregateBody>(sema, *this);

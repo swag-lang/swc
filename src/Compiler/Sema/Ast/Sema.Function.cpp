@@ -136,37 +136,91 @@ namespace
         return node.nodeBodyRef.isValid();
     }
 
+    struct LazyGenericBodyRun
+    {
+        const TaskContext*  ownerCtx = nullptr;
+        bool                running  = false;
+        std::unique_ptr<Sema> sema;
+    };
+
+    std::mutex& lazyGenericBodyRunMutex()
+    {
+        static std::mutex mutex;
+        return mutex;
+    }
+
+    std::unordered_map<const SymbolFunction*, LazyGenericBodyRun>& lazyGenericBodyRuns()
+    {
+        static std::unordered_map<const SymbolFunction*, LazyGenericBodyRun> runs;
+        return runs;
+    }
+
     Result completeLazyGenericFunction(Sema& sema, SymbolFunction& calledFn)
     {
         if (calledFn.isSemaCompleted())
             return Result::Continue;
+        if (calledFn.isIgnored())
+            return Result::Error;
         if (!calledFn.hasExtraFlag(SymbolFunctionFlagsE::LazyGenericBody))
             return Result::Continue;
         if (calledFn.hasExtraFlag(SymbolFunctionFlagsE::LazyGenericBodyRunning))
-            return Result::Continue;
+        {
+            if (sema.currentFunction() == &calledFn)
+                return Result::Continue;
+            return sema.waitSemaCompleted(&calledFn, calledFn.codeRef());
+        }
 
         AstNodeRef declRef = calledFn.declNodeRef();
         if (declRef.isInvalid())
             return Result::Continue;
 
-        calledFn.addExtraFlag(SymbolFunctionFlagsE::LazyGenericBodyRunning);
-        const SourceView&     srcView = sema.compiler().srcView(calledFn.srcViewRef());
-        std::unique_ptr<Sema> child;
-        if (sema.ast().srcView().fileRef() == srcView.ownerFileRef())
+        Sema* child = nullptr;
         {
-            child = std::make_unique<Sema>(sema.ctx(), sema, declRef);
-        }
-        else
-        {
-            SourceFile& sourceFile = sema.compiler().file(srcView.ownerFileRef());
-            if (declRef.isInvalid() && calledFn.decl())
-                declRef = calledFn.decl()->nodeRef(sourceFile.ast());
-            SWC_ASSERT(declRef.isValid());
-            child = std::make_unique<Sema>(sema.ctx(), sema, sourceFile.nodePayloadContext(), declRef);
+            const std::scoped_lock lock(lazyGenericBodyRunMutex());
+            auto&                  run = lazyGenericBodyRuns()[&calledFn];
+            if (run.sema)
+            {
+                if (run.ownerCtx != &sema.ctx() || run.running)
+                    return sema.waitSemaCompleted(&calledFn, calledFn.codeRef());
+            }
+            else
+            {
+                run.ownerCtx = &sema.ctx();
+                const SourceView& srcView = sema.compiler().srcView(calledFn.srcViewRef());
+                if (sema.ast().srcView().fileRef() == srcView.ownerFileRef())
+                {
+                    run.sema = std::make_unique<Sema>(sema.ctx(), sema, declRef);
+                }
+                else
+                {
+                    SourceFile& sourceFile = sema.compiler().file(srcView.ownerFileRef());
+                    if (declRef.isInvalid() && calledFn.decl())
+                        declRef = calledFn.decl()->nodeRef(sourceFile.ast());
+                    SWC_ASSERT(declRef.isValid());
+                    run.sema = std::make_unique<Sema>(sema.ctx(), sema, sourceFile.nodePayloadContext(), declRef);
+                }
+
+                SemaGeneric::prepareGenericInstantiationContext(*run.sema, calledFn.ownerSymMap(), calledFn.declImplContext(), calledFn.declInterfaceContext(), calledFn.attributes());
+            }
+
+            run.running = true;
+            child       = run.sema.get();
         }
 
+        SWC_ASSERT(child);
+        calledFn.addExtraFlag(SymbolFunctionFlagsE::LazyGenericBodyRunning);
         const Result result = child->execResult();
         calledFn.removeExtraFlag(SymbolFunctionFlagsE::LazyGenericBodyRunning);
+        {
+            const std::scoped_lock lock(lazyGenericBodyRunMutex());
+            auto                   it = lazyGenericBodyRuns().find(&calledFn);
+            if (it != lazyGenericBodyRuns().end())
+            {
+                it->second.running = false;
+                if (result != Result::Pause)
+                    lazyGenericBodyRuns().erase(it);
+            }
+        }
         return result;
     }
 
@@ -1935,6 +1989,8 @@ namespace
 
         if (sema.viewConstant(sema.curNodeRef()).hasConstant())
             return Result::Continue;
+        if (sema.hasSubstitute(sema.curNodeRef()))
+            return Result::Continue;
 
         SWC_RESULT(SemaHelpers::attachIndirectReturnRuntimeStorageIfNeeded(sema, node, calledFn, "__call_runtime_storage"));
 
@@ -2150,6 +2206,7 @@ Result AstFunctionDecl::semaPostNode(Sema& sema)
 
     SemaPurity::computePurityFlag(sema, sym);
     sym.removeExtraFlag(SymbolFunctionFlagsE::LazyGenericBody);
+    sym.removeExtraFlag(SymbolFunctionFlagsE::LazyGenericBodyRunning);
     sym.setSemaCompleted(sema.ctx());
     if (!sym.attributes().hasRtFlag(RtAttributeFlagsE::Macro) && !sym.attributes().hasRtFlag(RtAttributeFlagsE::Mixin))
         sema.compiler().registerNativeCodeFunction(&sym);

@@ -4,11 +4,45 @@
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
+#include "Compiler/Sema/Symbol/Symbol.Enum.h"
+#include "Compiler/Sema/Symbol/Symbol.Impl.h"
+#include "Compiler/Sema/Symbol/Symbol.Struct.h"
 
 SWC_BEGIN_NAMESPACE();
 
 namespace SemaGeneric
 {
+    namespace
+    {
+        void collectSymbolMapNamespacePath(const SymbolMap* symMap, SmallVector<IdentifierRef>& outPath)
+        {
+            SmallVector<IdentifierRef> reversedPath;
+            for (const SymbolMap* current = symMap; current;)
+            {
+                const SymbolMap* owner = current->ownerSymMap();
+                if (current->isNamespace() && (!owner || !owner->isModule()))
+                    reversedPath.push_back(current->idRef());
+
+                const SymbolMap* next = owner;
+                if (!next && current->isImpl())
+                {
+                    const auto& impl = current->cast<SymbolImpl>();
+                    if (impl.isForStruct())
+                        next = impl.symStruct()->ownerSymMap();
+                    else if (impl.isForEnum())
+                        next = impl.symEnum()->ownerSymMap();
+                }
+
+                current = next;
+            }
+
+            outPath.clear();
+            outPath.reserve(reversedPath.size());
+            for (auto it = reversedPath.rbegin(); it != reversedPath.rend(); ++it)
+                outPath.push_back(*it);
+        }
+    }
+
     void appendCollectedGenericParam(Sema& sema, const AstNode& paramNode, AstNodeRef paramRef, SmallVector<GenericParamDesc>& outParams)
     {
         GenericParamDesc desc;
@@ -53,6 +87,17 @@ namespace SemaGeneric
         if (startSymMap)
             sema.startSymMap_ = startSymMap;
 
+        SmallVector<IdentifierRef> nsPath;
+        if (startSymMap)
+            collectSymbolMapNamespacePath(startSymMap, nsPath);
+        else
+        {
+            for (const IdentifierRef idRef : sema.frame().nsPath())
+                nsPath.push_back(idRef);
+        }
+        const SymbolAccess access                  = sema.frame().currentAccess();
+        const bool         globalCompilerIfEnabled = sema.frame().globalCompilerIfEnabled();
+
         sema.scopes_.clear();
         SemaScopeFlags scopeFlags = SemaScopeFlagsE::TopLevel;
         if (impl)
@@ -64,6 +109,10 @@ namespace SemaGeneric
 
         sema.frames_.clear();
         sema.pushFrame({});
+        for (const IdentifierRef idRef : nsPath)
+            sema.frame().pushNs(idRef);
+        sema.frame().setCurrentAccess(access);
+        sema.frame().setGlobalCompilerIfEnabled(globalCompilerIfEnabled);
         sema.frame().setCurrentImpl(impl);
         sema.frame().setCurrentInterface(itf);
         sema.frame().currentAttributes() = attrs;

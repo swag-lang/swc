@@ -179,6 +179,37 @@ namespace
         }
     }
 
+    void addBindingTypeSymMaps(Sema& sema, MatchContext& lookUpCxt, uint16_t& scopeDepth)
+    {
+        for (const TypeRef typeRef : std::ranges::reverse_view(sema.frame().bindingTypes()))
+        {
+            if (!typeRef.isValid())
+                continue;
+
+            TypeRef enumTypeRef = typeRef;
+            while (enumTypeRef.isValid())
+            {
+                const TypeInfo& typeInfo     = sema.typeMgr().get(enumTypeRef);
+                const TypeRef   unwrappedRef = typeInfo.unwrap(sema.ctx(), TypeRef::invalid(), TypeExpandE::Alias);
+                if (!unwrappedRef.isValid() || unwrappedRef == enumTypeRef)
+                    break;
+                enumTypeRef = unwrappedRef;
+            }
+
+            if (!enumTypeRef.isValid())
+                continue;
+
+            const TypeInfo& typeInfo = sema.typeMgr().get(enumTypeRef);
+            if (!typeInfo.isEnum())
+                continue;
+
+            MatchContext::Priority priority;
+            priority.scopeDepth = scopeDepth++;
+            priority.visibility = MatchContext::VisibilityTier::LocalScope;
+            addSymMap(lookUpCxt, &typeInfo.payloadSymEnum(), priority);
+        }
+    }
+
     void collect(Sema& sema, MatchContext& lookUpCxt)
     {
         lookUpCxt.symMaps.clear();
@@ -257,6 +288,8 @@ namespace
             scope = scope->lookupParent();
             ++scopeDepth;
         }
+
+        addBindingTypeSymMaps(sema, lookUpCxt, scopeDepth);
 
         MatchContext::Priority filePathPriority;
         filePathPriority.scopeDepth = scopeDepth;

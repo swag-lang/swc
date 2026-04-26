@@ -32,11 +32,16 @@ namespace
         return false;
     }
 
-    bool isInlineReexpandableCall(const AstNode& node)
+    bool isInlineReexpandableExpr(const AstNode& node)
     {
         return node.is(AstNodeId::CallExpr) ||
                node.is(AstNodeId::AliasCallExpr) ||
-               node.is(AstNodeId::IntrinsicCallExpr);
+               node.is(AstNodeId::IntrinsicCallExpr) ||
+               node.is(AstNodeId::UnaryExpr) ||
+               node.is(AstNodeId::BinaryExpr) ||
+               node.is(AstNodeId::RelationalExpr) ||
+               node.is(AstNodeId::IndexExpr) ||
+               node.is(AstNodeId::CastExpr);
     }
 
     bool isBindingAssigned(const SemaClone::ParamBinding& binding)
@@ -122,7 +127,7 @@ namespace
         // payload that gives that block expression semantics, so let the cloned call re-inline.
         if (resolvedRef != argRef &&
             sema.node(resolvedRef).is(AstNodeId::EmbeddedBlock) &&
-            isInlineReexpandableCall(sema.node(argRef)))
+            isInlineReexpandableExpr(sema.node(argRef)))
             return argRef;
 
         return resolvedRef;

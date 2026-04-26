@@ -50,6 +50,30 @@ impl RuntimeWriteOnlyIndexBox
     }
 }
 
+struct RuntimeRefIndexBox
+{
+    values: [2] s32
+    reads:  s32
+    writes: s32
+}
+
+impl RuntimeRefIndexBox
+{
+    #[Swag.Overload, Swag.NoInline]
+    mtd opIndex(index: s32) -> &s32
+    {
+        .reads += 1
+        return &.values[index]
+    }
+
+    #[Swag.Overload, Swag.NoInline]
+    mtd opIndexSet(index: s32, value: s32)
+    {
+        .writes += 1
+        .values[index] = value
+    }
+}
+
 struct RuntimeIndexHolder
 {
     value:     RuntimeIndexBox
@@ -86,4 +110,19 @@ struct RuntimeIndexHolder
     @assert(holder.writeOnly.first == 5)
     @assert(holder.writeOnly.second == 0)
     @assert(holder.writeOnly.writes == 1)
+}
+
+#test
+{
+    var box = RuntimeRefIndexBox{}
+    box[0] = 32
+
+    @assert(box.values[0] == 32)
+    @assert(box.values[1] == 0)
+    @assert(box.writes == 1)
+    @assert(box.reads == 0)
+
+    let observed = box[0]
+    @assert(observed == 32)
+    @assert(box.reads == 1)
 }

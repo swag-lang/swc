@@ -882,16 +882,6 @@ namespace
         return Result::Continue;
     }
 
-    SymbolFunction* indexReadSpecOpFunction(const Sema& sema, AstNodeRef leftExprRef)
-    {
-        const auto* payloadBase = sema.semaPayload<IndexSpecOpPayloadBase>(leftExprRef);
-        if (!payloadBase || payloadBase->kind != IndexSpecOpPayloadKind::Read)
-            return nullptr;
-
-        const auto* payload = reinterpret_cast<const IndexSpecOpSemaPayload*>(payloadBase);
-        return payload->calledFn;
-    }
-
     Result canAssignThroughIndexLValue(Sema& sema, const AstAssignStmt& node, AstNodeRef leftExprRef, const SemaNodeView& leftView, bool& outCanAssign)
     {
         outCanAssign = false;
@@ -950,14 +940,6 @@ namespace
         SWC_ASSERT(symView.sym() && symView.sym()->isFunction());
         outCalledFn = &symView.sym()->cast<SymbolFunction>();
         return Result::Continue;
-    }
-
-    Result raiseAmbiguousIndexWrite(Sema& sema, AstNodeRef atNodeRef, const SymbolFunction& readFn, const SymbolFunction& writeFn)
-    {
-        SmallVector<const Symbol*> ambiguous;
-        ambiguous.push_back(&readFn);
-        ambiguous.push_back(&writeFn);
-        return SemaError::raiseAmbiguousSymbol(sema, atNodeRef, ambiguous.span());
     }
 
     Result collectVisitSpecOpCandidates(Sema& sema, const SymbolStruct& ownerStruct, const AstForeachStmt& node, std::span<const AstNodeRef> genericArgNodes, SmallVector<Symbol*>& outCandidates)
@@ -1782,11 +1764,11 @@ Result SemaSpecOp::tryResolveIndexAssign(Sema& sema, const AstAssignStmt& node, 
         bool            setMatched = false;
         SWC_RESULT(probeIndexAssignSpecOp(sema, node, indexNode, candidates.span(), setFn, setMatched));
 
-        if (setMatched && canAssignThroughRef)
+        // A dedicated indexed write operator is more specific than mutating through an opIndex reference.
+        if (setMatched)
         {
-            if (const SymbolFunction* readFn = indexReadSpecOpFunction(sema, leftNodeRef))
-                return raiseAmbiguousIndexWrite(sema, sema.curNodeRef(), *readFn, *setFn);
-            return Result::Continue;
+            SWC_ASSERT(setFn);
+            canAssignThroughRef = false;
         }
 
         if (!setMatched)

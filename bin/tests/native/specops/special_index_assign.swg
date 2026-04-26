@@ -63,6 +63,33 @@ impl RuntimeWriteOnlyIndexAssignBox
     }
 }
 
+struct RuntimeRefIndexAssignBox
+{
+    values: [2] s32
+    reads:  s32
+    writes: s32
+}
+
+impl RuntimeRefIndexAssignBox
+{
+    #[Swag.Overload, Swag.NoInline]
+    mtd opIndex(index: s32) -> &s32
+    {
+        .reads += 1
+        return &.values[index]
+    }
+
+    #[Swag.Overload, Swag.NoInline]
+    mtd(op: string) opIndexAssign(index: s32, value: s32)
+    {
+        .writes += 1
+        #if op == "+=" do
+            .values[index] += value
+        #else do
+            #error("unsupported opIndexAssign op [[" ++ op ++ "]]")
+    }
+}
+
 struct RuntimeIndexAssignHolder
 {
     value:     RuntimeIndexAssignBox
@@ -128,4 +155,19 @@ struct RuntimeIndexAssignHolder
     @assert(holder.writeOnly.first == 11)
     @assert(holder.writeOnly.second == 9)
     @assert(holder.writeOnly.writes == 1)
+}
+
+#test
+{
+    var box = RuntimeRefIndexAssignBox{values: [10, 20]}
+    box[0] += 7
+
+    @assert(box.values[0] == 17)
+    @assert(box.values[1] == 20)
+    @assert(box.writes == 1)
+    @assert(box.reads == 0)
+
+    let observed = box[0]
+    @assert(observed == 17)
+    @assert(box.reads == 1)
 }

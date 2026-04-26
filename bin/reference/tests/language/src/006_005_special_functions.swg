@@ -91,7 +91,7 @@ impl Struct
     #[Swag.Overload]
     func(suffix: string) opSetLiteral(me, value: AnotherType) {}
 
-    // Assign to an indexed position via '[?] ='
+    // Assign to an indexed position via '[?] ='. When both opIndexSet and opIndex can write, opIndexSet is selected.
     #[Swag.Overload]
     func opIndexSet(me, index: OneType, value: OneType) {}
     #[Swag.Overload]
@@ -131,7 +131,7 @@ impl Struct
     #[Swag.Overload]
     func(op: string) opAssign(me, other: AnotherType) {}
 
-    // Indexed assignment with operator 'op'
+    // Indexed assignment with operator 'op'. When both opIndexAssign and opIndex can write, opIndexAssign is selected.
     #[Swag.Overload]
     func(op: string) opIndexAssign(me, index: OneType, value: OneType) {}
     #[Swag.Overload]

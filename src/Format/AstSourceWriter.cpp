@@ -67,7 +67,7 @@ namespace
 
         if (headSize != 0)
         {
-            out.append(digits.data(), headSize);
+            out.append(digits.data() + 0, headSize);
             index = headSize;
             if (index < digits.size())
                 out += '_';

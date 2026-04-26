@@ -600,7 +600,7 @@ Utf8 TimedActionLog::formatSummaryLine(const TaskContext& ctx, const StatsSnapsh
     if (snapshot.numFiles)
         parts.push_back({Utf8Helper::countWithLabel(snapshot.numFiles, "file"), LogColor::White});
     parts.push_back({Utf8Helper::toNiceTime(Timer::toSeconds(snapshot.timeTotal)), LogColor::White});
-    if (ctx.cmdLine().command == CommandKind::Format && snapshot.numErrors == 0)
+    if (ctx.cmdLine().command == CommandKind::Format && !ctx.cmdLine().dryRun && snapshot.numErrors == 0)
         parts.push_back({Utf8Helper::countWithLabel(snapshot.numFormatRewrittenFiles, "written file"), LogColor::Gray});
     if (snapshot.numWarnings)
         parts.push_back({Utf8Helper::countWithLabel(snapshot.numWarnings, "warning"), LogColor::BrightYellow});

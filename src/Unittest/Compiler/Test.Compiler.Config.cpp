@@ -269,6 +269,47 @@ SWC_TEST_BEGIN(Compiler_FormatSummaryLineShowsWrittenFilesAfterTime)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(Compiler_FormatDryRunDoesNotRewriteChangedFile)
+{
+    const ScopedTempTree tempTree("compiler_format_dry_run_no_rewrite");
+    if (!tempTree.ready())
+        return Result::Error;
+
+    const fs::path sourcePath = tempTree.root() / "main.swg";
+    const fs::path configPath = tempTree.root() / ".swc-format";
+    const Utf8     source     = "#assert(0xdead == 0xdead)\n";
+    if (!writeTextFile(sourcePath, source))
+        return Result::Error;
+    if (!writeTextFile(configPath, "hex-literal-case = upper\n"))
+        return Result::Error;
+
+    CommandLine cmdLine;
+    cmdLine.command  = CommandKind::Format;
+    cmdLine.dryRun   = true;
+    cmdLine.runtime  = false;
+    cmdLine.silent   = true;
+    cmdLine.logColor = false;
+    cmdLine.files.insert(sourcePath);
+
+    CompilerInstance compiler(ctx.global(), cmdLine);
+    if (compiler.run() != ExitCode::Success)
+        return Result::Error;
+
+    std::ifstream stream(sourcePath, std::ios::binary);
+    if (!stream.is_open())
+        return Result::Error;
+
+    const std::string content((std::istreambuf_iterator<char>(stream)), std::istreambuf_iterator<char>());
+    if (content != source)
+        return Result::Error;
+    if (Stats::get().numFormatRewrittenFiles.load(std::memory_order_relaxed) != 1)
+        return Result::Error;
+
+    Stats::resetCommandMetrics();
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(Compiler_FormatOptionsLoaderMergesHierarchy)
 {
     const ScopedTempTree tempTree("compiler_format_options_loader");

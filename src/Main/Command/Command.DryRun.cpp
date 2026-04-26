@@ -5,16 +5,21 @@
 #include "Backend/Native/NativeLinker.h"
 #include "Backend/RuntimeName.h"
 #include "Compiler/SourceFile.h"
+#include "Format/FormatJob.h"
+#include "Format/FormatOptionsLoader.h"
 #include "Main/Command/CommandLine.h"
 #include "Main/Command/CommandLineParser.h"
 #include "Main/Command/CommandPrint.h"
 #include "Main/CompilerInstance.h"
 #include "Main/Global.h"
+#include "Main/Stats.h"
 #include "Main/TaskContext.h"
 #include "Support/Core/Utf8Helper.h"
+#include "Support/Memory/Heap.h"
 #include "Support/Os/Os.h"
 #include "Support/Report/LogColor.h"
 #include "Support/Report/Logger.h"
+#include "Support/Thread/JobManager.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -52,6 +57,16 @@ namespace
         NativeArtifactPaths                 paths;
         Os::WindowsToolchainPaths           toolchain;
         Os::WindowsToolchainDiscoveryResult toolchainResult = Os::WindowsToolchainDiscoveryResult::Ok;
+    };
+
+    struct DryRunFormatPreview
+    {
+        bool   enabled             = false;
+        size_t totalFiles          = 0;
+        size_t rewrittenFiles      = 0;
+        size_t unchangedFiles      = 0;
+        size_t skippedFmtFiles     = 0;
+        size_t skippedInvalidFiles = 0;
     };
 
     void collectDryRunInputSummary(DryRunInputSummary& outSummary, const CompilerInstance& compiler)
@@ -110,6 +125,60 @@ namespace
         artifactBuilder.queryPaths(result.paths);
         result.toolchainResult = NativeLinker::queryToolchainPaths(nativeBuilder, result.toolchain);
         return result;
+    }
+
+    Result buildDryRunFormatPreview(DryRunFormatPreview& outPreview, CompilerInstance& compiler, TaskContext& ctx)
+    {
+        outPreview = {};
+        if (ctx.cmdLine().command != CommandKind::Format)
+            return Result::Continue;
+
+        outPreview.enabled = true;
+
+        constexpr ParserJobOptions parserOptions = {
+            .emitTrivia       = true,
+            .ignoreGlobalSkip = true,
+        };
+
+        const Global&          global       = ctx.global();
+        JobManager&            jobMgr       = global.jobMgr();
+        const JobClientId      clientId     = compiler.jobClientId();
+        const uint64_t         errorsBefore = Stats::getNumErrors();
+        FormatOptionsLoader    optionsLoader(ctx);
+        std::vector<FormatJob*> jobs;
+        jobs.reserve(compiler.files().size());
+
+        for (SourceFile* file : compiler.files())
+        {
+            if (!file)
+                continue;
+
+            FormatOptions formatOptions;
+            SWC_RESULT(optionsLoader.resolve(file->path(), formatOptions));
+
+            auto* job = heapNew<FormatJob>(ctx, file, formatOptions, parserOptions);
+            jobs.push_back(job);
+            jobMgr.enqueue(*job, JobPriority::Normal, clientId);
+        }
+
+        jobMgr.waitAll(clientId);
+        if (Stats::getNumErrors() != errorsBefore)
+            return Result::Error;
+
+        outPreview.totalFiles = jobs.size();
+        for (const FormatJob* job : jobs)
+        {
+            if (job->rewritten())
+                outPreview.rewrittenFiles++;
+            else if (job->skippedFmt())
+                outPreview.skippedFmtFiles++;
+            else if (job->skippedInvalid())
+                outPreview.skippedInvalidFiles++;
+            else
+                outPreview.unchangedFiles++;
+        }
+
+        return Result::Continue;
     }
 
     std::vector<Utf8> buildLinkPreviewArgs(const DryRunNativePreview& preview, const Runtime::BuildCfg& buildCfg)
@@ -171,6 +240,23 @@ namespace
         return args;
     }
 
+    Utf8 formatFileCountWithSuffix(const size_t count, const std::string_view suffix)
+    {
+        Utf8 result = Utf8Helper::countWithLabel(count, "file");
+        result += suffix;
+        return result;
+    }
+
+    Utf8 formatDryRunFormatOutcome(const DryRunFormatPreview& preview)
+    {
+        const std::vector<Utf8> parts = {
+            formatFileCountWithSuffix(preview.unchangedFiles, " skipped because unchanged"),
+            formatFileCountWithSuffix(preview.skippedFmtFiles, " ignored by skipfmt"),
+            formatFileCountWithSuffix(preview.skippedInvalidFiles, " ignored after errors"),
+        };
+        return Utf8Helper::join(parts, ", ");
+    }
+
     void printDryRunOverview(const TaskContext& ctx, const DryRunInputSummary& inputSummary, const DryRunNativePreview& nativePreview, bool& hasPrintedGroup)
     {
         const CommandLine&              cmdLine = ctx.cmdLine();
@@ -209,7 +295,7 @@ namespace
         Logger::printFieldGroup(ctx, "Resolved Inputs", entries, nextInfoGroupStyle(hasPrintedGroup, 24));
     }
 
-    void printDryRunPlan(const TaskContext& ctx, const DryRunInputSummary& inputSummary, const DryRunNativePreview& nativePreview, bool& hasPrintedGroup)
+    void printDryRunPlan(const TaskContext& ctx, const DryRunInputSummary& inputSummary, const DryRunFormatPreview& formatPreview, const DryRunNativePreview& nativePreview, bool& hasPrintedGroup)
     {
         const CommandLine&              cmdLine = ctx.cmdLine();
         std::vector<Logger::FieldEntry> entries;
@@ -229,9 +315,16 @@ namespace
         switch (cmdLine.command)
         {
             case CommandKind::Format:
-                addPlanEntry(entries, index++, "Would", LogColor::BrightGreen, std::format("parse {}", inputCount));
-                addPlanEntry(entries, index++, "Would", LogColor::BrightGreen, "validate the parsed AST can be written back as source");
-                addPlanEntry(entries, index, "Would", LogColor::BrightGreen, "rewrite source files in place when formatted output differs");
+                if (formatPreview.enabled)
+                {
+                    addPlanEntry(entries, index++, "Would", LogColor::BrightGreen, std::format("parse and format {} ({})", inputCount, formatDryRunFormatOutcome(formatPreview)));
+                    addPlanEntry(entries, index, "Would", LogColor::BrightGreen, std::format("rewrite {} whose formatted output differs", Utf8Helper::countWithLabel(formatPreview.rewrittenFiles, "file")));
+                }
+                else
+                {
+                    addPlanEntry(entries, index++, "Would", LogColor::BrightGreen, std::format("parse and format {}", inputCount));
+                    addPlanEntry(entries, index, "Would", LogColor::BrightGreen, "rewrite only files whose formatted output differs");
+                }
                 break;
 
             case CommandKind::Syntax:
@@ -394,15 +487,20 @@ namespace Command
         if (compiler.collectFiles(ctx) == Result::Error)
             return;
 
-        const Logger::ScopedLock loggerLock{ctx.global().logger()};
-        DryRunInputSummary       inputSummary;
-        bool                     hasPrintedGroup = false;
+        DryRunInputSummary inputSummary;
         collectDryRunInputSummary(inputSummary, compiler);
+
+        DryRunFormatPreview formatPreview;
+        if (buildDryRunFormatPreview(formatPreview, compiler, ctx) != Result::Continue)
+            return;
+
         const DryRunNativePreview nativePreview = buildDryRunNativePreview(compiler);
+        const Logger::ScopedLock   loggerLock{ctx.global().logger()};
+        bool                       hasPrintedGroup = false;
 
         printDryRunOverview(ctx, inputSummary, nativePreview, hasPrintedGroup);
         printDryRunInputs(ctx, inputSummary, hasPrintedGroup);
-        printDryRunPlan(ctx, inputSummary, nativePreview, hasPrintedGroup);
+        printDryRunPlan(ctx, inputSummary, formatPreview, nativePreview, hasPrintedGroup);
         printDryRunNativeOutputs(ctx, nativePreview, hasPrintedGroup);
         printDryRunNativeCommands(ctx, nativePreview, hasPrintedGroup);
         printDryRunNativeToolchain(ctx, nativePreview, hasPrintedGroup);

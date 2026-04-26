@@ -214,7 +214,7 @@ namespace
         const size_t unchangedFiles     = totalFiles >= classifiedFiles ? totalFiles - classifiedFiles : 0;
 
         addField(entries, "Files", Utf8Helper::countWithLabel(totalFiles, "file"));
-        addField(entries, "Rewritten", Utf8Helper::countWithLabel(rewrittenFiles, "file"));
+        addField(entries, ctx.cmdLine().dryRun ? "Would rewrite" : "Rewritten", Utf8Helper::countWithLabel(rewrittenFiles, "file"));
         addField(entries, "Unchanged", Utf8Helper::countWithLabel(unchangedFiles, "file"));
         addField(entries, "SkipFmt", Utf8Helper::countWithLabel(skippedFmtFiles, "file"));
         addField(entries, "Skipped invalid", Utf8Helper::countWithLabel(skippedInvalidFile, "file"));
@@ -227,7 +227,8 @@ namespace
         addField(entries, "Lexer", Utf8Helper::toNiceTime(Timer::toSeconds(stats.timeLexer.load())));
         addField(entries, "Parser", Utf8Helper::toNiceTime(Timer::toSeconds(stats.timeParser.load())));
         addField(entries, "Format emit", Utf8Helper::toNiceTime(Timer::toSeconds(stats.timeFormat.load())));
-        addField(entries, "File write", Utf8Helper::toNiceTime(Timer::toSeconds(stats.timeFormatWrite.load())));
+        if (!ctx.cmdLine().dryRun)
+            addField(entries, "File write", Utf8Helper::toNiceTime(Timer::toSeconds(stats.timeFormatWrite.load())));
         Logger::printFieldGroup(ctx, "Timings", entries, nextInfoGroupStyle(hasPrintedGroup, 30));
     }
 }

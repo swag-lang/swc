@@ -2,6 +2,7 @@
 #include "Format/FormatJob.h"
 #include "Compiler/SourceFile.h"
 #include "Format/Formatter.h"
+#include "Main/Command/CommandLine.h"
 #include "Main/Stats.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -51,8 +52,11 @@ JobResult FormatJob::exec()
 #endif
     }
 
-    const Result writeResult = formatter.write(jobCtx);
-    rewritten_               = writeResult == Result::Continue && formatter.changed();
+    Result writeResult = Result::Continue;
+    if (!jobCtx.cmdLine().dryRun)
+        writeResult = formatter.write(jobCtx);
+
+    rewritten_ = writeResult == Result::Continue && formatter.changed();
     if (rewritten_)
     {
         Stats::get().numFormatRewrittenFiles.fetch_add(1, std::memory_order_relaxed);

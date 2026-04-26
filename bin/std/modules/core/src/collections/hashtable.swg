@@ -78,7 +78,6 @@ impl HashTable
 
     // Provides read-only access to the value associated with a key.
     // Asserts if the key is not found.
-    #[Overload]
     mtd const opIndex(key: K)->const &V
     {
         #[Global]
@@ -93,7 +92,6 @@ impl HashTable
     // Provides mutable access to the value associated with a key.
     // If the key does not exist, this will exhibit undefined behavior. Use with caution.
     // See [[opIndexSet]] for safe insertion/update.
-    #[Overload]
     mtd opIndex(key: K)->&V
     {
         #[Global]
@@ -271,7 +269,7 @@ impl HashTable
 
     // Adds a new key-value pair to the me.table by copying them.
     // If the key already exists, the value is updated if 'updateValue' is true.
-    #[Discardable, Overload]
+    #[Discardable]
     mtd add(key: K, value: V, updateValue = true)->*HashTableEntry
         where Reflection.canCopy(#typeof(K)) and Reflection.canCopy(#typeof(V))
     {
@@ -308,7 +306,7 @@ impl HashTable
 
     // Adds a new key-value pair to the me.table, moving the value.
     // If the key already exists, the value is updated if 'updateValue' is true.
-    #[Discardable, Overload]
+    #[Discardable]
     mtd add(key: K, value: &&V, updateValue = true)->*HashTableEntry
         where Reflection.canCopy(#typeof(K))
     {

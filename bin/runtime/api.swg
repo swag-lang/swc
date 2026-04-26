@@ -77,10 +77,6 @@ namespace Swag
     #[AttrUsage(AttributeUsage.Function)]
     attr Complete()
 
-    // The following function can be overloaded
-    #[AttrUsage(AttributeUsage.Function)]
-    attr Overload()
-
     // An opBinary special function can also be used when its receiver is the right operand.
     // Optional string parameters restrict the operators for generic opBinary implementations.
     #[AttrUsage(AttributeUsage.Function)]
@@ -939,7 +935,7 @@ func @memmove(dst: [*] void, src: const [*] void, size: u64);
 func @memcmp(dst, src: const [*] void, size: u64)->s32;
 
 // Atomic operations
-#[Swag.Discardable, Swag.Overload]
+#[Swag.Discardable]
 {
     // Atomic 'add'
     func @atomadd(addr: *s8, value: s8)->s8;
@@ -1003,7 +999,7 @@ func @memcmp(dst, src: const [*] void, size: u64)->s32;
 }
 
 // Constant intrinsics
-#[Swag.ConstExpr, Swag.Overload]
+#[Swag.ConstExpr]
 {
     // Square root.
     func @sqrt(value: f32)->f32;
@@ -1104,7 +1100,7 @@ func @realloc(ptr: [*] void, size: u64)->[*] void;
 // Free a system memory block allocated with [[@alloc]]
 func @free(ptr: [*] void);
 
-#[Swag.ConstExpr, Swag.Overload]
+#[Swag.ConstExpr]
 {
     // Trigonometric functions.
     func @sin(value: f32)->f32;

@@ -51,7 +51,7 @@ func set(dest: [*] void, value: u8, size: u64)
 }
 
 // Align a value to the given amount
-#[Overload, Inline]
+#[Inline]
 func align(value: u64, alignment: u32)->u64
 {
     let toAlign = (alignment orelse #sizeof(*void)) - 1
@@ -59,7 +59,7 @@ func align(value: u64, alignment: u32)->u64
 }
 
 // Align a pointer to the given amount
-#[Overload, Inline]
+#[Inline]
 func align(value: const [*] void, alignment: u32)->const [*] void
 {
     return cast() align(cast(u64) value, alignment)

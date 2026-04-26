@@ -215,7 +215,6 @@ impl RegExp
     }
 
     // Compile and match the expression.
-    #[Swag.Overload]
     public mtd match(expr, str: string, ignoreCase = false)->bool throw
     {
         .compile(expr, ignoreCase)
@@ -224,7 +223,6 @@ impl RegExp
 
     // Returns true if 'str' matches the regexp.
     // Should have been compiled before.
-    #[Swag.Overload]
     public mtd match(str: string)->bool
     {
         .clearMatch()
@@ -233,7 +231,6 @@ impl RegExp
     }
 
     // Find all the occurences in the string
-    #[Swag.Overload]
     public func grepAll(expr, str: string)->Array'string throw
     {
         var r = create(expr)
@@ -241,7 +238,6 @@ impl RegExp
     }
 
     // Find all the occurences in the string
-    #[Swag.Overload]
     public mtd grepAll(str: string)->Array'string
     {
         var result: retval
@@ -267,7 +263,6 @@ impl RegExp
     }
 
     // Find the first occurence in the string
-    #[Swag.Overload]
     public func grep(expr, str: string)->string throw
     {
         var r = create(expr)
@@ -275,7 +270,6 @@ impl RegExp
     }
 
     // Find the first occurence in the string
-    #[Swag.Overload]
     public mtd grep(str: string)->#null string
     {
         if str == null do

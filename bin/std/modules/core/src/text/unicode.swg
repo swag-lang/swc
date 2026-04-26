@@ -144,7 +144,6 @@ public
 
 // Convert an utf8 buffer to a character sequence, and returns the
 // number of valid elements in the destination buffer
-#[Swag.Overload]
 public func fromUtf8(dest: [..] rune, src: const [..] u8)->u32
 {
     var count     = 0'u32
@@ -169,7 +168,6 @@ public func fromUtf8(dest: [..] rune, src: const [..] u8)->u32
 }
 
 // Convert an utf8 buffer to a character sequence
-#[Swag.Overload]
 public func fromUtf8(src: const [..] u8)->Array'rune
 {
     var result: retval

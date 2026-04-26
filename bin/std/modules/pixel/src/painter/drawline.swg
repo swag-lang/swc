@@ -4,13 +4,11 @@ using Core
 impl Painter
 {
     // Draw a line
-    #[Swag.Overload]
     mtd drawLine(start, end: Math.Vector2, pen: Pen)
     {
         .drawLine(start.x, start.y, end.x, end.y, pen)
     }
 
-    #[Swag.Overload]
     mtd drawLine(startX, startY, endX, endY: f32, color: Color, penSize: f32 = 1)
     {
         if (startX == endX and startY == endY) or color.a == 0 or penSize == 0 do
@@ -20,7 +18,6 @@ impl Painter
         .drawLine(startX, startY, endX, endY, pen)
     }
 
-    #[Swag.Overload]
     mtd drawLine(startX, startY, endX, endY: f32, pen: Pen)
     {
         if (startX == endX and startY == endY) or pen.brush.color.a == 0 or pen.size == 0 do
@@ -30,7 +27,6 @@ impl Painter
         .drawPath(&.sharedLinePath, pen)
     }
 
-    #[Swag.Overload]
     mtd drawBezier(startX, startY, endX, endY: f32, ptX, ptY: f32, pen: Pen)
     {
         if (startX == endX and startY == endY) or pen.brush.color.a == 0 or pen.size == 0 do

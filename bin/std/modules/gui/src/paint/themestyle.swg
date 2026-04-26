@@ -155,14 +155,12 @@ impl ThemeStyle
         return result
     }
 
-    #[Swag.Overload]
     mtd setFont(fnt: FontFamily)
     {
         .font  = fnt
         .dirty = true
     }
 
-    #[Swag.Overload]
     mtd setFont(fnt: *Font, style: FontFamilyStyle)
     {
         .font.setFont(fnt, style)

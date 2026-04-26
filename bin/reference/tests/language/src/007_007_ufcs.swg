@@ -71,14 +71,12 @@ UFCS supports overloaded functions, selecting the correct overload based on argu
 {
     struct Complex { real, imag: f32 }
 
-    #[Swag.Overload]
     func multiply(c: *Complex, scalar: f32)
     {
         c.real *= scalar
         c.imag *= scalar
     }
 
-    #[Swag.Overload]
     func multiply(c: *Complex, other: *Complex)
     {
         // Use temporary variables to prevent reuse of modified values

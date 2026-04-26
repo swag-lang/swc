@@ -11,7 +11,7 @@ struct RuntimeCommBox
 
 impl RuntimeCommBox
 {
-    #[Swag.Overload, Swag.NoInline]
+    #[Swag.NoInline]
     mtd(op: string) const opBinary(other: const &RuntimeCommBox)->RuntimeCommBox
     {
         #if op == "+" do
@@ -22,7 +22,7 @@ impl RuntimeCommBox
             #error("unsupported binary operation [[" ++ op ++ "]]")
     }
 
-    #[Swag.Overload, Swag.NoInline]
+    #[Swag.NoInline]
     mtd const opEquals(other: const &RuntimeCommBox)->bool
     {
         return .value == other.value
@@ -99,7 +99,7 @@ struct RuntimeFullArithBox
 
 impl RuntimeFullArithBox
 {
-    #[Swag.Overload, Swag.NoInline]
+    #[Swag.NoInline]
     mtd(op: string) const opBinary(other: const &RuntimeFullArithBox)->RuntimeFullArithBox
     {
         #if op == "+" do
@@ -116,7 +116,7 @@ impl RuntimeFullArithBox
             #error("unsupported binary operation [[" ++ op ++ "]]")
     }
 
-    #[Swag.Overload, Swag.NoInline]
+    #[Swag.NoInline]
     mtd(op: string) const opBinary(scalar: s32)->RuntimeFullArithBox
     {
         #if op == "+" do

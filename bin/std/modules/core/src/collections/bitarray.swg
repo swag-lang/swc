@@ -136,7 +136,6 @@ public impl BitArray
 
     // Reserves capacity for a given number of bits.
     // The allocated memory is not initialized.
-    #[Swag.Overload]
     mtd reserve(maxBits: u64)
     {
         if !maxBits
@@ -157,7 +156,6 @@ public impl BitArray
     }
 
     // Reserves capacity for a given number of bits and initializes them to a specific value.
-    #[Swag.Overload]
     mtd reserve(maxBits: u64, initialValue: bool)
     {
         .reserve(maxBits)
@@ -195,7 +193,6 @@ public impl BitArray
 
     // Inverts the value of the bit at a specific position.
     // Changes a 'true' bit to 'false' and a 'false' bit to 'true'.
-    #[Swag.Overload]
     mtd invert(index: u64)
     {
         Debug.assert(index < .count)
@@ -210,7 +207,6 @@ public impl BitArray
 
     // Inverts all bit values in the array.
     // Bits set to 'true' are changed to 'false', and vice versa.
-    #[Swag.Overload]
     mtd invert()
     {
         if !.count do

@@ -8,7 +8,6 @@ struct WriteOnlyIndexBox
 
 impl WriteOnlyIndexBox
 {
-    #[Swag.Overload]
     mtd opIndexSet(index: s32, value: s32)
     {
         if index == 0 do

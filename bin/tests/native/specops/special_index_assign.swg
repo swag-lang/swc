@@ -10,14 +10,14 @@ struct RuntimeIndexAssignBox
 
 impl RuntimeIndexAssignBox
 {
-    #[Swag.Overload, Swag.NoInline]
+    #[Swag.NoInline]
     mtd opIndex(index: s32) -> s32
     {
         .reads += 1
         return .values[index]
     }
 
-    #[Swag.Overload, Swag.NoInline]
+    #[Swag.NoInline]
     mtd(op: string) opIndexAssign(index: s32, value: s32)
     {
         .writes += 1
@@ -29,7 +29,7 @@ impl RuntimeIndexAssignBox
             #error("unsupported opIndexAssign op [[" ++ op ++ "]]")
     }
 
-    #[Swag.Overload, Swag.NoInline]
+    #[Swag.NoInline]
     mtd(op: string) opIndexAssign(index: s32, value: u32)
     {
         .shifts += 1
@@ -49,7 +49,7 @@ struct RuntimeWriteOnlyIndexAssignBox
 
 impl RuntimeWriteOnlyIndexAssignBox
 {
-    #[Swag.Overload, Swag.NoInline]
+    #[Swag.NoInline]
     mtd(op: string) opIndexAssign(index: s32, value: s32)
     {
         .writes += 1
@@ -72,14 +72,14 @@ struct RuntimeRefIndexAssignBox
 
 impl RuntimeRefIndexAssignBox
 {
-    #[Swag.Overload, Swag.NoInline]
+    #[Swag.NoInline]
     mtd opIndex(index: s32) -> &s32
     {
         .reads += 1
         return &.values[index]
     }
 
-    #[Swag.Overload, Swag.NoInline]
+    #[Swag.NoInline]
     mtd(op: string) opIndexAssign(index: s32, value: s32)
     {
         .writes += 1
@@ -99,14 +99,14 @@ struct RuntimeMultiIndexAssignBox
 
 impl RuntimeMultiIndexAssignBox
 {
-    #[Swag.Overload, Swag.NoInline]
+    #[Swag.NoInline]
     mtd opIndex(row: s32, col: s32) -> &s32
     {
         .reads += 1
         return &.values[row * 2 + col]
     }
 
-    #[Swag.Overload, Swag.NoInline]
+    #[Swag.NoInline]
     mtd(op: string) opIndexAssign(row: s32, col: s32, value: s32)
     {
         .writes += 1

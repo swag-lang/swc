@@ -9,7 +9,7 @@ struct RuntimeValueIndexBox
 
 impl RuntimeValueIndexBox
 {
-    #[Swag.Overload, Swag.NoInline]
+    #[Swag.NoInline]
     mtd opIndex(index: s32) -> s32
     {
         .reads += 1
@@ -27,14 +27,14 @@ struct RuntimeRefIndexBox
 
 impl RuntimeRefIndexBox
 {
-    #[Swag.Overload, Swag.NoInline]
+    #[Swag.NoInline]
     mtd opIndex(index: s32) -> &s32
     {
         .reads += 1
         return &.buffer[index]
     }
 
-    #[Swag.Overload, Swag.NoInline]
+    #[Swag.NoInline]
     mtd const opIndex(index: s32) -> const &s32
     {
         return &.buffer[index]
@@ -49,7 +49,7 @@ struct RuntimeMultiIndexBox
 
 impl RuntimeMultiIndexBox
 {
-    #[Swag.Overload, Swag.NoInline]
+    #[Swag.NoInline]
     mtd opIndex(row: s32, col: s32) -> s32
     {
         .reads += 1

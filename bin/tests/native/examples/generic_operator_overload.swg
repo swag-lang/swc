@@ -26,7 +26,6 @@ impl Complex
     //   (a+bi) + (c+di) = (a+c) + (b+d)i
     //   (a+bi) - (c+di) = (a-c) + (b-d)i
     //   (a+bi) * (c+di) = (ac-bd) + (ad+bc)i
-    #[Swag.Overload]
     func(op: string) opBinary(const me, other: const &Complex'T)->Complex'T
     {
         #if op == "+" do
@@ -44,7 +43,6 @@ impl Complex
     //   (a+bi) + s = (a+s) + bi
     //   (a+bi) - s = (a-s) + bi
     //   (a+bi) * s = (a*s) + (b*s)i
-    #[Swag.Overload]
     func(op: string) opBinary(const me, scalar: T)->Complex'T
     {
         #if op == "+" do

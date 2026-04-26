@@ -56,7 +56,6 @@ impl PaintImage
     }
 
     // Draw to an image by calling the func
-    #[Swag.Overload]
     public mtd draw(call: func||(*Application, *Painter))->Image
     {
         .paint = call
@@ -66,7 +65,6 @@ impl PaintImage
     }
 
     // One shot paint to image
-    #[Swag.Overload]
     public func draw(w, h: s32, call: func||(*Application, *Painter))->Image
     {
         var pt: PaintImage

@@ -289,7 +289,6 @@ impl Painter
         return cmd
     }
 
-    #[Swag.Overload]
     fileprivate mtd pushTriangle(p1, p2, p3: Vector2, uv1, uv2, uv3: Vector2, color: Color)->u64
     {
         let cmd = .pushTriangleCmd()
@@ -314,7 +313,6 @@ impl Painter
         return .vertexBuffer.count - 3
     }
 
-    #[Swag.Overload]
     fileprivate mtd pushTriangle(p1, p2, p3: Vector2, color: Color)->u64
     {
         let cmd = .pushTriangleCmd()
@@ -336,7 +334,7 @@ impl Painter
         return .vertexBuffer.count - 3
     }
 
-    #[Swag.Safety(.All, false), Swag.Overload]
+    #[Swag.Safety(.All, false)]
     fileprivate mtd addEdgeAA(tri: u64, startx, starty, endx, endy: f32)
     {
         var ptr = .vertexBuffer.buffer + tri
@@ -369,7 +367,7 @@ impl Painter
         ptr.aanum += 1
     }
 
-    #[Swag.Inline, Swag.Overload]
+    #[Swag.Inline]
     fileprivate mtd addEdgeAA(tri: u64, start, end: Vector2)
     {
         .addEdgeAA(tri, start.x, start.y, end.x, end.y)
@@ -549,7 +547,6 @@ impl Painter
     }
 
     // Set the paint rotation
-    #[Swag.Overload]
     mtd rotateTransform(angle: Math.Angle)
     {
         if isZeroEpsilon(angle.rad) do
@@ -560,7 +557,6 @@ impl Painter
     }
 
     // Set the paint rotation
-    #[Swag.Overload]
     mtd rotateTransform(angle: Math.Angle, centerX, centerY: f32)
     {
         if isZeroEpsilon(angle.rad) do
@@ -582,7 +578,6 @@ impl Painter
     }
 
     // Set the paint scale
-    #[Swag.Overload]
     mtd scaleTransform(x, y: f32)
     {
         if isZeroEpsilon(x) and isZeroEpsilon(y) do
@@ -593,7 +588,6 @@ impl Painter
     }
 
     // Set the paint scale
-    #[Swag.Overload]
     mtd scaleTransform(x: f32)
     {
         if isZeroEpsilon(x) do
@@ -644,14 +638,12 @@ impl Painter
     }
 
     // Set the current clipping rectangle
-    #[Swag.Overload]
     mtd setClippingRect(x, y, width, height: f32)
     {
         .setClippingRect({x, y, width, height})
     }
 
     // Set the current clipping rectangle
-    #[Swag.Overload]
     mtd setClippingRect(rect: Rectangle)
     {
         if .curState.clippingRect == rect and .curState.clippingRectOn do
@@ -763,7 +755,6 @@ impl Painter
     }
 
     // Set color mask
-    #[Swag.Overload]
     mtd setColorMask(cm: ColorMask)
     {
         let cmd = .newCommand(.ColorMask, true)
@@ -772,7 +763,6 @@ impl Painter
     }
 
     // Set color mask
-    #[Swag.Overload]
     mtd setColorMask(r, g, b, a: bool)
     {
         let cmd = .newCommand(.ColorMask, true)
@@ -833,7 +823,6 @@ impl Painter
     }
 
     // Set a shader parameter
-    #[Swag.Overload]
     mtd setShaderParam(param: ShaderParamHandle, val: s32)
     {
         let cmd = .newCommand(.SetShaderParam)
@@ -843,7 +832,6 @@ impl Painter
     }
 
     // Set a shader parameter
-    #[Swag.Overload]
     mtd setShaderParam(param: ShaderParamHandle, val: f32)
     {
         let cmd = .newCommand(.SetShaderParam)

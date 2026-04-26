@@ -87,14 +87,12 @@ namespace compiler247
 {
     //
     //#[PrintBc]
-    #[Swag.Overload]
     func main(a: s32 = 6)->s32
     {
         //@print("1");
         return a
     }
 
-    #[Swag.Overload]
     func main(a: s32, b: s32)->s32
     {
         //@print("2");

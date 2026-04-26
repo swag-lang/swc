@@ -271,7 +271,6 @@ impl LibraryView
         .invalidate()
     }
 
-    #[Swag.Overload]
     mtd loadOne(it: *LibraryItem)
     {
         let capture = catch Capture.load(it.fi.fullname, preview: true)
@@ -286,7 +285,6 @@ impl LibraryView
         .mutexLoaded.unlock()
     }
 
-    #[Swag.Overload]
     mtd loadFiles(th: Thread)
     {
         // Work on a copy, as 'items' can be changed by sorting during loading

@@ -58,14 +58,14 @@ struct RuntimeMultiKeyBox
 
 impl RuntimeMultiKeyBox
 {
-    #[Swag.Overload, Swag.NoInline]
+    #[Swag.NoInline]
     mtd opIndex(index: s32) -> s32
     {
         .s32Reads += 1
         return .data[index]
     }
 
-    #[Swag.Overload, Swag.NoInline]
+    #[Swag.NoInline]
     mtd opIndex(index: u64) -> s32
     {
         .u64Reads += 1
@@ -122,14 +122,14 @@ struct RuntimeMultiValueBox
 
 impl RuntimeMultiValueBox
 {
-    #[Swag.Overload, Swag.NoInline]
+    #[Swag.NoInline]
     mtd opIndexSet(index: s32, value: s32)
     {
         .intWrites += 1
         .intVal = value + index
     }
 
-    #[Swag.Overload, Swag.NoInline]
+    #[Swag.NoInline]
     mtd opIndexSet(index: s32, value: f32)
     {
         .fltWrites += 1
@@ -184,14 +184,14 @@ struct RuntimeConstMutBox
 
 impl RuntimeConstMutBox
 {
-    #[Swag.Overload, Swag.NoInline]
+    #[Swag.NoInline]
     mtd opIndex(index: s32) -> &s32
     {
         .mutReads += 1
         return &.data[index]
     }
 
-    #[Swag.Overload, Swag.NoInline]
+    #[Swag.NoInline]
     mtd const opIndex(index: s32) -> const &s32
     {
         return &.data[index]

@@ -88,7 +88,6 @@ public impl Font
     }
 
     // Creates a new Font of the given typeface and size
-    #[Swag.Overload]
     func create(typeFace: *TypeFace, size: u32, forceBold, forceItalic = false)->*Font
     {
         Debug.assert(typeFace != null)
@@ -122,7 +121,6 @@ public impl Font
     }
 
     // Creates a new Font with the given filename and size
-    #[Swag.Overload]
     func create(fullname: string, size: u32, forceBold, forceItalic = false)->*Font throw
     {
         Debug.assert(@countof(fullname) != 0)

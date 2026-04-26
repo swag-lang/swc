@@ -68,13 +68,13 @@ struct RuntimeFloatCmpBox
 
 impl RuntimeFloatCmpBox
 {
-    #[Swag.Overload, Swag.NoInline]
+    #[Swag.NoInline]
     mtd const opEquals(other: f32)->bool
     {
         return .value == other
     }
 
-    #[Swag.Overload, Swag.NoInline]
+    #[Swag.NoInline]
     mtd const opCompare(other: f32)->s32
     {
         if .value < other do return -1
@@ -133,19 +133,19 @@ struct RuntimeTripleEqBox
 
 impl RuntimeTripleEqBox
 {
-    #[Swag.Overload, Swag.NoInline]
+    #[Swag.NoInline]
     mtd const opEquals(other: const &RuntimeTripleEqBox)->bool
     {
         return .value == other.value
     }
 
-    #[Swag.Overload, Swag.NoInline]
+    #[Swag.NoInline]
     mtd const opEquals(other: s32)->bool
     {
         return .value == other
     }
 
-    #[Swag.Overload, Swag.NoInline]
+    #[Swag.NoInline]
     mtd const opEquals(other: u64)->bool
     {
         return cast(u64) .value == other
@@ -192,7 +192,7 @@ struct RuntimeTripleCmpBox
 
 impl RuntimeTripleCmpBox
 {
-    #[Swag.Overload, Swag.NoInline]
+    #[Swag.NoInline]
     mtd const opCompare(other: const &RuntimeTripleCmpBox)->s32
     {
         if .value < other.value do return -1
@@ -200,7 +200,7 @@ impl RuntimeTripleCmpBox
         return 0
     }
 
-    #[Swag.Overload, Swag.NoInline]
+    #[Swag.NoInline]
     mtd const opCompare(other: s32)->s32
     {
         if .value < other do return -1
@@ -208,7 +208,7 @@ impl RuntimeTripleCmpBox
         return 0
     }
 
-    #[Swag.Overload, Swag.NoInline]
+    #[Swag.NoInline]
     mtd const opCompare(other: u64)->s32
     {
         let self64 = cast(u64) .value

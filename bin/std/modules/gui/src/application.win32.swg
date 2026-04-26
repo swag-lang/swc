@@ -43,7 +43,6 @@ impl Application
         ReleaseCapture()
     }
 
-    #[Swag.Overload]
     func registerHotKey(mdf: Input.KeyModifiers, key: Input.Key) throw
     {
         var mod: u32

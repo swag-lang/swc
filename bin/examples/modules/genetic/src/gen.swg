@@ -63,7 +63,6 @@ func genInit()
     g_Result.resize(cast(u64) g_NumGenes * 3)
 }
 
-#[Swag.Overload]
 func evaluateSolution(idxSrc, idxDst: u32)->f32
 {
     var a, b: Pixel.Color = undefined
@@ -80,7 +79,6 @@ func evaluateSolution(idxSrc, idxDst: u32)->f32
     return dist
 }
 
-#[Swag.Overload]
 func evaluateSolution(soluce: *Solution)
 {
     soluce.score = 0

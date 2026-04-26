@@ -62,7 +62,6 @@ public:
         EnumIndex,
         NoDuplicate,
         Complete,
-        Overload,
         Commutative,
         CalleeReturn,
         Foreign,

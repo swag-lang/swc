@@ -34,7 +34,6 @@ impl TweakFile
     }
 
     // Parses tweak content from a string
-    #[Overload]
     mtd parse(content: string) throw
     {
         let lines = Tokenize.splitLines(content)
@@ -42,7 +41,6 @@ impl TweakFile
     }
 
     // Parses tweak content from an array of lines
-    #[Overload]
     mtd parse(lines: Array'string) throw
     {
         Debug.assert(!.folders.isEmpty())

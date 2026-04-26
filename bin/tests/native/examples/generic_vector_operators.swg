@@ -25,7 +25,6 @@ impl Vector3
     }
 
     // Binary operators: vector op vector
-    #[Swag.Overload]
     func(op: string) opBinary(const me, other: const &Vector3'T)->Vector3'T
     {
         #if op == "+" do
@@ -41,7 +40,7 @@ impl Vector3
     }
 
     // Binary operators: vector op scalar
-    #[Swag.Overload, Swag.Commutative("+", "*")]
+    #[Swag.Commutative("+", "*")]
     func(op: string) opBinary(const me, scalar: T)->Vector3'T
     {
         #if op == "+" do
@@ -57,7 +56,6 @@ impl Vector3
     }
 
     // Binary operators that need a distinct scalar op vector order
-    #[Swag.Overload]
     func(op: string) opBinaryRight(const me, scalar: T)->Vector3'T
     {
         #if op == "-" do

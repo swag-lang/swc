@@ -89,7 +89,6 @@ impl Movie
     }
 
     // Associate an image list
-    #[Swag.Overload]
     mtd set(imageList: ImageList)
     {
         .clear()
@@ -99,7 +98,6 @@ impl Movie
     }
 
     // Associate a filename
-    #[Swag.Overload]
     mtd set(fileName: string) throw
     {
         .clear()

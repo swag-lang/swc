@@ -25,7 +25,6 @@ impl Point
 
     // Compound assignment operators for point-point operations (+=, -=, *=, /=).
     // Performs component-wise operations with another point.
-    #[Swag.Overload]
     mtd(op: string) opAssign(other: Point)
     {
         #if op == "+="
@@ -54,7 +53,6 @@ impl Point
 
     // Compound assignment operators for point-scalar operations (+=, -=, *=, /=).
     // Applies the scalar 'value' to both coordinates of the point.
-    #[Swag.Overload]
     mtd(op: string) opAssign(value: f32)
     {
         #if op == "+="
@@ -83,7 +81,6 @@ impl Point
 
     // Binary operators for point-point operations (+, -, *, /).
     // Performs component-wise operations between two points and returns the result.
-    #[Swag.Overload]
     mtd(op: string) const opBinary(other: Point)->Point
     {
         #if op == "+" do
@@ -100,7 +97,6 @@ impl Point
 
     // Binary operators for point-scalar operations (+, -, *, /).
     // Applies the scalar 'value' to both coordinates and returns the result.
-    #[Swag.Overload]
     mtd(op: string) const opBinary(value: f32)->Point
     {
         #if op == "+" do
@@ -162,7 +158,6 @@ impl Point
 
     // Offset both coordinates by the same scalar value.
     // Adds 'value' to both x and y coordinates of this point.
-    #[Swag.Overload]
     mtd offset(value: f32)
     {
         .x, .y += value
@@ -170,7 +165,6 @@ impl Point
 
     // Offset this point by separate x and y values.
     // Adds the specified 'x' and 'y' offsets to the corresponding coordinates.
-    #[Swag.Overload]
     func offset(me, x, y: f32)
     {
         .x += x

@@ -63,7 +63,7 @@ impl GUID128
     }
 
     // Convert guid to a string of the form xxxxxxxx-xxxx-Mxxx-Nxxx-xxxxxxxxxxxx
-    #[Swag.Safety(.BoundCheck, false), Swag.Overload]
+    #[Swag.Safety(.BoundCheck, false)]
     mtd toString(result: [..] u8)
     {
         Debug.assert(@countof(result) == 36)
@@ -113,7 +113,6 @@ impl GUID128
     }
 
     // Convert guid to a string
-    #[Swag.Overload]
     mtd getString()->String
     {
         var result: retval

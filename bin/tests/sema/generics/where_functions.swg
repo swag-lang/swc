@@ -9,14 +9,12 @@ struct(A, B) Pair
     second: B
 }
 
-#[Swag.Overload]
 func(T) kind(value: T)->u8
     where T == f32 or T == f64
 {
     return 1
 }
 
-#[Swag.Overload]
 func(T) kind(value: T)->u8
     where T == s32 or T == s64
 {

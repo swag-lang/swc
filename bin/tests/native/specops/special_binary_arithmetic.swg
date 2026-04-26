@@ -12,7 +12,6 @@ struct(T) GenBinaryPair
 
 impl GenBinaryPair
 {
-    #[Swag.Overload]
     mtd(op: string) const opBinary(other: const &GenBinaryPair'T)->GenBinaryPair'T
     {
         #if op == "+" do
@@ -29,7 +28,6 @@ impl GenBinaryPair
             #error("unsupported binary operation [[" ++ op ++ "]]")
     }
 
-    #[Swag.Overload]
     func(op: string) opBinary(const me, scalar: T)->GenBinaryPair'T
     {
         #if op == "+" do

@@ -10,13 +10,13 @@ struct RuntimeSliceBox
 
 impl RuntimeSliceBox
 {
-    #[Swag.Overload, Swag.NoInline]
+    #[Swag.NoInline]
     mtd opCount() -> u64
     {
         return 5
     }
 
-    #[Swag.Overload, Swag.NoInline]
+    #[Swag.NoInline]
     mtd opSlice(low, up: u64) -> [..] s32
     {
         .sliceCalls += 1
@@ -33,13 +33,13 @@ struct RuntimeStringSliceBox
 
 impl RuntimeStringSliceBox
 {
-    #[Swag.Overload, Swag.NoInline]
+    #[Swag.NoInline]
     mtd const opCount() -> u64
     {
         return 6
     }
 
-    #[Swag.Overload, Swag.NoInline]
+    #[Swag.NoInline]
     mtd const opSlice(low, up: u64) -> string
     {
         return @mkstring(&.bytes[low], (up + 1) - low)

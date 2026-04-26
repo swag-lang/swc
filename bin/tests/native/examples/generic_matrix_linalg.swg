@@ -25,7 +25,6 @@ impl Vec2
             #error("unsupported unary operation [[" ++ op ++ "]]")
     }
 
-    #[Swag.Overload]
     func(op: string) opBinary(const me, other: const &Vec2) -> Vec2
     {
         #if op == "+" do
@@ -36,7 +35,6 @@ impl Vec2
             #error("unsupported binary operation [[" ++ op ++ "]]")
     }
 
-    #[Swag.Overload]
     func(op: string) opBinary(const me, scalar: T) -> Vec2
     {
         #if op == "*" do
@@ -131,7 +129,6 @@ impl Mat2
     }
 
     // Mat2 +/- Mat2, Mat2 * Mat2
-    #[Swag.Overload]
     func(op: string) opBinary(const me, other: const &Mat2) -> Mat2
     {
         #if op == "+" do
@@ -150,7 +147,6 @@ impl Mat2
     }
 
     // Mat2 * scalar
-    #[Swag.Overload]
     func(op: string) opBinary(const me, scalar: T) -> Mat2
     {
         #if op == "*" do

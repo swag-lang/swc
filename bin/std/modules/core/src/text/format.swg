@@ -183,7 +183,7 @@ func append(buf: *ConcatBuffer, fmt: string, values: ...)
 
 // String interpolation.
 // Format is `{<value to interpolate>:format}`
-#[Macro, Overload]
+#[Macro]
 func toInterp(buf: *ConcatBuffer, exp: string)
     verify
     {
@@ -243,7 +243,7 @@ func toInterp(buf: *ConcatBuffer, exp: string)
 }
 
 // String interpolation.
-#[Mixin, Overload]
+#[Mixin]
 func toInterp(exp: string)->String
     verify
     {

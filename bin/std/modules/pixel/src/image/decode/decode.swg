@@ -44,7 +44,6 @@ impl Image
     }
 
     // Decode the given image buffer with the given decoder
-    #[Swag.Overload]
     func decode(decoder: *ImageDecoder, bytes: const [..] u8, options: DecodeOptions = {})->Image throw
     {
         // Create a decoder instance
@@ -89,7 +88,6 @@ public impl Image
     }
 
     // Decode the given image buffer
-    #[Swag.Overload]
     func decode(fileName: string, bytes: const [..] u8, options: DecodeOptions = {})->Image throw
     {
         let found = getDecoder(fileName)

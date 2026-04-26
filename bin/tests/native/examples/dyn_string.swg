@@ -127,7 +127,6 @@ impl DynString
     }
 
     // Append: `s += "world"`
-    #[Swag.Overload]
     mtd(op: string) opAssign(text: string)
     {
         #if op == "+="
@@ -141,7 +140,6 @@ impl DynString
     }
 
     // Append: `s += other`
-    #[Swag.Overload]
     mtd(op: string) opAssign(other: const &DynString)
     {
         #if op == "+="

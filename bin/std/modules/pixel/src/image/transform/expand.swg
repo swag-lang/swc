@@ -44,7 +44,6 @@ impl Image
     }
 
     // Crop image
-    #[Swag.Overload]
     public mtd expand(l, t, r, b: s32, color: Color = Argb.White)
     {
         let (cw, ch) = .getWH(l, t, r, b)
@@ -54,7 +53,6 @@ impl Image
     }
 
     // Crop image
-    #[Swag.Overload]
     public mtd const toExpand(l, t, r, b: s32, color: Color = Argb.White)->Image
     {
         let (cw, ch) = .getWH(l, t, r, b)

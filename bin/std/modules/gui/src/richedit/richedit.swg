@@ -181,7 +181,6 @@ fileprivate impl RichEditCtrl
         return p
     }
 
-    #[Swag.Overload]
     mtd deleteLine(lineIndex: u64)
     {
         .freeLines.add(.lines[lineIndex])

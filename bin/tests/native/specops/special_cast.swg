@@ -9,14 +9,14 @@ struct RuntimeCastBox
 
 impl RuntimeCastBox
 {
-    #[Swag.Implicit, Swag.Overload, Swag.NoInline]
+    #[Swag.Implicit, Swag.NoInline]
     mtd opCast() -> s32
     {
         .intCalls += 1
         return .value + 1
     }
 
-    #[Swag.Overload, Swag.NoInline]
+    #[Swag.NoInline]
     mtd const opCast() -> bool
     {
         .boolCalls += 1

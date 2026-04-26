@@ -33,19 +33,19 @@ impl String
         return .buffer
     }
 
-    #[Implicit, Inline, Overload]
+    #[Implicit, Inline]
     mtd const opCast()->cstring
     {
         return .buffer
     }
 
-    #[Implicit, Inline, Overload]
+    #[Implicit, Inline]
     mtd const opCast()->string
     {
         return @mkstring(.buffer, .length)
     }
 
-    #[Implicit, Inline, Overload]
+    #[Implicit, Inline]
     mtd const opCast()->const [..] u8
     {
         return @mkslice(.buffer, .length)
@@ -104,7 +104,6 @@ impl String
         .buffer[index] = value
     }
 
-    #[Overload]
     mtd(op: string) opAssign(value: const [..] string)
     {
         #if op == "+=" do
@@ -114,7 +113,6 @@ impl String
             #error("invalid operator '" ++ op ++ "'")
     }
 
-    #[Overload]
     mtd(op: string) opAssign(value: const [..] rune)
     {
         #if op == "+=" do
@@ -124,7 +122,6 @@ impl String
             #error("invalid operator '" ++ op ++ "'")
     }
 
-    #[Overload]
     mtd(op: string) opAssign(value: const [..] u8)
     {
         #if op == "+=" do
@@ -134,7 +131,6 @@ impl String
             #error("invalid operator '" ++ op ++ "'")
     }
 
-    #[Overload]
     mtd(op: string) opAssign(value: string)
     {
         #if op == "+=" do
@@ -143,7 +139,6 @@ impl String
             #error("invalid operator '" ++ op ++ "'")
     }
 
-    #[Overload]
     mtd(op: string) opAssign(value: rune)
     {
         #if op == "+=" do
@@ -152,7 +147,6 @@ impl String
             #error("invalid operator '" ++ op ++ "'")
     }
 
-    #[Overload]
     mtd(op: string) opAssign(value: u8)
     {
         #if op == "+=" do
@@ -288,7 +282,6 @@ impl String
     }
 
     // Replace all occurences of 'what' with 'by'
-    #[Overload]
     mtd replace(what: rune, by: string)
     {
         if !.length do
@@ -313,7 +306,6 @@ impl String
     }
 
     // Replace all occurences of 'what' with 'by'
-    #[Overload]
     mtd replace(what, by: string, comparisonType = Utf8.ComparisonType.Latin1)
     {
         let whatLength = @countof(what)
@@ -368,7 +360,6 @@ impl String
     }
 
     // Insert an ascii byte at the given position
-    #[Overload]
     mtd insert(byteIndex: u64, value: u8)
     {
         if byteIndex == .length
@@ -387,7 +378,6 @@ impl String
     }
 
     // Insert a substring at the given position
-    #[Overload]
     mtd insert(byteIndex: u64, value: string)
     {
         if byteIndex == .length
@@ -414,7 +404,7 @@ impl String
     }
 
     // Append a byte to the String
-    #[Inline, Overload]
+    #[Inline]
     mtd append(value: u8)
     {
         .grow(.length + 2)
@@ -424,7 +414,6 @@ impl String
     }
 
     // Append a rune to the String
-    #[Overload]
     mtd append(value: rune)
     {
         Debug.assert(Utf8.isValidRune(value), "invalid rune")
@@ -438,7 +427,6 @@ impl String
     }
 
     // Append a string to the String
-    #[Overload]
     mtd append(value: string)
     {
         let concatLength = @countof(value)
@@ -592,14 +580,14 @@ impl String
     }
 
     // Returns a slice type
-    #[Inline, Overload]
+    #[Inline]
     mtd toSlice()->[..] u8
     {
         return @mkslice(.buffer, .length)
     }
 
     // Returns a slice type
-    #[Inline, Overload]
+    #[Inline]
     mtd const toSlice()->const [..] u8
     {
         return @mkslice(.buffer, .length)
@@ -640,7 +628,6 @@ impl String
     }
 
     // Returns a new String in upper case
-    #[Overload]
     mtd toUpper(set = CharacterSet.Latin1)->String
     {
         var result: retval = dref me
@@ -649,7 +636,6 @@ impl String
     }
 
     // Returns a new String in lower case
-    #[Overload]
     func toUpper(str: #null string, set = CharacterSet.Latin1)->String
     {
         var result: retval = str
@@ -658,7 +644,6 @@ impl String
     }
 
     // Returns a new String in lower case
-    #[Overload]
     mtd toLower(set = CharacterSet.Latin1)->String
     {
         var result: retval = dref me
@@ -667,7 +652,6 @@ impl String
     }
 
     // Returns a new String in lower case
-    #[Overload]
     func toLower(str: #null string, set = CharacterSet.Latin1)->String
     {
         var result: retval = str
@@ -675,7 +659,6 @@ impl String
         return result
     }
 
-    #[Overload]
     {
         // Returns true if the string contains 'what'
         mtd const contains(what: u8)->bool            => Utf8.contains(.toSlice(), what)

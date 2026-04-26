@@ -10,14 +10,12 @@ struct MWC
 
 impl MWC
 {
-    #[Swag.Overload]
     mtd seedU32(value: u32)
     {
         .w = value orelse 521288629
         .z = 362436069
     }
 
-    #[Swag.Overload]
     mtd seedU32(value1, value2: u32)
     {
         .w = value1 orelse 521288629

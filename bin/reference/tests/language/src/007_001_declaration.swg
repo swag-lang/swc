@@ -5,7 +5,6 @@
 A function declaration starts with the 'func' keyword, followed by the function name
 and parentheses. If no parameters are needed, the parentheses remain empty.
 */
-#[Swag.Overload]
 func toto() {}
 
 /**
@@ -64,7 +63,6 @@ Multiple functions can share the same name if they differ in parameter count or 
 */
 enum Values { A, B }
 
-#[Swag.Overload]
 func toto(x: s32, y = Values.A)
 {
     #assert(#typeof(y) == Values)

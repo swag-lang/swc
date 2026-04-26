@@ -24,7 +24,6 @@ func(T, U = T) lerp(a: T, b: U, ratio: T)->T
     return a + (b - a) * ratio
 }
 
-#[Swag.Overload]
 func(T) severity(delta: T)->u8
     where T == s32 or T == s64
 {
@@ -35,7 +34,6 @@ func(T) severity(delta: T)->u8
     return 1
 }
 
-#[Swag.Overload]
 func(T) severity(delta: T)->u8
     where T == f32 or T == f64
 {

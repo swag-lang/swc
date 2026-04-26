@@ -494,13 +494,11 @@ public impl ScrollWnd
     }
 
     // Set the current scroll position
-    #[Swag.Overload]
     mtd setScrollPos(pt: Math.Point)
     {
         .setScrollPos(pt.x, pt.y)
     }
 
-    #[Swag.Overload]
     mtd setScrollPos(x, y: f32)
     {
         let newSP = .setScrollPosPrivate(x, y)

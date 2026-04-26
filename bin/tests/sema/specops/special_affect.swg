@@ -14,21 +14,18 @@ struct SetTarget
 
 impl SetTarget
 {
-    #[Swag.Overload]
     mtd opSet(value: s32)
     {
         .value = value
         .tag = 10
     }
 
-    #[Swag.Overload]
     mtd opSet(value: f32)
     {
         .value = cast(s32) value
         .tag = 20
     }
 
-    #[Swag.Overload]
     mtd opSet(other: SetSource)
     {
         .value = other.value + 1
@@ -50,21 +47,20 @@ struct ParamSetTarget
 
 impl ParamSetTarget
 {
-    #[Swag.Overload]
     mtd opSet(value: s32)
     {
         .value = value
         .tag = 10
     }
 
-    #[Swag.Implicit, Swag.Overload]
+    #[Swag.Implicit]
     mtd opSet(value: u16)
     {
         .value = cast(s32) value
         .tag = 20
     }
 
-    #[Swag.Complete, Swag.Overload]
+    #[Swag.Complete]
     mtd opSet(value: u64)
     {
         .value = cast(s32) value
@@ -118,7 +114,7 @@ struct LiteralOverloadTarget
 
 impl LiteralOverloadTarget
 {
-    #[Swag.Implicit, Swag.Overload]
+    #[Swag.Implicit]
     mtd(suffix: string) opSetLiteral(value: s32)
     {
         .tag = 10
@@ -135,7 +131,7 @@ impl LiteralOverloadTarget
             #error("invalid duration literal suffix '" ++ suffix ++ "'")
     }
 
-    #[Swag.Implicit, Swag.Overload]
+    #[Swag.Implicit]
     mtd(suffix: string) opSetLiteral(value: f32)
     {
         .tag = 20

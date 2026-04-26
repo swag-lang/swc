@@ -21,14 +21,12 @@ struct Update
 
 impl Update
 {
-    #[Swag.Overload]
     mtd opIndex(index: u32) -> &s32
     {
         @assert(index < .count)
         return &.pages[index]
     }
 
-    #[Swag.Overload]
     mtd const opIndex(index: u32) -> const &s32
     {
         @assert(index < .count)

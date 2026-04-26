@@ -96,7 +96,6 @@ func tempAlloc(size: u64, alignment: u32 = 0, hint: string = null, loc = #caller
 }
 
 // Allocate and initialize the given type
-#[Swag.Overload]
 func new(type: typeinfo, allocator: IAllocator = null, alignment: u32 = 0, hint: string = null, loc = #callerlocation)->*u8
 {
     let userHint = hint orelse type.fullname
@@ -112,7 +111,6 @@ func new(type: typeinfo, allocator: IAllocator = null, alignment: u32 = 0, hint:
 }
 
 // Allocate and initialize the given type
-#[Swag.Overload]
 func(T) new(allocator: IAllocator = null, alignment: u32 = 0, hint: string = null, loc = #callerlocation)->*T
 {
     let userHint = hint orelse #stringof(T)
@@ -122,7 +120,6 @@ func(T) new(allocator: IAllocator = null, alignment: u32 = 0, hint: string = nul
 }
 
 // Drop and release memory of the given type
-#[Swag.Overload]
 func(T) delete(ptr: *T, allocator: IAllocator = null, hint: string = null, loc = #callerlocation)
 {
     if !ptr do
@@ -134,7 +131,6 @@ func(T) delete(ptr: *T, allocator: IAllocator = null, hint: string = null, loc =
 }
 
 // Drop and release memory of the given type
-#[Swag.Overload]
 func delete(ptr: *void, type: typeinfo, allocator: IAllocator = null, hint: string = null, loc = #callerlocation)
 {
     if !ptr do
@@ -155,7 +151,6 @@ func delete(ptr: *void, type: typeinfo, allocator: IAllocator = null, hint: stri
 }
 
 // Allocate and initialize an array of the given type
-#[Swag.Overload]
 func(T) new(num: u64, allocator: IAllocator = null, alignment: u32 = 0, hint: string = null, loc = #callerlocation)->[*] T
 {
     Debug.assert(num > 0)
@@ -167,7 +162,6 @@ func(T) new(num: u64, allocator: IAllocator = null, alignment: u32 = 0, hint: st
 }
 
 // Drop and release memory of an array of the given type
-#[Swag.Overload]
 func(T) delete(ptr: [*] T, num: u64, allocator: IAllocator = null, hint: string = null, loc = #callerlocation)
 {
     if !ptr do

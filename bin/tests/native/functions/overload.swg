@@ -42,14 +42,12 @@ struct ReceiverConstMethodOverload
 
 impl ReceiverConstMethodOverload
 {
-    #[Swag.Overload]
     mtd select()->s32
     {
         .mutableCalls += 1
         return 1
     }
 
-    #[Swag.Overload]
     mtd const select()->s32
     {
         return 2

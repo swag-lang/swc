@@ -80,13 +80,11 @@ impl EmbeddedTrackedWithOps
     }
 }
 
-#[Swag.Overload]
 func assignTracked(dst: &Tracked, src: &&Tracked)
 {
     dst = #move src
 }
 
-#[Swag.Overload]
 func assignTracked(dst: &Tracked, src: Tracked)
 {
     dst = src

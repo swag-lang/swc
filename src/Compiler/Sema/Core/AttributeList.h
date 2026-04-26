@@ -28,7 +28,6 @@ enum class RtAttributeFlagsE : uint64_t
     Macro        = 1 << 14,
     Mixin        = 1 << 15,
     Implicit     = 1 << 16,
-    Overload     = 1 << 17,
     CalleeReturn = 1 << 18,
     Discardable  = 1 << 19,
     Global       = 1 << 20,

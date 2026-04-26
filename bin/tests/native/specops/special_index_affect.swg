@@ -10,7 +10,7 @@ struct RuntimeIndexBox
 
 impl RuntimeIndexBox
 {
-    #[Swag.Overload, Swag.NoInline]
+    #[Swag.NoInline]
     mtd opIndex(index: s32) -> s32
     {
         .reads += 1
@@ -19,7 +19,7 @@ impl RuntimeIndexBox
         return .second
     }
 
-    #[Swag.Overload, Swag.NoInline]
+    #[Swag.NoInline]
     mtd opIndexSet(index: s32, value: s32)
     {
         .writes += 1
@@ -39,7 +39,7 @@ struct RuntimeWriteOnlyIndexBox
 
 impl RuntimeWriteOnlyIndexBox
 {
-    #[Swag.Overload, Swag.NoInline]
+    #[Swag.NoInline]
     mtd opIndexSet(index: s32, value: s32)
     {
         .writes += 1
@@ -59,14 +59,14 @@ struct RuntimeRefIndexBox
 
 impl RuntimeRefIndexBox
 {
-    #[Swag.Overload, Swag.NoInline]
+    #[Swag.NoInline]
     mtd opIndex(index: s32) -> &s32
     {
         .reads += 1
         return &.values[index]
     }
 
-    #[Swag.Overload, Swag.NoInline]
+    #[Swag.NoInline]
     mtd opIndexSet(index: s32, value: s32)
     {
         .writes += 1
@@ -83,14 +83,14 @@ struct RuntimeMultiIndexSetBox
 
 impl RuntimeMultiIndexSetBox
 {
-    #[Swag.Overload, Swag.NoInline]
+    #[Swag.NoInline]
     mtd opIndex(row: s32, col: s32) -> s32
     {
         .reads += 1
         return .values[row * 2 + col]
     }
 
-    #[Swag.Overload, Swag.NoInline]
+    #[Swag.NoInline]
     mtd opIndexSet(row: s32, col: s32, value: s32)
     {
         .writes += 1

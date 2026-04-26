@@ -16,7 +16,6 @@ impl Image
     }
 
     // Crop image
-    #[Swag.Overload]
     public mtd crop(x, y, w, h: s32)
     {
         let cx = Math.clamp(x, 0, .width - 1)
@@ -30,14 +29,12 @@ impl Image
         .applyWorkingBuffer()
     }
 
-    #[Swag.Overload]
     public mtd crop(cropRect: Math.Rectangle)
     {
         return .crop(cast() cropRect.x, cast() cropRect.y, cast() cropRect.width, cast() cropRect.height)
     }
 
     // Crop image
-    #[Swag.Overload]
     public mtd const toCrop(x, y, w, h: s32)->Image
     {
         let cx = Math.clamp(x, 0, .width - 1)
@@ -51,7 +48,6 @@ impl Image
         return result
     }
 
-    #[Swag.Overload]
     public mtd const toCrop(cropRect: Math.Rectangle)->Image
     {
         return .toCrop(cast() cropRect.x, cast() cropRect.y, cast() cropRect.width, cast() cropRect.height)

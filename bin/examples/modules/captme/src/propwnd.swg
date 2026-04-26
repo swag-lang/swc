@@ -87,7 +87,6 @@ impl PropWnd
         .main.editWnd.invalidate()
     }
 
-    #[Swag.Overload]
     mtd createSlider(name: string, minv, maxv: s64, val: f32)->*SliderCtrl
     {
         with let ctrl = SliderCtrl.create(me.mainLayout, name)

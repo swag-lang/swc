@@ -28,7 +28,7 @@ struct(T) Const
 alias ConstF32 = Const'f32
 alias ConstF64 = Const'f64
 
-#[Swag.ConstExpr, Swag.Inline, Swag.Overload]
+#[Swag.ConstExpr, Swag.Inline]
 {
     // Returns the sign of 'x' (-1 for negative, 1 for positive)
     func sign(x: f32) => x < 0 ? -1 : 1
@@ -197,7 +197,7 @@ alias ConstF64 = Const'f64
     }
 }
 
-#[Swag.ConstExpr, Swag.Inline, Swag.Overload]
+#[Swag.ConstExpr, Swag.Inline]
 {
     func atan2(x, y: f32) => @atan2(x, y)
     func atan2(x, y: f64) => @atan2(x, y)

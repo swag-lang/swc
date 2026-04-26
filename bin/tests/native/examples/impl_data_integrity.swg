@@ -24,19 +24,17 @@ const Rev8Arr: [256] u8 = [
     0x07, 0x87, 0x47, 0xc7, 0x27, 0xa7, 0x67, 0xe7, 0x17, 0x97, 0x57, 0xd7, 0x37, 0xb7, 0x77, 0xf7,
     0x0f, 0x8f, 0x4f, 0xcf, 0x2f, 0xaf, 0x6f, 0xef, 0x1f, 0x9f, 0x5f, 0xdf, 0x3f, 0xbf, 0x7f, 0xff]
 
-#[Swag.Overload]
 func reverse8(x: u8)->u8
 {
     return Rev8Arr[x]
 }
 
-#[Swag.Overload]
 func reverse16(x: u16)->u16
 {
     return cast(u16) Rev8Arr[x >> 8] | cast(u16) Rev8Arr[x & 0xFF] << 8
 }
 
-#[Swag.Safety(.Overflow, false), Swag.Overload]
+#[Swag.Safety(.Overflow, false)]
 func reverse32(x: u32)->u32
 {
     const m0 = 0x55555555'u32
@@ -50,7 +48,7 @@ func reverse32(x: u32)->u32
 
 // ---- Integer tricks (from std/core math/integer.swg) -----------------------
 
-#[Swag.Safety(.Overflow, false), Swag.Overload]
+#[Swag.Safety(.Overflow, false)]
 {
     func isPowerOf2(x: u32)->bool => x != 0 and !(x & (x - 1))
     func isPowerOf2(x: u64)->bool => x != 0 and !(x & (x - 1))
@@ -94,7 +92,6 @@ func lcm(a, b: s64)->s64
         return b / gcd(a, b) * a
 }
 
-#[Swag.Overload]
 {
     func sign(x: s32) => cast(s32) (x > 0) - cast(s32) (x < 0)
     func sign(x: s64) => cast(s64) (x > 0) - cast(s64) (x < 0)

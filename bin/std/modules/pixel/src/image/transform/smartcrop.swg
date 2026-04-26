@@ -816,7 +816,6 @@ public impl Image
         maxSize: s32 = 0
     }
 
-    #[Swag.Overload]
     mtd evaluateCropScore(rect: Math.Rectangle, opts: SmartCropSearchOpts = {})->f32
     {
         // If a max working size is set and we’re larger, evaluate on a resized copy

@@ -108,7 +108,6 @@ namespace
             {.name = IdentifierManager::PredefinedName::EnumIndex, .flag = RtAttributeFlagsE::EnumIndex},
             {.name = IdentifierManager::PredefinedName::NoDuplicate, .flag = RtAttributeFlagsE::NoDuplicate},
             {.name = IdentifierManager::PredefinedName::Complete, .flag = RtAttributeFlagsE::Complete},
-            {.name = IdentifierManager::PredefinedName::Overload, .flag = RtAttributeFlagsE::Overload},
             {.name = IdentifierManager::PredefinedName::CalleeReturn, .flag = RtAttributeFlagsE::CalleeReturn},
             {.name = IdentifierManager::PredefinedName::Discardable, .flag = RtAttributeFlagsE::Discardable},
             {.name = IdentifierManager::PredefinedName::Tls, .flag = RtAttributeFlagsE::Tls},

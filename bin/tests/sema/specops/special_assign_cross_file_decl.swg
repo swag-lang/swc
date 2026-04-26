@@ -5,7 +5,6 @@ struct CrossFileAssignBox
 
 impl CrossFileAssignBox
 {
-    #[Swag.Overload]
     mtd(op: string) opAssign(rhs: s32)
     {
         #if op == "+=" do

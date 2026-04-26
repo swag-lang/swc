@@ -78,7 +78,7 @@ func(T, V) containsSorted(values: #null const [..] T, value: V)->bool
 }
 
 // Returns true if the given slice contains the 'value'
-#[Swag.ConstExpr, Swag.Overload]
+#[Swag.ConstExpr]
 func(T, V) contains(values: #null const [..] T, value: V)->bool
 {
     foreach v in values where v == value do

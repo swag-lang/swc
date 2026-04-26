@@ -117,14 +117,12 @@ struct UfcsComplex
     real, imag: f32
 }
 
-#[Swag.Overload]
 func multiplyUfcs(c: *UfcsComplex, scalar: f32)
 {
     c.real *= scalar
     c.imag *= scalar
 }
 
-#[Swag.Overload]
 func multiplyUfcs(c: *UfcsComplex, other: *UfcsComplex)
 {
     let r = (c.real * other.real) - (c.imag * other.imag)

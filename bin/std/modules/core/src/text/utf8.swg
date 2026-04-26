@@ -282,7 +282,6 @@ func encodeRune(dest: [..] u8, src: rune)->u32
 //
 // Returns the number of bytes written in the destination buffer
 // 'dest' must be at least 4 bytes long
-#[Swag.Overload]
 func fromUnicode(dest: [..] u8, src: const [..] rune)->u64
 {
     let dataof = @dataof(dest)
@@ -302,7 +301,6 @@ func fromUnicode(dest: [..] u8, src: const [..] rune)->u64
 }
 
 // Convert an unicode buffer to a String
-#[Swag.Overload]
 func fromUnicode(src: const [..] rune)->String
 {
     var result: retval
@@ -315,7 +313,6 @@ func fromUnicode(src: const [..] rune)->String
 //
 // Returns the number of bytes written in the destination buffer.
 // 'dest' must be at least 4 bytes long
-#[Swag.Overload]
 func fromUtf16(dest: [..] u8, src: const [..] u16)->u64
 {
     var count      = 0'u64
@@ -341,7 +338,6 @@ func fromUtf16(dest: [..] u8, src: const [..] u16)->u64
 }
 
 // Convert an utf16 buffer to a String
-#[Swag.Overload]
 func fromUtf16(src: const [..] u16)->String
 {
     var result: retval
@@ -466,14 +462,12 @@ func countRunes(buffer: const [..] u8)->u64
 
 // Find the first occurence of rune 'what', and returns the byte index of it.
 // Returns 'Swag.U64.Max' if not found
-#[Swag.Overload]
 func indexOf(src: const [..] u8, what: rune, startByteIndex = 0'u64)->u64
 {
     return indexOfAny(src, [what], startByteIndex)
 }
 
 // Find the given string, and returns the byte index of it
-#[Swag.Overload]
 func indexOf(src: const [..] u8, what: string, startByteIndex = 0'u64, comparisonType = ComparisonType.Latin1)->u64
 {
     let length = @countof(src)
@@ -502,7 +496,6 @@ func indexOf(src: const [..] u8, what: string, startByteIndex = 0'u64, compariso
 
 // Find one of the runes in 'what', and returns the byte index of it.
 // Returns 'Swag.U64.Max' if not found
-#[Swag.Overload]
 func indexOfAny(src: const [..] u8, what: const [..] u8, startByteIndex = 0'u64)->u64
 {
     let length = @countof(src)
@@ -529,7 +522,6 @@ func indexOfAny(src: const [..] u8, what: const [..] u8, startByteIndex = 0'u64)
 }
 
 // Find one of the runes in 'what', and returns the byte index of it
-#[Swag.Overload]
 func indexOfAny(src: const [..] u8, what: const [..] rune, startByteIndex = 0'u64)->u64
 {
     let length = @countof(src)
@@ -559,28 +551,24 @@ func indexOfAny(src: const [..] u8, what: const [..] rune, startByteIndex = 0'u6
 }
 
 // Returns true if 'src' contains the string 'what'
-#[Swag.Overload]
 func contains(src: const [..] u8, what: string)->bool
 {
     return indexOf(src, what) != Swag.U64.Max
 }
 
 // Returns true if 'src' contains the string 'what'
-#[Swag.Overload]
 func contains(src: const [..] u8, what: rune)->bool
 {
     return indexOf(src, what) != Swag.U64.Max
 }
 
 // Returns true if 'src' contains the string 'what'
-#[Swag.Overload]
 func contains(src: const [..] u8, what: u8)->bool
 {
     return Slice.contains(src, what)
 }
 
 // Returns true if 'src' contains the slice 'what'
-#[Swag.Overload]
 func contains(src, what: const [..] u8)->bool
 {
     return Slice.findSlice(src, what) != Swag.U32.Max
@@ -588,7 +576,6 @@ func contains(src, what: const [..] u8)->bool
 
 // Find the last rune occurence of 'what', and returns the byte index of it.
 // Returns 'Swag.U64.Max' if not found
-#[Swag.Overload]
 func lastIndexOf(src: const [..] u8, what: rune)->u64
 {
     return lastIndexOfAny(src, [what])
@@ -596,7 +583,6 @@ func lastIndexOf(src: const [..] u8, what: rune)->u64
 
 // Returns the last index (in bytes) of a any of the runes in 'what'.
 // Returns 'Swag.U64.Max' if not found
-#[Swag.Overload]
 func lastIndexOfAny(src: const [..] u8, what: const [..] rune)->u64
 {
     let length = @countof(src)
@@ -622,7 +608,6 @@ func lastIndexOfAny(src: const [..] u8, what: const [..] rune)->u64
 
 // Returns the last index (in bytes) of a any of the bytes in 'what'.
 // Returns 'Swag.U64.Max' if not found
-#[Swag.Overload]
 func lastIndexOfAny(src: const [..] u8, what: const [..] u8)->u64
 {
     let length = @countof(src)
@@ -643,7 +628,6 @@ func lastIndexOfAny(src: const [..] u8, what: const [..] u8)->u64
 
 // Returns the last index (in bytes) of a string.
 // Returns 'Swag.U64.Max' if not found
-#[Swag.Overload]
 func lastIndexOf(src: const [..] u8, what: string, comparisonType = ComparisonType.Latin1)->u64
 {
     let length = @countof(src)

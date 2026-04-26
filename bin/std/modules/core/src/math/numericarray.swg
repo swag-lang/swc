@@ -45,7 +45,6 @@ impl NumericArray
         return result
     }
 
-    #[Overload]
     mtd(op: string) opAssign(value: T)
     {
         for i in NumericArray.N
@@ -63,7 +62,6 @@ impl NumericArray
         }
     }
 
-    #[Overload]
     func(op: string) opAssign(me, value: NumericArray)
     {
         for i in NumericArray.N
@@ -81,14 +79,14 @@ impl NumericArray
         }
     }
 
-    #[Safety(.BoundCheck, false), Complete, Overload]
+    #[Safety(.BoundCheck, false), Complete]
     mtd opSet(what: T)
     {
         for i in NumericArray.N do
             .buf[i] = what
     }
 
-    #[Safety(.BoundCheck, false), Complete, Overload]
+    #[Safety(.BoundCheck, false), Complete]
     mtd opSet(what: const [..] T)
     {
         Debug.assert(@countof(what) == NumericArray.N)
@@ -116,7 +114,7 @@ impl NumericArray
     }
 
     // Multiply & add
-    #[Safety(.BoundCheck, false), Overload]
+    #[Safety(.BoundCheck, false)]
     mtd mulAdd(value1, value2: T)
     {
         for i in NumericArray.N do
@@ -124,7 +122,7 @@ impl NumericArray
     }
 
     // Multiply & Add
-    #[Safety(.BoundCheck, false), Overload]
+    #[Safety(.BoundCheck, false)]
     mtd mulAdd(value1, value2: NumericArray)
     {
         for i in NumericArray.N do

@@ -20,10 +20,8 @@ impl S
 struct ConstMethodOverload {}
 impl ConstMethodOverload
 {
-    #[Swag.Overload]
     mtd select()->s32 => 1
 
-    #[Swag.Overload]
     mtd const select()->bool => true
 }
 

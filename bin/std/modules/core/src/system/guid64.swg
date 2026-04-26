@@ -141,7 +141,6 @@ impl GUID64
     }
 
     // Convert guid to a string
-    #[Swag.Overload]
     mtd getString()->String
     {
         var result: retval

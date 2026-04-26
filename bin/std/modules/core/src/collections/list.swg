@@ -82,7 +82,7 @@ impl List
 
     // Adds a new element to the front of the list by copying the value.
     // Returns a pointer to the newly created list node.
-    #[Discardable, Overload]
+    #[Discardable]
     mtd addFront(value: T)->*ListEntry
     {
         let n = Memory.new'ListEntry()
@@ -104,7 +104,7 @@ impl List
 
     // Adds a new element to the front of the list by moving the value.
     // Returns a pointer to the newly created list node.
-    #[Discardable, Overload]
+    #[Discardable]
     mtd addFront(value: &&T)->*ListEntry
     {
         let n = Memory.new'ListEntry()
@@ -126,7 +126,7 @@ impl List
 
     // Adds a new element to the back of the list by copying the value.
     // Returns a pointer to the newly created list node.
-    #[Discardable, Overload]
+    #[Discardable]
     mtd addBack(value: T)->*ListEntry
     {
         let n = Memory.new'ListEntry()
@@ -148,7 +148,7 @@ impl List
 
     // Adds a new element to the back of the list by moving the value.
     // Returns a pointer to the newly created list node.
-    #[Discardable, Overload]
+    #[Discardable]
     mtd addBack(value: &&T)->*ListEntry
     {
         let n = Memory.new'ListEntry()
@@ -170,7 +170,7 @@ impl List
 
     // Inserts a new element before a specified node by copying the value.
     // Returns a pointer to the newly created list node.
-    #[Discardable, Overload]
+    #[Discardable]
     mtd insertBefore(node: *ListEntry, value: T)->*ListEntry
     {
         let n = Memory.new'ListEntry()
@@ -189,7 +189,7 @@ impl List
 
     // Inserts a new element before a specified node by moving the value.
     // Returns a pointer to the newly created list node.
-    #[Discardable, Overload]
+    #[Discardable]
     mtd insertBefore(node: *ListEntry, value: &&T)->*ListEntry
     {
         let n = Memory.new'ListEntry()
@@ -208,7 +208,7 @@ impl List
 
     // Inserts a new element after a specified node by copying the value.
     // Returns a pointer to the newly created list node.
-    #[Discardable, Overload]
+    #[Discardable]
     mtd insertAfter(node: *ListEntry, value: T)->*ListEntry
     {
         let n = Memory.new'ListEntry()
@@ -227,7 +227,7 @@ impl List
 
     // Inserts a new element after a specified node by moving the value.
     // Returns a pointer to the newly created list node.
-    #[Discardable, Overload]
+    #[Discardable]
     mtd insertAfter(node: *ListEntry, value: &&T)->*ListEntry
     {
         let n = Memory.new'ListEntry()

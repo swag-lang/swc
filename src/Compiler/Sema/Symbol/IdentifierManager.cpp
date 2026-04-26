@@ -43,7 +43,6 @@ void IdentifierManager::setup(const TaskContext& ctx)
         {.name = PredefinedName::EnumIndex, .str = "EnumIndex"},
         {.name = PredefinedName::NoDuplicate, .str = "NoDuplicate"},
         {.name = PredefinedName::Complete, .str = "Complete"},
-        {.name = PredefinedName::Overload, .str = "Overload"},
         {.name = PredefinedName::Commutative, .str = "Commutative"},
         {.name = PredefinedName::CalleeReturn, .str = "CalleeReturn"},
         {.name = PredefinedName::Foreign, .str = "Foreign"},

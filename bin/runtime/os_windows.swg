@@ -240,7 +240,6 @@ func @memcmp(dst, src: const [*] void, size: u64)->s32
     return memcmp(dst, src, cast(s64) size)
 }
 
-#[Swag.Overload]
 {
     func @sin(value: f32)->f32  => sinf(value)
     func @sin(value: f64)->f64  => sin(value)

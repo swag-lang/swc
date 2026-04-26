@@ -37,7 +37,7 @@ impl Vector4
 
     // Compound assignment operators for vector-vector operations (+=, -=, *=, /=).
     // Performs component-wise operations with another vector.
-    #[Swag.Overload, Swag.Inline]
+    #[Swag.Inline]
     mtd(op: string) opAssign(other: Vector4)
     {
         #if op == "+="
@@ -74,7 +74,7 @@ impl Vector4
 
     // Compound assignment operators for vector-scalar operations (+=, -=, *=, /=).
     // Applies the scalar 'value' to all components of the vector.
-    #[Swag.Overload, Swag.Inline]
+    #[Swag.Inline]
     mtd(op: string) opAssign(value: f32)
     {
         #if op == "+="
@@ -111,7 +111,7 @@ impl Vector4
 
     // Binary operators for vector-vector operations (+, -, *, /).
     // Performs component-wise operations between two vectors and returns the result.
-    #[Swag.Overload, Swag.Inline]
+    #[Swag.Inline]
     mtd(op: string) const opBinary(other: const &Vector4)->Vector4
     {
         #if op == "+" do
@@ -128,7 +128,7 @@ impl Vector4
 
     // Binary operators for vector-scalar operations (+, -, *, /).
     // Applies the scalar 'value' to all components and returns the result.
-    #[Swag.Overload, Swag.Inline, Swag.Commutative("+", "*")]
+    #[Swag.Inline, Swag.Commutative("+", "*")]
     mtd(op: string) const opBinary(value: f32)->Vector4
     {
         #if op == "+" do

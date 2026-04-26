@@ -4,7 +4,6 @@ using Core
 impl Painter
 {
     // Draw an empty rectangle
-    #[Swag.Overload]
     mtd drawRect(left, top, width, height: f32, color: Color, penSize: f32 = 1)
     {
         if width == 0 or height == 0 or color.a == 0 or penSize == 0 do
@@ -14,13 +13,11 @@ impl Painter
         .drawRect(left, top, width, height, pen)
     }
 
-    #[Swag.Overload]
     mtd drawRect(rect: Math.Rectangle, color: Color, penSize: f32 = 1)
     {
         .drawRect(rect.x, rect.y, rect.width, rect.height, color, penSize)
     }
 
-    #[Swag.Overload]
     mtd drawRect(left, top, width, height: f32, pen: Pen)
     {
         if width == 0 or height == 0 or pen.brush.color.a == 0 or pen.size == 0 do
@@ -62,14 +59,12 @@ impl Painter
         .drawPath(&.sharedLinePath, pen)
     }
 
-    #[Swag.Overload]
     mtd drawRect(rect: Math.Rectangle, pen: Pen)
     {
         .drawRect(rect.x, rect.y, rect.width, rect.height, pen)
     }
 
     // Draw a filled rectangle
-    #[Swag.Overload]
     mtd fillRect(left, top, width, height: f32, brush: Brush)
     {
         if width == 0 or height == 0 or brush.color.a == 0 do
@@ -93,13 +88,11 @@ impl Painter
         .fillPath(&.sharedLinePath, brush)
     }
 
-    #[Swag.Overload]
     mtd fillRect(rect: Math.Rectangle, brush: Brush)
     {
         .fillRect(rect.x, rect.y, rect.width, rect.height, brush)
     }
 
-    #[Swag.Overload]
     mtd fillRect(left, top, width, height: f32, color: Color)
     {
         if width == 0 or height == 0 or color.a == 0 do
@@ -109,14 +102,12 @@ impl Painter
         .fillRect(left, top, width, height, brush)
     }
 
-    #[Swag.Overload]
     mtd fillRect(rect: Math.Rectangle, color: Color)
     {
         .fillRect(rect.x, rect.y, rect.width, rect.height, color)
     }
 
     // Draw an empty round rectangle
-    #[Swag.Overload]
     mtd drawRoundRect(left, top, width, height: f32, radiusX, radiusY: f32, color: Color, penSize: f32 = 1)
     {
         if width == 0 or height == 0 or color.a == 0 or penSize == 0 do
@@ -126,7 +117,6 @@ impl Painter
         .drawRoundRect(left, top, width, height, radiusX, radiusY, pen)
     }
 
-    #[Swag.Overload]
     mtd drawRoundRect(left, top, width, height: f32, radiusX, radiusY: f32, pen: Pen)
     {
         if width == 0 or height == 0 or pen.brush.color.a == 0 or pen.size == 0 do
@@ -168,13 +158,11 @@ impl Painter
         .drawPath(&.sharedLinePath, pen)
     }
 
-    #[Swag.Overload]
     mtd drawRoundRect(rect: Math.Rectangle, radiusX, radiusY: f32, pen: Pen)
     {
         .drawRoundRect(rect.x, rect.y, rect.width, rect.height, radiusX, radiusY, pen)
     }
 
-    #[Swag.Overload]
     mtd drawRoundRect(rect: Math.Rectangle, radiusX, radiusY: f32, color: Color, penSize: f32 = 1)
     {
         let pen = Pen.createSolid(color, penSize)
@@ -182,7 +170,6 @@ impl Painter
     }
 
     // Draw a filled round rectangle
-    #[Swag.Overload]
     mtd fillRoundRect(left, top, width, height: f32, radiusX, radiusY: f32, brush: Brush)
     {
         if width == 0 or height == 0 or brush.color.a == 0 do
@@ -191,7 +178,6 @@ impl Painter
         .fillPath(&.sharedLinePath, brush)
     }
 
-    #[Swag.Overload]
     mtd fillRoundRect(rect: Math.Rectangle, radiusX, radiusY: f32, brush: Brush)
     {
         if rect.width == 0 or rect.height == 0 or brush.color.a == 0 do
@@ -200,7 +186,6 @@ impl Painter
         .fillPath(&.sharedLinePath, brush)
     }
 
-    #[Swag.Overload]
     mtd fillRoundRect(left, top, width, height: f32, radiusX, radiusY: f32, color: Color)
     {
         if width == 0 or height == 0 or color.a == 0 do
@@ -210,7 +195,6 @@ impl Painter
         .fillRoundRect(left, top, width, height, radiusX, radiusY, brush)
     }
 
-    #[Swag.Overload]
     mtd fillRoundRect(rect: Math.Rectangle, radiusX, radiusY: f32, color: Color)
     {
         .fillRoundRect(rect.x, rect.y, rect.width, rect.height, radiusX, radiusY, color)

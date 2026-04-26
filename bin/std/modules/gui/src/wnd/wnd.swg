@@ -227,19 +227,18 @@ impl Wnd
         mtd getFont()         => .style.getFont()
     }
 
-    #[Swag.Inline, Swag.Overload]
+    #[Swag.Inline]
     func(T) create(parent: *Wnd = null, id: WndId = null, hook: HookEvent = null)->*T
     {
         return create(parent, "", {}, id: id, hook: hook)
     }
 
-    #[Swag.Inline, Swag.Overload]
+    #[Swag.Inline]
     func(T) create(parent: #null *Wnd, position: Math.Rectangle, id: WndId = null, hook: HookEvent = null)->*T
     {
         return create(parent, "", position, id: id, hook: hook)
     }
 
-    #[Swag.Overload]
     func(T) create(parent: #null *Wnd, name: #null string, position: Math.Rectangle, id: WndId = null, hook: HookEvent = null)->*T
     {
         let res = Memory.new'T()
@@ -601,7 +600,6 @@ impl Wnd
     }
 
     // Convert a local coordinate to a surface coordinate
-    #[Swag.Overload]
     mtd const localToSurface(pos: Math.Point)->Math.Point
     {
         let r = .getSurfaceRect()
@@ -609,7 +607,6 @@ impl Wnd
     }
 
     // Convert a local coordinate to a surface coordinate
-    #[Swag.Overload]
     mtd const localToSurface(pos: Math.Rectangle)->Math.Rectangle
     {
         let r = .getSurfaceRect()
@@ -682,9 +679,7 @@ impl Wnd
             .parent.sendResizeEvent()
     }
 
-    #[Swag.Overload]
     mtd setAllMargins(value: f32) => .setMargin(value, value, value, value)
-    #[Swag.Overload]
     mtd setAllMargins(value: Math.Vector4) => .setMargin(value.x, value.y, value.z, value.w)
 
     // Set padding for childs
@@ -706,9 +701,7 @@ impl Wnd
         .sendResizeEvent()
     }
 
-    #[Swag.Overload]
     mtd setAllPaddings(value: f32) => .setPadding(value, value, value, value)
-    #[Swag.Overload]
     mtd setAllPaddings(value: Math.Vector4) => .setPadding(value.x, value.y, value.z, value.w)
 
     // Force the window to be the first painted (before all siblings)
@@ -749,7 +742,6 @@ impl Wnd
     }
 
     // Move and size the wnd
-    #[Swag.Overload]
     mtd setPosition(rect: Math.Rectangle, computeLayout = true)
     {
         .move(rect.x, rect.y)
@@ -757,7 +749,6 @@ impl Wnd
     }
 
     // Move and size the wnd
-    #[Swag.Overload]
     mtd setPosition(x, y, w, h: f32, computeLayout = true)
     {
         .move(x, y)
@@ -807,13 +798,11 @@ impl Wnd
     }
 
     // Apply the current layout (childs constraints)
-    #[Swag.Overload]
     mtd applyLayout()
     {
         .applyLayout({.position.width, .position.height})
     }
 
-    #[Swag.Overload]
     mtd applyLayout(oldSize: Math.Point)
     {
         var clientRect = .getClientRectPadding()

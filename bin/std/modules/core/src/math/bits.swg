@@ -22,7 +22,7 @@ fileprivate const Rev8Arr: [256] u8 = [
     0x07, 0x87, 0x47, 0xc7, 0x27, 0xa7, 0x67, 0xe7, 0x17, 0x97, 0x57, 0xd7, 0x37, 0xb7, 0x77, 0xf7,
     0x0f, 0x8f, 0x4f, 0xcf, 0x2f, 0xaf, 0x6f, 0xef, 0x1f, 0x9f, 0x5f, 0xdf, 0x3f, 0xbf, 0x7f, 0xff]
 
-#[ConstExpr, Inline, Overload]
+#[ConstExpr, Inline]
 {
     // Returns the number of leading zero bits from the most significant bit.
     // Counts consecutive zero bits starting from the left (most significant) side.
@@ -68,7 +68,7 @@ fileprivate const Rev8Arr: [256] u8 = [
 
 // Reverse all bits in an 8-bit value using lookup table.
 // Uses the precomputed 'Rev8Arr' table for optimal performance.
-#[ConstExpr, Overload]
+#[ConstExpr]
 func reverse(x: u8)->u8
 {
     return Rev8Arr[x]
@@ -76,7 +76,7 @@ func reverse(x: u8)->u8
 
 // Reverse all bits in a 16-bit value.
 // Splits the value into two bytes, reverses each using the lookup table, then recombines.
-#[ConstExpr, Overload]
+#[ConstExpr]
 func reverse(x: u16)->u16
 {
     return cast(u16) Rev8Arr[x >> 8] | cast(u16) Rev8Arr[x & 0xFF] << 8
@@ -84,7 +84,7 @@ func reverse(x: u16)->u16
 
 // Reverse all bits in a 32-bit value using bit manipulation.
 // Uses a series of parallel bit operations with magic constants for efficiency.
-#[ConstExpr, Overload, Safety(.Overflow, false)]
+#[ConstExpr, Safety(.Overflow, false)]
 func reverse(x: u32)->u32
 {
     const m0 = 0x55555555                            // Binary: 01010101... (alternating bits)
@@ -98,7 +98,7 @@ func reverse(x: u32)->u32
 
 // Reverse all bits in a 64-bit value using bit manipulation.
 // Uses the same parallel bit operation technique as the 32-bit version with 64-bit constants.
-#[ConstExpr, Overload, Safety(.Overflow, false)]
+#[ConstExpr, Safety(.Overflow, false)]
 func reverse(x: u64)->u64
 {
     const m0 = 0x55555555_55555555                   // Binary: 01010101... (alternating bits)

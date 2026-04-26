@@ -12,7 +12,6 @@ func evaluatePolynomial(p0, p1, p2, p3: Vector2, t: f32)->Vector2
 
 // Evaluate a quadratic Bézier curve at parameter 't'.
 // Formula: (1-t)²start + 2t(1-t)ctrl + t²end where 't' ranges from 0.0 to 1.0.
-#[Swag.Overload]
 func evaluateBezier(start, end, ctrl: Vector2, t: f32)->Vector2
 {
     let it  = 1.0 - t
@@ -29,7 +28,6 @@ func evaluateBezier(start, end, ctrl: Vector2, t: f32)->Vector2
 
 // Evaluate a cubic Bézier curve at parameter 't'.
 // Formula: (1-t)³start + 3t(1-t)²ctrl1 + 3t²(1-t)ctrl2 + t³end where 't' ranges from 0.0 to 1.0.
-#[Swag.Overload]
 func evaluateBezier(start, end, ctrl1, ctrl2: Vector2, t: f32)->Vector2
 {
     let it  = 1.0 - t
@@ -83,7 +81,6 @@ moduleprivate func solveQuadratic(a: f32, b: f32, c: f32)->Array'f32
 
 // Calculate the axis-aligned bounding box of a cubic Bézier curve.
 // Finds extrema by solving the derivative equation and evaluating the curve at critical points.
-#[Swag.Overload]
 func getBezierBoundingBox(start, end, ctrl0, ctrl1: Vector2)->Rectangle
 {
     // Start with endpoints
@@ -128,7 +125,6 @@ func getBezierBoundingBox(start, end, ctrl0, ctrl1: Vector2)->Rectangle
 
 // Calculate the axis-aligned bounding box of a quadratic Bézier curve.
 // Finds extrema by solving the linear derivative equation for critical points.
-#[Swag.Overload]
 func getBezierBoundingBox(start, end, ctrl: Vector2)->Rectangle
 {
     // Start with endpoints

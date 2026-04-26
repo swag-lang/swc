@@ -37,7 +37,6 @@ impl RichEditLine
         .styles.insertAt(insIndex, txtStyle)
     }
 
-    #[Swag.Overload]
     mtd insertRunes(insIndex: u64, src: RichEditLine, srcIndex, srcCount: u64)
     {
         .dirtyStyle = true
@@ -50,7 +49,6 @@ impl RichEditLine
         }
     }
 
-    #[Swag.Overload]
     mtd insertRunes(insIndex: u64, runes: const [..] rune, styles: const [..] u8)
     {
         .dirtyStyle = true

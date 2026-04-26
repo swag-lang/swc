@@ -7,7 +7,7 @@ using Swag
 #[ConstExpr, Inline]
 func(T) clamp(x, low, up: T)->T => @max(@min(x, up), low)
 
-#[ConstExpr, Inline, Overload]
+#[ConstExpr, Inline]
 {
     // Return the smaller of two values.
     // Generic implementation that works with any comparable type 'T'.

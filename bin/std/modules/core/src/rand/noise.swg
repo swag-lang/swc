@@ -64,7 +64,6 @@ const PrimeY = 1136930381
 const PrimeZ = 1720413743
 
 // Hashing function for 2D coordinates.
-#[Swag.Overload]
 func hash(seed: s32, xPrimed, yPrimed: s32)->s32
 {
     var hash = seed ^ xPrimed ^ yPrimed
@@ -73,7 +72,6 @@ func hash(seed: s32, xPrimed, yPrimed: s32)->s32
 }
 
 // Hashing function for 3D coordinates.
-#[Swag.Overload]
 func hash(seed: s32, xPrimed, yPrimed, zPrimed: s32)->s32
 {
     var hash = seed ^ xPrimed ^ yPrimed ^ zPrimed
@@ -82,7 +80,6 @@ func hash(seed: s32, xPrimed, yPrimed, zPrimed: s32)->s32
 }
 
 // Gradient dot product for 2D Perlin noise.
-#[Swag.Overload]
 func gradCoord(seed: s32, xPrimed, yPrimed: s32, xd, yd: f32)->f32
 {
     var hash = hash(seed, xPrimed, yPrimed)
@@ -96,7 +93,6 @@ func gradCoord(seed: s32, xPrimed, yPrimed: s32, xd, yd: f32)->f32
 }
 
 // Gradient dot product for 3D Perlin noise.
-#[Swag.Overload]
 func gradCoord(seed: s32, xPrimed, yPrimed, zPrimed: s32, xd, yd, zd: f32)->f32
 {
     var hash = hash(seed, xPrimed, yPrimed, zPrimed)
@@ -111,7 +107,6 @@ func gradCoord(seed: s32, xPrimed, yPrimed, zPrimed: s32, xd, yd, zd: f32)->f32
 }
 
 // Value coordinate generation for 2D value noise.
-#[Swag.Overload]
 func valCoord(seed: s32, xPrimed, yPrimed: s32)->f32
 {
     var hash = hash(seed, xPrimed, yPrimed)
@@ -121,7 +116,6 @@ func valCoord(seed: s32, xPrimed, yPrimed: s32)->f32
 }
 
 // Value coordinate generation for 3D value noise.
-#[Swag.Overload]
 func valCoord(seed: s32, xPrimed, yPrimed, zPrimed: s32)->f32
 {
     var hash = hash(seed, xPrimed, yPrimed, zPrimed)
@@ -132,7 +126,6 @@ func valCoord(seed: s32, xPrimed, yPrimed, zPrimed: s32)->f32
 
 // Perlin noise in 2D.
 // Result range is [-1, 1]
-#[Swag.Overload]
 public func perlin(x, y: f32, seed: s32 = 1337)->f32
 {
     var x0 = cast(s32) Math.floor(x)
@@ -159,7 +152,6 @@ public func perlin(x, y: f32, seed: s32 = 1337)->f32
 
 // Perlin noise in 3D.
 // Result range is [-1, 1]
-#[Swag.Overload]
 public func perlin(x, y, z: f32, seed: s32 = 1337)->f32
 {
     var x0 = cast(s32) Math.floor(x)
@@ -197,7 +189,6 @@ public func perlin(x, y, z: f32, seed: s32 = 1337)->f32
 
 // Value noise in 2D.
 // Result range is [-1, 1]
-#[Swag.Overload]
 func value(x, y: f32, seed: s32 = 1337)->f32
 {
     var x0 = cast(s32) Math.floor(x)
@@ -219,7 +210,6 @@ func value(x, y: f32, seed: s32 = 1337)->f32
 
 // Value noise in 3D.
 // Result range is [-1, 1]
-#[Swag.Overload]
 func value(x, y, z: f32, seed: s32 = 1337)->f32
 {
     var x0 = cast(s32) Math.floor(x)

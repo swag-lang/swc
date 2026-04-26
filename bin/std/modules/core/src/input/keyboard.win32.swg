@@ -222,7 +222,6 @@ impl Keyboard
 public impl Keyboard
 {
     // Returns true if the given key is pressed
-    #[Swag.Overload]
     func isKeyPressed(key: Key)->bool
     {
         let vkey = Keyboard.mapKeyToVKey[key]

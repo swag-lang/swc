@@ -158,7 +158,6 @@ impl Rectangle
 
     // Offset the rectangle position by the same amount in both directions.
     // Adds 'offsetXY' to both x and y coordinates without changing dimensions.
-    #[Swag.Overload]
     mtd offset(offsetXY: f32)
     {
         .x, .y += offsetXY
@@ -166,7 +165,6 @@ impl Rectangle
 
     // Offset the rectangle position by separate x and y amounts.
     // Adds 'offsetX' to x coordinate and 'offsetY' to y coordinate.
-    #[Swag.Overload]
     mtd offset(offsetX, offsetY: f32)
     {
         .x += offsetX
@@ -175,7 +173,6 @@ impl Rectangle
 
     // Offset the rectangle position by a point vector.
     // Adds the point's x and y components to the rectangle's position.
-    #[Swag.Overload]
     mtd offset(offset: Math.Point)
     {
         .x += offset.x
@@ -194,7 +191,6 @@ impl Rectangle
 
     // Scale the rectangle dimensions uniformly.
     // Multiplies both width and height by 'value' without changing position.
-    #[Swag.Overload]
     mtd scale(value: f32)
     {
         .width, .height *= value
@@ -202,7 +198,6 @@ impl Rectangle
 
     // Scale the rectangle dimensions independently.
     // Multiplies width by 'x' and height by 'y' without changing position.
-    #[Swag.Overload]
     func scale(me, x, y: f32)
     {
         .width *= x
@@ -211,7 +206,6 @@ impl Rectangle
 
     // Inflate the rectangle uniformly in all directions.
     // Expands the rectangle by 'value' on all sides, moving position and increasing dimensions.
-    #[Swag.Overload]
     mtd inflate(value: f32)
     {
         .x -= value
@@ -222,7 +216,6 @@ impl Rectangle
 
     // Inflate the rectangle by different amounts horizontally and vertically.
     // Expands by 'x' horizontally and 'y' vertically on all sides.
-    #[Swag.Overload]
     func inflate(me, x, y: f32)
     {
         .x -= x
@@ -287,7 +280,6 @@ impl Rectangle
 
     // Test if the specified coordinates are contained within the rectangle.
     // Uses half-open interval [x, x+width) × [y, y+height) for containment test.
-    #[Swag.Overload]
     func contains(const me, x, y: f32)->bool
     {
         return (x >= .x and x < .x + .width) and (y >= .y and y < .y + .height)
@@ -295,7 +287,6 @@ impl Rectangle
 
     // Test if the specified point is contained within the rectangle.
     // Delegates to the coordinate-based 'contains' method.
-    #[Swag.Overload]
     mtd const contains(pt: Point)->bool
     {
         return .contains(pt.x, pt.y)
@@ -303,7 +294,6 @@ impl Rectangle
 
     // Test if the specified rectangle is entirely contained within this rectangle.
     // Returns true only if 'rect' is completely inside the bounds of this rectangle.
-    #[Swag.Overload]
     mtd const contains(rect: Rectangle)->bool
     {
         return (rect.x >= .x and rect.right() <= .right()) and (rect.y >= .y and rect.bottom() <= .bottom())
@@ -311,7 +301,6 @@ impl Rectangle
 
     // Intersect this rectangle with another rectangle in-place.
     // Modifies this rectangle to contain only the overlapping area with 'other'.
-    #[Swag.Overload]
     mtd intersect(other: Rectangle)
     {
         dref me = intersect(dref me, other)
@@ -319,7 +308,6 @@ impl Rectangle
 
     // Create a rectangle representing the intersection of two rectangles.
     // Returns the overlapping area between 'a' and 'b', or 'Zero' if no intersection exists.
-    #[Swag.Overload]
     func intersect(a, b: Rectangle)->Rectangle
     {
         let x1 = max(a.x, b.x)
@@ -499,7 +487,6 @@ impl Rectangle
 
     // Expand the rectangle to include a point.
     // Grows the rectangle if necessary to contain the specified point.
-    #[Swag.Overload]
     mtd expandToInclude(pt: Point)
     {
         let right     = .x + .width
@@ -517,7 +504,6 @@ impl Rectangle
 
     // Expand the rectangle to include another rectangle.
     // Grows the rectangle if necessary to contain the entire specified rectangle.
-    #[Swag.Overload]
     mtd expandToInclude(other: Rectangle)
     {
         .expandToInclude(other.topLeft())

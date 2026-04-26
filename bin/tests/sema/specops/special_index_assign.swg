@@ -8,7 +8,6 @@ struct IndexAssignBox
 
 impl IndexAssignBox
 {
-    #[Swag.Overload]
     mtd(op: string) opIndexAssign(index: s32, value: s32)
     {
         #if op == "+=" do
@@ -25,7 +24,6 @@ impl IndexAssignBox
             #error("unsupported opIndexAssign op [[" ++ op ++ "]]")
     }
 
-    #[Swag.Overload]
     mtd(op: string) opIndexAssign(index: s32, value: u32)
     {
         #if op == "<<=" do
@@ -46,7 +44,6 @@ struct WriteOnlyIndexAssignBox
 
 impl WriteOnlyIndexAssignBox
 {
-    #[Swag.Overload]
     mtd(op: string) opIndexAssign(index: s32, value: s32)
     {
         #if op == "+=" do

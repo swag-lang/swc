@@ -32,7 +32,6 @@ impl SelModel
     }
 
     // Select a given range
-    #[Swag.Overload]
     mtd select(start, end: u32, select: bool)
     {
         if start <= end
@@ -48,7 +47,6 @@ impl SelModel
     }
 
     // Select the given index
-    #[Swag.Overload]
     mtd select(idx: u32, select: bool)
     {
         let isSelectedRange = .getSelectedRangeIndex(idx)

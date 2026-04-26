@@ -26,7 +26,6 @@ impl Vec2
             #error("unsupported unary operation [[" ++ op ++ "]]")
     }
 
-    #[Swag.Overload]
     func(op: string) opBinary(const me, other: const &Vec2'T)->Vec2'T
     {
         #if op == "+" do
@@ -41,7 +40,6 @@ impl Vec2
             #error("unsupported binary operation [[" ++ op ++ "]]")
     }
 
-    #[Swag.Overload]
     func(op: string) opBinary(const me, scalar: T)->Vec2'T
     {
         #if op == "+" do
@@ -84,7 +82,6 @@ impl Rect
     }
 
     // Rect + Vec2 = translate,  Rect + Rect = bounding union
-    #[Swag.Overload]
     func(op: string) opBinary(const me, offset: const &Vec2'T)->Rect'T
     {
         #if op == "+" do
@@ -96,7 +93,6 @@ impl Rect
     }
 
     // Rect * scalar = scale from origin
-    #[Swag.Overload]
     func(op: string) opBinary(const me, scalar: T)->Rect'T
     {
         #if op == "*" do
@@ -139,7 +135,6 @@ impl Transform2D
     }
 
     // Combine two transforms: add positions, multiply scales
-    #[Swag.Overload]
     func(op: string) opBinary(const me, other: const &Transform2D'T)->Transform2D'T
     {
         #if op == "+" do
@@ -151,7 +146,6 @@ impl Transform2D
     }
 
     // Uniform scale: multiply both pos and scale by scalar
-    #[Swag.Overload]
     func(op: string) opBinary(const me, scalar: T)->Transform2D'T
     {
         #if op == "*" do

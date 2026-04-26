@@ -543,7 +543,6 @@ impl Painter
             cxt.remainingPatternLen *= 0.5
     }
 
-    #[Swag.Overload]
     mtd drawLine(cxt: *Context, pos: Math.Vector2)
     {
         // solid
@@ -731,7 +730,6 @@ impl Painter
     }
 
     // Simplified drawPath method using the optimized approach
-    #[Swag.Overload]
     mtd drawPath(cxt: *Context)
     {
         if cxt.pen.size < 1 or cxt.path.polygon.points.count == 0 do
@@ -851,14 +849,12 @@ impl Painter
 public impl Painter
 {
     // Draw a line path.
-    #[Swag.Overload]
     mtd drawPath(path: *LinePath, color: Color, penSize: f32)
     {
         let pen = Pen.createSolid(color, penSize)
         .drawPath(path, pen)
     }
 
-    #[Swag.Overload]
     mtd drawPath(path: *LinePath, pen: Pen)
     {
         path.flatten(.curState.paintQuality)
@@ -884,7 +880,6 @@ public impl Painter
     }
 
     // Draw a list of paths.
-    #[Swag.Overload]
     mtd drawPath(pathList: *LinePathList, pen: Pen, mode: DrawPathListMode = .Separate)
     {
         if !pathList.paths.count do
@@ -920,7 +915,6 @@ public impl Painter
         .stopOverlapMode()
     }
 
-    #[Swag.Overload]
     mtd drawPath(pathList: *LinePathList, color: Color, penSize: f32, mode: DrawPathListMode = .Separate)
     {
         if !pathList.paths.count do

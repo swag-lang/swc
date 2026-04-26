@@ -14,7 +14,6 @@ impl AssignBox
         .b = b
     }
 
-    #[Swag.Overload]
     mtd(op: string) opAssign(value: s32)
     {
         #if op == "+=" do
@@ -25,7 +24,6 @@ impl AssignBox
             #error("unsupported opAssign op [[" ++ op ++ "]]")
     }
 
-    #[Swag.Overload]
     mtd(op: string) opAssign(value: u32)
     {
         #if op == "<<=" do
@@ -34,7 +32,6 @@ impl AssignBox
             #error("unsupported opAssign op [[" ++ op ++ "]]")
     }
 
-    #[Swag.Overload]
     mtd(op: string) opAssign(other: const &AssignBox)
     {
         #if op == "+=" do

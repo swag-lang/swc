@@ -28,7 +28,6 @@ impl Image
     }
 
     // Creates an image from a windows HICON
-    #[Swag.Overload]
     func from(hicon: HICON)->Image throw
     {
         var result: retval
@@ -46,7 +45,6 @@ impl Image
     }
 
     // Creates an image from a windows HBITMAP
-    #[Swag.Overload]
     func from(hbitmap: HBITMAP)->Image throw
     {
         var result: retval

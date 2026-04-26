@@ -7,13 +7,11 @@ struct BinaryIntBox
 
 impl BinaryIntBox
 {
-    #[Swag.Overload]
     mtd(op: string) const opBinary(other: const &BinaryIntBox)->BinaryIntBox
     {
         return {value: .value + other.value}
     }
 
-    #[Swag.Overload]
     mtd(op: string) const opBinary(other: u32)->BinaryIntBox
     {
         return {value: .value << other}

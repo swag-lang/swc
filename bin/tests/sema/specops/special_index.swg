@@ -8,7 +8,6 @@ struct ValueIndexBox
 
 impl ValueIndexBox
 {
-    #[Swag.Overload]
     mtd opIndex(index: s32) -> s32
     {
         if index == 0 do
@@ -24,13 +23,11 @@ struct RefIndexBox
 
 impl RefIndexBox
 {
-    #[Swag.Overload]
     mtd opIndex(index: s32) -> &s32
     {
         return &.buffer[index]
     }
 
-    #[Swag.Overload]
     mtd const opIndex(index: s32) -> const &s32
     {
         return &.buffer[index]

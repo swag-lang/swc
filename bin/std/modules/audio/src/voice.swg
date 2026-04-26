@@ -102,7 +102,7 @@ public impl Voice
 
     // Creates a voice and plays it.
     // By default, the voice will be destroyed when stopped or finished.
-    #[Swag.Discardable, Swag.Overload]
+    #[Swag.Discardable]
     func play(file: *SoundFile, createFlags = VoiceCreateFlags.Default, playFlags = VoicePlayFlags.Default)->*Voice throw
     {
         let voice = create(file, createFlags)
@@ -113,7 +113,6 @@ public impl Voice
     // Plays a voice.
     // By default, you will have to destroy the voice yourself when no more needed, for example if [[Voice.isPlaying]] returns false. But if you want the voice to be destroyed automatically when done, set the 'DestroyOnStop' flag in 'playFlags'.
     // See [[Voice.create]]
-    #[Swag.Overload]
     mtd play(playFlags = VoicePlayFlags.Zero) throw
     {
         if .hasState(.Playing) do

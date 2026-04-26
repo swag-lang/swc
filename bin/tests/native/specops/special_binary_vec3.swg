@@ -13,7 +13,6 @@ struct(T) GenVec3
 
 impl GenVec3
 {
-    #[Swag.Overload]
     func(op: string) opBinary(const me, other: const &GenVec3'T)->GenVec3'T
     {
         #if op == "+" do
@@ -28,7 +27,6 @@ impl GenVec3
             #error("unsupported binary operation [[" ++ op ++ "]]")
     }
 
-    #[Swag.Overload]
     func(op: string) opBinary(const me, scalar: T)->GenVec3'T
     {
         #if op == "+" do

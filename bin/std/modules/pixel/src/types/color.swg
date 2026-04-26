@@ -23,27 +23,27 @@ struct Color
 impl Color
 {
     // Assignment operator for u32 ARGB value.
-    #[Complete, Inline, ConstExpr, Overload]
+    #[Complete, Inline, ConstExpr]
     func opSet(me, argb: u32) { .argb = argb }
 
     // Assignment operator for 'Argb' enum value.
-    #[Complete, Inline, Implicit, ConstExpr, Overload]
+    #[Complete, Inline, Implicit, ConstExpr]
     func opSet(me, argb: Argb) { .argb = cast(u32) argb }
 
     // Assignment operator for color name string.
-    #[Complete, Inline, ConstExpr, Overload]
+    #[Complete, Inline, ConstExpr]
     func opSet(me, name: string) { .argb = cast(u32) Argb.fromName(name) }
 
     // Equality comparison with u32 ARGB value.
-    #[Inline, Overload]
+    #[Inline]
     func opEquals(me, argb: u32) => .argb == argb
 
     // Equality comparison with 'Argb' enum value.
-    #[Inline, Overload]
+    #[Inline]
     func opEquals(me, argb: Argb) => .argb == cast(u32) argb
 
     // Equality comparison with another Color.
-    #[Inline, Overload]
+    #[Inline]
     func opEquals(me, other: Color) => .argb == other.argb
 
     // Check if the color is fully opaque.
@@ -72,7 +72,7 @@ impl Color
 
     // Set RGB components with u8 values (0-255).
     // Alpha will be set to opaque (255).
-    #[Inline, Overload]
+    #[Inline]
     func setRgb(me, r, g, b: u8)
     {
         .a = 255
@@ -83,7 +83,7 @@ impl Color
 
     // Copy RGB components from another color.
     // Alpha remains unchanged.
-    #[Inline, Overload]
+    #[Inline]
     mtd setRgb(rgb: Color)
     {
         .r = rgb.r
@@ -156,7 +156,7 @@ impl Color
     }
 
     // Create a new Color with specified ARGB values.
-    #[Inline, Overload, ConstExpr]
+    #[Inline, ConstExpr]
     func fromArgb(a, r, g, b: u8)->Color
     {
         var result: retval = undefined
@@ -165,7 +165,7 @@ impl Color
     }
 
     // Create a new Color from 'Argb' enum value.
-    #[Inline, Overload, ConstExpr]
+    #[Inline, ConstExpr]
     func fromArgb(argb: Argb)->Color
     {
         let result: retval = argb
@@ -173,7 +173,7 @@ impl Color
     }
 
     // Create a new Color from 'Argb' enum value with custom alpha.
-    #[Inline, Overload, ConstExpr]
+    #[Inline, ConstExpr]
     func fromArgb(alpha: u8, argb: Argb)->Color
     {
         var result: retval = argb
@@ -182,7 +182,7 @@ impl Color
     }
 
     // Create a new Color from u32 ARGB value.
-    #[Inline, Overload, ConstExpr]
+    #[Inline, ConstExpr]
     func fromArgb(argb: u32)->Color
     {
         let result: retval = argb

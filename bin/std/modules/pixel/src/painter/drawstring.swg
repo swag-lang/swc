@@ -58,7 +58,6 @@ struct RichStringFormat
 impl Painter
 {
     // Returns all the glyphs for a given string and font
-    #[Swag.Overload]
     func getGlyphs(text: string, font: *Font)->Array'(const *GlyphDesc)
     {
         var result: retval
@@ -73,7 +72,6 @@ impl Painter
     }
 
     // Returns all the glyphs for a given string and font
-    #[Swag.Overload]
     func getGlyphs(text: Array'rune, font: *Font)->Array'(const *GlyphDesc)
     {
         var result: retval
@@ -100,7 +98,6 @@ impl Painter
     }
 
     // Returns the metrics of a given text
-    #[Swag.Overload]
     func measureString(text: string, font: *Font)->StringMetrics
     {
         let arr = getGlyphs(text, font)
@@ -108,7 +105,6 @@ impl Painter
     }
 
     // Returns the bounding rectangle of a given text, at a given position
-    #[Swag.Overload]
     func measureString(text: Array'(const *GlyphDesc))->StringMetrics
     {
         var result: retval
@@ -135,7 +131,6 @@ impl Painter
     }
 
     // Draw a simple string
-    #[Swag.Overload]
     mtd drawString(left, top: f32, text: string, font: *Font, color: Color, under = UnderlineStyle.None, zoom = 1.0)
     {
         if @countof(text) == 0 or color.a == 0 do
@@ -146,7 +141,6 @@ impl Painter
     }
 
     // Draw a simple string
-    #[Swag.Overload]
     mtd drawString(left, top: f32, text: string, font: *Font, brush: Brush, under = UnderlineStyle.None, zoom = 1.0)
     {
         if @countof(text) == 0 or brush.color.a == 0 do

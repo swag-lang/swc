@@ -15,14 +15,12 @@ struct Struct
 impl Struct
 {
     // Overload for 's32'
-    #[Swag.Overload]
     mtd opSet(value: s32)
     {
         me.x, me.y = value
     }
 
     // Overload for 'bool'
-    #[Swag.Overload]
     mtd opSet(value: bool)
     {
         me.x, me.y = value ? 1 : 0
@@ -52,13 +50,13 @@ This avoids default initialization before assignment for better performance.
 
 impl Struct
 {
-    #[Swag.Complete, Swag.Overload]
+    #[Swag.Complete]
     mtd opSet(value: u64)
     {
         me.x, me.y, me.z = cast(s32) value
     }
 
-    #[Swag.Implicit, Swag.Overload]
+    #[Swag.Implicit]
     mtd opSet(value: u16)
     {
         me.x, me.y = cast(s32) value

@@ -862,7 +862,6 @@ impl Application
     }
 
     // Register a global os key action
-    #[Swag.Overload]
     mtd registerHotKey(mdf: Input.KeyModifiers, key: Input.Key, wndId: WndId, target: *Wnd) throw
     {
         foreach &c in .hotKeys

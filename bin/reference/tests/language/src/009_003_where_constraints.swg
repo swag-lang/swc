@@ -17,14 +17,12 @@ by different `where` clauses.
 
 #test
 {
-    #[Swag.Overload]
     func(T) classify(value: T)->u8
         where T == s32 or T == s64
     {
         return 1
     }
 
-    #[Swag.Overload]
     func(T) classify(value: T)->u8
         where T == f32 or T == f64
     {

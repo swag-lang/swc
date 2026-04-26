@@ -14,7 +14,6 @@ struct Event
 
 impl Event
 {
-    #[Swag.Overload]
     func(T) create()->*T
     {
         let res = Memory.new'T()

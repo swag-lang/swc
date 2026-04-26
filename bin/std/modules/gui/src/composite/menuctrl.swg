@@ -664,14 +664,12 @@ public impl MenuCtrl
     }
 
     // Add a new item
-    #[Swag.Overload]
     mtd addItem(id: WndId)
     {
         .addItem(null, id)
     }
 
     // Add a list of items
-    #[Swag.Overload]
     mtd addItems(ids: const [..] WndId)
     {
         foreach id in ids do
@@ -679,7 +677,6 @@ public impl MenuCtrl
     }
 
     // Add a list of items followed by a separator
-    #[Swag.Overload]
     mtd addGroup(ids: const [..] WndId)
     {
         .addItems(ids)
@@ -687,7 +684,6 @@ public impl MenuCtrl
     }
 
     // Add a new item
-    #[Swag.Overload]
     mtd addItem(name: #null string, id: WndId, icon: Icon = {}, rightName: string = null, disabled = false, checked = false)
     {
         with let mitem = me.items.newPtr()
@@ -705,14 +701,12 @@ public impl MenuCtrl
     }
 
     // Add a new popup item
-    #[Swag.Overload]
     mtd addPopup(popup: *MenuCtrl, id: WndId)
     {
         .addPopup(null, popup, id: id)
     }
 
     // Add a new popup item
-    #[Swag.Overload]
     mtd addPopup(name: #null string, popup: *MenuCtrl, icon: Icon = {}, id: WndId = null)
     {
         with let mitem = me.items.newPtr()

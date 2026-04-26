@@ -4,20 +4,17 @@ struct Node
 {
 }
 
-#[Swag.Overload]
 func pick()->bool
 {
     var n: *Node = null
     return pick(n)
 }
 
-#[Swag.Overload]
 func pick(n: *Node)->bool
 {
     return n != null
 }
 
-#[Swag.Overload]
 func select(n: #null *Node)->bool
 {
     if !n do
@@ -25,7 +22,6 @@ func select(n: #null *Node)->bool
     return select(n)
 }
 
-#[Swag.Overload]
 func select(n: *Node)->bool
 {
     return n != null

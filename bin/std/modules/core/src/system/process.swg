@@ -15,7 +15,6 @@ struct Process
 }
 
 // Starts a new process with arguments
-#[Swag.Overload]
 func startProcess(fileName: string, arguments: string = null)->Process throw
 {
     var info: StartInfo

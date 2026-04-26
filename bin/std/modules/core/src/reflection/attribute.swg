@@ -3,7 +3,7 @@
 using Swag
 
 // Returns the given attribute value, or null
-#[Overload, ConstExpr]
+#[ConstExpr]
 func getAttributeValue(type: const *Swag.TypeValue, attribute: typeinfo, value: string)->#null any
 {
     let attrib = getAttribute(type, attribute)
@@ -13,7 +13,7 @@ func getAttributeValue(type: const *Swag.TypeValue, attribute: typeinfo, value: 
 }
 
 // Returns the given attribute value, or null
-#[Overload, ConstExpr]
+#[ConstExpr]
 func(T) getAttributeValue(type: const *Swag.TypeValue, attribute: typeinfo, value: string, def: T)->T
 {
     let attrib = getAttribute(type, attribute)
@@ -26,7 +26,7 @@ func(T) getAttributeValue(type: const *Swag.TypeValue, attribute: typeinfo, valu
 }
 
 // Returns the given attribute value, or null
-#[Overload, ConstExpr]
+#[ConstExpr]
 func getAttributeValue(type: typeinfo, attribute: typeinfo, value: string)->#null any
 {
     let attrib = getAttribute(type, attribute)
@@ -36,7 +36,7 @@ func getAttributeValue(type: typeinfo, attribute: typeinfo, value: string)->#nul
 }
 
 // Returns the given attribute value, or null
-#[Overload, ConstExpr]
+#[ConstExpr]
 func getAttributeValue(attribute: const *Swag.Attribute, value: string)->#null any
 {
     foreach p in attribute.params where p.name == value do
@@ -45,7 +45,7 @@ func getAttributeValue(attribute: const *Swag.Attribute, value: string)->#null a
 }
 
 // Returns the given associated attributes to 'value'
-#[Overload, ConstExpr]
+#[ConstExpr]
 func getAttributes(value: const *Swag.TypeValue, attribute: typeinfo)->Array'(const *Swag.Attribute)
 {
     var result: retval
@@ -55,7 +55,7 @@ func getAttributes(value: const *Swag.TypeValue, attribute: typeinfo)->Array'(co
 }
 
 // Returns the given associated 'attribute' to 'value' or null
-#[Overload, ConstExpr]
+#[ConstExpr]
 func getAttribute(value: const *Swag.TypeValue, attribute: typeinfo)->#null const *Swag.Attribute
 {
     foreach it in value.attributes where attribute == it.type do
@@ -64,14 +64,14 @@ func getAttribute(value: const *Swag.TypeValue, attribute: typeinfo)->#null cons
 }
 
 // Returns true if the given 'value' has the associated 'attribute'
-#[Overload, ConstExpr]
+#[ConstExpr]
 func hasAttribute(value: const *Swag.TypeValue, attribute: typeinfo)->bool
 {
     return getAttribute(value, attribute) != null
 }
 
 // Returns the given associated attributes to 'type'
-#[Overload, ConstExpr]
+#[ConstExpr]
 func getAttributes(type: typeinfo, attribute: typeinfo)->Array'(const *Swag.Attribute)
 {
     var result: retval
@@ -97,7 +97,7 @@ func getAttributes(type: typeinfo, attribute: typeinfo)->Array'(const *Swag.Attr
 }
 
 // Returns the given associated 'attribute' to 'type' or null
-#[Overload, ConstExpr]
+#[ConstExpr]
 func getAttribute(type: typeinfo, attribute: typeinfo)->#null const *Swag.Attribute
 {
     switch type.kind
@@ -122,7 +122,7 @@ func getAttribute(type: typeinfo, attribute: typeinfo)->#null const *Swag.Attrib
 }
 
 // Returns true if the given 'type' has the associated 'attribute'
-#[Overload, ConstExpr]
+#[ConstExpr]
 func hasAttribute(type: typeinfo, attribute: typeinfo)->bool
 {
     return getAttribute(type, attribute) != null

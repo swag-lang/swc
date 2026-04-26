@@ -15,7 +15,7 @@ struct RuntimeSetTarget
 
 impl RuntimeSetTarget
 {
-    #[Swag.Overload, Swag.NoInline]
+    #[Swag.NoInline]
     mtd opSet(value: s32)
     {
         .value = value
@@ -23,7 +23,7 @@ impl RuntimeSetTarget
         .calls += 1
     }
 
-    #[Swag.Overload, Swag.NoInline]
+    #[Swag.NoInline]
     mtd opSet(value: f32)
     {
         .value = cast(s32) value * 2
@@ -31,7 +31,7 @@ impl RuntimeSetTarget
         .calls += 1
     }
 
-    #[Swag.Overload, Swag.NoInline]
+    #[Swag.NoInline]
     mtd opSet(other: RuntimeSetSource)
     {
         .value = other.value + 5
@@ -54,21 +54,21 @@ struct RuntimeParamSetTarget
 
 impl RuntimeParamSetTarget
 {
-    #[Swag.Overload, Swag.NoInline]
+    #[Swag.NoInline]
     mtd opSet(value: s32)
     {
         .value = value
         .tag = 10
     }
 
-    #[Swag.Implicit, Swag.Overload, Swag.NoInline]
+    #[Swag.Implicit, Swag.NoInline]
     mtd opSet(value: u16)
     {
         .value = cast(s32) value
         .tag = 20
     }
 
-    #[Swag.Complete, Swag.Overload, Swag.NoInline]
+    #[Swag.Complete, Swag.NoInline]
     mtd opSet(value: u64)
     {
         .value = cast(s32) value
@@ -128,7 +128,7 @@ struct RuntimeLiteralOverloadTarget
 
 impl RuntimeLiteralOverloadTarget
 {
-    #[Swag.Implicit, Swag.Overload, Swag.NoInline]
+    #[Swag.Implicit, Swag.NoInline]
     mtd(suffix: string) opSetLiteral(value: s32)
     {
         .tag = 10
@@ -146,7 +146,7 @@ impl RuntimeLiteralOverloadTarget
             #error("invalid duration literal suffix '" ++ suffix ++ "'")
     }
 
-    #[Swag.Implicit, Swag.Overload, Swag.NoInline]
+    #[Swag.Implicit, Swag.NoInline]
     mtd(suffix: string) opSetLiteral(value: f32)
     {
         .tag = 20

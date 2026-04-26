@@ -60,14 +60,12 @@ Move semantics can be expressed in function parameters using '&&' instead of '&'
 #test
 {
     // Move overload: takes ownership of 'from' and moves into 'assignTo'.
-    #[Swag.Overload]
     func assign(assignTo: &Vector3, from: &&Vector3)
     {
         assignTo = #move from
     }
 
     // Copy overload: copies 'from' into 'assignTo'.
-    #[Swag.Overload]
     func assign(assignTo: &Vector3, from: Vector3)
     {
         assignTo = from

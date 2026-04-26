@@ -7,19 +7,19 @@ struct CompareSpecBox
 
 impl CompareSpecBox
 {
-    #[Swag.Overload, Swag.NoInline]
+    #[Swag.NoInline]
     mtd const opEquals(other: const &CompareSpecBox)->bool
     {
         return .value == other.value
     }
 
-    #[Swag.Overload, Swag.NoInline]
+    #[Swag.NoInline]
     mtd const opEquals(value: s32)->bool
     {
         return .value == value
     }
 
-    #[Swag.Overload, Swag.NoInline]
+    #[Swag.NoInline]
     mtd const opCompare(other: const &CompareSpecBox)->s32
     {
         if .value < other.value do return -7
@@ -27,7 +27,7 @@ impl CompareSpecBox
         return 0
     }
 
-    #[Swag.Overload, Swag.NoInline]
+    #[Swag.NoInline]
     mtd const opCompare(value: s32)->s32
     {
         if .value < value do return -3

@@ -1688,7 +1688,6 @@ impl Decoder
         return cast(u8) c
     }
 
-    #[Swag.Overload]
     mtd getChar(paddingFlag: *bool)->u32
     {
         if !.inBufLeft
@@ -1712,7 +1711,6 @@ impl Decoder
         return c
     }
 
-    #[Swag.Overload]
     mtd getChar()->u32
     {
         if !.inBufLeft

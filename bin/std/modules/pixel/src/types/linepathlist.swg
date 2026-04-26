@@ -60,7 +60,6 @@ impl LinePathList
 
     // Call fast offset on all paths
     // They must before be flattened
-    #[Swag.Overload]
     mtd offset(value: f32)
     {
         if Math.isZeroEpsilon(value) do
@@ -75,7 +74,6 @@ impl LinePathList
 
     // Call quality offset on all paths
     // They must before be flattened
-    #[Swag.Overload]
     mtd offset(value: f32, joinStyle: JoinStyle, toler: f32 = 0.5)
     {
         if Math.isZeroEpsilon(value) do

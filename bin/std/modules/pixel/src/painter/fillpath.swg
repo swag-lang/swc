@@ -2,7 +2,6 @@ using Core, Core.Math
 
 public impl Painter
 {
-    #[Swag.Overload]
     fileprivate mtd fillPath(t: *Poly2Tri.Tessellate, p: *LinePath, bvMin, bvMax: Vector2, brush: Brush)
     {
         .setTexture0(bvMin, bvMax, brush)
@@ -48,7 +47,6 @@ public impl Painter
     }
 
     // Fill a list of paths.
-    #[Swag.Overload]
     mtd fillPath(pathList: *LinePathList, color: Color)
     {
         if !pathList.paths.count do
@@ -58,7 +56,6 @@ public impl Painter
         .fillPath(pathList, brush)
     }
 
-    #[Swag.Overload]
     mtd fillPath(path: *LinePath, brush: Brush)
     {
         path.flatten(.curState.paintQuality)
@@ -144,7 +141,6 @@ public impl Painter
         }
     }
 
-    #[Swag.Overload]
     mtd fillPath(path: *LinePath, color: Color)
     {
         let brush = Brush.createSolid(color)
@@ -153,7 +149,6 @@ public impl Painter
 
     // Fill a list of paths.
     // If the path is clockwise, it will be filled. If the path is anti-clockwise, it will be considered as a hole.
-    #[Swag.Overload]
     mtd fillPath(pathList: *LinePathList, brush: Brush)
     {
         // Flatten all paths
@@ -213,7 +208,6 @@ public impl Painter
     }
 
     // Fill the polygon with the given color
-    #[Swag.Overload]
     mtd fillPolygon(path: *LinePath, color: Color)
     {
         if color.a == 0 do
@@ -224,7 +218,6 @@ public impl Painter
     }
 
     // Fill the polygon with the given 'brush'
-    #[Swag.Overload]
     mtd fillPolygon(path: *LinePath, brush: Brush)
     {
         if brush.color.a == 0 do
@@ -245,7 +238,6 @@ public impl Painter
     }
 
     // Fill the polygon with the given 'brush'
-    #[Swag.Overload]
     mtd fillPolygon(points: [..] Math.Vector2, brush: Brush)
     {
         if @countof(points) < 3 do

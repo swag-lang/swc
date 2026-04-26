@@ -17,7 +17,7 @@ impl RuntimeAssignBox
         .calls += 1
     }
 
-    #[Swag.Overload, Swag.NoInline]
+    #[Swag.NoInline]
     mtd(op: string) opAssign(value: s32)
     {
         #if op == "+=" do
@@ -28,7 +28,7 @@ impl RuntimeAssignBox
             #error("unsupported opAssign op [[" ++ op ++ "]]")
     }
 
-    #[Swag.Overload, Swag.NoInline]
+    #[Swag.NoInline]
     mtd(op: string) opAssign(value: u32)
     {
         #if op == "<<=" do
@@ -37,7 +37,7 @@ impl RuntimeAssignBox
             #error("unsupported opAssign op [[" ++ op ++ "]]")
     }
 
-    #[Swag.Overload, Swag.NoInline]
+    #[Swag.NoInline]
     mtd(op: string) opAssign(other: const &RuntimeAssignBox)
     {
         #if op == "+=" do

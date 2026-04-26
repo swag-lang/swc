@@ -32,7 +32,7 @@ impl Vector2
 
     // Compound assignment operators for vector-vector operations (+=, -=, *=, /=).
     // Performs component-wise operations with another vector.
-    #[Swag.Overload, Swag.Inline]
+    #[Swag.Inline]
     mtd(op: string) opAssign(other: Vector2)
     {
         #if op == "+="
@@ -61,7 +61,7 @@ impl Vector2
 
     // Compound assignment operators for vector-scalar operations (+=, -=, *=, /=).
     // Applies the scalar 'value' to both components of the vector.
-    #[Swag.Overload, Swag.Inline]
+    #[Swag.Inline]
     mtd(op: string) opAssign(value: f32)
     {
         #if op == "+="
@@ -90,7 +90,7 @@ impl Vector2
 
     // Binary operators for vector-vector operations (+, -, *, /).
     // Performs component-wise operations between two vectors and returns the result.
-    #[Swag.Overload, Swag.Inline]
+    #[Swag.Inline]
     mtd(op: string) const opBinary(other: Vector2)->Vector2
     {
         #if op == "+" do
@@ -107,7 +107,7 @@ impl Vector2
 
     // Binary operators for vector-scalar operations (+, -, *, /).
     // Applies the scalar 'value' to both components and returns the result.
-    #[Swag.Overload, Swag.Inline, Swag.Commutative("+", "*")]
+    #[Swag.Inline, Swag.Commutative("+", "*")]
     mtd(op: string) const opBinary(value: f32)->Vector2
     {
         #if op == "+" do
@@ -159,7 +159,7 @@ impl Vector2
 
     // Returns the perpendicular vector in the 2D plane scaled by 'axis'.
     // The 'axis' parameter determines the sign and scale of the result.
-    #[Swag.Overload, Swag.Inline]
+    #[Swag.Inline]
     mtd const cross(axis: f32)->Vector2
     {
         return {.y * axis, -.x * axis}
@@ -167,7 +167,7 @@ impl Vector2
 
     // Returns the Z component of the cross product (scalar cross product in 2D).
     // Calculates the determinant of the 2x2 matrix formed by the two vectors.
-    #[Swag.Overload, Swag.Inline]
+    #[Swag.Inline]
     mtd const cross(other: Vector2)->f32
     {
         return .x * other.y - .y * other.x

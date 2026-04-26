@@ -32,14 +32,14 @@ impl StaticArray
     }
 
     // Allows the array to be implicitly cast to a mutable slice.
-    #[Inline, Overload]
+    #[Inline]
     mtd opCast()->[..] T
     {
         return .toSlice()
     }
 
     // Allows the array to be implicitly cast to an immutable slice.
-    #[Inline, Overload]
+    #[Inline]
     mtd opCast()->const [..] T
     {
         return .toSlice()
@@ -56,7 +56,7 @@ impl StaticArray
     }
 
     // Returns a constant reference to the element at the specified index.
-    #[Inline, Overload]
+    #[Inline]
     mtd const opIndex(index: u64)->const &T
     {
         Debug.safetyBoundCheck(index < .count, "index out of range")
@@ -64,7 +64,7 @@ impl StaticArray
     }
 
     // Returns a mutable reference to the element at the specified index.
-    #[Inline, Overload]
+    #[Inline]
     mtd opIndex(index: u64)->&T
     {
         Debug.safetyBoundCheck(index < .count, "index out of range")
@@ -221,7 +221,6 @@ impl StaticArray
 
     // Adds a copy of an element to the end of the array.
     // Asserts if the array is full.
-    #[Overload]
     mtd add(value: T)
         where Reflection.canCopy(T)
     {
@@ -232,7 +231,6 @@ impl StaticArray
 
     // Moves an element to the end of the array.
     // Asserts if the array is full.
-    #[Overload]
     mtd add(value: &&T)
     {
         Debug.assert(.count != N, "the array is full")
@@ -262,7 +260,6 @@ impl StaticArray
 
     // Inserts a copy of a value at a specific index, shifting existing elements to the right.
     // Asserts if the array is full. Order is preserved.
-    #[Overload]
     mtd insertAt(index: u64, value: T)
         where Reflection.canCopy(T)
     {
@@ -287,7 +284,6 @@ impl StaticArray
 
     // Inserts a moved value at a specific index, shifting existing elements to the right.
     // Asserts if the array is full. Order is preserved.
-    #[Overload]
     mtd insertAt(index: u64, value: &&T)
     {
         Debug.assert(index <= .count, "index out of range")
@@ -311,7 +307,6 @@ impl StaticArray
 
     // Inserts elements from a slice at a specific index, shifting existing elements to the right.
     // Asserts if the array does not have enough capacity. Order is preserved.
-    #[Overload]
     mtd insertAt(index: u64, values: const [..] T)
         where Reflection.canCopy(T)
     {
@@ -384,7 +379,6 @@ impl StaticArray
 
     // Appends all elements from a slice to the end of the array.
     // Asserts if the array does not have enough capacity.
-    #[Overload]
     mtd add(values: const [..] T)
         where Reflection.canCopy(T)
     {
@@ -412,7 +406,6 @@ impl StaticArray
 
     // Removes a specified number of elements starting from a given index.
     // This is an unstable remove; the order of remaining elements is not preserved.
-    #[Overload]
     mtd remove(index, num: u64)
     {
         if !num do
@@ -436,7 +429,6 @@ impl StaticArray
 
     // Removes the first occurrence of a given value from the array.
     // This is an unstable remove; order is not preserved. Does nothing if the value is not found.
-    #[Overload]
     mtd(V) remove(value: V)
     {
         let idx = Slice.findLinear(.toSlice(), value)
@@ -507,7 +499,6 @@ impl StaticArray
     }
 
     // Sorts the array in ascending order using the default comparison operator.
-    #[Swag.Overload]
     mtd sort()
     {
         Slice.sort(.toSlice(), func(x, y: T)->s32 => x <=> y)
@@ -520,7 +511,6 @@ impl StaticArray
     }
 
     // Sorts the array using a custom comparison function.
-    #[Swag.Overload]
     mtd sort(cb: func||(T, T)->s32)
     {
         Debug.assert(cb != null)

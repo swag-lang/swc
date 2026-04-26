@@ -1,12 +1,12 @@
 #global fileprivate
 /**
-# Function Overloading with `Swag.Overload`
+# Function Overloading
 Swag allows multiple functions to share the same name when their parameter signatures differ.
 This feature, called *function overloading*, enables writing concise and intuitive APIs.
-To activate it, each version of the function must be decorated with `#[Swag.Overload]`.
+The compiler chooses the correct overload from the call arguments.
 */
 
-#[Swag.ConstExpr, Swag.Overload]
+#[Swag.ConstExpr]
 {
     // Overload: two parameters
     func sum(x, y: s32) => x + y

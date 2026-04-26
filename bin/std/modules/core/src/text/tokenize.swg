@@ -70,7 +70,6 @@ func splitLines(src: string)->Array'string
 // Splits the string into substrings using a byte as separator
 // Note that this returns an array of native strings, not copies.
 // All strings will be invalid if 'src' String is destroyed
-#[Swag.Overload]
 func split(src: string, separator: u8, maxSplit: u32 = 0, removeEmpty = true)->Array'string
 {
     let countof = @countof(src)
@@ -121,7 +120,6 @@ func split(src: string, separator: u8, maxSplit: u32 = 0, removeEmpty = true)->A
 // Splits the string into substrings using another string as separator
 // Note that this returns an array of native strings, not copies.
 // All strings will be invalid if 'src' String is destroyed
-#[Swag.Overload]
 func split(src: string, separator: string, maxSplit: u32 = 0, removeEmpty = true)->Array'string
 {
     let countof = @countof(src)
@@ -176,7 +174,6 @@ func split(src: string, separator: string, maxSplit: u32 = 0, removeEmpty = true
 // Splits the string into substrings using a rune as separator
 // Note that this returns an array of native strings, not copies.
 // All strings will be invalid if 'src' is destroyed
-#[Swag.Overload]
 func split(src: string, separator: rune, maxSplit: u32 = 0, removeEmpty = true)->Array'string
 {
     return splitAny(src, [separator], maxSplit, removeEmpty)

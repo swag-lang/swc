@@ -92,14 +92,12 @@ impl Image
     }
 
     // Allocate a computing buffer with current image size
-    #[Swag.Overload]
     mtd allocWorkingBuffer()
     {
         .allocWorkingBuffer(.width, .height, .pf)
     }
 
     // Allocate a computing buffer with new sizes
-    #[Swag.Overload]
     mtd allocWorkingBuffer(newWidth, newHeight: s32, newPf: PixelFormat)
     {
         if .workingBuffer and
@@ -237,7 +235,7 @@ impl Image
     }
 
     // Set pixel values depending on pixel format
-    #[Swag.Overload, Swag.Inline]
+    #[Swag.Inline]
     mtd(PF: PixelFormat) const getPixelColorDirect(pixX, pixY: s32)->Color
     {
         var result: retval
@@ -282,7 +280,6 @@ impl Image
     }
 
     // Returns the color at the given coordinate
-    #[Swag.Overload]
     mtd const getPixelColor(pixX, pixY: s32)->Color
     {
         #[Swag.Complete]

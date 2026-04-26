@@ -55,9 +55,7 @@ impl Struct
 
     // Custom casting between the struct and another type; can be overloaded with different return types
     // Example: var x = cast(OneType) v
-    #[Swag.Overload]
     func opCast(me)->OneType { return true; }
-    #[Swag.Overload]
     func opCast(me)->AnotherType { return 0; }
 
     // -------------------------------------------------------------------------
@@ -65,15 +63,11 @@ impl Struct
     // -------------------------------------------------------------------------
 
     // Compare the struct value with another; used in '==' and '!=' operations
-    #[Swag.Overload]
     func opEquals(me, other: OneType)->bool { return false; }
-    #[Swag.Overload]
     func opEquals(me, other: AnotherType)->bool { return false; }
 
     // Three-way comparison; returns -1, 0, or 1 (used for '<', '>', '<=', '>=', '<=>')
-    #[Swag.Overload]
     func opCompare(me, other: OneType)->s32 { return 0; }
-    #[Swag.Overload]
     func opCompare(me, other: AnotherType)->s32 { return 0; }
 
     // -------------------------------------------------------------------------
@@ -81,24 +75,17 @@ impl Struct
     // -------------------------------------------------------------------------
 
     // Direct assignment via '='
-    #[Swag.Overload]
     func opSet(me, other: OneType) {}
-    #[Swag.Overload]
     func opSet(me, other: AnotherType) {}
 
     // Assign a literal value with a specific suffix to the struct (generic)
-    #[Swag.Overload]
     func(suffix: string) opSetLiteral(me, value: OneType) {}
-    #[Swag.Overload]
     func(suffix: string) opSetLiteral(me, value: AnotherType) {}
 
     // Assign to an indexed position via '[?] ='. All index parameters must have the same type.
     // When both opIndexSet and opIndex can write, opIndexSet is selected.
-    #[Swag.Overload]
     func opIndexSet(me, index: OneType, value: OneType) {}
-    #[Swag.Overload]
     func opIndexSet(me, row: OneType, column: OneType, value: OneType) {}
-    #[Swag.Overload]
     func opIndexSet(me, index: OneType, value: AnotherType) {}
 
     // -------------------------------------------------------------------------
@@ -107,21 +94,17 @@ impl Struct
 
     // Binary operation with 'op' representing the operator as a string
     // Examples: '+', '-', '*', '/', '%', '|', '&', '^', '<<', '>>'
-    #[Swag.Overload]
     func(op: string) opBinary(me, other: OneType)->Struct { return {1, 2}; }
-    #[Swag.Overload]
     func(op: string) opBinary(me, other: AnotherType)->Struct { return {1, 2}; }
 
     // Binary operation when this struct is the right operand
     // Examples: OneType + myStruct, AnotherType * myStruct
-    #[Swag.Overload]
     func(op: string) opBinaryRight(me, other: OneType)->Struct { return {1, 2}; }
-    #[Swag.Overload]
     func(op: string) opBinaryRight(me, other: AnotherType)->Struct { return {1, 2}; }
 
     // A commutative opBinary can also be used when the struct is the right operand.
     // Restrict the operators when a generic opBinary also handles non-commutative ones.
-    #[Swag.Overload, Swag.Commutative("+", "*")]
+    #[Swag.Commutative("+", "*")]
     func(op: string) opBinary(me, other: u32)->Struct { return {1, 2}; }
 
     // Unary operation with 'op' representing the operator as a string
@@ -130,18 +113,13 @@ impl Struct
 
     // Assignment with operator 'op' (compound assignments)
     // Examples: '+=', '-=', '*=', '/=', '%=', '|=', '&=', '^=', '<<=', '>>='
-    #[Swag.Overload]
     func(op: string) opAssign(me, other: OneType) {}
-    #[Swag.Overload]
     func(op: string) opAssign(me, other: AnotherType) {}
 
     // Indexed assignment with operator 'op'. All index parameters must have the same type.
     // When both opIndexAssign and opIndex can write, opIndexAssign is selected.
-    #[Swag.Overload]
     func(op: string) opIndexAssign(me, index: OneType, value: OneType) {}
-    #[Swag.Overload]
     func(op: string) opIndexAssign(me, row: OneType, column: OneType, value: OneType) {}
-    #[Swag.Overload]
     func(op: string) opIndexAssign(me, index: OneType, value: AnotherType) {}
 
     // -------------------------------------------------------------------------

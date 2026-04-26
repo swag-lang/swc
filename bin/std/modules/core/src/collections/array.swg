@@ -56,14 +56,14 @@ impl Array
     }
 
     // Allows the array to be implicitly cast to a mutable slice.
-    #[Inline, Overload]
+    #[Inline]
     mtd opCast()->[..] T
     {
         return .toSlice()
     }
 
     // Allows the array to be implicitly cast to an immutable slice.
-    #[Inline, Overload]
+    #[Inline]
     mtd const opCast()->const [..] T
     {
         return .toSlice()
@@ -81,7 +81,7 @@ impl Array
     }
 
     // Returns a constant reference to the element at the specified index.
-    #[Inline, Overload]
+    #[Inline]
     mtd const opIndex(index: u64)->const &T
     {
         Debug.safetyBoundCheck(index < .count, "index out of range")
@@ -90,7 +90,7 @@ impl Array
     }
 
     // Returns a mutable reference to the element at the specified index.
-    #[Inline, Overload]
+    #[Inline]
     mtd opIndex(index: u64)->&T
     {
         Debug.safetyBoundCheck(index < .count, "index out of range")
@@ -268,14 +268,14 @@ impl Array
     mtd const isEmpty() => .count == 0
 
     // Returns a mutable slice containing all elements of the array.
-    #[Inline, Overload]
+    #[Inline]
     mtd toSlice()->[..] T
     {
         return @mkslice(.buffer, .count)
     }
 
     // Returns an immutable slice containing all elements of the array.
-    #[Inline, Overload]
+    #[Inline]
     mtd const toSlice()->const [..] T
     {
         return @mkslice(.buffer, .count)
@@ -374,7 +374,6 @@ impl Array
     }
 
     // Adds a copy of an element to the end of the array.
-    #[Overload]
     mtd add(value: T)
         where Reflection.canCopy(T)
     {
@@ -384,7 +383,6 @@ impl Array
     }
 
     // Moves an element to the end of the array.
-    #[Overload]
     mtd add(value: &&T)
     {
         .grow(.count + 1)
@@ -414,7 +412,6 @@ impl Array
 
     // Inserts a copy of a value at a specific index, shifting existing elements to the right.
     // Order is preserved.
-    #[Overload]
     mtd insertAt(index: u64, value: T)
         where Reflection.canCopy(T)
     {
@@ -439,7 +436,6 @@ impl Array
 
     // Inserts a moved value at a specific index, shifting existing elements to the right.
     // Order is preserved.
-    #[Overload]
     mtd insertAt(index: u64, value: &&T)
     {
         Debug.safetyBoundCheck(index <= .count, "index out of range")
@@ -463,7 +459,6 @@ impl Array
 
     // Inserts elements from a slice at a specific index, shifting existing elements to the right.
     // Order is preserved.
-    #[Overload]
     mtd insertAt(index: u64, values: const [..] T)
         where Reflection.canCopy(T)
     {
@@ -535,7 +530,6 @@ impl Array
     }
 
     // Appends all elements from a slice to the end of the array.
-    #[Overload]
     mtd add(values: #null const [..] T)
         where Reflection.canCopy(T)
     {
@@ -578,7 +572,6 @@ impl Array
 
     // Removes a specified number of elements starting from a given index.
     // This is an unstable remove; the order of remaining elements is not preserved.
-    #[Overload]
     mtd remove(index, num: u64)
     {
         if !num do
@@ -602,7 +595,6 @@ impl Array
 
     // Removes the first occurrence of a given value from the array.
     // This is an unstable remove; order is not preserved. Does nothing if the value is not found.
-    #[Overload]
     mtd(V) remove(value: V)
     {
         let idx = Slice.findLinear(.toSlice(), value)
@@ -673,7 +665,6 @@ impl Array
     }
 
     // Sorts the array in ascending order using the default comparison operator.
-    #[Overload]
     mtd sort()
     {
         Slice.sort(.toSlice(), func(x, y: T)->s32 => x <=> y)
@@ -686,7 +677,6 @@ impl Array
     }
 
     // Sorts the array using a custom comparison function.
-    #[Overload]
     mtd sort(cb: func||(T, T)->s32)
     {
         Debug.assert(cb != null)

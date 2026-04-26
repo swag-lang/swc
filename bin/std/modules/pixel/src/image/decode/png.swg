@@ -389,7 +389,6 @@ impl Decoder
         }
     }
 
-    #[Swag.Overload]
     mtd defilter(width, height: u32, input, output: [*] u8)
     {
         if .header.bitDepth < 8
@@ -442,7 +441,6 @@ impl Decoder
         }
     }
 
-    #[Swag.Overload]
     mtd defilter()
     {
         if .header.interlaceMethod != .Adam7

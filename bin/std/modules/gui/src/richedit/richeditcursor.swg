@@ -262,14 +262,14 @@ impl RichEditCtrl
         return true
     }
 
-    #[Swag.Discardable, Swag.Overload]
+    #[Swag.Discardable]
     mtd moveCursorUp(cp: *RichEditCursor)->bool
     {
         let pt = .getCursorDisplayPos(cp)
         return .moveCursorUp(cp, pt)
     }
 
-    #[Swag.Discardable, Swag.Overload]
+    #[Swag.Discardable]
     fileprivate mtd moveCursorUp(cp: *RichEditCursor, posPrev: Math.Point)->bool
     {
         let prev = .getPreviousVisibleLine(cp.lineIndex)
@@ -304,14 +304,14 @@ impl RichEditCtrl
         return true
     }
 
-    #[Swag.Discardable, Swag.Overload]
+    #[Swag.Discardable]
     mtd moveCursorDown(cp: *RichEditCursor)->bool
     {
         let pt = .getCursorDisplayPos(cp)
         return .moveCursorDown(cp, pt)
     }
 
-    #[Swag.Discardable, Swag.Overload]
+    #[Swag.Discardable]
     fileprivate mtd moveCursorDown(cp: *RichEditCursor, posPrev: Math.Point)->bool
     {
         let next = .getNextVisibleLine(cp.lineIndex)

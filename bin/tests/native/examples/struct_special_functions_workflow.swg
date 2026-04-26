@@ -17,7 +17,7 @@ struct WorkflowTarget
 
 impl WorkflowTarget
 {
-    #[Swag.Overload, Swag.NoInline]
+    #[Swag.NoInline]
     mtd opSet(value: s32)
     {
         .value = value
@@ -25,7 +25,7 @@ impl WorkflowTarget
         .calls += 1
     }
 
-    #[Swag.Overload, Swag.NoInline]
+    #[Swag.NoInline]
     mtd opSet(source: WorkflowSource)
     {
         .value = source.value + 5
@@ -51,7 +51,7 @@ impl WorkflowAssignBox
         .calls += 1
     }
 
-    #[Swag.Overload, Swag.NoInline]
+    #[Swag.NoInline]
     mtd(op: string) opAssign(value: s32)
     {
         #if op == "+=" do
@@ -60,7 +60,7 @@ impl WorkflowAssignBox
             #error("unsupported opAssign op [[" ++ op ++ "]]")
     }
 
-    #[Swag.Overload, Swag.NoInline]
+    #[Swag.NoInline]
     mtd(op: string) opAssign(other: const &WorkflowAssignBox)
     {
         #if op == "+=" do
@@ -80,7 +80,7 @@ struct WorkflowIndexBox
 
 impl WorkflowIndexBox
 {
-    #[Swag.Overload, Swag.NoInline]
+    #[Swag.NoInline]
     mtd opIndex(index: s32) -> s32
     {
         .reads += 1
@@ -89,7 +89,7 @@ impl WorkflowIndexBox
         return .second
     }
 
-    #[Swag.Overload, Swag.NoInline]
+    #[Swag.NoInline]
     mtd opIndexSet(index: s32, value: s32)
     {
         .writes += 1

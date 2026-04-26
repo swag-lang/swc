@@ -225,7 +225,7 @@ impl HashSet
 
     // Adds a new key to the set by copying it.
     // If the key already exists, does nothing. Returns a pointer to the entry.
-    #[Discardable, Overload]
+    #[Discardable]
     mtd add(key: K)->*HashSetEntry
         where Reflection.canCopy(#typeof(K))
     {
@@ -256,7 +256,7 @@ impl HashSet
 
     // Adds a new key to the set by moving it.
     // If the key already exists, does nothing. Returns a pointer to the entry.
-    #[Discardable, Overload]
+    #[Discardable]
     mtd add(key: &&K)->*HashSetEntry
     {
         .grow()

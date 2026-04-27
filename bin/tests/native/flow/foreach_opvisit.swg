@@ -339,6 +339,40 @@ impl ConstPointerVisits
     }
 }
 
+struct(T) GenericScopedVisits
+{
+    const FIRST = 1'u64
+    values: [3] T
+}
+
+impl GenericScopedVisits
+{
+    #[Swag.Macro]
+    mtd(ptr: bool, back: bool) const opVisit(stmt: #code void)
+    {
+        #if ptr do
+            #error("GenericScopedVisits does not expose pointer iteration.")
+
+        #if back do
+            #error("GenericScopedVisits does not expose reverse iteration.")
+
+        #scope(Outer)
+        for 3
+        {
+            if @index < GenericScopedVisits.FIRST do
+                continue
+
+            #scope(Inner)
+            #macro
+            {
+                let #alias0 = #up me.values[@index]
+                let #alias1 = @index
+                #inject(#up stmt, break = break to Outer, continue = break to Inner)
+            }
+        }
+    }
+}
+
 #test
 {
     var values: FieldAlias
@@ -513,4 +547,22 @@ impl ConstPointerVisits
     }
 
     @assert(sum == 27)
+}
+
+#test
+{
+    let values: GenericScopedVisits's32 = {values: [10, 20, 30]}
+    var sum = 0
+    var indexes: u64
+
+    foreach value, ordinal in values
+    {
+        #assert(#typeof(value) == s32)
+        #assert(#typeof(ordinal) == #typeof(@index))
+        sum += value
+        indexes += ordinal
+    }
+
+    @assert(sum == 50)
+    @assert(indexes == 3)
 }

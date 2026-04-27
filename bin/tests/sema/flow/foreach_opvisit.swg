@@ -312,6 +312,40 @@ impl SemaConstPointerVisits
     }
 }
 
+struct(T) SemaGenericScopedVisits
+{
+    const FIRST = 1'u64
+    values: [3] T
+}
+
+impl SemaGenericScopedVisits
+{
+    #[Swag.Macro]
+    mtd(ptr: bool, back: bool) const opVisit(stmt: #code void)
+    {
+        #if ptr do
+            #error("SemaGenericScopedVisits does not expose pointer iteration.")
+
+        #if back do
+            #error("SemaGenericScopedVisits does not expose reverse iteration.")
+
+        #scope(Outer)
+        for 3
+        {
+            if @index < SemaGenericScopedVisits.FIRST do
+                continue
+
+            #scope(Inner)
+            #macro
+            {
+                let #alias0 = #up me.values[@index]
+                let #alias1 = @index
+                #inject(#up stmt, break = break to Outer, continue = break to Inner)
+            }
+        }
+    }
+}
+
 #test
 {
     var values = SemaBufferVisits{}
@@ -410,6 +444,19 @@ impl SemaConstPointerVisits
     {
         #assert(#typeof(value) == const *s32)
         var x = dref value
+        var y = ordinal
+    }
+}
+
+#test
+{
+    let values: SemaGenericScopedVisits's32 = {values: [10, 20, 30]}
+
+    foreach value, ordinal in values
+    {
+        #assert(#typeof(value) == s32)
+        #assert(#typeof(ordinal) == #typeof(@index))
+        var x = value
         var y = ordinal
     }
 }

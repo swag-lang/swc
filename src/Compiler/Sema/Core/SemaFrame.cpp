@@ -77,9 +77,9 @@ void SemaFrame::setCurrentBreakContent(AstNodeRef nodeRef, BreakContextKind kind
     breakable_.nodeRef = nodeRef;
     breakable_.kind    = kind;
 
-    // Only switch frames keep exposing the enclosing loop index. Every other
-    // breakable context becomes the new nearest owner and must reset it.
-    if (kind != BreakContextKind::Switch)
+    // Switches and named scopes can redirect break/continue without defining a
+    // new loop index. Keep exposing the enclosing loop index inside them.
+    if (kind != BreakContextKind::Switch && kind != BreakContextKind::Scope)
     {
         currentLoopIndexTypeRef_  = TypeRef::invalid();
         currentLoopIndexOwnerRef_ = AstNodeRef::invalid();

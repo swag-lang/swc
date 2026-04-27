@@ -1512,6 +1512,44 @@ namespace
         return nullptr;
     }
 
+    const SymbolStruct* matchingGenericStructInstance(const SymbolStruct& genericRoot, const SymbolStruct* instance)
+    {
+        if (!instance || !instance->isGenericInstance())
+            return nullptr;
+
+        return instance->genericRootSym() == &genericRoot ? instance : nullptr;
+    }
+
+    const SymbolStruct* genericStructInstanceFromFunctionOwner(const SymbolStruct& genericRoot, const SymbolFunction* function)
+    {
+        if (!function)
+            return nullptr;
+
+        return matchingGenericStructInstance(genericRoot, function->ownerStruct());
+    }
+
+    const SymbolStruct* genericStructInstanceFromInlinePayload(const Sema& sema, const SymbolStruct& genericRoot)
+    {
+        for (size_t i = sema.frames().size(); i > 0; --i)
+        {
+            const SemaInlinePayload* inlinePayload = sema.frames()[i - 1].currentInlinePayload();
+            while (inlinePayload)
+            {
+                if (const SymbolStruct* instance = genericStructInstanceFromFunctionOwner(genericRoot, inlinePayload->sourceFunction))
+                    return instance;
+
+                inlinePayload = inlinePayload->parentInlinePayload;
+            }
+        }
+
+        return nullptr;
+    }
+
+    const SymbolStruct* genericStructInstanceFromCurrentFunction(const Sema& sema, const SymbolStruct& genericRoot)
+    {
+        return genericStructInstanceFromFunctionOwner(genericRoot, sema.currentFunction());
+    }
+
     const SymbolStruct* enclosingGenericStructInstance(Sema& sema)
     {
         if (const SymbolStruct* instance = genericStructInstanceFromImplFrames(sema))
@@ -1670,7 +1708,16 @@ namespace SemaGeneric
 
         SmallVector<GenericResolvedArg> resolvedArgs(targetParams.size());
 
-        if (!functionTypeParamShadowsTarget(sema, targetParams.span()))
+        if (const SymbolStruct* sourceInstance = genericStructInstanceFromInlinePayload(sema, genericRoot))
+            resolveArgsFromEnclosingStruct(sema, *sourceInstance, targetParams.span(), resolvedArgs.span());
+
+        if (hasMissingGenericArgs(resolvedArgs.span()))
+        {
+            if (const SymbolStruct* currentFunctionInstance = genericStructInstanceFromCurrentFunction(sema, genericRoot))
+                resolveArgsFromEnclosingStruct(sema, *currentFunctionInstance, targetParams.span(), resolvedArgs.span());
+        }
+
+        if (hasMissingGenericArgs(resolvedArgs.span()) && !functionTypeParamShadowsTarget(sema, targetParams.span()))
         {
             if (const SymbolStruct* enclosingInstance = enclosingGenericStructInstance(sema))
                 resolveArgsFromEnclosingStruct(sema, *enclosingInstance, targetParams.span(), resolvedArgs.span());

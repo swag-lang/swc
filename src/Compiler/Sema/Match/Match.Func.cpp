@@ -344,17 +344,7 @@ namespace
         f.active      = true;
     }
 
-    void recordCallArgFailure(Sema&                 sema,
-                              const SymbolFunction& fn,
-                              MatchFailure&         outFail,
-                              AstNodeRef            ufcsArg,
-                              uint32_t              userArgIndex,
-                              DiagnosticId          diagId,
-                              IdentifierRef         idRef       = IdentifierRef::invalid(),
-                              uint32_t              paramIndex  = UINT32_MAX,
-                              DiagnosticId          noteId      = DiagnosticId::None,
-                              AstNodeRef            noteNodeRef = AstNodeRef::invalid(),
-                              Utf8                  noteValues  = {})
+    void recordCallArgFailure(Sema& sema, const SymbolFunction& fn, MatchFailure& outFail, AstNodeRef ufcsArg, uint32_t userArgIndex, DiagnosticId diagId, IdentifierRef idRef = IdentifierRef::invalid(), uint32_t paramIndex = UINT32_MAX, DiagnosticId noteId = DiagnosticId::None, AstNodeRef noteNodeRef = AstNodeRef::invalid(), Utf8 noteValues = {})
     {
         CastFailure cf{};
         cf.diagId = diagId;
@@ -369,10 +359,7 @@ namespace
         failBadType(outFail, callArgIndex, paramIndex == UINT32_MAX ? callArgIndex : paramIndex, cf);
     }
 
-    Utf8 formatNamedParameters(const Sema&                      sema,
-                               std::span<SymbolVariable* const> params,
-                               uint32_t                         paramStart,
-                               uint32_t                         numParams)
+    Utf8 formatNamedParameters(const Sema& sema, std::span<SymbolVariable* const> params, uint32_t paramStart, uint32_t numParams)
     {
         Utf8 result;
         bool first = true;

@@ -501,11 +501,7 @@ namespace
         argPayload.setIsValue();
     }
 
-    void materializePreparedReferenceArg(CodeGen&                    codeGen,
-                                         CodeGenNodePayload&         argPayload,
-                                         TypeRef                     normalizedTypeRef,
-                                         const ResolvedCallArgument& resolvedArg,
-                                         AstNodeRef                  argRef)
+    void materializePreparedReferenceArg(CodeGen& codeGen, CodeGenNodePayload& argPayload, TypeRef normalizedTypeRef, const ResolvedCallArgument& resolvedArg, AstNodeRef argRef)
     {
         if (argRef.isInvalid() || normalizedTypeRef.isInvalid())
             return;
@@ -662,12 +658,7 @@ namespace
         argPayload.markMaterializedPointerLikeValue();
     }
 
-    void fillPreparedDirectArgType(ABICall::PreparedArg&       outPreparedArg,
-                                   CodeGen&                    codeGen,
-                                   const CallConv&             callConv,
-                                   const CodeGenNodePayload&   argPayload,
-                                   TypeRef                     normalizedTypeRef,
-                                   const ResolvedCallArgument& resolvedArg)
+    void fillPreparedDirectArgType(ABICall::PreparedArg& outPreparedArg, CodeGen& codeGen, const CallConv& callConv, const CodeGenNodePayload& argPayload, TypeRef normalizedTypeRef, const ResolvedCallArgument& resolvedArg)
     {
         if (normalizedTypeRef.isInvalid())
             return;
@@ -1355,11 +1346,7 @@ Result CodeGenCallHelpers::emitRuntimeCallWithDirectArgs(CodeGen& codeGen, Symbo
     return Result::Continue;
 }
 
-void CodeGenCallHelpers::appendDirectPreparedArg(SmallVector<ABICall::PreparedArg>& outArgs,
-                                                 CodeGen&                           codeGen,
-                                                 const CallConv&                    callConv,
-                                                 TypeRef                            argTypeRef,
-                                                 MicroReg                           srcReg)
+void CodeGenCallHelpers::appendDirectPreparedArg(SmallVector<ABICall::PreparedArg>& outArgs, CodeGen& codeGen, const CallConv& callConv, TypeRef argTypeRef, MicroReg srcReg)
 {
     const ABITypeNormalize::NormalizedType normalizedArg = ABITypeNormalize::normalize(codeGen.ctx(), callConv, argTypeRef, ABITypeNormalize::Usage::Argument);
 
@@ -1373,11 +1360,7 @@ void CodeGenCallHelpers::appendDirectPreparedArg(SmallVector<ABICall::PreparedAr
     outArgs.push_back(arg);
 }
 
-void CodeGenCallHelpers::appendPreparedStringCompareArg(SmallVector<ABICall::PreparedArg>& outArgs,
-                                                        CodeGen&                           codeGen,
-                                                        const CallConv&                    callConv,
-                                                        const CodeGenNodePayload&          operandPayload,
-                                                        TypeRef                            argTypeRef)
+void CodeGenCallHelpers::appendPreparedStringCompareArg(SmallVector<ABICall::PreparedArg>& outArgs, CodeGen& codeGen, const CallConv& callConv, const CodeGenNodePayload& operandPayload, TypeRef argTypeRef)
 {
     const TypeInfo&                        argType       = codeGen.typeMgr().get(argTypeRef);
     const ABITypeNormalize::NormalizedType normalizedArg = ABITypeNormalize::normalize(codeGen.ctx(), callConv, argTypeRef, ABITypeNormalize::Usage::Argument);

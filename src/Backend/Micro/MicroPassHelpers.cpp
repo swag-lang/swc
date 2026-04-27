@@ -57,11 +57,7 @@ bool MicroPassHelpers::areCpuFlagsDeadAfter(const MicroStorage& storage, const M
     return true;
 }
 
-uint32_t MicroPassHelpers::replaceRegInLocalUses(MicroStorage&        storage,
-                                                 MicroOperandStorage& operands,
-                                                 MicroInstrRef        afterInstRef,
-                                                 MicroReg             fromReg,
-                                                 MicroReg             toReg)
+uint32_t MicroPassHelpers::replaceRegInLocalUses(MicroStorage& storage, MicroOperandStorage& operands, MicroInstrRef afterInstRef, MicroReg fromReg, MicroReg toReg)
 {
     if (!fromReg.isValid() || fromReg.isNoBase())
         return 0;
@@ -182,11 +178,7 @@ namespace
     }
 }
 
-Math::FoldStatus MicroPassHelpers::foldBinaryImmediate(uint64_t&   outValue,
-                                                       uint64_t    lhs,
-                                                       uint64_t    rhs,
-                                                       MicroOp     op,
-                                                       MicroOpBits opBits)
+Math::FoldStatus MicroPassHelpers::foldBinaryImmediate(uint64_t& outValue, uint64_t lhs, uint64_t rhs, MicroOp op, MicroOpBits opBits)
 {
     Math::FoldBinaryOp foldOp;
     bool               isSigned;

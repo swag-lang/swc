@@ -118,12 +118,7 @@ namespace
         payload.expressions.push_back({caseExprRef, typeExprRef});
     }
 
-    Result registerDynamicStructSwitchBinding(Sema&      sema,
-                                              AstNodeRef caseRef,
-                                              AstNodeRef caseExprRef,
-                                              AstNodeRef identRef,
-                                              TypeRef    switchTypeRef,
-                                              TypeRef    targetTypeRef)
+    Result registerDynamicStructSwitchBinding(Sema& sema, AstNodeRef caseRef, AstNodeRef caseExprRef, AstNodeRef identRef, TypeRef switchTypeRef, TypeRef targetTypeRef)
     {
         auto& payload = ensureDynamicStructSwitchCasePayload(sema, caseRef);
         if (payload.bindingSymbol != nullptr)

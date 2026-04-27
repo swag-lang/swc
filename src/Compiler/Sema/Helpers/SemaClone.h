@@ -29,10 +29,7 @@ namespace SemaClone
         const Ast*                       sourceAst = nullptr;
         bool                             preserveFunctionGenerics = false;
 
-        explicit CloneContext(std::span<const ParamBinding>    inBindings,
-                              std::span<const NodeReplacement> inReplacements             = std::span<const NodeReplacement>{},
-                              bool                             inPreserveFunctionGenerics = false,
-                              const Ast*                       inSourceAst                = nullptr) :
+        explicit CloneContext(std::span<const ParamBinding> inBindings, std::span<const NodeReplacement> inReplacements = std::span<const NodeReplacement>{}, bool inPreserveFunctionGenerics = false, const Ast* inSourceAst = nullptr) :
             bindings(inBindings),
             replacements(inReplacements),
             sourceAst(inSourceAst),

@@ -312,14 +312,7 @@ Result CodeGenSafety::emitIntArithmeticOverflowCheck(CodeGen& codeGen, const Ast
     }
 }
 
-Result CodeGenSafety::emitShiftIntLike(CodeGen&          codeGen,
-                                       const AstNode&    node,
-                                       const MicroReg    valueReg,
-                                       const MicroReg    rightReg,
-                                       const TypeInfo&   operationType,
-                                       const MicroOpBits opBits,
-                                       const TokenId     shiftTokId,
-                                       const bool        allowWrap)
+Result CodeGenSafety::emitShiftIntLike(CodeGen& codeGen, const AstNode& node, const MicroReg valueReg, const MicroReg rightReg, const TypeInfo& operationType, const MicroOpBits opBits, const TokenId shiftTokId, const bool allowWrap)
 {
     SWC_ASSERT(shiftTokId == TokenId::SymLowerLower || shiftTokId == TokenId::SymGreaterGreater);
 
@@ -399,13 +392,7 @@ Result CodeGenSafety::emitShiftIntLike(CodeGen&          codeGen,
     return Result::Continue;
 }
 
-Result CodeGenSafety::emitSignedDivOrModIntLike(CodeGen&          codeGen,
-                                                const AstNode&    node,
-                                                const MicroReg    leftReg,
-                                                const MicroReg    rightReg,
-                                                const MicroOp     op,
-                                                const MicroOpBits opBits,
-                                                const bool        zeroOnOverflow)
+Result CodeGenSafety::emitSignedDivOrModIntLike(CodeGen& codeGen, const AstNode& node, const MicroReg leftReg, const MicroReg rightReg, const MicroOp op, const MicroOpBits opBits, const bool zeroOnOverflow)
 {
     MicroBuilder&       builder   = codeGen.builder();
     const MicroLabelRef doOpLabel = builder.createLabel();

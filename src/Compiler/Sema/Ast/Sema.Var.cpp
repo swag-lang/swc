@@ -558,15 +558,7 @@ namespace
         EnumFlags<AstVarDeclFlagsE> flags;
     };
 
-    Result tryResolveVarDeclSetInit(Sema&                      sema,
-                                    const SemaPostVarDeclArgs& context,
-                                    const std::span<Symbol*>&  symbols,
-                                    bool                       isConst,
-                                    bool                       isParameter,
-                                    TypeRef                    explicitTypeRef,
-                                    const TypeInfo*            explicitType,
-                                    SemaNodeView&              nodeInitView,
-                                    VarDeclSetInitInfo&        outInfo)
+    Result tryResolveVarDeclSetInit(Sema& sema, const SemaPostVarDeclArgs& context, const std::span<Symbol*>& symbols, bool isConst, bool isParameter, TypeRef explicitTypeRef, const TypeInfo* explicitType, SemaNodeView& nodeInitView, VarDeclSetInitInfo& outInfo)
     {
         outInfo = {};
 

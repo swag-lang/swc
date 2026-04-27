@@ -702,16 +702,7 @@ namespace
         return Result::Continue;
     }
 
-    Result buildConstSetCallArguments(Sema&                                 sema,
-                                      bool&                                 outBuilt,
-                                      const SymbolFunction&                 calledFn,
-                                      AstNodeRef                            callRef,
-                                      std::span<const ResolvedCallArgument> resolvedArgs,
-                                      TypeRef                               receiverTypeRef,
-                                      ConstantRef                           receiverInitCstRef,
-                                      const std::byte*&                     outReceiverStorage,
-                                      SmallVector<SmallVector<std::byte>>&  outArgStorage,
-                                      SmallVector<JITArgument>&             outJitArgs)
+    Result buildConstSetCallArguments(Sema& sema, bool& outBuilt, const SymbolFunction& calledFn, AstNodeRef callRef, std::span<const ResolvedCallArgument> resolvedArgs, TypeRef receiverTypeRef, ConstantRef receiverInitCstRef, const std::byte*& outReceiverStorage, SmallVector<SmallVector<std::byte>>& outArgStorage, SmallVector<JITArgument>& outJitArgs)
     {
         outBuilt           = false;
         outReceiverStorage = nullptr;
@@ -1031,13 +1022,7 @@ Result SemaJIT::tryRunConstCall(Sema& sema, SymbolFunction& calledFn, AstNodeRef
     return submitJitNode(sema, callRef, request, payload, resultMeta, true);
 }
 
-Result SemaJIT::tryRunConstSetCall(Sema&                                 sema,
-                                   SymbolFunction&                       calledFn,
-                                   AstNodeRef                            callRef,
-                                   std::span<const ResolvedCallArgument> resolvedArgs,
-                                   const TypeRef                         receiverTypeRef,
-                                   const ConstantRef                     receiverInitCstRef,
-                                   const bool                            forceEvaluation)
+Result SemaJIT::tryRunConstSetCall(Sema& sema, SymbolFunction& calledFn, AstNodeRef callRef, std::span<const ResolvedCallArgument> resolvedArgs, const TypeRef receiverTypeRef, const ConstantRef receiverInitCstRef, const bool forceEvaluation)
 {
     if (!supportsConstSetCallJit(sema, calledFn, receiverTypeRef))
         return Result::Continue;

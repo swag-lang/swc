@@ -867,11 +867,7 @@ namespace Os
         return result;
     }
 
-    ProcessRunResult runProcess(uint32_t&                   outExitCode,
-                                const fs::path&             exePath,
-                                const std::span<const Utf8> args,
-                                const fs::path&             workingDirectory,
-                                const ProcessRunOptions*    options)
+    ProcessRunResult runProcess(uint32_t& outExitCode, const fs::path& exePath, const std::span<const Utf8> args, const fs::path& workingDirectory, const ProcessRunOptions* options)
     {
         outExitCode = 0;
 

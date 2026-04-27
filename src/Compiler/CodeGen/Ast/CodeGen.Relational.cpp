@@ -264,13 +264,7 @@ namespace
         return Result::Continue;
     }
 
-    Result emitTypeInfoCompareBool(CodeGen&                  codeGen,
-                                   TokenId                   tokId,
-                                   const CodeGenNodePayload& leftPayload,
-                                   TypeRef                   leftOperandTypeRef,
-                                   const CodeGenNodePayload& rightPayload,
-                                   TypeRef                   rightOperandTypeRef,
-                                   TypeRef                   compareTypeRef)
+    Result emitTypeInfoCompareBool(CodeGen& codeGen, TokenId tokId, const CodeGenNodePayload& leftPayload, TypeRef leftOperandTypeRef, const CodeGenNodePayload& rightPayload, TypeRef rightOperandTypeRef, TypeRef compareTypeRef)
     {
         MicroReg leftPtrReg, rightPtrReg;
         loadTypeInfoComparePtr(leftPtrReg, codeGen, leftPayload, leftOperandTypeRef, compareTypeRef);

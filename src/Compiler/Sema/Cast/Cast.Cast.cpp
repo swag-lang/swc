@@ -681,12 +681,7 @@ namespace
         return false;
     }
 
-    Result resolveUsingStructCastPath(Sema&                                   sema,
-                                      const CastRequest&                      castRequest,
-                                      TypeRef                                 srcStructTypeRef,
-                                      TypeRef                                 dstStructTypeRef,
-                                      SmallVector<SymbolStructUsingPathStep>& outSteps,
-                                      bool&                                   outFound)
+    Result resolveUsingStructCastPath(Sema& sema, const CastRequest& castRequest, TypeRef srcStructTypeRef, TypeRef dstStructTypeRef, SmallVector<SymbolStructUsingPathStep>& outSteps, bool& outFound)
     {
         outFound = false;
         outSteps.clear();

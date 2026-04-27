@@ -525,12 +525,7 @@ namespace
         return CodeGenSafety::emitDynCastCheck(codeGen, *panicFn, node);
     }
 
-    Result emitAnyRuntimeAsCall(MicroReg&       outResultReg,
-                                CodeGen&        codeGen,
-                                SymbolFunction& asFn,
-                                TypeRef         targetTypeRef,
-                                MicroReg        sourceTypeReg,
-                                MicroReg        valueAddrReg)
+    Result emitAnyRuntimeAsCall(MicroReg& outResultReg, CodeGen& codeGen, SymbolFunction& asFn, TypeRef targetTypeRef, MicroReg sourceTypeReg, MicroReg valueAddrReg)
     {
         MicroBuilder& builder = codeGen.builder();
 
@@ -543,13 +538,7 @@ namespace
         return CodeGenCallHelpers::emitRuntimeCallWithDirectArgsToReg(codeGen, asFn, args, outResultReg);
     }
 
-    Result emitAnyReferenceCast(CodeGen&                  codeGen,
-                                const CodeGenNodePayload& srcPayload,
-                                const TypeInfo&           dstType,
-                                TypeRef                   dstTypeRef,
-                                const CodeGenNodePayload* castPayload,
-                                bool                      hasDynCastSafety,
-                                MicroReg                  valueAddrReg)
+    Result emitAnyReferenceCast(CodeGen& codeGen, const CodeGenNodePayload& srcPayload, const TypeInfo& dstType, TypeRef dstTypeRef, const CodeGenNodePayload* castPayload, bool hasDynCastSafety, MicroReg valueAddrReg)
     {
         MicroBuilder& builder           = codeGen.builder();
         MicroReg      finalValueAddrReg = valueAddrReg;
@@ -590,12 +579,7 @@ namespace
         return Result::Continue;
     }
 
-    Result emitAnyPointerCast(CodeGen&                  codeGen,
-                              const CodeGenNodePayload& srcPayload,
-                              const TypeInfo&           dstType,
-                              TypeRef                   dstTypeRef,
-                              const CodeGenNodePayload* castPayload,
-                              MicroReg                  valueAddrReg)
+    Result emitAnyPointerCast(CodeGen& codeGen, const CodeGenNodePayload& srcPayload, const TypeInfo& dstType, TypeRef dstTypeRef, const CodeGenNodePayload* castPayload, MicroReg valueAddrReg)
     {
         MicroBuilder& builder = codeGen.builder();
 

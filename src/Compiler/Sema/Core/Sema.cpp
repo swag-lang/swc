@@ -96,9 +96,7 @@ namespace
         return nullptr;
     }
 
-    SemaScope* remapScopeFromParent(const std::vector<std::unique_ptr<SemaScope>>& parentScopes,
-                                    const std::vector<std::unique_ptr<SemaScope>>& childScopes,
-                                    const SemaScope*                               oldScope)
+    SemaScope* remapScopeFromParent(const std::vector<std::unique_ptr<SemaScope>>& parentScopes, const std::vector<std::unique_ptr<SemaScope>>& childScopes, const SemaScope* oldScope)
     {
         if (!oldScope)
             return nullptr;

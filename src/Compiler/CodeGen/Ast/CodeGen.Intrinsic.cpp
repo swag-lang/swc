@@ -677,11 +677,7 @@ namespace
 
     using CodeGenInterfaceHelpers::loadInterfaceMethodTableAddress;
 
-    MicroReg materializeInterfaceObjectPointer(CodeGen&                  codeGen,
-                                               const CodeGenNodePayload& objectPayload,
-                                               TypeRef                   objectValueTypeRef,
-                                               const MicroReg            runtimeStorageReg,
-                                               const uint64_t            objectSpillOffset)
+    MicroReg materializeInterfaceObjectPointer(CodeGen& codeGen, const CodeGenNodePayload& objectPayload, TypeRef objectValueTypeRef, const MicroReg runtimeStorageReg, const uint64_t objectSpillOffset)
     {
         MicroBuilder&   builder         = codeGen.builder();
         const TypeInfo& objectValueType = codeGen.typeMgr().get(objectValueTypeRef);
@@ -715,13 +711,7 @@ namespace
         return spillReg;
     }
 
-    Result emitMakeInterfaceValue(CodeGen&                  codeGen,
-                                  const SymbolInterface&    interfaceSym,
-                                  const InterfaceCastInfo&  castInfo,
-                                  const CodeGenNodePayload& objectPayload,
-                                  TypeRef                   objectValueTypeRef,
-                                  const MicroReg            runtimeStorageReg,
-                                  const uint64_t            objectSpillOffset)
+    Result emitMakeInterfaceValue(CodeGen& codeGen, const SymbolInterface& interfaceSym, const InterfaceCastInfo& castInfo, const CodeGenNodePayload& objectPayload, TypeRef objectValueTypeRef, const MicroReg runtimeStorageReg, const uint64_t objectSpillOffset)
     {
         MicroBuilder&   builder         = codeGen.builder();
         const TypeInfo& objectValueType = codeGen.typeMgr().get(objectValueTypeRef);

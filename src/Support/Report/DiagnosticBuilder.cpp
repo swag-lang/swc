@@ -592,12 +592,7 @@ void DiagnosticBuilder::writeCodeUnderline(const DiagnosticElement& el, const Sm
     }
 }
 
-void DiagnosticBuilder::writeCodeTrunc(const DiagnosticElement& elToUse,
-                                       const SourceCodeRange&   codeRange,
-                                       const DiagnosticSpan&    span,
-                                       uint32_t                 tokenLenChars,
-                                       const Utf8&              currentFullCodeLine,
-                                       uint32_t                 currentFullCharCount)
+void DiagnosticBuilder::writeCodeTrunc(const DiagnosticElement& elToUse, const SourceCodeRange& codeRange, const DiagnosticSpan& span, uint32_t tokenLenChars, const Utf8& currentFullCodeLine, uint32_t currentFullCharCount)
 {
     constexpr std::string_view ellipsis    = "...";
     constexpr uint32_t         lenEllipsis = static_cast<uint32_t>(ellipsis.length()) + 1; // keep your "+1"

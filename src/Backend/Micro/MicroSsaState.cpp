@@ -25,10 +25,7 @@ namespace
     }
 
     // Cooper-Harvey-Kennedy finger-walk over the dom tree.
-    uint32_t intersectIdom(uint32_t                     lhs,
-                           uint32_t                     rhs,
-                           const std::vector<uint32_t>& idom,
-                           const std::vector<uint32_t>& rpoPosition)
+    uint32_t intersectIdom(uint32_t lhs, uint32_t rhs, const std::vector<uint32_t>& idom, const std::vector<uint32_t>& rpoPosition)
     {
         while (lhs != rhs)
         {

@@ -717,14 +717,7 @@ namespace
         endRecord(bytes, recordOffset);
     }
 
-    void appendProcSymbols(std::vector<std::byte>&         bytes,
-                           NativeSectionData&              debugSection,
-                           const TaskContext&              ctx,
-                           const DebugInfoFunctionRecord&  function,
-                           const uint32_t                  typeIndex,
-                           const std::span<const uint32_t> parameterTypeIndices,
-                           const std::span<const uint32_t> localTypeIndices,
-                           const std::span<const uint32_t> constantTypeIndices)
+    void appendProcSymbols(std::vector<std::byte>& bytes, NativeSectionData& debugSection, const TaskContext& ctx, const DebugInfoFunctionRecord& function, const uint32_t typeIndex, const std::span<const uint32_t> parameterTypeIndices, const std::span<const uint32_t> localTypeIndices, const std::span<const uint32_t> constantTypeIndices)
     {
         SWC_ASSERT(function.machineCode != nullptr);
         SWC_ASSERT(function.parameters.size() == parameterTypeIndices.size());

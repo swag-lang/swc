@@ -274,12 +274,7 @@ namespace
         return Result::Continue;
     }
 
-    Result runLoopPasses(MicroPassContext&           context,
-                         std::span<MicroPass* const> passes,
-                         const uint32_t              maxIterations,
-                         const bool                  buildSsa,
-                         std::string_view            loopName,
-                         VerifyStateCache&           verifyCache)
+    Result runLoopPasses(MicroPassContext& context, std::span<MicroPass* const> passes, const uint32_t maxIterations, const bool buildSsa, std::string_view loopName, VerifyStateCache& verifyCache)
     {
         if (passes.empty())
             return Result::Continue;

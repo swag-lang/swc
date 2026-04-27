@@ -570,15 +570,7 @@ namespace
         return Result::Continue;
     }
 
-    Result emitAssignStructLifecycle(CodeGen&                  codeGen,
-                                     AstNodeRef                leftRef,
-                                     const CodeGenNodePayload& originalRightPayload,
-                                     TypeRef                   rightTypeRef,
-                                     TypeRef                   originalRightTypeRef,
-                                     TokenId                   assignOp,
-                                     AstModifierFlags          modifierFlags,
-                                     AstNodeRef                rightRef,
-                                     const bool                rebindReference)
+    Result emitAssignStructLifecycle(CodeGen& codeGen, AstNodeRef leftRef, const CodeGenNodePayload& originalRightPayload, TypeRef rightTypeRef, TypeRef originalRightTypeRef, TokenId assignOp, AstModifierFlags modifierFlags, AstNodeRef rightRef, const bool rebindReference)
     {
         const AssignEncodeContext encodeCtx = buildAssignEncodeContext(codeGen, leftRef, originalRightPayload, rightTypeRef, assignOp, rebindReference);
         if (assignOp != TokenId::SymEqual)

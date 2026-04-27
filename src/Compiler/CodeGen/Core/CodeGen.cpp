@@ -147,12 +147,7 @@ namespace
         return false;
     }
 
-    bool tryBuildLifecycleActionRec(const CodeGen&               codeGen,
-                                    TypeRef                      typeRef,
-                                    const CodeGen::LifecycleKind lifecycleKind,
-                                    SymbolFunction*&             outFunction,
-                                    uint32_t&                    outSizeOf,
-                                    uint32_t&                    outCount)
+    bool tryBuildLifecycleActionRec(const CodeGen& codeGen, TypeRef typeRef, const CodeGen::LifecycleKind lifecycleKind, SymbolFunction*& outFunction, uint32_t& outSizeOf, uint32_t& outCount)
     {
         outFunction = nullptr;
         outSizeOf   = 0;

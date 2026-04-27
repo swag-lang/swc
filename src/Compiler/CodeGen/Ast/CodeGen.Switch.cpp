@@ -139,11 +139,7 @@ namespace
         return typeInfo.isInterface() || typeInfo.isAny();
     }
 
-    Result emitDynamicStructSwitchCaseTests(CodeGen&                        codeGen,
-                                            const SwitchStmtCodeGenPayload& switchState,
-                                            AstNodeRef                      caseRef,
-                                            MicroLabelRef                   successLabel,
-                                            MicroLabelRef                   failLabel)
+    Result emitDynamicStructSwitchCaseTests(CodeGen& codeGen, const SwitchStmtCodeGenPayload& switchState, AstNodeRef caseRef, MicroLabelRef successLabel, MicroLabelRef failLabel)
     {
         const auto* casePayload = codeGen.sema().semaPayload<DynamicStructSwitchCasePayload>(caseRef);
         SWC_ASSERT(casePayload != nullptr);

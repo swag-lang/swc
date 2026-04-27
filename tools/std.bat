@@ -56,7 +56,7 @@ if errorlevel 1 exit /b %errorlevel%
 "%SWC_EXE%" build -m "%ROOT%\bin\%XINPUT_BIN_REL%" --artifact-kind export --module-namespace XInput --out-dir "%OUT_DIR%" --work-dir "%WORK_DIR%" --build-cfg %BUILD_CFG% --import-api-dir "%WIN32_API_DIR%" --export-api-dir "%XINPUT_API_DIR%"%EXTRA_ARGS%
 if errorlevel 1 exit /b 1
 
-"%SWC_EXE%" build -m "%CORE_MODULE%" --module-namespace Core --import-api-dir "%WIN32_API_DIR%" --import-api-dir "%XINPUT_API_DIR%"%EXTRA_ARGS%
+"%SWC_EXE%" build -m "%CORE_MODULE%" --module-namespace Core --artifact-kind shared-library --import-api-dir "%WIN32_API_DIR%" --import-api-dir "%XINPUT_API_DIR%"%EXTRA_ARGS%
 if errorlevel 1 exit /b 1
 
 exit /b 0

@@ -1182,8 +1182,8 @@ namespace
 
     Result codeGenCountOf(CodeGen& codeGen, AstNodeRef exprRef)
     {
-        if (const auto* countPayload = codeGen.sema().semaPayload<CountOfSpecOpPayload>(codeGen.curNodeRef());
-            countPayload && countPayload->calledFn != nullptr)
+        const auto* countPayload = codeGen.sema().semaPayload<CountOfSpecOpPayload>(codeGen.curNodeRef());
+        if (countPayload && countPayload->calledFn != nullptr)
         {
             codeGen.sema().setSymbol(codeGen.curNodeRef(), countPayload->calledFn);
             return CodeGenCallHelpers::codeGenCallExprCommon(codeGen, AstNodeRef::invalid());

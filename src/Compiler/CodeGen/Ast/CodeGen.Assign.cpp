@@ -673,8 +673,8 @@ namespace
 
 Result AstAssignStmt::codeGenPostNode(CodeGen& codeGen) const
 {
-    if (const auto* assignPayload = codeGen.sema().semaPayload<AssignSpecOpPayload>(codeGen.curNodeRef());
-        assignPayload && assignPayload->calledFn != nullptr)
+    const auto* assignPayload = codeGen.sema().semaPayload<AssignSpecOpPayload>(codeGen.curNodeRef());
+    if (assignPayload && assignPayload->calledFn != nullptr)
     {
         codeGen.sema().setSymbol(codeGen.curNodeRef(), assignPayload->calledFn);
         if (assignPayload->calledFn->specOpKind() == SpecOpKind::OpSet ||

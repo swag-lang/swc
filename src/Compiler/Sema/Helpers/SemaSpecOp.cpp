@@ -892,7 +892,7 @@ namespace
         const auto preferredCandidates = receiverIsConst || mutableCandidates.empty() ? constCandidates.span() : mutableCandidates.span();
         for (Symbol* sym : preferredCandidates)
         {
-            if (auto* const symFunc = sym ? sym->safeCast<SymbolFunction>() : nullptr)
+            if (auto* symFunc = sym ? sym->safeCast<SymbolFunction>() : nullptr)
                 return symFunc;
         }
 
@@ -900,7 +900,7 @@ namespace
         {
             for (Symbol* sym : constCandidates)
             {
-                if (auto* const symFunc = sym ? sym->safeCast<SymbolFunction>() : nullptr)
+                if (auto* symFunc = sym ? sym->safeCast<SymbolFunction>() : nullptr)
                     return symFunc;
             }
         }

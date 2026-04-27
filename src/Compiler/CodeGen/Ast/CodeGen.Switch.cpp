@@ -353,11 +353,9 @@ Result AstSwitchStmt::codeGenPreNode(CodeGen& codeGen) const
     SwitchStmtCodeGenPayload switchState;
     switchState.doneLabel     = builder.createLabel();
     switchState.hasExpression = nodeExprRef.isValid();
-    if (const auto* semaPayload = codeGen.sema().semaPayload<SwitchPayload>(codeGen.curNodeRef());
-        semaPayload && semaPayload->hasRuntimeSwitchSafety)
-    {
+    const auto* semaPayload = codeGen.sema().semaPayload<SwitchPayload>(codeGen.curNodeRef());
+    if (semaPayload && semaPayload->hasRuntimeSwitchSafety)
         switchState.noMatchLabel = builder.createLabel();
-    }
 
     // Build the whole case label graph up front so `fallthrough` and "next test" edges are stable before
     // any case body starts emitting code.

@@ -1191,7 +1191,7 @@ namespace
         if (outSiblingRef.isInvalid())
             return AstNodeRef::invalid();
 
-        for (Symbol* const sym : symbols)
+        for (Symbol* sym : symbols)
         {
             const SymbolFunction* fn = resolveCalledFunction(sema, sym);
             if (fn && canConsumeTrailingCodeBlock(sema, *fn, args, ufcsArg))
@@ -1336,7 +1336,7 @@ namespace
 
         const AstNodeRef ufcsArg        = resolveUfcsReceiverArg(sema, call.nodeExprRef);
         TypeRef          bindingTypeRef = TypeRef::invalid();
-        for (Symbol* const sym : symbols)
+        for (Symbol* sym : symbols)
         {
             const SymbolFunction* fn = resolveCalledFunction(sema, sym);
             if (!fn)
@@ -1375,7 +1375,7 @@ namespace
         TypeRef          bindingTypeRef = TypeRef::invalid();
         TypeRef          compareTypeRef = TypeRef::invalid();
 
-        for (Symbol* const sym : symbols)
+        for (Symbol* sym : symbols)
         {
             const SymbolFunction* fn = resolveCalledFunction(sema, sym);
             if (!fn)
@@ -1683,7 +1683,7 @@ namespace
         auto& payload = SemaHelpers::ensureCodeGenNodePayload(sema, sema.curNodeRef());
         if (payload.runtimeStorageSym == nullptr)
         {
-            if (SymbolVariable* const boundStorage = SemaHelpers::currentRuntimeStorage(sema))
+            if (SymbolVariable* boundStorage = SemaHelpers::currentRuntimeStorage(sema))
             {
                 payload.runtimeStorageSym = boundStorage;
                 return Result::Continue;
@@ -1789,7 +1789,7 @@ namespace
                 storageAlign = 1;
 
             captureOffset = Math::alignUpU64(captureOffset, storageAlign);
-            if (SymbolVariable* const existingCapture = findClosureCaptureSymbol(sym, sourceVar))
+            if (SymbolVariable* existingCapture = findClosureCaptureSymbol(sym, sourceVar))
             {
                 if (existingCapture->decl() == &captureArg)
                 {

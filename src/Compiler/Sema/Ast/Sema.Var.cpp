@@ -111,7 +111,7 @@ namespace
     {
         for (Symbol* s : symbols)
         {
-            if (auto* const symVar = getVariableSymbol(s))
+            if (auto* symVar = getVariableSymbol(s))
                 symVar->addExtraFlag(SymbolVariableFlagsE::RetVal);
         }
     }

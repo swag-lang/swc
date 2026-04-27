@@ -216,8 +216,8 @@ namespace
 
         if (sema.node(argRef).is(AstNodeId::EmbeddedBlock))
         {
-            if (const auto* inlinePayload = sema.inlinePayload(argRef);
-                inlinePayload && inlinePayload->callRef.isValid())
+            const auto* inlinePayload = sema.inlinePayload(argRef);
+            if (inlinePayload && inlinePayload->callRef.isValid())
                 return inlinePayload->callRef;
         }
 

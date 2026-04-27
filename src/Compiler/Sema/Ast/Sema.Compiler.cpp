@@ -639,8 +639,8 @@ namespace
     Result requireCompilerTagConstExpr(Sema& sema, AstNodeRef nodeRef)
     {
         const SemaNodeView symView(sema, nodeRef, SemaNodeViewPartE::Symbol);
-        if (const auto* const calledFn = symView.sym() ? symView.sym()->safeCast<SymbolFunction>() : nullptr;
-            calledFn && !calledFn->attributes().hasRtFlag(RtAttributeFlagsE::ConstExpr))
+        const auto* calledFn = symView.sym() ? symView.sym()->safeCast<SymbolFunction>() : nullptr;
+        if (calledFn && !calledFn->attributes().hasRtFlag(RtAttributeFlagsE::ConstExpr))
         {
             return SemaError::raiseExprNotConst(sema, nodeRef);
         }

@@ -465,8 +465,8 @@ Result AstBinaryExpr::codeGenPostNode(CodeGen& codeGen) const
     SmallVector<ResolvedCallArgument> resolvedArgs;
     codeGen.appendResolvedCallArguments(codeGen.curNodeRef(), resolvedArgs);
 
-    if (const auto* binaryPayload = codeGen.sema().semaPayload<BinarySpecOpPayload>(codeGen.curNodeRef());
-        binaryPayload && binaryPayload->calledFn != nullptr)
+    const auto* binaryPayload = codeGen.sema().semaPayload<BinarySpecOpPayload>(codeGen.curNodeRef());
+    if (binaryPayload && binaryPayload->calledFn != nullptr)
     {
         codeGen.sema().setSymbol(codeGen.curNodeRef(), binaryPayload->calledFn);
         if (binaryPayload->calledFn->specOpKind() == SpecOpKind::OpBinary || binaryPayload->calledFn->specOpKind() == SpecOpKind::OpBinaryRight)

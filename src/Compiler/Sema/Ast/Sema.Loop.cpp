@@ -272,8 +272,8 @@ Result AstForeachStmt::semaPreNode(Sema& sema) const
 
 Result AstForeachStmt::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const
 {
-    if (const auto* payload = sema.semaPayload<LoopSemaPayload>(sema.curNodeRef());
-        payload &&
+    const auto* payload = sema.semaPayload<LoopSemaPayload>(sema.curNodeRef());
+    if (payload &&
         payload->usesCustomVisit &&
         (childRef == nodeWhereRef || childRef == nodeBodyRef))
         return Result::SkipChildren;

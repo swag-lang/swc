@@ -120,8 +120,8 @@ namespace
     {
         outReg = MicroReg::invalid();
 
-        if (const auto* loopPayload = codeGen.sema().semaPayload<LoopSemaPayload>(codeGen.curNodeRef());
-            loopPayload && loopPayload->countFn != nullptr)
+        const auto* loopPayload = codeGen.sema().semaPayload<LoopSemaPayload>(codeGen.curNodeRef());
+        if (loopPayload && loopPayload->countFn != nullptr)
         {
             auto* savedLoopStatePtr = forStmtCodeGenPayload(codeGen, codeGen.curNodeRef());
             SWC_ASSERT(savedLoopStatePtr != nullptr);

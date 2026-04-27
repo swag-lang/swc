@@ -314,7 +314,7 @@ SymbolVariable& SemaHelpers::getOrCreateRuntimeStorageSymbol(Sema& sema, AstNode
     if (payload.runtimeStorageSym != nullptr)
         return *payload.runtimeStorageSym;
 
-    if (SymbolVariable* const boundStorage = currentRuntimeStorage(sema))
+    if (SymbolVariable* boundStorage = currentRuntimeStorage(sema))
     {
         payload.runtimeStorageSym = boundStorage;
         return *boundStorage;
@@ -1600,7 +1600,7 @@ namespace
             auto& payload = SemaHelpers::ensureCodeGenNodePayload(sema, targetNodeRef);
             if (payload.runtimeStorageSym == nullptr)
             {
-                if (SymbolVariable* const boundStorage = SemaHelpers::currentRuntimeStorage(sema))
+                if (SymbolVariable* boundStorage = SemaHelpers::currentRuntimeStorage(sema))
                     payload.runtimeStorageSym = boundStorage;
                 else
                     payload.runtimeStorageSym = &SemaHelpers::registerUniqueRuntimeStorageSymbol(sema, node, "__member_runtime_storage");

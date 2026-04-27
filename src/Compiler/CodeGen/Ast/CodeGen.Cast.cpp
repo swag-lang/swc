@@ -873,8 +873,8 @@ namespace
         receiverArg.typeRef             = dstTypeRef;
         receiverArg.setIsAddress();
 
-        if (const auto* receiverSym = codeGen.viewSymbol(resolvedArgs[0].argRef).sym();
-            receiverSym && receiverSym->isVariable())
+        const auto* receiverSym = codeGen.viewSymbol(resolvedArgs[0].argRef).sym();
+        if (receiverSym && receiverSym->isVariable())
             codeGen.setVariablePayload(receiverSym->cast<SymbolVariable>(), receiverArg);
 
         codeGen.sema().setSymbol(codeGen.curNodeRef(), setPayload.calledFn);
@@ -914,14 +914,14 @@ namespace
             return Result::Continue;
         }
 
-        if (const auto* specOpPayload = codeGen.sema().semaPayload<CastSpecOpPayload>(codeGen.curNodeRef());
-            specOpPayload &&
+        const auto* specOpPayload = codeGen.sema().semaPayload<CastSpecOpPayload>(codeGen.curNodeRef());
+        if (specOpPayload &&
             specOpPayload->kind == CastSpecialOpPayloadKind::OpCast &&
             specOpPayload->calledFn != nullptr)
             return emitStructOpCast(codeGen, *specOpPayload);
 
-        if (const auto* setPayload = codeGen.sema().semaPayload<CastSetPayload>(codeGen.curNodeRef());
-            setPayload &&
+        const auto* setPayload = codeGen.sema().semaPayload<CastSetPayload>(codeGen.curNodeRef());
+        if (setPayload &&
             setPayload->kind == CastSpecialOpPayloadKind::Set &&
             setPayload->calledFn != nullptr)
             return emitStructSetCast(codeGen, srcNodeRef, dstTypeRef, *setPayload);

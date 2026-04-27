@@ -508,8 +508,8 @@ Result AstSingleVarDecl::codeGenPostNode(CodeGen& codeGen) const
     }
     else
     {
-        if (const auto* initPayload = codeGen.sema().semaPayload<VarInitSpecOpPayload>(codeGen.curNodeRef());
-            initPayload && initPayload->calledFn != nullptr)
+        const auto* initPayload = codeGen.sema().semaPayload<VarInitSpecOpPayload>(codeGen.curNodeRef());
+        if (initPayload && initPayload->calledFn != nullptr)
         {
             SWC_RESULT(emitVarInitSpecOp(codeGen, symVar, *initPayload->calledFn));
         }

@@ -50,11 +50,9 @@ namespace
         if (nodePayload && nodePayload->runtimeFunctionSymbol != nullptr)
             return nodePayload->runtimeFunctionSymbol;
 
-        if (const auto* payload = codeGen.sema().codeGenPayload<CodeGenNodePayload>(codeGen.curNodeRef());
-            payload && payload->runtimeFunctionSymbol != nullptr)
-        {
+        const auto* payload = codeGen.sema().codeGenPayload<CodeGenNodePayload>(codeGen.curNodeRef());
+        if (payload && payload->runtimeFunctionSymbol != nullptr)
             return payload->runtimeFunctionSymbol;
-        }
 
         const IdentifierRef idRef = codeGen.idMgr().runtimeFunction(IdentifierManager::RuntimeFunctionKind::SafetyPanic);
         if (idRef.isInvalid())

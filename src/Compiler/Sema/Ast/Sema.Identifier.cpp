@@ -348,8 +348,8 @@ Result AstAncestorIdentifier::semaPreNode(Sema& sema) const
 
     AstNodeRef targetRef         = nodeIdentRef;
     bool       usedInlineBinding = false;
-    if (const auto* inlinePayload = sema.frame().currentInlinePayload();
-        inlinePayload &&
+    const auto* inlinePayload = sema.frame().currentInlinePayload();
+    if (inlinePayload &&
         containsInlineBindingUse(sema, nodeIdentRef, inlinePayload->argMappings.span()))
     {
         const SemaClone::CloneContext cloneContext{inlinePayload->argMappings.span()};

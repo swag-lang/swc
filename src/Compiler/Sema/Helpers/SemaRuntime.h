@@ -73,9 +73,9 @@ namespace SemaRuntime
 
     inline bool isCompilerOnlySymbol(const Sema& sema, const Symbol& symbol)
     {
-        if (const auto* const function = symbol.safeCast<SymbolFunction>())
+        if (const auto* function = symbol.safeCast<SymbolFunction>())
             return isCompilerOnlyFunction(sema, *function);
-        if (const auto* const variable = symbol.safeCast<SymbolVariable>())
+        if (const auto* variable = symbol.safeCast<SymbolVariable>())
             return isCompilerOnlyVariable(*variable);
         return false;
     }

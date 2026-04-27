@@ -93,7 +93,7 @@ namespace
 
     bool hasConcreteFunctionCandidate(std::span<Symbol*> symbols)
     {
-        for (Symbol* const sym : symbols)
+        for (Symbol* sym : symbols)
         {
             if (!sym || !sym->isFunction())
                 continue;
@@ -112,7 +112,7 @@ namespace
 
         if (!hasConcreteFunctionCandidate(inSymbols))
         {
-            for (Symbol* const sym : inSymbols)
+            for (Symbol* sym : inSymbols)
             {
                 if (sym)
                     outSymbols.push_back(sym);
@@ -120,7 +120,7 @@ namespace
             return;
         }
 
-        for (Symbol* const sym : inSymbols)
+        for (Symbol* sym : inSymbols)
         {
             if (!sym)
                 continue;

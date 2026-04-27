@@ -174,8 +174,8 @@ Result AstUnaryExpr::codeGenPostNode(CodeGen& codeGen) const
     SmallVector<ResolvedCallArgument> resolvedArgs;
     codeGen.sema().appendResolvedCallArguments(codeGen.curNodeRef(), resolvedArgs);
 
-    if (const auto* unaryPayload = codeGen.sema().semaPayload<UnarySpecOpPayload>(codeGen.curNodeRef());
-        unaryPayload && unaryPayload->calledFn != nullptr)
+    const auto* unaryPayload = codeGen.sema().semaPayload<UnarySpecOpPayload>(codeGen.curNodeRef());
+    if (unaryPayload && unaryPayload->calledFn != nullptr)
     {
         codeGen.sema().setSymbol(codeGen.curNodeRef(), unaryPayload->calledFn);
         if (unaryPayload->calledFn->specOpKind() == SpecOpKind::OpUnary)

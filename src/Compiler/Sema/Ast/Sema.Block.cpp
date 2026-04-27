@@ -123,7 +123,7 @@ Result AstUsingDecl::semaPostNode(Sema& sema) const
 
         // Qualified lookups (for example `Enum.Value`) do not walk transient lexical scopes,
         // so persist `using` imports on the owning symbol map as well.
-        if (auto* const ownerSymMap = SemaFrame::currentSymMap(sema))
+        if (auto* ownerSymMap = SemaFrame::currentSymMap(sema))
             ownerSymMap->addUsingSymMap(usingSymMap);
     }
 

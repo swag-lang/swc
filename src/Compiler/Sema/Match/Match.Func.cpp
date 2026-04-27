@@ -1475,6 +1475,35 @@ namespace
         return 0;
     }
 
+    int compareCandidatesIgnoringReceiver(const Candidate& a, const Candidate& b)
+    {
+        constexpr uint32_t receiverArg = 1;
+        const auto         na          = static_cast<uint32_t>(a.perArg.size());
+        const auto         nb          = static_cast<uint32_t>(b.perArg.size());
+        const uint32_t     n           = std::min(na, nb);
+
+        for (uint32_t i = receiverArg; i < n; ++i)
+        {
+            if (a.perArg[i] != b.perArg[i])
+                return (a.perArg[i] < b.perArg[i]) ? -1 : 1;
+        }
+
+        const uint32_t aExplicitArgs = na > receiverArg ? na - receiverArg : 0;
+        const uint32_t bExplicitArgs = nb > receiverArg ? nb - receiverArg : 0;
+        if (aExplicitArgs != bExplicitArgs)
+            return (aExplicitArgs < bExplicitArgs) ? -1 : 1;
+
+        if (a.usedDefaults != b.usedDefaults)
+            return (a.usedDefaults < b.usedDefaults) ? -1 : 1;
+
+        const bool aGenericInstance = candidateUsesGenericInstance(a);
+        const bool bGenericInstance = candidateUsesGenericInstance(b);
+        if (aGenericInstance != bGenericInstance)
+            return aGenericInstance ? 1 : -1;
+
+        return 0;
+    }
+
     enum class ReceiverConstness
     {
         Unknown,
@@ -1532,8 +1561,27 @@ namespace
         return aConstness == ReceiverConstness::Mutable ? -1 : 1;
     }
 
+    int compareReceiverKind(const Candidate& a, const Candidate& b, AstNodeRef ufcsArg)
+    {
+        if (ufcsArg.isInvalid() || !a.fn || !b.fn || a.fn->isMethod() == b.fn->isMethod())
+            return 0;
+
+        return a.fn->isMethod() ? -1 : 1;
+    }
+
     int compareCallCandidates(Sema& sema, const Candidate& a, const Candidate& b, AstNodeRef ufcsArg)
     {
+        if (ufcsArg.isValid())
+        {
+            const int explicitArgCmp = compareCandidatesIgnoringReceiver(a, b);
+            if (explicitArgCmp != 0)
+                return explicitArgCmp;
+
+            const int receiverKindCmp = compareReceiverKind(a, b, ufcsArg);
+            if (receiverKindCmp != 0)
+                return receiverKindCmp;
+        }
+
         const int cmp = compareCandidates(a, b);
         if (cmp != 0)
             return cmp;

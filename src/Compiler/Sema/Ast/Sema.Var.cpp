@@ -1045,7 +1045,8 @@ Result AstSingleVarDecl::semaPreNode(Sema& sema) const
 {
     if (sema.enteringState())
         SemaHelpers::declareSymbol(sema, *this);
-    const Symbol& sym = *sema.curViewSymbol().sym();
+    Symbol& sym = *sema.curViewSymbol().sym();
+    SemaHelpers::ensureCurrentLocalScopeSymbol(sema, &sym);
     return Match::ghosting(sema, sym);
 }
 
@@ -1138,7 +1139,6 @@ Result AstMultiVarDecl::semaPreNode(Sema& sema) const
             semaPreDecl(sema);
         nodeSymbolsView.recompute(sema, SemaNodeViewPartE::Symbol);
         const std::span<Symbol*> symbols = nodeSymbolsView.symList();
-        SemaHelpers::ensureCurrentLocalScopeSymbols(sema, symbols);
         for (Symbol* sym : symbols)
         {
             sym->registerAttributes(sema);
@@ -1147,6 +1147,7 @@ Result AstMultiVarDecl::semaPreNode(Sema& sema) const
     }
 
     const std::span<Symbol*> symbols = sema.curViewSymbolList().symList();
+    SemaHelpers::ensureCurrentLocalScopeSymbols(sema, symbols);
     for (const Symbol* sym : symbols)
     {
         SWC_RESULT(Match::ghosting(sema, *sym));

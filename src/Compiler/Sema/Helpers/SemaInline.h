@@ -11,7 +11,7 @@ class Sema;
 namespace SemaInline
 {
     bool   canInlineCall(Sema& sema, const SymbolFunction& fn);
-    Result tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFunction& fn, std::span<AstNodeRef> args, AstNodeRef ufcsArg);
+    Result tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFunction& fn, std::span<AstNodeRef> args, AstNodeRef ufcsArg, std::span<AstNodeRef> sourceArgs = {});
 }
 
 struct SemaInlinePayload
@@ -24,6 +24,8 @@ struct SemaInlinePayload
     bool                                             crossAstInline = false;
     SymbolVariable*                                  resultVar      = nullptr;
     SmallVector<SemaClone::ParamBinding, 6>          argMappings;
+    SmallVector2<SymbolVariable*>                    callerBindingVars;
+    SmallVector2<TypeRef>                            callerBindingTypes;
     std::array<IdentifierRef, 10>                    aliasIdentifiers = {};
     std::array<IdentifierRef, SemaScope::UNIQ_COUNT> uniqIdentifiers  = {};
     AstNodeRef                                       callRef          = AstNodeRef::invalid();

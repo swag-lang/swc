@@ -35,6 +35,22 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    struct CompilerIfSemaPayload
+    {
+        SemaCompilerIf* ifData   = nullptr;
+        SemaCompilerIf* elseData = nullptr;
+    };
+
+    CompilerIfSemaPayload& ensureCompilerIfSemaPayload(Sema& sema, AstNodeRef nodeRef)
+    {
+        if (auto* payload = sema.semaPayload<CompilerIfSemaPayload>(nodeRef))
+            return *payload;
+
+        auto* payload = sema.compiler().allocate<CompilerIfSemaPayload>();
+        sema.setSemaPayload(nodeRef, payload);
+        return *payload;
+    }
+
     constexpr size_t K_COMPILER_AST_MAX_EXPANSION_DEPTH = 64;
 
     AstNodeRef compilerRunFunctionStorageRef(const AstNode& node)
@@ -252,9 +268,14 @@ namespace
         {
             auto       frame       = sema.frame();
             SemaScope* callerScope = inlinePayload->callerScope;
+            SemaScope* injectScope = sema.lookupScope();
             frame.setCurrentInlinePayload(inlinePayload->parentInlinePayload);
-            frame.setLookupScope(callerScope);
+            frame.setLookupScope(injectScope ? injectScope : callerScope);
             frame.setUpLookupScope(callerScope ? callerScope->lookupParent() : nullptr);
+            for (SymbolVariable* bindingVar : inlinePayload->callerBindingVars)
+                frame.pushBindingVar(bindingVar);
+            for (TypeRef bindingType : inlinePayload->callerBindingTypes)
+                frame.pushBindingType(bindingType);
             sema.pushFramePopOnPostNode(frame, clonedRef);
         }
         sema.visit().restartCurrentNode(clonedRef);
@@ -709,13 +730,15 @@ Result AstCompilerIf::semaPreDeclChild(Sema& sema, const AstNodeRef& childRef) c
 
     if (childRef == nodeIfBlockRef)
     {
-        SemaFrame       frame    = sema.frame();
-        SemaCompilerIf* parentIf = frame.currentCompilerIf();
-        auto*           ifFrame  = sema.compiler().allocate<SemaCompilerIf>();
-        ifFrame->parent          = parentIf;
+        SemaFrame              frame   = sema.frame();
+        CompilerIfSemaPayload& payload = ensureCompilerIfSemaPayload(sema, sema.curNodeRef());
+        if (!payload.ifData)
+        {
+            payload.ifData         = sema.compiler().allocate<SemaCompilerIf>();
+            payload.ifData->parent = frame.currentCompilerIf();
+        }
 
-        frame.setCurrentCompilerIf(ifFrame);
-        sema.setSemaPayload(nodeIfBlockRef, ifFrame);
+        frame.setCurrentCompilerIf(payload.ifData);
         sema.pushFramePopOnPostChild(frame, childRef);
         return Result::Continue;
     }
@@ -723,13 +746,15 @@ Result AstCompilerIf::semaPreDeclChild(Sema& sema, const AstNodeRef& childRef) c
     SWC_ASSERT(childRef == nodeElseBlockRef);
     if (nodeElseBlockRef.isValid())
     {
-        SemaFrame       frame     = sema.frame();
-        SemaCompilerIf* parentIf  = frame.currentCompilerIf();
-        auto*           elseFrame = sema.compiler().allocate<SemaCompilerIf>();
-        elseFrame->parent         = parentIf;
+        SemaFrame              frame   = sema.frame();
+        CompilerIfSemaPayload& payload = ensureCompilerIfSemaPayload(sema, sema.curNodeRef());
+        if (!payload.elseData)
+        {
+            payload.elseData         = sema.compiler().allocate<SemaCompilerIf>();
+            payload.elseData->parent = frame.currentCompilerIf();
+        }
 
-        frame.setCurrentCompilerIf(elseFrame);
-        sema.setSemaPayload(nodeElseBlockRef, elseFrame);
+        frame.setCurrentCompilerIf(payload.elseData);
         sema.pushFramePopOnPostChild(frame, childRef);
     }
 
@@ -754,6 +779,21 @@ Result AstCompilerIf::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) c
     if (childRef == nodeElseBlockRef && condView.cst()->getBool())
         return Result::SkipChildren;
 
+    if (childRef == nodeIfBlockRef || childRef == nodeElseBlockRef)
+    {
+        SemaFrame              frame   = sema.frame();
+        CompilerIfSemaPayload& payload = ensureCompilerIfSemaPayload(sema, sema.curNodeRef());
+        SemaCompilerIf*&       branch  = childRef == nodeIfBlockRef ? payload.ifData : payload.elseData;
+        if (!branch)
+        {
+            branch         = sema.compiler().allocate<SemaCompilerIf>();
+            branch->parent = frame.currentCompilerIf();
+        }
+
+        frame.setCurrentCompilerIf(branch);
+        sema.pushFramePopOnPostChild(frame, childRef);
+    }
+
     return Result::Continue;
 }
 
@@ -765,20 +805,24 @@ Result AstCompilerIf::semaPostNode(Sema& sema) const
     SWC_ASSERT(condView.cst());
     const bool takenIfBranch = condView.cst()->getBool();
 
-    // The block that will be ignored
-    const AstNodeRef& ignoredBlockRef = takenIfBranch ? nodeElseBlockRef : nodeIfBlockRef;
-    if (!ignoredBlockRef.isValid())
-        return Result::Continue;
-
-    // Retrieve the SemaCompilerIf payload
-    if (sema.hasSemaPayload(ignoredBlockRef))
+    const CompilerIfSemaPayload* payload = sema.semaPayload<CompilerIfSemaPayload>(sema.curNodeRef());
+    const SemaCompilerIf*        selectedIfData = payload ? (takenIfBranch ? payload->ifData : payload->elseData) : nullptr;
+    if (selectedIfData)
     {
-        const SemaCompilerIf* ignoredIfData = sema.semaPayload<SemaCompilerIf>(ignoredBlockRef);
-        if (!ignoredIfData)
-            return Result::Continue;
+        for (Symbol* sym : selectedIfData->symbols)
+        {
+            if (sym && !sym->isIgnored())
+                SemaHelpers::ensureCurrentLocalScopeSymbol(sema, sym);
+        }
+    }
 
+    // The block that will be ignored
+    const SemaCompilerIf* ignoredIfData = payload ? (takenIfBranch ? payload->elseData : payload->ifData) : nullptr;
+    if (ignoredIfData)
+    {
         for (Symbol* sym : ignoredIfData->symbols)
-            sym->setIgnored(sema.ctx());
+            if (sym)
+                sym->setIgnored(sema.ctx());
     }
 
     return Result::Continue;

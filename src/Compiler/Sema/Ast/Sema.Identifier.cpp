@@ -392,6 +392,13 @@ Result AstIdentifier::semaPostNode(Sema& sema) const
     if (parentRef.isValid() && sema.node(parentRef).is(AstNodeId::SuffixLiteral))
         return Result::Continue;
 
+    if (codeRef().isValid() && sema.token(codeRef()).id == TokenId::SymDot)
+    {
+        const SemaNodeView symbolView = sema.curViewSymbol();
+        if (symbolView.sym() || symbolView.hasSymbolList())
+            return Result::Continue;
+    }
+
     if (trySetSwagOperatorsNameConstant(sema, *this))
         return Result::Continue;
 

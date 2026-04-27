@@ -29,7 +29,12 @@ namespace SemaRuntime
         while (function)
         {
             const AstNode* const decl = function->decl();
-            if (!decl || decl->id() != AstNodeId::CompilerFunc)
+            if (!decl)
+                return function;
+
+            const bool isTransparentCompilerFunction = decl->id() == AstNodeId::CompilerFunc;
+            const bool isTransparentCompilerRun      = decl->id() == AstNodeId::CompilerRunBlock || decl->id() == AstNodeId::CompilerRunExpr;
+            if (!isTransparentCompilerFunction && !isTransparentCompilerRun)
                 return function;
 
             const SymbolMap* const ownerMap = function->ownerSymMap();

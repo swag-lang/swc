@@ -138,8 +138,8 @@ namespace
         const SymbolFlags   flags     = sema.frame().flagsForCurrentAccess();
 
         auto* sym = Symbol::make<SymbolVariable>(ctx, &sema.node(caseRef), identNode.tokRef(), idRef, flags);
-        if (sema.curScope().isLocal())
-            sema.curScope().addSymbol(sym);
+        if (SemaHelpers::currentLocalSymbolScope(sema))
+            SemaHelpers::addCurrentScopeSymbol(sema, sym);
         else
         {
             SymbolMap* symMap = SemaFrame::currentSymMap(sema);

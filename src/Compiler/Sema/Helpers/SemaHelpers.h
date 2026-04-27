@@ -78,6 +78,21 @@ namespace SemaHelpers
     bool                  resolveAggregateMemberIndex(Sema& sema, const TypeInfo& aggregateType, IdentifierRef idRef, size_t& outIndex);
     Result                resolveMemberAccess(Sema& sema, AstNodeRef memberRef, AstMemberAccessExpr& node, bool allowOverloadSet);
 
+    inline SemaScope* currentLocalSymbolScope(Sema& sema)
+    {
+        if (SemaScope* lookupScope = sema.frame().lookupScope(); lookupScope && lookupScope->isLocal())
+            return lookupScope;
+        return sema.curScope().isLocal() ? sema.curScopePtr() : nullptr;
+    }
+
+    inline void addCurrentScopeSymbol(Sema& sema, Symbol* sym)
+    {
+        SemaScope* scope = currentLocalSymbolScope(sema);
+        SWC_ASSERT(scope);
+        scope->addSymbol(sym);
+        sema.compiler().notifyAlive();
+    }
+
     template<typename T>
     T& registerSymbol(Sema& sema, const AstNode& node, TokenRef tokNameRef)
     {
@@ -91,8 +106,8 @@ namespace SemaHelpers
         T*         sym       = Symbol::make<T>(ctx, &node, tokNameRef, idRef, flags);
         SymbolMap* symbolMap = SemaFrame::currentSymMap(sema);
 
-        if (sema.curScope().isLocal())
-            sema.curScope().addSymbol(sym);
+        if (currentLocalSymbolScope(sema))
+            addCurrentScopeSymbol(sema, sym);
         else
             symbolMap->addSymbol(ctx, sym, true);
 
@@ -113,13 +128,14 @@ namespace SemaHelpers
 
         T* sym = Symbol::make<T>(ctx, &node, node.tokRef(), idRef, flags);
 
-        if (sema.curScope().isLocal() && !sema.curScope().symMap())
+        SemaScope* localScope = currentLocalSymbolScope(sema);
+        if (localScope && !localScope->symMap())
         {
-            sema.curScope().addSymbol(sym);
+            addCurrentScopeSymbol(sema, sym);
         }
         else
         {
-            SymbolMap* symMap = SemaFrame::currentSymMap(sema);
+            SymbolMap* symMap = localScope && localScope->symMap() ? localScope->symMap() : SemaFrame::currentSymMap(sema);
             symMap->addSymbol(ctx, sym, true);
         }
 

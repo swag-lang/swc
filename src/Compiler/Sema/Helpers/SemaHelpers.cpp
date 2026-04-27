@@ -332,9 +332,9 @@ SymbolVariable& SemaHelpers::registerUniqueRuntimeStorageSymbol(Sema& sema, cons
     const SymbolFlags   flags       = sema.frame().flagsForCurrentAccess();
     auto* const         symVariable = Symbol::make<SymbolVariable>(ctx, &node, node.tokRef(), idRef, flags);
 
-    if (sema.curScope().isLocal() && !sema.curScope().symMap())
+    if (currentLocalSymbolScope(sema))
     {
-        sema.curScope().addSymbol(symVariable);
+        addCurrentScopeSymbol(sema, symVariable);
     }
     else
     {
@@ -353,6 +353,8 @@ Result SemaHelpers::ensureRuntimeStorageDeclaredAndCompleted(Sema& sema, SymbolV
     if (&storageSym == currentRuntimeStorage(sema))
         return Result::Continue;
 
+    ensureCurrentLocalScopeSymbol(sema, &storageSym);
+
     if (!storageSym.isDeclared())
     {
         storageSym.registerAttributes(sema);
@@ -370,6 +372,7 @@ Result SemaHelpers::ensureRuntimeStorageDeclaredAndCompleted(Sema& sema, SymbolV
 
 Result SemaHelpers::declareGhostAndCompleteStorage(Sema& sema, SymbolVariable& symVar, TypeRef typeRef)
 {
+    ensureCurrentLocalScopeSymbol(sema, &symVar);
     symVar.registerAttributes(sema);
     symVar.setDeclared(sema.ctx());
     SWC_RESULT(Match::ghosting(sema, symVar));
@@ -443,16 +446,18 @@ Result SemaHelpers::addCurrentFunctionLocalVariable(Sema& sema, SymbolVariable& 
 
 void SemaHelpers::ensureCurrentLocalScopeSymbol(Sema& sema, Symbol* sym)
 {
-    if (!sym || !sema.curScope().isLocal())
+    SemaScope* scope = currentLocalSymbolScope(sema);
+    if (!sym || !scope)
         return;
 
-    for (const Symbol* existing : sema.curScope().symbols())
+    for (const Symbol* existing : scope->symbols())
     {
         if (existing == sym)
             return;
     }
 
-    sema.curScope().addSymbol(sym);
+    scope->addSymbol(sym);
+    sema.compiler().notifyAlive();
 }
 
 void SemaHelpers::ensureCurrentLocalScopeSymbols(Sema& sema, std::span<Symbol*> symbols)
@@ -1593,22 +1598,18 @@ namespace
         if (finalSymCount == 1 && symbols[0]->isVariable() && needsStructMemberRuntimeStorage(sema, node, nodeLeftView))
         {
             auto& payload = SemaHelpers::ensureCodeGenNodePayload(sema, targetNodeRef);
-            if (SymbolVariable* const boundStorage = SemaHelpers::currentRuntimeStorage(sema))
+            if (payload.runtimeStorageSym == nullptr)
             {
-                payload.runtimeStorageSym = boundStorage;
+                if (SymbolVariable* const boundStorage = SemaHelpers::currentRuntimeStorage(sema))
+                    payload.runtimeStorageSym = boundStorage;
+                else
+                    payload.runtimeStorageSym = &SemaHelpers::registerUniqueRuntimeStorageSymbol(sema, node, "__member_runtime_storage");
             }
-            else
-            {
-                auto& storageSym = SemaHelpers::registerUniqueRuntimeStorageSymbol(sema, node, "__member_runtime_storage");
-                storageSym.registerAttributes(sema);
-                storageSym.setDeclared(sema.ctx());
-                SWC_RESULT(Match::ghosting(sema, storageSym));
-                SmallVector<uint64_t> storageDims;
-                storageDims.push_back(8);
-                const TypeRef storageTypeRef = sema.typeMgr().addType(TypeInfo::makeArray(storageDims.span(), sema.typeMgr().typeU8()));
-                SWC_RESULT(SemaHelpers::completeRuntimeStorageSymbol(sema, storageSym, storageTypeRef));
-                payload.runtimeStorageSym = &storageSym;
-            }
+
+            SmallVector<uint64_t> storageDims;
+            storageDims.push_back(8);
+            const TypeRef storageTypeRef = sema.typeMgr().addType(TypeInfo::makeArray(storageDims.span(), sema.typeMgr().typeU8()));
+            SWC_RESULT(SemaHelpers::ensureRuntimeStorageDeclaredAndCompleted(sema, *payload.runtimeStorageSym, storageTypeRef));
         }
 
         return Result::SkipChildren;

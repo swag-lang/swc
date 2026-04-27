@@ -610,8 +610,6 @@ const CodeGenNodePayload* CodeGen::variablePayload(const SymbolVariable& sym) co
 
 CodeGenNodePayload& CodeGen::inheritPayload(AstNodeRef dstNodeRef, AstNodeRef srcNodeRef, TypeRef typeRef)
 {
-    srcNodeRef = resolvedNodeRef(srcNodeRef);
-
     const CodeGenNodePayload srcPayloadCopy = payload(srcNodeRef);
 
     if (typeRef.isInvalid())

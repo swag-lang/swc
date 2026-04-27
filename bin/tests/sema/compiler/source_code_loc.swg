@@ -28,6 +28,14 @@ const B = #curlocation
     #assert(L.lineStart > B.lineStart)
 }
 
+func statementRunCurLocation()
+{
+    #run
+    {
+        #assert(#curlocation.funcName == #location(statementRunCurLocation).funcName)
+    }
+}
+
 #[Swag.Inline]
 func inlineCaptureLoc(loc = #callerlocation)->Swag.SourceCodeLocation => loc
 

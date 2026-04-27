@@ -195,5 +195,20 @@ const ColCheckLoc = #run captureLoc()
 #assert(ColCheckLoc.colEnd >= ColCheckLoc.colStart)
 
 // =========================================================================
+// Statement #run inside a function preserves the enclosing caller location
+// =========================================================================
+
+func statementRunTarget(loc = #callerlocation)->SourceCodeLocation => loc
+
+func statementRunCaller()
+{
+    #run
+    {
+        let loc = statementRunTarget()
+        @assert(loc.funcName == #location(statementRunCaller).funcName)
+    }
+}
+
+// =========================================================================
 // Error: #callerlocation used outside parameter default
 // =========================================================================

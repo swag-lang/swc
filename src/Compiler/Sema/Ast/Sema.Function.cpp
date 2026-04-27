@@ -27,6 +27,33 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    bool traceCallSelection()
+    {
+        static const bool enabled = [] {
+            char*  value  = nullptr;
+            size_t length = 0;
+            if (_dupenv_s(&value, &length, "SWC_TRACE_CALL_SELECTION") != 0 || !value)
+                return false;
+            const bool result = *value != 0;
+            free(value);
+            return result;
+        }();
+        return enabled;
+    }
+
+    void traceSelectedCall(Sema& sema, AstNodeRef callRef, const SymbolFunction& calledFn)
+    {
+        if (!traceCallSelection())
+            return;
+
+        const SourceCodeRange range = sema.node(callRef).codeRange(sema.ctx());
+        const SourceFile*     file  = range.srcView ? range.srcView->file() : nullptr;
+        std::cerr << "selected call at=" << (file ? file->path().string() : "<source>") << ":" << range.line << ":" << range.column << " fn=" << calledFn.name(sema.ctx()) << " method=" << calledFn.isMethod() << " returnValid=" << calledFn.returnTypeRef().isValid();
+        if (calledFn.returnTypeRef().isValid())
+            std::cerr << " return=" << sema.typeMgr().get(calledFn.returnTypeRef()).toName(sema.ctx());
+        std::cerr << "\n";
+    }
+
     const SymbolImpl* functionDeclImplContext(Sema& sema, const SymbolFunction* symFunc = nullptr)
     {
         if (const auto* symImpl = sema.frame().currentImpl())
@@ -1936,6 +1963,7 @@ namespace
 
         SmallVector<AstNodeRef> args;
         node.collectArguments(args, sema.ast());
+        SmallVector<AstNodeRef> sourceArgs = args;
         for (auto& arg : args)
             arg = Match::resolveCallArgumentRef(sema, arg);
 
@@ -1951,6 +1979,7 @@ namespace
             if (trailingBlockSiblingRef.isValid())
                 sema.markImplicitCodeBlockArg(sema.visit().parentNodeRef(), trailingBlockSiblingRef);
             args.push_back(trailingBlockArgRef);
+            sourceArgs.push_back(trailingBlockArgRef);
         }
 
         SmallVector<ResolvedCallArgument> resolvedArgs;
@@ -1961,6 +1990,7 @@ namespace
         SWC_ASSERT(nodeSymView.hasSymbol());
 
         auto& calledFn = nodeSymView.sym()->cast<SymbolFunction>();
+        traceSelectedCall(sema, sema.curNodeRef(), calledFn);
         SWC_RESULT(completeLazyGenericFunction(sema, calledFn));
 
         const bool isMixinCall = calledFn.attributes().hasRtFlag(RtAttributeFlagsE::Mixin);
@@ -2002,7 +2032,7 @@ namespace
             SWC_RESULT(SemaJIT::tryRunConstCall(sema, calledFn, sema.curNodeRef(), resolvedArgs.span()));
             if (sema.viewConstant(sema.curNodeRef()).hasConstant())
                 return Result::Continue;
-            SWC_RESULT(SemaInline::tryInlineCall(sema, sema.curNodeRef(), calledFn, args, ufcsArg));
+            SWC_RESULT(SemaInline::tryInlineCall(sema, sema.curNodeRef(), calledFn, args, ufcsArg, sourceArgs.span()));
         }
 
         if (sema.viewConstant(sema.curNodeRef()).hasConstant())
@@ -2290,8 +2320,8 @@ Result AstFunctionParamMe::semaPreNode(Sema& sema) const
     SymbolMap*          symbolMap = SemaFrame::currentSymMap(sema);
     SWC_ASSERT(ownerType.isValid());
 
-    if (sema.curScope().isLocal())
-        sema.curScope().addSymbol(sym);
+    if (SemaHelpers::currentLocalSymbolScope(sema))
+        SemaHelpers::addCurrentScopeSymbol(sema, sym);
     else
         symbolMap->addSymbol(ctx, sym, true);
 

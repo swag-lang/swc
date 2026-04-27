@@ -21,6 +21,53 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    bool traceWaitDone()
+    {
+        static const bool enabled = [] {
+            char*  value  = nullptr;
+            size_t length = 0;
+            if (_dupenv_s(&value, &length, "SWC_TRACE_WAITDONE") != 0 || !value)
+                return false;
+            const bool result = *value != 0;
+            free(value);
+            return result;
+        }();
+        return enabled;
+    }
+
+    void traceWaitDoneJobs(TaskContext& ctx, JobClientId clientId, uint64_t loopIndex)
+    {
+        std::vector<Job*> jobs;
+        ctx.global().jobMgr().waitingJobs(jobs, clientId);
+
+        std::cerr << "waitDone loop=" << loopIndex << " waiting=" << jobs.size() << " changed=" << ctx.compiler().changed() << " pendingImpl=" << ctx.compiler().pendingImplRegistrations() << "\n";
+        for (Job* job : jobs)
+        {
+            const TaskState& state = job->ctx().state();
+            std::cerr << "  kind=" << static_cast<int>(job->kind()) << " state=" << TaskState::kindName(state.kind) << " node=" << state.nodeRef.get();
+            if (state.idRef.isValid())
+            {
+                const auto* semaJob = job->safeCast<SemaJob>();
+                if (semaJob)
+                    std::cerr << " id=" << semaJob->sema().idMgr().get(state.idRef).name;
+                else
+                    std::cerr << " idRef=" << state.idRef.get();
+            }
+            if (state.symbol)
+                std::cerr << " sym=" << state.symbol->name(ctx);
+            if (state.waiterSymbol)
+                std::cerr << " waiter=" << state.waiterSymbol->name(ctx);
+            if (state.codeRef.isValid())
+            {
+                const SourceView&      srcView = ctx.compiler().srcView(state.codeRef.srcViewRef);
+                const SourceCodeRange range   = srcView.tokenCodeRange(ctx, state.codeRef.tokRef);
+                const SourceFile*      file    = range.srcView ? range.srcView->file() : nullptr;
+                std::cerr << " at=" << (file ? file->path().string() : "<source>") << ":" << range.line << ":" << range.column;
+            }
+            std::cerr << "\n";
+        }
+    }
+
     bool shouldAbortWait(const Symbol* symbol = nullptr)
     {
         return symbol != nullptr && symbol->isIgnored();
@@ -1075,13 +1122,19 @@ void Sema::waitDone(TaskContext& ctx, JobClientId clientId)
 {
     auto&             jobMgr   = ctx.global().jobMgr();
     CompilerInstance& compiler = ctx.compiler();
+    uint64_t          traceLoopIndex = 0;
 
     while (true)
     {
         jobMgr.waitAll(clientId);
+        ++traceLoopIndex;
+        if (traceWaitDone() && traceLoopIndex % 100 == 0)
+            traceWaitDoneJobs(ctx, clientId, traceLoopIndex);
 
         if (compiler.jitExecMgr().executePendingMainThread())
         {
+            if (traceWaitDone())
+                std::cerr << "waitDone branch=jit-main-thread loop=" << traceLoopIndex << "\n";
             jobMgr.wakeAll(clientId);
             continue;
         }
@@ -1089,6 +1142,8 @@ void Sema::waitDone(TaskContext& ctx, JobClientId clientId)
         const Result compilerMessageResult = compiler.executePendingCompilerMessages(ctx);
         if (compilerMessageResult == Result::Pause)
         {
+            if (traceWaitDone())
+                std::cerr << "waitDone branch=compiler-message loop=" << traceLoopIndex << "\n";
             jobMgr.wakeAll(clientId);
             continue;
         }
@@ -1099,6 +1154,8 @@ void Sema::waitDone(TaskContext& ctx, JobClientId clientId)
         const Result afterSemanticResult = compiler.ensureCompilerMessagePass(Runtime::CompilerMsgKind::PassAfterSemantic);
         if (afterSemanticResult == Result::Pause)
         {
+            if (traceWaitDone())
+                std::cerr << "waitDone branch=after-semantic loop=" << traceLoopIndex << "\n";
             jobMgr.wakeAll(clientId);
             continue;
         }
@@ -1108,6 +1165,8 @@ void Sema::waitDone(TaskContext& ctx, JobClientId clientId)
 
         if (compiler.consumeChanged())
         {
+            if (traceWaitDone() && traceLoopIndex % 100 == 0)
+                std::cerr << "waitDone branch=changed loop=" << traceLoopIndex << "\n";
             compiler.jitExecMgr().wakeWaiting();
             jobMgr.wakeAll(clientId);
             continue;
@@ -1115,6 +1174,8 @@ void Sema::waitDone(TaskContext& ctx, JobClientId clientId)
 
         if (resolveCompilerDefined(ctx, clientId))
         {
+            if (traceWaitDone())
+                std::cerr << "waitDone branch=compiler-defined loop=" << traceLoopIndex << "\n";
             jobMgr.wakeAll(clientId);
             continue;
         }

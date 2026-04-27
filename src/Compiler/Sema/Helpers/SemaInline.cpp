@@ -34,6 +34,16 @@ namespace
         return false;
     }
 
+    void traceArrayInline(Sema& sema, AstNodeRef callRef, const SymbolFunction& fn, std::string_view what)
+    {
+        const SourceCodeRange range = sema.node(callRef).codeRange(sema.ctx());
+        const SourceFile*     file  = range.srcView ? range.srcView->file() : nullptr;
+        if (!file || !file->path().string().contains("collections\\array.swg") || range.line != 106)
+            return;
+
+        std::cerr << "inline trace " << what << " fn=" << fn.name(sema.ctx()) << " macro=" << fn.attributes().hasRtFlag(RtAttributeFlagsE::Macro) << " mixin=" << fn.attributes().hasRtFlag(RtAttributeFlagsE::Mixin) << " current=" << (sema.currentFunction() ? sema.currentFunction()->name(sema.ctx()) : "<null>") << "\n";
+    }
+
     bool isInlineReexpandableExpr(const AstNode& node)
     {
         return node.is(AstNodeId::CallExpr) ||
@@ -64,6 +74,7 @@ namespace
         const SymbolFunction*                 fn           = nullptr;
         const Ast*                            sourceAst    = nullptr;
         std::span<AstNodeRef>                 args         = {};
+        std::span<AstNodeRef>                 sourceArgs   = {};
         AstNodeRef                            ufcsArg      = AstNodeRef::invalid();
         std::span<const ResolvedCallArgument> resolvedArgs = {};
     };
@@ -250,7 +261,14 @@ namespace
         return sema.node(bodyRef).cast<AstEmbeddedBlock>().hasFlag(AstEmbeddedBlockFlagsE::ImplicitCodeBlockArg);
     }
 
-    AstNodeRef bindingArgumentRef(Sema& sema, const SymbolVariable& param, AstNodeRef argRef)
+    AstNodeRef sourceArgRefAt(const InlineArgumentMapContext& context, size_t index, AstNodeRef fallbackArgRef)
+    {
+        if (context.sourceArgs.size() == context.args.size() && index < context.sourceArgs.size())
+            return context.sourceArgs[index];
+        return fallbackArgRef;
+    }
+
+    AstNodeRef bindingArgumentRef(Sema& sema, const SymbolVariable& param, AstNodeRef argRef, AstNodeRef sourceArgRef = AstNodeRef::invalid())
     {
         if (argRef.isInvalid())
             return AstNodeRef::invalid();
@@ -259,8 +277,17 @@ namespace
         if (paramType.isCodeBlock())
         {
             const AstNodeRef resolvedRef = sema.viewZero(argRef).nodeRef();
-            if (resolvedRef.isValid())
-                return wrapCodeArgument(sema, param, resolvedRef);
+            if (resolvedRef.isValid() && resolvedRef != argRef)
+            {
+                const AstNode& resolvedNode = sema.node(resolvedRef);
+                if (resolvedNode.is(AstNodeId::CompilerCodeExpr) || resolvedNode.is(AstNodeId::CompilerCodeBlock))
+                    return wrapCodeArgument(sema, param, resolvedRef);
+            }
+
+            if (sema.node(argRef).is(AstNodeId::CompilerCodeExpr) || sema.node(argRef).is(AstNodeId::CompilerCodeBlock))
+                return wrapCodeArgument(sema, param, resolvedRef.isValid() ? resolvedRef : argRef);
+            if (sourceArgRef.isValid())
+                return wrapCodeArgument(sema, param, sourceArgRef);
             return wrapCodeArgument(sema, param, argRef);
         }
 
@@ -299,9 +326,9 @@ namespace
         return fn.specOpKind() == SpecOpKind::OpSetLiteral && paramIndex + 1 == numFixed;
     }
 
-    AstNodeRef bindingInlineArgumentRef(Sema& sema, const InlineArgumentMapContext& context, const SymbolVariable& param, size_t paramIndex, size_t numFixed, AstNodeRef argRef)
+    AstNodeRef bindingInlineArgumentRef(Sema& sema, const InlineArgumentMapContext& context, const SymbolVariable& param, size_t paramIndex, size_t numFixed, AstNodeRef argRef, AstNodeRef sourceArgRef = AstNodeRef::invalid())
     {
-        AstNodeRef argValueRef = bindingArgumentRef(sema, param, argRef);
+        AstNodeRef argValueRef = bindingArgumentRef(sema, param, argRef, sourceArgRef);
         if (!shouldStripLiteralSuffixInlineValue(*context.fn, paramIndex, numFixed))
             return argValueRef;
 
@@ -940,8 +967,9 @@ namespace
             }
         }
 
-        for (const auto argRef : args)
+        for (size_t argIndex = 0; argIndex < args.size(); ++argIndex)
         {
+            const AstNodeRef argRef = args[argIndex];
             const AstNode& argNode = sema.node(argRef);
             if (!argNode.is(AstNodeId::NamedArgument))
                 continue;
@@ -962,7 +990,16 @@ namespace
             if (paramIndex >= params.size())
                 return Result::Continue;
 
-            AstNodeRef argValueRef = bindingInlineArgumentRef(sema, context, *params[paramIndex], paramIndex, numFixed, namedArg.nodeArgRef);
+            AstNodeRef sourceValueRef = AstNodeRef::invalid();
+            const AstNodeRef sourceArgRef = sourceArgRefAt(context, argIndex, argRef);
+            if (sourceArgRef.isValid())
+            {
+                const AstNode& sourceArgNode = sema.node(sourceArgRef);
+                if (sourceArgNode.is(AstNodeId::NamedArgument))
+                    sourceValueRef = sourceArgNode.cast<AstNamedArgument>().nodeArgRef;
+            }
+
+            AstNodeRef argValueRef = bindingInlineArgumentRef(sema, context, *params[paramIndex], paramIndex, numFixed, namedArg.nodeArgRef, sourceValueRef);
             if (hasAnyVariadic && paramIndex == numFixed)
             {
                 outVariadic.argRefs.push_back(argValueRef);
@@ -978,8 +1015,10 @@ namespace
             bound[paramIndex].exprRef = argValueRef;
         }
 
-        for (const auto argRef : args)
+        for (size_t argIndex = 0; argIndex < args.size(); ++argIndex)
         {
+            const AstNodeRef argRef = args[argIndex];
+            const AstNodeRef sourceArgRef = sourceArgRefAt(context, argIndex, argRef);
             const AstNode& argNode = sema.node(argRef);
             if (argNode.is(AstNodeId::NamedArgument))
                 continue;
@@ -991,14 +1030,14 @@ namespace
             {
                 const size_t trailingParamIndex   = numFixed - 1;
                 bound[trailingParamIndex].idRef   = params[trailingParamIndex]->idRef();
-                bound[trailingParamIndex].exprRef = bindingInlineArgumentRef(sema, context, *params[trailingParamIndex], trailingParamIndex, numFixed, argRef);
+                bound[trailingParamIndex].exprRef = bindingInlineArgumentRef(sema, context, *params[trailingParamIndex], trailingParamIndex, numFixed, argRef, sourceArgRef);
                 continue;
             }
 
             while (nextParam < numFixed && isBindingAssigned(bound[nextParam]))
                 nextParam++;
 
-            AstNodeRef argValueRef = nextParam < numFixed ? bindingInlineArgumentRef(sema, context, *params[nextParam], nextParam, numFixed, argRef) : bindingValueArgumentRef(sema, argRef);
+            AstNodeRef argValueRef = nextParam < numFixed ? bindingInlineArgumentRef(sema, context, *params[nextParam], nextParam, numFixed, argRef, sourceArgRef) : bindingValueArgumentRef(sema, argRef);
             if (nextParam < numFixed)
             {
                 bound[nextParam].idRef   = params[nextParam]->idRef();
@@ -1076,21 +1115,34 @@ bool SemaInline::canInlineCall(Sema& sema, const SymbolFunction& fn)
     return sema.isOptimizeEnabled() && attributes.hasRtFlag(RtAttributeFlagsE::Inline);
 }
 
-Result SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFunction& fn, std::span<AstNodeRef> args, AstNodeRef ufcsArg)
+Result SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFunction& fn, std::span<AstNodeRef> args, AstNodeRef ufcsArg, std::span<AstNodeRef> sourceArgs)
 {
+    traceArrayInline(sema, callRef, fn, "enter");
     if (sema.hasSubstitute(callRef))
+    {
+        traceArrayInline(sema, callRef, fn, "has-substitute");
         return Result::Continue;
+    }
 
     if (isInlineRecursion(sema, fn))
+    {
+        traceArrayInline(sema, callRef, fn, "recursion");
         return Result::Continue;
+    }
 
     if (!canInlineCall(sema, fn))
+    {
+        traceArrayInline(sema, callRef, fn, "cannot-inline");
         return Result::Continue;
+    }
 
     const AstFunctionDecl* decl = nullptr;
     const Ast*             declAst = nullptr;
     if (!resolveFunctionDecl(sema, fn, decl, declAst))
+    {
+        traceArrayInline(sema, callRef, fn, "no-decl");
         return Result::Continue;
+    }
     SWC_ASSERT(declAst != nullptr);
 
     const bool isMacro = fn.attributes().hasRtFlag(RtAttributeFlagsE::Macro);
@@ -1107,6 +1159,7 @@ Result SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFun
         .fn           = &fn,
         .sourceAst    = declAst,
         .args         = args,
+        .sourceArgs   = sourceArgs,
         .ufcsArg      = ufcsArg,
         .resolvedArgs = resolvedArgs.span(),
     };
@@ -1116,7 +1169,10 @@ Result SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFun
     bool                                 mapped = false;
     SWC_RESULT(mapArguments(sema, mapped, context, bindings, variadicBinding));
     if (!mapped)
+    {
+        traceArrayInline(sema, callRef, fn, "not-mapped");
         return Result::Continue;
+    }
     if (isCrossAstInline)
         appendGenericInstanceBindings(sema, fn, bindings);
 
@@ -1129,7 +1185,10 @@ Result SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFun
     if (variadicBinding.param)
     {
         if (variadicExprRef.isInvalid() || variadicExprTypeRef.isInvalid())
+        {
+            traceArrayInline(sema, callRef, fn, "variadic-failed");
             return Result::Continue;
+        }
         if (variadicBinding.param->idRef().isValid())
             bindings.push_back({variadicBinding.param->idRef(), variadicExprRef, variadicExprTypeRef});
     }
@@ -1147,7 +1206,10 @@ Result SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFun
     const SemaClone::CloneContext cloneContext{bindings.span(), std::span<const SemaClone::NodeReplacement>{}, false, declAst};
     const AstNodeRef              inlineRootRef = isMixin ? mixinBodyRef(sema, *decl, cloneContext, materializedBindings.span()) : inlineBodyRef(sema, *decl, cloneContext, materializedBindings.span());
     if (inlineRootRef.isInvalid())
+    {
+        traceArrayInline(sema, callRef, fn, "no-root");
         return Result::Continue;
+    }
     sema.node(inlineRootRef).setCodeRef(sema.node(callRef).codeRef());
 
     SymbolVariable* resultVar = nullptr;
@@ -1169,6 +1231,10 @@ Result SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFun
     inlinePayload->aliasIdentifiers     = aliasIdentifiers;
     for (const SemaClone::ParamBinding& binding : bindings)
         inlinePayload->argMappings.push_back(binding);
+    for (SymbolVariable* bindingVar : frame.bindingVars())
+        inlinePayload->callerBindingVars.push_back(bindingVar);
+    for (TypeRef bindingType : frame.bindingTypes())
+        inlinePayload->callerBindingTypes.push_back(bindingType);
 
     if (returnTypeRef != sema.typeMgr().typeVoid())
         frame.pushBindingType(returnTypeRef);
@@ -1211,6 +1277,7 @@ Result SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFun
     });
 
     sema.setSubstitute(callRef, inlineRootRef);
+    traceArrayInline(sema, callRef, fn, "substituted");
     sema.visit().restartCurrentNode(inlineRootRef);
     return Result::Continue;
 }

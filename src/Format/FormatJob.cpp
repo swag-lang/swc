@@ -52,7 +52,7 @@ JobResult FormatJob::exec()
 #endif
     }
 
-    Result writeResult = Result::Continue;
+    auto writeResult = Result::Continue;
     if (!jobCtx.cmdLine().dryRun)
         writeResult = formatter.write(jobCtx);
 

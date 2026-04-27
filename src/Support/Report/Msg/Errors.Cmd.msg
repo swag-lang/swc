@@ -83,6 +83,7 @@ SWC_DIAG_DEF(cmd_err_native_toolchain_sdk_missing, Error, "cannot find Windows S
 SWC_DIAG_DEF(cmd_err_native_tool_start_failed, Error, "cannot start '{path}': {because}")
 SWC_DIAG_DEF(cmd_err_native_tool_wait_failed, Error, "waiting for '{path}' failed")
 SWC_DIAG_DEF(cmd_err_native_tool_exit_code_failed, Error, "cannot get exit code for '{path}': {because}")
+SWC_DIAG_DEF(cmd_err_native_tool_rsp_write_failed, Error, "cannot write native tool response file '{path}': {because}")
 SWC_DIAG_DEF(cmd_err_native_tool_failed, Error, "'{tool}' exited with code {value}")
 SWC_DIAG_DEF(cmd_err_native_artifact_missing, Error, "native backend did not produce '{path}'")
 SWC_DIAG_DEF(cmd_err_api_dir_clear_failed, Error, "cannot clear module API directory '{path}': {because}")

@@ -2,12 +2,93 @@
 #include "Backend/Native/NativeLinker.h"
 #include "Backend/Native/NativeBackendBuilder.h"
 #include "Backend/Native/NativeLinkerCoff.h"
+#include "Main/FileSystem.h"
 #include "Support/Report/Logger.h"
 
 SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    constexpr size_t K_RESPONSE_FILE_COMMAND_LINE_THRESHOLD = 24u * 1024u;
+
+    void appendResponseFileArg(Utf8& out, const std::string_view arg)
+    {
+        const bool needsQuotes = arg.empty() || arg.find_first_of(" \t\r\n\"") != std::string_view::npos;
+        if (!needsQuotes)
+        {
+            out += arg;
+            return;
+        }
+
+        out += '"';
+        size_t pendingSlashes = 0;
+        for (const char c : arg)
+        {
+            if (c == '\\')
+            {
+                pendingSlashes++;
+                continue;
+            }
+
+            if (c == '"')
+            {
+                out.append(pendingSlashes * 2 + 1, '\\');
+                out += '"';
+                pendingSlashes = 0;
+                continue;
+            }
+
+            if (pendingSlashes)
+            {
+                out.append(pendingSlashes, '\\');
+                pendingSlashes = 0;
+            }
+
+            out += c;
+        }
+
+        if (pendingSlashes)
+            out.append(pendingSlashes * 2, '\\');
+        out += '"';
+    }
+
+    Utf8 buildResponseFileContents(const std::vector<Utf8>& args)
+    {
+        Utf8 contents;
+        for (const Utf8& arg : args)
+        {
+            appendResponseFileArg(contents, arg);
+            contents += '\n';
+        }
+
+        return contents;
+    }
+
+    fs::path responseFilePath(const NativeBackendBuilder& builder, const fs::path& exePath)
+    {
+        Utf8 name = FileSystem::sanitizeFileName(Utf8(builder.artifactPath.stem()));
+        name += ".";
+        name += FileSystem::sanitizeFileName(Utf8(exePath.stem()));
+        name += ".rsp";
+        return builder.buildDir / name.c_str();
+    }
+
+    bool shouldUseResponseFile(const fs::path& exePath, const std::vector<Utf8>& args)
+    {
+        return Os::formatProcessCommandLine(exePath, args).size() >= K_RESPONSE_FILE_COMMAND_LINE_THRESHOLD;
+    }
+
+    Result writeResponseFile(NativeBackendBuilder& builder, const fs::path& path, const std::vector<Utf8>& args)
+    {
+        const Utf8 contents = buildResponseFileContents(args);
+
+        FileSystem::IoErrorInfo ioError;
+        if (FileSystem::writeBinaryFile(path, contents.data(), contents.size(), ioError) == Result::Continue)
+            return Result::Continue;
+
+        return builder.reportError(DiagnosticId::cmd_err_native_tool_rsp_write_failed, Diagnostic::ARG_PATH, Utf8(path), Diagnostic::ARG_BECAUSE, FileSystem::describeIoFailure(ioError));
+    }
+
     void replayToolOutput(const TaskContext* ctx, const std::string_view output, const std::function<bool(std::string_view)>& lineFilter)
     {
         if (output.empty())
@@ -85,7 +166,17 @@ Result NativeLinker::runToolAndValidateArtifacts(const fs::path& exePath, const 
     runOptions.forwardOutput  = false;
     runOptions.logCtx         = &builder_->ctx();
 
-    const auto result = Os::runProcess(exitCode, exePath, args, builder_->buildDir, &runOptions);
+    std::vector<Utf8> toolArgs;
+    const auto*       runArgs = &args;
+    if (shouldUseResponseFile(exePath, args))
+    {
+        const fs::path rspPath = responseFilePath(*builder_, exePath);
+        SWC_RESULT(writeResponseFile(*builder_, rspPath, args));
+        toolArgs.push_back(std::format("@{}", Utf8(rspPath.filename())));
+        runArgs = &toolArgs;
+    }
+
+    const auto result = Os::runProcess(exitCode, exePath, *runArgs, builder_->buildDir, &runOptions);
     switch (result)
     {
         case Os::ProcessRunResult::Ok:

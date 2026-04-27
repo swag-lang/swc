@@ -130,7 +130,6 @@ namespace
         MicroBuilder&   builder   = codeGen.builder();
         const uint32_t  frameSize = codeGen.localStackFrameSize();
         SWC_ASSERT(frameSize != 0);
-        builder.emitOpBinaryRegImm(callConv.stackPointer, ApInt(frameSize, 64), MicroOp::Subtract, MicroOpBits::B64);
 
         // Keep compiler-run locals on a persistent virtual base register so later instruction
         // selection and register allocation cannot accidentally clobber the active frame base.
@@ -143,6 +142,7 @@ namespace
             forbiddenRegs.push_back(callConv.framePointer);
         builder.addVirtualRegForbiddenPhysRegs(frameBaseReg, forbiddenRegs.span());
 
+        builder.emitOpBinaryRegImm(callConv.stackPointer, ApInt(frameSize, 64), MicroOp::Subtract, MicroOpBits::B64);
         builder.emitLoadRegReg(frameBaseReg, callConv.stackPointer, MicroOpBits::B64);
         codeGen.setLocalStackBaseReg(frameBaseReg);
         codeGen.function().setDebugStackFrameSize(frameSize);
@@ -253,6 +253,12 @@ namespace
         const CallConvKind callConvKind  = codeGen.function().callConvKind();
         const CallConv&    callConv      = CallConv::get(callConvKind);
         const TypeRef      returnTypeRef = codeGen.function().returnTypeRef();
+
+        SmallVector<CodeGenFunctionHelpers::FunctionParameterInfo> paramInfos;
+        collectCompilerFunctionParameterInfos(paramInfos, codeGen, codeGen.function());
+        buildCompilerFunctionStackLayout(codeGen);
+        emitCompilerFunctionStackPrologue(codeGen, callConvKind);
+
         if (returnTypeRef.isValid())
         {
             const ABITypeNormalize::NormalizedType normalizedRet = ABITypeNormalize::normalize(codeGen.ctx(), callConv, returnTypeRef, ABITypeNormalize::Usage::Return);
@@ -267,11 +273,7 @@ namespace
             }
         }
 
-        SmallVector<CodeGenFunctionHelpers::FunctionParameterInfo> paramInfos;
-        collectCompilerFunctionParameterInfos(paramInfos, codeGen, codeGen.function());
         materializeCompilerRegisterParameters(codeGen, codeGen.function(), paramInfos.span());
-        buildCompilerFunctionStackLayout(codeGen);
-        emitCompilerFunctionStackPrologue(codeGen, callConvKind);
         return Result::Continue;
     }
 
@@ -320,16 +322,17 @@ Result AstCompilerRunBlock::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeR
     const CallConv&    callConv     = CallConv::get(callConvKind);
     SWC_ASSERT(!callConv.intArgRegs.empty());
 
+    SmallVector<CodeGenFunctionHelpers::FunctionParameterInfo> paramInfos;
+    collectCompilerFunctionParameterInfos(paramInfos, codeGen, codeGen.function());
+    buildCompilerFunctionStackLayout(codeGen);
+    emitCompilerFunctionStackPrologue(codeGen, callConvKind);
+
     MicroBuilder&  builder          = codeGen.builder();
     const MicroReg outputStorageReg = codeGen.nextVirtualIntRegister();
     builder.emitLoadRegReg(outputStorageReg, callConv.intArgRegs[0], MicroOpBits::B64);
     codeGen.setCurrentFunctionIndirectReturnReg(outputStorageReg);
 
-    SmallVector<CodeGenFunctionHelpers::FunctionParameterInfo> paramInfos;
-    collectCompilerFunctionParameterInfos(paramInfos, codeGen, codeGen.function());
     materializeCompilerRegisterParameters(codeGen, codeGen.function(), paramInfos.span());
-    buildCompilerFunctionStackLayout(codeGen);
-    emitCompilerFunctionStackPrologue(codeGen, callConvKind);
     return Result::Continue;
 }
 

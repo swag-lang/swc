@@ -1557,6 +1557,11 @@ namespace SemaGeneric
 {
     Result evaluateFunctionWhereConstraints(Sema& sema, bool& outSatisfied, const SymbolFunction& function, CastFailure* outFailure)
     {
+        outSatisfied = true;
+        const auto* decl = genericFunctionDecl(function);
+        if (!decl || decl->spanConstraintsRef.isInvalid())
+            return Result::Continue;
+
         std::unique_ptr<Sema>                sourceSemaHolder;
         Sema&                                sourceSema  = semaForGenericDecl(sema, function, sourceSemaHolder);
         const Utf8                           bindingText = formatFunctionWhereBindings(sourceSema, function);

@@ -3,7 +3,7 @@ setlocal
 
 for %%I in ("%~f0") do set "TOOLS_DIR=%%~dpI"
 call "%TOOLS_DIR%common.bat" :init "%TOOLS_DIR%" "%~1"
-if errorlevel 1 exit /b %errorlevel%
+if not "%ERRORLEVEL%"=="0" exit /b %ERRORLEVEL%
 if /I "%~1"=="dm" shift
 
 set "BIN_REL=tests\native"
@@ -33,16 +33,16 @@ goto test_artifact
 
 :run_artifact
 call "%TOOLS_DIR%common.bat" :set_paths "%BIN_REL%" "run" "%BUILD_CFG%"
-if errorlevel 1 exit /b %errorlevel%
+if not "%ERRORLEVEL%"=="0" exit /b %ERRORLEVEL%
 "%SWC_EXE%" run -d "%ROOT%\bin\%BIN_REL%" --module-namespace Native --out-dir "%OUT_DIR%" --work-dir "%WORK_DIR%" --build-cfg %BUILD_CFG%%EXTRA_ARGS%
-if errorlevel 1 exit /b 1
+if not "%ERRORLEVEL%"=="0" exit /b %ERRORLEVEL%
 goto done
 
 :test_artifact
 call "%TOOLS_DIR%common.bat" :set_paths "%BIN_REL%" "%ARTIFACT_KIND%" "%BUILD_CFG%"
-if errorlevel 1 exit /b %errorlevel%
+if not "%ERRORLEVEL%"=="0" exit /b %ERRORLEVEL%
 "%SWC_EXE%" test --artifact-kind %ARTIFACT_KIND% -d "%ROOT%\bin\%BIN_REL%" --module-namespace Native --out-dir "%OUT_DIR%" --work-dir "%WORK_DIR%" --build-cfg %BUILD_CFG%%EXTRA_ARGS%
-if errorlevel 1 exit /b 1
+if not "%ERRORLEVEL%"=="0" exit /b %ERRORLEVEL%
 
 :done
 

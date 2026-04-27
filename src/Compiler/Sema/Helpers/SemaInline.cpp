@@ -6,9 +6,11 @@
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
+#include "Compiler/Sema/Generic/SemaGeneric.h"
 #include "Compiler/Sema/Helpers/SemaClone.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
+#include "Compiler/Sema/Symbol/Symbol.Struct.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Compiler/Sema/Type/TypeInfo.h"
 
@@ -60,10 +62,110 @@ namespace
     {
         AstNodeRef                            callRef      = AstNodeRef::invalid();
         const SymbolFunction*                 fn           = nullptr;
+        const Ast*                            sourceAst    = nullptr;
         std::span<AstNodeRef>                 args         = {};
         AstNodeRef                            ufcsArg      = AstNodeRef::invalid();
         std::span<const ResolvedCallArgument> resolvedArgs = {};
     };
+
+    AstNodeRef cloneSourceArgumentToCallerAst(Sema& sema, AstNodeRef argRef, const Ast* sourceAst)
+    {
+        if (argRef.isInvalid() || !sourceAst || sourceAst == &sema.ast())
+            return argRef;
+
+        const SemaClone::CloneContext cloneContext{std::span<const SemaClone::ParamBinding>{}, std::span<const SemaClone::NodeReplacement>{}, false, sourceAst};
+        return SemaClone::cloneAst(sema, argRef, cloneContext);
+    }
+
+    SymbolVariable* receiverBinding(Sema& sema, const SymbolFunction& fn)
+    {
+        const IdentifierRef meId = sema.idMgr().predefined(IdentifierManager::PredefinedName::Me);
+        for (SymbolVariable* param : fn.parameters())
+        {
+            if (param && param->idRef() == meId)
+                return param;
+        }
+
+        return nullptr;
+    }
+
+    void appendGenericBindingsFromKeys(Sema& sema, std::span<const SemaGeneric::GenericParamDesc> params, std::span<const GenericInstanceKey> args, SmallVector<SemaClone::ParamBinding>& outBindings)
+    {
+        if (params.size() != args.size())
+            return;
+
+        for (size_t i = 0; i < args.size(); ++i)
+        {
+            SemaGeneric::GenericResolvedArg resolvedArg;
+            resolvedArg.present = args[i].typeRef.isValid() || args[i].cstRef.isValid();
+            resolvedArg.typeRef = args[i].typeRef;
+            resolvedArg.cstRef  = args[i].cstRef;
+            if (resolvedArg.cstRef.isValid() && !resolvedArg.typeRef.isValid())
+                resolvedArg.typeRef = sema.cstMgr().get(resolvedArg.cstRef).typeRef();
+            SemaGeneric::appendResolvedGenericBinding(params[i], resolvedArg, outBindings);
+        }
+    }
+
+    void appendFunctionGenericBindings(Sema& sema, const SymbolFunction& fn, SmallVector<SemaClone::ParamBinding>& outBindings)
+    {
+        if (!fn.isGenericInstance())
+            return;
+
+        const SymbolFunction* root = fn.genericRootSym();
+        if (!root || !root->decl())
+            return;
+
+        const auto* decl = root->decl()->safeCast<AstFunctionDecl>();
+        if (!decl || decl->spanGenericParamsRef.isInvalid())
+            return;
+
+        SmallVector<SemaGeneric::GenericParamDesc> params;
+        SemaGeneric::collectGenericParams(sema, *decl, decl->spanGenericParamsRef, params);
+        if (params.empty())
+            return;
+
+        SmallVector<GenericInstanceKey> args;
+        if (!root->genericInstanceStorage(sema.ctx()).tryGetArgs(fn, args))
+            return;
+        if (args.size() > params.size())
+            args.resize(params.size());
+
+        appendGenericBindingsFromKeys(sema, params.span(), args.span(), outBindings);
+    }
+
+    void appendOwnerStructGenericBindings(Sema& sema, const SymbolFunction& fn, SmallVector<SemaClone::ParamBinding>& outBindings)
+    {
+        const SymbolStruct* ownerInstance = fn.ownerStruct();
+        if (!ownerInstance || !ownerInstance->isGenericInstance())
+            return;
+
+        const SymbolStruct* root = ownerInstance->genericRootSym();
+        if (!root || !root->decl())
+            return;
+
+        const auto* decl = root->decl()->safeCast<AstStructDecl>();
+        if (!decl || decl->spanGenericParamsRef.isInvalid())
+            return;
+
+        SmallVector<SemaGeneric::GenericParamDesc> params;
+        SemaGeneric::collectGenericParams(sema, *decl, decl->spanGenericParamsRef, params);
+        if (params.empty())
+            return;
+
+        SmallVector<GenericInstanceKey> args;
+        if (!root->tryGetGenericInstanceArgs(*ownerInstance, args))
+            return;
+        if (args.size() > params.size())
+            args.resize(params.size());
+
+        appendGenericBindingsFromKeys(sema, params.span(), args.span(), outBindings);
+    }
+
+    void appendGenericInstanceBindings(Sema& sema, const SymbolFunction& fn, SmallVector<SemaClone::ParamBinding>& outBindings)
+    {
+        appendFunctionGenericBindings(sema, fn, outBindings);
+        appendOwnerStructGenericBindings(sema, fn, outBindings);
+    }
 
     AstNodeRef wrapCodeArgument(Sema& sema, const SymbolVariable& param, AstNodeRef argRef)
     {
@@ -260,19 +362,21 @@ namespace
         ioConstant = sema.cstMgr().addConstant(sema.ctx(), constantValue);
     }
 
-    bool resolveFunctionDeclInCurrentAst(const Sema& sema, const SymbolFunction& fn, const AstFunctionDecl*& outDecl)
+    bool resolveFunctionDecl(const Sema& sema, const SymbolFunction& fn, const AstFunctionDecl*& outDecl, const Ast*& outDeclAst)
     {
-        outDecl = nullptr;
+        outDecl    = nullptr;
+        outDeclAst = nullptr;
 
         const AstNode* declNode = fn.decl();
         if (!declNode || !declNode->is(AstNodeId::FunctionDecl))
             return false;
 
         const Ast* const declAst = declNode->sourceAst(sema.ctx());
-        if (!declAst || declAst != &sema.ast())
+        if (!declAst)
             return false;
 
-        outDecl = &declNode->cast<AstFunctionDecl>();
+        outDecl    = &declNode->cast<AstFunctionDecl>();
+        outDeclAst = declAst;
         return true;
     }
 
@@ -287,17 +391,17 @@ namespace
         uint32_t      usedSlot    = 0;
     };
 
-    void collectAliasUsage(Sema& sema, AstNodeRef nodeRef, AliasRefArray& outAliasRefs)
+    void collectAliasUsage(Sema& sema, const Ast& sourceAst, AstNodeRef nodeRef, AliasRefArray& outAliasRefs)
     {
         if (nodeRef.isInvalid())
             return;
 
-        const AstNode& node = sema.node(nodeRef);
+        const AstNode& node = sourceAst.node(nodeRef);
         if (node.tokRef().isInvalid())
             return;
 
         const SourceView& sourceView = sema.srcView(node.srcViewRef());
-        const TokenRef    endTokRef  = node.tokRefEnd(sema.ast());
+        const TokenRef    endTokRef  = node.tokRefEnd(sourceAst);
         if (endTokRef.isInvalid())
             return;
 
@@ -312,16 +416,21 @@ namespace
             if (slot < outAliasRefs.size() && !outAliasRefs[slot].isValid())
                 outAliasRefs[slot] = SourceCodeRef{node.srcViewRef(), tokRef};
         }
+
+        SmallVector<AstNodeRef> children;
+        node.collectChildrenFromAst(children, sourceAst);
+        for (const AstNodeRef childRef : children)
+            collectAliasUsage(sema, sourceAst, childRef, outAliasRefs);
     }
 
-    Result collectAliasUsageInfo(Sema& sema, const AstFunctionDecl& decl, AliasUsageInfo& outInfo)
+    Result collectAliasUsageInfo(Sema& sema, const Ast& sourceAst, const AstFunctionDecl& decl, AliasUsageInfo& outInfo)
     {
         outInfo = {};
         if (decl.nodeBodyRef.isInvalid())
             return Result::Continue;
 
         AliasRefArray aliasRefs = {};
-        collectAliasUsage(sema, decl.nodeBodyRef, aliasRefs);
+        collectAliasUsage(sema, sourceAst, decl.nodeBodyRef, aliasRefs);
 
         int32_t highestSlot = -1;
         for (int32_t slot = static_cast<int32_t>(aliasRefs.size()) - 1; slot >= 0; --slot)
@@ -357,7 +466,7 @@ namespace
         return Result::Continue;
     }
 
-    Result collectAliasIdentifiers(Sema& sema, AstNodeRef callRef, const AstFunctionDecl& decl, AliasIdentifierArray& outAliasIdentifiers)
+    Result collectAliasIdentifiers(Sema& sema, AstNodeRef callRef, const Ast& sourceAst, const AstFunctionDecl& decl, AliasIdentifierArray& outAliasIdentifiers)
     {
         outAliasIdentifiers.fill(IdentifierRef::invalid());
 
@@ -381,7 +490,7 @@ namespace
         }
 
         AliasUsageInfo aliasUsage;
-        const Result   usageResult = collectAliasUsageInfo(sema, decl, aliasUsage);
+        const Result   usageResult = collectAliasUsageInfo(sema, sourceAst, decl, aliasUsage);
         if (usageResult != Result::Continue)
         {
             if (aliasUsage.invalidRef.isValid())
@@ -472,12 +581,12 @@ namespace
         return declNode->safeCast<AstSingleVarDecl>();
     }
 
-    void collectInlineLoopIdentifiers(Sema& sema, AstNodeRef nodeRef, SmallVector<IdentifierRef>& outIdentifiers)
+    void collectInlineLoopIdentifiers(Sema& sema, const Ast& sourceAst, AstNodeRef nodeRef, SmallVector<IdentifierRef>& outIdentifiers)
     {
         if (nodeRef.isInvalid())
             return;
 
-        const AstNode& node = sema.node(nodeRef);
+        const AstNode& node = sourceAst.node(nodeRef);
         if (const auto* forStmt = node.safeCast<AstForStmt>())
         {
             if (forStmt->tokNameRef.isValid())
@@ -485,9 +594,9 @@ namespace
         }
 
         SmallVector<AstNodeRef> children;
-        node.collectChildrenFromAst(children, sema.ast());
+        node.collectChildrenFromAst(children, sourceAst);
         for (const AstNodeRef childRef : children)
-            collectInlineLoopIdentifiers(sema, childRef, outIdentifiers);
+            collectInlineLoopIdentifiers(sema, sourceAst, childRef, outIdentifiers);
     }
 
     void collectIdentifierUses(Sema& sema, AstNodeRef nodeRef, SmallVector<IdentifierRef>& outIdentifiers)
@@ -565,7 +674,7 @@ namespace
         return bodyRootRef;
     }
 
-    Result materializeInlineBindings(Sema& sema, const SymbolFunction& fn, const AstFunctionDecl& decl, SmallVector<SemaClone::ParamBinding>& ioBindings, SmallVector<AstNodeRef>& outStatements)
+    Result materializeInlineBindings(Sema& sema, const SymbolFunction& fn, const Ast& sourceAst, const AstFunctionDecl& decl, SmallVector<SemaClone::ParamBinding>& ioBindings, SmallVector<AstNodeRef>& outStatements)
     {
         outStatements.clear();
         if (ioBindings.empty())
@@ -573,7 +682,7 @@ namespace
 
         const SemaClone::CloneContext noBindings{std::span<const SemaClone::ParamBinding>{}};
         SmallVector<IdentifierRef>    localIdentifiers;
-        collectInlineLoopIdentifiers(sema, decl.nodeBodyRef, localIdentifiers);
+        collectInlineLoopIdentifiers(sema, sourceAst, decl.nodeBodyRef, localIdentifiers);
 
         SmallVector<SemaClone::ParamBinding> remainingBindings;
         remainingBindings.reserve(ioBindings.size());
@@ -929,7 +1038,8 @@ namespace
                 }
                 else
                 {
-                    const AstNodeRef defaultRef = bindingArgumentRef(sema, *param, SemaHelpers::defaultArgumentExprRef(*param));
+                    const AstNodeRef defaultArgRef = cloneSourceArgumentToCallerAst(sema, SemaHelpers::defaultArgumentExprRef(*param), context.sourceAst);
+                    const AstNodeRef defaultRef    = bindingArgumentRef(sema, *param, defaultArgRef);
                     if (defaultRef.isInvalid())
                         return Result::Continue;
                     bound[i].exprRef = defaultRef;
@@ -978,7 +1088,15 @@ Result SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFun
         return Result::Continue;
 
     const AstFunctionDecl* decl = nullptr;
-    if (!resolveFunctionDeclInCurrentAst(sema, fn, decl))
+    const Ast*             declAst = nullptr;
+    if (!resolveFunctionDecl(sema, fn, decl, declAst))
+        return Result::Continue;
+    SWC_ASSERT(declAst != nullptr);
+
+    const bool isMacro = fn.attributes().hasRtFlag(RtAttributeFlagsE::Macro);
+    const bool isMixin = fn.attributes().hasRtFlag(RtAttributeFlagsE::Mixin);
+    const bool isCrossAstInline = declAst != &sema.ast();
+    if (isCrossAstInline && !isMacro && !isMixin)
         return Result::Continue;
 
     SmallVector<ResolvedCallArgument> resolvedArgs;
@@ -987,6 +1105,7 @@ Result SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFun
     const InlineArgumentMapContext context{
         .callRef      = callRef,
         .fn           = &fn,
+        .sourceAst    = declAst,
         .args         = args,
         .ufcsArg      = ufcsArg,
         .resolvedArgs = resolvedArgs.span(),
@@ -998,9 +1117,11 @@ Result SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFun
     SWC_RESULT(mapArguments(sema, mapped, context, bindings, variadicBinding));
     if (!mapped)
         return Result::Continue;
+    if (isCrossAstInline)
+        appendGenericInstanceBindings(sema, fn, bindings);
 
     AliasIdentifierArray aliasIdentifiers = {};
-    SWC_RESULT(collectAliasIdentifiers(sema, callRef, *decl, aliasIdentifiers));
+    SWC_RESULT(collectAliasIdentifiers(sema, callRef, *declAst, *decl, aliasIdentifiers));
 
     AstNodeRef variadicExprRef     = AstNodeRef::invalid();
     TypeRef    variadicExprTypeRef = TypeRef::invalid();
@@ -1021,10 +1142,9 @@ Result SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFun
 
     SmallVector<AstNodeRef> materializedBindings;
     if (!fn.attributes().hasRtFlag(RtAttributeFlagsE::Macro) && !fn.attributes().hasRtFlag(RtAttributeFlagsE::Mixin))
-        SWC_RESULT(materializeInlineBindings(sema, fn, *decl, bindings, materializedBindings));
+        SWC_RESULT(materializeInlineBindings(sema, fn, *declAst, *decl, bindings, materializedBindings));
 
-    const SemaClone::CloneContext cloneContext{bindings.span()};
-    const bool                    isMixin       = fn.attributes().hasRtFlag(RtAttributeFlagsE::Mixin);
+    const SemaClone::CloneContext cloneContext{bindings.span(), std::span<const SemaClone::NodeReplacement>{}, false, declAst};
     const AstNodeRef              inlineRootRef = isMixin ? mixinBodyRef(sema, *decl, cloneContext, materializedBindings.span()) : inlineBodyRef(sema, *decl, cloneContext, materializedBindings.span());
     if (inlineRootRef.isInvalid())
         return Result::Continue;
@@ -1035,25 +1155,50 @@ Result SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFun
 
     // Create payload
     auto* inlinePayload             = sema.compiler().allocate<SemaInlinePayload>();
-    inlinePayload->callRef          = callRef;
-    inlinePayload->inlineRootRef    = inlineRootRef;
-    inlinePayload->sourceFunction   = &fn;
-    inlinePayload->resultVar        = resultVar;
-    inlinePayload->returnTypeRef    = returnTypeRef;
-    inlinePayload->aliasIdentifiers = aliasIdentifiers;
+    auto       frame       = sema.frame();
+    SemaScope* callerScope = sema.curScopePtr();
+
+    inlinePayload->callRef              = callRef;
+    inlinePayload->inlineRootRef        = inlineRootRef;
+    inlinePayload->sourceFunction       = &fn;
+    inlinePayload->parentInlinePayload = sema.frame().currentInlinePayload();
+    inlinePayload->callerScope          = callerScope;
+    inlinePayload->crossAstInline       = isCrossAstInline;
+    inlinePayload->resultVar            = resultVar;
+    inlinePayload->returnTypeRef        = returnTypeRef;
+    inlinePayload->aliasIdentifiers     = aliasIdentifiers;
     for (const SemaClone::ParamBinding& binding : bindings)
         inlinePayload->argMappings.push_back(binding);
 
-    auto       frame       = sema.frame();
-    SemaScope* callerScope = sema.curScopePtr();
     if (returnTypeRef != sema.typeMgr().typeVoid())
         frame.pushBindingType(returnTypeRef);
     frame.setCurrentInlinePayload(inlinePayload);
-    if (fn.attributes().hasRtFlag(RtAttributeFlagsE::Macro))
+    if ((isMacro || isMixin) && isCrossAstInline)
+    {
+        if (SymbolVariable* receiver = receiverBinding(sema, fn))
+            frame.pushBindingVar(receiver);
+    }
+    if (isMacro)
         frame.setUpLookupScope(callerScope);
     sema.pushFramePopOnPostNode(frame, inlineRootRef);
     if (!isMixin)
-        sema.pushScopePopOnPostNode(SemaScopeFlagsE::Local, inlineRootRef);
+    {
+        if ((isMacro || isMixin) && isCrossAstInline)
+        {
+            SemaScope* ownerScope = sema.pushScopePopOnPostNode(SemaScopeFlagsE::Local, inlineRootRef);
+            if (fn.ownerSymMap())
+                ownerScope->setSymMap(const_cast<SymbolMap*>(fn.ownerSymMap()));
+            ownerScope->setLookupParent(callerScope);
+
+            SemaScope* inlineScope = sema.pushScopePopOnPostNode(SemaScopeFlagsE::Local, inlineRootRef);
+            inlineScope->setSymMap(const_cast<SymbolFunction*>(&fn));
+            inlineScope->setLookupParent(ownerScope);
+        }
+        else
+        {
+            sema.pushScopePopOnPostNode(SemaScopeFlagsE::Local, inlineRootRef);
+        }
+    }
 
     sema.deferPostNodeAction(inlineRootRef, [inlinePayload](Sema& inSema, AstNodeRef nodeRef) {
         SWC_ASSERT(inlinePayload != nullptr);

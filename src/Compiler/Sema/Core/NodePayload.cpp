@@ -86,6 +86,33 @@ NodePayload::~NodePayload()
         delete shardRef.load(std::memory_order_acquire);
 }
 
+NodePayload::StoredView NodePayload::viewStored(const TaskContext& ctx, AstNodeRef nodeRef) const
+{
+    StoredView view;
+    if (nodeRef.isInvalid())
+        return view;
+
+    const AstNode& node = ast().node(nodeRef);
+    view.flags          = payloadFlagsStored(node);
+    view.typeRef        = getTypeRef(ctx, nodeRef);
+    view.cstRef         = getConstantRef(ctx, nodeRef);
+    if (hasSymbolList(nodeRef))
+    {
+        view.hasSymbolList = true;
+        view.symList       = getSymbolList(nodeRef);
+        view.hasSymbol     = !view.symList.empty();
+        if (view.hasSymbol)
+            view.sym = view.symList.front();
+    }
+    else if (hasSymbol(nodeRef))
+    {
+        view.hasSymbol = true;
+        view.sym       = &getSymbol(ctx, nodeRef);
+    }
+
+    return view;
+}
+
 NodePayload::Shard* NodePayload::ensureShard(uint32_t shardIdx)
 {
     SWC_ASSERT(shardIdx < NODE_PAYLOAD_SHARD_NUM);

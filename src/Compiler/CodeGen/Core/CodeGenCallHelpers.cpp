@@ -588,6 +588,48 @@ namespace
         argPayload.setIsAddress();
     }
 
+    uint32_t alignTransientCallStackSize(const CallConv& callConv, uint64_t size)
+    {
+        if (!size)
+            return 0;
+
+        const uint32_t stackAlignment = callConv.stackAlignment ? callConv.stackAlignment : 16;
+        size                          = Math::alignUpU64(size, stackAlignment);
+        SWC_ASSERT(size <= std::numeric_limits<uint32_t>::max());
+        return static_cast<uint32_t>(size);
+    }
+
+    MicroReg reserveTransientCallStorage(CodeGen& codeGen, const CallConv& callConv, uint32_t sizeInBytes, uint32_t& outTransientStackSize)
+    {
+        const uint32_t stackSize = alignTransientCallStackSize(callConv, sizeInBytes);
+        SWC_ASSERT(stackSize != 0);
+        outTransientStackSize += stackSize;
+
+        MicroBuilder& builder = codeGen.builder();
+        const MicroReg storageReg = codeGen.nextVirtualIntRegister();
+        CodeGenFunctionHelpers::emitStackPointerSubtract(codeGen, callConv, stackSize, storageReg);
+        builder.emitLoadRegReg(storageReg, callConv.stackPointer, MicroOpBits::B64);
+        return storageReg;
+    }
+
+    void materializePreparedIndirectCopyArg(CodeGen& codeGen, CodeGenNodePayload& argPayload, const CallConv& callConv, TypeRef normalizedTypeRef, const ABITypeNormalize::NormalizedType& normalizedArg, uint32_t& outTransientStackSize)
+    {
+        if (!normalizedArg.isIndirect || !normalizedArg.needsIndirectCopy)
+            return;
+
+        SWC_ASSERT(normalizedArg.indirectSize != 0);
+        SWC_ASSERT(argPayload.isAddress());
+        if (!argPayload.isAddress())
+            return;
+
+        const MicroReg storageReg = reserveTransientCallStorage(codeGen, callConv, normalizedArg.indirectSize, outTransientStackSize);
+        CodeGenMemoryHelpers::emitMemCopy(codeGen, storageReg, argPayload.reg, normalizedArg.indirectSize);
+
+        argPayload.reg     = storageReg;
+        argPayload.typeRef = normalizedTypeRef;
+        argPayload.setIsValue();
+    }
+
     void materializePreparedPointerDecayArg(CodeGen& codeGen, CodeGenNodePayload& argPayload, TypeRef normalizedTypeRef, AstNodeRef argRef)
     {
         if (argRef.isInvalid() || normalizedTypeRef.isInvalid())
@@ -677,7 +719,7 @@ namespace
         return Result::Continue;
     }
 
-    Result appendPreparedFixedArg(SmallVector<ABICall::PreparedArg>& outArgs, CodeGen& codeGen, AstNodeRef callRef, const CallConv& callConv, const SymbolVariable* param, const ResolvedCallArgument& arg)
+    Result appendPreparedFixedArg(SmallVector<ABICall::PreparedArg>& outArgs, CodeGen& codeGen, AstNodeRef callRef, const CallConv& callConv, const SymbolVariable* param, const ResolvedCallArgument& arg, uint32_t& outTransientStackSize)
     {
         CodeGenNodePayload argPayload;
         TypeRef            normalizedTypeRef = TypeRef::invalid();
@@ -764,6 +806,7 @@ namespace
             materializePreparedReferenceArg(codeGen, argPayload, normalizedTypeRef, arg, argRef);
             materializePreparedPointerDecayArg(codeGen, argPayload, normalizedTypeRef, argRef);
             const ABITypeNormalize::NormalizedType normalizedArg = ABITypeNormalize::normalize(codeGen.ctx(), callConv, normalizedTypeRef, ABITypeNormalize::Usage::Argument);
+            materializePreparedIndirectCopyArg(codeGen, argPayload, callConv, normalizedTypeRef, normalizedArg, outTransientStackSize);
             materializePreparedBorrowedAggregateArg(codeGen, argPayload, normalizedTypeRef, normalizedArg, argRef);
             materializePreparedDirectScalarArg(codeGen, argPayload, normalizedTypeRef, normalizedArg);
         }
@@ -880,11 +923,14 @@ namespace
         const uint64_t     totalFrameSize = sliceOffset + sizeof(Runtime::Slice<std::byte>);
         SWC_ASSERT(totalFrameSize <= std::numeric_limits<uint32_t>::max());
 
-        outTransientStackSize = static_cast<uint32_t>(totalFrameSize);
-        if (outTransientStackSize)
-            builder.emitOpBinaryRegImm(callConv.stackPointer, ApInt(outTransientStackSize, 64), MicroOp::Subtract, MicroOpBits::B64);
-
+        const uint32_t frameSize = alignTransientCallStackSize(callConv, totalFrameSize);
         const MicroReg frameBaseReg = codeGen.nextVirtualIntRegister();
+        if (frameSize)
+        {
+            outTransientStackSize += frameSize;
+            CodeGenFunctionHelpers::emitStackPointerSubtract(codeGen, callConv, frameSize, frameBaseReg);
+        }
+
         builder.emitLoadRegReg(frameBaseReg, callConv.stackPointer, MicroOpBits::B64);
 
         uint64_t offset = 0;
@@ -956,7 +1002,6 @@ namespace
             if (argView.type() && argView.type()->isVariadic())
             {
                 const CodeGenNodePayload& argPayload = codeGen.payload(args[0].argRef);
-                outTransientStackSize                = 0;
                 outPreparedArg.srcReg                = argPayload.reg;
                 outPreparedArg.kind                  = ABICall::PreparedArgKind::Direct;
                 outPreparedArg.isFloat               = normalizedVariadic.isFloat;
@@ -1045,11 +1090,14 @@ namespace
         const uint64_t     totalFrameSize = sliceOffset + sizeof(Runtime::Slice<std::byte>);
         SWC_ASSERT(totalFrameSize <= std::numeric_limits<uint32_t>::max());
 
-        outTransientStackSize = static_cast<uint32_t>(totalFrameSize);
-        if (outTransientStackSize)
-            builder.emitOpBinaryRegImm(callConv.stackPointer, ApInt(outTransientStackSize, 64), MicroOp::Subtract, MicroOpBits::B64);
-
+        const uint32_t frameSize = alignTransientCallStackSize(callConv, totalFrameSize);
         const MicroReg frameBaseReg = codeGen.nextVirtualIntRegister();
+        if (frameSize)
+        {
+            outTransientStackSize += frameSize;
+            CodeGenFunctionHelpers::emitStackPointerSubtract(codeGen, callConv, frameSize, frameBaseReg);
+        }
+
         builder.emitLoadRegReg(frameBaseReg, callConv.stackPointer, MicroOpBits::B64);
 
         MicroReg anyBaseReg = frameBaseReg;
@@ -1174,7 +1222,7 @@ namespace
             {
                 // Interface dispatch prepends the runtime receiver object, but the selected
                 // interface method symbol only exposes the explicit user parameters.
-                SWC_RESULT(appendPreparedFixedArg(outArgs, codeGen, callRef, callConv, nullptr, resolvedArg));
+                SWC_RESULT(appendPreparedFixedArg(outArgs, codeGen, callRef, callConv, nullptr, resolvedArg, outTransientStackSize));
                 ++argIndex;
                 continue;
             }
@@ -1183,7 +1231,7 @@ namespace
                 break;
 
             const SymbolVariable* param = paramIndex < params.size() ? params[paramIndex] : nullptr;
-            SWC_RESULT(appendPreparedFixedArg(outArgs, codeGen, callRef, callConv, param, resolvedArg));
+            SWC_RESULT(appendPreparedFixedArg(outArgs, codeGen, callRef, callConv, param, resolvedArg, outTransientStackSize));
             ++argIndex;
             ++paramIndex;
         }

@@ -228,10 +228,14 @@ namespace
             return Result::Error;
 
         std::span<const SemaClone::ParamBinding> bindings;
-        if (const auto* inlinePayload = sema.frame().currentInlinePayload();
-            inlinePayload &&
-            inlinePayload->sourceFunction &&
-            inlinePayload->sourceFunction->attributes().hasRtFlag(RtAttributeFlagsE::Mixin))
+        const auto*                              inlinePayload = sema.frame().currentInlinePayload();
+        const bool                               isMixinInject = inlinePayload &&
+                                                                 inlinePayload->sourceFunction &&
+                                                                 inlinePayload->sourceFunction->attributes().hasRtFlag(RtAttributeFlagsE::Mixin);
+        const bool                               isMacroInject = inlinePayload &&
+                                                                 inlinePayload->sourceFunction &&
+                                                                 inlinePayload->sourceFunction->attributes().hasRtFlag(RtAttributeFlagsE::Macro);
+        if (isMixinInject)
         {
             // Mixin code arguments are re-cloned during #inject, so keep the active
             // inline bindings alive for that clone to preserve access to mixin params.
@@ -244,6 +248,15 @@ namespace
             return Result::Error;
 
         sema.setSubstitute(ownerRef, clonedRef);
+        if (isMacroInject && inlinePayload->crossAstInline)
+        {
+            auto       frame       = sema.frame();
+            SemaScope* callerScope = inlinePayload->callerScope;
+            frame.setCurrentInlinePayload(inlinePayload->parentInlinePayload);
+            frame.setLookupScope(callerScope);
+            frame.setUpLookupScope(callerScope ? callerScope->lookupParent() : nullptr);
+            sema.pushFramePopOnPostNode(frame, clonedRef);
+        }
         sema.visit().restartCurrentNode(clonedRef);
         return Result::Continue;
     }

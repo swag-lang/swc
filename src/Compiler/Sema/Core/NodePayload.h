@@ -63,9 +63,21 @@ class NodePayload
     friend class SemaJob;
 
 public:
+    struct StoredView
+    {
+        TypeRef           typeRef = TypeRef::invalid();
+        ConstantRef       cstRef  = ConstantRef::invalid();
+        const Symbol*     sym     = nullptr;
+        std::span<const Symbol*> symList = {};
+        bool              hasSymbol = false;
+        bool              hasSymbolList = false;
+        NodePayloadFlags  flags = static_cast<NodePayloadFlags>(0);
+    };
+
     NodePayload() = default;
     ~NodePayload();
     bool hasResolvedCallArguments(AstNodeRef nodeRef) const;
+    StoredView viewStored(const TaskContext& ctx, AstNodeRef nodeRef) const;
 
 protected:
     Ast&       ast() { return ast_; }

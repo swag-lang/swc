@@ -4,6 +4,7 @@
 SWC_BEGIN_NAMESPACE();
 
 class Sema;
+class Ast;
 
 namespace SemaClone
 {
@@ -25,13 +26,16 @@ namespace SemaClone
     {
         std::span<const ParamBinding>    bindings;
         std::span<const NodeReplacement> replacements;
+        const Ast*                       sourceAst = nullptr;
         bool                             preserveFunctionGenerics = false;
 
         explicit CloneContext(std::span<const ParamBinding>    inBindings,
                               std::span<const NodeReplacement> inReplacements             = std::span<const NodeReplacement>{},
-                              bool                             inPreserveFunctionGenerics = false) :
+                              bool                             inPreserveFunctionGenerics = false,
+                              const Ast*                       inSourceAst                = nullptr) :
             bindings(inBindings),
             replacements(inReplacements),
+            sourceAst(inSourceAst),
             preserveFunctionGenerics(inPreserveFunctionGenerics)
         {
         }

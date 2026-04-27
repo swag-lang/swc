@@ -611,6 +611,8 @@ namespace
             SWC_ASSERT(symVar != nullptr);
             if (!symVar->hasExtraFlag(SymbolVariableFlagsE::NeedsAddressableStorage))
                 continue;
+            if (CodeGenFunctionHelpers::canUseIncomingIndirectCopyAsAddressableParameter(codeGen, codeGen.function(), *symVar))
+                continue;
 
             const TypeRef typeRef = symVar->typeRef();
             SWC_ASSERT(typeRef.isValid());
@@ -641,7 +643,6 @@ namespace
         MicroBuilder&   builder   = codeGen.builder();
         const uint32_t  frameSize = codeGen.localStackFrameSize();
         SWC_ASSERT(frameSize != 0);
-        builder.emitOpBinaryRegImm(callConv.stackPointer, ApInt(frameSize, 64), MicroOp::Subtract, MicroOpBits::B64);
 
         // Materialize the local stack base into a virtual register. RegAlloc will assign
         // it a physical register — we constrain it to a persistent (callee-saved) register
@@ -655,6 +656,7 @@ namespace
             forbiddenRegs.push_back(callConv.framePointer);
         builder.addVirtualRegForbiddenPhysRegs(frameBaseReg, forbiddenRegs.span());
 
+        builder.emitOpBinaryRegImm(callConv.stackPointer, ApInt(frameSize, 64), MicroOp::Subtract, MicroOpBits::B64);
         builder.emitLoadRegReg(frameBaseReg, callConv.stackPointer, MicroOpBits::B64);
         codeGen.setLocalStackBaseReg(frameBaseReg);
         codeGen.function().setDebugStackFrameSize(frameSize);
@@ -1460,6 +1462,16 @@ namespace
         codeGen.setCurrentFunctionIndirectReturnReg(MicroReg::invalid());
         codeGen.setCurrentFunctionClosureContextReg(MicroReg::invalid());
         clearThrowableFunctionPayload(codeGen, declRef);
+
+        SmallVector<CodeGenFunctionHelpers::FunctionParameterInfo> paramInfos;
+        collectFunctionParameterInfos(paramInfos, codeGen, symbolFunc);
+        buildLocalStackLayout(codeGen);
+        {
+            MicroBuilder&           builder = codeGen.builder();
+            const ScopedDebugNoStep noStep(builder, true);
+            emitLocalStackFramePrologue(codeGen, callConvKind);
+        }
+
         if (normalizedRet.isIndirect)
         {
             SWC_ASSERT(!callConv.intArgRegs.empty());
@@ -1484,15 +1496,11 @@ namespace
             codeGen.setCurrentFunctionClosureContextReg(closureContextReg);
         }
 
-        SmallVector<CodeGenFunctionHelpers::FunctionParameterInfo> paramInfos;
-        collectFunctionParameterInfos(paramInfos, codeGen, symbolFunc);
-        buildLocalStackLayout(codeGen);
         {
             MicroBuilder&           builder = codeGen.builder();
             const ScopedDebugNoStep noStep(builder, true);
             materializeRegisterParameters(codeGen, symbolFunc, paramInfos);
             materializeStackParameters(codeGen, symbolFunc, paramInfos);
-            emitLocalStackFramePrologue(codeGen, callConvKind);
             spillAddressableParametersToLocalSlots(codeGen, symbolFunc);
             spillParametersToDebugSlots(codeGen, symbolFunc);
         }

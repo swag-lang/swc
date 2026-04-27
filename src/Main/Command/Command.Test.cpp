@@ -56,12 +56,17 @@ namespace
         if (!decl)
             return file->hasError();
 
-        const TaskContext     ctx(compiler.global(), compiler.cmdLine());
-        const Ast*            declAst = decl->sourceAst(ctx);
-        if (!declAst || declAst->findNodeRef(decl).isInvalid())
+        const SourceView& declView     = compiler.srcView(decl->srcViewRef());
+        const FileRef     ownerFileRef = declView.ownerFileRef();
+        if (!ownerFileRef.isValid())
             return file->hasError();
 
-        const SourceCodeRange startRange = decl->codeRangeWithChildren(ctx, *declAst, compiler.srcView(decl->srcViewRef()));
+        const Ast& declAst = compiler.file(ownerFileRef).ast();
+        if (!declAst.hasSourceView() || declAst.findNodeRef(decl).isInvalid())
+            return file->hasError();
+
+        const TaskContext     ctx(compiler.global(), compiler.cmdLine());
+        const SourceCodeRange startRange = decl->codeRangeWithChildren(ctx, declAst, declView);
         if (!startRange.srcView || !startRange.len)
             return file->hasError();
 

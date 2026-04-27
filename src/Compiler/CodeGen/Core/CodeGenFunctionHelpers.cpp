@@ -11,11 +11,20 @@
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
+#include "Main/Command/CommandLine.h"
 
 SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    constexpr uint64_t K_WINDOWS_STACK_PROBE_PAGE_SIZE = 4096;
+
+    bool needsWindowsStackProbe(CodeGen& codeGen, uint64_t sizeInBytes)
+    {
+        return sizeInBytes > K_WINDOWS_STACK_PROBE_PAGE_SIZE &&
+               codeGen.ctx().cmdLine().targetOs == Runtime::TargetOs::Windows;
+    }
+
     bool stackContainsRange(const std::byte* localStackBase, uint64_t localStackSize, const void* ptr, uint64_t size)
     {
         if (!localStackBase || !localStackSize || !ptr || !size)
@@ -346,6 +355,18 @@ CodeGenFunctionHelpers::FunctionParameterInfo CodeGenFunctionHelpers::functionPa
     return functionParameterInfo(codeGen, symbolFunc, symVar, functionUsesIndirectReturnStorage(codeGen, symbolFunc), symbolFunc.isClosure());
 }
 
+bool CodeGenFunctionHelpers::canUseIncomingIndirectCopyAsAddressableParameter(CodeGen& codeGen, const SymbolFunction& symbolFunc, const SymbolVariable& symVar)
+{
+    if (!symVar.hasExtraFlag(SymbolVariableFlagsE::Parameter))
+        return false;
+    if (!symVar.hasExtraFlag(SymbolVariableFlagsE::NeedsAddressableStorage))
+        return false;
+
+    const CallConv&                        callConv        = CallConv::get(symbolFunc.callConvKind());
+    const ABITypeNormalize::NormalizedType normalizedParam = ABITypeNormalize::normalize(codeGen.ctx(), callConv, symVar.typeRef(), ABITypeNormalize::Usage::Argument);
+    return normalizedParam.isIndirect && normalizedParam.needsIndirectCopy;
+}
+
 void CodeGenFunctionHelpers::emitLoadFunctionParameterToReg(CodeGen& codeGen, const SymbolFunction& symbolFunc, const FunctionParameterInfo& paramInfo, MicroReg dstReg)
 {
     const CallConv& callConv = CallConv::get(symbolFunc.callConvKind());
@@ -424,6 +445,40 @@ bool CodeGenFunctionHelpers::shouldMaterializeAddressBackedValue(CodeGen& codeGe
         return false;
 
     return typeInfo.sizeOf(codeGen.ctx()) > sizeof(uint64_t);
+}
+
+void CodeGenFunctionHelpers::emitStackPointerSubtract(CodeGen& codeGen, const CallConv& callConv, uint64_t sizeInBytes, MicroReg scratchReg)
+{
+    if (!sizeInBytes)
+        return;
+
+    MicroBuilder& builder = codeGen.builder();
+    if (!needsWindowsStackProbe(codeGen, sizeInBytes))
+    {
+        builder.emitOpBinaryRegImm(callConv.stackPointer, ApInt(sizeInBytes, 64), MicroOp::Subtract, MicroOpBits::B64);
+        return;
+    }
+
+    SWC_ASSERT(scratchReg.isValid() && scratchReg != callConv.stackPointer);
+    if (!scratchReg.isValid() || scratchReg == callConv.stackPointer)
+    {
+        builder.emitOpBinaryRegImm(callConv.stackPointer, ApInt(sizeInBytes, 64), MicroOp::Subtract, MicroOpBits::B64);
+        return;
+    }
+
+    uint64_t remaining = sizeInBytes;
+    while (remaining > K_WINDOWS_STACK_PROBE_PAGE_SIZE)
+    {
+        builder.emitOpBinaryRegImm(callConv.stackPointer, ApInt(K_WINDOWS_STACK_PROBE_PAGE_SIZE, 64), MicroOp::Subtract, MicroOpBits::B64);
+        builder.emitLoadRegMem(scratchReg, callConv.stackPointer, 0, MicroOpBits::B64);
+        remaining -= K_WINDOWS_STACK_PROBE_PAGE_SIZE;
+    }
+
+    if (remaining)
+    {
+        builder.emitOpBinaryRegImm(callConv.stackPointer, ApInt(remaining, 64), MicroOp::Subtract, MicroOpBits::B64);
+        builder.emitLoadRegMem(scratchReg, callConv.stackPointer, 0, MicroOpBits::B64);
+    }
 }
 
 bool CodeGenFunctionHelpers::tryUseCurrentFunctionReturnStorageForDirectExpr(CodeGen& codeGen, AstNodeRef nodeRef, MicroReg& outStorageReg)

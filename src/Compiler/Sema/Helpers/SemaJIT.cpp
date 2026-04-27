@@ -48,12 +48,31 @@ namespace
         uint64_t                         resultSize = 0;
     };
 
+    struct ConstCallCacheArg
+    {
+        TypeRef                typeRef = TypeRef::invalid();
+        std::vector<std::byte> bytes;
+    };
+
+    struct ConstCallCacheKey
+    {
+        const SymbolFunction*          function = nullptr;
+        std::vector<ConstCallCacheArg> args;
+    };
+
+    struct ConstCallCacheEntry
+    {
+        ConstCallCacheKey key;
+        ConstantRef       cstRef = ConstantRef::invalid();
+    };
+
     // Owns all buffers needed by a JIT request until completion.
     struct JITNodePayload
     {
         SmallVector<SmallVector<std::byte>> argStorage;
         SmallVector<JITArgument>            jitArgs;
         SmallVector<std::byte>              resultStorage;
+        std::optional<ConstCallCacheKey>    constCallCacheKey;
     };
 
     // Pending execution data associated with one AST node through sema payload.
@@ -71,6 +90,87 @@ namespace
         if (!sema.hasSemaPayload(nodeRef))
             return nullptr;
         return sema.semaPayload<JITPendingNodeData>(nodeRef);
+    }
+
+    bool sameConstCallCacheKey(const ConstCallCacheKey& lhs, const ConstCallCacheKey& rhs)
+    {
+        if (lhs.function != rhs.function || lhs.args.size() != rhs.args.size())
+            return false;
+
+        for (size_t i = 0; i < lhs.args.size(); ++i)
+        {
+            if (lhs.args[i].typeRef != rhs.args[i].typeRef || lhs.args[i].bytes != rhs.args[i].bytes)
+                return false;
+        }
+
+        return true;
+    }
+
+    std::mutex& constCallCacheMutex()
+    {
+        static std::mutex mutex;
+        return mutex;
+    }
+
+    std::vector<ConstCallCacheEntry>& constCallCache()
+    {
+        static std::vector<ConstCallCacheEntry> cache;
+        return cache;
+    }
+
+    bool buildConstCallCacheKey(Sema& sema, ConstCallCacheKey& outKey, const SymbolFunction& function, std::span<const JITArgument> args)
+    {
+        outKey = {};
+        outKey.function = &function;
+        outKey.args.reserve(args.size());
+
+        for (const JITArgument& arg : args)
+        {
+            if (!arg.typeRef.isValid() || !arg.valuePtr)
+                return false;
+
+            const uint64_t byteSize = sema.typeMgr().get(arg.typeRef).sizeOf(sema.ctx());
+            if (!byteSize || byteSize > std::numeric_limits<uint32_t>::max())
+                return false;
+
+            ConstCallCacheArg cacheArg;
+            cacheArg.typeRef = arg.typeRef;
+            cacheArg.bytes.resize(static_cast<size_t>(byteSize));
+            std::memcpy(cacheArg.bytes.data(), arg.valuePtr, cacheArg.bytes.size());
+            outKey.args.push_back(std::move(cacheArg));
+        }
+
+        return true;
+    }
+
+    ConstantRef findConstCallCacheResult(const ConstCallCacheKey& key)
+    {
+        const std::scoped_lock lock(constCallCacheMutex());
+        for (const ConstCallCacheEntry& entry : constCallCache())
+        {
+            if (sameConstCallCacheKey(entry.key, key))
+                return entry.cstRef;
+        }
+
+        return ConstantRef::invalid();
+    }
+
+    void cacheConstCallResult(ConstCallCacheKey key, ConstantRef cstRef)
+    {
+        if (!cstRef.isValid())
+            return;
+
+        const std::scoped_lock lock(constCallCacheMutex());
+        for (ConstCallCacheEntry& entry : constCallCache())
+        {
+            if (!sameConstCallCacheKey(entry.key, key))
+                continue;
+
+            entry.cstRef = cstRef;
+            return;
+        }
+
+        constCallCache().push_back({std::move(key), cstRef});
     }
 
     bool hasPendingJitNode(const Sema& sema, AstNodeRef nodeRef)
@@ -153,9 +253,12 @@ namespace
 
     void applyPendingJitResult(Sema& sema, AstNodeRef nodeRef, const JITPendingNodeData& pendingEntry)
     {
+        const ConstantRef cstRef = makeJitCallResultConstantRef(sema, pendingEntry.resultMeta, pendingEntry.payload->resultStorage.data());
         if (pendingEntry.setFoldedTypedConst)
             sema.setFoldedTypedConst(nodeRef);
-        sema.setConstant(nodeRef, makeJitCallResultConstantRef(sema, pendingEntry.resultMeta, pendingEntry.payload->resultStorage.data()));
+        sema.setConstant(nodeRef, cstRef);
+        if (pendingEntry.payload->constCallCacheKey)
+            cacheConstCallResult(std::move(*pendingEntry.payload->constCallCacheKey), cstRef);
     }
 
     void appendGlobalFunctionInitJitOrder(Sema& sema, SmallVector<SymbolFunction*>& out)
@@ -899,6 +1002,19 @@ Result SemaJIT::tryRunConstCall(Sema& sema, SymbolFunction& calledFn, AstNodeRef
 
     const TypeRef           exprTypeRef = calledFn.returnTypeRef();
     const JITCallResultMeta resultMeta  = computeJitCallResultMeta(sema, exprTypeRef);
+    ConstCallCacheKey       cacheKey;
+    if (buildConstCallCacheKey(sema, cacheKey, calledFn, payload->jitArgs.span()))
+    {
+        if (const ConstantRef cachedRef = findConstCallCacheResult(cacheKey); cachedRef.isValid())
+        {
+            sema.setFoldedTypedConst(callRef);
+            sema.setConstant(callRef, cachedRef);
+            return Result::Continue;
+        }
+
+        payload->constCallCacheKey = std::move(cacheKey);
+    }
+
     SWC_RESULT(prepareJitFunction(sema, calledFn));
 
     payload->resultStorage.resize(resultMeta.resultSize);

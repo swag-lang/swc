@@ -105,6 +105,7 @@
             <OptimizeReferences>true</OptimizeReferences>
             <GenerateDebugInformation>true</GenerateDebugInformation>
             <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
+            <StackReserveSize>8388608</StackReserveSize>
         </Link>
     </ItemDefinitionGroup>
     <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Stats|x64'">
@@ -127,6 +128,7 @@
             <OptimizeReferences>true</OptimizeReferences>
             <GenerateDebugInformation>true</GenerateDebugInformation>
             <LinkTimeCodeGeneration>Default</LinkTimeCodeGeneration>
+            <StackReserveSize>8388608</StackReserveSize>
         </Link>
     </ItemDefinitionGroup>
     <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='DevMode|x64'">
@@ -149,6 +151,7 @@
             <OptimizeReferences>true</OptimizeReferences>
             <GenerateDebugInformation>true</GenerateDebugInformation>
             <LinkTimeCodeGeneration>UseFastLinkTimeCodeGeneration</LinkTimeCodeGeneration>
+            <StackReserveSize>8388608</StackReserveSize>
         </Link>
     </ItemDefinitionGroup>
     <ItemGroup>

@@ -19,6 +19,9 @@ struct SemaInlinePayload
     bool returnsToCallerSite() const { return sourceFunction && sourceFunction->attributes().hasRtFlag(RtAttributeFlagsE::CalleeReturn); }
 
     const SymbolFunction*                            sourceFunction = nullptr;
+    SemaInlinePayload*                               parentInlinePayload = nullptr;
+    SemaScope*                                       callerScope = nullptr;
+    bool                                             crossAstInline = false;
     SymbolVariable*                                  resultVar      = nullptr;
     SmallVector<SemaClone::ParamBinding, 6>          argMappings;
     std::array<IdentifierRef, 10>                    aliasIdentifiers = {};

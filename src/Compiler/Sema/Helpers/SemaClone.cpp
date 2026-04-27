@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Compiler/Sema/Helpers/SemaClone.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
+#include "Compiler/SourceFile.h"
 #include "Compiler/Sema/Cast/Cast.h"
 #include "Compiler/Sema/Core/Sema.h"
 
@@ -18,14 +19,72 @@ namespace
         return static_cast<const SemaClone::CloneContext&>(cloneContext); // NOLINT(cppcoreguidelines-pro-type-static-cast-downcast)
     }
 
+    const Ast& cloneSourceAst(Sema& sema, const SemaClone::CloneContext& cloneContext)
+    {
+        return cloneContext.sourceAst ? *cloneContext.sourceAst : sema.ast();
+    }
+
+    bool canReadSourcePayload(Sema& sema, const SemaClone::CloneContext& cloneContext)
+    {
+        return &cloneSourceAst(sema, cloneContext) == &sema.ast();
+    }
+
+    bool hasStoredFlag(const NodePayload::StoredView& view, NodePayloadFlags flag)
+    {
+        return (static_cast<uint16_t>(view.flags) & static_cast<uint16_t>(flag)) != 0;
+    }
+
+    NodePayload::StoredView currentStoredView(Sema& sema, AstNodeRef sourceRef)
+    {
+        NodePayload::StoredView view;
+        const SemaNodeView      storedView = sema.viewStored(sourceRef, SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant | SemaNodeViewPartE::Symbol);
+        view.typeRef                      = storedView.typeRef();
+        view.cstRef                       = storedView.cstRef();
+        view.sym                          = storedView.sym();
+        view.hasSymbol                    = storedView.hasSymbol();
+        view.hasSymbolList                = storedView.hasSymbolList();
+
+        uint16_t flags = 0;
+        if (sema.isValueStored(sourceRef))
+            flags = static_cast<uint16_t>(flags | static_cast<uint16_t>(NodePayloadFlags::Value));
+        if (sema.isLValueStored(sourceRef))
+            flags = static_cast<uint16_t>(flags | static_cast<uint16_t>(NodePayloadFlags::LValue));
+        if (sema.isFoldedTypedConstStored(sourceRef))
+            flags = static_cast<uint16_t>(flags | static_cast<uint16_t>(NodePayloadFlags::FoldedTypedConst));
+        view.flags = static_cast<NodePayloadFlags>(flags);
+        return view;
+    }
+
+    std::optional<NodePayload::StoredView> sourceStoredView(Sema& sema, const SemaClone::CloneContext& cloneContext, AstNodeRef sourceRef)
+    {
+        if (sourceRef.isInvalid())
+            return std::nullopt;
+
+        const Ast& sourceAst = cloneSourceAst(sema, cloneContext);
+        if (&sourceAst == &sema.ast())
+            return currentStoredView(sema, sourceRef);
+
+        const AstNode&    sourceNode = sourceAst.node(sourceRef);
+        const SourceFile* sourceFile = sema.srcView(sourceNode.srcViewRef()).file();
+        if (!sourceFile)
+            return std::nullopt;
+
+        return sourceFile->nodePayloadContext().viewStored(sema.ctx(), sourceRef);
+    }
+
     SemaClone::CloneContext cloneContextWithoutReplacements(const SemaClone::CloneContext& cloneContext)
     {
-        return SemaClone::CloneContext{cloneContext.bindings, {}, cloneContext.preserveFunctionGenerics};
+        return SemaClone::CloneContext{cloneContext.bindings, {}, cloneContext.preserveFunctionGenerics, cloneContext.sourceAst};
     }
 
     SemaClone::CloneContext cloneContextWithoutBindings(const SemaClone::CloneContext& cloneContext)
     {
-        return SemaClone::CloneContext{std::span<const SemaClone::ParamBinding>{}, cloneContext.replacements, cloneContext.preserveFunctionGenerics};
+        return SemaClone::CloneContext{std::span<const SemaClone::ParamBinding>{}, cloneContext.replacements, cloneContext.preserveFunctionGenerics, cloneContext.sourceAst};
+    }
+
+    SemaClone::CloneContext cloneContextForDestinationAst(const SemaClone::CloneContext& cloneContext)
+    {
+        return SemaClone::CloneContext{cloneContext.bindings, cloneContext.replacements, cloneContext.preserveFunctionGenerics};
     }
 
     const SemaClone::ParamBinding* findBinding(const SemaClone::CloneContext& cloneContext, IdentifierRef idRef)
@@ -105,11 +164,15 @@ namespace
         if (!replacement)
             return AstNodeRef::invalid();
 
-        return cloneNodeRefWithoutReplacements(sema, replacement->replacementRef, cloneContext);
+        const auto destinationContext = cloneContextForDestinationAst(cloneContext);
+        return cloneNodeRefWithoutReplacements(sema, replacement->replacementRef, destinationContext);
     }
 
-    void copyCallableClonePayload(Sema& sema, AstNodeRef sourceRef, AstNodeRef clonedRef)
+    void copyCallableClonePayload(Sema& sema, const SemaClone::CloneContext& cloneContext, AstNodeRef sourceRef, AstNodeRef clonedRef)
     {
+        if (!canReadSourcePayload(sema, cloneContext))
+            return;
+
         const AstNode& sourceNode = sema.node(sourceRef);
         if (sourceNode.isNot(AstNodeId::FunctionExpr) && sourceNode.isNot(AstNodeId::ClosureExpr))
             return;
@@ -134,8 +197,11 @@ namespace
     // them, so the type must be carried over to the clone explicitly.
     // Skip when the source has a constant, as setType would overwrite the
     // payload slot that constant folding relies on.
-    void copyImplicitCastType(Sema& sema, const AstNode& sourceNode, AstNodeRef sourceRef, AstNodeRef clonedRef)
+    void copyImplicitCastType(Sema& sema, const SemaClone::CloneContext& cloneContext, const AstNode& sourceNode, AstNodeRef sourceRef, AstNodeRef clonedRef)
     {
+        if (!canReadSourcePayload(sema, cloneContext))
+            return;
+
         if (sourceNode.isNot(AstNodeId::CastExpr))
             return;
         if (sourceNode.cast<AstCastExpr>().hasFlag(AstCastExprFlagsE::Explicit))
@@ -153,7 +219,7 @@ namespace
             return SpanRef::invalid();
 
         SmallVector<AstNodeRef> children;
-        sema.ast().appendNodes(children, spanRef);
+        cloneSourceAst(sema, cloneContext).appendNodes(children, spanRef);
         if (children.empty())
             return SpanRef::invalid();
 
@@ -170,6 +236,19 @@ namespace
         return sema.ast().pushSpan(cloned.span());
     }
 
+    SpanRef cloneTokenSpan(Sema& sema, SpanRef spanRef, const SemaClone::CloneContext& cloneContext)
+    {
+        if (spanRef.isInvalid())
+            return SpanRef::invalid();
+
+        SmallVector<TokenRef> tokens;
+        cloneSourceAst(sema, cloneContext).appendTokens(tokens, spanRef);
+        if (tokens.empty())
+            return SpanRef::invalid();
+
+        return sema.ast().pushSpan(tokens.span());
+    }
+
     SpanRef cloneSpanWithoutReplacements(Sema& sema, SpanRef spanRef, const SemaClone::CloneContext& cloneContext)
     {
         if (spanRef.isInvalid())
@@ -181,12 +260,13 @@ namespace
 
     AstNodeRef cloneIdentifier(Sema& sema, const AstIdentifier& node, const SemaClone::CloneContext& cloneContext)
     {
-        const AstNodeRef   sourceRef  = node.nodeRef(sema.ast());
-        const SemaNodeView storedView = sema.viewStored(sourceRef, SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant | SemaNodeViewPartE::Symbol);
+        const Ast&                                sourceAst  = cloneSourceAst(sema, cloneContext);
+        const AstNodeRef                          sourceRef  = node.nodeRef(sourceAst);
+        const std::optional<NodePayload::StoredView> storedView = sourceStoredView(sema, cloneContext, sourceRef);
 
         IdentifierRef idRef = IdentifierRef::invalid();
-        if (storedView.sym())
-            idRef = storedView.sym()->idRef();
+        if (storedView && storedView->sym)
+            idRef = storedView->sym->idRef();
         if (!idRef.isValid())
             idRef = sema.idMgr().addIdentifier(sema.ctx(), node.codeRef());
 
@@ -224,25 +304,27 @@ namespace
         auto [nodeRef, nodePtr] = sema.ast().makeNode<AstNodeId::Identifier>(node.tokRef());
         nodePtr->flags()        = node.flags();
         nodePtr->setCodeRef(node.codeRef());
-        const bool preserveSyntheticSymbol = storedView.sym() &&
+        const bool preserveSyntheticSymbol = storedView && storedView->sym &&
                                              (!node.codeRef().isValid() || sema.token(node.codeRef()).id != TokenId::Identifier);
         if (preserveSyntheticSymbol)
-            sema.setSymbol(nodeRef, storedView.sym());
-        const bool carryInline = !storedView.hasSymbol() && (storedView.typeRef().isValid() || storedView.cstRef().isValid());
+            sema.setSymbol(nodeRef, storedView->sym);
+        const bool crossAstSource = &sourceAst != &sema.ast();
+        const bool carryInline    = storedView && ((!storedView->hasSymbol && (storedView->typeRef.isValid() || storedView->cstRef.isValid())) ||
+                                                   (crossAstSource && storedView->cstRef.isValid()));
         if (carryInline)
         {
             // Nested generic cloning can hit identifiers that were already substituted by an
             // outer specialization pass. Preserve that pre-resolved type/constant payload so
             // later clones do not resurrect the original generic identifier.
-            if (storedView.typeRef().isValid())
-                sema.setType(nodeRef, storedView.typeRef());
-            if (storedView.cstRef().isValid())
-                sema.setConstant(nodeRef, storedView.cstRef());
-            if (sema.isValueStored(sourceRef))
+            if (storedView->typeRef.isValid())
+                sema.setType(nodeRef, storedView->typeRef);
+            if (storedView->cstRef.isValid())
+                sema.setConstant(nodeRef, storedView->cstRef);
+            if (hasStoredFlag(*storedView, NodePayloadFlags::Value))
                 sema.setIsValue(nodeRef);
-            if (sema.isLValueStored(sourceRef))
+            if (hasStoredFlag(*storedView, NodePayloadFlags::LValue))
                 sema.setIsLValue(nodeRef);
-            if (sema.isFoldedTypedConstStored(sourceRef))
+            if (hasStoredFlag(*storedView, NodePayloadFlags::FoldedTypedConst))
                 sema.setFoldedTypedConst(nodeRef);
         }
 
@@ -253,7 +335,8 @@ namespace
 AstNodeRef SemaClone::cloneAst(Sema& sema, AstNodeRef nodeRef, const CloneContext& cloneContext)
 {
     SWC_ASSERT(nodeRef.isValid());
-    AstNode&          node            = sema.node(nodeRef);
+    const Ast&        sourceAst       = cloneSourceAst(sema, cloneContext);
+    AstNode&          node            = const_cast<AstNode&>(sourceAst.node(nodeRef));
     SourceView* const previousSrcView = Ast::setThreadSourceViewOverride(&sema.srcView(node.srcViewRef()));
 
     AstNodeRef clonedRef = cloneNodeReplacement(sema, node, cloneContext);
@@ -271,8 +354,8 @@ AstNodeRef SemaClone::cloneAst(Sema& sema, AstNodeRef nodeRef, const CloneContex
     }
 
     Ast::setThreadSourceViewOverride(previousSrcView);
-    copyCallableClonePayload(sema, nodeRef, clonedRef);
-    copyImplicitCastType(sema, node, nodeRef, clonedRef);
+    copyCallableClonePayload(sema, cloneContext, nodeRef, clonedRef);
+    copyImplicitCastType(sema, cloneContext, node, nodeRef, clonedRef);
     return clonedRef;
 }
 
@@ -640,7 +723,7 @@ AstNodeRef AstCompilerInject::semaClone(Sema& sema, const CloneContext& cloneCon
     const AstNodeRef newRef          = cloneNodeCopy<AstNodeId::CompilerInject>(sema, *this);
     auto&            cloned          = sema.node(newRef).cast<AstCompilerInject>();
     cloned.nodeExprRef               = cloneNodeRef(sema, nodeExprRef, cloneContextAsInline(cloneContext));
-    cloned.spanReplaceInstructionRef = spanReplaceInstructionRef;
+    cloned.spanReplaceInstructionRef = cloneTokenSpan(sema, spanReplaceInstructionRef, cloneContextAsInline(cloneContext));
     cloned.spanReplaceNodeRef        = cloneSpanWithoutReplacements(sema, spanReplaceNodeRef, cloneContextAsInline(cloneContext));
     return newRef;
 }
@@ -1212,22 +1295,24 @@ AstNodeRef AstAggregateBody::semaClone(Sema& sema, const CloneContext& cloneCont
 
 AstNodeRef AstSuffixLiteral::semaClone(Sema& sema, const CloneContext& cloneContext) const
 {
-    const AstNodeRef   sourceRef  = nodeRef(sema.ast());
-    const SemaNodeView storedView = sema.viewStored(sourceRef, SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
+    const auto& inlineContext = cloneContextAsInline(cloneContext);
+    const Ast&  sourceAst     = cloneSourceAst(sema, inlineContext);
+    const AstNodeRef sourceRef = nodeRef(sourceAst);
+    const auto  storedView    = sourceStoredView(sema, inlineContext, sourceRef);
 
     auto [newRef, newPtr] = sema.ast().makeNode<AstNodeId::SuffixLiteral>(tokRef());
     newPtr->setCodeRef(codeRef());
     newPtr->nodeLiteralRef = SemaClone::cloneAst(sema, nodeLiteralRef, cloneContextAsInline(cloneContext));
     newPtr->nodeSuffixRef  = SemaClone::cloneAst(sema, nodeSuffixRef, cloneContextAsInline(cloneContext));
-    if (storedView.typeRef().isValid())
-        sema.setType(newRef, storedView.typeRef());
-    if (storedView.cstRef().isValid())
-        sema.setConstant(newRef, storedView.cstRef());
-    if (sema.isValueStored(sourceRef))
+    if (storedView && storedView->typeRef.isValid())
+        sema.setType(newRef, storedView->typeRef);
+    if (storedView && storedView->cstRef.isValid())
+        sema.setConstant(newRef, storedView->cstRef);
+    if (storedView && hasStoredFlag(*storedView, NodePayloadFlags::Value))
         sema.setIsValue(newRef);
-    if (sema.isLValueStored(sourceRef))
+    if (storedView && hasStoredFlag(*storedView, NodePayloadFlags::LValue))
         sema.setIsLValue(newRef);
-    if (sema.isFoldedTypedConstStored(sourceRef))
+    if (storedView && hasStoredFlag(*storedView, NodePayloadFlags::FoldedTypedConst))
         sema.setFoldedTypedConst(newRef);
     return newRef;
 }

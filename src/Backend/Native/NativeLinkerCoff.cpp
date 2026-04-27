@@ -4,6 +4,40 @@
 
 SWC_BEGIN_NAMESPACE();
 
+namespace
+{
+    constexpr uint32_t DEFAULT_EXECUTABLE_STACK_RESERVE = 8u * 1024u * 1024u;
+
+    bool hasUserStackReserveArg(const Runtime::String& linkerArgs)
+    {
+        if (!linkerArgs.ptr || linkerArgs.length == 0)
+            return false;
+
+        const std::string_view raw(linkerArgs.ptr, linkerArgs.length);
+        size_t                 index = 0;
+        while (index < raw.size())
+        {
+            while (index < raw.size() && std::isspace(static_cast<unsigned char>(raw[index])))
+                ++index;
+            if (index >= raw.size())
+                break;
+
+            size_t end = index;
+            while (end < raw.size() && !std::isspace(static_cast<unsigned char>(raw[end])))
+                ++end;
+
+            const std::string_view arg = raw.substr(index, end - index);
+            if (arg.size() >= 6 &&
+                (arg.starts_with("/STACK") || arg.starts_with("-STACK") || arg.starts_with("/stack") || arg.starts_with("-stack")))
+                return true;
+
+            index = end;
+        }
+
+        return false;
+    }
+}
+
 NativeLinkerCoff::NativeLinkerCoff(NativeBackendBuilder& builder) :
     NativeLinker(builder)
 {
@@ -104,6 +138,8 @@ std::vector<Utf8> NativeLinkerCoff::buildLinkArguments(const bool dll) const
     {
         args.emplace_back("/SUBSYSTEM:CONSOLE");
         args.emplace_back("/ENTRY:mainCRTStartup");
+        if (!hasUserStackReserveArg(builder_->compiler().buildCfg().linkerArgs))
+            args.emplace_back(std::format("/STACK:{}", DEFAULT_EXECUTABLE_STACK_RESERVE));
     }
 
     args.emplace_back(std::format("/OUT:{}", Utf8(builder_->artifactPath)));

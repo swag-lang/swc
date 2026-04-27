@@ -59,7 +59,7 @@ const IdentifierManager& TaskContext::idMgr() const
 
 const TaskContext* TaskContext::setCurrent(const TaskContext* ctx) noexcept
 {
-    const TaskContext* const previous = current_;
+    const TaskContext* previous = current_;
     current_                          = ctx;
     return previous;
 }

@@ -187,7 +187,7 @@ namespace
         uint64_t depth = 0;
         for (auto it = context.instructions->view().begin(); it != context.instructions->view().end(); ++it)
         {
-            const MicroInstrOperand* const ops = it->ops(*context.operands);
+            const MicroInstrOperand* ops = it->ops(*context.operands);
 
             if (it->op == MicroInstrOpcode::Label && ops && ops[0].valueU64 <= std::numeric_limits<uint32_t>::max())
             {
@@ -249,7 +249,7 @@ namespace
             auto nextIt = it;
             ++nextIt;
 
-            MicroInstrOperand* const ops = it->ops(*context.operands);
+            MicroInstrOperand* ops = it->ops(*context.operands);
             if (!rebaseInstructionStackOffsets(*it, ops, conv.stackPointer, delta, false))
                 return false;
 
@@ -312,7 +312,7 @@ namespace
             if (!delta)
                 continue;
 
-            MicroInstrOperand* const ops = currentIt->ops(*context.operands);
+            MicroInstrOperand* ops = currentIt->ops(*context.operands);
             SWC_ASSERT(rebaseInstructionStackOffsets(*currentIt, ops, conv.stackPointer, delta, true));
 
             MicroReg   copiedStackReg = MicroReg::invalid();

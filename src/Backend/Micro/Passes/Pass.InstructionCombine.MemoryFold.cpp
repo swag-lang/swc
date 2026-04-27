@@ -142,7 +142,7 @@ namespace InstructionCombine
                     return false;
 
                 TripleInfo                     tri;
-                const MicroInstrOperand* const opOps = mid.inst->ops(*ctx.operands);
+                const MicroInstrOperand* opOps = mid.inst->ops(*ctx.operands);
                 if (!extractMiddleOperands(tri, *mid.inst, opOps))
                     return false;
 

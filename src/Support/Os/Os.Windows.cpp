@@ -1066,7 +1066,7 @@ namespace Os
 
     void* allocExecutableMemory(uint32_t size)
     {
-        void* const ptr = VirtualAlloc(nullptr, size, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
+        void* ptr = VirtualAlloc(nullptr, size, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
         MemoryProfile::trackExternalAlloc(ptr, size);
         return ptr;
     }
@@ -1100,7 +1100,7 @@ namespace Os
             return false;
 
         SWC_ASSERT(executableMemory.hostRuntimeFunction_ == nullptr);
-        auto* const runtimeFunction = new RUNTIME_FUNCTION{};
+        auto* runtimeFunction = new RUNTIME_FUNCTION{};
 
         runtimeFunction->BeginAddress = 0;
         runtimeFunction->EndAddress   = executableMemory.size_;
@@ -1122,7 +1122,7 @@ namespace Os
         if (!executableMemory.hostRuntimeFunction_)
             return;
 
-        auto* const runtimeFunction = static_cast<RUNTIME_FUNCTION*>(executableMemory.hostRuntimeFunction_);
+        auto* runtimeFunction = static_cast<RUNTIME_FUNCTION*>(executableMemory.hostRuntimeFunction_);
         (void) RtlDeleteFunctionTable(runtimeFunction);
         delete runtimeFunction;
         executableMemory.hostRuntimeFunction_ = nullptr;

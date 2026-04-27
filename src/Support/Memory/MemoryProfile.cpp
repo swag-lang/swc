@@ -290,7 +290,7 @@ namespace MemoryProfile
             return;
 
 #if SWC_HAS_STATS
-        const auto* const header = static_cast<AllocationHeader*>(block) - 1;
+        const auto* header = static_cast<AllocationHeader*>(block) - 1;
         if (header->flags & K_ALLOCATION_FLAG_TRACKED)
         {
             applyCategoryFree(header->categoryIndex, header->trackedBytes);

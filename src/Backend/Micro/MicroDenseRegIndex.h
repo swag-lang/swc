@@ -24,7 +24,7 @@ public:
 
     uint32_t ensure(const MicroReg reg)
     {
-        if (uint32_t* const directIndex = directIndexSlot(reg))
+        if (uint32_t* directIndex = directIndexSlot(reg))
         {
             if (*directIndex != K_INVALID_INDEX)
                 return *directIndex;
@@ -47,7 +47,7 @@ public:
 
     uint32_t find(const MicroReg reg) const
     {
-        if (const uint32_t* const directIndex = directIndexSlot(reg))
+        if (const uint32_t* directIndex = directIndexSlot(reg))
             return *directIndex;
 
         const auto it = regToIndex_.find(reg);

@@ -74,7 +74,7 @@ std::byte* JITMemoryManager::allocateSlow(const uint32_t allocationSize)
         block->ptr  = ptr;
         block->size = blockSize;
 
-        Block* const blockPtr = block.get();
+        Block* blockPtr = block.get();
         blocks_.push_back(std::move(block));
         const bool allocated = tryAllocateFromBlock(dst, *blockPtr, allocationSize);
         SWC_ASSERT(allocated);
@@ -96,7 +96,7 @@ void JITMemoryManager::allocateWithCodeSize(JITMemory& outExecutableMemory, cons
     const uint32_t requestSizeAlign = alignUp(requestSize, pageSize);
 
     std::byte* dst = nullptr;
-    if (Block* const block = currentBlock_.load(std::memory_order_acquire))
+    if (Block* block = currentBlock_.load(std::memory_order_acquire))
     {
         if (!tryAllocateFromBlock(dst, *block, requestSizeAlign))
             dst = nullptr;

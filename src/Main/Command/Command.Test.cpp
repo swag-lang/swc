@@ -126,7 +126,7 @@ namespace
 
         while (!stack.empty())
         {
-            const SymbolFunction* const function = stack.back();
+            const SymbolFunction* function = stack.back();
             stack.pop_back();
             if (!function)
                 continue;
@@ -161,7 +161,7 @@ namespace
 
         while (!stack.empty())
         {
-            const SymbolFunction* const function = stack.back();
+            const SymbolFunction* function = stack.back();
             stack.pop_back();
 
             const auto parents = graph.reverseDependencies.find(function);

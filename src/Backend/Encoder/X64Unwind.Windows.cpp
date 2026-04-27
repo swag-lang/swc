@@ -127,7 +127,7 @@ void X64UnwindWindows::buildInfo(std::vector<std::byte>& outUnwindInfo, const ui
     const uint32_t unwindSlotCountAligned = (unwindSlotCount + 1u) & ~1u;
 
     outUnwindInfo.resize(4 + unwindSlotCountAligned * sizeof(uint16_t));
-    auto* const outBytes = reinterpret_cast<uint8_t*>(outUnwindInfo.data());
+    auto* outBytes = reinterpret_cast<uint8_t*>(outUnwindInfo.data());
     outBytes[0]          = 1;
     outBytes[1]          = unwindPrologSize_;
     outBytes[2]          = static_cast<uint8_t>(unwindSlotCount);

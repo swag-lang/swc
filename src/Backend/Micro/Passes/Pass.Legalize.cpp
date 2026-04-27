@@ -923,7 +923,7 @@ Result MicroLegalizePass::run(MicroPassContext& context)
         if (!instPtr)
             continue;
         const MicroInstr&        inst = *instPtr;
-        MicroInstrOperand* const ops  = inst.ops(*context.operands);
+        MicroInstrOperand* ops        = inst.ops(*context.operands);
 
         MicroConformanceIssue issue;
         if (!encoder.queryConformanceIssue(issue, inst, ops))
@@ -935,11 +935,11 @@ Result MicroLegalizePass::run(MicroPassContext& context)
             const uint64_t stackScratchBaseOffset = computeStackScratchBaseOffset(context, encoder, instRef, stackScratchFrameSize);
             applyLegalizeIssue(context, encoder, instRef, inst, ops, issue, stackScratchBaseOffset, nextVirtualIntRegIndex, nextVirtualFloatRegIndex);
 
-            const MicroInstr* const currentInst = context.instructions->ptr(instRef);
+            const MicroInstr* currentInst = context.instructions->ptr(instRef);
             if (!currentInst)
                 break;
 
-            const MicroInstrOperand* const currentOps = currentInst->ops(*context.operands);
+            const MicroInstrOperand* currentOps = currentInst->ops(*context.operands);
             if (!encoder.queryConformanceIssue(issue, *currentInst, currentOps))
                 break;
         }

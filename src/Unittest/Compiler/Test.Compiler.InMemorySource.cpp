@@ -45,7 +45,7 @@ SWC_TEST_BEGIN(Compiler_InMemorySourceRunsSemaWithoutDiskIO)
     if (files.size() != 1)
         return Result::Error;
 
-    const SourceFile* const file = files.front();
+    const SourceFile* file = files.front();
     if (!file)
         return Result::Error;
     if (!FileSystem::pathEquals(file->path(), sourcePath))
@@ -53,7 +53,7 @@ SWC_TEST_BEGIN(Compiler_InMemorySourceRunsSemaWithoutDiskIO)
     if (!file->ast().hasSourceView() || file->ast().root().isInvalid())
         return Result::Error;
 
-    const SourceView* const srcView = compiler.findSourceViewByFileName(sourcePath.string());
+    const SourceView* srcView = compiler.findSourceViewByFileName(sourcePath.string());
     if (!srcView)
         return Result::Error;
     if (srcView->file() != file)

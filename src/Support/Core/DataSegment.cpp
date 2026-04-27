@@ -314,7 +314,7 @@ std::pair<uint32_t, std::byte*> DataSegment::allocateStorageLocked(uint32_t size
             std::memset(block.storage.get(), 0, size);
 
         const uint32_t   offset  = block.offset;
-        std::byte* const ptr     = block.storage.get();
+        std::byte* ptr           = block.storage.get();
         const auto       begin   = reinterpret_cast<uintptr_t>(ptr);
         largeBlockRanges_[begin] = {
             .offsetEnd   = begin + size,

@@ -308,7 +308,7 @@ namespace
         if (outTargetAddress != 0)
             return Result::Continue;
 
-        Symbol* const targetSymbol = reloc.targetSymbol;
+        Symbol* targetSymbol = reloc.targetSymbol;
         if (!targetSymbol)
         {
             if (outFailure)
@@ -385,7 +385,7 @@ namespace
         if (outTargetAddress != 0)
             return true;
 
-        Symbol* const targetSymbol = reloc.targetSymbol;
+        Symbol* targetSymbol = reloc.targetSymbol;
         if (!targetSymbol)
         {
             if (outFailure)
@@ -585,7 +585,7 @@ namespace
             }
 
             SWC_ASSERT(relocation.kind == DataSegmentRelocationKind::FunctionSymbol);
-            const SymbolFunction* const targetFunction = relocation.targetSymbol;
+            const SymbolFunction* targetFunction = relocation.targetSymbol;
             SWC_ASSERT(targetFunction != nullptr);
 
             MicroRelocation reloc;
@@ -736,7 +736,7 @@ Result JIT::patchGlobalFunctionVariables(TaskContext& ctx)
         if (symVar->globalStorageKind() != DataSegmentKind::GlobalInit)
             continue;
 
-        SymbolFunction* const targetFunction = symVar->globalFunctionInit();
+        SymbolFunction* targetFunction = symVar->globalFunctionInit();
         if (!targetFunction)
             continue;
 
@@ -759,7 +759,7 @@ Result JIT::patchGlobalFunctionVariables(TaskContext& ctx)
             resolveResult = ensureLocalFunctionTargetCallable(ctx, *targetFunction, nullptr);
             if (resolveResult == Result::Continue)
             {
-                void* const entryAddress = targetFunction->jitEntryAddress();
+                void* entryAddress = targetFunction->jitEntryAddress();
                 if (!entryAddress)
                 {
                     failure.kind         = RelocationResolveFailureKind::LocalTargetUnavailable;
@@ -877,7 +877,7 @@ Result JIT::emitAndCall(TaskContext& ctx, void* targetFn, std::span<const JITArg
         if (argType.needsIndirectCopy)
         {
             indirectArgStorageOffset = Math::alignUpU32(indirectArgStorageOffset, argType.indirectAlign);
-            uint8_t* const copyPtr   = indirectArgStorage.data() + indirectArgStorageOffset;
+            uint8_t* copyPtr         = indirectArgStorage.data() + indirectArgStorageOffset;
             std::memcpy(copyPtr, arg.valuePtr, argType.indirectSize);
             indirectValuePtr = copyPtr;
             indirectArgStorageOffset += argType.indirectSize;
@@ -907,7 +907,7 @@ Result JIT::emitAndCall(TaskContext& ctx, void* targetFn, std::span<const JITArg
     JITMemory executableMemory;
     SWC_RESULT(emit(ctx, executableMemory, asByteSpan(loweredCode.bytes), loweredCode.codeRelocations, loweredCode.unwindInfo));
 
-    void* const invoker = executableMemory.entryPoint();
+    void* invoker = executableMemory.entryPoint();
     SWC_ASSERT(invoker != nullptr);
     return call(ctx, invoker);
 }
@@ -1062,8 +1062,8 @@ namespace
         // Compiler-side diagnostics are raised with RaiseException and already carry
         // the full payload in the SEH record. Prefer that transport so we keep the
         // exact location and message even if the runtime context layout changes.
-        const auto* const args   = static_cast<const EXCEPTION_POINTERS*>(platformExceptionPointers);
-        const auto* const record = args ? args->ExceptionRecord : nullptr;
+        const auto* args   = static_cast<const EXCEPTION_POINTERS*>(platformExceptionPointers);
+        const auto* record = args ? args->ExceptionRecord : nullptr;
         if (record && record->NumberParameters >= 4)
         {
             outLocation         = reinterpret_cast<const Runtime::SourceCodeLocation*>(record->ExceptionInformation[0]);
@@ -1151,7 +1151,7 @@ namespace
         if (location)
         {
             const std::string_view  locationFileName = runtimeStringView(location->fileName);
-            const SourceView* const srcView          = ctx.compiler().findSourceViewByFileName(locationFileName);
+            const SourceView* srcView                = ctx.compiler().findSourceViewByFileName(locationFileName);
             if (srcView)
             {
                 fileRef = srcView->fileRef();
@@ -1182,8 +1182,8 @@ namespace
     Utf8 formatJitCrashContext(const TaskContext& ctx, const void* platformExceptionPointers)
     {
 #ifdef _WIN32
-        const auto* const args    = static_cast<const EXCEPTION_POINTERS*>(platformExceptionPointers);
-        const auto* const context = args ? args->ContextRecord : nullptr;
+        const auto* args    = static_cast<const EXCEPTION_POINTERS*>(platformExceptionPointers);
+        const auto* context = args ? args->ContextRecord : nullptr;
         if (!context)
             return {};
 
@@ -1195,7 +1195,7 @@ namespace
         std::vector<const SymbolFunction*> functions;
         functions.reserve(preparedFunctions.size() + (ctx.state().runJitFunction ? 1u : 0u));
 
-        if (const SymbolFunction* const currentFn = ctx.state().runJitFunction)
+        if (const SymbolFunction* currentFn = ctx.state().runJitFunction)
             functions.push_back(currentFn);
 
         for (const SymbolFunction* function : preparedFunctions)
@@ -1206,7 +1206,7 @@ namespace
             if (!function)
                 continue;
 
-            const void* const entryPtr = function->jitEntryAddress();
+            const void* entryPtr = function->jitEntryAddress();
             if (!entryPtr)
                 continue;
 
@@ -1228,7 +1228,7 @@ namespace
         Utf8 out;
         if (!matchedFn || !matchedCode)
         {
-            if (const SymbolFunction* const currentFn = ctx.state().runJitFunction)
+            if (const SymbolFunction* currentFn = ctx.state().runJitFunction)
             {
                 out += std::format("jit current function: {}\n", currentFn->getFullScopedName(ctx));
                 out += std::format("jit current entry: 0x{:016X}\n", reinterpret_cast<uint64_t>(currentFn->jitEntryAddress()));
@@ -1320,7 +1320,7 @@ namespace
 
 Result JIT::call(TaskContext& ctx, void* invoker, const uint64_t* arg0, JITCallErrorKind* outErrorKind)
 {
-    const TaskContext* const savedContext = TaskContext::setCurrent(&ctx);
+    const TaskContext* savedContext = TaskContext::setCurrent(&ctx);
     SWC_ASSERT(invoker != nullptr);
     ctx.compiler().initPerThreadRuntimeContextForJit();
 

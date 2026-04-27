@@ -594,7 +594,7 @@ var GValue: s32 = 0
     if (Stats::getNumErrors() != errorsBefore)
         return Result::Error;
 
-    const SymbolFunction* const testFn = compiler.nativeTestFunctions().front();
+    const SymbolFunction* testFn = compiler.nativeTestFunctions().front();
     if (!testFn)
         return Result::Error;
     if (!testFn->jitEntryAddress())
@@ -610,7 +610,7 @@ var GValue: s32 = 0
     if (Stats::getNumErrors() != errorsBefore)
         return Result::Error;
 
-    const auto* const globalValue = reinterpret_cast<const int32_t*>(compiler.dataSegmentAddress(globalVar->globalStorageKind(), globalVar->offset()));
+    const auto* globalValue = reinterpret_cast<const int32_t*>(compiler.dataSegmentAddress(globalVar->globalStorageKind(), globalVar->offset()));
     if (!globalValue || *globalValue != 666)
         return Result::Error;
 }

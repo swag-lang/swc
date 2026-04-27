@@ -874,7 +874,7 @@ SWC_TEST_BEGIN(DebugInfo_CompilerTestFunctionsPreserveStackDebugMetadata)
     if (nativeTests.size() != 1)
         return Result::Error;
 
-    const SymbolFunction* const testFn = nativeTests.front();
+    const SymbolFunction* testFn = nativeTests.front();
     if (!testFn)
         return Result::Error;
     if (testFn->debugStackFrameSize() == 0)

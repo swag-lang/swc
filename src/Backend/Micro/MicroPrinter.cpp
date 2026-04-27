@@ -1262,7 +1262,7 @@ namespace
             const TypeInfo& typeInfo = ctx.typeMgr().get(cst.typeRef());
             if (typeInfo.isString() && cst.isStruct(cst.typeRef()))
             {
-                const auto* const value = cst.getStruct<Runtime::String>(cst.typeRef());
+                const auto* value = cst.getStruct<Runtime::String>(cst.typeRef());
                 return quotedConstantPreview(escapeConstantPreview(Utf8{*value}));
             }
         }
@@ -1326,9 +1326,9 @@ namespace
         if (relocation.targetSymbol && relocation.targetSymbol->isFunction())
         {
             const auto& targetFunction = relocation.targetSymbol->cast<SymbolFunction>();
-            if (const void* const patchAddress = targetFunction.jitPatchAddress())
+            if (const void* patchAddress = targetFunction.jitPatchAddress())
                 return hexU64(reinterpret_cast<uint64_t>(patchAddress));
-            if (const void* const entryAddress = targetFunction.jitEntryAddress())
+            if (const void* entryAddress = targetFunction.jitEntryAddress())
                 return hexU64(reinterpret_cast<uint64_t>(entryAddress));
         }
 
@@ -1383,7 +1383,7 @@ Utf8 MicroPrinter::format(const TaskContext& ctx, const MicroStorage& instructio
             if (reloc.instructionRef.isInvalid())
                 continue;
 
-            const MicroInstr* const inst = instructions.ptr(reloc.instructionRef);
+            const MicroInstr* inst = instructions.ptr(reloc.instructionRef);
             if (!inst)
                 continue;
             relocationByInstructionRef[reloc.instructionRef] = &reloc;

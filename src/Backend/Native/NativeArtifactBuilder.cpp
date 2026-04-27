@@ -392,7 +392,7 @@ Result NativeArtifactBuilder::prepareDataSectionsWithoutStartup(NativeRDataColle
             if (symbol->globalStorageKind() != DataSegmentKind::GlobalInit)
                 continue;
 
-            const SymbolFunction* const targetFunction = symbol->globalFunctionInit();
+            const SymbolFunction* targetFunction = symbol->globalFunctionInit();
             if (!targetFunction)
                 continue;
 

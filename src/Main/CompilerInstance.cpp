@@ -973,7 +973,7 @@ void CompilerInstance::initPerThreadRuntimeContextForJit()
 
     if (nativeRuntimeContextTlsIdOffset_ != UINT32_MAX)
     {
-        uint64_t* const tlsStorage = globalZeroSegment_.ptr<uint64_t>(nativeRuntimeContextTlsIdOffset_);
+        uint64_t* tlsStorage = globalZeroSegment_.ptr<uint64_t>(nativeRuntimeContextTlsIdOffset_);
         SWC_ASSERT(tlsStorage != nullptr);
         *tlsStorage = runtimeContextTlsId() + 1;
     }
@@ -1240,7 +1240,7 @@ SourceView& CompilerInstance::addSourceView(FileRef fileRef)
     SWC_RACE_CONDITION_READ(rcFiles_);
     SWC_ASSERT(fileRef.get() < files_.size());
     auto              srcViewRef = static_cast<SourceViewRef>(static_cast<uint32_t>(srcViews_.size()));
-    SourceFile* const ownerFile  = files_[fileRef.get()].get();
+    SourceFile* ownerFile        = files_[fileRef.get()].get();
     srcViews_.emplace_back(std::make_unique<SourceView>(srcViewRef, ownerFile));
 #if SWC_HAS_REF_DEBUG_INFO
     srcViewRef.dbgPtr = srcViews_.back().get();
@@ -1253,7 +1253,7 @@ SourceView& CompilerInstance::srcView(SourceViewRef ref)
     const std::shared_lock lock(mutex_);
     SWC_ASSERT(ref.get() < srcViews_.size());
 
-    SourceView* const view = srcViews_[ref.get()].get();
+    SourceView* view = srcViews_[ref.get()].get();
     return *(view);
 }
 
@@ -1262,7 +1262,7 @@ const SourceView& CompilerInstance::srcView(SourceViewRef ref) const
     const std::shared_lock lock(mutex_);
     SWC_ASSERT(ref.get() < srcViews_.size());
 
-    const SourceView* const view = srcViews_[ref.get()].get();
+    const SourceView* view = srcViews_[ref.get()].get();
     return *(view);
 }
 
@@ -1277,7 +1277,7 @@ const SourceView* CompilerInstance::findSourceViewByFileName(const std::string_v
     const std::shared_lock lock(mutex_);
     for (const std::unique_ptr<SourceView>& srcViewPtr : srcViews_)
     {
-        const SourceView* const srcView = srcViewPtr.get();
+        const SourceView* srcView = srcViewPtr.get();
         if (!srcView)
             continue;
 
@@ -1373,7 +1373,7 @@ bool CompilerInstance::tryGetCompilerMessageTypeInfo(const TypeRef typeRef, cons
     return true;
 }
 
-void CompilerInstance::cacheCompilerMessageTypeInfo(const TypeRef typeRef, const Runtime::TypeInfo* const runtimeTypeInfo)
+void CompilerInstance::cacheCompilerMessageTypeInfo(const TypeRef typeRef, const Runtime::TypeInfo* runtimeTypeInfo)
 {
     const std::scoped_lock lock(compilerMessageMutex_);
     compilerMessageTypeInfoCache_[typeRef] = runtimeTypeInfo;
@@ -1810,7 +1810,7 @@ SourceFile& CompilerInstance::file(const FileRef ref) const
     SWC_ASSERT(ref.isValid());
     SWC_ASSERT(ref.get() < files_.size());
 
-    SourceFile* const file = files_[ref.get()].get();
+    SourceFile* file = files_[ref.get()].get();
     SWC_ASSERT(file != nullptr);
     return *file;
 }

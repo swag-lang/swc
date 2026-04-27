@@ -138,7 +138,7 @@ SWC_TEST_BEGIN(Compiler_GeneratedAstMaterializesPerThreadFiles)
     if (Stats::getNumErrors() != errorsBefore)
         return Result::Error;
 
-    const SourceFile* const originalFile = findFileByPath(compiler, sourcePath);
+    const SourceFile* originalFile = findFileByPath(compiler, sourcePath);
     if (!originalFile)
         return Result::Error;
 
@@ -223,7 +223,7 @@ SWC_TEST_BEGIN(Compiler_GeneratedAstDiagnosticsUseMaterializedSourceFile)
     if (Stats::getNumErrors() == errorsBefore)
         return Result::Error;
 
-    const SourceFile* const originalFile = findFileByPath(compiler, sourcePath);
+    const SourceFile* originalFile = findFileByPath(compiler, sourcePath);
     if (!originalFile)
         return Result::Error;
 

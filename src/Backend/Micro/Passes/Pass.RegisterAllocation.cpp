@@ -183,7 +183,7 @@ void MicroRegisterAllocationPass::coalesceLocalCopies() const
         if (inst.op != MicroInstrOpcode::LoadRegReg)
             continue;
 
-        const MicroInstrOperand* const ops = inst.ops(*operands_);
+        const MicroInstrOperand* ops = inst.ops(*operands_);
         if (!ops)
             continue;
 
@@ -554,7 +554,7 @@ void MicroRegisterAllocationPass::prepareInstructionData()
     bool hasVirtual = false;
     for (uint32_t idx = 0; idx < instructionCount_; ++idx)
     {
-        const MicroInstr* const inst = instructions_->ptr(instructionRefs[idx]);
+        const MicroInstr* inst = instructions_->ptr(instructionRefs[idx]);
         if (!inst)
             continue;
 
@@ -1117,7 +1117,7 @@ bool MicroRegisterAllocationPass::spillOrRematerializeLiveValue(MicroReg physReg
     return true;
 }
 
-void MicroRegisterAllocationPass::updateRematerializationForDef(VRegState& regState, MicroReg virtKey, MicroInstrRef instRef, const MicroInstr& inst, const MicroInstrOperand* const instOps) const
+void MicroRegisterAllocationPass::updateRematerializationForDef(VRegState& regState, MicroReg virtKey, MicroInstrRef instRef, const MicroInstr& inst, const MicroInstrOperand* instOps) const
 {
     clearRematerialization(regState);
     if (!instOps)
@@ -1733,8 +1733,8 @@ void MicroRegisterAllocationPass::rewriteInstructions()
         {
             if (currentReachable)
             {
-                const MicroInstrOperand* const ops = it->ops(*operands_);
-                const MicroLabelRef            labelRef(static_cast<uint32_t>(ops[0].valueU64));
+                const MicroInstrOperand* ops = it->ops(*operands_);
+                const MicroLabelRef      labelRef(static_cast<uint32_t>(ops[0].valueU64));
                 const auto                     labelIt = labelStackDepth_.find(labelRef);
                 if (labelIt != labelStackDepth_.end())
                     stackDepth = labelIt->second;
@@ -2011,7 +2011,7 @@ void MicroRegisterAllocationPass::rewriteInstructions()
 
         if (it->op == MicroInstrOpcode::LoadRegReg)
         {
-            const MicroInstrOperand* const rewrittenOps = it->ops(*operands_);
+            const MicroInstrOperand* rewrittenOps = it->ops(*operands_);
             if (rewrittenOps && rewrittenOps[0].reg == rewrittenOps[1].reg)
             {
                 // mov rX, rX: drop the instruction entirely. We can't erase here
@@ -2034,8 +2034,8 @@ void MicroRegisterAllocationPass::rewriteInstructions()
         {
             if (currentReachable)
             {
-                const MicroInstrOperand* const ops = it->ops(*operands_);
-                const MicroLabelRef            labelRef(static_cast<uint32_t>(ops[2].valueU64));
+                const MicroInstrOperand* ops = it->ops(*operands_);
+                const MicroLabelRef      labelRef(static_cast<uint32_t>(ops[2].valueU64));
                 mergeLabelStackDepth(labelStackDepth_, labelRef, stackDepth);
             }
         }

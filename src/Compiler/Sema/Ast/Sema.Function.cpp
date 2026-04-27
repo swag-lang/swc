@@ -2420,8 +2420,8 @@ Result AstReturnStmt::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) c
         return Result::Continue;
 
     TypeRef returnTypeRef = TypeRef::invalid();
-    if (const SemaInlinePayload* inlinePayload = sema.frame().currentInlinePayload();
-        inlinePayload && !inlinePayload->returnsToCallerSite())
+    const SemaInlinePayload* inlinePayload = sema.frame().currentInlinePayload();
+    if (inlinePayload && !inlinePayload->returnsToCallerSite())
     {
         returnTypeRef = inlinePayload->returnTypeRef;
     }

@@ -275,8 +275,8 @@ namespace
             if (typeInfo.isEnum())
                 bodyScope.addUsingSymMap(typeInfo.payloadSymEnum().asSymMap());
 
-            if (SymbolVariable* symVar = symbol ? symbol->safeCast<SymbolVariable>() : nullptr;
-                symVar &&
+            SymbolVariable* symVar = symbol ? symbol->safeCast<SymbolVariable>() : nullptr;
+            if (symVar &&
                 (symVar->hasGlobalStorage() ||
                  symVar->hasExtraFlag(SymbolVariableFlagsE::Parameter) ||
                  symVar->hasExtraFlag(SymbolVariableFlagsE::FunctionLocal) ||

@@ -80,7 +80,8 @@ namespace SemaHelpers
 
     inline SemaScope* currentLocalSymbolScope(Sema& sema)
     {
-        if (SemaScope* lookupScope = sema.frame().lookupScope(); lookupScope && lookupScope->isLocal())
+        SemaScope* lookupScope = sema.frame().lookupScope();
+        if (lookupScope && lookupScope->isLocal())
             return lookupScope;
         return sema.curScope().isLocal() ? sema.curScopePtr() : nullptr;
     }

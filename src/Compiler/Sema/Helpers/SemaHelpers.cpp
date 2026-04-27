@@ -406,7 +406,7 @@ CodeGenNodePayload& SemaHelpers::ensureCodeGenNodePayload(Sema& sema, AstNodeRef
 
 SymbolVariable* SemaHelpers::currentRuntimeStorage(Sema& sema)
 {
-    SymbolVariable* const sym     = sema.frame().currentRuntimeStorageSym();
+    SymbolVariable* sym           = sema.frame().currentRuntimeStorageSym();
     const AstNodeRef      nodeRef = sema.frame().currentRuntimeStorageNodeRef();
     if (!sym || !nodeRef.isValid())
         return nullptr;

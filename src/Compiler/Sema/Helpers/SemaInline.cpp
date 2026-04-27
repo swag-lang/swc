@@ -388,7 +388,7 @@ namespace
         if (!declNode || !declNode->is(AstNodeId::FunctionDecl))
             return false;
 
-        const Ast* const declAst = declNode->sourceAst(sema.ctx());
+        const Ast* declAst = declNode->sourceAst(sema.ctx());
         if (!declAst)
             return false;
 

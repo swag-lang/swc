@@ -123,7 +123,7 @@ namespace
             const SemaNodeView view = sema.viewSymbol(nodeRef);
             if (view.hasSymbol())
             {
-                auto* const sym = view.sym();
+                auto* sym = view.sym();
                 if (sym != nullptr && sym->isImpl())
                 {
                     auto& symImpl = sym->cast<SymbolImpl>();
@@ -313,7 +313,7 @@ const SemaScope* Sema::resolvedUpLookupScope() const
 {
     if (const auto* scope = upLookupScope())
         return scope;
-    const auto* const scope = lookupScope();
+    const auto* scope = lookupScope();
     return scope ? scope->lookupParent() : nullptr;
 }
 
@@ -817,7 +817,7 @@ void Sema::errorCleanupNode(AstNodeRef nodeRef, AstNode& node)
     if (!view.hasSymbol())
         return;
 
-    Symbol* const sym = view.sym();
+    Symbol* sym = view.sym();
     // Only declaration nodes own the lifetime of their attached symbol. Use
     // sites can also carry resolved symbols (identifiers, calls, etc.), and a
     // failure while sema-ing those nodes must not invalidate the referenced

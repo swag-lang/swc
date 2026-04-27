@@ -30,7 +30,7 @@ namespace
         if (symVar.attributes().hasRtFlag(RtAttributeFlagsE::Global))
             return true;
 
-        const SymbolMap* const owner = symVar.ownerSymMap();
+        const SymbolMap* owner = symVar.ownerSymMap();
         if (!owner)
             return false;
 
@@ -42,7 +42,7 @@ namespace
 
     bool needsStandaloneVariableStorage(const SymbolVariable& symVar)
     {
-        const SymbolMap* const owner = symVar.ownerSymMap();
+        const SymbolMap* owner = symVar.ownerSymMap();
         return !owner || !owner->isStruct();
     }
 
@@ -427,11 +427,11 @@ namespace
 
         for (Symbol* s : symbols)
         {
-            auto* const symVar = getVariableSymbol(s);
+            auto* symVar = getVariableSymbol(s);
             if (!symVar)
                 continue;
 
-            const SymbolMap* const owner = symVar->ownerSymMap();
+            const SymbolMap* owner = symVar->ownerSymMap();
             if (!owner || !owner->isStruct())
                 continue;
             symVar->setDefaultValueRef(cstRef);
@@ -445,7 +445,7 @@ namespace
 
         for (Symbol* s : symbols)
         {
-            auto* const symVar = getVariableSymbol(s);
+            auto* symVar = getVariableSymbol(s);
             if (!symVar)
                 continue;
 
@@ -460,7 +460,7 @@ namespace
 
         for (Symbol* s : symbols)
         {
-            auto* const symVar = getVariableSymbol(s);
+            auto* symVar = getVariableSymbol(s);
             if (!symVar)
                 continue;
 
@@ -475,7 +475,7 @@ namespace
 
         for (Symbol* s : symbols)
         {
-            auto* const symVar = getVariableSymbol(s);
+            auto* symVar = getVariableSymbol(s);
             if (!symVar)
                 continue;
 
@@ -490,7 +490,7 @@ namespace
 
         for (Symbol* s : symbols)
         {
-            auto* const symVar = getVariableSymbol(s);
+            auto* symVar = getVariableSymbol(s);
             if (!symVar)
                 continue;
 
@@ -518,10 +518,10 @@ namespace
         const size_t count = symbols.size();
         for (size_t i = 0; i < count; ++i)
         {
-            Symbol* const               sym        = symbols[i];
-            const SymbolVariable* const field      = fields[i];
+            Symbol*                     sym        = symbols[i];
+            const SymbolVariable* field      = fields[i];
             const size_t                fieldIndex = i < fieldIndices.size() ? fieldIndices[i] : i;
-            auto* const                 symVar     = getVariableSymbol(sym);
+            auto*                       symVar     = getVariableSymbol(sym);
             if (!symVar)
                 continue;
 
@@ -581,7 +581,7 @@ namespace
         if (!nodeInitView.typeRef().isValid())
             return Result::Continue;
 
-        auto* const symVar = getVariableSymbol(symbols.front());
+        auto* symVar = getVariableSymbol(symbols.front());
         if (!symVar)
             return Result::Continue;
 
@@ -975,7 +975,7 @@ namespace
         {
             for (Symbol* s : symbols)
             {
-                auto* const symVar = getVariableSymbol(s);
+                auto* symVar = getVariableSymbol(s);
                 if (!symVar)
                     continue;
                 if (!isGlobalStorageVariable(*symVar))

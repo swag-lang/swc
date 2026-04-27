@@ -319,7 +319,7 @@ ConstantRef CodeGenConstantHelpers::materializeRuntimeBufferConstant(CodeGen& co
     const uint32_t shardIndex    = targetRef.isInvalid() ? 0 : targetRef.shardIndex;
     DataSegment&   segment       = cstMgr.shardDataSegment(shardIndex);
     const auto [offset, storage] = segment.reserveBytes(sizeof(Runtime::Slice<std::byte>), alignof(Runtime::Slice<std::byte>), true);
-    auto* const runtimeValue     = reinterpret_cast<Runtime::Slice<std::byte>*>(storage);
+    auto* runtimeValue           = reinterpret_cast<Runtime::Slice<std::byte>*>(storage);
     runtimeValue->ptr            = const_cast<std::byte*>(static_cast<const std::byte*>(targetPtr));
     runtimeValue->count          = count;
 

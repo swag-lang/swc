@@ -177,7 +177,7 @@ Result AstUsingEnumDecl::semaPostNode(Sema& sema) const
     if (ownerEnum.underlyingTypeRef() != importedEnum.underlyingTypeRef())
         return SemaError::raise(sema, DiagnosticId::sema_err_invalid_enum_type, nodeNameRef);
 
-    auto* const usingSymMap = const_cast<SymbolMap*>(importedEnum.asSymMap());
+    auto* usingSymMap = const_cast<SymbolMap*>(importedEnum.asSymMap());
     sema.curScope().addUsingSymMap(usingSymMap);
     ownerEnum.addUsingSymMap(usingSymMap);
     return Result::Continue;

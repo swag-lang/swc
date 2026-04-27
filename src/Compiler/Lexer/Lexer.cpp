@@ -785,7 +785,7 @@ void Lexer::lexNumber()
     if (langSpec_->isLetter(buffer_[0]))
     {
         const uint32_t       suffixOffset = static_cast<uint32_t>(buffer_ - startBuffer_);
-        const char8_t* const suffixStart  = buffer_;
+        const char8_t* suffixStart        = buffer_;
         const char8_t*       suffixEnd    = suffixStart;
         while (langSpec_->isIdentifierPart(suffixEnd[0]))
             suffixEnd++;

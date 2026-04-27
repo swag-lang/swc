@@ -118,7 +118,7 @@ Result AstUsingDecl::semaPostNode(Sema& sema) const
         const SemaNodeView view = sema.viewSymbol(nodeRef);
         SWC_ASSERT(view.sym());
         SWC_ASSERT(view.sym()->isSymMap());
-        SymbolMap* const usingSymMap = view.sym()->asSymMap();
+        SymbolMap* usingSymMap = view.sym()->asSymMap();
         sema.curScope().addUsingSymMap(usingSymMap);
 
         // Qualified lookups (for example `Enum.Value`) do not walk transient lexical scopes,

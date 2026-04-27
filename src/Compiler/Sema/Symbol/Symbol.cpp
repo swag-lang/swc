@@ -219,7 +219,7 @@ bool Symbol::isType() const
 
 bool Symbol::inSwagNamespace(const TaskContext& ctx) const noexcept
 {
-    const SymbolMap* const map = ownerSymMap();
+    const SymbolMap* map = ownerSymMap();
     if (!map)
         return false;
     return map->isNamespace() && map->idRef() == ctx.idMgr().predefined(IdentifierManager::PredefinedName::Swag);

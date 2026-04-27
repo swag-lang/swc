@@ -868,14 +868,14 @@ namespace
 
         for (Symbol* sym : inCandidates)
         {
-            auto* const symFunc = sym ? sym->safeCast<SymbolFunction>() : nullptr;
+            auto* symFunc = sym ? sym->safeCast<SymbolFunction>() : nullptr;
             if (!symFunc || symFunc->parameters().empty())
             {
                 outConstCandidates.push_back(sym);
                 continue;
             }
 
-            const SymbolVariable* const receiver = symFunc->parameters().front();
+            const SymbolVariable* receiver = symFunc->parameters().front();
             if (receiver && !sema.typeMgr().get(receiver->typeRef()).isConst())
                 outMutableCandidates.push_back(sym);
             else
@@ -1179,7 +1179,7 @@ namespace
         SWC_RESULT(resolveSyntheticCall(sema, sema.node(sema.curNodeRef()), candidates.span(), args.span(), exprRef, true, &matched, allowConstEval, false));
         if (!matched)
         {
-            auto* const calledFn = candidates.size() == 1 ? candidates.front()->safeCast<SymbolFunction>() : nullptr;
+            auto* calledFn = candidates.size() == 1 ? candidates.front()->safeCast<SymbolFunction>() : nullptr;
             if (!calledFn)
                 return Result::Continue;
 
@@ -1187,7 +1187,7 @@ namespace
             ResolvedCallArgument              resolvedArg;
             resolvedArg.argRef = exprRef;
 
-            const SymbolVariable* const receiver = calledFn->parameters().empty() ? nullptr : calledFn->parameters().front();
+            const SymbolVariable* receiver = calledFn->parameters().empty() ? nullptr : calledFn->parameters().front();
             if (receiver && sema.typeMgr().get(receiver->typeRef()).isReference())
             {
                 resolvedArg.bindsReferenceToValue = true;
@@ -1986,7 +1986,7 @@ Result SemaSpecOp::tryResolveVarInitSet(Sema& sema, AstNodeRef receiverRef, AstN
     SmallVector<AstNodeRef> args;
     args.push_back(valueRef);
 
-    Symbol* const savedSymbol = sema.curViewSymbol().sym();
+    Symbol* savedSymbol = sema.curViewSymbol().sym();
     const bool    savedLValue = sema.isLValue(sema.curNodeRef());
 
     bool matched = false;

@@ -58,7 +58,7 @@ namespace
         if (symbol.attributes().hasRtFlag(RtAttributeFlagsE::Compiler))
             return false;
 
-        const AstNode* const decl = symbol.decl();
+        const AstNode* decl = symbol.decl();
         if (!decl)
             return true;
 
@@ -143,7 +143,7 @@ namespace
             if (!global)
                 continue;
 
-            SymbolFunction* const target = global->globalFunctionInit();
+            SymbolFunction* target = global->globalFunctionInit();
             if (!target || !isIncludableDependency(builder, *target))
                 continue;
             if (!seenFunctions.insert(target).second)

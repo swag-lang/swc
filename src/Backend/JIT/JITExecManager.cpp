@@ -13,7 +13,7 @@ Result JITExecManager::executeItem(const Item& item)
     SWC_ASSERT(item.request.function->jitEntryAddress() != nullptr);
 
     TaskContext&                ctx = *item.ownerCtx;
-    const SymbolFunction* const fn  = item.request.function;
+    const SymbolFunction* fn        = item.request.function;
 
     const TaskScopedContext scopedContext(ctx);
     const TaskScopedState   scopedState(ctx);
@@ -56,7 +56,7 @@ Result JITExecManager::submit(TaskContext& ctx, const Request& request)
         return executeItem(immediateItem);
     }
 
-    const SymbolFunction* const function = request.function;
+    const SymbolFunction* function = request.function;
     const AstNodeRef            nodeRef  = request.nodeRef;
     const SourceCodeRef         codeRef  = request.codeRef;
     const ItemKey               key      = {.ownerCtx = &ctx, .nodeRef = nodeRef, .codeRef = codeRef};

@@ -343,7 +343,7 @@ Result ConstantHelpers::makeSourceCodeLocation(Sema& sema, ConstantRef& outCstRe
     DataSegment&   segment    = sema.cstMgr().shardDataSegment(shardIndex);
 
     const auto [offset, storage] = segment.reserveBytes(sizeof(Runtime::SourceCodeLocation), alignof(Runtime::SourceCodeLocation), true);
-    auto* const rtLoc            = reinterpret_cast<Runtime::SourceCodeLocation*>(storage);
+    auto* rtLoc                  = reinterpret_cast<Runtime::SourceCodeLocation*>(storage);
 
     rtLoc->fileName.length = segment.addString(offset, offsetof(Runtime::SourceCodeLocation, fileName.ptr), fileName);
 

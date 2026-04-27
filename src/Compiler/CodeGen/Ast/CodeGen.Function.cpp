@@ -961,7 +961,7 @@ namespace
         CodeGenNodePayload resolvedSourcePayload;
         if (!sourcePayload)
         {
-            const SymbolVariable* const sourceVar = captureVar.closureCapturedSource();
+            const SymbolVariable* sourceVar = captureVar.closureCapturedSource();
             SWC_ASSERT(sourceVar != nullptr);
             resolvedSourcePayload = resolveClosureCaptureSourcePayload(codeGen, *sourceVar);
             sourcePayload         = &resolvedSourcePayload;

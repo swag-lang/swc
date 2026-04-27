@@ -47,7 +47,7 @@ namespace
         {
             const auto current = stack.back();
             stack.pop_back();
-            SymbolFunction* const function = current.function;
+            SymbolFunction* function = current.function;
             if (!function)
                 continue;
 
@@ -535,7 +535,7 @@ void SymbolFunction::addLocalVariable(TaskContext& ctx, SymbolVariable* sym)
     localVariables_.push_back(sym);
     while (numComputedLocals_ < localVariables_.size())
     {
-        SymbolVariable* const local = localVariables_[numComputedLocals_];
+        SymbolVariable* local = localVariables_[numComputedLocals_];
         SWC_ASSERT(local != nullptr);
 
         const TypeRef typeRef = local->typeRef();
@@ -880,7 +880,7 @@ const SymbolFunction* SymbolFunction::genericRootSym() const noexcept
 
 const SymbolImpl* SymbolFunction::declImplContext() const noexcept
 {
-    const SymbolFunction* const root   = genericRootSym();
+    const SymbolFunction* root   = genericRootSym();
     const SymbolMap*            symMap = (root ? root : this)->ownerSymMap();
     while (symMap)
     {
@@ -894,7 +894,7 @@ const SymbolImpl* SymbolFunction::declImplContext() const noexcept
 
 const SymbolInterface* SymbolFunction::declInterfaceContext() const noexcept
 {
-    const SymbolFunction* const root   = genericRootSym();
+    const SymbolFunction* root   = genericRootSym();
     const SymbolMap*            symMap = (root ? root : this)->ownerSymMap();
     while (symMap)
     {
@@ -992,7 +992,7 @@ bool SymbolFunction::jitPrepare(TaskContext& ctx)
     }
 
     JIT::prepare(ctx, jitExecMemory_, asByteSpan(loweredMicroCode_.bytes), loweredMicroCode_.unwindInfo);
-    void* const entry = jitExecMemory_.entryPoint();
+    void* entry = jitExecMemory_.entryPoint();
     if (!entry)
     {
         ctx.state().jitEmissionError = true;
@@ -1047,7 +1047,7 @@ void SymbolFunction::jitFinalize(TaskContext& ctx)
         return;
 
     JIT::finalize(jitExecMemory_);
-    void* const entry = jitPatchAddress();
+    void* entry = jitPatchAddress();
     SWC_ASSERT(entry != nullptr);
     jitEntryAddress_.store(entry, std::memory_order_release);
     ctx.compiler().notifyAlive();

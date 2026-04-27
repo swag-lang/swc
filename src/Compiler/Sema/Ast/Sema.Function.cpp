@@ -1665,7 +1665,7 @@ namespace
             if (parentRef.isInvalid())
                 break;
 
-            Symbol* const symbol = sema.viewSymbol(parentRef).sym();
+            Symbol* symbol = sema.viewSymbol(parentRef).sym();
             if (symbol && symbol->isFunction())
                 return &symbol->cast<SymbolFunction>();
         }

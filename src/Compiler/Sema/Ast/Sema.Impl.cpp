@@ -39,7 +39,7 @@ Result AstImpl::semaPostDeclChild(Sema& sema, const AstNodeRef& childRef) const
         sema.setSymbol(sema.curNodeRef(), sym);
         if (identView.hasSymbol())
         {
-            Symbol* const target = identView.sym();
+            Symbol* target = identView.sym();
             if (target->isStruct())
                 sym->setSymStruct(&target->cast<SymbolStruct>());
             else if (target->isEnum())

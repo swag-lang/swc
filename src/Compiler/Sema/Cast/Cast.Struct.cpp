@@ -715,7 +715,7 @@ Result Cast::resolveStructSetCastCandidate(Sema& sema, const SourceCodeRef& code
     SymbolFunction* bestFn   = nullptr;
     for (Symbol* candidate : candidates)
     {
-        auto* const calledFn = candidate ? candidate->safeCast<SymbolFunction>() : nullptr;
+        auto* calledFn = candidate ? candidate->safeCast<SymbolFunction>() : nullptr;
         if (!calledFn)
             continue;
 

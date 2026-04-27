@@ -485,7 +485,7 @@ namespace
         const std::span<SymbolVariable* const> bindings = sema.frame().bindingVars();
         for (size_t i = bindings.size(); i > 0; --i)
         {
-            SymbolVariable* const binding = bindings[i - 1];
+            SymbolVariable* binding = bindings[i - 1];
             if (binding && binding->idRef() == meId)
                 return binding;
         }
@@ -498,7 +498,7 @@ namespace
         if (SymbolVariable* receiver = activeReceiverBinding(sema))
             return receiver;
 
-        SymbolFunction* const currentFunction = sema.frame().currentFunction();
+        SymbolFunction* currentFunction = sema.frame().currentFunction();
         if (!currentFunction)
             return nullptr;
 
@@ -506,7 +506,7 @@ namespace
         if (params.empty())
             return nullptr;
 
-        SymbolVariable* const receiver = params.front();
+        SymbolVariable* receiver = params.front();
         if (!receiver)
             return nullptr;
 
@@ -521,7 +521,7 @@ namespace
         if (candidate.symVar || candidate.baseExprRef.isValid())
             return;
 
-        SymbolVariable* const receiver = currentMethodReceiver(sema);
+        SymbolVariable* receiver = currentMethodReceiver(sema);
         if (!receiver)
             return;
 
@@ -559,7 +559,7 @@ namespace
 
     AstNodeRef makeReceiverBoundLocalCallable(Sema& sema, TokenRef tokRef, AstNodeRef rightRef, std::span<const Symbol*> callableSymbols)
     {
-        SymbolVariable* const receiver = activeReceiverBinding(sema);
+        SymbolVariable* receiver = activeReceiverBinding(sema);
         if (!receiver)
             return AstNodeRef::invalid();
 

@@ -1845,7 +1845,7 @@ Result Cast::castToAny(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef,
 
     DataSegment& segment            = sema.cstMgr().shardDataSegment(typeInfoRef.shardIndex);
     const auto [anyOffset, storage] = segment.reserveBytes(sizeof(Runtime::Any), alignof(Runtime::Any), true);
-    auto* const runtimeAny          = reinterpret_cast<Runtime::Any*>(storage);
+    auto* runtimeAny                = reinterpret_cast<Runtime::Any*>(storage);
     runtimeAny->type                = segment.ptr<Runtime::TypeInfo>(typeInfoRef.offset);
     segment.addRelocation(anyOffset + offsetof(Runtime::Any, type), typeInfoRef.offset);
 

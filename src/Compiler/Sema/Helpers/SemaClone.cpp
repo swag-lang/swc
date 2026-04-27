@@ -343,7 +343,7 @@ AstNodeRef SemaClone::cloneAst(Sema& sema, AstNodeRef nodeRef, const CloneContex
     SWC_ASSERT(nodeRef.isValid());
     const Ast&        sourceAst       = cloneSourceAst(sema, cloneContext);
     AstNode&          node            = const_cast<AstNode&>(sourceAst.node(nodeRef));
-    SourceView* const previousSrcView = Ast::setThreadSourceViewOverride(&sema.srcView(node.srcViewRef()));
+    SourceView* previousSrcView = Ast::setThreadSourceViewOverride(&sema.srcView(node.srcViewRef()));
 
     AstNodeRef clonedRef = cloneNodeReplacement(sema, node, cloneContext);
     if (clonedRef.isValid())

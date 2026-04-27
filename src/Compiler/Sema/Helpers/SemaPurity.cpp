@@ -18,7 +18,7 @@ namespace
         if (!declNode || !declNode->is(AstNodeId::FunctionDecl))
             return false;
 
-        const Ast* const declAst = declNode->sourceAst(sema.ctx());
+        const Ast* declAst = declNode->sourceAst(sema.ctx());
         if (!declAst || declAst != &sema.ast())
             return false;
 
@@ -102,7 +102,7 @@ namespace
         if (!callView.hasSymbol())
             return false;
 
-        Symbol* const calledSymbol = callView.sym();
+        Symbol* calledSymbol = callView.sym();
         if (!calledSymbol || !calledSymbol->isFunction())
             return false;
 

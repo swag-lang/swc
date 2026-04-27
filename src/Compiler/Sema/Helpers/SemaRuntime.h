@@ -28,7 +28,7 @@ namespace SemaRuntime
     {
         while (function)
         {
-            const AstNode* const decl = function->decl();
+            const AstNode* decl = function->decl();
             if (!decl)
                 return function;
 
@@ -37,7 +37,7 @@ namespace SemaRuntime
             if (!isTransparentCompilerFunction && !isTransparentCompilerRun)
                 return function;
 
-            const SymbolMap* const ownerMap = function->ownerSymMap();
+            const SymbolMap* ownerMap = function->ownerSymMap();
             const auto* const      ownerFn  = ownerMap ? ownerMap->safeCast<SymbolFunction>() : nullptr;
             if (!ownerFn)
                 return function;
@@ -53,7 +53,7 @@ namespace SemaRuntime
         if (symbol.attributes().hasRtFlag(RtAttributeFlagsE::Compiler))
             return true;
 
-        const AstNode* const decl = symbol.decl();
+        const AstNode* decl = symbol.decl();
         if (!decl)
             return false;
 
@@ -85,7 +85,7 @@ namespace SemaRuntime
         if (symbol.attributes().hasRtFlag(RtAttributeFlagsE::Compiler))
             return false;
 
-        const AstNode* const decl = symbol.decl();
+        const AstNode* decl = symbol.decl();
         if (!decl)
             return true;
 
@@ -154,7 +154,7 @@ namespace SemaRuntime
         if (hasCompilerEvalAstContext(sema))
             return false;
 
-        const auto* const currentFunction = sema.currentFunction();
+        const auto* currentFunction = sema.currentFunction();
         return currentFunction != nullptr && isRuntimeArtifactFunction(sema, *currentFunction);
     }
 

@@ -517,15 +517,7 @@ namespace
             appendWindowsStackFrame(outMsg, ctx, numFrames, address);
             ++numFrames;
 
-            const BOOL hasNext = StackWalk64(IMAGE_FILE_MACHINE_AMD64,
-                                             process,
-                                             thread,
-                                             &frame,
-                                             &walkContext,
-                                             nullptr,
-                                             SymFunctionTableAccess64,
-                                             SymGetModuleBase64,
-                                             nullptr);
+            const BOOL hasNext = StackWalk64(IMAGE_FILE_MACHINE_AMD64, process, thread, &frame, &walkContext, nullptr, SymFunctionTableAccess64, SymGetModuleBase64, nullptr);
             if (!hasNext)
                 break;
 
@@ -905,16 +897,7 @@ namespace Os
 
         std::wstring       mutableCommandLine = commandLine;
         const std::wstring workingDirW        = workingDirectory.empty() ? std::wstring() : workingDirectory.wstring();
-        if (!CreateProcessW(exePath.wstring().c_str(),
-                            mutableCommandLine.data(),
-                            nullptr,
-                            nullptr,
-                            childOutputWrite != nullptr,
-                            0,
-                            nullptr,
-                            workingDirW.empty() ? nullptr : workingDirW.c_str(),
-                            &startupInfo,
-                            &processInfo))
+        if (!CreateProcessW(exePath.wstring().c_str(), mutableCommandLine.data(), nullptr, nullptr, childOutputWrite != nullptr, 0, nullptr, workingDirW.empty() ? nullptr : workingDirW.c_str(), &startupInfo, &processInfo))
         {
             if (childOutputRead)
                 CloseHandle(childOutputRead);

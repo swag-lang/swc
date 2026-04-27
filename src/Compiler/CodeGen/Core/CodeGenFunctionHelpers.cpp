@@ -118,13 +118,7 @@ namespace
                 for (uint64_t idx = 0; idx < srcSlice->count; ++idx)
                 {
                     const uint64_t elementOffset = idx * elementSize;
-                    SWC_RESULT(persistCompilerRunValueRec(sema,
-                                                          segment,
-                                                          elementTypeRef,
-                                                          ByteSpanRW{dataStorage + elementOffset, static_cast<size_t>(elementSize)},
-                                                          ByteSpan{srcSlice->ptr + elementOffset, static_cast<size_t>(elementSize)},
-                                                          localStackBase,
-                                                          localStackSize));
+                    SWC_RESULT(persistCompilerRunValueRec(sema, segment, elementTypeRef, ByteSpanRW{dataStorage + elementOffset, static_cast<size_t>(elementSize)}, ByteSpan{srcSlice->ptr + elementOffset, static_cast<size_t>(elementSize)}, localStackBase, localStackSize));
                 }
             }
 
@@ -152,13 +146,7 @@ namespace
             for (uint64_t idx = 0; idx < totalCount; ++idx)
             {
                 const uint64_t elementOffset = idx * elementSize;
-                SWC_RESULT(persistCompilerRunValueRec(sema,
-                                                      segment,
-                                                      elementTypeRef,
-                                                      ByteSpanRW{dstBytes.data() + elementOffset, static_cast<size_t>(elementSize)},
-                                                      ByteSpan{srcBytes.data() + elementOffset, static_cast<size_t>(elementSize)},
-                                                      localStackBase,
-                                                      localStackSize));
+                SWC_RESULT(persistCompilerRunValueRec(sema, segment, elementTypeRef, ByteSpanRW{dstBytes.data() + elementOffset, static_cast<size_t>(elementSize)}, ByteSpan{srcBytes.data() + elementOffset, static_cast<size_t>(elementSize)}, localStackBase, localStackSize));
             }
 
             return Result::Continue;
@@ -179,13 +167,7 @@ namespace
                 if (fieldOffset + fieldSize > dstBytes.size())
                     return Result::Error;
 
-                SWC_RESULT(persistCompilerRunValueRec(sema,
-                                                      segment,
-                                                      fieldTypeRef,
-                                                      ByteSpanRW{dstBytes.data() + fieldOffset, static_cast<size_t>(fieldSize)},
-                                                      ByteSpan{srcBytes.data() + fieldOffset, static_cast<size_t>(fieldSize)},
-                                                      localStackBase,
-                                                      localStackSize));
+                SWC_RESULT(persistCompilerRunValueRec(sema, segment, fieldTypeRef, ByteSpanRW{dstBytes.data() + fieldOffset, static_cast<size_t>(fieldSize)}, ByteSpan{srcBytes.data() + fieldOffset, static_cast<size_t>(fieldSize)}, localStackBase, localStackSize));
             }
 
             return Result::Continue;
@@ -213,13 +195,7 @@ namespace
             return;
 
         DataSegment& segment = sema->compiler().compilerSegment();
-        const Result result  = persistCompilerRunValueRec(*sema,
-                                                          segment,
-                                                          typeRef,
-                                                          ByteSpanRW{static_cast<std::byte*>(dst), static_cast<size_t>(sizeOf)},
-                                                          ByteSpan{static_cast<const std::byte*>(src), static_cast<size_t>(sizeOf)},
-                                                          static_cast<const std::byte*>(localStackBase),
-                                                          localStackSize);
+        const Result result  = persistCompilerRunValueRec(*sema, segment, typeRef, ByteSpanRW{static_cast<std::byte*>(dst), static_cast<size_t>(sizeOf)}, ByteSpan{static_cast<const std::byte*>(src), static_cast<size_t>(sizeOf)}, static_cast<const std::byte*>(localStackBase), localStackSize);
         SWC_ASSERT(result == Result::Continue);
     }
 

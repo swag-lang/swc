@@ -89,14 +89,7 @@ AstNodeRef Parser::parseAlias()
     expectAndConsume(TokenId::SymEqual, DiagnosticId::parser_err_expected_token_fam);
 
     // 1) Definitely looks like a type (array, func, struct literal type, pointer type, etc.)
-    if (isAny(TokenId::CompilerDeclType,
-              TokenId::SymLeftBracket,
-              TokenId::SymLeftCurly,
-              TokenId::KwdFunc,
-              TokenId::KwdMtd,
-              TokenId::KwdConst,
-              TokenId::ModifierNullable,
-              TokenId::SymAsterisk))
+    if (isAny(TokenId::CompilerDeclType, TokenId::SymLeftBracket, TokenId::SymLeftCurly, TokenId::KwdFunc, TokenId::KwdMtd, TokenId::KwdConst, TokenId::ModifierNullable, TokenId::SymAsterisk))
     {
         nodePtr->nodeExprRef = parseType();
     }
@@ -709,17 +702,7 @@ AstNodeRef Parser::parseAssignStmt()
     }
 
     // Operation
-    if (isAny(TokenId::SymEqual,
-              TokenId::SymPlusEqual,
-              TokenId::SymMinusEqual,
-              TokenId::SymAsteriskEqual,
-              TokenId::SymSlashEqual,
-              TokenId::SymAmpersandEqual,
-              TokenId::SymPipeEqual,
-              TokenId::SymCircumflexEqual,
-              TokenId::SymPercentEqual,
-              TokenId::SymLowerLowerEqual,
-              TokenId::SymGreaterGreaterEqual))
+    if (isAny(TokenId::SymEqual, TokenId::SymPlusEqual, TokenId::SymMinusEqual, TokenId::SymAsteriskEqual, TokenId::SymSlashEqual, TokenId::SymAmpersandEqual, TokenId::SymPipeEqual, TokenId::SymCircumflexEqual, TokenId::SymPercentEqual, TokenId::SymLowerLowerEqual, TokenId::SymGreaterGreaterEqual))
     {
         auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::AssignStmt>(consume());
         nodePtr->nodeLeftRef    = nodeLeft;

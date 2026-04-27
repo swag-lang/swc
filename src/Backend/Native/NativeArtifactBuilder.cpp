@@ -470,11 +470,7 @@ Result NativeArtifactBuilder::buildStartup(TaskContext& ctx) const
     const uint32_t expectedTestCount = builder_->expectedTestFunctionCount();
     if (builder_->testFunctions.size() != expectedTestCount)
     {
-        return builder_->reportError(DiagnosticId::cmd_err_native_test_count_mismatch,
-                                     Diagnostic::ARG_COUNT,
-                                     expectedTestCount,
-                                     Diagnostic::ARG_VALUE,
-                                     static_cast<uint32_t>(builder_->testFunctions.size()));
+        return builder_->reportError(DiagnosticId::cmd_err_native_test_count_mismatch, Diagnostic::ARG_COUNT, expectedTestCount, Diagnostic::ARG_VALUE, static_cast<uint32_t>(builder_->testFunctions.size()));
     }
 
     auto         startup = std::make_unique<NativeStartupInfo>();

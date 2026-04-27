@@ -426,17 +426,7 @@ namespace
                 if (found < 0)
                 {
                     const Utf8 namedParams = formatNamedParameters(sema, params, paramStart, numParams);
-                    recordCallArgFailure(sema,
-                                         fn,
-                                         outFail,
-                                         ufcsArg,
-                                         userIndex,
-                                         DiagnosticId::sema_err_named_argument_unknown,
-                                         idRef,
-                                         UINT32_MAX,
-                                         namedParams.empty() ? DiagnosticId::sema_note_call_has_no_named_arguments : DiagnosticId::sema_note_available_named_arguments,
-                                         AstNodeRef::invalid(),
-                                         namedParams);
+                    recordCallArgFailure(sema, fn, outFail, ufcsArg, userIndex, DiagnosticId::sema_err_named_argument_unknown, idRef, UINT32_MAX, namedParams.empty() ? DiagnosticId::sema_note_call_has_no_named_arguments : DiagnosticId::sema_note_available_named_arguments, AstNodeRef::invalid(), namedParams);
                     return false;
                 }
 

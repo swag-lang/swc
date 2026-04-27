@@ -494,11 +494,7 @@ namespace
 
     Utf8 buildInfoCommandLine(const TaskContext& ctx)
     {
-        return std::format("{} --build-cfg {} --artifact-kind {} --arch {}",
-                           codeViewPathString(Os::getExeFullName()),
-                           ctx.cmdLine().buildCfg,
-                           backendKindName(ctx.compiler().buildCfg().backendKind),
-                           targetArchName(ctx.cmdLine().targetArch));
+        return std::format("{} --build-cfg {} --artifact-kind {} --arch {}", codeViewPathString(Os::getExeFullName()), ctx.cmdLine().buildCfg, backendKindName(ctx.compiler().buildCfg().backendKind), targetArchName(ctx.cmdLine().targetArch));
     }
 
     FunctionLines collectFunctionLines(TaskContext& ctx, const MachineCode& code)
@@ -1297,14 +1293,7 @@ namespace
             if (function.machineCode)
             {
                 symbolsLenOffset = beginSubsection(debugSection.bytes, K_DEBUG_S_SYMBOLS);
-                appendProcSymbols(debugSection.bytes,
-                                  debugSection,
-                                  *request.ctx,
-                                  function,
-                                  functionSymbolTypes[i].functionTypeIndex,
-                                  functionSymbolTypes[i].parameterTypes,
-                                  functionSymbolTypes[i].localTypes,
-                                  functionSymbolTypes[i].constantTypes);
+                appendProcSymbols(debugSection.bytes, debugSection, *request.ctx, function, functionSymbolTypes[i].functionTypeIndex, functionSymbolTypes[i].parameterTypes, functionSymbolTypes[i].localTypes, functionSymbolTypes[i].constantTypes);
                 endSubsection(debugSection.bytes, symbolsLenOffset);
             }
 

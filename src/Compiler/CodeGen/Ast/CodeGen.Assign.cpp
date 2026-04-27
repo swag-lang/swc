@@ -426,14 +426,7 @@ namespace
 
         if (assignOp == TokenId::SymLowerLowerEqual || assignOp == TokenId::SymGreaterGreaterEqual)
         {
-            SWC_RESULT(CodeGenSafety::emitShiftIntLike(codeGen,
-                                                       node,
-                                                       leftReg,
-                                                       rightReg,
-                                                       targetType,
-                                                       encodeCtx.opBits,
-                                                       Token::assignToBinary(assignOp),
-                                                       node.modifierFlags.has(AstModifierFlagsE::Wrap)));
+            SWC_RESULT(CodeGenSafety::emitShiftIntLike(codeGen, node, leftReg, rightReg, targetType, encodeCtx.opBits, Token::assignToBinary(assignOp), node.modifierFlags.has(AstModifierFlagsE::Wrap)));
         }
         else if (isSigned && (assignOp == TokenId::SymSlashEqual || assignOp == TokenId::SymPercentEqual))
         {

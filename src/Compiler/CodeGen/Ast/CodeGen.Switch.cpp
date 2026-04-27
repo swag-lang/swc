@@ -273,11 +273,7 @@ namespace
 
         MicroBuilder& builder = codeGen.builder();
         builder.emitCmpRegReg(switchState.switchValueReg, caseReg, switchState.compareOpBits);
-        CodeGenCompareHelpers::emitConditionJump(codeGen,
-                                                 codeGen.typeMgr().get(switchState.compareTypeRef),
-                                                 {.primaryCond        = MicroCond::Equal,
-                                                  .floatUnorderedMode = CodeGenCompareHelpers::FloatUnorderedMode::RequireOrdered},
-                                                 successLabel);
+        CodeGenCompareHelpers::emitConditionJump(codeGen, codeGen.typeMgr().get(switchState.compareTypeRef), {.primaryCond = MicroCond::Equal, .floatUnorderedMode = CodeGenCompareHelpers::FloatUnorderedMode::RequireOrdered}, successLabel);
         return Result::Continue;
     }
 
@@ -293,12 +289,7 @@ namespace
             loadOperandToRegister(lowerReg, codeGen, lowerPayload, switchState.compareTypeRef, switchState.compareOpBits);
 
             codeGen.builder().emitCmpRegReg(switchState.switchValueReg, lowerReg, switchState.compareOpBits);
-            CodeGenCompareHelpers::emitConditionJump(codeGen,
-                                                     compareType,
-                                                     {.primaryCond        = CodeGenCompareHelpers::lessCond(unsignedOrFloat),
-                                                      .floatUnorderedMode = compareType.isFloat() ? CodeGenCompareHelpers::FloatUnorderedMode::AcceptUnordered
-                                                                                                  : CodeGenCompareHelpers::FloatUnorderedMode::ExcludedByPrimary},
-                                                     failLabel);
+            CodeGenCompareHelpers::emitConditionJump(codeGen, compareType, {.primaryCond = CodeGenCompareHelpers::lessCond(unsignedOrFloat), .floatUnorderedMode = compareType.isFloat() ? CodeGenCompareHelpers::FloatUnorderedMode::AcceptUnordered : CodeGenCompareHelpers::FloatUnorderedMode::ExcludedByPrimary}, failLabel);
         }
 
         if (rangeExpr.nodeExprUpRef.isValid())
@@ -309,12 +300,7 @@ namespace
 
             codeGen.builder().emitCmpRegReg(switchState.switchValueReg, upperReg, switchState.compareOpBits);
             const MicroCond failCond = rangeExpr.hasFlag(AstRangeExprFlagsE::Inclusive) ? CodeGenCompareHelpers::greaterCond(unsignedOrFloat) : CodeGenCompareHelpers::greaterEqualCond(unsignedOrFloat);
-            CodeGenCompareHelpers::emitConditionJump(codeGen,
-                                                     compareType,
-                                                     {.primaryCond        = failCond,
-                                                      .floatUnorderedMode = compareType.isFloat() ? CodeGenCompareHelpers::FloatUnorderedMode::AcceptUnordered
-                                                                                                  : CodeGenCompareHelpers::FloatUnorderedMode::ExcludedByPrimary},
-                                                     failLabel);
+            CodeGenCompareHelpers::emitConditionJump(codeGen, compareType, {.primaryCond = failCond, .floatUnorderedMode = compareType.isFloat() ? CodeGenCompareHelpers::FloatUnorderedMode::AcceptUnordered : CodeGenCompareHelpers::FloatUnorderedMode::ExcludedByPrimary}, failLabel);
         }
     }
 

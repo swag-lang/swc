@@ -591,10 +591,7 @@ namespace
                         const ConstantRef safeArrayCstRef = CodeGenConstantHelpers::ensureStaticPayloadConstant(codeGen, cstRef, cst.typeRef());
                         SWC_ASSERT(safeArrayCstRef.isValid());
                         const ConstantValue& safeArrayCst       = codeGen.cstMgr().get(safeArrayCstRef);
-                        const ConstantRef    runtimeSliceCstRef = CodeGenConstantHelpers::materializeRuntimeBufferConstant(codeGen,
-                                                                                                                           targetTypeRef,
-                                                                                                                           safeArrayCst.getArray().data(),
-                                                                                                                           sliceCountFromArrayCast(codeGen, sourceArrayType, elementType));
+                        const ConstantRef    runtimeSliceCstRef = CodeGenConstantHelpers::materializeRuntimeBufferConstant(codeGen, targetTypeRef, safeArrayCst.getArray().data(), sliceCountFromArrayCast(codeGen, sourceArrayType, elementType));
                         SWC_ASSERT(runtimeSliceCstRef.isValid());
                         const ConstantValue& runtimeSliceCst = codeGen.cstMgr().get(runtimeSliceCstRef);
                         builder.emitLoadRegPtrReloc(payload.reg, reinterpret_cast<uint64_t>(runtimeSliceCst.getStruct().data()), runtimeSliceCstRef);
@@ -623,10 +620,7 @@ namespace
                 const ConstantRef safeArrayCstRef = CodeGenConstantHelpers::materializeStaticArrayBufferConstant(codeGen, sliceType.payloadTypeRef(), sliceBytes, elementCount);
                 SWC_ASSERT(safeArrayCstRef.isValid());
                 const ConstantValue& safeArrayCst       = codeGen.cstMgr().get(safeArrayCstRef);
-                const ConstantRef    runtimeSliceCstRef = CodeGenConstantHelpers::materializeRuntimeBufferConstant(codeGen,
-                                                                                                                   cst.typeRef(),
-                                                                                                                   safeArrayCst.getArray().data(),
-                                                                                                                   elementCount);
+                const ConstantRef    runtimeSliceCstRef = CodeGenConstantHelpers::materializeRuntimeBufferConstant(codeGen, cst.typeRef(), safeArrayCst.getArray().data(), elementCount);
                 SWC_ASSERT(runtimeSliceCstRef.isValid());
                 const ConstantValue& runtimeSliceCst = codeGen.cstMgr().get(runtimeSliceCstRef);
                 builder.emitLoadRegPtrReloc(payload.reg, reinterpret_cast<uint64_t>(runtimeSliceCst.getStruct().data()), runtimeSliceCstRef);
@@ -698,11 +692,7 @@ namespace
 
         CodeGenNodePayload fillPayload;
         fillPayload.reg = payload.reg;
-        SWC_RESULT(emitConstantToPayload(codeGen,
-                                         fillPayload,
-                                         payload.runtimeArrayFillCstRef,
-                                         codeGen.cstMgr().get(payload.runtimeArrayFillCstRef),
-                                         payload.runtimeArrayFillTypeRef));
+        SWC_RESULT(emitConstantToPayload(codeGen, fillPayload, payload.runtimeArrayFillCstRef, codeGen.cstMgr().get(payload.runtimeArrayFillCstRef), payload.runtimeArrayFillTypeRef));
 
         const MicroReg dstReg = codeGen.runtimeStorageAddressReg(nodeRef);
         if (fillPayload.isValue() && (elementSize == 1 || elementSize == 2 || elementSize == 4 || elementSize == 8))

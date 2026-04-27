@@ -206,11 +206,7 @@ namespace
     {
         if (const auto* function = root.safeCast<SymbolFunction>())
         {
-            SemaGeneric::prepareGenericInstantiationContext(child,
-                                                            functionDeclStartSymMap(*function),
-                                                            functionDeclImplContext(sema, *function),
-                                                            functionDeclInterfaceContext(sema, *function),
-                                                            function->attributes());
+            SemaGeneric::prepareGenericInstantiationContext(child, functionDeclStartSymMap(*function), functionDeclImplContext(sema, *function), functionDeclInterfaceContext(sema, *function), function->attributes());
         }
         else
             SemaGeneric::prepareGenericInstantiationContext(child, const_cast<SymbolMap*>(root.ownerSymMap()), nullptr, nullptr, root.attributes());

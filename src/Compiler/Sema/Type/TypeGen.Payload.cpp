@@ -312,13 +312,7 @@ namespace
         SWC_INTERNAL_CHECK(ConstantLower::lowerToBytes(sema, valueBytes, valueCstRef, valueTypeRef) == Result::Continue);
 
         uint32_t valueOffset = INVALID_REF;
-        SWC_INTERNAL_CHECK(ConstantLower::materializeStaticPayload(
-                               valueOffset,
-                               sema,
-                               storage,
-                               valueTypeRef,
-                               ByteSpan{valueBytes.data(), valueBytes.size()}) ==
-                           Result::Continue);
+        SWC_INTERNAL_CHECK(ConstantLower::materializeStaticPayload(valueOffset, sema, storage, valueTypeRef, ByteSpan{valueBytes.data(), valueBytes.size()}) == Result::Continue);
         SWC_ASSERT(valueOffset != INVALID_REF);
 
         storage.addRelocation(baseOffset + fieldOffset + offsetof(Runtime::Any, value), valueOffset);

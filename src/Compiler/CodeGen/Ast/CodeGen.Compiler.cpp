@@ -495,12 +495,7 @@ Result AstCompilerRunExpr::codeGenPostNode(CodeGen& codeGen) const
         if (needsPersistent)
         {
             // Direct ABI returns can still carry stack-backed strings/slices inside the register payload.
-            CodeGenFunctionHelpers::emitPersistCompilerRunValue(codeGen,
-                                                                exprView.typeRef(),
-                                                                outputStorageReg,
-                                                                outputStorageReg,
-                                                                codeGen.localStackBaseReg(),
-                                                                codeGen.localStackFrameSize());
+            CodeGenFunctionHelpers::emitPersistCompilerRunValue(codeGen, exprView.typeRef(), outputStorageReg, outputStorageReg, codeGen.localStackBaseReg(), codeGen.localStackFrameSize());
         }
     }
     SWC_RESULT(codeGen.emitDeferredActionsForReturn());

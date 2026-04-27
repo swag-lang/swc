@@ -436,24 +436,12 @@ Result CodeGenSafety::emitUnaryMathDomainCheck(CodeGen& codeGen, const MicroReg 
     if (op == Math::FoldIntrinsicUnaryFloatOp::Sqrt)
     {
         builder.emitCmpRegReg(valueReg, zeroReg, opBits);
-        CodeGenCompareHelpers::emitConditionJump(codeGen,
-                                                 floatType,
-                                                 {
-                                                     .primaryCond        = MicroCond::Below,
-                                                     .floatUnorderedMode = CodeGenCompareHelpers::FloatUnorderedMode::AcceptUnordered,
-                                                 },
-                                                 failLabel);
+        CodeGenCompareHelpers::emitConditionJump(codeGen, floatType, {.primaryCond = MicroCond::Below, .floatUnorderedMode = CodeGenCompareHelpers::FloatUnorderedMode::AcceptUnordered}, failLabel);
     }
     else if (op == Math::FoldIntrinsicUnaryFloatOp::Log || op == Math::FoldIntrinsicUnaryFloatOp::Log2 || op == Math::FoldIntrinsicUnaryFloatOp::Log10)
     {
         builder.emitCmpRegReg(valueReg, zeroReg, opBits);
-        CodeGenCompareHelpers::emitConditionJump(codeGen,
-                                                 floatType,
-                                                 {
-                                                     .primaryCond        = MicroCond::Below,
-                                                     .floatUnorderedMode = CodeGenCompareHelpers::FloatUnorderedMode::AcceptUnordered,
-                                                 },
-                                                 failLabel);
+        CodeGenCompareHelpers::emitConditionJump(codeGen, floatType, {.primaryCond = MicroCond::Below, .floatUnorderedMode = CodeGenCompareHelpers::FloatUnorderedMode::AcceptUnordered}, failLabel);
     }
     else
     {
@@ -465,22 +453,10 @@ Result CodeGenSafety::emitUnaryMathDomainCheck(CodeGen& codeGen, const MicroReg 
         const MicroReg oneReg       = emitFloatImmediateReg(codeGen, opBits, oneBits);
 
         builder.emitCmpRegReg(valueReg, minusOneReg, opBits);
-        CodeGenCompareHelpers::emitConditionJump(codeGen,
-                                                 floatType,
-                                                 {
-                                                     .primaryCond        = MicroCond::Below,
-                                                     .floatUnorderedMode = CodeGenCompareHelpers::FloatUnorderedMode::AcceptUnordered,
-                                                 },
-                                                 failLabel);
+        CodeGenCompareHelpers::emitConditionJump(codeGen, floatType, {.primaryCond = MicroCond::Below, .floatUnorderedMode = CodeGenCompareHelpers::FloatUnorderedMode::AcceptUnordered}, failLabel);
 
         builder.emitCmpRegReg(valueReg, oneReg, opBits);
-        CodeGenCompareHelpers::emitConditionJump(codeGen,
-                                                 floatType,
-                                                 {
-                                                     .primaryCond        = MicroCond::Above,
-                                                     .floatUnorderedMode = CodeGenCompareHelpers::FloatUnorderedMode::AcceptUnordered,
-                                                 },
-                                                 failLabel);
+        CodeGenCompareHelpers::emitConditionJump(codeGen, floatType, {.primaryCond = MicroCond::Above, .floatUnorderedMode = CodeGenCompareHelpers::FloatUnorderedMode::AcceptUnordered}, failLabel);
     }
 
     return Result::Continue;
@@ -580,48 +556,24 @@ Result CodeGenSafety::emitFloatToIntCastOverflowCheck(CodeGen& codeGen, const As
         const MicroReg zeroReg = codeGen.nextVirtualFloatRegister();
         builder.emitClearReg(zeroReg, srcBits);
         builder.emitCmpRegReg(srcReg, zeroReg, srcBits);
-        CodeGenCompareHelpers::emitConditionJump(codeGen,
-                                                 srcType,
-                                                 {
-                                                     .primaryCond        = MicroCond::Below,
-                                                     .floatUnorderedMode = CodeGenCompareHelpers::FloatUnorderedMode::AcceptUnordered,
-                                                 },
-                                                 failLabel);
+        CodeGenCompareHelpers::emitConditionJump(codeGen, srcType, {.primaryCond = MicroCond::Below, .floatUnorderedMode = CodeGenCompareHelpers::FloatUnorderedMode::AcceptUnordered}, failLabel);
 
         const MicroReg maxReg = codeGen.nextVirtualFloatRegister();
         builder.emitLoadRegImm(maxReg, ApInt(floatPow2Bits(false, dstBits, srcBits), 64), srcBits);
         builder.emitCmpRegReg(srcReg, maxReg, srcBits);
-        CodeGenCompareHelpers::emitConditionJump(codeGen,
-                                                 srcType,
-                                                 {
-                                                     .primaryCond        = MicroCond::AboveOrEqual,
-                                                     .floatUnorderedMode = CodeGenCompareHelpers::FloatUnorderedMode::AcceptUnordered,
-                                                 },
-                                                 failLabel);
+        CodeGenCompareHelpers::emitConditionJump(codeGen, srcType, {.primaryCond = MicroCond::AboveOrEqual, .floatUnorderedMode = CodeGenCompareHelpers::FloatUnorderedMode::AcceptUnordered}, failLabel);
     }
     else
     {
         const MicroReg minReg = codeGen.nextVirtualFloatRegister();
         builder.emitLoadRegImm(minReg, ApInt(floatPow2Bits(true, dstBits - 1, srcBits), 64), srcBits);
         builder.emitCmpRegReg(srcReg, minReg, srcBits);
-        CodeGenCompareHelpers::emitConditionJump(codeGen,
-                                                 srcType,
-                                                 {
-                                                     .primaryCond        = MicroCond::Below,
-                                                     .floatUnorderedMode = CodeGenCompareHelpers::FloatUnorderedMode::AcceptUnordered,
-                                                 },
-                                                 failLabel);
+        CodeGenCompareHelpers::emitConditionJump(codeGen, srcType, {.primaryCond = MicroCond::Below, .floatUnorderedMode = CodeGenCompareHelpers::FloatUnorderedMode::AcceptUnordered}, failLabel);
 
         const MicroReg maxReg = codeGen.nextVirtualFloatRegister();
         builder.emitLoadRegImm(maxReg, ApInt(floatPow2Bits(false, dstBits - 1, srcBits), 64), srcBits);
         builder.emitCmpRegReg(srcReg, maxReg, srcBits);
-        CodeGenCompareHelpers::emitConditionJump(codeGen,
-                                                 srcType,
-                                                 {
-                                                     .primaryCond        = MicroCond::AboveOrEqual,
-                                                     .floatUnorderedMode = CodeGenCompareHelpers::FloatUnorderedMode::AcceptUnordered,
-                                                 },
-                                                 failLabel);
+        CodeGenCompareHelpers::emitConditionJump(codeGen, srcType, {.primaryCond = MicroCond::AboveOrEqual, .floatUnorderedMode = CodeGenCompareHelpers::FloatUnorderedMode::AcceptUnordered}, failLabel);
     }
 
     builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, doneLabel);

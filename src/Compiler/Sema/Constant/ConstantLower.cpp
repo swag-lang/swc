@@ -243,11 +243,7 @@ namespace
 
         uint32_t valueOffset = INVALID_REF;
         // Nested `any` values get their own static storage so relocations can target them.
-        SWC_RESULT(ConstantLower::materializeStaticPayload(valueOffset,
-                                                           sema,
-                                                           segment,
-                                                           valueTypeRef,
-                                                           rawBytes(srcAny.value, valueSize)));
+        SWC_RESULT(ConstantLower::materializeStaticPayload(valueOffset, sema, segment, valueTypeRef, rawBytes(srcAny.value, valueSize)));
         dstAny.value = segment.ptr<std::byte>(valueOffset);
         segment.addRelocation(payload.baseOffset + offsetof(Runtime::Any, value), valueOffset);
         return Result::Continue;
@@ -371,11 +367,7 @@ namespace
         if (capturedTarget)
         {
             uint64_t relocatedTarget = 0;
-            SWC_RESULT(relocateSegmentAddress(relocatedTarget,
-                                              sema,
-                                              segment,
-                                              payload.baseOffset + offsetof(Runtime::ClosureValue, capture),
-                                              pointerFromRawAddress<const void>(capturedTarget)));
+            SWC_RESULT(relocateSegmentAddress(relocatedTarget, sema, segment, payload.baseOffset + offsetof(Runtime::ClosureValue, capture), pointerFromRawAddress<const void>(capturedTarget)));
             writable<uint64_t>(rawBytes(dstClosure.capture, sizeof(uint64_t))) = relocatedTarget;
         }
 

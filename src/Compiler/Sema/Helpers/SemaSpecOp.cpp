@@ -1914,17 +1914,7 @@ Result SemaSpecOp::tryResolveAssign(Sema& sema, const AstAssignStmt& node, const
     outHandled = false;
 
     const Token& tok = sema.token(node.codeRef());
-    if (!tok.isAny({TokenId::SymEqual,
-                    TokenId::SymPlusEqual,
-                    TokenId::SymMinusEqual,
-                    TokenId::SymAsteriskEqual,
-                    TokenId::SymSlashEqual,
-                    TokenId::SymAmpersandEqual,
-                    TokenId::SymPipeEqual,
-                    TokenId::SymCircumflexEqual,
-                    TokenId::SymPercentEqual,
-                    TokenId::SymLowerLowerEqual,
-                    TokenId::SymGreaterGreaterEqual}))
+    if (!tok.isAny({TokenId::SymEqual, TokenId::SymPlusEqual, TokenId::SymMinusEqual, TokenId::SymAsteriskEqual, TokenId::SymSlashEqual, TokenId::SymAmpersandEqual, TokenId::SymPipeEqual, TokenId::SymCircumflexEqual, TokenId::SymPercentEqual, TokenId::SymLowerLowerEqual, TokenId::SymGreaterGreaterEqual}))
         return Result::Continue;
 
     if (!leftView.type())
@@ -2510,10 +2500,7 @@ Result SemaSpecOp::tryResolveUnary(Sema& sema, const AstUnaryExpr& node, const S
     outHandled = false;
 
     const Token& tok = sema.token(node.codeRef());
-    if (!tok.isAny({TokenId::SymPlus,
-                    TokenId::SymMinus,
-                    TokenId::SymBang,
-                    TokenId::SymTilde}))
+    if (!tok.isAny({TokenId::SymPlus, TokenId::SymMinus, TokenId::SymBang, TokenId::SymTilde}))
         return Result::Continue;
 
     if (!operandView.type())
@@ -2693,16 +2680,7 @@ Result SemaSpecOp::tryResolveBinary(Sema& sema, const AstBinaryExpr& node, const
     outHandled = false;
 
     const Token& tok = sema.token(node.codeRef());
-    if (!tok.isAny({TokenId::SymPlus,
-                    TokenId::SymMinus,
-                    TokenId::SymAsterisk,
-                    TokenId::SymSlash,
-                    TokenId::SymPercent,
-                    TokenId::SymAmpersand,
-                    TokenId::SymPipe,
-                    TokenId::SymCircumflex,
-                    TokenId::SymLowerLower,
-                    TokenId::SymGreaterGreater}))
+    if (!tok.isAny({TokenId::SymPlus, TokenId::SymMinus, TokenId::SymAsterisk, TokenId::SymSlash, TokenId::SymPercent, TokenId::SymAmpersand, TokenId::SymPipe, TokenId::SymCircumflex, TokenId::SymLowerLower, TokenId::SymGreaterGreater}))
         return Result::Continue;
 
     const SourceView&      srcView    = sema.compiler().srcView(node.srcViewRef());

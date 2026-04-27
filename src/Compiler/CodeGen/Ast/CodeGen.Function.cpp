@@ -1257,12 +1257,7 @@ namespace
                 if (needsPersistent)
                 {
                     // Compiler-run blocks also need persistence for direct register returns like `string`.
-                    CodeGenFunctionHelpers::emitPersistCompilerRunValue(codeGen,
-                                                                        returnTypeRef,
-                                                                        outputStorageReg,
-                                                                        outputStorageReg,
-                                                                        codeGen.localStackBaseReg(),
-                                                                        codeGen.localStackFrameSize());
+                    CodeGenFunctionHelpers::emitPersistCompilerRunValue(codeGen, returnTypeRef, outputStorageReg, outputStorageReg, codeGen.localStackBaseReg(), codeGen.localStackFrameSize());
                 }
             }
         }

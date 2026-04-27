@@ -219,8 +219,9 @@ void SemaCycle::check(TaskContext& ctx, JobClientId clientId)
     ctx_ = &ctx;
     std::unordered_set<const Symbol*> reportedSymbols;
 
-    for (Job* job : jobs)
+    for (size_t jobIndex = 0; jobIndex < jobs.size(); jobIndex++)
     {
+        Job*        job   = jobs[jobIndex];
         const auto& state = job->ctx().state();
         if (state.waiterSymbol && state.symbol)
             addEdge(state.waiterSymbol, state.symbol, job, state);
@@ -228,8 +229,9 @@ void SemaCycle::check(TaskContext& ctx, JobClientId clientId)
 
     detectAndReportCycles();
 
-    for (Job* job : jobs)
+    for (size_t jobIndex = 0; jobIndex < jobs.size(); jobIndex++)
     {
+        Job*        job   = jobs[jobIndex];
         const auto& state = job->ctx().state();
         if (state.symbol && state.symbol->isIgnored())
             continue;
@@ -264,8 +266,9 @@ void SemaCycle::check(TaskContext& ctx, JobClientId clientId)
 
     const bool suppressStalledDependencies = Stats::hasError() || ctx.hasError();
 
-    for (Job* job : jobs)
+    for (size_t jobIndex = 0; jobIndex < jobs.size(); jobIndex++)
     {
+        Job*        job   = jobs[jobIndex];
         const auto& state = job->ctx().state();
         if (state.symbol && state.symbol->isIgnored())
             continue;

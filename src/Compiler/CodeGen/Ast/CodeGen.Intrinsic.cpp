@@ -1783,6 +1783,102 @@ namespace
         return codeGen.compiler().runtimeFunctionSymbol(idRef);
     }
 
+    Result materializeNativeRuntimeContextTlsId(MicroReg& outTlsIdReg, CodeGen& codeGen, SymbolFunction& tlsAllocFunction)
+    {
+        codeGen.function().addCallDependency(&tlsAllocFunction);
+
+        MicroBuilder&  builder       = codeGen.builder();
+        const uint32_t tlsIdOffset   = codeGen.compiler().nativeRuntimeContextTlsIdOffset();
+        const MicroReg tlsStorageReg = codeGen.nextVirtualIntRegister();
+        builder.emitLoadRegDataSegmentReloc(tlsStorageReg, DataSegmentKind::GlobalZero, tlsIdOffset);
+
+        const MicroReg tlsIdPlusOneReg = codeGen.nextVirtualIntRegister();
+        builder.emitLoadRegMem(tlsIdPlusOneReg, tlsStorageReg, 0, MicroOpBits::B64);
+
+        const MicroLabelRef haveTlsIdLabel = builder.createLabel();
+        builder.emitCmpRegImm(tlsIdPlusOneReg, ApInt(0, 64), MicroOpBits::B64);
+        builder.emitJumpToLabel(MicroCond::NotEqual, MicroOpBits::B32, haveTlsIdLabel);
+
+        const CallConvKind          tlsAllocCallConvKind = tlsAllocFunction.callConvKind();
+        const ABICall::PreparedCall preparedTlsAllocCall = ABICall::prepareArgs(builder, tlsAllocCallConvKind, {});
+        ABICall::callLocal(builder, tlsAllocCallConvKind, &tlsAllocFunction, preparedTlsAllocCall);
+
+        const CallConv&                        tlsAllocCallConv = CallConv::get(tlsAllocCallConvKind);
+        const ABITypeNormalize::NormalizedType tlsAllocRet      = ABITypeNormalize::normalize(codeGen.ctx(), tlsAllocCallConv, tlsAllocFunction.returnTypeRef(), ABITypeNormalize::Usage::Return);
+        SWC_ASSERT(!tlsAllocRet.isVoid);
+        SWC_ASSERT(!tlsAllocRet.isIndirect);
+
+        ABICall::materializeReturnToReg(builder, tlsIdPlusOneReg, tlsAllocCallConvKind, tlsAllocRet);
+        builder.emitOpBinaryRegImm(tlsIdPlusOneReg, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
+        builder.emitLoadMemReg(tlsStorageReg, 0, tlsIdPlusOneReg, MicroOpBits::B64);
+        builder.placeLabel(haveTlsIdLabel);
+
+        outTlsIdReg = codeGen.nextVirtualIntRegister();
+        builder.emitLoadRegReg(outTlsIdReg, tlsIdPlusOneReg, MicroOpBits::B64);
+        builder.emitOpBinaryRegImm(outTlsIdReg, ApInt(1, 64), MicroOp::Subtract, MicroOpBits::B64);
+        return Result::Continue;
+    }
+
+    MicroReg materializeHostRuntimeContextTlsId(CodeGen& codeGen)
+    {
+        MicroBuilder&    builder         = codeGen.builder();
+        const uint64_t   tlsIdAddress    = reinterpret_cast<uint64_t>(CompilerInstance::runtimeContextTlsIdStorage());
+        const ConstantRef tlsIdAddressCf = codeGen.cstMgr().addConstant(codeGen.ctx(), ConstantValue::makeValuePointer(codeGen.ctx(), codeGen.typeMgr().typeU64(), tlsIdAddress, TypeInfoFlagsE::Const));
+        const MicroReg    tlsIdPtrReg    = codeGen.nextVirtualIntRegister();
+        builder.emitLoadRegPtrReloc(tlsIdPtrReg, tlsIdAddress, tlsIdAddressCf);
+
+        const MicroReg tlsIdReg = codeGen.nextVirtualIntRegister();
+        builder.emitLoadRegMem(tlsIdReg, tlsIdPtrReg, 0, MicroOpBits::B64);
+        return tlsIdReg;
+    }
+
+    Result emitTlsSetValueCall(CodeGen& codeGen, SymbolFunction& tlsSetValueFunction, MicroReg tlsIdReg, MicroReg contextReg)
+    {
+        codeGen.function().addCallDependency(&tlsSetValueFunction);
+
+        ABICall::PreparedArg directU64Arg;
+        directU64Arg.kind    = ABICall::PreparedArgKind::Direct;
+        directU64Arg.numBits = 64;
+
+        SmallVector<ABICall::PreparedArg> preparedArgs;
+        directU64Arg.srcReg = tlsIdReg;
+        preparedArgs.push_back(directU64Arg);
+        directU64Arg.srcReg = contextReg;
+        preparedArgs.push_back(directU64Arg);
+
+        MicroBuilder&               builder      = codeGen.builder();
+        const CallConvKind          callConvKind = tlsSetValueFunction.callConvKind();
+        const ABICall::PreparedCall preparedCall = ABICall::prepareArgs(builder, callConvKind, preparedArgs.span());
+        ABICall::callLocal(builder, callConvKind, &tlsSetValueFunction, preparedCall);
+        return Result::Continue;
+    }
+
+    MicroReg materializeSetContextArgument(CodeGen& codeGen, AstNodeRef contextRef)
+    {
+        const CodeGenNodePayload& contextPayload = codeGen.payload(contextRef);
+        TypeRef                   contextTypeRef = intrinsicOperandTypeRef(codeGen, contextRef, contextPayload);
+        SWC_ASSERT(contextTypeRef.isValid());
+
+        const TypeInfo& contextType = codeGen.typeMgr().get(contextTypeRef);
+        const TypeRef   rawTypeRef  = contextType.unwrap(codeGen.ctx(), contextTypeRef, TypeExpandE::Alias);
+        if (rawTypeRef.isValid())
+            contextTypeRef = rawTypeRef;
+
+        const TypeInfo& rawContextType = codeGen.typeMgr().get(contextTypeRef);
+        if (rawContextType.isReference() || rawContextType.isAnyPointer())
+        {
+            if (!contextPayload.isAddress())
+                return contextPayload.reg;
+
+            const MicroReg contextReg = codeGen.nextVirtualIntRegister();
+            codeGen.builder().emitLoadRegMem(contextReg, contextPayload.reg, 0, MicroOpBits::B64);
+            return contextReg;
+        }
+
+        SWC_ASSERT(contextPayload.isAddress());
+        return contextPayload.reg;
+    }
+
     Result codeGenProcessInfos(CodeGen& codeGen)
     {
         const TypeRef             processInfosTypeRef = codeGen.typeMgr().structProcessInfos();
@@ -1866,38 +1962,11 @@ namespace
         if (!tlsAllocFunction || !tlsGetPtrFunction)
             return Result::Error;
 
-        codeGen.function().addCallDependency(tlsAllocFunction);
         codeGen.function().addCallDependency(tlsGetPtrFunction);
 
-        MicroBuilder&  builder       = codeGen.builder();
-        const uint32_t tlsIdOffset   = codeGen.compiler().nativeRuntimeContextTlsIdOffset();
-        const MicroReg tlsStorageReg = codeGen.nextVirtualIntRegister();
-        builder.emitLoadRegDataSegmentReloc(tlsStorageReg, DataSegmentKind::GlobalZero, tlsIdOffset);
-
-        const MicroReg tlsIdPlusOneReg = codeGen.nextVirtualIntRegister();
-        builder.emitLoadRegMem(tlsIdPlusOneReg, tlsStorageReg, 0, MicroOpBits::B64);
-
-        const MicroLabelRef haveTlsIdLabel = builder.createLabel();
-        builder.emitCmpRegImm(tlsIdPlusOneReg, ApInt(0, 64), MicroOpBits::B64);
-        builder.emitJumpToLabel(MicroCond::NotEqual, MicroOpBits::B32, haveTlsIdLabel);
-
-        const CallConvKind          tlsAllocCallConvKind = tlsAllocFunction->callConvKind();
-        const ABICall::PreparedCall preparedTlsAllocCall = ABICall::prepareArgs(builder, tlsAllocCallConvKind, {});
-        ABICall::callLocal(builder, tlsAllocCallConvKind, tlsAllocFunction, preparedTlsAllocCall);
-
-        const CallConv&                        tlsAllocCallConv = CallConv::get(tlsAllocCallConvKind);
-        const ABITypeNormalize::NormalizedType tlsAllocRet      = ABITypeNormalize::normalize(codeGen.ctx(), tlsAllocCallConv, tlsAllocFunction->returnTypeRef(), ABITypeNormalize::Usage::Return);
-        SWC_ASSERT(!tlsAllocRet.isVoid);
-        SWC_ASSERT(!tlsAllocRet.isIndirect);
-
-        ABICall::materializeReturnToReg(builder, tlsIdPlusOneReg, tlsAllocCallConvKind, tlsAllocRet);
-        builder.emitOpBinaryRegImm(tlsIdPlusOneReg, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
-        builder.emitLoadMemReg(tlsStorageReg, 0, tlsIdPlusOneReg, MicroOpBits::B64);
-        builder.placeLabel(haveTlsIdLabel);
-
-        const MicroReg tlsIdReg = codeGen.nextVirtualIntRegister();
-        builder.emitLoadRegReg(tlsIdReg, tlsIdPlusOneReg, MicroOpBits::B64);
-        builder.emitOpBinaryRegImm(tlsIdReg, ApInt(1, 64), MicroOp::Subtract, MicroOpBits::B64);
+        MicroBuilder& builder = codeGen.builder();
+        MicroReg      tlsIdReg;
+        SWC_RESULT(materializeNativeRuntimeContextTlsId(tlsIdReg, codeGen, *tlsAllocFunction));
 
         const TypeRef      contextTypeRef     = codeGen.typeMgr().structContext();
         const TypeInfo&    contextType        = codeGen.typeMgr().get(contextTypeRef);
@@ -1949,13 +2018,7 @@ namespace
         MicroBuilder&                     builder             = codeGen.builder();
         SmallVector<ABICall::PreparedArg> preparedArgs;
 
-        const uint64_t    tlsIdAddress   = reinterpret_cast<uint64_t>(CompilerInstance::runtimeContextTlsIdStorage());
-        const ConstantRef tlsIdAddressCf = codeGen.cstMgr().addConstant(codeGen.ctx(), ConstantValue::makeValuePointer(codeGen.ctx(), codeGen.typeMgr().typeU64(), tlsIdAddress, TypeInfoFlagsE::Const));
-        const MicroReg    tlsIdPtrReg    = codeGen.nextVirtualIntRegister();
-        builder.emitLoadRegPtrReloc(tlsIdPtrReg, tlsIdAddress, tlsIdAddressCf);
-
-        const MicroReg tlsIdReg = codeGen.nextVirtualIntRegister();
-        builder.emitLoadRegMem(tlsIdReg, tlsIdPtrReg, 0, MicroOpBits::B64);
+        const MicroReg tlsIdReg = materializeHostRuntimeContextTlsId(codeGen);
 
         ABICall::PreparedArg arg;
         arg.srcReg      = tlsIdReg;
@@ -1976,6 +2039,37 @@ namespace
         const CodeGenNodePayload& resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), resultType);
         ABICall::materializeReturnToReg(builder, resultPayload.reg, callConvKind, normalizedRet);
         return Result::Continue;
+    }
+
+    Result codeGenSetContext(CodeGen& codeGen, const AstIntrinsicCallExpr& node)
+    {
+        SmallVector<AstNodeRef> children;
+        codeGen.ast().appendNodes(children, node.spanChildrenRef);
+        SWC_ASSERT(children.size() == 1);
+
+        const auto* payload = codeGen.sema().codeGenPayload<CodeGenNodePayload>(codeGen.curNodeRef());
+        SWC_ASSERT(payload != nullptr);
+        SWC_ASSERT(payload->runtimeFunctionSymbol != nullptr);
+        if (!payload || !payload->runtimeFunctionSymbol)
+            return Result::Error;
+
+        const MicroReg contextReg = materializeSetContextArgument(codeGen, children[0]);
+        MicroReg       tlsIdReg   = MicroReg::invalid();
+        if (codeGen.isNativeBuild())
+        {
+            SymbolFunction* tlsAllocFunction = runtimeFunctionByName(codeGen, "__tlsAlloc");
+            SWC_ASSERT(tlsAllocFunction != nullptr);
+            if (!tlsAllocFunction)
+                return Result::Error;
+
+            SWC_RESULT(materializeNativeRuntimeContextTlsId(tlsIdReg, codeGen, *tlsAllocFunction));
+        }
+        else
+        {
+            tlsIdReg = materializeHostRuntimeContextTlsId(codeGen);
+        }
+
+        return emitTlsSetValueCall(codeGen, *payload->runtimeFunctionSymbol, tlsIdReg, contextReg);
     }
 }
 
@@ -2135,6 +2229,8 @@ Result AstIntrinsicCallExpr::codeGenPostNode(CodeGen& codeGen) const
 
         case TokenId::IntrinsicGetContext:
             return codeGenGetContext(codeGen);
+        case TokenId::IntrinsicSetContext:
+            return codeGenSetContext(codeGen, *this);
         case TokenId::IntrinsicProcessInfos:
             return codeGenProcessInfos(codeGen);
         case TokenId::IntrinsicGvtd:

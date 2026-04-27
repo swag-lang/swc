@@ -193,6 +193,8 @@ void MicroRegisterAllocationPass::coalesceLocalCopies() const
             continue;
         if (!dstReg.isSameClass(srcReg))
             continue;
+        if (context_->builder->virtualRegForbiddenPhysRegs().contains(dstReg))
+            continue;
 
         if (dstReg == srcReg)
         {

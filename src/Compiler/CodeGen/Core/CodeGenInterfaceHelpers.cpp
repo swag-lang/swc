@@ -14,6 +14,9 @@ SWC_BEGIN_NAMESPACE();
 
 bool CodeGenInterfaceHelpers::resolveInterfaceCastInfo(CodeGen& codeGen, const SymbolStruct& srcStruct, const SymbolInterface& dstItf, InterfaceCastInfo& outInfo)
 {
+    if (srcStruct.isGenericRoot() && !srcStruct.isGenericInstance())
+        return false;
+
     if (const SymbolImpl* implSym = srcStruct.findInterfaceImpl(dstItf.idRef()))
     {
         outInfo.objectStruct = &srcStruct;

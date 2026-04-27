@@ -26,6 +26,12 @@ func preferCallerScope(stmt: #code void)
 }
 
 #[Swag.Macro]
+func injectPlain(stmt: #code void)
+{
+    #inject(stmt)
+}
+
+#[Swag.Macro]
 func repeatWithIndex(count: s32, stmt: #code void)
 {
     var i = 0
@@ -164,6 +170,19 @@ func aliasWithConfig(cfg: MacroScopeConfig, stmt: #code void)
     preferCallerScope()
     {
         a += 2
+    }
+
+    @assert(a == 3)
+}
+
+// Plain macro #inject keeps #up bound to the macro caller
+#test
+{
+    var a = 0
+    injectPlain(#code { #up a += 1; })
+    injectPlain()
+    {
+        #up a += 2
     }
 
     @assert(a == 3)

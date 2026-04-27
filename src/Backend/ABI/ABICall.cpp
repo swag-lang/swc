@@ -151,6 +151,27 @@ namespace
         builder.addVirtualRegForbiddenPhysRegs(arg.srcReg, conv.intArgRegs);
     }
 
+    bool requiresRegisterArgHomeSlot(const ABICall::PreparedArg& arg)
+    {
+        if (arg.isAddressed)
+            return true;
+        if (arg.isFloat)
+            return !arg.srcReg.isVirtualFloat();
+        return !arg.srcReg.isVirtualInt();
+    }
+
+    bool hasRegisterArgHomeSlot(std::span<const ABICall::PreparedArg> args, uint32_t numRegArgs)
+    {
+        const uint32_t numRegArgsUsed = std::min(static_cast<uint32_t>(args.size()), numRegArgs);
+        for (uint32_t i = 0; i < numRegArgsUsed; ++i)
+        {
+            if (requiresRegisterArgHomeSlot(args[i]))
+                return true;
+        }
+
+        return false;
+    }
+
     void emitReturnWriteBackIfNeeded(MicroBuilder& builder, const CallConv& conv, const ABICall::Return& ret)
     {
         if (ret.isVoid || ret.isIndirect)
@@ -258,7 +279,7 @@ ABICall::PreparedCall ABICall::prepareArgs(MicroBuilder& builder, CallConvKind c
     preparedCall.stackAdjust   = stackAdjust;
     const bool hasStackArgs    = numPreparedArgs > numRegArgs;
 
-    if (hasStackArgs)
+    if (hasStackArgs || hasRegisterArgHomeSlot(args, numRegArgs))
     {
         MicroReg   regBase, regTmp;
         const bool hasScratchRegs = conv.tryPickIntScratchRegs(regBase, regTmp);
@@ -288,14 +309,25 @@ ABICall::PreparedCall ABICall::prepareArgs(MicroBuilder& builder, CallConvKind c
 
             if (isRegArg)
             {
-                // Float values, addressed values, and non-virtual int values are staged through home slots for uniformity.
-                const bool useHomeSlot = arg.isFloat || arg.isAddressed || !arg.srcReg.isVirtualInt();
+                // Only values that cannot be moved directly into their ABI lane need register home slots.
+                const bool useHomeSlot = requiresRegisterArgHomeSlot(arg);
                 regArgsUseHomeSlot[i]  = useHomeSlot ? 1 : 0;
 
                 if (!useHomeSlot)
                 {
-                    SWC_ASSERT(i < conv.intArgRegs.size());
-                    forbidOtherArgRegs(builder, arg.srcReg, conv.intArgRegs, i);
+                    if (arg.constrainToArgLane)
+                    {
+                        if (arg.isFloat)
+                        {
+                            SWC_ASSERT(i < conv.floatArgRegs.size());
+                            forbidOtherArgRegs(builder, arg.srcReg, conv.floatArgRegs, i);
+                        }
+                        else
+                        {
+                            SWC_ASSERT(i < conv.intArgRegs.size());
+                            forbidOtherArgRegs(builder, arg.srcReg, conv.intArgRegs, i);
+                        }
+                    }
                     continue;
                 }
             }
@@ -351,7 +383,14 @@ ABICall::PreparedCall ABICall::prepareArgs(MicroBuilder& builder, CallConvKind c
                 continue;
             }
 
-            SWC_ASSERT(!arg.isFloat);
+            if (arg.isFloat)
+            {
+                SWC_ASSERT(arg.kind == PreparedArgKind::Direct);
+                SWC_ASSERT(i < conv.floatArgRegs.size());
+                builder.emitLoadRegReg(conv.floatArgRegs[i], arg.srcReg, preparedArgBits(arg));
+                continue;
+            }
+
             SWC_ASSERT(i < conv.intArgRegs.size());
             switch (arg.kind)
             {
@@ -377,17 +416,17 @@ ABICall::PreparedCall ABICall::prepareArgs(MicroBuilder& builder, CallConvKind c
         const PreparedArg& arg = args[i];
         forbidFloatBitCarrierIntArgRegs(builder, conv, arg);
 
-        if (arg.srcReg.isVirtual())
+        if (arg.constrainToArgLane)
         {
             if (arg.isFloat)
             {
-                if (arg.srcReg.isVirtualFloat())
-                    forbidOtherArgRegs(builder, arg.srcReg, conv.floatArgRegs, i);
+                SWC_ASSERT(i < conv.floatArgRegs.size());
+                forbidOtherArgRegs(builder, arg.srcReg, conv.floatArgRegs, i);
             }
             else
             {
-                if (arg.srcReg.isVirtualInt())
-                    forbidOtherArgRegs(builder, arg.srcReg, conv.intArgRegs, i);
+                SWC_ASSERT(i < conv.intArgRegs.size());
+                forbidOtherArgRegs(builder, arg.srcReg, conv.intArgRegs, i);
             }
         }
 

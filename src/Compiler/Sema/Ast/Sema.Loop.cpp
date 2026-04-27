@@ -353,9 +353,12 @@ Result AstForeachStmt::semaPostNode(Sema& sema) const
     if (!payload || !payload->usesCustomVisit)
         return Result::Continue;
 
-    bool handled = false;
-    SWC_RESULT(SemaSpecOp::tryResolveVisit(sema, *this, handled));
+    SymbolFunction* visitFn = nullptr;
+    bool            handled = false;
+    SWC_RESULT(SemaSpecOp::tryResolveVisit(sema, *this, visitFn, handled));
     SWC_ASSERT(handled);
+    SWC_ASSERT(visitFn != nullptr);
+    ensureLoopSemaPayload(sema, sema.curNodeRef()).visitFn = visitFn;
     return Result::Continue;
 }
 

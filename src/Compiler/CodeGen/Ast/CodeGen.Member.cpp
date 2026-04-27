@@ -278,6 +278,24 @@ namespace
         builder.emitLoadRegMem(dstReg, dstReg, (methodFunc.interfaceMethodSlot() + 1) * sizeof(void*), MicroOpBits::B64);
         return Result::Continue;
     }
+
+    bool isRuntimeMemberAccessLeft(const SemaNodeView& leftView)
+    {
+        if (!leftView.sym())
+            return true;
+        return !leftView.sym()->isType() &&
+               !leftView.sym()->isNamespace() &&
+               !leftView.sym()->isModule() &&
+               !leftView.sym()->isImpl();
+    }
+
+    bool canMaterializeScopedRightSymbol(const Symbol& symbol)
+    {
+        if (!symbol.isVariable())
+            return false;
+
+        return symbol.cast<SymbolVariable>().hasGlobalStorage();
+    }
 }
 
 Result AstMemberAccessExpr::codeGenPreNodeChild(const CodeGen& codeGen, const AstNodeRef& childRef) const
@@ -291,23 +309,24 @@ Result AstMemberAccessExpr::codeGenPreNodeChild(const CodeGen& codeGen, const As
 Result AstMemberAccessExpr::codeGenPostNode(CodeGen& codeGen) const
 {
     const SemaNodeView leftView = codeGen.viewTypeSymbol(nodeLeftRef);
+    const bool         leftIsRuntimeValue = isRuntimeMemberAccessLeft(leftView);
 
-    if (leftView.type() && leftView.type()->isInterface() && (!leftView.sym() || !leftView.sym()->isImpl()))
+    if (leftIsRuntimeValue && leftView.type() && leftView.type()->isInterface())
         return codeGenInterfaceMethodMemberAccess(codeGen, *this);
-    if (leftView.type() && leftView.type()->isAggregateStruct())
+    if (leftIsRuntimeValue && leftView.type() && leftView.type()->isAggregateStruct())
         return codeGenAggregateStructMemberAccess(codeGen, *this);
 
     const SemaNodeView rightView = codeGen.viewSymbol(nodeRightRef);
     if (rightView.sym())
     {
-        if (leftView.type() && rightView.sym()->isVariable())
+        if (leftIsRuntimeValue && rightView.sym()->isVariable())
             return codeGenStructMemberAccess(codeGen, *this);
         if (rightView.sym()->isFunction() || rightView.sym()->isType() || rightView.sym()->isNamespace() || rightView.sym()->isModule() || rightView.sym()->isImpl())
             return Result::Continue;
     }
 
     const CodeGenNodePayload* rightPayload = codeGen.safePayload(nodeRightRef);
-    if ((!rightPayload || !rightPayload->reg.isValid()) && rightView.sym())
+    if ((!rightPayload || !rightPayload->reg.isValid()) && rightView.sym() && canMaterializeScopedRightSymbol(*rightView.sym()))
     {
         // Member access does not visit the RHS child during the normal walk. Scoped values such as
         // `Namespace.globalVar` still need the same payload materialization as a standalone identifier.

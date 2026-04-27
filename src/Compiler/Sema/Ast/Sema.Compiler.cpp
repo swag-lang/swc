@@ -264,14 +264,14 @@ namespace
             return Result::Error;
 
         sema.setSubstitute(ownerRef, clonedRef);
-        if (isMacroInject && inlinePayload->crossAstInline)
+        if (isMacroInject)
         {
             auto       frame       = sema.frame();
             SemaScope* callerScope = inlinePayload->callerScope;
             SemaScope* injectScope = sema.lookupScope();
             frame.setCurrentInlinePayload(inlinePayload->parentInlinePayload);
             frame.setLookupScope(injectScope ? injectScope : callerScope);
-            frame.setUpLookupScope(callerScope ? callerScope->lookupParent() : nullptr);
+            frame.setUpLookupScope(callerScope);
             for (SymbolVariable* bindingVar : inlinePayload->callerBindingVars)
                 frame.pushBindingVar(bindingVar);
             for (TypeRef bindingType : inlinePayload->callerBindingTypes)

@@ -82,7 +82,7 @@ impl Vector4
             .x += value
             .y += value
             .z += value
-            w += value
+            .w += value
         }
         #elif op == "-="
         {

@@ -237,6 +237,8 @@ public:
     Result      waitRuntimeFunction(IdentifierManager::RuntimeFunctionKind kind, SymbolFunction*& symbol, const SourceCodeRef& codeRef);
     Result      waitCompilerDefined(IdentifierRef idRef, const SourceCodeRef& codeRef);
     Result      waitImplRegistrations(IdentifierRef idRef, const SourceCodeRef& codeRef);
+    Result      completeLazyGenericFunction(SymbolFunction& calledFn);
+    Result      waitSemaCompletedNoLazy(const Symbol* symbol, const SourceCodeRef& codeRef);
     Result      waitSemaCompleted(const Symbol* symbol, const SourceCodeRef& codeRef);
     Result      waitCodeGenPreSolved(const Symbol* symbol, const SourceCodeRef& codeRef);
     Result      waitCodeGenCompleted(const Symbol* symbol, const SourceCodeRef& codeRef);

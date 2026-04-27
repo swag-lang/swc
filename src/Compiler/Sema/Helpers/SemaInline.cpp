@@ -23,25 +23,15 @@ namespace
         if (sema.currentFunction() == &fn)
             return true;
 
-        const auto frames = sema.frames();
-        for (size_t i = frames.size(); i > 0; --i)
+        const SemaInlinePayload* inlinePayload = sema.frame().currentInlinePayload();
+        while (inlinePayload)
         {
-            const SemaInlinePayload* inlinePayload = frames[i - 1].currentInlinePayload();
-            if (inlinePayload && inlinePayload->sourceFunction == &fn)
+            if (inlinePayload->sourceFunction == &fn)
                 return true;
+            inlinePayload = inlinePayload->parentInlinePayload;
         }
 
         return false;
-    }
-
-    void traceArrayInline(Sema& sema, AstNodeRef callRef, const SymbolFunction& fn, std::string_view what)
-    {
-        const SourceCodeRange range = sema.node(callRef).codeRange(sema.ctx());
-        const SourceFile*     file  = range.srcView ? range.srcView->file() : nullptr;
-        if (!file || !file->path().string().contains("collections\\array.swg") || range.line != 106)
-            return;
-
-        std::cerr << "inline trace " << what << " fn=" << fn.name(sema.ctx()) << " macro=" << fn.attributes().hasRtFlag(RtAttributeFlagsE::Macro) << " mixin=" << fn.attributes().hasRtFlag(RtAttributeFlagsE::Mixin) << " current=" << (sema.currentFunction() ? sema.currentFunction()->name(sema.ctx()) : "<null>") << "\n";
     }
 
     bool isInlineReexpandableExpr(const AstNode& node)
@@ -1117,22 +1107,18 @@ bool SemaInline::canInlineCall(Sema& sema, const SymbolFunction& fn)
 
 Result SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFunction& fn, std::span<AstNodeRef> args, AstNodeRef ufcsArg, std::span<AstNodeRef> sourceArgs)
 {
-    traceArrayInline(sema, callRef, fn, "enter");
     if (sema.hasSubstitute(callRef))
     {
-        traceArrayInline(sema, callRef, fn, "has-substitute");
         return Result::Continue;
     }
 
     if (isInlineRecursion(sema, fn))
     {
-        traceArrayInline(sema, callRef, fn, "recursion");
         return Result::Continue;
     }
 
     if (!canInlineCall(sema, fn))
     {
-        traceArrayInline(sema, callRef, fn, "cannot-inline");
         return Result::Continue;
     }
 
@@ -1140,7 +1126,6 @@ Result SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFun
     const Ast*             declAst = nullptr;
     if (!resolveFunctionDecl(sema, fn, decl, declAst))
     {
-        traceArrayInline(sema, callRef, fn, "no-decl");
         return Result::Continue;
     }
     SWC_ASSERT(declAst != nullptr);
@@ -1170,7 +1155,6 @@ Result SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFun
     SWC_RESULT(mapArguments(sema, mapped, context, bindings, variadicBinding));
     if (!mapped)
     {
-        traceArrayInline(sema, callRef, fn, "not-mapped");
         return Result::Continue;
     }
     if (isCrossAstInline)
@@ -1186,7 +1170,6 @@ Result SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFun
     {
         if (variadicExprRef.isInvalid() || variadicExprTypeRef.isInvalid())
         {
-            traceArrayInline(sema, callRef, fn, "variadic-failed");
             return Result::Continue;
         }
         if (variadicBinding.param->idRef().isValid())
@@ -1207,7 +1190,6 @@ Result SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFun
     const AstNodeRef              inlineRootRef = isMixin ? mixinBodyRef(sema, *decl, cloneContext, materializedBindings.span()) : inlineBodyRef(sema, *decl, cloneContext, materializedBindings.span());
     if (inlineRootRef.isInvalid())
     {
-        traceArrayInline(sema, callRef, fn, "no-root");
         return Result::Continue;
     }
     sema.node(inlineRootRef).setCodeRef(sema.node(callRef).codeRef());
@@ -1277,7 +1259,6 @@ Result SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFun
     });
 
     sema.setSubstitute(callRef, inlineRootRef);
-    traceArrayInline(sema, callRef, fn, "substituted");
     sema.visit().restartCurrentNode(inlineRootRef);
     return Result::Continue;
 }

@@ -100,7 +100,7 @@ namespace SemaSpecOp
     Result tryResolveVarInitSet(Sema& sema, AstNodeRef receiverRef, AstNodeRef valueRef, bool& outHandled);
     Result tryResolveCountOf(Sema& sema, AstNodeRef exprRef, SymbolFunction*& outCalledFn, bool& outHandled);
     Result tryResolveDataOf(Sema& sema, AstNodeRef exprRef, SymbolFunction*& outCalledFn, bool& outHandled);
-    Result tryResolveVisit(Sema& sema, const AstForeachStmt& node, bool& outHandled);
+    Result tryResolveVisit(Sema& sema, const AstForeachStmt& node, SymbolFunction*& outCalledFn, bool& outHandled);
     Result tryResolveSlice(Sema& sema, const AstIndexExpr& node, const SemaNodeView& indexedView, bool& outHandled);
     Result tryResolveIndex(Sema& sema, const AstIndexExpr& node, const SemaNodeView& indexedView, bool& outHandled);
     Result tryResolveIndex(Sema& sema, const AstIndexListExpr& node, const SemaNodeView& indexedView, bool& outHandled);

@@ -637,7 +637,7 @@ Result Sema::waitTyped(const Symbol* symbol, const SourceCodeRef& codeRef)
     return Result::Pause;
 }
 
-Result Sema::waitSemaCompleted(const Symbol* symbol, const SourceCodeRef& codeRef)
+Result Sema::waitSemaCompletedNoLazy(const Symbol* symbol, const SourceCodeRef& codeRef)
 {
     if (!symbol || symbol->isSemaCompleted())
         return Result::Continue;
@@ -651,6 +651,31 @@ Result Sema::waitSemaCompleted(const Symbol* symbol, const SourceCodeRef& codeRe
     wait.symbol                  = symbol;
     wait.waiterSymbol            = guessCurrentSymbol(*this);
     return Result::Pause;
+}
+
+Result Sema::waitSemaCompleted(const Symbol* symbol, const SourceCodeRef& codeRef)
+{
+    if (!symbol || symbol->isSemaCompleted())
+        return Result::Continue;
+    if (shouldAbortWait(symbol))
+        return Result::Error;
+
+    const auto* function = symbol->safeCast<SymbolFunction>();
+    if (function &&
+        function->hasExtraFlag(SymbolFunctionFlagsE::LazyGenericBody) &&
+        !function->hasExtraFlag(SymbolFunctionFlagsE::LazyGenericBodyRunning))
+    {
+        auto&        mutableFunction = *const_cast<SymbolFunction*>(function);
+        const Result result          = completeLazyGenericFunction(mutableFunction);
+        if (result != Result::Continue)
+            return result;
+        if (mutableFunction.isSemaCompleted())
+            return Result::Continue;
+        if (mutableFunction.isIgnored())
+            return Result::Error;
+    }
+
+    return waitSemaCompletedNoLazy(symbol, codeRef);
 }
 
 Result Sema::waitCodeGenCompleted(const Symbol* symbol, const SourceCodeRef& codeRef)

@@ -488,21 +488,6 @@ Result AstIdentifier::codeGenPostNode(CodeGen& codeGen)
              codeGen.node(parentRef).is(AstNodeId::QuotedListExpr)))
             return Result::Continue;
 
-        const SourceCodeRange range = codeGen.curNode().codeRange(codeGen.ctx());
-        const SourceFile*     file  = range.srcView ? range.srcView->file() : nullptr;
-        std::cerr << "missing identifier symbol at " << (file ? file->path().string() : "<source>") << ":" << range.line << ":" << range.column << "\n";
-        for (size_t i = 0; i < 8; ++i)
-        {
-            const AstNodeRef chainRef = i == 0 ? codeGen.curNodeRef() : codeGen.visit().parentNodeRef(i - 1);
-            if (chainRef.isInvalid())
-                break;
-            const AstNodeRef resolvedRef = codeGen.sema().viewZero(chainRef).nodeRef();
-            std::cerr << "  chain[" << i << "] ref=" << chainRef.get() << " id=" << static_cast<uint32_t>(codeGen.node(chainRef).id()) << " subst=" << codeGen.sema().hasSubstitute(chainRef) << " resolved=" << resolvedRef.get();
-            if (resolvedRef.isValid())
-                std::cerr << " resolvedId=" << static_cast<uint32_t>(codeGen.node(resolvedRef).id());
-            std::cerr << "\n";
-        }
-
         SWC_ASSERT(view.sym());
     }
 

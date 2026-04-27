@@ -1,14 +1,17 @@
 #include "pch.h"
 #include "Compiler/CodeGen/Core/CodeGen.h"
 #include "Backend/Runtime.h"
+#include "Compiler/CodeGen/Core/CodeGenCallHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenCompareHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenConstantHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenFunctionHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenMemoryHelpers.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
+#include "Compiler/Sema/Ast/Sema.Loop.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Symbol/Symbol.Enum.h"
+#include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Compiler/Sema/Type/TypeInfo.h"
 
@@ -55,6 +58,12 @@ namespace
         ForeachStmtCodeGenPayload* payload = foreachStmtCodeGenPayload(codeGen, nodeRef);
         if (payload)
             *payload = {};
+    }
+
+    bool foreachUsesCustomVisit(CodeGen& codeGen, AstNodeRef nodeRef)
+    {
+        const auto* payload = codeGen.sema().semaPayload<LoopSemaPayload>(nodeRef);
+        return payload && payload->usesCustomVisit;
     }
 
     MicroReg materializeForeachInternalStackAddress(CodeGen& codeGen, const SymbolVariable& symVar)
@@ -368,6 +377,14 @@ namespace
 
 Result AstForeachStmt::codeGenPreNode(CodeGen& codeGen) const
 {
+    if (foreachUsesCustomVisit(codeGen, codeGen.curNodeRef()))
+    {
+        const AstNodeRef resolvedRef = codeGen.resolvedNodeRef(codeGen.curNodeRef());
+        if (resolvedRef.isValid() && resolvedRef != codeGen.curNodeRef())
+            SWC_RESULT(codeGen.emitNodeNow(resolvedRef));
+        return Result::SkipChildren;
+    }
+
     ForeachStmtCodeGenPayload loopState;
     const SemaNodeView        symbolsView = codeGen.viewSymbolList(codeGen.curNodeRef());
     const auto                symbols     = symbolsView.symList();
@@ -451,7 +468,7 @@ Result AstForeachStmt::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& 
     {
         SWC_RESULT(codeGen.popDeferScope());
 
-        if (codeGen.currentInstructionBlocksFallthrough() && !codeGen.frame().currentLoopHasContinueJump())
+        if (whereRef.isInvalid() && codeGen.currentInstructionBlocksFallthrough() && !codeGen.frame().currentLoopHasContinueJump())
         {
             codeGen.popFrame();
             return Result::Continue;
@@ -475,6 +492,18 @@ Result AstForeachStmt::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& 
 
 Result AstForeachStmt::codeGenPostNode(CodeGen& codeGen)
 {
+    if (foreachUsesCustomVisit(codeGen, codeGen.curNodeRef()))
+    {
+        const AstNodeRef resolvedRef = codeGen.resolvedNodeRef(codeGen.curNodeRef());
+        if (resolvedRef.isValid() && resolvedRef != codeGen.curNodeRef())
+            return Result::Continue;
+
+        const auto* payload = codeGen.sema().semaPayload<LoopSemaPayload>(codeGen.curNodeRef());
+        SWC_ASSERT(payload && payload->visitFn);
+        codeGen.sema().setSymbol(codeGen.curNodeRef(), payload->visitFn);
+        return CodeGenCallHelpers::codeGenCallExprCommon(codeGen, AstNodeRef::invalid());
+    }
+
     const ForeachStmtCodeGenPayload* loopState = foreachStmtCodeGenPayload(codeGen, codeGen.curNodeRef());
     SWC_ASSERT(loopState != nullptr);
 

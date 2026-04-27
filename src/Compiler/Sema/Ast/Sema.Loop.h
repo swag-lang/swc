@@ -12,6 +12,7 @@ struct LoopSemaPayload
     TypeRef                           indexTypeRef = TypeRef::invalid();
     ConstantRef                       countCstRef  = ConstantRef::invalid();
     SymbolFunction*                   countFn      = nullptr;
+    SymbolFunction*                   visitFn      = nullptr;
     SmallVector<ResolvedCallArgument> countResolvedArgs;
     AstNodeRef                        lowerBoundRef   = AstNodeRef::invalid();
     AstNodeRef                        upperBoundRef   = AstNodeRef::invalid();

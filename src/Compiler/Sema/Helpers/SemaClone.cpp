@@ -211,6 +211,12 @@ namespace
             return;
         if (storedView.typeRef().isValid())
             sema.setType(clonedRef, storedView.typeRef());
+        if (sema.isValueStored(sourceRef))
+            sema.setIsValue(clonedRef);
+        if (sema.isLValueStored(sourceRef))
+            sema.setIsLValue(clonedRef);
+        if (sema.isFoldedTypedConstStored(sourceRef))
+            sema.setFoldedTypedConst(clonedRef);
     }
 
     SpanRef cloneSpan(Sema& sema, SpanRef spanRef, const SemaClone::CloneContext& cloneContext)

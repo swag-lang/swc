@@ -104,6 +104,15 @@
 
 #test
 {
+    #[Swag.Optimize(false)]
+    func thirdFloatArg(a: f64, b: f64, c: f64, d: f64)->f64 { return c }
+    const V = #run thirdFloatArg(10.0'f64, 20.5'f64, 5.25'f64, 6.25'f64)
+    #assert(#typeof(V) == f64)
+    #assert(V == 5.25'f64)
+}
+
+#test
+{
     #[Swag.Optimize("bad")] // swc-expected-error {{sema_err_cannot_cast}}
     func addAttrBad(a: s32, b: s32)->s32 { return a + b }
 }

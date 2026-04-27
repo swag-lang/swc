@@ -38,6 +38,7 @@ namespace ABICall
         bool            isFloat     = false;
         bool            isSigned    = false;
         bool            isAddressed = false;
+        bool            constrainToArgLane = false;
         uint8_t         numBits     = 0;
     };
 

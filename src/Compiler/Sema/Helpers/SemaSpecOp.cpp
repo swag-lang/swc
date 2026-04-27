@@ -2066,8 +2066,9 @@ Result SemaSpecOp::canResolveVisit(Sema& sema, const AstForeachStmt& node, bool&
     return Result::Continue;
 }
 
-Result SemaSpecOp::tryResolveVisit(Sema& sema, const AstForeachStmt& node, bool& outHandled)
+Result SemaSpecOp::tryResolveVisit(Sema& sema, const AstForeachStmt& node, SymbolFunction*& outCalledFn, bool& outHandled)
 {
+    outCalledFn = nullptr;
     outHandled = false;
 
     const SemaNodeView  exprView(sema, node.nodeExprRef, SemaNodeViewPartE::Type);
@@ -2093,7 +2094,7 @@ Result SemaSpecOp::tryResolveVisit(Sema& sema, const AstForeachStmt& node, bool&
         receiverRef = node.nodeExprRef;
     traceVisitReceiver(sema, node, receiverRef);
     bool matched = false;
-    SWC_RESULT(resolveSyntheticCall(sema, node, candidates.span(), args.span(), receiverRef, true, &matched, false));
+    SWC_RESULT(resolveSyntheticCall(sema, node, candidates.span(), args.span(), receiverRef, true, &matched, false, true, &outCalledFn));
     outHandled = matched;
     return Result::Continue;
 }

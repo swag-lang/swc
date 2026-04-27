@@ -125,6 +125,7 @@ void IdentifierManager::setup(const TaskContext& ctx)
         {.name = PredefinedName::RuntimeTypeCmp, .str = "@typecmp"},
         {.name = PredefinedName::RuntimeStringCmp, .str = "@stringcmp"},
         {.name = PredefinedName::RuntimeTlsAlloc, .str = "__tlsAlloc"},
+        {.name = PredefinedName::RuntimeTlsSetValue, .str = "__tlsSetValue"},
         {.name = PredefinedName::RuntimeTlsGetPtr, .str = "__tlsGetPtr"},
         {.name = PredefinedName::RuntimeTlsGetValue, .str = "__tlsGetValue"},
         {.name = PredefinedName::RuntimeRaiseException, .str = "__raiseException666"},
@@ -149,6 +150,7 @@ void IdentifierManager::setup(const TaskContext& ctx)
     runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::Is)]             = predefined(PredefinedName::RuntimeIs);
     runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::TypeCmp)]        = predefined(PredefinedName::RuntimeTypeCmp);
     runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::TlsAlloc)]       = predefined(PredefinedName::RuntimeTlsAlloc);
+    runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::TlsSetValue)]    = predefined(PredefinedName::RuntimeTlsSetValue);
     runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::TlsGetPtr)]      = predefined(PredefinedName::RuntimeTlsGetPtr);
     runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::TlsGetValue)]    = predefined(PredefinedName::RuntimeTlsGetValue);
     runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::RaiseException)] = predefined(PredefinedName::RuntimeRaiseException);

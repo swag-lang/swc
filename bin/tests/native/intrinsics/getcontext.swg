@@ -18,6 +18,19 @@
     @assert(#defined(v.panic))
 }
 
+#test
+{
+    let prev = @getcontext()
+    defer @setcontext(prev)
+
+    var cxt = dref prev
+    cxt.user0 = 0x5E7C0A7E
+
+    @setcontext(cxt)
+    @assert(@getcontext() == &cxt)
+    @assert(@getcontext().user0 == 0x5E7C0A7E)
+}
+
 /*#run
 {
     @assert(@jit)

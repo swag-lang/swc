@@ -216,7 +216,7 @@ namespace
             lazyGenericBodyRuns().erase(it);
     }
 
-    Result completeLazyGenericFunction(Sema& sema, SymbolFunction& calledFn)
+    Result completeLazyGenericFunctionImpl(Sema& sema, SymbolFunction& calledFn)
     {
         if (calledFn.isSemaCompleted())
             return Result::Continue;
@@ -232,7 +232,7 @@ namespace
             const auto             it = lazyGenericBodyRuns().find(&calledFn);
             if (it != lazyGenericBodyRuns().end() && it->second.ownerCtx == &sema.ctx() && it->second.running)
                 return Result::Continue;
-            return sema.waitSemaCompleted(&calledFn, calledFn.codeRef());
+            return sema.waitSemaCompletedNoLazy(&calledFn, calledFn.codeRef());
         }
 
         const AstNodeRef declRef = calledFn.declNodeRef();
@@ -246,7 +246,7 @@ namespace
             if (run.sema)
             {
                 if (run.ownerCtx != &sema.ctx() || run.running)
-                    return sema.waitSemaCompleted(&calledFn, calledFn.codeRef());
+                    return sema.waitSemaCompletedNoLazy(&calledFn, calledFn.codeRef());
             }
             else
             {
@@ -346,6 +346,11 @@ namespace
     {
         return false;
     }
+}
+
+Result Sema::completeLazyGenericFunction(SymbolFunction& calledFn)
+{
+    return completeLazyGenericFunctionImpl(*this, calledFn);
 }
 
 Result AstFunctionDecl::semaPreDecl(Sema& sema) const
@@ -1924,6 +1929,14 @@ namespace
         return SemaHelpers::attachRuntimeFunctionToNode(sema, sema.curNodeRef(), IdentifierManager::RuntimeFunctionKind::TlsGetValue, node.codeRef());
     }
 
+    Result setupIntrinsicSetContextRuntimeCall(Sema& sema, const AstIntrinsicCallExpr& node)
+    {
+        if (sema.isNativeBuild())
+            SWC_RESULT(SemaHelpers::requireRuntimeFunctionDependency(sema, IdentifierManager::RuntimeFunctionKind::TlsAlloc, node.codeRef()));
+
+        return SemaHelpers::attachRuntimeFunctionToNode(sema, sema.curNodeRef(), IdentifierManager::RuntimeFunctionKind::TlsSetValue, node.codeRef());
+    }
+
     Result setupIntrinsicAssertRuntimeCall(Sema& sema, const AstIntrinsicCallExpr& node)
     {
         return SemaHelpers::attachRuntimeFunctionToNode(sema, sema.curNodeRef(), IdentifierManager::RuntimeFunctionKind::RaiseException, node.codeRef());
@@ -1991,7 +2004,7 @@ namespace
 
         auto& calledFn = nodeSymView.sym()->cast<SymbolFunction>();
         traceSelectedCall(sema, sema.curNodeRef(), calledFn);
-        SWC_RESULT(completeLazyGenericFunction(sema, calledFn));
+        SWC_RESULT(sema.completeLazyGenericFunction(calledFn));
 
         const bool isMixinCall = calledFn.attributes().hasRtFlag(RtAttributeFlagsE::Mixin);
         const bool isMacroCall = calledFn.attributes().hasRtFlag(RtAttributeFlagsE::Macro);
@@ -2100,7 +2113,10 @@ Result AstFunctionDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef)
         if (!whereSatisfied)
         {
             if (whereFailure.diagId == DiagnosticId::sema_err_function_where_failed)
+            {
+                sym.addExtraFlag(SymbolFunctionFlagsE::WhereConstraintFailed);
                 return Result::SkipChildren;
+            }
 
             bool directSatisfied = true;
             return SemaGeneric::evaluateFunctionWhereConstraints(sema, directSatisfied, sym, nullptr);
@@ -2261,6 +2277,14 @@ Result AstFunctionDecl::semaPostNode(Sema& sema)
     if (sym.isForeign() && !sym.isEmpty())
         return SemaError::raise(sema, DiagnosticId::sema_err_foreign_cannot_have_body, sema.curNodeRef());
 
+    if (sym.hasExtraFlag(SymbolFunctionFlagsE::WhereConstraintFailed))
+    {
+        sym.removeExtraFlag(SymbolFunctionFlagsE::LazyGenericBody);
+        sym.removeExtraFlag(SymbolFunctionFlagsE::LazyGenericBodyRunning);
+        sym.setSemaCompleted(sema.ctx());
+        return Result::Continue;
+    }
+
     SemaPurity::computePurityFlag(sema, sym);
     sym.removeExtraFlag(SymbolFunctionFlagsE::LazyGenericBody);
     sym.removeExtraFlag(SymbolFunctionFlagsE::LazyGenericBodyRunning);
@@ -2369,6 +2393,8 @@ Result AstIntrinsicCallExpr::semaPostNode(Sema& sema) const
     const Token& tok = sema.token(codeRef());
     if (tok.id == TokenId::IntrinsicGetContext)
         SWC_RESULT(setupIntrinsicGetContextRuntimeCall(sema, *this));
+    else if (tok.id == TokenId::IntrinsicSetContext)
+        SWC_RESULT(setupIntrinsicSetContextRuntimeCall(sema, *this));
     else if (tok.id == TokenId::IntrinsicAssert)
         SWC_RESULT(setupIntrinsicAssertRuntimeCall(sema, *this));
     else if (tok.id == TokenId::IntrinsicGvtd)

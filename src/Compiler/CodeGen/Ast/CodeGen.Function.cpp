@@ -282,8 +282,10 @@ namespace
             return;
         }
 
-        const TypeInfo&   typeInfo  = codeGen.typeMgr().get(typeRef);
-        const MicroOpBits storeBits = CodeGenTypeHelpers::scalarStoreBits(typeInfo, codeGen.ctx());
+        const TypeInfo& typeInfo  = codeGen.typeMgr().get(typeRef);
+        MicroOpBits     storeBits = CodeGenTypeHelpers::scalarStoreBits(typeInfo, codeGen.ctx());
+        if (storeBits == MicroOpBits::Zero)
+            storeBits = CodeGenTypeHelpers::bitsFromStorageSize(typeInfo.sizeOf(codeGen.ctx()));
         SWC_ASSERT(storeBits != MicroOpBits::Zero);
         if (srcPayload.isAddress())
             builder.emitLoadRegMem(dstPayload.reg, srcPayload.reg, 0, storeBits);
@@ -1093,6 +1095,20 @@ namespace
         return false;
     }
 
+    void emitIndirectReturnValuePayload(CodeGen& codeGen, MicroReg outputStorageReg, MicroReg valueReg, uint32_t copySize)
+    {
+        SWC_ASSERT(copySize > 0);
+
+        MicroOpBits copyBits = MicroOpBits::Zero;
+        if (copySize == 1 || copySize == 2 || copySize == 4 || copySize == 8)
+            copyBits = microOpBitsFromChunkSize(copySize);
+
+        if (copyBits != MicroOpBits::Zero)
+            codeGen.builder().emitLoadMemReg(outputStorageReg, 0, valueReg, copyBits);
+        else
+            CodeGenMemoryHelpers::emitMemCopy(codeGen, outputStorageReg, valueReg, copySize);
+    }
+
     bool isCompilerFunctionDecl(CodeGen& codeGen);
 
     Result emitFunctionReturn(CodeGen& codeGen, const SymbolFunction& symbolFunc, AstNodeRef exprRef)
@@ -1133,14 +1149,7 @@ namespace
             }
             else if (!delayReturnMaterialization)
             {
-                const uint32_t copySize = normalizedRet.indirectSize;
-                auto           copyBits = MicroOpBits::Zero;
-                if (copySize == 1 || copySize == 2 || copySize == 4 || copySize == 8)
-                    copyBits = microOpBitsFromChunkSize(copySize);
-                if (copyBits != MicroOpBits::Zero)
-                    builder.emitLoadMemReg(outputStorageReg, 0, exprPayload.reg, copyBits);
-                else
-                    CodeGenMemoryHelpers::emitMemCopy(codeGen, outputStorageReg, exprPayload.reg, copySize);
+                emitIndirectReturnValuePayload(codeGen, outputStorageReg, exprPayload.reg, normalizedRet.indirectSize);
             }
 
             SWC_RESULT(codeGen.emitDeferredActionsForReturn());
@@ -1348,9 +1357,7 @@ namespace
                         CodeGenMemoryHelpers::emitMemCopy(codeGen, outputStorageReg, exprPayload->reg, normalizedRet.indirectSize);
                     else
                     {
-                        const MicroOpBits copyBits = CodeGenTypeHelpers::bitsFromStorageSize(normalizedRet.indirectSize);
-                        SWC_ASSERT(copyBits != MicroOpBits::Zero);
-                        builder.emitLoadMemReg(outputStorageReg, 0, exprPayload->reg, copyBits);
+                        emitIndirectReturnValuePayload(codeGen, outputStorageReg, exprPayload->reg, normalizedRet.indirectSize);
                     }
                 }
                 else
@@ -1385,9 +1392,7 @@ namespace
                 CodeGenMemoryHelpers::emitMemCopy(codeGen, outputStorageReg, exprPayload->reg, normalizedRet.indirectSize);
             else
             {
-                const MicroOpBits copyBits = CodeGenTypeHelpers::bitsFromStorageSize(normalizedRet.indirectSize);
-                SWC_ASSERT(copyBits != MicroOpBits::Zero);
-                builder.emitLoadMemReg(outputStorageReg, 0, exprPayload->reg, copyBits);
+                emitIndirectReturnValuePayload(codeGen, outputStorageReg, exprPayload->reg, normalizedRet.indirectSize);
             }
 
             builder.emitLoadRegReg(callConv.intReturn, outputStorageReg, MicroOpBits::B64);

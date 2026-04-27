@@ -684,6 +684,48 @@ namespace
         outPreparedArg.isAddressed = argPayload.isAddress() && !normalizedArg.isIndirect && !passAddressRef;
     }
 
+    MicroOpBits preparedArgDirectCopyBits(const ABICall::PreparedArg& arg)
+    {
+        if (!arg.numBits)
+            return MicroOpBits::B64;
+
+        const MicroOpBits bits = microOpBitsFromBitWidth(arg.numBits);
+        SWC_ASSERT(bits != MicroOpBits::Zero);
+        return bits;
+    }
+
+    void isolatePreparedRegisterArgSources(CodeGen& codeGen, const CallConv& callConv, SmallVector<ABICall::PreparedArg>& args)
+    {
+        MicroBuilder&  builder    = codeGen.builder();
+        const uint32_t numRegArgs = std::min(static_cast<uint32_t>(args.size()), callConv.numArgRegisterSlots());
+        for (uint32_t i = 0; i < numRegArgs; ++i)
+        {
+            ABICall::PreparedArg& arg = args[i];
+            if (arg.kind != ABICall::PreparedArgKind::Direct || arg.isAddressed)
+                continue;
+
+            MicroReg argLaneSourceReg = MicroReg::invalid();
+            if (arg.isFloat)
+            {
+                if (!arg.srcReg.isVirtualFloat())
+                    continue;
+
+                argLaneSourceReg = codeGen.nextVirtualFloatRegister();
+            }
+            else
+            {
+                if (!arg.srcReg.isVirtualInt())
+                    continue;
+
+                argLaneSourceReg = codeGen.nextVirtualIntRegister();
+            }
+
+            builder.emitLoadRegReg(argLaneSourceReg, arg.srcReg, preparedArgDirectCopyBits(arg));
+            arg.srcReg             = argLaneSourceReg;
+            arg.constrainToArgLane = true;
+        }
+    }
+
     const SymbolFunction* currentLocationFunction(CodeGen& codeGen)
     {
         if (codeGen.frame().hasCurrentInlineContext())
@@ -1270,6 +1312,7 @@ Result CodeGenCallHelpers::emitRuntimeCallWithDirectArgsToReg(CodeGen& codeGen, 
         appendDirectPreparedArg(preparedArgs, codeGen, callConv, params[i]->typeRef(), argRegs[i]);
     }
 
+    isolatePreparedRegisterArgSources(codeGen, callConv, preparedArgs);
     MicroBuilder&               builder      = codeGen.builder();
     const ABICall::PreparedCall preparedCall = ABICall::prepareArgs(builder, callConvKind, preparedArgs.span());
     if (runtimeFunction.isForeign())
@@ -1301,6 +1344,7 @@ Result CodeGenCallHelpers::emitRuntimeCallWithDirectArgs(CodeGen& codeGen, Symbo
         appendDirectPreparedArg(preparedArgs, codeGen, callConv, params[i]->typeRef(), argRegs[i]);
     }
 
+    isolatePreparedRegisterArgSources(codeGen, callConv, preparedArgs);
     MicroBuilder&               builder      = codeGen.builder();
     const ABICall::PreparedCall preparedCall = ABICall::prepareArgs(builder, callConvKind, preparedArgs.span());
     if (runtimeFunction.isForeign())
@@ -1369,6 +1413,7 @@ Result CodeGenCallHelpers::codeGenCallExprCommon(CodeGen& codeGen, AstNodeRef ca
     codeGen.appendResolvedCallArguments(codeGen.curNodeRef(), args);
     uint32_t transientStackSize = 0;
     SWC_RESULT(buildPreparedABIArguments(codeGen, codeGen.curNodeRef(), calledFunction, closureContextReg, args, preparedArgs, transientStackSize));
+    isolatePreparedRegisterArgSources(codeGen, callConv, preparedArgs);
     MicroReg hiddenRetStorageReg = MicroReg::invalid();
     if (normalizedRet.isIndirect)
     {
@@ -1389,6 +1434,8 @@ Result CodeGenCallHelpers::codeGenCallExprCommon(CodeGen& codeGen, AstNodeRef ca
     if (!nodePayloadTypeRef.isValid())
         nodePayloadTypeRef = currentView.typeRef();
     CodeGenNodePayload& nodePayload = codeGen.setPayload(codeGen.curNodeRef(), nodePayloadTypeRef);
+    if (!normalizedRet.isVoid)
+        nodePayload.reg = normalizedRet.isFloat ? codeGen.nextVirtualFloatRegister() : codeGen.nextVirtualIntRegister();
     emitFunctionCall(codeGen, calledFunction, preparedCall, callTargetReg);
     if (transientStackSize)
         builder.emitOpBinaryRegImm(callConv.stackPointer, ApInt(transientStackSize, 64), MicroOp::Add, MicroOpBits::B64);
@@ -1419,6 +1466,7 @@ Result CodeGenCallHelpers::emitCallWithResolvedArgsToReg(CodeGen& codeGen, AstNo
     SmallVector<ABICall::PreparedArg> preparedArgs;
     uint32_t                          transientStackSize = 0;
     SWC_RESULT(buildPreparedABIArguments(codeGen, callRef, calledFunction, MicroReg::invalid(), args, preparedArgs, transientStackSize));
+    isolatePreparedRegisterArgSources(codeGen, callConv, preparedArgs);
 
     MicroBuilder&               builder      = codeGen.builder();
     const ABICall::PreparedCall preparedCall = ABICall::prepareArgs(builder, callConvKind, preparedArgs.span());
@@ -1446,6 +1494,7 @@ Result CodeGenCallHelpers::emitCallWithResolvedArgs(CodeGen& codeGen, AstNodeRef
     SmallVector<ABICall::PreparedArg> preparedArgs;
     uint32_t                          transientStackSize = 0;
     SWC_RESULT(buildPreparedABIArguments(codeGen, callRef, calledFunction, MicroReg::invalid(), args, preparedArgs, transientStackSize));
+    isolatePreparedRegisterArgSources(codeGen, callConv, preparedArgs);
 
     MicroBuilder&               builder      = codeGen.builder();
     const ABICall::PreparedCall preparedCall = ABICall::prepareArgs(builder, callConvKind, preparedArgs.span());

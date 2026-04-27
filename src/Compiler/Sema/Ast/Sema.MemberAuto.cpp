@@ -5,6 +5,7 @@
 #include "Compiler/Sema/Helpers/SemaClone.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
+#include "Compiler/Sema/Helpers/SemaInline.h"
 #include "Compiler/Sema/Helpers/SemaSymbolLookup.h"
 #include "Compiler/Sema/Match/Match.h"
 #include "Compiler/Sema/Match/MatchContext.h"
@@ -81,25 +82,39 @@ namespace
         SmallVector<const Symbol*> symbols;
     };
 
-    void copyDetachedExprState(Sema& sema, AstNodeRef sourceRef, AstNodeRef clonedRef);
+    SymbolVariable* activeReceiverBinding(Sema& sema);
+
+    bool containsNodeRef(std::span<const AstNodeRef> refs, AstNodeRef ref)
+    {
+        return std::ranges::find(refs, ref) != refs.end();
+    }
+
+    void copyDetachedExprState(Sema& sema, AstNodeRef sourceRef, AstNodeRef clonedRef, SmallVector<AstNodeRef>& activeSourceRefs);
 
     // `with` rewrites must not reuse an existing resolved expression subtree directly,
     // otherwise several rewritten auto-members can end up sharing AST nodes.
-    AstNodeRef cloneDetachedExpr(Sema& sema, AstNodeRef sourceRef)
+    AstNodeRef cloneDetachedExpr(Sema& sema, AstNodeRef sourceRef, SmallVector<AstNodeRef>& activeSourceRefs)
     {
         SWC_ASSERT(sourceRef.isValid());
         const SemaClone::CloneContext cloneContext{std::span<const SemaClone::ParamBinding>{}};
         const AstNodeRef              clonedRef = SemaClone::cloneAst(sema, sourceRef, cloneContext);
         SWC_ASSERT(clonedRef.isValid());
-        copyDetachedExprState(sema, sourceRef, clonedRef);
+        copyDetachedExprState(sema, sourceRef, clonedRef, activeSourceRefs);
         return clonedRef;
     }
 
-    void copyDetachedExprState(Sema& sema, AstNodeRef sourceRef, AstNodeRef clonedRef)
+    AstNodeRef cloneDetachedExpr(Sema& sema, AstNodeRef sourceRef)
+    {
+        SmallVector<AstNodeRef> activeSourceRefs;
+        return cloneDetachedExpr(sema, sourceRef, activeSourceRefs);
+    }
+
+    void copyDetachedExprState(Sema& sema, AstNodeRef sourceRef, AstNodeRef clonedRef, SmallVector<AstNodeRef>& activeSourceRefs)
     {
         SWC_ASSERT(sourceRef.isValid());
         SWC_ASSERT(clonedRef.isValid());
 
+        activeSourceRefs.push_back(sourceRef);
         sema.inheritPayload(sema.node(clonedRef), sourceRef);
 
         SmallVector<AstNodeRef> sourceChildren;
@@ -118,15 +133,19 @@ namespace
             sema.inheritPayload(sema.node(clonedChildRef), sourceChildRef);
 
             const AstNodeRef resolvedChildRef = sema.viewZero(sourceChildRef).nodeRef();
-            if (resolvedChildRef.isValid() && resolvedChildRef != sourceChildRef)
+            if (resolvedChildRef.isValid() &&
+                resolvedChildRef != sourceChildRef &&
+                !containsNodeRef(activeSourceRefs.span(), resolvedChildRef))
             {
-                const AstNodeRef clonedResolvedChildRef = cloneDetachedExpr(sema, resolvedChildRef);
+                const AstNodeRef clonedResolvedChildRef = cloneDetachedExpr(sema, resolvedChildRef, activeSourceRefs);
                 sema.setSubstitute(clonedChildRef, clonedResolvedChildRef);
                 continue;
             }
 
-            copyDetachedExprState(sema, sourceChildRef, clonedChildRef);
+            copyDetachedExprState(sema, sourceChildRef, clonedChildRef, activeSourceRefs);
         }
+
+        activeSourceRefs.pop_back();
     }
 
     AstNodeRef makeAutoMemberLeftExpr(Sema& sema, TokenRef tokRef, const AutoMemberCandidate& candidate)
@@ -234,6 +253,88 @@ namespace
         return Result::Continue;
     }
 
+    bool expressionResolvesToVariable(Sema& sema, AstNodeRef exprRef, const SymbolVariable& variable)
+    {
+        SmallVector<AstNodeRef> visitedRefs;
+        for (uint32_t depth = 0; depth < 8 && exprRef.isValid(); ++depth)
+        {
+            if (containsNodeRef(visitedRefs.span(), exprRef))
+                return false;
+            visitedRefs.push_back(exprRef);
+
+            const SemaNodeView storedSymbolView = sema.viewStored(exprRef, SemaNodeViewPartE::Symbol);
+            if (storedSymbolView.sym() == &variable)
+                return true;
+
+            const AstNode& node = sema.node(exprRef);
+            if (const auto* castNode = node.safeCast<AstCastExpr>())
+            {
+                exprRef = castNode->nodeExprRef;
+                continue;
+            }
+
+            if (const auto* autoCastNode = node.safeCast<AstAutoCastExpr>())
+            {
+                exprRef = autoCastNode->nodeExprRef;
+                continue;
+            }
+
+            if (const auto* asCastNode = node.safeCast<AstAsCastExpr>())
+            {
+                exprRef = asCastNode->nodeExprRef;
+                continue;
+            }
+
+            const AstNodeRef resolvedRef = sema.viewZero(exprRef).nodeRef();
+            if (resolvedRef.isInvalid())
+                return false;
+            if (resolvedRef != exprRef)
+            {
+                exprRef = resolvedRef;
+                continue;
+            }
+
+            const SemaNodeView symbolView = sema.viewSymbol(exprRef);
+            if (symbolView.sym() == &variable)
+                return true;
+
+            return false;
+        }
+
+        return false;
+    }
+
+    Result addCandidateFromInlineReceiver(Sema& sema, SmallVector4<AutoMemberCandidate>& outCandidates, uint32_t& precedence)
+    {
+        const SemaInlinePayload* inlinePayload = sema.frame().currentInlinePayload();
+        if (!inlinePayload)
+            return Result::Continue;
+
+        const IdentifierRef meId = sema.idMgr().predefined(IdentifierManager::PredefinedName::Me);
+        for (const SemaClone::ParamBinding& binding : inlinePayload->argMappings)
+        {
+            if (binding.idRef != meId || binding.exprRef.isInvalid())
+                continue;
+
+            if (SymbolVariable* receiver = activeReceiverBinding(sema))
+            {
+                if (expressionResolvesToVariable(sema, binding.exprRef, *receiver))
+                    return Result::Continue;
+            }
+
+            TypeRef typeRef = binding.typeRef;
+            if (typeRef.isInvalid())
+                typeRef = sema.viewType(binding.exprRef).typeRef();
+            if (typeRef.isInvalid())
+                continue;
+
+            SWC_RESULT(addCandidateFromType(sema, outCandidates, typeRef, nullptr, binding.exprRef, precedence++));
+            return Result::Continue;
+        }
+
+        return Result::Continue;
+    }
+
     Result collectAutoMemberCandidates(Sema& sema, SmallVector4<AutoMemberCandidate>& outCandidates)
     {
         outCandidates.clear();
@@ -256,6 +357,8 @@ namespace
         }
 
         uint32_t precedence = 0;
+
+        SWC_RESULT(addCandidateFromInlineReceiver(sema, outCandidates, precedence));
 
         for (const auto& bindingVar : std::ranges::reverse_view(bindingVars))
         {
@@ -388,6 +491,57 @@ namespace
         }
 
         return nullptr;
+    }
+
+    SymbolVariable* currentMethodReceiver(Sema& sema)
+    {
+        if (SymbolVariable* receiver = activeReceiverBinding(sema))
+            return receiver;
+
+        SymbolFunction* const currentFunction = sema.frame().currentFunction();
+        if (!currentFunction)
+            return nullptr;
+
+        const auto& params = currentFunction->parameters();
+        if (params.empty())
+            return nullptr;
+
+        SymbolVariable* const receiver = params.front();
+        if (!receiver)
+            return nullptr;
+
+        if (receiver->idRef() != sema.idMgr().predefined(IdentifierManager::PredefinedName::Me))
+            return nullptr;
+
+        return receiver;
+    }
+
+    void bindCurrentReceiverIfCandidateMatches(Sema& sema, AutoMemberCandidate& candidate)
+    {
+        if (candidate.symVar || candidate.baseExprRef.isValid())
+            return;
+
+        SymbolVariable* const receiver = currentMethodReceiver(sema);
+        if (!receiver)
+            return;
+
+        const TypeRef receiverTypeRef = normalizeAutoMemberBindingType(sema.ctx(), receiver->typeRef());
+        if (receiverTypeRef.isInvalid())
+            return;
+
+        if (candidate.typeRef.isValid())
+        {
+            if (receiverTypeRef != candidate.typeRef)
+                return;
+        }
+        else
+        {
+            const TypeInfo& receiverTypeInfo = sema.typeMgr().get(receiverTypeRef);
+            if (!receiverTypeInfo.isStruct() || candidate.symMap != &receiverTypeInfo.payloadSymStruct())
+                return;
+        }
+
+        candidate.symVar = receiver;
     }
 
     bool callableSetNeedsReceiver(std::span<const Symbol*> symbols)
@@ -582,7 +736,8 @@ Result AstAutoMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& c
         return raiseCannotComputeAutoScopeMember(sema, sema.curNodeRef(), idRef);
     }
 
-    const AutoMemberCandidate& selected = matches.front().candidate;
+    AutoMemberCandidate selected = matches.front().candidate;
+    bindCurrentReceiverIfCandidateMatches(sema, selected);
 
     // Symbol-backed auto-members keep the original lightweight substitution path.
     // This preserves existing auto-scope behavior (`me`, enum auto-scope, etc.)

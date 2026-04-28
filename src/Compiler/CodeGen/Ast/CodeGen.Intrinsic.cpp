@@ -1811,8 +1811,8 @@ namespace
 
     MicroReg materializeHostRuntimeContextTlsId(CodeGen& codeGen)
     {
-        MicroBuilder&    builder         = codeGen.builder();
-        const uint64_t   tlsIdAddress    = reinterpret_cast<uint64_t>(CompilerInstance::runtimeContextTlsIdStorage());
+        MicroBuilder&     builder        = codeGen.builder();
+        const uint64_t    tlsIdAddress   = reinterpret_cast<uint64_t>(CompilerInstance::runtimeContextTlsIdStorage());
         const ConstantRef tlsIdAddressCf = codeGen.cstMgr().addConstant(codeGen.ctx(), ConstantValue::makeValuePointer(codeGen.ctx(), codeGen.typeMgr().typeU64(), tlsIdAddress, TypeInfoFlagsE::Const));
         const MicroReg    tlsIdPtrReg    = codeGen.nextVirtualIntRegister();
         builder.emitLoadRegPtrReloc(tlsIdPtrReg, tlsIdAddress, tlsIdAddressCf);

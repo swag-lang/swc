@@ -34,12 +34,12 @@ namespace ABICall
     {
         // Source register holds either a lowered value or an address, depending on isAddressed.
         MicroReg        srcReg;
-        PreparedArgKind kind        = PreparedArgKind::Direct;
-        bool            isFloat     = false;
-        bool            isSigned    = false;
-        bool            isAddressed = false;
+        PreparedArgKind kind               = PreparedArgKind::Direct;
+        bool            isFloat            = false;
+        bool            isSigned           = false;
+        bool            isAddressed        = false;
         bool            constrainToArgLane = false;
-        uint8_t         numBits     = 0;
+        uint8_t         numBits            = 0;
     };
 
     struct Return

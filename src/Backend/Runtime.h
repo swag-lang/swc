@@ -383,7 +383,7 @@ namespace Runtime
         Export,
     };
 
-    inline constexpr bool backendKindProducesNativeArtifact(const BuildCfgBackendKind backendKind)
+    constexpr bool backendKindProducesNativeArtifact(const BuildCfgBackendKind backendKind)
     {
         return backendKind == BuildCfgBackendKind::Executable ||
                backendKind == BuildCfgBackendKind::SharedLibrary ||

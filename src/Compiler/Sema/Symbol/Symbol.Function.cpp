@@ -881,7 +881,7 @@ const SymbolFunction* SymbolFunction::genericRootSym() const noexcept
 const SymbolImpl* SymbolFunction::declImplContext() const noexcept
 {
     const SymbolFunction* root   = genericRootSym();
-    const SymbolMap*            symMap = (root ? root : this)->ownerSymMap();
+    const SymbolMap*      symMap = (root ? root : this)->ownerSymMap();
     while (symMap)
     {
         if (symMap->isImpl())
@@ -895,7 +895,7 @@ const SymbolImpl* SymbolFunction::declImplContext() const noexcept
 const SymbolInterface* SymbolFunction::declInterfaceContext() const noexcept
 {
     const SymbolFunction* root   = genericRootSym();
-    const SymbolMap*            symMap = (root ? root : this)->ownerSymMap();
+    const SymbolMap*      symMap = (root ? root : this)->ownerSymMap();
     while (symMap)
     {
         if (symMap->isInterface())

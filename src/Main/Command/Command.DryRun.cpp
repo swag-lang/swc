@@ -115,8 +115,8 @@ namespace
                 SWC_UNREACHABLE();
         }
 
-        result.enabled        = true;
-        result.backendKind    = effectiveBackendKind(cmdLine, compiler.buildCfg().backendKind);
+        result.enabled     = true;
+        result.backendKind = effectiveBackendKind(cmdLine, compiler.buildCfg().backendKind);
         if (!Runtime::backendKindProducesNativeArtifact(result.backendKind))
         {
             result.enabled = false;
@@ -146,11 +146,11 @@ namespace
             .ignoreGlobalSkip = true,
         };
 
-        const Global&          global       = ctx.global();
-        JobManager&            jobMgr       = global.jobMgr();
-        const JobClientId      clientId     = compiler.jobClientId();
-        const uint64_t         errorsBefore = Stats::getNumErrors();
-        FormatOptionsLoader    optionsLoader(ctx);
+        const Global&           global       = ctx.global();
+        JobManager&             jobMgr       = global.jobMgr();
+        const JobClientId       clientId     = compiler.jobClientId();
+        const uint64_t          errorsBefore = Stats::getNumErrors();
+        FormatOptionsLoader     optionsLoader(ctx);
         std::vector<FormatJob*> jobs;
         jobs.reserve(compiler.files().size());
 
@@ -505,8 +505,8 @@ namespace Command
             return;
 
         const DryRunNativePreview nativePreview = buildDryRunNativePreview(compiler);
-        const Logger::ScopedLock   loggerLock{ctx.global().logger()};
-        bool                       hasPrintedGroup = false;
+        const Logger::ScopedLock  loggerLock{ctx.global().logger()};
+        bool                      hasPrintedGroup = false;
 
         printDryRunOverview(ctx, inputSummary, nativePreview, hasPrintedGroup);
         printDryRunInputs(ctx, inputSummary, hasPrintedGroup);

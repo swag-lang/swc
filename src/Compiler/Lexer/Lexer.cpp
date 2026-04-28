@@ -784,9 +784,9 @@ void Lexer::lexNumber()
     // Letters immediately following the literal
     if (langSpec_->isLetter(buffer_[0]))
     {
-        const uint32_t       suffixOffset = static_cast<uint32_t>(buffer_ - startBuffer_);
-        const char8_t* suffixStart        = buffer_;
-        const char8_t*       suffixEnd    = suffixStart;
+        const uint32_t suffixOffset = static_cast<uint32_t>(buffer_ - startBuffer_);
+        const char8_t* suffixStart  = buffer_;
+        const char8_t* suffixEnd    = suffixStart;
         while (langSpec_->isIdentifierPart(suffixEnd[0]))
             suffixEnd++;
         raiseTokenError(DiagnosticId::lex_err_invalid_number_suffix, suffixOffset, static_cast<uint32_t>(suffixEnd - suffixStart));

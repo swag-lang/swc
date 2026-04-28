@@ -48,8 +48,8 @@ namespace
                 if (!valueType.isAnyTypeInfo(ctx) || !cst.isValuePointer())
                     continue;
 
-                const auto* typePtr              = reinterpret_cast<const void*>(cst.getValuePointer());
-                const TypeRef     pointedTypeRef = ctx.typeGen().getBackTypeRef(typePtr);
+                const auto*   typePtr        = reinterpret_cast<const void*>(cst.getValuePointer());
+                const TypeRef pointedTypeRef = ctx.typeGen().getBackTypeRef(typePtr);
                 if (pointedTypeRef.isValid())
                     deps.push_back(pointedTypeRef);
             }

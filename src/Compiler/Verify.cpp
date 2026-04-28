@@ -189,8 +189,8 @@ bool Verify::verifyExpected(const TaskContext& ctx, const Diagnostic& diag) cons
     bool dismiss = false;
     for (size_t elemIndex = 0; elemIndex < diag.elements().size(); ++elemIndex)
     {
-        const std::shared_ptr<DiagnosticElement>& elem = diag.elements()[elemIndex];
-        const SourceCodeRange codeRange = elem->codeRange(0, ctx);
+        const std::shared_ptr<DiagnosticElement>& elem      = diag.elements()[elemIndex];
+        const SourceCodeRange                     codeRange = elem->codeRange(0, ctx);
         for (const VerifyDirective& directive : directives_)
         {
             if (directive.touched)

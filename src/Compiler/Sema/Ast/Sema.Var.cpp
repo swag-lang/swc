@@ -518,10 +518,10 @@ namespace
         const size_t count = symbols.size();
         for (size_t i = 0; i < count; ++i)
         {
-            Symbol*                     sym        = symbols[i];
+            Symbol*               sym        = symbols[i];
             const SymbolVariable* field      = fields[i];
-            const size_t                fieldIndex = i < fieldIndices.size() ? fieldIndices[i] : i;
-            auto*                       symVar     = getVariableSymbol(sym);
+            const size_t          fieldIndex = i < fieldIndices.size() ? fieldIndices[i] : i;
+            auto*                 symVar     = getVariableSymbol(sym);
             if (!symVar)
                 continue;
 

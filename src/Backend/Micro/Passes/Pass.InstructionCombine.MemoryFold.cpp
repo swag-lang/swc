@@ -141,7 +141,7 @@ namespace InstructionCombine
                 if (!storeMatches(w, sOps, base, vt, loadBits, loadOff))
                     return false;
 
-                TripleInfo                     tri;
+                TripleInfo               tri;
                 const MicroInstrOperand* opOps = mid.inst->ops(*ctx.operands);
                 if (!extractMiddleOperands(tri, *mid.inst, opOps))
                     return false;

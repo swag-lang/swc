@@ -1735,7 +1735,7 @@ void MicroRegisterAllocationPass::rewriteInstructions()
             {
                 const MicroInstrOperand* ops = it->ops(*operands_);
                 const MicroLabelRef      labelRef(static_cast<uint32_t>(ops[0].valueU64));
-                const auto                     labelIt = labelStackDepth_.find(labelRef);
+                const auto               labelIt = labelStackDepth_.find(labelRef);
                 if (labelIt != labelStackDepth_.end())
                     stackDepth = labelIt->second;
             }

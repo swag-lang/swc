@@ -59,9 +59,9 @@ namespace
                 std::cerr << " waiter=" << state.waiterSymbol->name(ctx);
             if (state.codeRef.isValid())
             {
-                const SourceView&      srcView = ctx.compiler().srcView(state.codeRef.srcViewRef);
+                const SourceView&     srcView = ctx.compiler().srcView(state.codeRef.srcViewRef);
                 const SourceCodeRange range   = srcView.tokenCodeRange(ctx, state.codeRef.tokRef);
-                const SourceFile*      file    = range.srcView ? range.srcView->file() : nullptr;
+                const SourceFile*     file    = range.srcView ? range.srcView->file() : nullptr;
                 std::cerr << " at=" << (file ? file->path().string() : "<source>") << ":" << range.line << ":" << range.column;
             }
             std::cerr << "\n";
@@ -1143,8 +1143,8 @@ namespace
 
 void Sema::waitDone(TaskContext& ctx, JobClientId clientId)
 {
-    auto&             jobMgr   = ctx.global().jobMgr();
-    CompilerInstance& compiler = ctx.compiler();
+    auto&             jobMgr         = ctx.global().jobMgr();
+    CompilerInstance& compiler       = ctx.compiler();
     uint64_t          traceLoopIndex = 0;
 
     while (true)

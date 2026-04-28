@@ -246,11 +246,11 @@ namespace
         std::span<const SemaClone::ParamBinding> bindings;
         const auto*                              inlinePayload = sema.frame().currentInlinePayload();
         const bool                               isMixinInject = inlinePayload &&
-                                                                 inlinePayload->sourceFunction &&
-                                                                 inlinePayload->sourceFunction->attributes().hasRtFlag(RtAttributeFlagsE::Mixin);
-        const bool                               isMacroInject = inlinePayload &&
-                                                                 inlinePayload->sourceFunction &&
-                                                                 inlinePayload->sourceFunction->attributes().hasRtFlag(RtAttributeFlagsE::Macro);
+                                   inlinePayload->sourceFunction &&
+                                   inlinePayload->sourceFunction->attributes().hasRtFlag(RtAttributeFlagsE::Mixin);
+        const bool isMacroInject = inlinePayload &&
+                                   inlinePayload->sourceFunction &&
+                                   inlinePayload->sourceFunction->attributes().hasRtFlag(RtAttributeFlagsE::Macro);
         if (isMixinInject)
         {
             // Mixin code arguments are re-cloned during #inject, so keep the active
@@ -639,7 +639,7 @@ namespace
     Result requireCompilerTagConstExpr(Sema& sema, AstNodeRef nodeRef)
     {
         const SemaNodeView symView(sema, nodeRef, SemaNodeViewPartE::Symbol);
-        const auto* calledFn = symView.sym() ? symView.sym()->safeCast<SymbolFunction>() : nullptr;
+        const auto*        calledFn = symView.sym() ? symView.sym()->safeCast<SymbolFunction>() : nullptr;
         if (calledFn && !calledFn->attributes().hasRtFlag(RtAttributeFlagsE::ConstExpr))
         {
             return SemaError::raiseExprNotConst(sema, nodeRef);
@@ -805,7 +805,7 @@ Result AstCompilerIf::semaPostNode(Sema& sema) const
     SWC_ASSERT(condView.cst());
     const bool takenIfBranch = condView.cst()->getBool();
 
-    const CompilerIfSemaPayload* payload = sema.semaPayload<CompilerIfSemaPayload>(sema.curNodeRef());
+    const CompilerIfSemaPayload* payload        = sema.semaPayload<CompilerIfSemaPayload>(sema.curNodeRef());
     const SemaCompilerIf*        selectedIfData = payload ? (takenIfBranch ? payload->ifData : payload->elseData) : nullptr;
     if (selectedIfData)
     {

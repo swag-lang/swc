@@ -959,8 +959,8 @@ namespace
 
         for (size_t argIndex = 0; argIndex < args.size(); ++argIndex)
         {
-            const AstNodeRef argRef = args[argIndex];
-            const AstNode& argNode = sema.node(argRef);
+            const AstNodeRef argRef  = args[argIndex];
+            const AstNode&   argNode = sema.node(argRef);
             if (!argNode.is(AstNodeId::NamedArgument))
                 continue;
 
@@ -980,8 +980,8 @@ namespace
             if (paramIndex >= params.size())
                 return Result::Continue;
 
-            AstNodeRef sourceValueRef = AstNodeRef::invalid();
-            const AstNodeRef sourceArgRef = sourceArgRefAt(context, argIndex, argRef);
+            AstNodeRef       sourceValueRef = AstNodeRef::invalid();
+            const AstNodeRef sourceArgRef   = sourceArgRefAt(context, argIndex, argRef);
             if (sourceArgRef.isValid())
             {
                 const AstNode& sourceArgNode = sema.node(sourceArgRef);
@@ -1007,9 +1007,9 @@ namespace
 
         for (size_t argIndex = 0; argIndex < args.size(); ++argIndex)
         {
-            const AstNodeRef argRef = args[argIndex];
+            const AstNodeRef argRef       = args[argIndex];
             const AstNodeRef sourceArgRef = sourceArgRefAt(context, argIndex, argRef);
-            const AstNode& argNode = sema.node(argRef);
+            const AstNode&   argNode      = sema.node(argRef);
             if (argNode.is(AstNodeId::NamedArgument))
                 continue;
 
@@ -1122,7 +1122,7 @@ Result SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFun
         return Result::Continue;
     }
 
-    const AstFunctionDecl* decl = nullptr;
+    const AstFunctionDecl* decl    = nullptr;
     const Ast*             declAst = nullptr;
     if (!resolveFunctionDecl(sema, fn, decl, declAst))
     {
@@ -1130,8 +1130,8 @@ Result SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFun
     }
     SWC_ASSERT(declAst != nullptr);
 
-    const bool isMacro = fn.attributes().hasRtFlag(RtAttributeFlagsE::Macro);
-    const bool isMixin = fn.attributes().hasRtFlag(RtAttributeFlagsE::Mixin);
+    const bool isMacro          = fn.attributes().hasRtFlag(RtAttributeFlagsE::Macro);
+    const bool isMixin          = fn.attributes().hasRtFlag(RtAttributeFlagsE::Mixin);
     const bool isCrossAstInline = declAst != &sema.ast();
     if (isCrossAstInline && !isMacro && !isMixin)
         return Result::Continue;
@@ -1198,19 +1198,19 @@ Result SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFun
     SWC_RESULT(createInlineResultVariable(sema, callRef, returnTypeRef, resultVar));
 
     // Create payload
-    auto* inlinePayload             = sema.compiler().allocate<SemaInlinePayload>();
-    auto       frame       = sema.frame();
-    SemaScope* callerScope = sema.curScopePtr();
+    auto*      inlinePayload = sema.compiler().allocate<SemaInlinePayload>();
+    auto       frame         = sema.frame();
+    SemaScope* callerScope   = sema.curScopePtr();
 
-    inlinePayload->callRef              = callRef;
-    inlinePayload->inlineRootRef        = inlineRootRef;
-    inlinePayload->sourceFunction       = &fn;
+    inlinePayload->callRef             = callRef;
+    inlinePayload->inlineRootRef       = inlineRootRef;
+    inlinePayload->sourceFunction      = &fn;
     inlinePayload->parentInlinePayload = sema.frame().currentInlinePayload();
-    inlinePayload->callerScope          = callerScope;
-    inlinePayload->crossAstInline       = isCrossAstInline;
-    inlinePayload->resultVar            = resultVar;
-    inlinePayload->returnTypeRef        = returnTypeRef;
-    inlinePayload->aliasIdentifiers     = aliasIdentifiers;
+    inlinePayload->callerScope         = callerScope;
+    inlinePayload->crossAstInline      = isCrossAstInline;
+    inlinePayload->resultVar           = resultVar;
+    inlinePayload->returnTypeRef       = returnTypeRef;
+    inlinePayload->aliasIdentifiers    = aliasIdentifiers;
     for (const SemaClone::ParamBinding& binding : bindings)
         inlinePayload->argMappings.push_back(binding);
     for (SymbolVariable* bindingVar : frame.bindingVars())

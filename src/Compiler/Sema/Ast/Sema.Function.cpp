@@ -381,7 +381,7 @@ Result AstFunctionDecl::semaPreNode(Sema& sema) const
     if (sema.enteringState())
         SemaHelpers::declareSymbol(sema, *this);
 
-    auto&       sym      = sema.curViewSymbol().sym()->cast<SymbolFunction>();
+    auto& sym = sema.curViewSymbol().sym()->cast<SymbolFunction>();
     if (sym.isForeign())
         sym.setCallConvKind(CallConvKind::C);
 
@@ -2419,7 +2419,7 @@ Result AstReturnStmt::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) c
     if (childRef != nodeExprRef || childRef.isInvalid())
         return Result::Continue;
 
-    TypeRef returnTypeRef = TypeRef::invalid();
+    TypeRef                  returnTypeRef = TypeRef::invalid();
     const SemaInlinePayload* inlinePayload = sema.frame().currentInlinePayload();
     if (inlinePayload && !inlinePayload->returnsToCallerSite())
     {

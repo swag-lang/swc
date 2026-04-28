@@ -12,8 +12,8 @@ Result JITExecManager::executeItem(const Item& item)
     SWC_ASSERT(item.request.function != nullptr);
     SWC_ASSERT(item.request.function->jitEntryAddress() != nullptr);
 
-    TaskContext&                ctx = *item.ownerCtx;
-    const SymbolFunction* fn        = item.request.function;
+    TaskContext&          ctx = *item.ownerCtx;
+    const SymbolFunction* fn  = item.request.function;
 
     const TaskScopedContext scopedContext(ctx);
     const TaskScopedState   scopedState(ctx);
@@ -57,9 +57,9 @@ Result JITExecManager::submit(TaskContext& ctx, const Request& request)
     }
 
     const SymbolFunction* function = request.function;
-    const AstNodeRef            nodeRef  = request.nodeRef;
-    const SourceCodeRef         codeRef  = request.codeRef;
-    const ItemKey               key      = {.ownerCtx = &ctx, .nodeRef = nodeRef, .codeRef = codeRef};
+    const AstNodeRef      nodeRef  = request.nodeRef;
+    const SourceCodeRef   codeRef  = request.codeRef;
+    const ItemKey         key      = {.ownerCtx = &ctx, .nodeRef = nodeRef, .codeRef = codeRef};
 
     {
         const std::scoped_lock lock(mutex_);

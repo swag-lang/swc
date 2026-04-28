@@ -1591,7 +1591,7 @@ namespace SemaGeneric
 {
     Result evaluateFunctionWhereConstraints(Sema& sema, bool& outSatisfied, const SymbolFunction& function, CastFailure* outFailure)
     {
-        outSatisfied = true;
+        outSatisfied     = true;
         const auto* decl = genericFunctionDecl(function);
         if (!decl || decl->spanConstraintsRef.isInvalid())
             return Result::Continue;

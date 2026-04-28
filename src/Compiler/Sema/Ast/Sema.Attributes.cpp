@@ -342,8 +342,8 @@ namespace
             SWC_ASSERT(argView.cst() != nullptr);
             SWC_ASSERT(argView.cst()->isString());
 
-            const std::string_view     operatorName = argView.cst()->getString();
-            const GeneratedOperatorFlags flag        = operatorFlagFromName(sema, operatorName);
+            const std::string_view       operatorName = argView.cst()->getString();
+            const GeneratedOperatorFlags flag         = operatorFlagFromName(sema, operatorName);
             if (flag.none())
             {
                 auto diag = SemaError::report(sema, DiagnosticId::sema_err_operator_attribute_invalid_operator, argValueRef);

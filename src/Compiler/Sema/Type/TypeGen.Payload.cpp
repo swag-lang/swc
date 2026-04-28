@@ -291,7 +291,7 @@ namespace
     void materializeInlineAny(Sema& sema, const TypeGen::TypeGenCache& cache, DataSegment& storage, uint32_t baseOffset, uint32_t fieldOffset, ConstantRef valueCstRef)
     {
         Runtime::Any* dstAny = storage.ptr<Runtime::Any>(baseOffset + fieldOffset);
-        *dstAny                    = {};
+        *dstAny              = {};
 
         const ConstantValue& cst = sema.ctx().cstMgr().get(valueCstRef);
         if (cst.isNull())
@@ -351,9 +351,9 @@ namespace
 
     void exportAttributes(Sema& sema, const TypeGen::TypeGenCache& cache, DataSegment& storage, uint32_t ownerOffset, uint32_t attributesFieldOffset, const AttributeList& attributes)
     {
-        auto* attrsSlice = storage.ptr<Runtime::Slice<Runtime::Attribute>>(ownerOffset + attributesFieldOffset);
-        attrsSlice->ptr        = nullptr;
-        attrsSlice->count      = attributes.attributes.size();
+        auto* attrsSlice  = storage.ptr<Runtime::Slice<Runtime::Attribute>>(ownerOffset + attributesFieldOffset);
+        attrsSlice->ptr   = nullptr;
+        attrsSlice->count = attributes.attributes.size();
         if (attributes.attributes.empty())
             return;
 

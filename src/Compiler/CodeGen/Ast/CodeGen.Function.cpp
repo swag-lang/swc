@@ -1094,7 +1094,7 @@ namespace
     {
         SWC_ASSERT(copySize > 0);
 
-        MicroOpBits copyBits = MicroOpBits::Zero;
+        auto copyBits = MicroOpBits::Zero;
         if (copySize == 1 || copySize == 2 || copySize == 4 || copySize == 8)
             copyBits = microOpBitsFromChunkSize(copySize);
 

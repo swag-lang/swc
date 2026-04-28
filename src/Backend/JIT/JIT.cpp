@@ -816,8 +816,8 @@ Result JIT::emitAndCall(TaskContext& ctx, void* targetFn, std::span<const JITArg
     const TaskScopedContext scopedContext(ctx);
     SWC_ASSERT(targetFn != nullptr);
 
-    const CallConv&                        conv         = CallConv::get(callConvKind);
-    const ABITypeNormalize::NormalizedType retType      = ABITypeNormalize::normalize(ctx, conv, ret.typeRef, ABITypeNormalize::Usage::Return);
+    const CallConv&                        conv    = CallConv::get(callConvKind);
+    const ABITypeNormalize::NormalizedType retType = ABITypeNormalize::normalize(ctx, conv, ret.typeRef, ABITypeNormalize::Usage::Return);
     SWC_ASSERT(retType.isVoid || ret.valuePtr);
 
     SmallVector<ABICall::Arg>                     packedArgs;
@@ -1147,8 +1147,8 @@ namespace
         FileRef         fileRef = FileRef::invalid();
         if (location)
         {
-            const std::string_view  locationFileName = runtimeStringView(location->fileName);
-            const SourceView* srcView                = ctx.compiler().findSourceViewByFileName(locationFileName);
+            const std::string_view locationFileName = runtimeStringView(location->fileName);
+            const SourceView*      srcView          = ctx.compiler().findSourceViewByFileName(locationFileName);
             if (srcView)
             {
                 fileRef = srcView->fileRef();

@@ -549,10 +549,10 @@ namespace
         if (!typeRef.isValid())
             return TypeRef::invalid();
 
-        const TypeInfo& typeInfo           = codeGen.typeMgr().get(typeRef);
-        const TypeRef   unwrappedTypeRef   = typeInfo.unwrap(codeGen.ctx(), typeRef, TypeExpandE::Alias | TypeExpandE::Enum);
-        const TypeRef   storageTypeRef     = unwrappedTypeRef.isValid() ? unwrappedTypeRef : typeRef;
-        const TypeInfo& storageType        = codeGen.typeMgr().get(storageTypeRef);
+        const TypeInfo& typeInfo            = codeGen.typeMgr().get(typeRef);
+        const TypeRef   unwrappedTypeRef    = typeInfo.unwrap(codeGen.ctx(), typeRef, TypeExpandE::Alias | TypeExpandE::Enum);
+        const TypeRef   storageTypeRef      = unwrappedTypeRef.isValid() ? unwrappedTypeRef : typeRef;
+        const TypeInfo& storageType         = codeGen.typeMgr().get(storageTypeRef);
         const bool      isBorrowedAggregate = storageType.isStruct() || storageType.isArray() || storageType.isAggregate() || (storageType.isFunction() && storageType.isLambdaClosure());
         return isBorrowedAggregate ? storageTypeRef : TypeRef::invalid();
     }
@@ -601,7 +601,7 @@ namespace
         SWC_ASSERT(stackSize != 0);
         outTransientStackSize += stackSize;
 
-        MicroBuilder& builder = codeGen.builder();
+        MicroBuilder&  builder    = codeGen.builder();
         const MicroReg storageReg = codeGen.nextVirtualIntRegister();
         CodeGenFunctionHelpers::emitStackPointerSubtract(codeGen, callConv, stackSize, storageReg);
         builder.emitLoadRegReg(storageReg, callConv.stackPointer, MicroOpBits::B64);
@@ -956,7 +956,7 @@ namespace
         const uint64_t     totalFrameSize = sliceOffset + sizeof(Runtime::Slice<std::byte>);
         SWC_ASSERT(totalFrameSize <= std::numeric_limits<uint32_t>::max());
 
-        const uint32_t frameSize = alignTransientCallStackSize(callConv, totalFrameSize);
+        const uint32_t frameSize    = alignTransientCallStackSize(callConv, totalFrameSize);
         const MicroReg frameBaseReg = codeGen.nextVirtualIntRegister();
         if (frameSize)
         {
@@ -1123,7 +1123,7 @@ namespace
         const uint64_t     totalFrameSize = sliceOffset + sizeof(Runtime::Slice<std::byte>);
         SWC_ASSERT(totalFrameSize <= std::numeric_limits<uint32_t>::max());
 
-        const uint32_t frameSize = alignTransientCallStackSize(callConv, totalFrameSize);
+        const uint32_t frameSize    = alignTransientCallStackSize(callConv, totalFrameSize);
         const MicroReg frameBaseReg = codeGen.nextVirtualIntRegister();
         if (frameSize)
         {

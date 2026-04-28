@@ -488,7 +488,7 @@ Result ConstantIntrinsic::tryConstantFoldCall(Sema& sema, const SymbolFunction& 
                 case 32:
                 {
                     const auto v = static_cast<uint32_t>(val);
-                    result = static_cast<uint64_t>(((v >> 24) & 0x000000FF) | ((v >> 8) & 0x0000FF00) | ((v << 8) & 0x00FF0000) | ((v << 24) & 0xFF000000));
+                    result       = static_cast<uint64_t>(((v >> 24) & 0x000000FF) | ((v >> 8) & 0x0000FF00) | ((v << 8) & 0x00FF0000) | ((v << 24) & 0xFF000000));
                     break;
                 }
                 case 64:

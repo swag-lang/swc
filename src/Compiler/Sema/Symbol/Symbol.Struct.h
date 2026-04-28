@@ -109,15 +109,15 @@ private:
     mutable std::shared_mutex         mutexSpecOps_;
     std::vector<SymbolFunction*>      specOps_;
     std::once_flag                    defaultStructOnce_;
-    SymbolFunction*                   opDrop_           = nullptr;
-    SymbolFunction*                   opPostCopy_       = nullptr;
-    SymbolFunction*                   opPostMove_       = nullptr;
-    mutable std::atomic<GenericData*> genericData_      = nullptr;
+    SymbolFunction*                   opDrop_                 = nullptr;
+    SymbolFunction*                   opPostCopy_             = nullptr;
+    SymbolFunction*                   opPostMove_             = nullptr;
+    mutable std::atomic<GenericData*> genericData_            = nullptr;
     mutable std::atomic_bool          generatedOperatorsDone_ = false;
-    uint64_t                          sizeInBytes_      = 0;
-    ConstantRef                       defaultStructCst_ = ConstantRef::invalid();
-    uint32_t                          alignment_        = 0;
-    AstNodeRef                        declNodeRef_      = AstNodeRef::invalid();
+    uint64_t                          sizeInBytes_            = 0;
+    ConstantRef                       defaultStructCst_       = ConstantRef::invalid();
+    uint32_t                          alignment_              = 0;
+    AstNodeRef                        declNodeRef_            = AstNodeRef::invalid();
 };
 
 SWC_END_NAMESPACE();

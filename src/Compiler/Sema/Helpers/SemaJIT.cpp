@@ -120,7 +120,7 @@ namespace
 
     bool buildConstCallCacheKey(Sema& sema, ConstCallCacheKey& outKey, const SymbolFunction& function, std::span<const JITArgument> args)
     {
-        outKey = {};
+        outKey          = {};
         outKey.function = &function;
         outKey.args.reserve(args.size());
 
@@ -135,7 +135,7 @@ namespace
 
             ConstCallCacheArg cacheArg;
             cacheArg.typeRef = arg.typeRef;
-            cacheArg.bytes.resize(static_cast<size_t>(byteSize));
+            cacheArg.bytes.resize(byteSize);
             std::memcpy(cacheArg.bytes.data(), arg.valuePtr, cacheArg.bytes.size());
             outKey.args.push_back(std::move(cacheArg));
         }

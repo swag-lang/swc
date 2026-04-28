@@ -346,9 +346,9 @@ Result AstAncestorIdentifier::semaPreNode(Sema& sema) const
     if (nodeValueRef.isValid() || nodeIdentRef.isInvalid())
         return Result::Continue;
 
-    AstNodeRef targetRef         = nodeIdentRef;
-    bool       usedInlineBinding = false;
-    const auto* inlinePayload = sema.frame().currentInlinePayload();
+    AstNodeRef  targetRef         = nodeIdentRef;
+    bool        usedInlineBinding = false;
+    const auto* inlinePayload     = sema.frame().currentInlinePayload();
     if (inlinePayload &&
         containsInlineBindingUse(sema, nodeIdentRef, inlinePayload->argMappings.span()))
     {

@@ -955,7 +955,7 @@ namespace
         if (node.is(AstNodeId::IndexListExpr))
         {
             const auto& indexNode = node.cast<AstIndexListExpr>();
-            outIndexedExprRef    = indexNode.nodeExprRef;
+            outIndexedExprRef     = indexNode.nodeExprRef;
             appendIndexArgs(sema.ast(), indexNode, outArgs);
             for (const AstNodeRef argRef : outArgs)
             {
@@ -1659,7 +1659,7 @@ namespace
         const SemaNodeView view = generatedSema.viewSymbol(nodeRef);
         if (view.hasSymbol() && view.sym() && view.sym()->isImpl())
         {
-            auto& symImpl = view.sym()->cast<SymbolImpl>();
+            auto&         symImpl    = view.sym()->cast<SymbolImpl>();
             SymbolStruct* implStruct = symImpl.isForStruct() ? symImpl.symStruct() : nullptr;
             if (symImpl.idRef() == ownerStruct.idRef() && (!implStruct || implStruct == &ownerStruct))
             {
@@ -1976,8 +1976,8 @@ Result SemaSpecOp::tryResolveVarInitSet(Sema& sema, AstNodeRef receiverRef, AstN
     SmallVector<AstNodeRef> args;
     args.push_back(valueRef);
 
-    Symbol* savedSymbol = sema.curViewSymbol().sym();
-    const bool    savedLValue = sema.isLValue(sema.curNodeRef());
+    Symbol*    savedSymbol = sema.curViewSymbol().sym();
+    const bool savedLValue = sema.isLValue(sema.curNodeRef());
 
     bool matched = false;
     SWC_RESULT(resolveSyntheticCall(sema, sema.node(sema.curNodeRef()), candidates.span(), args.span(), receiverRef, true, &matched));
@@ -2059,7 +2059,7 @@ Result SemaSpecOp::canResolveVisit(Sema& sema, const AstForeachStmt& node, bool&
 Result SemaSpecOp::tryResolveVisit(Sema& sema, const AstForeachStmt& node, SymbolFunction*& outCalledFn, bool& outHandled)
 {
     outCalledFn = nullptr;
-    outHandled = false;
+    outHandled  = false;
 
     const SemaNodeView  exprView(sema, node.nodeExprRef, SemaNodeViewPartE::Type);
     const SymbolStruct* ownerStruct = structSpecOpOwner(sema, exprView);
@@ -2407,7 +2407,7 @@ Result SemaSpecOp::tryResolveIndexAssign(Sema& sema, const AstAssignStmt& node, 
     if (leftNodeRef.isInvalid())
         return Result::Continue;
 
-    AstNodeRef             indexedExprRef = AstNodeRef::invalid();
+    AstNodeRef              indexedExprRef = AstNodeRef::invalid();
     SmallVector<AstNodeRef> indexArgRefs;
     if (!collectIndexAccessArgs(sema, indexedExprRef, indexArgRefs, leftNodeRef))
         return Result::Continue;
@@ -2551,21 +2551,21 @@ namespace
 {
     struct BinarySpecOpResolution
     {
-        SmallVector<Symbol*>        candidates;
-        SmallVector<AstNodeRef>     args;
+        SmallVector<Symbol*>          candidates;
+        SmallVector<AstNodeRef>       args;
         Match::FunctionCandidateProbe probe;
-        AstNodeRef                  receiverRef = AstNodeRef::invalid();
+        AstNodeRef                    receiverRef = AstNodeRef::invalid();
 
         bool matched() const { return probe.matched && probe.fn != nullptr; }
     };
 
     struct BinarySpecOpProbeRequest
     {
-        const SemaNodeView* receiverView   = nullptr;
-        AstNodeRef          receiverRef    = AstNodeRef::invalid();
-        AstNodeRef          argRef         = AstNodeRef::invalid();
-        IdentifierRef       opId           = IdentifierRef::invalid();
-        AstNodeRef          genericArg     = AstNodeRef::invalid();
+        const SemaNodeView* receiverView = nullptr;
+        AstNodeRef          receiverRef  = AstNodeRef::invalid();
+        AstNodeRef          argRef       = AstNodeRef::invalid();
+        IdentifierRef       opId         = IdentifierRef::invalid();
+        AstNodeRef          genericArg   = AstNodeRef::invalid();
         std::string_view    opString;
         bool                commutativeOnly = false;
     };
@@ -2683,9 +2683,9 @@ Result SemaSpecOp::tryResolveBinary(Sema& sema, const AstBinaryExpr& node, const
     if (!tok.isAny({TokenId::SymPlus, TokenId::SymMinus, TokenId::SymAsterisk, TokenId::SymSlash, TokenId::SymPercent, TokenId::SymAmpersand, TokenId::SymPipe, TokenId::SymCircumflex, TokenId::SymLowerLower, TokenId::SymGreaterGreater}))
         return Result::Continue;
 
-    const SourceView&      srcView    = sema.compiler().srcView(node.srcViewRef());
-    const std::string_view opString   = tok.string(srcView);
-    const AstNodeRef       genericArg = makeSyntheticStringConstantArg(sema, node.codeRef(), opString);
+    const SourceView&      srcView         = sema.compiler().srcView(node.srcViewRef());
+    const std::string_view opString        = tok.string(srcView);
+    const AstNodeRef       genericArg      = makeSyntheticStringConstantArg(sema, node.codeRef(), opString);
     const IdentifierRef    opBinaryId      = sema.idMgr().predefined(IdentifierManager::PredefinedName::OpBinary);
     const IdentifierRef    opBinaryRightId = sema.idMgr().predefined(IdentifierManager::PredefinedName::OpBinaryRight);
 

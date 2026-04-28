@@ -1,9 +1,9 @@
 #include "pch.h"
 #include "Compiler/Sema/Helpers/SemaClone.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
-#include "Compiler/SourceFile.h"
 #include "Compiler/Sema/Cast/Cast.h"
 #include "Compiler/Sema/Core/Sema.h"
+#include "Compiler/SourceFile.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -38,11 +38,11 @@ namespace
     {
         NodePayload::StoredView view;
         const SemaNodeView      storedView = sema.viewStored(sourceRef, SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant | SemaNodeViewPartE::Symbol);
-        view.typeRef                      = storedView.typeRef();
-        view.cstRef                       = storedView.cstRef();
-        view.sym                          = storedView.sym();
-        view.hasSymbol                    = storedView.hasSymbol();
-        view.hasSymbolList                = storedView.hasSymbolList();
+        view.typeRef                       = storedView.typeRef();
+        view.cstRef                        = storedView.cstRef();
+        view.sym                           = storedView.sym();
+        view.hasSymbol                     = storedView.hasSymbol();
+        view.hasSymbolList                 = storedView.hasSymbolList();
 
         uint16_t flags = 0;
         if (sema.isValueStored(sourceRef))
@@ -266,8 +266,8 @@ namespace
 
     AstNodeRef cloneIdentifier(Sema& sema, const AstIdentifier& node, const SemaClone::CloneContext& cloneContext)
     {
-        const Ast&                                sourceAst  = cloneSourceAst(sema, cloneContext);
-        const AstNodeRef                          sourceRef  = node.nodeRef(sourceAst);
+        const Ast&                                   sourceAst  = cloneSourceAst(sema, cloneContext);
+        const AstNodeRef                             sourceRef  = node.nodeRef(sourceAst);
         const std::optional<NodePayload::StoredView> storedView = sourceStoredView(sema, cloneContext, sourceRef);
 
         IdentifierRef idRef = IdentifierRef::invalid();
@@ -316,7 +316,7 @@ namespace
             sema.setSymbol(nodeRef, storedView->sym);
         const bool crossAstSource = &sourceAst != &sema.ast();
         const bool carryInline    = storedView && ((!storedView->hasSymbol && (storedView->typeRef.isValid() || storedView->cstRef.isValid())) ||
-                                                   (crossAstSource && storedView->cstRef.isValid()));
+                                                (crossAstSource && storedView->cstRef.isValid()));
         if (carryInline)
         {
             // Nested generic cloning can hit identifiers that were already substituted by an
@@ -341,8 +341,8 @@ namespace
 AstNodeRef SemaClone::cloneAst(Sema& sema, AstNodeRef nodeRef, const CloneContext& cloneContext)
 {
     SWC_ASSERT(nodeRef.isValid());
-    const Ast&        sourceAst       = cloneSourceAst(sema, cloneContext);
-    AstNode&          node            = const_cast<AstNode&>(sourceAst.node(nodeRef));
+    const Ast&  sourceAst       = cloneSourceAst(sema, cloneContext);
+    auto&       node            = const_cast<AstNode&>(sourceAst.node(nodeRef));
     SourceView* previousSrcView = Ast::setThreadSourceViewOverride(&sema.srcView(node.srcViewRef()));
 
     AstNodeRef clonedRef = cloneNodeReplacement(sema, node, cloneContext);
@@ -1301,10 +1301,10 @@ AstNodeRef AstAggregateBody::semaClone(Sema& sema, const CloneContext& cloneCont
 
 AstNodeRef AstSuffixLiteral::semaClone(Sema& sema, const CloneContext& cloneContext) const
 {
-    const auto& inlineContext = cloneContextAsInline(cloneContext);
-    const Ast&  sourceAst     = cloneSourceAst(sema, inlineContext);
-    const AstNodeRef sourceRef = nodeRef(sourceAst);
-    const auto  storedView    = sourceStoredView(sema, inlineContext, sourceRef);
+    const auto&      inlineContext = cloneContextAsInline(cloneContext);
+    const Ast&       sourceAst     = cloneSourceAst(sema, inlineContext);
+    const AstNodeRef sourceRef     = nodeRef(sourceAst);
+    const auto       storedView    = sourceStoredView(sema, inlineContext, sourceRef);
 
     auto [newRef, newPtr] = sema.ast().makeNode<AstNodeId::SuffixLiteral>(tokRef());
     newPtr->setCodeRef(codeRef());

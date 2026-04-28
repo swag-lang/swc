@@ -664,7 +664,8 @@ SWC_TEST_END()
 
 SWC_TEST_BEGIN(DebugInfo_CollapsesConsecutiveSameLineEntries)
 {
-    SourceFile& sourceFile = Unittest::addTestSource(ctx, "DebugInfo", "CollapsesConsecutiveSameLineEntries", "alpha beta\n" "gamma\n");
+    SourceFile& sourceFile = Unittest::addTestSource(ctx, "DebugInfo", "CollapsesConsecutiveSameLineEntries", "alpha beta\n"
+                                                                                                              "gamma\n");
     SWC_RESULT(sourceFile.loadContent(ctx));
 
     Lexer lexer;
@@ -738,7 +739,9 @@ SWC_TEST_END()
 
 SWC_TEST_BEGIN(DebugInfo_SkipsNoStepLineEntries)
 {
-    SourceFile& sourceFile = Unittest::addTestSource(ctx, "DebugInfo", "SkipsNoStepLineEntries", "alpha\n" "beta\n" "gamma\n");
+    SourceFile& sourceFile = Unittest::addTestSource(ctx, "DebugInfo", "SkipsNoStepLineEntries", "alpha\n"
+                                                                                                 "beta\n"
+                                                                                                 "gamma\n");
     SWC_RESULT(sourceFile.loadContent(ctx));
 
     Lexer lexer;

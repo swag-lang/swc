@@ -219,7 +219,7 @@ namespace
         if (!view.type())
             return nullptr;
 
-        TypeRef         typeRef = view.typeRef();
+        TypeRef         typeRef   = view.typeRef();
         const TypeInfo& valueType = sema.typeMgr().get(typeRef);
         if (valueType.isReference())
             typeRef = valueType.payloadTypeRef();

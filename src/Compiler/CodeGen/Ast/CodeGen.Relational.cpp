@@ -552,8 +552,8 @@ namespace
 
 Result AstRelationalExpr::codeGenPostNode(CodeGen& codeGen) const
 {
-    const Token& tok = codeGen.token(codeRef());
-    const auto* relationalPayload = codeGen.sema().semaPayload<RelationalSpecOpPayload>(codeGen.curNodeRef());
+    const Token& tok               = codeGen.token(codeRef());
+    const auto*  relationalPayload = codeGen.sema().semaPayload<RelationalSpecOpPayload>(codeGen.curNodeRef());
     if (relationalPayload && relationalPayload->calledFn != nullptr)
     {
         codeGen.sema().setSymbol(codeGen.curNodeRef(), relationalPayload->calledFn);

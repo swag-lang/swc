@@ -76,7 +76,7 @@ namespace
 
         if (typeInfo.isString())
         {
-            auto* const       dstString = reinterpret_cast<Runtime::String*>(dstBytes.data());
+            auto* const dstString = reinterpret_cast<Runtime::String*>(dstBytes.data());
             const auto* srcString = reinterpret_cast<const Runtime::String*>(srcBytes.data());
             if (!srcString->ptr || !srcString->length)
                 return Result::Continue;
@@ -92,12 +92,12 @@ namespace
 
         if (typeInfo.isSlice())
         {
-            auto* const       dstSlice       = reinterpret_cast<Runtime::Slice<std::byte>*>(dstBytes.data());
-            const auto* srcSlice             = reinterpret_cast<const Runtime::Slice<std::byte>*>(srcBytes.data());
-            const TypeRef     elementTypeRef = typeInfo.payloadTypeRef();
-            const TypeInfo&   elementType    = typeMgr.get(elementTypeRef);
-            const uint64_t    elementSize    = elementType.sizeOf(ctx);
-            const bool        scanElements   = SemaHelpers::needsPersistentCompilerRunReturn(sema, elementTypeRef);
+            auto* const     dstSlice       = reinterpret_cast<Runtime::Slice<std::byte>*>(dstBytes.data());
+            const auto*     srcSlice       = reinterpret_cast<const Runtime::Slice<std::byte>*>(srcBytes.data());
+            const TypeRef   elementTypeRef = typeInfo.payloadTypeRef();
+            const TypeInfo& elementType    = typeMgr.get(elementTypeRef);
+            const uint64_t  elementSize    = elementType.sizeOf(ctx);
+            const bool      scanElements   = SemaHelpers::needsPersistentCompilerRunReturn(sema, elementTypeRef);
             if (!srcSlice->ptr || !srcSlice->count || !elementSize)
                 return Result::Continue;
 

@@ -308,7 +308,7 @@ Result AstMemberAccessExpr::codeGenPreNodeChild(const CodeGen& codeGen, const As
 
 Result AstMemberAccessExpr::codeGenPostNode(CodeGen& codeGen) const
 {
-    const SemaNodeView leftView = codeGen.viewTypeSymbol(nodeLeftRef);
+    const SemaNodeView leftView           = codeGen.viewTypeSymbol(nodeLeftRef);
     const bool         leftIsRuntimeValue = isRuntimeMemberAccessLeft(leftView);
 
     if (leftIsRuntimeValue && leftView.type() && leftView.type()->isInterface())

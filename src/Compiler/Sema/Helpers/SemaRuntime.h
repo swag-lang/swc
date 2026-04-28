@@ -37,8 +37,8 @@ namespace SemaRuntime
             if (!isTransparentCompilerFunction && !isTransparentCompilerRun)
                 return function;
 
-            const SymbolMap* ownerMap = function->ownerSymMap();
-            const auto* const      ownerFn  = ownerMap ? ownerMap->safeCast<SymbolFunction>() : nullptr;
+            const SymbolMap*  ownerMap = function->ownerSymMap();
+            const auto* const ownerFn  = ownerMap ? ownerMap->safeCast<SymbolFunction>() : nullptr;
             if (!ownerFn)
                 return function;
 

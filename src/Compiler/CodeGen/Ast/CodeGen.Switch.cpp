@@ -335,7 +335,7 @@ Result AstSwitchStmt::codeGenPreNode(CodeGen& codeGen) const
     SwitchStmtCodeGenPayload switchState;
     switchState.doneLabel     = builder.createLabel();
     switchState.hasExpression = nodeExprRef.isValid();
-    const auto* semaPayload = codeGen.sema().semaPayload<SwitchPayload>(codeGen.curNodeRef());
+    const auto* semaPayload   = codeGen.sema().semaPayload<SwitchPayload>(codeGen.curNodeRef());
     if (semaPayload && semaPayload->hasRuntimeSwitchSafety)
         switchState.noMatchLabel = builder.createLabel();
 

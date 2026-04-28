@@ -107,8 +107,8 @@ AstNodeRef Parser::parseGenerated(TaskContext& ctx, Ast& ast, SourceView& srcVie
     depthCurly_     = 0;
     lastErrorToken_ = TokenRef::invalid();
 
-    SourceView* previousSrcView = Ast::setThreadSourceViewOverride(&srcView);
-    const AstNodeRef  result          = parseGeneratedContent(mode);
+    SourceView*      previousSrcView = Ast::setThreadSourceViewOverride(&srcView);
+    const AstNodeRef result          = parseGeneratedContent(mode);
     Ast::setThreadSourceViewOverride(previousSrcView);
 
     return result;

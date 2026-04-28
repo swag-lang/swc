@@ -128,10 +128,10 @@ void X64UnwindWindows::buildInfo(std::vector<std::byte>& outUnwindInfo, const ui
 
     outUnwindInfo.resize(4 + unwindSlotCountAligned * sizeof(uint16_t));
     auto* outBytes = reinterpret_cast<uint8_t*>(outUnwindInfo.data());
-    outBytes[0]          = 1;
-    outBytes[1]          = unwindPrologSize_;
-    outBytes[2]          = static_cast<uint8_t>(unwindSlotCount);
-    outBytes[3]          = unwindHasFrameRegister_ ? static_cast<uint8_t>(((unwindFrameOffsetInSlots_ & 0x0F) << 4) | (unwindFrameRegister_ & 0x0F)) : 0;
+    outBytes[0]    = 1;
+    outBytes[1]    = unwindPrologSize_;
+    outBytes[2]    = static_cast<uint8_t>(unwindSlotCount);
+    outBytes[3]    = unwindHasFrameRegister_ ? static_cast<uint8_t>(((unwindFrameOffsetInSlots_ & 0x0F) << 4) | (unwindFrameRegister_ & 0x0F)) : 0;
 
     for (uint32_t i = 0; i < unwindSlotCountAligned; ++i)
     {

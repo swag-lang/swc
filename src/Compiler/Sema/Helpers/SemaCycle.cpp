@@ -251,9 +251,9 @@ void SemaCycle::check(TaskContext& ctx, JobClientId clientId)
                     std::cerr << " nodeId=" << Ast::nodeIdName(sema->node(state.nodeRef).id());
                 if (state.codeRef.isValid())
                 {
-                    const SourceView&      srcView = ctx.compiler().srcView(state.codeRef.srcViewRef);
+                    const SourceView&     srcView = ctx.compiler().srcView(state.codeRef.srcViewRef);
                     const SourceCodeRange range   = srcView.tokenCodeRange(ctx, state.codeRef.tokRef);
-                    const SourceFile*      file    = range.srcView ? range.srcView->file() : nullptr;
+                    const SourceFile*     file    = range.srcView ? range.srcView->file() : nullptr;
                     std::cerr << " at=" << (file ? file->path().string() : "<source>") << ":" << range.line << ":" << range.column;
                 }
                 std::cerr << "\n";

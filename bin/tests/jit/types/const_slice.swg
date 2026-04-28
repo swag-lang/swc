@@ -5,6 +5,18 @@ func pick(values: const [..] s32, idx: s32)->s32
     return values[idx]
 }
 
+func containsRune(values: const [..] rune, what: rune)->bool
+{
+    foreach value in values where value == what do
+        return true
+    return false
+}
+
+func aggregateLiteralRuneSlice(marker: rune)->bool
+{
+    return containsRune([marker], marker)
+}
+
 #test
 {
     const s: const [..] s32 = [1, 2, 3]
@@ -23,6 +35,12 @@ func pick(values: const [..] s32, idx: s32)->s32
 {
     const v = #run pick([10, 20, 30], 1)
     #assert(v == 20)
+}
+
+#test
+{
+    const V = #run aggregateLiteralRuneSlice('\u00E9''rune)
+    #assert(V)
 }
 
 #test

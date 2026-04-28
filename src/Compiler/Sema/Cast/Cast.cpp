@@ -13,6 +13,16 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    TypeRef aggregateArraySliceStorageTypeRef(Sema& sema, const TypeInfo& srcType, const TypeInfo& dstType)
+    {
+        if (!srcType.isAggregateArray() || !dstType.isSlice())
+            return TypeRef::invalid();
+
+        SmallVector4<uint64_t> dims;
+        dims.push_back(srcType.payloadAggregate().types.size());
+        return sema.typeMgr().addType(TypeInfo::makeArray(dims, dstType.payloadTypeRef()));
+    }
+
     AstNodeRef fallbackCastFailureNodeRef(Sema& sema, const CastFailure& failure)
     {
         if (failure.nodeRef.isValid())
@@ -74,6 +84,9 @@ TypeRef Cast::runtimeStorageTypeRef(Sema& sema, TypeRef srcTypeRef, TypeRef dstT
         return TypeRef::invalid();
 
     if (referenceValueCastTypeRef(sema, srcTypeRef, dstTypeRef).isValid())
+        return dstTypeRef;
+
+    if (srcType.isAggregateArray() && dstType.isSlice())
         return dstTypeRef;
 
     if (srcType.isArray() && (dstType.isSlice() || dstType.isString()))
@@ -166,7 +179,7 @@ Result Cast::retargetLiteralRuntimeStorageIfNeeded(Sema& sema, AstNodeRef nodeRe
     const TypeInfo& srcType = sema.typeMgr().get(srcTypeRef);
     const TypeInfo& dstType = sema.typeMgr().get(dstTypeRef);
     const bool      needsRetarget =
-        (srcType.isAggregateArray() && dstType.isArray()) ||
+        (srcType.isAggregateArray() && (dstType.isArray() || dstType.isSlice())) ||
         (srcType.isAggregateStruct() && dstType.isStruct());
     if (!needsRetarget)
         return Result::Continue;
@@ -175,8 +188,15 @@ Result Cast::retargetLiteralRuntimeStorageIfNeeded(Sema& sema, AstNodeRef nodeRe
     if (!payload || payload->runtimeStorageSym == nullptr)
         return Result::Continue;
 
-    SWC_RESULT(sema.waitSemaCompleted(&dstType, nodeRef));
-    payload->runtimeStorageSym->setTypeRef(dstTypeRef);
+    TypeRef storageTypeRef = dstTypeRef;
+    if (srcType.isAggregateArray() && dstType.isSlice())
+        storageTypeRef = aggregateArraySliceStorageTypeRef(sema, srcType, dstType);
+    if (storageTypeRef.isInvalid())
+        return Result::Continue;
+
+    const TypeInfo& storageType = sema.typeMgr().get(storageTypeRef);
+    SWC_RESULT(sema.waitSemaCompleted(&storageType, nodeRef));
+    payload->runtimeStorageSym->setTypeRef(storageTypeRef);
     return Result::Continue;
 }
 

@@ -43,6 +43,36 @@ namespace
         return totalCount;
     }
 
+    TypeRef sliceCastSourceArrayTypeRef(CodeGen& codeGen, AstNodeRef srcNodeRef, TypeRef srcTypeRef, const TypeInfo& srcType, const TypeInfo& dstType)
+    {
+        if (srcType.isArray())
+            return srcTypeRef;
+        if (!srcType.isAggregateArray())
+            return TypeRef::invalid();
+
+        const auto* srcPayload = codeGen.safePayload(srcNodeRef);
+        if (!srcPayload || !srcPayload->runtimeStorageSym || srcPayload->runtimeStorageSym->typeRef().isInvalid())
+            return TypeRef::invalid();
+
+        const TypeRef   storageTypeRef = srcPayload->runtimeStorageSym->typeRef();
+        const TypeInfo& storageType    = codeGen.typeMgr().get(storageTypeRef);
+        if (!storageType.isArray())
+        {
+            const auto& elemTypes = srcType.payloadAggregate().types;
+            for (const TypeRef elemTypeRef : elemTypes)
+            {
+                if (elemTypeRef != dstType.payloadTypeRef())
+                    return TypeRef::invalid();
+            }
+
+            SmallVector4<uint64_t> dims;
+            dims.push_back(elemTypes.size());
+            return codeGen.typeMgr().addType(TypeInfo::makeArray(dims, dstType.payloadTypeRef()));
+        }
+
+        return storageTypeRef;
+    }
+
     using CodeGenInterfaceHelpers::loadInterfaceMethodTableAddress;
     using CodeGenInterfaceHelpers::resolveInterfaceCastInfo;
 
@@ -1009,8 +1039,12 @@ namespace
 
         if (dstType.isString() && srcType.isArray())
             return emitArrayToStringCast(codeGen, srcNodeRef, dstTypeRef, srcType);
-        if (dstType.isSlice() && srcType.isArray())
-            return emitArrayToSliceCast(codeGen, srcNodeRef, dstTypeRef, srcType, dstType);
+        if (dstType.isSlice())
+        {
+            const TypeRef sourceArrayTypeRef = sliceCastSourceArrayTypeRef(codeGen, srcNodeRef, sourceTypeRef, srcType, dstType);
+            if (sourceArrayTypeRef.isValid())
+                return emitArrayToSliceCast(codeGen, srcNodeRef, dstTypeRef, codeGen.typeMgr().get(sourceArrayTypeRef), dstType);
+        }
 
         if (dstType.isAny() && !srcType.isAny())
         {

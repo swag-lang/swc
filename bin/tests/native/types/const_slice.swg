@@ -13,6 +13,18 @@ func byteChecksum(values: const [..] u8)->u32
     return result
 }
 
+func containsRune(values: const [..] rune, what: rune)->bool
+{
+    foreach value in values where value == what do
+        return true
+    return false
+}
+
+func aggregateLiteralRuneSlice(marker: rune)->bool
+{
+    return containsRune([marker], marker)
+}
+
 struct ProductLine
 {
     sku: string
@@ -77,6 +89,11 @@ func totalQty(lines: const [..] ProductLine)->s32
 
     @assert(@countof(emptyBytes) == 0)
     @assert(byteChecksum(emptyBytes) == 0'u32)
+}
+
+#test
+{
+    @assert(aggregateLiteralRuneSlice('\u00E9''rune))
 }
 
 #test

@@ -462,9 +462,9 @@ Result NativeArtifactBuilder::buildStartup(TaskContext& ctx) const
 
     if (builder_->compiler().buildCfg().backendKind != Runtime::BuildCfgBackendKind::Executable)
         return Result::Continue;
-    // Source-driven native tests can legitimately build an executable with
-    // #test entries and no user-defined #main.
-    if (builder_->mainFunctions.empty() && builder_->testFunctions.empty())
+    // Source-driven native tests can legitimately build an executable with no user-defined
+    // #main: #test and lifecycle hooks still need a startup thunk to run.
+    if (builder_->mainFunctions.empty() && builder_->testFunctions.empty() && builder_->initFunctions.empty() && builder_->preMainFunctions.empty() && builder_->dropFunctions.empty())
         return builder_->reportError(DiagnosticId::cmd_err_native_main_missing);
 
     const uint32_t expectedTestCount = builder_->expectedTestFunctionCount();

@@ -462,6 +462,42 @@ namespace
                 }
             }
 
+            if (!hasArtifactEntryPoints)
+            {
+                for (const SymbolFunction* function : compiler.nativeInitFunctions())
+                {
+                    if (function && shouldRunNativeArtifactFunction(compiler, *function))
+                    {
+                        hasArtifactEntryPoints = true;
+                        break;
+                    }
+                }
+            }
+
+            if (!hasArtifactEntryPoints)
+            {
+                for (const SymbolFunction* function : compiler.nativePreMainFunctions())
+                {
+                    if (function && shouldRunNativeArtifactFunction(compiler, *function))
+                    {
+                        hasArtifactEntryPoints = true;
+                        break;
+                    }
+                }
+            }
+
+            if (!hasArtifactEntryPoints)
+            {
+                for (const SymbolFunction* function : compiler.nativeDropFunctions())
+                {
+                    if (function && shouldRunNativeArtifactFunction(compiler, *function))
+                    {
+                        hasArtifactEntryPoints = true;
+                        break;
+                    }
+                }
+            }
+
             if (hasArtifactEntryPoints)
             {
                 const Runtime::BuildCfgBackendKind backendKind = effectiveBackendKind(compiler.cmdLine(), compiler.buildCfg().backendKind);

@@ -104,6 +104,7 @@ public:
     static Runtime::Context*        runtimeContextFromTls();
     static void                     setRuntimeContextForCurrentThread(Runtime::Context* context);
     uint32_t                        nativeRuntimeContextTlsIdOffset();
+    uint32_t                        nativeProcessInfosOffset();
 
     SymbolModule*       symModule() { return symModule_; }
     const SymbolModule* symModule() const { return symModule_; }
@@ -279,7 +280,9 @@ private:
     std::atomic<bool>                                     compilerMessageTypeInfoPrepFailed_    = false;
     bool                                                  compilerMessageTypeInfoPrepJobQueued_ = false;
     std::once_flag                                        nativeRuntimeContextTlsIdOffsetOnce_;
+    std::once_flag                                        nativeProcessInfosOffsetOnce_;
     uint32_t                                              nativeRuntimeContextTlsIdOffset_ = UINT32_MAX;
+    uint32_t                                              nativeProcessInfosOffset_        = UINT32_MAX;
     std::vector<SymbolFunction*>                          nativeCodeSegment_;
     std::vector<SymbolFunction*>                          nativeTestFunctions_;
     std::vector<SymbolFunction*>                          nativeInitFunctions_;

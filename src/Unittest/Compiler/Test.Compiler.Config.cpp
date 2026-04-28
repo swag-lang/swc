@@ -238,6 +238,44 @@ artifact-kind = static-library
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(Compiler_CommandLineTestAcceptsImportedApiInputs)
+{
+    const ScopedTempTree tempTree("compiler_test_imported_api_inputs");
+    if (!tempTree.ready())
+        return Result::Error;
+
+    const fs::path importDir  = tempTree.root() / "api";
+    const fs::path importFile = importDir / "dep.swg";
+
+    if (!writeTextFile(importFile, "public func dependency() {}\n"))
+        return Result::Error;
+
+    CommandLine                    cmdLine;
+    const uint64_t                 errorsBefore = Stats::getNumErrors();
+    const std::vector<std::string> args         = {
+        "swc_devmode",
+        "test",
+        "--import-api-dir",
+        importDir.string(),
+        "--import-api-file",
+        importFile.string(),
+    };
+
+    if (parseCommandLine(ctx, cmdLine, args) != Result::Continue)
+        return Result::Error;
+    if (Stats::getNumErrors() != errorsBefore)
+        return Result::Error;
+    if (cmdLine.command != CommandKind::Test)
+        return Result::Error;
+    if (!cmdLine.sourceDrivenTest)
+        return Result::Error;
+    if (!containsPath(cmdLine.importApiDirs, importDir))
+        return Result::Error;
+    if (!containsPath(cmdLine.importApiFiles, importFile))
+        return Result::Error;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(Compiler_FormatSummaryLineShowsWrittenFilesAfterTime)
 {
     Stats::resetCommandMetrics();

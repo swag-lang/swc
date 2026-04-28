@@ -965,6 +965,18 @@ uint32_t CompilerInstance::nativeRuntimeContextTlsIdOffset()
     return nativeRuntimeContextTlsIdOffset_;
 }
 
+uint32_t CompilerInstance::nativeProcessInfosOffset()
+{
+    std::call_once(nativeProcessInfosOffsetOnce_, [this] {
+        const auto [offset, storage] = globalZeroSegment_.reserve<Runtime::ProcessInfos>();
+        nativeProcessInfosOffset_    = offset;
+        *storage                     = {};
+    });
+
+    SWC_ASSERT(nativeProcessInfosOffset_ != UINT32_MAX);
+    return nativeProcessInfosOffset_;
+}
+
 void CompilerInstance::initPerThreadRuntimeContextForJit()
 {
     PerThreadData& td              = perThreadData_[JobManager::threadIndex()];

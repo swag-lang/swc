@@ -1871,11 +1871,8 @@ namespace
 
     Result codeGenProcessInfos(CodeGen& codeGen)
     {
-        const TypeRef             processInfosTypeRef = codeGen.typeMgr().structProcessInfos();
-        const ConstantRef         processInfosCstRef  = makeZeroStructConstant(codeGen, processInfosTypeRef);
-        const CodeGenNodePayload  addressPayload      = makeAddressPayloadFromConstant(codeGen, processInfosCstRef);
-        const CodeGenNodePayload& resultPayload       = codeGen.setPayloadValue(codeGen.curNodeRef(), codeGen.curViewType().typeRef());
-        codeGen.builder().emitLoadRegReg(resultPayload.reg, addressPayload.reg, MicroOpBits::B64);
+        const CodeGenNodePayload& resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), codeGen.curViewType().typeRef());
+        codeGen.builder().emitLoadRegDataSegmentReloc(resultPayload.reg, DataSegmentKind::GlobalZero, codeGen.compiler().nativeProcessInfosOffset());
         return Result::Continue;
     }
 

@@ -54,6 +54,7 @@ private:
     Diagnostic reportTokenError(DiagnosticId id, uint32_t offset, uint32_t len = 1);
     void       raiseTokenError(DiagnosticId id, uint32_t offset, uint32_t len = 1);
     void       checkFormat(uint32_t& startOffset);
+    void       checkCompilerGlobalSkip();
     void       lexEscape(TokenId containerToken, bool eatEol);
     void       buildTriviaIndex() const;
 

@@ -63,16 +63,16 @@ SWC_TEST_BEGIN(Compiler_InMemorySourceRunsSemaWithoutDiskIO)
 }
 SWC_TEST_END()
 
-SWC_TEST_BEGIN(Compiler_InMemorySourceTracksSkipFmtOnFile)
+SWC_TEST_BEGIN(Compiler_InMemorySourceTracksSkipFormatOnFile)
 {
-    static constexpr std::string_view SOURCE     = R"(#global skipfmt
+    static constexpr std::string_view SOURCE     = R"(#global skip(format)
 func A() {}
 )";
-    const fs::path                    sourcePath = Unittest::makeTestSourcePath("Compiler", "InMemorySourceTracksSkipFmtOnFile");
+    const fs::path                    sourcePath = Unittest::makeTestSourcePath("Compiler", "InMemorySourceTracksSkipFormatOnFile");
 
     CommandLine cmdLine;
     cmdLine.command = CommandKind::Syntax;
-    cmdLine.name    = "compiler_in_memory_source_skipfmt";
+    cmdLine.name    = "compiler_in_memory_source_skip_format";
 
     CompilerInstance compiler(ctx.global(), cmdLine);
     Unittest::registerTestSource(compiler, sourcePath, SOURCE);
@@ -91,6 +91,89 @@ func A() {}
     if (compilerCtx.hasError())
         return Result::Error;
     if (!sourceFile.mustSkipFormat())
+        return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(Compiler_InMemorySourceSkipsAlwaysArgument)
+{
+    static constexpr std::string_view SOURCE     = R"(#global skip(always)
+#invalid_after_skip
+)";
+    const fs::path                    sourcePath = Unittest::makeTestSourcePath("Compiler", "InMemorySourceSkipsAlwaysArgument");
+
+    CommandLine cmdLine;
+    cmdLine.command = CommandKind::Syntax;
+    cmdLine.name    = "compiler_in_memory_source_skip_always_arg";
+
+    CompilerInstance compiler(ctx.global(), cmdLine);
+    Unittest::registerTestSource(compiler, sourcePath, SOURCE);
+    TaskContext compilerCtx(compiler);
+
+    SourceFile& sourceFile = compiler.addFile(sourcePath, FileFlagsE::CustomSrc);
+    SWC_RESULT(sourceFile.loadContent(compilerCtx));
+
+    Lexer lexer;
+    lexer.tokenize(compilerCtx, sourceFile.ast().srcView(), LexerFlagsE::Default);
+    if (!sourceFile.ast().srcView().mustSkip())
+        return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(Compiler_InMemorySourceSkipsTestArgumentOutsideTests)
+{
+    static constexpr std::string_view SOURCE     = R"(#global skip(test)
+#invalid_after_skip
+)";
+    const fs::path                    sourcePath = Unittest::makeTestSourcePath("Compiler", "InMemorySourceSkipsTestArgumentOutsideTests");
+
+    CommandLine cmdLine;
+    cmdLine.command = CommandKind::Syntax;
+    cmdLine.name    = "compiler_in_memory_source_skip_test_arg_normal";
+
+    CompilerInstance compiler(ctx.global(), cmdLine);
+    Unittest::registerTestSource(compiler, sourcePath, SOURCE);
+    TaskContext compilerCtx(compiler);
+
+    SourceFile& sourceFile = compiler.addFile(sourcePath, FileFlagsE::CustomSrc);
+    SWC_RESULT(sourceFile.loadContent(compilerCtx));
+
+    Lexer lexer;
+    lexer.tokenize(compilerCtx, sourceFile.ast().srcView(), LexerFlagsE::Default);
+    if (!sourceFile.ast().srcView().mustSkip())
+        return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(Compiler_InMemorySourceKeepsTestArgumentDuringTests)
+{
+    static constexpr std::string_view SOURCE     = R"(#global skip(test)
+func A() {}
+)";
+    const fs::path                    sourcePath = Unittest::makeTestSourcePath("Compiler", "InMemorySourceKeepsTestArgumentDuringTests");
+
+    CommandLine cmdLine;
+    cmdLine.command          = CommandKind::Test;
+    cmdLine.name             = "compiler_in_memory_source_skip_test_arg_test";
+    cmdLine.sourceDrivenTest = true;
+
+    CompilerInstance compiler(ctx.global(), cmdLine);
+    Unittest::registerTestSource(compiler, sourcePath, SOURCE);
+    TaskContext compilerCtx(compiler);
+
+    SourceFile& sourceFile = compiler.addFile(sourcePath, FileFlagsE::CustomSrc);
+    SWC_RESULT(sourceFile.loadContent(compilerCtx));
+
+    Lexer lexer;
+    lexer.tokenize(compilerCtx, sourceFile.ast().srcView(), LexerFlagsE::Default);
+    if (sourceFile.ast().srcView().mustSkip())
+        return Result::Error;
+
+    Parser parser;
+    parser.parse(compilerCtx, sourceFile.ast());
+    if (compilerCtx.hasError())
+        return Result::Error;
+    if (sourceFile.ast().root().isInvalid())
         return Result::Error;
 }
 SWC_TEST_END()

@@ -1,3 +1,4 @@
+#global skip(test)
 #global fileprivate
 using Swag
 

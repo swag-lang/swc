@@ -149,6 +149,7 @@ private:
     AstNodeRef parseCompilerCode();
     AstNodeRef parseCompilerFunc();
     AstNodeRef parseCompilerGlobal();
+    void       parseCompilerGlobalSkip(AstCompilerGlobal& node);
     AstNodeRef parseCompilerImport();
     AstNodeRef parseCompilerInject();
     AstNodeRef parseCompilerMacro();

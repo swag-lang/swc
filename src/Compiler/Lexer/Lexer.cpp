@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Compiler/Lexer/Lexer.h"
 #include "Compiler/Lexer/LangSpec.h"
+#include "Main/Command/CommandLine.h"
 #include "Main/Global.h"
 #include "Main/Stats.h"
 #include "Main/TaskContext.h"
@@ -14,6 +15,14 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    enum class GlobalSkipTarget
+    {
+        Invalid,
+        Always,
+        Format,
+        Test,
+    };
+
     uint32_t editDistance(const std::string_view lhs, const std::string_view rhs)
     {
         std::vector<uint32_t> prev(rhs.size() + 1);
@@ -77,6 +86,32 @@ namespace
             return std::nullopt;
 
         return bestCandidate;
+    }
+
+    void skipBlanksRaw(const LangSpec& langSpec, const char8_t*& cursor)
+    {
+        while (langSpec.isBlank(cursor[0]))
+            cursor++;
+    }
+
+    std::string_view readIdentifierRaw(const LangSpec& langSpec, const char8_t*& cursor)
+    {
+        const char8_t* start = cursor;
+        while (langSpec.isIdentifierPart(cursor[0]))
+            cursor++;
+        return std::string_view(reinterpret_cast<std::string_view::const_pointer>(start), cursor - start);
+    }
+
+    GlobalSkipTarget globalSkipTargetFromName(const std::string_view name)
+    {
+        if (name == "always")
+            return GlobalSkipTarget::Always;
+        if (name == "format")
+            return GlobalSkipTarget::Format;
+        if (name == "test")
+            return GlobalSkipTarget::Test;
+
+        return GlobalSkipTarget::Invalid;
     }
 }
 
@@ -793,6 +828,35 @@ void Lexer::lexNumber()
     }
 }
 
+void Lexer::checkCompilerGlobalSkip()
+{
+    if (token_.id != TokenId::CompilerGlobal || lexerFlags_.has(LexerFlagsE::IgnoreGlobalSkip))
+        return;
+
+    const char8_t* cursor = buffer_;
+    skipBlanksRaw(*langSpec_, cursor);
+
+    const std::string_view directive = readIdentifierRaw(*langSpec_, cursor);
+    if (directive != Token::toName(TokenId::KwdSkip))
+        return;
+
+    skipBlanksRaw(*langSpec_, cursor);
+    if (cursor[0] != '(')
+        return;
+
+    cursor++;
+    skipBlanksRaw(*langSpec_, cursor);
+    const GlobalSkipTarget target = globalSkipTargetFromName(readIdentifierRaw(*langSpec_, cursor));
+    if (target == GlobalSkipTarget::Invalid)
+        return;
+    skipBlanksRaw(*langSpec_, cursor);
+    if (cursor[0] != ')')
+        return;
+
+    if (target == GlobalSkipTarget::Always || (target == GlobalSkipTarget::Test && !ctx_->cmdLine().sourceDrivenTest))
+        srcView_->setMustSkip();
+}
+
 void Lexer::lexIdentifier()
 {
     // Get identifier name
@@ -824,21 +888,7 @@ void Lexer::lexIdentifier()
             token_.byteStart = idx;
         }
 
-        // #global skip
-        if (token_.id == TokenId::CompilerGlobal)
-        {
-            const auto* tmp = buffer_;
-            while (langSpec_->isBlank(tmp[0]))
-                tmp++;
-
-            const char8_t* startTok = tmp;
-            while (langSpec_->isIdentifierPart(tmp[0]))
-                tmp++;
-
-            const auto tokStr = std::string_view(reinterpret_cast<std::string_view::const_pointer>(startTok), tmp - startTok);
-            if (tokStr == Token::toName(TokenId::KwdSkip) && lexerFlags_.hasNot(LexerFlagsE::IgnoreGlobalSkip))
-                srcView_->setMustSkip();
-        }
+        checkCompilerGlobalSkip();
     }
 
     pushToken();

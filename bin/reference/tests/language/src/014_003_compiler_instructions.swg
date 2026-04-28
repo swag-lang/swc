@@ -57,7 +57,9 @@ Place '#global' at the top of a source file to apply global settings or
 attributes across the entire file. Controls compilation and symbol visibility.
 
 Examples (write these as top-level directives):
-  #global skip                        // Skip file content (file must still be valid).
+  #global skip(always)                // Skip file content.
+  #global skip(format)                // Skip this file while formatting.
+  #global skip(test)                  // Include this file only when running tests.
   #global public                      // All symbols become public.
   #global fileprivate                    // All symbols are fileprivate to the module.
   #global namespace Toto              // Place all symbols in namespace 'Toto'.

@@ -29,7 +29,6 @@ SWC_TOKEN_DEF(SharpIdentifier, "",  TokenIdKindE::Compiler)
 SWC_TOKEN_DEF(KwdMe, "me",  TokenIdKindE::Keyword)
 
 SWC_TOKEN_DEF(KwdSkip, "skip",  TokenIdKindE::Zero)
-SWC_TOKEN_DEF(KwdSkipFmt, "skipfmt",  TokenIdKindE::Zero)
 SWC_TOKEN_DEF(KwdExport, "export",  TokenIdKindE::Zero)
 SWC_TOKEN_DEF(KwdGenerated, "generated",  TokenIdKindE::Zero)
 SWC_TOKEN_DEF(KwdLocation, "location",  TokenIdKindE::Zero)

@@ -71,7 +71,7 @@ namespace Command
         if (rewrittenFiles)
             details.push_back(Utf8Helper::countWithLabel(rewrittenFiles, "rewritten file"));
         if (skippedFmtFiles)
-            details.push_back(Utf8Helper::countWithLabel(skippedFmtFiles, "skipfmt file"));
+            details.push_back(Utf8Helper::countWithLabel(skippedFmtFiles, "skip(format) file"));
         if (skippedInvalidFiles)
             details.push_back(Utf8Helper::countWithLabel(skippedInvalidFiles, "skipped invalid file"));
 

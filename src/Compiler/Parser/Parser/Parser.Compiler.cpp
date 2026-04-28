@@ -1,10 +1,32 @@
 #include "pch.h"
 #include "Compiler/Parser/Parser/Parser.h"
+#include "Main/Command/CommandLine.h"
+#include "Main/TaskContext.h"
 
 SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    enum class GlobalSkipTarget
+    {
+        Invalid,
+        Always,
+        Format,
+        Test,
+    };
+
+    GlobalSkipTarget globalSkipTargetFromName(const std::string_view name)
+    {
+        if (name == "always")
+            return GlobalSkipTarget::Always;
+        if (name == "format")
+            return GlobalSkipTarget::Format;
+        if (name == "test")
+            return GlobalSkipTarget::Test;
+
+        return GlobalSkipTarget::Invalid;
+    }
+
     TokenRef findInjectReplacement(const SourceView& srcView, const std::span<const TokenRef>& replacementInstructionRefs, TokenId tokenId)
     {
         for (const TokenRef instructionRef : replacementInstructionRefs)
@@ -306,6 +328,50 @@ AstNodeRef Parser::parseCompilerDependencies()
     return nodeRef;
 }
 
+void Parser::parseCompilerGlobalSkip(AstCompilerGlobal& node)
+{
+    node.mode        = AstCompilerGlobal::Mode::Skip;
+    node.nodeModeRef = AstNodeRef::invalid();
+    consume();
+
+    const TokenRef   openRef = consumeIf(TokenId::SymLeftParen);
+    if (openRef.isInvalid())
+    {
+        expectAndConsume(TokenId::SymLeftParen, DiagnosticId::parser_err_expected_token_before);
+        return;
+    }
+
+    GlobalSkipTarget target = GlobalSkipTarget::Invalid;
+    const TokenRef   argRef = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_before);
+    if (argRef.isValid())
+        target = globalSkipTargetFromName(ast_->srcView().tokenString(argRef));
+    expectAndConsumeClosing(TokenId::SymRightParen, openRef);
+
+    if (target == GlobalSkipTarget::Invalid)
+    {
+        if (argRef.isValid())
+            raiseError(DiagnosticId::parser_err_unexpected_token, argRef);
+        return;
+    }
+
+    switch (target)
+    {
+        case GlobalSkipTarget::Always:
+            ast_->addFlag(AstFlagsE::GlobalSkip);
+            break;
+        case GlobalSkipTarget::Format:
+            node.mode = AstCompilerGlobal::Mode::SkipFmt;
+            const_cast<SourceFile*>(ast_->srcView().file())->setMustSkipFormat();
+            break;
+        case GlobalSkipTarget::Test:
+            if (!ctx_->cmdLine().sourceDrivenTest)
+                ast_->addFlag(AstFlagsE::GlobalSkip);
+            break;
+        case GlobalSkipTarget::Invalid:
+            break;
+    }
+}
+
 AstNodeRef Parser::parseCompilerGlobal()
 {
     auto [nodeRef, nodePtr]       = ast_->makeNode<AstNodeId::CompilerGlobal>(consume());
@@ -316,17 +382,7 @@ AstNodeRef Parser::parseCompilerGlobal()
 
     if (tokStr == Token::toName(TokenId::KwdSkip))
     {
-        nodePtr->mode        = AstCompilerGlobal::Mode::Skip;
-        nodePtr->nodeModeRef = AstNodeRef::invalid();
-        ast_->addFlag(AstFlagsE::GlobalSkip);
-        consume();
-    }
-    else if (tokStr == Token::toName(TokenId::KwdSkipFmt))
-    {
-        nodePtr->mode        = AstCompilerGlobal::Mode::SkipFmt;
-        nodePtr->nodeModeRef = AstNodeRef::invalid();
-        const_cast<SourceFile*>(ast_->srcView().file())->setMustSkipFormat();
-        consume();
+        parseCompilerGlobalSkip(*nodePtr);
     }
     else if (tokStr == Token::toName(TokenId::KwdGenerated))
     {

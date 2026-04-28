@@ -180,6 +180,16 @@ impl DynString
     @assert(s[4] == 'o''u8)
 }
 
+#test
+{
+    var s: DynString = "hello"
+
+    @assert(s.count == 5)
+    @assert(s.capacity >= 5)
+    @assert(s[0] == 'h''u8)
+    @assert(s[4] == 'o''u8)
+}
+
 // ---------------------------------------------------------------------------
 // Test: opPostCopy clones the buffer, so mutating one side leaves the
 // other untouched. Both ends must free independently at scope exit.

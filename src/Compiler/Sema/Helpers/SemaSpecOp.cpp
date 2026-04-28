@@ -1979,16 +1979,9 @@ Result SemaSpecOp::tryResolveVarInitSet(Sema& sema, AstNodeRef receiverRef, AstN
     Symbol*    savedSymbol = sema.curViewSymbol().sym();
     const bool savedLValue = sema.isLValue(sema.curNodeRef());
 
-    bool matched = false;
-    SWC_RESULT(resolveSyntheticCall(sema, sema.node(sema.curNodeRef()), candidates.span(), args.span(), receiverRef, true, &matched));
-
+    bool            matched  = false;
     SymbolFunction* calledFn = nullptr;
-    if (matched)
-    {
-        const SemaNodeView currentSymView = sema.curViewSymbol();
-        if (currentSymView.sym() && currentSymView.sym()->isFunction())
-            calledFn = &currentSymView.sym()->cast<SymbolFunction>();
-    }
+    SWC_RESULT(resolveSyntheticCall(sema, sema.node(sema.curNodeRef()), candidates.span(), args.span(), receiverRef, true, &matched, false, false, &calledFn));
 
     if (savedSymbol)
         sema.setSymbol(sema.curNodeRef(), savedSymbol);

@@ -1,4 +1,5 @@
 #global namespace Hash
+#global #[Swag.CanOverflow(true)]
 
 using Swag
 
@@ -17,69 +18,14 @@ public enum Crc64Kind
 
 impl Crc64
 {
-    var LookUpTableECMA: [256] u64 = undefined
-    var LookUpTableISO:  [256] u64 = undefined
-
-    // Generates the lookup LookUpTable for CRC-64-ECMA.
-    #[Swag.Compiler]
-    func generateLookUpTableECMA()
-    {
-        const POLY: u64 = 0xC96C5795D7870F42
-
-        for i in 256
-        {
-            var crc: u64 = i
-            for j in 8
-            {
-                if crc & 1
-                {
-                    crc = (crc >> 1) ^ POLY
-                }
-                else
-                {
-                    crc >>= 1
-                }
-            }
-
-            LookUpTableECMA[i] = crc
-        }
-    }
-
-    // Generates the lookup LookUpTable for ISO.
-    #[Swag.Compiler]
-    func generateLookUpTableISO()
-    {
-        const POLY: u64 = 0xD800000000000000
-
-        for i in 256
-        {
-            var crc: u64 = i
-            for j in 8
-            {
-                if crc & 1
-                {
-                    crc = (crc >> 1) ^ POLY
-                }
-                else
-                {
-                    crc >>= 1
-                }
-            }
-
-            LookUpTableISO[i] = crc
-        }
-    }
-
     // Initialize the hashing sequence
     mtd init(kind: Crc64Kind)
     {
         #[Swag.Complete]
         switch kind
         {
-        case ECMA182, ISO:
+        case ECMA182, ISO, ISOXZ:
             .crc = 0
-        case ISOXZ:
-            .crc = 0xFFFFFFFF_FFFFFFFF
         }
     }
 
@@ -92,47 +38,61 @@ impl Crc64
             return
 
         let bytes = cast(const [*] u8) @dataof(data)
-        var cur   = ~.crc
-
-        // Process 8 bytes at a time for better cache utilization
-        let blocks = length >> 3
-
-        var table: [*] u64
+        var cur   = .crc
+        var i     = 0'u64
         #[Swag.Complete]
         switch kind
         {
-        case ECMA182, ISOXZ:
-            table = LookUpTableECMA
+        case ECMA182:
+            const POLY: u64 = 0x42F0_E1EB_A9EA_3693
+            while i < length
+            {
+                cur ^= cast(u64) bytes[i] << 56
+                for 8
+                {
+                    if cur & 0x8000_0000_0000_0000'u64 do
+                        cur = (cur << 1) ^ POLY
+                    else do
+                        cur <<= 1
+                }
+                i += 1
+            }
+            .crc = cur
+
         case ISO:
-            table = LookUpTableISO
-        }
+            const POLY: u64 = 0xD800_0000_0000_0000
+            cur = ~cur
+            while i < length
+            {
+                cur ^= bytes[i]
+                for 8
+                {
+                    if cur & 1 do
+                        cur = (cur >> 1) ^ POLY
+                    else do
+                        cur >>= 1
+                }
+                i += 1
+            }
+            .crc = ~cur
 
-        // Unrolled loop for 8-byte blocks
-        var i: u64 = 0
-        while i < blocks
-        {
-            let offset = i << 3
-            cur = table[(cur ^ bytes[offset]) & 0xFF] ^ (cur >> 8)
-            cur = table[(cur ^ bytes[offset + 1]) & 0xFF] ^ (cur >> 8)
-            cur = table[(cur ^ bytes[offset + 2]) & 0xFF] ^ (cur >> 8)
-            cur = table[(cur ^ bytes[offset + 3]) & 0xFF] ^ (cur >> 8)
-            cur = table[(cur ^ bytes[offset + 4]) & 0xFF] ^ (cur >> 8)
-            cur = table[(cur ^ bytes[offset + 5]) & 0xFF] ^ (cur >> 8)
-            cur = table[(cur ^ bytes[offset + 6]) & 0xFF] ^ (cur >> 8)
-            cur = table[(cur ^ bytes[offset + 7]) & 0xFF] ^ (cur >> 8)
-            i += 1
+        case ISOXZ:
+            const POLY: u64 = 0xC96C_5795_D787_0F42
+            cur = ~cur
+            while i < length
+            {
+                cur ^= bytes[i]
+                for 8
+                {
+                    if cur & 1 do
+                        cur = (cur >> 1) ^ POLY
+                    else do
+                        cur >>= 1
+                }
+                i += 1
+            }
+            .crc = ~cur
         }
-
-        // Process remaining bytes
-        let remaining_start = blocks << 3
-        i = remaining_start
-        while i < length
-        {
-            cur = table[(cur ^ bytes[i]) & 0xFF] ^ (cur >> 8)
-            i += 1
-        }
-
-        .crc = ~cur
     }
 
     // Returns the hash value for the given buffer
@@ -144,11 +104,4 @@ impl Crc64
         v.update(buffer, kind)
         return v.crc
     }
-}
-
-// Initialize the lookup LookUpTableECMA at compile time.
-#run
-{
-    Crc64.generateLookUpTableECMA()
-    Crc64.generateLookUpTableISO()
 }

@@ -394,7 +394,7 @@ namespace
         removeInstruction(context, instRef);
     }
 
-    void applyRewriteLoadAddrAmcScale(const MicroPassContext& context, MicroInstrRef instRef, const MicroInstr& inst, const MicroInstrOperand* ops)
+    void applyRewriteLoadAddrAmcScale(const MicroPassContext& context, MicroInstrRef instRef, const MicroInstr& inst, const MicroInstrOperand* ops, uint32_t& nextVirtualIntRegIndex)
     {
         SWC_ASSERT(ops);
         SWC_ASSERT(inst.op == MicroInstrOpcode::LoadAddrAmcRegMem);
@@ -406,19 +406,28 @@ namespace
         const uint64_t mulValue = ops[5].valueU64;
         const uint64_t addValue = ops[6].valueU64;
 
-        SWC_ASSERT(dstReg != baseReg);
-        SWC_ASSERT(dstReg != indexReg);
+        MicroReg scaledIndexReg = dstReg;
+        if (dstReg == baseReg)
+        {
+            scaledIndexReg = allocateVirtualIntReg(context, nextVirtualIntRegIndex);
+            addVirtualForbiddenReg(context, scaledIndexReg, dstReg);
+            addVirtualForbiddenReg(context, scaledIndexReg, indexReg);
+            addLiveConcreteForbiddenRegsAfterInstruction(context, instRef, scaledIndexReg);
+        }
 
-        std::array<MicroInstrOperand, 3> moveOps;
-        moveOps[0].reg    = dstReg;
-        moveOps[1].reg    = indexReg;
-        moveOps[2].opBits = MicroOpBits::B64;
-        context.instructions->insertBefore(*context.operands, instRef, MicroInstrOpcode::LoadRegReg, moveOps);
+        if (scaledIndexReg != indexReg)
+        {
+            std::array<MicroInstrOperand, 3> moveOps;
+            moveOps[0].reg    = scaledIndexReg;
+            moveOps[1].reg    = indexReg;
+            moveOps[2].opBits = MicroOpBits::B64;
+            context.instructions->insertBefore(*context.operands, instRef, MicroInstrOpcode::LoadRegReg, moveOps);
+        }
 
         if (mulValue != 1)
         {
             std::array<MicroInstrOperand, 4> mulOps;
-            mulOps[0].reg      = dstReg;
+            mulOps[0].reg      = scaledIndexReg;
             mulOps[1].opBits   = MicroOpBits::B64;
             mulOps[2].microOp  = MicroOp::MultiplySigned;
             mulOps[3].valueU64 = mulValue;
@@ -427,7 +436,7 @@ namespace
 
         std::array<MicroInstrOperand, 4> addBaseOps;
         addBaseOps[0].reg     = dstReg;
-        addBaseOps[1].reg     = baseReg;
+        addBaseOps[1].reg     = dstReg == baseReg ? scaledIndexReg : baseReg;
         addBaseOps[2].opBits  = MicroOpBits::B64;
         addBaseOps[3].microOp = MicroOp::Add;
         context.instructions->insertBefore(*context.operands, instRef, MicroInstrOpcode::OpBinaryRegReg, addBaseOps);
@@ -852,7 +861,7 @@ namespace
                 applySplitLoadAmcMemImm64(context, instRef, inst, ops);
                 return;
             case MicroConformanceIssueKind::RewriteLoadAddrAmcScale:
-                applyRewriteLoadAddrAmcScale(context, instRef, inst, ops);
+                applyRewriteLoadAddrAmcScale(context, instRef, inst, ops, nextVirtualIntRegIndex);
                 return;
             case MicroConformanceIssueKind::RewriteLoadFloatRegImm:
                 applyRewriteLoadFloatRegImm(context, encoder, instRef, inst, ops, stackScratchBaseOffset, nextVirtualIntRegIndex);

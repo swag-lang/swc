@@ -116,6 +116,8 @@ func getFileNameWithoutExtension(fullname: string)->#null string
         }
     }
 
+    if last != countof do
+        return cast() @mkslice(@dataof(fullname), cast(u64) last)
     return fullname
 }
 

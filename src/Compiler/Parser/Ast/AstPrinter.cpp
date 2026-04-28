@@ -184,12 +184,7 @@ Utf8 AstPrinter::format(const TaskContext& ctx, Ast& ast, AstNodeRef root, Sema*
     orderingVisit.setMode(AstVisitMode::ResolveBeforeCallbacks);
     orderingVisit.setNodeRefResolver([sema](AstNodeRef nodeRef) { return resolvePrintNodeRef(sema, nodeRef); });
 
-    orderingVisit.setPreChildVisitor([&](AstNode&, AstNodeRef&) -> Result {
-        const AstNodeRef parentRef = orderingVisit.currentNodeRef();
-        uint32_t&        numChild  = totalChildrenByParent[parentRef];
-        numChild++;
-        return Result::Continue;
-    });
+    orderingVisit.setPreChildVisitor([&](AstNode&, AstNodeRef&) -> Result { const AstNodeRef parentRef = orderingVisit.currentNodeRef(); uint32_t& numChild = totalChildrenByParent[parentRef]; numChild++; return Result::Continue; });
 
     orderingVisit.start(ast, root);
     if (runVisit(orderingVisit, ctx) == AstVisitResult::Error)
@@ -199,14 +194,9 @@ Utf8 AstPrinter::format(const TaskContext& ctx, Ast& ast, AstNodeRef root, Sema*
     AstVisit printVisit;
     printVisit.setMode(AstVisitMode::ResolveBeforeCallbacks);
     printVisit.setNodeRefResolver([sema](AstNodeRef nodeRef) { return resolvePrintNodeRef(sema, nodeRef); });
-    printVisit.setPreChildVisitor([&](AstNode&, AstNodeRef&) -> Result {
-        const AstNodeRef parentRef = printVisit.currentNodeRef();
-        uint32_t&        numChild  = visitedChildrenByParent[parentRef];
-        numChild++;
-        return Result::Continue;
-    });
+    printVisit.setPreChildVisitor([&](AstNode&, AstNodeRef&) -> Result { const AstNodeRef parentRef = printVisit.currentNodeRef(); uint32_t& numChild = visitedChildrenByParent[parentRef]; numChild++; return Result::Continue; });
 
-    printVisit.setPreNodeVisitor([&](AstNode&) -> Result {
+    const auto preNodeVisitorFn = [&](AstNode&) -> Result {
         const AstNodeRef nodeRef   = printVisit.currentNodeRef();
         const AstNodeRef parentRef = printVisit.parentNodeRef();
 
@@ -232,7 +222,8 @@ Utf8 AstPrinter::format(const TaskContext& ctx, Ast& ast, AstNodeRef root, Sema*
         nodeEntries[nodeRef] = entry;
 
         return Result::Continue;
-    });
+    };
+    printVisit.setPreNodeVisitor(preNodeVisitorFn);
 
     printVisit.start(ast, root);
     if (runVisit(printVisit, ctx) == AstVisitResult::Error)

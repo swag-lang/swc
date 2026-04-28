@@ -607,10 +607,7 @@ namespace
                 return Result::Error;
             }
 
-            patches.push_back({
-                .offset = relocation.offset,
-                .target = reinterpret_cast<void*>(targetAddress),
-            });
+            patches.push_back({.offset = relocation.offset, .target = reinterpret_cast<void*>(targetAddress)});
         }
 
         if (!patches.empty())

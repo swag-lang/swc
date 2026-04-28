@@ -171,9 +171,7 @@ namespace
             if (tokNameRef.isInvalid())
                 continue;
 
-            auto& symVar = getOrCreateLoopLocalSymbol(payload, index, [&]() -> SymbolVariable& {
-                return SemaHelpers::registerSymbol<SymbolVariable>(sema, node, tokNameRef);
-            });
+            auto& symVar = getOrCreateLoopLocalSymbol(payload, index, [&]() -> SymbolVariable& { return SemaHelpers::registerSymbol<SymbolVariable>(sema, node, tokNameRef); });
             SWC_RESULT(ensureLoopLocalStorage(sema, symVar, index == 0 ? valueTypeRef : indexTypeRef));
             outSymbols.push_back(&symVar);
             index += 1;
@@ -295,15 +293,11 @@ Result AstForeachStmt::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) 
         SWC_RESULT(appendForeachAliasSymbols(sema, symbols, payload, *this, valueTypeRef, indexTypeRef));
 
         const size_t stateIndex = symbols.size();
-        auto&        stateSym   = getOrCreateLoopLocalSymbol(payload, stateIndex, [&]() -> SymbolVariable& {
-            return SemaHelpers::registerUniqueSymbol<SymbolVariable>(sema, *this, "foreach_state");
-        });
+        auto& stateSym = getOrCreateLoopLocalSymbol(payload, stateIndex, [&]() -> SymbolVariable& { return SemaHelpers::registerUniqueSymbol<SymbolVariable>(sema, *this, "foreach_state"); });
         SWC_RESULT(ensureLoopLocalStorage(sema, stateSym, foreachInternalArrayType(sema, sema.typeMgr().typeU64(), 3)));
         symbols.push_back(&stateSym);
 
-        auto& sourceSpillSym = getOrCreateLoopLocalSymbol(payload, stateIndex + 1, [&]() -> SymbolVariable& {
-            return SemaHelpers::registerUniqueSymbol<SymbolVariable>(sema, *this, "foreach_source_spill");
-        });
+        auto& sourceSpillSym = getOrCreateLoopLocalSymbol(payload, stateIndex + 1, [&]() -> SymbolVariable& { return SemaHelpers::registerUniqueSymbol<SymbolVariable>(sema, *this, "foreach_source_spill"); });
         SWC_RESULT(ensureLoopLocalStorage(sema, sourceSpillSym, foreachInternalArrayType(sema, sema.typeMgr().typeU8(), 8)));
         symbols.push_back(&sourceSpillSym);
 

@@ -463,12 +463,7 @@ namespace
                 if (!tryBuildGvtdEntry(codeGen, symVar->typeRef(), opDrop, sizeOf, count))
                     continue;
 
-                outEntries.push_back({
-                    .variable = symVar,
-                    .opDrop   = opDrop,
-                    .sizeOf   = sizeOf,
-                    .count    = count,
-                });
+                outEntries.push_back({.variable = symVar, .opDrop = opDrop, .sizeOf = sizeOf, .count = count});
                 continue;
             }
 

@@ -668,11 +668,7 @@ void DiagnosticBuilder::writeCodeBlock(const DiagnosticElement& el)
 
     // Sort underlines by column to process them in order
     std::vector<DiagnosticSpan> sortedSpans = el.spans();
-    std::ranges::sort(sortedSpans, [&](const DiagnosticSpan& a, const DiagnosticSpan& b) {
-        const SourceCodeRange loc1 = el.codeRange(a, *ctx_);
-        const SourceCodeRange loc2 = el.codeRange(b, *ctx_);
-        return loc1.column < loc2.column;
-    });
+    std::ranges::sort(sortedSpans, [&](const DiagnosticSpan& a, const DiagnosticSpan& b) { const SourceCodeRange loc1 = el.codeRange(a, *ctx_); const SourceCodeRange loc2 = el.codeRange(b, *ctx_); return loc1.column < loc2.column; });
 
     const uint32_t diagMax = ctx_->cmdLine().diagMaxColumn;
 

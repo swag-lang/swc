@@ -157,17 +157,16 @@ void CommandLineParser::printHelp(const TaskContext& ctx, const Utf8& command)
         helpEntries.push_back(std::move(entry));
     }
 
-    std::ranges::sort(helpEntries, [](const HelpOptionEntry& lhs, const HelpOptionEntry& rhs) {
+    const auto compareHelpEntry = [](const HelpOptionEntry& lhs, const HelpOptionEntry& rhs) {
         const int leftOrder  = static_cast<int>(lhs.group);
         const int rightOrder = static_cast<int>(rhs.group);
         if (leftOrder != rightOrder)
             return leftOrder < rightOrder;
-
         if (lhs.displayName != rhs.displayName)
             return lhs.displayName < rhs.displayName;
-
         return lhs.arg->description < rhs.arg->description;
-    });
+    };
+    std::ranges::sort(helpEntries, compareHelpEntry);
 
     auto                            currentGroup = HelpOptionGroup::Other;
     bool                            firstGroup   = true;

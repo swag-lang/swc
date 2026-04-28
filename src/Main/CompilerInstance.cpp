@@ -1648,10 +1648,7 @@ Result CompilerInstance::ensureCompilerMessagePass(const Runtime::CompilerMsgKin
         if (executedMask & passBit)
             return Result::Continue;
 
-        compilerMessageLog_.push_back({
-            .kind   = kind,
-            .symbol = nullptr,
-        });
+        compilerMessageLog_.push_back({.kind = kind, .symbol = nullptr});
 
         compilerMessageExecutedPassMask_.store(executedMask | passBit, std::memory_order_release);
     }

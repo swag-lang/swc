@@ -50,10 +50,7 @@ void Ast::captureParsedNodeBoundary()
         return;
     }
 
-    visit(*this, root_, [this](AstNodeRef nodeRef, const AstNode&) {
-        recordParsedNodeBoundary(nodeRef);
-        return VisitResult::Continue;
-    });
+    visit(*this, root_, [this](AstNodeRef nodeRef, const AstNode&) { recordParsedNodeBoundary(nodeRef); return VisitResult::Continue; });
 
     hasParsedNodeBoundary_ = true;
 }

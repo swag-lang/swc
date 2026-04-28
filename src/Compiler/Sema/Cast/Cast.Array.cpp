@@ -187,11 +187,7 @@ namespace
         const std::vector<ConstantRef>* srcValues      = nullptr;
         SWC_RESULT(getAggregateConstantValues(args, srcValues));
 
-        const bool hasNestedSource = dstDims.size() > 1 &&
-                                     std::ranges::all_of(srcTypes, [&](const TypeRef srcElemTypeRef) {
-                                         const TypeInfo& srcElemType = args.sema->typeMgr().get(srcElemTypeRef);
-                                         return srcElemType.isAggregateArray() || srcElemType.isArray();
-                                     });
+        const bool hasNestedSource = dstDims.size() > 1 && std::ranges::all_of(srcTypes, [&](const TypeRef srcElemTypeRef) { const TypeInfo& srcElemType = args.sema->typeMgr().get(srcElemTypeRef); return srcElemType.isAggregateArray() || srcElemType.isArray(); });
 
         if (hasNestedSource)
         {

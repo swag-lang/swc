@@ -664,11 +664,7 @@ SWC_TEST_END()
 
 SWC_TEST_BEGIN(DebugInfo_CollapsesConsecutiveSameLineEntries)
 {
-    SourceFile& sourceFile = Unittest::addTestSource(ctx,
-                                                     "DebugInfo",
-                                                     "CollapsesConsecutiveSameLineEntries",
-                                                     "alpha beta\n"
-                                                     "gamma\n");
+    SourceFile& sourceFile = Unittest::addTestSource(ctx, "DebugInfo", "CollapsesConsecutiveSameLineEntries", "alpha beta\n" "gamma\n");
     SWC_RESULT(sourceFile.loadContent(ctx));
 
     Lexer lexer;
@@ -703,21 +699,9 @@ SWC_TEST_BEGIN(DebugInfo_CollapsesConsecutiveSameLineEntries)
 
     MachineCode code;
     code.bytes = {std::byte{0x90}, std::byte{0x90}, std::byte{0xC3}};
-    code.debugSourceRanges.push_back({
-        .codeStartOffset = 0,
-        .codeEndOffset   = 1,
-        .sourceCodeRef   = {.srcViewRef = srcView.ref(), .tokRef = line1Tok0},
-    });
-    code.debugSourceRanges.push_back({
-        .codeStartOffset = 1,
-        .codeEndOffset   = 2,
-        .sourceCodeRef   = {.srcViewRef = srcView.ref(), .tokRef = line1Tok1},
-    });
-    code.debugSourceRanges.push_back({
-        .codeStartOffset = 2,
-        .codeEndOffset   = 3,
-        .sourceCodeRef   = {.srcViewRef = srcView.ref(), .tokRef = line2Tok0},
-    });
+    code.debugSourceRanges.push_back({.codeStartOffset = 0, .codeEndOffset = 1, .sourceCodeRef = {.srcViewRef = srcView.ref(), .tokRef = line1Tok0}});
+    code.debugSourceRanges.push_back({.codeStartOffset = 1, .codeEndOffset = 2, .sourceCodeRef = {.srcViewRef = srcView.ref(), .tokRef = line1Tok1}});
+    code.debugSourceRanges.push_back({.codeStartOffset = 2, .codeEndOffset = 3, .sourceCodeRef = {.srcViewRef = srcView.ref(), .tokRef = line2Tok0}});
 
     const DebugInfoFunctionRecord function = {
         .symbolName  = "__swc_debug_info_lines_proc",
@@ -754,12 +738,7 @@ SWC_TEST_END()
 
 SWC_TEST_BEGIN(DebugInfo_SkipsNoStepLineEntries)
 {
-    SourceFile& sourceFile = Unittest::addTestSource(ctx,
-                                                     "DebugInfo",
-                                                     "SkipsNoStepLineEntries",
-                                                     "alpha\n"
-                                                     "beta\n"
-                                                     "gamma\n");
+    SourceFile& sourceFile = Unittest::addTestSource(ctx, "DebugInfo", "SkipsNoStepLineEntries", "alpha\n" "beta\n" "gamma\n");
     SWC_RESULT(sourceFile.loadContent(ctx));
 
     Lexer lexer;
@@ -954,12 +933,7 @@ var GValue: s32 = 7
     if (sectionName.empty())
         return Result::Error;
 
-    const DebugInfoDataRecord global = makeDebugDataRecord("GValue",
-                                                           globalVar->typeRef(),
-                                                           "__swc_dbg_fileprivate_global",
-                                                           sectionName,
-                                                           globalVar->offset(),
-                                                           globalVar->isPublic());
+    const DebugInfoDataRecord global = makeDebugDataRecord("GValue", globalVar->typeRef(), "__swc_dbg_fileprivate_global", sectionName, globalVar->offset(), globalVar->isPublic());
 
     const std::array globals = {global};
 

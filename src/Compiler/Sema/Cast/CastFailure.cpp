@@ -30,11 +30,7 @@ void CastFailure::mergeArguments(const DiagnosticArguments& other)
 {
     for (const auto& arg : other)
     {
-        std::visit(
-            [&](const auto& value) {
-                addArgument(arg.name, value);
-            },
-            arg.val);
+        std::visit([&](const auto& value) { addArgument(arg.name, value); }, arg.val);
     }
 }
 

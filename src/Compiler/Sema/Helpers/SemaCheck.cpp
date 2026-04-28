@@ -59,9 +59,7 @@ Result SemaCheck::modifiers(Sema& sema, const AstNode& node, AstModifierFlags mo
     if (unsupported.none())
         return Result::Continue;
 
-    unsupported.forEachSet([&](AstModifierFlagsE flag) {
-        reportUnsupportedModifier(sema, node, flag);
-    });
+    unsupported.forEachSet([&](AstModifierFlagsE flag) { reportUnsupportedModifier(sema, node, flag); });
 
     return Result::Error;
 }

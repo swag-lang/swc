@@ -246,10 +246,7 @@ void JobManager::waitAll()
     {
         // Existing multithreaded behavior
         std::unique_lock lk(mtx_);
-        idleCv_.wait(lk, [this] {
-            return readyCount_.load(std::memory_order_acquire) == 0 &&
-                   activeWorkers_.load(std::memory_order_acquire) == 0;
-        });
+        idleCv_.wait(lk, [this] { return readyCount_.load(std::memory_order_acquire) == 0 && activeWorkers_.load(std::memory_order_acquire) == 0; });
         return;
     }
 
@@ -335,10 +332,7 @@ void JobManager::waitAll(JobClientId client)
     {
         // Existing multithreaded behavior
         std::unique_lock lk(mtx_);
-        idleCv_.wait(lk, [&] {
-            const auto it = clientReadyRunning_.find(client);
-            return it == clientReadyRunning_.end() || it->second == 0;
-        });
+        idleCv_.wait(lk, [&] { const auto it = clientReadyRunning_.find(client); return it == clientReadyRunning_.end() || it->second == 0; });
         return;
     }
 
@@ -495,9 +489,7 @@ void JobManager::workerLoop()
             // Slow path: fall back to CV wait
             {
                 std::unique_lock lk(mtx_);
-                cv_.wait(lk, [this] {
-                    return readyCount_.load(std::memory_order_acquire) > 0 || !accepting_;
-                });
+                cv_.wait(lk, [this] { return readyCount_.load(std::memory_order_acquire) > 0 || !accepting_; });
 
                 if (isDrainedLocked())
                     return;

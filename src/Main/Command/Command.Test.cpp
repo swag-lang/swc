@@ -235,9 +235,7 @@ namespace
 
     void filterJitFunctions(std::vector<SymbolFunction*>& functions, const JitFunctionSelection& selection)
     {
-        std::erase_if(functions, [&](const SymbolFunction* function) {
-            return function == nullptr || !selection.functions.contains(function);
-        });
+        std::erase_if(functions, [&](const SymbolFunction* function) { return function == nullptr || !selection.functions.contains(function); });
     }
 
     bool shouldRunNativeArtifactFunction(const CompilerInstance& compiler, const SymbolFunction& function)

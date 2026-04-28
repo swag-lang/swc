@@ -615,12 +615,7 @@ void PagedStore::publishPages()
         const std::unique_ptr<Page>& page = pagesStorage_[index];
         pages->push_back(page.get());
         const auto begin = reinterpret_cast<uintptr_t>(page->bytes());
-        pageRanges->push_back({
-            .begin = begin,
-            .end   = begin + pageSizeValue_,
-            .index = index,
-            .page  = page.get(),
-        });
+        pageRanges->push_back({.begin = begin, .end = begin + pageSizeValue_, .index = index, .page = page.get()});
     }
     std::ranges::sort(*pageRanges, {}, &PageRange::begin);
 

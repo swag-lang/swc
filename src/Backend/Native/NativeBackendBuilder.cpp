@@ -94,9 +94,7 @@ namespace
     template<typename T>
     void filterPreparedSymbols(std::vector<T*>& values, const NativeBackendBuilder& builder)
     {
-        std::erase_if(values, [&](const T* symbol) {
-            return symbol == nullptr || !shouldPrepareSymbol(builder, *symbol);
-        });
+        std::erase_if(values, [&](const T* symbol) { return symbol == nullptr || !shouldPrepareSymbol(builder, *symbol); });
     }
 
     bool isIncludableDependency(const NativeBackendBuilder& builder, const SymbolFunction& fn)

@@ -1118,10 +1118,7 @@ namespace
         if (const auto* varDecl = paramNode->safeCast<AstSingleVarDecl>())
         {
             const AstNodeRef typeRef = varDecl->typeOrInitRef();
-            outParams.push_back({
-                .hasDefault = varDecl->nodeInitRef.isValid(),
-                .isVariadic = typeRef.isValid() && (sema.node(typeRef).is(AstNodeId::VariadicType) || sema.node(typeRef).is(AstNodeId::TypedVariadicType)),
-            });
+            outParams.push_back({.hasDefault = varDecl->nodeInitRef.isValid(), .isVariadic = typeRef.isValid() && (sema.node(typeRef).is(AstNodeId::VariadicType) || sema.node(typeRef).is(AstNodeId::TypedVariadicType))});
             return;
         }
 

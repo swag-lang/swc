@@ -176,12 +176,7 @@ Result NativeObjFileWriterCoff::writeObjectFile(const NativeObjDescription& desc
 
     if (description.startup)
     {
-        debugFunctions.push_back({
-            .symbolName    = description.startup->symbolName,
-            .debugName     = description.startup->debugName,
-            .returnTypeRef = TypeRef::invalid(),
-            .machineCode   = &description.startup->code,
-        });
+        debugFunctions.push_back({.symbolName = description.startup->symbolName, .debugName = description.startup->debugName, .returnTypeRef = TypeRef::invalid(), .machineCode = &description.startup->code});
     }
 
     for (const NativeFunctionInfo* info : description.functions)
@@ -236,17 +231,7 @@ Result NativeObjFileWriterCoff::writeObjectFile(const NativeObjDescription& desc
             collectFunctionDebugConstants(debugStorage.constants, builder_->ctx(), *info->symbol);
         }
 
-        debugFunctions.push_back({
-            .symbolName    = info->symbolName,
-            .debugName     = info->debugName,
-            .returnTypeRef = info->symbol ? info->symbol->returnTypeRef() : TypeRef::invalid(),
-            .machineCode   = info->machineCode,
-            .frameSize     = info->symbol ? info->symbol->debugStackFrameSize() : 0,
-            .frameBaseReg  = frameProcBaseReg,
-            .parameters    = debugStorage.parameters,
-            .locals        = debugStorage.locals,
-            .constants     = debugStorage.constants,
-        });
+        debugFunctions.push_back({.symbolName = info->symbolName, .debugName = info->debugName, .returnTypeRef = info->symbol ? info->symbol->returnTypeRef() : TypeRef::invalid(), .machineCode = info->machineCode, .frameSize = info->symbol ? info->symbol->debugStackFrameSize() : 0, .frameBaseReg = frameProcBaseReg, .parameters = debugStorage.parameters, .locals = debugStorage.locals, .constants = debugStorage.constants});
     }
 
     std::vector<DebugInfoDataRecord>     debugGlobals;
@@ -595,13 +580,7 @@ void NativeObjFileWriterCoff::addUndefinedSymbols(const std::vector<CoffSectionB
                 continue;
 
             symbolIndices.emplace(relocation.symbolName, static_cast<uint32_t>(symbols.size()));
-            symbols.push_back({
-                .name          = relocation.symbolName,
-                .sectionNumber = 0,
-                .value         = 0,
-                .type          = 0,
-                .storageClass  = IMAGE_SYM_CLASS_EXTERNAL,
-            });
+            symbols.push_back({.name = relocation.symbolName, .sectionNumber = 0, .value = 0, .type = 0, .storageClass = IMAGE_SYM_CLASS_EXTERNAL});
         }
     }
 }

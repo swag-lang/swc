@@ -16,9 +16,7 @@ namespace Command
         Result finishNonArtifactBackend(CompilerInstance& compiler)
         {
             TaskContext outputCtx(compiler);
-            return CommandRun::afterPauses(outputCtx, [&] {
-                return compiler.ensureCompilerMessagePass(Runtime::CompilerMsgKind::PassBeforeOutput);
-            });
+            return CommandRun::afterPauses(outputCtx, [&] { return compiler.ensureCompilerMessagePass(Runtime::CompilerMsgKind::PassBeforeOutput); });
         }
 
         Result finishBuildBackend(CompilerInstance& compiler, const bool runArtifact)
@@ -31,9 +29,7 @@ namespace Command
 
             TaskContext          nativeCtx(compiler);
             NativeBackendBuilder builder(compiler, runArtifact && backendKind == Runtime::BuildCfgBackendKind::Executable);
-            return CommandRun::afterPauses(nativeCtx, [&] {
-                return builder.run();
-            });
+            return CommandRun::afterPauses(nativeCtx, [&] { return builder.run(); });
         }
     }
 

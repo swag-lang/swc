@@ -108,24 +108,14 @@ uint32_t DataSegment::addString(uint32_t baseOffset, uint32_t fieldOffset, const
 void DataSegment::addRelocation(uint32_t offset, uint32_t targetOffset)
 {
     const std::unique_lock lock(mutex_);
-    relocations_.push_back({
-        .offset       = offset,
-        .kind         = DataSegmentRelocationKind::DataSegmentOffset,
-        .targetOffset = targetOffset,
-        .targetSymbol = nullptr,
-    });
+    relocations_.push_back({.offset = offset, .kind = DataSegmentRelocationKind::DataSegmentOffset, .targetOffset = targetOffset, .targetSymbol = nullptr});
     relocationsByOffsetDirty_ = true;
 }
 
 void DataSegment::addFunctionRelocation(uint32_t offset, const SymbolFunction* targetSymbol)
 {
     const std::unique_lock lock(mutex_);
-    relocations_.push_back({
-        .offset       = offset,
-        .kind         = DataSegmentRelocationKind::FunctionSymbol,
-        .targetOffset = INVALID_REF,
-        .targetSymbol = targetSymbol,
-    });
+    relocations_.push_back({.offset = offset, .kind = DataSegmentRelocationKind::FunctionSymbol, .targetOffset = INVALID_REF, .targetSymbol = targetSymbol});
     relocationsByOffsetDirty_ = true;
 }
 
@@ -404,11 +394,7 @@ void DataSegment::recordAllocation(const uint32_t offset, const uint32_t size, u
         SWC_ASSERT(last.offset + last.size <= offset);
     }
 
-    allocations_.push_back({
-        .offset = offset,
-        .size   = size,
-        .align  = align,
-    });
+    allocations_.push_back({.offset = offset, .size = size, .align = align});
 }
 
 SWC_END_NAMESPACE();

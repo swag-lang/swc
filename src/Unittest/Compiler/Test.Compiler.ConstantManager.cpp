@@ -27,9 +27,7 @@ SWC_TEST_BEGIN(ConstantManager_CopiesBorrowedStructPayloadOutsideDataSegment)
     const char*    expectedPtr    = runtimeString.ptr;
     const uint64_t expectedLength = runtimeString.length;
 
-    const ConstantValue  value  = ConstantValue::makeStructBorrowed(ctx,
-                                                                    ctx.typeMgr().typeString(),
-                                                                    ByteSpan{reinterpret_cast<const std::byte*>(&runtimeString), sizeof(runtimeString)});
+    const ConstantValue value = ConstantValue::makeStructBorrowed(ctx, ctx.typeMgr().typeString(), ByteSpan{reinterpret_cast<const std::byte*>(&runtimeString), sizeof(runtimeString)});
     const ConstantRef    cstRef = ctx.cstMgr().addConstant(ctx, value);
     const ConstantValue& stored = ctx.cstMgr().get(cstRef);
     if (!stored.isStruct() || stored.typeRef() != ctx.typeMgr().typeString())

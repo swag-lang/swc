@@ -1150,24 +1150,18 @@ Result SemaHelpers::resolveStructLikeChildBindingType(Sema& sema, std::span<cons
     {
         SWC_RESULT(sema.waitSemaCompleted(&targetType, childRef));
         const auto& fields = targetType.payloadSymStruct().fields();
-        const bool  found  = resolveAggregateChildIndex(
-            sema,
-            children,
-            childRef,
-            fields.size(),
-            [&](IdentifierRef idRef, size_t& outIndex) {
-                for (size_t i = 0; i < fields.size(); ++i)
+        const auto findFieldIndex = [&](IdentifierRef idRef, size_t& outIndex) {
+            for (size_t i = 0; i < fields.size(); ++i)
+            {
+                if (fields[i] && fields[i]->idRef() == idRef)
                 {
-                    if (fields[i] && fields[i]->idRef() == idRef)
-                    {
-                        outIndex = i;
-                        return true;
-                    }
+                    outIndex = i;
+                    return true;
                 }
-
-                return false;
-            },
-            fieldIndex);
+            }
+            return false;
+        };
+        const bool found = resolveAggregateChildIndex(sema, children, childRef, fields.size(), findFieldIndex, fieldIndex);
         if (!found || fieldIndex >= fields.size() || !fields[fieldIndex])
             return Result::Continue;
 
@@ -1179,15 +1173,7 @@ Result SemaHelpers::resolveStructLikeChildBindingType(Sema& sema, std::span<cons
         return Result::Continue;
 
     const auto& aggregate = targetType.payloadAggregate();
-    const bool  found     = resolveAggregateChildIndex(
-        sema,
-        children,
-        childRef,
-        aggregate.types.size(),
-        [&](IdentifierRef idRef, size_t& outIndex) {
-            return resolveAggregateMemberIndex(sema, targetType, idRef, outIndex);
-        },
-        fieldIndex);
+    const bool found = resolveAggregateChildIndex(sema, children, childRef, aggregate.types.size(), [&](IdentifierRef idRef, size_t& outIndex) { return resolveAggregateMemberIndex(sema, targetType, idRef, outIndex); }, fieldIndex);
     if (!found || fieldIndex >= aggregate.types.size())
         return Result::Continue;
 

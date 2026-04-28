@@ -983,10 +983,7 @@ Result CodeGen::emitDeferredActionsInScope(const size_t scopeIndex, const size_t
 
     const auto&  deferScope         = deferScopes_[scopeIndex];
     const size_t clampedActionCount = std::min(actionCount, deferScope.actions.size());
-    deferredEmissionCursors_.push_back({
-        .scopeIndex      = scopeIndex,
-        .nextActionCount = clampedActionCount,
-    });
+    deferredEmissionCursors_.push_back({.scopeIndex = scopeIndex, .nextActionCount = clampedActionCount});
 
     auto result = Result::Continue;
     for (size_t i = clampedActionCount; i != 0; --i)

@@ -202,9 +202,7 @@ void AstSourceWriter::writeNodeChildren(const AstNode& node)
 void AstSourceWriter::collectSourceOrderedChildren(SmallVector<AstNodeRef>& out, const AstNode& node) const
 {
     Ast::nodeIdInfos(node.id()).collectChildren(out, *ast_, node);
-    std::ranges::stable_sort(out, [this](const AstNodeRef left, const AstNodeRef right) {
-        return nodeSortByte(left) < nodeSortByte(right);
-    });
+    std::ranges::stable_sort(out, [this](const AstNodeRef left, const AstNodeRef right) { return nodeSortByte(left) < nodeSortByte(right); });
 }
 
 bool AstSourceWriter::shouldVisitNode(AstNodeRef nodeRef) const

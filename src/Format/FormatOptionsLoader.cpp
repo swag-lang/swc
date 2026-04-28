@@ -22,24 +22,12 @@ namespace
 
     void bindEndOfLineSchema(StructConfigSchema& schema, FormatOptions& options)
     {
-        schema.addEnum("end-of-line-style", &options.endOfLineStyle,
-                       {
-                           {"preserve", FormatEndOfLineStyle::Preserve},
-                           {"lf", FormatEndOfLineStyle::Lf},
-                           {"crlf", FormatEndOfLineStyle::CrLf},
-                       },
-                       "End-of-line style used by the formatter.");
+        schema.addEnum("end-of-line-style", &options.endOfLineStyle, {{"preserve", FormatEndOfLineStyle::Preserve}, {"lf", FormatEndOfLineStyle::Lf}, {"crlf", FormatEndOfLineStyle::CrLf}}, "End-of-line style used by the formatter.");
     }
 
     void bindIndentationSchema(StructConfigSchema& schema, FormatOptions& options)
     {
-        schema.addEnum("indent-style", &options.indentStyle,
-                       {
-                           {"preserve", FormatIndentStyle::Preserve},
-                           {"spaces", FormatIndentStyle::Spaces},
-                           {"tabs", FormatIndentStyle::Tabs},
-                       },
-                       "Indent style used by the formatter.");
+        schema.addEnum("indent-style", &options.indentStyle, {{"preserve", FormatIndentStyle::Preserve}, {"spaces", FormatIndentStyle::Spaces}, {"tabs", FormatIndentStyle::Tabs}}, "Indent style used by the formatter.");
 
         schema.add("indent-width", &options.indentWidth, "Indent width used when formatting with spaces.");
         schema.add("tab-width", &options.tabWidth, "Visual width used when interpreting tab characters.");
@@ -58,14 +46,7 @@ namespace
     {
         schema.add("column-limit", &options.columnLimit, "Soft column limit used when wrapping (0 disables wrapping).");
 
-        schema.addEnum("break-before-binary-operators", &options.breakBeforeBinaryOperators,
-                       {
-                           {"preserve", FormatOperatorWrapStyle::Preserve},
-                           {"before", FormatOperatorWrapStyle::Before},
-                           {"after", FormatOperatorWrapStyle::After},
-                           {"none", FormatOperatorWrapStyle::None},
-                       },
-                       "Where to break long expressions relative to their binary operator.");
+        schema.addEnum("break-before-binary-operators", &options.breakBeforeBinaryOperators, {{"preserve", FormatOperatorWrapStyle::Preserve}, {"before", FormatOperatorWrapStyle::Before}, {"after", FormatOperatorWrapStyle::After}, {"none", FormatOperatorWrapStyle::None}}, "Where to break long expressions relative to their binary operator.");
 
         schema.add("break-before-ternary-operators", &options.breakBeforeTernaryOperators, "Break long `cond ? a : b` expressions before `?` and `:`.");
         schema.add("break-after-return-type", &options.breakAfterReturnType, "Insert a line break before `->` in function signatures that don't fit.");
@@ -83,14 +64,7 @@ namespace
 
     void bindBraceSchema(StructConfigSchema& schema, FormatOptions& options)
     {
-        schema.addEnum("brace-style", &options.braceStyle,
-                       {
-                           {"preserve", FormatBraceStyle::Preserve},
-                           {"attach", FormatBraceStyle::Attach},
-                           {"allman", FormatBraceStyle::Allman},
-                           {"stroustrup", FormatBraceStyle::Stroustrup},
-                       },
-                       "Opening brace placement policy.");
+        schema.addEnum("brace-style", &options.braceStyle, {{"preserve", FormatBraceStyle::Preserve}, {"attach", FormatBraceStyle::Attach}, {"allman", FormatBraceStyle::Allman}, {"stroustrup", FormatBraceStyle::Stroustrup}}, "Opening brace placement policy.");
 
         schema.add("compact-empty-braces", &options.compactEmptyBraces, "Keep `{}` on the opening line.");
 
@@ -155,28 +129,12 @@ namespace
         schema.add("space-in-empty-braces", &options.spaceInEmptyBraces, "Insert a space inside `{}` when empty.");
         schema.add("space-before-attribute-bracket", &options.spaceBeforeAttributeBracket, "Insert a space before `#[` when an attribute is placed inline.");
 
-        schema.addEnum("space-before-parentheses", &options.spaceBeforeParentheses,
-                       {
-                           {"preserve", FormatSpaceBeforeParens::Preserve},
-                           {"never", FormatSpaceBeforeParens::Never},
-                           {"always", FormatSpaceBeforeParens::Always},
-                           {"control-statements", FormatSpaceBeforeParens::ControlStatements},
-                           {"functions", FormatSpaceBeforeParens::Functions},
-                           {"non-empty", FormatSpaceBeforeParens::NonEmpty},
-                       },
-                       "When to insert a space between an identifier and `(`.");
+        schema.addEnum("space-before-parentheses", &options.spaceBeforeParentheses, {{"preserve", FormatSpaceBeforeParens::Preserve}, {"never", FormatSpaceBeforeParens::Never}, {"always", FormatSpaceBeforeParens::Always}, {"control-statements", FormatSpaceBeforeParens::ControlStatements}, {"functions", FormatSpaceBeforeParens::Functions}, {"non-empty", FormatSpaceBeforeParens::NonEmpty}}, "When to insert a space between an identifier and `(`.");
     }
 
     void bindAttributeSchema(StructConfigSchema& schema, FormatOptions& options)
     {
-        schema.addEnum("attribute-placement", &options.attributePlacement,
-                       {
-                           {"preserve", FormatAttributePlacement::Preserve},
-                           {"own-line", FormatAttributePlacement::OwnLine},
-                           {"grouped", FormatAttributePlacement::Grouped},
-                           {"inline", FormatAttributePlacement::Inline},
-                       },
-                       "How to place `#[Attr]` annotations relative to their declaration.");
+        schema.addEnum("attribute-placement", &options.attributePlacement, {{"preserve", FormatAttributePlacement::Preserve}, {"own-line", FormatAttributePlacement::OwnLine}, {"grouped", FormatAttributePlacement::Grouped}, {"inline", FormatAttributePlacement::Inline}}, "How to place `#[Attr]` annotations relative to their declaration.");
 
         schema.add("break-after-attribute", &options.breakAfterAttribute, "Force a line break between an attribute and the declaration it applies to.");
         schema.add("space-after-attribute-comma", &options.spaceAfterAttributeComma, "Insert a space after `,` inside `#[A, B, C]`.");
@@ -185,13 +143,7 @@ namespace
 
     void bindCommentSchema(StructConfigSchema& schema, FormatOptions& options)
     {
-        schema.addEnum("comment-reflow", &options.commentReflow,
-                       {
-                           {"preserve", FormatCommentReflow::Preserve},
-                           {"normalize", FormatCommentReflow::Normalize},
-                           {"reflow", FormatCommentReflow::Reflow},
-                       },
-                       "How aggressively to rewrite comments to fit the column limit.");
+        schema.addEnum("comment-reflow", &options.commentReflow, {{"preserve", FormatCommentReflow::Preserve}, {"normalize", FormatCommentReflow::Normalize}, {"reflow", FormatCommentReflow::Reflow}}, "How aggressively to rewrite comments to fit the column limit.");
 
         schema.add("normalize-section-separators", &options.normalizeSectionSeparators, "Rewrite `// ####...` banners so they share a common width.");
         schema.add("section-separator-width", &options.sectionSeparatorWidth, "Target column count for normalized `// ####...` banners.");
@@ -200,13 +152,7 @@ namespace
 
     void bindUsingSchema(StructConfigSchema& schema, FormatOptions& options)
     {
-        schema.addEnum("sort-using-statements", &options.sortUsingStatements,
-                       {
-                           {"preserve", FormatSortOrder::Preserve},
-                           {"ascending", FormatSortOrder::Ascending},
-                           {"ascending-ci", FormatSortOrder::CaseInsensitiveAscending},
-                       },
-                       "Sort order for `using` statements at the top of a file.");
+        schema.addEnum("sort-using-statements", &options.sortUsingStatements, {{"preserve", FormatSortOrder::Preserve}, {"ascending", FormatSortOrder::Ascending}, {"ascending-ci", FormatSortOrder::CaseInsensitiveAscending}}, "Sort order for `using` statements at the top of a file.");
 
         schema.add("merge-using-statements", &options.mergeUsingStatements, "Collapse adjacent `using` statements onto a single line when possible.");
         schema.add("blank-line-after-using-block", &options.blankLineAfterUsingBlock, "Guarantee a blank line after the initial `using` block.");

@@ -311,10 +311,7 @@ namespace
                 if (MicroVerify::isEnabled(context) && context.passChanged)
                 {
                     SWC_ASSERT(verifyCache.hasCurrentState);
-                    iterationTrace.emplace_back(LoopPassTraceEntry{
-                        .passName       = std::string{pass->name()},
-                        .structuralHash = verifyCache.structuralHash,
-                    });
+                    iterationTrace.emplace_back(LoopPassTraceEntry{.passName = std::string{pass->name()}, .structuralHash = verifyCache.structuralHash});
                 }
 #endif
             }

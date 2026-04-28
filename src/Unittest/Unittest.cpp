@@ -34,11 +34,7 @@ namespace Unittest
         void logUnittestStatus(const TaskContext& ctx, const char* name, bool ok)
         {
             const std::string header = std::format("Test-{}", name);
-            Logger::printHeaderDot(ctx,
-                                   LogColor::BrightCyan,
-                                   header,
-                                   ok ? LogColor::BrightGreen : LogColor::BrightRed,
-                                   ok ? "ok" : "fail");
+            Logger::printHeaderDot(ctx, LogColor::BrightCyan, header, ok ? LogColor::BrightGreen : LogColor::BrightRed, ok ? "ok" : "fail");
         }
 
     }

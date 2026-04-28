@@ -841,8 +841,13 @@ Result Sema::preNodeChild(AstNode& node, AstNodeRef& childRef)
         const bool           compilerRun = isCompilerRunFunction(*this, child);
         const bool           compilerAst = isCompilerAstFunction(*this, child);
 
-        if (!compilerAstExpansions_.empty() && (compilerRun || compilerAst))
-            return Result::Continue;
+        if (!compilerAstExpansions_.empty())
+        {
+            // Generated top-level declarations must be visible before later deferred
+            // items are released; otherwise overload lookup can race the generated job.
+            if (compilerRun || compilerAst || childInfo.hasFlag(AstNodeIdFlagsE::SemaJob))
+                return Result::Continue;
+        }
 
         if (compilerRun)
         {

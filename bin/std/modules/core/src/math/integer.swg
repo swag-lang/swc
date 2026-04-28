@@ -6,8 +6,8 @@ using Swag
 
 #[ConstExpr, Safety(.Overflow, false)]
 {
-    func roundUpToPowerOf2(x: u32)->u32   => 1'u32 << 32 - Math.leadingZeros(x)
-    func roundUpToPowerOf2(x: u64)->u64   => 1'u64 << cast(u32) (64 - Math.leadingZeros(x))
+    func roundUpToPowerOf2(x: u32)->u32   => x <= 1 ? 1 : 1'u32 << (32 - Math.leadingZeros(x - 1))
+    func roundUpToPowerOf2(x: u64)->u64   => x <= 1 ? 1 : 1'u64 << cast(u32) (64 - Math.leadingZeros(x - 1))
     func roundDownToPowerOf2(x: u32)->u32 => 1'u32 << (31 - Math.leadingZeros(x))
     func roundDownToPowerOf2(x: u64)->u64 => 1'u64 << cast(u32) (63 - Math.leadingZeros(x))
     func isPowerOf2(x: u8)->bool          => x and !(x & (x - 1))

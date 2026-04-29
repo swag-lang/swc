@@ -18,12 +18,12 @@ func evaluateBezier(start, end, ctrl: Vector2, t: f32)->Vector2
     let it2 = it * it
     let t2  = t * t
 
-    // Quadratic Bézier: (1-t)²start + 2t(1-t)end + t²P2
+    // Quadratic Bézier: (1-t)²start + 2t(1-t)ctrl + t²end
     let a = it2              // (1-t)²
     let b = 2.0 * t * it     // 2t(1-t)
     let c = t2               // t²
 
-    return Vector2{x: a * start.x + b * end.x + c * ctrl.x, y: a * start.y + b * end.y + c * ctrl.y}
+    return Vector2{x: a * start.x + b * ctrl.x + c * end.x, y: a * start.y + b * ctrl.y + c * end.y}
 }
 
 // Evaluate a cubic Bézier curve at parameter 't'.
@@ -40,7 +40,7 @@ func evaluateBezier(start, end, ctrl1, ctrl2: Vector2, t: f32)->Vector2
     let c = 3.0 * t2 * it     // 3t²(1-t)
     let d = t2 * t            // t³
 
-    return Vector2{x: a * start.x + b * end.x + c * ctrl1.x + d * ctrl2.x, y: a * start.y + b * end.y + c * ctrl1.y + d * ctrl2.y}
+    return Vector2{x: a * start.x + b * ctrl1.x + c * ctrl2.x + d * end.x, y: a * start.y + b * ctrl1.y + c * ctrl2.y + d * end.y}
 }
 
 // Find roots of quadratic equation ax² + bx + c = 0 within the range [0, 1].
@@ -102,7 +102,7 @@ func getBezierBoundingBox(start, end, ctrl0, ctrl1: Vector2)->Rectangle
     let xRoots = solveQuadratic(ax, bx, cx)
     foreach t in xRoots
     {
-        let point = evaluateBezier(start, ctrl0, ctrl1, end, t)
+        let point = evaluateBezier(start, end, ctrl0, ctrl1, t)
         minX = Math.min(minX, point.x)
         maxX = Math.max(maxX, point.x)
     }
@@ -115,7 +115,7 @@ func getBezierBoundingBox(start, end, ctrl0, ctrl1: Vector2)->Rectangle
     let yRoots = solveQuadratic(ay, by, cy)
     foreach t in yRoots
     {
-        let point = evaluateBezier(start, ctrl0, ctrl1, end, t)
+        let point = evaluateBezier(start, end, ctrl0, ctrl1, t)
         minY = Math.min(minY, point.y)
         maxY = Math.max(maxY, point.y)
     }
@@ -148,7 +148,7 @@ func getBezierBoundingBox(start, end, ctrl: Vector2)->Rectangle
         let t = -bx / ax
         if t >= 0.0 and t <= 1.0
         {
-            let point = evaluateBezier(start, ctrl, end, t)
+            let point = evaluateBezier(start, end, ctrl, t)
             minX = Math.min(minX, point.x)
             maxX = Math.max(maxX, point.x)
         }
@@ -163,7 +163,7 @@ func getBezierBoundingBox(start, end, ctrl: Vector2)->Rectangle
         let t = -by / ay
         if t >= 0.0 and t <= 1.0
         {
-            let point = evaluateBezier(start, ctrl, end, t)
+            let point = evaluateBezier(start, end, ctrl, t)
             minY = Math.min(minY, point.y)
             maxY = Math.max(maxY, point.y)
         }

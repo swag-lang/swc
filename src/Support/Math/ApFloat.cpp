@@ -5,6 +5,21 @@
 
 SWC_BEGIN_NAMESPACE();
 
+namespace
+{
+    long double apIntToLongDouble(const ApInt& value)
+    {
+        long double result = 0.0;
+        for (uint32_t i = 0; i < value.bitWidth(); ++i)
+        {
+            if (value.testBit(i))
+                result += std::ldexp(1.0L, static_cast<int>(i));
+        }
+
+        return result;
+    }
+}
+
 ApFloat::ApFloat() :
     bitWidth_(64),
     value_{.f64 = 0}
@@ -55,15 +70,7 @@ void ApFloat::set(const ApInt& mantissa, int64_t exponent10)
         return;
     }
 
-    const uint32_t bw = mantissa.bitWidth();
-
-    // First, accumulate the unsigned value from bits.
-    long double v = 0.0;
-    for (uint32_t i = 0; i < bw; ++i)
-    {
-        if (mantissa.testBit(i))
-            v += std::ldexp(1.0L, static_cast<int>(i)); // adds 2^i
-    }
+    const long double v = apIntToLongDouble(mantissa);
 
     // Apply decimal exponent: mantissa * 10^exponent10
     const long double scale = std::pow(10.0L, static_cast<long double>(exponent10));
@@ -80,7 +87,7 @@ void ApFloat::set(const ApsInt& value, uint32_t targetBits, bool& exact, bool& o
     SWC_ASSERT(targetBits == 32 || targetBits == 64);
 
     exact    = false;
-    overflow = false; // no float/double overflow with 64-bit ints
+    overflow = false;
 
     if (value.isZero())
     {
@@ -89,6 +96,38 @@ void ApFloat::set(const ApsInt& value, uint32_t targetBits, bool& exact, bool& o
         else
             set(0.0);
         exact = true;
+        return;
+    }
+
+    if (!value.fits64())
+    {
+        ApInt magnitude(value);
+        bool  negative = false;
+        if (!value.isUnsigned() && value.isNegative())
+        {
+            bool overflowAbs = false;
+            magnitude.abs(overflowAbs);
+            SWC_ASSERT(!overflowAbs);
+            negative = true;
+        }
+
+        long double scalar = apIntToLongDouble(magnitude);
+        if (negative)
+            scalar = -scalar;
+
+        if (targetBits == 32)
+        {
+            const auto f = static_cast<float>(scalar);
+            set(f);
+            overflow = !std::isfinite(f);
+        }
+        else
+        {
+            const auto d = static_cast<double>(scalar);
+            set(d);
+            overflow = !std::isfinite(d);
+        }
+
         return;
     }
 

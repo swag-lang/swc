@@ -51,13 +51,16 @@ impl Int128
         {
             if .lo == 0 do
                 return cast(f64) (.hi * Shift64)
-            else do
-                return -cast(f64) (~.lo + ~.hi * Shift64)
+
+            let lo = cast(f64) (~.lo + 1)
+            let hi = cast(f64) ~.hi * Shift64
+            return -(lo + hi)
         }
 
         return cast(f64) (.lo + .hi * Shift64)
     }
 
+    #[Swag.CanOverflow(true)]
     func mul(x, y: s64)->Int128
     {
         var lhs = x
@@ -82,8 +85,8 @@ impl Int128
         let c = int1Hi * int2Lo + int1Lo * int2Hi
 
         result.hi = cast(s64) (a + (c >> 32))
-        result.lo = cast(s64) (c << 32)
-        result.lo += cast(s64) b
+        result.lo = c << 32
+        result.lo += b
         if result.lo < b do
             result.hi += 1
 

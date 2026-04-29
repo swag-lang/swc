@@ -12,6 +12,21 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    const SymbolMap* namespacePathOwner(const SymbolMap* current)
+    {
+        const SymbolMap* next = current->ownerSymMap();
+        if (!next && current->isImpl())
+        {
+            const auto& impl = current->cast<SymbolImpl>();
+            if (impl.isForStruct())
+                next = impl.symStruct()->ownerSymMap();
+            else if (impl.isForEnum())
+                next = impl.symEnum()->ownerSymMap();
+        }
+
+        return next;
+    }
+
     void collectSymbolMapNamespacePath(const SymbolMap* symMap, SmallVector<IdentifierRef>& outPath)
     {
         SmallVector<IdentifierRef> reversedPath;
@@ -21,23 +36,24 @@ namespace
             if (current->isNamespace() && (!owner || !owner->isModule()))
                 reversedPath.push_back(current->idRef());
 
-            const SymbolMap* next = owner;
-            if (!next && current->isImpl())
-            {
-                const auto& impl = current->cast<SymbolImpl>();
-                if (impl.isForStruct())
-                    next = impl.symStruct()->ownerSymMap();
-                else if (impl.isForEnum())
-                    next = impl.symEnum()->ownerSymMap();
-            }
-
-            current = next;
+            current = namespacePathOwner(current);
         }
 
         outPath.clear();
         outPath.reserve(reversedPath.size());
         for (auto& it : std::views::reverse(reversedPath))
             outPath.push_back(it);
+    }
+
+    SymbolAccess accessForSymbolMap(const SymbolMap* symMap)
+    {
+        for (const SymbolMap* current = symMap; current; current = namespacePathOwner(current))
+        {
+            if (current->isModule())
+                return SymbolAccess::ModulePrivate;
+        }
+
+        return SymbolAccess::FilePrivate;
     }
 
     void appendCollectedGenericParam(Sema& sema, const AstNode& paramNode, AstNodeRef paramRef, SmallVector<SemaGeneric::GenericParamDesc>& outParams)
@@ -96,7 +112,7 @@ namespace SemaGeneric
             for (const IdentifierRef idRef : sema.frame().nsPath())
                 nsPath.push_back(idRef);
         }
-        const SymbolAccess access                  = sema.frame().currentAccess();
+        const SymbolAccess access                  = startSymMap ? accessForSymbolMap(startSymMap) : sema.frame().currentAccess();
         const bool         globalCompilerIfEnabled = sema.frame().globalCompilerIfEnabled();
 
         sema.scopes_.clear();

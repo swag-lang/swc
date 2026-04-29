@@ -10,17 +10,23 @@ using Swag
     var pt: Math.Point = 2.0
     @assert(pt == Math.Point{2, 2})
 
-    pt += Math.Point{1, -3}
-    @assert(pt == Math.Point{3, -1})
+    pt = 0.0
+    @assert(pt == Math.Point.Zero)
 
-    pt -= Math.Point{2, -2}
-    @assert(pt == Math.Point{1, 1})
+    pt = -3.5
+    @assert(pt == Math.Point{-3.5, -3.5})
+
+    pt += Math.Point{1, -3}
+    @assert(pt == Math.Point{-2.5, -6.5})
+
+    pt -= Math.Point{-2.5, 0.5}
+    @assert(pt == Math.Point{0, -7})
 
     pt *= Math.Point{4, -5}
-    @assert(pt == Math.Point{4, -5})
+    @assert(pt == Math.Point{0, 35})
 
     pt /= Math.Point{2, -5}
-    @assert(pt == Math.Point{2, 1})
+    @assert(pt == Math.Point{0, -7})
 }
 
 #test
@@ -37,6 +43,15 @@ using Swag
 
     pt /= 3
     @assert(pt == Math.Point{1, 7})
+
+    pt += 0
+    @assert(pt == Math.Point{1, 7})
+
+    pt *= -2
+    @assert(pt == Math.Point{-2, -14})
+
+    pt /= -4
+    @assert(pt == Math.Point{0.5, 3.5})
 }
 
 #test
@@ -52,11 +67,19 @@ using Swag
     @assert(pt * 2 == Math.Point{12, -4})
     @assert(pt / 2 == Math.Point{3, -1})
     @assert(-pt == Math.Point{-6, 2})
+
+    @assert(Math.Point.Zero + Math.Point.One == Math.Point.One)
+    @assert(Math.Point.Zero - Math.Point.One == Math.Point{-1, -1})
+    @assert(Math.Point{7.5, -3.5} / 2 == Math.Point{3.75, -1.75})
+    @assert(-Math.Point.Zero == Math.Point.Zero)
 }
 
 #test
 {
     var pt = Math.Point{1.25, -2.75}
+    pt.offset(0.0)
+    @assert(pt == Math.Point{1.25, -2.75})
+
     pt.offset(2.0)
     @assert(pt == Math.Point{3.25, -0.75})
 
@@ -68,6 +91,8 @@ using Swag
     @assert(pt.isZero())
     @assert(pt.isZeroEpsilon())
     @assert(!Math.Point{0.01, 0}.isZeroEpsilon(0.001))
+    @assert(!Math.Point{0, -0.01}.isZeroEpsilon(0.001))
+    @assert(Math.Point{0.00001, -0.00001}.isZeroEpsilon(0.001))
 }
 
 #test
@@ -84,6 +109,19 @@ using Swag
     pt.ceil()
     @assert(pt == Math.Point{2, -1})
 
+    pt = Math.Point{-1.25, 1.75}
+    pt.round()
+    @assert(pt == Math.Point{-1, 2})
+
+    pt = Math.Point{-1.75, 1.75}
+    pt.trunc()
+    @assert(pt == Math.Point{-1, 1})
+
+    pt = Math.Point{-1.25, 1.25}
+    pt.ceil()
+    @assert(pt == Math.Point{-1, 2})
+
     @assert(Math.Point{1.0, 1.0}.isEqualEpsilon(Math.Point{1.00001, 0.99999}, 0.001))
     @assert(!Math.Point{1.0, 1.0}.isEqualEpsilon(Math.Point{1.01, 1.0}, 0.001))
+    @assert(!Math.Point{1.0, 1.0}.isEqualEpsilon(Math.Point{1.0, 1.01}, 0.001))
 }

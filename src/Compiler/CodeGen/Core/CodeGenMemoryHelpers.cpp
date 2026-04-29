@@ -458,6 +458,33 @@ void CodeGenMemoryHelpers::loadOperandToRegister(MicroReg& outReg, CodeGen& code
         builder.emitLoadRegReg(outReg, payload.reg, opBits);
 }
 
+void CodeGenMemoryHelpers::storePayloadToAddress(CodeGen& codeGen, MicroReg dstReg, const CodeGenNodePayload& srcPayload, uint32_t copySize)
+{
+    MicroBuilder& builder = codeGen.builder();
+    if (srcPayload.isAddress())
+    {
+        emitMemCopy(codeGen, dstReg, srcPayload.reg, copySize);
+        return;
+    }
+
+    if (copySize > 8)
+    {
+        emitMemCopy(codeGen, dstReg, srcPayload.reg, copySize);
+        return;
+    }
+
+    auto copyBits = MicroOpBits::Zero;
+    if (copySize == 1)
+        copyBits = MicroOpBits::B8;
+    else if (copySize == 2)
+        copyBits = MicroOpBits::B16;
+    else if (copySize == 4)
+        copyBits = MicroOpBits::B32;
+    else
+        copyBits = MicroOpBits::B64;
+    builder.emitLoadMemReg(dstReg, 0, srcPayload.reg, copyBits);
+}
+
 void CodeGenMemoryHelpers::emitMemCopy(CodeGen& codeGen, MicroReg dstReg, MicroReg srcAddressReg, uint32_t sizeInBytes)
 {
     if (!sizeInBytes)

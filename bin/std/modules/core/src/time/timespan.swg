@@ -55,19 +55,21 @@ impl TimeSpan
     {
         Debug.assert(-120000 <= months and months <= 120000, "overflow")
         var (y, m, d) = ticksToDate(.ticks)
+        var year = cast(s32) y
         let i = cast(s32) (m - 1) + months
         if i >= 0
         {
             m = cast(u16) (i % 12 + 1)
-            y += cast(u16) (i / 12)
+            year += i / 12
         }
         else
         {
             m = cast(u16) (12 + (i + 1) % 12)
-            y += cast(u16) ((i - 11) / 12)
+            year += (i - 11) / 12
         }
 
-        Debug.assert(1 <= y and y <= 9999, "overflow")
+        Debug.assert(1 <= year and year <= 9999, "overflow")
+        y = cast(u16) year
         let days = daysInMonth(y, m)
         if d > days do
             d = days
@@ -120,15 +122,15 @@ impl TimeSpan
     }
 
     // Returns the total duration in days
-    mtd totalDays()->f64 => .ticks * (1.0'f64 / TicksPerDay)
+    mtd const totalDays()->f64 => .ticks * (1.0'f64 / TicksPerDay)
     // Returns the total duration in hours
-    mtd totalHours()->f64 => .ticks * (1.0'f64 / TicksPerHour)
+    mtd const totalHours()->f64 => .ticks * (1.0'f64 / TicksPerHour)
     // Returns the total duration in minutes
-    mtd totalMinutes()->f64 => .ticks * (1.0'f64 / TicksPerMinute)
+    mtd const totalMinutes()->f64 => .ticks * (1.0'f64 / TicksPerMinute)
     // Returns the total duration in seconds
-    mtd totalSeconds()->f64 => .ticks * (1.0'f64 / TicksPerSecond)
+    mtd const totalSeconds()->f64 => .ticks * (1.0'f64 / TicksPerSecond)
     // Returns the total duration in milliseconds
-    mtd totalMilliSeconds()->f64 => .ticks * (1.0'f64 / TicksPerMilliSecond)
+    mtd const totalMilliSeconds()->f64 => .ticks * (1.0'f64 / TicksPerMilliSecond)
 
     // Adds a time interval to the current TimeSpan
     fileprivate mtd add(value: u32, scale: u64)

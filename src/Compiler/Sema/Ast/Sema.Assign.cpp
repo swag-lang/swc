@@ -282,6 +282,8 @@ namespace
         const SymbolStruct& symStruct = nodeRightView.type()->payloadSymStruct();
         const auto&         fields    = symStruct.fields();
 
+        SWC_RESULT(SemaHelpers::attachRuntimeStorageIfNeeded(sema, sema.curNodeRef(), sema.node(sema.curNodeRef()), nodeRightView.typeRef(), "__assign_decomp_runtime_storage"));
+
         if (leftRefs.size() > fields.size())
         {
             auto diag = SemaError::report(sema, DiagnosticId::sema_err_decomposition_too_many_names, sema.curNodeRef());

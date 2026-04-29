@@ -654,6 +654,55 @@ namespace
 
         return Result::Continue;
     }
+
+    MicroReg materializeDestructuringSourceCopy(CodeGen& codeGen, const CodeGenNodePayload& rightPayload, TypeRef rightTypeRef)
+    {
+        const TypeInfo& rightType = codeGen.typeMgr().get(rightTypeRef);
+        const uint64_t  copySize  = rightType.sizeOf(codeGen.ctx());
+        SWC_ASSERT(copySize > 0);
+        SWC_ASSERT(copySize <= std::numeric_limits<uint32_t>::max());
+
+        const CodeGenNodePayload* storagePayload = codeGen.safePayload(codeGen.curNodeRef());
+        SWC_ASSERT(storagePayload && storagePayload->runtimeStorageSym != nullptr);
+
+        const MicroReg storageReg = codeGen.runtimeStorageAddressReg(codeGen.curNodeRef());
+        CodeGenMemoryHelpers::storePayloadToAddress(codeGen, storageReg, rightPayload, static_cast<uint32_t>(copySize));
+        return storageReg;
+    }
+
+    Result emitAssignDestructuringList(CodeGen& codeGen, const AstAssignList& assignList, const CodeGenNodePayload& rightPayload, TypeRef rightTypeRef, TokenId assignOp)
+    {
+        SmallVector<AstNodeRef> leftRefs;
+        codeGen.ast().appendNodes(leftRefs, assignList.spanChildrenRef);
+
+        SWC_ASSERT(assignOp == TokenId::SymEqual);
+        const TypeInfo& rightType = codeGen.typeMgr().get(rightTypeRef);
+        SWC_ASSERT(rightType.isStruct());
+
+        const MicroReg sourceReg = materializeDestructuringSourceCopy(codeGen, rightPayload, rightTypeRef);
+        const auto&    fields    = rightType.payloadSymStruct().fields();
+
+        for (size_t i = 0; i < leftRefs.size(); i++)
+        {
+            const AstNodeRef leftRef = leftRefs[i];
+            if (leftRef.isInvalid())
+                continue;
+            if (codeGen.node(leftRef).is(AstNodeId::AssignIgnore))
+                continue;
+
+            SWC_ASSERT(i < fields.size() && fields[i]);
+            const SymbolVariable& field = *fields[i];
+
+            CodeGenNodePayload fieldPayload;
+            fieldPayload.typeRef = field.typeRef();
+            fieldPayload.setIsAddress();
+            fieldPayload.reg = field.offset() ? codeGen.offsetAddressReg(sourceReg, field.offset()) : sourceReg;
+
+            SWC_RESULT(emitAssign(codeGen, leftRef, fieldPayload, field.typeRef(), assignOp, isReferenceRebindAssignment(codeGen, leftRef)));
+        }
+
+        return Result::Continue;
+    }
 }
 
 Result AstAssignStmt::codeGenPostNode(CodeGen& codeGen) const
@@ -681,6 +730,8 @@ Result AstAssignStmt::codeGenPostNode(CodeGen& codeGen) const
     if (leftRef.isValid() && codeGen.node(leftRef).is(AstNodeId::AssignList))
     {
         const auto& assignList = codeGen.node(leftRef).cast<AstAssignList>();
+        if (assignList.hasFlag(AstAssignListFlagsE::Destructuring))
+            return emitAssignDestructuringList(codeGen, assignList, rightPayload, rightTypeRef, tok.id);
         return emitAssignList(codeGen, assignList, rightPayload, rightTypeRef, tok.id);
     }
 

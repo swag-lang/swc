@@ -372,7 +372,7 @@ impl Vector2
     {
         var angle = Math.acos(.cosAngleTo(other))
         let sign  = (.x * other.y) - (.y * other.x)
-        if sign > 0 do
+        if sign < 0 do
             angle = ConstF32.TwoPi - angle
         return angle
     }
@@ -380,7 +380,7 @@ impl Vector2
     // Perform linear interpolation between two vectors.
     // Interpolates each component separately using the given 'factor' (0.0 to 1.0).
     // When 'factor' is 0.0, returns 'src'; when 1.0, returns 'dst'.
-    mtd lerpTo(dst: Vector2, factor: f32)->Vector2
+    mtd const lerpTo(dst: Vector2, factor: f32)->Vector2
     {
         var result: retval = undefined
         result.x = Math.lerp(.x, dst.x, factor)

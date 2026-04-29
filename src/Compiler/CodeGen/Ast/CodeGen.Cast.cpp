@@ -221,6 +221,64 @@ namespace
         return true;
     }
 
+    bool tryEmitValueBackedPointerLikeCast(CodeGen& codeGen, const CodeGenNodePayload& srcPayload, TypeRef sourceTypeRef, TypeRef dstTypeRef, const CodeGenNodePayload* castPayload)
+    {
+        if (!srcPayload.isValue() || srcPayload.hasMaterializedPointerLikeValue())
+            return false;
+        if (!castPayload || castPayload->runtimeStorageSym == nullptr)
+            return false;
+
+        const TypeManager& typeMgr               = codeGen.typeMgr();
+        const TypeRef      resolvedSourceTypeRef = unwrapAliasEnumTypeRef(typeMgr, codeGen.ctx(), sourceTypeRef);
+        const TypeRef      sourceTypeToCheck     = resolvedSourceTypeRef.isValid() ? resolvedSourceTypeRef : sourceTypeRef;
+        if (!sourceTypeToCheck.isValid())
+            return false;
+
+        const TypeInfo& sourceType = typeMgr.get(sourceTypeToCheck);
+        const TypeInfo& dstType    = typeMgr.get(dstTypeRef);
+        if (sourceType.isPointerOrReference() || sourceType.isNull())
+            return false;
+        if (!(dstType.isReference() || dstType.isMoveReference() || dstType.isAnyPointer()))
+            return false;
+
+        const TypeRef resolvedDstPointeeRef = unwrapAliasEnumTypeRef(typeMgr, codeGen.ctx(), dstType.payloadTypeRef());
+        const TypeRef dstPointeeTypeRef     = resolvedDstPointeeRef.isValid() ? resolvedDstPointeeRef : dstType.payloadTypeRef();
+        if (!dstPointeeTypeRef.isValid())
+            return false;
+
+        SmallVector<SymbolStructUsingPathStep> usingPath;
+        if (dstType.isReference() || dstType.isMoveReference())
+        {
+            if (sourceTypeToCheck != dstPointeeTypeRef &&
+                !resolveUsingStructCastPath(codeGen, sourceTypeRef, dstType.payloadTypeRef(), usingPath))
+                return false;
+        }
+        else if (sourceTypeToCheck != dstPointeeTypeRef && dstPointeeTypeRef != typeMgr.typeVoid())
+        {
+            return false;
+        }
+
+        const uint64_t sourceSize = sourceType.sizeOf(codeGen.ctx());
+        SWC_ASSERT(sourceSize > 0);
+        if (sourceSize != 1 && sourceSize != 2 && sourceSize != 4 && sourceSize != 8)
+            return false;
+
+        MicroReg storageReg = codeGen.runtimeStorageAddressReg(codeGen.curNodeRef());
+        codeGen.builder().emitLoadMemReg(storageReg, 0, srcPayload.reg, CodeGenTypeHelpers::bitsFromStorageSize(sourceSize));
+
+        for (const auto& step : usingPath)
+        {
+            SWC_ASSERT(step.field != nullptr);
+            SWC_ASSERT(!step.isPointer);
+            storageReg = codeGen.offsetAddressReg(storageReg, step.field->offset());
+        }
+
+        CodeGenNodePayload& dstPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), dstTypeRef);
+        dstPayload.reg                 = storageReg;
+        dstPayload.markMaterializedPointerLikeValue();
+        return true;
+    }
+
     bool tryEmitReferenceValueCast(CodeGen& codeGen, AstNodeRef srcNodeRef, TypeRef sourceTypeRef, TypeRef dstTypeRef)
     {
         if (!Cast::referenceValueCastTypeRef(codeGen.sema(), sourceTypeRef, dstTypeRef).isValid())
@@ -1041,6 +1099,9 @@ namespace
             return Result::Continue;
 
         if (tryEmitAddressBackedPointerLikeCast(codeGen, srcPayload, sourceTypeRef, dstTypeRef))
+            return Result::Continue;
+
+        if (tryEmitValueBackedPointerLikeCast(codeGen, srcPayload, sourceTypeRef, dstTypeRef, castPayload))
             return Result::Continue;
 
         if (dstType.isString() && srcType.isArray())

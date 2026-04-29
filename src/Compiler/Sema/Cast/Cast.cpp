@@ -86,6 +86,9 @@ TypeRef Cast::runtimeStorageTypeRef(Sema& sema, TypeRef srcTypeRef, TypeRef dstT
     if (referenceValueCastTypeRef(sema, srcTypeRef, dstTypeRef).isValid())
         return dstTypeRef;
 
+    if (dstType.isReference() && !srcType.isPointerOrReference())
+        return srcTypeRef;
+
     if (srcType.isAggregateArray() && dstType.isSlice())
         return dstTypeRef;
 

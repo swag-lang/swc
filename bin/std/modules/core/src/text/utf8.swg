@@ -473,7 +473,11 @@ func indexOf(src: const [..] u8, what: string, startByteIndex = 0'u64, compariso
     let length = @countof(src)
     if !length do
         return Swag.U64.Max
-    Debug.safetyBoundCheck(startByteIndex < length, "index out of range")
+    if startByteIndex >= length
+    {
+        Debug.safetyBoundCheck(startByteIndex == length, "index out of range")
+        return Swag.U64.Max
+    }
 
     let countof = @countof(what)
     if !countof or countof > (length - startByteIndex) do
@@ -501,7 +505,11 @@ func indexOfAny(src: const [..] u8, what: const [..] u8, startByteIndex = 0'u64)
     let length = @countof(src)
     if !length do
         return Swag.U64.Max
-    Debug.safetyBoundCheck(startByteIndex < length, "index out of range")
+    if startByteIndex >= length
+    {
+        Debug.safetyBoundCheck(startByteIndex == length, "index out of range")
+        return Swag.U64.Max
+    }
 
     let countof = @countof(what)
     if !countof do
@@ -527,7 +535,11 @@ func indexOfAny(src: const [..] u8, what: const [..] rune, startByteIndex = 0'u6
     let length = @countof(src)
     if !length do
         return Swag.U64.Max
-    Debug.safetyBoundCheck(startByteIndex < length, "index out of range")
+    if startByteIndex >= length
+    {
+        Debug.safetyBoundCheck(startByteIndex == length, "index out of range")
+        return Swag.U64.Max
+    }
 
     let countof = @countof(what)
     if !countof do

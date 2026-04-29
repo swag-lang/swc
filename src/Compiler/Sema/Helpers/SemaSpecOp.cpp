@@ -2290,6 +2290,20 @@ namespace
             return Result::Continue;
         }
 
+        if (deferToSimpleAssignWriteSpecOp && !indexedView.type()->isConst())
+        {
+            SmallVector<Symbol*> mutableCandidates;
+            SmallVector<Symbol*> constCandidates;
+            splitMutableReceiverCandidates(sema, candidates.span(), mutableCandidates, constCandidates);
+            if (mutableCandidates.empty())
+            {
+                auto* payload = sema.compiler().allocate<DeferredIndexAssignSpecOpPayload>();
+                sema.setSemaPayload(indexExprRef, payload);
+                outHandled = true;
+                return Result::Continue;
+            }
+        }
+
         SmallVector<AstNodeRef> args;
         args.append(indexArgRefs.data(), indexArgRefs.size());
 

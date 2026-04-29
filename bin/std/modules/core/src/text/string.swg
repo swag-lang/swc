@@ -292,7 +292,7 @@ impl String
         while idx != Swag.U64.Max
         {
             .reserve(.length + byLength + 1)
-            Memory.copyOver(.buffer + idx + byLength, .buffer + idx + 1, .length - idx + 1)
+            Memory.copyOver(.buffer + idx + byLength, .buffer + idx + 1, .length - idx)
             Memory.copy(.buffer + idx, @dataof(by), byLength)
             .length -= 1
             .length += byLength
@@ -317,7 +317,7 @@ impl String
         while idx != Swag.U64.Max
         {
             .reserve(.length + byLength + 1)
-            Memory.copyOver(.buffer + idx + byLength, .buffer + idx + whatLength, .length - idx + 1)
+            Memory.copyOver(.buffer + idx + byLength, .buffer + idx + whatLength, .length - (idx + whatLength) + 1)
             Memory.copy(.buffer + idx, @dataof(by), byLength)
             .length -= whatLength
             .length += byLength

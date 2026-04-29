@@ -536,7 +536,7 @@ namespace
         {
             const AstNode& aliasNode = sema.node(aliases[slot]);
             if (aliasNode.is(AstNodeId::Identifier))
-                outAliasIdentifiers[slot] = sema.idMgr().addIdentifier(sema.ctx(), aliasNode.codeRef());
+                outAliasIdentifiers[slot] = SemaHelpers::resolveIdentifier(sema, aliasNode.codeRef());
         }
 
         for (size_t slot = 0; slot < foreachNames.size(); ++slot)

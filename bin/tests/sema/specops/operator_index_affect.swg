@@ -27,11 +27,29 @@ struct RefAndSetIndexBox
     values: [2] s32
 }
 
+struct ConstReadAndSetIndexBox
+{
+    values: [2] s32
+}
+
 impl RefAndSetIndexBox
 {
     mtd opIndex(index: s32) -> &s32
     {
         return &.values[index]
+    }
+
+    mtd opIndexSet(index: s32, value: s32)
+    {
+        .values[index] = value
+    }
+}
+
+impl ConstReadAndSetIndexBox
+{
+    mtd const opIndex(index: s32) -> s32
+    {
+        return .values[index]
     }
 
     mtd opIndexSet(index: s32, value: s32)
@@ -57,4 +75,12 @@ impl RefAndSetIndexBox
     box[0] = 11
 
     #assert(#typeof(box) == RefAndSetIndexBox)
+}
+
+#test
+{
+    var box = ConstReadAndSetIndexBox{}
+    box[0] = 17
+
+    #assert(#typeof(box) == ConstReadAndSetIndexBox)
 }

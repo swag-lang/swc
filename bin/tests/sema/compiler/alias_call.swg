@@ -8,6 +8,15 @@ func macroPair(value: s32, stmt: #code void)
     #inject(stmt)
 }
 
+#[Swag.Macro]
+func macroPairForward(value: s32, stmt: #code void)
+{
+    macroPair(|#alias0, #alias1| value)
+    {
+        #inject(stmt)
+    }
+}
+
 #[Swag.Mixin]
 func declarePair(value: s32)
 {
@@ -30,6 +39,15 @@ func declarePair(value: s32)
     {
         @assert(left == 12)
         @assert(right == 24)
+    }
+}
+
+#test
+{
+    macroPairForward(|left, right| 14)
+    {
+        @assert(left == 14)
+        @assert(right == 28)
     }
 }
 

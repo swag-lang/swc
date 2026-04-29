@@ -9,6 +9,9 @@ func isValidPathName(fullname: string)->bool
     if @countof(fullname) == 0 do
         return false
 
+    let extendedSyntax = @countof(fullname) >= 4 and isDirectorySeparator(fullname[0]) and isDirectorySeparator(fullname[1]) and fullname[2] == '?' and isDirectorySeparator(fullname[3])
+
+    var index = 0'u64
     foreach c in fullname
     {
         if c < 32 do
@@ -23,8 +26,9 @@ func isValidPathName(fullname: string)->bool
             return false
         if c == '*' do
             return false
-        if c == '?' do
+        if c == '?' and (!extendedSyntax or index != 2) do
             return false
+        index += 1
     }
 
     return true

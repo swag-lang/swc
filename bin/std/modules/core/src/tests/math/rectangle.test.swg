@@ -82,22 +82,36 @@ using Swag
     rect.set(Math.Point{30, 10}, Math.Point{10, 50})
     @assert(rect == Math.Rectangle{10, 10, 20, 40})
 
+    rect.set(Math.Point{10, 50}, Math.Point{30, 10})
+    @assert(rect == Math.Rectangle{10, 10, 20, 40})
+
+    rect.set(Math.Point{30, 50}, Math.Point{10, 10})
+    @assert(rect == Math.Rectangle{10, 10, 20, 40})
+
     rect.set(Math.Point{-5, -5}, Math.Point{-5, -5})
     @assert(rect == Math.Rectangle{-5, -5, 0, 0})
 
     rect = Math.Rectangle{10, 10, 20, 40}
     @assert(rect.contains(10, 10))
+    @assert(rect.contains(29.999, 10))
+    @assert(rect.contains(10, 49.999))
     @assert(rect.contains(Math.Point{29.999, 49.999}))
     @assert(rect.contains(Math.Point{10, 49.999}))
+    @assert(!rect.contains(9.999, 10))
+    @assert(!rect.contains(10, 9.999))
     @assert(!rect.contains(Math.Point{30, 50}))
     @assert(!rect.contains(Math.Point{30, 10}))
     @assert(!rect.contains(Math.Point{10, 50}))
-    @assert(!rect.contains(9.999, 10))
     @assert(rect.contains(Math.Rectangle{10, 10, 20, 40}))
     @assert(rect.contains(Math.Rectangle{12, 12, 4, 4}))
     @assert(rect.contains(Math.Rectangle{30, 50, 0, 0}))
+    @assert(!rect.contains(Math.Rectangle{9, 10, 1, 1}))
+    @assert(!rect.contains(Math.Rectangle{10, 9, 1, 1}))
+    @assert(!rect.contains(Math.Rectangle{29, 10, 2, 1}))
+    @assert(!rect.contains(Math.Rectangle{10, 49, 1, 2}))
     @assert(!rect.contains(Math.Rectangle{12, 12, 40, 4}))
 
+    @assert(rect.clampPoint(Math.Point{20, 30}) == Math.Point{20, 30})
     @assert(rect.clampPoint(Math.Point{35, 5}) == Math.Point{30, 10})
     @assert(rect.clampPoint(Math.Point{5, 60}) == Math.Point{10, 50})
     @assert(rect.distanceToPoint(Math.Point{20, 30}) == 0)
@@ -110,6 +124,8 @@ using Swag
     let a = Math.Rectangle{0, 0, 10, 10}
     let b = Math.Rectangle{5, -5, 10, 10}
     @assert(Math.Rectangle.intersect(a, b) == Math.Rectangle{5, 0, 5, 5})
+    @assert(Math.Rectangle.intersect(a, Math.Rectangle{2, 3, 4, 5}) == Math.Rectangle{2, 3, 4, 5})
+    @assert(Math.Rectangle.intersect(a, Math.Rectangle{-5, -5, 20, 20}) == a)
     @assert(Math.Rectangle.intersect(a, Math.Rectangle{20, 20, 1, 1}) == Math.Rectangle.Zero)
     @assert(Math.Rectangle.intersect(a, Math.Rectangle{10, 0, 5, 5}) == Math.Rectangle.Zero)
     @assert(Math.Rectangle.intersect(a, Math.Rectangle{0, 10, 5, 5}) == Math.Rectangle.Zero)
@@ -126,6 +142,8 @@ using Swag
     @assert(intersection == Math.Rectangle.Zero)
 
     @assert(Math.Rectangle.getUnion(a, b) == Math.Rectangle{0, -5, 15, 15})
+    @assert(Math.Rectangle.getUnion(a, Math.Rectangle{2, 3, 4, 5}) == a)
+    @assert(Math.Rectangle.getUnion(a, Math.Rectangle{-5, -6, 2, 3}) == Math.Rectangle{-5, -6, 15, 16})
     @assert(Math.Rectangle.getUnion(Math.Rectangle.Zero, Math.Rectangle{2, 3, 4, 5}) == Math.Rectangle{0, 0, 6, 8})
 
     var mergedRect = a
@@ -166,6 +184,10 @@ using Swag
     @assert(Math.Rectangle{0, 0, 0, 10}.isEmpty())
     @assert(Math.Rectangle{0, 0, 10, 0}.isEmpty())
     @assert(!Math.Rectangle{0, 0, 10, 10}.isEmpty())
+    @assert(!Math.Rectangle{0, 0, -10, 10}.isEmpty())
+    @assert(!Math.Rectangle{0, 0, 10, -10}.isEmpty())
+    @assert(!Math.Rectangle{0, 0, -10, 10}.isNormalized())
+    @assert(!Math.Rectangle{0, 0, 10, -10}.isNormalized())
     @assert(Math.Rectangle{0, 0, 0.00001, 10}.isEmptyEpsilon(0.001))
     @assert(Math.Rectangle{0, 0, 10, 0.00001}.isEmptyEpsilon(0.001))
     @assert(!Math.Rectangle{0, 0, 10, 10}.isEmptyEpsilon(0.001))
@@ -214,9 +236,15 @@ using Swag
     rect.expandToInclude(Math.Point{20, 30})
     @assert(rect == Math.Rectangle{10, 20, 30, 40})
 
+    rect.expandToInclude(Math.Point{45, 15})
+    @assert(rect == Math.Rectangle{10, 15, 35, 45})
+
     rect.expandToInclude(Math.Point{5, 70})
-    @assert(rect == Math.Rectangle{5, 20, 35, 50})
+    @assert(rect == Math.Rectangle{5, 15, 40, 55})
 
     rect.expandToInclude(Math.Rectangle{-5, 10, 10, 15})
-    @assert(rect == Math.Rectangle{-5, 10, 45, 60})
+    @assert(rect == Math.Rectangle{-5, 10, 50, 60})
+
+    rect.expandToInclude(Math.Rectangle{20, 30, 40, 50})
+    @assert(rect == Math.Rectangle{-5, 10, 65, 70})
 }

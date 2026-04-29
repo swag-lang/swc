@@ -94,6 +94,7 @@ struct CommandLine
     bool semaOnly             = false;
     bool output               = true;
     bool runtime              = true;
+    bool devStopDiagnostics   = true;
 
     bool devFull = false;
 

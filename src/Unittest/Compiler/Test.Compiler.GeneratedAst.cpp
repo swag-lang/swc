@@ -208,10 +208,11 @@ SWC_TEST_BEGIN(Compiler_GeneratedAstDiagnosticsUseMaterializedSourceFile)
         return Result::Error;
 
     CommandLine cmdLine;
-    cmdLine.command = CommandKind::Sema;
-    cmdLine.name    = "compiler_generated_ast_diagnostics";
-    cmdLine.silent  = true;
-    cmdLine.workDir = workDir.root();
+    cmdLine.command            = CommandKind::Sema;
+    cmdLine.name               = "compiler_generated_ast_diagnostics";
+    cmdLine.silent             = true;
+    cmdLine.devStopDiagnostics = false;
+    cmdLine.workDir            = workDir.root();
     cmdLine.files.insert(sourcePath);
     CommandLineParser::refreshBuildCfg(cmdLine);
 

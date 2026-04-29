@@ -2,6 +2,100 @@
 #global fileprivate
 using Swag
 
+func expectedLeadingZeros8(value: u8)->u8
+{
+    let input = cast(u16) value
+    var mask  = 0x80'u16
+    for i in 8
+    {
+        if input & mask do
+            return cast(u8) i
+        mask >>= 1
+    }
+
+    return 8
+}
+
+func expectedTrailingZeros8(value: u8)->u8
+{
+    let input = cast(u16) value
+    var mask  = 1'u16
+    for i in 8
+    {
+        if input & mask do
+            return cast(u8) i
+        mask <<= 1
+    }
+
+    return 8
+}
+
+func expectedCountOnes8(value: u8)->u8
+{
+    let input = cast(u16) value
+    var count = 0'u8
+    var mask  = 1'u16
+    for 8
+    {
+        if input & mask do
+            count += 1
+        mask <<= 1
+    }
+
+    return count
+}
+
+func expectedReverse8(value: u8)->u8
+{
+    var result = 0'u16
+    var source = cast(u16) value
+    for 8
+    {
+        result <<= 1
+        result |= source & 1
+        source >>= 1
+    }
+
+    return cast(u8) result
+}
+
+func expectedRol8(value, shift: u8)->u8
+{
+    let amount = shift & 7
+    if amount == 0 do
+        return value
+    let result = ((cast(u16) value << amount) | (cast(u16) value >> (8 - amount))) & 0xff
+    return cast(u8) result
+}
+
+func expectedRor8(value, shift: u8)->u8
+{
+    let amount = shift & 7
+    if amount == 0 do
+        return value
+    let result = ((cast(u16) value >> amount) | (cast(u16) value << (8 - amount))) & 0xff
+    return cast(u8) result
+}
+
+#test
+{
+    for value in 256
+    {
+        let input = cast(u8) value
+        @assert(Math.leadingZeros(input) == expectedLeadingZeros8(input))
+        @assert(Math.trailingZeros(input) == expectedTrailingZeros8(input))
+        @assert(Math.countOnes(input) == expectedCountOnes8(input))
+        @assert(Math.reverse(input) == expectedReverse8(input))
+
+        for shift in 16
+        {
+            let amount = cast(u8) shift
+            @assert(Math.rol(input, amount) == expectedRol8(input, amount))
+            @assert(Math.ror(input, amount) == expectedRor8(input, amount))
+        }
+    }
+}
+
 #test
 {
     @assert(Math.leadingZeros(0'u8) == 8'u8)
@@ -92,6 +186,13 @@ using Swag
     @assert(Math.ror(0x01234567_89abcdef'u64, 8'u8) == 0xef012345_6789abcd'u64)
     @assert(Math.rol(0x80000000_00000001'u64, 64'u8) == 0x80000000_00000001'u64)
     @assert(Math.ror(0x80000000_00000001'u64, 64'u8) == 0x80000000_00000001'u64)
+
+    @assert(Math.rol(0x8001'u16, 17'u8) == 0x0003'u16)
+    @assert(Math.ror(0x8001'u16, 17'u8) == 0xc000'u16)
+    @assert(Math.rol(0x80000001'u32, 33'u8) == 0x00000003'u32)
+    @assert(Math.ror(0x80000001'u32, 33'u8) == 0xc0000000'u32)
+    @assert(Math.rol(0x80000000_00000001'u64, 65'u8) == 0x00000000_00000003'u64)
+    @assert(Math.ror(0x80000000_00000001'u64, 65'u8) == 0xc0000000_00000000'u64)
 }
 
 #test

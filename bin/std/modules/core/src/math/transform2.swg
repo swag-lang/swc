@@ -99,13 +99,13 @@ impl Transform2
     }
 
     // Gets the translation components
-    mtd getTranslation()->Vector2
+    mtd const getTranslation()->Vector2
     {
         return Vector2{.tx, .ty}
     }
 
     // Applies the transform to a 2D point
-    mtd transformPoint(point: Vector2)->Vector2
+    mtd const transformPoint(point: Vector2)->Vector2
     {
         let rx = point.x * .m11 + point.y * .m21 + .tx
         let ry = point.x * .m12 + point.y * .m22 + .ty

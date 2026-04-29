@@ -2,6 +2,17 @@
 #global fileprivate
 using Swag
 
+func expectedHasZeroByte16(value: u16)->bool
+{
+    return (value & 0x00ff) == 0 or (value & 0xff00) == 0
+}
+
+func expectedHasByte16(value: u16, byte: u8)->bool
+{
+    let expected = cast(u16) byte
+    return (value & 0x00ff) == expected or ((value >> 8) & 0x00ff) == expected
+}
+
 #test
 {
     @assert(Math.isPowerOf2(1'u8))
@@ -31,6 +42,39 @@ using Swag
     @assert(!Math.isPowerOf2(0'u64))
     @assert(!Math.isPowerOf2(1023'u64))
     @assert(!Math.isPowerOf2(0xffffffff_ffffffff'u64))
+}
+
+#test
+{
+    for value in 65536
+    {
+        let input = cast(u16) value
+        @assert(Math.hasZeroByte(input) == expectedHasZeroByte16(input))
+    }
+
+    for value in 256
+    {
+        let byte = cast(u8) value
+        @assert(Math.makeRepeat16(byte) == (cast(u16) byte | (cast(u16) byte << 8)))
+        @assert(Math.hasByte(Math.makeRepeat16(byte), byte))
+        @assert(Math.hasByte(cast(u16) byte, byte))
+        @assert(Math.hasByte(cast(u16) byte << 8, byte))
+
+        if byte != 0xff
+        {
+            let other = byte + 1
+            @assert(!Math.hasByte(Math.makeRepeat16(byte), other))
+        }
+    }
+
+    for value in 65536
+    {
+        let input = cast(u16) value
+        @assert(Math.hasByte(input, 0x00'u8) == expectedHasByte16(input, 0x00'u8))
+        @assert(Math.hasByte(input, 0x7f'u8) == expectedHasByte16(input, 0x7f'u8))
+        @assert(Math.hasByte(input, 0x80'u8) == expectedHasByte16(input, 0x80'u8))
+        @assert(Math.hasByte(input, 0xff'u8) == expectedHasByte16(input, 0xff'u8))
+    }
 }
 
 #test

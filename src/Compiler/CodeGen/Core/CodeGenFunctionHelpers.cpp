@@ -6,11 +6,17 @@
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Runtime.h"
 #include "Compiler/CodeGen/Core/CodeGen.h"
+#include "Compiler/CodeGen/Core/CodeGenConstantHelpers.h"
+#include "Compiler/CodeGen/Core/CodeGenMemoryHelpers.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
+#include "Compiler/Sema/Constant/ConstantManager.h"
+#include "Compiler/Sema/Constant/ConstantValue.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
+#include "Compiler/Sema/Symbol/Symbol.Struct.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
+#include "Compiler/Sema/Type/TypeInfo.h"
 #include "Main/Command/CommandLine.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -421,6 +427,39 @@ bool CodeGenFunctionHelpers::shouldMaterializeAddressBackedValue(CodeGen& codeGe
         return false;
 
     return typeInfo.sizeOf(codeGen.ctx()) > sizeof(uint64_t);
+}
+
+Result CodeGenFunctionHelpers::emitStructDefaultValue(CodeGen& codeGen, TypeRef typeRef, MicroReg dstAddressReg)
+{
+    const TypeRef rawTypeRef = codeGen.typeMgr().get(typeRef).unwrap(codeGen.ctx(), typeRef, TypeExpandE::Alias);
+    if (rawTypeRef.isValid())
+        typeRef = rawTypeRef;
+
+    const TypeInfo& typeInfo = codeGen.typeMgr().get(typeRef);
+    if (!typeInfo.isStruct())
+        return Result::Continue;
+
+    const ConstantRef defaultValueRef = typeInfo.payloadSymStruct().computeDefaultValue(codeGen.sema(), typeRef);
+    SWC_ASSERT(defaultValueRef.isValid());
+    if (defaultValueRef.isInvalid())
+        return Result::Continue;
+
+    const ConstantRef safeDefaultValueRef = CodeGenConstantHelpers::ensureStaticPayloadConstant(codeGen, defaultValueRef, typeRef);
+    SWC_ASSERT(safeDefaultValueRef.isValid());
+    if (safeDefaultValueRef.isInvalid())
+        return Result::Continue;
+
+    const ConstantValue& defaultValue = codeGen.cstMgr().get(safeDefaultValueRef);
+    SWC_ASSERT(defaultValue.isStruct());
+    if (!defaultValue.isStruct())
+        return Result::Continue;
+
+    const ByteSpan payloadBytes = defaultValue.getStruct();
+    SWC_ASSERT(payloadBytes.size() <= std::numeric_limits<uint32_t>::max());
+    const MicroReg payloadReg = codeGen.nextVirtualIntRegister();
+    codeGen.builder().emitLoadRegPtrReloc(payloadReg, reinterpret_cast<uint64_t>(payloadBytes.data()), safeDefaultValueRef);
+    CodeGenMemoryHelpers::emitMemCopy(codeGen, dstAddressReg, payloadReg, static_cast<uint32_t>(payloadBytes.size()));
+    return Result::Continue;
 }
 
 void CodeGenFunctionHelpers::emitStackPointerSubtract(CodeGen& codeGen, const CallConv& callConv, uint64_t sizeInBytes, MicroReg scratchReg)

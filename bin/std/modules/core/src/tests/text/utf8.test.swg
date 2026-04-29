@@ -196,13 +196,13 @@ func assertUtf8String(value: const &String, expected: string)->bool
     @assert(Utf8.lastIndexOf(text, 'i''rune) == 14)
 
     let runeNeedles: [2] rune = ['o''rune, 't''rune]
-    @assert(Utf8.lastIndexOfAny(text, runeNeedles) == 9)
+    @assert(Utf8.lastIndexOfAny(text, runeNeedles) == 11)
     let missingRuneNeedles: [2] rune = ['z''rune, '\u2603''rune]
     @assert(Utf8.lastIndexOfAny(text, missingRuneNeedles) == Swag.U64.Max)
     @assert(Utf8.lastIndexOfAny(text, @mkslice(@dataof(runeNeedles), 0)) == Swag.U64.Max)
 
-    let byteNeedles: [2] u8 = ['e''u8, 'x''u8]
-    @assert(Utf8.lastIndexOfAny(text, byteNeedles) == 7)
+    let byteNeedles: [2] u8 = ['h''u8, 'x''u8]
+    @assert(Utf8.lastIndexOfAny(text, byteNeedles) == 16)
     let missingByteNeedles: [2] u8 = ['z''u8, 'x''u8]
     @assert(Utf8.lastIndexOfAny(text, missingByteNeedles) == Swag.U64.Max)
     @assert(Utf8.lastIndexOfAny(text, @mkslice(@dataof(byteNeedles), 0)) == Swag.U64.Max)
@@ -249,6 +249,5 @@ func assertUtf8String(value: const &String, expected: string)->bool
 
     @assert(runeSum == cast(u32) 'A''rune + cast(u32) '\u00E9''rune + cast(u32) '\U0001F642''rune)
     @assert(charIndexSum == 3)
-    @assert(byteIndexSum == 3)
+    @assert(byteIndexSum == 4)
 }
-

@@ -49,6 +49,34 @@ impl Tracked
     }
 }
 
+struct ReturnedTracked
+{
+    value: s32 = 5
+    a: s64
+    b: s64
+}
+
+impl ReturnedTracked
+{
+    mtd opDrop()
+    {
+        DropCount += 1
+        DropTrace = DropTrace * 100 + cast(s64) .value
+    }
+
+    mtd opPostCopy()
+    {
+        PostCopyCount += 1
+        .value += 10
+    }
+
+    mtd opPostMove()
+    {
+        PostMoveCount += 1
+        .value += 20
+    }
+}
+
 struct EmbeddedTracked
 {
     inner: Tracked
@@ -246,6 +274,20 @@ func embeddedOuterNoDropCopyAssignInfo()->LifecycleInfo
     return {dst.inner.value, src.inner.value, DropCount, DropTrace, PostCopyCount, PostMoveCount}
 }
 
+#[NoInline]
+func makeTrackedReturn()->ReturnedTracked
+{
+    var value = ReturnedTracked{4, 0, 0}
+    return value
+}
+
+func returnCopyInfo()->LifecycleInfo
+{
+    resetLifecycleHooks()
+    let value = makeTrackedReturn()
+    return {value.value, 0, DropCount, DropTrace, PostCopyCount, PostMoveCount}
+}
+
 #test
 {
     const V = #run copyAssignInfo()
@@ -431,4 +473,11 @@ func embeddedOuterNoDropCopyAssignInfo()->LifecycleInfo
     #assert(V.dropTrace == 0)
     #assert(V.postCopy == 2)
     #assert(V.postMove == 0)
+}
+
+#test
+{
+    const V = #run returnCopyInfo()
+    #assert(V.dst == 14)
+    #assert(V.src == 0)
 }

@@ -483,12 +483,14 @@ ABICall::PreparedCall ABICall::prepareArgs(MicroBuilder& builder, CallConvKind c
     MicroReg hiddenRetArgSrcReg = hiddenRetStorageReg;
     if (!hiddenRetArgSrcReg.isValid())
     {
-        void* indirectRetStorage = builder.ctx().compiler().allocateArray<uint8_t>(ret.indirectSize);
+        const auto [indirectRetStorageOffset, indirectRetStorage] = builder.ctx().compiler().compilerSegment().reserveSpan<uint8_t>(ret.indirectSize);
+        SWC_INTERNAL_CHECK(indirectRetStorageOffset != INVALID_REF);
+        SWC_INTERNAL_CHECK(indirectRetStorage != nullptr);
 
         MicroReg   hiddenRetArgTmpReg;
         const bool hasScratchRegs = conv.tryPickIntScratchRegs(hiddenRetArgSrcReg, hiddenRetArgTmpReg);
         SWC_INTERNAL_CHECK(hasScratchRegs);
-        builder.emitLoadRegPtrImm(hiddenRetArgSrcReg, reinterpret_cast<uint64_t>(indirectRetStorage));
+        builder.emitLoadRegDataSegmentReloc(hiddenRetArgSrcReg, DataSegmentKind::Compiler, indirectRetStorageOffset);
     }
 
     SmallVector<PreparedArg> preparedArgsWithHiddenRetArg;

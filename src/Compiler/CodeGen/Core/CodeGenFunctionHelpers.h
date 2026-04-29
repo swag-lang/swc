@@ -39,6 +39,7 @@ namespace CodeGenFunctionHelpers
     CodeGenNodePayload    materializeFunctionParameter(CodeGen& codeGen, const SymbolFunction& symbolFunc, const SymbolVariable& symVar);
     uint32_t              checkedTypeSizeInBytes(CodeGen& codeGen, const TypeInfo& typeInfo);
     bool                  shouldMaterializeAddressBackedValue(CodeGen& codeGen, const TypeInfo& typeInfo, bool isIndirect, bool isFloat, uint8_t numBits);
+    Result                emitStructDefaultValue(CodeGen& codeGen, TypeRef typeRef, MicroReg dstAddressReg);
     void                  emitStackPointerSubtract(CodeGen& codeGen, const CallConv& callConv, uint64_t sizeInBytes, MicroReg scratchReg);
     bool                  tryUseCurrentFunctionReturnStorageForDirectExpr(CodeGen& codeGen, AstNodeRef nodeRef, MicroReg& outStorageReg);
     bool                  needsPersistentCompilerRunReturn(const Sema& sema, TypeRef typeRef);

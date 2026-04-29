@@ -1104,6 +1104,15 @@ namespace
             CodeGenMemoryHelpers::emitMemCopy(codeGen, outputStorageReg, valueReg, copySize);
     }
 
+    Result emitPostCopyAfterIndirectReturnCopy(CodeGen& codeGen, TypeRef returnTypeRef, const CodeGenNodePayload& exprPayload, MicroReg outputStorageReg)
+    {
+        if (!exprPayload.isAddress() || exprPayload.reg == outputStorageReg)
+            return Result::Continue;
+        if (!codeGen.hasLifecycle(returnTypeRef, CodeGen::LifecycleKind::PostCopy))
+            return Result::Continue;
+        return codeGen.emitLifecycle(returnTypeRef, CodeGen::LifecycleKind::PostCopy, outputStorageReg);
+    }
+
     bool isCompilerFunctionDecl(CodeGen& codeGen);
 
     Result emitFunctionReturn(CodeGen& codeGen, const SymbolFunction& symbolFunc, AstNodeRef exprRef)
@@ -1140,18 +1149,25 @@ namespace
             else if (!delayReturnMaterialization && exprPayload.isAddress())
             {
                 if (exprPayload.reg != outputStorageReg)
+                {
                     CodeGenMemoryHelpers::emitMemCopy(codeGen, outputStorageReg, exprPayload.reg, normalizedRet.indirectSize);
+                    SWC_RESULT(emitPostCopyAfterIndirectReturnCopy(codeGen, returnTypeRef, exprPayload, outputStorageReg));
+                }
             }
             else if (!delayReturnMaterialization)
             {
                 emitIndirectReturnValuePayload(codeGen, outputStorageReg, exprPayload.reg, normalizedRet.indirectSize);
+                SWC_RESULT(emitPostCopyAfterIndirectReturnCopy(codeGen, returnTypeRef, exprPayload, outputStorageReg));
             }
 
             SWC_RESULT(codeGen.emitDeferredActionsForReturn());
             if (delayReturnMaterialization && needsPersistentCompilerReturn)
                 CodeGenFunctionHelpers::emitPersistCompilerRunValue(codeGen, returnTypeRef, outputStorageReg, exprPayload.reg, codeGen.localStackBaseReg(), codeGen.localStackFrameSize());
             else if (delayReturnMaterialization && exprPayload.isAddress() && exprPayload.reg != outputStorageReg)
+            {
                 CodeGenMemoryHelpers::emitMemCopy(codeGen, outputStorageReg, exprPayload.reg, normalizedRet.indirectSize);
+                SWC_RESULT(emitPostCopyAfterIndirectReturnCopy(codeGen, returnTypeRef, exprPayload, outputStorageReg));
+            }
             builder.emitLoadRegReg(callConv.intReturn, outputStorageReg, MicroOpBits::B64);
         }
         else
@@ -1344,10 +1360,14 @@ namespace
                     if (needsPersistentCompilerBlockReturn)
                         CodeGenFunctionHelpers::emitPersistCompilerRunValue(codeGen, returnTypeRef, outputStorageReg, exprPayload->reg, codeGen.localStackBaseReg(), codeGen.localStackFrameSize());
                     else if (exprPayload->isAddress())
+                    {
                         CodeGenMemoryHelpers::emitMemCopy(codeGen, outputStorageReg, exprPayload->reg, normalizedRet.indirectSize);
+                        SWC_RESULT(emitPostCopyAfterIndirectReturnCopy(codeGen, returnTypeRef, *exprPayload, outputStorageReg));
+                    }
                     else
                     {
                         emitIndirectReturnValuePayload(codeGen, outputStorageReg, exprPayload->reg, normalizedRet.indirectSize);
+                        SWC_RESULT(emitPostCopyAfterIndirectReturnCopy(codeGen, returnTypeRef, *exprPayload, outputStorageReg));
                     }
                 }
                 else
@@ -1379,10 +1399,14 @@ namespace
             if (needsPersistentCompilerReturn)
                 CodeGenFunctionHelpers::emitPersistCompilerRunValue(codeGen, returnTypeRef, outputStorageReg, exprPayload->reg, codeGen.localStackBaseReg(), codeGen.localStackFrameSize());
             else if (exprPayload->isAddress())
+            {
                 CodeGenMemoryHelpers::emitMemCopy(codeGen, outputStorageReg, exprPayload->reg, normalizedRet.indirectSize);
+                SWC_RESULT(emitPostCopyAfterIndirectReturnCopy(codeGen, returnTypeRef, *exprPayload, outputStorageReg));
+            }
             else
             {
                 emitIndirectReturnValuePayload(codeGen, outputStorageReg, exprPayload->reg, normalizedRet.indirectSize);
+                SWC_RESULT(emitPostCopyAfterIndirectReturnCopy(codeGen, returnTypeRef, *exprPayload, outputStorageReg));
             }
 
             builder.emitLoadRegReg(callConv.intReturn, outputStorageReg, MicroOpBits::B64);

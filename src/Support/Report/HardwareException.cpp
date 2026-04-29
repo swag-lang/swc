@@ -151,7 +151,7 @@ Utf8 HardwareException::format(const TaskContext* ctx, const std::string_view ti
 void HardwareException::log(const TaskContext& ctx, const std::string_view title, const void* platformExceptionPointers, const std::string_view extraInfo)
 {
     const Utf8 msg = format(&ctx, title, platformExceptionPointers, extraInfo);
-    Logger::print(ctx, msg);
+    Logger::printStdErr(LogColor::Reset, msg, false);
 }
 
 void HardwareException::print(const std::string_view title, const void* platformExceptionPointers, const std::string_view extraInfo)

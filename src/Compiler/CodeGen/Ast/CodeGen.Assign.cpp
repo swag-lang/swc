@@ -2,13 +2,11 @@
 #include "Compiler/CodeGen/Core/CodeGen.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Compiler/CodeGen/Core/CodeGenCallHelpers.h"
-#include "Compiler/CodeGen/Core/CodeGenConstantHelpers.h"
+#include "Compiler/CodeGen/Core/CodeGenFunctionHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenMemoryHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenSafety.h"
 #include "Compiler/CodeGen/Core/CodeGenTypeHelpers.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
-#include "Compiler/Sema/Constant/ConstantManager.h"
-#include "Compiler/Sema/Constant/ConstantValue.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Helpers/SemaSpecOp.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
@@ -530,39 +528,6 @@ namespace
         return codeGen.sema().isLValue(codeGen.node(rightRef));
     }
 
-    Result emitStructDefaultValue(CodeGen& codeGen, TypeRef typeRef, MicroReg dstAddressReg)
-    {
-        const TypeRef rawTypeRef = codeGen.typeMgr().get(typeRef).unwrap(codeGen.ctx(), typeRef, TypeExpandE::Alias);
-        if (rawTypeRef.isValid())
-            typeRef = rawTypeRef;
-
-        const TypeInfo& typeInfo = codeGen.typeMgr().get(typeRef);
-        if (!typeInfo.isStruct())
-            return Result::Continue;
-
-        const ConstantRef defaultValueRef = typeInfo.payloadSymStruct().computeDefaultValue(codeGen.sema(), typeRef);
-        SWC_ASSERT(defaultValueRef.isValid());
-        if (defaultValueRef.isInvalid())
-            return Result::Continue;
-
-        const ConstantRef safeDefaultValueRef = CodeGenConstantHelpers::ensureStaticPayloadConstant(codeGen, defaultValueRef, typeRef);
-        SWC_ASSERT(safeDefaultValueRef.isValid());
-        if (safeDefaultValueRef.isInvalid())
-            return Result::Continue;
-
-        const ConstantValue& defaultValue = codeGen.cstMgr().get(safeDefaultValueRef);
-        SWC_ASSERT(defaultValue.isStruct());
-        if (!defaultValue.isStruct())
-            return Result::Continue;
-
-        const ByteSpan payloadBytes = defaultValue.getStruct();
-        SWC_ASSERT(payloadBytes.size() <= std::numeric_limits<uint32_t>::max());
-        const MicroReg payloadReg = codeGen.nextVirtualIntRegister();
-        codeGen.builder().emitLoadRegPtrReloc(payloadReg, reinterpret_cast<uint64_t>(payloadBytes.data()), safeDefaultValueRef);
-        CodeGenMemoryHelpers::emitMemCopy(codeGen, dstAddressReg, payloadReg, static_cast<uint32_t>(payloadBytes.size()));
-        return Result::Continue;
-    }
-
     Result emitAssignStructLifecycle(CodeGen& codeGen, AstNodeRef leftRef, const CodeGenNodePayload& originalRightPayload, TypeRef rightTypeRef, TypeRef originalRightTypeRef, TokenId assignOp, AstModifierFlags modifierFlags, AstNodeRef rightRef, const bool rebindReference)
     {
         const AssignEncodeContext encodeCtx = buildAssignEncodeContext(codeGen, leftRef, originalRightPayload, rightTypeRef, assignOp, rebindReference);
@@ -624,7 +589,7 @@ namespace
             SWC_RESULT(codeGen.emitLifecycle(encodeCtx.target.opTypeRef, postKind, lifecycleCtx.target.payload.reg));
 
         if (shouldResetSource)
-            SWC_RESULT(emitStructDefaultValue(codeGen, rightTypeRef, stableRight.reg));
+            SWC_RESULT(CodeGenFunctionHelpers::emitStructDefaultValue(codeGen, rightTypeRef, stableRight.reg));
 
         if (doneLabel.isValid())
             builder.placeLabel(doneLabel);

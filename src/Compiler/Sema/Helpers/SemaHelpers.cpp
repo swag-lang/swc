@@ -26,9 +26,14 @@
 
 SWC_BEGIN_NAMESPACE();
 
+Result SemaHelpers::attachIndirectReturnRuntimeStorageIfNeeded(Sema& sema, AstNodeRef payloadNodeRef, const AstNode& storageNode, const SymbolFunction& calledFn, std::string_view privateName)
+{
+    return attachRuntimeStorageIfNeeded(sema, payloadNodeRef, storageNode, indirectReturnRuntimeStorageTypeRef(sema, calledFn), privateName);
+}
+
 Result SemaHelpers::attachIndirectReturnRuntimeStorageIfNeeded(Sema& sema, const AstNode& node, const SymbolFunction& calledFn, std::string_view privateName)
 {
-    return attachRuntimeStorageIfNeeded(sema, node, indirectReturnRuntimeStorageTypeRef(sema, calledFn), privateName);
+    return attachIndirectReturnRuntimeStorageIfNeeded(sema, sema.curNodeRef(), node, calledFn, privateName);
 }
 
 TypeRef SemaHelpers::borrowedAggregateArgumentRuntimeStorageTypeRef(Sema& sema, const SymbolFunction& calledFn, TypeRef paramTypeRef)

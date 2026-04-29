@@ -457,7 +457,7 @@ namespace
         payload->kind     = CastSpecialOpPayloadKind::OpCast;
         payload->calledFn = castData.calledFn;
         SemaHelpers::addCurrentFunctionCallDependency(sema, castData.calledFn);
-        return SemaHelpers::attachIndirectReturnRuntimeStorageIfNeeded(sema, sema.node(castNodeRef), *castData.calledFn, "__cast_runtime_storage");
+        return SemaHelpers::attachIndirectReturnRuntimeStorageIfNeeded(sema, castNodeRef, sema.node(castNodeRef), *castData.calledFn, "__cast_runtime_storage");
     }
 
     Result computeStructSetReceiverInit(Sema& sema, TypeRef dstTypeRef, const SymbolFunction& calledFn, ConstantRef& outInitCstRef)

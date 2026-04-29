@@ -254,12 +254,33 @@ namespace
         CodeGenMemoryHelpers::storePayloadToAddress(codeGen, outAddressReg, sourcePayload, static_cast<uint32_t>(sourceSize));
     }
 
-    void materializeSingleVarFromInit(CodeGen& codeGen, const SymbolVariable& symVar, AstNodeRef initRef)
+    bool varInitNeedsPostCopy(CodeGen& codeGen, AstNodeRef initRef, const CodeGenNodePayload& initPayload)
+    {
+        const AstNodeRef resolvedInitRef = initRef.isValid() ? codeGen.viewZero(initRef).nodeRef() : AstNodeRef::invalid();
+        if (resolvedInitRef.isValid() && codeGen.sema().isLValue(resolvedInitRef))
+            return true;
+        return initPayload.runtimeStorageSym != nullptr;
+    }
+
+    Result emitVarInitPostCopy(CodeGen& codeGen, const SymbolVariable& symVar, AstNodeRef initRef, const CodeGenNodePayload& initPayload, const CodeGenNodePayload& symbolPayload)
+    {
+        if (!symbolPayload.isAddress())
+            return Result::Continue;
+        if (initPayload.isAddress() && initPayload.reg == symbolPayload.reg)
+            return Result::Continue;
+        if (!varInitNeedsPostCopy(codeGen, initRef, initPayload))
+            return Result::Continue;
+        if (!codeGen.hasLifecycle(symVar.typeRef(), CodeGen::LifecycleKind::PostCopy))
+            return Result::Continue;
+        return codeGen.emitLifecycle(symVar.typeRef(), CodeGen::LifecycleKind::PostCopy, symbolPayload.reg);
+    }
+
+    Result materializeSingleVarFromInit(CodeGen& codeGen, const SymbolVariable& symVar, AstNodeRef initRef)
     {
         MicroBuilder& builder  = codeGen.builder();
         const bool    skipInit = symVar.hasExtraFlag(SymbolVariableFlagsE::ExplicitUndefined);
         if (symVar.hasGlobalStorage())
-            return;
+            return Result::Continue;
 
         if (CodeGenFunctionHelpers::usesCallerReturnStorage(codeGen, symVar))
         {
@@ -268,12 +289,12 @@ namespace
             const CodeGenNodePayload symbolPayload = CodeGenFunctionHelpers::resolveCallerReturnStoragePayload(codeGen, symVar);
 
             if (skipInit)
-                return;
+                return Result::Continue;
 
             const AstNodeRef resolvedInitRef = initRef.isValid() ? codeGen.viewZero(initRef).nodeRef() : AstNodeRef::invalid();
             const auto*      initNodePayload = resolvedInitRef.isValid() ? codeGen.sema().codeGenPayload<CodeGenNodePayload>(resolvedInitRef) : nullptr;
-            if (initNodePayload && initNodePayload->runtimeStorageSym == &symVar)
-                return;
+            if (initNodePayload && initNodePayload->runtimeStorageSym == &symVar && initNodePayload->isAddress())
+                return Result::Continue;
 
             if (initRef.isValid())
             {
@@ -281,13 +302,15 @@ namespace
                 if (initPayload.isAddress())
                 {
                     CodeGenMemoryHelpers::emitMemCopy(codeGen, symbolPayload.reg, initPayload.reg, localSize);
+                    SWC_RESULT(emitVarInitPostCopy(codeGen, symVar, initRef, initPayload, symbolPayload));
                 }
                 else
                 {
                     if (localSize > 8)
                     {
                         CodeGenMemoryHelpers::emitMemCopy(codeGen, symbolPayload.reg, initPayload.reg, localSize);
-                        return;
+                        SWC_RESULT(emitVarInitPostCopy(codeGen, symVar, initRef, initPayload, symbolPayload));
+                        return Result::Continue;
                     }
 
                     auto copyBits = MicroOpBits::Zero;
@@ -300,6 +323,7 @@ namespace
                     else
                         copyBits = MicroOpBits::B64;
                     builder.emitLoadMemReg(symbolPayload.reg, 0, initPayload.reg, copyBits);
+                    SWC_RESULT(emitVarInitPostCopy(codeGen, symVar, initRef, initPayload, symbolPayload));
                 }
             }
             else
@@ -308,7 +332,7 @@ namespace
                     CodeGenMemoryHelpers::emitMemZero(codeGen, symbolPayload.reg, localSize);
             }
 
-            return;
+            return Result::Continue;
         }
 
         if (symVar.hasExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack) && codeGen.localStackBaseReg().isValid())
@@ -321,8 +345,8 @@ namespace
             const AstNodeRef         resolvedInitRef = initRef.isValid() ? codeGen.viewZero(initRef).nodeRef() : AstNodeRef::invalid();
             const auto*              initNodePayload = resolvedInitRef.isValid() ? codeGen.sema().codeGenPayload<CodeGenNodePayload>(resolvedInitRef) : nullptr;
 
-            if (initNodePayload && initNodePayload->runtimeStorageSym == &symVar)
-                return;
+            if (initNodePayload && initNodePayload->runtimeStorageSym == &symVar && initNodePayload->isAddress())
+                return Result::Continue;
 
             if (!skipInit)
             {
@@ -332,13 +356,15 @@ namespace
                     if (initPayload.isAddress())
                     {
                         CodeGenMemoryHelpers::emitMemCopy(codeGen, symbolPayload.reg, initPayload.reg, localSize);
+                        SWC_RESULT(emitVarInitPostCopy(codeGen, symVar, initRef, initPayload, symbolPayload));
                     }
                     else
                     {
                         if (localSize > 8)
                         {
                             CodeGenMemoryHelpers::emitMemCopy(codeGen, symbolPayload.reg, initPayload.reg, localSize);
-                            return;
+                            SWC_RESULT(emitVarInitPostCopy(codeGen, symVar, initRef, initPayload, symbolPayload));
+                            return Result::Continue;
                         }
 
                         auto copyBits = MicroOpBits::Zero;
@@ -351,6 +377,7 @@ namespace
                         else
                             copyBits = MicroOpBits::B64;
                         builder.emitLoadMemReg(symbolPayload.reg, 0, initPayload.reg, copyBits);
+                        SWC_RESULT(emitVarInitPostCopy(codeGen, symVar, initRef, initPayload, symbolPayload));
                     }
                 }
                 else
@@ -361,11 +388,11 @@ namespace
                         CodeGenMemoryHelpers::emitMemZero(codeGen, symbolPayload.reg, localSize);
                 }
             }
-            return;
+            return Result::Continue;
         }
 
         if (skipInit)
-            return;
+            return Result::Continue;
 
         if (initRef.isInvalid())
         {
@@ -375,7 +402,7 @@ namespace
             symbolPayload.reg = codeGen.nextVirtualRegisterForType(symVar.typeRef());
             builder.emitClearReg(symbolPayload.reg, identifierPayloadCopyBits(codeGen, symVar.typeRef()));
             codeGen.setVariablePayload(symVar, symbolPayload);
-            return;
+            return Result::Continue;
         }
 
         const CodeGenNodePayload& initPayload = codeGen.payload(initRef);
@@ -397,11 +424,12 @@ namespace
         }
 
         codeGen.setVariablePayload(symVar, symbolPayload);
+        return Result::Continue;
     }
 
     Result emitVarInitSpecOp(CodeGen& codeGen, const SymbolVariable& symVar, SymbolFunction& calledFn)
     {
-        materializeSingleVarFromInit(codeGen, symVar, AstNodeRef::invalid());
+        SWC_RESULT(materializeSingleVarFromInit(codeGen, symVar, AstNodeRef::invalid()));
 
         SmallVector<ResolvedCallArgument> resolvedArgs;
         codeGen.sema().appendResolvedCallArguments(codeGen.curNodeRef(), resolvedArgs);
@@ -488,7 +516,7 @@ Result AstSingleVarDecl::codeGenPostNode(CodeGen& codeGen) const
         }
         else
         {
-            materializeSingleVarFromInit(codeGen, symVar, nodeInitRef);
+            SWC_RESULT(materializeSingleVarFromInit(codeGen, symVar, nodeInitRef));
         }
         codeGen.registerImplicitDrop(symVar);
     }
@@ -519,7 +547,7 @@ Result AstMultiVarDecl::codeGenPostNode(CodeGen& codeGen) const
         for (Symbol* sym : view.symList())
         {
             const SymbolVariable& symVar = sym->cast<SymbolVariable>();
-            materializeSingleVarFromInit(codeGen, symVar, nodeInitRef);
+            SWC_RESULT(materializeSingleVarFromInit(codeGen, symVar, nodeInitRef));
             codeGen.registerImplicitDrop(symVar);
         }
     }
@@ -595,7 +623,7 @@ Result AstVarDeclDestructuring::codeGenPostNode(CodeGen& codeGen) const
             }
             else
             {
-                materializeSingleVarFromInit(codeGen, symVar, AstNodeRef::invalid());
+                SWC_RESULT(materializeSingleVarFromInit(codeGen, symVar, AstNodeRef::invalid()));
             }
 
             codeGen.registerImplicitDrop(symVar);

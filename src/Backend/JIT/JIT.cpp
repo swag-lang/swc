@@ -31,6 +31,8 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    constexpr uint32_t K_COMPILER_EXCEPTION_CODE = 666;
+
     enum class RelocationResolveFailureKind : uint8_t
     {
         None,
@@ -62,6 +64,85 @@ namespace
         std::unordered_set<uint64_t>                        visitedConstantAllocations;
         std::unordered_map<const SymbolFunction*, uint64_t> resolvedFunctionAddresses;
     };
+
+    bool asciiEqualsIgnoreCase(const std::string_view left, const std::string_view right)
+    {
+        if (left.size() != right.size())
+            return false;
+
+        for (size_t i = 0; i < left.size(); ++i)
+        {
+            char leftChar  = left[i];
+            char rightChar = right[i];
+            if ('A' <= leftChar && leftChar <= 'Z')
+                leftChar = static_cast<char>(leftChar - 'A' + 'a');
+            if ('A' <= rightChar && rightChar <= 'Z')
+                rightChar = static_cast<char>(rightChar - 'A' + 'a');
+            if (leftChar != rightChar)
+                return false;
+        }
+
+        return true;
+    }
+
+    bool isKernel32ModuleName(const std::string_view moduleName)
+    {
+        return asciiEqualsIgnoreCase(moduleName, "kernel32") || asciiEqualsIgnoreCase(moduleName, "kernel32.dll");
+    }
+
+    [[noreturn]] void raiseJitProcessTerminationException(const char* functionName, const uint32_t exitCode)
+    {
+#ifdef _WIN32
+        Utf8 message = std::format("jit code attempted to terminate the compiler process by calling {}({})", functionName, exitCode);
+        if (const TaskContext* ctx = TaskContext::current())
+        {
+            if (const SymbolFunction* function = ctx->state().runJitFunction)
+                message += std::format(" while running {}", function->getFullScopedName(*ctx));
+        }
+
+        const ULONG_PTR params[] = {
+            0,
+            reinterpret_cast<ULONG_PTR>(message.c_str()),
+            static_cast<ULONG_PTR>(message.size()),
+            static_cast<ULONG_PTR>(Runtime::ExceptionKind::Error),
+        };
+        RaiseException(K_COMPILER_EXCEPTION_CODE, 0, static_cast<DWORD>(std::size(params)), params);
+#else
+        SWC_UNUSED(functionName);
+        SWC_UNUSED(exitCode);
+#endif
+        SWC_UNREACHABLE();
+    }
+
+#ifdef _WIN32
+    void WINAPI jitBlockedExitProcess(const UINT exitCode)
+    {
+        raiseJitProcessTerminationException("ExitProcess", exitCode);
+    }
+
+    BOOL WINAPI jitBlockedTerminateProcess(HANDLE, const UINT exitCode)
+    {
+        raiseJitProcessTerminationException("TerminateProcess", exitCode);
+    }
+#endif
+
+    void* guardedForeignFunctionAddress(const std::string_view moduleName, const std::string_view functionName, void* functionAddress)
+    {
+#ifdef _WIN32
+        if (isKernel32ModuleName(moduleName))
+        {
+            if (asciiEqualsIgnoreCase(functionName, "ExitProcess"))
+                return reinterpret_cast<void*>(&jitBlockedExitProcess);
+            if (asciiEqualsIgnoreCase(functionName, "TerminateProcess"))
+                return reinterpret_cast<void*>(&jitBlockedTerminateProcess);
+        }
+#else
+        SWC_UNUSED(moduleName);
+        SWC_UNUSED(functionName);
+#endif
+
+        return functionAddress;
+    }
 
     Utf8 relocationSymbolName(const TaskContext& ctx, const Symbol* symbol)
     {
@@ -465,7 +546,7 @@ namespace
             return false;
         }
 
-        outTargetAddress = reinterpret_cast<uint64_t>(functionAddress);
+        outTargetAddress = reinterpret_cast<uint64_t>(guardedForeignFunctionAddress(moduleName, functionName, functionAddress));
         if (patchContext)
             patchContext->resolvedFunctionAddresses.try_emplace(&targetFunction, outTargetAddress);
 
@@ -911,8 +992,6 @@ Result JIT::emitAndCall(TaskContext& ctx, void* targetFn, std::span<const JITArg
 
 namespace
 {
-    constexpr uint32_t K_COMPILER_EXCEPTION_CODE = 666;
-
     std::string_view runtimeStringView(const Runtime::String& value)
     {
         if (!value.ptr || !value.length)
@@ -1311,7 +1390,7 @@ namespace
         const Utf8 extraInfo = formatJitCrashContext(ctx, platformExceptionPointers);
         HardwareException::log(ctx, "fatal error: hardware exception during jit call!", platformExceptionPointers, extraInfo);
         Stats::addError();
-        Os::exit(ExitCode::HardwareException);
+        return SWC_EXCEPTION_EXECUTE_HANDLER;
     }
 }
 

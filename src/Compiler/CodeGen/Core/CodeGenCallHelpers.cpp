@@ -608,6 +608,65 @@ namespace
         return storageReg;
     }
 
+    bool isTransparentCallResultParent(const AstNode& parent)
+    {
+        return parent.is(AstNodeId::AutoCastExpr) ||
+               parent.is(AstNodeId::CastExpr) ||
+               parent.is(AstNodeId::InitializerExpr) ||
+               parent.is(AstNodeId::ParenExpr);
+    }
+
+    bool tryUseVarInitStorageForDirectCallResult(CodeGen& codeGen, AstNodeRef callRef, MicroReg& outStorageReg, SymbolVariable*& outStorageSym)
+    {
+        outStorageReg = MicroReg::invalid();
+        outStorageSym = nullptr;
+
+        const AstNodeRef resolvedCallRef = codeGen.viewZero(callRef).nodeRef();
+        if (resolvedCallRef.isInvalid())
+            return false;
+
+        for (size_t parentIndex = 0;; ++parentIndex)
+        {
+            const AstNodeRef parentRef = codeGen.visit().parentNodeRef(parentIndex);
+            if (parentRef.isInvalid())
+                return false;
+
+            const AstNode& parent = codeGen.node(parentRef);
+            if (isTransparentCallResultParent(parent))
+                continue;
+
+            if (parent.isNot(AstNodeId::SingleVarDecl))
+                return false;
+
+            const auto& varDecl = parent.cast<AstSingleVarDecl>();
+            if (varDecl.nodeInitRef.isInvalid())
+                return false;
+
+            Symbol* symbol = codeGen.viewSymbol(parentRef).sym();
+            if (!symbol || !symbol->isVariable())
+                return false;
+
+            auto& symVar = symbol->cast<SymbolVariable>();
+            if (CodeGenFunctionHelpers::usesCallerReturnStorage(codeGen, symVar))
+            {
+                const CodeGenNodePayload storagePayload = CodeGenFunctionHelpers::resolveCallerReturnStoragePayload(codeGen, symVar);
+                SWC_ASSERT(storagePayload.isAddress());
+                outStorageReg = storagePayload.reg;
+                outStorageSym = &symVar;
+                return outStorageReg.isValid();
+            }
+
+            if (!codeGen.localStackBaseReg().isValid() || !symVar.hasExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack))
+                return false;
+
+            const CodeGenNodePayload storagePayload = codeGen.resolveLocalStackPayload(symVar);
+            SWC_ASSERT(storagePayload.isAddress());
+            outStorageReg = storagePayload.reg;
+            outStorageSym = &symVar;
+            return outStorageReg.isValid();
+        }
+    }
+
     void materializePreparedIndirectCopyArg(CodeGen& codeGen, CodeGenNodePayload& argPayload, const CallConv& callConv, TypeRef normalizedTypeRef, const ABITypeNormalize::NormalizedType& normalizedArg, uint32_t& outTransientStackSize)
     {
         if (!normalizedArg.isIndirect || !normalizedArg.needsIndirectCopy)
@@ -1398,17 +1457,23 @@ Result CodeGenCallHelpers::codeGenCallExprCommon(CodeGen& codeGen, AstNodeRef ca
     SWC_RESULT(buildPreparedABIArguments(codeGen, codeGen.curNodeRef(), calledFunction, closureContextReg, args, preparedArgs, transientStackSize));
     isolatePreparedRegisterArgSources(codeGen, callConv, preparedArgs);
     MicroReg hiddenRetStorageReg = MicroReg::invalid();
+    SymbolVariable* directVarInitStorageSym = nullptr;
+    bool usesCurrentFunctionReturnStorage = false;
     if (normalizedRet.isIndirect)
     {
+        if (codeGen.hasLifecycle(calledFunction.returnTypeRef(), CodeGen::LifecycleKind::PostCopy))
+            tryUseVarInitStorageForDirectCallResult(codeGen, codeGen.curNodeRef(), hiddenRetStorageReg, directVarInitStorageSym);
+
+        if (!hiddenRetStorageReg.isValid())
+            usesCurrentFunctionReturnStorage = CodeGenFunctionHelpers::tryUseCurrentFunctionReturnStorageForDirectExpr(codeGen, codeGen.curNodeRef(), hiddenRetStorageReg);
+
         const CodeGenNodePayload* nodePayload = codeGen.safePayload(codeGen.curNodeRef());
-        if (nodePayload &&
+        if (!hiddenRetStorageReg.isValid() &&
+            nodePayload &&
             nodePayload->runtimeStorageSym != nullptr &&
             ((nodePayload->runtimeStorageSym->hasExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack) && codeGen.localStackBaseReg().isValid()) ||
              CodeGenFunctionHelpers::usesCallerReturnStorage(codeGen, *nodePayload->runtimeStorageSym)))
             hiddenRetStorageReg = codeGen.runtimeStorageAddressReg(codeGen.curNodeRef());
-
-        if (!hiddenRetStorageReg.isValid())
-            CodeGenFunctionHelpers::tryUseCurrentFunctionReturnStorageForDirectExpr(codeGen, codeGen.curNodeRef(), hiddenRetStorageReg);
     }
 
     // prepareArgs handles register placement, stack slots, and hidden indirect return arg.
@@ -1419,6 +1484,10 @@ Result CodeGenCallHelpers::codeGenCallExprCommon(CodeGen& codeGen, AstNodeRef ca
     CodeGenNodePayload& nodePayload = codeGen.setPayload(codeGen.curNodeRef(), nodePayloadTypeRef);
     if (!normalizedRet.isVoid)
         nodePayload.reg = normalizedRet.isFloat ? codeGen.nextVirtualFloatRegister() : codeGen.nextVirtualIntRegister();
+    if (directVarInitStorageSym)
+        nodePayload.runtimeStorageSym = directVarInitStorageSym;
+    else if (usesCurrentFunctionReturnStorage)
+        nodePayload.runtimeStorageSym = nullptr;
     emitFunctionCall(codeGen, calledFunction, preparedCall, callTargetReg);
     if (transientStackSize)
         builder.emitOpBinaryRegImm(callConv.stackPointer, ApInt(transientStackSize, 64), MicroOp::Add, MicroOpBits::B64);

@@ -3,7 +3,7 @@ setlocal
 
 for %%I in ("%~f0") do set "TOOLS_DIR=%%~dpI"
 call "%TOOLS_DIR%common.bat" :init "%TOOLS_DIR%" "%~1"
-if errorlevel 1 exit /b %errorlevel%
+if not "%ERRORLEVEL%"=="0" exit /b %ERRORLEVEL%
 if /I "%~1"=="dm" shift
 
 set "BIN_REL=reference\tests\language"
@@ -24,9 +24,9 @@ goto parse_args
 
 :run
 call "%TOOLS_DIR%common.bat" :set_paths "%BIN_REL%" "executable" "%BUILD_CFG%"
-if errorlevel 1 exit /b %errorlevel%
+if not "%ERRORLEVEL%"=="0" exit /b %ERRORLEVEL%
 
 "%SWC_EXE%" test -m "%ROOT%\bin\%BIN_REL%" --artifact-kind executable --module-namespace Language --out-dir "%OUT_DIR%" --work-dir "%WORK_DIR%" --build-cfg %BUILD_CFG%%EXTRA_ARGS%
-if errorlevel 1 exit /b 1
+if not "%ERRORLEVEL%"=="0" exit /b %ERRORLEVEL%
 
 exit /b 0

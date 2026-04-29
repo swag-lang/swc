@@ -121,6 +121,65 @@ struct RuntimeIndexHolder
 #[Swag.EnumIndex]
 enum RuntimeIndexedSlot { First, Second, Third }
 
+#[Swag.EnumIndex]
+enum RuntimeWideIndexedSlot
+{
+    Low  = 1
+    Mid  = 84
+    High = 120
+}
+
+struct RuntimeIndexedNativeState
+{
+    storage: [256] u8
+}
+
+struct RuntimeIndexedState
+{
+    using native: RuntimeIndexedNativeState
+    values:       [@countof(RuntimeIndexedSlot)] bool
+}
+
+struct RuntimeIndexedHolder
+{
+    state:      RuntimeIndexedState
+    oldState:   RuntimeIndexedState
+    wideValues: [128] bool
+}
+
+impl RuntimeIndexedHolder
+{
+    func readSlot(slot: RuntimeIndexedSlot)->bool
+    {
+        return false
+    }
+
+    mtd readSlot(slot: RuntimeIndexedSlot)->bool
+    {
+        return .state.values[slot]
+    }
+
+    func readWideSlot(slot: RuntimeWideIndexedSlot)->bool
+    {
+        return false
+    }
+
+    mtd readWideSlot(slot: RuntimeWideIndexedSlot)->bool
+    {
+        return .wideValues[slot]
+    }
+}
+
+func readRuntimeIndexedSlot(holder: *RuntimeIndexedHolder, slot: RuntimeIndexedSlot)->bool
+{
+    return holder.state.values[slot]
+}
+
+func readRuntimeWideIndexedSlot(values: const &[128] bool, slot: RuntimeWideIndexedSlot)->bool
+{
+    return values[slot]
+}
+
 #test
 {
     const values = [0, 1, 2]
@@ -129,4 +188,63 @@ enum RuntimeIndexedSlot { First, Second, Third }
 
     var index = RuntimeIndexedSlot.Third
     @assert(values[index] == 2)
+}
+
+#test
+{
+    var values: [@countof(RuntimeIndexedSlot)] bool
+
+    values[RuntimeIndexedSlot.Second] = true
+    @assert(values[RuntimeIndexedSlot.Second])
+
+    var index = RuntimeIndexedSlot.Second
+    @assert(values[index])
+}
+
+#test
+{
+    var holder: RuntimeIndexedHolder
+
+    holder.state.values[RuntimeIndexedSlot.Second] = true
+    @assert(holder.state.values[RuntimeIndexedSlot.Second])
+
+    var index = RuntimeIndexedSlot.Second
+    @assert(holder.state.values[index])
+}
+
+#test
+{
+    var holder: RuntimeIndexedHolder
+
+    holder.state.values[RuntimeIndexedSlot.Second] = true
+    @assert(readRuntimeIndexedSlot(&holder, RuntimeIndexedSlot.Second))
+    @assert(holder.readSlot(RuntimeIndexedSlot.Second))
+
+    var index = RuntimeIndexedSlot.Second
+    @assert(readRuntimeIndexedSlot(&holder, index))
+    @assert(holder.readSlot(index))
+}
+
+#test
+{
+    var values: [128] bool
+
+    values[RuntimeWideIndexedSlot.Mid] = true
+    @assert(values[RuntimeWideIndexedSlot.Mid])
+    @assert(readRuntimeWideIndexedSlot(&values, RuntimeWideIndexedSlot.Mid))
+
+    var index = RuntimeWideIndexedSlot.Mid
+    @assert(readRuntimeWideIndexedSlot(&values, index))
+}
+
+#test
+{
+    var holder: RuntimeIndexedHolder
+
+    holder.wideValues[RuntimeWideIndexedSlot.Mid] = true
+    @assert(holder.wideValues[RuntimeWideIndexedSlot.Mid])
+    @assert(holder.readWideSlot(RuntimeWideIndexedSlot.Mid))
+
+    var index = RuntimeWideIndexedSlot.Mid
+    @assert(holder.readWideSlot(index))
 }

@@ -1458,19 +1458,22 @@ namespace
 
     int compareCandidatesIgnoringReceiver(const Candidate& a, const Candidate& b)
     {
-        constexpr uint32_t receiverArg = 1;
-        const auto         na          = static_cast<uint32_t>(a.perArg.size());
-        const auto         nb          = static_cast<uint32_t>(b.perArg.size());
-        const uint32_t     n           = std::min(na, nb);
+        const uint32_t aStart        = a.ufcsUsed ? 1 : 0;
+        const uint32_t bStart        = b.ufcsUsed ? 1 : 0;
+        const auto     na            = static_cast<uint32_t>(a.perArg.size());
+        const auto     nb            = static_cast<uint32_t>(b.perArg.size());
+        const uint32_t aExplicitArgs = na > aStart ? na - aStart : 0;
+        const uint32_t bExplicitArgs = nb > bStart ? nb - bStart : 0;
+        const uint32_t n             = std::min(aExplicitArgs, bExplicitArgs);
 
-        for (uint32_t i = receiverArg; i < n; ++i)
+        for (uint32_t i = 0; i < n; ++i)
         {
-            if (a.perArg[i] != b.perArg[i])
-                return (a.perArg[i] < b.perArg[i]) ? -1 : 1;
+            const ConvRank aRank = a.perArg[aStart + i];
+            const ConvRank bRank = b.perArg[bStart + i];
+            if (aRank != bRank)
+                return (aRank < bRank) ? -1 : 1;
         }
 
-        const uint32_t aExplicitArgs = na > receiverArg ? na - receiverArg : 0;
-        const uint32_t bExplicitArgs = nb > receiverArg ? nb - receiverArg : 0;
         if (aExplicitArgs != bExplicitArgs)
             return (aExplicitArgs < bExplicitArgs) ? -1 : 1;
 

@@ -116,6 +116,13 @@ public impl Sha256
             }
 
             .transform(.data)
+
+            i = 0
+            while i < 56
+            {
+                .data[i] = 0x00
+                i += 1
+            }
         }
 
         .bitlen += .datalen * 8

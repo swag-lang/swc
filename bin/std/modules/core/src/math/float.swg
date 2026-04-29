@@ -31,8 +31,8 @@ alias ConstF64 = Const'f64
 #[Swag.ConstExpr, Swag.Inline]
 {
     // Returns the sign of 'x' (-1 for negative, 1 for positive)
-    func sign(x: f32) => x < 0 ? -1 : 1
-    func sign(x: f64) => x < 0 ? -1 : 1
+    func sign(x: f32) => x < 0 ? -1'f32 : 1'f32
+    func sign(x: f64) => x < 0 ? -1'f64 : 1'f64
 
     // Clamps 'x' between 0 and 1
     func saturate(x: f32) => clamp(x, 0'f32, 1'f32)

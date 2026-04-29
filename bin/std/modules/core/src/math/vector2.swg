@@ -470,7 +470,8 @@ impl Vector2
     // The 'normal' should be a unit vector pointing away from the surface.
     mtd const toReflect(normal: Vector2)->Vector2
     {
-        return dref me - (normal * (2 * .dot(normal)))
+        let scale = 2.0 * .dot(normal)
+        return Vector2{.x - normal.x * scale, .y - normal.y * scale}
     }
 
     // Returns the component-wise sign of the vector (-1, 0, or 1 for each component).

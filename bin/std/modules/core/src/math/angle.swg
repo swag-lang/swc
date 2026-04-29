@@ -27,7 +27,7 @@ impl Angle
         #if suffix == "rad" do
             .rad = value
         #elif suffix == "deg" do
-            .rad = toRadians(value)
+            .rad = Math.toRadians(value)
         #else do
             #error("invalid angle literal suffix [[" ++ suffix ++ "]]")
     }
@@ -35,5 +35,5 @@ impl Angle
     // Convert the angle from radians to degrees.
     // Returns the angle value in degrees as a floating-point number.
     #[Inline]
-    mtd const toDegrees()->f32 => toDegrees(.rad)
+    mtd const toDegrees()->f32 => Math.toDegrees(.rad)
 }

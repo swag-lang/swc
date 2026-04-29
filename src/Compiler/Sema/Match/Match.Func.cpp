@@ -248,6 +248,13 @@ namespace
         bool isReceiver = false;
     };
 
+    struct CandidateAttempts
+    {
+        SmallVector<Attempt>         attempts;
+        SmallVector<SymbolFunction*> functions;
+        SmallVector<const Attempt*>  viable;
+    };
+
     AstNodeRef getCallArg(uint32_t callArgIndex, std::span<AstNodeRef> args, AstNodeRef ufcsArg)
     {
         if (ufcsArg.isValid())
@@ -1691,6 +1698,70 @@ namespace
         }
     }
 
+    Result collectCandidateAttempts(Sema& sema, CandidateAttempts& out, std::span<Symbol*> symbols, std::span<AstNodeRef> args, AstNodeRef ufcsArg)
+    {
+        SWC_RESULT(collectAttempts(sema, out.attempts, out.functions, symbols, args, ufcsArg));
+        gatherViableAttempts(out.attempts, out.viable);
+        return Result::Continue;
+    }
+
+    const Attempt* bestAttemptNoDiagnostics(Sema& sema, const SmallVector<const Attempt*>& viable, AstNodeRef ufcsArg)
+    {
+        if (viable.empty())
+            return nullptr;
+
+        const Attempt* best = viable[0];
+        for (size_t i = 1; i < viable.size(); ++i)
+        {
+            if (compareCallCandidates(sema, viable[i]->candidate, best->candidate, ufcsArg) < 0)
+                best = viable[i];
+        }
+
+        return best;
+    }
+
+    bool fallbackHasBetterCandidate(Sema& sema, const SmallVector<const Attempt*>& currentViable, const SmallVector<const Attempt*>& fallbackViable, AstNodeRef ufcsArg)
+    {
+        const Attempt* currentBest  = bestAttemptNoDiagnostics(sema, currentViable, ufcsArg);
+        const Attempt* fallbackBest = bestAttemptNoDiagnostics(sema, fallbackViable, ufcsArg);
+        if (!currentBest || !fallbackBest)
+            return false;
+        if (!currentBest->candidate.fn || !fallbackBest->candidate.fn)
+            return false;
+        if (!currentBest->candidate.fn->isMethod() || fallbackBest->candidate.fn->isMethod())
+            return false;
+
+        return compareCallCandidates(sema, fallbackBest->candidate, currentBest->candidate, ufcsArg) < 0;
+    }
+
+    Result maybeReplaceWithBetterCallFallback(Sema& sema, const SemaNodeView& nodeCallee, CandidateAttempts& current, std::span<AstNodeRef> args, AstNodeRef ufcsArg, Match::ResolveCallMode mode)
+    {
+        if (mode != Match::ResolveCallMode::Normal || current.functions.empty())
+            return Result::Continue;
+
+        SmallVector<Symbol*> fallbackSymbols;
+        SWC_RESULT(Match::matchCallFallbackSymbols(sema, nodeCallee, fallbackSymbols));
+        if (fallbackSymbols.empty())
+            return Result::Continue;
+
+        SmallVector<Symbol*> fallbackRuntimeSymbols;
+        SmallVector<Symbol*> fallbackConcreteSymbols;
+        SWC_RESULT(SemaRuntime::filterRuntimeAccessibleSymbols(sema, nodeCallee.nodeRef(), fallbackSymbols.span(), fallbackRuntimeSymbols));
+        removeEmptyFunctionDeclarations(fallbackRuntimeSymbols, fallbackConcreteSymbols);
+
+        CandidateAttempts fallback;
+        SWC_RESULT(collectCandidateAttempts(sema, fallback, fallbackConcreteSymbols.span(), args, ufcsArg));
+        if (fallback.viable.empty())
+            return Result::Continue;
+
+        if (!current.viable.empty() && !fallbackHasBetterCandidate(sema, current.viable, fallback.viable, ufcsArg))
+            return Result::Continue;
+
+        current = std::move(fallback);
+        gatherViableAttempts(current.attempts, current.viable);
+        return Result::Continue;
+    }
+
     uint32_t numCommonParamsForFinalize(const TypeInfo& fnType, uint32_t numParams)
     {
         if (!fnType.isAnyVariadic())
@@ -2275,49 +2346,19 @@ Result Match::probeFunctionCandidates(Sema& sema, const SemaNodeView& nodeCallee
     if (mode == ResolveCallMode::AttributeOnly && !symbols.empty() && filteredSymbols.empty())
         return SemaError::raise(sema, DiagnosticId::sema_err_not_attribute, nodeCallee.nodeRef());
 
-    SmallVector<Attempt>         attempts;
-    SmallVector<SymbolFunction*> functions;
-    SWC_RESULT(collectAttempts(sema, attempts, functions, concreteSymbols.span(), args, ufcsArg));
+    CandidateAttempts candidates;
+    SWC_RESULT(collectCandidateAttempts(sema, candidates, concreteSymbols.span(), args, ufcsArg));
+    SWC_RESULT(maybeReplaceWithBetterCallFallback(sema, nodeCallee, candidates, args, ufcsArg, mode));
 
-    SmallVector<const Attempt*> viable;
-    gatherViableAttempts(attempts, viable);
-
-    if (viable.empty() && mode == ResolveCallMode::Normal && !functions.empty())
-    {
-        SmallVector<Symbol*> fallbackSymbols;
-        SWC_RESULT(matchCallFallbackSymbols(sema, nodeCallee, fallbackSymbols));
-        if (!fallbackSymbols.empty())
-        {
-            SmallVector<Symbol*> fallbackRuntimeSymbols;
-            SmallVector<Symbol*> fallbackConcreteSymbols;
-            SWC_RESULT(SemaRuntime::filterRuntimeAccessibleSymbols(sema, nodeCallee.nodeRef(), fallbackSymbols.span(), fallbackRuntimeSymbols));
-            removeEmptyFunctionDeclarations(fallbackRuntimeSymbols, fallbackConcreteSymbols);
-
-            SmallVector<Attempt>         fallbackAttempts;
-            SmallVector<SymbolFunction*> fallbackFunctions;
-            SWC_RESULT(collectAttempts(sema, fallbackAttempts, fallbackFunctions, fallbackConcreteSymbols.span(), args, ufcsArg));
-
-            SmallVector<const Attempt*> fallbackViable;
-            gatherViableAttempts(fallbackAttempts, fallbackViable);
-            if (!fallbackViable.empty())
-            {
-                concreteSymbols = std::move(fallbackConcreteSymbols);
-                attempts        = std::move(fallbackAttempts);
-                functions       = std::move(fallbackFunctions);
-                gatherViableAttempts(attempts, viable);
-            }
-        }
-    }
-
-    if (viable.empty())
+    if (candidates.viable.empty())
     {
         if (allowNoMatch)
             return Result::Continue;
-        return raiseNoSelection(sema, nodeCallee, functions, attempts, args, ufcsArg);
+        return raiseNoSelection(sema, nodeCallee, candidates.functions, candidates.attempts, args, ufcsArg);
     }
 
     const Attempt* selectedAttempt = nullptr;
-    SWC_RESULT(selectBestAttempt(sema, nodeCallee, viable, functions, attempts, args, ufcsArg, selectedAttempt));
+    SWC_RESULT(selectBestAttempt(sema, nodeCallee, candidates.viable, candidates.functions, candidates.attempts, args, ufcsArg, selectedAttempt));
     SWC_ASSERT(selectedAttempt != nullptr);
     fillFunctionCandidateProbe(outProbe, *selectedAttempt);
     return Result::Continue;
@@ -2344,45 +2385,14 @@ Result Match::resolveFunctionCandidates(Sema& sema, const SemaNodeView& nodeCall
         return SemaError::raise(sema, DiagnosticId::sema_err_not_attribute, nodeCallee.nodeRef());
 
     // Collect all function candidates and evaluate their match quality
-    SmallVector<Attempt>         attempts;
-    SmallVector<SymbolFunction*> functions;
-    SWC_RESULT(collectAttempts(sema, attempts, functions, concreteSymbols.span(), args, ufcsArg));
-
-    // Filter to keep only those that are compatible (viable)
-    SmallVector<const Attempt*> viable;
-    gatherViableAttempts(attempts, viable);
-
-    if (viable.empty() && mode == ResolveCallMode::Normal && !functions.empty())
-    {
-        SmallVector<Symbol*> fallbackSymbols;
-        SWC_RESULT(matchCallFallbackSymbols(sema, nodeCallee, fallbackSymbols));
-        if (!fallbackSymbols.empty())
-        {
-            SmallVector<Symbol*> fallbackRuntimeSymbols;
-            SmallVector<Symbol*> fallbackConcreteSymbols;
-            SWC_RESULT(SemaRuntime::filterRuntimeAccessibleSymbols(sema, nodeCallee.nodeRef(), fallbackSymbols.span(), fallbackRuntimeSymbols));
-            removeEmptyFunctionDeclarations(fallbackRuntimeSymbols, fallbackConcreteSymbols);
-
-            SmallVector<Attempt>         fallbackAttempts;
-            SmallVector<SymbolFunction*> fallbackFunctions;
-            SWC_RESULT(collectAttempts(sema, fallbackAttempts, fallbackFunctions, fallbackConcreteSymbols.span(), args, ufcsArg));
-
-            SmallVector<const Attempt*> fallbackViable;
-            gatherViableAttempts(fallbackAttempts, fallbackViable);
-            if (!fallbackViable.empty())
-            {
-                concreteSymbols = std::move(fallbackConcreteSymbols);
-                attempts        = std::move(fallbackAttempts);
-                functions       = std::move(fallbackFunctions);
-                gatherViableAttempts(attempts, viable);
-            }
-        }
-    }
+    CandidateAttempts candidates;
+    SWC_RESULT(collectCandidateAttempts(sema, candidates, concreteSymbols.span(), args, ufcsArg));
+    SWC_RESULT(maybeReplaceWithBetterCallFallback(sema, nodeCallee, candidates, args, ufcsArg, mode));
 
     // From the viable ones, find the single best candidate.
     // This will raise an error if there are no viable candidates or if the best choice is ambiguous.
     const Attempt* selectedAttempt = nullptr;
-    SWC_RESULT(selectBestAttempt(sema, nodeCallee, viable, functions, attempts, args, ufcsArg, selectedAttempt));
+    SWC_RESULT(selectBestAttempt(sema, nodeCallee, candidates.viable, candidates.functions, candidates.attempts, args, ufcsArg, selectedAttempt));
 
     // Finalize the selection by applying required casts and conversions to the arguments
     const AstNodeRef      appliedUfcsArg = selectedAttempt->candidate.ufcsUsed ? ufcsArg : AstNodeRef::invalid();

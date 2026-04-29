@@ -51,6 +51,9 @@ func distanceToLine(self, a, b: Vector2)->f32
 func distanceToSegment(self, a, b: Vector2)->f32
 {
     let ab = b - a
+    if Math.isZeroEpsilon(ab.lengthSquared(), ConstF32.Epsilon * ConstF32.Epsilon) do
+        return (self - a).length()
+
     let be = self - b
     let ae = self - a
 
@@ -276,6 +279,79 @@ func lineLineIntersect(start0, end0, start1, end1: Vector2, epsilon: f32 = Const
 func segSegIntersect(start0, end0, start1, end1: Vector2, epsilon: f32 = ConstF32.Epsilon)->{ yes: bool, pos: Vector2 }
 {
     var result: retval
+
+    let r  = end0 - start0
+    let s  = end1 - start1
+    let qp = start1 - start0
+
+    if Math.abs(r.cross(s)) < epsilon and Math.abs(qp.cross(r)) < epsilon
+    {
+        let epsilonSq = epsilon * epsilon
+
+        if Math.isZeroEpsilon(r.lengthSquared(), epsilonSq)
+        {
+            if Math.isZeroEpsilon(s.lengthSquared(), epsilonSq)
+            {
+                result.yes = start0.isEqualEpsilon(start1, epsilon)
+                result.pos = start0
+                return result
+            }
+
+            result.yes = Math.isZeroEpsilon(distanceToSegment(start0, start1, end1), epsilon)
+            result.pos = start0
+            return result
+        }
+
+        if Math.isZeroEpsilon(s.lengthSquared(), epsilonSq)
+        {
+            result.yes = Math.isZeroEpsilon(distanceToSegment(start1, start0, end0), epsilon)
+            result.pos = start1
+            return result
+        }
+
+        var a0, a1, b0, b1: f32 = undefined
+        if Math.abs(r.x) >= Math.abs(r.y)
+        {
+            a0 = start0.x
+            a1 = end0.x
+            b0 = start1.x
+            b1 = end1.x
+        }
+        else
+        {
+            a0 = start0.y
+            a1 = end0.y
+            b0 = start1.y
+            b1 = end1.y
+        }
+
+        if a1 < a0
+        {
+            let tmp = a0
+            a0 = a1
+            a1 = tmp
+        }
+
+        if b1 < b0
+        {
+            let tmp = b0
+            b0 = b1
+            b1 = tmp
+        }
+
+        let overlapStart = Math.max(a0, b0)
+        let overlapEnd   = Math.min(a1, b1)
+        if overlapStart > overlapEnd + epsilon do
+            return result
+
+        let denom = Math.abs(r.x) >= Math.abs(r.y) ? r.x : r.y
+        let origin = Math.abs(r.x) >= Math.abs(r.y) ? start0.x : start0.y
+        let t = (overlapStart - origin) / denom
+
+        result.yes = true
+        result.pos = start0 + r * t
+        return result
+    }
 
     let (yes, d0, d1) = getLineLineIntersectCoefs(start0, end0, start1, end1, epsilon)
     if !yes do

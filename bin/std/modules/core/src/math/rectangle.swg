@@ -225,10 +225,10 @@ impl Rectangle
     }
 
     // Returns true if the rectangle has zero area within epsilon tolerance.
-    // Checks if both width and height are zero within the specified tolerance.
+    // Checks if either width or height is zero within the specified tolerance.
     mtd const isEmptyEpsilon(eps = ConstF32.Epsilon)->bool
     {
-        return isZeroEpsilon(.width, eps) and isZeroEpsilon(.height, eps)
+        return isZeroEpsilon(.width, eps) or isZeroEpsilon(.height, eps)
     }
 
     // Returns true if this rectangle equals 'other' within epsilon tolerance.

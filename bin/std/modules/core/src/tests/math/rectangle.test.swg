@@ -18,6 +18,7 @@ using Swag
     @assert(rect.bottomLeft() == Math.Point{10, 60})
     @assert(rect.bottomRight() == Math.Point{40, 60})
     @assert(rect.size() == Math.Point{30, 40})
+    @assert(rect.isNormalized())
 
     rect.setRight(45)
     rect.setBottom(70)
@@ -81,17 +82,27 @@ using Swag
     rect.set(Math.Point{30, 10}, Math.Point{10, 50})
     @assert(rect == Math.Rectangle{10, 10, 20, 40})
 
+    rect.set(Math.Point{-5, -5}, Math.Point{-5, -5})
+    @assert(rect == Math.Rectangle{-5, -5, 0, 0})
+
+    rect = Math.Rectangle{10, 10, 20, 40}
     @assert(rect.contains(10, 10))
     @assert(rect.contains(Math.Point{29.999, 49.999}))
+    @assert(rect.contains(Math.Point{10, 49.999}))
     @assert(!rect.contains(Math.Point{30, 50}))
+    @assert(!rect.contains(Math.Point{30, 10}))
+    @assert(!rect.contains(Math.Point{10, 50}))
     @assert(!rect.contains(9.999, 10))
     @assert(rect.contains(Math.Rectangle{10, 10, 20, 40}))
     @assert(rect.contains(Math.Rectangle{12, 12, 4, 4}))
+    @assert(rect.contains(Math.Rectangle{30, 50, 0, 0}))
     @assert(!rect.contains(Math.Rectangle{12, 12, 40, 4}))
 
     @assert(rect.clampPoint(Math.Point{35, 5}) == Math.Point{30, 10})
+    @assert(rect.clampPoint(Math.Point{5, 60}) == Math.Point{10, 50})
     @assert(rect.distanceToPoint(Math.Point{20, 30}) == 0)
     @assert(rect.distanceToPoint(Math.Point{30, 60}) == 10)
+    @assert(Math.isEqualEpsilon(rect.distanceToPoint(Math.Point{34, 53}), 5, 0.001))
 }
 
 #test
@@ -100,14 +111,22 @@ using Swag
     let b = Math.Rectangle{5, -5, 10, 10}
     @assert(Math.Rectangle.intersect(a, b) == Math.Rectangle{5, 0, 5, 5})
     @assert(Math.Rectangle.intersect(a, Math.Rectangle{20, 20, 1, 1}) == Math.Rectangle.Zero)
+    @assert(Math.Rectangle.intersect(a, Math.Rectangle{10, 0, 5, 5}) == Math.Rectangle.Zero)
+    @assert(Math.Rectangle.intersect(a, Math.Rectangle{0, 10, 5, 5}) == Math.Rectangle.Zero)
     @assert(a.intersectWith(b))
     @assert(!a.intersectWith(Math.Rectangle{10, 0, 5, 5}))
+    @assert(!a.intersectWith(Math.Rectangle{0, 10, 5, 5}))
 
     var intersection = a
     intersection.intersect(b)
     @assert(intersection == Math.Rectangle{5, 0, 5, 5})
 
+    intersection = a
+    intersection.intersect(Math.Rectangle{10, 0, 5, 5})
+    @assert(intersection == Math.Rectangle.Zero)
+
     @assert(Math.Rectangle.getUnion(a, b) == Math.Rectangle{0, -5, 15, 15})
+    @assert(Math.Rectangle.getUnion(Math.Rectangle.Zero, Math.Rectangle{2, 3, 4, 5}) == Math.Rectangle{0, 0, 6, 8})
 
     var mergedRect = a
     mergedRect.setUnion(b)
@@ -131,12 +150,22 @@ using Swag
     @assert(rect.perimeter() == 140)
     @assert(rect.aspectRatio() == 0.75)
     @assert(Math.Rectangle{0, 0, 10, 0}.aspectRatio() == 0)
+    @assert(Math.Rectangle{0, 0, 10, 20}.isNormalized())
+
+    rect = Math.Rectangle{10, 20, -30, 40}
+    rect.normalize()
+    @assert(rect == Math.Rectangle{-20, 20, 30, 40})
+
+    rect = Math.Rectangle{10, 20, 30, -40}
+    rect.normalize()
+    @assert(rect == Math.Rectangle{10, -20, 30, 40})
 }
 
 #test
 {
     @assert(Math.Rectangle{0, 0, 0, 10}.isEmpty())
     @assert(Math.Rectangle{0, 0, 10, 0}.isEmpty())
+    @assert(!Math.Rectangle{0, 0, 10, 10}.isEmpty())
     @assert(Math.Rectangle{0, 0, 0.00001, 10}.isEmptyEpsilon(0.001))
     @assert(Math.Rectangle{0, 0, 10, 0.00001}.isEmptyEpsilon(0.001))
     @assert(!Math.Rectangle{0, 0, 10, 10}.isEmptyEpsilon(0.001))
@@ -173,11 +202,18 @@ using Swag
     var empty = Math.Rectangle{1, 2, 0, 10}
     empty.fitWithin(Math.Rectangle{10, 20, 100, 100})
     @assert(empty == Math.Rectangle{1, 2, 0, 10})
+
+    empty = Math.Rectangle{1, 2, 10, 0}
+    empty.fitWithin(Math.Rectangle{10, 20, 100, 100})
+    @assert(empty == Math.Rectangle{1, 2, 10, 0})
 }
 
 #test
 {
     var rect = Math.Rectangle{10, 20, 30, 40}
+    rect.expandToInclude(Math.Point{20, 30})
+    @assert(rect == Math.Rectangle{10, 20, 30, 40})
+
     rect.expandToInclude(Math.Point{5, 70})
     @assert(rect == Math.Rectangle{5, 20, 35, 50})
 

@@ -8,8 +8,8 @@ using Swag
 {
     func roundUpToPowerOf2(x: u32)->u32   => x <= 1 ? 1 : 1'u32 << (32 - Math.leadingZeros(x - 1))
     func roundUpToPowerOf2(x: u64)->u64   => x <= 1 ? 1 : 1'u64 << cast(u32) (64 - Math.leadingZeros(x - 1))
-    func roundDownToPowerOf2(x: u32)->u32 => 1'u32 << (31 - Math.leadingZeros(x))
-    func roundDownToPowerOf2(x: u64)->u64 => 1'u64 << cast(u32) (63 - Math.leadingZeros(x))
+    func roundDownToPowerOf2(x: u32)->u32 => x == 0 ? 0 : 1'u32 << (31 - Math.leadingZeros(x))
+    func roundDownToPowerOf2(x: u64)->u64 => x == 0 ? 0 : 1'u64 << cast(u32) (63 - Math.leadingZeros(x))
     func isPowerOf2(x: u8)->bool          => x and !(x & (x - 1))
     func isPowerOf2(x: u16)->bool         => x and !(x & (x - 1))
     func isPowerOf2(x: u32)->bool         => x and !(x & (x - 1))
@@ -138,15 +138,14 @@ func gcd(a0, b0: s64)->s64
         a = temp
     }
 
-    return a
+    return abs(a)
 }
 
 // Find the Least Common Multiple between 'a' and 'b'
 #[ConstExpr]
 func lcm(a, b: s64)->s64
 {
-    if a > b do
-        return a / gcd(a, b) * b
-    else do
-        return b / gcd(a, b) * a
+    if a == 0 or b == 0 do
+        return 0
+    return abs(a / gcd(a, b) * b)
 }

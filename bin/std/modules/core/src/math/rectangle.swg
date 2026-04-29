@@ -144,7 +144,7 @@ impl Rectangle
 
     // Returns true if the rectangle has non-negative dimensions.
     // A normalized rectangle has width and height greater than or equal to zero.
-    mtd isNormalized()->bool
+    mtd const isNormalized()->bool
     {
         return .width >= 0 and .height >= 0
     }
@@ -307,7 +307,7 @@ impl Rectangle
         let x2 = min(a.x + a.width, b.x + b.width)
         let y1 = max(a.y, b.y)
         let y2 = min(a.y + a.height, b.y + b.height)
-        if x2 >= x1 and y2 >= y1 do
+        if x2 > x1 and y2 > y1 do
             return Rectangle{x1, y1, x2 - x1, y2 - y1}
         return Zero
     }

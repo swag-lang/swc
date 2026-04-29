@@ -504,6 +504,7 @@ AstNodeRef AstMultiVarDecl::semaClone(Sema& sema, const CloneContext& cloneConte
 {
     const AstNodeRef newRef = cloneNodeCopy<AstNodeId::MultiVarDecl>(sema, *this);
     auto&            cloned = sema.node(newRef).cast<AstMultiVarDecl>();
+    cloned.spanNamesRef     = cloneTokenSpan(sema, spanNamesRef, cloneContextAsInline(cloneContext));
     cloned.nodeTypeRef      = cloneNodeRef(sema, nodeTypeRef, cloneContextAsInline(cloneContext));
     cloned.nodeInitRef      = cloneNodeRef(sema, nodeInitRef, cloneContextAsInline(cloneContext));
     return newRef;
@@ -513,6 +514,7 @@ AstNodeRef AstVarDeclDestructuring::semaClone(Sema& sema, const CloneContext& cl
 {
     const AstNodeRef newRef = cloneNodeCopy<AstNodeId::VarDeclDestructuring>(sema, *this);
     auto&            cloned = sema.node(newRef).cast<AstVarDeclDestructuring>();
+    cloned.spanNamesRef     = cloneTokenSpan(sema, spanNamesRef, cloneContextAsInline(cloneContext));
     cloned.nodeInitRef      = cloneNodeRef(sema, nodeInitRef, cloneContextAsInline(cloneContext));
     return newRef;
 }
@@ -586,6 +588,7 @@ AstNodeRef AstForeachStmt::semaClone(Sema& sema, const CloneContext& cloneContex
 {
     const AstNodeRef newRef = cloneNodeCopy<AstNodeId::ForeachStmt>(sema, *this);
     auto&            cloned = sema.node(newRef).cast<AstForeachStmt>();
+    cloned.spanNamesRef     = cloneTokenSpan(sema, spanNamesRef, cloneContextAsInline(cloneContext));
     cloned.nodeExprRef      = cloneNodeRef(sema, nodeExprRef, cloneContextAsInline(cloneContext));
     cloned.nodeWhereRef     = cloneNodeRef(sema, nodeWhereRef, cloneContextAsInline(cloneContext));
     cloned.nodeBodyRef      = cloneNodeRef(sema, nodeBodyRef, cloneContextAsInline(cloneContext));

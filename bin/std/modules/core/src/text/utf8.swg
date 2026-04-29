@@ -625,10 +625,12 @@ func lastIndexOfAny(src: const [..] u8, what: const [..] u8)->u64
     let length = @countof(src)
     if !length do
         return Swag.U64.Max
+    if !@countof(what) do
+        return Swag.U64.Max
 
     var scan    = @dataof(src) + length
     var byteIdx = length
-    for
+    while byteIdx
     {
         scan, byteIdx -= 1
         if Slice.contains(what, dref scan) do

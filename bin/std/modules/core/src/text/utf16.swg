@@ -13,6 +13,12 @@ func decodeRune(buffer: const [..] u16)->{ c: rune, eat: u32 }
 {
     var result: retval
 
+    if !@countof(buffer)
+    {
+        result.c = RuneError
+        return result
+    }
+
     let r = cast(u32) buffer[0]
     switch
     {
@@ -27,7 +33,8 @@ func decodeRune(buffer: const [..] u16)->{ c: rune, eat: u32 }
         return result
 
     default:
-        result.c = RuneError
+        result.c   = RuneError
+        result.eat = 1
         return result
     }
 }

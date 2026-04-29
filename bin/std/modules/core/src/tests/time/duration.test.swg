@@ -60,3 +60,26 @@ using Swag
     @assert(Math.isEqualEpsilon(fromOneMs.timeInSeconds, 0.001, 0.00001))
     @assert(fromOneMs.toMs() == 1)
 }
+
+#test
+{
+    for value in 1000
+    {
+        let expectedMs = cast(u32) value
+
+        let assigned: Time.Duration = cast(s32) value
+        @assert(assigned.toMs() == expectedMs)
+
+        let fromMs = Time.Duration.fromMs(expectedMs)
+        @assert(fromMs.toMs() == expectedMs)
+        @assert(Math.isEqualEpsilon(fromMs.timeInSeconds, cast(f32) value / 1000.0, 0.00001))
+    }
+
+    let exactlyOneSecond: Time.Duration = 1000
+    @assert(exactlyOneSecond.timeInSeconds == 1)
+    @assert(exactlyOneSecond.toMs() == 1000)
+
+    let almostOneSecond = Time.Duration.fromMs(999)
+    @assert(almostOneSecond.toMs() == 999)
+    @assert(Math.isEqualEpsilon(almostOneSecond.timeInSeconds, 0.999, 0.00001))
+}

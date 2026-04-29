@@ -13,6 +13,22 @@ func expectedHasByte16(value: u16, byte: u8)->bool
     return (value & 0x00ff) == expected or ((value >> 8) & 0x00ff) == expected
 }
 
+func expectedSign8(value: s8)->s8
+{
+    if value < 0 do
+        return -1
+    if value > 0 do
+        return 1
+    return 0
+}
+
+func expectedAbs8(value: s8)->s8
+{
+    if value < 0 do
+        return -value
+    return value
+}
+
 #test
 {
     @assert(Math.isPowerOf2(1'u8))
@@ -167,6 +183,39 @@ func expectedHasByte16(value: u16, byte: u8)->bool
     @assert(Math.sign(-5's64) == -1's64)
     @assert(Math.sign(0's64) == 0's64)
     @assert(Math.sign(5's64) == 1's64)
+}
+
+#test
+{
+    for value in 256
+    {
+        let input = cast #bit (s8) cast(u8) value
+        @assert(Math.sign(input) == expectedSign8(input))
+        if input != -128's8 do
+            @assert(Math.abs(input) == expectedAbs8(input))
+    }
+
+    for left in 256
+    {
+        let a = cast #bit (s8) cast(u8) left
+        for right in 256
+        {
+            let b = cast #bit (s8) cast(u8) right
+            @assert(Math.min(a, b) == (a < b ? a : b))
+            @assert(Math.max(a, b) == (a > b ? a : b))
+        }
+    }
+
+    for left in 256
+    {
+        let a = cast(u8) left
+        for right in 256
+        {
+            let b = cast(u8) right
+            @assert(Math.min(a, b) == (a < b ? a : b))
+            @assert(Math.max(a, b) == (a > b ? a : b))
+        }
+    }
 }
 
 #test

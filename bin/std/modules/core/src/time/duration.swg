@@ -34,7 +34,7 @@ impl Duration
     #[Inline]
     {
         // Returns the value in milliseconds
-        mtd const toMs()->u32 => cast(u32) (.timeInSeconds * 1000)
+        mtd const toMs()->u32 => cast(u32) Math.round(.timeInSeconds * 1000)
 
         // Returns a duration initialized with milliseconds
         func fromMs(valueMs: u32)->Duration => Duration{valueMs / 1000.0}

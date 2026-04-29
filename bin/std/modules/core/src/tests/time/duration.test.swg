@@ -4,6 +4,14 @@ using Swag
 
 #test
 {
+    let zero: Time.Duration = 0
+    @assert(zero.timeInSeconds == 0)
+    @assert(zero.toMs() == 0)
+
+    let assignedFromMs: Time.Duration = 250
+    @assert(assignedFromMs.timeInSeconds == 0.25)
+    @assert(assignedFromMs.toMs() == 250)
+
     let seconds: Time.Duration = 5's
     @assert(seconds.timeInSeconds == 5)
     @assert(seconds.toMs() == 5000)
@@ -20,4 +28,5 @@ using Swag
 
     let fromMs = Time.Duration.fromMs(1500)
     @assert(fromMs.timeInSeconds == 1.5)
+    @assert(fromMs.toMs() == 1500)
 }

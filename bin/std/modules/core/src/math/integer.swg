@@ -20,19 +20,20 @@ using Swag
 #[ConstExpr, Inline, Safety(.Overflow, false)]
 func hasZeroByte(v: u16)->bool
 {
-    return hasZeroByte(cast(u32) v)
+    let v32 = cast(u32) v
+    return cast(bool) ((v32 - #wrap 0x0101'u32) & ~v32 & 0x8080'u32)
 }
 
 #[ConstExpr, Inline, Safety(.Overflow, false)]
 func hasZeroByte(v: u32)->bool
 {
-    return cast(bool) ((v - 0x01010101) & ~v & 0x80808080)
+    return cast(bool) ((v - #wrap 0x01010101) & ~v & 0x80808080)
 }
 
 #[ConstExpr, Inline, Safety(.Overflow, false)]
 func hasZeroByte(v: u64)->bool
 {
-    return cast(bool) ((v - 0x01010101_01010101) & ~v & 0x80808080_80808080)
+    return cast(bool) ((v - #wrap 0x01010101_01010101) & ~v & 0x80808080_80808080)
 }
 
 // Make a 16 bits by repeating a given byte
@@ -70,7 +71,7 @@ func make64(high, low: u32)->u64
 #[ConstExpr, Inline]
 func hasByte(value: u16, byte: u8)->bool
 {
-    return hasByte(cast(u32) value, byte)
+    return hasZeroByte(value ^ makeRepeat16(byte))
 }
 
 #[ConstExpr, Inline]

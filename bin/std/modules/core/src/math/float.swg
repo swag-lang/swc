@@ -141,18 +141,16 @@ alias ConstF64 = Const'f64
     // A finite number is any real number that is not positive infinity, negative infinity, or NaN.
     func isFinite(value: f32)->bool
     {
-        let bits     = cast(u32) value
-        let exponent = (bits >> 23) & 0xFF     // Extract exponent bits
-        return exponent != 0xFF // Not infinity or NaN if exp != all 1s
+        let bits = cast #bit (u32) value
+        return (bits & 0x7f800000'u32) != 0x7f800000'u32
     }
 
     // Returns true if the value is finite (not infinite and not NaN).
     // A finite number is any real number that is not positive infinity, negative infinity, or NaN.
     func isFinite(value: f64)->bool
     {
-        let bits     = cast(u64) value
-        let exponent = (bits >> 52) & 0x7FF     // Extract exponent bits
-        return exponent != 0x7FF // Not infinity or NaN if exp != all 1s
+        let bits = cast #bit (u64) value
+        return (bits & 0x7ff0000000000000'u64) != 0x7ff0000000000000'u64
     }
 
     // Smoothstep interpolation between 'edge0' and 'edge1'

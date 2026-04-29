@@ -31,6 +31,12 @@ namespace
 {
     using CodeGenInterfaceHelpers::InterfaceCastInfo;
 
+    bool isExplicitBitCast(const CodeGen& codeGen)
+    {
+        const AstNode& node = codeGen.node(codeGen.curNodeRef());
+        return node.is(AstNodeId::CastExpr) && node.cast<AstCastExpr>().modifierFlags.has(AstModifierFlagsE::Bit);
+    }
+
     uint64_t sliceCountFromArrayCast(CodeGen& codeGen, const TypeInfo& srcArrayType, const TypeInfo& dstElementType)
     {
         const uint64_t dstElementSize = dstElementType.sizeOf(codeGen.ctx());
@@ -1215,6 +1221,38 @@ namespace
             CodeGenNodePayload& dstPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), dstTypeRef);
             dstPayload.reg                 = codeGen.nextVirtualIntRegister();
             builder.emitLoadRegReg(dstPayload.reg, srcReg, MicroOpBits::B64);
+            return Result::Continue;
+        }
+
+        if (isExplicitBitCast(codeGen) && resolvedSrcType.isScalarNumeric() && resolvedDstType.isScalarNumeric())
+        {
+            const MicroOpBits srcOpBits = CodeGenTypeHelpers::numericOrBoolBits(resolvedSrcType);
+            const MicroOpBits dstOpBits = CodeGenTypeHelpers::numericOrBoolBits(resolvedDstType);
+            SWC_ASSERT(srcOpBits != MicroOpBits::Zero);
+            SWC_ASSERT(dstOpBits != MicroOpBits::Zero);
+
+            MicroReg srcReg = srcPayload.reg;
+            if (srcPayload.isAddress())
+            {
+                srcReg = codeGen.nextVirtualRegisterForType(resolvedSrcTypeRef);
+                builder.emitLoadRegMem(srcReg, srcPayload.reg, 0, srcOpBits);
+            }
+
+            CodeGenNodePayload& dstPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), dstTypeRef);
+            dstPayload.reg                 = codeGen.nextVirtualRegisterForType(resolvedDstTypeRef);
+
+            const uint32_t srcWidth = getNumBits(srcOpBits);
+            const uint32_t dstWidth = getNumBits(dstOpBits);
+            if (srcWidth >= dstWidth)
+            {
+                builder.emitLoadRegReg(dstPayload.reg, srcReg, dstOpBits);
+                return Result::Continue;
+            }
+
+            if (resolvedSrcType.isNumericSigned())
+                builder.emitLoadSignedExtendRegReg(dstPayload.reg, srcReg, dstOpBits, srcOpBits);
+            else
+                builder.emitLoadZeroExtendRegReg(dstPayload.reg, srcReg, dstOpBits, srcOpBits);
             return Result::Continue;
         }
 

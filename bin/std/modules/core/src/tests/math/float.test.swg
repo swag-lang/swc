@@ -4,10 +4,154 @@ using Swag
 
 #test
 {
+    @assert(Math.isEqualEpsilon(Math.ConstF32.TwoPi, Math.ConstF32.Pi * 2, 0.001))
+    @assert(Math.isEqualEpsilon(Math.ConstF32.PiBy2, Math.ConstF32.Pi / 2, 0.001))
+    @assert(Math.isEqualEpsilon(Math.ConstF32.PiBy3, Math.ConstF32.Pi / 3, 0.001))
+    @assert(Math.isEqualEpsilon(Math.ConstF32.PiBy4, Math.ConstF32.Pi / 4, 0.001))
+    @assert(Math.isEqualEpsilon(Math.ConstF32.PiBy6, Math.ConstF32.Pi / 6, 0.001))
+    @assert(Math.isEqualEpsilon(Math.ConstF32.PiBy8, Math.ConstF32.Pi / 8, 0.001))
+    @assert(Math.isEqualEpsilon(Math.ConstF32.ThreePiBy4, Math.ConstF32.Pi * 0.75, 0.001))
+    @assert(Math.isEqualEpsilon(Math.ConstF32.OneByPi * Math.ConstF32.Pi, 1'f32, 0.001))
+    @assert(Math.isEqualEpsilon(Math.ConstF32.TwoByPi * Math.ConstF32.Pi, 2'f32, 0.001))
+    @assert(Math.isEqualEpsilon(Math.ConstF32.Sqrt2 * Math.ConstF32.OneBySqrt2, 1'f32, 0.001))
+    @assert(Math.isEqualEpsilon(Math.ConstF32.Ln2, Math.log(2'f32), 0.001))
+    @assert(Math.isEqualEpsilon(Math.ConstF32.Ln10, Math.log(10'f32), 0.001))
+    @assert(Math.isEqualEpsilon(Math.ConstF32.Log2E, Math.log2(Math.ConstF32.E), 0.001))
+    @assert(Math.isEqualEpsilon(Math.ConstF32.Log10E, Math.log10(Math.ConstF32.E), 0.001))
+    @assert(Math.ConstF32.Epsilon > 0)
+}
+
+#test
+{
+    @assert(Math.sign(-2'f32) == -1'f32)
+    @assert(Math.sign(0'f32) == 1'f32)
+    @assert(Math.sign(-2'f64) == -1'f64)
+    @assert(Math.sign(0'f64) == 1'f64)
+
     @assert(Math.saturate(-2'f32) == 0'f32)
+    @assert(Math.saturate(0.25'f32) == 0.25'f32)
     @assert(Math.saturate(2'f32) == 1'f32)
+    @assert(Math.saturate(-2'f64) == 0'f64)
+    @assert(Math.saturate(2'f64) == 1'f64)
+
     @assert(Math.lerp(2'f32, 10'f32, 0.25'f32) == 4'f32)
+    @assert(Math.lerp(2'f64, 10'f64, 0.25'f64) == 4'f64)
+    @assert(Math.isEqualEpsilon(Math.cubicLerp(0'f32, 10'f32, 20'f32, 30'f32, 0.5'f32), 15'f32, 0.001))
+    @assert(Math.isEqualEpsilon(Math.cubicLerp(0'f64, 10'f64, 20'f64, 30'f64, 0.5'f64), 15'f64, 0.001))
+    @assert(Math.interpHermite(0.5'f32) == 0.5'f32)
+    @assert(Math.interpHermite(0.5'f64) == 0.5'f64)
+    @assert(Math.interpQuintic(0.5'f32) == 0.5'f32)
+    @assert(Math.interpQuintic(0.5'f64) == 0.5'f64)
+    @assert(Math.fract(3.75'f32) == 0.75'f32)
+    @assert(Math.fract(3.75'f64) == 0.75'f64)
+}
+
+#test
+{
     @assert(Math.moveTowards(0'f32, 10'f32, 3'f32) == 3'f32)
     @assert(Math.moveTowards(8'f32, 10'f32, 3'f32) == 10'f32)
+    @assert(Math.moveTowards(10'f32, 0'f32, 3'f32) == 7'f32)
+    @assert(Math.moveTowards(0'f64, 10'f64, 3'f64) == 3'f64)
+    @assert(Math.moveTowards(8'f64, 10'f64, 3'f64) == 10'f64)
+
+    var velocity = 0'f32
+    let smoothed = Math.smoothDamp(0'f32, 10'f32, &velocity, 0.5'f32, 0.1'f32)
+    @assert(smoothed > 0'f32 and smoothed < 10'f32)
+    @assert(velocity > 0'f32)
+}
+
+#test
+{
     @assert(Math.isEqualEpsilon(Math.toDegrees(Math.ConstF32.Pi), 180'f32, 0.001'f32))
+    @assert(Math.isEqualEpsilon(Math.toRadians(180'f32), Math.ConstF32.Pi, 0.001'f32))
+    @assert(Math.isEqualEpsilon(Math.toDegrees(Math.ConstF64.Pi), 180'f64, 0.001'f64))
+    @assert(Math.isEqualEpsilon(Math.toRadians(180'f64), Math.ConstF64.Pi, 0.001'f64))
+
+    @assert(Math.isZeroEpsilon(0.00001'f32, 0.001'f32))
+    @assert(!Math.isZeroEpsilon(0.01'f32, 0.001'f32))
+    @assert(Math.isZeroEpsilon(0.00001'f64, 0.001'f64))
+    @assert(!Math.isZeroEpsilon(0.01'f64, 0.001'f64))
+    @assert(Math.isEqualEpsilon(1'f32, 1.00001'f32, 0.001'f32))
+    @assert(!Math.isEqualEpsilon(1'f32, 1.01'f32, 0.001'f32))
+    @assert(Math.isEqualEpsilon(1'f64, 1.00001'f64, 0.001'f64))
+    @assert(!Math.isEqualEpsilon(1'f64, 1.01'f64, 0.001'f64))
+
+    @assert(Math.isNaN(Swag.F32.NaN))
+    @assert(Math.isNaN(Swag.F64.NaN))
+    @assert(Math.isFinite(1'f32))
+    @assert(Math.isFinite(1'f64))
+    @assert(!Math.isFinite(Swag.F32.Inf))
+    @assert(!Math.isFinite(Swag.F64.Inf))
+    @assert(!Math.isFinite(Swag.F32.NaN))
+    @assert(!Math.isFinite(Swag.F64.NaN))
+}
+
+#test
+{
+    @assert(Math.smoothstep(0'f32, 10'f32, -1'f32) == 0'f32)
+    @assert(Math.smoothstep(0'f32, 10'f32, 5'f32) == 0.5'f32)
+    @assert(Math.smoothstep(0'f32, 10'f32, 11'f32) == 1'f32)
+    @assert(Math.smoothstep(0'f64, 10'f64, 5'f64) == 0.5'f64)
+
+    @assert(Math.map(5'f32, 0'f32, 10'f32, 0'f32, 100'f32) == 50'f32)
+    @assert(Math.map(5'f64, 0'f64, 10'f64, 0'f64, 100'f64) == 50'f64)
+
+    @assert(Math.powerOf10(0'f32) == 1)
+    @assert(Math.powerOf10(99'f32) == 100)
+    @assert(Math.powerOf10(100'f32) == 1000)
+    @assert(Math.powerOf10(99'f64) == 100)
+}
+
+#test
+{
+    @assert(Math.isEqualEpsilon(Math.atan2(1'f32, 0'f32), Math.ConstF32.PiBy2, 0.001))
+    @assert(Math.sqrt(9'f32) == 3'f32)
+    @assert(Math.sqrt(9'f64) == 3'f64)
+    @assert(Math.isEqualEpsilon(Math.sin(Math.ConstF32.PiBy2), 1'f32, 0.001))
+    @assert(Math.isEqualEpsilon(Math.cos(0'f32), 1'f32, 0.001))
+    @assert(Math.isEqualEpsilon(Math.tan(Math.ConstF32.PiBy4), 1'f32, 0.001))
+    @assert(Math.sinh(0'f32) == 0'f32)
+    @assert(Math.cosh(0'f32) == 1'f32)
+    @assert(Math.tanh(0'f32) == 0'f32)
+    @assert(Math.isEqualEpsilon(Math.asin(1'f32), Math.ConstF32.PiBy2, 0.001))
+    @assert(Math.acos(1'f32) == 0'f32)
+    @assert(Math.isEqualEpsilon(Math.atan(1'f32), Math.ConstF32.PiBy4, 0.001))
+    @assert(Math.isEqualEpsilon(Math.log(Math.ConstF32.E), 1'f32, 0.001))
+    @assert(Math.log2(8'f32) == 3'f32)
+    @assert(Math.log10(100'f32) == 2'f32)
+}
+
+#test
+{
+    @assert(Math.floor(1.75'f32) == 1'f32)
+    @assert(Math.ceil(1.25'f32) == 2'f32)
+    @assert(Math.trunc(1.75'f32) == 1'f32)
+    @assert(Math.round(1.5'f32) == 2'f32)
+    @assert(Math.floorS32(1.75'f32) == 1)
+    @assert(Math.ceilS32(1.25'f32) == 2)
+    @assert(Math.truncS32(1.75'f32) == 1)
+    @assert(Math.roundS32(1.5'f32) == 2)
+    @assert(Math.floorS64(1.75'f64) == 1)
+    @assert(Math.ceilS64(1.25'f64) == 2)
+    @assert(Math.truncS64(1.75'f64) == 1)
+    @assert(Math.roundS64(1.5'f64) == 2)
+
+    @assert(Math.abs(-2'f32) == 2'f32)
+    @assert(Math.abs(-2'f64) == 2'f64)
+    @assert(Math.min(2'f32, -1'f32) == -1'f32)
+    @assert(Math.max(2'f32, -1'f32) == 2'f32)
+    @assert(Math.min(2'f64, -1'f64) == -1'f64)
+    @assert(Math.max(2'f64, -1'f64) == 2'f64)
+}
+
+#test
+{
+    @assert(Math.exp(0'f32) == 1'f32)
+    @assert(Math.exp(0'f64) == 1'f64)
+    @assert(Math.exp2(3'f32) == 8'f32)
+    @assert(Math.exp2(3'f64) == 8'f64)
+    @assert(Math.pow(2'f32, 3'f32) == 8'f32)
+    @assert(Math.pow(2'f64, 3'f64) == 8'f64)
+    @assert(Math.mulAdd(2'f32, 3'f32, 4'f32) == 10'f32)
+    @assert(Math.mulAdd(2'f64, 3'f64, 4'f64) == 10'f64)
 }

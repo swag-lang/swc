@@ -241,6 +241,7 @@ SWC_TOKEN_DEF(CompilerUniq9, "#uniq9",  TokenIdKindE::Compiler | TokenIdKindE::U
 // COMPILER INFO
 
 SWC_TOKEN_DEF(CompilerBuildCfg, "#cfg",  TokenIdKindE::Compiler)
+SWC_TOKEN_DEF(CompilerCommand, "#command",  TokenIdKindE::Compiler)
 SWC_TOKEN_DEF(CompilerOs, "#os",  TokenIdKindE::Compiler)
 SWC_TOKEN_DEF(CompilerArch, "#arch",  TokenIdKindE::Compiler)
 SWC_TOKEN_DEF(CompilerCpu, "#cpu",  TokenIdKindE::Compiler)

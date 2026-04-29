@@ -10,7 +10,7 @@ which is reserved exclusively for these functions.
 This document provides a categorized list of all intrinsics available in Swag.
 */
 
-#global skip(always)
+#global #if false
 
 /**
 

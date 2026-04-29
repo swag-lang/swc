@@ -1003,6 +1003,17 @@ Result AstCompilerLiteral::semaPostNode(Sema& sema)
             break;
         }
 
+        case TokenId::CompilerCommand:
+        {
+            TypeRef typeRef = TypeRef::invalid();
+            SWC_RESULT(sema.waitPredefined(IdentifierManager::PredefinedName::CompilerCommand, typeRef, codeRef()));
+            const ConstantRef   valueCst     = sema.cstMgr().addS32(ctx, static_cast<int32_t>(compilerCommandFromKind(sema.ctx().cmdLine().command)));
+            const ConstantValue enumValue    = ConstantValue::makeEnumValue(ctx, valueCst, typeRef);
+            const ConstantRef   enumValueRef = sema.cstMgr().addConstant(ctx, enumValue);
+            sema.setConstant(sema.curNodeRef(), enumValueRef);
+            break;
+        }
+
         case TokenId::CompilerSwagOs:
         {
             TypeRef typeRef = TypeRef::invalid();
@@ -1082,7 +1093,6 @@ Result AstCompilerGlobal::semaPostNode(Sema& sema) const
 {
     switch (mode)
     {
-        case Mode::Skip:
         case Mode::Generated:
         case Mode::AttributeList:
             return Result::Continue;
@@ -1091,7 +1101,6 @@ Result AstCompilerGlobal::semaPostNode(Sema& sema) const
             return semaCompilerGlobalIf(sema, *this);
 
         case Mode::Using:
-        case Mode::SkipFmt:
             // TODO
             return Result::SkipChildren;
 

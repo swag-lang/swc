@@ -90,8 +90,6 @@ struct AstCompilerGlobal : AstNodeT<AstNodeId::CompilerGlobal>
 {
     enum class Mode
     {
-        Skip,
-        SkipFmt,
         Generated,
         Export,
         AttributeList,

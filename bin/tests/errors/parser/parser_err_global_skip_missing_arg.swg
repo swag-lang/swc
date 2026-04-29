@@ -1,2 +1,2 @@
-#global skip
-func A() {}                         // swc-expected-error {{parser_err_expected_token_before}}
+#global skip                         // swc-expected-error {{parser_err_unexpected_token}}
+func A() {}

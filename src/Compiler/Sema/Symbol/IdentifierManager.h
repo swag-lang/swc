@@ -79,6 +79,7 @@ public:
         Me,
         TargetOs,
         TargetArch,
+        CompilerCommand,
         OpBinary,
         OpBinaryRight,
         OpUnary,

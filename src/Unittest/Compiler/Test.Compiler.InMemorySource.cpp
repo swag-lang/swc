@@ -63,16 +63,16 @@ SWC_TEST_BEGIN(Compiler_InMemorySourceRunsSemaWithoutDiskIO)
 }
 SWC_TEST_END()
 
-SWC_TEST_BEGIN(Compiler_InMemorySourceTracksSkipFormatOnFile)
+SWC_TEST_BEGIN(Compiler_InMemorySourceKeepsFormatCommandGlobalIfDuringFormat)
 {
-    static constexpr std::string_view SOURCE     = R"(#global skip(format)
+    static constexpr std::string_view SOURCE     = R"(#global #if #command == Swag.CompilerCommand.Format
 func A() {}
 )";
-    const fs::path                    sourcePath = Unittest::makeTestSourcePath("Compiler", "InMemorySourceTracksSkipFormatOnFile");
+    const fs::path                    sourcePath = Unittest::makeTestSourcePath("Compiler", "InMemorySourceKeepsFormatCommandGlobalIfDuringFormat");
 
     CommandLine cmdLine;
-    cmdLine.command = CommandKind::Syntax;
-    cmdLine.name    = "compiler_in_memory_source_skip_format";
+    cmdLine.command = CommandKind::Format;
+    cmdLine.name    = "compiler_in_memory_source_global_if_format";
 
     CompilerInstance compiler(ctx.global(), cmdLine);
     Unittest::registerTestSource(compiler, sourcePath, SOURCE);
@@ -90,21 +90,21 @@ func A() {}
     parser.parse(compilerCtx, sourceFile.ast());
     if (compilerCtx.hasError())
         return Result::Error;
-    if (!sourceFile.mustSkipFormat())
+    if (sourceFile.ast().root().isInvalid())
         return Result::Error;
 }
 SWC_TEST_END()
 
-SWC_TEST_BEGIN(Compiler_InMemorySourceSkipsAlwaysArgument)
+SWC_TEST_BEGIN(Compiler_InMemorySourceSkipsFalseGlobalIf)
 {
-    static constexpr std::string_view SOURCE     = R"(#global skip(always)
+    static constexpr std::string_view SOURCE     = R"(#global #if false
 #invalid_after_skip
 )";
-    const fs::path                    sourcePath = Unittest::makeTestSourcePath("Compiler", "InMemorySourceSkipsAlwaysArgument");
+    const fs::path                    sourcePath = Unittest::makeTestSourcePath("Compiler", "InMemorySourceSkipsFalseGlobalIf");
 
     CommandLine cmdLine;
     cmdLine.command = CommandKind::Syntax;
-    cmdLine.name    = "compiler_in_memory_source_skip_always_arg";
+    cmdLine.name    = "compiler_in_memory_source_global_if_false";
 
     CompilerInstance compiler(ctx.global(), cmdLine);
     Unittest::registerTestSource(compiler, sourcePath, SOURCE);
@@ -120,16 +120,16 @@ SWC_TEST_BEGIN(Compiler_InMemorySourceSkipsAlwaysArgument)
 }
 SWC_TEST_END()
 
-SWC_TEST_BEGIN(Compiler_InMemorySourceSkipsTestArgumentOutsideTests)
+SWC_TEST_BEGIN(Compiler_InMemorySourceSkipsTestCommandGlobalIfOutsideTests)
 {
-    static constexpr std::string_view SOURCE     = R"(#global skip(test)
+    static constexpr std::string_view SOURCE     = R"(#global #if #command == Swag.CompilerCommand.Test
 #invalid_after_skip
 )";
-    const fs::path                    sourcePath = Unittest::makeTestSourcePath("Compiler", "InMemorySourceSkipsTestArgumentOutsideTests");
+    const fs::path                    sourcePath = Unittest::makeTestSourcePath("Compiler", "InMemorySourceSkipsTestCommandGlobalIfOutsideTests");
 
     CommandLine cmdLine;
     cmdLine.command = CommandKind::Syntax;
-    cmdLine.name    = "compiler_in_memory_source_skip_test_arg_normal";
+    cmdLine.name    = "compiler_in_memory_source_global_if_test_normal";
 
     CompilerInstance compiler(ctx.global(), cmdLine);
     Unittest::registerTestSource(compiler, sourcePath, SOURCE);
@@ -145,16 +145,16 @@ SWC_TEST_BEGIN(Compiler_InMemorySourceSkipsTestArgumentOutsideTests)
 }
 SWC_TEST_END()
 
-SWC_TEST_BEGIN(Compiler_InMemorySourceKeepsTestArgumentDuringTests)
+SWC_TEST_BEGIN(Compiler_InMemorySourceKeepsTestCommandGlobalIfDuringTests)
 {
-    static constexpr std::string_view SOURCE     = R"(#global skip(test)
+    static constexpr std::string_view SOURCE     = R"(#global #if #command == Swag.CompilerCommand.Test
 func A() {}
 )";
-    const fs::path                    sourcePath = Unittest::makeTestSourcePath("Compiler", "InMemorySourceKeepsTestArgumentDuringTests");
+    const fs::path                    sourcePath = Unittest::makeTestSourcePath("Compiler", "InMemorySourceKeepsTestCommandGlobalIfDuringTests");
 
     CommandLine cmdLine;
     cmdLine.command          = CommandKind::Test;
-    cmdLine.name             = "compiler_in_memory_source_skip_test_arg_test";
+    cmdLine.name             = "compiler_in_memory_source_global_if_test";
     cmdLine.sourceDrivenTest = true;
 
     CompilerInstance compiler(ctx.global(), cmdLine);

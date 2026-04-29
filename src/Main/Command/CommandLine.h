@@ -30,6 +30,24 @@ enum class CommandKind
     Run,
 };
 
+inline Runtime::CompilerCommand compilerCommandFromKind(const CommandKind command)
+{
+    switch (command)
+    {
+        case CommandKind::Test:
+            return Runtime::CompilerCommand::Test;
+        case CommandKind::Format:
+            return Runtime::CompilerCommand::Format;
+        case CommandKind::Syntax:
+        case CommandKind::Sema:
+        case CommandKind::Build:
+        case CommandKind::Run:
+            return Runtime::CompilerCommand::Build;
+        default:
+            SWC_UNREACHABLE();
+    }
+}
+
 struct CommandLine
 {
     CommandKind command = CommandKind::Syntax;

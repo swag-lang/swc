@@ -291,7 +291,7 @@ namespace compiler2407
 // _compiler2447.swg
 namespace compiler2447
 {
-    //#global skip(always)
+    //#global #if false
     func N() => 10
 
     #assert(#typeof(N()) == #typeof(10))
@@ -442,7 +442,7 @@ namespace compiler2979
 // _compiler3029.swg
 namespace compiler3029
 {
-    //#global skip(always)
+    //#global #if false
     func toto(x, y: s32)->{ x: s32, y: s32 }
     {
         var result: retval
@@ -463,7 +463,7 @@ namespace compiler3029
 // _compiler3100.swg
 namespace compiler3100
 {
-    //#global skip(always)
+    //#global #if false
 
     //#global testerror
 
@@ -508,7 +508,7 @@ namespace compiler3121
 // _compiler3324.swg
 namespace compiler3324
 {
-    //#global skip(always)
+    //#global #if false
     //#global testerror
     #test
     {

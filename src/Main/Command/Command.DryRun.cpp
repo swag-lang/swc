@@ -317,7 +317,7 @@ namespace
                     addPlanEntry(entries, index++, "Would", LogColor::BrightGreen, std::format("parse and format {}", inputCount));
                     addPlanEntry(entries, index++, "Would", LogColor::BrightGreen, std::format("rewrite {}", formatFileCountWithSuffix(formatPreview.rewrittenFiles, " whose formatted output differs")));
                     addPlanEntry(entries, index++, "Would", LogColor::BrightGreen, std::format("skip {}", formatFileCountWithSuffix(formatPreview.unchangedFiles, " because formatted output is unchanged")));
-                    addPlanEntry(entries, index++, "Would", LogColor::BrightGreen, std::format("ignore {}", formatFileCountWithSuffix(formatPreview.skippedFmtFiles, " marked skip(format)")));
+                    addPlanEntry(entries, index++, "Would", LogColor::BrightGreen, std::format("ignore {}", formatFileCountWithSuffix(formatPreview.skippedFmtFiles, " marked format-skipped")));
                     addPlanEntry(entries, index, "Would", LogColor::BrightGreen, std::format("ignore {}", formatFileCountWithSuffix(formatPreview.skippedInvalidFiles, " after parse errors")));
                 }
                 else

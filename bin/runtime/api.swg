@@ -719,6 +719,14 @@ namespace Swag
         Windows // Windows
     }
 
+    // The compiler command being executed.
+    enum CompilerCommand
+    {
+        Test
+        Format
+        Build
+    }
+
     // Backend options
     struct BuildCfgBackend
     {

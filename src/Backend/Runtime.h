@@ -18,6 +18,13 @@ namespace Runtime
         Windows,
     };
 
+    enum class CompilerCommand
+    {
+        Test,
+        Format,
+        Build,
+    };
+
     struct TypeInfo;
 
     struct String

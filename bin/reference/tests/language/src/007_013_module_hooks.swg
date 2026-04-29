@@ -1,5 +1,5 @@
 #global fileprivate
-#global skip(always)
+#global #if false
 
 /**
 # Main Function (`#main`)

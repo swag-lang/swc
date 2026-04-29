@@ -15,12 +15,11 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    enum class GlobalSkipTarget
+    enum class GlobalIfValue
     {
-        Invalid,
-        Always,
-        Format,
-        Test,
+        Unknown,
+        False,
+        True,
     };
 
     uint32_t editDistance(const std::string_view lhs, const std::string_view rhs)
@@ -102,16 +101,93 @@ namespace
         return std::string_view(reinterpret_cast<std::string_view::const_pointer>(start), cursor - start);
     }
 
-    GlobalSkipTarget globalSkipTargetFromName(const std::string_view name)
+    std::string_view readCompilerWordRaw(const LangSpec& langSpec, const char8_t*& cursor)
     {
-        if (name == "always")
-            return GlobalSkipTarget::Always;
-        if (name == "format")
-            return GlobalSkipTarget::Format;
-        if (name == "test")
-            return GlobalSkipTarget::Test;
+        if (cursor[0] != '#')
+            return {};
 
-        return GlobalSkipTarget::Invalid;
+        const char8_t* start = cursor;
+        cursor++;
+        while (langSpec.isIdentifierPart(cursor[0]))
+            cursor++;
+        return std::string_view(reinterpret_cast<std::string_view::const_pointer>(start), cursor - start);
+    }
+
+    bool consumeRaw(const std::string_view value, const char8_t*& cursor)
+    {
+        if (std::strncmp(reinterpret_cast<const char*>(cursor), value.data(), value.size()) != 0)
+            return false;
+        cursor += value.size();
+        return true;
+    }
+
+    bool commandFromName(Runtime::CompilerCommand& out, const std::string_view name)
+    {
+        if (name == "Test")
+        {
+            out = Runtime::CompilerCommand::Test;
+            return true;
+        }
+
+        if (name == "Format")
+        {
+            out = Runtime::CompilerCommand::Format;
+            return true;
+        }
+
+        if (name == "Build")
+        {
+            out = Runtime::CompilerCommand::Build;
+            return true;
+        }
+
+        return false;
+    }
+
+    GlobalIfValue evaluateRawGlobalIf(const LangSpec& langSpec, const CommandLine& cmdLine, const char8_t*& cursor)
+    {
+        if (readCompilerWordRaw(langSpec, cursor) != "#if")
+            return GlobalIfValue::Unknown;
+
+        skipBlanksRaw(langSpec, cursor);
+
+        const char8_t* exprCursor = cursor;
+        const auto     boolValue  = readIdentifierRaw(langSpec, exprCursor);
+        if (boolValue == "false")
+            return GlobalIfValue::False;
+        if (boolValue == "true")
+            return GlobalIfValue::True;
+
+        if (readCompilerWordRaw(langSpec, cursor) != "#command")
+            return GlobalIfValue::Unknown;
+
+        skipBlanksRaw(langSpec, cursor);
+        bool notEqual = false;
+        if (!consumeRaw("==", cursor))
+        {
+            if (!consumeRaw("!=", cursor))
+                return GlobalIfValue::Unknown;
+            notEqual = true;
+        }
+
+        skipBlanksRaw(langSpec, cursor);
+        if (readIdentifierRaw(langSpec, cursor) != "Swag")
+            return GlobalIfValue::Unknown;
+        if (!consumeRaw(".", cursor))
+            return GlobalIfValue::Unknown;
+        if (readIdentifierRaw(langSpec, cursor) != "CompilerCommand")
+            return GlobalIfValue::Unknown;
+        if (!consumeRaw(".", cursor))
+            return GlobalIfValue::Unknown;
+
+        Runtime::CompilerCommand expected;
+        if (!commandFromName(expected, readIdentifierRaw(langSpec, cursor)))
+            return GlobalIfValue::Unknown;
+
+        bool value = compilerCommandFromKind(cmdLine.command) == expected;
+        if (notEqual)
+            value = !value;
+        return value ? GlobalIfValue::True : GlobalIfValue::False;
     }
 }
 
@@ -828,7 +904,7 @@ void Lexer::lexNumber()
     }
 }
 
-void Lexer::checkCompilerGlobalSkip()
+void Lexer::checkCompilerGlobalIfSkip()
 {
     if (token_.id != TokenId::CompilerGlobal || lexerFlags_.has(LexerFlagsE::IgnoreGlobalSkip))
         return;
@@ -836,24 +912,7 @@ void Lexer::checkCompilerGlobalSkip()
     const char8_t* cursor = buffer_;
     skipBlanksRaw(*langSpec_, cursor);
 
-    const std::string_view directive = readIdentifierRaw(*langSpec_, cursor);
-    if (directive != Token::toName(TokenId::KwdSkip))
-        return;
-
-    skipBlanksRaw(*langSpec_, cursor);
-    if (cursor[0] != '(')
-        return;
-
-    cursor++;
-    skipBlanksRaw(*langSpec_, cursor);
-    const GlobalSkipTarget target = globalSkipTargetFromName(readIdentifierRaw(*langSpec_, cursor));
-    if (target == GlobalSkipTarget::Invalid)
-        return;
-    skipBlanksRaw(*langSpec_, cursor);
-    if (cursor[0] != ')')
-        return;
-
-    if (target == GlobalSkipTarget::Always || (target == GlobalSkipTarget::Test && !ctx_->cmdLine().sourceDrivenTest))
+    if (evaluateRawGlobalIf(*langSpec_, ctx_->cmdLine(), cursor) == GlobalIfValue::False)
         srcView_->setMustSkip();
 }
 
@@ -888,7 +947,7 @@ void Lexer::lexIdentifier()
             token_.byteStart = idx;
         }
 
-        checkCompilerGlobalSkip();
+        checkCompilerGlobalIfSkip();
     }
 
     pushToken();

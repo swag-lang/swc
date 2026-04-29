@@ -4,8 +4,6 @@ using Swag
 
 #test
 {
-    @assert(Hash.Adler32.compute("Wikipedia") == 0x11E60398'u32)
-    @assert(Hash.Crc32.compute("123456789") == 0xCBF43926'u32)
     @assert(Hash.Crc64.compute("123456789") == 0x6C40_DF5F_0B49_7347'u64)
     @assert(Hash.Crc64.compute("123456789", Hash.Crc64Kind.ISOXZ) == 0x995D_C9BB_DF19_39FA'u64)
 

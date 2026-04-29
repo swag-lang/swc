@@ -21,31 +21,6 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    struct VariableSymbolCodeGenPayload
-    {
-        CodeGenNodePayload payload;
-        bool               hasPayload        = false;
-        uint32_t           addressGeneration = 0;
-    };
-
-    VariableSymbolCodeGenPayload* safeVariableSymbolPayload(const SymbolVariable& sym)
-    {
-        return static_cast<VariableSymbolCodeGenPayload*>(sym.codeGenPayload());
-    }
-
-    VariableSymbolCodeGenPayload& ensureVariableSymbolPayload(CodeGen& codeGen, const SymbolVariable& sym)
-    {
-        VariableSymbolCodeGenPayload* payload = safeVariableSymbolPayload(sym);
-        if (!payload)
-        {
-            payload  = codeGen.compiler().allocate<VariableSymbolCodeGenPayload>();
-            *payload = {};
-            sym.setCodeGenPayload(payload);
-        }
-
-        return *(payload);
-    }
-
     bool isStackAddressPayload(const CodeGen& codeGen, const SymbolVariable& sym, const CodeGenNodePayload& payload)
     {
         if (!payload.isAddress())
@@ -357,6 +332,7 @@ Result CodeGen::exec(SymbolFunction& symbolFunc, AstNodeRef root)
         currentDeferredAddressGeneration_ = 0;
         nextDeferredAddressGeneration_    = 1;
         hasDeferredStatements_            = containsNodeId(root, AstNodeId::DeferStmt) || functionHasImplicitDrops(*this, symbolFunc);
+        variablePayloads_.clear();
         clearGvtdScratchLayout();
         frames_.clear();
         frames_.emplace_back();
@@ -366,11 +342,6 @@ Result CodeGen::exec(SymbolFunction& symbolFunc, AstNodeRef root)
         for (SymbolVariable* symVar : symbolFunc.parameters())
         {
             SWC_ASSERT(symVar != nullptr);
-            if (VariableSymbolCodeGenPayload* payload = safeVariableSymbolPayload(*symVar))
-            {
-                payload->hasPayload        = false;
-                payload->addressGeneration = 0;
-            }
             symVar->removeExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack);
             symVar->setCodeGenLocalSize(0);
             symVar->setDebugStackSlotOffset(0);
@@ -380,11 +351,6 @@ Result CodeGen::exec(SymbolFunction& symbolFunc, AstNodeRef root)
         for (SymbolVariable* symVar : symbolFunc.localVariables())
         {
             SWC_ASSERT(symVar != nullptr);
-            if (VariableSymbolCodeGenPayload* payload = safeVariableSymbolPayload(*symVar))
-            {
-                payload->hasPayload        = false;
-                payload->addressGeneration = 0;
-            }
             symVar->removeExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack);
         }
 
@@ -562,11 +528,11 @@ CodeGenNodePayload* CodeGen::safePayload(AstNodeRef nodeRef)
     if (resolvedRef.isInvalid())
         return nullptr;
 
-    CodeGenNodePayload* payload = sema().codeGenPayload<CodeGenNodePayload>(resolvedRef);
+    CodeGenNodePayload* payload = sema().mutableCodeGenPayload<CodeGenNodePayload>(resolvedRef);
     if (resolvedRef == nodeRef)
         return payload;
 
-    CodeGenNodePayload* originalPayload = sema().codeGenPayload<CodeGenNodePayload>(nodeRef);
+    CodeGenNodePayload* originalPayload = sema().mutableCodeGenPayload<CodeGenNodePayload>(nodeRef);
     if (!payload)
         return originalPayload;
 
@@ -583,7 +549,7 @@ void CodeGen::setVariablePayload(const SymbolVariable& sym, const CodeGenNodePay
     if (sym.hasGlobalStorage())
         return;
 
-    VariableSymbolCodeGenPayload& symbolPayload = ensureVariableSymbolPayload(*this, sym);
+    VariablePayloadState& symbolPayload          = variablePayloads_[&sym];
     symbolPayload.payload                       = payload;
     symbolPayload.hasPayload                    = true;
     symbolPayload.addressGeneration             = isStackAddressPayload(*this, sym, payload) ? currentDeferredAddressGeneration_ : 0;
@@ -594,18 +560,31 @@ const CodeGenNodePayload* CodeGen::variablePayload(const SymbolVariable& sym) co
     if (sym.hasGlobalStorage())
         return nullptr;
 
-    const VariableSymbolCodeGenPayload* symbolPayload = safeVariableSymbolPayload(sym);
-    if (!symbolPayload || !symbolPayload->hasPayload)
+    const auto it = variablePayloads_.find(&sym);
+    if (it == variablePayloads_.end() || !it->second.hasPayload)
         return nullptr;
-    if (isStackAddressPayload(*this, sym, symbolPayload->payload) &&
-        symbolPayload->addressGeneration != currentDeferredAddressGeneration_)
+    const VariablePayloadState& symbolPayload = it->second;
+    if (isStackAddressPayload(*this, sym, symbolPayload.payload) &&
+        symbolPayload.addressGeneration != currentDeferredAddressGeneration_)
         return nullptr;
-    return &symbolPayload->payload;
+    return &symbolPayload.payload;
 }
 
 CodeGenNodePayload& CodeGen::inheritPayload(AstNodeRef dstNodeRef, AstNodeRef srcNodeRef, TypeRef typeRef)
 {
-    const CodeGenNodePayload srcPayloadCopy = payload(srcNodeRef);
+    CodeGenNodePayload srcPayloadCopy;
+    if (resolvedNodeRef(srcNodeRef) == resolvedNodeRef(dstNodeRef))
+    {
+        const auto* originalPayload = sema().codeGenPayload<CodeGenNodePayload>(srcNodeRef);
+        if (originalPayload && originalPayload->reg.isValid())
+            srcPayloadCopy = *originalPayload;
+        else
+            srcPayloadCopy = payload(srcNodeRef);
+    }
+    else
+    {
+        srcPayloadCopy = payload(srcNodeRef);
+    }
 
     if (typeRef.isInvalid())
         typeRef = srcPayloadCopy.typeRef;
@@ -623,7 +602,7 @@ CodeGenNodePayload& CodeGen::setPayload(AstNodeRef nodeRef, TypeRef typeRef)
     nodeRef = resolvedNodeRef(nodeRef);
     SWC_ASSERT(nodeRef.isValid());
 
-    CodeGenNodePayload* nodePayload = safePayload(nodeRef);
+    CodeGenNodePayload* nodePayload = sema().mutableCodeGenPayload<CodeGenNodePayload>(nodeRef);
     if (!nodePayload)
     {
         nodePayload  = compiler().allocate<CodeGenNodePayload>();

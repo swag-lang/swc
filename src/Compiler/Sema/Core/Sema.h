@@ -161,13 +161,56 @@ public:
     void setSymbolList(AstNodeRef n, std::span<const Symbol*> symbols) { nodePayloadContext().setSymbolList(n, symbols); }
     void setSymbolList(AstNodeRef n, std::span<Symbol*> symbols) { nodePayloadContext().setSymbolList(n, symbols); }
 
-    bool hasCodeGenPayload(AstNodeRef n) const { return nodePayloadContext().hasCodeGenPayload(n); }
-    void setCodeGenPayload(AstNodeRef n, void* payload) { nodePayloadContext().setCodeGenPayload(n, payload); }
+    void enableLocalCodeGenPayloads() { localCodeGenPayloads_ = std::make_unique<std::unordered_map<AstNodeRef, void*>>(); }
+    bool hasCodeGenPayload(AstNodeRef n) const
+    {
+        if (localCodeGenPayloads_ && localCodeGenPayloads_->contains(n))
+            return true;
+        return nodePayloadContext().hasCodeGenPayload(n);
+    }
+
+    void setCodeGenPayload(AstNodeRef n, void* payload)
+    {
+        if (localCodeGenPayloads_)
+        {
+            (*localCodeGenPayloads_)[n] = payload;
+            return;
+        }
+
+        nodePayloadContext().setCodeGenPayload(n, payload);
+    }
 
     template<typename T>
     T* codeGenPayload(AstNodeRef n) const
     {
+        if (localCodeGenPayloads_)
+        {
+            const auto it = localCodeGenPayloads_->find(n);
+            if (it != localCodeGenPayloads_->end())
+                return static_cast<T*>(it->second);
+        }
+
         return static_cast<T*>(nodePayloadContext().getCodeGenPayload(n));
+    }
+
+    template<typename T>
+    T* mutableCodeGenPayload(AstNodeRef n)
+    {
+        if (!localCodeGenPayloads_)
+            return static_cast<T*>(nodePayloadContext().getCodeGenPayload(n));
+
+        const auto it = localCodeGenPayloads_->find(n);
+        if (it != localCodeGenPayloads_->end())
+            return static_cast<T*>(it->second);
+
+        void* inherited = nodePayloadContext().getCodeGenPayload(n);
+        if (!inherited)
+            return nullptr;
+
+        auto* payload = compiler().allocate<T>();
+        *payload      = *static_cast<T*>(inherited);
+        (*localCodeGenPayloads_)[n] = payload;
+        return payload;
     }
 
     bool               hasInlinePayload(AstNodeRef n) const { return nodePayloadContext().hasInlinePayload(n); }
@@ -324,6 +367,7 @@ private:
 
     TaskContext* ctx_                = nullptr;
     NodePayload* nodePayloadContext_ = nullptr;
+    std::unique_ptr<std::unordered_map<AstNodeRef, void*>> localCodeGenPayloads_;
     AstVisit     visit_;
 
     std::vector<std::unique_ptr<SemaScope>> scopes_;

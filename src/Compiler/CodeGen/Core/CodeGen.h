@@ -321,7 +321,7 @@ public:
         nodeRef = resolvedNodeRef(nodeRef);
         if (nodeRef.isInvalid())
             return nullptr;
-        return sema().codeGenPayload<T>(nodeRef);
+        return sema().mutableCodeGenPayload<T>(nodeRef);
     }
 
     template<typename T>
@@ -330,7 +330,7 @@ public:
         nodeRef = resolvedNodeRef(nodeRef);
         SWC_ASSERT(nodeRef.isValid());
 
-        T* payload = sema().codeGenPayload<T>(nodeRef);
+        T* payload = sema().mutableCodeGenPayload<T>(nodeRef);
         if (!payload)
         {
             payload = compiler().allocate<T>();
@@ -407,6 +407,13 @@ public:
     MicroReg nextVirtualFloatRegister() { return MicroReg::virtualFloatReg(nextVirtualRegister_++); }
 
 private:
+    struct VariablePayloadState
+    {
+        CodeGenNodePayload payload;
+        bool               hasPayload        = false;
+        uint32_t           addressGeneration = 0;
+    };
+
     void   setVisitors();
     Result preNode(AstNode& node);
     Result postNode(AstNode& node);
@@ -421,6 +428,7 @@ private:
     Sema*                                      sema_ = nullptr;
     AstVisit                                   visit_;
     std::vector<CodeGenFrame>                  frames_;
+    std::unordered_map<const SymbolVariable*, VariablePayloadState> variablePayloads_;
     SymbolFunction*                            function_            = nullptr;
     MicroBuilder*                              builder_             = nullptr;
     uint32_t                                   nextVirtualRegister_ = 1;

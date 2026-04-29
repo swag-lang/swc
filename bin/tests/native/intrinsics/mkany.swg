@@ -145,6 +145,30 @@ enum MkanyKind: u16
     @assert(@kindof(boxed) == string)
     @assert(dref ptr == "beta")
     @assert(@countof(dref ptr) == 4)
+    @assert(cast(string) boxed == "beta")
+}
+
+func mkanyCastStringFromAny(value: any)->string
+{
+    let reboxed: any = @mkany(@dataof(value), @kindof(value))
+    return cast(string) reboxed
+}
+
+func mkanyStringBytesLen(bytes: #null const [..] u8)->u64
+{
+    return @countof(bytes)
+}
+
+func mkanyCastStringToBytesFromAny(value: any)->u64
+{
+    let reboxed: any = @mkany(@dataof(value), @kindof(value))
+    return mkanyStringBytesLen(cast(string) reboxed)
+}
+
+#test
+{
+    @assert(mkanyCastStringFromAny("gamma") == "gamma")
+    @assert(mkanyCastStringToBytesFromAny("delta") == 5)
 }
 
 #test

@@ -1457,7 +1457,7 @@ Result AstAutoCastExpr::codeGenPostNode(CodeGen& codeGen) const
 
 Result AstCastExpr::codeGenPostNode(CodeGen& codeGen) const
 {
-    return emitNumericCast(codeGen, nodeExprRef, codeGen.curViewType().typeRef());
+    return emitNumericCast(codeGen, nodeExprRef, codeGen.transparentPayloadTypeRef());
 }
 
 Result AstAsCastExpr::codeGenPostNode(CodeGen& codeGen) const

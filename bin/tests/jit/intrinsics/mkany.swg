@@ -158,6 +158,35 @@ enum MkanyKind: u16
 
 #test
 {
+    func mkanyCastStringFromAny(value: any)->string
+    {
+        let reboxed: any = @mkany(@dataof(value), @kindof(value))
+        return cast(string) reboxed
+    }
+
+    const V = #run mkanyCastStringFromAny("gamma")
+    #assert(V == "gamma")
+}
+
+#test
+{
+    func mkanyStringBytesLen(bytes: #null const [..] u8)->u64
+    {
+        return @countof(bytes)
+    }
+
+    func mkanyCastStringToBytesFromAny(value: any)->u64
+    {
+        let reboxed: any = @mkany(@dataof(value), @kindof(value))
+        return mkanyStringBytesLen(cast(string) reboxed)
+    }
+
+    const V = #run mkanyCastStringToBytesFromAny("delta")
+    #assert(V == 5)
+}
+
+#test
+{
     func mkanyBoolRuneMix()->s32
     {
         var b: bool = true

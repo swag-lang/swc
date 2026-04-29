@@ -21,6 +21,8 @@ func getRootName(fullname: string)->#null string
         return null
     Debug.assert(isValidPathName(fullname))
     let rootLength = getRootLength(fullname)
+    if !rootLength do
+        return null
     return cast() @mkslice(@dataof(fullname), cast(u64) rootLength)
 }
 

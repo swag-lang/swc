@@ -122,11 +122,19 @@ func getRootLength(fullname: string)->u32
             // UNC (\\?\UNC\ or \\), scan past the next two directory separators at most
             // (e.g. to \\?\UNC\Server\Share or \\Server\Share\)
             i = uncRootLength
-            var n = 1
-            // Maximum separators to skip
-            while i < pathLength and (!isDirectorySeparator(fullname[i]) or n >= 0)
+            var separatorCount = 2
+            while i < pathLength
             {
-                n -= 1
+                if isDirectorySeparator(fullname[i])
+                {
+                    separatorCount -= 1
+                    if !separatorCount
+                    {
+                        i += 1
+                        break
+                    }
+                }
+
                 i += 1
             }
         }

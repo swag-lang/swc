@@ -35,7 +35,7 @@ public func murmur3(a, b: u32)->u32
     var na = a * 0xcc9e2d51
     na = Math.ror(na, 17) * 0x1b873593
     var nb = b ^ na
-    nb = Math.ror(na, 19) * 5
+    nb = Math.ror(nb, 19) * 5
     return nb + 0xe6546b64
 }
 

@@ -139,7 +139,7 @@ public impl ByteStream
     mtd setSeek(offset: u64)
     {
         let len = .length()
-        Debug.assert(.seek <= len)
+        Debug.assert(offset <= len)
         .seek = offset
         .eof  = .seek >= len
     }

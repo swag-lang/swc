@@ -71,6 +71,9 @@ interface IReset
     mtd reset();
 }
 
+#[Swag.Strict]
+alias StrictIReset = IReset
+
 struct Point2 { x, y: f32 }
 struct Point3 { x, y, z: f32 }
 
@@ -158,4 +161,12 @@ impl IReset for Point3
     @assert(@dataof(itf) == &pt2)
     itf = cast(IReset) pt3
     @assert(@dataof(itf) == &pt3)
+}
+
+#test
+{
+    var pt2: Point2
+    var raw = cast(IReset) pt2
+    let itf = dref cast(*StrictIReset) &raw
+    @assert(@kindof(itf) == Point2)
 }

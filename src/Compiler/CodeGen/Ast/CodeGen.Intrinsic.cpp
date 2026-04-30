@@ -1291,14 +1291,18 @@ namespace
         codeGen.ast().appendNodes(children, node.spanChildrenRef);
         SWC_ASSERT(!children.empty());
 
-        const AstNodeRef          exprRef     = children[0];
-        const CodeGenNodePayload& exprPayload = codeGen.payload(exprRef);
-        const SemaNodeView        exprView    = codeGen.viewType(exprRef);
-        CodeGenNodePayload&       result      = codeGen.setPayloadValue(codeGen.curNodeRef(), codeGen.curViewType().typeRef());
-        MicroBuilder&             builder     = codeGen.builder();
-        result.reg                            = codeGen.nextVirtualIntRegister();
+        const AstNodeRef    exprRef     = children[0];
+        CodeGenNodePayload  exprPayload = codeGen.payload(exprRef);
+        const SemaNodeView  exprView    = codeGen.viewType(exprRef);
+        TypeRef             exprTypeRef = exprPayload.effectiveTypeRef(exprView.typeRef());
+        CodeGenNodePayload& result      = codeGen.setPayloadValue(codeGen.curNodeRef(), codeGen.curViewType().typeRef());
+        MicroBuilder&       builder     = codeGen.builder();
+        result.reg                      = codeGen.nextVirtualIntRegister();
+        CodeGenReferenceHelpers::unwrapAliasRefPayload(codeGen, exprPayload, exprTypeRef);
+        SWC_ASSERT(exprTypeRef.isValid());
+        const TypeInfo& exprType = codeGen.typeMgr().get(exprTypeRef);
 
-        if (exprView.type() && exprView.type()->isInterface())
+        if (exprType.isInterface())
         {
             const MicroReg itableReg = codeGen.nextVirtualIntRegister();
             builder.emitLoadRegMem(itableReg, exprPayload.reg, offsetof(Runtime::Interface, itable), MicroOpBits::B64);

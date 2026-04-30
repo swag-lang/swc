@@ -1,5 +1,8 @@
 #global fileprivate //
 
+#[Swag.Strict]
+alias StrictKindOfAny = any
+
 // ============================================================
 // @kindof with default any
 // ============================================================
@@ -151,4 +154,22 @@ enum Kind: u8 { A = 1, B = 2 }
     var s: string = "hello"
     var a: any = @mkany(&s, string)
     @assert(@kindof(a) == string)
+}
+
+#test
+{
+    var x: s32 = 42
+    var raw: any = @mkany(&x, s32)
+    let boxed = dref cast(*StrictKindOfAny) &raw
+    var b = @kindof(boxed)
+    #assert(#typeof(b) == typeinfo)
+    @assert(b == s32)
+}
+
+#test
+{
+    var text: string = "alias-kind"
+    var raw: any = @mkany(&text, string)
+    let boxed = dref cast(*StrictKindOfAny) &raw
+    @assert(@kindof(boxed) == string)
 }

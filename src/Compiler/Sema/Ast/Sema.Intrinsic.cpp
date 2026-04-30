@@ -296,7 +296,12 @@ namespace
 
         SWC_RESULT(SemaCheck::isValue(sema, view.nodeRef()));
 
-        if (!view.type() || (!view.type()->isAny() && !view.type()->isInterface()))
+        if (!view.type())
+            return SemaError::raiseRequestedTypeFam(sema, view.nodeRef(), view.typeRef(), sema.typeMgr().typeAny());
+
+        const TypeRef   kindTypeRef = SemaHelpers::unwrapAliasRefType(sema.ctx(), view.typeRef());
+        const TypeInfo& kindType    = sema.typeMgr().get(kindTypeRef);
+        if (!kindType.isAny() && !kindType.isInterface())
             return SemaError::raiseRequestedTypeFam(sema, view.nodeRef(), view.typeRef(), sema.typeMgr().typeAny());
 
         sema.setType(sema.curNodeRef(), sema.typeMgr().typeTypeInfo());

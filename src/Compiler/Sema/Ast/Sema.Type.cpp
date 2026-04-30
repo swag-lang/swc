@@ -246,8 +246,12 @@ Result AstMoveRefType::semaPostNode(Sema& sema) const
 Result AstSliceType::semaPostNode(Sema& sema) const
 {
     const SemaNodeView view = sema.viewType(nodePointeeTypeRef);
+    TypeRef            elementTypeRef = view.typeRef();
+    const TypeRef      unwrappedTypeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), elementTypeRef);
+    if (unwrappedTypeRef.isValid())
+        elementTypeRef = unwrappedTypeRef;
 
-    if (view.typeRef() == sema.typeMgr().typeVoid())
+    if (elementTypeRef == sema.typeMgr().typeVoid())
     {
         auto diag = SemaError::report(sema, DiagnosticId::sema_err_bad_slice_element_type, nodePointeeTypeRef);
         diag.addArgument(Diagnostic::ARG_TYPE, view.typeRef());

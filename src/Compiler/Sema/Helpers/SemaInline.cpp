@@ -589,12 +589,13 @@ namespace
         return bodyRef;
     }
 
-    SymbolVariable* makeMaterializedInlineBindingSymbol(Sema& sema, const SymbolVariable& sourceParam, AstSingleVarDecl& materializedDecl)
+    SymbolVariable* makeMaterializedInlineBindingSymbol(Sema& sema, const SymbolVariable& sourceParam, AstSingleVarDecl& materializedDecl, const bool materializedAsLet)
     {
         const IdentifierRef idRef  = SemaHelpers::getUniqueIdentifier(sema, "__inline_arg");
         const SymbolFlags   flags  = sema.frame().flagsForCurrentAccess();
         auto*               symVar = Symbol::make<SymbolVariable>(sema.ctx(), &materializedDecl, sourceParam.tokRef(), idRef, flags);
-        symVar->addExtraFlag(SymbolVariableFlagsE::Let);
+        if (materializedAsLet)
+            symVar->addExtraFlag(SymbolVariableFlagsE::Let);
         return symVar;
     }
 
@@ -673,7 +674,7 @@ namespace
             collectSourceIdentifierUses(sema, sourceAst, childRef, outIdentifiers);
     }
 
-    void collectInlineClosureCaptureIdentifiers(Sema& sema, const Ast& sourceAst, AstNodeRef nodeRef, SmallVector<IdentifierRef>& outIdentifiers)
+    void collectInlineClosureCaptureIdentifiers(Sema& sema, const Ast& sourceAst, AstNodeRef nodeRef, SmallVector<IdentifierRef>& outIdentifiers, const bool byRefOnly)
     {
         if (nodeRef.isInvalid())
             return;
@@ -681,14 +682,15 @@ namespace
         const AstNode& node = sourceAst.node(nodeRef);
         if (const auto* closureArg = node.safeCast<AstClosureArgument>())
         {
-            collectSourceIdentifierUses(sema, sourceAst, closureArg->nodeIdentifierRef, outIdentifiers);
+            if (!byRefOnly || closureArg->hasFlag(AstClosureArgumentFlagsE::Address))
+                collectSourceIdentifierUses(sema, sourceAst, closureArg->nodeIdentifierRef, outIdentifiers);
             return;
         }
 
         SmallVector<AstNodeRef> children;
         node.collectChildrenFromAst(children, sourceAst);
         for (const AstNodeRef childRef : children)
-            collectInlineClosureCaptureIdentifiers(sema, sourceAst, childRef, outIdentifiers);
+            collectInlineClosureCaptureIdentifiers(sema, sourceAst, childRef, outIdentifiers, byRefOnly);
     }
 
     bool inlineBindingIsCaptured(IdentifierRef idRef, const SmallVector<IdentifierRef>& capturedIdentifiers)
@@ -766,7 +768,9 @@ namespace
         SmallVector<IdentifierRef>    localIdentifiers;
         collectInlineLocalIdentifiers(sema, sourceAst, decl.nodeBodyRef, localIdentifiers);
         SmallVector<IdentifierRef> capturedIdentifiers;
-        collectInlineClosureCaptureIdentifiers(sema, sourceAst, decl.nodeBodyRef, capturedIdentifiers);
+        collectInlineClosureCaptureIdentifiers(sema, sourceAst, decl.nodeBodyRef, capturedIdentifiers, false);
+        SmallVector<IdentifierRef> capturedByRefIdentifiers;
+        collectInlineClosureCaptureIdentifiers(sema, sourceAst, decl.nodeBodyRef, capturedByRefIdentifiers, true);
 
         SmallVector<SemaClone::ParamBinding> remainingBindings;
         remainingBindings.reserve(ioBindings.size());
@@ -817,10 +821,11 @@ namespace
                 return Result::Error;
 
             auto [declRef, declPtr] = sema.ast().makeNode<AstNodeId::SingleVarDecl>(paramNameRef);
-            declPtr->flags()        = AstVarDeclFlagsE::Let;
-            declPtr->tokNameRef     = paramNameRef;
-            declPtr->nodeInitRef    = clonedInitRef;
-            SymbolVariable* materializedSym = makeMaterializedInlineBindingSymbol(sema, *param, *declPtr);
+            const bool materializedAsLet = !inlineBindingIsCaptured(binding.idRef, capturedByRefIdentifiers);
+            declPtr->flags()             = materializedAsLet ? AstVarDeclFlagsE::Let : AstVarDeclFlagsE::Zero;
+            declPtr->tokNameRef          = paramNameRef;
+            declPtr->nodeInitRef         = clonedInitRef;
+            SymbolVariable* materializedSym = makeMaterializedInlineBindingSymbol(sema, *param, *declPtr, materializedAsLet);
             sema.setSymbol(declRef, materializedSym);
             outStatements.push_back(declRef);
 

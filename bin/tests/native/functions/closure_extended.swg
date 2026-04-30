@@ -85,6 +85,20 @@ func makeInlineCapturedValue(value: s32)->func||()->s32
     }
 }
 
+#[Swag.Inline]
+func inlineCapturedRefValue(value: s32)->s32
+{
+    let cb = func|&value|()->s32
+    {
+        value += 1
+        return value
+    }
+
+    let first  = cb()
+    let second = cb()
+    return first * 10 + second
+}
+
 func runDottedPathCapture()->s32
 {
     var first:  PathTarget = {value: 10}
@@ -129,6 +143,11 @@ func runInlineClosureCaptureExpr()->s32
     let cb = makeInlineCapturedValue(base + 1)
     base = 100
     return cb()
+}
+
+func runInlineClosureCaptureRef()->s32
+{
+    return inlineCapturedRefValue(6)
 }
 
 #test
@@ -342,6 +361,11 @@ func runInlineClosureCaptureExpr()->s32
 #test
 {
     @assert(runInlineClosureCaptureExpr() == 7)
+}
+
+#test
+{
+    @assert(runInlineClosureCaptureRef() == 78)
 }
 
 #test

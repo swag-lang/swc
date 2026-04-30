@@ -785,6 +785,23 @@ Result SemaHelpers::checkBinaryOperandTypes(Sema& sema, AstNodeRef nodeRef, Toke
         return Result::Continue;
     };
 
+    const auto blockPointerPayloadsMatch = [](Sema& inSema, const SemaNodeView& leftOperandView, const SemaNodeView& rightOperandView) {
+        TypeRef leftPayloadTypeRef  = leftOperandView.type()->payloadTypeRef();
+        TypeRef rightPayloadTypeRef = rightOperandView.type()->payloadTypeRef();
+        if (leftPayloadTypeRef == rightPayloadTypeRef)
+            return true;
+
+        const TypeRef leftUnwrappedTypeRef = inSema.typeMgr().unwrapAliasEnum(inSema.ctx(), leftPayloadTypeRef);
+        if (leftUnwrappedTypeRef.isValid())
+            leftPayloadTypeRef = leftUnwrappedTypeRef;
+
+        const TypeRef rightUnwrappedTypeRef = inSema.typeMgr().unwrapAliasEnum(inSema.ctx(), rightPayloadTypeRef);
+        if (rightUnwrappedTypeRef.isValid())
+            rightPayloadTypeRef = rightUnwrappedTypeRef;
+
+        return leftPayloadTypeRef == rightPayloadTypeRef;
+    };
+
     switch (op)
     {
         case TokenId::SymPlus:
@@ -805,8 +822,10 @@ Result SemaHelpers::checkBinaryOperandTypes(Sema& sema, AstNodeRef nodeRef, Toke
 
             if (leftView.type()->isBlockPointer() && rightView.type()->isScalarNumeric())
                 return Result::Continue;
-            if (leftView.type()->isBlockPointer() && rightView.type()->isBlockPointer())
+            if (leftView.type()->isBlockPointer() && rightView.type()->isBlockPointer() && blockPointerPayloadsMatch(sema, leftView, rightView))
                 return Result::Continue;
+            if (leftView.type()->isBlockPointer() && rightView.type()->isBlockPointer())
+                return SemaError::raiseBinaryOperandType(sema, nodeRef, rightRef, leftView.typeRef(), rightView.typeRef());
             break;
 
         default:

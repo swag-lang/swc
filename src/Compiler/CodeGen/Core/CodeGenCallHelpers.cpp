@@ -1142,6 +1142,8 @@ namespace
 
             const TypeRef   argTypeRef = argPayload.effectiveTypeRef(argView.typeRef());
             const TypeInfo& argType    = ctx.typeMgr().get(argTypeRef);
+            const TypeRef   resolvedArgTypeRef = ctx.typeMgr().unwrapAliasEnum(ctx, argTypeRef);
+            const TypeInfo& resolvedArgType    = ctx.typeMgr().get(resolvedArgTypeRef.isValid() ? resolvedArgTypeRef : argTypeRef);
             const uint64_t  rawArgSize = argType.sizeOf(ctx);
             SWC_ASSERT(rawArgSize > 0 && rawArgSize <= std::numeric_limits<uint32_t>::max());
 
@@ -1151,7 +1153,7 @@ namespace
             info.argTypeRef = argTypeRef;
             info.valueSize  = static_cast<uint32_t>(rawArgSize);
             info.valueAlign = std::max<uint32_t>(argType.alignOf(ctx), 1);
-            info.isAny      = argType.isAny();
+            info.isAny      = resolvedArgType.isAny();
 
             if (!info.isAny)
             {

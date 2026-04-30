@@ -1,5 +1,8 @@
 #global fileprivate
 
+#[Swag.Strict]
+alias VariadicStrictAny = any
+
 struct VariadicAnyBox
 {
     value: s32
@@ -258,4 +261,55 @@ func variadicFirstAnyDataS32(values: ...)->s32
 
     const ok = #run boxedAnyForeachThroughVariadic()
     #assert(ok)
+}
+
+#test
+{
+    func strictAnyCastThroughVariadic()->bool
+    {
+        let boxed = cast(VariadicStrictAny) 42's32
+        return variadicFirstAnyIsS32(boxed)
+    }
+
+    const ok = #run strictAnyCastThroughVariadic()
+    #assert(ok)
+}
+
+#test
+{
+    func strictAnyViewThroughVariadic()->bool
+    {
+        var raw: any = 42's32
+        let boxed = dref cast(*VariadicStrictAny) &raw
+        return variadicFirstAnyIsS32(boxed)
+    }
+
+    const ok = #run strictAnyViewThroughVariadic()
+    #assert(ok)
+}
+
+#test
+{
+    func strictAnySecondSlotThroughVariadic()->bool
+    {
+        let boxed = cast(VariadicStrictAny) "variadic-any"
+        return variadicSecondAnyIsString(42's32, boxed)
+    }
+
+    const ok = #run strictAnySecondSlotThroughVariadic()
+    #assert(ok)
+}
+
+#test
+{
+    func strictAnyDataThroughVariadic()->s32
+    {
+        var value: s32 = 1234
+        var raw: any = @mkany(&value, s32)
+        let boxed = dref cast(*VariadicStrictAny) &raw
+        return variadicFirstAnyDataS32(boxed)
+    }
+
+    const value = #run strictAnyDataThroughVariadic()
+    #assert(value == 1234)
 }

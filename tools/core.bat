@@ -6,7 +6,7 @@ call "%TOOLS_DIR%_common.bat" :init "%TOOLS_DIR%" "%~1"
 if not "%ERRORLEVEL%"=="0" exit /b %ERRORLEVEL%
 if /I "%~1"=="dm" shift
 
-set "BIN_REL=reference\tests\language"
+set "CORE_BIN_REL=std\modules\core"
 set "BUILD_CFG=fast-debug"
 set "EXTRA_ARGS="
 
@@ -23,10 +23,13 @@ shift
 goto parse_args
 
 :run
-call "%TOOLS_DIR%_common.bat" :set_paths "%BIN_REL%" "executable" "%BUILD_CFG%"
+set "WIN32_API_DIR=%OUTPUT_ROOT%\dep\win32"
+set "XINPUT_API_DIR=%OUTPUT_ROOT%\dep\xinput"
+
+call "%TOOLS_DIR%_common.bat" :set_paths "%CORE_BIN_REL%" "executable" "%BUILD_CFG%"
 if not "%ERRORLEVEL%"=="0" exit /b %ERRORLEVEL%
 
-"%SWC_EXE%" test -m "%ROOT%\bin\%BIN_REL%" --artifact-kind executable --module-namespace Language --out-dir "%OUT_DIR%" --work-dir "%WORK_DIR%" --build-cfg %BUILD_CFG%%EXTRA_ARGS%
+"%SWC_EXE%" test -m "%ROOT%\bin\%CORE_BIN_REL%" --module-namespace Core --artifact-kind executable --out-dir "%OUT_DIR%" --work-dir "%WORK_DIR%" --build-cfg %BUILD_CFG% --import-api-dir "%WIN32_API_DIR%" --import-api-dir "%XINPUT_API_DIR%"%EXTRA_ARGS%
 if not "%ERRORLEVEL%"=="0" exit /b %ERRORLEVEL%
 
 exit /b 0

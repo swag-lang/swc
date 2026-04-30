@@ -2,7 +2,7 @@
 setlocal
 
 for %%I in ("%~f0") do set "TOOLS_DIR=%%~dpI"
-call "%TOOLS_DIR%common.bat" :init "%TOOLS_DIR%" "%~1"
+call "%TOOLS_DIR%_common.bat" :init "%TOOLS_DIR%" "%~1"
 if not "%ERRORLEVEL%"=="0" exit /b %ERRORLEVEL%
 if /I "%~1"=="dm" shift
 

@@ -2,7 +2,7 @@
 setlocal
 
 for %%I in ("%~f0") do set "TOOLS_DIR=%%~dpI"
-call "%TOOLS_DIR%common.bat" :init "%TOOLS_DIR%" "%~1"
+call "%TOOLS_DIR%_common.bat" :init "%TOOLS_DIR%" "%~1"
 if not "%ERRORLEVEL%"=="0" exit /b %ERRORLEVEL%
 if /I "%~1"=="dm" shift
 
@@ -32,25 +32,25 @@ set "GDI32_API_DIR=%OUTPUT_ROOT%\dep\gdi32"
 set "XAUDIO2_API_DIR=%OUTPUT_ROOT%\dep\xaudio2"
 set "XINPUT_API_DIR=%OUTPUT_ROOT%\dep\xinput"
 
-call "%TOOLS_DIR%common.bat" :set_paths "%WIN32_BIN_REL%" "export" "%BUILD_CFG%"
+call "%TOOLS_DIR%_common.bat" :set_paths "%WIN32_BIN_REL%" "export" "%BUILD_CFG%"
 if not "%ERRORLEVEL%"=="0" exit /b %ERRORLEVEL%
 
 "%SWC_EXE%" build -m "%ROOT%\bin\%WIN32_BIN_REL%" --artifact-kind export --module-namespace Win32 --out-dir "%OUT_DIR%" --work-dir "%WORK_DIR%" --build-cfg %BUILD_CFG% --export-api-dir "%WIN32_API_DIR%"%EXTRA_ARGS%
 if not "%ERRORLEVEL%"=="0" exit /b %ERRORLEVEL%
 
-call "%TOOLS_DIR%common.bat" :set_paths "%GDI32_BIN_REL%" "export" "%BUILD_CFG%"
+call "%TOOLS_DIR%_common.bat" :set_paths "%GDI32_BIN_REL%" "export" "%BUILD_CFG%"
 if not "%ERRORLEVEL%"=="0" exit /b %ERRORLEVEL%
 
 "%SWC_EXE%" build -m "%ROOT%\bin\%GDI32_BIN_REL%" --artifact-kind export --module-namespace Gdi32 --out-dir "%OUT_DIR%" --work-dir "%WORK_DIR%" --build-cfg %BUILD_CFG% --import-api-dir "%WIN32_API_DIR%" --export-api-dir "%GDI32_API_DIR%"%EXTRA_ARGS%
 if not "%ERRORLEVEL%"=="0" exit /b %ERRORLEVEL%
 
-call "%TOOLS_DIR%common.bat" :set_paths "%XAUDIO2_BIN_REL%" "export" "%BUILD_CFG%"
+call "%TOOLS_DIR%_common.bat" :set_paths "%XAUDIO2_BIN_REL%" "export" "%BUILD_CFG%"
 if not "%ERRORLEVEL%"=="0" exit /b %ERRORLEVEL%
 
 "%SWC_EXE%" build -m "%ROOT%\bin\%XAUDIO2_BIN_REL%" --artifact-kind export --module-namespace XAudio2 --out-dir "%OUT_DIR%" --work-dir "%WORK_DIR%" --build-cfg %BUILD_CFG% --import-api-dir "%WIN32_API_DIR%" --export-api-dir "%XAUDIO2_API_DIR%"%EXTRA_ARGS%
 if not "%ERRORLEVEL%"=="0" exit /b %ERRORLEVEL%
 
-call "%TOOLS_DIR%common.bat" :set_paths "%XINPUT_BIN_REL%" "export" "%BUILD_CFG%"
+call "%TOOLS_DIR%_common.bat" :set_paths "%XINPUT_BIN_REL%" "export" "%BUILD_CFG%"
 if not "%ERRORLEVEL%"=="0" exit /b %ERRORLEVEL%
 
 "%SWC_EXE%" build -m "%ROOT%\bin\%XINPUT_BIN_REL%" --artifact-kind export --module-namespace XInput --out-dir "%OUT_DIR%" --work-dir "%WORK_DIR%" --build-cfg %BUILD_CFG% --import-api-dir "%WIN32_API_DIR%" --export-api-dir "%XINPUT_API_DIR%"%EXTRA_ARGS%

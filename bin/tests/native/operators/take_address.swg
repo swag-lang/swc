@@ -41,6 +41,14 @@ alias StrictAddressArray = [3] s32
 
 #test
 {
+    var x: StrictAddressArray = cast(StrictAddressArray) [1, 2, 3]
+    var px = &x
+    #assert(#typeof(px) == [*]StrictAddressArray)
+    @assert(px == &x)
+}
+
+#test
+{
     struct AA { x: s32 }
     var x = 0
     @assert(x == 0)

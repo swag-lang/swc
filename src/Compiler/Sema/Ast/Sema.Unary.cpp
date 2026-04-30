@@ -249,8 +249,12 @@ namespace
             flags.add(TypeInfoFlagsE::Const);
 
         bool blockPointer = false;
-        if (pointeeTypeRef.isValid() && sema.typeMgr().get(pointeeTypeRef).isArray())
-            blockPointer = true;
+        if (pointeeTypeRef.isValid())
+        {
+            const TypeRef storageTypeRef = SemaHelpers::unwrapAliasRefType(sema.ctx(), pointeeTypeRef);
+            if (sema.typeMgr().get(storageTypeRef).isArray())
+                blockPointer = true;
+        }
 
         const TypeInfo& ty      = blockPointer ? TypeInfo::makeBlockPointer(pointeeTypeRef, flags) : TypeInfo::makeValuePointer(pointeeTypeRef, flags);
         const TypeRef   typeRef = sema.typeMgr().addType(ty);

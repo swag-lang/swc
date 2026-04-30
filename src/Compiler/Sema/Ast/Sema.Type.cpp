@@ -417,6 +417,18 @@ Result AstArrayType::semaPostNode(Sema& sema) const
 {
     TaskContext&       ctx  = sema.ctx();
     const SemaNodeView view = sema.viewType(nodePointeeTypeRef);
+    TypeRef            elementTypeRef = view.typeRef();
+    const TypeRef      unwrappedTypeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), elementTypeRef);
+    if (unwrappedTypeRef.isValid())
+        elementTypeRef = unwrappedTypeRef;
+
+    if (elementTypeRef == sema.typeMgr().typeVoid())
+    {
+        auto diag = SemaError::report(sema, DiagnosticId::sema_err_bad_array_element_type, nodePointeeTypeRef);
+        diag.addArgument(Diagnostic::ARG_TYPE, view.typeRef());
+        diag.report(ctx);
+        return Result::Error;
+    }
 
     // Unknown dimension [?]
     if (spanDimensionsRef.isInvalid())

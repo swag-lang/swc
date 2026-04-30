@@ -104,6 +104,7 @@ SWC_DIAG_DEF(sema_err_array_dim_not_int, Error, "array dimension must be an inte
 SWC_DIAG_DEF(sema_err_array_num_dims, Error, "wrong number of indices for array access; expected {count}, found {value}")
 SWC_DIAG_DEF(sema_err_array_dim_zero, Error, "array dimension is zero")
 SWC_DIAG_DEF(sema_err_array_dim_negative, Error, "array dimension must be positive, found {value}")
+SWC_DIAG_DEF(sema_err_bad_array_element_type, Error, "type '{type}' cannot be used as an array element; [help] use a storable element type")
 SWC_DIAG_DEF(sema_err_bad_slice_element_type, Error, "type '{type}' cannot be used as a slice element; [help] use a storable element type")
 SWC_DIAG_DEF(sema_err_reserved_swag_ns, Error, "namespace '{tok}' is reserved")
 SWC_DIAG_DEF(sema_err_invalid_op_enum, Error, "operator '{tok}' cannot be applied to non-flag enum type '{type}'")

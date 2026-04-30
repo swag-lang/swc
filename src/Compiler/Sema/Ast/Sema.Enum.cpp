@@ -40,17 +40,30 @@ Result AstEnumDecl::semaPreNode(Sema& sema) const
 
 namespace
 {
+    TypeRef enumUnderlyingStorageTypeRef(Sema& sema, TypeRef typeRef)
+    {
+        const TypeRef unwrappedTypeRef = sema.typeMgr().get(typeRef).unwrap(sema.ctx(), TypeRef::invalid(), TypeExpandE::Alias);
+        return unwrappedTypeRef.isValid() ? unwrappedTypeRef : typeRef;
+    }
+
+    const TypeInfo& enumUnderlyingStorageType(Sema& sema, TypeRef typeRef)
+    {
+        return sema.typeMgr().get(enumUnderlyingStorageTypeRef(sema, typeRef));
+    }
+
     Result validateEnumUnderlyingType(Sema& sema, const SymbolEnum& sym, const SemaNodeView& typeView, AstNodeRef typeNodeRef)
     {
-        if (sym.isEnumFlags() && !typeView.type()->isIntUnsigned())
+        const TypeInfo& storageType = enumUnderlyingStorageType(sema, typeView.typeRef());
+
+        if (sym.isEnumFlags() && !storageType.isIntUnsigned())
             return SemaError::raise(sema, DiagnosticId::sema_err_invalid_enum_flags_type, typeNodeRef);
 
-        if (!typeView.type()->isScalarNumeric() &&
-            !typeView.type()->isBool() &&
-            !typeView.type()->isRune() &&
-            !typeView.type()->isString() &&
-            !typeView.type()->isArray() &&
-            !typeView.type()->isSlice())
+        if (!storageType.isScalarNumeric() &&
+            !storageType.isBool() &&
+            !storageType.isRune() &&
+            !storageType.isString() &&
+            !storageType.isArray() &&
+            !storageType.isSlice())
             return SemaError::raise(sema, DiagnosticId::sema_err_invalid_enum_type, typeNodeRef);
 
         return Result::Continue;
@@ -140,7 +153,7 @@ Result AstEnumDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) con
     sym.setUnderlyingTypeRef(underlyingTypeRef);
     sym.setTyped(sema.ctx());
 
-    initEnumNextValue(sym, *typeView.type());
+    initEnumNextValue(sym, enumUnderlyingStorageType(sema, underlyingTypeRef));
 
     sema.pushScopePopOnPostNode(SemaScopeFlagsE::Type);
     sema.curScope().setSymMap(&sym);
@@ -197,7 +210,7 @@ Result AstEnumValue::semaPostNode(Sema& sema) const
 
     auto&           symEnum           = sema.curSymMap()->cast<SymbolEnum>();
     const TypeRef   underlyingTypeRef = symEnum.underlyingTypeRef();
-    const TypeInfo& underlyingType    = symEnum.underlyingType(ctx);
+    const TypeInfo& underlyingType    = enumUnderlyingStorageType(sema, underlyingTypeRef);
 
     ConstantRef valueCst;
     if (nodeInitView.nodeRef().isValid())

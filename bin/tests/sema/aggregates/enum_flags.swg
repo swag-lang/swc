@@ -1,5 +1,10 @@
 #global fileprivate
 
+alias FlagsAliasU32 = u32
+
+#[Swag.Strict]
+alias FlagsStrictAliasU16 = u16
+
 enum AA { A, B }
 
 #[Swag.EnumFlags]
@@ -14,6 +19,15 @@ enum AA { A, B }
 enum II { A, B, C }
 #assert(#typeof(II) == II)
 #assert(#kindof(II) == u32)
+
+#[Swag.EnumFlags]
+enum AliasFlags : FlagsAliasU32 { A, B, C }
+#assert(#kindof(AliasFlags) == u32)
+#assert(cast(u32) AliasFlags.C == 4)
+
+#[Swag.EnumFlags]
+enum StrictAliasFlags : FlagsStrictAliasU16 { A, B, C }
+#assert(cast(u16) StrictAliasFlags.C == 4)
 
 #[Swag.EnumFlags]
 enum JJ { A, B, C }

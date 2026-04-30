@@ -1,7 +1,14 @@
 #global fileprivate
 
+alias EnumAliasU32 = u32
+
+#[Swag.Strict]
+alias EnumStrictAliasU16 = u16
+
 enum AA: u32 { A }
 enum BB { A }
+enum AliasBacked: EnumAliasU32 { A = 7 }
+enum StrictAliasBacked: EnumStrictAliasU16 { A = cast(EnumStrictAliasU16) 9 }
 
 enum A1: s8 { A }
 enum A2: s16 { A }
@@ -75,6 +82,8 @@ enum EE
 #assert(cast(u64) A8.A == 0)
 
 #assert(cast(u32) BB.A == 0)
+#assert(cast(u32) AliasBacked.A == 7)
+#assert(cast(u16) StrictAliasBacked.A == 9)
 #assert(cast(s32) CC.B == 1)
 #assert(cast(u32) CC.B == 1)
 

@@ -1262,17 +1262,21 @@ namespace
         codeGen.ast().appendNodes(children, node.spanChildrenRef);
         SWC_ASSERT(!children.empty());
 
-        const AstNodeRef          exprRef     = children[0];
-        const CodeGenNodePayload& exprPayload = codeGen.payload(exprRef);
-        const SemaNodeView        exprView    = codeGen.viewType(exprRef);
-        const CodeGenNodePayload& payload     = codeGen.setPayloadValue(codeGen.curNodeRef(), codeGen.curViewType().typeRef());
-        MicroBuilder&             builder     = codeGen.builder();
+        const AstNodeRef          exprRef   = children[0];
+        CodeGenNodePayload        exprPayload = codeGen.payload(exprRef);
+        const SemaNodeView        exprView  = codeGen.viewType(exprRef);
+        TypeRef                   exprTypeRef = exprPayload.effectiveTypeRef(exprView.typeRef());
+        const CodeGenNodePayload& payload   = codeGen.setPayloadValue(codeGen.curNodeRef(), codeGen.curViewType().typeRef());
+        MicroBuilder&             builder   = codeGen.builder();
+        CodeGenReferenceHelpers::unwrapAliasRefPayload(codeGen, exprPayload, exprTypeRef);
+        SWC_ASSERT(exprTypeRef.isValid());
+        const TypeInfo& exprType = codeGen.typeMgr().get(exprTypeRef);
 
-        if (exprView.type() && exprView.type()->isInterface())
+        if (exprType.isInterface())
             builder.emitLoadRegMem(payload.reg, exprPayload.reg, offsetof(Runtime::Interface, obj), MicroOpBits::B64);
-        else if (exprView.type() && (exprView.type()->isString() || exprView.type()->isSlice() || exprView.type()->isAny()))
+        else if (exprType.isString() || exprType.isSlice() || exprType.isAny())
             builder.emitLoadRegMem(payload.reg, exprPayload.reg, 0, MicroOpBits::B64);
-        else if (exprView.type() && exprView.type()->isArray())
+        else if (exprType.isArray())
             builder.emitLoadRegReg(payload.reg, exprPayload.reg, MicroOpBits::B64);
         else if (exprPayload.isAddress())
             builder.emitLoadRegMem(payload.reg, exprPayload.reg, 0, MicroOpBits::B64);

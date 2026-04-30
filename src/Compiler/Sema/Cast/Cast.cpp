@@ -62,8 +62,10 @@ TypeRef Cast::runtimeStorageTypeRef(Sema& sema, TypeRef srcTypeRef, TypeRef dstT
     if (!srcTypeRef.isValid() || !dstTypeRef.isValid())
         return TypeRef::invalid();
 
-    const TypeInfo& srcType = sema.typeMgr().get(srcTypeRef);
-    const TypeInfo& dstType = sema.typeMgr().get(dstTypeRef);
+    const TypeRef   srcStorageTypeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), srcTypeRef);
+    const TypeRef   dstStorageTypeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), dstTypeRef);
+    const TypeInfo& srcType           = sema.typeMgr().get(srcStorageTypeRef);
+    const TypeInfo& dstType           = sema.typeMgr().get(dstStorageTypeRef);
 
     if (srcConstRef.isValid())
     {
@@ -179,8 +181,10 @@ Result Cast::retargetLiteralRuntimeStorageIfNeeded(Sema& sema, AstNodeRef nodeRe
     if (srcTypeRef.isInvalid() || dstTypeRef.isInvalid())
         return Result::Continue;
 
-    const TypeInfo& srcType = sema.typeMgr().get(srcTypeRef);
-    const TypeInfo& dstType = sema.typeMgr().get(dstTypeRef);
+    const TypeRef   srcStorageTypeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), srcTypeRef);
+    const TypeRef   dstStorageTypeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), dstTypeRef);
+    const TypeInfo& srcType           = sema.typeMgr().get(srcStorageTypeRef);
+    const TypeInfo& dstType           = sema.typeMgr().get(dstStorageTypeRef);
     const bool      needsRetarget =
         (srcType.isAggregateArray() && (dstType.isArray() || dstType.isSlice())) ||
         (srcType.isAggregateStruct() && dstType.isStruct());

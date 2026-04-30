@@ -1104,13 +1104,13 @@ namespace
         if (tryEmitValueBackedPointerLikeCast(codeGen, srcPayload, sourceTypeRef, dstTypeRef, castPayload))
             return Result::Continue;
 
-        if (dstType.isString() && srcType.isArray())
-            return emitArrayToStringCast(codeGen, srcNodeRef, dstTypeRef, srcType);
-        if (dstType.isSlice())
+        if (resolvedDstType.isString() && resolvedSrcType.isArray())
+            return emitArrayToStringCast(codeGen, srcNodeRef, dstTypeRef, resolvedSrcType);
+        if (resolvedDstType.isSlice())
         {
-            const TypeRef sourceArrayTypeRef = sliceCastSourceArrayTypeRef(codeGen, srcNodeRef, sourceTypeRef, srcType, dstType);
+            const TypeRef sourceArrayTypeRef = sliceCastSourceArrayTypeRef(codeGen, srcNodeRef, resolvedSrcTypeRef, resolvedSrcType, resolvedDstType);
             if (sourceArrayTypeRef.isValid())
-                return emitArrayToSliceCast(codeGen, srcNodeRef, dstTypeRef, codeGen.typeMgr().get(sourceArrayTypeRef), dstType);
+                return emitArrayToSliceCast(codeGen, srcNodeRef, dstTypeRef, codeGen.typeMgr().get(sourceArrayTypeRef), resolvedDstType);
         }
 
         if (dstType.isAny() && !srcType.isAny())

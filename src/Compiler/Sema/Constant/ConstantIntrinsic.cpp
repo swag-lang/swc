@@ -6,6 +6,7 @@
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
+#include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Support/Math/Helpers.h"
 
@@ -199,9 +200,9 @@ void ConstantIntrinsic::tryConstantFoldDataOf(Sema& sema, TypeRef resultTypeRef,
     if (!view.cstRef().isValid())
         return;
 
-    const ConstantValue& cst  = sema.cstMgr().get(view.cstRef());
-    const TypeInfo*      type = view.type();
-    SWC_ASSERT(type);
+    const ConstantValue& cst         = sema.cstMgr().get(view.cstRef());
+    const TypeRef        dataTypeRef = SemaHelpers::unwrapAliasRefType(sema.ctx(), view.typeRef());
+    const TypeInfo*      type        = &sema.typeMgr().get(dataTypeRef);
 
     uint64_t ptrValue = 0;
 

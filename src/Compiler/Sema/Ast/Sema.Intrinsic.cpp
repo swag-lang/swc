@@ -246,7 +246,12 @@ namespace
 
         SWC_RESULT(SemaCheck::isValue(sema, view.nodeRef()));
 
-        const TypeInfo* type = view.type();
+        const TypeRef   dataTypeRef = SemaHelpers::unwrapAliasRefType(sema.ctx(), view.typeRef());
+        const TypeInfo* type        = &sema.typeMgr().get(dataTypeRef);
+        TypeInfoFlags   flags       = type->flags();
+        flags.add(view.type()->flags());
+        if (view.sym() && (view.sym()->isLetVariable() || view.sym()->isConstant()))
+            flags.add(TypeInfoFlagsE::Const);
 
         TypeRef resultTypeRef = TypeRef::invalid();
         if (type->isString() || type->isCString())
@@ -255,12 +260,12 @@ namespace
         }
         else if (type->isSlice())
         {
-            const TypeInfo ty = TypeInfo::makeBlockPointer(type->payloadTypeRef(), type->flags());
+            const TypeInfo ty = TypeInfo::makeBlockPointer(type->payloadTypeRef(), flags);
             resultTypeRef     = sema.typeMgr().addType(ty);
         }
         else if (type->isArray())
         {
-            const TypeInfo ty = TypeInfo::makeBlockPointer(type->payloadArrayElemTypeRef(), type->flags());
+            const TypeInfo ty = TypeInfo::makeBlockPointer(type->payloadArrayElemTypeRef(), flags);
             resultTypeRef     = sema.typeMgr().addType(ty);
         }
         else if (type->isAny())
@@ -273,7 +278,7 @@ namespace
         }
         else if (type->isAnyPointer())
         {
-            resultTypeRef = view.typeRef();
+            resultTypeRef = dataTypeRef;
         }
 
         if (!resultTypeRef.isValid())

@@ -18,6 +18,12 @@ struct ConstDataOfSpecBuffer
     data: [2] u8
 }
 
+#[Swag.Strict]
+alias StrictDataOfArray = [3] s32
+
+#[Swag.Strict]
+alias StrictDataOfSlice = [..] s32
+
 impl ConstDataOfSpecBuffer
 {
     mtd const opData()->const [*] u8
@@ -144,4 +150,36 @@ impl ConstDataOfSpecBuffer
     #assert(#typeof(p) == const [*] u8)
     @assert(dref p == 7'u8)
     @assert(p[1] == 9'u8)
+}
+
+#test
+{
+    var value: StrictDataOfArray = cast(StrictDataOfArray) [10, 20, 30]
+    let p = @dataof(value)
+    #assert(#typeof(p) == [*] s32)
+    p[1] = 44
+    @assert(value[0] == 10)
+    @assert(value[1] == 44)
+    @assert(value[2] == 30)
+}
+
+#test
+{
+    const value: StrictDataOfArray = cast(StrictDataOfArray) [7, 8, 9]
+    const p = @dataof(value)
+    #assert(#typeof(p) == const [*] s32)
+    #assert(dref p == 7)
+    @assert(p[1] == 8)
+}
+
+#test
+{
+    var storage: [4] s32 = [3, 6, 9, 12]
+    var value: StrictDataOfSlice = cast(StrictDataOfSlice) storage
+    let p = @dataof(value)
+    #assert(#typeof(p) == [*] s32)
+    p[2] = 55
+    @assert(storage[0] == 3)
+    @assert(storage[2] == 55)
+    @assert(value[3] == 12)
 }

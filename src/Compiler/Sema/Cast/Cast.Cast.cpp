@@ -1775,7 +1775,7 @@ Result Cast::castToCString(Sema& sema, CastRequest& castRequest, TypeRef srcType
     const TypeManager& typeMgr = sema.typeMgr();
     const auto&        srcType = typeMgr.get(srcTypeRef);
 
-    if (srcType.isBlockPointer())
+    if (srcType.isAnyPointer())
     {
         if (srcType.payloadTypeRef() == sema.typeMgr().typeU8())
             return Result::Continue;

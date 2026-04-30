@@ -36,7 +36,7 @@
 #test
 {
     var data: [5] s32 = [10, 20, 30, 40, 50]
-    let base = &data[0]
+    let base = cast([*] s32) &data[0]
     let p2 = base + 2
     let p4 = 4 + base
     let p1 = p4 - 3
@@ -51,7 +51,7 @@
 #test
 {
     var data: [4] u8 = [0, 1, 2, 3]
-    var ptr         = &data[0]
+    var ptr         = cast([*] u8) &data[0]
     ptr += 1'u8
     @assert(ptr[0] == 1'u8)
     @assert(ptr[1] == 2'u8)

@@ -249,7 +249,8 @@ impl Deflate
         var probePos = pos
 
         var numProbesLeft = d.maxProbes[matchLen >= 32 ? 1 : 0]
-        let s             = &d.dict[0] + pos
+        var s: [*] u8     = &d.dict[0]
+        s += pos
         var c0            = d.dict[pos + matchLen]
         var c1            = d.dict[pos + matchLen - 1]
 
@@ -290,7 +291,8 @@ impl Deflate
                 break
 
             var p         = s
-            var q         = &d.dict[0] + probePos
+            var q: [*] u8 = &d.dict[0]
+            q += probePos
             var probeLen: u32
             while probeLen < maxMatchLen
             {
@@ -356,7 +358,7 @@ impl Deflate
         var passShift = 0'u16
         for pass in totalPasses
         {
-            let pHist  = &hist[pass << 8]
+            let pHist  = cast([*] u32) &hist[pass << 8]
             var curOfs = 0
 
             var offsets: [256] u32 = undefined
@@ -780,7 +782,7 @@ impl Deflate
     {
         let d     = .state
         var flags = 1'u32
-        for var lzCodes = &d.lzCodeBuf[0]; lzCodes < d.lzCodeBufAddr; flags >>= 1
+        for var lzCodes = cast([*] u8) &d.lzCodeBuf[0]; lzCodes < d.lzCodeBufAddr; flags >>= 1
         {
             if flags == 1
             {

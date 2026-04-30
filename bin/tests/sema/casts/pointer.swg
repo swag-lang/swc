@@ -126,3 +126,27 @@ alias StrictHandle = const *void
     let ptr  = cast(const [*] u8) text
     #assert(#typeof(ptr) == const [*] u8)
 }
+
+#test
+{
+    var data: [4] s32
+    var index: u64 = 2
+
+    #assert(#typeof(&data[0]) == *s32)
+    #assert(#typeof(&data[index]) == *s32)
+}
+
+#test
+{
+    const data: [4] s32 = [1, 2, 3, 4]
+
+    #assert(#typeof(&data[0]) == const *s32)
+}
+
+#test
+{
+    var data: [4] u8
+    let cstr = cast(cstring) &data[0]
+
+    #assert(#typeof(cstr) == cstring)
+}

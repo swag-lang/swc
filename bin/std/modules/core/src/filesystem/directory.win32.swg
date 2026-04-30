@@ -156,7 +156,7 @@ func getDrives()->Array'String throw
     if slen >= MAX_PATH do
         return result
 
-    var ptr = &volName[0]
+    var ptr = cast([*] u8) &volName[0]
     while ptr[0]
     {
         let len = @countof(cast(cstring) ptr)

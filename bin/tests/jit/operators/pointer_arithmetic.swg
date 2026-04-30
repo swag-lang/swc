@@ -5,7 +5,7 @@
     func pointerStepAndDistance()->s64
     {
         var arr: [6] u16 = [10, 20, 30, 40, 50, 60]
-        let base = &arr[0]
+        let base = cast([*] u16) &arr[0]
         let next = 1 + base
         var ptr  = base
         ptr += 4
@@ -22,7 +22,7 @@
     func reversePointerWalk()->s32
     {
         var arr: [4] s32 = [1, 3, 5, 7]
-        var ptr          = &arr[3]
+        var ptr          = cast([*] s32) &arr[3]
         var acc: s32     = 0
         for 4
         {
@@ -42,7 +42,7 @@
     func pointerIndexAfterTypedStep()->u8
     {
         var arr: [4] u8 = [0, 1, 2, 3]
-        var ptr         = &arr[0]
+        var ptr         = cast([*] u8) &arr[0]
         ptr += 1'u8
         let c = ptr[0]
         return ptr[c]
@@ -57,8 +57,8 @@
     func pointerDifferenceFromOffset()->s64
     {
         var arr: [8] u8
-        let base = &arr[0]
-        let tail = &arr[6]
+        let base = cast([*] u8) &arr[0]
+        let tail = cast([*] u8) &arr[6]
         return tail - (2 + base)
     }
 

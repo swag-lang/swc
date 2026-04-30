@@ -104,13 +104,13 @@ allowing indexed access and pointer movement through memory.
 /**
 # Pointer Arithmetic and Array Elements
 
-When taking the address of an array element, the resulting pointer automatically
-supports pointer arithmetic since it refers to a sequence of elements.
+When taking the address of an array element, the resulting pointer refers to that
+single element. Cast it to a multi-value pointer when pointer arithmetic is intended.
 */
 #test
 {
     var arr: [4] s32
-    var ptr  = &arr[1]
+    var ptr  = cast([*] s32) &arr[1]
 
     // The pointer is treated as a multi-value pointer
     ptr = ptr - 1
@@ -129,7 +129,7 @@ This is particularly useful when traversing arrays or buffers via pointers.
 #test
 {
     var arr = [1, 2, 3, 4]
-    let ptr = &arr[0]
+    let ptr = cast([*] s32) &arr[0]
     @assert(#typeof(ptr) == [*] s32)
     let value1 = ptr[0]
     @assert(value1 == 1)

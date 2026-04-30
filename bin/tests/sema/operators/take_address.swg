@@ -26,7 +26,7 @@ func functionAddressReturnedReference(value: &s32)->&s32
 {
     var a: [4] s32
     var p = &a[0]
-    #assert(#typeof(p) == [*] s32)
+    #assert(#typeof(p) == *s32)
 }
 
 #test
@@ -120,7 +120,7 @@ func functionAddressReturnedReference(value: &s32)->&s32
     var a: [4] s32
     var i = 1's32
     var p = &a[i]
-    #assert(#typeof(p) == [*] s32)
+    #assert(#typeof(p) == *s32)
 }
 
 #test

@@ -248,16 +248,6 @@ namespace
         if (pointeeTypeRef.isValid() && sema.typeMgr().get(pointeeTypeRef).isArray())
             blockPointer = true;
 
-        // TODO @legacy &arr[0] should be a value pointer, not a block pointer
-        SWC_ASSERT(view.node() != nullptr);
-        if (view.node()->is(AstNodeId::IndexExpr))
-        {
-            const auto&        idxExpr  = view.node()->cast<AstIndexExpr>();
-            const SemaNodeView baseView = sema.viewType(idxExpr.nodeExprRef);
-            if (baseView.type() && baseView.type()->isArray())
-                blockPointer = true;
-        }
-
         const TypeInfo& ty      = blockPointer ? TypeInfo::makeBlockPointer(pointeeTypeRef, flags) : TypeInfo::makeValuePointer(pointeeTypeRef, flags);
         const TypeRef   typeRef = sema.typeMgr().addType(ty);
         sema.setType(sema.curNodeRef(), typeRef);
@@ -388,7 +378,7 @@ Result AstUnaryExpr::semaPostNode(Sema& sema)
         sema.setIsLValue(sema.node(view.nodeRef()));
 
         // The pointer is const because the underlying data belongs to a constant.
-        const TypeInfo& ty      = TypeInfo::makeBlockPointer(childTypeRef, TypeInfoFlagsE::Const);
+        const TypeInfo& ty      = TypeInfo::makeValuePointer(childTypeRef, TypeInfoFlagsE::Const);
         const TypeRef   typeRef = sema.typeMgr().addType(ty);
         sema.setType(sema.curNodeRef(), typeRef);
         return Result::Continue;

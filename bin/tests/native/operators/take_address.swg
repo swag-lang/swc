@@ -73,7 +73,7 @@ func nativeFunctionAddressReturnedReference(value: &s32)->&s32
 {
     var a: [4] s32
     var p = &a[0]
-    #assert(#typeof(p) == [*] s32)
+    #assert(#typeof(p) == *s32)
     @assert(p == &a[0])
 }
 
@@ -199,7 +199,7 @@ func nativeFunctionAddressReturnedReference(value: &s32)->&s32
     var a: [4] s32
     var i = 1's32
     var p = &a[i]
-    #assert(#typeof(p) == [*] s32)
+    #assert(#typeof(p) == *s32)
     @assert(p == &a[1])
 }
 
@@ -208,17 +208,18 @@ func nativeFunctionAddressReturnedReference(value: &s32)->&s32
 {
     const a: [3] s32 = [10, 20, 30]
     let p = &a[0]
-    #assert(#typeof(p) == const [*] s32)
-    @assert(p[0] == 10)
-    @assert(p[2] == 30)
+    #assert(#typeof(p) == const *s32)
+    let bp = cast(const [*] s32) p
+    @assert(dref p == 10)
+    @assert(bp[2] == 30)
 }
 
 #test
 {
     const a: [4] u8 = [1, 2, 3, 4]
     let p = &a[2]
-    #assert(#typeof(p) == const [*] u8)
-    @assert(p[0] == 3)
+    #assert(#typeof(p) == const *u8)
+    @assert(dref p == 3)
 }
 
 #test

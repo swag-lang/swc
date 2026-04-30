@@ -37,7 +37,7 @@ three elements of type 's32' (signed 32-bit integers).
 #test
 {
     const a: [3] s32 = [0, 1, 2]
-    let ptr = &a[0]
+    let ptr = cast(const [*] s32) &a[0]
     @assert(ptr[0] == 0)
     @assert(ptr[2] == 2)
     // Compile-time verification of array contents

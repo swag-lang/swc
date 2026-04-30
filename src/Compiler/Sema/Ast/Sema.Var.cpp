@@ -559,6 +559,23 @@ namespace
         EnumFlags<AstVarDeclFlagsE> flags;
     };
 
+    SourceCodeRef finalTypeErrorRef(Sema& sema, const SemaPostVarDeclArgs& context)
+    {
+        if (context.nodeTypeRef.isValid())
+            return sema.node(context.nodeTypeRef).codeRef();
+        if (context.nodeInitRef.isValid())
+            return sema.node(context.nodeInitRef).codeRef();
+        return SourceCodeRef{context.owner->srcViewRef(), context.tokDiag};
+    }
+
+    Result reportBadStorageType(Sema& sema, const SemaPostVarDeclArgs& context, TypeRef typeRef)
+    {
+        Diagnostic diag = SemaError::report(sema, DiagnosticId::sema_err_bad_storage_type, finalTypeErrorRef(sema, context));
+        diag.addArgument(Diagnostic::ARG_TYPE, typeRef);
+        diag.report(sema.ctx());
+        return Result::Error;
+    }
+
     Result tryResolveVarDeclSetInit(Sema& sema, const SemaPostVarDeclArgs& context, const std::span<Symbol*>& symbols, bool isConst, bool isParameter, TypeRef explicitTypeRef, const TypeInfo* explicitType, SemaNodeView& nodeInitView, VarDeclSetInitInfo& outInfo)
     {
         outInfo = {};
@@ -827,6 +844,14 @@ namespace
             return Result::Continue;
 
         const TypeInfo& finalType = sema.typeMgr().get(finalTypeRef);
+
+        TypeRef       storageTypeRef = finalTypeRef;
+        const TypeRef unwrappedTypeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), storageTypeRef);
+        if (unwrappedTypeRef.isValid())
+            storageTypeRef = unwrappedTypeRef;
+
+        if (storageTypeRef == sema.typeMgr().typeVoid())
+            return reportBadStorageType(sema, context, finalTypeRef);
 
         if (isConst && finalType.isReference())
             return reportConstRefType(sema, SourceCodeRef{context.owner->srcViewRef(), context.tokDiag}, finalTypeRef);

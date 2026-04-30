@@ -72,6 +72,7 @@ SWC_DIAG_DEF(sema_err_let_missing_init, Error, "'let' variable '{sym}' is missin
 SWC_DIAG_DEF(sema_err_let_missing_init, Error, "'let' variable is missing an initializer; [help] initialize it at the declaration, or use 'var' instead")
 SWC_DIAG_DEF(sema_err_ref_missing_init, Error, "reference of type '{type}' requires an initializer; [help] bind the reference when it is declared")
 SWC_DIAG_DEF(sema_err_ref_missing_init, Error, "reference is missing an initializer; [help] bind the reference when it is declared")
+SWC_DIAG_DEF(sema_err_bad_storage_type, Error, "type '{type}' cannot be used for storage; [help] use a storable type")
 SWC_DIAG_DEF(sema_err_using_member_type, Error, "'using' requires a struct value or pointer-to-struct, found '{type}'; [help] use a struct member, or a pointer to a struct")
 SWC_DIAG_DEF(sema_err_using_module_namespace, Error, "'using' cannot import the current module namespace '{sym}'; [help] declarations in this module already contribute to it")
 SWC_DIAG_DEF(sema_err_decomposition_not_struct, Error, "cannot decompose value of type '{type}' because it is not a struct; [help] decompose a struct value instead")

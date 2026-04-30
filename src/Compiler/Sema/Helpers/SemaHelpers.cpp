@@ -773,31 +773,39 @@ IdentifierRef SemaHelpers::resolveUniqIdentifier(Sema& sema, const TokenId token
 
 Result SemaHelpers::checkBinaryOperandTypes(Sema& sema, AstNodeRef nodeRef, TokenId op, AstNodeRef leftRef, AstNodeRef rightRef, const SemaNodeView& leftView, const SemaNodeView& rightView)
 {
+    const auto checkPointerArithmeticOperand = [](Sema& inSema, AstNodeRef inNodeRef, AstNodeRef operandRef, const SemaNodeView& operandView) -> Result {
+        if (!operandView.type() || !operandView.type()->isAnyPointer())
+            return Result::Continue;
+
+        if (operandView.type()->payloadTypeRef() == inSema.typeMgr().typeVoid())
+            return SemaError::raisePointerArithmeticVoidPointer(inSema, inNodeRef, operandRef, operandView.typeRef());
+        if (operandView.type()->isValuePointer())
+            return SemaError::raisePointerArithmeticValuePointer(inSema, inNodeRef, operandRef, operandView.typeRef());
+
+        return Result::Continue;
+    };
+
     switch (op)
     {
         case TokenId::SymPlus:
-            if (leftView.type()->isAnyPointer() && leftView.type()->payloadTypeRef() == sema.typeMgr().typeVoid())
-                return SemaError::raisePointerArithmeticVoidPointer(sema, nodeRef, leftRef, leftView.typeRef());
-            if (rightView.type()->isAnyPointer() && rightView.type()->payloadTypeRef() == sema.typeMgr().typeVoid())
-                return SemaError::raisePointerArithmeticVoidPointer(sema, nodeRef, rightRef, rightView.typeRef());
+            SWC_RESULT(checkPointerArithmeticOperand(sema, nodeRef, leftRef, leftView));
+            SWC_RESULT(checkPointerArithmeticOperand(sema, nodeRef, rightRef, rightView));
 
-            if (leftView.type()->isAnyPointer() && rightView.type()->isScalarNumeric())
+            if (leftView.type()->isBlockPointer() && rightView.type()->isScalarNumeric())
                 return Result::Continue;
-            if (leftView.type()->isAnyPointer() && rightView.type()->isAnyPointer())
+            if (leftView.type()->isBlockPointer() && rightView.type()->isBlockPointer())
                 return SemaError::raiseBinaryOperandType(sema, nodeRef, rightRef, leftView.typeRef(), rightView.typeRef());
-            if (leftView.type()->isScalarNumeric() && rightView.type()->isAnyPointer())
+            if (leftView.type()->isScalarNumeric() && rightView.type()->isBlockPointer())
                 return Result::Continue;
             break;
 
         case TokenId::SymMinus:
-            if (leftView.type()->isAnyPointer() && leftView.type()->payloadTypeRef() == sema.typeMgr().typeVoid())
-                return SemaError::raisePointerArithmeticVoidPointer(sema, nodeRef, leftRef, leftView.typeRef());
-            if (rightView.type()->isAnyPointer() && rightView.type()->payloadTypeRef() == sema.typeMgr().typeVoid())
-                return SemaError::raisePointerArithmeticVoidPointer(sema, nodeRef, rightRef, rightView.typeRef());
+            SWC_RESULT(checkPointerArithmeticOperand(sema, nodeRef, leftRef, leftView));
+            SWC_RESULT(checkPointerArithmeticOperand(sema, nodeRef, rightRef, rightView));
 
-            if (leftView.type()->isAnyPointer() && rightView.type()->isScalarNumeric())
+            if (leftView.type()->isBlockPointer() && rightView.type()->isScalarNumeric())
                 return Result::Continue;
-            if (leftView.type()->isAnyPointer() && rightView.type()->isAnyPointer())
+            if (leftView.type()->isBlockPointer() && rightView.type()->isBlockPointer())
                 return Result::Continue;
             break;
 

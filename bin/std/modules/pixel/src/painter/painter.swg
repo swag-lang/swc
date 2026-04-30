@@ -343,7 +343,7 @@ impl Painter
 
         let idx = cast(u32) ptr.aanum
 
-        var ptr1 = &ptr.aa[0] + idx
+        var ptr1 = cast([*] Vector4) &ptr.aa[0] + idx
         ptr1.x = startx
         ptr1.y = starty
         ptr1.z = endx
@@ -351,7 +351,7 @@ impl Painter
         ptr.aanum += 1
 
         ptr += 1
-        ptr1   = &ptr.aa[0] + idx
+        ptr1   = cast([*] Vector4) &ptr.aa[0] + idx
         ptr1.x = startx
         ptr1.y = starty
         ptr1.z = endx
@@ -359,7 +359,7 @@ impl Painter
         ptr.aanum += 1
 
         ptr += 1
-        ptr1   = &ptr.aa[0] + idx
+        ptr1   = cast([*] Vector4) &ptr.aa[0] + idx
         ptr1.x = startx
         ptr1.y = starty
         ptr1.z = endx

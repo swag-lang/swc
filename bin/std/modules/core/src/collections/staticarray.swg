@@ -52,7 +52,7 @@ impl StaticArray
         Debug.safetyBoundCheck(lower <= upper, "lower bound greater than upper bound")
         Debug.safetyBoundCheck(lower < .count, "lower bound out of range")
         Debug.safetyBoundCheck(upper < .count, "upper bound out of range")
-        return @mkslice(&.buffer[0] + lower, (upper + 1) - lower)
+        return @mkslice(&.buffer[lower], (upper + 1) - lower)
     }
 
     // Returns a constant reference to the element at the specified index.
@@ -124,9 +124,9 @@ impl StaticArray
 
         // Little trick to avoid labels. That way a 'continue' in the user code will work correctly
         #if back do
-            var scan = &.buffer[0] + .count
+            var scan = cast([*] T) &.buffer[0] + .count
         #else do
-            var scan = &.buffer[0] - 1
+            var scan = cast([*] T) &.buffer[0] - 1
 
         for .count
         {
@@ -201,7 +201,7 @@ impl StaticArray
         #if Reflection.hasDrop(T)
         {
             for .count do
-                @drop(&.buffer[0] + @index)
+                @drop(&.buffer[@index])
         }
 
         .count = 0
@@ -244,7 +244,7 @@ impl StaticArray
     {
         Debug.assert(.count + num <= N, "the array is full")
         .count += num
-        return .buffer + .count - num
+        return cast([*] T) &.buffer[0] + .count - num
     }
 
     // Makes room for 'num' elements at the end of the array and returns a pointer to the new space.
@@ -253,7 +253,7 @@ impl StaticArray
     {
         Debug.assert(.count + num <= N, "the array is full")
         .count += num
-        var res = .buffer + .count - num
+        var res = cast([*] T) &.buffer[0] + .count - num
         @init(res, num)
         return res
     }
@@ -276,7 +276,7 @@ impl StaticArray
         }
         #else
         {
-            Memory.copyOver(&.buffer[0] + index + 1, &.buffer[0] + index, #sizeof(T) * (.count - 1 - index))
+            Memory.copyOver(&.buffer[index + 1], &.buffer[index], #sizeof(T) * (.count - 1 - index))
         }
 
         .buffer[index] = #nodrop value
@@ -299,7 +299,7 @@ impl StaticArray
         }
         #else
         {
-            Memory.copyOver(&.buffer[0] + index + 1, &.buffer[0] + index, #sizeof(T) * (.count - 1 - index))
+            Memory.copyOver(&.buffer[index + 1], &.buffer[index], #sizeof(T) * (.count - 1 - index))
         }
 
         .buffer[index] = #nodrop #move value
@@ -327,7 +327,7 @@ impl StaticArray
         }
         #else
         {
-            Memory.copyOver(&.buffer[0] + index + sliceCount, &.buffer[0] + index, #sizeof(T) * (.count - sliceCount - index))
+            Memory.copyOver(&.buffer[index + sliceCount], &.buffer[index], #sizeof(T) * (.count - sliceCount - index))
         }
 
         #if Reflection.hasPostCopy(T)
@@ -337,7 +337,7 @@ impl StaticArray
         }
         #else
         {
-            Memory.copy(&.buffer[0] + index, @dataof(values), #sizeof(T) * sliceCount)
+            Memory.copy(&.buffer[index], @dataof(values), #sizeof(T) * sliceCount)
         }
     }
 
@@ -363,7 +363,7 @@ impl StaticArray
         }
         #else
         {
-            Memory.copyOver(&.buffer[0] + index + @countof(values), &.buffer[0] + index, #sizeof(T) * (.count - sliceCount - index))
+            Memory.copyOver(&.buffer[index + @countof(values)], &.buffer[index], #sizeof(T) * (.count - sliceCount - index))
         }
 
         #if Reflection.hasPostMove(T)
@@ -373,7 +373,7 @@ impl StaticArray
         }
         #else
         {
-            Memory.copy(&.buffer[0] + index, @dataof(values), #sizeof(T) * sliceCount)
+            Memory.copy(&.buffer[index], @dataof(values), #sizeof(T) * sliceCount)
         }
     }
 
@@ -391,7 +391,7 @@ impl StaticArray
 
         #if Reflection.hasPostCopy(T)
         {
-            var destPtr = &.buffer[0] + oldCount
+            var destPtr = cast([*] T) &.buffer[oldCount]
             for sliceCount
             {
                 dref destPtr = #nodrop values[@index]
@@ -400,7 +400,7 @@ impl StaticArray
         }
         #else
         {
-            Memory.copy(&.buffer[0] + oldCount, @dataof(values), sliceCount * #sizeof(T))
+            Memory.copy(&.buffer[oldCount], @dataof(values), sliceCount * #sizeof(T))
         }
     }
 
@@ -414,7 +414,7 @@ impl StaticArray
 
         #if !Reflection.hasPostMove(T) and !Reflection.hasDrop(T)
         {
-            Memory.copyOver(&.buffer[0] + index, &.buffer[0] + index + num, (.count - (index + num)) * #sizeof(T))
+            Memory.copyOver(cast([*] T) &.buffer[0] + index, cast([*] T) &.buffer[0] + index + num, (.count - (index + num)) * #sizeof(T))
         }
         #else
         {
@@ -444,7 +444,7 @@ impl StaticArray
         Debug.assert(index < .count, "index out of range")
         .count -= 1
         if index == .count do
-            @drop(&.buffer[0] + .count)
+            @drop(&.buffer[.count])
         else do
             .buffer[index] = #moveraw .buffer[.count]
     }
@@ -461,7 +461,7 @@ impl StaticArray
         #if Reflection.hasDrop(T)
         {
             for idx in numValues do
-                @drop(&.buffer[0] + index + idx)
+                @drop(&.buffer[index + idx])
         }
 
         if index >= .count do
@@ -478,7 +478,7 @@ impl StaticArray
         }
         #else
         {
-            Memory.copyOver(&.buffer[0] + index, &.buffer[0] + index + numValues, #sizeof(T) * (.count - index))
+            Memory.copyOver(&.buffer[index], &.buffer[index + numValues], #sizeof(T) * (.count - index))
         }
     }
 
@@ -567,7 +567,7 @@ impl StaticArray
     mtd removeBack()
     {
         Debug.assert(.count > 0, "array is empty")
-        @drop(&.buffer[0] + .count - 1)
+        @drop(&.buffer[.count - 1])
         .count -= 1
     }
 }

@@ -62,7 +62,7 @@ The '@mkslice' intrinsic creates a slice from a pointer and an element count.
 {
     var array: [4] u32 = [10, 20, 30, 40]
 
-    let slice: [..] u32 = @mkslice(&array[0] + 2, 2)
+    let slice: [..] u32 = @mkslice(cast([*] u32) &array[0] + 2, 2)
     @assert(@countof(slice) == 2)
     @assert(slice[0] == 30)
     @assert(slice[1] == 40)

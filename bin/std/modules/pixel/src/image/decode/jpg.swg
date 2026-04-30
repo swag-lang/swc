@@ -2086,7 +2086,7 @@ impl Decoder
             }
 
             let bytesRead = size
-            Memory.copy(&.inBuf[0] + .inBufLeft, .stream + .streamSeek, cast(u64) size)
+            Memory.copy(cast([*] u8) &.inBuf[0] + .inBufLeft, .stream + .streamSeek, cast(u64) size)
             .streamSeek += size
             .inBufLeft += bytesRead
             if .inBufLeft >= InBufSize or .eofReached do

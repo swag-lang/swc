@@ -283,7 +283,7 @@ impl RegExp
     {
         if str == null do
             return null
-        let beg  = @dataof(str)
+        let beg  = cast(const [*] u8) @dataof(str)
         let last = beg + @countof(str)
 
         let res = .matchInternal(@mkstring(beg, last - beg), true)
@@ -294,7 +294,7 @@ impl RegExp
 
     mtd internalGrep(str: string)->#null string
     {
-        var beg  = @dataof(str)
+        var beg  = cast(const [*] u8) @dataof(str)
         let last = beg + @countof(str)
 
         while beg != last
@@ -322,7 +322,7 @@ impl RegExp
         state.groups.add({rank, str})
     }
 
-    mtd matchInternal(str: string, forGrep: bool)->{ ok: bool, buf: const *u8 }
+    mtd matchInternal(str: string, forGrep: bool)->{ ok: bool, buf: const [*] u8 }
     {
         var result: retval
 

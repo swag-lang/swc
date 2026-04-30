@@ -691,7 +691,7 @@ impl Deflate
         }
 
         Memory.copy(&codeSizesToPack[0], &d.huffCodeSizes[0, 0], cast(u64) numLitCodes)
-        Memory.copy(&codeSizesToPack[0] + numLitCodes, &d.huffCodeSizes[1, 0], cast(u64) numDistCodes)
+        Memory.copy(cast([*] u8) &codeSizesToPack[0] + numLitCodes, &d.huffCodeSizes[1, 0], cast(u64) numDistCodes)
         let totalCodeSizesToPack = numLitCodes + numDistCodes
         var numPackedCodeSizes   = 0
         var rleZCount            = 0
@@ -903,7 +903,7 @@ impl Deflate
         Memory.clear(&d.huffCount[0, 0], cast(u64) #sizeof(d.huffCount[0, 0]) * MaxHuffSymbols0)
         Memory.clear(&d.huffCount[1, 0], cast(u64) #sizeof(d.huffCount[1, 0]) * MaxHuffSymbols1)
 
-        d.lzCodeBufAddr = &d.lzCodeBuf[0] + 1
+        d.lzCodeBufAddr = cast([*] u8) &d.lzCodeBuf[0] + 1
         d.lzFlags       = &d.lzCodeBuf[0]
         d.numFlagsLeft  = 8
         d.lzCodeBufDictPos += d.totalLzBytes
@@ -1070,8 +1070,8 @@ impl Deflate
             d.lookaheadSize -= lenToMove
             d.dictSize = Math.min(d.dictSize + lenToMove, cast(u32) LzDictSize)
 
-            if (d.lzCodeBufAddr > &d.lzCodeBuf[LzCodeBufSize - 8]) or
-               ((d.totalLzBytes > 31 * 1024) and ((((cast(u32) (d.lzCodeBufAddr - &d.lzCodeBuf[0]) * 115) >> 7) >= d.totalLzBytes) or (d.compressFlags & ForceAllRawBlocks)))
+            if (d.lzCodeBufAddr > cast([*] u8) &d.lzCodeBuf[LzCodeBufSize - 8]) or
+               ((d.totalLzBytes > 31 * 1024) and ((((cast(u32) (d.lzCodeBufAddr - cast([*] u8) &d.lzCodeBuf[0]) * 115) >> 7) >= d.totalLzBytes) or (d.compressFlags & ForceAllRawBlocks)))
             {
                 d.inSrc      = pSrc
                 d.srcBufLeft = srcBufLeft

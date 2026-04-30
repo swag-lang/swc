@@ -266,7 +266,7 @@ func @panic(message: string, loc: SourceCodeLocation)
     len += @countof(loc.fileName)
     @memcpy(&str[len], @dataof(", line "), 7)
     len += 7
-    let dstLine = &str[len]
+    let dstLine = cast([*] u8) &str[len]
     let cptLine = cast(u32) (__itoa(dstLine, cast(s64) loc.lineStart + 1) - dstLine)
     len += cptLine
     @memcpy(&str[len], @dataof("\n\n"), 2)

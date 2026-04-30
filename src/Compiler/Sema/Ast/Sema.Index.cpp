@@ -101,6 +101,19 @@ namespace
         return checkIndex(sema, nodeArgRef, nodeArgView, constIndex, hasConstIndex);
     }
 
+    bool hasVoidPointerPayload(Sema& sema, const TypeInfo& pointerType)
+    {
+        if (!pointerType.isAnyPointer())
+            return false;
+
+        TypeRef payloadTypeRef = pointerType.payloadTypeRef();
+        if (payloadTypeRef == sema.typeMgr().typeVoid())
+            return true;
+
+        const TypeRef unwrappedTypeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), payloadTypeRef);
+        return unwrappedTypeRef == sema.typeMgr().typeVoid();
+    }
+
     TypeRef sliceResultTypeRef(Sema& sema, const SemaNodeView& indexedView)
     {
         const TypeRef   indexedTypeRef = resolveIndexedExprTypeRef(sema, indexedView);
@@ -292,6 +305,8 @@ Result AstIndexExpr::semaPostNode(Sema& sema)
     }
     else if (indexedType.isBlockPointer())
     {
+        if (hasVoidPointerPayload(sema, indexedType))
+            return SemaError::raisePointerArithmeticVoidPointer(sema, sema.curNodeRef(), nodeExprRef, nodeExprView.typeRef());
         sema.setType(sema.curNodeRef(), indexedType.payloadTypeRef());
     }
     else if (indexedType.isSlice())

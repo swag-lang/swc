@@ -589,27 +589,18 @@ namespace
         return bodyRef;
     }
 
-    const AstSingleVarDecl* inlineBindingParamDecl(const SymbolVariable& param)
-    {
-        const AstNode* declNode = param.decl();
-        if (!declNode)
-            return nullptr;
-
-        return declNode->safeCast<AstSingleVarDecl>();
-    }
-
-    SymbolVariable* makeMaterializedInlineBindingSymbol(Sema& sema, const AstSingleVarDecl& sourceDecl, AstSingleVarDecl& materializedDecl)
+    SymbolVariable* makeMaterializedInlineBindingSymbol(Sema& sema, const SymbolVariable& sourceParam, AstSingleVarDecl& materializedDecl)
     {
         const IdentifierRef idRef  = SemaHelpers::getUniqueIdentifier(sema, "__inline_arg");
         const SymbolFlags   flags  = sema.frame().flagsForCurrentAccess();
-        auto*               symVar = Symbol::make<SymbolVariable>(sema.ctx(), &materializedDecl, sourceDecl.tokNameRef, idRef, flags);
+        auto*               symVar = Symbol::make<SymbolVariable>(sema.ctx(), &materializedDecl, sourceParam.tokRef(), idRef, flags);
         symVar->addExtraFlag(SymbolVariableFlagsE::Let);
         return symVar;
     }
 
-    AstNodeRef makeMaterializedInlineBindingUse(Sema& sema, const AstSingleVarDecl& sourceDecl, SymbolVariable& materializedSym)
+    AstNodeRef makeMaterializedInlineBindingUse(Sema& sema, const SymbolVariable& sourceParam, SymbolVariable& materializedSym)
     {
-        auto [identRef, identPtr] = sema.ast().makeNode<AstNodeId::Identifier>(sourceDecl.tokRef());
+        auto [identRef, identPtr] = sema.ast().makeNode<AstNodeId::Identifier>(sourceParam.tokRef());
         identPtr->addFlag(AstIdentifierFlagsE::PreResolvedSymbol);
         sema.setSymbol(identRef, &materializedSym);
         return identRef;
@@ -773,8 +764,8 @@ namespace
                 continue;
             }
 
-            const AstSingleVarDecl* paramDecl = inlineBindingParamDecl(*param);
-            if (!paramDecl)
+            const TokenRef paramNameRef = param->tokRef();
+            if (paramNameRef.isInvalid())
             {
                 remainingBindings.push_back(binding);
                 continue;
@@ -784,15 +775,15 @@ namespace
             if (clonedInitRef.isInvalid())
                 return Result::Error;
 
-            auto [declRef, declPtr] = sema.ast().makeNode<AstNodeId::SingleVarDecl>(paramDecl->tokRef());
+            auto [declRef, declPtr] = sema.ast().makeNode<AstNodeId::SingleVarDecl>(paramNameRef);
             declPtr->flags()        = AstVarDeclFlagsE::Let;
-            declPtr->tokNameRef     = paramDecl->tokNameRef;
+            declPtr->tokNameRef     = paramNameRef;
             declPtr->nodeInitRef    = clonedInitRef;
-            SymbolVariable* materializedSym = makeMaterializedInlineBindingSymbol(sema, *paramDecl, *declPtr);
+            SymbolVariable* materializedSym = makeMaterializedInlineBindingSymbol(sema, *param, *declPtr);
             sema.setSymbol(declRef, materializedSym);
             outStatements.push_back(declRef);
 
-            binding.exprRef = makeMaterializedInlineBindingUse(sema, *paramDecl, *materializedSym);
+            binding.exprRef = makeMaterializedInlineBindingUse(sema, *param, *materializedSym);
             remainingBindings.push_back(binding);
         }
 

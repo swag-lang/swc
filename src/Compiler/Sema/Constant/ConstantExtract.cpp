@@ -188,6 +188,16 @@ Result ConstantExtract::structMember(Sema& sema, const ConstantValue& cst, const
 
 namespace
 {
+    TypeRef unwrapAliasTypeRef(Sema& sema, TypeRef typeRef)
+    {
+        if (!typeRef.isValid())
+            return TypeRef::invalid();
+
+        const TypeInfo& typeInfo         = sema.typeMgr().get(typeRef);
+        const TypeRef   unwrappedTypeRef = typeInfo.unwrap(sema.ctx(), typeRef, TypeExpandE::Alias);
+        return unwrappedTypeRef.isValid() ? unwrappedTypeRef : typeRef;
+    }
+
     Result extractAtIndexAggregateArray(Sema& sema, const ConstantValue& cst, int64_t constIndex, AstNodeRef nodeArgRef, ConstantRef& outCstRef)
     {
         outCstRef          = ConstantRef::invalid();
@@ -235,7 +245,9 @@ namespace
     {
         outCstRef                = ConstantRef::invalid();
         TaskContext&    ctx      = sema.ctx();
-        const TypeInfo& typeInfo = sema.typeMgr().get(cst.typeRef());
+        const TypeRef   typeRef  = unwrapAliasTypeRef(sema, cst.typeRef());
+        const TypeInfo& typeInfo = sema.typeMgr().get(typeRef);
+        SWC_ASSERT(typeInfo.isArray());
         const auto&     dims     = typeInfo.payloadArrayDims();
         const uint64_t  count    = dims.empty() ? 0 : dims[0];
         if (std::cmp_greater_equal(constIndex, count))
@@ -264,7 +276,9 @@ namespace
 
     Result extractAtIndexSlice(Sema& sema, const ConstantValue& cst, int64_t constIndex, AstNodeRef nodeArgRef, ConstantRef& outCstRef)
     {
-        const TypeInfo& typeInfo  = sema.typeMgr().get(cst.typeRef());
+        const TypeRef   typeRef   = unwrapAliasTypeRef(sema, cst.typeRef());
+        const TypeInfo& typeInfo  = sema.typeMgr().get(typeRef);
+        SWC_ASSERT(typeInfo.isSlice());
         const ByteSpan  bytes     = cst.getSlice();
         const uint64_t  elemCount = cst.getSliceCount();
         return extractAtIndexBytes(sema, bytes, typeInfo.payloadTypeRef(), constIndex, elemCount, nodeArgRef, outCstRef);
@@ -273,7 +287,9 @@ namespace
     Result extractAtIndexBlockPointer(Sema& sema, const ConstantValue& cst, int64_t constIndex, AstNodeRef nodeArgRef, ConstantRef& outCstRef)
     {
         TaskContext&    ctx      = sema.ctx();
-        const TypeInfo& typeInfo = sema.typeMgr().get(cst.typeRef());
+        const TypeRef   typeRef  = unwrapAliasTypeRef(sema, cst.typeRef());
+        const TypeInfo& typeInfo = sema.typeMgr().get(typeRef);
+        SWC_ASSERT(typeInfo.isBlockPointer());
         const TypeRef   elemType = typeInfo.payloadTypeRef();
         const uint64_t  elemSize = sema.typeMgr().get(elemType).sizeOf(ctx);
         SWC_ASSERT(elemSize);

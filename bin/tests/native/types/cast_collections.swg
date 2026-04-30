@@ -1,5 +1,15 @@
 #global fileprivate // 
 
+#[Swag.Strict]
+alias StrictS32Triple = [3] s32
+
+const StrictTripleGlobal: StrictS32Triple = cast(StrictS32Triple) [4, 5, 6]
+
+func strictAliasGlobalSum()->s32
+{
+    return StrictTripleGlobal[0] + StrictTripleGlobal[1] + StrictTripleGlobal[2]
+}
+
 func makeConstArrayString()->string
 {
     const data: [3] u8 = [120, 121, 122]
@@ -42,6 +52,7 @@ func wordArrayToByteView()->bool
 #test
 {
     let text = makeConstArrayString()
+    @assert(strictAliasGlobalSum() == 15)
     @assert(localArrayToSliceView())
     @assert(@countof(text) == 3)
     @assert(text == "xyz")

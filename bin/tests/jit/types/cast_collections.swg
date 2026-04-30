@@ -1,9 +1,24 @@
 #global fileprivate
 
+#[Swag.Strict]
+alias StrictS32Triple = [3] s32
+
 func makeConstArrayString()->string
 {
     const data: [3] u8 = [120, 121, 122]
     return cast(string) data
+}
+
+#test
+{
+    func arrayLiteralToStrictAlias()->s32
+    {
+        var values: StrictS32Triple = cast(StrictS32Triple) [4, 5, 6]
+        return values[0] + values[1] + values[2]
+    }
+
+    const V = #run arrayLiteralToStrictAlias()
+    #assert(V == 15)
 }
 
 #test

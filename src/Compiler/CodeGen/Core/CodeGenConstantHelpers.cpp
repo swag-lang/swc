@@ -211,6 +211,38 @@ namespace
 
         return false;
     }
+
+    ConstantValue makeMaterializedConstantValue(CodeGen& codeGen, TypeRef typeRef, ByteSpan storedBytes, DataSegmentRef dataSegmentRef)
+    {
+        TaskContext&    ctx          = codeGen.ctx();
+        const TypeInfo& originalType = ctx.typeMgr().get(typeRef);
+        TypeRef         storageTypeRef = originalType.unwrap(ctx, typeRef, TypeExpandE::Alias | TypeExpandE::Enum);
+        if (storageTypeRef.isInvalid())
+            storageTypeRef = typeRef;
+
+        const TypeInfo& storageType = ctx.typeMgr().get(storageTypeRef);
+        ConstantValue   result;
+
+        if (storageType.isArray())
+            result = ConstantValue::makeArrayBorrowed(ctx, storageTypeRef, storedBytes);
+        else if (storageType.isBool() || storageType.isChar() || storageType.isRune() || storageType.isInt() || storageType.isFloat() || storageType.isAnyPointer() || storageType.isReference() || storageType.isTypeInfo() || storageType.isCString() || (storageType.isFunction() && !storageType.isLambdaClosure()))
+            result = ConstantValue::make(ctx, storedBytes.data(), storageTypeRef, ConstantValue::PayloadOwnership::Borrowed);
+        else
+            result = ConstantValue::makeStructBorrowed(ctx, storageTypeRef, storedBytes);
+
+        if (!result.isValid())
+            return result;
+
+        result.setDataSegmentRef(dataSegmentRef);
+        if (originalType.isEnum())
+        {
+            const ConstantRef storageRef = codeGen.cstMgr().addConstant(ctx, result);
+            return ConstantValue::makeEnumValue(ctx, storageRef, typeRef);
+        }
+
+        result.setTypeRef(typeRef);
+        return result;
+    }
 }
 
 ConstantRef CodeGenConstantHelpers::ensureStaticPayloadConstant(CodeGen& codeGen, const ConstantRef cstRef, TypeRef typeRef)
@@ -289,16 +321,14 @@ ConstantRef CodeGenConstantHelpers::materializeStaticPayloadConstant(CodeGen& co
     SWC_ASSERT(sizeOf != 0 || offset == INVALID_REF);
     const ByteSpan       storedBytes = sizeOf ? ByteSpan{segment.ptr<std::byte>(offset), sizeOf} : ByteSpan{};
     const DataSegmentRef dataRef{.shardIndex = hasRequiredShard ? shardIndex : 0, .offset = offset};
-    if (typeInfo.isArray())
-    {
-        ConstantValue value = ConstantValue::makeArrayBorrowed(ctx, typeRef, storedBytes);
-        value.setDataSegmentRef(dataRef);
-        return dataRef.isValid() ? codeGen.cstMgr().addMaterializedPayloadConstant(value) : codeGen.cstMgr().addConstant(ctx, value);
-    }
+    const ConstantValue value = makeMaterializedConstantValue(codeGen, typeRef, storedBytes, dataRef);
+    if (!value.isValid())
+        return ConstantRef::invalid();
 
-    ConstantValue value = ConstantValue::makeStructBorrowed(ctx, typeRef, storedBytes);
-    value.setDataSegmentRef(dataRef);
-    return dataRef.isValid() ? codeGen.cstMgr().addMaterializedPayloadConstant(value) : codeGen.cstMgr().addConstant(ctx, value);
+    if (dataRef.isValid() && (value.isStruct() || value.isArray() || value.isSlice()) && value.isPayloadBorrowed())
+        return codeGen.cstMgr().addMaterializedPayloadConstant(value);
+
+    return codeGen.cstMgr().addConstant(ctx, value);
 }
 
 ConstantRef CodeGenConstantHelpers::materializeRuntimeBufferConstant(CodeGen& codeGen, TypeRef typeRef, const void* targetPtr, uint64_t count)

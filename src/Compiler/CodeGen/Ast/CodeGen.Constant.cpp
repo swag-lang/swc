@@ -382,10 +382,15 @@ namespace
             return ConstantRef::invalid();
 
         const TypeInfo& typeInfo = codeGen.typeMgr().get(typeRef);
-        if (!typeInfo.isStruct() && !typeInfo.isArray() && !typeInfo.isAggregateStruct() && !typeInfo.isAggregateArray())
+        TypeRef         storageTypeRef = typeInfo.unwrap(codeGen.ctx(), typeRef, TypeExpandE::Alias);
+        if (storageTypeRef.isInvalid())
+            storageTypeRef = typeRef;
+
+        const TypeInfo& storageType = codeGen.typeMgr().get(storageTypeRef);
+        if (!storageType.isStruct() && !storageType.isArray() && !storageType.isAggregateStruct() && !storageType.isAggregateArray())
             return ConstantRef::invalid();
 
-        const uint64_t storageSize = typeInfo.sizeOf(codeGen.ctx());
+        const uint64_t storageSize = storageType.sizeOf(codeGen.ctx());
         SWC_ASSERT(storageSize <= std::numeric_limits<uint32_t>::max());
 
         SmallVector<std::byte> storageBytes;

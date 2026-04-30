@@ -5,6 +5,9 @@ enum CmpEnum: u16
     B = 20
 }
 
+#[Swag.Strict]
+alias CompareStrictAny = any
+
 var CompareCounter: s32
 
 func touch(flag: bool, delta: s32)->bool
@@ -158,4 +161,16 @@ func matchReferenceValue(value: const &s32)->bool
     @assert(!a)
     @assert(b)
     @assert(CompareCounter == 101)
+}
+
+#test
+{
+    var value: s32 = 42
+    var raw: any = @mkany(&value, s32)
+    let boxed = dref cast(*CompareStrictAny) &raw
+
+    @assert(boxed == s32)
+    @assert(s32 == boxed)
+    @assert(boxed != string)
+    @assert(string != boxed)
 }

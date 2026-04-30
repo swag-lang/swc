@@ -323,14 +323,15 @@ namespace
         SWC_RESULT(SemaCheck::isValue(sema, nodeViewPtr.nodeRef()));
         SWC_RESULT(SemaCheck::isValueOrTypeInfo(sema, viewType));
 
-        const TypeInfo* ptrType = nodeViewPtr.type();
-        if (!ptrType->isAnyPointer())
+        const TypeRef   ptrTypeRef = SemaHelpers::unwrapAliasRefType(sema.ctx(), nodeViewPtr.typeRef());
+        const TypeInfo& ptrType    = sema.typeMgr().get(ptrTypeRef);
+        if (!ptrType.isAnyPointer())
             return SemaError::raiseRequestedTypeFam(sema, nodeViewPtr.nodeRef(), nodeViewPtr.typeRef(), sema.typeMgr().typeValuePtrVoid());
         if (!viewType.type()->isAnyTypeInfo(sema.ctx()))
             return SemaError::raiseRequestedTypeFam(sema, viewType.nodeRef(), viewType.typeRef(), sema.typeMgr().typeTypeInfo());
 
         // Check if the pointer is void or a pointer to the type defined in the right expression
-        const TypeRef typeRefPointee = ptrType->payloadTypeRef();
+        const TypeRef typeRefPointee = ptrType.payloadTypeRef();
         if (!sema.typeMgr().get(typeRefPointee).isVoid() && viewType.cstRef().isValid())
         {
             const TypeRef typeRefTypeInfo = sema.cstMgr().makeTypeValue(sema, viewType.cstRef());
@@ -345,7 +346,7 @@ namespace
         }
 
         TypeInfoFlags flags = TypeInfoFlagsE::Zero;
-        if (ptrType->isConst())
+        if (ptrType.isConst())
             flags.add(TypeInfoFlagsE::Const);
 
         const TypeRef typeRef = sema.typeMgr().addType(TypeInfo::makeAny(flags));
@@ -366,7 +367,9 @@ namespace
         SWC_RESULT(SemaCheck::isValue(sema, nodeViewPtr.nodeRef()));
         SWC_RESULT(SemaCheck::isValue(sema, nodeViewSize.nodeRef()));
 
-        if (!nodeViewPtr.type()->isAnyPointer())
+        const TypeRef   ptrTypeRef = SemaHelpers::unwrapAliasRefType(sema.ctx(), nodeViewPtr.typeRef());
+        const TypeInfo& ptrType    = sema.typeMgr().get(ptrTypeRef);
+        if (!ptrType.isAnyPointer())
             return SemaError::raiseRequestedTypeFam(sema, nodeViewPtr.nodeRef(), nodeViewPtr.typeRef(), sema.typeMgr().typeBlockPtrVoid());
 
         SWC_RESULT(Cast::cast(sema, nodeViewSize, sema.typeMgr().typeU64(), CastKind::Implicit));
@@ -379,8 +382,8 @@ namespace
         }
         else
         {
-            TypeInfo ty = TypeInfo::makeSlice(nodeViewPtr.type()->payloadTypeRef());
-            if (nodeViewPtr.type()->isConst())
+            TypeInfo ty = TypeInfo::makeSlice(ptrType.payloadTypeRef());
+            if (ptrType.isConst())
                 ty.addFlag(TypeInfoFlagsE::Const);
             typeRef = sema.typeMgr().addType(ty);
         }

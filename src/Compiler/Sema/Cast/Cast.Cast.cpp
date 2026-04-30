@@ -315,11 +315,13 @@ namespace
         if (!srcTypeRef.isValid() || !dstTypeRef.isValid())
             return Result::Continue;
 
-        const TypeInfo& srcType = sema.typeMgr().get(srcTypeRef);
+        const TypeRef   resolvedSrcTypeRef = unwrapAliasEnumTypeRef(sema.typeMgr(), sema.ctx(), srcTypeRef);
+        const TypeInfo& srcType            = sema.typeMgr().get(resolvedSrcTypeRef);
         if (!srcType.isAny())
             return Result::Continue;
 
-        const TypeInfo& dstType = sema.typeMgr().get(dstTypeRef);
+        const TypeRef   resolvedDstTypeRef = unwrapAliasEnumTypeRef(sema.typeMgr(), sema.ctx(), dstTypeRef);
+        const TypeInfo& dstType            = sema.typeMgr().get(resolvedDstTypeRef);
         if (dstType.isAny())
             return Result::Continue;
 

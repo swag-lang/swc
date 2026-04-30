@@ -214,6 +214,12 @@ namespace
         return result;
     }
 
+    const TypeInfo& aliasEnumType(Sema& sema, const SemaNodeView& view)
+    {
+        const TypeRef typeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), view.typeRef());
+        return sema.typeMgr().get(typeRef);
+    }
+
     const SymbolStruct* specialOpOwnerStruct(Sema& sema, const SemaNodeView& view)
     {
         if (!view.type())
@@ -267,8 +273,10 @@ namespace
     {
         const SemaNodeView compareLeftView  = scalarReadView(sema, nodeLeftView);
         const SemaNodeView compareRightView = scalarReadView(sema, nodeRightView);
+        const TypeInfo&     compareLeftType  = aliasEnumType(sema, compareLeftView);
+        const TypeInfo&     compareRightType = aliasEnumType(sema, compareRightView);
 
-        if (compareLeftView.type()->isTypeValue() && compareRightView.type()->isTypeValue())
+        if (compareLeftType.isTypeValue() && compareRightType.isTypeValue())
         {
             SWC_ASSERT(compareLeftView.cst() != nullptr);
             SWC_ASSERT(compareRightView.cst() != nullptr);
@@ -276,16 +284,16 @@ namespace
             return Result::Continue;
         }
 
-        if (compareLeftView.type()->isAnyTypeInfo(sema.ctx()) && compareRightView.type()->isAnyTypeInfo(sema.ctx()))
+        if (compareLeftType.isAnyTypeInfo(sema.ctx()) && compareRightType.isAnyTypeInfo(sema.ctx()))
         {
             result = sema.cstMgr().cstBool(sameTypeInfoIdentity(sema, compareLeftView.cstRef(), compareRightView.cstRef()));
             return Result::Continue;
         }
 
-        const bool leftIsAny       = compareLeftView.type()->isAny();
-        const bool rightIsAny      = compareRightView.type()->isAny();
-        const bool leftIsTypeLike  = compareLeftView.type()->isAnyTypeInfo(sema.ctx()) || compareLeftView.type()->isTypeValue();
-        const bool rightIsTypeLike = compareRightView.type()->isAnyTypeInfo(sema.ctx()) || compareRightView.type()->isTypeValue();
+        const bool leftIsAny       = compareLeftType.isAny();
+        const bool rightIsAny      = compareRightType.isAny();
+        const bool leftIsTypeLike  = compareLeftType.isAnyTypeInfo(sema.ctx()) || compareLeftType.isTypeValue();
+        const bool rightIsTypeLike = compareRightType.isAnyTypeInfo(sema.ctx()) || compareRightType.isTypeValue();
 
         if (leftIsAny && rightIsTypeLike)
         {
@@ -461,6 +469,8 @@ namespace
     {
         const SemaNodeView compareLeftView  = scalarReadView(sema, nodeLeftView);
         const SemaNodeView compareRightView = scalarReadView(sema, nodeRightView);
+        const TypeInfo&     compareLeftType  = aliasEnumType(sema, compareLeftView);
+        const TypeInfo&     compareRightType = aliasEnumType(sema, compareRightView);
         if (compareLeftView.typeRef() == compareRightView.typeRef())
             return Result::Continue;
         if (compareLeftView.type()->isScalarNumeric() && compareRightView.type()->isScalarNumeric())
@@ -473,10 +483,10 @@ namespace
             return Result::Continue;
         if (compareLeftView.type()->isAnyPointer() && compareRightView.type()->isAnyPointer())
             return Result::Continue;
-        if (compareLeftView.type()->isAnyTypeInfo(sema.ctx()) && compareRightView.type()->isAnyTypeInfo(sema.ctx()))
+        if (compareLeftType.isAnyTypeInfo(sema.ctx()) && compareRightType.isAnyTypeInfo(sema.ctx()))
             return Result::Continue;
-        if ((compareLeftView.type()->isAny() && compareRightView.type()->isAnyTypeInfo(sema.ctx())) ||
-            (compareLeftView.type()->isAnyTypeInfo(sema.ctx()) && compareRightView.type()->isAny()))
+        if ((compareLeftType.isAny() && compareRightType.isAnyTypeInfo(sema.ctx())) ||
+            (compareLeftType.isAnyTypeInfo(sema.ctx()) && compareRightType.isAny()))
             return Result::Continue;
 
         Diagnostic diag = SemaError::report(sema, DiagnosticId::sema_err_compare_operand_type, node.codeRef());
@@ -526,7 +536,8 @@ namespace
         {
             if (!self.type() || !other.type())
                 return Result::Continue;
-            if (self.type()->isTypeValue() && (other.type()->isAnyTypeInfo(sema.ctx()) || other.type()->isAny()))
+            const TypeInfo& otherType = aliasEnumType(sema, other);
+            if (self.type()->isTypeValue() && (otherType.isAnyTypeInfo(sema.ctx()) || otherType.isAny()))
             {
                 SWC_RESULT(Cast::cast(sema, self, sema.typeMgr().typeTypeInfo(), CastKind::Implicit));
                 return Result::Continue;

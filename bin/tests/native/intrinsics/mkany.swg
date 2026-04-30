@@ -12,6 +12,12 @@ enum MkanyKind: u16
     B = 9
 }
 
+#[Swag.Strict]
+alias MkanyStrictS32Ptr = *s32
+
+#[Swag.Strict]
+alias MkanyStrictVoidPtr = *void
+
 #test
 {
     var x: s32 = 42
@@ -185,4 +191,26 @@ func mkanyCastStringToBytesFromAny(value: any)->u64
     @assert(@countof(dref ptr) == 3)
     @assert((dref ptr)[0] == 77)
     @assert((dref ptr)[2] == 12)
+}
+
+#test
+{
+    var x: s32 = 314
+    let ptr = cast(MkanyStrictS32Ptr) &x
+    let boxed: any = @mkany(ptr, s32)
+    let data = cast(*s32) @dataof(boxed)
+
+    @assert(@kindof(boxed) == s32)
+    @assert(dref data == 314)
+}
+
+#test
+{
+    var x: s32 = 271
+    let ptr = cast(MkanyStrictVoidPtr) &x
+    let boxed: any = @mkany(ptr, s32)
+    let data = cast(*s32) @dataof(boxed)
+
+    @assert(@kindof(boxed) == s32)
+    @assert(dref data == 271)
 }

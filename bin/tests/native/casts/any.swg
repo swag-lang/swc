@@ -1,5 +1,8 @@
 #global fileprivate // 
 
+#[Swag.Strict]
+alias AnyCastStrictAny = any
+
 
 #test
 {
@@ -81,4 +84,41 @@ struct AnyCompareType
 
     x = AnyCompareType{}
     @assert(x == AnyCompareType)
+}
+
+#test
+{
+    var raw: any = 12
+    let boxed = dref cast(*AnyCastStrictAny) &raw
+
+    @assert(cast(s32) boxed == 12)
+}
+
+#test
+{
+    let boxed = cast(AnyCastStrictAny) 21
+
+    @assert(cast(s32) boxed == 21)
+}
+
+#test
+{
+    var raw: any = 42
+    let boxed = dref cast(*AnyCastStrictAny) &raw
+    let refValue = cast(const &s32) boxed
+    let ptrValue = cast(const *s32) boxed
+
+    @assert(refValue == 42)
+    @assert(dref ptrValue == 42)
+}
+
+#test
+{
+    var raw: any = AnyCastDerived{base: {value: 9}, extra: 2}
+    let boxed = dref cast(*AnyCastStrictAny) &raw
+    let baseRef = cast(const &AnyCastBase) boxed
+    let basePtr = cast(const *AnyCastBase) boxed
+
+    @assert(baseRef.value == 9)
+    @assert(basePtr.value == 9)
 }

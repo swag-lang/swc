@@ -780,13 +780,16 @@ namespace
 
         const SemaNodeView srcView = codeGen.viewType(srcNodeRef);
         SWC_ASSERT(srcView.type());
-        if (!srcView.type()->isAny())
+        const TypeRef   resolvedSrcTypeRef = unwrapAliasEnumTypeRef(codeGen.typeMgr(), codeGen.ctx(), srcView.typeRef());
+        const TypeInfo& resolvedSrcType    = codeGen.typeMgr().get(resolvedSrcTypeRef);
+        if (!resolvedSrcType.isAny())
         {
             codeGen.inheritPayload(codeGen.curNodeRef(), srcNodeRef, dstTypeRef);
             return Result::Continue;
         }
 
-        const TypeInfo& dstType = codeGen.typeMgr().get(dstTypeRef);
+        const TypeRef   resolvedDstTypeRef = unwrapAliasEnumTypeRef(codeGen.typeMgr(), codeGen.ctx(), dstTypeRef);
+        const TypeInfo& dstType            = codeGen.typeMgr().get(resolvedDstTypeRef);
         if (dstType.isAny())
         {
             codeGen.inheritPayload(codeGen.curNodeRef(), srcNodeRef, dstTypeRef);
@@ -1019,15 +1022,15 @@ namespace
 
         TypeManager& typeMgr = codeGen.typeMgr();
 
-        if (typeMgr.get(sourceTypeRef).isAny())
-            return emitAnyCast(codeGen, srcNodeRef, dstTypeRef);
-
-        const TypeInfo& srcType            = typeMgr.get(sourceTypeRef);
-        const TypeInfo& dstType            = typeMgr.get(dstTypeRef);
-        const TypeRef   resolvedSrcTypeRef = typeMgr.unwrapAliasEnum(codeGen.ctx(), sourceTypeRef);
-        const TypeRef   resolvedDstTypeRef = typeMgr.unwrapAliasEnum(codeGen.ctx(), dstTypeRef);
+        const TypeRef   resolvedSrcTypeRef = unwrapAliasEnumTypeRef(typeMgr, codeGen.ctx(), sourceTypeRef);
+        const TypeRef   resolvedDstTypeRef = unwrapAliasEnumTypeRef(typeMgr, codeGen.ctx(), dstTypeRef);
         const TypeInfo& resolvedSrcType    = typeMgr.get(resolvedSrcTypeRef);
         const TypeInfo& resolvedDstType    = typeMgr.get(resolvedDstTypeRef);
+        if (resolvedSrcType.isAny())
+            return emitAnyCast(codeGen, srcNodeRef, dstTypeRef);
+
+        const TypeInfo& srcType = typeMgr.get(sourceTypeRef);
+        const TypeInfo& dstType = typeMgr.get(dstTypeRef);
         if (srcType.isFunction() && dstType.isFunction() && !srcType.isLambdaClosure() && dstType.isLambdaClosure())
             return emitFunctionToClosureCast(codeGen, srcNodeRef, sourceTypeRef, dstTypeRef);
 
@@ -1113,7 +1116,7 @@ namespace
                 return emitArrayToSliceCast(codeGen, srcNodeRef, dstTypeRef, codeGen.typeMgr().get(sourceArrayTypeRef), resolvedDstType);
         }
 
-        if (dstType.isAny() && !srcType.isAny())
+        if (resolvedDstType.isAny() && !resolvedSrcType.isAny())
         {
             if (!castPayload || castPayload->runtimeStorageSym == nullptr)
             {

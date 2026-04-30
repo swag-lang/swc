@@ -1,5 +1,11 @@
 #global fileprivate // 
 
+#[Swag.Strict]
+alias MksliceStrictU16Ptr = *u16
+
+#[Swag.Strict]
+alias MksliceStrictConstS32Ptr = const *s32
+
 #test
 {
     var buf: [100] u8
@@ -72,4 +78,28 @@
     @assert(@countof(sl) == 3)
     @assert(sl[0] == 5)
     @assert(sl[2] == 7)
+}
+
+#test
+{
+    var buf: [4] u16 = [8, 13, 21, 34]
+    let ptr = cast(MksliceStrictU16Ptr) &buf[0]
+    let sl = @mkslice(ptr, 3)
+
+    #assert(#typeof(sl) == [..] u16)
+    @assert(@countof(sl) == 3)
+    @assert(sl[0] == 8)
+    @assert(sl[2] == 21)
+}
+
+#test
+{
+    var buf: [3] s32 = [5, 10, 15]
+    let ptr = cast(MksliceStrictConstS32Ptr) &buf[0]
+    let sl = @mkslice(ptr, 2)
+
+    #assert(#typeof(sl) == const [..] s32)
+    @assert(@countof(sl) == 2)
+    @assert(sl[0] == 5)
+    @assert(sl[1] == 10)
 }

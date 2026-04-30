@@ -114,6 +114,13 @@ namespace
         return unwrappedTypeRef == sema.typeMgr().typeVoid();
     }
 
+    Result checkVoidPointerIndex(Sema& sema, AstNodeRef atNodeRef, AstNodeRef indexedNodeRef, const SemaNodeView& indexedView, const TypeInfo& indexedType)
+    {
+        if (hasVoidPointerPayload(sema, indexedType))
+            return SemaError::raisePointerArithmeticVoidPointer(sema, atNodeRef, indexedNodeRef, indexedView.typeRef());
+        return Result::Continue;
+    }
+
     TypeRef sliceResultTypeRef(Sema& sema, const SemaNodeView& indexedView)
     {
         const TypeRef   indexedTypeRef = resolveIndexedExprTypeRef(sema, indexedView);
@@ -170,7 +177,8 @@ namespace
 
         const TypeRef   indexedTypeRef = resolveIndexedExprTypeRef(sema, nodeExprView);
         const TypeInfo& indexedType    = sema.typeMgr().get(indexedTypeRef);
-        const TypeRef   resultTypeRef  = sliceResultTypeRef(sema, nodeExprView);
+        SWC_RESULT(checkVoidPointerIndex(sema, sema.curNodeRef(), node.nodeExprRef, nodeExprView, indexedType));
+        const TypeRef resultTypeRef = sliceResultTypeRef(sema, nodeExprView);
         if (!resultTypeRef.isValid())
             return SemaError::raiseTypeNotIndexable(sema, node.nodeExprRef, nodeExprView.typeRef());
 
@@ -305,8 +313,7 @@ Result AstIndexExpr::semaPostNode(Sema& sema)
     }
     else if (indexedType.isBlockPointer())
     {
-        if (hasVoidPointerPayload(sema, indexedType))
-            return SemaError::raisePointerArithmeticVoidPointer(sema, sema.curNodeRef(), nodeExprRef, nodeExprView.typeRef());
+        SWC_RESULT(checkVoidPointerIndex(sema, sema.curNodeRef(), nodeExprRef, nodeExprView, indexedType));
         sema.setType(sema.curNodeRef(), indexedType.payloadTypeRef());
     }
     else if (indexedType.isSlice())

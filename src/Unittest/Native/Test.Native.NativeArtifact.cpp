@@ -7,7 +7,9 @@
 #include "Backend/Native/NativeArtifactBuilder.h"
 #include "Backend/Native/NativeBackendBuilder.h"
 #include "Backend/Native/NativeLinkerCoff.h"
+#include "Backend/Native/SymbolSort.h"
 #include "Backend/Runtime.h"
+#include "Compiler/Lexer/SourceView.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Constant/ConstantValue.h"
 #include "Compiler/Sema/Core/Sema.h"
@@ -26,6 +28,15 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    struct SymbolSortTestSymbol
+    {
+        SourceViewRef viewRef;
+        TokenRef      tokenRef;
+
+        SourceViewRef srcViewRef() const { return viewRef; }
+        TokenRef      tokRef() const { return tokenRef; }
+    };
+
     struct NativeArtifactTestFixture
     {
         CommandLine                            cmdLine;
@@ -193,6 +204,25 @@ namespace
         }
     }
 }
+
+SWC_TEST_BEGIN(NativeArtifact_SymbolSortOrdersTokenRefsNumerically)
+{
+    CompilerInstance compiler(ctx.global(), ctx.cmdLine());
+    const SourceView& view = compiler.addSourceView();
+
+    SymbolSortTestSymbol token2{view.ref(), TokenRef{2}};
+    SymbolSortTestSymbol token10{view.ref(), TokenRef{10}};
+    SymbolSortTestSymbol token100{view.ref(), TokenRef{100}};
+
+    std::vector<SymbolSortTestSymbol*> symbols{&token100, &token10, &token2};
+    SymbolSort::sortAndUniqueByLocation(symbols, compiler);
+
+    if (symbols.size() != 3)
+        return Result::Error;
+    if (symbols[0] != &token2 || symbols[1] != &token10 || symbols[2] != &token100)
+        return Result::Error;
+}
+SWC_TEST_END()
 
 SWC_TEST_BEGIN(NativeArtifact_DefaultsToLocalOutputTree)
 {

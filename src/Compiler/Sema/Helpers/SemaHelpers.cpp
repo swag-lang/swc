@@ -777,7 +777,15 @@ Result SemaHelpers::checkBinaryOperandTypes(Sema& sema, AstNodeRef nodeRef, Toke
         if (!operandView.type() || !operandView.type()->isAnyPointer())
             return Result::Continue;
 
-        if (operandView.type()->payloadTypeRef() == inSema.typeMgr().typeVoid())
+        TypeRef payloadTypeRef = operandView.type()->payloadTypeRef();
+        if (payloadTypeRef != inSema.typeMgr().typeVoid())
+        {
+            const TypeRef unwrappedTypeRef = inSema.typeMgr().unwrapAliasEnum(inSema.ctx(), payloadTypeRef);
+            if (unwrappedTypeRef.isValid())
+                payloadTypeRef = unwrappedTypeRef;
+        }
+
+        if (payloadTypeRef == inSema.typeMgr().typeVoid())
             return SemaError::raisePointerArithmeticVoidPointer(inSema, inNodeRef, operandRef, operandView.typeRef());
         if (operandView.type()->isValuePointer())
             return SemaError::raisePointerArithmeticValuePointer(inSema, inNodeRef, operandRef, operandView.typeRef());

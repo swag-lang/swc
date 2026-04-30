@@ -1074,6 +1074,7 @@ namespace
         ConstantRef        typeInfoCstRef = ConstantRef::invalid();
         uint32_t           valueSize      = 0;
         uint32_t           valueAlign     = 1;
+        bool               isAny          = false;
         bool               needsSpill     = false;
         uint64_t           spillOffset    = 0;
     };
@@ -1128,15 +1129,20 @@ namespace
             info.argTypeRef = argTypeRef;
             info.valueSize  = static_cast<uint32_t>(rawArgSize);
             info.valueAlign = std::max<uint32_t>(argType.alignOf(ctx), 1);
+            info.isAny      = argType.isAny();
 
-            info.typeInfoCstRef = resolvedArg.typeInfoCstRef;
-            if (!info.typeInfoCstRef.isValid())
+            if (!info.isAny)
             {
-                ConstantRef  typeInfoCstRef = ConstantRef::invalid();
-                const Result typeInfoRes    = codeGen.cstMgr().makeTypeInfo(codeGen.sema(), typeInfoCstRef, info.argTypeRef, info.argRef);
-                SWC_INTERNAL_CHECK(typeInfoRes == Result::Continue);
-                info.typeInfoCstRef = typeInfoCstRef;
+                info.typeInfoCstRef = resolvedArg.typeInfoCstRef;
+                if (!info.typeInfoCstRef.isValid())
+                {
+                    ConstantRef  typeInfoCstRef = ConstantRef::invalid();
+                    const Result typeInfoRes    = codeGen.cstMgr().makeTypeInfo(codeGen.sema(), typeInfoCstRef, info.argTypeRef, info.argRef);
+                    SWC_INTERNAL_CHECK(typeInfoRes == Result::Continue);
+                    info.typeInfoCstRef = typeInfoCstRef;
+                }
             }
+            
             if (info.argPayload.reg == callConv.stackPointer)
             {
                 info.argPayload.reg = codeGen.nextVirtualIntRegister();
@@ -1152,8 +1158,8 @@ namespace
                 info.argPayload.setIsValue();
             }
 
-            info.needsSpill = info.valueSize <= 8 || argType.isAny();
-            SWC_ASSERT(info.typeInfoCstRef.isValid());
+            info.needsSpill = info.valueSize <= 8 || info.isAny;
+            SWC_ASSERT(info.isAny || info.typeInfoCstRef.isValid());
             variadicInfos.push_back(info);
         }
 
@@ -1232,6 +1238,21 @@ namespace
             {
                 valuePtrReg = codeGen.nextVirtualIntRegister();
                 builder.emitLoadRegReg(valuePtrReg, info.argPayload.reg, MicroOpBits::B64);
+            }
+
+            if (info.isAny)
+            {
+                // Passing an any through "..." must preserve the boxed payload instead of boxing the any object itself.
+                SWC_ASSERT(info.needsSpill);
+
+                const MicroReg boxedValueReg = codeGen.nextVirtualIntRegister();
+                builder.emitLoadRegMem(boxedValueReg, valuePtrReg, offsetof(Runtime::Any, value), MicroOpBits::B64);
+                builder.emitLoadMemReg(anyEntryReg, offsetof(Runtime::Any, value), boxedValueReg, MicroOpBits::B64);
+
+                const MicroReg boxedTypeReg = codeGen.nextVirtualIntRegister();
+                builder.emitLoadRegMem(boxedTypeReg, valuePtrReg, offsetof(Runtime::Any, type), MicroOpBits::B64);
+                builder.emitLoadMemReg(anyEntryReg, offsetof(Runtime::Any, type), boxedTypeReg, MicroOpBits::B64);
+                continue;
             }
 
             builder.emitLoadMemReg(anyEntryReg, offsetof(Runtime::Any, value), valuePtrReg, MicroOpBits::B64);

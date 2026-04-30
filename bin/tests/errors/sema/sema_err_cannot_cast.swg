@@ -33,3 +33,19 @@
         ]
     ]
 }
+
+#test
+{
+    var value: s64 = 0
+    var data: [2] s32 = [10, 20]
+    let ptr = cast([*] s32) &data[0]
+    value += ptr // swc-expected-error {{sema_err_cannot_cast}}
+}
+
+#test
+{
+    var data: [2] s32 = [10, 20]
+    var ptr = cast([*] s32) &data[0]
+    let other = ptr + 1
+    ptr -= other // swc-expected-error {{sema_err_cannot_cast}}
+}

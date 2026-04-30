@@ -152,25 +152,51 @@ namespace
         return Result::Continue;
     }
 
+    TypeRef compoundPointerArithmeticResultTypeRef(Sema& sema, TokenId binOp, const SemaNodeView& leftView, const SemaNodeView& rightView)
+    {
+        if (!leftView.type() || !rightView.type())
+            return TypeRef::invalid();
+
+        switch (binOp)
+        {
+            case TokenId::SymPlus:
+                if (leftView.type()->isBlockPointer() && rightView.type()->isScalarNumeric())
+                    return leftView.typeRef();
+                if (leftView.type()->isScalarNumeric() && rightView.type()->isBlockPointer())
+                    return rightView.typeRef();
+                break;
+
+            case TokenId::SymMinus:
+                if (leftView.type()->isBlockPointer() && rightView.type()->isScalarNumeric())
+                    return leftView.typeRef();
+                if (leftView.type()->isBlockPointer() && rightView.type()->isBlockPointer())
+                    return sema.typeMgr().typeS64();
+                break;
+
+            default:
+                break;
+        }
+
+        return TypeRef::invalid();
+    }
+
     Result tryCompoundAssignmentCast(Sema& sema, TokenId op, AstNodeRef leftRef, const SemaNodeView& leftView, const SemaNodeView& rightView, bool rebindReference, AstNodeRef errorNodeRef = AstNodeRef::invalid(), DiagnosticId noteId = DiagnosticId::None)
     {
         const auto    targetLeftView = assignmentTargetView(sema, leftView, rebindReference);
         const TokenId binOp          = Token::assignToBinary(op);
 
-        if ((binOp == TokenId::SymPlus || binOp == TokenId::SymMinus) && targetLeftView.type())
+        const TypeRef pointerResultTypeRef = compoundPointerArithmeticResultTypeRef(sema, binOp, targetLeftView, rightView);
+        if (pointerResultTypeRef.isValid())
         {
+            SWC_RESULT(tryAssignmentCast(sema, leftRef, leftView, pointerResultTypeRef, rebindReference, errorNodeRef, noteId));
             if (targetLeftView.type()->isBlockPointer() && rightView.type()->isScalarNumeric())
             {
                 CastRequest castRequest(CastKind::Assignment);
                 castRequest.errorNodeRef = errorNodeRef.isValid() ? errorNodeRef : leftRef;
                 if (Cast::castAllowed(sema, castRequest, rightView.typeRef(), sema.typeMgr().typeS64()) != Result::Continue)
                     return emitAssignmentCastFailure(sema, castRequest, leftRef, noteId);
-                return Result::Continue;
             }
-
-            if ((targetLeftView.type()->isScalarNumeric() && rightView.type()->isBlockPointer()) ||
-                (targetLeftView.type()->isBlockPointer() && rightView.type()->isBlockPointer()))
-                return Result::Continue;
+            return Result::Continue;
         }
 
         return tryAssignmentCast(sema, leftRef, leftView, rightView.typeRef(), rebindReference, errorNodeRef, noteId);
@@ -226,6 +252,10 @@ namespace
     {
         const TokenId binOp          = op == TokenId::SymEqual ? op : Token::assignToBinary(op);
         const auto    targetLeftView = assignmentTargetView(sema, nodeLeftView, rebindReference);
+        const TypeRef pointerResultTypeRef = compoundPointerArithmeticResultTypeRef(sema, binOp, targetLeftView, nodeRightView);
+        if (pointerResultTypeRef.isValid())
+            SWC_RESULT(tryAssignmentCast(sema, nodeLeftView.nodeRef(), nodeLeftView, pointerResultTypeRef, rebindReference, sema.curNodeRef(), DiagnosticId::sema_note_assignment_target_here));
+
         SWC_RESULT(SemaHelpers::castBinaryRightToLeft(sema, binOp, sema.curNodeRef(), targetLeftView, nodeRightView, CastKind::Assignment));
         return Result::Continue;
     }

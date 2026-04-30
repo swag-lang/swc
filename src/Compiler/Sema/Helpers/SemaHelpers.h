@@ -54,6 +54,7 @@ namespace SemaHelpers
     bool                  usesCallerReturnStorage(TaskContext& ctx, const SymbolFunction& function, const SymbolVariable& symVar);
     const SymbolFunction* currentLocationFunction(const Sema& sema);
     AstNodeRef            defaultArgumentExprRef(const SymbolVariable& param);
+    bool                  isCallerLocationDefaultInitializer(Sema& sema, AstNodeRef initRef);
     bool                  isDirectCallerLocationDefault(const Sema& sema, const SymbolVariable& param);
     AstNodeRef            unwrapCallCalleeRef(Sema& sema, AstNodeRef nodeRef);
     void                  pushConstExprRequirement(Sema& sema, AstNodeRef childRef);

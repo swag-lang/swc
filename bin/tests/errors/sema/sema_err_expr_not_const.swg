@@ -37,4 +37,17 @@ func defaultFromPreviousParam(a: s32, b: s32 = a + 1)->s32 // swc-expected-error
     return b
 }
 
+var RuntimeDefaultForLambda = 11
+var RuntimeDefaultForFuncType = 13
+
+func failLambdaDefaultFromRuntimeValue()
+{
+    let f = func(value: s32 = RuntimeDefaultForLambda)->s32 // swc-expected-error {{sema_err_expr_not_const}}
+    {
+        return value
+    }
+}
+
+var BadFuncType: func(value: s32 = RuntimeDefaultForFuncType)->s32 = null // swc-expected-error {{sema_err_expr_not_const}}
+
 #test { useConstCallResult() }

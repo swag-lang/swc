@@ -1461,13 +1461,9 @@ namespace
             }
         }
 
-        bool           isCallerLocation = false;
-        const AstNode& initNode         = sema.node(param.nodeDefaultValueRef);
-        if (initNode.is(AstNodeId::CompilerLiteral))
-        {
-            const Token& tok = sema.token(initNode.codeRef());
-            isCallerLocation = tok.id == TokenId::CompilerCallerLocation;
-        }
+        const bool isCallerLocation = SemaHelpers::isCallerLocationDefaultInitializer(sema, param.nodeDefaultValueRef);
+        if (!paramType.isCodeBlock() && !isCallerLocation && defaultView.cstRef().isInvalid())
+            return SemaError::raiseExprNotConst(sema, defaultView.nodeRef());
 
         if (defaultView.cstRef().isValid())
             symVar.setDefaultValueRef(defaultView.cstRef());

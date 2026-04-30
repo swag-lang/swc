@@ -587,6 +587,19 @@ AstNodeRef SemaHelpers::defaultArgumentExprRef(const SymbolVariable& param)
     return AstNodeRef::invalid();
 }
 
+bool SemaHelpers::isCallerLocationDefaultInitializer(Sema& sema, AstNodeRef initRef)
+{
+    if (initRef.isInvalid())
+        return false;
+
+    const AstNode& initNode = sema.node(initRef);
+    if (!initNode.is(AstNodeId::CompilerLiteral))
+        return false;
+
+    const SourceCodeRef codeRef = initNode.codeRef();
+    return codeRef.isValid() && sema.token(codeRef).id == TokenId::CompilerCallerLocation;
+}
+
 bool SemaHelpers::isDirectCallerLocationDefault(const Sema& /*sema*/, const SymbolVariable& param)
 {
     return param.hasExtraFlag(SymbolVariableFlagsE::CallerLocationDefault);

@@ -861,19 +861,6 @@ namespace
         return Result::Continue;
     }
 
-    bool isCallerLocationDefaultInitializer(Sema& sema, AstNodeRef initRef)
-    {
-        if (initRef.isInvalid())
-            return false;
-
-        const AstNode& initNode = sema.node(initRef);
-        if (!initNode.is(AstNodeId::CompilerLiteral))
-            return false;
-
-        const SourceCodeRef codeRef = initNode.codeRef();
-        return codeRef.isValid() && sema.token(codeRef).id == TokenId::CompilerCallerLocation;
-    }
-
     Result semaPostVarDeclCommon(Sema& sema, const SemaPostVarDeclArgs& context, const std::span<Symbol*>& symbols)
     {
         SemaNodeView nodeInitView = sema.viewNodeTypeConstant(context.nodeInitRef);
@@ -971,7 +958,7 @@ namespace
         if (!isLet && !isParameter && isRefType && context.nodeInitRef.isInvalid())
             return reportRefMissingInit(sema, SourceCodeRef{context.owner->srcViewRef(), context.tokDiag}, finalTypeRef);
 
-        const bool isCallerLocation = isCallerLocationDefaultInitializer(sema, context.nodeInitRef);
+        const bool isCallerLocation = SemaHelpers::isCallerLocationDefaultInitializer(sema, context.nodeInitRef);
         if (isParameter &&
             context.nodeInitRef.isValid() &&
             !codeParameterDefault &&

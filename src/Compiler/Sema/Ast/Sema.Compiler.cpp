@@ -74,8 +74,6 @@ namespace
     {
         if (nodeRef.isInvalid())
             return false;
-        if (sema.isGlobalScope())
-            return false;
 
         const AstNodeRef parentRef = sema.visit().parentNodeRef();
         if (parentRef.isInvalid())

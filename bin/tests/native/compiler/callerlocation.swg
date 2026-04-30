@@ -339,3 +339,33 @@ func functionTypeCaller()->SourceCodeLocation
     let typeLoc = functionTypeCaller()
     @assert(typeLoc.funcName == "functionTypeCaller")
 }
+
+// =========================================================================
+// Global function type defaults
+// =========================================================================
+
+alias GlobalLocFn = func(loc = #callerlocation)->SourceCodeLocation
+
+func globalFunctionTypeTarget(loc: SourceCodeLocation)->SourceCodeLocation => loc
+
+var GlobalAliasFunctionTypeValue: GlobalLocFn = &globalFunctionTypeTarget
+var DirectGlobalFunctionTypeValue: func(loc = #callerlocation)->SourceCodeLocation = &globalFunctionTypeTarget
+
+func globalAliasFunctionTypeCaller()->SourceCodeLocation
+{
+    return GlobalAliasFunctionTypeValue()
+}
+
+func directGlobalFunctionTypeCaller()->SourceCodeLocation
+{
+    return DirectGlobalFunctionTypeValue()
+}
+
+#test
+{
+    let aliasLoc = globalAliasFunctionTypeCaller()
+    @assert(aliasLoc.funcName == "globalAliasFunctionTypeCaller")
+
+    let directLoc = directGlobalFunctionTypeCaller()
+    @assert(directLoc.funcName == "directGlobalFunctionTypeCaller")
+}

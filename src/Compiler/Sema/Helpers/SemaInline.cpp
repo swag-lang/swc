@@ -962,6 +962,27 @@ namespace
             return Result::Continue;
 
         const SemaClone::CloneContext noBindings{std::span<const SemaClone::ParamBinding>{}};
+        if (!variadicBinding.untypedVariadic && variadicBinding.argRefs.size() == 1)
+        {
+            const AstNodeRef argRef = bindingValueArgumentRef(sema, variadicBinding.argRefs.front());
+            if (argRef.isInvalid())
+                return Result::Continue;
+
+            const TypeRef argTypeRef = sema.viewType(argRef).typeRef();
+            if (argTypeRef.isValid())
+            {
+                const TypeInfo& argType = sema.typeMgr().get(argTypeRef);
+                if (argType.isTypedVariadic() && argType.payloadTypeRef() == targetElemTypeRef)
+                {
+                    outExprRef = SemaClone::cloneAst(sema, argRef, noBindings);
+                    if (outExprRef.isInvalid())
+                        return Result::Continue;
+                    outExprTypeRef = argTypeRef;
+                    return Result::Continue;
+                }
+            }
+        }
+
         SmallVector<AstNodeRef>       clonedValues;
         clonedValues.reserve(variadicBinding.argRefs.size());
 

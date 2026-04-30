@@ -24,6 +24,11 @@ func inlineTypedVariadicNamed(values: s32...)->s32
     return sum1
 }
 
+func forwardInlineTypedVariadic(values: s32...)->s32
+{
+    return inlineTypedVariadicNamed(values)
+}
+
 #[Swag.Inline]
 func inlineUntypedVariadicScore(values: ...)->s32
 {
@@ -89,4 +94,6 @@ func inlineUntypedVariadicHead(head: s32, values: ...)->s32
     var h4: s32 = 50
     var h5: string = "x"
     @assert(inlineUntypedVariadicHead(h4, h5) == 51)
+
+    @assert(forwardInlineTypedVariadic(10, 20, 30) == 60)
 }

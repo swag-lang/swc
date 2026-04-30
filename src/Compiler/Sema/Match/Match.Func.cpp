@@ -1084,6 +1084,76 @@ namespace
         return Result::Continue;
     }
 
+    bool isMatchingTypedVariadicForwardingArg(Sema& sema, AstNodeRef argRef, TypeRef variadicTypeRef)
+    {
+        if (argRef.isInvalid() || !variadicTypeRef.isValid())
+            return false;
+
+        const AstNodeRef argValueRef = Match::resolveCallArgumentValueRef(sema, argRef);
+        const TypeRef    argTypeRef  = sema.viewType(argValueRef).typeRef();
+        if (!argTypeRef.isValid())
+            return false;
+
+        const TypeInfo& argType = sema.typeMgr().get(argTypeRef);
+        return argType.isTypedVariadic() && argType.payloadTypeRef() == variadicTypeRef;
+    }
+
+    Result probeTypedVariadicArgument(Sema& sema, const SymbolFunction& fn, const CallArgEntry& entry, TypeRef variadicTy, uint32_t variadicParamIndex, bool allowForwarding, Candidate& outCandidate, MatchFailure& outFail)
+    {
+        if (entry.argRef.isInvalid())
+            return Result::Continue;
+
+        const AstNodeRef argValueRef = Match::resolveCallArgumentValueRef(sema, entry.argRef);
+        const TypeRef    argTy       = sema.viewType(argValueRef).typeRef();
+        CastFailure      cf{};
+
+        if (argTy.isInvalid())
+        {
+            cf.diagId     = DiagnosticId::sema_err_cannot_cast;
+            cf.srcTypeRef = argTy;
+            cf.dstTypeRef = variadicTy;
+            attachCallCastFailureArgs(cf, fn, entry.callArgIndex, sema.ctx());
+            failBadType(outFail, entry.callArgIndex, variadicParamIndex, cf);
+            return Result::Continue;
+        }
+
+        const TypeInfo& argType = sema.typeMgr().get(argTy);
+        if (argType.isTypedVariadic())
+        {
+            if (allowForwarding && argType.payloadTypeRef() == variadicTy)
+            {
+                outCandidate.perArg.push_back(ConvRank::Exact);
+                return Result::Continue;
+            }
+
+            cf.diagId     = DiagnosticId::sema_err_cannot_cast;
+            cf.srcTypeRef = argTy;
+            cf.dstTypeRef = variadicTy;
+            attachCallCastFailureArgs(cf, fn, entry.callArgIndex, sema.ctx());
+            failBadType(outFail, entry.callArgIndex, variadicParamIndex, cf);
+            return Result::Continue;
+        }
+
+        auto r = ConvRank::Bad;
+        SWC_RESULT(probeImplicitConversion(sema, r, entry.argRef, argTy, variadicTy, cf, false, false));
+        if (r == ConvRank::Bad)
+        {
+            if (cf.diagId == DiagnosticId::None)
+            {
+                cf.diagId     = DiagnosticId::sema_err_cannot_cast;
+                cf.srcTypeRef = argTy;
+                cf.dstTypeRef = variadicTy;
+            }
+
+            attachCallCastFailureArgs(cf, fn, entry.callArgIndex, sema.ctx());
+            failBadType(outFail, entry.callArgIndex, variadicParamIndex, cf);
+            return Result::Continue;
+        }
+
+        outCandidate.perArg.push_back(r);
+        return Result::Continue;
+    }
+
     uint32_t minRequiredArgs(const SymbolFunction& fn, bool ignoreVariadicTail)
     {
         const auto&    params = fn.parameters();
@@ -1378,39 +1448,29 @@ namespace
         }
 
         // Handle variadic tail
-        if (vi.any() && numParams > 0 && !mapping.variadicArgs.empty())
+        if (vi.any() && numParams > 0)
         {
+            const uint32_t     startVariadic    = numParams - 1;
+            const CallArgEntry fixedVariadicArg = mapping.paramArgs[startVariadic];
             if (vi.isVariadic)
             {
+                if (fixedVariadicArg.argRef.isValid())
+                    outCandidate.perArg.push_back(ConvRank::Ellipsis);
                 for ([[maybe_unused]] const CallArgEntry& entry : mapping.variadicArgs)
                     outCandidate.perArg.push_back(ConvRank::Ellipsis);
             }
             else
             {
-                const uint32_t startVariadic = numParams - 1;
-                const TypeRef  variadicTy    = params.back()->type(ctx).payloadTypeRef();
-
+                const TypeRef variadicTy = params.back()->type(ctx).payloadTypeRef();
+                if (fixedVariadicArg.argRef.isValid())
+                    SWC_RESULT(probeTypedVariadicArgument(sema, fn, fixedVariadicArg, variadicTy, startVariadic, mapping.variadicArgs.empty(), outCandidate, outFail));
+                if (outFail.active)
+                    return Result::Continue;
                 for (const CallArgEntry& entry : mapping.variadicArgs)
                 {
-                    const AstNodeRef argRef = entry.argRef;
-                    const TypeRef    argTy  = sema.viewType(argRef).typeRef();
-                    CastFailure      cf{};
-                    auto             r = ConvRank::Bad;
-                    SWC_RESULT(probeImplicitConversion(sema, r, argRef, argTy, variadicTy, cf, false, false));
-                    if (r == ConvRank::Bad)
-                    {
-                        if (cf.diagId == DiagnosticId::None)
-                        {
-                            cf.diagId     = DiagnosticId::sema_err_cannot_cast;
-                            cf.srcTypeRef = argTy;
-                            cf.dstTypeRef = variadicTy;
-                        }
-                        // paramIndex points at the variadic parameter
-                        attachCallCastFailureArgs(cf, fn, entry.callArgIndex, ctx);
-                        failBadType(outFail, entry.callArgIndex, startVariadic, cf);
+                    SWC_RESULT(probeTypedVariadicArgument(sema, fn, entry, variadicTy, startVariadic, false, outCandidate, outFail));
+                    if (outFail.active)
                         return Result::Continue;
-                    }
-                    outCandidate.perArg.push_back(r);
                 }
             }
         }
@@ -1922,18 +1982,25 @@ namespace
         const CallArgEntry& fixedVariadicArg = mapping.paramArgs[numParams - 1];
         if (fixedVariadicArg.argRef.isValid())
         {
-            SemaNodeView argView(sema, fixedVariadicArg.argRef, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
-            SWC_RESULT(normalizeTypeInfoCallArgument(sema, fixedVariadicArg.argRef, variadicTy, argView));
+            if (mapping.variadicArgs.empty() && isMatchingTypedVariadicForwardingArg(sema, fixedVariadicArg.argRef, variadicTy))
+                return Result::Continue;
+
+            const AstNodeRef argValueRef = Match::resolveCallArgumentValueRef(sema, fixedVariadicArg.argRef);
+            SemaNodeView     argView(sema, argValueRef, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
+            SWC_RESULT(normalizeTypeInfoCallArgument(sema, argValueRef, variadicTy, argView));
             const DiagnosticArguments errorArguments = makeCallCastErrorArguments(selectedFn, fixedVariadicArg.callArgIndex, sema.ctx());
             SWC_RESULT(Cast::cast(sema, argView, variadicTy, CastKind::Implicit, CastFlagsE::Zero, &errorArguments));
+            refreshNamedArgumentPayload(sema, fixedVariadicArg.argRef, argView.nodeRef());
         }
 
         for (const CallArgEntry& entry : mapping.variadicArgs)
         {
-            SemaNodeView argView(sema, entry.argRef, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
-            SWC_RESULT(normalizeTypeInfoCallArgument(sema, entry.argRef, variadicTy, argView));
+            const AstNodeRef argValueRef = Match::resolveCallArgumentValueRef(sema, entry.argRef);
+            SemaNodeView     argView(sema, argValueRef, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
+            SWC_RESULT(normalizeTypeInfoCallArgument(sema, argValueRef, variadicTy, argView));
             const DiagnosticArguments errorArguments = makeCallCastErrorArguments(selectedFn, entry.callArgIndex, sema.ctx());
             SWC_RESULT(Cast::cast(sema, argView, variadicTy, CastKind::Implicit, CastFlagsE::Zero, &errorArguments));
+            refreshNamedArgumentPayload(sema, entry.argRef, argView.nodeRef());
         }
 
         return Result::Continue;

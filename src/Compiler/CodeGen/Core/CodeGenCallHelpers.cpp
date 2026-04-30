@@ -989,11 +989,33 @@ namespace
 
         builder.emitLoadMemReg(dstAddressReg, 0, srcPayload.reg, MicroOpBits::B64);
     }
+
+    bool isMatchingTypedVariadicForwardingArg(CodeGen& codeGen, const ResolvedCallArgument& arg, TypeRef variadicElemTypeRef)
+    {
+        if (arg.argRef.isInvalid() || !variadicElemTypeRef.isValid())
+            return false;
+
+        const SemaNodeView argView = codeGen.viewType(arg.argRef);
+        return argView.type() && argView.type()->isTypedVariadic() && argView.type()->payloadTypeRef() == variadicElemTypeRef;
+    }
+
     void packTypedVariadicArgument(ABICall::PreparedArg& outPreparedArg, uint32_t& outTransientStackSize, CodeGen& codeGen, const CallConv& callConv, std::span<const ResolvedCallArgument> args, TypeRef variadicElemTypeRef, const ABITypeNormalize::NormalizedType& normalizedVariadic)
     {
         MicroBuilder& builder = codeGen.builder();
         SWC_ASSERT(normalizedVariadic.numBits == 64);
         SWC_ASSERT(!normalizedVariadic.isIndirect);
+
+        if (args.size() == 1 && isMatchingTypedVariadicForwardingArg(codeGen, args[0], variadicElemTypeRef))
+        {
+            const CodeGenNodePayload& argPayload = codeGen.payload(args[0].argRef);
+            outPreparedArg.srcReg                = argPayload.reg;
+            outPreparedArg.kind                  = ABICall::PreparedArgKind::Direct;
+            outPreparedArg.isFloat               = normalizedVariadic.isFloat;
+            outPreparedArg.isSigned              = normalizedVariadic.isSigned;
+            outPreparedArg.numBits               = normalizedVariadic.numBits;
+            outPreparedArg.isAddressed           = argPayload.isAddress();
+            return;
+        }
 
         TaskContext&    ctx          = codeGen.ctx();
         const TypeInfo& variadicType = ctx.typeMgr().get(variadicElemTypeRef);

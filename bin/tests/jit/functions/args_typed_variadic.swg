@@ -338,3 +338,40 @@ alias TypedVariadicAlias = s32
     const V0 = #run variadicTypedStressPayload(p0, p1, p2)
     #assert(V0 == 83'u64)
 }
+
+#test
+{
+    func variadicTypedInner(values: s32...)->s32
+    {
+        var acc: s32 = 0
+        foreach value in values do
+            acc += value
+        return acc
+    }
+
+    func variadicTypedForward(values: s32...)->s32
+    {
+        return variadicTypedInner(values)
+    }
+
+    const V0 = #run variadicTypedForward(10, 20, 30)
+    #assert(V0 == 60)
+}
+
+#test
+{
+    func variadicTypedPairInner(values: TypedVariadicPair...)->s32
+    {
+        return values[0].a + values[0].b + values[1].a + values[1].b
+    }
+
+    func variadicTypedPairForward(values: TypedVariadicPair...)->s32
+    {
+        return variadicTypedPairInner(values)
+    }
+
+    const p0: TypedVariadicPair = {a: 2, b: 3}
+    const p1: TypedVariadicPair = {a: 5, b: 7}
+    const V0 = #run variadicTypedPairForward(p0, p1)
+    #assert(V0 == 17)
+}

@@ -46,6 +46,29 @@ func variadicTypedPair(a: s32, values: TypedVariadicPair...)->s32
     return a + values[0].a + values[0].b + values[1].a + values[1].b
 }
 
+func variadicTypedForwardInner(values: s32...)->s32
+{
+    var acc: s32 = 0
+    foreach value in values do
+        acc += value
+    return acc
+}
+
+func variadicTypedForward(values: s32...)->s32
+{
+    return variadicTypedForwardInner(values)
+}
+
+func variadicTypedPairForwardInner(values: TypedVariadicPair...)->s32
+{
+    return values[0].a + values[0].b + values[1].a + values[1].b
+}
+
+func variadicTypedPairForward(values: TypedVariadicPair...)->s32
+{
+    return variadicTypedPairForwardInner(values)
+}
+
 #test
 {
     @assert(variadicTypedCount() == 0)
@@ -67,4 +90,12 @@ func variadicTypedPair(a: s32, values: TypedVariadicPair...)->s32
     const p0: TypedVariadicPair = {a: 2, b: 3}
     const p1: TypedVariadicPair = {a: 5, b: 7}
     @assert(variadicTypedPair(1, p0, p1) == 18)
+}
+
+#test
+{
+    const p0: TypedVariadicPair = {a: 2, b: 3}
+    const p1: TypedVariadicPair = {a: 5, b: 7}
+    @assert(variadicTypedForward(10, 20, 30) == 60)
+    @assert(variadicTypedPairForward(p0, p1) == 17)
 }

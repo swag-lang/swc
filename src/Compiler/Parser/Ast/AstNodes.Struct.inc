@@ -444,6 +444,7 @@ enum class AstIdentifierFlagsE : AstNode::ParserFlags
     CallCallee         = 1 << 1,
     InClosureCapture   = 1 << 2,
     GenericTypeBinding = 1 << 3,
+    PreResolvedSymbol  = 1 << 4,
 };
 
 struct AstIdentifier : AstNodeT<AstNodeId::Identifier, AstIdentifierFlagsE>

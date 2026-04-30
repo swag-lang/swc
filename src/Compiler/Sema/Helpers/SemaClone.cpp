@@ -311,7 +311,9 @@ namespace
         nodePtr->flags()        = node.flags();
         nodePtr->setCodeRef(node.codeRef());
         const bool preserveSyntheticSymbol = storedView && storedView->sym &&
-                                             (!node.codeRef().isValid() || sema.token(node.codeRef()).id != TokenId::Identifier);
+                                             (node.hasFlag(AstIdentifierFlagsE::PreResolvedSymbol) ||
+                                              !node.codeRef().isValid() ||
+                                              sema.token(node.codeRef()).id != TokenId::Identifier);
         if (preserveSyntheticSymbol)
             sema.setSymbol(nodeRef, storedView->sym);
         const bool crossAstSource = &sourceAst != &sema.ast();

@@ -380,6 +380,9 @@ Result AstIdentifier::semaPostNode(Sema& sema) const
     if (view.cstRef().isValid())
         return Result::Continue;
 
+    if ((hasFlag(AstIdentifierFlagsE::PreResolvedSymbol) || !codeRef().isValid()) && sema.curViewSymbol().sym())
+        return Result::Continue;
+
     const AstNodeRef parentRef = sema.visit().parentNodeRef();
     if (!sema.curViewSymbol().sym() &&
         !sema.curViewSymbolList().hasSymbolList() &&

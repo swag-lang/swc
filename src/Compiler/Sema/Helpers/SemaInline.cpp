@@ -598,6 +598,23 @@ namespace
         return declNode->safeCast<AstSingleVarDecl>();
     }
 
+    SymbolVariable* makeMaterializedInlineBindingSymbol(Sema& sema, const AstSingleVarDecl& sourceDecl, AstSingleVarDecl& materializedDecl)
+    {
+        const IdentifierRef idRef  = SemaHelpers::getUniqueIdentifier(sema, "__inline_arg");
+        const SymbolFlags   flags  = sema.frame().flagsForCurrentAccess();
+        auto*               symVar = Symbol::make<SymbolVariable>(sema.ctx(), &materializedDecl, sourceDecl.tokNameRef, idRef, flags);
+        symVar->addExtraFlag(SymbolVariableFlagsE::Let);
+        return symVar;
+    }
+
+    AstNodeRef makeMaterializedInlineBindingUse(Sema& sema, const AstSingleVarDecl& sourceDecl, SymbolVariable& materializedSym)
+    {
+        auto [identRef, identPtr] = sema.ast().makeNode<AstNodeId::Identifier>(sourceDecl.tokRef());
+        identPtr->addFlag(AstIdentifierFlagsE::PreResolvedSymbol);
+        sema.setSymbol(identRef, &materializedSym);
+        return identRef;
+    }
+
     void appendInlineLocalIdentifier(Sema& sema, const AstNode& node, TokenRef tokNameRef, SmallVector<IdentifierRef>& outIdentifiers)
     {
         if (tokNameRef.isValid())
@@ -771,7 +788,12 @@ namespace
             declPtr->flags()        = AstVarDeclFlagsE::Let;
             declPtr->tokNameRef     = paramDecl->tokNameRef;
             declPtr->nodeInitRef    = clonedInitRef;
+            SymbolVariable* materializedSym = makeMaterializedInlineBindingSymbol(sema, *paramDecl, *declPtr);
+            sema.setSymbol(declRef, materializedSym);
             outStatements.push_back(declRef);
+
+            binding.exprRef = makeMaterializedInlineBindingUse(sema, *paramDecl, *materializedSym);
+            remainingBindings.push_back(binding);
         }
 
         ioBindings = std::move(remainingBindings);

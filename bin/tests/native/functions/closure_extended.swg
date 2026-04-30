@@ -99,6 +99,69 @@ func inlineCapturedRefValue(value: s32)->s32
     return first * 10 + second
 }
 
+func normalTypedVariadicClosureCapture(values: s32...)->s32
+{
+    let cb = func|values|()->s32
+    {
+        return values[0] + values[1]
+    }
+
+    return cb()
+}
+
+#[Swag.Inline]
+func inlineTypedVariadicClosureCapture(values: s32...)->s32
+{
+    let cb = func|values|()->s32
+    {
+        return values[0] + values[1]
+    }
+
+    return cb()
+}
+
+func normalUntypedVariadicClosureCapture(values: ...)->s32
+{
+    let cb = func|values|()->s32
+    {
+        return cast(s32) values[0] + cast(s32) values[1]
+    }
+
+    return cb()
+}
+
+#[Swag.Inline]
+func inlineUntypedVariadicClosureCapture(values: ...)->s32
+{
+    let cb = func|values|()->s32
+    {
+        return cast(s32) values[0] + cast(s32) values[1]
+    }
+
+    return cb()
+}
+
+func normalAnyVariadicClosureCapture(values: any...)->s32
+{
+    let cb = func|values|()->s32
+    {
+        return cast(s32) values[0] + cast(s32) values[1]
+    }
+
+    return cb()
+}
+
+#[Swag.Inline]
+func inlineAnyVariadicClosureCapture(values: any...)->s32
+{
+    let cb = func|values|()->s32
+    {
+        return cast(s32) values[0] + cast(s32) values[1]
+    }
+
+    return cb()
+}
+
 func runDottedPathCapture()->s32
 {
     var first:  PathTarget = {value: 10}
@@ -366,6 +429,16 @@ func runInlineClosureCaptureRef()->s32
 #test
 {
     @assert(runInlineClosureCaptureRef() == 78)
+}
+
+#test
+{
+    @assert(normalTypedVariadicClosureCapture(3, 4) == 7)
+    @assert(inlineTypedVariadicClosureCapture(3, 4) == 7)
+    @assert(normalUntypedVariadicClosureCapture(5, 6) == 11)
+    @assert(inlineUntypedVariadicClosureCapture(5, 6) == 11)
+    @assert(normalAnyVariadicClosureCapture(7, 8) == 15)
+    @assert(inlineAnyVariadicClosureCapture(7, 8) == 15)
 }
 
 #test

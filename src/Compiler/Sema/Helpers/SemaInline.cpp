@@ -795,15 +795,16 @@ namespace
             if (!param)
                 continue;
 
+            const bool bindingIsCaptured = inlineBindingIsCaptured(binding.idRef, capturedIdentifiers);
+            const bool bindingNeedsMaterialization = inlineBindingNeedsMaterialization(sema, binding.exprRef, localIdentifiers);
             const TypeInfo& paramType = param->type(sema.ctx());
-            if (paramType.isCodeBlock() || paramType.isAnyVariadic())
+            if (paramType.isCodeBlock() || (paramType.isAnyVariadic() && !bindingIsCaptured && !bindingNeedsMaterialization))
             {
                 remainingBindings.push_back(binding);
                 continue;
             }
 
-            if (!inlineBindingIsCaptured(binding.idRef, capturedIdentifiers) &&
-                !inlineBindingNeedsMaterialization(sema, binding.exprRef, localIdentifiers))
+            if (!bindingIsCaptured && !bindingNeedsMaterialization)
             {
                 remainingBindings.push_back(binding);
                 continue;
@@ -830,6 +831,7 @@ namespace
             outStatements.push_back(declRef);
 
             binding.exprRef = makeMaterializedInlineBindingUse(sema, *param, *materializedSym);
+            binding.typeRef = TypeRef::invalid();
             remainingBindings.push_back(binding);
         }
 

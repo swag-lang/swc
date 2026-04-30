@@ -260,17 +260,25 @@ CodeGenNodePayload CodeGenFunctionHelpers::resolveClosureCapturePayload(CodeGen&
 
     CodeGenNodePayload capturePayload;
     capturePayload.typeRef = symVar.typeRef();
-    capturePayload.setIsAddress();
 
     const MicroReg captureReg = codeGen.offsetAddressReg(codeGen.currentFunctionClosureContextReg(), symVar.closureCaptureOffset());
-    if (symVar.closureCaptureByRef())
+    const TypeInfo& typeInfo = codeGen.typeMgr().get(symVar.typeRef());
+    if (typeInfo.isAnyVariadic())
     {
         capturePayload.reg = codeGen.nextVirtualIntRegister();
         codeGen.builder().emitLoadRegMem(capturePayload.reg, captureReg, 0, MicroOpBits::B64);
+        capturePayload.setIsValue();
+    }
+    else if (symVar.closureCaptureByRef())
+    {
+        capturePayload.reg = codeGen.nextVirtualIntRegister();
+        codeGen.builder().emitLoadRegMem(capturePayload.reg, captureReg, 0, MicroOpBits::B64);
+        capturePayload.setIsAddress();
     }
     else
     {
         capturePayload.reg = captureReg;
+        capturePayload.setIsAddress();
     }
 
     codeGen.setVariablePayload(symVar, capturePayload);

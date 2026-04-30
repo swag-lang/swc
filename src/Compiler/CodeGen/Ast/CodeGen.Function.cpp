@@ -962,8 +962,22 @@ namespace
             sourcePayload         = &resolvedSourcePayload;
         }
 
-        const uint32_t captureOffset = offsetof(Runtime::ClosureValue, capture) + captureVar.closureCaptureOffset();
-        const MicroReg captureDstReg = codeGen.offsetAddressReg(closureValueReg, captureOffset);
+        const TypeInfo& typeInfo = codeGen.typeMgr().get(captureVar.typeRef());
+        const uint32_t  captureOffset = offsetof(Runtime::ClosureValue, capture) + captureVar.closureCaptureOffset();
+        const MicroReg  captureDstReg = codeGen.offsetAddressReg(closureValueReg, captureOffset);
+        if (typeInfo.isAnyVariadic())
+        {
+            MicroReg sourceReg = sourcePayload->reg;
+            if (sourcePayload->isAddress())
+            {
+                sourceReg = codeGen.nextVirtualIntRegister();
+                codeGen.builder().emitLoadRegMem(sourceReg, sourcePayload->reg, 0, MicroOpBits::B64);
+            }
+
+            codeGen.builder().emitLoadMemReg(captureDstReg, 0, sourceReg, MicroOpBits::B64);
+            return;
+        }
+
         if (captureVar.closureCaptureByRef())
         {
             SWC_ASSERT(sourcePayload->isAddress());
@@ -971,7 +985,6 @@ namespace
             return;
         }
 
-        const TypeInfo& typeInfo = codeGen.typeMgr().get(captureVar.typeRef());
         const uint32_t  copySize = CodeGenFunctionHelpers::checkedTypeSizeInBytes(codeGen, typeInfo);
         if (sourcePayload->isAddress())
         {

@@ -1794,7 +1794,7 @@ namespace
 
             uint32_t storageSize  = static_cast<uint32_t>(typeInfo.sizeOf(ctx));
             uint32_t storageAlign = typeInfo.alignOf(ctx);
-            if (captureByRef)
+            if (captureByRef || typeInfo.isAnyVariadic())
             {
                 storageSize  = sizeof(void*);
                 storageAlign = alignof(void*);

@@ -415,6 +415,7 @@ Result AstFunctionDecl::semaPreNode(Sema& sema) const
     frame.setCurrentImpl(declImpl);
     frame.setCurrentInterface(declItf);
     frame.setCurrentFunction(&sym);
+    frame.setCurrentInlinePayload(nullptr);
     frame.setCurrentErrorContext(AstNodeRef::invalid(), SemaFrame::ErrorContextMode::None);
     sema.pushFramePopOnPostNode(frame);
     return Result::Continue;
@@ -442,6 +443,7 @@ Result AstFunctionExpr::semaPreNode(Sema& sema) const
     auto&     sym   = sema.curViewSymbol().sym()->cast<SymbolFunction>();
     SemaFrame frame = sema.frame();
     frame.setCurrentFunction(&sym);
+    frame.setCurrentInlinePayload(nullptr);
     frame.setCurrentErrorContext(AstNodeRef::invalid(), SemaFrame::ErrorContextMode::None);
     sema.pushFramePopOnPostNode(frame);
     return Result::Continue;
@@ -469,6 +471,7 @@ Result AstClosureExpr::semaPreNode(Sema& sema) const
     auto&     sym   = sema.curViewSymbol().sym()->cast<SymbolFunction>();
     SemaFrame frame = sema.frame();
     frame.setCurrentFunction(&sym);
+    frame.setCurrentInlinePayload(nullptr);
     frame.setCurrentErrorContext(AstNodeRef::invalid(), SemaFrame::ErrorContextMode::None);
     sema.pushFramePopOnPostNode(frame);
     return Result::Continue;
@@ -1737,6 +1740,22 @@ namespace
         return nullptr;
     }
 
+    IdentifierRef closureCaptureAliasIdentifier(Sema& sema, AstNodeRef nodeRef)
+    {
+        if (nodeRef.isInvalid())
+            return IdentifierRef::invalid();
+
+        const AstNode& node = sema.node(nodeRef);
+        if (const auto* identifier = node.safeCast<AstIdentifier>())
+            return SemaHelpers::resolveIdentifier(sema, identifier->codeRef());
+        if (const auto* memberAccess = node.safeCast<AstMemberAccessExpr>())
+            return closureCaptureAliasIdentifier(sema, memberAccess->nodeRightRef);
+        if (const auto* ancestor = node.safeCast<AstAncestorIdentifier>())
+            return closureCaptureAliasIdentifier(sema, ancestor->nodeIdentRef);
+
+        return IdentifierRef::invalid();
+    }
+
     Result buildClosureCaptureSymbols(Sema& sema, const AstClosureExpr& node, SymbolFunction& sym)
     {
         TaskContext&            ctx = sema.ctx();
@@ -1803,7 +1822,11 @@ namespace
                 return Result::Error;
             }
 
-            auto* captureSym = Symbol::make<SymbolVariable>(ctx, &captureArg, captureArg.tokRef(), sourceVar.idRef(), SymbolFlagsE::Zero);
+            IdentifierRef captureIdRef = closureCaptureAliasIdentifier(sema, captureArg.nodeIdentifierRef);
+            if (!captureIdRef.isValid())
+                captureIdRef = sourceVar.idRef();
+
+            auto* captureSym = Symbol::make<SymbolVariable>(ctx, &captureArg, captureArg.tokRef(), captureIdRef, SymbolFlagsE::Zero);
             captureSym->setTypeRef(typeRef);
             captureSym->setClosureCapturedSource(&sourceVar);
             captureSym->setClosureCaptureOffset(static_cast<uint32_t>(captureOffset));
@@ -1812,7 +1835,7 @@ namespace
             if (captureByRef && sourceVar.hasExtraFlag(SymbolVariableFlagsE::Parameter))
                 sourceVar.addExtraFlag(SymbolVariableFlagsE::NeedsAddressableStorage);
 
-            if (sourceVar.idRef().isValid())
+            if (captureIdRef.isValid())
             {
                 Symbol* inserted = sym.addSingleSymbol(ctx, captureSym);
                 if (inserted != captureSym)

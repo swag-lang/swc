@@ -658,6 +658,44 @@ namespace
             collectIdentifierUses(sema, childRef, outIdentifiers);
     }
 
+    void collectSourceIdentifierUses(Sema& sema, const Ast& sourceAst, AstNodeRef nodeRef, SmallVector<IdentifierRef>& outIdentifiers)
+    {
+        if (nodeRef.isInvalid())
+            return;
+
+        const AstNode& node = sourceAst.node(nodeRef);
+        if (node.is(AstNodeId::Identifier))
+            outIdentifiers.push_back(sema.idMgr().addIdentifier(sema.ctx(), node.codeRef()));
+
+        SmallVector<AstNodeRef> children;
+        node.collectChildrenFromAst(children, sourceAst);
+        for (const AstNodeRef childRef : children)
+            collectSourceIdentifierUses(sema, sourceAst, childRef, outIdentifiers);
+    }
+
+    void collectInlineClosureCaptureIdentifiers(Sema& sema, const Ast& sourceAst, AstNodeRef nodeRef, SmallVector<IdentifierRef>& outIdentifiers)
+    {
+        if (nodeRef.isInvalid())
+            return;
+
+        const AstNode& node = sourceAst.node(nodeRef);
+        if (const auto* closureArg = node.safeCast<AstClosureArgument>())
+        {
+            collectSourceIdentifierUses(sema, sourceAst, closureArg->nodeIdentifierRef, outIdentifiers);
+            return;
+        }
+
+        SmallVector<AstNodeRef> children;
+        node.collectChildrenFromAst(children, sourceAst);
+        for (const AstNodeRef childRef : children)
+            collectInlineClosureCaptureIdentifiers(sema, sourceAst, childRef, outIdentifiers);
+    }
+
+    bool inlineBindingIsCaptured(IdentifierRef idRef, const SmallVector<IdentifierRef>& capturedIdentifiers)
+    {
+        return idRef.isValid() && std::ranges::find(capturedIdentifiers, idRef) != capturedIdentifiers.end();
+    }
+
     bool inlineBindingNeedsMaterialization(Sema& sema, AstNodeRef exprRef, const SmallVector<IdentifierRef>& localIdentifiers)
     {
         if (exprRef.isInvalid() || localIdentifiers.empty())
@@ -727,6 +765,8 @@ namespace
         const SemaClone::CloneContext noBindings{std::span<const SemaClone::ParamBinding>{}};
         SmallVector<IdentifierRef>    localIdentifiers;
         collectInlineLocalIdentifiers(sema, sourceAst, decl.nodeBodyRef, localIdentifiers);
+        SmallVector<IdentifierRef> capturedIdentifiers;
+        collectInlineClosureCaptureIdentifiers(sema, sourceAst, decl.nodeBodyRef, capturedIdentifiers);
 
         SmallVector<SemaClone::ParamBinding> remainingBindings;
         remainingBindings.reserve(ioBindings.size());
@@ -758,7 +798,8 @@ namespace
                 continue;
             }
 
-            if (!inlineBindingNeedsMaterialization(sema, binding.exprRef, localIdentifiers))
+            if (!inlineBindingIsCaptured(binding.idRef, capturedIdentifiers) &&
+                !inlineBindingNeedsMaterialization(sema, binding.exprRef, localIdentifiers))
             {
                 remainingBindings.push_back(binding);
                 continue;

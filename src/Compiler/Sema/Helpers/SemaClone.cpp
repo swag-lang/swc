@@ -98,6 +98,52 @@ namespace
         return nullptr;
     }
 
+    bool containsIdentifier(std::span<const IdentifierRef> identifiers, IdentifierRef idRef)
+    {
+        return std::ranges::find(identifiers, idRef) != identifiers.end();
+    }
+
+    void collectSourceIdentifierUses(Sema& sema, const Ast& sourceAst, AstNodeRef nodeRef, SmallVector<IdentifierRef>& outIdentifiers)
+    {
+        if (nodeRef.isInvalid())
+            return;
+
+        const AstNode& node = sourceAst.node(nodeRef);
+        if (node.is(AstNodeId::Identifier))
+            outIdentifiers.push_back(sema.idMgr().addIdentifier(sema.ctx(), node.codeRef()));
+
+        SmallVector<AstNodeRef> children;
+        node.collectChildrenFromAst(children, sourceAst);
+        for (const AstNodeRef childRef : children)
+            collectSourceIdentifierUses(sema, sourceAst, childRef, outIdentifiers);
+    }
+
+    void collectClosureCaptureIdentifiers(Sema& sema, const Ast& sourceAst, SpanRef captureArgsRef, SmallVector<IdentifierRef>& outIdentifiers)
+    {
+        SmallVector<AstNodeRef> captures;
+        sourceAst.appendNodes(captures, captureArgsRef);
+        for (const AstNodeRef captureRef : captures)
+        {
+            const auto& captureArg = sourceAst.node(captureRef).cast<AstClosureArgument>();
+            collectSourceIdentifierUses(sema, sourceAst, captureArg.nodeIdentifierRef, outIdentifiers);
+        }
+    }
+
+    void excludeCapturedClosureBindings(Sema& sema, const AstClosureExpr& node, const SemaClone::CloneContext& cloneContext, SmallVector<SemaClone::ParamBinding>& outBindings)
+    {
+        outBindings.clear();
+        if (cloneContext.bindings.empty())
+            return;
+
+        SmallVector<IdentifierRef> captureIdentifiers;
+        collectClosureCaptureIdentifiers(sema, cloneSourceAst(sema, cloneContext), node.nodeCaptureArgsRef, captureIdentifiers);
+        for (const SemaClone::ParamBinding& binding : cloneContext.bindings)
+        {
+            if (!containsIdentifier(captureIdentifiers, binding.idRef))
+                outBindings.push_back(binding);
+        }
+    }
+
     const SemaClone::NodeReplacement* findReplacement(const SemaClone::CloneContext& cloneContext, AstNodeId nodeId)
     {
         for (const SemaClone::NodeReplacement& replacement : cloneContext.replacements)
@@ -900,12 +946,17 @@ AstNodeRef AstFunctionExpr::semaClone(Sema& sema, const CloneContext& cloneConte
 
 AstNodeRef AstClosureExpr::semaClone(Sema& sema, const CloneContext& cloneContext) const
 {
+    const auto& inlineContext = cloneContextAsInline(cloneContext);
     auto [newRef, newPtr]      = sema.ast().makeNode<AstNodeId::ClosureExpr>(tokRef());
     newPtr->flags()            = flags();
-    newPtr->nodeCaptureArgsRef = cloneSpan(sema, nodeCaptureArgsRef, cloneContextAsInline(cloneContext));
-    newPtr->spanArgsRef        = cloneSpan(sema, spanArgsRef, cloneContextAsInline(cloneContext));
-    newPtr->nodeReturnTypeRef  = cloneNodeRef(sema, nodeReturnTypeRef, cloneContextAsInline(cloneContext));
-    newPtr->nodeBodyRef        = SemaClone::cloneAst(sema, nodeBodyRef, cloneContextAsInline(cloneContext));
+    newPtr->nodeCaptureArgsRef = cloneSpan(sema, nodeCaptureArgsRef, inlineContext);
+    newPtr->spanArgsRef        = cloneSpan(sema, spanArgsRef, inlineContext);
+    newPtr->nodeReturnTypeRef  = cloneNodeRef(sema, nodeReturnTypeRef, inlineContext);
+
+    SmallVector<SemaClone::ParamBinding> bodyBindings;
+    excludeCapturedClosureBindings(sema, *this, inlineContext, bodyBindings);
+    const SemaClone::CloneContext bodyContext{bodyBindings.span(), inlineContext.replacements, inlineContext.preserveFunctionGenerics, inlineContext.sourceAst};
+    newPtr->nodeBodyRef = SemaClone::cloneAst(sema, nodeBodyRef, bodyContext);
     return newRef;
 }
 

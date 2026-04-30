@@ -76,6 +76,15 @@ func makeParamArrayClosure(values: [3] s32)->func||()->s32
     }
 }
 
+#[Swag.Inline]
+func makeInlineCapturedValue(value: s32)->func||()->s32
+{
+    return func|value|()->s32
+    {
+        return value
+    }
+}
+
 func runDottedPathCapture()->s32
 {
     var first:  PathTarget = {value: 10}
@@ -112,6 +121,14 @@ func runMePathCapture()->s32
     @assert(first.value == 13)
     @assert(second.value == 90)
     return firstValue * 100 + secondValue
+}
+
+func runInlineClosureCaptureExpr()->s32
+{
+    var base = 6
+    let cb = makeInlineCapturedValue(base + 1)
+    base = 100
+    return cb()
 }
 
 #test
@@ -320,6 +337,11 @@ func runMePathCapture()->s32
 #test
 {
     @assert(runMePathCapture() == 913)
+}
+
+#test
+{
+    @assert(runInlineClosureCaptureExpr() == 7)
 }
 
 #test

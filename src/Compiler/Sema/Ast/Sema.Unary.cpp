@@ -174,7 +174,11 @@ namespace
             return false;
         const auto&        idxExpr  = view.node()->cast<AstIndexExpr>();
         const SemaNodeView baseView = sema.viewTypeConstant(idxExpr.nodeExprRef);
-        return baseView.hasConstant() && baseView.type() && baseView.type()->isArray();
+        if (!baseView.hasConstant() || baseView.typeRef().isInvalid())
+            return false;
+
+        const TypeRef baseTypeRef = SemaHelpers::unwrapAliasRefType(sema.ctx(), baseView.typeRef());
+        return sema.typeMgr().get(baseTypeRef).isArray();
     }
 
     Result checkTakeAddress(Sema& sema, const AstUnaryExpr& node, const SemaNodeView& view)

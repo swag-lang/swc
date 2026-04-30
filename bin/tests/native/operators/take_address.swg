@@ -7,6 +7,9 @@ func nativeFunctionAddressReturnedReference(value: &s32)->&s32
     return &value
 }
 
+#[Swag.Strict]
+alias StrictAddressArray = [3] s32
+
 #test
 {
     struct AA
@@ -220,6 +223,16 @@ func nativeFunctionAddressReturnedReference(value: &s32)->&s32
     let p = &a[2]
     #assert(#typeof(p) == const *u8)
     @assert(dref p == 3)
+}
+
+#test
+{
+    const a: StrictAddressArray = cast(StrictAddressArray) [10, 20, 30]
+    let p = &a[0]
+    #assert(#typeof(p) == const *s32)
+    let bp = cast(const [*] s32) p
+    @assert(dref p == 10)
+    @assert(bp[2] == 30)
 }
 
 #test

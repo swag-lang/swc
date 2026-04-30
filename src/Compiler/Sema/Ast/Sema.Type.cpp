@@ -166,7 +166,20 @@ Result AstVariadicType::semaPostNode(Sema& sema)
 
 Result AstTypedVariadicType::semaPostNode(Sema& sema) const
 {
-    const SemaNodeView view    = sema.viewType(nodeTypeRef);
+    const SemaNodeView view = sema.viewType(nodeTypeRef);
+    TypeRef            elementTypeRef = view.typeRef();
+    const TypeRef      unwrappedTypeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), elementTypeRef);
+    if (unwrappedTypeRef.isValid())
+        elementTypeRef = unwrappedTypeRef;
+
+    if (elementTypeRef == sema.typeMgr().typeVoid())
+    {
+        auto diag = SemaError::report(sema, DiagnosticId::sema_err_bad_variadic_element_type, nodeTypeRef);
+        diag.addArgument(Diagnostic::ARG_TYPE, view.typeRef());
+        diag.report(sema.ctx());
+        return Result::Error;
+    }
+
     const TypeInfo     ty      = TypeInfo::makeTypedVariadic(view.typeRef());
     const TypeRef      typeRef = sema.typeMgr().addType(ty);
     sema.setType(sema.curNodeRef(), typeRef);

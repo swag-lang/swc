@@ -598,22 +598,41 @@ namespace
         return declNode->safeCast<AstSingleVarDecl>();
     }
 
-    void collectInlineLoopIdentifiers(Sema& sema, const Ast& sourceAst, AstNodeRef nodeRef, SmallVector<IdentifierRef>& outIdentifiers)
+    void appendInlineLocalIdentifier(Sema& sema, const AstNode& node, TokenRef tokNameRef, SmallVector<IdentifierRef>& outIdentifiers)
+    {
+        if (tokNameRef.isValid())
+            outIdentifiers.push_back(SemaHelpers::resolveIdentifier(sema, {node.srcViewRef(), tokNameRef}));
+    }
+
+    void appendInlineLocalIdentifiers(Sema& sema, const Ast& sourceAst, const AstNode& node, SpanRef spanNamesRef, SmallVector<IdentifierRef>& outIdentifiers)
+    {
+        SmallVector<TokenRef> tokNames;
+        sourceAst.appendTokens(tokNames, spanNamesRef);
+        for (const TokenRef tokNameRef : tokNames)
+            appendInlineLocalIdentifier(sema, node, tokNameRef, outIdentifiers);
+    }
+
+    void collectInlineLocalIdentifiers(Sema& sema, const Ast& sourceAst, AstNodeRef nodeRef, SmallVector<IdentifierRef>& outIdentifiers)
     {
         if (nodeRef.isInvalid())
             return;
 
         const AstNode& node = sourceAst.node(nodeRef);
-        if (const auto* forStmt = node.safeCast<AstForStmt>())
-        {
-            if (forStmt->tokNameRef.isValid())
-                outIdentifiers.push_back(SemaHelpers::resolveIdentifier(sema, {forStmt->srcViewRef(), forStmt->tokNameRef}));
-        }
+        if (const auto* singleVar = node.safeCast<AstSingleVarDecl>())
+            appendInlineLocalIdentifier(sema, node, singleVar->tokNameRef, outIdentifiers);
+        else if (const auto* multiVar = node.safeCast<AstMultiVarDecl>())
+            appendInlineLocalIdentifiers(sema, sourceAst, node, multiVar->spanNamesRef, outIdentifiers);
+        else if (const auto* destructuring = node.safeCast<AstVarDeclDestructuring>())
+            appendInlineLocalIdentifiers(sema, sourceAst, node, destructuring->spanNamesRef, outIdentifiers);
+        else if (const auto* forStmt = node.safeCast<AstForStmt>())
+            appendInlineLocalIdentifier(sema, node, forStmt->tokNameRef, outIdentifiers);
+        else if (const auto* foreachStmt = node.safeCast<AstForeachStmt>())
+            appendInlineLocalIdentifiers(sema, sourceAst, node, foreachStmt->spanNamesRef, outIdentifiers);
 
         SmallVector<AstNodeRef> children;
         node.collectChildrenFromAst(children, sourceAst);
         for (const AstNodeRef childRef : children)
-            collectInlineLoopIdentifiers(sema, sourceAst, childRef, outIdentifiers);
+            collectInlineLocalIdentifiers(sema, sourceAst, childRef, outIdentifiers);
     }
 
     void collectIdentifierUses(Sema& sema, AstNodeRef nodeRef, SmallVector<IdentifierRef>& outIdentifiers)
@@ -699,7 +718,7 @@ namespace
 
         const SemaClone::CloneContext noBindings{std::span<const SemaClone::ParamBinding>{}};
         SmallVector<IdentifierRef>    localIdentifiers;
-        collectInlineLoopIdentifiers(sema, sourceAst, decl.nodeBodyRef, localIdentifiers);
+        collectInlineLocalIdentifiers(sema, sourceAst, decl.nodeBodyRef, localIdentifiers);
 
         SmallVector<SemaClone::ParamBinding> remainingBindings;
         remainingBindings.reserve(ioBindings.size());

@@ -88,6 +88,9 @@ namespace
         if (const auto* multiVar = parentNode.safeCast<AstMultiVarDecl>())
             return multiVar->hasFlag(AstVarDeclFlagsE::Parameter) && multiVar->nodeInitRef == nodeRef;
 
+        if (const auto* lambdaParam = parentNode.safeCast<AstLambdaParam>())
+            return lambdaParam->nodeDefaultValueRef == nodeRef;
+
         return false;
     }
 

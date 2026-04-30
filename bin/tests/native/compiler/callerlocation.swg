@@ -308,3 +308,34 @@ func recursiveCaller()->SourceCodeLocation
     let loc = recursiveCapture(0)
     @assert(loc.fileName != null)
 }
+
+// =========================================================================
+// Lambda and function type defaults
+// =========================================================================
+
+func lambdaCaller()->SourceCodeLocation
+{
+    let f = func(loc = #callerlocation)->SourceCodeLocation
+    {
+        return loc
+    }
+
+    return f()
+}
+
+func functionTypeTarget(loc: SourceCodeLocation)->SourceCodeLocation => loc
+
+func functionTypeCaller()->SourceCodeLocation
+{
+    let f: func(loc = #callerlocation)->SourceCodeLocation = &functionTypeTarget
+    return f()
+}
+
+#test
+{
+    let lambdaLoc = lambdaCaller()
+    @assert(lambdaLoc.funcName == "lambdaCaller")
+
+    let typeLoc = functionTypeCaller()
+    @assert(typeLoc.funcName == "functionTypeCaller")
+}

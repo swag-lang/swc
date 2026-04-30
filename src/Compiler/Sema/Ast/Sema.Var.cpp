@@ -861,6 +861,19 @@ namespace
         return Result::Continue;
     }
 
+    bool isCallerLocationDefaultInitializer(Sema& sema, AstNodeRef initRef)
+    {
+        if (initRef.isInvalid())
+            return false;
+
+        const AstNode& initNode = sema.node(initRef);
+        if (!initNode.is(AstNodeId::CompilerLiteral))
+            return false;
+
+        const SourceCodeRef codeRef = initNode.codeRef();
+        return codeRef.isValid() && sema.token(codeRef).id == TokenId::CompilerCallerLocation;
+    }
+
     Result semaPostVarDeclCommon(Sema& sema, const SemaPostVarDeclArgs& context, const std::span<Symbol*>& symbols)
     {
         SemaNodeView nodeInitView = sema.viewNodeTypeConstant(context.nodeInitRef);
@@ -958,6 +971,14 @@ namespace
         if (!isLet && !isParameter && isRefType && context.nodeInitRef.isInvalid())
             return reportRefMissingInit(sema, SourceCodeRef{context.owner->srcViewRef(), context.tokDiag}, finalTypeRef);
 
+        const bool isCallerLocation = isCallerLocationDefaultInitializer(sema, context.nodeInitRef);
+        if (isParameter &&
+            context.nodeInitRef.isValid() &&
+            !codeParameterDefault &&
+            !isCallerLocation &&
+            nodeInitView.cstRef().isInvalid())
+            return SemaError::raiseExprNotConst(sema, nodeInitView.nodeRef());
+
         const ConstantRef initCstRef        = setInitInfo.handled ? ConstantRef::invalid() : (context.nodeInitRef.isValid() ? nodeInitView.cstRef() : implicitStructCstRef);
         const ConstantRef variableDefaultCf = setInitInfo.handled ? setInitInfo.defaultValueCstRef : initCstRef;
         storeLetConstants(symbols, isLet, initCstRef);
@@ -981,18 +1002,6 @@ namespace
 
         if (context.nodeInitRef.isValid() || hasImplicitStructInit)
         {
-            // Check if the init expression is a #callerlocation default
-            bool isCallerLocation = false;
-            if (context.nodeInitRef.isValid())
-            {
-                const AstNode& initNode = sema.node(context.nodeInitRef);
-                if (initNode.is(AstNodeId::CompilerLiteral))
-                {
-                    const Token& tok = sema.token(initNode.codeRef());
-                    isCallerLocation = tok.id == TokenId::CompilerCallerLocation;
-                }
-            }
-
             for (Symbol* s : symbols)
             {
                 auto& symVar = s->cast<SymbolVariable>();
@@ -1016,6 +1025,7 @@ namespace
             return true;
         return !sema.curScope().isLocal() && !sema.curScope().isParameters();
     }
+
 }
 
 Result AstSingleVarDecl::semaPreDecl(Sema& sema) const

@@ -32,4 +32,9 @@ func failConstExprCallResult()
     const Y = constMul(x, 2) // swc-expected-error {{sema_err_expr_not_const}}
 }
 
+func defaultFromPreviousParam(a: s32, b: s32 = a + 1)->s32 // swc-expected-error {{sema_err_expr_not_const}}
+{
+    return b
+}
+
 #test { useConstCallResult() }

@@ -196,21 +196,24 @@ namespace
             if (!exprView.type())
                 return SemaError::raise(sema, DiagnosticId::sema_err_not_value_expr, exprView.nodeRef());
 
-            if (exprView.type()->isArray())
-                valueTypeRef = exprView.type()->payloadArrayElemTypeRef();
-            else if (exprView.type()->isSlice())
-                valueTypeRef = exprView.type()->payloadTypeRef();
-            else if (exprView.type()->isAnyString())
+            const TypeRef   sourceTypeRef = SemaHelpers::unwrapAliasRefType(sema.ctx(), exprView.typeRef());
+            const TypeInfo& sourceType    = sema.typeMgr().get(sourceTypeRef);
+
+            if (sourceType.isArray())
+                valueTypeRef = sourceType.payloadArrayElemTypeRef();
+            else if (sourceType.isSlice())
+                valueTypeRef = sourceType.payloadTypeRef();
+            else if (sourceType.isAnyString())
                 valueTypeRef = sema.typeMgr().typeU8();
-            else if (exprView.type()->isVariadic())
+            else if (sourceType.isVariadic())
                 valueTypeRef = sema.typeMgr().typeAny();
-            else if (exprView.type()->isTypedVariadic())
-                valueTypeRef = exprView.type()->payloadTypeRef();
+            else if (sourceType.isTypedVariadic())
+                valueTypeRef = sourceType.payloadTypeRef();
             else
                 return SemaError::raiseTypeNotIndexable(sema, exprView.nodeRef(), exprView.typeRef());
 
             indexTypeRef  = sema.typeMgr().typeU64();
-            sourceIsConst = exprView.type()->isConst();
+            sourceIsConst = exprView.type()->isConst() || sourceType.isConst();
         }
 
         if (node.hasFlag(AstForeachStmtFlagsE::ByAddress))

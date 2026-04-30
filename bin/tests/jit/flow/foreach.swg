@@ -1,10 +1,57 @@
 #global fileprivate
 
+#[Swag.Strict]
+alias ForeachStrictArray = [3] s32
+
+#[Swag.Strict]
+alias ForeachStrictSlice = [..] s32
+
 struct ForeachVariadicPayload
 {
     arr: [3] s32
     flag: bool
     tag: u8
+}
+
+#test
+{
+    func foreachStrictArrayAlias()->s32
+    {
+        var raw: [3] s32 = [4, 5, 6]
+        var arr: ForeachStrictArray = cast(ForeachStrictArray) raw
+        var acc: s32 = 0
+
+        foreach v, i in arr
+        {
+            acc += v * cast(s32) (i + 1)
+        }
+
+        return acc
+    }
+
+    const V = #run foreachStrictArrayAlias()
+    #assert(V == 32)
+}
+
+#test
+{
+    func foreachStrictSliceAlias()->s32
+    {
+        var arr: [3] s32 = [7, 8, 9]
+        var rawSl = cast([..] s32) arr
+        var sl: ForeachStrictSlice = cast(ForeachStrictSlice) rawSl
+        var acc: s32 = 0
+
+        foreach v, i in sl
+        {
+            acc += v + cast(s32) i
+        }
+
+        return acc
+    }
+
+    const V = #run foreachStrictSliceAlias()
+    #assert(V == 27)
 }
 
 #test

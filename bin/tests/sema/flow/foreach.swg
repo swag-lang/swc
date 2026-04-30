@@ -1,5 +1,11 @@
 #global fileprivate
 
+#[Swag.Strict]
+alias ForeachStrictArray = [3] s32
+
+#[Swag.Strict]
+alias ForeachStrictSlice = [..] s32
+
 #test
 {
     var arr: [3] s32 = [1, 2, 3]
@@ -7,6 +13,18 @@
     {
         #assert(#typeof(v) == s32)
         var x = v
+    }
+}
+
+#test
+{
+    var arr: ForeachStrictArray = cast(ForeachStrictArray) [4, 5, 6]
+    foreach v, i in arr
+    {
+        #assert(#typeof(v) == s32)
+        #assert(#typeof(i) == u64)
+        var x = v
+        var y = i
     }
 }
 
@@ -44,6 +62,20 @@
 {
     var arr: [2] s32 = [3, 4]
     var sl = cast([..] s32) arr
+    foreach v, i in sl
+    {
+        #assert(#typeof(v) == s32)
+        #assert(#typeof(i) == u64)
+        var x = v
+        var y = i
+    }
+}
+
+#test
+{
+    var arr: [2] s32 = [5, 6]
+    var rawSl = cast([..] s32) arr
+    var sl: ForeachStrictSlice = cast(ForeachStrictSlice) rawSl
     foreach v, i in sl
     {
         #assert(#typeof(v) == s32)

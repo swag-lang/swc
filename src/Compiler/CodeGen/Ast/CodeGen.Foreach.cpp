@@ -10,6 +10,7 @@
 #include "Compiler/Sema/Ast/Sema.Loop.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
+#include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Compiler/Sema/Symbol/Symbol.Enum.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
@@ -191,6 +192,12 @@ namespace
         return nullptr;
     }
 
+    const TypeInfo& foreachSourceType(CodeGen& codeGen, const SemaNodeView& exprView)
+    {
+        const TypeRef sourceTypeRef = SemaHelpers::unwrapAliasRefType(codeGen.ctx(), exprView.typeRef());
+        return codeGen.typeMgr().get(sourceTypeRef);
+    }
+
     MicroReg emitForeachElementAddress(CodeGen& codeGen, const ForeachStmtCodeGenPayload& loopState)
     {
         SWC_ASSERT(loopState.baseReg.isValid());
@@ -322,7 +329,7 @@ namespace
         {
             const SemaNodeView       exprView    = foreachExprView(codeGen, exprRef);
             const CodeGenNodePayload exprPayload = foreachExprPayload(codeGen, exprRef);
-            const TypeInfo&          exprType    = *(exprView.type());
+            const TypeInfo&          exprType    = foreachSourceType(codeGen, exprView);
 
             if (exprType.isArray())
             {

@@ -147,7 +147,7 @@ impl ConvertFormatInt
 }
 
 // Convert a value to an utf8 string, and append the result in a ConcatBuffer
-func convertAny(buf: *ConcatBuffer, value: any, convFmt: ConvertFormat, strFormat: #null string)
+func convertAny(buf: *ConcatBuffer, value: const any, convFmt: ConvertFormat, strFormat: #null string)
 {
     var valueData = @dataof(value)
     var type      = Reflection.makeConcreteAlias(@kindof(value))
@@ -156,7 +156,7 @@ func convertAny(buf: *ConcatBuffer, value: any, convFmt: ConvertFormat, strForma
     if Reflection.isPointerRef(type)
     {
         let ptrType = cast(const *TypeInfoPointer) type
-        valueData = dref cast(**void) valueData
+        valueData = dref cast(const **void) valueData
         type      = ptrType.pointedType
     }
 
@@ -165,7 +165,7 @@ func convertAny(buf: *ConcatBuffer, value: any, convFmt: ConvertFormat, strForma
     // This is a type
     if Reflection.isType(type)
     {
-        let ptrType = dref cast(*typeinfo) valueData
+        let ptrType = dref cast(const *typeinfo) valueData
         if ptrType do
             buf.addBytes(ptrType.fullname)
         else do
@@ -297,7 +297,7 @@ func convertAny(buf: *ConcatBuffer, value: any, convFmt: ConvertFormat, strForma
 }
 
 // Convert a structure content to an utf8 string, and put the result in a ConcatBuffer
-func convertStruct(buf: *ConcatBuffer, value: any, convFmt: ConvertFormat, strFormat: #null string)
+func convertStruct(buf: *ConcatBuffer, value: const any, convFmt: ConvertFormat, strFormat: #null string)
 {
     let kindof = cast(const *Swag.TypeInfoStruct) @kindof(value)
     Debug.assert(kindof.kind == TypeInfoKind.Struct, "this is not a structure")
@@ -334,7 +334,7 @@ func convertStruct(buf: *ConcatBuffer, value: any, convFmt: ConvertFormat, strFo
 }
 
 // Convert a float to an utf8 string, and put the result in a ConcatBuffer
-func convertFloat(buf: *ConcatBuffer, value: any, fmt: ConvertFormatFloat)
+func convertFloat(buf: *ConcatBuffer, value: const any, fmt: ConvertFormatFloat)
 {
     let kindof = cast(const *Swag.TypeInfoNative) @kindof(value)
     Debug.assert(kindof.flags & TypeInfoFlags.Float != 0, "value to convert is not a float")
@@ -345,16 +345,16 @@ func convertFloat(buf: *ConcatBuffer, value: any, fmt: ConvertFormatFloat)
     switch kindof.nativeKind
     {
     case F32:
-        value64 = cast(f64) dref cast(*f32) dataof
+        value64 = cast(f64) dref cast(const *f32) dataof
     case F64:
-        value64 = dref cast(*f64) dataof
+        value64 = dref cast(const *f64) dataof
     }
 
     Dtoa.parse(buf, value64, fmt.fmt, cast(s64) fmt.precision, fmt.forceSign)
 }
 
 // Convert an integer to an utf8 string, and put the result in a ConcatBuffer
-func convertInt(buf: *ConcatBuffer, value: any, fmt: ConvertFormatInt)
+func convertInt(buf: *ConcatBuffer, value: const any, fmt: ConvertFormatInt)
 {
     let kindof = cast(const *Swag.TypeInfoNative) @kindof(value)
     Debug.assert(kindof.flags & TypeInfoFlags.Integer != 0, "value to convert is not an integer")
@@ -370,28 +370,28 @@ func convertInt(buf: *ConcatBuffer, value: any, fmt: ConvertFormatInt)
     switch kindof.nativeKind
     {
     case S8:
-        signedValue = cast(s64) dref cast(*s8) dataof
+        signedValue = cast(s64) dref cast(const *s8) dataof
         value64     = cast(u64) Math.abs(signedValue)
     case S16:
-        signedValue = cast(s64) dref cast(*s16) dataof
+        signedValue = cast(s64) dref cast(const *s16) dataof
         value64     = cast(u64) Math.abs(signedValue)
     case S32:
-        signedValue = cast(s64) dref cast(*s32) dataof
+        signedValue = cast(s64) dref cast(const *s32) dataof
         value64     = cast(u64) Math.abs(signedValue)
     case S64:
-        signedValue = dref cast(*s64) dataof
+        signedValue = dref cast(const *s64) dataof
         if signedValue == Swag.S64.Min do
             overflowS64 = true
         else do
             value64 = cast(u64) Math.abs(signedValue)
     case U8:
-        value64 = cast(u64) dref cast(*u8) dataof
+        value64 = cast(u64) dref cast(const *u8) dataof
     case U16:
-        value64 = cast(u64) dref cast(*u16) dataof
+        value64 = cast(u64) dref cast(const *u16) dataof
     case U32:
-        value64 = cast(u64) dref cast(*u32) dataof
+        value64 = cast(u64) dref cast(const *u32) dataof
     case U64:
-        value64 = dref cast(*u64) dataof
+        value64 = dref cast(const *u64) dataof
     }
 
     const Tbl = "0123456789ABCDEF"
@@ -455,7 +455,7 @@ func convertInt(buf: *ConcatBuffer, value: any, fmt: ConvertFormatInt)
 }
 
 // Convert a float to an utf8 string, and put the result in a ConcatBuffer
-func convertFloat(buf: *ConcatBuffer, value: any, convFmt: ConvertFormat, strFormat: #null string)
+func convertFloat(buf: *ConcatBuffer, value: const any, convFmt: ConvertFormat, strFormat: #null string)
 {
     Debug.assert(@kindof(value).flags & TypeInfoFlags.Float != 0, "value to convert is not a float")
 
@@ -465,7 +465,7 @@ func convertFloat(buf: *ConcatBuffer, value: any, convFmt: ConvertFormat, strFor
 }
 
 // Convert an integer to an utf8 string, and put the result in a ConcatBuffer
-func convertInt(buf: *ConcatBuffer, value: any, convFmt: ConvertFormat, strFormat: #null string)
+func convertInt(buf: *ConcatBuffer, value: const any, convFmt: ConvertFormat, strFormat: #null string)
 {
     Debug.assert(@kindof(value).flags & TypeInfoFlags.Integer != 0, "value to convert is not an integer")
 

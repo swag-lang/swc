@@ -26,6 +26,9 @@ var D5: const QualifiedStrictSlice
 #assert(#typeof(D4) == const *s32)
 #assert(#typeof(D5) == const [..] s32)
 
+func acceptConstAny(value: const any) {}
+func widenConstAny(value: any)->const any => value
+
 var E0: #null *s32
 var E1: #null [..] s32
 var E2: #null [*] s32
@@ -88,8 +91,13 @@ func acceptNullableTypeInfo(value: #null typeinfo) {}
     let boxed: any = 123
     let nullableAny: #null any = boxed
     let widenedAny: #null any = widenNullableAny(boxed)
+    let constAny: const any = boxed
+    let widenedConstAny: const any = widenConstAny(boxed)
     acceptNullableAny(boxed)
     acceptNullableAny(widenedAny)
+    acceptConstAny(boxed)
+    acceptConstAny(widenedConstAny)
+    #assert(#typeof(constAny) == const any)
 
     let cstr: cstring = cast(cstring) @dataof("abc")
     let nullableCstr: #null cstring = cstr

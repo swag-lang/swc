@@ -240,3 +240,39 @@ func mkanyCastStringToBytesFromAny(value: any)->u64
     @assert(@kindof(boxed) == MkanyStrictS32)
     @assert(cast(MkanyStrictS32) boxed == cast(MkanyStrictS32) 409)
 }
+
+#test
+{
+    var value = 733's32
+    let ptr: const *s32 = &value
+    let boxed = @mkany(ptr, s32)
+    let data = cast(const *s32) boxed
+    let raw = cast(const *s32) @dataof(boxed)
+
+    @assert(@kindof(boxed) == s32)
+    @assert(dref data == 733)
+    @assert(dref raw == 733)
+}
+
+#test
+{
+    var value = 123's32
+    let ptr: const *s32 = &value
+    let boxed: const any = @mkany(ptr, s32)
+    let data = cast(const *s32) boxed
+
+    #assert(#typeof(boxed) == const any)
+    @assert(dref data == 123)
+}
+
+#test
+{
+    var storage: [3] u8 = [3'u8, 5'u8, 8'u8]
+    let bytes: const [..] u8 = cast(const [..] u8) storage
+    let boxed = @mkany(&bytes, const [..] u8)
+    let view = cast(const [..] u8) boxed
+
+    @assert(@countof(view) == 3)
+    @assert(view[0] == 3'u8)
+    @assert(view[2] == 8'u8)
+}

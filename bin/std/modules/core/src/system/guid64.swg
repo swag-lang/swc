@@ -107,7 +107,7 @@ impl GUID64
     }
 
     // Convert GUID64 to hexadecimal string
-    mtd toString(result: [..] u8)
+    mtd const toString(result: [..] u8)
     {
         Debug.assert(@countof(result) == 16)
 
@@ -135,7 +135,7 @@ impl GUID64
     }
 
     // Convert guid to a string
-    mtd getString()->String
+    mtd const getString()->String
     {
         var result: retval
         result.reserve(16)
@@ -184,7 +184,7 @@ impl StrConv.IConvert for GUID64
 {
     // Convert the GUID to its hexadecimal string representation.
     // Produces a 16-character uppercase hex string without separators.
-    mtd impl convert(buf: *ConcatBuffer, convFmt: StrConv.ConvertFormat, strFormat: string)
+    mtd const impl convert(buf: *ConcatBuffer, convFmt: StrConv.ConvertFormat, strFormat: string)
     {
         buf.addBytes(.getString())
     }

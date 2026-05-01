@@ -740,7 +740,7 @@ impl Array
 
 impl StrConv.IConvert for Array
 {
-    mtd impl convert(buf: *ConcatBuffer, convFmt: StrConv.ConvertFormat, strFormat: string)
+    mtd const impl convert(buf: *ConcatBuffer, convFmt: StrConv.ConvertFormat, strFormat: string)
     {
         buf.addBytes("[")
         for i in .count

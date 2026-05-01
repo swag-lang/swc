@@ -97,6 +97,14 @@
 
 #test
 {
+    var x: const *s32 = null
+    var y = cast(const *void) x
+    #assert(#typeof(y) == const *void)
+    @assert(y == null)
+}
+
+#test
+{
     var x: const [*]s32 = null
     var y = cast(const [*]u8) x
     #assert(#typeof(y) == const [*]u8)
@@ -105,6 +113,11 @@
 
 #[Swag.Strict]
 alias StrictHandle = const *void
+
+struct PointerConstCastBox
+{
+    value: s32
+}
 
 #test
 {
@@ -118,4 +131,21 @@ alias StrictHandle = const *void
     let ptr  = cast(const [*] u8) text
     @assert(ptr == @dataof(text))
     @assert(ptr[0] == 'h')
+}
+
+#test
+{
+    const data: [2] u8 = [11'u8, 13'u8]
+    let ptr = cast(const [*] u8) data
+    #assert(#typeof(ptr) == const [*] u8)
+    @assert(ptr[0] == 11'u8)
+    @assert(ptr[1] == 13'u8)
+}
+
+#test
+{
+    const value: PointerConstCastBox = {value: 123}
+    let ptr = cast(const *PointerConstCastBox) value
+    #assert(#typeof(ptr) == const *PointerConstCastBox)
+    @assert(ptr.value == 123)
 }

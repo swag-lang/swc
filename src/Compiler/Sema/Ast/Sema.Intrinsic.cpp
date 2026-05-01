@@ -276,10 +276,14 @@ namespace
 
         const TypeRef   dataTypeRef = SemaHelpers::unwrapAliasRefType(sema.ctx(), view.typeRef());
         const TypeInfo* type        = &sema.typeMgr().get(dataTypeRef);
-        TypeInfoFlags   flags       = type->flags();
+        TypeInfoFlags flags = type->flags();
         flags.add(view.type()->flags());
-        if (view.sym() && (view.sym()->isLetVariable() || view.sym()->isConstant()))
+        if (SemaCheck::isConstAssignmentTarget(sema, view.nodeRef(), view))
             flags.add(TypeInfoFlagsE::Const);
+
+        TypeInfoFlags bindingFlags = flags;
+        if (view.sym() && (view.sym()->isLetVariable() || view.sym()->isConstant()))
+            bindingFlags.add(TypeInfoFlagsE::Const);
 
         TypeRef resultTypeRef = TypeRef::invalid();
         if (type->isString() || type->isCString())
@@ -288,21 +292,23 @@ namespace
         }
         else if (type->isSlice())
         {
-            const TypeInfo ty = TypeInfo::makeBlockPointer(type->payloadTypeRef(), flags);
+            const TypeInfo ty = TypeInfo::makeBlockPointer(type->payloadTypeRef(), bindingFlags);
             resultTypeRef     = sema.typeMgr().addType(ty);
         }
         else if (type->isArray())
         {
-            const TypeInfo ty = TypeInfo::makeBlockPointer(type->payloadArrayElemTypeRef(), flags);
+            const TypeInfo ty = TypeInfo::makeBlockPointer(type->payloadArrayElemTypeRef(), bindingFlags);
             resultTypeRef     = sema.typeMgr().addType(ty);
         }
         else if (type->isAny())
         {
-            resultTypeRef = sema.typeMgr().typeBlockPtrVoid();
+            const TypeInfo ty = TypeInfo::makeBlockPointer(sema.typeMgr().typeVoid(), flags);
+            resultTypeRef     = sema.typeMgr().addType(ty);
         }
         else if (type->isInterface())
         {
-            resultTypeRef = sema.typeMgr().typeBlockPtrVoid();
+            const TypeInfo ty = TypeInfo::makeBlockPointer(sema.typeMgr().typeVoid(), flags);
+            resultTypeRef     = sema.typeMgr().addType(ty);
         }
         else if (type->isAnyPointer())
         {

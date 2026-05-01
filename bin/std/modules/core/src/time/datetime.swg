@@ -329,7 +329,7 @@ impl Serialization.ISerialize for DateTime
 impl StrConv.IConvert for DateTime
 {
     // Converts a DateTime to a string using a single-character format specifier (for use with Format.toString)
-    mtd impl convert(buf: *ConcatBuffer, convFormat: StrConv.ConvertFormat, strFormat: string)
+    mtd const impl convert(buf: *ConcatBuffer, convFormat: StrConv.ConvertFormat, strFormat: string)
     {
         var str: String
         if @countof(strFormat) == 0 or @countof(strFormat) > 1 do

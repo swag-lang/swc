@@ -56,6 +56,15 @@ namespace
         return sourceType.isString() || sourceType.isCString();
     }
 
+    bool isSyntheticAutoMemberLeft(const Sema& sema, AstNodeRef nodeRef)
+    {
+        if (nodeRef.isInvalid())
+            return false;
+
+        const AstNode& node = sema.node(nodeRef);
+        return node.is(AstNodeId::Identifier) && node.codeRef().isValid() && sema.token(node.codeRef()).id == TokenId::SymDot;
+    }
+
     AstNodeRef indexedSourceRef(Sema& sema, AstNodeRef nodeRef)
     {
         const AstNodeRef resolvedNodeRef = resolveNodeRefForCheck(sema, nodeRef);
@@ -99,7 +108,7 @@ namespace
         return isConstSourceView(sema, sourceView);
     }
 
-    bool isConstAssignmentTarget(Sema& sema, AstNodeRef leftExprRef, const SemaNodeView& leftView)
+    bool isConstAssignmentTargetImpl(Sema& sema, AstNodeRef leftExprRef, const SemaNodeView& leftView)
     {
         SWC_UNUSED(leftView);
         const AstNodeRef resolvedRef = resolveNodeRefForCheck(sema, leftExprRef);
@@ -107,6 +116,12 @@ namespace
             return false;
 
         const AstNode& node = sema.node(resolvedRef);
+        if (node.is(AstNodeId::MemberAccessExpr))
+        {
+            const auto&        member     = node.cast<AstMemberAccessExpr>();
+            const SemaNodeView sourceView = sema.viewNodeTypeConstantSymbol(member.nodeLeftRef);
+            return (!isSyntheticAutoMemberLeft(sema, member.nodeLeftRef) && isConstSourceView(sema, sourceView)) || isConstAssignmentTargetImpl(sema, member.nodeLeftRef, sourceView);
+        }
         if (node.is(AstNodeId::IndexExpr) || node.is(AstNodeId::IndexListExpr))
             return isConstIndexedSource(sema, resolvedRef);
         if (node.is(AstNodeId::UnaryExpr))
@@ -332,6 +347,11 @@ Result SemaCheck::isAssignable(Sema& sema, AstNodeRef errorNodeRef, AstNodeRef l
     }
 
     return Result::Continue;
+}
+
+bool SemaCheck::isConstAssignmentTarget(Sema& sema, AstNodeRef leftExprRef, const SemaNodeView& leftView)
+{
+    return isConstAssignmentTargetImpl(sema, leftExprRef, leftView);
 }
 
 SWC_END_NAMESPACE();

@@ -4,6 +4,16 @@
 #assert((true ? "true" : "false") == "true")
 #assert((false ? "true" : "false") == "false")
 
+#[Swag.Strict]
+alias ConditionalStrictF32 = f32
+
+func chooseConditionalStrictF32(flag: bool)->ConditionalStrictF32
+{
+    let a = cast(ConditionalStrictF32) 1.5
+    let b = cast(ConditionalStrictF32) 2.5
+    return flag ? a : b
+}
+
 // Ternary with type promotion and runtime eval
 #test
 {
@@ -41,3 +51,9 @@ namespace NC{}
 const VAL1 = 10
 var var2 = 20
 #assert((true ? VAL1 : var2) == 10)
+
+#test
+{
+    @assert(chooseConditionalStrictF32(true) == cast(ConditionalStrictF32) 1.5)
+    @assert(chooseConditionalStrictF32(false) == cast(ConditionalStrictF32) 2.5)
+}

@@ -8,7 +8,19 @@ SWC_BEGIN_NAMESPACE();
 
 void Cast::convertEnumToUnderlying(Sema& sema, SemaNodeView& view)
 {
-    if (!view.type()->isEnum())
+    TypeRef enumTypeRef = view.typeRef();
+    if (!enumTypeRef.isValid())
+        return;
+
+    if (!sema.typeMgr().get(enumTypeRef).isEnum())
+    {
+        enumTypeRef = sema.typeMgr().get(enumTypeRef).unwrap(sema.ctx(), enumTypeRef, TypeExpandE::Alias);
+        if (!enumTypeRef.isValid() || !sema.typeMgr().get(enumTypeRef).isEnum())
+            return;
+    }
+
+    const TypeInfo& enumType = sema.typeMgr().get(enumTypeRef);
+    if (!enumType.isEnum())
         return;
 
     if (view.cstRef().isValid())
@@ -18,7 +30,7 @@ void Cast::convertEnumToUnderlying(Sema& sema, SemaNodeView& view)
         return;
     }
 
-    const SymbolEnum& symEnum = view.type()->payloadSymEnum();
+    const SymbolEnum& symEnum = enumType.payloadSymEnum();
     createCast(sema, symEnum.underlyingTypeRef(), view.nodeRef());
     view.recompute(sema, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
 }

@@ -1323,7 +1323,12 @@ MicroReg CodeGen::nextVirtualRegisterForType(TypeRef typeRef)
     if (typeRef.isValid())
     {
         const TypeInfo& typeInfo = typeMgr().get(typeRef);
-        if (typeInfo.isFloat())
+        TypeRef resolvedTypeRef = typeRef;
+        if (typeInfo.isAlias())
+            resolvedTypeRef = typeInfo.unwrapAliasEnum(ctx(), typeRef);
+
+        const TypeInfo& resolvedTypeInfo = typeMgr().get(resolvedTypeRef);
+        if (resolvedTypeInfo.isFloat())
             return nextVirtualFloatRegister();
     }
 

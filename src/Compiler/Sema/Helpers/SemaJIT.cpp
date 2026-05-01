@@ -207,7 +207,19 @@ namespace
         TaskContext&    ctx         = sema.ctx();
         const TypeInfo& exprType    = sema.typeMgr().get(exprTypeRef);
         const TypeInfo& storageType = sema.typeMgr().get(storageTypeRef);
-        if (exprType.isEnum())
+        const TypeInfo* enumType = &exprType;
+        if (!enumType->isEnum() && exprType.isAlias())
+        {
+            const TypeRef unwrappedTypeRef = exprType.unwrap(ctx, exprTypeRef, TypeExpandE::Alias);
+            if (unwrappedTypeRef.isValid())
+            {
+                const TypeInfo& unwrappedType = sema.typeMgr().get(unwrappedTypeRef);
+                if (unwrappedType.isEnum())
+                    enumType = &unwrappedType;
+            }
+        }
+
+        if (enumType->isEnum())
         {
             const ConstantValue storageValue = ConstantValue::make(ctx, storagePtr, storageTypeRef);
             const ConstantRef   storageRef   = sema.cstMgr().addConstant(ctx, storageValue);
@@ -228,7 +240,9 @@ namespace
             }
         }
 
-        ConstantValue result = ConstantValue::make(ctx, storagePtr, storageTypeRef);
+        ConstantValue result = ConstantValue::make(ctx, storagePtr, exprTypeRef);
+        if (!result.isValid() && storageTypeRef != exprTypeRef)
+            result = ConstantValue::make(ctx, storagePtr, storageTypeRef);
         if (exprType.isAlias())
             result.setTypeRef(exprTypeRef);
         return result;

@@ -28,8 +28,9 @@ namespace
     {
         const CodeGenNodePayload* childPayload    = nullptr;
         TypeRef                   operandTypeRef  = TypeRef::invalid();
+        TypeRef                   storageTypeRef  = TypeRef::invalid();
         TypeRef                   resultTypeRef   = TypeRef::invalid();
-        const TypeInfo*           operandTypeInfo = nullptr;
+        const TypeInfo*           storageTypeInfo = nullptr;
         MicroOpBits               opBits          = MicroOpBits::Zero;
     };
 
@@ -39,9 +40,10 @@ namespace
         info.childPayload            = &codeGen.payload(nodeExprRef);
         const SemaNodeView childView = codeGen.viewType(nodeExprRef);
         info.operandTypeRef          = info.childPayload->effectiveTypeRef(childView.typeRef());
+        info.storageTypeRef          = codeGen.typeMgr().unwrapAliasEnum(codeGen.ctx(), info.operandTypeRef);
         info.resultTypeRef           = codeGen.curViewType().typeRef();
-        info.operandTypeInfo         = &codeGen.typeMgr().get(info.operandTypeRef);
-        info.opBits                  = CodeGenTypeHelpers::compareBits(*info.operandTypeInfo, codeGen.ctx());
+        info.storageTypeInfo         = &codeGen.typeMgr().get(info.storageTypeRef);
+        info.opBits                  = CodeGenTypeHelpers::compareBits(*info.storageTypeInfo, codeGen.ctx());
         SWC_ASSERT(info.opBits != MicroOpBits::Zero);
         return info;
     }
@@ -51,7 +53,7 @@ namespace
         const UnaryOperandInfo info = collectUnaryOperandInfo(codeGen, nodeExprRef);
 
         CodeGenNodePayload& resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), info.resultTypeRef);
-        loadOperandToRegister(resultPayload.reg, codeGen, *info.childPayload, info.operandTypeRef, info.opBits);
+        loadOperandToRegister(resultPayload.reg, codeGen, *info.childPayload, info.storageTypeRef, info.opBits);
         return Result::Continue;
     }
 
@@ -61,13 +63,13 @@ namespace
         const UnaryOperandInfo info    = collectUnaryOperandInfo(codeGen, nodeExprRef);
 
         CodeGenNodePayload& resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), info.resultTypeRef);
-        loadOperandToRegister(resultPayload.reg, codeGen, *info.childPayload, info.operandTypeRef, info.opBits);
+        loadOperandToRegister(resultPayload.reg, codeGen, *info.childPayload, info.storageTypeRef, info.opBits);
 
-        if (info.operandTypeInfo->isFloat())
+        if (info.storageTypeInfo->isFloat())
         {
             // The micro layer exposes float subtraction but no dedicated float negate, so lower `-x` as
             // `0 - x`.
-            const MicroReg zeroReg = codeGen.nextVirtualRegisterForType(info.operandTypeRef);
+            const MicroReg zeroReg = codeGen.nextVirtualRegisterForType(info.storageTypeRef);
             builder.emitClearReg(zeroReg, info.opBits);
             builder.emitOpBinaryRegReg(zeroReg, resultPayload.reg, MicroOp::FloatSubtract, info.opBits);
             resultPayload.reg = zeroReg;
@@ -75,7 +77,7 @@ namespace
         }
 
         builder.emitOpUnaryReg(resultPayload.reg, MicroOp::Negate, info.opBits);
-        if (CodeGenSafety::hasOverflowRuntimeSafety(codeGen) && info.operandTypeInfo->isIntSigned())
+        if (CodeGenSafety::hasOverflowRuntimeSafety(codeGen) && info.storageTypeInfo->isIntSigned())
         {
             const auto& node = codeGen.node(codeGen.curNodeRef()).cast<AstUnaryExpr>();
             SWC_RESULT(CodeGenSafety::emitOverflowTrapOnFailure(codeGen, node, MicroCond::NotOverflow));
@@ -88,7 +90,7 @@ namespace
         const UnaryOperandInfo info = collectUnaryOperandInfo(codeGen, nodeExprRef);
 
         MicroReg operandReg;
-        loadOperandToRegister(operandReg, codeGen, *info.childPayload, info.operandTypeRef, info.opBits);
+        loadOperandToRegister(operandReg, codeGen, *info.childPayload, info.storageTypeRef, info.opBits);
 
         const CodeGenNodePayload& resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), codeGen.curViewType().typeRef());
         MicroBuilder&             builder       = codeGen.builder();
@@ -103,7 +105,7 @@ namespace
         const UnaryOperandInfo info = collectUnaryOperandInfo(codeGen, nodeExprRef);
 
         CodeGenNodePayload& resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), info.resultTypeRef);
-        loadOperandToRegister(resultPayload.reg, codeGen, *info.childPayload, info.operandTypeRef, info.opBits);
+        loadOperandToRegister(resultPayload.reg, codeGen, *info.childPayload, info.storageTypeRef, info.opBits);
         codeGen.builder().emitOpUnaryReg(resultPayload.reg, MicroOp::BitwiseNot, info.opBits);
         return Result::Continue;
     }

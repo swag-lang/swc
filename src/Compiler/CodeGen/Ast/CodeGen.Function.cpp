@@ -215,6 +215,32 @@ namespace
         return true;
     }
 
+    MicroOpBits scalarStoreBitsForTypeRef(CodeGen& codeGen, TypeRef typeRef)
+    {
+        if (!typeRef.isValid())
+            return MicroOpBits::Zero;
+
+        const TypeInfo& typeInfo       = codeGen.typeMgr().get(typeRef);
+        const TypeRef   storageTypeRef = typeInfo.unwrapAliasEnum(codeGen.ctx(), typeRef);
+        const TypeRef   scalarTypeRef  = storageTypeRef.isValid() ? storageTypeRef : typeRef;
+        return CodeGenTypeHelpers::scalarStoreBits(codeGen.typeMgr().get(scalarTypeRef), codeGen.ctx());
+    }
+
+    bool isEnumOrAliasEnum(CodeGen& codeGen, TypeRef typeRef)
+    {
+        if (!typeRef.isValid())
+            return false;
+
+        const TypeInfo& typeInfo = codeGen.typeMgr().get(typeRef);
+        if (typeInfo.isEnum())
+            return true;
+        if (!typeInfo.isAlias())
+            return false;
+
+        const TypeRef unwrappedTypeRef = typeInfo.unwrap(codeGen.ctx(), typeRef, TypeExpandE::Alias);
+        return unwrappedTypeRef.isValid() && codeGen.typeMgr().get(unwrappedTypeRef).isEnum();
+    }
+
     bool usesAddressBackedThrowableExprResult(CodeGen& codeGen, TypeRef typeRef)
     {
         if (!typeRef.isValid() || typeRef == codeGen.typeMgr().typeVoid())
@@ -225,7 +251,7 @@ namespace
         if (sizeOf > sizeof(uint64_t))
             return true;
 
-        return CodeGenTypeHelpers::scalarStoreBits(typeInfo, codeGen.ctx()) == MicroOpBits::Zero;
+        return scalarStoreBitsForTypeRef(codeGen, typeRef) == MicroOpBits::Zero;
     }
 
     bool hasAssumeRuntimeSafety(CodeGen& codeGen, AstNodeRef nodeRef)
@@ -283,7 +309,7 @@ namespace
         }
 
         const TypeInfo& typeInfo  = codeGen.typeMgr().get(typeRef);
-        MicroOpBits     storeBits = CodeGenTypeHelpers::scalarStoreBits(typeInfo, codeGen.ctx());
+        MicroOpBits     storeBits = scalarStoreBitsForTypeRef(codeGen, typeRef);
         if (storeBits == MicroOpBits::Zero)
             storeBits = CodeGenTypeHelpers::bitsFromStorageSize(typeInfo.sizeOf(codeGen.ctx()));
         SWC_ASSERT(storeBits != MicroOpBits::Zero);
@@ -325,7 +351,7 @@ namespace
         if (zeroValue.kind() == ConstantKind::Invalid)
             return raiseInternalCodeGenError(codeGen, "failed to materialize the synthesized zero constant");
 
-        if (originalType.isEnum())
+        if (isEnumOrAliasEnum(codeGen, typeRef))
         {
             const ConstantRef storageCstRef = codeGen.cstMgr().addConstant(ctx, zeroValue);
             if (storageCstRef.isInvalid())
@@ -370,7 +396,7 @@ namespace
             return Result::Continue;
         }
 
-        const MicroOpBits storeBits = CodeGenTypeHelpers::scalarStoreBits(typeInfo, codeGen.ctx());
+        const MicroOpBits storeBits = scalarStoreBitsForTypeRef(codeGen, typeRef);
         if (storeBits != MicroOpBits::Zero)
         {
             codeGen.builder().emitLoadMemReg(dstAddressReg, 0, srcPayload.reg, storeBits);

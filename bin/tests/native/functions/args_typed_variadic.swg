@@ -6,6 +6,9 @@ struct TypedVariadicPair
     b: s32
 }
 
+#[Swag.Strict]
+alias TypedVariadicStrictF32 = f32
+
 func variadicTypedCount(values: s32...)->u64
 {
     return @countof(values)
@@ -69,6 +72,11 @@ func variadicTypedPairForward(values: TypedVariadicPair...)->s32
     return variadicTypedPairForwardInner(values)
 }
 
+func variadicTypedStrictF32(values: TypedVariadicStrictF32...)->f32
+{
+    return cast(f32) values[0] + cast(f32) values[1]
+}
+
 #test
 {
     @assert(variadicTypedCount() == 0)
@@ -80,6 +88,7 @@ func variadicTypedPairForward(values: TypedVariadicPair...)->s32
 #test
 {
     @assert(variadicTypedF64(1.0'f64, 2.0'f64, 3.0'f64, 4.0'f64) == 10.0'f64)
+    @assert(variadicTypedStrictF32(cast(TypedVariadicStrictF32) 1.5, cast(TypedVariadicStrictF32) 2.5) == 4.0'f32)
     @assert(variadicTypedBool(true, false, true, true) == 3)
     @assert(variadicTypedRune('a', 'b', 'c') == 294)
     @assert(variadicTypedString("Az", "By", "Cx") == 198'u8)

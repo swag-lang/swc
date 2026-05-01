@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
+#include "Compiler/Sema/Cast/Cast.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Helpers/SemaClone.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
@@ -69,11 +70,12 @@ namespace
 
     struct AutoMemberCandidate
     {
-        const SymbolMap*      symMap      = nullptr;
-        TypeRef               typeRef     = TypeRef::invalid();
-        const SymbolVariable* symVar      = nullptr;
-        AstNodeRef            baseExprRef = AstNodeRef::invalid();
-        uint32_t              precedence  = UINT32_MAX;
+        const SymbolMap*      symMap        = nullptr;
+        TypeRef               typeRef       = TypeRef::invalid();
+        TypeRef               resultTypeRef = TypeRef::invalid();
+        const SymbolVariable* symVar        = nullptr;
+        AstNodeRef            baseExprRef   = AstNodeRef::invalid();
+        uint32_t              precedence    = UINT32_MAX;
     };
 
     struct AutoMemberMatch
@@ -235,19 +237,27 @@ namespace
             return Result::Continue;
 
         const TypeInfo& typeInfo = sema.typeMgr().get(normalizedTypeRef);
+        TypeRef         resultTypeRef;
+        if (typeRef != normalizedTypeRef)
+        {
+            const TypeInfo& sourceType = sema.typeMgr().get(typeRef);
+            if (sourceType.isAlias() && sourceType.payloadSymAlias().isStrict())
+                resultTypeRef = typeRef;
+        }
+
         if (typeInfo.isStruct())
         {
             SWC_RESULT(sema.waitSemaCompleted(&typeInfo, sema.curNodeRef()));
-            outCandidates.push_back({.symMap = &typeInfo.payloadSymStruct(), .typeRef = normalizedTypeRef, .symVar = symVar, .baseExprRef = baseExprRef, .precedence = precedence});
+            outCandidates.push_back({.symMap = &typeInfo.payloadSymStruct(), .typeRef = normalizedTypeRef, .resultTypeRef = resultTypeRef, .symVar = symVar, .baseExprRef = baseExprRef, .precedence = precedence});
         }
         else if (typeInfo.isEnum())
         {
             SWC_RESULT(sema.waitSemaCompleted(&typeInfo, sema.curNodeRef()));
-            outCandidates.push_back({.symMap = &typeInfo.payloadSymEnum(), .typeRef = normalizedTypeRef, .symVar = symVar, .baseExprRef = baseExprRef, .precedence = precedence});
+            outCandidates.push_back({.symMap = &typeInfo.payloadSymEnum(), .typeRef = normalizedTypeRef, .resultTypeRef = resultTypeRef, .symVar = symVar, .baseExprRef = baseExprRef, .precedence = precedence});
         }
         else if (typeInfo.isAggregateStruct())
         {
-            outCandidates.push_back({.typeRef = normalizedTypeRef, .symVar = symVar, .baseExprRef = baseExprRef, .precedence = precedence});
+            outCandidates.push_back({.typeRef = normalizedTypeRef, .resultTypeRef = resultTypeRef, .symVar = symVar, .baseExprRef = baseExprRef, .precedence = precedence});
         }
 
         return Result::Continue;
@@ -739,9 +749,6 @@ Result AstAutoMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& c
     AutoMemberCandidate selected = matches.front().candidate;
     bindCurrentReceiverIfCandidateMatches(sema, selected);
 
-    // Symbol-backed auto-members keep the original lightweight substitution path.
-    // This preserves existing auto-scope behavior (`me`, enum auto-scope, etc.)
-    // while allowing `with` to provide an alternate left expression.
     if (selected.symMap)
     {
         const std::span foundSymbols = matches.front().symbols.span();
@@ -754,7 +761,10 @@ Result AstAutoMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& c
         sema.setSymbolList(nodeRef, symbols);
         sema.setSymbolList(nodeIdentRef, symbols);
 
-        sema.setSubstitute(sema.curNodeRef(), nodeRef);
+        AstNodeRef substituteRef = nodeRef;
+        if (selected.resultTypeRef.isValid())
+            substituteRef = Cast::createCastNode(sema, selected.resultTypeRef, nodeRef);
+        sema.setSubstitute(sema.curNodeRef(), substituteRef);
         sema.setIsValue(*substituteNode);
         return Result::SkipChildren;
     }
@@ -765,7 +775,10 @@ Result AstAutoMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& c
     const AstNodeRef     nodeRef        = makeAutoMemberAccessExpr(sema, tokRef(), selected, nodeIdentRef, substituteNode);
     SWC_RESULT(SemaHelpers::resolveMemberAccess(sema, nodeRef, *substituteNode, allowOverloadSet));
 
-    sema.setSubstitute(sema.curNodeRef(), nodeRef);
+    AstNodeRef substituteRef = nodeRef;
+    if (selected.resultTypeRef.isValid())
+        substituteRef = Cast::createCastNode(sema, selected.resultTypeRef, nodeRef);
+    sema.setSubstitute(sema.curNodeRef(), substituteRef);
     return Result::SkipChildren;
 }
 

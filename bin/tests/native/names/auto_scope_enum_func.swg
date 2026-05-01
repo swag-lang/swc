@@ -3,8 +3,19 @@
 enum OverA { A, B }
 enum OverB { A, B }
 
+#[Swag.Strict]
+alias StrictOverB = OverB
+
 func overload(x: s32, e: OverA)->s32 { return 10 }
 func overload(x: f32, e: OverB)->f32 { return 20.0 }
+func overloadStrictAlias(x: s32, e: OverA)->s32 { return 30 }
+func overloadStrictAlias(x: f32, e: StrictOverB)->f32 { return 40.0 }
+func strictAliasEnumArg(e: StrictOverB)->s32
+{
+    if e == cast(StrictOverB) OverB.A do
+        return 1
+    return 2
+}
 
 // Overload resolution via auto-scope enum arg
 #test
@@ -56,4 +67,14 @@ impl Vec2
     let r3 = fct(1.0, .A)
     #assert(#typeof(r3) == f32)
     @assert(r3 == 20.0)
+}
+
+#test
+{
+    @assert(strictAliasEnumArg(.A) == 1)
+    @assert(strictAliasEnumArg(.B) == 2)
+
+    let r4 = overloadStrictAlias(1.0, .A)
+    #assert(#typeof(r4) == f32)
+    @assert(r4 == 40.0)
 }

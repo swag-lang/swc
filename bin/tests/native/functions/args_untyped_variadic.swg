@@ -48,6 +48,29 @@ func variadicAnyString(values: ...)->u8
     return cast #wrap(u8) (cast(u16) s0[0] + cast(u16) s1[0] + cast(u16) s2[0])
 }
 
+enum VariadicStrictFlag: u32
+{
+    A,
+    B,
+    C,
+}
+
+#[Swag.Strict]
+alias VariadicStrictFlagAlias = VariadicStrictFlag
+
+#[Swag.Strict]
+alias VariadicStrictF32Alias = f32
+
+func variadicAnyStrictFlag(values: ...)->bool
+{
+    return @kindof(values[0]) == VariadicStrictFlagAlias and cast(VariadicStrictFlagAlias) values[0] == cast(VariadicStrictFlagAlias) VariadicStrictFlag.B
+}
+
+func variadicAnyStrictF32(values: ...)->bool
+{
+    return @kindof(values[0]) == VariadicStrictF32Alias and cast(VariadicStrictF32Alias) values[0] == cast(VariadicStrictF32Alias) 1.5
+}
+
 #test
 {
     @assert(variadicAnyOnly() == 0)
@@ -63,4 +86,6 @@ func variadicAnyString(values: ...)->u8
     @assert(variadicAnyBool(false, true, true) == 2)
     @assert(variadicAnyRune('a', 'b', 'c') == 294)
     @assert(variadicAnyString("ab", "cd", "ef") == 41'u8)
+    @assert(variadicAnyStrictFlag(cast(VariadicStrictFlagAlias) VariadicStrictFlag.B))
+    @assert(variadicAnyStrictF32(cast(VariadicStrictF32Alias) 1.5))
 }

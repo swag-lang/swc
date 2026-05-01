@@ -59,6 +59,13 @@ namespace CodeGenTypeHelpers
 
     inline MicroOpBits scalarStoreBits(const TypeInfo& typeInfo, TaskContext& ctx)
     {
+        if (typeInfo.isAlias())
+        {
+            const TypeRef storageTypeRef = typeInfo.unwrapAliasEnum(ctx);
+            SWC_ASSERT(storageTypeRef.isValid());
+            return scalarStoreBits(ctx.typeMgr().get(storageTypeRef), ctx);
+        }
+
         const MicroOpBits bits = numericOrBoolBits(typeInfo);
         if (bits != MicroOpBits::Zero)
             return bits;

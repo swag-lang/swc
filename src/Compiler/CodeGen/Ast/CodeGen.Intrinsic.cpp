@@ -267,6 +267,44 @@ namespace
         return typeRef;
     }
 
+    bool intrinsicInitPreservesAliasType(const TypeInfo& rawType)
+    {
+        return rawType.isEnum() ||
+               rawType.isBool() ||
+               rawType.isIntLike() ||
+               rawType.isFloat() ||
+               rawType.isAnyPointer() ||
+               rawType.isReference() ||
+               rawType.isCString() ||
+               rawType.isTypeInfo() ||
+               (rawType.isFunction() && !rawType.isLambdaClosure());
+    }
+
+    bool intrinsicInitTypeUsesFloatPayload(CodeGen& codeGen, TypeRef typeRef)
+    {
+        if (!typeRef.isValid())
+            return false;
+
+        const TypeInfo& typeInfo       = codeGen.typeMgr().get(typeRef);
+        const TypeRef   storageTypeRef = typeInfo.unwrapAliasEnum(codeGen.ctx(), typeRef);
+        return codeGen.typeMgr().get(storageTypeRef).isFloat();
+    }
+
+    TypeRef normalizeIntrinsicInitTypeRef(CodeGen& codeGen, TypeRef typeRef)
+    {
+        if (!typeRef.isValid())
+            return TypeRef::invalid();
+
+        const TypeInfo& typeInfo = codeGen.typeMgr().get(typeRef);
+        if (!typeInfo.isAlias())
+            return typeRef;
+
+        const TypeRef rawTypeRef = codeGen.typeMgr().get(typeRef).unwrap(codeGen.ctx(), typeRef, TypeExpandE::Alias);
+        if (rawTypeRef.isValid() && !intrinsicInitPreservesAliasType(codeGen.typeMgr().get(rawTypeRef)))
+            return rawTypeRef;
+        return typeRef;
+    }
+
     TypeRef intrinsicLifecycleTargetTypeRef(CodeGen& codeGen, TypeRef whatTypeRef, const bool hasExplicitCount)
     {
         whatTypeRef = normalizeIntrinsicLifecycleTypeRef(codeGen, whatTypeRef);
@@ -335,13 +373,13 @@ namespace
     IntrinsicInitTarget resolveIntrinsicInitTarget(CodeGen& codeGen, TypeRef whatTypeRef)
     {
         IntrinsicInitTarget result;
-        result.fillTypeRef = normalizeIntrinsicLifecycleTypeRef(codeGen, whatTypeRef);
+        result.fillTypeRef = normalizeIntrinsicInitTypeRef(codeGen, whatTypeRef);
         if (!result.fillTypeRef.isValid())
             return result;
 
         const TypeInfo& whatType = codeGen.typeMgr().get(result.fillTypeRef);
         if (whatType.isReference() || whatType.isAnyPointer())
-            result.fillTypeRef = normalizeIntrinsicLifecycleTypeRef(codeGen, whatType.payloadTypeRef());
+            result.fillTypeRef = normalizeIntrinsicInitTypeRef(codeGen, whatType.payloadTypeRef());
 
         uint64_t totalCount = 1;
         while (result.fillTypeRef.isValid())
@@ -356,7 +394,7 @@ namespace
                 SWC_ASSERT(totalCount <= std::numeric_limits<uint32_t>::max());
             }
 
-            result.fillTypeRef = normalizeIntrinsicLifecycleTypeRef(codeGen, currentType.payloadArrayElemTypeRef());
+            result.fillTypeRef = normalizeIntrinsicInitTypeRef(codeGen, currentType.payloadArrayElemTypeRef());
         }
 
         result.implicitCount = static_cast<uint32_t>(totalCount);
@@ -397,7 +435,13 @@ namespace
 
         const TypeInfo& fillType  = codeGen.typeMgr().get(fillTypeRef);
         const auto      storeBits = CodeGenTypeHelpers::scalarStoreBits(fillType, codeGen.ctx());
-        SWC_ASSERT(storeBits != MicroOpBits::Zero);
+        if (storeBits == MicroOpBits::Zero)
+        {
+            ConstantRef zeroCstRef = codeGen.cstMgr().addZeroPayloadConstant(codeGen.ctx(), fillTypeRef);
+            SWC_ASSERT(zeroCstRef.isValid());
+            return makeAddressPayloadFromConstant(codeGen, zeroCstRef);
+        }
+
         codeGen.builder().emitClearReg(result.reg, storeBits);
         return result;
     }
@@ -439,9 +483,7 @@ namespace
             return Result::Continue;
         }
 
-        const auto copyBits = CodeGenTypeHelpers::bitsFromStorageSize(sizeOf);
-        SWC_ASSERT(copyBits != MicroOpBits::Zero);
-        codeGen.builder().emitLoadMemReg(dstAddressReg, 0, srcPayload.reg, copyBits);
+        CodeGenMemoryHelpers::storePayloadToAddress(codeGen, dstAddressReg, srcPayload, static_cast<uint32_t>(sizeOf));
         return Result::Continue;
     }
 
@@ -502,7 +544,7 @@ namespace
         SWC_ASSERT(sizeOf > 0 && sizeOf <= std::numeric_limits<uint32_t>::max());
 
         const auto storeBits = CodeGenTypeHelpers::scalarStoreBits(fillType, codeGen.ctx());
-        if (storeBits != MicroOpBits::Zero && !fillType.isFloat())
+        if (storeBits != MicroOpBits::Zero && !intrinsicInitTypeUsesFloatPayload(codeGen, fillTypeRef))
         {
             MicroReg fillReg = srcPayload.reg;
             if (srcPayload.isAddress())

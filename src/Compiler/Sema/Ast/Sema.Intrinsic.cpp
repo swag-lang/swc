@@ -21,13 +21,30 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    bool intrinsicInitPreservesAliasType(const TypeInfo& rawType)
+    {
+        return rawType.isEnum() ||
+               rawType.isBool() ||
+               rawType.isIntLike() ||
+               rawType.isFloat() ||
+               rawType.isAnyPointer() ||
+               rawType.isReference() ||
+               rawType.isCString() ||
+               rawType.isTypeInfo() ||
+               (rawType.isFunction() && !rawType.isLambdaClosure());
+    }
+
     TypeRef normalizeIntrinsicInitTypeRef(Sema& sema, TypeRef typeRef)
     {
         if (!typeRef.isValid())
             return TypeRef::invalid();
 
+        const TypeInfo& typeInfo = sema.typeMgr().get(typeRef);
+        if (!typeInfo.isAlias())
+            return typeRef;
+
         const TypeRef rawTypeRef = sema.typeMgr().get(typeRef).unwrap(sema.ctx(), typeRef, TypeExpandE::Alias);
-        if (rawTypeRef.isValid())
+        if (rawTypeRef.isValid() && !intrinsicInitPreservesAliasType(sema.typeMgr().get(rawTypeRef)))
             return rawTypeRef;
         return typeRef;
     }

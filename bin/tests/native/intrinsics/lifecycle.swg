@@ -43,6 +43,28 @@ struct InitRgb
     b: s32 = 3
 }
 
+enum IntrinsicStrictEnum: u32
+{
+    Zero = 0,
+    A = 1,
+    B = 2,
+}
+
+#[Swag.Strict]
+alias IntrinsicStrictEnumAlias = IntrinsicStrictEnum
+
+#[Swag.Strict]
+alias IntrinsicStrictIntAlias = s32
+
+#[Swag.Strict]
+alias IntrinsicStrictFloatAlias = f32
+
+#[Swag.Strict]
+alias IntrinsicStrictS32Ptr = *s32
+
+#[Swag.Strict]
+alias IntrinsicStrictStringAlias = string
+
 struct Tracked
 {
     value: s32 = 5
@@ -255,6 +277,80 @@ func intrinsicDropThenInitArrayInfo()->s32
     return rgb[3].r * 100 + rgb[3].g * 10 + rgb[3].b
 }
 
+func intrinsicInitStrictEnumInfo()->bool
+{
+    var value: IntrinsicStrictEnumAlias
+    @init(value)(cast(IntrinsicStrictEnumAlias) IntrinsicStrictEnum.B)
+
+    var values: [3] IntrinsicStrictEnumAlias
+    @init(&values, 3)(cast(IntrinsicStrictEnumAlias) IntrinsicStrictEnum.A)
+
+    return value == cast(IntrinsicStrictEnumAlias) IntrinsicStrictEnum.B and values[0] == cast(IntrinsicStrictEnumAlias) IntrinsicStrictEnum.A and values[2] == cast(IntrinsicStrictEnumAlias) IntrinsicStrictEnum.A
+}
+
+func intrinsicInitStrictIntInfo()->bool
+{
+    var value: IntrinsicStrictIntAlias
+    @init(value)(cast(IntrinsicStrictIntAlias) 42)
+
+    var values: [3] IntrinsicStrictIntAlias
+    @init(&values, 3)(cast(IntrinsicStrictIntAlias) 7)
+
+    return value == cast(IntrinsicStrictIntAlias) 42 and values[0] == cast(IntrinsicStrictIntAlias) 7 and values[2] == cast(IntrinsicStrictIntAlias) 7
+}
+
+func intrinsicInitStrictFloatInfo()->bool
+{
+    var value: IntrinsicStrictFloatAlias
+    @init(value)(cast(IntrinsicStrictFloatAlias) 1.5)
+
+    var values: [3] IntrinsicStrictFloatAlias
+    @init(&values, 3)(cast(IntrinsicStrictFloatAlias) 2.5)
+
+    return value == cast(IntrinsicStrictFloatAlias) 1.5 and values[0] == cast(IntrinsicStrictFloatAlias) 2.5 and values[2] == cast(IntrinsicStrictFloatAlias) 2.5
+}
+
+func intrinsicInitStrictPointerInfo()->bool
+{
+    var first: s32 = 42
+    var second: s32 = 7
+
+    var value: IntrinsicStrictS32Ptr
+    @init(&value)(cast(IntrinsicStrictS32Ptr) &first)
+
+    var values: [2] IntrinsicStrictS32Ptr
+    @init(&values, 2)(cast(IntrinsicStrictS32Ptr) &second)
+
+    return dref value == 42 and dref values[0] == 7 and dref values[1] == 7
+}
+
+func intrinsicInitStrictStringInfo()->bool
+{
+    var value: IntrinsicStrictStringAlias
+    @init(&value)(cast(IntrinsicStrictStringAlias) "hello")
+
+    var empty: IntrinsicStrictStringAlias
+    @init(&empty)
+
+    var values: [2] IntrinsicStrictStringAlias
+    @init(&values, 2)(cast(IntrinsicStrictStringAlias) "world")
+
+    return cast(string) value == "hello" and cast(string) empty == "" and cast(string) values[0] == "world" and cast(string) values[1] == "world"
+}
+
+func makeIntrinsicRunStrictIntArray()->[2] IntrinsicStrictIntAlias
+{
+    return [cast(IntrinsicStrictIntAlias) 11, cast(IntrinsicStrictIntAlias) 13]
+}
+
+func makeIntrinsicRunStrictFloatArray()->[2] IntrinsicStrictFloatAlias
+{
+    return [cast(IntrinsicStrictFloatAlias) 1.25, cast(IntrinsicStrictFloatAlias) 2.5]
+}
+
+const IntrinsicRunStrictInts: [2] IntrinsicStrictIntAlias = #run makeIntrinsicRunStrictIntArray()
+const IntrinsicRunStrictFloats: [2] IntrinsicStrictFloatAlias = #run makeIntrinsicRunStrictFloatArray()
+
 func intrinsicReceiverLifecycleInfo()->IntrinsicInfo
 {
     resetLifecycleHooks()
@@ -350,6 +446,19 @@ func intrinsicReceiverLifecycleInfo()->IntrinsicInfo
 {
     let v = intrinsicDropThenInitArrayInfo()
     @assert(v == 567)
+}
+
+#test
+{
+    @assert(intrinsicInitStrictEnumInfo())
+    @assert(intrinsicInitStrictIntInfo())
+    @assert(intrinsicInitStrictFloatInfo())
+    @assert(intrinsicInitStrictPointerInfo())
+    @assert(intrinsicInitStrictStringInfo())
+    @assert(IntrinsicRunStrictInts[0] == cast(IntrinsicStrictIntAlias) 11)
+    @assert(IntrinsicRunStrictInts[1] == cast(IntrinsicStrictIntAlias) 13)
+    @assert(IntrinsicRunStrictFloats[0] == cast(IntrinsicStrictFloatAlias) 1.25)
+    @assert(IntrinsicRunStrictFloats[1] == cast(IntrinsicStrictFloatAlias) 2.5)
 }
 
 #test

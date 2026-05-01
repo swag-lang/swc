@@ -40,6 +40,13 @@ namespace
         return sema.typeMgr().get(aliasEnumTypeRef(sema, view.typeRef()));
     }
 
+    const TypeInfo& aliasType(Sema& sema, const SemaNodeView& view)
+    {
+        const TypeRef typeRef = sema.typeMgr().get(view.typeRef()).unwrap(sema.ctx(), view.typeRef(), TypeExpandE::Alias);
+        SWC_ASSERT(typeRef.isValid());
+        return sema.typeMgr().get(typeRef);
+    }
+
     const SymbolEnum* enumSymbolFromTypeRef(Sema& sema, TypeRef typeRef)
     {
         if (!typeRef.isValid())
@@ -903,8 +910,8 @@ Result SemaHelpers::checkBinaryOperandTypes(Sema& sema, AstNodeRef nodeRef, Toke
         case TokenId::SymLowerLower:
             if (op == TokenId::SymAmpersand || op == TokenId::SymPipe || op == TokenId::SymCircumflex)
             {
-                const bool leftEnumFlags  = leftView.type()->isEnumFlags();
-                const bool rightEnumFlags = rightView.type()->isEnumFlags();
+                const bool leftEnumFlags  = aliasType(sema, leftView).isEnumFlags();
+                const bool rightEnumFlags = aliasType(sema, rightView).isEnumFlags();
                 if (leftEnumFlags && rightEnumFlags && leftView.typeRef() == rightView.typeRef())
                     break;
             }

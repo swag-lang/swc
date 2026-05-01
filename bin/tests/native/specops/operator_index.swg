@@ -121,6 +121,9 @@ struct RuntimeIndexHolder
 #[Swag.EnumIndex]
 enum RuntimeIndexedSlot { First, Second, Third }
 
+#[Swag.Strict]
+alias StrictRuntimeIndexedSlot = RuntimeIndexedSlot
+
 #[Swag.EnumIndex]
 enum RuntimeWideIndexedSlot
 {
@@ -175,6 +178,11 @@ func readRuntimeIndexedSlot(holder: *RuntimeIndexedHolder, slot: RuntimeIndexedS
     return holder.state.values[slot]
 }
 
+func readStrictRuntimeIndexedSlot(values: const &[@countof(RuntimeIndexedSlot)] bool, slot: StrictRuntimeIndexedSlot)->bool
+{
+    return values[slot]
+}
+
 func readRuntimeWideIndexedSlot(values: const &[128] bool, slot: RuntimeWideIndexedSlot)->bool
 {
     return values[slot]
@@ -199,6 +207,18 @@ func readRuntimeWideIndexedSlot(values: const &[128] bool, slot: RuntimeWideInde
 
     var index = RuntimeIndexedSlot.Second
     @assert(values[index])
+}
+
+#test
+{
+    var values: [@countof(RuntimeIndexedSlot)] bool
+
+    values[cast(StrictRuntimeIndexedSlot) RuntimeIndexedSlot.Second] = true
+    @assert(values[cast(StrictRuntimeIndexedSlot) RuntimeIndexedSlot.Second])
+
+    var index = cast(StrictRuntimeIndexedSlot) RuntimeIndexedSlot.Second
+    @assert(values[index])
+    @assert(readStrictRuntimeIndexedSlot(&values, index))
 }
 
 #test

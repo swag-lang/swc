@@ -292,6 +292,12 @@ namespace
         return false;
     }
 
+    AstNodeRef resolvedUfcsReceiverArg(Sema& sema, AstNodeRef nodeRef)
+    {
+        const AstNodeRef resolvedRef = sema.viewZero(nodeRef).nodeRef();
+        return resolvedRef.isValid() ? resolvedRef : nodeRef;
+    }
+
     AstNodeRef resolveUfcsReceiverArg(Sema& sema, AstNodeRef calleeExprRef)
     {
         AstNodeRef resolvedCalleeRef = calleeExprRef;
@@ -314,11 +320,11 @@ namespace
                     (outerLeftView.type() && outerLeftView.type()->isInterface()))
                 {
                     if (isNestedUfcsReceiverValue(sema, innerMember.nodeLeftRef))
-                        return innerMember.nodeLeftRef;
+                        return resolvedUfcsReceiverArg(sema, innerMember.nodeLeftRef);
                 }
             }
 
-            return outerMember.nodeLeftRef;
+            return resolvedUfcsReceiverArg(sema, outerMember.nodeLeftRef);
         }
 
         if (outerMember.nodeLeftRef.isInvalid() ||
@@ -327,7 +333,7 @@ namespace
 
         const auto& innerMember = sema.node(outerMember.nodeLeftRef).cast<AstMemberAccessExpr>();
         if (isNestedUfcsReceiverValue(sema, innerMember.nodeLeftRef))
-            return innerMember.nodeLeftRef;
+            return resolvedUfcsReceiverArg(sema, innerMember.nodeLeftRef);
 
         return AstNodeRef::invalid();
     }

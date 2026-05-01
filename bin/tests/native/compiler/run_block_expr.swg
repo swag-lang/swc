@@ -54,6 +54,9 @@ struct AnyPair
     other: any
 }
 
+#[Swag.Strict]
+alias RunStrictAny = any
+
 const PersistentTextHolder: TextHolder = #run
 {
     var data: [3] u8
@@ -91,6 +94,20 @@ const PersistentAnyArray: [2] any = #run
     var values: [2] any
     values[0] = "first"
     values[1] = "second"
+    return values
+}
+
+const PersistentStrictAny: RunStrictAny = #run
+{
+    let value = cast(RunStrictAny) "strict"
+    return value
+}
+
+const PersistentStrictAnyArray: [2] RunStrictAny = #run
+{
+    var values: [2] RunStrictAny
+    values[0] = cast(RunStrictAny) "left"
+    values[1] = cast(RunStrictAny) "right"
     return values
 }
 
@@ -152,6 +169,9 @@ func functionScopedShortCompilerOnlyRunCall()
 #assert(cast(string) PersistentAnyPair.other == "def")
 #assert(cast(string) PersistentAnyArray[0] == "first")
 #assert(cast(string) PersistentAnyArray[1] == "second")
+#assert(cast(string) PersistentStrictAny == "strict")
+#assert(cast(string) PersistentStrictAnyArray[0] == "left")
+#assert(cast(string) PersistentStrictAnyArray[1] == "right")
 #assert(@countof(PersistentBytes) == 4)
 #assert(PersistentBytes[0] == 1)
 #assert(PersistentBytes[3] == 4)

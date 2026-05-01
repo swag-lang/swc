@@ -1829,6 +1829,13 @@ Result Cast::castToAny(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef,
     }
 
     const ConstantValue& srcCst = sema.cstMgr().get(srcCstRef);
+    if (srcCst.isNull())
+    {
+        const ConstantRef nullAnyCstRef = sema.cstMgr().addZeroPayloadConstant(ctx, dstTypeRef);
+        SWC_ASSERT(nullAnyCstRef.isValid());
+        castRequest.setConstantFoldingResult(nullAnyCstRef);
+        return Result::Continue;
+    }
 
     ConstantRef typeInfoCstRef = ConstantRef::invalid();
     SWC_RESULT(sema.cstMgr().makeTypeInfo(sema, typeInfoCstRef, anyTypeRef, castRequest.errorNodeRef));
@@ -1894,7 +1901,11 @@ Result Cast::castToInterface(Sema& sema, CastRequest& castRequest, TypeRef srcTy
         SWC_RESULT(sema.waitSemaCompleted(&srcType, castRequest.errorNodeRef));
         const SymbolInterface& toItf = dstType.payloadSymInterface();
         if (fromStruct.implementsInterfaceOrUsingFields(sema, toItf))
+        {
+            if (castRequest.isConstantFolding())
+                castRequest.setConstantFoldingResult(ConstantRef::invalid());
             return Result::Continue;
+        }
     }
 
     return castRequest.fail(DiagnosticId::sema_err_cannot_cast_to_interface, srcTypeRef, dstTypeRef);
@@ -1932,10 +1943,23 @@ Result Cast::castFromAny(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRe
     else
     {
         const TypeInfo& valueType = sema.typeMgr().get(valueTypeRef);
-
-        if (valueType.isEnum())
+        const TypeInfo* enumType    = &valueType;
+        if (!enumType->isEnum() && valueType.isAlias())
         {
-            const TypeRef       underlyingTypeRef = valueType.payloadSymEnum().underlyingTypeRef();
+            const TypeRef unwrappedTypeRef = valueType.unwrap(ctx, valueTypeRef, TypeExpandE::Alias);
+            if (unwrappedTypeRef.isValid())
+            {
+                const TypeInfo& unwrappedType = sema.typeMgr().get(unwrappedTypeRef);
+                if (unwrappedType.isEnum())
+                {
+                    enumType    = &unwrappedType;
+                }
+            }
+        }
+
+        if (enumType->isEnum())
+        {
+            const TypeRef       underlyingTypeRef = enumType->payloadSymEnum().underlyingTypeRef();
             const ConstantValue underlyingCst     = ConstantValue::make(ctx, runtimeAny.value, underlyingTypeRef, ConstantValue::PayloadOwnership::Borrowed);
             if (!underlyingCst.isValid())
                 return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
@@ -2020,14 +2044,17 @@ Result Cast::castAllowed(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRe
 
         const bool allowAliasBoolCast = isTruthyBoolCastKind(castRequest.kind) && dstType.isBool();
         const bool allowAliasNullCast = resolvedSrcType.isNull() && resolvedDstType.isPointerLike();
+        const bool allowAliasAnyCast  = dstType.isAny();
         const bool allowAliasUfcsReceiverCast = castRequest.flags.has(CastFlagsE::UfcsArgument) && resolvedSrcType.isAnyPointer() && resolvedDstType.isReference();
-        if (castRequest.kind != CastKind::Explicit && !allowAliasBoolCast && !allowAliasNullCast && !allowAliasUfcsReceiverCast)
+        if (castRequest.kind != CastKind::Explicit && !allowAliasBoolCast && !allowAliasNullCast && !allowAliasAnyCast && !allowAliasUfcsReceiverCast)
             return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
     }
 
     auto res = Result::Error;
     if (srcType.isAny() && dstType.isAny())
         res = castIdentity(sema, castRequest, srcTypeRef, dstTypeRef);
+    else if (dstType.isAny())
+        res = castToAny(sema, castRequest, srcTypeRef, dstTypeRef);
     else if (srcType.isAlias())
         res = castAllowed(sema, castRequest, srcType.payloadSymAlias().underlyingTypeRef(), dstTypeRef);
     else if (srcType.isAny())
@@ -2066,8 +2093,6 @@ Result Cast::castAllowed(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRe
         res = castToSlice(sema, castRequest, srcTypeRef, dstTypeRef);
     else if (dstType.isAnyPointer())
         res = castToPointer(sema, castRequest, srcTypeRef, dstTypeRef);
-    else if (dstType.isAny())
-        res = castToAny(sema, castRequest, srcTypeRef, dstTypeRef);
     else if (dstType.isReference())
         res = castToReference(sema, castRequest, srcTypeRef, dstTypeRef);
     else if (dstType.isInterface())

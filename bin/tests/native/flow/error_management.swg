@@ -34,6 +34,15 @@ struct AggregateInfo
     messageOk: bool
 }
 
+enum ThrowStrictEnum: u32
+{
+    Zero = 0,
+    One = 1,
+}
+
+#[Swag.Strict]
+alias ThrowStrictEnumAlias = ThrowStrictEnum
+
 struct NullInfo
 {
     isNull: bool
@@ -111,6 +120,11 @@ func alwaysThrowVoid(code: s32) throw
 func alwaysThrowTypedVoid(code: s32) throw
 {
     throw ErrValue{base: Swag.BaseError{"typed error"}, code: code}
+}
+
+func alwaysThrowStrictEnum(code: s32)->ThrowStrictEnumAlias throw
+{
+    throw ErrValue{code: code}
 }
 
 func currentErrCode()->s32
@@ -363,6 +377,12 @@ func catchTryFailureInfo()->CatchInfo
     }
 
     return result
+}
+
+func catchStrictEnumFailureInfo()->bool
+{
+    let value = catch alwaysThrowStrictEnum(87)
+    return value == cast(ThrowStrictEnumAlias) ThrowStrictEnum.Zero and @err != null and currentErrCode() == 87
 }
 
 func tryCatchAggregateSuccess()->AggregateResult
@@ -668,6 +688,11 @@ func errIsAsNullInfo()->ErrNullCastInfo
     @assert(info.value == 0)
     @assert(info.hasErr)
     @assert(info.code == 18)
+}
+
+#test
+{
+    @assert(catchStrictEnumFailureInfo())
 }
 
 #test

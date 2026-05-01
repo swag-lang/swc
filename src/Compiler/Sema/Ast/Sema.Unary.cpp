@@ -24,6 +24,13 @@ namespace
         return sema.typeMgr().get(typeRef);
     }
 
+    const TypeInfo& aliasType(Sema& sema, const SemaNodeView& view)
+    {
+        const TypeRef typeRef = sema.typeMgr().get(view.typeRef()).unwrap(sema.ctx(), view.typeRef(), TypeExpandE::Alias);
+        SWC_ASSERT(typeRef.isValid());
+        return sema.typeMgr().get(typeRef);
+    }
+
     Result constantFoldPlus(Sema& sema, ConstantRef& result, const SemaNodeView& view)
     {
         if (view.type()->isInt())
@@ -49,7 +56,8 @@ namespace
             return Result::Continue;
         }
 
-        if (view.type()->isInt())
+        const TypeInfo& type = aliasType(sema, view);
+        if (type.isInt())
         {
             ApsInt                 foldedValue;
             const Math::FoldStatus foldStatus = Math::foldUnaryInt(foldedValue, view.cst()->getInt(), Math::FoldUnaryOp::Minus);
@@ -62,17 +70,23 @@ namespace
                 return Result::Error;
             }
 
-            result = sema.cstMgr().addConstant(sema.ctx(), ConstantValue::makeInt(sema.ctx(), foldedValue, view.type()->payloadIntBits(), TypeInfo::Sign::Signed));
+            ConstantValue resultValue = ConstantValue::makeInt(sema.ctx(), foldedValue, type.payloadIntBits(), TypeInfo::Sign::Signed);
+            if (view.type()->isAlias())
+                resultValue.setTypeRef(view.typeRef());
+            result = sema.cstMgr().addConstant(sema.ctx(), resultValue);
             return Result::Continue;
         }
 
-        if (view.type()->isFloat())
+        if (type.isFloat())
         {
             ApFloat                foldedValue;
             const Math::FoldStatus foldStatus = Math::foldUnaryFloat(foldedValue, view.cst()->getFloat(), Math::FoldUnaryOp::Minus);
             SWC_ASSERT(foldStatus == Math::FoldStatus::Ok);
 
-            result = sema.cstMgr().addConstant(sema.ctx(), ConstantValue::makeFloat(sema.ctx(), foldedValue, view.type()->payloadFloatBits()));
+            ConstantValue resultValue = ConstantValue::makeFloat(sema.ctx(), foldedValue, type.payloadFloatBits());
+            if (view.type()->isAlias())
+                resultValue.setTypeRef(view.typeRef());
+            result = sema.cstMgr().addConstant(sema.ctx(), resultValue);
             return Result::Continue;
         }
 
@@ -100,11 +114,37 @@ namespace
     Result constantFoldTilde(Sema& sema, ConstantRef& result, const AstUnaryExpr& expr, const SemaNodeView& view)
     {
         SWC_UNUSED(expr);
+        const TypeInfo& valueType    = aliasType(sema, view);
+        const TypeInfo* storageType  = &valueType;
+        ConstantRef     storageCstRef = view.cstRef();
+
+        if (valueType.isEnum())
+        {
+            SWC_ASSERT(valueType.isEnumFlags());
+            const ConstantValue& enumValue = sema.cstMgr().get(storageCstRef);
+            if (enumValue.isEnumValue())
+                storageCstRef = enumValue.getEnumValue();
+            storageType = &sema.typeMgr().get(valueType.payloadSymEnum().underlyingTypeRef());
+        }
+
+        const ConstantValue& storageCst = sema.cstMgr().get(storageCstRef);
         ApsInt                 foldedValue;
-        const Math::FoldStatus foldStatus = Math::foldUnaryInt(foldedValue, view.cst()->getInt(), Math::FoldUnaryOp::BitwiseNot);
+        const Math::FoldStatus foldStatus = Math::foldUnaryInt(foldedValue, storageCst.getIntLike(), Math::FoldUnaryOp::BitwiseNot);
         SWC_ASSERT(foldStatus == Math::FoldStatus::Ok);
 
-        result = sema.cstMgr().addConstant(sema.ctx(), ConstantValue::makeInt(sema.ctx(), foldedValue, view.type()->payloadIntBits(), view.type()->payloadIntSign()));
+        SWC_ASSERT(storageType->isIntLike());
+        ConstantValue resultValue = ConstantValue::makeFromIntLike(sema.ctx(), foldedValue, *storageType);
+        if (valueType.isEnum())
+        {
+            const ConstantRef underlyingRef = sema.cstMgr().addConstant(sema.ctx(), resultValue);
+            const ConstantValue enumValue  = ConstantValue::makeEnumValue(sema.ctx(), underlyingRef, view.typeRef());
+            result                         = sema.cstMgr().addConstant(sema.ctx(), enumValue);
+            return Result::Continue;
+        }
+
+        if (view.type()->isAlias())
+            resultValue.setTypeRef(view.typeRef());
+        result = sema.cstMgr().addConstant(sema.ctx(), resultValue);
         return Result::Continue;
     }
 
@@ -135,10 +175,11 @@ namespace
 
     Result checkMinus(Sema& sema, const AstUnaryExpr& expr, const SemaNodeView& view)
     {
-        if (view.type()->isFloat() || view.type()->isIntSigned() || view.type()->isIntUnsized())
+        const TypeInfo& type = aliasType(sema, view);
+        if (type.isFloat() || type.isIntSigned() || type.isIntUnsized())
             return Result::Continue;
 
-        if (view.type()->isIntUnsigned())
+        if (type.isIntUnsigned())
         {
             auto diag = SemaError::report(sema, DiagnosticId::sema_err_negate_unsigned, expr.codeRef());
             diag.addArgument(Diagnostic::ARG_TYPE, view.typeRef());
@@ -152,7 +193,8 @@ namespace
     Result checkPlus(Sema& sema, const AstUnaryExpr& expr, const SemaNodeView& view)
     {
         SWC_UNUSED(expr);
-        if (view.type()->isFloat() || view.type()->isInt())
+        const TypeInfo& type = aliasType(sema, view);
+        if (type.isFloat() || type.isIntLike())
             return Result::Continue;
 
         return reportInvalidType(sema, expr, view);
@@ -167,7 +209,8 @@ namespace
 
     Result checkTilde(Sema& sema, const AstUnaryExpr& expr, const SemaNodeView& view)
     {
-        if (view.type()->isInt())
+        const TypeInfo& type = aliasType(sema, view);
+        if (type.isIntLike() || type.isEnum())
             return Result::Continue;
         return reportInvalidType(sema, expr, view);
     }
@@ -328,11 +371,11 @@ namespace
     {
         if (op == TokenId::SymTilde)
         {
-            if (view.type()->isEnum())
+            const TypeInfo& type = aliasType(sema, view);
+            if (type.isEnum())
             {
-                if (!view.type()->isEnumFlags())
+                if (!type.isEnumFlags())
                     return SemaError::raiseInvalidOpEnum(sema, sema.curNodeRef(), view.nodeRef(), view.typeRef());
-                Cast::convertEnumToUnderlying(sema, view);
             }
         }
 
@@ -432,7 +475,7 @@ Result AstUnaryExpr::semaPostNode(Sema& sema)
             SWC_INTERNAL_ERROR();
     }
 
-    if (tok.id == TokenId::SymMinus && view.type()->isIntSigned())
+    if (tok.id == TokenId::SymMinus && aliasType(sema, view).isIntSigned())
         SWC_RESULT(SemaHelpers::setupRuntimeSafetyPanic(sema, sema.curNodeRef(), Runtime::SafetyWhat::Overflow, codeRef()));
     return Result::Continue;
 }

@@ -82,9 +82,23 @@ namespace
     using CodeGenInterfaceHelpers::loadInterfaceMethodTableAddress;
     using CodeGenInterfaceHelpers::resolveInterfaceCastInfo;
 
-    bool anyCastAsValueBits(CodeGen& codeGen, const TypeInfo& dstType, MicroOpBits& outBits)
+    bool anyCastAsValueBits(CodeGen& codeGen, TypeRef typeRef, MicroOpBits& outBits)
     {
-        outBits = CodeGenTypeHelpers::scalarStoreBits(dstType, codeGen.ctx());
+        if (!typeRef.isValid())
+        {
+            outBits = MicroOpBits::Zero;
+            return false;
+        }
+
+        const TypeRef storageTypeRef = codeGen.typeMgr().get(typeRef).unwrapAliasEnum(codeGen.ctx(), typeRef);
+        if (!storageTypeRef.isValid())
+        {
+            outBits = MicroOpBits::Zero;
+            return false;
+        }
+
+        const TypeInfo& storageType = codeGen.typeMgr().get(storageTypeRef);
+        outBits                    = CodeGenTypeHelpers::scalarStoreBits(storageType, codeGen.ctx());
         return outBits != MicroOpBits::Zero;
     }
 
@@ -702,7 +716,7 @@ namespace
         }
 
         auto valueBits = MicroOpBits::Zero;
-        if (anyCastAsValueBits(codeGen, dstType, valueBits))
+        if (anyCastAsValueBits(codeGen, dstTypeRef, valueBits))
         {
             CodeGenNodePayload& dstPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), dstTypeRef);
             dstPayload.reg                 = codeGen.nextVirtualRegisterForType(dstTypeRef);
@@ -855,7 +869,7 @@ namespace
         }
 
         auto valueBits = MicroOpBits::Zero;
-        if (anyCastAsValueBits(codeGen, dstType, valueBits))
+        if (anyCastAsValueBits(codeGen, dstTypeRef, valueBits))
         {
             CodeGenNodePayload& dstPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), dstTypeRef);
             dstPayload.reg                 = codeGen.nextVirtualRegisterForType(dstTypeRef);
@@ -1133,7 +1147,7 @@ namespace
             if (!srcPayload.isAddress())
             {
                 auto srcValueBits = MicroOpBits::Zero;
-                if (!anyCastAsValueBits(codeGen, srcType, srcValueBits))
+                if (!anyCastAsValueBits(codeGen, sourceTypeRef, srcValueBits))
                 {
                     codeGen.inheritPayload(codeGen.curNodeRef(), srcNodeRef, dstTypeRef);
                     return Result::Continue;

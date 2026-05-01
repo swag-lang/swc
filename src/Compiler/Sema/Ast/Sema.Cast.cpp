@@ -19,9 +19,7 @@ namespace
     {
         if (!srcView.type() || !dstView.type())
             return TypeRef::invalid();
-        if (srcView.hasConstant())
-            return TypeRef::invalid();
-        return Cast::runtimeStorageTypeRef(sema, srcView.typeRef(), dstView.typeRef(), ConstantRef::invalid());
+        return Cast::runtimeStorageTypeRef(sema, srcView.typeRef(), dstView.typeRef(), srcView.cstRef());
     }
 
 }

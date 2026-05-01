@@ -6,6 +6,9 @@ enum CmpEnum: u16
 }
 
 #[Swag.Strict]
+alias CompareStrictEnum = CmpEnum
+
+#[Swag.Strict]
 alias CompareStrictAny = any
 
 #[Swag.Strict]
@@ -82,6 +85,18 @@ func touch(flag: bool, delta: s32)->bool
 
     @assert(a)
     @assert(b)
+}
+
+#test
+{
+    let a = cast(CompareStrictEnum) CmpEnum.A
+    let b = cast(CompareStrictEnum) CmpEnum.B
+
+    @assert(a == cast(CompareStrictEnum) CmpEnum.A)
+    @assert(a != b)
+    @assert(a < b)
+    @assert(b > a)
+    @assert((a <=> b) == -1)
 }
 
 // Pointer identity comparison

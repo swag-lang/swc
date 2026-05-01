@@ -71,6 +71,15 @@ TypeRef Cast::runtimeStorageTypeRef(Sema& sema, TypeRef srcTypeRef, TypeRef dstT
     {
         if (dstType.isArray() && !srcType.isAggregate() && !srcType.isArray())
             return dstTypeRef;
+
+        if (srcType.isStruct() && dstType.isInterface())
+        {
+            constexpr uint64_t     interfaceStorageSize = sizeof(Runtime::Interface);
+            const uint64_t         valueStorage         = srcType.sizeOf(sema.ctx());
+            SmallVector4<uint64_t> dims;
+            dims.push_back(interfaceStorageSize + valueStorage);
+            return sema.typeMgr().addType(TypeInfo::makeArray(dims, sema.typeMgr().typeU8()));
+        }
     }
 
     if (dstType.isStruct())
@@ -265,6 +274,18 @@ AstNodeRef Cast::createCast(Sema& sema, TypeRef dstTypeRef, AstNodeRef nodeRef, 
     substNodePtr->nodeTypeRef = AstNodeRef::invalid();
     substNodePtr->nodeExprRef = nodeRef;
     sema.setSubstitute(nodeRef, substNodeRef);
+    sema.setType(substNodeRef, dstTypeRef);
+    sema.setIsValue(*substNodePtr);
+    return substNodeRef;
+}
+
+AstNodeRef Cast::createCastNode(Sema& sema, TypeRef dstTypeRef, AstNodeRef nodeRef, AstCastExprFlagsE castFlags)
+{
+    const AstNode& node               = sema.node(nodeRef);
+    auto [substNodeRef, substNodePtr] = sema.ast().makeNode<AstNodeId::CastExpr>(node.tokRef());
+    substNodePtr->addFlag(castFlags);
+    substNodePtr->nodeTypeRef = AstNodeRef::invalid();
+    substNodePtr->nodeExprRef = nodeRef;
     sema.setType(substNodeRef, dstTypeRef);
     sema.setIsValue(*substNodePtr);
     return substNodeRef;

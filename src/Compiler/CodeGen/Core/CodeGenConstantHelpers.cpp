@@ -234,7 +234,15 @@ namespace
             return result;
 
         result.setDataSegmentRef(dataSegmentRef);
-        if (originalType.isEnum())
+        bool isEnumValue = originalType.isEnum();
+        if (!isEnumValue && originalType.isAlias())
+        {
+            const TypeRef unwrappedTypeRef = originalType.unwrap(ctx, typeRef, TypeExpandE::Alias);
+            if (unwrappedTypeRef.isValid())
+                isEnumValue = ctx.typeMgr().get(unwrappedTypeRef).isEnum();
+        }
+
+        if (isEnumValue)
         {
             const ConstantRef storageRef = codeGen.cstMgr().addConstant(ctx, result);
             return ConstantValue::makeEnumValue(ctx, storageRef, typeRef);

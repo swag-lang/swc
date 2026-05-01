@@ -228,6 +228,40 @@ namespace
         TypeRef typeRef = TypeRef::invalid();
     };
 
+    const SymbolEnum* enumSymbolFromTypeRef(Sema& sema, TypeRef typeRef)
+    {
+        if (!typeRef.isValid())
+            return nullptr;
+
+        const TypeRef enumTypeRef = sema.typeMgr().get(typeRef).unwrap(sema.ctx(), typeRef, TypeExpandE::Alias);
+        const TypeInfo& enumType  = sema.typeMgr().get(enumTypeRef);
+        if (enumType.isEnum())
+            return &enumType.payloadSymEnum();
+
+        return nullptr;
+    }
+
+    AstNodeRef autoEnumArgRef(Sema& sema, AstNodeRef argRef)
+    {
+        if (argRef.isInvalid())
+            return AstNodeRef::invalid();
+
+        AstNodeRef valueRef = argRef;
+        if (sema.node(valueRef).is(AstNodeId::NamedArgument))
+            valueRef = sema.node(valueRef).cast<AstNamedArgument>().nodeArgRef;
+
+        if (valueRef.isInvalid())
+            return AstNodeRef::invalid();
+        if (sema.node(valueRef).is(AstNodeId::AutoMemberAccessExpr))
+            return valueRef;
+
+        const AstNodeRef substitutedRef = sema.viewZero(valueRef).nodeRef();
+        if (substitutedRef.isValid() && sema.node(substitutedRef).is(AstNodeId::AutoMemberAccessExpr))
+            return substitutedRef;
+
+        return AstNodeRef::invalid();
+    }
+
     struct CallArgEntry
     {
         AstNodeRef argRef       = AstNodeRef::invalid();
@@ -980,19 +1014,17 @@ namespace
         out = {};
 
         // Only handle `.EnumValue` (auto-member) using the overload's parameter enum scope.
-        const AstNodeRef argSubRef   = sema.viewZero(argRef).nodeRef();
-        const AstNodeRef finalArgRef = argSubRef.isValid() ? argSubRef : argRef;
-        const AstNode&   argNode     = sema.node(finalArgRef);
-        if (!argNode.is(AstNodeId::AutoMemberAccessExpr))
+        const AstNodeRef finalArgRef = autoEnumArgRef(sema, argRef);
+        if (finalArgRef.isInvalid())
             return Result::Continue;
+        const AstNode& argNode = sema.node(finalArgRef);
         const auto& autoMem = argNode.cast<AstAutoMemberAccessExpr>();
 
-        const TypeInfo& paramTypeInfo = sema.typeMgr().get(paramTy);
-        if (!paramTypeInfo.isEnum())
+        const SymbolEnum* enumSym = enumSymbolFromTypeRef(sema, paramTy);
+        if (!enumSym)
             return Result::Continue;
 
-        const SymbolEnum& enumSym = paramTypeInfo.payloadSymEnum();
-        SWC_RESULT(sema.waitSemaCompleted(&enumSym, argNode.codeRef()));
+        SWC_RESULT(sema.waitSemaCompleted(enumSym, argNode.codeRef()));
 
         const SemaNodeView  nodeRightView(sema, autoMem.nodeIdentRef, SemaNodeViewPartE::Node);
         const TokenRef      tokNameRef = nodeRightView.node()->tokRef();
@@ -1000,7 +1032,7 @@ namespace
 
         MatchContext lookUpCxt;
         lookUpCxt.codeRef       = SourceCodeRef{argNode.srcViewRef(), tokNameRef};
-        lookUpCxt.symMapHint    = &enumSym;
+        lookUpCxt.symMapHint    = enumSym;
         lookUpCxt.noWaitOnEmpty = true;
 
         SWC_RESULT(Match::match(sema, lookUpCxt, idRef));
@@ -1015,7 +1047,7 @@ namespace
             cf.srcTypeRef              = TypeRef::invalid();
             cf.dstTypeRef              = paramTy;
             cf.valueStr                = Utf8{sema.idMgr().get(idRef).name};
-            const Utf8 availableValues = SemaError::formatEnumValueList(sema.ctx(), enumSym);
+            const Utf8 availableValues = SemaError::formatEnumValueList(sema.ctx(), *enumSym);
             if (!availableValues.empty())
             {
                 cf.noteId = DiagnosticId::sema_note_available_enum_values;
@@ -1028,19 +1060,17 @@ namespace
 
     Result resolveAutoEnumArgFinal(Sema& sema, AstNodeRef argRef, TypeRef paramTy)
     {
-        const AstNodeRef argSubRef   = sema.viewZero(argRef).nodeRef();
-        const AstNodeRef finalArgRef = argSubRef.isValid() ? argSubRef : argRef;
-        const AstNode&   argNode     = sema.node(finalArgRef);
-        if (!argNode.is(AstNodeId::AutoMemberAccessExpr))
+        const AstNodeRef finalArgRef = autoEnumArgRef(sema, argRef);
+        if (finalArgRef.isInvalid())
             return Result::Continue;
+        const AstNode& argNode = sema.node(finalArgRef);
         const auto& autoMem = argNode.cast<AstAutoMemberAccessExpr>();
 
-        const TypeInfo& paramTypeInfo = sema.typeMgr().get(paramTy);
-        if (!paramTypeInfo.isEnum())
+        const SymbolEnum* enumSym = enumSymbolFromTypeRef(sema, paramTy);
+        if (!enumSym)
             return Result::Continue;
 
-        const SymbolEnum& enumSym = paramTypeInfo.payloadSymEnum();
-        SWC_RESULT(sema.waitSemaCompleted(&enumSym, argNode.codeRef()));
+        SWC_RESULT(sema.waitSemaCompleted(enumSym, argNode.codeRef()));
 
         const SemaNodeView  nodeRightView(sema, autoMem.nodeIdentRef, SemaNodeViewPartE::Node);
         const TokenRef      tokNameRef = nodeRightView.node()->tokRef();
@@ -1048,7 +1078,7 @@ namespace
 
         MatchContext lookUpCxt;
         lookUpCxt.codeRef    = SourceCodeRef{argNode.srcViewRef(), tokNameRef};
-        lookUpCxt.symMapHint = &enumSym;
+        lookUpCxt.symMapHint = enumSym;
 
         // Keep normal wait semantics here (noWaitOnEmpty = false) to behave like `Enum.Value`.
         SWC_RESULT(Match::match(sema, lookUpCxt, idRef));
@@ -1057,7 +1087,7 @@ namespace
             auto diag = SemaError::report(sema, DiagnosticId::sema_err_auto_scope_missing_enum_value, argRef);
             diag.addArgument(Diagnostic::ARG_VALUE, sema.idMgr().get(idRef).name);
             diag.addArgument(Diagnostic::ARG_REQUESTED_TYPE, paramTy);
-            const Utf8 availableValues = SemaError::formatEnumValueList(sema.ctx(), enumSym);
+            const Utf8 availableValues = SemaError::formatEnumValueList(sema.ctx(), *enumSym);
             if (!availableValues.empty())
             {
                 diag.addNote(DiagnosticId::sema_note_available_enum_values);
@@ -1070,7 +1100,7 @@ namespace
         // Substitute `.Value` -> `Enum.Value` for downstream codegen / semantic checks.
         auto [memberRef, memberPtr] = sema.ast().makeNode<AstNodeId::MemberAccessExpr>(argNode.tokRef());
         auto [leftRef, leftPtr]     = sema.ast().makeNode<AstNodeId::Identifier>(argNode.tokRef());
-        sema.setSymbol(leftRef, &enumSym);
+        sema.setSymbol(leftRef, enumSym);
         sema.setIsValue(*leftPtr);
 
         memberPtr->nodeLeftRef  = leftRef;
@@ -1078,10 +1108,29 @@ namespace
 
         sema.setSymbolList(memberRef, lookUpCxt.symbols());
         sema.setSymbolList(autoMem.nodeIdentRef, lookUpCxt.symbols());
-        sema.setSubstitute(argRef, memberRef);
+        AstNodeRef substituteRef = memberRef;
+        if (paramTy != enumSym->typeRef())
+            substituteRef = Cast::createCastNode(sema, paramTy, memberRef);
+        sema.setSubstitute(argRef, substituteRef);
         sema.setIsValue(*memberPtr);
 
         return Result::Continue;
+    }
+
+    bool applyContextualAutoEnumAliasCast(Sema& sema, AstNodeRef argRef, SemaNodeView& argView, TypeRef paramTypeRef)
+    {
+        if (autoEnumArgRef(sema, argRef).isInvalid())
+            return false;
+
+        const SymbolEnum* enumSym = enumSymbolFromTypeRef(sema, paramTypeRef);
+        if (!enumSym || paramTypeRef == enumSym->typeRef())
+            return false;
+        if (argView.typeRef() != enumSym->typeRef())
+            return false;
+
+        argView.nodeRef() = Cast::createCast(sema, paramTypeRef, argView.nodeRef());
+        argView.recompute(sema, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
+        return true;
     }
 
     bool isMatchingTypedVariadicForwardingArg(Sema& sema, AstNodeRef argRef, TypeRef variadicTypeRef)
@@ -1405,13 +1454,10 @@ namespace
             const SemaNodeView argNodeView(sema, argRef, SemaNodeViewPartE::Type);
             TypeRef            argTy = argNodeView.typeRef();
 
-            if (argTy.isInvalid())
-            {
-                AutoEnumArgProbe probe;
-                SWC_RESULT(probeAutoEnumArg(sema, argRef, paramTy, probe, cf));
-                if (probe.matched)
-                    argTy = probe.typeRef;
-            }
+            AutoEnumArgProbe probe;
+            SWC_RESULT(probeAutoEnumArg(sema, argRef, paramTy, probe, cf));
+            if (probe.matched)
+                argTy = probe.typeRef;
 
             if (argTy.isInvalid())
             {
@@ -1957,7 +2003,8 @@ namespace
             if (selectedFn.idRef() == sema.idMgr().predefined(IdentifierManager::PredefinedName::OpSetLiteral))
                 flags.add(CastFlagsE::LiteralSuffixConsume);
             const DiagnosticArguments errorArguments = makeCallCastErrorArguments(selectedFn, mapping.paramArgs[i].callArgIndex, sema.ctx());
-            SWC_RESULT(Cast::cast(sema, argView, castTypeRef, CastKind::Parameter, flags, &errorArguments));
+            if (!applyContextualAutoEnumAliasCast(sema, argRef, argView, castTypeRef))
+                SWC_RESULT(Cast::cast(sema, argView, castTypeRef, CastKind::Parameter, flags, &errorArguments));
             refreshNamedArgumentPayload(sema, argRef, argView.nodeRef());
         }
 

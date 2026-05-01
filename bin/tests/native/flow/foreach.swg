@@ -12,6 +12,9 @@ alias ForeachPriorityAlias = ForeachAliasPriority
 #[Swag.Strict]
 alias StrictForeachPriorityAlias = ForeachAliasPriority
 
+#[Swag.Strict]
+alias StrictForeachF32 = f32
+
 #test
 {
     var arr: [3] s32 = [1, 2, 3]
@@ -190,6 +193,19 @@ alias StrictForeachPriorityAlias = ForeachAliasPriority
 
     @assert(sumV == 16)
     @assert(sumI == 3)
+}
+
+#test
+{
+    var values: [2] StrictForeachF32 = [cast(StrictForeachF32) 1.5, cast(StrictForeachF32) 2.5]
+    var sum: f32
+    foreach value in values
+    {
+        #assert(#typeof(value) == StrictForeachF32)
+        sum += cast(f32) value
+    }
+
+    @assert(sum == 4.0'f32)
 }
 
 #test

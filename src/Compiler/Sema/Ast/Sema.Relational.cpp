@@ -92,6 +92,17 @@ namespace
         if (cst.isStruct() && cst.typeRef().isValid())
         {
             const TypeInfo& typeInfo = sema.typeMgr().get(cst.typeRef());
+            if (typeInfo.isAny())
+            {
+                const ByteSpan bytes = cst.getStruct();
+                if (bytes.size() != sizeof(Runtime::Any))
+                    return false;
+
+                Runtime::Any runtimeAny{};
+                std::memcpy(&runtimeAny, bytes.data(), sizeof(runtimeAny));
+                return runtimeAny.type == nullptr && runtimeAny.value == nullptr;
+            }
+
             if (typeInfo.isFunction() && typeInfo.isLambdaClosure())
             {
                 const ByteSpan bytes = cst.getStruct();
@@ -217,6 +228,13 @@ namespace
     const TypeInfo& aliasEnumType(Sema& sema, const SemaNodeView& view)
     {
         const TypeRef typeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), view.typeRef());
+        return sema.typeMgr().get(typeRef);
+    }
+
+    const TypeInfo& aliasType(Sema& sema, const SemaNodeView& view)
+    {
+        const TypeRef typeRef = sema.typeMgr().get(view.typeRef()).unwrap(sema.ctx(), view.typeRef(), TypeExpandE::Alias);
+        SWC_ASSERT(typeRef.isValid());
         return sema.typeMgr().get(typeRef);
     }
 
@@ -563,6 +581,17 @@ namespace
                                           shouldReadScalarReference(sema, nodeRightView.typeRef()));
         if (!readScalarReference)
             SWC_RESULT(Cast::castPromote(sema, nodeLeftView, nodeRightView, CastKind::Promotion));
+
+        if (orderedCompare && nodeLeftView.typeRef() == nodeRightView.typeRef())
+        {
+            const TypeInfo& leftType  = aliasType(sema, nodeLeftView);
+            const TypeInfo& rightType = aliasType(sema, nodeRightView);
+            if (leftType.isEnum() && rightType.isEnum())
+            {
+                Cast::convertEnumToUnderlying(sema, nodeLeftView);
+                Cast::convertEnumToUnderlying(sema, nodeRightView);
+            }
+        }
 
         if (op == TokenId::SymEqualEqual || op == TokenId::SymBangEqual)
         {

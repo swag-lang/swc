@@ -139,6 +139,14 @@ alias StrictKindAlias = Kind
     @assert(@kindof(a) == Kind)
 }
 
+#test
+{
+    var k = cast(StrictKindAlias) Kind.B
+    var a: any = @mkany(&k, StrictKindAlias)
+    @assert(@kindof(a) == StrictKindAlias)
+    @assert(cast(StrictKindAlias) a == cast(StrictKindAlias) Kind.B)
+}
+
 // ============================================================
 // @kindof — reassigning the any changes the kind
 // ============================================================

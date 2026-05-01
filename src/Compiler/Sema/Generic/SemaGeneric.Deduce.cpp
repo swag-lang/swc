@@ -4,6 +4,7 @@
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Compiler/Sema/Match/Match.h"
+#include "Compiler/Sema/Match/MatchContext.h"
 #include "Compiler/Sema/Symbol/Symbol.Struct.h"
 #include "Support/Report/Diagnostic.h"
 
@@ -68,6 +69,66 @@ namespace
         return prependUfcsArg && ufcsArg.isValid() ? (userArgIndex + 1) : userArgIndex;
     }
 
+    bool isVariadicTypeRef(Sema& sema, TypeRef typeRef)
+    {
+        if (typeRef.isInvalid())
+            return false;
+
+        const TypeRef unwrappedTypeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), typeRef);
+        const TypeRef effectiveTypeRef = unwrappedTypeRef.isValid() ? unwrappedTypeRef : typeRef;
+        return sema.typeMgr().get(effectiveTypeRef).isAnyVariadic();
+    }
+
+    TypeRef typeRefFromTypeNode(Sema& sema, AstNodeRef typeNodeRef)
+    {
+        if (typeNodeRef.isInvalid())
+            return TypeRef::invalid();
+
+        const TypeRef typeRef = sema.viewType(typeNodeRef).typeRef();
+        if (typeRef.isValid())
+            return typeRef;
+
+        const AstNode& typeNode = sema.node(typeNodeRef);
+        if (const auto* namedType = typeNode.safeCast<AstNamedType>())
+        {
+            const SemaNodeView identView = sema.viewNodeTypeSymbol(namedType->nodeIdentRef);
+            if (identView.typeRef().isValid())
+                return identView.typeRef();
+            if (identView.sym() && identView.sym()->isType())
+                return identView.sym()->typeRef();
+
+            if (const auto* ident = sema.node(namedType->nodeIdentRef).safeCast<AstIdentifier>())
+            {
+                MatchContext lookUpCxt;
+                lookUpCxt.codeRef       = ident->codeRef();
+                lookUpCxt.noWaitOnEmpty = true;
+                const IdentifierRef idRef = SemaHelpers::resolveIdentifier(sema, ident->codeRef());
+                if (Match::match(sema, lookUpCxt, idRef) == Result::Continue)
+                {
+                    for (const Symbol* sym : lookUpCxt.symbols())
+                    {
+                        if (sym && sym->isType() && sym->typeRef().isValid())
+                            return sym->typeRef();
+                    }
+                }
+            }
+        }
+
+        return TypeRef::invalid();
+    }
+
+    bool isVariadicTypeNode(Sema& sema, AstNodeRef typeNodeRef)
+    {
+        if (typeNodeRef.isInvalid())
+            return false;
+
+        const AstNode& typeNode = sema.node(typeNodeRef);
+        if (typeNode.is(AstNodeId::VariadicType) || typeNode.is(AstNodeId::TypedVariadicType))
+            return true;
+
+        return isVariadicTypeRef(sema, typeRefFromTypeNode(sema, typeNodeRef));
+    }
+
     void appendFunctionParamNodes(Sema& sema, AstNodeRef nodeParamsRef, SmallVector<AstNodeRef>& outParams)
     {
         outParams.clear();
@@ -111,8 +172,7 @@ namespace
             SemaGeneric::GenericFunctionParamDesc desc;
             desc.idRef      = SemaHelpers::resolveIdentifier(sema, {varDecl.srcViewRef(), varDecl.tokNameRef});
             desc.typeRef    = varDecl.typeOrInitRef();
-            desc.isVariadic = desc.typeRef.isValid() &&
-                              (sema.node(desc.typeRef).is(AstNodeId::VariadicType) || sema.node(desc.typeRef).is(AstNodeId::TypedVariadicType));
+            desc.isVariadic = isVariadicTypeNode(sema, desc.typeRef);
             outParams.push_back(desc);
             return;
         }
@@ -127,8 +187,7 @@ namespace
                 SemaGeneric::GenericFunctionParamDesc desc;
                 desc.idRef      = SemaHelpers::resolveIdentifier(sema, {multiVar.srcViewRef(), tokNameRef});
                 desc.typeRef    = multiVar.typeOrInitRef();
-                desc.isVariadic = desc.typeRef.isValid() &&
-                                  (sema.node(desc.typeRef).is(AstNodeId::VariadicType) || sema.node(desc.typeRef).is(AstNodeId::TypedVariadicType));
+                desc.isVariadic = isVariadicTypeNode(sema, desc.typeRef);
                 outParams.push_back(desc);
             }
             return;
@@ -477,8 +536,7 @@ namespace
                     SemaGeneric::GenericFunctionParamDesc desc;
                     desc.idRef      = symParam->idRef();
                     desc.typeRef    = varDecl.typeOrInitRef();
-                    desc.isVariadic = desc.typeRef.isValid() &&
-                                      (declSema.node(desc.typeRef).is(AstNodeId::VariadicType) || declSema.node(desc.typeRef).is(AstNodeId::TypedVariadicType));
+                    desc.isVariadic = isVariadicTypeRef(declSema, symParam->typeRef()) || isVariadicTypeNode(declSema, desc.typeRef);
                     outParams.push_back(desc);
                 }
                 else if (paramNode->is(AstNodeId::FunctionParamMe))
@@ -557,7 +615,11 @@ namespace
                 ++nextPos;
 
             if (nextPos >= numParams)
-                return false;
+            {
+                if (numParams == 0 || !params[numParams - 1].isVariadic)
+                    return false;
+                continue;
+            }
 
             outMapping[nextPos].argRef       = argRef;
             outMapping[nextPos].callArgIndex = callArgIndexFromUserIndex(userIndex, ufcsArg, prependUfcsArg);

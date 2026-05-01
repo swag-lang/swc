@@ -445,7 +445,7 @@ Result AstForStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) con
                     sema.unsetFoldedTypedConst(sema.curNodeRef());
                 }
             }
-            else if (!view.type()->isInt())
+            else if (!sema.typeMgr().get(SemaHelpers::unwrapAliasRefType(sema.ctx(), view.typeRef())).isInt())
             {
                 auto diag = SemaError::report(sema, DiagnosticId::sema_err_invalid_countof_type, view.nodeRef());
                 diag.addArgument(Diagnostic::ARG_TYPE, view.typeRef());

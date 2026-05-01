@@ -1,5 +1,11 @@
 #global fileprivate //
 
+#[Swag.Strict]
+alias RotateStrictU32 = u32
+
+#[Swag.Strict]
+alias RotateStrictU8 = u8
+
 // ============================================================
 // @rol — rotate left
 // ============================================================
@@ -15,6 +21,9 @@ func rolU32(value: u32, count: u8)->u32 => @rol(value, count)
 
 #[Swag.NoInline]
 func rolU64(value: u64, count: u8)->u64 => @rol(value, count)
+
+#[Swag.NoInline]
+func rolStrictU32(value: RotateStrictU32, count: RotateStrictU8)->RotateStrictU32 => @rol(value, count)
 
 // u8
 #test
@@ -84,6 +93,9 @@ func rorU32(value: u32, count: u8)->u32 => @ror(value, count)
 
 #[Swag.NoInline]
 func rorU64(value: u64, count: u8)->u64 => @ror(value, count)
+
+#[Swag.NoInline]
+func rorStrictU32(value: RotateStrictU32, count: RotateStrictU8)->RotateStrictU32 => @ror(value, count)
 
 // u8
 #test
@@ -158,4 +170,29 @@ func rorU64(value: u64, count: u8)->u64 => @ror(value, count)
     @assert(rorU32(0xDEADBEEF'u32, 32'u8) == 0xDEADBEEF'u32)
     @assert(rolU64(0xCAFEBABE_DEADBEEF'u64, 64'u8) == 0xCAFEBABE_DEADBEEF'u64)
     @assert(rorU64(0xCAFEBABE_DEADBEEF'u64, 64'u8) == 0xCAFEBABE_DEADBEEF'u64)
+}
+
+// Strict aliases
+#test
+{
+    const a = @rol(cast(RotateStrictU32) 0x12345678'u32, cast(RotateStrictU8) 8)
+    const b = @ror(cast(RotateStrictU32) 0x12345678'u32, cast(RotateStrictU8) 8)
+
+    #assert(#typeof(a) == RotateStrictU32)
+    #assert(#typeof(b) == RotateStrictU32)
+
+    @assert(a == cast(RotateStrictU32) 0x34567812'u32)
+    @assert(b == cast(RotateStrictU32) 0x78123456'u32)
+}
+
+#test
+{
+    let a = rolStrictU32(cast(RotateStrictU32) 0x80000001'u32, cast(RotateStrictU8) 1)
+    let b = rorStrictU32(cast(RotateStrictU32) 0x80000001'u32, cast(RotateStrictU8) 1)
+
+    #assert(#typeof(a) == RotateStrictU32)
+    #assert(#typeof(b) == RotateStrictU32)
+
+    @assert(a == cast(RotateStrictU32) 0x00000003'u32)
+    @assert(b == cast(RotateStrictU32) 0xC0000000'u32)
 }

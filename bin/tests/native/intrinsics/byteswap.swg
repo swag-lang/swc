@@ -1,5 +1,8 @@
 #global fileprivate //
 
+#[Swag.Strict]
+alias ByteSwapStrictU32 = u32
+
 #[Swag.NoInline]
 func bswapU16(value: u16)->u16 => @byteswap(value)
 
@@ -8,6 +11,9 @@ func bswapU32(value: u32)->u32 => @byteswap(value)
 
 #[Swag.NoInline]
 func bswapU64(value: u64)->u64 => @byteswap(value)
+
+#[Swag.NoInline]
+func bswapStrictU32(value: ByteSwapStrictU32)->ByteSwapStrictU32 => @byteswap(value)
 
 // Compile-time
 #test
@@ -94,4 +100,23 @@ func bswapU64(value: u64)->u64 => @byteswap(value)
 {
     @assert(bswapU16(0xAAAA'u16) == 0xAAAA'u16)
     @assert(bswapU16(0x1111'u16) == 0x1111'u16)
+}
+
+// Strict aliases
+#test
+{
+    const a = @byteswap(cast(ByteSwapStrictU32) 0x12345678'u32)
+
+    #assert(#typeof(a) == ByteSwapStrictU32)
+
+    @assert(a == cast(ByteSwapStrictU32) 0x78563412'u32)
+}
+
+#test
+{
+    let a = bswapStrictU32(cast(ByteSwapStrictU32) 0x01020304'u32)
+
+    #assert(#typeof(a) == ByteSwapStrictU32)
+
+    @assert(a == cast(ByteSwapStrictU32) 0x04030201'u32)
 }

@@ -1,5 +1,11 @@
 #global fileprivate
 
+#[Swag.Strict]
+alias AtomicStrictS32 = s32
+
+#[Swag.Strict]
+alias AtomicStrictU32 = u32
+
 #test
 {
     #[Swag.NoInline]
@@ -14,6 +20,12 @@
     func atomXchgU32(ptr: *u32, value: u32)->u32 => @atomxchg(ptr, value)
     #[Swag.NoInline]
     func atomCmpXchgS32(ptr: *s32, compareTo, exchangeWith: s32)->s32 => @atomcmpxchg(ptr, compareTo, exchangeWith)
+    #[Swag.NoInline]
+    func atomAddStrictS32(ptr: *s32, value: AtomicStrictS32)->AtomicStrictS32 => @atomadd(ptr, value)
+    #[Swag.NoInline]
+    func atomOrStrictU32(ptr: *u32, value: AtomicStrictU32)->AtomicStrictU32 => @atomor(ptr, value)
+    #[Swag.NoInline]
+    func atomCmpXchgStrictS32(ptr: *s32, compareTo, exchangeWith: AtomicStrictS32)->AtomicStrictS32 => @atomcmpxchg(ptr, compareTo, exchangeWith)
 
     #[Swag.NoInline]
     func runAtomAdd()->bool
@@ -69,12 +81,30 @@
         return a == 7 and b == 3 and c == 5 and x == 5
     }
 
+    #[Swag.NoInline]
+    func runAtomStrictAlias()->bool
+    {
+        var sx = 0's32
+        let a = atomAddStrictS32(&sx, cast(AtomicStrictS32) 2)
+        let b = atomCmpXchgStrictS32(&sx, cast(AtomicStrictS32) 2, cast(AtomicStrictS32) 5)
+
+        var ux = 1'u32
+        let c = atomOrStrictU32(&ux, cast(AtomicStrictU32) 4)
+
+        #assert(#typeof(a) == AtomicStrictS32)
+        #assert(#typeof(b) == AtomicStrictS32)
+        #assert(#typeof(c) == AtomicStrictU32)
+
+        return a == cast(AtomicStrictS32) 0 and b == cast(AtomicStrictS32) 2 and sx == 5 and c == cast(AtomicStrictU32) 1 and ux == 5
+    }
+
     const A = #run runAtomAdd()
     const B = #run runAtomAnd()
     const C = #run runAtomOr()
     const D = #run runAtomXor()
     const E = #run runAtomXchg()
     const F = #run runAtomCmpXchg()
+    const G = #run runAtomStrictAlias()
 
     #assert(A)
     #assert(B)
@@ -82,4 +112,5 @@
     #assert(D)
     #assert(E)
     #assert(F)
+    #assert(G)
 }

@@ -1994,6 +1994,110 @@ namespace
         return SemaHelpers::setupRuntimeSafetyPanic(sema, sema.curNodeRef(), Runtime::SafetyWhat::Math, node.codeRef());
     }
 
+    bool isAliasPreservingNumericIntrinsic(TokenId tokenId)
+    {
+        switch (tokenId)
+        {
+            case TokenId::IntrinsicAbs:
+            case TokenId::IntrinsicMin:
+            case TokenId::IntrinsicMax:
+            case TokenId::IntrinsicRol:
+            case TokenId::IntrinsicRor:
+            case TokenId::IntrinsicByteSwap:
+            case TokenId::IntrinsicBitCountNz:
+            case TokenId::IntrinsicBitCountTz:
+            case TokenId::IntrinsicBitCountLz:
+            case TokenId::IntrinsicAtomicAdd:
+            case TokenId::IntrinsicAtomicAnd:
+            case TokenId::IntrinsicAtomicOr:
+            case TokenId::IntrinsicAtomicXor:
+            case TokenId::IntrinsicAtomicXchg:
+            case TokenId::IntrinsicAtomicCmpXchg:
+                return true;
+
+            default:
+                return false;
+        }
+    }
+
+    TypeRef aliasStorageTypeRef(Sema& sema, TypeRef typeRef)
+    {
+        if (!typeRef.isValid())
+            return TypeRef::invalid();
+
+        const TypeInfo& typeInfo = sema.typeMgr().get(typeRef);
+        if (!typeInfo.isAlias())
+            return TypeRef::invalid();
+
+        return typeInfo.unwrap(sema.ctx(), typeRef, TypeExpandE::Alias);
+    }
+
+    TypeRef intrinsicAliasOperandResultTypeRef(Sema& sema, AstNodeRef operandRef, TypeRef selectedReturnTypeRef)
+    {
+        const TypeRef operandTypeRef = sema.viewType(operandRef).typeRef();
+        const TypeRef storageTypeRef = aliasStorageTypeRef(sema, operandTypeRef);
+        if (!storageTypeRef.isValid() || storageTypeRef != selectedReturnTypeRef)
+            return TypeRef::invalid();
+
+        const TypeInfo& storageType = sema.typeMgr().get(storageTypeRef);
+        if (!storageType.isScalarNumeric())
+            return TypeRef::invalid();
+        return operandTypeRef;
+    }
+
+    Result applyAliasPreservingIntrinsicResultType(Sema& sema, const AstIntrinsicCallExpr& node, std::span<AstNodeRef> args)
+    {
+        const TokenId tokenId = sema.token(node.codeRef()).id;
+        if (!isAliasPreservingNumericIntrinsic(tokenId) || args.empty())
+            return Result::Continue;
+
+        const TypeRef selectedReturnTypeRef = sema.viewType(sema.curNodeRef()).typeRef();
+        if (!selectedReturnTypeRef.isValid())
+            return Result::Continue;
+
+        TypeRef resultTypeRef = TypeRef::invalid();
+        switch (tokenId)
+        {
+            case TokenId::IntrinsicMin:
+            case TokenId::IntrinsicMax:
+            {
+                if (args.size() != 2)
+                    return Result::Continue;
+
+                resultTypeRef = intrinsicAliasOperandResultTypeRef(sema, args[0], selectedReturnTypeRef);
+                if (!resultTypeRef.isValid())
+                    return Result::Continue;
+
+                const TypeRef rightStorageTypeRef = aliasStorageTypeRef(sema, sema.viewType(args[1]).typeRef());
+                if (rightStorageTypeRef.isValid() && rightStorageTypeRef != selectedReturnTypeRef)
+                    return Result::Continue;
+                break;
+            }
+
+            case TokenId::IntrinsicAtomicAdd:
+            case TokenId::IntrinsicAtomicAnd:
+            case TokenId::IntrinsicAtomicOr:
+            case TokenId::IntrinsicAtomicXor:
+            case TokenId::IntrinsicAtomicXchg:
+            case TokenId::IntrinsicAtomicCmpXchg:
+            {
+                if (args.size() < 2)
+                    return Result::Continue;
+
+                resultTypeRef = intrinsicAliasOperandResultTypeRef(sema, args[1], selectedReturnTypeRef);
+                break;
+            }
+
+            default:
+                resultTypeRef = intrinsicAliasOperandResultTypeRef(sema, args[0], selectedReturnTypeRef);
+                break;
+        }
+
+        if (resultTypeRef.isValid())
+            sema.setType(sema.curNodeRef(), resultTypeRef);
+        return Result::Continue;
+    }
+
     template<typename T>
     Result semaCallExprCommon(Sema& sema, const T& node, bool tryIntrinsicFold)
     {
@@ -2021,7 +2125,9 @@ namespace
         }
 
         SmallVector<ResolvedCallArgument> resolvedArgs;
-        const auto                        resolveMode = isAttributeContextCall(node) ? Match::ResolveCallMode::AttributeOnly : Match::ResolveCallMode::Normal;
+        auto resolveMode = isAttributeContextCall(node) ? Match::ResolveCallMode::AttributeOnly : Match::ResolveCallMode::Normal;
+        if constexpr (std::is_same_v<T, AstIntrinsicCallExpr>)
+            resolveMode = Match::ResolveCallMode::Intrinsic;
         SWC_RESULT(Match::resolveFunctionCandidates(sema, nodeCallee, symbols, args, ufcsArg, &resolvedArgs, resolveMode));
         sema.setResolvedCallArguments(sema.curNodeRef(), resolvedArgs);
         const SemaNodeView nodeSymView = sema.curViewSymbol();
@@ -2063,6 +2169,8 @@ namespace
 
         if (tryIntrinsicFold)
         {
+            if constexpr (std::is_same_v<T, AstIntrinsicCallExpr>)
+                SWC_RESULT(applyAliasPreservingIntrinsicResultType(sema, node, args));
             SWC_RESULT(ConstantIntrinsic::tryConstantFoldCall(sema, calledFn, args));
         }
         else

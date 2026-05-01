@@ -20,6 +20,12 @@ enum SwitchStrictAliasEnum : s32
 #[Swag.Strict]
 alias StrictSwitchAliasEnum = SwitchStrictAliasEnum
 
+#[Swag.Strict]
+alias StrictSwitchS32 = s32
+
+#[Swag.Strict]
+alias StrictSwitchF32 = f32
+
 #test
 {
     var v = 2
@@ -161,6 +167,41 @@ alias StrictSwitchAliasEnum = SwitchStrictAliasEnum
             break
     }
     @assert(hit == 3)
+}
+
+#test
+{
+    var v = cast(StrictSwitchS32) 3
+    var hit = 0
+    switch v
+    {
+        case cast(StrictSwitchS32) 1:
+            hit = 1
+            break
+        case cast(StrictSwitchS32) 3:
+            hit = 3
+            break
+        default:
+            hit = 9
+            break
+    }
+    @assert(hit == 3)
+}
+
+#test
+{
+    var v = cast(StrictSwitchF32) 1.5
+    var hit = 0
+    switch v
+    {
+        case cast(StrictSwitchF32) 1.5:
+            hit = 1
+            break
+        default:
+            hit = 2
+            break
+    }
+    @assert(hit == 1)
 }
 
 #test

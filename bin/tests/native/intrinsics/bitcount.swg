@@ -1,5 +1,8 @@
 #global fileprivate //
 
+#[Swag.Strict]
+alias BitCountStrictU32 = u32
+
 // ============================================================
 // @bitcountnz — population count (number of set bits)
 // ============================================================
@@ -15,6 +18,9 @@ func nzU32(value: u32)->u32 => @bitcountnz(value)
 
 #[Swag.NoInline]
 func nzU64(value: u64)->u64 => @bitcountnz(value)
+
+#[Swag.NoInline]
+func nzStrictU32(value: BitCountStrictU32)->BitCountStrictU32 => @bitcountnz(value)
 
 // Compile-time — nz
 #test
@@ -110,6 +116,9 @@ func tzU32(value: u32)->u32 => @bitcounttz(value)
 #[Swag.NoInline]
 func tzU64(value: u64)->u64 => @bitcounttz(value)
 
+#[Swag.NoInline]
+func tzStrictU32(value: BitCountStrictU32)->BitCountStrictU32 => @bitcounttz(value)
+
 // Compile-time — tz
 #test
 {
@@ -192,6 +201,9 @@ func lzU32(value: u32)->u32 => @bitcountlz(value)
 
 #[Swag.NoInline]
 func lzU64(value: u64)->u64 => @bitcountlz(value)
+
+#[Swag.NoInline]
+func lzStrictU32(value: BitCountStrictU32)->BitCountStrictU32 => @bitcountlz(value)
 
 // Compile-time — lz
 #test
@@ -295,4 +307,35 @@ func lzU64(value: u64)->u64 => @bitcountlz(value)
     @assert(nzU16(0x0010'u16) == 1)
     @assert(lzU16(0x0010'u16) == 11)
     @assert(tzU16(0x0010'u16) == 4)
+}
+
+// Strict aliases
+#test
+{
+    const nz = @bitcountnz(cast(BitCountStrictU32) 0xF0F00000'u32)
+    const tz = @bitcounttz(cast(BitCountStrictU32) 0x00008000'u32)
+    const lz = @bitcountlz(cast(BitCountStrictU32) 0x00008000'u32)
+
+    #assert(#typeof(nz) == BitCountStrictU32)
+    #assert(#typeof(tz) == BitCountStrictU32)
+    #assert(#typeof(lz) == BitCountStrictU32)
+
+    @assert(nz == cast(BitCountStrictU32) 8)
+    @assert(tz == cast(BitCountStrictU32) 15)
+    @assert(lz == cast(BitCountStrictU32) 16)
+}
+
+#test
+{
+    let nz = nzStrictU32(cast(BitCountStrictU32) 0x55555555'u32)
+    let tz = tzStrictU32(cast(BitCountStrictU32) 0x00010000'u32)
+    let lz = lzStrictU32(cast(BitCountStrictU32) 0x00010000'u32)
+
+    #assert(#typeof(nz) == BitCountStrictU32)
+    #assert(#typeof(tz) == BitCountStrictU32)
+    #assert(#typeof(lz) == BitCountStrictU32)
+
+    @assert(nz == cast(BitCountStrictU32) 16)
+    @assert(tz == cast(BitCountStrictU32) 16)
+    @assert(lz == cast(BitCountStrictU32) 15)
 }

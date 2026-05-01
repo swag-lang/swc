@@ -17,6 +17,7 @@ namespace Match
     enum class ResolveCallMode : uint8_t
     {
         Normal,
+        Intrinsic,
         AttributeOnly,
     };
 

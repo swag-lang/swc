@@ -63,7 +63,7 @@ namespace
         if (!node.modifierFlags.hasAny({AstModifierFlagsE::Wrap, AstModifierFlagsE::Promote}))
             return Result::Continue;
 
-        if (nodeLeftView.type()->isIntLike())
+        if (aliasType(sema, nodeLeftView).isIntLike())
             return Result::Continue;
 
         const SourceView& srcView = sema.compiler().srcView(node.srcViewRef());
@@ -74,11 +74,11 @@ namespace
         return Result::Error;
     }
 
-    bool needsBinaryOverflowRuntimeSafety(const AstBinaryExpr& node, TokenId op, const SemaNodeView& nodeLeftView, const SemaNodeView& nodeRightView)
+    bool needsBinaryOverflowRuntimeSafety(Sema& sema, const AstBinaryExpr& node, TokenId op, const SemaNodeView& nodeLeftView, const SemaNodeView& nodeRightView)
     {
         if (!nodeLeftView.type() || !nodeRightView.type())
             return false;
-        if (!nodeLeftView.type()->isIntLike() || !nodeRightView.type()->isIntLike())
+        if (!aliasType(sema, nodeLeftView).isIntLike() || !aliasType(sema, nodeRightView).isIntLike())
             return false;
         return SemaHelpers::binaryOpNeedsOverflowSafety(op, node.modifierFlags);
     }
@@ -136,6 +136,27 @@ namespace
         return !sema.isConstExprRequired() && sema.frame().currentInlinePayload() != nullptr;
     }
 
+    bool shouldKeepLeftAliasResult(const SemaNodeView& nodeLeftView)
+    {
+        return nodeLeftView.type() && nodeLeftView.type()->isAlias();
+    }
+
+    ConstantValue makeFoldedIntLikeValue(Sema& sema, const ApsInt& foldedValue, const TypeInfo& storageType, const SemaNodeView& nodeLeftView)
+    {
+        ConstantValue resultValue = ConstantValue::makeFromIntLike(sema.ctx(), foldedValue, storageType);
+        if (shouldKeepLeftAliasResult(nodeLeftView))
+            resultValue.setTypeRef(nodeLeftView.typeRef());
+        return resultValue;
+    }
+
+    ConstantValue makeFoldedFloatValue(Sema& sema, const ApFloat& foldedValue, const TypeInfo& storageType, const SemaNodeView& nodeLeftView)
+    {
+        ConstantValue resultValue = ConstantValue::makeFloat(sema.ctx(), foldedValue, storageType.payloadFloatBits());
+        if (shouldKeepLeftAliasResult(nodeLeftView))
+            resultValue.setTypeRef(nodeLeftView.typeRef());
+        return resultValue;
+    }
+
     Result constantFoldOp(Sema& sema, ConstantRef& result, TokenId op, const AstBinaryExpr& node, const SemaNodeView& nodeLeftView, const SemaNodeView& nodeRightView)
     {
         const TaskContext& ctx         = sema.ctx();
@@ -153,28 +174,31 @@ namespace
         }
 
         const bool promote = node.modifierFlags.has(AstModifierFlagsE::Promote);
-        if (!keepEnumRes)
+        const bool hasAliasOperand = (nodeLeftView.type() && nodeLeftView.type()->isAlias()) ||
+                                     (nodeRightView.type() && nodeRightView.type()->isAlias());
+        if (!keepEnumRes && !hasAliasOperand)
             SWC_RESULT(Cast::promoteConstants(sema, nodeLeftView, nodeRightView, leftCstRef, rightCstRef, promote));
 
-        const ConstantValue& leftCst  = sema.cstMgr().get(leftCstRef);
-        const ConstantValue& rightCst = sema.cstMgr().get(rightCstRef);
-        const TypeInfo&      type     = leftCst.type(sema.ctx());
+        const ConstantValue& leftCst      = sema.cstMgr().get(leftCstRef);
+        const ConstantValue& rightCst     = sema.cstMgr().get(rightCstRef);
+        const TypeInfo&      leftCstType  = leftCst.type(sema.ctx());
+        const TypeInfo&      storageType  = shouldKeepLeftAliasResult(nodeLeftView) ? aliasType(sema, nodeLeftView) : leftCstType;
 
         // Wrap and promote modifiers can only be applied to int-like values.
         if (node.modifierFlags.hasAny({AstModifierFlagsE::Wrap, AstModifierFlagsE::Promote}))
         {
-            if (!type.isIntLike())
+            if (!storageType.isIntLike())
             {
                 const SourceView& srcView = sema.compiler().srcView(node.srcViewRef());
                 const TokenRef    mdfRef  = srcView.findRightFrom(node.tokRef(), {TokenId::ModifierWrap, TokenId::ModifierPromote});
                 auto              diag    = SemaError::report(sema, DiagnosticId::sema_err_modifier_only_integer, SourceCodeRef{node.srcViewRef(), mdfRef});
-                diag.addArgument(Diagnostic::ARG_TYPE, leftCst.typeRef());
+                diag.addArgument(Diagnostic::ARG_TYPE, nodeLeftView.typeRef());
                 diag.report(sema.ctx());
                 return Result::Error;
             }
         }
 
-        if (type.isFloat())
+        if (storageType.isFloat())
         {
             Math::FoldBinaryOp foldOp;
             const bool         mapped = mapTokenToFoldBinaryOp(foldOp, op);
@@ -193,17 +217,17 @@ namespace
                 return Result::Error;
             }
 
-            result = sema.cstMgr().addConstant(ctx, ConstantValue::makeFloat(ctx, foldedValue, type.payloadFloatBits()));
+            result = sema.cstMgr().addConstant(ctx, makeFoldedFloatValue(sema, foldedValue, storageType, nodeLeftView));
             return Result::Continue;
         }
 
-        if (type.isIntLike())
+        if (storageType.isIntLike())
         {
             ApsInt     val1 = leftCst.getIntLike();
             ApsInt     val2 = rightCst.getIntLike();
             const bool wrap = node.modifierFlags.has(AstModifierFlagsE::Wrap);
 
-            if (type.isIntUnsized())
+            if (storageType.isIntUnsized())
             {
                 val1.setSigned(true);
                 val2.setSigned(true);
@@ -221,7 +245,7 @@ namespace
 
             ApsInt           foldedValue;
             Math::FoldStatus foldStatus = Math::foldBinaryInt(foldedValue, val1, val2, foldOp, foldOptions);
-            if (foldStatus == Math::FoldStatus::Overflow && (wrap || type.payloadIntLikeBits() == 0))
+            if (foldStatus == Math::FoldStatus::Overflow && (wrap || storageType.payloadIntLikeBits() == 0))
                 foldStatus = Math::FoldStatus::Ok;
 
             if (foldStatus != Math::FoldStatus::Ok)
@@ -231,7 +255,7 @@ namespace
                 if (foldStatus == Math::FoldStatus::Overflow)
                 {
                     auto diag = SemaError::reportFoldSafety(sema, foldStatus, sema.curNodeRef(), SemaError::ReportLocation::Children);
-                    diag.addArgument(Diagnostic::ARG_TYPE, leftCst.typeRef());
+                    diag.addArgument(Diagnostic::ARG_TYPE, nodeLeftView.typeRef());
                     diag.addArgument(Diagnostic::ARG_LEFT, leftCstRef);
                     diag.addArgument(Diagnostic::ARG_RIGHT, rightCstRef);
                     diag.report(sema.ctx());
@@ -252,7 +276,7 @@ namespace
                 return Result::Error;
             }
 
-            const ConstantRef intResult = sema.cstMgr().addConstant(ctx, ConstantValue::makeFromIntLike(ctx, foldedValue, type));
+            const ConstantRef intResult = sema.cstMgr().addConstant(ctx, makeFoldedIntLikeValue(sema, foldedValue, storageType, nodeLeftView));
             if (keepEnumRes)
             {
                 const ConstantValue enumResult = ConstantValue::makeEnumValue(ctx, intResult, nodeLeftView.typeRef());
@@ -397,31 +421,42 @@ namespace
             }
         }
 
-        const TypeInfo& leftType  = aliasEnumType(sema, nodeLeftView);
-        const TypeInfo& rightType = aliasEnumType(sema, nodeRightView);
+        const TypeInfo& leftType       = aliasEnumType(sema, nodeLeftView);
+        const TypeInfo& rightType      = aliasEnumType(sema, nodeRightView);
+        const TypeInfo& leftAliasType  = aliasType(sema, nodeLeftView);
+        const TypeInfo& rightAliasType = aliasType(sema, nodeRightView);
         TypeRef         resultTypeRef = nodeLeftView.typeRef();
         switch (op)
         {
             case TokenId::SymPlus:
-                if (nodeLeftView.type()->isScalarNumeric() && rightType.isAnyPointer())
+                if (leftAliasType.isIntLike() && rightType.isAnyPointer())
                 {
-                    SWC_RESULT(Cast::cast(sema, nodeLeftView, sema.typeMgr().typeS64(), CastKind::Implicit));
-                    nodeRightView.compute(sema, node.nodeRightRef, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
+                    if (nodeLeftView.type()->isScalarNumeric())
+                    {
+                        SWC_RESULT(Cast::cast(sema, nodeLeftView, sema.typeMgr().typeS64(), CastKind::Implicit));
+                        nodeRightView.compute(sema, node.nodeRightRef, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
+                    }
                     resultTypeRef = nodeRightView.typeRef();
                 }
-                else if (leftType.isAnyPointer() && nodeRightView.type()->isScalarNumeric())
+                else if (leftType.isAnyPointer() && rightAliasType.isIntLike())
                 {
-                    SWC_RESULT(Cast::cast(sema, nodeRightView, sema.typeMgr().typeS64(), CastKind::Implicit));
-                    nodeLeftView.compute(sema, node.nodeLeftRef, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
+                    if (nodeRightView.type()->isScalarNumeric())
+                    {
+                        SWC_RESULT(Cast::cast(sema, nodeRightView, sema.typeMgr().typeS64(), CastKind::Implicit));
+                        nodeLeftView.compute(sema, node.nodeLeftRef, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
+                    }
                     resultTypeRef = nodeLeftView.typeRef();
                 }
                 break;
 
             case TokenId::SymMinus:
-                if (leftType.isAnyPointer() && nodeRightView.type()->isScalarNumeric())
+                if (leftType.isAnyPointer() && rightAliasType.isIntLike())
                 {
-                    SWC_RESULT(Cast::cast(sema, nodeRightView, sema.typeMgr().typeS64(), CastKind::Implicit));
-                    nodeLeftView.compute(sema, node.nodeLeftRef, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
+                    if (nodeRightView.type()->isScalarNumeric())
+                    {
+                        SWC_RESULT(Cast::cast(sema, nodeRightView, sema.typeMgr().typeS64(), CastKind::Implicit));
+                        nodeLeftView.compute(sema, node.nodeLeftRef, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
+                    }
                     resultTypeRef = nodeLeftView.typeRef();
                 }
                 else if (leftType.isAnyPointer() && rightType.isAnyPointer())
@@ -450,18 +485,18 @@ namespace
             case TokenId::SymGreaterGreater:
             case TokenId::SymLowerLower:
                 if (node.modifierFlags.has(AstModifierFlagsE::Promote) &&
-                    nodeLeftView.type()->isScalarNumeric() &&
-                    nodeRightView.type()->isScalarNumeric())
+                    leftAliasType.isScalarNumeric() &&
+                    rightAliasType.isScalarNumeric())
                 {
                     const TypeRef promotedTypeRef = sema.typeMgr().promote(nodeLeftView.typeRef(), nodeRightView.typeRef(), true);
                     SWC_RESULT(Cast::castIfNeeded(sema, nodeLeftView, promotedTypeRef, CastKind::Promotion));
                     SWC_RESULT(Cast::castIfNeeded(sema, nodeRightView, promotedTypeRef, CastKind::Promotion));
                     resultTypeRef = promotedTypeRef;
                 }
-                else if (nodeLeftView.type()->isScalarNumeric() &&
-                         nodeRightView.type()->isScalarNumeric() &&
-                         !nodeLeftView.type()->isCharRune() &&
-                         !nodeRightView.type()->isCharRune() &&
+                else if (leftAliasType.isScalarNumeric() &&
+                         rightAliasType.isScalarNumeric() &&
+                         !leftAliasType.isCharRune() &&
+                         !rightAliasType.isCharRune() &&
                          nodeLeftView.typeRef() != nodeRightView.typeRef() &&
                          op != TokenId::SymGreaterGreater &&
                          op != TokenId::SymLowerLower)
@@ -485,13 +520,14 @@ namespace
 
     Result checkRightConstant(Sema& sema, TokenId op, AstNodeRef nodeRef, const SemaNodeView& nodeRightView)
     {
+        const TypeInfo& type = aliasType(sema, nodeRightView);
         switch (op)
         {
             case TokenId::SymSlash:
             case TokenId::SymPercent:
-                if (nodeRightView.type()->isFloat() && nodeRightView.cst()->getFloat().isZero())
+                if (type.isFloat() && nodeRightView.cst()->getFloat().isZero())
                     return SemaError::raiseDivZero(sema, nodeRef, nodeRightView.nodeRef());
-                if (nodeRightView.type()->isInt() && nodeRightView.cst()->getInt().isZero())
+                if (type.isIntLike() && nodeRightView.cst()->getIntLike().isZero())
                     return SemaError::raiseDivZero(sema, nodeRef, nodeRightView.nodeRef());
                 break;
 
@@ -573,7 +609,7 @@ Result AstBinaryExpr::semaPostNode(Sema& sema)
     SWC_RESULT(promote(sema, op, sema.curNodeRef(), *this, nodeLeftView, nodeRightView));
     SWC_RESULT(check(sema, op, sema.curNodeRef(), *this, nodeLeftView, nodeRightView));
     SWC_RESULT(castAndResultType(sema, op, *this, nodeLeftView, nodeRightView));
-    if (needsBinaryOverflowRuntimeSafety(*this, op, nodeLeftView, nodeRightView))
+    if (needsBinaryOverflowRuntimeSafety(sema, *this, op, nodeLeftView, nodeRightView))
         SWC_RESULT(SemaHelpers::setupRuntimeSafetyPanic(sema, sema.curNodeRef(), Runtime::SafetyWhat::Overflow, codeRef()));
 
     return Result::Continue;

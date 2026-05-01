@@ -153,6 +153,47 @@ namespace
         return false;
     }
 
+    bool isAliasPreservingNumericIntrinsic(TokenId tokenId)
+    {
+        switch (tokenId)
+        {
+            case TokenId::IntrinsicAbs:
+            case TokenId::IntrinsicMin:
+            case TokenId::IntrinsicMax:
+            case TokenId::IntrinsicRol:
+            case TokenId::IntrinsicRor:
+            case TokenId::IntrinsicByteSwap:
+            case TokenId::IntrinsicBitCountNz:
+            case TokenId::IntrinsicBitCountTz:
+            case TokenId::IntrinsicBitCountLz:
+            case TokenId::IntrinsicAtomicAdd:
+            case TokenId::IntrinsicAtomicAnd:
+            case TokenId::IntrinsicAtomicOr:
+            case TokenId::IntrinsicAtomicXor:
+            case TokenId::IntrinsicAtomicXchg:
+            case TokenId::IntrinsicAtomicCmpXchg:
+                return true;
+
+            default:
+                return false;
+        }
+    }
+
+    bool isIntrinsicAliasStorageMatch(Sema& sema, Match::ResolveCallMode mode, const SymbolFunction& fn, TypeRef argTypeRef, TypeRef paramTypeRef)
+    {
+        if (mode != Match::ResolveCallMode::Intrinsic || !argTypeRef.isValid() || !paramTypeRef.isValid())
+            return false;
+        if (!isAliasPreservingNumericIntrinsic(sema.token(fn.codeRef()).id))
+            return false;
+
+        const TypeInfo& argType = sema.typeMgr().get(argTypeRef);
+        if (!argType.isAlias())
+            return false;
+
+        const TypeRef storageTypeRef = argType.unwrap(sema.ctx(), argTypeRef, TypeExpandE::Alias);
+        return storageTypeRef.isValid() && storageTypeRef == paramTypeRef;
+    }
+
     enum class ConvRank
     {
         Exact,    // same type (or identical canonical type)
@@ -1285,7 +1326,7 @@ namespace
         return required;
     }
 
-    Result tryBuildCandidate(Sema& sema, SymbolFunction& fn, std::span<AstNodeRef> args, AstNodeRef ufcsArg, Candidate& outCandidate, MatchFailure& outFail);
+    Result tryBuildCandidate(Sema& sema, SymbolFunction& fn, std::span<AstNodeRef> args, AstNodeRef ufcsArg, Match::ResolveCallMode mode, Candidate& outCandidate, MatchFailure& outFail);
 
     Result precheckGenericCallShape(Sema& sema, const SymbolFunction& fn, std::span<AstNodeRef> args, AstNodeRef ufcsArg, MatchFailure& outFail)
     {
@@ -1362,7 +1403,7 @@ namespace
         return Result::Continue;
     }
 
-    Result tryInstantiateGenericCandidate(Sema& sema, SymbolFunction& fn, std::span<AstNodeRef> args, AstNodeRef ufcsArg, Candidate& outCandidate, MatchFailure& outFail)
+    Result tryInstantiateGenericCandidate(Sema& sema, SymbolFunction& fn, std::span<AstNodeRef> args, AstNodeRef ufcsArg, Match::ResolveCallMode mode, Candidate& outCandidate, MatchFailure& outFail)
     {
         outCandidate = {};
         outFail      = {};
@@ -1382,13 +1423,13 @@ namespace
             return Result::Continue;
         }
 
-        return tryBuildCandidate(sema, *concreteFn, args, ufcsArg, outCandidate, outFail);
+        return tryBuildCandidate(sema, *concreteFn, args, ufcsArg, mode, outCandidate, outFail);
     }
 
     // Try to build a candidate; if it fails, fill out why + where.
     // Evaluate a single function symbol against the provided arguments to see if it's a valid match.
     // It determines conversion ranks, UFCS usage, and handles variadic arguments.
-    Result tryBuildCandidate(Sema& sema, SymbolFunction& fn, std::span<AstNodeRef> args, AstNodeRef ufcsArg, Candidate& outCandidate, MatchFailure& outFail)
+    Result tryBuildCandidate(Sema& sema, SymbolFunction& fn, std::span<AstNodeRef> args, AstNodeRef ufcsArg, Match::ResolveCallMode mode, Candidate& outCandidate, MatchFailure& outFail)
     {
         const auto     params    = fn.parameters();
         const auto     numParams = static_cast<uint32_t>(params.size());
@@ -1477,7 +1518,10 @@ namespace
             const bool isUfcsArgument                = allowsImplicitAddressBinding(fn, i, ufcsArg);
             const bool allowUserDefinedLiteralSuffix = fn.idRef() == sema.idMgr().predefined(IdentifierManager::PredefinedName::OpSetLiteral);
             auto       r                             = ConvRank::Bad;
-            SWC_RESULT(probeImplicitConversion(sema, r, argRef, argTy, paramTy, cf, isUfcsArgument, allowUserDefinedLiteralSuffix));
+            if (isIntrinsicAliasStorageMatch(sema, mode, fn, argTy, paramTy))
+                r = ConvRank::Standard;
+            else
+                SWC_RESULT(probeImplicitConversion(sema, r, argRef, argTy, paramTy, cf, isUfcsArgument, allowUserDefinedLiteralSuffix));
             if (r == ConvRank::Bad)
             {
                 if (cf.diagId == DiagnosticId::None)
@@ -1690,7 +1734,7 @@ namespace
 
     // Evaluate each function symbol to see how well it matches the given arguments.
     // This includes checking the number of parameters, types, and potential UFCS usage.
-    Result collectAttempts(Sema& sema, SmallVector<Attempt>& outAttempts, SmallVector<SymbolFunction*>& outFunctionSymbols, std::span<Symbol*> symbols, std::span<AstNodeRef> args, AstNodeRef ufcsArg)
+    Result collectAttempts(Sema& sema, SmallVector<Attempt>& outAttempts, SmallVector<SymbolFunction*>& outFunctionSymbols, std::span<Symbol*> symbols, std::span<AstNodeRef> args, AstNodeRef ufcsArg, Match::ResolveCallMode mode)
     {
         outAttempts.clear();
         outFunctionSymbols.clear();
@@ -1728,7 +1772,7 @@ namespace
             {
                 MatchFailure fail;
                 Candidate    candidate;
-                SWC_RESULT(tryInstantiateGenericCandidate(sema, *fn, args, AstNodeRef::invalid(), candidate, fail));
+                SWC_RESULT(tryInstantiateGenericCandidate(sema, *fn, args, AstNodeRef::invalid(), mode, candidate, fail));
                 if (candidate.viable)
                 {
                     a.viable    = true;
@@ -1739,7 +1783,7 @@ namespace
                 {
                     candidate = {};
                     fail      = {};
-                    SWC_RESULT(tryInstantiateGenericCandidate(sema, *fn, args, ufcsArg, candidate, fail));
+                    SWC_RESULT(tryInstantiateGenericCandidate(sema, *fn, args, ufcsArg, mode, candidate, fail));
                     if (candidate.viable)
                     {
                         a.viable    = true;
@@ -1758,7 +1802,7 @@ namespace
             Candidate    candidate;
 
             // First: non-UFCS call shape.
-            SWC_RESULT(tryBuildCandidate(sema, *fn, args, AstNodeRef::invalid(), candidate, fail));
+            SWC_RESULT(tryBuildCandidate(sema, *fn, args, AstNodeRef::invalid(), mode, candidate, fail));
             if (candidate.viable)
             {
                 a.viable    = true;
@@ -1769,7 +1813,7 @@ namespace
                 // Second: UFCS call shape (implicit arg0).
                 candidate = {};
                 fail      = {};
-                SWC_RESULT(tryBuildCandidate(sema, *fn, args, ufcsArg, candidate, fail));
+                SWC_RESULT(tryBuildCandidate(sema, *fn, args, ufcsArg, mode, candidate, fail));
                 if (candidate.viable)
                 {
                     a.viable    = true;
@@ -1807,9 +1851,9 @@ namespace
         }
     }
 
-    Result collectCandidateAttempts(Sema& sema, CandidateAttempts& out, std::span<Symbol*> symbols, std::span<AstNodeRef> args, AstNodeRef ufcsArg)
+    Result collectCandidateAttempts(Sema& sema, CandidateAttempts& out, std::span<Symbol*> symbols, std::span<AstNodeRef> args, AstNodeRef ufcsArg, Match::ResolveCallMode mode)
     {
-        SWC_RESULT(collectAttempts(sema, out.attempts, out.functions, symbols, args, ufcsArg));
+        SWC_RESULT(collectAttempts(sema, out.attempts, out.functions, symbols, args, ufcsArg, mode));
         gatherViableAttempts(out.attempts, out.viable);
         return Result::Continue;
     }
@@ -1859,7 +1903,7 @@ namespace
         removeEmptyFunctionDeclarations(fallbackRuntimeSymbols, fallbackConcreteSymbols);
 
         CandidateAttempts fallback;
-        SWC_RESULT(collectCandidateAttempts(sema, fallback, fallbackConcreteSymbols.span(), args, ufcsArg));
+        SWC_RESULT(collectCandidateAttempts(sema, fallback, fallbackConcreteSymbols.span(), args, ufcsArg, mode));
         if (fallback.viable.empty())
             return Result::Continue;
 
@@ -1966,7 +2010,7 @@ namespace
 
     // For each argument, perform the required cast to the destination parameter type.
     // The cast value is then stored back in the argument node.
-    Result applyParameterCasts(Sema& sema, const SymbolFunction& selectedFn, const CallArgMapping& mapping, AstNodeRef appliedUfcsArg)
+    Result applyParameterCasts(Sema& sema, const SymbolFunction& selectedFn, const CallArgMapping& mapping, AstNodeRef appliedUfcsArg, Match::ResolveCallMode mode)
     {
         const auto& params    = selectedFn.parameters();
         const auto  numParams = static_cast<uint32_t>(params.size());
@@ -1996,6 +2040,8 @@ namespace
             if (bindValueTypeRef.isValid())
                 castTypeRef = bindValueTypeRef;
             SWC_RESULT(normalizeTypeInfoCallArgument(sema, argValueRef, castTypeRef, argView));
+            if (isIntrinsicAliasStorageMatch(sema, mode, selectedFn, argView.typeRef(), castTypeRef))
+                continue;
 
             CastFlags flags = CastFlagsE::Zero;
             if (castTypeRef == paramTypeRef && allowsImplicitAddressBinding(selectedFn, i, appliedUfcsArg))
@@ -2464,7 +2510,7 @@ Result Match::probeFunctionCandidates(Sema& sema, const SemaNodeView& nodeCallee
         return SemaError::raise(sema, DiagnosticId::sema_err_not_attribute, nodeCallee.nodeRef());
 
     CandidateAttempts candidates;
-    SWC_RESULT(collectCandidateAttempts(sema, candidates, concreteSymbols.span(), args, ufcsArg));
+    SWC_RESULT(collectCandidateAttempts(sema, candidates, concreteSymbols.span(), args, ufcsArg, mode));
     SWC_RESULT(maybeReplaceWithBetterCallFallback(sema, nodeCallee, candidates, args, ufcsArg, mode));
 
     if (candidates.viable.empty())
@@ -2503,7 +2549,7 @@ Result Match::resolveFunctionCandidates(Sema& sema, const SemaNodeView& nodeCall
 
     // Collect all function candidates and evaluate their match quality
     CandidateAttempts candidates;
-    SWC_RESULT(collectCandidateAttempts(sema, candidates, concreteSymbols.span(), args, ufcsArg));
+    SWC_RESULT(collectCandidateAttempts(sema, candidates, concreteSymbols.span(), args, ufcsArg, mode));
     SWC_RESULT(maybeReplaceWithBetterCallFallback(sema, nodeCallee, candidates, args, ufcsArg, mode));
 
     // From the viable ones, find the single best candidate.
@@ -2520,7 +2566,7 @@ Result Match::resolveFunctionCandidates(Sema& sema, const SemaNodeView& nodeCall
         return errorBadMatch(sema, nodeCallee, *selectedFn, mappingFail, args, appliedUfcsArg);
 
     SWC_RESULT(finalizeAutoEnumArgs(sema, *selectedFn, mapping));
-    SWC_RESULT(applyParameterCasts(sema, *selectedFn, mapping, appliedUfcsArg));
+    SWC_RESULT(applyParameterCasts(sema, *selectedFn, mapping, appliedUfcsArg, mode));
     SWC_RESULT(applyTypedVariadicCasts(sema, *selectedFn, mapping));
     SWC_RESULT(concretizeUntypedVariadicArgs(sema, *selectedFn, mapping));
     if (outResolvedArgs)

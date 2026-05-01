@@ -1,5 +1,8 @@
 #global fileprivate // 
 
+#[Swag.Strict]
+alias ForStrictS32 = s32
+
 struct CountedLoop
 {
     count: u64
@@ -110,6 +113,17 @@ impl FixedCountedLoop
     for i in 1 to 5
     {
         var x = i
+        sum += cast(s32) i
+    }
+    @assert(sum == 15)
+}
+
+#test
+{
+    var sum = 0
+    for i in cast(ForStrictS32) 1 to cast(ForStrictS32) 5
+    {
+        #assert(#typeof(i) == ForStrictS32)
         sum += cast(s32) i
     }
     @assert(sum == 15)

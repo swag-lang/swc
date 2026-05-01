@@ -866,11 +866,11 @@ Result SemaHelpers::checkBinaryOperandTypes(Sema& sema, AstNodeRef nodeRef, Toke
             SWC_RESULT(checkPointerArithmeticOperand(sema, nodeRef, leftRef, leftView));
             SWC_RESULT(checkPointerArithmeticOperand(sema, nodeRef, rightRef, rightView));
 
-            if (leftType.isBlockPointer() && rightView.type()->isScalarNumeric())
+            if (leftType.isBlockPointer() && aliasType(sema, rightView).isIntLike())
                 return Result::Continue;
             if (leftType.isBlockPointer() && rightType.isBlockPointer())
                 return SemaError::raiseBinaryOperandType(sema, nodeRef, rightRef, leftView.typeRef(), rightView.typeRef());
-            if (leftView.type()->isScalarNumeric() && rightType.isBlockPointer())
+            if (aliasType(sema, leftView).isIntLike() && rightType.isBlockPointer())
                 return Result::Continue;
             break;
 
@@ -878,7 +878,7 @@ Result SemaHelpers::checkBinaryOperandTypes(Sema& sema, AstNodeRef nodeRef, Toke
             SWC_RESULT(checkPointerArithmeticOperand(sema, nodeRef, leftRef, leftView));
             SWC_RESULT(checkPointerArithmeticOperand(sema, nodeRef, rightRef, rightView));
 
-            if (leftType.isBlockPointer() && rightView.type()->isScalarNumeric())
+            if (leftType.isBlockPointer() && aliasType(sema, rightView).isIntLike())
                 return Result::Continue;
             if (leftType.isBlockPointer() && rightType.isBlockPointer() && blockPointerPayloadsMatch(sema, leftView, rightView))
                 return Result::Continue;
@@ -897,9 +897,9 @@ Result SemaHelpers::checkBinaryOperandTypes(Sema& sema, AstNodeRef nodeRef, Toke
         case TokenId::SymPlus:
         case TokenId::SymMinus:
         case TokenId::SymAsterisk:
-            if (!leftView.type()->isScalarNumeric())
+            if (!aliasType(sema, leftView).isScalarNumeric())
                 return SemaError::raiseBinaryOperandType(sema, nodeRef, leftRef, leftView.typeRef(), rightView.typeRef());
-            if (!rightView.type()->isScalarNumeric())
+            if (!aliasType(sema, rightView).isScalarNumeric())
                 return SemaError::raiseBinaryOperandType(sema, nodeRef, rightRef, leftView.typeRef(), rightView.typeRef());
             break;
 
@@ -916,9 +916,9 @@ Result SemaHelpers::checkBinaryOperandTypes(Sema& sema, AstNodeRef nodeRef, Toke
                     break;
             }
 
-            if (!leftView.type()->isIntLike())
+            if (!aliasType(sema, leftView).isIntLike())
                 return SemaError::raiseBinaryOperandType(sema, nodeRef, leftRef, leftView.typeRef(), rightView.typeRef());
-            if (!rightView.type()->isIntLike())
+            if (!aliasType(sema, rightView).isIntLike())
                 return SemaError::raiseBinaryOperandType(sema, nodeRef, rightRef, leftView.typeRef(), rightView.typeRef());
             break;
 
@@ -939,12 +939,13 @@ Result SemaHelpers::castBinaryRightToLeft(Sema& sema, TokenId op, AstNodeRef nod
         {
             const TypeInfo& leftType  = aliasEnumType(sema, leftView);
             const TypeInfo& rightType = aliasEnumType(sema, rightView);
-            if (leftType.isAnyPointer() && rightView.type()->isScalarNumeric())
+            if (leftType.isAnyPointer() && aliasType(sema, rightView).isIntLike())
             {
-                SWC_RESULT(Cast::cast(sema, rightView, sema.typeMgr().typeS64(), CastKind::Implicit));
+                if (rightView.type()->isScalarNumeric())
+                    SWC_RESULT(Cast::cast(sema, rightView, sema.typeMgr().typeS64(), CastKind::Implicit));
                 return Result::Continue;
             }
-            if (leftView.type()->isScalarNumeric() && rightType.isAnyPointer())
+            if (aliasType(sema, leftView).isIntLike() && rightType.isAnyPointer())
             {
                 return Result::Continue;
             }

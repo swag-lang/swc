@@ -17,6 +17,12 @@ alias CompareStrictS32Ptr = [*] s32
 #[Swag.Strict]
 alias CompareOtherStrictS32Ptr = [*] s32
 
+#[Swag.Strict]
+alias CompareStrictS32 = s32
+
+#[Swag.Strict]
+alias CompareStrictF32 = f32
+
 var CompareCounter: s32
 
 func touch(flag: bool, delta: s32)->bool
@@ -216,4 +222,56 @@ func matchReferenceValue(value: const &s32)->bool
     @assert((strict0 <=> strict1) == -1)
     @assert((strict1 <=> strict0) == 1)
     @assert((strict0 <=> other0) == 0)
+}
+
+func compareStrictIntLess(a, b: CompareStrictS32)->bool
+{
+    return a < b
+}
+
+func compareStrictFloatSpaceship(a, b: CompareStrictF32)->s32
+{
+    return a <=> b
+}
+
+#test
+{
+    let i0 = cast(CompareStrictS32) 10
+    let i1 = cast(CompareStrictS32) 20
+    let f0 = cast(CompareStrictF32) 1.5
+    let f1 = cast(CompareStrictF32) 2.5
+
+    @assert(i0 == cast(CompareStrictS32) 10)
+    @assert(i0 != i1)
+    @assert(i0 < i1)
+    @assert(i0 <= i0)
+    @assert(i1 > i0)
+    @assert(i1 >= i0)
+    @assert((i0 <=> i1) == -1)
+    @assert((i1 <=> i0) == 1)
+    @assert((i0 <=> i0) == 0)
+    @assert(compareStrictIntLess(i0, i1))
+
+    @assert(f0 < f1)
+    @assert(f0 <= f0)
+    @assert(f1 > f0)
+    @assert(f1 >= f0)
+    @assert((f0 <=> f1) == -1)
+    @assert(compareStrictFloatSpaceship(f1, f0) == 1)
+}
+
+#test
+{
+    const i0 = cast(CompareStrictS32) 10
+    const i1 = cast(CompareStrictS32) 20
+    const f0 = cast(CompareStrictF32) 1.5
+    const f1 = cast(CompareStrictF32) 2.5
+
+    #assert(i0 < i1)
+    #assert(i0 <= i0)
+    #assert(i1 > i0)
+    #assert(i1 >= i0)
+    #assert((i0 <=> i1) == -1)
+    #assert(f0 < f1)
+    #assert((f1 <=> f0) == 1)
 }

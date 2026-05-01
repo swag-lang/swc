@@ -238,6 +238,12 @@ namespace
         return sema.typeMgr().get(typeRef);
     }
 
+    bool hasAliasOperand(const SemaNodeView& nodeLeftView, const SemaNodeView& nodeRightView)
+    {
+        return (nodeLeftView.type() && nodeLeftView.type()->isAlias()) ||
+               (nodeRightView.type() && nodeRightView.type()->isAlias());
+    }
+
     const SymbolStruct* specialOpOwnerStruct(Sema& sema, const SemaNodeView& view)
     {
         if (!view.type())
@@ -342,7 +348,8 @@ namespace
 
         ConstantRef leftCstRef  = compareLeftView.cstRef();
         ConstantRef rightCstRef = compareRightView.cstRef();
-        SWC_RESULT(Cast::promoteConstants(sema, compareLeftView, compareRightView, leftCstRef, rightCstRef));
+        if (!hasAliasOperand(compareLeftView, compareRightView))
+            SWC_RESULT(Cast::promoteConstants(sema, compareLeftView, compareRightView, leftCstRef, rightCstRef));
 
         // For float, we need to compare by values, because two different constants
         // can still have the same value. For example, 0.0 and -0.0 are two different
@@ -380,7 +387,8 @@ namespace
 
         ConstantRef leftCstRef  = compareLeftView.cstRef();
         ConstantRef rightCstRef = compareRightView.cstRef();
-        SWC_RESULT(Cast::promoteConstants(sema, compareLeftView, compareRightView, leftCstRef, rightCstRef));
+        if (!hasAliasOperand(compareLeftView, compareRightView))
+            SWC_RESULT(Cast::promoteConstants(sema, compareLeftView, compareRightView, leftCstRef, rightCstRef));
 
         const ConstantValue& leftCst  = sema.cstMgr().get(leftCstRef);
         const ConstantValue& rightCst = sema.cstMgr().get(rightCstRef);
@@ -433,7 +441,8 @@ namespace
 
         ConstantRef leftCstRef  = compareLeftView.cstRef();
         ConstantRef rightCstRef = compareRightView.cstRef();
-        SWC_RESULT(Cast::promoteConstants(sema, compareLeftView, compareRightView, leftCstRef, rightCstRef));
+        if (!hasAliasOperand(compareLeftView, compareRightView))
+            SWC_RESULT(Cast::promoteConstants(sema, compareLeftView, compareRightView, leftCstRef, rightCstRef));
         const ConstantValue& left  = sema.cstMgr().get(leftCstRef);
         const ConstantValue& right = sema.cstMgr().get(rightCstRef);
 
@@ -491,7 +500,7 @@ namespace
         const TypeInfo&     compareRightType = aliasEnumType(sema, compareRightView);
         if (compareLeftView.typeRef() == compareRightView.typeRef())
             return Result::Continue;
-        if (compareLeftView.type()->isScalarNumeric() && compareRightView.type()->isScalarNumeric())
+        if (aliasType(sema, compareLeftView).isScalarNumeric() && aliasType(sema, compareRightView).isScalarNumeric())
             return Result::Continue;
         if (compareLeftView.type()->isType() && compareRightView.type()->isType())
             return Result::Continue;
@@ -521,7 +530,7 @@ namespace
         const SemaNodeView compareRightView = scalarReadView(sema, nodeRightView);
         const TypeInfo&     compareLeftType  = aliasEnumType(sema, compareLeftView);
         const TypeInfo&     compareRightType = aliasEnumType(sema, compareRightView);
-        if (compareLeftView.type()->isScalarNumeric() && compareRightView.type()->isScalarNumeric())
+        if (aliasType(sema, compareLeftView).isScalarNumeric() && aliasType(sema, compareRightView).isScalarNumeric())
             return Result::Continue;
         if (compareLeftType.isAnyPointer() && compareRightType.isAnyPointer())
             return Result::Continue;

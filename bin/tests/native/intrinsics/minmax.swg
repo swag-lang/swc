@@ -64,6 +64,33 @@ func minF64(a: f64, b: f64)->f64 => @min(a, b)
 #[Swag.NoInline]
 func maxF64(a: f64, b: f64)->f64 => @max(a, b)
 
+#[Swag.Strict]
+alias MinMaxStrictS32 = s32
+
+#[Swag.Strict]
+alias MinMaxStrictU32 = u32
+
+#[Swag.Strict]
+alias MinMaxStrictF32 = f32
+
+#[Swag.NoInline]
+func minStrictS32(a: MinMaxStrictS32, b: MinMaxStrictS32)->MinMaxStrictS32 => @min(a, b)
+
+#[Swag.NoInline]
+func maxStrictS32(a: MinMaxStrictS32, b: MinMaxStrictS32)->MinMaxStrictS32 => @max(a, b)
+
+#[Swag.NoInline]
+func minStrictU32(a: MinMaxStrictU32, b: MinMaxStrictU32)->MinMaxStrictU32 => @min(a, b)
+
+#[Swag.NoInline]
+func maxStrictU32(a: MinMaxStrictU32, b: MinMaxStrictU32)->MinMaxStrictU32 => @max(a, b)
+
+#[Swag.NoInline]
+func minStrictF32(a: MinMaxStrictF32, b: MinMaxStrictF32)->MinMaxStrictF32 => @min(a, b)
+
+#[Swag.NoInline]
+func maxStrictF32(a: MinMaxStrictF32, b: MinMaxStrictF32)->MinMaxStrictF32 => @max(a, b)
+
 // ============================================================
 // Compile-time — signed integers
 // ============================================================
@@ -260,4 +287,47 @@ func maxF64(a: f64, b: f64)->f64 => @max(a, b)
     @assert(maxU64(100'u64, 200'u64) == maxU64(200'u64, 100'u64))
     @assert(minF64(1.5'f64, 2.5'f64) == minF64(2.5'f64, 1.5'f64))
     @assert(maxF32(1.0'f32, 9.0'f32) == maxF32(9.0'f32, 1.0'f32))
+}
+
+// Strict aliases
+#test
+{
+    const a = @min(cast(MinMaxStrictS32) -5, cast(MinMaxStrictS32) 3)
+    const b = @max(cast(MinMaxStrictS32) -5, cast(MinMaxStrictS32) 3)
+    const c = @min(cast(MinMaxStrictU32) 10, cast(MinMaxStrictU32) 4)
+    const d = @max(cast(MinMaxStrictF32) 1.5'f32, cast(MinMaxStrictF32) 2.5'f32)
+
+    #assert(#typeof(a) == MinMaxStrictS32)
+    #assert(#typeof(b) == MinMaxStrictS32)
+    #assert(#typeof(c) == MinMaxStrictU32)
+    #assert(#typeof(d) == MinMaxStrictF32)
+
+    @assert(a == cast(MinMaxStrictS32) -5)
+    @assert(b == cast(MinMaxStrictS32) 3)
+    @assert(c == cast(MinMaxStrictU32) 4)
+    @assert(d == cast(MinMaxStrictF32) 2.5'f32)
+}
+
+#test
+{
+    let si = minStrictS32(cast(MinMaxStrictS32) 7, cast(MinMaxStrictS32) -2)
+    let sx = maxStrictS32(cast(MinMaxStrictS32) 7, cast(MinMaxStrictS32) -2)
+    let ui = minStrictU32(cast(MinMaxStrictU32) 9, cast(MinMaxStrictU32) 11)
+    let ux = maxStrictU32(cast(MinMaxStrictU32) 9, cast(MinMaxStrictU32) 11)
+    let fi = minStrictF32(cast(MinMaxStrictF32) 4.5'f32, cast(MinMaxStrictF32) 2.25'f32)
+    let fx = maxStrictF32(cast(MinMaxStrictF32) 4.5'f32, cast(MinMaxStrictF32) 2.25'f32)
+
+    #assert(#typeof(si) == MinMaxStrictS32)
+    #assert(#typeof(sx) == MinMaxStrictS32)
+    #assert(#typeof(ui) == MinMaxStrictU32)
+    #assert(#typeof(ux) == MinMaxStrictU32)
+    #assert(#typeof(fi) == MinMaxStrictF32)
+    #assert(#typeof(fx) == MinMaxStrictF32)
+
+    @assert(si == cast(MinMaxStrictS32) -2)
+    @assert(sx == cast(MinMaxStrictS32) 7)
+    @assert(ui == cast(MinMaxStrictU32) 9)
+    @assert(ux == cast(MinMaxStrictU32) 11)
+    @assert(fi == cast(MinMaxStrictF32) 2.25'f32)
+    @assert(fx == cast(MinMaxStrictF32) 4.5'f32)
 }

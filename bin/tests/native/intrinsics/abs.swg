@@ -18,6 +18,18 @@ func absF32(value: f32)->f32 => @abs(value)
 #[Swag.NoInline]
 func absF64(value: f64)->f64 => @abs(value)
 
+#[Swag.Strict]
+alias AbsStrictS32 = s32
+
+#[Swag.Strict]
+alias AbsStrictF32 = f32
+
+#[Swag.NoInline]
+func absStrictS32(value: AbsStrictS32)->AbsStrictS32 => @abs(value)
+
+#[Swag.NoInline]
+func absStrictF32(value: AbsStrictF32)->AbsStrictF32 => @abs(value)
+
 // Compile-time — integers
 #test
 {
@@ -122,4 +134,29 @@ func absF64(value: f64)->f64 => @abs(value)
     @assert(absF64(9.25'f64) == 9.25'f64)
     @assert(absF64(-0.0001'f64) == 0.0001'f64)
     @assert(absF64(4.25'f64) == 4.25'f64)
+}
+
+// Strict aliases
+#test
+{
+    const a = @abs(cast(AbsStrictS32) -42)
+    const b = @abs(cast(AbsStrictF32) -1.5'f32)
+
+    #assert(#typeof(a) == AbsStrictS32)
+    #assert(#typeof(b) == AbsStrictF32)
+
+    @assert(a == cast(AbsStrictS32) 42)
+    @assert(b == cast(AbsStrictF32) 1.5'f32)
+}
+
+#test
+{
+    let a = absStrictS32(cast(AbsStrictS32) -123)
+    let b = absStrictF32(cast(AbsStrictF32) -2.25'f32)
+
+    #assert(#typeof(a) == AbsStrictS32)
+    #assert(#typeof(b) == AbsStrictF32)
+
+    @assert(a == cast(AbsStrictS32) 123)
+    @assert(b == cast(AbsStrictF32) 2.25'f32)
 }

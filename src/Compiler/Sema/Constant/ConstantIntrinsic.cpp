@@ -14,6 +14,19 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    TypeRef constantFoldStorageTypeRef(Sema& sema, TypeRef typeRef)
+    {
+        if (!typeRef.isValid())
+            return TypeRef::invalid();
+
+        const TypeInfo& typeInfo = sema.typeMgr().get(typeRef);
+        if (!typeInfo.isAlias() && !typeInfo.isEnum())
+            return typeRef;
+
+        const TypeRef storageTypeRef = typeInfo.unwrapAliasEnum(sema.ctx(), typeRef);
+        return storageTypeRef.isValid() ? storageTypeRef : typeRef;
+    }
+
     void setDataOfPointerConstant(Sema& sema, TypeRef resultTypeRef, uint64_t ptrValue)
     {
         TaskContext&    ctx        = sema.ctx();
@@ -55,7 +68,12 @@ namespace
         const SemaNodeView argView(sema, argRef, SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
         if (!argView.cstRef().isValid())
             return false;
-        if (!argView.type() || !argView.type()->isFloat())
+        if (!argView.type())
+            return false;
+
+        const TypeRef   storageTypeRef = constantFoldStorageTypeRef(sema, argView.typeRef());
+        const TypeInfo& storageType    = sema.typeMgr().get(storageTypeRef);
+        if (!storageType.isFloat())
             return false;
         out = sema.cstMgr().get(argView.cstRef()).getFloat().asDouble();
         return true;
@@ -68,15 +86,27 @@ namespace
 
         const TypeRef  resultTypeRef = sema.viewType(callRef).typeRef();
         const TypeInfo resultTy      = sema.typeMgr().get(resultTypeRef);
-        if (!resultTy.isFloat())
+        const TypeRef  storageTypeRef = constantFoldStorageTypeRef(sema, resultTypeRef);
+        const TypeInfo storageTy      = sema.typeMgr().get(storageTypeRef);
+        if (!storageTy.isFloat())
             return Result::Continue;
 
         const ApFloat af(value);
         ConstantValue cv;
-        if (resultTy.isFloatUnsized())
+        if (storageTy.isFloatUnsized())
+        {
             cv = ConstantValue::makeFloatUnsized(sema.ctx(), af);
+        }
         else
-            cv = ConstantValue::makeFloat(sema.ctx(), af, resultTy.payloadFloatBits());
+        {
+            const uint32_t bitWidth = storageTy.payloadFloatBits();
+            bool           exact    = false;
+            bool           overflow = false;
+            const ApFloat  typedAf  = af.toFloat(bitWidth, exact, overflow);
+            if (overflow)
+                return Result::Continue;
+            cv = ConstantValue::makeFloat(sema.ctx(), typedAf, bitWidth);
+        }
         cv.setTypeRef(resultTypeRef);
         const ConstantRef cstRef = sema.cstMgr().addConstant(sema.ctx(), cv);
         sema.setConstant(callRef, cstRef);
@@ -98,16 +128,21 @@ namespace
         const SemaNodeView argView(sema, argRef, SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
         if (!argView.cstRef().isValid())
             return false;
-        if (!argView.type() || !argView.type()->isIntLike())
+        if (!argView.type())
             return false;
-        const uint32_t bits = argView.type()->payloadIntLikeBits();
+
+        const TypeRef   storageTypeRef = constantFoldStorageTypeRef(sema, argView.typeRef());
+        const TypeInfo& storageType    = sema.typeMgr().get(storageTypeRef);
+        if (!storageType.isIntLike())
+            return false;
+        const uint32_t bits = storageType.payloadIntLikeBits();
         if (bits == 0)
             return false;
         const ConstantValue& cst = sema.cstMgr().get(argView.cstRef());
         const ApsInt         v   = cst.getIntLike();
         outValue                 = v.as64();
         outBitWidth              = bits;
-        outUnsigned              = argView.type()->isIntLikeUnsigned();
+        outUnsigned              = storageType.isIntLikeUnsigned();
         return true;
     }
 
@@ -115,11 +150,14 @@ namespace
     {
         const TypeRef   resultTypeRef = sema.viewType(callRef).typeRef();
         const TypeInfo& resultTy      = sema.typeMgr().get(resultTypeRef);
-        if (!resultTy.isIntLike())
+        const TypeRef   storageTypeRef = constantFoldStorageTypeRef(sema, resultTypeRef);
+        const TypeInfo& storageTy      = sema.typeMgr().get(storageTypeRef);
+        if (!storageTy.isIntLike())
             return Result::Continue;
 
         const ApsInt        apsResult(std::bit_cast<int64_t>(value), bitWidth, isUnsigned);
-        const ConstantValue cv     = ConstantValue::makeFromIntLike(sema.ctx(), apsResult, resultTy);
+        ConstantValue       cv     = ConstantValue::makeFromIntLike(sema.ctx(), apsResult, storageTy);
+        cv.setTypeRef(resultTypeRef);
         const ConstantRef   cstRef = sema.cstMgr().addConstant(sema.ctx(), cv);
         sema.setConstant(callRef, cstRef);
         return Result::Continue;
@@ -285,7 +323,8 @@ Result ConstantIntrinsic::tryConstantFoldCall(Sema& sema, const SymbolFunction& 
 
             auto aCstRef = aView.cstRef();
             auto bCstRef = bView.cstRef();
-            SWC_RESULT(Cast::promoteConstants(sema, aView, bView, aCstRef, bCstRef));
+            if (!aView.type()->isAlias() && !bView.type()->isAlias())
+                SWC_RESULT(Cast::promoteConstants(sema, aView, bView, aCstRef, bCstRef));
 
             const ConstantValue& aCst  = sema.cstMgr().get(aCstRef);
             const ConstantValue& bCst  = sema.cstMgr().get(bCstRef);
@@ -317,16 +356,18 @@ Result ConstantIntrinsic::tryConstantFoldCall(Sema& sema, const SymbolFunction& 
             // Integer abs
             {
                 const SemaNodeView argView(sema, args[0], SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
-                if (argView.cstRef().isValid() && argView.type() && argView.type()->isIntLike())
+                if (argView.cstRef().isValid() && argView.type())
                 {
-                    const uint32_t bits = argView.type()->payloadIntLikeBits();
+                    const TypeRef   storageTypeRef = constantFoldStorageTypeRef(sema, argView.typeRef());
+                    const TypeInfo& storageType    = sema.typeMgr().get(storageTypeRef);
+                    const uint32_t  bits           = storageType.isIntLike() ? storageType.payloadIntLikeBits() : 0;
                     if (bits > 0)
                     {
                         const ConstantValue& cst      = sema.cstMgr().get(argView.cstRef());
                         ApsInt               v        = cst.getIntLike();
                         bool                 overflow = false;
                         v.abs(overflow);
-                        return makeIntResult(sema, sema.curNodeRef(), v.as64(), bits, argView.type()->isIntLikeUnsigned());
+                        return makeIntResult(sema, sema.curNodeRef(), v.as64(), bits, storageType.isIntLikeUnsigned());
                     }
                 }
             }

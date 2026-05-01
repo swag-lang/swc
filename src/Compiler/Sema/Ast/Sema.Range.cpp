@@ -8,6 +8,16 @@
 
 SWC_BEGIN_NAMESPACE();
 
+namespace
+{
+    const TypeInfo& aliasType(Sema& sema, const SemaNodeView& view)
+    {
+        const TypeRef typeRef = sema.typeMgr().get(view.typeRef()).unwrap(sema.ctx(), view.typeRef(), TypeExpandE::Alias);
+        SWC_ASSERT(typeRef.isValid());
+        return sema.typeMgr().get(typeRef);
+    }
+}
+
 Result AstRangeExpr::semaPostNode(Sema& sema)
 {
     SemaNodeView nodeDownView = sema.viewNodeTypeConstant(nodeExprDownRef);
@@ -24,13 +34,13 @@ Result AstRangeExpr::semaPostNode(Sema& sema)
 
     if (nodeDownView.typeRef().isValid())
     {
-        if (!nodeDownView.type()->isScalarNumeric())
+        if (!aliasType(sema, nodeDownView).isScalarNumeric())
             return SemaError::raiseInvalidRangeType(sema, nodeExprDownRef, nodeDownView.typeRef());
         typeRef = nodeDownView.typeRef();
     }
     else if (nodeUpView.typeRef().isValid())
     {
-        if (!nodeUpView.type()->isScalarNumeric())
+        if (!aliasType(sema, nodeUpView).isScalarNumeric())
             return SemaError::raiseInvalidRangeType(sema, nodeExprUpRef, nodeUpView.typeRef());
         typeRef = nodeUpView.typeRef();
     }

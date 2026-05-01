@@ -1109,6 +1109,8 @@ bool TypeInfo::isAnyTypeInfo(const TaskContext& ctx) const noexcept
 {
     if (isTypeInfo())
         return true;
+    if (isAlias())
+        return ctx.typeMgr().get(payloadSymAlias().underlyingTypeRef()).isAnyTypeInfo(ctx);
     if (!isConst())
         return false;
     if (!isValuePointer())

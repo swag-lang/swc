@@ -79,27 +79,68 @@ namespace
             *payload = {};
     }
 
+    TypeRef loopCompareTypeRef(CodeGen& codeGen, TypeRef typeRef)
+    {
+        const TypeRef unwrappedTypeRef = codeGen.typeMgr().unwrapAliasEnum(codeGen.ctx(), typeRef);
+        if (unwrappedTypeRef.isValid())
+            return unwrappedTypeRef;
+        return typeRef;
+    }
+
+    MicroOpBits loopOperationBits(CodeGen& codeGen, TypeRef typeRef)
+    {
+        const TypeRef   compareTypeRef = loopCompareTypeRef(codeGen, typeRef);
+        const TypeInfo& compareType    = codeGen.typeMgr().get(compareTypeRef);
+        if (compareType.isInt())
+            return MicroOpBits::B64;
+        return CodeGenTypeHelpers::conditionBits(compareType, codeGen.ctx());
+    }
+
     MicroReg materializeLoopValueReg(CodeGen& codeGen, const CodeGenNodePayload& payload, TypeRef typeRef)
     {
-        const TypeInfo&   typeInfo = codeGen.typeMgr().get(typeRef);
-        const MicroOpBits opBits   = CodeGenTypeHelpers::conditionBits(typeInfo, codeGen.ctx());
-        const MicroReg    outReg   = codeGen.nextVirtualIntRegister();
-        MicroBuilder&     builder  = codeGen.builder();
+        const TypeRef     compareTypeRef = loopCompareTypeRef(codeGen, typeRef);
+        const TypeInfo&   compareType    = codeGen.typeMgr().get(compareTypeRef);
+        const MicroOpBits valueBits      = CodeGenTypeHelpers::conditionBits(compareType, codeGen.ctx());
+        const MicroReg    outReg         = codeGen.nextVirtualIntRegister();
+        MicroBuilder&     builder        = codeGen.builder();
 
         if (payload.isAddress())
-            builder.emitLoadRegMem(outReg, payload.reg, 0, opBits);
+        {
+            if (compareType.isInt() && valueBits != MicroOpBits::B64)
+            {
+                if (compareType.isIntSigned())
+                    builder.emitLoadSignedExtendRegMem(outReg, payload.reg, 0, MicroOpBits::B64, valueBits);
+                else
+                    builder.emitLoadZeroExtendRegMem(outReg, payload.reg, 0, MicroOpBits::B64, valueBits);
+            }
+            else
+            {
+                builder.emitLoadRegMem(outReg, payload.reg, 0, valueBits);
+            }
+        }
         else
-            builder.emitLoadRegReg(outReg, payload.reg, opBits);
+        {
+            if (compareType.isInt() && valueBits != MicroOpBits::B64)
+            {
+                if (compareType.isIntSigned())
+                    builder.emitLoadSignedExtendRegReg(outReg, payload.reg, MicroOpBits::B64, valueBits);
+                else
+                    builder.emitLoadZeroExtendRegReg(outReg, payload.reg, MicroOpBits::B64, valueBits);
+            }
+            else
+            {
+                builder.emitLoadRegReg(outReg, payload.reg, valueBits);
+            }
+        }
 
         return outReg;
     }
 
     MicroReg materializeLoopZeroReg(CodeGen& codeGen, TypeRef typeRef)
     {
-        const TypeInfo&   typeInfo = codeGen.typeMgr().get(typeRef);
-        const MicroOpBits opBits   = CodeGenTypeHelpers::conditionBits(typeInfo, codeGen.ctx());
-        const MicroReg    outReg   = codeGen.nextVirtualIntRegister();
-        MicroBuilder&     builder  = codeGen.builder();
+        const MicroOpBits opBits  = loopOperationBits(codeGen, typeRef);
+        const MicroReg    outReg  = codeGen.nextVirtualIntRegister();
+        MicroBuilder&     builder = codeGen.builder();
         builder.emitLoadRegImm(outReg, ApInt(0, 64), opBits);
         return outReg;
     }
@@ -107,8 +148,7 @@ namespace
     MicroReg materializeLoopConstantReg(CodeGen& codeGen, ConstantRef cstRef, TypeRef typeRef)
     {
         const ConstantValue& cst      = codeGen.cstMgr().get(cstRef);
-        const TypeInfo&      typeInfo = codeGen.typeMgr().get(typeRef);
-        const MicroOpBits    opBits   = CodeGenTypeHelpers::conditionBits(typeInfo, codeGen.ctx());
+        const MicroOpBits    opBits   = loopOperationBits(codeGen, typeRef);
         const MicroReg       outReg   = codeGen.nextVirtualIntRegister();
         SWC_ASSERT(cst.isInt());
         SWC_ASSERT(cst.getInt().fits64());
@@ -281,13 +321,14 @@ namespace
                 SWC_RESULT(materializeLoopCountOfReg(upperReg, codeGen, exprRef, loopState.indexTypeRef));
         }
 
-        const TypeInfo&   indexType = codeGen.typeMgr().get(loopState.indexTypeRef);
-        const MicroOpBits opBits    = CodeGenTypeHelpers::conditionBits(indexType, codeGen.ctx());
-        loopState.unsignedCmp       = indexType.isIntUnsigned();
+        const TypeRef     compareTypeRef = loopCompareTypeRef(codeGen, loopState.indexTypeRef);
+        const TypeInfo&   compareType    = codeGen.typeMgr().get(compareTypeRef);
+        const MicroOpBits opBits         = loopOperationBits(codeGen, loopState.indexTypeRef);
+        loopState.unsignedCmp            = compareType.isIntUnsigned();
         loopState.indexReg          = codeGen.nextVirtualIntRegister();
 
         const bool loopBoundCheckInclusive = semaPayload->isRangeLoop ? loopState.inclusive : true;
-        SWC_RESULT(CodeGenSafety::emitLoopBoundCheck(codeGen, exprRef, lowerReg, upperReg, indexType, loopBoundCheckInclusive));
+        SWC_RESULT(CodeGenSafety::emitLoopBoundCheck(codeGen, exprRef, lowerReg, upperReg, compareType, loopBoundCheckInclusive));
 
         if (loopState.reverse)
         {
@@ -565,8 +606,7 @@ Result AstForStmt::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& chil
             return Result::Continue;
         }
 
-        const TypeInfo&   indexType = codeGen.typeMgr().get(loopState->indexTypeRef);
-        const MicroOpBits opBits    = CodeGenTypeHelpers::conditionBits(indexType, codeGen.ctx());
+        const MicroOpBits opBits = loopOperationBits(codeGen, loopState->indexTypeRef);
         MicroBuilder&     builder   = codeGen.builder();
         builder.setCurrentDebugSourceCodeRef(codeGen.node(codeGen.curNodeRef()).codeRef());
         builder.setCurrentDebugNoStep(false);

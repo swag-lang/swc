@@ -6,6 +6,8 @@ struct TypedVariadicPair
     b: s32
 }
 
+alias TypedVariadicAlias = s32
+
 #[Swag.Strict]
 alias TypedVariadicStrictF32 = f32
 
@@ -62,6 +64,32 @@ func variadicTypedForward(values: s32...)->s32
     return variadicTypedForwardInner(values)
 }
 
+func variadicTypedAliasForwardInner(values: s32...)->s32
+{
+    var acc: s32 = 0
+    foreach value in values do
+        acc += value
+    return acc
+}
+
+func variadicTypedAliasForward(values: TypedVariadicAlias...)->s32
+{
+    return variadicTypedAliasForwardInner(values)
+}
+
+func variadicTypedAliasInner(values: TypedVariadicAlias...)->s32
+{
+    var acc: s32 = 0
+    foreach value in values do
+        acc += value
+    return acc
+}
+
+func variadicTypedBaseForwardToAlias(values: s32...)->s32
+{
+    return variadicTypedAliasInner(values)
+}
+
 func variadicTypedPairForwardInner(values: TypedVariadicPair...)->s32
 {
     return values[0].a + values[0].b + values[1].a + values[1].b
@@ -106,5 +134,7 @@ func variadicTypedStrictF32(values: TypedVariadicStrictF32...)->f32
     const p0: TypedVariadicPair = {a: 2, b: 3}
     const p1: TypedVariadicPair = {a: 5, b: 7}
     @assert(variadicTypedForward(10, 20, 30) == 60)
+    @assert(variadicTypedAliasForward(10, 20, 30) == 60)
+    @assert(variadicTypedBaseForwardToAlias(10, 20, 30) == 60)
     @assert(variadicTypedPairForward(p0, p1) == 17)
 }

@@ -1,11 +1,30 @@
 #global fileprivate
 
+#[Swag.Strict]
+alias QualifiedStrictPtr = *s32
+
+#[Swag.Strict]
+alias QualifiedStrictSlice = [..] s32
+
+#[Swag.Strict]
+alias QualifiedStrictString = string
+
+#[Swag.Strict]
+alias QualifiedStrictCString = cstring
+
+#[Swag.Strict]
+alias QualifiedStrictTypeInfo = typeinfo
+
 var D0: const *s32
 var D1: const [..] s32
 var D2: const [*] s32
 var D3: const [2] s32
+var D4: const QualifiedStrictPtr
+var D5: const QualifiedStrictSlice
 
 #assert(#typeof(D3) == const [2] s32)
+#assert(#typeof(D4) == const *s32)
+#assert(#typeof(D5) == const [..] s32)
 
 var E0: #null *s32
 var E1: #null [..] s32
@@ -14,8 +33,18 @@ var E3: #null any
 var E4: #null string
 var E5: #null cstring
 var E6: #null typeinfo = null
+var E7: #null QualifiedStrictPtr
+var E8: #null QualifiedStrictSlice
+var E9: #null QualifiedStrictString
+var E10: #null QualifiedStrictCString
+var E11: #null QualifiedStrictTypeInfo = null
 
 #assert(#typeof(E6) == #null typeinfo)
+#assert(#typeof(E7) == #null *s32)
+#assert(#typeof(E8) == #null [..] s32)
+#assert(#typeof(E9) == #null string)
+#assert(#typeof(E10) == #null cstring)
+#assert(#typeof(E11) == #null typeinfo)
 
 func widenNullablePointer(value: *s32)->#null *s32 => value
 func widenNullableString(value: string)->#null string => value
@@ -36,12 +65,14 @@ func acceptNullableTypeInfo(value: #null typeinfo) {}
     var storage: s32 = 7
     let ptr: *s32 = &storage
     let nullablePtr: #null *s32 = ptr
+    let nullableStrictPtr: #null QualifiedStrictPtr = cast(QualifiedStrictPtr) ptr
     let widenedPtr: #null *s32 = widenNullablePointer(ptr)
     acceptNullablePointer(ptr)
     acceptNullablePointer(widenedPtr)
 
     let text: string = "abc"
     let nullableText: #null string = text
+    let nullableStrictText: #null QualifiedStrictString = cast(QualifiedStrictString) text
     let widenedText: #null string = widenNullableString(text)
     acceptNullableString(text)
     acceptNullableString(widenedText)
@@ -49,6 +80,7 @@ func acceptNullableTypeInfo(value: #null typeinfo) {}
     let values: [3] s32 = [1, 2, 3]
     let slice: [..] s32 = values
     let nullableSlice: #null [..] s32 = slice
+    let nullableStrictSlice: #null QualifiedStrictSlice = cast(QualifiedStrictSlice) slice
     let widenedSlice: #null [..] s32 = widenNullableSlice(slice)
     acceptNullableSlice(slice)
     acceptNullableSlice(widenedSlice)
@@ -61,24 +93,31 @@ func acceptNullableTypeInfo(value: #null typeinfo) {}
 
     let cstr: cstring = cast(cstring) @dataof("abc")
     let nullableCstr: #null cstring = cstr
+    let nullableStrictCstr: #null QualifiedStrictCString = cast(QualifiedStrictCString) cstr
     let widenedCstr: #null cstring = widenNullableCString(cstr)
     acceptNullableCString(cstr)
     acceptNullableCString(widenedCstr)
 
     let info: typeinfo = s32
     let nullableInfo: #null typeinfo = info
+    let nullableStrictInfo: #null QualifiedStrictTypeInfo = cast(QualifiedStrictTypeInfo) info
     let widenedInfo: #null typeinfo = widenNullableTypeInfo(info)
     acceptNullableTypeInfo(info)
     acceptNullableTypeInfo(widenedInfo)
 
     @assert(nullablePtr == ptr)
+    @assert(nullableStrictPtr == ptr)
     @assert(nullableText != null)
+    @assert(nullableStrictText != null)
     @assert(@countof(nullableText) == @countof(text))
     @assert(@countof(nullableSlice) == 3)
+    @assert(@countof(nullableStrictSlice) == 3)
     @assert(nullableAny != null)
     @assert(nullableCstr != null)
+    @assert(nullableStrictCstr != null)
     @assert(@countof(nullableCstr) == 3)
     @assert(nullableInfo == s32)
+    @assert(nullableStrictInfo == s32)
 }
 
 namespace NS {}

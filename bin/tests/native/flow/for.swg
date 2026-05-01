@@ -3,6 +3,9 @@
 #[Swag.Strict]
 alias ForStrictS32 = s32
 
+#[Swag.Strict]
+alias ForStrictU8 = u8
+
 struct CountedLoop
 {
     count: u64
@@ -20,6 +23,11 @@ impl CountedLoop
 impl FixedCountedLoop
 {
     mtd opCount() => 4'u64
+}
+
+func forStrictU8RefValue(value: const &ForStrictU8)->ForStrictU8
+{
+    return dref value
 }
 
 #test
@@ -127,6 +135,48 @@ impl FixedCountedLoop
         sum += cast(s32) i
     }
     @assert(sum == 15)
+}
+
+#test
+{
+    var count = 0
+    var sum = 0
+    for i in cast(ForStrictU8) 0 to cast(ForStrictU8) 255
+    {
+        #assert(#typeof(i) == ForStrictU8)
+        count += 1
+        sum += cast(s32) i
+    }
+    @assert(count == 256)
+    @assert(sum == 32640)
+}
+
+#test
+{
+    var count = 0
+    var sum = 0
+    for i in cast(ForStrictU8) 0 to cast(ForStrictU8) 255
+    {
+        let value = forStrictU8RefValue(i)
+        count += 1
+        sum += cast(s32) value
+    }
+    @assert(count == 256)
+    @assert(sum == 32640)
+}
+
+#test
+{
+    var count = 0
+    var sum = 0
+    for #reverse i in cast(ForStrictU8) 0 to cast(ForStrictU8) 255
+    {
+        let value = forStrictU8RefValue(i)
+        count += 1
+        sum += cast(s32) value
+    }
+    @assert(count == 256)
+    @assert(sum == 32640)
 }
 
 #test

@@ -49,3 +49,29 @@
     let other = ptr + 1
     ptr -= other // swc-expected-error {{sema_err_cannot_cast}}
 }
+
+#[Swag.Strict]
+alias CannotCastOpCastStrictS32 = s32
+
+struct CannotCastOpCastBox
+{
+}
+
+impl CannotCastOpCastBox
+{
+    #[Swag.Implicit]
+    mtd const opCast() -> CannotCastOpCastStrictS32
+    {
+        return cast(CannotCastOpCastStrictS32) 12
+    }
+}
+
+func consumeCannotCastRawS32(value: s32)
+{
+}
+
+#test
+{
+    var box: CannotCastOpCastBox
+    consumeCannotCastRawS32(box) // swc-expected-error {{sema_err_cannot_cast}}
+}

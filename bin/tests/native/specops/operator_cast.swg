@@ -29,6 +29,28 @@ func consumeInt(value: s32) -> s32
     return value
 }
 
+#[Swag.Strict]
+alias OpCastStrictPtr = *s32
+
+struct RuntimePointerCastBox
+{
+    value: s32
+}
+
+impl RuntimePointerCastBox
+{
+    #[Swag.Implicit, Swag.NoInline]
+    mtd const opCast() -> OpCastStrictPtr
+    {
+        return cast(OpCastStrictPtr) &.value
+    }
+}
+
+func consumeNullableStrictPtr(value: #null OpCastStrictPtr) -> s32
+{
+    return dref value
+}
+
 #test
 {
     var value = RuntimeCastBox{value: 41}
@@ -44,4 +66,10 @@ func consumeInt(value: s32) -> s32
     @assert(initialized == 42)
     @assert(value.intCalls == 3)
     @assert(value.boolCalls == 1)
+}
+
+#test
+{
+    var box = RuntimePointerCastBox{value: 99}
+    @assert(consumeNullableStrictPtr(box) == 99)
 }

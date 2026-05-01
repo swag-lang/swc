@@ -1,5 +1,11 @@
 #global fileprivate
 
+#[Swag.Strict]
+alias BitCastStrictU32 = u32
+
+#[Swag.Strict]
+alias BitCastStrictF32 = f32
+
 #assert(cast #bit (u32) 1.0'f32 == 0x3F800000)
 #assert(cast #bit (u32) 0.0'f32 == 0x00000000)
 #assert(cast #bit (u32) -1.0'f32 == 0xBF800000)
@@ -63,6 +69,13 @@
 #assert(cast #bit (u64) (cast #bit (f64) 0x7FF4000000000000'u64) == 0x7FF4000000000000)
 
 #assert(cast #bit (rune) 65'u32 == 'A')
+
+const StrictBits = cast #bit (BitCastStrictU32) cast(BitCastStrictF32) 1.0'f32
+const StrictFloat = cast #bit (BitCastStrictF32) cast(BitCastStrictU32) 0x40000000'u32
+#assert(#typeof(StrictBits) == BitCastStrictU32)
+#assert(#typeof(StrictFloat) == BitCastStrictF32)
+#assert(StrictBits == cast(BitCastStrictU32) 0x3F800000'u32)
+#assert(StrictFloat == cast(BitCastStrictF32) 2.0'f32)
 
 const NaN0    = cast #bit (f32) 0x7F800001
 const Inf0    = cast #bit (f32) 0x7F800000

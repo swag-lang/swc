@@ -271,13 +271,17 @@ namespace
         return calledFn.attributes().hasRtFlag(RtAttributeFlagsE::Implicit);
     }
 
-    bool opCastReturnTypeMatches(const TypeManager& typeMgr, const TypeRef returnTypeRef, const TypeRef dstTypeRef)
+    bool opCastReturnTypeMatches(Sema& sema, TypeRef returnTypeRef, TypeRef dstTypeRef)
     {
         if (returnTypeRef == dstTypeRef)
             return true;
 
         if (!returnTypeRef.isValid() || !dstTypeRef.isValid())
             return false;
+
+        const TypeManager& typeMgr = sema.typeMgr();
+        returnTypeRef             = typeMgr.get(returnTypeRef).unwrap(sema.ctx(), returnTypeRef, TypeExpandE::Alias);
+        dstTypeRef                = typeMgr.get(dstTypeRef).unwrap(sema.ctx(), dstTypeRef, TypeExpandE::Alias);
 
         const TypeInfo& returnType = typeMgr.get(returnTypeRef);
         const TypeInfo& dstType    = typeMgr.get(dstTypeRef);
@@ -312,7 +316,7 @@ namespace
     {
         if (calledFn.parameters().size() != 1)
             return OpCastRank::Bad;
-        if (!opCastReturnTypeMatches(sema.typeMgr(), calledFn.returnTypeRef(), dstTypeRef))
+        if (!opCastReturnTypeMatches(sema, calledFn.returnTypeRef(), dstTypeRef))
             return OpCastRank::Bad;
 
         const TypeRef receiverTypeRef = calledFn.parameters()[0]->typeRef();

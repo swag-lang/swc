@@ -228,7 +228,15 @@ Result CodeGenSafety::emitBoundCheck(CodeGen& codeGen, AstNodeRef indexRef, cons
 
 Result CodeGenSafety::emitLoopBoundCheck(CodeGen& codeGen, AstNodeRef nodeRef, MicroReg lowerReg, MicroReg upperReg, const TypeInfo& indexType, bool inclusive)
 {
-    if (!indexType.isInt())
+    const TypeInfo* compareType = &indexType;
+    if (indexType.isAlias())
+    {
+        const TypeRef compareTypeRef = indexType.unwrapAliasEnum(codeGen.ctx());
+        SWC_ASSERT(compareTypeRef.isValid());
+        compareType = &codeGen.typeMgr().get(compareTypeRef);
+    }
+
+    if (!compareType->isInt())
         return Result::Continue;
 
     nodeRef = codeGen.resolvedNodeRef(nodeRef);
@@ -242,13 +250,13 @@ Result CodeGenSafety::emitLoopBoundCheck(CodeGen& codeGen, AstNodeRef nodeRef, M
     SymbolFunction* panicFunction = runtimeSafetyPanicFunction(codeGen, nodePayload);
     SWC_ASSERT(panicFunction != nullptr);
 
-    const MicroOpBits opBits = CodeGenTypeHelpers::conditionBits(indexType, codeGen.ctx());
+    const MicroOpBits opBits = compareType->isInt() ? MicroOpBits::B64 : CodeGenTypeHelpers::conditionBits(*compareType, codeGen.ctx());
     SWC_ASSERT(opBits != MicroOpBits::Zero);
 
     MicroBuilder&       builder     = codeGen.builder();
     const MicroLabelRef inBoundsRef = builder.createLabel();
     builder.emitCmpRegReg(lowerReg, upperReg, opBits);
-    const auto cpuCond = inclusive ? CodeGenCompareHelpers::lessEqualCond(indexType.isIntUnsigned()) : CodeGenCompareHelpers::lessCond(indexType.isIntUnsigned());
+    const auto cpuCond = inclusive ? CodeGenCompareHelpers::lessEqualCond(compareType->isIntUnsigned()) : CodeGenCompareHelpers::lessCond(compareType->isIntUnsigned());
     builder.emitJumpToLabel(cpuCond, MicroOpBits::B32, inBoundsRef);
     SWC_RESULT(emitRuntimeDiagnosticCall(codeGen, *panicFunction, codeGen.node(nodeRef), DiagnosticId::safety_err_bound_check));
     builder.placeLabel(inBoundsRef);

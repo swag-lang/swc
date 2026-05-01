@@ -73,11 +73,13 @@ namespace
     {
         if (typeView.nodeRef().isValid())
         {
-            if (typeView.type()->isArray() && !typeView.type()->isConst())
+            const TypeRef   storageTypeRef = enumUnderlyingStorageTypeRef(sema, typeView.typeRef());
+            const TypeInfo& storageType    = sema.typeMgr().get(storageTypeRef);
+            if (storageType.isArray() && !storageType.isConst())
             {
                 // Enum values are immutable constants, so array-backed enums must
                 // keep a const underlying type to preserve that property.
-                TypeInfo typeInfo = *typeView.type();
+                TypeInfo typeInfo = storageType;
                 typeInfo.addFlag(TypeInfoFlagsE::Const);
                 typeView.typeRef() = sema.typeMgr().addType(typeInfo);
                 typeView.type()    = &sema.typeMgr().get(typeView.typeRef());

@@ -5,6 +5,9 @@ alias EnumAliasU32 = u32
 #[Swag.Strict]
 alias EnumStrictAliasU16 = u16
 
+#[Swag.Strict]
+alias EnumStrictArrayAlias = [2] s32
+
 enum AA: u32 { A }
 enum BB { A }
 enum AliasBacked: EnumAliasU32 { A = 7 }
@@ -151,6 +154,11 @@ enum ArrayBacked: const [2] s32 {
   B = [10, 20],
 }
 #assert(#typeof(ArrayBacked).rawType == const [2] s32)
+
+enum StrictArrayAliasBacked: EnumStrictArrayAlias {
+  A = cast(EnumStrictArrayAlias) [3, 4],
+}
+#assert(#typeof(StrictArrayAliasBacked).rawType == const [2] s32)
 
 enum SliceBacked: const [..] s32 {
   A = [1, 2],

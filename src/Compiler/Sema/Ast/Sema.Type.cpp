@@ -283,10 +283,13 @@ Result AstQualifiedType::semaPostNode(Sema& sema) const
     const SemaNodeView view = sema.viewType(nodeTypeRef);
     SWC_ASSERT(view.type());
 
+    const TypeRef   qualifiedTypeRef = view.type()->unwrap(sema.ctx(), view.typeRef(), TypeExpandE::Alias);
+    const TypeInfo& qualifiedType    = sema.typeMgr().get(qualifiedTypeRef);
+
     TypeInfoFlags typeFlags = TypeInfoFlagsE::Zero;
     if (this->hasFlag(AstQualifiedTypeFlagsE::Const))
     {
-        switch (view.type()->kind())
+        switch (qualifiedType.kind())
         {
             case TypeInfoKind::Array:
             case TypeInfoKind::ValuePointer:
@@ -309,7 +312,7 @@ Result AstQualifiedType::semaPostNode(Sema& sema) const
 
     if (this->hasFlag(AstQualifiedTypeFlagsE::Nullable))
     {
-        if (!view.type()->supportsNullableQualifier())
+        if (!qualifiedType.supportsNullableQualifier())
         {
             const SourceView& srcView     = sema.compiler().srcView(srcViewRef());
             const TokenRef    constTokRef = srcView.findRightFrom(tokRef(), {TokenId::ModifierNullable});
@@ -324,30 +327,30 @@ Result AstQualifiedType::semaPostNode(Sema& sema) const
 
     TypeRef      typeRef;
     TypeManager& typeMgr = sema.typeMgr();
-    switch (view.type()->kind())
+    switch (qualifiedType.kind())
     {
         case TypeInfoKind::Array:
         {
             SmallVector<uint64_t> dims;
-            for (const auto dim : view.type()->payloadArrayDims())
+            for (const auto dim : qualifiedType.payloadArrayDims())
                 dims.push_back(dim);
-            typeRef = typeMgr.addType(TypeInfo::makeArray(dims, view.type()->payloadArrayElemTypeRef(), typeFlags));
+            typeRef = typeMgr.addType(TypeInfo::makeArray(dims, qualifiedType.payloadArrayElemTypeRef(), typeFlags));
             break;
         }
         case TypeInfoKind::ValuePointer:
-            typeRef = typeMgr.addType(TypeInfo::makeValuePointer(view.type()->payloadTypeRef(), typeFlags));
+            typeRef = typeMgr.addType(TypeInfo::makeValuePointer(qualifiedType.payloadTypeRef(), typeFlags));
             break;
         case TypeInfoKind::BlockPointer:
-            typeRef = typeMgr.addType(TypeInfo::makeBlockPointer(view.type()->payloadTypeRef(), typeFlags));
+            typeRef = typeMgr.addType(TypeInfo::makeBlockPointer(qualifiedType.payloadTypeRef(), typeFlags));
             break;
         case TypeInfoKind::Reference:
-            typeRef = typeMgr.addType(TypeInfo::makeReference(view.type()->payloadTypeRef(), typeFlags));
+            typeRef = typeMgr.addType(TypeInfo::makeReference(qualifiedType.payloadTypeRef(), typeFlags));
             break;
         case TypeInfoKind::MoveReference:
-            typeRef = typeMgr.addType(TypeInfo::makeMoveReference(view.type()->payloadTypeRef(), typeFlags));
+            typeRef = typeMgr.addType(TypeInfo::makeMoveReference(qualifiedType.payloadTypeRef(), typeFlags));
             break;
         case TypeInfoKind::Slice:
-            typeRef = typeMgr.addType(TypeInfo::makeSlice(view.type()->payloadTypeRef(), typeFlags));
+            typeRef = typeMgr.addType(TypeInfo::makeSlice(qualifiedType.payloadTypeRef(), typeFlags));
             break;
         case TypeInfoKind::String:
             typeRef = typeMgr.addType(TypeInfo::makeString(typeFlags));

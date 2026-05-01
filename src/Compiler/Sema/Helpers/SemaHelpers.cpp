@@ -967,6 +967,11 @@ Result SemaHelpers::castBinaryRightToLeft(Sema& sema, TokenId op, AstNodeRef nod
     return Result::Continue;
 }
 
+namespace
+{
+    TypeRef countOfPassthroughTypeRef(TaskContext& ctx, TypeRef typeRef);
+}
+
 Result SemaHelpers::resolveCountOfResult(Sema& sema, CountOfResultInfo& outResult, AstNodeRef exprRef)
 {
     outResult               = {};
@@ -1059,7 +1064,9 @@ Result SemaHelpers::resolveCountOfResult(Sema& sema, CountOfResultInfo& outResul
 
     if (countType.isInt())
     {
-        outResult.typeRef = countTypeRef;
+        outResult.typeRef = countOfPassthroughTypeRef(ctx, view.typeRef());
+        if (!outResult.typeRef.isValid())
+            outResult.typeRef = countTypeRef;
         return Result::Continue;
     }
 
@@ -1134,6 +1141,29 @@ namespace
         }
 
         return typeRef;
+    }
+
+    TypeRef countOfPassthroughTypeRef(TaskContext& ctx, TypeRef typeRef)
+    {
+        while (typeRef.isValid())
+        {
+            const TypeInfo& typeInfo = ctx.typeMgr().get(typeRef);
+            if (typeInfo.isReference())
+            {
+                typeRef = typeInfo.payloadTypeRef();
+                continue;
+            }
+
+            if (!typeInfo.isAlias())
+                return typeRef;
+
+            const TypeRef rawTypeRef = typeInfo.unwrap(ctx, typeRef, TypeExpandE::Alias);
+            if (!rawTypeRef.isValid() || !ctx.typeMgr().get(rawTypeRef).isInt())
+                return rawTypeRef;
+            return typeRef;
+        }
+
+        return TypeRef::invalid();
     }
 
     IdentifierRef namedArgumentIdentifier(Sema& sema, AstNodeRef childRef)

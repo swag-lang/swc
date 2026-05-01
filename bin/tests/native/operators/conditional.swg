@@ -7,10 +7,20 @@
 #[Swag.Strict]
 alias ConditionalStrictF32 = f32
 
+#[Swag.Strict]
+alias ConditionalStrictS32 = s32
+
 func chooseConditionalStrictF32(flag: bool)->ConditionalStrictF32
 {
     let a = cast(ConditionalStrictF32) 1.5
     let b = cast(ConditionalStrictF32) 2.5
+    return flag ? a : b
+}
+
+func chooseConditionalStrictS32(flag: bool)->ConditionalStrictS32
+{
+    let a = cast(ConditionalStrictS32) 11
+    let b = cast(ConditionalStrictS32) 22
     return flag ? a : b
 }
 
@@ -56,4 +66,17 @@ var var2 = 20
 {
     @assert(chooseConditionalStrictF32(true) == cast(ConditionalStrictF32) 1.5)
     @assert(chooseConditionalStrictF32(false) == cast(ConditionalStrictF32) 2.5)
+}
+
+#test
+{
+    const a = true ? cast(ConditionalStrictS32) 11 : cast(ConditionalStrictS32) 22
+    const b = false ? cast(ConditionalStrictF32) 1.5 : cast(ConditionalStrictF32) 2.5
+
+    #assert(#typeof(a) == ConditionalStrictS32)
+    #assert(#typeof(b) == ConditionalStrictF32)
+    @assert(a == cast(ConditionalStrictS32) 11)
+    @assert(b == cast(ConditionalStrictF32) 2.5)
+    @assert(chooseConditionalStrictS32(true) == cast(ConditionalStrictS32) 11)
+    @assert(chooseConditionalStrictS32(false) == cast(ConditionalStrictS32) 22)
 }

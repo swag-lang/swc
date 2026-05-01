@@ -6,6 +6,9 @@ alias PointerArithmeticStrictS32Ptr = [*] s32
 #[Swag.Strict]
 alias PointerArithmeticStrictU8Ptr = [*] u8
 
+#[Swag.Strict]
+alias PointerArithmeticStrictU8 = u8
+
 #test
 {
     var p: [*]s32 = null
@@ -89,4 +92,16 @@ alias PointerArithmeticStrictU8Ptr = [*] u8
     @assert((cast([*] u8) ptr)[1] == 2'u8)
     ptr -= 1
     @assert((cast([*] u8) ptr)[3] == 3'u8)
+}
+
+#test
+{
+    var data: [256] u8
+    data[255] = 42
+    var ptr = cast([*] u8) &data[0]
+    let offset = cast(PointerArithmeticStrictU8) 255
+    ptr += offset
+    @assert(dref ptr == 42)
+    ptr -= offset
+    @assert(ptr[255] == 42)
 }

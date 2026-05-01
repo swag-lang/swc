@@ -31,6 +31,15 @@ enum RefCountKind
     D
 }
 
+#[Swag.Strict]
+alias CountOfStrictU32 = u32
+
+#[Swag.Strict]
+alias CountOfStrictSlice = [..] u8
+
+#[Swag.Strict]
+alias CountOfStrictString = string
+
 struct RefCountedRuntime
 {
     count: u64
@@ -89,6 +98,18 @@ const EmptyConst = ""
     @assert(f == 5's64)
 }
 
+#test
+{
+    var runtime = cast(CountOfStrictU32) 7'u32
+    const constant = @countof(cast(CountOfStrictU32) 5'u32)
+    let value = @countof(runtime)
+
+    #assert(#typeof(constant) == CountOfStrictU32)
+    #assert(#typeof(value) == CountOfStrictU32)
+    @assert(constant == cast(CountOfStrictU32) 5'u32)
+    @assert(value == cast(CountOfStrictU32) 7'u32)
+}
+
 // ============================================================
 // Runtime — string and cstring
 // ============================================================
@@ -119,6 +140,16 @@ namespace NS {}
 
     var c: string = "X"
     @assert(@countof(c) == 1)
+}
+
+#test
+{
+    var text = cast(CountOfStrictString) "hello"
+    @assert(@countof(text) == 5)
+
+    var data: [3] u8 = [1, 2, 3]
+    var slice = cast(CountOfStrictSlice) data
+    @assert(@countof(slice) == 3)
 }
 
 // ============================================================

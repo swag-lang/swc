@@ -1,5 +1,8 @@
 #global fileprivate
 
+#[Swag.Strict]
+alias IndexStrictU8 = u8
+
 // Array indexing and address-of element
 #test
 {
@@ -90,4 +93,12 @@
     @assert(sliceRef[0] == 11)
     sliceRef[1] = 99
     @assert(backing[1] == 99)
+}
+
+#test
+{
+    var data: [256] u8
+    data[255] = 77
+    let idx = cast(IndexStrictU8) 255
+    @assert(data[idx] == 77)
 }

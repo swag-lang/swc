@@ -1,5 +1,13 @@
 #global fileprivate
 
+#[Swag.Strict]
+alias DereferenceStrictAAPtr = *DereferenceStrictAA
+
+struct DereferenceStrictAA
+{
+    x: s32
+}
+
 // Dereference typed pointer to struct
 #test
 {
@@ -13,6 +21,16 @@
     var v1 = dref v
     #assert(#typeof(v1) == AA)
     @assert(v1.x == 0)
+}
+
+// Dereference strict alias pointer
+#test
+{
+    var st = DereferenceStrictAA{x: 12}
+    let v = cast(DereferenceStrictAAPtr) &st
+    var v1 = dref v
+    #assert(#typeof(v1) == DereferenceStrictAA)
+    @assert(v1.x == 12)
 }
 
 // Dereference const pointer to struct

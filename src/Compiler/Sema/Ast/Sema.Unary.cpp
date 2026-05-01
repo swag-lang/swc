@@ -17,6 +17,13 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    const TypeInfo& aliasEnumType(Sema& sema, const SemaNodeView& view)
+    {
+        const TypeRef typeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), view.typeRef());
+        SWC_ASSERT(typeRef.isValid());
+        return sema.typeMgr().get(typeRef);
+    }
+
     Result constantFoldPlus(Sema& sema, ConstantRef& result, const SemaNodeView& view)
     {
         if (view.type()->isInt())
@@ -273,14 +280,16 @@ namespace
 
     Result checkDRef(Sema& sema, const SemaNodeView& view)
     {
-        if (!view.type()->isPointerOrReference())
+        const TypeInfo& type = aliasEnumType(sema, view);
+        if (!type.isPointerOrReference())
             return SemaError::raiseUnaryOperandType(sema, sema.curNodeRef(), view.nodeRef(), view.typeRef());
         return Result::Continue;
     }
 
     Result semaDRef(Sema& sema, AstUnaryExpr& node, const SemaNodeView& view)
     {
-        const TypeRef resultTypeRef = view.type()->dereferenceTypeRef(sema.ctx());
+        const TypeInfo& type          = aliasEnumType(sema, view);
+        const TypeRef   resultTypeRef = type.dereferenceTypeRef(sema.ctx());
 
         SWC_RESULT(sema.waitSemaCompleted(&sema.typeMgr().get(resultTypeRef), node.nodeExprRef));
         sema.setType(sema.curNodeRef(), resultTypeRef);
@@ -291,20 +300,22 @@ namespace
     Result checkMoveRef(Sema& sema, const AstUnaryExpr& node, const SemaNodeView& view)
     {
         SWC_UNUSED(node);
-        if (view.type()->isPointerOrReference())
+        const TypeInfo& type = aliasEnumType(sema, view);
+        if (type.isPointerOrReference())
             return Result::Continue;
         return SemaError::raiseUnaryOperandType(sema, sema.curNodeRef(), view.nodeRef(), view.typeRef());
     }
 
     Result semaMoveRef(Sema& sema, const SemaNodeView& view)
     {
+        const TypeInfo& type  = aliasEnumType(sema, view);
         TypeInfoFlags flags = TypeInfoFlagsE::Zero;
-        if (view.type()->isConst())
+        if (type.isConst())
             flags.add(TypeInfoFlagsE::Const);
 
         TypeRef pointeeTypeRef = TypeRef::invalid();
-        if (view.type()->isReference() || view.type()->isAnyPointer())
-            pointeeTypeRef = view.type()->payloadTypeRef();
+        if (type.isReference() || type.isAnyPointer())
+            pointeeTypeRef = type.payloadTypeRef();
 
         SWC_ASSERT(pointeeTypeRef.isValid());
         const TypeInfo ty      = TypeInfo::makeMoveReference(pointeeTypeRef, flags);

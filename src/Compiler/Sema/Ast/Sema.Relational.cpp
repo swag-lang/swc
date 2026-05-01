@@ -481,7 +481,7 @@ namespace
             return Result::Continue;
         if (compareLeftView.type()->isPointerLikeAliasAware(sema.ctx()) && compareRightView.type()->isNull())
             return Result::Continue;
-        if (compareLeftView.type()->isAnyPointer() && compareRightView.type()->isAnyPointer())
+        if (compareLeftType.isAnyPointer() && compareRightType.isAnyPointer())
             return Result::Continue;
         if (compareLeftType.isAnyTypeInfo(sema.ctx()) && compareRightType.isAnyTypeInfo(sema.ctx()))
             return Result::Continue;
@@ -501,9 +501,11 @@ namespace
     {
         const SemaNodeView compareLeftView  = scalarReadView(sema, nodeLeftView);
         const SemaNodeView compareRightView = scalarReadView(sema, nodeRightView);
+        const TypeInfo&     compareLeftType  = aliasEnumType(sema, compareLeftView);
+        const TypeInfo&     compareRightType = aliasEnumType(sema, compareRightView);
         if (compareLeftView.type()->isScalarNumeric() && compareRightView.type()->isScalarNumeric())
             return Result::Continue;
-        if (compareLeftView.type()->isAnyPointer() && compareRightView.type()->isAnyPointer())
+        if (compareLeftType.isAnyPointer() && compareRightType.isAnyPointer())
             return Result::Continue;
 
         Diagnostic diag = SemaError::report(sema, DiagnosticId::sema_err_compare_operand_type, node.codeRef());

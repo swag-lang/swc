@@ -1,5 +1,11 @@
 #global fileprivate // 
 
+#[Swag.Strict]
+alias PointerArithmeticStrictS32Ptr = [*] s32
+
+#[Swag.Strict]
+alias PointerArithmeticStrictU8Ptr = [*] u8
+
 #test
 {
     var p: [*]s32 = null
@@ -57,4 +63,30 @@
     @assert(ptr[1] == 2'u8)
     ptr -= 1
     @assert(ptr[3] == 3'u8)
+}
+
+#test
+{
+    var data: [5] s32 = [10, 20, 30, 40, 50]
+    let base = cast(PointerArithmeticStrictS32Ptr) &data[0]
+    let p2 = base + 2
+    let p4 = 4 + base
+    let p1 = p4 - 3
+
+    @assert(dref cast([*] s32) p2 == 30)
+    @assert(dref cast([*] s32) p4 == 50)
+    @assert(dref cast([*] s32) p1 == 20)
+    @assert((p4 - base) == 4)
+    @assert((p2 - p1) == 1)
+}
+
+#test
+{
+    var data: [4] u8 = [0, 1, 2, 3]
+    var ptr = cast(PointerArithmeticStrictU8Ptr) &data[0]
+    ptr += 1'u8
+    @assert((cast([*] u8) ptr)[0] == 1'u8)
+    @assert((cast([*] u8) ptr)[1] == 2'u8)
+    ptr -= 1
+    @assert((cast([*] u8) ptr)[3] == 3'u8)
 }

@@ -152,24 +152,33 @@ namespace
         return Result::Continue;
     }
 
+    const TypeInfo& aliasEnumType(Sema& sema, const SemaNodeView& view)
+    {
+        const TypeRef typeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), view.typeRef());
+        SWC_ASSERT(typeRef.isValid());
+        return sema.typeMgr().get(typeRef);
+    }
+
     TypeRef compoundPointerArithmeticResultTypeRef(Sema& sema, TokenId binOp, const SemaNodeView& leftView, const SemaNodeView& rightView)
     {
         if (!leftView.type() || !rightView.type())
             return TypeRef::invalid();
 
+        const TypeInfo& leftType  = aliasEnumType(sema, leftView);
+        const TypeInfo& rightType = aliasEnumType(sema, rightView);
         switch (binOp)
         {
             case TokenId::SymPlus:
-                if (leftView.type()->isBlockPointer() && rightView.type()->isScalarNumeric())
+                if (leftType.isBlockPointer() && rightView.type()->isScalarNumeric())
                     return leftView.typeRef();
-                if (leftView.type()->isScalarNumeric() && rightView.type()->isBlockPointer())
+                if (leftView.type()->isScalarNumeric() && rightType.isBlockPointer())
                     return rightView.typeRef();
                 break;
 
             case TokenId::SymMinus:
-                if (leftView.type()->isBlockPointer() && rightView.type()->isScalarNumeric())
+                if (leftType.isBlockPointer() && rightView.type()->isScalarNumeric())
                     return leftView.typeRef();
-                if (leftView.type()->isBlockPointer() && rightView.type()->isBlockPointer())
+                if (leftType.isBlockPointer() && rightType.isBlockPointer())
                     return sema.typeMgr().typeS64();
                 break;
 
@@ -189,7 +198,7 @@ namespace
         if (pointerResultTypeRef.isValid())
         {
             SWC_RESULT(tryAssignmentCast(sema, leftRef, leftView, pointerResultTypeRef, rebindReference, errorNodeRef, noteId));
-            if (targetLeftView.type()->isBlockPointer() && rightView.type()->isScalarNumeric())
+            if (aliasEnumType(sema, targetLeftView).isBlockPointer() && rightView.type()->isScalarNumeric())
             {
                 CastRequest castRequest(CastKind::Assignment);
                 castRequest.errorNodeRef = errorNodeRef.isValid() ? errorNodeRef : leftRef;

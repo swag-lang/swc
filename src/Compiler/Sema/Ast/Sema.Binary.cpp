@@ -44,6 +44,13 @@ namespace
         return Result::Continue;
     }
 
+    const TypeInfo& aliasEnumType(Sema& sema, const SemaNodeView& view)
+    {
+        const TypeRef typeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), view.typeRef());
+        SWC_ASSERT(typeRef.isValid());
+        return sema.typeMgr().get(typeRef);
+    }
+
     Result checkIntegerModifiers(Sema& sema, const AstBinaryExpr& node, const SemaNodeView& nodeLeftView)
     {
         if (!node.modifierFlags.hasAny({AstModifierFlagsE::Wrap, AstModifierFlagsE::Promote}))
@@ -381,17 +388,19 @@ namespace
             }
         }
 
-        TypeRef resultTypeRef = nodeLeftView.typeRef();
+        const TypeInfo& leftType  = aliasEnumType(sema, nodeLeftView);
+        const TypeInfo& rightType = aliasEnumType(sema, nodeRightView);
+        TypeRef         resultTypeRef = nodeLeftView.typeRef();
         switch (op)
         {
             case TokenId::SymPlus:
-                if (nodeLeftView.type()->isScalarNumeric() && nodeRightView.type()->isAnyPointer())
+                if (nodeLeftView.type()->isScalarNumeric() && rightType.isAnyPointer())
                 {
                     SWC_RESULT(Cast::cast(sema, nodeLeftView, sema.typeMgr().typeS64(), CastKind::Implicit));
                     nodeRightView.compute(sema, node.nodeRightRef, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
                     resultTypeRef = nodeRightView.typeRef();
                 }
-                else if (nodeLeftView.type()->isAnyPointer() && nodeRightView.type()->isScalarNumeric())
+                else if (leftType.isAnyPointer() && nodeRightView.type()->isScalarNumeric())
                 {
                     SWC_RESULT(Cast::cast(sema, nodeRightView, sema.typeMgr().typeS64(), CastKind::Implicit));
                     nodeLeftView.compute(sema, node.nodeLeftRef, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
@@ -400,13 +409,13 @@ namespace
                 break;
 
             case TokenId::SymMinus:
-                if (nodeLeftView.type()->isAnyPointer() && nodeRightView.type()->isScalarNumeric())
+                if (leftType.isAnyPointer() && nodeRightView.type()->isScalarNumeric())
                 {
                     SWC_RESULT(Cast::cast(sema, nodeRightView, sema.typeMgr().typeS64(), CastKind::Implicit));
                     nodeLeftView.compute(sema, node.nodeLeftRef, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
                     resultTypeRef = nodeLeftView.typeRef();
                 }
-                else if (nodeLeftView.type()->isAnyPointer() && nodeRightView.type()->isAnyPointer())
+                else if (leftType.isAnyPointer() && rightType.isAnyPointer())
                 {
                     resultTypeRef = sema.typeMgr().typeS64();
                 }

@@ -8,6 +8,12 @@ enum CmpEnum: u16
 #[Swag.Strict]
 alias CompareStrictAny = any
 
+#[Swag.Strict]
+alias CompareStrictS32Ptr = [*] s32
+
+#[Swag.Strict]
+alias CompareOtherStrictS32Ptr = [*] s32
+
 var CompareCounter: s32
 
 func touch(flag: bool, delta: s32)->bool
@@ -173,4 +179,26 @@ func matchReferenceValue(value: const &s32)->bool
     @assert(s32 == boxed)
     @assert(boxed != string)
     @assert(string != boxed)
+}
+
+#test
+{
+    var data: [3] s32 = [10, 20, 30]
+    let raw0 = cast([*] s32) &data[0]
+    let raw1 = cast([*] s32) &data[1]
+    let strict0 = cast(CompareStrictS32Ptr) raw0
+    let strict1 = cast(CompareStrictS32Ptr) raw1
+    let other0 = cast(CompareOtherStrictS32Ptr) raw0
+
+    @assert(strict0 == raw0)
+    @assert(raw0 == strict0)
+    @assert(strict0 == other0)
+    @assert(strict0 != strict1)
+    @assert(strict0 < strict1)
+    @assert(strict1 > strict0)
+    @assert(strict0 <= strict0)
+    @assert(strict1 >= strict0)
+    @assert((strict0 <=> strict1) == -1)
+    @assert((strict1 <=> strict0) == 1)
+    @assert((strict0 <=> other0) == 0)
 }

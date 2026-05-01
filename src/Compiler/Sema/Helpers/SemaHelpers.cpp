@@ -26,6 +26,16 @@
 
 SWC_BEGIN_NAMESPACE();
 
+namespace
+{
+    const TypeInfo& aliasEnumType(Sema& sema, const SemaNodeView& view)
+    {
+        const TypeRef typeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), view.typeRef());
+        SWC_ASSERT(typeRef.isValid());
+        return sema.typeMgr().get(typeRef);
+    }
+}
+
 Result SemaHelpers::attachIndirectReturnRuntimeStorageIfNeeded(Sema& sema, AstNodeRef payloadNodeRef, const AstNode& storageNode, const SymbolFunction& calledFn, std::string_view privateName)
 {
     return attachRuntimeStorageIfNeeded(sema, payloadNodeRef, storageNode, indirectReturnRuntimeStorageTypeRef(sema, calledFn), privateName);
@@ -774,10 +784,14 @@ IdentifierRef SemaHelpers::resolveUniqIdentifier(Sema& sema, const TokenId token
 Result SemaHelpers::checkBinaryOperandTypes(Sema& sema, AstNodeRef nodeRef, TokenId op, AstNodeRef leftRef, AstNodeRef rightRef, const SemaNodeView& leftView, const SemaNodeView& rightView)
 {
     const auto checkPointerArithmeticOperand = [](Sema& inSema, AstNodeRef inNodeRef, AstNodeRef operandRef, const SemaNodeView& operandView) -> Result {
-        if (!operandView.type() || !operandView.type()->isAnyPointer())
+        if (!operandView.type())
             return Result::Continue;
 
-        TypeRef payloadTypeRef = operandView.type()->payloadTypeRef();
+        const TypeInfo& operandType = aliasEnumType(inSema, operandView);
+        if (!operandType.isAnyPointer())
+            return Result::Continue;
+
+        TypeRef payloadTypeRef = operandType.payloadTypeRef();
         if (payloadTypeRef != inSema.typeMgr().typeVoid())
         {
             const TypeRef unwrappedTypeRef = inSema.typeMgr().unwrapAliasEnum(inSema.ctx(), payloadTypeRef);
@@ -787,15 +801,18 @@ Result SemaHelpers::checkBinaryOperandTypes(Sema& sema, AstNodeRef nodeRef, Toke
 
         if (payloadTypeRef == inSema.typeMgr().typeVoid())
             return SemaError::raisePointerArithmeticVoidPointer(inSema, inNodeRef, operandRef, operandView.typeRef());
-        if (operandView.type()->isValuePointer())
+        if (operandType.isValuePointer())
             return SemaError::raisePointerArithmeticValuePointer(inSema, inNodeRef, operandRef, operandView.typeRef());
 
         return Result::Continue;
     };
 
     const auto blockPointerPayloadsMatch = [](Sema& inSema, const SemaNodeView& leftOperandView, const SemaNodeView& rightOperandView) {
-        TypeRef leftPayloadTypeRef  = leftOperandView.type()->payloadTypeRef();
-        TypeRef rightPayloadTypeRef = rightOperandView.type()->payloadTypeRef();
+        const TypeInfo& leftType  = aliasEnumType(inSema, leftOperandView);
+        const TypeInfo& rightType = aliasEnumType(inSema, rightOperandView);
+
+        TypeRef leftPayloadTypeRef  = leftType.payloadTypeRef();
+        TypeRef rightPayloadTypeRef = rightType.payloadTypeRef();
         if (leftPayloadTypeRef == rightPayloadTypeRef)
             return true;
 
@@ -810,17 +827,19 @@ Result SemaHelpers::checkBinaryOperandTypes(Sema& sema, AstNodeRef nodeRef, Toke
         return leftPayloadTypeRef == rightPayloadTypeRef;
     };
 
+    const TypeInfo& leftType  = aliasEnumType(sema, leftView);
+    const TypeInfo& rightType = aliasEnumType(sema, rightView);
     switch (op)
     {
         case TokenId::SymPlus:
             SWC_RESULT(checkPointerArithmeticOperand(sema, nodeRef, leftRef, leftView));
             SWC_RESULT(checkPointerArithmeticOperand(sema, nodeRef, rightRef, rightView));
 
-            if (leftView.type()->isBlockPointer() && rightView.type()->isScalarNumeric())
+            if (leftType.isBlockPointer() && rightView.type()->isScalarNumeric())
                 return Result::Continue;
-            if (leftView.type()->isBlockPointer() && rightView.type()->isBlockPointer())
+            if (leftType.isBlockPointer() && rightType.isBlockPointer())
                 return SemaError::raiseBinaryOperandType(sema, nodeRef, rightRef, leftView.typeRef(), rightView.typeRef());
-            if (leftView.type()->isScalarNumeric() && rightView.type()->isBlockPointer())
+            if (leftView.type()->isScalarNumeric() && rightType.isBlockPointer())
                 return Result::Continue;
             break;
 
@@ -828,11 +847,11 @@ Result SemaHelpers::checkBinaryOperandTypes(Sema& sema, AstNodeRef nodeRef, Toke
             SWC_RESULT(checkPointerArithmeticOperand(sema, nodeRef, leftRef, leftView));
             SWC_RESULT(checkPointerArithmeticOperand(sema, nodeRef, rightRef, rightView));
 
-            if (leftView.type()->isBlockPointer() && rightView.type()->isScalarNumeric())
+            if (leftType.isBlockPointer() && rightView.type()->isScalarNumeric())
                 return Result::Continue;
-            if (leftView.type()->isBlockPointer() && rightView.type()->isBlockPointer() && blockPointerPayloadsMatch(sema, leftView, rightView))
+            if (leftType.isBlockPointer() && rightType.isBlockPointer() && blockPointerPayloadsMatch(sema, leftView, rightView))
                 return Result::Continue;
-            if (leftView.type()->isBlockPointer() && rightView.type()->isBlockPointer())
+            if (leftType.isBlockPointer() && rightType.isBlockPointer())
                 return SemaError::raiseBinaryOperandType(sema, nodeRef, rightRef, leftView.typeRef(), rightView.typeRef());
             break;
 
@@ -886,20 +905,24 @@ Result SemaHelpers::castBinaryRightToLeft(Sema& sema, TokenId op, AstNodeRef nod
     {
         case TokenId::SymPlus:
         case TokenId::SymMinus:
-            if (leftView.type()->isAnyPointer() && rightView.type()->isScalarNumeric())
+        {
+            const TypeInfo& leftType  = aliasEnumType(sema, leftView);
+            const TypeInfo& rightType = aliasEnumType(sema, rightView);
+            if (leftType.isAnyPointer() && rightView.type()->isScalarNumeric())
             {
                 SWC_RESULT(Cast::cast(sema, rightView, sema.typeMgr().typeS64(), CastKind::Implicit));
                 return Result::Continue;
             }
-            if (leftView.type()->isScalarNumeric() && rightView.type()->isAnyPointer())
+            if (leftView.type()->isScalarNumeric() && rightType.isAnyPointer())
             {
                 return Result::Continue;
             }
-            if (leftView.type()->isAnyPointer() && rightView.type()->isAnyPointer())
+            if (leftType.isAnyPointer() && rightType.isAnyPointer())
             {
                 return Result::Continue;
             }
             break;
+        }
 
         default:
             break;

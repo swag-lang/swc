@@ -80,7 +80,7 @@ func boundCheckEnabled()->bool
     #[Swag.Safety(.BoundCheck, true)]
     func cstringBoundCheck()->u8
     {
-        var text: cstring = cast(cstring) @dataof("ab")
+        var text: const cstring = cast(const cstring) @dataof("ab")
         return text[2] // swc-expected-error {{safety_err_runtime}}
     }
 

@@ -91,7 +91,7 @@ func passAliasEnum(a: s32, b: AbiAlias, c: AbiEnum, d: s32)->s32
     return a + b + cast(s32) cast(u16) c + d
 }
 
-func passSlice(values: [..] s32, idx: s32)->s32
+func passSlice(values: const [..] s32, idx: s32)->s32
 {
     return values[idx]
 }

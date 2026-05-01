@@ -302,21 +302,21 @@ func @safetypanic(message: string, loc: SourceCodeLocation)
 func __panic(file: const [*] u8, line: u32, col: u32, message: const [*] u8)
 {
     var loc: SourceCodeLocation
-    loc.fileName = @mkstring(file, @countof(cast(cstring) file))
+    loc.fileName = @mkstring(file, @countof(cast(const cstring) file))
     loc.lineStart, loc.lineEnd = line
     loc.colStart, loc.colEnd = col
 
-    let msg = message ? @mkstring(message, @countof(cast(cstring) message)) : "panic"
+    let msg = message ? @mkstring(message, @countof(cast(const cstring) message)) : "panic"
     @panic(msg, loc)
 }
 
 func __compilerError(file: const [*] u8, line: u32, col: u32, message: const [*] u8)
 {
     var loc: SourceCodeLocation
-    loc.fileName = @mkstring(file, @countof(cast(cstring) file))
+    loc.fileName = @mkstring(file, @countof(cast(const cstring) file))
     loc.lineStart, loc.lineEnd = line
     loc.colStart, loc.colEnd = col
 
-    let msg = message ? @mkstring(message, @countof(cast(cstring) message)) : "compiler error"
+    let msg = message ? @mkstring(message, @countof(cast(const cstring) message)) : "compiler error"
     @compilererror(msg, loc)
 }

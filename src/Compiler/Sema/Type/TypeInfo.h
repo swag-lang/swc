@@ -300,7 +300,7 @@ public:
     static TypeInfo makeTypeInfo(TypeInfoFlags flags = TypeInfoFlagsE::Zero);
     static TypeInfo makeEnum(SymbolEnum* sym);
     static TypeInfo makeStruct(SymbolStruct* sym);
-    static TypeInfo makeInterface(SymbolInterface* sym);
+    static TypeInfo makeInterface(SymbolInterface* sym, TypeInfoFlags flags = TypeInfoFlagsE::Zero);
     static TypeInfo makeAlias(SymbolAlias* sym);
     static TypeInfo makeValuePointer(TypeRef pointeeTypeRef, TypeInfoFlags flags = TypeInfoFlagsE::Zero);
     static TypeInfo makeBlockPointer(TypeRef pointeeTypeRef, TypeInfoFlags flags = TypeInfoFlagsE::Zero);

@@ -99,7 +99,8 @@ func acceptNullableTypeInfo(value: #null typeinfo) {}
     acceptConstAny(widenedConstAny)
     #assert(#typeof(constAny) == const any)
 
-    let cstr: cstring = cast(cstring) @dataof("abc")
+    var cstrData: [4] u8 = ['a''u8, 'b''u8, 'c''u8, 0]
+    let cstr: cstring = cast(cstring) &cstrData[0]
     let nullableCstr: #null cstring = cstr
     let nullableStrictCstr: #null QualifiedStrictCString = cast(QualifiedStrictCString) cstr
     let widenedCstr: #null cstring = widenNullableCString(cstr)

@@ -102,7 +102,7 @@ alias StrictForeachF32 = f32
 
 #test
 {
-    var text: cstring = cast(cstring) @dataof("AZ")
+    var text: const cstring = cast(const cstring) @dataof("AZ")
     var sumV = 0
     var sumI: u64
     foreach v, i in text
@@ -118,7 +118,7 @@ alias StrictForeachF32 = f32
 
 #test
 {
-    var text: cstring = cast(cstring) @dataof("CD")
+    var text: const cstring = cast(const cstring) @dataof("CD")
     var sum = 0
     foreach &v in text
     {
@@ -130,7 +130,7 @@ alias StrictForeachF32 = f32
 
 #test
 {
-    var text: cstring = cast(cstring) @dataof("ABC")
+    var text: const cstring = cast(const cstring) @dataof("ABC")
     var order: [3] u8
     var pos: u64
     foreach #reverse v, i in text
@@ -154,7 +154,8 @@ func foreachCStringRefSum(value: &cstring)->s32
 
 #test
 {
-    var text: cstring = cast(cstring) @dataof("BY")
+    var textData: [3] u8 = ['B''u8, 'Y''u8, 0]
+    var text: cstring = cast(cstring) &textData[0]
     @assert(foreachCStringRefSum(&text) == cast(s32) 'B''u8 + cast(s32) 'Y''u8)
 }
 

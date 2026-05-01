@@ -698,9 +698,9 @@ TypeInfo TypeInfo::makeStruct(SymbolStruct* sym)
     return ti;
 }
 
-TypeInfo TypeInfo::makeInterface(SymbolInterface* sym)
+TypeInfo TypeInfo::makeInterface(SymbolInterface* sym, TypeInfoFlags flags)
 {
-    TypeInfo ti{TypeInfoKind::Interface};
+    TypeInfo ti{TypeInfoKind::Interface, flags};
     ti.payloadInterface_.sym = sym;
     // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
     return ti;

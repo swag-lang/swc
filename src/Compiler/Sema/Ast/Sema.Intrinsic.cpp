@@ -479,6 +479,21 @@ namespace
         return sema.typeMgr().get(typeRef).unwrapAliasEnum(sema.ctx(), typeRef);
     }
 
+    bool makeInterfaceObjectIsConst(Sema& sema, const SemaNodeView& objectView)
+    {
+        if (!objectView.type())
+            return false;
+
+        if (objectView.type()->isConst())
+            return true;
+
+        const TypeRef objectDataTypeRef = SemaHelpers::unwrapAliasRefType(sema.ctx(), objectView.typeRef());
+        if (objectDataTypeRef.isValid() && sema.typeMgr().get(objectDataTypeRef).isConst())
+            return true;
+
+        return SemaCheck::isConstAssignmentTarget(sema, objectView.nodeRef(), objectView);
+    }
+
     Result semaIntrinsicMakeInterface(Sema& sema, AstIntrinsicCall& node, const SmallVector<AstNodeRef>& children)
     {
         const SemaNodeView objectView = sema.viewType(children[0]);
@@ -518,12 +533,19 @@ namespace
             }
         }
 
-        sema.setType(sema.curNodeRef(), interfaceTypeRef);
+        TypeRef resultTypeRef = interfaceTypeRef;
+        if (makeInterfaceObjectIsConst(sema, objectView))
+        {
+            auto* interfaceSym = const_cast<SymbolInterface*>(&sema.typeMgr().get(interfaceTypeRef).payloadSymInterface());
+            resultTypeRef = sema.typeMgr().addType(TypeInfo::makeInterface(interfaceSym, TypeInfoFlagsE::Const));
+        }
+
+        sema.setType(sema.curNodeRef(), resultTypeRef);
         sema.setIsValue(node);
 
         if (sema.isCurrentFunction())
         {
-            const TypeRef storageTypeRef = intrinsicMakeInterfaceRuntimeStorageTypeRef(sema, objectView.typeRef(), interfaceTypeRef);
+            const TypeRef storageTypeRef = intrinsicMakeInterfaceRuntimeStorageTypeRef(sema, objectView.typeRef(), resultTypeRef);
             SWC_RESULT(SemaHelpers::attachRuntimeStorageIfNeeded(sema, node, storageTypeRef, "__intrinsic_runtime_storage"));
         }
 

@@ -53,7 +53,7 @@
     #[Swag.NoInline]
     func cstringCountBasic()->u64
     {
-        let s = cast(cstring) @dataof("hello")
+        let s = cast(const cstring) @dataof("hello")
         return @countof(s)
     }
 

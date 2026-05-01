@@ -182,7 +182,7 @@ func @print(params: ...)
         {
             #[Safety(.DynCast, false)]
             let ptr = cast(const [*] u8) v
-            let len = @countof(cast(cstring) ptr)
+            let len = @countof(cast(const cstring) ptr)
             __printString(@mkstring(ptr, len))
             continue
         }

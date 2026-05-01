@@ -57,7 +57,7 @@ struct ConstAssignArrayBox
 
 #test
 {
-    var text: cstring = cast(cstring) @dataof("abc")
+    var text: const cstring = cast(const cstring) @dataof("abc")
     text[0] = 'A''u8 // swc-expected-error {{sema_err_assign_to_const}}
 }
 
@@ -78,7 +78,7 @@ struct ConstAssignArrayBox
 
 #test
 {
-    var text: cstring = cast(cstring) @dataof("abc")
+    var text: const cstring = cast(const cstring) @dataof("abc")
     foreach &value in text
     {
         dref value = 'A''u8 // swc-expected-error {{sema_err_assign_to_const}}

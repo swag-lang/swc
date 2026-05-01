@@ -151,7 +151,7 @@ namespace cstring_index_runtime
 {
     #test
     {
-        var text: cstring = cast(cstring) @dataof("abcd")
+        var text: const cstring = cast(const cstring) @dataof("abcd")
         @assert(text[0] == cast(u8) 'a''rune)
         @assert(text[3] == cast(u8) 'd''rune)
     }

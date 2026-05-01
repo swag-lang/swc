@@ -50,9 +50,9 @@ func typedNullConditional(flag: bool)->bool
 
 func typedNullSliceConditional(flag: bool)->bool
 {
-    let left = cast([..] s32) null
+    let left = cast(const [..] s32) null
     const storage: [2] s32 = [7, 8]
-    let right: [..] s32 = storage
+    let right: const [..] s32 = storage
     let resolved = flag ? left : right
     if flag do
         return resolved == null and @countof(resolved) == 0

@@ -109,7 +109,7 @@ var A: [..] s32
 
 #test
 {
-    let cstr: cstring = cast(cstring) @dataof("slice")
+    let cstr: const cstring = cast(const cstring) @dataof("slice")
     let a = cstr[1 to 3]
     let b = cstr[2 to ]
     let c = cstr[ until 2]

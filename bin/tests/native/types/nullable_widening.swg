@@ -27,7 +27,8 @@ func nullableWidening()->bool
     if boxed == null or cast(s32) boxed != 123 do
         return false
 
-    let cstr = widenNullableCString(cast(cstring) @dataof("abc"))
+    var cstrData: [4] u8 = ['a''u8, 'b''u8, 'c''u8, 0]
+    let cstr = widenNullableCString(cast(cstring) &cstrData[0])
     if cstr == null or @countof(cstr) != 3 do
         return false
 

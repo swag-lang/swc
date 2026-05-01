@@ -42,7 +42,7 @@ impl RefCountedBySpecOp
 #assert(@countof(CountedBySpecOp{}) == 9)
 
 const ZERO_SIZED_VALUES: [3] ZeroSized = [{}, {}, {}]
-const ZERO_SIZED_SLICE = cast([..] ZeroSized) ZERO_SIZED_VALUES
+const ZERO_SIZED_SLICE: const [..] ZeroSized = cast(const [..] ZeroSized) ZERO_SIZED_VALUES
 #assert(@countof(ZERO_SIZED_SLICE) == 3)
 
 namespace NS {}
@@ -154,7 +154,8 @@ func loopUnsignedRef(value: &u32)->u32
     #assert(#typeof(countStringRef(textRef)) == u64)
     #assert(#typeof(loopStringRef(textRef)) == u64)
 
-    var cstr: cstring = cast(cstring) @dataof("abc")
+    var cstrData: [4] u8 = ['a''u8, 'b''u8, 'c''u8, 0]
+    var cstr: cstring = cast(cstring) &cstrData[0]
     var cstrRef: &cstring = &cstr
     #assert(#typeof(@countof(cstrRef)) == u64)
     #assert(#typeof(countCStringRef(cstrRef)) == u64)

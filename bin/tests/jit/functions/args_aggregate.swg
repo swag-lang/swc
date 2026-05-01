@@ -171,7 +171,7 @@ struct AbiNested
 
 #test
 {
-    func passSlice(values: [..] s32, idx: s32)->s32 { return values[idx] }
+    func passSlice(values: const [..] s32, idx: s32)->s32 { return values[idx] }
     const values0: [4] s32 = [11, 22, 33, 44]
     const values1: [4] s32 = [101, 202, 303, 404]
     const values2: [4] s32 = [-1, -2, -3, -4]

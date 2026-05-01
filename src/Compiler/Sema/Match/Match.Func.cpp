@@ -1006,7 +1006,7 @@ namespace
         }
 
         const AstNodeRef argValueRef = Match::resolveCallArgumentValueRef(sema, argRef);
-        SemaNodeView     argNodeView(sema, argValueRef, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
+        SemaNodeView     argNodeView(sema, argValueRef, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant | SemaNodeViewPartE::Symbol);
         auto             castKind  = CastKind::Parameter;
         CastFlags        castFlags = CastFlagsE::Zero;
         SWC_ASSERT(argNodeView.node() != nullptr);
@@ -1021,6 +1021,10 @@ namespace
         }
         if (argNodeView.cstRef().isValid() && sema.isFoldedTypedConst(argRef))
             castFlags.add(CastFlagsE::FoldedTypedConst);
+        if ((argNodeView.sym() && argNodeView.sym()->isConstant()) ||
+            SemaCheck::isConstAssignmentTarget(sema, argNodeView.nodeRef(), argNodeView) ||
+            (argNodeView.cstRef().isValid() && !argNodeView.hasSymbol()))
+            castFlags.add(CastFlagsE::ConstSource);
 
         TypeRef bindValueTypeRef = implicitConstReferenceBindingValueTypeRef(sema, to, from);
         TypeRef castToTypeRef    = bindValueTypeRef.isValid() ? bindValueTypeRef : to;

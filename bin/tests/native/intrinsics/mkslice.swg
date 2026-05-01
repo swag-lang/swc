@@ -50,7 +50,8 @@ alias MksliceStrictConstS32Ptr = const *s32
 
 #test
 {
-    var cstr: cstring = cast(cstring) @dataof("hello")
+    var data: [6] u8 = ['h''u8, 'e''u8, 'l''u8, 'l''u8, 'o''u8, 0]
+    var cstr: cstring = cast(cstring) &data[0]
     let bytes = @mkslice(cstr, @countof(cstr))
 
     #assert(#typeof(bytes) == const [..] u8)

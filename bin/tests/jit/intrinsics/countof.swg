@@ -56,17 +56,17 @@ impl RefCountedRuntime
 
 #test
 {
-    func countCString(value: cstring)->u64 { return @countof(value) }
-    const V0 = #run countCString(cast(cstring) @dataof("runtime"))
+    func countCString(value: const cstring)->u64 { return @countof(value) }
+    const V0 = #run countCString(cast(const cstring) @dataof("runtime"))
     #assert(V0 == 7'u64)
 }
 
 #test
 {
-    func countSlice(value: [..] u8)->u64 { return @countof(value) }
+    func countSlice(value: const [..] u8)->u64 { return @countof(value) }
 
     const data: [6] u8 = [0, 0, 0, 0, 0, 0]
-    const V0 = #run countSlice(cast([..] u8) data)
+    const V0 = #run countSlice(cast(const [..] u8) data)
     #assert(V0 == 6'u64)
 }
 
@@ -186,14 +186,16 @@ impl RefCountedRuntime
 {
     func countCStringRef()->u64
     {
-        var value: cstring = cast(cstring) @dataof("abcd")
+        var valueData: [5] u8 = ['a''u8, 'b''u8, 'c''u8, 'd''u8, 0]
+        var value: cstring = cast(cstring) &valueData[0]
         var valueRef: &cstring = &value
         return @countof(valueRef)
     }
 
     func loopCStringRef()->u64
     {
-        var value: cstring = cast(cstring) @dataof("abcd")
+        var valueData: [5] u8 = ['a''u8, 'b''u8, 'c''u8, 'd''u8, 0]
+        var value: cstring = cast(cstring) &valueData[0]
         let valueRef: &cstring = &value
         var count: u64 = 0
         for valueRef do

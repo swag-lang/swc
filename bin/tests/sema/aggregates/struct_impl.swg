@@ -57,7 +57,7 @@ impl HashNs.IHash32 for QualifiedInterfacesA
 
 #test
 {
-    let value = QualifiedInterfacesA{}
+    var value = QualifiedInterfacesA{}
     let conv  = cast(ConvertNs.IConvert) value
     let hash  = cast(HashNs.IHash32) value
 

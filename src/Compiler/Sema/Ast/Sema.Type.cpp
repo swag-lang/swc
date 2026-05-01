@@ -299,6 +299,7 @@ Result AstQualifiedType::semaPostNode(Sema& sema) const
             case TypeInfoKind::Slice:
             case TypeInfoKind::CString:
             case TypeInfoKind::Any:
+            case TypeInfoKind::Interface:
                 break;
             default:
                 const SourceView& srcView     = sema.compiler().srcView(srcViewRef());
@@ -362,6 +363,9 @@ Result AstQualifiedType::semaPostNode(Sema& sema) const
             break;
         case TypeInfoKind::Any:
             typeRef = typeMgr.addType(TypeInfo::makeAny(typeFlags));
+            break;
+        case TypeInfoKind::Interface:
+            typeRef = typeMgr.addType(TypeInfo::makeInterface(&qualifiedType.payloadSymInterface(), typeFlags));
             break;
         case TypeInfoKind::TypeInfo:
             typeRef = typeMgr.addType(TypeInfo::makeTypeInfo(typeFlags));

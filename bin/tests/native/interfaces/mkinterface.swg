@@ -52,4 +52,30 @@ func validateRuntimeInterface(itf: IAction, expectedType: const *Swag.TypeInfoSt
     var local = UndoAction{}
     var castAction: IAction = local
     @assert(validateRuntimeInterface(castAction, cast(const *Swag.TypeInfoStruct) #typeof(UndoAction{}), false))
+
+    let constPtr: const *UndoAction = &local
+    let constAction = @mkinterface(constPtr, UndoAction, IAction)
+    let rawConst = cast(const *UndoAction) @dataof(constAction)
+    #assert(#typeof(constAction) == const IAction)
+    @assert(rawConst == constPtr)
+
+    let constFromDeref: const IAction = dref constPtr
+    let rawFromDeref = cast(const *UndoAction) @dataof(constFromDeref)
+    #assert(#typeof(constFromDeref) == const IAction)
+    @assert(rawFromDeref != null)
+
+    let constRef: const &UndoAction = &local
+    let constFromRef = @mkinterface(constRef, UndoAction, IAction)
+    let rawFromRef = cast(const *UndoAction) @dataof(constFromRef)
+    #assert(#typeof(constFromRef) == const IAction)
+    @assert(rawFromRef == constPtr)
+
+    let boxedConstAction = @mkany(&constAction, const IAction)
+    let unboxedConstAction = cast(const IAction) boxedConstAction
+    let rawUnboxedConst = cast(const *UndoAction) @dataof(unboxedConstAction)
+    #assert(#typeof(unboxedConstAction) == const IAction)
+    @assert(rawUnboxedConst == constPtr)
+
+    let constFromValue: const IAction = local
+    #assert(#typeof(constFromValue) == const IAction)
 }

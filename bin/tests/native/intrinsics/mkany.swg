@@ -276,3 +276,27 @@ func mkanyCastStringToBytesFromAny(value: any)->u64
     @assert(view[0] == 3'u8)
     @assert(view[2] == 8'u8)
 }
+
+#test
+{
+    var storage: [4] u8 = ['a''u8, 'n''u8, 'y''u8, 0]
+    let text: const cstring = cast(const cstring) &storage[0]
+    let boxed = @mkany(&text, const cstring)
+    let view = cast(const cstring) boxed
+
+    @assert(@countof(view) == 3)
+    @assert(view[0] == 'a''u8)
+    @assert(view[2] == 'y''u8)
+}
+
+#test
+{
+    var storage: [6] u8 = ['b''u8, 'o''u8, 'x''u8, 'e''u8, 'd''u8, 0]
+    let text: const cstring = cast(const cstring) &storage[0]
+    let boxed: const any = text
+    let view = cast(const cstring) boxed
+
+    @assert(@countof(view) == 5)
+    @assert(view[0] == 'b''u8)
+    @assert(view[4] == 'd''u8)
+}

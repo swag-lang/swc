@@ -5,6 +5,14 @@ struct CannotCastConstBox
     value: s32
 }
 
+interface ICannotCastConst
+{
+}
+
+impl ICannotCastConst for CannotCastConstBox
+{
+}
+
 #test
 {
     var x: *s32 = null
@@ -22,13 +30,13 @@ struct CannotCastConstBox
 
 #test
 {
-    var text: cstring = cast(cstring) @dataof("abc")
+    var text: const cstring = cast(const cstring) @dataof("abc")
     var bytes = cast([..] u8) text // swc-expected-error {{sema_err_cannot_cast_const}}
 }
 
 #test
 {
-    var bytes = cast([..] u8) (cast(cstring) @dataof("abc")) // swc-expected-error {{sema_err_cannot_cast_const}}
+    var bytes = cast([..] u8) (cast(const cstring) @dataof("abc")) // swc-expected-error {{sema_err_cannot_cast_const}}
 }
 
 #test
@@ -77,6 +85,78 @@ struct CannotCastConstBox
 
 #test
 {
+    const data: [2] u8 = [1, 2]
+    let bytes = cast([..] u8) data // swc-expected-error {{sema_err_cannot_cast_const}}
+}
+
+#test
+{
     const value: CannotCastConstBox = {value: 1}
     let ptr = cast(*CannotCastConstBox) value // swc-expected-error {{sema_err_cannot_cast_const}}
+}
+
+#test
+{
+    const data: [3] u8 = ['a''u8, 'b''u8, 0]
+    let text = cast(cstring) data // swc-expected-error {{sema_err_cannot_cast_const}}
+}
+
+#test
+{
+    var data: [3] u8 = ['a''u8, 'b''u8, 0]
+    let ptr: const [*] u8 = cast(const [*] u8) &data[0]
+    let text = cast(cstring) ptr // swc-expected-error {{sema_err_cannot_cast_const}}
+}
+
+#test
+{
+    var value: CannotCastConstBox = {value: 1}
+    let ptr: const *CannotCastConstBox = &value
+    let itf = @mkinterface(ptr, CannotCastConstBox, ICannotCastConst)
+    let raw = cast(*CannotCastConstBox) @dataof(itf) // swc-expected-error {{sema_err_cannot_cast_const}}
+}
+
+#test
+{
+    var data: [3] u8 = ['a''u8, 'b''u8, 0]
+    let text: const cstring = cast(const cstring) &data[0]
+    let boxed = @mkany(&text, const cstring)
+    let mutable = cast(cstring) boxed // swc-expected-error {{sema_err_cannot_cast_const}}
+}
+
+#test
+{
+    var value: CannotCastConstBox = {value: 1}
+    let ptr: const *CannotCastConstBox = &value
+    let itf = @mkinterface(ptr, CannotCastConstBox, ICannotCastConst)
+    let boxed = @mkany(&itf, const ICannotCastConst)
+    let mutable = cast(ICannotCastConst) boxed // swc-expected-error {{sema_err_cannot_cast_const}}
+}
+
+#test
+{
+    var data: [3] u8 = ['a''u8, 'b''u8, 0]
+    let text: const cstring = cast(const cstring) &data[0]
+    var boxed: any = text // swc-expected-error {{sema_err_cannot_cast_const}}
+}
+
+#test
+{
+    const value: CannotCastConstBox = {value: 1}
+    var itf: ICannotCastConst = value // swc-expected-error {{sema_err_cannot_cast_const}}
+}
+
+#test
+{
+    var value: CannotCastConstBox = {value: 1}
+    let ptr: const *CannotCastConstBox = &value
+    var itf: ICannotCastConst = dref ptr // swc-expected-error {{sema_err_cannot_cast_const}}
+}
+
+#test
+{
+    var value: CannotCastConstBox = {value: 1}
+    let ref: const &CannotCastConstBox = &value
+    let itf = @mkinterface(ref, CannotCastConstBox, ICannotCastConst)
+    let raw = cast(*CannotCastConstBox) @dataof(itf) // swc-expected-error {{sema_err_cannot_cast_const}}
 }

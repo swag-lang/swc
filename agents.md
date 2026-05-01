@@ -13,21 +13,7 @@
     1. Compile a **DevMode** build.
     2. Run `test.bat dm`.
     3. If either step fails, fix the issue before proceeding.
-    4. Run `std.bat dm`.
     5. Run `all.bat dm`.
-
-- When `all.bat dm` completes successfully (no crashes or errors):
-    1. Compile `swc` in **Release** mode.
-    2. Run `all.bat`.
-    3. Ensure no regressions occur.
-
----
-
-### Determinism
-
-- When modifying **sema** or **code generation**:
-    - Run `test.bat` **10 consecutive times**.
-    - Investigate and fix any nondeterministic behavior.
 
 ---
 

@@ -8,6 +8,9 @@ struct Vec2
     y: s32
 }
 
+#[Swag.Strict]
+alias StructImplStrictVec2Ptr = *Vec2
+
 impl Vec2
 {
     mtd length2()->s32 => .x * .x + .y * .y
@@ -78,6 +81,16 @@ impl Vec2
     a.addInPlace(b)
     @assert(a.x == 12)
     @assert(a.y == 24)
+}
+
+#test
+{
+    var v: Vec2 = {x: 6, y: 8}
+    let p = cast(StructImplStrictVec2Ptr) &v
+    @assert(p.length2() == 100)
+    p.negate()
+    @assert(v.x == -6)
+    @assert(v.y == -8)
 }
 
 // Struct with nested struct and methods accessing nested fields.

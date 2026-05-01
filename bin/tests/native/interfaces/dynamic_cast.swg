@@ -31,6 +31,9 @@ impl INode for Derived
 {
 }
 
+#[Swag.Strict]
+alias DynamicCastStrictDerivedPtr = *Derived
+
 func runIntrinsicDynamicTypeInfo()->bool
 {
     let baseType:    typeinfo = Base
@@ -55,13 +58,21 @@ func runIntrinsicDynamicTypeInfo()->bool
     if baseRaw == null do
         return false
 
+    let strictDerivedPtr = cast(DynamicCastStrictDerivedPtr) &derived
+    let strictBaseRaw = @as(baseType, derivedType, strictDerivedPtr)
+    if strictBaseRaw == null do
+        return false
+
     let intPtr  = cast(*s32) intRaw
     let basePtr = cast(*Base) baseRaw
+    let strictBasePtr = cast(*Base) strictBaseRaw
     if intPtr != &number or dref intPtr != 45 do
         return false
     if @as(bool, intType, &number) != null do
         return false
     if basePtr != &derived.mid.base do
+        return false
+    if strictBasePtr != &derived.mid.base do
         return false
 
     return true

@@ -86,6 +86,19 @@ namespace
         TypeRef  memberTypeRef = TypeRef::invalid();
     };
 
+    const TypeInfo& aliasEnumType(CodeGen& codeGen, const SemaNodeView& view)
+    {
+        const TypeRef typeRef = codeGen.typeMgr().unwrapAliasEnum(codeGen.ctx(), view.typeRef());
+        SWC_ASSERT(typeRef.isValid());
+        return codeGen.typeMgr().get(typeRef);
+    }
+
+    bool isPointerOrReferenceAliasAware(CodeGen& codeGen, const SemaNodeView& view)
+    {
+        const TypeInfo& typeInfo = aliasEnumType(codeGen, view);
+        return typeInfo.isPointerOrReference();
+    }
+
     bool resolveAggregateMemberInfo(CodeGen& codeGen, const TypeInfo& aggregateType, AstNodeRef memberRef, AggregateMemberInfo& outInfo)
     {
         if (!aggregateType.isAggregateStruct())
@@ -130,7 +143,7 @@ namespace
     {
         MicroBuilder& builder = codeGen.builder();
 
-        if (leftTypeView.type() && leftTypeView.type()->isReference() && leftPayload.isAddress())
+        if (leftTypeView.type() && aliasEnumType(codeGen, leftTypeView).isReference() && leftPayload.isAddress())
         {
             const MicroReg baseAddressReg = codeGen.nextVirtualIntRegister();
             builder.emitLoadRegMem(baseAddressReg, leftPayload.reg, 0, MicroOpBits::B64);
@@ -155,7 +168,7 @@ namespace
     bool shouldTreatStructMemberLeftAsValue(CodeGen& codeGen, AstNodeRef leftRef, const CodeGenNodePayload& leftPayload)
     {
         const SemaNodeView leftTypeView = codeGen.viewType(leftRef);
-        if (leftTypeView.type() && leftTypeView.type()->isReference())
+        if (leftTypeView.type() && aliasEnumType(codeGen, leftTypeView).isReference())
             return false;
 
         if (leftPayload.isValue())
@@ -191,7 +204,7 @@ namespace
             resolveStructMemberPath(codeGen, leftTypeView.typeRef(), symVar, usingPath);
 
         MicroReg baseAddressReg = leftPayload.reg;
-        if (leftTypeView.type() && (leftTypeView.type()->isPointerOrReference() || leftTypeView.type()->isTypeInfo()))
+        if (leftTypeView.type() && (isPointerOrReferenceAliasAware(codeGen, leftTypeView) || leftTypeView.type()->isTypeInfo()))
         {
             // Member access through a pointer/reference or `typeinfo` works on the pointee object, not
             // on the storage that currently holds that pointer value.

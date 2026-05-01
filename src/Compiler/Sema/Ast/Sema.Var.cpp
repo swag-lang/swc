@@ -853,6 +853,8 @@ namespace
         if (storageTypeRef == sema.typeMgr().typeVoid())
             return reportBadStorageType(sema, context, finalTypeRef);
 
+        const TypeInfo& storageType = sema.typeMgr().get(storageTypeRef);
+
         if (isConst && finalType.isReference())
             return reportConstRefType(sema, SourceCodeRef{context.owner->srcViewRef(), context.tokDiag}, finalTypeRef);
 
@@ -871,9 +873,13 @@ namespace
 
         if (isUsing)
         {
-            if (!finalType.isStruct())
+            if (!storageType.isStruct())
             {
-                if (!finalType.isAnyPointer() || !sema.typeMgr().get(finalType.payloadTypeRef()).isStruct())
+                TypeRef usingTargetTypeRef = TypeRef::invalid();
+                if (storageType.isAnyPointer())
+                    usingTargetTypeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), storageType.payloadTypeRef());
+
+                if (!usingTargetTypeRef.isValid() || !sema.typeMgr().get(usingTargetTypeRef).isStruct())
                 {
                     Diagnostic diag = SemaError::report(sema, DiagnosticId::sema_err_using_member_type, SourceCodeRef{context.owner->srcViewRef(), context.tokDiag});
                     diag.addArgument(Diagnostic::ARG_TYPE, finalTypeRef);

@@ -88,9 +88,19 @@ namespace
         return *payload;
     }
 
-    void markIntrinsicOperandAddressableStorage(const SemaNodeView& operandView)
+    const TypeInfo* normalizedIntrinsicOperandType(Sema& sema, const SemaNodeView& operandView)
     {
-        if (!operandView.sym() || !operandView.sym()->isVariable() || !operandView.type() || operandView.type()->isReference() || operandView.type()->isAnyPointer())
+        if (!operandView.type())
+            return nullptr;
+
+        const TypeRef typeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), operandView.typeRef());
+        return &sema.typeMgr().get(typeRef);
+    }
+
+    void markIntrinsicOperandAddressableStorage(Sema& sema, const SemaNodeView& operandView)
+    {
+        const TypeInfo* operandType = normalizedIntrinsicOperandType(sema, operandView);
+        if (!operandView.sym() || !operandView.sym()->isVariable() || !operandType || operandType->isReference() || operandType->isAnyPointer())
             return;
 
         auto& symVar = operandView.sym()->cast<SymbolVariable>();
@@ -104,25 +114,26 @@ namespace
         const SemaNodeView whatView = sema.viewNodeTypeSymbol(whatRef);
         SWC_RESULT(SemaCheck::isValue(sema, whatView.nodeRef()));
 
+        const TypeInfo* whatType = normalizedIntrinsicOperandType(sema, whatView);
         if (countRef.isValid())
         {
             SemaNodeView countView = sema.viewNodeTypeConstant(countRef);
             SWC_RESULT(SemaCheck::isValue(sema, countView.nodeRef()));
             SWC_RESULT(Cast::cast(sema, countView, sema.typeMgr().typeU64(), CastKind::Implicit));
 
-            if (!whatView.type() || (!whatView.type()->isAnyPointer() && !whatView.type()->isReference()))
+            if (!whatType || (!whatType->isAnyPointer() && !whatType->isReference()))
                 return SemaError::raiseRequestedTypeFam(sema, whatView.nodeRef(), whatView.typeRef(), sema.typeMgr().typeBlockPtrVoid());
             return Result::Continue;
         }
 
-        if (whatView.type() && (whatView.type()->isAnyPointer() || whatView.type()->isReference()))
+        if (whatType && (whatType->isAnyPointer() || whatType->isReference()))
             return Result::Continue;
 
         SWC_ASSERT(whatView.node() != nullptr);
         if (!sema.isLValue(*whatView.node()))
             return SemaError::raise(sema, DiagnosticId::sema_err_take_address_not_lvalue, whatView.nodeRef());
 
-        markIntrinsicOperandAddressableStorage(whatView);
+        markIntrinsicOperandAddressableStorage(sema, whatView);
         return Result::Continue;
     }
 
@@ -526,7 +537,13 @@ namespace
             return SemaError::raiseRequestedTypeFam(sema, toTypeView.nodeRef(), toTypeView.typeRef(), sema.typeMgr().typeTypeInfo());
         if (!isMakeInterfaceTypeInfoOperand(sema, fromTypeView))
             return SemaError::raiseRequestedTypeFam(sema, fromTypeView.nodeRef(), fromTypeView.typeRef(), sema.typeMgr().typeTypeInfo());
-        if (!ptrView.type() || !ptrView.type()->isPointerOrReference())
+
+        if (!ptrView.type())
+            return SemaError::raiseRequestedTypeFam(sema, ptrView.nodeRef(), ptrView.typeRef(), sema.typeMgr().typeValuePtrVoid());
+
+        const TypeRef   ptrTypeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), ptrView.typeRef());
+        const TypeInfo& ptrType    = sema.typeMgr().get(ptrTypeRef);
+        if (!ptrType.isPointerOrReference())
             return SemaError::raiseRequestedTypeFam(sema, ptrView.nodeRef(), ptrView.typeRef(), sema.typeMgr().typeValuePtrVoid());
 
         const TypeRef resultTypeRef = sema.typeMgr().addType(TypeInfo::makeValuePointer(sema.typeMgr().typeVoid(), TypeInfoFlagsE::Nullable));

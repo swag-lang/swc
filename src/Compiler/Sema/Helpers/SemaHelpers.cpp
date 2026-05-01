@@ -28,11 +28,22 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    TypeRef aliasEnumTypeRef(Sema& sema, TypeRef typeRef)
+    {
+        const TypeRef unwrappedTypeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), typeRef);
+        SWC_ASSERT(unwrappedTypeRef.isValid());
+        return unwrappedTypeRef;
+    }
+
     const TypeInfo& aliasEnumType(Sema& sema, const SemaNodeView& view)
     {
-        const TypeRef typeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), view.typeRef());
-        SWC_ASSERT(typeRef.isValid());
-        return sema.typeMgr().get(typeRef);
+        return sema.typeMgr().get(aliasEnumTypeRef(sema, view.typeRef()));
+    }
+
+    bool isPointerOrReferenceAliasAware(Sema& sema, const SemaNodeView& view)
+    {
+        const TypeInfo& typeInfo = aliasEnumType(sema, view);
+        return typeInfo.isAnyPointer() || typeInfo.isReference();
     }
 }
 
@@ -1654,7 +1665,7 @@ namespace
             return Result::SkipChildren;
         }
 
-        if (nodeLeftView.type()->isAnyPointer() || nodeLeftView.type()->isReference() || sema.isLValue(node.nodeLeftRef))
+        if (isPointerOrReferenceAliasAware(sema, nodeLeftView) || sema.isLValue(node.nodeLeftRef))
             sema.setIsLValue(node);
 
         if (finalSymCount == 1 && symbols[0]->isVariable() && needsStructMemberRuntimeStorage(sema, node, nodeLeftView))
@@ -1824,9 +1835,15 @@ Result SemaHelpers::resolveMemberAccess(Sema& sema, AstNodeRef memberRef, AstMem
         SWC_ASSERT(typeInfoRef.isValid());
         typeInfo = &sema.typeMgr().get(typeInfoRef);
     }
-    else if (typeInfo->isAnyPointer() || typeInfo->isReference())
+    else
     {
-        typeInfo = &sema.typeMgr().get(typeInfo->payloadTypeRef());
+        TypeRef typeRef = aliasEnumTypeRef(sema, nodeLeftView.typeRef());
+        typeInfo        = &sema.typeMgr().get(typeRef);
+        if (typeInfo->isAnyPointer() || typeInfo->isReference())
+        {
+            typeRef  = aliasEnumTypeRef(sema, typeInfo->payloadTypeRef());
+            typeInfo = &sema.typeMgr().get(typeRef);
+        }
     }
 
     // Aggregate struct through pointer/reference
@@ -1838,9 +1855,10 @@ Result SemaHelpers::resolveMemberAccess(Sema& sema, AstNodeRef memberRef, AstMem
         return memberStruct(sema, memberRef, node, nodeLeftView, idRef, tokNameRef, allowOverloadSet, *typeInfo);
 
     // Pointer/Reference
-    if (nodeLeftView.type()->isAnyPointer() || nodeLeftView.type()->isReference())
+    const TypeInfo& leftType = aliasEnumType(sema, nodeLeftView);
+    if (leftType.isAnyPointer() || leftType.isReference())
     {
-        sema.setType(memberRef, nodeLeftView.type()->payloadTypeRef());
+        sema.setType(memberRef, leftType.payloadTypeRef());
         sema.setIsValue(node);
         return Result::SkipChildren;
     }

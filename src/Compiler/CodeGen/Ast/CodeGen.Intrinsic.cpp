@@ -299,7 +299,8 @@ namespace
         if (whatTypeRef.isInvalid())
             return MicroReg::invalid();
 
-        const TypeInfo& whatType = codeGen.typeMgr().get(whatTypeRef);
+        const TypeRef   normalizedWhatTypeRef = normalizeIntrinsicLifecycleTypeRef(codeGen, whatTypeRef);
+        const TypeInfo& whatType              = codeGen.typeMgr().get(normalizedWhatTypeRef);
         if (whatType.isReference() || whatType.isAnyPointer())
         {
             if (!whatPayload.isAddress())

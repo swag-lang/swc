@@ -5,6 +5,9 @@ struct Inner
     x: s32
 }
 
+#[Swag.Strict]
+alias StructUsingStrictInnerPtr = *Inner
+
 struct OuterValue
 {
     using v: Inner
@@ -13,6 +16,11 @@ struct OuterValue
 struct OuterPtr
 {
     using p: *Inner
+}
+
+struct OuterStrictPtr
+{
+    using p: StructUsingStrictInnerPtr
 }
 
 struct OuterAnonymousStruct
@@ -51,6 +59,17 @@ struct OuterAnonymousUnion
     let x = a.x
     #assert(#typeof(x) == s32)
     @assert(x == 6)
+}
+
+#test
+{
+    var inner: Inner
+    inner.x = 8
+    var a: OuterStrictPtr
+    a.p = cast(StructUsingStrictInnerPtr) &inner
+    let x = a.x
+    #assert(#typeof(x) == s32)
+    @assert(x == 8)
 }
 
 #test

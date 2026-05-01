@@ -69,6 +69,9 @@ impl Tracked
     }
 }
 
+#[Swag.Strict]
+alias LifecycleStrictTrackedPtr = *Tracked
+
 struct EmbeddedTracked
 {
     inner: Tracked
@@ -181,6 +184,16 @@ func intrinsicArrayCountInfo()->IntrinsicInfo
     return {arr[0].value, arr[1].value, arr[2].value, DropCount, DropTrace, PostCopyCount, PostMoveCount}
 }
 
+func intrinsicStrictAliasPointerCountInfo()->IntrinsicInfo
+{
+    resetLifecycleHooks()
+    var arr: [2] Tracked = [Tracked{5}, Tracked{6}]
+    let ptr = cast(LifecycleStrictTrackedPtr) &arr[0]
+    @postmove(ptr, 2)
+    @drop(ptr, 2)
+    return {arr[0].value, arr[1].value, 0, DropCount, DropTrace, PostCopyCount, PostMoveCount}
+}
+
 func intrinsicEmbeddedInfo()->IntrinsicInfo
 {
     resetLifecycleHooks()
@@ -283,6 +296,17 @@ func intrinsicReceiverLifecycleInfo()->IntrinsicInfo
     @assert(v.third == 3)
     @assert(v.drops == 2)
     @assert(v.dropTrace == 2122)
+    @assert(v.postCopy == 0)
+    @assert(v.postMove == 2)
+}
+
+#test
+{
+    let v = intrinsicStrictAliasPointerCountInfo()
+    @assert(v.first == 25)
+    @assert(v.second == 26)
+    @assert(v.drops == 2)
+    @assert(v.dropTrace == 2526)
     @assert(v.postCopy == 0)
     @assert(v.postMove == 2)
 }

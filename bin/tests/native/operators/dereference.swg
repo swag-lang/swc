@@ -33,6 +33,23 @@ struct DereferenceStrictAA
     @assert(v1.x == 12)
 }
 
+// Member access through strict alias pointer
+#test
+{
+    var st = DereferenceStrictAA{x: 19}
+    let v = cast(DereferenceStrictAAPtr) &st
+    @assert(v.x == 19)
+}
+
+// Member write through strict alias pointer
+#test
+{
+    var st = DereferenceStrictAA{x: 23}
+    let v = cast(DereferenceStrictAAPtr) &st
+    v.x = 31
+    @assert(st.x == 31)
+}
+
 // Dereference const pointer to struct
 #test
 {

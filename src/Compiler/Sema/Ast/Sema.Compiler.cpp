@@ -1177,9 +1177,11 @@ namespace
         SemaNodeView     view     = sema.viewType(childRef);
         SWC_ASSERT(view.typeRef().isValid());
 
-        if (view.type()->isEnum())
+        const TypeRef enumTypeRef = view.type()->unwrap(sema.ctx(), view.typeRef(), TypeExpandE::Alias);
+        const TypeInfo& enumType  = sema.typeMgr().get(enumTypeRef);
+        if (enumType.isEnum())
         {
-            const TypeRef     typeRef = view.type()->payloadSymEnum().underlyingTypeRef();
+            const TypeRef     typeRef = enumType.payloadSymEnum().underlyingTypeRef();
             const ConstantRef cstRef  = sema.cstMgr().addConstant(sema.ctx(), ConstantValue::makeTypeValue(sema.ctx(), typeRef));
             sema.setConstant(sema.curNodeRef(), cstRef);
             return Result::Continue;

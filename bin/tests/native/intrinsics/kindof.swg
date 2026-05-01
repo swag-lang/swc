@@ -124,6 +124,14 @@ struct Point { x: s32, y: s32 }
 
 enum Kind: u8 { A = 1, B = 2 }
 
+alias KindAlias = Kind
+
+#[Swag.Strict]
+alias StrictKindAlias = Kind
+
+#assert(#kindof(KindAlias) == u8)
+#assert(#kindof(StrictKindAlias) == u8)
+
 #test
 {
     var k = Kind.A

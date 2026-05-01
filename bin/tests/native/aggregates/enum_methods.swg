@@ -133,3 +133,42 @@ enum Slot: u8 { A, B, C }
     @assert(values[cast(u8) Slot.B] == 20)
     @assert(values[cast(u8) Slot.C] == 30)
 }
+
+enum ImportedAliasErrors { FailedToLoad, FailedToSave }
+
+alias ImportedAliasErrorsAlias = ImportedAliasErrors
+
+#[Swag.Strict]
+alias StrictImportedAliasErrorsAlias = ImportedAliasErrors
+
+enum ImportedErrorsThroughAlias
+{
+    using ImportedAliasErrorsAlias
+    Missing = 100
+}
+
+enum ImportedErrorsThroughStrictAlias
+{
+    using StrictImportedAliasErrorsAlias
+    Denied = 200
+}
+
+#test
+{
+    #assert(#typeof(ImportedErrorsThroughAlias.FailedToLoad) == ImportedAliasErrors)
+    #assert(#typeof(ImportedErrorsThroughStrictAlias.FailedToSave) == ImportedAliasErrors)
+    @assert(ImportedErrorsThroughAlias.FailedToSave == ImportedAliasErrors.FailedToSave)
+    @assert(ImportedErrorsThroughStrictAlias.FailedToLoad == ImportedAliasErrors.FailedToLoad)
+    @assert(ImportedErrorsThroughAlias.Missing == 100)
+    @assert(ImportedErrorsThroughStrictAlias.Denied == 200)
+}
+
+#test
+{
+    let loaded = ImportedAliasErrorsAlias.FailedToLoad
+    let saved = StrictImportedAliasErrorsAlias.FailedToSave
+    #assert(#typeof(loaded) == ImportedAliasErrors)
+    #assert(#typeof(saved) == ImportedAliasErrors)
+    @assert(loaded == ImportedAliasErrors.FailedToLoad)
+    @assert(saved == ImportedAliasErrors.FailedToSave)
+}

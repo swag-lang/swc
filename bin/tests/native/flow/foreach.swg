@@ -1,5 +1,17 @@
 #global fileprivate // 
 
+enum ForeachAliasPriority: u32
+{
+    Low    = 1
+    Normal = 5
+    High   = 10
+}
+
+alias ForeachPriorityAlias = ForeachAliasPriority
+
+#[Swag.Strict]
+alias StrictForeachPriorityAlias = ForeachAliasPriority
+
 #test
 {
     var arr: [3] s32 = [1, 2, 3]
@@ -190,4 +202,36 @@
         mask |= cast(u32) value
 
     @assert(mask == 7)
+}
+
+#test
+{
+    var sumV: u32
+    var sumI: u64
+    foreach value, idx in ForeachPriorityAlias
+    {
+        #assert(#typeof(value) == ForeachAliasPriority)
+        #assert(#typeof(idx) == u64)
+        sumV += cast(u32) value
+        sumI += idx
+    }
+
+    @assert(sumV == 16)
+    @assert(sumI == 3)
+}
+
+#test
+{
+    var sumV: u32
+    var sumI: u64
+    foreach value, idx in StrictForeachPriorityAlias
+    {
+        #assert(#typeof(value) == ForeachAliasPriority)
+        #assert(#typeof(idx) == u64)
+        sumV += cast(u32) value
+        sumI += idx
+    }
+
+    @assert(sumV == 16)
+    @assert(sumI == 3)
 }

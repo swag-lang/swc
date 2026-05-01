@@ -10,6 +10,7 @@
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Compiler/Sema/Helpers/SemaSpecOp.h"
+#include "Compiler/Sema/Symbol/Symbol.Alias.h"
 #include "Compiler/Sema/Symbol/Symbol.Enum.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
@@ -73,14 +74,38 @@ namespace
         return sema.typeMgr().addType(TypeInfo::makeArray(dims.span(), elemTypeRef));
     }
 
+    const SymbolEnum* enumSymbolFromTypeRef(Sema& sema, TypeRef typeRef)
+    {
+        if (!typeRef.isValid())
+            return nullptr;
+
+        const TypeInfo& type = sema.typeMgr().get(typeRef);
+        TypeRef         unwrappedTypeRef = type.unwrap(sema.ctx(), typeRef, TypeExpandE::Alias);
+        if (!unwrappedTypeRef.isValid())
+            unwrappedTypeRef = typeRef;
+
+        const TypeInfo& unwrappedType = sema.typeMgr().get(unwrappedTypeRef);
+        if (!unwrappedType.isEnum())
+            return nullptr;
+
+        return &unwrappedType.payloadSymEnum();
+    }
+
     const SymbolEnum* enumTypeExprSymbol(Sema& sema, const SemaNodeView& exprView)
     {
-        if (exprView.type() && exprView.type()->isEnum())
-            return &exprView.type()->payloadSymEnum();
+        if (const SymbolEnum* symEnum = enumSymbolFromTypeRef(sema, exprView.typeRef()))
+            return symEnum;
 
         const SemaNodeView symView = sema.viewSymbol(exprView.nodeRef());
         if (symView.sym() && symView.sym()->isEnum())
             return &symView.sym()->cast<SymbolEnum>();
+        if (symView.sym() && symView.sym()->isAlias())
+        {
+            const auto& symAlias = symView.sym()->cast<SymbolAlias>();
+            if (symAlias.aliasedSymbol() && symAlias.aliasedSymbol()->isEnum())
+                return &symAlias.aliasedSymbol()->cast<SymbolEnum>();
+            return enumSymbolFromTypeRef(sema, symAlias.underlyingTypeRef());
+        }
 
         return nullptr;
     }

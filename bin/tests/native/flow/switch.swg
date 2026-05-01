@@ -11,6 +11,15 @@ struct SwitchAnyDerived
     extra: s32 = 20
 }
 
+enum SwitchStrictAliasEnum : s32
+{
+    A = 1,
+    B = 2,
+}
+
+#[Swag.Strict]
+alias StrictSwitchAliasEnum = SwitchStrictAliasEnum
+
 #test
 {
     var v = 2
@@ -68,6 +77,25 @@ struct SwitchAnyDerived
     switch v
     {
         case E.A:
+            hit = 1
+            break
+        case .B:
+            hit = 2
+            break
+        default:
+            hit = 3
+            break
+    }
+    @assert(hit == 2)
+}
+
+#test
+{
+    var v = cast(StrictSwitchAliasEnum) SwitchStrictAliasEnum.B
+    var hit = 0
+    switch v
+    {
+        case .A:
             hit = 1
             break
         case .B:

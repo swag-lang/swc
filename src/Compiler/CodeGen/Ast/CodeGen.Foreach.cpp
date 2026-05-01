@@ -11,6 +11,7 @@
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
+#include "Compiler/Sema/Symbol/Symbol.Alias.h"
 #include "Compiler/Sema/Symbol/Symbol.Enum.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
@@ -171,23 +172,55 @@ namespace
         return codeGen.viewType(exprRef);
     }
 
+    const SymbolEnum* enumSymbolFromTypeRef(CodeGen& codeGen, TypeRef typeRef)
+    {
+        if (!typeRef.isValid())
+            return nullptr;
+
+        const TypeInfo& type = codeGen.typeMgr().get(typeRef);
+        TypeRef         unwrappedTypeRef = type.unwrap(codeGen.ctx(), typeRef, TypeExpandE::Alias);
+        if (!unwrappedTypeRef.isValid())
+            unwrappedTypeRef = typeRef;
+
+        const TypeInfo& unwrappedType = codeGen.typeMgr().get(unwrappedTypeRef);
+        if (!unwrappedType.isEnum())
+            return nullptr;
+
+        return &unwrappedType.payloadSymEnum();
+    }
+
     const SymbolEnum* foreachExprEnumSymbol(CodeGen& codeGen, AstNodeRef exprRef)
     {
         const SemaNodeView storedTypeView = codeGen.sema().viewStored(exprRef, SemaNodeViewPartE::Type);
-        if (storedTypeView.type() && storedTypeView.type()->isEnum())
-            return &storedTypeView.type()->payloadSymEnum();
+        if (const SymbolEnum* symEnum = enumSymbolFromTypeRef(codeGen, storedTypeView.typeRef()))
+            return symEnum;
 
         const SemaNodeView typeView = codeGen.viewType(exprRef);
-        if (typeView.type() && typeView.type()->isEnum())
-            return &typeView.type()->payloadSymEnum();
+        if (const SymbolEnum* symEnum = enumSymbolFromTypeRef(codeGen, typeView.typeRef()))
+            return symEnum;
 
         const SemaNodeView storedView = codeGen.sema().viewStored(exprRef, SemaNodeViewPartE::Symbol);
         if (storedView.sym() && storedView.sym()->isEnum())
             return &storedView.sym()->cast<SymbolEnum>();
+        if (storedView.sym() && storedView.sym()->isAlias())
+        {
+            const auto& symAlias = storedView.sym()->cast<SymbolAlias>();
+            if (symAlias.aliasedSymbol() && symAlias.aliasedSymbol()->isEnum())
+                return &symAlias.aliasedSymbol()->cast<SymbolEnum>();
+            if (const SymbolEnum* symEnum = enumSymbolFromTypeRef(codeGen, symAlias.underlyingTypeRef()))
+                return symEnum;
+        }
 
         const SemaNodeView symbolView = codeGen.viewSymbol(exprRef);
         if (symbolView.sym() && symbolView.sym()->isEnum())
             return &symbolView.sym()->cast<SymbolEnum>();
+        if (symbolView.sym() && symbolView.sym()->isAlias())
+        {
+            const auto& symAlias = symbolView.sym()->cast<SymbolAlias>();
+            if (symAlias.aliasedSymbol() && symAlias.aliasedSymbol()->isEnum())
+                return &symAlias.aliasedSymbol()->cast<SymbolEnum>();
+            return enumSymbolFromTypeRef(codeGen, symAlias.underlyingTypeRef());
+        }
 
         return nullptr;
     }

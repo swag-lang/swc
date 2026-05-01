@@ -43,6 +43,22 @@ namespace
         return typeInfo.isInterface() || typeInfo.isAny();
     }
 
+    TypeRef switchEnumTypeRef(Sema& sema, TypeRef typeRef)
+    {
+        const TypeRef enumTypeRef = sema.typeMgr().get(typeRef).unwrap(sema.ctx(), typeRef, TypeExpandE::Alias);
+        if (sema.typeMgr().get(enumTypeRef).isEnum())
+            return enumTypeRef;
+        return TypeRef::invalid();
+    }
+
+    TypeRef switchCaseCastTypeRef(Sema& sema, TypeRef switchTypeRef)
+    {
+        const TypeRef enumTypeRef = switchEnumTypeRef(sema, switchTypeRef);
+        if (enumTypeRef.isValid())
+            return enumTypeRef;
+        return switchTypeRef;
+    }
+
     TypeRef dynamicStructSwitchExprTypeRef(Sema& sema, AstNodeRef switchRef)
     {
         if (!switchRef.isValid() || sema.node(switchRef).isNot(AstNodeId::SwitchStmt))
@@ -285,8 +301,11 @@ Result AstSwitchStmt::semaPostNode(Sema& sema)
     if (!payload->isComplete || payload->exprTypeRef.isInvalid())
         return Result::Continue;
 
-    const TypeRef   enumTypeRef = sema.typeMgr().get(payload->exprTypeRef).unwrap(sema.ctx(), payload->exprTypeRef, TypeExpandE::Alias);
-    const TypeInfo& enumType    = sema.typeMgr().get(enumTypeRef);
+    const TypeRef enumTypeRef = switchEnumTypeRef(sema, payload->exprTypeRef);
+    if (enumTypeRef.isInvalid())
+        return Result::Continue;
+
+    const TypeInfo& enumType = sema.typeMgr().get(enumTypeRef);
     if (!enumType.isEnum())
         return Result::Continue;
 
@@ -354,10 +373,11 @@ Result AstSwitchStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) 
 
         SWC_RESULT(setupSwitchRuntimeSafety(sema, *payload, codeRef()));
 
-        if (type.isEnum())
+        const TypeRef enumTypeRef = switchEnumTypeRef(sema, exprView.typeRef());
+        if (enumTypeRef.isValid())
         {
             SemaFrame frame = sema.frame();
-            frame.pushBindingType(exprView.typeRef());
+            frame.pushBindingType(enumTypeRef);
             sema.pushFramePopOnPostNode(frame);
         }
     }
@@ -427,8 +447,8 @@ Result AstSwitchCaseStmt::semaPreNodeChild(Sema& sema, AstNodeRef& childRef) con
     // If the switch is on an enum, allow shorthand by rewriting it to an
     // auto-member-access expression (equivalent to `.Value`), which will resolve in the
     // enum scope provided by the binding type pushed from the parent switch.
-    const TypeRef enumTypeRef = sema.typeMgr().get(switchTypeRef).unwrap(sema.ctx(), switchTypeRef, TypeExpandE::Alias);
-    if (sema.typeMgr().get(enumTypeRef).isEnum() && sema.node(childRef).is(AstNodeId::Identifier))
+    const TypeRef enumTypeRef = switchEnumTypeRef(sema, switchTypeRef);
+    if (enumTypeRef.isValid() && sema.node(childRef).is(AstNodeId::Identifier))
     {
         auto [nodeRef, nodePtr] = sema.ast().makeNode<AstNodeId::AutoMemberAccessExpr>(sema.node(childRef).tokRef());
         nodePtr->nodeIdentRef   = childRef;
@@ -443,7 +463,7 @@ namespace
     Result castCaseToSwitch(Sema& sema, AstNodeRef nodeRef, TypeRef switchTypeRef)
     {
         SemaNodeView view = sema.viewNodeTypeConstant(nodeRef);
-        return Cast::cast(sema, view, switchTypeRef, CastKind::Implicit);
+        return Cast::cast(sema, view, switchCaseCastTypeRef(sema, switchTypeRef), CastKind::Implicit);
     }
 
     Result checkCaseExprIsConst(Sema& sema, const AstNodeRef& exprRef)

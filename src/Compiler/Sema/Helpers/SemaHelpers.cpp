@@ -40,6 +40,19 @@ namespace
         return sema.typeMgr().get(aliasEnumTypeRef(sema, view.typeRef()));
     }
 
+    const SymbolEnum* enumSymbolFromTypeRef(Sema& sema, TypeRef typeRef)
+    {
+        if (!typeRef.isValid())
+            return nullptr;
+
+        const TypeRef enumTypeRef = sema.typeMgr().get(typeRef).unwrap(sema.ctx(), typeRef, TypeExpandE::Alias);
+        const TypeInfo& enumType  = sema.typeMgr().get(enumTypeRef);
+        if (enumType.isEnum())
+            return &enumType.payloadSymEnum();
+
+        return nullptr;
+    }
+
     bool isPointerOrReferenceAliasAware(Sema& sema, const SemaNodeView& view)
     {
         const TypeInfo& typeInfo = aliasEnumType(sema, view);
@@ -1589,9 +1602,8 @@ namespace
         return lookupScopedMember(sema, targetNodeRef, node, namespaceSym, idRef, tokNameRef, allowOverloadSet);
     }
 
-    Result memberEnum(Sema& sema, AstNodeRef targetNodeRef, const AstMemberAccessExpr& node, const SemaNodeView& nodeLeftView, const IdentifierRef& idRef, TokenRef tokNameRef, bool allowOverloadSet)
+    Result memberEnum(Sema& sema, AstNodeRef targetNodeRef, const AstMemberAccessExpr& node, const SymbolEnum& enumSym, const IdentifierRef& idRef, TokenRef tokNameRef, bool allowOverloadSet)
     {
-        const SymbolEnum&   enumSym = nodeLeftView.type()->payloadSymEnum();
         const SourceCodeRef codeRef{node.srcViewRef(), tokNameRef};
         SWC_RESULT(sema.waitSemaCompleted(&enumSym, codeRef));
 
@@ -1785,8 +1797,8 @@ Result SemaHelpers::resolveMemberAccess(Sema& sema, AstNodeRef memberRef, AstMem
     SWC_ASSERT(nodeLeftView.type());
 
     // Enum
-    if (nodeLeftView.type()->isEnum())
-        return memberEnum(sema, memberRef, node, nodeLeftView, idRef, tokNameRef, allowOverloadSet);
+    if (const SymbolEnum* enumSym = enumSymbolFromTypeRef(sema, nodeLeftView.typeRef()))
+        return memberEnum(sema, memberRef, node, *enumSym, idRef, tokNameRef, allowOverloadSet);
 
     // Interface
     if (nodeLeftView.type()->isInterface())

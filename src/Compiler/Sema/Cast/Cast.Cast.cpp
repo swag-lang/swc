@@ -32,6 +32,36 @@ namespace
         return totalCount;
     }
 
+    uint64_t pointerValueFromCStringConstant(const ConstantValue& cst)
+    {
+        if (cst.isBlockPointer())
+            return cst.getBlockPointer();
+        if (cst.isValuePointer())
+            return cst.getValuePointer();
+        if (cst.isNull())
+            return 0;
+
+        SWC_ASSERT(false);
+        return 0;
+    }
+
+    std::string_view stringViewFromCStringConstant(const ConstantValue& cst)
+    {
+        const uint64_t ptrValue = pointerValueFromCStringConstant(cst);
+        if (!ptrValue)
+            return {};
+
+        const auto* ptr = reinterpret_cast<const char*>(ptrValue);
+        return {ptr, std::strlen(ptr)};
+    }
+
+    ByteSpan byteSpanFromCStringView(std::string_view view)
+    {
+        if (view.empty())
+            return {};
+        return {reinterpret_cast<const std::byte*>(view.data()), view.size()};
+    }
+
     CastRequest makeNestedCastRequest(const CastRequest& parent)
     {
         CastRequest nested(parent.kind);
@@ -1615,6 +1645,26 @@ Result Cast::castToSlice(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRe
         }
     }
 
+    // cstring -> const [..] u8
+    if (srcType.isCString())
+    {
+        if (castRequest.kind == CastKind::Explicit && dstType.payloadTypeRef() == typeMgr.typeU8())
+        {
+            if (!dstType.isConst() && !castRequest.flags.has(CastFlagsE::UnConst))
+                return castRequest.fail(DiagnosticId::sema_err_cannot_cast_const, srcTypeRef, dstTypeRef);
+
+            if (castRequest.isConstantFolding())
+            {
+                const ConstantValue& srcCst = sema.cstMgr().get(castRequest.constantFoldingSrc());
+                const std::string_view view = stringViewFromCStringConstant(srcCst);
+                const ConstantValue sliceCst = ConstantValue::makeSliceBorrowedCounted(ctx, dstType.payloadTypeRef(), byteSpanFromCStringView(view), view.size(), dstType.flags());
+                castRequest.outConstRef      = sema.cstMgr().addConstant(ctx, sliceCst);
+            }
+
+            return Result::Continue;
+        }
+    }
+
     if (srcType.isAggregateArray())
     {
         const auto dstElemTypeRef = dstType.payloadTypeRef();
@@ -1761,6 +1811,21 @@ Result Cast::castToString(Sema& sema, CastRequest& castRequest, TypeRef srcTypeR
             return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
 
         return Result::Continue;
+    }
+
+    if (srcType.isCString())
+    {
+        if (castRequest.kind == CastKind::Explicit)
+        {
+            if (castRequest.isConstantFolding())
+            {
+                const ConstantValue& srcCst = sema.cstMgr().get(castRequest.constantFoldingSrc());
+                const ConstantValue  strCst = ConstantValue::makeString(sema.ctx(), stringViewFromCStringConstant(srcCst));
+                castRequest.outConstRef     = sema.cstMgr().addConstant(sema.ctx(), strCst);
+            }
+
+            return Result::Continue;
+        }
     }
 
     if (srcType.isArray())

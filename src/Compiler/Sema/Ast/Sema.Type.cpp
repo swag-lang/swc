@@ -297,6 +297,7 @@ Result AstQualifiedType::semaPostNode(Sema& sema) const
             case TypeInfoKind::Reference:
             case TypeInfoKind::MoveReference:
             case TypeInfoKind::Slice:
+            case TypeInfoKind::CString:
                 break;
             default:
                 const SourceView& srcView     = sema.compiler().srcView(srcViewRef());

@@ -19,6 +19,9 @@ alias MkanyStrictS32Ptr = *s32
 alias MkanyStrictVoidPtr = *void
 
 #[Swag.Strict]
+alias MkanyStrictS32 = s32
+
+#[Swag.Strict]
 alias MkanyStrictTypeInfo = typeinfo
 
 #test
@@ -227,4 +230,13 @@ func mkanyCastStringToBytesFromAny(value: any)->u64
 
     @assert(@kindof(boxed) == s32)
     @assert(dref data == 812)
+}
+
+#test
+{
+    var x = cast(MkanyStrictS32) 409
+    let boxed: any = @mkany(&x, MkanyStrictS32)
+
+    @assert(@kindof(boxed) == MkanyStrictS32)
+    @assert(cast(MkanyStrictS32) boxed == cast(MkanyStrictS32) 409)
 }

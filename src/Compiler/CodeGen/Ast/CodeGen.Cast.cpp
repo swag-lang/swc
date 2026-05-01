@@ -623,6 +623,62 @@ namespace
         return Result::Continue;
     }
 
+    MicroReg emitLoadCStringReg(CodeGen& codeGen, const CodeGenNodePayload& payload)
+    {
+        const MicroReg cstrReg = codeGen.nextVirtualIntRegister();
+        if (payload.isAddress())
+            codeGen.builder().emitLoadRegMem(cstrReg, payload.reg, 0, MicroOpBits::B64);
+        else
+            codeGen.builder().emitLoadRegReg(cstrReg, payload.reg, MicroOpBits::B64);
+        return cstrReg;
+    }
+
+    void emitCStringCountReg(CodeGen& codeGen, MicroReg countReg, MicroReg cstrReg)
+    {
+        MicroBuilder& builder = codeGen.builder();
+        builder.emitClearReg(countReg, MicroOpBits::B64);
+
+        const MicroLabelRef loopLabel = builder.createLabel();
+        const MicroLabelRef doneLabel = builder.createLabel();
+        builder.emitCmpRegImm(cstrReg, ApInt(0, 64), MicroOpBits::B64);
+        builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, doneLabel);
+
+        const MicroReg scanReg = codeGen.nextVirtualIntRegister();
+        builder.emitLoadRegReg(scanReg, cstrReg, MicroOpBits::B64);
+        builder.placeLabel(loopLabel);
+
+        const MicroReg charReg = codeGen.nextVirtualIntRegister();
+        builder.emitLoadRegMem(charReg, scanReg, 0, MicroOpBits::B8);
+        builder.emitCmpRegImm(charReg, ApInt(0, 64), MicroOpBits::B8);
+        builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, doneLabel);
+        builder.emitOpBinaryRegImm(scanReg, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
+        builder.emitOpBinaryRegImm(countReg, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
+        builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, loopLabel);
+        builder.placeLabel(doneLabel);
+    }
+
+    Result emitCStringToStringOrSliceCast(CodeGen& codeGen, AstNodeRef srcNodeRef, TypeRef dstTypeRef, const TypeInfo& dstType)
+    {
+        SWC_ASSERT(dstType.isString() || dstType.isSlice());
+
+        MicroBuilder&            builder    = codeGen.builder();
+        const CodeGenNodePayload srcPayload = sourcePayloadForCast(codeGen, srcNodeRef);
+        const MicroReg           cstrReg    = emitLoadCStringReg(codeGen, srcPayload);
+
+        const MicroReg countReg = codeGen.nextVirtualIntRegister();
+        emitCStringCountReg(codeGen, countReg, cstrReg);
+
+        const MicroReg runtimeValueReg = codeGen.runtimeStorageAddressReg(codeGen.curNodeRef());
+        builder.emitLoadMemReg(runtimeValueReg, offsetof(Runtime::Slice<std::byte>, ptr), cstrReg, MicroOpBits::B64);
+
+        const uint32_t countOffset = dstType.isString() ? offsetof(Runtime::String, length) : offsetof(Runtime::Slice<std::byte>, count);
+        builder.emitLoadMemReg(runtimeValueReg, countOffset, countReg, MicroOpBits::B64);
+
+        const CodeGenNodePayload& dstPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), dstTypeRef);
+        builder.emitLoadRegReg(dstPayload.reg, runtimeValueReg, MicroOpBits::B64);
+        return Result::Continue;
+    }
+
     // Emit a DynCast safety panic call using the generic safety panic function.
     Result emitDynCastPanic(CodeGen& codeGen, const AstNode& node)
     {
@@ -1123,6 +1179,8 @@ namespace
 
         if (resolvedDstType.isString() && resolvedSrcType.isArray())
             return emitArrayToStringCast(codeGen, srcNodeRef, dstTypeRef, resolvedSrcType);
+        if ((resolvedDstType.isString() || resolvedDstType.isSlice()) && resolvedSrcType.isCString())
+            return emitCStringToStringOrSliceCast(codeGen, srcNodeRef, dstTypeRef, resolvedDstType);
         if (resolvedDstType.isSlice())
         {
             const TypeRef sourceArrayTypeRef = sliceCastSourceArrayTypeRef(codeGen, srcNodeRef, resolvedSrcTypeRef, resolvedSrcType, resolvedDstType);

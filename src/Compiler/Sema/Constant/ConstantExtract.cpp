@@ -289,13 +289,21 @@ namespace
         TaskContext&    ctx      = sema.ctx();
         const TypeRef   typeRef  = unwrapAliasTypeRef(sema, cst.typeRef());
         const TypeInfo& typeInfo = sema.typeMgr().get(typeRef);
+        const uint64_t  ptrValue = cst.getBlockPointer();
+        SWC_ASSERT(ptrValue);
+
+        if (typeInfo.isCString())
+        {
+            const auto*   ptr   = reinterpret_cast<const char*>(ptrValue);
+            const uint64_t count = std::strlen(ptr);
+            const ByteSpan bytes{reinterpret_cast<const std::byte*>(ptr), count};
+            return extractAtIndexBytes(sema, bytes, sema.typeMgr().typeU8(), constIndex, count, nodeArgRef, outCstRef);
+        }
+
         SWC_ASSERT(typeInfo.isBlockPointer());
         const TypeRef   elemType = typeInfo.payloadTypeRef();
         const uint64_t  elemSize = sema.typeMgr().get(elemType).sizeOf(ctx);
         SWC_ASSERT(elemSize);
-
-        const uint64_t ptrValue = cst.getBlockPointer();
-        SWC_ASSERT(ptrValue);
 
         const uint64_t byteOffset = static_cast<uint64_t>(constIndex) * elemSize;
         const auto*    elemPtr    = reinterpret_cast<const std::byte*>(ptrValue + byteOffset);

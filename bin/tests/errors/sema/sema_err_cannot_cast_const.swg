@@ -14,3 +14,14 @@
     var x: const *s32 = null
     var y = cast(*u8) x // swc-expected-error {{sema_err_cannot_cast_const}}
 }
+
+#test
+{
+    var text: cstring = cast(cstring) @dataof("abc")
+    var bytes = cast([..] u8) text // swc-expected-error {{sema_err_cannot_cast_const}}
+}
+
+#test
+{
+    var bytes = cast([..] u8) (cast(cstring) @dataof("abc")) // swc-expected-error {{sema_err_cannot_cast_const}}
+}

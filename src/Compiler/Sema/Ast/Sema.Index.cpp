@@ -79,7 +79,11 @@ namespace
                 return SemaError::raise(sema, DiagnosticId::sema_err_index_too_large, nodeArgRef);
             }
 
-            constIndex = idxInt.asI64();
+            if (idxInt.isUnsigned() && idxInt.as64() > static_cast<uint64_t>(std::numeric_limits<int64_t>::max()))
+                constIndex = std::numeric_limits<int64_t>::max();
+            else
+                constIndex = idxInt.asI64();
+
             if (indexType->isIntSigned() && idxInt.isNegative())
             {
                 auto diag = SemaError::report(sema, DiagnosticId::sema_err_index_negative, nodeArgRef);
@@ -182,7 +186,7 @@ namespace
         if (!resultTypeRef.isValid())
             return SemaError::raiseTypeNotIndexable(sema, node.nodeExprRef, nodeExprView.typeRef());
 
-        if (!range.nodeExprUpRef.isValid() && (indexedType.isAnyPointer() || indexedType.isCString()))
+        if (!range.nodeExprUpRef.isValid() && indexedType.isAnyPointer())
             return SemaError::raiseTypeNotIndexable(sema, node.nodeExprRef, nodeExprView.typeRef());
 
         if (hasConstDown && hasConstUp)

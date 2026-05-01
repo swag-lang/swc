@@ -5,6 +5,7 @@
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
+#include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Compiler/Sema/Symbol/Symbols.h"
 #include "Main/CompilerInstance.h"
 
@@ -16,6 +17,101 @@ namespace
     {
         const SemaNodeView symbolView = sema.viewSymbol(nodeRef);
         return symbolView.hasSymbol() && symbolView.sym() && symbolView.sym()->isIgnored();
+    }
+
+    AstNodeRef resolveNodeRefForCheck(Sema& sema, AstNodeRef nodeRef)
+    {
+        if (nodeRef.isInvalid())
+            return AstNodeRef::invalid();
+
+        AstNodeRef resolvedNodeRef = sema.viewZero(nodeRef).nodeRef();
+        if (resolvedNodeRef.isInvalid())
+            resolvedNodeRef = nodeRef;
+        return resolvedNodeRef;
+    }
+
+    bool isConstTypeRef(Sema& sema, TypeRef typeRef)
+    {
+        if (typeRef.isInvalid())
+            return false;
+
+        const TypeInfo& type = sema.typeMgr().get(typeRef);
+        if (type.isConst())
+            return true;
+
+        const TypeRef unwrappedTypeRef = type.unwrap(sema.ctx(), typeRef, TypeExpandE::Alias);
+        return unwrappedTypeRef.isValid() && sema.typeMgr().get(unwrappedTypeRef).isConst();
+    }
+
+    bool isConstSourceView(Sema& sema, const SemaNodeView& view)
+    {
+        if (isConstTypeRef(sema, view.typeRef()))
+            return true;
+
+        const TypeRef sourceTypeRef = SemaHelpers::unwrapAliasRefType(sema.ctx(), view.typeRef());
+        if (!sourceTypeRef.isValid())
+            return false;
+
+        const TypeInfo& sourceType = sema.typeMgr().get(sourceTypeRef);
+        return sourceType.isString() || sourceType.isCString();
+    }
+
+    AstNodeRef indexedSourceRef(Sema& sema, AstNodeRef nodeRef)
+    {
+        const AstNodeRef resolvedNodeRef = resolveNodeRefForCheck(sema, nodeRef);
+        if (resolvedNodeRef.isInvalid())
+            return AstNodeRef::invalid();
+
+        const AstNode&   node            = sema.node(resolvedNodeRef);
+        if (node.is(AstNodeId::IndexExpr))
+            return node.cast<AstIndexExpr>().nodeExprRef;
+        if (node.is(AstNodeId::IndexListExpr))
+            return node.cast<AstIndexListExpr>().nodeExprRef;
+        return AstNodeRef::invalid();
+    }
+
+    bool isConstIndexedSource(Sema& sema, AstNodeRef nodeRef)
+    {
+        const AstNodeRef sourceRef = indexedSourceRef(sema, nodeRef);
+        if (sourceRef.isInvalid())
+            return false;
+
+        const SemaNodeView sourceView = sema.viewNodeTypeConstantSymbol(sourceRef);
+        if (!sourceView.type())
+            return false;
+        if (isConstSourceView(sema, sourceView))
+            return true;
+
+        const TypeRef sourceTypeRef = SemaHelpers::unwrapAliasRefType(sema.ctx(), sourceView.typeRef());
+        if (!sourceTypeRef.isValid())
+            return false;
+
+        return sema.typeMgr().get(sourceTypeRef).isConst();
+    }
+
+    bool isDerefConstSource(Sema& sema, const AstUnaryExpr& node)
+    {
+        const Token& tok = sema.token(node.codeRef());
+        if (tok.id != TokenId::KwdDRef)
+            return false;
+
+        const SemaNodeView sourceView = sema.viewTypeSymbol(node.nodeExprRef);
+        return isConstSourceView(sema, sourceView);
+    }
+
+    bool isConstAssignmentTarget(Sema& sema, AstNodeRef leftExprRef, const SemaNodeView& leftView)
+    {
+        SWC_UNUSED(leftView);
+        const AstNodeRef resolvedRef = resolveNodeRefForCheck(sema, leftExprRef);
+        if (resolvedRef.isInvalid())
+            return false;
+
+        const AstNode& node = sema.node(resolvedRef);
+        if (node.is(AstNodeId::IndexExpr) || node.is(AstNodeId::IndexListExpr))
+            return isConstIndexedSource(sema, resolvedRef);
+        if (node.is(AstNodeId::UnaryExpr))
+            return isDerefConstSource(sema, node.cast<AstUnaryExpr>());
+        return false;
     }
 
     TokenId tokenIdForModifierFlag(AstModifierFlagsE flag)
@@ -216,6 +312,13 @@ Result SemaCheck::isAssignable(Sema& sema, AstNodeRef errorNodeRef, AstNodeRef l
             diag.report(sema.ctx());
             return Result::Error;
         }
+    }
+
+    if (isConstAssignmentTarget(sema, leftExprRef, leftView))
+    {
+        auto diag = SemaError::report(sema, DiagnosticId::sema_err_assign_to_const, errorNodeRef);
+        diag.report(sema.ctx());
+        return Result::Error;
     }
 
     // Left must be a l-value

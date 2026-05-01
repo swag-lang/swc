@@ -116,6 +116,37 @@ namespace
             return countReg;
         }
 
+        if (indexedType.isCString())
+        {
+            MicroReg cstrReg = indexedPayload.reg;
+            if (indexedPayload.isAddress())
+            {
+                cstrReg = codeGen.nextVirtualIntRegister();
+                builder.emitLoadRegMem(cstrReg, indexedPayload.reg, 0, MicroOpBits::B64);
+            }
+
+            builder.emitClearReg(countReg, MicroOpBits::B64);
+
+            const MicroLabelRef loopLabel = builder.createLabel();
+            const MicroLabelRef doneLabel = builder.createLabel();
+            builder.emitCmpRegImm(cstrReg, ApInt(0, 64), MicroOpBits::B64);
+            builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, doneLabel);
+
+            const MicroReg scanReg = codeGen.nextVirtualIntRegister();
+            builder.emitLoadRegReg(scanReg, cstrReg, MicroOpBits::B64);
+            builder.placeLabel(loopLabel);
+
+            const MicroReg charReg = codeGen.nextVirtualIntRegister();
+            builder.emitLoadRegMem(charReg, scanReg, 0, MicroOpBits::B8);
+            builder.emitCmpRegImm(charReg, ApInt(0, 64), MicroOpBits::B8);
+            builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, doneLabel);
+            builder.emitOpBinaryRegImm(scanReg, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
+            builder.emitOpBinaryRegImm(countReg, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
+            builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, loopLabel);
+            builder.placeLabel(doneLabel);
+            return countReg;
+        }
+
         if (indexedType.isSlice() || indexedType.isAnyVariadic())
         {
             builder.emitLoadRegMem(countReg, indexedPayload.reg, offsetof(Runtime::Slice<std::byte>, count), MicroOpBits::B64);

@@ -106,6 +106,9 @@ TypeRef Cast::runtimeStorageTypeRef(Sema& sema, TypeRef srcTypeRef, TypeRef dstT
     if (srcType.isArray() && (dstType.isSlice() || dstType.isString()))
         return dstTypeRef;
 
+    if (srcType.isCString() && (dstType.isSlice() || dstType.isString()))
+        return dstTypeRef;
+
     if (!srcType.isAny() && dstType.isAny())
     {
         constexpr uint64_t     anyStorageSize = sizeof(Runtime::Any);

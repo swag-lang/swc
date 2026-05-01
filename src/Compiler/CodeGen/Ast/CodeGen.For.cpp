@@ -623,10 +623,19 @@ Result AstForStmt::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& chil
         }
         else
         {
-            builder.emitOpBinaryRegImm(loopState->indexReg, ApInt(1, 64), MicroOp::Add, opBits);
-            builder.emitCmpRegReg(loopState->indexReg, loopState->boundReg, opBits);
-            const auto cpuCond = loopState->inclusive ? CodeGenCompareHelpers::lessEqualCond(loopState->unsignedCmp) : CodeGenCompareHelpers::lessCond(loopState->unsignedCmp);
-            builder.emitJumpToLabel(cpuCond, MicroOpBits::B32, loopState->loopLabel);
+            if (loopState->inclusive)
+            {
+                builder.emitCmpRegReg(loopState->indexReg, loopState->boundReg, opBits);
+                builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, loopState->doneLabel);
+                builder.emitOpBinaryRegImm(loopState->indexReg, ApInt(1, 64), MicroOp::Add, opBits);
+                builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, loopState->loopLabel);
+            }
+            else
+            {
+                builder.emitOpBinaryRegImm(loopState->indexReg, ApInt(1, 64), MicroOp::Add, opBits);
+                builder.emitCmpRegReg(loopState->indexReg, loopState->boundReg, opBits);
+                builder.emitJumpToLabel(CodeGenCompareHelpers::lessCond(loopState->unsignedCmp), MicroOpBits::B32, loopState->loopLabel);
+            }
         }
 
         codeGen.popFrame();

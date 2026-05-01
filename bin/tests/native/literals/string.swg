@@ -147,6 +147,22 @@ namespace compiler292
     }
 }
 
+namespace cstring_index_runtime
+{
+    #test
+    {
+        var text: cstring = cast(cstring) @dataof("abcd")
+        @assert(text[0] == cast(u8) 'a''rune)
+        @assert(text[3] == cast(u8) 'd''rune)
+    }
+
+    #test
+    {
+        let value = (cast(const cstring) @dataof("abcd"))[2]
+        @assert(value == cast(u8) 'c''rune)
+    }
+}
+
 // _compiler293.swg
 namespace compiler293
 {

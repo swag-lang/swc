@@ -109,6 +109,20 @@ var A: [..] s32
 
 #test
 {
+    let cstr: cstring = cast(cstring) @dataof("slice")
+    let a = cstr[1 to 3]
+    let b = cstr[2 to ]
+    let c = cstr[ until 2]
+    let full = cstr[ to ]
+
+    @assert(a == "lic")
+    @assert(b == "ice")
+    @assert(c == "sl")
+    @assert(full == "slice")
+}
+
+#test
+{
     var arr: [5] s32 = [10, 20, 30, 40, 50]
     var arrRef: &[5] s32 = &arr
     let arrSlice = arrRef[1 to 3]

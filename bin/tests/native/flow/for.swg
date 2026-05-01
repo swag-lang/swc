@@ -181,6 +181,45 @@ func forStrictU8RefValue(value: const &ForStrictU8)->ForStrictU8
 
 #test
 {
+    var count = 0
+    var first: u64 = 0
+    var second: u64 = 0
+    for i in 0xFFFF_FFFF_FFFF_FFFF'u64 to 0xFFFF_FFFF_FFFF_FFFF'u64
+    {
+        if count == 0 do
+            first = i
+        else
+        {
+            if count == 1 do
+                second = i
+        }
+        count += 1
+        if count > 1 do
+            break
+    }
+
+    @assert(count == 1)
+    @assert(first == 0xFFFF_FFFF_FFFF_FFFF'u64)
+    @assert(second == 0)
+}
+
+#test
+{
+    var count = 0
+    var first: u64 = 42
+    for i in 0xFFFF_FFFF_FFFF_FFFF'u64
+    {
+        first = i
+        count += 1
+        break
+    }
+
+    @assert(count == 1)
+    @assert(first == 0)
+}
+
+#test
+{
     var sum = 0
     for i in 1 until 5
     {

@@ -397,7 +397,8 @@ namespace
 
         const TypeRef   ptrTypeRef = SemaHelpers::unwrapAliasRefType(sema.ctx(), nodeViewPtr.typeRef());
         const TypeInfo& ptrType    = sema.typeMgr().get(ptrTypeRef);
-        if (!ptrType.isAnyPointer())
+        const bool ptrIsCString = ptrType.isCString();
+        if (!ptrType.isAnyPointer() && !ptrIsCString)
             return SemaError::raiseRequestedTypeFam(sema, nodeViewPtr.nodeRef(), nodeViewPtr.typeRef(), sema.typeMgr().typeBlockPtrVoid());
 
         SWC_RESULT(Cast::cast(sema, nodeViewSize, sema.typeMgr().typeU64(), CastKind::Implicit));
@@ -410,8 +411,9 @@ namespace
         }
         else
         {
-            TypeInfo ty = TypeInfo::makeSlice(ptrType.payloadTypeRef());
-            if (ptrType.isConst())
+            const TypeRef elementTypeRef = ptrIsCString ? sema.typeMgr().typeU8() : ptrType.payloadTypeRef();
+            TypeInfo      ty             = TypeInfo::makeSlice(elementTypeRef);
+            if (ptrType.isConst() || ptrIsCString)
                 ty.addFlag(TypeInfoFlagsE::Const);
             typeRef = sema.typeMgr().addType(ty);
         }

@@ -90,6 +90,76 @@ alias StrictForeachF32 = f32
 
 #test
 {
+    var text: string = "CD"
+    var sum = 0
+    foreach &v in text
+    {
+        #assert(#typeof(v) == const *u8)
+        sum += cast(s32) dref v
+    }
+    @assert(sum == cast(s32) 'C''u8 + cast(s32) 'D''u8)
+}
+
+#test
+{
+    var text: cstring = cast(cstring) @dataof("AZ")
+    var sumV = 0
+    var sumI: u64
+    foreach v, i in text
+    {
+        #assert(#typeof(v) == u8)
+        #assert(#typeof(i) == u64)
+        sumV += cast(s32) v
+        sumI += i
+    }
+    @assert(sumV == cast(s32) 'A''u8 + cast(s32) 'Z''u8)
+    @assert(sumI == 1)
+}
+
+#test
+{
+    var text: cstring = cast(cstring) @dataof("CD")
+    var sum = 0
+    foreach &v in text
+    {
+        #assert(#typeof(v) == const *u8)
+        sum += cast(s32) dref v
+    }
+    @assert(sum == cast(s32) 'C''u8 + cast(s32) 'D''u8)
+}
+
+#test
+{
+    var text: cstring = cast(cstring) @dataof("ABC")
+    var order: [3] u8
+    var pos: u64
+    foreach #reverse v, i in text
+    {
+        order[pos] = v
+        pos += 1
+        @assert(i == 2 - (pos - 1))
+    }
+    @assert(order[0] == 'C''u8)
+    @assert(order[1] == 'B''u8)
+    @assert(order[2] == 'A''u8)
+}
+
+func foreachCStringRefSum(value: &cstring)->s32
+{
+    var sum = 0
+    foreach v in value do
+        sum += cast(s32) v
+    return sum
+}
+
+#test
+{
+    var text: cstring = cast(cstring) @dataof("BY")
+    @assert(foreachCStringRefSum(&text) == cast(s32) 'B''u8 + cast(s32) 'Y''u8)
+}
+
+#test
+{
     var arr: [2] s32 = [3, 4]
     var sl = cast([..] s32) arr
     var sumV = 0

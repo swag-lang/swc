@@ -6,6 +6,7 @@
 #include "Compiler/CodeGen/Core/CodeGenConstantHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenFunctionHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenMemoryHelpers.h"
+#include "Compiler/CodeGen/Core/CodeGenReferenceHelpers.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Ast/Sema.Loop.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
@@ -225,12 +226,6 @@ namespace
         return nullptr;
     }
 
-    const TypeInfo& foreachSourceType(CodeGen& codeGen, const SemaNodeView& exprView)
-    {
-        const TypeRef sourceTypeRef = SemaHelpers::unwrapAliasRefType(codeGen.ctx(), exprView.typeRef());
-        return codeGen.typeMgr().get(sourceTypeRef);
-    }
-
     MicroReg emitForeachElementAddress(CodeGen& codeGen, const ForeachStmtCodeGenPayload& loopState)
     {
         SWC_ASSERT(loopState.baseReg.isValid());
@@ -333,6 +328,40 @@ namespace
             builder.emitLoadRegReg(indexPayload.reg, loopState.indexReg, MicroOpBits::B64);
     }
 
+    MicroReg emitLoadCStringReg(CodeGen& codeGen, const CodeGenNodePayload& payload)
+    {
+        const MicroReg cstrReg = codeGen.nextVirtualIntRegister();
+        if (payload.isAddress())
+            codeGen.builder().emitLoadRegMem(cstrReg, payload.reg, 0, MicroOpBits::B64);
+        else
+            codeGen.builder().emitLoadRegReg(cstrReg, payload.reg, MicroOpBits::B64);
+        return cstrReg;
+    }
+
+    void emitCStringCountReg(CodeGen& codeGen, MicroReg countReg, MicroReg cstrReg)
+    {
+        MicroBuilder& builder = codeGen.builder();
+        builder.emitClearReg(countReg, MicroOpBits::B64);
+
+        const MicroLabelRef loopLabel = builder.createLabel();
+        const MicroLabelRef doneLabel = builder.createLabel();
+        builder.emitCmpRegImm(cstrReg, ApInt(0, 64), MicroOpBits::B64);
+        builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, doneLabel);
+
+        const MicroReg scanReg = codeGen.nextVirtualIntRegister();
+        builder.emitLoadRegReg(scanReg, cstrReg, MicroOpBits::B64);
+        builder.placeLabel(loopLabel);
+
+        const MicroReg charReg = codeGen.nextVirtualIntRegister();
+        builder.emitLoadRegMem(charReg, scanReg, 0, MicroOpBits::B8);
+        builder.emitCmpRegImm(charReg, ApInt(0, 64), MicroOpBits::B8);
+        builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, doneLabel);
+        builder.emitOpBinaryRegImm(scanReg, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
+        builder.emitOpBinaryRegImm(countReg, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
+        builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, loopLabel);
+        builder.placeLabel(doneLabel);
+    }
+
     Result emitForeachInit(CodeGen& codeGen, const AstForeachStmt& node, ForeachStmtCodeGenPayload& loopState)
     {
         const AstNodeRef exprRef = node.nodeExprRef;
@@ -361,8 +390,11 @@ namespace
         else
         {
             const SemaNodeView       exprView    = foreachExprView(codeGen, exprRef);
-            const CodeGenNodePayload exprPayload = foreachExprPayload(codeGen, exprRef);
-            const TypeInfo&          exprType    = foreachSourceType(codeGen, exprView);
+            CodeGenNodePayload       exprPayload = foreachExprPayload(codeGen, exprRef);
+            TypeRef                  exprTypeRef = exprPayload.effectiveTypeRef(exprView.typeRef());
+            CodeGenReferenceHelpers::unwrapAliasRefPayload(codeGen, exprPayload, exprTypeRef);
+            const TypeRef unwrappedExprTypeRef = SemaHelpers::unwrapAliasRefType(codeGen.ctx(), exprTypeRef);
+            const TypeInfo& exprType           = codeGen.typeMgr().get(unwrappedExprTypeRef);
 
             if (exprType.isArray())
             {
@@ -380,7 +412,15 @@ namespace
             {
                 TypeRef  valueTypeRef = TypeRef::invalid();
                 uint64_t countOffset  = offsetof(Runtime::Slice<std::byte>, count);
-                if (exprType.isSlice())
+                if (exprType.isCString())
+                {
+                    valueTypeRef          = codeGen.typeMgr().typeU8();
+                    loopState.elementSize = 1;
+                    loopState.valueSize   = 1;
+                    loopState.baseReg     = emitLoadCStringReg(codeGen, exprPayload);
+                    emitCStringCountReg(codeGen, loopState.countReg, loopState.baseReg);
+                }
+                else if (exprType.isSlice())
                     valueTypeRef = exprType.payloadTypeRef();
                 else if (exprType.isString())
                 {
@@ -394,14 +434,17 @@ namespace
                 else
                     SWC_UNREACHABLE();
 
-                const TypeInfo& valueType = codeGen.typeMgr().get(valueTypeRef);
-                loopState.elementSize     = valueType.sizeOf(codeGen.ctx());
-                loopState.valueSize       = loopState.elementSize;
+                if (!exprType.isCString())
+                {
+                    const TypeInfo& valueType = codeGen.typeMgr().get(valueTypeRef);
+                    loopState.elementSize     = valueType.sizeOf(codeGen.ctx());
+                    loopState.valueSize       = loopState.elementSize;
 
-                const MicroReg sourceAddressReg = materializeForeachSourceAddress(codeGen, loopState, exprPayload, exprType);
-                loopState.baseReg               = codeGen.nextVirtualIntRegister();
-                builder.emitLoadRegMem(loopState.baseReg, sourceAddressReg, offsetof(Runtime::Slice<std::byte>, ptr), MicroOpBits::B64);
-                builder.emitLoadRegMem(loopState.countReg, sourceAddressReg, countOffset, MicroOpBits::B64);
+                    const MicroReg sourceAddressReg = materializeForeachSourceAddress(codeGen, loopState, exprPayload, exprType);
+                    loopState.baseReg               = codeGen.nextVirtualIntRegister();
+                    builder.emitLoadRegMem(loopState.baseReg, sourceAddressReg, offsetof(Runtime::Slice<std::byte>, ptr), MicroOpBits::B64);
+                    builder.emitLoadRegMem(loopState.countReg, sourceAddressReg, countOffset, MicroOpBits::B64);
+                }
             }
         }
 

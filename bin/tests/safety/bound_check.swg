@@ -78,6 +78,19 @@ func boundCheckEnabled()->bool
 #test
 {
     #[Swag.Safety(.BoundCheck, true)]
+    func cstringBoundCheck()->u8
+    {
+        var text: cstring = cast(cstring) @dataof("ab")
+        return text[2] // swc-expected-error {{safety_err_runtime}}
+    }
+
+    const value = #run cstringBoundCheck()
+    @assert(value == 0)
+}
+
+#test
+{
+    #[Swag.Safety(.BoundCheck, true)]
     func multiArrayBoundCheck()->s32
     {
         var values: [2, 2] s32

@@ -56,6 +56,30 @@ namespace
         return copyReg;
     }
 
+    void emitCStringCountReg(CodeGen& codeGen, MicroReg countReg, MicroReg cstrReg)
+    {
+        MicroBuilder& builder = codeGen.builder();
+        builder.emitClearReg(countReg, MicroOpBits::B64);
+
+        const MicroLabelRef loopLabel = builder.createLabel();
+        const MicroLabelRef doneLabel = builder.createLabel();
+        builder.emitCmpRegImm(cstrReg, ApInt(0, 64), MicroOpBits::B64);
+        builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, doneLabel);
+
+        const MicroReg scanReg = codeGen.nextVirtualIntRegister();
+        builder.emitLoadRegReg(scanReg, cstrReg, MicroOpBits::B64);
+        builder.placeLabel(loopLabel);
+
+        const MicroReg charReg = codeGen.nextVirtualIntRegister();
+        builder.emitLoadRegMem(charReg, scanReg, 0, MicroOpBits::B8);
+        builder.emitCmpRegImm(charReg, ApInt(0, 64), MicroOpBits::B8);
+        builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, doneLabel);
+        builder.emitOpBinaryRegImm(scanReg, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
+        builder.emitOpBinaryRegImm(countReg, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
+        builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, loopLabel);
+        builder.placeLabel(doneLabel);
+    }
+
     void normalizeIndexReferenceOperand(CodeGen& codeGen, CodeGenNodePayload& ioPayload, TypeRef& ioTypeRef)
     {
         const TypeRef normalizedTypeRef = normalizeIndexOperandTypeRef(codeGen, ioTypeRef);
@@ -193,9 +217,9 @@ namespace
             return typeMgr.get(strideTypeRef).sizeOf(codeGen.ctx());
         }
 
-        if (indexedType.isPointerOrReference() || indexedType.isSlice() || indexedType.isTypedVariadic() || indexedType.isCString())
+        if (indexedType.isPointerOrReference() || indexedType.isSlice() || indexedType.isTypedVariadic())
             return typeMgr.get(indexedType.payloadTypeRef()).sizeOf(codeGen.ctx());
-        if (indexedType.isString())
+        if (indexedType.isString() || indexedType.isCString())
             return typeMgr.get(typeMgr.typeU8()).sizeOf(codeGen.ctx());
         if (indexedType.isVariadic())
             return typeMgr.get(typeMgr.typeAny()).sizeOf(codeGen.ctx());
@@ -220,9 +244,9 @@ namespace
             return typeMgr.addType(TypeInfo::makeArray(remainingDims.span(), indexedType.payloadArrayElemTypeRef(), indexedType.flags()));
         }
 
-        if (indexedType.isPointerOrReference() || indexedType.isSlice() || indexedType.isTypedVariadic() || indexedType.isCString())
+        if (indexedType.isPointerOrReference() || indexedType.isSlice() || indexedType.isTypedVariadic())
             return indexedType.payloadTypeRef();
-        if (indexedType.isString())
+        if (indexedType.isString() || indexedType.isCString())
             return typeMgr.typeU8();
         if (indexedType.isVariadic())
             return typeMgr.typeAny();
@@ -305,6 +329,10 @@ namespace
         else if (indexedType.isString())
         {
             builder.emitLoadRegMem(endExclusiveReg, indexedPayload.reg, offsetof(Runtime::String, length), MicroOpBits::B64);
+        }
+        else if (indexedType.isCString())
+        {
+            emitCStringCountReg(codeGen, endExclusiveReg, baseReg);
         }
         else if (indexedType.isSlice())
         {

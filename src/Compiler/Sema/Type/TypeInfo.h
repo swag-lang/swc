@@ -163,7 +163,7 @@ public:
     bool isPointerOrReference() const noexcept { return isAnyPointer() || isReference(); }
     bool isAnyVariadic() const noexcept { return isVariadic() || isTypedVariadic(); }
     bool isAnyString() const noexcept { return isString() || isCString(); }
-    bool isIndexable() const noexcept { return isArray() || isSlice() || isString() || isAnyVariadic(); }
+    bool isIndexable() const noexcept { return isArray() || isSlice() || isString() || isCString() || isAnyVariadic(); }
     bool supportsNullableQualifier() const noexcept;
 
     bool isEnumFlags() const noexcept;

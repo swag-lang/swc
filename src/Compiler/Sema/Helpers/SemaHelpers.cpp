@@ -1000,7 +1000,8 @@ Result SemaHelpers::resolveCountOfResult(Sema& sema, CountOfResultInfo& outResul
 
         if (view.cst()->isInt())
         {
-            if (view.cst()->getInt().isNegative())
+            const ApsInt& countValue = view.cst()->getInt();
+            if (!countValue.isUnsigned() && countValue.isNegative())
             {
                 auto diag = SemaError::report(sema, DiagnosticId::sema_err_count_negative, view.nodeRef());
                 diag.addArgument(Diagnostic::ARG_VALUE, view.cst()->toString(ctx));

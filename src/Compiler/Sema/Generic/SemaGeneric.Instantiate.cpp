@@ -1456,31 +1456,101 @@ namespace
         return createGenericInstance(sourceSema, genericRoot, params.span(), resolvedArgs.span(), outInstance, errorNodeRef);
     }
 
-    bool functionTypeParamShadowsTarget(Sema& sema, std::span<const SemaGeneric::GenericParamDesc> targetParams)
+    void resolveArgsFromGenericContext(std::span<const SemaGeneric::GenericParamDesc> contextParams, std::span<const GenericInstanceKey> contextArgs, std::span<const SemaGeneric::GenericParamDesc> targetParams, std::span<SemaGeneric::GenericResolvedArg> resolvedArgs, bool allowKindFallback)
     {
-        const auto* function = sema.currentFunction();
-        if (!function || !function->decl())
-            return false;
+        if (contextParams.size() != contextArgs.size())
+            return;
 
-        const auto* functionDecl = function->decl()->safeCast<AstFunctionDecl>();
-        if (!functionDecl || !functionDecl->spanGenericParamsRef.isValid())
-            return false;
-
-        SmallVector<SemaGeneric::GenericParamDesc> functionParams;
-        SemaGeneric::collectGenericParams(sema, *functionDecl, functionDecl->spanGenericParamsRef, functionParams);
-        for (const SemaGeneric::GenericParamDesc& functionParam : functionParams)
+        SmallVector<bool> usedContextParams(contextParams.size(), false);
+        for (size_t targetIndex = 0; targetIndex < targetParams.size(); ++targetIndex)
         {
-            if (functionParam.kind != SemaGeneric::GenericParamKind::Type)
+            if (resolvedArgs[targetIndex].present)
                 continue;
 
-            for (const SemaGeneric::GenericParamDesc& targetParam : targetParams)
+            for (size_t contextIndex = 0; contextIndex < contextParams.size(); ++contextIndex)
             {
-                if (targetParam.kind == SemaGeneric::GenericParamKind::Type && targetParam.idRef == functionParam.idRef)
-                    return true;
+                if (targetParams[targetIndex].idRef != contextParams[contextIndex].idRef ||
+                    targetParams[targetIndex].kind != contextParams[contextIndex].kind)
+                    continue;
+
+                resolvedArgs[targetIndex].present = true;
+                resolvedArgs[targetIndex].typeRef = contextArgs[contextIndex].typeRef;
+                resolvedArgs[targetIndex].cstRef  = contextArgs[contextIndex].cstRef;
+                usedContextParams[contextIndex] = true;
+                break;
             }
         }
 
-        return false;
+        if (!allowKindFallback)
+            return;
+
+        for (size_t targetIndex = 0; targetIndex < targetParams.size(); ++targetIndex)
+        {
+            if (!resolvedArgs[targetIndex].present)
+                continue;
+
+            for (size_t contextIndex = 0; contextIndex < contextParams.size(); ++contextIndex)
+            {
+                if (usedContextParams[contextIndex])
+                    continue;
+
+                if (targetParams[targetIndex].kind != contextParams[contextIndex].kind)
+                    continue;
+
+                const bool sameType = resolvedArgs[targetIndex].typeRef == contextArgs[contextIndex].typeRef;
+                const bool sameCst  = resolvedArgs[targetIndex].cstRef == contextArgs[contextIndex].cstRef;
+                if (!sameType || !sameCst)
+                    continue;
+
+                usedContextParams[contextIndex] = true;
+                break;
+            }
+        }
+
+        for (size_t targetIndex = 0; targetIndex < targetParams.size(); ++targetIndex)
+        {
+            if (resolvedArgs[targetIndex].present)
+                continue;
+
+            size_t contextIndex = 0;
+            while (contextIndex < contextParams.size())
+            {
+                if (!usedContextParams[contextIndex] && targetParams[targetIndex].kind == contextParams[contextIndex].kind)
+                    break;
+                ++contextIndex;
+            }
+            if (contextIndex == contextParams.size())
+                continue;
+
+            if (targetParams[targetIndex].defaultRef.isValid())
+            {
+                size_t remainingRequiredTargets = 0;
+                for (size_t i = targetIndex + 1; i < targetParams.size(); ++i)
+                {
+                    if (resolvedArgs[i].present ||
+                        targetParams[i].kind != targetParams[targetIndex].kind ||
+                        targetParams[i].defaultRef.isValid())
+                        continue;
+                    ++remainingRequiredTargets;
+                }
+
+                size_t remainingEnclosingParams = 0;
+                for (size_t i = contextIndex; i < contextParams.size(); ++i)
+                {
+                    if (usedContextParams[i] || contextParams[i].kind != targetParams[targetIndex].kind)
+                        continue;
+                    ++remainingEnclosingParams;
+                }
+
+                if (remainingEnclosingParams <= remainingRequiredTargets)
+                    continue;
+            }
+
+            resolvedArgs[targetIndex].present = true;
+            resolvedArgs[targetIndex].typeRef = contextArgs[contextIndex].typeRef;
+            resolvedArgs[targetIndex].cstRef  = contextArgs[contextIndex].cstRef;
+            usedContextParams[contextIndex] = true;
+        }
     }
 
     const SymbolStruct* genericStructInstanceFromImplFrames(const Sema& sema)
@@ -1560,6 +1630,20 @@ namespace
         return genericStructInstanceFromScopes(sema);
     }
 
+    void resolveArgsFromCurrentFunction(Sema& sema, std::span<const SemaGeneric::GenericParamDesc> targetParams, std::span<SemaGeneric::GenericResolvedArg> resolvedArgs)
+    {
+        const auto* currentFunction = sema.currentFunction();
+        if (!currentFunction)
+            return;
+
+        SmallVector<SemaGeneric::GenericParamDesc> functionParams;
+        SmallVector<GenericInstanceKey>            functionArgs;
+        if (!loadFunctionInstanceGenericArgs(sema, *currentFunction, functionParams, functionArgs))
+            return;
+
+        resolveArgsFromGenericContext(functionParams.span(), functionArgs.span(), targetParams, resolvedArgs, false);
+    }
+
     void resolveArgsFromEnclosingStruct(Sema& sema, const SymbolStruct& enclosingInstance, std::span<const SemaGeneric::GenericParamDesc> targetParams, std::span<SemaGeneric::GenericResolvedArg> resolvedArgs)
     {
         const SymbolStruct* enclosingRoot = enclosingInstance.genericRootSym();
@@ -1574,94 +1658,10 @@ namespace
         SemaGeneric::collectGenericParams(sema, *enclosingDecl, enclosingDecl->spanGenericParamsRef, enclosingParams);
 
         SmallVector<GenericInstanceKey> enclosingArgs;
-        if (!enclosingRoot->tryGetGenericInstanceArgs(enclosingInstance, enclosingArgs) || enclosingArgs.size() != enclosingParams.size())
+        if (!enclosingRoot->tryGetGenericInstanceArgs(enclosingInstance, enclosingArgs))
             return;
 
-        SmallVector<bool> usedEnclosingParams(enclosingParams.size(), false);
-        for (size_t targetIndex = 0; targetIndex < targetParams.size(); ++targetIndex)
-        {
-            for (size_t enclosingIndex = 0; enclosingIndex < enclosingParams.size(); ++enclosingIndex)
-            {
-                if (targetParams[targetIndex].idRef != enclosingParams[enclosingIndex].idRef ||
-                    targetParams[targetIndex].kind != enclosingParams[enclosingIndex].kind)
-                    continue;
-
-                resolvedArgs[targetIndex].present = true;
-                resolvedArgs[targetIndex].typeRef = enclosingArgs[enclosingIndex].typeRef;
-                resolvedArgs[targetIndex].cstRef  = enclosingArgs[enclosingIndex].cstRef;
-                usedEnclosingParams[enclosingIndex] = true;
-                break;
-            }
-        }
-
-        for (size_t targetIndex = 0; targetIndex < targetParams.size(); ++targetIndex)
-        {
-            if (!resolvedArgs[targetIndex].present)
-                continue;
-
-            for (size_t enclosingIndex = 0; enclosingIndex < enclosingParams.size(); ++enclosingIndex)
-            {
-                if (usedEnclosingParams[enclosingIndex])
-                    continue;
-
-                if (targetParams[targetIndex].kind != enclosingParams[enclosingIndex].kind)
-                    continue;
-
-                const bool sameType = resolvedArgs[targetIndex].typeRef == enclosingArgs[enclosingIndex].typeRef;
-                const bool sameCst  = resolvedArgs[targetIndex].cstRef == enclosingArgs[enclosingIndex].cstRef;
-                if (!sameType || !sameCst)
-                    continue;
-
-                usedEnclosingParams[enclosingIndex] = true;
-                break;
-            }
-        }
-
-        for (size_t targetIndex = 0; targetIndex < targetParams.size(); ++targetIndex)
-        {
-            if (resolvedArgs[targetIndex].present)
-                continue;
-
-            size_t enclosingIndex = 0;
-            while (enclosingIndex < enclosingParams.size())
-            {
-                if (!usedEnclosingParams[enclosingIndex] && targetParams[targetIndex].kind == enclosingParams[enclosingIndex].kind)
-                    break;
-                ++enclosingIndex;
-            }
-
-            if (enclosingIndex == enclosingParams.size())
-                continue;
-
-            if (targetParams[targetIndex].defaultRef.isValid())
-            {
-                size_t remainingRequiredTargets = 0;
-                for (size_t i = targetIndex + 1; i < targetParams.size(); ++i)
-                {
-                    if (resolvedArgs[i].present ||
-                        targetParams[i].kind != targetParams[targetIndex].kind ||
-                        targetParams[i].defaultRef.isValid())
-                        continue;
-                    ++remainingRequiredTargets;
-                }
-
-                size_t remainingEnclosingParams = 0;
-                for (size_t i = enclosingIndex; i < enclosingParams.size(); ++i)
-                {
-                    if (usedEnclosingParams[i] || enclosingParams[i].kind != targetParams[targetIndex].kind)
-                        continue;
-                    ++remainingEnclosingParams;
-                }
-
-                if (remainingEnclosingParams <= remainingRequiredTargets)
-                    continue;
-            }
-
-            resolvedArgs[targetIndex].present = true;
-            resolvedArgs[targetIndex].typeRef = enclosingArgs[enclosingIndex].typeRef;
-            resolvedArgs[targetIndex].cstRef  = enclosingArgs[enclosingIndex].cstRef;
-            usedEnclosingParams[enclosingIndex] = true;
-        }
+        resolveArgsFromGenericContext(enclosingParams.span(), enclosingArgs.span(), targetParams, resolvedArgs, true);
     }
 
     void resolveStructArgsFromContext(Sema& sema, const SymbolStruct& genericRoot, std::span<const SemaGeneric::GenericParamDesc> targetParams, std::span<SemaGeneric::GenericResolvedArg> resolvedArgs)
@@ -1670,12 +1670,15 @@ namespace
             resolveArgsFromEnclosingStruct(sema, *sourceInstance, targetParams, resolvedArgs);
 
         if (hasMissingGenericArgs(resolvedArgs))
+            resolveArgsFromCurrentFunction(sema, targetParams, resolvedArgs);
+
+        if (hasMissingGenericArgs(resolvedArgs))
         {
             if (const SymbolStruct* currentFunctionInstance = genericStructInstanceFromCurrentFunction(sema, genericRoot))
                 resolveArgsFromEnclosingStruct(sema, *currentFunctionInstance, targetParams, resolvedArgs);
         }
 
-        if (hasMissingGenericArgs(resolvedArgs) && !functionTypeParamShadowsTarget(sema, targetParams))
+        if (hasMissingGenericArgs(resolvedArgs))
         {
             if (const SymbolStruct* enclosingInstance = enclosingGenericStructInstance(sema))
                 resolveArgsFromEnclosingStruct(sema, *enclosingInstance, targetParams, resolvedArgs);

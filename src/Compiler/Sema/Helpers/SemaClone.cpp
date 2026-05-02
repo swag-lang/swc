@@ -1315,8 +1315,11 @@ AstNodeRef AstStructDecl::semaClone(Sema& sema, const CloneContext& cloneContext
 {
     const AstNodeRef newRef     = cloneNodeCopy<AstNodeId::StructDecl>(sema, *this);
     auto&            cloned     = sema.node(newRef).cast<AstStructDecl>();
-    cloned.spanGenericParamsRef = SpanRef::invalid();
-    cloned.spanWhereRef         = SpanRef::invalid();
+    // Keep local generic declarations intact when they are cloned as part of an
+    // enclosing generic/function instantiation. Actual generic struct instances
+    // still clear their own generic signature in createGenericInstanceSymbol.
+    cloned.spanGenericParamsRef = cloneSpan(sema, spanGenericParamsRef, cloneContextAsInline(cloneContext));
+    cloned.spanWhereRef         = cloneSpan(sema, spanWhereRef, cloneContextAsInline(cloneContext));
     cloned.nodeBodyRef          = cloneNodeRef(sema, nodeBodyRef, cloneContextAsInline(cloneContext));
     return newRef;
 }
@@ -1325,8 +1328,8 @@ AstNodeRef AstUnionDecl::semaClone(Sema& sema, const CloneContext& cloneContext)
 {
     const AstNodeRef newRef     = cloneNodeCopy<AstNodeId::UnionDecl>(sema, *this);
     auto&            cloned     = sema.node(newRef).cast<AstUnionDecl>();
-    cloned.spanGenericParamsRef = SpanRef::invalid();
-    cloned.spanWhereRef         = SpanRef::invalid();
+    cloned.spanGenericParamsRef = cloneSpan(sema, spanGenericParamsRef, cloneContextAsInline(cloneContext));
+    cloned.spanWhereRef         = cloneSpan(sema, spanWhereRef, cloneContextAsInline(cloneContext));
     cloned.nodeBodyRef          = cloneNodeRef(sema, nodeBodyRef, cloneContextAsInline(cloneContext));
     return newRef;
 }

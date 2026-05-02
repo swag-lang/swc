@@ -275,7 +275,7 @@ namespace
             frame.setUpLookupScope(callerScope);
             for (SymbolVariable* bindingVar : inlinePayload->callerBindingVars)
                 frame.pushBindingVar(bindingVar);
-            for (TypeRef bindingType : inlinePayload->callerBindingTypes)
+            for (const TypeRef bindingType : inlinePayload->callerBindingTypes)
                 frame.pushBindingType(bindingType);
             sema.pushFramePopOnPostNode(frame, clonedRef);
         }

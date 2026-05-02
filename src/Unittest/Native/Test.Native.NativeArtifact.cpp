@@ -214,7 +214,7 @@ SWC_TEST_BEGIN(NativeArtifact_SymbolSortOrdersTokenRefsNumerically)
     SymbolSortTestSymbol token10{view.ref(), TokenRef{10}};
     SymbolSortTestSymbol token100{view.ref(), TokenRef{100}};
 
-    std::vector<SymbolSortTestSymbol*> symbols{&token100, &token10, &token2};
+    std::vector symbols{&token100, &token10, &token2};
     SymbolSort::sortAndUniqueByLocation(symbols, compiler);
 
     if (symbols.size() != 3)

@@ -331,7 +331,7 @@ Result SemaCheck::isAssignable(Sema& sema, AstNodeRef errorNodeRef, AstNodeRef l
 
     if (isConstAssignmentTarget(sema, leftExprRef, leftView))
     {
-        auto diag = SemaError::report(sema, DiagnosticId::sema_err_assign_to_const, errorNodeRef);
+        const auto diag = SemaError::report(sema, DiagnosticId::sema_err_assign_to_const, errorNodeRef);
         diag.report(sema.ctx());
         return Result::Error;
     }

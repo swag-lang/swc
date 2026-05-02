@@ -23,7 +23,7 @@ namespace
 {
     bool traceWaitDone()
     {
-        static const bool enabled = [] {
+        static const bool ENABLED = [] {
             char*  value  = nullptr;
             size_t length = 0;
             if (_dupenv_s(&value, &length, "SWC_TRACE_WAITDONE") != 0 || !value)
@@ -32,7 +32,7 @@ namespace
             free(value);
             return result;
         }();
-        return enabled;
+        return ENABLED;
     }
 
     void traceWaitDoneJobs(TaskContext& ctx, JobClientId clientId, uint64_t loopIndex)

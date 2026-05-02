@@ -497,6 +497,7 @@ namespace
 
     void appendEnclosingGenericCloneBindings(Sema& sema, const Symbol& root, SmallVector<SemaClone::ParamBinding>& outBindings)
     {
+        SWC_UNUSED(root);
         appendAmbientGenericCloneBindings(sema, outBindings);
     }
 
@@ -1570,7 +1571,7 @@ namespace
         if (contextParams.size() != contextArgs.size())
             return;
 
-        SmallVector<bool> usedContextParams(contextParams.size(), false);
+        SmallVector usedContextParams(contextParams.size(), false);
         for (size_t targetIndex = 0; targetIndex < targetParams.size(); ++targetIndex)
         {
             if (resolvedArgs[targetIndex].present)

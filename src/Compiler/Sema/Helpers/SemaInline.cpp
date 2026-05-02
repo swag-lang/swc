@@ -589,7 +589,7 @@ namespace
         return bodyRef;
     }
 
-    SymbolVariable* makeMaterializedInlineBindingSymbol(Sema& sema, const SymbolVariable& sourceParam, AstSingleVarDecl& materializedDecl, const bool materializedAsLet)
+    SymbolVariable* makeMaterializedInlineBindingSymbol(Sema& sema, const SymbolVariable& sourceParam, const AstSingleVarDecl& materializedDecl, const bool materializedAsLet)
     {
         const IdentifierRef idRef  = SemaHelpers::getUniqueIdentifier(sema, "__inline_arg");
         const SymbolFlags   flags  = sema.frame().flagsForCurrentAccess();

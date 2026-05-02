@@ -453,7 +453,7 @@ namespace
         const auto      storeBits = CodeGenTypeHelpers::scalarStoreBits(fillType, codeGen.ctx());
         if (storeBits == MicroOpBits::Zero)
         {
-            ConstantRef zeroCstRef = codeGen.cstMgr().addZeroPayloadConstant(codeGen.ctx(), fillTypeRef);
+            const ConstantRef zeroCstRef = codeGen.cstMgr().addZeroPayloadConstant(codeGen.ctx(), fillTypeRef);
             SWC_ASSERT(zeroCstRef.isValid());
             return makeAddressPayloadFromConstant(codeGen, zeroCstRef);
         }

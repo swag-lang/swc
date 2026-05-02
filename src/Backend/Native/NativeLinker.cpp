@@ -9,7 +9,7 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    constexpr size_t K_RESPONSE_FILE_COMMAND_LINE_THRESHOLD = 24u * 1024u;
+    constexpr size_t K_RESPONSE_FILE_COMMAND_LINE_THRESHOLD = 24ull * 1024ull;
 
     void appendResponseFileArg(Utf8& out, const std::string_view arg)
     {
@@ -172,7 +172,7 @@ Result NativeLinker::runToolAndValidateArtifacts(const fs::path& exePath, const 
     {
         const fs::path rspPath = responseFilePath(*builder_, exePath);
         SWC_RESULT(writeResponseFile(*builder_, rspPath, args));
-        toolArgs.push_back(std::format("@{}", Utf8(rspPath.filename())));
+        toolArgs.emplace_back(std::format("@{}", Utf8(rspPath.filename())));
         runArgs = &toolArgs;
     }
 

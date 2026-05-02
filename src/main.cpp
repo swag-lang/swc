@@ -40,6 +40,7 @@ namespace
         }
     }
 
+    // ReSharper disable once CppParameterMayBeConstPtrOrRef
     LONG WINAPI reportUnhandledHostException(EXCEPTION_POINTERS* exceptionPointers)
     {
         static std::atomic_bool reported = false;

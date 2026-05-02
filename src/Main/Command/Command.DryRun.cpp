@@ -133,7 +133,7 @@ namespace
         return result;
     }
 
-    Result buildDryRunFormatPreview(DryRunFormatPreview& outPreview, CompilerInstance& compiler, TaskContext& ctx)
+    Result buildDryRunFormatPreview(DryRunFormatPreview& outPreview, const CompilerInstance& compiler, TaskContext& ctx)
     {
         outPreview = {};
         if (ctx.cmdLine().command != CommandKind::Format)

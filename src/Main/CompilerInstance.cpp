@@ -684,14 +684,14 @@ namespace
 
     fs::path compilerResourceRoot(const fs::path& exeFullName)
     {
-        const fs::path exeDir = exeFullName.parent_path();
+        fs::path exeDir = exeFullName.parent_path();
 
         std::error_code ec;
         if (fs::is_directory(exeDir / "runtime", ec))
             return exeDir;
 
         ec.clear();
-        const fs::path repositoryBinDir = exeDir.parent_path() / "bin";
+        fs::path repositoryBinDir = exeDir.parent_path() / "bin";
         if (fs::is_directory(repositoryBinDir / "runtime", ec))
             return repositoryBinDir;
 

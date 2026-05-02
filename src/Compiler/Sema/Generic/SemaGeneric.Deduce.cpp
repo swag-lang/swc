@@ -662,7 +662,7 @@ namespace
         return Result::Continue;
     }
 
-    Result deduceFromFunctionPattern(Sema& sema, std::span<const SemaGeneric::GenericParamDesc> params, std::span<SemaGeneric::GenericResolvedArg> resolvedArgs, const AstLambdaType& lambdaType, const TypeInfo& argType, AstNodeRef argExprRef, uint32_t callArgIndex, CastFailure* outFailure, DeductionMode mode)
+    Result deduceFromFunctionPattern(Sema& sema, std::span<const SemaGeneric::GenericParamDesc> params, std::span<SemaGeneric::GenericResolvedArg> resolvedArgs, const AstLambdaType& lambdaType, const TypeInfo& argType, AstNodeRef argExprRef, uint32_t callArgIndex, const CastFailure* outFailure, DeductionMode mode)
     {
         if (!argType.isFunction())
             return Result::Continue;
@@ -824,7 +824,7 @@ namespace
         return true;
     }
 
-    Result deduceFromAggregateArrayElementsPattern(Sema& sema, std::span<const SemaGeneric::GenericParamDesc> params, std::span<SemaGeneric::GenericResolvedArg> resolvedArgs, std::span<const AstNodeRef> dims, AstNodeRef elemPatternRef, const TypeInfo& argType, AstNodeRef argExprRef, uint32_t callArgIndex, CastFailure* outFailure, DeductionMode mode)
+    Result deduceFromAggregateArrayElementsPattern(Sema& sema, std::span<const SemaGeneric::GenericParamDesc> params, std::span<SemaGeneric::GenericResolvedArg> resolvedArgs, std::span<const AstNodeRef> dims, AstNodeRef elemPatternRef, const TypeInfo& argType, AstNodeRef argExprRef, uint32_t callArgIndex, const CastFailure* outFailure, DeductionMode mode)
     {
         if (!argType.isAggregateArray())
             return Result::Continue;

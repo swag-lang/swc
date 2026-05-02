@@ -149,7 +149,6 @@ namespace
     Result makeIntResult(Sema& sema, AstNodeRef callRef, uint64_t value, uint32_t bitWidth, bool isUnsigned)
     {
         const TypeRef   resultTypeRef  = sema.viewType(callRef).typeRef();
-        const TypeInfo& resultTy       = sema.typeMgr().get(resultTypeRef);
         const TypeRef   storageTypeRef = constantFoldStorageTypeRef(sema, resultTypeRef);
         const TypeInfo& storageTy      = sema.typeMgr().get(storageTypeRef);
         if (!storageTy.isIntLike())

@@ -14,7 +14,7 @@ namespace
 {
     bool traceCycle()
     {
-        static const bool enabled = [] {
+        static const bool ENABLED = [] {
             char*  value  = nullptr;
             size_t length = 0;
             if (_dupenv_s(&value, &length, "SWC_TRACE_CYCLE") != 0 || !value)
@@ -23,7 +23,7 @@ namespace
             free(value);
             return result;
         }();
-        return enabled;
+        return ENABLED;
     }
 
     Utf8 cyclePathString(const TaskContext& ctx, std::span<const Symbol* const> cycle)
@@ -219,9 +219,8 @@ void SemaCycle::check(TaskContext& ctx, JobClientId clientId)
     ctx_ = &ctx;
     std::unordered_set<const Symbol*> reportedSymbols;
 
-    for (size_t jobIndex = 0; jobIndex < jobs.size(); jobIndex++)
+    for (const auto job : jobs)
     {
-        Job*        job   = jobs[jobIndex];
         const auto& state = job->ctx().state();
         if (state.waiterSymbol && state.symbol)
             addEdge(state.waiterSymbol, state.symbol, job, state);
@@ -229,9 +228,8 @@ void SemaCycle::check(TaskContext& ctx, JobClientId clientId)
 
     detectAndReportCycles();
 
-    for (size_t jobIndex = 0; jobIndex < jobs.size(); jobIndex++)
+    for (const auto job : jobs)
     {
-        Job*        job   = jobs[jobIndex];
         const auto& state = job->ctx().state();
         if (state.symbol && state.symbol->isIgnored())
             continue;
@@ -266,9 +264,8 @@ void SemaCycle::check(TaskContext& ctx, JobClientId clientId)
 
     const bool suppressStalledDependencies = Stats::hasError() || ctx.hasError();
 
-    for (size_t jobIndex = 0; jobIndex < jobs.size(); jobIndex++)
+    for (const auto job : jobs)
     {
-        Job*        job   = jobs[jobIndex];
         const auto& state = job->ctx().state();
         if (state.symbol && state.symbol->isIgnored())
             continue;

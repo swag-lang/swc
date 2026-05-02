@@ -904,7 +904,7 @@ void Lexer::lexNumber()
     }
 }
 
-void Lexer::checkCompilerGlobalIfSkip()
+void Lexer::checkCompilerGlobalIfSkip() const
 {
     if (token_.id != TokenId::CompilerGlobal || lexerFlags_.has(LexerFlagsE::IgnoreGlobalSkip))
         return;

@@ -1185,7 +1185,7 @@ Result AstMultiVarDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef)
         auto frame = sema.frame();
         if (requiresConstExprInitializer(sema, flags()))
             frame.addContextFlag(SemaFrameContextFlagsE::RequireConstExpr);
-        for (Symbol* sym : sema.curViewSymbolList().symList())
+        for (const Symbol* sym : sema.curViewSymbolList().symList())
             frame.hideLookupSymbol(sym);
         sema.pushFramePopOnPostChild(frame, childRef);
     }

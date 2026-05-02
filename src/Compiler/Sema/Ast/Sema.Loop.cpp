@@ -311,26 +311,26 @@ Result AstForeachStmt::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) 
         const SemaNodeView exprView     = sema.viewType(nodeExprRef);
         TypeRef            valueTypeRef = TypeRef::invalid();
         TypeRef            indexTypeRef = TypeRef::invalid();
-        auto&              payload      = ensureLoopSemaPayload(sema, sema.curNodeRef());
+        auto&              pl           = ensureLoopSemaPayload(sema, sema.curNodeRef());
         SWC_RESULT(foreachElementTypes(sema, *this, exprView, valueTypeRef, indexTypeRef));
 
         pushLoopFrame(sema, sema.curNodeRef(), indexTypeRef);
         sema.pushScopePopOnPostNode(SemaScopeFlagsE::Local);
         SmallVector<Symbol*> symbols;
         symbols.reserve(4);
-        SWC_RESULT(appendForeachAliasSymbols(sema, symbols, payload, *this, valueTypeRef, indexTypeRef));
+        SWC_RESULT(appendForeachAliasSymbols(sema, symbols, pl, *this, valueTypeRef, indexTypeRef));
 
         const size_t stateIndex = symbols.size();
-        auto&        stateSym   = getOrCreateLoopLocalSymbol(payload, stateIndex, [&]() -> SymbolVariable& { return SemaHelpers::registerUniqueSymbol<SymbolVariable>(sema, *this, "foreach_state"); });
+        auto&        stateSym   = getOrCreateLoopLocalSymbol(pl, stateIndex, [&]() -> SymbolVariable& { return SemaHelpers::registerUniqueSymbol<SymbolVariable>(sema, *this, "foreach_state"); });
         SWC_RESULT(ensureLoopLocalStorage(sema, stateSym, foreachInternalArrayType(sema, sema.typeMgr().typeU64(), 3)));
         symbols.push_back(&stateSym);
 
-        auto& sourceSpillSym = getOrCreateLoopLocalSymbol(payload, stateIndex + 1, [&]() -> SymbolVariable& { return SemaHelpers::registerUniqueSymbol<SymbolVariable>(sema, *this, "foreach_source_spill"); });
+        auto& sourceSpillSym = getOrCreateLoopLocalSymbol(pl, stateIndex + 1, [&]() -> SymbolVariable& { return SemaHelpers::registerUniqueSymbol<SymbolVariable>(sema, *this, "foreach_source_spill"); });
         SWC_RESULT(ensureLoopLocalStorage(sema, sourceSpillSym, foreachInternalArrayType(sema, sema.typeMgr().typeU8(), 8)));
         symbols.push_back(&sourceSpillSym);
 
-        SWC_ASSERT(payload.localSymbols.size() == symbols.size());
-        sema.setSymbolList(sema.curNodeRef(), payload.localSymbols.span());
+        SWC_ASSERT(pl.localSymbols.size() == symbols.size());
+        sema.setSymbolList(sema.curNodeRef(), pl.localSymbols.span());
     }
 
     return Result::Continue;

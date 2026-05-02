@@ -337,7 +337,7 @@ SWC_TEST_BEGIN(Compiler_FormatDryRunDoesNotRewriteChangedFile)
     if (!stream.is_open())
         return Result::Error;
 
-    const std::string content((std::istreambuf_iterator<char>(stream)), std::istreambuf_iterator<char>());
+    const std::string content((std::istreambuf_iterator(stream)), std::istreambuf_iterator<char>());
     if (content != source)
         return Result::Error;
     if (Stats::get().numFormatRewrittenFiles.load(std::memory_order_relaxed) != 1)

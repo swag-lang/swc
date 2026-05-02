@@ -110,7 +110,7 @@ namespace
         if (!pointerType.isAnyPointer())
             return false;
 
-        TypeRef payloadTypeRef = pointerType.payloadTypeRef();
+        const TypeRef payloadTypeRef = pointerType.payloadTypeRef();
         if (payloadTypeRef == sema.typeMgr().typeVoid())
             return true;
 

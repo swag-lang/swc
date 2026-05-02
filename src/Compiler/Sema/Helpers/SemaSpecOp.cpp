@@ -25,7 +25,6 @@
 #include "Compiler/SourceFile.h"
 #include "Main/Command/CommandLine.h"
 #include "Main/CompilerInstance.h"
-#include "Main/FileSystem.h"
 #include "Main/Global.h"
 #include "Support/Memory/Heap.h"
 #include "Support/Os/Os.h"
@@ -929,7 +928,7 @@ namespace
         return collectSpecOpCandidates(sema, ownerStruct, opId, std::span<const AstNodeRef>{}, outCandidates);
     }
 
-    void appendIndexArgs(Ast& ast, const AstIndexListExpr& node, SmallVector<AstNodeRef>& outArgs)
+    void appendIndexArgs(const Ast& ast, const AstIndexListExpr& node, SmallVector<AstNodeRef>& outArgs)
     {
         ast.appendNodes(outArgs, node.spanChildrenRef);
     }
@@ -1659,8 +1658,8 @@ namespace
         const SemaNodeView view = generatedSema.viewSymbol(nodeRef);
         if (view.hasSymbol() && view.sym() && view.sym()->isImpl())
         {
-            auto&         symImpl    = view.sym()->cast<SymbolImpl>();
-            SymbolStruct* implStruct = symImpl.isForStruct() ? symImpl.symStruct() : nullptr;
+            auto&               symImpl    = view.sym()->cast<SymbolImpl>();
+            const SymbolStruct* implStruct = symImpl.isForStruct() ? symImpl.symStruct() : nullptr;
             if (symImpl.idRef() == ownerStruct.idRef() && (!implStruct || implStruct == &ownerStruct))
             {
                 if (!implStruct)
@@ -2217,7 +2216,7 @@ namespace
 {
     bool traceVisitSpecOp()
     {
-        static const bool enabled = [] {
+        static const bool ENABLED = [] {
             char*  value  = nullptr;
             size_t length = 0;
             if (_dupenv_s(&value, &length, "SWC_TRACE_VISIT") != 0 || !value)
@@ -2226,7 +2225,7 @@ namespace
             free(value);
             return result;
         }();
-        return enabled;
+        return ENABLED;
     }
 
     void traceVisitReceiver(Sema& sema, const AstForeachStmt& node, AstNodeRef receiverRef)

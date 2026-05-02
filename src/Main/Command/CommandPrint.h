@@ -1,5 +1,7 @@
 #pragma once
 
+#include <algorithm>
+
 #include "Support/Core/Utf8Helper.h"
 #include "Support/Report/Logger.h"
 
@@ -30,8 +32,7 @@ namespace CommandPrint
     inline Logger::FieldGroupStyle helpGroupStyle(const bool blankLineBefore, const size_t maxLabelWidth = 34)
     {
         Logger::FieldGroupStyle style = infoGroupStyle(blankLineBefore, maxLabelWidth);
-        if (style.maxLabelWidth < style.minLabelWidth)
-            style.maxLabelWidth = style.minLabelWidth;
+        style.maxLabelWidth           = std::max(style.maxLabelWidth, style.minLabelWidth);
         return style;
     }
 

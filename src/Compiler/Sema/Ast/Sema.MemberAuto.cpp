@@ -25,7 +25,7 @@ namespace
 
     bool traceAutoMember()
     {
-        static const bool enabled = [] {
+        static const bool ENABLED = [] {
             char*  value  = nullptr;
             size_t length = 0;
             if (_dupenv_s(&value, &length, "SWC_TRACE_AUTOMEMBER") != 0 || !value)
@@ -34,7 +34,7 @@ namespace
             free(value);
             return result;
         }();
-        return enabled;
+        return ENABLED;
     }
 
     TypeRef normalizeAutoMemberBindingType(TaskContext& ctx, TypeRef typeRef)
@@ -326,7 +326,7 @@ namespace
             if (binding.idRef != meId || binding.exprRef.isInvalid())
                 continue;
 
-            if (SymbolVariable* receiver = activeReceiverBinding(sema))
+            if (const SymbolVariable* receiver = activeReceiverBinding(sema))
             {
                 if (expressionResolvesToVariable(sema, binding.exprRef, *receiver))
                     return Result::Continue;
@@ -531,7 +531,7 @@ namespace
         if (candidate.symVar || candidate.baseExprRef.isValid())
             return;
 
-        SymbolVariable* receiver = currentMethodReceiver(sema);
+        const SymbolVariable* receiver = currentMethodReceiver(sema);
         if (!receiver)
             return;
 

@@ -1570,6 +1570,7 @@ namespace
         if (!enclosingRoot->tryGetGenericInstanceArgs(enclosingInstance, enclosingArgs) || enclosingArgs.size() != enclosingParams.size())
             return;
 
+        SmallVector<bool> usedEnclosingParams(enclosingParams.size(), false);
         for (size_t targetIndex = 0; targetIndex < targetParams.size(); ++targetIndex)
         {
             for (size_t enclosingIndex = 0; enclosingIndex < enclosingParams.size(); ++enclosingIndex)
@@ -1581,21 +1582,32 @@ namespace
                 resolvedArgs[targetIndex].present = true;
                 resolvedArgs[targetIndex].typeRef = enclosingArgs[enclosingIndex].typeRef;
                 resolvedArgs[targetIndex].cstRef  = enclosingArgs[enclosingIndex].cstRef;
+                usedEnclosingParams[enclosingIndex] = true;
                 break;
             }
         }
 
-        if (targetParams.size() != enclosingParams.size())
-            return;
-
+        size_t nextEnclosingIndex = 0;
         for (size_t targetIndex = 0; targetIndex < targetParams.size(); ++targetIndex)
         {
-            if (resolvedArgs[targetIndex].present || targetParams[targetIndex].kind != enclosingParams[targetIndex].kind)
+            if (resolvedArgs[targetIndex].present)
                 continue;
 
+            while (nextEnclosingIndex < enclosingParams.size())
+            {
+                if (!usedEnclosingParams[nextEnclosingIndex] && targetParams[targetIndex].kind == enclosingParams[nextEnclosingIndex].kind)
+                    break;
+                ++nextEnclosingIndex;
+            }
+
+            if (nextEnclosingIndex == enclosingParams.size())
+                return;
+
             resolvedArgs[targetIndex].present = true;
-            resolvedArgs[targetIndex].typeRef = enclosingArgs[targetIndex].typeRef;
-            resolvedArgs[targetIndex].cstRef  = enclosingArgs[targetIndex].cstRef;
+            resolvedArgs[targetIndex].typeRef = enclosingArgs[nextEnclosingIndex].typeRef;
+            resolvedArgs[targetIndex].cstRef  = enclosingArgs[nextEnclosingIndex].cstRef;
+            usedEnclosingParams[nextEnclosingIndex] = true;
+            ++nextEnclosingIndex;
         }
     }
 }

@@ -15,6 +15,90 @@ struct(T, N: s32) Buffer
 
 func(T, N: s32) bufferCount(buffer: Buffer'(T, N))->s32 => N
 
+func genericFunctionMakeS32()->s32 => 42
+func genericFunctionConsumeS32(value: s32) {}
+func genericFunctionS32ToBool(value: s32)->bool => value == 42
+
+func(T) callGenericFactory(factory: func()->T)->T
+{
+    return factory()
+}
+
+func(T) acceptGenericConsumer(consumer: func(T))
+{
+    consumer(42)
+}
+
+func(T, U) applyGenericMapper(mapper: func(T)->U, value: T)->U
+{
+    return mapper(value)
+}
+
+func(T) genericVariadicFirst(values: T...)->T
+{
+    return values[0]
+}
+
+func(T) genericVariadicAfterHead(head: s32, values: T...)->T
+{
+    return values[1]
+}
+
+func(T) genericVariadicForward(values: T...)->T
+{
+    return genericVariadicFirst(values)
+}
+
+func(T) genericDefaultArgument(value: T = 42)->T
+{
+    return value
+}
+
+func(T) genericDefaultArray(values: [2] T = [1'u16, 2'u16])->T
+{
+    return values[0]
+}
+
+func(T) genericDefaultMatrix(values: [2, 2] T = [[1'u8, 2'u8], [3'u8, 4'u8]])->T
+{
+    return values[1][0]
+}
+
+func(T) genericDefaultSlice(values: const [..] T = [1'u16, 2'u16])->T
+{
+    return values[0]
+}
+
+func(T) genericDefaultStringSlice(values: const [..] T = "abc")->T
+{
+    return values[0]
+}
+
+func(T) genericSliceFirst(values: const [..] T)->T
+{
+    return values[0]
+}
+
+func(T, N: s32) genericDefaultBuffer(buffer: Buffer'(T, N) = {values: [1'u16, 2'u16, 3'u16]})->s32
+{
+    return N
+}
+
+func(U, M: s32) genericDefaultRenamedBuffer(buffer: Buffer'(U, M) = {values: [1'u8, 2'u8]})->U
+{
+    return buffer.values[0]
+}
+
+func(T) genericAnonymousField(value: struct { field: T })->T
+{
+    return value.field
+}
+
+func(T) genericDefaultAnonymousField(value: struct { field: T } = {field: 12'u16})->T
+{
+    return value.field
+}
+
 #test
 {
     #assert(identity'(s32)(42) == 42)
@@ -67,4 +151,86 @@ func(T, N: s32) bufferCount(buffer: Buffer'(T, N))->s32 => N
 
     #assert(#typeof(buffer.values) == #type [4] u16)
     #assert(bufferCount'(u16, 4)(buffer) == 4)
+}
+
+#test
+{
+    let made = callGenericFactory(&genericFunctionMakeS32)
+    #assert(#typeof(made) == s32)
+
+    acceptGenericConsumer(&genericFunctionConsumeS32)
+
+    let mapped = applyGenericMapper(&genericFunctionS32ToBool, 42)
+    #assert(#typeof(mapped) == bool)
+}
+
+#test
+{
+    let first = genericVariadicFirst(1'u16, 2'u16)
+    #assert(#typeof(first) == u16)
+
+    let tail = genericVariadicAfterHead(10, 3'u8, 4'u8)
+    #assert(#typeof(tail) == u8)
+
+    let forwarded = genericVariadicForward(5's64, 6's64)
+    #assert(#typeof(forwarded) == s64)
+}
+
+#test
+{
+    let value = genericDefaultArgument()
+    #assert(#typeof(value) == s32)
+}
+
+#test
+{
+    let value = genericDefaultArray()
+    #assert(#typeof(value) == u16)
+}
+
+#test
+{
+    let value = genericDefaultMatrix()
+    #assert(#typeof(value) == u8)
+}
+
+#test
+{
+    let value = genericDefaultSlice()
+    #assert(#typeof(value) == u16)
+}
+
+#test
+{
+    let value = genericDefaultStringSlice()
+    #assert(#typeof(value) == u8)
+}
+
+#test
+{
+    let value = genericSliceFirst("abc")
+    #assert(#typeof(value) == u8)
+}
+
+#test
+{
+    #assert(genericDefaultBuffer() == 3)
+}
+
+#test
+{
+    let value = genericDefaultRenamedBuffer()
+    #assert(#typeof(value) == u8)
+}
+
+#test
+{
+    let value = genericAnonymousField(struct { field: u16 }{field: 12'u16})
+    #assert(#typeof(value) == u16)
+}
+
+#test
+{
+    let value = genericDefaultAnonymousField()
+    #assert(#typeof(value) == u16)
 }

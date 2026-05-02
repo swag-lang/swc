@@ -39,6 +39,41 @@ func defaultBeforeStmt(value: s32 = 40, stmt: #code void)
     #inject(stmt)
 }
 
+#[Swag.Macro]
+func(T) genericCodeValue(expr: #code T)->T
+{
+    return #inject(expr)
+}
+
+#[Swag.Macro]
+func(T) genericCodeWhen(cond: #code T, stmt: #code void)
+{
+    if #inject(cond)
+    {
+        #inject(stmt)
+    }
+}
+
+#[Swag.Macro]
+func forwardGenericCodeValue(expr: #code s32)->s32
+{
+    return genericCodeValue(expr)
+}
+
+#[Swag.Macro]
+func forwardGenericCodeFlag(expr: #code bool)->bool
+{
+    return genericCodeValue(expr)
+}
+
+#[Swag.Macro]
+func forwardGenericCodeWhen(cond: #code bool, stmt: #code void)
+{
+    genericCodeWhen(cond, #code {
+        #inject(stmt)
+    })
+}
+
 #test
 {
     var count = 0
@@ -92,6 +127,22 @@ func defaultBeforeStmt(value: s32 = 40, stmt: #code void)
 {
     var count = 0
     defaultBeforeStmt()
+    {
+        count += 1
+    }
+    @assert(count == 1)
+}
+
+#test
+{
+    let value = forwardGenericCodeValue(#code 42)
+    #assert(#typeof(value) == s32)
+
+    let flag = forwardGenericCodeFlag(#code value == 42)
+    #assert(#typeof(flag) == bool)
+
+    var count = 0
+    forwardGenericCodeWhen(#code flag)
     {
         count += 1
     }

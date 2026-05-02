@@ -1589,6 +1589,19 @@ namespace
 
 namespace SemaGeneric
 {
+    Result evalGenericFunctionParamDefault(Sema& sema, const SymbolFunction& root, std::span<const GenericParamDesc> params, std::span<const GenericResolvedArg> resolvedArgs, AstNodeRef defaultRef, AstNodeRef& outClonedRef)
+    {
+        outClonedRef = AstNodeRef::invalid();
+        if (defaultRef.isInvalid())
+            return Result::Continue;
+
+        SmallVector<SemaClone::ParamBinding> bindings;
+        collectResolvedGenericBindings(params, resolvedArgs, params.size(), bindings);
+        appendEnclosingGenericCloneBindings(sema, root, bindings);
+
+        return evalGenericClonedNode(sema, root, defaultRef, bindings, outClonedRef);
+    }
+
     Result evaluateFunctionWhereConstraints(Sema& sema, bool& outSatisfied, const SymbolFunction& function, CastFailure* outFailure)
     {
         outSatisfied     = true;

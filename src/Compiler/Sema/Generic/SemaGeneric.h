@@ -42,7 +42,9 @@ namespace SemaGeneric
     {
         IdentifierRef idRef      = IdentifierRef::invalid();
         AstNodeRef    typeRef    = AstNodeRef::invalid();
+        AstNodeRef    defaultRef = AstNodeRef::invalid();
         bool          isVariadic = false;
+        bool          hasExplicitType = false;
     };
 
     struct GenericCallArgEntry
@@ -65,6 +67,7 @@ namespace SemaGeneric
 
     bool hasMissingGenericArgs(std::span<const GenericResolvedArg> resolvedArgs);
 
+    Result evalGenericFunctionParamDefault(Sema& sema, const SymbolFunction& root, std::span<const GenericParamDesc> params, std::span<const GenericResolvedArg> resolvedArgs, AstNodeRef defaultRef, AstNodeRef& outClonedRef);
     Result deduceGenericFunctionArgs(Sema& sema, const SymbolFunction& root, std::span<const GenericParamDesc> genericParams, SmallVector<GenericResolvedArg>& ioResolvedArgs, std::span<AstNodeRef> args, AstNodeRef ufcsArg, CastFailure* outFailure = nullptr, uint32_t* outFailureArgIndex = nullptr);
     Result evaluateFunctionWhereConstraints(Sema& sema, bool& outSatisfied, const SymbolFunction& function, CastFailure* outFailure = nullptr);
     Result instantiateFunctionExplicit(Sema& sema, SymbolFunction& genericRoot, std::span<const AstNodeRef> genericArgNodes, SymbolFunction*& outInstance);

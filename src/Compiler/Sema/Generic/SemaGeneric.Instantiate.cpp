@@ -20,6 +20,7 @@ namespace
 {
     const AstFunctionDecl* genericFunctionDecl(const SymbolFunction& root);
     const AstStructDecl*   genericStructDecl(const SymbolStruct& root);
+    void                   resolveStructArgsFromContext(Sema& sema, const SymbolStruct& genericRoot, std::span<const SemaGeneric::GenericParamDesc> targetParams, std::span<SemaGeneric::GenericResolvedArg> resolvedArgs);
 
     const SymbolFunction* declContextRoot(const SymbolFunction& function)
     {
@@ -1430,6 +1431,12 @@ namespace
         for (size_t i = 0; i < genericArgNodes.size(); ++i)
             SWC_RESULT(SemaGeneric::resolveExplicitGenericArg(sema, params[i], genericArgNodes[i], resolvedArgs[i]));
 
+        if (const auto* genericStruct = genericRoot.safeCast<SymbolStruct>())
+        {
+            if (hasMissingGenericArgs(resolvedArgs.span()))
+                resolveStructArgsFromContext(sema, *genericStruct, params.span(), resolvedArgs.span());
+        }
+
         SWC_RESULT(materializeGenericArgs(sourceSema, genericRoot, params.span(), resolvedArgs.span(), genericArgNodes, errorNodeRef));
         if (SemaGeneric::hasMissingGenericArgs(resolvedArgs.span()))
             return Result::Continue;
@@ -1601,12 +1608,54 @@ namespace
             }
 
             if (enclosingIndex == enclosingParams.size())
-                return;
+                continue;
+
+            if (targetParams[targetIndex].defaultRef.isValid())
+            {
+                size_t remainingRequiredTargets = 0;
+                for (size_t i = targetIndex + 1; i < targetParams.size(); ++i)
+                {
+                    if (resolvedArgs[i].present ||
+                        targetParams[i].kind != targetParams[targetIndex].kind ||
+                        targetParams[i].defaultRef.isValid())
+                        continue;
+                    ++remainingRequiredTargets;
+                }
+
+                size_t remainingEnclosingParams = 0;
+                for (size_t i = enclosingIndex; i < enclosingParams.size(); ++i)
+                {
+                    if (usedEnclosingParams[i] || enclosingParams[i].kind != targetParams[targetIndex].kind)
+                        continue;
+                    ++remainingEnclosingParams;
+                }
+
+                if (remainingEnclosingParams <= remainingRequiredTargets)
+                    continue;
+            }
 
             resolvedArgs[targetIndex].present = true;
             resolvedArgs[targetIndex].typeRef = enclosingArgs[enclosingIndex].typeRef;
             resolvedArgs[targetIndex].cstRef  = enclosingArgs[enclosingIndex].cstRef;
             usedEnclosingParams[enclosingIndex] = true;
+        }
+    }
+
+    void resolveStructArgsFromContext(Sema& sema, const SymbolStruct& genericRoot, std::span<const SemaGeneric::GenericParamDesc> targetParams, std::span<SemaGeneric::GenericResolvedArg> resolvedArgs)
+    {
+        if (const SymbolStruct* sourceInstance = genericStructInstanceFromInlinePayload(sema, genericRoot))
+            resolveArgsFromEnclosingStruct(sema, *sourceInstance, targetParams, resolvedArgs);
+
+        if (hasMissingGenericArgs(resolvedArgs))
+        {
+            if (const SymbolStruct* currentFunctionInstance = genericStructInstanceFromCurrentFunction(sema, genericRoot))
+                resolveArgsFromEnclosingStruct(sema, *currentFunctionInstance, targetParams, resolvedArgs);
+        }
+
+        if (hasMissingGenericArgs(resolvedArgs) && !functionTypeParamShadowsTarget(sema, targetParams))
+        {
+            if (const SymbolStruct* enclosingInstance = enclosingGenericStructInstance(sema))
+                resolveArgsFromEnclosingStruct(sema, *enclosingInstance, targetParams, resolvedArgs);
         }
     }
 }
@@ -1740,21 +1789,7 @@ namespace SemaGeneric
         collectGenericParams(targetSema, *targetDecl, targetDecl->spanGenericParamsRef, targetParams);
 
         SmallVector<GenericResolvedArg> resolvedArgs(targetParams.size());
-
-        if (const SymbolStruct* sourceInstance = genericStructInstanceFromInlinePayload(sema, genericRoot))
-            resolveArgsFromEnclosingStruct(sema, *sourceInstance, targetParams.span(), resolvedArgs.span());
-
-        if (hasMissingGenericArgs(resolvedArgs.span()))
-        {
-            if (const SymbolStruct* currentFunctionInstance = genericStructInstanceFromCurrentFunction(sema, genericRoot))
-                resolveArgsFromEnclosingStruct(sema, *currentFunctionInstance, targetParams.span(), resolvedArgs.span());
-        }
-
-        if (hasMissingGenericArgs(resolvedArgs.span()) && !functionTypeParamShadowsTarget(sema, targetParams.span()))
-        {
-            if (const SymbolStruct* enclosingInstance = enclosingGenericStructInstance(sema))
-                resolveArgsFromEnclosingStruct(sema, *enclosingInstance, targetParams.span(), resolvedArgs.span());
-        }
+        resolveStructArgsFromContext(sema, genericRoot, targetParams.span(), resolvedArgs.span());
 
         SWC_RESULT(materializeGenericArgs(targetSema, genericRoot, targetParams.span(), resolvedArgs.span(), {}, genericDeclNodeRef(genericRoot)));
         if (hasMissingGenericArgs(resolvedArgs.span()))

@@ -1596,6 +1596,29 @@ namespace
 
         for (size_t targetIndex = 0; targetIndex < targetParams.size(); ++targetIndex)
         {
+            if (!resolvedArgs[targetIndex].present)
+                continue;
+
+            for (size_t enclosingIndex = 0; enclosingIndex < enclosingParams.size(); ++enclosingIndex)
+            {
+                if (usedEnclosingParams[enclosingIndex])
+                    continue;
+
+                if (targetParams[targetIndex].kind != enclosingParams[enclosingIndex].kind)
+                    continue;
+
+                const bool sameType = resolvedArgs[targetIndex].typeRef == enclosingArgs[enclosingIndex].typeRef;
+                const bool sameCst  = resolvedArgs[targetIndex].cstRef == enclosingArgs[enclosingIndex].cstRef;
+                if (!sameType || !sameCst)
+                    continue;
+
+                usedEnclosingParams[enclosingIndex] = true;
+                break;
+            }
+        }
+
+        for (size_t targetIndex = 0; targetIndex < targetParams.size(); ++targetIndex)
+        {
             if (resolvedArgs[targetIndex].present)
                 continue;
 

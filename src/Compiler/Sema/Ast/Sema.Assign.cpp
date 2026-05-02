@@ -267,8 +267,8 @@ namespace
 
     Result castAndResultType(Sema& sema, TokenId op, const SemaNodeView& nodeLeftView, SemaNodeView& nodeRightView, const bool rebindReference)
     {
-        const TokenId binOp          = op == TokenId::SymEqual ? op : Token::assignToBinary(op);
-        const auto    targetLeftView = assignmentTargetView(sema, nodeLeftView, rebindReference);
+        const TokenId binOp                = op == TokenId::SymEqual ? op : Token::assignToBinary(op);
+        const auto    targetLeftView       = assignmentTargetView(sema, nodeLeftView, rebindReference);
         const TypeRef pointerResultTypeRef = compoundPointerArithmeticResultTypeRef(sema, binOp, targetLeftView, nodeRightView);
         if (pointerResultTypeRef.isValid())
             SWC_RESULT(tryAssignmentCast(sema, nodeLeftView.nodeRef(), nodeLeftView, pointerResultTypeRef, rebindReference, sema.curNodeRef(), DiagnosticId::sema_note_assignment_target_here));

@@ -261,8 +261,8 @@ CodeGenNodePayload CodeGenFunctionHelpers::resolveClosureCapturePayload(CodeGen&
     CodeGenNodePayload capturePayload;
     capturePayload.typeRef = symVar.typeRef();
 
-    const MicroReg captureReg = codeGen.offsetAddressReg(codeGen.currentFunctionClosureContextReg(), symVar.closureCaptureOffset());
-    const TypeInfo& typeInfo = codeGen.typeMgr().get(symVar.typeRef());
+    const MicroReg  captureReg = codeGen.offsetAddressReg(codeGen.currentFunctionClosureContextReg(), symVar.closureCaptureOffset());
+    const TypeInfo& typeInfo   = codeGen.typeMgr().get(symVar.typeRef());
     if (typeInfo.isAnyVariadic())
     {
         capturePayload.reg = codeGen.nextVirtualIntRegister();

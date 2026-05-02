@@ -207,7 +207,7 @@ namespace
 
 SWC_TEST_BEGIN(NativeArtifact_SymbolSortOrdersTokenRefsNumerically)
 {
-    CompilerInstance compiler(ctx.global(), ctx.cmdLine());
+    CompilerInstance  compiler(ctx.global(), ctx.cmdLine());
     const SourceView& view = compiler.addSourceView();
 
     SymbolSortTestSymbol token2{view.ref(), TokenRef{2}};

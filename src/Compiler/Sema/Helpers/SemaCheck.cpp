@@ -71,7 +71,7 @@ namespace
         if (resolvedNodeRef.isInvalid())
             return AstNodeRef::invalid();
 
-        const AstNode&   node            = sema.node(resolvedNodeRef);
+        const AstNode& node = sema.node(resolvedNodeRef);
         if (node.is(AstNodeId::IndexExpr))
             return node.cast<AstIndexExpr>().nodeExprRef;
         if (node.is(AstNodeId::IndexListExpr))

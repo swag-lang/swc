@@ -1177,8 +1177,8 @@ namespace
         SemaNodeView     view     = sema.viewType(childRef);
         SWC_ASSERT(view.typeRef().isValid());
 
-        const TypeRef enumTypeRef = view.type()->unwrap(sema.ctx(), view.typeRef(), TypeExpandE::Alias);
-        const TypeInfo& enumType  = sema.typeMgr().get(enumTypeRef);
+        const TypeRef   enumTypeRef = view.type()->unwrap(sema.ctx(), view.typeRef(), TypeExpandE::Alias);
+        const TypeInfo& enumType    = sema.typeMgr().get(enumTypeRef);
         if (enumType.isEnum())
         {
             const TypeRef     typeRef = enumType.payloadSymEnum().underlyingTypeRef();

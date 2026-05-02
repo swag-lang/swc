@@ -214,8 +214,8 @@ namespace
 
     ConstantValue makeMaterializedConstantValue(CodeGen& codeGen, TypeRef typeRef, ByteSpan storedBytes, DataSegmentRef dataSegmentRef)
     {
-        TaskContext&    ctx          = codeGen.ctx();
-        const TypeInfo& originalType = ctx.typeMgr().get(typeRef);
+        TaskContext&    ctx            = codeGen.ctx();
+        const TypeInfo& originalType   = ctx.typeMgr().get(typeRef);
         TypeRef         storageTypeRef = originalType.unwrap(ctx, typeRef, TypeExpandE::Alias | TypeExpandE::Enum);
         if (storageTypeRef.isInvalid())
             storageTypeRef = typeRef;
@@ -329,7 +329,7 @@ ConstantRef CodeGenConstantHelpers::materializeStaticPayloadConstant(CodeGen& co
     SWC_ASSERT(sizeOf != 0 || offset == INVALID_REF);
     const ByteSpan       storedBytes = sizeOf ? ByteSpan{segment.ptr<std::byte>(offset), sizeOf} : ByteSpan{};
     const DataSegmentRef dataRef{.shardIndex = hasRequiredShard ? shardIndex : 0, .offset = offset};
-    const ConstantValue value = makeMaterializedConstantValue(codeGen, typeRef, storedBytes, dataRef);
+    const ConstantValue  value = makeMaterializedConstantValue(codeGen, typeRef, storedBytes, dataRef);
     if (!value.isValid())
         return ConstantRef::invalid();
 

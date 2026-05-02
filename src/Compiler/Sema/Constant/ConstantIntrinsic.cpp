@@ -84,8 +84,8 @@ namespace
         if (!std::isfinite(value))
             return Result::Continue;
 
-        const TypeRef  resultTypeRef = sema.viewType(callRef).typeRef();
-        const TypeInfo resultTy      = sema.typeMgr().get(resultTypeRef);
+        const TypeRef  resultTypeRef  = sema.viewType(callRef).typeRef();
+        const TypeInfo resultTy       = sema.typeMgr().get(resultTypeRef);
         const TypeRef  storageTypeRef = constantFoldStorageTypeRef(sema, resultTypeRef);
         const TypeInfo storageTy      = sema.typeMgr().get(storageTypeRef);
         if (!storageTy.isFloat())
@@ -148,17 +148,17 @@ namespace
 
     Result makeIntResult(Sema& sema, AstNodeRef callRef, uint64_t value, uint32_t bitWidth, bool isUnsigned)
     {
-        const TypeRef   resultTypeRef = sema.viewType(callRef).typeRef();
-        const TypeInfo& resultTy      = sema.typeMgr().get(resultTypeRef);
+        const TypeRef   resultTypeRef  = sema.viewType(callRef).typeRef();
+        const TypeInfo& resultTy       = sema.typeMgr().get(resultTypeRef);
         const TypeRef   storageTypeRef = constantFoldStorageTypeRef(sema, resultTypeRef);
         const TypeInfo& storageTy      = sema.typeMgr().get(storageTypeRef);
         if (!storageTy.isIntLike())
             return Result::Continue;
 
-        const ApsInt        apsResult(std::bit_cast<int64_t>(value), bitWidth, isUnsigned);
-        ConstantValue       cv     = ConstantValue::makeFromIntLike(sema.ctx(), apsResult, storageTy);
+        const ApsInt  apsResult(std::bit_cast<int64_t>(value), bitWidth, isUnsigned);
+        ConstantValue cv = ConstantValue::makeFromIntLike(sema.ctx(), apsResult, storageTy);
         cv.setTypeRef(resultTypeRef);
-        const ConstantRef   cstRef = sema.cstMgr().addConstant(sema.ctx(), cv);
+        const ConstantRef cstRef = sema.cstMgr().addConstant(sema.ctx(), cv);
         sema.setConstant(callRef, cstRef);
         return Result::Continue;
     }

@@ -103,10 +103,10 @@ namespace
         const ULONG_PTR params[] = {
             0,
             reinterpret_cast<ULONG_PTR>(message.c_str()),
-            static_cast<ULONG_PTR>(message.size()),
+            (message.size()),
             static_cast<ULONG_PTR>(Runtime::ExceptionKind::Error),
         };
-        RaiseException(K_COMPILER_EXCEPTION_CODE, 0, static_cast<DWORD>(std::size(params)), params);
+        RaiseException(K_COMPILER_EXCEPTION_CODE, 0, std::size(params), params);
 #else
         SWC_UNUSED(functionName);
         SWC_UNUSED(exitCode);

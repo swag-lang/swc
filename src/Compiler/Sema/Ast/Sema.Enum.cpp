@@ -146,8 +146,8 @@ namespace
         if (alias.aliasedSymbol() && alias.aliasedSymbol()->isEnum())
             return &alias.aliasedSymbol()->cast<SymbolEnum>();
 
-        const TypeRef enumTypeRef = sema.typeMgr().get(alias.underlyingTypeRef()).unwrap(sema.ctx(), alias.underlyingTypeRef(), TypeExpandE::Alias);
-        const TypeInfo& enumType  = sema.typeMgr().get(enumTypeRef);
+        const TypeRef   enumTypeRef = sema.typeMgr().get(alias.underlyingTypeRef()).unwrap(sema.ctx(), alias.underlyingTypeRef(), TypeExpandE::Alias);
+        const TypeInfo& enumType    = sema.typeMgr().get(enumTypeRef);
         if (enumType.isEnum())
             return &enumType.payloadSymEnum();
 
@@ -207,7 +207,7 @@ Result AstUsingEnumDecl::semaPostNode(Sema& sema) const
     const SymbolEnum* importedEnum = importedUsingEnumSymbol(sema, *usingView.sym());
     SWC_ASSERT(importedEnum);
 
-    auto&       ownerEnum    = sema.curSymMap()->cast<SymbolEnum>();
+    auto& ownerEnum = sema.curSymMap()->cast<SymbolEnum>();
 
     if (ownerEnum.underlyingTypeRef() != importedEnum->underlyingTypeRef())
         return SemaError::raise(sema, DiagnosticId::sema_err_invalid_enum_type, nodeNameRef);

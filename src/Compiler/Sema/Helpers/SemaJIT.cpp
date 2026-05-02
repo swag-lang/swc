@@ -207,7 +207,7 @@ namespace
         TaskContext&    ctx         = sema.ctx();
         const TypeInfo& exprType    = sema.typeMgr().get(exprTypeRef);
         const TypeInfo& storageType = sema.typeMgr().get(storageTypeRef);
-        const TypeInfo* enumType = &exprType;
+        const TypeInfo* enumType    = &exprType;
         if (!enumType->isEnum() && exprType.isAlias())
         {
             const TypeRef unwrappedTypeRef = exprType.unwrap(ctx, exprTypeRef, TypeExpandE::Alias);

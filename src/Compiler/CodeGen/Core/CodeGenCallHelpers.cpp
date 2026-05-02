@@ -1140,11 +1140,11 @@ namespace
             const SemaNodeView argView = codeGen.viewType(resolvedArg.argRef);
             SWC_ASSERT(argView.type());
 
-            const TypeRef   argTypeRef = argPayload.effectiveTypeRef(argView.typeRef());
-            const TypeInfo& argType    = ctx.typeMgr().get(argTypeRef);
+            const TypeRef   argTypeRef         = argPayload.effectiveTypeRef(argView.typeRef());
+            const TypeInfo& argType            = ctx.typeMgr().get(argTypeRef);
             const TypeRef   resolvedArgTypeRef = ctx.typeMgr().unwrapAliasEnum(ctx, argTypeRef);
             const TypeInfo& resolvedArgType    = ctx.typeMgr().get(resolvedArgTypeRef.isValid() ? resolvedArgTypeRef : argTypeRef);
-            const uint64_t  rawArgSize = argType.sizeOf(ctx);
+            const uint64_t  rawArgSize         = argType.sizeOf(ctx);
             SWC_ASSERT(rawArgSize > 0 && rawArgSize <= std::numeric_limits<uint32_t>::max());
 
             UntypedVariadicArgInfo info;
@@ -1166,7 +1166,7 @@ namespace
                     info.typeInfoCstRef = typeInfoCstRef;
                 }
             }
-            
+
             if (info.argPayload.reg == callConv.stackPointer)
             {
                 info.argPayload.reg = codeGen.nextVirtualIntRegister();
@@ -1501,9 +1501,9 @@ Result CodeGenCallHelpers::codeGenCallExprCommon(CodeGen& codeGen, AstNodeRef ca
     uint32_t transientStackSize = 0;
     SWC_RESULT(buildPreparedABIArguments(codeGen, codeGen.curNodeRef(), calledFunction, closureContextReg, args, preparedArgs, transientStackSize));
     isolatePreparedRegisterArgSources(codeGen, callConv, preparedArgs);
-    MicroReg hiddenRetStorageReg = MicroReg::invalid();
-    SymbolVariable* directVarInitStorageSym = nullptr;
-    bool usesCurrentFunctionReturnStorage = false;
+    MicroReg        hiddenRetStorageReg              = MicroReg::invalid();
+    SymbolVariable* directVarInitStorageSym          = nullptr;
+    bool            usesCurrentFunctionReturnStorage = false;
     if (normalizedRet.isIndirect)
     {
         if (codeGen.hasLifecycle(calledFunction.returnTypeRef(), CodeGen::LifecycleKind::PostCopy))

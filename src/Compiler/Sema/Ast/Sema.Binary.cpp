@@ -173,16 +173,16 @@ namespace
             rightCstRef = rightVal.getEnumValue();
         }
 
-        const bool promote = node.modifierFlags.has(AstModifierFlagsE::Promote);
+        const bool promote         = node.modifierFlags.has(AstModifierFlagsE::Promote);
         const bool hasAliasOperand = (nodeLeftView.type() && nodeLeftView.type()->isAlias()) ||
                                      (nodeRightView.type() && nodeRightView.type()->isAlias());
         if (!keepEnumRes && !hasAliasOperand)
             SWC_RESULT(Cast::promoteConstants(sema, nodeLeftView, nodeRightView, leftCstRef, rightCstRef, promote));
 
-        const ConstantValue& leftCst      = sema.cstMgr().get(leftCstRef);
-        const ConstantValue& rightCst     = sema.cstMgr().get(rightCstRef);
-        const TypeInfo&      leftCstType  = leftCst.type(sema.ctx());
-        const TypeInfo&      storageType  = shouldKeepLeftAliasResult(nodeLeftView) ? aliasType(sema, nodeLeftView) : leftCstType;
+        const ConstantValue& leftCst     = sema.cstMgr().get(leftCstRef);
+        const ConstantValue& rightCst    = sema.cstMgr().get(rightCstRef);
+        const TypeInfo&      leftCstType = leftCst.type(sema.ctx());
+        const TypeInfo&      storageType = shouldKeepLeftAliasResult(nodeLeftView) ? aliasType(sema, nodeLeftView) : leftCstType;
 
         // Wrap and promote modifiers can only be applied to int-like values.
         if (node.modifierFlags.hasAny({AstModifierFlagsE::Wrap, AstModifierFlagsE::Promote}))
@@ -425,7 +425,7 @@ namespace
         const TypeInfo& rightType      = aliasEnumType(sema, nodeRightView);
         const TypeInfo& leftAliasType  = aliasType(sema, nodeLeftView);
         const TypeInfo& rightAliasType = aliasType(sema, nodeRightView);
-        TypeRef         resultTypeRef = nodeLeftView.typeRef();
+        TypeRef         resultTypeRef  = nodeLeftView.typeRef();
         switch (op)
         {
             case TokenId::SymPlus:

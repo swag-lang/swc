@@ -946,7 +946,7 @@ AstNodeRef AstFunctionExpr::semaClone(Sema& sema, const CloneContext& cloneConte
 
 AstNodeRef AstClosureExpr::semaClone(Sema& sema, const CloneContext& cloneContext) const
 {
-    const auto& inlineContext = cloneContextAsInline(cloneContext);
+    const auto& inlineContext  = cloneContextAsInline(cloneContext);
     auto [newRef, newPtr]      = sema.ast().makeNode<AstNodeId::ClosureExpr>(tokRef());
     newPtr->flags()            = flags();
     newPtr->nodeCaptureArgsRef = cloneSpan(sema, nodeCaptureArgsRef, inlineContext);
@@ -1313,8 +1313,8 @@ AstNodeRef AstStructLiteral::semaClone(Sema& sema, const CloneContext& cloneCont
 
 AstNodeRef AstStructDecl::semaClone(Sema& sema, const CloneContext& cloneContext) const
 {
-    const AstNodeRef newRef     = cloneNodeCopy<AstNodeId::StructDecl>(sema, *this);
-    auto&            cloned     = sema.node(newRef).cast<AstStructDecl>();
+    const AstNodeRef newRef = cloneNodeCopy<AstNodeId::StructDecl>(sema, *this);
+    auto&            cloned = sema.node(newRef).cast<AstStructDecl>();
     // Keep local generic declarations intact when they are cloned as part of an
     // enclosing generic/function instantiation. Actual generic struct instances
     // still clear their own generic signature in createGenericInstanceSymbol.

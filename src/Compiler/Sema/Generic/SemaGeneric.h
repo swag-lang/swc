@@ -40,10 +40,10 @@ namespace SemaGeneric
 
     struct GenericFunctionParamDesc
     {
-        IdentifierRef idRef      = IdentifierRef::invalid();
-        AstNodeRef    typeRef    = AstNodeRef::invalid();
-        AstNodeRef    defaultRef = AstNodeRef::invalid();
-        bool          isVariadic = false;
+        IdentifierRef idRef           = IdentifierRef::invalid();
+        AstNodeRef    typeRef         = AstNodeRef::invalid();
+        AstNodeRef    defaultRef      = AstNodeRef::invalid();
+        bool          isVariadic      = false;
         bool          hasExplicitType = false;
     };
 

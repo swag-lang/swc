@@ -248,8 +248,8 @@ namespace
         const TypeRef   typeRef  = unwrapAliasTypeRef(sema, cst.typeRef());
         const TypeInfo& typeInfo = sema.typeMgr().get(typeRef);
         SWC_ASSERT(typeInfo.isArray());
-        const auto&     dims     = typeInfo.payloadArrayDims();
-        const uint64_t  count    = dims.empty() ? 0 : dims[0];
+        const auto&    dims  = typeInfo.payloadArrayDims();
+        const uint64_t count = dims.empty() ? 0 : dims[0];
         if (std::cmp_greater_equal(constIndex, count))
             return SemaError::raiseIndexOutOfRange(sema, nodeArgRef, constIndex, count);
 
@@ -276,11 +276,11 @@ namespace
 
     Result extractAtIndexSlice(Sema& sema, const ConstantValue& cst, int64_t constIndex, AstNodeRef nodeArgRef, ConstantRef& outCstRef)
     {
-        const TypeRef   typeRef   = unwrapAliasTypeRef(sema, cst.typeRef());
-        const TypeInfo& typeInfo  = sema.typeMgr().get(typeRef);
+        const TypeRef   typeRef  = unwrapAliasTypeRef(sema, cst.typeRef());
+        const TypeInfo& typeInfo = sema.typeMgr().get(typeRef);
         SWC_ASSERT(typeInfo.isSlice());
-        const ByteSpan  bytes     = cst.getSlice();
-        const uint64_t  elemCount = cst.getSliceCount();
+        const ByteSpan bytes     = cst.getSlice();
+        const uint64_t elemCount = cst.getSliceCount();
         return extractAtIndexBytes(sema, bytes, typeInfo.payloadTypeRef(), constIndex, elemCount, nodeArgRef, outCstRef);
     }
 
@@ -294,15 +294,15 @@ namespace
 
         if (typeInfo.isCString())
         {
-            const auto*   ptr   = reinterpret_cast<const char*>(ptrValue);
+            const auto*    ptr   = reinterpret_cast<const char*>(ptrValue);
             const uint64_t count = std::strlen(ptr);
             const ByteSpan bytes{reinterpret_cast<const std::byte*>(ptr), count};
             return extractAtIndexBytes(sema, bytes, sema.typeMgr().typeU8(), constIndex, count, nodeArgRef, outCstRef);
         }
 
         SWC_ASSERT(typeInfo.isBlockPointer());
-        const TypeRef   elemType = typeInfo.payloadTypeRef();
-        const uint64_t  elemSize = sema.typeMgr().get(elemType).sizeOf(ctx);
+        const TypeRef  elemType = typeInfo.payloadTypeRef();
+        const uint64_t elemSize = sema.typeMgr().get(elemType).sizeOf(ctx);
         SWC_ASSERT(elemSize);
 
         const uint64_t byteOffset = static_cast<uint64_t>(constIndex) * elemSize;

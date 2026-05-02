@@ -274,8 +274,8 @@ namespace
         if (!typeRef.isValid())
             return nullptr;
 
-        const TypeRef enumTypeRef = sema.typeMgr().get(typeRef).unwrap(sema.ctx(), typeRef, TypeExpandE::Alias);
-        const TypeInfo& enumType  = sema.typeMgr().get(enumTypeRef);
+        const TypeRef   enumTypeRef = sema.typeMgr().get(typeRef).unwrap(sema.ctx(), typeRef, TypeExpandE::Alias);
+        const TypeInfo& enumType    = sema.typeMgr().get(enumTypeRef);
         if (enumType.isEnum())
             return &enumType.payloadSymEnum();
 
@@ -399,8 +399,8 @@ namespace
 
         const TypeRef   lastParamTypeRef = unwrapAliasEnumOrSelf(sema, params.back()->typeRef());
         const TypeInfo& lastParamTy      = sema.typeMgr().get(lastParamTypeRef);
-        vi.isVariadic               = lastParamTy.isVariadic();
-        vi.isTypedVariadic          = lastParamTy.isTypedVariadic();
+        vi.isVariadic                    = lastParamTy.isVariadic();
+        vi.isTypedVariadic               = lastParamTy.isTypedVariadic();
         return vi;
     }
 
@@ -1073,7 +1073,7 @@ namespace
         if (finalArgRef.isInvalid())
             return Result::Continue;
         const AstNode& argNode = sema.node(finalArgRef);
-        const auto& autoMem = argNode.cast<AstAutoMemberAccessExpr>();
+        const auto&    autoMem = argNode.cast<AstAutoMemberAccessExpr>();
 
         const SymbolEnum* enumSym = enumSymbolFromTypeRef(sema, paramTy);
         if (!enumSym)
@@ -1119,7 +1119,7 @@ namespace
         if (finalArgRef.isInvalid())
             return Result::Continue;
         const AstNode& argNode = sema.node(finalArgRef);
-        const auto& autoMem = argNode.cast<AstAutoMemberAccessExpr>();
+        const auto&    autoMem = argNode.cast<AstAutoMemberAccessExpr>();
 
         const SymbolEnum* enumSym = enumSymbolFromTypeRef(sema, paramTy);
         if (!enumSym)
@@ -1296,8 +1296,8 @@ namespace
             if (const auto* ident = sema.node(namedType->nodeIdentRef).safeCast<AstIdentifier>())
             {
                 MatchContext lookUpCxt;
-                lookUpCxt.codeRef       = ident->codeRef();
-                lookUpCxt.noWaitOnEmpty = true;
+                lookUpCxt.codeRef         = ident->codeRef();
+                lookUpCxt.noWaitOnEmpty   = true;
                 const IdentifierRef idRef = SemaHelpers::resolveIdentifier(sema, ident->codeRef());
                 if (Match::match(sema, lookUpCxt, idRef) == Result::Continue)
                 {

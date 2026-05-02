@@ -114,8 +114,8 @@ namespace
     Result constantFoldTilde(Sema& sema, ConstantRef& result, const AstUnaryExpr& expr, const SemaNodeView& view)
     {
         SWC_UNUSED(expr);
-        const TypeInfo& valueType    = aliasType(sema, view);
-        const TypeInfo* storageType  = &valueType;
+        const TypeInfo& valueType     = aliasType(sema, view);
+        const TypeInfo* storageType   = &valueType;
         ConstantRef     storageCstRef = view.cstRef();
 
         if (valueType.isEnum())
@@ -127,7 +127,7 @@ namespace
             storageType = &sema.typeMgr().get(valueType.payloadSymEnum().underlyingTypeRef());
         }
 
-        const ConstantValue& storageCst = sema.cstMgr().get(storageCstRef);
+        const ConstantValue&   storageCst = sema.cstMgr().get(storageCstRef);
         ApsInt                 foldedValue;
         const Math::FoldStatus foldStatus = Math::foldUnaryInt(foldedValue, storageCst.getIntLike(), Math::FoldUnaryOp::BitwiseNot);
         SWC_ASSERT(foldStatus == Math::FoldStatus::Ok);
@@ -136,9 +136,9 @@ namespace
         ConstantValue resultValue = ConstantValue::makeFromIntLike(sema.ctx(), foldedValue, *storageType);
         if (valueType.isEnum())
         {
-            const ConstantRef underlyingRef = sema.cstMgr().addConstant(sema.ctx(), resultValue);
-            const ConstantValue enumValue  = ConstantValue::makeEnumValue(sema.ctx(), underlyingRef, view.typeRef());
-            result                         = sema.cstMgr().addConstant(sema.ctx(), enumValue);
+            const ConstantRef   underlyingRef = sema.cstMgr().addConstant(sema.ctx(), resultValue);
+            const ConstantValue enumValue     = ConstantValue::makeEnumValue(sema.ctx(), underlyingRef, view.typeRef());
+            result                            = sema.cstMgr().addConstant(sema.ctx(), enumValue);
             return Result::Continue;
         }
 
@@ -354,7 +354,7 @@ namespace
     Result semaMoveRef(Sema& sema, const SemaNodeView& view)
     {
         const TypeInfo& type  = aliasEnumType(sema, view);
-        TypeInfoFlags flags = TypeInfoFlagsE::Zero;
+        TypeInfoFlags   flags = TypeInfoFlagsE::Zero;
         if (type.isConst())
             flags.add(TypeInfoFlagsE::Const);
 

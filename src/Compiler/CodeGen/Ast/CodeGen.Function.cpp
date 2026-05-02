@@ -988,7 +988,7 @@ namespace
             sourcePayload         = &resolvedSourcePayload;
         }
 
-        const TypeInfo& typeInfo = codeGen.typeMgr().get(captureVar.typeRef());
+        const TypeInfo& typeInfo      = codeGen.typeMgr().get(captureVar.typeRef());
         const uint32_t  captureOffset = offsetof(Runtime::ClosureValue, capture) + captureVar.closureCaptureOffset();
         const MicroReg  captureDstReg = codeGen.offsetAddressReg(closureValueReg, captureOffset);
         if (typeInfo.isAnyVariadic())
@@ -1011,7 +1011,7 @@ namespace
             return;
         }
 
-        const uint32_t  copySize = CodeGenFunctionHelpers::checkedTypeSizeInBytes(codeGen, typeInfo);
+        const uint32_t copySize = CodeGenFunctionHelpers::checkedTypeSizeInBytes(codeGen, typeInfo);
         if (sourcePayload->isAddress())
         {
             CodeGenMemoryHelpers::emitMemCopy(codeGen, captureDstReg, sourcePayload->reg, copySize);

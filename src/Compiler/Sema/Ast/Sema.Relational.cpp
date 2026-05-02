@@ -297,8 +297,8 @@ namespace
     {
         const SemaNodeView compareLeftView  = scalarReadView(sema, nodeLeftView);
         const SemaNodeView compareRightView = scalarReadView(sema, nodeRightView);
-        const TypeInfo&     compareLeftType  = aliasEnumType(sema, compareLeftView);
-        const TypeInfo&     compareRightType = aliasEnumType(sema, compareRightView);
+        const TypeInfo&    compareLeftType  = aliasEnumType(sema, compareLeftView);
+        const TypeInfo&    compareRightType = aliasEnumType(sema, compareRightView);
 
         if (compareLeftType.isTypeValue() && compareRightType.isTypeValue())
         {
@@ -496,8 +496,8 @@ namespace
     {
         const SemaNodeView compareLeftView  = scalarReadView(sema, nodeLeftView);
         const SemaNodeView compareRightView = scalarReadView(sema, nodeRightView);
-        const TypeInfo&     compareLeftType  = aliasEnumType(sema, compareLeftView);
-        const TypeInfo&     compareRightType = aliasEnumType(sema, compareRightView);
+        const TypeInfo&    compareLeftType  = aliasEnumType(sema, compareLeftView);
+        const TypeInfo&    compareRightType = aliasEnumType(sema, compareRightView);
         if (compareLeftView.typeRef() == compareRightView.typeRef())
             return Result::Continue;
         if (aliasType(sema, compareLeftView).isScalarNumeric() && aliasType(sema, compareRightView).isScalarNumeric())
@@ -528,8 +528,8 @@ namespace
     {
         const SemaNodeView compareLeftView  = scalarReadView(sema, nodeLeftView);
         const SemaNodeView compareRightView = scalarReadView(sema, nodeRightView);
-        const TypeInfo&     compareLeftType  = aliasEnumType(sema, compareLeftView);
-        const TypeInfo&     compareRightType = aliasEnumType(sema, compareRightView);
+        const TypeInfo&    compareLeftType  = aliasEnumType(sema, compareLeftView);
+        const TypeInfo&    compareRightType = aliasEnumType(sema, compareRightView);
         if (aliasType(sema, compareLeftView).isScalarNumeric() && aliasType(sema, compareRightView).isScalarNumeric())
             return Result::Continue;
         if (compareLeftType.isAnyPointer() && compareRightType.isAnyPointer())

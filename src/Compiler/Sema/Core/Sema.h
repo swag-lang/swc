@@ -207,8 +207,8 @@ public:
         if (!inherited)
             return nullptr;
 
-        auto* payload = compiler().allocate<T>();
-        *payload      = *static_cast<T*>(inherited);
+        auto* payload               = compiler().allocate<T>();
+        *payload                    = *static_cast<T*>(inherited);
         (*localCodeGenPayloads_)[n] = payload;
         return payload;
     }
@@ -365,10 +365,10 @@ private:
     void   processDeferredPopsPostNode(AstNodeRef nodeRef);
     Result processDeferredPostNodeActions(AstNodeRef nodeRef);
 
-    TaskContext* ctx_                = nullptr;
-    NodePayload* nodePayloadContext_ = nullptr;
+    TaskContext*                                           ctx_                = nullptr;
+    NodePayload*                                           nodePayloadContext_ = nullptr;
     std::unique_ptr<std::unordered_map<AstNodeRef, void*>> localCodeGenPayloads_;
-    AstVisit     visit_;
+    AstVisit                                               visit_;
 
     std::vector<std::unique_ptr<SemaScope>> scopes_;
     SymbolMap*                              startSymMap_   = nullptr;

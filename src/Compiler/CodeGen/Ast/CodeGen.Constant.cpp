@@ -381,7 +381,7 @@ namespace
         if (typeRef.isInvalid())
             return ConstantRef::invalid();
 
-        const TypeInfo& typeInfo = codeGen.typeMgr().get(typeRef);
+        const TypeInfo& typeInfo       = codeGen.typeMgr().get(typeRef);
         TypeRef         storageTypeRef = typeInfo.unwrap(codeGen.ctx(), typeRef, TypeExpandE::Alias);
         if (storageTypeRef.isInvalid())
             storageTypeRef = typeRef;

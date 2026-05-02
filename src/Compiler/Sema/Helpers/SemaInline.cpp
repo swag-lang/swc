@@ -795,9 +795,9 @@ namespace
             if (!param)
                 continue;
 
-            const bool bindingIsCaptured = inlineBindingIsCaptured(binding.idRef, capturedIdentifiers);
-            const bool bindingNeedsMaterialization = inlineBindingNeedsMaterialization(sema, binding.exprRef, localIdentifiers);
-            const TypeInfo& paramType = param->type(sema.ctx());
+            const bool      bindingIsCaptured           = inlineBindingIsCaptured(binding.idRef, capturedIdentifiers);
+            const bool      bindingNeedsMaterialization = inlineBindingNeedsMaterialization(sema, binding.exprRef, localIdentifiers);
+            const TypeInfo& paramType                   = param->type(sema.ctx());
             if (paramType.isCodeBlock() || (paramType.isAnyVariadic() && !bindingIsCaptured && !bindingNeedsMaterialization))
             {
                 remainingBindings.push_back(binding);
@@ -821,11 +821,11 @@ namespace
             if (clonedInitRef.isInvalid())
                 return Result::Error;
 
-            auto [declRef, declPtr] = sema.ast().makeNode<AstNodeId::SingleVarDecl>(paramNameRef);
-            const bool materializedAsLet = !inlineBindingIsCaptured(binding.idRef, capturedByRefIdentifiers);
-            declPtr->flags()             = materializedAsLet ? AstVarDeclFlagsE::Let : AstVarDeclFlagsE::Zero;
-            declPtr->tokNameRef          = paramNameRef;
-            declPtr->nodeInitRef         = clonedInitRef;
+            auto [declRef, declPtr]         = sema.ast().makeNode<AstNodeId::SingleVarDecl>(paramNameRef);
+            const bool materializedAsLet    = !inlineBindingIsCaptured(binding.idRef, capturedByRefIdentifiers);
+            declPtr->flags()                = materializedAsLet ? AstVarDeclFlagsE::Let : AstVarDeclFlagsE::Zero;
+            declPtr->tokNameRef             = paramNameRef;
+            declPtr->nodeInitRef            = clonedInitRef;
             SymbolVariable* materializedSym = makeMaterializedInlineBindingSymbol(sema, *param, *declPtr, materializedAsLet);
             sema.setSymbol(declRef, materializedSym);
             outStatements.push_back(declRef);
@@ -983,7 +983,7 @@ namespace
             }
         }
 
-        SmallVector<AstNodeRef>       clonedValues;
+        SmallVector<AstNodeRef> clonedValues;
         clonedValues.reserve(variadicBinding.argRefs.size());
 
         for (const AstNodeRef rawArgRef : variadicBinding.argRefs)

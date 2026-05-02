@@ -166,8 +166,8 @@ Result AstVariadicType::semaPostNode(Sema& sema)
 
 Result AstTypedVariadicType::semaPostNode(Sema& sema) const
 {
-    const SemaNodeView view = sema.viewType(nodeTypeRef);
-    TypeRef            elementTypeRef = view.typeRef();
+    const SemaNodeView view             = sema.viewType(nodeTypeRef);
+    TypeRef            elementTypeRef   = view.typeRef();
     const TypeRef      unwrappedTypeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), elementTypeRef);
     if (unwrappedTypeRef.isValid())
         elementTypeRef = unwrappedTypeRef;
@@ -180,8 +180,8 @@ Result AstTypedVariadicType::semaPostNode(Sema& sema) const
         return Result::Error;
     }
 
-    const TypeInfo     ty      = TypeInfo::makeTypedVariadic(view.typeRef());
-    const TypeRef      typeRef = sema.typeMgr().addType(ty);
+    const TypeInfo ty      = TypeInfo::makeTypedVariadic(view.typeRef());
+    const TypeRef  typeRef = sema.typeMgr().addType(ty);
     sema.setType(sema.curNodeRef(), typeRef);
     return Result::Continue;
 }
@@ -258,8 +258,8 @@ Result AstMoveRefType::semaPostNode(Sema& sema) const
 
 Result AstSliceType::semaPostNode(Sema& sema) const
 {
-    const SemaNodeView view = sema.viewType(nodePointeeTypeRef);
-    TypeRef            elementTypeRef = view.typeRef();
+    const SemaNodeView view             = sema.viewType(nodePointeeTypeRef);
+    TypeRef            elementTypeRef   = view.typeRef();
     const TypeRef      unwrappedTypeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), elementTypeRef);
     if (unwrappedTypeRef.isValid())
         elementTypeRef = unwrappedTypeRef;
@@ -437,9 +437,9 @@ Result AstArrayType::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) co
 
 Result AstArrayType::semaPostNode(Sema& sema) const
 {
-    TaskContext&       ctx  = sema.ctx();
-    const SemaNodeView view = sema.viewType(nodePointeeTypeRef);
-    TypeRef            elementTypeRef = view.typeRef();
+    TaskContext&       ctx              = sema.ctx();
+    const SemaNodeView view             = sema.viewType(nodePointeeTypeRef);
+    TypeRef            elementTypeRef   = view.typeRef();
     const TypeRef      unwrappedTypeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), elementTypeRef);
     if (unwrappedTypeRef.isValid())
         elementTypeRef = unwrappedTypeRef;

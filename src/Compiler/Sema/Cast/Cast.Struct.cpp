@@ -280,8 +280,8 @@ namespace
             return false;
 
         const TypeManager& typeMgr = sema.typeMgr();
-        returnTypeRef             = typeMgr.get(returnTypeRef).unwrap(sema.ctx(), returnTypeRef, TypeExpandE::Alias);
-        dstTypeRef                = typeMgr.get(dstTypeRef).unwrap(sema.ctx(), dstTypeRef, TypeExpandE::Alias);
+        returnTypeRef              = typeMgr.get(returnTypeRef).unwrap(sema.ctx(), returnTypeRef, TypeExpandE::Alias);
+        dstTypeRef                 = typeMgr.get(dstTypeRef).unwrap(sema.ctx(), dstTypeRef, TypeExpandE::Alias);
 
         const TypeInfo& returnType = typeMgr.get(returnTypeRef);
         const TypeInfo& dstType    = typeMgr.get(dstTypeRef);

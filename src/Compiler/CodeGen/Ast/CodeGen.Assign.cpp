@@ -223,7 +223,7 @@ namespace
 
     MicroReg materializeAssignPointerIndexReg(CodeGen& codeGen, const CodeGenNodePayload& operandPayload, TypeRef operandTypeRef)
     {
-        operandTypeRef = unwrapAssignScalarTypeRef(codeGen, operandTypeRef);
+        operandTypeRef                = unwrapAssignScalarTypeRef(codeGen, operandTypeRef);
         const TypeInfo&   operandType = codeGen.typeMgr().get(operandTypeRef);
         const MicroOpBits srcBits     = CodeGenTypeHelpers::scalarStoreBits(operandType, codeGen.ctx());
         SWC_ASSERT(operandType.isIntLike());

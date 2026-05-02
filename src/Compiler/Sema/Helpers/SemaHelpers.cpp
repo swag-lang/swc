@@ -52,8 +52,8 @@ namespace
         if (!typeRef.isValid())
             return nullptr;
 
-        const TypeRef enumTypeRef = sema.typeMgr().get(typeRef).unwrap(sema.ctx(), typeRef, TypeExpandE::Alias);
-        const TypeInfo& enumType  = sema.typeMgr().get(enumTypeRef);
+        const TypeRef   enumTypeRef = sema.typeMgr().get(typeRef).unwrap(sema.ctx(), typeRef, TypeExpandE::Alias);
+        const TypeInfo& enumType    = sema.typeMgr().get(enumTypeRef);
         if (enumType.isEnum())
             return &enumType.payloadSymEnum();
 

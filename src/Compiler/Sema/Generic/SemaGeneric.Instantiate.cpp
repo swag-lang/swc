@@ -143,7 +143,7 @@ namespace
         if (!ownerRoot)
             return false;
 
-        const auto* decl = genericStructDeclNode(*ownerRoot);
+        const auto*   decl                 = genericStructDeclNode(*ownerRoot);
         const SpanRef spanGenericParamsRef = genericStructParamSpan(*ownerRoot);
         if (!decl || spanGenericParamsRef.isInvalid())
             return false;
@@ -259,7 +259,7 @@ namespace
             return !function->isGenericInstance() && decl && decl->spanGenericParamsRef.isValid();
         }
 
-        const auto& st   = root.cast<SymbolStruct>();
+        const auto& st = root.cast<SymbolStruct>();
         return !st.isGenericInstance() && genericStructParamSpan(st).isValid();
     }
 
@@ -927,7 +927,7 @@ namespace
 
     Result validateGenericStructWhereConstraints(Sema& sema, const SymbolStruct& root, std::span<const SemaGeneric::GenericParamDesc> params, std::span<const SemaGeneric::GenericResolvedArg> resolvedArgs, AstNodeRef errorNodeRef)
     {
-        const auto* decl = genericStructDeclNode(root);
+        const auto*   decl         = genericStructDeclNode(root);
         const SpanRef spanWhereRef = genericStructWhereSpan(root);
         if (!decl || spanWhereRef.isInvalid())
             return Result::Continue;
@@ -1342,7 +1342,7 @@ namespace
             return instance;
         }
 
-        auto& st               = root.cast<SymbolStruct>();
+        auto& st = root.cast<SymbolStruct>();
         if (auto* cloneDecl = sema.node(cloneRef).safeCast<AstStructDecl>())
         {
             cloneDecl->spanGenericParamsRef = SpanRef::invalid();
@@ -1585,7 +1585,7 @@ namespace
                 resolvedArgs[targetIndex].present = true;
                 resolvedArgs[targetIndex].typeRef = contextArgs[contextIndex].typeRef;
                 resolvedArgs[targetIndex].cstRef  = contextArgs[contextIndex].cstRef;
-                usedContextParams[contextIndex] = true;
+                usedContextParams[contextIndex]   = true;
                 break;
             }
         }
@@ -1658,7 +1658,7 @@ namespace
             resolvedArgs[targetIndex].present = true;
             resolvedArgs[targetIndex].typeRef = contextArgs[contextIndex].typeRef;
             resolvedArgs[targetIndex].cstRef  = contextArgs[contextIndex].cstRef;
-            usedContextParams[contextIndex] = true;
+            usedContextParams[contextIndex]   = true;
         }
     }
 
@@ -1768,7 +1768,7 @@ namespace
         if (!enclosingRoot)
             return;
 
-        const auto* enclosingDecl = genericStructDeclNode(*enclosingRoot);
+        const auto*   enclosingDecl        = genericStructDeclNode(*enclosingRoot);
         const SpanRef spanGenericParamsRef = genericStructParamSpan(*enclosingRoot);
         if (!enclosingDecl || !spanGenericParamsRef.isValid())
             return;
@@ -1926,7 +1926,7 @@ namespace SemaGeneric
         if (!hasGenericParams(genericRoot))
             return Result::Continue;
 
-        const auto* targetDecl = genericStructDeclNode(genericRoot);
+        const auto*   targetDecl           = genericStructDeclNode(genericRoot);
         const SpanRef spanGenericParamsRef = genericStructParamSpan(genericRoot);
         if (!targetDecl || spanGenericParamsRef.isInvalid())
             return Result::Continue;

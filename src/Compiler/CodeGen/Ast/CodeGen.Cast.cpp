@@ -98,7 +98,7 @@ namespace
         }
 
         const TypeInfo& storageType = codeGen.typeMgr().get(storageTypeRef);
-        outBits                    = CodeGenTypeHelpers::scalarStoreBits(storageType, codeGen.ctx());
+        outBits                     = CodeGenTypeHelpers::scalarStoreBits(storageType, codeGen.ctx());
         return outBits != MicroOpBits::Zero;
     }
 

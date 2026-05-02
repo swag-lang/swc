@@ -124,8 +124,8 @@ namespace
             if (const auto* ident = sema.node(namedType->nodeIdentRef).safeCast<AstIdentifier>())
             {
                 MatchContext lookUpCxt;
-                lookUpCxt.codeRef       = ident->codeRef();
-                lookUpCxt.noWaitOnEmpty = true;
+                lookUpCxt.codeRef         = ident->codeRef();
+                lookUpCxt.noWaitOnEmpty   = true;
                 const IdentifierRef idRef = SemaHelpers::resolveIdentifier(sema, ident->codeRef());
                 if (Match::match(sema, lookUpCxt, idRef) == Result::Continue)
                 {
@@ -194,10 +194,10 @@ namespace
         {
             const auto&                           varDecl = paramNode->cast<AstSingleVarDecl>();
             SemaGeneric::GenericFunctionParamDesc desc;
-            desc.idRef      = SemaHelpers::resolveIdentifier(sema, {varDecl.srcViewRef(), varDecl.tokNameRef});
-            desc.typeRef    = varDecl.typeOrInitRef();
-            desc.defaultRef = varDecl.nodeInitRef;
-            desc.isVariadic = isVariadicTypeNode(sema, desc.typeRef);
+            desc.idRef           = SemaHelpers::resolveIdentifier(sema, {varDecl.srcViewRef(), varDecl.tokNameRef});
+            desc.typeRef         = varDecl.typeOrInitRef();
+            desc.defaultRef      = varDecl.nodeInitRef;
+            desc.isVariadic      = isVariadicTypeNode(sema, desc.typeRef);
             desc.hasExplicitType = varDecl.nodeTypeRef.isValid();
             outParams.push_back(desc);
             return;
@@ -211,10 +211,10 @@ namespace
             for (const TokenRef tokNameRef : tokNames)
             {
                 SemaGeneric::GenericFunctionParamDesc desc;
-                desc.idRef      = SemaHelpers::resolveIdentifier(sema, {multiVar.srcViewRef(), tokNameRef});
-                desc.typeRef    = multiVar.typeOrInitRef();
-                desc.defaultRef = multiVar.nodeInitRef;
-                desc.isVariadic = isVariadicTypeNode(sema, desc.typeRef);
+                desc.idRef           = SemaHelpers::resolveIdentifier(sema, {multiVar.srcViewRef(), tokNameRef});
+                desc.typeRef         = multiVar.typeOrInitRef();
+                desc.defaultRef      = multiVar.nodeInitRef;
+                desc.isVariadic      = isVariadicTypeNode(sema, desc.typeRef);
                 desc.hasExplicitType = multiVar.nodeTypeRef.isValid();
                 outParams.push_back(desc);
             }
@@ -480,7 +480,7 @@ namespace
             if (patternIndex == patternFields.size() || outOrder[patternIndex] != SIZE_MAX)
                 return false;
 
-            outOrder[patternIndex]      = actualIndex;
+            outOrder[patternIndex]         = actualIndex;
             usedActualEntries[actualIndex] = true;
         }
 
@@ -501,7 +501,7 @@ namespace
             if (nextUnnamedActualIndex == actualAggregate.types.size())
                 return false;
 
-            outOrder[patternIndex]              = nextUnnamedActualIndex;
+            outOrder[patternIndex]                    = nextUnnamedActualIndex;
             usedActualEntries[nextUnnamedActualIndex] = true;
             ++nextUnnamedActualIndex;
         }
@@ -572,7 +572,7 @@ namespace
 
         SmallVector<SemaGeneric::GenericFunctionParamDesc> rootFields;
         collectStructFieldDescs(rootSema, *patternRoot, *rootDecl, rootFields);
-        const auto& actualAggregate = argType.payloadAggregate();
+        const auto&         actualAggregate = argType.payloadAggregate();
         SmallVector<size_t> actualFieldOrder;
         if (!buildAggregateFieldOrder(rootFields.span(), actualAggregate, actualFieldOrder))
             return Result::Continue;
@@ -702,7 +702,7 @@ namespace
     {
         outFields.clear();
 
-        AstNodeRef bodyRef = AstNodeRef::invalid();
+        AstNodeRef     bodyRef     = AstNodeRef::invalid();
         const AstNode& patternNode = sema.node(patternRef);
         if (const auto* structDecl = patternNode.safeCast<AstAnonymousStructDecl>())
             bodyRef = structDecl->nodeBodyRef;
@@ -752,7 +752,7 @@ namespace
         if (!argType.isAggregateStruct())
             return Result::Continue;
 
-        const auto& actualAggregate = argType.payloadAggregate();
+        const auto&         actualAggregate = argType.payloadAggregate();
         SmallVector<size_t> actualFieldOrder;
         if (!buildAggregateFieldOrder(patternFields.span(), actualAggregate, actualFieldOrder))
             return Result::Continue;
@@ -997,10 +997,10 @@ namespace
                 {
                     const auto&                           varDecl = paramNode->cast<AstSingleVarDecl>();
                     SemaGeneric::GenericFunctionParamDesc desc;
-                    desc.idRef      = symParam->idRef();
-                    desc.typeRef    = varDecl.typeOrInitRef();
-                    desc.defaultRef = varDecl.nodeInitRef;
-                    desc.isVariadic = isVariadicTypeRef(declSema, symParam->typeRef()) || isVariadicTypeNode(declSema, desc.typeRef);
+                    desc.idRef           = symParam->idRef();
+                    desc.typeRef         = varDecl.typeOrInitRef();
+                    desc.defaultRef      = varDecl.nodeInitRef;
+                    desc.isVariadic      = isVariadicTypeRef(declSema, symParam->typeRef()) || isVariadicTypeNode(declSema, desc.typeRef);
                     desc.hasExplicitType = varDecl.nodeTypeRef.isValid();
                     outParams.push_back(desc);
                 }
@@ -1042,7 +1042,7 @@ namespace
     Result resolveCallArgTypeForGenericDeduction(Sema& sema, TypeRef& outTypeRef, AstNodeRef valueArgRef)
     {
         SemaNodeView argView = sema.viewNodeTypeConstant(valueArgRef);
-        outTypeRef = argView.typeRef();
+        outTypeRef           = argView.typeRef();
         if (!argView.cstRef().isValid())
             return Result::Continue;
 

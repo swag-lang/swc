@@ -2125,7 +2125,7 @@ namespace
         }
 
         SmallVector<ResolvedCallArgument> resolvedArgs;
-        auto resolveMode = isAttributeContextCall(node) ? Match::ResolveCallMode::AttributeOnly : Match::ResolveCallMode::Normal;
+        auto                              resolveMode = isAttributeContextCall(node) ? Match::ResolveCallMode::AttributeOnly : Match::ResolveCallMode::Normal;
         if constexpr (std::is_same_v<T, AstIntrinsicCallExpr>)
             resolveMode = Match::ResolveCallMode::Intrinsic;
         SWC_RESULT(Match::resolveFunctionCandidates(sema, nodeCallee, symbols, args, ufcsArg, &resolvedArgs, resolveMode));

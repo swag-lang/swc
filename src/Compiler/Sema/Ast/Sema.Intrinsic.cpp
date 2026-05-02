@@ -276,7 +276,7 @@ namespace
 
         const TypeRef   dataTypeRef = SemaHelpers::unwrapAliasRefType(sema.ctx(), view.typeRef());
         const TypeInfo* type        = &sema.typeMgr().get(dataTypeRef);
-        TypeInfoFlags flags = type->flags();
+        TypeInfoFlags   flags       = type->flags();
         flags.add(view.type()->flags());
         if (SemaCheck::isConstAssignmentTarget(sema, view.nodeRef(), view))
             flags.add(TypeInfoFlagsE::Const);
@@ -401,9 +401,9 @@ namespace
         SWC_RESULT(SemaCheck::isValue(sema, nodeViewPtr.nodeRef()));
         SWC_RESULT(SemaCheck::isValue(sema, nodeViewSize.nodeRef()));
 
-        const TypeRef   ptrTypeRef = SemaHelpers::unwrapAliasRefType(sema.ctx(), nodeViewPtr.typeRef());
-        const TypeInfo& ptrType    = sema.typeMgr().get(ptrTypeRef);
-        const bool ptrIsCString = ptrType.isCString();
+        const TypeRef   ptrTypeRef   = SemaHelpers::unwrapAliasRefType(sema.ctx(), nodeViewPtr.typeRef());
+        const TypeInfo& ptrType      = sema.typeMgr().get(ptrTypeRef);
+        const bool      ptrIsCString = ptrType.isCString();
         if (!ptrType.isAnyPointer() && !ptrIsCString)
             return SemaError::raiseRequestedTypeFam(sema, nodeViewPtr.nodeRef(), nodeViewPtr.typeRef(), sema.typeMgr().typeBlockPtrVoid());
 
@@ -536,8 +536,8 @@ namespace
         TypeRef resultTypeRef = interfaceTypeRef;
         if (makeInterfaceObjectIsConst(sema, objectView))
         {
-            auto* interfaceSym = const_cast<SymbolInterface*>(&sema.typeMgr().get(interfaceTypeRef).payloadSymInterface());
-            resultTypeRef = sema.typeMgr().addType(TypeInfo::makeInterface(interfaceSym, TypeInfoFlagsE::Const));
+            auto* interfaceSym = &sema.typeMgr().get(interfaceTypeRef).payloadSymInterface();
+            resultTypeRef      = sema.typeMgr().addType(TypeInfo::makeInterface(interfaceSym, TypeInfoFlagsE::Const));
         }
 
         sema.setType(sema.curNodeRef(), resultTypeRef);

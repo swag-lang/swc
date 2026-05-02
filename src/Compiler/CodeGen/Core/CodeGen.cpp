@@ -549,10 +549,10 @@ void CodeGen::setVariablePayload(const SymbolVariable& sym, const CodeGenNodePay
     if (sym.hasGlobalStorage())
         return;
 
-    VariablePayloadState& symbolPayload          = variablePayloads_[&sym];
-    symbolPayload.payload                       = payload;
-    symbolPayload.hasPayload                    = true;
-    symbolPayload.addressGeneration             = isStackAddressPayload(*this, sym, payload) ? currentDeferredAddressGeneration_ : 0;
+    VariablePayloadState& symbolPayload = variablePayloads_[&sym];
+    symbolPayload.payload               = payload;
+    symbolPayload.hasPayload            = true;
+    symbolPayload.addressGeneration     = isStackAddressPayload(*this, sym, payload) ? currentDeferredAddressGeneration_ : 0;
 }
 
 const CodeGenNodePayload* CodeGen::variablePayload(const SymbolVariable& sym) const
@@ -1322,8 +1322,8 @@ MicroReg CodeGen::nextVirtualRegisterForType(TypeRef typeRef)
 {
     if (typeRef.isValid())
     {
-        const TypeInfo& typeInfo = typeMgr().get(typeRef);
-        TypeRef resolvedTypeRef = typeRef;
+        const TypeInfo& typeInfo        = typeMgr().get(typeRef);
+        TypeRef         resolvedTypeRef = typeRef;
         if (typeInfo.isAlias())
             resolvedTypeRef = typeInfo.unwrapAliasEnum(ctx(), typeRef);
 

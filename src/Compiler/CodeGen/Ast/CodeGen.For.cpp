@@ -147,9 +147,9 @@ namespace
 
     MicroReg materializeLoopConstantReg(CodeGen& codeGen, ConstantRef cstRef, TypeRef typeRef)
     {
-        const ConstantValue& cst      = codeGen.cstMgr().get(cstRef);
-        const MicroOpBits    opBits   = loopOperationBits(codeGen, typeRef);
-        const MicroReg       outReg   = codeGen.nextVirtualIntRegister();
+        const ConstantValue& cst    = codeGen.cstMgr().get(cstRef);
+        const MicroOpBits    opBits = loopOperationBits(codeGen, typeRef);
+        const MicroReg       outReg = codeGen.nextVirtualIntRegister();
         SWC_ASSERT(cst.isInt());
         SWC_ASSERT(cst.getInt().fits64());
         codeGen.builder().emitLoadRegImm(outReg, ApInt(static_cast<uint64_t>(cst.getInt().asI64()), 64), opBits);
@@ -325,7 +325,7 @@ namespace
         const TypeInfo&   compareType    = codeGen.typeMgr().get(compareTypeRef);
         const MicroOpBits opBits         = loopOperationBits(codeGen, loopState.indexTypeRef);
         loopState.unsignedCmp            = compareType.isIntUnsigned();
-        loopState.indexReg          = codeGen.nextVirtualIntRegister();
+        loopState.indexReg               = codeGen.nextVirtualIntRegister();
 
         const bool loopBoundCheckInclusive = semaPayload->isRangeLoop ? loopState.inclusive : true;
         SWC_RESULT(CodeGenSafety::emitLoopBoundCheck(codeGen, exprRef, lowerReg, upperReg, compareType, loopBoundCheckInclusive));
@@ -606,8 +606,8 @@ Result AstForStmt::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& chil
             return Result::Continue;
         }
 
-        const MicroOpBits opBits = loopOperationBits(codeGen, loopState->indexTypeRef);
-        MicroBuilder&     builder   = codeGen.builder();
+        const MicroOpBits opBits  = loopOperationBits(codeGen, loopState->indexTypeRef);
+        MicroBuilder&     builder = codeGen.builder();
         builder.setCurrentDebugSourceCodeRef(codeGen.node(codeGen.curNodeRef()).codeRef());
         builder.setCurrentDebugNoStep(false);
 

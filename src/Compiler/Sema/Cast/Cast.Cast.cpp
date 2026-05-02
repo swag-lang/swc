@@ -1699,10 +1699,10 @@ Result Cast::castToSlice(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRe
 
             if (castRequest.isConstantFolding())
             {
-                const ConstantValue& srcCst = sema.cstMgr().get(castRequest.constantFoldingSrc());
-                const std::string_view view = stringViewFromCStringConstant(srcCst);
-                const ConstantValue sliceCst = ConstantValue::makeSliceBorrowedCounted(ctx, dstType.payloadTypeRef(), byteSpanFromCStringView(view), view.size(), dstType.flags());
-                castRequest.outConstRef      = sema.cstMgr().addConstant(ctx, sliceCst);
+                const ConstantValue&   srcCst   = sema.cstMgr().get(castRequest.constantFoldingSrc());
+                const std::string_view view     = stringViewFromCStringConstant(srcCst);
+                const ConstantValue    sliceCst = ConstantValue::makeSliceBorrowedCounted(ctx, dstType.payloadTypeRef(), byteSpanFromCStringView(view), view.size(), dstType.flags());
+                castRequest.outConstRef         = sema.cstMgr().addConstant(ctx, sliceCst);
             }
 
             return Result::Continue;
@@ -2096,7 +2096,7 @@ Result Cast::castFromAny(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRe
     else
     {
         const TypeInfo& valueType = sema.typeMgr().get(valueTypeRef);
-        const TypeInfo* enumType    = &valueType;
+        const TypeInfo* enumType  = &valueType;
         if (!enumType->isEnum() && valueType.isAlias())
         {
             const TypeRef unwrappedTypeRef = valueType.unwrap(ctx, valueTypeRef, TypeExpandE::Alias);
@@ -2105,7 +2105,7 @@ Result Cast::castFromAny(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRe
                 const TypeInfo& unwrappedType = sema.typeMgr().get(unwrappedTypeRef);
                 if (unwrappedType.isEnum())
                 {
-                    enumType    = &unwrappedType;
+                    enumType = &unwrappedType;
                 }
             }
         }
@@ -2194,8 +2194,8 @@ Result Cast::castAllowed(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRe
         const TypeInfo& resolvedSrcType    = sema.typeMgr().get(resolvedSrcTypeRef);
         const TypeInfo& resolvedDstType    = sema.typeMgr().get(resolvedDstTypeRef);
 
-        const bool allowAliasBoolCast = isTruthyBoolCastKind(castRequest.kind) && dstType.isBool();
-        const bool allowAliasNullCast = resolvedSrcType.isNull() && resolvedDstType.isPointerLike();
+        const bool allowAliasBoolCast         = isTruthyBoolCastKind(castRequest.kind) && dstType.isBool();
+        const bool allowAliasNullCast         = resolvedSrcType.isNull() && resolvedDstType.isPointerLike();
         const bool allowAliasAnyCast          = dstType.isAny();
         const bool allowAliasNullableCast     = isImplicitNullableQualificationCast(resolvedSrcType, resolvedDstType);
         const bool allowAliasUfcsReceiverCast = castRequest.flags.has(CastFlagsE::UfcsArgument) && resolvedSrcType.isAnyPointer() && resolvedDstType.isReference();

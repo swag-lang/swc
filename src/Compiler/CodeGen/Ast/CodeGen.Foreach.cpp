@@ -178,7 +178,7 @@ namespace
         if (!typeRef.isValid())
             return nullptr;
 
-        const TypeInfo& type = codeGen.typeMgr().get(typeRef);
+        const TypeInfo& type             = codeGen.typeMgr().get(typeRef);
         TypeRef         unwrappedTypeRef = type.unwrap(codeGen.ctx(), typeRef, TypeExpandE::Alias);
         if (!unwrappedTypeRef.isValid())
             unwrappedTypeRef = typeRef;
@@ -389,12 +389,12 @@ namespace
         }
         else
         {
-            const SemaNodeView       exprView    = foreachExprView(codeGen, exprRef);
-            CodeGenNodePayload       exprPayload = foreachExprPayload(codeGen, exprRef);
-            TypeRef                  exprTypeRef = exprPayload.effectiveTypeRef(exprView.typeRef());
+            const SemaNodeView exprView    = foreachExprView(codeGen, exprRef);
+            CodeGenNodePayload exprPayload = foreachExprPayload(codeGen, exprRef);
+            TypeRef            exprTypeRef = exprPayload.effectiveTypeRef(exprView.typeRef());
             CodeGenReferenceHelpers::unwrapAliasRefPayload(codeGen, exprPayload, exprTypeRef);
-            const TypeRef unwrappedExprTypeRef = SemaHelpers::unwrapAliasRefType(codeGen.ctx(), exprTypeRef);
-            const TypeInfo& exprType           = codeGen.typeMgr().get(unwrappedExprTypeRef);
+            const TypeRef   unwrappedExprTypeRef = SemaHelpers::unwrapAliasRefType(codeGen.ctx(), exprTypeRef);
+            const TypeInfo& exprType             = codeGen.typeMgr().get(unwrappedExprTypeRef);
 
             if (exprType.isArray())
             {

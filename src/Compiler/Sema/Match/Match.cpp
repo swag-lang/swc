@@ -13,42 +13,6 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    bool traceGhosting()
-    {
-        static const bool ENABLED = [] {
-            char*  value  = nullptr;
-            size_t length = 0;
-            if (_dupenv_s(&value, &length, "SWC_TRACE_GHOSTING") != 0 || !value)
-                return false;
-            const bool result = *value != 0;
-            free(value);
-            return result;
-        }();
-        return ENABLED;
-    }
-
-    void traceGhostingMiss(Sema& sema, const Symbol& sym)
-    {
-        if (!traceGhosting())
-            return;
-
-        std::cerr << "ghosting miss sym=" << sym.name(sema.ctx()) << " ptr=" << &sym << " owner=" << sym.ownerSymMap() << " curNode=" << sema.curNodeRef().get() << "\n";
-        uint32_t         depth = 0;
-        const SemaScope* scope = sema.lookupScope();
-        while (scope)
-        {
-            bool contains = false;
-            for (const Symbol* local : scope->symbols())
-            {
-                if (local == &sym)
-                    contains = true;
-            }
-            std::cerr << "  scope depth=" << depth << " ptr=" << scope << " local=" << scope->isLocal() << " symMap=" << scope->symMap() << " symbols=" << scope->symbols().size() << " contains=" << contains << "\n";
-            scope = scope->lookupParent();
-            ++depth;
-        }
-    }
-
     bool symbolDeclaredBefore(const Symbol& lhs, const Symbol& rhs)
     {
         if (lhs.srcViewRef() != rhs.srcViewRef())
@@ -459,10 +423,7 @@ Result Match::ghosting(Sema& sema, const Symbol& sym)
     collect(sema, lookUpCxt);
     lookup(lookUpCxt, sym.idRef());
     if (lookUpCxt.empty())
-    {
-        traceGhostingMiss(sema, sym);
         return sema.waitIdentifier(sym.idRef(), sym.codeRef());
-    }
 
     for (const Symbol* other : lookUpCxt.symbols())
     {

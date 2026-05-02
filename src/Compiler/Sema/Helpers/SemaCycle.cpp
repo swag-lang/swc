@@ -12,20 +12,6 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    bool traceCycle()
-    {
-        static const bool ENABLED = [] {
-            char*  value  = nullptr;
-            size_t length = 0;
-            if (_dupenv_s(&value, &length, "SWC_TRACE_CYCLE") != 0 || !value)
-                return false;
-            const bool result = *value != 0;
-            free(value);
-            return result;
-        }();
-        return ENABLED;
-    }
-
     Utf8 cyclePathString(const TaskContext& ctx, std::span<const Symbol* const> cycle)
     {
         Utf8 result;
@@ -242,20 +228,6 @@ void SemaCycle::check(TaskContext& ctx, JobClientId clientId)
 
         if (state.kind == TaskStateKind::SemaWaitIdentifier)
         {
-            if (traceCycle())
-            {
-                std::cerr << "cycle unknown id=" << sema->idMgr().get(state.idRef).name << " node=" << state.nodeRef.get();
-                if (state.nodeRef.isValid())
-                    std::cerr << " nodeId=" << Ast::nodeIdName(sema->node(state.nodeRef).id());
-                if (state.codeRef.isValid())
-                {
-                    const SourceView&     srcView = ctx.compiler().srcView(state.codeRef.srcViewRef);
-                    const SourceCodeRange range   = srcView.tokenCodeRange(ctx, state.codeRef.tokRef);
-                    const SourceFile*     file    = range.srcView ? range.srcView->file() : nullptr;
-                    std::cerr << " at=" << (file ? file->path().string() : "<source>") << ":" << range.line << ":" << range.column;
-                }
-                std::cerr << "\n";
-            }
             auto diag = SemaError::report(*sema, DiagnosticId::sema_err_unknown_symbol, state.codeRef);
             diag.addArgument(Diagnostic::ARG_SYM, state.idRef);
             diag.report(ctx);

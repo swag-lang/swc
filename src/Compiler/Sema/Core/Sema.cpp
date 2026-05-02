@@ -21,20 +21,6 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    bool traceWaitDone()
-    {
-        static const bool ENABLED = [] {
-            char*  value  = nullptr;
-            size_t length = 0;
-            if (_dupenv_s(&value, &length, "SWC_TRACE_WAITDONE") != 0 || !value)
-                return false;
-            const bool result = *value != 0;
-            free(value);
-            return result;
-        }();
-        return ENABLED;
-    }
-
     void traceWaitDoneJobs(TaskContext& ctx, JobClientId clientId, uint64_t loopIndex)
     {
         std::vector<Job*> jobs;
@@ -1156,13 +1142,9 @@ void Sema::waitDone(TaskContext& ctx, JobClientId clientId)
     {
         jobMgr.waitAll(clientId);
         ++traceLoopIndex;
-        if (traceWaitDone() && traceLoopIndex % 100 == 0)
-            traceWaitDoneJobs(ctx, clientId, traceLoopIndex);
 
         if (compiler.jitExecMgr().executePendingMainThread())
         {
-            if (traceWaitDone())
-                std::cerr << "waitDone branch=jit-main-thread loop=" << traceLoopIndex << "\n";
             jobMgr.wakeAll(clientId);
             continue;
         }
@@ -1170,8 +1152,6 @@ void Sema::waitDone(TaskContext& ctx, JobClientId clientId)
         const Result compilerMessageResult = compiler.executePendingCompilerMessages(ctx);
         if (compilerMessageResult == Result::Pause)
         {
-            if (traceWaitDone())
-                std::cerr << "waitDone branch=compiler-message loop=" << traceLoopIndex << "\n";
             jobMgr.wakeAll(clientId);
             continue;
         }
@@ -1182,8 +1162,6 @@ void Sema::waitDone(TaskContext& ctx, JobClientId clientId)
         const Result afterSemanticResult = compiler.ensureCompilerMessagePass(Runtime::CompilerMsgKind::PassAfterSemantic);
         if (afterSemanticResult == Result::Pause)
         {
-            if (traceWaitDone())
-                std::cerr << "waitDone branch=after-semantic loop=" << traceLoopIndex << "\n";
             jobMgr.wakeAll(clientId);
             continue;
         }
@@ -1193,8 +1171,6 @@ void Sema::waitDone(TaskContext& ctx, JobClientId clientId)
 
         if (compiler.consumeChanged())
         {
-            if (traceWaitDone() && traceLoopIndex % 100 == 0)
-                std::cerr << "waitDone branch=changed loop=" << traceLoopIndex << "\n";
             compiler.jitExecMgr().wakeWaiting();
             jobMgr.wakeAll(clientId);
             continue;
@@ -1202,8 +1178,6 @@ void Sema::waitDone(TaskContext& ctx, JobClientId clientId)
 
         if (resolveCompilerDefined(ctx, clientId))
         {
-            if (traceWaitDone())
-                std::cerr << "waitDone branch=compiler-defined loop=" << traceLoopIndex << "\n";
             jobMgr.wakeAll(clientId);
             continue;
         }

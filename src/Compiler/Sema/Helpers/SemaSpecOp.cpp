@@ -29,13 +29,11 @@
 #include "Support/Memory/Heap.h"
 #include "Support/Os/Os.h"
 #include "Support/Thread/JobManager.h"
+
 SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    bool traceVisitSpecOp();
-    void traceVisitReceiver(Sema& sema, const AstForeachStmt& node, AstNodeRef receiverRef);
-
     std::string_view specOpSignatureHint(SpecOpKind kind)
     {
         switch (kind)
@@ -2042,7 +2040,6 @@ Result SemaSpecOp::canResolveVisit(Sema& sema, const AstForeachStmt& node, bool&
     AstNodeRef receiverRef = sema.viewZero(node.nodeExprRef).nodeRef();
     if (receiverRef.isInvalid())
         receiverRef = node.nodeExprRef;
-    traceVisitReceiver(sema, node, receiverRef);
     SmallVector<ResolvedCallArgument> resolvedArgs;
     SWC_RESULT(matchSyntheticCall(sema, candidates.span(), args.span(), receiverRef, true, resolvedArgs, outMatched));
     return Result::Continue;
@@ -2074,7 +2071,6 @@ Result SemaSpecOp::tryResolveVisit(Sema& sema, const AstForeachStmt& node, Symbo
     AstNodeRef receiverRef = sema.viewZero(node.nodeExprRef).nodeRef();
     if (receiverRef.isInvalid())
         receiverRef = node.nodeExprRef;
-    traceVisitReceiver(sema, node, receiverRef);
     bool matched = false;
     SWC_RESULT(resolveSyntheticCall(sema, node, candidates.span(), args.span(), receiverRef, true, &matched, false, true, &outCalledFn));
     outHandled = matched;
@@ -2214,33 +2210,6 @@ Result SemaSpecOp::tryResolveSlice(Sema& sema, const AstIndexExpr& node, const S
 
 namespace
 {
-    bool traceVisitSpecOp()
-    {
-        static const bool ENABLED = [] {
-            char*  value  = nullptr;
-            size_t length = 0;
-            if (_dupenv_s(&value, &length, "SWC_TRACE_VISIT") != 0 || !value)
-                return false;
-            const bool result = *value != 0;
-            free(value);
-            return result;
-        }();
-        return ENABLED;
-    }
-
-    void traceVisitReceiver(Sema& sema, const AstForeachStmt& node, AstNodeRef receiverRef)
-    {
-        if (!traceVisitSpecOp())
-            return;
-
-        const SourceCodeRange range = sema.node(node.nodeExprRef).codeRange(sema.ctx());
-        const SourceFile*     file  = range.srcView ? range.srcView->file() : nullptr;
-        std::cerr << "visit receiver at=" << (file ? file->path().string() : "<source>") << ":" << range.line << ":" << range.column << " expr=" << node.nodeExprRef.get() << " exprId=" << Ast::nodeIdName(sema.node(node.nodeExprRef).id()) << " receiver=" << receiverRef.get();
-        if (receiverRef.isValid())
-            std::cerr << " receiverId=" << Ast::nodeIdName(sema.node(receiverRef).id());
-        std::cerr << "\n";
-    }
-
     Result tryResolveIndexWithArgs(Sema& sema, AstNodeRef indexExprRef, AstNodeRef indexedExprRef, const SourceCodeRef& codeRef, std::span<const AstNodeRef> indexArgRefs, const SemaNodeView& indexedView, bool& outHandled)
     {
         outHandled = false;

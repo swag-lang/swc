@@ -23,20 +23,6 @@ namespace
 {
     using SemaError::formatStructMemberList;
 
-    bool traceAutoMember()
-    {
-        static const bool ENABLED = [] {
-            char*  value  = nullptr;
-            size_t length = 0;
-            if (_dupenv_s(&value, &length, "SWC_TRACE_AUTOMEMBER") != 0 || !value)
-                return false;
-            const bool result = *value != 0;
-            free(value);
-            return result;
-        }();
-        return ENABLED;
-    }
-
     TypeRef normalizeAutoMemberBindingType(TaskContext& ctx, TypeRef typeRef)
     {
         while (typeRef.isValid())
@@ -413,17 +399,6 @@ namespace
                 {
                     ++j;
                 }
-            }
-        }
-
-        if (traceAutoMember())
-        {
-            const SourceCodeRange range = sema.node(sema.curNodeRef()).codeRange(sema.ctx());
-            const SourceFile*     file  = range.srcView ? range.srcView->file() : nullptr;
-            std::cerr << "automember at=" << (file ? file->path().string() : "<source>") << ":" << range.line << ":" << range.column << " bindings=" << bindingVars.size() << " types=" << bindingTypes.size() << " scopeBindings=" << autoMemberBindings.size() << " candidates=" << outCandidates.size() << "\n";
-            for (const SymbolVariable* bindingVar : bindingVars)
-            {
-                std::cerr << "  binding=" << (bindingVar ? bindingVar->name(sema.ctx()) : "<null>") << " typeValid=" << (bindingVar && bindingVar->typeRef().isValid()) << "\n";
             }
         }
 

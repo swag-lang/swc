@@ -27,33 +27,6 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    bool traceCallSelection()
-    {
-        static const bool ENABLED = [] {
-            char*  value  = nullptr;
-            size_t length = 0;
-            if (_dupenv_s(&value, &length, "SWC_TRACE_CALL_SELECTION") != 0 || !value)
-                return false;
-            const bool result = *value != 0;
-            free(value);
-            return result;
-        }();
-        return ENABLED;
-    }
-
-    void traceSelectedCall(Sema& sema, AstNodeRef callRef, const SymbolFunction& calledFn)
-    {
-        if (!traceCallSelection())
-            return;
-
-        const SourceCodeRange range = sema.node(callRef).codeRange(sema.ctx());
-        const SourceFile*     file  = range.srcView ? range.srcView->file() : nullptr;
-        std::cerr << "selected call at=" << (file ? file->path().string() : "<source>") << ":" << range.line << ":" << range.column << " fn=" << calledFn.name(sema.ctx()) << " method=" << calledFn.isMethod() << " returnValid=" << calledFn.returnTypeRef().isValid();
-        if (calledFn.returnTypeRef().isValid())
-            std::cerr << " return=" << sema.typeMgr().get(calledFn.returnTypeRef()).toName(sema.ctx());
-        std::cerr << "\n";
-    }
-
     const SymbolImpl* functionDeclImplContext(Sema& sema, const SymbolFunction* symFunc = nullptr)
     {
         if (const auto* symImpl = sema.frame().currentImpl())
@@ -2134,7 +2107,6 @@ namespace
         SWC_ASSERT(nodeSymView.hasSymbol());
 
         auto& calledFn = nodeSymView.sym()->cast<SymbolFunction>();
-        traceSelectedCall(sema, sema.curNodeRef(), calledFn);
         SWC_RESULT(sema.completeLazyGenericFunction(calledFn));
 
         const bool isMixinCall = calledFn.attributes().hasRtFlag(RtAttributeFlagsE::Mixin);

@@ -19,7 +19,9 @@ SWC_BEGIN_NAMESPACE();
 namespace
 {
     const AstFunctionDecl* genericFunctionDecl(const SymbolFunction& root);
-    const AstStructDecl*   genericStructDecl(const SymbolStruct& root);
+    const AstNode*         genericStructDeclNode(const SymbolStruct& root);
+    SpanRef                genericStructParamSpan(const SymbolStruct& root);
+    SpanRef                genericStructWhereSpan(const SymbolStruct& root);
     void                   resolveStructArgsFromContext(Sema& sema, const SymbolStruct& genericRoot, std::span<const SemaGeneric::GenericParamDesc> targetParams, std::span<SemaGeneric::GenericResolvedArg> resolvedArgs);
 
     const SymbolFunction* declContextRoot(const SymbolFunction& function)
@@ -141,11 +143,12 @@ namespace
         if (!ownerRoot)
             return false;
 
-        const auto* decl = genericStructDecl(*ownerRoot);
-        if (!decl || decl->spanGenericParamsRef.isInvalid())
+        const auto* decl = genericStructDeclNode(*ownerRoot);
+        const SpanRef spanGenericParamsRef = genericStructParamSpan(*ownerRoot);
+        if (!decl || spanGenericParamsRef.isInvalid())
             return false;
 
-        SemaGeneric::collectGenericParams(sema, *decl, decl->spanGenericParamsRef, outParams);
+        SemaGeneric::collectGenericParams(sema, *decl, spanGenericParamsRef, outParams);
         if (outParams.empty())
             return false;
 
@@ -203,9 +206,37 @@ namespace
         return root.decl() ? root.decl()->safeCast<AstFunctionDecl>() : nullptr;
     }
 
-    const AstStructDecl* genericStructDecl(const SymbolStruct& root)
+    const AstNode* genericStructDeclNode(const SymbolStruct& root)
     {
-        return root.decl() ? root.decl()->safeCast<AstStructDecl>() : nullptr;
+        if (!root.decl())
+            return nullptr;
+
+        const AstNode* decl = root.decl();
+        if (decl->is(AstNodeId::StructDecl) || decl->is(AstNodeId::UnionDecl))
+            return decl;
+        return nullptr;
+    }
+
+    SpanRef genericStructParamSpan(const SymbolStruct& root)
+    {
+        const AstNode* decl = genericStructDeclNode(root);
+        if (!decl)
+            return SpanRef::invalid();
+
+        if (const auto* structDecl = decl->safeCast<AstStructDecl>())
+            return structDecl->spanGenericParamsRef;
+        return decl->cast<AstUnionDecl>().spanGenericParamsRef;
+    }
+
+    SpanRef genericStructWhereSpan(const SymbolStruct& root)
+    {
+        const AstNode* decl = genericStructDeclNode(root);
+        if (!decl)
+            return SpanRef::invalid();
+
+        if (const auto* structDecl = decl->safeCast<AstStructDecl>())
+            return structDecl->spanWhereRef;
+        return decl->cast<AstUnionDecl>().spanWhereRef;
     }
 
     SpanRef genericParamSpan(const Symbol& root)
@@ -217,8 +248,7 @@ namespace
             return decl ? decl->spanGenericParamsRef : SpanRef::invalid();
         }
 
-        const auto* decl = genericStructDecl(root.cast<SymbolStruct>());
-        return decl ? decl->spanGenericParamsRef : SpanRef::invalid();
+        return genericStructParamSpan(root.cast<SymbolStruct>());
     }
 
     bool hasGenericParams(const Symbol& root)
@@ -230,8 +260,7 @@ namespace
         }
 
         const auto& st   = root.cast<SymbolStruct>();
-        const auto* decl = genericStructDecl(st);
-        return !st.isGenericInstance() && decl && decl->spanGenericParamsRef.isValid();
+        return !st.isGenericInstance() && genericStructParamSpan(st).isValid();
     }
 
     AstNodeRef genericDeclNodeRef(const Symbol& root)
@@ -898,8 +927,9 @@ namespace
 
     Result validateGenericStructWhereConstraints(Sema& sema, const SymbolStruct& root, std::span<const SemaGeneric::GenericParamDesc> params, std::span<const SemaGeneric::GenericResolvedArg> resolvedArgs, AstNodeRef errorNodeRef)
     {
-        const auto* decl = genericStructDecl(root);
-        if (!decl || decl->spanWhereRef.isInvalid())
+        const auto* decl = genericStructDeclNode(root);
+        const SpanRef spanWhereRef = genericStructWhereSpan(root);
+        if (!decl || spanWhereRef.isInvalid())
             return Result::Continue;
 
         SmallVector<SemaClone::ParamBinding> bindings;
@@ -907,7 +937,7 @@ namespace
         appendEnclosingGenericCloneBindings(sema, root, bindings);
 
         SmallVector<AstNodeRef> whereRefs;
-        sema.ast().appendNodes(whereRefs, decl->spanWhereRef);
+        sema.ast().appendNodes(whereRefs, spanWhereRef);
         for (const AstNodeRef whereRef : whereRefs)
         {
             AstNodeRef evalRef = AstNodeRef::invalid();
@@ -1312,11 +1342,25 @@ namespace
             return instance;
         }
 
-        auto& cloneDecl                = sema.node(cloneRef).cast<AstStructDecl>();
+        auto& st               = root.cast<SymbolStruct>();
+        if (auto* cloneDecl = sema.node(cloneRef).safeCast<AstStructDecl>())
+        {
+            cloneDecl->spanGenericParamsRef = SpanRef::invalid();
+            cloneDecl->spanWhereRef         = SpanRef::invalid();
+
+            auto* instance         = Symbol::make<SymbolStruct>(sema.ctx(), cloneDecl, cloneDecl->tokNameRef, st.idRef(), clonedGenericSymbolFlags(root));
+            instance->extraFlags() = st.extraFlags();
+            instance->setAttributes(sema.ctx(), st.attributes());
+            instance->setOwnerSymMap(st.ownerSymMap());
+            instance->setDeclNodeRef(cloneRef);
+            instance->setGenericInstance(&st);
+            return instance;
+        }
+
+        auto& cloneDecl                = sema.node(cloneRef).cast<AstUnionDecl>();
         cloneDecl.spanGenericParamsRef = SpanRef::invalid();
         cloneDecl.spanWhereRef         = SpanRef::invalid();
 
-        auto& st               = root.cast<SymbolStruct>();
         auto* instance         = Symbol::make<SymbolStruct>(sema.ctx(), &cloneDecl, cloneDecl.tokNameRef, st.idRef(), clonedGenericSymbolFlags(root));
         instance->extraFlags() = st.extraFlags();
         instance->setAttributes(sema.ctx(), st.attributes());
@@ -1724,12 +1768,13 @@ namespace
         if (!enclosingRoot)
             return;
 
-        const auto* enclosingDecl = genericStructDecl(*enclosingRoot);
-        if (!enclosingDecl || !enclosingDecl->spanGenericParamsRef.isValid())
+        const auto* enclosingDecl = genericStructDeclNode(*enclosingRoot);
+        const SpanRef spanGenericParamsRef = genericStructParamSpan(*enclosingRoot);
+        if (!enclosingDecl || !spanGenericParamsRef.isValid())
             return;
 
         SmallVector<SemaGeneric::GenericParamDesc> enclosingParams;
-        SemaGeneric::collectGenericParams(sema, *enclosingDecl, enclosingDecl->spanGenericParamsRef, enclosingParams);
+        SemaGeneric::collectGenericParams(sema, *enclosingDecl, spanGenericParamsRef, enclosingParams);
 
         SmallVector<GenericInstanceKey> enclosingArgs;
         if (!enclosingRoot->tryGetGenericInstanceArgs(enclosingInstance, enclosingArgs))
@@ -1881,12 +1926,13 @@ namespace SemaGeneric
         if (!hasGenericParams(genericRoot))
             return Result::Continue;
 
-        const auto* targetDecl = genericStructDecl(genericRoot);
-        if (!targetDecl)
+        const auto* targetDecl = genericStructDeclNode(genericRoot);
+        const SpanRef spanGenericParamsRef = genericStructParamSpan(genericRoot);
+        if (!targetDecl || spanGenericParamsRef.isInvalid())
             return Result::Continue;
 
         SmallVector<GenericParamDesc> targetParams;
-        collectGenericParams(targetSema, *targetDecl, targetDecl->spanGenericParamsRef, targetParams);
+        collectGenericParams(targetSema, *targetDecl, spanGenericParamsRef, targetParams);
 
         SmallVector<GenericResolvedArg> resolvedArgs(targetParams.size());
         resolveStructArgsFromContext(sema, genericRoot, targetParams.span(), resolvedArgs.span());

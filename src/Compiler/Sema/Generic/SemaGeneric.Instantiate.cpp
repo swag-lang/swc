@@ -152,6 +152,44 @@ namespace
         return ownerRoot->tryGetGenericInstanceArgs(*ownerInstance, outArgs);
     }
 
+    const SymbolFunction* matchingGenericFunctionInstance(const SymbolFunction* function)
+    {
+        if (!function || !function->isGenericInstance())
+            return nullptr;
+        return function;
+    }
+
+    bool containsFunctionInstance(std::span<const SymbolFunction* const> functions, const SymbolFunction* function)
+    {
+        return std::ranges::find(functions, function) != functions.end();
+    }
+
+    void collectAmbientGenericFunctions(const Sema& sema, SmallVector<const SymbolFunction*>& outFunctions)
+    {
+        outFunctions.clear();
+
+        for (size_t i = sema.frames().size(); i > 0; --i)
+        {
+            const SemaInlinePayload* inlinePayload = sema.frames()[i - 1].currentInlinePayload();
+            while (inlinePayload)
+            {
+                if (const SymbolFunction* function = matchingGenericFunctionInstance(inlinePayload->sourceFunction))
+                {
+                    if (!containsFunctionInstance(outFunctions.span(), function))
+                        outFunctions.push_back(function);
+                }
+
+                inlinePayload = inlinePayload->parentInlinePayload;
+            }
+        }
+
+        if (const SymbolFunction* function = matchingGenericFunctionInstance(sema.currentFunction()))
+        {
+            if (!containsFunctionInstance(outFunctions.span(), function))
+                outFunctions.push_back(function);
+        }
+    }
+
     SymbolFlags clonedGenericSymbolFlags(const Symbol& root)
     {
         SymbolFlags flags = SymbolFlagsE::Zero;
@@ -414,10 +452,23 @@ namespace
         appendGenericInstanceCloneBindings(sema, params.span(), args.span(), outBindings);
     }
 
+    void appendFunctionContextCloneBindings(Sema& sema, const SymbolFunction& function, SmallVector<SemaClone::ParamBinding>& outBindings)
+    {
+        appendFunctionInstanceCloneBindings(sema, function, outBindings);
+        appendEnclosingFunctionGenericCloneBindings(sema, function, outBindings);
+    }
+
+    void appendAmbientGenericCloneBindings(Sema& sema, SmallVector<SemaClone::ParamBinding>& outBindings)
+    {
+        SmallVector<const SymbolFunction*> functions;
+        collectAmbientGenericFunctions(sema, functions);
+        for (const SymbolFunction* function : functions)
+            appendFunctionContextCloneBindings(sema, *function, outBindings);
+    }
+
     void appendEnclosingGenericCloneBindings(Sema& sema, const Symbol& root, SmallVector<SemaClone::ParamBinding>& outBindings)
     {
-        if (const auto* function = root.safeCast<SymbolFunction>())
-            appendEnclosingFunctionGenericCloneBindings(sema, *function, outBindings);
+        appendAmbientGenericCloneBindings(sema, outBindings);
     }
 
     Result evalGenericClonedNode(Sema& sema, const Symbol& root, AstNodeRef sourceRef, std::span<const SemaClone::ParamBinding> bindings, AstNodeRef& outClonedRef);
@@ -584,6 +635,20 @@ namespace
         appendGenericInstanceBindingText(sema, params.span(), args.span(), seenIds, out);
     }
 
+    void appendFunctionContextBindingText(Sema& sema, const SymbolFunction& function, SmallVector<IdentifierRef>& seenIds, Utf8& out)
+    {
+        appendFunctionInstanceBindingText(sema, function, seenIds, out);
+        appendOwnerStructBindingText(sema, function, seenIds, out);
+    }
+
+    void appendAmbientBindingText(Sema& sema, SmallVector<IdentifierRef>& seenIds, Utf8& out)
+    {
+        SmallVector<const SymbolFunction*> functions;
+        collectAmbientGenericFunctions(sema, functions);
+        for (const SymbolFunction* function : functions)
+            appendFunctionContextBindingText(sema, *function, seenIds, out);
+    }
+
     Utf8 formatFunctionWhereBindings(Sema& sema, const SymbolFunction& function, std::span<const SemaGeneric::GenericParamDesc> params = {}, std::span<const SemaGeneric::GenericResolvedArg> resolvedArgs = {})
     {
         Utf8                       out;
@@ -594,7 +659,7 @@ namespace
         else
             appendFunctionInstanceBindingText(sema, function, seenIds, out);
 
-        appendOwnerStructBindingText(sema, function, seenIds, out);
+        appendAmbientBindingText(sema, seenIds, out);
         return out;
     }
 
@@ -1630,18 +1695,27 @@ namespace
         return genericStructInstanceFromScopes(sema);
     }
 
-    void resolveArgsFromCurrentFunction(Sema& sema, std::span<const SemaGeneric::GenericParamDesc> targetParams, std::span<SemaGeneric::GenericResolvedArg> resolvedArgs, bool allowKindFallback)
+    void resolveArgsFromFunction(Sema& sema, const SymbolFunction& function, std::span<const SemaGeneric::GenericParamDesc> targetParams, std::span<SemaGeneric::GenericResolvedArg> resolvedArgs, bool allowKindFallback)
     {
-        const auto* currentFunction = sema.currentFunction();
-        if (!currentFunction)
-            return;
-
         SmallVector<SemaGeneric::GenericParamDesc> functionParams;
         SmallVector<GenericInstanceKey>            functionArgs;
-        if (!loadFunctionInstanceGenericArgs(sema, *currentFunction, functionParams, functionArgs))
+        if (!loadFunctionInstanceGenericArgs(sema, function, functionParams, functionArgs))
             return;
 
         resolveArgsFromGenericContext(functionParams.span(), functionArgs.span(), targetParams, resolvedArgs, allowKindFallback);
+    }
+
+    void resolveArgsFromAmbientFunctions(Sema& sema, std::span<const SemaGeneric::GenericParamDesc> targetParams, std::span<SemaGeneric::GenericResolvedArg> resolvedArgs, bool allowKindFallback)
+    {
+        SmallVector<const SymbolFunction*> functions;
+        collectAmbientGenericFunctions(sema, functions);
+        for (const SymbolFunction* function : functions)
+        {
+            if (!hasMissingGenericArgs(resolvedArgs))
+                return;
+
+            resolveArgsFromFunction(sema, *function, targetParams, resolvedArgs, allowKindFallback);
+        }
     }
 
     void resolveArgsFromEnclosingStruct(Sema& sema, const SymbolStruct& enclosingInstance, std::span<const SemaGeneric::GenericParamDesc> targetParams, std::span<SemaGeneric::GenericResolvedArg> resolvedArgs)
@@ -1670,25 +1744,19 @@ namespace
         if (sourceInstance)
             resolveArgsFromEnclosingStruct(sema, *sourceInstance, targetParams, resolvedArgs);
 
+        const SymbolStruct* currentFunctionInstance = genericStructInstanceFromCurrentFunction(sema, genericRoot);
+        const SymbolStruct* enclosingInstance       = enclosingGenericStructInstance(sema);
         if (hasMissingGenericArgs(resolvedArgs))
         {
-            const SymbolStruct* currentFunctionInstance = genericStructInstanceFromCurrentFunction(sema, genericRoot);
-            const SymbolStruct* enclosingInstance       = enclosingGenericStructInstance(sema);
-            const bool          allowKindFallback       = !sourceInstance && !currentFunctionInstance && !enclosingInstance;
-            resolveArgsFromCurrentFunction(sema, targetParams, resolvedArgs, allowKindFallback);
+            const bool allowKindFallback = !sourceInstance && !currentFunctionInstance && !enclosingInstance;
+            resolveArgsFromAmbientFunctions(sema, targetParams, resolvedArgs, allowKindFallback);
         }
 
-        if (hasMissingGenericArgs(resolvedArgs))
-        {
-            if (const SymbolStruct* currentFunctionInstance = genericStructInstanceFromCurrentFunction(sema, genericRoot))
-                resolveArgsFromEnclosingStruct(sema, *currentFunctionInstance, targetParams, resolvedArgs);
-        }
+        if (hasMissingGenericArgs(resolvedArgs) && currentFunctionInstance)
+            resolveArgsFromEnclosingStruct(sema, *currentFunctionInstance, targetParams, resolvedArgs);
 
-        if (hasMissingGenericArgs(resolvedArgs))
-        {
-            if (const SymbolStruct* enclosingInstance = enclosingGenericStructInstance(sema))
-                resolveArgsFromEnclosingStruct(sema, *enclosingInstance, targetParams, resolvedArgs);
-        }
+        if (hasMissingGenericArgs(resolvedArgs) && enclosingInstance)
+            resolveArgsFromEnclosingStruct(sema, *enclosingInstance, targetParams, resolvedArgs);
     }
 }
 

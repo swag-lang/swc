@@ -454,6 +454,61 @@ namespace
         return Result::Continue;
     }
 
+    bool buildAggregateFieldOrder(std::span<const SemaGeneric::GenericFunctionParamDesc> patternFields, const auto& actualAggregate, SmallVector<size_t>& outOrder)
+    {
+        if (patternFields.size() != actualAggregate.types.size())
+            return false;
+
+        outOrder.resize(patternFields.size());
+        for (size_t& index : outOrder)
+            index = SIZE_MAX;
+        SmallVector<bool> usedActualEntries(actualAggregate.types.size(), false);
+
+        for (size_t actualIndex = 0; actualIndex < actualAggregate.types.size(); ++actualIndex)
+        {
+            const IdentifierRef actualIdRef = actualIndex < actualAggregate.names.size() ? actualAggregate.names[actualIndex] : IdentifierRef::invalid();
+            if (!actualIdRef.isValid())
+                continue;
+
+            size_t patternIndex = 0;
+            for (; patternIndex < patternFields.size(); ++patternIndex)
+            {
+                if (patternFields[patternIndex].idRef == actualIdRef)
+                    break;
+            }
+
+            if (patternIndex == patternFields.size() || outOrder[patternIndex] != SIZE_MAX)
+                return false;
+
+            outOrder[patternIndex]      = actualIndex;
+            usedActualEntries[actualIndex] = true;
+        }
+
+        size_t nextUnnamedActualIndex = 0;
+        for (size_t patternIndex = 0; patternIndex < patternFields.size(); ++patternIndex)
+        {
+            if (outOrder[patternIndex] != SIZE_MAX)
+                continue;
+
+            while (nextUnnamedActualIndex < actualAggregate.types.size())
+            {
+                const IdentifierRef actualIdRef = nextUnnamedActualIndex < actualAggregate.names.size() ? actualAggregate.names[nextUnnamedActualIndex] : IdentifierRef::invalid();
+                if (!usedActualEntries[nextUnnamedActualIndex] && !actualIdRef.isValid())
+                    break;
+                ++nextUnnamedActualIndex;
+            }
+
+            if (nextUnnamedActualIndex == actualAggregate.types.size())
+                return false;
+
+            outOrder[patternIndex]              = nextUnnamedActualIndex;
+            usedActualEntries[nextUnnamedActualIndex] = true;
+            ++nextUnnamedActualIndex;
+        }
+
+        return true;
+    }
+
     void collectStructFieldDescs(Sema& sema, const SymbolStruct& root, const AstStructDecl& decl, SmallVector<SemaGeneric::GenericFunctionParamDesc>& outFields)
     {
         outFields.clear();
@@ -518,20 +573,19 @@ namespace
         SmallVector<SemaGeneric::GenericFunctionParamDesc> rootFields;
         collectStructFieldDescs(rootSema, *patternRoot, *rootDecl, rootFields);
         const auto& actualAggregate = argType.payloadAggregate();
-        if (rootFields.size() != actualAggregate.types.size())
+        SmallVector<size_t> actualFieldOrder;
+        if (!buildAggregateFieldOrder(rootFields.span(), actualAggregate, actualFieldOrder))
             return Result::Continue;
 
         SmallVector<SemaGeneric::GenericResolvedArg> rootResolvedArgs(rootParams.size());
         CastFailure                                  trialFailure{};
         for (size_t i = 0; i < rootFields.size(); ++i)
         {
-            const IdentifierRef actualIdRef = i < actualAggregate.names.size() ? actualAggregate.names[i] : IdentifierRef::invalid();
-            if (actualIdRef.isValid() && rootFields[i].idRef != actualIdRef)
-                return Result::Continue;
             if (rootFields[i].typeRef.isInvalid())
                 return Result::Continue;
 
-            if (deduceFromTypePattern(rootSema, rootParams.span(), rootResolvedArgs.span(), rootFields[i].typeRef, actualAggregate.types[i], argExprRef, callArgIndex, outFailure ? &trialFailure : nullptr, mode) == Result::Error)
+            const size_t actualFieldIndex = actualFieldOrder[i];
+            if (deduceFromTypePattern(rootSema, rootParams.span(), rootResolvedArgs.span(), rootFields[i].typeRef, actualAggregate.types[actualFieldIndex], argExprRef, callArgIndex, outFailure ? &trialFailure : nullptr, mode) == Result::Error)
                 return Result::Continue;
         }
 
@@ -699,7 +753,8 @@ namespace
             return Result::Continue;
 
         const auto& actualAggregate = argType.payloadAggregate();
-        if (patternFields.size() != actualAggregate.types.size())
+        SmallVector<size_t> actualFieldOrder;
+        if (!buildAggregateFieldOrder(patternFields.span(), actualAggregate, actualFieldOrder))
             return Result::Continue;
 
         SmallVector<SemaGeneric::GenericResolvedArg> trialResolvedArgs;
@@ -707,11 +762,11 @@ namespace
         CastFailure trialFailure{};
         for (size_t i = 0; i < patternFields.size(); ++i)
         {
-            const IdentifierRef actualIdRef = i < actualAggregate.names.size() ? actualAggregate.names[i] : IdentifierRef::invalid();
-            if (patternFields[i].idRef != actualIdRef || patternFields[i].typeRef.isInvalid())
+            if (patternFields[i].typeRef.isInvalid())
                 return Result::Continue;
 
-            if (deduceFromTypePattern(sema, params, trialResolvedArgs.span(), patternFields[i].typeRef, actualAggregate.types[i], argExprRef, callArgIndex, outFailure ? &trialFailure : nullptr, mode) == Result::Error)
+            const size_t actualFieldIndex = actualFieldOrder[i];
+            if (deduceFromTypePattern(sema, params, trialResolvedArgs.span(), patternFields[i].typeRef, actualAggregate.types[actualFieldIndex], argExprRef, callArgIndex, outFailure ? &trialFailure : nullptr, mode) == Result::Error)
                 return Result::Continue;
         }
 

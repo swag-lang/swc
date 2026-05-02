@@ -1630,7 +1630,7 @@ namespace
         return genericStructInstanceFromScopes(sema);
     }
 
-    void resolveArgsFromCurrentFunction(Sema& sema, std::span<const SemaGeneric::GenericParamDesc> targetParams, std::span<SemaGeneric::GenericResolvedArg> resolvedArgs)
+    void resolveArgsFromCurrentFunction(Sema& sema, std::span<const SemaGeneric::GenericParamDesc> targetParams, std::span<SemaGeneric::GenericResolvedArg> resolvedArgs, bool allowKindFallback)
     {
         const auto* currentFunction = sema.currentFunction();
         if (!currentFunction)
@@ -1641,7 +1641,7 @@ namespace
         if (!loadFunctionInstanceGenericArgs(sema, *currentFunction, functionParams, functionArgs))
             return;
 
-        resolveArgsFromGenericContext(functionParams.span(), functionArgs.span(), targetParams, resolvedArgs, false);
+        resolveArgsFromGenericContext(functionParams.span(), functionArgs.span(), targetParams, resolvedArgs, allowKindFallback);
     }
 
     void resolveArgsFromEnclosingStruct(Sema& sema, const SymbolStruct& enclosingInstance, std::span<const SemaGeneric::GenericParamDesc> targetParams, std::span<SemaGeneric::GenericResolvedArg> resolvedArgs)
@@ -1666,11 +1666,17 @@ namespace
 
     void resolveStructArgsFromContext(Sema& sema, const SymbolStruct& genericRoot, std::span<const SemaGeneric::GenericParamDesc> targetParams, std::span<SemaGeneric::GenericResolvedArg> resolvedArgs)
     {
-        if (const SymbolStruct* sourceInstance = genericStructInstanceFromInlinePayload(sema, genericRoot))
+        const SymbolStruct* sourceInstance = genericStructInstanceFromInlinePayload(sema, genericRoot);
+        if (sourceInstance)
             resolveArgsFromEnclosingStruct(sema, *sourceInstance, targetParams, resolvedArgs);
 
         if (hasMissingGenericArgs(resolvedArgs))
-            resolveArgsFromCurrentFunction(sema, targetParams, resolvedArgs);
+        {
+            const SymbolStruct* currentFunctionInstance = genericStructInstanceFromCurrentFunction(sema, genericRoot);
+            const SymbolStruct* enclosingInstance       = enclosingGenericStructInstance(sema);
+            const bool          allowKindFallback       = !sourceInstance && !currentFunctionInstance && !enclosingInstance;
+            resolveArgsFromCurrentFunction(sema, targetParams, resolvedArgs, allowKindFallback);
+        }
 
         if (hasMissingGenericArgs(resolvedArgs))
         {

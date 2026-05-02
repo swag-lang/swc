@@ -66,6 +66,50 @@ func(T) functionLocalExplicitPrefixValue()->bool
     return #typeof(data.item.values) == #type [3] T
 }
 
+func(U) functionLocalImplicitRenamedBox()->bool
+{
+    struct Local
+    {
+        item: Box
+    }
+
+    let data: Local
+    return #typeof(data.item.value) == U
+}
+
+func(U, M: s32) functionLocalImplicitRenamedBuffer()->bool
+{
+    struct Local
+    {
+        item: Buffer
+    }
+
+    let data: Local
+    return #typeof(data.item.values) == #type [M] U
+}
+
+func(A, B) functionLocalRenamedPartialBox()->bool
+{
+    struct Local
+    {
+        item: MiddleDefaultBox'A
+    }
+
+    let data: Local
+    return #typeof(data.item.first) == A and #typeof(data.item.second) == string and #typeof(data.item.third) == B
+}
+
+func(U) functionLocalRenamedExplicitPrefixValue()->bool
+{
+    struct Local
+    {
+        item: PrefixDefaultBuffer'3
+    }
+
+    let data: Local
+    return #typeof(data.item.values) == #type [3] U
+}
+
 struct(T) MethodTypeShadowHolder
 {
 }
@@ -111,6 +155,10 @@ impl MethodConstShadowHolder
     #assert(functionLocalImplicitBuffer'(u8, 4)())
     #assert(functionLocalPartialBox'(bool, f32)())
     #assert(functionLocalExplicitPrefixValue's64())
+    #assert(functionLocalImplicitRenamedBox'u16())
+    #assert(functionLocalImplicitRenamedBuffer'(u8, 4)())
+    #assert(functionLocalRenamedPartialBox'(bool, f32)())
+    #assert(functionLocalRenamedExplicitPrefixValue's64())
     #assert(typeShadowHolder.localUsesMethodType'bool(true))
     #assert(constShadowHolder.localUsesMethodConst'4())
 }

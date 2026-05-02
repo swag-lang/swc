@@ -1587,27 +1587,26 @@ namespace
             }
         }
 
-        size_t nextEnclosingIndex = 0;
         for (size_t targetIndex = 0; targetIndex < targetParams.size(); ++targetIndex)
         {
             if (resolvedArgs[targetIndex].present)
                 continue;
 
-            while (nextEnclosingIndex < enclosingParams.size())
+            size_t enclosingIndex = 0;
+            while (enclosingIndex < enclosingParams.size())
             {
-                if (!usedEnclosingParams[nextEnclosingIndex] && targetParams[targetIndex].kind == enclosingParams[nextEnclosingIndex].kind)
+                if (!usedEnclosingParams[enclosingIndex] && targetParams[targetIndex].kind == enclosingParams[enclosingIndex].kind)
                     break;
-                ++nextEnclosingIndex;
+                ++enclosingIndex;
             }
 
-            if (nextEnclosingIndex == enclosingParams.size())
+            if (enclosingIndex == enclosingParams.size())
                 return;
 
             resolvedArgs[targetIndex].present = true;
-            resolvedArgs[targetIndex].typeRef = enclosingArgs[nextEnclosingIndex].typeRef;
-            resolvedArgs[targetIndex].cstRef  = enclosingArgs[nextEnclosingIndex].cstRef;
-            usedEnclosingParams[nextEnclosingIndex] = true;
-            ++nextEnclosingIndex;
+            resolvedArgs[targetIndex].typeRef = enclosingArgs[enclosingIndex].typeRef;
+            resolvedArgs[targetIndex].cstRef  = enclosingArgs[enclosingIndex].cstRef;
+            usedEnclosingParams[enclosingIndex] = true;
         }
     }
 }

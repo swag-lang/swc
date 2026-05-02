@@ -1584,6 +1584,19 @@ namespace
                 break;
             }
         }
+
+        if (targetParams.size() != enclosingParams.size())
+            return;
+
+        for (size_t targetIndex = 0; targetIndex < targetParams.size(); ++targetIndex)
+        {
+            if (resolvedArgs[targetIndex].present || targetParams[targetIndex].kind != enclosingParams[targetIndex].kind)
+                continue;
+
+            resolvedArgs[targetIndex].present = true;
+            resolvedArgs[targetIndex].typeRef = enclosingArgs[targetIndex].typeRef;
+            resolvedArgs[targetIndex].cstRef  = enclosingArgs[targetIndex].cstRef;
+        }
     }
 }
 

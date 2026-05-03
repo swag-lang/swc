@@ -15,6 +15,7 @@
 #include "Compiler/Sema/Helpers/SemaSymbolLookup.h"
 #include "Compiler/Sema/Match/Match.h"
 #include "Compiler/Sema/Match/MatchContext.h"
+#include "Compiler/Sema/Symbol/Symbol.Alias.h"
 #include "Compiler/Sema/Symbol/Symbol.Enum.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.Interface.h"
@@ -1415,18 +1416,40 @@ namespace
         return srcView.token(TokenRef{nextIndex}).id == TokenId::SymLeftParen;
     }
 
+    const SymbolStruct* resolveGenericRootStructAlias(const Symbol* symbol)
+    {
+        const Symbol* current = symbol;
+        while (current && current->isAlias())
+        {
+            const auto& alias = current->cast<SymbolAlias>();
+            if (alias.isStrict())
+                return nullptr;
+
+            const Symbol* next = alias.aliasedSymbol();
+            if (!next || next == current)
+                return nullptr;
+
+            current = next;
+        }
+
+        if (!current || !current->isStruct())
+            return nullptr;
+
+        const auto& st = current->cast<SymbolStruct>();
+        return st.isGenericRoot() && !st.isGenericInstance() ? &st : nullptr;
+    }
+
     const SymbolStruct* genericStructRootFromQuotedBase(Sema& sema, AstNodeRef exprRef)
     {
         SmallVector<Symbol*> symbols;
         sema.viewNodeTypeSymbol(exprRef).getSymbols(symbols);
         for (Symbol* sym : symbols)
         {
-            if (!sym || !sym->isStruct())
+            if (!sym)
                 continue;
 
-            auto& symStruct = sym->cast<SymbolStruct>();
-            if (symStruct.isGenericRoot() && !symStruct.isGenericInstance())
-                return &symStruct;
+            if (const auto* genericRoot = resolveGenericRootStructAlias(sym))
+                return genericRoot;
         }
 
         return nullptr;

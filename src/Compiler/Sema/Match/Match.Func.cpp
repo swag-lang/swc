@@ -36,7 +36,6 @@ namespace
         if (const auto* quotedList = calleeNode.safeCast<AstQuotedListExpr>())
         {
             ast.appendNodes(outArgs, quotedList->spanChildrenRef);
-            return;
         }
     }
 
@@ -2601,7 +2600,7 @@ Result Match::probeFunctionCandidates(Sema& sema, const SemaNodeView& nodeCallee
     if (mode == ResolveCallMode::AttributeOnly && !symbols.empty() && filteredSymbols.empty())
         return SemaError::raise(sema, DiagnosticId::sema_err_not_attribute, nodeCallee.nodeRef());
 
-    CandidateAttempts candidates;
+    CandidateAttempts       candidates;
     SmallVector<AstNodeRef> explicitGenericArgNodes;
     collectExplicitGenericArgNodes(*nodeCallee.node(), sema.ast(), explicitGenericArgNodes);
     SWC_RESULT(collectCandidateAttempts(sema, candidates, concreteSymbols.span(), args, ufcsArg, explicitGenericArgNodes.span(), mode));
@@ -2642,7 +2641,7 @@ Result Match::resolveFunctionCandidates(Sema& sema, const SemaNodeView& nodeCall
         return SemaError::raise(sema, DiagnosticId::sema_err_not_attribute, nodeCallee.nodeRef());
 
     // Collect all function candidates and evaluate their match quality
-    CandidateAttempts candidates;
+    CandidateAttempts       candidates;
     SmallVector<AstNodeRef> explicitGenericArgNodes;
     collectExplicitGenericArgNodes(*nodeCallee.node(), sema.ast(), explicitGenericArgNodes);
     SWC_RESULT(collectCandidateAttempts(sema, candidates, concreteSymbols.span(), args, ufcsArg, explicitGenericArgNodes.span(), mode));

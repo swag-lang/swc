@@ -115,7 +115,7 @@ namespace
     }
 
 #ifdef _WIN32
-    [[noreturn]] 
+    [[noreturn]]
     void WINAPI jitBlockedExitProcess(const UINT exitCode)
     {
         raiseJitProcessTerminationException("ExitProcess", exitCode);

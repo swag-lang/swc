@@ -602,7 +602,7 @@ namespace
         Sema&                 rootSema = semaForStructDecl(sema, *patternRoot, rootSemaHolder);
 
         SmallVector<SemaGeneric::GenericParamDesc> rootParams;
-        const SpanRef rootParamSpan = genericStructParamSpan(*rootDecl);
+        const SpanRef                              rootParamSpan = genericStructParamSpan(*rootDecl);
         SemaGeneric::collectGenericParams(rootSema, *rootDecl, rootParamSpan, rootParams);
         if (rootParams.size() != patternArgs.size())
             return Result::Continue;
@@ -793,7 +793,7 @@ namespace
 
         const auto&         actualAggregate = argType.payloadAggregate();
         SmallVector<size_t> actualFieldOrder;
-        const bool allowPartial = sema.node(patternRef).is(AstNodeId::AnonymousUnionDecl);
+        const bool          allowPartial = sema.node(patternRef).is(AstNodeId::AnonymousUnionDecl);
         if (!buildAggregateFieldOrder(patternFields.span(), actualAggregate, actualFieldOrder, allowPartial))
             return Result::Continue;
 

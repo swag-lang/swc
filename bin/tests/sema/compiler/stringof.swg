@@ -45,6 +45,10 @@ var ScopedWrapped: Scoped.Wrapper'(Scoped.Box)
 #assert(#fullnameof(#typeof(ScopedVariadic)) == "func(Scoped.Box...)->Scoped.Box")
 #assert(#fullnameof(#typeof(ScopedArray)) == "[2] Scoped.Box")
 #assert(#fullnameof(Scoped.Wrapper'(Scoped.Box)) == "Scoped.Wrapper'(Scoped.Box)")
+#assert(#fullnameof(Scoped.Wrapper'(Scoped.Wrapper'(Scoped.Box))) == "Scoped.Wrapper'(Scoped.Wrapper'(Scoped.Box))")
+#assert(#fullnameof(#type *Scoped.Wrapper'(Scoped.Box)) == "*Scoped.Wrapper'(Scoped.Box)")
+#assert(#fullnameof(#type [..] Scoped.Wrapper'(Scoped.Box)) == "[..] Scoped.Wrapper'(Scoped.Box)")
+#assert(#fullnameof(#type func(Scoped.Wrapper'(Scoped.Box))->Scoped.Wrapper'(Scoped.Box)) == "func(Scoped.Wrapper'(Scoped.Box))->Scoped.Wrapper'(Scoped.Box)")
 
 func semaTestGeneric001()
 {

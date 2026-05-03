@@ -371,8 +371,16 @@ namespace
 
         if (specializedStruct)
         {
+            TypeRef specializedTypeRef = specializedStruct->typeRef();
+            if (specializedTypeRef.isInvalid() &&
+                specializedStruct->decl() &&
+                specializedStruct->decl()->is(AstNodeId::StructDecl))
+            {
+                const TypeInfo structType = TypeInfo::makeStruct(specializedStruct);
+                specializedTypeRef        = sema.typeMgr().addType(structType);
+            }
             sema.setSymbol(sema.curNodeRef(), specializedStruct);
-            sema.setType(sema.curNodeRef(), specializedStruct->typeRef());
+            sema.setType(sema.curNodeRef(), specializedTypeRef);
             return Result::Continue;
         }
 

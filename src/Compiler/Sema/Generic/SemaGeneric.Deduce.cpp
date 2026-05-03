@@ -54,6 +54,35 @@ namespace
         return *ownedSema;
     }
 
+    const AstNode* genericStructDeclNode(const SymbolStruct& root)
+    {
+        if (!root.decl())
+            return nullptr;
+
+        const AstNode* decl = root.decl();
+        if (decl->is(AstNodeId::StructDecl) || decl->is(AstNodeId::UnionDecl))
+            return decl;
+        return nullptr;
+    }
+
+    SpanRef genericStructParamSpan(const AstNode& declNode)
+    {
+        if (const auto* structDecl = declNode.safeCast<AstStructDecl>())
+            return structDecl->spanGenericParamsRef;
+        if (const auto* unionDecl = declNode.safeCast<AstUnionDecl>())
+            return unionDecl->spanGenericParamsRef;
+        return SpanRef::invalid();
+    }
+
+    AstNodeRef genericStructBodyRef(const AstNode& declNode)
+    {
+        if (const auto* structDecl = declNode.safeCast<AstStructDecl>())
+            return structDecl->nodeBodyRef;
+        if (const auto* unionDecl = declNode.safeCast<AstUnionDecl>())
+            return unionDecl->nodeBodyRef;
+        return AstNodeRef::invalid();
+    }
+
     Result deduceFromTypePattern(Sema& sema, std::span<const SemaGeneric::GenericParamDesc> params, std::span<SemaGeneric::GenericResolvedArg> resolvedArgs, AstNodeRef patternRef, TypeRef rawArgTypeRef, AstNodeRef argExprRef, uint32_t callArgIndex, CastFailure* outFailure, DeductionMode mode);
 
     void setGenericTypeDeductionFailure(Sema& sema, CastFailure& outFailure, IdentifierRef idRef, const SemaGeneric::GenericResolvedArg& previousArg, TypeRef newTypeRef)
@@ -454,9 +483,11 @@ namespace
         return Result::Continue;
     }
 
-    bool buildAggregateFieldOrder(std::span<const SemaGeneric::GenericFunctionParamDesc> patternFields, const auto& actualAggregate, SmallVector<size_t>& outOrder)
+    bool buildAggregateFieldOrder(std::span<const SemaGeneric::GenericFunctionParamDesc> patternFields, const auto& actualAggregate, SmallVector<size_t>& outOrder, bool allowPartial = false)
     {
-        if (patternFields.size() != actualAggregate.types.size())
+        if (actualAggregate.types.size() > patternFields.size())
+            return false;
+        if (!allowPartial && patternFields.size() != actualAggregate.types.size())
             return false;
 
         outOrder.resize(patternFields.size());
@@ -499,7 +530,11 @@ namespace
             }
 
             if (nextUnnamedActualIndex == actualAggregate.types.size())
+            {
+                if (allowPartial)
+                    break;
                 return false;
+            }
 
             outOrder[patternIndex]                    = nextUnnamedActualIndex;
             usedActualEntries[nextUnnamedActualIndex] = true;
@@ -509,7 +544,7 @@ namespace
         return true;
     }
 
-    void collectStructFieldDescs(Sema& sema, const SymbolStruct& root, const AstStructDecl& decl, SmallVector<SemaGeneric::GenericFunctionParamDesc>& outFields)
+    void collectStructFieldDescs(Sema& sema, const SymbolStruct& root, const AstNode& declNode, SmallVector<SemaGeneric::GenericFunctionParamDesc>& outFields)
     {
         outFields.clear();
         const auto& symbolFields = root.fields();
@@ -537,11 +572,12 @@ namespace
                 return;
         }
 
-        if (decl.nodeBodyRef.isInvalid())
+        const AstNodeRef bodyRef = genericStructBodyRef(declNode);
+        if (bodyRef.isInvalid())
             return;
 
         SmallVector<AstNodeRef> fields;
-        sema.node(decl.nodeBodyRef).collectChildrenFromAst(fields, sema.ast());
+        sema.node(bodyRef).collectChildrenFromAst(fields, sema.ast());
         outFields.reserve(fields.size());
         for (const AstNodeRef fieldRef : fields)
             appendFunctionParamDesc(sema, fieldRef, outFields);
@@ -558,7 +594,7 @@ namespace
         if (!tryGetStructPatternGenericArgs(sema, namedType.nodeIdentRef, patternRoot, patternRootIdRef, patternArgs) || !patternRoot)
             return Result::Continue;
 
-        const auto* rootDecl = patternRoot->decl() ? patternRoot->decl()->safeCast<AstStructDecl>() : nullptr;
+        const auto* rootDecl = genericStructDeclNode(*patternRoot);
         if (!rootDecl)
             return Result::Continue;
 
@@ -566,7 +602,8 @@ namespace
         Sema&                 rootSema = semaForStructDecl(sema, *patternRoot, rootSemaHolder);
 
         SmallVector<SemaGeneric::GenericParamDesc> rootParams;
-        SemaGeneric::collectGenericParams(rootSema, *rootDecl, rootDecl->spanGenericParamsRef, rootParams);
+        const SpanRef rootParamSpan = genericStructParamSpan(*rootDecl);
+        SemaGeneric::collectGenericParams(rootSema, *rootDecl, rootParamSpan, rootParams);
         if (rootParams.size() != patternArgs.size())
             return Result::Continue;
 
@@ -574,7 +611,7 @@ namespace
         collectStructFieldDescs(rootSema, *patternRoot, *rootDecl, rootFields);
         const auto&         actualAggregate = argType.payloadAggregate();
         SmallVector<size_t> actualFieldOrder;
-        if (!buildAggregateFieldOrder(rootFields.span(), actualAggregate, actualFieldOrder))
+        if (!buildAggregateFieldOrder(rootFields.span(), actualAggregate, actualFieldOrder, patternRoot->isUnion()))
             return Result::Continue;
 
         SmallVector<SemaGeneric::GenericResolvedArg> rootResolvedArgs(rootParams.size());
@@ -585,6 +622,8 @@ namespace
                 return Result::Continue;
 
             const size_t actualFieldIndex = actualFieldOrder[i];
+            if (actualFieldIndex == SIZE_MAX)
+                continue;
             if (deduceFromTypePattern(rootSema, rootParams.span(), rootResolvedArgs.span(), rootFields[i].typeRef, actualAggregate.types[actualFieldIndex], argExprRef, callArgIndex, outFailure ? &trialFailure : nullptr, mode) == Result::Error)
                 return Result::Continue;
         }
@@ -754,7 +793,8 @@ namespace
 
         const auto&         actualAggregate = argType.payloadAggregate();
         SmallVector<size_t> actualFieldOrder;
-        if (!buildAggregateFieldOrder(patternFields.span(), actualAggregate, actualFieldOrder))
+        const bool allowPartial = sema.node(patternRef).is(AstNodeId::AnonymousUnionDecl);
+        if (!buildAggregateFieldOrder(patternFields.span(), actualAggregate, actualFieldOrder, allowPartial))
             return Result::Continue;
 
         SmallVector<SemaGeneric::GenericResolvedArg> trialResolvedArgs;
@@ -766,6 +806,8 @@ namespace
                 return Result::Continue;
 
             const size_t actualFieldIndex = actualFieldOrder[i];
+            if (actualFieldIndex == SIZE_MAX)
+                continue;
             if (deduceFromTypePattern(sema, params, trialResolvedArgs.span(), patternFields[i].typeRef, actualAggregate.types[actualFieldIndex], argExprRef, callArgIndex, outFailure ? &trialFailure : nullptr, mode) == Result::Error)
                 return Result::Continue;
         }

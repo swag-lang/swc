@@ -311,6 +311,11 @@ ConstantRef ConstantHelpers::materializeStaticPayloadConstant(Sema& sema, TypeRe
     if (sizeOf != payload.size())
         return ConstantRef::invalid();
 
+    const TypeRef   storageTypeRef = typeInfo.unwrap(ctx, typeRef, TypeExpandE::Alias | TypeExpandE::Enum);
+    const TypeInfo& storageType    = ctx.typeMgr().get(storageTypeRef.isValid() ? storageTypeRef : typeRef);
+    if (storageType.isStruct() && storageType.payloadSymStruct().isUnion())
+        return sema.cstMgr().addConstant(ctx, ConstantValue::makeStruct(ctx, typeRef, payload));
+
     uint32_t shardIndex       = 0;
     bool     hasRequiredShard = false;
     if (!resolveStaticPayloadRequiredShardIndex(shardIndex, hasRequiredShard, sema, typeRef, payload))

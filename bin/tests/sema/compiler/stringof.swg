@@ -18,11 +18,13 @@ namespace Scoped
 }
 
 var ScopedValue: Scoped.Box
+var ScopedFunc: func(Scoped.Box)->Scoped.Box
 
 #assert(#fullnameof(Test.A) == "Test.A")
 #assert(#fullnameof(Test.B) == "Test.B")
 #assert(#fullnameof(Test.C) == "Test.C")
 #assert(#fullnameof(#typeof(ScopedValue)) == "Scoped.Box")
+#assert(#fullnameof(#typeof(ScopedFunc)) == "func(Scoped.Box)->Scoped.Box")
 
 #assert(#nameof(Test.A) == "A")
 #assert(#nameof(Test.B) == "B")

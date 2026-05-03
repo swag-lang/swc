@@ -436,8 +436,39 @@ namespace
                 out += mode == TypeNameMode::Full ? typeInfo.payloadSymAlias().getFullScopedName(ctx) : Utf8(typeInfo.payloadSymAlias().name(ctx));
                 break;
             case TypeInfoKind::Function:
-                out += typeInfo.payloadSymFunction().computeName(ctx);
+            {
+                const SymbolFunction& function = typeInfo.payloadSymFunction();
+                out += function.isMethod() ? "mtd" : "func";
+                out += function.isClosure() ? "||" : "";
+                out += "(";
+                for (size_t i = 0; i < function.parameters().size(); ++i)
+                {
+                    if (i != 0)
+                        out += ", ";
+
+                    const SymbolVariable* param = function.parameters()[i];
+                    SWC_ASSERT(param != nullptr);
+                    if (param->idRef().isValid())
+                    {
+                        out += param->name(ctx);
+                        out += ": ";
+                    }
+
+                    const TypeInfo& paramType = ctx.typeMgr().get(param->typeRef());
+                    out += renderTypeName(paramType, ctx, mode);
+                }
+                out += ")";
+
+                if (function.returnTypeRef() != ctx.typeMgr().typeVoid())
+                {
+                    out += "->";
+                    const TypeInfo& returnType = ctx.typeMgr().get(function.returnTypeRef());
+                    out += renderTypeName(returnType, ctx, mode);
+                }
+
+                out += function.isThrowable() ? " throw" : "";
                 break;
+            }
 
             case TypeInfoKind::TypeValue:
             {

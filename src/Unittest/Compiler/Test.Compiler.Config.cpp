@@ -111,8 +111,8 @@ namespace
         SWC_RESULT(sourceFile.loadContent(compilerCtx));
 
         constexpr ParserJobOptions parserOptions = {
-            .emitTrivia       = true,
-            .ignoreGlobalSkip = true,
+            .emitTrivia                 = true,
+            .ignoreGlobalCompilerIfSkip = true,
         };
 
         SWC_RESULT(parseLoadedSourceFile(compilerCtx, sourceFile, parserOptions));

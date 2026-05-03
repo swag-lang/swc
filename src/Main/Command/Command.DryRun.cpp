@@ -142,8 +142,8 @@ namespace
         outPreview.enabled = true;
 
         constexpr ParserJobOptions parserOptions = {
-            .emitTrivia       = true,
-            .ignoreGlobalSkip = true,
+            .emitTrivia                 = true,
+            .ignoreGlobalCompilerIfSkip = true,
         };
 
         const Global&           global       = ctx.global();

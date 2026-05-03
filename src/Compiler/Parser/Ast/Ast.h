@@ -16,7 +16,6 @@ enum class AstFlagsE : uint32_t
     Zero        = 0,
     HasErrors   = 1 << 0,
     HasWarnings = 1 << 1,
-    GlobalSkip  = 1 << 2,
 };
 using AstFlags = EnumFlags<AstFlagsE>;
 

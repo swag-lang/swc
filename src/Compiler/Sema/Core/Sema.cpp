@@ -779,7 +779,7 @@ void Sema::errorCleanupNode(AstNodeRef nodeRef, AstNode& node)
 
 Result Sema::preNodeChild(AstNode& node, AstNodeRef& childRef)
 {
-    if (curScope_->isTopLevel() && (ast().hasFlag(AstFlagsE::GlobalSkip) || !frame().globalCompilerIfEnabled()))
+    if (curScope_->isTopLevel() && !frame().globalCompilerIfEnabled())
         return Result::SkipChildren;
     if (isImplicitCodeBlockArg(curNodeRef(), childRef))
         return Result::SkipChildren;

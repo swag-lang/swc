@@ -8,8 +8,8 @@ class SourceFile;
 
 struct ParserJobOptions
 {
-    bool emitTrivia       = false;
-    bool ignoreGlobalSkip = false;
+    bool emitTrivia                 = false;
+    bool ignoreGlobalCompilerIfSkip = false;
 };
 
 Result parseLoadedSourceFile(TaskContext& ctx, SourceFile& file, ParserJobOptions options);

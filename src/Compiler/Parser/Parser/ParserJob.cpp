@@ -22,8 +22,8 @@ Result parseLoadedSourceFile(TaskContext& ctx, SourceFile& file, const ParserJob
     LexerFlags lexerFlags = LexerFlagsE::Default;
     if (options.emitTrivia)
         lexerFlags.add(LexerFlagsE::EmitTrivia);
-    if (options.ignoreGlobalSkip)
-        lexerFlags.add(LexerFlagsE::IgnoreGlobalSkip);
+    if (options.ignoreGlobalCompilerIfSkip)
+        lexerFlags.add(LexerFlagsE::IgnoreGlobalCompilerIfSkip);
 
     Lexer lexer;
     lexer.tokenize(ctx, ast.srcView(), lexerFlags);

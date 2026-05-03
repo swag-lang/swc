@@ -13,10 +13,10 @@ class LangSpec;
 
 enum class LexerFlagsE : uint32_t
 {
-    Default          = 0,
-    RawMode          = 1 << 0,
-    EmitTrivia       = 1 << 1,
-    IgnoreGlobalSkip = 1 << 2,
+    Default                    = 0,
+    RawMode                    = 1 << 0,
+    EmitTrivia                 = 1 << 1,
+    IgnoreGlobalCompilerIfSkip = 1 << 2,
 };
 using LexerFlags = EnumFlags<LexerFlagsE>;
 
@@ -54,7 +54,7 @@ private:
     Diagnostic reportTokenError(DiagnosticId id, uint32_t offset, uint32_t len = 1);
     void       raiseTokenError(DiagnosticId id, uint32_t offset, uint32_t len = 1);
     void       checkFormat(uint32_t& startOffset);
-    void       checkCompilerGlobalIfSkip() const;
+    void       checkGlobalCompilerIfSkip() const;
     void       lexEscape(TokenId containerToken, bool eatEol);
     void       buildTriviaIndex() const;
 

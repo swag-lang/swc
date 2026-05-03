@@ -27,8 +27,8 @@ namespace Command
             return;
 
         constexpr ParserJobOptions parserOptions = {
-            .emitTrivia       = true,
-            .ignoreGlobalSkip = true,
+            .emitTrivia                 = true,
+            .ignoreGlobalCompilerIfSkip = true,
         };
 
         FormatOptionsLoader     optionsLoader(ctx);

@@ -908,9 +908,9 @@ void Lexer::lexNumber()
     }
 }
 
-void Lexer::checkCompilerGlobalIfSkip() const
+void Lexer::checkGlobalCompilerIfSkip() const
 {
-    if (token_.id != TokenId::CompilerGlobal || lexerFlags_.has(LexerFlagsE::IgnoreGlobalSkip))
+    if (token_.id != TokenId::CompilerGlobal || lexerFlags_.has(LexerFlagsE::IgnoreGlobalCompilerIfSkip))
         return;
 
     const char8_t* cursor = buffer_;
@@ -951,7 +951,7 @@ void Lexer::lexIdentifier()
             token_.byteStart = idx;
         }
 
-        checkCompilerGlobalIfSkip();
+        checkGlobalCompilerIfSkip();
     }
 
     pushToken();

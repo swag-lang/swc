@@ -555,13 +555,6 @@ AstNodeRef Parser::parseFile()
     while (is(TokenId::CompilerGlobal))
     {
         const AstNodeRef one = parseCompilerGlobal();
-        if (ast_->hasFlag(AstFlagsE::GlobalSkip))
-        {
-            nodePtr->spanGlobalsRef.setInvalid();
-            nodePtr->spanChildrenRef.setInvalid();
-            return nodeRef;
-        }
-
         if (one.isValid())
             globals.push_back(one);
     }

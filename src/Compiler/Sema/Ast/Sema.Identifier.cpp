@@ -313,7 +313,7 @@ namespace
         bool                 sawFunction       = false;
         bool                 sawStruct         = false;
 
-        for (Symbol* baseSym : baseSymbols)
+        for (const Symbol* baseSym : baseSymbols)
         {
             if (!baseSym)
                 continue;

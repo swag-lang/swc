@@ -51,7 +51,8 @@ namespace
             {
                 if (inTok)
                 {
-                    out.push_back(std::move(token));
+                    out.push_back(token);
+                    token.clear();
                     inTok = false;
                 }
                 continue;
@@ -65,7 +66,11 @@ namespace
             return false;
 
         if (inTok)
-            out.push_back(std::move(token));
+        {
+            out.push_back(token);
+            token.clear();
+        }
+        
         return true;
     }
 

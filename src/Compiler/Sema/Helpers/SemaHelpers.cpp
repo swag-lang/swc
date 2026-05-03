@@ -1443,7 +1443,7 @@ namespace
     {
         SmallVector<Symbol*> symbols;
         sema.viewNodeTypeSymbol(exprRef).getSymbols(symbols);
-        for (Symbol* sym : symbols)
+        for (const Symbol* sym : symbols)
         {
             if (!sym)
                 continue;

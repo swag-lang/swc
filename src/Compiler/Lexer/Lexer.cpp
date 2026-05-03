@@ -98,7 +98,9 @@ namespace
         const char8_t* start = cursor;
         while (langSpec.isIdentifierPart(cursor[0]))
             cursor++;
-        return std::string_view(reinterpret_cast<std::string_view::const_pointer>(start), cursor - start);
+        auto   constPointer = reinterpret_cast<std::string_view::const_pointer>(start);
+        size_t size         = static_cast<std::string_view::size_type>(cursor - start);
+        return {constPointer, size};
     }
 
     std::string_view readCompilerWordRaw(const LangSpec& langSpec, const char8_t*& cursor)
@@ -110,7 +112,9 @@ namespace
         cursor++;
         while (langSpec.isIdentifierPart(cursor[0]))
             cursor++;
-        return std::string_view(reinterpret_cast<std::string_view::const_pointer>(start), cursor - start);
+        auto   constPointer = reinterpret_cast<std::string_view::const_pointer>(start);
+        size_t size         = static_cast<std::string_view::size_type>(cursor - start);
+        return {constPointer, size};
     }
 
     bool consumeRaw(const std::string_view value, const char8_t*& cursor)

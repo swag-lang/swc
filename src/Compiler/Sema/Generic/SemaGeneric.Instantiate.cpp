@@ -1577,6 +1577,9 @@ namespace
             if (resolvedArgs[targetIndex].present)
                 continue;
 
+            if (targetParams[targetIndex].defaultRef.isValid())
+                continue;
+
             for (size_t contextIndex = 0; contextIndex < contextParams.size(); ++contextIndex)
             {
                 if (targetParams[targetIndex].idRef != contextParams[contextIndex].idRef ||
@@ -1622,6 +1625,9 @@ namespace
             if (resolvedArgs[targetIndex].present)
                 continue;
 
+            if (targetParams[targetIndex].defaultRef.isValid())
+                continue;
+
             size_t contextIndex = 0;
             while (contextIndex < contextParams.size())
             {
@@ -1631,30 +1637,6 @@ namespace
             }
             if (contextIndex == contextParams.size())
                 continue;
-
-            if (targetParams[targetIndex].defaultRef.isValid())
-            {
-                size_t remainingRequiredTargets = 0;
-                for (size_t i = targetIndex + 1; i < targetParams.size(); ++i)
-                {
-                    if (resolvedArgs[i].present ||
-                        targetParams[i].kind != targetParams[targetIndex].kind ||
-                        targetParams[i].defaultRef.isValid())
-                        continue;
-                    ++remainingRequiredTargets;
-                }
-
-                size_t remainingEnclosingParams = 0;
-                for (size_t i = contextIndex; i < contextParams.size(); ++i)
-                {
-                    if (usedContextParams[i] || contextParams[i].kind != targetParams[targetIndex].kind)
-                        continue;
-                    ++remainingEnclosingParams;
-                }
-
-                if (remainingEnclosingParams <= remainingRequiredTargets)
-                    continue;
-            }
 
             resolvedArgs[targetIndex].present = true;
             resolvedArgs[targetIndex].typeRef = contextArgs[contextIndex].typeRef;

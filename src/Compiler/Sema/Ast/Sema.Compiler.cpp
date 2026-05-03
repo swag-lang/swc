@@ -1133,6 +1133,17 @@ namespace
         return Result::Continue;
     }
 
+    TypeRef resolveCompilerOperandTypeValue(Sema& sema, const SemaNodeView& view)
+    {
+        if (view.type() && view.type()->isTypeValue())
+            return view.type()->payloadTypeRef();
+
+        if (view.hasConstant())
+            return sema.cstMgr().makeTypeValue(sema, view.cstRef());
+
+        return TypeRef::invalid();
+    }
+
     Result semaCompilerTypeOf(Sema& sema, const AstCompilerCallOne& node)
     {
         const AstNodeRef childRef = node.nodeArgRef;
@@ -1264,28 +1275,44 @@ namespace
     {
         const TaskContext& ctx      = sema.ctx();
         const AstNodeRef   childRef = node.nodeArgRef;
-        SemaNodeView       view     = sema.viewTypeSymbol(childRef);
-
-        if (view.sym())
+        SemaNodeView       symbolView = sema.viewSymbol(childRef);
+        if (symbolView.sym() && !symbolView.sym()->isType())
         {
-            const std::string_view name  = view.sym()->name(ctx);
+            const std::string_view name  = symbolView.sym()->name(ctx);
             const ConstantValue    value = ConstantValue::makeString(ctx, name);
             sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(ctx, value));
             return Result::Continue;
         }
 
-        SWC_RESULT(SemaCheck::isValueOrType(sema, view));
-        if (view.type() && view.type()->isTypeValue())
+        SemaNodeView       typeView = sema.viewTypeConstant(childRef);
+        SWC_RESULT(SemaCheck::isValueOrType(sema, typeView));
+        if (const TypeRef resolvedTypeRef = resolveCompilerOperandTypeValue(sema, typeView); resolvedTypeRef.isValid())
         {
-            const Utf8          name  = sema.typeMgr().get(view.type()->payloadTypeRef()).toName(ctx);
+            const Utf8          name  = sema.typeMgr().get(resolvedTypeRef).toName(ctx);
             const ConstantValue value = ConstantValue::makeString(ctx, name);
             sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(ctx, value));
             return Result::Continue;
         }
 
+        if (symbolView.sym() && symbolView.sym()->isType() && typeView.typeRef().isValid())
+        {
+            const Utf8          name  = sema.typeMgr().get(typeView.typeRef()).toName(ctx);
+            const ConstantValue value = ConstantValue::makeString(ctx, name);
+            sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(ctx, value));
+            return Result::Continue;
+        }
+
+        if (symbolView.sym())
+        {
+            const std::string_view name  = symbolView.sym()->name(ctx);
+            const ConstantValue    value = ConstantValue::makeString(ctx, name);
+            sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(ctx, value));
+            return Result::Continue;
+        }
+
         auto diag = SemaError::report(sema, DiagnosticId::sema_err_failed_nameof, childRef);
-        if (view.typeRef().isValid())
-            diag.addArgument(Diagnostic::ARG_TYPE, view.typeRef());
+        if (typeView.typeRef().isValid())
+            diag.addArgument(Diagnostic::ARG_TYPE, typeView.typeRef());
         diag.report(sema.ctx());
         return Result::Error;
     }
@@ -1295,8 +1322,7 @@ namespace
         const TaskContext& ctx      = sema.ctx();
         const AstNodeRef   childRef = node.nodeArgRef;
         const SemaNodeView view     = sema.viewSymbol(childRef);
-
-        if (view.sym())
+        if (view.sym() && !view.sym()->isType())
         {
             const Utf8          name  = view.sym()->getFullScopedName(ctx);
             const ConstantValue value = ConstantValue::makeString(ctx, name);
@@ -1304,11 +1330,27 @@ namespace
             return Result::Continue;
         }
 
-        SemaNodeView typedView = sema.viewTypeSymbol(childRef);
+        SemaNodeView typedView = sema.viewTypeConstant(childRef);
         SWC_RESULT(SemaCheck::isValueOrType(sema, typedView));
-        if (typedView.type() && typedView.type()->isTypeValue())
+        if (const TypeRef resolvedTypeRef = resolveCompilerOperandTypeValue(sema, typedView); resolvedTypeRef.isValid())
         {
-            const Utf8          name  = sema.typeMgr().get(typedView.type()->payloadTypeRef()).toFullName(ctx);
+            const Utf8          name  = sema.typeMgr().get(resolvedTypeRef).toFullName(ctx);
+            const ConstantValue value = ConstantValue::makeString(ctx, name);
+            sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(ctx, value));
+            return Result::Continue;
+        }
+
+        if (view.sym() && view.sym()->isType() && typedView.typeRef().isValid())
+        {
+            const Utf8          name  = sema.typeMgr().get(typedView.typeRef()).toFullName(ctx);
+            const ConstantValue value = ConstantValue::makeString(ctx, name);
+            sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(ctx, value));
+            return Result::Continue;
+        }
+
+        if (view.sym())
+        {
+            const Utf8          name  = view.sym()->getFullScopedName(ctx);
             const ConstantValue value = ConstantValue::makeString(ctx, name);
             sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(ctx, value));
             return Result::Continue;

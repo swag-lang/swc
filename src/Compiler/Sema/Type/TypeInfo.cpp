@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Compiler/Sema/Type/TypeInfo.h"
 #include "Backend/Runtime.h"
+#include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Symbol/Symbols.h"
 #include "Compiler/Sema/Type/TypeManager.h"
 #include "Support/Core/Utf8Helper.h"
@@ -10,6 +11,47 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    enum class TypeNameMode
+    {
+        Short,
+        Full,
+    };
+
+    Utf8 renderTypeName(const TypeInfo& typeInfo, const TaskContext& ctx, TypeNameMode mode);
+
+    void appendGenericStructInstanceArgs(Utf8& out, const SymbolStruct& instance, const TaskContext& ctx, const TypeNameMode mode)
+    {
+        const SymbolStruct* root = instance.genericRootSym();
+        if (!root)
+            return;
+
+        SmallVector<GenericInstanceKey> args;
+        if (!root->tryGetGenericInstanceArgs(instance, args))
+            return;
+
+        out += "'(";
+        for (size_t i = 0; i < args.size(); ++i)
+        {
+            if (i != 0)
+                out += ", ";
+
+            if (args[i].typeRef.isValid())
+            {
+                const TypeInfo& argType = ctx.typeMgr().get(args[i].typeRef);
+                out += renderTypeName(argType, ctx, mode);
+            }
+            else if (args[i].cstRef.isValid())
+            {
+                out += ctx.cstMgr().get(args[i].cstRef).toString(ctx);
+            }
+            else
+            {
+                out += "?";
+            }
+        }
+        out += ")";
+    }
+
     Symbol* typeBlockingSymbol(TaskContext& ctx, TypeRef tr)
     {
         if (!tr.isValid())
@@ -363,12 +405,6 @@ bool TypeInfo::operator==(const TypeInfo& other) const noexcept
 
 namespace
 {
-    enum class TypeNameMode
-    {
-        Short,
-        Full,
-    };
-
     Utf8 renderTypeName(const TypeInfo& typeInfo, const TaskContext& ctx, const TypeNameMode mode)
     {
         Utf8 out;
@@ -427,8 +463,15 @@ namespace
                 out += mode == TypeNameMode::Full ? typeInfo.payloadSymEnum().getFullScopedName(ctx) : Utf8(typeInfo.payloadSymEnum().name(ctx));
                 break;
             case TypeInfoKind::Struct:
-                out += mode == TypeNameMode::Full ? typeInfo.payloadSymStruct().getFullScopedName(ctx) : Utf8(typeInfo.payloadSymStruct().name(ctx));
+            {
+                const SymbolStruct& instance = typeInfo.payloadSymStruct();
+                const SymbolStruct* root     = instance.isGenericInstance() ? instance.genericRootSym() : &instance;
+                SWC_ASSERT(root != nullptr);
+                out += mode == TypeNameMode::Full ? root->getFullScopedName(ctx) : Utf8(root->name(ctx));
+                if (instance.isGenericInstance())
+                    appendGenericStructInstanceArgs(out, instance, ctx, mode);
                 break;
+            }
             case TypeInfoKind::Interface:
                 out += mode == TypeNameMode::Full ? typeInfo.payloadSymInterface().getFullScopedName(ctx) : Utf8(typeInfo.payloadSymInterface().name(ctx));
                 break;

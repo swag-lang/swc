@@ -1837,11 +1837,13 @@ Result SemaHelpers::resolveMemberAccess(Sema& sema, AstNodeRef memberRef, AstMem
     if (handled)
         return Result::SkipChildren;
 
-    SemaNodeView        nodeLeftView  = sema.viewNodeTypeConstantSymbol(node.nodeLeftRef);
-    const SemaNodeView  nodeRightView = sema.viewNode(node.nodeRightRef);
-    const TokenRef      tokNameRef    = nodeRightView.node()->tokRef();
-    const IdentifierRef idRef         = sema.idMgr().addIdentifier(sema.ctx(), nodeRightView.node()->codeRef());
-    SWC_ASSERT(nodeRightView.node()->is(AstNodeId::Identifier));
+    SemaNodeView       nodeLeftView     = sema.viewNodeTypeConstantSymbol(node.nodeLeftRef);
+    const AstNodeRef   memberNameRef    = unwrapCallCalleeRef(sema, node.nodeRightRef);
+    const SemaNodeView nodeRightNameView = sema.viewNode(memberNameRef);
+    SWC_ASSERT(nodeRightNameView.node());
+    SWC_ASSERT(nodeRightNameView.node()->is(AstNodeId::Identifier));
+    const TokenRef      tokNameRef = nodeRightNameView.node()->tokRef();
+    const IdentifierRef idRef      = sema.idMgr().addIdentifier(sema.ctx(), nodeRightNameView.node()->codeRef());
 
     // Namespace
     if (nodeLeftView.sym() && nodeLeftView.sym()->isNamespace())

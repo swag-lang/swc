@@ -15,16 +15,42 @@ namespace Scoped
     {
         value: s32
     }
+
+    struct(T) Wrapper
+    {
+        value: T
+    }
+
+    func(T) Make(value: T)->Wrapper'T
+    {
+        return {value: value}
+    }
 }
 
 var ScopedValue: Scoped.Box
 var ScopedFunc: func(Scoped.Box)->Scoped.Box
+var ScopedClosure: func||(Scoped.Box)->Scoped.Box
+var ScopedNamedFunc: func(value: Scoped.Box)->Scoped.Box throw
+var ScopedVariadic: func(Scoped.Box...)->Scoped.Box
+var ScopedArray: [2] Scoped.Box
+var ScopedWrapped: Scoped.Wrapper'(Scoped.Box)
 
 #assert(#fullnameof(Test.A) == "Test.A")
 #assert(#fullnameof(Test.B) == "Test.B")
 #assert(#fullnameof(Test.C) == "Test.C")
 #assert(#fullnameof(#typeof(ScopedValue)) == "Scoped.Box")
 #assert(#fullnameof(#typeof(ScopedFunc)) == "func(Scoped.Box)->Scoped.Box")
+#assert(#fullnameof(#typeof(ScopedClosure)) == "func||(Scoped.Box)->Scoped.Box")
+#assert(#fullnameof(#typeof(ScopedNamedFunc)) == "func(value: Scoped.Box)->Scoped.Box throw")
+#assert(#fullnameof(#typeof(ScopedVariadic)) == "func(Scoped.Box...)->Scoped.Box")
+#assert(#fullnameof(#typeof(ScopedArray)) == "[2] Scoped.Box")
+#assert(#fullnameof(Scoped.Wrapper'(Scoped.Box)) == "Scoped.Wrapper'(Scoped.Box)")
+
+func semaTestGeneric001()
+{
+    let made = Scoped.Make'(Scoped.Box)({value: 1})
+    #assert(#typeof(made) == Scoped.Wrapper'(Scoped.Box))
+}
 
 #assert(#nameof(Test.A) == "A")
 #assert(#nameof(Test.B) == "B")

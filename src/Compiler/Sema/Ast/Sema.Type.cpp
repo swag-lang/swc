@@ -403,7 +403,9 @@ Result AstQualifiedType::semaPostNode(Sema& sema) const
 
 Result AstNamedType::semaPostNode(Sema& sema)
 {
-    SemaNodeView view = sema.viewNodeTypeSymbol(nodeIdentRef);
+    SemaNodeView view = sema.viewStored(nodeIdentRef, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Symbol);
+    if (!view.sym() && !view.typeRef().isValid())
+        view = sema.viewNodeTypeSymbol(nodeIdentRef);
     if (!view.sym())
     {
         if (!view.typeRef().isValid())
@@ -445,6 +447,12 @@ Result AstNamedType::semaPostNode(Sema& sema)
         view.recompute(sema, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Symbol);
     }
 
+    if (view.sym()->isType() && view.sym()->isTyped() && !view.typeRef().isValid())
+    {
+        sema.setType(nodeIdentRef, view.sym()->typeRef());
+        view.recompute(sema, SemaNodeViewPartE::Type | SemaNodeViewPartE::Symbol);
+    }
+
     if (!view.sym()->isType())
     {
         AstNodeRef nodeRef = nodeIdentRef;
@@ -455,7 +463,11 @@ Result AstNamedType::semaPostNode(Sema& sema)
         return Result::Error;
     }
 
-    sema.inheritPayload(*this, nodeIdentRef);
+    sema.setSymbol(sema.curNodeRef(), view.sym());
+    if (view.typeRef().isValid())
+        sema.setType(sema.curNodeRef(), view.typeRef());
+    else
+        sema.setType(sema.curNodeRef(), view.sym()->typeRef());
     return Result::Continue;
 }
 

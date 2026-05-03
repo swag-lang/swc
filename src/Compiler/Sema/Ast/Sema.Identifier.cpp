@@ -372,6 +372,7 @@ namespace
         if (specializedStruct)
         {
             sema.setSymbol(sema.curNodeRef(), specializedStruct);
+            sema.setType(sema.curNodeRef(), specializedStruct->typeRef());
             return Result::Continue;
         }
 

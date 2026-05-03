@@ -898,8 +898,14 @@ namespace
         if (context.nodeInitRef.isValid())
             SWC_RESULT(SemaCheck::isValueOrTypeInfo(sema, nodeInitView));
 
-        const SemaNodeView nodeTypeView    = sema.viewType(context.nodeTypeRef);
+        const SemaNodeView nodeTypeView    = sema.viewNodeTypeSymbol(context.nodeTypeRef);
         TypeRef            explicitTypeRef = nodeTypeView.typeRef();
+        if (explicitTypeRef.isInvalid() &&
+            nodeTypeView.sym() &&
+            nodeTypeView.sym()->isType() &&
+            nodeTypeView.sym()->isTyped() &&
+            nodeTypeView.sym()->typeRef().isValid())
+            explicitTypeRef = nodeTypeView.sym()->typeRef();
 
         if (nodeInitView.typeRef().isValid())
         {

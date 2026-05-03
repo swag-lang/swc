@@ -17,6 +17,29 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    SymbolStruct* resolveGenericRootStructAlias(Symbol* symbol)
+    {
+        Symbol* current = symbol;
+        while (current && current->isAlias())
+        {
+            auto& alias = current->cast<SymbolAlias>();
+            if (alias.isStrict())
+                return nullptr;
+
+            const auto* next = alias.aliasedSymbol();
+            if (!next || next == current)
+                return nullptr;
+
+            current = const_cast<Symbol*>(next);
+        }
+
+        if (!current || !current->isStruct())
+            return nullptr;
+
+        auto& st = current->cast<SymbolStruct>();
+        return st.isGenericRoot() ? &st : nullptr;
+    }
+
     Result deduceLambdaTypeParameterFromDefault(Sema& sema, AstNodeRef defaultValueRef, TypeRef& outTypeRef)
     {
         outTypeRef = TypeRef::invalid();
@@ -391,18 +414,26 @@ Result AstNamedType::semaPostNode(Sema& sema)
     }
 
     // Auto-deduce generic arguments for bare generic root structs from enclosing context
+    SymbolStruct* genericRoot = nullptr;
     if (view.sym()->isStruct())
     {
         auto& st = view.sym()->cast<SymbolStruct>();
         if (st.isGenericRoot())
+            genericRoot = &st;
+    }
+    else if (view.sym()->isAlias())
+    {
+        genericRoot = resolveGenericRootStructAlias(view.sym());
+    }
+
+    if (genericRoot)
+    {
+        SymbolStruct* instance = nullptr;
+        SWC_RESULT(SemaGeneric::instantiateStructFromContext(sema, *genericRoot, instance));
+        if (instance)
         {
-            SymbolStruct* instance = nullptr;
-            SWC_RESULT(SemaGeneric::instantiateStructFromContext(sema, st, instance));
-            if (instance)
-            {
-                sema.setSymbol(nodeIdentRef, instance);
-                view.recompute(sema, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Symbol);
-            }
+            sema.setSymbol(nodeIdentRef, instance);
+            view.recompute(sema, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Symbol);
         }
     }
 

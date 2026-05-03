@@ -9,9 +9,20 @@ enum Test{
     C = 3,
 }
 
+namespace Scoped
+{
+    struct Box
+    {
+        value: s32
+    }
+}
+
+var ScopedValue: Scoped.Box
+
 #assert(#fullnameof(Test.A) == "Test.A")
 #assert(#fullnameof(Test.B) == "Test.B")
 #assert(#fullnameof(Test.C) == "Test.C")
+#assert(#fullnameof(#typeof(ScopedValue)) == "Scoped.Box")
 
 #assert(#nameof(Test.A) == "A")
 #assert(#nameof(Test.B) == "B")

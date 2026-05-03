@@ -4,6 +4,7 @@
 #include "Compiler/Lexer/LangSpec.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
+#include "Compiler/Sema/Generic/SemaGeneric.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Compiler/Sema/Helpers/SemaSpecOp.h"
@@ -14,6 +15,25 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    Result specializeGenericStructInitializerTarget(Sema& sema, AstNodeRef nodeWhatRef)
+    {
+        const SemaNodeView nodeWhatView = sema.viewNodeTypeSymbol(nodeWhatRef);
+        if (!nodeWhatView.sym() || !nodeWhatView.sym()->isStruct())
+            return Result::Continue;
+
+        auto& st = nodeWhatView.sym()->cast<SymbolStruct>();
+        if (!st.isGenericRoot() || st.isGenericInstance())
+            return Result::Continue;
+
+        SymbolStruct* instance = nullptr;
+        SWC_RESULT(SemaGeneric::instantiateStructFromContext(sema, st, instance));
+        if (!instance)
+            return Result::Continue;
+
+        sema.setSymbol(nodeWhatRef, instance);
+        return Result::Continue;
+    }
+
     Result semaPreNodeChildStructCommon(Sema& sema, AstNodeRef childRef, AstNodeRef nodeBodyRef)
     {
         if (childRef == nodeBodyRef)
@@ -242,6 +262,8 @@ Result AstAnonymousUnionDecl::semaPostNode(Sema& sema)
 
 Result AstStructInitializerList::semaPostNode(Sema& sema) const
 {
+    SWC_RESULT(specializeGenericStructInitializerTarget(sema, nodeWhatRef));
+
     SmallVector<AstNodeRef> children;
     AstNode::collectChildren(children, sema.ast(), spanArgsRef);
 
@@ -259,6 +281,8 @@ Result AstStructInitializerList::semaPreNodeChild(Sema& sema, const AstNodeRef& 
 {
     if (childRef == nodeWhatRef)
         return Result::Continue;
+
+    SWC_RESULT(specializeGenericStructInitializerTarget(sema, nodeWhatRef));
 
     const TypeRef targetTypeRef = sema.viewType(nodeWhatRef).typeRef();
     if (!targetTypeRef.isValid())

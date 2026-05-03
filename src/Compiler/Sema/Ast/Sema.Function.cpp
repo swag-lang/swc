@@ -1038,9 +1038,33 @@ namespace
         return nullptr;
     }
 
+    void collectQuotedCalleeBaseSymbols(Sema& sema, const AstNode& calleeNode, SmallVector<Symbol*>& outSymbols)
+    {
+        AstNodeRef baseRef = AstNodeRef::invalid();
+        if (const auto* quotedExpr = calleeNode.safeCast<AstQuotedExpr>())
+            baseRef = quotedExpr->nodeExprRef;
+        else if (const auto* quotedList = calleeNode.safeCast<AstQuotedListExpr>())
+            baseRef = quotedList->nodeExprRef;
+        else
+            return;
+
+        if (baseRef.isInvalid())
+            return;
+
+        SemaNodeView baseView(sema, baseRef, SemaNodeViewPartE::Symbol);
+        baseView.getSymbols(outSymbols);
+        if (!outSymbols.empty())
+            return;
+
+        baseView.compute(sema, baseRef, SemaNodeViewPartE::Symbol, SemaNodeViewResolveE::Stored);
+        baseView.getSymbols(outSymbols);
+    }
+
     void collectCalleeSymbolsWithFallback(Sema& sema, const SemaNodeView& nodeCallee, SmallVector<Symbol*>& outSymbols)
     {
         nodeCallee.getSymbols(outSymbols);
+        if (outSymbols.empty())
+            collectQuotedCalleeBaseSymbols(sema, *nodeCallee.node(), outSymbols);
         if (outSymbols.empty() && sema.isValue(nodeCallee.nodeRef()))
         {
             if (auto* symFunc = SemaHelpers::callableTypeFunction(sema.ctx(), nodeCallee.typeRef()))

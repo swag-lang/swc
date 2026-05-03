@@ -22,6 +22,24 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    void collectExplicitGenericArgNodes(const AstNode& calleeNode, const Ast& ast, SmallVector<AstNodeRef>& outArgs)
+    {
+        outArgs.clear();
+
+        if (const auto* quotedExpr = calleeNode.safeCast<AstQuotedExpr>())
+        {
+            if (quotedExpr->nodeSuffixRef.isValid())
+                outArgs.push_back(quotedExpr->nodeSuffixRef);
+            return;
+        }
+
+        if (const auto* quotedList = calleeNode.safeCast<AstQuotedListExpr>())
+        {
+            ast.appendNodes(outArgs, quotedList->spanChildrenRef);
+            return;
+        }
+    }
+
     Sema& semaForFunctionDecl(Sema& sema, const SymbolFunction& fn, std::unique_ptr<Sema>& ownedSema)
     {
         const SourceView& srcView = sema.compiler().srcView(fn.srcViewRef());
@@ -1473,7 +1491,7 @@ namespace
         return Result::Continue;
     }
 
-    Result tryInstantiateGenericCandidate(Sema& sema, SymbolFunction& fn, std::span<AstNodeRef> args, AstNodeRef ufcsArg, Match::ResolveCallMode mode, Candidate& outCandidate, MatchFailure& outFail)
+    Result tryInstantiateGenericCandidate(Sema& sema, SymbolFunction& fn, std::span<AstNodeRef> args, AstNodeRef ufcsArg, std::span<const AstNodeRef> explicitGenericArgNodes, Match::ResolveCallMode mode, Candidate& outCandidate, MatchFailure& outFail)
     {
         outCandidate = {};
         outFail      = {};
@@ -1485,7 +1503,7 @@ namespace
         SymbolFunction* concreteFn          = nullptr;
         CastFailure     genericFailure      = {};
         uint32_t        genericFailureIndex = UINT32_MAX;
-        SWC_RESULT(SemaGeneric::instantiateFunctionFromCall(sema, fn, args, ufcsArg, concreteFn, &genericFailure, &genericFailureIndex));
+        SWC_RESULT(SemaGeneric::instantiateFunctionFromCall(sema, fn, args, ufcsArg, explicitGenericArgNodes, concreteFn, &genericFailure, &genericFailureIndex));
         if (!concreteFn)
         {
             if (genericFailure.diagId != DiagnosticId::None)
@@ -1805,7 +1823,7 @@ namespace
 
     // Evaluate each function symbol to see how well it matches the given arguments.
     // This includes checking the number of parameters, types, and potential UFCS usage.
-    Result collectAttempts(Sema& sema, SmallVector<Attempt>& outAttempts, SmallVector<SymbolFunction*>& outFunctionSymbols, std::span<Symbol*> symbols, std::span<AstNodeRef> args, AstNodeRef ufcsArg, Match::ResolveCallMode mode)
+    Result collectAttempts(Sema& sema, SmallVector<Attempt>& outAttempts, SmallVector<SymbolFunction*>& outFunctionSymbols, std::span<Symbol*> symbols, std::span<AstNodeRef> args, AstNodeRef ufcsArg, std::span<const AstNodeRef> explicitGenericArgNodes, Match::ResolveCallMode mode)
     {
         outAttempts.clear();
         outFunctionSymbols.clear();
@@ -1843,7 +1861,7 @@ namespace
             {
                 MatchFailure fail;
                 Candidate    candidate;
-                SWC_RESULT(tryInstantiateGenericCandidate(sema, *fn, args, AstNodeRef::invalid(), mode, candidate, fail));
+                SWC_RESULT(tryInstantiateGenericCandidate(sema, *fn, args, AstNodeRef::invalid(), explicitGenericArgNodes, mode, candidate, fail));
                 if (candidate.viable)
                 {
                     a.viable    = true;
@@ -1854,7 +1872,7 @@ namespace
                 {
                     candidate = {};
                     fail      = {};
-                    SWC_RESULT(tryInstantiateGenericCandidate(sema, *fn, args, ufcsArg, mode, candidate, fail));
+                    SWC_RESULT(tryInstantiateGenericCandidate(sema, *fn, args, ufcsArg, explicitGenericArgNodes, mode, candidate, fail));
                     if (candidate.viable)
                     {
                         a.viable    = true;
@@ -1922,9 +1940,9 @@ namespace
         }
     }
 
-    Result collectCandidateAttempts(Sema& sema, CandidateAttempts& out, std::span<Symbol*> symbols, std::span<AstNodeRef> args, AstNodeRef ufcsArg, Match::ResolveCallMode mode)
+    Result collectCandidateAttempts(Sema& sema, CandidateAttempts& out, std::span<Symbol*> symbols, std::span<AstNodeRef> args, AstNodeRef ufcsArg, std::span<const AstNodeRef> explicitGenericArgNodes, Match::ResolveCallMode mode)
     {
-        SWC_RESULT(collectAttempts(sema, out.attempts, out.functions, symbols, args, ufcsArg, mode));
+        SWC_RESULT(collectAttempts(sema, out.attempts, out.functions, symbols, args, ufcsArg, explicitGenericArgNodes, mode));
         gatherViableAttempts(out.attempts, out.viable);
         return Result::Continue;
     }
@@ -1974,7 +1992,7 @@ namespace
         removeEmptyFunctionDeclarations(fallbackRuntimeSymbols, fallbackConcreteSymbols);
 
         CandidateAttempts fallback;
-        SWC_RESULT(collectCandidateAttempts(sema, fallback, fallbackConcreteSymbols.span(), args, ufcsArg, mode));
+        SWC_RESULT(collectCandidateAttempts(sema, fallback, fallbackConcreteSymbols.span(), args, ufcsArg, {}, mode));
         if (fallback.viable.empty())
             return Result::Continue;
 
@@ -2581,7 +2599,9 @@ Result Match::probeFunctionCandidates(Sema& sema, const SemaNodeView& nodeCallee
         return SemaError::raise(sema, DiagnosticId::sema_err_not_attribute, nodeCallee.nodeRef());
 
     CandidateAttempts candidates;
-    SWC_RESULT(collectCandidateAttempts(sema, candidates, concreteSymbols.span(), args, ufcsArg, mode));
+    SmallVector<AstNodeRef> explicitGenericArgNodes;
+    collectExplicitGenericArgNodes(*nodeCallee.node(), sema.ast(), explicitGenericArgNodes);
+    SWC_RESULT(collectCandidateAttempts(sema, candidates, concreteSymbols.span(), args, ufcsArg, explicitGenericArgNodes.span(), mode));
     SWC_RESULT(maybeReplaceWithBetterCallFallback(sema, nodeCallee, candidates, args, ufcsArg, mode));
 
     if (candidates.viable.empty())
@@ -2620,7 +2640,9 @@ Result Match::resolveFunctionCandidates(Sema& sema, const SemaNodeView& nodeCall
 
     // Collect all function candidates and evaluate their match quality
     CandidateAttempts candidates;
-    SWC_RESULT(collectCandidateAttempts(sema, candidates, concreteSymbols.span(), args, ufcsArg, mode));
+    SmallVector<AstNodeRef> explicitGenericArgNodes;
+    collectExplicitGenericArgNodes(*nodeCallee.node(), sema.ast(), explicitGenericArgNodes);
+    SWC_RESULT(collectCandidateAttempts(sema, candidates, concreteSymbols.span(), args, ufcsArg, explicitGenericArgNodes.span(), mode));
     SWC_RESULT(maybeReplaceWithBetterCallFallback(sema, nodeCallee, candidates, args, ufcsArg, mode));
 
     // From the viable ones, find the single best candidate.

@@ -11,6 +11,7 @@
 #include "Compiler/Sema/Helpers/SemaSymbolLookup.h"
 #include "Compiler/Sema/Match/Match.h"
 #include "Compiler/Sema/Match/MatchContext.h"
+#include "Compiler/Sema/Symbol/Symbol.Alias.h"
 #include "Compiler/Sema/Symbol/Symbol.Enum.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.Impl.h"
@@ -22,6 +23,31 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    bool collectFunctionSymbols(std::span<Symbol* const> baseSymbols, SmallVector<Symbol*>& outSymbols)
+    {
+        outSymbols.clear();
+        for (Symbol* baseSym : baseSymbols)
+        {
+            if (!baseSym)
+                continue;
+
+            if (baseSym->isFunction())
+            {
+                outSymbols.push_back(baseSym);
+                continue;
+            }
+
+            if (!baseSym->isAlias())
+                continue;
+
+            const auto* aliased = baseSym->cast<SymbolAlias>().aliasedSymbol();
+            if (aliased && aliased->isFunction())
+                outSymbols.push_back(baseSym);
+        }
+
+        return !outSymbols.empty();
+    }
+
     bool containsInlineBindingUse(Sema& sema, AstNodeRef nodeRef, std::span<const SemaClone::ParamBinding> bindings)
     {
         if (nodeRef.isInvalid() || bindings.empty())
@@ -329,6 +355,19 @@ namespace
         {
             sema.setSymbol(sema.curNodeRef(), specializedStruct);
             return Result::Continue;
+        }
+
+        if (sawFunction)
+        {
+            SmallVector<Symbol*> functions;
+            if (collectFunctionSymbols(baseSymbols.span(), functions))
+            {
+                if (functions.size() == 1)
+                    sema.setSymbol(sema.curNodeRef(), functions.front());
+                else
+                    sema.setSymbolList(sema.curNodeRef(), functions.span());
+                return Result::Continue;
+            }
         }
 
         if (sawStruct)

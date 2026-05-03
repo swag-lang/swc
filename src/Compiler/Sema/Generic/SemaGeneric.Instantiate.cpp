@@ -1827,7 +1827,7 @@ namespace SemaGeneric
         return Result::Continue;
     }
 
-    Result instantiateFunctionFromCall(Sema& sema, SymbolFunction& genericRoot, std::span<AstNodeRef> args, AstNodeRef ufcsArg, SymbolFunction*& outInstance, CastFailure* outFailure, uint32_t* outFailureArgIndex)
+    Result instantiateFunctionFromCall(Sema& sema, SymbolFunction& genericRoot, std::span<AstNodeRef> args, AstNodeRef ufcsArg, std::span<const AstNodeRef> explicitGenericArgNodes, SymbolFunction*& outInstance, CastFailure* outFailure, uint32_t* outFailureArgIndex)
     {
         outInstance = nullptr;
         if (outFailure)
@@ -1848,9 +1848,13 @@ namespace SemaGeneric
         collectGenericParams(sourceSema, *decl, decl->spanGenericParamsRef, params);
         if (params.empty())
             return Result::Continue;
+        if (explicitGenericArgNodes.size() > params.size())
+            return Result::Continue;
 
         const AstNodeRef                errorNodeRef = sema.curNodeRef();
         SmallVector<GenericResolvedArg> resolvedArgs(params.size());
+        for (size_t i = 0; i < explicitGenericArgNodes.size(); ++i)
+            SWC_RESULT(resolveExplicitGenericArg(sema, params[i], explicitGenericArgNodes[i], resolvedArgs[i]));
         SWC_RESULT(deduceGenericFunctionArgs(sema, genericRoot, params.span(), resolvedArgs, args, ufcsArg, outFailure, outFailureArgIndex));
         if (outFailure && outFailure->diagId != DiagnosticId::None)
             return Result::Continue;

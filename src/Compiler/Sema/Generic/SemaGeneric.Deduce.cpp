@@ -839,7 +839,7 @@ namespace
         return Result::Continue;
     }
 
-    Result deduceFromAggregateArrayPattern(Sema& sema, std::span<const SemaGeneric::GenericParamDesc> params, std::span<SemaGeneric::GenericResolvedArg> resolvedArgs, const AstArrayType& arrayType, const TypeInfo& argType, AstNodeRef argExprRef, uint32_t callArgIndex, CastFailure* outFailure, DeductionMode mode)
+    Result deduceFromAggregateArrayPattern(Sema& sema, std::span<const SemaGeneric::GenericParamDesc> params, std::span<SemaGeneric::GenericResolvedArg> resolvedArgs, const AstArrayType& arrayType, const TypeInfo& argType, AstNodeRef argExprRef, uint32_t callArgIndex, const CastFailure* outFailure, DeductionMode mode)
     {
         SmallVector<AstNodeRef> dims;
         sema.ast().appendNodes(dims, arrayType.spanDimensionsRef);

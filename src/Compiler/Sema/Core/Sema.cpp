@@ -21,39 +21,6 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    void traceWaitDoneJobs(TaskContext& ctx, JobClientId clientId, uint64_t loopIndex)
-    {
-        std::vector<Job*> jobs;
-        ctx.global().jobMgr().waitingJobs(jobs, clientId);
-
-        std::cerr << "waitDone loop=" << loopIndex << " waiting=" << jobs.size() << " changed=" << ctx.compiler().changed() << " pendingImpl=" << ctx.compiler().pendingImplRegistrations() << "\n";
-        for (Job* job : jobs)
-        {
-            const TaskState& state = job->ctx().state();
-            std::cerr << "  kind=" << static_cast<int>(job->kind()) << " state=" << TaskState::kindName(state.kind) << " node=" << state.nodeRef.get();
-            if (state.idRef.isValid())
-            {
-                const auto* semaJob = job->safeCast<SemaJob>();
-                if (semaJob)
-                    std::cerr << " id=" << semaJob->sema().idMgr().get(state.idRef).name;
-                else
-                    std::cerr << " idRef=" << state.idRef.get();
-            }
-            if (state.symbol)
-                std::cerr << " sym=" << state.symbol->name(ctx);
-            if (state.waiterSymbol)
-                std::cerr << " waiter=" << state.waiterSymbol->name(ctx);
-            if (state.codeRef.isValid())
-            {
-                const SourceView&     srcView = ctx.compiler().srcView(state.codeRef.srcViewRef);
-                const SourceCodeRange range   = srcView.tokenCodeRange(ctx, state.codeRef.tokRef);
-                const SourceFile*     file    = range.srcView ? range.srcView->file() : nullptr;
-                std::cerr << " at=" << (file ? file->path().string() : "<source>") << ":" << range.line << ":" << range.column;
-            }
-            std::cerr << "\n";
-        }
-    }
-
     bool shouldAbortWait(const Symbol* symbol = nullptr)
     {
         return symbol != nullptr && symbol->isIgnored();

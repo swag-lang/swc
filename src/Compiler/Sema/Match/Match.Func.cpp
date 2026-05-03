@@ -1852,6 +1852,9 @@ namespace
             if (!fn)
                 continue;
 
+            if (!explicitGenericArgNodes.empty() && !fn->isGenericRoot() && !fn->isGenericInstance())
+                continue;
+
             outFunctionSymbols.push_back(fn);
 
             Attempt a;

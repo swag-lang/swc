@@ -23,6 +23,20 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    const Symbol* resolveAliasedBaseSymbol(const Symbol* symbol)
+    {
+        const Symbol* current = symbol;
+        while (current && current->isAlias())
+        {
+            const Symbol* next = current->cast<SymbolAlias>().aliasedSymbol();
+            if (!next || next == current)
+                break;
+            current = next;
+        }
+
+        return current;
+    }
+
     bool collectFunctionSymbols(std::span<Symbol* const> baseSymbols, SmallVector<Symbol*>& outSymbols)
     {
         outSymbols.clear();
@@ -304,20 +318,24 @@ namespace
             if (!baseSym)
                 continue;
 
-            if (baseSym->isFunction())
+            const Symbol* resolvedSym = resolveAliasedBaseSymbol(baseSym);
+            if (!resolvedSym)
+                continue;
+
+            if (resolvedSym->isFunction())
             {
                 sawFunction = true;
-                auto& fn    = baseSym->cast<SymbolFunction>();
+                auto& fn    = const_cast<Symbol*>(resolvedSym)->cast<SymbolFunction>();
 
                 SymbolFunction* instance = nullptr;
                 SWC_RESULT(SemaGeneric::instantiateFunctionExplicit(sema, fn, genericArgs.span(), instance));
                 if (instance)
                     specializedFunctions.push_back(instance);
             }
-            else if (baseSym->isStruct())
+            else if (resolvedSym->isStruct())
             {
                 sawStruct = true;
-                auto& st  = baseSym->cast<SymbolStruct>();
+                auto& st  = const_cast<Symbol*>(resolvedSym)->cast<SymbolStruct>();
                 if (!st.isGenericRoot())
                     continue;
 
@@ -449,10 +467,14 @@ Result AstIdentifier::semaPostNode(Sema& sema) const
         if (parentRef.isValid())
         {
             const AstNode& parentNode = sema.node(parentRef);
-            if (parentNode.is(AstNodeId::NamedType) ||
-                parentNode.is(AstNodeId::QuotedExpr) ||
-                parentNode.is(AstNodeId::QuotedListExpr))
+            if (parentNode.is(AstNodeId::NamedType))
                 return Result::Continue;
+
+            if (parentNode.is(AstNodeId::QuotedExpr) || parentNode.is(AstNodeId::QuotedListExpr))
+            {
+                if (sema.curViewSymbol().sym() || sema.curViewSymbolList().hasSymbolList())
+                    return Result::Continue;
+            }
 
             // Generic specialization can clone a type parameter into a plain identifier and
             // pre-seed its resolved type (for example in `#sizeof(T)`). Only skip lookup in

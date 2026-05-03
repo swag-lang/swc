@@ -551,7 +551,9 @@ namespace
 
             case ConstantKind::Struct:
             {
-                const ConstantRef safeCstRef = CodeGenConstantHelpers::ensureStaticPayloadConstant(codeGen, cstRef, cst.typeRef());
+                ConstantRef safeCstRef = CodeGenConstantHelpers::ensureStaticPayloadConstant(codeGen, cstRef, cst.typeRef());
+                if (safeCstRef.isInvalid())
+                    safeCstRef = materializeBorrowedStorageConstant(codeGen, cstRef, cst.typeRef());
                 SWC_ASSERT(safeCstRef.isValid());
                 const ConstantValue& safeCst     = codeGen.cstMgr().get(safeCstRef);
                 const ByteSpan       structBytes = safeCst.getStruct();

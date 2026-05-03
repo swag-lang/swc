@@ -401,11 +401,28 @@ Result AstQualifiedType::semaPostNode(Sema& sema) const
     return Result::Continue;
 }
 
-Result AstNamedType::semaPostNode(Sema& sema)
+Result AstNamedType::semaPostNode(Sema& sema) const
 {
     SemaNodeView view = sema.viewStored(nodeIdentRef, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Symbol);
     if (!view.sym() && !view.typeRef().isValid())
         view = sema.viewNodeTypeSymbol(nodeIdentRef);
+
+    if (const auto* memberAccess = sema.node(nodeIdentRef).safeCast<AstMemberAccessExpr>())
+    {
+        const AstNode& rightNode = sema.node(memberAccess->nodeRightRef);
+        if (rightNode.is(AstNodeId::QuotedExpr) || rightNode.is(AstNodeId::QuotedListExpr))
+        {
+            const SemaNodeView rightView = sema.viewTypeSymbol(memberAccess->nodeRightRef);
+            if (rightView.typeRef().isValid())
+            {
+                if (rightView.sym())
+                    sema.setSymbol(nodeIdentRef, rightView.sym());
+                sema.setType(nodeIdentRef, rightView.typeRef());
+                view.recompute(sema, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Symbol);
+            }
+        }
+    }
+
     if (!view.sym())
     {
         if (!view.typeRef().isValid())

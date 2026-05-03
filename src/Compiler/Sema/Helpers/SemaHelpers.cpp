@@ -1663,6 +1663,14 @@ namespace
         lookUpCxt.symMapHint = &symMap;
 
         SWC_RESULT(Match::match(sema, lookUpCxt, idRef));
+        if (sema.node(node.nodeRightRef).is(AstNodeId::QuotedExpr) || sema.node(node.nodeRightRef).is(AstNodeId::QuotedListExpr))
+        {
+            const AstNodeRef calleeRef = SemaHelpers::unwrapCallCalleeRef(sema, node.nodeRightRef);
+            SWC_RESULT(SemaSymbolLookup::bindResolvedSymbols(sema, targetNodeRef, allowOverloadSet, lookUpCxt.symbols().span()));
+            SWC_RESULT(SemaSymbolLookup::bindSymbolList(sema, calleeRef, allowOverloadSet, lookUpCxt.symbols().span()));
+            sema.setSubstitute(targetNodeRef, node.nodeRightRef);
+            return Result::Continue;
+        }
         SWC_RESULT(bindMatchedMemberSymbols(sema, targetNodeRef, node.nodeRightRef, allowOverloadSet, lookUpCxt.symbols().span()));
         return Result::SkipChildren;
     }

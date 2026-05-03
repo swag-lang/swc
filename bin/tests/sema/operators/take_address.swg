@@ -7,14 +7,14 @@ func functionAddressReturnedReference(value: &s32)->&s32
     return &value
 }
 
-#test
+func semaTest001()
 {
     var x: s32
     var px = &x
     #assert(#typeof(px) == *s32)
 }
 
-#test
+func semaTest002()
 {
     var x: s32
     var px = &x
@@ -22,14 +22,14 @@ func functionAddressReturnedReference(value: &s32)->&s32
     #assert(#typeof(ppx) == **s32)
 }
 
-#test
+func semaTest003()
 {
     var a: [4] s32
     var p = &a[0]
     #assert(#typeof(p) == *s32)
 }
 
-#test
+func semaTest004()
 {
     struct AA { x: s32 }
     var st: AA
@@ -37,7 +37,7 @@ func functionAddressReturnedReference(value: &s32)->&s32
     #assert(#typeof(p1) == *AA)
 }
 
-#test
+func semaTest005()
 {
     var x: s32
     var y: s32
@@ -48,7 +48,7 @@ func functionAddressReturnedReference(value: &s32)->&s32
     #assert(#typeof(py) == *s32)
 }
 
-#test
+func semaTest006()
 {
     var A = 10's32
     var B = 20's32
@@ -58,7 +58,7 @@ func functionAddressReturnedReference(value: &s32)->&s32
     #assert(#typeof(PB) == *s32)
 }
 
-#test
+func semaTest007()
 {
     var x: s32
     var y: s32
@@ -70,7 +70,7 @@ func functionAddressReturnedReference(value: &s32)->&s32
     #assert(#typeof(ppy) == **s32)
 }
 
-#test
+func semaTest008()
 {
     var x: s32
     var y = x
@@ -80,14 +80,14 @@ func functionAddressReturnedReference(value: &s32)->&s32
     #assert(#typeof(p2) == *s32)
 }
 
-#test
+func semaTest009()
 {
     var x: s32
     var y = &(x)
     #assert(#typeof(y) == *s32)
 }
 
-#test
+func semaTest010()
 {
     func refPtr(x: &s32)->*s32
     {
@@ -115,7 +115,7 @@ func functionAddressReturnedReference(value: &s32)->&s32
     #assert(#typeof(cp) == const *s32)
 }
 
-#test
+func semaTest011()
 {
     var a: [4] s32
     var i = 1's32
@@ -123,7 +123,7 @@ func functionAddressReturnedReference(value: &s32)->&s32
     #assert(#typeof(p) == *s32)
 }
 
-#test
+func semaTest012()
 {
     #assert(#typeof(&functionAddressAsPointer) == #type func()->s32)
     #assert(#typeof(cast(u64) functionAddressAsPointer()) == u64)

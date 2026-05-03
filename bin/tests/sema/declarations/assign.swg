@@ -1,6 +1,6 @@
 #global fileprivate
 
-#test
+func semaTest001()
 {
     var ptr: [*] s32
     ptr += 1
@@ -9,25 +9,25 @@
 }
 
 enum R { A, B }
-#test
+func semaTest002()
 {
     var a: R
     a = .A
 }
 
-#test
+func semaTest003()
 {
     var a: f32
     a += 1's16
 }
 
-#test
+func semaTest004()
 {
     var a: f32
     a = 1
 }
 
-#test
+func semaTest005()
 {
     var value: s32
     var valueRef: &s32 = &value
@@ -35,7 +35,7 @@ enum R { A, B }
     valueRef += 1
 }
 
-#test
+func semaTest006()
 {
     var left: s32
     var right: s32
@@ -50,7 +50,7 @@ struct AssignRefValue
     y: s32
 }
 
-#test
+func semaTest007()
 {
     var value: AssignRefValue
     var valueRef: &AssignRefValue = &value
@@ -58,7 +58,7 @@ struct AssignRefValue
     valueRef = other
 }
 
-#test
+func semaTest008()
 {
     var left: AssignRefValue
     var right: AssignRefValue
@@ -67,7 +67,7 @@ struct AssignRefValue
     valueRef = {x: 4, y: 5}
 }
 
-#test
+func semaTest009()
 {
     var p: [*] s32
     var i: s32

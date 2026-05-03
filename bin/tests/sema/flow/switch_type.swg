@@ -1,6 +1,6 @@
 #global fileprivate
 
-#test
+func semaTest001()
 {
     var a: typeinfo = s32
     switch a
@@ -9,7 +9,7 @@
     }
 }
 
-#test
+func semaTest002()
 {
     var a: typeinfo = f32
     switch a

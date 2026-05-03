@@ -63,7 +63,7 @@ func acceptNullableAny(value: #null any) {}
 func acceptNullableCString(value: #null cstring) {}
 func acceptNullableTypeInfo(value: #null typeinfo) {}
 
-#test
+func semaTest001()
 {
     var storage: s32 = 7
     let ptr: *s32 = &storage

@@ -1,6 +1,6 @@
 #global fileprivate
 
-#test
+func semaTest001()
 {
     for 3
     {
@@ -8,7 +8,7 @@
     }
 }
 
-#test
+func semaTest002()
 {
     for i in 3
     {
@@ -16,7 +16,7 @@
     }
 }
 
-#test
+func semaTest003()
 {
     for #reverse 5
     {
@@ -24,7 +24,7 @@
     }
 }
 
-#test
+func semaTest004()
 {
     for #reverse i in 5
     {
@@ -32,7 +32,7 @@
     }
 }
 
-#test
+func semaTest005()
 {
     for
     {
@@ -40,7 +40,7 @@
     }
 }
 
-#test
+func semaTest006()
 {
     for
     {
@@ -48,7 +48,7 @@
     }
 }
 
-#test
+func semaTest007()
 {
     for i in 1 to 5
     {
@@ -56,7 +56,7 @@
     }
 }
 
-#test
+func semaTest008()
 {
     for i in 1 until 5
     {
@@ -64,7 +64,7 @@
     }
 }
 
-#test
+func semaTest009()
 {
     for #reverse i in 1 to 5
     {
@@ -72,7 +72,7 @@
     }
 }
 
-#test
+func semaTest010()
 {
     for #reverse i in 1 until 5
     {
@@ -80,7 +80,7 @@
     }
 }
 
-#test
+func semaTest011()
 {
     for i in 10 where i > 3
     {
@@ -88,7 +88,7 @@
     }
 }
 
-#test
+func semaTest012()
 {
     for i in 0 to 10 where i % 2 == 0
     {
@@ -96,7 +96,7 @@
     }
 }
 
-#test
+func semaTest013()
 {
     for i in 0 until 10 where i > 5
     {
@@ -104,7 +104,7 @@
     }
 }
 
-#test
+func semaTest014()
 {
     for #reverse i in 10 where i < 5
     {
@@ -112,7 +112,7 @@
     }
 }
 
-#test
+func semaTest015()
 {
     for i in 3
     {
@@ -124,7 +124,7 @@
     }
 }
 
-#test
+func semaTest016()
 {
     for 10
     {
@@ -133,7 +133,7 @@
     }
 }
 
-#test
+func semaTest017()
 {
     for i in 10
     {
@@ -143,7 +143,7 @@
     }
 }
 
-#test
+func semaTest018()
 {
     for 2
     {
@@ -155,7 +155,7 @@
     }
 }
 
-#test
+func semaTest019()
 {
     var arr: [5]s32 = [1, 2, 3, 4, 5]
     for arr
@@ -164,7 +164,7 @@
     }
 }
 
-#test
+func semaTest020()
 {
     var arr: [3]s32 = [1, 2, 3]
     for i in arr
@@ -173,33 +173,33 @@
     }
 }
 
-#test
+func semaTest021()
 {
     for 3
     {
     }
 }
 
-#test
+func semaTest022()
 {
     for i in 0 to 3
     {
     }
 }
 
-#test
+func semaTest023()
 {
     for 3 do
         var x = 0
 }
 
-#test
+func semaTest024()
 {
     for i in 3 do
         var x = i
 }
 
-#test
+func semaTest025()
 {
     for i in 1
     {
@@ -210,7 +210,7 @@
     }
 }
 
-#test
+func semaTest026()
 {
     var i = 5
     for i in 3
@@ -219,7 +219,7 @@
     }
 }
 
-#test
+func semaTest027()
 {
     for i in 5 where i > 0
     {
@@ -227,7 +227,7 @@
     }
 }
 
-#test
+func semaTest028()
 {
     var str: string
     for it in @countof(str) {}
@@ -240,7 +240,7 @@
     }
 }
 
-#test
+func semaTest029()
 {
     #[Swag.EnumFlags]
     enum Bits: u32 { A, B, C }

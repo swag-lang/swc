@@ -1,6 +1,6 @@
 #global fileprivate
 
-#test
+func semaTest001()
 {
     var a: Swag.SourceCodeLocation
 }
@@ -15,13 +15,13 @@ const B = #curlocation
 #assert(B.colStart == 11)
 #assert(B.fileName == A.fileName)
 
-#test
+func semaTest002()
 {
     var c: Swag.SourceCodeLocation = #curlocation
     @assert(c.fileName != null)
 }
 
-#test
+func semaTest003()
 {
     const L = #curlocation
     #assert(L.fileName == A.fileName)
@@ -47,7 +47,7 @@ func inlineCallerLoc()->Swag.SourceCodeLocation
 
 const InlineCallerDecl = #location(inlineCallerLoc)
 
-#test
+func semaTest004()
 {
     let loc = inlineCallerLoc()
     @assert(loc.fileName == A.fileName)

@@ -115,7 +115,7 @@ func inlineMiddle()->SourceCodeLocation
 
 const InlineMiddleDecl = #location(inlineMiddle)
 
-#test
+func semaTest001()
 {
     let loc = inlineMiddle()
     @assert(loc.funcName == InlineMiddleDecl.funcName)
@@ -146,7 +146,7 @@ const SeqResult = #run sequenceCaller()
 // Explicit argument overrides #callerlocation default
 // =========================================================================
 
-#test
+func semaTest002()
 {
     var custom: SourceCodeLocation
     custom.lineStart = 999

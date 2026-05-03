@@ -1,6 +1,6 @@
 #global fileprivate
 
-#test
+func semaTest001()
 {
     #scope(Outer)
     {
@@ -11,7 +11,7 @@
     }
 }
 
-#test
+func semaTest002()
 {
     #scope(Outer)
     for 10
@@ -20,7 +20,7 @@
     }
 }
 
-#test
+func semaTest003()
 {
     #scope(A)
     {
@@ -33,7 +33,7 @@
     }
 }
 
-#test
+func semaTest004()
 {
     #scope(Loop)
     {

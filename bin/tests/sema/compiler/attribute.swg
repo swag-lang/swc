@@ -75,13 +75,13 @@ var MatchCallOk2: s32 = 0
 #[MatchCallVariadic(1, 2, 3)]
 var MatchCallOk3: s32 = 0
 
-#test
+func semaTest001()
 {
     #[AttrAutoScope(.B)]
     var V: s32 = 0
 }
 
-#test
+func semaTest002()
 {
     #[AttrAutoScopeFlag(.A | .B)]
     var V: s32 = 0

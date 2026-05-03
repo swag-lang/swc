@@ -7,7 +7,7 @@ func makeValue()->s32
     return 42
 }
 
-#test
+func semaTest001()
 {
     @assert(GIf.makeValue() == 42)
 }

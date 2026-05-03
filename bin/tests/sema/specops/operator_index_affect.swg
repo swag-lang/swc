@@ -58,7 +58,7 @@ impl ConstReadAndSetIndexBox
     }
 }
 
-#test
+func semaTest001()
 {
     var box = WriteOnlyIndexBox{}
     box[0] = 7
@@ -69,7 +69,7 @@ impl ConstReadAndSetIndexBox
     #assert(#typeof(box) == WriteOnlyIndexBox)
 }
 
-#test
+func semaTest002()
 {
     var box = RefAndSetIndexBox{}
     box[0] = 11
@@ -77,7 +77,7 @@ impl ConstReadAndSetIndexBox
     #assert(#typeof(box) == RefAndSetIndexBox)
 }
 
-#test
+func semaTest003()
 {
     var box = ConstReadAndSetIndexBox{}
     box[0] = 17

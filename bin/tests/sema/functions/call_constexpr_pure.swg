@@ -20,4 +20,4 @@ func useConstCallResult()
     var E = A + B + C + D
 }
 
-#test { useConstCallResult() }
+func semaTest001() { useConstCallResult() }

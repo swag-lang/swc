@@ -74,7 +74,7 @@ impl LocalWrap
     }
 }
 
-#test
+func semaTest001()
 {
     let sample: Sample'(s32, 4)
 
@@ -97,7 +97,7 @@ impl LocalWrap
     #assert(#typeof(mixed.third) == string)
 }
 
-#test
+func semaTest002()
 {
     let wrapped: LocalWrap's32 = {value: 7}
     let clone = wrapped.cloneThroughHelper()

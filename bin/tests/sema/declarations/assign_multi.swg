@@ -1,6 +1,6 @@
 #global fileprivate
 
-#test
+func semaTest001()
 {
     var a: s32
     var b: s32
@@ -8,21 +8,21 @@
     a, b += 1
 }
 
-#test
+func semaTest002()
 {
     var a: s32
     var b: s32
     a, ?, b = 1
 }
 
-#test
+func semaTest003()
 {
     var a: f32
     var b: s32
     a, b = 1
 }
 
-#test
+func semaTest004()
 {
     var ptr: const [*] u16
     var count: u64

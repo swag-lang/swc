@@ -36,7 +36,7 @@ alias FixedArray = [pureAdd(20, 22)] s32
 #assert(PureConstexpr == 42)
 #assert(#sizeof(FixedArray) == 42 * #sizeof(s32))
 
-#test
+func semaTest001()
 {
     @assert(defaultPureArg() == 42)
     @assert(#isconstexpr(macroAdd(20, 22)))

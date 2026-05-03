@@ -1,6 +1,6 @@
 #global fileprivate
 
-#test
+func semaTest001()
 {
     while true
     {
@@ -8,7 +8,7 @@
     }
 }
 
-#test
+func semaTest002()
 {
     while true
     {

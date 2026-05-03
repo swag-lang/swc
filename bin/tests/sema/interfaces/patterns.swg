@@ -53,7 +53,7 @@ func dispatch(base: *Base)->s32
     return base.itf.get()
 }
 
-#test
+func semaTest001()
 {
     var actions: [2] IAction
     var undo: UndoAction
@@ -67,7 +67,7 @@ func dispatch(base: *Base)->s32
     discard actions[1].execute(3)
 }
 
-#test
+func semaTest002()
 {
     var base: Base
     base.itf = cast(IDispatch) base

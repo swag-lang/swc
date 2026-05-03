@@ -4,13 +4,13 @@ struct A {}
 func titi(a: &A) {}
 
 func tata(a: const &A) {}
-#test
+func semaTest001()
 {
     var a: A
     tata(a)
 }
 
-#test
+func semaTest002()
 {
     var a: A
     var b: &A = &a
@@ -30,7 +30,7 @@ struct ConstAddrHolder
 
 func readConstAddr(value: const &ConstAddrValue)->s32 { return value.x }
 
-#test
+func semaTest003()
 {
     let holder: ConstAddrHolder = {value: {x: 123}}
     var valueRef: const &ConstAddrValue = &holder.value
@@ -78,7 +78,7 @@ func(T) dampRefValueWithLiterals(current, target: T, currentVelocity: &T, smooth
     return temp
 }
 
-#test
+func semaTest004()
 {
     var value: s32 = 41
     inspectConstScalar(value)
@@ -86,7 +86,7 @@ func(T) dampRefValueWithLiterals(current, target: T, currentVelocity: &T, smooth
     inspectConstScalar(value + 1)
 }
 
-#test
+func semaTest005()
 {
     let tupleSum = sumConstAnon({1, 2})
     let pairSum = sumConstPair({x: 3, y: 4})
@@ -95,7 +95,7 @@ func(T) dampRefValueWithLiterals(current, target: T, currentVelocity: &T, smooth
     #assert(#typeof(pairSum) == s32)
 }
 
-#test
+func semaTest006()
 {
     var value: f32 = 1.5
     let valueRef: const &f32 = &value
@@ -106,7 +106,7 @@ func(T) dampRefValueWithLiterals(current, target: T, currentVelocity: &T, smooth
     #assert(#typeof(sum) == f32)
 }
 
-#test
+func semaTest007()
 {
     var value: f32 = 1.5
     let sum = addRefValue(&value, 2.5'f32)
@@ -114,7 +114,7 @@ func(T) dampRefValueWithLiterals(current, target: T, currentVelocity: &T, smooth
     #assert(#typeof(sum) == f32)
 }
 
-#test
+func semaTest008()
 {
     var value: f32 = 1.5
     let temp = dampRefValue(&value, 2.0'f32, 3.0'f32, 0.5'f32)
@@ -122,7 +122,7 @@ func(T) dampRefValueWithLiterals(current, target: T, currentVelocity: &T, smooth
     #assert(#typeof(temp) == f32)
 }
 
-#test
+func semaTest009()
 {
     var box: RefFloatBox = {value: 1.5}
     let sum = addRefValue(&box.value, 2.5'f32)
@@ -132,7 +132,7 @@ func(T) dampRefValueWithLiterals(current, target: T, currentVelocity: &T, smooth
     #assert(#typeof(temp) == f32)
 }
 
-#test
+func semaTest010()
 {
     var value: f32 = 1.5
     let temp = dampRefValueWithLiterals(4.0'f32, 1.0'f32, &value, 0.5'f32, 0.25'f32)

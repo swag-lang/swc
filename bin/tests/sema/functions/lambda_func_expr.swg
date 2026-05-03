@@ -92,7 +92,7 @@ func makeArrayHolder()->LambdaArrayHolder
     }
 }
 
-#test
+func semaTest001()
 {
     let cb: LambdaAggregate = func(payload, values, boxed)
     {
@@ -113,7 +113,7 @@ func makeArrayHolder()->LambdaArrayHolder
     #assert(#typeof(result.mirrored) == [4] s32)
 }
 
-#test
+func semaTest002()
 {
     let explicit = func(pair: LambdaPair, values: [4] s32)->[4] s32
     {
@@ -126,7 +126,7 @@ func makeArrayHolder()->LambdaArrayHolder
     #assert(#typeof(result) == [4] s32)
 }
 
-#test
+func semaTest003()
 {
     let cb: LambdaTypedVariadic = func(pair, marks, payloads)->u64
     {
@@ -151,7 +151,7 @@ func makeArrayHolder()->LambdaArrayHolder
     #assert(#typeof(result) == u64)
 }
 
-#test
+func semaTest004()
 {
     let cb: LambdaUntypedVariadic = func(flag, values)->s32
     {
@@ -168,7 +168,7 @@ func makeArrayHolder()->LambdaArrayHolder
     #assert(#typeof(result) == s32)
 }
 
-#test
+func semaTest005()
 {
     let direct = invokeUnary(func(value)
     {
@@ -186,7 +186,7 @@ func makeArrayHolder()->LambdaArrayHolder
     #assert(#typeof(named) == s32)
 }
 
-#test
+func semaTest006()
 {
     var predicate: LambdaBinaryPredicate
 
@@ -203,7 +203,7 @@ func makeArrayHolder()->LambdaArrayHolder
     #assert(#typeof(predicate) == LambdaBinaryPredicate)
 }
 
-#test
+func semaTest007()
 {
     let local = func(flag = true) => flag
 
@@ -218,7 +218,7 @@ func makeArrayHolder()->LambdaArrayHolder
     #assert(#typeof(bound) == LambdaDefaultBool)
 }
 
-#test
+func semaTest008()
 {
     let doubled = makeDouble()
     let defaulted = makeDefaulted()
@@ -227,14 +227,14 @@ func makeArrayHolder()->LambdaArrayHolder
     #assert(#typeof(defaulted) == LambdaDefaultUnary)
 }
 
-#test
+func semaTest009()
 {
     let defaulted: LambdaDefaultCategoryFn = func(category) => category
 
     #assert(#typeof(defaulted) == LambdaDefaultCategoryFn)
 }
 
-#test
+func semaTest010()
 {
     var holder: LambdaRuntimeHolder = {
         unary: func(value) => value - 2,
@@ -255,7 +255,7 @@ func makeArrayHolder()->LambdaArrayHolder
     #assert(#typeof(explicit.defaulted) == LambdaDefaultUnary)
 }
 
-#test
+func semaTest011()
 {
     var callbacks: [3] LambdaUnary = [
         func(value) => value + 1,
@@ -269,7 +269,7 @@ func makeArrayHolder()->LambdaArrayHolder
     #assert(#typeof(nested.callbacks) == [2] LambdaUnary)
 }
 
-#test
+func semaTest012()
 {
     let holder = makeRuntimeHolder()
     #assert(#typeof(holder) == LambdaRuntimeHolder)

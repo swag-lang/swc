@@ -47,7 +47,7 @@ const ZERO_SIZED_SLICE: const [..] ZeroSized = cast(const [..] ZeroSized) ZERO_S
 
 namespace NS {}
 
-#test
+func semaTest001()
 {
     var a: string
     var b = @countof(a)
@@ -62,21 +62,21 @@ namespace NS {}
     #assert(d == 40)
 }
 
-#test
+func semaTest002()
 {
     var a: [2, 3, 4] u8
     const b = @countof(a)
     #assert(b == 24)
 }
 
-#test
+func semaTest003()
 {
     var a: [7] bool
     const b = @countof(a)
     #assert(b == 7)
 }
 
-#test
+func semaTest004()
 {
     let value = CountedBySpecOp{}
     const count = @countof(value)
@@ -146,7 +146,7 @@ func loopUnsignedRef(value: &u32)->u32
     return count
 }
 
-#test
+func semaTest005()
 {
     var text = "hello"
     var textRef: &string = &text

@@ -12,7 +12,7 @@ func assign(a: &Vec, b: Vec)
     a = b
 }
 
-#test
+func semaTest001()
 {
     var v = Vec{1}
     var out: Vec

@@ -1,6 +1,6 @@
 #global fileprivate
 
-#test
+func semaTest001()
 {
     const P = cast(*void) 0x1234'u64
     const V = cast(u64) P
@@ -10,7 +10,7 @@
     #assert(P == cast(*void) V)
 }
 
-#test
+func semaTest002()
 {
     const P = cast([*]u8) 0xABCD'u64
     const V = cast(u64) P
@@ -20,7 +20,7 @@
     #assert(P == cast([*]u8) V)
 }
 
-#test
+func semaTest003()
 {
     const P0 = cast(*void) 0x1234'u64
     const P1 = cast(*void) 0x1235'u64

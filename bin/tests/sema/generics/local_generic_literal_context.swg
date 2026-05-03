@@ -46,7 +46,7 @@ func(U) localUnionImplicitLiteral(value: U)->U
     return data.value
 }
 
-#test
+func semaTest001()
 {
     #assert(#typeof(localStructExplicitLiteral'f32()) == u16)
     #assert(#typeof(localStructImplicitLiteral(1.0'f32)) == f32)

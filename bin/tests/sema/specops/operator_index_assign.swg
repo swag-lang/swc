@@ -62,7 +62,7 @@ struct IndexAssignHolder
     writeOnly: WriteOnlyIndexAssignBox
 }
 
-#test
+func semaTest001()
 {
     var box = IndexAssignBox{first: 1, second: 2}
     box[0] += 3

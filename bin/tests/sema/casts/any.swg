@@ -1,26 +1,26 @@
 #global fileprivate
 
-#test
+func semaTest001()
 {
     var a: any = 12
     var b: s32 = cast() a
     @assert(b == 12)
 }
 
-#test
+func semaTest002()
 {
     func takes(v: s32) {}
     var a: any = 12
     takes(cast() a)
 }
 
-#test
+func semaTest003()
 {
     var a: any = true
     if cast(bool) a {}
 }
 
-#test
+func semaTest004()
 {
     var a: any = 42
     let refValue = cast(const &s32) a
@@ -44,7 +44,7 @@ struct AnyCompareType
 {
 }
 
-#test
+func semaTest005()
 {
     var boxed: any = AnyCastDerived{base: {value: 9}, extra: 2}
     let baseRef = cast(const &AnyCastBase) boxed
@@ -53,7 +53,7 @@ struct AnyCompareType
     @assert(basePtr.value == 9)
 }
 
-#test
+func semaTest006()
 {
     var x: any = 6
     @assert(x == s32)

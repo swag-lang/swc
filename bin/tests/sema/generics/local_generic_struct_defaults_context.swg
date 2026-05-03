@@ -46,7 +46,7 @@ func(U) localGenericUnionDefaultType()->bool
     return #typeof(data.value) == U
 }
 
-#test
+func semaTest001()
 {
     #assert(localGenericStructDefaultType'f32())
     #assert(localGenericStructExplicitType'f32())

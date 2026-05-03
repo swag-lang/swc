@@ -5,7 +5,7 @@ func toto()->{x: s32, y: bool}
     return {42, true}
 }
 
-#test
+func semaTest001()
 {
     let s = toto()
     #assert(#typeof(s).kind == .Struct)

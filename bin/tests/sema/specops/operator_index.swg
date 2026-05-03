@@ -47,7 +47,7 @@ impl MultiIndexBox
     }
 }
 
-#test
+func semaTest001()
 {
     var box = ValueIndexBox{first: 7, second: 9}
     let first = box[0]
@@ -56,7 +56,7 @@ impl MultiIndexBox
     #assert(#typeof(second) == s32)
 }
 
-#test
+func semaTest002()
 {
     var box = RefIndexBox{buffer: [3, 5]}
     let first = box[1]
@@ -67,7 +67,7 @@ impl MultiIndexBox
     #assert(#typeof(second) == s32)
 }
 
-#test
+func semaTest003()
 {
     var box = MultiIndexBox{}
     let value = box[1, 0]
@@ -78,7 +78,7 @@ impl MultiIndexBox
 #[Swag.EnumIndex]
 enum IndexedSlot { First, Second, Third }
 
-#test
+func semaTest004()
 {
     const values = [0, 1, 2]
     let first = values[IndexedSlot.First]

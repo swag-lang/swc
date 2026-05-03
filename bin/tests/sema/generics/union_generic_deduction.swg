@@ -11,7 +11,7 @@ func(T) takeValue(boxed: ValueOrPtr'T)->T
     return boxed.value
 }
 
-#test
+func semaTest001()
 {
     let value = takeValue({value: 10's32})
     #assert(#typeof(value) == s32)

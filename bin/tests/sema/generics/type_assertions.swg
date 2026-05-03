@@ -36,7 +36,7 @@ struct(T = s32) DefaultBox { value: T }
 // --- Struct type assertions ---
 
 // Box types
-#test
+func semaTest001()
 {
     let b: Box's32
     let bs: Box'string
@@ -52,7 +52,7 @@ struct(T = s32) DefaultBox { value: T }
 }
 
 // Buffer types with const params
-#test
+func semaTest002()
 {
     let b2: Buffer'(s32, 2)
     let b4: Buffer'(u8, 4)
@@ -64,7 +64,7 @@ struct(T = s32) DefaultBox { value: T }
 }
 
 // Pair types (heterogeneous)
-#test
+func semaTest003()
 {
     let p1: Pair'(s32, f64)
     let p2: Pair'(string, bool)
@@ -79,7 +79,7 @@ struct(T = s32) DefaultBox { value: T }
 }
 
 // Nested generic type assertions
-#test
+func semaTest004()
 {
     let w: Wrapper's32
     let ws: Wrapper'string
@@ -91,7 +91,7 @@ struct(T = s32) DefaultBox { value: T }
 }
 
 // Default params
-#test
+func semaTest005()
 {
     let db: DefaultBuffer'u16
     let db3: DefaultBuffer'(s32, 3)
@@ -103,7 +103,7 @@ struct(T = s32) DefaultBox { value: T }
 }
 
 // Nested generics: Pair of Pairs
-#test
+func semaTest006()
 {
     let pp: Pair'(Pair'(s32, s32), Pair'(f64, f64))
 
@@ -114,7 +114,7 @@ struct(T = s32) DefaultBox { value: T }
 }
 
 // Box of Box
-#test
+func semaTest007()
 {
     let bb: Box'(Box's32)
     let bbb: Box'(Box'(Box'bool))
@@ -124,7 +124,7 @@ struct(T = s32) DefaultBox { value: T }
 }
 
 // Pair of Box
-#test
+func semaTest008()
 {
     let pb: Pair'(Box's32, Box'string)
 
@@ -133,7 +133,7 @@ struct(T = s32) DefaultBox { value: T }
 }
 
 // Array identity preserves type
-#test
+func semaTest009()
 {
     let a: [3] s32 = [1, 2, 3]
     #assert(#typeof(arrayIdentity(a)) == #type [3] s32)
@@ -143,7 +143,7 @@ struct(T = s32) DefaultBox { value: T }
 }
 
 // Struct-level type equivalence
-#test
+func semaTest010()
 {
     let b1: Box's32
     let b2: Box's32
@@ -151,7 +151,7 @@ struct(T = s32) DefaultBox { value: T }
     #assert(#typeof(b1) == Box's32)
 }
 
-#test
+func semaTest011()
 {
     let p1: Pair'(s32, f64)
     #assert(#typeof(p1) == Pair'(s32, f64))

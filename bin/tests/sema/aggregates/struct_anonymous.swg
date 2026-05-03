@@ -5,13 +5,13 @@ func toto()->{x: s32, y: bool}
     return {42, true}
 }
 
-#test
+func semaTest001()
 {
     let s = toto()
     #assert(#typeof(s).kind == .Struct)
 }
 
-#test
+func semaTest002()
 {
     var st1: struct { x: s32; y: s32 }
     let a = st1.x == 1
@@ -19,14 +19,14 @@ func toto()->{x: s32, y: bool}
     #assert(#sizeof(st1) == 8)
 }
 
-#test
+func semaTest003()
 {
     let s = toto()
     @assert(s.x == 42)
     @assert(s.y)
 }
 
-#test
+func semaTest004()
 {
     let s = toto()
     var t: struct { x: s32; y: bool }

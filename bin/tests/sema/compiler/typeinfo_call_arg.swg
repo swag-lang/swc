@@ -10,7 +10,7 @@ func(T) takesGenericType()->bool
     return takesType(T)
 }
 
-#test
+func semaTest001()
 {
     @assert(takesType(s32))
     @assert(takesType(#type s32))

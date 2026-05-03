@@ -1,13 +1,13 @@
 #global fileprivate
 
-#test
+func semaTest001()
 {
     var a: any
     var b = @kindof(a)
     #assert(#typeof(b) == typeinfo)
 }
 
-#test
+func semaTest002()
 {
     var x: s32
     var a: any = @mkany(&x, s32)
@@ -15,7 +15,7 @@
     @assert(b == s32)
 }
 
-#test
+func semaTest003()
 {
     var x: f32
     var a: any = @mkany(cast(*void) &x, f32)

@@ -2,7 +2,7 @@
 
 const A = 0
 
-#test
+func semaTest001()
 {
     const L = #location(A)
     #assert(L.fileName != null)

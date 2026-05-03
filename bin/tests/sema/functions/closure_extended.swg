@@ -49,7 +49,7 @@ impl PathOwner
     }
 }
 
-#test
+func semaTest001()
 {
     var cb: ClosureUnary = null
     cb = func(value: s32)->s32 { return value + 1 }
@@ -60,7 +60,7 @@ impl PathOwner
     #assert(#typeof(cb) == ClosureUnary)
 }
 
-#test
+func semaTest002()
 {
     var holders: [2] Holder
     holders[0].cb = func(value: s32)->s32 { return value }
@@ -72,7 +72,7 @@ impl PathOwner
     #assert(#typeof(acceptUnary(holders[1].cb)) == ClosureUnary)
 }
 
-#test
+func semaTest003()
 {
     let globalReader: ClosureNullary = func()->s32 { return GlobalSeed }
     let fromLambda = acceptUnary(func(value: s32)->s32 { return value * 2 })
@@ -83,7 +83,7 @@ impl PathOwner
     #assert(#typeof(fromNull) == ClosureNullary)
 }
 
-#test
+func semaTest004()
 {
     var target: PathTarget
     var holder: PathHolder
@@ -93,7 +93,7 @@ impl PathOwner
     #assert(#typeof(cb) == ClosureNullary)
 }
 
-#test
+func semaTest005()
 {
     var target: PathTarget
     var owner: PathOwner

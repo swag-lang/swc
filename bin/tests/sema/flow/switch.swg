@@ -1,6 +1,6 @@
 #global fileprivate
 
-#test
+func semaTest001()
 {
     var v = 2
     switch v
@@ -14,7 +14,7 @@
     }
 }
 
-#test
+func semaTest002()
 {
     switch 1
     {
@@ -33,7 +33,7 @@
     }
 }
 
-#test
+func semaTest003()
 {
     alias MyInt = s32
     var v : MyInt = 3
@@ -48,7 +48,7 @@
     }
 }
 
-#test
+func semaTest004()
 {
     var v = 1.5
     switch v
@@ -60,7 +60,7 @@
     }
 }
 
-#test
+func semaTest005()
 {
     var v = true
     switch v
@@ -72,7 +72,7 @@
     }
 }
 
-#test
+func semaTest006()
 {
     var v = "hello"
     switch v
@@ -84,7 +84,7 @@
     }
 }
 
-#test
+func semaTest007()
 {
     var v = 2
     switch v
@@ -96,7 +96,7 @@
     }
 }
 
-#test
+func semaTest008()
 {
     var v = 2
     #[Swag.Complete]
@@ -108,7 +108,7 @@
 }
 
 func toto()->s32 => 1
-#test
+func semaTest009()
 {
     #[Swag.Complete]
     switch toto()
@@ -118,7 +118,7 @@ func toto()->s32 => 1
     }
 }
 
-#test
+func semaTest010()
 {
     var a = 2
     var b = 1

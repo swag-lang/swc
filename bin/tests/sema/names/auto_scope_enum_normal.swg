@@ -2,19 +2,19 @@
 
 enum A { R, G, B }
 
-#test
+func semaTest001()
 {
     let x: A = .G
     let y = x != .R
 }
 
-#test
+func semaTest002()
 {
     let x: A = .B
     let y = x == .B
 }
 
-#test
+func semaTest003()
 {
     let values: [3] A = [.R, .G, .B]
     let matrix: [2, 2] A = [[.R, .G], [.B, .R]]

@@ -10,7 +10,7 @@ impl S
     mtd foo(a: s32) {}
 }
 
-#test
+func semaTest001()
 {
     var s: S
     S.foo(&s)
@@ -25,13 +25,13 @@ impl ConstMethodOverload
     mtd const select()->bool => true
 }
 
-#test
+func semaTest002()
 {
     var value = ConstMethodOverload{}
     #assert(#typeof(value.select()) == s32)
 }
 
-#test
+func semaTest003()
 {
     let value = ConstMethodOverload{}
     #assert(#typeof(value.select()) == bool)

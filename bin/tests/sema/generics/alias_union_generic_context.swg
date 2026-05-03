@@ -25,7 +25,7 @@ func(T) localAliasUnionValue()->ValueOrPtrAlias2
     return data.item
 }
 
-#test
+func semaTest001()
 {
     let wrapped: WrapperAliasUnion's32
 

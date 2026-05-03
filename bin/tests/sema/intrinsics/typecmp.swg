@@ -1,12 +1,12 @@
 #global fileprivate
 
-#test
+func semaTest001()
 {
     const a: typeinfo = s32
     @assert(@typecmp(a, a, .Strict))
 }
 
-#test
+func semaTest002()
 {
     const a: typeinfo = s32
     @assert(@typecmp(a, a, .CastAny | .UnScoped))

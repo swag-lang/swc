@@ -1,4 +1,4 @@
-#test
+fileprivate func semaTest001()
 {
     var box = CrossFileAssignBox{value: 1}
     box += 2

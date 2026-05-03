@@ -38,29 +38,29 @@ func indirectShortB(n: s32)->s32 => n <= 1 ? 1 : n * indirectShortA(n - 1)
 func indirectShortNamedA(n: s32)->s32 => n <= 1 ? 1 : n * indirectShortNamedB(value: n - 1)
 func indirectShortNamedB(value: s32)->s32 => value <= 1 ? 1 : value * indirectShortNamedA(n: value - 1)
 
-#test
+func semaTest001()
 {
     @assert(directRegular(6) == 720)
 }
 
-#test
+func semaTest002()
 {
     @assert(directShort(6) == 720)
 }
 
-#test
+func semaTest003()
 {
     @assert(indirectRegularA(6) == 720)
     @assert(indirectRegularB(6) == 720)
 }
 
-#test
+func semaTest004()
 {
     @assert(indirectShortA(6) == 720)
     @assert(indirectShortB(6) == 720)
 }
 
-#test
+func semaTest005()
 {
     @assert(indirectShortNamedA(6) == 720)
     @assert(indirectShortNamedB(6) == 720)

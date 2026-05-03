@@ -5,7 +5,7 @@
 #assert((true ? "true" : "false") == "true")
 #assert((false ? "true" : "false") == "false")
 
-#test
+func semaTest001()
 {
     const a = true ? 10's16 : 20's32
     #assert(#typeof(a) == s32)
@@ -21,7 +21,7 @@
     #assert(#typeof(d) == s32)
 }
 
-#test { var a = 0 ? 1 : 2 }
+func semaTest002() { var a = 0 ? 1 : 2 }
 
 namespace NC{}
 
@@ -32,13 +32,13 @@ const VAL1 = 10
 var var2 = 20
 #assert((true ? VAL1 : var2) == 10)
 
-#test
+func semaTest003()
 {
     var A: *s32
     var C = A ? A : null
 }
 
-#test
+func semaTest004()
 {
     func keepsTypedBranchWhenFunctionReturnBindsContext(flag: bool, bytes: const [..] u8)->s32
     {

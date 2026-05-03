@@ -13,7 +13,7 @@ struct(T) Box
 alias GenericFreeAlias = freeAccepts
 alias GenericBoxAlias  = Box
 
-#test
+func semaTest001()
 {
     #assert(#typeof(GenericFreeAlias'(bool)(true, 0.0'f32)) == bool)
 

@@ -16,7 +16,7 @@ alias ClosureBoundary = func||()->u64
 
 func addOne(value: s32)->s32 => value + 1
 
-#test
+func semaTest001()
 {
     let fromLambda: ClosureUnary = func(value: s32)->s32 { return value + 10 }
     let fromFunction: ClosureUnary = &addOne
@@ -27,14 +27,14 @@ func addOne(value: s32)->s32 => value + 1
     #assert(#typeof(nullable) == ClosureNullary)
 }
 
-#test
+func semaTest002()
 {
     let boundary: Boundary64 = {a: 1, b: 2, c: 3, d: 4, e: 5, f: 6, g: 7, h: 8}
     let exact: ClosureBoundary = func|boundary|()->u64 { return boundary.a + boundary.h }
     #assert(#typeof(exact) == ClosureBoundary)
 }
 
-#test
+func semaTest003()
 {
     var total = 0
     let refCapture: ClosureUnary = func|&total|(value: s32)->s32 { total += value; return total }

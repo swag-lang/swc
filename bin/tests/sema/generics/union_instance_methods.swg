@@ -19,7 +19,7 @@ impl ValueOrPtr
     }
 }
 
-#test
+func semaTest001()
 {
     var boxed = ValueOrPtr's32{value: 10}
     @assert(boxed.sameType(12))

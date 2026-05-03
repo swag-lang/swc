@@ -1,6 +1,6 @@
 #global fileprivate
 
-#test
+func semaTest001()
 {
     var a: *s32
     var b: *s8
@@ -8,7 +8,7 @@
     let d = a <= b
 }
 
-#test
+func semaTest002()
 {
     var a: *s32 = null
     let b = a == null
@@ -17,7 +17,7 @@
     #assert(#typeof(c) == bool)
 }
 
-#test
+func semaTest003()
 {
     var a: *s32
     var b: *s8
@@ -26,7 +26,7 @@
     let e = a >= b
 }
 
-#test
+func semaTest004()
 {
     var value: s32 = 42
     let valueRef: const &s32 = &value
@@ -49,7 +49,7 @@
     #assert(#typeof(cmp0) == s32)
 }
 
-#test
+func semaTest005()
 {
     var value: s32 = 2
     var refValue: &s32 = &value
@@ -57,7 +57,7 @@
     #assert(#typeof(ok) == bool)
 }
 
-#test
+func semaTest006()
 {
     var value: f32 = 1.5
     let valueRef: const &f32 = &value

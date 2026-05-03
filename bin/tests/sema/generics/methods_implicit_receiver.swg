@@ -24,7 +24,7 @@ impl Box
     }
 }
 
-#test
+func semaTest001()
 {
     var box = Box{value: 42}
     let pair = box.pairWith(0'u8)

@@ -29,7 +29,7 @@ const S1 = S0 orelse "abc"
 
 enum NullCEnum { A, B }
 
-#test
+func semaTest001()
 {
     var a: s32
     @assert((a orelse 11) == 11)
@@ -37,7 +37,7 @@ enum NullCEnum { A, B }
     @assert((a orelse 11) == 5)
 }
 
-#test
+func semaTest002()
 {
     var p: *s32
     var v: s32 = 10
@@ -46,7 +46,7 @@ enum NullCEnum { A, B }
     @assert((p orelse null) == &v)
 }
 
-#test
+func semaTest003()
 {
     var s: string
     @assert((s orelse "fallback") == "fallback")

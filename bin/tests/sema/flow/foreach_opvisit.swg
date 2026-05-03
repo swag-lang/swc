@@ -346,7 +346,7 @@ impl SemaGenericScopedVisits
     }
 }
 
-#test
+func semaTest001()
 {
     var values = SemaBufferVisits{}
     foreach &value, ordinal in values
@@ -357,7 +357,7 @@ impl SemaGenericScopedVisits
     }
 }
 
-#test
+func semaTest002()
 {
     var values = SemaReverseVisits{}
 
@@ -370,7 +370,7 @@ impl SemaGenericScopedVisits
     }
 }
 
-#test
+func semaTest003()
 {
     var values = SemaHiddenAliasVisits{}
 
@@ -381,7 +381,7 @@ impl SemaGenericScopedVisits
     }
 }
 
-#test
+func semaTest004()
 {
     var values = SemaHiddenAliasVisits{}
 
@@ -394,7 +394,7 @@ impl SemaGenericScopedVisits
     }
 }
 
-#test
+func semaTest005()
 {
     var values = SemaHiddenAliasVisits{}
 
@@ -409,7 +409,7 @@ impl SemaGenericScopedVisits
     }
 }
 
-#test
+func semaTest006()
 {
     var values = SemaFieldPointerVisits{}
 
@@ -421,7 +421,7 @@ impl SemaGenericScopedVisits
     }
 }
 
-#test
+func semaTest007()
 {
     var values = SemaPairVisits{}
 
@@ -436,7 +436,7 @@ impl SemaGenericScopedVisits
     }
 }
 
-#test
+func semaTest008()
 {
     let values = SemaConstPointerVisits{}
 
@@ -448,7 +448,7 @@ impl SemaGenericScopedVisits
     }
 }
 
-#test
+func semaTest009()
 {
     let values: SemaGenericScopedVisits's32 = {values: [10, 20, 30]}
 

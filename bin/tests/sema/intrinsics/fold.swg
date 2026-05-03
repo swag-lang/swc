@@ -1,6 +1,6 @@
 #global fileprivate
 
-#test
+func semaTest001()
 {
     const A: f64 = @sqrt(4.0'f32)
     const B: f64 = @sin(0.0'f32)
@@ -58,7 +58,7 @@
     #assert(AA == 2.0)
 }
 
-#test
+func semaTest002()
 {
     const A: s8 = @min(1's8, 2's8)
     const B: s8 = @max(1's8, 2's8)
@@ -74,7 +74,7 @@
     #assert(F == 2)
 }
 
-#test
+func semaTest003()
 {
     const A: s64 = @min(-5's64, 3's64)
     const B: s64 = @max(-5's64, 3's64)
@@ -82,7 +82,7 @@
     #assert(B == 3)
 }
 
-#test
+func semaTest004()
 {
     const A: u32 = @min(10'u32, 20'u32)
     const B: u32 = @max(10'u32, 20'u32)
@@ -90,7 +90,7 @@
     #assert(B == 20'u32)
 }
 
-#test
+func semaTest005()
 {
     const A: u8 = @min(1'u8, 2'u8)
     const B: u8 = @max(1'u8, 2'u8)
@@ -102,7 +102,7 @@
     #assert(D == 3'u16)
 }
 
-#test
+func semaTest006()
 {
     const A: u64 = @min(1'u64, 0xFFFFFFFFFFFFFFFF'u64)
     const B: u64 = @max(1'u64, 0xFFFFFFFFFFFFFFFF'u64)
@@ -110,7 +110,7 @@
     #assert(B == 0xFFFFFFFFFFFFFFFF'u64)
 }
 
-#test
+func semaTest007()
 {
     const E: f64 = @atan2(0.0'f32, 0.0'f32)
     #assert(E == 0.0)

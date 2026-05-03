@@ -27,7 +27,7 @@ func select(n: *Node)->bool
     return n != null
 }
 
-#test
+func semaTest001()
 {
     var node: Node
     @assert(!pick())

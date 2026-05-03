@@ -15,7 +15,7 @@ impl A
     }
 }
 
-#test
+func semaTest001()
 {
     var a: A
     a.toto(1)
@@ -53,7 +53,7 @@ impl Direction
     }
 }
 
-#test
+func semaTest002()
 {
     var dir = Direction.North
     let opposite = dir.opposite()
@@ -99,20 +99,20 @@ func multiplyUfcs(c: *UfcsComplex, other: *UfcsComplex)
     c.imag = i
 }
 
-#test
+func semaTest003()
 {
     let value = false
     #assert(#typeof(value.invertUfcs()) == bool)
 }
 
-#test
+func semaTest004()
 {
     var pt: UfcsPoint
     pt.setUfcsPoint(10)
     pt.addUfcsPoint(1, 2)
 }
 
-#test
+func semaTest005()
 {
     var c1 = UfcsComplex{2.0, 3.0}
     var c2 = UfcsComplex{4.0, 5.0}

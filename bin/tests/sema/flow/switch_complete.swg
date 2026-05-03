@@ -6,7 +6,7 @@ enum Color {
     Blue
 }
 
-#test
+func semaTest001()
 {
     var c = Color.Green
     #[Swag.Complete]
@@ -21,7 +21,7 @@ enum Color {
     }
 }
 
-#test
+func semaTest002()
 {
     var c = Color.Red
     #[Swag.Complete]

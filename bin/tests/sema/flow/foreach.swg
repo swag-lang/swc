@@ -6,7 +6,7 @@ alias ForeachStrictArray = [3] s32
 #[Swag.Strict]
 alias ForeachStrictSlice = [..] s32
 
-#test
+func semaTest001()
 {
     var arr: [3] s32 = [1, 2, 3]
     foreach v in arr
@@ -16,7 +16,7 @@ alias ForeachStrictSlice = [..] s32
     }
 }
 
-#test
+func semaTest002()
 {
     var arr: ForeachStrictArray = cast(ForeachStrictArray) [4, 5, 6]
     foreach v, i in arr
@@ -28,7 +28,7 @@ alias ForeachStrictSlice = [..] s32
     }
 }
 
-#test
+func semaTest003()
 {
     var arr: [2] s32 = [1, 2]
     foreach v in arr where v > 0
@@ -37,7 +37,7 @@ alias ForeachStrictSlice = [..] s32
     }
 }
 
-#test
+func semaTest004()
 {
     var arr: [2] u32 = [10'u32, 20]
     foreach &v in arr
@@ -46,7 +46,7 @@ alias ForeachStrictSlice = [..] s32
     }
 }
 
-#test
+func semaTest005()
 {
     var text: string = "AB"
     foreach v, i in text
@@ -58,7 +58,7 @@ alias ForeachStrictSlice = [..] s32
     }
 }
 
-#test
+func semaTest006()
 {
     var arr: [2] s32 = [3, 4]
     var sl = cast([..] s32) arr
@@ -71,7 +71,7 @@ alias ForeachStrictSlice = [..] s32
     }
 }
 
-#test
+func semaTest007()
 {
     var arr: [2] s32 = [5, 6]
     var rawSl = cast([..] s32) arr
@@ -85,7 +85,7 @@ alias ForeachStrictSlice = [..] s32
     }
 }
 
-#test
+func semaTest008()
 {
     func foreachVariadicAny(values: ...)
     {
@@ -99,7 +99,7 @@ alias ForeachStrictSlice = [..] s32
     }
 }
 
-#test
+func semaTest009()
 {
     func foreachVariadicTyped(values: s32...)
     {
@@ -113,7 +113,7 @@ alias ForeachStrictSlice = [..] s32
     }
 }
 
-#test
+func semaTest010()
 {
     enum Priority: u32
     {

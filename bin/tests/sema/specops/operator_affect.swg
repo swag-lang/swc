@@ -153,7 +153,7 @@ const ConstSetOne: ConstSetVector2 = 1.0
 #assert(ConstSetOne.x == 1.0)
 #assert(ConstSetOne.y == 1.0)
 
-#test
+func semaTest001()
 {
     var target = SetTarget{}
     target = 42's32
@@ -164,7 +164,7 @@ const ConstSetOne: ConstSetVector2 = 1.0
     #assert(#typeof(target) == SetTarget)
 }
 
-#test
+func semaTest002()
 {
     let fromInt: SetTarget = 42's32
     var fromFloat: SetTarget = 3.5'f32
@@ -173,7 +173,7 @@ const ConstSetOne: ConstSetVector2 = 1.0
     #assert(#typeof(fromFloat) == SetTarget)
 }
 
-#test
+func semaTest003()
 {
     var lhs = SetTarget{value: 1, tag: 2}
     var rhs = SetTarget{value: 9, tag: 11}
@@ -182,20 +182,20 @@ const ConstSetOne: ConstSetVector2 = 1.0
     #assert(#typeof(lhs) == SetTarget)
 }
 
-#test
+func semaTest004()
 {
     var holder = SetHolder{}
     holder.target = 77's32
 }
 
-#test
+func semaTest005()
 {
     var target = SetTarget{}
     let ptr = &target
     dref ptr = 99's32
 }
 
-#test
+func semaTest006()
 {
     func takesExplicit(value: ParamSetTarget) {}
     func takesImplicit(value: ParamSetTarget) {}
@@ -207,7 +207,7 @@ const ConstSetOne: ConstSetVector2 = 1.0
     #assert(#typeof(complete) == ParamSetTarget)
 }
 
-#test
+func semaTest007()
 {
     let delay1: LiteralSetTarget = 5's
     let delay2: LiteralSetTarget = 500'ms
@@ -224,7 +224,7 @@ const ConstSetOne: ConstSetVector2 = 1.0
     #assert(#typeof(delay4) == LiteralSetTarget)
 }
 
-#test
+func semaTest008()
 {
     let fromInt: LiteralOverloadTarget = 5's
     let fromFloat: LiteralOverloadTarget = 1.5's

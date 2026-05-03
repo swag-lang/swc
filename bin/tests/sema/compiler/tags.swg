@@ -28,7 +28,7 @@ const MissingString = #gettag("Swag.Missing.String", string, "fallback")
 #assert(#typeof(MissingString) == string)
 #assert(MissingString == "fallback")
 
-#test
+func semaTest001()
 {
     const LocalEndian = #gettag("Swag.Endian", string, "big")
     @assert(LocalEndian == "little")

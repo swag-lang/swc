@@ -1,6 +1,6 @@
 #global fileprivate
 
-#test
+func semaTest001()
 {
     const A: any = 1's8
     #assert(#typeof(A) == any)
@@ -8,7 +8,7 @@
     @assert(cast(s8) A == 1's8)
 }
 
-#test
+func semaTest002()
 {
     const A: any = 2's16
     #assert(#typeof(A) == any)
@@ -16,7 +16,7 @@
     @assert(cast(s16) A == 2's16)
 }
 
-#test
+func semaTest003()
 {
     const A: any = 3's32
     #assert(#typeof(A) == any)
@@ -24,7 +24,7 @@
     @assert(cast(s32) A == 3's32)
 }
 
-#test
+func semaTest004()
 {
     const A: any = 4's64
     #assert(#typeof(A) == any)
@@ -32,7 +32,7 @@
     @assert(cast(s64) A == 4's64)
 }
 
-#test
+func semaTest005()
 {
     const A: any = 5'u8
     #assert(#typeof(A) == any)
@@ -40,7 +40,7 @@
     @assert(cast(u8) A == 5'u8)
 }
 
-#test
+func semaTest006()
 {
     const A: any = 6'u16
     #assert(#typeof(A) == any)
@@ -48,7 +48,7 @@
     @assert(cast(u16) A == 6'u16)
 }
 
-#test
+func semaTest007()
 {
     const A: any = 7'u32
     #assert(#typeof(A) == any)
@@ -56,7 +56,7 @@
     @assert(cast(u32) A == 7'u32)
 }
 
-#test
+func semaTest008()
 {
     const A: any = 8'u64
     #assert(#typeof(A) == any)
@@ -64,7 +64,7 @@
     @assert(cast(u64) A == 8'u64)
 }
 
-#test
+func semaTest009()
 {
     const A: any = 1.5'f32
     #assert(#typeof(A) == any)
@@ -72,7 +72,7 @@
     @assert(cast(f32) A == 1.5'f32)
 }
 
-#test
+func semaTest010()
 {
     const A: any = 2.5'f64
     #assert(#typeof(A) == any)
@@ -80,7 +80,7 @@
     @assert(cast(f64) A == 2.5'f64)
 }
 
-#test
+func semaTest011()
 {
     const A: any = true
     #assert(#typeof(A) == any)
@@ -88,7 +88,7 @@
     @assert(cast(bool) A == true)
 }
 
-#test
+func semaTest012()
 {
     const A: any = 'Z'
     #assert(#typeof(A) == any)
@@ -96,7 +96,7 @@
     @assert(cast(rune) A == 'Z')
 }
 
-#test
+func semaTest013()
 {
     const A: any = "abc"
     #assert(#typeof(A) == any)
@@ -104,14 +104,14 @@
     @assert(cast(string) A == "abc")
 }
 
-#test
+func semaTest014()
 {
     const A: any = null
     #assert(#typeof(A) == any)
     @assert(A == null)
 }
 
-#test
+func semaTest015()
 {
     const A: any = 10
     const B: any = 3.0

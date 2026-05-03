@@ -103,7 +103,7 @@ struct(T) BadConstExpr
     value: T
 }
 
-#test
+func semaTest001()
 {
     let point: FloatPoint'f64 = {x: 1.0, y: 2.0}
     #assert(#typeof(point.x) == f64)

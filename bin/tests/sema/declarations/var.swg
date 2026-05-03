@@ -6,7 +6,7 @@ var C: f32 = 1
 var D = 1.0
 #assert(#typeof(D) == f32)
 
-#test
+func semaTest001()
 {
     let a = 2
     var b = 2
@@ -14,7 +14,7 @@ var D = 1.0
     #assert(#typeof(b) == s32)
 }
 
-#test
+func semaTest002()
 {
     var x = true
     #assert(#typeof(x) == bool)
@@ -24,14 +24,14 @@ var D = 1.0
     #assert(#typeof(z) == u16)
 }
 
-#test
+func semaTest003()
 {
     let a = 5
     const b = a + 7
     #assert(b == 12)
 }
 
-#test
+func semaTest004()
 {
     let a = 1
     var p = &a

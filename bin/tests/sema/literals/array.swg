@@ -14,7 +14,7 @@ const A2 = [1, true, 3]
 #assert(A2[1] == true)
 #assert(A2[2] == 3)
 
-#test
+func semaTest001()
 {
     var x = 1
     var B: [3] s32 = [x, 2, 3]
@@ -48,7 +48,7 @@ const I: [2] s32 = [1, cast(s32) 2.2]
 #assert(#typeof(I[1]) == s32)
 #assert(I[1] == 2)
 
-#test
+func semaTest002()
 {
     const M: [2] [2] s32 = [[1, 2], [3, 4]]
     #assert(#typeof(M) == #type [2] [2] s32)

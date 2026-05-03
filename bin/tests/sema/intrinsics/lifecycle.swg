@@ -253,7 +253,7 @@ func intrinsicReceiverLifecycleInfo()->IntrinsicInfo
     return {value.value, 0, 0, DropCount, DropTrace, PostCopyCount, PostMoveCount}
 }
 
-#test
+func semaTest001()
 {
     const V = #run intrinsicSingleInfo()
     #assert(V.first == 11)
@@ -264,7 +264,7 @@ func intrinsicReceiverLifecycleInfo()->IntrinsicInfo
     #assert(V.postMove == 1)
 }
 
-#test
+func semaTest002()
 {
     const V = #run intrinsicArrayWholeInfo()
     #assert(V.first == 13)
@@ -275,7 +275,7 @@ func intrinsicReceiverLifecycleInfo()->IntrinsicInfo
     #assert(V.postMove == 0)
 }
 
-#test
+func semaTest003()
 {
     const V = #run intrinsicArrayCountInfo()
     #assert(V.first == 21)
@@ -287,7 +287,7 @@ func intrinsicReceiverLifecycleInfo()->IntrinsicInfo
     #assert(V.postMove == 2)
 }
 
-#test
+func semaTest004()
 {
     const V = #run intrinsicEmbeddedInfo()
     #assert(V.first == 11)
@@ -299,7 +299,7 @@ func intrinsicReceiverLifecycleInfo()->IntrinsicInfo
     #assert(V.postMove == 2)
 }
 
-#test
+func semaTest005()
 {
     const V = #run intrinsicEmbeddedOuterCopyDropInfo()
     #assert(V.first == 117)
@@ -309,7 +309,7 @@ func intrinsicReceiverLifecycleInfo()->IntrinsicInfo
     #assert(V.postMove == 0)
 }
 
-#test
+func semaTest006()
 {
     const V = #run intrinsicInitInfo()
     #assert(V.scalarDefault == 0)
@@ -322,13 +322,13 @@ func intrinsicReceiverLifecycleInfo()->IntrinsicInfo
     #assert(V.structArrayWholeTrace == 506070)
 }
 
-#test
+func semaTest007()
 {
     const V = #run intrinsicDropThenInitArrayInfo()
     #assert(V == 567)
 }
 
-#test
+func semaTest008()
 {
     const V = #run intrinsicReceiverLifecycleInfo()
     #assert(V.first == 3)

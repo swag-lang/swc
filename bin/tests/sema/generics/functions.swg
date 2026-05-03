@@ -99,7 +99,7 @@ func(T) genericDefaultAnonymousField(value: struct { field: T } = {field: 12'u16
     return value.field
 }
 
-#test
+func semaTest001()
 {
     #assert(identity'(s32)(42) == 42)
     #assert(identity'(bool)(true) == true)
@@ -110,7 +110,7 @@ func(T) genericDefaultAnonymousField(value: struct { field: T } = {field: 12'u16
     #assert(#typeof(mixed) == f32)
 }
 
-#test
+func semaTest002()
 {
     #assert(#typeof(defaultTypeValue()) == s32)
     #assert(defaultTypeValue() == 42)
@@ -118,13 +118,13 @@ func(T) genericDefaultAnonymousField(value: struct { field: T } = {field: 12'u16
     #assert(defaultTypeValue'(f64)() == 42.0)
 }
 
-#test
+func semaTest003()
 {
     #assert(defaultConstValue() == 3)
     #assert(defaultConstValue'(10)() == 10)
 }
 
-#test
+func semaTest004()
 {
     let values: [4] u16 = [10'u16, 20, 30, 40]
     let pair: [2] s32 = [1, 2]
@@ -134,7 +134,7 @@ func(T) genericDefaultAnonymousField(value: struct { field: T } = {field: 12'u16
     #assert(partialCount'(s32)(pair) == 2)
 }
 
-#test
+func semaTest005()
 {
     func(T) localDouble(value: T) => 2 * value
     func(T = s32, V = s32) localMixedMultiply(a: T, b: V) => a * b
@@ -145,7 +145,7 @@ func(T) genericDefaultAnonymousField(value: struct { field: T } = {field: 12'u16
     #assert(#typeof(localMixed) == f32)
 }
 
-#test
+func semaTest006()
 {
     let buffer: Buffer'(u16, 4)
 
@@ -153,7 +153,7 @@ func(T) genericDefaultAnonymousField(value: struct { field: T } = {field: 12'u16
     #assert(bufferCount'(u16, 4)(buffer) == 4)
 }
 
-#test
+func semaTest007()
 {
     let made = callGenericFactory(&genericFunctionMakeS32)
     #assert(#typeof(made) == s32)
@@ -164,7 +164,7 @@ func(T) genericDefaultAnonymousField(value: struct { field: T } = {field: 12'u16
     #assert(#typeof(mapped) == bool)
 }
 
-#test
+func semaTest008()
 {
     let first = genericVariadicFirst(1'u16, 2'u16)
     #assert(#typeof(first) == u16)
@@ -176,60 +176,60 @@ func(T) genericDefaultAnonymousField(value: struct { field: T } = {field: 12'u16
     #assert(#typeof(forwarded) == s64)
 }
 
-#test
+func semaTest009()
 {
     let value = genericDefaultArgument()
     #assert(#typeof(value) == s32)
 }
 
-#test
+func semaTest010()
 {
     let value = genericDefaultArray()
     #assert(#typeof(value) == u16)
 }
 
-#test
+func semaTest011()
 {
     let value = genericDefaultMatrix()
     #assert(#typeof(value) == u8)
 }
 
-#test
+func semaTest012()
 {
     let value = genericDefaultSlice()
     #assert(#typeof(value) == u16)
 }
 
-#test
+func semaTest013()
 {
     let value = genericDefaultStringSlice()
     #assert(#typeof(value) == u8)
 }
 
-#test
+func semaTest014()
 {
     let value = genericSliceFirst("abc")
     #assert(#typeof(value) == u8)
 }
 
-#test
+func semaTest015()
 {
     #assert(genericDefaultBuffer() == 3)
 }
 
-#test
+func semaTest016()
 {
     let value = genericDefaultRenamedBuffer()
     #assert(#typeof(value) == u8)
 }
 
-#test
+func semaTest017()
 {
     let value = genericAnonymousField(struct { field: u16 }{field: 12'u16})
     #assert(#typeof(value) == u16)
 }
 
-#test
+func semaTest018()
 {
     let value = genericDefaultAnonymousField()
     #assert(#typeof(value) == u16)

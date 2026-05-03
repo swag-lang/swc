@@ -46,7 +46,7 @@ struct AssignHolder
     value: AssignBox
 }
 
-#test
+func semaTest001()
 {
     var box = AssignBox{a: 1, b: 2}
     box += 3's32
@@ -59,13 +59,13 @@ struct AssignHolder
     #assert(#typeof(box) == AssignBox)
 }
 
-#test
+func semaTest002()
 {
     var holder = AssignHolder{}
     holder.value += 4's32
 }
 
-#test
+func semaTest003()
 {
     var box = AssignBox{}
     let ptr = &box

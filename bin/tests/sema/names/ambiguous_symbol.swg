@@ -3,7 +3,7 @@
 func Amb() {}
 func Amb(a: s32) {}
 
-#test
+func semaTest001()
 {
     Amb()
     Amb(10)
@@ -15,7 +15,7 @@ namespace N
     func Amb(a: s32) {}
 }
 
-#test
+func semaTest002()
 {
     N.Amb()
     N.Amb(10)
@@ -24,7 +24,7 @@ namespace N
 func DeclAndDef();
 func DeclAndDef() {}
 
-#test
+func semaTest003()
 {
     DeclAndDef()
     #assert(#nameof(DeclAndDef) == "DeclAndDef")

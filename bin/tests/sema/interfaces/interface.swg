@@ -19,7 +19,7 @@ enum ARC { A, B }
 interface I0 { mtd toto(); }
 struct S0 {}
 
-#test
+func semaTest001()
 {
     var a: I0
     a.toto()
@@ -42,19 +42,19 @@ impl I1 for T
     mtd tonton() { .toto() }
 }
 
-#test
+func semaTest002()
 {
     T.I1.titi()
 }
 
-#test
+func semaTest003()
 {
     var a: A
     var i = cast(I) a
     @assert(i.A() == 0)
 }
 
-#test
+func semaTest004()
 {
     var t: T
     var i = cast(I1) t

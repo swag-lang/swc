@@ -4,7 +4,7 @@ var A: [..] s32
 #assert(#typeof(A) == [..] s32)
 #assert(#nameof(#typeof(A)) == "[..] s32")
 
-#test
+func semaTest001()
 {
     var a: [3] s32 = [1, 2, 3]
     var s: [..] s32 = a
@@ -13,14 +13,14 @@ var A: [..] s32
     @assert(a[1] == 7)
 }
 
-#test
+func semaTest002()
 {
     var c: const [..] u8 = "abc"
     @assert(c[0] == 'a')
     @assert(@countof(c) == 3)
 }
 
-#test
+func semaTest003()
 {
     const s: const [..] s32 = [1, 2, 3]
     @assert(@countof(s) == 3)
@@ -28,7 +28,7 @@ var A: [..] s32
     @assert(s[2] == 3)
 }
 
-#test
+func semaTest004()
 {
     var a: [3] s32 = [1, 2, 3]
     var s: const [..] s32 = a
@@ -36,7 +36,7 @@ var A: [..] s32
     @assert(s[1] == 2)
 }
 
-#test
+func semaTest005()
 {
     var a: [3] s32 = [1, 2, 3]
     var s: [..] s32 = a
@@ -45,7 +45,7 @@ var A: [..] s32
     @assert(a[2] == 9)
 }
 
-#test
+func semaTest006()
 {
     const s: const [..] u16 = [1'u8, 2'u16, 3]
     @assert(@countof(s) == 3)
@@ -53,7 +53,7 @@ var A: [..] s32
     @assert(s[2] == 3'u16)
 }
 
-#test
+func semaTest007()
 {
     var arr: [5] s32 = [10, 20, 30, 40, 50]
     var arrRef: &[5] s32 = &arr

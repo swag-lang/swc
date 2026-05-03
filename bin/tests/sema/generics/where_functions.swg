@@ -196,7 +196,7 @@ impl InterpolationWindow
     }
 }
 
-#test
+func semaTest001()
 {
     @assert(kind(1.0'f32) == 1)
     @assert(kind(1's64) == 2)

@@ -1,6 +1,6 @@
 #global fileprivate
 
-#test
+func semaTest001()
 {
     if let x = 4 where x > 2
     {
@@ -8,7 +8,7 @@
     }
 }
 
-#test
+func semaTest002()
 {
     if let x = 1 where false
     {
@@ -19,7 +19,7 @@
     }
 }
 
-#test
+func semaTest003()
 {
     if let x = 4 where x > 2 do
         let y = x

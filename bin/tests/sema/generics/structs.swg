@@ -26,7 +26,7 @@ struct(T, N: s32 = 2) DefaultBuffer
     values: [N] T
 }
 
-#test
+func semaTest001()
 {
     let box: Box'bool
     let buffer: Buffer'(s32, 3)
@@ -42,7 +42,7 @@ struct(T, N: s32 = 2) DefaultBuffer
     #assert(#typeof(partial.values) == #type [2] u16)
 }
 
-#test
+func semaTest002()
 {
     {
         struct(T) LocalBox
@@ -103,7 +103,7 @@ func(T) clonedAnonymousUnion(value: T)->T
     return data.value
 }
 
-#test
+func semaTest003()
 {
     #assert(#typeof(clonedLocalUnion(1)) == s32)
     #assert(#typeof(clonedAnonymousStruct(true)) == bool)

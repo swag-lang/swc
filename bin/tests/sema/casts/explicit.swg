@@ -109,27 +109,27 @@
 
 #assert(cast(u64) 18446744073709551615'u64 == 18446744073709551615)
 
-#test
+func semaTest001()
 {
     var a: [4] u8
     var b = cast(string) a
     var c = cast(cstring) a
 }
 
-#test
+func semaTest002()
 {
     var a: [*] s32
     var b = cast(u64) a
 }
 
-#test
+func semaTest003()
 {
     var a: [4] s32
     var s = cast([..] s32) a
     #assert(#typeof(s) == [..] s32)
 }
 
-#test
+func semaTest004()
 {
     var a: [4] u8
     var s = cast([..] u16) a
@@ -141,7 +141,7 @@ func takeStringValue(value: string)->u64
     return @countof(value)
 }
 
-#test
+func semaTest005()
 {
     var text = "abcd"
     var textRef: &string = &text

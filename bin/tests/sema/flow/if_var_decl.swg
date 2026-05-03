@@ -1,6 +1,6 @@
 #global fileprivate
 
-#test
+func semaTest001()
 {
     if var x: s32 = 1 where x
     {
@@ -8,7 +8,7 @@
     }
 }
 
-#test
+func semaTest002()
 {
     if var x = 0
     {
@@ -19,7 +19,7 @@
     }
 }
 
-#test
+func semaTest003()
 {
     if var x = 1 where false
     {
@@ -30,7 +30,7 @@
     }
 }
 
-#test
+func semaTest004()
 {
     if var x = 0 where x == 0
     {
@@ -38,7 +38,7 @@
     }
 }
 
-#test
+func semaTest005()
 {
     var result = 0
     var base = 42
@@ -53,7 +53,7 @@
     @assert(result == 1)
 }
 
-#test
+func semaTest006()
 {
     var result = 0
     if var x: #null string = null where x == null
@@ -67,7 +67,7 @@
     @assert(result == 1)
 }
 
-#test
+func semaTest007()
 {
     var result = 0
     if var x: #null [..] s32 = null where x == null

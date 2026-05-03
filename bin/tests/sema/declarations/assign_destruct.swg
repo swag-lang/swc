@@ -2,7 +2,7 @@
 
 struct Pair { a: s32; b: bool }
 
-#test
+func semaTest001()
 {
     var s: Pair
     var a: s32
@@ -10,7 +10,7 @@ struct Pair { a: s32; b: bool }
     (a, b) = s
 }
 
-#test
+func semaTest002()
 {
     var s: Pair
     var a: s32

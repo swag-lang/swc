@@ -7,27 +7,27 @@
     const B = true
 }
 
-#test
+func semaTest001()
 {
     const A = #arch
     #assert(#typeof(A) == Swag.TargetArch)
 }
 
-#test
+func semaTest002()
 {
     const C = #cpu
     #assert(#typeof(C) == string)
     #assert(C != "")
 }
 
-#test
+func semaTest003()
 {
     const C = #cfg
     #assert(#typeof(C) == string)
     #assert(C != "")
 }
 
-#test
+func semaTest004()
 {
     const O = #swagos
     #assert(#typeof(O) == Swag.TargetOs)

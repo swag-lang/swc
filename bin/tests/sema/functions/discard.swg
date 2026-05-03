@@ -11,18 +11,18 @@ func canDiscard()->s32
     return 2
 }
 
-#test
+func semaTest001()
 {
     let v = mustUse()
     @assert(v == 1)
 }
 
-#test
+func semaTest002()
 {
     discard mustUse()
 }
 
-#test
+func semaTest003()
 {
     canDiscard()
 }

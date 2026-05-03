@@ -55,7 +55,7 @@ impl HashNs.IHash32 for QualifiedInterfacesA
     func helper()->u32 { return 456 }
 }
 
-#test
+func semaTest001()
 {
     var value = QualifiedInterfacesA{}
     let conv  = cast(ConvertNs.IConvert) value
@@ -88,7 +88,7 @@ impl ImplPendingOverloadSet
     }
 }
 
-#test
+func semaTest002()
 {
     var pad = ImplPendingOverloadSet{}
     let value = pad.setVibration(0.0, 1.0)

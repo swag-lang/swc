@@ -38,7 +38,7 @@ func T1(a0, b0: s32)->s32
 
 namespace NS {}
 
-#test
+func semaTest001()
 {
     A()
     B(10)

@@ -16,7 +16,7 @@ func useGlobalCallback(value: s32)->s32
     return GAddOne(value)
 }
 
-#test
+func semaTest001()
 {
     let cb: UnaryFn = GAddOne
     let value = useGlobalCallback(41)

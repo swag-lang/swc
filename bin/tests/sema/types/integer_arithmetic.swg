@@ -56,7 +56,7 @@
 #assert(3'u32 * 4 == 12)
 #assert(3'u64 * 4 == 12)
 
-#test
+func semaTest001()
 {
     let value: u32 = 3
     let scale: u64 = 1000

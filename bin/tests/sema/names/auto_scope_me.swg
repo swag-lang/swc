@@ -19,7 +19,7 @@ impl A
     }
 }
 
-#test
+func semaTest001()
 {
     let value = A{count: 3, x: 1, y: 2}
     let ok = value.whereFunction(3)
@@ -56,7 +56,7 @@ impl AutoScopeUnaryBox
     }
 }
 
-#test
+func semaTest002()
 {
     var value: AutoScopeUnaryBox's32 = {value: 42}
     let inverted = ~value

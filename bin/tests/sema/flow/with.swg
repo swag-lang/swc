@@ -125,7 +125,7 @@ func semaWithRetvalUndefined()->{ a, b: s32 }
     return result
 }
 
-#test
+func semaTest001()
 {
     var point: SemaWithPoint
 
@@ -140,7 +140,7 @@ func semaWithRetvalUndefined()->{ a, b: s32 }
     @assert(point.y == 22)
 }
 
-#test
+func semaTest002()
 {
     with var point = semaWithMakePoint()
     {
@@ -152,7 +152,7 @@ func semaWithRetvalUndefined()->{ a, b: s32 }
     @assert(point.y == 27)
 }
 
-#test
+func semaTest003()
 {
     var point = semaWithMakePoint()
 
@@ -167,7 +167,7 @@ func semaWithRetvalUndefined()->{ a, b: s32 }
     @assert(point.y == 27)
 }
 
-#test
+func semaTest004()
 {
     var point: SemaWithPoint
     var holder: SemaWithHolder
@@ -182,7 +182,7 @@ func semaWithRetvalUndefined()->{ a, b: s32 }
     @assert(point.y == 3)
 }
 
-#test
+func semaTest005()
 {
     var point = semaWithMakePoint()
     var ptr = &point
@@ -197,7 +197,7 @@ func semaWithRetvalUndefined()->{ a, b: s32 }
     @assert(point.y == 25)
 }
 
-#test
+func semaTest006()
 {
     var sum = 0
 
@@ -220,7 +220,7 @@ func semaWithRetvalUndefined()->{ a, b: s32 }
     @assert(sum == 21)
 }
 
-#test
+func semaTest007()
 {
     with var pair: { a, b: s32 }
     {
@@ -232,7 +232,7 @@ func semaWithRetvalUndefined()->{ a, b: s32 }
     @assert(pair.b == 13)
 }
 
-#test
+func semaTest008()
 {
     var point = semaWithMakePoint()
     var wrapper: SemaWithWrapper
@@ -255,27 +255,27 @@ func semaWithRetvalUndefined()->{ a, b: s32 }
     @assert(point.y == 22)
 }
 
-#test
+func semaTest009()
 {
     var owner: SemaWithOwner
     @assert(owner.applyShadow() == 1020)
 }
 
-#test
+func semaTest010()
 {
     let pair = semaWithRetval()
     @assert(pair.a == 1)
     @assert(pair.b == 2)
 }
 
-#test
+func semaTest011()
 {
     let pair = semaWithRetvalUndefined()
     @assert(pair.a == 5)
     @assert(pair.b == 8)
 }
 
-#test
+func semaTest012()
 {
     var owner: SemaWithMemberOwner
     owner.point = semaWithMakePoint()

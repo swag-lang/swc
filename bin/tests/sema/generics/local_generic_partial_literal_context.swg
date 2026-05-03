@@ -27,7 +27,7 @@ func(T) localUnionValueDefaultPartialLiteral()->T
     return data.value
 }
 
-#test
+func semaTest001()
 {
     #assert(#typeof(localStructPartialLiteral'(bool, f32)()) == f32)
     #assert(#typeof(localUnionValueDefaultPartialLiteral'f32()) == f32)

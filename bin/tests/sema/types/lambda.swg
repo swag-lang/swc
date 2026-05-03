@@ -52,7 +52,7 @@ func PtrMatch5(values: ...)->s32
     return cast(s32) @countof(values)
 }
 
-#test
+func semaTest001()
 {
     let p0: func() = &PtrMatch0
     let p1: func(value: s32) = &PtrMatch1

@@ -24,7 +24,7 @@ struct(U) WrapperAliasBox
     item: GenericBoxAlias2
 }
 
-#test
+func semaTest001()
 {
     #assert(functionLocalAliasBox'u16())
 

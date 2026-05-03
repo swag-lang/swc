@@ -24,7 +24,7 @@ func getValue(attribute: const *Swag.Attribute, value: string)->#null any
     return null
 }
 
-#test
+func semaTest001()
 {
     @assert(getValue(s32, s32, "x") == null)
 }

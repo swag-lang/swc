@@ -23,7 +23,7 @@ impl IAction for RedoAction
     mtd impl execute(id: s32)->s32 => id + 80
 }
 
-#test
+func semaTest001()
 {
     var actions: [2] IAction
     actions[0] = @mkinterface(null, #typeof(UndoAction{}), IAction)

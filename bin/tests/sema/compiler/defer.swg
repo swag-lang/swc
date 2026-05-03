@@ -36,12 +36,12 @@ func mixinConditionalDefer(shouldThrow: bool) throw
         throw ErrCompilerDefer{}
 }
 
-#test
+func semaTest001()
 {
     mixinDeferredGlobal()
 }
 
-#test
+func semaTest002()
 {
     var value = 0
     macroInject(#code {
@@ -49,7 +49,7 @@ func mixinConditionalDefer(shouldThrow: bool) throw
     })
 }
 
-#test
+func semaTest003()
 {
     var value = 0
     for 1
@@ -60,7 +60,7 @@ func mixinConditionalDefer(shouldThrow: bool) throw
     }
 }
 
-#test
+func semaTest004()
 {
     func runMixinConditionalDefer(shouldThrow: bool)->s64
     {

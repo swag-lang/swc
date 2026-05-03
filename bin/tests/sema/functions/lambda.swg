@@ -1,6 +1,6 @@
 #global fileprivate
 
-#test
+func semaTest001()
 {
     var fn: func()
     fn()
@@ -13,13 +13,13 @@ struct A
     fn: func()
 }
 
-#test
+func semaTest002()
 {
     var a: A
     a.fn()
 }
 
-#test
+func semaTest003()
 {
     var fn3: func(v: string)
     fn3("ok")

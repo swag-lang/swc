@@ -1,6 +1,6 @@
 #global fileprivate
 
-#test
+func semaTest001()
 {
     var buf: [100] u8
     let str = @mkslice(&buf[0], @countof(buf))
@@ -16,7 +16,7 @@
     #assert(#typeof(str3) == const [..] s32)
 }
 
-#test
+func semaTest002()
 {
     var buf4: [100] u8
     let str4 = cast(string) @mkslice(&buf4[0], @countof(buf4))

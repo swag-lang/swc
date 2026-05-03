@@ -1,6 +1,6 @@
 #global fileprivate
 
-#test
+func semaTest001()
 {
     var v = 1
     switch v
@@ -14,7 +14,7 @@
     }
 }
 
-#test
+func semaTest002()
 {
     var v = 0
     switch v

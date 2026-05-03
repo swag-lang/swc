@@ -1,5 +1,5 @@
 #global fileprivate
 
-#test
+func semaTest001()
 {
 }

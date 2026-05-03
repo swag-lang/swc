@@ -1,6 +1,6 @@
 #global fileprivate
 
-#test
+func semaTest001()
 {
     if true
     {
@@ -24,7 +24,7 @@
     }
 }
 
-#test
+func semaTest002()
 {
     if true
     {
@@ -36,7 +36,7 @@
     }
 }
 
-#test
+func semaTest003()
 {
     if true
     {

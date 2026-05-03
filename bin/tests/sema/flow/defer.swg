@@ -72,7 +72,7 @@ func deferThrowTop() throw
     try deferThrowMid()
 }
 
-#test
+func semaTest001()
 {
     // compiler829, compiler833
     func deferScopeOrder()->s64
@@ -97,7 +97,7 @@ func deferThrowTop() throw
     #assert(V == 42315)
 }
 
-#test
+func semaTest002()
 {
     // compiler830, compiler831
     func deferFunctionReturnTrace()->DeferReturnInfo
@@ -120,7 +120,7 @@ func deferThrowTop() throw
     #assert(V.trace == 19)
 }
 
-#test
+func semaTest003()
 {
     // compiler841, compiler842, compiler843
     func deferIfBranch(takeIf: bool)->s64
@@ -147,7 +147,7 @@ func deferThrowTop() throw
     #assert(V1 == 435)
 }
 
-#test
+func semaTest004()
 {
     func deferIfSingleStmtExecutesImmediately(takeIf: bool)->s64
     {
@@ -165,7 +165,7 @@ func deferThrowTop() throw
     #assert(V1 == 2)
 }
 
-#test
+func semaTest005()
 {
     // compiler839, compiler840
     func deferWhileControl()->s64
@@ -193,7 +193,7 @@ func deferThrowTop() throw
     #assert(V == 9123)
 }
 
-#test
+func semaTest006()
 {
     func deferWhileReturnTrace()->DeferReturnInfo
     {
@@ -228,7 +228,7 @@ func deferThrowTop() throw
     #assert(V.trace == 172)
 }
 
-#test
+func semaTest007()
 {
     func deferBlockBodyTrace()->DeferReturnInfo
     {
@@ -251,7 +251,7 @@ func deferThrowTop() throw
     #assert(V.trace == 6)
 }
 
-#test
+func semaTest008()
 {
     // compiler832, compiler854, compiler855
     func deferNestedLoopControl()->s32
@@ -273,7 +273,7 @@ func deferThrowTop() throw
     #assert(V == 10)
 }
 
-#test
+func semaTest009()
 {
     func deferForCStyle()->s64
     {
@@ -297,7 +297,7 @@ func deferThrowTop() throw
     #assert(V == 8123)
 }
 
-#test
+func semaTest010()
 {
     func deferForRange()->s64
     {
@@ -321,7 +321,7 @@ func deferThrowTop() throw
     #assert(V == 6123)
 }
 
-#test
+func semaTest011()
 {
     func deferForeach()->s64
     {
@@ -347,7 +347,7 @@ func deferThrowTop() throw
     #assert(V == 7123)
 }
 
-#test
+func semaTest012()
 {
     // compiler860, compiler861
     func deferSwitch(v: s32)->s64
@@ -388,7 +388,7 @@ func deferThrowTop() throw
     #assert(V3 == 65)
 }
 
-#test
+func semaTest013()
 {
     // compiler1312, compiler1313, compiler1314
     func deferBreakToScopeAndDrop()->DeferDropInfo
@@ -421,7 +421,7 @@ func deferThrowTop() throw
     #assert(V.drops == 2)
 }
 
-#test
+func semaTest014()
 {
     #[Swag.NoInline]
     func consumeDropTracker(value: DeferDropTracker)
@@ -450,7 +450,7 @@ func deferThrowTop() throw
     #assert(#typeof(deferParameterDropInfo()) == DeferDropInfo)
 }
 
-#test
+func semaTest015()
 {
     #[Swag.NoInline]
     func consumeDropHolder(value: DeferDropHolder)
@@ -481,7 +481,7 @@ func deferThrowTop() throw
     #assert(V.drops == 1)
 }
 
-#test
+func semaTest016()
 {
     func deferReturnDropInfo()->DeferDropInfo
     {
@@ -501,7 +501,7 @@ func deferThrowTop() throw
     #assert(#typeof(deferReturnDropInfo()) == DeferDropInfo)
 }
 
-#test
+func semaTest017()
 {
     func deferBreakToScope()->s64
     {
@@ -525,7 +525,7 @@ func deferThrowTop() throw
     #assert(V == 213)
 }
 
-#test
+func semaTest018()
 {
     func deferConditionalCatchTrace()->s64
     {

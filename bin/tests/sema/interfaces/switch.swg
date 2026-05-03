@@ -97,7 +97,7 @@ func classifyNil(evt: IEvent)->s32
     }
 }
 
-#test
+func semaTest001()
 {
     var wheel: MouseWheelEvent
     var mouse: MouseEvent

@@ -17,7 +17,7 @@ impl ValueOrPtr
 alias ValueOrPtrAlias  = ValueOrPtr
 alias ValueOrPtrAlias2 = ValueOrPtrAlias
 
-#test
+func semaTest001()
 {
     let boxed1 = ValueOrPtr's32.makeValue(42)
     let boxed2 = ValueOrPtrAlias2's32.makeValue(24)

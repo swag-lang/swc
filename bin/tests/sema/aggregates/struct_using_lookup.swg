@@ -33,21 +33,21 @@ struct OuterAnonymousUnion
     }
 }
 
-#test
+func semaTest001()
 {
     var a: OuterValue
     let x = a.x
     #assert(#typeof(x) == s32)
 }
 
-#test
+func semaTest002()
 {
     var a: OuterPtr
     let x = a.x
     #assert(#typeof(x) == s32)
 }
 
-#test
+func semaTest003()
 {
     var s: OuterAnonymousStruct
     #assert(#typeof(s.x) == s32)
@@ -55,7 +55,7 @@ struct OuterAnonymousUnion
     #assert(#typeof(s.data.x) == s32)
 }
 
-#test
+func semaTest004()
 {
     var u: OuterAnonymousUnion
     #assert(#typeof(u.bytes) == #type [8] u8)
@@ -63,7 +63,7 @@ struct OuterAnonymousUnion
     #assert(#typeof(u.data.words) == #type [2] u32)
 }
 
-#test
+func semaTest005()
 {
     var innerVal: Inner
     var out: OuterValue
@@ -76,7 +76,7 @@ struct OuterAnonymousUnion
     @assert(innerVal.x == 9)
 }
 
-#test
+func semaTest006()
 {
     var out: OuterValue
     out.x = 11

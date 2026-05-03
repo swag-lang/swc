@@ -28,7 +28,7 @@ enum NonCyclicEnum
 #assert(NonCyclicEnum.NCE_A == 42)
 #assert(NonCyclicEnum.NCE_B == 43)
 
-#test
+func semaTest001()
 {
     struct AA
     {
@@ -39,7 +39,7 @@ enum NonCyclicEnum
     let x = st.x
 }
 
-#test
+func semaTest002()
 {
     var a: AA
     var b: BB
@@ -51,21 +51,21 @@ enum NonCyclicEnum
     @assert(a.y.x == 2)
 }
 
-#test
+func semaTest003()
 {
     var c: CC
     c.a = &c
     @assert(c.a == &c)
 }
 
-#test
+func semaTest004()
 {
     var ll: LL
     ll.p = null
     @assert(ll.p == null)
 }
 
-#test
+func semaTest005()
 {
     var e: NonCyclicEnum = .NCE_B
     @assert(e == NonCyclicEnum.NCE_B)

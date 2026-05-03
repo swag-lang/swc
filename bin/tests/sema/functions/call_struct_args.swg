@@ -26,7 +26,7 @@ func ForeignReturnPair()->Pair32;
 #[Swag.Foreign("kernel32", "GetTickCount")]
 func ForeignReturnTriple()->Triple64;
 
-#test
+func semaTest001()
 {
     var pair: Pair32 = {a: 1, b: 2}
     var triple: Triple64 = {a: 1, b: 2, c: 3}

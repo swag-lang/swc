@@ -18,7 +18,7 @@ impl Vector3
 alias VectorAlias  = Vector3
 alias VectorAlias2 = VectorAlias
 
-#test
+func semaTest001()
 {
     var a: VectorAlias2's32 = {x: 1, y: 2, z: 3}
     var b: VectorAlias2's32 = {x: 4, y: 5, z: 6}

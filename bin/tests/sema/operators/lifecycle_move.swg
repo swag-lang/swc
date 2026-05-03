@@ -288,7 +288,7 @@ func returnCopyInfo()->LifecycleInfo
     return {value.value, 0, DropCount, DropTrace, PostCopyCount, PostMoveCount}
 }
 
-#test
+func semaTest001()
 {
     const V = #run copyAssignInfo()
     #assert(V.dst == 12)
@@ -299,7 +299,7 @@ func returnCopyInfo()->LifecycleInfo
     #assert(V.postMove == 0)
 }
 
-#test
+func semaTest002()
 {
     const V = #run moveAssignInfo()
     #assert(V.dst == 23)
@@ -310,7 +310,7 @@ func returnCopyInfo()->LifecycleInfo
     #assert(V.postMove == 1)
 }
 
-#test
+func semaTest003()
 {
     const V = #run noDropCopyInfo()
     #assert(V.dst == 14)
@@ -321,7 +321,7 @@ func returnCopyInfo()->LifecycleInfo
     #assert(V.postMove == 0)
 }
 
-#test
+func semaTest004()
 {
     const V = #run noDropMoveInfo()
     #assert(V.dst == 26)
@@ -332,7 +332,7 @@ func returnCopyInfo()->LifecycleInfo
     #assert(V.postMove == 1)
 }
 
-#test
+func semaTest005()
 {
     const V = #run moveRawInfo()
     #assert(V.dst == 23)
@@ -343,7 +343,7 @@ func returnCopyInfo()->LifecycleInfo
     #assert(V.postMove == 1)
 }
 
-#test
+func semaTest006()
 {
     const V = #run noDropMoveRawInfo()
     #assert(V.dst == 23)
@@ -354,7 +354,7 @@ func returnCopyInfo()->LifecycleInfo
     #assert(V.postMove == 1)
 }
 
-#test
+func semaTest007()
 {
     const V = #run selfCopyInfo()
     #assert(V.dst == 6)
@@ -365,7 +365,7 @@ func returnCopyInfo()->LifecycleInfo
     #assert(V.postMove == 0)
 }
 
-#test
+func semaTest008()
 {
     const V = #run selfMoveInfo()
     #assert(V.dst == 6)
@@ -376,7 +376,7 @@ func returnCopyInfo()->LifecycleInfo
     #assert(V.postMove == 0)
 }
 
-#test
+func semaTest009()
 {
     const V = #run moveRefAssignInfo()
     #assert(V.dst == 24)
@@ -387,7 +387,7 @@ func returnCopyInfo()->LifecycleInfo
     #assert(V.postMove == 1)
 }
 
-#test
+func semaTest010()
 {
     const V = #run overloadCopyInfo()
     #assert(V.dst == 19)
@@ -398,7 +398,7 @@ func returnCopyInfo()->LifecycleInfo
     #assert(V.postMove == 0)
 }
 
-#test
+func semaTest011()
 {
     const V = #run overloadMoveInfo()
     #assert(V.dst == 29)
@@ -409,7 +409,7 @@ func returnCopyInfo()->LifecycleInfo
     #assert(V.postMove == 1)
 }
 
-#test
+func semaTest012()
 {
     const V = #run borrowedParamInfo()
     #assert(V.dst == 7)
@@ -420,7 +420,7 @@ func returnCopyInfo()->LifecycleInfo
     #assert(V.postMove == 0)
 }
 
-#test
+func semaTest013()
 {
     const V = #run embeddedCopyAssignInfo()
     #assert(V.dst == 12)
@@ -431,7 +431,7 @@ func returnCopyInfo()->LifecycleInfo
     #assert(V.postMove == 0)
 }
 
-#test
+func semaTest014()
 {
     const V = #run embeddedMoveAssignInfo()
     #assert(V.dst == 23)
@@ -442,7 +442,7 @@ func returnCopyInfo()->LifecycleInfo
     #assert(V.postMove == 1)
 }
 
-#test
+func semaTest015()
 {
     const V = #run embeddedOuterCopyAssignInfo()
     #assert(V.dst == 115)
@@ -453,7 +453,7 @@ func returnCopyInfo()->LifecycleInfo
     #assert(V.postMove == 0)
 }
 
-#test
+func semaTest016()
 {
     const V = #run embeddedOuterMoveAssignInfo()
     #assert(V.dst == 223)
@@ -464,7 +464,7 @@ func returnCopyInfo()->LifecycleInfo
     #assert(V.postMove == 2)
 }
 
-#test
+func semaTest017()
 {
     const V = #run embeddedOuterNoDropCopyAssignInfo()
     #assert(V.dst == 112)
@@ -475,7 +475,7 @@ func returnCopyInfo()->LifecycleInfo
     #assert(V.postMove == 0)
 }
 
-#test
+func semaTest018()
 {
     const V = #run returnCopyInfo()
     #assert(V.dst == 14)

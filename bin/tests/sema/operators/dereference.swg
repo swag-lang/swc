@@ -1,6 +1,6 @@
 #global fileprivate
 
-#test
+func semaTest001()
 {
     struct AA
     {
@@ -13,7 +13,7 @@
     #assert(#typeof(v1) == AA)
 }
 
-#test
+func semaTest002()
 {
     struct AA
     {
@@ -26,7 +26,7 @@
     #assert(#typeof(v1) == AA)
 }
 
-#test
+func semaTest003()
 {
     struct AA
     {
@@ -40,7 +40,7 @@
     #assert(#typeof(v1) == AA)
 }
 
-#test
+func semaTest004()
 {
     struct AA
     {
@@ -55,7 +55,7 @@
     #assert(#typeof(v1) == *AA)
 }
 
-#test
+func semaTest005()
 {
     struct AA
     {

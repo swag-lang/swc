@@ -9,19 +9,19 @@ const C = A.R | .G
 
 const D = A.R & ~.G
 
-#test
+func semaTest001()
 {
     var request: *Swag.AllocatorRequest
     if request.mode == .Realloc {}
 }
 
 func toto()->A { return .R }
-#test
+func semaTest002()
 {
     if(toto() == .R) {}
 }
 
-#test
+func semaTest003()
 {
     let x: A = .B
     let y = x | .R
@@ -43,7 +43,7 @@ impl E
     }
 }
 
-#test
+func semaTest004()
 {
     var f: F
     f.x = .G
@@ -62,7 +62,7 @@ func reverseDirection(dir: BindingDirectionAlias)->BindingDirection
     }
 }
 
-#test
+func semaTest005()
 {
     let dir: BindingDirectionAlias = .North
     #assert(#typeof(reverseDirection(dir)) == BindingDirection)

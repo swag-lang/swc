@@ -199,7 +199,7 @@ impl MethodBufferContext
 
 }
 
-#test
+func semaTest001()
 {
     let wrapped: WrapperImplicit'u16
     let doubled: DoubleBufferImplicit'(u8, 4)

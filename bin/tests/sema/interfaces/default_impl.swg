@@ -23,7 +23,7 @@ impl ITest for Point3
 {
 }
 
-#test
+func semaTest001()
 {
     var v2: Point2
     var v3: Point3

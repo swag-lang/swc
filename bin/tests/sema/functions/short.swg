@@ -8,7 +8,7 @@ func E(a: s32) => a > 0
 func F(a, b: s32) => a - b
 func G(x: f32) => x < 0 ? -1 : 1
 func H(x: f64) => x < 0 ? -1.5 : 1.5
-#test
+func semaTest001()
 {
     #assert(#typeof(A()) == bool)
     #assert(#typeof(B(2, 3)) == s32)

@@ -13,7 +13,7 @@ const NODE = cast(const *Swag.TypeInfoStruct) #typeof(Node)
 const NEXT = cast(const *Swag.TypeInfoPointer) NODE.fields[0].pointedType
 #assert(NEXT.pointedType == Node)
 
-#test
+func semaTest001()
 {
     const node = cast(const *Swag.TypeInfoStruct) #typeof(Node)
     #assert(@countof(node.fields) == 1)

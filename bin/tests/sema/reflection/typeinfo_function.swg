@@ -18,7 +18,7 @@ const CONSUME = cast(const *Swag.TypeInfoFunc) #typeof(consume)
 #assert(CONSUME.parameters[0].name == "value")
 #assert(CONSUME.parameters[0].pointedType == string)
 
-#test
+func semaTest001()
 {
     let typeFunc = cast(const *Swag.TypeInfoFunc) #typeof(add)
     let ok       = typeFunc.parameters[0].pointedType == s32 and typeFunc.returnType == f32

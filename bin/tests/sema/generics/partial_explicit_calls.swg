@@ -43,7 +43,7 @@ impl SimpleMethodProbe
     }
 }
 
-#test
+func semaTest001()
 {
     var simple = SimpleMethodProbe{}
 

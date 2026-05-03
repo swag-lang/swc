@@ -10,7 +10,7 @@ func(T, U) choose(value: T, other: U)->bool
     return #typeof(value) == T and #typeof(other) == U
 }
 
-#test
+func semaTest001()
 {
     #assert(#typeof(choose'(bool)(true, 0.0'f32)) == bool)
 }

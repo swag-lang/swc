@@ -1,6 +1,6 @@
 #global fileprivate
 
-#test
+func semaTest001()
 {
     var a: *s32
     if !a {}
@@ -16,7 +16,7 @@
     if !f {}
 }
 
-#test
+func semaTest002()
 {
     var a: *s32
     var b: *s32
@@ -25,13 +25,13 @@
 
 const A = ""
 
-#test
+func semaTest003()
 {
     var a: s32
     if a and a {}
 }
 
-#test
+func semaTest004()
 {
     var a: *s32
     var b: *s32
@@ -47,7 +47,7 @@ const A = ""
     @assert((!a or !b) == false)
 }
 
-#test
+func semaTest005()
 {
     var a: s32
 
@@ -61,7 +61,7 @@ const A = ""
     @assert(a or a)
 }
 
-#test
+func semaTest006()
 {
     var a: *s32
 
@@ -76,7 +76,7 @@ const A = ""
     @assert(a or a)
 }
 
-#test
+func semaTest007()
 {
     var s: string
     @assert(!s)
@@ -85,7 +85,7 @@ const A = ""
     @assert(!s == false)
 }
 
-#test
+func semaTest008()
 {
     var a: [2] s32
     var s: [..] s32 = a

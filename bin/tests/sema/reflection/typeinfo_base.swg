@@ -12,7 +12,7 @@
 struct A { R, G, B: s32 }
 #assert(@countof((cast(const *Swag.TypeInfoStruct) #typeof(A)).fields) == 3)
 
-#test
+func semaTest001()
 {
     using Swag
 
@@ -37,20 +37,20 @@ const PA = cast(const *Swag.TypeInfoStruct) #typeof(A)
 #assert(PA.fields[1].offset == 4)
 #assert(PA.fields[2].offset == 8)
 
-#test
+func semaTest002()
 {
     var a: typeinfo = #typeof(f32)
     let b = a.flags | .Nullable
 }
 
-#test
+func semaTest003()
 {
     var a: typeinfo = #typeof(*f32)
     var b = cast(const *Swag.TypeInfoPointer)(a)
     var c = b.pointedType == f32
 }
 
-#test
+func semaTest004()
 {
     const a = #typeof(s32)
     const b = #typeof(s32)
@@ -66,7 +66,7 @@ const PA = cast(const *Swag.TypeInfoStruct) #typeof(A)
     #assert(e != s32)
 }
 
-#test
+func semaTest005()
 {
     const p = #typeof(*s32)
     #assert((cast(const *Swag.TypeInfoPointer) p).pointedType == s32)
@@ -86,7 +86,7 @@ func switchFieldTypeHit()->bool
 
 #assert(switchFieldTypeHit())
 
-#test
+func semaTest006()
 {
     const t = #typeof(A)
     #assert((cast(const *Swag.TypeInfo) t).name == "A")

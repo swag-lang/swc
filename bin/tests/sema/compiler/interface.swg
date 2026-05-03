@@ -1,6 +1,6 @@
 #global fileprivate
 
-#test
+func semaTest001()
 {
     let c   = @compiler
     let msg = c.getMessage()

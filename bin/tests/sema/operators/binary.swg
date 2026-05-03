@@ -1,6 +1,6 @@
 #global fileprivate
 
-#test
+func semaTest001()
 {
     let r = 'A''rune
     let anded = r & 0x7F

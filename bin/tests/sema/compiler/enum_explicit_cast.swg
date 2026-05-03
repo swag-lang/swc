@@ -12,7 +12,7 @@ func takesKey(key: TestKey)->u32
     return cast(u32) key
 }
 
-#test
+func semaTest001()
 {
     let a = cast(TestKey) 1'u8
     let b = cast(TestKey) 2'u32

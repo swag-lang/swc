@@ -52,7 +52,7 @@ func(U) localAliasPrefixBuffer()->PrefixDefaultAlias2'3
     return data.item
 }
 
-#test
+func semaTest001()
 {
     let partial: AliasPartialHolder'(u32, f64)
     let prefix: AliasExplicitPrefixHolder'u8

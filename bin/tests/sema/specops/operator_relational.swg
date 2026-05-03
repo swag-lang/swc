@@ -36,7 +36,7 @@ impl CompareSpecBox
     }
 }
 
-#test
+func semaTest001()
 {
     let lhs = CompareSpecBox{value: 42}
     let rhs = CompareSpecBox{value: 42}
@@ -49,7 +49,7 @@ impl CompareSpecBox
     #assert(#typeof(ne) == bool)
 }
 
-#test
+func semaTest002()
 {
     let lhs = CompareSpecBox{value: 42}
     let eq: bool = lhs == 42
@@ -61,7 +61,7 @@ impl CompareSpecBox
     #assert(#typeof(ne) == bool)
 }
 
-#test
+func semaTest003()
 {
     let lhs = CompareSpecBox{value: 10}
     let rhs = CompareSpecBox{value: 20}
@@ -83,7 +83,7 @@ impl CompareSpecBox
     #assert(#typeof(cmp) == s32)
 }
 
-#test
+func semaTest004()
 {
     let lhs = CompareSpecBox{value: 20}
     let rhs = CompareSpecBox{value: 10}
@@ -100,7 +100,7 @@ impl CompareSpecBox
     #assert(#typeof(cmp) == s32)
 }
 
-#test
+func semaTest005()
 {
     let lhs = CompareSpecBox{value: 15}
     let rhs = CompareSpecBox{value: 15}
@@ -117,7 +117,7 @@ impl CompareSpecBox
     #assert(#typeof(cmp) == s32)
 }
 
-#test
+func semaTest006()
 {
     let lhs = CompareSpecBox{value: 8}
     let lt: bool = lhs < 9

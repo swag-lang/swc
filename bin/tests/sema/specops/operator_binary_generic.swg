@@ -61,7 +61,7 @@ struct IndirectOtherByValue
     b: u64
 }
 
-#test
+func semaTest001()
 {
     var lhs  = BinaryIntBox{value: 40}
     var rhs  = BinaryIntBox{value: 2}
@@ -71,7 +71,7 @@ struct IndirectOtherByValue
     #assert(#typeof(sum.value) == u32)
 }
 
-#test
+func semaTest002()
 {
     var value = BinaryIntBox{value: 2}
     let shift = value << 4'u32
@@ -80,7 +80,7 @@ struct IndirectOtherByValue
     #assert(#typeof(shift.value) == u32)
 }
 
-#test
+func semaTest003()
 {
     var value = BinaryRightIntBox{value: 5}
     let scaled = 3'u32 * value

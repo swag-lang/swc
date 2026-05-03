@@ -26,7 +26,7 @@ impl ConstDataOfSpecBuffer
     }
 }
 
-#test
+func semaTest001()
 {
     var a: [..] s32
     var b = @dataof(a)
@@ -49,7 +49,7 @@ impl ConstDataOfSpecBuffer
     #assert(#typeof(j) == [*] void)
 }
 
-#test
+func semaTest002()
 {
     var s: string = "abc"
     var p = @dataof(s)
@@ -58,7 +58,7 @@ impl ConstDataOfSpecBuffer
     @assert(p[2] == 'c')
 }
 
-#test
+func semaTest003()
 {
     var arr: [3] u8 = [1, 2, 3]
     var p = @dataof(arr)
@@ -67,14 +67,14 @@ impl ConstDataOfSpecBuffer
     @assert(p[2] == 3'u8)
 }
 
-#test
+func semaTest004()
 {
     var s: string = null
     var p = @dataof(s)
     #assert(#typeof(p) == const [*] u8)
 }
 
-#test
+func semaTest005()
 {
     var arr: [2] s32 = [1, 2]
     var p = @dataof(arr)
@@ -82,7 +82,7 @@ impl ConstDataOfSpecBuffer
     @assert(arr[0] == 7)
 }
 
-#test
+func semaTest006()
 {
     const s: string = "abc"
     const p = @dataof(s)
@@ -90,7 +90,7 @@ impl ConstDataOfSpecBuffer
     #assert(dref p == 'a''u8)
 }
 
-#test
+func semaTest007()
 {
     const s: const [..] u8 = cast(const [..] u8) "abc"
     const p = @dataof(s)
@@ -98,7 +98,7 @@ impl ConstDataOfSpecBuffer
     #assert(dref p == 'a''u8)
 }
 
-#test
+func semaTest008()
 {
     const arr: [2] s32 = [7, 9]
     const p = @dataof(arr)
@@ -106,7 +106,7 @@ impl ConstDataOfSpecBuffer
     #assert(dref p == 7)
 }
 
-#test
+func semaTest009()
 {
     var value: DataOfSpecBuffer = {data: [4, 5, 6]}
     var p = @dataof(value)
@@ -117,7 +117,7 @@ impl ConstDataOfSpecBuffer
     @assert(value.data[2] == 6)
 }
 
-#test
+func semaTest010()
 {
     const value: ConstDataOfSpecBuffer = {data: [7'u8, 9'u8]}
     let p = @dataof(value)

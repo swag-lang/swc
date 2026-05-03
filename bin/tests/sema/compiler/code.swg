@@ -74,7 +74,7 @@ func forwardGenericCodeWhen(cond: #code bool, stmt: #code void)
     })
 }
 
-#test
+func semaTest001()
 {
     var count = 0
     for 4
@@ -88,7 +88,7 @@ func forwardGenericCodeWhen(cond: #code bool, stmt: #code void)
     @assert(count == 4)
 }
 
-#test
+func semaTest002()
 {
     var count = 0
 #scope(Outer)
@@ -107,7 +107,7 @@ func forwardGenericCodeWhen(cond: #code bool, stmt: #code void)
     @assert(count == 1)
 }
 
-#test
+func semaTest003()
 {
     var count = 0
     runWhen(true)
@@ -123,7 +123,7 @@ func forwardGenericCodeWhen(cond: #code bool, stmt: #code void)
     @assert(count == 1)
 }
 
-#test
+func semaTest004()
 {
     var count = 0
     defaultBeforeStmt()
@@ -133,7 +133,7 @@ func forwardGenericCodeWhen(cond: #code bool, stmt: #code void)
     @assert(count == 1)
 }
 
-#test
+func semaTest005()
 {
     let value = forwardGenericCodeValue(#code 42)
     #assert(#typeof(value) == s32)
@@ -149,7 +149,7 @@ func forwardGenericCodeWhen(cond: #code bool, stmt: #code void)
     @assert(count == 1)
 }
 
-#test
+func semaTest006()
 {
     var count = 0
 #scope(Outer)
@@ -173,7 +173,7 @@ func forwardGenericCodeWhen(cond: #code bool, stmt: #code void)
     @assert(count == 2)
 }
 
-#test
+func semaTest007()
 {
     var count = 0
 #scope(Outer)

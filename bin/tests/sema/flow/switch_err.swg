@@ -1,6 +1,6 @@
 #global fileprivate
 
-#test
+func semaTest001()
 {
     switch 1
     {
@@ -11,7 +11,7 @@
     }
 }
 
-#test
+func semaTest002()
 {
     switch 1
     {
@@ -22,7 +22,7 @@
     }
 }
 
-#test
+func semaTest003()
 {
     switch 1
     {
@@ -33,7 +33,7 @@
     }
 }
 
-#test
+func semaTest004()
 {
     #[Swag.Complete]
     switch 1

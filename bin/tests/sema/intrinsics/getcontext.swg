@@ -1,6 +1,6 @@
 #global fileprivate
 
-#test
+func semaTest001()
 {
     var v = @getcontext()
     #assert(#defined(v.allocator))
@@ -8,7 +8,7 @@
     #assert(#defined(v.errorAllocator))
 }
 
-#test
+func semaTest002()
 {
     var v = @getcontext()
     #assert(#defined(v.panic))

@@ -1457,12 +1457,21 @@ namespace
 
     bool canSplitQuotedSuffixArgument(Sema& sema, const SymbolStruct& genericRoot, const SemaNodeView& leftView)
     {
-        const auto* decl = genericRoot.decl() ? genericRoot.decl()->safeCast<AstStructDecl>() : nullptr;
-        if (!decl || !decl->spanGenericParamsRef.isValid())
+        const AstNode* decl = genericRoot.decl();
+        if (!decl)
+            return false;
+
+        SpanRef spanGenericParamsRef = SpanRef::invalid();
+        if (const auto* structDecl = decl->safeCast<AstStructDecl>())
+            spanGenericParamsRef = structDecl->spanGenericParamsRef;
+        else if (const auto* unionDecl = decl->safeCast<AstUnionDecl>())
+            spanGenericParamsRef = unionDecl->spanGenericParamsRef;
+
+        if (!spanGenericParamsRef.isValid())
             return false;
 
         SmallVector<SemaGeneric::GenericParamDesc> params;
-        SemaGeneric::collectGenericParams(sema, *decl, decl->spanGenericParamsRef, params);
+        SemaGeneric::collectGenericParams(sema, *decl, spanGenericParamsRef, params);
         if (params.empty())
             return false;
 

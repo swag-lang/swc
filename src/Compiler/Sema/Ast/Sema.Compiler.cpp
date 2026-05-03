@@ -1260,94 +1260,6 @@ namespace
         return Result::Continue;
     }
 
-    Utf8 fullTypeName(const TaskContext& ctx, const TypeInfo& type)
-    {
-        Utf8 out;
-
-        if (type.isNullable())
-            out += "#null ";
-        if (type.isConst())
-            out += "const ";
-
-        switch (type.kind())
-        {
-            case TypeInfoKind::Enum:
-                out += type.payloadSymEnum().getFullScopedName(ctx);
-                return out;
-
-            case TypeInfoKind::Struct:
-                out += type.payloadSymStruct().getFullScopedName(ctx);
-                return out;
-
-            case TypeInfoKind::Interface:
-                out += type.payloadSymInterface().getFullScopedName(ctx);
-                return out;
-
-            case TypeInfoKind::Alias:
-                out += type.payloadSymAlias().getFullScopedName(ctx);
-                return out;
-
-            case TypeInfoKind::TypeValue:
-                return fullTypeName(ctx, ctx.typeMgr().get(type.payloadTypeRef()));
-
-            case TypeInfoKind::ValuePointer:
-                out += "*";
-                out += fullTypeName(ctx, ctx.typeMgr().get(type.payloadTypeRef()));
-                return out;
-
-            case TypeInfoKind::BlockPointer:
-                out += "[*] ";
-                out += fullTypeName(ctx, ctx.typeMgr().get(type.payloadTypeRef()));
-                return out;
-
-            case TypeInfoKind::Reference:
-                out += "&";
-                out += fullTypeName(ctx, ctx.typeMgr().get(type.payloadTypeRef()));
-                return out;
-
-            case TypeInfoKind::MoveReference:
-                out += "&&";
-                out += fullTypeName(ctx, ctx.typeMgr().get(type.payloadTypeRef()));
-                return out;
-
-            case TypeInfoKind::Slice:
-                out += "[..] ";
-                out += fullTypeName(ctx, ctx.typeMgr().get(type.payloadTypeRef()));
-                return out;
-
-            case TypeInfoKind::Array:
-            {
-                if (type.payloadArrayDims().empty())
-                    out += "[?]";
-                else
-                {
-                    out += "[";
-                    for (size_t i = 0; i < type.payloadArrayDims().size(); ++i)
-                    {
-                        if (i != 0)
-                            out += ", ";
-                        out += std::to_string(type.payloadArrayDims()[i]);
-                    }
-                    out += "]";
-                }
-
-                const TypeInfo& elemType = ctx.typeMgr().get(type.payloadArrayElemTypeRef());
-                if (!elemType.isArray())
-                    out += " ";
-                out += fullTypeName(ctx, elemType);
-                return out;
-            }
-
-            case TypeInfoKind::TypedVariadic:
-                out += fullTypeName(ctx, ctx.typeMgr().get(type.payloadTypeRef()));
-                out += "...";
-                return out;
-
-            default:
-                return type.toName(ctx);
-        }
-    }
-
     Result semaCompilerNameOf(Sema& sema, const AstCompilerCallOne& node)
     {
         const TaskContext& ctx      = sema.ctx();
@@ -1396,7 +1308,7 @@ namespace
         SWC_RESULT(SemaCheck::isValueOrType(sema, typedView));
         if (typedView.type() && typedView.type()->isTypeValue())
         {
-            const Utf8          name  = fullTypeName(ctx, sema.typeMgr().get(typedView.type()->payloadTypeRef()));
+            const Utf8          name  = sema.typeMgr().get(typedView.type()->payloadTypeRef()).toFullName(ctx);
             const ConstantValue value = ConstantValue::makeString(ctx, name);
             sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(ctx, value));
             return Result::Continue;

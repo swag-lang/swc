@@ -361,182 +361,204 @@ bool TypeInfo::operator==(const TypeInfo& other) const noexcept
     }
 }
 
+namespace
+{
+    enum class TypeNameMode
+    {
+        Short,
+        Full,
+    };
+
+    Utf8 renderTypeName(const TypeInfo& typeInfo, const TaskContext& ctx, const TypeNameMode mode)
+    {
+        Utf8 out;
+
+        if (typeInfo.isNullable())
+            out += "#null ";
+        if (typeInfo.isConst())
+            out += "const ";
+
+        switch (typeInfo.kind())
+        {
+            case TypeInfoKind::Bool:
+                out += "bool";
+                break;
+            case TypeInfoKind::Char:
+                out += "character";
+                break;
+            case TypeInfoKind::String:
+                out += "string";
+                break;
+            case TypeInfoKind::Void:
+                out += "void";
+                break;
+            case TypeInfoKind::Null:
+                out += "null";
+                break;
+            case TypeInfoKind::Undefined:
+                out += "undefined";
+                break;
+            case TypeInfoKind::Any:
+                out += "any";
+                break;
+            case TypeInfoKind::Rune:
+                out += "rune";
+                break;
+            case TypeInfoKind::CString:
+                out += "cstring";
+                break;
+            case TypeInfoKind::CodeBlock:
+            {
+                const TypeInfo& type = ctx.typeMgr().get(typeInfo.payloadTypeRef());
+                out += std::format("#code {}", renderTypeName(type, ctx, mode));
+                break;
+            }
+            case TypeInfoKind::TypeInfo:
+                out += "typeinfo";
+                break;
+            case TypeInfoKind::AggregateStruct:
+                out = "struct literal";
+                break;
+            case TypeInfoKind::AggregateArray:
+                out = "array literal";
+                break;
+
+            case TypeInfoKind::Enum:
+                out += mode == TypeNameMode::Full ? typeInfo.payloadSymEnum().getFullScopedName(ctx) : Utf8(typeInfo.payloadSymEnum().name(ctx));
+                break;
+            case TypeInfoKind::Struct:
+                out += mode == TypeNameMode::Full ? typeInfo.payloadSymStruct().getFullScopedName(ctx) : Utf8(typeInfo.payloadSymStruct().name(ctx));
+                break;
+            case TypeInfoKind::Interface:
+                out += mode == TypeNameMode::Full ? typeInfo.payloadSymInterface().getFullScopedName(ctx) : Utf8(typeInfo.payloadSymInterface().name(ctx));
+                break;
+            case TypeInfoKind::Alias:
+                out += mode == TypeNameMode::Full ? typeInfo.payloadSymAlias().getFullScopedName(ctx) : Utf8(typeInfo.payloadSymAlias().name(ctx));
+                break;
+            case TypeInfoKind::Function:
+                out += typeInfo.payloadSymFunction().computeName(ctx);
+                break;
+
+            case TypeInfoKind::TypeValue:
+            {
+                const TypeInfo& type = ctx.typeMgr().get(typeInfo.payloadTypeRef());
+                if (mode == TypeNameMode::Full)
+                    return renderTypeName(type, ctx, mode);
+                out += std::format("typeinfo({})", renderTypeName(type, ctx, mode));
+                break;
+            }
+
+            case TypeInfoKind::ValuePointer:
+            {
+                const TypeInfo& type = ctx.typeMgr().get(typeInfo.payloadTypeRef());
+                out += std::format("*{}", renderTypeName(type, ctx, mode));
+                break;
+            }
+
+            case TypeInfoKind::BlockPointer:
+            {
+                const TypeInfo& type = ctx.typeMgr().get(typeInfo.payloadTypeRef());
+                out += std::format("[*] {}", renderTypeName(type, ctx, mode));
+                break;
+            }
+
+            case TypeInfoKind::Reference:
+            {
+                const TypeInfo& type = ctx.typeMgr().get(typeInfo.payloadTypeRef());
+                out += std::format("&{}", renderTypeName(type, ctx, mode));
+                break;
+            }
+            case TypeInfoKind::MoveReference:
+            {
+                const TypeInfo& type = ctx.typeMgr().get(typeInfo.payloadTypeRef());
+                out += std::format("&&{}", renderTypeName(type, ctx, mode));
+                break;
+            }
+
+            case TypeInfoKind::Int:
+                if (typeInfo.payloadIntBits() == 0)
+                {
+                    if (typeInfo.payloadIntSign() == TypeInfo::Sign::Unsigned)
+                        out += "unsigned integer";
+                    else if (typeInfo.payloadIntSign() == TypeInfo::Sign::Signed)
+                        out += "signed integer";
+                    else
+                        out += "integer";
+                }
+                else
+                {
+                    SWC_ASSERT(typeInfo.payloadIntSign() != TypeInfo::Sign::Unknown);
+                    out += typeInfo.payloadIntSign() == TypeInfo::Sign::Unsigned ? "u" : "s";
+                    out += std::to_string(typeInfo.payloadIntBits());
+                }
+                break;
+
+            case TypeInfoKind::Float:
+                if (typeInfo.payloadFloatBits() == 0)
+                    out += "float";
+                else
+                {
+                    out += "f";
+                    out += std::to_string(typeInfo.payloadFloatBits());
+                }
+                break;
+
+            case TypeInfoKind::Slice:
+            {
+                const TypeInfo& type = ctx.typeMgr().get(typeInfo.payloadTypeRef());
+                out += std::format("[..] {}", renderTypeName(type, ctx, mode));
+                break;
+            }
+
+            case TypeInfoKind::Array:
+            {
+                if (typeInfo.payloadArrayDims().empty())
+                    out += "[?]";
+                else
+                {
+                    out += "[";
+                    for (size_t i = 0; i < typeInfo.payloadArrayDims().size(); ++i)
+                    {
+                        if (i != 0)
+                            out += ", ";
+                        out += std::to_string(typeInfo.payloadArrayDims()[i]);
+                    }
+                    out += "]";
+                }
+
+                const TypeInfo& elemType = ctx.typeMgr().get(typeInfo.payloadArrayElemTypeRef());
+                if (!elemType.isArray())
+                    out += " ";
+                out += renderTypeName(elemType, ctx, mode);
+                break;
+            }
+
+            case TypeInfoKind::Variadic:
+                out += "...";
+                break;
+            case TypeInfoKind::TypedVariadic:
+            {
+                const TypeInfo& type = ctx.typeMgr().get(typeInfo.payloadTypeRef());
+                out += std::format("{}...", renderTypeName(type, ctx, mode));
+                break;
+            }
+
+            default:
+                SWC_UNREACHABLE();
+        }
+
+        return out;
+    }
+}
+
 Utf8 TypeInfo::toName(const TaskContext& ctx) const
 {
-    Utf8 out;
+    return renderTypeName(*this, ctx, TypeNameMode::Short);
+}
 
-    if (isNullable())
-        out += "#null ";
-    if (isConst())
-        out += "const ";
-
-    switch (kind_)
-    {
-        case TypeInfoKind::Bool:
-            out += "bool";
-            break;
-        case TypeInfoKind::Char:
-            out += "character";
-            break;
-        case TypeInfoKind::String:
-            out += "string";
-            break;
-        case TypeInfoKind::Void:
-            out += "void";
-            break;
-        case TypeInfoKind::Null:
-            out += "null";
-            break;
-        case TypeInfoKind::Undefined:
-            out += "undefined";
-            break;
-        case TypeInfoKind::Any:
-            out += "any";
-            break;
-        case TypeInfoKind::Rune:
-            out += "rune";
-            break;
-        case TypeInfoKind::CString:
-            out += "cstring";
-            break;
-        case TypeInfoKind::CodeBlock:
-        {
-            const TypeInfo& type = ctx.typeMgr().get(payloadTypeRef_.typeRef);
-            out += std::format("#code {}", type.toName(ctx));
-            break;
-        }
-        case TypeInfoKind::TypeInfo:
-            out += "typeinfo";
-            break;
-        case TypeInfoKind::AggregateStruct:
-            out = "struct literal";
-            break;
-        case TypeInfoKind::AggregateArray:
-            out = "array literal";
-            break;
-
-        case TypeInfoKind::Enum:
-            out += payloadEnum_.sym->name(ctx);
-            break;
-        case TypeInfoKind::Struct:
-            out += payloadStruct_.sym->name(ctx);
-            break;
-        case TypeInfoKind::Interface:
-            out += payloadInterface_.sym->name(ctx);
-            break;
-        case TypeInfoKind::Alias:
-            out += payloadAlias_.sym->name(ctx);
-            break;
-        case TypeInfoKind::Function:
-            out += payloadFunction_.sym->computeName(ctx);
-            break;
-
-        case TypeInfoKind::TypeValue:
-        {
-            const TypeInfo& type = ctx.typeMgr().get(payloadTypeRef_.typeRef);
-            out += std::format("typeinfo({})", type.toName(ctx));
-            break;
-        }
-
-        case TypeInfoKind::ValuePointer:
-        {
-            const TypeInfo& type = ctx.typeMgr().get(payloadTypeRef_.typeRef);
-            out += std::format("*{}", type.toName(ctx));
-            break;
-        }
-
-        case TypeInfoKind::BlockPointer:
-        {
-            const TypeInfo& type = ctx.typeMgr().get(payloadTypeRef_.typeRef);
-            out += std::format("[*] {}", type.toName(ctx));
-            break;
-        }
-
-        case TypeInfoKind::Reference:
-        {
-            const TypeInfo& type = ctx.typeMgr().get(payloadTypeRef_.typeRef);
-            out += std::format("&{}", type.toName(ctx));
-            break;
-        }
-        case TypeInfoKind::MoveReference:
-        {
-            const TypeInfo& type = ctx.typeMgr().get(payloadTypeRef_.typeRef);
-            out += std::format("&&{}", type.toName(ctx));
-            break;
-        }
-
-        case TypeInfoKind::Int:
-            if (payloadInt_.bits == 0)
-            {
-                if (payloadInt_.sign == Sign::Unsigned)
-                    out += "unsigned integer"; // keep qualifiers
-                else if (payloadInt_.sign == Sign::Signed)
-                    out += "signed integer";
-                else
-                    out += "integer";
-            }
-            else
-            {
-                SWC_ASSERT(payloadInt_.sign != Sign::Unknown);
-                out += payloadInt_.sign == Sign::Unsigned ? "u" : "s";
-                out += std::to_string(payloadInt_.bits);
-            }
-            break;
-
-        case TypeInfoKind::Float:
-            if (payloadFloat_.bits == 0)
-                out += "float"; // keep qualifiers
-            else
-            {
-                out += "f";
-                out += std::to_string(payloadFloat_.bits);
-            }
-            break;
-
-        case TypeInfoKind::Slice:
-        {
-            const TypeInfo& type = ctx.typeMgr().get(payloadTypeRef_.typeRef);
-            out += std::format("[..] {}", type.toName(ctx));
-            break;
-        }
-
-        case TypeInfoKind::Array:
-        {
-            if (payloadArray_.dims.empty())
-                out += "[?]";
-            else
-            {
-                out += "[";
-                for (size_t i = 0; i < payloadArray_.dims.size(); ++i)
-                {
-                    if (i != 0)
-                        out += ", ";
-                    out += std::to_string(payloadArray_.dims[i]);
-                }
-                out += "]";
-            }
-            const TypeInfo& elemType = ctx.typeMgr().get(payloadArray_.typeRef);
-            if (!elemType.isArray())
-                out += " ";
-            out += elemType.toName(ctx);
-            break;
-        }
-
-        case TypeInfoKind::Variadic:
-            out += "...";
-            break;
-        case TypeInfoKind::TypedVariadic:
-        {
-            const TypeInfo& type = ctx.typeMgr().get(payloadTypeRef_.typeRef);
-            out += std::format("{}...", type.toName(ctx));
-            break;
-        }
-
-        default:
-            SWC_UNREACHABLE();
-    }
-
-    return out;
+Utf8 TypeInfo::toFullName(const TaskContext& ctx) const
+{
+    return renderTypeName(*this, ctx, TypeNameMode::Full);
 }
 
 Utf8 TypeInfo::toFamily(const TaskContext& ctx) const

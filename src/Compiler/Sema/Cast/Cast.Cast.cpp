@@ -1962,6 +1962,15 @@ Result Cast::castToAny(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef,
         castRequest.setConstantFoldingSrc(srcCstRef);
     }
 
+    if (srcType->isTypeValue() || srcType->isAnyTypeInfo(ctx) || typeMgr.isRuntimeTypeInfoPointer(ctx, anyTypeRef))
+    {
+        const AstNodeRef ownerNodeRef = castRequest.errorNodeRef.isValid() ? castRequest.errorNodeRef : sema.ctx().state().nodeRef;
+        SWC_RESULT(SemaHelpers::normalizeTypeInfoConstantRef(sema, srcCstRef, ownerNodeRef));
+        anyTypeRef = sema.cstMgr().get(srcCstRef).typeRef();
+        srcType    = &typeMgr.get(anyTypeRef);
+        castRequest.setConstantFoldingSrc(srcCstRef);
+    }
+
     const ConstantValue& srcCst = sema.cstMgr().get(srcCstRef);
     if (srcCst.isNull())
     {
@@ -1973,6 +1982,7 @@ Result Cast::castToAny(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef,
 
     const TypeRef boxedAnyTypeRef = SemaHelpers::anyBoxedValueTypeRef(ctx, anyTypeRef);
     SWC_ASSERT(boxedAnyTypeRef.isValid());
+    const bool boxedAsTypeInfo = sema.typeMgr().get(boxedAnyTypeRef).isTypeInfo();
 
     ConstantRef typeInfoCstRef = ConstantRef::invalid();
     SWC_RESULT(sema.cstMgr().makeTypeInfo(sema, typeInfoCstRef, boxedAnyTypeRef, castRequest.errorNodeRef));
@@ -1999,11 +2009,21 @@ Result Cast::castToAny(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef,
 
         if (boxedValueSize)
         {
-            std::vector valueBytes(boxedValueSize, std::byte{0});
-            SWC_RESULT(ConstantLower::lowerToBytes(sema, valueBytes, srcCstRef, boxedAnyTypeRef));
-
             uint32_t valueOffset = INVALID_REF;
-            SWC_RESULT(ConstantLower::materializeStaticPayload(valueOffset, sema, segment, boxedAnyTypeRef, ByteSpan{valueBytes.data(), valueBytes.size()}));
+            if (boxedAsTypeInfo)
+            {
+                SWC_ASSERT(srcCst.isValuePointer());
+                const uint64_t ptrValue = srcCst.getValuePointer();
+                const ByteSpan ptrBytes{reinterpret_cast<const std::byte*>(&ptrValue), sizeof(ptrValue)};
+                SWC_RESULT(ConstantLower::materializeStaticPayload(valueOffset, sema, segment, boxedAnyTypeRef, ptrBytes));
+            }
+            else
+            {
+                std::vector valueBytes(boxedValueSize, std::byte{0});
+                SWC_RESULT(ConstantLower::lowerToBytes(sema, valueBytes, srcCstRef, boxedAnyTypeRef));
+                SWC_RESULT(ConstantLower::materializeStaticPayload(valueOffset, sema, segment, boxedAnyTypeRef, ByteSpan{valueBytes.data(), valueBytes.size()}));
+            }
+
             runtimeAny->value = segment.ptr<std::byte>(valueOffset);
             segment.addRelocation(anyOffset + offsetof(Runtime::Any, value), valueOffset);
         }

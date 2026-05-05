@@ -1411,10 +1411,32 @@ TypeRef SemaHelpers::anyBoxedValueTypeRef(const TaskContext& ctx, TypeRef valueT
     if (!valueTypeRef.isValid())
         return TypeRef::invalid();
 
-    if (ctx.typeMgr().get(valueTypeRef).isAnyTypeInfo(ctx))
+    if (ctx.typeMgr().get(valueTypeRef).isAnyTypeInfo(ctx) || ctx.typeMgr().isRuntimeTypeInfoPointer(ctx, valueTypeRef))
         return ctx.typeMgr().typeTypeInfo();
 
     return valueTypeRef;
+}
+
+Result SemaHelpers::normalizeTypeInfoConstantRef(Sema& sema, ConstantRef& ioCstRef, AstNodeRef ownerNodeRef)
+{
+    if (!ioCstRef.isValid())
+        return Result::Continue;
+
+    const ConstantValue& cst = sema.cstMgr().get(ioCstRef);
+    TypeRef              valueTypeRef;
+    if (cst.isTypeValue())
+        valueTypeRef = cst.getTypeValue();
+    else
+        valueTypeRef = sema.cstMgr().makeTypeValue(sema, ioCstRef);
+
+    if (!valueTypeRef.isValid())
+        return Result::Continue;
+
+    ConstantRef typeInfoCstRef = ConstantRef::invalid();
+    SWC_RESULT(sema.cstMgr().makeTypeInfo(sema, typeInfoCstRef, valueTypeRef, ownerNodeRef));
+    SWC_ASSERT(typeInfoCstRef.isValid());
+    ioCstRef = typeInfoCstRef;
+    return Result::Continue;
 }
 
 namespace

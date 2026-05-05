@@ -70,28 +70,6 @@ namespace
         ioPayload.setIsAddress();
     }
 
-    bool isRuntimeTypeInfoPointer(CodeGen& codeGen, TypeRef typeRef)
-    {
-        const TypeRef normalizedTypeRef = codeGen.typeMgr().unwrapAliasEnum(codeGen.ctx(), typeRef);
-        if (!normalizedTypeRef.isValid())
-            return false;
-
-        const TypeInfo& normalizedType = codeGen.typeMgr().get(normalizedTypeRef);
-        if (!normalizedType.isAnyPointer())
-            return false;
-
-        const TypeRef pointeeTypeRef = codeGen.typeMgr().unwrapAliasEnum(codeGen.ctx(), normalizedType.payloadTypeRef());
-        if (!pointeeTypeRef.isValid())
-            return false;
-
-        const TypeInfo& pointeeType = codeGen.typeMgr().get(pointeeTypeRef);
-        if (!pointeeType.isStruct())
-            return false;
-
-        const SymbolStruct& pointeeStruct = pointeeType.payloadSymStruct();
-        return pointeeStruct.inSwagNamespace(codeGen.ctx()) && codeGen.typeMgr().isTypeInfoRuntimeStruct(pointeeStruct.idRef());
-    }
-
     TypeRef resolveCompareTypeRef(CodeGen& codeGen, TypeRef leftTypeRef, TypeRef rightTypeRef)
     {
         if (shouldReadScalarReference(codeGen, leftTypeRef))
@@ -496,8 +474,8 @@ namespace
             return emitStringCompareBool(codeGen, tokId, leftPayload, rightPayload);
 
         const TypeInfo& compareType = codeGen.typeMgr().get(compareTypeRef);
-        const bool      leftIsRuntimeTypeInfoPointer  = isRuntimeTypeInfoPointer(codeGen, leftOperandTypeRef);
-        const bool      rightIsRuntimeTypeInfoPointer = isRuntimeTypeInfoPointer(codeGen, rightOperandTypeRef);
+        const bool      leftIsRuntimeTypeInfoPointer  = codeGen.typeMgr().isRuntimeTypeInfoPointer(codeGen.ctx(), leftOperandTypeRef);
+        const bool      rightIsRuntimeTypeInfoPointer = codeGen.typeMgr().isRuntimeTypeInfoPointer(codeGen.ctx(), rightOperandTypeRef);
         if ((tokId == TokenId::SymEqualEqual || tokId == TokenId::SymBangEqual) && compareType.isAnyTypeInfo(codeGen.ctx()))
             return emitTypeInfoCompareBool(codeGen, tokId, leftPayload, leftOperandTypeRef, rightPayload, rightOperandTypeRef, compareTypeRef);
         if ((tokId == TokenId::SymEqualEqual || tokId == TokenId::SymBangEqual) && leftIsRuntimeTypeInfoPointer && rightIsRuntimeTypeInfoPointer)

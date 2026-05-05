@@ -97,6 +97,7 @@ public:
     static uint32_t chooseConcreteScalarWidth(uint32_t minRequiredBits, bool& overflow);
 
     bool    isTypeInfoRuntimeStruct(IdentifierRef idRef) const;
+    bool    isRuntimeTypeInfoPointer(const TaskContext& ctx, TypeRef typeRef) const;
     void    registerRuntimeType(IdentifierRef idRef, TypeRef typeRef);
     TypeRef runtimeType(RuntimeTypeKind kind) const;
     TypeRef runtimeType(IdentifierManager::PredefinedName name) const;

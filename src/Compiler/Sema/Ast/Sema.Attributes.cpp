@@ -358,34 +358,13 @@ namespace
         return Result::Continue;
     }
 
-    TypeRef attributeParamTypeValueRef(Sema& sema, ConstantRef cstRef)
-    {
-        if (!cstRef.isValid())
-            return TypeRef::invalid();
-
-        const ConstantValue& cst = sema.cstMgr().get(cstRef);
-        if (cst.isTypeValue())
-            return cst.getTypeValue();
-
-        return sema.cstMgr().makeTypeValue(sema, cstRef);
-    }
-
     Result normalizeAttributeParamConstantRef(Sema& sema, ConstantRef& ioCstRef, const TypeInfo& paramType, AstNodeRef ownerNodeRef)
     {
         if (!ioCstRef.isValid())
             return Result::Continue;
         if (!paramType.isAnyTypeInfo(sema.ctx()))
             return Result::Continue;
-
-        const TypeRef valueTypeRef = attributeParamTypeValueRef(sema, ioCstRef);
-        if (valueTypeRef.isInvalid())
-            return Result::Continue;
-
-        ConstantRef typeInfoCstRef = ConstantRef::invalid();
-        SWC_RESULT(sema.cstMgr().makeTypeInfo(sema, typeInfoCstRef, valueTypeRef, ownerNodeRef));
-        SWC_ASSERT(typeInfoCstRef.isValid());
-        ioCstRef = typeInfoCstRef;
-        return Result::Continue;
+        return SemaHelpers::normalizeTypeInfoConstantRef(sema, ioCstRef, ownerNodeRef);
     }
 
     Result collectPredefinedAttributeData(Sema& sema, std::span<const AstNodeRef> args, std::span<const ResolvedCallArgument> resolvedArgs, const SymbolFunction& attrSym, AttributeList& outAttributes)

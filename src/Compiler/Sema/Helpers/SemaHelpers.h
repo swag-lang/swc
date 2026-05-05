@@ -72,6 +72,7 @@ namespace SemaHelpers
     Result                resolveCountOfResult(Sema& sema, CountOfResultInfo& outResult, AstNodeRef exprRef);
     Result                intrinsicCountOf(Sema& sema, AstNodeRef targetRef, AstNodeRef exprRef);
     TypeRef               anyBoxedValueTypeRef(const TaskContext& ctx, TypeRef valueTypeRef);
+    Result                normalizeTypeInfoConstantRef(Sema& sema, ConstantRef& ioCstRef, AstNodeRef ownerNodeRef);
     Result                finalizeAggregateStruct(Sema& sema, const SmallVector<AstNodeRef>& children, bool autoNameFromIdentifiers = false);
     TypeRef               deduceConcretizedAggregateArrayType(Sema& sema, TypeRef typeRef, ConstantRef cstRef);
     TypeRef               deduceConcretizedAggregateLiteralType(Sema& sema, TypeRef typeRef, ConstantRef cstRef);

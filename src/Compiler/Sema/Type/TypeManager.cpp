@@ -306,6 +306,28 @@ bool TypeManager::isTypeInfoRuntimeStruct(IdentifierRef idRef) const
            uKind <= static_cast<uint32_t>(RuntimeTypeKind::TypeInfoCodeBlock);
 }
 
+bool TypeManager::isRuntimeTypeInfoPointer(const TaskContext& ctx, TypeRef typeRef) const
+{
+    const TypeRef normalizedTypeRef = unwrapAliasEnum(ctx, typeRef);
+    if (!normalizedTypeRef.isValid())
+        return false;
+
+    const TypeInfo& normalizedType = get(normalizedTypeRef);
+    if (!normalizedType.isAnyPointer())
+        return false;
+
+    const TypeRef pointeeTypeRef = unwrapAliasEnum(ctx, normalizedType.payloadTypeRef());
+    if (!pointeeTypeRef.isValid())
+        return false;
+
+    const TypeInfo& pointeeType = get(pointeeTypeRef);
+    if (!pointeeType.isStruct())
+        return false;
+
+    const SymbolStruct& pointeeStruct = pointeeType.payloadSymStruct();
+    return pointeeStruct.inSwagNamespace(ctx) && isTypeInfoRuntimeStruct(pointeeStruct.idRef());
+}
+
 void TypeManager::registerRuntimeType(IdentifierRef idRef, TypeRef typeRef)
 {
     const std::unique_lock lk(mutexRt_);

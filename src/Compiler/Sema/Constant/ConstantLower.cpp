@@ -460,8 +460,14 @@ namespace
         }
 
         Runtime::Any anyValue = {};
+        ConstantRef valueCstRef = cstRef;
+        if (cst.isTypeValue() ||
+            sema.typeMgr().get(cst.typeRef()).isAnyTypeInfo(sema.ctx()) ||
+            sema.typeMgr().isRuntimeTypeInfoPointer(sema.ctx(), cst.typeRef()))
+            SWC_RESULT(SemaHelpers::normalizeTypeInfoConstantRef(sema, valueCstRef, sema.ctx().state().nodeRef));
 
-        const TypeRef valueTypeRef      = cst.typeRef();
+        const ConstantValue& valueCst         = sema.cstMgr().get(valueCstRef);
+        const TypeRef        valueTypeRef     = valueCst.typeRef();
         const TypeRef boxedValueTypeRef = SemaHelpers::anyBoxedValueTypeRef(sema.ctx(), valueTypeRef);
         SWC_INTERNAL_CHECK(valueTypeRef.isValid());
         SWC_INTERNAL_CHECK(boxedValueTypeRef.isValid());
@@ -475,8 +481,18 @@ namespace
         SWC_INTERNAL_CHECK(typeInfoCst.isValuePointer());
         anyValue.type = pointerFromRawAddress<const Runtime::TypeInfo>(typeInfoCst.getValuePointer());
 
+        if (sema.typeMgr().get(boxedValueTypeRef).isTypeInfo())
+        {
+            SWC_INTERNAL_CHECK(valueCst.isValuePointer());
+            const uint64_t       ptrValue     = valueCst.getValuePointer();
+            const std::string_view payloadData = sema.cstMgr().addPayloadBuffer(asStringView(rawBytes(&ptrValue, sizeof(ptrValue))));
+            anyValue.value                    = const_cast<char*>(payloadData.data());
+            writeValue(dstBytes, anyValue);
+            return Result::Continue;
+        }
+
         const char* loweredValueData = nullptr;
-        SWC_RESULT(lowerConstantToPayloadBuffer(loweredValueData, sema, cstRef, boxedValueTypeRef));
+        SWC_RESULT(lowerConstantToPayloadBuffer(loweredValueData, sema, valueCstRef, boxedValueTypeRef));
         anyValue.value = const_cast<char*>(loweredValueData);
         writeValue(dstBytes, anyValue);
         return Result::Continue;

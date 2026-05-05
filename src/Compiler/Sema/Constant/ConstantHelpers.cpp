@@ -10,6 +10,7 @@
 #include "Compiler/Sema/Symbol/Symbol.Struct.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Compiler/Sema/Type/TypeManager.h"
+#include "Support/Math/Helpers.h"
 #include "Support/Math/Hash.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -96,7 +97,7 @@ namespace
         const TypeInfo& storageType = ctx.typeMgr().get(storageTypeRef);
         ConstantValue   result;
 
-        if (storageType.isStruct() || storageType.isAny() || storageType.isInterface())
+        if (storageType.isStruct() || storageType.isAny() || storageType.isInterface() || storageType.isAggregateStruct() || storageType.isAggregateArray() || (storageType.isFunction() && storageType.isLambdaClosure()))
             result = ConstantValue::makeStructBorrowed(ctx, storageTypeRef, storedBytes);
         else if (storageType.isArray())
             result = ConstantValue::makeArrayBorrowed(ctx, storageTypeRef, storedBytes);
@@ -276,6 +277,34 @@ namespace
                 const auto fieldBytes = ByteSpan{payload.data() + fieldOffset, static_cast<size_t>(fieldSize)};
                 if (!resolveStaticPayloadRequiredShardIndex(outShardIndex, hasRequiredShard, sema, fieldTypeRef, fieldBytes))
                     return false;
+            }
+
+            return true;
+        }
+
+        if (typeInfo.isAggregateStruct() || typeInfo.isAggregateArray())
+        {
+            uint64_t offset = 0;
+            for (const TypeRef fieldTypeRef : typeInfo.payloadAggregate().types)
+            {
+                const TypeInfo& fieldType = ctx.typeMgr().get(fieldTypeRef);
+                uint32_t        align     = fieldType.alignOf(ctx);
+                const uint64_t  fieldSize = fieldType.sizeOf(ctx);
+                if (!align)
+                    align = 1;
+
+                if (!fieldSize)
+                    continue;
+
+                offset = Math::alignUpU64(offset, align);
+                if (offset + fieldSize > payload.size())
+                    return false;
+
+                const auto fieldBytes = ByteSpan{payload.data() + offset, static_cast<size_t>(fieldSize)};
+                if (!resolveStaticPayloadRequiredShardIndex(outShardIndex, hasRequiredShard, sema, fieldTypeRef, fieldBytes))
+                    return false;
+
+                offset += fieldSize;
             }
 
             return true;

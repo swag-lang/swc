@@ -178,6 +178,28 @@ namespace
         return sema.cstMgr().addConstant(sema.ctx(), typeCst);
     }
 
+    bool isRuntimeTypeInfoPointer(Sema& sema, TypeRef typeRef)
+    {
+        const TypeRef normalizedTypeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), typeRef);
+        if (!normalizedTypeRef.isValid())
+            return false;
+
+        const TypeInfo& normalizedType = sema.typeMgr().get(normalizedTypeRef);
+        if (!normalizedType.isAnyPointer())
+            return false;
+
+        const TypeRef pointeeTypeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), normalizedType.payloadTypeRef());
+        if (!pointeeTypeRef.isValid())
+            return false;
+
+        const TypeInfo& pointeeType = sema.typeMgr().get(pointeeTypeRef);
+        if (!pointeeType.isStruct())
+            return false;
+
+        const SymbolStruct& pointeeStruct = pointeeType.payloadSymStruct();
+        return pointeeStruct.inSwagNamespace(sema.ctx()) && sema.typeMgr().isTypeInfoRuntimeStruct(pointeeStruct.idRef());
+    }
+
     bool shouldReadScalarReference(Sema& sema, TypeRef typeRef)
     {
         const TypeRef normalizedTypeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), typeRef);
@@ -565,10 +587,19 @@ namespace
         {
             if (!self.type() || !other.type())
                 return Result::Continue;
+
             const TypeInfo& otherType = aliasEnumType(sema, other);
-            if (self.type()->isTypeValue() && (otherType.isAnyTypeInfo(sema.ctx()) || otherType.isAny()))
+            const bool      otherIsRuntimeTypeInfoPointer = isRuntimeTypeInfoPointer(sema, other.typeRef());
+            const bool      otherIsTypeLike               = otherType.isAnyTypeInfo(sema.ctx()) || otherType.isAny() || otherIsRuntimeTypeInfoPointer || other.type()->isTypeValue();
+            if (self.type()->isTypeValue() && otherIsTypeLike)
             {
                 SWC_RESULT(Cast::cast(sema, self, sema.typeMgr().typeTypeInfo(), CastKind::Implicit));
+                return Result::Continue;
+            }
+
+            if (isRuntimeTypeInfoPointer(sema, self.typeRef()) && otherIsTypeLike)
+            {
+                SWC_RESULT(Cast::cast(sema, self, sema.typeMgr().typeTypeInfo(), CastKind::Explicit));
                 return Result::Continue;
             }
 

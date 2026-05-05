@@ -1611,13 +1611,36 @@ Result SemaHelpers::intrinsicCountOf(Sema& sema, AstNodeRef targetRef, AstNodeRe
     return Result::Continue;
 }
 
-TypeRef SemaHelpers::anyBoxedValueTypeRef(const TaskContext& ctx, TypeRef valueTypeRef)
+TypeRef SemaHelpers::preciseAnyBoxedValueTypeRef(Sema& sema, TypeRef valueTypeRef, ConstantRef valueCstRef, AstNodeRef ownerNodeRef)
 {
     if (!valueTypeRef.isValid())
         return TypeRef::invalid();
 
-    if (isTypeLikeTypeRef(ctx, valueTypeRef) && !ctx.typeMgr().get(valueTypeRef).isTypeValue())
-        return ctx.typeMgr().typeTypeInfo();
+    const TaskContext& ctx = sema.ctx();
+    if (ownerNodeRef.isValid())
+    {
+        const SemaNodeView ownerView = sema.viewTypeConstant(ownerNodeRef);
+        if (ownerView.typeRef().isValid() && sema.typeMgr().isRuntimeTypeInfoPointer(ctx, ownerView.typeRef()))
+            return ownerView.typeRef();
+
+        if (isTypeLikeTypeRef(ctx, ownerView.typeRef()))
+        {
+            const TypeRef representedTypeRef = resolveRepresentedTypeRef(sema, ownerView);
+            if (representedTypeRef.isValid())
+            {
+                ConstantRef typeInfoCstRef = ConstantRef::invalid();
+                if (sema.cstMgr().makeTypeInfo(sema, typeInfoCstRef, representedTypeRef, ownerNodeRef) == Result::Continue && typeInfoCstRef.isValid())
+                    return sema.cstMgr().get(typeInfoCstRef).typeRef();
+            }
+        }
+    }
+
+    if (valueCstRef.isValid() && isTypeLikeTypeRef(ctx, valueTypeRef))
+    {
+        ConstantRef normalizedCstRef = valueCstRef;
+        if (normalizeTypeInfoConstantRef(sema, normalizedCstRef, ownerNodeRef) == Result::Continue && normalizedCstRef.isValid())
+            return sema.cstMgr().get(normalizedCstRef).typeRef();
+    }
 
     return valueTypeRef;
 }
@@ -1627,8 +1650,13 @@ Result SemaHelpers::normalizeTypeInfoConstantRef(Sema& sema, ConstantRef& ioCstR
     if (!ioCstRef.isValid())
         return Result::Continue;
 
-    const ConstantValue& cst          = sema.cstMgr().get(ioCstRef);
-    const TypeRef        valueTypeRef = cst.isTypeValue() ? cst.getTypeValue() : sema.cstMgr().makeTypeValue(sema, ioCstRef);
+    TypeRef valueTypeRef = TypeRef::invalid();
+    if (ownerNodeRef.isValid())
+        valueTypeRef = resolveRepresentedTypeRef(sema, sema.viewTypeConstant(ownerNodeRef));
+
+    const ConstantValue& cst = sema.cstMgr().get(ioCstRef);
+    if (!valueTypeRef.isValid())
+        valueTypeRef = cst.isTypeValue() ? cst.getTypeValue() : sema.cstMgr().makeTypeValue(sema, ioCstRef);
     if (!valueTypeRef.isValid())
         return Result::Continue;
 

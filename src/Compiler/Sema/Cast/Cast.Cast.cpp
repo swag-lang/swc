@@ -2022,7 +2022,7 @@ Result Cast::castToAny(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef,
         return Result::Continue;
     }
 
-    const TypeRef boxedAnyTypeRef = SemaHelpers::anyBoxedValueTypeRef(ctx, anyTypeRef);
+    const TypeRef boxedAnyTypeRef = SemaHelpers::preciseAnyBoxedValueTypeRef(sema, anyTypeRef, srcCstRef, castRequest.errorNodeRef);
     SWC_ASSERT(boxedAnyTypeRef.isValid());
     const bool boxedAsTypeInfo = sema.typeMgr().get(boxedAnyTypeRef).isTypeInfo();
 

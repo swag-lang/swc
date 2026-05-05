@@ -73,7 +73,7 @@ namespace SemaHelpers
     Result                intrinsicCountOf(Sema& sema, AstNodeRef targetRef, AstNodeRef exprRef);
     bool                  isTypeLikeTypeRef(const TaskContext& ctx, TypeRef typeRef);
     TypeRef               resolveRepresentedTypeRef(Sema& sema, const SemaNodeView& view);
-    TypeRef               anyBoxedValueTypeRef(const TaskContext& ctx, TypeRef valueTypeRef);
+    TypeRef               preciseAnyBoxedValueTypeRef(Sema& sema, TypeRef valueTypeRef, ConstantRef valueCstRef, AstNodeRef ownerNodeRef);
     Result                normalizeTypeInfoConstantRef(Sema& sema, ConstantRef& ioCstRef, AstNodeRef ownerNodeRef);
     Result                deduceDefaultValueType(Sema& sema, AstNodeRef defaultValueRef, TypeRef& outTypeRef);
     Result                finalizeDefaultValue(Sema& sema, AstNodeRef defaultValueRef, SymbolVariable& symVar);

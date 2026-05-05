@@ -300,7 +300,7 @@ namespace
 
         const TypeRef valueTypeRef = cst.typeRef();
         SWC_ASSERT(valueTypeRef.isValid());
-        const TypeRef boxedValueTypeRef = SemaHelpers::anyBoxedValueTypeRef(sema.ctx(), valueTypeRef);
+        const TypeRef boxedValueTypeRef = SemaHelpers::preciseAnyBoxedValueTypeRef(sema, valueTypeRef, valueCstRef, AstNodeRef::invalid());
         SWC_ASSERT(boxedValueTypeRef.isValid());
 
         const auto& typeEntry = requireCacheEntry(cache, boxedValueTypeRef);

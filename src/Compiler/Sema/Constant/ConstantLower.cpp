@@ -466,7 +466,7 @@ namespace
 
         const ConstantValue& valueCst         = sema.cstMgr().get(valueCstRef);
         const TypeRef        valueTypeRef     = valueCst.typeRef();
-        const TypeRef boxedValueTypeRef = SemaHelpers::anyBoxedValueTypeRef(sema.ctx(), valueTypeRef);
+        const TypeRef        boxedValueTypeRef = SemaHelpers::preciseAnyBoxedValueTypeRef(sema, valueTypeRef, valueCstRef, sema.ctx().state().nodeRef);
         SWC_INTERNAL_CHECK(valueTypeRef.isValid());
         SWC_INTERNAL_CHECK(boxedValueTypeRef.isValid());
         SWC_INTERNAL_CHECK(boxedValueTypeRef != dstTypeRef);

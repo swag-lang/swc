@@ -42,71 +42,12 @@ namespace
 
     Result deduceLambdaTypeParameterFromDefault(Sema& sema, AstNodeRef defaultValueRef, TypeRef& outTypeRef)
     {
-        outTypeRef = TypeRef::invalid();
-        if (defaultValueRef.isInvalid())
-            return Result::Continue;
-
-        SemaNodeView defaultView = sema.viewNodeTypeConstant(defaultValueRef);
-        SWC_RESULT(SemaCheck::isValueOrTypeInfo(sema, defaultView));
-
-        if (defaultView.typeRef().isInvalid() && defaultView.cstRef().isValid())
-        {
-            ConstantRef newCstRef;
-            SWC_RESULT(Cast::concretizeConstant(sema, newCstRef, defaultView.nodeRef(), defaultView.cstRef(), TypeInfo::Sign::Unknown));
-            sema.setConstant(defaultView.nodeRef(), newCstRef);
-            defaultView.recompute(sema, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
-        }
-
-        if (defaultView.type() && defaultView.type()->isInt())
-        {
-            const TypeRef promotedTypeRef = sema.typeMgr().promote(defaultView.typeRef(), defaultView.typeRef(), false);
-            SWC_RESULT(Cast::cast(sema, defaultView, promotedTypeRef, CastKind::Implicit));
-        }
-
-        outTypeRef = defaultView.typeRef();
-        return Result::Continue;
+        return SemaHelpers::deduceDefaultValueType(sema, defaultValueRef, outTypeRef);
     }
 
     Result finalizeLambdaTypeParameterDefault(Sema& sema, const AstLambdaParam& param, SymbolVariable& symVar)
     {
-        if (param.nodeDefaultValueRef.isInvalid())
-            return Result::Continue;
-
-        SemaNodeView defaultView = sema.viewNodeTypeConstant(param.nodeDefaultValueRef);
-        SWC_RESULT(SemaCheck::isValueOrTypeInfo(sema, defaultView));
-
-        const TypeInfo& paramType = sema.typeMgr().get(symVar.typeRef());
-        if (!paramType.isCodeBlock())
-        {
-            if (defaultView.typeRef().isValid())
-            {
-                SWC_RESULT(Cast::cast(sema, defaultView, symVar.typeRef(), CastKind::Initialization));
-            }
-            else if (defaultView.cstRef().isValid())
-            {
-                ConstantRef newCstRef;
-                SWC_RESULT(Cast::concretizeConstant(sema, newCstRef, defaultView.nodeRef(), defaultView.cstRef(), TypeInfo::Sign::Unknown));
-                sema.setConstant(defaultView.nodeRef(), newCstRef);
-                defaultView.recompute(sema, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
-
-                if (defaultView.type() && defaultView.type()->isInt())
-                {
-                    const TypeRef promotedTypeRef = sema.typeMgr().promote(defaultView.typeRef(), defaultView.typeRef(), false);
-                    SWC_RESULT(Cast::cast(sema, defaultView, promotedTypeRef, CastKind::Implicit));
-                }
-            }
-        }
-
-        const bool isCallerLocation = SemaHelpers::isCallerLocationDefaultInitializer(sema, param.nodeDefaultValueRef);
-        if (!paramType.isCodeBlock() && !isCallerLocation && defaultView.cstRef().isInvalid())
-            return SemaError::raiseExprNotConst(sema, defaultView.nodeRef());
-
-        if (defaultView.cstRef().isValid())
-            symVar.setDefaultValueRef(defaultView.cstRef());
-        if (isCallerLocation)
-            symVar.addExtraFlag(SymbolVariableFlagsE::CallerLocationDefault);
-        symVar.addExtraFlag(SymbolVariableFlagsE::Initialized);
-        return Result::Continue;
+        return SemaHelpers::finalizeDefaultValue(sema, param.nodeDefaultValueRef, symVar);
     }
 }
 

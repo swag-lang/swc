@@ -469,8 +469,15 @@ Result AstForeachStmt::codeGenPreNode(CodeGen& codeGen) const
     }
 
     ForeachStmtCodeGenPayload loopState;
-    const SemaNodeView        symbolsView = codeGen.viewSymbolList(codeGen.curNodeRef());
-    const auto                symbols     = symbolsView.symList();
+    SemaNodeView             symbolsView = codeGen.viewSymbolList(codeGen.curNodeRef());
+    if (symbolsView.symList().size() < 2)
+    {
+        const AstNodeRef resolvedRef = codeGen.resolvedNodeRef(codeGen.curNodeRef());
+        if (resolvedRef.isValid() && resolvedRef != codeGen.curNodeRef())
+            symbolsView = codeGen.viewSymbolList(resolvedRef);
+    }
+
+    const auto symbols = symbolsView.symList();
     SWC_ASSERT(symbols.size() >= 2);
     if (symbols.size() >= 2)
     {

@@ -373,7 +373,7 @@ namespace
             return false;
 
         ConstantRef materializedCstRef = ConstantRef::invalid();
-        if (storageType.isStruct() || storageType.isArray() || storageType.isAny() || storageType.isInterface() || storageType.isString() || storageType.isSlice())
+        if (storageType.isStruct() || storageType.isArray() || storageType.isAggregateStruct() || storageType.isAggregateArray() || storageType.isAny() || storageType.isInterface() || storageType.isString() || storageType.isSlice())
         {
             materializedCstRef = CodeGenConstantHelpers::materializeStaticPayloadConstant(codeGen, storageTypeRef, ByteSpan{rawBytes.data(), rawBytes.size()});
         }

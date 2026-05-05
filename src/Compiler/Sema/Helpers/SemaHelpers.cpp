@@ -10,6 +10,7 @@
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Constant/ConstantValue.h"
 #include "Compiler/Sema/Generic/SemaGeneric.h"
+#include "Compiler/Sema/Helpers/SemaCheck.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Helpers/SemaRuntime.h"
 #include "Compiler/Sema/Helpers/SemaSpecOp.h"
@@ -87,23 +88,158 @@ namespace
     TypeRef deduceConcretizedAggregateArrayElementType(Sema& sema, std::span<const TypeRef> elemTypes, const std::vector<ConstantRef>* values);
     TypeRef deduceConcretizedAggregateStructType(Sema& sema, TypeRef typeRef, ConstantRef cstRef);
 
+    void tryMaterializeAggregateLiteralConstant(Sema& sema, SemaNodeView& defaultView)
+    {
+        if (defaultView.cstRef().isValid() || defaultView.typeRef().isInvalid())
+            return;
+
+        const TypeInfo& typeInfo = sema.typeMgr().get(defaultView.typeRef());
+        if (!typeInfo.isAggregateArray() && !typeInfo.isAggregateStruct())
+            return;
+
+        SmallVector<AstNodeRef> children;
+        sema.node(defaultView.nodeRef()).collectChildrenFromAst(children, sema.ast());
+        if (children.empty())
+            return;
+
+        SmallVector<ConstantRef> values;
+        values.reserve(children.size());
+
+        for (const AstNodeRef childRef : children)
+        {
+            if (childRef.isInvalid())
+                return;
+
+            const SemaNodeView childView = sema.viewTypeConstant(childRef);
+            if (childView.cstRef().isInvalid())
+                return;
+            values.push_back(childView.cstRef());
+        }
+
+        SmallVector<IdentifierRef> names;
+        if (typeInfo.isAggregateStruct())
+        {
+            names.reserve(typeInfo.payloadAggregate().names.size());
+            for (const IdentifierRef name : typeInfo.payloadAggregate().names)
+                names.push_back(name);
+        }
+
+        ConstantValue cst = typeInfo.isAggregateArray() ?
+            ConstantValue::makeAggregateArray(sema.ctx(), values) :
+            ConstantValue::makeAggregateStruct(sema.ctx(), names, values);
+        sema.setConstant(defaultView.nodeRef(), sema.cstMgr().addConstant(sema.ctx(), cst));
+        defaultView.recompute(sema, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
+    }
+
+    Result normalizeDefaultValueView(Sema& sema, SemaNodeView& defaultView, TypeRef targetTypeRef, TypeRef* outResolvedTypeRef = nullptr)
+    {
+        tryMaterializeAggregateLiteralConstant(sema, defaultView);
+
+        if (defaultView.typeRef().isInvalid() && defaultView.cstRef().isValid())
+        {
+            ConstantRef newCstRef;
+            SWC_RESULT(Cast::concretizeConstant(sema, newCstRef, defaultView.nodeRef(), defaultView.cstRef(), TypeInfo::Sign::Unknown));
+            sema.setConstant(defaultView.nodeRef(), newCstRef);
+            defaultView.recompute(sema, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
+        }
+
+        TypeRef resolvedTypeRef = defaultView.typeRef();
+        if (targetTypeRef.isValid())
+        {
+            if (defaultView.typeRef().isValid())
+            {
+                SWC_RESULT(Cast::cast(sema, defaultView, targetTypeRef, CastKind::Initialization));
+                defaultView.recompute(sema, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
+            }
+            resolvedTypeRef = targetTypeRef;
+            if (outResolvedTypeRef)
+                *outResolvedTypeRef = resolvedTypeRef;
+            return Result::Continue;
+        }
+
+        const TypeRef concretizedTypeRef = SemaHelpers::deduceConcretizedAggregateLiteralType(sema, defaultView.typeRef(), defaultView.cstRef());
+        if (concretizedTypeRef.isValid() && concretizedTypeRef != defaultView.typeRef())
+        {
+            SWC_RESULT(Cast::cast(sema, defaultView, concretizedTypeRef, CastKind::Initialization));
+            defaultView.recompute(sema, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
+            resolvedTypeRef = concretizedTypeRef;
+        }
+
+        if (resolvedTypeRef.isValid() && sema.typeMgr().get(resolvedTypeRef).isInt())
+        {
+            const TypeRef promotedTypeRef = sema.typeMgr().promote(resolvedTypeRef, resolvedTypeRef, false);
+            SWC_RESULT(Cast::cast(sema, defaultView, promotedTypeRef, CastKind::Implicit));
+            defaultView.recompute(sema, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
+            resolvedTypeRef = promotedTypeRef;
+        }
+
+        if (outResolvedTypeRef)
+            *outResolvedTypeRef = resolvedTypeRef;
+        return Result::Continue;
+    }
+
     bool isAggregateTypeLikeElement(Sema& sema, TypeRef typeRef)
     {
         return SemaHelpers::isTypeLikeTypeRef(sema.ctx(), typeRef);
+    }
+
+    TypeRef specializedTypeInfoStructTypeRef(Sema& sema, TypeRef representedTypeRef)
+    {
+        TypeManager& typeMgr = sema.typeMgr();
+        if (!representedTypeRef.isValid())
+            return typeMgr.structTypeInfo();
+
+        const TypeInfo& representedType = typeMgr.get(representedTypeRef);
+        if (representedType.isArray() || representedType.isAggregateArray())
+            return typeMgr.structTypeInfoArray();
+        if (representedType.isStruct() || representedType.isAggregateStruct())
+            return typeMgr.structTypeInfoStruct();
+        if (representedType.isEnum())
+            return typeMgr.structTypeInfoEnum();
+        if (representedType.isFunction())
+            return typeMgr.structTypeInfoFunc();
+        if (representedType.isSlice())
+            return typeMgr.structTypeInfoSlice();
+        if (representedType.isAnyPointer())
+            return typeMgr.structTypeInfoPointer();
+        if (representedType.isAlias())
+            return typeMgr.structTypeInfoAlias();
+        if (representedType.isAnyVariadic())
+            return typeMgr.structTypeInfoVariadic();
+        if (representedType.isCodeBlock())
+            return typeMgr.structTypeInfoCodeBlock();
+        return typeMgr.structTypeInfo();
+    }
+
+    TypeRef specializedTypeInfoPointerTypeRef(Sema& sema, TypeRef representedTypeRef)
+    {
+        const TypeRef structTypeRef = specializedTypeInfoStructTypeRef(sema, representedTypeRef);
+        if (!structTypeRef.isValid())
+            return sema.typeMgr().typeTypeInfo();
+
+        return sema.typeMgr().addType(TypeInfo::makeValuePointer(structTypeRef, TypeInfoFlagsE::Const));
     }
 
     TypeRef normalizeAggregateTypeLikeElementType(Sema& sema, TypeRef typeRef, ConstantRef cstRef)
     {
         if (!isAggregateTypeLikeElement(sema, typeRef))
             return typeRef;
-        if (!cstRef.isValid())
-            return sema.typeMgr().typeTypeInfo();
 
-        ConstantRef normalizedCstRef = cstRef;
-        if (SemaHelpers::normalizeTypeInfoConstantRef(sema, normalizedCstRef, sema.ctx().state().nodeRef) != Result::Continue || !normalizedCstRef.isValid())
-            return sema.typeMgr().typeTypeInfo();
+        if (cstRef.isValid())
+        {
+            ConstantRef normalizedCstRef = cstRef;
+            if (SemaHelpers::normalizeTypeInfoConstantRef(sema, normalizedCstRef, sema.ctx().state().nodeRef) == Result::Continue && normalizedCstRef.isValid())
+                return sema.cstMgr().get(normalizedCstRef).typeRef();
+        }
 
-        return sema.cstMgr().get(normalizedCstRef).typeRef();
+        if (sema.typeMgr().isRuntimeTypeInfoPointer(sema.ctx(), typeRef))
+            return typeRef;
+
+        const TypeInfo& typeInfo = sema.typeMgr().get(typeRef);
+        if (typeInfo.isTypeValue())
+            return specializedTypeInfoPointerTypeRef(sema, typeInfo.payloadTypeRef());
+
+        return typeInfo.isAnyTypeInfo(sema.ctx()) ? typeRef : sema.typeMgr().typeTypeInfo();
     }
 
     TypeRef deduceConcretizedAggregateLiteralTypeImpl(Sema& sema, TypeRef typeRef, ConstantRef cstRef)
@@ -140,6 +276,17 @@ namespace
                     return sema.typeMgr().typeFloat(destBits);
             }
         }
+
+        if (typeInfo.isIntUnsized())
+        {
+            TypeInfo::Sign sign = typeInfo.payloadIntSign();
+            if (sign == TypeInfo::Sign::Unknown)
+                sign = TypeInfo::Sign::Signed;
+            return sema.typeMgr().typeInt(32, sign);
+        }
+
+        if (typeInfo.isFloatUnsized())
+            return sema.typeMgr().typeF64();
 
         return typeRef;
     }
@@ -1484,6 +1631,43 @@ Result SemaHelpers::normalizeTypeInfoConstantRef(Sema& sema, ConstantRef& ioCstR
     SWC_RESULT(sema.cstMgr().makeTypeInfo(sema, typeInfoCstRef, valueTypeRef, ownerNodeRef));
     SWC_ASSERT(typeInfoCstRef.isValid());
     ioCstRef = typeInfoCstRef;
+    return Result::Continue;
+}
+
+Result SemaHelpers::deduceDefaultValueType(Sema& sema, AstNodeRef defaultValueRef, TypeRef& outTypeRef)
+{
+    outTypeRef = TypeRef::invalid();
+    if (defaultValueRef.isInvalid())
+        return Result::Continue;
+
+    SemaNodeView defaultView = sema.viewNodeTypeConstant(defaultValueRef);
+    SWC_RESULT(SemaCheck::isValueOrTypeInfo(sema, defaultView));
+    SWC_RESULT(normalizeDefaultValueView(sema, defaultView, TypeRef::invalid(), &outTypeRef));
+
+    return Result::Continue;
+}
+
+Result SemaHelpers::finalizeDefaultValue(Sema& sema, AstNodeRef defaultValueRef, SymbolVariable& symVar)
+{
+    if (defaultValueRef.isInvalid())
+        return Result::Continue;
+
+    SemaNodeView defaultView = sema.viewNodeTypeConstant(defaultValueRef);
+    SWC_RESULT(SemaCheck::isValueOrTypeInfo(sema, defaultView));
+
+    const TypeInfo& paramType = sema.typeMgr().get(symVar.typeRef());
+    if (!paramType.isCodeBlock())
+        SWC_RESULT(normalizeDefaultValueView(sema, defaultView, symVar.typeRef()));
+
+    const bool isCallerLocation = isCallerLocationDefaultInitializer(sema, defaultValueRef);
+    if (!paramType.isCodeBlock() && !isCallerLocation && defaultView.cstRef().isInvalid())
+        return SemaError::raiseExprNotConst(sema, defaultView.nodeRef());
+
+    if (defaultView.cstRef().isValid())
+        symVar.setDefaultValueRef(defaultView.cstRef());
+    if (isCallerLocation)
+        symVar.addExtraFlag(SymbolVariableFlagsE::CallerLocationDefault);
+    symVar.addExtraFlag(SymbolVariableFlagsE::Initialized);
     return Result::Continue;
 }
 

@@ -51,6 +51,13 @@ namespace
         return binding.exprRef.isValid() || binding.cstRef.isValid();
     }
 
+    void assignInlineBindingExpr(SemaClone::ParamBinding& binding, const SymbolVariable& param, AstNodeRef exprRef)
+    {
+        binding.idRef   = param.idRef();
+        binding.exprRef = exprRef;
+        binding.typeRef = TypeRef::invalid();
+    }
+
     struct InlineVariadicBinding
     {
         const SymbolVariable*   param           = nullptr;
@@ -747,6 +754,31 @@ namespace
         return hasNonCountOfUse;
     }
 
+    bool inlineBindingNeedsArrayLiteralMaterialization(Sema& sema, const Ast& sourceAst, AstNodeRef nodeRef, IdentifierRef idRef, AstNodeRef parentRef = AstNodeRef::invalid())
+    {
+        if (nodeRef.isInvalid() || !idRef.isValid())
+            return false;
+
+        const AstNode& node = sourceAst.node(nodeRef);
+        if (node.is(AstNodeId::Identifier) &&
+            sema.idMgr().addIdentifier(sema.ctx(), node.codeRef()) == idRef &&
+            parentRef.isValid())
+        {
+            const AstNodeId parentId = sourceAst.node(parentRef).id();
+            return parentId == AstNodeId::IndexExpr || parentId == AstNodeId::ForeachStmt;
+        }
+
+        SmallVector<AstNodeRef> children;
+        node.collectChildrenFromAst(children, sourceAst);
+        for (const AstNodeRef childRef : children)
+        {
+            if (inlineBindingNeedsArrayLiteralMaterialization(sema, sourceAst, childRef, idRef, nodeRef))
+                return true;
+        }
+
+        return false;
+    }
+
     void appendBodyStatements(Sema& sema, AstNodeRef bodyRef, SmallVector<AstNodeRef>& outStatements, const AstNodeId transparentBodyId)
     {
         if (bodyRef.isInvalid())
@@ -831,15 +863,20 @@ namespace
             const bool      bindingIsCaptured           = inlineBindingIsCaptured(binding.idRef, capturedIdentifiers);
             const bool      bindingNeedsMaterialization = inlineBindingNeedsMaterialization(sema, binding.exprRef, localIdentifiers);
             const TypeInfo& paramType                   = param->type(sema.ctx());
-            const bool      hasNonCountOfUse = inlineBindingHasNonCountOfUse(sema, sourceAst, decl.nodeBodyRef, binding.idRef);
+            const bool      hasNonCountOfUse            = inlineBindingHasNonCountOfUse(sema, sourceAst, decl.nodeBodyRef, binding.idRef);
             const bool      forceVariadicMaterialization = !bindingIsCaptured && forceMaterializeInlineVariadicBinding(binding, paramType, hasNonCountOfUse);
-            if (paramType.isCodeBlock() || (paramType.isAnyVariadic() && !forceVariadicMaterialization && !bindingIsCaptured && !bindingNeedsMaterialization))
+            const bool      forceArrayLiteralMaterialization = !bindingIsCaptured &&
+                                                               binding.exprRef.isValid() &&
+                                                               sema.node(binding.exprRef).is(AstNodeId::ArrayLiteral) &&
+                                                               inlineBindingNeedsArrayLiteralMaterialization(sema, sourceAst, decl.nodeBodyRef, binding.idRef);
+            const bool forceBindingMaterialization = forceVariadicMaterialization || forceArrayLiteralMaterialization;
+            if (paramType.isCodeBlock() || (paramType.isAnyVariadic() && !forceBindingMaterialization && !bindingIsCaptured && !bindingNeedsMaterialization))
             {
                 remainingBindings.push_back(binding);
                 continue;
             }
 
-            if (!forceVariadicMaterialization && !bindingIsCaptured && !bindingNeedsMaterialization)
+            if (!forceBindingMaterialization && !bindingIsCaptured && !bindingNeedsMaterialization)
             {
                 remainingBindings.push_back(binding);
                 continue;
@@ -1082,8 +1119,7 @@ namespace
             const AstNodeRef ufcsRef = bindingArgumentRef(sema, *params[0], context.ufcsArg);
             if (numFixed > 0)
             {
-                bound[0].idRef   = params[0]->idRef();
-                bound[0].exprRef = ufcsRef;
+                assignInlineBindingExpr(bound[0], *params[0], ufcsRef);
                 nextParam        = 1;
             }
             else if (hasAnyVariadic)
@@ -1140,8 +1176,7 @@ namespace
             if (isBindingAssigned(bound[paramIndex]))
                 return Result::Continue;
 
-            bound[paramIndex].idRef   = params[paramIndex]->idRef();
-            bound[paramIndex].exprRef = argValueRef;
+            assignInlineBindingExpr(bound[paramIndex], *params[paramIndex], argValueRef);
         }
 
         for (size_t argIndex = 0; argIndex < args.size(); ++argIndex)
@@ -1158,8 +1193,7 @@ namespace
                 !isBindingAssigned(bound[numFixed - 1]))
             {
                 const size_t trailingParamIndex   = numFixed - 1;
-                bound[trailingParamIndex].idRef   = params[trailingParamIndex]->idRef();
-                bound[trailingParamIndex].exprRef = bindingInlineArgumentRef(sema, context, *params[trailingParamIndex], trailingParamIndex, numFixed, argRef, sourceArgRef);
+                assignInlineBindingExpr(bound[trailingParamIndex], *params[trailingParamIndex], bindingInlineArgumentRef(sema, context, *params[trailingParamIndex], trailingParamIndex, numFixed, argRef, sourceArgRef));
                 continue;
             }
 
@@ -1169,8 +1203,7 @@ namespace
             AstNodeRef argValueRef = nextParam < numFixed ? bindingInlineArgumentRef(sema, context, *params[nextParam], nextParam, numFixed, argRef, sourceArgRef) : bindingValueArgumentRef(sema, argRef);
             if (nextParam < numFixed)
             {
-                bound[nextParam].idRef   = params[nextParam]->idRef();
-                bound[nextParam].exprRef = argValueRef;
+                assignInlineBindingExpr(bound[nextParam], *params[nextParam], argValueRef);
                 nextParam++;
                 continue;
             }
@@ -1210,7 +1243,7 @@ namespace
                     const AstNodeRef defaultRef    = bindingArgumentRef(sema, *param, defaultArgRef);
                     if (defaultRef.isInvalid())
                         return Result::Continue;
-                    bound[i].exprRef = defaultRef;
+                    assignInlineBindingExpr(bound[i], *param, defaultRef);
                 }
             }
 

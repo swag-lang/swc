@@ -201,3 +201,19 @@ enum MkanyKind: u16
     const V = #run mkanyBoolRuneMix()
     #assert(V == 66)
 }
+
+#test
+{
+    func mkanyStoredTypeValueArray()->f32
+    {
+        var values = [1, 2.5]
+        let info = #typeof(values)
+        let boxed: any = @mkany(&values, info)
+        let data = cast(*[2] f32) @dataof(boxed)
+        let array = dref data
+        return array[0] + array[1]
+    }
+
+    const V = #run mkanyStoredTypeValueArray()
+    #assert(V == 3.5)
+}

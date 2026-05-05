@@ -243,6 +243,16 @@ func mkanyCastStringToBytesFromAny(value: any)->u64
 
 #test
 {
+    var text = "omega"
+    let info = #typeof(text)
+    let boxed: any = @mkany(&text, info)
+
+    @assert(@kindof(boxed) == string)
+    @assert(cast(string) boxed == "omega")
+}
+
+#test
+{
     var value = 733's32
     let ptr: const *s32 = &value
     let boxed = @mkany(ptr, s32)

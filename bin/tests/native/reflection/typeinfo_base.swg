@@ -1,4 +1,4 @@
-#global fileprivate // 
+#global fileprivate
 
 #assert(s32 == s32)
 #assert(s32 != u32)
@@ -91,6 +91,24 @@ const PA = cast(const *Swag.TypeInfoStruct) #typeof(A)
     switch PA.fields[2].pointedType
     {
         case s32:
+            hit = true
+            break
+        default:
+            hit = false
+            break
+    }
+
+    @assert(hit)
+}
+
+#test
+{
+    let info = #typeof(A)
+    var hit = false
+
+    switch info
+    {
+        case A:
             hit = true
             break
         default:

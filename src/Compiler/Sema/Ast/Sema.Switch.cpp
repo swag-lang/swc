@@ -356,8 +356,17 @@ Result AstSwitchStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) 
 {
     if (childRef == nodeExprRef)
     {
-        SemaNodeView exprView = sema.viewTypeConstant(nodeExprRef);
+        SemaNodeView exprView = sema.viewNodeTypeConstant(nodeExprRef);
         SWC_RESULT(SemaCheck::isValueOrTypeInfo(sema, exprView));
+
+        const TypeInfo& initialType      = sema.typeMgr().get(exprView.typeRef());
+        const TypeRef   initialUltimate  = initialType.unwrap(sema.ctx(), exprView.typeRef(), TypeExpandE::Alias | TypeExpandE::Enum);
+        const TypeInfo& initialFinalType = sema.typeMgr().get(initialUltimate);
+        if (initialFinalType.isTypeValue())
+        {
+            SWC_RESULT(Cast::cast(sema, exprView, sema.typeMgr().typeTypeInfo(), CastKind::Implicit));
+            exprView = sema.viewNodeTypeConstant(nodeExprRef);
+        }
 
         const TypeInfo& type      = sema.typeMgr().get(exprView.typeRef());
         const TypeRef   ultimate  = type.unwrap(sema.ctx(), exprView.typeRef(), TypeExpandE::Alias | TypeExpandE::Enum);

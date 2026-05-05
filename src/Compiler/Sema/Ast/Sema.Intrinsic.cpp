@@ -351,6 +351,30 @@ namespace
         return SemaHelpers::intrinsicCountOf(sema, sema.curNodeRef(), children[0]);
     }
 
+    bool isTypeInfoOperand(Sema& sema, const SemaNodeView& view)
+    {
+        if (view.type() && (view.type()->isAnyTypeInfo(sema.ctx()) || view.type()->isTypeValue()))
+            return true;
+        if (!view.cstRef().isValid())
+            return false;
+        return sema.cstMgr().makeTypeValue(sema, view.cstRef()).isValid();
+    }
+
+    TypeRef typeInfoOperandTypeRef(Sema& sema, const SemaNodeView& view)
+    {
+        if (view.type() && view.type()->isTypeValue())
+            return view.type()->payloadTypeRef();
+
+        if (!view.cstRef().isValid())
+            return TypeRef::invalid();
+
+        const TypeRef typeRef = sema.cstMgr().makeTypeValue(sema, view.cstRef());
+        if (!typeRef.isValid())
+            return TypeRef::invalid();
+
+        return typeRef;
+    }
+
     Result semaIntrinsicMakeAny(Sema& sema, AstIntrinsicCall& node, const SmallVector<AstNodeRef>& children)
     {
         const SemaNodeView nodeViewPtr = sema.viewType(children[0]);
@@ -363,14 +387,14 @@ namespace
         const TypeInfo& ptrType    = sema.typeMgr().get(ptrTypeRef);
         if (!ptrType.isAnyPointer())
             return SemaError::raiseRequestedTypeFam(sema, nodeViewPtr.nodeRef(), nodeViewPtr.typeRef(), sema.typeMgr().typeValuePtrVoid());
-        if (!viewType.type()->isAnyTypeInfo(sema.ctx()))
+        if (!isTypeInfoOperand(sema, viewType))
             return SemaError::raiseRequestedTypeFam(sema, viewType.nodeRef(), viewType.typeRef(), sema.typeMgr().typeTypeInfo());
 
         // Check if the pointer is void or a pointer to the type defined in the right expression
         const TypeRef typeRefPointee = ptrType.payloadTypeRef();
-        if (!sema.typeMgr().get(typeRefPointee).isVoid() && viewType.cstRef().isValid())
+        const TypeRef typeRefTypeInfo = typeInfoOperandTypeRef(sema, viewType);
+        if (!sema.typeMgr().get(typeRefPointee).isVoid() && typeRefTypeInfo.isValid())
         {
-            const TypeRef typeRefTypeInfo = sema.cstMgr().makeTypeValue(sema, viewType.cstRef());
             if (typeRefPointee != typeRefTypeInfo)
             {
                 auto diag = SemaError::report(sema, DiagnosticId::sema_err_invalid_mkany_ptr, nodeViewPtr.nodeRef());
@@ -457,30 +481,6 @@ namespace
         return sema.typeMgr().addType(TypeInfo::makeArray(dims, sema.typeMgr().typeU8()));
     }
 
-    bool isMakeInterfaceTypeInfoOperand(Sema& sema, const SemaNodeView& view)
-    {
-        if (view.type() && (view.type()->isAnyTypeInfo(sema.ctx()) || view.type()->isTypeValue()))
-            return true;
-        if (!view.cstRef().isValid())
-            return false;
-        return sema.cstMgr().makeTypeValue(sema, view.cstRef()).isValid();
-    }
-
-    TypeRef makeInterfaceTypeValueRef(Sema& sema, const SemaNodeView& view)
-    {
-        if (view.type() && view.type()->isTypeValue())
-            return sema.typeMgr().get(view.type()->payloadTypeRef()).unwrapAliasEnum(sema.ctx(), view.type()->payloadTypeRef());
-
-        if (!view.cstRef().isValid())
-            return TypeRef::invalid();
-
-        const TypeRef typeRef = sema.cstMgr().makeTypeValue(sema, view.cstRef());
-        if (!typeRef.isValid())
-            return TypeRef::invalid();
-
-        return sema.typeMgr().get(typeRef).unwrapAliasEnum(sema.ctx(), typeRef);
-    }
-
     bool makeInterfaceObjectIsConst(Sema& sema, const SemaNodeView& objectView)
     {
         if (!objectView.type())
@@ -506,16 +506,18 @@ namespace
         SWC_RESULT(SemaCheck::isValueOrTypeInfo(sema, typeView));
         SWC_RESULT(SemaCheck::isValueOrTypeInfo(sema, itfView));
 
-        if (!isMakeInterfaceTypeInfoOperand(sema, typeView))
+        if (!isTypeInfoOperand(sema, typeView))
             return SemaError::raiseRequestedTypeFam(sema, typeView.nodeRef(), typeView.typeRef(), sema.typeMgr().typeTypeInfo());
-        if (!isMakeInterfaceTypeInfoOperand(sema, itfView))
+        if (!isTypeInfoOperand(sema, itfView))
             return SemaError::raiseRequestedTypeFam(sema, itfView.nodeRef(), itfView.typeRef(), sema.typeMgr().typeTypeInfo());
 
-        const TypeRef interfaceTypeRef = makeInterfaceTypeValueRef(sema, itfView);
+        const TypeRef interfaceTypeValueRef = typeInfoOperandTypeRef(sema, itfView);
+        const TypeRef interfaceTypeRef      = interfaceTypeValueRef.isValid() ? sema.typeMgr().get(interfaceTypeValueRef).unwrapAliasEnum(sema.ctx(), interfaceTypeValueRef) : TypeRef::invalid();
         if (!interfaceTypeRef.isValid() || !sema.typeMgr().get(interfaceTypeRef).isInterface())
             return SemaError::raise(sema, DiagnosticId::sema_err_not_type, itfView.nodeRef());
 
-        const TypeRef objectTypeRef = makeInterfaceTypeValueRef(sema, typeView);
+        const TypeRef objectTypeValueRef = typeInfoOperandTypeRef(sema, typeView);
+        const TypeRef objectTypeRef      = objectTypeValueRef.isValid() ? sema.typeMgr().get(objectTypeValueRef).unwrapAliasEnum(sema.ctx(), objectTypeValueRef) : TypeRef::invalid();
         if (objectTypeRef.isValid())
         {
             const TypeInfo& objectType = sema.typeMgr().get(objectTypeRef);
@@ -562,9 +564,9 @@ namespace
         SWC_RESULT(SemaCheck::isValueOrTypeInfo(sema, toTypeView));
         SWC_RESULT(SemaCheck::isValueOrTypeInfo(sema, fromTypeView));
 
-        if (!isMakeInterfaceTypeInfoOperand(sema, toTypeView))
+        if (!isTypeInfoOperand(sema, toTypeView))
             return SemaError::raiseRequestedTypeFam(sema, toTypeView.nodeRef(), toTypeView.typeRef(), sema.typeMgr().typeTypeInfo());
-        if (!isMakeInterfaceTypeInfoOperand(sema, fromTypeView))
+        if (!isTypeInfoOperand(sema, fromTypeView))
             return SemaError::raiseRequestedTypeFam(sema, fromTypeView.nodeRef(), fromTypeView.typeRef(), sema.typeMgr().typeTypeInfo());
 
         sema.setType(sema.curNodeRef(), sema.typeMgr().typeBool());
@@ -582,9 +584,9 @@ namespace
         SWC_RESULT(SemaCheck::isValueOrTypeInfo(sema, fromTypeView));
         SWC_RESULT(SemaCheck::isValue(sema, ptrView.nodeRef()));
 
-        if (!isMakeInterfaceTypeInfoOperand(sema, toTypeView))
+        if (!isTypeInfoOperand(sema, toTypeView))
             return SemaError::raiseRequestedTypeFam(sema, toTypeView.nodeRef(), toTypeView.typeRef(), sema.typeMgr().typeTypeInfo());
-        if (!isMakeInterfaceTypeInfoOperand(sema, fromTypeView))
+        if (!isTypeInfoOperand(sema, fromTypeView))
             return SemaError::raiseRequestedTypeFam(sema, fromTypeView.nodeRef(), fromTypeView.typeRef(), sema.typeMgr().typeTypeInfo());
 
         if (!ptrView.type())

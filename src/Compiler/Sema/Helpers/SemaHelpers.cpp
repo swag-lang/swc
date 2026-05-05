@@ -170,7 +170,7 @@ namespace
         for (size_t i = 0; i < fieldTypes.size(); ++i)
         {
             const ConstantRef fieldCstRef = values && i < values->size() ? (*values)[i] : ConstantRef::invalid();
-            const TypeRef     fieldTypeRef = deduceConcretizedAggregateLiteralTypeImpl(sema, fieldTypes[i], fieldCstRef);
+            const TypeRef     fieldTypeRef = normalizeAggregateTypeLikeElementType(sema, deduceConcretizedAggregateLiteralTypeImpl(sema, fieldTypes[i], fieldCstRef), fieldCstRef);
             concreteFieldTypes.push_back(fieldTypeRef);
             changed = changed || fieldTypeRef != fieldTypes[i];
         }

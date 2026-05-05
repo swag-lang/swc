@@ -4,6 +4,7 @@
 #include "Compiler/CodeGen/Core/CodeGen.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Constant/ConstantLower.h"
+#include "Compiler/Sema/Constant/ConstantHelpers.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
@@ -15,6 +16,7 @@
 #include "Compiler/Sema/Symbol/Symbols.h"
 #include "Compiler/Sema/Type/TypeGen.h"
 #include "Compiler/Sema/Type/TypeManager.h"
+#include "Support/Math/Helpers.h"
 #include "Support/Report/Diagnostic.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -103,6 +105,48 @@ namespace
         return typeRef;
     }
 
+    Result collectAggregateStructConstantFieldValues(Sema& sema, SmallVector<ConstantRef>& outValues, ConstantRef srcCstRef, const TypeInfo& srcType)
+    {
+        const auto&          srcTypes = srcType.payloadAggregate().types;
+        const ConstantValue& srcCst   = sema.cstMgr().get(srcCstRef);
+        if (srcCst.isAggregateStruct())
+        {
+            for (const ConstantRef valueRef : srcCst.getAggregateStruct())
+                outValues.push_back(valueRef);
+            return Result::Continue;
+        }
+
+        SWC_ASSERT(srcCst.isStruct());
+        const ByteSpan srcBytes = srcCst.getStruct();
+        uint64_t       offset   = 0;
+        outValues.reserve(srcTypes.size());
+
+        for (const TypeRef elemTypeRef : srcTypes)
+        {
+            const TypeInfo& elemType = sema.typeMgr().get(elemTypeRef);
+            uint32_t        align    = elemType.alignOf(sema.ctx());
+            const uint64_t  elemSize = elemType.sizeOf(sema.ctx());
+            if (!align)
+                align = 1;
+
+            offset = Math::alignUpU64(offset, align);
+            if (!elemSize)
+            {
+                outValues.push_back(sema.cstMgr().addZeroPayloadConstant(sema.ctx(), elemTypeRef));
+                continue;
+            }
+
+            SWC_ASSERT(offset + elemSize <= srcBytes.size());
+            const ByteSpan    elemBytes{srcBytes.data() + offset, static_cast<size_t>(elemSize)};
+            const ConstantRef elemCstRef = ConstantHelpers::materializeStaticPayloadConstant(sema, elemTypeRef, elemBytes);
+            SWC_INTERNAL_CHECK(elemCstRef.isValid());
+            outValues.push_back(elemCstRef);
+            offset += elemSize;
+        }
+
+        return Result::Continue;
+    }
+
     Result castAggregateStructToAggregateStruct(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef, const TypeInfo& srcType, const TypeInfo& dstType)
     {
         const auto& srcAggregate = srcType.payloadAggregate();
@@ -130,10 +174,8 @@ namespace
         if (!castRequest.isConstantFolding())
             return Result::Continue;
 
-        const ConstantValue& srcCst = sema.cstMgr().get(castRequest.constantFoldingSrc());
-        SWC_ASSERT(srcCst.isAggregateStruct());
-
-        const auto& srcValues = srcCst.getAggregateStruct();
+        SmallVector<ConstantRef> srcValues;
+        SWC_RESULT(collectAggregateStructConstantFieldValues(sema, srcValues, castRequest.constantFoldingSrc(), srcType));
         SWC_ASSERT(srcValues.size() == srcAggregate.types.size());
 
         SmallVector<ConstantRef> castedValues;

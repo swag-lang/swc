@@ -1,4 +1,4 @@
-#global fileprivate // 
+#global fileprivate
 
 func A() => true
 func B(a: s32, b: s32) => a + b
@@ -16,6 +16,18 @@ func I(current, target, speed: f32)->f32
     let distance = target - current
     return current + G(distance) * speed
 }
+
+func J() => [
+    {values: [9, 4, 1], bias: 1},
+    {values: [2, 8, 3], bias: 4},
+]
+
+func K(payloadIndex: u64, valueIndex: u64)->s32
+{
+    let payloads = J()
+    return payloads[payloadIndex].values[valueIndex] + payloads[payloadIndex].bias
+}
+
 #test
 {
     #assert(#typeof(A()) == bool)
@@ -36,4 +48,6 @@ func I(current, target, speed: f32)->f32
     @assert(H(-2'f64) == -1.5)
     @assert(H(2'f64) == 1.5)
     @assert(I(1'f32, 3'f32, 0.25'f32) == 1.25'f32)
+    @assert(K(0, 1) == 5)
+    @assert(K(1, 2) == 7)
 }

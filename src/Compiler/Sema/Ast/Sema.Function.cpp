@@ -816,42 +816,6 @@ namespace
         return Result::Continue;
     }
 
-    TypeRef deduceHomogeneousAggregateArrayType(Sema& sema, TypeRef typeRef)
-    {
-        if (!typeRef.isValid())
-            return TypeRef::invalid();
-
-        const TypeInfo& type = sema.typeMgr().get(typeRef);
-        if (type.isArray())
-            return typeRef;
-        if (!type.isAggregateArray())
-            return TypeRef::invalid();
-
-        const auto& elemTypes = type.payloadAggregate().types;
-        if (elemTypes.empty())
-            return TypeRef::invalid();
-
-        TypeRef concreteElemTypeRef = TypeRef::invalid();
-        for (TypeRef elemTypeRef : elemTypes)
-        {
-            const TypeInfo& elemType = sema.typeMgr().get(elemTypeRef);
-            if (elemType.isAggregateArray())
-                elemTypeRef = deduceHomogeneousAggregateArrayType(sema, elemTypeRef);
-
-            if (!elemTypeRef.isValid())
-                return TypeRef::invalid();
-
-            if (!concreteElemTypeRef.isValid())
-                concreteElemTypeRef = elemTypeRef;
-            else if (concreteElemTypeRef != elemTypeRef)
-                return TypeRef::invalid();
-        }
-
-        SmallVector4<uint64_t> dims;
-        dims.push_back(elemTypes.size());
-        return sema.typeMgr().addType(TypeInfo::makeArray(dims.span(), concreteElemTypeRef));
-    }
-
     Result concretizeImplicitReturnTypeIfNeeded(Sema& sema, AstNodeRef exprRef, TypeRef& ioTypeRef)
     {
         if (exprRef.isInvalid() || !ioTypeRef.isValid())
@@ -892,13 +856,14 @@ namespace
             ioTypeRef = concreteTypeRef;
         }
 
-        const TypeRef concreteArrayTypeRef = deduceHomogeneousAggregateArrayType(sema, ioTypeRef);
-        if (!concreteArrayTypeRef.isValid())
+        const ConstantRef exprCstRef         = sema.viewConstant(exprRef).cstRef();
+        const TypeRef     concretizedTypeRef = SemaHelpers::deduceConcretizedAggregateLiteralType(sema, ioTypeRef, exprCstRef);
+        if (concretizedTypeRef == ioTypeRef)
             return Result::Continue;
 
         SemaNodeView castView = sema.viewNodeTypeConstant(exprRef);
-        SWC_RESULT(Cast::cast(sema, castView, concreteArrayTypeRef, CastKind::Implicit));
-        ioTypeRef = concreteArrayTypeRef;
+        SWC_RESULT(Cast::cast(sema, castView, concretizedTypeRef, CastKind::Implicit));
+        ioTypeRef = concretizedTypeRef;
         return Result::Continue;
     }
 

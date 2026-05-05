@@ -274,8 +274,10 @@ namespace
 
         SWC_RESULT(SemaCheck::isValue(sema, view.nodeRef()));
 
-        const TypeRef   dataTypeRef = SemaHelpers::unwrapAliasRefType(sema.ctx(), view.typeRef());
-        const TypeInfo* type        = &sema.typeMgr().get(dataTypeRef);
+        TypeRef dataTypeRef = SemaHelpers::unwrapAliasRefType(sema.ctx(), view.typeRef());
+        if (view.cstRef().isValid())
+            dataTypeRef = SemaHelpers::deduceConcretizedAggregateLiteralType(sema, dataTypeRef, view.cstRef());
+        const TypeInfo* type = &sema.typeMgr().get(dataTypeRef);
         TypeInfoFlags   flags       = type->flags();
         flags.add(view.type()->flags());
         if (SemaCheck::isConstAssignmentTarget(sema, view.nodeRef(), view))

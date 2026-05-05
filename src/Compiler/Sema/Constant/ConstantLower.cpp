@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Compiler/Sema/Constant/ConstantLower.h"
 #include "Backend/Runtime.h"
+#include "Compiler/Sema/Cast/Cast.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Symbol/Symbol.Enum.h"
@@ -543,7 +544,17 @@ namespace
         const uint64_t maxCount = std::min<uint64_t>(values.size(), totalCount);
         for (uint64_t i = 0; i < maxCount; ++i)
         {
-            SWC_RESULT(lowerConstantToBytes(sema, subBytes(dstBytes, i * elemSize, elemSize), elemTypeRef, values[i]));
+            ConstantRef elemCstRef = values[i];
+            if (elemCstRef.isValid() && sema.cstMgr().get(elemCstRef).typeRef() != elemTypeRef)
+            {
+                CastRequest castRequest{CastKind::Implicit};
+                castRequest.setConstantFoldingSrc(elemCstRef);
+                SWC_INTERNAL_CHECK(Cast::castAllowed(sema, castRequest, sema.cstMgr().get(elemCstRef).typeRef(), elemTypeRef) == Result::Continue);
+                if (castRequest.constantFoldingResult().isValid())
+                    elemCstRef = castRequest.constantFoldingResult();
+            }
+
+            SWC_RESULT(lowerConstantToBytes(sema, subBytes(dstBytes, i * elemSize, elemSize), elemTypeRef, elemCstRef));
         }
 
         return Result::Continue;

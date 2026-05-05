@@ -1165,6 +1165,40 @@ namespace
         return sema.typeMgr().addType(TypeInfo::makeArray(dims, resolvedType.payloadArrayElemTypeRef(), reflectedFlags));
     }
 
+    Result resolveCompilerOperandConcreteType(Sema& sema, SemaNodeView& view, AstNodeRef childRef, TypeRef& outTypeRef)
+    {
+        if (!view.typeRef().isValid())
+            return SemaError::raise(sema, DiagnosticId::sema_err_not_value_expr, childRef);
+
+        if (view.cstRef().isValid())
+        {
+            ConstantRef newCstRef;
+            SWC_RESULT(Cast::concretizeConstant(sema, newCstRef, view.nodeRef(), view.cstRef(), TypeInfo::Sign::Unknown));
+            sema.setConstant(view.nodeRef(), newCstRef);
+            view.recompute(sema, SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant | SemaNodeViewPartE::Symbol);
+        }
+
+        outTypeRef = view.typeRef();
+        if (view.type() && view.type()->isTypeValue())
+        {
+            outTypeRef = view.type()->payloadTypeRef();
+            return Result::Continue;
+        }
+
+        if (view.type() && view.type()->isAnyTypeInfo(sema.ctx()))
+        {
+            outTypeRef = sema.cstMgr().makeTypeValue(sema, view.cstRef());
+            if (!outTypeRef.isValid())
+                return SemaError::raise(sema, DiagnosticId::sema_err_not_value_expr, childRef);
+            return Result::Continue;
+        }
+
+        if (view.cstRef().isValid())
+            outTypeRef = SemaHelpers::deduceConcretizedAggregateLiteralType(sema, outTypeRef, view.cstRef());
+
+        return Result::Continue;
+    }
+
     Result semaCompilerTypeOf(Sema& sema, const AstCompilerCallOne& node)
     {
         const AstNodeRef childRef = node.nodeArgRef;
@@ -1231,31 +1265,8 @@ namespace
     {
         const AstNodeRef childRef = node.nodeArgRef;
         SemaNodeView     view     = sema.viewTypeConstant(childRef);
-        if (!view.typeRef().isValid())
-            return SemaError::raise(sema, DiagnosticId::sema_err_not_value_expr, childRef);
-
-        if (view.cstRef().isValid())
-        {
-            ConstantRef newCstRef;
-            SWC_RESULT(Cast::concretizeConstant(sema, newCstRef, view.nodeRef(), view.cstRef(), TypeInfo::Sign::Unknown));
-            sema.setConstant(view.nodeRef(), newCstRef);
-            view.recompute(sema, SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
-        }
-
-        TypeRef typeRef = view.typeRef();
-        if (view.type() && view.type()->isTypeValue())
-            typeRef = view.type()->payloadTypeRef();
-        else if (view.type() && view.type()->isAnyTypeInfo(sema.ctx()))
-        {
-            const TypeRef resolvedTypeRef = sema.cstMgr().makeTypeValue(sema, view.cstRef());
-            if (!resolvedTypeRef.isValid())
-                return SemaError::raise(sema, DiagnosticId::sema_err_not_value_expr, childRef);
-            typeRef = resolvedTypeRef;
-        }
-        else if (view.cstRef().isValid())
-        {
-            typeRef = SemaHelpers::deduceConcretizedAggregateLiteralType(sema, typeRef, view.cstRef());
-        }
+        TypeRef          typeRef  = TypeRef::invalid();
+        SWC_RESULT(resolveCompilerOperandConcreteType(sema, view, childRef, typeRef));
 
         sema.setType(sema.curNodeRef(), typeRef);
         return Result::Continue;
@@ -1264,13 +1275,16 @@ namespace
     Result semaCompilerSizeOf(Sema& sema, const AstCompilerCallOne& node)
     {
         const AstNodeRef childRef = node.nodeArgRef;
-        SemaNodeView     view     = sema.viewTypeSymbol(childRef);
+        SemaNodeView     view(sema, childRef, SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant | SemaNodeViewPartE::Symbol);
         SWC_RESULT(instantiateCompilerGenericTypeOperand(sema, view));
-        if (!view.type())
+        if (!view.typeRef().isValid())
             return SemaError::raise(sema, DiagnosticId::sema_err_invalid_sizeof, childRef);
-        SWC_RESULT(sema.waitSemaCompleted(view.type(), childRef));
+        TypeRef typeRef = TypeRef::invalid();
+        SWC_RESULT(resolveCompilerOperandConcreteType(sema, view, childRef, typeRef));
 
-        sema.setConstant(sema.curNodeRef(), sema.cstMgr().addInt(sema.ctx(), view.type()->sizeOf(sema.ctx())));
+        const TypeInfo& typeInfo = sema.typeMgr().get(typeRef);
+        SWC_RESULT(sema.waitSemaCompleted(&typeInfo, childRef));
+        sema.setConstant(sema.curNodeRef(), sema.cstMgr().addInt(sema.ctx(), typeInfo.sizeOf(sema.ctx())));
         return Result::Continue;
     }
 
@@ -1291,13 +1305,16 @@ namespace
     Result semaCompilerAlignOf(Sema& sema, const AstCompilerCallOne& node)
     {
         const AstNodeRef childRef = node.nodeArgRef;
-        SemaNodeView     view     = sema.viewTypeSymbol(childRef);
+        SemaNodeView     view(sema, childRef, SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant | SemaNodeViewPartE::Symbol);
         SWC_RESULT(instantiateCompilerGenericTypeOperand(sema, view));
-        if (!view.type())
+        if (!view.typeRef().isValid())
             return SemaError::raise(sema, DiagnosticId::sema_err_invalid_alignof, childRef);
-        SWC_RESULT(sema.waitSemaCompleted(view.type(), childRef));
+        TypeRef typeRef = TypeRef::invalid();
+        SWC_RESULT(resolveCompilerOperandConcreteType(sema, view, childRef, typeRef));
 
-        sema.setConstant(sema.curNodeRef(), sema.cstMgr().addInt(sema.ctx(), view.type()->alignOf(sema.ctx())));
+        const TypeInfo& typeInfo = sema.typeMgr().get(typeRef);
+        SWC_RESULT(sema.waitSemaCompleted(&typeInfo, childRef));
+        sema.setConstant(sema.curNodeRef(), sema.cstMgr().addInt(sema.ctx(), typeInfo.alignOf(sema.ctx())));
         return Result::Continue;
     }
 

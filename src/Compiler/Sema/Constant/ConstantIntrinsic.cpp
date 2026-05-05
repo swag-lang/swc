@@ -50,14 +50,29 @@ namespace
     uint64_t materializeConstantAndGetAddress(Sema& sema, const SemaNodeView& view)
     {
         SWC_ASSERT(view.type());
-        const uint64_t sizeOf = view.type()->sizeOf(sema.ctx());
+        TypeRef storageTypeRef = constantFoldStorageTypeRef(sema, view.typeRef());
+        if (view.cstRef().isValid())
+        {
+            const TypeInfo& storageType = sema.typeMgr().get(storageTypeRef);
+            if (storageType.isScalarUnsized())
+            {
+                ConstantRef concretizedCstRef = ConstantRef::invalid();
+                SWC_INTERNAL_CHECK(Cast::concretizeConstant(sema, concretizedCstRef, view.nodeRef(), view.cstRef(), TypeInfo::Sign::Unknown) == Result::Continue);
+                if (concretizedCstRef.isValid())
+                    storageTypeRef = sema.cstMgr().get(concretizedCstRef).typeRef();
+            }
+
+            storageTypeRef = SemaHelpers::deduceConcretizedAggregateLiteralType(sema, storageTypeRef, view.cstRef());
+        }
+
+        const uint64_t sizeOf = sema.typeMgr().get(storageTypeRef).sizeOf(sema.ctx());
         if (!sizeOf)
             return 0;
 
         SmallVector<std::byte> storage(sizeOf);
         const ByteSpanRW       storageSpan{storage.data(), storage.size()};
         std::memset(storageSpan.data(), 0, storageSpan.size());
-        SWC_INTERNAL_CHECK(ConstantLower::lowerToBytes(sema, storageSpan, view.cstRef(), view.typeRef()) == Result::Continue);
+        SWC_INTERNAL_CHECK(ConstantLower::lowerToBytes(sema, storageSpan, view.cstRef(), storageTypeRef) == Result::Continue);
 
         const std::string_view persistentStorage = sema.cstMgr().addPayloadBuffer(asStringView(asByteSpan(storageSpan)));
         return reinterpret_cast<uint64_t>(persistentStorage.data());
@@ -237,9 +252,11 @@ void ConstantIntrinsic::tryConstantFoldDataOf(Sema& sema, TypeRef resultTypeRef,
     if (!view.cstRef().isValid())
         return;
 
-    const ConstantValue& cst         = sema.cstMgr().get(view.cstRef());
-    const TypeRef        dataTypeRef = SemaHelpers::unwrapAliasRefType(sema.ctx(), view.typeRef());
-    const TypeInfo*      type        = &sema.typeMgr().get(dataTypeRef);
+    const ConstantValue& cst = sema.cstMgr().get(view.cstRef());
+    TypeRef              dataTypeRef = SemaHelpers::unwrapAliasRefType(sema.ctx(), view.typeRef());
+    if (view.cstRef().isValid())
+        dataTypeRef = SemaHelpers::deduceConcretizedAggregateLiteralType(sema, dataTypeRef, view.cstRef());
+    const TypeInfo* type = &sema.typeMgr().get(dataTypeRef);
 
     uint64_t ptrValue = 0;
 

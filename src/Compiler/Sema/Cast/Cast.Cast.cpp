@@ -1971,8 +1971,11 @@ Result Cast::castToAny(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef,
         return Result::Continue;
     }
 
+    const TypeRef boxedAnyTypeRef = SemaHelpers::anyBoxedValueTypeRef(ctx, anyTypeRef);
+    SWC_ASSERT(boxedAnyTypeRef.isValid());
+
     ConstantRef typeInfoCstRef = ConstantRef::invalid();
-    SWC_RESULT(sema.cstMgr().makeTypeInfo(sema, typeInfoCstRef, anyTypeRef, castRequest.errorNodeRef));
+    SWC_RESULT(sema.cstMgr().makeTypeInfo(sema, typeInfoCstRef, boxedAnyTypeRef, castRequest.errorNodeRef));
     const ConstantValue& typeInfoCst = sema.cstMgr().get(typeInfoCstRef);
     SWC_ASSERT(typeInfoCst.isValuePointer());
     DataSegmentRef typeInfoRef;
@@ -1990,15 +1993,17 @@ Result Cast::castToAny(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef,
     if (!srcCst.isNull())
     {
         const uint64_t valueSize = srcType->sizeOf(ctx);
+        const uint64_t boxedValueSize = sema.typeMgr().get(boxedAnyTypeRef).sizeOf(ctx);
         SWC_ASSERT(valueSize <= std::numeric_limits<uint32_t>::max());
+        SWC_ASSERT(boxedValueSize <= std::numeric_limits<uint32_t>::max());
 
-        if (valueSize)
+        if (boxedValueSize)
         {
-            std::vector valueBytes(valueSize, std::byte{0});
-            SWC_RESULT(ConstantLower::lowerToBytes(sema, valueBytes, srcCstRef, anyTypeRef));
+            std::vector valueBytes(boxedValueSize, std::byte{0});
+            SWC_RESULT(ConstantLower::lowerToBytes(sema, valueBytes, srcCstRef, boxedAnyTypeRef));
 
             uint32_t valueOffset = INVALID_REF;
-            SWC_RESULT(ConstantLower::materializeStaticPayload(valueOffset, sema, segment, anyTypeRef, ByteSpan{valueBytes.data(), valueBytes.size()}));
+            SWC_RESULT(ConstantLower::materializeStaticPayload(valueOffset, sema, segment, boxedAnyTypeRef, ByteSpan{valueBytes.data(), valueBytes.size()}));
             runtimeAny->value = segment.ptr<std::byte>(valueOffset);
             segment.addRelocation(anyOffset + offsetof(Runtime::Any, value), valueOffset);
         }
@@ -2123,7 +2128,7 @@ Result Cast::castFromAny(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRe
         }
         else if (valueType.isAnyTypeInfo(ctx))
         {
-            const uint64_t ptrValue = reinterpret_cast<uint64_t>(runtimeAny.value);
+            const uint64_t ptrValue = *reinterpret_cast<const uint64_t*>(runtimeAny.value);
             ConstantValue  typeCst  = ConstantValue::makeValuePointer(ctx, sema.typeMgr().structTypeInfo(), ptrValue, TypeInfoFlagsE::Const);
             typeCst.setTypeRef(valueTypeRef);
             valueCstRef = sema.cstMgr().addConstant(ctx, typeCst);

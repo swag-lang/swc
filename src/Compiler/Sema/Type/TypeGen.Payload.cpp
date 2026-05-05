@@ -4,6 +4,7 @@
 #include "Compiler/Sema/Constant/ConstantLower.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Core/Sema.h"
+#include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Compiler/Sema/Symbol/Symbol.Enum.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
@@ -299,20 +300,22 @@ namespace
 
         const TypeRef valueTypeRef = cst.typeRef();
         SWC_ASSERT(valueTypeRef.isValid());
+        const TypeRef boxedValueTypeRef = SemaHelpers::anyBoxedValueTypeRef(sema.ctx(), valueTypeRef);
+        SWC_ASSERT(boxedValueTypeRef.isValid());
 
-        const auto& typeEntry = requireCacheEntry(cache, valueTypeRef);
+        const auto& typeEntry = requireCacheEntry(cache, boxedValueTypeRef);
         storage.addRelocation(baseOffset + fieldOffset + offsetof(Runtime::Any, type), typeEntry.offset);
         dstAny->type = storage.ptr<Runtime::TypeInfo>(typeEntry.offset);
 
-        const uint64_t valueSize = sema.typeMgr().get(valueTypeRef).sizeOf(sema.ctx());
+        const uint64_t valueSize = sema.typeMgr().get(boxedValueTypeRef).sizeOf(sema.ctx());
         if (!valueSize)
             return;
 
         std::vector valueBytes(valueSize, std::byte{0});
-        SWC_INTERNAL_CHECK(ConstantLower::lowerToBytes(sema, valueBytes, valueCstRef, valueTypeRef) == Result::Continue);
+        SWC_INTERNAL_CHECK(ConstantLower::lowerToBytes(sema, valueBytes, valueCstRef, boxedValueTypeRef) == Result::Continue);
 
         uint32_t valueOffset = INVALID_REF;
-        SWC_INTERNAL_CHECK(ConstantLower::materializeStaticPayload(valueOffset, sema, storage, valueTypeRef, ByteSpan{valueBytes.data(), valueBytes.size()}) == Result::Continue);
+        SWC_INTERNAL_CHECK(ConstantLower::materializeStaticPayload(valueOffset, sema, storage, boxedValueTypeRef, ByteSpan{valueBytes.data(), valueBytes.size()}) == Result::Continue);
         SWC_ASSERT(valueOffset != INVALID_REF);
 
         storage.addRelocation(baseOffset + fieldOffset + offsetof(Runtime::Any, value), valueOffset);

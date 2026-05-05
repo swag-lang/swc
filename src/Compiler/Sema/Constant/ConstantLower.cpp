@@ -4,6 +4,7 @@
 #include "Compiler/Sema/Cast/Cast.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Core/Sema.h"
+#include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Compiler/Sema/Symbol/Symbol.Enum.h"
 #include "Compiler/Sema/Symbol/Symbol.Struct.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
@@ -460,12 +461,14 @@ namespace
 
         Runtime::Any anyValue = {};
 
-        const TypeRef valueTypeRef = cst.typeRef();
+        const TypeRef valueTypeRef      = cst.typeRef();
+        const TypeRef boxedValueTypeRef = SemaHelpers::anyBoxedValueTypeRef(sema.ctx(), valueTypeRef);
         SWC_INTERNAL_CHECK(valueTypeRef.isValid());
-        SWC_INTERNAL_CHECK(valueTypeRef != dstTypeRef);
+        SWC_INTERNAL_CHECK(boxedValueTypeRef.isValid());
+        SWC_INTERNAL_CHECK(boxedValueTypeRef != dstTypeRef);
 
         ConstantRef typeInfoCstRef = ConstantRef::invalid();
-        SWC_RESULT(sema.cstMgr().makeTypeInfo(sema, typeInfoCstRef, valueTypeRef, sema.ctx().state().nodeRef));
+        SWC_RESULT(sema.cstMgr().makeTypeInfo(sema, typeInfoCstRef, boxedValueTypeRef, sema.ctx().state().nodeRef));
         SWC_INTERNAL_CHECK(typeInfoCstRef.isValid());
 
         const ConstantValue& typeInfoCst = sema.cstMgr().get(typeInfoCstRef);
@@ -473,7 +476,7 @@ namespace
         anyValue.type = pointerFromRawAddress<const Runtime::TypeInfo>(typeInfoCst.getValuePointer());
 
         const char* loweredValueData = nullptr;
-        SWC_RESULT(lowerConstantToPayloadBuffer(loweredValueData, sema, cstRef, valueTypeRef));
+        SWC_RESULT(lowerConstantToPayloadBuffer(loweredValueData, sema, cstRef, boxedValueTypeRef));
         anyValue.value = const_cast<char*>(loweredValueData);
         writeValue(dstBytes, anyValue);
         return Result::Continue;

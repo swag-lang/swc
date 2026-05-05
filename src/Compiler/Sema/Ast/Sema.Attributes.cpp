@@ -358,6 +358,18 @@ namespace
         return Result::Continue;
     }
 
+    TypeRef attributeParamTypeValueRef(Sema& sema, ConstantRef cstRef)
+    {
+        if (!cstRef.isValid())
+            return TypeRef::invalid();
+
+        const ConstantValue& cst = sema.cstMgr().get(cstRef);
+        if (cst.isTypeValue())
+            return cst.getTypeValue();
+
+        return sema.cstMgr().makeTypeValue(sema, cstRef);
+    }
+
     Result normalizeAttributeParamConstantRef(Sema& sema, ConstantRef& ioCstRef, const TypeInfo& paramType, AstNodeRef ownerNodeRef)
     {
         if (!ioCstRef.isValid())
@@ -365,7 +377,7 @@ namespace
         if (!paramType.isAnyTypeInfo(sema.ctx()))
             return Result::Continue;
 
-        const TypeRef valueTypeRef = sema.cstMgr().makeTypeValue(sema, ioCstRef);
+        const TypeRef valueTypeRef = attributeParamTypeValueRef(sema, ioCstRef);
         if (valueTypeRef.isInvalid())
             return Result::Continue;
 

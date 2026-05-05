@@ -1406,6 +1406,17 @@ Result SemaHelpers::intrinsicCountOf(Sema& sema, AstNodeRef targetRef, AstNodeRe
     return Result::Continue;
 }
 
+TypeRef SemaHelpers::anyBoxedValueTypeRef(const TaskContext& ctx, TypeRef valueTypeRef)
+{
+    if (!valueTypeRef.isValid())
+        return TypeRef::invalid();
+
+    if (ctx.typeMgr().get(valueTypeRef).isAnyTypeInfo(ctx))
+        return ctx.typeMgr().typeTypeInfo();
+
+    return valueTypeRef;
+}
+
 namespace
 {
     TypeRef normalizeBindingType(TaskContext& ctx, TypeRef typeRef)

@@ -1133,15 +1133,16 @@ namespace
         return Result::Continue;
     }
 
-    TypeRef resolveCompilerOperandTypeValue(Sema& sema, const SemaNodeView& view)
+    Result concretizeViewConstant(Sema& sema, SemaNodeView& view)
     {
-        if (view.type() && view.type()->isTypeValue())
-            return view.type()->payloadTypeRef();
+        if (!view.cstRef().isValid())
+            return Result::Continue;
 
-        if (view.hasConstant())
-            return sema.cstMgr().makeTypeValue(sema, view.cstRef());
-
-        return TypeRef::invalid();
+        ConstantRef newCstRef;
+        SWC_RESULT(Cast::concretizeConstant(sema, newCstRef, view.nodeRef(), view.cstRef(), TypeInfo::Sign::Unknown));
+        sema.setConstant(view.nodeRef(), newCstRef);
+        view.recompute(sema, SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant | SemaNodeViewPartE::Symbol);
+        return Result::Continue;
     }
 
     TypeRef preserveTopLevelConstForReflectedAggregateLiteral(Sema& sema, TypeRef originalTypeRef, TypeRef resolvedTypeRef)
@@ -1170,24 +1171,12 @@ namespace
         if (!view.typeRef().isValid())
             return SemaError::raise(sema, DiagnosticId::sema_err_not_value_expr, childRef);
 
-        if (view.cstRef().isValid())
-        {
-            ConstantRef newCstRef;
-            SWC_RESULT(Cast::concretizeConstant(sema, newCstRef, view.nodeRef(), view.cstRef(), TypeInfo::Sign::Unknown));
-            sema.setConstant(view.nodeRef(), newCstRef);
-            view.recompute(sema, SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant | SemaNodeViewPartE::Symbol);
-        }
+        SWC_RESULT(concretizeViewConstant(sema, view));
 
         outTypeRef = view.typeRef();
-        if (view.type() && view.type()->isTypeValue())
+        if (view.type() && SemaHelpers::isTypeLikeTypeRef(sema.ctx(), view.typeRef()))
         {
-            outTypeRef = view.type()->payloadTypeRef();
-            return Result::Continue;
-        }
-
-        if (view.type() && view.type()->isAnyTypeInfo(sema.ctx()))
-        {
-            outTypeRef = sema.cstMgr().makeTypeValue(sema, view.cstRef());
+            outTypeRef = SemaHelpers::resolveRepresentedTypeRef(sema, view);
             if (!outTypeRef.isValid())
                 return SemaError::raise(sema, DiagnosticId::sema_err_not_value_expr, childRef);
             return Result::Continue;
@@ -1206,13 +1195,7 @@ namespace
         SemaNodeView     view     = sema.viewTypeConstant(childRef);
         SWC_ASSERT(view.typeRef().isValid());
 
-        if (view.cstRef().isValid())
-        {
-            ConstantRef newCstRef;
-            SWC_RESULT(Cast::concretizeConstant(sema, newCstRef, view.nodeRef(), view.cstRef(), TypeInfo::Sign::Unknown));
-            sema.setConstant(view.nodeRef(), newCstRef);
-            view.recompute(sema, SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
-        }
+        SWC_RESULT(concretizeViewConstant(sema, view));
 
         const TypeRef resolvedTypeRef = preserveTopLevelConstForReflectedAggregateLiteral(
             sema,
@@ -1333,7 +1316,7 @@ namespace
 
         SemaNodeView       typeView = sema.viewTypeConstant(childRef);
         SWC_RESULT(SemaCheck::isValueOrType(sema, typeView));
-        if (const TypeRef resolvedTypeRef = resolveCompilerOperandTypeValue(sema, typeView); resolvedTypeRef.isValid())
+        if (const TypeRef resolvedTypeRef = SemaHelpers::resolveRepresentedTypeRef(sema, typeView); resolvedTypeRef.isValid())
         {
             const Utf8          name  = sema.typeMgr().get(resolvedTypeRef).toName(ctx);
             const ConstantValue value = ConstantValue::makeString(ctx, name);
@@ -1379,7 +1362,7 @@ namespace
 
         SemaNodeView typedView = sema.viewTypeConstant(childRef);
         SWC_RESULT(SemaCheck::isValueOrType(sema, typedView));
-        if (const TypeRef resolvedTypeRef = resolveCompilerOperandTypeValue(sema, typedView); resolvedTypeRef.isValid())
+        if (const TypeRef resolvedTypeRef = SemaHelpers::resolveRepresentedTypeRef(sema, typedView); resolvedTypeRef.isValid())
         {
             const Utf8          name  = sema.typeMgr().get(resolvedTypeRef).toFullName(ctx);
             const ConstantValue value = ConstantValue::makeString(ctx, name);
@@ -1537,10 +1520,7 @@ namespace
         SemaNodeView typeView = sema.viewTypeConstant(nodeRef);
         SWC_RESULT(SemaCheck::isValueOrTypeInfo(sema, typeView));
 
-        if (typeView.type() && typeView.type()->isTypeValue())
-            outTypeRef = typeView.type()->payloadTypeRef();
-        else if (typeView.cstRef().isValid())
-            outTypeRef = sema.cstMgr().makeTypeValue(sema, typeView.cstRef());
+        outTypeRef = SemaHelpers::resolveRepresentedTypeRef(sema, typeView);
 
         if (!outTypeRef.isValid())
             return SemaError::raise(sema, DiagnosticId::sema_err_not_type, nodeRef);

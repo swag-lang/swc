@@ -71,6 +71,8 @@ namespace SemaHelpers
     Result                castBinaryRightToLeft(Sema& sema, TokenId op, AstNodeRef nodeRef, const SemaNodeView& leftView, SemaNodeView& rightView, CastKind castKind);
     Result                resolveCountOfResult(Sema& sema, CountOfResultInfo& outResult, AstNodeRef exprRef);
     Result                intrinsicCountOf(Sema& sema, AstNodeRef targetRef, AstNodeRef exprRef);
+    bool                  isTypeLikeTypeRef(const TaskContext& ctx, TypeRef typeRef);
+    TypeRef               resolveRepresentedTypeRef(Sema& sema, const SemaNodeView& view);
     TypeRef               anyBoxedValueTypeRef(const TaskContext& ctx, TypeRef valueTypeRef);
     Result                normalizeTypeInfoConstantRef(Sema& sema, ConstantRef& ioCstRef, AstNodeRef ownerNodeRef);
     Result                finalizeAggregateStruct(Sema& sema, const SmallVector<AstNodeRef>& children, bool autoNameFromIdentifiers = false);

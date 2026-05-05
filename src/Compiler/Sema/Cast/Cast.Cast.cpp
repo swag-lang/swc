@@ -2004,7 +2004,7 @@ Result Cast::castToAny(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef,
         castRequest.setConstantFoldingSrc(srcCstRef);
     }
 
-    if (srcType->isTypeValue() || srcType->isAnyTypeInfo(ctx) || typeMgr.isRuntimeTypeInfoPointer(ctx, anyTypeRef))
+    if (SemaHelpers::isTypeLikeTypeRef(ctx, anyTypeRef))
     {
         const AstNodeRef ownerNodeRef = castRequest.errorNodeRef.isValid() ? castRequest.errorNodeRef : sema.ctx().state().nodeRef;
         SWC_RESULT(SemaHelpers::normalizeTypeInfoConstantRef(sema, srcCstRef, ownerNodeRef));

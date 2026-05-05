@@ -89,11 +89,7 @@ namespace
 
     bool isAggregateTypeLikeElement(Sema& sema, TypeRef typeRef)
     {
-        if (!typeRef.isValid())
-            return false;
-
-        const TypeInfo& typeInfo = sema.typeMgr().get(typeRef);
-        return typeInfo.isTypeValue() || typeInfo.isAnyTypeInfo(sema.ctx()) || sema.typeMgr().isRuntimeTypeInfoPointer(sema.ctx(), typeRef);
+        return SemaHelpers::isTypeLikeTypeRef(sema.ctx(), typeRef);
     }
 
     TypeRef normalizeAggregateTypeLikeElementType(Sema& sema, TypeRef typeRef, ConstantRef cstRef)
@@ -388,6 +384,25 @@ TypeRef SemaHelpers::deduceConcretizedAggregateArrayType(Sema& sema, TypeRef typ
     SmallVector4<uint64_t> outerDim;
     outerDim.push_back(elemTypes.size());
     return typeMgr.addType(TypeInfo::makeArray(outerDim, elemTypeRef));
+}
+
+bool SemaHelpers::isTypeLikeTypeRef(const TaskContext& ctx, TypeRef typeRef)
+{
+    if (!typeRef.isValid())
+        return false;
+
+    const TypeInfo& typeInfo = ctx.typeMgr().get(typeRef);
+    return typeInfo.isTypeValue() || typeInfo.isAnyTypeInfo(ctx) || ctx.typeMgr().isRuntimeTypeInfoPointer(ctx, typeRef);
+}
+
+TypeRef SemaHelpers::resolveRepresentedTypeRef(Sema& sema, const SemaNodeView& view)
+{
+    if (view.type() && view.type()->isTypeValue())
+        return view.type()->payloadTypeRef();
+    if (!view.cstRef().isValid())
+        return TypeRef::invalid();
+
+    return sema.cstMgr().makeTypeValue(sema, view.cstRef());
 }
 
 Result SemaHelpers::attachIndirectReturnRuntimeStorageIfNeeded(Sema& sema, AstNodeRef payloadNodeRef, const AstNode& storageNode, const SymbolFunction& calledFn, std::string_view privateName)
@@ -1449,7 +1464,7 @@ TypeRef SemaHelpers::anyBoxedValueTypeRef(const TaskContext& ctx, TypeRef valueT
     if (!valueTypeRef.isValid())
         return TypeRef::invalid();
 
-    if (ctx.typeMgr().get(valueTypeRef).isAnyTypeInfo(ctx) || ctx.typeMgr().isRuntimeTypeInfoPointer(ctx, valueTypeRef))
+    if (isTypeLikeTypeRef(ctx, valueTypeRef) && !ctx.typeMgr().get(valueTypeRef).isTypeValue())
         return ctx.typeMgr().typeTypeInfo();
 
     return valueTypeRef;
@@ -1460,13 +1475,8 @@ Result SemaHelpers::normalizeTypeInfoConstantRef(Sema& sema, ConstantRef& ioCstR
     if (!ioCstRef.isValid())
         return Result::Continue;
 
-    const ConstantValue& cst = sema.cstMgr().get(ioCstRef);
-    TypeRef              valueTypeRef;
-    if (cst.isTypeValue())
-        valueTypeRef = cst.getTypeValue();
-    else
-        valueTypeRef = sema.cstMgr().makeTypeValue(sema, ioCstRef);
-
+    const ConstantValue& cst          = sema.cstMgr().get(ioCstRef);
+    const TypeRef        valueTypeRef = cst.isTypeValue() ? cst.getTypeValue() : sema.cstMgr().makeTypeValue(sema, ioCstRef);
     if (!valueTypeRef.isValid())
         return Result::Continue;
 

@@ -461,9 +461,7 @@ namespace
 
         Runtime::Any anyValue = {};
         ConstantRef valueCstRef = cstRef;
-        if (cst.isTypeValue() ||
-            sema.typeMgr().get(cst.typeRef()).isAnyTypeInfo(sema.ctx()) ||
-            sema.typeMgr().isRuntimeTypeInfoPointer(sema.ctx(), cst.typeRef()))
+        if (SemaHelpers::isTypeLikeTypeRef(sema.ctx(), cst.typeRef()))
             SWC_RESULT(SemaHelpers::normalizeTypeInfoConstantRef(sema, valueCstRef, sema.ctx().state().nodeRef));
 
         const ConstantValue& valueCst         = sema.cstMgr().get(valueCstRef);

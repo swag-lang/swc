@@ -14,6 +14,7 @@ namespace SemaClone
         AstNodeRef    exprRef;
         TypeRef       typeRef = TypeRef::invalid();
         ConstantRef   cstRef  = ConstantRef::invalid();
+        bool          forceMaterialize = false;
     };
 
     struct NodeReplacement

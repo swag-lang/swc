@@ -58,6 +58,17 @@ func inlineUntypedVariadicHead(head: s32, values: ...)->s32
     return head + cast(s32) @countof(values)
 }
 
+func inlineTypedVariadicLiteralForward() -> s32
+{
+    return inlineTypedVariadicNamed(1, 2, 3, 4)
+}
+
+#[Swag.Inline]
+func inlineTypedVariadicLiteralEdges(values: s32...) -> s32
+{
+    return values[0] + values[3]
+}
+
 #test
 {
     var t0: s32 = 1
@@ -96,4 +107,6 @@ func inlineUntypedVariadicHead(head: s32, values: ...)->s32
     @assert(inlineUntypedVariadicHead(h4, h5) == 51)
 
     @assert(forwardInlineTypedVariadic(10, 20, 30) == 60)
+    @assert(inlineTypedVariadicLiteralForward() == 10)
+    @assert(inlineTypedVariadicLiteralEdges(10, 20, 30, 40) == 50)
 }

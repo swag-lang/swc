@@ -8,8 +8,6 @@
 // blocks, heap allocation for dynamic collections, multi-line string
 // parsing, cast chains, compile-time constants, @countof on slices,
 // for #reverse, inline retval struct return.
-// Note: fits/eq are non-inline due to compiler bug #5920 (inline return
-// inside for loop never fires).
 
 const SampleInput =
 """#####

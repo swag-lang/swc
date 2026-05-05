@@ -55,6 +55,7 @@ namespace
     {
         const SymbolVariable*   param           = nullptr;
         bool                    untypedVariadic = false;
+        bool                    allArgsConstant = false;
         SmallVector<AstNodeRef> argRefs;
     };
 
@@ -714,6 +715,38 @@ namespace
         return false;
     }
 
+    bool inlineBindingHasNonCountOfUse(Sema& sema, const Ast& sourceAst, AstNodeRef nodeRef, IdentifierRef idRef, AstNodeRef parentRef = AstNodeRef::invalid())
+    {
+        if (nodeRef.isInvalid() || !idRef.isValid())
+            return false;
+
+        const AstNode& node = sourceAst.node(nodeRef);
+        if (node.is(AstNodeId::Identifier) &&
+            sema.idMgr().addIdentifier(sema.ctx(), node.codeRef()) == idRef)
+        {
+            return parentRef.isInvalid() || sourceAst.node(parentRef).isNot(AstNodeId::CountOfExpr);
+        }
+
+        SmallVector<AstNodeRef> children;
+        node.collectChildrenFromAst(children, sourceAst);
+        for (const AstNodeRef childRef : children)
+        {
+            if (inlineBindingHasNonCountOfUse(sema, sourceAst, childRef, idRef, nodeRef))
+                return true;
+        }
+
+        return false;
+    }
+
+    bool forceMaterializeInlineVariadicBinding(const SemaClone::ParamBinding& binding, const TypeInfo& paramType, const bool hasNonCountOfUse)
+    {
+        if (!binding.forceMaterialize || !binding.exprRef.isValid() || !binding.typeRef.isValid())
+            return false;
+        if (!paramType.isAnyVariadic())
+            return false;
+        return hasNonCountOfUse;
+    }
+
     void appendBodyStatements(Sema& sema, AstNodeRef bodyRef, SmallVector<AstNodeRef>& outStatements, const AstNodeId transparentBodyId)
     {
         if (bodyRef.isInvalid())
@@ -798,13 +831,15 @@ namespace
             const bool      bindingIsCaptured           = inlineBindingIsCaptured(binding.idRef, capturedIdentifiers);
             const bool      bindingNeedsMaterialization = inlineBindingNeedsMaterialization(sema, binding.exprRef, localIdentifiers);
             const TypeInfo& paramType                   = param->type(sema.ctx());
-            if (paramType.isCodeBlock() || (paramType.isAnyVariadic() && !bindingIsCaptured && !bindingNeedsMaterialization))
+            const bool      hasNonCountOfUse = inlineBindingHasNonCountOfUse(sema, sourceAst, decl.nodeBodyRef, binding.idRef);
+            const bool      forceVariadicMaterialization = !bindingIsCaptured && forceMaterializeInlineVariadicBinding(binding, paramType, hasNonCountOfUse);
+            if (paramType.isCodeBlock() || (paramType.isAnyVariadic() && !forceVariadicMaterialization && !bindingIsCaptured && !bindingNeedsMaterialization))
             {
                 remainingBindings.push_back(binding);
                 continue;
             }
 
-            if (!bindingIsCaptured && !bindingNeedsMaterialization)
+            if (!forceVariadicMaterialization && !bindingIsCaptured && !bindingNeedsMaterialization)
             {
                 remainingBindings.push_back(binding);
                 continue;
@@ -831,7 +866,8 @@ namespace
             outStatements.push_back(declRef);
 
             binding.exprRef = makeMaterializedInlineBindingUse(sema, *param, *materializedSym);
-            binding.typeRef = TypeRef::invalid();
+            if (!forceVariadicMaterialization)
+                binding.typeRef = TypeRef::invalid();
             remainingBindings.push_back(binding);
         }
 
@@ -943,10 +979,11 @@ namespace
         return Result::Continue;
     }
 
-    Result createVariadicInlineExpression(Sema& sema, AstNodeRef callRef, const InlineVariadicBinding& variadicBinding, AstNodeRef& outExprRef, TypeRef& outExprTypeRef)
+    Result createVariadicInlineExpression(Sema& sema, AstNodeRef callRef, InlineVariadicBinding& variadicBinding, AstNodeRef& outExprRef, TypeRef& outExprTypeRef)
     {
         outExprRef     = AstNodeRef::invalid();
         outExprTypeRef = TypeRef::invalid();
+        variadicBinding.allArgsConstant = false;
         if (!variadicBinding.param)
             return Result::Continue;
         if (variadicBinding.argRefs.empty())
@@ -991,6 +1028,7 @@ namespace
             AstNodeRef argRef = bindingValueArgumentRef(sema, rawArgRef);
             if (argRef.isInvalid())
                 return Result::Continue;
+            variadicBinding.allArgsConstant = (clonedValues.empty() ? true : variadicBinding.allArgsConstant) && sema.viewConstant(argRef).hasConstant();
 
             const AstNodeRef clonedArgRef = SemaClone::cloneAst(sema, argRef, noBindings);
             if (clonedArgRef.isInvalid())
@@ -1274,7 +1312,7 @@ Result SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFun
             return Result::Continue;
         }
         if (variadicBinding.param->idRef().isValid())
-            bindings.push_back({variadicBinding.param->idRef(), variadicExprRef, variadicExprTypeRef});
+            bindings.push_back({variadicBinding.param->idRef(), variadicExprRef, variadicExprTypeRef, ConstantRef::invalid(), variadicBinding.allArgsConstant});
     }
 
     TypeRef returnTypeRef = fn.returnTypeRef();

@@ -5,8 +5,7 @@
 // Part 2: find the 4-change price sequence that maximises bananas.
 // Exercises: bitwise XOR, #run compile-time tables, for #reverse sliding
 // window, with &ptr blocks, inline + retval, @mkslice in inline, large
-// heap arrays. Note: nested inline calls with variable args are avoided
-// (known compiler limitation with double inline expansion).
+// heap arrays.
 
 const SamplePart1 =
 """1

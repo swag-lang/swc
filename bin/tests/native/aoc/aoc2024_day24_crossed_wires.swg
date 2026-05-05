@@ -320,8 +320,7 @@ func parseGates(c: *Circuit, text: string)
 // Part 1: simulate gates
 // ---------------------------------------------------------------------------
 
-// Note: cannot use switch here due to compiler bug #5918:
-// inline switch + return crashes when switch expression is a var.
+// Keep this branch form explicit for readability while evaluating each gate.
 #[Swag.Inline]
 func evalGate(op: GateOp, a: u8, b: u8) -> u8
 {

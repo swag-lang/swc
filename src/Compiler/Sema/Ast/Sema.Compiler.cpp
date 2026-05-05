@@ -1144,6 +1144,27 @@ namespace
         return TypeRef::invalid();
     }
 
+    TypeRef preserveTopLevelConstForReflectedAggregateLiteral(Sema& sema, TypeRef originalTypeRef, TypeRef resolvedTypeRef)
+    {
+        if (!originalTypeRef.isValid() || !resolvedTypeRef.isValid())
+            return resolvedTypeRef;
+
+        const TypeInfo& originalType = sema.typeMgr().get(originalTypeRef);
+        if (!originalType.isConst())
+            return resolvedTypeRef;
+
+        const TypeInfo& resolvedType = sema.typeMgr().get(resolvedTypeRef);
+        if (resolvedType.isConst() || !resolvedType.isArray())
+            return resolvedTypeRef;
+
+        TypeInfoFlags reflectedFlags = resolvedType.flags();
+        reflectedFlags.add(TypeInfoFlagsE::Const);
+        SmallVector<uint64_t> dims;
+        for (const uint64_t dim : resolvedType.payloadArrayDims())
+            dims.push_back(dim);
+        return sema.typeMgr().addType(TypeInfo::makeArray(dims, resolvedType.payloadArrayElemTypeRef(), reflectedFlags));
+    }
+
     Result semaCompilerTypeOf(Sema& sema, const AstCompilerCallOne& node)
     {
         const AstNodeRef childRef = node.nodeArgRef;
@@ -1158,6 +1179,11 @@ namespace
             sema.setConstant(view.nodeRef(), newCstRef);
             view.recompute(sema, SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
         }
+
+        const TypeRef resolvedTypeRef = preserveTopLevelConstForReflectedAggregateLiteral(
+            sema,
+            view.typeRef(),
+            SemaHelpers::deduceConcretizedAggregateLiteralType(sema, view.typeRef(), view.cstRef()));
 
         if (view.type() && view.type()->isTypeValue())
         {
@@ -1177,7 +1203,7 @@ namespace
             return Result::Continue;
         }
 
-        const ConstantRef cstRef = sema.cstMgr().addConstant(sema.ctx(), ConstantValue::makeTypeValue(sema.ctx(), view.typeRef()));
+        const ConstantRef cstRef = sema.cstMgr().addConstant(sema.ctx(), ConstantValue::makeTypeValue(sema.ctx(), resolvedTypeRef));
         sema.setConstant(sema.curNodeRef(), cstRef);
         return Result::Continue;
     }

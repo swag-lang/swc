@@ -87,6 +87,29 @@ namespace
     TypeRef deduceConcretizedAggregateArrayElementType(Sema& sema, std::span<const TypeRef> elemTypes, const std::vector<ConstantRef>* values);
     TypeRef deduceConcretizedAggregateStructType(Sema& sema, TypeRef typeRef, ConstantRef cstRef);
 
+    bool isAggregateTypeLikeElement(Sema& sema, TypeRef typeRef)
+    {
+        if (!typeRef.isValid())
+            return false;
+
+        const TypeInfo& typeInfo = sema.typeMgr().get(typeRef);
+        return typeInfo.isTypeValue() || typeInfo.isAnyTypeInfo(sema.ctx()) || sema.typeMgr().isRuntimeTypeInfoPointer(sema.ctx(), typeRef);
+    }
+
+    TypeRef normalizeAggregateTypeLikeElementType(Sema& sema, TypeRef typeRef, ConstantRef cstRef)
+    {
+        if (!isAggregateTypeLikeElement(sema, typeRef))
+            return typeRef;
+        if (!cstRef.isValid())
+            return sema.typeMgr().typeTypeInfo();
+
+        ConstantRef normalizedCstRef = cstRef;
+        if (SemaHelpers::normalizeTypeInfoConstantRef(sema, normalizedCstRef, sema.ctx().state().nodeRef) != Result::Continue || !normalizedCstRef.isValid())
+            return sema.typeMgr().typeTypeInfo();
+
+        return sema.cstMgr().get(normalizedCstRef).typeRef();
+    }
+
     TypeRef deduceConcretizedAggregateLiteralTypeImpl(Sema& sema, TypeRef typeRef, ConstantRef cstRef)
     {
         if (!typeRef.isValid())
@@ -228,7 +251,7 @@ namespace
         for (size_t i = 0; i < elemTypes.size(); ++i)
         {
             const ConstantRef elemCstRef  = values && i < values->size() ? (*values)[i] : ConstantRef::invalid();
-            const TypeRef     elemTypeRef = deduceConcretizedAggregateLiteralTypeImpl(sema, elemTypes[i], elemCstRef);
+            const TypeRef     elemTypeRef = normalizeAggregateTypeLikeElementType(sema, deduceConcretizedAggregateLiteralTypeImpl(sema, elemTypes[i], elemCstRef), elemCstRef);
             concreteElemTypes.push_back(elemTypeRef);
 
             const TypeInfo& originalType = typeMgr.get(elemTypes[i]);
@@ -262,6 +285,21 @@ namespace
 
             const TypeInfo& resultType = typeMgr.get(resultTypeRef);
             const TypeInfo& elemType   = typeMgr.get(elemTypeRef);
+            if (isAggregateTypeLikeElement(sema, resultTypeRef) && isAggregateTypeLikeElement(sema, elemTypeRef))
+            {
+                if (resultType.isAnyTypeInfo(sema.ctx()))
+                    continue;
+
+                if (elemType.isAnyTypeInfo(sema.ctx()))
+                {
+                    resultTypeRef = elemTypeRef;
+                    continue;
+                }
+
+                resultTypeRef = typeMgr.typeTypeInfo();
+                continue;
+            }
+
             if (!resultType.isScalarNumeric() || !elemType.isScalarNumeric())
             {
                 if (constantFitsTargetType(sema, elemCstRef, resultTypeRef))

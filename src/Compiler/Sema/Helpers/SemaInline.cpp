@@ -754,25 +754,53 @@ namespace
         return hasNonCountOfUse;
     }
 
-    bool inlineBindingNeedsArrayLiteralMaterialization(Sema& sema, const Ast& sourceAst, AstNodeRef nodeRef, IdentifierRef idRef, AstNodeRef parentRef = AstNodeRef::invalid())
+    bool sourceSubtreeUsesIdentifier(Sema& sema, const Ast& sourceAst, AstNodeRef nodeRef, IdentifierRef idRef)
     {
         if (nodeRef.isInvalid() || !idRef.isValid())
             return false;
 
         const AstNode& node = sourceAst.node(nodeRef);
         if (node.is(AstNodeId::Identifier) &&
-            sema.idMgr().addIdentifier(sema.ctx(), node.codeRef()) == idRef &&
-            parentRef.isValid())
+            sema.idMgr().addIdentifier(sema.ctx(), node.codeRef()) == idRef)
         {
-            const AstNodeId parentId = sourceAst.node(parentRef).id();
-            return parentId == AstNodeId::IndexExpr || parentId == AstNodeId::ForeachStmt;
+            return true;
         }
 
         SmallVector<AstNodeRef> children;
         node.collectChildrenFromAst(children, sourceAst);
         for (const AstNodeRef childRef : children)
         {
-            if (inlineBindingNeedsArrayLiteralMaterialization(sema, sourceAst, childRef, idRef, nodeRef))
+            if (sourceSubtreeUsesIdentifier(sema, sourceAst, childRef, idRef))
+                return true;
+        }
+
+        return false;
+    }
+
+    bool inlineBindingNeedsIndexOrForeachMaterialization(Sema& sema, const Ast& sourceAst, AstNodeRef nodeRef, IdentifierRef idRef, AstNodeRef parentRef = AstNodeRef::invalid())
+    {
+        if (nodeRef.isInvalid() || !idRef.isValid())
+            return false;
+
+        const AstNode& node = sourceAst.node(nodeRef);
+        if (const auto* foreachStmt = node.safeCast<AstForeachStmt>())
+        {
+            if (sourceSubtreeUsesIdentifier(sema, sourceAst, foreachStmt->nodeExprRef, idRef))
+                return true;
+        }
+
+        if (node.is(AstNodeId::Identifier) &&
+            sema.idMgr().addIdentifier(sema.ctx(), node.codeRef()) == idRef &&
+            parentRef.isValid())
+        {
+            return sourceAst.node(parentRef).is(AstNodeId::IndexExpr);
+        }
+
+        SmallVector<AstNodeRef> children;
+        node.collectChildrenFromAst(children, sourceAst);
+        for (const AstNodeRef childRef : children)
+        {
+            if (inlineBindingNeedsIndexOrForeachMaterialization(sema, sourceAst, childRef, idRef, nodeRef))
                 return true;
         }
 
@@ -865,11 +893,9 @@ namespace
             const TypeInfo& paramType                   = param->type(sema.ctx());
             const bool      hasNonCountOfUse            = inlineBindingHasNonCountOfUse(sema, sourceAst, decl.nodeBodyRef, binding.idRef);
             const bool      forceVariadicMaterialization = !bindingIsCaptured && forceMaterializeInlineVariadicBinding(binding, paramType, hasNonCountOfUse);
-            const bool      forceArrayLiteralMaterialization = !bindingIsCaptured &&
-                                                               binding.exprRef.isValid() &&
-                                                               sema.node(binding.exprRef).is(AstNodeId::ArrayLiteral) &&
-                                                               inlineBindingNeedsArrayLiteralMaterialization(sema, sourceAst, decl.nodeBodyRef, binding.idRef);
-            const bool forceBindingMaterialization = forceVariadicMaterialization || forceArrayLiteralMaterialization;
+            const bool      forceIndexOrForeachMaterialization = !bindingIsCaptured &&
+                                                                 inlineBindingNeedsIndexOrForeachMaterialization(sema, sourceAst, decl.nodeBodyRef, binding.idRef);
+            const bool forceBindingMaterialization = forceVariadicMaterialization || forceIndexOrForeachMaterialization;
             if (paramType.isCodeBlock() || (paramType.isAnyVariadic() && !forceBindingMaterialization && !bindingIsCaptured && !bindingNeedsMaterialization))
             {
                 remainingBindings.push_back(binding);
@@ -897,6 +923,14 @@ namespace
             const bool materializedAsLet    = !inlineBindingIsCaptured(binding.idRef, capturedByRefIdentifiers);
             declPtr->flags()                = materializedAsLet ? AstVarDeclFlagsE::Let : AstVarDeclFlagsE::Zero;
             declPtr->tokNameRef             = paramNameRef;
+            if (!paramType.isAnyVariadic() && SemaHelpers::canUseContextualBinding(sema, binding.exprRef))
+            {
+                if (const auto* paramDecl = param->decl()->safeCast<AstSingleVarDecl>())
+                {
+                    const SemaClone::CloneContext noBindingsSource{std::span<const SemaClone::ParamBinding>{}, std::span<const SemaClone::NodeReplacement>{}, false, &sourceAst};
+                    declPtr->nodeTypeRef = SemaClone::cloneAst(sema, paramDecl->nodeTypeRef, noBindingsSource);
+                }
+            }
             declPtr->nodeInitRef            = clonedInitRef;
             SymbolVariable* materializedSym = makeMaterializedInlineBindingSymbol(sema, *param, *declPtr, materializedAsLet);
             sema.setSymbol(declRef, materializedSym);

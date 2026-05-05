@@ -751,16 +751,17 @@ namespace
         return canLeadAggregateArrayElementDriveConcretization(sema, elemTypes[0], values[0]);
     }
 
-    Result concretizeAggregateArray(Sema& sema, const SemaPostVarDeclArgs& context, TypeRef explicitTypeRef, TypeRef& finalTypeRef, SemaNodeView& nodeInitView)
+    TypeRef deduceConcretizedAggregateLiteralType(Sema& sema, TypeRef typeRef, ConstantRef cstRef);
+
+    TypeRef deduceConcretizedAggregateArrayType(Sema& sema, TypeRef typeRef, ConstantRef cstRef)
     {
         TypeManager& typeMgr = sema.typeMgr();
+        SWC_ASSERT(typeRef.isValid());
+        SWC_ASSERT(typeMgr.get(typeRef).isAggregateArray());
 
-        if (explicitTypeRef.isValid() || finalTypeRef.isInvalid() || !typeMgr.get(finalTypeRef).isAggregateArray())
-            return Result::Continue;
-
-        const auto& elemTypes = typeMgr.get(finalTypeRef).payloadAggregate().types;
+        const auto& elemTypes = typeMgr.get(typeRef).payloadAggregate().types;
         if (elemTypes.empty())
-            return Result::Continue;
+            return typeRef;
 
         // All elements must be compatible (same kind, or all numeric).
         const TypeInfo& firstElem = typeMgr.get(elemTypes[0]);
@@ -768,73 +769,126 @@ namespace
         {
             const TypeInfo& ei = typeMgr.get(elemTypes[i]);
             if (ei.kind() != firstElem.kind() && !(firstElem.isScalarNumeric() && ei.isScalarNumeric()))
-                return Result::Continue;
+                return typeRef;
         }
 
-        // Determine the element type. For nested aggregates (e.g. [[1,2],[3,4]]),
-        // recursively concretize the inner aggregate first, then wrap with the
-        // outer dimension to produce [2][2] s32 (not [2, 2] s32).
         TypeRef elemTypeRef = elemTypes[0];
-        if (typeMgr.get(elemTypeRef).isAggregateArray())
+        if (cstRef.isValid())
         {
-            // Get the concretized inner element type from the constant value.
-            if (nodeInitView.cstRef().isValid())
+            const ConstantValue& cst = sema.cstMgr().get(cstRef);
+            if (cst.isAggregateArray())
             {
-                const ConstantValue& cst = sema.cstMgr().get(nodeInitView.cstRef());
-                if (cst.isAggregateArray())
-                {
-                    const auto& values = cst.getAggregateArray();
-                    if (!values.empty())
-                        elemTypeRef = sema.cstMgr().get(values[0]).typeRef();
-                }
+                const auto& values = cst.getAggregateArray();
+                if (!values.empty())
+                    elemTypeRef = deduceConcretizedAggregateLiteralType(sema, elemTypeRef, values[0]);
             }
-
-            // If the inner element is still an aggregate, walk to the leaf type
-            // and build nested array types from the inside out.
-            if (typeMgr.get(elemTypeRef).isAggregateArray())
+            else
             {
-                SmallVector4<uint64_t> innerDims;
-                if (!deduceArrayDimsFromType(sema, elemTypeRef, innerDims) || innerDims.empty())
-                    return Result::Continue;
-                TypeRef leafTypeRef = elemTypeRef;
-                while (typeMgr.get(leafTypeRef).isAggregateArray())
-                {
-                    const auto& inner = typeMgr.get(leafTypeRef).payloadAggregate().types;
-                    if (inner.empty())
-                        break;
-                    leafTypeRef = inner[0];
-                }
-                // Build innermost array first, then wrap each outer dimension.
-                elemTypeRef = leafTypeRef;
-                for (unsigned long long& innerDim : std::views::reverse(innerDims))
-                {
-                    SmallVector4<uint64_t> d;
-                    d.push_back(innerDim);
-                    elemTypeRef = typeMgr.addType(TypeInfo::makeArray(d, elemTypeRef));
-                }
+                elemTypeRef = deduceConcretizedAggregateLiteralType(sema, elemTypeRef, ConstantRef::invalid());
             }
         }
         else
         {
-            // Leaf element: get the concretized type from the constant.
-            if (nodeInitView.cstRef().isValid())
-            {
-                const ConstantValue& cst = sema.cstMgr().get(nodeInitView.cstRef());
-                if (cst.isAggregateArray())
-                {
-                    const auto& values = cst.getAggregateArray();
-                    if (!values.empty())
-                        elemTypeRef = sema.cstMgr().get(values[0]).typeRef();
-                }
-            }
+            elemTypeRef = deduceConcretizedAggregateLiteralType(sema, elemTypeRef, ConstantRef::invalid());
         }
+
+        // Array literals must become real arrays before storage/codegen sees them.
+        if (typeMgr.get(elemTypeRef).isAggregateArray())
+            return typeRef;
 
         SmallVector4<uint64_t> outerDim;
         outerDim.push_back(elemTypes.size());
-        finalTypeRef = typeMgr.addType(TypeInfo::makeArray(outerDim, elemTypeRef));
+        return typeMgr.addType(TypeInfo::makeArray(outerDim, elemTypeRef));
+    }
+
+    TypeRef deduceConcretizedAggregateStructType(Sema& sema, TypeRef typeRef, ConstantRef cstRef)
+    {
+        TypeManager&    typeMgr    = sema.typeMgr();
+        const TypeInfo& typeInfo   = typeMgr.get(typeRef);
+        const auto&     aggregate  = typeInfo.payloadAggregate();
+        const auto&     fieldTypes = aggregate.types;
+        const auto*     values     = static_cast<const std::vector<ConstantRef>*>(nullptr);
+
+        if (cstRef.isValid())
+        {
+            const ConstantValue& cst = sema.cstMgr().get(cstRef);
+            if (cst.isAggregateStruct())
+                values = &cst.getAggregateStruct();
+        }
+
+        bool                 changed = false;
+        SmallVector<TypeRef> concreteFieldTypes;
+        concreteFieldTypes.reserve(fieldTypes.size());
+
+        for (size_t i = 0; i < fieldTypes.size(); ++i)
+        {
+            const ConstantRef fieldCstRef = values && i < values->size() ? (*values)[i] : ConstantRef::invalid();
+            const TypeRef     fieldTypeRef = deduceConcretizedAggregateLiteralType(sema, fieldTypes[i], fieldCstRef);
+            concreteFieldTypes.push_back(fieldTypeRef);
+            changed = changed || fieldTypeRef != fieldTypes[i];
+        }
+
+        if (!changed)
+            return typeRef;
+
+        SmallVector<IdentifierRef> fieldNames;
+        fieldNames.reserve(aggregate.names.size());
+        for (const IdentifierRef fieldName : aggregate.names)
+            fieldNames.push_back(fieldName);
+
+        return typeMgr.addType(TypeInfo::makeAggregateStruct(fieldNames, concreteFieldTypes));
+    }
+
+    TypeRef deduceConcretizedAggregateLiteralType(Sema& sema, TypeRef typeRef, ConstantRef cstRef)
+    {
+        if (!typeRef.isValid())
+            return TypeRef::invalid();
+
+        const TypeInfo& typeInfo = sema.typeMgr().get(typeRef);
+        if (typeInfo.isAggregateArray())
+            return deduceConcretizedAggregateArrayType(sema, typeRef, cstRef);
+        if (typeInfo.isAggregateStruct())
+            return deduceConcretizedAggregateStructType(sema, typeRef, cstRef);
+
+        if (cstRef.isValid())
+        {
+            const ConstantValue& cst     = sema.cstMgr().get(cstRef);
+            const TypeInfo&      cstType = sema.typeMgr().get(cst.typeRef());
+            if (typeInfo.isIntUnsized() || cstType.isIntUnsized())
+            {
+                TypeInfo::Sign sign = typeInfo.isIntUnsized() ? typeInfo.payloadIntSign() : cstType.payloadIntSign();
+                if (sign == TypeInfo::Sign::Unknown)
+                    sign = TypeInfo::Sign::Signed;
+
+                bool           overflow = false;
+                const uint32_t destBits = TypeManager::chooseConcreteScalarWidth(cst.getIntLike().minBits(), overflow);
+                if (!overflow)
+                    return sema.typeMgr().typeInt(destBits, sign);
+            }
+            else if (typeInfo.isFloatUnsized() || cstType.isFloatUnsized())
+            {
+                bool           overflow = false;
+                const uint32_t destBits = TypeManager::chooseConcreteScalarWidth(cst.getFloat().minBits(), overflow);
+                if (!overflow)
+                    return sema.typeMgr().typeFloat(destBits);
+            }
+        }
+
+        return typeRef;
+    }
+
+    Result concretizeAggregateLiteralType(Sema& sema, const SemaPostVarDeclArgs& context, TypeRef explicitTypeRef, TypeRef& finalTypeRef, SemaNodeView& nodeInitView)
+    {
+        if (explicitTypeRef.isValid() || finalTypeRef.isInvalid())
+            return Result::Continue;
+
+        const TypeRef concretizedTypeRef = deduceConcretizedAggregateLiteralType(sema, finalTypeRef, nodeInitView.cstRef());
+        if (concretizedTypeRef == finalTypeRef)
+            return Result::Continue;
+
+        finalTypeRef = concretizedTypeRef;
         if (context.nodeInitRef.isValid())
             SWC_RESULT(Cast::cast(sema, nodeInitView, finalTypeRef, CastKind::Initialization));
-
         return Result::Continue;
     }
 
@@ -948,7 +1002,7 @@ namespace
 
         TypeRef finalTypeRef = explicitTypeRef.isValid() ? explicitTypeRef : nodeInitView.typeRef();
 
-        SWC_RESULT(concretizeAggregateArray(sema, context, explicitTypeRef, finalTypeRef, nodeInitView));
+        SWC_RESULT(concretizeAggregateLiteralType(sema, context, explicitTypeRef, finalTypeRef, nodeInitView));
 
         SWC_RESULT(validateFinalType(sema, context, finalTypeRef, isConst, isParameter, isUsing));
 

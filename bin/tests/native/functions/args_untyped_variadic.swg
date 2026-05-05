@@ -1,4 +1,4 @@
-#global fileprivate // 
+#global fileprivate
 
 func variadicAnyOnly(values: ...)->u64
 {
@@ -71,6 +71,20 @@ func variadicAnyStrictF32(values: ...)->bool
     return @kindof(values[0]) == VariadicStrictF32Alias and cast(VariadicStrictF32Alias) values[0] == cast(VariadicStrictF32Alias) 1.5
 }
 
+func variadicAnyWideIntArray(values: ...)->bool
+{
+    if @countof(values) != 1 do
+        return false
+    if @kindof(values[0]) != [2] s64 do
+        return false
+
+    let arr = cast([2] s64) values[0]
+    var sum = 0's64
+    foreach v in arr do
+        sum += v
+    return sum == 5_000_000_001's64
+}
+
 #test
 {
     @assert(variadicAnyOnly() == 0)
@@ -88,4 +102,5 @@ func variadicAnyStrictF32(values: ...)->bool
     @assert(variadicAnyString("ab", "cd", "ef") == 41'u8)
     @assert(variadicAnyStrictFlag(cast(VariadicStrictFlagAlias) VariadicStrictFlag.B))
     @assert(variadicAnyStrictF32(cast(VariadicStrictF32Alias) 1.5))
+    @assert(variadicAnyWideIntArray([1, 5_000_000_000]))
 }

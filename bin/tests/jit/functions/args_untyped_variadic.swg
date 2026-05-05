@@ -623,6 +623,24 @@ enum VariadicKind: u16
 
 #test
 {
+    func variadicAnyMixedFloatArray(values: ...)->bool
+    {
+        if @countof(values) != 1 do
+            return false
+        if @kindof(values[0]) != [2] f32 do
+            return false
+
+        let arr = cast([2] f32) values[0]
+        let idx = 1
+        return arr[0] == 1.0'f32 and arr[idx] == 2.5'f32
+    }
+
+    const V0 = #run variadicAnyMixedFloatArray([1, 2.5])
+    #assert(V0)
+}
+
+#test
+{
     func variadicAnyStressWithHead(a: VariadicPair, values: ...)->bool
     {
         @assert(a.a == 11 and a.b == 22)

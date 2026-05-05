@@ -2210,20 +2210,9 @@ namespace
         if (!argView.type()->isAggregateArray())
             return Result::Continue;
 
-        const auto& elemTypes = argView.type()->payloadAggregate().types;
-        if (elemTypes.empty())
+        const TypeRef concreteArrayTypeRef = SemaHelpers::deduceConcretizedAggregateArrayType(sema, argView.typeRef(), argView.cstRef());
+        if (concreteArrayTypeRef == argView.typeRef())
             return Result::Continue;
-
-        const TypeRef firstElemTypeRef = elemTypes.front();
-        for (const TypeRef elemTypeRef : elemTypes)
-        {
-            if (elemTypeRef != firstElemTypeRef)
-                return Result::Continue;
-        }
-
-        SmallVector4<uint64_t> dims;
-        dims.push_back(elemTypes.size());
-        const TypeRef concreteArrayTypeRef = sema.typeMgr().addType(TypeInfo::makeArray(dims, firstElemTypeRef));
 
         SemaNodeView castView(sema, argRef, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
         SWC_RESULT(Cast::cast(sema, castView, concreteArrayTypeRef, CastKind::Implicit));

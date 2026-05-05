@@ -8,6 +8,7 @@
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Constant/ConstantExtract.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
+#include "Compiler/Sema/Constant/ConstantValue.h"
 #include "Compiler/Sema/Generic/SemaGeneric.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Helpers/SemaRuntime.h"
@@ -29,6 +30,254 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    bool intLikeConstantFitsType(const ConstantValue& cst, const TypeInfo& targetType)
+    {
+        SWC_ASSERT(targetType.isIntLike());
+
+        ApsInt         value      = cst.getIntLike();
+        const uint32_t targetBits = targetType.payloadIntLikeBits();
+        const uint32_t valueBits  = value.bitWidth();
+        const uint32_t checkBits  = (valueBits > targetBits + 1) ? valueBits : (targetBits + 1);
+        const bool     isUnsigned = targetType.isIntLikeUnsigned();
+
+        if (isUnsigned)
+        {
+            if (!value.isUnsigned() && value.isNegative())
+                return false;
+
+            ApsInt vCheck = value;
+            if (!vCheck.isUnsigned())
+                vCheck.setUnsigned(true);
+            vCheck.resize(checkBits);
+
+            ApsInt maxCheck = ApsInt::maxValue(targetBits, true);
+            maxCheck.resize(checkBits);
+            return !vCheck.gt(maxCheck);
+        }
+
+        const ApsInt minSigned = ApsInt::minValue(targetBits, false);
+        const ApsInt maxSigned = ApsInt::maxValue(targetBits, false);
+        if (!value.isUnsigned())
+        {
+            ApsInt vCheck = value;
+            vCheck.resize(checkBits);
+
+            ApsInt minCheck = minSigned;
+            ApsInt maxCheck = maxSigned;
+            minCheck.resize(checkBits);
+            maxCheck.resize(checkBits);
+            return !vCheck.lt(minCheck) && !vCheck.gt(maxCheck);
+        }
+
+        ApsInt vCheck = value;
+        vCheck.resize(checkBits);
+
+        ApsInt maxBits = ApsInt::maxValue(targetBits, true);
+        maxBits.resize(checkBits);
+        if (vCheck.gt(maxBits))
+            return false;
+
+        ApsInt maxSignedU = maxSigned;
+        if (!maxSignedU.isUnsigned())
+            maxSignedU.setUnsigned(true);
+        maxSignedU.resize(checkBits);
+        return !vCheck.gt(maxSignedU);
+    }
+
+    TypeRef deduceConcretizedAggregateArrayElementType(Sema& sema, std::span<const TypeRef> elemTypes, const std::vector<ConstantRef>* values);
+    TypeRef deduceConcretizedAggregateStructType(Sema& sema, TypeRef typeRef, ConstantRef cstRef);
+
+    TypeRef deduceConcretizedAggregateLiteralTypeImpl(Sema& sema, TypeRef typeRef, ConstantRef cstRef)
+    {
+        if (!typeRef.isValid())
+            return TypeRef::invalid();
+
+        const TypeInfo& typeInfo = sema.typeMgr().get(typeRef);
+        if (typeInfo.isAggregateArray())
+            return SemaHelpers::deduceConcretizedAggregateArrayType(sema, typeRef, cstRef);
+        if (typeInfo.isAggregateStruct())
+            return deduceConcretizedAggregateStructType(sema, typeRef, cstRef);
+
+        if (cstRef.isValid())
+        {
+            const ConstantValue& cst     = sema.cstMgr().get(cstRef);
+            const TypeInfo&      cstType = sema.typeMgr().get(cst.typeRef());
+            if (typeInfo.isIntUnsized() || cstType.isIntUnsized())
+            {
+                TypeInfo::Sign sign = typeInfo.isIntUnsized() ? typeInfo.payloadIntSign() : cstType.payloadIntSign();
+                if (sign == TypeInfo::Sign::Unknown)
+                    sign = TypeInfo::Sign::Signed;
+
+                bool           overflow = false;
+                const uint32_t destBits = TypeManager::chooseConcreteScalarWidth(cst.getIntLike().minBits(), overflow);
+                if (!overflow)
+                    return sema.typeMgr().typeInt(destBits, sign);
+            }
+            else if (typeInfo.isFloatUnsized() || cstType.isFloatUnsized())
+            {
+                bool           overflow = false;
+                const uint32_t destBits = TypeManager::chooseConcreteScalarWidth(cst.getFloat().minBits(), overflow);
+                if (!overflow)
+                    return sema.typeMgr().typeFloat(destBits);
+            }
+        }
+
+        return typeRef;
+    }
+
+    TypeRef deduceConcretizedAggregateStructType(Sema& sema, TypeRef typeRef, ConstantRef cstRef)
+    {
+        TypeManager&    typeMgr    = sema.typeMgr();
+        const TypeInfo& typeInfo   = typeMgr.get(typeRef);
+        const auto&     aggregate  = typeInfo.payloadAggregate();
+        const auto&     fieldTypes = aggregate.types;
+        const auto*     values     = static_cast<const std::vector<ConstantRef>*>(nullptr);
+
+        if (cstRef.isValid())
+        {
+            const ConstantValue& cst = sema.cstMgr().get(cstRef);
+            if (cst.isAggregateStruct())
+                values = &cst.getAggregateStruct();
+        }
+
+        bool                 changed = false;
+        SmallVector<TypeRef> concreteFieldTypes;
+        concreteFieldTypes.reserve(fieldTypes.size());
+
+        for (size_t i = 0; i < fieldTypes.size(); ++i)
+        {
+            const ConstantRef fieldCstRef = values && i < values->size() ? (*values)[i] : ConstantRef::invalid();
+            const TypeRef     fieldTypeRef = deduceConcretizedAggregateLiteralTypeImpl(sema, fieldTypes[i], fieldCstRef);
+            concreteFieldTypes.push_back(fieldTypeRef);
+            changed = changed || fieldTypeRef != fieldTypes[i];
+        }
+
+        if (!changed)
+            return typeRef;
+
+        SmallVector<IdentifierRef> fieldNames;
+        fieldNames.reserve(aggregate.names.size());
+        for (const IdentifierRef fieldName : aggregate.names)
+            fieldNames.push_back(fieldName);
+
+        return typeMgr.addType(TypeInfo::makeAggregateStruct(fieldNames, concreteFieldTypes));
+    }
+
+    bool constantFitsArrayTarget(Sema& sema, ConstantRef cstRef, std::span<const uint64_t> dims, TypeRef elementTypeRef);
+
+    bool constantFitsTargetType(Sema& sema, ConstantRef cstRef, TypeRef targetTypeRef)
+    {
+        if (!cstRef.isValid() || !targetTypeRef.isValid())
+            return false;
+
+        TypeManager&         typeMgr    = sema.typeMgr();
+        const ConstantValue& cst        = sema.cstMgr().get(cstRef);
+        const TypeInfo&      targetType = typeMgr.get(targetTypeRef);
+        const TypeInfo&      cstType    = typeMgr.get(cst.typeRef());
+
+        if (targetTypeRef == cst.typeRef())
+            return true;
+
+        if (targetType.isArray())
+            return constantFitsArrayTarget(sema, cstRef, targetType.payloadArrayDims(), targetType.payloadArrayElemTypeRef());
+
+        if (targetType.isIntLike() && cstType.isIntLike())
+            return intLikeConstantFitsType(cst, targetType);
+
+        if (targetType.isFloat() && cstType.isScalarNumeric())
+        {
+            const TypeRef concreteTypeRef = deduceConcretizedAggregateLiteralTypeImpl(sema, cst.typeRef(), cstRef);
+            return typeMgr.promote(targetTypeRef, concreteTypeRef, false) == targetTypeRef;
+        }
+
+        return false;
+    }
+
+    bool constantFitsArrayTarget(Sema& sema, ConstantRef cstRef, std::span<const uint64_t> dims, TypeRef elementTypeRef)
+    {
+        if (!cstRef.isValid() || dims.empty())
+            return false;
+
+        const ConstantValue& cst = sema.cstMgr().get(cstRef);
+        if (!cst.isAggregateArray() || cst.getAggregateArray().size() != dims[0])
+            return false;
+
+        for (const ConstantRef valueRef : cst.getAggregateArray())
+        {
+            if (dims.size() == 1)
+            {
+                if (!constantFitsTargetType(sema, valueRef, elementTypeRef))
+                    return false;
+                continue;
+            }
+
+            if (!constantFitsArrayTarget(sema, valueRef, dims.subspan(1), elementTypeRef))
+                return false;
+        }
+
+        return true;
+    }
+
+    TypeRef deduceConcretizedAggregateArrayElementType(Sema& sema, std::span<const TypeRef> elemTypes, const std::vector<ConstantRef>* values)
+    {
+        TypeManager&         typeMgr = sema.typeMgr();
+        SmallVector<TypeRef> concreteElemTypes;
+        concreteElemTypes.reserve(elemTypes.size());
+
+        TypeRef resultTypeRef = TypeRef::invalid();
+        for (size_t i = 0; i < elemTypes.size(); ++i)
+        {
+            const ConstantRef elemCstRef  = values && i < values->size() ? (*values)[i] : ConstantRef::invalid();
+            const TypeRef     elemTypeRef = deduceConcretizedAggregateLiteralTypeImpl(sema, elemTypes[i], elemCstRef);
+            concreteElemTypes.push_back(elemTypeRef);
+
+            const TypeInfo& originalType = typeMgr.get(elemTypes[i]);
+            if (!originalType.isScalarNumeric() || originalType.isScalarUnsized())
+                continue;
+
+            if (!resultTypeRef.isValid())
+            {
+                resultTypeRef = elemTypeRef;
+                continue;
+            }
+
+            resultTypeRef = typeMgr.promote(resultTypeRef, elemTypeRef, false);
+        }
+
+        if (!resultTypeRef.isValid() && !concreteElemTypes.empty())
+            resultTypeRef = concreteElemTypes[0];
+
+        for (size_t i = 0; i < elemTypes.size(); ++i)
+        {
+            const ConstantRef elemCstRef  = values && i < values->size() ? (*values)[i] : ConstantRef::invalid();
+            const TypeRef     elemTypeRef = concreteElemTypes[i];
+            if (!resultTypeRef.isValid())
+            {
+                resultTypeRef = elemTypeRef;
+                continue;
+            }
+
+            if (elemTypeRef == resultTypeRef)
+                continue;
+
+            const TypeInfo& resultType = typeMgr.get(resultTypeRef);
+            const TypeInfo& elemType   = typeMgr.get(elemTypeRef);
+            if (!resultType.isScalarNumeric() || !elemType.isScalarNumeric())
+            {
+                if (constantFitsTargetType(sema, elemCstRef, resultTypeRef))
+                    continue;
+                return TypeRef::invalid();
+            }
+
+            if (constantFitsTargetType(sema, elemCstRef, resultTypeRef))
+                continue;
+
+            resultTypeRef = typeMgr.promote(resultTypeRef, elemTypeRef, false);
+        }
+
+        return resultTypeRef;
+    }
+
     TypeRef aliasEnumTypeRef(Sema& sema, TypeRef typeRef)
     {
         const TypeRef unwrappedTypeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), typeRef);
@@ -66,6 +315,41 @@ namespace
         const TypeInfo& typeInfo = aliasEnumType(sema, view);
         return typeInfo.isAnyPointer() || typeInfo.isReference();
     }
+}
+
+TypeRef SemaHelpers::deduceConcretizedAggregateLiteralType(Sema& sema, TypeRef typeRef, ConstantRef cstRef)
+{
+    return deduceConcretizedAggregateLiteralTypeImpl(sema, typeRef, cstRef);
+}
+
+TypeRef SemaHelpers::deduceConcretizedAggregateArrayType(Sema& sema, TypeRef typeRef, ConstantRef cstRef)
+{
+    TypeManager& typeMgr = sema.typeMgr();
+    SWC_ASSERT(typeRef.isValid());
+    SWC_ASSERT(typeMgr.get(typeRef).isAggregateArray());
+
+    const auto& elemTypes = typeMgr.get(typeRef).payloadAggregate().types;
+    if (elemTypes.empty())
+        return typeRef;
+
+    const std::vector<ConstantRef>* values = nullptr;
+    if (cstRef.isValid())
+    {
+        const ConstantValue& cst = sema.cstMgr().get(cstRef);
+        if (cst.isAggregateArray())
+            values = &cst.getAggregateArray();
+    }
+
+    const TypeRef elemTypeRef = deduceConcretizedAggregateArrayElementType(sema, elemTypes, values);
+    if (elemTypeRef.isInvalid())
+        return typeRef;
+
+    if (typeMgr.get(elemTypeRef).isAggregateArray())
+        return typeRef;
+
+    SmallVector4<uint64_t> outerDim;
+    outerDim.push_back(elemTypes.size());
+    return typeMgr.addType(TypeInfo::makeArray(outerDim, elemTypeRef));
 }
 
 Result SemaHelpers::attachIndirectReturnRuntimeStorageIfNeeded(Sema& sema, AstNodeRef payloadNodeRef, const AstNode& storageNode, const SymbolFunction& calledFn, std::string_view privateName)

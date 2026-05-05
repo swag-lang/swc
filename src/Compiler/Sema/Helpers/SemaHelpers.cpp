@@ -87,6 +87,8 @@ namespace
 
     TypeRef deduceConcretizedAggregateArrayElementType(Sema& sema, std::span<const TypeRef> elemTypes, const std::vector<ConstantRef>* values);
     TypeRef deduceConcretizedAggregateStructType(Sema& sema, TypeRef typeRef, ConstantRef cstRef);
+    bool    isAggregateTypeLikeElement(Sema& sema, TypeRef typeRef);
+    TypeRef normalizeAggregateTypeLikeElementType(Sema& sema, TypeRef typeRef, ConstantRef cstRef);
 
     void tryMaterializeAggregateLiteralConstant(Sema& sema, SemaNodeView& defaultView)
     {
@@ -172,6 +174,9 @@ namespace
             defaultView.recompute(sema, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
             resolvedTypeRef = promotedTypeRef;
         }
+
+        if (resolvedTypeRef.isValid() && isAggregateTypeLikeElement(sema, resolvedTypeRef))
+            resolvedTypeRef = normalizeAggregateTypeLikeElementType(sema, resolvedTypeRef, defaultView.cstRef());
 
         if (outResolvedTypeRef)
             *outResolvedTypeRef = resolvedTypeRef;

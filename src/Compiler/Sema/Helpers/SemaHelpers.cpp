@@ -815,6 +815,9 @@ bool SemaHelpers::needsPersistentCompilerRunReturn(const Sema& sema, TypeRef typ
     if (typeInfo.isString() || typeInfo.isSlice() || typeInfo.isAny() || typeInfo.isInterface() || typeInfo.isCString())
         return true;
 
+    if (typeInfo.isAggregateStruct() || typeInfo.isAggregateArray())
+        return true;
+
     if (typeInfo.isArray())
         return needsPersistentCompilerRunReturn(sema, typeInfo.payloadArrayElemTypeRef());
 

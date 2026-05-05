@@ -1252,6 +1252,10 @@ namespace
                 return SemaError::raise(sema, DiagnosticId::sema_err_not_value_expr, childRef);
             typeRef = resolvedTypeRef;
         }
+        else if (view.cstRef().isValid())
+        {
+            typeRef = SemaHelpers::deduceConcretizedAggregateLiteralType(sema, typeRef, view.cstRef());
+        }
 
         sema.setType(sema.curNodeRef(), typeRef);
         return Result::Continue;

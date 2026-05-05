@@ -275,6 +275,36 @@ namespace
         return false;
     }
 
+    void collectConcreteArrayShape(const TypeManager& typeMgr, TypeRef typeRef, SmallVector<uint64_t>& outDims, TypeRef& outFinalElemTypeRef)
+    {
+        outDims.clear();
+        outFinalElemTypeRef = typeRef;
+        while (outFinalElemTypeRef.isValid())
+        {
+            const TypeInfo& typeInfo = typeMgr.get(outFinalElemTypeRef);
+            if (!typeInfo.isArray())
+                return;
+
+            for (const uint64_t dim : typeInfo.payloadArrayDims())
+                outDims.push_back(dim);
+            outFinalElemTypeRef = typeInfo.payloadArrayElemTypeRef();
+        }
+    }
+
+    TypeRef resolveArrayPointedTypeRef(TypeManager& typeMgr, const TypeInfo& arrayType)
+    {
+        SWC_ASSERT(arrayType.isArray());
+        const auto& dims = arrayType.payloadArrayDims();
+        if (dims.size() <= 1)
+            return arrayType.payloadArrayElemTypeRef();
+
+        SmallVector<uint64_t> remainingDims;
+        remainingDims.reserve(dims.size() - 1);
+        for (size_t i = 1; i < dims.size(); ++i)
+            remainingDims.push_back(dims[i]);
+        return typeMgr.addType(TypeInfo::makeArray(remainingDims, arrayType.payloadArrayElemTypeRef(), arrayType.flags()));
+    }
+
     bool patternCanDeduceMissingGenericParam(Sema& sema, std::span<const SemaGeneric::GenericParamDesc> params, std::span<const SemaGeneric::GenericResolvedArg> resolvedArgs, AstNodeRef patternRef)
     {
         if (patternRef.isInvalid())
@@ -947,6 +977,26 @@ namespace
 
             SmallVector<AstNodeRef> dims;
             sema.ast().appendNodes(dims, arrayType->spanDimensionsRef);
+            SmallVector<uint64_t> actualDims;
+            TypeRef               actualElemTypeRef = argTypeRef;
+            collectConcreteArrayShape(sema.typeMgr(), argTypeRef, actualDims, actualElemTypeRef);
+            if (arrayType->spanDimensionsRef.isValid() && dims.size() == actualDims.size())
+            {
+                for (size_t i = 0; i < dims.size(); ++i)
+                {
+                    const AstNode& dimNode = sema.node(dims[i]);
+                    if (const auto* ident = dimNode.safeCast<AstIdentifier>())
+                    {
+                        const IdentifierRef idRef  = SemaHelpers::resolveIdentifier(sema, ident->codeRef());
+                        const ConstantRef   cstRef = sema.cstMgr().addInt(ctx, actualDims[i]);
+                        if (!tryBindGenericValueParam(sema, params, resolvedArgs, idRef, argExprRef, callArgIndex, cstRef, sema.cstMgr().get(cstRef).typeRef(), outFailure, mode))
+                            return Result::Error;
+                    }
+                }
+
+                return deduceFromTypePattern(sema, params, resolvedArgs, arrayType->nodePointeeTypeRef, actualElemTypeRef, argExprRef, callArgIndex, outFailure, mode);
+            }
+
             const auto& argDims = argType.payloadArrayDims();
             if (arrayType->spanDimensionsRef.isValid() && dims.size() != argDims.size())
                 return Result::Continue;
@@ -970,6 +1020,9 @@ namespace
         {
             if (argType.isAggregateArray())
                 return deduceFromAggregateArrayElementsPattern(sema, params, resolvedArgs, {}, sliceType->nodePointeeTypeRef, argType, argExprRef, callArgIndex, outFailure, mode);
+
+            if (argType.isArray())
+                return deduceFromTypePattern(sema, params, resolvedArgs, sliceType->nodePointeeTypeRef, resolveArrayPointedTypeRef(sema.typeMgr(), argType), argExprRef, callArgIndex, outFailure, mode);
 
             if (argType.isString())
                 return deduceFromTypePattern(sema, params, resolvedArgs, sliceType->nodePointeeTypeRef, sema.typeMgr().typeU8(), argExprRef, callArgIndex, outFailure, mode);
@@ -1101,20 +1154,26 @@ namespace
             sema.setConstant(valueArgRef, newCstRef);
             argView.recompute(sema, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
             outTypeRef = argView.typeRef();
-            return Result::Continue;
         }
 
-        const TypeInfo& argType = sema.typeMgr().get(outTypeRef);
-        if (!argType.isIntUnsized())
-            return Result::Continue;
+        if (outTypeRef.isValid())
+        {
+            const TypeInfo& argType = sema.typeMgr().get(outTypeRef);
+            if (argType.isIntUnsized())
+            {
+                ConstantRef newCstRef = ConstantRef::invalid();
+                SWC_RESULT(Cast::concretizeConstant(sema, newCstRef, valueArgRef, argView.cstRef(), TypeInfo::Sign::Unknown));
+                if (newCstRef.isValid())
+                {
+                    sema.setConstant(valueArgRef, newCstRef);
+                    outTypeRef = sema.cstMgr().get(newCstRef).typeRef();
+                }
+            }
+        }
 
-        ConstantRef newCstRef = ConstantRef::invalid();
-        SWC_RESULT(Cast::concretizeConstant(sema, newCstRef, valueArgRef, argView.cstRef(), TypeInfo::Sign::Unknown));
-        if (!newCstRef.isValid())
-            return Result::Continue;
+        if (outTypeRef.isValid())
+            outTypeRef = SemaHelpers::deduceConcretizedAggregateLiteralType(sema, outTypeRef, argView.cstRef());
 
-        sema.setConstant(valueArgRef, newCstRef);
-        outTypeRef = sema.cstMgr().get(newCstRef).typeRef();
         return Result::Continue;
     }
 

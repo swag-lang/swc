@@ -229,22 +229,7 @@ namespace
     {
         if (!isAggregateTypeLikeElement(sema, typeRef))
             return typeRef;
-
-        if (cstRef.isValid())
-        {
-            ConstantRef normalizedCstRef = cstRef;
-            if (SemaHelpers::normalizeTypeInfoConstantRef(sema, normalizedCstRef, sema.ctx().state().nodeRef) == Result::Continue && normalizedCstRef.isValid())
-                return sema.cstMgr().get(normalizedCstRef).typeRef();
-        }
-
-        if (sema.typeMgr().isRuntimeTypeInfoPointer(sema.ctx(), typeRef))
-            return typeRef;
-
-        const TypeInfo& typeInfo = sema.typeMgr().get(typeRef);
-        if (typeInfo.isTypeValue())
-            return specializedTypeInfoPointerTypeRef(sema, typeInfo.payloadTypeRef());
-
-        return typeInfo.isAnyTypeInfo(sema.ctx()) ? typeRef : sema.typeMgr().typeTypeInfo();
+        return SemaHelpers::normalizeTypeLikeValueTypeRef(sema, typeRef, cstRef, sema.ctx().state().nodeRef);
     }
 
     TypeRef deduceConcretizedAggregateLiteralTypeImpl(Sema& sema, TypeRef typeRef, ConstantRef cstRef)
@@ -555,6 +540,28 @@ TypeRef SemaHelpers::resolveRepresentedTypeRef(Sema& sema, const SemaNodeView& v
         return TypeRef::invalid();
 
     return sema.cstMgr().makeTypeValue(sema, view.cstRef());
+}
+
+TypeRef SemaHelpers::normalizeTypeLikeValueTypeRef(Sema& sema, TypeRef typeRef, ConstantRef cstRef, AstNodeRef ownerNodeRef)
+{
+    if (!isTypeLikeTypeRef(sema.ctx(), typeRef))
+        return typeRef;
+
+    if (cstRef.isValid())
+    {
+        ConstantRef normalizedCstRef = cstRef;
+        if (normalizeTypeInfoConstantRef(sema, normalizedCstRef, ownerNodeRef) == Result::Continue && normalizedCstRef.isValid())
+            return sema.cstMgr().get(normalizedCstRef).typeRef();
+    }
+
+    if (sema.typeMgr().isRuntimeTypeInfoPointer(sema.ctx(), typeRef))
+        return typeRef;
+
+    const TypeInfo& typeInfo = sema.typeMgr().get(typeRef);
+    if (typeInfo.isTypeValue())
+        return specializedTypeInfoPointerTypeRef(sema, typeInfo.payloadTypeRef());
+
+    return typeInfo.isAnyTypeInfo(sema.ctx()) ? typeRef : sema.typeMgr().typeTypeInfo();
 }
 
 Result SemaHelpers::attachIndirectReturnRuntimeStorageIfNeeded(Sema& sema, AstNodeRef payloadNodeRef, const AstNode& storageNode, const SymbolFunction& calledFn, std::string_view privateName)

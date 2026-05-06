@@ -858,12 +858,22 @@ namespace
 
         const ConstantRef exprCstRef         = sema.viewConstant(exprRef).cstRef();
         const TypeRef     concretizedTypeRef = SemaHelpers::deduceConcretizedAggregateLiteralType(sema, ioTypeRef, exprCstRef);
-        if (concretizedTypeRef == ioTypeRef)
-            return Result::Continue;
+        if (concretizedTypeRef != ioTypeRef)
+        {
+            SemaNodeView castView = sema.viewNodeTypeConstant(exprRef);
+            SWC_RESULT(Cast::cast(sema, castView, concretizedTypeRef, CastKind::Implicit));
+            ioTypeRef = concretizedTypeRef;
+        }
 
-        SemaNodeView castView = sema.viewNodeTypeConstant(exprRef);
-        SWC_RESULT(Cast::cast(sema, castView, concretizedTypeRef, CastKind::Implicit));
-        ioTypeRef = concretizedTypeRef;
+        const ConstantRef exprTypeLikeCstRef = sema.viewConstant(exprRef).cstRef();
+        const TypeRef     normalizedTypeLikeRef = SemaHelpers::normalizeTypeLikeValueTypeRef(sema, ioTypeRef, exprTypeLikeCstRef, exprRef);
+        if (normalizedTypeLikeRef != ioTypeRef)
+        {
+            SemaNodeView castView = sema.viewNodeTypeConstant(exprRef);
+            SWC_RESULT(Cast::cast(sema, castView, normalizedTypeLikeRef, CastKind::Implicit));
+            ioTypeRef = normalizedTypeLikeRef;
+        }
+
         return Result::Continue;
     }
 

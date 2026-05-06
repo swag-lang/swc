@@ -6,6 +6,7 @@
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Helpers/SemaCheck.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
+#include "Compiler/Sema/Helpers/SemaHelpers.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -44,9 +45,40 @@ namespace
         return Result::Continue;
     }
 
+    Result resolveTypeLikeConditionalResultType(Sema& sema, TypeRef& outTypeRef, const SemaNodeView& nodeTrueView, const SemaNodeView& nodeFalseView)
+    {
+        outTypeRef = TypeRef::invalid();
+
+        const TaskContext& ctx = sema.ctx();
+        const TypeRef normalizedTrueTypeRef = SemaHelpers::normalizeTypeLikeValueTypeRef(sema, nodeTrueView.typeRef(), nodeTrueView.cstRef(), nodeTrueView.nodeRef());
+        const TypeRef normalizedFalseTypeRef = SemaHelpers::normalizeTypeLikeValueTypeRef(sema, nodeFalseView.typeRef(), nodeFalseView.cstRef(), nodeFalseView.nodeRef());
+        if (normalizedTrueTypeRef == nodeTrueView.typeRef() && normalizedFalseTypeRef == nodeFalseView.typeRef())
+            return Result::Continue;
+
+        if (!normalizedTrueTypeRef.isValid() || !normalizedFalseTypeRef.isValid())
+            return Result::Continue;
+
+        if (normalizedTrueTypeRef == normalizedFalseTypeRef)
+        {
+            outTypeRef = normalizedTrueTypeRef;
+            return Result::Continue;
+        }
+
+        const TypeInfo& normalizedTrueType  = sema.typeMgr().get(normalizedTrueTypeRef);
+        const TypeInfo& normalizedFalseType = sema.typeMgr().get(normalizedFalseTypeRef);
+        if (normalizedTrueType.isAnyTypeInfo(ctx) && normalizedFalseType.isAnyTypeInfo(ctx))
+            outTypeRef = sema.typeMgr().typeTypeInfo();
+
+        return Result::Continue;
+    }
+
     Result resolveConditionalResultType(Sema& sema, TypeRef& outTypeRef, const SemaNodeView& nodeTrueView, const SemaNodeView& nodeFalseView)
     {
         outTypeRef = TypeRef::invalid();
+
+        SWC_RESULT(resolveTypeLikeConditionalResultType(sema, outTypeRef, nodeTrueView, nodeFalseView));
+        if (outTypeRef.isValid())
+            return Result::Continue;
 
         SWC_RESULT(resolveUnsizedConstantAgainstTypedBranch(sema, outTypeRef, nodeTrueView, nodeFalseView));
         if (outTypeRef.isValid())
@@ -93,13 +125,13 @@ namespace
 Result AstConditionalExpr::semaPostNode(Sema& sema)
 {
     SemaNodeView       nodeCondView  = sema.viewNodeTypeConstant(nodeCondRef);
-    const SemaNodeView nodeTrueView  = sema.viewNodeTypeConstant(nodeTrueRef);
-    const SemaNodeView nodeFalseView = sema.viewNodeTypeConstant(nodeFalseRef);
+    SemaNodeView       nodeTrueView  = sema.viewNodeTypeConstant(nodeTrueRef);
+    SemaNodeView       nodeFalseView = sema.viewNodeTypeConstant(nodeFalseRef);
 
     // Value-check
     SWC_RESULT(SemaCheck::isValue(sema, nodeCondView.nodeRef()));
-    SWC_RESULT(SemaCheck::isValue(sema, nodeTrueView.nodeRef()));
-    SWC_RESULT(SemaCheck::isValue(sema, nodeFalseView.nodeRef()));
+    SWC_RESULT(SemaCheck::isValueOrTypeInfo(sema, nodeTrueView));
+    SWC_RESULT(SemaCheck::isValueOrTypeInfo(sema, nodeFalseView));
     sema.setIsValue(*this);
 
     // Condition must be bool

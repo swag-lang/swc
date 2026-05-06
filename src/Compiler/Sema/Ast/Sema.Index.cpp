@@ -569,6 +569,11 @@ Result AstIndexListExpr::semaPostNode(Sema& sema)
         return SemaError::raiseTypeNotIndexable(sema, nodeExprRef, nodeExprView.typeRef());
     }
     SWC_RESULT(setupIndexBoundCheck(sema, sema.curNodeRef(), indexedType, codeRef()));
+
+    const TypeRef runtimeStorageTypeRef = indexRuntimeStorageTypeRef(sema, nodeExprView, nodeExprRef);
+    if (runtimeStorageTypeRef.isValid() && sema.isCurrentFunction())
+        SWC_RESULT(SemaHelpers::attachRuntimeStorageIfNeeded(sema, *this, runtimeStorageTypeRef, "__index_runtime_storage"));
+
     return Result::Continue;
 }
 

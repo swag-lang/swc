@@ -617,8 +617,14 @@ namespace
 
     void appendInlineLocalIdentifier(Sema& sema, const AstNode& node, TokenRef tokNameRef, SmallVector<IdentifierRef>& outIdentifiers)
     {
-        if (tokNameRef.isValid())
-            outIdentifiers.push_back(SemaHelpers::resolveIdentifier(sema, {node.srcViewRef(), tokNameRef}));
+        if (!tokNameRef.isValid())
+            return;
+
+        const TokenId tokenId = sema.token({node.srcViewRef(), tokNameRef}).id;
+        if (Token::isCompilerUniq(tokenId))
+            return;
+
+        outIdentifiers.push_back(SemaHelpers::resolveIdentifier(sema, {node.srcViewRef(), tokNameRef}));
     }
 
     void appendInlineLocalIdentifiers(Sema& sema, const Ast& sourceAst, const AstNode& node, SpanRef spanNamesRef, SmallVector<IdentifierRef>& outIdentifiers)
@@ -915,7 +921,7 @@ namespace
                 continue;
             }
 
-            const AstNodeRef clonedInitRef = SemaClone::cloneAst(sema, binding.exprRef, noBindings);
+            AstNodeRef clonedInitRef = SemaClone::cloneAst(sema, binding.exprRef, noBindings);
             if (clonedInitRef.isInvalid())
                 return Result::Error;
 
@@ -1101,7 +1107,7 @@ namespace
                 return Result::Continue;
             variadicBinding.allArgsConstant = (clonedValues.empty() ? true : variadicBinding.allArgsConstant) && sema.viewConstant(argRef).hasConstant();
 
-            const AstNodeRef clonedArgRef = SemaClone::cloneAst(sema, argRef, noBindings);
+            AstNodeRef clonedArgRef = SemaClone::cloneAst(sema, argRef, noBindings);
             if (clonedArgRef.isInvalid())
                 return Result::Continue;
 
@@ -1389,8 +1395,12 @@ Result SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFun
     SWC_RESULT(waitInlineResultTypeIfNeeded(sema, callRef, returnTypeRef));
 
     SmallVector<AstNodeRef> materializedBindings;
-    if (!fn.attributes().hasRtFlag(RtAttributeFlagsE::Macro) && !fn.attributes().hasRtFlag(RtAttributeFlagsE::Mixin))
+    if (!fn.attributes().hasRtFlag(RtAttributeFlagsE::Macro))
+    {
+        // Mixins expand into the caller body like inline functions do, so closure captures and
+        // non-addressable aggregate uses still need concrete local bindings before cloning.
         SWC_RESULT(materializeInlineBindings(sema, fn, *declAst, *decl, bindings, materializedBindings));
+    }
 
     const SemaClone::CloneContext cloneContext{bindings.span(), std::span<const SemaClone::NodeReplacement>{}, false, declAst};
     const AstNodeRef              inlineRootRef = isMixin ? mixinBodyRef(sema, *decl, cloneContext, materializedBindings.span()) : inlineBodyRef(sema, *decl, cloneContext, materializedBindings.span());

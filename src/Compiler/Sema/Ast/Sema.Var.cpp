@@ -719,6 +719,28 @@ namespace
         return !elemType.isIntUnsized() && !elemType.isFloatUnsized();
     }
 
+    bool aggregateLiteralTypeContainsTypeLike(Sema& sema, TypeRef typeRef)
+    {
+        if (!typeRef.isValid())
+            return false;
+        if (SemaHelpers::isTypeLikeTypeRef(sema.ctx(), typeRef))
+            return true;
+
+        const TypeInfo& type = sema.typeMgr().get(typeRef);
+        if (type.isArray())
+            return aggregateLiteralTypeContainsTypeLike(sema, type.payloadArrayElemTypeRef());
+        if (!type.isAggregateArray() && !type.isAggregateStruct())
+            return false;
+
+        for (const TypeRef childTypeRef : type.payloadAggregate().types)
+        {
+            if (aggregateLiteralTypeContainsTypeLike(sema, childTypeRef))
+                return true;
+        }
+
+        return false;
+    }
+
     bool shouldDeferAggregateArrayConcretization(Sema& sema, const SemaNodeView& nodeInitView)
     {
         if (!nodeInitView.typeRef().isValid() || nodeInitView.cstRef().isInvalid())
@@ -732,14 +754,6 @@ namespace
         if (elemTypes.empty())
             return false;
 
-        const TypeInfo& firstElem = sema.typeMgr().get(elemTypes[0]);
-        for (size_t i = 1; i < elemTypes.size(); ++i)
-        {
-            const TypeInfo& elemType = sema.typeMgr().get(elemTypes[i]);
-            if (elemType.kind() != firstElem.kind() && !(firstElem.isScalarNumeric() && elemType.isScalarNumeric()))
-                return false;
-        }
-
         const ConstantValue& cst = sema.cstMgr().get(nodeInitView.cstRef());
         if (!cst.isAggregateArray())
             return false;
@@ -748,7 +762,33 @@ namespace
         if (values.empty())
             return false;
 
-        return canLeadAggregateArrayElementDriveConcretization(sema, elemTypes[0], values[0]);
+        if (!canLeadAggregateArrayElementDriveConcretization(sema, elemTypes[0], values[0]))
+            return false;
+
+        const TypeRef leadTypeRef = SemaHelpers::deduceConcretizedAggregateLiteralType(sema, elemTypes[0], values[0]);
+        if (!leadTypeRef.isValid())
+            return false;
+
+        for (size_t i = 1; i < elemTypes.size() && i < values.size(); ++i)
+        {
+            if (!values[i].isValid())
+                return false;
+
+            const TypeRef elemTypeRef = SemaHelpers::deduceConcretizedAggregateLiteralType(sema, elemTypes[i], values[i]);
+            if (aggregateLiteralTypeContainsTypeLike(sema, leadTypeRef) || aggregateLiteralTypeContainsTypeLike(sema, elemTypeRef))
+            {
+                if (elemTypeRef != leadTypeRef)
+                    return false;
+                continue;
+            }
+
+            CastRequest castRequest(CastKind::Initialization);
+            castRequest.setConstantFoldingSrc(values[i]);
+            if (Cast::castAllowed(sema, castRequest, sema.cstMgr().get(values[i]).typeRef(), leadTypeRef) != Result::Continue)
+                return false;
+        }
+
+        return true;
     }
 
     Result concretizeAggregateLiteralType(Sema& sema, const SemaPostVarDeclArgs& context, TypeRef explicitTypeRef, TypeRef& finalTypeRef, SemaNodeView& nodeInitView)

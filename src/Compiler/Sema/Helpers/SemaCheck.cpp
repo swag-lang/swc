@@ -74,7 +74,8 @@ namespace
         if (!symVar.typeRef().isValid())
             return true;
 
-        return !sema.typeMgr().get(symVar.typeRef()).isPointerLike();
+        const TypeInfo& typeInfo = sema.typeMgr().get(symVar.typeRef());
+        return !typeInfo.isPointerLike() && !typeInfo.isArray();
     }
 
     const SymbolVariable* currentFunctionParameterByIdentifier(Sema& sema, AstNodeRef nodeRef)

@@ -97,7 +97,7 @@ public impl Sha1
 
     // Finalize the computation and produce the final hash digest.
     // Applies padding and length encoding, then stores the result in the output buffer.
-    mtd final(result: [*] u32)
+    mtd final(result: Digest)
     {
         var i = .datalen
         if .datalen < 56

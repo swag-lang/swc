@@ -821,8 +821,7 @@ namespace
         if (exprRef.isInvalid() || !ioTypeRef.isValid())
             return Result::Continue;
 
-        const auto tryMaterializeAggregateLiteralConstant = [&]
-        {
+        const auto tryMaterializeAggregateLiteralConstant = [&] {
             if (sema.viewConstant(exprRef).hasConstant())
                 return Result::Continue;
 
@@ -853,9 +852,7 @@ namespace
                     names.push_back(name);
             }
 
-            const ConstantValue cst = typeInfo.isAggregateArray() ?
-                ConstantValue::makeAggregateArray(sema.ctx(), values) :
-                ConstantValue::makeAggregateStruct(sema.ctx(), names, values);
+            const ConstantValue cst = typeInfo.isAggregateArray() ? ConstantValue::makeAggregateArray(sema.ctx(), values) : ConstantValue::makeAggregateStruct(sema.ctx(), names, values);
             sema.setConstant(exprRef, sema.cstMgr().addConstant(sema.ctx(), cst));
             return Result::Continue;
         };
@@ -906,7 +903,7 @@ namespace
             ioTypeRef = concretizedTypeRef;
         }
 
-        const ConstantRef exprTypeLikeCstRef = sema.viewConstant(exprRef).cstRef();
+        const ConstantRef exprTypeLikeCstRef    = sema.viewConstant(exprRef).cstRef();
         const TypeRef     normalizedTypeLikeRef = SemaHelpers::normalizeTypeLikeValueTypeRef(sema, ioTypeRef, exprTypeLikeCstRef, exprRef);
         if (normalizedTypeLikeRef != ioTypeRef)
         {

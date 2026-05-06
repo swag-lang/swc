@@ -566,7 +566,7 @@ namespace
             if (!self.type() || !other.type())
                 return Result::Continue;
 
-            const TypeInfo& otherType = aliasEnumType(sema, other);
+            const TypeInfo& otherType                     = aliasEnumType(sema, other);
             const bool      otherIsRuntimeTypeInfoPointer = sema.typeMgr().isRuntimeTypeInfoPointer(sema.ctx(), other.typeRef());
             const bool      otherIsTypeLike               = otherType.isAnyTypeInfo(sema.ctx()) || otherType.isAny() || otherIsRuntimeTypeInfoPointer || other.type()->isTypeValue();
             if (self.type()->isTypeValue() && otherIsTypeLike)

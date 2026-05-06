@@ -310,9 +310,9 @@ namespace
 
     Result emitAggregateArrayConstIndexAddress(CodeGen& codeGen, CodeGenNodePayload& outPayload, AstNodeRef indexedNodeRef, AstNodeRef indexRef, const TypeInfo& indexedType, const CodeGenNodePayload& indexedPayload)
     {
-        uint32_t fieldOffset    = 0;
-        TypeRef  resultTypeRef  = TypeRef::invalid();
-        const bool hasConstInfo = resolveAggregateArrayConstIndexInfo(codeGen, indexRef, indexedType, fieldOffset, resultTypeRef);
+        uint32_t   fieldOffset   = 0;
+        TypeRef    resultTypeRef = TypeRef::invalid();
+        const bool hasConstInfo  = resolveAggregateArrayConstIndexInfo(codeGen, indexRef, indexedType, fieldOffset, resultTypeRef);
         SWC_ASSERT(hasConstInfo);
         SWC_ASSERT(resultTypeRef.isValid());
 
@@ -571,7 +571,7 @@ Result AstIndexExpr::codeGenPostNode(CodeGen& codeGen) const
     SWC_ASSERT(indexedView.type());
     SWC_ASSERT(resultView.type());
 
-    const TypeInfo&    indexedType   = codeGen.typeMgr().get(indexedTypeRef);
+    const TypeInfo& indexedType = codeGen.typeMgr().get(indexedTypeRef);
     if (indexedType.isAggregateArray())
     {
         CodeGenNodePayload indexedResultPayload;
@@ -634,14 +634,14 @@ Result AstIndexListExpr::codeGenPostNode(CodeGen& codeGen) const
         if (currentType.isAggregateArray())
         {
             SWC_RESULT(emitAggregateArrayConstIndexAddress(codeGen, currentPayload, currentSourceRef, indexRef, currentType, currentPayload));
-            currentTypeRef = currentPayload.typeRef;
+            currentTypeRef   = currentPayload.typeRef;
             currentSourceRef = AstNodeRef::invalid();
             continue;
         }
 
-        const TypeRef   nextTypeRef = resolveIndexedResultTypeRef(codeGen, currentType);
+        const TypeRef nextTypeRef = resolveIndexedResultTypeRef(codeGen, currentType);
         SWC_RESULT(emitIndexAddress(codeGen, currentPayload, currentSourceRef, indexRef, currentType, currentPayload, nextTypeRef));
-        currentTypeRef = nextTypeRef;
+        currentTypeRef   = nextTypeRef;
         currentSourceRef = AstNodeRef::invalid();
     }
 

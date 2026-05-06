@@ -205,7 +205,7 @@ namespace
             return Result::Continue;
 
         bool        changed = false;
-        ConstantRef cstRef = view.cstRef();
+        ConstantRef cstRef  = view.cstRef();
         if (cstRef.isValid())
         {
             SWC_RESULT(SemaHelpers::normalizeTypeInfoConstantRef(sema, cstRef, view.nodeRef()));

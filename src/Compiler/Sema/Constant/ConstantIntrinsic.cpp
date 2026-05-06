@@ -252,7 +252,7 @@ void ConstantIntrinsic::tryConstantFoldDataOf(Sema& sema, TypeRef resultTypeRef,
     if (!view.cstRef().isValid())
         return;
 
-    const ConstantValue& cst = sema.cstMgr().get(view.cstRef());
+    const ConstantValue& cst         = sema.cstMgr().get(view.cstRef());
     TypeRef              dataTypeRef = SemaHelpers::unwrapAliasRefType(sema.ctx(), view.typeRef());
     if (view.cstRef().isValid())
         dataTypeRef = SemaHelpers::deduceConcretizedAggregateLiteralType(sema, dataTypeRef, view.cstRef());

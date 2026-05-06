@@ -49,9 +49,9 @@ namespace
     {
         outTypeRef = TypeRef::invalid();
 
-        const TaskContext& ctx = sema.ctx();
-        const TypeRef normalizedTrueTypeRef = SemaHelpers::normalizeTypeLikeValueTypeRef(sema, nodeTrueView.typeRef(), nodeTrueView.cstRef(), nodeTrueView.nodeRef());
-        const TypeRef normalizedFalseTypeRef = SemaHelpers::normalizeTypeLikeValueTypeRef(sema, nodeFalseView.typeRef(), nodeFalseView.cstRef(), nodeFalseView.nodeRef());
+        const TaskContext& ctx                    = sema.ctx();
+        const TypeRef      normalizedTrueTypeRef  = SemaHelpers::normalizeTypeLikeValueTypeRef(sema, nodeTrueView.typeRef(), nodeTrueView.cstRef(), nodeTrueView.nodeRef());
+        const TypeRef      normalizedFalseTypeRef = SemaHelpers::normalizeTypeLikeValueTypeRef(sema, nodeFalseView.typeRef(), nodeFalseView.cstRef(), nodeFalseView.nodeRef());
         if (normalizedTrueTypeRef == nodeTrueView.typeRef() && normalizedFalseTypeRef == nodeFalseView.typeRef())
             return Result::Continue;
 
@@ -124,9 +124,9 @@ namespace
 
 Result AstConditionalExpr::semaPostNode(Sema& sema)
 {
-    SemaNodeView       nodeCondView  = sema.viewNodeTypeConstant(nodeCondRef);
-    SemaNodeView       nodeTrueView  = sema.viewNodeTypeConstant(nodeTrueRef);
-    SemaNodeView       nodeFalseView = sema.viewNodeTypeConstant(nodeFalseRef);
+    SemaNodeView nodeCondView  = sema.viewNodeTypeConstant(nodeCondRef);
+    SemaNodeView nodeTrueView  = sema.viewNodeTypeConstant(nodeTrueRef);
+    SemaNodeView nodeFalseView = sema.viewNodeTypeConstant(nodeFalseRef);
 
     // Value-check
     SWC_RESULT(SemaCheck::isValueOrTypeInfo(sema, nodeTrueView));

@@ -473,7 +473,7 @@ namespace
             hasPreparedRuntimeStringCompare(codeGen))
             return emitStringCompareBool(codeGen, tokId, leftPayload, rightPayload);
 
-        const TypeInfo& compareType = codeGen.typeMgr().get(compareTypeRef);
+        const TypeInfo& compareType                   = codeGen.typeMgr().get(compareTypeRef);
         const bool      leftIsRuntimeTypeInfoPointer  = codeGen.typeMgr().isRuntimeTypeInfoPointer(codeGen.ctx(), leftOperandTypeRef);
         const bool      rightIsRuntimeTypeInfoPointer = codeGen.typeMgr().isRuntimeTypeInfoPointer(codeGen.ctx(), rightOperandTypeRef);
         if ((tokId == TokenId::SymEqualEqual || tokId == TokenId::SymBangEqual) && compareType.isAnyTypeInfo(codeGen.ctx()))

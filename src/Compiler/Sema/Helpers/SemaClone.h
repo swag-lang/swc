@@ -11,12 +11,12 @@ namespace SemaClone
 {
     struct ParamBinding
     {
-        IdentifierRef idRef;
-        AstNodeRef    exprRef;
-        TypeRef       typeRef = TypeRef::invalid();
-        ConstantRef   cstRef  = ConstantRef::invalid();
-        bool          forceMaterialize = false;
-        const SymbolVariable* sourceParam = nullptr;
+        IdentifierRef         idRef;
+        AstNodeRef            exprRef;
+        TypeRef               typeRef          = TypeRef::invalid();
+        ConstantRef           cstRef           = ConstantRef::invalid();
+        bool                  forceMaterialize = false;
+        const SymbolVariable* sourceParam      = nullptr;
     };
 
     struct NodeReplacement

@@ -129,9 +129,7 @@ namespace
                 names.push_back(name);
         }
 
-        ConstantValue cst = typeInfo.isAggregateArray() ?
-            ConstantValue::makeAggregateArray(sema.ctx(), values) :
-            ConstantValue::makeAggregateStruct(sema.ctx(), names, values);
+        ConstantValue cst = typeInfo.isAggregateArray() ? ConstantValue::makeAggregateArray(sema.ctx(), values) : ConstantValue::makeAggregateStruct(sema.ctx(), names, values);
         sema.setConstant(defaultView.nodeRef(), sema.cstMgr().addConstant(sema.ctx(), cst));
         defaultView.recompute(sema, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
     }
@@ -197,8 +195,8 @@ namespace
         if (typeRef.isValid())
             return typeRef;
 
-        const IdentifierRef swagIdRef   = sema.idMgr().predefined(IdentifierManager::PredefinedName::Swag);
-        const IdentifierRef targetIdRef = sema.idMgr().predefined(name);
+        const IdentifierRef        swagIdRef   = sema.idMgr().predefined(IdentifierManager::PredefinedName::Swag);
+        const IdentifierRef        targetIdRef = sema.idMgr().predefined(name);
         std::vector<const Symbol*> moduleSymbols;
         sema.moduleNamespace().getAllSymbols(moduleSymbols);
         for (const Symbol* moduleSym : moduleSymbols)
@@ -220,7 +218,7 @@ namespace
 
     TypeRef specializedTypeInfoStructTypeRef(Sema& sema, TypeRef representedTypeRef)
     {
-        using Pn         = IdentifierManager::PredefinedName;
+        using Pn             = IdentifierManager::PredefinedName;
         TypeManager& typeMgr = sema.typeMgr();
         if (!representedTypeRef.isValid())
             return runtimeTypeRefOrDeclaredSymbolTypeRef(sema, Pn::TypeInfo);
@@ -333,7 +331,7 @@ namespace
 
         for (size_t i = 0; i < fieldTypes.size(); ++i)
         {
-            const ConstantRef fieldCstRef = values && i < values->size() ? (*values)[i] : ConstantRef::invalid();
+            const ConstantRef fieldCstRef  = values && i < values->size() ? (*values)[i] : ConstantRef::invalid();
             const TypeRef     fieldTypeRef = normalizeAggregateTypeLikeElementType(sema, deduceConcretizedAggregateLiteralTypeImpl(sema, fieldTypes[i], fieldCstRef), fieldCstRef);
             concreteFieldTypes.push_back(fieldTypeRef);
             changed = changed || fieldTypeRef != fieldTypes[i];
@@ -410,8 +408,8 @@ namespace
         if (elemTypes.empty())
             return TypeRef::invalid();
 
-        TypeManager&    typeMgr          = sema.typeMgr();
-        const TypeInfo& firstStructType  = typeMgr.get(elemTypes.front());
+        TypeManager&    typeMgr         = sema.typeMgr();
+        const TypeInfo& firstStructType = typeMgr.get(elemTypes.front());
         if (!firstStructType.isAggregateStruct())
             return TypeRef::invalid();
 
@@ -518,15 +516,15 @@ namespace
         if (!leftTypeRef.isValid() || !rightTypeRef.isValid())
             return TypeRef::invalid();
 
-        TypeManager&    typeMgr    = sema.typeMgr();
-        const TypeInfo& leftType   = typeMgr.get(leftTypeRef);
-        const TypeInfo& rightType  = typeMgr.get(rightTypeRef);
+        TypeManager&    typeMgr   = sema.typeMgr();
+        const TypeInfo& leftType  = typeMgr.get(leftTypeRef);
+        const TypeInfo& rightType = typeMgr.get(rightTypeRef);
         if (!leftType.isArray() || !rightType.isArray())
             return TypeRef::invalid();
         if (!sameArrayDimensions(leftType.payloadArrayDims(), rightType.payloadArrayDims()))
             return TypeRef::invalid();
 
-        const std::array<TypeRef, 2> elementTypes = {leftType.payloadArrayElemTypeRef(), rightType.payloadArrayElemTypeRef()};
+        const std::array<TypeRef, 2> elementTypes      = {leftType.payloadArrayElemTypeRef(), rightType.payloadArrayElemTypeRef()};
         const TypeRef                mergedElemTypeRef = deduceConcretizedAggregateArrayElementType(sema, elementTypes, nullptr);
         if (!mergedElemTypeRef.isValid())
             return TypeRef::invalid();
@@ -2662,8 +2660,8 @@ Result SemaHelpers::resolveMemberAccess(Sema& sema, AstNodeRef memberRef, AstMem
     if (handled)
         return Result::SkipChildren;
 
-    SemaNodeView       nodeLeftView     = sema.viewNodeTypeConstantSymbol(node.nodeLeftRef);
-    const AstNodeRef   memberNameRef    = unwrapCallCalleeRef(sema, node.nodeRightRef);
+    SemaNodeView       nodeLeftView      = sema.viewNodeTypeConstantSymbol(node.nodeLeftRef);
+    const AstNodeRef   memberNameRef     = unwrapCallCalleeRef(sema, node.nodeRightRef);
     const SemaNodeView nodeRightNameView = sema.viewNode(memberNameRef);
     SWC_ASSERT(nodeRightNameView.node());
     SWC_ASSERT(nodeRightNameView.node()->is(AstNodeId::Identifier));

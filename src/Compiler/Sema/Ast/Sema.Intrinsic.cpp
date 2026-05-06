@@ -277,8 +277,8 @@ namespace
         TypeRef dataTypeRef = SemaHelpers::unwrapAliasRefType(sema.ctx(), view.typeRef());
         if (view.cstRef().isValid())
             dataTypeRef = SemaHelpers::deduceConcretizedAggregateLiteralType(sema, dataTypeRef, view.cstRef());
-        const TypeInfo* type = &sema.typeMgr().get(dataTypeRef);
-        TypeInfoFlags   flags       = type->flags();
+        const TypeInfo* type  = &sema.typeMgr().get(dataTypeRef);
+        TypeInfoFlags   flags = type->flags();
         flags.add(view.type()->flags());
         if (SemaCheck::isConstAssignmentTarget(sema, view.nodeRef(), view))
             flags.add(TypeInfoFlagsE::Const);
@@ -378,7 +378,7 @@ namespace
             return SemaError::raiseRequestedTypeFam(sema, viewType.nodeRef(), viewType.typeRef(), sema.typeMgr().typeTypeInfo());
 
         // Check if the pointer is void or a pointer to the type defined in the right expression
-        const TypeRef typeRefPointee = ptrType.payloadTypeRef();
+        const TypeRef typeRefPointee  = ptrType.payloadTypeRef();
         const TypeRef typeRefTypeInfo = SemaHelpers::resolveRepresentedTypeRef(sema, viewType);
         if (!sema.typeMgr().get(typeRefPointee).isVoid() && typeRefTypeInfo.isValid())
         {

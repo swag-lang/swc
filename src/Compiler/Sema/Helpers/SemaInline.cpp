@@ -895,13 +895,13 @@ namespace
             if (!param)
                 continue;
 
-            const bool      bindingIsCaptured           = inlineBindingIsCaptured(binding.idRef, capturedIdentifiers);
-            const bool      bindingNeedsMaterialization = inlineBindingNeedsMaterialization(sema, binding.exprRef, localIdentifiers);
-            const TypeInfo& paramType                   = param->type(sema.ctx());
-            const bool      hasNonCountOfUse            = inlineBindingHasNonCountOfUse(sema, sourceAst, decl.nodeBodyRef, binding.idRef);
-            const bool      forceVariadicMaterialization = !bindingIsCaptured && forceMaterializeInlineVariadicBinding(binding, paramType, hasNonCountOfUse);
+            const bool      bindingIsCaptured                  = inlineBindingIsCaptured(binding.idRef, capturedIdentifiers);
+            const bool      bindingNeedsMaterialization        = inlineBindingNeedsMaterialization(sema, binding.exprRef, localIdentifiers);
+            const TypeInfo& paramType                          = param->type(sema.ctx());
+            const bool      hasNonCountOfUse                   = inlineBindingHasNonCountOfUse(sema, sourceAst, decl.nodeBodyRef, binding.idRef);
+            const bool      forceVariadicMaterialization       = !bindingIsCaptured && forceMaterializeInlineVariadicBinding(binding, paramType, hasNonCountOfUse);
             const bool      forceIndexOrForeachMaterialization = !bindingIsCaptured &&
-                                                                 inlineBindingNeedsIndexOrForeachMaterialization(sema, sourceAst, decl.nodeBodyRef, binding.idRef);
+                                                            inlineBindingNeedsIndexOrForeachMaterialization(sema, sourceAst, decl.nodeBodyRef, binding.idRef);
             const bool forceBindingMaterialization = forceVariadicMaterialization || forceIndexOrForeachMaterialization;
             if (paramType.isCodeBlock() || (paramType.isAnyVariadic() && !forceBindingMaterialization && !bindingIsCaptured && !bindingNeedsMaterialization))
             {
@@ -926,10 +926,10 @@ namespace
             if (clonedInitRef.isInvalid())
                 return Result::Error;
 
-            auto [declRef, declPtr]         = sema.ast().makeNode<AstNodeId::SingleVarDecl>(paramNameRef);
-            const bool materializedAsLet    = !inlineBindingIsCaptured(binding.idRef, capturedByRefIdentifiers);
-            declPtr->flags()                = materializedAsLet ? AstVarDeclFlagsE::Let : AstVarDeclFlagsE::Zero;
-            declPtr->tokNameRef             = paramNameRef;
+            auto [declRef, declPtr]      = sema.ast().makeNode<AstNodeId::SingleVarDecl>(paramNameRef);
+            const bool materializedAsLet = !inlineBindingIsCaptured(binding.idRef, capturedByRefIdentifiers);
+            declPtr->flags()             = materializedAsLet ? AstVarDeclFlagsE::Let : AstVarDeclFlagsE::Zero;
+            declPtr->tokNameRef          = paramNameRef;
             if (!paramType.isAnyVariadic() && SemaHelpers::canUseContextualBinding(sema, binding.exprRef))
             {
                 if (const auto* paramDecl = param->decl()->safeCast<AstSingleVarDecl>())
@@ -1059,8 +1059,8 @@ namespace
 
     Result createVariadicInlineExpression(Sema& sema, AstNodeRef callRef, InlineVariadicBinding& variadicBinding, AstNodeRef& outExprRef, TypeRef& outExprTypeRef)
     {
-        outExprRef     = AstNodeRef::invalid();
-        outExprTypeRef = TypeRef::invalid();
+        outExprRef                      = AstNodeRef::invalid();
+        outExprTypeRef                  = TypeRef::invalid();
         variadicBinding.allArgsConstant = false;
         if (!variadicBinding.param)
             return Result::Continue;
@@ -1161,7 +1161,7 @@ namespace
             if (numFixed > 0)
             {
                 assignInlineBindingExpr(bound[0], *params[0], ufcsRef);
-                nextParam        = 1;
+                nextParam = 1;
             }
             else if (hasAnyVariadic)
             {
@@ -1233,7 +1233,7 @@ namespace
                 params[numFixed - 1]->type(sema.ctx()).isCodeBlock() &&
                 !isBindingAssigned(bound[numFixed - 1]))
             {
-                const size_t trailingParamIndex   = numFixed - 1;
+                const size_t trailingParamIndex = numFixed - 1;
                 assignInlineBindingExpr(bound[trailingParamIndex], *params[trailingParamIndex], bindingInlineArgumentRef(sema, context, *params[trailingParamIndex], trailingParamIndex, numFixed, argRef, sourceArgRef));
                 continue;
             }

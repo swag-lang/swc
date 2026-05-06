@@ -469,7 +469,7 @@ Result AstForeachStmt::codeGenPreNode(CodeGen& codeGen) const
     }
 
     ForeachStmtCodeGenPayload loopState;
-    SemaNodeView             symbolsView = codeGen.viewSymbolList(codeGen.curNodeRef());
+    SemaNodeView              symbolsView = codeGen.viewSymbolList(codeGen.curNodeRef());
     if (symbolsView.symList().size() < 2)
     {
         const AstNodeRef resolvedRef = codeGen.resolvedNodeRef(codeGen.curNodeRef());

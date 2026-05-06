@@ -70,7 +70,7 @@ namespace
             out.push_back(token);
             token.clear();
         }
-        
+
         return true;
     }
 

@@ -1303,8 +1303,8 @@ namespace
 
     Result semaCompilerNameOf(Sema& sema, const AstCompilerCallOne& node)
     {
-        const TaskContext& ctx      = sema.ctx();
-        const AstNodeRef   childRef = node.nodeArgRef;
+        const TaskContext& ctx        = sema.ctx();
+        const AstNodeRef   childRef   = node.nodeArgRef;
         SemaNodeView       symbolView = sema.viewSymbol(childRef);
         if (symbolView.sym() && !symbolView.sym()->isType())
         {
@@ -1314,7 +1314,7 @@ namespace
             return Result::Continue;
         }
 
-        SemaNodeView       typeView = sema.viewTypeConstant(childRef);
+        SemaNodeView typeView = sema.viewTypeConstant(childRef);
         SWC_RESULT(SemaCheck::isValueOrType(sema, typeView));
         if (const TypeRef resolvedTypeRef = SemaHelpers::resolveRepresentedTypeRef(sema, typeView); resolvedTypeRef.isValid())
         {

@@ -3,8 +3,8 @@
 #include "Backend/Runtime.h"
 #include "Compiler/CodeGen/Core/CodeGen.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
-#include "Compiler/Sema/Constant/ConstantLower.h"
 #include "Compiler/Sema/Constant/ConstantHelpers.h"
+#include "Compiler/Sema/Constant/ConstantLower.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
@@ -137,7 +137,7 @@ namespace
             }
 
             SWC_ASSERT(offset + elemSize <= srcBytes.size());
-            const ByteSpan    elemBytes{srcBytes.data() + offset, static_cast<size_t>(elemSize)};
+            const ByteSpan    elemBytes{srcBytes.data() + offset, elemSize};
             const ConstantRef elemCstRef = ConstantHelpers::materializeStaticPayloadConstant(sema, elemTypeRef, elemBytes);
             SWC_INTERNAL_CHECK(elemCstRef.isValid());
             outValues.push_back(elemCstRef);

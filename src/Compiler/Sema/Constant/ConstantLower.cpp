@@ -463,13 +463,13 @@ namespace
             return Result::Continue;
         }
 
-        Runtime::Any anyValue = {};
-        ConstantRef valueCstRef = cstRef;
+        Runtime::Any anyValue    = {};
+        ConstantRef  valueCstRef = cstRef;
         if (SemaHelpers::isTypeLikeTypeRef(sema.ctx(), cst.typeRef()))
             SWC_RESULT(SemaHelpers::normalizeTypeInfoConstantRef(sema, valueCstRef, sema.ctx().state().nodeRef));
 
-        const ConstantValue& valueCst         = sema.cstMgr().get(valueCstRef);
-        const TypeRef        valueTypeRef     = valueCst.typeRef();
+        const ConstantValue& valueCst          = sema.cstMgr().get(valueCstRef);
+        const TypeRef        valueTypeRef      = valueCst.typeRef();
         const TypeRef        boxedValueTypeRef = SemaHelpers::preciseAnyBoxedValueTypeRef(sema, valueTypeRef, valueCstRef, sema.ctx().state().nodeRef);
         SWC_INTERNAL_CHECK(valueTypeRef.isValid());
         SWC_INTERNAL_CHECK(boxedValueTypeRef.isValid());
@@ -486,9 +486,9 @@ namespace
         if (sema.typeMgr().get(boxedValueTypeRef).isTypeInfo())
         {
             SWC_INTERNAL_CHECK(valueCst.isValuePointer());
-            const uint64_t       ptrValue     = valueCst.getValuePointer();
+            const uint64_t         ptrValue    = valueCst.getValuePointer();
             const std::string_view payloadData = sema.cstMgr().addPayloadBuffer(asStringView(rawBytes(&ptrValue, sizeof(ptrValue))));
-            anyValue.value                    = const_cast<char*>(payloadData.data());
+            anyValue.value                     = const_cast<char*>(payloadData.data());
             writeValue(dstBytes, anyValue);
             return Result::Continue;
         }
@@ -496,9 +496,9 @@ namespace
         const uint64_t boxedValueSize = sema.typeMgr().get(boxedValueTypeRef).sizeOf(sema.ctx());
         if (!boxedValueSize)
         {
-            const uint8_t zeroByte = 0;
+            constexpr uint8_t      zeroByte    = 0;
             const std::string_view payloadData = sema.cstMgr().addPayloadBuffer(asStringView(rawBytes(&zeroByte, sizeof(zeroByte))));
-            anyValue.value                    = const_cast<char*>(payloadData.data());
+            anyValue.value                     = const_cast<char*>(payloadData.data());
             writeValue(dstBytes, anyValue);
             return Result::Continue;
         }

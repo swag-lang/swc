@@ -189,7 +189,7 @@ Result NativeRDataCollector::emitReachableAllocations()
                 if (relocation.kind == DataSegmentRelocationKind::DataSegmentOffset)
                 {
                     const uint32_t targetShardIndex = relocation.targetShardIndex == INVALID_REF ? shardIndex : relocation.targetShardIndex;
-                    uint32_t targetOffset = 0;
+                    uint32_t       targetOffset     = 0;
                     if (!builder_->tryMapRDataSourceOffset(targetOffset, targetShardIndex, relocation.targetOffset))
                     {
                         const auto ownerIt   = allocationOwners.find(allocation.offset);

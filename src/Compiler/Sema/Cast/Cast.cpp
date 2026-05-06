@@ -35,6 +35,31 @@ namespace
         return sema.curNodeRef();
     }
 
+    TypeRef castSourceRuntimeStorageTypeRef(Sema& sema, AstNodeRef srcNodeRef, TypeRef srcTypeRef, TypeRef dstTypeRef, ConstantRef srcConstRef)
+    {
+        if (!srcTypeRef.isValid() || !dstTypeRef.isValid())
+            return TypeRef::invalid();
+        if (srcConstRef.isValid())
+            return TypeRef::invalid();
+        if (sema.isLValue(srcNodeRef))
+            return TypeRef::invalid();
+
+        const TypeRef   srcStorageTypeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), srcTypeRef);
+        const TypeRef   dstStorageTypeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), dstTypeRef);
+        const TypeInfo& srcType           = sema.typeMgr().get(srcStorageTypeRef);
+        const TypeInfo& dstType           = sema.typeMgr().get(dstStorageTypeRef);
+        if (!srcType.isArray())
+            return TypeRef::invalid();
+        if (!dstType.isSlice() && !dstType.isString())
+            return TypeRef::invalid();
+
+        const uint64_t storageSize = srcType.sizeOf(sema.ctx());
+        if (storageSize != 1 && storageSize != 2 && storageSize != 4 && storageSize != 8)
+            return TypeRef::invalid();
+
+        return srcStorageTypeRef;
+    }
+
 }
 
 TypeRef Cast::referenceValueCastTypeRef(const Sema& sema, TypeRef srcTypeRef, TypeRef dstTypeRef)
@@ -179,6 +204,15 @@ Result Cast::attachCastRuntimeStorageIfNeeded(Sema& sema, AstNodeRef castNodeRef
 {
     if (sema.isGlobalScope())
         return Result::Continue;
+
+    const auto& castNode = sema.node(castNodeRef);
+    if (castNode.is(AstNodeId::CastExpr))
+    {
+        const AstNodeRef srcNodeRef           = castNode.cast<AstCastExpr>().nodeExprRef;
+        const TypeRef    sourceStorageTypeRef = castSourceRuntimeStorageTypeRef(sema, srcNodeRef, srcTypeRef, dstTypeRef, srcConstRef);
+        if (sourceStorageTypeRef.isValid())
+            SWC_RESULT(SemaHelpers::attachRuntimeStorageIfNeeded(sema, srcNodeRef, sema.node(srcNodeRef), sourceStorageTypeRef, "__cast_source_runtime_storage"));
+    }
 
     const TypeRef storageTypeRef = runtimeStorageTypeRef(sema, srcTypeRef, dstTypeRef, srcConstRef);
     if (storageTypeRef.isInvalid())

@@ -13,41 +13,6 @@
 
 SWC_BEGIN_NAMESPACE();
 
-namespace
-{
-    TypeRef castRuntimeStorageTypeRef(Sema& sema, const SemaNodeView& srcView, const SemaNodeView& dstView)
-    {
-        if (!srcView.type() || !dstView.type())
-            return TypeRef::invalid();
-        return Cast::runtimeStorageTypeRef(sema, srcView.typeRef(), dstView.typeRef(), srcView.cstRef());
-    }
-
-    TypeRef castSourceRuntimeStorageTypeRef(Sema& sema, AstNodeRef srcNodeRef, const SemaNodeView& srcView, const SemaNodeView& dstView)
-    {
-        if (!srcView.type() || !dstView.type())
-            return TypeRef::invalid();
-        if (srcView.hasConstant())
-            return TypeRef::invalid();
-        if (sema.isLValue(srcNodeRef))
-            return TypeRef::invalid();
-
-        const TypeRef   srcTypeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), srcView.typeRef());
-        const TypeRef   dstTypeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), dstView.typeRef());
-        const TypeInfo& srcType    = sema.typeMgr().get(srcTypeRef);
-        const TypeInfo& dstType    = sema.typeMgr().get(dstTypeRef);
-        if (!srcType.isArray())
-            return TypeRef::invalid();
-        if (!dstType.isSlice() && !dstType.isString())
-            return TypeRef::invalid();
-
-        const uint64_t storageSize = srcType.sizeOf(sema.ctx());
-        if (storageSize != 1 && storageSize != 2 && storageSize != 4 && storageSize != 8)
-            return TypeRef::invalid();
-
-        return srcTypeRef;
-    }
-}
-
 Result AstAsCastExpr::semaPreNodeChild(const Sema& sema, const AstNodeRef& childRef) const
 {
     if (childRef == nodeTypeRef && sema.semaPayload<DynamicStructSwitchAsCastPayload>(sema.curNodeRef()))
@@ -163,16 +128,7 @@ Result AstCastExpr::semaPostNode(Sema& sema)
 
     const SemaNodeView dstTypeView = sema.curViewType();
     SWC_RESULT(Cast::retargetLiteralRuntimeStorageIfNeeded(sema, nodeExprView.nodeRef(), srcTypeView.typeRef(), dstTypeView.typeRef()));
-    const TypeRef sourceRuntimeStorageTypeRef = castSourceRuntimeStorageTypeRef(sema, nodeExprView.nodeRef(), srcTypeView, dstTypeView);
-    if (sourceRuntimeStorageTypeRef.isValid() && sema.isCurrentFunction())
-        SWC_RESULT(SemaHelpers::attachRuntimeStorageIfNeeded(sema, nodeExprView.nodeRef(), sema.node(nodeExprView.nodeRef()), sourceRuntimeStorageTypeRef, "__cast_source_runtime_storage"));
-
-    const TypeRef runtimeStorageTypeRef = castRuntimeStorageTypeRef(sema, srcTypeView, dstTypeView);
-    if (runtimeStorageTypeRef.isValid() && sema.isCurrentFunction())
-    {
-        auto& storageSym = SemaHelpers::getOrCreateRuntimeStorageSymbol(sema, sema.curNodeRef(), *this, "__cast_runtime_storage");
-        SWC_RESULT(SemaHelpers::ensureRuntimeStorageDeclaredAndCompleted(sema, storageSym, runtimeStorageTypeRef));
-    }
+    SWC_RESULT(Cast::attachCastRuntimeStorageIfNeeded(sema, sema.curNodeRef(), srcTypeView.typeRef(), dstTypeView.typeRef(), srcTypeView.cstRef()));
 
     return Result::Continue;
 }

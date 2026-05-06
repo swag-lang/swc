@@ -1,5 +1,3 @@
-// 
-
 #global fileprivate
 
 func sumValues(values: [..] s32)->s32

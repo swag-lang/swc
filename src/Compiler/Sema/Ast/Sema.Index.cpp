@@ -54,6 +54,61 @@ namespace
         return SemaHelpers::setupRuntimeSafetyPanic(sema, nodeRef, Runtime::SafetyWhat::BoundCheck, codeRef);
     }
 
+    uint32_t resolveMaxSequentialIndexCount(Sema& sema, TypeRef indexedTypeRef)
+    {
+        uint32_t count          = 0;
+        TypeRef  currentTypeRef = indexedTypeRef;
+        while (currentTypeRef.isValid())
+        {
+            const TypeInfo& currentType = sema.typeMgr().get(currentTypeRef);
+            if (currentType.isArray())
+            {
+                count += static_cast<uint32_t>(currentType.payloadArrayDims().size());
+                currentTypeRef = currentType.payloadArrayElemTypeRef();
+                continue;
+            }
+
+            if (currentType.isSlice())
+            {
+                count++;
+                currentTypeRef = currentType.payloadTypeRef();
+                continue;
+            }
+
+            if (currentType.isVariadic())
+            {
+                count++;
+                currentTypeRef = sema.typeMgr().typeAny();
+                continue;
+            }
+
+            if (currentType.isTypedVariadic())
+            {
+                count++;
+                currentTypeRef = currentType.payloadTypeRef();
+                continue;
+            }
+
+            if (currentType.isString() || currentType.isCString())
+            {
+                count++;
+                currentTypeRef = sema.typeMgr().typeU8();
+                continue;
+            }
+
+            if (currentType.isBlockPointer())
+            {
+                count++;
+                currentTypeRef = currentType.payloadTypeRef();
+                continue;
+            }
+
+            break;
+        }
+
+        return count;
+    }
+
     Result checkIndex(Sema& sema, AstNodeRef nodeArgRef, const SemaNodeView& nodeArgView, int64_t& constIndex, bool& hasConstIndex)
     {
         const TypeRef   indexTypeRef = resolveIndexOperandTypeRef(sema, nodeArgView);
@@ -381,117 +436,138 @@ Result AstIndexListExpr::semaPostNode(Sema& sema)
     SmallVector<AstNodeRef> children;
     sema.ast().appendNodes(children, spanChildrenRef);
 
-    if (indexedType.isArray())
+    if (indexedType.isArray() || indexedType.isSlice() || indexedType.isAnyVariadic())
     {
-        // Collect all dimensions, flattening nested array types (e.g. [2][2] s32
-        // becomes dims {2, 2} with final element type s32).
-        SmallVector<uint64_t> allDims;
-        TypeRef               leafElemTypeRef = TypeRef::invalid();
+        const uint32_t maxIndexCount = resolveMaxSequentialIndexCount(sema, indexedTypeRef);
+        if (children.size() > maxIndexCount)
         {
-            const TypeInfo* cur = &indexedType;
-            while (cur->isArray())
-            {
-                const auto& dims = cur->payloadArrayDims();
-                allDims.insert(allDims.end(), dims.begin(), dims.end());
-                leafElemTypeRef = cur->payloadArrayElemTypeRef();
-                cur             = &sema.typeMgr().get(leafElemTypeRef);
-            }
-        }
-
-        const uint64_t numExpected = allDims.size();
-        const size_t   numGot      = children.size();
-
-        if (numGot > numExpected)
-        {
-            auto diag = SemaError::report(sema, DiagnosticId::sema_err_array_num_dims, children[numExpected]);
-            diag.addArgument(Diagnostic::ARG_COUNT, static_cast<uint32_t>(numExpected));
-            diag.addArgument(Diagnostic::ARG_VALUE, static_cast<uint32_t>(numGot));
+            auto diag = SemaError::report(sema, DiagnosticId::sema_err_array_num_dims, children[maxIndexCount]);
+            diag.addArgument(Diagnostic::ARG_COUNT, maxIndexCount);
+            diag.addArgument(Diagnostic::ARG_VALUE, static_cast<uint32_t>(children.size()));
             diag.report(sema.ctx());
             return Result::Error;
         }
+    }
 
-        bool        allConstant   = nodeExprView.cst() != nullptr;
-        ConstantRef currentCstRef = nodeExprView.cstRef();
+    if (indexedType.isArray() || indexedType.isAggregateArray() || indexedType.isSlice() || indexedType.isAnyVariadic() || indexedType.isCString() || indexedType.isString() || indexedType.isBlockPointer() || indexedType.isTypedVariadic())
+    {
+        TypeRef     currentTypeRef  = indexedTypeRef;
+        ConstantRef currentCstRef   = nodeExprView.cstRef();
+        bool        currentIsLValue = sema.isLValue(nodeExprRef);
 
-        for (size_t i = 0; i < numGot; i++)
+        for (const AstNodeRef nodeRef : children)
         {
-            const auto         nodeRef     = children[i];
             const SemaNodeView nodeArgView = sema.viewTypeConstant(nodeRef);
 
             int64_t constIndex    = 0;
             bool    hasConstIndex = false;
             SWC_RESULT(checkIndex(sema, nodeRef, nodeArgView, constIndex, hasConstIndex));
 
-            if (hasConstIndex)
+            const TypeInfo& currentType = sema.typeMgr().get(currentTypeRef);
+            if (currentType.isAggregateArray())
             {
-                if (allConstant)
+                if (!hasConstIndex)
+                    return SemaError::raiseTypeNotIndexable(sema, nodeExprRef, nodeExprView.typeRef());
+
+                const auto& elemTypes = currentType.payloadAggregate().types;
+                if (std::cmp_greater_equal(constIndex, elemTypes.size()))
+                    return SemaError::raiseIndexOutOfRange(sema, nodeRef, constIndex, elemTypes.size());
+
+                if (currentCstRef.isValid())
                 {
                     ConstantRef nextCstRef = ConstantRef::invalid();
                     SWC_RESULT(ConstantExtract::atIndexRef(sema, sema.cstMgr().get(currentCstRef), constIndex, nodeRef, nextCstRef));
                     currentCstRef = nextCstRef;
-                    if (currentCstRef.isInvalid())
-                        allConstant = false;
                 }
+
+                currentTypeRef  = elemTypes[constIndex];
+                currentIsLValue = false;
+                continue;
             }
-            else
+
+            if (currentType.isArray())
             {
-                allConstant = false;
+                if (currentCstRef.isValid() && hasConstIndex)
+                {
+                    ConstantRef nextCstRef = ConstantRef::invalid();
+                    SWC_RESULT(ConstantExtract::atIndexRef(sema, sema.cstMgr().get(currentCstRef), constIndex, nodeRef, nextCstRef));
+                    currentCstRef = nextCstRef;
+                }
+                else
+                {
+                    currentCstRef = ConstantRef::invalid();
+                }
+
+                const auto& arrayDims = currentType.payloadArrayDims();
+                if (arrayDims.size() > 1)
+                {
+                    SmallVector4<uint64_t> dims;
+                    for (size_t i = 1; i < arrayDims.size(); i++)
+                        dims.push_back(arrayDims[i]);
+                    const auto typeArray = TypeInfo::makeArray(dims, currentType.payloadArrayElemTypeRef(), currentType.flags());
+                    currentTypeRef       = sema.typeMgr().addType(typeArray);
+                }
+                else
+                {
+                    currentTypeRef = currentType.payloadArrayElemTypeRef();
+                }
+
+                if (currentCstRef.isValid())
+                    currentIsLValue = false;
+                continue;
             }
+
+            if (currentType.isBlockPointer())
+            {
+                SWC_RESULT(checkVoidPointerIndex(sema, sema.curNodeRef(), nodeExprRef, nodeExprView, currentType));
+                currentTypeRef  = currentType.payloadTypeRef();
+                currentCstRef   = ConstantRef::invalid();
+                currentIsLValue = true;
+                continue;
+            }
+
+            if (currentType.isSlice())
+            {
+                currentTypeRef = currentType.payloadTypeRef();
+                currentCstRef  = ConstantRef::invalid();
+                continue;
+            }
+
+            if (currentType.isVariadic())
+            {
+                currentTypeRef = sema.typeMgr().typeAny();
+                currentCstRef  = ConstantRef::invalid();
+                continue;
+            }
+
+            if (currentType.isTypedVariadic())
+            {
+                currentTypeRef = currentType.payloadTypeRef();
+                currentCstRef  = ConstantRef::invalid();
+                continue;
+            }
+
+            if (currentType.isString() || currentType.isCString())
+            {
+                currentTypeRef = sema.typeMgr().typeU8();
+                currentCstRef  = ConstantRef::invalid();
+                continue;
+            }
+
+            return SemaError::raiseTypeNotIndexable(sema, nodeExprRef, nodeExprView.typeRef());
         }
 
-        if (numGot < numExpected)
-        {
-            // Build the remaining array type from unconsumed dimensions.
-            SmallVector<uint64_t> dims;
-            for (size_t i = numGot; i < numExpected; i++)
-                dims.push_back(allDims[i]);
-            const auto typeArray = TypeInfo::makeArray(dims, leafElemTypeRef, indexedType.flags());
-            sema.setType(sema.curNodeRef(), sema.typeMgr().addType(typeArray));
-        }
-        else
-        {
-            sema.setType(sema.curNodeRef(), leafElemTypeRef);
-        }
-
-        if (allConstant && currentCstRef.isValid())
+        sema.setType(sema.curNodeRef(), currentTypeRef);
+        sema.setIsValue(*this);
+        if (currentCstRef.isValid())
             sema.setConstant(sema.curNodeRef(), currentCstRef);
-
-        if (sema.isLValue(nodeExprRef))
-            sema.setIsLValue(*this);
-    }
-    else if (indexedType.isSlice() || indexedType.isAnyVariadic())
-    {
-        const size_t numGot = children.size();
-        if (numGot > 1)
-        {
-            auto diag = SemaError::report(sema, DiagnosticId::sema_err_array_num_dims, children[1]);
-            diag.addArgument(Diagnostic::ARG_COUNT, static_cast<uint32_t>(1));
-            diag.addArgument(Diagnostic::ARG_VALUE, static_cast<uint32_t>(numGot));
-            diag.report(sema.ctx());
-            return Result::Error;
-        }
-
-        if (numGot == 1)
-        {
-            const SemaNodeView nodeArgView   = sema.viewTypeConstant(children[0]);
-            int64_t            constIndex    = 0;
-            bool               hasConstIndex = false;
-            SWC_RESULT(checkIndex(sema, children[0], nodeArgView, constIndex, hasConstIndex));
-        }
-
-        if (indexedType.isVariadic())
-            sema.setType(sema.curNodeRef(), sema.typeMgr().typeAny());
-        else
-            sema.setType(sema.curNodeRef(), indexedType.payloadTypeRef());
-        if (sema.isLValue(nodeExprRef))
+        else if (currentIsLValue)
             sema.setIsLValue(*this);
     }
     else
     {
         return SemaError::raiseTypeNotIndexable(sema, nodeExprRef, nodeExprView.typeRef());
     }
-
-    sema.setIsValue(*this);
     SWC_RESULT(setupIndexBoundCheck(sema, sema.curNodeRef(), indexedType, codeRef()));
     return Result::Continue;
 }

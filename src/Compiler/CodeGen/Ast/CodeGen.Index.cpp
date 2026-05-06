@@ -621,6 +621,14 @@ Result AstIndexListExpr::codeGenPostNode(CodeGen& codeGen) const
     for (const AstNodeRef indexRef : indexRefs)
     {
         const TypeInfo& currentType = codeGen.typeMgr().get(currentTypeRef);
+
+        if (currentType.isAggregateArray())
+        {
+            SWC_RESULT(emitAggregateArrayConstIndexAddress(codeGen, currentPayload, indexRef, currentType, currentPayload));
+            currentTypeRef = currentPayload.typeRef;
+            continue;
+        }
+
         const TypeRef   nextTypeRef = resolveIndexedResultTypeRef(codeGen, currentType);
         SWC_RESULT(emitIndexAddress(codeGen, currentPayload, indexRef, currentType, currentPayload, nextTypeRef));
         currentTypeRef = nextTypeRef;

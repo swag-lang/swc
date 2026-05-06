@@ -2341,6 +2341,23 @@ namespace
         return leftSymVar.hasExtraFlag(SymbolVariableFlagsE::Parameter);
     }
 
+    Result ensureMemberRuntimeStorage(Sema& sema, AstNodeRef targetNodeRef, const AstMemberAccessExpr& node)
+    {
+        auto& payload = SemaHelpers::ensureCodeGenNodePayload(sema, targetNodeRef);
+        if (payload.runtimeStorageSym == nullptr)
+        {
+            if (SymbolVariable* boundStorage = SemaHelpers::currentRuntimeStorage(sema))
+                payload.runtimeStorageSym = boundStorage;
+            else
+                payload.runtimeStorageSym = &SemaHelpers::registerUniqueRuntimeStorageSymbol(sema, node, "__member_runtime_storage");
+        }
+
+        SmallVector<uint64_t> storageDims;
+        storageDims.push_back(8);
+        const TypeRef storageTypeRef = sema.typeMgr().addType(TypeInfo::makeArray(storageDims.span(), sema.typeMgr().typeU8()));
+        return SemaHelpers::ensureRuntimeStorageDeclaredAndCompleted(sema, *payload.runtimeStorageSym, storageTypeRef);
+    }
+
     Result bindMatchedMemberSymbols(Sema& sema, AstNodeRef targetNodeRef, AstNodeRef rightNodeRef, bool allowOverloadSet, std::span<const Symbol*> matchedSymbols)
     {
         SWC_RESULT(SemaSymbolLookup::bindResolvedSymbols(sema, targetNodeRef, allowOverloadSet, matchedSymbols));
@@ -2500,21 +2517,7 @@ namespace
             sema.setIsLValue(node);
 
         if (finalSymCount == 1 && symbols[0]->isVariable() && needsStructMemberRuntimeStorage(sema, node, nodeLeftView))
-        {
-            auto& payload = SemaHelpers::ensureCodeGenNodePayload(sema, targetNodeRef);
-            if (payload.runtimeStorageSym == nullptr)
-            {
-                if (SymbolVariable* boundStorage = SemaHelpers::currentRuntimeStorage(sema))
-                    payload.runtimeStorageSym = boundStorage;
-                else
-                    payload.runtimeStorageSym = &SemaHelpers::registerUniqueRuntimeStorageSymbol(sema, node, "__member_runtime_storage");
-            }
-
-            SmallVector<uint64_t> storageDims;
-            storageDims.push_back(8);
-            const TypeRef storageTypeRef = sema.typeMgr().addType(TypeInfo::makeArray(storageDims.span(), sema.typeMgr().typeU8()));
-            SWC_RESULT(SemaHelpers::ensureRuntimeStorageDeclaredAndCompleted(sema, *payload.runtimeStorageSym, storageTypeRef));
-        }
+            SWC_RESULT(ensureMemberRuntimeStorage(sema, targetNodeRef, node));
 
         return Result::SkipChildren;
     }
@@ -2549,6 +2552,10 @@ namespace
             SWC_ASSERT(memberIndex < values.size());
             sema.setConstant(targetNodeRef, values[memberIndex]);
         }
+
+        if (needsStructMemberRuntimeStorage(sema, node, nodeLeftView))
+            SWC_RESULT(ensureMemberRuntimeStorage(sema, targetNodeRef, node));
+
         return Result::SkipChildren;
     }
 }

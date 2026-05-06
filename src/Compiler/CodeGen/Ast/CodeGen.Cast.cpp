@@ -126,6 +126,28 @@ namespace
         return codeGen.payload(srcNodeRef);
     }
 
+    MicroReg materializeArrayCastSourceAddress(CodeGen& codeGen, AstNodeRef srcNodeRef, const CodeGenNodePayload& srcPayload, const TypeInfo& srcType)
+    {
+        if (srcPayload.isAddress())
+            return srcPayload.reg;
+
+        const uint64_t sourceSize = srcType.sizeOf(codeGen.ctx());
+        if (sourceSize != 1 && sourceSize != 2 && sourceSize != 4 && sourceSize != 8)
+            return srcPayload.reg;
+
+        AstNodeRef spillOwnerRef = codeGen.curNodeRef();
+        if (const CodeGenNodePayload* spillPayload = codeGen.safePayload(srcNodeRef))
+        {
+            if (spillPayload->runtimeStorageSym != nullptr)
+                spillOwnerRef = srcNodeRef;
+        }
+
+        MicroBuilder&  builder      = codeGen.builder();
+        const MicroReg spillAddrReg = codeGen.runtimeStorageAddressReg(spillOwnerRef);
+        builder.emitLoadMemReg(spillAddrReg, 0, srcPayload.reg, CodeGenTypeHelpers::bitsFromStorageSize(sourceSize));
+        return spillAddrReg;
+    }
+
     bool usingPathHasPointerStep(const SmallVector<SymbolStructUsingPathStep>& usingPath)
     {
         for (const auto& step : usingPath)
@@ -556,13 +578,7 @@ namespace
 
         const uint64_t length          = srcType.sizeOf(codeGen.ctx());
         const MicroReg runtimeValueReg = codeGen.runtimeStorageAddressReg(codeGen.curNodeRef());
-
-        MicroReg srcDataReg = srcPayload.reg;
-        if (!srcPayload.isAddress())
-        {
-            srcDataReg = codeGen.nextVirtualIntRegister();
-            builder.emitLoadRegReg(srcDataReg, srcPayload.reg, MicroOpBits::B64);
-        }
+        const MicroReg srcDataReg      = materializeArrayCastSourceAddress(codeGen, srcNodeRef, srcPayload, srcType);
 
         builder.emitLoadMemReg(runtimeValueReg, offsetof(Runtime::String, ptr), srcDataReg, MicroOpBits::B64);
 
@@ -604,13 +620,7 @@ namespace
         }
 
         const MicroReg runtimeValueReg = codeGen.runtimeStorageAddressReg(codeGen.curNodeRef());
-
-        MicroReg srcDataReg = srcPayload.reg;
-        if (!srcPayload.isAddress())
-        {
-            srcDataReg = codeGen.nextVirtualIntRegister();
-            builder.emitLoadRegReg(srcDataReg, srcPayload.reg, MicroOpBits::B64);
-        }
+        const MicroReg srcDataReg      = materializeArrayCastSourceAddress(codeGen, srcNodeRef, srcPayload, srcType);
 
         builder.emitLoadMemReg(runtimeValueReg, offsetof(Runtime::Slice<std::byte>, ptr), srcDataReg, MicroOpBits::B64);
 

@@ -65,7 +65,7 @@ struct Heights
 
 impl Heights
 {
-    mtd fits(other: Heights) -> bool
+    mtd const fits(other: Heights) -> bool
     {
         for i in NumCols
         {

@@ -1409,7 +1409,7 @@ Result Cast::castToReference(Sema& sema, CastRequest& castRequest, TypeRef srcTy
         if (!receiverMatches)
             return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
 
-        const bool sourceIsConst = srcType.isConst() || castRequest.isConstantFolding();
+        const bool sourceIsConst = srcType.isConst() || castRequest.flags.has(CastFlagsE::ConstSource) || castRequest.isConstantFolding();
         if (sourceIsConst && !dstType.isConst() && !castRequest.flags.has(CastFlagsE::UnConst))
             return castRequest.fail(DiagnosticId::sema_err_cannot_cast_const, srcTypeRef, dstTypeRef);
 
@@ -1496,7 +1496,8 @@ Result Cast::castToPointer(Sema& sema, CastRequest& castRequest, TypeRef srcType
     // Whether the value is actually addressable (lvalue) is validated later by `Cast::cast`.
     if (castRequest.flags.has(CastFlagsE::UfcsArgument) && dstType.payloadTypeRef() == srcTypeRef && !dstType.isNullable())
     {
-        if (srcType.isConst() && !dstType.isConst() && !castRequest.flags.has(CastFlagsE::UnConst))
+        const bool sourceIsConst = srcType.isConst() || castRequest.flags.has(CastFlagsE::ConstSource);
+        if (sourceIsConst && !dstType.isConst() && !castRequest.flags.has(CastFlagsE::UnConst))
             return castRequest.fail(DiagnosticId::sema_err_cannot_cast_const, srcTypeRef, dstTypeRef);
 
         return Result::Continue;

@@ -92,7 +92,7 @@ public impl Sha256
     alias Digest = [8] u32
 
     // Finalize the computation
-    mtd final(result: Digest)
+    mtd final(result: [*] u32)
     {
         var i = .datalen
         if .datalen < 56

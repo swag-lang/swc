@@ -96,8 +96,8 @@ public impl Sha1
     alias Digest = [5] u32 // SHA-1 digest result as five 32-bit words
 
     // Finalize the computation and produce the final hash digest.
-    // Applies padding and length encoding, then stores the result in 'result'.
-    mtd final(result: Digest)
+    // Applies padding and length encoding, then stores the result in the output buffer.
+    mtd final(result: [*] u32)
     {
         var i = .datalen
         if .datalen < 56

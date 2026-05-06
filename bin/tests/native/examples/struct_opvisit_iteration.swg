@@ -125,6 +125,56 @@ impl ShelfBins
             }
         }
     }
+
+    #[Swag.Macro]
+    mtd(ptr: bool, back: bool) const opVisit(stmt: #code void)
+    {
+        #if ptr do
+            #error("Address iteration requires a mutable ShelfBins receiver.")
+
+        #if back
+        {
+            for idx in 4
+            {
+                #macro
+                {
+                    var #alias0: s32 = undefined
+
+                    switch #up idx
+                    {
+                    case 0: #alias0 = #up me.evening
+                    case 1: #alias0 = #up me.afternoon
+                    case 2: #alias0 = #up me.lunch
+                    case 3: #alias0 = #up me.morning
+                    }
+
+                    let #alias1 = @index
+                    #inject(#up stmt)
+                }
+            }
+
+            return
+        }
+
+        for idx in 4
+        {
+            #macro
+            {
+                var #alias0: s32 = undefined
+
+                switch #up idx
+                {
+                case 0: #alias0 = #up me.morning
+                case 1: #alias0 = #up me.lunch
+                case 2: #alias0 = #up me.afternoon
+                case 3: #alias0 = #up me.evening
+                }
+
+                let #alias1 = @index
+                #inject(#up stmt)
+            }
+        }
+    }
 }
 
 func countUnits(bins: ShelfBins)->s32

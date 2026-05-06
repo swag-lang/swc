@@ -37,6 +37,14 @@ struct InlineConstAssignPayload
     total: s32
 }
 
+impl InlineConstAssignPayload
+{
+    mtd bump()
+    {
+        .total += 1
+    }
+}
+
 #[Swag.Macro]
 func macroAssignConstParam(payload: InlineConstAssignPayload)
 {
@@ -65,6 +73,16 @@ func mixinForeachWriteConstParam(values: [2] s32)
     {
         dref value += 1 // swc-expected-error {{sema_err_assign_to_const}}
     }
+}
+
+func plainCallMutableMethod(payload: InlineConstAssignPayload)
+{
+    payload.bump() // swc-expected-error {{sema_err_cannot_cast_const}}
+}
+
+func plainAssignConstParam(payload: InlineConstAssignPayload)
+{
+    payload.total += 1 // swc-expected-error {{sema_err_assign_to_const}}
 }
 
 #test
@@ -222,4 +240,16 @@ func mixinForeachWriteConstParam(values: [2] s32)
 {
     var values: [2] s32 = [1, 2]
     mixinForeachWriteConstParam(values)
+}
+
+#test
+{
+    var payload = InlineConstAssignPayload{total: 41}
+    plainCallMutableMethod(payload)
+}
+
+#test
+{
+    var payload = InlineConstAssignPayload{total: 41}
+    plainAssignConstParam(payload)
 }

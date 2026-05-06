@@ -14,7 +14,7 @@ public impl Md5
     alias Digest = [16] u8
 
     // Finalize the computation
-    mtd final(digest: Digest)
+    mtd final(digest: [*] u8)
     {
         var bits: [8] u8
         encode(&bits[0], .count, 8)
@@ -166,7 +166,7 @@ impl Md5
         dref a += b
     }
 
-    func transform(state: [4] u32, block: const [*] u8)
+    func transform(state: [*] u32, block: const [*] u8)
     {
         var a  = state[0]
         var b  = state[1]

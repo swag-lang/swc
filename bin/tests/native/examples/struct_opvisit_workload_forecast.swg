@@ -83,6 +83,36 @@ impl WorkloadForecast
     }
 
     #[Swag.Macro]
+    mtd(ptr: bool, back: bool) const opVisit(stmt: #code void)
+    {
+        #if back do
+            #error("Reverse iteration is not used in this forecast example.")
+
+        #if ptr do
+            #error("Address iteration requires a mutable WorkloadForecast receiver.")
+
+        for idx in 5
+        {
+            #macro
+            {
+                var #alias0: s32 = undefined
+
+                switch #up idx
+                {
+                case 0: #alias0 = #up me.monday
+                case 1: #alias0 = #up me.tuesday
+                case 2: #alias0 = #up me.wednesday
+                case 3: #alias0 = #up me.thursday
+                case 4: #alias0 = #up me.friday
+                }
+
+                let #alias1 = @index
+                #inject(#up stmt)
+            }
+        }
+    }
+
+    #[Swag.Macro]
     mtd(ptr: bool, back: bool) const opVisitPairs(stmt: #code void)
     {
         #if ptr do

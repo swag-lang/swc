@@ -25,8 +25,9 @@ func overflowAllowedByAttribute()->bool
 #[Swag.CanOverflow(true)]
 func wrapCompoundU8(value: u8, delta: u8)->u8
 {
-    value += delta
-    return value
+    var result = value
+    result += delta
+    return result
 }
 
 #test

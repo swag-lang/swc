@@ -15,6 +15,7 @@ SWC_BEGIN_NAMESPACE();
 namespace
 {
     bool isConstAssignmentTargetImpl(Sema& sema, AstNodeRef leftExprRef, const SemaNodeView& leftView);
+    bool isSyntheticAutoMemberLeft(const Sema& sema, AstNodeRef nodeRef);
 
     bool isIgnoredValuePoison(Sema& sema, AstNodeRef nodeRef)
     {
@@ -56,7 +57,81 @@ namespace
         return unwrappedTypeRef.isValid() && sema.typeMgr().get(unwrappedTypeRef).isConst();
     }
 
-    bool isConstSourceView(Sema& sema, const SemaNodeView& view)
+    bool isNonReassignableFunctionParameter(Sema& sema, const SymbolVariable& symVar)
+    {
+        if (!symVar.hasExtraFlag(SymbolVariableFlagsE::Parameter))
+            return false;
+        if (!symVar.typeRef().isValid())
+            return true;
+
+        return !sema.typeMgr().get(symVar.typeRef()).isReference();
+    }
+
+    bool isReadOnlyAggregateFunctionParameter(Sema& sema, const SymbolVariable& symVar)
+    {
+        if (!isNonReassignableFunctionParameter(sema, symVar))
+            return false;
+        if (!symVar.typeRef().isValid())
+            return true;
+
+        return !sema.typeMgr().get(symVar.typeRef()).isPointerLike();
+    }
+
+    const SymbolVariable* currentFunctionParameterByIdentifier(Sema& sema, AstNodeRef nodeRef)
+    {
+        if (!sema.isCurrentFunction() || nodeRef.isInvalid())
+            return nullptr;
+        if (!sema.node(nodeRef).is(AstNodeId::Identifier))
+            return nullptr;
+
+        const SourceCodeRef codeRef = sema.node(nodeRef).codeRef();
+        if (!codeRef.isValid())
+            return nullptr;
+
+        const IdentifierRef idRef = sema.idMgr().addIdentifier(sema.ctx(), codeRef);
+        for (SymbolVariable* param : sema.currentFunction()->parameters())
+        {
+            if (param && param->idRef() == idRef)
+                return param;
+        }
+
+        return nullptr;
+    }
+
+    bool isNonReassignableParameterIdentifier(Sema& sema, AstNodeRef nodeRef)
+    {
+        const SymbolVariable* param = currentFunctionParameterByIdentifier(sema, nodeRef);
+        return param && isNonReassignableFunctionParameter(sema, *param);
+    }
+
+    bool isReadOnlyAggregateParameterIdentifier(Sema& sema, AstNodeRef nodeRef)
+    {
+        const SymbolVariable* param = currentFunctionParameterByIdentifier(sema, nodeRef);
+        return param && isReadOnlyAggregateFunctionParameter(sema, *param);
+    }
+
+    bool isReadOnlyAggregateParameterPath(Sema& sema, AstNodeRef nodeRef)
+    {
+        const AstNodeRef resolvedRef = resolveNodeRefForCheck(sema, nodeRef);
+        if (resolvedRef.isInvalid())
+            return false;
+
+        const AstNode& node = sema.node(resolvedRef);
+        if (node.is(AstNodeId::Identifier))
+            return isReadOnlyAggregateParameterIdentifier(sema, resolvedRef);
+        if (node.is(AstNodeId::MemberAccessExpr))
+        {
+            const auto& member = node.cast<AstMemberAccessExpr>();
+            return !isSyntheticAutoMemberLeft(sema, member.nodeLeftRef) && isReadOnlyAggregateParameterPath(sema, member.nodeLeftRef);
+        }
+        if (node.is(AstNodeId::IndexExpr))
+            return isReadOnlyAggregateParameterPath(sema, node.cast<AstIndexExpr>().nodeExprRef);
+        if (node.is(AstNodeId::IndexListExpr))
+            return isReadOnlyAggregateParameterPath(sema, node.cast<AstIndexListExpr>().nodeExprRef);
+        return false;
+    }
+
+    bool isConstSourceViewImpl(Sema& sema, const SemaNodeView& view)
     {
         if (isConstTypeRef(sema, view.typeRef()))
             return true;
@@ -103,7 +178,7 @@ namespace
             return true;
         if (!sourceView.type())
             return false;
-        if (isConstSourceView(sema, sourceView))
+        if (isConstSourceViewImpl(sema, sourceView))
             return true;
 
         const TypeRef sourceTypeRef = SemaHelpers::unwrapAliasRefType(sema.ctx(), sourceView.typeRef());
@@ -120,7 +195,7 @@ namespace
             return false;
 
         const SemaNodeView sourceView = sema.viewTypeSymbol(node.nodeExprRef);
-        return isConstSourceView(sema, sourceView);
+        return isConstSourceViewImpl(sema, sourceView);
     }
 
     Result normalizeTypeInfoValueIfNeeded(Sema& sema, SemaNodeView& view)
@@ -154,7 +229,6 @@ namespace
 
     bool isConstAssignmentTargetImpl(Sema& sema, AstNodeRef leftExprRef, const SemaNodeView& leftView)
     {
-        SWC_UNUSED(leftView);
         if (isInlineConstAssignmentTarget(sema, leftExprRef))
             return true;
 
@@ -167,7 +241,7 @@ namespace
         {
             const auto&        member     = node.cast<AstMemberAccessExpr>();
             const SemaNodeView sourceView = sema.viewNodeTypeConstantSymbol(member.nodeLeftRef);
-            return (!isSyntheticAutoMemberLeft(sema, member.nodeLeftRef) && isConstSourceView(sema, sourceView)) || isConstAssignmentTargetImpl(sema, member.nodeLeftRef, sourceView);
+            return (!isSyntheticAutoMemberLeft(sema, member.nodeLeftRef) && isConstSourceViewImpl(sema, sourceView)) || isConstAssignmentTargetImpl(sema, member.nodeLeftRef, sourceView);
         }
         if (node.is(AstNodeId::IndexExpr) || node.is(AstNodeId::IndexListExpr))
             return isConstIndexedSource(sema, resolvedRef);
@@ -408,6 +482,13 @@ Result SemaCheck::isAssignable(Sema& sema, AstNodeRef errorNodeRef, AstNodeRef l
         }
     }
 
+    if (isNonReassignableParameterIdentifier(sema, leftExprRef) || isReadOnlyAggregateParameterPath(sema, leftExprRef))
+    {
+        const auto diag = SemaError::report(sema, DiagnosticId::sema_err_assign_to_const, errorNodeRef);
+        diag.report(sema.ctx());
+        return Result::Error;
+    }
+
     if (isConstAssignmentTarget(sema, leftExprRef, leftView))
     {
         const auto diag = SemaError::report(sema, DiagnosticId::sema_err_assign_to_const, errorNodeRef);
@@ -431,6 +512,11 @@ Result SemaCheck::isAssignable(Sema& sema, AstNodeRef errorNodeRef, AstNodeRef l
 bool SemaCheck::isConstAssignmentTarget(Sema& sema, AstNodeRef leftExprRef, const SemaNodeView& leftView)
 {
     return isConstAssignmentTargetImpl(sema, leftExprRef, leftView);
+}
+
+bool SemaCheck::isReadOnlyParameterPath(Sema& sema, AstNodeRef nodeRef)
+{
+    return isReadOnlyAggregateParameterPath(sema, nodeRef);
 }
 
 SWC_END_NAMESPACE();

@@ -1048,8 +1048,11 @@ namespace
         }
         if (argNodeView.cstRef().isValid() && sema.isFoldedTypedConst(argRef))
             castFlags.add(CastFlagsE::FoldedTypedConst);
+        const bool readOnlyParamPath = SemaCheck::isReadOnlyParameterPath(sema, argNodeView.nodeRef());
+        const bool targetBindsMutableStorage = to.isValid() && (sema.typeMgr().get(to).isReference() || sema.typeMgr().get(to).isAnyPointer() || sema.typeMgr().get(to).isMoveReference());
         if ((argNodeView.sym() && argNodeView.sym()->isConstant()) ||
             SemaCheck::isConstAssignmentTarget(sema, argNodeView.nodeRef(), argNodeView) ||
+            (readOnlyParamPath && (isUfcsArgument || targetBindsMutableStorage)) ||
             (argNodeView.cstRef().isValid() && !argNodeView.hasSymbol()))
             castFlags.add(CastFlagsE::ConstSource);
 
@@ -1755,7 +1758,7 @@ namespace
             return false;
 
         const SemaNodeView receiverView(sema, receiverRef, SemaNodeViewPartE::Type | SemaNodeViewPartE::Symbol);
-        if (receiverView.typeRef().isValid() && sema.typeMgr().get(receiverView.typeRef()).isConst())
+        if (SemaCheck::isReadOnlyParameterPath(sema, receiverRef))
             return true;
         if (receiverView.sym() && receiverView.sym()->isConstant())
             return true;

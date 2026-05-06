@@ -24,6 +24,7 @@ struct DataSegmentRelocation
     uint32_t                  offset       = 0;
     DataSegmentRelocationKind kind         = DataSegmentRelocationKind::DataSegmentOffset;
     uint32_t                  targetOffset = INVALID_REF;
+    uint32_t                  targetShardIndex = INVALID_REF;
     const SymbolFunction*     targetSymbol = nullptr;
 };
 
@@ -64,6 +65,7 @@ public:
     std::pair<std::string_view, Ref>          addString(const Utf8& value);
     uint32_t                                  addString(uint32_t baseOffset, uint32_t fieldOffset, const Utf8& value);
     void                                      addRelocation(uint32_t offset, uint32_t targetOffset);
+    void                                      addRelocation(uint32_t offset, DataSegmentRef targetRef);
     void                                      addFunctionRelocation(uint32_t offset, const SymbolFunction* targetSymbol);
     std::pair<uint32_t, std::byte*>           reserveBytes(uint32_t size, uint32_t align, bool zeroInit);
     uint32_t                                  reserveBlock(uint32_t size, uint32_t align, bool zeroInit);

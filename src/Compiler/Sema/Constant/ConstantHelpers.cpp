@@ -132,10 +132,11 @@ namespace
         {
             outShardIndex    = candidateShardIndex;
             hasRequiredShard = true;
-            return true;
         }
 
-        return outShardIndex == candidateShardIndex;
+        // Payload materialization can now relocate across shards, so this is
+        // only a placement preference for the owning allocation.
+        return true;
     }
 
     bool requirePointerShardIndex(uint32_t& outShardIndex, bool& hasRequiredShard, Sema& sema, const void* ptr)

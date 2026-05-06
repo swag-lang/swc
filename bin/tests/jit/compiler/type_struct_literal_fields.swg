@@ -3,6 +3,8 @@ struct TypeStructLiteralJitPoint
     x: s32
 }
 
+func makeTypeStructLiteralJitPayloads() => [{first: #type [2] TypeStructLiteralJitPoint}, {first: #type [3] TypeStructLiteralJitPoint}]
+
 #test
 {
     let payload = {first: #type [2] TypeStructLiteralJitPoint, second: #type [3] TypeStructLiteralJitPoint}
@@ -20,4 +22,16 @@ struct TypeStructLiteralJitPoint
     #assert(#typeof(payloads[0].first) == const *TypeInfoArray)
     @assert(payloads[0].first == #type [2] TypeStructLiteralJitPoint)
     @assert(payloads[1].first == #type [3] TypeStructLiteralJitPoint)
+}
+
+#test
+{
+    let payloads = makeTypeStructLiteralJitPayloads()
+    var total: u64 = 0
+    foreach payload in payloads
+    {
+        total += (cast(const *Swag.TypeInfoArray) payload.first).totalCount
+    }
+
+    @assert(total == 5)
 }

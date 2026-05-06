@@ -662,7 +662,8 @@ namespace
         {
             if (relocation.kind == DataSegmentRelocationKind::DataSegmentOffset)
             {
-                SWC_RESULT(patchConstantFunctionRelocationsRec(ctx, patchContext, ownerFunction, shardIndex, relocation.targetOffset));
+                const uint32_t targetShardIndex = relocation.targetShardIndex == INVALID_REF ? shardIndex : relocation.targetShardIndex;
+                SWC_RESULT(patchConstantFunctionRelocationsRec(ctx, patchContext, ownerFunction, targetShardIndex, relocation.targetOffset));
                 continue;
             }
 

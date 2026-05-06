@@ -139,40 +139,44 @@ namespace
     }
 
     // Static fixups only make sense for addresses already backed by compiler constant storage.
-    Result resolveSegmentOffset(uint32_t& outOffset, Sema& sema, const DataSegment& segment, const void* sourcePtr)
+    Result resolveSegmentDataRef(DataSegmentRef& outRef, Sema& sema, const void* sourcePtr)
     {
-        outOffset = INVALID_REF;
+        outRef = {};
         if (!sourcePtr)
             return Result::Continue;
 
-        DataSegmentRef targetRef;
-        SWC_INTERNAL_CHECK(sema.cstMgr().resolveDataSegmentRef(targetRef, sourcePtr));
-        SWC_INTERNAL_CHECK(&segment == &sema.cstMgr().shardDataSegment(targetRef.shardIndex));
-
-        outOffset = targetRef.offset;
+        SWC_INTERNAL_CHECK(sema.cstMgr().resolveDataSegmentRef(outRef, sourcePtr));
         return Result::Continue;
     }
 
     template<typename ST, typename PT>
     Result relocateSegmentPointer(PT*& outPtr, Sema& sema, DataSegment& segment, const uint32_t relocationOffset, const void* sourcePtr)
     {
-        uint32_t targetOffset = INVALID_REF;
-        SWC_RESULT(resolveSegmentOffset(targetOffset, sema, segment, sourcePtr));
+        DataSegmentRef targetRef;
+        SWC_RESULT(resolveSegmentDataRef(targetRef, sema, sourcePtr));
 
-        outPtr = targetOffset == INVALID_REF ? nullptr : static_cast<PT*>(segment.ptr<ST>(targetOffset));
-        if (targetOffset != INVALID_REF)
-            segment.addRelocation(relocationOffset, targetOffset);
+        outPtr = nullptr;
+        if (targetRef.isValid())
+        {
+            DataSegment& targetSegment = sema.cstMgr().shardDataSegment(targetRef.shardIndex);
+            outPtr                     = static_cast<PT*>(targetSegment.ptr<ST>(targetRef.offset));
+            segment.addRelocation(relocationOffset, targetRef);
+        }
         return Result::Continue;
     }
 
     Result relocateSegmentAddress(uint64_t& outAddress, Sema& sema, DataSegment& segment, const uint32_t relocationOffset, const void* sourcePtr)
     {
-        uint32_t targetOffset = INVALID_REF;
-        SWC_RESULT(resolveSegmentOffset(targetOffset, sema, segment, sourcePtr));
+        DataSegmentRef targetRef;
+        SWC_RESULT(resolveSegmentDataRef(targetRef, sema, sourcePtr));
 
-        outAddress = targetOffset == INVALID_REF ? 0 : rawAddress(segment.ptr<std::byte>(targetOffset));
-        if (targetOffset != INVALID_REF)
-            segment.addRelocation(relocationOffset, targetOffset);
+        outAddress = 0;
+        if (targetRef.isValid())
+        {
+            DataSegment& targetSegment = sema.cstMgr().shardDataSegment(targetRef.shardIndex);
+            outAddress                 = rawAddress(targetSegment.ptr<std::byte>(targetRef.offset));
+            segment.addRelocation(relocationOffset, targetRef);
+        }
         return Result::Continue;
     }
 

@@ -87,6 +87,7 @@ namespace
 
     TypeRef deduceConcretizedAggregateArrayElementType(Sema& sema, std::span<const TypeRef> elemTypes, const std::vector<ConstantRef>* values);
     TypeRef deduceConcretizedAggregateStructType(Sema& sema, TypeRef typeRef, ConstantRef cstRef);
+    TypeRef deduceConcretizedAggregateStructArrayElementType(Sema& sema, std::span<const TypeRef> elemTypes, const std::vector<ConstantRef>* values);
     bool    isAggregateTypeLikeElement(Sema& sema, TypeRef typeRef);
     TypeRef normalizeAggregateTypeLikeElementType(Sema& sema, TypeRef typeRef, ConstantRef cstRef);
 
@@ -188,39 +189,67 @@ namespace
         return SemaHelpers::isTypeLikeTypeRef(sema.ctx(), typeRef);
     }
 
+    TypeRef runtimeTypeRefOrDeclaredSymbolTypeRef(Sema& sema, IdentifierManager::PredefinedName name)
+    {
+        TypeRef typeRef = sema.typeMgr().runtimeType(name);
+        if (typeRef.isValid())
+            return typeRef;
+
+        const IdentifierRef swagIdRef   = sema.idMgr().predefined(IdentifierManager::PredefinedName::Swag);
+        const IdentifierRef targetIdRef = sema.idMgr().predefined(name);
+        std::vector<const Symbol*> moduleSymbols;
+        sema.moduleNamespace().getAllSymbols(moduleSymbols);
+        for (const Symbol* moduleSym : moduleSymbols)
+        {
+            if (!moduleSym || !moduleSym->isNamespace() || moduleSym->idRef() != swagIdRef)
+                continue;
+
+            std::vector<const Symbol*> namespaceSymbols;
+            moduleSym->asSymMap()->getAllSymbols(namespaceSymbols);
+            for (const Symbol* candidate : namespaceSymbols)
+            {
+                if (candidate && candidate->idRef() == targetIdRef && candidate->typeRef().isValid())
+                    return candidate->typeRef();
+            }
+        }
+
+        return TypeRef::invalid();
+    }
+
     TypeRef specializedTypeInfoStructTypeRef(Sema& sema, TypeRef representedTypeRef)
     {
+        using Pn         = IdentifierManager::PredefinedName;
         TypeManager& typeMgr = sema.typeMgr();
         if (!representedTypeRef.isValid())
-            return typeMgr.structTypeInfo();
+            return runtimeTypeRefOrDeclaredSymbolTypeRef(sema, Pn::TypeInfo);
 
         const TypeInfo& representedType = typeMgr.get(representedTypeRef);
         if (representedType.isArray() || representedType.isAggregateArray())
-            return typeMgr.structTypeInfoArray();
+            return runtimeTypeRefOrDeclaredSymbolTypeRef(sema, Pn::TypeInfoArray);
         if (representedType.isStruct() || representedType.isAggregateStruct())
-            return typeMgr.structTypeInfoStruct();
+            return runtimeTypeRefOrDeclaredSymbolTypeRef(sema, Pn::TypeInfoStruct);
         if (representedType.isEnum())
-            return typeMgr.structTypeInfoEnum();
+            return runtimeTypeRefOrDeclaredSymbolTypeRef(sema, Pn::TypeInfoEnum);
         if (representedType.isFunction())
-            return typeMgr.structTypeInfoFunc();
+            return runtimeTypeRefOrDeclaredSymbolTypeRef(sema, Pn::TypeInfoFunc);
         if (representedType.isSlice())
-            return typeMgr.structTypeInfoSlice();
+            return runtimeTypeRefOrDeclaredSymbolTypeRef(sema, Pn::TypeInfoSlice);
         if (representedType.isAnyPointer())
-            return typeMgr.structTypeInfoPointer();
+            return runtimeTypeRefOrDeclaredSymbolTypeRef(sema, Pn::TypeInfoPointer);
         if (representedType.isAlias())
-            return typeMgr.structTypeInfoAlias();
+            return runtimeTypeRefOrDeclaredSymbolTypeRef(sema, Pn::TypeInfoAlias);
         if (representedType.isAnyVariadic())
-            return typeMgr.structTypeInfoVariadic();
+            return runtimeTypeRefOrDeclaredSymbolTypeRef(sema, Pn::TypeInfoVariadic);
         if (representedType.isCodeBlock())
-            return typeMgr.structTypeInfoCodeBlock();
-        return typeMgr.structTypeInfo();
+            return runtimeTypeRefOrDeclaredSymbolTypeRef(sema, Pn::TypeInfoCodeBlock);
+        return runtimeTypeRefOrDeclaredSymbolTypeRef(sema, Pn::TypeInfo);
     }
 
     TypeRef specializedTypeInfoPointerTypeRef(Sema& sema, TypeRef representedTypeRef)
     {
         const TypeRef structTypeRef = specializedTypeInfoStructTypeRef(sema, representedTypeRef);
         if (!structTypeRef.isValid())
-            return sema.typeMgr().typeTypeInfo();
+            return TypeRef::invalid();
 
         return sema.typeMgr().addType(TypeInfo::makeValuePointer(structTypeRef, TypeInfoFlagsE::Const));
     }
@@ -374,6 +403,100 @@ namespace
         return true;
     }
 
+    TypeRef deduceConcretizedAggregateStructArrayElementType(Sema& sema, std::span<const TypeRef> elemTypes, const std::vector<ConstantRef>* values)
+    {
+        if (elemTypes.empty())
+            return TypeRef::invalid();
+
+        TypeManager&    typeMgr          = sema.typeMgr();
+        const TypeInfo& firstStructType  = typeMgr.get(elemTypes.front());
+        if (!firstStructType.isAggregateStruct())
+            return TypeRef::invalid();
+
+        const auto& firstAggregate = firstStructType.payloadAggregate();
+        for (size_t i = 1; i < elemTypes.size(); ++i)
+        {
+            const TypeInfo& structType = typeMgr.get(elemTypes[i]);
+            if (!structType.isAggregateStruct())
+                return TypeRef::invalid();
+
+            const auto& aggregate = structType.payloadAggregate();
+            if (aggregate.names.size() != firstAggregate.names.size() || aggregate.types.size() != firstAggregate.types.size())
+                return TypeRef::invalid();
+
+            for (size_t fieldIndex = 0; fieldIndex < aggregate.names.size(); ++fieldIndex)
+            {
+                if (aggregate.names[fieldIndex] != firstAggregate.names[fieldIndex])
+                    return TypeRef::invalid();
+            }
+        }
+
+        SmallVector<TypeRef> mergedFieldTypes;
+        mergedFieldTypes.reserve(firstAggregate.types.size());
+        bool changed = false;
+
+        for (size_t fieldIndex = 0; fieldIndex < firstAggregate.types.size(); ++fieldIndex)
+        {
+            SmallVector<TypeRef> fieldTypes;
+            fieldTypes.reserve(elemTypes.size());
+
+            SmallVector<ConstantRef> fieldValues;
+            bool                     hasFieldValues = values != nullptr;
+            if (values)
+                fieldValues.reserve(elemTypes.size());
+
+            for (size_t elemIndex = 0; elemIndex < elemTypes.size(); ++elemIndex)
+            {
+                const TypeInfo& aggregateType = typeMgr.get(elemTypes[elemIndex]);
+                fieldTypes.push_back(aggregateType.payloadAggregate().types[fieldIndex]);
+
+                if (!values)
+                    continue;
+
+                const ConstantRef elemCstRef = elemIndex < values->size() ? (*values)[elemIndex] : ConstantRef::invalid();
+                if (!elemCstRef.isValid())
+                {
+                    hasFieldValues = false;
+                    continue;
+                }
+
+                const ConstantValue& elemCst = sema.cstMgr().get(elemCstRef);
+                if (!elemCst.isAggregateStruct() || fieldIndex >= elemCst.getAggregateStruct().size())
+                {
+                    hasFieldValues = false;
+                    continue;
+                }
+
+                fieldValues.push_back(elemCst.getAggregateStruct()[fieldIndex]);
+            }
+
+            const std::vector<ConstantRef>* fieldValuesPtr = nullptr;
+            std::vector<ConstantRef>        fieldValuesStorage;
+            if (values && hasFieldValues && fieldValues.size() == elemTypes.size())
+            {
+                fieldValuesStorage.assign(fieldValues.begin(), fieldValues.end());
+                fieldValuesPtr = &fieldValuesStorage;
+            }
+
+            const TypeRef mergedFieldTypeRef = deduceConcretizedAggregateArrayElementType(sema, fieldTypes.span(), fieldValuesPtr);
+            if (!mergedFieldTypeRef.isValid())
+                return TypeRef::invalid();
+
+            mergedFieldTypes.push_back(mergedFieldTypeRef);
+            changed = changed || mergedFieldTypeRef != firstAggregate.types[fieldIndex];
+        }
+
+        if (!changed)
+            return elemTypes.front();
+
+        SmallVector<IdentifierRef> fieldNames;
+        fieldNames.reserve(firstAggregate.names.size());
+        for (const IdentifierRef fieldName : firstAggregate.names)
+            fieldNames.push_back(fieldName);
+
+        return typeMgr.addType(TypeInfo::makeAggregateStruct(fieldNames, mergedFieldTypes));
+    }
+
     TypeRef deduceConcretizedAggregateArrayElementType(Sema& sema, std::span<const TypeRef> elemTypes, const std::vector<ConstantRef>* values)
     {
         TypeManager&         typeMgr = sema.typeMgr();
@@ -402,6 +525,10 @@ namespace
 
         if (!resultTypeRef.isValid() && !concreteElemTypes.empty())
             resultTypeRef = concreteElemTypes[0];
+
+        const TypeRef mergedAggregateStructTypeRef = deduceConcretizedAggregateStructArrayElementType(sema, concreteElemTypes.span(), values);
+        if (mergedAggregateStructTypeRef.isValid())
+            return mergedAggregateStructTypeRef;
 
         for (size_t i = 0; i < elemTypes.size(); ++i)
         {
@@ -549,6 +676,23 @@ TypeRef SemaHelpers::normalizeTypeLikeValueTypeRef(Sema& sema, TypeRef typeRef, 
 
     if (cstRef.isValid())
     {
+        const ConstantValue& cst = sema.cstMgr().get(cstRef);
+        if (sema.typeMgr().isRuntimeTypeInfoPointer(sema.ctx(), cst.typeRef()))
+            return cst.typeRef();
+
+        TypeRef representedTypeRef = TypeRef::invalid();
+        if (cst.isTypeValue())
+            representedTypeRef = cst.getTypeValue();
+        else
+            representedTypeRef = sema.cstMgr().makeTypeValue(sema, cstRef);
+
+        if (representedTypeRef.isValid())
+        {
+            const TypeRef specializedTypeRef = specializedTypeInfoPointerTypeRef(sema, representedTypeRef);
+            if (specializedTypeRef.isValid())
+                return specializedTypeRef;
+        }
+
         ConstantRef normalizedCstRef = cstRef;
         if (normalizeTypeInfoConstantRef(sema, normalizedCstRef, ownerNodeRef) == Result::Continue && normalizedCstRef.isValid())
             return sema.cstMgr().get(normalizedCstRef).typeRef();
@@ -559,7 +703,11 @@ TypeRef SemaHelpers::normalizeTypeLikeValueTypeRef(Sema& sema, TypeRef typeRef, 
 
     const TypeInfo& typeInfo = sema.typeMgr().get(typeRef);
     if (typeInfo.isTypeValue())
-        return specializedTypeInfoPointerTypeRef(sema, typeInfo.payloadTypeRef());
+    {
+        const TypeRef specializedTypeRef = specializedTypeInfoPointerTypeRef(sema, typeInfo.payloadTypeRef());
+        if (specializedTypeRef.isValid())
+            return specializedTypeRef;
+    }
 
     return typeInfo.isAnyTypeInfo(sema.ctx()) ? typeRef : sema.typeMgr().typeTypeInfo();
 }

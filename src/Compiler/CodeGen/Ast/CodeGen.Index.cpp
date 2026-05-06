@@ -254,6 +254,78 @@ namespace
         SWC_UNREACHABLE();
     }
 
+    bool resolveAggregateArrayConstIndexInfo(CodeGen& codeGen, AstNodeRef indexRef, const TypeInfo& indexedType, uint32_t& outOffset, TypeRef& outResultTypeRef)
+    {
+        outOffset        = 0;
+        outResultTypeRef = TypeRef::invalid();
+        if (!indexedType.isAggregateArray())
+            return false;
+
+        const SemaNodeView indexView = codeGen.viewConstant(indexRef);
+        if (indexView.cstRef().isInvalid())
+            return false;
+
+        const ConstantValue& indexCst = codeGen.cstMgr().get(indexView.cstRef());
+        if (!codeGen.typeMgr().get(indexCst.typeRef()).isIntLike())
+            return false;
+
+        const int64_t constIndex = indexCst.getIntLike().asI64();
+        if (constIndex < 0)
+            return false;
+
+        const auto& aggregateTypes = indexedType.payloadAggregate().types;
+        if (std::cmp_greater_equal(constIndex, aggregateTypes.size()))
+            return false;
+
+        uint64_t offset = 0;
+        for (size_t i = 0; i < aggregateTypes.size(); ++i)
+        {
+            const TypeInfo& elemType  = codeGen.typeMgr().get(aggregateTypes[i]);
+            uint32_t        elemAlign = std::max<uint32_t>(elemType.alignOf(codeGen.ctx()), 1);
+            const uint64_t  elemSize  = elemType.sizeOf(codeGen.ctx());
+            if (elemSize)
+                offset = ((offset + static_cast<uint64_t>(elemAlign) - 1) / static_cast<uint64_t>(elemAlign)) * static_cast<uint64_t>(elemAlign);
+
+            if (i == static_cast<size_t>(constIndex))
+            {
+                SWC_ASSERT(offset <= std::numeric_limits<uint32_t>::max());
+                outOffset        = static_cast<uint32_t>(offset);
+                outResultTypeRef = aggregateTypes[i];
+                return true;
+            }
+
+            offset += elemSize;
+        }
+
+        return false;
+    }
+
+    Result emitAggregateArrayConstIndexAddress(CodeGen& codeGen, CodeGenNodePayload& outPayload, AstNodeRef indexRef, const TypeInfo& indexedType, const CodeGenNodePayload& indexedPayload)
+    {
+        uint32_t fieldOffset    = 0;
+        TypeRef  resultTypeRef  = TypeRef::invalid();
+        const bool hasConstInfo = resolveAggregateArrayConstIndexInfo(codeGen, indexRef, indexedType, fieldOffset, resultTypeRef);
+        SWC_ASSERT(hasConstInfo);
+        SWC_ASSERT(resultTypeRef.isValid());
+
+        MicroReg baseReg = indexedPayload.reg;
+        if (!indexedPayload.isAddress())
+        {
+            const uint64_t sizeOfValue = indexedType.sizeOf(codeGen.ctx());
+            SWC_ASSERT(sizeOfValue > 0);
+            if (sizeOfValue == 1 || sizeOfValue == 2 || sizeOfValue == 4 || sizeOfValue == 8)
+                baseReg = materializeAddressFromValue(codeGen, indexedPayload, indexedType);
+            else
+                SWC_UNREACHABLE();
+        }
+
+        outPayload.typeRef = resultTypeRef;
+        outPayload.setIsAddress();
+        outPayload.reg = codeGen.nextVirtualIntRegister();
+        codeGen.builder().emitLoadAddressRegMem(outPayload.reg, baseReg, fieldOffset, MicroOpBits::B64);
+        return Result::Continue;
+    }
+
     Result emitIndexAddress(CodeGen& codeGen, CodeGenNodePayload& outPayload, AstNodeRef indexRef, const TypeInfo& indexedType, const CodeGenNodePayload& indexedPayload, TypeRef resultTypeRef)
     {
         auto           indexBits = MicroOpBits::B64;
@@ -492,6 +564,14 @@ Result AstIndexExpr::codeGenPostNode(CodeGen& codeGen) const
     SWC_ASSERT(resultView.type());
 
     const TypeInfo&    indexedType   = codeGen.typeMgr().get(indexedTypeRef);
+    if (indexedType.isAggregateArray())
+    {
+        CodeGenNodePayload indexedResultPayload;
+        SWC_RESULT(emitAggregateArrayConstIndexAddress(codeGen, indexedResultPayload, nodeArgRef, indexedType, indexedPayload));
+        codeGen.setPayloadAddressReg(codeGen.curNodeRef(), indexedResultPayload.reg, indexedResultPayload.typeRef);
+        return Result::Continue;
+    }
+
     const TypeRef      resultTypeRef = resolveIndexedResultTypeRef(codeGen, indexedType);
     CodeGenNodePayload indexedResultPayload;
     SWC_RESULT(emitIndexAddress(codeGen, indexedResultPayload, nodeArgRef, indexedType, indexedPayload, resultTypeRef));

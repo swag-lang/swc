@@ -108,14 +108,21 @@ uint32_t DataSegment::addString(uint32_t baseOffset, uint32_t fieldOffset, const
 void DataSegment::addRelocation(uint32_t offset, uint32_t targetOffset)
 {
     const std::unique_lock lock(mutex_);
-    relocations_.push_back({.offset = offset, .kind = DataSegmentRelocationKind::DataSegmentOffset, .targetOffset = targetOffset, .targetSymbol = nullptr});
+    relocations_.push_back({.offset = offset, .kind = DataSegmentRelocationKind::DataSegmentOffset, .targetOffset = targetOffset, .targetShardIndex = INVALID_REF, .targetSymbol = nullptr});
+    relocationsByOffsetDirty_ = true;
+}
+
+void DataSegment::addRelocation(uint32_t offset, const DataSegmentRef targetRef)
+{
+    const std::unique_lock lock(mutex_);
+    relocations_.push_back({.offset = offset, .kind = DataSegmentRelocationKind::DataSegmentOffset, .targetOffset = targetRef.offset, .targetShardIndex = targetRef.shardIndex, .targetSymbol = nullptr});
     relocationsByOffsetDirty_ = true;
 }
 
 void DataSegment::addFunctionRelocation(uint32_t offset, const SymbolFunction* targetSymbol)
 {
     const std::unique_lock lock(mutex_);
-    relocations_.push_back({.offset = offset, .kind = DataSegmentRelocationKind::FunctionSymbol, .targetOffset = INVALID_REF, .targetSymbol = targetSymbol});
+    relocations_.push_back({.offset = offset, .kind = DataSegmentRelocationKind::FunctionSymbol, .targetOffset = INVALID_REF, .targetShardIndex = INVALID_REF, .targetSymbol = targetSymbol});
     relocationsByOffsetDirty_ = true;
 }
 

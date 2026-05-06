@@ -64,7 +64,8 @@ Result NativeRDataCollector::collectPendingAllocations()
             if (relocation.kind != DataSegmentRelocationKind::DataSegmentOffset)
                 continue;
 
-            SWC_RESULT(enqueueSourceOffset(pending.ownerName, pending.shardIndex, relocation.targetOffset));
+            const uint32_t targetShardIndex = relocation.targetShardIndex == INVALID_REF ? pending.shardIndex : relocation.targetShardIndex;
+            SWC_RESULT(enqueueSourceOffset(pending.ownerName, targetShardIndex, relocation.targetOffset));
         }
     }
 
@@ -187,8 +188,9 @@ Result NativeRDataCollector::emitReachableAllocations()
 
                 if (relocation.kind == DataSegmentRelocationKind::DataSegmentOffset)
                 {
+                    const uint32_t targetShardIndex = relocation.targetShardIndex == INVALID_REF ? shardIndex : relocation.targetShardIndex;
                     uint32_t targetOffset = 0;
-                    if (!builder_->tryMapRDataSourceOffset(targetOffset, shardIndex, relocation.targetOffset))
+                    if (!builder_->tryMapRDataSourceOffset(targetOffset, targetShardIndex, relocation.targetOffset))
                     {
                         const auto ownerIt   = allocationOwners.find(allocation.offset);
                         const Utf8 ownerName = ownerIt != allocationOwners.end() ? ownerIt->second : Utf8("<rdata>");

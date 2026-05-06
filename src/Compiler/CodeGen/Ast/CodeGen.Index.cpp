@@ -151,7 +151,7 @@ namespace
         return indexReg;
     }
 
-    MicroReg materializeAddressFromValue(CodeGen& codeGen, const CodeGenNodePayload& payload, const TypeInfo& typeInfo)
+    MicroReg materializeAddressFromValue(CodeGen& codeGen, AstNodeRef payloadNodeRef, const CodeGenNodePayload& payload, const TypeInfo& typeInfo)
     {
         MicroBuilder&  builder     = codeGen.builder();
         const uint64_t sizeOfValue = typeInfo.sizeOf(codeGen.ctx());
@@ -160,14 +160,22 @@ namespace
         if (sizeOfValue != 1 && sizeOfValue != 2 && sizeOfValue != 4 && sizeOfValue != 8)
             return payload.reg;
 
-        // Indexing a by-value array still needs a stable base address, so spill register-sized values to a
-        // temporary storage slot first.
-        const MicroReg spillAddrReg = codeGen.runtimeStorageAddressReg(codeGen.curNodeRef());
+        AstNodeRef spillOwnerRef = codeGen.curNodeRef();
+        if (payloadNodeRef.isValid())
+        {
+            const CodeGenNodePayload* spillPayload = codeGen.safePayload(payloadNodeRef);
+            if (spillPayload && spillPayload->runtimeStorageSym != nullptr)
+                spillOwnerRef = payloadNodeRef;
+        }
+
+        // When the source expression already owns a storage slot, spill there first so the destination node
+        // can keep its own runtime storage for the index/slice result.
+        const MicroReg spillAddrReg = codeGen.runtimeStorageAddressReg(spillOwnerRef);
         builder.emitLoadMemReg(spillAddrReg, 0, payload.reg, CodeGenTypeHelpers::bitsFromStorageSize(sizeOfValue));
         return spillAddrReg;
     }
 
-    MicroReg resolveIndexBaseAddress(CodeGen& codeGen, const TypeInfo& indexedType, const CodeGenNodePayload& indexedPayload)
+    MicroReg resolveIndexBaseAddress(CodeGen& codeGen, AstNodeRef indexedNodeRef, const TypeInfo& indexedType, const CodeGenNodePayload& indexedPayload)
     {
         MicroBuilder& builder = codeGen.builder();
 
@@ -175,7 +183,7 @@ namespace
         {
             if (indexedPayload.isAddress())
                 return indexedPayload.reg;
-            return materializeAddressFromValue(codeGen, indexedPayload, indexedType);
+            return materializeAddressFromValue(codeGen, indexedNodeRef, indexedPayload, indexedType);
         }
 
         if (indexedType.isAnyPointer() || indexedType.isCString())
@@ -300,7 +308,7 @@ namespace
         return false;
     }
 
-    Result emitAggregateArrayConstIndexAddress(CodeGen& codeGen, CodeGenNodePayload& outPayload, AstNodeRef indexRef, const TypeInfo& indexedType, const CodeGenNodePayload& indexedPayload)
+    Result emitAggregateArrayConstIndexAddress(CodeGen& codeGen, CodeGenNodePayload& outPayload, AstNodeRef indexedNodeRef, AstNodeRef indexRef, const TypeInfo& indexedType, const CodeGenNodePayload& indexedPayload)
     {
         uint32_t fieldOffset    = 0;
         TypeRef  resultTypeRef  = TypeRef::invalid();
@@ -314,7 +322,7 @@ namespace
             const uint64_t sizeOfValue = indexedType.sizeOf(codeGen.ctx());
             SWC_ASSERT(sizeOfValue > 0);
             if (sizeOfValue == 1 || sizeOfValue == 2 || sizeOfValue == 4 || sizeOfValue == 8)
-                baseReg = materializeAddressFromValue(codeGen, indexedPayload, indexedType);
+                baseReg = materializeAddressFromValue(codeGen, indexedNodeRef, indexedPayload, indexedType);
             else
                 SWC_UNREACHABLE();
         }
@@ -326,12 +334,12 @@ namespace
         return Result::Continue;
     }
 
-    Result emitIndexAddress(CodeGen& codeGen, CodeGenNodePayload& outPayload, AstNodeRef indexRef, const TypeInfo& indexedType, const CodeGenNodePayload& indexedPayload, TypeRef resultTypeRef)
+    Result emitIndexAddress(CodeGen& codeGen, CodeGenNodePayload& outPayload, AstNodeRef indexedNodeRef, AstNodeRef indexRef, const TypeInfo& indexedType, const CodeGenNodePayload& indexedPayload, TypeRef resultTypeRef)
     {
         auto           indexBits = MicroOpBits::B64;
         const MicroReg indexReg  = materializeIndexReg(codeGen, indexRef, indexBits);
         SWC_RESULT(CodeGenSafety::emitBoundCheck(codeGen, indexRef, indexedType, indexedPayload, indexReg));
-        MicroReg baseReg = resolveIndexBaseAddress(codeGen, indexedType, indexedPayload);
+        MicroReg baseReg = resolveIndexBaseAddress(codeGen, indexedNodeRef, indexedType, indexedPayload);
 
         if (indexedType.isArray() && indexedPayload.isAddress())
         {
@@ -370,7 +378,7 @@ namespace
         const TypeInfo& resultType  = *resultView.type();
         MicroBuilder&   builder     = codeGen.builder();
 
-        const MicroReg baseReg = resolveIndexBaseAddress(codeGen, indexedType, indexedPayload);
+        const MicroReg baseReg = resolveIndexBaseAddress(codeGen, node.nodeExprRef, indexedType, indexedPayload);
 
         const MicroReg lowReg = codeGen.nextVirtualIntRegister();
         if (slicePayload->lowerBoundRef.isValid())
@@ -567,14 +575,14 @@ Result AstIndexExpr::codeGenPostNode(CodeGen& codeGen) const
     if (indexedType.isAggregateArray())
     {
         CodeGenNodePayload indexedResultPayload;
-        SWC_RESULT(emitAggregateArrayConstIndexAddress(codeGen, indexedResultPayload, nodeArgRef, indexedType, indexedPayload));
+        SWC_RESULT(emitAggregateArrayConstIndexAddress(codeGen, indexedResultPayload, nodeExprRef, nodeArgRef, indexedType, indexedPayload));
         codeGen.setPayloadAddressReg(codeGen.curNodeRef(), indexedResultPayload.reg, indexedResultPayload.typeRef);
         return Result::Continue;
     }
 
     const TypeRef      resultTypeRef = resolveIndexedResultTypeRef(codeGen, indexedType);
     CodeGenNodePayload indexedResultPayload;
-    SWC_RESULT(emitIndexAddress(codeGen, indexedResultPayload, nodeArgRef, indexedType, indexedPayload, resultTypeRef));
+    SWC_RESULT(emitIndexAddress(codeGen, indexedResultPayload, nodeExprRef, nodeArgRef, indexedType, indexedPayload, resultTypeRef));
     codeGen.setPayloadAddressReg(codeGen.curNodeRef(), indexedResultPayload.reg, resultTypeRef);
     return Result::Continue;
 }
@@ -618,20 +626,23 @@ Result AstIndexListExpr::codeGenPostNode(CodeGen& codeGen) const
 
     CodeGenNodePayload currentPayload = codeGen.payload(nodeExprRef);
     CodeGenReferenceHelpers::unwrapAliasRefPayload(codeGen, currentPayload, currentTypeRef);
+    AstNodeRef currentSourceRef = nodeExprRef;
     for (const AstNodeRef indexRef : indexRefs)
     {
         const TypeInfo& currentType = codeGen.typeMgr().get(currentTypeRef);
 
         if (currentType.isAggregateArray())
         {
-            SWC_RESULT(emitAggregateArrayConstIndexAddress(codeGen, currentPayload, indexRef, currentType, currentPayload));
+            SWC_RESULT(emitAggregateArrayConstIndexAddress(codeGen, currentPayload, currentSourceRef, indexRef, currentType, currentPayload));
             currentTypeRef = currentPayload.typeRef;
+            currentSourceRef = AstNodeRef::invalid();
             continue;
         }
 
         const TypeRef   nextTypeRef = resolveIndexedResultTypeRef(codeGen, currentType);
-        SWC_RESULT(emitIndexAddress(codeGen, currentPayload, indexRef, currentType, currentPayload, nextTypeRef));
+        SWC_RESULT(emitIndexAddress(codeGen, currentPayload, currentSourceRef, indexRef, currentType, currentPayload, nextTypeRef));
         currentTypeRef = nextTypeRef;
+        currentSourceRef = AstNodeRef::invalid();
     }
 
     codeGen.setPayloadAddressReg(codeGen.curNodeRef(), currentPayload.reg, currentTypeRef);

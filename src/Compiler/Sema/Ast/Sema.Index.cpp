@@ -215,11 +215,25 @@ namespace
         return TypeRef::invalid();
     }
 
+    TypeRef indexRuntimeStorageTypeRef(Sema& sema, const SemaNodeView& indexedView, AstNodeRef indexedRef);
+
     Result completeSliceRuntimeStorage(Sema& sema, TypeRef storageTypeRef)
     {
         if (sema.isGlobalScope())
             return Result::Continue;
         return SemaHelpers::attachRuntimeStorageIfNeeded(sema, sema.node(sema.curNodeRef()), storageTypeRef, "__index_runtime_storage");
+    }
+
+    Result completeIndexedValueRuntimeStorage(Sema& sema, AstNodeRef indexedRef, const SemaNodeView& indexedView)
+    {
+        if (!sema.isCurrentFunction())
+            return Result::Continue;
+
+        const TypeRef storageTypeRef = indexRuntimeStorageTypeRef(sema, indexedView, indexedRef);
+        if (storageTypeRef.isInvalid())
+            return Result::Continue;
+
+        return SemaHelpers::attachRuntimeStorageIfNeeded(sema, indexedRef, sema.node(indexedRef), storageTypeRef, "__index_runtime_storage");
     }
 
     Result semaSliceIndex(Sema& sema, const AstIndexExpr& node, const SemaNodeView& nodeExprView)
@@ -265,6 +279,7 @@ namespace
 
         sema.setType(sema.curNodeRef(), resultTypeRef);
         sema.setIsValue(sema.node(sema.curNodeRef()));
+        SWC_RESULT(completeIndexedValueRuntimeStorage(sema, node.nodeExprRef, nodeExprView));
         SWC_RESULT(completeSliceRuntimeStorage(sema, sliceRuntimeStorageTypeRef(sema, resultTypeRef, ConstantRef::invalid())));
         return Result::Continue;
     }

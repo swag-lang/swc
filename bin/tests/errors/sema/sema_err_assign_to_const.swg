@@ -49,6 +49,24 @@ func mixinAssignConstParam(values: [2] s32)
     values[1] += 1 // swc-expected-error {{sema_err_assign_to_const}}
 }
 
+#[Swag.Macro]
+func macroForeachWriteConstParam(values: [2] s32)
+{
+    foreach &value in values
+    {
+        dref value += 1 // swc-expected-error {{sema_err_assign_to_const}}
+    }
+}
+
+#[Swag.Mixin]
+func mixinForeachWriteConstParam(values: [2] s32)
+{
+    foreach &value in values
+    {
+        dref value += 1 // swc-expected-error {{sema_err_assign_to_const}}
+    }
+}
+
 #test
 {
     var box = WriteOnlyIndexBox{}
@@ -192,4 +210,16 @@ func mixinAssignConstParam(values: [2] s32)
 {
     var values: [2] s32 = [1, 2]
     mixinAssignConstParam(values)
+}
+
+#test
+{
+    var values: [2] s32 = [1, 2]
+    macroForeachWriteConstParam(values)
+}
+
+#test
+{
+    var values: [2] s32 = [1, 2]
+    mixinForeachWriteConstParam(values)
 }

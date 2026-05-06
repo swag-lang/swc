@@ -238,7 +238,10 @@ namespace
                 return SemaError::raiseTypeNotIndexable(sema, exprView.nodeRef(), exprView.typeRef());
 
             indexTypeRef  = sema.typeMgr().typeU64();
-            sourceIsConst = exprView.type()->isConst() || sourceType.isConst() || sourceType.isAnyString();
+            sourceIsConst = exprView.type()->isConst() ||
+                            sourceType.isConst() ||
+                            sourceType.isAnyString() ||
+                            SemaCheck::isConstAssignmentTarget(sema, exprView.nodeRef(), exprView);
         }
 
         if (node.hasFlag(AstForeachStmtFlagsE::ByAddress))

@@ -27,6 +27,8 @@ enum class NodePayloadKind : uint16_t
 
 enum class NodePayloadFlags : uint16_t
 {
+    ConstAssignBinding = 1 << 11,
+    ConstAssignTarget = 1 << 12,
     FoldedTypedConst = 1 << 13,
     LValue           = 1 << 14,
     Value            = 1 << 15,

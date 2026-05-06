@@ -5,6 +5,7 @@ SWC_BEGIN_NAMESPACE();
 
 class Sema;
 class Ast;
+class SymbolVariable;
 
 namespace SemaClone
 {
@@ -15,6 +16,7 @@ namespace SemaClone
         TypeRef       typeRef = TypeRef::invalid();
         ConstantRef   cstRef  = ConstantRef::invalid();
         bool          forceMaterialize = false;
+        const SymbolVariable* sourceParam = nullptr;
     };
 
     struct NodeReplacement

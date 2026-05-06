@@ -32,6 +32,23 @@ struct ConstAssignArrayBox
     bytes: [2] u8
 }
 
+struct InlineConstAssignPayload
+{
+    total: s32
+}
+
+#[Swag.Macro]
+func macroAssignConstParam(payload: InlineConstAssignPayload)
+{
+    payload.total += 1 // swc-expected-error {{sema_err_assign_to_const}}
+}
+
+#[Swag.Mixin]
+func mixinAssignConstParam(values: [2] s32)
+{
+    values[1] += 1 // swc-expected-error {{sema_err_assign_to_const}}
+}
+
 #test
 {
     var box = WriteOnlyIndexBox{}
@@ -163,4 +180,16 @@ struct ConstAssignArrayBox
     let values: const [*] ConstAssignArrayBox = cast(const [*] ConstAssignArrayBox) &data[0]
     let ptr = @dataof(values[0].bytes)
     ptr[0] = 9'u8 // swc-expected-error {{sema_err_assign_to_const}}
+}
+
+#test
+{
+    var payload = InlineConstAssignPayload{total: 41}
+    macroAssignConstParam(payload)
+}
+
+#test
+{
+    var values: [2] s32 = [1, 2]
+    mixinAssignConstParam(values)
 }

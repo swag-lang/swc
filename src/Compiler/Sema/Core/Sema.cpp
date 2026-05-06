@@ -374,6 +374,22 @@ bool Sema::isFoldedTypedConstStored(AstNodeRef ref) const
     return (static_cast<uint16_t>(flags) & static_cast<uint16_t>(NodePayloadFlags::FoldedTypedConst)) != 0;
 }
 
+bool Sema::isConstAssignBindingStored(AstNodeRef ref) const
+{
+    if (ref.isInvalid())
+        return false;
+    const NodePayloadFlags flags = nodePayloadContext().payloadFlagsStored(node(ref));
+    return (static_cast<uint16_t>(flags) & static_cast<uint16_t>(NodePayloadFlags::ConstAssignBinding)) != 0;
+}
+
+bool Sema::isConstAssignTargetStored(AstNodeRef ref) const
+{
+    if (ref.isInvalid())
+        return false;
+    const NodePayloadFlags flags = nodePayloadContext().payloadFlagsStored(node(ref));
+    return (static_cast<uint16_t>(flags) & static_cast<uint16_t>(NodePayloadFlags::ConstAssignTarget)) != 0;
+}
+
 void Sema::pushFramePopOnPostChild(const SemaFrame& frame, AstNodeRef popAfterChildRef)
 {
     pushFrame(frame);

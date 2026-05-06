@@ -263,6 +263,20 @@ public:
     void unsetFoldedTypedConst(AstNode& node) { NodePayload::removePayloadFlags(node, NodePayloadFlags::FoldedTypedConst); }
     void unsetFoldedTypedConst(AstNodeRef ref) { NodePayload::removePayloadFlags(node(ref), NodePayloadFlags::FoldedTypedConst); }
     void setFoldedTypedConst(AstNodeRef ref) { NodePayload::addPayloadFlags(node(ref), NodePayloadFlags::FoldedTypedConst); }
+    bool isConstAssignBinding(const AstNode& node) const { return NodePayload::hasPayloadFlags(node, NodePayloadFlags::ConstAssignBinding); }
+    bool isConstAssignBinding(AstNodeRef ref) const { return NodePayload::hasPayloadFlags(node(resolvedNodeRef(ref)), NodePayloadFlags::ConstAssignBinding); }
+    bool isConstAssignBindingStored(AstNodeRef ref) const;
+    void setConstAssignBinding(AstNode& node) { NodePayload::addPayloadFlags(node, NodePayloadFlags::ConstAssignBinding); }
+    void setConstAssignBinding(AstNodeRef ref) { NodePayload::addPayloadFlags(node(ref), NodePayloadFlags::ConstAssignBinding); }
+    void unsetConstAssignBinding(AstNode& node) { NodePayload::removePayloadFlags(node, NodePayloadFlags::ConstAssignBinding); }
+    void unsetConstAssignBinding(AstNodeRef ref) { NodePayload::removePayloadFlags(node(ref), NodePayloadFlags::ConstAssignBinding); }
+    bool isConstAssignTarget(const AstNode& node) const { return NodePayload::hasPayloadFlags(node, NodePayloadFlags::ConstAssignTarget); }
+    bool isConstAssignTarget(AstNodeRef ref) const { return NodePayload::hasPayloadFlags(node(resolvedNodeRef(ref)), NodePayloadFlags::ConstAssignTarget); }
+    bool isConstAssignTargetStored(AstNodeRef ref) const;
+    void setConstAssignTarget(AstNode& node) { NodePayload::addPayloadFlags(node, NodePayloadFlags::ConstAssignTarget); }
+    void setConstAssignTarget(AstNodeRef ref) { NodePayload::addPayloadFlags(node(ref), NodePayloadFlags::ConstAssignTarget); }
+    void unsetConstAssignTarget(AstNode& node) { NodePayload::removePayloadFlags(node, NodePayloadFlags::ConstAssignTarget); }
+    void unsetConstAssignTarget(AstNodeRef ref) { NodePayload::removePayloadFlags(node(ref), NodePayloadFlags::ConstAssignTarget); }
 
     void inheritPayloadFlags(AstNode& nodeDst, AstNodeRef srcRef) { NodePayload::propagatePayloadFlags(nodeDst, node(srcRef), NODE_PAYLOAD_FLAGS_MASK, false); }
     void inheritPayloadKindRef(AstNode& nodeDst, AstNodeRef srcRef) { NodePayload::inheritPayloadKindRef(nodeDst, node(srcRef)); }

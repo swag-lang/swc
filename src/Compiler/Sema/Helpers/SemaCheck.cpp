@@ -14,10 +14,22 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    bool isConstAssignmentTargetImpl(Sema& sema, AstNodeRef leftExprRef, const SemaNodeView& leftView);
+
     bool isIgnoredValuePoison(Sema& sema, AstNodeRef nodeRef)
     {
         const SemaNodeView symbolView = sema.viewSymbol(nodeRef);
         return symbolView.hasSymbol() && symbolView.sym() && symbolView.sym()->isIgnored();
+    }
+
+    bool isInlineConstAssignmentTarget(Sema& sema, AstNodeRef nodeRef)
+    {
+        return sema.isConstAssignTargetStored(nodeRef);
+    }
+
+    bool isInlineConstAssignmentBinding(Sema& sema, AstNodeRef nodeRef)
+    {
+        return sema.isConstAssignBindingStored(nodeRef);
     }
 
     AstNodeRef resolveNodeRefForCheck(Sema& sema, AstNodeRef nodeRef)
@@ -87,6 +99,8 @@ namespace
             return false;
 
         const SemaNodeView sourceView = sema.viewNodeTypeConstantSymbol(sourceRef);
+        if (isInlineConstAssignmentTarget(sema, sourceRef) || isConstAssignmentTargetImpl(sema, sourceRef, sourceView))
+            return true;
         if (!sourceView.type())
             return false;
         if (isConstSourceView(sema, sourceView))
@@ -141,6 +155,9 @@ namespace
     bool isConstAssignmentTargetImpl(Sema& sema, AstNodeRef leftExprRef, const SemaNodeView& leftView)
     {
         SWC_UNUSED(leftView);
+        if (isInlineConstAssignmentTarget(sema, leftExprRef))
+            return true;
+
         const AstNodeRef resolvedRef = resolveNodeRefForCheck(sema, leftExprRef);
         if (resolvedRef.isInvalid())
             return false;
@@ -358,6 +375,13 @@ Result SemaCheck::isValidSignature(Sema& sema, const std::vector<SymbolVariable*
 
 Result SemaCheck::isAssignable(Sema& sema, AstNodeRef errorNodeRef, AstNodeRef leftExprRef, const SemaNodeView& leftView)
 {
+    if (isInlineConstAssignmentBinding(sema, leftExprRef))
+    {
+        const auto diag = SemaError::report(sema, DiagnosticId::sema_err_assign_to_const, errorNodeRef);
+        diag.report(sema.ctx());
+        return Result::Error;
+    }
+
     // Disallow assignment to immutable lvalues:
     if (leftView.sym())
     {

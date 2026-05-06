@@ -53,9 +53,10 @@ namespace
 
     void assignInlineBindingExpr(SemaClone::ParamBinding& binding, const SymbolVariable& param, AstNodeRef exprRef)
     {
-        binding.idRef   = param.idRef();
-        binding.exprRef = exprRef;
-        binding.typeRef = TypeRef::invalid();
+        binding.idRef       = param.idRef();
+        binding.exprRef     = exprRef;
+        binding.typeRef     = TypeRef::invalid();
+        binding.sourceParam = &param;
     }
 
     struct InlineVariadicBinding

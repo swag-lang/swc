@@ -3,6 +3,7 @@
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Cast/Cast.h"
 #include "Compiler/Sema/Core/Sema.h"
+#include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Compiler/SourceFile.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -204,6 +205,19 @@ namespace
         return SemaClone::cloneAst(sema, nodeRef, noBindings);
     }
 
+    AstNodeRef markConstParamBindingTarget(Sema& sema, const SemaClone::ParamBinding& binding, AstNodeRef targetRef)
+    {
+        if (binding.sourceParam != nullptr && targetRef.isValid())
+        {
+            sema.setConstAssignBinding(targetRef);
+
+            const TypeInfo& paramType = binding.sourceParam->type(sema.ctx());
+            if (!paramType.isPointerOrReference())
+                sema.setConstAssignTarget(targetRef);
+        }
+        return targetRef;
+    }
+
     AstNodeRef cloneNodeReplacement(Sema& sema, const AstNode& node, const SemaClone::CloneContext& cloneContext)
     {
         const auto* replacement = findReplacement(cloneContext, node.id());
@@ -348,9 +362,12 @@ namespace
             const SemaClone::CloneContext noBindings{std::span<const SemaClone::ParamBinding>{}};
             const AstNodeRef              clonedExprRef = SemaClone::cloneAst(sema, binding->exprRef, noBindings);
             if (!binding->typeRef.isValid())
-                return clonedExprRef;
+                return markConstParamBindingTarget(sema, *binding, clonedExprRef);
 
-            return Cast::createCast(sema, binding->typeRef, clonedExprRef);
+            const AstNodeRef castRef = Cast::createCast(sema, binding->typeRef, clonedExprRef);
+            if (castRef.isInvalid())
+                return AstNodeRef::invalid();
+            return markConstParamBindingTarget(sema, *binding, castRef);
         }
 
         auto [nodeRef, nodePtr] = sema.ast().makeNode<AstNodeId::Identifier>(node.tokRef());

@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Compiler/Sema/Helpers/SemaCheck.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
+#include "Compiler/Sema/Cast/Cast.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
@@ -108,6 +109,35 @@ namespace
         return isConstSourceView(sema, sourceView);
     }
 
+    Result normalizeTypeInfoValueIfNeeded(Sema& sema, SemaNodeView& view)
+    {
+        if (!SemaHelpers::isTypeLikeTypeRef(sema.ctx(), view.typeRef()))
+            return Result::Continue;
+
+        bool        changed = false;
+        ConstantRef cstRef = view.cstRef();
+        if (cstRef.isValid())
+        {
+            SWC_RESULT(SemaHelpers::normalizeTypeInfoConstantRef(sema, cstRef, view.nodeRef()));
+            if (cstRef != view.cstRef())
+            {
+                sema.setConstant(view.nodeRef(), cstRef);
+                changed = true;
+            }
+        }
+
+        const TypeRef typeRef = SemaHelpers::normalizeTypeLikeValueTypeRef(sema, view.typeRef(), cstRef, view.nodeRef());
+        if (typeRef.isValid() && typeRef != view.typeRef())
+        {
+            sema.setType(view.nodeRef(), typeRef);
+            changed = true;
+        }
+
+        if (changed)
+            view.recompute(sema, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
+        return Result::Continue;
+    }
+
     bool isConstAssignmentTargetImpl(Sema& sema, AstNodeRef leftExprRef, const SemaNodeView& leftView)
     {
         SWC_UNUSED(leftView);
@@ -212,6 +242,31 @@ Result SemaCheck::isValueOrTypeInfo(Sema& sema, SemaNodeView& view)
     SWC_RESULT(sema.cstMgr().makeTypeInfo(sema, cstRef, view.typeRef(), view.nodeRef()));
     sema.setConstant(view.nodeRef(), cstRef);
     view.recompute(sema, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
+    return Result::Continue;
+}
+
+Result SemaCheck::prepareBoolExprValue(Sema& sema, SemaNodeView& view)
+{
+    SWC_RESULT(isValueOrTypeInfo(sema, view));
+    return normalizeTypeInfoValueIfNeeded(sema, view);
+}
+
+Result SemaCheck::castToBool(Sema& sema, SemaNodeView& view)
+{
+    const bool representedTypeValue = SemaHelpers::resolveRepresentedTypeRef(sema, view).isValid();
+    SWC_RESULT(prepareBoolExprValue(sema, view));
+    SWC_RESULT(Cast::cast(sema, view, sema.typeMgr().typeBool(), CastKind::BoolExpr));
+
+    if (representedTypeValue)
+    {
+        const SemaNodeView castView = sema.viewNodeTypeConstant(view.nodeRef());
+        if (castView.cstRef().isInvalid() || !sema.cstMgr().get(castView.cstRef()).isBool())
+        {
+            sema.setConstant(view.nodeRef(), sema.cstMgr().cstTrue());
+            view.recompute(sema, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
+        }
+    }
+
     return Result::Continue;
 }
 

@@ -60,8 +60,8 @@ Result AstLogicalExpr::semaPostNode(Sema& sema)
     SemaNodeView     nodeRightView = sema.viewNodeTypeConstant(nodeRightRef);
 
     // Value-check
-    SWC_RESULT(SemaCheck::isValue(sema, nodeLeftView.nodeRef()));
-    SWC_RESULT(SemaCheck::isValue(sema, nodeRightView.nodeRef()));
+    SWC_RESULT(SemaCheck::prepareBoolExprValue(sema, nodeLeftView));
+    SWC_RESULT(SemaCheck::prepareBoolExprValue(sema, nodeRightView));
     sema.setIsValue(*this);
 
     // Type-check

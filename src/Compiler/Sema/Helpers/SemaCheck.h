@@ -12,6 +12,8 @@ namespace SemaCheck
     Result isValue(Sema& sema, AstNodeRef nodeRef);
     Result isValueOrType(Sema& sema, SemaNodeView& view);
     Result isValueOrTypeInfo(Sema& sema, SemaNodeView& view);
+    Result prepareBoolExprValue(Sema& sema, SemaNodeView& view);
+    Result castToBool(Sema& sema, SemaNodeView& view);
     Result isConstant(Sema& sema, AstNodeRef nodeRef);
     bool   isConstAssignmentTarget(Sema& sema, AstNodeRef leftExprRef, const SemaNodeView& leftView);
     Result isAssignable(Sema& sema, AstNodeRef errorNodeRef, AstNodeRef leftExprRef, const SemaNodeView& leftView);

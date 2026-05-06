@@ -279,8 +279,7 @@ Result AstForCStyleStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childRe
     if (childRef == nodeExprRef)
     {
         SemaNodeView view = sema.viewNodeTypeConstant(nodeExprRef);
-        SWC_RESULT(SemaCheck::isValue(sema, view.nodeRef()));
-        SWC_RESULT(Cast::cast(sema, view, sema.typeMgr().typeBool(), CastKind::BoolExpr));
+        SWC_RESULT(SemaCheck::castToBool(sema, view));
     }
 
     return Result::Continue;
@@ -362,8 +361,7 @@ Result AstForeachStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef)
     if (childRef == nodeWhereRef)
     {
         SemaNodeView view = sema.viewNodeTypeConstant(nodeWhereRef);
-        SWC_RESULT(SemaCheck::isValue(sema, view.nodeRef()));
-        SWC_RESULT(Cast::cast(sema, view, sema.typeMgr().typeBool(), CastKind::BoolExpr));
+        SWC_RESULT(SemaCheck::castToBool(sema, view));
     }
 
     return Result::Continue;
@@ -471,8 +469,7 @@ Result AstForStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) con
     if (childRef == nodeWhereRef)
     {
         SemaNodeView view = sema.viewNodeTypeConstant(nodeWhereRef);
-        SWC_RESULT(SemaCheck::isValue(sema, view.nodeRef()));
-        SWC_RESULT(Cast::cast(sema, view, sema.typeMgr().typeBool(), CastKind::BoolExpr));
+        SWC_RESULT(SemaCheck::castToBool(sema, view));
     }
 
     return Result::Continue;
@@ -520,8 +517,7 @@ Result AstWhileStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) c
     if (childRef == nodeExprRef)
     {
         SemaNodeView view = sema.viewNodeTypeConstant(nodeExprRef);
-        SWC_RESULT(SemaCheck::isValue(sema, view.nodeRef()));
-        SWC_RESULT(Cast::cast(sema, view, sema.typeMgr().typeBool(), CastKind::BoolExpr));
+        SWC_RESULT(SemaCheck::castToBool(sema, view));
     }
 
     return Result::Continue;

@@ -129,13 +129,12 @@ Result AstConditionalExpr::semaPostNode(Sema& sema)
     SemaNodeView       nodeFalseView = sema.viewNodeTypeConstant(nodeFalseRef);
 
     // Value-check
-    SWC_RESULT(SemaCheck::isValue(sema, nodeCondView.nodeRef()));
     SWC_RESULT(SemaCheck::isValueOrTypeInfo(sema, nodeTrueView));
     SWC_RESULT(SemaCheck::isValueOrTypeInfo(sema, nodeFalseView));
     sema.setIsValue(*this);
 
     // Condition must be bool
-    SWC_RESULT(Cast::cast(sema, nodeCondView, sema.typeMgr().typeBool(), CastKind::BoolExpr));
+    SWC_RESULT(SemaCheck::castToBool(sema, nodeCondView));
 
     // Make both branches compatible
     TypeRef typeRef = TypeRef::invalid();

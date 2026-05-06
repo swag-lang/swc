@@ -3,6 +3,7 @@
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Cast/Cast.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
+#include "Compiler/Sema/Helpers/SemaCheck.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Symbol/Symbol.Alias.h"
 #include "Compiler/Sema/Symbol/Symbol.Constant.h"
@@ -366,7 +367,7 @@ Result AstIfStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) cons
     if (childRef == nodeConditionRef)
     {
         SemaNodeView view = sema.viewNodeTypeConstant(nodeConditionRef);
-        SWC_RESULT(Cast::cast(sema, view, sema.typeMgr().typeBool(), CastKind::BoolExpr));
+        SWC_RESULT(SemaCheck::castToBool(sema, view));
     }
 
     return Result::Continue;
@@ -398,7 +399,7 @@ Result AstIfVarDecl::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) c
     if (childRef == nodeWhereRef)
     {
         SemaNodeView view   = sema.viewNodeTypeConstant(nodeWhereRef);
-        const Result result = Cast::cast(sema, view, sema.typeMgr().typeBool(), CastKind::BoolExpr);
+        const Result result = SemaCheck::castToBool(sema, view);
         restoreMaskedIfVarDeclCondition(sema, sema.curNodeRef());
         return result;
     }

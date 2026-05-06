@@ -7,6 +7,7 @@
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Constant/ConstantLower.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
+#include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
 
@@ -385,6 +386,8 @@ namespace
         TypeRef         storageTypeRef = typeInfo.unwrap(codeGen.ctx(), typeRef, TypeExpandE::Alias);
         if (storageTypeRef.isInvalid())
             storageTypeRef = typeRef;
+        if (cstRef.isValid())
+            storageTypeRef = SemaHelpers::deduceConcretizedAggregateLiteralType(codeGen.sema(), storageTypeRef, cstRef);
 
         const TypeInfo& storageType = codeGen.typeMgr().get(storageTypeRef);
         if (!storageType.isStruct() && !storageType.isArray() && !storageType.isAggregateStruct() && !storageType.isAggregateArray())
@@ -396,9 +399,9 @@ namespace
         SmallVector<std::byte> storageBytes;
         storageBytes.resize(storageSize);
         if (storageSize)
-            SWC_INTERNAL_CHECK(ConstantLower::lowerToBytes(codeGen.sema(), ByteSpanRW{storageBytes.data(), storageBytes.size()}, cstRef, typeRef) == Result::Continue);
+            SWC_INTERNAL_CHECK(ConstantLower::lowerToBytes(codeGen.sema(), ByteSpanRW{storageBytes.data(), storageBytes.size()}, cstRef, storageTypeRef) == Result::Continue);
 
-        return CodeGenConstantHelpers::materializeStaticPayloadConstant(codeGen, typeRef, ByteSpan{storageBytes.data(), storageBytes.size()});
+        return CodeGenConstantHelpers::materializeStaticPayloadConstant(codeGen, storageTypeRef, ByteSpan{storageBytes.data(), storageBytes.size()});
     }
 
     void emitPointerConstant(CodeGen& codeGen, MicroReg reg, const uint64_t value, ConstantRef cstRef)

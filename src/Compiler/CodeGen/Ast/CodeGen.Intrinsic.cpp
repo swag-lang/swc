@@ -1339,7 +1339,21 @@ namespace
         else if (exprType.isString() || exprType.isSlice() || exprType.isAny())
             builder.emitLoadRegMem(payload.reg, exprPayload.reg, 0, MicroOpBits::B64);
         else if (exprType.isArray())
-            builder.emitLoadRegReg(payload.reg, exprPayload.reg, MicroOpBits::B64);
+        {
+            if (exprPayload.isAddress())
+            {
+                builder.emitLoadRegReg(payload.reg, exprPayload.reg, MicroOpBits::B64);
+            }
+            else
+            {
+                const uint32_t copySize = CodeGenFunctionHelpers::checkedTypeSizeInBytes(codeGen, exprType);
+                SWC_ASSERT(copySize == 1 || copySize == 2 || copySize == 4 || copySize == 8);
+
+                const MicroReg storageReg = codeGen.runtimeStorageAddressReg(exprRef);
+                CodeGenMemoryHelpers::storePayloadToAddress(codeGen, storageReg, exprPayload, copySize);
+                builder.emitLoadRegReg(payload.reg, storageReg, MicroOpBits::B64);
+            }
+        }
         else if (exprPayload.isAddress())
             builder.emitLoadRegMem(payload.reg, exprPayload.reg, 0, MicroOpBits::B64);
         else

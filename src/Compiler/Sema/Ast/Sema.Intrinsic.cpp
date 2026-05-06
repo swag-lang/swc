@@ -320,6 +320,10 @@ namespace
         if (!resultTypeRef.isValid())
             return SemaError::raiseInvalidType(sema, view.nodeRef(), view.typeRef(), sema.typeMgr().typeBlockPtrVoid());
 
+        const TypeRef sourceRuntimeStorageTypeRef = SemaHelpers::smallByValueArrayRuntimeStorageTypeRef(sema, view.nodeRef(), dataTypeRef, view.cstRef());
+        if (sourceRuntimeStorageTypeRef.isValid() && sema.isCurrentFunction())
+            SWC_RESULT(SemaHelpers::attachRuntimeStorageIfNeeded(sema, view.nodeRef(), sema.node(view.nodeRef()), sourceRuntimeStorageTypeRef, "__dataof_source_runtime_storage"));
+
         sema.setType(sema.curNodeRef(), resultTypeRef);
         ConstantIntrinsic::tryConstantFoldDataOf(sema, resultTypeRef, view);
         sema.setIsValue(node);

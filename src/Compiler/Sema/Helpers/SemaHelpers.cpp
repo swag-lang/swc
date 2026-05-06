@@ -722,6 +722,27 @@ Result SemaHelpers::attachIndirectReturnRuntimeStorageIfNeeded(Sema& sema, const
     return attachIndirectReturnRuntimeStorageIfNeeded(sema, sema.curNodeRef(), node, calledFn, privateName);
 }
 
+TypeRef SemaHelpers::smallByValueArrayRuntimeStorageTypeRef(Sema& sema, AstNodeRef exprRef, TypeRef exprTypeRef, ConstantRef exprCstRef)
+{
+    if (!exprTypeRef.isValid())
+        return TypeRef::invalid();
+    if (exprCstRef.isValid())
+        return TypeRef::invalid();
+    if (sema.isLValue(exprRef))
+        return TypeRef::invalid();
+
+    const TypeRef   storageTypeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), exprTypeRef);
+    const TypeInfo& storageType    = sema.typeMgr().get(storageTypeRef);
+    if (!storageType.isArray())
+        return TypeRef::invalid();
+
+    const uint64_t storageSize = storageType.sizeOf(sema.ctx());
+    if (storageSize != 1 && storageSize != 2 && storageSize != 4 && storageSize != 8)
+        return TypeRef::invalid();
+
+    return storageTypeRef;
+}
+
 TypeRef SemaHelpers::borrowedAggregateArgumentRuntimeStorageTypeRef(Sema& sema, const SymbolFunction& calledFn, TypeRef paramTypeRef)
 {
     if (sema.isGlobalScope() || !paramTypeRef.isValid())

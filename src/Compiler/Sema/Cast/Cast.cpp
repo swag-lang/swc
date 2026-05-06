@@ -39,25 +39,13 @@ namespace
     {
         if (!srcTypeRef.isValid() || !dstTypeRef.isValid())
             return TypeRef::invalid();
-        if (srcConstRef.isValid())
-            return TypeRef::invalid();
-        if (sema.isLValue(srcNodeRef))
-            return TypeRef::invalid();
 
-        const TypeRef   srcStorageTypeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), srcTypeRef);
         const TypeRef   dstStorageTypeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), dstTypeRef);
-        const TypeInfo& srcType           = sema.typeMgr().get(srcStorageTypeRef);
         const TypeInfo& dstType           = sema.typeMgr().get(dstStorageTypeRef);
-        if (!srcType.isArray())
-            return TypeRef::invalid();
         if (!dstType.isSlice() && !dstType.isString())
             return TypeRef::invalid();
 
-        const uint64_t storageSize = srcType.sizeOf(sema.ctx());
-        if (storageSize != 1 && storageSize != 2 && storageSize != 4 && storageSize != 8)
-            return TypeRef::invalid();
-
-        return srcStorageTypeRef;
+        return SemaHelpers::smallByValueArrayRuntimeStorageTypeRef(sema, srcNodeRef, srcTypeRef, srcConstRef);
     }
 
 }

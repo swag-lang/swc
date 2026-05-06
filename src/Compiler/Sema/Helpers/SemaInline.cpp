@@ -1395,12 +1395,10 @@ Result SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFun
     SWC_RESULT(waitInlineResultTypeIfNeeded(sema, callRef, returnTypeRef));
 
     SmallVector<AstNodeRef> materializedBindings;
-    if (!fn.attributes().hasRtFlag(RtAttributeFlagsE::Macro))
-    {
-        // Mixins expand into the caller body like inline functions do, so closure captures and
-        // non-addressable aggregate uses still need concrete local bindings before cloning.
-        SWC_RESULT(materializeInlineBindings(sema, fn, *declAst, *decl, bindings, materializedBindings));
-    }
+    // Inline functions, mixins, and macros all substitute runtime bindings into the caller body.
+    // Closure captures and non-addressable aggregate uses still need concrete locals before
+    // cloning, while #code parameters are explicitly skipped inside materializeInlineBindings.
+    SWC_RESULT(materializeInlineBindings(sema, fn, *declAst, *decl, bindings, materializedBindings));
 
     const SemaClone::CloneContext cloneContext{bindings.span(), std::span<const SemaClone::NodeReplacement>{}, false, declAst};
     const AstNodeRef              inlineRootRef = isMixin ? mixinBodyRef(sema, *decl, cloneContext, materializedBindings.span()) : inlineBodyRef(sema, *decl, cloneContext, materializedBindings.span());

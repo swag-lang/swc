@@ -2036,8 +2036,10 @@ Result Cast::castToAny(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef,
     if (!hasTypeInfoRef)
         return Result::Error;
 
-    DataSegment& segment            = sema.cstMgr().shardDataSegment(typeInfoRef.shardIndex);
-    const auto [anyOffset, storage] = segment.reserveBytes(sizeof(Runtime::Any), alignof(Runtime::Any), true);
+    const uint64_t boxedValueSize   = sema.typeMgr().get(boxedAnyTypeRef).sizeOf(ctx);
+    const bool     needsEmptySlot   = boxedValueSize == 0;
+    DataSegment&   segment          = sema.cstMgr().shardDataSegment(typeInfoRef.shardIndex);
+    const auto [anyOffset, storage] = segment.reserveBytes(sizeof(Runtime::Any) + (needsEmptySlot ? 1u : 0u), alignof(Runtime::Any), true);
     auto* runtimeAny                = reinterpret_cast<Runtime::Any*>(storage);
     runtimeAny->type                = segment.ptr<Runtime::TypeInfo>(typeInfoRef.offset);
     segment.addRelocation(anyOffset + offsetof(Runtime::Any, type), typeInfoRef.offset);
@@ -2045,7 +2047,6 @@ Result Cast::castToAny(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef,
     if (!srcCst.isNull())
     {
         const uint64_t valueSize = srcType->sizeOf(ctx);
-        const uint64_t boxedValueSize = sema.typeMgr().get(boxedAnyTypeRef).sizeOf(ctx);
         SWC_ASSERT(valueSize <= std::numeric_limits<uint32_t>::max());
         SWC_ASSERT(boxedValueSize <= std::numeric_limits<uint32_t>::max());
 
@@ -2067,6 +2068,12 @@ Result Cast::castToAny(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef,
             }
 
             runtimeAny->value = segment.ptr<std::byte>(valueOffset);
+            segment.addRelocation(anyOffset + offsetof(Runtime::Any, value), valueOffset);
+        }
+        else
+        {
+            const uint32_t valueOffset = anyOffset + sizeof(Runtime::Any);
+            runtimeAny->value          = segment.ptr<std::byte>(valueOffset);
             segment.addRelocation(anyOffset + offsetof(Runtime::Any, value), valueOffset);
         }
     }

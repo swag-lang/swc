@@ -125,7 +125,7 @@ TypeRef Cast::runtimeStorageTypeRef(Sema& sema, TypeRef srcTypeRef, TypeRef dstT
     if (!srcType.isAny() && dstType.isAny())
     {
         constexpr uint64_t     anyStorageSize = sizeof(Runtime::Any);
-        const uint64_t         valueStorage   = srcType.sizeOf(sema.ctx());
+        const uint64_t         valueStorage   = std::max<uint64_t>(1, srcType.sizeOf(sema.ctx()));
         SmallVector4<uint64_t> dims;
         dims.push_back(anyStorageSize + valueStorage);
         return sema.typeMgr().addType(TypeInfo::makeArray(dims, sema.typeMgr().typeU8()));

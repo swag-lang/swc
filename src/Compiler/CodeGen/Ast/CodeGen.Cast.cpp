@@ -1217,14 +1217,33 @@ namespace
                 auto srcValueBits = MicroOpBits::Zero;
                 if (!anyCastAsValueBits(codeGen, sourceTypeRef, srcValueBits))
                 {
-                    codeGen.inheritPayload(codeGen.curNodeRef(), srcNodeRef, dstTypeRef);
-                    return Result::Continue;
+                    const uint64_t sourceSize = srcType.sizeOf(codeGen.ctx());
+                    if (sourceSize == 1 || sourceSize == 2 || sourceSize == 4 || sourceSize == 8)
+                    {
+                        valuePtrReg = codeGen.nextVirtualIntRegister();
+                        builder.emitLoadRegReg(valuePtrReg, runtimeAnyReg, MicroOpBits::B64);
+                        builder.emitOpBinaryRegImm(valuePtrReg, ApInt(sizeof(Runtime::Any), 64), MicroOp::Add, MicroOpBits::B64);
+                        builder.emitLoadMemReg(valuePtrReg, 0, srcPayload.reg, CodeGenTypeHelpers::bitsFromStorageSize(sourceSize));
+                    }
+                    else if (sourceSize == 0)
+                    {
+                        valuePtrReg = codeGen.nextVirtualIntRegister();
+                        builder.emitLoadRegReg(valuePtrReg, runtimeAnyReg, MicroOpBits::B64);
+                        builder.emitOpBinaryRegImm(valuePtrReg, ApInt(sizeof(Runtime::Any), 64), MicroOp::Add, MicroOpBits::B64);
+                    }
+                    else
+                    {
+                        codeGen.inheritPayload(codeGen.curNodeRef(), srcNodeRef, dstTypeRef);
+                        return Result::Continue;
+                    }
                 }
-
-                valuePtrReg = codeGen.nextVirtualIntRegister();
-                builder.emitLoadRegReg(valuePtrReg, runtimeAnyReg, MicroOpBits::B64);
-                builder.emitOpBinaryRegImm(valuePtrReg, ApInt(sizeof(Runtime::Any), 64), MicroOp::Add, MicroOpBits::B64);
-                builder.emitLoadMemReg(valuePtrReg, 0, srcPayload.reg, srcValueBits);
+                else
+                {
+                    valuePtrReg = codeGen.nextVirtualIntRegister();
+                    builder.emitLoadRegReg(valuePtrReg, runtimeAnyReg, MicroOpBits::B64);
+                    builder.emitOpBinaryRegImm(valuePtrReg, ApInt(sizeof(Runtime::Any), 64), MicroOp::Add, MicroOpBits::B64);
+                    builder.emitLoadMemReg(valuePtrReg, 0, srcPayload.reg, srcValueBits);
+                }
             }
 
             builder.emitLoadMemReg(runtimeAnyReg, offsetof(Runtime::Any, value), valuePtrReg, MicroOpBits::B64);

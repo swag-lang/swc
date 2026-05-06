@@ -493,6 +493,16 @@ namespace
             return Result::Continue;
         }
 
+        const uint64_t boxedValueSize = sema.typeMgr().get(boxedValueTypeRef).sizeOf(sema.ctx());
+        if (!boxedValueSize)
+        {
+            const uint8_t zeroByte = 0;
+            const std::string_view payloadData = sema.cstMgr().addPayloadBuffer(asStringView(rawBytes(&zeroByte, sizeof(zeroByte))));
+            anyValue.value                    = const_cast<char*>(payloadData.data());
+            writeValue(dstBytes, anyValue);
+            return Result::Continue;
+        }
+
         const char* loweredValueData = nullptr;
         SWC_RESULT(lowerConstantToPayloadBuffer(loweredValueData, sema, valueCstRef, boxedValueTypeRef));
         anyValue.value = const_cast<char*>(loweredValueData);

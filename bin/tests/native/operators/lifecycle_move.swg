@@ -203,6 +203,17 @@ func moveRefAssignInfo()->LifecycleInfo
     return {dst.value, src.value, DropCount, DropTrace, PostCopyCount, PostMoveCount}
 }
 
+func sliceMoveRefAssignInfo()->LifecycleInfo
+{
+    resetLifecycleHooks()
+    var dst: Tracked
+    var src: [2] Tracked = [Tracked{1}, Tracked{2}]
+    let slice = @mkslice(&src[0], 2)
+    var rr: &&Tracked = moveref &slice[0]
+    dst = #move rr
+    return {dst.value, src[0].value, DropCount, DropTrace, PostCopyCount, PostMoveCount}
+}
+
 func overloadCopyInfo()->LifecycleInfo
 {
     resetLifecycleHooks()
@@ -480,4 +491,15 @@ func returnCopyInfo()->LifecycleInfo
     let v = returnCopyInfo()
     @assert(v.dst == 14)
     @assert(v.src == 0)
+}
+
+#test
+{
+    let v = sliceMoveRefAssignInfo()
+    @assert(v.dst == 21)
+    @assert(v.src == 5)
+    @assert(v.drops == 1)
+    @assert(v.dropTrace == 5)
+    @assert(v.postCopy == 0)
+    @assert(v.postMove == 1)
 }

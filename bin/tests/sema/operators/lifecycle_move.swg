@@ -203,6 +203,17 @@ func moveRefAssignInfo()->LifecycleInfo
     return {dst.value, src.value, DropCount, DropTrace, PostCopyCount, PostMoveCount}
 }
 
+func sliceMoveRefAssignInfo()->LifecycleInfo
+{
+    resetLifecycleHooks()
+    var dst: Tracked
+    var src: [2] Tracked = [Tracked{1}, Tracked{2}]
+    let slice = @mkslice(&src[0], 2)
+    var rr: &&Tracked = moveref &slice[0]
+    dst = #move rr
+    return {dst.value, src[0].value, DropCount, DropTrace, PostCopyCount, PostMoveCount}
+}
+
 func overloadCopyInfo()->LifecycleInfo
 {
     resetLifecycleHooks()
@@ -480,4 +491,15 @@ func semaTest018()
     const V = #run returnCopyInfo()
     #assert(V.dst == 14)
     #assert(V.src == 0)
+}
+
+func semaTest019()
+{
+    const V = #run sliceMoveRefAssignInfo()
+    #assert(V.dst == 21)
+    #assert(V.src == 5)
+    #assert(V.drops == 1)
+    #assert(V.dropTrace == 5)
+    #assert(V.postCopy == 0)
+    #assert(V.postMove == 1)
 }

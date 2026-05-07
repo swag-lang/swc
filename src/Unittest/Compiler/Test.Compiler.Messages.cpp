@@ -8,6 +8,8 @@
 #include "Main/Command/CommandLine.h"
 #include "Main/CompilerInstance.h"
 #include "Main/TaskContext.h"
+#include "Support/Report/Diagnostic.h"
+#include "Support/Report/DiagnosticBuilder.h"
 #include "Unittest/Unittest.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -71,6 +73,25 @@ SWC_TEST_BEGIN(Compiler_MessageAliasPayloadUsesUnderlyingType)
 
     const TypeInfo& aliasType = ctx.typeMgr().get(aliasTypeRef);
     if (aliasType.payloadTypeRef() != ctx.typeMgr().typeConstValuePtrVoid())
+        return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(Compiler_AssertDiagnosticPreservesLiteralSuffixQuotes)
+{
+    CommandLine cmdLine;
+    cmdLine.command     = CommandKind::Test;
+    cmdLine.logColor    = false;
+    cmdLine.syntaxColor = false;
+
+    TaskContext localCtx(ctx.global(), cmdLine);
+    Diagnostic  diag = Diagnostic::get(DiagnosticId::sema_err_assert_failed);
+    diag.addArgument(Diagnostic::ARG_BECAUSE, "text[0] == 'w''u8 + 'd''u8");
+
+    DiagnosticBuilder builder(localCtx, diag);
+    const Utf8        text = builder.build();
+
+    if (text.find("assertion failed: text[0] == 'w''u8 + 'd''u8") == Utf8::npos)
         return Result::Error;
 }
 SWC_TEST_END()

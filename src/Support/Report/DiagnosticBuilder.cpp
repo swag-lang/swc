@@ -109,6 +109,57 @@ namespace
 
         return i;
     }
+
+    bool isAsciiIdentifierHead(const char ch)
+    {
+        const unsigned char uch = static_cast<unsigned char>(ch);
+        return std::isalpha(uch) || ch == '_';
+    }
+
+    bool isAsciiIdentifierTail(const char ch)
+    {
+        const unsigned char uch = static_cast<unsigned char>(ch);
+        return std::isalnum(uch) || ch == '_';
+    }
+
+    bool isLiteralSuffixAnchor(const char ch)
+    {
+        const unsigned char uch = static_cast<unsigned char>(ch);
+        return std::isalnum(uch) || ch == '_' || ch == '\'' || ch == '"' || ch == ')' || ch == ']' || ch == '}';
+    }
+
+    bool isLiteralSuffixQuote(std::string_view msg, const size_t index)
+    {
+        if (index == 0 || index + 1 >= msg.size() || msg[index] != '\'')
+            return false;
+        if (!isAsciiIdentifierHead(msg[index + 1]))
+            return false;
+        return isLiteralSuffixAnchor(msg[index - 1]);
+    }
+
+    void removeRedundantEmptyQuotes(Utf8& text)
+    {
+        Utf8 cleaned;
+        cleaned.reserve(text.length());
+
+        for (size_t i = 0; i < text.length(); ++i)
+        {
+            if (i + 1 < text.length() && text[i] == '\'' && text[i + 1] == '\'')
+            {
+                const char prev = i ? text[i - 1] : '\0';
+                const char next = i + 2 < text.length() ? text[i + 2] : '\0';
+                if (!(isLiteralSuffixAnchor(prev) && isAsciiIdentifierHead(next)))
+                {
+                    ++i;
+                    continue;
+                }
+            }
+
+            cleaned += text[i];
+        }
+
+        text = std::move(cleaned);
+    }
 }
 
 DiagnosticBuilder::DiagnosticBuilder(const TaskContext& ctx, const Diagnostic& diag) :
@@ -349,8 +400,19 @@ void DiagnosticBuilder::writeHighlightedMessage(DiagnosticSeverity sev, std::str
         {
             if (ch == '\'')
             {
-                inQuote   = true;
-                quotedBuf = '\'';
+                if (isLiteralSuffixQuote(msg, i))
+                {
+                    out_ += qColor;
+                    out_ += '\'';
+                    while (i + 1 < msg.size() && isAsciiIdentifierTail(msg[i + 1]))
+                        out_ += msg[++i];
+                    out_ += reset;
+                }
+                else
+                {
+                    inQuote   = true;
+                    quotedBuf = '\'';
+                }
             }
             else
             {
@@ -748,7 +810,7 @@ Utf8 DiagnosticBuilder::buildMessage(const Utf8& msg, const DiagnosticElement* e
 
     // Clean some stuff
     result = std::regex_replace(result, std::regex{R"(\{\w+\})"}, "");
-    result = std::regex_replace(result, std::regex{R"(\'\')"}, "");
+    removeRedundantEmptyQuotes(result);
     result.replace_loop(" , ", ", ");
     result.replace_loop("  ", " ", true);
 

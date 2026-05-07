@@ -616,7 +616,7 @@ namespace
                parent.is(AstNodeId::ParenExpr);
     }
 
-    bool tryUseVarInitStorageForDirectCallResult(CodeGen& codeGen, AstNodeRef callRef, MicroReg& outStorageReg, SymbolVariable*& outStorageSym)
+    bool tryUseVarInitStorageForDirectCallResult(CodeGen& codeGen, AstNodeRef callRef, TypeRef returnTypeRef, MicroReg& outStorageReg, SymbolVariable*& outStorageSym)
     {
         outStorageReg = MicroReg::invalid();
         outStorageSym = nullptr;
@@ -624,6 +624,12 @@ namespace
         const AstNodeRef resolvedCallRef = codeGen.viewZero(callRef).nodeRef();
         if (resolvedCallRef.isInvalid())
             return false;
+        if (!returnTypeRef.isValid())
+            return false;
+
+        const TypeInfo& returnType          = codeGen.typeMgr().get(returnTypeRef);
+        const TypeRef   unwrappedReturnType = returnType.unwrap(codeGen.ctx(), returnTypeRef, TypeExpandE::Alias);
+        const TypeRef   storageReturnType   = unwrappedReturnType.isValid() ? unwrappedReturnType : returnTypeRef;
 
         for (size_t parentIndex = 0;; ++parentIndex)
         {
@@ -647,6 +653,15 @@ namespace
                 return false;
 
             auto& symVar = symbol->cast<SymbolVariable>();
+            if (!symVar.typeRef().isValid())
+                return false;
+
+            const TypeInfo& storageType          = codeGen.typeMgr().get(symVar.typeRef());
+            const TypeRef   unwrappedStorageType = storageType.unwrap(codeGen.ctx(), symVar.typeRef(), TypeExpandE::Alias);
+            const TypeRef   storageTypeRef       = unwrappedStorageType.isValid() ? unwrappedStorageType : symVar.typeRef();
+            if (storageTypeRef != storageReturnType)
+                return false;
+
             if (CodeGenFunctionHelpers::usesCallerReturnStorage(codeGen, symVar))
             {
                 const CodeGenNodePayload storagePayload = CodeGenFunctionHelpers::resolveCallerReturnStoragePayload(codeGen, symVar);
@@ -1506,8 +1521,10 @@ Result CodeGenCallHelpers::codeGenCallExprCommon(CodeGen& codeGen, AstNodeRef ca
     bool            usesCurrentFunctionReturnStorage = false;
     if (normalizedRet.isIndirect)
     {
-        if (codeGen.hasLifecycle(calledFunction.returnTypeRef(), CodeGen::LifecycleKind::PostCopy))
-            tryUseVarInitStorageForDirectCallResult(codeGen, codeGen.curNodeRef(), hiddenRetStorageReg, directVarInitStorageSym);
+        // Reuse the destination variable storage for indirect direct-call results whenever possible.
+        // Otherwise the ABI helper falls back to compiler-segment scratch storage, which the native
+        // backend cannot serialize into object-file relocations.
+        tryUseVarInitStorageForDirectCallResult(codeGen, codeGen.curNodeRef(), calledFunction.returnTypeRef(), hiddenRetStorageReg, directVarInitStorageSym);
 
         if (!hiddenRetStorageReg.isValid())
             usesCurrentFunctionReturnStorage = CodeGenFunctionHelpers::tryUseCurrentFunctionReturnStorageForDirectExpr(codeGen, codeGen.curNodeRef(), hiddenRetStorageReg);

@@ -411,14 +411,15 @@ impl StaticArray
         if !num do
             return
         Debug.assert(index + num <= .count, "index out of range")
+        let shiftCount = .count - (index + num)
 
         #if !Reflection.hasPostMove(T) and !Reflection.hasDrop(T)
         {
-            Memory.copyOver(cast([*] T) &.buffer[0] + index, cast([*] T) &.buffer[0] + index + num, (.count - (index + num)) * #sizeof(T))
+            Memory.copyOver(cast([*] T) &.buffer[0] + index, cast([*] T) &.buffer[0] + index + num, shiftCount * #sizeof(T))
         }
         #else
         {
-            for i in .count - num
+            for i in shiftCount
             {
                 .buffer[index + i] = #moveraw .buffer[index + num + i]
             }

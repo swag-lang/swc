@@ -577,14 +577,15 @@ impl Array
         if !num do
             return
         Debug.safetyBoundCheck(index + num <= .count, "index out of range")
+        let shiftCount = .count - (index + num)
 
         #if !Reflection.hasPostMove(T) and !Reflection.hasDrop(T)
         {
-            Memory.copyOver(.buffer + index, .buffer + index + num, (.count - (index + num)) * #sizeof(T))
+            Memory.copyOver(.buffer + index, .buffer + index + num, shiftCount * #sizeof(T))
         }
         #else
         {
-            for i in .count - num
+            for i in shiftCount
             {
                 .buffer[index + i] = #moveraw .buffer[index + num + i]
             }

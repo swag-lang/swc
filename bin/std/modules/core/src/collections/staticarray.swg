@@ -97,7 +97,7 @@ impl StaticArray
         var countof = @countof(arr)
         if !countof do
             return
-        Debug.assert(countof < N, "slice is too big")
+        Debug.assert(countof <= N, "slice is too big")
         var dataof = @dataof(arr)
 
         #if Reflection.hasPostCopy(T)
@@ -181,15 +181,17 @@ impl StaticArray
     {
         if newCount == .count do
             return
-        Debug.assert(newCount < N, "size is too big")
+        Debug.assert(newCount <= N, "size is too big")
         if newCount > .count
         {
-            @init(buffer + .count, newCount - .count)
+            let data = cast([*] T) &.buffer[0]
+            @init(data + .count, newCount - .count)
             .count = newCount
         }
         else
         {
-            @drop(buffer + newCount, .count - newCount)
+            let data = cast([*] T) &.buffer[0]
+            @drop(data + newCount, .count - newCount)
             .count = newCount
         }
     }

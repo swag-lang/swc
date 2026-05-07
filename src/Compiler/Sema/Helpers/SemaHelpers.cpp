@@ -35,7 +35,7 @@ namespace
     {
         SWC_ASSERT(targetType.isIntLike());
 
-        ApsInt         value      = cst.getIntLike();
+        const ApsInt   value      = cst.getIntLike();
         const uint32_t targetBits = targetType.payloadIntLikeBits();
         const uint32_t valueBits  = value.bitWidth();
         const uint32_t checkBits  = (valueBits > targetBits + 1) ? valueBits : (targetBits + 1);
@@ -191,7 +191,7 @@ namespace
 
     TypeRef runtimeTypeRefOrDeclaredSymbolTypeRef(Sema& sema, IdentifierManager::PredefinedName name)
     {
-        TypeRef typeRef = sema.typeMgr().runtimeType(name);
+        const TypeRef typeRef = sema.typeMgr().runtimeType(name);
         if (typeRef.isValid())
             return typeRef;
 
@@ -218,8 +218,8 @@ namespace
 
     TypeRef specializedTypeInfoStructTypeRef(Sema& sema, TypeRef representedTypeRef)
     {
-        using Pn             = IdentifierManager::PredefinedName;
-        TypeManager& typeMgr = sema.typeMgr();
+        using Pn                   = IdentifierManager::PredefinedName;
+        const TypeManager& typeMgr = sema.typeMgr();
         if (!representedTypeRef.isValid())
             return runtimeTypeRefOrDeclaredSymbolTypeRef(sema, Pn::TypeInfo);
 
@@ -355,7 +355,7 @@ namespace
         if (!cstRef.isValid() || !targetTypeRef.isValid())
             return false;
 
-        TypeManager&         typeMgr    = sema.typeMgr();
+        const TypeManager&   typeMgr    = sema.typeMgr();
         const ConstantValue& cst        = sema.cstMgr().get(cstRef);
         const TypeInfo&      targetType = typeMgr.get(targetTypeRef);
         const TypeInfo&      cstType    = typeMgr.get(cst.typeRef());
@@ -524,8 +524,8 @@ namespace
         if (!sameArrayDimensions(leftType.payloadArrayDims(), rightType.payloadArrayDims()))
             return TypeRef::invalid();
 
-        const std::array<TypeRef, 2> elementTypes      = {leftType.payloadArrayElemTypeRef(), rightType.payloadArrayElemTypeRef()};
-        const TypeRef                mergedElemTypeRef = deduceConcretizedAggregateArrayElementType(sema, elementTypes, nullptr);
+        const std::array elementTypes      = {leftType.payloadArrayElemTypeRef(), rightType.payloadArrayElemTypeRef()};
+        const TypeRef    mergedElemTypeRef = deduceConcretizedAggregateArrayElementType(sema, elementTypes, nullptr);
         if (!mergedElemTypeRef.isValid())
             return TypeRef::invalid();
 
@@ -538,7 +538,7 @@ namespace
 
     TypeRef deduceConcretizedAggregateArrayElementType(Sema& sema, std::span<const TypeRef> elemTypes, const std::vector<ConstantRef>* values)
     {
-        TypeManager&         typeMgr = sema.typeMgr();
+        const TypeManager&   typeMgr = sema.typeMgr();
         SmallVector<TypeRef> concreteElemTypes;
         concreteElemTypes.reserve(elemTypes.size());
 

@@ -224,8 +224,7 @@ void NativeValidate::validateNativeStaticPayload(const TypeRef typeRef, const ui
     SWC_ASSERT(typeRef.isValid());
 
     SWC_ASSERT(builder_ != nullptr);
-    const DataSegment& segment  = builder_->compiler().cstMgr().shardDataSegment(shardIndex);
-    const TypeInfo&    typeInfo = builder_->ctx().typeMgr().get(typeRef);
+    const TypeInfo& typeInfo = builder_->ctx().typeMgr().get(typeRef);
     if (typeInfo.isAlias())
     {
         const TypeRef unwrapped = typeInfo.unwrap(builder_->ctx(), typeRef, TypeExpandE::Alias);

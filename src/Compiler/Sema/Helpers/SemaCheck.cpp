@@ -23,12 +23,12 @@ namespace
         return symbolView.hasSymbol() && symbolView.sym() && symbolView.sym()->isIgnored();
     }
 
-    bool isInlineConstAssignmentTarget(Sema& sema, AstNodeRef nodeRef)
+    bool isInlineConstAssignmentTarget(const Sema& sema, AstNodeRef nodeRef)
     {
         return sema.isConstAssignTargetStored(nodeRef);
     }
 
-    bool isInlineConstAssignmentBinding(Sema& sema, AstNodeRef nodeRef)
+    bool isInlineConstAssignmentBinding(const Sema& sema, AstNodeRef nodeRef)
     {
         return sema.isConstAssignBindingStored(nodeRef);
     }
@@ -90,7 +90,7 @@ namespace
             return nullptr;
 
         const IdentifierRef idRef = sema.idMgr().addIdentifier(sema.ctx(), codeRef);
-        for (SymbolVariable* param : sema.currentFunction()->parameters())
+        for (const SymbolVariable* param : sema.currentFunction()->parameters())
         {
             if (param && param->idRef() == idRef)
                 return param;
@@ -230,6 +230,8 @@ namespace
 
     bool isConstAssignmentTargetImpl(Sema& sema, AstNodeRef leftExprRef, const SemaNodeView& leftView)
     {
+        SWC_UNUSED(leftView);
+
         if (isInlineConstAssignmentTarget(sema, leftExprRef))
             return true;
 

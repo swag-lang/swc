@@ -2198,7 +2198,7 @@ Result Cast::castFromAny(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRe
         }
         else if (valueType.isAnyTypeInfo(ctx))
         {
-            const uint64_t ptrValue = *reinterpret_cast<const uint64_t*>(runtimeAny.value);
+            const uint64_t ptrValue = *static_cast<const uint64_t*>(runtimeAny.value);
             ConstantValue  typeCst  = ConstantValue::makeValuePointer(ctx, sema.typeMgr().structTypeInfo(), ptrValue, TypeInfoFlagsE::Const);
             typeCst.setTypeRef(valueTypeRef);
             valueCstRef = sema.cstMgr().addConstant(ctx, typeCst);

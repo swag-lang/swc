@@ -1,7 +1,9 @@
+#include <utility>
+
 #include "pch.h"
-#include "Compiler/CodeGen/Core/CodeGen.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Runtime.h"
+#include "Compiler/CodeGen/Core/CodeGen.h"
 #include "Compiler/CodeGen/Core/CodeGenCallHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenConstantHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenReferenceHelpers.h"
@@ -289,12 +291,12 @@ namespace
         for (size_t i = 0; i < aggregateTypes.size(); ++i)
         {
             const TypeInfo& elemType  = codeGen.typeMgr().get(aggregateTypes[i]);
-            uint32_t        elemAlign = std::max<uint32_t>(elemType.alignOf(codeGen.ctx()), 1);
+            const uint32_t  elemAlign = std::max<uint32_t>(elemType.alignOf(codeGen.ctx()), 1);
             const uint64_t  elemSize  = elemType.sizeOf(codeGen.ctx());
             if (elemSize)
                 offset = ((offset + static_cast<uint64_t>(elemAlign) - 1) / static_cast<uint64_t>(elemAlign)) * static_cast<uint64_t>(elemAlign);
 
-            if (i == static_cast<size_t>(constIndex))
+            if (std::cmp_equal(i, constIndex))
             {
                 SWC_ASSERT(offset <= std::numeric_limits<uint32_t>::max());
                 outOffset        = static_cast<uint32_t>(offset);

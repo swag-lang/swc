@@ -38,3 +38,16 @@ func assertStaticIntArray(values: const &StaticArray'(s32, 4'u64), expected: con
     @assert(values[0] == 7)
     @assert(values[3] == 9)
 }
+
+#test
+{
+    var values: StaticArray'(s32, 4'u64)
+    values.add(1)
+    values.add(2)
+
+    var moved: s32 = 3
+    values.insertAt(values.count, moveref &moved)
+
+    let expected: [3] s32 = [1, 2, 3]
+    @assert(assertStaticIntArray(values, expected))
+}

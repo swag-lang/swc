@@ -290,7 +290,7 @@ impl StaticArray
     {
         Debug.assert(index <= .count, "index out of range")
         if index == .count do
-            return .emplace(value)
+            return .add(moveref value)
         Debug.assert(.count != N, "the array is full")
         .count += 1
 

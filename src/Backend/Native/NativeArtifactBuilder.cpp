@@ -3,8 +3,6 @@
 #include "Backend/ABI/ABICall.h"
 #include "Backend/Native/NativeRDataCollector.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
-#include "Compiler/Sema/Symbol/Symbol.Module.h"
-#include "Compiler/SourceFile.h"
 #include "Main/Command/CommandLineParser.h"
 #include "Main/FileSystem.h"
 #include "Main/Global.h"
@@ -16,57 +14,6 @@
 #endif
 
 SWC_BEGIN_NAMESPACE();
-
-namespace
-{
-    void findRuntimeFunctionRec(const SymbolMap& symMap, IdentifierRef idRef, std::unordered_set<const SymbolMap*>& visited, SymbolFunction*& outFunction)
-    {
-        if (outFunction || !visited.insert(&symMap).second)
-            return;
-
-        std::vector<const Symbol*> symbols;
-        symMap.getAllSymbols(symbols);
-        for (const Symbol* symbol : symbols)
-        {
-            if (!symbol)
-                continue;
-            if (symbol->idRef() == idRef)
-            {
-                if (const auto* function = symbol->safeCast<SymbolFunction>())
-                {
-                    outFunction = const_cast<SymbolFunction*>(function);
-                    return;
-                }
-            }
-
-            if (symbol->isSymMap())
-                findRuntimeFunctionRec(*symbol->asSymMap(), idRef, visited, outFunction);
-            if (outFunction)
-                return;
-        }
-    }
-
-    SymbolFunction* resolveRuntimeHelperFunction(TaskContext& ctx, std::string_view name)
-    {
-        const IdentifierRef helperIdRef = ctx.idMgr().addIdentifier(name);
-        std::unordered_set<const SymbolMap*> visited;
-        SymbolFunction*                      result = nullptr;
-        for (const SourceFile* file : ctx.compiler().filesSnapshot())
-        {
-            if (!file)
-                continue;
-
-            if (const SymbolNamespace* moduleNamespace = file->moduleNamespace())
-                findRuntimeFunctionRec(*moduleNamespace->asSymMap(), helperIdRef, visited, result);
-            if (!result && file->fileNamespace())
-                findRuntimeFunctionRec(*file->fileNamespace()->asSymMap(), helperIdRef, visited, result);
-            if (result)
-                return result;
-        }
-
-        return result;
-    }
-}
 
 class NativeStartupBuildJob final : public Job
 {
@@ -531,9 +478,13 @@ Result NativeArtifactBuilder::buildStartup(TaskContext& ctx) const
     MicroBuilder builder(builder_->ctx());
     builder.setBackendBuildCfg(builder_->compiler().buildCfg().backend);
 
-    SymbolFunction* testCountInitFn = nullptr;
-    SymbolFunction* testCountTickFn = nullptr;
-    SymbolFunction* ensureRuntimeAllocatorFn = resolveRuntimeHelperFunction(builder_->ctx(), "__ensureRuntimeAllocator");
+    const IdentifierRef ensureRuntimeAllocatorIdRef = ctx.idMgr().runtimeFunction(IdentifierManager::RuntimeFunctionKind::EnsureRuntimeAllocator);
+    SymbolFunction*     ensureRuntimeAllocatorFn    = builder_->compiler().runtimeFunctionSymbol(ensureRuntimeAllocatorIdRef);
+    SymbolFunction*     testCountInitFn             = nullptr;
+    SymbolFunction*     testCountTickFn             = nullptr;
+    SWC_ASSERT(ensureRuntimeAllocatorFn != nullptr);
+    if (!ensureRuntimeAllocatorFn)
+        return builder_->reportError(DiagnosticId::cmd_err_native_test_entry_lower_failed);
     if (expectedTestCount)
     {
         const IdentifierRef testCountInitIdRef = ctx.idMgr().runtimeFunction(IdentifierManager::RuntimeFunctionKind::TestCountInit);
@@ -546,8 +497,7 @@ Result NativeArtifactBuilder::buildStartup(TaskContext& ctx) const
             return builder_->reportError(DiagnosticId::cmd_err_native_test_entry_lower_failed);
     }
 
-    if (ensureRuntimeAllocatorFn)
-        ABICall::callLocal(builder, ensureRuntimeAllocatorFn->callConvKind(), ensureRuntimeAllocatorFn, {});
+    ABICall::callLocal(builder, ensureRuntimeAllocatorFn->callConvKind(), ensureRuntimeAllocatorFn, {});
 
     // The startup thunk runs compiler-generated lifecycle hooks and then hands off
     // process termination to the runtime wrapper for the active target.

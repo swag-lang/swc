@@ -496,8 +496,10 @@ SWC_TEST_BEGIN(NativeArtifact_StartupCallsRuntimeExitWrapper)
 
     const NativeArtifactTestFixture fixture(ctx.global(), commandLine);
 
-    auto* mainFunction = makeTestFunction(*fixture.compilerCtx, "main");
-    auto* exitFunction = makeTestFunction(*fixture.compilerCtx, "__exit");
+    auto* mainFunction  = makeTestFunction(*fixture.compilerCtx, "main");
+    auto* setupFunction = makeTestFunction(*fixture.compilerCtx, "__ensureRuntimeAllocator");
+    auto* exitFunction  = makeTestFunction(*fixture.compilerCtx, "__exit");
+    fixture.compiler->registerRuntimeFunctionSymbol(fixture.compilerCtx->idMgr().runtimeFunction(IdentifierManager::RuntimeFunctionKind::EnsureRuntimeAllocator), setupFunction);
     fixture.compiler->registerRuntimeFunctionSymbol(fixture.compilerCtx->idMgr().runtimeFunction(IdentifierManager::RuntimeFunctionKind::Exit), exitFunction);
     fixture.nativeBuilder->mainFunctions.push_back(mainFunction);
 
@@ -506,9 +508,19 @@ SWC_TEST_BEGIN(NativeArtifact_StartupCallsRuntimeExitWrapper)
     if (!fixture.nativeBuilder->startup)
         return Result::Error;
 
-    bool foundExitRelocation = false;
+    bool foundSetupRelocation = false;
+    bool foundExitRelocation  = false;
     for (const auto& relocation : fixture.nativeBuilder->startup->code.codeRelocations)
     {
+        if (relocation.targetSymbol == setupFunction)
+        {
+            if (relocation.kind != MicroRelocation::Kind::LocalFunctionAddress)
+                return Result::Error;
+
+            foundSetupRelocation = true;
+            continue;
+        }
+
         if (relocation.targetSymbol != exitFunction)
             continue;
 
@@ -518,7 +530,7 @@ SWC_TEST_BEGIN(NativeArtifact_StartupCallsRuntimeExitWrapper)
         foundExitRelocation = true;
     }
 
-    if (!foundExitRelocation)
+    if (!foundSetupRelocation || !foundExitRelocation)
         return Result::Error;
 }
 SWC_TEST_END()

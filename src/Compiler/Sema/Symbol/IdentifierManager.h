@@ -18,6 +18,7 @@ public:
     enum class RuntimeFunctionKind : uint8_t
     {
         Exit,
+        EnsureRuntimeAllocator,
         TestCountInit,
         TestCountTick,
         HasErr,
@@ -130,6 +131,7 @@ public:
         Gvtd,
         BuildCfg,
         RuntimeExit,
+        RuntimeEnsureRuntimeAllocator,
         RuntimeTestCountInit,
         RuntimeTestCountTick,
         RuntimeHasErr,

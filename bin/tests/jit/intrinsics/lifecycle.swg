@@ -173,9 +173,12 @@ impl ResizeBuffer
 {
     mtd resize(newCount: u64)
     {
-        if newCount <= .count do
+        if newCount == .count do
             return
-        @init(.buffer + .count, newCount - .count)
+        if newCount > .count do
+            @init(.buffer + .count, newCount - .count)
+        else do
+            @drop(.buffer + newCount, .count - newCount)
         .count = newCount
     }
 }
@@ -731,6 +734,14 @@ func intrinsicFieldPointerResizeRuntimeInitInfo()->s32
     return storage[0].value * 1000 + storage[1].value * 100 + storage[2].value * 10 + storage[3].value
 }
 
+func intrinsicFieldPointerResizeRuntimeDropIgnoredInfo()->s32
+{
+    var storage: [4] ResizeTracked = [ResizeTracked{9}, ResizeTracked{8}, ResizeTracked{7}, ResizeTracked{6}]
+    var values = ResizeBuffer{cast([*] ResizeTracked) &storage[0], 3}
+    values.resize(1)
+    return storage[0].value * 1000 + storage[1].value * 100 + storage[2].value * 10 + cast(s32) values.count
+}
+
 func intrinsicRemoveAtDropOnlyInfo()->IntrinsicInfo
 {
     resetLifecycleHooks()
@@ -1041,6 +1052,12 @@ func intrinsicReceiverLifecycleInfo()->IntrinsicInfo
 {
     let trace = intrinsicFieldPointerResizeRuntimeInitInfo()
     @assert(trace == 9006)
+}
+
+#test
+{
+    let trace = intrinsicFieldPointerResizeRuntimeDropIgnoredInfo()
+    @assert(trace == 9871)
 }
 
 #test

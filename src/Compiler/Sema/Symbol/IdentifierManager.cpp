@@ -110,6 +110,7 @@ void IdentifierManager::setup(const TaskContext& ctx)
         {.name = PredefinedName::Gvtd, .str = "Gvtd"},
         {.name = PredefinedName::BuildCfg, .str = "BuildCfg"},
         {.name = PredefinedName::RuntimeExit, .str = "__exit"},
+        {.name = PredefinedName::RuntimeEnsureRuntimeAllocator, .str = "__ensureRuntimeAllocator"},
         {.name = PredefinedName::RuntimeTestCountInit, .str = "__testCountInit"},
         {.name = PredefinedName::RuntimeTestCountTick, .str = "__testCountTick"},
         {.name = PredefinedName::RuntimeHasErr, .str = "__hasErr"},
@@ -135,27 +136,28 @@ void IdentifierManager::setup(const TaskContext& ctx)
     for (const auto& it : PREDEFINED_NAMES)
         predefined_[static_cast<size_t>(it.name)] = addIdentifier(it.str);
 
-    runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::Exit)]           = predefined(PredefinedName::RuntimeExit);
-    runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::TestCountInit)]  = predefined(PredefinedName::RuntimeTestCountInit);
-    runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::TestCountTick)]  = predefined(PredefinedName::RuntimeTestCountTick);
-    runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::HasErr)]         = predefined(PredefinedName::RuntimeHasErr);
-    runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::IsErrContext)]   = predefined(PredefinedName::RuntimeIsErrContext);
-    runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::SetErrRaw)]      = predefined(PredefinedName::RuntimeSetErrRaw);
-    runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::PushErr)]        = predefined(PredefinedName::RuntimePushErr);
-    runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::PopErr)]         = predefined(PredefinedName::RuntimePopErr);
-    runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::CatchErr)]       = predefined(PredefinedName::RuntimeCatchErr);
-    runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::FailedAssume)]   = predefined(PredefinedName::RuntimeFailedAssume);
-    runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::Panic)]          = predefined(PredefinedName::RuntimePanic);
-    runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::SafetyPanic)]    = predefined(PredefinedName::RuntimeSafetyPanic);
-    runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::As)]             = predefined(PredefinedName::RuntimeAs);
-    runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::Is)]             = predefined(PredefinedName::RuntimeIs);
-    runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::TypeCmp)]        = predefined(PredefinedName::RuntimeTypeCmp);
-    runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::TlsAlloc)]       = predefined(PredefinedName::RuntimeTlsAlloc);
-    runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::TlsSetValue)]    = predefined(PredefinedName::RuntimeTlsSetValue);
-    runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::TlsGetPtr)]      = predefined(PredefinedName::RuntimeTlsGetPtr);
-    runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::TlsGetValue)]    = predefined(PredefinedName::RuntimeTlsGetValue);
-    runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::RaiseException)] = predefined(PredefinedName::RuntimeRaiseException);
-    runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::StringCmp)]      = predefined(PredefinedName::RuntimeStringCmp);
+    runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::Exit)]                   = predefined(PredefinedName::RuntimeExit);
+    runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::EnsureRuntimeAllocator)] = predefined(PredefinedName::RuntimeEnsureRuntimeAllocator);
+    runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::TestCountInit)]          = predefined(PredefinedName::RuntimeTestCountInit);
+    runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::TestCountTick)]          = predefined(PredefinedName::RuntimeTestCountTick);
+    runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::HasErr)]                 = predefined(PredefinedName::RuntimeHasErr);
+    runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::IsErrContext)]           = predefined(PredefinedName::RuntimeIsErrContext);
+    runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::SetErrRaw)]              = predefined(PredefinedName::RuntimeSetErrRaw);
+    runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::PushErr)]                = predefined(PredefinedName::RuntimePushErr);
+    runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::PopErr)]                 = predefined(PredefinedName::RuntimePopErr);
+    runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::CatchErr)]               = predefined(PredefinedName::RuntimeCatchErr);
+    runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::FailedAssume)]           = predefined(PredefinedName::RuntimeFailedAssume);
+    runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::Panic)]                  = predefined(PredefinedName::RuntimePanic);
+    runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::SafetyPanic)]            = predefined(PredefinedName::RuntimeSafetyPanic);
+    runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::As)]                     = predefined(PredefinedName::RuntimeAs);
+    runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::Is)]                     = predefined(PredefinedName::RuntimeIs);
+    runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::TypeCmp)]                = predefined(PredefinedName::RuntimeTypeCmp);
+    runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::TlsAlloc)]               = predefined(PredefinedName::RuntimeTlsAlloc);
+    runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::TlsSetValue)]            = predefined(PredefinedName::RuntimeTlsSetValue);
+    runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::TlsGetPtr)]              = predefined(PredefinedName::RuntimeTlsGetPtr);
+    runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::TlsGetValue)]            = predefined(PredefinedName::RuntimeTlsGetValue);
+    runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::RaiseException)]         = predefined(PredefinedName::RuntimeRaiseException);
+    runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::StringCmp)]              = predefined(PredefinedName::RuntimeStringCmp);
 }
 
 IdentifierRef IdentifierManager::addIdentifier(const TaskContext& ctx, const SourceCodeRef& codeRef)

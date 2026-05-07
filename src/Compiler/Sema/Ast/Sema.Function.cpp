@@ -325,6 +325,22 @@ namespace
     {
         return false;
     }
+
+    void registerRuntimeFunctionSymbol(Sema& sema, SymbolFunction& sym)
+    {
+        const SourceFile* file = sema.file();
+        if (!file || !file->isRuntime())
+            return;
+
+        if (sym.isEmpty())
+            return;
+
+        const auto kind = sema.idMgr().runtimeFunctionKind(sym.idRef());
+        if (kind == IdentifierManager::RuntimeFunctionKind::Count)
+            return;
+
+        sema.compiler().registerRuntimeFunctionSymbol(sym.idRef(), &sym);
+    }
 }
 
 Result Sema::completeLazyGenericFunction(SymbolFunction& calledFn)
@@ -351,6 +367,7 @@ Result AstFunctionDecl::semaPreDecl(Sema& sema) const
     sym.setGenericRoot(spanGenericParamsRef.isValid());
     if (nodeBodyRef.isInvalid())
         sym.addExtraFlag(SymbolFunctionFlagsE::Empty);
+    registerRuntimeFunctionSymbol(sema, sym);
 
     return Result::SkipChildren;
 }
@@ -469,22 +486,6 @@ namespace
         const TypeInfo& typeInfo = sema.typeMgr().get(typeRef);
         SWC_ASSERT(typeInfo.isFunction());
         return typeInfo.payloadSymFunction();
-    }
-
-    void registerRuntimeFunctionSymbol(Sema& sema, SymbolFunction& sym)
-    {
-        const SourceFile* file = sema.file();
-        if (!file || !file->isRuntime())
-            return;
-
-        if (sym.isForeign() || sym.isEmpty())
-            return;
-
-        const auto kind = sema.idMgr().runtimeFunctionKind(sym.idRef());
-        if (kind == IdentifierManager::RuntimeFunctionKind::Count)
-            return;
-
-        sema.compiler().registerRuntimeFunctionSymbol(sym.idRef(), &sym);
     }
 
     using SemaHelpers::resolveLambdaBindingFunction;

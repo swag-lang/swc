@@ -1,7 +1,7 @@
 #include "pch.h"
+#include "Backend/Micro/MicroPassHelpers.h"
 #include "Backend/Micro/Passes/Pass.ConstantFolding.h"
 #include "Backend/Micro/MicroPassContext.h"
-#include "Backend/Micro/MicroPassHelpers.h"
 #include "Backend/Micro/MicroSsaState.h"
 #include "Backend/Micro/Passes/Pass.SsaValuePropagation.Internal.h"
 #include "Support/Memory/MemoryProfile.h"
@@ -280,13 +280,15 @@ namespace
         return true;
     }
 
-    bool tryFoldBinaryRegImm(const MicroSsaState& ssaState, const std::vector<KnownValue>& knownValues, const std::vector<uint8_t>& knownFlags, MicroInstrRef instRef, MicroInstr& inst, MicroInstrOperand* ops)
+    bool tryFoldBinaryRegImm(const MicroSsaState& ssaState, const MicroStorage& storage, const MicroOperandStorage& operands, const std::vector<KnownValue>& knownValues, const std::vector<uint8_t>& knownFlags, MicroInstrRef instRef, MicroInstr& inst, MicroInstrOperand* ops)
     {
         if (inst.op != MicroInstrOpcode::OpBinaryRegImm)
             return false;
         if (!ops)
             return false;
         if (!ops[0].reg.isVirtualInt())
+            return false;
+        if (!MicroPassHelpers::areCpuFlagsDeadAfter(storage, operands, instRef))
             return false;
 
         KnownValue inputValue;
@@ -304,12 +306,13 @@ namespace
         return true;
     }
 
-    bool tryFoldBinaryRegReg(const MicroSsaState& ssaState, const MicroOperandStorage& operands, const std::vector<KnownValue>& knownValues, const std::vector<uint8_t>& knownFlags, MicroInstrRef instRef, MicroInstr& inst, MicroInstrOperand* ops)
+    bool tryFoldBinaryRegReg(const MicroSsaState& ssaState, const MicroStorage& storage, const MicroOperandStorage& operands, const std::vector<KnownValue>& knownValues, const std::vector<uint8_t>& knownFlags, MicroInstrRef instRef, MicroInstr& inst, MicroInstrOperand* ops)
     {
-        SWC_UNUSED(operands);
         if (inst.op != MicroInstrOpcode::OpBinaryRegReg)
             return false;
         if (!ops)
+            return false;
+        if (!MicroPassHelpers::areCpuFlagsDeadAfter(storage, operands, instRef))
             return false;
 
         // cvtf2f(const) path.
@@ -412,8 +415,8 @@ Result MicroConstantFoldingPass::run(MicroPassContext& context)
         MicroInstrOperand*  ops     = inst.ops(operands);
 
         const bool changed = tryFoldCopyFromKnown(*ssaState, knownValues, knownFlags, instRef, inst, ops) ||
-                             tryFoldBinaryRegImm(*ssaState, knownValues, knownFlags, instRef, inst, ops) ||
-                             tryFoldBinaryRegReg(*ssaState, operands, knownValues, knownFlags, instRef, inst, ops) ||
+                             tryFoldBinaryRegImm(*ssaState, storage, operands, knownValues, knownFlags, instRef, inst, ops) ||
+                             tryFoldBinaryRegReg(*ssaState, storage, operands, knownValues, knownFlags, instRef, inst, ops) ||
                              tryFoldExtend(*ssaState, knownValues, knownFlags, instRef, inst, ops);
         if (changed)
             context.passChanged = true;

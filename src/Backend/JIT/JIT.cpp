@@ -13,9 +13,7 @@
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Core/Sema.h"
-#include "Compiler/Sema/Match/MatchContext.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
-#include "Compiler/Sema/Symbol/Symbol.Module.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Compiler/SourceFile.h"
 #include "Main/CompilerInstance.h"
@@ -1399,54 +1397,6 @@ namespace
         return SWC_EXCEPTION_EXECUTE_HANDLER;
     }
 
-    void findRuntimeFunctionRec(const SymbolMap& symMap, IdentifierRef idRef, std::unordered_set<const SymbolMap*>& visited, SymbolFunction*& outFunction)
-    {
-        if (outFunction || !visited.insert(&symMap).second)
-            return;
-
-        std::vector<const Symbol*> symbols;
-        symMap.getAllSymbols(symbols);
-        for (const Symbol* symbol : symbols)
-        {
-            if (!symbol)
-                continue;
-            if (symbol->idRef() == idRef)
-            {
-                if (const auto* function = symbol->safeCast<SymbolFunction>())
-                {
-                    outFunction = const_cast<SymbolFunction*>(function);
-                    return;
-                }
-            }
-
-            if (symbol->isSymMap())
-                findRuntimeFunctionRec(*symbol->asSymMap(), idRef, visited, outFunction);
-            if (outFunction)
-                return;
-        }
-    }
-
-    SymbolFunction* resolveEnsureRuntimeAllocatorFunction(TaskContext& ctx)
-    {
-        const IdentifierRef setupIdRef = ctx.idMgr().addIdentifier("__ensureRuntimeAllocator");
-        std::unordered_set<const SymbolMap*> visited;
-        SymbolFunction*                      result = nullptr;
-        for (const SourceFile* file : ctx.compiler().filesSnapshot())
-        {
-            if (!file)
-                continue;
-
-            if (const SymbolNamespace* moduleNamespace = file->moduleNamespace())
-                findRuntimeFunctionRec(*moduleNamespace->asSymMap(), setupIdRef, visited, result);
-            if (!result && file->fileNamespace())
-                findRuntimeFunctionRec(*file->fileNamespace()->asSymMap(), setupIdRef, visited, result);
-            if (result)
-                return result;
-        }
-
-        return result;
-    }
-
     bool isRuntimeArtifactJitEntry(TaskContext& ctx)
     {
         const SymbolFunction* function = ctx.state().runJitFunction;
@@ -1489,9 +1439,16 @@ namespace
         if (runtimeContext->allocator.obj && runtimeContext->allocator.itable)
             return Result::Continue;
 
-        SymbolFunction* setupFn = resolveEnsureRuntimeAllocatorFunction(ctx);
+        const IdentifierRef setupIdRef = ctx.idMgr().runtimeFunction(IdentifierManager::RuntimeFunctionKind::EnsureRuntimeAllocator);
+        SymbolFunction*     setupFn    = ctx.compiler().runtimeFunctionSymbol(setupIdRef);
+        SWC_ASSERT(setupFn != nullptr);
         if (!setupFn)
-            return Result::Continue;
+        {
+            Diagnostic diag = Diagnostic::get(DiagnosticId::sema_err_compiler_error);
+            diag.addArgument(Diagnostic::ARG_BECAUSE, "missing runtime helper '__ensureRuntimeAllocator'");
+            diag.report(ctx);
+            return Result::Error;
+        }
 
         SWC_RESULT(ensureLocalFunctionTargetCallable(ctx, *setupFn, nullptr));
         SWC_ASSERT(setupFn->jitEntryAddress() != nullptr);

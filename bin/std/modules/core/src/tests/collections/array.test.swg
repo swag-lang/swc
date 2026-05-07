@@ -189,6 +189,48 @@ func assertIntArray(values: const &Array's32, expected: const [..] s32)->bool
 
 #test
 {
+    var values: Array's32
+    @assert(@countof(values) == 0)
+    @assert(@dataof(values) == null)
+
+    let seed: [4] s32 = [5, 1, 9, 3]
+    values.add(seed)
+
+    @assert(@countof(values) == 4)
+    let raw = cast(const [*] s32) @dataof(values)
+    @assert(raw != null)
+    @assert(raw[0] == 5)
+    @assert(raw[3] == 3)
+
+    values[1] = 7
+    values[1] += 2
+    values[2] -= 4
+    let expectedAssigned: [4] s32 = [5, 9, 5, 3]
+    @assert(assertIntArray(values, expectedAssigned))
+
+    var none: [..] s32 = null
+    values.add(none)
+    @assert(assertIntArray(values, expectedAssigned))
+
+    var movedFront: s32 = 4
+    var movedBack: s32 = 8
+    values.insertAt(0, moveref &movedFront)
+    values.add(moveref &movedBack)
+
+    let expectedMoved: [6] s32 = [4, 5, 9, 5, 3, 8]
+    @assert(assertIntArray(values, expectedMoved))
+
+    values.sort(func||(a, b)
+    {
+        return b <=> a
+    })
+
+    let expectedSortedByCallback: [6] s32 = [9, 8, 5, 5, 4, 3]
+    @assert(assertIntArray(values, expectedSortedByCallback))
+}
+
+#test
+{
     let seed: [3] s32 = [1, 2, 3]
 
     var values: Array's32

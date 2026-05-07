@@ -41,6 +41,38 @@ func helperRealloc(buffer: [*] void, newSize: u64, oldSize: u64, allocator: IAll
     return req.address
 }
 
+func memoryLikeFree(buffer: [*] void, size: u64, allocator: IAllocator = null, hint: string = null, loc = #callerlocation)
+{
+    if !buffer do
+        return
+
+    var req: AllocatorRequest
+    req.callerLoc = loc
+    req.mode = .Free
+    req.size = size
+    req.address = buffer
+    req.hint = hint
+
+    let talloc = allocator orelse @getcontext().allocator
+    talloc.req(&req)
+}
+
+func memoryLikeRealloc(buffer: [*] void, newSize: u64, oldSize: u64, allocator: IAllocator = null, alignment: u16 = 0, hint: string = null, loc = #callerlocation)->[*] void
+{
+    var req: AllocatorRequest
+    req.callerLoc = loc
+    req.hint = hint
+    req.mode = .Realloc
+    req.address = buffer
+    req.size = newSize
+    req.oldSize = oldSize
+    req.alignment = alignment
+
+    let talloc = allocator orelse @getcontext().allocator
+    talloc.req(&req)
+    return req.address
+}
+
 struct IntrinsicInfo
 {
     first: s32
@@ -422,6 +454,76 @@ impl HelperAllocatorGenericBuffer
     }
 }
 
+struct(T) MemoryAllocatorGenericBuffer
+{
+    allocator: IAllocator
+    buffer: [*] T
+    count: u64
+    capacity: u64
+}
+
+impl MemoryAllocatorGenericBuffer
+{
+    mtd opDrop()
+    {
+        .free()
+    }
+
+    mtd reserve(newCapacity: u64)
+    {
+        if newCapacity <= .capacity do
+            return
+        if .allocator == null do
+            .allocator = @getcontext().allocator
+
+        .buffer = cast([*] T) memoryLikeRealloc(.buffer, newCapacity * #sizeof(T), .capacity * #sizeof(T), .allocator)
+        .capacity = newCapacity
+    }
+
+    mtd emplaceAddress(num: u64 = 1)->[*] T
+    {
+        .reserve(.count + num)
+        .count += num
+        return .buffer + .count - num
+    }
+
+    mtd remove(index, num: u64)
+    {
+        if !num do
+            return
+
+        let shiftCount = .count - (index + num)
+        for i in shiftCount do
+            .buffer[index + i] = #moveraw .buffer[index + num + i]
+
+        let droppedTail = num - shiftCount
+        if droppedTail do
+            @drop(.buffer + .count - droppedTail, droppedTail)
+
+        .count -= num
+    }
+
+    mtd clear()
+    {
+        if !.count do
+            return
+        for .count do
+            @drop(.buffer + @index)
+        .count = 0
+    }
+
+    mtd free()
+    {
+        if !.buffer do
+            return
+
+        @drop(.buffer, .count)
+        memoryLikeFree(.buffer, .capacity * #sizeof(T), .allocator)
+        .buffer = null
+        .count, .capacity = 0
+    }
+}
+
 struct(T) PostCopyAllocatorGenericBuffer
 {
     allocator: IAllocator
@@ -714,6 +816,47 @@ func intrinsicOwnedBufferFreeInfo()->IntrinsicInfo
 
     values.free()
     return {0, 0, 0, DropCount, DropTrace, PostCopyCount, PostMoveCount}
+}
+
+func intrinsicMemoryAllocatorGenericBufferFreeInfo()->IntrinsicInfo
+{
+    resetLifecycleHooks()
+
+    {
+        var values: MemoryAllocatorGenericBuffer'DropOnlyTracked
+        let ptr = values.emplaceAddress(3)
+        for i in 3 do
+            ptr[i].value = cast(s32) (i + 1)
+        values.clear()
+        values.free()
+    }
+
+    return {0, 0, 0, DropCount, DropTrace, PostCopyCount, PostMoveCount}
+}
+
+func intrinsicMemoryAllocatorGenericBufferRemoveRangeInfo()->IntrinsicInfo
+{
+    resetLifecycleHooks()
+
+    var first: s32
+    var second: s32
+    var third: s32
+
+    {
+        var values: MemoryAllocatorGenericBuffer'DropOnlyTracked
+        let ptr = values.emplaceAddress(5)
+        for i in 5 do
+            ptr[i].value = cast(s32) (i + 1)
+
+        values.remove(1, 3)
+        first = values.buffer[0].value
+        second = values.buffer[1].value
+        third = cast(s32) values.count
+        values.clear()
+        values.free()
+    }
+
+    return {first, second, third, DropCount, DropTrace, PostCopyCount, PostMoveCount}
 }
 
 func intrinsicReallocOwnedBufferAutoDropInfo()->IntrinsicInfo
@@ -1045,6 +1188,22 @@ func intrinsicReceiverLifecycleInfo()->IntrinsicInfo
     let v = intrinsicOwnedBufferFreeInfo()
     @assert(v.drops == 3)
     @assert(v.dropTrace == 10203)
+}
+
+#test
+{
+    let v = intrinsicMemoryAllocatorGenericBufferFreeInfo()
+    @assert(v.drops == 3)
+    @assert(v.dropTrace == 10203)
+}
+
+#test
+{
+    let v = intrinsicMemoryAllocatorGenericBufferRemoveRangeInfo()
+    @assert(v.first == 1)
+    @assert(v.second == 5)
+    @assert(v.third == 2)
+    @assert(v.drops == 5)
 }
 
 #test

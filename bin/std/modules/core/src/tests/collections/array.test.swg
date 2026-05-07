@@ -2,6 +2,41 @@
 #global fileprivate
 using Swag
 
+var ArrayDropCount: s32 = 0
+var ArrayDropTrace: s64 = 0
+var ArrayDropMask: u32 = 0
+
+struct ArrayDropTracked
+{
+    value: s32
+}
+
+impl ArrayDropTracked
+{
+    mtd opDrop()
+    {
+        if .value == 0 do
+            return
+
+        let bit = 1'u32 << cast(u32) .value
+        if !(ArrayDropMask & bit)
+        {
+            ArrayDropCount += 1
+            ArrayDropTrace = ArrayDropTrace * 100 + cast(s64) .value
+            ArrayDropMask |= bit
+        }
+
+        .value = 0
+    }
+}
+
+func resetArrayDropTrace()
+{
+    ArrayDropCount = 0
+    ArrayDropTrace = 0
+    ArrayDropMask = 0
+}
+
 func assertIntArray(values: const &Array's32, expected: const [..] s32)->bool
 {
     if values.count != @countof(expected) do
@@ -150,4 +185,56 @@ func assertIntArray(values: const &Array's32, expected: const [..] s32)->bool
 
     let expected: [4] s32 = [0, 1, 4, 5]
     @assert(assertIntArray(values, expected))
+}
+
+#test
+{
+    resetArrayDropTrace()
+
+    {
+        var values: StaticArray'(ArrayDropTracked, 5'u64)
+        let seed = values.emplaceAddress(5)
+        seed[0].value = 1
+        seed[1].value = 2
+        seed[2].value = 3
+        seed[3].value = 4
+        seed[4].value = 5
+
+        values.remove(1, 3)
+
+        @assert(values.count == 2)
+        @assert(values[0].value == 1)
+        @assert(values[1].value == 5)
+    }
+    @assert(ArrayDropCount == 5)
+}
+
+// Disabled on purpose: this exercises a deeper JIT/runtime/compiler issue with Array<T> when T has opDrop.
+// Keep the stable scalar coverage here, and validate the real bug with dedicated jit/native tests instead.
+#if false
+{
+    #test
+    {
+        resetArrayDropTrace()
+
+        {
+            var values: Array'ArrayDropTracked
+            let seed = values.emplaceAddress(5)
+            seed[0].value = 1
+            seed[1].value = 2
+            seed[2].value = 3
+            seed[3].value = 4
+            seed[4].value = 5
+            values.remove(1, 3)
+
+            @assert(values.count == 2)
+            @assert(values[0].value == 1)
+            @assert(values[1].value == 5)
+
+            values.clear()
+            values.free()
+        }
+
+        @assert(ArrayDropCount == 5)
+    }
 }

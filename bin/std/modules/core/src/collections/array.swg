@@ -589,6 +589,12 @@ impl Array
             {
                 .buffer[index + i] = #moveraw .buffer[index + num + i]
             }
+
+            #if Reflection.hasDrop(T)
+            {
+                if num > shiftCount do
+                    @drop(.buffer + index + shiftCount, num - shiftCount)
+            }
         }
 
         .count -= num

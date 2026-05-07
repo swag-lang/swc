@@ -10,9 +10,12 @@
 #include "Backend/Micro/MicroBuilder.h"
 #include "Compiler/CodeGen/Core/CodeGenJob.h"
 #include "Compiler/Lexer/SourceView.h"
+#include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Core/Sema.h"
+#include "Compiler/Sema/Match/MatchContext.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
+#include "Compiler/Sema/Symbol/Symbol.Module.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Compiler/SourceFile.h"
 #include "Main/CompilerInstance.h"
@@ -32,6 +35,7 @@ SWC_BEGIN_NAMESPACE();
 namespace
 {
     constexpr uint32_t K_COMPILER_EXCEPTION_CODE = 666;
+    using RuntimeSetupInvoker                    = void (*)();
 
     enum class RelocationResolveFailureKind : uint8_t
     {
@@ -1394,19 +1398,129 @@ namespace
         Stats::addError();
         return SWC_EXCEPTION_EXECUTE_HANDLER;
     }
+
+    void findRuntimeFunctionRec(const SymbolMap& symMap, IdentifierRef idRef, std::unordered_set<const SymbolMap*>& visited, SymbolFunction*& outFunction)
+    {
+        if (outFunction || !visited.insert(&symMap).second)
+            return;
+
+        std::vector<const Symbol*> symbols;
+        symMap.getAllSymbols(symbols);
+        for (const Symbol* symbol : symbols)
+        {
+            if (!symbol)
+                continue;
+            if (symbol->idRef() == idRef)
+            {
+                if (const auto* function = symbol->safeCast<SymbolFunction>())
+                {
+                    outFunction = const_cast<SymbolFunction*>(function);
+                    return;
+                }
+            }
+
+            if (symbol->isSymMap())
+                findRuntimeFunctionRec(*symbol->asSymMap(), idRef, visited, outFunction);
+            if (outFunction)
+                return;
+        }
+    }
+
+    SymbolFunction* resolveEnsureRuntimeAllocatorFunction(TaskContext& ctx)
+    {
+        const IdentifierRef setupIdRef = ctx.idMgr().addIdentifier("__ensureRuntimeAllocator");
+        std::unordered_set<const SymbolMap*> visited;
+        SymbolFunction*                      result = nullptr;
+        for (const SourceFile* file : ctx.compiler().filesSnapshot())
+        {
+            if (!file)
+                continue;
+
+            if (const SymbolNamespace* moduleNamespace = file->moduleNamespace())
+                findRuntimeFunctionRec(*moduleNamespace->asSymMap(), setupIdRef, visited, result);
+            if (!result && file->fileNamespace())
+                findRuntimeFunctionRec(*file->fileNamespace()->asSymMap(), setupIdRef, visited, result);
+            if (result)
+                return result;
+        }
+
+        return result;
+    }
+
+    bool isRuntimeArtifactJitEntry(TaskContext& ctx)
+    {
+        const SymbolFunction* function = ctx.state().runJitFunction;
+        if (!function)
+            return false;
+        if (function->attributes().hasRtFlag(RtAttributeFlagsE::Compiler))
+            return false;
+        if (ctx.state().nodeRef != function->declNodeRef())
+            return false;
+
+        const AstNode* decl = function->decl();
+        if (!decl || decl->id() != AstNodeId::CompilerFunc)
+            return false;
+
+        const TokenId tokenId = ctx.compiler().srcView(function->srcViewRef()).token(function->tokRef()).id;
+        switch (tokenId)
+        {
+            case TokenId::CompilerFuncTest:
+            case TokenId::CompilerFuncInit:
+            case TokenId::CompilerFuncDrop:
+            case TokenId::CompilerFuncMain:
+            case TokenId::CompilerFuncPreMain:
+                return true;
+
+            default:
+                return false;
+        }
+    }
+
+    Result ensureJitRuntimeSetup(TaskContext& ctx, RuntimeSetupInvoker& outSetupInvoker)
+    {
+        outSetupInvoker = nullptr;
+        ctx.compiler().initPerThreadRuntimeContextForJit();
+        if (!isRuntimeArtifactJitEntry(ctx))
+            return Result::Continue;
+
+        Runtime::Context* runtimeContext = CompilerInstance::runtimeContextFromTls();
+        if (!runtimeContext)
+            return Result::Continue;
+        if (runtimeContext->allocator.obj && runtimeContext->allocator.itable)
+            return Result::Continue;
+
+        SymbolFunction* setupFn = resolveEnsureRuntimeAllocatorFunction(ctx);
+        if (!setupFn)
+            return Result::Continue;
+
+        SWC_RESULT(ensureLocalFunctionTargetCallable(ctx, *setupFn, nullptr));
+        SWC_ASSERT(setupFn->jitEntryAddress() != nullptr);
+        outSetupInvoker = reinterpret_cast<RuntimeSetupInvoker>(setupFn->jitEntryAddress());
+        return Result::Continue;
+    }
 }
 
 Result JIT::call(TaskContext& ctx, void* invoker, const uint64_t* arg0, JITCallErrorKind* outErrorKind)
 {
     const TaskContext* savedContext = TaskContext::setCurrent(&ctx);
     SWC_ASSERT(invoker != nullptr);
-    ctx.compiler().initPerThreadRuntimeContextForJit();
+
+    RuntimeSetupInvoker setupInvoker = nullptr;
+    const Result        setupResult  = ensureJitRuntimeSetup(ctx, setupInvoker);
+    if (setupResult != Result::Continue)
+    {
+        TaskContext::setCurrent(savedContext);
+        return setupResult;
+    }
 
     bool hasException = false;
     auto callError    = JITCallErrorKind::None;
 
     SWC_TRY
     {
+        if (setupInvoker)
+            setupInvoker();
+
         if (arg0)
         {
             using InvokerVoidU64    = void (*)(uint64_t);

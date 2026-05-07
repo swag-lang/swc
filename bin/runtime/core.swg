@@ -250,6 +250,11 @@ func __runtimeAllocator()->IAllocator
     return cxt.allocator
 }
 
+func __ensureRuntimeAllocator()
+{
+    let _ = __runtimeAllocator()
+}
+
 func __testCountInit(expected: u64)
 {
     let cxt = @getcontext()

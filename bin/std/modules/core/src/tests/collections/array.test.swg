@@ -209,7 +209,7 @@ func assertIntArray(values: const &Array's32, expected: const [..] s32)->bool
     @assert(ArrayDropCount == 5)
 }
 
-// Disabled on purpose: this exercises a deeper JIT/runtime/compiler issue with Array<T> when T has opDrop.
+// Disabled on purpose: this still exercises a deeper JIT/runtime/compiler issue with Array<T> when T has opDrop.
 // Keep the stable scalar coverage here, and validate the real bug with dedicated jit/native tests instead.
 #if false
 {

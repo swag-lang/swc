@@ -1,7 +1,7 @@
 #include "pch.h"
-#include "Backend/Micro/MicroPassHelpers.h"
 #include "Backend/Micro/Passes/Pass.ConstantFolding.h"
 #include "Backend/Micro/MicroPassContext.h"
+#include "Backend/Micro/MicroPassHelpers.h"
 #include "Backend/Micro/MicroSsaState.h"
 #include "Backend/Micro/Passes/Pass.SsaValuePropagation.Internal.h"
 #include "Support/Memory/MemoryProfile.h"

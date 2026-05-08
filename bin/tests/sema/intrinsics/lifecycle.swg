@@ -132,6 +132,12 @@ struct AutoDropNested
     tail: DropOnlyTracked
 }
 
+struct IntrinsicLifecycleErr
+{
+    using base: Swag.BaseError
+    code: s32 = 0
+}
+
 struct ReceiverLifecycleTracked
 {
     value: s32 = 3
@@ -312,6 +318,109 @@ func intrinsicAutoDropStructArrayInfo()->IntrinsicInfo
     return {first, last, 0, DropCount, DropTrace, PostCopyCount, PostMoveCount}
 }
 
+func intrinsicAutoDropReturnInfo()->IntrinsicInfo
+{
+    resetLifecycleHooks()
+
+    with var result: retval
+    {
+        .first = 0
+        .second = 0
+        .third = 0
+        .drops = 0
+        .dropTrace = 0
+        .postCopy = 0
+        .postMove = 0
+    }
+
+    defer result.dropTrace = DropTrace
+    defer result.drops = DropCount
+
+    {
+        var pair = AutoDropPair{DropOnlyTracked{1}, DropOnlyTracked{2}}
+        result.first = pair.first.value
+
+        {
+            var nested = AutoDropNested{DropOnlyTracked{3}, [AutoDropPair{DropOnlyTracked{4}, DropOnlyTracked{5}}, AutoDropPair{DropOnlyTracked{6}, DropOnlyTracked{7}}], DropOnlyTracked{8}}
+            result.second = nested.tail.value
+            result.third = nested.pairs[1].second.value
+            return result
+        }
+    }
+}
+
+func intrinsicAutoDropErrorImpl() throw
+{
+    {
+        var pair = AutoDropPair{DropOnlyTracked{1}, DropOnlyTracked{2}}
+
+        {
+            var nested = AutoDropNested{DropOnlyTracked{3}, [AutoDropPair{DropOnlyTracked{4}, DropOnlyTracked{5}}, AutoDropPair{DropOnlyTracked{6}, DropOnlyTracked{7}}], DropOnlyTracked{8}}
+            if pair.first.value == 1 and nested.tail.value == 8 do
+                throw IntrinsicLifecycleErr{code: 77}
+        }
+    }
+}
+
+func intrinsicAutoDropErrorInfo()->IntrinsicInfo
+{
+    resetLifecycleHooks()
+
+    with var result: retval
+    {
+        .first = 0
+        .second = 0
+        .third = 0
+        .drops = 0
+        .dropTrace = 0
+        .postCopy = 0
+        .postMove = 0
+    }
+
+    catch intrinsicAutoDropErrorImpl()
+    if @err != null
+    {
+        let err = cast(IntrinsicLifecycleErr) @err
+        result.first = err.code
+        result.second = 1
+    }
+
+    result.drops = DropCount
+    result.dropTrace = DropTrace
+    return result
+}
+
+func intrinsicAutoDropDeferInfo()->IntrinsicInfo
+{
+    resetLifecycleHooks()
+
+    with var result: retval
+    {
+        .first = 0
+        .second = 0
+        .third = 0
+        .drops = 0
+        .dropTrace = 0
+        .postCopy = 0
+        .postMove = 0
+    }
+
+    {
+        defer result.first = cast(s32) DropCount
+        var pair = AutoDropPair{DropOnlyTracked{1}, DropOnlyTracked{2}}
+
+        {
+            defer result.second = cast(s32) DropCount
+            var nested = AutoDropNested{DropOnlyTracked{3}, [AutoDropPair{DropOnlyTracked{4}, DropOnlyTracked{5}}, AutoDropPair{DropOnlyTracked{6}, DropOnlyTracked{7}}], DropOnlyTracked{8}}
+            result.third = nested.tail.value
+        }
+    }
+
+    result.drops = DropCount
+    result.dropTrace = DropTrace
+    return result
+}
+
 func intrinsicReceiverLifecycleInfo()->IntrinsicInfo
 {
     resetLifecycleHooks()
@@ -425,6 +534,35 @@ func semaTest010()
 }
 
 func semaTest011()
+{
+    const V = #run intrinsicAutoDropReturnInfo()
+    #assert(V.first == 1)
+    #assert(V.second == 8)
+    #assert(V.third == 7)
+    #assert(V.drops == 8)
+    #assert(V.dropTrace == 805040706030201)
+}
+
+func semaTest012()
+{
+    const V = #run intrinsicAutoDropErrorInfo()
+    #assert(V.first == 77)
+    #assert(V.second == 1)
+    #assert(V.drops == 8)
+    #assert(V.dropTrace == 805040706030201)
+}
+
+func semaTest013()
+{
+    const V = #run intrinsicAutoDropDeferInfo()
+    #assert(V.first == 8)
+    #assert(V.second == 6)
+    #assert(V.third == 8)
+    #assert(V.drops == 8)
+    #assert(V.dropTrace == 805040706030201)
+}
+
+func semaTest014()
 {
     const V = #run intrinsicReceiverLifecycleInfo()
     #assert(V.first == 3)

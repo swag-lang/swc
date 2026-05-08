@@ -163,6 +163,19 @@ impl DropOnlyTracked
     }
 }
 
+struct AutoDropPair
+{
+    first: DropOnlyTracked
+    second: DropOnlyTracked
+}
+
+struct AutoDropNested
+{
+    head: DropOnlyTracked
+    pairs: [2] AutoDropPair
+    tail: DropOnlyTracked
+}
+
 struct ResizeBuffer
 {
     buffer: [*] ResizeTracked
@@ -708,6 +721,49 @@ func intrinsicDropThenInitArrayInfo()->s32
     return rgb[3].r * 100 + rgb[3].g * 10 + rgb[3].b
 }
 
+func intrinsicAutoDropPairInfo()->IntrinsicInfo
+{
+    resetLifecycleHooks()
+
+    var first: s32 = 0
+    {
+        var value = AutoDropPair{DropOnlyTracked{1}, DropOnlyTracked{2}}
+        first = value.first.value
+    }
+
+    return {first, 0, 0, DropCount, DropTrace, PostCopyCount, PostMoveCount}
+}
+
+func intrinsicAutoDropNestedInfo()->IntrinsicInfo
+{
+    resetLifecycleHooks()
+
+    var first: s32 = 0
+    var last: s32 = 0
+    {
+        var value = AutoDropNested{DropOnlyTracked{1}, [AutoDropPair{DropOnlyTracked{2}, DropOnlyTracked{3}}, AutoDropPair{DropOnlyTracked{4}, DropOnlyTracked{5}}], DropOnlyTracked{6}}
+        first = value.head.value
+        last = value.tail.value
+    }
+
+    return {first, last, 0, DropCount, DropTrace, PostCopyCount, PostMoveCount}
+}
+
+func intrinsicAutoDropStructArrayInfo()->IntrinsicInfo
+{
+    resetLifecycleHooks()
+
+    var first: s32 = 0
+    var last: s32 = 0
+    {
+        var values: [2] AutoDropPair = [AutoDropPair{DropOnlyTracked{7}, DropOnlyTracked{8}}, AutoDropPair{DropOnlyTracked{9}, DropOnlyTracked{10}}]
+        first = values[0].first.value
+        last = values[1].second.value
+    }
+
+    return {first, last, 0, DropCount, DropTrace, PostCopyCount, PostMoveCount}
+}
+
 func intrinsicInitRuntimeCountScalarInfo()->s32
 {
     var values: [4] s32 = [9, 8, 7, 6]
@@ -1037,6 +1093,32 @@ func intrinsicReceiverLifecycleInfo()->IntrinsicInfo
 {
     let v = intrinsicDropThenInitArrayInfo()
     @assert(v == 567)
+}
+
+#test
+{
+    let v = intrinsicAutoDropPairInfo()
+    @assert(v.first == 1)
+    @assert(v.drops == 2)
+    @assert(v.dropTrace == 201)
+}
+
+#test
+{
+    let v = intrinsicAutoDropNestedInfo()
+    @assert(v.first == 1)
+    @assert(v.second == 6)
+    @assert(v.drops == 6)
+    @assert(v.dropTrace == 60302050401)
+}
+
+#test
+{
+    let v = intrinsicAutoDropStructArrayInfo()
+    @assert(v.first == 7)
+    @assert(v.second == 10)
+    @assert(v.drops == 4)
+    @assert(v.dropTrace == 8071009)
 }
 
 #test

@@ -105,6 +105,33 @@ impl EmbeddedTrackedWithOps
     }
 }
 
+struct DropOnlyTracked
+{
+    value: s32
+}
+
+impl DropOnlyTracked
+{
+    mtd opDrop()
+    {
+        DropCount += 1
+        DropTrace = DropTrace * 100 + cast(s64) .value
+    }
+}
+
+struct AutoDropPair
+{
+    first: DropOnlyTracked
+    second: DropOnlyTracked
+}
+
+struct AutoDropNested
+{
+    head: DropOnlyTracked
+    pairs: [2] AutoDropPair
+    tail: DropOnlyTracked
+}
+
 struct ReceiverLifecycleTracked
 {
     value: s32 = 3
@@ -242,6 +269,49 @@ func intrinsicDropThenInitArrayInfo()->s32
     return rgb[3].r * 100 + rgb[3].g * 10 + rgb[3].b
 }
 
+func intrinsicAutoDropPairInfo()->IntrinsicInfo
+{
+    resetLifecycleHooks()
+
+    var first: s32 = 0
+    {
+        var value = AutoDropPair{DropOnlyTracked{1}, DropOnlyTracked{2}}
+        first = value.first.value
+    }
+
+    return {first, 0, 0, DropCount, DropTrace, PostCopyCount, PostMoveCount}
+}
+
+func intrinsicAutoDropNestedInfo()->IntrinsicInfo
+{
+    resetLifecycleHooks()
+
+    var first: s32 = 0
+    var last: s32 = 0
+    {
+        var value = AutoDropNested{DropOnlyTracked{1}, [AutoDropPair{DropOnlyTracked{2}, DropOnlyTracked{3}}, AutoDropPair{DropOnlyTracked{4}, DropOnlyTracked{5}}], DropOnlyTracked{6}}
+        first = value.head.value
+        last = value.tail.value
+    }
+
+    return {first, last, 0, DropCount, DropTrace, PostCopyCount, PostMoveCount}
+}
+
+func intrinsicAutoDropStructArrayInfo()->IntrinsicInfo
+{
+    resetLifecycleHooks()
+
+    var first: s32 = 0
+    var last: s32 = 0
+    {
+        var values: [2] AutoDropPair = [AutoDropPair{DropOnlyTracked{7}, DropOnlyTracked{8}}, AutoDropPair{DropOnlyTracked{9}, DropOnlyTracked{10}}]
+        first = values[0].first.value
+        last = values[1].second.value
+    }
+
+    return {first, last, 0, DropCount, DropTrace, PostCopyCount, PostMoveCount}
+}
+
 func intrinsicReceiverLifecycleInfo()->IntrinsicInfo
 {
     resetLifecycleHooks()
@@ -329,6 +399,32 @@ func semaTest007()
 }
 
 func semaTest008()
+{
+    const V = #run intrinsicAutoDropPairInfo()
+    #assert(V.first == 1)
+    #assert(V.drops == 2)
+    #assert(V.dropTrace == 201)
+}
+
+func semaTest009()
+{
+    const V = #run intrinsicAutoDropNestedInfo()
+    #assert(V.first == 1)
+    #assert(V.second == 6)
+    #assert(V.drops == 6)
+    #assert(V.dropTrace == 60302050401)
+}
+
+func semaTest010()
+{
+    const V = #run intrinsicAutoDropStructArrayInfo()
+    #assert(V.first == 7)
+    #assert(V.second == 10)
+    #assert(V.drops == 4)
+    #assert(V.dropTrace == 8071009)
+}
+
+func semaTest011()
 {
     const V = #run intrinsicReceiverLifecycleInfo()
     #assert(V.first == 3)

@@ -176,6 +176,12 @@ struct AutoDropNested
     tail: DropOnlyTracked
 }
 
+struct AutoDropBranch
+{
+    head: DropOnlyTracked
+    pair: AutoDropPair
+}
+
 struct IntrinsicLifecycleErr
 {
     using base: Swag.BaseError
@@ -873,6 +879,99 @@ func intrinsicAutoDropDeferInfo()->IntrinsicInfo
     return result
 }
 
+func intrinsicAutoDropContinueInfo()->IntrinsicInfo
+{
+    resetLifecycleHooks()
+
+    var first: s32 = 0
+    var second: s32 = 0
+    var third: s32 = 0
+    {
+        var outer = DropOnlyTracked{9}
+        for i in 2
+        {
+            var pair = AutoDropPair{DropOnlyTracked{cast(s32) (i * 2 + 1)}, DropOnlyTracked{cast(s32) (i * 2 + 2)}}
+            first += pair.first.value
+            if i == 0 do
+                continue
+
+            var branch = AutoDropBranch{DropOnlyTracked{5}, AutoDropPair{DropOnlyTracked{6}, DropOnlyTracked{7}}}
+            second = branch.head.value
+            third = outer.value
+        }
+    }
+
+    return {first, second, third, DropCount, DropTrace, PostCopyCount, PostMoveCount}
+}
+
+func intrinsicAutoDropBreakScopeInfo()->IntrinsicInfo
+{
+    resetLifecycleHooks()
+
+    var first: s32 = 0
+    var second: s32 = 0
+    var third: s32 = 0
+    {
+        var outer = AutoDropPair{DropOnlyTracked{1}, DropOnlyTracked{2}}
+        #scope(Exit)
+        {
+            var scopeValue = AutoDropBranch{DropOnlyTracked{3}, AutoDropPair{DropOnlyTracked{4}, DropOnlyTracked{5}}}
+            first = outer.first.value + scopeValue.head.value
+
+            for i in 3
+            {
+                var current = AutoDropPair{DropOnlyTracked{6}, DropOnlyTracked{7}}
+                second = current.second.value + cast(s32) i
+                break to Exit
+            }
+        }
+
+        third = outer.second.value
+    }
+
+    return {first, second, third, DropCount, DropTrace, PostCopyCount, PostMoveCount}
+}
+
+func intrinsicAutoDropSwitchReturnInfo()->IntrinsicInfo
+{
+    resetLifecycleHooks()
+
+    with var result: retval
+    {
+        .first = 0
+        .second = 0
+        .third = 0
+        .drops = 0
+        .dropTrace = 0
+        .postCopy = 0
+        .postMove = 0
+    }
+
+    defer result.dropTrace = DropTrace
+    defer result.drops = DropCount
+
+    {
+        var outer = AutoDropPair{DropOnlyTracked{1}, DropOnlyTracked{2}}
+        switch 2
+        {
+            case 1:
+                result.first = -1
+
+            case 2:
+                var active = AutoDropBranch{DropOnlyTracked{6}, AutoDropPair{DropOnlyTracked{7}, DropOnlyTracked{8}}}
+                result.first = outer.second.value
+                result.second = active.head.value
+                result.third = active.pair.first.value
+                return result
+
+            default:
+                result.third = -2
+        }
+    }
+
+    return result
+}
+
 func intrinsicInitRuntimeCountScalarInfo()->s32
 {
     var values: [4] s32 = [9, 8, 7, 6]
@@ -1257,6 +1356,36 @@ func intrinsicReceiverLifecycleInfo()->IntrinsicInfo
     @assert(v.third == 8)
     @assert(v.drops == 8)
     @assert(v.dropTrace == 805040706030201)
+}
+
+#test
+{
+    let v = intrinsicAutoDropContinueInfo()
+    @assert(v.first == 4)
+    @assert(v.second == 5)
+    @assert(v.third == 9)
+    @assert(v.drops == 8)
+    @assert(v.dropTrace == 201070605040309)
+}
+
+#test
+{
+    let v = intrinsicAutoDropBreakScopeInfo()
+    @assert(v.first == 4)
+    @assert(v.second == 7)
+    @assert(v.third == 2)
+    @assert(v.drops == 7)
+    @assert(v.dropTrace == 7060504030201)
+}
+
+#test
+{
+    let v = intrinsicAutoDropSwitchReturnInfo()
+    @assert(v.first == 2)
+    @assert(v.second == 6)
+    @assert(v.third == 7)
+    @assert(v.drops == 5)
+    @assert(v.dropTrace == 807060201)
 }
 
 #test

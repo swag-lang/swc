@@ -1408,7 +1408,9 @@ namespace
             return false;
 
         const AstNode* decl = function->decl();
-        if (!decl || decl->id() != AstNodeId::CompilerFunc)
+        if (!decl)
+            return false;
+        if (!decl->is(AstNodeId::CompilerFunc))
             return false;
 
         const TokenId tokenId = ctx.compiler().srcView(function->srcViewRef()).token(function->tokRef()).id;
@@ -1433,7 +1435,7 @@ namespace
         if (!isRuntimeArtifactJitEntry(ctx))
             return Result::Continue;
 
-        Runtime::Context* runtimeContext = CompilerInstance::runtimeContextFromTls();
+        const Runtime::Context* runtimeContext = CompilerInstance::runtimeContextFromTls();
         if (!runtimeContext)
             return Result::Continue;
         if (runtimeContext->allocator.obj && runtimeContext->allocator.itable)

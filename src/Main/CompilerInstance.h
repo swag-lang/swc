@@ -91,6 +91,7 @@ public:
     void                            clearLastArtifactLabel() { lastArtifactLabel_.clear(); }
     Runtime::ICompiler&             runtimeCompiler() { return runtimeCompiler_; }
     const Runtime::ICompiler&       runtimeCompiler() const { return runtimeCompiler_; }
+    const Runtime::IAllocator&      runtimeAllocator() const { return runtimeAllocator_; }
     Runtime::CompilerMessage&       runtimeCompilerMessage() { return runtimeCompilerMessage_; }
     const Runtime::CompilerMessage& runtimeCompilerMessage() const { return runtimeCompilerMessage_; }
     JITMemoryManager&               jitMemMgr() { return *(jitMemMgr_.get()); }
@@ -241,8 +242,10 @@ private:
     Runtime::BuildCfg                        buildCfg_{};
     Utf8                                     lastArtifactLabel_;
     Runtime::ICompiler                       runtimeCompiler_{};
+    Runtime::IAllocator                      runtimeAllocator_{};
     Runtime::CompilerMessage                 runtimeCompilerMessage_{};
     std::unique_ptr<JITExecManager>          jitExecMgr_;
+    void*                                    runtimeAllocatorITable_[2]{};
     void*                                    runtimeCompilerITable_[4]{};
     mutable std::shared_mutex                mutex_;
     std::atomic<bool>                        changed_{true};

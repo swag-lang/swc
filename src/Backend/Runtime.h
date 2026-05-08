@@ -305,6 +305,30 @@ namespace Runtime
         uint32_t count;
     };
 
+    enum class AllocatorMode : uint32_t
+    {
+        Alloc,
+        Free,
+        Realloc,
+        FreeAll,
+        AssertIsAllocated,
+    };
+
+    struct AllocatorRequest
+    {
+        SourceCodeLocation callerLoc;
+        String             hint;
+        void*              address;
+        uint64_t           size;
+        uint64_t           oldSize;
+        AllocatorMode      mode = AllocatorMode::Alloc;
+        uint32_t           alignment = 0;
+    };
+
+    struct IAllocator : Interface
+    {
+    };
+
     struct ErrorValue
     {
         Any      value;

@@ -28,6 +28,7 @@
 #include "Support/Core/Timer.h"
 #include "Support/Core/Utf8Helper.h"
 #include "Support/Memory/Heap.h"
+#include "Support/Memory/mimalloc/include/mimalloc.h"
 #include "Support/Os/Os.h"
 #include "Support/Report/Diagnostic.h"
 #include "Support/Report/Logger.h"
@@ -742,6 +743,54 @@ namespace
         }
     }
 
+    void runtimeAllocatorReq(const CompilerInstance*, Runtime::AllocatorRequest* request)
+    {
+        if (!request)
+            return;
+
+        switch (request->mode)
+        {
+            case Runtime::AllocatorMode::Free:
+                mi_free(request->address);
+                request->address = nullptr;
+                return;
+
+            case Runtime::AllocatorMode::Alloc:
+                request->address = nullptr;
+                [[fallthrough]];
+
+            case Runtime::AllocatorMode::Realloc:
+            {
+                if (request->size == 0)
+                {
+                    if (request->mode == Runtime::AllocatorMode::Realloc)
+                        mi_free(request->address);
+                    request->address = nullptr;
+                    return;
+                }
+
+                const size_t alignment = request->alignment ? request->alignment : sizeof(void*);
+                if (request->mode == Runtime::AllocatorMode::Alloc)
+                {
+                    request->address = alignment > sizeof(void*) ? mi_malloc_aligned(request->size, alignment) : mi_malloc(request->size);
+                }
+                else
+                {
+                    request->address = alignment > sizeof(void*) ? mi_realloc_aligned(request->address, request->size, alignment) : mi_realloc(request->address, request->size);
+                }
+
+                return;
+            }
+
+            case Runtime::AllocatorMode::FreeAll:
+            case Runtime::AllocatorMode::AssertIsAllocated:
+                return;
+
+            default:
+                return;
+        }
+    }
+
     const Runtime::CompilerMessage* runtimeCompilerGetMessage(const CompilerInstance* owner)
     {
         SWC_ASSERT(owner != nullptr);
@@ -929,6 +978,11 @@ void CompilerInstance::processCommand()
 
 void CompilerInstance::setupRuntimeCompiler()
 {
+    runtimeAllocator_.obj      = this;
+    runtimeAllocator_.itable   = runtimeAllocatorITable_;
+    runtimeAllocatorITable_[0] = nullptr;
+    runtimeAllocatorITable_[1] = reinterpret_cast<void*>(&runtimeAllocatorReq);
+
     runtimeCompiler_.obj      = this;
     runtimeCompiler_.itable   = runtimeCompilerITable_;
     runtimeCompilerITable_[0] = nullptr;
@@ -981,6 +1035,8 @@ void CompilerInstance::initPerThreadRuntimeContextForJit()
 {
     PerThreadData& td              = perThreadData_[JobManager::threadIndex()];
     td.runtimeContext.runtimeFlags = Runtime::RuntimeFlags::FromCompiler;
+    if (!td.runtimeContext.allocator.obj || !td.runtimeContext.allocator.itable)
+        td.runtimeContext.allocator = runtimeAllocator();
     setRuntimeContextForCurrentThread(&td.runtimeContext);
 
     if (nativeRuntimeContextTlsIdOffset_ != UINT32_MAX)

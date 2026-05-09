@@ -1201,6 +1201,16 @@ namespace
         return Result::Continue;
     }
 
+    TypeRef constQualifiedArrayTypeRefFromResolvedType(Sema& sema, const TypeInfo& resolvedType)
+    {
+        TypeInfoFlags reflectedFlags = resolvedType.flags();
+        reflectedFlags.add(TypeInfoFlagsE::Const);
+        SmallVector<uint64_t> dims;
+        for (const uint64_t dim : resolvedType.payloadArrayDims())
+            dims.push_back(dim);
+        return sema.typeMgr().addType(TypeInfo::makeArray(dims, resolvedType.payloadArrayElemTypeRef(), reflectedFlags));
+    }
+
     TypeRef preserveTopLevelConstForReflectedAggregateLiteral(Sema& sema, TypeRef originalTypeRef, TypeRef resolvedTypeRef)
     {
         if (!originalTypeRef.isValid() || !resolvedTypeRef.isValid())
@@ -1213,13 +1223,13 @@ namespace
         const TypeInfo& resolvedType = sema.typeMgr().get(resolvedTypeRef);
         if (resolvedType.isConst() || !resolvedType.isArray())
             return resolvedTypeRef;
+        return constQualifiedArrayTypeRefFromResolvedType(sema, resolvedType);
+    }
 
-        TypeInfoFlags reflectedFlags = resolvedType.flags();
-        reflectedFlags.add(TypeInfoFlagsE::Const);
-        SmallVector<uint64_t> dims;
-        for (const uint64_t dim : resolvedType.payloadArrayDims())
-            dims.push_back(dim);
-        return sema.typeMgr().addType(TypeInfo::makeArray(dims, resolvedType.payloadArrayElemTypeRef(), reflectedFlags));
+    TypeRef reflectedCompilerValueTypeRef(Sema& sema, TypeRef originalTypeRef, ConstantRef cstRef)
+    {
+        const TypeRef resolvedTypeRef = SemaHelpers::deduceConcretizedAggregateLiteralType(sema, originalTypeRef, cstRef);
+        return preserveTopLevelConstForReflectedAggregateLiteral(sema, originalTypeRef, resolvedTypeRef);
     }
 
     Result resolveCompilerOperandConcreteType(Sema& sema, SemaNodeView& view, AstNodeRef childRef, TypeRef& outTypeRef)
@@ -1255,10 +1265,7 @@ namespace
 
         SWC_RESULT(concretizeViewConstant(sema, view));
 
-        const TypeRef resolvedTypeRef = preserveTopLevelConstForReflectedAggregateLiteral(
-            sema,
-            view.typeRef(),
-            SemaHelpers::deduceConcretizedAggregateLiteralType(sema, view.typeRef(), view.cstRef()));
+        const TypeRef resolvedTypeRef = reflectedCompilerValueTypeRef(sema, view.typeRef(), view.cstRef());
 
         if (view.type() && view.type()->isTypeValue())
         {

@@ -253,38 +253,71 @@ namespace
         CodeGenMemoryHelpers::emitMemCopy(codeGen, dstBaseReg, payloadReg, static_cast<uint32_t>(payloadBytes.size()));
     }
 
+    bool tryResolveExistingAggregateElementPayload(CodeGenNodePayload& outPayload, CodeGen& codeGen, AstNodeRef valueRef, TypeRef targetTypeRef)
+    {
+        const CodeGenNodePayload* existingPayload = codeGen.safePayload(valueRef);
+        if (!existingPayload)
+            return false;
+
+        if (existingPayload->reg.isValid())
+        {
+            outPayload = *existingPayload;
+            return true;
+        }
+
+        if (existingPayload->runtimeStorageSym == nullptr)
+            return false;
+
+        outPayload     = *existingPayload;
+        outPayload.reg = codeGen.runtimeStorageAddressReg(valueRef);
+        outPayload.setIsAddress();
+        if (!outPayload.typeRef.isValid())
+            outPayload.typeRef = targetTypeRef;
+        return true;
+    }
+
+    Result resolveConstantAggregateElementPayload(CodeGenNodePayload& outPayload, CodeGen& codeGen, AstNodeRef valueRef, TypeRef targetTypeRef)
+    {
+        const SemaNodeView valueView = codeGen.viewTypeConstant(valueRef);
+        if (!valueView.cstRef().isValid())
+            SWC_INTERNAL_CHECK(false);
+
+        outPayload         = {};
+        outPayload.reg     = codeGen.nextVirtualRegisterForType(targetTypeRef);
+        outPayload.typeRef = targetTypeRef;
+        outPayload.setIsValue();
+        return emitConstantToPayload(codeGen, outPayload, valueView.cstRef(), codeGen.cstMgr().get(valueView.cstRef()), targetTypeRef);
+    }
+
     Result resolveAggregateElementPayload(CodeGenNodePayload& outPayload, CodeGen& codeGen, AstNodeRef valueRef, TypeRef targetTypeRef)
     {
-        if (const CodeGenNodePayload* existingPayload = codeGen.safePayload(valueRef))
-        {
-            if (existingPayload->reg.isValid())
-            {
-                outPayload = *existingPayload;
-                return Result::Continue;
-            }
+        if (tryResolveExistingAggregateElementPayload(outPayload, codeGen, valueRef, targetTypeRef))
+            return Result::Continue;
 
-            if (existingPayload->runtimeStorageSym != nullptr)
-            {
-                outPayload     = *existingPayload;
-                outPayload.reg = codeGen.runtimeStorageAddressReg(valueRef);
-                outPayload.setIsAddress();
-                if (!outPayload.typeRef.isValid())
-                    outPayload.typeRef = targetTypeRef;
-                return Result::Continue;
-            }
+        return resolveConstantAggregateElementPayload(outPayload, codeGen, valueRef, targetTypeRef);
+    }
+
+    MicroReg aggregateElementAddressReg(CodeGen& codeGen, MicroReg dstBaseReg, uint32_t offset)
+    {
+        if (!offset)
+            return dstBaseReg;
+
+        const MicroReg dstElementReg = codeGen.nextVirtualIntRegister();
+        codeGen.builder().emitLoadRegReg(dstElementReg, dstBaseReg, MicroOpBits::B64);
+        codeGen.builder().emitOpBinaryRegImm(dstElementReg, ApInt(offset, 64), MicroOp::Add, MicroOpBits::B64);
+        return dstElementReg;
+    }
+
+    void emitAggregateElementStore(CodeGen& codeGen, MicroReg dstElementReg, const CodeGenNodePayload& elementPayload, uint32_t elementSize)
+    {
+        const MicroOpBits storeBits = CodeGenTypeHelpers::bitsFromStorageSize(elementSize);
+        if (elementPayload.isAddress() || storeBits == MicroOpBits::Zero)
+        {
+            CodeGenMemoryHelpers::emitMemCopy(codeGen, dstElementReg, elementPayload.reg, elementSize);
+            return;
         }
 
-        const SemaNodeView valueView = codeGen.viewTypeConstant(valueRef);
-        if (valueView.cstRef().isValid())
-        {
-            outPayload         = {};
-            outPayload.reg     = codeGen.nextVirtualRegisterForType(targetTypeRef);
-            outPayload.typeRef = targetTypeRef;
-            outPayload.setIsValue();
-            return emitConstantToPayload(codeGen, outPayload, valueView.cstRef(), codeGen.cstMgr().get(valueView.cstRef()), targetTypeRef);
-        }
-
-        SWC_INTERNAL_CHECK(false);
+        codeGen.builder().emitLoadMemReg(dstElementReg, 0, elementPayload.reg, storeBits);
     }
 
     Result emitAggregateLiteralPayload(CodeGen& codeGen, AstNodeRef nodeRef, std::span<const AstNodeRef> elementRefs, TypeRef aggregateTypeRef)
@@ -311,31 +344,8 @@ namespace
                 continue;
 
             SWC_ASSERT(elementSize <= std::numeric_limits<uint32_t>::max());
-
-            MicroReg dstElementReg = dstBaseReg;
-            if (entry.offset != 0)
-            {
-                dstElementReg = codeGen.nextVirtualIntRegister();
-                codeGen.builder().emitLoadRegReg(dstElementReg, dstBaseReg, MicroOpBits::B64);
-                codeGen.builder().emitOpBinaryRegImm(dstElementReg, ApInt(entry.offset, 64), MicroOp::Add, MicroOpBits::B64);
-            }
-
-            const MicroOpBits storeBits = CodeGenTypeHelpers::bitsFromStorageSize(elementSize);
-            if (elementPayload.isAddress())
-            {
-                CodeGenMemoryHelpers::emitMemCopy(codeGen, dstElementReg, elementPayload.reg, static_cast<uint32_t>(elementSize));
-                continue;
-            }
-
-            if (storeBits != MicroOpBits::Zero)
-            {
-                codeGen.builder().emitLoadMemReg(dstElementReg, 0, elementPayload.reg, storeBits);
-                continue;
-            }
-
-            // Large runtime values such as `string`/`slice` are represented by a register holding
-            // the address of pre-materialized storage, so copy from that backing storage.
-            CodeGenMemoryHelpers::emitMemCopy(codeGen, dstElementReg, elementPayload.reg, static_cast<uint32_t>(elementSize));
+            const MicroReg dstElementReg = aggregateElementAddressReg(codeGen, dstBaseReg, entry.offset);
+            emitAggregateElementStore(codeGen, dstElementReg, elementPayload, static_cast<uint32_t>(elementSize));
         }
 
         codeGen.setPayloadAddressReg(nodeRef, dstBaseReg, aggregateTypeRef);

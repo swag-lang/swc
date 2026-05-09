@@ -741,6 +741,16 @@ namespace
         return false;
     }
 
+    bool canConcretizeAggregateArrayElementToLeadType(Sema& sema, TypeRef leadTypeRef, TypeRef elemTypeRef, ConstantRef elemValueRef)
+    {
+        if (aggregateLiteralTypeContainsTypeLike(sema, leadTypeRef) || aggregateLiteralTypeContainsTypeLike(sema, elemTypeRef))
+            return elemTypeRef == leadTypeRef;
+
+        CastRequest castRequest(CastKind::Initialization);
+        castRequest.setConstantFoldingSrc(elemValueRef);
+        return Cast::castAllowed(sema, castRequest, sema.cstMgr().get(elemValueRef).typeRef(), leadTypeRef) == Result::Continue;
+    }
+
     bool shouldDeferAggregateArrayConcretization(Sema& sema, const SemaNodeView& nodeInitView)
     {
         if (!nodeInitView.typeRef().isValid() || nodeInitView.cstRef().isInvalid())
@@ -775,16 +785,7 @@ namespace
                 return false;
 
             const TypeRef elemTypeRef = SemaHelpers::deduceConcretizedAggregateLiteralType(sema, elemTypes[i], values[i]);
-            if (aggregateLiteralTypeContainsTypeLike(sema, leadTypeRef) || aggregateLiteralTypeContainsTypeLike(sema, elemTypeRef))
-            {
-                if (elemTypeRef != leadTypeRef)
-                    return false;
-                continue;
-            }
-
-            CastRequest castRequest(CastKind::Initialization);
-            castRequest.setConstantFoldingSrc(values[i]);
-            if (Cast::castAllowed(sema, castRequest, sema.cstMgr().get(values[i]).typeRef(), leadTypeRef) != Result::Continue)
+            if (!canConcretizeAggregateArrayElementToLeadType(sema, leadTypeRef, elemTypeRef, values[i]))
                 return false;
         }
 

@@ -1114,22 +1114,57 @@ Result AstCompilerGlobal::semaPostNode(Sema& sema) const
 
 namespace
 {
+    SymbolStruct* compilerGenericRootStructFromView(Sema& sema, const SemaNodeView& view)
+    {
+        if (view.sym() && view.sym()->isStruct())
+        {
+            auto& st = view.sym()->cast<SymbolStruct>();
+            if (st.isGenericRoot() && !st.isGenericInstance())
+                return &st;
+        }
+
+        TypeRef representedTypeRef = TypeRef::invalid();
+        if (view.type() && view.type()->isTypeValue())
+            representedTypeRef = view.type()->payloadTypeRef();
+        else if (view.type() && view.type()->isStruct())
+            representedTypeRef = view.typeRef();
+
+        if (!representedTypeRef.isValid())
+            return nullptr;
+
+        Symbol* representedSym = sema.typeMgr().get(representedTypeRef).getSymbol();
+        if (!representedSym || !representedSym->isStruct())
+            return nullptr;
+
+        auto& st = representedSym->cast<SymbolStruct>();
+        if (!st.isGenericRoot() || st.isGenericInstance())
+            return nullptr;
+
+        return &st;
+    }
+
     Result instantiateCompilerGenericTypeOperand(Sema& sema, SemaNodeView& view)
     {
-        if (view.typeRef().isValid() || !view.sym() || !view.sym()->isStruct())
-            return Result::Continue;
-
-        auto& genericRoot = view.sym()->cast<SymbolStruct>();
-        if (!genericRoot.isGenericRoot())
+        auto* genericRoot = compilerGenericRootStructFromView(sema, view);
+        if (!genericRoot)
             return Result::Continue;
 
         SymbolStruct* instance = nullptr;
-        SWC_RESULT(SemaGeneric::instantiateStructFromContext(sema, genericRoot, instance));
+        SWC_RESULT(SemaGeneric::instantiateStructFromContext(sema, *genericRoot, instance));
         if (!instance)
             return Result::Continue;
 
+        TypeRef specializedTypeRef = instance->typeRef();
+        if (specializedTypeRef.isInvalid() && instance->decl() && instance->decl()->is(AstNodeId::StructDecl))
+        {
+            const TypeInfo structType = TypeInfo::makeStruct(instance);
+            specializedTypeRef        = sema.typeMgr().addType(structType);
+        }
+
         sema.setSymbol(view.nodeRef(), instance);
-        view.recompute(sema, SemaNodeViewPartE::Type | SemaNodeViewPartE::Symbol);
+        if (specializedTypeRef.isValid())
+            sema.setType(view.nodeRef(), specializedTypeRef);
+        view.recompute(sema, SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant | SemaNodeViewPartE::Symbol);
         return Result::Continue;
     }
 
@@ -1142,6 +1177,27 @@ namespace
         SWC_RESULT(Cast::concretizeConstant(sema, newCstRef, view.nodeRef(), view.cstRef(), TypeInfo::Sign::Unknown));
         sema.setConstant(view.nodeRef(), newCstRef);
         view.recompute(sema, SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant | SemaNodeViewPartE::Symbol);
+        return Result::Continue;
+    }
+
+    Result specializeCompilerOperandConcreteTypeRef(Sema& sema, TypeRef& ioTypeRef)
+    {
+        if (!ioTypeRef.isValid())
+            return Result::Continue;
+
+        Symbol* symbol = sema.typeMgr().get(ioTypeRef).getSymbol();
+        if (!symbol || !symbol->isStruct())
+            return Result::Continue;
+
+        auto& st = symbol->cast<SymbolStruct>();
+        if (!st.isGenericRoot() || st.isGenericInstance())
+            return Result::Continue;
+
+        SymbolStruct* instance = nullptr;
+        SWC_RESULT(SemaGeneric::instantiateStructFromContext(sema, st, instance));
+        if (instance)
+            ioTypeRef = instance->typeRef();
+
         return Result::Continue;
     }
 
@@ -1179,12 +1235,14 @@ namespace
             outTypeRef = SemaHelpers::resolveRepresentedTypeRef(sema, view);
             if (!outTypeRef.isValid())
                 return SemaError::raise(sema, DiagnosticId::sema_err_not_value_expr, childRef);
+            SWC_RESULT(specializeCompilerOperandConcreteTypeRef(sema, outTypeRef));
             return Result::Continue;
         }
 
         if (view.cstRef().isValid())
             outTypeRef = SemaHelpers::deduceConcretizedAggregateLiteralType(sema, outTypeRef, view.cstRef());
 
+        SWC_RESULT(specializeCompilerOperandConcreteTypeRef(sema, outTypeRef));
         return Result::Continue;
     }
 

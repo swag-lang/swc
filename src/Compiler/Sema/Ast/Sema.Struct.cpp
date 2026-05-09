@@ -15,6 +15,21 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    void bindSpecializedStructInitializerTarget(Sema& sema, AstNodeRef nodeWhatRef, SymbolStruct& instance, TypeRef specializedTypeRef)
+    {
+        sema.setSymbol(nodeWhatRef, &instance);
+        if (specializedTypeRef.isValid())
+            sema.setType(nodeWhatRef, specializedTypeRef);
+
+        const auto* namedType = sema.node(nodeWhatRef).safeCast<AstNamedType>();
+        if (!namedType)
+            return;
+
+        sema.setSymbol(namedType->nodeIdentRef, &instance);
+        if (specializedTypeRef.isValid())
+            sema.setType(namedType->nodeIdentRef, specializedTypeRef);
+    }
+
     Result specializeGenericStructInitializerTarget(Sema& sema, AstNodeRef nodeWhatRef)
     {
         const SemaNodeView nodeWhatView = sema.viewNodeTypeSymbol(nodeWhatRef);
@@ -30,7 +45,14 @@ namespace
         if (!instance)
             return Result::Continue;
 
-        sema.setSymbol(nodeWhatRef, instance);
+        TypeRef specializedTypeRef = instance->typeRef();
+        if (specializedTypeRef.isInvalid() && instance->decl() && instance->decl()->is(AstNodeId::StructDecl))
+        {
+            const TypeInfo structType = TypeInfo::makeStruct(instance);
+            specializedTypeRef        = sema.typeMgr().addType(structType);
+        }
+
+        bindSpecializedStructInitializerTarget(sema, nodeWhatRef, *instance, specializedTypeRef);
         return Result::Continue;
     }
 

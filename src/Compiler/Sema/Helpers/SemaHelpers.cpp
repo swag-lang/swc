@@ -2684,7 +2684,16 @@ Result SemaHelpers::resolveMemberAccess(Sema& sema, AstNodeRef memberRef, AstMem
             SWC_RESULT(SemaGeneric::instantiateStructFromContext(sema, st, instance));
             if (instance)
             {
+                TypeRef specializedTypeRef = instance->typeRef();
+                if (specializedTypeRef.isInvalid() && instance->decl() && instance->decl()->is(AstNodeId::StructDecl))
+                {
+                    const TypeInfo structType = TypeInfo::makeStruct(instance);
+                    specializedTypeRef        = sema.typeMgr().addType(structType);
+                }
+
                 sema.setSymbol(node.nodeLeftRef, instance);
+                if (specializedTypeRef.isValid())
+                    sema.setType(node.nodeLeftRef, specializedTypeRef);
                 nodeLeftView.recompute(sema, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant | SemaNodeViewPartE::Symbol);
             }
         }

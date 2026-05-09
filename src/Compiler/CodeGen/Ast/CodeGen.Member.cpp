@@ -302,6 +302,33 @@ namespace
                !leftView.sym()->isImpl();
     }
 
+    bool isCompileTimeMemberAccessLeftNode(const AstNode& node)
+    {
+        return node.is(AstNodeId::Identifier) || node.is(AstNodeId::NamedType) || node.is(AstNodeId::SuffixLiteral);
+    }
+
+    bool canSkipCompileTimeMemberAccessLeft(CodeGen& codeGen, const AstMemberAccessExpr& node)
+    {
+        const SemaNodeView leftView = codeGen.viewTypeSymbol(node.nodeLeftRef);
+        if (!isRuntimeMemberAccessLeft(leftView))
+            return true;
+
+        if (leftView.sym() || !leftView.typeRef().isValid())
+            return false;
+        if (!isCompileTimeMemberAccessLeftNode(codeGen.node(node.nodeLeftRef)))
+            return false;
+
+        const SemaNodeView rightView = codeGen.viewSymbol(node.nodeRightRef);
+        if (!rightView.sym())
+            return false;
+
+        return rightView.sym()->isFunction() ||
+               rightView.sym()->isType() ||
+               rightView.sym()->isNamespace() ||
+               rightView.sym()->isModule() ||
+               rightView.sym()->isImpl();
+    }
+
     bool canMaterializeScopedRightSymbol(const Symbol& symbol)
     {
         if (!symbol.isVariable())
@@ -313,7 +340,12 @@ namespace
 
 Result AstMemberAccessExpr::codeGenPreNodeChild(const CodeGen& codeGen, const AstNodeRef& childRef) const
 {
-    SWC_UNUSED(codeGen);
+    if (childRef == nodeLeftRef)
+    {
+        if (canSkipCompileTimeMemberAccessLeft(const_cast<CodeGen&>(codeGen), *this))
+            return Result::SkipChildren;
+    }
+
     if (childRef == nodeRightRef)
         return Result::SkipChildren;
     return Result::Continue;

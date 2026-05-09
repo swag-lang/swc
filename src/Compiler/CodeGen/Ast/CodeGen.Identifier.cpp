@@ -484,6 +484,7 @@ Result AstIdentifier::codeGenPostNode(CodeGen& codeGen)
 
         if (parentRef.isValid() &&
             (codeGen.node(parentRef).is(AstNodeId::NamedType) ||
+             codeGen.node(parentRef).is(AstNodeId::StructInitializerList) ||
              codeGen.node(parentRef).is(AstNodeId::SuffixLiteral) ||
              codeGen.node(parentRef).is(AstNodeId::QuotedExpr) ||
              codeGen.node(parentRef).is(AstNodeId::QuotedListExpr)))

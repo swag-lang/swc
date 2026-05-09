@@ -399,7 +399,7 @@ Result AstNamedType::semaPostNode(Sema& sema) const
 
     // If we matched against the interface implementation block in a struct,
     // then we replace it with the corresponding interface type
-    if (view.sym()->isImpl() && view.type()->isInterface())
+    if (view.sym()->isImpl() && view.type() && view.type()->isInterface())
     {
         sema.setSymbol(nodeIdentRef, &view.type()->payloadSymInterface());
         view.recompute(sema, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Symbol);

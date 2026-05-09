@@ -809,6 +809,15 @@ namespace
         return Result::Continue;
     }
 
+    Result resolveUsingStructCastPathWithoutPointerStep(Sema& sema, const CastRequest& castRequest, TypeRef srcStructTypeRef, TypeRef dstStructTypeRef, bool& outFound)
+    {
+        SmallVector<SymbolStructUsingPathStep> usingPath;
+        bool                                   hasUsingPath = false;
+        SWC_RESULT(resolveUsingStructCastPath(sema, castRequest, srcStructTypeRef, dstStructTypeRef, usingPath, hasUsingPath));
+        outFound = hasUsingPath && !usingPathHasPointerStep(usingPath);
+        return Result::Continue;
+    }
+
     bool pointerKindsCompatible(const TypeInfo& srcType, const TypeInfo& dstType, const CastKind castKind)
     {
         if (srcType.kind() == dstType.kind())
@@ -834,6 +843,12 @@ namespace
 
         // Keep the historical same-payload / void relaxation localized instead of duplicating it at each cast site.
         return pointerPayloadShortcutMatches(typeMgr, srcType, dstType);
+    }
+
+    bool allowsLegacyStructByValuePointerCast(const TypeManager& typeMgr, TypeRef srcStructTypeRef, TypeRef dstPointeeTypeRef)
+    {
+        // Preserve the current behavior while struct parameters still lower like implicit references.
+        return srcStructTypeRef == dstPointeeTypeRef || dstPointeeTypeRef == typeMgr.typeVoid();
     }
 
     bool pointerPayloadsCompatible(Sema& sema, const CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef)
@@ -1367,10 +1382,9 @@ Result Cast::castToReference(Sema& sema, CastRequest& castRequest, TypeRef srcTy
             return castRequest.fail(DiagnosticId::sema_err_cannot_cast_to_interface, srcTypeRef, dstTypeRef);
         }
 
-        SmallVector<SymbolStructUsingPathStep> usingPath;
-        bool                                   hasUsingPath = false;
-        SWC_RESULT(resolveUsingStructCastPath(sema, castRequest, srcPointeeTypeRef, dstPointeeTypeRef, usingPath, hasUsingPath));
-        if (hasUsingPath && !usingPathHasPointerStep(usingPath))
+        bool hasCompatibleUsingPath = false;
+        SWC_RESULT(resolveUsingStructCastPathWithoutPointerStep(sema, castRequest, srcPointeeTypeRef, dstPointeeTypeRef, hasCompatibleUsingPath));
+        if (hasCompatibleUsingPath)
             return Result::Continue;
     }
 
@@ -1386,10 +1400,9 @@ Result Cast::castToReference(Sema& sema, CastRequest& castRequest, TypeRef srcTy
         if (srcType.payloadTypeRef() == dstPointeeTypeRef)
             return Result::Continue;
 
-        SmallVector<SymbolStructUsingPathStep> usingPath;
-        bool                                   hasUsingPath = false;
-        SWC_RESULT(resolveUsingStructCastPath(sema, castRequest, srcType.payloadTypeRef(), dstPointeeTypeRef, usingPath, hasUsingPath));
-        if (hasUsingPath && !usingPathHasPointerStep(usingPath))
+        bool hasCompatibleUsingPath = false;
+        SWC_RESULT(resolveUsingStructCastPathWithoutPointerStep(sema, castRequest, srcType.payloadTypeRef(), dstPointeeTypeRef, hasCompatibleUsingPath));
+        if (hasCompatibleUsingPath)
             return Result::Continue;
     }
 
@@ -1410,10 +1423,9 @@ Result Cast::castToReference(Sema& sema, CastRequest& castRequest, TypeRef srcTy
             return Result::Continue;
         }
 
-        SmallVector<SymbolStructUsingPathStep> usingPath;
-        bool                                   hasUsingPath = false;
-        SWC_RESULT(resolveUsingStructCastPath(sema, castRequest, srcTypeRef, dstPointeeTypeRef, usingPath, hasUsingPath));
-        if (hasUsingPath && !usingPathHasPointerStep(usingPath))
+        bool hasCompatibleUsingPath = false;
+        SWC_RESULT(resolveUsingStructCastPathWithoutPointerStep(sema, castRequest, srcTypeRef, dstPointeeTypeRef, hasCompatibleUsingPath));
+        if (hasCompatibleUsingPath)
             return Result::Continue;
     }
 
@@ -1424,10 +1436,7 @@ Result Cast::castToReference(Sema& sema, CastRequest& castRequest, TypeRef srcTy
         bool receiverMatches = dstPointeeTypeRef == srcTypeRef;
         if (!receiverMatches && srcType.isStruct())
         {
-            SmallVector<SymbolStructUsingPathStep> usingPath;
-            bool                                   hasUsingPath = false;
-            SWC_RESULT(resolveUsingStructCastPath(sema, castRequest, srcTypeRef, dstPointeeTypeRef, usingPath, hasUsingPath));
-            receiverMatches = hasUsingPath && !usingPathHasPointerStep(usingPath);
+            SWC_RESULT(resolveUsingStructCastPathWithoutPointerStep(sema, castRequest, srcTypeRef, dstPointeeTypeRef, receiverMatches));
         }
         if (!receiverMatches)
             return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
@@ -1486,10 +1495,9 @@ Result Cast::castPointerToPointer(Sema& sema, CastRequest& castRequest, TypeRef 
             return Result::Continue;
         }
 
-        SmallVector<SymbolStructUsingPathStep> usingPath;
-        bool                                   hasUsingPath = false;
-        SWC_RESULT(resolveUsingStructCastPath(sema, castRequest, srcType.payloadTypeRef(), dstType.payloadTypeRef(), usingPath, hasUsingPath));
-        if (hasUsingPath && !usingPathHasPointerStep(usingPath))
+        bool hasCompatibleUsingPath = false;
+        SWC_RESULT(resolveUsingStructCastPathWithoutPointerStep(sema, castRequest, srcType.payloadTypeRef(), dstType.payloadTypeRef(), hasCompatibleUsingPath));
+        if (hasCompatibleUsingPath)
         {
             if (srcType.isConst() && !dstType.isConst() && !castRequest.flags.has(CastFlagsE::UnConst))
                 return castRequest.fail(DiagnosticId::sema_err_cannot_cast_const, srcTypeRef, dstTypeRef);
@@ -1534,10 +1542,9 @@ Result Cast::castToPointer(Sema& sema, CastRequest& castRequest, TypeRef srcType
         if (srcType.payloadTypeRef() == dstPointeeTypeRef || dstPointeeTypeRef == typeMgr.typeVoid())
             return Result::Continue;
 
-        SmallVector<SymbolStructUsingPathStep> usingPath;
-        bool                                   hasUsingPath = false;
-        SWC_RESULT(resolveUsingStructCastPath(sema, castRequest, srcType.payloadTypeRef(), dstPointeeTypeRef, usingPath, hasUsingPath));
-        if (hasUsingPath && !usingPathHasPointerStep(usingPath))
+        bool hasCompatibleUsingPath = false;
+        SWC_RESULT(resolveUsingStructCastPathWithoutPointerStep(sema, castRequest, srcType.payloadTypeRef(), dstPointeeTypeRef, hasCompatibleUsingPath));
+        if (hasCompatibleUsingPath)
             return Result::Continue;
     }
 
@@ -1643,11 +1650,11 @@ Result Cast::castToPointer(Sema& sema, CastRequest& castRequest, TypeRef srcType
         }
     }
 
-    // TODO @legacy (for parameters of type struct, which in fact are references)
+    // Preserve the current struct-by-value pointer cast behavior until struct parameters stop lowering like references.
     if (srcType.isStruct())
     {
         const auto dstElemTypeRef = dstType.payloadTypeRef();
-        if (srcTypeRef == dstElemTypeRef || dstElemTypeRef == typeMgr.typeVoid())
+        if (allowsLegacyStructByValuePointerCast(typeMgr, srcTypeRef, dstElemTypeRef))
         {
             const bool sourceIsConst = srcType.isConst() || castRequest.flags.has(CastFlagsE::ConstSource);
             if (sourceIsConst && !dstType.isConst() && !castRequest.flags.has(CastFlagsE::UnConst))

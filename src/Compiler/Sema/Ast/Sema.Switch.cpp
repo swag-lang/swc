@@ -129,6 +129,14 @@ namespace
         return whereView.cstRef().isValid() && whereView.cstRef() == sema.cstMgr().cstTrue();
     }
 
+    SmallVector<AstNodeRef> collectSwitchCaseExprRefs(Sema& sema, const AstSwitchCaseStmt& caseStmt)
+    {
+        SmallVector<AstNodeRef> exprRefs;
+        if (caseStmt.spanExprRef.isValid())
+            sema.ast().appendNodes(exprRefs, caseStmt.spanExprRef);
+        return exprRefs;
+    }
+
     AstNodeRef dynamicStructSwitchBindingIdentRef(Sema& sema, AstNodeRef nodeRef)
     {
         if (!nodeRef.isValid() || sema.node(nodeRef).isNot(AstNodeId::NamedType))
@@ -230,12 +238,16 @@ namespace
         return Result::Error;
     }
 
+    Result requireDynamicStructSwitchRuntimeDependencies(Sema& sema, const SourceCodeRef& codeRef)
+    {
+        SWC_RESULT(SemaHelpers::requireRuntimeFunctionDependency(sema, IdentifierManager::RuntimeFunctionKind::As, codeRef));
+        return SemaHelpers::requireRuntimeFunctionDependency(sema, IdentifierManager::RuntimeFunctionKind::Is, codeRef);
+    }
+
     Result validateDynamicStructCaseExpr(Sema& sema, AstNodeRef switchRef, AstNodeRef caseRef, AstNodeRef caseExprRef)
     {
         const auto& caseStmt = sema.node(caseRef).cast<AstSwitchCaseStmt>();
-
-        SmallVector<AstNodeRef> caseExprRefs;
-        sema.ast().appendNodes(caseExprRefs, caseStmt.spanExprRef);
+        const auto caseExprRefs = collectSwitchCaseExprRefs(sema, caseStmt);
 
         AstNodeRef typeExprRef     = caseExprRef;
         AstNodeRef bindingIdentRef = AstNodeRef::invalid();
@@ -276,9 +288,7 @@ namespace
             SWC_RESULT(registerDynamicStructSwitchBinding(sema, caseRef, caseExprRef, bindingIdentRef, switchTypeRef, targetTypeRef));
 
         SWC_RESULT(checkDuplicateDynamicCaseType(sema, switchRef, targetStructTypeRef, caseExprRef, caseStmt.nodeWhereRef));
-        const SourceCodeRef caseExprCodeRef = sema.node(caseExprRef).codeRef();
-        SWC_RESULT(SemaHelpers::requireRuntimeFunctionDependency(sema, IdentifierManager::RuntimeFunctionKind::As, caseExprCodeRef));
-        return SemaHelpers::requireRuntimeFunctionDependency(sema, IdentifierManager::RuntimeFunctionKind::Is, caseExprCodeRef);
+        return requireDynamicStructSwitchRuntimeDependencies(sema, sema.node(caseExprRef).codeRef());
     }
 
     Result validateDefaultSwitchCase(Sema& sema, AstNodeRef switchRef, AstNodeRef caseRef)
@@ -465,8 +475,7 @@ Result AstSwitchCaseStmt::semaPreNodeChild(Sema& sema, AstNodeRef& childRef) con
     if (!spanExprRef.isValid())
         return Result::Continue;
 
-    SmallVector<AstNodeRef> expressions;
-    sema.ast().appendNodes(expressions, spanExprRef);
+    const auto expressions = collectSwitchCaseExprRefs(sema, *this);
     const bool isExprChild = std::ranges::find(expressions, childRef) != expressions.end();
     if (!isExprChild)
         return Result::Continue;
@@ -571,8 +580,7 @@ namespace
             return Result::Continue;
         }
 
-        SmallVector<AstNodeRef> expressions;
-        sema.ast().appendNodes(expressions, caseStmt.spanExprRef);
+        const auto expressions = collectSwitchCaseExprRefs(sema, caseStmt);
         for (const AstNodeRef exprRef : expressions)
         {
             if (sema.node(exprRef).is(AstNodeId::RangeExpr))

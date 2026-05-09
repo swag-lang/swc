@@ -83,17 +83,63 @@ using Swag
     @assert(!table.contains(2))
 }
 
-// Disabled on purpose: copying `HashTable'(string, String)` still trips a JIT access violation
-// in generated runtime code. Keep the scalar HashTable coverage above enabled, and isolate this
-// case separately before turning it back on here.
+func assertTableStringValue(table: const &HashTable'(string, String), key: string, expected: string)->bool
+{
+    let entry = table.tryFind(key)
+    return entry != null and entry.value == expected and @countof(entry.value) == @countof(expected)
+}
+
+#test
+{
+    var original: HashTable'(string, s32)
+    original.add("alpha", 1)
+
+    let entry = original.tryFind("alpha")
+    @assert(entry != null)
+    @assert(entry.value == 1)
+}
+
 #if false
 {
-    func assertTableStringValue(table: const &HashTable'(string, String), key: string, expected: string)->bool
+    // Disabled for now: even a single `add` on `HashTable'(s32, String)` still crashes in JIT
+    // during `String.opDrop`, so the compiler/runtime issue is not specific to string keys.
+    #test
     {
-        let entry = table.tryFind(key)
-        return entry != null and entry.value == expected and @countof(entry.value) == @countof(expected)
+        var original: HashTable'(s32, String)
+        original.add(1, "one")
     }
+}
 
+#if false
+{
+    // Disabled for now: `HashTable'(string, String)` still crashes in JIT as soon as a `String`
+    // value is stored. Keep the pure-language compiler coverage in `bin/tests/jit/compiler`
+    // while this path is being isolated further.
+    #test
+    {
+        var original: HashTable'(string, String)
+        original.add("alpha", "one")
+
+        @assert(assertTableStringValue(original, "alpha", "one"))
+    }
+}
+
+#if false
+{
+    #test
+    {
+        var original: HashTable'(string, String)
+        original.add("alpha", "one")
+        original.add("beta", "two")
+
+        @assert(assertTableStringValue(original, "alpha", "one"))
+        @assert(assertTableStringValue(original, "beta", "two"))
+        @assert(original.tryFind("gamma") == null)
+    }
+}
+
+#if false
+{
     #test
     {
         var original: HashTable'(string, String)

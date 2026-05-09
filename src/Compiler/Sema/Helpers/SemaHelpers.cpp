@@ -2675,27 +2675,35 @@ Result SemaHelpers::resolveMemberAccess(Sema& sema, AstNodeRef memberRef, AstMem
     // Auto-deduce generic arguments for bare generic root structs in expression context.
     // Generic roots have a type payload so they can be used as type values, but member
     // lookup inside a generic impl must still happen on the current specialization.
+    SymbolStruct* contextualGenericRoot = nullptr;
     if (nodeLeftView.sym() && nodeLeftView.sym()->isStruct())
     {
         auto& st = nodeLeftView.sym()->cast<SymbolStruct>();
         if (st.isGenericRoot() && !st.isGenericInstance())
-        {
-            SymbolStruct* instance = nullptr;
-            SWC_RESULT(SemaGeneric::instantiateStructFromContext(sema, st, instance));
-            if (instance)
-            {
-                TypeRef specializedTypeRef = instance->typeRef();
-                if (specializedTypeRef.isInvalid() && instance->decl() && instance->decl()->is(AstNodeId::StructDecl))
-                {
-                    const TypeInfo structType = TypeInfo::makeStruct(instance);
-                    specializedTypeRef        = sema.typeMgr().addType(structType);
-                }
+            contextualGenericRoot = &st;
+    }
+    else if (nodeLeftView.sym() && nodeLeftView.sym()->isAlias())
+    {
+        contextualGenericRoot = const_cast<SymbolStruct*>(resolveGenericRootStructAlias(nodeLeftView.sym()));
+    }
 
-                sema.setSymbol(node.nodeLeftRef, instance);
-                if (specializedTypeRef.isValid())
-                    sema.setType(node.nodeLeftRef, specializedTypeRef);
-                nodeLeftView.recompute(sema, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant | SemaNodeViewPartE::Symbol);
+    if (contextualGenericRoot)
+    {
+        SymbolStruct* instance = nullptr;
+        SWC_RESULT(SemaGeneric::instantiateStructFromContext(sema, *contextualGenericRoot, instance));
+        if (instance)
+        {
+            TypeRef specializedTypeRef = instance->typeRef();
+            if (specializedTypeRef.isInvalid() && instance->decl() && instance->decl()->is(AstNodeId::StructDecl))
+            {
+                const TypeInfo structType = TypeInfo::makeStruct(instance);
+                specializedTypeRef        = sema.typeMgr().addType(structType);
             }
+
+            sema.setSymbol(node.nodeLeftRef, instance);
+            if (specializedTypeRef.isValid())
+                sema.setType(node.nodeLeftRef, specializedTypeRef);
+            nodeLeftView.recompute(sema, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant | SemaNodeViewPartE::Symbol);
         }
     }
 

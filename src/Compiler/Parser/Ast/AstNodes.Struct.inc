@@ -3,6 +3,7 @@
 // -----------------------------------------------------------------------------
 struct AstInvalid : AstNodeT<AstNodeId::Invalid>
 {
+    AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
 // -----------------------------------------------------------------------------
@@ -21,6 +22,7 @@ struct AstFile : AstCompoundT<AstNodeId::File>
     Result        semaPreDecl(Sema& sema) const;
     static Result semaPreNode(Sema& sema);
     static Result semaPreNodeChild(Sema& sema, const AstNodeRef& childRef);
+    AstNodeRef    semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
 // -----------------------------------------------------------------------------
@@ -60,6 +62,7 @@ struct AstImpl : AstCompoundT<AstNodeId::Impl>
     Result      semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;
     Result      semaPostDeclChild(Sema& sema, const AstNodeRef& childRef) const;
     Result      semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const;
+    AstNodeRef  semaClone(Sema& sema, const CloneContext& cloneContext) const;
     static void semaErrorCleanup(Sema& sema, AstNodeRef nodeRef);
 };
 
@@ -75,6 +78,7 @@ struct AstNamespaceDecl : AstCompoundT<AstNodeId::NamespaceDecl>
     Result        semaPostDecl(Sema& sema) const;
     Result        semaPreNode(Sema& sema) const;
     Result        semaPostNode(Sema& sema) const;
+    AstNodeRef    semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
 // -----------------------------------------------------------------------------
@@ -83,6 +87,7 @@ struct AstUsingNamespaceStmt : AstNodeT<AstNodeId::UsingNamespaceStmt>
     AstNodeRef nodeNameRef;
 
     void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeNameRef}); }
+    AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
 // -----------------------------------------------------------------------------
@@ -110,6 +115,7 @@ struct AstCompilerGlobal : AstNodeT<AstNodeId::CompilerGlobal>
     Result semaPreNode(Sema& sema) const;
     Result semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;
     Result semaPostNode(Sema& sema) const;
+    AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
 // -----------------------------------------------------------------------------
@@ -118,6 +124,8 @@ struct AstCompilerImport : AstNodeT<AstNodeId::CompilerImport>
     TokenRef tokModuleNameRef;
     TokenRef tokLocationRef;
     TokenRef tokVersionRef;
+
+    AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
 // -----------------------------------------------------------------------------
@@ -180,6 +188,7 @@ struct AstIntrinsicCall : AstCompoundT<AstNodeId::IntrinsicCall>
 // -----------------------------------------------------------------------------
 struct AstIntrinsicCallVariadic : AstCompoundT<AstNodeId::IntrinsicCallVariadic>
 {
+    AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
 // -----------------------------------------------------------------------------
@@ -270,6 +279,7 @@ struct AstAttrDecl : AstNamedNodeT<AstNodeId::AttrDecl>
     Result        semaPreNode(Sema& sema) const;
     Result        semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;
     static Result semaPostNode(Sema& sema);
+    AstNodeRef    semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
 // -----------------------------------------------------------------------------
@@ -281,7 +291,8 @@ enum class AstFunctionParamMeFlagsE : AstNode::ParserFlags
 
 struct AstFunctionParamMe : AstNodeT<AstNodeId::FunctionParamMe, AstFunctionParamMeFlagsE>
 {
-    Result semaPreNode(Sema& sema) const;
+    Result     semaPreNode(Sema& sema) const;
+    AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
 // -----------------------------------------------------------------------------
@@ -889,6 +900,7 @@ struct AstCastExpr : AstNodeT<AstNodeId::CastExpr, AstCastExprFlagsE>
 // -----------------------------------------------------------------------------
 struct AstEnumBody : AstCompoundT<AstNodeId::EnumBody>
 {
+    AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
 // -----------------------------------------------------------------------------
@@ -902,6 +914,7 @@ struct AstEnumDecl : AstNamedNodeT<AstNodeId::EnumDecl>
     Result semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;
     Result semaPreNode(Sema& sema) const;
     Result semaPostNode(Sema& sema) const;
+    AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
 // -----------------------------------------------------------------------------
@@ -912,6 +925,7 @@ struct AstEnumValue : AstNodeT<AstNodeId::EnumValue>
     void   collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeInitRef}); }
     Result semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;
     Result semaPostNode(Sema& sema) const;
+    AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
 // -----------------------------------------------------------------------------
@@ -921,6 +935,7 @@ struct AstUsingEnumDecl : AstNodeT<AstNodeId::UsingEnumDecl>
 
     void   collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeNameRef}); }
     Result semaPostNode(Sema& sema) const;
+    AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
 // -----------------------------------------------------------------------------
@@ -1020,7 +1035,8 @@ struct AstNamedType : AstNodeT<AstNodeId::NamedType>
 // -----------------------------------------------------------------------------
 struct AstBuiltinType : AstNodeT<AstNodeId::BuiltinType>
 {
-    Result semaPostNode(Sema& sema) const;
+    Result     semaPostNode(Sema& sema) const;
+    AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
 // -----------------------------------------------------------------------------
@@ -1053,6 +1069,7 @@ struct AstLambdaType : AstNodeT<AstNodeId::LambdaType, AstFunctionFlagsE>
 struct AstRetValType : AstNodeT<AstNodeId::RetValType>
 {
     static Result semaPostNode(Sema& sema);
+    AstNodeRef    semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
 // -----------------------------------------------------------------------------
@@ -1069,6 +1086,7 @@ struct AstCodeType : AstNodeT<AstNodeId::CodeType>
 struct AstVariadicType : AstNodeT<AstNodeId::VariadicType>
 {
     static Result semaPostNode(Sema& sema);
+    AstNodeRef    semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
 // -----------------------------------------------------------------------------
@@ -1099,6 +1117,7 @@ struct AstCompilerIf : AstNodeT<AstNodeId::CompilerIf>
 // -----------------------------------------------------------------------------
 struct AstCompilerElse : AstCompoundT<AstNodeId::CompilerElse>
 {
+    AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
 // -----------------------------------------------------------------------------
@@ -1131,12 +1150,14 @@ struct AstAttributeList : AstCompoundT<AstNodeId::AttributeList>
 // -----------------------------------------------------------------------------
 struct AstDependenciesBlock : AstCompoundT<AstNodeId::DependenciesBlock>
 {
+    AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
 // -----------------------------------------------------------------------------
 struct AstUsingDecl : AstCompoundT<AstNodeId::UsingDecl>
 {
-    Result semaPostNode(Sema& sema) const;
+    Result     semaPostNode(Sema& sema) const;
+    AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
 // -----------------------------------------------------------------------------
@@ -1196,11 +1217,13 @@ struct AstInterfaceDecl : AstAggregateDeclT<AstNodeId::InterfaceDecl>
     Result        semaPreNode(Sema& sema) const;
     Result        semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;
     static Result semaPostNode(Sema& sema);
+    AstNodeRef    semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
 // -----------------------------------------------------------------------------
 struct AstInterfaceBody : AstCompoundT<AstNodeId::InterfaceBody>
 {
+    AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
 // -----------------------------------------------------------------------------
@@ -1327,6 +1350,7 @@ struct AstAliasDecl : AstNamedNodeT<AstNodeId::AliasDecl>
     Result semaPostNode(Sema& sema) const;
     Result semaPreDecl(Sema& sema) const;
     Result semaPreNode(Sema& sema) const;
+    AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
 // -----------------------------------------------------------------------------
@@ -1348,6 +1372,7 @@ struct AstUnreachableStmt : AstNodeT<AstNodeId::UnreachableStmt>
 {
     static Result semaPreNode(Sema& sema);
     static Result codeGenPostNode(CodeGen& codeGen);
+    AstNodeRef    semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
 // -----------------------------------------------------------------------------
@@ -1355,6 +1380,7 @@ struct AstContinueStmt : AstNodeT<AstNodeId::ContinueStmt>
 {
     static Result semaPreNode(Sema& sema);
     static Result codeGenPostNode(CodeGen& codeGen);
+    AstNodeRef    semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
 // -----------------------------------------------------------------------------
@@ -1362,6 +1388,7 @@ struct AstBreakStmt : AstNodeT<AstNodeId::BreakStmt>
 {
     static Result semaPreNode(Sema& sema);
     static Result codeGenPostNode(CodeGen& codeGen);
+    AstNodeRef    semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
 // -----------------------------------------------------------------------------
@@ -1369,6 +1396,7 @@ struct AstScopedBreakStmt : AstNamedNodeT<AstNodeId::ScopedBreakStmt>
 {
     static Result semaPreNode(Sema& sema);
     static Result codeGenPostNode(CodeGen& codeGen);
+    AstNodeRef    semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
 // -----------------------------------------------------------------------------
@@ -1376,6 +1404,7 @@ struct AstFallThroughStmt : AstNodeT<AstNodeId::FallThroughStmt>
 {
     static Result semaPreNode(Sema& sema);
     static Result codeGenPostNode(CodeGen& codeGen);
+    AstNodeRef    semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
 // -----------------------------------------------------------------------------
@@ -1778,4 +1807,5 @@ struct AstAssignList : AstCompoundT<AstNodeId::AssignList, AstAssignListFlagsE>
 // -----------------------------------------------------------------------------
 struct AstAssignIgnore : AstNodeT<AstNodeId::AssignIgnore>
 {
+    AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };

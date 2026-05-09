@@ -1110,6 +1110,120 @@ func intrinsicAutoDropSwitchFallthroughInfo()->IntrinsicInfo
     return result
 }
 
+func intrinsicAutoDropIfVarReturnInfo()->IntrinsicInfo
+{
+    resetLifecycleHooks()
+
+    with var result: retval
+    {
+        .first = 0
+        .second = 0
+        .third = 0
+        .drops = 0
+        .dropTrace = 0
+        .postCopy = 0
+        .postMove = 0
+    }
+
+    defer result.dropTrace = DropCompactTrace
+    defer result.drops = DropCount
+
+    {
+        var outer = CompactDropTracked{1}
+        if var flag = 1 where flag == 1
+        {
+            var branch = AutoCompactBranch{CompactDropTracked{2}, AutoCompactPair{CompactDropTracked{3}, CompactDropTracked{4}}}
+            var inner = AutoCompactPair{CompactDropTracked{5}, CompactDropTracked{6}}
+            result.first = flag + outer.value
+            result.second = branch.pair.first.value
+            result.third = inner.second.value
+            return result
+        }
+    }
+
+    result.third = -1
+    return result
+}
+
+func intrinsicAutoDropIfVarElseInfo()->IntrinsicInfo
+{
+    resetLifecycleHooks()
+
+    var first: s32 = 0
+    var second: s32 = 0
+    var third: s32 = 0
+    {
+        var outer = CompactDropTracked{9}
+        if var flag = 1 where false
+        {
+            first = -1
+        }
+        else
+        {
+            var active = AutoCompactBranch{CompactDropTracked{1}, AutoCompactPair{CompactDropTracked{2}, CompactDropTracked{3}}}
+            first = flag + 5
+            second = active.head.value
+            third = outer.value
+        }
+    }
+
+    return {first, second, third, DropCount, DropCompactTrace, PostCopyCount, PostMoveCount}
+}
+
+func intrinsicAutoDropWithVarReturnInfo()->IntrinsicInfo
+{
+    resetLifecycleHooks()
+
+    with var result: retval
+    {
+        .first = 0
+        .second = 0
+        .third = 0
+        .drops = 0
+        .dropTrace = 0
+        .postCopy = 0
+        .postMove = 0
+    }
+
+    defer result.dropTrace = DropCompactTrace
+    defer result.drops = DropCount
+
+    with var pair = AutoCompactPair{CompactDropTracked{7}, CompactDropTracked{8}}
+    {
+        var active = AutoCompactBranch{CompactDropTracked{4}, AutoCompactPair{CompactDropTracked{5}, CompactDropTracked{6}}}
+        result.first = pair.first.value
+        result.second = active.head.value
+        result.third = pair.second.value
+        return result
+    }
+
+    result.third = -1
+    return result
+}
+
+func intrinsicAutoDropShadowInfo()->IntrinsicInfo
+{
+    resetLifecycleHooks()
+
+    var first: s32 = 0
+    var second: s32 = 0
+    var third: s32 = 0
+    {
+        var value = CompactDropTracked{9}
+        first = value.value
+
+        {
+            var value = AutoCompactBranch{CompactDropTracked{1}, AutoCompactPair{CompactDropTracked{2}, CompactDropTracked{3}}}
+            second = value.pair.first.value
+        }
+
+        var pair = AutoCompactPair{CompactDropTracked{4}, CompactDropTracked{5}}
+        third = pair.second.value
+    }
+
+    return {first, second, third, DropCount, DropCompactTrace, PostCopyCount, PostMoveCount}
+}
+
 func intrinsicInitRuntimeCountScalarInfo()->s32
 {
     var values: [4] s32 = [9, 8, 7, 6]
@@ -1554,6 +1668,46 @@ func intrinsicReceiverLifecycleInfo()->IntrinsicInfo
     @assert(v.third == 7)
     @assert(v.drops == 7)
     @assert(v.dropTrace == 2154376)
+}
+
+#test
+{
+    let v = intrinsicAutoDropIfVarReturnInfo()
+    @assert(v.first == 2)
+    @assert(v.second == 3)
+    @assert(v.third == 6)
+    @assert(v.drops == 6)
+    @assert(v.dropTrace == 654321)
+}
+
+#test
+{
+    let v = intrinsicAutoDropIfVarElseInfo()
+    @assert(v.first == 6)
+    @assert(v.second == 1)
+    @assert(v.third == 9)
+    @assert(v.drops == 4)
+    @assert(v.dropTrace == 3219)
+}
+
+#test
+{
+    let v = intrinsicAutoDropWithVarReturnInfo()
+    @assert(v.first == 7)
+    @assert(v.second == 4)
+    @assert(v.third == 8)
+    @assert(v.drops == 5)
+    @assert(v.dropTrace == 65487)
+}
+
+#test
+{
+    let v = intrinsicAutoDropShadowInfo()
+    @assert(v.first == 9)
+    @assert(v.second == 2)
+    @assert(v.third == 5)
+    @assert(v.drops == 6)
+    @assert(v.dropTrace == 321549)
 }
 
 #test

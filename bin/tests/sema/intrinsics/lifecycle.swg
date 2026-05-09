@@ -658,6 +658,120 @@ func intrinsicAutoDropSwitchFallthroughInfo()->IntrinsicInfo
     return result
 }
 
+func intrinsicAutoDropIfVarReturnInfo()->IntrinsicInfo
+{
+    resetLifecycleHooks()
+
+    with var result: retval
+    {
+        .first = 0
+        .second = 0
+        .third = 0
+        .drops = 0
+        .dropTrace = 0
+        .postCopy = 0
+        .postMove = 0
+    }
+
+    defer result.dropTrace = DropCompactTrace
+    defer result.drops = DropCount
+
+    {
+        var outer = CompactDropTracked{1}
+        if var flag = 1 where flag == 1
+        {
+            var branch = AutoCompactBranch{CompactDropTracked{2}, AutoCompactPair{CompactDropTracked{3}, CompactDropTracked{4}}}
+            var inner = AutoCompactPair{CompactDropTracked{5}, CompactDropTracked{6}}
+            result.first = flag + outer.value
+            result.second = branch.pair.first.value
+            result.third = inner.second.value
+            return result
+        }
+    }
+
+    result.third = -1
+    return result
+}
+
+func intrinsicAutoDropIfVarElseInfo()->IntrinsicInfo
+{
+    resetLifecycleHooks()
+
+    var first: s32 = 0
+    var second: s32 = 0
+    var third: s32 = 0
+    {
+        var outer = CompactDropTracked{9}
+        if var flag = 1 where false
+        {
+            first = -1
+        }
+        else
+        {
+            var active = AutoCompactBranch{CompactDropTracked{1}, AutoCompactPair{CompactDropTracked{2}, CompactDropTracked{3}}}
+            first = flag + 5
+            second = active.head.value
+            third = outer.value
+        }
+    }
+
+    return {first, second, third, DropCount, DropCompactTrace, PostCopyCount, PostMoveCount}
+}
+
+func intrinsicAutoDropWithVarReturnInfo()->IntrinsicInfo
+{
+    resetLifecycleHooks()
+
+    with var result: retval
+    {
+        .first = 0
+        .second = 0
+        .third = 0
+        .drops = 0
+        .dropTrace = 0
+        .postCopy = 0
+        .postMove = 0
+    }
+
+    defer result.dropTrace = DropCompactTrace
+    defer result.drops = DropCount
+
+    with var pair = AutoCompactPair{CompactDropTracked{7}, CompactDropTracked{8}}
+    {
+        var active = AutoCompactBranch{CompactDropTracked{4}, AutoCompactPair{CompactDropTracked{5}, CompactDropTracked{6}}}
+        result.first = pair.first.value
+        result.second = active.head.value
+        result.third = pair.second.value
+        return result
+    }
+
+    result.third = -1
+    return result
+}
+
+func intrinsicAutoDropShadowInfo()->IntrinsicInfo
+{
+    resetLifecycleHooks()
+
+    var first: s32 = 0
+    var second: s32 = 0
+    var third: s32 = 0
+    {
+        var value = CompactDropTracked{9}
+        first = value.value
+
+        {
+            var value = AutoCompactBranch{CompactDropTracked{1}, AutoCompactPair{CompactDropTracked{2}, CompactDropTracked{3}}}
+            second = value.pair.first.value
+        }
+
+        var pair = AutoCompactPair{CompactDropTracked{4}, CompactDropTracked{5}}
+        third = pair.second.value
+    }
+
+    return {first, second, third, DropCount, DropCompactTrace, PostCopyCount, PostMoveCount}
+}
+
 func intrinsicReceiverLifecycleInfo()->IntrinsicInfo
 {
     resetLifecycleHooks()
@@ -860,6 +974,46 @@ func semaTest019()
 }
 
 func semaTest020()
+{
+    const V = #run intrinsicAutoDropIfVarReturnInfo()
+    #assert(V.first == 2)
+    #assert(V.second == 3)
+    #assert(V.third == 6)
+    #assert(V.drops == 6)
+    #assert(V.dropTrace == 654321)
+}
+
+func semaTest021()
+{
+    const V = #run intrinsicAutoDropIfVarElseInfo()
+    #assert(V.first == 6)
+    #assert(V.second == 1)
+    #assert(V.third == 9)
+    #assert(V.drops == 4)
+    #assert(V.dropTrace == 3219)
+}
+
+func semaTest022()
+{
+    const V = #run intrinsicAutoDropWithVarReturnInfo()
+    #assert(V.first == 7)
+    #assert(V.second == 4)
+    #assert(V.third == 8)
+    #assert(V.drops == 5)
+    #assert(V.dropTrace == 65487)
+}
+
+func semaTest023()
+{
+    const V = #run intrinsicAutoDropShadowInfo()
+    #assert(V.first == 9)
+    #assert(V.second == 2)
+    #assert(V.third == 5)
+    #assert(V.drops == 6)
+    #assert(V.dropTrace == 321549)
+}
+
+func semaTest024()
 {
     const V = #run intrinsicReceiverLifecycleInfo()
     #assert(V.first == 3)

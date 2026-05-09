@@ -13,6 +13,8 @@
 #include "Compiler/Sema/Helpers/SemaSpecOp.h"
 #include "Compiler/Sema/Symbol/Symbol.Alias.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
+#include "Compiler/Sema/Symbol/Symbol.Impl.h"
+#include "Compiler/Sema/Symbol/Symbol.Struct.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Compiler/Sema/Symbol/Symbol.h"
 
@@ -20,6 +22,85 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    const SymbolStruct* variableOwnerStruct(const SymbolVariable& symVar)
+    {
+        const SymbolMap* owner = symVar.ownerSymMap();
+        if (!owner)
+            return nullptr;
+
+        if (owner->isStruct())
+            return &owner->cast<SymbolStruct>();
+
+        if (owner->isImpl())
+        {
+            const auto& ownerImpl = owner->cast<SymbolImpl>();
+            if (ownerImpl.isForStruct())
+                return ownerImpl.symStruct();
+        }
+
+        return nullptr;
+    }
+
+    bool sameStructFamily(const SymbolStruct& lhs, const SymbolStruct& rhs)
+    {
+        if (&lhs == &rhs)
+            return true;
+
+        const SymbolStruct* lhsRoot = lhs.isGenericInstance() && lhs.genericRootSym() ? lhs.genericRootSym() : &lhs;
+        const SymbolStruct* rhsRoot = rhs.isGenericInstance() && rhs.genericRootSym() ? rhs.genericRootSym() : &rhs;
+        return lhsRoot == rhsRoot;
+    }
+
+    SymbolVariable* implicitMeReceiver(CodeGen& codeGen)
+    {
+        auto& params = codeGen.function().parameters();
+        if (params.empty() || !params.front())
+            return nullptr;
+
+        SymbolVariable* receiver = params.front();
+        if (receiver->idRef() != codeGen.sema().idMgr().predefined(IdentifierManager::PredefinedName::Me))
+            return nullptr;
+
+        return receiver;
+    }
+
+    bool tryResolveImplicitReceiverFieldPayload(CodeGen& codeGen, const SymbolVariable& symVar, CodeGenNodePayload& outPayload)
+    {
+        const SymbolStruct* fieldOwner = variableOwnerStruct(symVar);
+        if (!fieldOwner)
+            return false;
+
+        SymbolVariable* receiver = implicitMeReceiver(codeGen);
+        if (!receiver)
+            return false;
+
+        SymbolStruct* receiverOwner = codeGen.function().ownerStruct();
+        if (!receiverOwner || !sameStructFamily(*fieldOwner, *receiverOwner))
+            return false;
+
+        const CodeGenNodePayload receiverPayload = CodeGenFunctionHelpers::materializeFunctionParameter(codeGen, codeGen.function(), *receiver);
+        const TypeRef            receiverTypeRef = codeGen.typeMgr().unwrapAliasEnum(codeGen.ctx(), receiver->typeRef());
+        if (receiverTypeRef.isInvalid())
+            return false;
+
+        const TypeInfo& receiverType = codeGen.typeMgr().get(receiverTypeRef);
+        if (!receiverType.isPointerOrReference())
+            return false;
+
+        MicroReg baseAddressReg = receiverPayload.reg;
+        if (receiverPayload.isAddress())
+        {
+            baseAddressReg = codeGen.nextVirtualIntRegister();
+            codeGen.builder().emitLoadRegMem(baseAddressReg, receiverPayload.reg, 0, MicroOpBits::B64);
+        }
+
+        outPayload.typeRef = symVar.typeRef();
+        outPayload.reg     = codeGen.nextVirtualIntRegister();
+        outPayload.setIsAddress();
+        codeGen.builder().emitLoadAddressRegMem(outPayload.reg, baseAddressReg, symVar.offset(), MicroOpBits::B64);
+        return true;
+    }
+
     MicroOpBits identifierPayloadCopyBits(CodeGen& codeGen, TypeRef typeRef)
     {
         if (typeRef.isInvalid())
@@ -31,6 +112,10 @@ namespace
 
     CodeGenNodePayload resolveIdentifierVariablePayload(CodeGen& codeGen, const SymbolVariable& symVar)
     {
+        CodeGenNodePayload implicitFieldPayload;
+        if (tryResolveImplicitReceiverFieldPayload(codeGen, symVar, implicitFieldPayload))
+            return implicitFieldPayload;
+
         if (symVar.isClosureCapture())
             return CodeGenFunctionHelpers::resolveClosureCapturePayload(codeGen, symVar);
 

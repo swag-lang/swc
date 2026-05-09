@@ -884,6 +884,43 @@ AstNodeRef AstIntrinsicCall::semaClone(Sema& sema, const CloneContext& cloneCont
     return newRef;
 }
 
+AstNodeRef AstIntrinsicInit::semaClone(Sema& sema, const CloneContext& cloneContext) const
+{
+    const auto& inlineContext = cloneContextAsInline(cloneContext);
+    auto [newRef, newPtr]     = sema.ast().makeNode<AstNodeId::IntrinsicInit>(tokRef());
+    newPtr->nodeWhatRef       = cloneNodeRef(sema, nodeWhatRef, inlineContext);
+    newPtr->nodeCountRef      = cloneNodeRef(sema, nodeCountRef, inlineContext);
+    newPtr->spanArgsRef       = cloneSpan(sema, spanArgsRef, inlineContext);
+    return newRef;
+}
+
+AstNodeRef AstIntrinsicDrop::semaClone(Sema& sema, const CloneContext& cloneContext) const
+{
+    const auto& inlineContext = cloneContextAsInline(cloneContext);
+    auto [newRef, newPtr]     = sema.ast().makeNode<AstNodeId::IntrinsicDrop>(tokRef());
+    newPtr->nodeWhatRef       = cloneNodeRef(sema, nodeWhatRef, inlineContext);
+    newPtr->nodeCountRef      = cloneNodeRef(sema, nodeCountRef, inlineContext);
+    return newRef;
+}
+
+AstNodeRef AstIntrinsicPostCopy::semaClone(Sema& sema, const CloneContext& cloneContext) const
+{
+    const auto& inlineContext = cloneContextAsInline(cloneContext);
+    auto [newRef, newPtr]     = sema.ast().makeNode<AstNodeId::IntrinsicPostCopy>(tokRef());
+    newPtr->nodeWhatRef       = cloneNodeRef(sema, nodeWhatRef, inlineContext);
+    newPtr->nodeCountRef      = cloneNodeRef(sema, nodeCountRef, inlineContext);
+    return newRef;
+}
+
+AstNodeRef AstIntrinsicPostMove::semaClone(Sema& sema, const CloneContext& cloneContext) const
+{
+    const auto& inlineContext = cloneContextAsInline(cloneContext);
+    auto [newRef, newPtr]     = sema.ast().makeNode<AstNodeId::IntrinsicPostMove>(tokRef());
+    newPtr->nodeWhatRef       = cloneNodeRef(sema, nodeWhatRef, inlineContext);
+    newPtr->nodeCountRef      = cloneNodeRef(sema, nodeCountRef, inlineContext);
+    return newRef;
+}
+
 AstNodeRef AstUndefinedExpr::semaClone(Sema& sema, const CloneContext& cloneContext) const
 {
     SWC_UNUSED(cloneContext);

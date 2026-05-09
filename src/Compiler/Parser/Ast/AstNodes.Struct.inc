@@ -1480,6 +1480,7 @@ struct AstIntrinsicInit : AstIntrinsicInitDropCopyMoveT<AstNodeId::IntrinsicInit
     }
 
     Result codeGenPostNode(CodeGen& codeGen) const;
+    AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
     Result semaPostNode(Sema& sema) const;
 };
 
@@ -1487,6 +1488,7 @@ struct AstIntrinsicInit : AstIntrinsicInitDropCopyMoveT<AstNodeId::IntrinsicInit
 struct AstIntrinsicDrop : AstIntrinsicInitDropCopyMoveT<AstNodeId::IntrinsicDrop>
 {
     Result codeGenPostNode(CodeGen& codeGen) const;
+    AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
     Result semaPostNode(Sema& sema) const;
 };
 
@@ -1494,6 +1496,7 @@ struct AstIntrinsicDrop : AstIntrinsicInitDropCopyMoveT<AstNodeId::IntrinsicDrop
 struct AstIntrinsicPostCopy : AstIntrinsicInitDropCopyMoveT<AstNodeId::IntrinsicPostCopy>
 {
     Result codeGenPostNode(CodeGen& codeGen) const;
+    AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
     Result semaPostNode(Sema& sema) const;
 };
 
@@ -1501,6 +1504,7 @@ struct AstIntrinsicPostCopy : AstIntrinsicInitDropCopyMoveT<AstNodeId::Intrinsic
 struct AstIntrinsicPostMove : AstIntrinsicInitDropCopyMoveT<AstNodeId::IntrinsicPostMove>
 {
     Result codeGenPostNode(CodeGen& codeGen) const;
+    AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
     Result semaPostNode(Sema& sema) const;
 };
 

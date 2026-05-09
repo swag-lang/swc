@@ -331,6 +331,77 @@ namespace
         return caseExprRefs;
     }
 
+    void emitSwitchCaseWhereFalseJump(CodeGen& codeGen, AstNodeRef whereRef, MicroLabelRef failLabel)
+    {
+        if (!whereRef.isValid())
+            return;
+
+        const CodeGenNodePayload& wherePayload = codeGen.payload(whereRef);
+        const SemaNodeView        whereView    = codeGen.viewType(whereRef);
+        CodeGenCompareHelpers::emitConditionFalseJump(codeGen, wherePayload, whereView.typeRef(), failLabel);
+    }
+
+    Result emitSwitchCaseWhereBodyGate(CodeGen& codeGen, AstNodeRef whereRef, MicroLabelRef matchLabel, MicroLabelRef failLabel, MicroLabelRef bodyLabel)
+    {
+        if (!whereRef.isValid())
+            return Result::Continue;
+
+        MicroBuilder& builder = codeGen.builder();
+        builder.placeLabel(matchLabel);
+        emitSwitchCaseWhereFalseJump(codeGen, whereRef, failLabel);
+        builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, bodyLabel);
+        return Result::Continue;
+    }
+
+    Result initializeDynamicStructSwitchState(CodeGen& codeGen, SwitchStmtCodeGenPayload& switchState, TypeRef compareTypeRef, const TypeInfo& compareType, const CodeGenNodePayload& exprPayload)
+    {
+        switchState.compareTypeRef      = compareTypeRef;
+        switchState.switchValuePayload  = exprPayload;
+        switchState.dynamicStructSwitch = true;
+        switchState.isAnySwitch         = compareType.isAny();
+        switchState.dynamicAsFunction   = runtimeDynamicAsFunction(codeGen);
+        switchState.dynamicIsFunction   = runtimeDynamicIsFunction(codeGen);
+
+        SWC_ASSERT(exprPayload.isAddress());
+        if (!exprPayload.isAddress())
+            return Result::Error;
+
+        MicroBuilder& builder = codeGen.builder();
+        switchState.dynamicSourceTypeReg = codeGen.nextVirtualIntRegister();
+        switchState.dynamicSourcePtrReg  = codeGen.nextVirtualIntRegister();
+
+        if (compareType.isAny())
+        {
+            // Any: typeinfo is stored directly, data pointer is 'value'
+            const MicroReg typeReg = codeGen.nextVirtualIntRegister();
+            builder.emitLoadRegMem(typeReg, exprPayload.reg, offsetof(Runtime::Any, type), MicroOpBits::B64);
+
+            builder.emitLoadRegImm(switchState.dynamicSourceTypeReg, ApInt(0, 64), MicroOpBits::B64);
+            const MicroLabelRef typeDoneLabel = builder.createLabel();
+            builder.emitCmpRegImm(typeReg, ApInt(0, 64), MicroOpBits::B64);
+            builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, typeDoneLabel);
+            builder.emitLoadRegReg(switchState.dynamicSourceTypeReg, typeReg, MicroOpBits::B64);
+            builder.placeLabel(typeDoneLabel);
+
+            builder.emitLoadRegMem(switchState.dynamicSourcePtrReg, exprPayload.reg, offsetof(Runtime::Any, value), MicroOpBits::B64);
+            return Result::Continue;
+        }
+
+        // Interface: typeinfo is first entry in itable
+        const MicroReg itableReg = codeGen.nextVirtualIntRegister();
+        builder.emitLoadRegMem(itableReg, exprPayload.reg, offsetof(Runtime::Interface, itable), MicroOpBits::B64);
+
+        builder.emitLoadRegImm(switchState.dynamicSourceTypeReg, ApInt(0, 64), MicroOpBits::B64);
+        const MicroLabelRef typeDoneLabel = builder.createLabel();
+        builder.emitCmpRegImm(itableReg, ApInt(0, 64), MicroOpBits::B64);
+        builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, typeDoneLabel);
+        builder.emitLoadRegMem(switchState.dynamicSourceTypeReg, itableReg, 0, MicroOpBits::B64);
+        builder.placeLabel(typeDoneLabel);
+
+        builder.emitLoadRegMem(switchState.dynamicSourcePtrReg, exprPayload.reg, offsetof(Runtime::Interface, obj), MicroOpBits::B64);
+        return Result::Continue;
+    }
+
     AstNodeRef nextSwitchCaseRef(CodeGen& codeGen, AstNodeRef switchRef, AstNodeRef caseRef)
     {
         const auto caseRefs = collectSwitchCaseRefs(codeGen, codeGen.node(switchRef).cast<AstSwitchStmt>());
@@ -427,56 +498,7 @@ Result AstSwitchStmt::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& c
         const TypeRef             compareTypeRef = exprType.unwrapAliasEnum(codeGen.ctx(), exprView.typeRef());
         const TypeInfo&           compareType    = codeGen.typeMgr().get(compareTypeRef);
         if (isDynamicStructSwitchType(codeGen, compareTypeRef))
-        {
-            switchState->compareTypeRef      = compareTypeRef;
-            switchState->switchValuePayload  = exprPayload;
-            switchState->dynamicStructSwitch = true;
-            switchState->isAnySwitch         = compareType.isAny();
-            switchState->dynamicAsFunction   = runtimeDynamicAsFunction(codeGen);
-            switchState->dynamicIsFunction   = runtimeDynamicIsFunction(codeGen);
-
-            SWC_ASSERT(exprPayload.isAddress());
-            if (!exprPayload.isAddress())
-                return Result::Error;
-
-            MicroBuilder& builder = codeGen.builder();
-
-            switchState->dynamicSourceTypeReg = codeGen.nextVirtualIntRegister();
-            switchState->dynamicSourcePtrReg  = codeGen.nextVirtualIntRegister();
-
-            if (compareType.isAny())
-            {
-                // Any: typeinfo is stored directly, data pointer is 'value'
-                const MicroReg typeReg = codeGen.nextVirtualIntRegister();
-                builder.emitLoadRegMem(typeReg, exprPayload.reg, offsetof(Runtime::Any, type), MicroOpBits::B64);
-
-                builder.emitLoadRegImm(switchState->dynamicSourceTypeReg, ApInt(0, 64), MicroOpBits::B64);
-                const MicroLabelRef typeDoneLabel = builder.createLabel();
-                builder.emitCmpRegImm(typeReg, ApInt(0, 64), MicroOpBits::B64);
-                builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, typeDoneLabel);
-                builder.emitLoadRegReg(switchState->dynamicSourceTypeReg, typeReg, MicroOpBits::B64);
-                builder.placeLabel(typeDoneLabel);
-
-                builder.emitLoadRegMem(switchState->dynamicSourcePtrReg, exprPayload.reg, offsetof(Runtime::Any, value), MicroOpBits::B64);
-            }
-            else
-            {
-                // Interface: typeinfo is first entry in itable
-                const MicroReg itableReg = codeGen.nextVirtualIntRegister();
-                builder.emitLoadRegMem(itableReg, exprPayload.reg, offsetof(Runtime::Interface, itable), MicroOpBits::B64);
-
-                builder.emitLoadRegImm(switchState->dynamicSourceTypeReg, ApInt(0, 64), MicroOpBits::B64);
-                const MicroLabelRef typeDoneLabel = builder.createLabel();
-                builder.emitCmpRegImm(itableReg, ApInt(0, 64), MicroOpBits::B64);
-                builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, typeDoneLabel);
-                builder.emitLoadRegMem(switchState->dynamicSourceTypeReg, itableReg, 0, MicroOpBits::B64);
-                builder.placeLabel(typeDoneLabel);
-
-                builder.emitLoadRegMem(switchState->dynamicSourcePtrReg, exprPayload.reg, offsetof(Runtime::Interface, obj), MicroOpBits::B64);
-            }
-
-            return Result::Continue;
-        }
+            return initializeDynamicStructSwitchState(codeGen, *switchState, compareTypeRef, compareType, exprPayload);
 
         const MicroOpBits compareBits      = switchCompareOpBits(compareType, codeGen.ctx());
         const bool        useStringCompare = CodeGenTypeHelpers::isStringCompareType(codeGen.ctx(), compareTypeRef);
@@ -565,9 +587,7 @@ Result AstSwitchCaseStmt::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef
             }
             else
             {
-                const CodeGenNodePayload& wherePayload = codeGen.payload(nodeWhereRef);
-                const SemaNodeView        whereView    = codeGen.viewType(nodeWhereRef);
-                CodeGenCompareHelpers::emitConditionFalseJump(codeGen, wherePayload, whereView.typeRef(), failLabel);
+                emitSwitchCaseWhereFalseJump(codeGen, nodeWhereRef, failLabel);
             }
 
             builder.placeLabel(caseState.bodyLabel);
@@ -604,23 +624,11 @@ Result AstSwitchCaseStmt::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef
             }
 
             builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, failLabel);
-            if (hasWhere)
-            {
-                builder.placeLabel(matchLabel);
-                const CodeGenNodePayload& wherePayload = codeGen.payload(nodeWhereRef);
-                const SemaNodeView        whereView    = codeGen.viewType(nodeWhereRef);
-                CodeGenCompareHelpers::emitConditionFalseJump(codeGen, wherePayload, whereView.typeRef(), failLabel);
-                builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, caseState.bodyLabel);
-            }
+            SWC_RESULT(emitSwitchCaseWhereBodyGate(codeGen, nodeWhereRef, matchLabel, failLabel, caseState.bodyLabel));
         }
         else
         {
-            if (nodeWhereRef.isValid())
-            {
-                const CodeGenNodePayload& wherePayload = codeGen.payload(nodeWhereRef);
-                const SemaNodeView        whereView    = codeGen.viewType(nodeWhereRef);
-                CodeGenCompareHelpers::emitConditionFalseJump(codeGen, wherePayload, whereView.typeRef(), failLabel);
-            }
+            emitSwitchCaseWhereFalseJump(codeGen, nodeWhereRef, failLabel);
 
             builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, caseState.bodyLabel);
         }
@@ -640,23 +648,11 @@ Result AstSwitchCaseStmt::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef
             }
 
             builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, failLabel);
-            if (hasWhere)
-            {
-                builder.placeLabel(matchLabel);
-                const CodeGenNodePayload& wherePayload = codeGen.payload(nodeWhereRef);
-                const SemaNodeView        whereView    = codeGen.viewType(nodeWhereRef);
-                CodeGenCompareHelpers::emitConditionFalseJump(codeGen, wherePayload, whereView.typeRef(), failLabel);
-                builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, caseState.bodyLabel);
-            }
+            SWC_RESULT(emitSwitchCaseWhereBodyGate(codeGen, nodeWhereRef, matchLabel, failLabel, caseState.bodyLabel));
         }
         else
         {
-            if (nodeWhereRef.isValid())
-            {
-                const CodeGenNodePayload& wherePayload = codeGen.payload(nodeWhereRef);
-                const SemaNodeView        whereView    = codeGen.viewType(nodeWhereRef);
-                CodeGenCompareHelpers::emitConditionFalseJump(codeGen, wherePayload, whereView.typeRef(), failLabel);
-            }
+            emitSwitchCaseWhereFalseJump(codeGen, nodeWhereRef, failLabel);
 
             builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, caseState.bodyLabel);
         }

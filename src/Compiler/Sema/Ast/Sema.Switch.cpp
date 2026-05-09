@@ -72,6 +72,46 @@ namespace
         return switchTypeRef;
     }
 
+    TypeRef switchExprUltimateTypeRef(Sema& sema, TypeRef typeRef)
+    {
+        if (!typeRef.isValid())
+            return TypeRef::invalid();
+
+        return sema.typeMgr().get(typeRef).unwrap(sema.ctx(), typeRef, TypeExpandE::Alias | TypeExpandE::Enum);
+    }
+
+    Result normalizeSwitchExprTypeInfoIfNeeded(Sema& sema, AstNodeRef exprRef, SemaNodeView& exprView)
+    {
+        const TypeRef   initialUltimateTypeRef = switchExprUltimateTypeRef(sema, exprView.typeRef());
+        const TypeInfo& initialFinalType       = sema.typeMgr().get(initialUltimateTypeRef);
+        if (!initialFinalType.isTypeValue())
+            return Result::Continue;
+
+        SWC_RESULT(Cast::cast(sema, exprView, sema.typeMgr().typeTypeInfo(), CastKind::Implicit));
+        exprView = sema.viewNodeTypeConstant(exprRef);
+        return Result::Continue;
+    }
+
+    Result validateSwitchExprType(Sema& sema, AstNodeRef exprRef, TypeRef exprTypeRef)
+    {
+        const TypeRef   ultimateTypeRef = switchExprUltimateTypeRef(sema, exprTypeRef);
+        const TypeInfo& finalType       = sema.typeMgr().get(ultimateTypeRef);
+        if (finalType.isIntLike() || finalType.isFloat() || finalType.isBool() || finalType.isString() || finalType.isAnyTypeInfo(sema.ctx()) || finalType.isInterface() || finalType.isAny())
+            return Result::Continue;
+
+        return SemaError::raise(sema, DiagnosticId::sema_err_switch_invalid_type, exprRef);
+    }
+
+    Result attachSwitchExprRuntimeDependencies(Sema& sema, SwitchPayload& payload, TypeRef exprTypeRef, const SourceCodeRef& codeRef)
+    {
+        const TypeRef   ultimateTypeRef = switchExprUltimateTypeRef(sema, exprTypeRef);
+        const TypeInfo& finalType       = sema.typeMgr().get(ultimateTypeRef);
+        if (finalType.isString())
+            SWC_RESULT(SemaHelpers::requireRuntimeFunctionDependency(sema, IdentifierManager::RuntimeFunctionKind::StringCmp, codeRef));
+
+        return setupSwitchRuntimeSafety(sema, payload, codeRef);
+    }
+
     TypeRef dynamicStructSwitchExprTypeRef(Sema& sema, AstNodeRef switchRef)
     {
         if (!switchRef.isValid() || sema.node(switchRef).isNot(AstNodeId::SwitchStmt))
@@ -135,6 +175,23 @@ namespace
         if (caseStmt.spanExprRef.isValid())
             sema.ast().appendNodes(exprRefs, caseStmt.spanExprRef);
         return exprRefs;
+    }
+
+    SmallVector<AstNodeRef> collectSwitchStmtCaseRefs(Sema& sema, const AstSwitchStmt& switchStmt)
+    {
+        SmallVector<AstNodeRef> caseRefs;
+        if (switchStmt.spanChildrenRef.isValid())
+            sema.ast().appendNodes(caseRefs, switchStmt.spanChildrenRef);
+        return caseRefs;
+    }
+
+    SmallVector<AstNodeRef> collectSwitchCaseBodyStmtRefs(Sema& sema, const AstSwitchCaseStmt& caseStmt)
+    {
+        SmallVector<AstNodeRef> stmtRefs;
+        const auto&             caseBody = sema.node(caseStmt.nodeBodyRef).cast<AstSwitchCaseBody>();
+        if (caseBody.spanChildrenRef.isValid())
+            sema.ast().appendNodes(stmtRefs, caseBody.spanChildrenRef);
+        return stmtRefs;
     }
 
     AstNodeRef dynamicStructSwitchBindingIdentRef(Sema& sema, AstNodeRef nodeRef)
@@ -407,29 +464,12 @@ Result AstSwitchStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) 
     {
         SemaNodeView exprView = sema.viewNodeTypeConstant(nodeExprRef);
         SWC_RESULT(SemaCheck::isValueOrTypeInfo(sema, exprView));
-
-        const TypeInfo& initialType      = sema.typeMgr().get(exprView.typeRef());
-        const TypeRef   initialUltimate  = initialType.unwrap(sema.ctx(), exprView.typeRef(), TypeExpandE::Alias | TypeExpandE::Enum);
-        const TypeInfo& initialFinalType = sema.typeMgr().get(initialUltimate);
-        if (initialFinalType.isTypeValue())
-        {
-            SWC_RESULT(Cast::cast(sema, exprView, sema.typeMgr().typeTypeInfo(), CastKind::Implicit));
-            exprView = sema.viewNodeTypeConstant(nodeExprRef);
-        }
-
-        const TypeInfo& type      = sema.typeMgr().get(exprView.typeRef());
-        const TypeRef   ultimate  = type.unwrap(sema.ctx(), exprView.typeRef(), TypeExpandE::Alias | TypeExpandE::Enum);
-        const TypeInfo& finalType = sema.typeMgr().get(ultimate);
-        if (!finalType.isIntLike() && !finalType.isFloat() && !finalType.isBool() && !finalType.isString() && !finalType.isAnyTypeInfo(sema.ctx()) && !finalType.isInterface() && !finalType.isAny())
-            return SemaError::raise(sema, DiagnosticId::sema_err_switch_invalid_type, nodeExprRef);
+        SWC_RESULT(normalizeSwitchExprTypeInfoIfNeeded(sema, nodeExprRef, exprView));
+        SWC_RESULT(validateSwitchExprType(sema, nodeExprRef, exprView.typeRef()));
 
         auto* payload        = sema.semaPayload<SwitchPayload>(sema.curNodeRef());
         payload->exprTypeRef = exprView.typeRef();
-
-        if (finalType.isString())
-            SWC_RESULT(SemaHelpers::requireRuntimeFunctionDependency(sema, IdentifierManager::RuntimeFunctionKind::StringCmp, sema.node(sema.curNodeRef()).codeRef()));
-
-        SWC_RESULT(setupSwitchRuntimeSafety(sema, *payload, codeRef()));
+        SWC_RESULT(attachSwitchExprRuntimeDependencies(sema, *payload, exprView.typeRef(), sema.node(sema.curNodeRef()).codeRef()));
 
         const TypeRef enumTypeRef = switchEnumTypeRef(sema, exprView.typeRef());
         if (enumTypeRef.isValid())
@@ -591,6 +631,30 @@ namespace
 
         return Result::Continue;
     }
+
+    Result validateFallthroughStatementPosition(Sema& sema, AstNodeRef caseRef, AstNodeRef stmtRef)
+    {
+        const auto statements = collectSwitchCaseBodyStmtRefs(sema, sema.node(caseRef).cast<AstSwitchCaseStmt>());
+        const auto* itStmt    = std::ranges::find(statements, stmtRef);
+        if (itStmt == statements.end())
+            return SemaError::raise(sema, DiagnosticId::sema_err_fallthrough_outside_switch_case, stmtRef);
+        if (itStmt + 1 != statements.end())
+            return SemaError::raise(sema, DiagnosticId::sema_err_fallthrough_not_last_stmt, stmtRef);
+
+        return Result::Continue;
+    }
+
+    Result validateFallthroughHasNextCase(Sema& sema, AstNodeRef switchRef, AstNodeRef caseRef, AstNodeRef stmtRef)
+    {
+        const auto cases = collectSwitchStmtCaseRefs(sema, sema.node(switchRef).cast<AstSwitchStmt>());
+        const auto* itCase = std::ranges::find(cases, caseRef);
+        if (itCase == cases.end())
+            return SemaError::raise(sema, DiagnosticId::sema_err_fallthrough_outside_switch_case, stmtRef);
+        if (itCase + 1 == cases.end())
+            return SemaError::raise(sema, DiagnosticId::sema_err_fallthrough_in_last_case, stmtRef);
+
+        return Result::Continue;
+    }
 }
 
 Result AstSwitchCaseStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const
@@ -652,32 +716,13 @@ Result AstFallThroughStmt::semaPreNode(Sema& sema)
     const AstNodeRef caseRef = sema.frame().currentSwitchCase();
     if (caseRef.isInvalid())
         return SemaError::raise(sema, DiagnosticId::sema_err_fallthrough_outside_switch_case, sema.curNodeRef());
-
-    SmallVector<AstNodeRef>  stmts;
-    const AstSwitchCaseStmt& caseStmt = sema.node(caseRef).cast<AstSwitchCaseStmt>();
-    const AstSwitchCaseBody& caseBody = sema.node(caseStmt.nodeBodyRef).cast<AstSwitchCaseBody>();
-
-    sema.ast().appendNodes(stmts, caseBody.spanChildrenRef);
-    const auto* itStmt = std::ranges::find(stmts, sema.curNodeRef());
-    if (itStmt == stmts.end())
-        return SemaError::raise(sema, DiagnosticId::sema_err_fallthrough_outside_switch_case, sema.curNodeRef());
-    if (itStmt + 1 != stmts.end())
-        return SemaError::raise(sema, DiagnosticId::sema_err_fallthrough_not_last_stmt, sema.curNodeRef());
+    SWC_RESULT(validateFallthroughStatementPosition(sema, caseRef, sema.curNodeRef()));
 
     const AstNodeRef     switchRef  = sema.frame().currentSwitch();
     const AstSwitchStmt& switchStmt = sema.node(switchRef).cast<AstSwitchStmt>();
     if (!switchStmt.spanChildrenRef.isValid())
         return SemaError::raise(sema, DiagnosticId::sema_err_fallthrough_outside_switch_case, sema.curNodeRef());
-
-    SmallVector<AstNodeRef> cases;
-    sema.ast().appendNodes(cases, switchStmt.spanChildrenRef);
-    const auto* itCase = std::ranges::find(cases, caseRef);
-    if (itCase == cases.end())
-        return SemaError::raise(sema, DiagnosticId::sema_err_fallthrough_outside_switch_case, sema.curNodeRef());
-    if (itCase + 1 == cases.end())
-        return SemaError::raise(sema, DiagnosticId::sema_err_fallthrough_in_last_case, sema.curNodeRef());
-
-    return Result::Continue;
+    return validateFallthroughHasNextCase(sema, switchRef, caseRef, sema.curNodeRef());
 }
 
 SWC_END_NAMESPACE();

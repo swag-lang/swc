@@ -557,7 +557,7 @@ namespace
 
         sema.setType(sema.curNodeRef(), sema.typeMgr().typeBool());
         sema.setIsValue(node);
-        return SemaHelpers::attachRuntimeFunctionToNode(sema, sema.curNodeRef(), IdentifierManager::RuntimeFunctionKind::Is, node.codeRef());
+        return SemaHelpers::attachRuntimeIsFunctionToNode(sema, sema.curNodeRef(), node.codeRef());
     }
 
     Result semaIntrinsicAs(Sema& sema, AstIntrinsicCall& node, const SmallVector<AstNodeRef>& children)
@@ -586,7 +586,7 @@ namespace
         const TypeRef resultTypeRef = sema.typeMgr().addType(TypeInfo::makeValuePointer(sema.typeMgr().typeVoid(), TypeInfoFlagsE::Nullable));
         sema.setType(sema.curNodeRef(), resultTypeRef);
         sema.setIsValue(node);
-        return SemaHelpers::attachRuntimeFunctionToNode(sema, sema.curNodeRef(), IdentifierManager::RuntimeFunctionKind::As, node.codeRef());
+        return SemaHelpers::attachRuntimeAsFunctionToNode(sema, sema.curNodeRef(), node.codeRef());
     }
 }
 

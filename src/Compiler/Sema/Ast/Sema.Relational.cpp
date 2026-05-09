@@ -702,7 +702,7 @@ Result AstRelationalExpr::semaPostNode(Sema& sema)
         (tok.id == TokenId::SymEqualEqual || tok.id == TokenId::SymBangEqual) &&
         isStringCompareOperands(sema, nodeLeftView, nodeRightView) &&
         !hasNullComparableOperandConstant(sema, nodeLeftView, nodeRightView))
-        SWC_RESULT(SemaHelpers::attachRuntimeFunctionToNode(sema, sema.curNodeRef(), IdentifierManager::RuntimeFunctionKind::StringCmp, codeRef()));
+        SWC_RESULT(SemaHelpers::attachRuntimeStringCmpFunctionToNode(sema, sema.curNodeRef(), codeRef()));
 
     return Result::Continue;
 }

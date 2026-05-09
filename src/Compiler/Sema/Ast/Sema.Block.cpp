@@ -163,7 +163,7 @@ Result AstDeferStmt::semaPreNode(Sema& sema)
     }
 
     if (node.modifierFlags.has(AstModifierFlagsE::Err) || node.modifierFlags.has(AstModifierFlagsE::NoErr))
-        SWC_RESULT(SemaHelpers::requireRuntimeFunctionDependency(sema, IdentifierManager::RuntimeFunctionKind::IsErrContext, node.codeRef()));
+        SWC_RESULT(SemaHelpers::requireRuntimeErrorContextDependency(sema, node.codeRef()));
 
     return Result::Continue;
 }

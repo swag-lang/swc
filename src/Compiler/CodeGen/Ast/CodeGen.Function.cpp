@@ -296,6 +296,35 @@ namespace
         return Result::Error;
     }
 
+    Result emitRuntimeHelperCallWithNoArgs(CodeGen& codeGen, IdentifierManager::RuntimeFunctionKind kind, std::string_view missingHelperName, AstNodeRef nodeRef)
+    {
+        SymbolFunction* runtimeFn = runtimeFunctionByKind(codeGen, kind);
+        SWC_ASSERT(runtimeFn != nullptr);
+        if (!runtimeFn)
+            return raiseInternalCodeGenError(codeGen, missingHelperName, nodeRef);
+
+        return CodeGenCallHelpers::emitRuntimeCallWithDirectArgs(codeGen, *runtimeFn, std::span<const MicroReg>{});
+    }
+
+    Result emitFailedAssumeRuntimeCall(CodeGen& codeGen, AstNodeRef nodeRef)
+    {
+        SymbolFunction* runtimeFailedAssume = runtimeFunctionByKind(codeGen, IdentifierManager::RuntimeFunctionKind::FailedAssume);
+        SWC_ASSERT(runtimeFailedAssume != nullptr);
+        if (!runtimeFailedAssume)
+            return raiseInternalCodeGenError(codeGen, "missing runtime helper '__failedAssume'", nodeRef);
+
+        ConstantRef sourceLocCstRef = ConstantRef::invalid();
+        SWC_RESULT(ConstantHelpers::makeSourceCodeLocation(codeGen.sema(), sourceLocCstRef, codeGen.node(nodeRef)));
+
+        CodeGenNodePayload sourceLocPayload;
+        const TypeRef      sourceLocTypeRef = runtimeFailedAssume->parameters().front()->typeRef();
+        if (!CodeGenCallHelpers::materializeTypedConstantPayload(codeGen, sourceLocPayload, sourceLocTypeRef, sourceLocCstRef))
+            return raiseInternalCodeGenError(codeGen, "failed to materialize the failed-assume source location payload", nodeRef);
+
+        const std::array args = {sourceLocPayload.reg};
+        return CodeGenCallHelpers::emitRuntimeCallWithDirectArgs(codeGen, *runtimeFailedAssume, args);
+    }
+
     Result emitPayloadToAddress(CodeGen& codeGen, MicroReg dstAddressReg, const CodeGenNodePayload& srcPayload, TypeRef typeRef);
 
     void assignThrowableExprResult(CodeGen& codeGen, const CodeGenNodePayload& dstPayload, const CodeGenNodePayload& srcPayload, TypeRef typeRef)
@@ -412,49 +441,17 @@ namespace
         switch (kind)
         {
             case ThrowableHandlerKind::Catch:
-            {
-                SymbolFunction* runtimeCatchErr = runtimeFunctionByKind(codeGen, IdentifierManager::RuntimeFunctionKind::CatchErr);
-                SWC_ASSERT(runtimeCatchErr != nullptr);
-                if (!runtimeCatchErr)
-                    return raiseInternalCodeGenError(codeGen, "missing runtime helper '__catchErr'", nodeRef);
-                return CodeGenCallHelpers::emitRuntimeCallWithDirectArgs(codeGen, *runtimeCatchErr, std::span<const MicroReg>{});
-            }
+                return emitRuntimeHelperCallWithNoArgs(codeGen, IdentifierManager::RuntimeFunctionKind::CatchErr, "missing runtime helper '__catchErr'", nodeRef);
 
             case ThrowableHandlerKind::TryCatch:
-            {
-                SymbolFunction* runtimePopErr = runtimeFunctionByKind(codeGen, IdentifierManager::RuntimeFunctionKind::PopErr);
-                SWC_ASSERT(runtimePopErr != nullptr);
-                if (!runtimePopErr)
-                    return raiseInternalCodeGenError(codeGen, "missing runtime helper '__popErr'", nodeRef);
-                return CodeGenCallHelpers::emitRuntimeCallWithDirectArgs(codeGen, *runtimePopErr, std::span<const MicroReg>{});
-            }
+                return emitRuntimeHelperCallWithNoArgs(codeGen, IdentifierManager::RuntimeFunctionKind::PopErr, "missing runtime helper '__popErr'", nodeRef);
 
             case ThrowableHandlerKind::Assume:
             {
                 if (failurePath && hasAssumeRuntimeSafety(codeGen, nodeRef))
-                {
-                    SymbolFunction* runtimeFailedAssume = runtimeFunctionByKind(codeGen, IdentifierManager::RuntimeFunctionKind::FailedAssume);
-                    SWC_ASSERT(runtimeFailedAssume != nullptr);
-                    if (!runtimeFailedAssume)
-                        return raiseInternalCodeGenError(codeGen, "missing runtime helper '__failedAssume'", nodeRef);
+                    SWC_RESULT(emitFailedAssumeRuntimeCall(codeGen, nodeRef));
 
-                    ConstantRef sourceLocCstRef = ConstantRef::invalid();
-                    SWC_RESULT(ConstantHelpers::makeSourceCodeLocation(codeGen.sema(), sourceLocCstRef, codeGen.node(nodeRef)));
-
-                    CodeGenNodePayload sourceLocPayload;
-                    const TypeRef      sourceLocTypeRef = runtimeFailedAssume->parameters().front()->typeRef();
-                    if (!CodeGenCallHelpers::materializeTypedConstantPayload(codeGen, sourceLocPayload, sourceLocTypeRef, sourceLocCstRef))
-                        return raiseInternalCodeGenError(codeGen, "failed to materialize the failed-assume source location payload", nodeRef);
-
-                    const std::array args = {sourceLocPayload.reg};
-                    SWC_RESULT(CodeGenCallHelpers::emitRuntimeCallWithDirectArgs(codeGen, *runtimeFailedAssume, args));
-                }
-
-                SymbolFunction* runtimePopErr = runtimeFunctionByKind(codeGen, IdentifierManager::RuntimeFunctionKind::PopErr);
-                SWC_ASSERT(runtimePopErr != nullptr);
-                if (!runtimePopErr)
-                    return raiseInternalCodeGenError(codeGen, "missing runtime helper '__popErr'", nodeRef);
-                return CodeGenCallHelpers::emitRuntimeCallWithDirectArgs(codeGen, *runtimePopErr, std::span<const MicroReg>{});
+                return emitRuntimeHelperCallWithNoArgs(codeGen, IdentifierManager::RuntimeFunctionKind::PopErr, "missing runtime helper '__popErr'", nodeRef);
             }
 
             case ThrowableHandlerKind::None:

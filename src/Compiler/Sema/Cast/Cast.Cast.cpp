@@ -452,7 +452,7 @@ namespace
             return Result::Continue;
 
         const auto& codeRef = sema.node(nodeRef).codeRef();
-        SWC_RESULT(SemaHelpers::attachRuntimeFunctionToNode(sema, nodeRef, IdentifierManager::RuntimeFunctionKind::As, codeRef));
+        SWC_RESULT(SemaHelpers::attachRuntimeAsFunctionToNode(sema, nodeRef, codeRef));
 
         // Resolve panic function when DynCast safety is enabled
         if (hasDynCastSafety)

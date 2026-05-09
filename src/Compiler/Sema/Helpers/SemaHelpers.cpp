@@ -888,12 +888,92 @@ Result SemaHelpers::requireRuntimeSafetyPanicDependency(Sema& sema, const Source
     return requireRuntimeSafetyPanicDependency(runtimeFn, sema, codeRef);
 }
 
+Result SemaHelpers::requireRuntimeAsDependency(SymbolFunction*& outRuntimeFn, Sema& sema, const SourceCodeRef& codeRef)
+{
+    return requireRuntimeFunctionDependency(outRuntimeFn, sema, IdentifierManager::RuntimeFunctionKind::As, codeRef);
+}
+
+Result SemaHelpers::requireRuntimeAsDependency(Sema& sema, const SourceCodeRef& codeRef)
+{
+    SymbolFunction* runtimeFn = nullptr;
+    return requireRuntimeAsDependency(runtimeFn, sema, codeRef);
+}
+
+Result SemaHelpers::requireRuntimeIsDependency(SymbolFunction*& outRuntimeFn, Sema& sema, const SourceCodeRef& codeRef)
+{
+    return requireRuntimeFunctionDependency(outRuntimeFn, sema, IdentifierManager::RuntimeFunctionKind::Is, codeRef);
+}
+
+Result SemaHelpers::requireRuntimeIsDependency(Sema& sema, const SourceCodeRef& codeRef)
+{
+    SymbolFunction* runtimeFn = nullptr;
+    return requireRuntimeIsDependency(runtimeFn, sema, codeRef);
+}
+
+Result SemaHelpers::requireRuntimeErrorContextDependency(Sema& sema, const SourceCodeRef& codeRef)
+{
+    return requireRuntimeFunctionDependency(sema, IdentifierManager::RuntimeFunctionKind::IsErrContext, codeRef);
+}
+
+Result SemaHelpers::requireRuntimePushErrDependency(Sema& sema, const SourceCodeRef& codeRef)
+{
+    return requireRuntimeFunctionDependency(sema, IdentifierManager::RuntimeFunctionKind::PushErr, codeRef);
+}
+
+Result SemaHelpers::requireRuntimePopErrDependency(Sema& sema, const SourceCodeRef& codeRef)
+{
+    return requireRuntimeFunctionDependency(sema, IdentifierManager::RuntimeFunctionKind::PopErr, codeRef);
+}
+
+Result SemaHelpers::requireRuntimeCatchErrDependency(Sema& sema, const SourceCodeRef& codeRef)
+{
+    return requireRuntimeFunctionDependency(sema, IdentifierManager::RuntimeFunctionKind::CatchErr, codeRef);
+}
+
+Result SemaHelpers::requireRuntimeCatchScopeDependencies(Sema& sema, const SourceCodeRef& codeRef)
+{
+    SWC_RESULT(requireRuntimePushErrDependency(sema, codeRef));
+    return requireRuntimeCatchErrDependency(sema, codeRef);
+}
+
+Result SemaHelpers::requireRuntimePopScopeDependencies(Sema& sema, const SourceCodeRef& codeRef)
+{
+    SWC_RESULT(requireRuntimePushErrDependency(sema, codeRef));
+    return requireRuntimePopErrDependency(sema, codeRef);
+}
+
+Result SemaHelpers::requireRuntimeStringCmpDependency(SymbolFunction*& outRuntimeFn, Sema& sema, const SourceCodeRef& codeRef)
+{
+    return requireRuntimeFunctionDependency(outRuntimeFn, sema, IdentifierManager::RuntimeFunctionKind::StringCmp, codeRef);
+}
+
+Result SemaHelpers::requireRuntimeStringCmpDependency(Sema& sema, const SourceCodeRef& codeRef)
+{
+    SymbolFunction* runtimeFn = nullptr;
+    return requireRuntimeStringCmpDependency(runtimeFn, sema, codeRef);
+}
+
 Result SemaHelpers::attachRuntimeFunctionToNode(Sema& sema, AstNodeRef nodeRef, IdentifierManager::RuntimeFunctionKind kind, const SourceCodeRef& codeRef)
 {
     SymbolFunction* runtimeFn = nullptr;
     SWC_RESULT(requireRuntimeFunctionDependency(runtimeFn, sema, kind, codeRef));
     ensureCodeGenNodePayload(sema, nodeRef).runtimeFunctionSymbol = runtimeFn;
     return Result::Continue;
+}
+
+Result SemaHelpers::attachRuntimeAsFunctionToNode(Sema& sema, AstNodeRef nodeRef, const SourceCodeRef& codeRef)
+{
+    return attachRuntimeFunctionToNode(sema, nodeRef, IdentifierManager::RuntimeFunctionKind::As, codeRef);
+}
+
+Result SemaHelpers::attachRuntimeIsFunctionToNode(Sema& sema, AstNodeRef nodeRef, const SourceCodeRef& codeRef)
+{
+    return attachRuntimeFunctionToNode(sema, nodeRef, IdentifierManager::RuntimeFunctionKind::Is, codeRef);
+}
+
+Result SemaHelpers::attachRuntimeStringCmpFunctionToNode(Sema& sema, AstNodeRef nodeRef, const SourceCodeRef& codeRef)
+{
+    return attachRuntimeFunctionToNode(sema, nodeRef, IdentifierManager::RuntimeFunctionKind::StringCmp, codeRef);
 }
 
 TypeRef SemaHelpers::unwrapLambdaBindingType(TaskContext& ctx, TypeRef typeRef)

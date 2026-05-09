@@ -788,18 +788,15 @@ namespace
         switch (tokenId)
         {
             case TokenId::KwdCatch:
-                SWC_RESULT(SemaHelpers::requireRuntimeFunctionDependency(sema, IdentifierManager::RuntimeFunctionKind::PushErr, sema.curNode().codeRef()));
-                SWC_RESULT(SemaHelpers::requireRuntimeFunctionDependency(sema, IdentifierManager::RuntimeFunctionKind::CatchErr, sema.curNode().codeRef()));
+                SWC_RESULT(SemaHelpers::requireRuntimeCatchScopeDependencies(sema, sema.curNode().codeRef()));
                 break;
 
             case TokenId::KwdTryCatch:
-                SWC_RESULT(SemaHelpers::requireRuntimeFunctionDependency(sema, IdentifierManager::RuntimeFunctionKind::PushErr, sema.curNode().codeRef()));
-                SWC_RESULT(SemaHelpers::requireRuntimeFunctionDependency(sema, IdentifierManager::RuntimeFunctionKind::PopErr, sema.curNode().codeRef()));
+                SWC_RESULT(SemaHelpers::requireRuntimePopScopeDependencies(sema, sema.curNode().codeRef()));
                 break;
 
             case TokenId::KwdAssume:
-                SWC_RESULT(SemaHelpers::requireRuntimeFunctionDependency(sema, IdentifierManager::RuntimeFunctionKind::PushErr, sema.curNode().codeRef()));
-                SWC_RESULT(SemaHelpers::requireRuntimeFunctionDependency(sema, IdentifierManager::RuntimeFunctionKind::PopErr, sema.curNode().codeRef()));
+                SWC_RESULT(SemaHelpers::requireRuntimePopScopeDependencies(sema, sema.curNode().codeRef()));
                 if (sema.frame().currentAttributes().hasRuntimeSafety(sema.buildCfg().safetyGuards, Runtime::SafetyWhat::Assume))
                 {
                     auto& codeGenPayload = SemaHelpers::ensureCodeGenNodePayload(sema, sema.curNodeRef());

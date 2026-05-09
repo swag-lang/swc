@@ -107,7 +107,7 @@ namespace
         const TypeRef   ultimateTypeRef = switchExprUltimateTypeRef(sema, exprTypeRef);
         const TypeInfo& finalType       = sema.typeMgr().get(ultimateTypeRef);
         if (finalType.isString())
-            SWC_RESULT(SemaHelpers::requireRuntimeFunctionDependency(sema, IdentifierManager::RuntimeFunctionKind::StringCmp, codeRef));
+            SWC_RESULT(SemaHelpers::requireRuntimeStringCmpDependency(sema, codeRef));
 
         return setupSwitchRuntimeSafety(sema, payload, codeRef);
     }
@@ -297,8 +297,8 @@ namespace
 
     Result requireDynamicStructSwitchRuntimeDependencies(Sema& sema, const SourceCodeRef& codeRef)
     {
-        SWC_RESULT(SemaHelpers::requireRuntimeFunctionDependency(sema, IdentifierManager::RuntimeFunctionKind::As, codeRef));
-        return SemaHelpers::requireRuntimeFunctionDependency(sema, IdentifierManager::RuntimeFunctionKind::Is, codeRef);
+        SWC_RESULT(SemaHelpers::requireRuntimeAsDependency(sema, codeRef));
+        return SemaHelpers::requireRuntimeIsDependency(sema, codeRef);
     }
 
     Result validateDynamicStructCaseExpr(Sema& sema, AstNodeRef switchRef, AstNodeRef caseRef, AstNodeRef caseExprRef)

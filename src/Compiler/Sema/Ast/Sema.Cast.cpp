@@ -159,7 +159,7 @@ Result AstAsCastExpr::semaPostNode(Sema& sema)
     sema.setType(sema.curNodeRef(), resultTypeRef);
     sema.setIsValue(*this);
 
-    return SemaHelpers::attachRuntimeFunctionToNode(sema, sema.curNodeRef(), IdentifierManager::RuntimeFunctionKind::As, codeRef());
+    return SemaHelpers::attachRuntimeAsFunctionToNode(sema, sema.curNodeRef(), codeRef());
 }
 
 Result AstIsTypeExpr::semaPostNode(Sema& sema)
@@ -177,7 +177,7 @@ Result AstIsTypeExpr::semaPostNode(Sema& sema)
     sema.setType(sema.curNodeRef(), sema.typeMgr().typeBool());
     sema.setIsValue(*this);
 
-    return SemaHelpers::attachRuntimeFunctionToNode(sema, sema.curNodeRef(), IdentifierManager::RuntimeFunctionKind::Is, codeRef());
+    return SemaHelpers::attachRuntimeIsFunctionToNode(sema, sema.curNodeRef(), codeRef());
 }
 
 Result AstAutoCastExpr::semaPostNode(Sema& sema)

@@ -37,6 +37,8 @@ namespace SemaHelpers
     const SymbolFunction* resolveLambdaBindingFunction(Sema& sema);
     SymbolFunction*       callableTypeFunction(TaskContext& ctx, TypeRef typeRef);
     Result                attachRuntimeFunctionToNode(Sema& sema, AstNodeRef nodeRef, IdentifierManager::RuntimeFunctionKind kind, const SourceCodeRef& codeRef);
+    Result                requireRuntimeSafetyPanicDependency(Sema& sema, const SourceCodeRef& codeRef);
+    Result                requireRuntimeSafetyPanicDependency(SymbolFunction*& outRuntimeFn, Sema& sema, const SourceCodeRef& codeRef);
     Result                requireRuntimeFunctionDependency(Sema& sema, IdentifierManager::RuntimeFunctionKind kind, const SourceCodeRef& codeRef);
     Result                requireRuntimeFunctionDependency(SymbolFunction*& outRuntimeFn, Sema& sema, IdentifierManager::RuntimeFunctionKind kind, const SourceCodeRef& codeRef);
     TypeRef               indirectReturnRuntimeStorageTypeRef(Sema& sema, const SymbolFunction& calledFn);

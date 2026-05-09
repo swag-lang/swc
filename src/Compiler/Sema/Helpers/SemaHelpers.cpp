@@ -877,13 +877,21 @@ Result SemaHelpers::requireRuntimeFunctionDependency(Sema& sema, IdentifierManag
     return requireRuntimeFunctionDependency(runtimeFn, sema, kind, codeRef);
 }
 
+Result SemaHelpers::requireRuntimeSafetyPanicDependency(SymbolFunction*& outRuntimeFn, Sema& sema, const SourceCodeRef& codeRef)
+{
+    return requireRuntimeFunctionDependency(outRuntimeFn, sema, IdentifierManager::RuntimeFunctionKind::SafetyPanic, codeRef);
+}
+
+Result SemaHelpers::requireRuntimeSafetyPanicDependency(Sema& sema, const SourceCodeRef& codeRef)
+{
+    SymbolFunction* runtimeFn = nullptr;
+    return requireRuntimeSafetyPanicDependency(runtimeFn, sema, codeRef);
+}
+
 Result SemaHelpers::attachRuntimeFunctionToNode(Sema& sema, AstNodeRef nodeRef, IdentifierManager::RuntimeFunctionKind kind, const SourceCodeRef& codeRef)
 {
     SymbolFunction* runtimeFn = nullptr;
-    SWC_RESULT(sema.waitRuntimeFunction(kind, runtimeFn, codeRef));
-    SWC_ASSERT(runtimeFn != nullptr);
-
-    addCurrentFunctionCallDependency(sema, runtimeFn);
+    SWC_RESULT(requireRuntimeFunctionDependency(runtimeFn, sema, kind, codeRef));
     ensureCodeGenNodePayload(sema, nodeRef).runtimeFunctionSymbol = runtimeFn;
     return Result::Continue;
 }
@@ -1041,12 +1049,10 @@ Result SemaHelpers::setupRuntimeSafetyPanic(Sema& sema, AstNodeRef nodeRef, Runt
     if (!sema.isCurrentFunction())
         return Result::Continue;
 
-    auto& payload = ensureCodeGenNodePayload(sema, nodeRef);
     SymbolFunction* panicFn = nullptr;
-    SWC_RESULT(sema.waitRuntimeFunction(IdentifierManager::RuntimeFunctionKind::SafetyPanic, panicFn, codeRef));
-    SWC_ASSERT(panicFn != nullptr);
+    SWC_RESULT(requireRuntimeSafetyPanicDependency(panicFn, sema, codeRef));
 
-    addCurrentFunctionCallDependency(sema, panicFn);
+    auto& payload = ensureCodeGenNodePayload(sema, nodeRef);
     payload.addRuntimeSafety(safetyKind);
     payload.runtimeFunctionSymbol = panicFn;
     return Result::Continue;

@@ -17,6 +17,17 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    Result ensureSwitchRuntimePanicSymbol(Sema& sema, SwitchPayload& payload, const SourceCodeRef& codeRef)
+    {
+        if (payload.runtimePanicSymbol != nullptr)
+            return Result::Continue;
+
+        SymbolFunction* panicFn = nullptr;
+        SWC_RESULT(SemaHelpers::requireRuntimeSafetyPanicDependency(panicFn, sema, codeRef));
+        payload.runtimePanicSymbol = panicFn;
+        return Result::Continue;
+    }
+
     Result setupSwitchRuntimeSafety(Sema& sema, SwitchPayload& payload, const SourceCodeRef& codeRef)
     {
         if (!payload.isComplete)
@@ -28,12 +39,7 @@ namespace
         if (!sema.isCurrentFunction())
             return Result::Continue;
 
-        if (payload.runtimePanicSymbol == nullptr)
-        {
-            SymbolFunction* panicFn = nullptr;
-            SWC_RESULT(SemaHelpers::requireRuntimeFunctionDependency(panicFn, sema, IdentifierManager::RuntimeFunctionKind::SafetyPanic, codeRef));
-            payload.runtimePanicSymbol = panicFn;
-        }
+        SWC_RESULT(ensureSwitchRuntimePanicSymbol(sema, payload, codeRef));
 
         // Only expose runtime switch safety to codegen once the panic helper is
         // attached. This avoids leaving a partially initialized payload behind
@@ -114,6 +120,15 @@ namespace
         return SemaError::raise(sema, DiagnosticId::sema_err_switch_dynamic_case, nodeRef);
     }
 
+    bool whereClauseIsUnconditionalTrue(Sema& sema, AstNodeRef whereRef)
+    {
+        if (!whereRef.isValid())
+            return true;
+
+        const SemaNodeView whereView = sema.viewConstant(whereRef);
+        return whereView.cstRef().isValid() && whereView.cstRef() == sema.cstMgr().cstTrue();
+    }
+
     AstNodeRef dynamicStructSwitchBindingIdentRef(Sema& sema, AstNodeRef nodeRef)
     {
         if (!nodeRef.isValid() || sema.node(nodeRef).isNot(AstNodeId::NamedType))
@@ -192,12 +207,8 @@ namespace
 
     Result checkDuplicateDynamicCaseType(Sema& sema, AstNodeRef switchRef, TypeRef targetStructTypeRef, AstNodeRef caseExprRef, AstNodeRef whereRef)
     {
-        if (whereRef.isValid())
-        {
-            const SemaNodeView whereView = sema.viewConstant(whereRef);
-            if (whereView.cstRef().isInvalid() || whereView.cstRef() != sema.cstMgr().cstTrue())
-                return Result::Continue;
-        }
+        if (!whereClauseIsUnconditionalTrue(sema, whereRef))
+            return Result::Continue;
 
         auto* seenSet = sema.semaPayload<SwitchPayload>(switchRef);
         SWC_ASSERT(seenSet);
@@ -268,6 +279,27 @@ namespace
         const SourceCodeRef caseExprCodeRef = sema.node(caseExprRef).codeRef();
         SWC_RESULT(SemaHelpers::requireRuntimeFunctionDependency(sema, IdentifierManager::RuntimeFunctionKind::As, caseExprCodeRef));
         return SemaHelpers::requireRuntimeFunctionDependency(sema, IdentifierManager::RuntimeFunctionKind::Is, caseExprCodeRef);
+    }
+
+    Result validateDefaultSwitchCase(Sema& sema, AstNodeRef switchRef, AstNodeRef caseRef)
+    {
+        auto* switchPayload = sema.semaPayload<SwitchPayload>(switchRef);
+        SWC_ASSERT(switchPayload);
+
+        if (switchPayload->isComplete)
+            return SemaError::raise(sema, DiagnosticId::sema_err_switch_complete_has_default, caseRef);
+
+        if (!switchPayload->firstDefaultRef.isValid())
+        {
+            switchPayload->firstDefaultRef = caseRef;
+            return Result::Continue;
+        }
+
+        auto diag = SemaError::report(sema, DiagnosticId::sema_err_switch_multiple_default, caseRef);
+        diag.addNote(DiagnosticId::sema_note_previous_default_case);
+        diag.last().addSpan(sema.node(switchPayload->firstDefaultRef).codeRangeWithChildren(sema.ctx(), sema.ast()));
+        diag.report(sema.ctx());
+        return Result::Error;
     }
 }
 
@@ -421,30 +453,12 @@ Result AstSwitchCaseStmt::semaPreNodeChild(Sema& sema, AstNodeRef& childRef) con
     // This is a 'default' case (no expressions). Validate default-specific rules once.
     if (!spanExprRef.isValid() && childRef == nodeBodyRef)
     {
-        auto* switchPayload = sema.semaPayload<SwitchPayload>(switchRef);
-        SWC_ASSERT(switchPayload);
-
-        const AstNodeRef caseRef = sema.frame().currentSwitchCase();
-
         // A 'default' with a 'where' clause is always conditional and does not
         // participate in duplicate-default checks.
         if (nodeWhereRef.isValid())
             return Result::Continue;
 
-        if (switchPayload->isComplete)
-            return SemaError::raise(sema, DiagnosticId::sema_err_switch_complete_has_default, caseRef);
-
-        if (!switchPayload->firstDefaultRef.isValid())
-        {
-            switchPayload->firstDefaultRef = caseRef;
-            return Result::Continue;
-        }
-
-        auto diag = SemaError::report(sema, DiagnosticId::sema_err_switch_multiple_default, caseRef);
-        diag.addNote(DiagnosticId::sema_note_previous_default_case);
-        diag.last().addSpan(sema.node(switchPayload->firstDefaultRef).codeRangeWithChildren(sema.ctx(), sema.ast()));
-        diag.report(sema.ctx());
-        return Result::Error;
+        return validateDefaultSwitchCase(sema, switchRef, sema.frame().currentSwitchCase());
     }
 
     // Only touch case expressions (not the statements in the case body).
@@ -510,12 +524,8 @@ namespace
     {
         // A case expression with a 'where' clause is not tested for duplicates, except
         // if the where clause if a 'true' constant.
-        if (whereRef.isValid())
-        {
-            const SemaNodeView whereView = sema.viewConstant(whereRef);
-            if (whereView.cstRef().isInvalid() || whereView.cstRef() != sema.cstMgr().cstTrue())
-                return Result::Continue;
-        }
+        if (!whereClauseIsUnconditionalTrue(sema, whereRef))
+            return Result::Continue;
 
         auto* seenSet = sema.semaPayload<SwitchPayload>(switchRef);
         SWC_ASSERT(seenSet);
@@ -540,11 +550,7 @@ namespace
     Result checkDuplicateCaseValuesAfterWhere(Sema& sema, AstNodeRef switchRef, AstNodeRef caseRef)
     {
         const auto& caseStmt = sema.node(caseRef).cast<AstSwitchCaseStmt>();
-        if (!caseStmt.nodeWhereRef.isValid())
-            return Result::Continue;
-
-        const SemaNodeView whereView = sema.viewConstant(caseStmt.nodeWhereRef);
-        if (whereView.cstRef().isInvalid() || whereView.cstRef() != sema.cstMgr().cstTrue())
+        if (!caseStmt.nodeWhereRef.isValid() || !whereClauseIsUnconditionalTrue(sema, caseStmt.nodeWhereRef))
             return Result::Continue;
 
         if (isDynamicStructSwitchCase(sema, switchRef))

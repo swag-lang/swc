@@ -456,7 +456,7 @@ namespace
 
         // Resolve panic function when DynCast safety is enabled
         if (hasDynCastSafety)
-            SWC_RESULT(SemaHelpers::requireRuntimeFunctionDependency(sema, IdentifierManager::RuntimeFunctionKind::SafetyPanic, codeRef));
+            SWC_RESULT(SemaHelpers::requireRuntimeSafetyPanicDependency(sema, codeRef));
 
         return Result::Continue;
     }

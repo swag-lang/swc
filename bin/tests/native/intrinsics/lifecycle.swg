@@ -3,6 +3,7 @@ using Swag
 
 var DropCount: u32 = 0
 var DropTrace: s64 = 0
+var DropCompactTrace: s64 = 0
 var PostCopyCount: u32 = 0
 var PostMoveCount: u32 = 0
 
@@ -10,6 +11,7 @@ func resetLifecycleHooks()
 {
     DropCount = 0
     DropTrace = 0
+    DropCompactTrace = 0
     PostCopyCount = 0
     PostMoveCount = 0
 }
@@ -205,6 +207,32 @@ struct AutoDropBranch
 {
     head: DropOnlyTracked
     pair: AutoDropPair
+}
+
+struct CompactDropTracked
+{
+    value: s32
+}
+
+impl CompactDropTracked
+{
+    mtd opDrop()
+    {
+        DropCount += 1
+        DropCompactTrace = DropCompactTrace * 10 + cast(s64) .value
+    }
+}
+
+struct AutoCompactPair
+{
+    first: CompactDropTracked
+    second: CompactDropTracked
+}
+
+struct AutoCompactBranch
+{
+    head: CompactDropTracked
+    pair: AutoCompactPair
 }
 
 struct IntrinsicLifecycleErr
@@ -1007,6 +1035,116 @@ func intrinsicAutoDropSwitchReturnInfo()->IntrinsicInfo
     return result
 }
 
+func intrinsicAutoDropCatchResumeImpl(code: s32) throw
+{
+    var branch = AutoCompactBranch{CompactDropTracked{3}, AutoCompactPair{CompactDropTracked{4}, CompactDropTracked{5}}}
+    if branch.head.value == 3 do
+        throw IntrinsicLifecycleErr{code: code}
+}
+
+func intrinsicAutoDropCatchResumeInfo()->IntrinsicInfo
+{
+    resetLifecycleHooks()
+
+    var first: s32 = 0
+    var second: s32 = 0
+    var third: s32 = 0
+    {
+        var outer = AutoCompactPair{CompactDropTracked{8}, CompactDropTracked{9}}
+        catch intrinsicAutoDropCatchResumeImpl(55)
+        if @err != null
+        {
+            let err = cast(IntrinsicLifecycleErr) @err
+            first = err.code
+            second = outer.second.value
+            third = 1
+        }
+    }
+
+    return {first, second, third, DropCount, DropCompactTrace, PostCopyCount, PostMoveCount}
+}
+
+func intrinsicAutoDropTryCatchLoopStep(base: s32)->s32 throw
+{
+    var branch = AutoCompactBranch{CompactDropTracked{base}, AutoCompactPair{CompactDropTracked{base + 1}, CompactDropTracked{base + 2}}}
+    if base == 1 do
+        throw IntrinsicLifecycleErr{code: 66}
+    return branch.pair.first.value
+}
+
+func intrinsicAutoDropTryCatchLoopInfo()->IntrinsicInfo
+{
+    resetLifecycleHooks()
+
+    var first: s32 = 0
+    var second: s32 = 0
+    var third: s32 = 0
+    {
+        var outer = CompactDropTracked{9}
+        for i in 2
+        {
+            let base = cast(s32) (i * 3 + 1)
+            let value: s32 = trycatch intrinsicAutoDropTryCatchLoopStep(base)
+            if value == 0
+            {
+                second += 1
+                continue
+            }
+
+            first += value
+            var pair = AutoCompactPair{CompactDropTracked{7}, CompactDropTracked{8}}
+            third = pair.second.value + outer.value
+        }
+    }
+
+    return {first, second, third, DropCount, DropCompactTrace, PostCopyCount, PostMoveCount}
+}
+
+func intrinsicAutoDropSwitchFallthroughInfo()->IntrinsicInfo
+{
+    resetLifecycleHooks()
+
+    with var result: retval
+    {
+        .first = 0
+        .second = 0
+        .third = 0
+        .drops = 0
+        .dropTrace = 0
+        .postCopy = 0
+        .postMove = 0
+    }
+
+    defer result.dropTrace = DropCompactTrace
+    defer result.drops = DropCount
+
+    {
+        var outer = AutoCompactPair{CompactDropTracked{6}, CompactDropTracked{7}}
+        switch 1
+        {
+            case 1:
+                {
+                    var firstCase = AutoCompactPair{CompactDropTracked{1}, CompactDropTracked{2}}
+                    result.first = firstCase.first.value
+                }
+                fallthrough
+
+            case 2:
+                {
+                    var active = AutoCompactBranch{CompactDropTracked{3}, AutoCompactPair{CompactDropTracked{4}, CompactDropTracked{5}}}
+                    result.second = active.head.value
+                    result.third = outer.second.value
+                    return result
+                }
+
+            default:
+                result.third = -1
+        }
+    }
+
+    return result
+}
+
 func intrinsicInitRuntimeCountScalarInfo()->s32
 {
     var values: [4] s32 = [9, 8, 7, 6]
@@ -1506,6 +1644,36 @@ func intrinsicReceiverLifecycleInfo()->IntrinsicInfo
     @assert(v.third == 7)
     @assert(v.drops == 5)
     @assert(v.dropTrace == 807060201)
+}
+
+#test
+{
+    let v = intrinsicAutoDropCatchResumeInfo()
+    @assert(v.first == 55)
+    @assert(v.second == 9)
+    @assert(v.third == 1)
+    @assert(v.drops == 5)
+    @assert(v.dropTrace == 54398)
+}
+
+#test
+{
+    let v = intrinsicAutoDropTryCatchLoopInfo()
+    @assert(v.first == 5)
+    @assert(v.second == 1)
+    @assert(v.third == 17)
+    @assert(v.drops == 9)
+    @assert(v.dropTrace == 321654879)
+}
+
+#test
+{
+    let v = intrinsicAutoDropSwitchFallthroughInfo()
+    @assert(v.first == 1)
+    @assert(v.second == 3)
+    @assert(v.third == 7)
+    @assert(v.drops == 7)
+    @assert(v.dropTrace == 2154376)
 }
 
 #test

@@ -6,6 +6,7 @@
 #include "Compiler/CodeGen/Core/CodeGenTypeHelpers.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
+#include "Compiler/Sema/Symbol/IdentifierManager.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.Struct.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
@@ -86,11 +87,16 @@ namespace
         TypeRef  memberTypeRef = TypeRef::invalid();
     };
 
+    TypeRef aliasEnumTypeRef(CodeGen& codeGen, TypeRef typeRef)
+    {
+        typeRef = codeGen.typeMgr().unwrapAliasEnum(codeGen.ctx(), typeRef);
+        SWC_ASSERT(typeRef.isValid());
+        return typeRef;
+    }
+
     const TypeInfo& aliasEnumType(CodeGen& codeGen, const SemaNodeView& view)
     {
-        const TypeRef typeRef = codeGen.typeMgr().unwrapAliasEnum(codeGen.ctx(), view.typeRef());
-        SWC_ASSERT(typeRef.isValid());
-        return codeGen.typeMgr().get(typeRef);
+        return codeGen.typeMgr().get(aliasEnumTypeRef(codeGen, view.typeRef()));
     }
 
     bool isPointerOrReferenceAliasAware(CodeGen& codeGen, const SemaNodeView& view)
@@ -188,23 +194,115 @@ namespace
         return !paramInfo.isIndirect;
     }
 
+    const SymbolStruct* resolveRuntimeStructType(CodeGen& codeGen, TypeRef leftTypeRef)
+    {
+        if (!leftTypeRef.isValid())
+            return nullptr;
+
+        TypeRef baseTypeRef = codeGen.typeMgr().get(leftTypeRef).unwrapAliasEnum(codeGen.ctx(), leftTypeRef);
+        if (baseTypeRef.isInvalid())
+            return nullptr;
+
+        const TypeInfo* baseTypeInfo = &codeGen.typeMgr().get(baseTypeRef);
+        if (baseTypeInfo->isPointerOrReference())
+        {
+            baseTypeRef  = codeGen.typeMgr().get(baseTypeInfo->payloadTypeRef()).unwrapAliasEnum(codeGen.ctx(), baseTypeInfo->payloadTypeRef());
+            baseTypeInfo = &codeGen.typeMgr().get(baseTypeRef);
+        }
+
+        if (!baseTypeInfo->isStruct())
+            return nullptr;
+
+        return &baseTypeInfo->payloadSymStruct();
+    }
+
+    const SymbolStruct* receiverRuntimeStruct(CodeGen& codeGen)
+    {
+        auto& params = codeGen.function().parameters();
+        if (params.empty() || !params.front())
+            return codeGen.function().ownerStruct();
+
+        const SymbolVariable* receiver = params.front();
+        if (receiver->idRef() != codeGen.sema().idMgr().predefined(IdentifierManager::PredefinedName::Me))
+            return codeGen.function().ownerStruct();
+
+        if (const SymbolStruct* receiverStruct = resolveRuntimeStructType(codeGen, receiver->typeRef()))
+            return receiverStruct;
+
+        return codeGen.function().ownerStruct();
+    }
+
+    TypeRef resolveRuntimeLeftTypeRef(CodeGen& codeGen, AstNodeRef leftRef, TypeRef leftTypeRef)
+    {
+        if (!leftRef.isValid())
+            return leftTypeRef;
+
+        if (!codeGen.node(leftRef).is(AstNodeId::Identifier))
+            return leftTypeRef;
+
+        const SemaNodeView leftSymView = codeGen.viewSymbol(leftRef);
+        const auto* const  symVar      = leftSymView.sym() ? leftSymView.sym()->safeCast<SymbolVariable>() : nullptr;
+        if (!symVar)
+            return leftTypeRef;
+        if (symVar->idRef() != codeGen.sema().idMgr().predefined(IdentifierManager::PredefinedName::Me))
+            return leftTypeRef;
+
+        const SymbolStruct* receiverStruct = receiverRuntimeStruct(codeGen);
+        if (!receiverStruct)
+            return leftTypeRef;
+
+        return receiverStruct->typeRef();
+    }
+
+    const SymbolVariable& resolveConcreteStructMemberSymbol(CodeGen& codeGen, TypeRef leftTypeRef, const SymbolVariable& memberSym)
+    {
+        const SymbolStruct* leftStruct = resolveRuntimeStructType(codeGen, leftTypeRef);
+        if (!leftStruct)
+            return memberSym;
+
+        const auto* ownerStruct = memberSym.ownerSymMap() ? memberSym.ownerSymMap()->safeCast<SymbolStruct>() : nullptr;
+        if (!ownerStruct || ownerStruct == leftStruct)
+            return memberSym;
+        const SymbolStruct* leftRoot  = leftStruct->isGenericInstance() ? leftStruct->genericRootSym() : leftStruct;
+        const SymbolStruct* ownerRoot = ownerStruct->isGenericInstance() ? ownerStruct->genericRootSym() : ownerStruct;
+        if (leftRoot != ownerRoot)
+            return memberSym;
+
+        for (const SymbolVariable* field : leftStruct->fields())
+        {
+            if (field && field->idRef() == memberSym.idRef())
+                return *field;
+        }
+
+        return memberSym;
+    }
+
     Result codeGenStructMemberAccess(CodeGen& codeGen, const AstMemberAccessExpr& node)
     {
         const CodeGenNodePayload& leftPayload  = codeGen.payload(node.nodeLeftRef);
         const SemaNodeView        leftTypeView = codeGen.viewType(node.nodeLeftRef);
         const SemaNodeView        rightView    = codeGen.viewSymbol(node.nodeRightRef);
         const Symbol*             rightSym     = (rightView.sym());
-        const auto&               symVar       = rightSym->cast<SymbolVariable>();
+        const auto&               semaSymVar   = rightSym->cast<SymbolVariable>();
+        TypeRef                   leftTypeRef  = leftPayload.effectiveTypeRef(leftTypeView.typeRef());
+        leftTypeRef                            = resolveRuntimeLeftTypeRef(codeGen, node.nodeLeftRef, leftTypeRef);
+        SWC_ASSERT(leftTypeRef.isValid());
+        const TypeInfo&           leftTypeInfo = codeGen.typeMgr().get(aliasEnumTypeRef(codeGen, leftTypeRef));
+
+        // Runtime member accesses inside generic instances must use the field symbol of the active
+        // specialization. Reusing the root generic field leaks stale offsets and field types into
+        // codegen, which breaks layout-sensitive member/index chains.
+        const SymbolVariable& symVar = resolveConcreteStructMemberSymbol(codeGen, leftTypeRef, semaSymVar);
 
         const TypeRef                    memberTypeRef = symVar.typeRef();
         const CodeGenNodePayload&        payload       = codeGen.setPayloadAddress(codeGen.curNodeRef(), memberTypeRef);
         MicroBuilder&                    builder       = codeGen.builder();
         SmallVector<StructUsingPathStep> usingPath;
-        if (leftTypeView.typeRef().isValid())
-            resolveStructMemberPath(codeGen, leftTypeView.typeRef(), symVar, usingPath);
+        if (leftTypeRef.isValid())
+            resolveStructMemberPath(codeGen, leftTypeRef, symVar, usingPath);
 
         MicroReg baseAddressReg = leftPayload.reg;
-        if (leftTypeView.type() && (isPointerOrReferenceAliasAware(codeGen, leftTypeView) || leftTypeView.type()->isTypeInfo()))
+        if (leftTypeInfo.isPointerOrReference() || leftTypeInfo.isTypeInfo())
         {
             // Member access through a pointer/reference or `typeinfo` works on the pointee object, not
             // on the storage that currently holds that pointer value.
@@ -220,10 +318,7 @@ namespace
         }
         else
         {
-            const SemaNodeView leftView = codeGen.viewType(node.nodeLeftRef);
-            SWC_ASSERT(leftView.type());
-
-            const uint64_t leftSize = leftView.type()->sizeOf(codeGen.ctx());
+            const uint64_t leftSize = leftTypeInfo.sizeOf(codeGen.ctx());
             SWC_ASSERT(leftSize > 0);
 
             if (leftSize == 1 || leftSize == 2 || leftSize == 4 || leftSize == 8)

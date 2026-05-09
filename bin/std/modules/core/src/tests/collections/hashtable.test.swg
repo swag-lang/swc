@@ -101,8 +101,9 @@ func assertTableStringValue(table: const &HashTable'(string, String), key: strin
 
 #if false
 {
-    // Disabled for now: even a single `add` on `HashTable'(s32, String)` still crashes in JIT
-    // during `String.opDrop`, so the compiler/runtime issue is not specific to string keys.
+    // Disabled for now: `tools\core.bat ... --file-filter hashtable` still does not return quickly
+    // enough to use this as a reliable step-by-step signal. Keep the independent compiler repros in
+    // `bin/tests/jit/compiler` as the validation source of truth for now.
     #test
     {
         var original: HashTable'(s32, String)

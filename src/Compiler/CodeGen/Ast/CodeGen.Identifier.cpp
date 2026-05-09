@@ -51,6 +51,44 @@ namespace
         return lhsRoot == rhsRoot;
     }
 
+    const SymbolStruct* receiverRuntimeStruct(CodeGen& codeGen, const SymbolVariable& receiver)
+    {
+        const TypeRef receiverTypeRef = codeGen.typeMgr().unwrapAliasEnum(codeGen.ctx(), receiver.typeRef());
+        if (receiverTypeRef.isInvalid())
+            return codeGen.function().ownerStruct();
+
+        const TypeInfo& receiverType = codeGen.typeMgr().get(receiverTypeRef);
+        if (!receiverType.isPointerOrReference())
+            return codeGen.function().ownerStruct();
+
+        const TypeRef pointeeTypeRef = codeGen.typeMgr().get(receiverType.payloadTypeRef()).unwrapAliasEnum(codeGen.ctx(), receiverType.payloadTypeRef());
+        if (pointeeTypeRef.isInvalid())
+            return codeGen.function().ownerStruct();
+
+        const TypeInfo& pointeeType = codeGen.typeMgr().get(pointeeTypeRef);
+        if (!pointeeType.isStruct())
+            return codeGen.function().ownerStruct();
+
+        return &pointeeType.payloadSymStruct();
+    }
+
+    const SymbolVariable& resolveConcreteReceiverFieldSymbol(const SymbolStruct& receiverStruct, const SymbolVariable& symVar)
+    {
+        const SymbolStruct* fieldOwner = variableOwnerStruct(symVar);
+        if (!fieldOwner || fieldOwner == &receiverStruct)
+            return symVar;
+        if (!sameStructFamily(*fieldOwner, receiverStruct))
+            return symVar;
+
+        for (const SymbolVariable* field : receiverStruct.fields())
+        {
+            if (field && field->idRef() == symVar.idRef())
+                return *field;
+        }
+
+        return symVar;
+    }
+
     SymbolVariable* implicitMeReceiver(CodeGen& codeGen)
     {
         auto& params = codeGen.function().parameters();
@@ -66,16 +104,17 @@ namespace
 
     bool tryResolveImplicitReceiverFieldPayload(CodeGen& codeGen, const SymbolVariable& symVar, CodeGenNodePayload& outPayload)
     {
-        const SymbolStruct* fieldOwner = variableOwnerStruct(symVar);
-        if (!fieldOwner)
-            return false;
-
         SymbolVariable* receiver = implicitMeReceiver(codeGen);
         if (!receiver)
             return false;
 
-        SymbolStruct* receiverOwner = codeGen.function().ownerStruct();
-        if (!receiverOwner || !sameStructFamily(*fieldOwner, *receiverOwner))
+        const SymbolStruct* receiverStruct = receiverRuntimeStruct(codeGen, *receiver);
+        if (!receiverStruct)
+            return false;
+
+        const SymbolVariable& concreteField = resolveConcreteReceiverFieldSymbol(*receiverStruct, symVar);
+        const SymbolStruct*   fieldOwner    = variableOwnerStruct(concreteField);
+        if (!fieldOwner || !sameStructFamily(*fieldOwner, *receiverStruct))
             return false;
 
         const CodeGenNodePayload receiverPayload = CodeGenFunctionHelpers::materializeFunctionParameter(codeGen, codeGen.function(), *receiver);
@@ -94,10 +133,10 @@ namespace
             codeGen.builder().emitLoadRegMem(baseAddressReg, receiverPayload.reg, 0, MicroOpBits::B64);
         }
 
-        outPayload.typeRef = symVar.typeRef();
+        outPayload.typeRef = concreteField.typeRef();
         outPayload.reg     = codeGen.nextVirtualIntRegister();
         outPayload.setIsAddress();
-        codeGen.builder().emitLoadAddressRegMem(outPayload.reg, baseAddressReg, symVar.offset(), MicroOpBits::B64);
+        codeGen.builder().emitLoadAddressRegMem(outPayload.reg, baseAddressReg, concreteField.offset(), MicroOpBits::B64);
         return true;
     }
 

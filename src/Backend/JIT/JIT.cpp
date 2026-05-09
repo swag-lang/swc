@@ -282,7 +282,7 @@ namespace
 
     Result ensureLocalFunctionTargetPrepared(TaskContext& ctx, SymbolFunction& targetFunction, const SymbolFunction* ownerFunction)
     {
-        if (targetFunction.jitPatchAddress())
+        if (targetFunction.jitWorkAddress())
             return Result::Continue;
 
         if (!targetFunction.isCodeGenCompleted())
@@ -317,7 +317,7 @@ namespace
             return Result::Error;
 
         JITPatchJob::schedule(ctx, targetFunction);
-        if (targetFunction.jitPatchAddress())
+        if (targetFunction.jitWorkAddress())
             return Result::Continue;
 
         setWaitJitPrepared(ctx, ownerFunction, targetFunction);
@@ -437,6 +437,8 @@ namespace
             }
 
             entryAddress = targetFunction.jitPatchAddress();
+            if (!entryAddress)
+                entryAddress = targetFunction.jitWorkAddress();
         }
 
         if (!entryAddress)

@@ -623,6 +623,10 @@ namespace
         SmallVector<AstNodeRef> args;
         collectIntrinsicInitArgs(args, codeGen.ast(), node);
 
+        const CodeGenNodePayload* whatPayload = codeGen.safePayload(node.nodeWhatRef);
+        if ((!whatPayload || !whatPayload->reg.isValid()) && node.nodeWhatRef.isValid())
+            SWC_RESULT(codeGen.emitNodeNow(node.nodeWhatRef));
+
         const IntrinsicInitTarget targetInfo = resolveIntrinsicInitTarget(codeGen, codeGen.viewType(node.nodeWhatRef).typeRef());
         SWC_ASSERT(targetInfo.fillTypeRef.isValid());
         if (targetInfo.fillTypeRef.isInvalid())
@@ -669,6 +673,10 @@ namespace
         const TypeRef targetTypeRef = intrinsicLifecycleTargetTypeRef(codeGen, codeGen.viewType(whatRef).typeRef(), countRef.isValid());
         if (!codeGen.hasLifecycle(targetTypeRef, lifecycleKind))
             return Result::Continue;
+
+        const CodeGenNodePayload* whatPayload = codeGen.safePayload(whatRef);
+        if ((!whatPayload || !whatPayload->reg.isValid()) && whatRef.isValid())
+            SWC_RESULT(codeGen.emitNodeNow(whatRef));
 
         const MicroReg addressReg = materializeIntrinsicLifecycleAddress(codeGen, whatRef);
         SWC_ASSERT(addressReg.isValid());

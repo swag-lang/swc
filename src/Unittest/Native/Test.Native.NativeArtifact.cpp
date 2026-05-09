@@ -537,6 +537,11 @@ SWC_TEST_END()
 
 SWC_TEST_BEGIN(NativeArtifact_CompilerRunExprInsideTestKeepsJitRunnable)
 {
+    auto fail = [](const char* message) {
+        std::fprintf(stderr, "NativeArtifact_CompilerRunExprInsideTestKeepsJitRunnable: %s\n", message);
+        return Result::Error;
+    };
+
     static constexpr std::string_view SOURCE     = R"(#global fileprivate
 var GValue: s32 = 0
 #test
@@ -562,16 +567,16 @@ var GValue: s32 = 0
     Unittest::registerTestSource(compiler, sourcePath, SOURCE);
     Command::sema(compiler);
     if (Stats::getNumErrors() != errorsBefore)
-        return Result::Error;
+        return fail("errors after sema");
 
     if (compiler.nativeTestFunctions().size() != 1)
-        return Result::Error;
+        return fail("unexpected native test function count");
 
     NativeBackendBuilder nativeBuilder(compiler, false);
     if (nativeBuilder.prepare() != Result::Continue)
-        return Result::Error;
+        return fail("nativeBuilder.prepare failed");
     if (Stats::getNumErrors() != errorsBefore)
-        return Result::Error;
+        return fail("errors after nativeBuilder.prepare");
 
     TaskContext           compilerCtx(compiler);
     const SymbolVariable* globalVar = nullptr;
@@ -587,24 +592,35 @@ var GValue: s32 = 0
     }
 
     if (!globalVar || !globalVar->hasGlobalStorage())
-        return Result::Error;
+        return fail("global GValue not found");
 
     const auto& nativeFunctions = compiler.nativeCodeSegment();
     if (nativeFunctions.empty())
-        return Result::Error;
+        return fail("native code segment empty");
 
-    if (runAfterPauses(compilerCtx, [&] {
-            return SymbolFunction::jitBatch(compilerCtx, nativeFunctions);
-        }) != Result::Continue)
-        return Result::Error;
+    while (true)
+    {
+        const Result jitBatchResult = SymbolFunction::jitBatch(compilerCtx, nativeFunctions);
+        if (jitBatchResult == Result::Continue)
+            break;
+
+        if (jitBatchResult == Result::Error)
+            return fail("jitBatch returned error");
+
+        Sema::waitDone(compilerCtx, compilerCtx.compiler().jobClientId());
+        if (Stats::hasError())
+            return fail("jitBatch wait reported stats error");
+        if (compilerCtx.state().jitEmissionError)
+            return fail("jitBatch wait reported jit emission error");
+    }
     if (Stats::getNumErrors() != errorsBefore)
-        return Result::Error;
+        return fail("errors after jitBatch");
 
     const SymbolFunction* testFn = compiler.nativeTestFunctions().front();
     if (!testFn)
-        return Result::Error;
+        return fail("missing native test function");
     if (!testFn->jitEntryAddress())
-        return Result::Error;
+        return fail("native test function has no jit entry");
 
     JITExecManager::Request request;
     request.function     = testFn;
@@ -612,13 +628,13 @@ var GValue: s32 = 0
     request.codeRef      = testFn->decl() ? testFn->decl()->codeRef() : SourceCodeRef::invalid();
     request.runImmediate = true;
     if (compiler.jitExecMgr().submit(compilerCtx, request) != Result::Continue)
-        return Result::Error;
+        return fail("jit submit failed");
     if (Stats::getNumErrors() != errorsBefore)
-        return Result::Error;
+        return fail("errors after jit submit");
 
     const auto* globalValue = reinterpret_cast<const int32_t*>(compiler.dataSegmentAddress(globalVar->globalStorageKind(), globalVar->offset()));
     if (!globalValue || *globalValue != 666)
-        return Result::Error;
+        return fail("unexpected final GValue");
 }
 SWC_TEST_END()
 

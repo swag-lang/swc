@@ -21,6 +21,7 @@ enum class TaskStateKind : uint8_t
     SemaWaitSymCodeGenPreSolved,
     SemaWaitSymCodeGenCompleted,
     SemaWaitSymJitPrepared,
+    SemaWaitSymJitPatched,
     SemaWaitSymJitCompleted,
     SemaWaitTypeCompleted,
     SemaWaitMainThreadRunJit,

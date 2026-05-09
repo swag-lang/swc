@@ -717,24 +717,16 @@ Result CodeGen::emitLifecycleAction(SymbolFunction& calledFunction, const MicroR
 {
     SWC_ASSERT(addressReg.isValid());
 
-    function().addCallDependency(&calledFunction);
+    MicroReg stableAddressReg = addressReg;
+    if (addressReg.isValid())
+    {
+        stableAddressReg = nextVirtualIntRegister();
+        if (addressReg.isInt())
+            builder().addVirtualRegForbiddenPhysReg(stableAddressReg, addressReg);
+        builder().emitLoadRegReg(stableAddressReg, addressReg, MicroOpBits::B64);
+    }
 
-    ABICall::PreparedArg preparedArg;
-    preparedArg.srcReg      = addressReg;
-    preparedArg.kind        = ABICall::PreparedArgKind::Direct;
-    preparedArg.isFloat     = false;
-    preparedArg.isSigned    = false;
-    preparedArg.isAddressed = false;
-    preparedArg.numBits     = 64;
-
-    const CallConvKind          callConvKind = calledFunction.callConvKind();
-    const ABICall::PreparedCall preparedCall = ABICall::prepareArgs(builder(), callConvKind, std::span{&preparedArg, 1});
-    if (calledFunction.isForeign())
-        ABICall::callExtern(builder(), callConvKind, &calledFunction, preparedCall);
-    else
-        ABICall::callLocal(builder(), callConvKind, &calledFunction, preparedCall);
-
-    return Result::Continue;
+    return CodeGenCallHelpers::emitRuntimeCallWithDirectArgs(*this, calledFunction, std::span<const MicroReg>{&stableAddressReg, 1});
 }
 
 Result CodeGen::emitLifecycle(const TypeRef typeRef, const LifecycleKind lifecycleKind, const MicroReg addressReg)

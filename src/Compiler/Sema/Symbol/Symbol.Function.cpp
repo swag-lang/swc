@@ -107,6 +107,46 @@ namespace
         wait.waiterSymbol = &function;
     }
 
+    void setWaitJitPatched(TaskContext& ctx, const SymbolFunction& function)
+    {
+        TaskState& wait   = ctx.state();
+        wait.kind         = TaskStateKind::SemaWaitSymJitPatched;
+        wait.nodeRef      = ctx.state().nodeRef.isValid() ? ctx.state().nodeRef : function.declNodeRef();
+        wait.codeRef      = ctx.state().codeRef.isValid() ? ctx.state().codeRef : safeCodeRef(function);
+        wait.symbol       = &function;
+        wait.waiterSymbol = &function;
+    }
+
+    Result waitLocalCallDependenciesPatched(TaskContext& ctx, const SymbolFunction& function)
+    {
+        SmallVector<SymbolFunction*> dependencies;
+        function.appendCallDependencies(dependencies);
+
+        for (SymbolFunction* dependency : dependencies)
+        {
+            if (!dependency || dependency == &function)
+                continue;
+            if (dependency->isForeign() || dependency->isEmpty() || dependency->isAttribute())
+                continue;
+            if (dependency->jitPatchAddress() || dependency->jitEntryAddress())
+                continue;
+            if (dependency->isIgnored())
+            {
+                ctx.state().jitEmissionError = true;
+                return Result::Error;
+            }
+
+            JITPatchJob::schedule(ctx, *dependency);
+            if (dependency->jitPatchAddress() || dependency->jitEntryAddress())
+                continue;
+
+            setWaitJitPatched(ctx, *dependency);
+            return Result::Pause;
+        }
+
+        return Result::Continue;
+    }
+
     bool isLocalLayoutReady(TaskContext& ctx, TypeRef typeRef)
     {
         if (typeRef.isInvalid())
@@ -774,7 +814,7 @@ void SymbolFunction::resetJitState() noexcept
 {
     const std::scoped_lock lock(emitMutex_);
     jitExecMemory_.reset();
-    jitPreparedAddress_.store(nullptr, std::memory_order_release);
+    jitPatchedAddress_.store(nullptr, std::memory_order_release);
     jitEntryAddress_.store(nullptr, std::memory_order_release);
     jitPatchJobScheduled_.store(false, std::memory_order_release);
     jitReadyVersion_.store(0, std::memory_order_release);
@@ -966,6 +1006,8 @@ Result SymbolFunction::jitMaterialize(TaskContext& ctx)
         return ctx.state().jitEmissionError ? Result::Error : Result::Continue;
 
     SWC_RESULT(jitPatch(ctx));
+    SWC_RESULT(waitLocalCallDependenciesPatched(ctx, *this));
+
     jitFinalize(ctx);
     if (hasJitEntryAddress())
         return Result::Continue;
@@ -999,7 +1041,6 @@ bool SymbolFunction::jitPrepare(TaskContext& ctx)
         return false;
     }
 
-    jitPreparedAddress_.store(entry, std::memory_order_release);
     ctx.compiler().registerPreparedJitFunction(this);
     ctx.compiler().notifyAlive();
     return true;
@@ -1030,6 +1071,11 @@ Result SymbolFunction::jitPatch(TaskContext& ctx)
     }
 
     const Result patchResult = JIT::patch(ctx, jitExecMemory_, relocations, this);
+    if (patchResult == Result::Continue)
+    {
+        jitPatchedAddress_.store(jitExecMemory_.entryPoint(), std::memory_order_release);
+        ctx.compiler().notifyAlive();
+    }
     if (patchResult == Result::Error)
         ctx.state().jitEmissionError = true;
     return patchResult;

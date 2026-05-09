@@ -105,8 +105,9 @@ public:
     void                    addCallDependency(SymbolFunction* sym);
     void                    appendCallDependencies(SmallVector<SymbolFunction*>& out) const;
     void                    appendJitOrder(SmallVector<SymbolFunction*>& out) const;
-    void*                   jitPatchAddress() const noexcept { return jitPreparedAddress_.load(std::memory_order_acquire); }
+    void*                   jitPatchAddress() const noexcept { return jitPatchedAddress_.load(std::memory_order_acquire); }
     void*                   jitEntryAddress() const noexcept { return jitEntryAddress_.load(std::memory_order_acquire); }
+    void*                   jitWorkAddress() const noexcept { return jitExecMemory_.entryPoint(); }
     uint64_t                jitReadyVersion() const noexcept { return jitReadyVersion_.load(std::memory_order_acquire); }
     void                    setJitReadyVersion(uint64_t version) noexcept { jitReadyVersion_.store(version, std::memory_order_release); }
     void                    resetJitState() noexcept;
@@ -147,7 +148,8 @@ private:
                                                             SymbolFunctionFlagsE::Variadic;
 
     bool         hasLoweredCode() const noexcept;
-    bool         hasJitPreparedAddress() const noexcept { return jitPatchAddress() != nullptr; }
+    bool         hasJitPreparedAddress() const noexcept { return jitWorkAddress() != nullptr; }
+    bool         hasJitPatchedAddress() const noexcept { return jitPatchAddress() != nullptr; }
     bool         hasJitEntryAddress() const noexcept { return jitEntryAddress() != nullptr; }
     bool         tryMarkJitPatchJobScheduled() noexcept;
     GenericData& ensureGenericData(const TaskContext& ctx) const noexcept;
@@ -180,7 +182,7 @@ private:
     SymbolFunction*                   closureAdapter_ = nullptr;
     std::mutex                        emitMutex_;
     JITMemory                         jitExecMemory_;
-    std::atomic<void*>                jitPreparedAddress_   = nullptr;
+    std::atomic<void*>                jitPatchedAddress_    = nullptr;
     std::atomic<void*>                jitEntryAddress_      = nullptr;
     std::atomic_bool                  jitPatchJobScheduled_ = false;
     std::atomic<uint64_t>             jitReadyVersion_{0};

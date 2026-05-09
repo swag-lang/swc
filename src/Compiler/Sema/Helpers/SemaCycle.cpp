@@ -75,6 +75,8 @@ namespace
                 return "waiting for code generation completion";
             case TaskStateKind::SemaWaitSymJitPrepared:
                 return "waiting for JIT preparation";
+            case TaskStateKind::SemaWaitSymJitPatched:
+                return "waiting for JIT patching";
             case TaskStateKind::SemaWaitSymJitCompleted:
                 return "waiting for JIT completion";
             case TaskStateKind::SemaWaitTypeCompleted:
@@ -320,6 +322,17 @@ void SemaCycle::check(TaskContext& ctx, JobClientId clientId)
             }
 
             case TaskStateKind::SemaWaitSymJitPrepared:
+            {
+                SWC_ASSERT(state.symbol);
+                if (!reportedSymbols.insert(state.symbol).second)
+                    break;
+                if (suppressStalledDependencies)
+                    break;
+                reportStalledDependency(*sema, ctx, state);
+                break;
+            }
+
+            case TaskStateKind::SemaWaitSymJitPatched:
             {
                 SWC_ASSERT(state.symbol);
                 if (!reportedSymbols.insert(state.symbol).second)

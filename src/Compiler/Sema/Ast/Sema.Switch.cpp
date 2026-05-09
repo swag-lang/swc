@@ -25,15 +25,22 @@ namespace
         if (!sema.frame().currentAttributes().hasRuntimeSafety(sema.buildCfg().safetyGuards, Runtime::SafetyWhat::Switch))
             return Result::Continue;
 
-        payload.hasRuntimeSwitchSafety = true;
-
         if (!sema.isCurrentFunction())
             return Result::Continue;
 
-        if (payload.runtimePanicSymbol != nullptr)
-            return Result::Continue;
+        if (payload.runtimePanicSymbol == nullptr)
+        {
+            SymbolFunction* panicFn = nullptr;
+            SWC_RESULT(SemaHelpers::requireRuntimeFunctionDependency(panicFn, sema, IdentifierManager::RuntimeFunctionKind::SafetyPanic, codeRef));
+            payload.runtimePanicSymbol = panicFn;
+        }
 
-        return SemaHelpers::requireRuntimeFunctionDependency(payload.runtimePanicSymbol, sema, IdentifierManager::RuntimeFunctionKind::SafetyPanic, codeRef);
+        // Only expose runtime switch safety to codegen once the panic helper is
+        // attached. This avoids leaving a partially initialized payload behind
+        // when semantic analysis pauses on the runtime dependency.
+        SWC_ASSERT(payload.runtimePanicSymbol != nullptr);
+        payload.hasRuntimeSwitchSafety = true;
+        return Result::Continue;
     }
 
     bool isDynamicStructSwitchType(Sema& sema, TypeRef typeRef)

@@ -1038,17 +1038,16 @@ Result SemaHelpers::setupRuntimeSafetyPanic(Sema& sema, AstNodeRef nodeRef, Runt
     if (!sema.frame().currentAttributes().hasRuntimeSafety(sema.buildCfg().safetyGuards, safetyKind))
         return Result::Continue;
 
-    auto& payload = ensureCodeGenNodePayload(sema, nodeRef);
-    payload.addRuntimeSafety(safetyKind);
-
     if (!sema.isCurrentFunction())
         return Result::Continue;
 
+    auto& payload = ensureCodeGenNodePayload(sema, nodeRef);
     SymbolFunction* panicFn = nullptr;
     SWC_RESULT(sema.waitRuntimeFunction(IdentifierManager::RuntimeFunctionKind::SafetyPanic, panicFn, codeRef));
     SWC_ASSERT(panicFn != nullptr);
 
     addCurrentFunctionCallDependency(sema, panicFn);
+    payload.addRuntimeSafety(safetyKind);
     payload.runtimeFunctionSymbol = panicFn;
     return Result::Continue;
 }

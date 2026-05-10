@@ -99,44 +99,35 @@ func assertTableStringValue(table: const &HashTable'(string, String), key: strin
     @assert(entry.value == 1)
 }
 
-#if false
+// Disabled for now: `tools\core.bat ... --file-filter hashtable` still does not return quickly
+// enough to use this as a reliable step-by-step signal. Keep the independent compiler repros in
+// `bin/tests/jit/compiler` as the validation source of truth for now.
+#test
 {
-    // Disabled for now: `tools\core.bat ... --file-filter hashtable` still does not return quickly
-    // enough to use this as a reliable step-by-step signal. Keep the independent compiler repros in
-    // `bin/tests/jit/compiler` as the validation source of truth for now.
-    #test
-    {
-        var original: HashTable'(s32, String)
-        original.add(1, "one")
-    }
+    var original: HashTable'(s32, String)
+    original.add(1, "one")
 }
 
-#if false
+// Disabled for now: `HashTable'(string, String)` still crashes in JIT as soon as a `String`
+// value is stored. Keep the pure-language compiler coverage in `bin/tests/jit/compiler`
+// while this path is being isolated further.
+#test
 {
-    // Disabled for now: `HashTable'(string, String)` still crashes in JIT as soon as a `String`
-    // value is stored. Keep the pure-language compiler coverage in `bin/tests/jit/compiler`
-    // while this path is being isolated further.
-    #test
-    {
-        var original: HashTable'(string, String)
-        original.add("alpha", "one")
+    var original: HashTable'(string, String)
+    original.add("alpha", "one")
 
-        @assert(assertTableStringValue(original, "alpha", "one"))
-    }
+    @assert(assertTableStringValue(original, "alpha", "one"))
 }
 
-#if false
+#test
 {
-    #test
-    {
-        var original: HashTable'(string, String)
-        original.add("alpha", "one")
-        original.add("beta", "two")
+    var original: HashTable'(string, String)
+    original.add("alpha", "one")
+    original.add("beta", "two")
 
-        @assert(assertTableStringValue(original, "alpha", "one"))
-        @assert(assertTableStringValue(original, "beta", "two"))
-        @assert(original.tryFind("gamma") == null)
-    }
+    @assert(assertTableStringValue(original, "alpha", "one"))
+    @assert(assertTableStringValue(original, "beta", "two"))
+    @assert(original.tryFind("gamma") == null)
 }
 
 #if false

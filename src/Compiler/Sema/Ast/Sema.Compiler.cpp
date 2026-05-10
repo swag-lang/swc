@@ -1883,6 +1883,7 @@ namespace
         auto& sym = SemaHelpers::registerUniqueSymbol<SymbolFunction>(sema, node, name);
         sym.setSpecOpKind(SemaSpecOp::computeSymbolKind(sema, sym));
         sym.setDeclNodeRef(sema.curNodeRef());
+        sym.setDeclNodePayloadContext(&sema.currentNodePayloadContext());
         return sym;
     }
 
@@ -2008,6 +2009,7 @@ Result AstCompilerFunc::semaPreDecl(Sema& sema)
     auto& sym = SemaHelpers::registerUniqueSymbol<SymbolFunction>(sema, *this, name);
     sym.setSpecOpKind(SemaSpecOp::computeSymbolKind(sema, sym));
     sym.setDeclNodeRef(sema.curNodeRef());
+    sym.setDeclNodePayloadContext(&sema.currentNodePayloadContext());
     if (ignoreCompilerFunc)
     {
         sym.setIgnored(ctx);
@@ -2113,6 +2115,7 @@ namespace
             auto* symFn = Symbol::make<SymbolFunction>(ctx, &node, node.tokRef(), idRef, sema.frame().flagsForCurrentAccess());
             symFn->setOwnerSymMap(SemaFrame::currentSymMap(sema));
             symFn->setDeclNodeRef(nodeRef);
+            symFn->setDeclNodePayloadContext(&sema.currentNodePayloadContext());
             symFn->setReturnTypeRef(returnTypeRef);
             symFn->setAttributes(ctx, sema.frame().currentAttributes());
             symFn->setDeclared(ctx);

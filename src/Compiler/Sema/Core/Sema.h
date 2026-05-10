@@ -76,6 +76,10 @@ public:
     const IdentifierManager&                       idMgr() const;
     SourceView&                                    srcView(SourceViewRef srcViewRef);
     const SourceView&                              srcView(SourceViewRef srcViewRef) const;
+    NodePayload&                                   currentNodePayloadContext() { return nodePayloadContext(); }
+    const NodePayload&                             currentNodePayloadContext() const { return nodePayloadContext(); }
+    NodePayload*                                   owningNodePayloadContext(SourceViewRef srcViewRef) const;
+    bool                                           usesOwningNodePayloadContext(SourceViewRef srcViewRef) const;
     Ast&                                           ast();
     const Ast&                                     ast() const;
     AstNode&                                       node(AstNodeRef nodeRef) { return ast().node(nodeRef); }

@@ -82,8 +82,8 @@ public:
     void                          setGenericInstance(SymbolStruct* root) noexcept;
     SymbolStruct*                 genericRootSym() noexcept;
     const SymbolStruct*           genericRootSym() const noexcept;
-    AstNodeRef                    findGenericEvalNode(AstNodeRef sourceRef, std::span<const SemaClone::ParamBinding> bindings) const;
-    void                          cacheGenericEvalNode(AstNodeRef sourceRef, std::span<const SemaClone::ParamBinding> bindings, AstNodeRef evalRef) const;
+    AstNodeRef                    findGenericEvalNode(const Ast& ownerAst, AstNodeRef sourceRef, std::span<const SemaClone::ParamBinding> bindings) const;
+    void                          cacheGenericEvalNode(const Ast& ownerAst, AstNodeRef sourceRef, std::span<const SemaClone::ParamBinding> bindings, AstNodeRef evalRef) const;
     bool                          tryGetGenericInstanceArgs(const SymbolStruct& instance, SmallVector<GenericInstanceKey>& outArgs) const;
     GenericInstanceStorage&       genericInstanceStorage() noexcept;
     const GenericInstanceStorage& genericInstanceStorage() const noexcept;

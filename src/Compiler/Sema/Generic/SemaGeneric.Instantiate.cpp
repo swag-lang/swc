@@ -293,7 +293,8 @@ namespace
     Sema* tryCreateSemaForGenericDecl(Sema& sema, const Symbol& root, std::unique_ptr<Sema>& ownedSema)
     {
         const SourceView& srcView = sema.compiler().srcView(root.srcViewRef());
-        if (sema.ast().srcView().fileRef() == srcView.ownerFileRef())
+        NodePayload*      payloadContext = sema.owningNodePayloadContext(root.srcViewRef());
+        if (!payloadContext || sema.usesOwningNodePayloadContext(root.srcViewRef()))
             return nullptr;
 
         SourceFile& sourceFile = sema.compiler().file(srcView.ownerFileRef());
@@ -302,7 +303,7 @@ namespace
             declRef = root.decl()->nodeRef(sourceFile.ast());
         SWC_ASSERT(declRef.isValid());
 
-        ownedSema = std::make_unique<Sema>(sema.ctx(), sema, sourceFile.nodePayloadContext(), declRef);
+        ownedSema = std::make_unique<Sema>(sema.ctx(), sema, *payloadContext, declRef);
         prepareGenericDeclSemaContext(*ownedSema, sema, root);
         return ownedSema.get();
     }
@@ -315,14 +316,15 @@ namespace
 
         const SourceView& srcView      = sema.compiler().srcView(decl->srcViewRef());
         const FileRef     ownerFileRef = srcView.ownerFileRef();
-        if (!ownerFileRef.isValid() || sema.ast().srcView().fileRef() == ownerFileRef)
+        NodePayload*      payloadContext = sema.owningNodePayloadContext(decl->srcViewRef());
+        if (!ownerFileRef.isValid() || !payloadContext || sema.usesOwningNodePayloadContext(decl->srcViewRef()))
             return nullptr;
 
         SourceFile& sourceFile = sema.compiler().file(ownerFileRef);
         AstNodeRef  declRef    = decl->nodeRef(sourceFile.ast());
         SWC_ASSERT(declRef.isValid());
 
-        ownedSema = std::make_unique<Sema>(sema.ctx(), sema, sourceFile.nodePayloadContext(), declRef);
+        ownedSema = std::make_unique<Sema>(sema.ctx(), sema, *payloadContext, declRef);
         return ownedSema.get();
     }
 
@@ -554,16 +556,16 @@ namespace
     AstNodeRef findCachedGenericEvalNode(Sema& sema, const Symbol& root, AstNodeRef sourceRef, std::span<const SemaClone::ParamBinding> bindings)
     {
         if (const auto* function = root.safeCast<SymbolFunction>())
-            return function->findGenericEvalNode(sema.ctx(), sourceRef, bindings);
-        return root.cast<SymbolStruct>().findGenericEvalNode(sourceRef, bindings);
+            return function->findGenericEvalNode(sema.ctx(), sema.ast(), sourceRef, bindings);
+        return root.cast<SymbolStruct>().findGenericEvalNode(sema.ast(), sourceRef, bindings);
     }
 
     void cacheGenericEvalNode(Sema& sema, const Symbol& root, AstNodeRef sourceRef, std::span<const SemaClone::ParamBinding> bindings, AstNodeRef evalRef)
     {
         if (const auto* function = root.safeCast<SymbolFunction>())
-            function->cacheGenericEvalNode(sema.ctx(), sourceRef, bindings, evalRef);
+            function->cacheGenericEvalNode(sema.ctx(), sema.ast(), sourceRef, bindings, evalRef);
         else
-            root.cast<SymbolStruct>().cacheGenericEvalNode(sourceRef, bindings, evalRef);
+            root.cast<SymbolStruct>().cacheGenericEvalNode(sema.ast(), sourceRef, bindings, evalRef);
     }
 
     std::recursive_mutex& genericEvalRunMutex()
@@ -1370,6 +1372,7 @@ namespace
             instance->setSpecOpKind(function->specOpKind());
             instance->setCallConvKind(function->callConvKind());
             instance->setDeclNodeRef(cloneRef);
+            instance->setDeclNodePayloadContext(&sema.currentNodePayloadContext());
             instance->setOwnerSymMap(function->ownerSymMap());
             instance->setGenericInstance(sema.ctx(), function);
             return instance;

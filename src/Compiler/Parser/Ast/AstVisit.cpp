@@ -55,12 +55,13 @@ AstVisitResult AstVisit::step(const TaskContext& ctx)
     Frame& frame = stack_.back();
 
 #if SWC_HAS_VISIT_DEBUG_INFO
-    dbgNode    = &ast_->node(frame.nodeRef);
-    dbgTokRef  = dbgNode->tokRef();
-    dbgTok     = dbgTokRef.isValid() ? &ast_->srcView().token(dbgTokRef) : nullptr;
-    dbgTokView = dbgTok ? dbgTok->string(ast_->srcView()) : "";
-    dbgSrcFile = ast_->srcView().file();
-    dbgLoc     = dbgTok ? dbgTok->codeRange(ctx, ast_->srcView()) : SourceCodeRange{};
+    dbgNode = &ast_->node(frame.nodeRef);
+    const SourceView& dbgView = dbgNode->srcView(ctx);
+    dbgTokRef                 = dbgNode->tokRef();
+    dbgTok                    = dbgTokRef.isValid() ? &dbgView.token(dbgTokRef) : nullptr;
+    dbgTokView                = dbgTok ? dbgTok->string(dbgView) : "";
+    dbgSrcFile                = dbgView.file();
+    dbgLoc                    = dbgTok ? dbgTok->codeRange(ctx, dbgView) : SourceCodeRange{};
 #endif
 
     switch (frame.stage)

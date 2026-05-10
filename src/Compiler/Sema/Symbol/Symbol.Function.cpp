@@ -315,9 +315,10 @@ namespace
 
     struct GenericEvalEntry
     {
+        const Ast*                         ownerAst   = nullptr;
         AstNodeRef                         sourceRef = AstNodeRef::invalid();
         std::vector<GenericEvalBindingKey> bindings;
-        AstNodeRef                         evalRef = AstNodeRef::invalid();
+        AstNodeRef                         evalRef   = AstNodeRef::invalid();
     };
 
     bool sameGenericEvalBindings(std::span<const GenericEvalBindingKey> lhs, std::span<const SemaClone::ParamBinding> rhs)
@@ -667,12 +668,14 @@ GenericInstanceStorage& SymbolFunction::genericInstanceStorage(const TaskContext
     return ensureGenericData(ctx).instances;
 }
 
-AstNodeRef SymbolFunction::findGenericEvalNode(const TaskContext& ctx, const AstNodeRef sourceRef, std::span<const SemaClone::ParamBinding> bindings) const
+AstNodeRef SymbolFunction::findGenericEvalNode(const TaskContext& ctx, const Ast& ownerAst, const AstNodeRef sourceRef, std::span<const SemaClone::ParamBinding> bindings) const
 {
     const auto&            data = ensureGenericData(ctx);
     const std::scoped_lock lock(data.evalCacheMutex);
     for (const auto& entry : data.evalCache)
     {
+        if (entry.ownerAst != &ownerAst)
+            continue;
         if (entry.sourceRef != sourceRef)
             continue;
         if (!sameGenericEvalBindings(entry.bindings, bindings))
@@ -684,7 +687,7 @@ AstNodeRef SymbolFunction::findGenericEvalNode(const TaskContext& ctx, const Ast
     return AstNodeRef::invalid();
 }
 
-void SymbolFunction::cacheGenericEvalNode(const TaskContext& ctx, const AstNodeRef sourceRef, std::span<const SemaClone::ParamBinding> bindings, const AstNodeRef evalRef) const
+void SymbolFunction::cacheGenericEvalNode(const TaskContext& ctx, const Ast& ownerAst, const AstNodeRef sourceRef, std::span<const SemaClone::ParamBinding> bindings, const AstNodeRef evalRef) const
 {
     if (sourceRef.isInvalid() || evalRef.isInvalid())
         return;
@@ -693,6 +696,8 @@ void SymbolFunction::cacheGenericEvalNode(const TaskContext& ctx, const AstNodeR
     const std::scoped_lock lock(data.evalCacheMutex);
     for (auto& entry : data.evalCache)
     {
+        if (entry.ownerAst != &ownerAst)
+            continue;
         if (entry.sourceRef != sourceRef)
             continue;
         if (!sameGenericEvalBindings(entry.bindings, bindings))
@@ -703,6 +708,7 @@ void SymbolFunction::cacheGenericEvalNode(const TaskContext& ctx, const AstNodeR
     }
 
     auto& newEntry     = data.evalCache.emplace_back();
+    newEntry.ownerAst  = &ownerAst;
     newEntry.sourceRef = sourceRef;
     newEntry.evalRef   = evalRef;
     copyGenericEvalBindings(newEntry.bindings, bindings);

@@ -159,8 +159,9 @@ namespace
     std::unique_ptr<Sema> makeLazyGenericBodySema(Sema& sema, SymbolFunction& calledFn, AstNodeRef declRef)
     {
         const SourceView&     srcView = sema.compiler().srcView(calledFn.srcViewRef());
+        NodePayload*          payloadContext = sema.owningNodePayloadContext(calledFn.srcViewRef());
         std::unique_ptr<Sema> child;
-        if (sema.ast().srcView().fileRef() == srcView.ownerFileRef())
+        if (!payloadContext || sema.usesOwningNodePayloadContext(calledFn.srcViewRef()))
         {
             child = std::make_unique<Sema>(sema.ctx(), sema, declRef);
         }
@@ -170,7 +171,7 @@ namespace
             if (declRef.isInvalid() && calledFn.decl())
                 declRef = calledFn.decl()->nodeRef(sourceFile.ast());
             SWC_ASSERT(declRef.isValid());
-            child = std::make_unique<Sema>(sema.ctx(), sema, sourceFile.nodePayloadContext(), declRef);
+            child = std::make_unique<Sema>(sema.ctx(), sema, *payloadContext, declRef);
         }
 
         SemaGeneric::prepareGenericInstantiationContext(*child, calledFn.ownerSymMap(), calledFn.declImplContext(), calledFn.declInterfaceContext(), calledFn.attributes());
@@ -354,6 +355,7 @@ Result AstFunctionDecl::semaPreDecl(Sema& sema) const
 
     sym.setExtraFlags(flags());
     sym.setDeclNodeRef(sema.curNodeRef());
+    sym.setDeclNodePayloadContext(&sema.currentNodePayloadContext());
     sym.setSpecOpKind(SemaSpecOp::computeSymbolKind(sema, sym));
 
     if (sym.ownerSymMap() &&
@@ -429,6 +431,7 @@ Result AstFunctionExpr::semaPreNode(Sema& sema) const
 
         sym->setExtraFlags(flags());
         sym->setDeclNodeRef(sema.curNodeRef());
+        sym->setDeclNodePayloadContext(&sema.currentNodePayloadContext());
         sym->setSpecOpKind(SemaSpecOp::computeSymbolKind(sema, *sym));
         sym->setDeclared(ctx);
         sema.setSymbol(sema.curNodeRef(), sym);
@@ -457,6 +460,7 @@ Result AstClosureExpr::semaPreNode(Sema& sema) const
 
         sym->setExtraFlags(flags());
         sym->setDeclNodeRef(sema.curNodeRef());
+        sym->setDeclNodePayloadContext(&sema.currentNodePayloadContext());
         sym->setSpecOpKind(SemaSpecOp::computeSymbolKind(sema, *sym));
         sym->setDeclared(ctx);
         sema.setSymbol(sema.curNodeRef(), sym);

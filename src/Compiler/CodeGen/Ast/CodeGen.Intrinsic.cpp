@@ -704,7 +704,10 @@ namespace
 
             if (symbol->isStruct())
             {
-                const auto&   symStruct     = symbol->cast<SymbolStruct>();
+                const auto& symStruct = symbol->cast<SymbolStruct>();
+                if (!symStruct.isTyped() || !symStruct.isSemaCompleted())
+                    continue;
+
                 const TypeRef objectTypeRef = symStruct.typeRef();
                 if (objectTypeRef.isValid())
                 {

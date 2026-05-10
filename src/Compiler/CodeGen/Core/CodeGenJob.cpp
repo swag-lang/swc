@@ -40,11 +40,18 @@ CodeGenJob::CodeGenJob(const TaskContext& ctx, Sema& sema, SymbolFunction& symbo
     symbolFunc_(&symbolFunc),
     root_(root)
 {
-    // Resolve the NodePayload now (cheap pointer lookup), defer Sema/CodeGen creation to exec().
-    const SourceView& symbolSrcView = sema.compiler().srcView(symbolFunc.srcViewRef());
-    const FileRef     symbolFileRef = symbolSrcView.ownerFileRef();
-    if (symbolFileRef.isValid())
-        nodePayloadCtx_ = &sema.compiler().file(symbolFileRef).nodePayloadContext();
+    // Codegen must use the exact NodePayload/Ast that owns the function declaration.
+    // Generic clones keep the original source location, so resolving the payload only
+    // from srcView can bind codegen to a different AST with unrelated substitute refs.
+    nodePayloadCtx_ = const_cast<NodePayload*>(symbolFunc.declNodePayloadContext());
+
+    if (!nodePayloadCtx_)
+    {
+        const SourceView& symbolSrcView = sema.compiler().srcView(symbolFunc.srcViewRef());
+        const FileRef     symbolFileRef = symbolSrcView.ownerFileRef();
+        if (symbolFileRef.isValid())
+            nodePayloadCtx_ = &sema.compiler().file(symbolFileRef).nodePayloadContext();
+    }
 
     if (!nodePayloadCtx_)
     {

@@ -238,6 +238,22 @@ const SourceView& Sema::srcView(SourceViewRef srcViewRef) const
     return compiler().srcView(srcViewRef);
 }
 
+NodePayload* Sema::owningNodePayloadContext(SourceViewRef srcViewRef) const
+{
+    const SourceView& srcView = compiler().srcView(srcViewRef);
+    const FileRef     fileRef = srcView.ownerFileRef();
+    if (!fileRef.isValid())
+        return nullptr;
+
+    return &compiler().file(fileRef).nodePayloadContext();
+}
+
+bool Sema::usesOwningNodePayloadContext(SourceViewRef srcViewRef) const
+{
+    const NodePayload* payloadContext = owningNodePayloadContext(srcViewRef);
+    return payloadContext != nullptr && payloadContext == nodePayloadContext_;
+}
+
 Ast& Sema::ast()
 {
     return nodePayloadContext_->ast();

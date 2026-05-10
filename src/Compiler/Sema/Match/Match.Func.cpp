@@ -42,7 +42,8 @@ namespace
     Sema* tryCreateSemaForFunctionDecl(Sema& sema, const SymbolFunction& fn, std::unique_ptr<Sema>& ownedSema)
     {
         const SourceView& srcView = sema.compiler().srcView(fn.srcViewRef());
-        if (sema.ast().srcView().fileRef() == srcView.ownerFileRef())
+        NodePayload*      payloadContext = sema.owningNodePayloadContext(fn.srcViewRef());
+        if (!payloadContext || sema.usesOwningNodePayloadContext(fn.srcViewRef()))
             return nullptr;
 
         SourceFile& sourceFile = sema.compiler().file(srcView.ownerFileRef());
@@ -51,7 +52,7 @@ namespace
             declRef = fn.decl()->nodeRef(sourceFile.ast());
         SWC_ASSERT(declRef.isValid());
 
-        ownedSema = std::make_unique<Sema>(sema.ctx(), sema, sourceFile.nodePayloadContext(), declRef);
+        ownedSema = std::make_unique<Sema>(sema.ctx(), sema, *payloadContext, declRef);
         return ownedSema.get();
     }
 

@@ -14,6 +14,7 @@ class SymbolVariable;
 class SymbolStruct;
 class SymbolImpl;
 class SymbolInterface;
+class NodePayload;
 class JITPatchJob;
 class TaskContext;
 
@@ -96,7 +97,9 @@ public:
     MicroBuilder&           microInstrBuilder(TaskContext& ctx) noexcept;
     const MicroBuilder&     microInstrBuilder() const noexcept { return microInstrBuilder_; }
     AstNodeRef              declNodeRef() const noexcept { return declNodeRef_; }
+    const NodePayload*      declNodePayloadContext() const noexcept { return declNodePayloadCtx_; }
     void                    setDeclNodeRef(AstNodeRef nodeRef) noexcept { declNodeRef_ = nodeRef; }
+    void                    setDeclNodePayloadContext(const NodePayload* payloadContext) noexcept { declNodePayloadCtx_ = payloadContext; }
     uint32_t                debugStackFrameSize() const noexcept { return debugStackFrameSize_; }
     void                    setDebugStackFrameSize(uint32_t value) noexcept { debugStackFrameSize_ = value; }
     MicroReg                debugStackBaseReg() const noexcept { return debugStackBaseReg_; }
@@ -114,8 +117,8 @@ public:
     Result                  emit(TaskContext& ctx);
     Result                  ensureClosureAdapter(TaskContext& ctx, SymbolFunction*& outAdapter);
     GenericInstanceStorage& genericInstanceStorage(const TaskContext& ctx) const noexcept;
-    AstNodeRef              findGenericEvalNode(const TaskContext& ctx, AstNodeRef sourceRef, std::span<const SemaClone::ParamBinding> bindings) const;
-    void                    cacheGenericEvalNode(const TaskContext& ctx, AstNodeRef sourceRef, std::span<const SemaClone::ParamBinding> bindings, AstNodeRef evalRef) const;
+    AstNodeRef              findGenericEvalNode(const TaskContext& ctx, const Ast& ownerAst, AstNodeRef sourceRef, std::span<const SemaClone::ParamBinding> bindings) const;
+    void                    cacheGenericEvalNode(const TaskContext& ctx, const Ast& ownerAst, AstNodeRef sourceRef, std::span<const SemaClone::ParamBinding> bindings, AstNodeRef evalRef) const;
     static Result           jitBatch(TaskContext& ctx, std::span<SymbolFunction* const> functions);
     Result                  jit(TaskContext& ctx);
     const MachineCode&      loweredCode() const noexcept { return loweredMicroCode_; }
@@ -172,6 +175,7 @@ private:
     SpecOpKind                   specOpKind_          = SpecOpKind::None;
     CallConvKind                 callConvKind_        = CallConvKind::Host;
     AstNodeRef                   declNodeRef_         = AstNodeRef::invalid();
+    const NodePayload*           declNodePayloadCtx_  = nullptr;
     uint32_t                     interfaceMethodSlot_ = K_INVALID_INTERFACE_METHOD_SLOT;
     uint32_t                     debugStackFrameSize_ = 0;
     MicroReg                     debugStackBaseReg_   = MicroReg::invalid();

@@ -199,9 +199,10 @@ namespace
 
     struct GenericEvalEntry
     {
+        const Ast*                         ownerAst   = nullptr;
         AstNodeRef                         sourceRef = AstNodeRef::invalid();
         std::vector<GenericEvalBindingKey> bindings;
-        AstNodeRef                         evalRef = AstNodeRef::invalid();
+        AstNodeRef                         evalRef   = AstNodeRef::invalid();
     };
 
     bool sameGenericEvalBindings(std::span<const GenericEvalBindingKey> lhs, std::span<const SemaClone::ParamBinding> rhs)
@@ -450,12 +451,14 @@ Result SymbolStruct::canBeCompleted(Sema& sema) const
     return Result::Continue;
 }
 
-AstNodeRef SymbolStruct::findGenericEvalNode(const AstNodeRef sourceRef, std::span<const SemaClone::ParamBinding> bindings) const
+AstNodeRef SymbolStruct::findGenericEvalNode(const Ast& ownerAst, const AstNodeRef sourceRef, std::span<const SemaClone::ParamBinding> bindings) const
 {
     const auto&            data = ensureGenericData();
     const std::scoped_lock lock(data.evalCacheMutex);
     for (const auto& entry : data.evalCache)
     {
+        if (entry.ownerAst != &ownerAst)
+            continue;
         if (entry.sourceRef != sourceRef)
             continue;
         if (!sameGenericEvalBindings(entry.bindings, bindings))
@@ -467,7 +470,7 @@ AstNodeRef SymbolStruct::findGenericEvalNode(const AstNodeRef sourceRef, std::sp
     return AstNodeRef::invalid();
 }
 
-void SymbolStruct::cacheGenericEvalNode(const AstNodeRef sourceRef, std::span<const SemaClone::ParamBinding> bindings, const AstNodeRef evalRef) const
+void SymbolStruct::cacheGenericEvalNode(const Ast& ownerAst, const AstNodeRef sourceRef, std::span<const SemaClone::ParamBinding> bindings, const AstNodeRef evalRef) const
 {
     if (sourceRef.isInvalid() || evalRef.isInvalid())
         return;
@@ -476,6 +479,8 @@ void SymbolStruct::cacheGenericEvalNode(const AstNodeRef sourceRef, std::span<co
     const std::scoped_lock lock(data.evalCacheMutex);
     for (auto& entry : data.evalCache)
     {
+        if (entry.ownerAst != &ownerAst)
+            continue;
         if (entry.sourceRef != sourceRef)
             continue;
         if (!sameGenericEvalBindings(entry.bindings, bindings))
@@ -486,6 +491,7 @@ void SymbolStruct::cacheGenericEvalNode(const AstNodeRef sourceRef, std::span<co
     }
 
     auto& newEntry     = data.evalCache.emplace_back();
+    newEntry.ownerAst  = &ownerAst;
     newEntry.sourceRef = sourceRef;
     newEntry.evalRef   = evalRef;
     copyGenericEvalBindings(newEntry.bindings, bindings);

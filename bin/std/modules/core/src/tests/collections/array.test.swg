@@ -287,6 +287,22 @@ func assertIntArray(values: const &Array's32, expected: const [..] s32)->bool
 
 #test
 {
+    var values: Array's32
+    let seed: [4] s32 = [10, 20, 30, 40]
+    values.add(seed)
+
+    var reverseIndex = Swag.U64.Max
+    foreach #reverse value, index in values
+    {
+        if value == 30 do
+            reverseIndex = index
+    }
+
+    @assert(reverseIndex == 2)
+}
+
+#test
+{
     var values = Array'u8.createBuffer(6)
     @assert(values.count == 6)
     @assert(values.capacity >= 6)

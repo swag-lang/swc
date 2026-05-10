@@ -131,7 +131,12 @@ impl HashTable
         #scope(Up)
         for .capacity
         {
-            if .table[@index].hash < HashTable.HASH_FIRST do
+            #if back do
+                let tableIndex = .capacity - @index - 1
+            #else do
+                let tableIndex = @index
+
+            if .table[tableIndex].hash < HashTable.HASH_FIRST do
                 continue
 
             #scope(Down)
@@ -139,19 +144,19 @@ impl HashTable
             {
                 #if #up ptr
                 {
-                    let #alias0 = &#up me.table[@index].key
-                    let #alias1 = &#up me.table[@index].value
+                    let #alias0 = &#up me.table[#up tableIndex].key
+                    let #alias1 = &#up me.table[#up tableIndex].value
                 }
                 #else
                 {
                     #if Reflection.isStruct(#up K) do
-                        let #alias0 = cast(const &#up K) &#up me.table[@index].key
+                        let #alias0 = cast(const &#up K) &#up me.table[#up tableIndex].key
                     #else do
-                        let #alias0 = #up me.table[@index].key
+                        let #alias0 = #up me.table[#up tableIndex].key
                     #if Reflection.isStruct(#up V) do
-                        let #alias1 = cast(const &#up V) &#up me.table[@index].value
+                        let #alias1 = cast(const &#up V) &#up me.table[#up tableIndex].value
                     #else do
-                        let #alias1 = #up me.table[@index].value
+                        let #alias1 = #up me.table[#up tableIndex].value
                 }
 
                 #inject(#up stmt, break = break to Up, continue = break to Down)

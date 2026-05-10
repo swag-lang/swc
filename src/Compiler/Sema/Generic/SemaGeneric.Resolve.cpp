@@ -4,6 +4,7 @@
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
+#include "Compiler/Sema/Symbol/Symbol.Alias.h"
 #include "Compiler/Sema/Symbol/Symbol.Enum.h"
 #include "Compiler/Sema/Symbol/Symbol.Impl.h"
 #include "Compiler/Sema/Symbol/Symbol.Struct.h"
@@ -12,6 +13,78 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    SymbolStruct* resolveGenericRootStructAlias(Symbol* symbol)
+    {
+        Symbol* current = symbol;
+        while (current && current->isAlias())
+        {
+            auto& alias = current->cast<SymbolAlias>();
+            if (alias.isStrict())
+                return nullptr;
+
+            const auto* next = alias.aliasedSymbol();
+            if (!next || next == current)
+                return nullptr;
+
+            current = const_cast<Symbol*>(next);
+        }
+
+        if (!current || !current->isStruct())
+            return nullptr;
+
+        auto& st = current->cast<SymbolStruct>();
+        return st.isGenericRoot() && !st.isGenericInstance() ? &st : nullptr;
+    }
+
+    SymbolStruct* genericRootStructFromExplicitTypeArg(Sema& sema, AstNodeRef nodeRef, TypeRef typeRef)
+    {
+        const SemaNodeView view = sema.viewNodeTypeSymbol(nodeRef);
+        if (auto* genericRoot = resolveGenericRootStructAlias(view.sym()))
+            return genericRoot;
+
+        TypeRef representedTypeRef = TypeRef::invalid();
+        if (typeRef.isValid())
+        {
+            const TypeInfo& typeInfo = sema.typeMgr().get(typeRef);
+            if (typeInfo.isTypeValue())
+                representedTypeRef = typeInfo.payloadTypeRef();
+            else if (typeInfo.isStruct())
+                representedTypeRef = typeRef;
+        }
+
+        if (!representedTypeRef.isValid())
+            return nullptr;
+
+        Symbol* representedSym = sema.typeMgr().get(representedTypeRef).getSymbol();
+        return resolveGenericRootStructAlias(representedSym);
+    }
+
+    Result specializeExplicitGenericTypeArgFromContext(Sema& sema, AstNodeRef nodeRef, TypeRef& ioTypeRef)
+    {
+        auto* genericRoot = genericRootStructFromExplicitTypeArg(sema, nodeRef, ioTypeRef);
+        if (!genericRoot)
+            return Result::Continue;
+
+        SymbolStruct* instance = nullptr;
+        SWC_RESULT(SemaGeneric::instantiateStructFromContext(sema, *genericRoot, instance));
+        if (!instance)
+            return Result::Continue;
+
+        TypeRef specializedTypeRef = instance->typeRef();
+        if (specializedTypeRef.isInvalid() && instance->decl() && instance->decl()->is(AstNodeId::StructDecl))
+        {
+            const TypeInfo structType = TypeInfo::makeStruct(instance);
+            specializedTypeRef        = sema.typeMgr().addType(structType);
+        }
+
+        if (specializedTypeRef.isValid())
+        {
+            ioTypeRef = specializedTypeRef;
+            sema.setSymbol(nodeRef, instance);
+        }
+        return Result::Continue;
+    }
+
     const SymbolMap* namespacePathOwner(const SymbolMap* current)
     {
         const SymbolMap* next = current->ownerSymMap();
@@ -198,16 +271,31 @@ namespace SemaGeneric
     {
         outArg = {};
 
+        const SemaNodeView typedView = sema.viewNodeTypeConstantSymbol(nodeRef);
+        if (typedView.typeRef().isValid() && SemaHelpers::isTypeLikeTypeRef(sema.ctx(), typedView.typeRef()))
+        {
+            TypeRef representedTypeRef = SemaHelpers::resolveRepresentedTypeRef(sema, typedView);
+            SWC_RESULT(specializeExplicitGenericTypeArgFromContext(sema, nodeRef, representedTypeRef));
+            if (representedTypeRef.isValid())
+            {
+                outArg.typeRef = representedTypeRef;
+                outArg.present = true;
+                return Result::Continue;
+            }
+        }
+
         const SemaNodeView typeView = sema.viewNodeType(nodeRef);
         if (typeView.typeRef().isValid())
         {
-            const TypeInfo& typeInfo = sema.typeMgr().get(typeView.typeRef());
+            TypeRef         typeRef  = typeView.typeRef();
+            SWC_RESULT(specializeExplicitGenericTypeArgFromContext(sema, nodeRef, typeRef));
+            const TypeInfo& typeInfo = sema.typeMgr().get(typeRef);
             if (!sema.isValue(nodeRef) || typeInfo.isAggregate())
             {
                 // Explicit type arguments only need the resolved type. Avoid forcing symbol payload
                 // queries on complex type syntax such as quoted generic specializations or
                 // anonymous aggregate type expressions.
-                outArg.typeRef = typeView.typeRef();
+                outArg.typeRef = typeRef;
                 outArg.present = true;
                 return Result::Continue;
             }
@@ -221,6 +309,7 @@ namespace SemaGeneric
                 typeRef = view.sym()->typeRef();
             if (!typeRef.isValid())
                 return SemaError::raise(sema, DiagnosticId::sema_err_not_type, nodeRef);
+            SWC_RESULT(specializeExplicitGenericTypeArgFromContext(sema, nodeRef, typeRef));
 
             outArg.typeRef = typeRef;
             outArg.present = true;

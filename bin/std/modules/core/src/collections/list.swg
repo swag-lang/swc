@@ -20,6 +20,23 @@ struct(T) List
 
 impl List
 {
+    mtd opPostCopy()
+    {
+        if .head == null do
+            return
+
+        let oldHead = .head
+        .head, .tail = null
+        .count = 0
+
+        var n = oldHead
+        while n
+        {
+            discard .addBack(n.value)
+            n = n.next
+        }
+    }
+
     // Ensures all nodes are deallocated when the list goes out of scope.
     mtd opDrop()
     {
@@ -40,6 +57,7 @@ impl List
             var n = .tail
         #else do
             var n = .head
+        var ordinal: u64 = 0
         #scope(Up)
         while n
         {
@@ -53,7 +71,7 @@ impl List
                 #else do
                     let #alias0 = #up n.value
                 let #alias1 = #up n
-                let #alias2 = @index
+                let #alias2 = #up ordinal
 
                 #inject(#up stmt, break = break to Up, continue = break to Down)
             }
@@ -62,6 +80,7 @@ impl List
                 n = n.prev
             #else do
                 n = n.next
+            ordinal += 1
         }
     }
 

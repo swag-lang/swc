@@ -13,6 +13,28 @@ func assertStringSetHas(values: const &HashSet'String, expected: string)->bool
     return false
 }
 
+func assertReverseIntSetIteration(values: const &HashSet's32)->bool
+{
+    var forward: Array's32
+    foreach value in values do
+        forward.add(value)
+
+    var reverse: Array's32
+    foreach #reverse value in values do
+        reverse.add(value)
+
+    if forward.count != reverse.count do
+        return false
+
+    for i in forward.count
+    {
+        if forward[i] != reverse[reverse.count - i - 1] do
+            return false
+    }
+
+    return true
+}
+
 #test
 {
     var values: HashSet's32
@@ -31,6 +53,17 @@ func assertStringSetHas(values: const &HashSet'String, expected: string)->bool
     foreach value in values do
         sum += value
     @assert(sum == 4)
+}
+
+#test
+{
+    var values: HashSet's32
+    values.add(1)
+    values.add(2)
+    values.add(3)
+    values.add(4)
+
+    @assert(assertReverseIntSetIteration(values))
 }
 
 #test

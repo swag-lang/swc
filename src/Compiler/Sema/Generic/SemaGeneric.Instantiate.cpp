@@ -155,6 +155,16 @@ namespace
         return ownerRoot->tryGetGenericInstanceArgs(*ownerInstance, outArgs);
     }
 
+    void appendOwnerStructCloneBindings(Sema& sema, const SymbolFunction& function, SmallVector<SemaClone::ParamBinding>& outBindings)
+    {
+        SmallVector<SemaGeneric::GenericParamDesc> ownerParams;
+        SmallVector<GenericInstanceKey>            ownerArgs;
+        if (!loadOwnerStructGenericArgs(sema, function, ownerParams, ownerArgs))
+            return;
+
+        appendGenericInstanceCloneBindings(sema, ownerParams.span(), ownerArgs.span(), outBindings);
+    }
+
     const SymbolFunction* matchingGenericFunctionInstance(const SymbolFunction* function)
     {
         if (!function || !function->isGenericInstance())
@@ -497,7 +507,9 @@ namespace
 
     void appendEnclosingGenericCloneBindings(Sema& sema, const Symbol& root, SmallVector<SemaClone::ParamBinding>& outBindings)
     {
-        SWC_UNUSED(root);
+        if (const auto* function = root.safeCast<SymbolFunction>())
+            appendOwnerStructCloneBindings(sema, *function, outBindings);
+
         appendAmbientGenericCloneBindings(sema, outBindings);
     }
 

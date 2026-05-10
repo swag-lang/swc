@@ -2,6 +2,39 @@
 #global fileprivate
 using Swag
 
+func assertReverseIntTableIteration(table: const &HashTable'(s32, s32))->bool
+{
+    var forwardKeys: Array's32
+    var forwardValues: Array's32
+    foreach key, value in table
+    {
+        forwardKeys.add(key)
+        forwardValues.add(value)
+    }
+
+    var reverseKeys: Array's32
+    var reverseValues: Array's32
+    foreach #reverse key, value in table
+    {
+        reverseKeys.add(key)
+        reverseValues.add(value)
+    }
+
+    if forwardKeys.count != reverseKeys.count do
+        return false
+
+    for i in forwardKeys.count
+    {
+        let reverseIndex = reverseKeys.count - i - 1
+        if forwardKeys[i] != reverseKeys[reverseIndex] do
+            return false
+        if forwardValues[i] != reverseValues[reverseIndex] do
+            return false
+    }
+
+    return true
+}
+
 #test
 {
     var table: HashTable'(s32, s32)
@@ -59,6 +92,17 @@ using Swag
 
     @assert(sumKeys == 10)
     @assert(sumValues == 103)
+}
+
+#test
+{
+    var table: HashTable'(s32, s32)
+    table.add(1, 11)
+    table.add(2, 22)
+    table.add(3, 30)
+    table.add(4, 40)
+
+    @assert(assertReverseIntTableIteration(table))
 }
 
 #test

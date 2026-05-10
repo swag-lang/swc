@@ -56,6 +56,28 @@ impl ConcatBuffer
     {
         if !.firstBucket do
             return
+
+        #if back
+        {
+            var tail = .lastBucket.next
+            while tail != .firstBucket
+            {
+                var reverseBucket = .firstBucket
+                while reverseBucket.next != tail do
+                    reverseBucket = reverseBucket.next
+
+                #macro
+                {
+                    let #alias0 = #up reverseBucket
+                    #inject(#up stmt)
+                }
+
+                tail = reverseBucket
+            }
+
+            return
+        }
+
         var b = .firstBucket
         while b != .lastBucket.next
         {

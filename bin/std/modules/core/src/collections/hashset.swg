@@ -92,7 +92,12 @@ impl HashSet
         #scope(Up)
         for .capacity
         {
-            if .table[@index].hash < HashSet.HASH_FIRST do
+            #if back do
+                let tableIndex = .capacity - @index - 1
+            #else do
+                let tableIndex = @index
+
+            if .table[tableIndex].hash < HashSet.HASH_FIRST do
                 continue
 
             #scope(Down)
@@ -100,15 +105,15 @@ impl HashSet
             {
                 #if #up ptr
                 {
-                    let #alias0 = &#up me.table[@index].key
+                    let #alias0 = &#up me.table[#up tableIndex].key
                 }
                 #elif Reflection.isStruct(#up K)
                 {
-                    let #alias0 = cast(const &#up K) &#up me.table[@index].key
+                    let #alias0 = cast(const &#up K) &#up me.table[#up tableIndex].key
                 }
                 #else
                 {
-                    let #alias0 = #up me.table[@index].key
+                    let #alias0 = #up me.table[#up tableIndex].key
                 }
 
                 #inject(#up stmt, break = break to Up, continue = break to Down)

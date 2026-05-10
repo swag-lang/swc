@@ -25,6 +25,19 @@ func makePatternString(count: u64)->String
     return result
 }
 
+func reverseIndexOfByteAtLeast(value: const &String, minByte: u8)->u64
+{
+    foreach #reverse byte, index in value
+    {
+        if byte < minByte do
+            continue
+
+        return index
+    }
+
+    return Swag.U64.Max
+}
+
 #test
 {
     var value: String
@@ -104,6 +117,8 @@ func makePatternString(count: u64)->String
         dref byte += 1'u8
 
     @assert(assertString(value, "b[defg"))
+
+    @assert(reverseIndexOfByteAtLeast(value, 'd''u8) == 5)
 }
 
 #test

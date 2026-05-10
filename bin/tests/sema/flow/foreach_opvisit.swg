@@ -115,6 +115,11 @@ struct SemaReverseVisits
     values: [3] s32 = [1, 2, 3]
 }
 
+struct(T) SemaGenericReverseVisits
+{
+    values: [3] T
+}
+
 struct SemaPairVisits
 {
     values: [4] s32 = [2, 4, 6, 8]
@@ -242,6 +247,41 @@ impl SemaReverseVisits
     }
 }
 
+impl SemaGenericReverseVisits
+{
+    #[Swag.Macro]
+    mtd(ptr: bool, back: bool) const opVisit(stmt: #code void)
+    {
+        #if ptr do
+            #error("SemaGenericReverseVisits does not expose pointer iteration.")
+
+        #if back
+        {
+            for idx in 3
+            {
+                #macro
+                {
+                    let #alias0 = #up me.values[2 - #up idx]
+                    let #alias1 = @index
+                    #inject(#up stmt)
+                }
+            }
+
+            return
+        }
+
+        for idx in 3
+        {
+            #macro
+            {
+                let #alias0 = #up me.values[#up idx]
+                let #alias1 = @index
+                #inject(#up stmt)
+            }
+        }
+    }
+}
+
 impl SemaPairVisits
 {
     #[Swag.Macro]
@@ -362,6 +402,20 @@ func semaTest002()
     var values = SemaReverseVisits{}
 
     foreach #Reverse value, ordinal in values
+    {
+        #assert(#typeof(value) == s32)
+        #assert(#typeof(ordinal) == #typeof(@index))
+        var x = value
+        var y = ordinal
+    }
+}
+
+func semaTest002b()
+{
+    var values: SemaGenericReverseVisits's32
+    values.values = [1, 2, 3]
+
+    foreach #reverse value, ordinal in values
     {
         #assert(#typeof(value) == s32)
         #assert(#typeof(ordinal) == #typeof(@index))

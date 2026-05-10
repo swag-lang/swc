@@ -142,7 +142,10 @@ impl StaticArray
                     let #alias0 = cast(&#up T) #up scan
                 #else do
                     let #alias0 = #up scan[0]
-                let #alias1 = @index
+                #if #up back do
+                    let #alias1 = #up me.count - @index - 1
+                #else do
+                    let #alias1 = @index
                 #inject(#up stmt)
             }
         }

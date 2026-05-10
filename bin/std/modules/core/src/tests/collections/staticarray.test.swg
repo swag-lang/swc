@@ -51,3 +51,20 @@ func assertStaticIntArray(values: const &StaticArray'(s32, 4'u64), expected: con
     let expected: [3] s32 = [1, 2, 3]
     @assert(assertStaticIntArray(values, expected))
 }
+
+#test
+{
+    let seed: [4] s32 = [10, 20, 30, 40]
+
+    var values: StaticArray'(s32, 4'u64)
+    values = seed
+
+    var reverseIndex = Swag.U64.Max
+    foreach #reverse value, index in values
+    {
+        if value == 30 do
+            reverseIndex = index
+    }
+
+    @assert(reverseIndex == 2)
+}

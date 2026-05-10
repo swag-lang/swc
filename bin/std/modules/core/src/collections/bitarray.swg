@@ -14,6 +14,17 @@ public struct BitArray
 
 impl BitArray
 {
+    mtd const wordCount()->u64
+    {
+        if !.count do
+            return 0
+
+        var result = .count >> 5
+        if result << 5 < .count do
+            result += 1
+        return result
+    }
+
     // Frees the memory allocated by the bit array.
     // Does nothing if the buffer is not allocated.
     mtd free()
@@ -30,6 +41,17 @@ impl BitArray
         if .allocator == null do
             .allocator = @getcontext().allocator
         .buffer = cast() Memory.realloc(.buffer, newCapacity, .capacity, .allocator)
+    }
+
+    mtd clearUnusedBits()
+    {
+        let usedBits = .count & 31
+        if !usedBits do
+            return
+
+        let lastWord = .wordCount() - 1
+        let mask     = (1'u32 << cast(u32) usedBits) - 1
+        .buffer[lastWord] &= mask
     }
 }
 
@@ -77,7 +99,10 @@ public impl BitArray
     {
         let len = @countof(what)
         .reserve(len)
-        .buffer[len >> 5] = 0
+        if !len do
+            return
+
+        Memory.set(.buffer, 0, .capacity)
         foreach value, index in what do
             .set(index, value)
     }
@@ -89,7 +114,7 @@ public impl BitArray
         if .count != other.count do
             return false
 
-        for Math.max(.count >> 5, 1)
+        for .wordCount()
         {
             if .buffer[@index] != other.buffer[@index] do
                 return false
@@ -111,25 +136,24 @@ public impl BitArray
 
         if !.count do
             return
-        let remainingBits = .count
-        var countBits     = 0'u64
+        let totalWords = .wordCount()
+        var countBits  = 0'u64
 
         #scope(Up)
-        for idx in Math.max(.count >> 5, 1)
+        for idx in totalWords
         {
-            var shift: u32 = 1
-            for Math.min(remainingBits, 32)
+            let bitsInWord = Math.min(.count - countBits, 32'u64)
+            for bitIndex in bitsInWord
             {
                 #scope(Down)
                 #macro
                 {
-                    let #alias0 = cast(bool) (#up me.buffer[#up idx] & #up shift)
+                    let #alias0 = cast(bool) (#up me.buffer[#up idx] & (1'u32 << cast(u32) #up bitIndex))
                     let #alias1 = #up countBits
                     #inject(#up stmt, break = break to Up, continue = break to Down)
                 }
 
                 countBits += 1
-                shift <<= 1
             }
         }
     }
@@ -147,11 +171,7 @@ public impl BitArray
         }
 
         .count    = maxBits
-        .capacity = maxBits >> 5
-        if .capacity << 5 < maxBits do
-            .capacity += 1
-
-        .capacity *= 4
+        .capacity = .wordCount() * 4
         .realloc(.capacity)
     }
 
@@ -160,12 +180,14 @@ public impl BitArray
     {
         .reserve(maxBits)
         Memory.set(.buffer, initialValue ? 0xFF : 0x00, .capacity)
+        .clearUnusedBits()
     }
 
     // Sets all bits in the array to the specified boolean value.
     mtd setAll(value: bool)
     {
         Memory.set(.buffer, value ? 0xFF : 0x00, .capacity)
+        .clearUnusedBits()
     }
 
     // Sets the bit at a specific position to the specified value.
@@ -211,8 +233,9 @@ public impl BitArray
     {
         if !.count do
             return
-        for Math.max(.count >> 5, 1) do
+        for .wordCount() do
             .buffer[@index] = ~.buffer[@index]
+        .clearUnusedBits()
     }
 
     // Performs a bitwise AND operation between this array and another.
@@ -222,8 +245,9 @@ public impl BitArray
         Debug.assert(.count == other.count)
         if !.count do
             return
-        for Math.max(.count >> 5, 1) do
+        for .wordCount() do
             .buffer[@index] &= other.buffer[@index]
+        .clearUnusedBits()
     }
 
     // Performs a bitwise OR operation between this array and another.
@@ -233,8 +257,9 @@ public impl BitArray
         Debug.assert(.count == other.count)
         if !.count do
             return
-        for Math.max(.count >> 5, 1) do
+        for .wordCount() do
             .buffer[@index] |= other.buffer[@index]
+        .clearUnusedBits()
     }
 
     // Performs a bitwise XOR operation between this array and another.
@@ -244,7 +269,8 @@ public impl BitArray
         Debug.assert(.count == other.count)
         if !.count do
             return
-        for Math.max(.count >> 5, 1) do
+        for .wordCount() do
             .buffer[@index] ^= other.buffer[@index]
+        .clearUnusedBits()
     }
 }

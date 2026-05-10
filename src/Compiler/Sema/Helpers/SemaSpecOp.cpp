@@ -442,26 +442,50 @@ namespace
         return sema.idMgr().addIdentifierOwned(opVisitName);
     }
 
-    AstNodeRef unwrapVisitFunctionDeclRef(Sema& sema, AstNodeRef childRef)
+    AstNodeRef unwrapVisitFunctionDeclRef(const Ast& ast, AstNodeRef childRef)
     {
-        const AstNode& childNode = sema.node(childRef);
+        const AstNode& childNode = ast.node(childRef);
         if (const auto* accessNode = childNode.safeCast<AstAccessModifier>())
             return accessNode->nodeWhatRef;
         return childRef;
     }
 
-    bool implDeclContainsFunctionId(Sema& sema, const SymbolImpl& symImpl, IdentifierRef idRef)
+    bool collectImplPendingChildren(Sema& sema, const SymbolImpl& symImpl, SmallVector<AstNodeRef>& outChildren, const Ast*& outAst)
     {
+        outChildren.clear();
+        outAst = nullptr;
+
+        const AstNodeRef genericBlockRef = symImpl.genericBlockRef();
+        if (genericBlockRef.isValid() && sema.ast().hasNode(genericBlockRef))
+        {
+            outAst = &sema.ast();
+            sema.node(genericBlockRef).collectChildrenFromAst(outChildren, sema.ast());
+            return true;
+        }
+
         const auto* implDecl = symImpl.decl() ? symImpl.decl()->safeCast<AstImpl>() : nullptr;
         if (!implDecl)
             return false;
 
+        const SourceFile* sourceFile = sema.srcView(implDecl->srcViewRef()).file();
+        if (!sourceFile)
+            return false;
+
+        outAst = &sourceFile->ast();
+        outAst->appendNodes(outChildren, implDecl->spanChildrenRef);
+        return true;
+    }
+
+    bool implDeclContainsFunctionId(Sema& sema, const SymbolImpl& symImpl, IdentifierRef idRef)
+    {
+        const Ast* implAst = nullptr;
         SmallVector<AstNodeRef> children;
-        sema.ast().appendNodes(children, implDecl->spanChildrenRef);
+        if (!collectImplPendingChildren(sema, symImpl, children, implAst))
+            return false;
         for (const AstNodeRef childRef : children)
         {
-            const AstNodeRef declRef  = unwrapVisitFunctionDeclRef(sema, childRef);
-            const auto*      funcDecl = sema.node(declRef).safeCast<AstFunctionDecl>();
+            const AstNodeRef declRef  = unwrapVisitFunctionDeclRef(*implAst, childRef);
+            const auto*      funcDecl = implAst->node(declRef).safeCast<AstFunctionDecl>();
             if (!funcDecl || funcDecl->tokNameRef.isInvalid())
                 continue;
 

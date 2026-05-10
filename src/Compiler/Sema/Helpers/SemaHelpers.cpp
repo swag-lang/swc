@@ -2659,14 +2659,22 @@ namespace
         const SemaNodeView       nodeRightView = sema.viewSymbolList(node.nodeRightRef);
         const std::span<Symbol*> symbols       = nodeRightView.symList();
         const size_t             finalSymCount = symbols.size();
-        if (nodeLeftView.cst() && finalSymCount == 1 && symbols[0]->isVariable())
+        const bool               throughPointerOrRef = isPointerOrReferenceAliasAware(sema, nodeLeftView);
+        bool                     canExtractConstantMember = !throughPointerOrRef;
+        if (throughPointerOrRef && nodeLeftView.cst())
+        {
+            const ConstantValue& cst = *nodeLeftView.cst();
+            canExtractConstantMember = (cst.isValuePointer() && cst.getValuePointer() != 0) || (cst.isBlockPointer() && cst.getBlockPointer() != 0);
+        }
+
+        if (nodeLeftView.cst() && canExtractConstantMember && finalSymCount == 1 && symbols[0]->isVariable())
         {
             const SymbolVariable& symVar = symbols[0]->cast<SymbolVariable>();
             SWC_RESULT(ConstantExtract::structMember(sema, *nodeLeftView.cst(), symVar, targetNodeRef, node.nodeRightRef));
             return Result::SkipChildren;
         }
 
-        if (isPointerOrReferenceAliasAware(sema, nodeLeftView) || sema.isLValue(node.nodeLeftRef))
+        if (throughPointerOrRef || sema.isLValue(node.nodeLeftRef))
             sema.setIsLValue(node);
 
         if (finalSymCount == 1 && symbols[0]->isVariable() && needsStructMemberRuntimeStorage(sema, node, nodeLeftView))

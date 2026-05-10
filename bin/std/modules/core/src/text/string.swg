@@ -194,7 +194,7 @@ impl String
 
     // Visit the String runes
     // See [[Utf8.visitRunes]] for aliases
-    #[Macro]
+    #[Macro, Swag.CalleeReturn]
     mtd(ptr: bool, back: bool) const opVisitRunes(stmt: #code void)
     {
         #if ptr do
@@ -232,14 +232,17 @@ impl String
                     var #alias0 = #up scan
                 #else do
                     var #alias0 = dref #up scan
-                var #alias1 = @index
+                #if #up back do
+                    var #alias1 = #up me.length - @index - 1
+                #else do
+                    var #alias1 = @index
                 #inject(#up stmt)
             }
         }
     }
 
     // Default foreach, by bytes.
-    #[Macro]
+    #[Macro, Swag.CalleeReturn]
     mtd(ptr: bool, back: bool) const opVisit(stmt: #code void)
     {
         .opVisitBytes'(ptr, back)(|#alias0, #alias1| stmt)

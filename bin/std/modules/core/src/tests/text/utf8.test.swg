@@ -11,6 +11,20 @@ func assertUtf8String(value: const &String, expected: string)->bool
         Memory.compare(@dataof(text), @dataof(expected), @countof(expected)) == 0
 }
 
+func firstNonAsciiRune(text: string)->rune
+{
+    Utf8.visitRunes(|c, charIndex, byteIndex| text)
+    {
+        discard charIndex
+        discard byteIndex
+        if c < 0x80 do
+            continue
+        return c
+    }
+
+    return 0
+}
+
 #test
 {
     var bytes: [4] u8
@@ -250,4 +264,10 @@ func assertUtf8String(value: const &String, expected: string)->bool
     @assert(runeSum == cast(u32) 'A''rune + cast(u32) '\u00E9''rune + cast(u32) '\U0001F642''rune)
     @assert(charIndexSum == 3)
     @assert(byteIndexSum == 4)
+}
+
+#test
+{
+    @assert(firstNonAsciiRune("ASCII") == 0)
+    @assert(firstNonAsciiRune("AB\u00E9\U0001F642") == '\u00E9''rune)
 }

@@ -29,6 +29,23 @@ namespace
         rt.flags = enumOr(rt.flags, f);
     }
 
+    bool isGenericRuntimeType(const TypeInfo& type)
+    {
+        if (type.isStruct())
+        {
+            const auto& symStruct = type.payloadSymStruct();
+            return symStruct.isGenericRoot() || symStruct.isGenericInstance();
+        }
+
+        if (type.isFunction())
+        {
+            const auto& symFunc = type.payloadSymFunction();
+            return symFunc.isGenericRoot() || symFunc.isGenericInstance();
+        }
+
+        return false;
+    }
+
     void addTypeRelocation(DataSegment& storage, uint32_t baseOffset, uint32_t fieldOffset, uint32_t targetOffset)
     {
         storage.addRelocation(baseOffset + fieldOffset, targetOffset);
@@ -141,6 +158,8 @@ namespace
             addFlag(rtType, Runtime::TypeInfoFlags::Nullable);
         if (type.isTypeInfo())
             addFlag(rtType, Runtime::TypeInfoFlags::PointerTypeInfo);
+        if (isGenericRuntimeType(type))
+            addFlag(rtType, Runtime::TypeInfoFlags::Generic);
 
         const LifecycleFlags lifecycle = lifecycleFlagsOfType(ctx, type);
         if (lifecycle.hasPostCopy)

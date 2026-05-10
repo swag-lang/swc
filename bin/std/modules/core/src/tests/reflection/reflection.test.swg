@@ -145,6 +145,7 @@ impl LifecycleProbe
     let arrayType = #typeof(Array's32)
     let arrayInfo = cast(const *Swag.TypeInfoStruct) arrayType
     @assert(Reflection.isStructArray(arrayType))
+    @assert(Reflection.isGeneric(arrayType))
     @assert(@countof(arrayInfo.generics) == 1)
     @assert(arrayInfo.generics[0].pointedType == s32)
     @assert(Reflection.getStructArrayType(arrayType) == s32)
@@ -157,6 +158,7 @@ impl LifecycleProbe
 {
     let funcType = #typeof(makeRepeated'(u16, 3))
     let funcInfo = cast(const *Swag.TypeInfoFunc) funcType
+    @assert(Reflection.isGeneric(funcType))
     @assert(@countof(funcInfo.generics) == 2)
     @assert(funcInfo.generics[0].pointedType == u16)
     @assert(funcInfo.generics[1].pointedType == s32)

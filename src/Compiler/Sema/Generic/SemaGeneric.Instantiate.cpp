@@ -1211,7 +1211,23 @@ namespace
         if (clonedTypeRef.isInvalid())
             return Result::Error;
 
-        outTypeRef = sema.viewType(clonedTypeRef).typeRef();
+        const SemaNodeView storedTypeView = sema.viewStored(clonedTypeRef, SemaNodeViewPartE::Type | SemaNodeViewPartE::Symbol);
+        outTypeRef                        = storedTypeView.typeRef();
+        if (!outTypeRef.isValid() && storedTypeView.hasSymbol() && storedTypeView.sym() && storedTypeView.sym()->isType())
+            outTypeRef = storedTypeView.sym()->typeRef();
+
+        if (!outTypeRef.isValid())
+        {
+            const AstNode& typeNode = sema.node(clonedTypeRef);
+            if (const auto* namedType = typeNode.safeCast<AstNamedType>())
+            {
+                const SemaNodeView identView = sema.viewStored(namedType->nodeIdentRef, SemaNodeViewPartE::Type | SemaNodeViewPartE::Symbol);
+                outTypeRef                   = identView.typeRef();
+                if (!outTypeRef.isValid() && identView.hasSymbol() && identView.sym() && identView.sym()->isType())
+                    outTypeRef = identView.sym()->typeRef();
+            }
+        }
+
         return Result::Continue;
     }
 

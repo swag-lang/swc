@@ -238,7 +238,8 @@ func toInterp(buf: *ConcatBuffer, exp: string)
             sb.appendFormat("StrConv.convert(buf, #up %, convFmt, \"%\")\n", value, format)
         }
 
-        return sb.moveToString()
+        let generated = sb.moveToString()
+        return generated.toString()
     }
 }
 

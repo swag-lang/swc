@@ -24,8 +24,15 @@ impl ArrayPtr
     {
         for i in .count
         {
+            let oldPtr = .buffer[i]
+            if oldPtr == null
+            {
+                .buffer[i] = null
+                continue
+            }
+
             let newPtr = Memory.new'T(.allocator)
-            dref newPtr = dref .buffer[i]
+            dref newPtr = dref oldPtr
             .buffer[i]  = newPtr
         }
     }

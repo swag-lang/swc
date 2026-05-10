@@ -20,14 +20,15 @@ struct(T) IsSet
         let typeof = #typeof(T)
         foreach f in typeof.fields do
             str.appendFormat("%: bool\n", f.name)
-        return str.toString()
+        let generated = str.moveToString()
+        return generated.toString()
     }
 }
 
 // Result of the [parse] function
 struct(T) Result
 {
-    isSet: IsSet
+    isSet: IsSet'T
 }
 
 // Returns true if 'oneArg' is a valid option (starting with a delimiter)
@@ -36,6 +37,29 @@ func isOption(oneArg: string, _options: ParseOptions)->bool
     if @countof(oneArg) == 0 do
         return false
     return oneArg[0] == '-'
+}
+
+func isValue(oneArg: string, typeField: typeinfo, options: ParseOptions)->bool
+{
+    if !isOption(oneArg, options) do
+        return true
+
+    let concreteType = Reflection.makeConcreteAlias(typeField)
+
+    if !Reflection.isInteger(concreteType) and !Reflection.isFloat(concreteType) do
+        return false
+
+    if @countof(oneArg) < 2 do
+        return false
+    if !Latin1.isDigit(oneArg[1])
+    {
+        if !Reflection.isFloat(concreteType) do
+            return false
+        if oneArg[1] != '.''u8 or @countof(oneArg) < 3 or !Latin1.isDigit(oneArg[2]) do
+            return false
+    }
+
+    return true
 }
 
 // Clean and split a list of arguments
@@ -48,7 +72,7 @@ func splitArguments(args: const [..] string, options: ParseOptions)->Array'strin
     foreach it in args
     {
         var oneArg = it
-        oneArg = Tokenize.eatSpaces(oneArg)
+        oneArg = Latin1.trim(oneArg)
         if !@countof(oneArg) do
             continue
 
@@ -61,8 +85,9 @@ func splitArguments(args: const [..] string, options: ParseOptions)->Array'strin
         let split = Tokenize.splitAny(oneArg, [':''rune, '=''rune], 1)
         if split.count == 2
         {
-            allArgs.add(split[0])
-            let other = Tokenize.eatSpaces(split[1])
+            let name = Latin1.trim(split[0])
+            allArgs.add(name)
+            let other = Latin1.trim(split[1])
             if @countof(other) do
                 allArgs.add(other)
         }
@@ -75,30 +100,46 @@ func splitArguments(args: const [..] string, options: ParseOptions)->Array'strin
     return allArgs
 }
 
-func getField(typeStruct: const *Swag.TypeInfoStruct, name: string)->#null const *Swag.TypeValue
+struct FieldResult
 {
+    field: #null const *Swag.TypeValue
+    index: u64 = Swag.U64.Max
+}
+
+func getField(typeStruct: const *Swag.TypeInfoStruct, name: string)->FieldResult
+{
+    var result: retval
+
     foreach it in typeStruct.fields
     {
         // Test normal name (field)
-        if it.name == name do
-            return it
+        if it.name == name
+        {
+            result.field = it
+            result.index = @index
+            return result
+        }
 
         // Test name alias
         let value = Reflection.getAttributeValue(it, ArgParams, "nameAlias")
-        if @dataof(value) and Reflection.isString(@kindof(value)) and cast(string) value == name do
-            return it
+        if @dataof(value) and Reflection.isString(@kindof(value)) and cast(string) value == name
+        {
+            result.field = it
+            result.index = @index
+            return result
+        }
     }
 
-    return null
+    return result
 }
 
 // Parse all the arguments and fill the result
 func(T) parse(st: *T, args: const [..] string, options = CommandLine.ParseOptions{})->Result throw
 {
-    #[Swag.Mixin]
-    func checkNext() throw
+#[Swag.Mixin]
+    func checkNext(typeField: typeinfo) throw
     {
-        if itp + 1 == maxItp or isOption(allArgs[itp + 1], options) do
+        if itp + 1 == maxItp or !isValue(allArgs[itp + 1], typeField, options) do
             throw SyntaxError{Errors.mkString(Format.toString("missing value for option [[%]]", oneArg))}
     }
 
@@ -118,7 +159,8 @@ func(T) parse(st: *T, args: const [..] string, options = CommandLine.ParseOption
 
         oneArg = Tokenize.eatCount(oneArg, 1)
 
-        let typeParam = getField(typeof, oneArg)
+        let fieldResult = getField(typeof, oneArg)
+        let typeParam   = fieldResult.field
         if !typeParam do
             throw SyntaxError{Errors.mkString(Format.toString("unknown option [[%]]", oneArg))}
 
@@ -142,7 +184,7 @@ func(T) parse(st: *T, args: const [..] string, options = CommandLine.ParseOption
              Reflection.isRune(typeField) or
              Reflection.isEnum(typeField)
         {
-            try checkNext()
+            try checkNext(typeField)
             let rest = catch StrConv.parseValue(addr, typeField, allArgs[itp + 1])
             itp += 1
 
@@ -155,15 +197,16 @@ func(T) parse(st: *T, args: const [..] string, options = CommandLine.ParseOption
         // Dynamic array of values
         elif Reflection.isStructArray(typeField)
         {
-            try checkNext()
+            let arrayType = Reflection.getStructArrayType(typeField)
+            try checkNext(arrayType)
 
             // If it's an array of strings, we will need to add string delimiters
             // to each value
-            let isString = Reflection.getStructArrayType(typeField) == Core.String
+            let isString = arrayType == Core.String
 
             // Make one single string with all values, for pokeValue
             var collect: String
-            while itp + 1 != maxItp and !isOption(allArgs[itp + 1], options)
+            while itp + 1 != maxItp and isValue(allArgs[itp + 1], arrayType, options)
             {
                 var other = allArgs[itp + 1]
                 if isString
@@ -192,10 +235,8 @@ func(T) parse(st: *T, args: const [..] string, options = CommandLine.ParseOption
         }
 
         // Set the associated 'isSet' boolean to true
-        let typeFieldIsSet = Reflection.getField(#typeof(result.isSet), typeParam.name)
-        Debug.assert(typeFieldIsSet != null)
         var addrIsSet = cast([*] bool) &result.isSet
-        addrIsSet += typeFieldIsSet.offset
+        addrIsSet += fieldResult.index
         dref addrIsSet = true
     }
 

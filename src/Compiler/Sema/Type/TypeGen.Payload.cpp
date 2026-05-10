@@ -4,9 +4,11 @@
 #include "Compiler/Sema/Constant/ConstantLower.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Core/Sema.h"
+#include "Compiler/Sema/Generic/SemaGeneric.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Compiler/Sema/Symbol/Symbol.Enum.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
+#include "Compiler/Sema/Symbol/Symbol.Struct.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Main/TaskContext.h"
 #include "Support/Core/DataSegment.h"
@@ -447,7 +449,22 @@ namespace
         const Utf8 name          = type.toName(ctx);
         rtType.structName.length = storage.addString(offset, offsetof(Runtime::TypeInfoStruct, structName.ptr), name);
         rtType.fromGeneric       = nullptr;
+        rtType.generics.ptr      = nullptr;
+        rtType.generics.count    = 0;
+        rtType.fields.ptr        = nullptr;
+        rtType.fields.count      = 0;
+        rtType.usingFields.ptr   = nullptr;
+        rtType.usingFields.count = 0;
+        rtType.methods.ptr       = nullptr;
+        rtType.methods.count     = 0;
+        rtType.interfaces.ptr    = nullptr;
+        rtType.interfaces.count  = 0;
+        rtType.attributes.ptr    = nullptr;
+        rtType.attributes.count  = 0;
         entry.structFromGenericTypeRef = TypeRef::invalid();
+        entry.structGenericsOffset     = 0;
+        entry.structGenericsCount      = 0;
+        entry.structGenericTypes.clear();
 
         if (type.isStruct())
         {
@@ -456,7 +473,67 @@ namespace
             {
                 const SymbolStruct* genericRoot = symStruct.genericRootSym();
                 if (genericRoot)
+                {
                     entry.structFromGenericTypeRef = genericRoot->typeRef();
+
+                    SmallVector<GenericInstanceKey> genericArgs;
+                    if (genericRoot->tryGetGenericInstanceArgs(symStruct, genericArgs) && !genericArgs.empty())
+                    {
+                        SmallVector<SemaGeneric::GenericParamDesc> genericParams;
+                        if (const auto* decl = genericRoot->decl() ? genericRoot->decl()->safeCast<AstStructDecl>() : nullptr; decl && decl->spanGenericParamsRef.isValid())
+                            SemaGeneric::collectGenericParams(sema, *decl, decl->spanGenericParamsRef, genericParams);
+
+                        entry.structGenericsCount = static_cast<uint32_t>(genericArgs.size());
+                        const auto [genericsOffset, genericsPtr] = storage.reserveSpan<Runtime::TypeValue>(entry.structGenericsCount);
+                        entry.structGenericsOffset               = genericsOffset;
+                        rtType.generics.ptr                      = genericsPtr;
+                        rtType.generics.count                    = entry.structGenericsCount;
+                        storage.addRelocation(offset + offsetof(Runtime::TypeInfoStruct, generics.ptr), genericsOffset);
+
+                        entry.structGenericTypes.reserve(entry.structGenericsCount);
+                        for (uint32_t i = 0; i < entry.structGenericsCount; ++i)
+                        {
+                            const GenericInstanceKey& arg        = genericArgs[i];
+                            Runtime::TypeValue&       tv         = genericsPtr[i];
+                            const uint32_t            elemOffset = genericsOffset + static_cast<uint32_t>(i * sizeof(Runtime::TypeValue));
+
+                            if (i < genericParams.size() && genericParams[i].idRef.isValid())
+                            {
+                                const auto& id = ctx.idMgr().get(genericParams[i].idRef);
+                                tv.name.length = storage.addString(elemOffset, offsetof(Runtime::TypeValue, name.ptr), Utf8{id.name});
+                            }
+
+                            TypeRef valueTypeRef = TypeRef::invalid();
+                            if (arg.typeRef.isValid())
+                            {
+                                valueTypeRef = arg.typeRef;
+                            }
+                            else if (arg.cstRef.isValid())
+                            {
+                                const ConstantValue& cst = ctx.cstMgr().get(arg.cstRef);
+                                valueTypeRef             = cst.typeRef();
+                                if (valueTypeRef.isValid())
+                                {
+                                    const uint64_t valueSize = ctx.typeMgr().get(valueTypeRef).sizeOf(ctx);
+                                    if (valueSize)
+                                    {
+                                        std::vector valueBytes(valueSize, std::byte{0});
+                                        ConstantLower::lowerToBytes(sema, valueBytes, arg.cstRef, valueTypeRef);
+
+                                        uint32_t     valueOffset    = INVALID_REF;
+                                        const Result materializeRes = ConstantLower::materializeStaticPayload(valueOffset, sema, storage, valueTypeRef, valueBytes);
+                                        SWC_ASSERT(materializeRes == Result::Continue);
+                                        SWC_ASSERT(valueOffset != INVALID_REF);
+                                        storage.addRelocation(elemOffset + offsetof(Runtime::TypeValue, value), valueOffset);
+                                        tv.value = storage.ptr<std::byte>(valueOffset);
+                                    }
+                                }
+                            }
+
+                            entry.structGenericTypes.push_back(valueTypeRef);
+                        }
+                    }
+                }
             }
         }
 
@@ -803,8 +880,10 @@ void TypeGen::wireRelocations(Sema& sema, const TypeGenCache& cache, DataSegment
         case LayoutKind::Struct:
         {
             // Wire each 'TypeValue.pointedType' of 'fields' and 'usingFields'.
+            SWC_ASSERT(entry.structGenericTypes.size() == entry.structGenericsCount);
             SWC_ASSERT(entry.structFieldTypes.size() == entry.structFieldsCount);
             SWC_ASSERT(entry.usingFieldTypes.size() == entry.usingFieldsCount);
+            wireTypeValueArrayPointedRelocations(cache, storage, entry.structGenericTypes, entry.structGenericsOffset);
             wireTypeValueArrayPointedRelocations(cache, storage, entry.structFieldTypes, entry.structFieldsOffset);
             wireTypeValueArrayPointedRelocations(cache, storage, entry.usingFieldTypes, entry.usingFieldsOffset);
             if (entry.structFromGenericTypeRef.isValid())

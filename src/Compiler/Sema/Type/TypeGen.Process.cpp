@@ -4,6 +4,7 @@
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Symbol/Symbol.Enum.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
+#include "Compiler/Sema/Symbol/Symbol.Struct.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Compiler/Sema/Type/TypeManager.h"
 #include "Main/TaskContext.h"
@@ -119,6 +120,37 @@ SmallVector<TypeRef> TypeGen::computeDeps(TypeManager& tm, const TaskContext& ct
                 const SymbolStruct* genericRoot = symStruct.genericRootSym();
                 if (genericRoot && genericRoot->typeRef().isValid())
                     deps.push_back(genericRoot->typeRef());
+
+                SmallVector<GenericInstanceKey> genericArgs;
+                if (genericRoot && genericRoot->tryGetGenericInstanceArgs(symStruct, genericArgs))
+                {
+                    for (const GenericInstanceKey& arg : genericArgs)
+                    {
+                        if (arg.typeRef.isValid())
+                        {
+                            deps.push_back(arg.typeRef);
+                            continue;
+                        }
+
+                        if (!arg.cstRef.isValid())
+                            continue;
+
+                        const ConstantValue& cst          = ctx.cstMgr().get(arg.cstRef);
+                        const TypeRef        valueTypeRef = cst.typeRef();
+                        if (!valueTypeRef.isValid())
+                            continue;
+                        deps.push_back(valueTypeRef);
+
+                        const TypeInfo& valueType = ctx.typeMgr().get(valueTypeRef);
+                        if (!valueType.isAnyTypeInfo(ctx) || !cst.isValuePointer())
+                            continue;
+
+                        const auto*   typePtr        = reinterpret_cast<const void*>(cst.getValuePointer());
+                        const TypeRef pointedTypeRef = ctx.typeGen().getBackTypeRef(typePtr);
+                        if (pointedTypeRef.isValid())
+                            deps.push_back(pointedTypeRef);
+                    }
+                }
             }
             appendAttributeDeps(deps, ctx, symStruct.attributes());
 

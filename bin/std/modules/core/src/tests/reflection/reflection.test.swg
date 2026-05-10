@@ -135,7 +135,11 @@ impl LifecycleProbe
 #test
 {
     let arrayType = #typeof(Array's32)
+    let arrayInfo = cast(const *Swag.TypeInfoStruct) arrayType
     @assert(Reflection.isStructArray(arrayType))
+    @assert(@countof(arrayInfo.generics) == 1)
+    @assert(arrayInfo.generics[0].pointedType == s32)
+    @assert(Reflection.getStructArrayType(arrayType) == s32)
 
     let hashType = #typeof(HashSet's32)
     @assert(!Reflection.isStructArray(hashType))

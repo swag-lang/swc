@@ -510,7 +510,7 @@ void TimedActionLog::printCommandHeader(const TaskContext& ctx)
         return;
 
     const Logger::ScopedLock loggerLock(ctx.global().logger());
-    Utf8 line = formatCommandHeader(ctx);
+    Utf8                     line = formatCommandHeader(ctx);
     line += "\n";
     printLineLocked(ctx, line);
 }

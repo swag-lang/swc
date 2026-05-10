@@ -315,10 +315,10 @@ namespace
 
     struct GenericEvalEntry
     {
-        const Ast*                         ownerAst   = nullptr;
+        const Ast*                         ownerAst  = nullptr;
         AstNodeRef                         sourceRef = AstNodeRef::invalid();
         std::vector<GenericEvalBindingKey> bindings;
-        AstNodeRef                         evalRef   = AstNodeRef::invalid();
+        AstNodeRef                         evalRef = AstNodeRef::invalid();
     };
 
     bool sameGenericEvalBindings(std::span<const GenericEvalBindingKey> lhs, std::span<const SemaClone::ParamBinding> rhs)

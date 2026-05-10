@@ -24,7 +24,7 @@ namespace
 
     Sema* tryCreateSemaForFunctionDecl(Sema& sema, const SymbolFunction& fn, std::unique_ptr<Sema>& ownedSema)
     {
-        const SourceView& srcView = sema.compiler().srcView(fn.srcViewRef());
+        const SourceView& srcView        = sema.compiler().srcView(fn.srcViewRef());
         NodePayload*      payloadContext = sema.owningNodePayloadContext(fn.srcViewRef());
         if (!payloadContext || sema.usesOwningNodePayloadContext(fn.srcViewRef()))
             return nullptr;
@@ -41,7 +41,7 @@ namespace
 
     Sema* tryCreateSemaForStructDecl(Sema& sema, const SymbolStruct& st, std::unique_ptr<Sema>& ownedSema)
     {
-        const SourceView& srcView = sema.compiler().srcView(st.srcViewRef());
+        const SourceView& srcView        = sema.compiler().srcView(st.srcViewRef());
         NodePayload*      payloadContext = sema.owningNodePayloadContext(st.srcViewRef());
         if (!payloadContext || sema.usesOwningNodePayloadContext(st.srcViewRef()))
             return nullptr;
@@ -1084,7 +1084,7 @@ namespace
         Sema*                 declSema = tryCreateSemaForFunctionDecl(sema, root, declSemaHolder);
         if (!declSema)
             declSema = &sema;
-        const auto&           symbolParams = root.parameters();
+        const auto& symbolParams = root.parameters();
         if (!symbolParams.empty())
         {
             outParams.reserve(symbolParams.size());

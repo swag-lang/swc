@@ -158,7 +158,7 @@ namespace
 
     std::unique_ptr<Sema> makeLazyGenericBodySema(Sema& sema, SymbolFunction& calledFn, AstNodeRef declRef)
     {
-        const SourceView&     srcView = sema.compiler().srcView(calledFn.srcViewRef());
+        const SourceView&     srcView        = sema.compiler().srcView(calledFn.srcViewRef());
         NodePayload*          payloadContext = sema.owningNodePayloadContext(calledFn.srcViewRef());
         std::unique_ptr<Sema> child;
         if (!payloadContext || sema.usesOwningNodePayloadContext(calledFn.srcViewRef()))

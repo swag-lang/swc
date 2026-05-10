@@ -478,7 +478,7 @@ namespace
 
     bool implDeclContainsFunctionId(Sema& sema, const SymbolImpl& symImpl, IdentifierRef idRef)
     {
-        const Ast* implAst = nullptr;
+        const Ast*              implAst = nullptr;
         SmallVector<AstNodeRef> children;
         if (!collectImplPendingChildren(sema, symImpl, children, implAst))
             return false;

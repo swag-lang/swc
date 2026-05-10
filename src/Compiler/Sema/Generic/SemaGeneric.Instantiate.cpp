@@ -292,7 +292,7 @@ namespace
 
     Sema* tryCreateSemaForGenericDecl(Sema& sema, const Symbol& root, std::unique_ptr<Sema>& ownedSema)
     {
-        const SourceView& srcView = sema.compiler().srcView(root.srcViewRef());
+        const SourceView& srcView        = sema.compiler().srcView(root.srcViewRef());
         NodePayload*      payloadContext = sema.owningNodePayloadContext(root.srcViewRef());
         if (!payloadContext || sema.usesOwningNodePayloadContext(root.srcViewRef()))
             return nullptr;
@@ -314,8 +314,8 @@ namespace
         if (!decl)
             return nullptr;
 
-        const SourceView& srcView      = sema.compiler().srcView(decl->srcViewRef());
-        const FileRef     ownerFileRef = srcView.ownerFileRef();
+        const SourceView& srcView        = sema.compiler().srcView(decl->srcViewRef());
+        const FileRef     ownerFileRef   = srcView.ownerFileRef();
         NodePayload*      payloadContext = sema.owningNodePayloadContext(decl->srcViewRef());
         if (!ownerFileRef.isValid() || !payloadContext || sema.usesOwningNodePayloadContext(decl->srcViewRef()))
             return nullptr;
@@ -1847,8 +1847,8 @@ namespace SemaGeneric
         if (!decl || decl->spanConstraintsRef.isInvalid())
             return Result::Continue;
 
-        std::unique_ptr<Sema>                sourceSemaHolder;
-        Sema*                                sourceSema  = tryCreateSemaForGenericDecl(sema, function, sourceSemaHolder);
+        std::unique_ptr<Sema> sourceSemaHolder;
+        Sema*                 sourceSema = tryCreateSemaForGenericDecl(sema, function, sourceSemaHolder);
         if (!sourceSema)
             sourceSema = &sema;
         const Utf8                           bindingText = formatFunctionWhereBindings(*sourceSema, function);

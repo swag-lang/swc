@@ -85,7 +85,7 @@ SWC_TEST_BEGIN(Compiler_AssertDiagnosticPreservesLiteralSuffixQuotes)
     cmdLine.syntaxColor = false;
 
     const TaskContext localCtx(ctx.global(), cmdLine);
-    Diagnostic  diag = Diagnostic::get(DiagnosticId::sema_err_assert_failed);
+    Diagnostic        diag = Diagnostic::get(DiagnosticId::sema_err_assert_failed);
     diag.addArgument(Diagnostic::ARG_BECAUSE, "text[0] == 'w''u8 + 'd''u8");
 
     DiagnosticBuilder builder(localCtx, diag);

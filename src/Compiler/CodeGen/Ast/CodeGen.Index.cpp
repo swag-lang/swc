@@ -264,10 +264,10 @@ namespace
             const SemaNodeView rightView = codeGen.viewSymbol(memberAccess->nodeRightRef);
             if (rightView.sym() && rightView.sym()->isVariable())
             {
-                const SymbolVariable&  semaField        = rightView.sym()->cast<SymbolVariable>();
-                const TypeRef          leftTypeRef      = resolveMemberAccessLeftTypeRef(codeGen, memberAccess->nodeLeftRef);
-                const SymbolVariable*  concreteField    = tryResolveConcreteStructMemberSymbol(codeGen, leftTypeRef, semaField);
-                const SymbolVariable&  field            = concreteField ? *concreteField : semaField;
+                const SymbolVariable& semaField     = rightView.sym()->cast<SymbolVariable>();
+                const TypeRef         leftTypeRef   = resolveMemberAccessLeftTypeRef(codeGen, memberAccess->nodeLeftRef);
+                const SymbolVariable* concreteField = tryResolveConcreteStructMemberSymbol(codeGen, leftTypeRef, semaField);
+                const SymbolVariable& field         = concreteField ? *concreteField : semaField;
                 return field.typeRef();
             }
         }

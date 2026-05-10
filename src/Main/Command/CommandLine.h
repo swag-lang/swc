@@ -140,7 +140,7 @@ struct CommandLine
     Runtime::BuildCfg defaultBuildCfg{};
 };
 
-inline constexpr std::string_view commandName(const CommandKind command)
+constexpr std::string_view commandName(const CommandKind command)
 {
     switch (command)
     {

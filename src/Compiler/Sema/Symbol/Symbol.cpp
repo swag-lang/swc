@@ -95,7 +95,7 @@ const SymbolStruct* SymbolVariable::usingTargetStruct(const TaskContext& ctx, bo
 {
     outIsPointer = false;
 
-    const TypeManager& typeMgr      = ctx.typeMgr();
+    const TypeManager& typeMgr = ctx.typeMgr();
     if (!typeRef().isValid())
         return nullptr;
 
@@ -103,7 +103,7 @@ const SymbolStruct* SymbolVariable::usingTargetStruct(const TaskContext& ctx, bo
     if (!fieldTypeRef.isValid())
         return nullptr;
 
-    const TypeInfo&    fieldType    = typeMgr.get(fieldTypeRef);
+    const TypeInfo& fieldType = typeMgr.get(fieldTypeRef);
     if (fieldType.isStruct())
         return &fieldType.payloadSymStruct();
 
@@ -118,7 +118,7 @@ const SymbolStruct* SymbolVariable::usingTargetStruct(const TaskContext& ctx, bo
     if (!pointeeTypeRef.isValid())
         return nullptr;
 
-    const TypeInfo& pointeeType    = typeMgr.get(pointeeTypeRef);
+    const TypeInfo& pointeeType = typeMgr.get(pointeeTypeRef);
     if (!pointeeType.isStruct())
         return nullptr;
 

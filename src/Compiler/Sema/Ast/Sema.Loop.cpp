@@ -140,7 +140,7 @@ namespace
             diag.addArgument(Diagnostic::ARG_TYPE, typeRef);
             if (tokenRange.srcView && tokenRange.len)
             {
-                const Utf8 specialization = Utf8(tokenRange.srcView->codeView(tokenRange.offset, tokenRange.len));
+                const auto specialization = Utf8(tokenRange.srcView->codeView(tokenRange.offset, tokenRange.len));
                 Utf8       visitOp        = "opVisit";
                 if (tokenRange.len > 1)
                     visitOp += tokenRange.srcView->codeView(tokenRange.offset + 1, tokenRange.len - 1);

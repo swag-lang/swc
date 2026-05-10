@@ -287,7 +287,7 @@ namespace SemaGeneric
         const SemaNodeView typeView = sema.viewNodeType(nodeRef);
         if (typeView.typeRef().isValid())
         {
-            TypeRef         typeRef  = typeView.typeRef();
+            TypeRef typeRef = typeView.typeRef();
             SWC_RESULT(specializeExplicitGenericTypeArgFromContext(sema, nodeRef, typeRef));
             const TypeInfo& typeInfo = sema.typeMgr().get(typeRef);
             if (!sema.isValue(nodeRef) || typeInfo.isAggregate())

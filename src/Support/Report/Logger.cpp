@@ -192,7 +192,7 @@ void Logger::printField(const TaskContext& ctx, const FieldEntry& entry, const F
     if (ctx.cmdLine().silent || ctx.muteOutput())
         return;
 
-    const ScopedLock lock(ctx.global().logger());
+    const ScopedLock  lock(ctx.global().logger());
     const std::vector entries = {entry};
     std::cout << formatFieldEntry(ctx, entry, style, computeLabelColumn(entries, style));
 }

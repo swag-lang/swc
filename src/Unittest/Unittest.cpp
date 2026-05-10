@@ -40,14 +40,14 @@ namespace Unittest
             result.workDir.clear();
             result.outDirStorage.clear();
             result.workDirStorage.clear();
-            result.clear              = false;
-            result.dryRun             = false;
-            result.showConfig         = false;
-            result.sourceDrivenTest   = false;
+            result.clear                = false;
+            result.dryRun               = false;
+            result.showConfig           = false;
+            result.sourceDrivenTest     = false;
             result.artifactKindExplicit = false;
-            result.commandExplicit    = false;
-            result.unittest           = false;
-            result.verboseUnittest    = false;
+            result.commandExplicit      = false;
+            result.unittest             = false;
+            result.verboseUnittest      = false;
             return result;
         }
 

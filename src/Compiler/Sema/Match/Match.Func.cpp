@@ -41,7 +41,7 @@ namespace
 
     Sema* tryCreateSemaForFunctionDecl(Sema& sema, const SymbolFunction& fn, std::unique_ptr<Sema>& ownedSema)
     {
-        const SourceView& srcView = sema.compiler().srcView(fn.srcViewRef());
+        const SourceView& srcView        = sema.compiler().srcView(fn.srcViewRef());
         NodePayload*      payloadContext = sema.owningNodePayloadContext(fn.srcViewRef());
         if (!payloadContext || sema.usesOwningNodePayloadContext(fn.srcViewRef()))
             return nullptr;
@@ -1439,7 +1439,7 @@ namespace
             Sema*                 declSema = tryCreateSemaForFunctionDecl(sema, fn, declSemaHolder);
             if (!declSema)
                 declSema = &sema;
-            const auto*           decl     = fn.decl() ? fn.decl()->safeCast<AstFunctionDecl>() : nullptr;
+            const auto* decl = fn.decl() ? fn.decl()->safeCast<AstFunctionDecl>() : nullptr;
             if (!decl || decl->nodeParamsRef.isInvalid())
                 return Result::Continue;
 
@@ -2180,7 +2180,7 @@ namespace
         if (!variadicType.isTypedVariadic())
             return Result::Continue;
 
-        const TypeRef variadicTy = variadicType.payloadTypeRef();
+        const TypeRef variadicTy       = variadicType.payloadTypeRef();
         CallArgEntry& fixedVariadicArg = mapping.paramArgs[numParams - 1];
         if (fixedVariadicArg.argRef.isValid())
         {

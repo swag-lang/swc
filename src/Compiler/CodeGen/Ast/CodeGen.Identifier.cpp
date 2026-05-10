@@ -112,9 +112,9 @@ namespace
         if (!receiverStruct)
             return false;
 
-        const SymbolVariable* concreteField    = tryResolveConcreteReceiverFieldSymbol(*receiverStruct, symVar);
-        const SymbolVariable& resolvedField    = concreteField ? *concreteField : symVar;
-        const SymbolStruct*   fieldOwner       = variableOwnerStruct(resolvedField);
+        const SymbolVariable* concreteField = tryResolveConcreteReceiverFieldSymbol(*receiverStruct, symVar);
+        const SymbolVariable& resolvedField = concreteField ? *concreteField : symVar;
+        const SymbolStruct*   fieldOwner    = variableOwnerStruct(resolvedField);
         if (!fieldOwner || !sameStructFamily(*fieldOwner, *receiverStruct))
             return false;
 

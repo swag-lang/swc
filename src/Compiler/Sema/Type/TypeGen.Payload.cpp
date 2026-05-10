@@ -465,21 +465,21 @@ namespace
     {
         TaskContext& ctx = sema.ctx();
 
-        const Utf8 name          = type.toName(ctx);
-        rtType.structName.length = storage.addString(offset, offsetof(Runtime::TypeInfoStruct, structName.ptr), name);
-        rtType.fromGeneric       = nullptr;
-        rtType.generics.ptr      = nullptr;
-        rtType.generics.count    = 0;
-        rtType.fields.ptr        = nullptr;
-        rtType.fields.count      = 0;
-        rtType.usingFields.ptr   = nullptr;
-        rtType.usingFields.count = 0;
-        rtType.methods.ptr       = nullptr;
-        rtType.methods.count     = 0;
-        rtType.interfaces.ptr    = nullptr;
-        rtType.interfaces.count  = 0;
-        rtType.attributes.ptr    = nullptr;
-        rtType.attributes.count  = 0;
+        const Utf8 name                = type.toName(ctx);
+        rtType.structName.length       = storage.addString(offset, offsetof(Runtime::TypeInfoStruct, structName.ptr), name);
+        rtType.fromGeneric             = nullptr;
+        rtType.generics.ptr            = nullptr;
+        rtType.generics.count          = 0;
+        rtType.fields.ptr              = nullptr;
+        rtType.fields.count            = 0;
+        rtType.usingFields.ptr         = nullptr;
+        rtType.usingFields.count       = 0;
+        rtType.methods.ptr             = nullptr;
+        rtType.methods.count           = 0;
+        rtType.interfaces.ptr          = nullptr;
+        rtType.interfaces.count        = 0;
+        rtType.attributes.ptr          = nullptr;
+        rtType.attributes.count        = 0;
         entry.structFromGenericTypeRef = TypeRef::invalid();
         entry.structGenericsOffset     = 0;
         entry.structGenericsCount      = 0;
@@ -502,7 +502,7 @@ namespace
                         if (const auto* decl = genericRoot->decl() ? genericRoot->decl()->safeCast<AstStructDecl>() : nullptr; decl && decl->spanGenericParamsRef.isValid())
                             SemaGeneric::collectGenericParams(sema, *decl, decl->spanGenericParamsRef, genericParams);
 
-                        entry.structGenericsCount = static_cast<uint32_t>(genericArgs.size());
+                        entry.structGenericsCount                = static_cast<uint32_t>(genericArgs.size());
                         const auto [genericsOffset, genericsPtr] = storage.reserveSpan<Runtime::TypeValue>(entry.structGenericsCount);
                         entry.structGenericsOffset               = genericsOffset;
                         rtType.generics.ptr                      = genericsPtr;
@@ -701,8 +701,8 @@ namespace
         rtType.attributes.ptr   = nullptr;
         rtType.attributes.count = 0;
 
-        entry.funcParamsOffset   = 0;
-        entry.funcParamsCount    = static_cast<uint32_t>(parameters.size());
+        entry.funcParamsOffset = 0;
+        entry.funcParamsCount  = static_cast<uint32_t>(parameters.size());
         entry.funcParamTypes.clear();
         entry.funcGenericsOffset = 0;
         entry.funcGenericsCount  = 0;
@@ -711,7 +711,7 @@ namespace
 
         if (symFunc.isGenericInstance())
         {
-            const SymbolFunction* genericRoot = symFunc.genericRootSym();
+            const SymbolFunction*           genericRoot = symFunc.genericRootSym();
             SmallVector<GenericInstanceKey> genericArgs;
             if (genericRoot && genericRoot->genericInstanceStorage(ctx).tryGetArgs(symFunc, genericArgs) && !genericArgs.empty())
             {
@@ -719,7 +719,7 @@ namespace
                 if (const auto* decl = genericRoot->decl() ? genericRoot->decl()->safeCast<AstFunctionDecl>() : nullptr; decl && decl->spanGenericParamsRef.isValid())
                     SemaGeneric::collectGenericParams(sema, *decl, decl->spanGenericParamsRef, genericParams);
 
-                entry.funcGenericsCount = static_cast<uint32_t>(genericArgs.size());
+                entry.funcGenericsCount                  = static_cast<uint32_t>(genericArgs.size());
                 const auto [genericsOffset, genericsPtr] = storage.reserveSpan<Runtime::TypeValue>(entry.funcGenericsCount);
                 entry.funcGenericsOffset                 = genericsOffset;
                 rtType.generics.ptr                      = genericsPtr;

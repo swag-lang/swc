@@ -55,7 +55,7 @@ AstVisitResult AstVisit::step(const TaskContext& ctx)
     Frame& frame = stack_.back();
 
 #if SWC_HAS_VISIT_DEBUG_INFO
-    dbgNode = &ast_->node(frame.nodeRef);
+    dbgNode                   = &ast_->node(frame.nodeRef);
     const SourceView& dbgView = dbgNode->srcView(ctx);
     dbgTokRef                 = dbgNode->tokRef();
     dbgTok                    = dbgTokRef.isValid() ? &dbgView.token(dbgTokRef) : nullptr;

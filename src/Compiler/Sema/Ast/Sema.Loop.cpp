@@ -115,6 +115,49 @@ namespace
         return enumTypeExprSymbol(sema, exprView) != nullptr;
     }
 
+    const SymbolStruct* foreachVisitOwnerStruct(Sema& sema, const SemaNodeView& exprView)
+    {
+        if (!exprView.type())
+            return nullptr;
+
+        TypeRef typeRef = SemaHelpers::unwrapAliasRefType(sema.ctx(), exprView.typeRef());
+        if (!typeRef.isValid())
+            typeRef = exprView.typeRef();
+
+        const TypeInfo& type = sema.typeMgr().get(typeRef);
+        if (!type.isStruct())
+            return nullptr;
+
+        return &type.payloadSymStruct();
+    }
+
+    Result raiseForeachTypeNotVisitable(Sema& sema, const AstForeachStmt& node, TypeRef typeRef)
+    {
+        if (node.tokSpecializationRef.isValid())
+        {
+            const SourceCodeRange tokenRange = sema.srcView(node.srcViewRef()).tokenCodeRange(sema.ctx(), node.tokSpecializationRef);
+            auto                  diag       = SemaError::report(sema, DiagnosticId::sema_err_type_not_visitable_specialization, node.nodeExprRef, SemaError::ReportLocation::Children);
+            diag.addArgument(Diagnostic::ARG_TYPE, typeRef);
+            if (tokenRange.srcView && tokenRange.len)
+            {
+                const Utf8 specialization = Utf8(tokenRange.srcView->codeView(tokenRange.offset, tokenRange.len));
+                Utf8       visitOp        = "opVisit";
+                if (tokenRange.len > 1)
+                    visitOp += tokenRange.srcView->codeView(tokenRange.offset + 1, tokenRange.len - 1);
+                diag.addArgument(Diagnostic::ARG_VALUE, specialization);
+                diag.addArgument(Diagnostic::ARG_SPEC_OP, visitOp);
+            }
+            diag.report(sema.ctx());
+            return Result::Error;
+        }
+
+        const DiagnosticId diagId = node.modifierFlags.has(AstModifierFlagsE::Reverse) ? DiagnosticId::sema_err_type_not_reverse_visitable : DiagnosticId::sema_err_type_not_visitable;
+        auto               diag   = SemaError::report(sema, diagId, node.nodeExprRef, SemaError::ReportLocation::Children);
+        diag.addArgument(Diagnostic::ARG_TYPE, typeRef);
+        diag.report(sema.ctx());
+        return Result::Error;
+    }
+
     bool hasDynamicLoopBound(Sema& sema, AstNodeRef boundRef)
     {
         if (boundRef.isInvalid())
@@ -353,6 +396,9 @@ Result AstForeachStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef)
         }
 
         const SemaNodeView exprView = sema.viewType(nodeExprRef);
+        if (foreachVisitOwnerStruct(sema, exprView))
+            return raiseForeachTypeNotVisitable(sema, *this, exprView.typeRef());
+
         if (!isEnumTypeExpr(sema, exprView))
             SWC_RESULT(SemaCheck::isValue(sema, exprView.nodeRef()));
 

@@ -1,8 +1,10 @@
 #include "pch.h"
 #include "Compiler/Sema/Helpers/SemaClone.h"
+#include "Compiler/CodeGen/Core/CodeGen.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Cast/Cast.h"
 #include "Compiler/Sema/Core/Sema.h"
+#include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Compiler/SourceFile.h"
 
@@ -238,12 +240,28 @@ namespace
             sema.unsetIsLValue(clonedRef);
     }
 
-    // Implicit casts (created by Cast::createCast) store their target type
-    // directly in the payload and have no AST type node. semaPostNode skips
-    // them, so the type must be carried over to the clone explicitly.
-    // Skip when the source has a constant, as setType would overwrite the
-    // payload slot that constant folding relies on.
-    void copyImplicitCastType(Sema& sema, const SemaClone::CloneContext& cloneContext, const AstNode& sourceNode, AstNodeRef sourceRef, AstNodeRef clonedRef)
+    void copyImplicitCastCodeGenPayload(Sema& sema, AstNodeRef sourceRef, AstNodeRef clonedRef)
+    {
+        const auto* sourcePayload = sema.codeGenPayload<CodeGenNodePayload>(sourceRef);
+        if (!sourcePayload)
+            return;
+
+        auto& clonedPayload = SemaHelpers::ensureCodeGenNodePayload(sema, clonedRef);
+        if (!clonedPayload.runtimeStorageSym && sourcePayload->runtimeStorageSym)
+            clonedPayload.runtimeStorageSym = sourcePayload->runtimeStorageSym;
+        if (!clonedPayload.runtimeFunctionSymbol && sourcePayload->runtimeFunctionSymbol)
+            clonedPayload.runtimeFunctionSymbol = sourcePayload->runtimeFunctionSymbol;
+        if (!clonedPayload.runtimeArrayFillTypeRef.isValid() && sourcePayload->runtimeArrayFillTypeRef.isValid())
+            clonedPayload.runtimeArrayFillTypeRef = sourcePayload->runtimeArrayFillTypeRef;
+        if (!clonedPayload.runtimeArrayFillCstRef.isValid() && sourcePayload->runtimeArrayFillCstRef.isValid())
+            clonedPayload.runtimeArrayFillCstRef = sourcePayload->runtimeArrayFillCstRef;
+        clonedPayload.runtimeSafetyMask |= sourcePayload->runtimeSafetyMask;
+    }
+
+    // Implicit casts (created by Cast::createCast) store part of their semantic
+    // state outside the AST node shape itself. semaPostNode skips them, so that
+    // state must be preserved across cloning.
+    void copyImplicitCastPayload(Sema& sema, const SemaClone::CloneContext& cloneContext, const AstNode& sourceNode, AstNodeRef sourceRef, AstNodeRef clonedRef)
     {
         if (!canReadSourcePayload(sema, cloneContext))
             return;
@@ -263,6 +281,8 @@ namespace
             sema.setIsLValue(clonedRef);
         if (sema.isFoldedTypedConstStored(sourceRef))
             sema.setFoldedTypedConst(clonedRef);
+
+        copyImplicitCastCodeGenPayload(sema, sourceRef, clonedRef);
     }
 
     SpanRef cloneSpan(Sema& sema, SpanRef spanRef, const SemaClone::CloneContext& cloneContext)
@@ -413,7 +433,7 @@ AstNodeRef SemaClone::cloneAst(Sema& sema, AstNodeRef nodeRef, const CloneContex
 
     Ast::setThreadSourceViewOverride(previousSrcView);
     copyCallableClonePayload(sema, cloneContext, nodeRef, clonedRef);
-    copyImplicitCastType(sema, cloneContext, node, nodeRef, clonedRef);
+    copyImplicitCastPayload(sema, cloneContext, node, nodeRef, clonedRef);
     return clonedRef;
 }
 

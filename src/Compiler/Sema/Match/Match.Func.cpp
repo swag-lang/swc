@@ -323,6 +323,7 @@ namespace
     struct CallArgEntry
     {
         AstNodeRef argRef       = AstNodeRef::invalid();
+        AstNodeRef valueRef     = AstNodeRef::invalid();
         uint32_t   callArgIndex = 0;
     };
 
@@ -332,6 +333,15 @@ namespace
         SmallVector<CallArgEntry> variadicArgs;
         bool                      hasNamed = false;
     };
+
+    AstNodeRef resolvedCallArgValueRef(Sema& sema, const CallArgEntry& entry)
+    {
+        if (entry.valueRef.isValid())
+            return entry.valueRef;
+        if (entry.argRef.isInvalid())
+            return AstNodeRef::invalid();
+        return Match::resolveCallArgumentValueRef(sema, entry.argRef);
+    }
 
     struct GenericRootCallParam
     {
@@ -2106,7 +2116,7 @@ namespace
 
     // For each argument, perform the required cast to the destination parameter type.
     // The cast value is then stored back in the argument node.
-    Result applyParameterCasts(Sema& sema, const SymbolFunction& selectedFn, const CallArgMapping& mapping, AstNodeRef appliedUfcsArg, Match::ResolveCallMode mode)
+    Result applyParameterCasts(Sema& sema, const SymbolFunction& selectedFn, CallArgMapping& mapping, AstNodeRef appliedUfcsArg, Match::ResolveCallMode mode)
     {
         const auto& params    = selectedFn.parameters();
         const auto  numParams = static_cast<uint32_t>(params.size());
@@ -2121,7 +2131,8 @@ namespace
 
         for (uint32_t i = 0; i < numCommon; ++i)
         {
-            const AstNodeRef argRef = mapping.paramArgs[i].argRef;
+            CallArgEntry&    entry  = mapping.paramArgs[i];
+            const AstNodeRef argRef = entry.argRef;
             if (argRef.isInvalid())
                 continue;
 
@@ -2144,9 +2155,10 @@ namespace
                 flags.add(CastFlagsE::UfcsArgument);
             if (selectedFn.idRef() == sema.idMgr().predefined(IdentifierManager::PredefinedName::OpSetLiteral))
                 flags.add(CastFlagsE::LiteralSuffixConsume);
-            const DiagnosticArguments errorArguments = makeCallCastErrorArguments(selectedFn, mapping.paramArgs[i].callArgIndex, sema.ctx());
+            const DiagnosticArguments errorArguments = makeCallCastErrorArguments(selectedFn, entry.callArgIndex, sema.ctx());
             if (!applyContextualAutoEnumAliasCast(sema, argRef, argView, castTypeRef))
                 SWC_RESULT(Cast::cast(sema, argView, castTypeRef, CastKind::Parameter, flags, &errorArguments));
+            entry.valueRef = argView.nodeRef();
             refreshNamedArgumentPayload(sema, argRef, argView.nodeRef());
         }
 
@@ -2155,7 +2167,7 @@ namespace
 
     // For typed variadic functions (e.g., `func(x: ...int)`), each extra argument
     // must be cast to the underlying variadic type.
-    Result applyTypedVariadicCasts(Sema& sema, const SymbolFunction& selectedFn, const CallArgMapping& mapping)
+    Result applyTypedVariadicCasts(Sema& sema, const SymbolFunction& selectedFn, CallArgMapping& mapping)
     {
         const auto numParams = static_cast<uint32_t>(selectedFn.parameters().size());
         if (numParams == 0)
@@ -2167,36 +2179,39 @@ namespace
         if (!variadicType.isTypedVariadic())
             return Result::Continue;
 
-        const TypeRef       variadicTy       = variadicType.payloadTypeRef();
-        const CallArgEntry& fixedVariadicArg = mapping.paramArgs[numParams - 1];
+        const TypeRef variadicTy = variadicType.payloadTypeRef();
+        CallArgEntry& fixedVariadicArg = mapping.paramArgs[numParams - 1];
         if (fixedVariadicArg.argRef.isValid())
         {
             if (mapping.variadicArgs.empty() && isMatchingTypedVariadicForwardingArg(sema, fixedVariadicArg.argRef, variadicTy))
                 return Result::Continue;
 
-            const AstNodeRef argValueRef = Match::resolveCallArgumentValueRef(sema, fixedVariadicArg.argRef);
+            const AstNodeRef argValueRef = resolvedCallArgValueRef(sema, fixedVariadicArg);
             SemaNodeView     argView(sema, argValueRef, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
             SWC_RESULT(normalizeTypeInfoCallArgument(sema, argValueRef, variadicTy, argView));
             const DiagnosticArguments errorArguments = makeCallCastErrorArguments(selectedFn, fixedVariadicArg.callArgIndex, sema.ctx());
             SWC_RESULT(Cast::cast(sema, argView, variadicTy, CastKind::Implicit, CastFlagsE::Zero, &errorArguments));
+            fixedVariadicArg.valueRef = argView.nodeRef();
             refreshNamedArgumentPayload(sema, fixedVariadicArg.argRef, argView.nodeRef());
         }
 
-        for (const CallArgEntry& entry : mapping.variadicArgs)
+        for (CallArgEntry& entry : mapping.variadicArgs)
         {
-            const AstNodeRef argValueRef = Match::resolveCallArgumentValueRef(sema, entry.argRef);
+            const AstNodeRef argValueRef = resolvedCallArgValueRef(sema, entry);
             SemaNodeView     argView(sema, argValueRef, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
             SWC_RESULT(normalizeTypeInfoCallArgument(sema, argValueRef, variadicTy, argView));
             const DiagnosticArguments errorArguments = makeCallCastErrorArguments(selectedFn, entry.callArgIndex, sema.ctx());
             SWC_RESULT(Cast::cast(sema, argView, variadicTy, CastKind::Implicit, CastFlagsE::Zero, &errorArguments));
+            entry.valueRef = argView.nodeRef();
             refreshNamedArgumentPayload(sema, entry.argRef, argView.nodeRef());
         }
 
         return Result::Continue;
     }
 
-    Result concretizeUntypedVariadicArg(Sema& sema, AstNodeRef argRef)
+    Result concretizeUntypedVariadicArg(Sema& sema, CallArgEntry& entry)
     {
+        const AstNodeRef argRef = resolvedCallArgValueRef(sema, entry);
         if (argRef.isInvalid())
             return Result::Continue;
 
@@ -2221,10 +2236,11 @@ namespace
 
         SemaNodeView castView(sema, argRef, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
         SWC_RESULT(Cast::cast(sema, castView, concreteArrayTypeRef, CastKind::Implicit));
+        entry.valueRef = castView.nodeRef();
         return Result::Continue;
     }
 
-    Result concretizeUntypedVariadicArgs(Sema& sema, const SymbolFunction& selectedFn, const CallArgMapping& mapping)
+    Result concretizeUntypedVariadicArgs(Sema& sema, const SymbolFunction& selectedFn, CallArgMapping& mapping)
     {
         const auto numParams = static_cast<uint32_t>(selectedFn.parameters().size());
         if (numParams == 0)
@@ -2236,11 +2252,11 @@ namespace
         if (!variadicType.isVariadic())
             return Result::Continue;
 
-        const CallArgEntry& fixedVariadicArg = mapping.paramArgs[numParams - 1];
-        SWC_RESULT(concretizeUntypedVariadicArg(sema, fixedVariadicArg.argRef));
+        CallArgEntry& fixedVariadicArg = mapping.paramArgs[numParams - 1];
+        SWC_RESULT(concretizeUntypedVariadicArg(sema, fixedVariadicArg));
 
-        for (const CallArgEntry& entry : mapping.variadicArgs)
-            SWC_RESULT(concretizeUntypedVariadicArg(sema, entry.argRef));
+        for (CallArgEntry& entry : mapping.variadicArgs)
+            SWC_RESULT(concretizeUntypedVariadicArg(sema, entry));
 
         return Result::Continue;
     }
@@ -2275,11 +2291,11 @@ namespace
         if (mapping.paramArgs.empty())
             return false;
 
-        const AstNodeRef firstArgRef = mapping.paramArgs[0].argRef;
+        const AstNodeRef firstArgRef = resolvedCallArgValueRef(sema, mapping.paramArgs[0]);
         if (firstArgRef.isInvalid())
             return false;
 
-        return Match::resolveCallArgumentValueRef(sema, firstArgRef) == Match::resolveCallArgumentValueRef(sema, receiverArgRef);
+        return firstArgRef == Match::resolveCallArgumentValueRef(sema, receiverArgRef);
     }
 
     bool appendImplicitInterfaceReceiverArg(Sema& sema, SmallVector<ResolvedCallArgument>& outResolvedArgs, const SemaNodeView& nodeCallee, const SymbolFunction& selectedFn, const CallArgMapping& mapping)
@@ -2473,7 +2489,7 @@ namespace
                 continue;
             }
 
-            const AstNodeRef finalArgRef = Match::resolveCallArgumentValueRef(sema, entry.argRef);
+            const AstNodeRef finalArgRef = resolvedCallArgValueRef(sema, entry);
 
             auto passKind = CallArgumentPassKind::Direct;
             if (i == 0 && appliedUfcsArg.isValid() && selectedFn.hasInterfaceMethodSlot())
@@ -2505,7 +2521,7 @@ namespace
         {
             if (entry.argRef.isInvalid())
                 continue;
-            const AstNodeRef     finalArgRef = Match::resolveCallArgumentValueRef(sema, entry.argRef);
+            const AstNodeRef     finalArgRef = resolvedCallArgValueRef(sema, entry);
             ResolvedCallArgument resolvedArg{
                 .argRef   = finalArgRef,
                 .passKind = CallArgumentPassKind::Direct,
@@ -2523,6 +2539,13 @@ namespace
 
 AstNodeRef Match::resolveCallArgumentRef(Sema& sema, AstNodeRef argRef)
 {
+    if (argRef.isInvalid())
+        return AstNodeRef::invalid();
+
+    const AstNode& argNode = sema.node(argRef);
+    if (argNode.is(AstNodeId::CastExpr) || argNode.is(AstNodeId::AutoCastExpr))
+        return argRef;
+
     AstNodeRef finalRef = sema.viewZero(argRef).nodeRef();
     if (finalRef.isInvalid())
         finalRef = argRef;

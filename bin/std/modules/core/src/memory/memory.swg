@@ -54,7 +54,7 @@ func set(dest: [*] void, value: u8, size: u64)
 #[Inline]
 func align(value: u64, alignment: u32)->u64
 {
-    let toAlign = (alignment orelse #sizeof(*void)) - 1
+    let toAlign: u64 = cast(u64) (alignment orelse cast(u32) #sizeof(*void)) - 1
     return (value + toAlign) & ~toAlign
 }
 

@@ -223,7 +223,11 @@ namespace
         if (argRef.isInvalid())
             return AstNodeRef::invalid();
 
-        if (sema.node(argRef).is(AstNodeId::EmbeddedBlock))
+        const AstNode& argNode = sema.node(argRef);
+        if (argNode.is(AstNodeId::CastExpr) || argNode.is(AstNodeId::AutoCastExpr))
+            return argRef;
+
+        if (argNode.is(AstNodeId::EmbeddedBlock))
         {
             const auto* inlinePayload = sema.inlinePayload(argRef);
             if (inlinePayload && inlinePayload->callRef.isValid())
@@ -328,6 +332,17 @@ namespace
     AstNodeRef bindingInlineArgumentRef(Sema& sema, const InlineArgumentMapContext& context, const SymbolVariable& param, size_t paramIndex, size_t numFixed, AstNodeRef argRef, AstNodeRef sourceArgRef = AstNodeRef::invalid())
     {
         AstNodeRef argValueRef = bindingArgumentRef(sema, param, argRef, sourceArgRef);
+        if (!param.type(sema.ctx()).isCodeBlock())
+        {
+            const AstNodeRef resolvedArgRef = bindingResolvedArgumentRef(sema, param, context.resolvedArgs, paramIndex, argRef);
+            if (resolvedArgRef.isValid())
+            {
+                const AstNode& resolvedArgNode = sema.node(resolvedArgRef);
+                if (resolvedArgNode.is(AstNodeId::CastExpr) || resolvedArgNode.is(AstNodeId::AutoCastExpr))
+                    argValueRef = resolvedArgRef;
+            }
+        }
+
         if (!shouldStripLiteralSuffixInlineValue(*context.fn, paramIndex, numFixed))
             return argValueRef;
 

@@ -1323,9 +1323,10 @@ void CodeGen::popFrame()
             }
         }
 
-        // Inline/macro expansion runs inside a copied frame. If that copy records a `continue`,
-        // propagate the flag back so the enclosing loop still materializes its continue block.
-        if (currentFrame.hasCurrentInlineBoundary() &&
+        // Inline/macro expansion runs inside copied frames. If a nested inject frame records a
+        // `continue`, the enclosing inline root must forward that information back to the real
+        // loop frame so codegen keeps the loop continue path alive.
+        if ((currentFrame.hasCurrentInlineContext() || currentFrame.hasCurrentInlineBoundary()) &&
             currentFrame.currentLoopHasContinueJump() &&
             currentFrame.currentBreakableKind() == CodeGenFrame::BreakContextKind::Loop &&
             parentFrame.currentBreakableKind() == currentFrame.currentBreakableKind() &&

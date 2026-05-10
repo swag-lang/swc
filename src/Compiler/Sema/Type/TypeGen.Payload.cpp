@@ -446,6 +446,19 @@ namespace
 
         const Utf8 name          = type.toName(ctx);
         rtType.structName.length = storage.addString(offset, offsetof(Runtime::TypeInfoStruct, structName.ptr), name);
+        rtType.fromGeneric       = nullptr;
+        entry.structFromGenericTypeRef = TypeRef::invalid();
+
+        if (type.isStruct())
+        {
+            const SymbolStruct& symStruct = type.payloadSymStruct();
+            if (symStruct.isGenericInstance())
+            {
+                const SymbolStruct* genericRoot = symStruct.genericRootSym();
+                if (genericRoot)
+                    entry.structFromGenericTypeRef = genericRoot->typeRef();
+            }
+        }
 
         if (type.isAggregateStruct())
         {
@@ -794,6 +807,11 @@ void TypeGen::wireRelocations(Sema& sema, const TypeGenCache& cache, DataSegment
             SWC_ASSERT(entry.usingFieldTypes.size() == entry.usingFieldsCount);
             wireTypeValueArrayPointedRelocations(cache, storage, entry.structFieldTypes, entry.structFieldsOffset);
             wireTypeValueArrayPointedRelocations(cache, storage, entry.usingFieldTypes, entry.usingFieldsOffset);
+            if (entry.structFromGenericTypeRef.isValid())
+            {
+                const auto& dep = requireCacheEntry(cache, entry.structFromGenericTypeRef);
+                addTypeRelocation(storage, entry.offset, offsetof(Runtime::TypeInfoStruct, fromGeneric), dep.offset);
+            }
 
             const TypeInfo& keyType = typeMgr.get(key);
             if (keyType.isAggregateStruct())

@@ -44,6 +44,7 @@ public:
             uint32_t             structFieldsOffset = 0;
             uint32_t             structFieldsCount  = 0;
             SmallVector<TypeRef> structFieldTypes;
+            TypeRef              structFromGenericTypeRef = TypeRef::invalid();
             uint32_t             usingFieldsOffset = 0;
             uint32_t             usingFieldsCount  = 0;
             SmallVector<TypeRef> usingFieldTypes;

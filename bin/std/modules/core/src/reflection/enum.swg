@@ -22,7 +22,7 @@ func getEnumValue(type: typeinfo, name: string)->#null const *TypeValue
         return null
 
     let typeEnum = cast(const *TypeInfoEnum) type
-    foreach it in typeEnum.values where it.name == name do
+    foreach &it in typeEnum.values where it.name == name do
         return it
     return null
 }

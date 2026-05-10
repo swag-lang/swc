@@ -110,7 +110,7 @@ func getField(typeStruct: const *Swag.TypeInfoStruct, name: string)->FieldResult
 {
     var result: retval
 
-    foreach it in typeStruct.fields
+    foreach &it in typeStruct.fields
     {
         // Test normal name (field)
         if it.name == name

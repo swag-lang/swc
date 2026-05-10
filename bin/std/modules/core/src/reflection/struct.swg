@@ -22,7 +22,7 @@ func getMethod(type: typeinfo, name: string)->#null const *TypeValue
         return null
 
     let typeStruct = cast(const *TypeInfoStruct) type
-    foreach it in typeStruct.methods where it.name == name do
+    foreach &it in typeStruct.methods where it.name == name do
         return it
     return null
 }
@@ -36,7 +36,7 @@ func getField(type: typeinfo, name: string)->#null const *TypeValue
         return null
 
     let typeStruct = cast(const *TypeInfoStruct) type
-    foreach it in typeStruct.fields where it.name == name do
+    foreach &it in typeStruct.fields where it.name == name do
         return it
     return null
 }

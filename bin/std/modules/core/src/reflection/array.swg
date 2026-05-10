@@ -8,8 +8,11 @@ func isStructArray(t: typeinfo)->bool
     if !t or !isStruct(t) do
         return false
 
-    let tt = cast(const *TypeInfoStruct) t
-    return tt.fromGeneric == Core.Array
+    let tt           = cast(const *TypeInfoStruct) t
+    let arrayGeneric = (cast(const *TypeInfoStruct) #typeof(Array'u8)).fromGeneric
+    if !tt.fromGeneric or !arrayGeneric do
+        return false
+    return tt.fromGeneric.fullname == arrayGeneric.fullname
 }
 
 // Returns the generic type of the 'Core.Array' typeinfo.

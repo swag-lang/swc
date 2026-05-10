@@ -170,7 +170,7 @@ fileprivate impl TagBin
         elif fromStruct
         {
             // Dynamic array to something...
-            if fromStruct.fromGeneric == Core.Array
+            if Reflection.isStructArray(fromStruct)
             {
                 // Dynamic array to Static array
                 if Reflection.isStaticArray(toType)
@@ -181,7 +181,7 @@ fileprivate impl TagBin
                 }
 
                 // Dynamic array to dynamic array
-                elif toStruct and toStruct.fromGeneric == Core.Array
+                elif toStruct and Reflection.isStructArray(toStruct)
                 {
                     if .canConvertType(Reflection.getStructArrayType(toStruct), Reflection.getStructArrayType(fromStruct)) do
                         return true

@@ -3,6 +3,16 @@
 func A() {}
 func A(a: s32) {}
 
+func overloadProbe(type: typeinfo, value: string)->#null any
+{
+    return null
+}
+
+func(T) overloadProbe(type: const *u8, value: string, def: T)->T
+{
+    return def
+}
+
 #test
 {
     A()
@@ -45,4 +55,10 @@ impl S
 #test
 {
     A(1.0) // swc-expected-error {{sema_err_no_overload_match}}
+}
+
+#test
+{
+    let type = #typeof(s32)
+    overloadProbe(type, "priority", 0) // swc-expected-error {{sema_err_no_overload_match}}
 }

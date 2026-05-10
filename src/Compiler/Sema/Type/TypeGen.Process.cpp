@@ -114,6 +114,12 @@ SmallVector<TypeRef> TypeGen::computeDeps(TypeManager& tm, const TaskContext& ct
             }
 
             const SymbolStruct& symStruct = type.payloadSymStruct();
+            if (symStruct.isGenericInstance())
+            {
+                const SymbolStruct* genericRoot = symStruct.genericRootSym();
+                if (genericRoot && genericRoot->typeRef().isValid())
+                    deps.push_back(genericRoot->typeRef());
+            }
             appendAttributeDeps(deps, ctx, symStruct.attributes());
 
             for (const SymbolVariable* field : symStruct.fields())

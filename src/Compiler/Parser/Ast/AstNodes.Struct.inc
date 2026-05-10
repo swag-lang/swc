@@ -86,7 +86,7 @@ struct AstUsingNamespaceStmt : AstNodeT<AstNodeId::UsingNamespaceStmt>
 {
     AstNodeRef nodeNameRef;
 
-    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeNameRef}); }
+    void       collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeNameRef}); }
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
@@ -110,11 +110,11 @@ struct AstCompilerGlobal : AstNodeT<AstNodeId::CompilerGlobal>
     SpanRef    spanNameRef;
     AstNodeRef nodeModeRef;
 
-    void   collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeModeRef}); }
-    Result semaPreDecl(Sema& sema) const;
-    Result semaPreNode(Sema& sema) const;
-    Result semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;
-    Result semaPostNode(Sema& sema) const;
+    void       collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeModeRef}); }
+    Result     semaPreDecl(Sema& sema) const;
+    Result     semaPreNode(Sema& sema) const;
+    Result     semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;
+    Result     semaPostNode(Sema& sema) const;
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
@@ -909,11 +909,11 @@ struct AstEnumDecl : AstNamedNodeT<AstNodeId::EnumDecl>
     AstNodeRef nodeTypeRef;
     AstNodeRef nodeBodyRef;
 
-    void   collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeTypeRef, nodeBodyRef}); }
-    Result semaPreDecl(Sema& sema) const;
-    Result semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;
-    Result semaPreNode(Sema& sema) const;
-    Result semaPostNode(Sema& sema) const;
+    void       collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeTypeRef, nodeBodyRef}); }
+    Result     semaPreDecl(Sema& sema) const;
+    Result     semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;
+    Result     semaPreNode(Sema& sema) const;
+    Result     semaPostNode(Sema& sema) const;
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
@@ -922,9 +922,9 @@ struct AstEnumValue : AstNodeT<AstNodeId::EnumValue>
 {
     AstNodeRef nodeInitRef;
 
-    void   collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeInitRef}); }
-    Result semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;
-    Result semaPostNode(Sema& sema) const;
+    void       collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeInitRef}); }
+    Result     semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;
+    Result     semaPostNode(Sema& sema) const;
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
@@ -933,8 +933,8 @@ struct AstUsingEnumDecl : AstNodeT<AstNodeId::UsingEnumDecl>
 {
     AstNodeRef nodeNameRef;
 
-    void   collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeNameRef}); }
-    Result semaPostNode(Sema& sema) const;
+    void       collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeNameRef}); }
+    Result     semaPostNode(Sema& sema) const;
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
@@ -1346,10 +1346,10 @@ struct AstAliasDecl : AstNamedNodeT<AstNodeId::AliasDecl>
 {
     AstNodeRef nodeExprRef;
 
-    void   collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeExprRef}); }
-    Result semaPostNode(Sema& sema) const;
-    Result semaPreDecl(Sema& sema) const;
-    Result semaPreNode(Sema& sema) const;
+    void       collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeExprRef}); }
+    Result     semaPostNode(Sema& sema) const;
+    Result     semaPreDecl(Sema& sema) const;
+    Result     semaPreNode(Sema& sema) const;
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
@@ -1508,33 +1508,33 @@ struct AstIntrinsicInit : AstIntrinsicInitDropCopyMoveT<AstNodeId::IntrinsicInit
         AstNode::collectChildren(out, ast, spanArgsRef);
     }
 
-    Result codeGenPostNode(CodeGen& codeGen) const;
+    Result     codeGenPostNode(CodeGen& codeGen) const;
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
-    Result semaPostNode(Sema& sema) const;
+    Result     semaPostNode(Sema& sema) const;
 };
 
 // -----------------------------------------------------------------------------
 struct AstIntrinsicDrop : AstIntrinsicInitDropCopyMoveT<AstNodeId::IntrinsicDrop>
 {
-    Result codeGenPostNode(CodeGen& codeGen) const;
+    Result     codeGenPostNode(CodeGen& codeGen) const;
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
-    Result semaPostNode(Sema& sema) const;
+    Result     semaPostNode(Sema& sema) const;
 };
 
 // -----------------------------------------------------------------------------
 struct AstIntrinsicPostCopy : AstIntrinsicInitDropCopyMoveT<AstNodeId::IntrinsicPostCopy>
 {
-    Result codeGenPostNode(CodeGen& codeGen) const;
+    Result     codeGenPostNode(CodeGen& codeGen) const;
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
-    Result semaPostNode(Sema& sema) const;
+    Result     semaPostNode(Sema& sema) const;
 };
 
 // -----------------------------------------------------------------------------
 struct AstIntrinsicPostMove : AstIntrinsicInitDropCopyMoveT<AstNodeId::IntrinsicPostMove>
 {
-    Result codeGenPostNode(CodeGen& codeGen) const;
+    Result     codeGenPostNode(CodeGen& codeGen) const;
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
-    Result semaPostNode(Sema& sema) const;
+    Result     semaPostNode(Sema& sema) const;
 };
 
 // -----------------------------------------------------------------------------

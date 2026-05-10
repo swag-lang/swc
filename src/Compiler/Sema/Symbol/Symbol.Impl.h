@@ -29,15 +29,15 @@ public:
     {
     }
 
-    bool       isForStruct() const noexcept { return hasExtraFlag(SymbolImplFlagsE::ForStruct); }
-    bool       isForEnum() const noexcept { return hasExtraFlag(SymbolImplFlagsE::ForEnum); }
-    bool       isForInterface() const noexcept { return hasExtraFlag(SymbolImplFlagsE::ForInterface); }
-    bool       isPendingRegistrationResolved() const noexcept { return hasExtraFlag(SymbolImplFlagsE::PendingRegistrationResolved); }
-    void       setPendingRegistrationResolved() noexcept { addExtraFlag(SymbolImplFlagsE::PendingRegistrationResolved); }
+    bool          isForStruct() const noexcept { return hasExtraFlag(SymbolImplFlagsE::ForStruct); }
+    bool          isForEnum() const noexcept { return hasExtraFlag(SymbolImplFlagsE::ForEnum); }
+    bool          isForInterface() const noexcept { return hasExtraFlag(SymbolImplFlagsE::ForInterface); }
+    bool          isPendingRegistrationResolved() const noexcept { return hasExtraFlag(SymbolImplFlagsE::PendingRegistrationResolved); }
+    void          setPendingRegistrationResolved() noexcept { addExtraFlag(SymbolImplFlagsE::PendingRegistrationResolved); }
     IdentifierRef pendingRegistrationTargetIdRef() const noexcept { return pendingRegistrationTargetIdRef_; }
     void          setPendingRegistrationTargetIdRef(IdentifierRef idRef) noexcept { pendingRegistrationTargetIdRef_ = idRef; }
-    AstNodeRef genericBlockRef() const noexcept { return genericBlockRef_; }
-    void       setGenericBlockRef(AstNodeRef nodeRef) noexcept { genericBlockRef_ = nodeRef; }
+    AstNodeRef    genericBlockRef() const noexcept { return genericBlockRef_; }
+    void          setGenericBlockRef(AstNodeRef nodeRef) noexcept { genericBlockRef_ = nodeRef; }
 
     SymbolStruct*    symStruct() const;
     void             setSymStruct(SymbolStruct* sym);
@@ -63,9 +63,9 @@ private:
         SymbolEnum*   ownerEnum_;
     };
 
-    SymbolInterface* interfaceSym_    = nullptr;
+    SymbolInterface* interfaceSym_                   = nullptr;
     IdentifierRef    pendingRegistrationTargetIdRef_ = IdentifierRef::invalid();
-    AstNodeRef       genericBlockRef_ = AstNodeRef::invalid();
+    AstNodeRef       genericBlockRef_                = AstNodeRef::invalid();
 };
 
 SWC_END_NAMESPACE();

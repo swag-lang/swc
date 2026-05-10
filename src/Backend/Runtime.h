@@ -321,7 +321,7 @@ namespace Runtime
         void*              address;
         uint64_t           size;
         uint64_t           oldSize;
-        AllocatorMode      mode = AllocatorMode::Alloc;
+        AllocatorMode      mode      = AllocatorMode::Alloc;
         uint32_t           alignment = 0;
     };
 

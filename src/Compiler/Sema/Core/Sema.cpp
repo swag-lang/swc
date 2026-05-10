@@ -1118,8 +1118,8 @@ namespace
 
 void Sema::waitDone(TaskContext& ctx, JobClientId clientId)
 {
-    auto&             jobMgr         = ctx.global().jobMgr();
-    CompilerInstance& compiler       = ctx.compiler();
+    auto&             jobMgr   = ctx.global().jobMgr();
+    CompilerInstance& compiler = ctx.compiler();
 
     while (true)
     {

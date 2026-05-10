@@ -287,7 +287,7 @@ namespace
         TypeRef                   leftTypeRef  = leftPayload.effectiveTypeRef(leftTypeView.typeRef());
         leftTypeRef                            = resolveRuntimeLeftTypeRef(codeGen, node.nodeLeftRef, leftTypeRef);
         SWC_ASSERT(leftTypeRef.isValid());
-        const TypeInfo&           leftTypeInfo = codeGen.typeMgr().get(aliasEnumTypeRef(codeGen, leftTypeRef));
+        const TypeInfo& leftTypeInfo = codeGen.typeMgr().get(aliasEnumTypeRef(codeGen, leftTypeRef));
 
         // Runtime member accesses inside generic instances must use the field symbol of the active
         // specialization. Reusing the root generic field leaks stale offsets and field types into

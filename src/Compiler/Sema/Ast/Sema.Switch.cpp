@@ -303,8 +303,8 @@ namespace
 
     Result validateDynamicStructCaseExpr(Sema& sema, AstNodeRef switchRef, AstNodeRef caseRef, AstNodeRef caseExprRef)
     {
-        const auto& caseStmt = sema.node(caseRef).cast<AstSwitchCaseStmt>();
-        const auto caseExprRefs = collectSwitchCaseExprRefs(sema, caseStmt);
+        const auto& caseStmt     = sema.node(caseRef).cast<AstSwitchCaseStmt>();
+        const auto  caseExprRefs = collectSwitchCaseExprRefs(sema, caseStmt);
 
         AstNodeRef typeExprRef     = caseExprRef;
         AstNodeRef bindingIdentRef = AstNodeRef::invalid();
@@ -634,8 +634,8 @@ namespace
 
     Result validateFallthroughStatementPosition(Sema& sema, AstNodeRef caseRef, AstNodeRef stmtRef)
     {
-        const auto statements = collectSwitchCaseBodyStmtRefs(sema, sema.node(caseRef).cast<AstSwitchCaseStmt>());
-        const auto* itStmt    = std::ranges::find(statements, stmtRef);
+        const auto  statements = collectSwitchCaseBodyStmtRefs(sema, sema.node(caseRef).cast<AstSwitchCaseStmt>());
+        const auto* itStmt     = std::ranges::find(statements, stmtRef);
         if (itStmt == statements.end())
             return SemaError::raise(sema, DiagnosticId::sema_err_fallthrough_outside_switch_case, stmtRef);
         if (itStmt + 1 != statements.end())
@@ -646,7 +646,7 @@ namespace
 
     Result validateFallthroughHasNextCase(Sema& sema, AstNodeRef switchRef, AstNodeRef caseRef, AstNodeRef stmtRef)
     {
-        const auto cases = collectSwitchStmtCaseRefs(sema, sema.node(switchRef).cast<AstSwitchStmt>());
+        const auto  cases  = collectSwitchStmtCaseRefs(sema, sema.node(switchRef).cast<AstSwitchStmt>());
         const auto* itCase = std::ranges::find(cases, caseRef);
         if (itCase == cases.end())
             return SemaError::raise(sema, DiagnosticId::sema_err_fallthrough_outside_switch_case, stmtRef);

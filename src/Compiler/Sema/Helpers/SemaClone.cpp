@@ -1533,8 +1533,8 @@ AstNodeRef AstStructDecl::semaClone(Sema& sema, const CloneContext& cloneContext
 
 AstNodeRef AstInterfaceDecl::semaClone(Sema& sema, const CloneContext& cloneContext) const
 {
-    const AstNodeRef newRef = cloneNodeCopy<AstNodeId::InterfaceDecl>(sema, *this);
-    auto&            cloned = sema.node(newRef).cast<AstInterfaceDecl>();
+    const AstNodeRef newRef     = cloneNodeCopy<AstNodeId::InterfaceDecl>(sema, *this);
+    auto&            cloned     = sema.node(newRef).cast<AstInterfaceDecl>();
     cloned.spanGenericParamsRef = cloneSpan(sema, spanGenericParamsRef, cloneContextAsInline(cloneContext));
     cloned.spanWhereRef         = cloneSpan(sema, spanWhereRef, cloneContextAsInline(cloneContext));
     cloned.nodeBodyRef          = cloneNodeRef(sema, nodeBodyRef, cloneContextAsInline(cloneContext));

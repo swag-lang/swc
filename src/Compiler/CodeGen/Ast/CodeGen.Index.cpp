@@ -1,7 +1,7 @@
 #include "pch.h"
+#include "Compiler/CodeGen/Core/CodeGen.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Runtime.h"
-#include "Compiler/CodeGen/Core/CodeGen.h"
 #include "Compiler/CodeGen/Core/CodeGenCallHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenConstantHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenReferenceHelpers.h"
@@ -12,9 +12,9 @@
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Core/NodePayload.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
-#include "Compiler/Sema/Symbol/Symbol.Impl.h"
 #include "Compiler/Sema/Symbol/Symbol.Enum.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
+#include "Compiler/Sema/Symbol/Symbol.Impl.h"
 #include "Compiler/Sema/Symbol/Symbol.Struct.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Compiler/Sema/Type/TypeInfo.h"
@@ -264,7 +264,7 @@ namespace
             const SemaNodeView rightView = codeGen.viewSymbol(memberAccess->nodeRightRef);
             if (rightView.sym() && rightView.sym()->isVariable())
             {
-                const SymbolVariable& semaField = rightView.sym()->cast<SymbolVariable>();
+                const SymbolVariable& semaField   = rightView.sym()->cast<SymbolVariable>();
                 const TypeRef         leftTypeRef = resolveMemberAccessLeftTypeRef(codeGen, memberAccess->nodeLeftRef);
                 const SymbolVariable& field       = resolveConcreteStructMemberSymbol(codeGen, leftTypeRef, semaField);
                 return field.typeRef();
@@ -543,7 +543,7 @@ namespace
         CodeGenNodePayload indexedPayload = codeGen.payload(node.nodeExprRef);
         const SemaNodeView indexedView    = codeGen.viewType(node.nodeExprRef);
         TypeRef            indexedTypeRef = indexedPayload.effectiveTypeRef(indexedView.typeRef());
-        indexedTypeRef                   = resolveIndexedExprTypeRef(codeGen, node.nodeExprRef, indexedTypeRef);
+        indexedTypeRef                    = resolveIndexedExprTypeRef(codeGen, node.nodeExprRef, indexedTypeRef);
         CodeGenReferenceHelpers::unwrapAliasRefPayload(codeGen, indexedPayload, indexedTypeRef);
         const SemaNodeView resultView = codeGen.curViewType();
         SWC_ASSERT(indexedView.type());
@@ -740,7 +740,7 @@ Result AstIndexExpr::codeGenPostNode(CodeGen& codeGen) const
     CodeGenNodePayload indexedPayload = codeGen.payload(nodeExprRef);
     const SemaNodeView indexedView    = codeGen.viewType(nodeExprRef);
     TypeRef            indexedTypeRef = indexedPayload.effectiveTypeRef(indexedView.typeRef());
-    indexedTypeRef                   = resolveIndexedExprTypeRef(codeGen, nodeExprRef, indexedTypeRef);
+    indexedTypeRef                    = resolveIndexedExprTypeRef(codeGen, nodeExprRef, indexedTypeRef);
     CodeGenReferenceHelpers::unwrapAliasRefPayload(codeGen, indexedPayload, indexedTypeRef);
     const SemaNodeView resultView = codeGen.curViewType();
 

@@ -366,7 +366,7 @@ namespace
         if (!exprPayload.isAddress())
             return Result::Error;
 
-        MicroBuilder& builder = codeGen.builder();
+        MicroBuilder& builder            = codeGen.builder();
         switchState.dynamicSourceTypeReg = codeGen.nextVirtualIntRegister();
         switchState.dynamicSourcePtrReg  = codeGen.nextVirtualIntRegister();
 
@@ -605,7 +605,7 @@ Result AstSwitchCaseStmt::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef
         if (spanExprRef.isValid())
         {
             const auto caseExprRefs = collectSwitchCaseExprRefs(codeGen, *this);
-            const bool hasWhere = nodeWhereRef.isValid();
+            const bool hasWhere     = nodeWhereRef.isValid();
             // A `where` clause only runs after one case expression matched, so all successful tests funnel
             // through a shared label before entering the body.
             const MicroLabelRef matchLabel = hasWhere ? builder.createLabel() : caseState.bodyLabel;
@@ -637,9 +637,9 @@ Result AstSwitchCaseStmt::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef
     {
         if (spanExprRef.isValid())
         {
-            const auto caseExprRefs = collectSwitchCaseExprRefs(codeGen, *this);
-            const bool          hasWhere   = nodeWhereRef.isValid();
-            const MicroLabelRef matchLabel = hasWhere ? builder.createLabel() : caseState.bodyLabel;
+            const auto          caseExprRefs = collectSwitchCaseExprRefs(codeGen, *this);
+            const bool          hasWhere     = nodeWhereRef.isValid();
+            const MicroLabelRef matchLabel   = hasWhere ? builder.createLabel() : caseState.bodyLabel;
             for (const AstNodeRef caseExprRef : caseExprRefs)
             {
                 const CodeGenNodePayload& exprPayload = codeGen.payload(caseExprRef);

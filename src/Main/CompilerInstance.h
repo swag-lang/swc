@@ -261,10 +261,10 @@ private:
     };
 
     std::vector<PerThreadData>                            perThreadData_;
-    std::atomic<uint32_t>                                 atomicId_                 = 0;
-    std::atomic<uint32_t>                                 generatedSourceId_        = 0;
-    std::atomic<bool>                                     nativeOutputsCleared_     = false;
-    AstCompilerFunc*                                      mainFunc_                 = nullptr;
+    std::atomic<uint32_t>                                 atomicId_             = 0;
+    std::atomic<uint32_t>                                 generatedSourceId_    = 0;
+    std::atomic<bool>                                     nativeOutputsCleared_ = false;
+    AstCompilerFunc*                                      mainFunc_             = nullptr;
     std::vector<Utf8>                                     foreignLibs_;
     CompilerTagRegistry                                   compilerTags_;
     std::unordered_map<IdentifierRef, SymbolFunction*>    runtimeFunctionSymbols_;

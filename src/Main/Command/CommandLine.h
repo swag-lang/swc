@@ -128,6 +128,7 @@ struct CommandLine
 
     std::set<fs::path> directories;
     std::set<fs::path> files;
+    std::set<Utf8>     importApiModules;
     std::set<fs::path> importApiDirs;
     std::set<fs::path> importApiFiles;
 

@@ -28,6 +28,7 @@ namespace
     using CommandPrint::addInfoEntry;
     using CommandPrint::addInfoEntryParts;
     using CommandPrint::addPathSet;
+    using CommandPrint::addUtf8Set;
     using CommandPrint::nextInfoGroupStyle;
 
     void addPlanEntry(std::vector<Logger::FieldEntry>& entries, const uint32_t index, const std::string_view status, const LogColor statusColor, Utf8 detail)
@@ -287,6 +288,7 @@ namespace
         addInfoEntry(entries, "Export API directory", cmdLine.exportApiDir);
         addPathSet(entries, "Source directories", cmdLine.directories);
         addPathSet(entries, "Source files", cmdLine.files);
+        addUtf8Set(entries, "Import API modules", cmdLine.importApiModules);
         addPathSet(entries, "Import API directories", cmdLine.importApiDirs);
         addPathSet(entries, "Import API files", cmdLine.importApiFiles);
         Logger::printFieldGroup(ctx, "Resolved Inputs", entries, nextInfoGroupStyle(hasPrintedGroup, 24));

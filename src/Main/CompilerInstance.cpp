@@ -683,22 +683,6 @@ namespace
         return g_RuntimeContextTlsId;
     }
 
-    fs::path compilerResourceRoot(const fs::path& exeFullName)
-    {
-        fs::path exeDir = exeFullName.parent_path();
-
-        std::error_code ec;
-        if (fs::is_directory(exeDir / "runtime", ec))
-            return exeDir;
-
-        ec.clear();
-        fs::path repositoryBinDir = exeDir.parent_path() / "bin";
-        if (fs::is_directory(repositoryBinDir / "runtime", ec))
-            return repositoryBinDir;
-
-        return exeDir;
-    }
-
     void collectSwagFilesRec(const CommandLine& cmdLine, const fs::path& folder, std::vector<fs::path>& files, bool canFilter = true)
     {
         std::error_code ec;
@@ -1986,7 +1970,7 @@ Result CompilerInstance::collectFiles(TaskContext& ctx)
     // Collect runtime files
     if (cmdLine.runtime)
     {
-        fs::path runtimePath = compilerResourceRoot(exeFullName_) / "runtime";
+        fs::path runtimePath = FileSystem::compilerResourceRoot(exeFullName_) / "runtime";
         SWC_RESULT(FileSystem::resolveFolder(ctx, runtimePath));
         collectFolderFiles(runtimePath, FileFlagsE::Runtime, false);
     }

@@ -4,6 +4,7 @@
 #include "Main/FileSystem.h"
 #include "Main/TaskContext.h"
 #include "Support/Core/Utf8Helper.h"
+#include "Support/Os/Os.h"
 #include "Support/Report/Diagnostic.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -949,6 +950,14 @@ Result CommandLineParser::checkCommandLine(TaskContext& ctx) const
     cmdLine_->files = std::move(resolvedFiles);
 
     std::set<fs::path> resolvedImportApiDirs;
+    const fs::path     exeFullName = Os::getExeFullName();
+    for (const Utf8& moduleName : cmdLine_->importApiModules)
+    {
+        fs::path temp = FileSystem::generatedDependencyApiDir(exeFullName, moduleName.view());
+        SWC_RESULT(FileSystem::resolveFolder(ctx, temp));
+        resolvedImportApiDirs.insert(std::move(temp));
+    }
+
     for (const fs::path& folder : cmdLine_->importApiDirs)
     {
         fs::path temp = folder;

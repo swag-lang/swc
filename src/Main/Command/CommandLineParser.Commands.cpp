@@ -51,6 +51,9 @@ void CommandLineParser::registerCommands()
     add(HelpOptionGroup::Input, "all", "--module", "-m",
         &cmdLine_->modulePath,
         "Specify a module path to compile.");
+    add(HelpOptionGroup::Input, "sema test build run", "--import-api-module", nullptr,
+        &cmdLine_->importApiModules,
+        "Resolve a generated public API dependency from a module name, simulating a #import through <compiler-root>/.output/dep/<module>.");
     add(HelpOptionGroup::Input, "sema test build run", "--import-api-dir", nullptr,
         &cmdLine_->importApiDirs,
         "Add a directory of generated public API files (.swg/.swgs) to the compilation input.");

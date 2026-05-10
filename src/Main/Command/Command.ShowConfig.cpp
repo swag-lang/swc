@@ -97,6 +97,7 @@ namespace
         addInfoEntry(entries, "Output directory", Utf8(buildCfg.outDir));
         addPathSet(entries, "Source directories", cmdLine.directories);
         addPathSet(entries, "Source files", cmdLine.files);
+        addUtf8Set(entries, "Import API modules", cmdLine.importApiModules);
         addPathSet(entries, "Import API directories", cmdLine.importApiDirs);
         addPathSet(entries, "Import API files", cmdLine.importApiFiles);
         addUtf8Set(entries, "File filters", cmdLine.fileFilter);

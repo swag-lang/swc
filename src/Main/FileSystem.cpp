@@ -176,6 +176,21 @@ fs::path FileSystem::absolutePathNoThrow(const fs::path& path)
     return absolutePath.lexically_normal();
 }
 
+fs::path FileSystem::compilerResourceRoot(const fs::path& exeFullName)
+{
+    fs::path        exeDir = exeFullName.parent_path();
+    std::error_code ec;
+    if (fs::is_directory(exeDir / "runtime", ec))
+        return lexicallyNormalize(exeDir);
+
+    ec.clear();
+    fs::path repositoryBinDir = exeDir.parent_path() / "bin";
+    if (fs::is_directory(repositoryBinDir / "runtime", ec))
+        return lexicallyNormalize(repositoryBinDir);
+
+    return lexicallyNormalize(exeDir);
+}
+
 fs::path FileSystem::currentPathNoThrow()
 {
     std::error_code ec;
@@ -183,6 +198,15 @@ fs::path FileSystem::currentPathNoThrow()
     if (ec)
         return {};
     return currentDir.lexically_normal();
+}
+
+fs::path FileSystem::generatedDependencyApiDir(const fs::path& exeFullName, const std::string_view moduleName)
+{
+    fs::path result = compilerResourceRoot(exeFullName);
+    result /= ".output";
+    result /= "dep";
+    result /= fs::path(std::string(moduleName));
+    return lexicallyNormalize(result);
 }
 
 Utf8 FileSystem::formatDiagnosticPath(const TaskContext* ctx, const fs::path& path)

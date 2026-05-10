@@ -164,25 +164,25 @@ namespace
         return &typeInfo->payloadSymStruct();
     }
 
-    const SymbolVariable& resolveConcreteStructMemberSymbol(CodeGen& codeGen, TypeRef leftTypeRef, const SymbolVariable& memberSym)
+    const SymbolVariable* tryResolveConcreteStructMemberSymbol(CodeGen& codeGen, TypeRef leftTypeRef, const SymbolVariable& memberSym)
     {
         const SymbolStruct* leftStruct = resolveRuntimeStructType(codeGen, leftTypeRef);
         if (!leftStruct)
-            return memberSym;
+            return nullptr;
 
         const SymbolStruct* ownerStruct = variableOwnerStruct(memberSym);
         if (!ownerStruct || ownerStruct == leftStruct)
-            return memberSym;
+            return nullptr;
         if (!sameStructFamily(*ownerStruct, *leftStruct))
-            return memberSym;
+            return nullptr;
 
         for (const SymbolVariable* field : leftStruct->fields())
         {
             if (field && field->idRef() == memberSym.idRef())
-                return *field;
+                return field;
         }
 
-        return memberSym;
+        return nullptr;
     }
 
     const SymbolStruct* receiverRuntimeStruct(CodeGen& codeGen)
@@ -232,25 +232,25 @@ namespace
         return resolveRuntimeLeftTypeRef(codeGen, leftRef, leftTypeRef);
     }
 
-    const SymbolVariable& resolveConcreteReceiverFieldSymbol(CodeGen& codeGen, const SymbolVariable& fieldSym)
+    const SymbolVariable* tryResolveConcreteReceiverFieldSymbol(CodeGen& codeGen, const SymbolVariable& fieldSym)
     {
         const SymbolStruct* receiverStruct = receiverRuntimeStruct(codeGen);
         if (!receiverStruct)
-            return fieldSym;
+            return nullptr;
 
         const SymbolStruct* fieldOwner = variableOwnerStruct(fieldSym);
         if (!fieldOwner || fieldOwner == receiverStruct)
-            return fieldSym;
+            return nullptr;
         if (!sameStructFamily(*fieldOwner, *receiverStruct))
-            return fieldSym;
+            return nullptr;
 
         for (const SymbolVariable* field : receiverStruct->fields())
         {
             if (field && field->idRef() == fieldSym.idRef())
-                return *field;
+                return field;
         }
 
-        return fieldSym;
+        return nullptr;
     }
 
     TypeRef resolveIndexedExprTypeRef(CodeGen& codeGen, AstNodeRef indexedNodeRef, TypeRef fallbackTypeRef)
@@ -264,9 +264,10 @@ namespace
             const SemaNodeView rightView = codeGen.viewSymbol(memberAccess->nodeRightRef);
             if (rightView.sym() && rightView.sym()->isVariable())
             {
-                const SymbolVariable& semaField   = rightView.sym()->cast<SymbolVariable>();
-                const TypeRef         leftTypeRef = resolveMemberAccessLeftTypeRef(codeGen, memberAccess->nodeLeftRef);
-                const SymbolVariable& field       = resolveConcreteStructMemberSymbol(codeGen, leftTypeRef, semaField);
+                const SymbolVariable&  semaField        = rightView.sym()->cast<SymbolVariable>();
+                const TypeRef          leftTypeRef      = resolveMemberAccessLeftTypeRef(codeGen, memberAccess->nodeLeftRef);
+                const SymbolVariable*  concreteField    = tryResolveConcreteStructMemberSymbol(codeGen, leftTypeRef, semaField);
+                const SymbolVariable&  field            = concreteField ? *concreteField : semaField;
                 return field.typeRef();
             }
         }
@@ -276,8 +277,9 @@ namespace
             const SemaNodeView symbolView = codeGen.viewSymbol(indexedNodeRef);
             if (symbolView.sym() && symbolView.sym()->isVariable())
             {
-                const SymbolVariable& semaField = symbolView.sym()->cast<SymbolVariable>();
-                const SymbolVariable& field     = resolveConcreteReceiverFieldSymbol(codeGen, semaField);
+                const SymbolVariable& semaField     = symbolView.sym()->cast<SymbolVariable>();
+                const SymbolVariable* concreteField = tryResolveConcreteReceiverFieldSymbol(codeGen, semaField);
+                const SymbolVariable& field         = concreteField ? *concreteField : semaField;
                 return field.typeRef();
             }
         }

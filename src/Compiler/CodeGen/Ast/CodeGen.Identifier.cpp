@@ -72,21 +72,21 @@ namespace
         return &pointeeType.payloadSymStruct();
     }
 
-    const SymbolVariable& resolveConcreteReceiverFieldSymbol(const SymbolStruct& receiverStruct, const SymbolVariable& symVar)
+    const SymbolVariable* tryResolveConcreteReceiverFieldSymbol(const SymbolStruct& receiverStruct, const SymbolVariable& symVar)
     {
         const SymbolStruct* fieldOwner = variableOwnerStruct(symVar);
         if (!fieldOwner || fieldOwner == &receiverStruct)
-            return symVar;
+            return nullptr;
         if (!sameStructFamily(*fieldOwner, receiverStruct))
-            return symVar;
+            return nullptr;
 
         for (const SymbolVariable* field : receiverStruct.fields())
         {
             if (field && field->idRef() == symVar.idRef())
-                return *field;
+                return field;
         }
 
-        return symVar;
+        return nullptr;
     }
 
     SymbolVariable* implicitMeReceiver(CodeGen& codeGen)
@@ -112,8 +112,9 @@ namespace
         if (!receiverStruct)
             return false;
 
-        const SymbolVariable& concreteField = resolveConcreteReceiverFieldSymbol(*receiverStruct, symVar);
-        const SymbolStruct*   fieldOwner    = variableOwnerStruct(concreteField);
+        const SymbolVariable* concreteField    = tryResolveConcreteReceiverFieldSymbol(*receiverStruct, symVar);
+        const SymbolVariable& resolvedField    = concreteField ? *concreteField : symVar;
+        const SymbolStruct*   fieldOwner       = variableOwnerStruct(resolvedField);
         if (!fieldOwner || !sameStructFamily(*fieldOwner, *receiverStruct))
             return false;
 
@@ -133,10 +134,10 @@ namespace
             codeGen.builder().emitLoadRegMem(baseAddressReg, receiverPayload.reg, 0, MicroOpBits::B64);
         }
 
-        outPayload.typeRef = concreteField.typeRef();
+        outPayload.typeRef = resolvedField.typeRef();
         outPayload.reg     = codeGen.nextVirtualIntRegister();
         outPayload.setIsAddress();
-        codeGen.builder().emitLoadAddressRegMem(outPayload.reg, baseAddressReg, concreteField.offset(), MicroOpBits::B64);
+        codeGen.builder().emitLoadAddressRegMem(outPayload.reg, baseAddressReg, resolvedField.offset(), MicroOpBits::B64);
         return true;
     }
 

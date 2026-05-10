@@ -19,6 +19,10 @@
 
 - Avoid functions with **too many parameters**.
 - Group related parameters into **structs or objects** when appropriate.
+- A function that takes an object by **reference** must not return that same object by reference.
+- If a helper may either resolve an alternate object or keep the original input, make that fallback explicit at the
+  call site. Prefer returning a pointer/handle (for the alternate result) or another explicit status instead of
+  silently aliasing an input reference in the return value.
 - When returning values via parameters:
     - Place **output parameters first**, after global/context parameters (e.g., managers).
 

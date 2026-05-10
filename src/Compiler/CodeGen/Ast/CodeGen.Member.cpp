@@ -248,27 +248,27 @@ namespace
         return receiverStruct->typeRef();
     }
 
-    const SymbolVariable& resolveConcreteStructMemberSymbol(CodeGen& codeGen, TypeRef leftTypeRef, const SymbolVariable& memberSym)
+    const SymbolVariable* tryResolveConcreteStructMemberSymbol(CodeGen& codeGen, TypeRef leftTypeRef, const SymbolVariable& memberSym)
     {
         const SymbolStruct* leftStruct = resolveRuntimeStructType(codeGen, leftTypeRef);
         if (!leftStruct)
-            return memberSym;
+            return nullptr;
 
         const auto* ownerStruct = memberSym.ownerSymMap() ? memberSym.ownerSymMap()->safeCast<SymbolStruct>() : nullptr;
         if (!ownerStruct || ownerStruct == leftStruct)
-            return memberSym;
+            return nullptr;
         const SymbolStruct* leftRoot  = leftStruct->isGenericInstance() ? leftStruct->genericRootSym() : leftStruct;
         const SymbolStruct* ownerRoot = ownerStruct->isGenericInstance() ? ownerStruct->genericRootSym() : ownerStruct;
         if (leftRoot != ownerRoot)
-            return memberSym;
+            return nullptr;
 
         for (const SymbolVariable* field : leftStruct->fields())
         {
             if (field && field->idRef() == memberSym.idRef())
-                return *field;
+                return field;
         }
 
-        return memberSym;
+        return nullptr;
     }
 
     Result codeGenStructMemberAccess(CodeGen& codeGen, const AstMemberAccessExpr& node)
@@ -286,7 +286,8 @@ namespace
         // Runtime member accesses inside generic instances must use the field symbol of the active
         // specialization. Reusing the root generic field leaks stale offsets and field types into
         // codegen, which breaks layout-sensitive member/index chains.
-        const SymbolVariable& symVar = resolveConcreteStructMemberSymbol(codeGen, leftTypeRef, semaSymVar);
+        const SymbolVariable* concreteSymVar = tryResolveConcreteStructMemberSymbol(codeGen, leftTypeRef, semaSymVar);
+        const SymbolVariable& symVar         = concreteSymVar ? *concreteSymVar : semaSymVar;
 
         const TypeRef                    memberTypeRef = symVar.typeRef();
         const CodeGenNodePayload&        payload       = codeGen.setPayloadAddress(codeGen.curNodeRef(), memberTypeRef);

@@ -192,6 +192,11 @@ struct ConstPointerVisits
     values: [3] s32 = [7, 8, 9]
 }
 
+struct ReturnVisits
+{
+    values: [3] s32 = [4, 5, 6]
+}
+
 impl HiddenAliasVisits
 {
     #[Swag.Macro]
@@ -337,6 +342,48 @@ impl ConstPointerVisits
             }
         }
     }
+}
+
+impl ReturnVisits
+{
+    #[Swag.Macro]
+    mtd(ptr: bool, back: bool) const opVisit(stmt: #code void)
+    {
+        #if ptr do
+            #error("ReturnVisits does not expose pointer iteration.")
+
+        if !@countof(.values) do
+            return
+
+        var remain = @countof(.values)
+        #scope(Up)
+        for idx in @countof(.values)
+        {
+            #scope(Down)
+            #macro
+            {
+                let #alias0 = #up me.values[#up idx]
+                #inject(#up stmt, break = break to Up, continue = break to Down)
+            }
+
+            remain -= 1
+            if !remain do
+                break
+        }
+    }
+}
+
+func nativeForeachVisitReturn()->bool
+{
+    var values = ReturnVisits{}
+
+    foreach value in values
+    {
+        if value == 6 do
+            return true
+    }
+
+    return false
 }
 
 struct(T) GenericScopedVisits
@@ -547,6 +594,11 @@ impl GenericScopedVisits
     }
 
     @assert(sum == 27)
+}
+
+#test
+{
+    @assert(nativeForeachVisitReturn())
 }
 
 #test

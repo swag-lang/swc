@@ -225,6 +225,15 @@ func makePatternString(count: u64)->String
 
 #test
 {
+    var value: String = "alpha"
+    let ref = cast(const &String) value
+
+    @assert(ref.toString() == "alpha")
+    @assert(ref == "alpha")
+}
+
+#test
+{
     var value: String = "az\u00E9"
     value.makeUpper()
     @assert(assertString(value, "AZ\u00C9"))

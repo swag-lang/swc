@@ -725,6 +725,47 @@ void* NodePayload::getInlinePayload(AstNodeRef nodeRef) const
     return it->second;
 }
 
+bool NodePayload::hasInlineContextOverride(AstNodeRef nodeRef) const
+{
+    if (nodeRef.isInvalid())
+        return false;
+    const uint32_t shardIdx = nodeRef.get() % NODE_PAYLOAD_SHARD_NUM;
+    const Shard*   shard    = tryGetShard(shardIdx);
+    if (!shard)
+        return false;
+
+    const std::shared_lock lock(shard->mutex);
+    const auto             it = shard->inlineContextOverrides.find(nodeRef);
+    return it != shard->inlineContextOverrides.end() && it->second != nullptr;
+}
+
+void NodePayload::setInlineContextOverride(AstNodeRef nodeRef, void* payload)
+{
+    SWC_ASSERT(nodeRef.isValid());
+    SWC_ASSERT(payload);
+    const uint32_t         shardIdx = nodeRef.get() % NODE_PAYLOAD_SHARD_NUM;
+    Shard*                 shard    = ensureShard(shardIdx);
+    const std::unique_lock lock(shard->mutex);
+    SWC_ASSERT(!shard->inlineContextOverrides.contains(nodeRef));
+    shard->inlineContextOverrides[nodeRef] = payload;
+}
+
+void* NodePayload::getInlineContextOverride(AstNodeRef nodeRef) const
+{
+    if (nodeRef.isInvalid())
+        return nullptr;
+    const uint32_t shardIdx = nodeRef.get() % NODE_PAYLOAD_SHARD_NUM;
+    const Shard*   shard    = tryGetShard(shardIdx);
+    if (!shard)
+        return nullptr;
+
+    const std::shared_lock lock(shard->mutex);
+    const auto             it = shard->inlineContextOverrides.find(nodeRef);
+    if (it == shard->inlineContextOverrides.end())
+        return nullptr;
+    return it->second;
+}
+
 void NodePayload::setSemaPayload(AstNodeRef nodeRef, void* payload)
 {
     SWC_ASSERT(nodeRef.isValid());

@@ -252,6 +252,12 @@ namespace
         const bool isMacroInject = inlinePayload &&
                                    inlinePayload->sourceFunction &&
                                    inlinePayload->sourceFunction->attributes().hasRtFlag(RtAttributeFlagsE::Macro);
+        bool injectsVoidCode = false;
+        if (const TypeRef exprTypeRef = sema.viewType(exprRef).typeRef(); exprTypeRef.isValid())
+        {
+            const TypeInfo& exprType = sema.typeMgr().get(exprTypeRef);
+            injectsVoidCode          = exprType.isCodeBlock() && exprType.payloadTypeRef() == sema.typeMgr().typeVoid();
+        }
         if (isMixinInject)
         {
             // Mixin code arguments are re-cloned during #inject, so keep the active
@@ -267,6 +273,13 @@ namespace
         sema.setSubstitute(ownerRef, clonedRef);
         if (isMacroInject)
         {
+            if (injectsVoidCode)
+            {
+                auto* inlineOverridePayload                 = sema.compiler().allocate<SemaInlineContextOverride>();
+                inlineOverridePayload->targetInlinePayload  = inlinePayload->parentInlinePayload;
+                sema.setInlineContextOverride(clonedRef, inlineOverridePayload);
+            }
+
             auto       frame       = sema.frame();
             SemaScope* callerScope = inlinePayload->callerScope;
             SemaScope* injectScope = sema.lookupScope();

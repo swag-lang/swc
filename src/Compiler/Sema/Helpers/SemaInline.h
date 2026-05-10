@@ -33,4 +33,9 @@ struct SemaInlinePayload
     TypeRef                                          returnTypeRef    = TypeRef::invalid();
 };
 
+struct SemaInlineContextOverride
+{
+    const SemaInlinePayload* targetInlinePayload = nullptr;
+};
+
 SWC_END_NAMESPACE();

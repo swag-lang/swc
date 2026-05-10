@@ -190,6 +190,11 @@ struct JitConstPointerVisits
     values: [3] s32 = [7, 8, 9]
 }
 
+struct JitReturnVisits
+{
+    values: [3] s32 = [4, 5, 6]
+}
+
 impl JitHiddenAliasVisits
 {
     #[Swag.Macro]
@@ -337,6 +342,35 @@ impl JitConstPointerVisits
     }
 }
 
+impl JitReturnVisits
+{
+    #[Swag.Macro]
+    mtd(ptr: bool, back: bool) const opVisit(stmt: #code void)
+    {
+        #if ptr do
+            #error("JitReturnVisits does not expose pointer iteration.")
+
+        if !@countof(.values) do
+            return
+
+        var remain = @countof(.values)
+        #scope(Up)
+        for idx in @countof(.values)
+        {
+            #scope(Down)
+            #macro
+            {
+                let #alias0 = #up me.values[#up idx]
+                #inject(#up stmt, break = break to Up, continue = break to Down)
+            }
+
+            remain -= 1
+            if !remain do
+                break
+        }
+    }
+}
+
 func jitForeachVisitForward()->s32
 {
     var values = JitFieldVisits{}
@@ -375,6 +409,19 @@ func jitForeachVisitByAddress()->s32
     return values.values[0] + values.values[1] + values.values[2]
 }
 
+func jitForeachVisitReturn()->bool
+{
+    var values = JitReturnVisits{}
+
+    foreach value in values
+    {
+        if value == 6 do
+            return true
+    }
+
+    return false
+}
+
 #test
 {
     const V = #run jitForeachVisitForward()
@@ -391,4 +438,9 @@ func jitForeachVisitByAddress()->s32
 {
     const V = #run jitForeachVisitByAddress()
     #assert(V == 24)
+}
+
+#test
+{
+    @assert(jitForeachVisitReturn())
 }

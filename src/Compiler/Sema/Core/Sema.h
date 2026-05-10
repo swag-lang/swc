@@ -216,6 +216,20 @@ public:
     bool               hasInlinePayload(AstNodeRef n) const { return nodePayloadContext().hasInlinePayload(n); }
     void               setInlinePayload(AstNodeRef n, SemaInlinePayload* payload) { nodePayloadContext().setInlinePayload(n, payload); }
     SemaInlinePayload* inlinePayload(AstNodeRef n) const { return static_cast<SemaInlinePayload*>(nodePayloadContext().getInlinePayload(n)); }
+    template<typename T>
+    void setInlineContextOverride(AstNodeRef n, T* payload)
+    {
+        nodePayloadContext().setInlineContextOverride(n, payload);
+    }
+
+    template<typename T>
+    T* inlineContextOverride(AstNodeRef n) const
+    {
+        void* payload = nodePayloadContext().getInlineContextOverride(n);
+        if (!payload)
+            return nullptr;
+        return static_cast<T*>(payload);
+    }
 
     bool hasSemaPayload(AstNodeRef n) const { return nodePayloadContext().hasSemaPayload(n); }
     void clearSemaPayload(AstNodeRef n) { nodePayloadContext().clearSemaPayload(n); }

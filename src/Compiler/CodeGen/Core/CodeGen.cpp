@@ -20,6 +20,25 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    MicroLabelRef findMatchingInlineDoneLabel(std::span<const CodeGenFrame> frames, AstNodeRef rootNodeRef, const SemaInlinePayload* payload)
+    {
+        if (!payload || rootNodeRef.isInvalid())
+            return MicroLabelRef::invalid();
+
+        for (size_t frameIndex = frames.size(); frameIndex != 0; --frameIndex)
+        {
+            const CodeGenFrame& frame = frames[frameIndex - 1];
+            if (!frame.hasCurrentInlineContext())
+                continue;
+
+            const CodeGenFrame::InlineContext& inlineCtx = frame.currentInlineContext();
+            if (inlineCtx.rootNodeRef == rootNodeRef && inlineCtx.payload == payload)
+                return inlineCtx.doneLabel;
+        }
+
+        return MicroLabelRef::invalid();
+    }
+
     bool isStackAddressPayload(const CodeGen& codeGen, const SymbolVariable& sym, const CodeGenNodePayload& payload)
     {
         if (!payload.isAddress())
@@ -300,6 +319,7 @@ void CodeGenFrame::setCurrentInlineContext(AstNodeRef rootNodeRef, const SemaInl
     inlineContext_.rootNodeRef = rootNodeRef;
     inlineContext_.payload     = payload;
     inlineContext_.doneLabel   = doneLabel;
+    inlineBoundaryRootRef_     = rootNodeRef;
 }
 
 CodeGen::CodeGen(Sema& sema) :
@@ -1278,24 +1298,34 @@ void CodeGen::popFrame()
         const CodeGenFrame& currentFrame = frames_.back();
         CodeGenFrame&       parentFrame  = frames_[frames_.size() - 2];
 
-        if (currentFrame.hasCurrentInlineContext() &&
-            parentFrame.hasCurrentInlineContext() &&
-            currentFrame.currentInlineContext().rootNodeRef == parentFrame.currentInlineContext().rootNodeRef &&
-            currentFrame.currentInlineContext().payload == parentFrame.currentInlineContext().payload)
+        if (currentFrame.hasCurrentInlineContext())
         {
-            const MicroLabelRef childDoneLabel = currentFrame.currentInlineContext().doneLabel;
+            const CodeGenFrame::InlineContext& childInlineCtx = currentFrame.currentInlineContext();
+            const MicroLabelRef                childDoneLabel = childInlineCtx.doneLabel;
             if (childDoneLabel.isValid())
             {
-                const MicroLabelRef parentDoneLabel = parentFrame.currentInlineContext().doneLabel;
-                SWC_ASSERT(parentDoneLabel == MicroLabelRef::invalid() || parentDoneLabel == childDoneLabel);
-                if (parentDoneLabel == MicroLabelRef::invalid())
-                    parentFrame.setCurrentInlineDoneLabel(childDoneLabel);
+                for (size_t frameIndex = frames_.size() - 1; frameIndex != 0; --frameIndex)
+                {
+                    CodeGenFrame& ancestorFrame = frames_[frameIndex - 1];
+                    if (!ancestorFrame.hasCurrentInlineContext())
+                        continue;
+
+                    const CodeGenFrame::InlineContext& ancestorInlineCtx = ancestorFrame.currentInlineContext();
+                    if (ancestorInlineCtx.rootNodeRef != childInlineCtx.rootNodeRef || ancestorInlineCtx.payload != childInlineCtx.payload)
+                        continue;
+
+                    const MicroLabelRef ancestorDoneLabel = ancestorInlineCtx.doneLabel;
+                    SWC_ASSERT(ancestorDoneLabel == MicroLabelRef::invalid() || ancestorDoneLabel == childDoneLabel);
+                    if (ancestorDoneLabel == MicroLabelRef::invalid())
+                        ancestorFrame.setCurrentInlineDoneLabel(childDoneLabel);
+                    break;
+                }
             }
         }
 
         // Inline/macro expansion runs inside a copied frame. If that copy records a `continue`,
         // propagate the flag back so the enclosing loop still materializes its continue block.
-        if (currentFrame.hasCurrentInlineContext() &&
+        if (currentFrame.hasCurrentInlineBoundary() &&
             currentFrame.currentLoopHasContinueJump() &&
             currentFrame.currentBreakableKind() == CodeGenFrame::BreakContextKind::Loop &&
             parentFrame.currentBreakableKind() == currentFrame.currentBreakableKind() &&
@@ -1345,11 +1375,28 @@ Result CodeGen::preNode(AstNode& node)
     const AstNodeIdInfo& info = Ast::nodeIdInfos(node.id());
     SWC_RESULT(info.codeGenPreNode(*this, node));
 
-    const SemaInlinePayload* inlinePayload = sema().inlinePayload(curNodeRef());
-    if (inlinePayload && inlinePayload->inlineRootRef == curNodeRef())
+    const AstNodeRef currentNodeRef = curNodeRef();
+    if (const SemaInlinePayload* inlinePayload = sema().inlinePayload(currentNodeRef);
+        inlinePayload && inlinePayload->inlineRootRef == currentNodeRef)
     {
         CodeGenFrame frame = this->frame();
-        frame.setCurrentInlineContext(curNodeRef(), inlinePayload, MicroLabelRef::invalid());
+        frame.setCurrentInlineContext(currentNodeRef, inlinePayload, MicroLabelRef::invalid());
+        pushFrame(frame);
+    }
+    else if (const auto* inlineOverride = sema().inlineContextOverride<SemaInlineContextOverride>(currentNodeRef))
+    {
+        CodeGenFrame frame = this->frame();
+        if (const SemaInlinePayload* targetInlinePayload = inlineOverride->targetInlinePayload)
+        {
+            const MicroLabelRef doneLabel = findMatchingInlineDoneLabel(frames(), targetInlinePayload->inlineRootRef, targetInlinePayload);
+            frame.setCurrentInlineContext(targetInlinePayload->inlineRootRef, targetInlinePayload, doneLabel);
+        }
+        else
+        {
+            frame.clearCurrentInlineContext();
+        }
+
+        frame.setCurrentInlineBoundaryRootRef(currentNodeRef);
         pushFrame(frame);
     }
 
@@ -1372,28 +1419,31 @@ Result CodeGen::postNode(AstNode& node)
         SWC_RESULT(info.codeGenPostNode(*this, node));
     }
 
-    if (frame().hasCurrentInlineContext() && frame().currentInlineContext().rootNodeRef == curNodeRef())
+    if (frame().hasCurrentInlineBoundary() && frame().currentInlineBoundaryRootRef() == curNodeRef())
     {
-        const CodeGenFrame::InlineContext inlineCtx = frame().currentInlineContext();
-        SWC_ASSERT(inlineCtx.payload != nullptr);
-
-        if (inlineCtx.doneLabel.isValid())
-            builder().placeLabel(inlineCtx.doneLabel);
-
-        auto* inlineNodePayload    = compiler().allocate<CodeGenNodePayload>();
-        *inlineNodePayload         = {};
-        inlineNodePayload->typeRef = inlineCtx.payload->returnTypeRef;
-        if (inlineCtx.payload->returnTypeRef != typeMgr().typeVoid())
+        if (frame().hasCurrentInlineContext() && frame().currentInlineContext().rootNodeRef == curNodeRef())
         {
-            SWC_ASSERT(inlineCtx.payload->resultVar != nullptr);
-            const SymbolVariable& resultVar = *inlineCtx.payload->resultVar;
-            SWC_ASSERT(resultVar.hasExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack));
-            SWC_ASSERT(localStackBaseReg().isValid());
+            const CodeGenFrame::InlineContext inlineCtx = frame().currentInlineContext();
+            SWC_ASSERT(inlineCtx.payload != nullptr);
 
-            inlineNodePayload->setIsAddress();
-            inlineNodePayload->reg = offsetAddressReg(localStackBaseReg(), resultVar.offset());
+            if (inlineCtx.doneLabel.isValid())
+                builder().placeLabel(inlineCtx.doneLabel);
+
+            auto* inlineNodePayload    = compiler().allocate<CodeGenNodePayload>();
+            *inlineNodePayload         = {};
+            inlineNodePayload->typeRef = inlineCtx.payload->returnTypeRef;
+            if (inlineCtx.payload->returnTypeRef != typeMgr().typeVoid())
+            {
+                SWC_ASSERT(inlineCtx.payload->resultVar != nullptr);
+                const SymbolVariable& resultVar = *inlineCtx.payload->resultVar;
+                SWC_ASSERT(resultVar.hasExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack));
+                SWC_ASSERT(localStackBaseReg().isValid());
+
+                inlineNodePayload->setIsAddress();
+                inlineNodePayload->reg = offsetAddressReg(localStackBaseReg(), resultVar.offset());
+            }
+            sema().setCodeGenPayload(curNodeRef(), inlineNodePayload);
         }
-        sema().setCodeGenPayload(curNodeRef(), inlineNodePayload);
 
         popFrame();
     }

@@ -216,7 +216,11 @@ public:
     TypeRef              currentLoopIndexTypeRef() const { return currentLoopIndexTypeRef_; }
     const InlineContext& currentInlineContext() const { return inlineContext_; }
     void                 setCurrentInlineContext(AstNodeRef rootNodeRef, const SemaInlinePayload* payload, MicroLabelRef doneLabel);
+    void                 clearCurrentInlineContext() { inlineContext_ = {}; }
+    AstNodeRef           currentInlineBoundaryRootRef() const { return inlineBoundaryRootRef_; }
+    void                 setCurrentInlineBoundaryRootRef(AstNodeRef nodeRef) { inlineBoundaryRootRef_ = nodeRef; }
     void                 setCurrentInlineDoneLabel(MicroLabelRef doneLabel) { inlineContext_.doneLabel = doneLabel; }
+    bool                 hasCurrentInlineBoundary() const { return inlineBoundaryRootRef_.isValid(); }
     bool                 hasCurrentInlineContext() const { return inlineContext_.payload != nullptr && inlineContext_.rootNodeRef.isValid(); }
 
 private:
@@ -229,6 +233,7 @@ private:
     MicroReg      currentLoopIndexReg_        = MicroReg::invalid();
     TypeRef       currentLoopIndexTypeRef_    = TypeRef::invalid();
     InlineContext inlineContext_;
+    AstNodeRef    inlineBoundaryRootRef_ = AstNodeRef::invalid();
 };
 
 class CodeGen

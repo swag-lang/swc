@@ -881,22 +881,46 @@ Result CompilerInstance::setupSema(TaskContext& ctx)
     return Result::Continue;
 }
 
-uint32_t CompilerInstance::pendingImplRegistrations() const
+uint32_t CompilerInstance::pendingImplRegistrations(const IdentifierRef idRef) const
 {
-    return pendingImplRegistrations_.load(std::memory_order_relaxed);
+    if (!idRef.isValid())
+        return 0;
+
+    const std::scoped_lock lock(pendingImplRegistrationsMutex_);
+    const auto             it = pendingImplRegistrations_.find(idRef);
+    if (it == pendingImplRegistrations_.end())
+        return 0;
+
+    return it->second;
 }
 
-void CompilerInstance::incPendingImplRegistrations()
+void CompilerInstance::incPendingImplRegistrations(const IdentifierRef idRef)
 {
-    pendingImplRegistrations_.fetch_add(1, std::memory_order_relaxed);
-    notifyAlive();
+    SWC_ASSERT(idRef.isValid());
+    const std::scoped_lock lock(pendingImplRegistrationsMutex_);
+    pendingImplRegistrations_[idRef]++;
 }
 
-void CompilerInstance::decPendingImplRegistrations()
+void CompilerInstance::decPendingImplRegistrations(const IdentifierRef idRef)
 {
-    const uint32_t prev = pendingImplRegistrations_.fetch_sub(1, std::memory_order_relaxed);
-    SWC_ASSERT(prev > 0);
-    notifyAlive();
+    SWC_ASSERT(idRef.isValid());
+
+    bool notify = false;
+    {
+        const std::scoped_lock lock(pendingImplRegistrationsMutex_);
+        const auto             it = pendingImplRegistrations_.find(idRef);
+        SWC_ASSERT(it != pendingImplRegistrations_.end());
+        SWC_ASSERT(it->second > 0);
+        it->second--;
+        if (!it->second)
+        {
+            pendingImplRegistrations_.erase(it);
+            notify = true;
+        }
+    }
+
+    if (notify)
+        notifyAlive();
 }
 
 void CompilerInstance::logBefore()

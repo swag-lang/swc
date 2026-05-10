@@ -1449,7 +1449,7 @@ namespace
         // Generic instances must observe the same impl-registration barrier as regular structs.
         // Otherwise the creator job can snapshot an incomplete root impl list and complete the
         // instance before later `impl` jobs have attached everything to the generic root.
-        if (sema.compiler().pendingImplRegistrations() != 0)
+        if (sema.compiler().pendingImplRegistrations(root.idRef()) != 0)
             return sema.waitImplRegistrations(root.idRef(), root.codeRef());
 
         // Keep impl cloning under the same generic-instance gate. Otherwise two callers can

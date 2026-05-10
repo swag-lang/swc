@@ -161,7 +161,7 @@ void SymbolMap::maybeUpgradeToSharded(TaskContext& ctx)
     if (isSharded())
         return;
 
-    // Not enough keys yet — stay unsharded.
+    // Not enough keys yet - stay unsharded.
     if (bigMap_.size() < SHARD_AFTER_KEYS)
         return;
 

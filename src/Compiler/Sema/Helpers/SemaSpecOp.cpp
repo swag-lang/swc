@@ -1666,7 +1666,7 @@ namespace
                 if (!symImpl.isPendingRegistrationResolved())
                 {
                     symImpl.setPendingRegistrationResolved();
-                    sema.compiler().decPendingImplRegistrations();
+                    sema.compiler().decPendingImplRegistrations(symImpl.pendingRegistrationTargetIdRef());
                 }
                 outAttached = true;
             }

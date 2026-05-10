@@ -138,14 +138,14 @@ Result AstStructDecl::semaPostNode(Sema& sema)
     auto& sym = sema.curViewSymbol().sym()->cast<SymbolStruct>();
     if (sym.isGenericRoot() && !sym.isGenericInstance())
     {
-        if (sema.compiler().pendingImplRegistrations() != 0)
+        if (sema.compiler().pendingImplRegistrations(sym.idRef()) != 0)
             return sema.waitImplRegistrations(sym.idRef(), sym.codeRef());
         return SemaSpecOp::ensureGeneratedOperators(sema, sym);
     }
 
     // Ensure all `impl` blocks (including interface implementations) have been registered
     // before a struct can be marked as completed.
-    if (sema.compiler().pendingImplRegistrations() != 0)
+    if (sema.compiler().pendingImplRegistrations(sym.idRef()) != 0)
         return sema.waitImplRegistrations(sym.idRef(), sym.codeRef());
 
     sym.removeIgnoredFields();
@@ -200,7 +200,7 @@ Result AstUnionDecl::semaPostNode(Sema& sema)
     if (sym.isGenericRoot() && !sym.isGenericInstance())
         return Result::Continue;
 
-    if (sema.compiler().pendingImplRegistrations() != 0)
+    if (sema.compiler().pendingImplRegistrations(sym.idRef()) != 0)
         return sema.waitImplRegistrations(sym.idRef(), sym.codeRef());
 
     sym.removeIgnoredFields();
@@ -240,7 +240,7 @@ Result AstAnonymousStructDecl::semaPostNode(Sema& sema)
 
     // Ensure all `impl` blocks (including interface implementations) have been registered
     // before a struct can be marked as completed.
-    if (sema.compiler().pendingImplRegistrations() != 0)
+    if (sema.compiler().pendingImplRegistrations(sym.idRef()) != 0)
         return sema.waitImplRegistrations(sym.idRef(), sym.codeRef());
 
     sym.removeIgnoredFields();

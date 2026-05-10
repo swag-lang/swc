@@ -9,6 +9,29 @@
 
 SWC_BEGIN_NAMESPACE();
 
+namespace
+{
+    IdentifierRef resolveImplRegistrationTargetId(Sema& sema, AstNodeRef nodeRef)
+    {
+        const SemaNodeView targetView{sema, nodeRef, SemaNodeViewPartE::Node | SemaNodeViewPartE::Symbol};
+        if (targetView.hasSymbol())
+            return targetView.sym()->idRef();
+
+        return sema.idMgr().addIdentifier(sema.ctx(), targetView.node()->codeRef());
+    }
+
+    void registerPendingImplTarget(Sema& sema, SymbolImpl& symImpl, AstNodeRef nodeRef)
+    {
+        if (symImpl.pendingRegistrationTargetIdRef().isValid())
+            return;
+
+        const IdentifierRef targetIdRef = resolveImplRegistrationTargetId(sema, nodeRef);
+        SWC_ASSERT(targetIdRef.isValid());
+        symImpl.setPendingRegistrationTargetIdRef(targetIdRef);
+        sema.compiler().incPendingImplRegistrations(targetIdRef);
+    }
+}
+
 Result AstImpl::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const
 {
     if (childRef == nodeIdentRef || childRef == nodeForRef)
@@ -48,13 +71,19 @@ Result AstImpl::semaPostDeclChild(Sema& sema, const AstNodeRef& childRef) const
                 sym->setSymInterface(&target->cast<SymbolInterface>());
         }
 
-        // An `impl` block will be registered to its target (struct/enum/interface) only in the
-        // second pass, once the name lookup has run. Track pending registrations so completion of
-        // structs can't happen before all impls are attached.
-        sema.compiler().incPendingImplRegistrations();
+        // An `impl` block will be registered to its target only in the second pass, once the name
+        // lookup has run. Track pending registrations per target so unrelated impls cannot keep
+        // other structs artificially blocked.
+        if (nodeForRef.isInvalid())
+            registerPendingImplTarget(sema, *sym, nodeIdentRef);
 
         sema.pushScopePopOnPostNode(SemaScopeFlagsE::TopLevel | SemaScopeFlagsE::Impl);
         sema.curScope().setSymMap(sym);
+    }
+    else if (childRef == nodeForRef)
+    {
+        auto& symImpl = sema.curViewSymbol().sym()->cast<SymbolImpl>();
+        registerPendingImplTarget(sema, symImpl, nodeForRef);
     }
 
     return Result::Continue;
@@ -114,7 +143,7 @@ Result AstImpl::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const
         if (!symImpl.isPendingRegistrationResolved())
         {
             symImpl.setPendingRegistrationResolved();
-            sema.compiler().decPendingImplRegistrations();
+            sema.compiler().decPendingImplRegistrations(symImpl.pendingRegistrationTargetIdRef());
         }
 
         auto frame = sema.frame();
@@ -136,7 +165,7 @@ void AstImpl::semaErrorCleanup(Sema& sema, AstNodeRef nodeRef)
     if (!symImpl.isPendingRegistrationResolved())
     {
         symImpl.setPendingRegistrationResolved();
-        sema.compiler().decPendingImplRegistrations();
+        sema.compiler().decPendingImplRegistrations(symImpl.pendingRegistrationTargetIdRef());
     }
 }
 

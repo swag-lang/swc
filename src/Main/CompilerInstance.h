@@ -140,9 +140,9 @@ public:
     bool   changed() const { return changed_.load(std::memory_order_acquire); }
     bool   consumeChanged() { return changed_.exchange(false, std::memory_order_acq_rel); }
 
-    uint32_t pendingImplRegistrations() const;
-    void     incPendingImplRegistrations();
-    void     decPendingImplRegistrations();
+    uint32_t pendingImplRegistrations(IdentifierRef idRef) const;
+    void     incPendingImplRegistrations(IdentifierRef idRef);
+    void     decPendingImplRegistrations(IdentifierRef idRef);
 
     std::atomic<uint32_t>&       atomicId() { return atomicId_; }
     const std::atomic<uint32_t>& atomicId() const { return atomicId_; }
@@ -264,12 +264,13 @@ private:
     std::atomic<uint32_t>                                 atomicId_                 = 0;
     std::atomic<uint32_t>                                 generatedSourceId_        = 0;
     std::atomic<bool>                                     nativeOutputsCleared_     = false;
-    std::atomic<uint32_t>                                 pendingImplRegistrations_ = 0;
     AstCompilerFunc*                                      mainFunc_                 = nullptr;
     std::vector<Utf8>                                     foreignLibs_;
     CompilerTagRegistry                                   compilerTags_;
     std::unordered_map<IdentifierRef, SymbolFunction*>    runtimeFunctionSymbols_;
     std::unordered_map<Utf8, Utf8>                        inMemoryFiles_;
+    mutable std::mutex                                    pendingImplRegistrationsMutex_;
+    std::unordered_map<IdentifierRef, uint32_t>           pendingImplRegistrations_;
     std::mutex                                            reportedDiagnosticsMutex_;
     std::unordered_set<Utf8>                              reportedDiagnostics_;
     std::mutex                                            compilerMessageMutex_;

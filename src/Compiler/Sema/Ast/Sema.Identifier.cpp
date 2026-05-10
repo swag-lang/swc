@@ -261,28 +261,44 @@ namespace
         return true;
     }
 
+    IdentifierRef currentImplRegistrationTargetId(const SymbolImpl& currentImpl)
+    {
+        if (currentImpl.isForStruct())
+            return currentImpl.symStruct()->idRef();
+        if (currentImpl.isForEnum())
+            return currentImpl.symEnum()->idRef();
+        return IdentifierRef::invalid();
+    }
+
     template<typename T>
-    bool shouldWaitForPendingImplOverloads(Sema& sema, const bool allowOverloadSet, std::span<T> symbols)
+    IdentifierRef pendingImplOverloadTargetId(Sema& sema, const bool allowOverloadSet, std::span<T> symbols)
     {
         if (!allowOverloadSet)
-            return false;
-        if (sema.compiler().pendingImplRegistrations() == 0)
-            return false;
+            return IdentifierRef::invalid();
 
         const SymbolImpl* currentImpl = sema.frame().currentImpl();
         if (!currentImpl)
-            return false;
+            return IdentifierRef::invalid();
+
+        const IdentifierRef targetIdRef = currentImplRegistrationTargetId(*currentImpl);
+        if (!targetIdRef.isValid())
+            return IdentifierRef::invalid();
+        if (sema.compiler().pendingImplRegistrations(targetIdRef) == 0)
+            return IdentifierRef::invalid();
 
         bool hasCurrentImplFamilyCandidate = false;
         for (const Symbol* symbol : symbols)
         {
             if (!symbol || !symbol->acceptOverloads())
-                return false;
+                return IdentifierRef::invalid();
             if (isCurrentImplFamilySymbol(*currentImpl, *symbol))
                 hasCurrentImplFamilyCandidate = true;
         }
 
-        return hasCurrentImplFamilyCandidate;
+        if (!hasCurrentImplFamilyCandidate)
+            return IdentifierRef::invalid();
+
+        return targetIdRef;
     }
 
     void collectQuotedGenericArgs(const Sema& sema, const AstQuotedExpr& node, SmallVector<AstNodeRef>& outArgs)
@@ -525,8 +541,9 @@ Result AstIdentifier::semaPostNode(Sema& sema) const
 
     // A call inside an impl can see the current impl before sibling impls have
     // finished registering. Wait once so overload resolution sees the whole set.
-    if (shouldWaitForPendingImplOverloads(sema, allowOverloadSet, lookUpCxt.symbols().span()))
-        return sema.waitImplRegistrations(idRef, codeRef());
+    const IdentifierRef pendingImplTargetIdRef = pendingImplOverloadTargetId(sema, allowOverloadSet, lookUpCxt.symbols().span());
+    if (pendingImplTargetIdRef.isValid())
+        return sema.waitImplRegistrations(pendingImplTargetIdRef, codeRef());
 
     SWC_RESULT(SemaSymbolLookup::bindResolvedSymbols(sema, sema.curNodeRef(), allowOverloadSet, lookUpCxt.symbols().span()));
     const Symbol* sym = sema.curViewSymbol().sym();

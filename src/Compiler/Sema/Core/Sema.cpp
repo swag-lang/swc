@@ -111,6 +111,7 @@ namespace
 
         return sema.token(node.codeRef()).id == TokenId::CompilerAst;
     }
+
 }
 
 SymbolMap* Sema::childStartSymMap(Sema& parent, NodePayload& payloadContext)
@@ -1119,12 +1120,10 @@ void Sema::waitDone(TaskContext& ctx, JobClientId clientId)
 {
     auto&             jobMgr         = ctx.global().jobMgr();
     CompilerInstance& compiler       = ctx.compiler();
-    uint64_t          traceLoopIndex = 0;
 
     while (true)
     {
         jobMgr.waitAll(clientId);
-        ++traceLoopIndex;
 
         if (compiler.jitExecMgr().executePendingMainThread())
         {
@@ -1164,7 +1163,6 @@ void Sema::waitDone(TaskContext& ctx, JobClientId clientId)
             jobMgr.wakeAll(clientId);
             continue;
         }
-
         break;
     }
 

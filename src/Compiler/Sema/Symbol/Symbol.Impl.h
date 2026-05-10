@@ -34,6 +34,8 @@ public:
     bool       isForInterface() const noexcept { return hasExtraFlag(SymbolImplFlagsE::ForInterface); }
     bool       isPendingRegistrationResolved() const noexcept { return hasExtraFlag(SymbolImplFlagsE::PendingRegistrationResolved); }
     void       setPendingRegistrationResolved() noexcept { addExtraFlag(SymbolImplFlagsE::PendingRegistrationResolved); }
+    IdentifierRef pendingRegistrationTargetIdRef() const noexcept { return pendingRegistrationTargetIdRef_; }
+    void          setPendingRegistrationTargetIdRef(IdentifierRef idRef) noexcept { pendingRegistrationTargetIdRef_ = idRef; }
     AstNodeRef genericBlockRef() const noexcept { return genericBlockRef_; }
     void       setGenericBlockRef(AstNodeRef nodeRef) noexcept { genericBlockRef_ = nodeRef; }
 
@@ -62,6 +64,7 @@ private:
     };
 
     SymbolInterface* interfaceSym_    = nullptr;
+    IdentifierRef    pendingRegistrationTargetIdRef_ = IdentifierRef::invalid();
     AstNodeRef       genericBlockRef_ = AstNodeRef::invalid();
 };
 

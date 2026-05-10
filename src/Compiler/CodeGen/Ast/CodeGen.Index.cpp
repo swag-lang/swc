@@ -187,7 +187,7 @@ namespace
 
     const SymbolStruct* receiverRuntimeStruct(CodeGen& codeGen)
     {
-        auto& params = codeGen.function().parameters();
+        const auto& params = codeGen.function().parameters();
         if (params.empty() || !params.front())
             return codeGen.function().ownerStruct();
 

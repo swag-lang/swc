@@ -91,7 +91,7 @@ namespace
 
     SymbolVariable* implicitMeReceiver(CodeGen& codeGen)
     {
-        auto& params = codeGen.function().parameters();
+        const auto& params = codeGen.function().parameters();
         if (params.empty() || !params.front())
             return nullptr;
 
@@ -104,7 +104,7 @@ namespace
 
     bool tryResolveImplicitReceiverFieldPayload(CodeGen& codeGen, const SymbolVariable& symVar, CodeGenNodePayload& outPayload)
     {
-        SymbolVariable* receiver = implicitMeReceiver(codeGen);
+        const SymbolVariable* receiver = implicitMeReceiver(codeGen);
         if (!receiver)
             return false;
 

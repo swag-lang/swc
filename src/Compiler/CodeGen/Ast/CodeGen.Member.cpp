@@ -99,12 +99,6 @@ namespace
         return codeGen.typeMgr().get(aliasEnumTypeRef(codeGen, view.typeRef()));
     }
 
-    bool isPointerOrReferenceAliasAware(CodeGen& codeGen, const SemaNodeView& view)
-    {
-        const TypeInfo& typeInfo = aliasEnumType(codeGen, view);
-        return typeInfo.isPointerOrReference();
-    }
-
     bool resolveAggregateMemberInfo(CodeGen& codeGen, const TypeInfo& aggregateType, AstNodeRef memberRef, AggregateMemberInfo& outInfo)
     {
         if (!aggregateType.isAggregateStruct())
@@ -218,7 +212,7 @@ namespace
 
     const SymbolStruct* receiverRuntimeStruct(CodeGen& codeGen)
     {
-        auto& params = codeGen.function().parameters();
+        const auto& params = codeGen.function().parameters();
         if (params.empty() || !params.front())
             return codeGen.function().ownerStruct();
 

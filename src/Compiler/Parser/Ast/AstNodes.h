@@ -340,16 +340,16 @@ struct AstTypeOf;
 #include "Compiler/Parser/Ast/AstNodes.Def.inc"
 #undef SWC_NODE_DEF
 
-template<typename NodeType>
-concept HasDedicatedSemaClone = requires {
-    static_cast<AstNodeRef (NodeType::*)(Sema&, const CloneContext&) const>(&NodeType::semaClone);
+template<typename T>
+concept has_dedicated_sema_clone = requires {
+    static_cast<AstNodeRef (T::*)(Sema&, const CloneContext&) const>(&T::semaClone);
 };
 
 template<AstNodeId ID>
 constexpr bool hasDedicatedSemaClone()
 {
     using NodeType = AstTypeOf<ID>::type;
-    return HasDedicatedSemaClone<NodeType>;
+    return has_dedicated_sema_clone<NodeType>;
 }
 
 #define SWC_NODE_DEF(__enum, __flags) static_assert(hasDedicatedSemaClone<AstNodeId::__enum>(), "missing dedicated semaClone for Ast" #__enum);

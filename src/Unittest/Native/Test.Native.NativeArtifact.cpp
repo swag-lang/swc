@@ -1,3 +1,5 @@
+#include <print>
+
 #include "pch.h"
 
 #if SWC_HAS_UNITTEST
@@ -168,21 +170,6 @@ namespace
             .constantRef   = constantRef,
         });
         return code;
-    }
-
-    template<typename FUNC>
-    Result runAfterPauses(TaskContext& ctx, const FUNC& func)
-    {
-        while (true)
-        {
-            const Result result = func();
-            if (result != Result::Pause)
-                return result;
-
-            Sema::waitDone(ctx, ctx.compiler().jobClientId());
-            if (Stats::hasError())
-                return Result::Error;
-        }
     }
 }
 
@@ -530,7 +517,7 @@ SWC_TEST_END()
 SWC_TEST_BEGIN(NativeArtifact_CompilerRunExprInsideTestKeepsJitRunnable)
 {
     auto fail = [](const char* message) {
-        std::fprintf(stderr, "NativeArtifact_CompilerRunExprInsideTestKeepsJitRunnable: %s\n", message);
+        std::println(stderr, "NativeArtifact_CompilerRunExprInsideTestKeepsJitRunnable: {}", message);
         return Result::Error;
     };
 

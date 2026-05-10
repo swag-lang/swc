@@ -178,13 +178,13 @@ fs::path FileSystem::absolutePathNoThrow(const fs::path& path)
 
 fs::path FileSystem::compilerResourceRoot(const fs::path& exeFullName)
 {
-    fs::path        exeDir = exeFullName.parent_path();
+    const fs::path  exeDir = exeFullName.parent_path();
     std::error_code ec;
     if (fs::is_directory(exeDir / "runtime", ec))
         return lexicallyNormalize(exeDir);
 
     ec.clear();
-    fs::path repositoryBinDir = exeDir.parent_path() / "bin";
+    const fs::path repositoryBinDir = exeDir.parent_path() / "bin";
     if (fs::is_directory(repositoryBinDir / "runtime", ec))
         return lexicallyNormalize(repositoryBinDir);
 

@@ -1034,7 +1034,7 @@ bool SymbolFunction::jitPrepare(TaskContext& ctx)
     }
 
     JIT::prepare(ctx, jitExecMemory_, asByteSpan(loweredMicroCode_.bytes), loweredMicroCode_.unwindInfo);
-    void* entry = jitExecMemory_.entryPoint();
+    const void* entry = jitExecMemory_.entryPoint();
     if (!entry)
     {
         ctx.state().jitEmissionError = true;

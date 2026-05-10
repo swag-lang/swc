@@ -46,15 +46,6 @@ namespace
         }
     };
 
-    fs::path fallbackInputRoot()
-    {
-        std::error_code ec;
-        const fs::path  currentDir = fs::current_path(ec);
-        if (ec)
-            return {};
-        return currentDir.lexically_normal();
-    }
-
     fs::path inputRootForTest(const CommandLine& cmdLine)
     {
         if (!cmdLine.directories.empty())
@@ -63,14 +54,17 @@ namespace
             return cmdLine.files.begin()->parent_path().lexically_normal();
         if (!cmdLine.modulePath.empty())
             return cmdLine.modulePath.parent_path().lexically_normal();
-        return fallbackInputRoot();
+        return {};
     }
 
-    CommandLine makeNativeArtifactCmdLine(const TaskContext& ctx)
+    fs::path nativeArtifactTestInputRoot()
     {
-        CommandLine    cmdLine = ctx.cmdLine();
-        const fs::path root    = inputRootForTest(cmdLine);
+        return Unittest::makeTestSourcePath("NativeArtifact", "NativePaths").parent_path().lexically_normal();
+    }
 
+    CommandLine makeNativeArtifactCmdLine()
+    {
+        CommandLine cmdLine;
         cmdLine.command          = CommandKind::Build;
         cmdLine.name             = "native_paths";
         cmdLine.sourceDrivenTest = false;
@@ -91,17 +85,15 @@ namespace
         cmdLine.outDirStorage.clear();
         cmdLine.workDirStorage.clear();
         cmdLine.backendKind = Runtime::BuildCfgBackendKind::Executable;
-
-        if (!root.empty())
-            cmdLine.directories.insert(root);
+        cmdLine.directories.insert(nativeArtifactTestInputRoot());
 
         CommandLineParser::refreshBuildCfg(cmdLine);
         return cmdLine;
     }
 
-    CommandLine makeStandaloneNativeArtifactCmdLine(const TaskContext& ctx, std::string_view testName, const Runtime::BuildCfgBackendKind artifactKind)
+    CommandLine makeStandaloneNativeArtifactCmdLine(std::string_view testName, const Runtime::BuildCfgBackendKind artifactKind)
     {
-        CommandLine cmdLine = makeNativeArtifactCmdLine(ctx);
+        CommandLine cmdLine = makeNativeArtifactCmdLine();
         cmdLine.backendKind = artifactKind;
 
         const fs::path tempRoot = Os::getTemporaryPath();
@@ -196,7 +188,7 @@ namespace
 
 SWC_TEST_BEGIN(NativeArtifact_DefaultsToLocalOutputTree)
 {
-    const CommandLine cmdLine   = makeNativeArtifactCmdLine(ctx);
+    const CommandLine cmdLine   = makeNativeArtifactCmdLine();
     const fs::path    inputRoot = inputRootForTest(cmdLine);
     if (inputRoot.empty())
         return Result::Error;
@@ -246,7 +238,7 @@ SWC_TEST_END()
 
 SWC_TEST_BEGIN(NativeArtifact_ImportedApiKeepsLocalOutputTree)
 {
-    CommandLine                 cmdLine   = makeNativeArtifactCmdLine(ctx);
+    CommandLine                 cmdLine   = makeNativeArtifactCmdLine();
     const fs::path              inputRoot = inputRootForTest(cmdLine);
     CompilerInstance            compiler(ctx.global(), cmdLine);
     NativeBackendBuilder        nativeBuilder(compiler, false);
@@ -333,7 +325,7 @@ SWC_TEST_END()
 
 SWC_TEST_BEGIN(NativeArtifact_RDataKeepsOnlyReferencedConstants)
 {
-    const CommandLine commandLine = makeStandaloneNativeArtifactCmdLine(ctx, "rdata_keeps_only_referenced_constants", Runtime::BuildCfgBackendKind::SharedLibrary);
+    const CommandLine commandLine = makeStandaloneNativeArtifactCmdLine("rdata_keeps_only_referenced_constants", Runtime::BuildCfgBackendKind::SharedLibrary);
 
     const NativeArtifactTestFixture fixture(ctx.global(), commandLine);
 
@@ -362,7 +354,7 @@ SWC_TEST_END()
 
 SWC_TEST_BEGIN(NativeArtifact_RDataAllowsInteriorConstantAddresses)
 {
-    const CommandLine commandLine = makeStandaloneNativeArtifactCmdLine(ctx, "rdata_allows_interior_constant_addresses", Runtime::BuildCfgBackendKind::SharedLibrary);
+    const CommandLine commandLine = makeStandaloneNativeArtifactCmdLine("rdata_allows_interior_constant_addresses", Runtime::BuildCfgBackendKind::SharedLibrary);
 
     const NativeArtifactTestFixture fixture(ctx.global(), commandLine);
 
@@ -400,7 +392,7 @@ SWC_TEST_END()
 
 SWC_TEST_BEGIN(NativeArtifact_RDataKeepsReferencedDependencies)
 {
-    const CommandLine commandLine = makeStandaloneNativeArtifactCmdLine(ctx, "rdata_keeps_referenced_dependencies", Runtime::BuildCfgBackendKind::SharedLibrary);
+    const CommandLine commandLine = makeStandaloneNativeArtifactCmdLine("rdata_keeps_referenced_dependencies", Runtime::BuildCfgBackendKind::SharedLibrary);
 
     const NativeArtifactTestFixture fixture(ctx.global(), commandLine);
 
@@ -446,7 +438,7 @@ SWC_TEST_END()
 
 SWC_TEST_BEGIN(NativeArtifact_RDataEmitsFunctionRelocations)
 {
-    const CommandLine commandLine = makeStandaloneNativeArtifactCmdLine(ctx, "rdata_emits_function_relocations", Runtime::BuildCfgBackendKind::SharedLibrary);
+    const CommandLine commandLine = makeStandaloneNativeArtifactCmdLine("rdata_emits_function_relocations", Runtime::BuildCfgBackendKind::SharedLibrary);
 
     const NativeArtifactTestFixture fixture(ctx.global(), commandLine);
 
@@ -492,7 +484,7 @@ SWC_TEST_END()
 
 SWC_TEST_BEGIN(NativeArtifact_StartupCallsRuntimeExitWrapper)
 {
-    const CommandLine commandLine = makeStandaloneNativeArtifactCmdLine(ctx, "startup_calls_runtime_exit_wrapper", Runtime::BuildCfgBackendKind::Executable);
+    const CommandLine commandLine = makeStandaloneNativeArtifactCmdLine("startup_calls_runtime_exit_wrapper", Runtime::BuildCfgBackendKind::Executable);
 
     const NativeArtifactTestFixture fixture(ctx.global(), commandLine);
 
@@ -709,7 +701,7 @@ SWC_TEST_BEGIN(NativeArtifact_TestCountMismatchIsReportedBeforeStartupBuild)
 )";
     const fs::path                    sourcePath = Unittest::makeTestSourcePath("NativeArtifact", "TestCountMismatchIsReportedBeforeStartupBuild");
 
-    CommandLine cmdLine = makeStandaloneNativeArtifactCmdLine(ctx, "test_count_mismatch", Runtime::BuildCfgBackendKind::Executable);
+    CommandLine cmdLine = makeStandaloneNativeArtifactCmdLine("test_count_mismatch", Runtime::BuildCfgBackendKind::Executable);
     cmdLine.command     = CommandKind::Test;
     cmdLine.files.insert(sourcePath);
     cmdLine.directories.clear();

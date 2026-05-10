@@ -35,6 +35,14 @@ struct LifecycleProbe
     value: s32
 }
 
+func(T, N: s32) makeRepeated(value: T)->[N] T
+{
+    var result: [N] T
+    for i in N do
+        result[i] = value
+    return result
+}
+
 impl LifecycleProbe
 {
     mtd opDrop() {}
@@ -143,4 +151,15 @@ impl LifecycleProbe
 
     let hashType = #typeof(HashSet's32)
     @assert(!Reflection.isStructArray(hashType))
+}
+
+#test
+{
+    let funcType = #typeof(makeRepeated'(u16, 3))
+    let funcInfo = cast(const *Swag.TypeInfoFunc) funcType
+    @assert(@countof(funcInfo.generics) == 2)
+    @assert(funcInfo.generics[0].pointedType == u16)
+    @assert(funcInfo.generics[1].pointedType == s32)
+    @assert(cast(const *s32) funcInfo.generics[1].value != null)
+    @assert(dref cast(const *s32) funcInfo.generics[1].value == 3)
 }

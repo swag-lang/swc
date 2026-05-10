@@ -170,6 +170,41 @@ SmallVector<TypeRef> TypeGen::computeDeps(TypeManager& tm, const TaskContext& ct
             if (!symFunc.isAttribute())
                 appendAttributeDeps(deps, ctx, symFunc.attributes());
 
+            if (symFunc.isGenericInstance())
+            {
+                const SymbolFunction* genericRoot = symFunc.genericRootSym();
+                SmallVector<GenericInstanceKey> genericArgs;
+                if (genericRoot && genericRoot->genericInstanceStorage(ctx).tryGetArgs(symFunc, genericArgs))
+                {
+                    for (const GenericInstanceKey& arg : genericArgs)
+                    {
+                        if (arg.typeRef.isValid())
+                        {
+                            deps.push_back(arg.typeRef);
+                            continue;
+                        }
+
+                        if (!arg.cstRef.isValid())
+                            continue;
+
+                        const ConstantValue& cst          = ctx.cstMgr().get(arg.cstRef);
+                        const TypeRef        valueTypeRef = cst.typeRef();
+                        if (!valueTypeRef.isValid())
+                            continue;
+                        deps.push_back(valueTypeRef);
+
+                        const TypeInfo& valueType = ctx.typeMgr().get(valueTypeRef);
+                        if (!valueType.isAnyTypeInfo(ctx) || !cst.isValuePointer())
+                            continue;
+
+                        const auto*   typePtr        = reinterpret_cast<const void*>(cst.getValuePointer());
+                        const TypeRef pointedTypeRef = ctx.typeGen().getBackTypeRef(typePtr);
+                        if (pointedTypeRef.isValid())
+                            deps.push_back(pointedTypeRef);
+                    }
+                }
+            }
+
             if (symFunc.returnTypeRef().isValid())
             {
                 const TypeRef returnTypeRef = symFunc.returnTypeRef();

@@ -54,6 +54,9 @@ public:
             uint32_t             funcParamsOffset = 0;
             uint32_t             funcParamsCount  = 0;
             SmallVector<TypeRef> funcParamTypes;
+            uint32_t             funcGenericsOffset = 0;
+            uint32_t             funcGenericsCount  = 0;
+            SmallVector<TypeRef> funcGenericTypes;
             TypeRef              funcReturnTypeRef = TypeRef::invalid();
         };
 

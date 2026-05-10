@@ -670,7 +670,7 @@ namespace
 
     void initFunc(Sema& sema, DataSegment& storage, Runtime::TypeInfoFunc& rtType, uint32_t offset, const TypeInfo& type, TypeGen::TypeGenCache::Entry& entry)
     {
-        const TaskContext&    ctx        = sema.ctx();
+        TaskContext&          ctx        = sema.ctx();
         const SymbolFunction& symFunc    = type.payloadSymFunction();
         const auto&           parameters = symFunc.parameters();
 
@@ -682,10 +682,75 @@ namespace
         rtType.attributes.ptr   = nullptr;
         rtType.attributes.count = 0;
 
-        entry.funcParamsOffset = 0;
-        entry.funcParamsCount  = static_cast<uint32_t>(parameters.size());
+        entry.funcParamsOffset   = 0;
+        entry.funcParamsCount    = static_cast<uint32_t>(parameters.size());
         entry.funcParamTypes.clear();
+        entry.funcGenericsOffset = 0;
+        entry.funcGenericsCount  = 0;
+        entry.funcGenericTypes.clear();
         entry.funcReturnTypeRef = TypeRef::invalid();
+
+        if (symFunc.isGenericInstance())
+        {
+            const SymbolFunction* genericRoot = symFunc.genericRootSym();
+            SmallVector<GenericInstanceKey> genericArgs;
+            if (genericRoot && genericRoot->genericInstanceStorage(ctx).tryGetArgs(symFunc, genericArgs) && !genericArgs.empty())
+            {
+                SmallVector<SemaGeneric::GenericParamDesc> genericParams;
+                if (const auto* decl = genericRoot->decl() ? genericRoot->decl()->safeCast<AstFunctionDecl>() : nullptr; decl && decl->spanGenericParamsRef.isValid())
+                    SemaGeneric::collectGenericParams(sema, *decl, decl->spanGenericParamsRef, genericParams);
+
+                entry.funcGenericsCount = static_cast<uint32_t>(genericArgs.size());
+                const auto [genericsOffset, genericsPtr] = storage.reserveSpan<Runtime::TypeValue>(entry.funcGenericsCount);
+                entry.funcGenericsOffset                 = genericsOffset;
+                rtType.generics.ptr                      = genericsPtr;
+                rtType.generics.count                    = entry.funcGenericsCount;
+                storage.addRelocation(offset + offsetof(Runtime::TypeInfoFunc, generics.ptr), genericsOffset);
+
+                entry.funcGenericTypes.reserve(entry.funcGenericsCount);
+                for (uint32_t i = 0; i < entry.funcGenericsCount; ++i)
+                {
+                    const GenericInstanceKey& arg        = genericArgs[i];
+                    Runtime::TypeValue&       tv         = genericsPtr[i];
+                    const uint32_t            elemOffset = genericsOffset + static_cast<uint32_t>(i * sizeof(Runtime::TypeValue));
+
+                    if (i < genericParams.size() && genericParams[i].idRef.isValid())
+                    {
+                        const auto& id = ctx.idMgr().get(genericParams[i].idRef);
+                        tv.name.length = storage.addString(elemOffset, offsetof(Runtime::TypeValue, name.ptr), Utf8{id.name});
+                    }
+
+                    TypeRef valueTypeRef = TypeRef::invalid();
+                    if (arg.typeRef.isValid())
+                    {
+                        valueTypeRef = arg.typeRef;
+                    }
+                    else if (arg.cstRef.isValid())
+                    {
+                        const ConstantValue& cst = ctx.cstMgr().get(arg.cstRef);
+                        valueTypeRef             = cst.typeRef();
+                        if (valueTypeRef.isValid())
+                        {
+                            const uint64_t valueSize = ctx.typeMgr().get(valueTypeRef).sizeOf(ctx);
+                            if (valueSize)
+                            {
+                                std::vector valueBytes(valueSize, std::byte{0});
+                                ConstantLower::lowerToBytes(sema, valueBytes, arg.cstRef, valueTypeRef);
+
+                                uint32_t     valueOffset    = INVALID_REF;
+                                const Result materializeRes = ConstantLower::materializeStaticPayload(valueOffset, sema, storage, valueTypeRef, valueBytes);
+                                SWC_ASSERT(materializeRes == Result::Continue);
+                                SWC_ASSERT(valueOffset != INVALID_REF);
+                                storage.addRelocation(elemOffset + offsetof(Runtime::TypeValue, value), valueOffset);
+                                tv.value = storage.ptr<std::byte>(valueOffset);
+                            }
+                        }
+                    }
+
+                    entry.funcGenericTypes.push_back(valueTypeRef);
+                }
+            }
+        }
 
         if (!parameters.empty())
         {
@@ -922,7 +987,9 @@ void TypeGen::wireRelocations(Sema& sema, const TypeGenCache& cache, DataSegment
 
         case LayoutKind::Func:
         {
+            SWC_ASSERT(entry.funcGenericTypes.size() == entry.funcGenericsCount);
             SWC_ASSERT(entry.funcParamTypes.size() == entry.funcParamsCount);
+            wireTypeValueArrayPointedRelocations(cache, storage, entry.funcGenericTypes, entry.funcGenericsOffset);
             wireTypeValueArrayPointedRelocations(cache, storage, entry.funcParamTypes, entry.funcParamsOffset);
 
             if (entry.funcReturnTypeRef.isValid())

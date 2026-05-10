@@ -59,11 +59,16 @@ impl HashTable
             .allocator = @getcontext().allocator
 
         let newTable = cast([*] HashTableEntry) Memory.alloc(.capacity * #sizeof(HashTableEntry), .allocator)
+        Memory.clear(newTable, .capacity * #sizeof(HashTableEntry))
         #if Reflection.hasPostCopy(K) or Reflection.hasPostCopy(V)
         {
             for i in .capacity
             {
-                newTable[i].hash  = .table[i].hash
+                let hashVal = .table[i].hash
+                if hashVal < HashTable.HASH_DELETED do
+                    continue
+
+                newTable[i].hash  = hashVal
                 newTable[i].key   = #nodrop .table[i].key
                 newTable[i].value = #nodrop .table[i].value
             }

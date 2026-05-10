@@ -99,18 +99,12 @@ func assertTableStringValue(table: const &HashTable'(string, String), key: strin
     @assert(entry.value == 1)
 }
 
-// Disabled for now: `tools\core.bat ... --file-filter hashtable` still does not return quickly
-// enough to use this as a reliable step-by-step signal. Keep the independent compiler repros in
-// `bin/tests/jit/compiler` as the validation source of truth for now.
 #test
 {
     var original: HashTable'(s32, String)
     original.add(1, "one")
 }
 
-// Disabled for now: `HashTable'(string, String)` still crashes in JIT as soon as a `String`
-// value is stored. Keep the pure-language compiler coverage in `bin/tests/jit/compiler`
-// while this path is being isolated further.
 #test
 {
     var original: HashTable'(string, String)
@@ -130,24 +124,38 @@ func assertTableStringValue(table: const &HashTable'(string, String), key: strin
     @assert(original.tryFind("gamma") == null)
 }
 
-#if false
+#test
 {
-    #test
-    {
-        var original: HashTable'(string, String)
-        original.add("alpha", "one")
-        original.add("beta", "two")
+    var original: HashTable'(string, String)
+    original.add("alpha", "one")
+    original.add("beta", "two")
 
-        var copy = original
-        copy["alpha"] = "uno"
-        copy.findOrAdd("gamma").value = "three"
+    var copy = original
+    copy["alpha"] = "uno"
+    copy.findOrAdd("gamma").value = "three"
 
-        @assert(assertTableStringValue(original, "alpha", "one"))
-        @assert(assertTableStringValue(original, "beta", "two"))
-        @assert(original.tryFind("gamma") == null)
+    @assert(assertTableStringValue(original, "alpha", "one"))
+    @assert(assertTableStringValue(original, "beta", "two"))
+    @assert(original.tryFind("gamma") == null)
 
-        @assert(assertTableStringValue(copy, "alpha", "uno"))
-        @assert(assertTableStringValue(copy, "beta", "two"))
-        @assert(assertTableStringValue(copy, "gamma", "three"))
-    }
+    @assert(assertTableStringValue(copy, "alpha", "uno"))
+    @assert(assertTableStringValue(copy, "beta", "two"))
+    @assert(assertTableStringValue(copy, "gamma", "three"))
+}
+
+#test
+{
+    var original: HashTable'(string, String)
+    original.add("alpha", "one")
+    original.add("beta", "two")
+    original.remove("alpha")
+
+    var copy = original
+    copy.add("alpha", "uno")
+
+    @assert(original.tryFind("alpha") == null)
+    @assert(assertTableStringValue(original, "beta", "two"))
+
+    @assert(assertTableStringValue(copy, "alpha", "uno"))
+    @assert(assertTableStringValue(copy, "beta", "two"))
 }

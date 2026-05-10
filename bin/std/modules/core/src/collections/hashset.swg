@@ -58,11 +58,16 @@ impl HashSet
             .allocator = @getcontext().allocator
 
         let newTable = cast([*] HashSetEntry) Memory.alloc(.capacity * #sizeof(HashSetEntry), .allocator)
+        Memory.clear(newTable, .capacity * #sizeof(HashSetEntry))
         #if Reflection.hasPostCopy(K)
         {
             for i in .capacity
             {
-                newTable[i].hash = .table[i].hash
+                let hashVal = .table[i].hash
+                if hashVal < HashSet.HASH_DELETED do
+                    continue
+
+                newTable[i].hash = hashVal
                 newTable[i].key  = #nodrop .table[i].key
             }
         }

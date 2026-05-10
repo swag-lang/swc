@@ -160,6 +160,58 @@ namespace
 
         text = std::move(cleaned);
     }
+
+    bool isInsideQuotedMessageSegment(std::string_view msg, size_t index)
+    {
+        bool inQuote = false;
+
+        for (size_t i = 0; i < index && i < msg.size(); ++i)
+        {
+            const char ch = msg[i];
+            if (!inQuote)
+            {
+                if (ch != '\'')
+                    continue;
+
+                if (isLiteralSuffixQuote(msg, i))
+                {
+                    while (i + 1 < index && i + 1 < msg.size() && isAsciiIdentifierTail(msg[i + 1]))
+                        ++i;
+                    continue;
+                }
+
+                inQuote = true;
+                continue;
+            }
+
+            if (ch == '\\')
+            {
+                if (i + 1 < index && i + 1 < msg.size())
+                    ++i;
+                continue;
+            }
+
+            if (ch == '\'')
+                inQuote = false;
+        }
+
+        return inQuote;
+    }
+
+    Utf8 escapeQuotedMessageArgument(std::string_view value)
+    {
+        Utf8 escaped;
+        escaped.reserve(value.size());
+
+        for (const char ch : value)
+        {
+            if (ch == '\\' || ch == '\'')
+                escaped += '\\';
+            escaped += ch;
+        }
+
+        return escaped;
+    }
 }
 
 DiagnosticBuilder::DiagnosticBuilder(const TaskContext& ctx, const Diagnostic& diag) :
@@ -791,8 +843,10 @@ void DiagnosticBuilder::replaceArgsInString(Utf8& result, const DiagnosticArgume
         size_t     pos = 0;
         while ((pos = result.find(arg.name, pos)) != Utf8::npos)
         {
-            result.replace(pos, arg.name.length(), raw);
-            pos += raw.length();
+            const bool insideQuote = isInsideQuotedMessageSegment(result, pos);
+            const Utf8 value       = insideQuote ? escapeQuotedMessageArgument(raw) : raw;
+            result.replace(pos, arg.name.length(), value);
+            pos += value.length();
         }
     }
 }

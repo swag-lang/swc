@@ -96,6 +96,55 @@ SWC_TEST_BEGIN(Compiler_AssertDiagnosticPreservesLiteralSuffixQuotes)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(Compiler_DiagnosticEscapesQuotedArgumentTicks)
+{
+    CommandLine cmdLine;
+    cmdLine.command     = CommandKind::Test;
+    cmdLine.logColor    = false;
+    cmdLine.syntaxColor = false;
+
+    const TaskContext localCtx(ctx.global(), cmdLine);
+    Diagnostic        diag = Diagnostic::get(DiagnosticId::sema_err_type_not_indexable);
+    diag.addArgument(Diagnostic::ARG_TYPE, "List'(s32)");
+
+    DiagnosticBuilder builder(localCtx, diag);
+    const Utf8        text = builder.build();
+
+    if (text.find("type 'List'(s32)' does not support indexing") == Utf8::npos)
+        return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(Compiler_DiagnosticEscapesQuotedArgumentWithoutBreakingHelpSplit)
+{
+    CommandLine cmdLine;
+    cmdLine.command     = CommandKind::Test;
+    cmdLine.logColor    = false;
+    cmdLine.syntaxColor = false;
+
+    const TaskContext localCtx(ctx.global(), cmdLine);
+    Diagnostic        diag = Diagnostic::get(DiagnosticId::sema_err_type_not_indexable);
+    diag.addArgument(Diagnostic::ARG_TYPE, "List'(s32); [help] fake");
+
+    DiagnosticBuilder builder(localCtx, diag);
+    const Utf8        text = builder.build();
+
+    if (text.find("type 'List'(s32); [help] fake' does not support indexing") == Utf8::npos)
+        return Result::Error;
+
+    size_t helpCount = 0;
+    size_t pos       = 0;
+    while ((pos = text.find("help:", pos)) != Utf8::npos)
+    {
+        ++helpCount;
+        pos += 5;
+    }
+
+    if (helpCount != 1)
+        return Result::Error;
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

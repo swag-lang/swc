@@ -386,6 +386,24 @@ namespace
         return LogColorHelper::toAnsi(ctx, LogColor::Reset);
     }
 
+    Utf8 formatTitleValueLine(const TaskContext& ctx, const Utf8& glyph, const LogColor glyphColor, const std::string_view title, const LogColor titleColor, const std::string_view value, const LogColor valueColor)
+    {
+        Utf8 line;
+        line += "  ";
+        line += colorize(ctx, glyphColor, glyph);
+        line += "  ";
+        line += colorize(ctx, titleColor, std::format("{:<{}}", title, ACTION_LABEL_WIDTH));
+        line += " ";
+        line += colorize(ctx, valueColor, value);
+        line += resetColor(ctx);
+        return line;
+    }
+
+    Utf8 formatCommandHeader(const TaskContext& ctx)
+    {
+        return formatTitleValueLine(ctx, stageStartGlyph(ctx), LogColor::BrightYellow, "Command", LogColor::BrightYellow, commandName(ctx.cmdLine().command), LogColor::White);
+    }
+
     void appendStageText(Utf8& line, const TaskContext& ctx, const Stage stage, const std::string_view detail)
     {
         const auto label  = stageLabel(stage);
@@ -479,6 +497,22 @@ TimedActionLog::StatsSnapshot TimedActionLog::StatsSnapshot::capture()
     result.numFormatRewrittenFiles = stats.numFormatRewrittenFiles.load(std::memory_order_relaxed);
 
     return result;
+}
+
+Utf8 TimedActionLog::formatCommandHeaderLine(const TaskContext& ctx)
+{
+    return formatCommandHeader(ctx);
+}
+
+void TimedActionLog::printCommandHeader(const TaskContext& ctx)
+{
+    if (ctx.global().logger().stageOutputMuted())
+        return;
+
+    const Logger::ScopedLock loggerLock(ctx.global().logger());
+    Utf8 line = formatCommandHeader(ctx);
+    line += "\n";
+    printLineLocked(ctx, line);
 }
 
 void TimedActionLog::printBuildConfiguration(const TaskContext& ctx)

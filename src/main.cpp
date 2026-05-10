@@ -7,6 +7,7 @@
 #include "Main/TaskContext.h"
 #include "Support/Os/Os.h"
 #include "Support/Report/HardwareException.h"
+#include "Support/Report/ScopedTimedAction.h"
 #include "Unittest/Unittest.h"
 
 namespace
@@ -72,12 +73,13 @@ int main(int argc, char* argv[])
         return static_cast<int>(swc::ExitCode::ErrorCmdLine);
 
     global.initialize(cmdLine);
+    const swc::TaskContext startupCtx(global, cmdLine);
+    swc::TimedActionLog::printCommandHeader(startupCtx);
 
 #if SWC_HAS_UNITTEST
     if (cmdLine.unittest && !cmdLine.dryRun && !cmdLine.showConfig)
     {
-        const swc::TaskContext ctx(global, cmdLine);
-        if (swc::Unittest::runAll(ctx) != swc::Result::Continue)
+        if (swc::Unittest::runAll(startupCtx) != swc::Result::Continue)
             return static_cast<int>(swc::ExitCode::ErrorCommand);
     }
 #endif

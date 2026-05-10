@@ -69,6 +69,8 @@ namespace TimedActionLog
         Utf8                        stat_;
     };
 
+    Utf8 formatCommandHeaderLine(const TaskContext& ctx);
+    void printCommandHeader(const TaskContext& ctx);
     Utf8 formatSummaryLine(const TaskContext& ctx, const StatsSnapshot& snapshot);
     void printSummary(const TaskContext& ctx);
 }

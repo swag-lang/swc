@@ -140,4 +140,27 @@ struct CommandLine
     Runtime::BuildCfg defaultBuildCfg{};
 };
 
+inline constexpr std::string_view commandName(const CommandKind command)
+{
+    switch (command)
+    {
+        case CommandKind::Format:
+            return COMMANDS[0].name;
+        case CommandKind::Syntax:
+            return COMMANDS[1].name;
+        case CommandKind::Sema:
+            return COMMANDS[2].name;
+        case CommandKind::Test:
+            return COMMANDS[3].name;
+        case CommandKind::Build:
+            return COMMANDS[4].name;
+        case CommandKind::Run:
+            return COMMANDS[5].name;
+        case CommandKind::Invalid:
+            return "invalid";
+    }
+
+    SWC_UNREACHABLE();
+}
+
 SWC_END_NAMESPACE();

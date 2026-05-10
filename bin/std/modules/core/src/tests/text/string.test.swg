@@ -1,4 +1,4 @@
-#global #if false//#command == Swag.CompilerCommand.Test
+#global #if #command == Swag.CompilerCommand.Test
 #global fileprivate
 using Swag
 
@@ -204,7 +204,7 @@ func makePatternString(count: u64)->String
     @assert(value.contains("Caf"))
 
     let needle: [3] u8 = ['a''u8, 'f''u8, 0xc3]
-    @assert(value.contains(cast([..] u8) needle))
+    @assert(value.contains(cast(const [..] u8) needle))
 
     @assert(value.startsWith("Core"))
     @assert(value.startsWith("core", Utf8.ComparisonType.Latin1NoCase))

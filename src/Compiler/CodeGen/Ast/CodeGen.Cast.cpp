@@ -1113,6 +1113,23 @@ namespace
         const TypeInfo& dstType = typeMgr.get(dstTypeRef);
         if (srcType.isFunction() && dstType.isFunction() && !srcType.isLambdaClosure() && dstType.isLambdaClosure())
             return emitFunctionToClosureCast(codeGen, srcNodeRef, sourceTypeRef, dstTypeRef);
+        if (resolvedSrcType.isAnyPointer() &&
+            resolvedSrcType.payloadTypeRef() == typeMgr.typeVoid() &&
+            dstType.isFunction() &&
+            !dstType.isLambdaClosure())
+        {
+            MicroReg srcReg = srcPayload.reg;
+            if (srcPayload.isAddress())
+            {
+                srcReg = codeGen.nextVirtualIntRegister();
+                builder.emitLoadRegMem(srcReg, srcPayload.reg, 0, MicroOpBits::B64);
+            }
+
+            CodeGenNodePayload& dstPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), dstTypeRef);
+            dstPayload.reg                 = codeGen.nextVirtualIntRegister();
+            builder.emitLoadRegReg(dstPayload.reg, srcReg, MicroOpBits::B64);
+            return Result::Continue;
+        }
 
         const bool srcFloatType   = resolvedSrcType.isFloat();
         const bool srcIntLikeType = resolvedSrcType.isNumericIntLike();

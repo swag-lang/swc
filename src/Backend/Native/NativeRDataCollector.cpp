@@ -1,9 +1,25 @@
 #include "pch.h"
 #include "Backend/Native/NativeRDataCollector.h"
+#include "Backend/Native/SymbolSort.h"
 
 #include "Support/Math/Helpers.h"
 
 SWC_BEGIN_NAMESPACE();
+
+namespace
+{
+    const NativeFunctionInfo* findFunctionInfoByLocation(const NativeBackendBuilder& builder, const SymbolFunction& targetFunction)
+    {
+        const Utf8 sortKey = SymbolSort::locationKey(builder.compiler(), targetFunction);
+        for (const NativeFunctionInfo& info : builder.functionInfos)
+        {
+            if (info.sortKey == sortKey)
+                return &info;
+        }
+
+        return nullptr;
+    }
+}
 
 NativeRDataCollector::NativeRDataCollector(NativeBackendBuilder& builder) :
     builder_(&builder)
@@ -207,7 +223,7 @@ Result NativeRDataCollector::emitReachableAllocations()
                 const SymbolFunction* targetFunction = relocation.targetSymbol;
                 SWC_ASSERT(targetFunction != nullptr);
                 if (!targetFunction)
-                    return builder_->reportError(DiagnosticId::cmd_err_native_invalid_local_function_relocation);
+                    return builder_->reportError(DiagnosticId::cmd_err_native_invalid_local_function_relocation, Diagnostic::ARG_SYM, Utf8("<null>"));
 
                 if (targetFunction->isForeign())
                 {
@@ -218,10 +234,19 @@ Result NativeRDataCollector::emitReachableAllocations()
                 }
 
                 const auto functionIt = builder_->functionBySymbol.find(relocation.targetSymbol);
-                if (functionIt == builder_->functionBySymbol.end())
-                    return builder_->reportError(DiagnosticId::cmd_err_native_invalid_local_function_relocation);
+                if (functionIt != builder_->functionBySymbol.end())
+                {
+                    record.symbolName = functionIt->second->symbolName;
+                    record.addend     = 0;
+                    builder_->mergedRData.relocations.push_back(record);
+                    continue;
+                }
 
-                record.symbolName = functionIt->second->symbolName;
+                const NativeFunctionInfo* fallback = findFunctionInfoByLocation(*builder_, *targetFunction);
+                if (!fallback)
+                    return builder_->reportError(DiagnosticId::cmd_err_native_invalid_local_function_relocation, Diagnostic::ARG_SYM, targetFunction->getFullScopedName(builder_->ctx()));
+
+                record.symbolName = fallback->symbolName;
                 record.addend     = 0;
                 builder_->mergedRData.relocations.push_back(record);
             }

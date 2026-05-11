@@ -103,7 +103,7 @@ namespace
             return false;
         if (fn.attributes().hasRtFlag(RtAttributeFlagsE::Macro) || fn.attributes().hasRtFlag(RtAttributeFlagsE::Mixin))
             return false;
-        return fn.isSemaCompleted() && shouldPrepareSymbol(builder, fn);
+        return shouldPrepareSymbol(builder, fn) && (fn.isSemaCompleted() || fn.hasExtraFlag(SymbolFunctionFlagsE::LazyGenericBody));
     }
 
     bool appendCodeGenDependencies(const NativeBackendBuilder& builder, std::vector<SymbolFunction*>& functions)
@@ -126,6 +126,81 @@ namespace
 
                 functions.push_back(dep);
                 changed = true;
+            }
+        }
+
+        return changed;
+    }
+
+    bool appendConstantFunctionDependenciesRec(const NativeBackendBuilder& builder, std::vector<SymbolFunction*>& functions, std::unordered_set<SymbolFunction*>& seenFunctions, std::unordered_set<uint64_t>& visitedAllocations, const uint32_t shardIndex, const uint32_t sourceOffset)
+    {
+        const DataSegment& segment = builder.compiler().cstMgr().shardDataSegment(shardIndex);
+        DataSegmentAllocation allocation;
+        if (!segment.findAllocation(allocation, sourceOffset))
+            return false;
+
+        const uint64_t allocationKey = (static_cast<uint64_t>(shardIndex) << 32) | allocation.offset;
+        if (!visitedAllocations.insert(allocationKey).second)
+            return false;
+
+        bool changed = false;
+        std::vector<DataSegmentRelocation> relocations;
+        segment.copyRelocations(relocations, allocation.offset, allocation.size);
+        for (const DataSegmentRelocation& relocation : relocations)
+        {
+            if (relocation.kind == DataSegmentRelocationKind::FunctionSymbol)
+            {
+                SymbolFunction* target = const_cast<SymbolFunction*>(relocation.targetSymbol);
+                if (!target || !isIncludableDependency(builder, *target))
+                    continue;
+                if (!seenFunctions.insert(target).second)
+                    continue;
+
+                functions.push_back(target);
+                changed = true;
+                continue;
+            }
+
+            const uint32_t targetShardIndex = relocation.targetShardIndex == INVALID_REF ? shardIndex : relocation.targetShardIndex;
+            changed = appendConstantFunctionDependenciesRec(builder, functions, seenFunctions, visitedAllocations, targetShardIndex, relocation.targetOffset) || changed;
+        }
+
+        return changed;
+    }
+
+    bool appendConstantFunctionDependencies(const NativeBackendBuilder& builder, std::vector<SymbolFunction*>& functions)
+    {
+        std::unordered_set           seenFunctions(functions.begin(), functions.end());
+        std::unordered_set<uint64_t> visitedAllocations;
+        bool                         changed = false;
+        for (const SymbolFunction* function : functions)
+        {
+            if (!function)
+                continue;
+
+            const MachineCode& code = function->loweredCode();
+            for (const MicroRelocation& relocation : code.codeRelocations)
+            {
+                if (relocation.kind != MicroRelocation::Kind::ConstantAddress)
+                    continue;
+
+                DataSegmentRef sourceRef;
+                if (relocation.hasConstantSource())
+                {
+                    if (relocation.constantShard >= ConstantManager::SHARD_COUNT)
+                        continue;
+
+                    sourceRef = {
+                        .shardIndex = relocation.constantShard,
+                        .offset     = relocation.constantOffset,
+                    };
+                }
+                else if (!builder.compiler().cstMgr().resolveConstantDataSegmentRef(sourceRef, relocation.constantRef, reinterpret_cast<const void*>(relocation.targetAddress)))
+                {
+                    continue;
+                }
+
+                changed = appendConstantFunctionDependenciesRec(builder, functions, seenFunctions, visitedAllocations, sourceRef.shardIndex, sourceRef.offset) || changed;
             }
         }
 
@@ -364,7 +439,9 @@ Result NativeBackendBuilder::prepare()
         rebuildFunctionInfos(*this, functions);
         SWC_RESULT(scheduleCodeGen(*this));
 
-        if (!appendCodeGenDependencies(*this, functions))
+        const bool addedCallDeps     = appendCodeGenDependencies(*this, functions);
+        const bool addedConstantDeps = appendConstantFunctionDependencies(*this, functions);
+        if (!addedCallDeps && !addedConstantDeps)
         {
             if (microStage)
                 microStage->setStat(Utf8Helper::countWithLabel(functions.size(), "function"));

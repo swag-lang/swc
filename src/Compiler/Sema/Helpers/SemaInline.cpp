@@ -1388,7 +1388,7 @@ Result SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFun
     {
         return Result::Continue;
     }
-    if (isCrossAstInline)
+    if (isCrossAstInline || isMacro || isMixin)
         appendGenericInstanceBindings(sema, fn, bindings);
 
     AliasIdentifierArray aliasIdentifiers = {};

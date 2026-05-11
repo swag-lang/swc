@@ -370,6 +370,11 @@ namespace
 
     TypeRef reflectedMethodTypeRef(TaskContext& ctx, const SymbolFunction& symFunc)
     {
+        if (symFunc.attributes().hasRtFlag(RtAttributeFlagsE::Macro) ||
+            symFunc.attributes().hasRtFlag(RtAttributeFlagsE::Mixin) ||
+            symFunc.attributes().hasRtFlag(RtAttributeFlagsE::Compiler))
+            return TypeRef::invalid();
+
         SmallVector<TypeRef> visiting;
         if (!canReflectFunctionSignature(ctx, symFunc, visiting))
             return TypeRef::invalid();
@@ -821,6 +826,7 @@ namespace
                 const uint32_t      elemOffset = methodsOffset + static_cast<uint32_t>(i * sizeof(Runtime::TypeValue));
                 const Utf8          methodName{symMethod->name(ctx)};
                 tv.name.length = storage.addString(elemOffset, offsetof(Runtime::TypeValue, name.ptr), methodName);
+                storage.addFunctionRelocation(elemOffset + offsetof(Runtime::TypeValue, value), symMethod);
             }
         }
 

@@ -24,6 +24,10 @@ namespace
     {
         if (symFunc.isIgnored() || symFunc.isAttribute() || symFunc.isEmpty())
             return false;
+        if (symFunc.attributes().hasRtFlag(RtAttributeFlagsE::Macro) ||
+            symFunc.attributes().hasRtFlag(RtAttributeFlagsE::Mixin) ||
+            symFunc.attributes().hasRtFlag(RtAttributeFlagsE::Compiler))
+            return false;
 
         const SymbolStruct* ownerStruct = symFunc.ownerStruct();
         if (ownerStruct && ownerStruct->isGenericRoot() && !ownerStruct->isGenericInstance())
@@ -132,6 +136,11 @@ namespace
 
     TypeRef reflectedMethodTypeRef(TaskContext& ctx, const SymbolFunction& symFunc)
     {
+        if (symFunc.attributes().hasRtFlag(RtAttributeFlagsE::Macro) ||
+            symFunc.attributes().hasRtFlag(RtAttributeFlagsE::Mixin) ||
+            symFunc.attributes().hasRtFlag(RtAttributeFlagsE::Compiler))
+            return TypeRef::invalid();
+
         SmallVector<TypeRef> visiting;
         if (!canReflectFunctionSignature(ctx, symFunc, visiting))
             return TypeRef::invalid();
@@ -251,7 +260,10 @@ SmallVector<TypeRef> TypeGen::computeDeps(TypeManager& tm, const TaskContext& ct
             {
                 if (!method)
                     continue;
-                deps.push_back(reflectedMethodTypeRef(const_cast<TaskContext&>(ctx), *method));
+
+                const TypeRef methodTypeRef = reflectedMethodTypeRef(const_cast<TaskContext&>(ctx), *method);
+                if (methodTypeRef.isValid())
+                    deps.push_back(methodTypeRef);
                 appendAttributeDeps(deps, ctx, method->attributes());
             }
 

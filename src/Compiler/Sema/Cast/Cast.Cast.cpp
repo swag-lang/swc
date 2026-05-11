@@ -34,7 +34,7 @@ namespace
         return totalCount;
     }
 
-    uint64_t pointerValueFromCStringConstant(const ConstantValue& cst)
+    uint64_t pointerValueFromPointerLikeConstant(const ConstantValue& cst)
     {
         if (cst.isBlockPointer())
             return cst.getBlockPointer();
@@ -49,7 +49,7 @@ namespace
 
     std::string_view stringViewFromCStringConstant(const ConstantValue& cst)
     {
-        const uint64_t ptrValue = pointerValueFromCStringConstant(cst);
+        const uint64_t ptrValue = pointerValueFromPointerLikeConstant(cst);
         if (!ptrValue)
             return {};
 
@@ -1879,6 +1879,22 @@ Result Cast::castToFunction(Sema& sema, CastRequest& castRequest, TypeRef srcTyp
             return Result::Continue;
     }
 
+    if (castRequest.kind == CastKind::Explicit &&
+        srcType.isAnyPointer() &&
+        srcType.payloadTypeRef() == sema.typeMgr().typeVoid() &&
+        !dstType.isLambdaClosure())
+    {
+        if (castRequest.isConstantFolding())
+        {
+            const ConstantValue& srcCst = sema.cstMgr().get(castRequest.constantFoldingSrc());
+            ConstantValue        fnCst  = ConstantValue::makeValuePointer(sema.ctx(), sema.typeMgr().typeVoid(), pointerValueFromPointerLikeConstant(srcCst), TypeInfoFlagsE::Const);
+            fnCst.setTypeRef(dstTypeRef);
+            castRequest.setConstantFoldingResult(sema.cstMgr().addConstant(sema.ctx(), fnCst));
+        }
+
+        return Result::Continue;
+    }
+
     return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
 }
 
@@ -1937,7 +1953,7 @@ Result Cast::castToCString(Sema& sema, CastRequest& castRequest, TypeRef srcType
             if (castRequest.isConstantFolding())
             {
                 const ConstantValue& srcCst = sema.cstMgr().get(castRequest.constantFoldingSrc());
-                setCStringPointerConstant(sema, castRequest, dstTypeRef, dstType, pointerValueFromCStringConstant(srcCst));
+                setCStringPointerConstant(sema, castRequest, dstTypeRef, dstType, pointerValueFromPointerLikeConstant(srcCst));
             }
 
             return Result::Continue;

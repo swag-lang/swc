@@ -2,6 +2,7 @@
 #include "Backend/Native/NativeArtifactBuilder.h"
 #include "Backend/ABI/ABICall.h"
 #include "Backend/Native/NativeRDataCollector.h"
+#include "Backend/Native/SymbolSort.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Main/Command/CommandLineParser.h"
 #include "Main/FileSystem.h"
@@ -42,6 +43,21 @@ private:
     const NativeArtifactBuilder* artifactBuilder_ = nullptr;
     std::atomic<Result>          result_          = Result::Continue;
 };
+
+namespace
+{
+    const NativeFunctionInfo* findFunctionInfoByLocation(const NativeBackendBuilder& builder, const SymbolFunction& targetFunction)
+    {
+        const Utf8 sortKey = SymbolSort::locationKey(builder.compiler(), targetFunction);
+        for (const NativeFunctionInfo& info : builder.functionInfos)
+        {
+            if (info.sortKey == sortKey)
+                return &info;
+        }
+
+        return nullptr;
+    }
+}
 
 NativeArtifactBuilder::NativeArtifactBuilder(NativeBackendBuilder& builder) :
     builder_(&builder)
@@ -286,7 +302,7 @@ Result NativeArtifactBuilder::resolveFunctionRelocationName(Utf8& outName, const
 {
     SWC_ASSERT(targetFunction != nullptr);
     if (!targetFunction)
-        return builder_->reportError(DiagnosticId::cmd_err_native_invalid_local_function_relocation);
+        return builder_->reportError(DiagnosticId::cmd_err_native_invalid_local_function_relocation, Diagnostic::ARG_SYM, Utf8("<null>"));
 
     if (targetFunction->isForeign())
     {
@@ -295,10 +311,17 @@ Result NativeArtifactBuilder::resolveFunctionRelocationName(Utf8& outName, const
     }
 
     const auto it = builder_->functionBySymbol.find(targetFunction);
-    if (it == builder_->functionBySymbol.end())
-        return builder_->reportError(DiagnosticId::cmd_err_native_invalid_local_function_relocation);
+    if (it != builder_->functionBySymbol.end())
+    {
+        outName = it->second->symbolName;
+        return Result::Continue;
+    }
 
-    outName = it->second->symbolName;
+    const NativeFunctionInfo* fallback = findFunctionInfoByLocation(*builder_, *targetFunction);
+    if (!fallback)
+        return builder_->reportError(DiagnosticId::cmd_err_native_invalid_local_function_relocation, Diagnostic::ARG_SYM, targetFunction->getFullScopedName(builder_->ctx()));
+
+    outName = fallback->symbolName;
     return Result::Continue;
 }
 

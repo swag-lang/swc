@@ -188,7 +188,7 @@ namespace
         if (const SymbolFunction* currentFn = sema.currentFunction())
             addGenericContextNotesFromSymbolMap(sema, diag, currentFn, seen);
         else
-            addGenericContextNotesFromSymbolMap(sema, diag, sema.curSymMap(), seen);
+            addGenericContextNotesFromSymbolMap(sema, diag, sema.curScopePtr() ? sema.curSymMap() : sema.topSymMap(), seen);
     }
 }
 

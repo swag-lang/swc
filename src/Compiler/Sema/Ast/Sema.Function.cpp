@@ -27,6 +27,13 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    SymbolMap* lazyGenericFunctionStartSymMap(const SymbolFunction& function)
+    {
+        if (const auto* root = function.genericRootSym())
+            return const_cast<SymbolMap*>(root->ownerSymMap());
+        return const_cast<SymbolMap*>(function.ownerSymMap());
+    }
+
     const SymbolImpl* functionDeclImplContext(Sema& sema, const SymbolFunction* symFunc = nullptr)
     {
         if (const auto* symImpl = sema.frame().currentImpl())
@@ -38,10 +45,13 @@ namespace
                 return symImpl;
         }
 
-        for (SymbolMap* symMap = sema.curSymMap(); symMap; symMap = symMap->ownerSymMap())
+        if (sema.curScopePtr())
         {
-            if (symMap->isImpl())
-                return &symMap->cast<SymbolImpl>();
+            for (SymbolMap* symMap = sema.curSymMap(); symMap; symMap = symMap->ownerSymMap())
+            {
+                if (symMap->isImpl())
+                    return &symMap->cast<SymbolImpl>();
+            }
         }
 
         return nullptr;
@@ -64,15 +74,18 @@ namespace
                 return symItf;
         }
 
-        for (SymbolMap* symMap = sema.curSymMap(); symMap; symMap = symMap->ownerSymMap())
+        if (sema.curScopePtr())
         {
-            if (symMap->isInterface())
-                return &symMap->cast<SymbolInterface>();
-
-            if (symMap->isImpl())
+            for (SymbolMap* symMap = sema.curSymMap(); symMap; symMap = symMap->ownerSymMap())
             {
-                if (const auto* symItf = symMap->cast<SymbolImpl>().symInterface())
-                    return symItf;
+                if (symMap->isInterface())
+                    return &symMap->cast<SymbolInterface>();
+
+                if (symMap->isImpl())
+                {
+                    if (const auto* symItf = symMap->cast<SymbolImpl>().symInterface())
+                        return symItf;
+                }
             }
         }
 
@@ -124,6 +137,8 @@ namespace
             return false;
         if (sym.isGenericRoot() || sym.isGenericInstance() || sym.isEmpty())
             return false;
+        if (sym.attributes().hasRtFlag(RtAttributeFlagsE::Macro) || sym.attributes().hasRtFlag(RtAttributeFlagsE::Mixin))
+            return false;
         if (sym.specOpKind() != SpecOpKind::None)
             return false;
         if (!isGenericInstanceImplFunction(sym, declImpl))
@@ -158,23 +173,28 @@ namespace
 
     std::unique_ptr<Sema> makeLazyGenericBodySema(Sema& sema, SymbolFunction& calledFn, AstNodeRef declRef)
     {
-        const SourceView&     srcView        = sema.compiler().srcView(calledFn.srcViewRef());
-        NodePayload*          payloadContext = sema.owningNodePayloadContext(calledFn.srcViewRef());
+        NodePayload*          payloadContext = const_cast<NodePayload*>(calledFn.declNodePayloadContext());
+        if (!payloadContext)
+            payloadContext = sema.owningNodePayloadContext(calledFn.srcViewRef());
+
         std::unique_ptr<Sema> child;
-        if (!payloadContext || sema.usesOwningNodePayloadContext(calledFn.srcViewRef()))
+        if (!payloadContext || payloadContext == &sema.currentNodePayloadContext())
         {
             child = std::make_unique<Sema>(sema.ctx(), sema, declRef);
         }
         else
         {
-            SourceFile& sourceFile = sema.compiler().file(srcView.ownerFileRef());
             if (declRef.isInvalid() && calledFn.decl())
+            {
+                const SourceView& srcView   = sema.compiler().srcView(calledFn.srcViewRef());
+                SourceFile&       sourceFile = sema.compiler().file(srcView.ownerFileRef());
                 declRef = calledFn.decl()->nodeRef(sourceFile.ast());
+            }
             SWC_ASSERT(declRef.isValid());
             child = std::make_unique<Sema>(sema.ctx(), sema, *payloadContext, declRef);
         }
 
-        SemaGeneric::prepareGenericInstantiationContext(*child, calledFn.ownerSymMap(), calledFn.declImplContext(), calledFn.declInterfaceContext(), calledFn.attributes());
+        SemaGeneric::prepareGenericInstantiationContext(*child, lazyGenericFunctionStartSymMap(calledFn), functionDeclImplContext(sema, &calledFn), functionDeclInterfaceContext(sema, &calledFn), calledFn.attributes());
         return child;
     }
 

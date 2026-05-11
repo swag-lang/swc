@@ -25,7 +25,15 @@ impl ReflectionProbe
     {
         return .x + 1
     }
+
+    #[Macro]
+    mtd visitMacro(stmt: #code void)
+    {
+        #inject(stmt)
+    }
 }
+
+alias ReflectionProbePingFn = func(&ReflectionProbe)->s32
 
 struct PodProbe
 {
@@ -77,6 +85,8 @@ enum ProbeFlags: u32
 
 alias ReflectionProbeAlias = ReflectionProbe
 alias ReflectionProbeAlias2 = ReflectionProbeAlias
+var ReflectionRuntimeMethodCalls: s32
+var ReflectionRuntimePointerCalls: s32
 
 #[FuncMeta("repeat", 2)]
 func(T, N: s32) makeRepeated(value: T)->[N] T
@@ -100,6 +110,31 @@ impl CopyProbe
     {
         .copied = true
     }
+}
+
+func runtimeMethodReflectionWorks(type: typeinfo, seed: s32)->bool
+{
+    ReflectionRuntimeMethodCalls += 1
+
+    let method = Reflection.getMethod(type, "ping")
+    if method == null do
+        return false
+
+    let methodType = cast(const *Swag.TypeInfoFunc) method.pointedType
+    if method.name != "ping" or
+       method.pointedType.kind != .Func or
+       @countof(methodType.parameters) != 1 or
+       methodType.parameters[0].pointedType != #type &ReflectionProbe or
+       methodType.returnType != s32 or
+       method.value == null or
+       Reflection.getMethod(type, "visitMacro") != null do
+        return false
+
+    var probe: ReflectionProbe = {x: seed}
+    let ping = cast(ReflectionProbePingFn) method.value
+    let result = ping(&probe)
+    ReflectionRuntimePointerCalls += 1
+    return result == seed + 1
 }
 
 #test
@@ -209,12 +244,14 @@ impl CopyProbe
 #test
 {
     let type = #typeof(ReflectionProbe)
-    let method = Reflection.getMethod(type, "ping")
+    ReflectionRuntimeMethodCalls = 0
+    ReflectionRuntimePointerCalls = 0
 
-    @assert(method != null)
-    @assert(method.name == "ping")
-    @assert(method.pointedType.kind == .Func)
+    @assert(runtimeMethodReflectionWorks(type, 1))
+    @assert(ReflectionRuntimeMethodCalls == 1)
+    @assert(ReflectionRuntimePointerCalls == 1)
     @assert(Reflection.hasMethod(type, "ping"))
+    @assert(!Reflection.hasMethod(type, "visitMacro"))
     @assert(!Reflection.hasMethod(type, "missing"))
 }
 

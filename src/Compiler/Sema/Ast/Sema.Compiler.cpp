@@ -166,8 +166,41 @@ namespace
         return Result::Continue;
     }
 
+    const SemaClone::ParamBinding* findInjectInlineBinding(Sema& sema, AstNodeRef nodeRef)
+    {
+        if (nodeRef.isInvalid())
+            return nullptr;
+
+        const auto* inlinePayload = sema.frame().currentInlinePayload();
+        if (!inlinePayload)
+            return nullptr;
+
+        const auto* identifier = sema.node(nodeRef).safeCast<AstIdentifier>();
+        if (!identifier)
+            return nullptr;
+
+        const IdentifierRef idRef = sema.idMgr().addIdentifier(sema.ctx(), identifier->codeRef());
+        for (const auto& binding : inlinePayload->argMappings)
+        {
+            if (binding.idRef == idRef)
+                return &binding;
+        }
+
+        return nullptr;
+    }
+
     AstNodeRef rawInjectedNodeRef(Sema& sema, AstNodeRef nodeRef)
     {
+        if (const auto* binding = findInjectInlineBinding(sema, nodeRef); binding && binding->exprRef.isValid())
+        {
+            const AstNode& bindingNode = sema.node(binding->exprRef);
+            if (bindingNode.is(AstNodeId::CompilerCodeExpr))
+                return bindingNode.cast<AstCompilerCodeExpr>().nodeExprRef;
+            if (bindingNode.is(AstNodeId::CompilerCodeBlock))
+                return bindingNode.cast<AstCompilerCodeBlock>().nodeBodyRef;
+            return binding->exprRef;
+        }
+
         AstNodeRef       resultRef   = nodeRef;
         const AstNodeRef resolvedRef = sema.viewZero(nodeRef).nodeRef();
         if (resolvedRef.isValid())
@@ -219,6 +252,51 @@ namespace
         outReplacements.push_back({nodeId, replacementRef});
     }
 
+    bool injectCloneDependsOnContext(Sema& sema, AstNodeRef nodeRef, std::span<const SemaClone::ParamBinding> bindings, std::span<const SemaClone::NodeReplacement> replacements)
+    {
+        if (nodeRef.isInvalid())
+            return false;
+
+        const AstNode& node = sema.node(nodeRef);
+        for (const auto& replacement : replacements)
+        {
+            if (replacement.nodeId == node.id())
+                return true;
+        }
+
+        if (const auto* identifier = node.safeCast<AstIdentifier>())
+        {
+            const IdentifierRef idRef = sema.idMgr().addIdentifier(sema.ctx(), identifier->codeRef());
+            for (const auto& binding : bindings)
+            {
+                if (binding.idRef == idRef)
+                    return true;
+            }
+        }
+
+        SmallVector<AstNodeRef> children;
+        node.collectChildrenFromAst(children, sema.ast());
+        for (const AstNodeRef childRef : children)
+        {
+            if (injectCloneDependsOnContext(sema, childRef, bindings, replacements))
+                return true;
+        }
+
+        return false;
+    }
+
+    bool isDetachedReexpandableExpr(const AstNode& node)
+    {
+        return node.is(AstNodeId::CallExpr) ||
+               node.is(AstNodeId::AliasCallExpr) ||
+               node.is(AstNodeId::IntrinsicCallExpr) ||
+               node.is(AstNodeId::UnaryExpr) ||
+               node.is(AstNodeId::BinaryExpr) ||
+               node.is(AstNodeId::RelationalExpr) ||
+               node.is(AstNodeId::IndexExpr) ||
+               node.is(AstNodeId::CastExpr);
+    }
+
     void appendInjectReplacements(Sema& sema, const AstCompilerInject& node, SmallVector<SemaClone::NodeReplacement>& outReplacements)
     {
         SmallVector<TokenRef>   replacementInstructionRefs;
@@ -265,8 +343,18 @@ namespace
             bindings = inlinePayload->argMappings.span();
         }
 
-        const SemaClone::CloneContext cloneContext{bindings, replacements};
-        const AstNodeRef              clonedRef = SemaClone::cloneAst(sema, rawRef, cloneContext);
+        AstNodeRef clonedRef = AstNodeRef::invalid();
+        if (sema.node(exprRef).is(AstNodeId::CompilerCodeExpr) &&
+            !injectCloneDependsOnContext(sema, rawRef, bindings, replacements))
+        {
+            const SemaClone::CloneContext cloneContext{std::span<const SemaClone::ParamBinding>{}};
+            clonedRef = SemaClone::cloneAst(sema, rawRef, cloneContext);
+        }
+        else
+        {
+            const SemaClone::CloneContext cloneContext{bindings, replacements};
+            clonedRef = SemaClone::cloneAst(sema, rawRef, cloneContext);
+        }
         if (clonedRef.isInvalid())
             return Result::Error;
 
@@ -292,7 +380,7 @@ namespace
                 frame.pushBindingType(bindingType);
             sema.pushFramePopOnPostNode(frame, clonedRef);
         }
-        sema.visit().restartCurrentNode(clonedRef);
+        sema.restartCurrentNode(clonedRef);
         return Result::Continue;
     }
 
@@ -551,10 +639,14 @@ namespace
 
         AstNodeRef generatedRef = AstNodeRef::invalid();
         SWC_RESULT(parseCompilerAstGenerated(sema, ownerRef, generatedCode, generatedRef));
+        if (ownerRef == sema.curNodeRef() &&
+            (sema.node(ownerRef).is(AstNodeId::CompilerFunc) || sema.node(ownerRef).is(AstNodeId::CompilerShortFunc)) &&
+            sema.token(sema.node(ownerRef).codeRef()).id == TokenId::CompilerAst)
+            sema.processCurrentPostNodePopsNow();
         pushCompilerAstExpansion(sema, ownerRef, generatedCode);
         sema.deferPostNodeAction(generatedRef, popCompilerAstExpansion);
         sema.setSubstitute(ownerRef, generatedRef);
-        sema.visit().restartCurrentNode(generatedRef);
+        sema.restartCurrentNode(generatedRef);
         return Result::Continue;
     }
 

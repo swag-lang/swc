@@ -42,6 +42,7 @@ namespace SemaClone
     };
 
     AstNodeRef cloneAst(Sema& sema, AstNodeRef nodeRef, const CloneContext& cloneContext);
+    AstNodeRef cloneDetachedExpr(Sema& sema, AstNodeRef nodeRef);
 }
 
 SWC_END_NAMESPACE();

@@ -2,6 +2,11 @@
 #global fileprivate
 using Swag
 
+struct StaticArrayVisitProbe
+{
+    value: s32
+}
+
 func assertStaticIntArray(values: const &StaticArray'(s32, 4'u64), expected: const [..] s32)->bool
 {
     if values.count != @countof(expected) do
@@ -14,6 +19,32 @@ func assertStaticIntArray(values: const &StaticArray'(s32, 4'u64), expected: con
     }
 
     return true
+}
+
+func visitStructStaticArray(values: &StaticArray'(StaticArrayVisitProbe, 4'u64))->s32
+{
+    foreach value, index in values where value.value != 12
+    {
+        if index == 0 do
+            continue
+
+        return value.value + cast(s32) index
+    }
+
+    return 0
+}
+
+func visitStructStaticArrayReverse(values: &StaticArray'(StaticArrayVisitProbe, 4'u64))->s32
+{
+    var score = 0
+    foreach #reverse value, index in values
+    {
+        score += value.value + cast(s32) index
+        if value.value == 12 do
+            return score
+    }
+
+    return score
 }
 
 #test
@@ -50,6 +81,23 @@ func assertStaticIntArray(values: const &StaticArray'(s32, 4'u64), expected: con
 
     let expected: [3] s32 = [1, 2, 3]
     @assert(assertStaticIntArray(values, expected))
+}
+
+#test
+{
+    var values: StaticArray'(StaticArrayVisitProbe, 4'u64)
+    values.add(StaticArrayVisitProbe{value: 1})
+    values.add(StaticArrayVisitProbe{value: 2})
+    values.add(StaticArrayVisitProbe{value: 3})
+
+    foreach value in values do
+        value.value += 10
+
+    @assert(values[0].value == 11)
+    @assert(values[1].value == 12)
+    @assert(values[2].value == 13)
+    @assert(visitStructStaticArray(&values) == 15)
+    @assert(visitStructStaticArrayReverse(&values) == 28)
 }
 
 #test

@@ -279,6 +279,13 @@ namespace
         const TypeInfo& paramType = param.type(sema.ctx());
         if (paramType.isCodeBlock())
         {
+            if (sourceArgRef.isValid())
+                return wrapCodeArgument(sema, param, sourceArgRef);
+
+            const AstNode& argNode = sema.node(argRef);
+            if (argNode.is(AstNodeId::CompilerCodeExpr) || argNode.is(AstNodeId::CompilerCodeBlock))
+                return wrapCodeArgument(sema, param, argRef);
+
             const AstNodeRef resolvedRef = sema.viewZero(argRef).nodeRef();
             if (resolvedRef.isValid() && resolvedRef != argRef)
             {
@@ -287,10 +294,6 @@ namespace
                     return wrapCodeArgument(sema, param, resolvedRef);
             }
 
-            if (sema.node(argRef).is(AstNodeId::CompilerCodeExpr) || sema.node(argRef).is(AstNodeId::CompilerCodeBlock))
-                return wrapCodeArgument(sema, param, resolvedRef.isValid() ? resolvedRef : argRef);
-            if (sourceArgRef.isValid())
-                return wrapCodeArgument(sema, param, sourceArgRef);
             return wrapCodeArgument(sema, param, argRef);
         }
 
@@ -1489,7 +1492,7 @@ Result SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFun
     });
 
     sema.setSubstitute(callRef, inlineRootRef);
-    sema.visit().restartCurrentNode(inlineRootRef);
+    sema.restartCurrentNode(inlineRootRef);
     return Result::Continue;
 }
 

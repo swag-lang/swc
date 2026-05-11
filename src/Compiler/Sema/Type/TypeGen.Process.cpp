@@ -2,10 +2,14 @@
 #include "Compiler/Sema/Type/TypeGen.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Core/Sema.h"
+#include "Compiler/Sema/Symbol/Symbol.Alias.h"
+#include "Compiler/Sema/Symbol/Symbol.Impl.h"
 #include "Compiler/Sema/Symbol/Symbol.Enum.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
+#include "Compiler/Sema/Symbol/Symbol.Interface.h"
 #include "Compiler/Sema/Symbol/Symbol.Struct.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
+#include "Compiler/Sema/Type/TypeInfo.h"
 #include "Compiler/Sema/Type/TypeManager.h"
 #include "Main/TaskContext.h"
 #include "Support/Core/DataSegment.h"
@@ -14,6 +18,60 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    bool canReflectTypeRef(TaskContext& ctx, TypeRef typeRef, SmallVector<TypeRef>& visiting);
+
+    bool canReflectFunctionSignature(TaskContext& ctx, const SymbolFunction& symFunc, SmallVector<TypeRef>& visiting)
+    {
+        if (!symFunc.returnTypeRef().isValid() || !canReflectTypeRef(ctx, symFunc.returnTypeRef(), visiting))
+            return false;
+
+        for (const SymbolVariable* param : symFunc.parameters())
+        {
+            if (!param || !param->typeRef().isValid() || !canReflectTypeRef(ctx, param->typeRef(), visiting))
+                return false;
+        }
+
+        return true;
+    }
+
+    bool canReflectTypeRef(TaskContext& ctx, TypeRef typeRef, SmallVector<TypeRef>& visiting)
+    {
+        if (!typeRef.isValid())
+            return false;
+
+        if (std::ranges::find(visiting, typeRef) != visiting.end())
+            return true;
+
+        visiting.push_back(typeRef);
+        const TypeInfo& type = ctx.typeMgr().get(typeRef);
+        bool            ok   = true;
+
+        if (type.isArray())
+            ok = canReflectTypeRef(ctx, type.payloadArrayElemTypeRef(), visiting);
+        else if (type.isSlice() || type.isAnyPointer() || type.isReference() || type.isMoveReference() || type.isTypeValue() || type.isTypedVariadic() || type.isCodeBlock())
+            ok = canReflectTypeRef(ctx, type.payloadTypeRef(), visiting);
+        else if (type.isAlias())
+            ok = canReflectTypeRef(ctx, type.payloadSymAlias().underlyingTypeRef(), visiting);
+        else if (type.isEnum())
+            ok = canReflectTypeRef(ctx, type.payloadSymEnum().underlyingTypeRef(), visiting);
+        else if (type.isAggregateStruct() || type.isAggregateArray())
+        {
+            for (const TypeRef fieldTypeRef : type.payloadAggregate().types)
+            {
+                if (!canReflectTypeRef(ctx, fieldTypeRef, visiting))
+                {
+                    ok = false;
+                    break;
+                }
+            }
+        }
+        else if (type.isFunction())
+            ok = canReflectFunctionSignature(ctx, type.payloadSymFunction(), visiting);
+
+        visiting.pop_back();
+        return ok;
+    }
+
     TypeRef pointerLayoutDepTypeRef(const TypeManager& tm, const TypeInfo& type)
     {
         // `typeinfo` values point to the runtime `Swag.TypeInfo` hierarchy even though the
@@ -55,6 +113,18 @@ namespace
                     deps.push_back(pointedTypeRef);
             }
         }
+    }
+
+    TypeRef reflectedMethodTypeRef(TaskContext& ctx, const SymbolFunction& symFunc)
+    {
+        SmallVector<TypeRef> visiting;
+        if (!canReflectFunctionSignature(ctx, symFunc, visiting))
+            return TypeRef::invalid();
+
+        if (symFunc.typeRef().isValid())
+            return symFunc.typeRef();
+
+        return ctx.typeMgr().addType(TypeInfo::makeFunction(const_cast<SymbolFunction*>(&symFunc), TypeInfoFlagsE::Zero));
     }
 
 }
@@ -160,6 +230,21 @@ SmallVector<TypeRef> TypeGen::computeDeps(TypeManager& tm, const TaskContext& ct
                     continue;
                 deps.push_back(field->typeRef());
                 appendAttributeDeps(deps, ctx, field->attributes());
+            }
+
+            for (const SymbolFunction* method : symStruct.methods())
+            {
+                if (!method)
+                    continue;
+                deps.push_back(reflectedMethodTypeRef(const_cast<TaskContext&>(ctx), *method));
+                appendAttributeDeps(deps, ctx, method->attributes());
+            }
+
+            for (const SymbolImpl* itfImpl : symStruct.interfaces())
+            {
+                const SymbolInterface* symInterface = itfImpl ? itfImpl->symInterface() : nullptr;
+                if (symInterface && symInterface->typeRef().isValid())
+                    deps.push_back(symInterface->typeRef());
             }
             break;
         }

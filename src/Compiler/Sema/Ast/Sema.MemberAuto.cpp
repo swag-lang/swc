@@ -72,68 +72,12 @@ namespace
 
     SymbolVariable* activeReceiverBinding(Sema& sema);
 
-    bool containsNodeRef(std::span<const AstNodeRef> refs, AstNodeRef ref)
-    {
-        return std::ranges::find(refs, ref) != refs.end();
-    }
-
-    void copyDetachedExprState(Sema& sema, AstNodeRef sourceRef, AstNodeRef clonedRef, SmallVector<AstNodeRef>& activeSourceRefs);
-
-    // `with` rewrites must not reuse an existing resolved expression subtree directly,
-    // otherwise several rewritten auto-members can end up sharing AST nodes.
-    AstNodeRef cloneDetachedExpr(Sema& sema, AstNodeRef sourceRef, SmallVector<AstNodeRef>& activeSourceRefs)
-    {
-        SWC_ASSERT(sourceRef.isValid());
-        const SemaClone::CloneContext cloneContext{std::span<const SemaClone::ParamBinding>{}};
-        const AstNodeRef              clonedRef = SemaClone::cloneAst(sema, sourceRef, cloneContext);
-        SWC_ASSERT(clonedRef.isValid());
-        copyDetachedExprState(sema, sourceRef, clonedRef, activeSourceRefs);
-        return clonedRef;
-    }
-
+    // `with` rewrites must not reuse an existing resolved expression subtree directly.
+    // A fresh syntax clone lets semantic analysis rebuild substitutes in the new context.
     AstNodeRef cloneDetachedExpr(Sema& sema, AstNodeRef sourceRef)
     {
-        SmallVector<AstNodeRef> activeSourceRefs;
-        return cloneDetachedExpr(sema, sourceRef, activeSourceRefs);
-    }
-
-    void copyDetachedExprState(Sema& sema, AstNodeRef sourceRef, AstNodeRef clonedRef, SmallVector<AstNodeRef>& activeSourceRefs)
-    {
         SWC_ASSERT(sourceRef.isValid());
-        SWC_ASSERT(clonedRef.isValid());
-
-        activeSourceRefs.push_back(sourceRef);
-        sema.inheritPayload(sema.node(clonedRef), sourceRef);
-
-        SmallVector<AstNodeRef> sourceChildren;
-        SmallVector<AstNodeRef> clonedChildren;
-        sema.node(sourceRef).collectChildrenFromAst(sourceChildren, sema.ast());
-        sema.node(clonedRef).collectChildrenFromAst(clonedChildren, sema.ast());
-        SWC_ASSERT(sourceChildren.size() == clonedChildren.size());
-
-        for (size_t i = 0; i < sourceChildren.size(); ++i)
-        {
-            const AstNodeRef sourceChildRef = sourceChildren[i];
-            const AstNodeRef clonedChildRef = clonedChildren[i];
-            if (sourceChildRef.isInvalid() || clonedChildRef.isInvalid())
-                continue;
-
-            sema.inheritPayload(sema.node(clonedChildRef), sourceChildRef);
-
-            const AstNodeRef resolvedChildRef = sema.viewZero(sourceChildRef).nodeRef();
-            if (resolvedChildRef.isValid() &&
-                resolvedChildRef != sourceChildRef &&
-                !containsNodeRef(activeSourceRefs.span(), resolvedChildRef))
-            {
-                const AstNodeRef clonedResolvedChildRef = cloneDetachedExpr(sema, resolvedChildRef, activeSourceRefs);
-                sema.setSubstitute(clonedChildRef, clonedResolvedChildRef);
-                continue;
-            }
-
-            copyDetachedExprState(sema, sourceChildRef, clonedChildRef, activeSourceRefs);
-        }
-
-        activeSourceRefs.pop_back();
+        return SemaClone::cloneDetachedExpr(sema, sourceRef);
     }
 
     AstNodeRef makeAutoMemberLeftExpr(Sema& sema, TokenRef tokRef, const AutoMemberCandidate& candidate)
@@ -164,7 +108,7 @@ namespace
     {
         auto [nodeRef, nodePtr] = sema.ast().makeNode<AstNodeId::MemberAccessExpr>(tokRef);
         nodePtr->nodeLeftRef    = makeAutoMemberLeftExpr(sema, tokRef, candidate);
-        nodePtr->nodeRightRef   = rightRef;
+        nodePtr->nodeRightRef   = cloneDetachedExpr(sema, rightRef);
         outNode                 = nodePtr;
         return nodeRef;
     }
@@ -201,6 +145,11 @@ namespace
             return false;
 
         return true;
+    }
+
+    bool containsNodeRef(std::span<const AstNodeRef> refs, AstNodeRef target)
+    {
+        return std::ranges::find(refs, target) != refs.end();
     }
 
     bool aggregateHasMember(Sema& sema, TypeRef typeRef, IdentifierRef idRef)
@@ -557,6 +506,7 @@ namespace
         const AstNodeRef     memberRef  = makeAutoMemberAccessExpr(sema, tokRef, {.baseExprRef = leftRef}, rightRef, memberNode);
         sema.setSymbolList(memberRef, callableSymbols);
         sema.setSymbolList(rightRef, callableSymbols);
+        sema.setSymbolList(memberNode->nodeRightRef, callableSymbols);
         sema.setIsValue(*memberNode);
         return memberRef;
     }
@@ -602,11 +552,11 @@ Result AstAutoMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& c
         return Result::SkipChildren;
 
     // Parser tags the callee expression when building a call: `.foo()`.
-    const bool          allowOverloadSet = hasFlag(AstAutoMemberAccessExprFlagsE::CallCallee);
-    const SemaNodeView  nodeRightView    = sema.viewNode(nodeIdentRef);
-    const SourceCodeRef codeRef          = nodeRightView.node()->codeRef();
-    const IdentifierRef idRef            = sema.idMgr().addIdentifier(sema.ctx(), codeRef);
-    SWC_ASSERT(nodeRightView.node()->is(AstNodeId::Identifier));
+    const bool     allowOverloadSet = hasFlag(AstAutoMemberAccessExprFlagsE::CallCallee);
+    const AstNode& rightNode        = sema.node(nodeIdentRef);
+    SWC_ASSERT(rightNode.is(AstNodeId::Identifier));
+    const SourceCodeRef codeRef = rightNode.codeRef();
+    const IdentifierRef idRef   = sema.idMgr().addIdentifier(sema.ctx(), codeRef);
 
     SmallVector4<AutoMemberCandidate> candidates;
     SWC_RESULT(collectAutoMemberCandidates(sema, candidates));
@@ -631,7 +581,7 @@ Result AstAutoMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& c
     if (matches.empty())
     {
         bool localCallableHandled = false;
-        SWC_RESULT(trySubstituteLocalCallable(sema, codeRef, nodeRightView.node()->tokRef(), nodeIdentRef, idRef, allowOverloadSet, localCallableHandled));
+        SWC_RESULT(trySubstituteLocalCallable(sema, codeRef, rightNode.tokRef(), nodeIdentRef, idRef, allowOverloadSet, localCallableHandled));
         if (localCallableHandled)
             return Result::SkipChildren;
 
@@ -735,6 +685,7 @@ Result AstAutoMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& c
         const std::span<Symbol*> symbols        = sema.curViewSymbolList().symList();
         sema.setSymbolList(nodeRef, symbols);
         sema.setSymbolList(nodeIdentRef, symbols);
+        sema.setSymbolList(substituteNode->nodeRightRef, symbols);
 
         AstNodeRef substituteRef = nodeRef;
         if (selected.resultTypeRef.isValid())

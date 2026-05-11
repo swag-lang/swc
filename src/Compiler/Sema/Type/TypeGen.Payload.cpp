@@ -6,10 +6,14 @@
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Generic/SemaGeneric.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
+#include "Compiler/Sema/Symbol/Symbol.Alias.h"
 #include "Compiler/Sema/Symbol/Symbol.Enum.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
+#include "Compiler/Sema/Symbol/Symbol.Impl.h"
+#include "Compiler/Sema/Symbol/Symbol.Interface.h"
 #include "Compiler/Sema/Symbol/Symbol.Struct.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
+#include "Compiler/Sema/Type/TypeInfo.h"
 #include "Main/TaskContext.h"
 #include "Support/Core/DataSegment.h"
 
@@ -17,6 +21,60 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    bool canReflectTypeRef(TaskContext& ctx, TypeRef typeRef, SmallVector<TypeRef>& visiting);
+
+    bool canReflectFunctionSignature(TaskContext& ctx, const SymbolFunction& symFunc, SmallVector<TypeRef>& visiting)
+    {
+        if (!symFunc.returnTypeRef().isValid() || !canReflectTypeRef(ctx, symFunc.returnTypeRef(), visiting))
+            return false;
+
+        for (const SymbolVariable* param : symFunc.parameters())
+        {
+            if (!param || !param->typeRef().isValid() || !canReflectTypeRef(ctx, param->typeRef(), visiting))
+                return false;
+        }
+
+        return true;
+    }
+
+    bool canReflectTypeRef(TaskContext& ctx, TypeRef typeRef, SmallVector<TypeRef>& visiting)
+    {
+        if (!typeRef.isValid())
+            return false;
+
+        if (std::ranges::find(visiting, typeRef) != visiting.end())
+            return true;
+
+        visiting.push_back(typeRef);
+        const TypeInfo& type = ctx.typeMgr().get(typeRef);
+        bool            ok   = true;
+
+        if (type.isArray())
+            ok = canReflectTypeRef(ctx, type.payloadArrayElemTypeRef(), visiting);
+        else if (type.isSlice() || type.isAnyPointer() || type.isReference() || type.isMoveReference() || type.isTypeValue() || type.isTypedVariadic() || type.isCodeBlock())
+            ok = canReflectTypeRef(ctx, type.payloadTypeRef(), visiting);
+        else if (type.isAlias())
+            ok = canReflectTypeRef(ctx, type.payloadSymAlias().underlyingTypeRef(), visiting);
+        else if (type.isEnum())
+            ok = canReflectTypeRef(ctx, type.payloadSymEnum().underlyingTypeRef(), visiting);
+        else if (type.isAggregateStruct() || type.isAggregateArray())
+        {
+            for (const TypeRef fieldTypeRef : type.payloadAggregate().types)
+            {
+                if (!canReflectTypeRef(ctx, fieldTypeRef, visiting))
+                {
+                    ok = false;
+                    break;
+                }
+            }
+        }
+        else if (type.isFunction())
+            ok = canReflectFunctionSignature(ctx, type.payloadSymFunction(), visiting);
+
+        visiting.pop_back();
+        return ok;
+    }
+
     template<typename T>
     constexpr T enumOr(T a, T b)
     {
@@ -310,6 +368,18 @@ namespace
         }
     }
 
+    TypeRef reflectedMethodTypeRef(TaskContext& ctx, const SymbolFunction& symFunc)
+    {
+        SmallVector<TypeRef> visiting;
+        if (!canReflectFunctionSignature(ctx, symFunc, visiting))
+            return TypeRef::invalid();
+
+        if (symFunc.typeRef().isValid())
+            return symFunc.typeRef();
+
+        return ctx.typeMgr().addType(TypeInfo::makeFunction(const_cast<SymbolFunction*>(&symFunc), TypeInfoFlagsE::Zero));
+    }
+
     void materializeInlineAny(Sema& sema, const TypeGen::TypeGenCache& cache, DataSegment& storage, uint32_t baseOffset, uint32_t fieldOffset, ConstantRef valueCstRef)
     {
         Runtime::Any* dstAny = storage.ptr<Runtime::Any>(baseOffset + fieldOffset);
@@ -488,6 +558,14 @@ namespace
         entry.structGenericsOffset     = 0;
         entry.structGenericsCount      = 0;
         entry.structGenericTypes.clear();
+        entry.structMethodsOffset = 0;
+        entry.structMethodsCount  = 0;
+        entry.structMethodTypes.clear();
+        entry.structMethods.clear();
+        entry.structInterfacesOffset = 0;
+        entry.structInterfacesCount  = 0;
+        entry.structInterfaceTypes.clear();
+        entry.structInterfaces.clear();
 
         if (type.isStruct())
         {
@@ -617,6 +695,21 @@ namespace
         }
 
         const auto& fields     = type.payloadSymStruct().fields();
+        const auto  interfaces = type.payloadSymStruct().interfaces();
+        std::vector<const SymbolFunction*> methods;
+        SmallVector<TypeRef>               methodTypes;
+        for (const SymbolFunction* symMethod : type.payloadSymStruct().methods())
+        {
+            if (!symMethod)
+                continue;
+
+            const TypeRef methodTypeRef = reflectedMethodTypeRef(ctx, *symMethod);
+            if (!methodTypeRef.isValid())
+                continue;
+
+            methods.push_back(symMethod);
+            methodTypes.push_back(methodTypeRef);
+        }
         uint32_t    usingCount = 0;
         for (const SymbolVariable* symField : fields)
         {
@@ -626,11 +719,20 @@ namespace
 
         rtType.fields.count      = fields.size();
         rtType.usingFields.count = usingCount;
+        rtType.methods.count     = methods.size();
+        rtType.interfaces.count  = interfaces.size();
 
         entry.structFieldsCount = static_cast<uint32_t>(fields.size());
         entry.structFieldTypes.clear();
         entry.usingFieldsCount = usingCount;
         entry.usingFieldTypes.clear();
+        entry.structMethodsCount = static_cast<uint32_t>(methods.size());
+        entry.structMethodTypes.clear();
+        entry.structMethodTypes.append(methodTypes.data(), methodTypes.size());
+        entry.structMethods.assign(methods.begin(), methods.end());
+        entry.structInterfacesCount = static_cast<uint32_t>(interfaces.size());
+        entry.structInterfaceTypes.clear();
+        entry.structInterfaces.assign(interfaces.begin(), interfaces.end());
 
         if (fields.empty())
         {
@@ -638,63 +740,113 @@ namespace
             rtType.usingFields.ptr   = nullptr;
             entry.structFieldsOffset = 0;
             entry.usingFieldsOffset  = 0;
-            return;
-        }
-
-        const auto [fieldsOffset, fieldsPtr] = storage.reserveSpan<Runtime::TypeValue>(static_cast<uint32_t>(fields.size()));
-        entry.structFieldsOffset             = fieldsOffset;
-        rtType.fields.ptr                    = fieldsPtr;
-        storage.addRelocation(offset + offsetof(Runtime::TypeInfoStruct, fields.ptr), fieldsOffset);
-
-        Runtime::TypeValue* usingFieldsPtr    = nullptr;
-        uint32_t            usingFieldsOffset = 0;
-        if (usingCount)
-        {
-            const auto usingStorage = storage.reserveSpan<Runtime::TypeValue>(usingCount);
-            usingFieldsOffset       = usingStorage.first;
-            usingFieldsPtr          = usingStorage.second;
-            entry.usingFieldsOffset = usingFieldsOffset;
-            rtType.usingFields.ptr  = usingFieldsPtr;
-            storage.addRelocation(offset + offsetof(Runtime::TypeInfoStruct, usingFields.ptr), usingFieldsOffset);
         }
         else
         {
-            entry.usingFieldsOffset = 0;
-            rtType.usingFields.ptr  = nullptr;
+            const auto [fieldsOffset, fieldsPtr] = storage.reserveSpan<Runtime::TypeValue>(static_cast<uint32_t>(fields.size()));
+            entry.structFieldsOffset             = fieldsOffset;
+            rtType.fields.ptr                    = fieldsPtr;
+            storage.addRelocation(offset + offsetof(Runtime::TypeInfoStruct, fields.ptr), fieldsOffset);
+
+            Runtime::TypeValue* usingFieldsPtr    = nullptr;
+            uint32_t            usingFieldsOffset = 0;
+            if (usingCount)
+            {
+                const auto usingStorage = storage.reserveSpan<Runtime::TypeValue>(usingCount);
+                usingFieldsOffset       = usingStorage.first;
+                usingFieldsPtr          = usingStorage.second;
+                entry.usingFieldsOffset = usingFieldsOffset;
+                rtType.usingFields.ptr  = usingFieldsPtr;
+                storage.addRelocation(offset + offsetof(Runtime::TypeInfoStruct, usingFields.ptr), usingFieldsOffset);
+            }
+            else
+            {
+                entry.usingFieldsOffset = 0;
+                rtType.usingFields.ptr  = nullptr;
+            }
+
+            uint32_t usingIndex = 0;
+            for (uint32_t i = 0; i < fields.size(); ++i)
+            {
+                const SymbolVariable* symField = fields[i];
+                SWC_ASSERT(symField);
+
+                Runtime::TypeValue& tv = fieldsPtr[i];
+
+                const auto&    id = ctx.idMgr().get(symField->idRef());
+                const Utf8     fName{id.name};
+                const uint32_t elemOffset = fieldsOffset + static_cast<uint32_t>(i * sizeof(Runtime::TypeValue));
+                tv.name.length            = storage.addString(elemOffset, offsetof(Runtime::TypeValue, name.ptr), fName);
+                tv.offset                 = symField->offset();
+                if (symField->isUsingField())
+                    tv.flags = enumOr(tv.flags, Runtime::TypeValueFlags::HasUsing);
+
+                entry.structFieldTypes.push_back(symField->typeRef());
+
+                if (!symField->isUsingField())
+                    continue;
+
+                SWC_ASSERT(usingFieldsPtr != nullptr);
+                SWC_ASSERT(usingIndex < usingCount);
+
+                Runtime::TypeValue& usingTv = usingFieldsPtr[usingIndex];
+                const uint32_t      usingElemOffset =
+                    usingFieldsOffset + static_cast<uint32_t>(usingIndex * sizeof(Runtime::TypeValue));
+                usingTv.name.length = storage.addString(usingElemOffset, offsetof(Runtime::TypeValue, name.ptr), fName);
+                usingTv.offset      = symField->offset();
+                usingTv.flags       = enumOr(usingTv.flags, Runtime::TypeValueFlags::HasUsing);
+                entry.usingFieldTypes.push_back(symField->typeRef());
+                ++usingIndex;
+            }
         }
 
-        uint32_t usingIndex = 0;
-        for (uint32_t i = 0; i < fields.size(); ++i)
+        if (methods.empty())
         {
-            const SymbolVariable* symField = fields[i];
-            SWC_ASSERT(symField);
+            rtType.methods.ptr        = nullptr;
+            entry.structMethodsOffset = 0;
+        }
+        else
+        {
+            const auto [methodsOffset, methodsPtr] = storage.reserveSpan<Runtime::TypeValue>(entry.structMethodsCount);
+            entry.structMethodsOffset             = methodsOffset;
+            rtType.methods.ptr                    = methodsPtr;
+            storage.addRelocation(offset + offsetof(Runtime::TypeInfoStruct, methods.ptr), methodsOffset);
 
-            Runtime::TypeValue& tv = fieldsPtr[i];
+            for (uint32_t i = 0; i < entry.structMethodsCount; ++i)
+            {
+                const SymbolFunction* symMethod = methods[i];
+                SWC_ASSERT(symMethod);
 
-            const auto&    id = ctx.idMgr().get(symField->idRef());
-            const Utf8     fName{id.name};
-            const uint32_t elemOffset = fieldsOffset + static_cast<uint32_t>(i * sizeof(Runtime::TypeValue));
-            tv.name.length            = storage.addString(elemOffset, offsetof(Runtime::TypeValue, name.ptr), fName);
-            tv.offset                 = symField->offset();
-            if (symField->isUsingField())
-                tv.flags = enumOr(tv.flags, Runtime::TypeValueFlags::HasUsing);
+                Runtime::TypeValue& tv         = methodsPtr[i];
+                const uint32_t      elemOffset = methodsOffset + static_cast<uint32_t>(i * sizeof(Runtime::TypeValue));
+                const Utf8          methodName{symMethod->name(ctx)};
+                tv.name.length = storage.addString(elemOffset, offsetof(Runtime::TypeValue, name.ptr), methodName);
+            }
+        }
 
-            entry.structFieldTypes.push_back(symField->typeRef());
+        if (interfaces.empty())
+        {
+            rtType.interfaces.ptr        = nullptr;
+            entry.structInterfacesOffset = 0;
+        }
+        else
+        {
+            const auto [interfacesOffset, interfacesPtr] = storage.reserveSpan<Runtime::TypeValue>(entry.structInterfacesCount);
+            entry.structInterfacesOffset                 = interfacesOffset;
+            rtType.interfaces.ptr                        = interfacesPtr;
+            storage.addRelocation(offset + offsetof(Runtime::TypeInfoStruct, interfaces.ptr), interfacesOffset);
 
-            if (!symField->isUsingField())
-                continue;
+            for (uint32_t i = 0; i < entry.structInterfacesCount; ++i)
+            {
+                const SymbolImpl*      symImpl      = interfaces[i];
+                const SymbolInterface* symInterface = symImpl ? symImpl->symInterface() : nullptr;
+                SWC_ASSERT(symInterface != nullptr);
 
-            SWC_ASSERT(usingFieldsPtr != nullptr);
-            SWC_ASSERT(usingIndex < usingCount);
-
-            Runtime::TypeValue& usingTv = usingFieldsPtr[usingIndex];
-            const uint32_t      usingElemOffset =
-                usingFieldsOffset + static_cast<uint32_t>(usingIndex * sizeof(Runtime::TypeValue));
-            usingTv.name.length = storage.addString(usingElemOffset, offsetof(Runtime::TypeValue, name.ptr), fName);
-            usingTv.offset      = symField->offset();
-            usingTv.flags       = enumOr(usingTv.flags, Runtime::TypeValueFlags::HasUsing);
-            entry.usingFieldTypes.push_back(symField->typeRef());
-            ++usingIndex;
+                Runtime::TypeValue& tv         = interfacesPtr[i];
+                const uint32_t      elemOffset = interfacesOffset + static_cast<uint32_t>(i * sizeof(Runtime::TypeValue));
+                tv.name.length = storage.addString(elemOffset, offsetof(Runtime::TypeValue, name.ptr), Utf8{symInterface->getFullScopedName(ctx)});
+                entry.structInterfaceTypes.push_back(symInterface->typeRef());
+            }
         }
     }
 
@@ -974,12 +1126,16 @@ void TypeGen::wireRelocations(Sema& sema, const TypeGenCache& cache, DataSegment
 
         case LayoutKind::Struct:
         {
-            // Wire each 'TypeValue.pointedType' of 'fields' and 'usingFields'.
+            // Wire each 'TypeValue.pointedType' of the reflected struct members.
             SWC_ASSERT(entry.structGenericTypes.size() == entry.structGenericsCount);
             SWC_ASSERT(entry.structFieldTypes.size() == entry.structFieldsCount);
+            SWC_ASSERT(entry.structMethodTypes.size() == entry.structMethodsCount);
+            SWC_ASSERT(entry.structInterfaceTypes.size() == entry.structInterfacesCount);
             SWC_ASSERT(entry.usingFieldTypes.size() == entry.usingFieldsCount);
             wireTypeValueArrayPointedRelocations(cache, storage, entry.structGenericTypes, entry.structGenericsOffset);
             wireTypeValueArrayPointedRelocations(cache, storage, entry.structFieldTypes, entry.structFieldsOffset);
+            wireTypeValueArrayPointedRelocations(cache, storage, entry.structMethodTypes, entry.structMethodsOffset);
+            wireTypeValueArrayPointedRelocations(cache, storage, entry.structInterfaceTypes, entry.structInterfacesOffset);
             wireTypeValueArrayPointedRelocations(cache, storage, entry.usingFieldTypes, entry.usingFieldsOffset);
             if (entry.structFromGenericTypeRef.isValid())
             {
@@ -1010,6 +1166,16 @@ void TypeGen::wireRelocations(Sema& sema, const TypeGenCache& cache, DataSegment
                 const uint32_t usingElemOffset = entry.usingFieldsOffset + static_cast<uint32_t>(usingIndex * sizeof(Runtime::TypeValue));
                 exportAttributes(sema, cache, storage, usingElemOffset, offsetof(Runtime::TypeValue, attributes), field->attributes());
                 ++usingIndex;
+            }
+
+            SWC_ASSERT(entry.structMethods.size() == entry.structMethodsCount);
+            for (uint32_t i = 0; i < entry.structMethods.size(); ++i)
+            {
+                const SymbolFunction* method = entry.structMethods[i];
+                SWC_ASSERT(method);
+
+                const uint32_t elemOffset = entry.structMethodsOffset + static_cast<uint32_t>(i * sizeof(Runtime::TypeValue));
+                exportAttributes(sema, cache, storage, elemOffset, offsetof(Runtime::TypeValue, attributes), method->attributes());
             }
 
             break;

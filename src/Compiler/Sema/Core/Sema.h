@@ -106,6 +106,7 @@ public:
     SemaScope*                 resolvedUpLookupScope();
     const SemaScope*           resolvedUpLookupScope() const;
     static void                configureLookupFrame(SemaFrame& frame, SemaScope* lookupScope, bool ignoreRuntimeAccess = false);
+    void                       restartCurrentNode(AstNodeRef nodeRef);
 
     AstVisit&        visit() { return visit_; }
     const AstVisit&  visit() const { return visit_; }
@@ -306,6 +307,7 @@ public:
     SemaScope* pushScopePopOnPostChild(SemaScopeFlags flags, AstNodeRef popAfterChildRef);
     SemaScope* pushScopePopOnPostNode(SemaScopeFlags flags, AstNodeRef popNodeRef = AstNodeRef::invalid());
     void       deferPostNodeAction(AstNodeRef nodeRef, std::function<Result(Sema&, AstNodeRef)> callback);
+    void       processCurrentPostNodePopsNow();
 
     Result      waitIdentifier(IdentifierRef idRef, const SourceCodeRef& codeRef);
     Result      waitPredefined(IdentifierManager::PredefinedName name, TypeRef& typeRef, const SourceCodeRef& codeRef);

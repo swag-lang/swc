@@ -450,7 +450,7 @@ Result AstAncestorIdentifier::semaPreNode(Sema& sema) const
     }
 
     sema.setSubstitute(sema.curNodeRef(), targetRef);
-    sema.visit().restartCurrentNode(targetRef);
+    sema.restartCurrentNode(targetRef);
     return Result::Continue;
 }
 

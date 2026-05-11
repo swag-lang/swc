@@ -17,6 +17,56 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    bool compareFunctionOrder(const SymbolFunction* left, const SymbolFunction* right)
+    {
+        SWC_ASSERT(left);
+        SWC_ASSERT(right);
+        return left->tokRef().get() < right->tokRef().get();
+    }
+
+    bool isRuntimeReflectedMethod(const SymbolFunction& symFunc)
+    {
+        if (symFunc.isIgnored() || symFunc.isAttribute() || symFunc.isEmpty())
+            return false;
+
+        const SymbolStruct* ownerStruct = symFunc.ownerStruct();
+        if (ownerStruct && ownerStruct->isGenericRoot() && !ownerStruct->isGenericInstance())
+            return false;
+
+        if (symFunc.isGenericRoot() && !symFunc.isGenericInstance())
+            return false;
+
+        if (!symFunc.returnTypeRef().isValid())
+            return false;
+
+        for (const SymbolVariable* param : symFunc.parameters())
+        {
+            if (!param || !param->typeRef().isValid())
+                return false;
+        }
+
+        return true;
+    }
+
+    void appendImplFunctions(std::vector<SymbolFunction*>& out, const std::vector<SymbolImpl*>& implList)
+    {
+        for (const SymbolImpl* symImpl : implList)
+        {
+            if (!symImpl)
+                continue;
+
+            std::vector<const Symbol*> symbols;
+            symImpl->getAllSymbols(symbols);
+            for (const Symbol* symbol : symbols)
+            {
+                if (!symbol || !symbol->isFunction())
+                    continue;
+
+                out.push_back(const_cast<SymbolFunction*>(&symbol->cast<SymbolFunction>()));
+            }
+        }
+    }
+
     bool sameAttributeInstance(const AttributeInstance& lhs, const AttributeInstance& rhs)
     {
         if (lhs.symbol != rhs.symbol || lhs.params.size() != rhs.params.size())
@@ -263,6 +313,35 @@ std::vector<SymbolImpl*> SymbolStruct::impls() const
 {
     const std::shared_lock lk(mutexImpls_);
     return impls_;
+}
+
+std::vector<SymbolFunction*> SymbolStruct::declaredMethods() const
+{
+    std::vector<SymbolFunction*> result;
+    appendImplFunctions(result, impls());
+    appendImplFunctions(result, interfaces());
+    std::ranges::sort(result, compareFunctionOrder);
+    return result;
+}
+
+std::vector<SymbolFunction*> SymbolStruct::methods() const
+{
+    // Generic roots are marked sema-complete before their impl methods are specialized.
+    // Exporting runtime method reflection from that state can observe signatures that still
+    // depend on the owner generic context and have no stable runtime function type yet.
+    if (isGenericRoot() && !isGenericInstance())
+        return {};
+
+    std::vector<SymbolFunction*> result;
+    for (SymbolFunction* symFunc : declaredMethods())
+    {
+        if (!symFunc || !isRuntimeReflectedMethod(*symFunc))
+            continue;
+        result.push_back(symFunc);
+    }
+
+    std::ranges::sort(result, compareFunctionOrder);
+    return result;
 }
 
 void SymbolStruct::addInterface(SymbolImpl& symImpl)

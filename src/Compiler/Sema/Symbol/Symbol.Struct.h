@@ -54,6 +54,8 @@ public:
 
     void                     addImpl(Sema& sema, SymbolImpl& symImpl);
     std::vector<SymbolImpl*> impls() const;
+    std::vector<SymbolFunction*> declaredMethods() const;
+    std::vector<SymbolFunction*> methods() const;
 
     void                     addInterface(SymbolImpl& symImpl);
     Result                   addInterface(Sema& sema, SymbolImpl& symImpl);

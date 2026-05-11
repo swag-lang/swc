@@ -106,6 +106,23 @@ namespace
         return std::ranges::find(identifiers, idRef) != identifiers.end();
     }
 
+    bool isDetachedReexpandableExpr(const AstNode& node)
+    {
+        return node.is(AstNodeId::CallExpr) ||
+               node.is(AstNodeId::AliasCallExpr) ||
+               node.is(AstNodeId::IntrinsicCallExpr) ||
+               node.is(AstNodeId::UnaryExpr) ||
+               node.is(AstNodeId::BinaryExpr) ||
+               node.is(AstNodeId::RelationalExpr) ||
+               node.is(AstNodeId::IndexExpr) ||
+               node.is(AstNodeId::CastExpr);
+    }
+
+    bool containsNodeRef(std::span<const AstNodeRef> refs, AstNodeRef ref)
+    {
+        return std::ranges::find(refs, ref) != refs.end();
+    }
+
     void collectSourceIdentifierUses(Sema& sema, const Ast& sourceAst, AstNodeRef nodeRef, SmallVector<IdentifierRef>& outIdentifiers)
     {
         if (nodeRef.isInvalid())
@@ -330,6 +347,82 @@ namespace
         return cloneSpan(sema, spanRef, noReplacements);
     }
 
+    void copyDetachedBindingExprState(Sema& sema, AstNodeRef sourceRef, AstNodeRef clonedRef, SmallVector<AstNodeRef>& activeSourceRefs);
+
+    AstNodeRef cloneDetachedExprImpl(Sema& sema, AstNodeRef sourceRef)
+    {
+        SWC_ASSERT(sourceRef.isValid());
+        const SemaClone::CloneContext noBindings{std::span<const SemaClone::ParamBinding>{}};
+        const AstNodeRef              clonedRef = SemaClone::cloneAst(sema, sourceRef, noBindings);
+        if (clonedRef.isInvalid())
+            return AstNodeRef::invalid();
+
+        SmallVector<AstNodeRef> activeSourceRefs;
+        copyDetachedBindingExprState(sema, sourceRef, clonedRef, activeSourceRefs);
+        return clonedRef;
+    }
+
+    void copyDetachedBindingExprState(Sema& sema, AstNodeRef sourceRef, AstNodeRef clonedRef, SmallVector<AstNodeRef>& activeSourceRefs)
+    {
+        SWC_ASSERT(sourceRef.isValid());
+        SWC_ASSERT(clonedRef.isValid());
+
+        const AstNodeRef resolvedRef = sema.viewZero(sourceRef).nodeRef();
+        const bool       shouldReexpand = resolvedRef.isValid() &&
+                                    resolvedRef != sourceRef &&
+                                    sema.node(resolvedRef).is(AstNodeId::EmbeddedBlock) &&
+                                    isDetachedReexpandableExpr(sema.node(sourceRef));
+
+        activeSourceRefs.push_back(sourceRef);
+        if (!shouldReexpand)
+            sema.inheritPayload(sema.node(clonedRef), sourceRef);
+
+        if (!shouldReexpand &&
+            resolvedRef.isValid() &&
+            resolvedRef != sourceRef &&
+            !containsNodeRef(activeSourceRefs.span(), resolvedRef))
+        {
+            const AstNodeRef clonedResolvedRef = cloneDetachedExprImpl(sema, resolvedRef);
+            sema.setSubstitute(clonedRef, clonedResolvedRef);
+        }
+
+        SmallVector<AstNodeRef> sourceChildren;
+        SmallVector<AstNodeRef> clonedChildren;
+        sema.node(sourceRef).collectChildrenFromAst(sourceChildren, sema.ast());
+        sema.node(clonedRef).collectChildrenFromAst(clonedChildren, sema.ast());
+        SWC_ASSERT(sourceChildren.size() == clonedChildren.size());
+
+        for (size_t i = 0; i < sourceChildren.size(); ++i)
+        {
+            const AstNodeRef sourceChildRef = sourceChildren[i];
+            const AstNodeRef clonedChildRef = clonedChildren[i];
+            if (sourceChildRef.isInvalid() || clonedChildRef.isInvalid())
+                continue;
+
+            const AstNodeRef resolvedChildRef = sema.viewZero(sourceChildRef).nodeRef();
+            const bool shouldReexpandChild = resolvedChildRef.isValid() &&
+                                             resolvedChildRef != sourceChildRef &&
+                                             sema.node(resolvedChildRef).is(AstNodeId::EmbeddedBlock) &&
+                                             isDetachedReexpandableExpr(sema.node(sourceChildRef));
+            if (!shouldReexpandChild)
+                sema.inheritPayload(sema.node(clonedChildRef), sourceChildRef);
+
+            if (!shouldReexpandChild &&
+                resolvedChildRef.isValid() &&
+                resolvedChildRef != sourceChildRef &&
+                !containsNodeRef(activeSourceRefs.span(), resolvedChildRef))
+            {
+                const AstNodeRef clonedResolvedChildRef = cloneDetachedExprImpl(sema, resolvedChildRef);
+                sema.setSubstitute(clonedChildRef, clonedResolvedChildRef);
+                continue;
+            }
+
+            copyDetachedBindingExprState(sema, sourceChildRef, clonedChildRef, activeSourceRefs);
+        }
+
+        activeSourceRefs.pop_back();
+    }
+
     AstNodeRef cloneIdentifier(Sema& sema, const AstIdentifier& node, const SemaClone::CloneContext& cloneContext)
     {
         const Ast&                                   sourceAst  = cloneSourceAst(sema, cloneContext);
@@ -435,6 +528,11 @@ AstNodeRef SemaClone::cloneAst(Sema& sema, AstNodeRef nodeRef, const CloneContex
     copyCallableClonePayload(sema, cloneContext, nodeRef, clonedRef);
     copyImplicitCastPayload(sema, cloneContext, node, nodeRef, clonedRef);
     return clonedRef;
+}
+
+AstNodeRef SemaClone::cloneDetachedExpr(Sema& sema, AstNodeRef nodeRef)
+{
+    return cloneDetachedExprImpl(sema, nodeRef);
 }
 
 AstNodeRef AstInvalid::semaClone(Sema& sema, const CloneContext& cloneContext) const

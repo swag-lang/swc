@@ -292,6 +292,35 @@ void Sema::configureLookupFrame(SemaFrame& frame, SemaScope* lookupScope, bool i
     frame.setIgnoreRuntimeAccess(ignoreRuntimeAccess);
 }
 
+void Sema::restartCurrentNode(AstNodeRef nodeRef)
+{
+    SWC_ASSERT(nodeRef.isValid());
+
+    const AstNodeRef previousRef = curNodeRef();
+    if (previousRef != nodeRef)
+    {
+        for (auto& entry : deferredPopFrames_)
+        {
+            if (entry.onPostNode && entry.nodeRef == previousRef)
+                entry.nodeRef = nodeRef;
+        }
+
+        for (auto& entry : deferredPopScopes_)
+        {
+            if (entry.onPostNode && entry.nodeRef == previousRef)
+                entry.nodeRef = nodeRef;
+        }
+
+        for (auto& action : deferredPostNodeActions_)
+        {
+            if (action.nodeRef == previousRef)
+                action.nodeRef = nodeRef;
+        }
+    }
+
+    visit_.restartCurrentNode(nodeRef);
+}
+
 const Ast& Sema::ast() const
 {
     return nodePayloadContext_->ast();
@@ -442,6 +471,11 @@ void Sema::deferPostNodeAction(AstNodeRef nodeRef, std::function<Result(Sema&, A
     action.nodeRef  = nodeRef;
     action.callback = std::move(callback);
     deferredPostNodeActions_.push_back(std::move(action));
+}
+
+void Sema::processCurrentPostNodePopsNow()
+{
+    processDeferredPopsPostNode(curNodeRef());
 }
 
 SemaScope* Sema::pushScopePopOnPostChild(SemaScopeFlags flags, AstNodeRef popAfterChildRef)

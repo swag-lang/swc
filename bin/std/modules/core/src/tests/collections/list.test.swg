@@ -18,6 +18,42 @@ func assertIntList(values: &List's32, expected: const [..] s32)->bool
     return true
 }
 
+struct ListStructProbe
+{
+    value: s32
+}
+
+func visitStructList(values: &List'ListStructProbe)->s32
+{
+    var code = 0
+    foreach value, node in values
+    {
+        #assert(#typeof(node) == *ListEntry'ListStructProbe)
+        if value.value == 12 do
+            continue
+
+        code = code * 10 + value.value
+        if value.value == 13 do
+            return code
+    }
+
+    return code
+}
+
+func visitStructListReverse(values: &List'ListStructProbe)->s32
+{
+    var code = 0
+    foreach #reverse value, node in values
+    {
+        #assert(#typeof(node) == *ListEntry'ListStructProbe)
+        code = code * 10 + value.value
+        if value.value == 12 do
+            return code
+    }
+
+    return code
+}
+
 #test
 {
     var values: List's32
@@ -84,6 +120,23 @@ func assertIntList(values: &List's32, expected: const [..] s32)->bool
 
     let expected: [3] s32 = [11, 12, 13]
     @assert(assertIntList(&values, expected))
+}
+
+#test
+{
+    var values: List'ListStructProbe
+    values.addBack(ListStructProbe{value: 1})
+    values.addBack(ListStructProbe{value: 2})
+    values.addBack(ListStructProbe{value: 3})
+
+    foreach value in values do
+        value.value += 10
+
+    @assert(values.head.value.value == 11)
+    @assert(values.head.next.value.value == 12)
+    @assert(values.tail.value.value == 13)
+    @assert(visitStructList(&values) == 123)
+    @assert(visitStructListReverse(&values) == 142)
 }
 
 #test

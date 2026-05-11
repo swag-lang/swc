@@ -8,6 +8,8 @@ class DataSegment;
 class TypeManager;
 class TaskContext;
 class TypeInfo;
+class SymbolFunction;
+class SymbolImpl;
 
 namespace Runtime
 {
@@ -44,6 +46,14 @@ public:
             uint32_t             structFieldsOffset = 0;
             uint32_t             structFieldsCount  = 0;
             SmallVector<TypeRef> structFieldTypes;
+            uint32_t             structMethodsOffset = 0;
+            uint32_t             structMethodsCount  = 0;
+            SmallVector<TypeRef> structMethodTypes;
+            std::vector<const SymbolFunction*> structMethods;
+            uint32_t             structInterfacesOffset = 0;
+            uint32_t             structInterfacesCount  = 0;
+            SmallVector<TypeRef> structInterfaceTypes;
+            std::vector<const SymbolImpl*> structInterfaces;
             TypeRef              structFromGenericTypeRef = TypeRef::invalid();
             uint32_t             structGenericsOffset     = 0;
             uint32_t             structGenericsCount      = 0;

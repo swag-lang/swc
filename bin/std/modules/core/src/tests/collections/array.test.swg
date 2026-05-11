@@ -11,6 +11,11 @@ struct ArrayDropTracked
     value: s32
 }
 
+struct ArrayVisitProbe
+{
+    value: s32
+}
+
 impl ArrayDropTracked
 {
     mtd opDrop()
@@ -49,6 +54,32 @@ func assertIntArray(values: const &Array's32, expected: const [..] s32)->bool
     }
 
     return true
+}
+
+func visitStructArray(values: &Array'ArrayVisitProbe)->s32
+{
+    foreach value, index in values where value.value != 12
+    {
+        if index == 0 do
+            continue
+
+        return value.value + cast(s32) index
+    }
+
+    return 0
+}
+
+func visitStructArrayReverse(values: &Array'ArrayVisitProbe)->s32
+{
+    var score = 0
+    foreach #reverse value, index in values
+    {
+        score += value.value + cast(s32) index
+        if value.value == 12 do
+            return score
+    }
+
+    return score
 }
 
 #test
@@ -259,6 +290,22 @@ func assertIntArray(values: const &Array's32, expected: const [..] s32)->bool
     copy.growResize(4)
     let expectedRegrown: [4] s32 = [4, 0, 0, 0]
     @assert(assertIntArray(copy, expectedRegrown))
+}
+
+#test
+{
+    var values: Array'ArrayVisitProbe
+    values.add(ArrayVisitProbe{value: 1})
+    values.add(ArrayVisitProbe{value: 2})
+    values.add(ArrayVisitProbe{value: 3})
+
+    foreach value in values do
+        value.value += 10
+
+    @assert(values[0].value == 11)
+    @assert(values[1].value == 12)
+    @assert(values[2].value == 13)
+    @assert(visitStructArrayReverse(&values) == 28)
 }
 
 #test

@@ -331,11 +331,12 @@ namespace
     struct GenericNodeRunKey
     {
         const TaskContext* ctx     = nullptr;
+        const Ast*         ownerAst = nullptr;
         uint32_t           nodeRef = 0;
 
         bool operator==(const GenericNodeRunKey& other) const noexcept
         {
-            return ctx == other.ctx && nodeRef == other.nodeRef;
+            return ctx == other.ctx && ownerAst == other.ownerAst && nodeRef == other.nodeRef;
         }
     };
 
@@ -343,7 +344,10 @@ namespace
     {
         size_t operator()(const GenericNodeRunKey& key) const noexcept
         {
-            return std::hash<const TaskContext*>{}(key.ctx) ^ std::hash<uint32_t>{}(key.nodeRef);
+            size_t hash = std::hash<const TaskContext*>{}(key.ctx);
+            hash ^= std::hash<const Ast*>{}(key.ownerAst) + 0x9e3779b97f4a7c15ull + (hash << 6) + (hash >> 2);
+            hash ^= std::hash<uint32_t>{}(key.nodeRef) + 0x9e3779b97f4a7c15ull + (hash << 6) + (hash >> 2);
+            return hash;
         }
     };
 
@@ -447,7 +451,7 @@ namespace
     {
         SWC_ASSERT(root.isFunction() || root.isStruct());
 
-        const GenericNodeRunKey key{&sema.ctx(), nodeRef.get()};
+        const GenericNodeRunKey key{&sema.ctx(), &sema.ast(), nodeRef.get()};
         auto                    initRun = [&] {
             auto child = std::make_unique<Sema>(sema.ctx(), sema, nodeRef);
             prepareGenericNodeRunContext(*child, sema, root);

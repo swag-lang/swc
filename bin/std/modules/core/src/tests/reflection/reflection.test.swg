@@ -3,6 +3,8 @@
 
 attr TypeMeta(label: string, priority: s32 = 0)
 attr FieldMeta(fieldAlias: string, rank: s32 = 0)
+attr FuncMeta(label: string, arity: s32 = 0)
+attr EnumMeta(label: string)
 
 #[TypeMeta("probe", 3)]
 struct ReflectionProbe
@@ -35,6 +37,48 @@ struct LifecycleProbe
     value: s32
 }
 
+struct CopyProbe
+{
+    value: s32
+    copied: bool
+}
+
+interface IReflectionScore
+{
+    mtd score()->s32;
+}
+
+struct InterfaceProbe
+{
+    value: s32 = 9
+}
+
+impl IReflectionScore for InterfaceProbe
+{
+    mtd impl score()->s32 => .value
+}
+
+#[EnumMeta("state")]
+enum ProbeState: u32
+{
+    Idle
+    Busy
+    Done
+}
+
+#[Swag.EnumFlags]
+#[EnumMeta("flags")]
+enum ProbeFlags: u32
+{
+    Read  = 1
+    Write = 2
+    Exec  = 4
+}
+
+alias ReflectionProbeAlias = ReflectionProbe
+alias ReflectionProbeAlias2 = ReflectionProbeAlias
+
+#[FuncMeta("repeat", 2)]
 func(T, N: s32) makeRepeated(value: T)->[N] T
 {
     var result: [N] T
@@ -48,6 +92,14 @@ impl LifecycleProbe
     mtd opDrop() {}
     mtd opPostCopy() {}
     mtd opPostMove() {}
+}
+
+impl CopyProbe
+{
+    mtd opPostCopy()
+    {
+        .copied = true
+    }
 }
 
 #test
@@ -156,6 +208,75 @@ impl LifecycleProbe
 
 #test
 {
+    let type = #typeof(ReflectionProbe)
+    let method = Reflection.getMethod(type, "ping")
+
+    @assert(method != null)
+    @assert(method.name == "ping")
+    @assert(method.pointedType.kind == .Func)
+    @assert(Reflection.hasMethod(type, "ping"))
+    @assert(!Reflection.hasMethod(type, "missing"))
+}
+
+#test
+{
+    let type = #typeof(InterfaceProbe)
+
+    @assert(Reflection.hasInterface(type, IReflectionScore))
+    @assert(!Reflection.hasInterface(#typeof(ReflectionProbe), IReflectionScore))
+}
+
+#test
+{
+    let aliasType = #typeof(ReflectionProbeAlias2)
+    let concreteType = Reflection.makeConcreteAlias(aliasType)
+
+    @assert(concreteType == #typeof(ReflectionProbe))
+    @assert(Reflection.maxSizeOf([#typeof(u8), #typeof(u16), #typeof(ReflectionProbe)]) == #sizeof(ReflectionProbe))
+    @assert(Reflection.orFlags([#typeof(s32), #typeof(f32)]) & .Integer)
+    @assert(Reflection.orFlags([#typeof(s32), #typeof(f32)]) & .Float)
+}
+
+#test
+{
+    var src = CopyProbe{value: 77}
+    var dst = CopyProbe{}
+
+    Reflection.copy(&dst, &src, #typeof(CopyProbe))
+    @assert(dst.value == 77)
+    @assert(dst.copied)
+    @assert(!src.copied)
+}
+
+#test
+{
+    let enumType = #typeof(ProbeState)
+    let enumInfo = cast(const *Swag.TypeInfoEnum) enumType
+    let enumValue = Reflection.getEnumValue(enumType, "Busy")
+    var state = ProbeState.Busy
+
+    @assert(Reflection.makeConcreteEnum(enumType) == u32)
+    @assert(enumValue != null)
+    @assert(enumValue.name == "Busy")
+    @assert(cast(const *u32) enumValue.value != null)
+    @assert(dref cast(const *u32) enumValue.value == 1)
+    @assert(Reflection.getEnumName(enumType, &state) == "ProbeState.Busy")
+    @assert(Reflection.getEnumName(enumType, &state, fullname: false) == "Busy")
+    @assert(enumInfo.attributes[0].type == EnumMeta)
+    @assert(cast(string) Reflection.getAttributeValue(enumType, EnumMeta, "label") == "state")
+}
+
+#test
+{
+    var flags = ProbeFlags.Read | ProbeFlags.Exec
+    let enumType = #typeof(flags)
+    let attrs = Reflection.getAttributes(enumType, EnumMeta)
+    @assert(attrs.count == 1)
+    @assert(cast(string) attrs[0].params[0].value == "flags")
+}
+
+#test
+{
     let funcType = #typeof(makeRepeated'(u16, 3))
     let funcInfo = cast(const *Swag.TypeInfoFunc) funcType
     @assert(Reflection.isGeneric(funcType))
@@ -164,4 +285,7 @@ impl LifecycleProbe
     @assert(funcInfo.generics[1].pointedType == s32)
     @assert(cast(const *s32) funcInfo.generics[1].value != null)
     @assert(dref cast(const *s32) funcInfo.generics[1].value == 3)
+    @assert(funcInfo.attributes[0].type == FuncMeta)
+    @assert(cast(string) Reflection.getAttributeValue(funcType, FuncMeta, "label") == "repeat")
+    @assert(cast(s32) Reflection.getAttributeValue(funcType, FuncMeta, "arity") == 2)
 }

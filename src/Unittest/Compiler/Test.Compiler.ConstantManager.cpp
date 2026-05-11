@@ -198,6 +198,23 @@ SWC_TEST_BEGIN(ConstantManager_CopiesBorrowedSlicePayloadOutsideDataSegment)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(ConstantManager_AcceptsEmptyBorrowedSlicePayloads)
+{
+    const TypeRef sliceTypeRef = ctx.typeMgr().addType(TypeInfo::makeSlice(ctx.typeMgr().typeU8()));
+
+    const ConstantRef firstRef  = ctx.cstMgr().addConstant(ctx, ConstantValue::makeSliceBorrowedCounted(ctx, ctx.typeMgr().typeU8(), ByteSpan{}, 0));
+    const ConstantRef secondRef = ctx.cstMgr().addConstant(ctx, ConstantValue::makeSliceBorrowedCounted(ctx, ctx.typeMgr().typeU8(), ByteSpan{}, 0));
+    if (!firstRef.isValid() || firstRef != secondRef)
+        return Result::Error;
+
+    const ConstantValue& stored = ctx.cstMgr().get(firstRef);
+    if (!stored.isSlice() || stored.typeRef() != sliceTypeRef)
+        return Result::Error;
+    if (!stored.getSlice().empty() || stored.getSliceCount() != 0)
+        return Result::Error;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(ConstantManager_DeduplicatesMaterializedArrayPayloadConstants)
 {
     std::array source{

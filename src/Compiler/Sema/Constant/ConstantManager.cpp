@@ -330,13 +330,17 @@ namespace
         enrichPointerDataSegmentRef(manager, stored);
         if ((stored.isStruct() || stored.isArray() || stored.isSlice()) && stored.isPayloadBorrowed())
         {
-            DataSegmentRef ref;
-            SWC_ASSERT(isBorrowedPayloadBackedByDataSegment(manager, stored));
-            if (resolveBorrowedPayloadRef(ref, manager, stored))
-                stored.setDataSegmentRef(ref);
-            // Borrowed payload equality only captures bytes. Allocations that also carry relocations
-            // need their own constant entries because the relocation graph changes the runtime value.
-            canDeduplicateByValue = !borrowedPayloadHasRelocations(manager, stored);
+            const uint32_t payloadSize = payloadByteSize(stored);
+            if (payloadSize)
+            {
+                DataSegmentRef ref;
+                SWC_ASSERT(isBorrowedPayloadBackedByDataSegment(manager, stored));
+                if (resolveBorrowedPayloadRef(ref, manager, stored))
+                    stored.setDataSegmentRef(ref);
+                // Borrowed payload equality only captures bytes. Allocations that also carry relocations
+                // need their own constant entries because the relocation graph changes the runtime value.
+                canDeduplicateByValue = !borrowedPayloadHasRelocations(manager, stored);
+            }
         }
 
         ConstantManager::InternStripe* stripe = canDeduplicateByValue ? &internStripe(shard, stored) : nullptr;

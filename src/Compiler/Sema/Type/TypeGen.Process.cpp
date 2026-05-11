@@ -20,6 +20,21 @@ namespace
 {
     bool canReflectTypeRef(TaskContext& ctx, TypeRef typeRef, SmallVector<TypeRef>& visiting);
 
+    bool shouldWaitReflectedMethodTyping(const SymbolFunction& symFunc)
+    {
+        if (symFunc.isIgnored() || symFunc.isAttribute() || symFunc.isEmpty())
+            return false;
+
+        const SymbolStruct* ownerStruct = symFunc.ownerStruct();
+        if (ownerStruct && ownerStruct->isGenericRoot() && !ownerStruct->isGenericInstance())
+            return false;
+
+        if (symFunc.isGenericRoot() && !symFunc.isGenericInstance())
+            return false;
+
+        return true;
+    }
+
     bool canReflectFunctionSignature(TaskContext& ctx, const SymbolFunction& symFunc, SmallVector<TypeRef>& visiting)
     {
         if (!symFunc.returnTypeRef().isValid() || !canReflectTypeRef(ctx, symFunc.returnTypeRef(), visiting))
@@ -360,6 +375,18 @@ Result TypeGen::processTypeInfo(Sema& sema, TypeGenResult& result, DataSegment& 
         else if (const Symbol* sym = type.getSymbol())
         {
             SWC_RESULT(sema.waitSemaCompleted(sym, node.codeRef()));
+        }
+
+        if (kind == LayoutKind::Struct && type.isStruct() && !type.isAggregateStruct())
+        {
+            const SymbolStruct& symStruct = type.payloadSymStruct();
+            for (const SymbolFunction* method : symStruct.declaredMethods())
+            {
+                if (!method || !shouldWaitReflectedMethodTyping(*method))
+                    continue;
+
+                SWC_RESULT(sema.waitTyped(method, node.codeRef()));
+            }
         }
 
         auto it = cache.entries.find(key);

@@ -27,38 +27,35 @@ impl GenericMethodProbe
     }
 }
 
-const SIMPLE_INFO  = cast(const *Swag.TypeInfoStruct) #typeof(SimpleMethodProbe)
-const GENERIC_INFO = cast(const *Swag.TypeInfoStruct) #typeof(GenericMethodProbe)
-const ARRAY_INFO   = cast(const *Swag.TypeInfoStruct) #typeof(GenericMethodProbe's32)
+var RuntimeMethodReflectionCalls: s32
 
-#assert(@countof(SIMPLE_INFO.methods) == 1)
-#assert(SIMPLE_INFO.methods[0].name == "ping")
-#assert(SIMPLE_INFO.methods[0].pointedType.kind == .Func)
-
-#assert(GENERIC_INFO.name == "GenericMethodProbe")
-#assert(@countof(GENERIC_INFO.methods) == 0)
-
-#assert(@countof(ARRAY_INFO.methods) == 1)
-#assert(ARRAY_INFO.methods[0].name == "copyFrom")
-#assert(ARRAY_INFO.methods[0].pointedType.kind == .Func)
-
-func hasExpectedMethodReflection()->bool
+func hasExpectedMethodReflection(type: typeinfo, expectedCount: s32, expectedName: string)->bool
 {
-    let simpleInfo  = cast(const *Swag.TypeInfoStruct) #typeof(SimpleMethodProbe)
-    let genericInfo = cast(const *Swag.TypeInfoStruct) #typeof(GenericMethodProbe)
-    let arrayInfo   = cast(const *Swag.TypeInfoStruct) #typeof(GenericMethodProbe's32)
+    RuntimeMethodReflectionCalls += 1
 
-    return @countof(simpleInfo.methods) == 1 and
-           simpleInfo.methods[0].name == "ping" and
-           simpleInfo.methods[0].pointedType.kind == .Func and
-           genericInfo.name == "GenericMethodProbe" and
-           @countof(genericInfo.methods) == 0 and
-           @countof(arrayInfo.methods) == 1 and
-           arrayInfo.methods[0].name == "copyFrom" and
-           arrayInfo.methods[0].pointedType.kind == .Func
+    let info = cast(const *Swag.TypeInfoStruct) type
+    if @countof(info.methods) != expectedCount do
+        return false
+
+    if expectedCount == 0 do
+        return true
+
+    return info.methods[0].name == expectedName and
+           info.methods[0].pointedType.kind == .Func
+}
+
+func runtimeMethodReflectionWorks()->bool
+{
+    RuntimeMethodReflectionCalls = 0
+
+    var result = true
+    result = hasExpectedMethodReflection(#typeof(SimpleMethodProbe), 1, "ping") and result
+    result = hasExpectedMethodReflection(#typeof(GenericMethodProbe), 0, "") and result
+    result = hasExpectedMethodReflection(#typeof(GenericMethodProbe's32), 1, "copyFrom") and result
+    return result and RuntimeMethodReflectionCalls == 3
 }
 
 #test
 {
-    @assert(hasExpectedMethodReflection())
+    @assert(runtimeMethodReflectionWorks())
 }

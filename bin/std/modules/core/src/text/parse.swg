@@ -291,10 +291,24 @@ func parseS64(str: string)->{ value: s64, eat: u32, ovf: bool } throw
 func parseF32(str: string)->{ value: f32, eat: u32, ovf: bool } throw
 {
     let (res, eat, ovf) = try parseF64(str)
-    if res != 0 and res < Swag.F32.Min do
+    var absRes = res
+    if absRes < 0 do
+        absRes = -absRes
+
+    if absRes != 0 and absRes < Swag.F32.Min
+    {
+        if res < 0 do
+            return {-Swag.F32.Min, eat, true}
         return {Swag.F32.Min, eat, true}
-    if res > Swag.F32.Max do
+    }
+
+    if absRes > Swag.F32.Max
+    {
+        if res < 0 do
+            return {-Swag.F32.Max, eat, true}
         return {Swag.F32.Max, eat, true}
+    }
+
     return {cast(f32) res, eat, ovf}
 }
 
@@ -351,13 +365,13 @@ func parseIdentifier(str: string)->string throw
 
 // Convert an utf8 buffer to a String.
 // String in the buffer can be quoted (but the result will not be in that case)
-func parseString(str: string)->{ value: String, eat: u32 } throw
+func parseString(result: *String, str: string)->u32 throw
 {
-    var result: retval
-
     let countof = @countof(str)
     if !countof do
         throw SyntaxError{}
+
+    result.clear()
 
     var isQuoted = false
     var cpt      = 0
@@ -382,15 +396,15 @@ func parseString(str: string)->{ value: String, eat: u32 } throw
             switch str[cpt]
             {
             case 't''u8:
-                result.value += '\t''u8
+                dref result += '\t''u8
             case 'n''u8:
-                result.value += '\n''u8
+                dref result += '\n''u8
             default:
-                result.value += str[cpt]
+                dref result += str[cpt]
             }
         }
         else do
-            result.value += str[cpt]
+            dref result += str[cpt]
 
         cpt += 1
     }
@@ -399,7 +413,15 @@ func parseString(str: string)->{ value: String, eat: u32 } throw
         throw ParseIncompleteError{}
     if isQuoted do
         cpt += 1
-    result.eat = cpt
+    return cast(u32) cpt
+}
+
+// Convert an utf8 buffer to a String.
+// String in the buffer can be quoted (but the result will not be in that case)
+func parseString(str: string)->{ value: String, eat: u32 } throw
+{
+    var result: retval
+    result.eat = try parseString(&result.value, str)
     return result
 }
 

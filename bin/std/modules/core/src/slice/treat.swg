@@ -25,6 +25,8 @@ func(T, R) map(values: const [..] T, cb: func||(T)->R)->Array'R
 func(T) reduce(values: const [..] T, cb: func||(T, T)->T)->T
 {
     var result = values[0]
+    if @countof(values) == 1 do
+        return result
     for i in 1 to @countof(values) - 1 do
         result = cb(result, values[i])
     return result

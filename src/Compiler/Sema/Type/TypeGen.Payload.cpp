@@ -466,6 +466,10 @@ namespace
         TaskContext& ctx = sema.ctx();
 
         const Utf8 name                = type.toName(ctx);
+        rtType.opInit                  = nullptr;
+        rtType.opDrop                  = nullptr;
+        rtType.opPostCopy              = nullptr;
+        rtType.opPostMove              = nullptr;
         rtType.structName.length       = storage.addString(offset, offsetof(Runtime::TypeInfoStruct, structName.ptr), name);
         rtType.fromGeneric             = nullptr;
         rtType.generics.ptr            = nullptr;
@@ -488,6 +492,13 @@ namespace
         if (type.isStruct())
         {
             const SymbolStruct& symStruct = type.payloadSymStruct();
+            if (const auto* opDrop = symStruct.opDrop())
+                storage.addFunctionRelocation(offset + offsetof(Runtime::TypeInfoStruct, opDrop), opDrop);
+            if (const auto* opPostCopy = symStruct.opPostCopy())
+                storage.addFunctionRelocation(offset + offsetof(Runtime::TypeInfoStruct, opPostCopy), opPostCopy);
+            if (const auto* opPostMove = symStruct.opPostMove())
+                storage.addFunctionRelocation(offset + offsetof(Runtime::TypeInfoStruct, opPostMove), opPostMove);
+
             if (symStruct.isGenericInstance())
             {
                 const SymbolStruct* genericRoot = symStruct.genericRootSym();

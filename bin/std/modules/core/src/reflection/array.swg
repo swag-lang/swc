@@ -95,13 +95,17 @@ func appendValueStructArray(arrayPtr: *void, valueType: typeinfo)->*void
     // structures specials functions
     if arr.count >= arr.capacity
     {
+        if arr.allocator == null do
+            arr.allocator = @getcontext().allocator
+
+        let oldBuffer   = arr.buffer
+        let oldCapacity = arr.capacity
         let newCapacity = Math.max(arr.count + 1, arr.capacity * 2)
         let newBuffer   = cast([*] u8) Memory.alloc(newCapacity * sizeValue, arr.allocator)
         Memory.clear(newBuffer, newCapacity * sizeValue)
-        arr.capacity = newCapacity
 
         // Move old values to the new buffer
-        Memory.copy(newBuffer, arr.buffer, arr.count * sizeValue)
+        Memory.copy(newBuffer, oldBuffer, arr.count * sizeValue)
         if hasPostMove(valueType)
         {
             var buf = newBuffer
@@ -112,14 +116,17 @@ func appendValueStructArray(arrayPtr: *void, valueType: typeinfo)->*void
             }
         }
 
-        Memory.free(arr.buffer, arr.count * sizeValue)
+        Memory.free(oldBuffer, oldCapacity * sizeValue, arr.allocator)
         arr.buffer = newBuffer
+        arr.capacity = newCapacity
     }
 
     let result = arr.buffer + (arr.count * valueType.sizeof)
     arr.count += 1
-    if valueTypeStruct do
+    if valueTypeStruct and valueTypeStruct.opInit do
         valueTypeStruct.opInit(result)
+    else do
+        Memory.clear(result, sizeValue)
 
     return result
 }

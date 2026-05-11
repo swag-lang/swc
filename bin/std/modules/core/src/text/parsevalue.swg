@@ -212,9 +212,7 @@ public func parseValue(addr: *void, type: typeinfo, buf: string)->string throw
         dref cast(*rune) patch = val
 
     case String:
-        var val: String
-        (val, eat) = parseString(one)
-        dref cast(*String) patch = val
+        eat = parseString(cast(*String) patch, one)
 
     default:
         throw UnsupportedFormatError{Errors.mkString(Format.toString("unsupported type [[%]]", type.name))}

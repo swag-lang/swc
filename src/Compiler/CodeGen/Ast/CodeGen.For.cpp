@@ -600,7 +600,7 @@ Result AstForStmt::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& chil
     {
         SWC_RESULT(codeGen.popDeferScope());
 
-        if (codeGen.currentInstructionBlocksFallthrough() && !codeGen.frame().currentLoopHasContinueJump())
+        if (whereRef.isInvalid() && codeGen.currentInstructionBlocksFallthrough() && !codeGen.frame().currentLoopHasContinueJump())
         {
             codeGen.popFrame();
             return Result::Continue;

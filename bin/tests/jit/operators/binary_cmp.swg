@@ -303,3 +303,61 @@ enum CmpEnum: u16
     #assert(V0 == -3)
     #assert(V1 == 0)
 }
+
+interface ICompareAllocator
+{
+    mtd reserve()->u32;
+}
+
+struct CompareAllocator
+{
+    id: u32
+}
+
+impl ICompareAllocator for CompareAllocator
+{
+    mtd impl reserve()->u32 => .id
+}
+
+struct CompareAllocatorHolder
+{
+    allocator: ICompareAllocator
+}
+
+impl CompareAllocatorHolder
+{
+    mtd needsAllocator()->bool
+    {
+        return .allocator == null
+    }
+
+    mtd needsAllocatorLeft()->bool
+    {
+        return null == .allocator
+    }
+
+    mtd hasAllocator()->bool
+    {
+        return .allocator != null
+    }
+}
+
+func cmpInterfaceFieldNullChecks()->bool
+{
+    var holder = CompareAllocatorHolder{}
+    if !holder.needsAllocator() or !holder.needsAllocatorLeft() or holder.hasAllocator() do
+        return false
+
+    var alloc = CompareAllocator{id: 55}
+    holder.allocator = alloc
+    return !holder.needsAllocator() and
+           !holder.needsAllocatorLeft() and
+           holder.hasAllocator() and
+           holder.allocator.reserve() == 55
+}
+
+#test
+{
+    const V0 = #run cmpInterfaceFieldNullChecks()
+    #assert(V0)
+}

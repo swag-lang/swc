@@ -275,3 +275,56 @@ func compareStrictFloatSpaceship(a, b: CompareStrictF32)->s32
     #assert(f0 < f1)
     #assert((f1 <=> f0) == 1)
 }
+
+interface ICompareAllocator
+{
+    mtd reserve()->u32;
+}
+
+struct CompareAllocator
+{
+    id: u32
+}
+
+impl ICompareAllocator for CompareAllocator
+{
+    mtd impl reserve()->u32 => .id
+}
+
+struct CompareAllocatorHolder
+{
+    allocator: ICompareAllocator
+}
+
+impl CompareAllocatorHolder
+{
+    mtd needsAllocator()->bool
+    {
+        return .allocator == null
+    }
+
+    mtd needsAllocatorLeft()->bool
+    {
+        return null == .allocator
+    }
+
+    mtd hasAllocator()->bool
+    {
+        return .allocator != null
+    }
+}
+
+#test
+{
+    var holder = CompareAllocatorHolder{}
+    @assert(holder.needsAllocator())
+    @assert(holder.needsAllocatorLeft())
+    @assert(!holder.hasAllocator())
+
+    var alloc = CompareAllocator{id: 55}
+    holder.allocator = alloc
+    @assert(!holder.needsAllocator())
+    @assert(!holder.needsAllocatorLeft())
+    @assert(holder.hasAllocator())
+    @assert(holder.allocator.reserve() == 55)
+}

@@ -74,3 +74,66 @@ struct RefCompareStruct
 {
     value: s32
 }
+
+interface ICompareAllocator
+{
+    mtd reserve()->u32;
+}
+
+struct CompareAllocator
+{
+    id: u32
+}
+
+impl ICompareAllocator for CompareAllocator
+{
+    mtd impl reserve()->u32 => .id
+}
+
+struct CompareAllocatorHolder
+{
+    allocator: ICompareAllocator
+}
+
+impl CompareAllocatorHolder
+{
+    mtd needsAllocator()->bool
+    {
+        return .allocator == null
+    }
+
+    mtd needsAllocatorLeft()->bool
+    {
+        return null == .allocator
+    }
+
+    mtd hasAllocator()->bool
+    {
+        return .allocator != null
+    }
+}
+
+func semaTest007()
+{
+    var holder = CompareAllocatorHolder{}
+    let a = holder.needsAllocator()
+    let b = holder.needsAllocatorLeft()
+    let c = holder.hasAllocator()
+    #assert(#typeof(a) == bool)
+    #assert(#typeof(b) == bool)
+    #assert(#typeof(c) == bool)
+}
+
+func semaTest008()
+{
+    var holder = CompareAllocatorHolder{}
+    var alloc = CompareAllocator{id: 77}
+    holder.allocator = alloc
+
+    let a = holder.needsAllocator()
+    let b = holder.needsAllocatorLeft()
+    let c = holder.hasAllocator()
+    #assert(#typeof(a) == bool)
+    #assert(#typeof(b) == bool)
+    #assert(#typeof(c) == bool)
+}

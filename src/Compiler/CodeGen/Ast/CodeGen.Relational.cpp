@@ -70,6 +70,26 @@ namespace
         ioPayload.setIsAddress();
     }
 
+    TypeRef resolveRelationalOperandTypeRef(CodeGen& codeGen, AstNodeRef operandRef, const SemaNodeView& operandView, const CodeGenNodePayload& operandPayload)
+    {
+        if (operandPayload.typeRef.isValid())
+            return operandPayload.typeRef;
+
+        const TypeRef storedTypeRef = codeGen.sema().viewStored(operandRef, SemaNodeViewPartE::Type).typeRef();
+        if (storedTypeRef.isValid())
+            return storedTypeRef;
+
+        const AstNodeRef resolvedOperandRef = codeGen.resolvedNodeRef(operandRef);
+        if (resolvedOperandRef != operandRef && resolvedOperandRef.isValid())
+        {
+            const TypeRef storedResolvedTypeRef = codeGen.sema().viewStored(resolvedOperandRef, SemaNodeViewPartE::Type).typeRef();
+            if (storedResolvedTypeRef.isValid())
+                return storedResolvedTypeRef;
+        }
+
+        return operandView.typeRef();
+    }
+
     TypeRef resolveCompareTypeRef(CodeGen& codeGen, TypeRef leftTypeRef, TypeRef rightTypeRef)
     {
         if (shouldReadScalarReference(codeGen, leftTypeRef))
@@ -447,12 +467,13 @@ namespace
     {
         const SemaNodeView leftView  = codeGen.viewType(node.nodeLeftRef);
         const SemaNodeView rightView = codeGen.viewType(node.nodeRightRef);
-        SWC_ASSERT(leftView.type() && rightView.type());
 
         const CodeGenNodePayload& leftPayload         = codeGen.payload(node.nodeLeftRef);
         const CodeGenNodePayload& rightPayload        = codeGen.payload(node.nodeRightRef);
-        TypeRef                   leftOperandTypeRef  = leftPayload.typeRef.isValid() ? leftPayload.typeRef : leftView.typeRef();
-        TypeRef                   rightOperandTypeRef = rightPayload.typeRef.isValid() ? rightPayload.typeRef : rightView.typeRef();
+        TypeRef                   leftOperandTypeRef  = resolveRelationalOperandTypeRef(codeGen, node.nodeLeftRef, leftView, leftPayload);
+        TypeRef                   rightOperandTypeRef = resolveRelationalOperandTypeRef(codeGen, node.nodeRightRef, rightView, rightPayload);
+        SWC_ASSERT(leftOperandTypeRef.isValid());
+        SWC_ASSERT(rightOperandTypeRef.isValid());
         CodeGenNodePayload        leftOperandPayload  = leftPayload;
         CodeGenNodePayload        rightOperandPayload = rightPayload;
         normalizeScalarReferenceOperand(codeGen, leftOperandPayload, leftOperandTypeRef);
@@ -503,12 +524,13 @@ namespace
     {
         const SemaNodeView leftView  = codeGen.viewType(node.nodeLeftRef);
         const SemaNodeView rightView = codeGen.viewType(node.nodeRightRef);
-        SWC_ASSERT(leftView.type() && rightView.type());
 
         const CodeGenNodePayload& leftPayload         = codeGen.payload(node.nodeLeftRef);
         const CodeGenNodePayload& rightPayload        = codeGen.payload(node.nodeRightRef);
-        TypeRef                   leftOperandTypeRef  = leftPayload.typeRef.isValid() ? leftPayload.typeRef : leftView.typeRef();
-        TypeRef                   rightOperandTypeRef = rightPayload.typeRef.isValid() ? rightPayload.typeRef : rightView.typeRef();
+        TypeRef                   leftOperandTypeRef  = resolveRelationalOperandTypeRef(codeGen, node.nodeLeftRef, leftView, leftPayload);
+        TypeRef                   rightOperandTypeRef = resolveRelationalOperandTypeRef(codeGen, node.nodeRightRef, rightView, rightPayload);
+        SWC_ASSERT(leftOperandTypeRef.isValid());
+        SWC_ASSERT(rightOperandTypeRef.isValid());
         CodeGenNodePayload        leftOperandPayload  = leftPayload;
         CodeGenNodePayload        rightOperandPayload = rightPayload;
         normalizeScalarReferenceOperand(codeGen, leftOperandPayload, leftOperandTypeRef);

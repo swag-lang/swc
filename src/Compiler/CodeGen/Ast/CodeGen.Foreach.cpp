@@ -37,9 +37,9 @@ namespace
         MicroReg        baseReg          = MicroReg::invalid();
         MicroReg        countReg         = MicroReg::invalid();
         MicroReg        indexReg         = MicroReg::invalid();
-        uint32_t        aliasSymbolCount = 0;
-        SymbolVariable* stateSym         = nullptr;
-        SymbolVariable* sourceSpillSym   = nullptr;
+        uint32_t              aliasSymbolCount = 0;
+        const SymbolVariable* stateSym         = nullptr;
+        const SymbolVariable* sourceSpillSym   = nullptr;
         uint64_t        elementSize      = 0;
         uint64_t        valueSize        = 0;
         bool            reverse          = false;
@@ -67,6 +67,34 @@ namespace
     {
         const auto* payload = codeGen.sema().semaPayload<LoopSemaPayload>(nodeRef);
         return payload && payload->usesCustomVisit;
+    }
+
+    std::span<const Symbol* const> foreachSymbols(CodeGen& codeGen, AstNodeRef nodeRef)
+    {
+        SemaNodeView symbolsView = codeGen.viewSymbolList(nodeRef);
+        if (symbolsView.symList().size() >= 2)
+            return {symbolsView.symList().data(), symbolsView.symList().size()};
+
+        const AstNodeRef resolvedRef = codeGen.resolvedNodeRef(nodeRef);
+        if (resolvedRef.isValid() && resolvedRef != nodeRef)
+        {
+            symbolsView = codeGen.viewSymbolList(resolvedRef);
+            if (symbolsView.symList().size() >= 2)
+                return {symbolsView.symList().data(), symbolsView.symList().size()};
+        }
+
+        if (const auto* payload = codeGen.sema().semaPayload<LoopSemaPayload>(nodeRef);
+            payload && payload->localSymbols.size() >= 2)
+            return {payload->localSymbols.data(), payload->localSymbols.size()};
+
+        if (resolvedRef.isValid() && resolvedRef != nodeRef)
+        {
+            if (const auto* payload = codeGen.sema().semaPayload<LoopSemaPayload>(resolvedRef);
+                payload && payload->localSymbols.size() >= 2)
+                return {payload->localSymbols.data(), payload->localSymbols.size()};
+        }
+
+        return {};
     }
 
     MicroReg materializeForeachInternalStackAddress(CodeGen& codeGen, const SymbolVariable& symVar)
@@ -285,9 +313,8 @@ namespace
 
     void emitForeachBindSymbols(CodeGen& codeGen, const AstForeachStmt& node, const ForeachStmtCodeGenPayload& loopState)
     {
-        const SemaNodeView symbolsView = codeGen.viewSymbolList(codeGen.curNodeRef());
-        const auto         symbols     = symbolsView.symList();
-        const size_t       aliasCount  = std::min<size_t>(loopState.aliasSymbolCount, symbols.size());
+        const auto   symbols    = foreachSymbols(codeGen, codeGen.curNodeRef());
+        const size_t aliasCount = std::min<size_t>(loopState.aliasSymbolCount, symbols.size());
         if (!aliasCount)
             return;
 
@@ -469,15 +496,7 @@ Result AstForeachStmt::codeGenPreNode(CodeGen& codeGen) const
     }
 
     ForeachStmtCodeGenPayload loopState;
-    SemaNodeView              symbolsView = codeGen.viewSymbolList(codeGen.curNodeRef());
-    if (symbolsView.symList().size() < 2)
-    {
-        const AstNodeRef resolvedRef = codeGen.resolvedNodeRef(codeGen.curNodeRef());
-        if (resolvedRef.isValid() && resolvedRef != codeGen.curNodeRef())
-            symbolsView = codeGen.viewSymbolList(resolvedRef);
-    }
-
-    const auto symbols = symbolsView.symList();
+    const auto                symbols = foreachSymbols(codeGen, codeGen.curNodeRef());
     SWC_ASSERT(symbols.size() >= 2);
     if (symbols.size() >= 2)
     {

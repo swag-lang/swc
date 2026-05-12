@@ -169,6 +169,24 @@ namespace
         std::unique_ptr<Sema> sema;
     };
 
+    bool isReentrantLazyGenericBodyRun(const Sema& sema, const SymbolFunction& calledFn, const LazyGenericBodyRun& run)
+    {
+        if (sema.currentFunction() == &calledFn)
+            return true;
+
+        if (sema.usesLocalCodeGenPayloads())
+            return false;
+
+        // Semantic analysis can legitimately re-enter another lazy body owned by the same
+        // task while generic dependencies are still being wired. Codegen uses a dedicated
+        // Sema with local payload mirrors, so it must never observe this "running means
+        // good enough" shortcut.
+        if (run.ownerCtx == &sema.ctx())
+            return true;
+
+        return run.sema.get() == &sema;
+    }
+
     std::mutex& lazyGenericBodyRunMutex()
     {
         static std::mutex mutex;
@@ -230,11 +248,9 @@ namespace
             return Result::Continue;
         if (calledFn.hasExtraFlag(SymbolFunctionFlagsE::LazyGenericBodyRunning))
         {
-            if (sema.currentFunction() == &calledFn)
-                return Result::Continue;
             const std::scoped_lock lock(lazyGenericBodyRunMutex());
             const auto             it = lazyGenericBodyRuns().find(&calledFn);
-            if (it != lazyGenericBodyRuns().end() && it->second.ownerCtx == &sema.ctx() && it->second.running)
+            if (it != lazyGenericBodyRuns().end() && it->second.running && isReentrantLazyGenericBodyRun(sema, calledFn, it->second))
                 return Result::Continue;
             return sema.waitSemaCompletedNoLazy(&calledFn, calledFn.codeRef());
         }

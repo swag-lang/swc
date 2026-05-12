@@ -167,6 +167,7 @@ public:
     void setSymbolList(AstNodeRef n, std::span<Symbol*> symbols) { nodePayloadContext().setSymbolList(n, symbols); }
 
     void enableLocalCodeGenPayloads() { localCodeGenPayloads_ = std::make_unique<std::unordered_map<AstNodeRef, void*>>(); }
+    bool usesLocalCodeGenPayloads() const { return localCodeGenPayloads_ != nullptr; }
     bool hasCodeGenPayload(AstNodeRef n) const
     {
         if (localCodeGenPayloads_ && localCodeGenPayloads_->contains(n))

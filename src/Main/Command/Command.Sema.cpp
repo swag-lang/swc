@@ -44,6 +44,9 @@ namespace Command
         }
 
         jobMgr.waitAll(clientId);
+#if SWC_DEV_MODE
+        jobMgr.assertNoWaitingJobs(clientId, "Command::sema parser waitAll");
+#endif
         if (Stats::getNumErrors() != errorsBefore)
             return;
 

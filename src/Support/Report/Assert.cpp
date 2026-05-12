@@ -106,28 +106,35 @@ namespace
     }
 }
 
-void swcAssert(const char* expr, const char* file, int line)
+void swcPanic(const char* title, const char* file, int line, const char* expr, const std::string_view detail)
 {
-    const Utf8         fileLoc = FileSystem::formatFileLocation(nullptr, fs::path(file ? file : "<null>"), static_cast<uint32_t>(line));
-    Utf8               msg     = std::format("Assertion Failed!\nFile: {}\nExpression: {}\n", fileLoc, expr);
-    const TaskContext* ctx     = TaskContext::current();
+    const Utf8 fileLoc = FileSystem::formatFileLocation(nullptr, fs::path(file ? file : "<null>"), static_cast<uint32_t>(line));
+    Utf8       msg     = std::format("{}\nFile: {}\n", title ? title : "Internal Error!", fileLoc);
+    if (expr)
+        msg += std::format("Expression: {}\n", expr);
+    if (!detail.empty())
+    {
+        msg += "Details:\n";
+        msg += detail;
+        if (detail.back() != '\n')
+            msg += "\n";
+    }
+
+    const TaskContext* ctx = TaskContext::current();
     if (ctx)
         appendInternalErrorTaskContext(msg, *ctx);
     appendCallStack(msg, ctx);
     Os::panicBox(msg.c_str());
 }
 
+void swcAssert(const char* expr, const char* file, int line)
+{
+    swcPanic("Assertion Failed!", file, line, expr);
+}
+
 void swcInternalError(const char* file, int line, const char* expr)
 {
-    const Utf8 fileLoc = FileSystem::formatFileLocation(nullptr, fs::path(file ? file : "<null>"), static_cast<uint32_t>(line));
-    Utf8       msg     = std::format("Internal Error!\nFile: {}\n", fileLoc);
-    if (expr)
-        msg += std::format("Expression: {}\n", expr);
-    const TaskContext* ctx = TaskContext::current();
-    if (ctx)
-        appendInternalErrorTaskContext(msg, *ctx);
-    appendCallStack(msg, ctx);
-    Os::panicBox(msg.c_str());
+    swcPanic("Internal Error!", file, line, expr);
 }
 
 SWC_END_NAMESPACE();

@@ -75,6 +75,7 @@ public:
     JobPriority        priority() const { return rec_ ? rec_->priority : JobPriority::Normal; }
     JobClientId        clientId() const { return rec_ ? rec_->clientId : 0; }
     static JobResult   toJobResult(const TaskContext& ctx, Result result);
+    static const char* kindName(JobKind kind);
 
     template<typename T>
     const T* cast() const

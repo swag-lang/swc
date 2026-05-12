@@ -515,6 +515,9 @@ Result NativeBackendBuilder::writeObjects()
     }
 
     jobMgr.waitAll(compiler_->jobClientId());
+#if SWC_DEV_MODE
+    jobMgr.assertNoWaitingJobs(compiler_->jobClientId(), "NativeBackendBuilder::writeObjects");
+#endif
     return objWriteFailed.load(std::memory_order_acquire) ? Result::Error : Result::Continue;
 }
 

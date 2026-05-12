@@ -26,6 +26,7 @@
 #include <shared_mutex>
 #include <span>
 #include <string>
+#include <string_view>
 #include <thread>
 #include <tuple>
 #include <unordered_map>

@@ -1,5 +1,7 @@
 #include "pch.h"
 #include "Support/Thread/JobManager.h"
+#include "Compiler/Sema/Symbol/IdentifierManager.h"
+#include "Compiler/Sema/Symbol/Symbol.h"
 #include "Main/Command/CommandLine.h"
 #include "Main/Stats.h"
 #include "Support/Os/Os.h"
@@ -22,6 +24,22 @@ thread_local size_t                  JobManager::threadIndex_ = 0;
 thread_local std::vector<JobRecord*> JobManager::RecordPool::tls;
 std::mutex                           JobManager::RecordPool::mtx;
 std::vector<JobRecord*>              JobManager::RecordPool::freeList;
+
+#if SWC_DEV_MODE
+namespace
+{
+    Utf8 debugWaitDependency(const TaskContext& ctx, const TaskState& state)
+    {
+        if (state.symbol)
+            return state.symbol->name(ctx);
+
+        if (ctx.hasCompiler() && state.idRef.isValid())
+            return Utf8{ctx.idMgr().get(state.idRef).name};
+
+        return {};
+    }
+}
+#endif
 
 JobRecord* JobManager::allocRecord()
 {
@@ -365,6 +383,132 @@ void JobManager::waitAll(JobClientId client)
         handleJobResult(rec, res);
     }
 }
+
+#if SWC_DEV_MODE
+Utf8 JobManager::debugDescribeState(std::optional<JobClientId> client) const
+{
+    const std::unique_lock lk(mtx_);
+    return debugDescribeStateLocked(client);
+}
+
+bool JobManager::debugHasWaitingJobs(JobClientId client) const
+{
+    const std::unique_lock lk(mtx_);
+    return debugHasWaitingJobsLocked(client);
+}
+
+void JobManager::assertNoWaitingJobs(JobClientId client, const std::string_view where) const
+{
+    Utf8 detail;
+    {
+        const std::unique_lock lk(mtx_);
+        if (!debugHasWaitingJobsLocked(client))
+            return;
+
+        detail = debugDescribeStateLocked(client);
+    }
+
+    const Utf8 whereText(where);
+    swcPanic("Unexpected sleeping jobs detected!", __FILE__, __LINE__, whereText.c_str(), detail.view());
+}
+
+Utf8 JobManager::debugDescribeStateLocked(const std::optional<JobClientId> client) const
+{
+    size_t                  readyCount   = 0;
+    size_t                  runningCount = 0;
+    size_t                  waitingCount = 0;
+    size_t                  doneCount    = 0;
+    size_t                  liveCount    = 0;
+    std::vector<JobRecord*> waitingJobs;
+    waitingJobs.reserve(liveRecs_.size());
+
+    for (JobRecord* rec : liveRecs_)
+    {
+        if (!rec)
+            continue;
+        if (client.has_value() && rec->clientId != *client)
+            continue;
+
+        liveCount++;
+        switch (rec->state)
+        {
+            case JobRecord::State::Ready:
+                readyCount++;
+                break;
+            case JobRecord::State::Running:
+                runningCount++;
+                break;
+            case JobRecord::State::Waiting:
+                waitingCount++;
+                waitingJobs.push_back(rec);
+                break;
+            case JobRecord::State::Done:
+                doneCount++;
+                break;
+        }
+    }
+
+    Utf8 detail;
+    if (client.has_value())
+        detail += std::format("client={}\n", *client);
+
+    detail += std::format("live={} ready={} running={} waiting={} done={} readyCounter={} activeWorkers={}",
+                          liveCount,
+                          readyCount,
+                          runningCount,
+                          waitingCount,
+                          doneCount,
+                          readyCount_.load(std::memory_order_acquire),
+                          activeWorkers_.load(std::memory_order_acquire));
+
+    if (client.has_value())
+    {
+        const auto it = clientReadyRunning_.find(*client);
+        detail += std::format(" clientReadyRunning={}", it == clientReadyRunning_.end() ? 0 : it->second);
+    }
+
+    detail += "\n";
+
+    if (waitingJobs.empty())
+        return detail;
+
+    std::ranges::sort(waitingJobs, [](const JobRecord* lhs, const JobRecord* rhs) { return lhs->index < rhs->index; });
+    detail += "waiting jobs:\n";
+    for (const JobRecord* rec : waitingJobs)
+    {
+        SWC_ASSERT(rec != nullptr);
+        SWC_ASSERT(rec->job != nullptr);
+
+        const TaskContext& ctx        = rec->job->ctx();
+        const TaskState&   taskState  = ctx.state();
+        const Utf8         dependency = debugWaitDependency(ctx, taskState);
+
+        detail += std::format("  #{} kind={} wait={}", rec->index, Job::kindName(rec->job->kind()), TaskState::kindName(taskState.kind));
+        if (!dependency.empty())
+            detail += std::format(" dependency={}", dependency);
+        if (taskState.waiterSymbol)
+            detail += std::format(" waiter={}", taskState.waiterSymbol->name(ctx));
+        detail += "\n";
+    }
+
+    return detail;
+}
+
+bool JobManager::debugHasWaitingJobsLocked(const JobClientId client) const
+{
+    for (const JobRecord* rec : liveRecs_)
+    {
+        if (!rec)
+            continue;
+        if (rec->clientId != client)
+            continue;
+        if (rec->state == JobRecord::State::Waiting)
+            return true;
+    }
+
+    return false;
+}
+#endif
 
 void JobManager::shutdown() noexcept
 {

@@ -114,9 +114,11 @@ JITExecManager::Completion JITExecManager::consumeCompletion(const TaskContext& 
 bool JITExecManager::executePendingMainThread()
 {
     bool processedAny = false;
+    SWC_DEV_LOOP_GUARD(loopGuard, 1000000, "JITExecManager::executePendingMainThread");
 
     while (true)
     {
+        SWC_DEV_LOOP_TICK(loopGuard);
         Item* itemToRun = nullptr;
         {
             const std::scoped_lock lock(mutex_);

@@ -1170,9 +1170,11 @@ void Sema::waitDone(TaskContext& ctx, JobClientId clientId)
 {
     auto&             jobMgr   = ctx.global().jobMgr();
     CompilerInstance& compiler = ctx.compiler();
+    SWC_DEV_LOOP_GUARD(loopGuard, 100000, "Sema::waitDone");
 
     while (true)
     {
+        SWC_DEV_LOOP_TICK(loopGuard);
         jobMgr.waitAll(clientId);
 
         if (compiler.jitExecMgr().executePendingMainThread())

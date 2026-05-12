@@ -49,8 +49,10 @@ public:
 
     JobResult exec() override
     {
+        SWC_DEV_LOOP_GUARD(loopGuard, 1000000, "CompilerMessageTypeInfoJob::exec");
         while (true)
         {
+            SWC_DEV_LOOP_TICK(loopGuard);
             if (!hasCurrentRequest_)
             {
                 if (!ctx().compiler().tryPopCompilerMessageTypeInfoPreparation(currentRequest_))
@@ -1744,8 +1746,10 @@ Result CompilerInstance::executePendingCompilerMessages(TaskContext& ctx)
     std::vector<DeferredCompilerGeneratedSource> deferredGeneratedSources;
     deferredGeneratedSources.reserve(4);
     CompilerMessageListenerExecutionState listenerState;
+    SWC_DEV_LOOP_GUARD(loopGuard, 1000000, "CompilerInstance::executePendingCompilerMessages");
     while (true)
     {
+        SWC_DEV_LOOP_TICK(loopGuard);
         CompilerMessageDispatchStep dispatch;
         bool                        found = false;
         {

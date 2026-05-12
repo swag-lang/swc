@@ -201,6 +201,9 @@
     <ClCompile Include="src\Unittest\Test.Support.MemoryProfile.cpp">
       <Filter>src\Unittest</Filter>
     </ClCompile>
+    <ClCompile Include="src\Unittest\Support\Test.Support.JobManager.cpp">
+      <Filter>src\Unittest</Filter>
+    </ClCompile>
     <ClCompile Include="src\Unittest\Test.Support.PagedStore.cpp">
       <Filter>src\Unittest</Filter>
     </ClCompile>

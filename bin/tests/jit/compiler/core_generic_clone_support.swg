@@ -3,8 +3,36 @@ using Swag
 
 namespace GenericCloneCodegenSupport
 {
+    func helperFree(buffer: [*] void, size: u64, allocator: IAllocator = null)
+    {
+        if !buffer do
+            return
+
+        var req: AllocatorRequest
+        req.mode = .Free
+        req.size = size
+        req.address = buffer
+
+        let talloc = allocator orelse @getcontext().allocator
+        talloc.req(&req)
+    }
+
+    func helperRealloc(buffer: [*] void, newSize: u64, oldSize: u64, allocator: IAllocator = null)->[*] void
+    {
+        var req: AllocatorRequest
+        req.mode = .Realloc
+        req.address = buffer
+        req.size = newSize
+        req.oldSize = oldSize
+
+        let talloc = allocator orelse @getcontext().allocator
+        talloc.req(&req)
+        return req.address
+    }
+
     struct(T) BufferBox
     {
+        allocator: IAllocator
         buffer:   [*] T
         count:    u64
         capacity: u64
@@ -14,17 +42,11 @@ namespace GenericCloneCodegenSupport
     {
         mtd reserve(newCapacity: u64)
         {
-            if newCapacity == 0
-            {
-                @free(.buffer)
-                .buffer   = null
-                .capacity = 0
+            if newCapacity <= .capacity do
                 return
-            }
 
-            let newBuffer = cast([*] T) @realloc(.buffer, newCapacity * #sizeof(T))
-            .buffer       = newBuffer
-            .capacity     = newCapacity
+            .buffer = cast([*] T) helperRealloc(.buffer, newCapacity * #sizeof(T), .capacity * #sizeof(T), .allocator)
+            .capacity = newCapacity
         }
 
         mtd toSlice()->[..] T
@@ -40,7 +62,7 @@ namespace GenericCloneCodegenSupport
 
         mtd free()
         {
-            @free(.buffer)
+            helperFree(.buffer, .capacity * #sizeof(T), .allocator)
             .buffer = null
             .count, .capacity = 0
         }
@@ -67,4 +89,33 @@ namespace GenericCloneCodegenSupport
             .values.count = 0
         }
     }
+}
+
+#test
+{
+    var box: GenericCloneCodegenSupport.BufferBox'u32
+    box.reserve(4)
+    box.add(11)
+    box.add(22)
+
+    let values = box.toSlice()
+    @assert(values[0] == 11)
+    @assert(values[1] == 22)
+
+    box.free()
+}
+
+#test
+{
+    var box: GenericCloneCodegenSupport.PtrBox's32
+    box.values.reserve(2)
+    box.addNew(7)
+    box.addNew(9)
+
+    let values = box.values.toSlice()
+    @assert(dref values[0] == 7)
+    @assert(dref values[1] == 9)
+
+    box.clear()
+    box.values.free()
 }

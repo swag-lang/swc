@@ -478,14 +478,21 @@ namespace
                                               sema.token(node.codeRef()).id != TokenId::Identifier);
         if (preserveSyntheticSymbol)
             sema.setSymbol(nodeRef, storedView->sym);
-        const bool crossAstSource = &sourceAst != &sema.ast();
-        const bool carryInline    = storedView && ((!storedView->hasSymbol && (storedView->typeRef.isValid() || storedView->cstRef.isValid())) ||
-                                                (crossAstSource && storedView->cstRef.isValid()));
+        const bool crossAstSource      = &sourceAst != &sema.ast();
+        const bool carryResolvedTypeId = storedView &&
+                                         storedView->typeRef.isValid() &&
+                                         !storedView->cstRef.isValid() &&
+                                         (node.hasFlag(AstIdentifierFlagsE::GenericTypeBinding) || (storedView->sym && storedView->sym->isType()));
+        const bool carryInline         = storedView &&
+                                 ((!storedView->hasSymbol && (storedView->typeRef.isValid() || storedView->cstRef.isValid())) ||
+                                  carryResolvedTypeId ||
+                                  (crossAstSource && storedView->cstRef.isValid()));
         if (carryInline)
         {
             // Nested generic cloning can hit identifiers that were already substituted by an
             // outer specialization pass. Preserve that pre-resolved type/constant payload so
-            // later clones do not resurrect the original generic identifier.
+            // later clones do not resurrect the original generic identifier, especially for
+            // type-only operands such as `#sizeof(T)` that may no longer carry a direct binding.
             if (storedView->typeRef.isValid())
                 sema.setType(nodeRef, storedView->typeRef);
             if (storedView->cstRef.isValid())

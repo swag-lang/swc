@@ -652,6 +652,7 @@ Result AstIdentifier::codeGenPostNode(CodeGen& codeGen)
 
         if (parentRef.isValid() &&
             (codeGen.node(parentRef).is(AstNodeId::NamedType) ||
+             codeGen.node(parentRef).is(AstNodeId::IntrinsicCallExpr) ||
              codeGen.node(parentRef).is(AstNodeId::AutoMemberAccessExpr) ||
              codeGen.node(parentRef).is(AstNodeId::CompilerTypeExpr) ||
              codeGen.node(parentRef).is(AstNodeId::StructInitializerList) ||

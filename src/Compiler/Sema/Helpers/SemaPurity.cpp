@@ -2,6 +2,7 @@
 #include "Compiler/Sema/Helpers/SemaPurity.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Core/Sema.h"
+#include "Compiler/Sema/Helpers/SemaSpecOp.h"
 #include "Compiler/Sema/Symbol/Symbols.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -116,6 +117,42 @@ namespace
         return calledFn.isPure();
     }
 
+    bool isPureHiddenCall(const SymbolFunction& fn, const SymbolFunction* calledFn)
+    {
+        if (!calledFn)
+            return true;
+        if (calledFn == &fn)
+            return true;
+        if (calledFn->isForeign())
+            return false;
+        return calledFn->isPure();
+    }
+
+    template<typename PayloadT>
+    bool isPureHiddenSpecOpPayload(Sema& sema, const SymbolFunction& fn, AstNodeRef nodeRef)
+    {
+        const auto* payload = sema.semaPayload<PayloadT>(nodeRef);
+        if (!payload)
+            return true;
+        return isPureHiddenCall(fn, payload->calledFn);
+    }
+
+    bool isPureHiddenSpecOpCalls(Sema& sema, const SymbolFunction& fn, AstNodeRef nodeRef, const AstNode& node)
+    {
+        switch (node.id())
+        {
+            case AstNodeId::AssignStmt:
+                return isPureHiddenSpecOpPayload<AssignSpecOpPayload>(sema, fn, nodeRef);
+
+            case AstNodeId::SingleVarDecl:
+            case AstNodeId::MultiVarDecl:
+                return isPureHiddenSpecOpPayload<VarInitSpecOpPayload>(sema, fn, nodeRef);
+
+            default:
+                return true;
+        }
+    }
+
     bool isPureFunctionBody(Sema& sema, const SymbolFunction& fn, AstNodeRef rootRef, uint32_t& budget)
     {
         if (rootRef.isInvalid())
@@ -136,6 +173,8 @@ namespace
                 return false;
 
             const AstNode& node = sema.node(currentRef);
+            if (!isPureHiddenSpecOpCalls(sema, fn, currentRef, node))
+                return false;
             if (node.is(AstNodeId::Identifier) && !isPureVariableRead(sema, fn, currentRef))
                 return false;
 

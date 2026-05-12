@@ -2,6 +2,7 @@
 #include "Compiler/Sema/Helpers/SemaClone.h"
 #include "Compiler/CodeGen/Core/CodeGen.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
+#include "Compiler/Sema/Ast/Sema.Loop.h"
 #include "Compiler/Sema/Cast/Cast.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
@@ -299,7 +300,73 @@ namespace
         if (sema.isFoldedTypedConstStored(sourceRef))
             sema.setFoldedTypedConst(clonedRef);
 
+        if (sema.hasSemaPayload(sourceRef))
+            sema.setSemaPayload(clonedRef, sema.semaPayload<CastSpecOpPayload>(sourceRef));
+        sema.copyResolvedCallArguments(clonedRef, sourceRef);
         copyImplicitCastCodeGenPayload(sema, sourceRef, clonedRef);
+    }
+
+    void copyImplicitCastSubstitute(Sema& sema, const SemaClone::CloneContext& cloneContext, AstNodeRef sourceRef, AstNodeRef clonedRef)
+    {
+        if (!canReadSourcePayload(sema, cloneContext))
+            return;
+
+        const AstNodeRef resolvedRef = sema.viewZero(sourceRef).nodeRef();
+        if (resolvedRef.isInvalid() || resolvedRef == sourceRef)
+            return;
+
+        const auto* sourceCast = sema.node(resolvedRef).safeCast<AstCastExpr>();
+        if (!sourceCast)
+            return;
+        if (sourceCast->hasFlag(AstCastExprFlagsE::Explicit))
+            return;
+        if (sourceCast->nodeExprRef != sourceRef)
+            return;
+
+        auto [castRef, castPtr] = sema.ast().makeNode<AstNodeId::CastExpr>(sourceCast->tokRef());
+        castPtr->flags()        = sourceCast->flags();
+        castPtr->modifierFlags  = sourceCast->modifierFlags;
+        castPtr->nodeTypeRef    = cloneNodeRef(sema, sourceCast->nodeTypeRef, cloneContext);
+        castPtr->nodeExprRef    = clonedRef;
+
+        copyImplicitCastPayload(sema, cloneContext, *sourceCast, resolvedRef, castRef);
+        sema.setSubstitute(clonedRef, castRef);
+    }
+
+    void copyVarInitSpecOpPayload(Sema& sema, const SemaClone::CloneContext& cloneContext, const AstNode& sourceNode, AstNodeRef sourceRef, AstNodeRef clonedRef)
+    {
+        if (!canReadSourcePayload(sema, cloneContext))
+            return;
+        if (sourceNode.isNot(AstNodeId::SingleVarDecl) && sourceNode.isNot(AstNodeId::MultiVarDecl))
+            return;
+        if (!sema.hasSemaPayload(sourceRef))
+            return;
+
+        sema.setSemaPayload(clonedRef, sema.semaPayload<VarInitSpecOpPayload>(sourceRef));
+        sema.copyResolvedCallArguments(clonedRef, sourceRef);
+    }
+
+    void copyLoopPayload(Sema& sema, const SemaClone::CloneContext& cloneContext, const AstNode& sourceNode, AstNodeRef sourceRef, AstNodeRef clonedRef)
+    {
+        if (!canReadSourcePayload(sema, cloneContext))
+            return;
+
+        switch (sourceNode.id())
+        {
+            case AstNodeId::ForStmt:
+            case AstNodeId::ForeachStmt:
+                if (const auto* sourcePayload = sema.semaPayload<LoopSemaPayload>(sourceRef))
+                {
+                    auto* clonedPayload = sema.compiler().allocate<LoopSemaPayload>();
+                    *clonedPayload      = *sourcePayload;
+                    clonedPayload->localSymbols.clear();
+                    sema.setSemaPayload(clonedRef, clonedPayload);
+                }
+                break;
+
+            default:
+                return;
+        }
     }
 
     SpanRef cloneSpan(Sema& sema, SpanRef spanRef, const SemaClone::CloneContext& cloneContext)
@@ -474,6 +541,7 @@ namespace
         nodePtr->setCodeRef(node.codeRef());
         const bool preserveSyntheticSymbol = storedView && storedView->sym &&
                                              (node.hasFlag(AstIdentifierFlagsE::PreResolvedSymbol) ||
+                                              !storedView->sym->isFunctionLocalVariable() ||
                                               !node.codeRef().isValid() ||
                                               sema.token(node.codeRef()).id != TokenId::Identifier);
         if (preserveSyntheticSymbol)
@@ -533,7 +601,10 @@ AstNodeRef SemaClone::cloneAst(Sema& sema, AstNodeRef nodeRef, const CloneContex
 
     Ast::setThreadSourceViewOverride(previousSrcView);
     copyCallableClonePayload(sema, cloneContext, nodeRef, clonedRef);
+    copyImplicitCastSubstitute(sema, cloneContext, nodeRef, clonedRef);
     copyImplicitCastPayload(sema, cloneContext, node, nodeRef, clonedRef);
+    copyVarInitSpecOpPayload(sema, cloneContext, node, nodeRef, clonedRef);
+    copyLoopPayload(sema, cloneContext, node, nodeRef, clonedRef);
     return clonedRef;
 }
 

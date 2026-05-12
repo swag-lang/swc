@@ -89,6 +89,88 @@ namespace GenericCloneCodegenSupport
             .values.count = 0
         }
     }
+
+    struct(T) OwnedPtrVisitBox
+    {
+        first:  *T
+        second: *T
+        count:  u64
+    }
+
+    impl OwnedPtrVisitBox
+    {
+        #[Swag.Macro]
+        mtd(ptr: bool, back: bool) const opVisit(stmt: #code void)
+        {
+            #if ptr do
+                #error("OwnedPtrVisitBox does not expose pointer iteration.")
+
+            #if back
+            {
+                #macro
+                {
+                    if #up me.count > 1
+                    {
+                        let #alias0 = #up me.second
+                        let #alias1 = 1'u64
+                        #inject(#up stmt)
+                    }
+                }
+
+                #macro
+                {
+                    if #up me.count > 0
+                    {
+                        let #alias0 = #up me.first
+                        let #alias1 = 0'u64
+                        #inject(#up stmt)
+                    }
+                }
+
+                return
+            }
+
+            #macro
+            {
+                if #up me.count > 0
+                {
+                    let #alias0 = #up me.first
+                    let #alias1 = 0'u64
+                    #inject(#up stmt)
+                }
+            }
+
+            #macro
+            {
+                if #up me.count > 1
+                {
+                    let #alias0 = #up me.second
+                    let #alias1 = 1'u64
+                    #inject(#up stmt)
+                }
+            }
+        }
+
+        mtd addNew(value: T)
+        {
+            let ptr = cast(*T) @alloc(#sizeof(T))
+            dref ptr = value
+            if .count == 0 do
+                .first = ptr
+            else do
+                .second = ptr
+            .count += 1
+        }
+
+        mtd clearOwned()
+        {
+            foreach item in dref me do
+                @free(item)
+            .first = null
+            .second = null
+            .count = 0
+        }
+    }
 }
 
 #test
@@ -118,4 +200,17 @@ namespace GenericCloneCodegenSupport
 
     box.clear()
     box.values.free()
+}
+
+#test
+{
+    var values: GenericCloneCodegenSupport.OwnedPtrVisitBox's32
+    values.addNew(3)
+    values.addNew(5)
+
+    @assert(dref values.first == 3)
+    @assert(dref values.second == 5)
+
+    values.clearOwned()
+    @assert(values.count == 0)
 }

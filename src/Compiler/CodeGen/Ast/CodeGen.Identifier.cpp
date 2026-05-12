@@ -22,6 +22,49 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    const SymbolVariable* findFunctionVariableDeclSymbol(const CodeGen& codeGen, const AstNodeRef declRef, const TokenRef tokRef)
+    {
+        if (!declRef.isValid())
+            return nullptr;
+
+        const AstNode* const decl = &codeGen.node(declRef);
+        const auto           matchDeclSymbol = [&](const SymbolVariable* symVar) -> bool {
+            if (!symVar || symVar->decl() != decl)
+                return false;
+            return !tokRef.isValid() || symVar->tokRef() == tokRef;
+        };
+
+        for (const SymbolVariable* symVar : codeGen.function().parameters())
+        {
+            if (matchDeclSymbol(symVar))
+                return symVar;
+        }
+
+        for (const SymbolVariable* symVar : codeGen.function().localVariables())
+        {
+            if (matchDeclSymbol(symVar))
+                return symVar;
+        }
+
+        return nullptr;
+    }
+
+    void recoverFunctionVariableDeclSymbols(const CodeGen& codeGen, const AstNodeRef declRef, std::span<const TokenRef> tokRefs, SmallVector<Symbol*>& outSymbols)
+    {
+        outSymbols.clear();
+        outSymbols.reserve(tokRefs.size());
+
+        for (const TokenRef tokRef : tokRefs)
+        {
+            if (tokRef.isInvalid())
+                continue;
+
+            const SymbolVariable* symVar = findFunctionVariableDeclSymbol(codeGen, declRef, tokRef);
+            if (symVar)
+                outSymbols.push_back(const_cast<SymbolVariable*>(symVar));
+        }
+    }
+
     const SymbolStruct* variableOwnerStruct(const SymbolVariable& symVar)
     {
         const SymbolMap* owner = symVar.ownerSymMap();
@@ -626,9 +669,10 @@ Result AstIdentifier::codeGenPostNode(CodeGen& codeGen)
 
 Result AstSingleVarDecl::codeGenPostNode(CodeGen& codeGen) const
 {
-    const SemaNodeView view = codeGen.curViewSymbol();
-    SWC_ASSERT(view.sym());
-    const SymbolVariable& symVar = view.sym()->cast<SymbolVariable>();
+    const SemaNodeView    view         = codeGen.curViewSymbol();
+    const SymbolVariable* recoveredSym = !view.sym() ? findFunctionVariableDeclSymbol(codeGen, codeGen.curNodeRef(), tokNameRef) : nullptr;
+    SWC_ASSERT(view.sym() || recoveredSym);
+    const SymbolVariable& symVar = view.sym() ? view.sym()->cast<SymbolVariable>() : *recoveredSym;
 
     if (hasFlag(AstVarDeclFlagsE::Parameter))
     {
@@ -654,8 +698,18 @@ Result AstSingleVarDecl::codeGenPostNode(CodeGen& codeGen) const
 
 Result AstMultiVarDecl::codeGenPostNode(CodeGen& codeGen) const
 {
-    const SemaNodeView view = codeGen.curViewSymbolList();
-    SWC_ASSERT(!view.symList().empty());
+    const SemaNodeView    view = codeGen.curViewSymbolList();
+    SmallVector<TokenRef> tokNames;
+    SmallVector<Symbol*>  recoveredSymbols;
+    std::span<Symbol*>    symbols = view.symList();
+    if (symbols.empty())
+    {
+        codeGen.ast().appendTokens(tokNames, spanNamesRef);
+        recoverFunctionVariableDeclSymbols(codeGen, codeGen.curNodeRef(), tokNames.span(), recoveredSymbols);
+        symbols = recoveredSymbols.span();
+    }
+
+    SWC_ASSERT(!symbols.empty());
 
     // Constants are fully resolved during sema and need no runtime codegen.
     if (hasFlag(AstVarDeclFlagsE::Const))
@@ -664,7 +718,7 @@ Result AstMultiVarDecl::codeGenPostNode(CodeGen& codeGen) const
     if (hasFlag(AstVarDeclFlagsE::Parameter))
     {
         const SymbolFunction& symbolFunc = codeGen.function();
-        for (Symbol* sym : view.symList())
+        for (Symbol* sym : symbols)
         {
             const SymbolVariable& symVar = sym->cast<SymbolVariable>();
             CodeGenFunctionHelpers::materializeFunctionParameter(codeGen, symbolFunc, symVar);
@@ -672,7 +726,7 @@ Result AstMultiVarDecl::codeGenPostNode(CodeGen& codeGen) const
     }
     else
     {
-        for (Symbol* sym : view.symList())
+        for (Symbol* sym : symbols)
         {
             const SymbolVariable& symVar = sym->cast<SymbolVariable>();
             SWC_RESULT(materializeSingleVarFromInit(codeGen, symVar, nodeInitRef));
@@ -688,13 +742,25 @@ Result AstVarDeclDestructuring::codeGenPostNode(CodeGen& codeGen) const
     const SemaNodeView initView = codeGen.viewType(nodeInitRef);
     SWC_ASSERT(initView.type() && (initView.type()->isStruct() || initView.type()->isAggregateStruct()));
 
+    SmallVector<TokenRef> tokNames;
+    codeGen.ast().appendTokens(tokNames, spanNamesRef);
+
+    const SemaNodeView view = codeGen.curViewSymbolList();
+    SmallVector<Symbol*> recoveredSymbols;
+    std::span<Symbol*>   symbols = view.symList();
+    if (symbols.empty())
+    {
+        recoverFunctionVariableDeclSymbols(codeGen, codeGen.curNodeRef(), tokNames.span(), recoveredSymbols);
+        symbols = recoveredSymbols.span();
+    }
+
+    SWC_ASSERT(!symbols.empty());
+
     // Aggregate struct literals have no runtime layout. Initialize each
     // decomposed variable from its compile-time constant value.
     if (initView.type()->isAggregateStruct())
     {
         MicroBuilder&            builder = codeGen.builder();
-        const SemaNodeView       view    = codeGen.curViewSymbolList();
-        const std::span<Symbol*> symbols = view.symList();
 
         for (Symbol* sym : symbols)
         {
@@ -765,10 +831,6 @@ Result AstVarDeclDestructuring::codeGenPostNode(CodeGen& codeGen) const
     materializeAggregateSourceAddress(codeGen, codeGen.curNodeRef(), initView.typeRef(), initPayload, baseAddress);
 
     const auto&              fields  = initView.type()->payloadSymStruct().fields();
-    const SemaNodeView       view    = codeGen.curViewSymbolList();
-    const std::span<Symbol*> symbols = view.symList();
-    SmallVector<TokenRef>    tokNames;
-    codeGen.ast().appendTokens(tokNames, spanNamesRef);
 
     size_t symbolIndex = 0;
     for (size_t i = 0; i < tokNames.size(); ++i)

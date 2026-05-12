@@ -537,6 +537,16 @@ TypeRef CodeGen::transparentPayloadTypeRef()
 CodeGenNodePayload& CodeGen::payload(AstNodeRef nodeRef)
 {
     CodeGenNodePayload* nodePayload = safePayload(nodeRef);
+    if ((!nodePayload || !nodePayload->reg.isValid()) && nodeRef.isValid() && resolvedNodeRef(nodeRef) != curNodeRef())
+    {
+        // Some substituted children are intentionally skipped during the main walk and are
+        // only materialized when a parent eventually consumes their runtime value.
+        const Result materializeResult = emitNodeNow(nodeRef);
+        SWC_ASSERT(materializeResult != Result::Pause);
+        if (materializeResult == Result::Continue)
+            nodePayload = safePayload(nodeRef);
+    }
+
     SWC_ASSERT(nodePayload != nullptr);
     return *nodePayload;
 }

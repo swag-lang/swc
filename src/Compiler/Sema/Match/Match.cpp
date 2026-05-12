@@ -150,12 +150,12 @@ namespace
         addPersistedUsingSymMaps(lookUpCxt, symMap, priority);
     }
 
-    void addUsingMemberSymMaps(Sema& sema, MatchContext& lookUpCxt, const SymbolStruct& symStruct, uint16_t& searchOrder, SmallVector<const SymbolStruct*>& visited)
+    Result addUsingMemberSymMaps(Sema& sema, MatchContext& lookUpCxt, const SymbolStruct& symStruct, uint16_t& searchOrder, SmallVector<const SymbolStruct*>& visited)
     {
         for (const Symbol* s : visited)
         {
             if (s == &symStruct)
-                return;
+                return Result::Continue;
         }
 
         visited.push_back(&symStruct);
@@ -170,13 +170,17 @@ namespace
             if (!target)
                 continue;
 
+            SWC_RESULT(sema.waitSemaCompleted(target, lookUpCxt.codeRef));
+
             MatchContext::Priority priority;
             priority.scopeDepth = 0;
             priority.visibility = MatchContext::VisibilityTier::UsingDirective;
 
             addSymMap(lookUpCxt, target, priority);
-            addUsingMemberSymMaps(sema, lookUpCxt, *target, searchOrder, visited);
+            SWC_RESULT(addUsingMemberSymMaps(sema, lookUpCxt, *target, searchOrder, visited));
         }
+
+        return Result::Continue;
     }
 
     void addBindingTypeSymMaps(Sema& sema, MatchContext& lookUpCxt, uint16_t& scopeDepth)
@@ -201,7 +205,7 @@ namespace
         }
     }
 
-    void collect(Sema& sema, MatchContext& lookUpCxt)
+    Result collect(Sema& sema, MatchContext& lookUpCxt)
     {
         lookUpCxt.symMaps.clear();
         lookUpCxt.symMapPriorities.clear();
@@ -238,10 +242,10 @@ namespace
             {
                 const auto&                      structSym = lookUpCxt.symMapHint->cast<SymbolStruct>();
                 SmallVector<const SymbolStruct*> visited;
-                addUsingMemberSymMaps(sema, lookUpCxt, structSym, searchOrder, visited);
+                SWC_RESULT(addUsingMemberSymMaps(sema, lookUpCxt, structSym, searchOrder, visited));
             }
 
-            return;
+            return Result::Continue;
         }
 
         uint16_t scopeDepth = 0;
@@ -308,6 +312,7 @@ namespace
         addPersistedUsingSymMaps(lookUpCxt, &sema.moduleNamespace(), moduleRootPriority);
 
         addCurrentModuleNamespaceSymbol(sema, lookUpCxt, static_cast<uint16_t>(scopeDepth + 3));
+        return Result::Continue;
     }
 
     void lookup(MatchContext& lookUpCxt, IdentifierRef idRef)
@@ -344,7 +349,7 @@ namespace
 
 Result Match::match(Sema& sema, MatchContext& lookUpCxt, IdentifierRef idRef)
 {
-    collect(sema, lookUpCxt);
+    SWC_RESULT(collect(sema, lookUpCxt));
     lookup(lookUpCxt, idRef);
     if (lookUpCxt.empty())
     {
@@ -385,7 +390,7 @@ Result Match::matchCallFallbackSymbols(Sema& sema, const SemaNodeView& nodeCalle
     lookUpCxt.codeRef       = callee.codeRef();
     lookUpCxt.noWaitOnEmpty = true;
 
-    collect(sema, lookUpCxt);
+    SWC_RESULT(collect(sema, lookUpCxt));
     lookup(lookUpCxt, idRef);
     if (lookUpCxt.empty())
         return Result::Continue;

@@ -370,7 +370,7 @@ Result AstCompilerRunExpr::codeGenPreNode(CodeGen& codeGen)
 Result AstCompilerIf::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const
 {
     if (childRef == nodeConditionRef)
-        return Result::Continue;
+        return Result::SkipChildren;
 
     const SemaNodeView condView = codeGen.viewConstant(nodeConditionRef);
     SWC_ASSERT(condView.cst());

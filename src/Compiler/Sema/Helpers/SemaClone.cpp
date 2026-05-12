@@ -367,7 +367,7 @@ namespace
         SWC_ASSERT(sourceRef.isValid());
         SWC_ASSERT(clonedRef.isValid());
 
-        const AstNodeRef resolvedRef = sema.viewZero(sourceRef).nodeRef();
+        const AstNodeRef resolvedRef    = sema.viewZero(sourceRef).nodeRef();
         const bool       shouldReexpand = resolvedRef.isValid() &&
                                     resolvedRef != sourceRef &&
                                     sema.node(resolvedRef).is(AstNodeId::EmbeddedBlock) &&
@@ -399,8 +399,8 @@ namespace
             if (sourceChildRef.isInvalid() || clonedChildRef.isInvalid())
                 continue;
 
-            const AstNodeRef resolvedChildRef = sema.viewZero(sourceChildRef).nodeRef();
-            const bool shouldReexpandChild = resolvedChildRef.isValid() &&
+            const AstNodeRef resolvedChildRef    = sema.viewZero(sourceChildRef).nodeRef();
+            const bool       shouldReexpandChild = resolvedChildRef.isValid() &&
                                              resolvedChildRef != sourceChildRef &&
                                              sema.node(resolvedChildRef).is(AstNodeId::EmbeddedBlock) &&
                                              isDetachedReexpandableExpr(sema.node(sourceChildRef));

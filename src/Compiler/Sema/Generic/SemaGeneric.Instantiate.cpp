@@ -330,9 +330,9 @@ namespace
 
     struct GenericNodeRunKey
     {
-        const TaskContext* ctx     = nullptr;
+        const TaskContext* ctx      = nullptr;
         const Ast*         ownerAst = nullptr;
-        uint32_t           nodeRef = 0;
+        uint32_t           nodeRef  = 0;
 
         bool operator==(const GenericNodeRunKey& other) const noexcept
         {

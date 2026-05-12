@@ -529,8 +529,8 @@ Result AstSwitchCaseStmt::semaPreNodeChild(Sema& sema, AstNodeRef& childRef) con
     if (enumTypeRef.isValid() && sema.node(childRef).is(AstNodeId::Identifier))
     {
         const AstNodeRef originalChildRef = childRef;
-        auto [nodeRef, nodePtr] = sema.ast().makeNode<AstNodeId::AutoMemberAccessExpr>(sema.node(childRef).tokRef());
-        nodePtr->nodeIdentRef   = originalChildRef;
+        auto [nodeRef, nodePtr]           = sema.ast().makeNode<AstNodeId::AutoMemberAccessExpr>(sema.node(childRef).tokRef());
+        nodePtr->nodeIdentRef             = originalChildRef;
         sema.setSubstitute(originalChildRef, nodeRef);
         childRef = nodeRef;
     }

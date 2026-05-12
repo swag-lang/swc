@@ -173,7 +173,7 @@ namespace
 
     std::unique_ptr<Sema> makeLazyGenericBodySema(Sema& sema, SymbolFunction& calledFn, AstNodeRef declRef)
     {
-        NodePayload*          payloadContext = const_cast<NodePayload*>(calledFn.declNodePayloadContext());
+        auto payloadContext = const_cast<NodePayload*>(calledFn.declNodePayloadContext());
         if (!payloadContext)
             payloadContext = sema.owningNodePayloadContext(calledFn.srcViewRef());
 
@@ -186,9 +186,9 @@ namespace
         {
             if (declRef.isInvalid() && calledFn.decl())
             {
-                const SourceView& srcView   = sema.compiler().srcView(calledFn.srcViewRef());
+                const SourceView& srcView    = sema.compiler().srcView(calledFn.srcViewRef());
                 SourceFile&       sourceFile = sema.compiler().file(srcView.ownerFileRef());
-                declRef = calledFn.decl()->nodeRef(sourceFile.ast());
+                declRef                      = calledFn.decl()->nodeRef(sourceFile.ast());
             }
             SWC_ASSERT(declRef.isValid());
             child = std::make_unique<Sema>(sema.ctx(), sema, *payloadContext, declRef);

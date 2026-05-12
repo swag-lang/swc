@@ -134,7 +134,7 @@ namespace
 
     bool appendConstantFunctionDependenciesRec(const NativeBackendBuilder& builder, std::vector<SymbolFunction*>& functions, std::unordered_set<SymbolFunction*>& seenFunctions, std::unordered_set<uint64_t>& visitedAllocations, const uint32_t shardIndex, const uint32_t sourceOffset)
     {
-        const DataSegment& segment = builder.compiler().cstMgr().shardDataSegment(shardIndex);
+        const DataSegment&    segment = builder.compiler().cstMgr().shardDataSegment(shardIndex);
         DataSegmentAllocation allocation;
         if (!segment.findAllocation(allocation, sourceOffset))
             return false;
@@ -143,14 +143,14 @@ namespace
         if (!visitedAllocations.insert(allocationKey).second)
             return false;
 
-        bool changed = false;
+        bool                               changed = false;
         std::vector<DataSegmentRelocation> relocations;
         segment.copyRelocations(relocations, allocation.offset, allocation.size);
         for (const DataSegmentRelocation& relocation : relocations)
         {
             if (relocation.kind == DataSegmentRelocationKind::FunctionSymbol)
             {
-                SymbolFunction* target = const_cast<SymbolFunction*>(relocation.targetSymbol);
+                auto target = const_cast<SymbolFunction*>(relocation.targetSymbol);
                 if (!target || !isIncludableDependency(builder, *target))
                     continue;
                 if (!seenFunctions.insert(target).second)
@@ -162,7 +162,7 @@ namespace
             }
 
             const uint32_t targetShardIndex = relocation.targetShardIndex == INVALID_REF ? shardIndex : relocation.targetShardIndex;
-            changed = appendConstantFunctionDependenciesRec(builder, functions, seenFunctions, visitedAllocations, targetShardIndex, relocation.targetOffset) || changed;
+            changed                         = appendConstantFunctionDependenciesRec(builder, functions, seenFunctions, visitedAllocations, targetShardIndex, relocation.targetOffset) || changed;
         }
 
         return changed;

@@ -52,8 +52,8 @@ public:
     std::vector<SymbolVariable*>&       fields() { return fields_; }
     const std::vector<SymbolVariable*>& fields() const { return fields_; }
 
-    void                     addImpl(Sema& sema, SymbolImpl& symImpl);
-    std::vector<SymbolImpl*> impls() const;
+    void                         addImpl(Sema& sema, SymbolImpl& symImpl);
+    std::vector<SymbolImpl*>     impls() const;
     std::vector<SymbolFunction*> declaredMethods() const;
     std::vector<SymbolFunction*> methods() const;
 

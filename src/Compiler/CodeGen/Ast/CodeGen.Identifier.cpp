@@ -27,7 +27,7 @@ namespace
         if (!declRef.isValid())
             return nullptr;
 
-        const AstNode* const decl = &codeGen.node(declRef);
+        const AstNode* const decl            = &codeGen.node(declRef);
         const auto           matchDeclSymbol = [&](const SymbolVariable* symVar) -> bool {
             if (!symVar || symVar->decl() != decl)
                 return false;
@@ -745,7 +745,7 @@ Result AstVarDeclDestructuring::codeGenPostNode(CodeGen& codeGen) const
     SmallVector<TokenRef> tokNames;
     codeGen.ast().appendTokens(tokNames, spanNamesRef);
 
-    const SemaNodeView view = codeGen.curViewSymbolList();
+    const SemaNodeView   view = codeGen.curViewSymbolList();
     SmallVector<Symbol*> recoveredSymbols;
     std::span<Symbol*>   symbols = view.symList();
     if (symbols.empty())
@@ -760,7 +760,7 @@ Result AstVarDeclDestructuring::codeGenPostNode(CodeGen& codeGen) const
     // decomposed variable from its compile-time constant value.
     if (initView.type()->isAggregateStruct())
     {
-        MicroBuilder&            builder = codeGen.builder();
+        MicroBuilder& builder = codeGen.builder();
 
         for (Symbol* sym : symbols)
         {
@@ -830,7 +830,7 @@ Result AstVarDeclDestructuring::codeGenPostNode(CodeGen& codeGen) const
     MicroReg                  baseAddress = MicroReg::invalid();
     materializeAggregateSourceAddress(codeGen, codeGen.curNodeRef(), initView.typeRef(), initPayload, baseAddress);
 
-    const auto&              fields  = initView.type()->payloadSymStruct().fields();
+    const auto& fields = initView.type()->payloadSymStruct().fields();
 
     size_t symbolIndex = 0;
     for (size_t i = 0; i < tokNames.size(); ++i)

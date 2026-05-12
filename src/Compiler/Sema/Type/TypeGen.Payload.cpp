@@ -699,8 +699,8 @@ namespace
             return;
         }
 
-        const auto& fields     = type.payloadSymStruct().fields();
-        const auto  interfaces = type.payloadSymStruct().interfaces();
+        const auto&                        fields     = type.payloadSymStruct().fields();
+        const auto                         interfaces = type.payloadSymStruct().interfaces();
         std::vector<const SymbolFunction*> methods;
         SmallVector<TypeRef>               methodTypes;
         for (const SymbolFunction* symMethod : type.payloadSymStruct().methods())
@@ -715,7 +715,7 @@ namespace
             methods.push_back(symMethod);
             methodTypes.push_back(methodTypeRef);
         }
-        uint32_t    usingCount = 0;
+        uint32_t usingCount = 0;
         for (const SymbolVariable* symField : fields)
         {
             if (symField && symField->isUsingField())
@@ -813,8 +813,8 @@ namespace
         else
         {
             const auto [methodsOffset, methodsPtr] = storage.reserveSpan<Runtime::TypeValue>(entry.structMethodsCount);
-            entry.structMethodsOffset             = methodsOffset;
-            rtType.methods.ptr                    = methodsPtr;
+            entry.structMethodsOffset              = methodsOffset;
+            rtType.methods.ptr                     = methodsPtr;
             storage.addRelocation(offset + offsetof(Runtime::TypeInfoStruct, methods.ptr), methodsOffset);
 
             for (uint32_t i = 0; i < entry.structMethodsCount; ++i)
@@ -850,7 +850,7 @@ namespace
 
                 Runtime::TypeValue& tv         = interfacesPtr[i];
                 const uint32_t      elemOffset = interfacesOffset + static_cast<uint32_t>(i * sizeof(Runtime::TypeValue));
-                tv.name.length = storage.addString(elemOffset, offsetof(Runtime::TypeValue, name.ptr), Utf8{symInterface->getFullScopedName(ctx)});
+                tv.name.length                 = storage.addString(elemOffset, offsetof(Runtime::TypeValue, name.ptr), Utf8{symInterface->getFullScopedName(ctx)});
                 entry.structInterfaceTypes.push_back(symInterface->typeRef());
             }
         }

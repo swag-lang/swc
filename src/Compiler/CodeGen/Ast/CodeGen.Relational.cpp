@@ -474,8 +474,8 @@ namespace
         TypeRef                   rightOperandTypeRef = resolveRelationalOperandTypeRef(codeGen, node.nodeRightRef, rightView, rightPayload);
         SWC_ASSERT(leftOperandTypeRef.isValid());
         SWC_ASSERT(rightOperandTypeRef.isValid());
-        CodeGenNodePayload        leftOperandPayload  = leftPayload;
-        CodeGenNodePayload        rightOperandPayload = rightPayload;
+        CodeGenNodePayload leftOperandPayload  = leftPayload;
+        CodeGenNodePayload rightOperandPayload = rightPayload;
         normalizeScalarReferenceOperand(codeGen, leftOperandPayload, leftOperandTypeRef);
         normalizeScalarReferenceOperand(codeGen, rightOperandPayload, rightOperandTypeRef);
 
@@ -531,8 +531,8 @@ namespace
         TypeRef                   rightOperandTypeRef = resolveRelationalOperandTypeRef(codeGen, node.nodeRightRef, rightView, rightPayload);
         SWC_ASSERT(leftOperandTypeRef.isValid());
         SWC_ASSERT(rightOperandTypeRef.isValid());
-        CodeGenNodePayload        leftOperandPayload  = leftPayload;
-        CodeGenNodePayload        rightOperandPayload = rightPayload;
+        CodeGenNodePayload leftOperandPayload  = leftPayload;
+        CodeGenNodePayload rightOperandPayload = rightPayload;
         normalizeScalarReferenceOperand(codeGen, leftOperandPayload, leftOperandTypeRef);
         normalizeScalarReferenceOperand(codeGen, rightOperandPayload, rightOperandTypeRef);
 

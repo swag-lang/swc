@@ -131,7 +131,18 @@ namespace
         return owner && owner->isGenericInstance();
     }
 
-    bool canDelayGenericInstanceFunctionBody(const AstFunctionDecl& node, const SymbolFunction& sym, const SymbolImpl* declImpl)
+    bool isImplicitGeneratedLifecycleWrapper(Sema& sema, const SymbolFunction& sym)
+    {
+        if (!sym.attributes().hasRtFlag(RtAttributeFlagsE::Implicit))
+            return false;
+
+        const std::string_view name = sym.name(sema.ctx());
+        return name == "swagLifecycleDropWrapper" ||
+               name == "swagLifecyclePostcopyWrapper" ||
+               name == "swagLifecyclePostmoveWrapper";
+    }
+
+    bool canDelayGenericInstanceFunctionBody(Sema& sema, const AstFunctionDecl& node, const SymbolFunction& sym, const SymbolImpl* declImpl)
     {
         if (sym.hasExtraFlag(SymbolFunctionFlagsE::LazyGenericBodyRunning))
             return false;
@@ -139,9 +150,14 @@ namespace
             return false;
         if (sym.attributes().hasRtFlag(RtAttributeFlagsE::Macro) || sym.attributes().hasRtFlag(RtAttributeFlagsE::Mixin))
             return false;
-        if (sym.specOpKind() != SpecOpKind::None)
+        if (sym.specOpKind() != SpecOpKind::None &&
+            sym.specOpKind() != SpecOpKind::OpDrop &&
+            sym.specOpKind() != SpecOpKind::OpPostCopy &&
+            sym.specOpKind() != SpecOpKind::OpPostMove)
             return false;
         if (!isGenericInstanceImplFunction(sym, declImpl))
+            return false;
+        if (isImplicitGeneratedLifecycleWrapper(sema, sym))
             return false;
 
         // Expression-bodied functions without an explicit return type need their body to
@@ -2198,7 +2214,7 @@ Result AstFunctionDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef)
     {
         auto&       sym      = sema.curViewSymbol().sym()->cast<SymbolFunction>();
         const auto* declImpl = functionDeclImplContext(sema, &sym);
-        if (sym.isTyped() && canDelayGenericInstanceFunctionBody(*this, sym, declImpl))
+        if (sym.isTyped() && canDelayGenericInstanceFunctionBody(sema, *this, sym, declImpl))
         {
             sym.addExtraFlag(SymbolFunctionFlagsE::LazyGenericBody);
             return Result::SkipChildren;

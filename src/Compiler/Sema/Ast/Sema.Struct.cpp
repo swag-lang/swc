@@ -150,6 +150,8 @@ Result AstStructDecl::semaPostNode(Sema& sema)
 
     sym.removeIgnoredFields();
     SWC_RESULT(sym.canBeCompleted(sema));
+    if (!sym.isGenericInstance())
+        SWC_RESULT(SemaSpecOp::ensureGeneratedLifecycleFunctions(sema, sym));
     SWC_RESULT(SemaSpecOp::ensureGeneratedOperators(sema, sym));
     SWC_RESULT(sym.registerSpecOps(sema));
     SWC_RESULT(sym.computeLayout(sema.ctx()));

@@ -102,6 +102,25 @@ namespace
         return nullptr;
     }
 
+    SymbolFunction* resolveEffectiveLifecycleFunction(const CodeGen& codeGen, const TypeInfo& typeInfo, const CodeGenLifecycleKind lifecycleKind)
+    {
+        if (!typeInfo.isStruct())
+            return nullptr;
+
+        TaskContext& ctx = const_cast<TaskContext&>(codeGen.ctx());
+        switch (lifecycleKind)
+        {
+            case CodeGenLifecycleKind::Drop:
+                return const_cast<SymbolFunction*>(typeInfo.payloadSymStruct().effectiveOpDrop(ctx));
+            case CodeGenLifecycleKind::PostCopy:
+                return const_cast<SymbolFunction*>(typeInfo.payloadSymStruct().effectiveOpPostCopy(ctx));
+            case CodeGenLifecycleKind::PostMove:
+                return const_cast<SymbolFunction*>(typeInfo.payloadSymStruct().effectiveOpPostMove(ctx));
+        }
+
+        return nullptr;
+    }
+
     uint64_t arrayTotalElementCount(const TypeInfo& typeInfo)
     {
         uint64_t total = 1;
@@ -179,7 +198,7 @@ namespace
         if (!typeInfo.isStruct())
             return false;
 
-        SymbolFunction* lifecycleFunction = resolveDirectLifecycleFunction(typeInfo, lifecycleKind);
+        SymbolFunction* lifecycleFunction = resolveEffectiveLifecycleFunction(codeGen, typeInfo, lifecycleKind);
 
         if (!lifecycleFunction)
             return false;

@@ -1498,6 +1498,7 @@ namespace
         auto& instanceStruct = instance.cast<SymbolStruct>();
         SWC_RESULT(SemaSpecOp::ensureGeneratedOperators(sema, rootStruct));
         SWC_RESULT(instantiateGenericStructImpls(sema, rootStruct, instanceStruct, params, resolvedArgs));
+        SWC_RESULT(SemaSpecOp::ensureGeneratedLifecycleFunctions(sema, instanceStruct));
         SWC_RESULT(instanceStruct.registerSpecOps(sema));
         instanceStruct.setSemaCompleted(sema.ctx());
         return Result::Continue;

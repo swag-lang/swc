@@ -575,11 +575,11 @@ namespace
         if (type.isStruct())
         {
             const SymbolStruct& symStruct = type.payloadSymStruct();
-            if (const auto* opDrop = symStruct.opDrop())
+            if (const auto* opDrop = symStruct.effectiveOpDrop(ctx))
                 storage.addFunctionRelocation(offset + offsetof(Runtime::TypeInfoStruct, opDrop), opDrop);
-            if (const auto* opPostCopy = symStruct.opPostCopy())
+            if (const auto* opPostCopy = symStruct.effectiveOpPostCopy(ctx))
                 storage.addFunctionRelocation(offset + offsetof(Runtime::TypeInfoStruct, opPostCopy), opPostCopy);
-            if (const auto* opPostMove = symStruct.opPostMove())
+            if (const auto* opPostMove = symStruct.effectiveOpPostMove(ctx))
                 storage.addFunctionRelocation(offset + offsetof(Runtime::TypeInfoStruct, opPostMove), opPostMove);
 
             if (symStruct.isGenericInstance())

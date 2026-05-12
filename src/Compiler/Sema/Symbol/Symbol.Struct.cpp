@@ -17,6 +17,10 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    constexpr std::string_view K_GENERATED_LIFECYCLE_DROP_WRAPPER      = "swagLifecycleDropWrapper";
+    constexpr std::string_view K_GENERATED_LIFECYCLE_POST_COPY_WRAPPER = "swagLifecyclePostcopyWrapper";
+    constexpr std::string_view K_GENERATED_LIFECYCLE_POST_MOVE_WRAPPER = "swagLifecyclePostmoveWrapper";
+
     bool compareFunctionOrder(const SymbolFunction* left, const SymbolFunction* right)
     {
         SWC_ASSERT(left);
@@ -27,6 +31,8 @@ namespace
     bool isRuntimeReflectedMethod(const SymbolFunction& symFunc)
     {
         if (symFunc.isIgnored() || symFunc.isAttribute() || symFunc.isEmpty())
+            return false;
+        if (symFunc.attributes().hasRtFlag(RtAttributeFlagsE::Implicit))
             return false;
 
         const SymbolStruct* ownerStruct = symFunc.ownerStruct();
@@ -46,6 +52,78 @@ namespace
         }
 
         return true;
+    }
+
+    const SymbolFunction* registeredLifecycleFunction(const SymbolStruct& ownerStruct, const SpecOpKind kind)
+    {
+        switch (kind)
+        {
+            case SpecOpKind::OpDrop:
+                return ownerStruct.opDrop();
+            case SpecOpKind::OpPostCopy:
+                return ownerStruct.opPostCopy();
+            case SpecOpKind::OpPostMove:
+                return ownerStruct.opPostMove();
+            default:
+                return nullptr;
+        }
+    }
+
+    const SymbolFunction* resolvedLifecycleFunction(TaskContext& ctx, const SymbolStruct& ownerStruct, const SpecOpKind kind)
+    {
+        if (const SymbolFunction* symFunc = registeredLifecycleFunction(ownerStruct, kind); symFunc && symFunc->isSemaCompleted())
+            return symFunc;
+
+        for (const SymbolFunction* symFunc : ownerStruct.declaredMethods())
+        {
+            if (!symFunc || symFunc->attributes().hasRtFlag(RtAttributeFlagsE::Implicit))
+                continue;
+            if (const SymbolImpl* symImpl = symFunc->declImplContext(); symImpl && symImpl->isForInterface())
+                continue;
+            if (!symFunc->isDeclared() || !symFunc->isTyped() || !symFunc->isSemaCompleted())
+                continue;
+            if (symFunc->specOpKind() == kind)
+                return symFunc;
+        }
+
+        SWC_UNUSED(ctx);
+        return registeredLifecycleFunction(ownerStruct, kind);
+    }
+
+    std::string_view generatedLifecycleWrapperName(const SpecOpKind kind)
+    {
+        switch (kind)
+        {
+            case SpecOpKind::OpDrop:
+                return K_GENERATED_LIFECYCLE_DROP_WRAPPER;
+            case SpecOpKind::OpPostCopy:
+                return K_GENERATED_LIFECYCLE_POST_COPY_WRAPPER;
+            case SpecOpKind::OpPostMove:
+                return K_GENERATED_LIFECYCLE_POST_MOVE_WRAPPER;
+            default:
+                return {};
+        }
+    }
+
+    const SymbolFunction* findGeneratedLifecycleWrapper(TaskContext& ctx, const SymbolStruct& ownerStruct, const SpecOpKind kind)
+    {
+        const std::string_view expectedName = generatedLifecycleWrapperName(kind);
+        if (expectedName.empty())
+            return nullptr;
+
+        for (const SymbolFunction* symFunc : ownerStruct.declaredMethods())
+        {
+            if (!symFunc)
+                continue;
+            if (!symFunc->attributes().hasRtFlag(RtAttributeFlagsE::Implicit))
+                continue;
+            if (!symFunc->isDeclared() || !symFunc->isTyped() || !symFunc->isSemaCompleted())
+                continue;
+            if (symFunc->name(ctx) == expectedName)
+                return symFunc;
+        }
+
+        return nullptr;
     }
 
     void appendImplFunctions(std::vector<SymbolFunction*>& out, const std::vector<SymbolImpl*>& implList)
@@ -703,6 +781,54 @@ Result SymbolStruct::registerSpecOp(SymbolFunction& symFunc, SpecOpKind kind)
     return Result::Continue;
 }
 
+SymbolFunction* SymbolStruct::effectiveOpDrop(TaskContext& ctx)
+{
+    return const_cast<SymbolFunction*>(const_cast<const SymbolStruct*>(this)->effectiveOpDrop(ctx));
+}
+
+const SymbolFunction* SymbolStruct::effectiveOpDrop(TaskContext& ctx) const
+{
+    if (isGenericRoot() && !isGenericInstance())
+        return nullptr;
+
+    if (const SymbolFunction* wrapper = findGeneratedLifecycleWrapper(ctx, *this, SpecOpKind::OpDrop))
+        return wrapper;
+
+    return resolvedLifecycleFunction(ctx, *this, SpecOpKind::OpDrop);
+}
+
+SymbolFunction* SymbolStruct::effectiveOpPostCopy(TaskContext& ctx)
+{
+    return const_cast<SymbolFunction*>(const_cast<const SymbolStruct*>(this)->effectiveOpPostCopy(ctx));
+}
+
+const SymbolFunction* SymbolStruct::effectiveOpPostCopy(TaskContext& ctx) const
+{
+    if (isGenericRoot() && !isGenericInstance())
+        return nullptr;
+
+    if (const SymbolFunction* wrapper = findGeneratedLifecycleWrapper(ctx, *this, SpecOpKind::OpPostCopy))
+        return wrapper;
+
+    return resolvedLifecycleFunction(ctx, *this, SpecOpKind::OpPostCopy);
+}
+
+SymbolFunction* SymbolStruct::effectiveOpPostMove(TaskContext& ctx)
+{
+    return const_cast<SymbolFunction*>(const_cast<const SymbolStruct*>(this)->effectiveOpPostMove(ctx));
+}
+
+const SymbolFunction* SymbolStruct::effectiveOpPostMove(TaskContext& ctx) const
+{
+    if (isGenericRoot() && !isGenericInstance())
+        return nullptr;
+
+    if (const SymbolFunction* wrapper = findGeneratedLifecycleWrapper(ctx, *this, SpecOpKind::OpPostMove))
+        return wrapper;
+
+    return resolvedLifecycleFunction(ctx, *this, SpecOpKind::OpPostMove);
+}
+
 void SymbolStruct::setGenericRoot(bool value) noexcept
 {
     if (value)
@@ -829,6 +955,12 @@ void SymbolStruct::setGenericNodeCompleted() const noexcept
     const auto* data = genericData();
     SWC_ASSERT(data != nullptr);
     data->completionState.fetch_or(K_GENERIC_NODE_COMPLETED_MASK, std::memory_order_acq_rel);
+}
+
+bool SymbolStruct::tryMarkGeneratedLifecycleFunctions() const noexcept
+{
+    bool expected = false;
+    return generatedLifecycleDone_.compare_exchange_strong(expected, true, std::memory_order_acq_rel, std::memory_order_acquire);
 }
 
 bool SymbolStruct::tryMarkGeneratedOperators() const noexcept

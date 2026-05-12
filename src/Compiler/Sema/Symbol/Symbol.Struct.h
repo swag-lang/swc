@@ -76,6 +76,12 @@ public:
     const SymbolFunction*        opPostCopy() const { return opPostCopy_; }
     SymbolFunction*              opPostMove() { return opPostMove_; }
     const SymbolFunction*        opPostMove() const { return opPostMove_; }
+    SymbolFunction*              effectiveOpDrop(TaskContext& ctx);
+    const SymbolFunction*        effectiveOpDrop(TaskContext& ctx) const;
+    SymbolFunction*              effectiveOpPostCopy(TaskContext& ctx);
+    const SymbolFunction*        effectiveOpPostCopy(TaskContext& ctx) const;
+    SymbolFunction*              effectiveOpPostMove(TaskContext& ctx);
+    const SymbolFunction*        effectiveOpPostMove(TaskContext& ctx) const;
 
     bool                          isGenericRoot() const noexcept { return hasExtraFlag(SymbolStructFlagsE::GenericRoot); }
     void                          setGenericRoot(bool value) noexcept;
@@ -95,6 +101,7 @@ public:
     void                          finishGenericCompletion() const noexcept;
     bool                          isGenericNodeCompleted() const noexcept;
     void                          setGenericNodeCompleted() const noexcept;
+    bool                          tryMarkGeneratedLifecycleFunctions() const noexcept;
     bool                          tryMarkGeneratedOperators() const noexcept;
 
 private:
@@ -115,6 +122,7 @@ private:
     SymbolFunction*                   opPostCopy_             = nullptr;
     SymbolFunction*                   opPostMove_             = nullptr;
     mutable std::atomic<GenericData*> genericData_            = nullptr;
+    mutable std::atomic_bool          generatedLifecycleDone_ = false;
     mutable std::atomic_bool          generatedOperatorsDone_ = false;
     uint64_t                          sizeInBytes_            = 0;
     ConstantRef                       defaultStructCst_       = ConstantRef::invalid();

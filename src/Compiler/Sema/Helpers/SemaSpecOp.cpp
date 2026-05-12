@@ -147,24 +147,25 @@ namespace
         return unwrapAlias(ctx, typeRef);
     }
 
-    const SymbolFunction* findDeclaredLifecycleMethod(const SymbolStruct& ownerStruct, const SpecOpKind kind)
+    const SymbolFunction* findDeclaredLifecycleMethod(TaskContext& ctx, const SymbolStruct& ownerStruct, const SpecOpKind kind)
     {
+        const std::string_view expectedName = specOpFunctionName(kind);
         for (const SymbolFunction* symFunc : ownerStruct.declaredMethods())
         {
             if (!symFunc || symFunc->attributes().hasRtFlag(RtAttributeFlagsE::Implicit))
                 continue;
             if (const SymbolImpl* symImpl = symFunc->declImplContext(); symImpl && symImpl->isForInterface())
                 continue;
-            if (symFunc->specOpKind() == kind)
+            if (symFunc->specOpKind() == kind || symFunc->name(ctx) == expectedName)
                 return symFunc;
         }
 
         return nullptr;
     }
 
-    bool hasDirectLifecycle(const SymbolStruct& ownerStruct, const SpecOpKind kind)
+    bool hasDirectLifecycle(TaskContext& ctx, const SymbolStruct& ownerStruct, const SpecOpKind kind)
     {
-        if (findDeclaredLifecycleMethod(ownerStruct, kind))
+        if (findDeclaredLifecycleMethod(ctx, ownerStruct, kind))
             return true;
 
         switch (kind)
@@ -230,7 +231,7 @@ namespace
         }
 
         const SymbolStruct& ownerStruct = type.payloadSymStruct();
-        if (hasDirectLifecycle(ownerStruct, kind))
+        if (hasDirectLifecycle(ctx, ownerStruct, kind))
         {
             visiting.pop_back();
             return true;
@@ -1775,25 +1776,6 @@ namespace
         return source;
     }
 
-    constexpr std::string_view K_GENERATED_LIFECYCLE_DROP_WRAPPER      = "swagLifecycleDropWrapper";
-    constexpr std::string_view K_GENERATED_LIFECYCLE_POST_COPY_WRAPPER = "swagLifecyclePostcopyWrapper";
-    constexpr std::string_view K_GENERATED_LIFECYCLE_POST_MOVE_WRAPPER = "swagLifecyclePostmoveWrapper";
-
-    std::string_view generatedLifecycleWrapperName(const SpecOpKind kind)
-    {
-        switch (kind)
-        {
-            case SpecOpKind::OpDrop:
-                return K_GENERATED_LIFECYCLE_DROP_WRAPPER;
-            case SpecOpKind::OpPostCopy:
-                return K_GENERATED_LIFECYCLE_POST_COPY_WRAPPER;
-            case SpecOpKind::OpPostMove:
-                return K_GENERATED_LIFECYCLE_POST_MOVE_WRAPPER;
-            default:
-                return {};
-        }
-    }
-
     bool hasGeneratedLifecycleWrapper(const TaskContext& ctx, const SymbolStruct& ownerStruct)
     {
         for (const SymbolFunction* symFunc : ownerStruct.declaredMethods())
@@ -1802,9 +1784,7 @@ namespace
                 continue;
 
             const std::string_view name = symFunc->name(ctx);
-            if (name == K_GENERATED_LIFECYCLE_DROP_WRAPPER ||
-                name == K_GENERATED_LIFECYCLE_POST_COPY_WRAPPER ||
-                name == K_GENERATED_LIFECYCLE_POST_MOVE_WRAPPER)
+            if (SemaSpecOp::isGeneratedLifecycleWrapperName(name))
                 return true;
         }
 
@@ -1838,6 +1818,27 @@ namespace
         }
 
         return false;
+    }
+
+    struct GeneratedLifecyclePlan
+    {
+        bool drop     = false;
+        bool postCopy = false;
+        bool postMove = false;
+
+        bool any() const
+        {
+            return drop || postCopy || postMove;
+        }
+    };
+
+    GeneratedLifecyclePlan makeGeneratedLifecyclePlan(Sema& sema, const SymbolStruct& ownerStruct)
+    {
+        GeneratedLifecyclePlan plan;
+        plan.drop     = shouldGenerateLifecycleWrapper(sema, ownerStruct, SpecOpKind::OpDrop);
+        plan.postCopy = shouldGenerateLifecycleWrapper(sema, ownerStruct, SpecOpKind::OpPostCopy);
+        plan.postMove = shouldGenerateLifecycleWrapper(sema, ownerStruct, SpecOpKind::OpPostMove);
+        return plan;
     }
 
     void collectGeneratedLifecycleFieldNames(const TaskContext& ctx, const SymbolStruct& ownerStruct, SmallVector<Utf8>& outFields)
@@ -1880,9 +1881,9 @@ namespace
         }
     }
 
-    void appendGeneratedLifecycleWrapper(Sema& sema, Utf8& source, const SymbolStruct& ownerStruct, std::span<const Utf8> fields, const SpecOpKind kind)
+    void appendGeneratedLifecycleWrapper(TaskContext& ctx, Utf8& source, const SymbolStruct& ownerStruct, std::span<const Utf8> fields, const SpecOpKind kind)
     {
-        const std::string_view wrapperName = generatedLifecycleWrapperName(kind);
+        const std::string_view wrapperName = SemaSpecOp::generatedLifecycleWrapperName(kind);
         SWC_ASSERT(!wrapperName.empty());
 
         source += "    #[Implicit]\n";
@@ -1890,7 +1891,7 @@ namespace
         source += wrapperName;
         source += "()\n";
         source += "    {\n";
-        if (kind == SpecOpKind::OpDrop && hasDirectLifecycle(ownerStruct, kind))
+        if (kind == SpecOpKind::OpDrop && hasDirectLifecycle(ctx, ownerStruct, kind))
         {
             source += "        .";
             source += specOpFunctionName(kind);
@@ -1899,7 +1900,7 @@ namespace
 
         appendGeneratedLifecycleFieldCalls(source, fields, kind);
 
-        if (kind != SpecOpKind::OpDrop && hasDirectLifecycle(ownerStruct, kind))
+        if (kind != SpecOpKind::OpDrop && hasDirectLifecycle(ctx, ownerStruct, kind))
         {
             source += "        .";
             source += specOpFunctionName(kind);
@@ -1909,12 +1910,35 @@ namespace
         source += "    }\n";
     }
 
+    void appendGeneratedLifecycleWrappers(TaskContext& ctx, Utf8& source, const SymbolStruct& ownerStruct, std::span<const Utf8> fields, const GeneratedLifecyclePlan& plan)
+    {
+        bool addSeparator = false;
+        if (plan.drop)
+        {
+            appendGeneratedLifecycleWrapper(ctx, source, ownerStruct, fields, SpecOpKind::OpDrop);
+            addSeparator = true;
+        }
+
+        if (plan.postCopy)
+        {
+            if (addSeparator)
+                source += "\n";
+            appendGeneratedLifecycleWrapper(ctx, source, ownerStruct, fields, SpecOpKind::OpPostCopy);
+            addSeparator = true;
+        }
+
+        if (plan.postMove)
+        {
+            if (addSeparator)
+                source += "\n";
+            appendGeneratedLifecycleWrapper(ctx, source, ownerStruct, fields, SpecOpKind::OpPostMove);
+        }
+    }
+
     Utf8 makeGeneratedLifecycleSource(Sema& sema, const SymbolStruct& ownerStruct)
     {
-        const bool generateDrop     = shouldGenerateLifecycleWrapper(sema, ownerStruct, SpecOpKind::OpDrop);
-        const bool generatePostCopy = shouldGenerateLifecycleWrapper(sema, ownerStruct, SpecOpKind::OpPostCopy);
-        const bool generatePostMove = shouldGenerateLifecycleWrapper(sema, ownerStruct, SpecOpKind::OpPostMove);
-        if (!generateDrop && !generatePostCopy && !generatePostMove)
+        const GeneratedLifecyclePlan plan = makeGeneratedLifecyclePlan(sema, ownerStruct);
+        if (!plan.any())
             return {};
 
         SmallVector<Utf8> fields;
@@ -1926,39 +1950,15 @@ namespace
         source += "impl ";
         source += ownerTypeName;
         source += "\n{\n";
-
-        bool addSeparator = false;
-        if (generateDrop)
-        {
-            appendGeneratedLifecycleWrapper(sema, source, ownerStruct, fields.span(), SpecOpKind::OpDrop);
-            addSeparator = true;
-        }
-
-        if (generatePostCopy)
-        {
-            if (addSeparator)
-                source += "\n";
-            appendGeneratedLifecycleWrapper(sema, source, ownerStruct, fields.span(), SpecOpKind::OpPostCopy);
-            addSeparator = true;
-        }
-
-        if (generatePostMove)
-        {
-            if (addSeparator)
-                source += "\n";
-            appendGeneratedLifecycleWrapper(sema, source, ownerStruct, fields.span(), SpecOpKind::OpPostMove);
-        }
-
+        appendGeneratedLifecycleWrappers(sema.ctx(), source, ownerStruct, fields.span(), plan);
         source += "}\n";
         return source;
     }
 
     Utf8 makeGeneratedLifecycleMethodsSource(Sema& sema, const SymbolStruct& ownerStruct)
     {
-        const bool generateDrop     = shouldGenerateLifecycleWrapper(sema, ownerStruct, SpecOpKind::OpDrop);
-        const bool generatePostCopy = shouldGenerateLifecycleWrapper(sema, ownerStruct, SpecOpKind::OpPostCopy);
-        const bool generatePostMove = shouldGenerateLifecycleWrapper(sema, ownerStruct, SpecOpKind::OpPostMove);
-        if (!generateDrop && !generatePostCopy && !generatePostMove)
+        const GeneratedLifecyclePlan plan = makeGeneratedLifecyclePlan(sema, ownerStruct);
+        if (!plan.any())
             return {};
 
         SmallVector<Utf8> fields;
@@ -1966,29 +1966,7 @@ namespace
 
         Utf8 source;
         source += "// Generated lifecycle wrappers.\n";
-
-        bool addSeparator = false;
-        if (generateDrop)
-        {
-            appendGeneratedLifecycleWrapper(sema, source, ownerStruct, fields.span(), SpecOpKind::OpDrop);
-            addSeparator = true;
-        }
-
-        if (generatePostCopy)
-        {
-            if (addSeparator)
-                source += "\n";
-            appendGeneratedLifecycleWrapper(sema, source, ownerStruct, fields.span(), SpecOpKind::OpPostCopy);
-            addSeparator = true;
-        }
-
-        if (generatePostMove)
-        {
-            if (addSeparator)
-                source += "\n";
-            appendGeneratedLifecycleWrapper(sema, source, ownerStruct, fields.span(), SpecOpKind::OpPostMove);
-        }
-
+        appendGeneratedLifecycleWrappers(sema.ctx(), source, ownerStruct, fields.span(), plan);
         return source;
     }
 
@@ -2146,6 +2124,28 @@ void SemaSpecOp::addMissingDeclarationHelp(Sema& sema, Diagnostic& diag, const S
     help->addArgument(Diagnostic::ARG_DECL_SYM, rootStruct->name(sema.ctx()));
     help->addArgument(Diagnostic::ARG_SPEC_OP, specOpFunctionName(kind));
     help->addArgument(Diagnostic::ARG_SPEC_OP_SIGNATURE, specOpSignatureHint(kind));
+}
+
+std::string_view SemaSpecOp::generatedLifecycleWrapperName(const SpecOpKind kind)
+{
+    switch (kind)
+    {
+        case SpecOpKind::OpDrop:
+            return "swagLifecycleDropWrapper";
+        case SpecOpKind::OpPostCopy:
+            return "swagLifecyclePostcopyWrapper";
+        case SpecOpKind::OpPostMove:
+            return "swagLifecyclePostmoveWrapper";
+        default:
+            return {};
+    }
+}
+
+bool SemaSpecOp::isGeneratedLifecycleWrapperName(const std::string_view name)
+{
+    return name == generatedLifecycleWrapperName(SpecOpKind::OpDrop) ||
+           name == generatedLifecycleWrapperName(SpecOpKind::OpPostCopy) ||
+           name == generatedLifecycleWrapperName(SpecOpKind::OpPostMove);
 }
 
 bool SemaSpecOp::typeHasLifecycle(TaskContext& ctx, TypeRef typeRef, SpecOpKind kind)

@@ -136,10 +136,7 @@ namespace
         if (!sym.attributes().hasRtFlag(RtAttributeFlagsE::Implicit))
             return false;
 
-        const std::string_view name = sym.name(sema.ctx());
-        return name == "swagLifecycleDropWrapper" ||
-               name == "swagLifecyclePostcopyWrapper" ||
-               name == "swagLifecyclePostmoveWrapper";
+        return SemaSpecOp::isGeneratedLifecycleWrapperName(sym.name(sema.ctx()));
     }
 
     bool canDelayGenericInstanceFunctionBody(Sema& sema, const AstFunctionDecl& node, const SymbolFunction& sym, const SymbolImpl* declImpl)
@@ -150,10 +147,7 @@ namespace
             return false;
         if (sym.attributes().hasRtFlag(RtAttributeFlagsE::Macro) || sym.attributes().hasRtFlag(RtAttributeFlagsE::Mixin))
             return false;
-        if (sym.specOpKind() != SpecOpKind::None &&
-            sym.specOpKind() != SpecOpKind::OpDrop &&
-            sym.specOpKind() != SpecOpKind::OpPostCopy &&
-            sym.specOpKind() != SpecOpKind::OpPostMove)
+        if (sym.specOpKind() != SpecOpKind::None)
             return false;
         if (!isGenericInstanceImplFunction(sym, declImpl))
             return false;

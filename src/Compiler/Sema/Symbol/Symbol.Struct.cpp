@@ -17,10 +17,6 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    constexpr std::string_view K_GENERATED_LIFECYCLE_DROP_WRAPPER      = "swagLifecycleDropWrapper";
-    constexpr std::string_view K_GENERATED_LIFECYCLE_POST_COPY_WRAPPER = "swagLifecyclePostcopyWrapper";
-    constexpr std::string_view K_GENERATED_LIFECYCLE_POST_MOVE_WRAPPER = "swagLifecyclePostmoveWrapper";
-
     bool compareFunctionOrder(const SymbolFunction* left, const SymbolFunction* right)
     {
         SWC_ASSERT(left);
@@ -90,24 +86,9 @@ namespace
         return registeredLifecycleFunction(ownerStruct, kind);
     }
 
-    std::string_view generatedLifecycleWrapperName(const SpecOpKind kind)
-    {
-        switch (kind)
-        {
-            case SpecOpKind::OpDrop:
-                return K_GENERATED_LIFECYCLE_DROP_WRAPPER;
-            case SpecOpKind::OpPostCopy:
-                return K_GENERATED_LIFECYCLE_POST_COPY_WRAPPER;
-            case SpecOpKind::OpPostMove:
-                return K_GENERATED_LIFECYCLE_POST_MOVE_WRAPPER;
-            default:
-                return {};
-        }
-    }
-
     const SymbolFunction* findGeneratedLifecycleWrapper(TaskContext& ctx, const SymbolStruct& ownerStruct, const SpecOpKind kind)
     {
-        const std::string_view expectedName = generatedLifecycleWrapperName(kind);
+        const std::string_view expectedName = SemaSpecOp::generatedLifecycleWrapperName(kind);
         if (expectedName.empty())
             return nullptr;
 

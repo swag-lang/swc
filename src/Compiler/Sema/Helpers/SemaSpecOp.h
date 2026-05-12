@@ -1,6 +1,7 @@
 #pragma once
 #include "Compiler/Sema/Ast/Sema.Index.h"
 #include "Support/Core/SmallVector.h"
+#include <string_view>
 
 SWC_BEGIN_NAMESPACE();
 
@@ -90,6 +91,8 @@ enum class SpecOpKind : uint8_t
 
 namespace SemaSpecOp
 {
+    std::string_view generatedLifecycleWrapperName(SpecOpKind kind);
+    bool             isGeneratedLifecycleWrapperName(std::string_view name);
     SpecOpKind computeSymbolKind(const Sema& sema, const SymbolFunction& sym);
     void       addMissingDeclarationHelp(Sema& sema, Diagnostic& diag, const SymbolStruct& ownerStruct, SpecOpKind kind);
     bool       typeHasLifecycle(TaskContext& ctx, TypeRef typeRef, SpecOpKind kind);

@@ -551,7 +551,7 @@ namespace
                                          storedView->typeRef.isValid() &&
                                          !storedView->cstRef.isValid() &&
                                          (node.hasFlag(AstIdentifierFlagsE::GenericTypeBinding) || (storedView->sym && storedView->sym->isType()));
-        const bool carryInline         = storedView &&
+        const bool carryInline = storedView &&
                                  ((!storedView->hasSymbol && (storedView->typeRef.isValid() || storedView->cstRef.isValid())) ||
                                   carryResolvedTypeId ||
                                   (crossAstSource && storedView->cstRef.isValid()));

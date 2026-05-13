@@ -574,9 +574,9 @@ Result NativeBackendBuilder::runGeneratedArtifact()
 {
     TimedActionLog::ScopedStage stage(ctx_, TimedActionLog::Stage::Run);
 
-    uint32_t                    exitCode       = 0;
+    uint32_t                    exitCode = 0;
     std::string                 artifactOutput;
-    const fs::path              artifactDir    = artifactPath.parent_path();
+    const fs::path              artifactDir = artifactPath.parent_path();
     const Os::ProcessRunOptions options{
         .capturedOutput = &artifactOutput,
         .logCtx         = &ctx_,

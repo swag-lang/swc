@@ -109,9 +109,9 @@ namespace
 
     void setWaitJitPatched(TaskContext& ctx, const SymbolFunction& waiterFunction, const SymbolFunction& targetFunction)
     {
-        TaskState& wait   = ctx.state();
-        wait.kind         = TaskStateKind::SemaWaitSymJitPatched;
-        wait.nodeRef      = ctx.state().nodeRef.isValid() ? ctx.state().nodeRef : waiterFunction.declNodeRef();
+        TaskState& wait = ctx.state();
+        wait.kind       = TaskStateKind::SemaWaitSymJitPatched;
+        wait.nodeRef    = ctx.state().nodeRef.isValid() ? ctx.state().nodeRef : waiterFunction.declNodeRef();
         if (wait.nodeRef.isInvalid())
             wait.nodeRef = targetFunction.declNodeRef();
         wait.codeRef = ctx.state().codeRef.isValid() ? ctx.state().codeRef : safeCodeRef(waiterFunction);

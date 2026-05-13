@@ -94,15 +94,15 @@ namespace SemaSpecOp
     std::string_view generatedLifecycleWrapperName(SpecOpKind kind);
     std::string_view generatedInitWrapperName();
     bool             isGeneratedLifecycleWrapperName(std::string_view name);
-    SpecOpKind computeSymbolKind(const Sema& sema, const SymbolFunction& sym);
-    void       addMissingDeclarationHelp(Sema& sema, Diagnostic& diag, const SymbolStruct& ownerStruct, SpecOpKind kind);
-    bool       typeHasLifecycle(TaskContext& ctx, TypeRef typeRef, SpecOpKind kind);
-    Result     ensureGeneratedOperators(Sema& sema, SymbolStruct& ownerStruct);
-    Result     ensureGeneratedLifecycleFunctions(Sema& sema, SymbolStruct& ownerStruct);
-    Result     validateSymbol(Sema& sema, SymbolFunction& sym);
-    Result     registerSymbol(Sema& sema, SymbolFunction& sym);
-    Result     collectSetCandidates(Sema& sema, const SymbolStruct& ownerStruct, const SourceCodeRef& codeRef, AstNodeRef valueRef, SmallVector<Symbol*>& outCandidates);
-    Result     canResolveVisit(Sema& sema, const AstForeachStmt& node, bool& outMatched);
+    SpecOpKind       computeSymbolKind(const Sema& sema, const SymbolFunction& sym);
+    void             addMissingDeclarationHelp(Sema& sema, Diagnostic& diag, const SymbolStruct& ownerStruct, SpecOpKind kind);
+    bool             typeHasLifecycle(TaskContext& ctx, TypeRef typeRef, SpecOpKind kind);
+    Result           ensureGeneratedOperators(Sema& sema, SymbolStruct& ownerStruct);
+    Result           ensureGeneratedLifecycleFunctions(Sema& sema, SymbolStruct& ownerStruct);
+    Result           validateSymbol(Sema& sema, SymbolFunction& sym);
+    Result           registerSymbol(Sema& sema, SymbolFunction& sym);
+    Result           collectSetCandidates(Sema& sema, const SymbolStruct& ownerStruct, const SourceCodeRef& codeRef, AstNodeRef valueRef, SmallVector<Symbol*>& outCandidates);
+    Result           canResolveVisit(Sema& sema, const AstForeachStmt& node, bool& outMatched);
 
     Result tryResolveVarInitSet(Sema& sema, AstNodeRef receiverRef, AstNodeRef valueRef, bool& outHandled);
     Result tryResolveCountOf(Sema& sema, AstNodeRef exprRef, SymbolFunction*& outCalledFn, bool& outHandled);

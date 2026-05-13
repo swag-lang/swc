@@ -136,7 +136,7 @@ namespace
                 const uint64_t  fieldOffset  = field->offset();
                 SWC_ASSERT(fieldOffset + fieldSize <= dstBytes.size());
 
-                ByteSpanRW fieldBytes = dstBytes.subspan(static_cast<size_t>(fieldOffset), static_cast<size_t>(fieldSize));
+                ByteSpanRW fieldBytes = dstBytes.subspan(fieldOffset, fieldSize);
                 if (const ConstantRef valueRef = field->defaultValueRef(); valueRef.isValid())
                 {
                     SWC_RESULT(ConstantLower::lowerToBytes(sema, fieldBytes, valueRef, fieldTypeRef));
@@ -163,7 +163,7 @@ namespace
                 totalCount *= dim;
 
             for (uint64_t idx = 0; idx < totalCount; ++idx)
-                SWC_RESULT(lowerImplicitDefaultBytes(sema, dstBytes.subspan(static_cast<size_t>(idx * elemSize), static_cast<size_t>(elemSize)), elemTypeRef));
+                SWC_RESULT(lowerImplicitDefaultBytes(sema, dstBytes.subspan(idx * elemSize, elemSize), elemTypeRef));
             return Result::Continue;
         }
 

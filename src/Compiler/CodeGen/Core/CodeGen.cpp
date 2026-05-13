@@ -107,15 +107,15 @@ namespace
         if (!typeInfo.isStruct())
             return nullptr;
 
-        TaskContext& ctx = const_cast<TaskContext&>(codeGen.ctx());
+        auto& ctx = const_cast<TaskContext&>(codeGen.ctx());
         switch (lifecycleKind)
         {
             case CodeGenLifecycleKind::Drop:
-                return const_cast<SymbolFunction*>(typeInfo.payloadSymStruct().effectiveOpDrop(ctx));
+                return typeInfo.payloadSymStruct().effectiveOpDrop(ctx);
             case CodeGenLifecycleKind::PostCopy:
-                return const_cast<SymbolFunction*>(typeInfo.payloadSymStruct().effectiveOpPostCopy(ctx));
+                return typeInfo.payloadSymStruct().effectiveOpPostCopy(ctx);
             case CodeGenLifecycleKind::PostMove:
-                return const_cast<SymbolFunction*>(typeInfo.payloadSymStruct().effectiveOpPostMove(ctx));
+                return typeInfo.payloadSymStruct().effectiveOpPostMove(ctx);
         }
 
         return nullptr;

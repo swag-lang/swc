@@ -1,14 +1,14 @@
 #include "pch.h"
 #include "Backend/Native/NativeArtifactBuilder.h"
 #include "Backend/ABI/ABICall.h"
-#include "Backend/Runtime.h"
 #include "Backend/Native/NativeRDataCollector.h"
 #include "Backend/Native/SymbolSort.h"
+#include "Backend/Runtime.h"
 #include "Compiler/Parser/Ast/Ast.h"
-#include "Compiler/SourceFile.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Helpers/SemaRuntime.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
+#include "Compiler/SourceFile.h"
 #include "Main/Command/CommandLineParser.h"
 #include "Main/FileSystem.h"
 #include "Main/Global.h"
@@ -128,12 +128,12 @@ namespace
         if (!storedValue.empty() && targetRef.isInvalid())
             return ConstantRef::invalid();
 
-        const uint32_t shardIndex = targetRef.isInvalid() ? 0 : targetRef.shardIndex;
-        DataSegment&   segment    = cstMgr.shardDataSegment(shardIndex);
+        const uint32_t shardIndex    = targetRef.isInvalid() ? 0 : targetRef.shardIndex;
+        DataSegment&   segment       = cstMgr.shardDataSegment(shardIndex);
         const auto [offset, storage] = segment.reserveBytes(sizeof(Runtime::String), alignof(Runtime::String), true);
-        auto* runtimeString           = reinterpret_cast<Runtime::String*>(storage);
-        runtimeString->ptr            = storedValue.data();
-        runtimeString->length         = storedValue.size();
+        auto* runtimeString          = reinterpret_cast<Runtime::String*>(storage);
+        runtimeString->ptr           = storedValue.data();
+        runtimeString->length        = storedValue.size();
 
         if (targetRef.isValid())
             segment.addRelocation(offset + offsetof(Runtime::String, ptr), targetRef.offset);
@@ -164,15 +164,15 @@ namespace
     {
         TestSourceLocation result;
 
-        const AstNode*     decl    = symbol.decl();
+        const AstNode*      decl    = symbol.decl();
         const SourceViewRef viewRef = decl ? decl->srcViewRef() : symbol.srcViewRef();
         if (!viewRef.isValid())
             return result;
 
-        const SourceView&  declView   = compiler.srcView(viewRef);
-        const SourceFile*  sourceFile = sourceFileFromView(compiler, &declView);
-        const Ast*         sourceAst  = sourceFile && sourceFile->ast().hasSourceView() ? &sourceFile->ast() : nullptr;
-        SourceCodeRange    codeRange;
+        const SourceView& declView   = compiler.srcView(viewRef);
+        const SourceFile* sourceFile = sourceFileFromView(compiler, &declView);
+        const Ast*        sourceAst  = sourceFile && sourceFile->ast().hasSourceView() ? &sourceFile->ast() : nullptr;
+        SourceCodeRange   codeRange;
 
         if (decl && sourceAst && sourceAst->hasSourceView() && sourceAst->findNodeRef(decl).isValid())
         {
@@ -731,7 +731,7 @@ Result NativeArtifactBuilder::buildStartup(TaskContext& ctx) const
     auto         startup = std::make_unique<NativeStartupInfo>();
     MicroBuilder builder(builder_->ctx());
     builder.setBackendBuildCfg(builder_->compiler().buildCfg().backend);
-    uint32_t nextVirtualIntRegIndex = builder.nextVirtualIntRegIndexHint();
+    uint32_t       nextVirtualIntRegIndex = builder.nextVirtualIntRegIndexHint();
     const MicroReg testProgressMessageReg = emitTestProgress ? nextVirtualIntReg(nextVirtualIntRegIndex) : MicroReg::invalid();
 
     const IdentifierRef ensureRuntimeAllocatorIdRef = ctx.idMgr().runtimeFunction(IdentifierManager::RuntimeFunctionKind::EnsureRuntimeAllocator);
@@ -810,7 +810,7 @@ Result NativeArtifactBuilder::buildStartup(TaskContext& ctx) const
         SymbolFunction* symbol = builder_->testFunctions[testIndex];
         if (testPrintProgressFn)
         {
-            const NativeTestProgressEntry& progressEntry = builder_->testProgressEntries[testIndex];
+            const NativeTestProgressEntry& progressEntry              = builder_->testProgressEntries[testIndex];
             const ConstantRef              messageRuntimeStringCstRef = progressEntry.messageRuntimeStringCstRef;
             SWC_ASSERT(messageRuntimeStringCstRef.isValid());
             if (messageRuntimeStringCstRef.isInvalid())
@@ -819,13 +819,13 @@ Result NativeArtifactBuilder::buildStartup(TaskContext& ctx) const
             loadConstantStoragePointerReg(builder, ctx, testProgressMessageReg, messageRuntimeStringCstRef);
 
             ABICall::PreparedArg messageArg;
-            messageArg.srcReg              = testProgressMessageReg;
-            messageArg.kind                = ABICall::PreparedArgKind::Direct;
-            messageArg.isFloat             = false;
-            messageArg.isSigned            = false;
-            messageArg.isAddressed         = false;
-            messageArg.constrainToArgLane  = true;
-            messageArg.numBits             = 64;
+            messageArg.srcReg             = testProgressMessageReg;
+            messageArg.kind               = ABICall::PreparedArgKind::Direct;
+            messageArg.isFloat            = false;
+            messageArg.isSigned           = false;
+            messageArg.isAddressed        = false;
+            messageArg.constrainToArgLane = true;
+            messageArg.numBits            = 64;
 
             SmallVector<ABICall::PreparedArg> preparedArgs;
             preparedArgs.push_back(messageArg);

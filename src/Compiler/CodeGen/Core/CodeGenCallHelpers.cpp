@@ -1581,7 +1581,7 @@ void CodeGenCallHelpers::appendPreparedStringCompareArg(SmallVector<ABICall::Pre
 
 Result CodeGenCallHelpers::codeGenCallExprCommon(CodeGen& codeGen, AstNodeRef calleeRef)
 {
-    MicroBuilder&       builder         = codeGen.builder();
+    MicroBuilder&      builder         = codeGen.builder();
     const SemaNodeView currentTypeView = codeGen.curViewType();
     SymbolFunction*    calledFunction  = nullptr;
     SWC_RESULT(resolveSelectedCallFunction(codeGen, calleeRef, calledFunction));

@@ -31,19 +31,19 @@ namespace
 
     struct ForeachStmtCodeGenPayload
     {
-        MicroLabelRef   loopLabel        = MicroLabelRef::invalid();
-        MicroLabelRef   continueLabel    = MicroLabelRef::invalid();
-        MicroLabelRef   doneLabel        = MicroLabelRef::invalid();
-        MicroReg        baseReg          = MicroReg::invalid();
-        MicroReg        countReg         = MicroReg::invalid();
-        MicroReg        indexReg         = MicroReg::invalid();
+        MicroLabelRef         loopLabel        = MicroLabelRef::invalid();
+        MicroLabelRef         continueLabel    = MicroLabelRef::invalid();
+        MicroLabelRef         doneLabel        = MicroLabelRef::invalid();
+        MicroReg              baseReg          = MicroReg::invalid();
+        MicroReg              countReg         = MicroReg::invalid();
+        MicroReg              indexReg         = MicroReg::invalid();
         uint32_t              aliasSymbolCount = 0;
         const SymbolVariable* stateSym         = nullptr;
         const SymbolVariable* sourceSpillSym   = nullptr;
-        uint64_t        elementSize      = 0;
-        uint64_t        valueSize        = 0;
-        bool            reverse          = false;
-        bool            enumValues       = false;
+        uint64_t              elementSize      = 0;
+        uint64_t              valueSize        = 0;
+        bool                  reverse          = false;
+        bool                  enumValues       = false;
     };
 
     ForeachStmtCodeGenPayload* foreachStmtCodeGenPayload(CodeGen& codeGen, AstNodeRef nodeRef)

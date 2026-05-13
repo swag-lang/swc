@@ -1259,13 +1259,7 @@ namespace
         if (!instance)
             return Result::Continue;
 
-        TypeRef specializedTypeRef = instance->typeRef();
-        if (specializedTypeRef.isInvalid() && instance->decl() && instance->decl()->is(AstNodeId::StructDecl))
-        {
-            const TypeInfo structType = TypeInfo::makeStruct(instance);
-            specializedTypeRef        = sema.typeMgr().addType(structType);
-        }
-
+        const TypeRef specializedTypeRef = SemaHelpers::ensureStructTypeRef(sema, *instance);
         sema.setSymbol(view.nodeRef(), instance);
         if (specializedTypeRef.isValid())
             sema.setType(view.nodeRef(), specializedTypeRef);

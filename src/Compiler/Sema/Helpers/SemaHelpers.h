@@ -9,6 +9,7 @@
 SWC_BEGIN_NAMESPACE();
 
 class SymbolFunction;
+class SymbolStruct;
 struct CodeGenNodePayload;
 
 namespace SemaHelpers
@@ -33,6 +34,7 @@ namespace SemaHelpers
     bool                  binaryOpNeedsOverflowSafety(TokenId canonicalOp, AstModifierFlags modifierFlags);
     bool                  canUseContextualBinding(Sema& sema, AstNodeRef nodeRef);
     TypeRef               unwrapLambdaBindingType(TaskContext& ctx, TypeRef typeRef);
+    TypeRef               ensureStructTypeRef(Sema& sema, SymbolStruct& symStruct);
     TypeRef               unwrapAliasRefType(TaskContext& ctx, TypeRef typeRef);
     const SymbolFunction* resolveLambdaBindingFunction(Sema& sema);
     SymbolFunction*       callableTypeFunction(TaskContext& ctx, TypeRef typeRef);

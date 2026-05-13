@@ -45,13 +45,7 @@ namespace
         if (!instance)
             return Result::Continue;
 
-        TypeRef specializedTypeRef = instance->typeRef();
-        if (specializedTypeRef.isInvalid() && instance->decl() && instance->decl()->is(AstNodeId::StructDecl))
-        {
-            const TypeInfo structType = TypeInfo::makeStruct(instance);
-            specializedTypeRef        = sema.typeMgr().addType(structType);
-        }
-
+        const TypeRef specializedTypeRef = SemaHelpers::ensureStructTypeRef(sema, *instance);
         bindSpecializedStructInitializerTarget(sema, nodeWhatRef, *instance, specializedTypeRef);
         return Result::Continue;
     }
@@ -115,12 +109,7 @@ Result AstStructDecl::semaPreNode(Sema& sema) const
     if (sym.isGenericRoot() && !sym.isGenericInstance())
     {
         if (!sym.isTyped())
-        {
-            const TypeInfo structType    = TypeInfo::makeStruct(&sym);
-            const TypeRef  structTypeRef = sema.ctx().typeMgr().addType(structType);
-            sym.setTypeRef(structTypeRef);
-            sym.setTyped(sema.ctx());
-        }
+            SemaHelpers::ensureStructTypeRef(sema, sym);
 
         sema.curViewSymbol().sym()->setSemaCompleted(sema.ctx());
         return Result::SkipChildren;
@@ -180,11 +169,13 @@ Result AstUnionDecl::semaPreNode(Sema& sema) const
 {
     if (sema.enteringState())
         SemaHelpers::declareSymbol(sema, *this);
-    const auto& sym = sema.curViewSymbol().sym()->cast<SymbolStruct>();
+    auto& sym = sema.curViewSymbol().sym()->cast<SymbolStruct>();
     if (!sym.isGenericInstance())
         SWC_RESULT(Match::ghosting(sema, sym));
     if (sym.isGenericRoot() && !sym.isGenericInstance())
     {
+        if (!sym.isTyped())
+            SemaHelpers::ensureStructTypeRef(sema, sym);
         sema.curViewSymbol().sym()->setSemaCompleted(sema.ctx());
         return Result::SkipChildren;
     }

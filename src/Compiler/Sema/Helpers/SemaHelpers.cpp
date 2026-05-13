@@ -1000,6 +1000,18 @@ TypeRef SemaHelpers::unwrapLambdaBindingType(TaskContext& ctx, TypeRef typeRef)
     return typeRef;
 }
 
+TypeRef SemaHelpers::ensureStructTypeRef(Sema& sema, SymbolStruct& symStruct)
+{
+    TypeRef typeRef = symStruct.typeRef();
+    if (typeRef.isValid())
+        return typeRef;
+
+    typeRef = sema.typeMgr().addType(TypeInfo::makeStruct(&symStruct));
+    symStruct.setTypeRef(typeRef);
+    symStruct.setTyped(sema.ctx());
+    return typeRef;
+}
+
 TypeRef SemaHelpers::unwrapAliasRefType(TaskContext& ctx, TypeRef typeRef)
 {
     while (typeRef.isValid())
@@ -2804,13 +2816,7 @@ Result SemaHelpers::resolveMemberAccess(Sema& sema, AstNodeRef memberRef, AstMem
         SWC_RESULT(SemaGeneric::instantiateStructFromContext(sema, *contextualGenericRoot, instance));
         if (instance)
         {
-            TypeRef specializedTypeRef = instance->typeRef();
-            if (specializedTypeRef.isInvalid() && instance->decl() && instance->decl()->is(AstNodeId::StructDecl))
-            {
-                const TypeInfo structType = TypeInfo::makeStruct(instance);
-                specializedTypeRef        = sema.typeMgr().addType(structType);
-            }
-
+            const TypeRef specializedTypeRef = SemaHelpers::ensureStructTypeRef(sema, *instance);
             sema.setSymbol(node.nodeLeftRef, instance);
             if (specializedTypeRef.isValid())
                 sema.setType(node.nodeLeftRef, specializedTypeRef);

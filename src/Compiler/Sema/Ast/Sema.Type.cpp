@@ -392,6 +392,7 @@ Result AstNamedType::semaPostNode(Sema& sema) const
         SWC_RESULT(SemaGeneric::instantiateStructFromContext(sema, *genericRoot, instance));
         if (instance)
         {
+            sema.setType(nodeIdentRef, SemaHelpers::ensureStructTypeRef(sema, *instance));
             sema.setSymbol(nodeIdentRef, instance);
             view.recompute(sema, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Symbol);
         }

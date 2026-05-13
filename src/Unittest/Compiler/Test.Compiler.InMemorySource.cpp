@@ -7,14 +7,78 @@
 #include "Compiler/Parser/Ast/Ast.h"
 #include "Compiler/Parser/Parser/Parser.h"
 #include "Compiler/SourceFile.h"
+#include "Main/Command/Command.h"
 #include "Main/Command/CommandLine.h"
+#include "Main/Command/CommandLineParser.h"
 #include "Main/CompilerInstance.h"
 #include "Main/FileSystem.h"
+#include "Main/Stats.h"
 #include "Main/TaskContext.h"
 #include "Unittest/Unittest.h"
 #include "Unittest/UnittestSource.h"
 
 SWC_BEGIN_NAMESPACE();
+
+namespace
+{
+    struct RestoreErrorCount
+    {
+        uint64_t saved = 0;
+
+        ~RestoreErrorCount()
+        {
+            Stats::get().numErrors.store(saved, std::memory_order_relaxed);
+        }
+    };
+
+    static constexpr std::string_view GENERIC_UNION_DEDUCTION_SOURCE = R"(#global fileprivate
+
+union(T) ValueOrPtr
+{
+    value: T
+    ptr:   *T
+}
+
+func(T) takeValue(boxed: ValueOrPtr'T)->T
+{
+    return boxed.value
+}
+
+func validate()
+{
+    let value = takeValue({value: 10's32})
+    #assert(#typeof(value) == s32)
+}
+)";
+
+    Result runGenericUnionDeductionRandomizedSeed(TaskContext& ctx, uint32_t seed)
+    {
+        const fs::path sourcePath = Unittest::makeTestSourcePath("Compiler", std::format("GenericUnionDeductionRandomizedSeed_{}", seed));
+
+        CommandLine cmdLine;
+        cmdLine.command   = CommandKind::Sema;
+        cmdLine.name      = std::format("compiler_generic_union_deduction_randomized_{}", seed);
+        cmdLine.silent    = true;
+        cmdLine.numCores  = 1;
+        cmdLine.randomize = true;
+        cmdLine.randSeed  = seed;
+        cmdLine.files.insert(sourcePath);
+        CommandLineParser::refreshBuildCfg(cmdLine);
+
+        const uint64_t    errorsBefore = Stats::getNumErrors();
+        RestoreErrorCount restoreErrors{errorsBefore};
+        CompilerInstance  compiler(ctx.global(), cmdLine);
+        Unittest::registerTestSource(compiler, sourcePath, GENERIC_UNION_DEDUCTION_SOURCE);
+        Command::sema(compiler);
+        if (Stats::getNumErrors() != errorsBefore)
+        {
+            std::println(stderr, "Compiler_GenericUnionDeductionRandomizedSeed: seed {} error count changed", seed);
+            return Result::Error;
+        }
+
+        return Result::Continue;
+    }
+}
 
 SWC_TEST_BEGIN(Compiler_InMemorySourceRunsSemaWithoutDiskIO)
 {
@@ -175,6 +239,30 @@ func A() {}
         return Result::Error;
     if (sourceFile.ast().root().isInvalid())
         return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(Compiler_GenericUnionDeductionRemainsStableForHistoricalRandomSeed1002)
+{
+    return runGenericUnionDeductionRandomizedSeed(ctx, 1002);
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(Compiler_GenericUnionDeductionRemainsStableForHistoricalRandomSeed1009)
+{
+    return runGenericUnionDeductionRandomizedSeed(ctx, 1009);
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(Compiler_GenericUnionDeductionRemainsStableForHistoricalRandomSeed1032)
+{
+    return runGenericUnionDeductionRandomizedSeed(ctx, 1032);
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(Compiler_GenericUnionDeductionRemainsStableForHistoricalRandomSeed1143)
+{
+    return runGenericUnionDeductionRandomizedSeed(ctx, 1143);
 }
 SWC_TEST_END()
 

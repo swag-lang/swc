@@ -15,6 +15,7 @@
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Constant/ConstantValue.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
+#include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Helpers/SemaInline.h"
 #include "Compiler/Sema/Helpers/SemaRuntime.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
@@ -25,6 +26,91 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    Result raiseInternalCallCodeGenError(CodeGen& codeGen, std::string_view because, AstNodeRef nodeRef = AstNodeRef::invalid())
+    {
+        SWC_ASSERT(!because.empty());
+
+        AstNodeRef errorNodeRef = nodeRef.isValid() ? codeGen.resolvedNodeRef(nodeRef) : AstNodeRef::invalid();
+        if (errorNodeRef.isInvalid())
+            errorNodeRef = codeGen.resolvedNodeRef(codeGen.curNodeRef());
+        if (errorNodeRef.isInvalid())
+            errorNodeRef = codeGen.function().declNodeRef();
+        SWC_ASSERT(errorNodeRef.isValid());
+
+        auto diag = SemaError::report(codeGen.sema(), DiagnosticId::misc_err_internal_codegen_failure, errorNodeRef, SemaError::ReportLocation::Token);
+        diag.addArgument(Diagnostic::ARG_WHAT, codeGen.function().getFullScopedName(codeGen.ctx()));
+        diag.addArgument(Diagnostic::ARG_BECAUSE, because);
+        diag.report(codeGen.ctx());
+        return Result::Error;
+    }
+
+    SymbolFunction* singleFunctionFromView(const SemaNodeView& view)
+    {
+        if (view.hasSymbolList())
+        {
+            if (view.symList().size() != 1)
+                return nullptr;
+
+            Symbol* symbol = view.symList().front();
+            if (!symbol || !symbol->isFunction())
+                return nullptr;
+            return &symbol->cast<SymbolFunction>();
+        }
+
+        Symbol* symbol = view.sym();
+        if (!symbol || !symbol->isFunction())
+            return nullptr;
+        return &symbol->cast<SymbolFunction>();
+    }
+
+    Result resolveSelectedCallFunction(CodeGen& codeGen, AstNodeRef calleeRef, SymbolFunction*& outCalledFunction)
+    {
+        outCalledFunction = nullptr;
+
+        if (SymbolFunction* calledFunction = singleFunctionFromView(codeGen.curViewSymbol()))
+        {
+            outCalledFunction = calledFunction;
+            return Result::Continue;
+        }
+
+        const SemaNodeView storedCallView = codeGen.sema().viewStored(codeGen.curNodeRef(), SemaNodeViewPartE::Symbol);
+        if (SymbolFunction* calledFunction = singleFunctionFromView(storedCallView))
+        {
+            outCalledFunction = calledFunction;
+            return Result::Continue;
+        }
+
+        if (calleeRef.isValid())
+        {
+            const SemaNodeView calleeView = codeGen.viewNodeSymbolList(calleeRef);
+            if (SymbolFunction* calledFunction = singleFunctionFromView(calleeView))
+            {
+                outCalledFunction = calledFunction;
+                return Result::Continue;
+            }
+
+            const SemaNodeView storedCalleeView = codeGen.sema().viewStored(calleeRef, SemaNodeViewPartE::Symbol);
+            if (SymbolFunction* calledFunction = singleFunctionFromView(storedCalleeView))
+            {
+                outCalledFunction = calledFunction;
+                return Result::Continue;
+            }
+
+            const AstNodeRef resolvedCalleeRef = codeGen.resolvedNodeRef(calleeRef);
+            if (resolvedCalleeRef.isValid() && resolvedCalleeRef != calleeRef)
+            {
+                const SemaNodeView resolvedCalleeView = codeGen.sema().viewStored(resolvedCalleeRef, SemaNodeViewPartE::Symbol);
+                if (SymbolFunction* calledFunction = singleFunctionFromView(resolvedCalleeView))
+                {
+                    outCalledFunction = calledFunction;
+                    return Result::Continue;
+                }
+            }
+        }
+
+        return raiseInternalCallCodeGenError(codeGen, "missing bound function symbol for call expression", calleeRef);
+    }
+
     AstNodeRef resolvePreparedArgSourceRef(CodeGen& codeGen, AstNodeRef argRef)
     {
         AstNodeRef sourceRef = codeGen.resolvedNodeRef(argRef);
@@ -1495,26 +1581,28 @@ void CodeGenCallHelpers::appendPreparedStringCompareArg(SmallVector<ABICall::Pre
 
 Result CodeGenCallHelpers::codeGenCallExprCommon(CodeGen& codeGen, AstNodeRef calleeRef)
 {
-    MicroBuilder&      builder        = codeGen.builder();
-    const SemaNodeView currentView    = codeGen.curViewTypeSymbol();
-    auto&              calledFunction = currentView.sym()->cast<SymbolFunction>();
-    const CallConvKind callConvKind   = calledFunction.callConvKind();
-    const CallConv&    callConv       = CallConv::get(callConvKind);
+    MicroBuilder&       builder         = codeGen.builder();
+    const SemaNodeView currentTypeView = codeGen.curViewType();
+    SymbolFunction*    calledFunction  = nullptr;
+    SWC_RESULT(resolveSelectedCallFunction(codeGen, calleeRef, calledFunction));
+    SWC_ASSERT(calledFunction != nullptr);
+    const CallConvKind callConvKind = calledFunction->callConvKind();
+    const CallConv&    callConv     = CallConv::get(callConvKind);
     // ABI return lowering must follow the callee signature. The expression type can be a
     // transformed view of that result and is not a reliable source for hidden sret decisions.
-    const ABITypeNormalize::NormalizedType normalizedRet     = ABITypeNormalize::normalize(codeGen.ctx(), callConv, calledFunction.returnTypeRef(), ABITypeNormalize::Usage::Return);
+    const ABITypeNormalize::NormalizedType normalizedRet     = ABITypeNormalize::normalize(codeGen.ctx(), callConv, calledFunction->returnTypeRef(), ABITypeNormalize::Usage::Return);
     const CodeGenNodePayload*              calleePayload     = resolveCallPayload(codeGen, calleeRef);
     MicroReg                               callTargetReg     = MicroReg::invalid();
     MicroReg                               closureContextReg = MicroReg::invalid();
 
     if (calleePayload)
-        callTargetReg = materializeCallTargetReg(codeGen, *calleePayload, calledFunction, callConv, closureContextReg);
+        callTargetReg = materializeCallTargetReg(codeGen, *calleePayload, *calledFunction, callConv, closureContextReg);
 
     SmallVector<ResolvedCallArgument> args;
     SmallVector<ABICall::PreparedArg> preparedArgs;
     codeGen.appendResolvedCallArguments(codeGen.curNodeRef(), args);
     uint32_t transientStackSize = 0;
-    SWC_RESULT(buildPreparedABIArguments(codeGen, codeGen.curNodeRef(), calledFunction, closureContextReg, args, preparedArgs, transientStackSize));
+    SWC_RESULT(buildPreparedABIArguments(codeGen, codeGen.curNodeRef(), *calledFunction, closureContextReg, args, preparedArgs, transientStackSize));
     isolatePreparedRegisterArgSources(codeGen, callConv, preparedArgs);
     MicroReg        hiddenRetStorageReg              = MicroReg::invalid();
     SymbolVariable* directVarInitStorageSym          = nullptr;
@@ -1524,7 +1612,7 @@ Result CodeGenCallHelpers::codeGenCallExprCommon(CodeGen& codeGen, AstNodeRef ca
         // Reuse the destination variable storage for indirect direct-call results whenever possible.
         // Otherwise the ABI helper falls back to compiler-segment scratch storage, which the native
         // backend cannot serialize into object-file relocations.
-        tryUseVarInitStorageForDirectCallResult(codeGen, codeGen.curNodeRef(), calledFunction.returnTypeRef(), hiddenRetStorageReg, directVarInitStorageSym);
+        tryUseVarInitStorageForDirectCallResult(codeGen, codeGen.curNodeRef(), calledFunction->returnTypeRef(), hiddenRetStorageReg, directVarInitStorageSym);
 
         if (!hiddenRetStorageReg.isValid())
             usesCurrentFunctionReturnStorage = CodeGenFunctionHelpers::tryUseCurrentFunctionReturnStorageForDirectExpr(codeGen, codeGen.curNodeRef(), hiddenRetStorageReg);
@@ -1540,9 +1628,9 @@ Result CodeGenCallHelpers::codeGenCallExprCommon(CodeGen& codeGen, AstNodeRef ca
 
     // prepareArgs handles register placement, stack slots, and hidden indirect return arg.
     const ABICall::PreparedCall preparedCall       = ABICall::prepareArgs(builder, callConvKind, preparedArgs, normalizedRet, hiddenRetStorageReg);
-    TypeRef                     nodePayloadTypeRef = calledFunction.returnTypeRef();
+    TypeRef                     nodePayloadTypeRef = calledFunction->returnTypeRef();
     if (!nodePayloadTypeRef.isValid())
-        nodePayloadTypeRef = currentView.typeRef();
+        nodePayloadTypeRef = currentTypeView.typeRef();
     CodeGenNodePayload& nodePayload = codeGen.setPayload(codeGen.curNodeRef(), nodePayloadTypeRef);
     if (!normalizedRet.isVoid)
         nodePayload.reg = normalizedRet.isFloat ? codeGen.nextVirtualFloatRegister() : codeGen.nextVirtualIntRegister();
@@ -1550,13 +1638,13 @@ Result CodeGenCallHelpers::codeGenCallExprCommon(CodeGen& codeGen, AstNodeRef ca
         nodePayload.runtimeStorageSym = directVarInitStorageSym;
     else if (usesCurrentFunctionReturnStorage)
         nodePayload.runtimeStorageSym = nullptr;
-    emitFunctionCall(codeGen, calledFunction, preparedCall, callTargetReg);
+    emitFunctionCall(codeGen, *calledFunction, preparedCall, callTargetReg);
     if (transientStackSize)
         builder.emitOpBinaryRegImm(callConv.stackPointer, ApInt(transientStackSize, 64), MicroOp::Add, MicroOpBits::B64);
 
     ABICall::materializeReturnToReg(builder, nodePayload.reg, callConvKind, normalizedRet);
     setPayloadStorageKind(nodePayload, normalizedRet.isIndirect);
-    if (calledFunction.isThrowable())
+    if (calledFunction->isThrowable())
         SWC_RESULT(emitThrowableFailureJumpIfHasError(codeGen));
 
     return Result::Continue;

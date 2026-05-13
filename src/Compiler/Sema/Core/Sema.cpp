@@ -21,9 +21,17 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    bool shouldAbortWait(const Symbol* symbol = nullptr)
+    bool waitHasErrorOnLine(Sema& sema, const SourceCodeRef& waitCodeRef)
     {
-        return symbol != nullptr && symbol->isIgnored();
+        if (!waitCodeRef.isValid())
+            return false;
+
+        const SourceView&      srcView   = sema.srcView(waitCodeRef.srcViewRef);
+        const SourceFile*      waitFile  = srcView.file();
+        const SourceFile*      ownerFile = srcView.ownerFileRef().isValid() ? &sema.compiler().file(srcView.ownerFileRef()) : nullptr;
+        const SourceCodeRange  tokenRange = sema.tokenCodeRange(waitCodeRef);
+        return (waitFile && waitFile->hasErrorLineInRange(tokenRange.line, tokenRange.line)) ||
+               (ownerFile && ownerFile->hasErrorLineInRange(tokenRange.line, tokenRange.line));
     }
 
     const Symbol* findPredefinedRuntimeSymbol(const Sema& sema, IdentifierManager::PredefinedName name)
@@ -548,19 +556,56 @@ namespace
 
         return sema.ctx().state().codeRef;
     }
+
+    bool shouldAbortResumedWait(Sema& sema)
+    {
+        const TaskState& state = sema.ctx().state();
+        if (!state.hasPauseReason())
+            return false;
+
+        if (state.symbol && state.symbol->isIgnored())
+            return true;
+        if (state.waiterSymbol && state.waiterSymbol->isIgnored())
+            return true;
+
+        switch (state.kind)
+        {
+            case TaskStateKind::SemaWaitIdentifier:
+            case TaskStateKind::SemaWaitCompilerDefined:
+            case TaskStateKind::SemaWaitImplRegistrations:
+                return waitHasErrorOnLine(sema, state.codeRef);
+
+            default:
+                return false;
+        }
+    }
+
+    bool shouldAbortWait(Sema& sema, const Symbol* blockingSymbol = nullptr)
+    {
+        if (blockingSymbol != nullptr && blockingSymbol->isIgnored())
+            return true;
+
+        const Symbol* currentSymbol = guessCurrentSymbol(sema);
+        return currentSymbol != nullptr && currentSymbol->isIgnored();
+    }
 }
 
 Result Sema::waitIdentifier(IdentifierRef idRef, const SourceCodeRef& codeRef)
 {
-    if (shouldAbortWait())
+    if (shouldAbortWait(*this))
         return Result::Error;
 
     const AstNodeRef waitNodeRef = fallbackWaitNodeRef(*this, curNodeRef());
+    const SourceCodeRef waitCodeRef = fallbackWaitCodeRef(*this, waitNodeRef, codeRef);
+    if (waitHasErrorOnLine(*this, waitCodeRef))
+        return Result::Error;
+
     TaskState&       wait        = ctx().state();
     wait.kind                    = TaskStateKind::SemaWaitIdentifier;
     wait.nodeRef                 = waitNodeRef;
-    wait.codeRef                 = fallbackWaitCodeRef(*this, waitNodeRef, codeRef);
+    wait.codeRef                 = waitCodeRef;
     wait.idRef                   = idRef;
+    wait.waiterSymbol            = guessCurrentSymbol(*this);
     return Result::Pause;
 }
 
@@ -597,7 +642,7 @@ Result Sema::waitRuntimeFunction(const IdentifierManager::RuntimeFunctionKind ki
 
 Result Sema::waitCompilerDefined(IdentifierRef idRef, const SourceCodeRef& codeRef)
 {
-    if (shouldAbortWait())
+    if (shouldAbortWait(*this))
         return Result::Error;
 
     const AstNodeRef waitNodeRef = fallbackWaitNodeRef(*this, curNodeRef());
@@ -606,12 +651,13 @@ Result Sema::waitCompilerDefined(IdentifierRef idRef, const SourceCodeRef& codeR
     wait.nodeRef                 = waitNodeRef;
     wait.codeRef                 = fallbackWaitCodeRef(*this, waitNodeRef, codeRef);
     wait.idRef                   = idRef;
+    wait.waiterSymbol            = guessCurrentSymbol(*this);
     return Result::Pause;
 }
 
 Result Sema::waitImplRegistrations(IdentifierRef idRef, const SourceCodeRef& codeRef)
 {
-    if (shouldAbortWait())
+    if (shouldAbortWait(*this))
         return Result::Error;
 
     const AstNodeRef waitNodeRef = fallbackWaitNodeRef(*this, curNodeRef());
@@ -620,6 +666,7 @@ Result Sema::waitImplRegistrations(IdentifierRef idRef, const SourceCodeRef& cod
     wait.nodeRef                 = waitNodeRef;
     wait.codeRef                 = fallbackWaitCodeRef(*this, waitNodeRef, codeRef);
     wait.idRef                   = idRef;
+    wait.waiterSymbol            = guessCurrentSymbol(*this);
     return Result::Pause;
 }
 
@@ -627,7 +674,7 @@ Result Sema::waitDeclared(const Symbol* symbol, const SourceCodeRef& codeRef)
 {
     if (!symbol || symbol->isDeclared())
         return Result::Continue;
-    if (shouldAbortWait(symbol))
+    if (shouldAbortWait(*this, symbol))
         return Result::Error;
     const AstNodeRef waitNodeRef = fallbackWaitNodeRef(*this, curNodeRef());
     TaskState&       wait        = ctx().state();
@@ -643,7 +690,7 @@ Result Sema::waitTyped(const Symbol* symbol, const SourceCodeRef& codeRef)
 {
     if (!symbol || symbol->isTyped())
         return Result::Continue;
-    if (shouldAbortWait(symbol))
+    if (shouldAbortWait(*this, symbol))
         return Result::Error;
     const AstNodeRef waitNodeRef = fallbackWaitNodeRef(*this, curNodeRef());
     TaskState&       wait        = ctx().state();
@@ -659,7 +706,7 @@ Result Sema::waitSemaCompletedNoLazy(const Symbol* symbol, const SourceCodeRef& 
 {
     if (!symbol || symbol->isSemaCompleted())
         return Result::Continue;
-    if (shouldAbortWait(symbol))
+    if (shouldAbortWait(*this, symbol))
         return Result::Error;
     const AstNodeRef waitNodeRef = fallbackWaitNodeRef(*this, curNodeRef());
     TaskState&       wait        = ctx().state();
@@ -675,7 +722,7 @@ Result Sema::waitSemaCompleted(const Symbol* symbol, const SourceCodeRef& codeRe
 {
     if (!symbol || symbol->isSemaCompleted())
         return Result::Continue;
-    if (shouldAbortWait(symbol))
+    if (shouldAbortWait(*this, symbol))
         return Result::Error;
 
     const auto* function = symbol->safeCast<SymbolFunction>();
@@ -700,7 +747,7 @@ Result Sema::waitCodeGenCompleted(const Symbol* symbol, const SourceCodeRef& cod
 {
     if (!symbol || symbol->isCodeGenCompleted())
         return Result::Continue;
-    if (shouldAbortWait(symbol))
+    if (shouldAbortWait(*this, symbol))
         return Result::Error;
     const AstNodeRef waitNodeRef = fallbackWaitNodeRef(*this, curNodeRef());
     TaskState&       wait        = ctx().state();
@@ -716,7 +763,7 @@ Result Sema::waitCodeGenPreSolved(const Symbol* symbol, const SourceCodeRef& cod
 {
     if (!symbol || symbol->isCodeGenPreSolved() || symbol->isCodeGenCompleted())
         return Result::Continue;
-    if (shouldAbortWait(symbol))
+    if (shouldAbortWait(*this, symbol))
         return Result::Error;
     const AstNodeRef waitNodeRef = fallbackWaitNodeRef(*this, curNodeRef());
     TaskState&       wait        = ctx().state();
@@ -733,7 +780,7 @@ Result Sema::waitSemaCompleted(const TypeInfo* type, AstNodeRef nodeRef)
     if (!type || type->isCompleted(ctx()))
         return Result::Continue;
     const Symbol* blockingSymbol = type->getNotCompletedSymbol(ctx());
-    if (shouldAbortWait(blockingSymbol))
+    if (shouldAbortWait(*this, blockingSymbol))
         return Result::Error;
     const AstNodeRef waitNodeRef = fallbackWaitNodeRef(*this, nodeRef);
     TaskState&       wait        = ctx().state();
@@ -842,6 +889,24 @@ void Sema::errorCleanupNode(AstNodeRef nodeRef, AstNode& node)
     // declaration in another parallel job.
     if (sym != nullptr && sym->decl() == &node && !sym->isSemaCompleted())
         sym->setIgnored(ctx());
+}
+
+void Sema::cleanupFailedVisit()
+{
+    if (visit().currentNodeRef().isValid())
+        errorCleanupNode(visit().currentNodeRef(), ast().node(visit().currentNodeRef()));
+
+    for (size_t up = 0;; up++)
+    {
+        const AstNodeRef parentRef = visit().parentNodeRef(up);
+        if (parentRef.isInvalid())
+            break;
+        errorCleanupNode(parentRef, ast().node(parentRef));
+    }
+
+    // A failure can stop the walk before later `impl` nodes in the same subtree are visited.
+    // Resolve their pending registration bookkeeping so struct completion barriers cannot stall.
+    cleanupPendingImplRegistrations(*this, visit().root());
 }
 
 Result Sema::preNodeChild(AstNode& node, AstNodeRef& childRef)
@@ -1012,21 +1077,7 @@ Result Sema::runCurrentVisit()
 
         if (result == AstVisitResult::Error)
         {
-            // Visiting has stopped. Clean up remaining active nodes.
-            if (visit_.currentNodeRef().isValid())
-                errorCleanupNode(visit_.currentNodeRef(), ast().node(visit_.currentNodeRef()));
-            for (size_t up = 0;; up++)
-            {
-                const AstNodeRef parentRef = visit_.parentNodeRef(up);
-                if (parentRef.isInvalid())
-                    break;
-                errorCleanupNode(parentRef, ast().node(parentRef));
-            }
-
-            // A failure can stop the walk before later `impl` nodes in the same subtree are visited.
-            // Resolve their pending registration bookkeeping so struct completion barriers cannot stall.
-            cleanupPendingImplRegistrations(*this, visit_.root());
-
+            cleanupFailedVisit();
             return Result::Error;
         }
 
@@ -1116,6 +1167,14 @@ Result Sema::execResult()
         scopes_.emplace_back(std::make_unique<SemaScope>(SemaScopeFlagsE::TopLevel, nullptr));
         curScope_ = scopes_.back().get();
         curScope_->setSymMap(startSymMap_);
+    }
+
+    if (shouldAbortResumedWait(*this))
+    {
+        cleanupFailedVisit();
+        ctx().state().setNone();
+        scopes_.clear();
+        return Result::Error;
     }
 
     ctx().state().setNone();
@@ -1221,7 +1280,15 @@ void Sema::waitDone(TaskContext& ctx, JobClientId clientId)
     SemaCycle sc;
     sc.check(ctx, clientId);
 
-    if (Stats::hasError() && jobMgr.wakeAll(clientId))
+    compiler.jitExecMgr().completeWaitingOnIgnoredDependency();
+
+    // Main-thread JIT waits only surface the outer "wait for JIT completion" state in JobManager.
+    // If cycle resolution just invalidated one of the JIT item's hidden dependencies, give it one
+    // final retry before draining the awakened sema jobs.
+    if (compiler.jitExecMgr().wakeWaiting())
+        compiler.jitExecMgr().executePendingMainThread();
+
+    if (jobMgr.wakeAll(clientId))
         jobMgr.waitAll(clientId);
 
     if (!Stats::hasError() && ctx.cmdLine().command != CommandKind::Test)

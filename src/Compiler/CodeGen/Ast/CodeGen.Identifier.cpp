@@ -65,6 +65,21 @@ namespace
         }
     }
 
+    Symbol* recoverIdentifierSymbol(CodeGen& codeGen, AstNodeRef nodeRef)
+    {
+        if (!nodeRef.isValid())
+            return nullptr;
+
+        if (Symbol* symbol = codeGen.sema().viewStored(nodeRef, SemaNodeViewPartE::Symbol).sym())
+            return symbol;
+
+        const AstNodeRef resolvedRef = codeGen.resolvedNodeRef(nodeRef);
+        if (resolvedRef.isValid() && resolvedRef != nodeRef)
+            return codeGen.sema().viewStored(resolvedRef, SemaNodeViewPartE::Symbol).sym();
+
+        return nullptr;
+    }
+
     const SymbolStruct* variableOwnerStruct(const SymbolVariable& symVar)
     {
         const SymbolMap* owner = symVar.ownerSymMap();
@@ -641,6 +656,7 @@ Result AstAnonymousUnionDecl::codeGenPreNode(const CodeGen& codeGen)
 Result AstIdentifier::codeGenPostNode(CodeGen& codeGen)
 {
     const SemaNodeView view = codeGen.curViewSymbol();
+    Symbol*            symbol = view.sym();
     if (!view.sym())
     {
         const AstNodeRef parentRef = codeGen.visit().parentNodeRef();
@@ -661,10 +677,13 @@ Result AstIdentifier::codeGenPostNode(CodeGen& codeGen)
              codeGen.node(parentRef).is(AstNodeId::QuotedListExpr)))
             return Result::Continue;
 
-        SWC_ASSERT(view.sym());
+        symbol = recoverIdentifierSymbol(codeGen, codeGen.curNodeRef());
+        SWC_ASSERT(symbol);
+        if (!symbol)
+            return Result::Error;
     }
 
-    codeGenIdentifierFromSymbol(codeGen, *view.sym());
+    codeGenIdentifierFromSymbol(codeGen, *symbol);
     return Result::Continue;
 }
 

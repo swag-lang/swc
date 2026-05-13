@@ -375,6 +375,7 @@ private:
     Result postNodeChild(AstNode& node, AstNodeRef& childRef);
 
     void errorCleanupNode(AstNodeRef nodeRef, AstNode& node);
+    void cleanupFailedVisit();
 
     enum class DeferredTopLevelItemKind : uint8_t
     {

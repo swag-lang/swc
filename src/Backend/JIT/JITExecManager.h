@@ -39,8 +39,13 @@ public:
     Strategy   strategy() const noexcept { return strategy_; }
     Result     submit(TaskContext& ctx, const Request& request);
     Completion consumeCompletion(const TaskContext& ctx, AstNodeRef nodeRef, const SourceCodeRef& codeRef);
+    bool       hasItem(const TaskContext& ctx, AstNodeRef nodeRef, const SourceCodeRef& codeRef) const;
     bool       executePendingMainThread();
+    bool       completeWaitingOnIgnoredDependency();
     bool       wakeWaiting();
+#if SWC_DEV_MODE
+    Utf8 debugDescribeState() const;
+#endif
 
 private:
     enum class Status : uint8_t
@@ -82,11 +87,12 @@ private:
     {
         TaskContext* ownerCtx = nullptr;
         Request      request;
-        Status       status = Status::Pending;
-        Result       result = Result::Continue;
+        TaskState    waitState;
+        Status       status    = Status::Pending;
+        Result       result    = Result::Continue;
     };
 
-    static Result executeItem(const Item& item);
+    static Result executeItem(Item& item);
 
     mutable std::mutex                                              mutex_;
     std::unordered_map<ItemKey, std::unique_ptr<Item>, ItemKeyHash> items_;

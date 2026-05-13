@@ -75,7 +75,7 @@ namespace
         std::optional<ConstCallCacheKey>    constCallCacheKey;
     };
 
-    // Pending execution data associated with one AST node through sema payload.
+    // Pending execution data associated with one JIT submission.
     struct JITPendingNodeData
     {
         std::shared_ptr<JITNodePayload> payload;
@@ -83,13 +83,48 @@ namespace
         bool                            setFoldedTypedConst = false;
     };
 
-    JITPendingNodeData* pendingJitNodeData(const Sema& sema, AstNodeRef nodeRef)
+    struct PendingJitNodeKey
     {
-        if (nodeRef.isInvalid())
-            return nullptr;
-        if (!sema.hasSemaPayload(nodeRef))
-            return nullptr;
-        return sema.semaPayload<JITPendingNodeData>(nodeRef);
+        const TaskContext* ownerCtx = nullptr;
+        AstNodeRef         nodeRef  = AstNodeRef::invalid();
+        SourceCodeRef      codeRef  = SourceCodeRef::invalid();
+
+        bool operator==(const PendingJitNodeKey& other) const noexcept
+        {
+            return ownerCtx == other.ownerCtx &&
+                   nodeRef == other.nodeRef &&
+                   codeRef.srcViewRef == other.codeRef.srcViewRef &&
+                   codeRef.tokRef == other.codeRef.tokRef;
+        }
+    };
+
+    struct PendingJitNodeKeyHash
+    {
+        size_t operator()(const PendingJitNodeKey& key) const noexcept
+        {
+            size_t h = std::hash<const TaskContext*>{}(key.ownerCtx);
+            h ^= std::hash<uint32_t>{}(key.nodeRef.get()) + 0x9e3779b9u + (h << 6) + (h >> 2);
+            h ^= std::hash<uint32_t>{}(key.codeRef.srcViewRef.get()) + 0x9e3779b9u + (h << 6) + (h >> 2);
+            h ^= std::hash<uint32_t>{}(key.codeRef.tokRef.get()) + 0x9e3779b9u + (h << 6) + (h >> 2);
+            return h;
+        }
+    };
+
+    std::mutex& pendingJitNodeMutex()
+    {
+        static std::mutex mutex;
+        return mutex;
+    }
+
+    std::unordered_map<PendingJitNodeKey, JITPendingNodeData, PendingJitNodeKeyHash>& pendingJitNodes()
+    {
+        static std::unordered_map<PendingJitNodeKey, JITPendingNodeData, PendingJitNodeKeyHash> pendingNodes;
+        return pendingNodes;
+    }
+
+    PendingJitNodeKey pendingJitNodeKey(const Sema& sema, AstNodeRef nodeRef)
+    {
+        return {.ownerCtx = &sema.ctx(), .nodeRef = nodeRef, .codeRef = sema.node(nodeRef).codeRef()};
     }
 
     bool sameConstCallCacheKey(const ConstCallCacheKey& lhs, const ConstCallCacheKey& rhs)
@@ -173,32 +208,56 @@ namespace
         constCallCache().push_back({std::move(key), cstRef});
     }
 
-    bool hasPendingJitNode(const Sema& sema, AstNodeRef nodeRef)
+    bool hasPendingJitNode(Sema& sema, AstNodeRef nodeRef)
     {
-        return pendingJitNodeData(sema, nodeRef) != nullptr;
+        if (nodeRef.isInvalid())
+            return false;
+
+        const PendingJitNodeKey key = pendingJitNodeKey(sema, nodeRef);
+        {
+            const std::scoped_lock lock(pendingJitNodeMutex());
+            if (!pendingJitNodes().contains(key))
+                return false;
+        }
+
+        if (sema.compiler().jitExecMgr().hasItem(sema.ctx(), nodeRef, key.codeRef))
+            return true;
+
+        // Pending JIT bookkeeping must stay in lockstep with the JIT manager.
+        // If DevMode catches this invariant, sema must resume instead of re-sleeping forever.
+        {
+            const std::scoped_lock lock(pendingJitNodeMutex());
+            pendingJitNodes().erase(key);
+        }
+        SWC_ASSERT(false);
+        return false;
     }
 
     void registerPendingJitNode(Sema& sema, AstNodeRef nodeRef, const std::shared_ptr<JITNodePayload>& payload, const JITCallResultMeta& resultMeta, bool setFoldedTypedConst)
     {
-        if (pendingJitNodeData(sema, nodeRef))
-            return;
-
-        auto* pendingData                = heapNew<JITPendingNodeData>();
-        pendingData->payload             = payload;
-        pendingData->resultMeta          = resultMeta;
-        pendingData->setFoldedTypedConst = setFoldedTypedConst;
-        sema.setSemaPayload(nodeRef, pendingData);
+        const PendingJitNodeKey key = pendingJitNodeKey(sema, nodeRef);
+        const std::scoped_lock  lock(pendingJitNodeMutex());
+        SWC_ASSERT(!pendingJitNodes().contains(key));
+        auto [it, inserted] = pendingJitNodes().try_emplace(key, JITPendingNodeData{.payload = payload, .resultMeta = resultMeta, .setFoldedTypedConst = setFoldedTypedConst});
+        SWC_ASSERT(inserted);
+        if (!inserted)
+        {
+            it->second.payload             = payload;
+            it->second.resultMeta          = resultMeta;
+            it->second.setFoldedTypedConst = setFoldedTypedConst;
+        }
     }
 
     std::optional<JITPendingNodeData> takePendingJitNode(Sema& sema, AstNodeRef nodeRef)
     {
-        auto* pendingData = pendingJitNodeData(sema, nodeRef);
-        if (!pendingData)
+        const PendingJitNodeKey key = pendingJitNodeKey(sema, nodeRef);
+        const std::scoped_lock  lock(pendingJitNodeMutex());
+        const auto             it = pendingJitNodes().find(key);
+        if (it == pendingJitNodes().end())
             return std::nullopt;
 
-        JITPendingNodeData result = std::move(*pendingData);
-        sema.clearSemaPayload(nodeRef);
-        heapDelete(pendingData);
+        JITPendingNodeData result = std::move(it->second);
+        pendingJitNodes().erase(it);
         return result;
     }
 

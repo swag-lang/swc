@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Support/Thread/JobManager.h"
+#include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/IdentifierManager.h"
 #include "Compiler/Sema/Symbol/Symbol.h"
 #include "Main/Command/CommandLine.h"
@@ -32,6 +33,8 @@ namespace
     {
         if (state.symbol)
             return state.symbol->name(ctx);
+        if (state.runJitFunction)
+            return Utf8{state.runJitFunction->name(ctx)};
 
         if (ctx.hasCompiler() && state.idRef.isValid())
             return Utf8{ctx.idMgr().get(state.idRef).name};

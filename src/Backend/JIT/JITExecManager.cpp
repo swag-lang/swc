@@ -6,7 +6,7 @@
 
 SWC_BEGIN_NAMESPACE();
 
-Result JITExecManager::executeItem(const Item& item)
+Result JITExecManager::executeItem(Item& item)
 {
     SWC_ASSERT(item.ownerCtx != nullptr);
     SWC_ASSERT(item.request.function != nullptr);
@@ -19,7 +19,15 @@ Result JITExecManager::executeItem(const Item& item)
     const TaskScopedState   scopedState(ctx);
     ctx.state().setRunJit(fn, item.request.nodeRef, item.request.codeRef);
 
-    SWC_RESULT(ctx.compiler().ensurePatchedGlobalFunctionBindings(ctx));
+    const Result patchResult = ctx.compiler().ensurePatchedGlobalFunctionBindings(ctx);
+    if (patchResult != Result::Continue)
+    {
+        if (patchResult == Result::Pause)
+            item.waitState = ctx.state();
+        else
+            item.waitState.setNone();
+        return patchResult;
+    }
 
     Result callResult;
     if (!item.request.jitArgs.empty() || item.request.hasJitReturn)
@@ -31,6 +39,11 @@ Result JITExecManager::executeItem(const Item& item)
         auto callErrorKind = JITCallErrorKind::None;
         callResult         = JIT::call(ctx, fn->jitEntryAddress(), item.request.hasArg0 ? &item.request.arg0 : nullptr, &callErrorKind);
     }
+
+    if (callResult == Result::Pause)
+        item.waitState = ctx.state();
+    else
+        item.waitState.setNone();
 
     if (callResult != Result::Pause &&
         item.request.onCompleted)
@@ -47,7 +60,7 @@ Result JITExecManager::submit(TaskContext& ctx, const Request& request)
 
     if (request.runImmediate || strategy_ == Strategy::Immediate)
     {
-        const Item immediateItem = {
+        Item immediateItem = {
             .ownerCtx = &ctx,
             .request  = request,
             .status   = Status::Completed,
@@ -71,6 +84,7 @@ Result JITExecManager::submit(TaskContext& ctx, const Request& request)
             slot->request  = request;
             slot->status   = Status::Pending;
             slot->result   = Result::Continue;
+            slot->waitState.setNone();
         }
 
         Item& item = *slot;
@@ -87,6 +101,7 @@ Result JITExecManager::submit(TaskContext& ctx, const Request& request)
             item.request  = request;
             item.status   = Status::Pending;
             item.result   = Result::Continue;
+            item.waitState.setNone();
         }
     }
 
@@ -109,6 +124,14 @@ JITExecManager::Completion JITExecManager::consumeCompletion(const TaskContext& 
     const Result result = item.result;
     items_.erase(it);
     return {.hasValue = true, .result = result};
+}
+
+bool JITExecManager::hasItem(const TaskContext& ctx, const AstNodeRef nodeRef, const SourceCodeRef& codeRef) const
+{
+    const ItemKey          key = {.ownerCtx = &ctx, .nodeRef = nodeRef, .codeRef = codeRef};
+    const std::scoped_lock lock(mutex_);
+    const auto             it = items_.find(key);
+    return it != items_.end() && it->second != nullptr;
 }
 
 bool JITExecManager::executePendingMainThread()
@@ -156,6 +179,30 @@ bool JITExecManager::executePendingMainThread()
     return processedAny;
 }
 
+bool JITExecManager::completeWaitingOnIgnoredDependency()
+{
+    bool completedAny = false;
+
+    const std::scoped_lock lock(mutex_);
+    for (const auto& item : items_ | std::views::values)
+    {
+        if (!item || item->status != Status::Waiting)
+            continue;
+
+        const TaskState& waitState = item->waitState;
+        if ((waitState.symbol && waitState.symbol->isIgnored()) ||
+            (waitState.waiterSymbol && waitState.waiterSymbol->isIgnored()))
+        {
+            item->waitState.setNone();
+            item->result = Result::Error;
+            item->status = Status::Completed;
+            completedAny = true;
+        }
+    }
+
+    return completedAny;
+}
+
 bool JITExecManager::wakeWaiting()
 {
     bool woken = false;
@@ -172,5 +219,50 @@ bool JITExecManager::wakeWaiting()
 
     return woken;
 }
+
+#if SWC_DEV_MODE
+Utf8 JITExecManager::debugDescribeState() const
+{
+    const std::scoped_lock lock(mutex_);
+
+    Utf8 detail;
+    for (const auto& item : items_ | std::views::values)
+    {
+        if (!item)
+            continue;
+
+        const char* statusName = "Unknown";
+        switch (item->status)
+        {
+            case Status::Pending:
+                statusName = "Pending";
+                break;
+            case Status::Running:
+                statusName = "Running";
+                break;
+            case Status::Waiting:
+                statusName = "Waiting";
+                break;
+            case Status::Completed:
+                statusName = "Completed";
+                break;
+        }
+
+        detail += std::format("jit-item status={} function={}", statusName, item->request.function ? item->request.function->name(*item->ownerCtx) : "<null>");
+        if (item->waitState.hasPauseReason())
+        {
+            detail += std::format(" wait={}", TaskState::kindName(item->waitState.kind));
+            if (item->waitState.symbol)
+                detail += std::format(" dependency={}", item->waitState.symbol->name(*item->ownerCtx));
+            if (item->waitState.waiterSymbol)
+                detail += std::format(" waiter={}", item->waitState.waiterSymbol->name(*item->ownerCtx));
+        }
+
+        detail += "\n";
+    }
+
+    return detail;
+}
+#endif
 
 SWC_END_NAMESPACE();

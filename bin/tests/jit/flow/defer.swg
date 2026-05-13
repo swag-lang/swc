@@ -577,8 +577,8 @@ func deferReturnDropInfo()->DeferDropInfo
     #assert(returnInfo.value == 7)
     #assert(returnInfo.trace == 32)
     #assert(throwTrace == 31)
-    #assert(catchTrace == 1241)
-    #assert(tryTrace == 1242)
+    #assert(catchTrace == 311)
+    #assert(tryTrace == 312)
 }
 
 #test

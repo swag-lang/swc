@@ -176,9 +176,15 @@ namespace
         }
     }
 
+    bool isRuntimeTestFunction(const CompilerInstance& compiler, const SymbolFunction& function);
+
     void tryAddJitFunction(JitFunctionSelection& selection, const CompilerInstance& compiler, const SymbolFunction* function)
     {
         if (!function)
+            return;
+        if (function->isIgnored())
+            return;
+        if (!isRuntimeTestFunction(compiler, *function))
             return;
         const SourceFile* file = compiler.srcView(function->srcViewRef()).file();
         if (file && !file->ast().srcView().runsJit())
@@ -189,16 +195,16 @@ namespace
         selection.functions.insert(function);
     }
 
-    JitFunctionSelection selectJitFunctions(const CompilerInstance& compiler)
+    JitFunctionSelection selectJitFunctions(const CompilerInstance& compiler, const std::vector<SymbolFunction*>& codeFunctions, const std::vector<SymbolFunction*>& nativeTestFunctions)
     {
         JitFunctionSelection selection;
         TestFunctionGraph    graph;
-        graph.visited.reserve(compiler.nativeCodeSegment().size());
-        graph.reverseDependencies.reserve(compiler.nativeCodeSegment().size());
-        selection.skippedFunctions.reserve(compiler.nativeCodeSegment().size());
-        selection.functions.reserve(compiler.nativeCodeSegment().size());
+        graph.visited.reserve(codeFunctions.size());
+        graph.reverseDependencies.reserve(codeFunctions.size());
+        selection.skippedFunctions.reserve(codeFunctions.size());
+        selection.functions.reserve(codeFunctions.size());
 
-        for (const SymbolFunction* function : compiler.nativeCodeSegment())
+        for (const SymbolFunction* function : codeFunctions)
         {
             if (function)
             {
@@ -208,7 +214,7 @@ namespace
             }
         }
 
-        for (const SymbolFunction* function : compiler.nativeTestFunctions())
+        for (const SymbolFunction* function : nativeTestFunctions)
         {
             if (!function)
                 continue;
@@ -220,10 +226,10 @@ namespace
 
         propagateSkippedFunctions(selection, graph);
 
-        for (const SymbolFunction* function : compiler.nativeCodeSegment())
+        for (const SymbolFunction* function : codeFunctions)
             tryAddJitFunction(selection, compiler, function);
 
-        for (const SymbolFunction* function : compiler.nativeTestFunctions())
+        for (const SymbolFunction* function : nativeTestFunctions)
         {
             tryAddJitFunction(selection, compiler, function);
             if (function && selection.functions.contains(function))
@@ -238,9 +244,58 @@ namespace
         std::erase_if(functions, [&](const SymbolFunction* function) { return function == nullptr || !selection.functions.contains(function); });
     }
 
+    std::vector<SymbolFunction*> collectPreparedFunctions(const NativeBackendBuilder& builder)
+    {
+        std::vector<SymbolFunction*> result;
+        result.reserve(builder.functionInfos.size());
+        for (const NativeFunctionInfo& info : builder.functionInfos)
+        {
+            if (info.symbol)
+                result.push_back(info.symbol);
+        }
+
+        return result;
+    }
+
+    bool isNativeArtifactCompilerFunction(const TokenId tokenId)
+    {
+        switch (tokenId)
+        {
+            case TokenId::CompilerFuncTest:
+            case TokenId::CompilerFuncInit:
+            case TokenId::CompilerFuncDrop:
+            case TokenId::CompilerFuncMain:
+            case TokenId::CompilerFuncPreMain:
+                return true;
+
+            default:
+                return false;
+        }
+    }
+
+    bool isRuntimeTestFunction(const CompilerInstance& compiler, const SymbolFunction& function)
+    {
+        if (function.attributes().hasRtFlag(RtAttributeFlagsE::Compiler))
+            return false;
+
+        const AstNode* decl = function.decl();
+        if (!decl)
+            return true;
+
+        if (decl->id() == AstNodeId::CompilerRunBlock || decl->id() == AstNodeId::CompilerRunExpr)
+            return false;
+        if (decl->id() != AstNodeId::CompilerFunc)
+            return true;
+
+        const TokenId tokenId = compiler.srcView(function.srcViewRef()).token(function.tokRef()).id;
+        return isNativeArtifactCompilerFunction(tokenId);
+    }
+
     bool shouldRunNativeArtifactFunction(const CompilerInstance& compiler, const SymbolFunction& function)
     {
         if (shouldSkipFunctionForTests(compiler, function))
+            return false;
+        if (!isRuntimeTestFunction(compiler, function))
             return false;
 
         const SourceFile* file = compiler.srcView(function.srcViewRef()).file();
@@ -359,9 +414,9 @@ namespace
             if (nativeBuilder.prepare() != Result::Continue)
                 return false;
 
-            const JitFunctionSelection jitSelection = selectJitFunctions(compiler);
+            allFunctions                            = collectPreparedFunctions(nativeBuilder);
+            const JitFunctionSelection jitSelection = selectJitFunctions(compiler, allFunctions, nativeBuilder.testFunctions);
             expectedTestCount                       = jitSelection.expectedTestCount;
-            allFunctions                            = compiler.nativeCodeSegment();
             initFunctions                           = std::move(nativeBuilder.initFunctions);
             preMainFunctions                        = std::move(nativeBuilder.preMainFunctions);
             testFunctions                           = std::move(nativeBuilder.testFunctions);
@@ -534,14 +589,18 @@ namespace Command
     void test(CompilerInstance& compiler)
     {
         SWC_ASSERT(compiler.cmdLine().command == CommandKind::Test);
-        const TaskContext ctx(compiler);
+        TaskContext ctx(compiler);
         TimedActionLog::printBuildConfiguration(ctx);
         const uint64_t errorsBefore = Stats::getNumErrors();
         sema(compiler);
         if (Stats::getNumErrors() != errorsBefore)
             return;
 
-        finishTestCommand(compiler);
+        if (!finishTestCommand(compiler) && !Stats::hasError())
+        {
+            Diagnostic diag = Diagnostic::get(DiagnosticId::cmd_err_test_command_failed);
+            diag.report(ctx);
+        }
     }
 }
 

@@ -268,7 +268,7 @@ func __testPrintStart()
     if !cxt.testExpectedCount do
         return
 
-    @print("running ", cxt.testExpectedCount, " #test(s)\n")
+    @print("running\n")
 }
 
 func __testPrintProgress(message: const *string)

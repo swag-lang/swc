@@ -107,14 +107,18 @@ namespace
         wait.waiterSymbol = &function;
     }
 
-    void setWaitJitPatched(TaskContext& ctx, const SymbolFunction& function)
+    void setWaitJitPatched(TaskContext& ctx, const SymbolFunction& waiterFunction, const SymbolFunction& targetFunction)
     {
         TaskState& wait   = ctx.state();
         wait.kind         = TaskStateKind::SemaWaitSymJitPatched;
-        wait.nodeRef      = ctx.state().nodeRef.isValid() ? ctx.state().nodeRef : function.declNodeRef();
-        wait.codeRef      = ctx.state().codeRef.isValid() ? ctx.state().codeRef : safeCodeRef(function);
-        wait.symbol       = &function;
-        wait.waiterSymbol = &function;
+        wait.nodeRef      = ctx.state().nodeRef.isValid() ? ctx.state().nodeRef : waiterFunction.declNodeRef();
+        if (wait.nodeRef.isInvalid())
+            wait.nodeRef = targetFunction.declNodeRef();
+        wait.codeRef = ctx.state().codeRef.isValid() ? ctx.state().codeRef : safeCodeRef(waiterFunction);
+        if (!wait.codeRef.isValid())
+            wait.codeRef = safeCodeRef(targetFunction);
+        wait.symbol       = &targetFunction;
+        wait.waiterSymbol = &waiterFunction;
     }
 
     Result waitLocalCallDependenciesPatched(TaskContext& ctx, const SymbolFunction& function)
@@ -140,7 +144,7 @@ namespace
             if (dependency->jitPatchAddress() || dependency->jitEntryAddress())
                 continue;
 
-            setWaitJitPatched(ctx, *dependency);
+            setWaitJitPatched(ctx, function, *dependency);
             return Result::Pause;
         }
 

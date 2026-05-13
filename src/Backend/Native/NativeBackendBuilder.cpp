@@ -135,7 +135,7 @@ namespace
     template<>
     bool shouldPrepareSymbol<SymbolFunction>(const NativeBackendBuilder& builder, const SymbolFunction& symbol)
     {
-        return shouldPrepareFile(sourceFileForSymbol(builder, symbol)) && isRuntimeArtifactFunction(builder, symbol);
+        return !symbol.isIgnored() && shouldPrepareFile(sourceFileForSymbol(builder, symbol)) && isRuntimeArtifactFunction(builder, symbol);
     }
 
     template<typename T>
@@ -146,6 +146,8 @@ namespace
 
     bool isIncludableDependency(const NativeBackendBuilder& builder, const SymbolFunction& fn)
     {
+        if (fn.isIgnored())
+            return false;
         if (fn.isForeign() || fn.isEmpty() || fn.isAttribute())
             return false;
         if (fn.attributes().hasRtFlag(RtAttributeFlagsE::Macro) || fn.attributes().hasRtFlag(RtAttributeFlagsE::Mixin))

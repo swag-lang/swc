@@ -116,6 +116,62 @@ namespace
         return findGeneratedImplicitMethod(ctx, ownerStruct, SemaSpecOp::generatedInitWrapperName());
     }
 
+    Result lowerImplicitDefaultBytes(Sema& sema, ByteSpanRW dstBytes, TypeRef typeRef)
+    {
+        const TypeInfo& rawType = sema.typeMgr().get(typeRef);
+        if (const TypeRef storageTypeRef = rawType.unwrap(sema.ctx(), typeRef, TypeExpandE::Alias | TypeExpandE::Enum); storageTypeRef.isValid())
+            typeRef = storageTypeRef;
+
+        const TypeInfo& type = sema.typeMgr().get(typeRef);
+        if (type.isStruct())
+        {
+            for (const SymbolVariable* field : type.payloadSymStruct().fields())
+            {
+                if (!field)
+                    continue;
+
+                const TypeRef   fieldTypeRef = field->typeRef();
+                const TypeInfo& fieldType    = sema.typeMgr().get(fieldTypeRef);
+                const uint64_t  fieldSize    = fieldType.sizeOf(sema.ctx());
+                const uint64_t  fieldOffset  = field->offset();
+                SWC_ASSERT(fieldOffset + fieldSize <= dstBytes.size());
+
+                ByteSpanRW fieldBytes = dstBytes.subspan(static_cast<size_t>(fieldOffset), static_cast<size_t>(fieldSize));
+                if (const ConstantRef valueRef = field->defaultValueRef(); valueRef.isValid())
+                {
+                    SWC_RESULT(ConstantLower::lowerToBytes(sema, fieldBytes, valueRef, fieldTypeRef));
+                }
+                else if (fieldSize)
+                {
+                    SWC_RESULT(lowerImplicitDefaultBytes(sema, fieldBytes, fieldTypeRef));
+                }
+            }
+
+            return Result::Continue;
+        }
+
+        if (type.isArray())
+        {
+            const TypeRef   elemTypeRef = type.payloadArrayElemTypeRef();
+            const TypeInfo& elemType    = sema.typeMgr().get(elemTypeRef);
+            const uint64_t  elemSize    = elemType.sizeOf(sema.ctx());
+            if (!elemSize)
+                return Result::Continue;
+
+            uint64_t totalCount = 1;
+            for (const uint64_t dim : type.payloadArrayDims())
+                totalCount *= dim;
+
+            for (uint64_t idx = 0; idx < totalCount; ++idx)
+                SWC_RESULT(lowerImplicitDefaultBytes(sema, dstBytes.subspan(static_cast<size_t>(idx * elemSize), static_cast<size_t>(elemSize)), elemTypeRef));
+            return Result::Continue;
+        }
+
+        if (!dstBytes.empty())
+            std::memset(dstBytes.data(), 0, dstBytes.size());
+        return Result::Continue;
+    }
+
     void appendImplFunctions(std::vector<SymbolFunction*>& out, const std::vector<SymbolImpl*>& implList)
     {
         for (const SymbolImpl* symImpl : implList)
@@ -489,7 +545,7 @@ ConstantRef SymbolStruct::computeDefaultValue(Sema& sema, TypeRef typeRef)
         SWC_ASSERT(structSize);
         std::vector<std::byte> buffer(structSize);
         const ByteSpanRW       bytes = asByteSpan(buffer);
-        SWC_INTERNAL_CHECK(ConstantLower::lowerAggregateStructToBytes(sema, bytes, ty, {}) == Result::Continue);
+        SWC_INTERNAL_CHECK(lowerImplicitDefaultBytes(sema, bytes, typeRef) == Result::Continue);
         defaultStructCst_ = ConstantHelpers::materializeStaticPayloadConstant(sema, typeRef, ByteSpan{bytes.data(), bytes.size()});
         SWC_ASSERT(defaultStructCst_.isValid());
     });

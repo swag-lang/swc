@@ -86,9 +86,8 @@ namespace
         return registeredLifecycleFunction(ownerStruct, kind);
     }
 
-    const SymbolFunction* findGeneratedLifecycleWrapper(TaskContext& ctx, const SymbolStruct& ownerStruct, const SpecOpKind kind)
+    const SymbolFunction* findGeneratedImplicitMethod(TaskContext& ctx, const SymbolStruct& ownerStruct, const std::string_view expectedName)
     {
-        const std::string_view expectedName = SemaSpecOp::generatedLifecycleWrapperName(kind);
         if (expectedName.empty())
             return nullptr;
 
@@ -105,6 +104,16 @@ namespace
         }
 
         return nullptr;
+    }
+
+    const SymbolFunction* findGeneratedLifecycleWrapper(TaskContext& ctx, const SymbolStruct& ownerStruct, const SpecOpKind kind)
+    {
+        return findGeneratedImplicitMethod(ctx, ownerStruct, SemaSpecOp::generatedLifecycleWrapperName(kind));
+    }
+
+    const SymbolFunction* findGeneratedInitWrapper(TaskContext& ctx, const SymbolStruct& ownerStruct)
+    {
+        return findGeneratedImplicitMethod(ctx, ownerStruct, SemaSpecOp::generatedInitWrapperName());
     }
 
     void appendImplFunctions(std::vector<SymbolFunction*>& out, const std::vector<SymbolImpl*>& implList)
@@ -765,6 +774,19 @@ Result SymbolStruct::registerSpecOp(SymbolFunction& symFunc, SpecOpKind kind)
 SymbolFunction* SymbolStruct::effectiveOpDrop(TaskContext& ctx)
 {
     return const_cast<SymbolFunction*>(const_cast<const SymbolStruct*>(this)->effectiveOpDrop(ctx));
+}
+
+SymbolFunction* SymbolStruct::effectiveOpInit(TaskContext& ctx)
+{
+    return const_cast<SymbolFunction*>(const_cast<const SymbolStruct*>(this)->effectiveOpInit(ctx));
+}
+
+const SymbolFunction* SymbolStruct::effectiveOpInit(TaskContext& ctx) const
+{
+    if (isGenericRoot() && !isGenericInstance())
+        return nullptr;
+
+    return findGeneratedInitWrapper(ctx, *this);
 }
 
 const SymbolFunction* SymbolStruct::effectiveOpDrop(TaskContext& ctx) const

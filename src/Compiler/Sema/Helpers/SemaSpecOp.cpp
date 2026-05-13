@@ -570,6 +570,13 @@ namespace
         if (!implDecl)
             return false;
 
+        if (sema.ast().findNodeRef(implDecl).isValid())
+        {
+            outAst = &sema.ast();
+            outAst->appendNodes(outChildren, implDecl->spanChildrenRef);
+            return true;
+        }
+
         const SourceFile* sourceFile = sema.srcView(implDecl->srcViewRef()).file();
         if (!sourceFile)
             return false;
@@ -1822,19 +1829,21 @@ namespace
 
     struct GeneratedLifecyclePlan
     {
+        bool init     = false;
         bool drop     = false;
         bool postCopy = false;
         bool postMove = false;
 
         bool any() const
         {
-            return drop || postCopy || postMove;
+            return init || drop || postCopy || postMove;
         }
     };
 
     GeneratedLifecyclePlan makeGeneratedLifecyclePlan(Sema& sema, const SymbolStruct& ownerStruct)
     {
         GeneratedLifecyclePlan plan;
+        plan.init     = true;
         plan.drop     = shouldGenerateLifecycleWrapper(sema, ownerStruct, SpecOpKind::OpDrop);
         plan.postCopy = shouldGenerateLifecycleWrapper(sema, ownerStruct, SpecOpKind::OpPostCopy);
         plan.postMove = shouldGenerateLifecycleWrapper(sema, ownerStruct, SpecOpKind::OpPostMove);
@@ -1881,6 +1890,17 @@ namespace
         }
     }
 
+    void appendGeneratedInitWrapper(Utf8& source)
+    {
+        source += "    #[Implicit]\n";
+        source += "    fileprivate mtd ";
+        source += SemaSpecOp::generatedInitWrapperName();
+        source += "()\n";
+        source += "    {\n";
+        source += "        @init(me, 1)\n";
+        source += "    }\n";
+    }
+
     void appendGeneratedLifecycleWrapper(TaskContext& ctx, Utf8& source, const SymbolStruct& ownerStruct, std::span<const Utf8> fields, const SpecOpKind kind)
     {
         const std::string_view wrapperName = SemaSpecOp::generatedLifecycleWrapperName(kind);
@@ -1913,8 +1933,16 @@ namespace
     void appendGeneratedLifecycleWrappers(TaskContext& ctx, Utf8& source, const SymbolStruct& ownerStruct, std::span<const Utf8> fields, const GeneratedLifecyclePlan& plan)
     {
         bool addSeparator = false;
+        if (plan.init)
+        {
+            appendGeneratedInitWrapper(source);
+            addSeparator = true;
+        }
+
         if (plan.drop)
         {
+            if (addSeparator)
+                source += "\n";
             appendGeneratedLifecycleWrapper(ctx, source, ownerStruct, fields, SpecOpKind::OpDrop);
             addSeparator = true;
         }
@@ -2141,8 +2169,16 @@ std::string_view SemaSpecOp::generatedLifecycleWrapperName(const SpecOpKind kind
     }
 }
 
+std::string_view SemaSpecOp::generatedInitWrapperName()
+{
+    return "swagLifecycleInitWrapper";
+}
+
 bool SemaSpecOp::isGeneratedLifecycleWrapperName(const std::string_view name)
 {
+    if (name == generatedInitWrapperName())
+        return true;
+
     return name == generatedLifecycleWrapperName(SpecOpKind::OpDrop) ||
            name == generatedLifecycleWrapperName(SpecOpKind::OpPostCopy) ||
            name == generatedLifecycleWrapperName(SpecOpKind::OpPostMove);

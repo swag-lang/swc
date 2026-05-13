@@ -86,6 +86,17 @@ struct(T) GenericBox
     value: T
 }
 
+struct InitOnly
+{
+    value: s32 = 17
+    ready: bool = true
+}
+
+struct WrappedInitOnly
+{
+    value: InitOnly
+}
+
 func resetCounts()
 {
     DropHits = 0
@@ -101,6 +112,7 @@ func typeStruct(type: typeinfo)->const *Swag.TypeInfoStruct
 func hasDropFlag(type: typeinfo)->bool => (type.flags & Swag.TypeInfoFlags.HasDrop) ? true : false
 func hasCopyFlag(type: typeinfo)->bool => (type.flags & Swag.TypeInfoFlags.HasPostCopy) ? true : false
 func hasMoveFlag(type: typeinfo)->bool => (type.flags & Swag.TypeInfoFlags.HasPostMove) ? true : false
+func hasInitPointer(type: typeinfo)->bool => typeStruct(type).opInit != null
 func hasDropPointer(type: typeinfo)->bool => typeStruct(type).opDrop != null
 func hasCopyPointer(type: typeinfo)->bool => typeStruct(type).opPostCopy != null
 func hasMovePointer(type: typeinfo)->bool => typeStruct(type).opPostMove != null
@@ -121,6 +133,12 @@ func runDrop(type: typeinfo, value: *void)
     info.opDrop(value)
 }
 
+func runInit(type: typeinfo, value: *void)
+{
+    let info = typeStruct(type)
+    info.opInit(value)
+}
+
 func runCopy(type: typeinfo, value: *void)
 {
     let info = typeStruct(type)
@@ -136,9 +154,37 @@ func runMove(type: typeinfo, value: *void)
 func podShapesStayEmpty()->bool
 {
     return hasLifecycleShape(#typeof(Pod), false, false, false) and
+           hasInitPointer(#typeof(Pod)) and
            hasLifecycleShape(#typeof(Empty), false, false, false) and
+           hasInitPointer(#typeof(Empty)) and
            hasLifecycleShape(#typeof(GenericPod's32), false, false, false) and
-           hasLifecycleShape(#typeof(GenericBox'Pod), false, false, false)
+           hasInitPointer(#typeof(GenericPod's32)) and
+           hasLifecycleShape(#typeof(GenericBox'Pod), false, false, false) and
+           hasInitPointer(#typeof(GenericBox'Pod))
+}
+
+func initPointersRestoreDefaults()->bool
+{
+    if !hasInitPointer(#typeof(InitOnly)) do
+        return false
+    if !hasInitPointer(#typeof(WrappedInitOnly)) do
+        return false
+    if !hasInitPointer(#typeof(GenericBox'InitOnly)) do
+        return false
+
+    var direct = InitOnly{value: 0, ready: false}
+    runInit(#typeof(InitOnly), &direct)
+    if direct.value != 17 or !direct.ready do
+        return false
+
+    var wrapped = WrappedInitOnly{value: InitOnly{value: 0, ready: false}}
+    runInit(#typeof(WrappedInitOnly), &wrapped)
+    if wrapped.value.value != 17 or !wrapped.value.ready do
+        return false
+
+    var genericValue = GenericBox'InitOnly{value: InitOnly{value: 0, ready: false}}
+    runInit(#typeof(GenericBox'InitOnly), &genericValue)
+    return genericValue.value.value == 17 and genericValue.value.ready
 }
 
 func directPartialLifecyclePointersWork()->bool
@@ -260,6 +306,7 @@ func genericMatrixStaysAligned()->bool
 #test
 {
     @assert(podShapesStayEmpty())
+    @assert(initPointersRestoreDefaults())
     @assert(directPartialLifecyclePointersWork())
     @assert(synthesizedPartialLifecyclePointersWork())
     @assert(mixedLifecycleFlagsMatchPointers())

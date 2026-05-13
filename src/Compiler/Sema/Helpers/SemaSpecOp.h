@@ -92,6 +92,7 @@ enum class SpecOpKind : uint8_t
 namespace SemaSpecOp
 {
     std::string_view generatedLifecycleWrapperName(SpecOpKind kind);
+    std::string_view generatedInitWrapperName();
     bool             isGeneratedLifecycleWrapperName(std::string_view name);
     SpecOpKind computeSymbolKind(const Sema& sema, const SymbolFunction& sym);
     void       addMissingDeclarationHelp(Sema& sema, Diagnostic& diag, const SymbolStruct& ownerStruct, SpecOpKind kind);

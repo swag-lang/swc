@@ -76,6 +76,8 @@ public:
     const SymbolFunction*        opPostCopy() const { return opPostCopy_; }
     SymbolFunction*              opPostMove() { return opPostMove_; }
     const SymbolFunction*        opPostMove() const { return opPostMove_; }
+    SymbolFunction*              effectiveOpInit(TaskContext& ctx);
+    const SymbolFunction*        effectiveOpInit(TaskContext& ctx) const;
     SymbolFunction*              effectiveOpDrop(TaskContext& ctx);
     const SymbolFunction*        effectiveOpDrop(TaskContext& ctx) const;
     SymbolFunction*              effectiveOpPostCopy(TaskContext& ctx);

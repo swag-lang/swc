@@ -199,7 +199,7 @@ namespace
         return runs;
     }
 
-    std::unique_ptr<Sema> makeLazyGenericBodySema(Sema& sema, SymbolFunction& calledFn, AstNodeRef declRef)
+    std::unique_ptr<Sema> makeLazyGenericBodySema(Sema& sema, const SymbolFunction& calledFn, AstNodeRef declRef)
     {
         auto payloadContext = const_cast<NodePayload*>(calledFn.declNodePayloadContext());
         if (!payloadContext)

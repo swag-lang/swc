@@ -1,5 +1,3 @@
-#include <print>
-
 #include "pch.h"
 
 #if SWC_HAS_UNITTEST

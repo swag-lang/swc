@@ -111,7 +111,7 @@ private:
     mutable std::atomic<uint64_t> iteration_{0};
 };
 
-#define SWC_DEV_LOOP_GUARD(__name, __max_iterations, __label) swc::DevLoopGuard __name((__label), __FILE__, __LINE__, (__max_iterations))
+#define SWC_DEV_LOOP_GUARD(__name, __max_iterations, __label) const swc::DevLoopGuard __name((__label), __FILE__, __LINE__, (__max_iterations))
 #define SWC_DEV_LOOP_TICK(__name)                             (__name).tick()
 #else
 #define SWC_DEV_LOOP_GUARD(__name, __max_iterations, __label)

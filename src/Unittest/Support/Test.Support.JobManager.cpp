@@ -50,9 +50,9 @@ SWC_TEST_BEGIN(JobManager_DebugStateReportsSleepingJobs)
     JobManager jobMgr;
     jobMgr.setup(cmdLine);
 
-    Global      global;
-    TaskContext jobCtx(global, cmdLine);
-    const auto  clientId = jobMgr.newClientId();
+    const Global      global;
+    const TaskContext jobCtx(global, cmdLine);
+    const auto        clientId = jobMgr.newClientId();
 
     SleepOnceJob job(jobCtx);
     jobMgr.enqueue(job, JobPriority::Normal, clientId);

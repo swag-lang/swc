@@ -65,7 +65,7 @@ namespace
         }
     }
 
-    const SymbolFunction* resolvedLifecycleFunction(TaskContext& ctx, const SymbolStruct& ownerStruct, const SpecOpKind kind)
+    const SymbolFunction* resolvedLifecycleFunction(const TaskContext& ctx, const SymbolStruct& ownerStruct, const SpecOpKind kind)
     {
         if (const SymbolFunction* symFunc = registeredLifecycleFunction(ownerStruct, kind); symFunc && symFunc->isSemaCompleted())
             return symFunc;
@@ -86,7 +86,7 @@ namespace
         return registeredLifecycleFunction(ownerStruct, kind);
     }
 
-    const SymbolFunction* findGeneratedImplicitMethod(TaskContext& ctx, const SymbolStruct& ownerStruct, const std::string_view expectedName)
+    const SymbolFunction* findGeneratedImplicitMethod(const TaskContext& ctx, const SymbolStruct& ownerStruct, const std::string_view expectedName)
     {
         if (expectedName.empty())
             return nullptr;
@@ -136,7 +136,7 @@ namespace
                 const uint64_t  fieldOffset  = field->offset();
                 SWC_ASSERT(fieldOffset + fieldSize <= dstBytes.size());
 
-                ByteSpanRW fieldBytes = dstBytes.subspan(fieldOffset, fieldSize);
+                const ByteSpanRW fieldBytes = dstBytes.subspan(fieldOffset, fieldSize);
                 if (const ConstantRef valueRef = field->defaultValueRef(); valueRef.isValid())
                 {
                     SWC_RESULT(ConstantLower::lowerToBytes(sema, fieldBytes, valueRef, fieldTypeRef));

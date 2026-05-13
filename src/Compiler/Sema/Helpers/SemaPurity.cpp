@@ -128,10 +128,10 @@ namespace
         return calledFn->isPure();
     }
 
-    template<typename PayloadT>
+    template<typename T>
     bool isPureHiddenSpecOpPayload(Sema& sema, const SymbolFunction& fn, AstNodeRef nodeRef)
     {
-        const auto* payload = sema.semaPayload<PayloadT>(nodeRef);
+        const auto* payload = sema.semaPayload<T>(nodeRef);
         if (!payload)
             return true;
         return isPureHiddenCall(fn, payload->calledFn);

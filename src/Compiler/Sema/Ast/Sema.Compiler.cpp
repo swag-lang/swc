@@ -285,18 +285,6 @@ namespace
         return false;
     }
 
-    bool isDetachedReexpandableExpr(const AstNode& node)
-    {
-        return node.is(AstNodeId::CallExpr) ||
-               node.is(AstNodeId::AliasCallExpr) ||
-               node.is(AstNodeId::IntrinsicCallExpr) ||
-               node.is(AstNodeId::UnaryExpr) ||
-               node.is(AstNodeId::BinaryExpr) ||
-               node.is(AstNodeId::RelationalExpr) ||
-               node.is(AstNodeId::IndexExpr) ||
-               node.is(AstNodeId::CastExpr);
-    }
-
     void appendInjectReplacements(Sema& sema, const AstCompilerInject& node, SmallVector<SemaClone::NodeReplacement>& outReplacements)
     {
         SmallVector<TokenRef>   replacementInstructionRefs;

@@ -147,7 +147,7 @@ namespace
         return unwrapAlias(ctx, typeRef);
     }
 
-    const SymbolFunction* findDeclaredLifecycleMethod(TaskContext& ctx, const SymbolStruct& ownerStruct, const SpecOpKind kind)
+    const SymbolFunction* findDeclaredLifecycleMethod(const TaskContext& ctx, const SymbolStruct& ownerStruct, const SpecOpKind kind)
     {
         const std::string_view expectedName = specOpFunctionName(kind);
         for (const SymbolFunction* symFunc : ownerStruct.declaredMethods())
@@ -2112,7 +2112,7 @@ namespace
             return Result::Continue;
 
         Parser     parser;
-        AstNodeRef generatedRoot = parser.parseGenerated(ctx, sema.ast(), srcView, ParserGeneratedMode::TopLevel);
+        const AstNodeRef generatedRoot = parser.parseGenerated(ctx, sema.ast(), srcView, ParserGeneratedMode::TopLevel);
         if (generatedRoot.isInvalid())
             return Result::Continue;
 

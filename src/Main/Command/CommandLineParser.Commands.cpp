@@ -158,6 +158,9 @@ void CommandLineParser::registerCommands()
     add(HelpOptionGroup::Testing, "test", "--test-native", "-tn",
         &cmdLine_->testNative,
         "Enable native backend testing for #test sources.");
+    add(HelpOptionGroup::Testing, "test", "--native-test-progress", nullptr,
+        &cmdLine_->nativeTestProgress,
+        "Print start, per-#test file:line progress, and final success output for generated native test artifacts.");
     add(HelpOptionGroup::Testing, "test", "--test-jit", "-tj",
         &cmdLine_->testJit,
         "Enable JIT execution for #test functions during testing.");

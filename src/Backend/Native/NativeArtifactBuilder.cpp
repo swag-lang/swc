@@ -247,7 +247,7 @@ Result NativeArtifactBuilder::prepareTestProgressEntries(TaskContext& ctx) const
     builder_->testProgressEntries.clear();
 
     const uint32_t expectedTestCount = builder_->expectedTestFunctionCount();
-    if (!expectedTestCount || ctx.cmdLine().command != CommandKind::Test)
+    if (!expectedTestCount || ctx.cmdLine().command != CommandKind::Test || !ctx.cmdLine().nativeTestProgress)
         return Result::Continue;
 
     builder_->testProgressEntries.reserve(builder_->testFunctions.size());
@@ -726,7 +726,7 @@ Result NativeArtifactBuilder::buildStartup(TaskContext& ctx) const
     {
         return builder_->reportError(DiagnosticId::cmd_err_native_test_count_mismatch, Diagnostic::ARG_COUNT, expectedTestCount, Diagnostic::ARG_VALUE, static_cast<uint32_t>(builder_->testFunctions.size()));
     }
-    const bool emitTestProgress = expectedTestCount && ctx.cmdLine().command == CommandKind::Test;
+    const bool emitTestProgress = expectedTestCount && ctx.cmdLine().command == CommandKind::Test && ctx.cmdLine().nativeTestProgress;
 
     auto         startup = std::make_unique<NativeStartupInfo>();
     MicroBuilder builder(builder_->ctx());

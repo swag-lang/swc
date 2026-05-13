@@ -31,7 +31,7 @@ namespace
         }
     };
 
-    static constexpr std::string_view GENERIC_UNION_DEDUCTION_SOURCE = R"(#global fileprivate
+    constexpr std::string_view GENERIC_UNION_DEDUCTION_SOURCE = R"(#global fileprivate
 
 union(T) ValueOrPtr
 {
@@ -51,7 +51,7 @@ func validate()
 }
 )";
 
-    Result runGenericUnionDeductionRandomizedSeed(TaskContext& ctx, uint32_t seed)
+    Result runGenericUnionDeductionRandomizedSeed(const TaskContext& ctx, uint32_t seed)
     {
         const fs::path sourcePath = Unittest::makeTestSourcePath("Compiler", std::format("GenericUnionDeductionRandomizedSeed_{}", seed));
 

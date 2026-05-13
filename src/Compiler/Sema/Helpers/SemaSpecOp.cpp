@@ -163,7 +163,7 @@ namespace
         return nullptr;
     }
 
-    bool hasDirectLifecycle(TaskContext& ctx, const SymbolStruct& ownerStruct, const SpecOpKind kind)
+    bool hasDirectLifecycle(const TaskContext& ctx, const SymbolStruct& ownerStruct, const SpecOpKind kind)
     {
         if (findDeclaredLifecycleMethod(ctx, ownerStruct, kind))
             return true;
@@ -2111,7 +2111,7 @@ namespace
         if (sourceFile.hasError() || srcView.mustSkip() || !srcView.runsSema())
             return Result::Continue;
 
-        Parser     parser;
+        Parser           parser;
         const AstNodeRef generatedRoot = parser.parseGenerated(ctx, sema.ast(), srcView, ParserGeneratedMode::TopLevel);
         if (generatedRoot.isInvalid())
             return Result::Continue;

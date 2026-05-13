@@ -2816,7 +2816,7 @@ Result SemaHelpers::resolveMemberAccess(Sema& sema, AstNodeRef memberRef, AstMem
         SWC_RESULT(SemaGeneric::instantiateStructFromContext(sema, *contextualGenericRoot, instance));
         if (instance)
         {
-            const TypeRef specializedTypeRef = SemaHelpers::ensureStructTypeRef(sema, *instance);
+            const TypeRef specializedTypeRef = ensureStructTypeRef(sema, *instance);
             sema.setSymbol(node.nodeLeftRef, instance);
             if (specializedTypeRef.isValid())
                 sema.setType(node.nodeLeftRef, specializedTypeRef);

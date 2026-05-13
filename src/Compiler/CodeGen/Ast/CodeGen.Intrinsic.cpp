@@ -18,10 +18,10 @@
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Constant/ConstantValue.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
-#include "Compiler/Sema/Symbol/Symbol.Interface.h"
 #include "Compiler/Sema/Helpers/SemaSpecOp.h"
 #include "Compiler/Sema/Symbol/IdentifierManager.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
+#include "Compiler/Sema/Symbol/Symbol.Interface.h"
 #include "Compiler/Sema/Symbol/Symbol.Module.h"
 #include "Compiler/Sema/Symbol/Symbol.Struct.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
@@ -1285,8 +1285,8 @@ namespace
         const MicroReg interfaceTypeReg = materializeIntrinsicIntArgReg(codeGen, codeGen.payload(children[1]), MicroOpBits::B64);
         const TypeRef  resultTypeRef    = codeGen.curViewType().typeRef();
 
-        CodeGenNodePayload& resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), resultTypeRef);
-        MicroBuilder&       builder       = codeGen.builder();
+        const CodeGenNodePayload& resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), resultTypeRef);
+        MicroBuilder&             builder       = codeGen.builder();
         builder.emitLoadRegImm(resultPayload.reg, ApInt(0, 64), MicroOpBits::B64);
 
         SmallVector<const SymbolInterface*> interfaces;

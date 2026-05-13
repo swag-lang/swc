@@ -598,7 +598,7 @@ namespace Command
 
         if (!finishTestCommand(compiler) && !Stats::hasError())
         {
-            Diagnostic diag = Diagnostic::get(DiagnosticId::cmd_err_test_command_failed);
+            const Diagnostic diag = Diagnostic::get(DiagnosticId::cmd_err_test_command_failed);
             diag.report(ctx);
         }
     }

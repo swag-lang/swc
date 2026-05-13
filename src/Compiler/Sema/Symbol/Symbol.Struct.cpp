@@ -106,12 +106,12 @@ namespace
         return nullptr;
     }
 
-    const SymbolFunction* findGeneratedLifecycleWrapper(TaskContext& ctx, const SymbolStruct& ownerStruct, const SpecOpKind kind)
+    const SymbolFunction* findGeneratedLifecycleWrapper(const TaskContext& ctx, const SymbolStruct& ownerStruct, const SpecOpKind kind)
     {
         return findGeneratedImplicitMethod(ctx, ownerStruct, SemaSpecOp::generatedLifecycleWrapperName(kind));
     }
 
-    const SymbolFunction* findGeneratedInitWrapper(TaskContext& ctx, const SymbolStruct& ownerStruct)
+    const SymbolFunction* findGeneratedInitWrapper(const TaskContext& ctx, const SymbolStruct& ownerStruct)
     {
         return findGeneratedImplicitMethod(ctx, ownerStruct, SemaSpecOp::generatedInitWrapperName());
     }

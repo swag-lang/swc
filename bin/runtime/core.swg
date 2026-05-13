@@ -290,7 +290,7 @@ func __testPrintDone()
     if !cxt.testExpectedCount do
         return
 
-    @print("success ", cxt.testExecutedCount, "/", cxt.testExpectedCount, " #test(s)\n")
+    @print("success\n")
 }
 
 func __setupRuntime(flags: RuntimeFlags)

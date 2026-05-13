@@ -840,15 +840,15 @@ Result NativeArtifactBuilder::buildStartup(TaskContext& ctx) const
             ABICall::callLocal(builder, testCountTickFn->callConvKind(), testCountTickFn, preparedTick);
         }
     }
+    for (SymbolFunction* symbol : builder_->mainFunctions)
+        ABICall::callLocal(builder, symbol->callConvKind(), symbol, {});
+    for (SymbolFunction* symbol : builder_->dropFunctions)
+        ABICall::callLocal(builder, symbol->callConvKind(), symbol, {});
     if (testPrintDoneFn)
     {
         const ABICall::PreparedCall preparedDone = ABICall::prepareArgs(builder, testPrintDoneFn->callConvKind(), {});
         ABICall::callLocal(builder, testPrintDoneFn->callConvKind(), testPrintDoneFn, preparedDone);
     }
-    for (SymbolFunction* symbol : builder_->mainFunctions)
-        ABICall::callLocal(builder, symbol->callConvKind(), symbol, {});
-    for (SymbolFunction* symbol : builder_->dropFunctions)
-        ABICall::callLocal(builder, symbol->callConvKind(), symbol, {});
 
     const IdentifierRef exitIdRef = ctx.idMgr().runtimeFunction(IdentifierManager::RuntimeFunctionKind::Exit);
     SymbolFunction*     exitFn    = builder_->compiler().runtimeFunctionSymbol(exitIdRef);

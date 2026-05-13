@@ -10,3 +10,4 @@ SWC_DIAG_DEF(cmd_note_relocation_foreign_module_name, Note, "requested foreign m
 SWC_DIAG_DEF(cmd_note_relocation_foreign_function_name, Note, "requested foreign function: '{target}'")
 SWC_DIAG_DEF(cmd_note_relocation_foreign_lookup_failed, Note, "host runtime could not resolve this foreign function")
 SWC_DIAG_DEF(cmd_note_native_tool_output, Note, "tool output:\n{because}")
+SWC_DIAG_DEF(cmd_note_native_artifact_output, Note, "artifact output:\n{because}")

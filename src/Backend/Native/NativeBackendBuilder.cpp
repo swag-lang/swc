@@ -29,6 +29,53 @@ namespace
         return symbol.decl() && symbol.decl()->id() == AstNodeId::CompilerFunc;
     }
 
+    std::string_view lastNonEmptyOutputLine(const std::string_view output)
+    {
+        size_t lineEnd = output.size();
+        while (lineEnd)
+        {
+            size_t lineStart = output.rfind('\n', lineEnd - 1);
+            if (lineStart == std::string_view::npos)
+                lineStart = 0;
+            else
+                lineStart += 1;
+
+            std::string_view line = output.substr(lineStart, lineEnd - lineStart);
+            if (!line.empty() && line.back() == '\r')
+                line.remove_suffix(1);
+            if (!line.empty())
+                return line;
+
+            if (lineStart == 0)
+                break;
+
+            lineEnd = lineStart - 1;
+        }
+
+        return {};
+    }
+
+    Utf8 expectedNativeTestSuccessLine()
+    {
+        return "success";
+    }
+
+    Diagnostic makeMissingNativeTestSuccessMarkerDiagnostic(const std::string_view artifactOutput)
+    {
+        Diagnostic diag = Diagnostic::get(DiagnosticId::cmd_err_native_test_success_marker_missing);
+        diag.addArgument(Diagnostic::ARG_VALUE, expectedNativeTestSuccessLine());
+        if (!artifactOutput.empty())
+        {
+            std::string_view trimmedOutput = artifactOutput;
+            while (!trimmedOutput.empty() && (trimmedOutput.back() == '\n' || trimmedOutput.back() == '\r'))
+                trimmedOutput.remove_suffix(1);
+            diag.addArgument(Diagnostic::ARG_BECAUSE, Utf8{trimmedOutput});
+            diag.addNote(DiagnosticId::cmd_note_native_artifact_output);
+        }
+
+        return diag;
+    }
+
     template<typename T>
     const SourceFile* sourceFileForSymbol(const NativeBackendBuilder& builder, const T& symbol)
     {
@@ -525,10 +572,12 @@ Result NativeBackendBuilder::runGeneratedArtifact()
 {
     TimedActionLog::ScopedStage stage(ctx_, TimedActionLog::Stage::Run);
 
-    uint32_t                    exitCode    = 0;
-    const fs::path              artifactDir = artifactPath.parent_path();
+    uint32_t                    exitCode       = 0;
+    std::string                 artifactOutput;
+    const fs::path              artifactDir    = artifactPath.parent_path();
     const Os::ProcessRunOptions options{
-        .logCtx = &ctx_,
+        .capturedOutput = &artifactOutput,
+        .logCtx         = &ctx_,
     };
 
     const auto result = Os::runProcess(exitCode, artifactPath, {}, artifactDir.empty() ? buildDir : artifactDir, &options);
@@ -555,6 +604,15 @@ Result NativeBackendBuilder::runGeneratedArtifact()
 
     if (exitCode != 0)
         return reportError(DiagnosticId::cmd_err_native_artifact_failed, Diagnostic::ARG_VALUE, exitCode);
+
+    if (compiler_->cmdLine().command == CommandKind::Test &&
+        expectedTestCount &&
+        compiler_->cmdLine().nativeTestProgress &&
+        lastNonEmptyOutputLine(artifactOutput) != expectedNativeTestSuccessLine())
+    {
+        return reportError(makeMissingNativeTestSuccessMarkerDiagnostic(artifactOutput));
+    }
+
     return Result::Continue;
 }
 

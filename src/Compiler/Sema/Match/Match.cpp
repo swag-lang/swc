@@ -424,6 +424,8 @@ Result Match::ghosting(Sema& sema, const Symbol& sym)
 
     MatchContext lookUpCxt;
     lookUpCxt.codeRef = sym.codeRef();
+    if (sym.isFunction() && sym.ownerSymMap())
+        lookUpCxt.symMapHint = sym.ownerSymMap();
 
     collect(sema, lookUpCxt);
     lookup(lookUpCxt, sym.idRef());
@@ -484,6 +486,8 @@ Result Match::ghosting(Sema& sema, const Symbol& sym)
         if (other == &sym)
             continue;
         if (other->isIgnored())
+            continue;
+        if (sym.isFunction() && sym.ownerSymMap() && other->ownerSymMap() != symMapOfSym)
             continue;
 
         if (sym.acceptOverloads() && other->acceptOverloads())

@@ -151,8 +151,8 @@ impl Encoder
             var objType, itfType: typeinfo
             if itf.itable
             {
-                objType = itf.itable[cast #bit (u64) -1's64]
-                itfType = itf.itable[cast #bit (u64) -2's64]
+                objType = dref cast(const *typeinfo) itf.itable
+                itfType = type
             }
 
             var typeVal: TypeValue
@@ -211,7 +211,7 @@ impl Encoder
             let itf = @mkinterface(data, type, ISerialize)
             if itf != null
             {
-                if itf.write(cast(IEncoder) me) do
+                if itf.write(cast(IEncoder) dref me) do
                     return
             }
 
@@ -230,7 +230,7 @@ impl Encoder
                 if Reflection.hasAttribute(field.pointedType, NoSerialize) do
                     continue
 
-                if !itf or !itf.writeElement(field, cast(const [*] u8) data + field.offset, cast(IEncoder) me)
+                if !itf or !itf.writeElement(field, cast(const [*] u8) data + field.offset, cast(IEncoder) dref me)
                 {
                     .writeTypeValue(field, cast(const [*] u8) data + field.offset)
                 }

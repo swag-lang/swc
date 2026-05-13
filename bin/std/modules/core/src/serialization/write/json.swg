@@ -16,6 +16,7 @@ struct JSon
     options:           JSonOptions                                 // Formatting options.
     output:            *ConcatBuffer                               // Output buffer for generated JSON.
     indent:            u32                                         // Current indentation level.
+    containerDepth:    u32                                         // Current logical nesting depth for arrays/objects.
     fmtInt:            StrConv.ConvertFormatInt                    // Format used for converting integers.
     fmtFloat:          StrConv.ConvertFormatFloat{fmt: 'g''u8}     // Format used for converting floating-point numbers.
     lastSeekValue:     ConcatBufferSeek                            // Seek position used for rollback of trailing commas.
@@ -58,6 +59,7 @@ impl JSon
     {
         .output.addBytes("[")
         .lastSeekValue = .output.getSeek()
+        .containerDepth += 1
         if .options.saveBlanks
         {
             .output.addBytes("\n")
@@ -79,6 +81,7 @@ impl JSon
             .writeIndent()
         }
 
+        .containerDepth -= 1
         .output.addBytes("]")
         .lastSeekValue = .output.getSeek()
     }
@@ -88,6 +91,7 @@ impl JSon
     {
         .output.addBytes("{")
         .lastSeekValue = .output.getSeek()
+        .containerDepth += 1
         if .options.saveBlanks
         {
             .output.addBytes("\n")
@@ -107,6 +111,7 @@ impl JSon
             .writeIndent()
         }
 
+        .containerDepth -= 1
         .output.addBytes("}")
         .lastSeekValue = .output.getSeek()
     }
@@ -145,6 +150,9 @@ impl JSon
     // Ends a JSON value and appends a comma and optional newline.
     mtd endValue()
     {
+        if .containerDepth == 0 do
+            return
+
         .lastSeekValue = .output.getSeek()
         .output.addBytes(",")
         if .options.saveBlanks do

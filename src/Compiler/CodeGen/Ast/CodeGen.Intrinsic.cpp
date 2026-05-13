@@ -18,6 +18,7 @@
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Constant/ConstantValue.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
+#include "Compiler/Sema/Symbol/Symbol.Interface.h"
 #include "Compiler/Sema/Helpers/SemaSpecOp.h"
 #include "Compiler/Sema/Symbol/IdentifierManager.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
@@ -77,6 +78,38 @@ namespace
         TypeRef           objectTypeRef = TypeRef::invalid();
         InterfaceCastInfo castInfo;
     };
+
+    struct InterfaceTableRuntimeCandidate
+    {
+        TypeRef           objectTypeRef    = TypeRef::invalid();
+        TypeRef           interfaceTypeRef = TypeRef::invalid();
+        InterfaceCastInfo castInfo;
+    };
+
+    bool containsRuntimeInterfaceSymbol(std::span<const SymbolInterface* const> symbols, const SymbolInterface* target)
+    {
+        return std::ranges::find(symbols, target) != symbols.end();
+    }
+
+    void collectRuntimeInterfaceSymbolsRec(const SymbolMap& symbolMap, SmallVector<const SymbolInterface*>& outSymbols)
+    {
+        std::vector<const Symbol*> symbols;
+        symbolMap.getAllSymbols(symbols);
+        for (const Symbol* symbol : symbols)
+        {
+            SWC_ASSERT(symbol != nullptr);
+
+            if (symbol->isInterface())
+            {
+                const auto* symInterface = &symbol->cast<SymbolInterface>();
+                if (!containsRuntimeInterfaceSymbol(outSymbols.span(), symInterface))
+                    outSymbols.push_back(symInterface);
+            }
+
+            if (symbol->isModule() || symbol->isNamespace() || symbol->isStruct())
+                collectRuntimeInterfaceSymbolsRec(*symbol->asSymMap(), outSymbols);
+        }
+    }
 
     TypeRef intrinsicNumericStorageTypeRef(CodeGen& codeGen, TypeRef typeRef)
     {
@@ -729,6 +762,48 @@ namespace
         }
     }
 
+    void collectTableOfRuntimeCandidatesRec(CodeGen& codeGen, const SymbolMap& symbolMap, std::span<const SymbolInterface* const> interfaces, SmallVector<InterfaceTableRuntimeCandidate>& outCandidates)
+    {
+        std::vector<const Symbol*> symbols;
+        symbolMap.getAllSymbols(symbols);
+        for (const Symbol* symbol : symbols)
+        {
+            SWC_ASSERT(symbol != nullptr);
+
+            if (symbol->isStruct())
+            {
+                const auto& symStruct = symbol->cast<SymbolStruct>();
+                if (!symStruct.isTyped() || !symStruct.isSemaCompleted())
+                {
+                    collectTableOfRuntimeCandidatesRec(codeGen, *symStruct.asSymMap(), interfaces, outCandidates);
+                    continue;
+                }
+
+                const TypeRef objectTypeRef = symStruct.typeRef();
+                if (objectTypeRef.isValid())
+                {
+                    const TypeInfo& objectType = codeGen.typeMgr().get(objectTypeRef);
+                    if (objectType.isStruct())
+                    {
+                        for (const SymbolInterface* interfaceSym : interfaces)
+                        {
+                            SWC_ASSERT(interfaceSym != nullptr);
+                            InterfaceCastInfo castInfo;
+                            if (resolveInterfaceCastInfo(codeGen, objectType.payloadSymStruct(), *interfaceSym, castInfo))
+                                outCandidates.push_back({.objectTypeRef = objectTypeRef, .interfaceTypeRef = interfaceSym->typeRef(), .castInfo = castInfo});
+                        }
+                    }
+                }
+
+                collectTableOfRuntimeCandidatesRec(codeGen, *symStruct.asSymMap(), interfaces, outCandidates);
+                continue;
+            }
+
+            if (symbol->isModule() || symbol->isNamespace())
+                collectTableOfRuntimeCandidatesRec(codeGen, *symbol->asSymMap(), interfaces, outCandidates);
+        }
+    }
+
     TypeRef intrinsicMakeInterfaceObjectTypeRef(CodeGen& codeGen, AstNodeRef typeRefNode)
     {
         const SemaNodeView typeView = codeGen.viewTypeConstant(typeRefNode);
@@ -1198,6 +1273,66 @@ namespace
         const CodeGenNodePayload& resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), resultTypeRef);
         const MicroReg            args[]        = {toTypeReg, fromTypeReg, ptrReg};
         return emitIntrinsicRuntimeCall(codeGen, *payload->runtimeFunctionSymbol, args, resultPayload.reg);
+    }
+
+    Result codeGenIntrinsicTableOf(CodeGen& codeGen, const AstIntrinsicCall& node)
+    {
+        SmallVector<AstNodeRef> children;
+        codeGen.ast().appendNodes(children, node.spanChildrenRef);
+        SWC_ASSERT(children.size() == 2);
+
+        const MicroReg objectTypeReg    = materializeIntrinsicIntArgReg(codeGen, codeGen.payload(children[0]), MicroOpBits::B64);
+        const MicroReg interfaceTypeReg = materializeIntrinsicIntArgReg(codeGen, codeGen.payload(children[1]), MicroOpBits::B64);
+        const TypeRef  resultTypeRef    = codeGen.curViewType().typeRef();
+
+        CodeGenNodePayload& resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), resultTypeRef);
+        MicroBuilder&       builder       = codeGen.builder();
+        builder.emitLoadRegImm(resultPayload.reg, ApInt(0, 64), MicroOpBits::B64);
+
+        SmallVector<const SymbolInterface*> interfaces;
+        if (const SymbolModule* rootModule = codeGen.compiler().symModule())
+            collectRuntimeInterfaceSymbolsRec(*rootModule, interfaces);
+        if (interfaces.empty())
+            return Result::Continue;
+
+        SmallVector<InterfaceTableRuntimeCandidate> candidates;
+        if (const SymbolModule* rootModule = codeGen.compiler().symModule())
+            collectTableOfRuntimeCandidatesRec(codeGen, *rootModule, interfaces.span(), candidates);
+        if (candidates.empty())
+            return Result::Continue;
+
+        const MicroLabelRef doneLabel = builder.createLabel();
+        for (const auto& candidate : candidates)
+        {
+            ConstantRef objectTypeCstRef = ConstantRef::invalid();
+            SWC_RESULT(codeGen.cstMgr().makeTypeInfo(codeGen.sema(), objectTypeCstRef, candidate.objectTypeRef, children[0]));
+            const ConstantValue& objectTypeCst = codeGen.cstMgr().get(objectTypeCstRef);
+            SWC_ASSERT(objectTypeCst.isValuePointer());
+
+            ConstantRef interfaceTypeCstRef = ConstantRef::invalid();
+            SWC_RESULT(codeGen.cstMgr().makeTypeInfo(codeGen.sema(), interfaceTypeCstRef, candidate.interfaceTypeRef, children[1]));
+            const ConstantValue& interfaceTypeCst = codeGen.cstMgr().get(interfaceTypeCstRef);
+            SWC_ASSERT(interfaceTypeCst.isValuePointer());
+
+            const MicroLabelRef nextLabel          = builder.createLabel();
+            const MicroReg      candidateObjectReg = codeGen.nextVirtualIntRegister();
+            const MicroReg      candidateItfReg    = codeGen.nextVirtualIntRegister();
+            builder.emitLoadRegPtrReloc(candidateObjectReg, objectTypeCst.getValuePointer(), objectTypeCstRef);
+            builder.emitCmpRegReg(objectTypeReg, candidateObjectReg, MicroOpBits::B64);
+            builder.emitJumpToLabel(MicroCond::NotEqual, MicroOpBits::B32, nextLabel);
+            builder.emitLoadRegPtrReloc(candidateItfReg, interfaceTypeCst.getValuePointer(), interfaceTypeCstRef);
+            builder.emitCmpRegReg(interfaceTypeReg, candidateItfReg, MicroOpBits::B64);
+            builder.emitJumpToLabel(MicroCond::NotEqual, MicroOpBits::B32, nextLabel);
+
+            MicroReg tableReg = MicroReg::invalid();
+            SWC_RESULT(loadInterfaceMethodTableAddress(tableReg, codeGen, candidate.castInfo));
+            builder.emitLoadRegReg(resultPayload.reg, tableReg, MicroOpBits::B64);
+            builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, doneLabel);
+            builder.placeLabel(nextLabel);
+        }
+
+        builder.placeLabel(doneLabel);
+        return Result::Continue;
     }
 
     MicroReg materializeCountLikeBaseReg(const CodeGen& codeGen, const CodeGenNodePayload& payload)
@@ -2235,6 +2370,8 @@ Result AstIntrinsicCall::codeGenPostNode(CodeGen& codeGen) const
             return codeGenMakeSlice(codeGen, *this, true);
         case TokenId::IntrinsicMakeInterface:
             return codeGenMakeInterface(codeGen, *this);
+        case TokenId::IntrinsicTableOf:
+            return codeGenIntrinsicTableOf(codeGen, *this);
         case TokenId::IntrinsicIs:
             return codeGenIntrinsicIs(codeGen, *this);
         case TokenId::IntrinsicAs:

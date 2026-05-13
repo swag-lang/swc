@@ -14,6 +14,12 @@ func __dropErr(err: any)
 
 func __setErrRaw(data: *void, type: const *Swag.TypeInfoStruct)
 {
+    if type.kind == .Native and (cast(const *Swag.TypeInfoNative) type).nativeKind == .Any
+    {
+        __setErr(dref cast(*any) data)
+        return
+    }
+
     let cxt = @getcontext()
     if cxt.errorIndex >= MaxErrors do
         @panic("too many nested error levels!", #curlocation)

@@ -588,6 +588,24 @@ namespace
         sema.setIsValue(node);
         return SemaHelpers::attachRuntimeAsFunctionToNode(sema, sema.curNodeRef(), node.codeRef());
     }
+
+    Result semaIntrinsicTableOf(Sema& sema, AstIntrinsicCall& node, const SmallVector<AstNodeRef>& children)
+    {
+        SemaNodeView objectTypeView    = sema.viewTypeConstant(children[0]);
+        SemaNodeView interfaceTypeView = sema.viewTypeConstant(children[1]);
+
+        SWC_RESULT(SemaCheck::isValueOrTypeInfo(sema, objectTypeView));
+        SWC_RESULT(SemaCheck::isValueOrTypeInfo(sema, interfaceTypeView));
+
+        if (!isTypeInfoOperand(sema, objectTypeView))
+            return SemaError::raiseRequestedTypeFam(sema, objectTypeView.nodeRef(), objectTypeView.typeRef(), sema.typeMgr().typeTypeInfo());
+        if (!isTypeInfoOperand(sema, interfaceTypeView))
+            return SemaError::raiseRequestedTypeFam(sema, interfaceTypeView.nodeRef(), interfaceTypeView.typeRef(), sema.typeMgr().typeTypeInfo());
+
+        sema.setType(sema.curNodeRef(), sema.typeMgr().typeValuePtrVoid());
+        sema.setIsValue(node);
+        return Result::Continue;
+    }
 }
 
 Result AstIntrinsicCall::semaPostNode(Sema& sema)
@@ -616,11 +634,12 @@ Result AstIntrinsicCall::semaPostNode(Sema& sema)
             return semaIntrinsicIs(sema, *this, children);
         case TokenId::IntrinsicAs:
             return semaIntrinsicAs(sema, *this, children);
+        case TokenId::IntrinsicTableOf:
+            return semaIntrinsicTableOf(sema, *this, children);
 
         case TokenId::IntrinsicCVaStart:
         case TokenId::IntrinsicCVaEnd:
         case TokenId::IntrinsicCVaArg:
-        case TokenId::IntrinsicTableOf:
             // TODO
             SWC_INTERNAL_ERROR();
 

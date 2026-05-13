@@ -163,6 +163,8 @@ namespace
         ConstantRef        leftCstRef  = nodeLeftView.cstRef();
         ConstantRef        rightCstRef = nodeRightView.cstRef();
         const bool         keepEnumRes = keepEnumFlagsResult(sema, nodeLeftView, nodeRightView, op);
+        const TypeInfo&    leftType    = aliasType(sema, nodeLeftView);
+        const TypeInfo&    rightType   = aliasType(sema, nodeRightView);
 
         if (keepEnumRes)
         {
@@ -177,7 +179,11 @@ namespace
         const bool hasAliasOperand = (nodeLeftView.type() && nodeLeftView.type()->isAlias()) ||
                                      (nodeRightView.type() && nodeRightView.type()->isAlias());
         if (!keepEnumRes && !hasAliasOperand)
+        {
+            if (!leftType.isScalarNumeric() || !rightType.isScalarNumeric())
+                return Result::Continue;
             SWC_RESULT(Cast::promoteConstants(sema, nodeLeftView, nodeRightView, leftCstRef, rightCstRef, promote));
+        }
 
         const ConstantValue& leftCst     = sema.cstMgr().get(leftCstRef);
         const ConstantValue& rightCst    = sema.cstMgr().get(rightCstRef);
@@ -289,7 +295,7 @@ namespace
             return Result::Continue;
         }
 
-        return Result::Error;
+        return Result::Continue;
     }
 
     Result constantFoldPlusPlus(Sema& sema, ConstantRef& result, const AstBinaryExpr& node, const SemaNodeView& nodeLeftView, const SemaNodeView& nodeRightView)

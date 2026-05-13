@@ -262,12 +262,35 @@ func __testCountInit(expected: u64)
     cxt.testExecutedCount = 0
 }
 
+func __testPrintStart()
+{
+    let cxt = @getcontext()
+    if !cxt.testExpectedCount do
+        return
+
+    @print("running ", cxt.testExpectedCount, " #test(s)\n")
+}
+
+func __testPrintProgress(message: const *string)
+{
+    @print(dref message)
+}
+
 func __testCountTick()
 {
     let cxt = @getcontext()
     if !cxt.testExpectedCount do
         return
     cxt.testExecutedCount += 1
+}
+
+func __testPrintDone()
+{
+    let cxt = @getcontext()
+    if !cxt.testExpectedCount do
+        return
+
+    @print("success ", cxt.testExecutedCount, "/", cxt.testExpectedCount, " #test(s)\n")
 }
 
 func __setupRuntime(flags: RuntimeFlags)

@@ -50,6 +50,11 @@ struct NativeStartupInfo
     uint32_t    textOffset = 0;
 };
 
+struct NativeTestProgressEntry
+{
+    ConstantRef messageRuntimeStringCstRef = ConstantRef::invalid();
+};
+
 struct NativeSectionRelocation
 {
     uint32_t offset = 0;
@@ -130,6 +135,7 @@ public:
     std::vector<NativeFunctionInfo>                                                      functionInfos;
     std::unordered_map<const SymbolFunction*, const NativeFunctionInfo*>                 functionBySymbol;
     std::unique_ptr<NativeStartupInfo>                                                   startup;
+    std::vector<NativeTestProgressEntry>                                                 testProgressEntries;
     NativeSectionData                                                                    mergedRData;
     NativeSectionData                                                                    mergedData;
     NativeSectionData                                                                    mergedBss;

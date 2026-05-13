@@ -1,8 +1,13 @@
 #include "pch.h"
 #include "Backend/Native/NativeArtifactBuilder.h"
 #include "Backend/ABI/ABICall.h"
+#include "Backend/Runtime.h"
 #include "Backend/Native/NativeRDataCollector.h"
 #include "Backend/Native/SymbolSort.h"
+#include "Compiler/Parser/Ast/Ast.h"
+#include "Compiler/SourceFile.h"
+#include "Compiler/Sema/Constant/ConstantManager.h"
+#include "Compiler/Sema/Helpers/SemaRuntime.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Main/Command/CommandLineParser.h"
 #include "Main/FileSystem.h"
@@ -46,6 +51,156 @@ private:
 
 namespace
 {
+    struct TestSourceLocation
+    {
+        Utf8     fileName = "<unknown>";
+        uint32_t line     = 0;
+    };
+
+    TestSourceLocation resolveTestSourceLocation(TaskContext& ctx, const CompilerInstance& compiler, const SymbolFunction& symbol);
+
+    const SourceFile* sourceFileFromView(const CompilerInstance& compiler, const SourceView* view)
+    {
+        if (!view)
+            return nullptr;
+        if (view->ownerFileRef().isValid())
+            return &compiler.file(view->ownerFileRef());
+        if (view->fileRef().isValid())
+            return &compiler.file(view->fileRef());
+        return view->file();
+    }
+
+    Utf8 testSourceFileName(const SourceFile* sourceFile)
+    {
+        if (!sourceFile)
+            return {};
+        return sourceFile->path().filename().string();
+    }
+
+    bool assignTestSourceFileName(Utf8& outFileName, const SourceFile* sourceFile)
+    {
+        const Utf8 fileName = testSourceFileName(sourceFile);
+        if (fileName.empty())
+            return false;
+
+        outFileName = fileName;
+        return true;
+    }
+
+    bool hasUsableTestSourceFileName(const TestSourceLocation& location)
+    {
+        return !location.fileName.empty() && location.fileName != "<unknown>";
+    }
+
+    const SymbolFunction* primaryTestLocationSymbol(const SymbolFunction& symbol)
+    {
+        const SymbolFunction* location = SemaRuntime::transparentLocationFunction(&symbol);
+        if (!location)
+            return symbol.genericRootSym() ? symbol.genericRootSym() : &symbol;
+
+        if (location->genericRootSym())
+            return location->genericRootSym();
+
+        return location;
+    }
+
+    MicroReg nextVirtualIntReg(uint32_t& nextIndex)
+    {
+        return MicroReg::virtualIntReg(nextIndex++);
+    }
+
+    ConstantRef materializeRuntimeStringConstant(TaskContext& ctx, std::string_view value)
+    {
+        ConstantManager&  cstMgr          = ctx.cstMgr();
+        const TypeRef     runtimeTypeRef  = ctx.typeMgr().typeString();
+        const uint32_t    cacheShardIndex = ConstantManager::runtimeStringConstantCacheShard(runtimeTypeRef, value);
+        const ConstantRef cached          = cstMgr.findRuntimeStringConstant(cacheShardIndex, runtimeTypeRef, value);
+        if (cached.isValid())
+            return cached;
+
+        const std::string_view storedValue = cstMgr.addString(ctx, value);
+        DataSegmentRef         targetRef;
+        if (storedValue.data())
+            cstMgr.resolveDataSegmentRef(targetRef, storedValue.data());
+
+        SWC_ASSERT(storedValue.empty() || storedValue.data()[storedValue.size()] == '\0');
+        SWC_ASSERT(storedValue.empty() || targetRef.isValid());
+        if (!storedValue.empty() && targetRef.isInvalid())
+            return ConstantRef::invalid();
+
+        const uint32_t shardIndex = targetRef.isInvalid() ? 0 : targetRef.shardIndex;
+        DataSegment&   segment    = cstMgr.shardDataSegment(shardIndex);
+        const auto [offset, storage] = segment.reserveBytes(sizeof(Runtime::String), alignof(Runtime::String), true);
+        auto* runtimeString           = reinterpret_cast<Runtime::String*>(storage);
+        runtimeString->ptr            = storedValue.data();
+        runtimeString->length         = storedValue.size();
+
+        if (targetRef.isValid())
+            segment.addRelocation(offset + offsetof(Runtime::String, ptr), targetRef.offset);
+
+        ConstantValue runtimeStringCst = ConstantValue::makeStructBorrowed(ctx, runtimeTypeRef, ByteSpan{storage, sizeof(Runtime::String)});
+        runtimeStringCst.setDataSegmentRef({.shardIndex = shardIndex, .offset = offset});
+        const ConstantRef cstRef = cstMgr.addUniqueMaterializedPayloadConstant(runtimeStringCst);
+        return cstMgr.publishRuntimeStringConstant(cacheShardIndex, runtimeTypeRef, value, cstRef);
+    }
+
+    void loadConstantStoragePointerReg(MicroBuilder& builder, TaskContext& ctx, MicroReg reg, ConstantRef cstRef)
+    {
+        const ConstantValue& cst = ctx.cstMgr().get(cstRef);
+        SWC_ASSERT(cst.isString() || cst.isStruct());
+
+        if (cst.isString())
+        {
+            const std::string_view view = cst.getString();
+            builder.emitLoadRegPtrReloc(reg, reinterpret_cast<uint64_t>(view.data()), cstRef);
+            return;
+        }
+
+        const ByteSpan bytes = cst.getStruct();
+        builder.emitLoadRegPtrReloc(reg, reinterpret_cast<uint64_t>(bytes.data()), cstRef);
+    }
+
+    TestSourceLocation resolveTestSourceLocation(TaskContext& ctx, const CompilerInstance& compiler, const SymbolFunction& symbol)
+    {
+        TestSourceLocation result;
+
+        const AstNode*     decl    = symbol.decl();
+        const SourceViewRef viewRef = decl ? decl->srcViewRef() : symbol.srcViewRef();
+        if (!viewRef.isValid())
+            return result;
+
+        const SourceView&  declView   = compiler.srcView(viewRef);
+        const SourceFile*  sourceFile = sourceFileFromView(compiler, &declView);
+        const Ast*         sourceAst  = sourceFile && sourceFile->ast().hasSourceView() ? &sourceFile->ast() : nullptr;
+        SourceCodeRange    codeRange;
+
+        if (decl && sourceAst && sourceAst->hasSourceView() && sourceAst->findNodeRef(decl).isValid())
+        {
+            codeRange = decl->codeRangeWithChildren(ctx, *sourceAst, declView);
+        }
+        else if (decl)
+        {
+            codeRange = decl->codeRange(ctx);
+        }
+        else
+        {
+            codeRange = symbol.codeRange(ctx);
+        }
+
+        const SourceFile* codeRangeFile = sourceFileFromView(compiler, codeRange.srcView);
+        if (!assignTestSourceFileName(result.fileName, codeRangeFile))
+            assignTestSourceFileName(result.fileName, sourceFile);
+
+        if (result.fileName == "<unknown>" && symbol.srcViewRef().isValid())
+        {
+            const SourceView& symbolView = compiler.srcView(symbol.srcViewRef());
+            assignTestSourceFileName(result.fileName, sourceFileFromView(compiler, &symbolView));
+        }
+
+        result.line = codeRange.line;
+        return result;
+    }
+
     const NativeFunctionInfo* findFunctionInfoByLocation(const NativeBackendBuilder& builder, const SymbolFunction& targetFunction)
     {
         const Utf8 sortKey = SymbolSort::locationKey(builder.compiler(), targetFunction);
@@ -73,6 +228,7 @@ Result NativeArtifactBuilder::build() const
         nativeValidate.validate();
     }
 #endif
+    SWC_RESULT(prepareTestProgressEntries(builder_->ctx()));
     if (builder_->ctx().global().jobMgr().numWorkers() == 0)
     {
         SWC_RESULT(buildStartup(builder_->ctx()));
@@ -84,6 +240,77 @@ Result NativeArtifactBuilder::build() const
     }
 
     return partitionObjects();
+}
+
+Result NativeArtifactBuilder::prepareTestProgressEntries(TaskContext& ctx) const
+{
+    builder_->testProgressEntries.clear();
+
+    const uint32_t expectedTestCount = builder_->expectedTestFunctionCount();
+    if (!expectedTestCount || ctx.cmdLine().command != CommandKind::Test)
+        return Result::Continue;
+
+    builder_->testProgressEntries.reserve(builder_->testFunctions.size());
+    for (SymbolFunction* symbol : builder_->testFunctions)
+    {
+        TestSourceLocation sourceLocation;
+        bool               hasSourceLocation = false;
+
+        const SymbolFunction* candidates[] = {
+            primaryTestLocationSymbol(*symbol),
+            symbol->genericRootSym(),
+            symbol,
+        };
+
+        for (size_t candidateIndex = 0; candidateIndex < std::size(candidates); ++candidateIndex)
+        {
+            const SymbolFunction* candidate = candidates[candidateIndex];
+            if (!candidate)
+                continue;
+
+            bool alreadyTried = false;
+            for (size_t priorIndex = 0; priorIndex < candidateIndex; ++priorIndex)
+            {
+                if (candidates[priorIndex] == candidate)
+                {
+                    alreadyTried = true;
+                    break;
+                }
+            }
+
+            if (alreadyTried)
+                continue;
+
+            const TestSourceLocation candidateLocation = resolveTestSourceLocation(ctx, builder_->compiler(), *candidate);
+            if (!hasSourceLocation)
+            {
+                sourceLocation    = candidateLocation;
+                hasSourceLocation = true;
+            }
+
+            if (hasUsableTestSourceFileName(candidateLocation))
+            {
+                sourceLocation = candidateLocation;
+                break;
+            }
+        }
+
+        Utf8 progressMessage = sourceLocation.fileName;
+        progressMessage += ":";
+        progressMessage += std::to_string(sourceLocation.line);
+        progressMessage += "\n";
+
+        const ConstantRef messageRuntimeStringCstRef = materializeRuntimeStringConstant(ctx, progressMessage);
+        SWC_ASSERT(messageRuntimeStringCstRef.isValid());
+        if (messageRuntimeStringCstRef.isInvalid())
+            return builder_->reportError(DiagnosticId::cmd_err_native_test_entry_lower_failed);
+
+        builder_->testProgressEntries.push_back({
+            .messageRuntimeStringCstRef = messageRuntimeStringCstRef,
+        });
+    }
+
+    return Result::Continue;
 }
 
 Result NativeArtifactBuilder::prepareOutputFolders() const
@@ -499,15 +726,21 @@ Result NativeArtifactBuilder::buildStartup(TaskContext& ctx) const
     {
         return builder_->reportError(DiagnosticId::cmd_err_native_test_count_mismatch, Diagnostic::ARG_COUNT, expectedTestCount, Diagnostic::ARG_VALUE, static_cast<uint32_t>(builder_->testFunctions.size()));
     }
+    const bool emitTestProgress = expectedTestCount && ctx.cmdLine().command == CommandKind::Test;
 
     auto         startup = std::make_unique<NativeStartupInfo>();
     MicroBuilder builder(builder_->ctx());
     builder.setBackendBuildCfg(builder_->compiler().buildCfg().backend);
+    uint32_t nextVirtualIntRegIndex = builder.nextVirtualIntRegIndexHint();
+    const MicroReg testProgressMessageReg = emitTestProgress ? nextVirtualIntReg(nextVirtualIntRegIndex) : MicroReg::invalid();
 
     const IdentifierRef ensureRuntimeAllocatorIdRef = ctx.idMgr().runtimeFunction(IdentifierManager::RuntimeFunctionKind::EnsureRuntimeAllocator);
     SymbolFunction*     ensureRuntimeAllocatorFn    = builder_->compiler().runtimeFunctionSymbol(ensureRuntimeAllocatorIdRef);
     SymbolFunction*     testCountInitFn             = nullptr;
     SymbolFunction*     testCountTickFn             = nullptr;
+    SymbolFunction*     testPrintStartFn            = nullptr;
+    SymbolFunction*     testPrintProgressFn         = nullptr;
+    SymbolFunction*     testPrintDoneFn             = nullptr;
     SWC_ASSERT(ensureRuntimeAllocatorFn != nullptr);
     if (!ensureRuntimeAllocatorFn)
         return builder_->reportError(DiagnosticId::cmd_err_native_test_entry_lower_failed);
@@ -522,6 +755,24 @@ Result NativeArtifactBuilder::buildStartup(TaskContext& ctx) const
         if (!testCountInitFn || !testCountTickFn)
             return builder_->reportError(DiagnosticId::cmd_err_native_test_entry_lower_failed);
     }
+    if (emitTestProgress)
+    {
+        SWC_ASSERT(builder_->testProgressEntries.size() == builder_->testFunctions.size());
+        if (builder_->testProgressEntries.size() != builder_->testFunctions.size())
+            return builder_->reportError(DiagnosticId::cmd_err_native_test_entry_lower_failed);
+
+        const IdentifierRef testPrintStartIdRef    = ctx.idMgr().runtimeFunction(IdentifierManager::RuntimeFunctionKind::TestPrintStart);
+        const IdentifierRef testPrintProgressIdRef = ctx.idMgr().runtimeFunction(IdentifierManager::RuntimeFunctionKind::TestPrintProgress);
+        const IdentifierRef testPrintDoneIdRef     = ctx.idMgr().runtimeFunction(IdentifierManager::RuntimeFunctionKind::TestPrintDone);
+        testPrintStartFn                           = builder_->compiler().runtimeFunctionSymbol(testPrintStartIdRef);
+        testPrintProgressFn                        = builder_->compiler().runtimeFunctionSymbol(testPrintProgressIdRef);
+        testPrintDoneFn                            = builder_->compiler().runtimeFunctionSymbol(testPrintDoneIdRef);
+        SWC_ASSERT(testPrintStartFn != nullptr);
+        SWC_ASSERT(testPrintProgressFn != nullptr);
+        SWC_ASSERT(testPrintDoneFn != nullptr);
+        if (!testPrintStartFn || !testPrintProgressFn || !testPrintDoneFn)
+            return builder_->reportError(DiagnosticId::cmd_err_native_test_entry_lower_failed);
+    }
 
     ABICall::callLocal(builder, ensureRuntimeAllocatorFn->callConvKind(), ensureRuntimeAllocatorFn, {});
 
@@ -534,7 +785,7 @@ Result NativeArtifactBuilder::buildStartup(TaskContext& ctx) const
 
     if (testCountInitFn)
     {
-        const MicroReg expectedCountReg = MicroReg::virtualIntReg(builder.nextVirtualIntRegIndexHint());
+        const MicroReg expectedCountReg = nextVirtualIntReg(nextVirtualIntRegIndex);
         builder.emitLoadRegImm(expectedCountReg, ApInt(expectedTestCount, 64), MicroOpBits::B64);
 
         ABICall::PreparedArg countArg;
@@ -547,16 +798,52 @@ Result NativeArtifactBuilder::buildStartup(TaskContext& ctx) const
 
         const ABICall::PreparedCall preparedInit = ABICall::prepareArgs(builder, testCountInitFn->callConvKind(), preparedArgs);
         ABICall::callLocal(builder, testCountInitFn->callConvKind(), testCountInitFn, preparedInit);
+        if (testPrintStartFn)
+        {
+            const ABICall::PreparedCall preparedStart = ABICall::prepareArgs(builder, testPrintStartFn->callConvKind(), {});
+            ABICall::callLocal(builder, testPrintStartFn->callConvKind(), testPrintStartFn, preparedStart);
+        }
     }
 
-    for (SymbolFunction* symbol : builder_->testFunctions)
+    for (size_t testIndex = 0; testIndex < builder_->testFunctions.size(); ++testIndex)
     {
+        SymbolFunction* symbol = builder_->testFunctions[testIndex];
+        if (testPrintProgressFn)
+        {
+            const NativeTestProgressEntry& progressEntry = builder_->testProgressEntries[testIndex];
+            const ConstantRef              messageRuntimeStringCstRef = progressEntry.messageRuntimeStringCstRef;
+            SWC_ASSERT(messageRuntimeStringCstRef.isValid());
+            if (messageRuntimeStringCstRef.isInvalid())
+                return builder_->reportError(DiagnosticId::cmd_err_native_test_entry_lower_failed);
+
+            loadConstantStoragePointerReg(builder, ctx, testProgressMessageReg, messageRuntimeStringCstRef);
+
+            ABICall::PreparedArg messageArg;
+            messageArg.srcReg              = testProgressMessageReg;
+            messageArg.kind                = ABICall::PreparedArgKind::Direct;
+            messageArg.isFloat             = false;
+            messageArg.isSigned            = false;
+            messageArg.isAddressed         = false;
+            messageArg.constrainToArgLane  = true;
+            messageArg.numBits             = 64;
+
+            SmallVector<ABICall::PreparedArg> preparedArgs;
+            preparedArgs.push_back(messageArg);
+
+            const ABICall::PreparedCall preparedProgress = ABICall::prepareArgs(builder, testPrintProgressFn->callConvKind(), preparedArgs);
+            ABICall::callLocal(builder, testPrintProgressFn->callConvKind(), testPrintProgressFn, preparedProgress);
+        }
         ABICall::callLocal(builder, symbol->callConvKind(), symbol, {});
         if (testCountTickFn)
         {
             const ABICall::PreparedCall preparedTick = ABICall::prepareArgs(builder, testCountTickFn->callConvKind(), {});
             ABICall::callLocal(builder, testCountTickFn->callConvKind(), testCountTickFn, preparedTick);
         }
+    }
+    if (testPrintDoneFn)
+    {
+        const ABICall::PreparedCall preparedDone = ABICall::prepareArgs(builder, testPrintDoneFn->callConvKind(), {});
+        ABICall::callLocal(builder, testPrintDoneFn->callConvKind(), testPrintDoneFn, preparedDone);
     }
     for (SymbolFunction* symbol : builder_->mainFunctions)
         ABICall::callLocal(builder, symbol->callConvKind(), symbol, {});

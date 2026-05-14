@@ -27,9 +27,7 @@ call "%TOOLS_DIR%_common.bat" :set_paths "%BIN_REL%" "executable" "%BUILD_CFG%"
 if not "%ERRORLEVEL%"=="0" exit /b %ERRORLEVEL%
 
 set "MODULE_FILE=%ROOT%\bin\%BIN_REL%\module.swg"
-set "SRC_DIR=%ROOT%\bin\%BIN_REL%\src"
-
-"%SWC_EXE%" test --module-file "%MODULE_FILE%" -d "%SRC_DIR%" --artifact-kind executable --out-dir "%OUT_DIR%" --work-dir "%WORK_DIR%" --build-cfg %BUILD_CFG%%EXTRA_ARGS%
+"%SWC_EXE%" test --module-file "%MODULE_FILE%" -d "src" --artifact-kind executable --out-dir "%OUT_DIR%" --work-dir "%WORK_DIR%" --build-cfg %BUILD_CFG%%EXTRA_ARGS%
 if not "%ERRORLEVEL%"=="0" exit /b %ERRORLEVEL%
 
 exit /b 0

@@ -41,10 +41,10 @@ void CommandLineParser::registerCommands()
         false);
     add(HelpOptionGroup::Input, "all", "--directory", "-d",
         &cmdLine_->directories,
-        "Specify one or more directories to process recursively for input files.");
+        "Specify one or more directories to process recursively for input files. When --module-file is present, relative paths are resolved from the module file folder.");
     add(HelpOptionGroup::Input, "all", "--file", "-f",
         &cmdLine_->files,
-        "Specify one or more individual files to process directly.");
+        "Specify one or more individual files to process directly. When --module-file is present, relative paths are resolved from the module file folder.");
     add(HelpOptionGroup::Input, "all", "--file-filter", "-ff",
         &cmdLine_->fileFilter,
         "Apply a substring filter to input paths.");
@@ -53,7 +53,7 @@ void CommandLineParser::registerCommands()
         "Specify a module path to compile.");
     add(HelpOptionGroup::Input, "all", "--module-file", nullptr,
         &cmdLine_->moduleFilePath,
-        "Specify the special module setup file to execute before compiling the rest of the module. When present, the module root is derived from the file parent folder.");
+        "Specify the special module setup file to execute before compiling the rest of the module. When present, the module root is derived from the file parent folder and relative input files/directories are resolved from there.");
     add(HelpOptionGroup::Input, "sema test build run", "--import-api-module", nullptr,
         &cmdLine_->importApiModules,
         "Resolve a generated public API dependency from a module name, simulating a #import through <compiler-root>/.output/dep/<module>.");

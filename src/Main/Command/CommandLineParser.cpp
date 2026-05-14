@@ -185,6 +185,22 @@ namespace
         buildCfg.workDir         = Utf8Helper::runtimeStringFromUtf8(cmdLine.workDirStorage);
         cmdLine.defaultBuildCfg  = buildCfg;
     }
+
+    fs::path moduleInputBaseDir(const CommandLine& cmdLine)
+    {
+        if (cmdLine.moduleFilePath.empty())
+            return {};
+
+        return cmdLine.moduleFilePath.parent_path();
+    }
+
+    void resolveModuleRelativeInput(const fs::path& baseDir, fs::path& path)
+    {
+        if (baseDir.empty() || !path.is_relative())
+            return;
+
+        path = (baseDir / path).lexically_normal();
+    }
 }
 
 void CommandLineParser::refreshBuildCfg(CommandLine& cmdLine)
@@ -929,52 +945,6 @@ Result CommandLineParser::checkCommandLine(TaskContext& ctx) const
         cmdLine_->numCores = 1;
 #endif
 
-    // Resolve all folders
-    std::set<fs::path> resolvedFolders;
-    for (const fs::path& folder : cmdLine_->directories)
-    {
-        fs::path temp = folder;
-        SWC_RESULT(FileSystem::resolveFolder(ctx, temp));
-        resolvedFolders.insert(std::move(temp));
-    }
-    cmdLine_->directories = std::move(resolvedFolders);
-
-    // Resolve all files
-    std::set<fs::path> resolvedFiles;
-    for (const fs::path& file : cmdLine_->files)
-    {
-        fs::path temp = file;
-        SWC_RESULT(FileSystem::resolveFile(ctx, temp));
-        resolvedFiles.insert(std::move(temp));
-    }
-    cmdLine_->files = std::move(resolvedFiles);
-
-    std::set<fs::path> resolvedImportApiDirs;
-    const fs::path     exeFullName = Os::getExeFullName();
-    for (const Utf8& moduleName : cmdLine_->importApiModules)
-    {
-        fs::path temp = FileSystem::generatedDependencyApiDir(exeFullName, moduleName.view());
-        SWC_RESULT(FileSystem::resolveFolder(ctx, temp));
-        resolvedImportApiDirs.insert(std::move(temp));
-    }
-
-    for (const fs::path& folder : cmdLine_->importApiDirs)
-    {
-        fs::path temp = folder;
-        SWC_RESULT(FileSystem::resolveFolder(ctx, temp));
-        resolvedImportApiDirs.insert(std::move(temp));
-    }
-    cmdLine_->importApiDirs = std::move(resolvedImportApiDirs);
-
-    std::set<fs::path> resolvedImportApiFiles;
-    for (const fs::path& file : cmdLine_->importApiFiles)
-    {
-        fs::path temp = file;
-        SWC_RESULT(FileSystem::resolveFile(ctx, temp));
-        resolvedImportApiFiles.insert(std::move(temp));
-    }
-    cmdLine_->importApiFiles = std::move(resolvedImportApiFiles);
-
     if (!cmdLine_->moduleFilePath.empty())
     {
         fs::path temp = cmdLine_->moduleFilePath;
@@ -1004,6 +974,56 @@ Result CommandLineParser::checkCommandLine(TaskContext& ctx) const
 
         cmdLine_->modulePath = derivedModulePath;
     }
+
+    const fs::path inputBaseDir = moduleInputBaseDir(*cmdLine_);
+
+    std::set<fs::path> resolvedFolders;
+    for (const fs::path& folder : cmdLine_->directories)
+    {
+        fs::path temp = folder;
+        resolveModuleRelativeInput(inputBaseDir, temp);
+        SWC_RESULT(FileSystem::resolveFolder(ctx, temp));
+        resolvedFolders.insert(std::move(temp));
+    }
+    cmdLine_->directories = std::move(resolvedFolders);
+
+    std::set<fs::path> resolvedFiles;
+    for (const fs::path& file : cmdLine_->files)
+    {
+        fs::path temp = file;
+        resolveModuleRelativeInput(inputBaseDir, temp);
+        SWC_RESULT(FileSystem::resolveFile(ctx, temp));
+        resolvedFiles.insert(std::move(temp));
+    }
+    cmdLine_->files = std::move(resolvedFiles);
+
+    std::set<fs::path> resolvedImportApiDirs;
+    const fs::path     exeFullName = Os::getExeFullName();
+    for (const Utf8& moduleName : cmdLine_->importApiModules)
+    {
+        fs::path temp = FileSystem::generatedDependencyApiDir(exeFullName, moduleName.view());
+        SWC_RESULT(FileSystem::resolveFolder(ctx, temp));
+        resolvedImportApiDirs.insert(std::move(temp));
+    }
+
+    for (const fs::path& folder : cmdLine_->importApiDirs)
+    {
+        fs::path temp = folder;
+        resolveModuleRelativeInput(inputBaseDir, temp);
+        SWC_RESULT(FileSystem::resolveFolder(ctx, temp));
+        resolvedImportApiDirs.insert(std::move(temp));
+    }
+    cmdLine_->importApiDirs = std::move(resolvedImportApiDirs);
+
+    std::set<fs::path> resolvedImportApiFiles;
+    for (const fs::path& file : cmdLine_->importApiFiles)
+    {
+        fs::path temp = file;
+        resolveModuleRelativeInput(inputBaseDir, temp);
+        SWC_RESULT(FileSystem::resolveFile(ctx, temp));
+        resolvedImportApiFiles.insert(std::move(temp));
+    }
+    cmdLine_->importApiFiles = std::move(resolvedImportApiFiles);
 
     if (!cmdLine_->configFile.empty())
     {

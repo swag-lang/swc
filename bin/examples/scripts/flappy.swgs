@@ -14,7 +14,7 @@ So, let's begin.
 
 # Dependencies
 
-Typically, you'd place the '#dependency' block inside the 'module.swg' file of a module. However, if you're working with a script and there isn't a 'module.swg' file, simply put it at the beginning of the script file.
+Typically, you'd put module setup directly inside the 'module.swg' file of a module. However, if you're working with a script and there isn't a 'module.swg' file, simply put the '#dependencies' block at the beginning of the script file.
 
 This special '#dependencies' compiler block is used to specify :
 

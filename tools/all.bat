@@ -41,6 +41,7 @@ call "%~dp0native.bat" %* --artifact-kind "shared-library" --build-cfg "fast-deb
 call "%~dp0native.bat" %* --artifact-kind "static-library" --build-cfg "fast-debug" || exit /b 1
 call "%~dp0reference.bat" %* --build-cfg "fast-debug" || exit /b 1
 call "%~dp0std.bat" %* --build-cfg "fast-debug" || exit /b 1
+call "%~dp0core.bat" %* --build-cfg "fast-debug" || exit /b 1
 call "%~dp0_test_module.bat" %* --bin-rel "tests\lexer" --module-namespace "Lexer" --artifact-label "lex-only" --build-cfg "fast-compile" --lex-only || exit /b 1
 call "%~dp0_test_module.bat" %* --bin-rel "tests\parser" --module-namespace "Parser" --artifact-label "syntax-only" --build-cfg "fast-compile" --syntax-only || exit /b 1
 call "%~dp0_test_module.bat" %* --bin-rel "tests\errors\lexer" --module-namespace "Lexer" --artifact-label "lex-only" --build-cfg "fast-compile" --lex-only || exit /b 1

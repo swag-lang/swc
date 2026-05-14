@@ -323,6 +323,49 @@ SWC_TEST_BEGIN(Compiler_CommandLineModuleFileDerivesModulePath)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(Compiler_CommandLineModuleFileResolvesRelativeInputsFromModuleFolder)
+{
+    const ScopedTempTree tempTree("compiler_module_file_relative_inputs");
+    if (!tempTree.ready())
+        return Result::Error;
+
+    const fs::path moduleDir    = tempTree.root() / "pkg";
+    const fs::path moduleFile   = moduleDir / "module.swg";
+    const fs::path sourceDir    = moduleDir / "src";
+    const fs::path sourceFile   = sourceDir / "main.swg";
+    const fs::path extraFile    = moduleDir / "extras" / "helper.swg";
+
+    if (!writeTextFile(moduleFile, "#run {}\n"))
+        return Result::Error;
+    if (!writeTextFile(sourceFile, "func main() {}\n"))
+        return Result::Error;
+    if (!writeTextFile(extraFile, "func helper() {}\n"))
+        return Result::Error;
+
+    CommandLine                    cmdLine;
+    const uint64_t                 errorsBefore = Stats::getNumErrors();
+    const std::vector<std::string> args         = {
+        "swc_devmode",
+        "sema",
+        "--module-file",
+        moduleFile.string(),
+        "--directory",
+        "src",
+        "--file",
+        "extras/helper.swg",
+    };
+
+    if (parseCommandLine(ctx, cmdLine, args) != Result::Continue)
+        return Result::Error;
+    if (Stats::getNumErrors() != errorsBefore)
+        return Result::Error;
+    if (!containsPath(cmdLine.directories, sourceDir))
+        return Result::Error;
+    if (!containsPath(cmdLine.files, extraFile))
+        return Result::Error;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(Compiler_ModuleFileSetupConfiguresBuildAndLoadsExplicitSources)
 {
     const ScopedTempTree tempTree("compiler_module_file_setup");

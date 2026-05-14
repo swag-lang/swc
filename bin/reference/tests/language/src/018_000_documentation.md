@@ -7,16 +7,13 @@ To generate documentation for your workspace, use the following command:
 Swag supports various documentation generation modes, which should be specified in the module.swg file within the [[Swag.BuildCfg]] structure.
 
 ```swag
-#dependencies
-{
-    #import "pixel"
+#import("pixel")
 
-    #run
-    {
-        let itf = @compiler()
-        let cfg = itf.getBuildCfg()
-        cfg.genDoc.kind = .Api // Specify the documentation generation mode
-    }
+#run
+{
+    let itf = @compiler
+    let cfg = itf.getBuildCfg()
+    cfg.genDoc.kind = .Api // Specify the documentation generation mode
 }
 ```
 

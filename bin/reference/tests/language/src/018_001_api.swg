@@ -15,9 +15,8 @@ The main module documentation should be placed at the top of the `module.swg` fi
 
 ```swag
 // This is the main module documentation.
-#dependencies
-{
-}
+#import("core")
+#run {}
 ````
 
 */

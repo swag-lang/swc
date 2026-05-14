@@ -45,8 +45,6 @@ public:
     void                  setDebugStackSlotOffset(uint32_t offset) { debugStackSlotOffset_ = offset; }
     uint32_t              debugStackSlotSize() const { return debugStackSlotSize_; }
     void                  setDebugStackSlotSize(uint32_t size) { debugStackSlotSize_ = size; }
-    void*                 codeGenPayload() const { return codeGenPayload_; }
-    void                  setCodeGenPayload(void* payload) const { codeGenPayload_ = payload; }
     bool                  isClosureCapture() const noexcept { return closureCapturedSource_ != nullptr; }
     SymbolVariable*       closureCapturedSource() const noexcept { return closureCapturedSource_; }
     void                  setClosureCapturedSource(SymbolVariable* source) noexcept { closureCapturedSource_ = source; }
@@ -84,7 +82,6 @@ private:
     DataSegmentKind globalStorageKind_     = DataSegmentKind::Zero;
     bool            hasGlobalStorage_      = false;
     SymbolFunction* globalFunctionInit_    = nullptr;
-    mutable void*   codeGenPayload_        = nullptr;
     SymbolVariable* closureCapturedSource_ = nullptr;
     uint32_t        closureCaptureOffset_  = 0;
     bool            closureCaptureByRef_   = false;

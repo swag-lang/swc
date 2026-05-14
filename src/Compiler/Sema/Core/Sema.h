@@ -173,7 +173,7 @@ public:
     {
         if (localLoweringPayloads_ && localLoweringPayloads_->contains(n))
             return true;
-        return nodePayloadContext().hasCodeGenPayload(n);
+        return nodePayloadContext().hasLoweringPayload(n);
     }
 
     void setLoweringPayload(AstNodeRef n, void* payload)
@@ -184,7 +184,7 @@ public:
             return;
         }
 
-        nodePayloadContext().setCodeGenPayload(n, payload);
+        nodePayloadContext().setLoweringPayload(n, payload);
     }
 
     template<typename T>
@@ -197,20 +197,20 @@ public:
                 return static_cast<T*>(it->second);
         }
 
-        return static_cast<T*>(nodePayloadContext().getCodeGenPayload(n));
+        return static_cast<T*>(nodePayloadContext().getLoweringPayload(n));
     }
 
     template<typename T>
     T* mutableLoweringPayload(AstNodeRef n)
     {
         if (!localLoweringPayloads_)
-            return static_cast<T*>(nodePayloadContext().getCodeGenPayload(n));
+            return static_cast<T*>(nodePayloadContext().getLoweringPayload(n));
 
         const auto it = localLoweringPayloads_->find(n);
         if (it != localLoweringPayloads_->end())
             return static_cast<T*>(it->second);
 
-        void* inherited = nodePayloadContext().getCodeGenPayload(n);
+        void* inherited = nodePayloadContext().getLoweringPayload(n);
         if (!inherited)
             return nullptr;
 

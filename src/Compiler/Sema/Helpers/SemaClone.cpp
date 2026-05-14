@@ -258,7 +258,7 @@ namespace
             sema.unsetIsLValue(clonedRef);
     }
 
-    void copyImplicitCastCodeGenPayload(Sema& sema, AstNodeRef sourceRef, AstNodeRef clonedRef)
+    void copyImplicitCastLoweringPayload(Sema& sema, AstNodeRef sourceRef, AstNodeRef clonedRef)
     {
         const auto* sourcePayload = sema.loweringPayload<CodeGenLoweringPayload>(sourceRef);
         if (!sourcePayload)
@@ -303,7 +303,7 @@ namespace
         if (sema.hasSemaPayload(sourceRef))
             sema.setSemaPayload(clonedRef, sema.semaPayload<CastSpecOpPayload>(sourceRef));
         sema.copyResolvedCallArguments(clonedRef, sourceRef);
-        copyImplicitCastCodeGenPayload(sema, sourceRef, clonedRef);
+        copyImplicitCastLoweringPayload(sema, sourceRef, clonedRef);
     }
 
     void copyImplicitCastSubstitute(Sema& sema, const SemaClone::CloneContext& cloneContext, AstNodeRef sourceRef, AstNodeRef clonedRef)

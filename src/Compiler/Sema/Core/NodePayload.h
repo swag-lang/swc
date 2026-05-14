@@ -129,9 +129,9 @@ protected:
     void  copyResolvedCallArguments(AstNodeRef dstNodeRef, AstNodeRef srcNodeRef);
     void  setResolvedCallArguments(AstNodeRef nodeRef, std::span<const ResolvedCallArgument> args);
     void  appendResolvedCallArguments(AstNodeRef nodeRef, SmallVector<ResolvedCallArgument>& out) const;
-    bool  hasCodeGenPayload(AstNodeRef nodeRef) const;
-    void  setCodeGenPayload(AstNodeRef nodeRef, void* payload);
-    void* getCodeGenPayload(AstNodeRef nodeRef) const;
+    bool  hasLoweringPayload(AstNodeRef nodeRef) const;
+    void  setLoweringPayload(AstNodeRef nodeRef, void* payload);
+    void* getLoweringPayload(AstNodeRef nodeRef) const;
     bool  hasInlinePayload(AstNodeRef nodeRef) const;
     void  setInlinePayload(AstNodeRef nodeRef, void* payload);
     void* getInlinePayload(AstNodeRef nodeRef) const;
@@ -188,7 +188,7 @@ private:
     {
         mutable std::shared_mutex               mutex;
         PagedStore                              store;
-        std::unordered_map<AstNodeRef, void*>   codeGenPayloads;
+        std::unordered_map<AstNodeRef, void*>   loweringPayloads;
         std::unordered_map<AstNodeRef, void*>   inlinePayloads;
         std::unordered_map<AstNodeRef, void*>   inlineContextOverrides;
         std::unordered_map<AstNodeRef, void*>   semaPayloads;

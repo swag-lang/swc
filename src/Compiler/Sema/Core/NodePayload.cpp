@@ -630,7 +630,7 @@ void NodePayload::appendResolvedCallArguments(AstNodeRef nodeRef, SmallVector<Re
     }
 }
 
-bool NodePayload::hasCodeGenPayload(AstNodeRef nodeRef) const
+bool NodePayload::hasLoweringPayload(AstNodeRef nodeRef) const
 {
     if (nodeRef.isInvalid())
         return false;
@@ -640,21 +640,21 @@ bool NodePayload::hasCodeGenPayload(AstNodeRef nodeRef) const
         return false;
 
     const std::shared_lock lock(shard->mutex);
-    const auto             it = shard->codeGenPayloads.find(nodeRef);
-    return it != shard->codeGenPayloads.end() && it->second != nullptr;
+    const auto             it = shard->loweringPayloads.find(nodeRef);
+    return it != shard->loweringPayloads.end() && it->second != nullptr;
 }
 
-void NodePayload::setCodeGenPayload(AstNodeRef nodeRef, void* payload)
+void NodePayload::setLoweringPayload(AstNodeRef nodeRef, void* payload)
 {
     SWC_ASSERT(nodeRef.isValid());
     SWC_ASSERT(payload);
     const uint32_t         shardIdx = nodeRef.get() % NODE_PAYLOAD_SHARD_NUM;
     Shard*                 shard    = ensureShard(shardIdx);
     const std::unique_lock lock(shard->mutex);
-    shard->codeGenPayloads[nodeRef] = payload;
+    shard->loweringPayloads[nodeRef] = payload;
 }
 
-void* NodePayload::getCodeGenPayload(AstNodeRef nodeRef) const
+void* NodePayload::getLoweringPayload(AstNodeRef nodeRef) const
 {
     if (nodeRef.isInvalid())
         return nullptr;
@@ -664,8 +664,8 @@ void* NodePayload::getCodeGenPayload(AstNodeRef nodeRef) const
         return nullptr;
 
     const std::shared_lock lock(shard->mutex);
-    const auto             it = shard->codeGenPayloads.find(nodeRef);
-    if (it == shard->codeGenPayloads.end())
+    const auto             it = shard->loweringPayloads.find(nodeRef);
+    if (it == shard->loweringPayloads.end())
         return nullptr;
     return it->second;
 }

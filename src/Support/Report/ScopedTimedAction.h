@@ -1,7 +1,7 @@
 #pragma once
 
-#include "Support/Report/LogColor.h"
 #include "Main/TaskContext.h"
+#include "Support/Report/LogColor.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -58,13 +58,13 @@ namespace TimedActionLog
         ScopedStage& operator=(const ScopedStage&) = delete;
 
         StatsSnapshot delta() const;
-        void markOutcome(StageOutcome outcome);
-        void markFailure();
-        void markWarning();
-        void setStat(Utf8 stat);
+        void          markOutcome(StageOutcome outcome);
+        void          markFailure();
+        void          markWarning();
+        void          setStat(Utf8 stat);
 
     private:
-        const TaskContext*          ctx_          = nullptr;
+        const TaskContext*          ctx_ = nullptr;
         Stage                       stage_{};
         Clock::time_point           startTick_{};
         StatsSnapshot               startSnapshot_{};

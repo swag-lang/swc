@@ -119,7 +119,7 @@ namespace
         // Reusing detached-expression clone state there can leak stale substitutes from the
         // auto-member source into the generated `left.member` form.
         nodePtr->nodeRightRef = cloneAutoMemberRightExpr(sema, rightRef);
-        outNode                 = nodePtr;
+        outNode               = nodePtr;
         return nodeRef;
     }
 

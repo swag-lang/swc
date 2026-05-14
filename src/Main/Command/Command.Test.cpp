@@ -594,7 +594,7 @@ namespace Command
     void test(CompilerInstance& compiler)
     {
         SWC_ASSERT(compiler.cmdLine().command == CommandKind::Test);
-        TaskContext ctx(compiler);
+        TaskContext    ctx(compiler);
         const uint64_t errorsBefore = Stats::getNumErrors();
         sema(compiler);
         if (Stats::getNumErrors() != errorsBefore)

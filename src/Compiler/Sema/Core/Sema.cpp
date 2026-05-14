@@ -26,10 +26,10 @@ namespace
         if (!waitCodeRef.isValid())
             return false;
 
-        const SourceView&      srcView   = sema.srcView(waitCodeRef.srcViewRef);
-        const SourceFile*      waitFile  = srcView.file();
-        const SourceFile*      ownerFile = srcView.ownerFileRef().isValid() ? &sema.compiler().file(srcView.ownerFileRef()) : nullptr;
-        const SourceCodeRange  tokenRange = sema.tokenCodeRange(waitCodeRef);
+        const SourceView&     srcView    = sema.srcView(waitCodeRef.srcViewRef);
+        const SourceFile*     waitFile   = srcView.file();
+        const SourceFile*     ownerFile  = srcView.ownerFileRef().isValid() ? &sema.compiler().file(srcView.ownerFileRef()) : nullptr;
+        const SourceCodeRange tokenRange = sema.tokenCodeRange(waitCodeRef);
         return (waitFile && waitFile->hasErrorLineInRange(tokenRange.line, tokenRange.line)) ||
                (ownerFile && ownerFile->hasErrorLineInRange(tokenRange.line, tokenRange.line));
     }
@@ -595,17 +595,17 @@ Result Sema::waitIdentifier(IdentifierRef idRef, const SourceCodeRef& codeRef)
     if (shouldAbortWait(*this))
         return Result::Error;
 
-    const AstNodeRef waitNodeRef = fallbackWaitNodeRef(*this, curNodeRef());
+    const AstNodeRef    waitNodeRef = fallbackWaitNodeRef(*this, curNodeRef());
     const SourceCodeRef waitCodeRef = fallbackWaitCodeRef(*this, waitNodeRef, codeRef);
     if (waitHasErrorOnLine(*this, waitCodeRef))
         return Result::Error;
 
-    TaskState&       wait        = ctx().state();
-    wait.kind                    = TaskStateKind::SemaWaitIdentifier;
-    wait.nodeRef                 = waitNodeRef;
-    wait.codeRef                 = waitCodeRef;
-    wait.idRef                   = idRef;
-    wait.waiterSymbol            = guessCurrentSymbol(*this);
+    TaskState& wait   = ctx().state();
+    wait.kind         = TaskStateKind::SemaWaitIdentifier;
+    wait.nodeRef      = waitNodeRef;
+    wait.codeRef      = waitCodeRef;
+    wait.idRef        = idRef;
+    wait.waiterSymbol = guessCurrentSymbol(*this);
     return Result::Pause;
 }
 
@@ -735,7 +735,7 @@ Result Sema::waitSemaCompleted(const Symbol* symbol, const SourceCodeRef& codeRe
 
     if (function && function->hasExtraFlag(SymbolFunctionFlagsE::LazyGenericBody))
     {
-        auto&        mutableFunction = *const_cast<SymbolFunction*>(function);
+        auto& mutableFunction = *const_cast<SymbolFunction*>(function);
         if (!function->hasExtraFlag(SymbolFunctionFlagsE::LazyGenericBodyRunning))
         {
             const Result result = completeLazyGenericFunction(mutableFunction);

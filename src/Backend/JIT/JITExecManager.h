@@ -88,8 +88,8 @@ private:
         TaskContext* ownerCtx = nullptr;
         Request      request;
         TaskState    waitState;
-        Status       status    = Status::Pending;
-        Result       result    = Result::Continue;
+        Status       status = Status::Pending;
+        Result       result = Result::Continue;
     };
 
     static Result executeItem(Item& item);

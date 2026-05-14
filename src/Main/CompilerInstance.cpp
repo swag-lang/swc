@@ -3,8 +3,8 @@
 #include "Backend/JIT/JIT.h"
 #include "Backend/JIT/JITExecManager.h"
 #include "Backend/JIT/JITMemoryManager.h"
-#include "Backend/RuntimeName.h"
 #include "Backend/Native/SymbolSort.h"
+#include "Backend/RuntimeName.h"
 #include "Compiler/CodeGen/Core/CodeGenJob.h"
 #include "Compiler/Lexer/SourceView.h"
 #include "Compiler/Parser/Ast/Ast.h"
@@ -657,8 +657,8 @@ namespace
                 return;
             }
 
-            auto owned = std::make_unique<Utf8>(value);
-            value.ptr  = owned->data();
+            auto owned   = std::make_unique<Utf8>(value);
+            value.ptr    = owned->data();
             value.length = owned->size();
             newOwnedStrings.push_back(std::move(owned));
         };
@@ -1564,7 +1564,7 @@ ExitCode CompilerInstance::run()
     Stats::resetCommandMetrics();
     logBefore();
     const auto runStart = std::chrono::steady_clock::now();
-    ExitCode exitCode;
+    ExitCode   exitCode;
     if (!cmdLine().workspacePath.empty())
         exitCode = runWorkspace();
     else
@@ -1580,11 +1580,11 @@ ExitCode CompilerInstance::run()
 
 ExitCode CompilerInstance::runWorkspace()
 {
-    TaskContext                  ctx(*this);
-    TimedActionLog::ScopedStage  workspaceStage(ctx, TimedActionLog::Stage::Workspace);
-    fs::path                     workspacePath = cmdLine().workspacePath;
-    fs::path                     modulesPath   = workspaceModulesDirectory(workspacePath);
-    Utf8                         because;
+    TaskContext                 ctx(*this);
+    TimedActionLog::ScopedStage workspaceStage(ctx, TimedActionLog::Stage::Workspace);
+    fs::path                    workspacePath = cmdLine().workspacePath;
+    fs::path                    modulesPath   = workspaceModulesDirectory(workspacePath);
+    Utf8                        because;
 
     workspaceBuildLogState_ = {};
 
@@ -1690,9 +1690,9 @@ ExitCode CompilerInstance::runWorkspace()
         }
     }
 
-    std::vector<uint32_t> indegree(modules.size(), 0);
+    std::vector<uint32_t>            indegree(modules.size(), 0);
     std::vector<std::vector<size_t>> dependents(modules.size());
-    size_t activeModuleCount = 0;
+    size_t                           activeModuleCount = 0;
     for (size_t i = 0; i < modules.size(); ++i)
     {
         if (modules[i].ignoreInWorkspace)
@@ -1778,22 +1778,22 @@ ExitCode CompilerInstance::runWorkspace()
 
 Result CompilerInstance::runWorkspaceModule(const WorkspaceModuleBuild& moduleBuild, const uint32_t moduleIndex, const uint32_t moduleCount)
 {
-    CommandLine moduleCmdLine = cmdLine();
+    CommandLine moduleCmdLine    = cmdLine();
     moduleCmdLine.modulePath     = moduleBuild.moduleDir;
     moduleCmdLine.moduleFilePath = moduleBuild.moduleFile;
     moduleCmdLine.directories.clear();
     moduleCmdLine.directories.insert(moduleBuild.sourceDir);
     moduleCmdLine.files.clear();
-    moduleCmdLine.exportApiDir = workspaceDependencyModuleDirectory(cmdLine().workspacePath, moduleBuild.name.view());
-    moduleCmdLine.outDir       = workspaceModuleOutputDirectory(cmdLine().workspacePath, moduleBuild.name, moduleCmdLine, moduleBuild.setup.buildCfg.backendKind, false);
-    moduleCmdLine.workDir      = workspaceModuleOutputDirectory(cmdLine().workspacePath, moduleBuild.name, moduleCmdLine, moduleBuild.setup.buildCfg.backendKind, true);
+    moduleCmdLine.exportApiDir   = workspaceDependencyModuleDirectory(cmdLine().workspacePath, moduleBuild.name.view());
+    moduleCmdLine.outDir         = workspaceModuleOutputDirectory(cmdLine().workspacePath, moduleBuild.name, moduleCmdLine, moduleBuild.setup.buildCfg.backendKind, false);
+    moduleCmdLine.workDir        = workspaceModuleOutputDirectory(cmdLine().workspacePath, moduleBuild.name, moduleCmdLine, moduleBuild.setup.buildCfg.backendKind, true);
     moduleCmdLine.outDirStorage  = Utf8(moduleCmdLine.outDir);
     moduleCmdLine.workDirStorage = Utf8(moduleCmdLine.workDir);
     CommandLineParser::refreshBuildCfg(moduleCmdLine);
 
-    const uint64_t errorsBefore = Stats::getNumErrors();
+    const uint64_t   errorsBefore = Stats::getNumErrors();
     CompilerInstance moduleCompiler(global(), moduleCmdLine);
-    moduleCompiler.precomputedModuleSetup_ = &moduleBuild.setup;
+    moduleCompiler.precomputedModuleSetup_  = &moduleBuild.setup;
     moduleCompiler.workspaceModuleLogState_ = WorkspaceModuleLogState{
         .name  = moduleBuild.name,
         .index = moduleIndex,
@@ -2495,9 +2495,9 @@ Result CompilerInstance::captureModuleSetupSnapshot(TaskContext& ctx, const Comm
     TaskContext setupCtx(setupCompiler);
     SWC_RESULT(setupCompiler.collectFiles(setupCtx));
 
-    const Global&     global   = setupCtx.global();
-    JobManager&       jobMgr   = global.jobMgr();
-    const JobClientId clientId = setupCompiler.jobClientId();
+    const Global&     global       = setupCtx.global();
+    JobManager&       jobMgr       = global.jobMgr();
+    const JobClientId clientId     = setupCompiler.jobClientId();
     const uint64_t    errorsBefore = Stats::getNumErrors();
 
     for (SourceFile* file : setupCompiler.files())
@@ -2538,7 +2538,7 @@ Result CompilerInstance::captureModuleSetupSnapshot(TaskContext& ctx, const Comm
 
     SWC_RESULT(setupCompiler.setupSema(setupCtx));
 
-    auto* symModule = Symbol::make<SymbolModule>(setupCtx, nullptr, TokenRef::invalid(), IdentifierRef::invalid(), SymbolFlagsE::Zero);
+    auto* symModule           = Symbol::make<SymbolModule>(setupCtx, nullptr, TokenRef::invalid(), IdentifierRef::invalid(), SymbolFlagsE::Zero);
     Utf8  moduleNamespaceName = buildModuleNamespaceName(setupCompiler);
 
     constexpr SymbolFlags namespaceFlags  = SymbolFlagsE::Declared | SymbolFlagsE::Typed | SymbolFlagsE::SemaCompleted;
@@ -2588,7 +2588,7 @@ Result CompilerInstance::applyModuleSetupInputs(TaskContext& ctx, const ModuleSe
         fs::path importDir;
         if (!cmdLine().workspacePath.empty())
         {
-            fs::path workspaceModuleDir = workspaceModuleDirectory(cmdLine().workspacePath, moduleName.view());
+            fs::path        workspaceModuleDir = workspaceModuleDirectory(cmdLine().workspacePath, moduleName.view());
             std::error_code ec;
             if (fs::is_directory(workspaceModuleDir, ec))
                 importDir = workspaceDependencyModuleDirectory(cmdLine().workspacePath, moduleName.view());
@@ -2695,7 +2695,7 @@ Result CompilerInstance::collectImportedApiFiles(const TaskContext& ctx)
 
 Result CompilerInstance::collectFiles(TaskContext& ctx)
 {
-    const CommandLine& cmdLine = ctx.cmdLine();
+    const CommandLine& cmdLine        = ctx.cmdLine();
     const FileFlags    directSrcFlags = cmdLine.moduleFilePath.empty() ? FileFlagsE::CustomSrc : FileFlagsE::ModuleSrc;
 
     // Collect direct folders from the command line

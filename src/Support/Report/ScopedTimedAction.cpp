@@ -210,7 +210,7 @@ namespace
         if (cmdLine.workspacePath.empty())
             return "workspace";
 
-        Utf8 result = Utf8(cmdLine.workspacePath.filename().string());
+        auto result = Utf8(cmdLine.workspacePath.filename().string());
         if (!result.empty())
             return result;
 
@@ -221,14 +221,14 @@ namespace
     {
         if (!cmdLine.modulePath.empty())
         {
-            Utf8 result = Utf8(cmdLine.modulePath.filename().string());
+            auto result = Utf8(cmdLine.modulePath.filename().string());
             if (!result.empty())
                 return result;
         }
 
         if (!cmdLine.moduleFilePath.empty())
         {
-            Utf8 result = Utf8(cmdLine.moduleFilePath.parent_path().filename().string());
+            auto result = Utf8(cmdLine.moduleFilePath.parent_path().filename().string());
             if (!result.empty())
                 return result;
         }
@@ -323,8 +323,8 @@ namespace
 
     Utf8 formatCommandValue(const TaskContext& ctx)
     {
-        Utf8 result = colorize(ctx, emphasisColor(), commandName(ctx.cmdLine().command));
-        const Utf8 scope = formatCompileScopeDetail(ctx);
+        Utf8       result = colorize(ctx, emphasisColor(), commandName(ctx.cmdLine().command));
+        const Utf8 scope  = formatCompileScopeDetail(ctx);
         if (!scope.empty())
         {
             result += " ";
@@ -479,7 +479,7 @@ namespace
     {
         const size_t indentLevel = stageIndentLevel(ctx, stage);
         const Utf8   glyph       = stageStartGlyph(ctx);
-        Utf8 line;
+        Utf8         line;
         appendLineIndent(line, indentLevel);
         line += colorize(ctx, stageLabelColor(stage), glyph);
         line += "  ";
@@ -493,7 +493,7 @@ namespace
     {
         const size_t indentLevel = stageIndentLevel(ctx, stage);
         const Utf8   glyph       = stageStartGlyph(ctx);
-        Utf8 line;
+        Utf8         line;
         appendLineIndent(line, indentLevel);
         line += colorize(ctx, stageLabelColor(stage), glyph);
         line += "  ";
@@ -507,8 +507,8 @@ namespace
     {
         const size_t indentLevel = stageIndentLevel(ctx, stage);
         const Utf8   glyph       = stageOutcomeGlyph(ctx, outcome);
-        const auto labelColor = stageLabelColor(stage);
-        const auto glyphColor = stageOutcomeColor(stage, outcome);
+        const auto   labelColor  = stageLabelColor(stage);
+        const auto   glyphColor  = stageOutcomeColor(stage, outcome);
 
         Utf8 line;
         appendLineIndent(line, indentLevel);

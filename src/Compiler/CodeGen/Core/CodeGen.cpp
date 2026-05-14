@@ -80,8 +80,7 @@ namespace
 #if SWC_DEV_MODE
     void dumpMissingPayloadDebug(CodeGen& codeGen, AstNodeRef queryRef, AstNodeRef resolvedRef, CodeGenNodePayload* payload)
     {
-        const auto dumpNode = [](const AstNode& node, AstNodeRef nodeRef, const char* label)
-        {
+        const auto dumpNode = [](const AstNode& node, AstNodeRef nodeRef, const char* label) {
             const std::string_view nodeName = Ast::nodeIdName(node.id());
             std::fprintf(stderr, "  %s=%u(%.*s)\n", label, nodeRef.get(), static_cast<int>(nodeName.size()), nodeName.data());
         };
@@ -640,8 +639,8 @@ void CodeGen::mergeLoweringNodePayloadMetadata(CodeGenNodePayload& payload, AstN
 
 CodeGenNodePayload& CodeGen::payload(AstNodeRef nodeRef)
 {
-    const AstNodeRef queryNodeRef = nodeRef;
-    CodeGenNodePayload* nodePayload = safePayload(nodeRef);
+    const AstNodeRef    queryNodeRef = nodeRef;
+    CodeGenNodePayload* nodePayload  = safePayload(nodeRef);
     if ((!nodePayload || !nodePayload->reg.isValid()) && nodeRef.isValid() && resolvedNodeRef(nodeRef) != curNodeRef())
     {
         // Some substituted children are intentionally skipped during the main walk and are
@@ -1536,7 +1535,7 @@ Result CodeGen::postNode(AstNode& node)
                 builder().placeLabel(inlineCtx.doneLabel);
 
             clearNodePayload<CodeGenNodePayload>(curNodeRef());
-            auto& inlineNodePayload = ensureNodePayload<CodeGenNodePayload>(curNodeRef());
+            auto& inlineNodePayload   = ensureNodePayload<CodeGenNodePayload>(curNodeRef());
             inlineNodePayload.typeRef = inlineCtx.payload->returnTypeRef;
             if (inlineCtx.payload->returnTypeRef != typeMgr().typeVoid())
             {

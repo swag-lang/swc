@@ -376,9 +376,9 @@ Result AstCompilerIf::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef& ch
     if (!condView.cst())
     {
 #if SWC_DEV_MODE
-        const AstNodeRef   resolvedCondRef = codeGen.resolvedNodeRef(nodeConditionRef);
-        const SemaNodeView storedCondView  = codeGen.sema().viewStored(nodeConditionRef, SemaNodeViewPartE::Node | SemaNodeViewPartE::Constant | SemaNodeViewPartE::Symbol);
-        const std::string_view queryName   = Ast::nodeIdName(codeGen.node(nodeConditionRef).id());
+        const AstNodeRef       resolvedCondRef = codeGen.resolvedNodeRef(nodeConditionRef);
+        const SemaNodeView     storedCondView  = codeGen.sema().viewStored(nodeConditionRef, SemaNodeViewPartE::Node | SemaNodeViewPartE::Constant | SemaNodeViewPartE::Symbol);
+        const std::string_view queryName       = Ast::nodeIdName(codeGen.node(nodeConditionRef).id());
         std::fprintf(stderr, "compiler-if-missing-constant:\n");
         std::fprintf(stderr, "  query=%u(%.*s) resolved=%u current=%u\n",
                      nodeConditionRef.get(),

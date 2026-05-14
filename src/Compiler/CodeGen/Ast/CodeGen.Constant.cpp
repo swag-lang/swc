@@ -269,9 +269,9 @@ namespace
         if (storageSym == nullptr)
             return false;
 
-        outPayload     = *existingPayload;
+        outPayload                   = *existingPayload;
         outPayload.runtimeStorageSym = const_cast<SymbolVariable*>(storageSym);
-        outPayload.reg = codeGen.runtimeStorageAddressReg(valueRef);
+        outPayload.reg               = codeGen.runtimeStorageAddressReg(valueRef);
         outPayload.setIsAddress();
         if (!outPayload.typeRef.isValid())
             outPayload.typeRef = targetTypeRef;

@@ -329,11 +329,11 @@ SWC_TEST_BEGIN(Compiler_CommandLineModuleFileResolvesRelativeInputsFromModuleFol
     if (!tempTree.ready())
         return Result::Error;
 
-    const fs::path moduleDir    = tempTree.root() / "pkg";
-    const fs::path moduleFile   = moduleDir / "module.swg";
-    const fs::path sourceDir    = moduleDir / "src";
-    const fs::path sourceFile   = sourceDir / "main.swg";
-    const fs::path extraFile    = moduleDir / "extras" / "helper.swg";
+    const fs::path moduleDir  = tempTree.root() / "pkg";
+    const fs::path moduleFile = moduleDir / "module.swg";
+    const fs::path sourceDir  = moduleDir / "src";
+    const fs::path sourceFile = sourceDir / "main.swg";
+    const fs::path extraFile  = moduleDir / "extras" / "helper.swg";
 
     if (!writeTextFile(moduleFile, "#run {}\n"))
         return Result::Error;
@@ -461,9 +461,9 @@ SWC_TEST_BEGIN(Compiler_WorkspaceBuildUsesModuleSetupDependenciesAndSkipsIgnored
     if (!tempTree.ready())
         return Result::Error;
 
-    const fs::path workspaceDir = tempTree.root() / "workspace";
-    const fs::path depModuleDir = workspaceDir / "modules" / "dep";
-    const fs::path coreModuleDir = workspaceDir / "modules" / "core";
+    const fs::path workspaceDir     = tempTree.root() / "workspace";
+    const fs::path depModuleDir     = workspaceDir / "modules" / "dep";
+    const fs::path coreModuleDir    = workspaceDir / "modules" / "core";
     const fs::path ignoredModuleDir = workspaceDir / "modules" / "ignored";
 
     if (!writeTextFile(depModuleDir / "module.swg", R"(#run

@@ -1,5 +1,4 @@
 #pragma once
-#include <type_traits>
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroReg.h"
 #include "Backend/Runtime.h"
@@ -7,6 +6,7 @@
 #include "Compiler/Parser/Ast/Ast.h"
 #include "Compiler/Parser/Ast/AstVisit.h"
 #include "Compiler/Sema/Core/Sema.h"
+#include <type_traits>
 
 SWC_BEGIN_NAMESPACE();
 
@@ -231,10 +231,10 @@ public:
 
     const CodeGenLoweringPayload* loweringPayload(AstNodeRef nodeRef) const;
     const SymbolVariable*         runtimeStorageSymbol(AstNodeRef nodeRef) const;
-    TypeRef               transparentPayloadTypeRef();
-    void                  appendResolvedCallArguments(AstNodeRef nodeRef, SmallVector<ResolvedCallArgument>& out) const;
-    SymbolFunction&       function() { return *(function_); }
-    const SymbolFunction& function() const { return *(function_); }
+    TypeRef                       transparentPayloadTypeRef();
+    void                          appendResolvedCallArguments(AstNodeRef nodeRef, SmallVector<ResolvedCallArgument>& out) const;
+    SymbolFunction&               function() { return *(function_); }
+    const SymbolFunction&         function() const { return *(function_); }
 
     template<typename T>
     T* safeNodePayload(AstNodeRef nodeRef)
@@ -263,14 +263,14 @@ public:
     T& ensureNodePayload(AstNodeRef nodeRef)
     {
         const AstNodeRef queryNodeRef = nodeRef;
-        nodeRef = resolvedNodeRef(nodeRef);
+        nodeRef                       = resolvedNodeRef(nodeRef);
         SWC_ASSERT(nodeRef.isValid());
 
-        void*& slot = std::is_base_of_v<CodeGenNodePayload, T> ? nodePayloads_[nodeRef] : auxNodePayloads_[nodeRef];
-        T*    payload = static_cast<T*>(slot);
+        void*& slot    = std::is_base_of_v<CodeGenNodePayload, T> ? nodePayloads_[nodeRef] : auxNodePayloads_[nodeRef];
+        T*     payload = static_cast<T*>(slot);
         if (!payload)
         {
-            payload = compiler().allocate<T>();
+            payload  = compiler().allocate<T>();
             *payload = {};
             if constexpr (std::is_base_of_v<CodeGenNodePayload, T>)
                 mergeLoweringNodePayloadMetadata(*payload, queryNodeRef);

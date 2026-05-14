@@ -2,11 +2,11 @@
 #include "Compiler/Sema/Core/Sema.h"
 #include "Backend/ABI/CallConv.h"
 #include "Backend/Runtime.h"
-#include "Compiler/Sema/Core/CodeGenLoweringPayload.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Cast/Cast.h"
 #include "Compiler/Sema/Constant/ConstantIntrinsic.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
+#include "Compiler/Sema/Core/CodeGenLoweringPayload.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Generic/SemaGeneric.h"
 #include "Compiler/Sema/Helpers/SemaCheck.h"
@@ -2167,7 +2167,7 @@ namespace
         const SemaNodeView nodeSymView = sema.curViewSymbol();
         SWC_ASSERT(nodeSymView.hasSymbol());
 
-        auto& calledFn = nodeSymView.sym()->cast<SymbolFunction>();
+        auto&        calledFn   = nodeSymView.sym()->cast<SymbolFunction>();
         const Result lazyResult = sema.completeLazyGenericFunction(calledFn);
         SWC_RESULT(lazyResult);
 

@@ -241,27 +241,27 @@ private:
         std::set<fs::path>                 loadedFiles;
         std::vector<std::unique_ptr<Utf8>> ownedStrings;
 
-        ModuleSetupSnapshot() = default;
-        ModuleSetupSnapshot(const ModuleSetupSnapshot&) = delete;
-        ModuleSetupSnapshot& operator=(const ModuleSetupSnapshot&) = delete;
-        ModuleSetupSnapshot(ModuleSetupSnapshot&&) noexcept = default;
+        ModuleSetupSnapshot()                                          = default;
+        ModuleSetupSnapshot(const ModuleSetupSnapshot&)                = delete;
+        ModuleSetupSnapshot& operator=(const ModuleSetupSnapshot&)     = delete;
+        ModuleSetupSnapshot(ModuleSetupSnapshot&&) noexcept            = default;
         ModuleSetupSnapshot& operator=(ModuleSetupSnapshot&&) noexcept = default;
     };
 
     struct WorkspaceModuleBuild
     {
-        Utf8                     name;
-        fs::path                 moduleDir;
-        fs::path                 moduleFile;
-        fs::path                 sourceDir;
-        ModuleSetupSnapshot      setup;
-        std::vector<Utf8>        workspaceDependencies;
-        bool                     ignoreInWorkspace = false;
+        Utf8                name;
+        fs::path            moduleDir;
+        fs::path            moduleFile;
+        fs::path            sourceDir;
+        ModuleSetupSnapshot setup;
+        std::vector<Utf8>   workspaceDependencies;
+        bool                ignoreInWorkspace = false;
 
-        WorkspaceModuleBuild() = default;
-        WorkspaceModuleBuild(const WorkspaceModuleBuild&) = delete;
-        WorkspaceModuleBuild& operator=(const WorkspaceModuleBuild&) = delete;
-        WorkspaceModuleBuild(WorkspaceModuleBuild&&) noexcept = default;
+        WorkspaceModuleBuild()                                           = default;
+        WorkspaceModuleBuild(const WorkspaceModuleBuild&)                = delete;
+        WorkspaceModuleBuild& operator=(const WorkspaceModuleBuild&)     = delete;
+        WorkspaceModuleBuild(WorkspaceModuleBuild&&) noexcept            = default;
         WorkspaceModuleBuild& operator=(WorkspaceModuleBuild&&) noexcept = default;
     };
 
@@ -313,7 +313,7 @@ private:
     WorkspaceBuildLogState                   workspaceBuildLogState_{};
     std::optional<WorkspaceModuleLogState>   workspaceModuleLogState_;
     bool                                     suppressBuildConfigurationLog_ = false;
-    uint64_t                                 commandWallTimeNs_ = 0;
+    uint64_t                                 commandWallTimeNs_             = 0;
     Runtime::ICompiler                       runtimeCompiler_{};
     Runtime::IAllocator                      runtimeAllocator_{};
     Runtime::CompilerMessage                 runtimeCompilerMessage_{};

@@ -231,7 +231,7 @@ Utf8 JITExecManager::debugDescribeState() const
         if (!item)
             continue;
 
-        const char* statusName = "Unknown";
+        auto statusName = "Unknown";
         switch (item->status)
         {
             case Status::Pending:

@@ -249,7 +249,7 @@ namespace
     {
         const PendingJitNodeKey key = pendingJitNodeKey(sema, nodeRef);
         const std::scoped_lock  lock(pendingJitNodeMutex());
-        const auto             it = pendingJitNodes().find(key);
+        const auto              it = pendingJitNodes().find(key);
         if (it == pendingJitNodes().end())
             return std::nullopt;
 

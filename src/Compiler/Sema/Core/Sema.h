@@ -214,8 +214,8 @@ public:
         if (!inherited)
             return nullptr;
 
-        auto* payload               = compiler().allocate<T>();
-        *payload                    = *static_cast<T*>(inherited);
+        auto* payload                = compiler().allocate<T>();
+        *payload                     = *static_cast<T*>(inherited);
         (*localLoweringPayloads_)[n] = payload;
         return payload;
     }

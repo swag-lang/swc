@@ -622,7 +622,7 @@ namespace
         const SymbolStruct*     patternRoot      = nullptr;
         IdentifierRef           patternRootIdRef = IdentifierRef::invalid();
         SmallVector<AstNodeRef> patternArgs;
-        bool hasPattern = false;
+        bool                    hasPattern = false;
         SWC_RESULT(tryGetStructPatternGenericArgs(sema, namedType.nodeIdentRef, patternRoot, patternRootIdRef, patternArgs, hasPattern));
         if (!hasPattern || !patternRoot)
             return Result::Continue;
@@ -705,7 +705,7 @@ namespace
         const SymbolStruct*     patternRoot      = nullptr;
         IdentifierRef           patternRootIdRef = IdentifierRef::invalid();
         SmallVector<AstNodeRef> patternArgs;
-        bool hasPattern = false;
+        bool                    hasPattern = false;
         SWC_RESULT(tryGetStructPatternGenericArgs(sema, namedType.nodeIdentRef, patternRoot, patternRootIdRef, patternArgs, hasPattern));
         if (!hasPattern)
             return Result::Continue;
@@ -909,8 +909,8 @@ namespace
         {
             if (hasNestedDims)
             {
-                const TypeInfo& elemType = sema.typeMgr().get(SemaGeneric::unwrapGenericDeductionType(sema.ctx(), elemTypeRef));
-                const Result nestedResult = deduceFromAggregateArrayPatternRec(sema, params, resolvedArgs, dims, dimIndex + 1, elemPatternRef, elemType, argExprRef, callArgIndex, outFailure, mode);
+                const TypeInfo& elemType     = sema.typeMgr().get(SemaGeneric::unwrapGenericDeductionType(sema.ctx(), elemTypeRef));
+                const Result    nestedResult = deduceFromAggregateArrayPatternRec(sema, params, resolvedArgs, dims, dimIndex + 1, elemPatternRef, elemType, argExprRef, callArgIndex, outFailure, mode);
                 if (nestedResult != Result::Continue)
                     return nestedResult;
                 continue;
@@ -931,7 +931,7 @@ namespace
 
         SmallVector<SemaGeneric::GenericResolvedArg> trialResolvedArgs;
         trialResolvedArgs.assign(resolvedArgs.begin(), resolvedArgs.end());
-        CastFailure trialFailure{};
+        CastFailure  trialFailure{};
         const Result aggregateResult = deduceFromAggregateArrayPatternRec(sema, params, trialResolvedArgs.span(), dims, 0, elemPatternRef, argType, argExprRef, callArgIndex, outFailure ? &trialFailure : nullptr, mode);
         if (aggregateResult == Result::Pause)
             return Result::Pause;

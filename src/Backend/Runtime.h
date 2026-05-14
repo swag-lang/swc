@@ -477,7 +477,7 @@ namespace Runtime
         uint32_t moduleRevision = 0;
         uint32_t moduleBuildNum = 0;
         String   moduleNamespace;
-        bool     embeddedImports = false;
+        bool     embeddedImports   = false;
         bool     ignoreInWorkspace = false;
 
         uint32_t   tempAllocatorCapacity      = 4u * 1024u * 1024u;

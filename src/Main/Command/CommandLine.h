@@ -88,7 +88,7 @@ struct CommandLine
     bool artifactKindExplicit = false;
     bool commandExplicit      = false;
     bool testNative           = true;
-    bool nativeTestProgress   = true;
+    bool nativeTestProgress   = false;
     bool testJit              = true;
     bool lexOnly              = false;
     bool syntaxOnly           = false;

@@ -10,7 +10,7 @@ SWC_BEGIN_NAMESPACE();
 
 class SymbolFunction;
 class SymbolStruct;
-struct CodeGenNodePayload;
+struct CodeGenLoweringPayload;
 
 namespace SemaHelpers
 {
@@ -21,7 +21,7 @@ namespace SemaHelpers
         SymbolFunction* calledFn = nullptr;
     };
 
-    CodeGenNodePayload&   ensureCodeGenNodePayload(Sema& sema, AstNodeRef nodeRef);
+    CodeGenLoweringPayload& ensureCodeGenLoweringPayload(Sema& sema, AstNodeRef nodeRef);
     Result                declareGhostAndCompleteStorage(Sema& sema, SymbolVariable& symVar, TypeRef typeRef);
     Result                ensureRuntimeStorageDeclaredAndCompleted(Sema& sema, SymbolVariable& storageSym, TypeRef storageTypeRef);
     Result                completeRuntimeStorageSymbol(Sema& sema, SymbolVariable& symVar, TypeRef typeRef);

@@ -59,9 +59,9 @@ namespace
         return typeRef;
     }
 
-    void mergeSupplementalNodePayloadMetadata(CodeGenNodePayload& dst, const CodeGenNodePayload& src)
+    void mergeNodeLoweringMetadata(CodeGenNodePayload& dst, const CodeGenLoweringPayload& src)
     {
-        if (!dst.runtimeStorageSym && src.runtimeStorageSym)
+        if (!dst.runtimeStorageOverridden && !dst.runtimeStorageSym && src.runtimeStorageSym)
             dst.runtimeStorageSym = src.runtimeStorageSym;
         if (!dst.runtimeFunctionSymbol && src.runtimeFunctionSymbol)
             dst.runtimeFunctionSymbol = src.runtimeFunctionSymbol;
@@ -70,17 +70,10 @@ namespace
         if (!dst.runtimeArrayFillCstRef.isValid() && src.runtimeArrayFillCstRef.isValid())
             dst.runtimeArrayFillCstRef = src.runtimeArrayFillCstRef;
         dst.runtimeSafetyMask |= src.runtimeSafetyMask;
-        if (!dst.hasThrowableWrapper() && src.hasThrowableWrapper())
+        if (!dst.throwableWrapperConsumed && !dst.hasThrowableWrapper() && src.hasThrowableWrapper())
         {
             dst.throwableWrapperOwnerRef = src.throwableWrapperOwnerRef;
             dst.throwableWrapperTokenId  = src.throwableWrapperTokenId;
-            dst.throwableFailLabel       = src.throwableFailLabel;
-            dst.throwableDoneLabel       = src.throwableDoneLabel;
-        }
-        if (!dst.hasThrowableFunctionTarget() && src.hasThrowableFunctionTarget())
-        {
-            dst.throwableFunctionFailLabel = src.throwableFunctionFailLabel;
-            dst.throwableFunctionDoneLabel = src.throwableFunctionDoneLabel;
         }
     }
 
@@ -611,6 +604,40 @@ TypeRef CodeGen::transparentPayloadTypeRef()
     return curViewType().typeRef();
 }
 
+const CodeGenLoweringPayload* CodeGen::loweringPayload(AstNodeRef nodeRef) const
+{
+    if (nodeRef.isInvalid())
+        return nullptr;
+    return sema().loweringPayload<CodeGenLoweringPayload>(nodeRef);
+}
+
+const SymbolVariable* CodeGen::runtimeStorageSymbol(AstNodeRef nodeRef) const
+{
+    if (const auto* exactPayload = loweringPayload(nodeRef); exactPayload && exactPayload->runtimeStorageSym != nullptr)
+        return exactPayload->runtimeStorageSym;
+
+    const auto* payload = const_cast<CodeGen*>(this)->safePayload(nodeRef);
+    if (payload && payload->runtimeStorageSym != nullptr)
+        return payload->runtimeStorageSym;
+    return nullptr;
+}
+
+void CodeGen::mergeLoweringNodePayloadMetadata(CodeGenNodePayload& payload, AstNodeRef nodeRef) const
+{
+    const AstNodeRef resolvedRef = resolvedNodeRef(nodeRef);
+    if (resolvedRef.isInvalid())
+        return;
+
+    if (const auto* resolvedPayload = loweringPayload(resolvedRef))
+        mergeNodeLoweringMetadata(payload, *resolvedPayload);
+
+    if (resolvedRef == nodeRef)
+        return;
+
+    if (const auto* originalPayload = loweringPayload(nodeRef))
+        mergeNodeLoweringMetadata(payload, *originalPayload);
+}
+
 CodeGenNodePayload& CodeGen::payload(AstNodeRef nodeRef)
 {
     const AstNodeRef queryNodeRef = nodeRef;
@@ -639,19 +666,17 @@ CodeGenNodePayload* CodeGen::safePayload(AstNodeRef nodeRef)
     if (resolvedRef.isInvalid())
         return nullptr;
 
-    CodeGenNodePayload* payload = sema().mutableCodeGenPayload<CodeGenNodePayload>(resolvedRef);
-    if (resolvedRef == nodeRef)
-        return payload;
-
-    CodeGenNodePayload* originalPayload = sema().mutableCodeGenPayload<CodeGenNodePayload>(nodeRef);
+    CodeGenNodePayload* payload = safeNodePayload<CodeGenNodePayload>(resolvedRef);
     if (!payload)
-        return originalPayload;
+    {
+        const bool hasPayload = loweringPayload(resolvedRef) != nullptr || (resolvedRef != nodeRef && loweringPayload(nodeRef) != nullptr);
+        if (!hasPayload)
+            return nullptr;
 
-    // Preserve sema-time metadata attached to the original syntax node when
-    // codegen later operates on a substituted node.
-    if (originalPayload && originalPayload != payload)
-        mergeSupplementalNodePayloadMetadata(*payload, *originalPayload);
+        payload = &ensureNodePayload<CodeGenNodePayload>(nodeRef);
+    }
 
+    mergeLoweringNodePayloadMetadata(*payload, nodeRef);
     return payload;
 }
 
@@ -686,7 +711,7 @@ CodeGenNodePayload& CodeGen::inheritPayload(AstNodeRef dstNodeRef, AstNodeRef sr
     CodeGenNodePayload srcPayloadCopy;
     if (resolvedNodeRef(srcNodeRef) == resolvedNodeRef(dstNodeRef))
     {
-        const auto* originalPayload = sema().codeGenPayload<CodeGenNodePayload>(srcNodeRef);
+        const auto* originalPayload = safeNodePayload<CodeGenNodePayload>(srcNodeRef);
         if (originalPayload && originalPayload->reg.isValid())
             srcPayloadCopy = *originalPayload;
         else
@@ -710,22 +735,13 @@ CodeGenNodePayload& CodeGen::inheritPayload(AstNodeRef dstNodeRef, AstNodeRef sr
 
 CodeGenNodePayload& CodeGen::setPayload(AstNodeRef nodeRef, TypeRef typeRef)
 {
-    nodeRef = resolvedNodeRef(nodeRef);
-    SWC_ASSERT(nodeRef.isValid());
+    CodeGenNodePayload& nodePayload = ensureNodePayload<CodeGenNodePayload>(nodeRef);
 
-    CodeGenNodePayload* nodePayload = sema().mutableCodeGenPayload<CodeGenNodePayload>(nodeRef);
-    if (!nodePayload)
-    {
-        nodePayload  = compiler().allocate<CodeGenNodePayload>();
-        *nodePayload = {};
-        sema().setCodeGenPayload(nodeRef, nodePayload);
-    }
-
-    nodePayload->reg         = nextVirtualRegister();
-    nodePayload->typeRef     = typeRef;
-    nodePayload->storageKind = CodeGenNodePayload::StorageKind::Value;
-    nodePayload->clearMaterializedPointerLikeValue();
-    return *(nodePayload);
+    nodePayload.reg         = nextVirtualRegister();
+    nodePayload.typeRef     = typeRef;
+    nodePayload.storageKind = CodeGenNodePayload::StorageKind::Value;
+    nodePayload.clearMaterializedPointerLikeValue();
+    return nodePayload;
 }
 
 CodeGenNodePayload& CodeGen::setPayloadValue(AstNodeRef nodeRef, TypeRef typeRef)
@@ -801,15 +817,12 @@ MicroReg CodeGen::ensureCurrentFunctionIndirectReturnReg(const CallConvKind call
 
 MicroReg CodeGen::runtimeStorageAddressReg(AstNodeRef nodeRef)
 {
-    const CodeGenNodePayload* nodePayload = sema().codeGenPayload<CodeGenNodePayload>(nodeRef);
-    if (!nodePayload)
-        nodePayload = safePayload(nodeRef);
-    SWC_ASSERT(nodePayload != nullptr);
-    SWC_ASSERT(nodePayload->runtimeStorageSym != nullptr);
-    if (CodeGenFunctionHelpers::usesCallerReturnStorage(*this, *nodePayload->runtimeStorageSym))
+    const SymbolVariable* storageSym = runtimeStorageSymbol(nodeRef);
+    SWC_ASSERT(storageSym != nullptr);
+    if (CodeGenFunctionHelpers::usesCallerReturnStorage(*this, *storageSym))
         return ensureCurrentFunctionIndirectReturnReg(function().callConvKind());
 
-    const CodeGenNodePayload storagePayload = resolveLocalStackPayload(*(nodePayload->runtimeStorageSym), !inDeferredEmission());
+    const CodeGenNodePayload storagePayload = resolveLocalStackPayload(*storageSym, !inDeferredEmission());
     SWC_ASSERT(storagePayload.isAddress());
     return storagePayload.reg;
 }
@@ -1522,9 +1535,9 @@ Result CodeGen::postNode(AstNode& node)
             if (inlineCtx.doneLabel.isValid())
                 builder().placeLabel(inlineCtx.doneLabel);
 
-            auto* inlineNodePayload    = compiler().allocate<CodeGenNodePayload>();
-            *inlineNodePayload         = {};
-            inlineNodePayload->typeRef = inlineCtx.payload->returnTypeRef;
+            clearNodePayload<CodeGenNodePayload>(curNodeRef());
+            auto& inlineNodePayload = ensureNodePayload<CodeGenNodePayload>(curNodeRef());
+            inlineNodePayload.typeRef = inlineCtx.payload->returnTypeRef;
             if (inlineCtx.payload->returnTypeRef != typeMgr().typeVoid())
             {
                 SWC_ASSERT(inlineCtx.payload->resultVar != nullptr);
@@ -1532,10 +1545,9 @@ Result CodeGen::postNode(AstNode& node)
                 SWC_ASSERT(resultVar.hasExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack));
                 SWC_ASSERT(localStackBaseReg().isValid());
 
-                inlineNodePayload->setIsAddress();
-                inlineNodePayload->reg = offsetAddressReg(localStackBaseReg(), resultVar.offset());
+                inlineNodePayload.setIsAddress();
+                inlineNodePayload.reg = offsetAddressReg(localStackBaseReg(), resultVar.offset());
             }
-            sema().setCodeGenPayload(curNodeRef(), inlineNodePayload);
         }
 
         popFrame();

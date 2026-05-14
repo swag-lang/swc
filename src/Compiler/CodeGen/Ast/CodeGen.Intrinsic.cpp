@@ -1242,7 +1242,7 @@ namespace
         codeGen.ast().appendNodes(children, node.spanChildrenRef);
         SWC_ASSERT(children.size() == 2);
 
-        const auto* payload = codeGen.sema().codeGenPayload<CodeGenNodePayload>(codeGen.curNodeRef());
+        const auto* payload = codeGen.loweringPayload(codeGen.curNodeRef());
         SWC_ASSERT(payload != nullptr);
         SWC_ASSERT(payload->runtimeFunctionSymbol != nullptr);
 
@@ -1261,7 +1261,7 @@ namespace
         codeGen.ast().appendNodes(children, node.spanChildrenRef);
         SWC_ASSERT(children.size() == 3);
 
-        const auto* payload = codeGen.sema().codeGenPayload<CodeGenNodePayload>(codeGen.curNodeRef());
+        const auto* payload = codeGen.loweringPayload(codeGen.curNodeRef());
         SWC_ASSERT(payload != nullptr);
         SWC_ASSERT(payload->runtimeFunctionSymbol != nullptr);
 
@@ -1561,7 +1561,7 @@ namespace
         else
             builder.emitLoadRegReg(condReg, exprPayload.reg, condBits);
 
-        const auto* payload = codeGen.sema().codeGenPayload<CodeGenNodePayload>(codeGen.curNodeRef());
+        const auto* payload = codeGen.loweringPayload(codeGen.curNodeRef());
         SWC_ASSERT(payload != nullptr);
         SWC_ASSERT(payload->runtimeFunctionSymbol != nullptr);
 
@@ -2231,7 +2231,7 @@ namespace
         if (codeGen.isNativeBuild())
             return codeGenGetContextNative(codeGen);
 
-        const auto* payload = codeGen.sema().codeGenPayload<CodeGenNodePayload>(codeGen.curNodeRef());
+        const auto* payload = codeGen.loweringPayload(codeGen.curNodeRef());
         SWC_ASSERT(payload != nullptr);
         SWC_ASSERT(payload->runtimeFunctionSymbol != nullptr);
 
@@ -2270,7 +2270,7 @@ namespace
         codeGen.ast().appendNodes(children, node.spanChildrenRef);
         SWC_ASSERT(children.size() == 1);
 
-        const auto* payload = codeGen.sema().codeGenPayload<CodeGenNodePayload>(codeGen.curNodeRef());
+        const auto* payload = codeGen.loweringPayload(codeGen.curNodeRef());
         SWC_ASSERT(payload != nullptr);
         SWC_ASSERT(payload->runtimeFunctionSymbol != nullptr);
         if (!payload || !payload->runtimeFunctionSymbol)

@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "Compiler/Sema/Cast/Cast.h"
 #include "Backend/Runtime.h"
-#include "Compiler/Sema/Core/CodeGenNodePayload.h"
+#include "Compiler/Sema/Core/CodeGenLoweringPayload.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
@@ -225,7 +225,7 @@ Result Cast::retargetLiteralRuntimeStorageIfNeeded(Sema& sema, AstNodeRef nodeRe
     if (!needsRetarget)
         return Result::Continue;
 
-    const auto* payload = sema.codeGenPayload<CodeGenNodePayload>(nodeRef);
+    const auto* payload = sema.loweringPayload<CodeGenLoweringPayload>(nodeRef);
     if (!payload || payload->runtimeStorageSym == nullptr)
         return Result::Continue;
 

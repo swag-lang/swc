@@ -260,7 +260,7 @@ namespace
         if (!resolvedNodeRef.isValid())
             return false;
 
-        const auto* payload = codeGen.sema().codeGenPayload<CodeGenNodePayload>(resolvedNodeRef);
+        const auto* payload = codeGen.loweringPayload(resolvedNodeRef);
         return payload && payload->hasRuntimeSafety(Runtime::SafetyWhat::Assume);
     }
 
@@ -1022,7 +1022,7 @@ namespace
 
     bool hasRuntimeStoragePayload(CodeGen& codeGen, AstNodeRef nodeRef)
     {
-        const auto* payload = codeGen.sema().codeGenPayload<CodeGenNodePayload>(nodeRef);
+        const auto* payload = codeGen.loweringPayload(nodeRef);
         return payload && payload->runtimeStorageSym != nullptr;
     }
 

@@ -931,7 +931,6 @@ namespace
             {
                 argView      = codeGen.sema().viewStored(argRef, SemaNodeViewPartE::Type);
                 argConstView = codeGen.sema().viewStored(argRef, SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
-                payload      = codeGen.sema().codeGenPayload<CodeGenNodePayload>(argRef);
             }
 
             normalizedTypeRef               = resolveNormalizedArgTypeRef(codeGen, param, argView);
@@ -1635,9 +1634,9 @@ Result CodeGenCallHelpers::codeGenCallExprCommon(CodeGen& codeGen, AstNodeRef ca
     if (!normalizedRet.isVoid)
         nodePayload.reg = normalizedRet.isFloat ? codeGen.nextVirtualFloatRegister() : codeGen.nextVirtualIntRegister();
     if (directVarInitStorageSym)
-        nodePayload.runtimeStorageSym = directVarInitStorageSym;
+        nodePayload.setRuntimeStorageSymbol(directVarInitStorageSym);
     else if (usesCurrentFunctionReturnStorage)
-        nodePayload.runtimeStorageSym = nullptr;
+        nodePayload.setRuntimeStorageSymbol(nullptr);
     emitFunctionCall(codeGen, *calledFunction, preparedCall, callTargetReg);
     if (transientStackSize)
         builder.emitOpBinaryRegImm(callConv.stackPointer, ApInt(transientStackSize, 64), MicroOp::Add, MicroOpBits::B64);

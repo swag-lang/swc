@@ -2,7 +2,7 @@
 #include "Compiler/Sema/Core/Sema.h"
 #include "Backend/ABI/CallConv.h"
 #include "Backend/Runtime.h"
-#include "Compiler/Sema/Core/CodeGenNodePayload.h"
+#include "Compiler/Sema/Core/CodeGenLoweringPayload.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Cast/Cast.h"
 #include "Compiler/Sema/Constant/ConstantIntrinsic.h"
@@ -174,12 +174,12 @@ namespace
         if (sema.currentFunction() == &calledFn)
             return true;
 
-        if (sema.usesLocalCodeGenPayloads())
+        if (sema.usesLocalLoweringPayloads())
             return false;
 
         // Semantic analysis can legitimately re-enter another lazy body owned by the same
         // task while generic dependencies are still being wired. Codegen uses a dedicated
-        // Sema with local payload mirrors, so it must never observe this "running means
+        // Sema with local lowering mirrors, so it must never observe this "running means
         // good enough" shortcut.
         if (run.ownerCtx == &sema.ctx())
             return true;
@@ -285,8 +285,17 @@ namespace
             auto&                  run = lazyGenericBodyRuns()[&calledFn];
             if (run.sema)
             {
-                if (run.ownerCtx != &sema.ctx() || run.running)
+                if (run.running)
                     return sema.waitSemaCompletedNoLazy(&calledFn, calledFn.codeRef());
+
+                if (run.ownerCtx != &sema.ctx())
+                {
+                    // A paused child Sema carries the in-flight walk state for this lazy
+                    // body. Transfer that state to the next waiting task instead of
+                    // replaying the body on the shared AST and payload context.
+                    run.ownerCtx = &sema.ctx();
+                    run.sema->rebindTaskContext(sema.ctx());
+                }
             }
             else
             {
@@ -646,11 +655,9 @@ namespace
         if (!targetRef.isValid())
             return;
 
-        CodeGenNodePayload& payload      = SemaHelpers::ensureCodeGenNodePayload(sema, targetRef);
+        CodeGenLoweringPayload& payload  = SemaHelpers::ensureCodeGenLoweringPayload(sema, targetRef);
         payload.throwableWrapperOwnerRef = ownerRef;
         payload.throwableWrapperTokenId  = tokenId;
-        payload.throwableFailLabel       = MicroLabelRef::invalid();
-        payload.throwableDoneLabel       = MicroLabelRef::invalid();
     }
 
     void attachInlineRootThrowableWrapperIfCallLike(Sema& sema, AstNodeRef ownerRef, AstNodeRef targetRef, TokenId tokenId)
@@ -876,7 +883,7 @@ namespace
                 SWC_RESULT(SemaHelpers::requireRuntimePopScopeDependencies(sema, sema.curNode().codeRef()));
                 if (sema.frame().currentAttributes().hasRuntimeSafety(sema.buildCfg().safetyGuards, Runtime::SafetyWhat::Assume))
                 {
-                    auto& codeGenPayload = SemaHelpers::ensureCodeGenNodePayload(sema, sema.curNodeRef());
+                    auto& codeGenPayload = SemaHelpers::ensureCodeGenLoweringPayload(sema, sema.curNodeRef());
                     codeGenPayload.addRuntimeSafety(Runtime::SafetyWhat::Assume);
                     SWC_RESULT(SemaHelpers::requireRuntimeFunctionDependency(sema, IdentifierManager::RuntimeFunctionKind::FailedAssume, sema.curNode().codeRef()));
                 }
@@ -1711,7 +1718,7 @@ namespace
         if (!sym.typeRef().isValid())
             return Result::Continue;
 
-        auto& payload = SemaHelpers::ensureCodeGenNodePayload(sema, sema.curNodeRef());
+        auto& payload = SemaHelpers::ensureCodeGenLoweringPayload(sema, sema.curNodeRef());
         if (payload.runtimeStorageSym == nullptr)
         {
             if (SymbolVariable* boundStorage = SemaHelpers::currentRuntimeStorage(sema))

@@ -1,6 +1,6 @@
 #include "pch.h"
 #include "Compiler/Sema/Helpers/SemaClone.h"
-#include "Compiler/Sema/Core/CodeGenNodePayload.h"
+#include "Compiler/Sema/Core/CodeGenLoweringPayload.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Ast/Sema.Loop.h"
 #include "Compiler/Sema/Cast/Cast.h"
@@ -260,11 +260,11 @@ namespace
 
     void copyImplicitCastCodeGenPayload(Sema& sema, AstNodeRef sourceRef, AstNodeRef clonedRef)
     {
-        const auto* sourcePayload = sema.codeGenPayload<CodeGenNodePayload>(sourceRef);
+        const auto* sourcePayload = sema.loweringPayload<CodeGenLoweringPayload>(sourceRef);
         if (!sourcePayload)
             return;
 
-        auto& clonedPayload = SemaHelpers::ensureCodeGenNodePayload(sema, clonedRef);
+        auto& clonedPayload = SemaHelpers::ensureCodeGenLoweringPayload(sema, clonedRef);
         if (!clonedPayload.runtimeStorageSym && sourcePayload->runtimeStorageSym)
             clonedPayload.runtimeStorageSym = sourcePayload->runtimeStorageSym;
         if (!clonedPayload.runtimeFunctionSymbol && sourcePayload->runtimeFunctionSymbol)

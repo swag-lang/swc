@@ -25,7 +25,7 @@ namespace
 {
     bool hasRuntimeSafety(const CodeGen& codeGen, const Runtime::SafetyWhat what)
     {
-        const auto* nodePayload = codeGen.sema().codeGenPayload<CodeGenNodePayload>(codeGen.curNodeRef());
+        const auto* nodePayload = codeGen.loweringPayload(codeGen.curNodeRef());
         return nodePayload && nodePayload->hasRuntimeSafety(what);
     }
 
@@ -45,12 +45,12 @@ namespace
         return payload;
     }
 
-    SymbolFunction* runtimeSafetyPanicFunction(CodeGen& codeGen, const CodeGenNodePayload* nodePayload = nullptr)
+    SymbolFunction* runtimeSafetyPanicFunction(CodeGen& codeGen, const CodeGenLoweringPayload* nodePayload = nullptr)
     {
         if (nodePayload && nodePayload->runtimeFunctionSymbol != nullptr)
             return nodePayload->runtimeFunctionSymbol;
 
-        const auto* payload = codeGen.sema().codeGenPayload<CodeGenNodePayload>(codeGen.curNodeRef());
+        const auto* payload = codeGen.loweringPayload(codeGen.curNodeRef());
         if (payload && payload->runtimeFunctionSymbol != nullptr)
             return payload->runtimeFunctionSymbol;
 
@@ -240,7 +240,7 @@ Result CodeGenSafety::emitBoundCheck(CodeGen& codeGen, AstNodeRef indexRef, cons
     if (!indexedType.isIndexable())
         return Result::Continue;
 
-    const auto* nodePayload = codeGen.sema().codeGenPayload<CodeGenNodePayload>(codeGen.curNodeRef());
+    const auto* nodePayload = codeGen.loweringPayload(codeGen.curNodeRef());
     if (!nodePayload || !nodePayload->hasRuntimeSafety(Runtime::SafetyWhat::BoundCheck))
         return Result::Continue;
 
@@ -274,7 +274,7 @@ Result CodeGenSafety::emitLoopBoundCheck(CodeGen& codeGen, AstNodeRef nodeRef, M
     if (nodeRef.isInvalid())
         return Result::Continue;
 
-    const auto* nodePayload = codeGen.sema().codeGenPayload<CodeGenNodePayload>(nodeRef);
+    const auto* nodePayload = codeGen.loweringPayload(nodeRef);
     if (!nodePayload || !nodePayload->hasRuntimeSafety(Runtime::SafetyWhat::BoundCheck))
         return Result::Continue;
 
@@ -303,7 +303,7 @@ Result CodeGenSafety::emitSwitchCheck(CodeGen& codeGen, const AstNode& node, Sym
 
 Result CodeGenSafety::emitMathCheck(CodeGen& codeGen, const AstNode& node)
 {
-    const auto* nodePayload = codeGen.sema().codeGenPayload<CodeGenNodePayload>(codeGen.curNodeRef());
+    const auto* nodePayload = codeGen.loweringPayload(codeGen.curNodeRef());
     if (!nodePayload || !nodePayload->hasRuntimeSafety(Runtime::SafetyWhat::Math))
         return Result::Continue;
 
@@ -674,7 +674,7 @@ Result CodeGenSafety::emitDynCastCheck(CodeGen& codeGen, SymbolFunction& panicFu
 
 Result CodeGenSafety::emitUnreachableCheck(CodeGen& codeGen, const AstNode& node)
 {
-    const auto* nodePayload = codeGen.sema().codeGenPayload<CodeGenNodePayload>(codeGen.curNodeRef());
+    const auto* nodePayload = codeGen.loweringPayload(codeGen.curNodeRef());
     if (!nodePayload || !nodePayload->hasRuntimeSafety(Runtime::SafetyWhat::Unreachable))
         return Result::Continue;
 

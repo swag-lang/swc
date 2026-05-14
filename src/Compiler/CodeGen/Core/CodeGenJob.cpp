@@ -83,7 +83,7 @@ void CodeGenJob::initSemaAndCodeGen()
 {
     SWC_ASSERT(nodePayloadCtx_ != nullptr);
     ownedSema_ = std::make_unique<Sema>(ctx(), *nodePayloadCtx_, false);
-    ownedSema_->enableLocalCodeGenPayloads();
+    ownedSema_->enableLocalLoweringPayloads();
     codeGen_ = std::make_unique<CodeGen>(*ownedSema_);
 }
 

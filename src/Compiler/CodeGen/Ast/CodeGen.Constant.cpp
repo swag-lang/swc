@@ -265,10 +265,12 @@ namespace
             return true;
         }
 
-        if (existingPayload->runtimeStorageSym == nullptr)
+        const SymbolVariable* storageSym = codeGen.runtimeStorageSymbol(valueRef);
+        if (storageSym == nullptr)
             return false;
 
         outPayload     = *existingPayload;
+        outPayload.runtimeStorageSym = const_cast<SymbolVariable*>(storageSym);
         outPayload.reg = codeGen.runtimeStorageAddressReg(valueRef);
         outPayload.setIsAddress();
         if (!outPayload.typeRef.isValid())
@@ -354,10 +356,9 @@ namespace
 
     TypeRef resolvedLiteralStorageTypeRef(CodeGen& codeGen, AstNodeRef nodeRef)
     {
-        const CodeGenNodePayload* payload = codeGen.safePayload(nodeRef);
-        if (payload && payload->runtimeStorageSym != nullptr)
+        if (const SymbolVariable* storageSym = codeGen.runtimeStorageSymbol(nodeRef); storageSym != nullptr)
         {
-            const TypeRef runtimeStorageTypeRef = payload->runtimeStorageSym->typeRef();
+            const TypeRef runtimeStorageTypeRef = storageSym->typeRef();
             if (runtimeStorageTypeRef.isValid())
             {
                 const TypeInfo& runtimeStorageType = codeGen.typeMgr().get(runtimeStorageTypeRef);

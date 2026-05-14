@@ -476,7 +476,7 @@ namespace
                 return Result::Continue;
 
             const AstNodeRef resolvedInitRef = initRef.isValid() ? codeGen.viewZero(initRef).nodeRef() : AstNodeRef::invalid();
-            const auto*      initNodePayload = resolvedInitRef.isValid() ? codeGen.sema().codeGenPayload<CodeGenNodePayload>(resolvedInitRef) : nullptr;
+            const auto*      initNodePayload = resolvedInitRef.isValid() ? codeGen.safeNodePayload<CodeGenNodePayload>(resolvedInitRef) : nullptr;
             if (initNodePayload && initNodePayload->runtimeStorageSym == &symVar && initNodePayload->isAddress())
                 return Result::Continue;
 
@@ -527,7 +527,7 @@ namespace
             SWC_ASSERT(localSize > 0);
             const CodeGenNodePayload symbolPayload   = codeGen.resolveLocalStackPayload(symVar);
             const AstNodeRef         resolvedInitRef = initRef.isValid() ? codeGen.viewZero(initRef).nodeRef() : AstNodeRef::invalid();
-            const auto*              initNodePayload = resolvedInitRef.isValid() ? codeGen.sema().codeGenPayload<CodeGenNodePayload>(resolvedInitRef) : nullptr;
+            const auto*              initNodePayload = resolvedInitRef.isValid() ? codeGen.safeNodePayload<CodeGenNodePayload>(resolvedInitRef) : nullptr;
 
             if (initNodePayload && initNodePayload->runtimeStorageSym == &symVar && initNodePayload->isAddress())
                 return Result::Continue;

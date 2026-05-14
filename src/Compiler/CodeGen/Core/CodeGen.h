@@ -1,10 +1,11 @@
 #pragma once
+#include <type_traits>
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroReg.h"
 #include "Backend/Runtime.h"
+#include "Compiler/CodeGen/Core/CodeGenNodePayload.h"
 #include "Compiler/Parser/Ast/Ast.h"
 #include "Compiler/Parser/Ast/AstVisit.h"
-#include "Compiler/Sema/Core/CodeGenNodePayload.h"
 #include "Compiler/Sema/Core/Sema.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -198,6 +199,7 @@ public:
     SemaNodeView view(AstNodeRef nodeRef) { return sema().view(nodeRef); }
     SemaNodeView view(AstNodeRef nodeRef, EnumFlags<SemaNodeViewPartE> part) { return sema().view(nodeRef, part); }
     AstNodeRef   resolvedNodeRef(AstNodeRef nodeRef) { return sema().viewZero(nodeRef).nodeRef(); }
+    AstNodeRef   resolvedNodeRef(AstNodeRef nodeRef) const { return const_cast<CodeGen*>(this)->resolvedNodeRef(nodeRef); }
     SemaNodeView viewZero(AstNodeRef nodeRef) { return view(nodeRef, SemaNodeViewPartE::Zero); }
     SemaNodeView viewNode(AstNodeRef nodeRef) { return view(nodeRef, SemaNodeViewPartE::Node); }
     SemaNodeView viewType(AstNodeRef nodeRef) { return view(nodeRef, SemaNodeViewPartE::Type); }
@@ -227,6 +229,8 @@ public:
     SemaNodeView curViewNodeTypeSymbol() { return curView(SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Symbol); }
     SemaNodeView curViewNodeTypeConstantSymbol() { return curView(SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant | SemaNodeViewPartE::Symbol); }
 
+    const CodeGenLoweringPayload* loweringPayload(AstNodeRef nodeRef) const;
+    const SymbolVariable*         runtimeStorageSymbol(AstNodeRef nodeRef) const;
     TypeRef               transparentPayloadTypeRef();
     void                  appendResolvedCallArguments(AstNodeRef nodeRef, SmallVector<ResolvedCallArgument>& out) const;
     SymbolFunction&       function() { return *(function_); }
@@ -238,20 +242,39 @@ public:
         nodeRef = resolvedNodeRef(nodeRef);
         if (nodeRef.isInvalid())
             return nullptr;
-        return sema().mutableCodeGenPayload<T>(nodeRef);
+
+        if constexpr (std::is_base_of_v<CodeGenNodePayload, T>)
+        {
+            const auto it = nodePayloads_.find(nodeRef);
+            if (it == nodePayloads_.end())
+                return nullptr;
+            return static_cast<T*>(it->second);
+        }
+        else
+        {
+            const auto it = auxNodePayloads_.find(nodeRef);
+            if (it == auxNodePayloads_.end())
+                return nullptr;
+            return static_cast<T*>(it->second);
+        }
     }
 
     template<typename T>
     T& ensureNodePayload(AstNodeRef nodeRef)
     {
+        const AstNodeRef queryNodeRef = nodeRef;
         nodeRef = resolvedNodeRef(nodeRef);
         SWC_ASSERT(nodeRef.isValid());
 
-        T* payload = sema().mutableCodeGenPayload<T>(nodeRef);
+        void*& slot = std::is_base_of_v<CodeGenNodePayload, T> ? nodePayloads_[nodeRef] : auxNodePayloads_[nodeRef];
+        T*    payload = static_cast<T*>(slot);
         if (!payload)
         {
             payload = compiler().allocate<T>();
-            sema().setCodeGenPayload(nodeRef, payload);
+            *payload = {};
+            if constexpr (std::is_base_of_v<CodeGenNodePayload, T>)
+                mergeLoweringNodePayloadMetadata(*payload, queryNodeRef);
+            slot = payload;
         }
 
         return *payload;
@@ -263,6 +286,19 @@ public:
         T& payload = ensureNodePayload<T>(nodeRef);
         payload    = payloadValue;
         return payload;
+    }
+
+    template<typename T>
+    void clearNodePayload(AstNodeRef nodeRef)
+    {
+        nodeRef = resolvedNodeRef(nodeRef);
+        if (nodeRef.isInvalid())
+            return;
+
+        if constexpr (std::is_base_of_v<CodeGenNodePayload, T>)
+            nodePayloads_.erase(nodeRef);
+        else
+            auxNodePayloads_.erase(nodeRef);
     }
 
     CodeGenNodePayload&       payload(AstNodeRef nodeRef);
@@ -341,10 +377,13 @@ private:
     Result emitDeferredActionsInScope(size_t scopeIndex, size_t actionCount);
     Result emitDeferredActionsFrom(size_t startScopeIndex, size_t startActionCount, size_t stopScopeIndex, bool hasStopScope);
     bool   findInnermostDeferScopeIndex(AstNodeRef scopeRef, size_t& outScopeIndex) const;
+    void   mergeLoweringNodePayloadMetadata(CodeGenNodePayload& payload, AstNodeRef nodeRef) const;
 
     Sema*                                                           sema_ = nullptr;
     AstVisit                                                        visit_;
     std::vector<CodeGenFrame>                                       frames_;
+    std::unordered_map<AstNodeRef, void*>                           nodePayloads_;
+    std::unordered_map<AstNodeRef, void*>                           auxNodePayloads_;
     std::unordered_map<const SymbolVariable*, VariablePayloadState> variablePayloads_;
     SymbolFunction*                                                 function_            = nullptr;
     MicroBuilder*                                                   builder_             = nullptr;

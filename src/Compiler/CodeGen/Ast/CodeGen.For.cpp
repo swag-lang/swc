@@ -163,21 +163,13 @@ namespace
         const auto* loopPayload = codeGen.sema().semaPayload<LoopSemaPayload>(codeGen.curNodeRef());
         if (loopPayload && loopPayload->countFn != nullptr)
         {
-            auto* savedLoopStatePtr = forStmtCodeGenPayload(codeGen, codeGen.curNodeRef());
-            SWC_ASSERT(savedLoopStatePtr != nullptr);
-            const ForStmtCodeGenPayload savedLoopState = *savedLoopStatePtr;
-            auto*                       callPayload    = codeGen.compiler().allocate<CodeGenNodePayload>();
-            *callPayload                               = {};
-            codeGen.sema().setCodeGenPayload(codeGen.curNodeRef(), callPayload);
-
+            codeGen.clearNodePayload<CodeGenNodePayload>(codeGen.curNodeRef());
             codeGen.sema().setResolvedCallArguments(codeGen.curNodeRef(), loopPayload->countResolvedArgs);
             codeGen.sema().setSymbol(codeGen.curNodeRef(), loopPayload->countFn);
             codeGen.sema().setIsValue(codeGen.curNodeRef());
             SWC_RESULT(CodeGenCallHelpers::codeGenCallExprCommon(codeGen, AstNodeRef::invalid()));
-            const CodeGenNodePayload countPayload = *callPayload;
-
-            *savedLoopStatePtr = savedLoopState;
-            codeGen.sema().setCodeGenPayload(codeGen.curNodeRef(), savedLoopStatePtr);
+            const CodeGenNodePayload countPayload = codeGen.payload(codeGen.curNodeRef());
+            codeGen.clearNodePayload<CodeGenNodePayload>(codeGen.curNodeRef());
 
             outReg = materializeLoopValueReg(codeGen, countPayload, resultTypeRef);
             return Result::Continue;

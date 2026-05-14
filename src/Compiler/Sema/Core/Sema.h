@@ -107,6 +107,7 @@ public:
     const SemaScope*           resolvedUpLookupScope() const;
     static void                configureLookupFrame(SemaFrame& frame, SemaScope* lookupScope, bool ignoreRuntimeAccess = false);
     void                       restartCurrentNode(AstNodeRef nodeRef);
+    void                       rebindTaskContext(TaskContext& ctx) { ctx_ = &ctx; }
 
     AstVisit&        visit() { return visit_; }
     const AstVisit&  visit() const { return visit_; }
@@ -166,20 +167,20 @@ public:
     void setSymbolList(AstNodeRef n, std::span<const Symbol*> symbols) { nodePayloadContext().setSymbolList(n, symbols); }
     void setSymbolList(AstNodeRef n, std::span<Symbol*> symbols) { nodePayloadContext().setSymbolList(n, symbols); }
 
-    void enableLocalCodeGenPayloads() { localCodeGenPayloads_ = std::make_unique<std::unordered_map<AstNodeRef, void*>>(); }
-    bool usesLocalCodeGenPayloads() const { return localCodeGenPayloads_ != nullptr; }
-    bool hasCodeGenPayload(AstNodeRef n) const
+    void enableLocalLoweringPayloads() { localLoweringPayloads_ = std::make_unique<std::unordered_map<AstNodeRef, void*>>(); }
+    bool usesLocalLoweringPayloads() const { return localLoweringPayloads_ != nullptr; }
+    bool hasLoweringPayload(AstNodeRef n) const
     {
-        if (localCodeGenPayloads_ && localCodeGenPayloads_->contains(n))
+        if (localLoweringPayloads_ && localLoweringPayloads_->contains(n))
             return true;
         return nodePayloadContext().hasCodeGenPayload(n);
     }
 
-    void setCodeGenPayload(AstNodeRef n, void* payload)
+    void setLoweringPayload(AstNodeRef n, void* payload)
     {
-        if (localCodeGenPayloads_)
+        if (localLoweringPayloads_)
         {
-            (*localCodeGenPayloads_)[n] = payload;
+            (*localLoweringPayloads_)[n] = payload;
             return;
         }
 
@@ -187,12 +188,12 @@ public:
     }
 
     template<typename T>
-    T* codeGenPayload(AstNodeRef n) const
+    T* loweringPayload(AstNodeRef n) const
     {
-        if (localCodeGenPayloads_)
+        if (localLoweringPayloads_)
         {
-            const auto it = localCodeGenPayloads_->find(n);
-            if (it != localCodeGenPayloads_->end())
+            const auto it = localLoweringPayloads_->find(n);
+            if (it != localLoweringPayloads_->end())
                 return static_cast<T*>(it->second);
         }
 
@@ -200,13 +201,13 @@ public:
     }
 
     template<typename T>
-    T* mutableCodeGenPayload(AstNodeRef n)
+    T* mutableLoweringPayload(AstNodeRef n)
     {
-        if (!localCodeGenPayloads_)
+        if (!localLoweringPayloads_)
             return static_cast<T*>(nodePayloadContext().getCodeGenPayload(n));
 
-        const auto it = localCodeGenPayloads_->find(n);
-        if (it != localCodeGenPayloads_->end())
+        const auto it = localLoweringPayloads_->find(n);
+        if (it != localLoweringPayloads_->end())
             return static_cast<T*>(it->second);
 
         void* inherited = nodePayloadContext().getCodeGenPayload(n);
@@ -215,7 +216,7 @@ public:
 
         auto* payload               = compiler().allocate<T>();
         *payload                    = *static_cast<T*>(inherited);
-        (*localCodeGenPayloads_)[n] = payload;
+        (*localLoweringPayloads_)[n] = payload;
         return payload;
     }
 
@@ -403,7 +404,7 @@ private:
 
     TaskContext*                                           ctx_                = nullptr;
     NodePayload*                                           nodePayloadContext_ = nullptr;
-    std::unique_ptr<std::unordered_map<AstNodeRef, void*>> localCodeGenPayloads_;
+    std::unique_ptr<std::unordered_map<AstNodeRef, void*>> localLoweringPayloads_;
     AstVisit                                               visit_;
 
     std::vector<std::unique_ptr<SemaScope>> scopes_;

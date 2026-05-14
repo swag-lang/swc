@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "Compiler/Sema/Cast/Cast.h"
 #include "Backend/Runtime.h"
-#include "Compiler/Sema/Core/CodeGenNodePayload.h"
+#include "Compiler/Sema/Core/CodeGenLoweringPayload.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Constant/ConstantHelpers.h"
 #include "Compiler/Sema/Constant/ConstantLower.h"
@@ -442,7 +442,7 @@ namespace
         if (!dstUsesTypeInfoMatch)
             return Result::Continue;
 
-        auto& payload = SemaHelpers::ensureCodeGenNodePayload(sema, nodeRef);
+        auto& payload = SemaHelpers::ensureCodeGenLoweringPayload(sema, nodeRef);
 
         if (hasDynCastSafety)
             payload.addRuntimeSafety(Runtime::SafetyWhat::DynCast);
@@ -773,7 +773,7 @@ namespace
         if (fillCstRef.isInvalid())
             return Result::Continue;
 
-        auto& payload                   = SemaHelpers::ensureCodeGenNodePayload(sema, nodeRef);
+        auto& payload                   = SemaHelpers::ensureCodeGenLoweringPayload(sema, nodeRef);
         payload.runtimeArrayFillTypeRef = fillTypeRef;
         payload.runtimeArrayFillCstRef  = fillCstRef;
         outNeedsRuntimeStorage          = true;

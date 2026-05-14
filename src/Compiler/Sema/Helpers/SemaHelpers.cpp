@@ -3,7 +3,7 @@
 #include "Backend/ABI/ABITypeNormalize.h"
 #include "Backend/ABI/CallConv.h"
 #include "Backend/Runtime.h"
-#include "Compiler/Sema/Core/CodeGenNodePayload.h"
+#include "Compiler/Sema/Core/CodeGenLoweringPayload.h"
 #include "Compiler/Lexer/SourceView.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Constant/ConstantExtract.h"
@@ -957,7 +957,7 @@ Result SemaHelpers::attachRuntimeFunctionToNode(Sema& sema, AstNodeRef nodeRef, 
 {
     SymbolFunction* runtimeFn = nullptr;
     SWC_RESULT(requireRuntimeFunctionDependency(runtimeFn, sema, kind, codeRef));
-    ensureCodeGenNodePayload(sema, nodeRef).runtimeFunctionSymbol = runtimeFn;
+    ensureCodeGenLoweringPayload(sema, nodeRef).runtimeFunctionSymbol = runtimeFn;
     return Result::Continue;
 }
 
@@ -1144,7 +1144,7 @@ Result SemaHelpers::setupRuntimeSafetyPanic(Sema& sema, AstNodeRef nodeRef, Runt
     SymbolFunction* panicFn = nullptr;
     SWC_RESULT(requireRuntimeSafetyPanicDependency(panicFn, sema, codeRef));
 
-    auto& payload = ensureCodeGenNodePayload(sema, nodeRef);
+    auto& payload = ensureCodeGenLoweringPayload(sema, nodeRef);
     payload.addRuntimeSafety(safetyKind);
     payload.runtimeFunctionSymbol = panicFn;
     return Result::Continue;
@@ -1166,7 +1166,7 @@ Result SemaHelpers::attachLiteralRuntimeStorageIfNeeded(Sema& sema, const AstNod
 
 SymbolVariable& SemaHelpers::getOrCreateRuntimeStorageSymbol(Sema& sema, AstNodeRef payloadNodeRef, const AstNode& storageNode, std::string_view privateName)
 {
-    auto& payload = ensureCodeGenNodePayload(sema, payloadNodeRef);
+    auto& payload = ensureCodeGenLoweringPayload(sema, payloadNodeRef);
     if (payload.runtimeStorageSym != nullptr)
         return *payload.runtimeStorageSym;
 
@@ -1248,15 +1248,15 @@ Result SemaHelpers::completeRuntimeStorageSymbol(Sema& sema, SymbolVariable& sym
     return Result::Continue;
 }
 
-CodeGenNodePayload& SemaHelpers::ensureCodeGenNodePayload(Sema& sema, AstNodeRef nodeRef)
+CodeGenLoweringPayload& SemaHelpers::ensureCodeGenLoweringPayload(Sema& sema, AstNodeRef nodeRef)
 {
-    auto* payload = sema.codeGenPayload<CodeGenNodePayload>(nodeRef);
+    auto* payload = sema.loweringPayload<CodeGenLoweringPayload>(nodeRef);
     if (payload)
         return *payload;
 
-    payload  = sema.compiler().allocate<CodeGenNodePayload>();
+    payload  = sema.compiler().allocate<CodeGenLoweringPayload>();
     *payload = {};
-    sema.setCodeGenPayload(nodeRef, payload);
+    sema.setLoweringPayload(nodeRef, payload);
     return *payload;
 }
 
@@ -2508,7 +2508,7 @@ namespace
 
     Result ensureMemberRuntimeStorage(Sema& sema, AstNodeRef targetNodeRef, const AstMemberAccessExpr& node)
     {
-        auto& payload = SemaHelpers::ensureCodeGenNodePayload(sema, targetNodeRef);
+        auto& payload = SemaHelpers::ensureCodeGenLoweringPayload(sema, targetNodeRef);
         if (payload.runtimeStorageSym == nullptr)
         {
             if (SymbolVariable* boundStorage = SemaHelpers::currentRuntimeStorage(sema))

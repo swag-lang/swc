@@ -4,6 +4,7 @@
 #include "Backend/JIT/JITExecManager.h"
 #include "Backend/JIT/JITMemoryManager.h"
 #include "Backend/Native/SymbolSort.h"
+#include "Compiler/CodeGen/Core/CodeGenJob.h"
 #include "Compiler/Lexer/SourceView.h"
 #include "Compiler/Parser/Ast/Ast.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
@@ -882,6 +883,39 @@ Result CompilerInstance::setupSema(TaskContext& ctx)
     cstMgr_->setup(ctx);
     SWC_RESULT(compilerTags_.setup(ctx));
     return Result::Continue;
+}
+
+bool CompilerInstance::tryEnqueueCodeGenJob(Sema& sema, SymbolFunction& symbolFunc, const AstNodeRef root)
+{
+    if (!symbolFunc.tryMarkCodeGenJobScheduled())
+        return false;
+
+    SWC_ASSERT(root.isValid());
+    auto* job = heapNew<CodeGenJob>(sema.ctx(), sema, symbolFunc, root);
+    global().jobMgr().enqueue(*job, JobPriority::Normal, jobClientId());
+    return true;
+}
+
+Sema* CompilerInstance::tryGetJobSema(Job* job)
+{
+    if (!job)
+        return nullptr;
+    if (auto* semaJob = job->safeCast<SemaJob>())
+        return &semaJob->sema();
+    if (auto* codeGenJob = job->safeCast<CodeGenJob>())
+        return &codeGenJob->sema();
+    return nullptr;
+}
+
+const Sema* CompilerInstance::tryGetJobSema(const Job* job)
+{
+    if (!job)
+        return nullptr;
+    if (const auto* semaJob = job->safeCast<SemaJob>())
+        return &semaJob->sema();
+    if (const auto* codeGenJob = job->safeCast<CodeGenJob>())
+        return &codeGenJob->sema();
+    return nullptr;
 }
 
 uint32_t CompilerInstance::pendingImplRegistrations(const IdentifierRef idRef) const

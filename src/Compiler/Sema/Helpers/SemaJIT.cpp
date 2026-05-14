@@ -4,7 +4,6 @@
 #include "Backend/ABI/CallConv.h"
 #include "Backend/JIT/JIT.h"
 #include "Backend/JIT/JITExecManager.h"
-#include "Compiler/CodeGen/Core/CodeGenJob.h"
 #include "Compiler/Sema/Constant/ConstantHelpers.h"
 #include "Compiler/Sema/Constant/ConstantLower.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
@@ -16,8 +15,6 @@
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Compiler/Sema/Symbol/Symbols.h"
 #include "Main/CompilerInstance.h"
-#include "Main/Global.h"
-#include "Support/Memory/Heap.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -378,11 +375,7 @@ namespace
             symFn.jitReadyVersion() == initTargetsVersion)
             return Result::Continue;
 
-        if (symFn.tryMarkCodeGenJobScheduled())
-        {
-            auto* job = heapNew<CodeGenJob>(ctx, sema, symFn, symFn.declNodeRef());
-            sema.compiler().global().jobMgr().enqueue(*job, JobPriority::Normal, sema.compiler().jobClientId());
-        }
+        sema.compiler().tryEnqueueCodeGenJob(sema, symFn, symFn.declNodeRef());
         SWC_RESULT(sema.waitCodeGenCompleted(&symFn, symFn.codeRef()));
         if (ctx.state().jitEmissionError)
             return reportJitEvaluationFailure(sema, symFn);
@@ -404,13 +397,7 @@ namespace
             for (SymbolFunction* function : jitOrder)
             {
                 knownFunctions.insert(function);
-                if (!function->tryMarkCodeGenJobScheduled())
-                    continue;
-
-                const AstNodeRef depRoot = function->declNodeRef();
-                SWC_ASSERT(depRoot.isValid());
-                auto* job = heapNew<CodeGenJob>(ctx, sema, *function, depRoot);
-                sema.compiler().global().jobMgr().enqueue(*job, JobPriority::Normal, sema.compiler().jobClientId());
+                sema.compiler().tryEnqueueCodeGenJob(sema, *function, function->declNodeRef());
             }
 
             for (const SymbolFunction* function : jitOrder)

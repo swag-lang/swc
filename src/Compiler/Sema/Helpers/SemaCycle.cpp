@@ -1,12 +1,11 @@
 #include "pch.h"
 #include "Compiler/Sema/Helpers/SemaCycle.h"
-#include "Compiler/CodeGen/Core/CodeGenJob.h"
 #include "Compiler/Sema/Core/Sema.h"
-#include "Compiler/Sema/Core/SemaJob.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.Impl.h"
 #include "Compiler/Sema/Symbol/Symbol.Struct.h"
+#include "Main/CompilerInstance.h"
 #include "Main/Global.h"
 #include "Support/Report/DiagnosticDef.h"
 #include "Support/Thread/JobManager.h"
@@ -31,15 +30,6 @@ namespace
         result += " -> ";
         result += cycle.front()->name(ctx);
         return result;
-    }
-
-    Sema* jobSema(Job* job)
-    {
-        if (auto* semaJob = job->safeCast<SemaJob>())
-            return &semaJob->sema();
-        if (auto* codeGenJob = job->safeCast<CodeGenJob>())
-            return &codeGenJob->sema();
-        return nullptr;
     }
 
     Utf8 stalledDependencyName(const TaskContext& ctx, Sema& sema, const TaskState& state)
@@ -191,7 +181,7 @@ void SemaCycle::reportCycle(const std::vector<const Symbol*>& cycle)
     if (itLoc == graph_.edges.end())
         return;
 
-    Sema* sema = jobSema(itLoc->second.job);
+    Sema* sema = CompilerInstance::tryGetJobSema(itLoc->second.job);
     if (!sema)
         return;
 
@@ -206,7 +196,7 @@ void SemaCycle::reportCycle(const std::vector<const Symbol*>& cycle)
         const auto    itEdge = graph_.edges.find({sym, next});
         if (itEdge == graph_.edges.end())
             continue;
-        Sema* edgeSema = jobSema(itEdge->second.job);
+        Sema* edgeSema = CompilerInstance::tryGetJobSema(itEdge->second.job);
         if (!edgeSema)
             continue;
 
@@ -286,7 +276,7 @@ void SemaCycle::check(TaskContext& ctx, JobClientId clientId)
         if (state.waiterSymbol && state.waiterSymbol->isIgnored())
             continue;
 
-        Sema* sema = jobSema(job);
+        Sema* sema = CompilerInstance::tryGetJobSema(job);
         if (!sema)
             continue;
 
@@ -311,7 +301,7 @@ void SemaCycle::check(TaskContext& ctx, JobClientId clientId)
         if (state.kind == TaskStateKind::SemaWaitIdentifier)
             continue;
 
-        Sema* sema = jobSema(job);
+        Sema* sema = CompilerInstance::tryGetJobSema(job);
         if (!sema)
             continue;
 

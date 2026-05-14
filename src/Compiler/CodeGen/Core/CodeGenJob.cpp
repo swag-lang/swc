@@ -4,13 +4,12 @@
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/SourceFile.h"
-#include "Main/Global.h"
+#include "Main/CompilerInstance.h"
 #include "Main/Stats.h"
 #include "Support/Memory/MemoryProfile.h"
 #if SWC_HAS_STATS
 #include "Support/Core/Timer.h"
 #endif
-#include "Support/Memory/Heap.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -137,12 +136,7 @@ JobResult CodeGenJob::exec()
     ///////////////////////////////////////////
     for (SymbolFunction* dep : deps)
     {
-        if (!dep->tryMarkCodeGenJobScheduled())
-            continue;
-        const AstNodeRef depRoot = dep->declNodeRef();
-        SWC_ASSERT(depRoot.isValid());
-        auto* depJob = heapNew<CodeGenJob>(ctx(), sema(), *dep, depRoot);
-        sema().compiler().global().jobMgr().enqueue(*depJob, JobPriority::Normal, sema().compiler().jobClientId());
+        sema().compiler().tryEnqueueCodeGenJob(sema(), *dep, dep->declNodeRef());
     }
 
     // Generate micro instructions only once and mark codegen as pre-solved.
@@ -181,13 +175,7 @@ JobResult CodeGenJob::exec()
         if (dep->isIgnored())
             return abortCodeGen(ctx(), *symbolFunc_, Result::Error);
 
-        if (dep->tryMarkCodeGenJobScheduled())
-        {
-            const AstNodeRef depRoot = dep->declNodeRef();
-            SWC_ASSERT(depRoot.isValid());
-            auto* depJob = heapNew<CodeGenJob>(ctx(), sema(), *dep, depRoot);
-            sema().compiler().global().jobMgr().enqueue(*depJob, JobPriority::Normal, sema().compiler().jobClientId());
-        }
+        sema().compiler().tryEnqueueCodeGenJob(sema(), *dep, dep->declNodeRef());
 
         if (!dep->isCodeGenPreSolved() && !dep->isCodeGenCompleted())
             return waitCodeGenPreSolved(ctx(), *symbolFunc_, *dep, root_);

@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "Compiler/Sema/Cast/Cast.h"
 #include "Backend/Runtime.h"
-#include "Compiler/CodeGen/Core/CodeGen.h"
+#include "Compiler/Sema/Core/CodeGenNodePayload.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Constant/ConstantHelpers.h"
 #include "Compiler/Sema/Constant/ConstantLower.h"

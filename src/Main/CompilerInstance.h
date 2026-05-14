@@ -12,6 +12,7 @@
 SWC_BEGIN_NAMESPACE();
 
 struct AstCompilerFunc;
+class Job;
 class SourceView;
 class Sema;
 class TaskContext;
@@ -136,6 +137,7 @@ public:
     const std::vector<SymbolVariable*>& nativeGlobalVariables() const { return nativeGlobalVariables_; }
 
     Result setupSema(TaskContext& ctx);
+    bool   tryEnqueueCodeGenJob(Sema& sema, SymbolFunction& symbolFunc, AstNodeRef root);
     void   notifyAlive() { changed_.store(true, std::memory_order_release); }
     bool   changed() const { return changed_.load(std::memory_order_acquire); }
     bool   consumeChanged() { return changed_.exchange(false, std::memory_order_acq_rel); }
@@ -164,6 +166,8 @@ public:
     bool                            hasCompilerMessageInterest(Runtime::CompilerMsgKind kind) const;
     Result                          appendGeneratedSource(GeneratedSourceAppendResult& outResult, Utf8& outBecause, const fs::path& directory, std::string_view sectionText, uint32_t codeOffsetInSection);
     void                            registerInMemoryFile(fs::path path, std::string_view content);
+    static Sema*                    tryGetJobSema(Job* job);
+    static const Sema*              tryGetJobSema(const Job* job);
 
     SourceFile&              addFile(fs::path path, FileFlags flags);
     SourceFile&              file(FileRef ref) const;

@@ -3,7 +3,7 @@
 #include "Backend/ABI/ABITypeNormalize.h"
 #include "Backend/ABI/CallConv.h"
 #include "Backend/Runtime.h"
-#include "Compiler/CodeGen/Core/CodeGen.h"
+#include "Compiler/Sema/Core/CodeGenNodePayload.h"
 #include "Compiler/Lexer/SourceView.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Constant/ConstantExtract.h"

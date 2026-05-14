@@ -80,6 +80,13 @@ namespace
         return SemaClone::cloneDetachedExpr(sema, sourceRef);
     }
 
+    AstNodeRef cloneAutoMemberRightExpr(Sema& sema, AstNodeRef sourceRef)
+    {
+        SWC_ASSERT(sourceRef.isValid());
+        const SemaClone::CloneContext noBindings{std::span<const SemaClone::ParamBinding>{}};
+        return SemaClone::cloneAst(sema, sourceRef, noBindings);
+    }
+
     AstNodeRef makeAutoMemberLeftExpr(Sema& sema, TokenRef tokRef, const AutoMemberCandidate& candidate)
     {
         if (candidate.baseExprRef.isValid())
@@ -108,7 +115,10 @@ namespace
     {
         auto [nodeRef, nodePtr] = sema.ast().makeNode<AstNodeId::MemberAccessExpr>(tokRef);
         nodePtr->nodeLeftRef    = makeAutoMemberLeftExpr(sema, tokRef, candidate);
-        nodePtr->nodeRightRef   = cloneDetachedExpr(sema, rightRef);
+        // The RHS of a synthesized member access is a member name, not an arbitrary expression.
+        // Reusing detached-expression clone state there can leak stale substitutes from the
+        // auto-member source into the generated `left.member` form.
+        nodePtr->nodeRightRef = cloneAutoMemberRightExpr(sema, rightRef);
         outNode                 = nodePtr;
         return nodeRef;
     }
@@ -677,7 +687,6 @@ Result AstAutoMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& c
     if (selected.symMap)
     {
         const std::span foundSymbols = matches.front().symbols.span();
-
         SWC_RESULT(SemaSymbolLookup::bindResolvedSymbols(sema, sema.curNodeRef(), allowOverloadSet, foundSymbols));
 
         AstMemberAccessExpr*     substituteNode = nullptr;

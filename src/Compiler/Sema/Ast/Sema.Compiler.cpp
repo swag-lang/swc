@@ -1207,6 +1207,39 @@ Result AstCompilerGlobal::semaPostNode(Sema& sema) const
 
 namespace
 {
+    TypeRef compilerOperandTypeRefFromSymbol(const Symbol& symbol)
+    {
+        if (symbol.typeRef().isValid())
+            return symbol.typeRef();
+
+        if (const auto* alias = symbol.safeCast<SymbolAlias>())
+        {
+            if (alias->underlyingTypeRef().isValid())
+                return alias->underlyingTypeRef();
+            if (alias->aliasedSymbol() && alias->aliasedSymbol()->typeRef().isValid())
+                return alias->aliasedSymbol()->typeRef();
+        }
+
+        return TypeRef::invalid();
+    }
+
+    void hydrateCompilerTypeOperandFromTypedSymbol(Sema& sema, SemaNodeView& view)
+    {
+        if (view.typeRef().isValid() || !view.nodeRef().isValid())
+            return;
+
+        SemaNodeView typeSymbolView(sema, view.nodeRef(), SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant | SemaNodeViewPartE::Symbol);
+        if (!typeSymbolView.sym() || !typeSymbolView.sym()->isType())
+            return;
+
+        const TypeRef symbolTypeRef = compilerOperandTypeRefFromSymbol(*typeSymbolView.sym());
+        if (!symbolTypeRef.isValid())
+            return;
+
+        sema.setType(typeSymbolView.nodeRef(), symbolTypeRef);
+        view = SemaNodeView(sema, view.nodeRef(), SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant | SemaNodeViewPartE::Symbol);
+    }
+
     SymbolStruct* compilerGenericRootStructFromView(Sema& sema, const SemaNodeView& view)
     {
         if (view.sym() && view.sym()->isStruct())
@@ -1219,8 +1252,12 @@ namespace
         TypeRef representedTypeRef = TypeRef::invalid();
         if (view.type() && view.type()->isTypeValue())
             representedTypeRef = view.type()->payloadTypeRef();
-        else if (view.type() && view.type()->isStruct())
-            representedTypeRef = view.typeRef();
+        else if (view.type())
+        {
+            representedTypeRef = view.type()->unwrap(sema.ctx(), view.typeRef(), TypeExpandE::Alias);
+            if (!representedTypeRef.isValid() && view.type()->isStruct())
+                representedTypeRef = view.typeRef();
+        }
 
         if (!representedTypeRef.isValid())
             return nullptr;
@@ -1238,6 +1275,8 @@ namespace
 
     Result instantiateCompilerGenericTypeOperand(Sema& sema, SemaNodeView& view)
     {
+        hydrateCompilerTypeOperandFromTypedSymbol(sema, view);
+
         auto* genericRoot = compilerGenericRootStructFromView(sema, view);
         if (!genericRoot)
             return Result::Continue;
@@ -1321,6 +1360,8 @@ namespace
 
     Result resolveCompilerOperandConcreteType(Sema& sema, SemaNodeView& view, AstNodeRef childRef, TypeRef& outTypeRef)
     {
+        hydrateCompilerTypeOperandFromTypedSymbol(sema, view);
+
         if (!view.typeRef().isValid())
             return SemaError::raise(sema, DiagnosticId::sema_err_not_value_expr, childRef);
 

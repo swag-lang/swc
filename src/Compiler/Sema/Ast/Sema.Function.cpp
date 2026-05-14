@@ -199,6 +199,26 @@ namespace
         return runs;
     }
 
+    bool isCurrentLazyGenericBodySema(const Sema& sema, const SymbolFunction& calledFn)
+    {
+        const std::scoped_lock lock(lazyGenericBodyRunMutex());
+        const auto             it = lazyGenericBodyRuns().find(&calledFn);
+        if (it == lazyGenericBodyRuns().end())
+            return false;
+
+        return it->second.sema.get() == &sema;
+    }
+
+    Result waitForOtherLazyGenericBodyRunner(Sema& sema, SymbolFunction& symbol)
+    {
+        if (!symbol.hasExtraFlag(SymbolFunctionFlagsE::LazyGenericBodyRunning))
+            return Result::Continue;
+        if (isCurrentLazyGenericBodySema(sema, symbol))
+            return Result::Continue;
+
+        return sema.waitSemaCompletedNoLazy(&symbol, symbol.codeRef());
+    }
+
     std::unique_ptr<Sema> makeLazyGenericBodySema(Sema& sema, const SymbolFunction& calledFn, AstNodeRef declRef)
     {
         auto payloadContext = const_cast<NodePayload*>(calledFn.declNodePayloadContext());
@@ -428,6 +448,13 @@ Result AstFunctionDecl::semaPreNode(Sema& sema) const
     auto& sym = sema.curViewSymbol().sym()->cast<SymbolFunction>();
     if (sym.isForeign())
         sym.setCallConvKind(CallConvKind::C);
+
+    if (sym.isSemaCompleted())
+        return Result::SkipChildren;
+
+    const Result waitResult = waitForOtherLazyGenericBodyRunner(sema, sym);
+    if (waitResult != Result::Continue)
+        return waitResult;
 
     const auto* declImpl = functionDeclImplContext(sema, &sym);
     const auto* declItf  = functionDeclInterfaceContext(sema, &sym);
@@ -2127,13 +2154,15 @@ namespace
         auto                              resolveMode = isAttributeContextCall(node) ? Match::ResolveCallMode::AttributeOnly : Match::ResolveCallMode::Normal;
         if constexpr (std::is_same_v<T, AstIntrinsicCallExpr>)
             resolveMode = Match::ResolveCallMode::Intrinsic;
-        SWC_RESULT(Match::resolveFunctionCandidates(sema, nodeCallee, symbols, args, ufcsArg, &resolvedArgs, resolveMode));
+        const Result resolveResult = Match::resolveFunctionCandidates(sema, nodeCallee, symbols, args, ufcsArg, &resolvedArgs, resolveMode);
+        SWC_RESULT(resolveResult);
         sema.setResolvedCallArguments(sema.curNodeRef(), resolvedArgs);
         const SemaNodeView nodeSymView = sema.curViewSymbol();
         SWC_ASSERT(nodeSymView.hasSymbol());
 
         auto& calledFn = nodeSymView.sym()->cast<SymbolFunction>();
-        SWC_RESULT(sema.completeLazyGenericFunction(calledFn));
+        const Result lazyResult = sema.completeLazyGenericFunction(calledFn);
+        SWC_RESULT(lazyResult);
 
         const bool isMixinCall = calledFn.attributes().hasRtFlag(RtAttributeFlagsE::Mixin);
         const bool isMacroCall = calledFn.attributes().hasRtFlag(RtAttributeFlagsE::Macro);
@@ -2224,6 +2253,13 @@ Result AstFunctionDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef)
     {
         auto&       sym      = sema.curViewSymbol().sym()->cast<SymbolFunction>();
         const auto* declImpl = functionDeclImplContext(sema, &sym);
+        if (sym.isSemaCompleted())
+            return Result::SkipChildren;
+
+        const Result waitResult = waitForOtherLazyGenericBodyRunner(sema, sym);
+        if (waitResult != Result::Continue)
+            return waitResult;
+
         if (sym.isTyped() && canDelayGenericInstanceFunctionBody(sema, *this, sym, declImpl))
         {
             sym.addExtraFlag(SymbolFunctionFlagsE::LazyGenericBody);
@@ -2401,6 +2437,13 @@ Result AstFunctionDecl::semaPostNode(Sema& sema)
     auto& sym = sema.curViewSymbol().sym()->cast<SymbolFunction>();
     if (sym.isGenericRoot() && !sym.isGenericInstance())
         return Result::Continue;
+
+    if (sym.isSemaCompleted())
+        return Result::Continue;
+
+    const Result waitResult = waitForOtherLazyGenericBodyRunner(sema, sym);
+    if (waitResult != Result::Continue)
+        return waitResult;
 
     if (sym.hasExtraFlag(SymbolFunctionFlagsE::LazyGenericBody) && !sym.hasExtraFlag(SymbolFunctionFlagsE::LazyGenericBodyRunning))
         return Result::Continue;

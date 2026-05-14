@@ -590,6 +590,31 @@ namespace
         return runs;
     }
 
+    bool isGenericNodeRunActive(Sema& sema, AstNodeRef nodeRef)
+    {
+        if (nodeRef.isInvalid())
+            return false;
+
+        const GenericNodeRunKey key{&sema.ctx(), &sema.ast(), nodeRef.get()};
+        const std::scoped_lock  lock(genericNodeRunMutex());
+        const auto              it = genericNodeRuns().find(key);
+        return it != genericNodeRuns().end() && it->second.running;
+    }
+
+    bool cachedGenericEvalNodeHasConstant(Sema& sema, AstNodeRef nodeRef)
+    {
+        if (nodeRef.isInvalid())
+            return false;
+
+        // Cached generic-eval nodes live in shared AST storage. While their dedicated
+        // sema runner is active, another thread must not peek at partially-updated
+        // payloads; it has to go through runGenericNode() and wait there instead.
+        if (isGenericNodeRunActive(sema, nodeRef))
+            return false;
+
+        return sema.viewStored(nodeRef, SemaNodeViewPartE::Constant).cstRef().isValid();
+    }
+
     std::mutex& genericInstanceNodeRunMutex()
     {
         static std::mutex mutex;
@@ -759,7 +784,7 @@ namespace
         if (const auto* constraintExpr = sema.node(constraintRef).safeCast<AstConstraintExpr>())
         {
             outEvalRef = findCachedGenericEvalNode(sema, root, constraintExpr->nodeExprRef, bindings);
-            if (outEvalRef.isValid() && sema.viewStored(outEvalRef, SemaNodeViewPartE::Constant).cstRef().isValid())
+            if (cachedGenericEvalNodeHasConstant(sema, outEvalRef))
                 return Result::Continue;
             return evalGenericClonedNode(sema, root, constraintExpr->nodeExprRef, bindings, outEvalRef);
         }
@@ -770,7 +795,7 @@ namespace
             outEvalRef = findCachedGenericEvalNode(sema, root, constraintRef, bindings);
             if (outEvalRef.isValid())
             {
-                if (sema.viewStored(outEvalRef, SemaNodeViewPartE::Constant).cstRef().isValid())
+                if (cachedGenericEvalNodeHasConstant(sema, outEvalRef))
                     return Result::Continue;
             }
             else
@@ -1166,7 +1191,7 @@ namespace
         outClonedRef = findCachedGenericEvalNode(sema, root, sourceRef, bindings);
         if (outClonedRef.isValid())
         {
-            if (sema.viewStored(outClonedRef, SemaNodeViewPartE::Constant).cstRef().isValid())
+            if (cachedGenericEvalNodeHasConstant(sema, outClonedRef))
                 return Result::Continue;
         }
         else

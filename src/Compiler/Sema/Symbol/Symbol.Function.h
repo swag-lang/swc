@@ -126,6 +126,7 @@ public:
     void                    setGenericRoot(bool value) noexcept;
     bool                    isGenericInstance() const noexcept { return hasExtraFlag(SymbolFunctionFlagsE::GenericInstance); }
     void                    setGenericInstance(const TaskContext& ctx, SymbolFunction* root) noexcept;
+    bool                    hasUnmaterializedGenericBody() const noexcept;
     SymbolFunction*         genericRootSym() noexcept;
     const SymbolFunction*   genericRootSym() const noexcept;
     const SymbolImpl*       declImplContext() const noexcept;

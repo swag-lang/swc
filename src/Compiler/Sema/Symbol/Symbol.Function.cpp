@@ -914,6 +914,30 @@ void SymbolFunction::setGenericInstance(const TaskContext& ctx, SymbolFunction* 
     }
 }
 
+bool SymbolFunction::hasUnmaterializedGenericBody() const noexcept
+{
+    if (isGenericRoot() && !isGenericInstance())
+        return true;
+    if (isGenericInstance())
+        return false;
+
+    const SymbolStruct* owner = ownerStruct();
+    if (owner && owner->isGenericRoot() && !owner->isGenericInstance())
+        return true;
+
+    const SymbolImpl* symImpl = declImplContext();
+    if (!symImpl)
+        return false;
+
+    if (symImpl->isForStruct())
+    {
+        const SymbolStruct* implStruct = symImpl->symStruct();
+        return implStruct && implStruct->isGenericRoot() && !implStruct->isGenericInstance();
+    }
+
+    return false;
+}
+
 SymbolFunction* SymbolFunction::genericRootSym() noexcept
 {
     if (const auto* data = genericData())

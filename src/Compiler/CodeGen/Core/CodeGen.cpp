@@ -84,6 +84,64 @@ namespace
         }
     }
 
+#if SWC_DEV_MODE
+    void dumpMissingPayloadDebug(CodeGen& codeGen, AstNodeRef queryRef, AstNodeRef resolvedRef, CodeGenNodePayload* payload)
+    {
+        const auto dumpNode = [](const AstNode& node, AstNodeRef nodeRef, const char* label)
+        {
+            const std::string_view nodeName = Ast::nodeIdName(node.id());
+            std::fprintf(stderr, "  %s=%u(%.*s)\n", label, nodeRef.get(), static_cast<int>(nodeName.size()), nodeName.data());
+        };
+
+        std::fprintf(stderr, "missing-codegen-payload:\n");
+        if (queryRef.isValid())
+            dumpNode(codeGen.node(queryRef), queryRef, "query");
+        if (resolvedRef.isValid())
+            dumpNode(codeGen.node(resolvedRef), resolvedRef, "resolved");
+        if (codeGen.curNodeRef().isValid())
+            dumpNode(codeGen.curNode(), codeGen.curNodeRef(), "current");
+
+        std::fprintf(stderr, "  payload=%p regValid=%d\n", static_cast<void*>(payload), payload && payload->reg.isValid());
+
+        if (queryRef.isValid())
+        {
+            const SemaNodeView storedView = codeGen.sema().viewStored(queryRef, SemaNodeViewPartE::Type | SemaNodeViewPartE::Symbol);
+            const SemaNodeView liveView   = codeGen.viewTypeSymbol(queryRef);
+            std::fprintf(stderr, "  query storedType=%u liveType=%u storedSym=%d liveSym=%d\n",
+                         storedView.typeRef().isValid() ? storedView.typeRef().get() : 0,
+                         liveView.typeRef().isValid() ? liveView.typeRef().get() : 0,
+                         storedView.sym() != nullptr,
+                         liveView.sym() != nullptr);
+
+            if (const auto* autoMember = codeGen.node(queryRef).safeCast<AstAutoMemberAccessExpr>())
+            {
+                const AstNodeRef identRef         = autoMember->nodeIdentRef;
+                const AstNodeRef resolvedIdentRef = codeGen.resolvedNodeRef(identRef);
+                if (identRef.isValid())
+                    dumpNode(codeGen.node(identRef), identRef, "auto-ident");
+                if (resolvedIdentRef.isValid() && resolvedIdentRef != identRef)
+                    dumpNode(codeGen.node(resolvedIdentRef), resolvedIdentRef, "auto-ident-resolved");
+            }
+        }
+
+        if (resolvedRef.isValid())
+        {
+            if (const auto* member = codeGen.node(resolvedRef).safeCast<AstMemberAccessExpr>())
+            {
+                const AstNodeRef leftRef          = member->nodeLeftRef;
+                const AstNodeRef rightRef         = member->nodeRightRef;
+                const AstNodeRef resolvedRightRef = codeGen.resolvedNodeRef(rightRef);
+                if (leftRef.isValid())
+                    dumpNode(codeGen.node(leftRef), leftRef, "member-left");
+                if (rightRef.isValid())
+                    dumpNode(codeGen.node(rightRef), rightRef, "member-right");
+                if (resolvedRightRef.isValid() && resolvedRightRef != rightRef)
+                    dumpNode(codeGen.node(resolvedRightRef), resolvedRightRef, "member-right-resolved");
+            }
+        }
+    }
+#endif
+
     SymbolFunction* resolveDirectLifecycleFunction(const TypeInfo& typeInfo, const CodeGenLifecycleKind lifecycleKind)
     {
         if (!typeInfo.isStruct())
@@ -555,6 +613,7 @@ TypeRef CodeGen::transparentPayloadTypeRef()
 
 CodeGenNodePayload& CodeGen::payload(AstNodeRef nodeRef)
 {
+    const AstNodeRef queryNodeRef = nodeRef;
     CodeGenNodePayload* nodePayload = safePayload(nodeRef);
     if ((!nodePayload || !nodePayload->reg.isValid()) && nodeRef.isValid() && resolvedNodeRef(nodeRef) != curNodeRef())
     {
@@ -566,6 +625,10 @@ CodeGenNodePayload& CodeGen::payload(AstNodeRef nodeRef)
             nodePayload = safePayload(nodeRef);
     }
 
+#if SWC_DEV_MODE
+    if (!nodePayload)
+        dumpMissingPayloadDebug(*this, queryNodeRef, resolvedNodeRef(queryNodeRef), nodePayload);
+#endif
     SWC_ASSERT(nodePayload != nullptr);
     return *nodePayload;
 }

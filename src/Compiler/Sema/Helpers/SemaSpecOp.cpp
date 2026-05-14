@@ -1254,6 +1254,24 @@ namespace
         sema.unsetIsLValue(sema.curNodeRef());
         SemaHelpers::addCurrentFunctionCallDependency(sema, &calledFn);
 
+#if SWC_DEV_MODE
+        if (calledFn.hasExtraFlag(SymbolFunctionFlagsE::LazyGenericBody) && !calledFn.isSemaCompleted())
+        {
+            const SymbolFunction* currentFunction = sema.currentFunction();
+            std::fprintf(stderr, "synthetic-call-unmaterialized-lazy-body:\n");
+            std::fprintf(stderr,
+                         "  caller=%s callee=%s currentNode=%u allowConstEval=%d allowInline=%d lazyRunning=%d typed=%d\n",
+                         currentFunction ? currentFunction->getFullScopedName(sema.ctx()).c_str() : "",
+                         calledFn.getFullScopedName(sema.ctx()).c_str(),
+                         sema.curNodeRef().isValid() ? sema.curNodeRef().get() : 0,
+                         allowConstEval,
+                         allowInline,
+                         calledFn.hasExtraFlag(SymbolFunctionFlagsE::LazyGenericBodyRunning),
+                         calledFn.isTyped());
+            SWC_ASSERT(false);
+        }
+#endif
+
         if (allowConstEval)
         {
             SWC_RESULT(SemaJIT::tryRunConstCall(sema, calledFn, sema.curNodeRef(), resolvedArgs.span()));

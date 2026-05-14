@@ -15,6 +15,21 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    Symbol* recoverMemberAccessRightSymbol(CodeGen& codeGen, AstNodeRef nodeRef)
+    {
+        if (!nodeRef.isValid())
+            return nullptr;
+
+        if (Symbol* symbol = codeGen.sema().viewStored(nodeRef, SemaNodeViewPartE::Symbol).sym())
+            return symbol;
+
+        const AstNodeRef resolvedRef = codeGen.resolvedNodeRef(nodeRef);
+        if (resolvedRef.isValid() && resolvedRef != nodeRef)
+            return codeGen.sema().viewStored(resolvedRef, SemaNodeViewPartE::Symbol).sym();
+
+        return nullptr;
+    }
+
     struct StructUsingPathStep
     {
         const SymbolVariable* field     = nullptr;
@@ -276,10 +291,15 @@ namespace
         const CodeGenNodePayload& leftPayload  = codeGen.payload(node.nodeLeftRef);
         const SemaNodeView        leftTypeView = codeGen.viewType(node.nodeLeftRef);
         const SemaNodeView        rightView    = codeGen.viewSymbol(node.nodeRightRef);
-        const Symbol*             rightSym     = (rightView.sym());
-        const auto&               semaSymVar   = rightSym->cast<SymbolVariable>();
-        TypeRef                   leftTypeRef  = leftPayload.effectiveTypeRef(leftTypeView.typeRef());
-        leftTypeRef                            = resolveRuntimeLeftTypeRef(codeGen, node.nodeLeftRef, leftTypeRef);
+        const Symbol*             rightSym     = rightView.sym();
+        if (!rightSym)
+            rightSym = recoverMemberAccessRightSymbol(codeGen, node.nodeRightRef);
+        SWC_ASSERT(rightSym != nullptr);
+        if (!rightSym)
+            return Result::Error;
+        const auto& semaSymVar  = rightSym->cast<SymbolVariable>();
+        TypeRef     leftTypeRef = leftPayload.effectiveTypeRef(leftTypeView.typeRef());
+        leftTypeRef             = resolveRuntimeLeftTypeRef(codeGen, node.nodeLeftRef, leftTypeRef);
         SWC_ASSERT(leftTypeRef.isValid());
         const TypeInfo& leftTypeInfo = codeGen.typeMgr().get(aliasEnumTypeRef(codeGen, leftTypeRef));
 
@@ -369,9 +389,14 @@ namespace
         MicroBuilder&             builder     = codeGen.builder();
         const CodeGenNodePayload& leftPayload = codeGen.payload(node.nodeLeftRef);
 
-        const SemaNodeView rightView  = codeGen.viewSymbol(node.nodeRightRef);
-        const Symbol*      methodSym  = (rightView.sym());
-        const auto&        methodFunc = methodSym->cast<SymbolFunction>();
+        const SemaNodeView rightView = codeGen.viewSymbol(node.nodeRightRef);
+        const Symbol*      methodSym = rightView.sym();
+        if (!methodSym)
+            methodSym = recoverMemberAccessRightSymbol(codeGen, node.nodeRightRef);
+        SWC_ASSERT(methodSym != nullptr);
+        if (!methodSym)
+            return Result::Error;
+        const auto& methodFunc = methodSym->cast<SymbolFunction>();
         SWC_ASSERT(methodFunc.hasInterfaceMethodSlot());
 
         const CodeGenNodePayload& payload = codeGen.setPayloadValue(codeGen.curNodeRef());
@@ -426,6 +451,17 @@ namespace
 
         return symbol.cast<SymbolVariable>().hasGlobalStorage();
     }
+
+    Result finalizeRuntimeMemberAccess(CodeGen& codeGen, const Result result)
+    {
+        if (result != Result::Continue)
+            return result;
+
+        const CodeGenNodePayload* payload = codeGen.safePayload(codeGen.curNodeRef());
+        SWC_ASSERT(payload != nullptr);
+        SWC_ASSERT(payload->reg.isValid());
+        return result;
+    }
 }
 
 Result AstMemberAccessExpr::codeGenPreNodeChild(const CodeGen& codeGen, const AstNodeRef& childRef) const
@@ -447,21 +483,24 @@ Result AstMemberAccessExpr::codeGenPostNode(CodeGen& codeGen) const
     const bool         leftIsRuntimeValue = isRuntimeMemberAccessLeft(leftView);
 
     if (leftIsRuntimeValue && leftView.type() && leftView.type()->isInterface())
-        return codeGenInterfaceMethodMemberAccess(codeGen, *this);
+        return finalizeRuntimeMemberAccess(codeGen, codeGenInterfaceMethodMemberAccess(codeGen, *this));
     if (leftIsRuntimeValue && leftView.type() && leftView.type()->isAggregateStruct())
-        return codeGenAggregateStructMemberAccess(codeGen, *this);
+        return finalizeRuntimeMemberAccess(codeGen, codeGenAggregateStructMemberAccess(codeGen, *this));
 
     const SemaNodeView rightView = codeGen.viewSymbol(nodeRightRef);
-    if (rightView.sym())
+    const Symbol*      rightSym  = rightView.sym();
+    if (!rightSym)
+        rightSym = recoverMemberAccessRightSymbol(codeGen, nodeRightRef);
+    if (rightSym)
     {
-        if (leftIsRuntimeValue && rightView.sym()->isVariable())
-            return codeGenStructMemberAccess(codeGen, *this);
-        if (rightView.sym()->isFunction() || rightView.sym()->isType() || rightView.sym()->isNamespace() || rightView.sym()->isModule() || rightView.sym()->isImpl())
+        if (leftIsRuntimeValue && rightSym->isVariable())
+            return finalizeRuntimeMemberAccess(codeGen, codeGenStructMemberAccess(codeGen, *this));
+        if (rightSym->isFunction() || rightSym->isType() || rightSym->isNamespace() || rightSym->isModule() || rightSym->isImpl())
             return Result::Continue;
     }
 
     const CodeGenNodePayload* rightPayload = codeGen.safePayload(nodeRightRef);
-    if ((!rightPayload || !rightPayload->reg.isValid()) && rightView.sym() && canMaterializeScopedRightSymbol(*rightView.sym()))
+    if ((!rightPayload || !rightPayload->reg.isValid()) && rightSym && canMaterializeScopedRightSymbol(*rightSym))
     {
         // Member access does not visit the RHS child during the normal walk. Scoped values such as
         // `Namespace.globalVar` still need the same payload materialization as a standalone identifier.

@@ -104,6 +104,8 @@ namespace
             return false;
         if (symbol.attributes().hasRtFlag(RtAttributeFlagsE::Compiler))
             return false;
+        if (symbol.hasUnmaterializedGenericBody())
+            return false;
 
         const AstNode* decl = symbol.decl();
         if (!decl)

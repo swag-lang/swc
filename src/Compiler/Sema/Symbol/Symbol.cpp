@@ -138,6 +138,35 @@ void Symbol::setSemaCompleted(TaskContext& ctx)
 {
     if (flags_.has(SymbolFlagsE::SemaCompleted))
         return;
+#if SWC_DEV_MODE
+    if (const auto* function = safeCast<SymbolFunction>())
+    {
+        if (function->hasExtraFlag(SymbolFunctionFlagsE::LazyGenericBody))
+        {
+            const SymbolStruct* owner = function->ownerStruct();
+            std::fprintf(stderr, "lazy-function-marked-sema-complete:\n");
+            std::fprintf(stderr, "  function=%p full=%s declNodeRef=%u lazyRunning=%d genericRoot=%d genericInstance=%d semaCompleted=%d\n",
+                         static_cast<const void*>(function),
+                         function->getFullScopedName(ctx).c_str(),
+                         function->declNodeRef().isValid() ? function->declNodeRef().get() : 0,
+                         function->hasExtraFlag(SymbolFunctionFlagsE::LazyGenericBodyRunning),
+                         function->isGenericRoot(),
+                         function->isGenericInstance(),
+                         function->isSemaCompleted());
+            if (owner)
+            {
+                std::fprintf(stderr, "  owner=%p full=%s typeRef=%u genericRoot=%d genericInstance=%d root=%p\n",
+                             static_cast<const void*>(owner),
+                             owner->getFullScopedName(ctx).c_str(),
+                             owner->typeRef().isValid() ? owner->typeRef().get() : 0,
+                             owner->isGenericRoot(),
+                             owner->isGenericInstance(),
+                             static_cast<const void*>(owner->genericRootSym()));
+            }
+        }
+    }
+    SWC_ASSERT(!isFunction() || !cast<SymbolFunction>().hasExtraFlag(SymbolFunctionFlagsE::LazyGenericBody));
+#endif
     flags_.add(SymbolFlagsE::SemaCompleted);
     ctx.compiler().onSymbolSemaCompleted(*this);
     ctx.compiler().notifyAlive();

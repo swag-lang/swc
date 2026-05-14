@@ -373,6 +373,33 @@ Result AstCompilerIf::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef& ch
         return Result::SkipChildren;
 
     const SemaNodeView condView = codeGen.viewConstant(nodeConditionRef);
+    if (!condView.cst())
+    {
+#if SWC_DEV_MODE
+        const AstNodeRef   resolvedCondRef = codeGen.resolvedNodeRef(nodeConditionRef);
+        const SemaNodeView storedCondView  = codeGen.sema().viewStored(nodeConditionRef, SemaNodeViewPartE::Node | SemaNodeViewPartE::Constant | SemaNodeViewPartE::Symbol);
+        const std::string_view queryName   = Ast::nodeIdName(codeGen.node(nodeConditionRef).id());
+        std::fprintf(stderr, "compiler-if-missing-constant:\n");
+        std::fprintf(stderr, "  query=%u(%.*s) resolved=%u current=%u\n",
+                     nodeConditionRef.get(),
+                     static_cast<int>(queryName.size()),
+                     queryName.data(),
+                     resolvedCondRef.isValid() ? resolvedCondRef.get() : 0,
+                     codeGen.curNodeRef().isValid() ? codeGen.curNodeRef().get() : 0);
+        std::fprintf(stderr, "  storedConst=%d liveConst=%d storedSym=%d\n",
+                     storedCondView.hasConstant(),
+                     condView.hasConstant(),
+                     storedCondView.sym() != nullptr);
+        if (resolvedCondRef.isValid())
+        {
+            const std::string_view resolvedName = Ast::nodeIdName(codeGen.node(resolvedCondRef).id());
+            std::fprintf(stderr, "  resolvedNode=%u(%.*s)\n",
+                         resolvedCondRef.get(),
+                         static_cast<int>(resolvedName.size()),
+                         resolvedName.data());
+        }
+#endif
+    }
     SWC_ASSERT(condView.cst());
 
     if (childRef == nodeIfBlockRef && !condView.cst()->getBool())

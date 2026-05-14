@@ -16,6 +16,24 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+#if SWC_DEV_MODE
+    [[noreturn]] void panicUnmaterializedCodeGenTarget(TaskContext& ctx, const SymbolFunction& symbol)
+    {
+        const Utf8 detail = std::format("Function: {}\nDeclNodeRef: {}\nSemaCompleted: {}\nCodeGenPreSolved: {}\nCodeGenCompleted: {}\nLazyGenericBody: {}\nLazyGenericBodyRunning: {}\nGenericRoot: {}\nGenericInstance: {}\nIgnored: {}\n",
+                                        symbol.getFullScopedName(ctx),
+                                        symbol.declNodeRef().isValid() ? symbol.declNodeRef().get() : 0,
+                                        symbol.isSemaCompleted(),
+                                        symbol.isCodeGenPreSolved(),
+                                        symbol.isCodeGenCompleted(),
+                                        symbol.hasExtraFlag(SymbolFunctionFlagsE::LazyGenericBody),
+                                        symbol.hasExtraFlag(SymbolFunctionFlagsE::LazyGenericBodyRunning),
+                                        symbol.isGenericRoot(),
+                                        symbol.isGenericInstance(),
+                                        symbol.isIgnored());
+        swcPanic("CodeGen scheduled for an unmaterialized generic body!", __FILE__, __LINE__, "symbol.hasUnmaterializedGenericBody()", detail.view());
+    }
+#endif
+
     JobResult waitCodeGenPreSolved(TaskContext& ctx, const SymbolFunction& waiterSymbol, const Symbol& waitedSymbol, AstNodeRef nodeRef)
     {
         TaskState& wait   = ctx.state();
@@ -92,6 +110,11 @@ JobResult CodeGenJob::exec()
     const Result selfWaitResult = sema().waitSemaCompleted(symbolFunc_, symbolFunc_->codeRef());
     if (selfWaitResult != Result::Continue)
         return abortCodeGen(ctx(), *symbolFunc_, selfWaitResult);
+#if SWC_DEV_MODE
+    if (symbolFunc_->hasUnmaterializedGenericBody())
+        panicUnmaterializedCodeGenTarget(ctx(), *symbolFunc_);
+#endif
+    SWC_ASSERT(!symbolFunc_->hasUnmaterializedGenericBody());
 
     SmallVector<SymbolFunction*> deps;
     symbolFunc_->appendCallDependencies(deps);

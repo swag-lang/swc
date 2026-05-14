@@ -106,6 +106,7 @@ namespace
         return !symbol.isIgnored() &&
                !symbol.isForeign() &&
                !symbol.isEmpty() &&
+               !symbol.hasUnmaterializedGenericBody() &&
                !symbol.isAttribute() &&
                !symbol.attributes().hasRtFlag(RtAttributeFlagsE::Macro) &&
                !symbol.attributes().hasRtFlag(RtAttributeFlagsE::Mixin) &&

@@ -4,6 +4,9 @@
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Core/SemaJob.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
+#include "Compiler/Sema/Symbol/Symbol.Function.h"
+#include "Compiler/Sema/Symbol/Symbol.Impl.h"
+#include "Compiler/Sema/Symbol/Symbol.Struct.h"
 #include "Main/Global.h"
 #include "Support/Report/DiagnosticDef.h"
 #include "Support/Thread/JobManager.h"
@@ -88,6 +91,65 @@ namespace
 
     void reportStalledDependency(Sema& sema, TaskContext& ctx, const TaskState& state)
     {
+#if SWC_DEV_MODE
+        if (const auto* function = state.symbol ? state.symbol->safeCast<SymbolFunction>() : nullptr)
+        {
+            const SymbolStruct* ownerStruct = function->ownerStruct();
+            const SymbolImpl*   ownerImpl   = function->declImplContext();
+            std::fprintf(stdout, "stalled-dependency-debug:\n");
+            std::fprintf(stdout,
+                         "  blockedFn=%s declared=%d typed=%d sema=%d ignored=%d genericRoot=%d genericInstance=%d lazy=%d lazyRunning=%d declNodeRef=%u\n",
+                         function->getFullScopedName(ctx).c_str(),
+                         function->isDeclared(),
+                         function->isTyped(),
+                         function->isSemaCompleted(),
+                         function->isIgnored(),
+                         function->isGenericRoot(),
+                         function->isGenericInstance(),
+                         function->hasExtraFlag(SymbolFunctionFlagsE::LazyGenericBody),
+                         function->hasExtraFlag(SymbolFunctionFlagsE::LazyGenericBodyRunning),
+                         function->declNodeRef().isValid() ? function->declNodeRef().get() : 0);
+            if (ownerStruct)
+            {
+                std::fprintf(stdout,
+                             "  ownerStruct=%s declared=%d typed=%d sema=%d ignored=%d genericRoot=%d genericInstance=%d declNodeRef=%u\n",
+                             ownerStruct->getFullScopedName(ctx).c_str(),
+                             ownerStruct->isDeclared(),
+                             ownerStruct->isTyped(),
+                             ownerStruct->isSemaCompleted(),
+                             ownerStruct->isIgnored(),
+                             ownerStruct->isGenericRoot(),
+                             ownerStruct->isGenericInstance(),
+                             ownerStruct->declNodeRef().isValid() ? ownerStruct->declNodeRef().get() : 0);
+            }
+
+            if (ownerImpl)
+            {
+                std::fprintf(stdout,
+                             "  ownerImpl=%p declared=%d typed=%d sema=%d ignored=%d forStruct=%d forInterface=%d genericBlockRef=%u\n",
+                             static_cast<const void*>(ownerImpl),
+                             ownerImpl->isDeclared(),
+                             ownerImpl->isTyped(),
+                             ownerImpl->isSemaCompleted(),
+                             ownerImpl->isIgnored(),
+                             ownerImpl->isForStruct(),
+                             ownerImpl->isForInterface(),
+                             ownerImpl->genericBlockRef().isValid() ? ownerImpl->genericBlockRef().get() : 0);
+            }
+
+            if (state.waiterSymbol)
+            {
+                std::fprintf(stdout,
+                             "  waiter=%s declared=%d typed=%d sema=%d ignored=%d kind=%d\n",
+                             Utf8{state.waiterSymbol->name(ctx)}.c_str(),
+                             state.waiterSymbol->isDeclared(),
+                             state.waiterSymbol->isTyped(),
+                             state.waiterSymbol->isSemaCompleted(),
+                             state.waiterSymbol->isIgnored(),
+                             static_cast<int>(state.waiterSymbol->kind()));
+            }
+        }
+#endif
         auto diag = SemaError::report(sema, DiagnosticId::sema_err_stalled_dependency, state.codeRef);
         diag.addArgument(Diagnostic::ARG_SYM, stalledDependencyName(ctx, sema, state));
         diag.addArgument(Diagnostic::ARG_WHAT, stalledDependencyReason(state));

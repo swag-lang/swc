@@ -119,7 +119,7 @@ public impl ByteStream
     {
         if .seek >= .length() do
             return 0
-        return .readBuffer[.seek]
+        return dref (.readData() + .seek)
     }
 
     // Advances the seek by a specified offset (default is 1)

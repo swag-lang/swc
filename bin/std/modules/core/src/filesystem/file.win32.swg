@@ -53,7 +53,7 @@ func open(fullName: string, mode: FileMode, access: FileAccess, share: FileShare
     switch mode
     {
     case Append:
-        wMode = OPEN_EXISTING
+        wMode = OPEN_ALWAYS
     case Create:
         wMode = CREATE_ALWAYS
     case CreateNew:
@@ -96,6 +96,13 @@ func open(fullName: string, mode: FileMode, access: FileAccess, share: FileShare
     result.name    = fullName
     result.handle  = cast(FileHandle) hFile
     result.canSeek = true
+
+    if mode == FileMode.Append
+    {
+        var high = 0
+        discard SetFilePointer(hFile, 0, &high, FILE_END)
+        Errors.transformWinErrors(fullName)
+    }
 
     return result
 }

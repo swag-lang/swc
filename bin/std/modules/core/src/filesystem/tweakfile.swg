@@ -144,7 +144,7 @@ impl TweakFile
                     if j == toDo do
                         continue
                     let ref1 = refs[j]
-                    if refr.src.name == ref1.dst.name
+                    if refr.folder == ref1.folder and refr.src == ref1.dst
                     {
                         if j == 0 do
                             throw SyntaxError{"tweakfile cycle between '$' references !"}

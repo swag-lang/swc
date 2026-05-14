@@ -18,8 +18,15 @@ func startProcess(info: StartInfo)->Process throw
     si.cb = #sizeof(si)
 
     // Construct the command line
+    var appNameBuilder: StringBuilder
+    appNameBuilder.appendString(info.fileName)
+    appNameBuilder.zeroTerminate()
+    let appName = appNameBuilder.toString()
+
     var builder: StringBuilder
+    builder.appendString("\"")
     builder.appendString(info.fileName)
+    builder.appendString("\"")
     if info.arguments
     {
         builder.appendString(" ")
@@ -30,18 +37,34 @@ func startProcess(info: StartInfo)->Process throw
     let str = builder.toString()
 
     // Launch
-    try CreateProcessA(null, @dataof(str), null, null, FALSE, 0, null, null, &si, &pi)
+    try CreateProcessA(@dataof(appName), @dataof(str), null, null, FALSE, 0, null, null, &si, &pi)
+    CloseHandle(pi.hThread)
     result.handle = pi.hProcess
     return result
 }
 
 impl Process
 {
+    mtd opDrop()
+    {
+        .close()
+    }
+
+    mtd close()
+    {
+        if .handle
+        {
+            CloseHandle(.handle)
+            .handle = null
+        }
+    }
+
     // Wait for the process to be done
     mtd waitForExit()
     {
         Debug.assert(.handle != null, "invalid process handle")
         catch WaitForSingleObject(.handle, Win32.INFINITE)
+        .close()
     }
 
     // Get current process ID

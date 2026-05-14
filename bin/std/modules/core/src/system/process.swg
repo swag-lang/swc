@@ -9,6 +9,7 @@ struct StartInfo
     arguments:     string
 }
 
+#[Swag.NoCopy]
 struct Process
 {
     handle: ProcessHandle

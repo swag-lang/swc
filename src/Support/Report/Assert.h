@@ -5,6 +5,7 @@ class TaskContext;
 
 void swcPanic(const char* title, const char* file, int line, const char* expr = nullptr, std::string_view detail = {});
 void swcAssert(const char* expr, const char* file, int line);
+void swcAssertDetail(const char* expr, const char* file, int line, std::string_view detail);
 void swcInternalError(const char* file, int line, const char* expr = nullptr);
 
 template<typename T>

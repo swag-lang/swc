@@ -400,7 +400,7 @@ bool JobManager::debugHasWaitingJobs(JobClientId client) const
     return debugHasWaitingJobsLocked(client);
 }
 
-void JobManager::assertNoWaitingJobs(JobClientId client, const std::string_view where) const
+void JobManager::assertNoWaitingJobs(JobClientId client, const std::string_view where, const std::string_view extraDetail) const
 {
     Utf8 detail;
     {
@@ -409,6 +409,13 @@ void JobManager::assertNoWaitingJobs(JobClientId client, const std::string_view 
             return;
 
         detail = debugDescribeStateLocked(client);
+    }
+
+    if (!extraDetail.empty())
+    {
+        if (!detail.empty() && detail.back() != '\n')
+            detail += "\n";
+        detail += extraDetail;
     }
 
     const Utf8 whereText(where);

@@ -1,5 +1,3 @@
-#include <print>
-
 #include "pch.h"
 #include "Backend/ABI/ABICall.h"
 #include "Backend/ABI/ABITypeNormalize.h"
@@ -19,6 +17,39 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+#if SWC_DEV_MODE
+    Utf8 formatCompilerIfMissingConstant(CodeGen& codeGen, AstNodeRef nodeConditionRef)
+    {
+        const AstNodeRef       resolvedCondRef = codeGen.resolvedNodeRef(nodeConditionRef);
+        const SemaNodeView     storedCondView  = codeGen.sema().viewStored(nodeConditionRef, SemaNodeViewPartE::Node | SemaNodeViewPartE::Constant | SemaNodeViewPartE::Symbol);
+        const SemaNodeView     condView        = codeGen.viewConstant(nodeConditionRef);
+        const std::string_view queryName       = Ast::nodeIdName(codeGen.node(nodeConditionRef).id());
+
+        Utf8 detail = "compiler-if-missing-constant:\n";
+        detail += std::format("  query={}({:.{}}) resolved={} current={}\n",
+                              nodeConditionRef.get(),
+                              queryName.data(),
+                              static_cast<int>(queryName.size()),
+                              resolvedCondRef.isValid() ? resolvedCondRef.get() : 0,
+                              codeGen.curNodeRef().isValid() ? codeGen.curNodeRef().get() : 0);
+        detail += std::format("  storedConst={} liveConst={} storedSym={}\n",
+                              storedCondView.hasConstant(),
+                              condView.hasConstant(),
+                              storedCondView.sym() != nullptr);
+
+        if (resolvedCondRef.isValid())
+        {
+            const std::string_view resolvedName = Ast::nodeIdName(codeGen.node(resolvedCondRef).id());
+            detail += std::format("  resolvedNode={}({:.{}})\n",
+                                  resolvedCondRef.get(),
+                                  resolvedName.data(),
+                                  static_cast<int>(resolvedName.size()));
+        }
+
+        return detail;
+    }
+#endif
+
     bool isActiveCompilerRunRoot(CodeGen& codeGen)
     {
         const AstNodeRef currentDeclRef = codeGen.viewZero(codeGen.curNodeRef()).nodeRef();
@@ -378,28 +409,8 @@ Result AstCompilerIf::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef& ch
     if (!condView.cst())
     {
 #if SWC_DEV_MODE
-        const AstNodeRef       resolvedCondRef = codeGen.resolvedNodeRef(nodeConditionRef);
-        const SemaNodeView     storedCondView  = codeGen.sema().viewStored(nodeConditionRef, SemaNodeViewPartE::Node | SemaNodeViewPartE::Constant | SemaNodeViewPartE::Symbol);
-        const std::string_view queryName       = Ast::nodeIdName(codeGen.node(nodeConditionRef).id());
-        std::println(stderr, "compiler-if-missing-constant:");
-        std::println(stderr, "  query={}({:.{}}) resolved={} current={}",
-                     nodeConditionRef.get(),
-                     queryName.data(),
-                     static_cast<int>(queryName.size()),
-                     resolvedCondRef.isValid() ? resolvedCondRef.get() : 0,
-                     codeGen.curNodeRef().isValid() ? codeGen.curNodeRef().get() : 0);
-        std::println(stderr, "  storedConst={:d} liveConst={:d} storedSym={:d}",
-                     storedCondView.hasConstant(),
-                     condView.hasConstant(),
-                     storedCondView.sym() != nullptr);
-        if (resolvedCondRef.isValid())
-        {
-            const std::string_view resolvedName = Ast::nodeIdName(codeGen.node(resolvedCondRef).id());
-            std::println(stderr, "  resolvedNode={}({:.{}})",
-                         resolvedCondRef.get(),
-                         resolvedName.data(),
-                         static_cast<int>(resolvedName.size()));
-        }
+        const Utf8 detail = formatCompilerIfMissingConstant(codeGen, nodeConditionRef);
+        swcAssertDetail("condView.cst()", __FILE__, __LINE__, detail.view());
 #endif
     }
     SWC_ASSERT(condView.cst());

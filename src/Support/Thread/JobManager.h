@@ -25,7 +25,7 @@ public:
 #if SWC_DEV_MODE
     Utf8 debugDescribeState(std::optional<JobClientId> client = std::nullopt) const;
     bool debugHasWaitingJobs(JobClientId client) const;
-    void assertNoWaitingJobs(JobClientId client, std::string_view where) const;
+    void assertNoWaitingJobs(JobClientId client, std::string_view where, std::string_view extraDetail = {}) const;
 #endif
 
     uint32_t      numWorkers() const noexcept { return static_cast<uint32_t>(workers_.size()); }

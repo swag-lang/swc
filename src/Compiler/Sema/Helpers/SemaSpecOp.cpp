@@ -1,5 +1,3 @@
-#include <print>
-
 #include "pch.h"
 #include "Compiler/Lexer/LangSpec.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
@@ -36,6 +34,23 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+#if SWC_DEV_MODE
+    Utf8 formatSyntheticCallUnmaterializedLazyBody(const Sema& sema, const SymbolFunction& calledFn, const bool allowConstEval, const bool allowInline)
+    {
+        const SymbolFunction* currentFunction = sema.currentFunction();
+        Utf8                  detail          = "synthetic-call-unmaterialized-lazy-body:\n";
+        detail += std::format("  caller={} callee={} currentNode={} allowConstEval={} allowInline={} lazyRunning={} typed={}\n",
+                              currentFunction ? currentFunction->getFullScopedName(sema.ctx()).c_str() : "",
+                              calledFn.getFullScopedName(sema.ctx()).c_str(),
+                              sema.curNodeRef().isValid() ? sema.curNodeRef().get() : 0,
+                              allowConstEval,
+                              allowInline,
+                              calledFn.hasExtraFlag(SymbolFunctionFlagsE::LazyGenericBodyRunning),
+                              calledFn.isTyped());
+        return detail;
+    }
+#endif
+
     std::string_view specOpSignatureHint(SpecOpKind kind)
     {
         switch (kind)
@@ -1259,18 +1274,8 @@ namespace
 #if SWC_DEV_MODE
         if (calledFn.hasExtraFlag(SymbolFunctionFlagsE::LazyGenericBody) && !calledFn.isSemaCompleted())
         {
-            const SymbolFunction* currentFunction = sema.currentFunction();
-            std::println(stderr, "synthetic-call-unmaterialized-lazy-body:");
-            std::println(stderr,
-                         "  caller={} callee={} currentNode={} allowConstEval={:d} allowInline={:d} lazyRunning={:d} typed={:d}",
-                         currentFunction ? currentFunction->getFullScopedName(sema.ctx()).c_str() : "",
-                         calledFn.getFullScopedName(sema.ctx()).c_str(),
-                         sema.curNodeRef().isValid() ? sema.curNodeRef().get() : 0,
-                         allowConstEval,
-                         allowInline,
-                         calledFn.hasExtraFlag(SymbolFunctionFlagsE::LazyGenericBodyRunning),
-                         calledFn.isTyped());
-            SWC_ASSERT(false);
+            const Utf8 detail = formatSyntheticCallUnmaterializedLazyBody(sema, calledFn, allowConstEval, allowInline);
+            swcAssertDetail("!calledFn.hasExtraFlag(SymbolFunctionFlagsE::LazyGenericBody) || calledFn.isSemaCompleted()", __FILE__, __LINE__, detail.view());
         }
 #endif
 

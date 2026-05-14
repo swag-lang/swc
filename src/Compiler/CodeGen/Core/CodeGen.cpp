@@ -1,5 +1,3 @@
-#include <print>
-
 #include "pch.h"
 #include "Backend/ABI/CallConv.h"
 #include "Backend/Micro/MicroBuilder.h"
@@ -80,14 +78,14 @@ namespace
     }
 
 #if SWC_DEV_MODE
-    void dumpMissingPayloadDebug(CodeGen& codeGen, AstNodeRef queryRef, AstNodeRef resolvedRef, CodeGenNodePayload* payload)
+    Utf8 formatMissingPayloadDebug(CodeGen& codeGen, AstNodeRef queryRef, AstNodeRef resolvedRef, CodeGenNodePayload* payload)
     {
-        const auto dumpNode = [](const AstNode& node, AstNodeRef nodeRef, const char* label) {
+        Utf8       detail = "missing-codegen-payload:\n";
+        const auto dumpNode = [&](const AstNode& node, AstNodeRef nodeRef, const char* label) {
             const std::string_view nodeName = Ast::nodeIdName(node.id());
-            std::println(stderr, "  {}={}({:.{}})", label, nodeRef.get(), nodeName.data(), static_cast<int>(nodeName.size()));
+            detail += std::format("  {}={}({:.{}})\n", label, nodeRef.get(), nodeName.data(), static_cast<int>(nodeName.size()));
         };
 
-        std::println(stderr, "missing-codegen-payload:");
         if (queryRef.isValid())
             dumpNode(codeGen.node(queryRef), queryRef, "query");
         if (resolvedRef.isValid())
@@ -95,17 +93,17 @@ namespace
         if (codeGen.curNodeRef().isValid())
             dumpNode(codeGen.curNode(), codeGen.curNodeRef(), "current");
 
-        std::println(stderr, "  payload={} regValid={:d}", static_cast<void*>(payload), payload && payload->reg.isValid());
+        detail += std::format("  payload={} regValid={}\n", static_cast<void*>(payload), payload && payload->reg.isValid());
 
         if (queryRef.isValid())
         {
             const SemaNodeView storedView = codeGen.sema().viewStored(queryRef, SemaNodeViewPartE::Type | SemaNodeViewPartE::Symbol);
             const SemaNodeView liveView   = codeGen.viewTypeSymbol(queryRef);
-            std::println(stderr, "  query storedType={} liveType={} storedSym={:d} liveSym={:d}",
-                         storedView.typeRef().isValid() ? storedView.typeRef().get() : 0,
-                         liveView.typeRef().isValid() ? liveView.typeRef().get() : 0,
-                         storedView.sym() != nullptr,
-                         liveView.sym() != nullptr);
+            detail += std::format("  query storedType={} liveType={} storedSym={} liveSym={}\n",
+                                  storedView.typeRef().isValid() ? storedView.typeRef().get() : 0,
+                                  liveView.typeRef().isValid() ? liveView.typeRef().get() : 0,
+                                  storedView.sym() != nullptr,
+                                  liveView.sym() != nullptr);
 
             if (const auto* autoMember = codeGen.node(queryRef).safeCast<AstAutoMemberAccessExpr>())
             {
@@ -133,6 +131,8 @@ namespace
                     dumpNode(codeGen.node(resolvedRightRef), resolvedRightRef, "member-right-resolved");
             }
         }
+
+        return detail;
     }
 #endif
 
@@ -655,7 +655,10 @@ CodeGenNodePayload& CodeGen::payload(AstNodeRef nodeRef)
 
 #if SWC_DEV_MODE
     if (!nodePayload)
-        dumpMissingPayloadDebug(*this, queryNodeRef, resolvedNodeRef(queryNodeRef), nodePayload);
+    {
+        const Utf8 detail = formatMissingPayloadDebug(*this, queryNodeRef, resolvedNodeRef(queryNodeRef), nodePayload);
+        swcAssertDetail("nodePayload != nullptr", __FILE__, __LINE__, detail.view());
+    }
 #endif
     SWC_ASSERT(nodePayload != nullptr);
     return *nodePayload;

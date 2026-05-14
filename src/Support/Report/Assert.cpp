@@ -132,6 +132,11 @@ void swcAssert(const char* expr, const char* file, int line)
     swcPanic("Assertion Failed!", file, line, expr);
 }
 
+void swcAssertDetail(const char* expr, const char* file, int line, const std::string_view detail)
+{
+    swcPanic("Assertion Failed!", file, line, expr, detail);
+}
+
 void swcInternalError(const char* file, int line, const char* expr)
 {
     swcPanic("Internal Error!", file, line, expr);

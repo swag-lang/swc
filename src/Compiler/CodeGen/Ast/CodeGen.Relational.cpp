@@ -20,7 +20,7 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    bool hasPreparedRuntimeStringCompare(CodeGen& codeGen)
+    bool hasPreparedRuntimeStringCompare(const CodeGen& codeGen)
     {
         const auto* payload = codeGen.loweringPayload(codeGen.curNodeRef());
         return payload && payload->runtimeFunctionSymbol != nullptr;

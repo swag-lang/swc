@@ -1,5 +1,6 @@
+#include <print>
+
 #include "pch.h"
-#include "Compiler/Sema/Helpers/SemaSpecOp.h"
 #include "Compiler/Lexer/LangSpec.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Parser/Parser/Parser.h"
@@ -16,6 +17,7 @@
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Compiler/Sema/Helpers/SemaInline.h"
 #include "Compiler/Sema/Helpers/SemaJIT.h"
+#include "Compiler/Sema/Helpers/SemaSpecOp.h"
 #include "Compiler/Sema/Match/Match.h"
 #include "Compiler/Sema/Symbol/IdentifierManager.h"
 #include "Compiler/Sema/Symbol/Symbol.Enum.h"
@@ -1258,9 +1260,9 @@ namespace
         if (calledFn.hasExtraFlag(SymbolFunctionFlagsE::LazyGenericBody) && !calledFn.isSemaCompleted())
         {
             const SymbolFunction* currentFunction = sema.currentFunction();
-            std::fprintf(stderr, "synthetic-call-unmaterialized-lazy-body:\n");
-            std::fprintf(stderr,
-                         "  caller=%s callee=%s currentNode=%u allowConstEval=%d allowInline=%d lazyRunning=%d typed=%d\n",
+            std::println(stderr, "synthetic-call-unmaterialized-lazy-body:");
+            std::println(stderr,
+                         "  caller={} callee={} currentNode={} allowConstEval={:d} allowInline={:d} lazyRunning={:d} typed={:d}",
                          currentFunction ? currentFunction->getFullScopedName(sema.ctx()).c_str() : "",
                          calledFn.getFullScopedName(sema.ctx()).c_str(),
                          sema.curNodeRef().isValid() ? sema.curNodeRef().get() : 0,
@@ -1919,7 +1921,7 @@ namespace
         source += "    }\n";
     }
 
-    void appendGeneratedLifecycleWrapper(TaskContext& ctx, Utf8& source, const SymbolStruct& ownerStruct, std::span<const Utf8> fields, const SpecOpKind kind)
+    void appendGeneratedLifecycleWrapper(const TaskContext& ctx, Utf8& source, const SymbolStruct& ownerStruct, std::span<const Utf8> fields, const SpecOpKind kind)
     {
         const std::string_view wrapperName = SemaSpecOp::generatedLifecycleWrapperName(kind);
         SWC_ASSERT(!wrapperName.empty());

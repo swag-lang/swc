@@ -7,7 +7,6 @@
 #include "Main/CompilerInstance.h"
 #include "Main/Global.h"
 #include "Main/Stats.h"
-#include "Support/Core/Utf8Helper.h"
 #include "Support/Memory/Heap.h"
 #include "Support/Report/ScopedTimedAction.h"
 #include "Support/Thread/Job.h"

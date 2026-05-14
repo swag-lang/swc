@@ -209,7 +209,7 @@ namespace
         return it->second.sema.get() == &sema;
     }
 
-    Result waitForOtherLazyGenericBodyRunner(Sema& sema, SymbolFunction& symbol)
+    Result waitForOtherLazyGenericBodyRunner(Sema& sema, const SymbolFunction& symbol)
     {
         if (!symbol.hasExtraFlag(SymbolFunctionFlagsE::LazyGenericBodyRunning))
             return Result::Continue;

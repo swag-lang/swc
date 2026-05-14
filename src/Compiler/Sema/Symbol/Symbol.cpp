@@ -1,3 +1,5 @@
+#include <print>
+
 #include "pch.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Symbol/IdentifierManager.h"
@@ -144,8 +146,8 @@ void Symbol::setSemaCompleted(TaskContext& ctx)
         if (function->hasExtraFlag(SymbolFunctionFlagsE::LazyGenericBody))
         {
             const SymbolStruct* owner = function->ownerStruct();
-            std::fprintf(stderr, "lazy-function-marked-sema-complete:\n");
-            std::fprintf(stderr, "  function=%p full=%s declNodeRef=%u lazyRunning=%d genericRoot=%d genericInstance=%d semaCompleted=%d\n",
+            std::println(stderr, "lazy-function-marked-sema-complete:");
+            std::println(stderr, "  function={} full={} declNodeRef={} lazyRunning={:d} genericRoot={:d} genericInstance={:d} semaCompleted={:d}",
                          static_cast<const void*>(function),
                          function->getFullScopedName(ctx).c_str(),
                          function->declNodeRef().isValid() ? function->declNodeRef().get() : 0,
@@ -155,7 +157,7 @@ void Symbol::setSemaCompleted(TaskContext& ctx)
                          function->isSemaCompleted());
             if (owner)
             {
-                std::fprintf(stderr, "  owner=%p full=%s typeRef=%u genericRoot=%d genericInstance=%d root=%p\n",
+                std::println(stderr, "  owner={} full={} typeRef={} genericRoot={:d} genericInstance={:d} root={}",
                              static_cast<const void*>(owner),
                              owner->getFullScopedName(ctx).c_str(),
                              owner->typeRef().isValid() ? owner->typeRef().get() : 0,

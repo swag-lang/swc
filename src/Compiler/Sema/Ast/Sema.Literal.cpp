@@ -6,7 +6,6 @@
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
-#include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Main/CompilerInstance.h"
 #include "Main/Global.h"
 #include "Support/Core/Utf8Helper.h"

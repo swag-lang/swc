@@ -1,16 +1,17 @@
+#include <print>
+
 #include "pch.h"
-#include "Main/Command/Command.h"
 #include "Backend/JIT/JITExecManager.h"
 #include "Compiler/Parser/Parser/ParserJob.h"
 #include "Compiler/Sema/Core/SemaJob.h"
 #include "Compiler/Sema/Symbol/IdentifierManager.h"
 #include "Compiler/Sema/Symbol/Symbols.h"
 #include "Compiler/SourceFile.h"
+#include "Main/Command/Command.h"
 #include "Main/Command/CommandLineParser.h"
 #include "Main/CompilerInstance.h"
 #include "Main/Global.h"
 #include "Main/Stats.h"
-#include "Support/Core/Utf8Helper.h"
 #include "Support/Math/Hash.h"
 #include "Support/Memory/Heap.h"
 #include "Support/Memory/MemoryProfile.h"
@@ -144,7 +145,7 @@ namespace Command
         Sema::waitDone(ctx, clientId);
 #if SWC_DEV_MODE
         if (jobMgr.debugHasWaitingJobs(clientId))
-            std::fprintf(stderr, "%s", compiler.jitExecMgr().debugDescribeState().c_str());
+            std::print(stderr, "{}", compiler.jitExecMgr().debugDescribeState().c_str());
         jobMgr.assertNoWaitingJobs(clientId, "Command::sema sema waitDone");
 #endif
         if (!Stats::hasError() && compiler.exportModuleApi(ctx) == Result::Error)

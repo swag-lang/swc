@@ -230,7 +230,7 @@ namespace
         return false;
     }
 
-    void registerPendingJitNode(Sema& sema, AstNodeRef nodeRef, const std::shared_ptr<JITNodePayload>& payload, const JITCallResultMeta& resultMeta, bool setFoldedTypedConst)
+    void registerPendingJitNode(const Sema& sema, AstNodeRef nodeRef, const std::shared_ptr<JITNodePayload>& payload, const JITCallResultMeta& resultMeta, bool setFoldedTypedConst)
     {
         const PendingJitNodeKey key = pendingJitNodeKey(sema, nodeRef);
         const std::scoped_lock  lock(pendingJitNodeMutex());
@@ -245,7 +245,7 @@ namespace
         }
     }
 
-    std::optional<JITPendingNodeData> takePendingJitNode(Sema& sema, AstNodeRef nodeRef)
+    std::optional<JITPendingNodeData> takePendingJitNode(const Sema& sema, AstNodeRef nodeRef)
     {
         const PendingJitNodeKey key = pendingJitNodeKey(sema, nodeRef);
         const std::scoped_lock  lock(pendingJitNodeMutex());

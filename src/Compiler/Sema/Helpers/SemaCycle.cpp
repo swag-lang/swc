@@ -1,6 +1,8 @@
+#include <print>
+
 #include "pch.h"
-#include "Compiler/Sema/Helpers/SemaCycle.h"
 #include "Compiler/Sema/Core/Sema.h"
+#include "Compiler/Sema/Helpers/SemaCycle.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.Impl.h"
@@ -86,9 +88,9 @@ namespace
         {
             const SymbolStruct* ownerStruct = function->ownerStruct();
             const SymbolImpl*   ownerImpl   = function->declImplContext();
-            std::fprintf(stdout, "stalled-dependency-debug:\n");
-            std::fprintf(stdout,
-                         "  blockedFn=%s declared=%d typed=%d sema=%d ignored=%d genericRoot=%d genericInstance=%d lazy=%d lazyRunning=%d declNodeRef=%u\n",
+            std::println(stdout, "stalled-dependency-debug:");
+            std::println(stdout,
+                         "  blockedFn={} declared={:d} typed={:d} sema={:d} ignored={:d} genericRoot={:d} genericInstance={:d} lazy={:d} lazyRunning={:d} declNodeRef={}",
                          function->getFullScopedName(ctx).c_str(),
                          function->isDeclared(),
                          function->isTyped(),
@@ -101,8 +103,8 @@ namespace
                          function->declNodeRef().isValid() ? function->declNodeRef().get() : 0);
             if (ownerStruct)
             {
-                std::fprintf(stdout,
-                             "  ownerStruct=%s declared=%d typed=%d sema=%d ignored=%d genericRoot=%d genericInstance=%d declNodeRef=%u\n",
+                std::println(stdout,
+                             "  ownerStruct={} declared={:d} typed={:d} sema={:d} ignored={:d} genericRoot={:d} genericInstance={:d} declNodeRef={}",
                              ownerStruct->getFullScopedName(ctx).c_str(),
                              ownerStruct->isDeclared(),
                              ownerStruct->isTyped(),
@@ -115,8 +117,8 @@ namespace
 
             if (ownerImpl)
             {
-                std::fprintf(stdout,
-                             "  ownerImpl=%p declared=%d typed=%d sema=%d ignored=%d forStruct=%d forInterface=%d genericBlockRef=%u\n",
+                std::println(stdout,
+                             "  ownerImpl={} declared={:d} typed={:d} sema={:d} ignored={:d} forStruct={:d} forInterface={:d} genericBlockRef={}",
                              static_cast<const void*>(ownerImpl),
                              ownerImpl->isDeclared(),
                              ownerImpl->isTyped(),
@@ -129,8 +131,8 @@ namespace
 
             if (state.waiterSymbol)
             {
-                std::fprintf(stdout,
-                             "  waiter=%s declared=%d typed=%d sema=%d ignored=%d kind=%d\n",
+                std::println(stdout,
+                             "  waiter={} declared={:d} typed={:d} sema={:d} ignored={:d} kind={}",
                              Utf8{state.waiterSymbol->name(ctx)}.c_str(),
                              state.waiterSymbol->isDeclared(),
                              state.waiterSymbol->isTyped(),

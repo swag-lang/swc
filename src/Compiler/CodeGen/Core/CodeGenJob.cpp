@@ -16,7 +16,7 @@ SWC_BEGIN_NAMESPACE();
 namespace
 {
 #if SWC_DEV_MODE
-    [[noreturn]] void panicUnmaterializedCodeGenTarget(TaskContext& ctx, const SymbolFunction& symbol)
+    void panicUnmaterializedCodeGenTarget(const TaskContext& ctx, const SymbolFunction& symbol)
     {
         const Utf8 detail = std::format("Function: {}\nDeclNodeRef: {}\nSemaCompleted: {}\nCodeGenPreSolved: {}\nCodeGenCompleted: {}\nLazyGenericBody: {}\nLazyGenericBodyRunning: {}\nGenericRoot: {}\nGenericInstance: {}\nIgnored: {}\n",
                                         symbol.getFullScopedName(ctx),

@@ -837,7 +837,7 @@ SymbolFunction* SymbolStruct::effectiveOpInit(TaskContext& ctx)
     return const_cast<SymbolFunction*>(const_cast<const SymbolStruct*>(this)->effectiveOpInit(ctx));
 }
 
-const SymbolFunction* SymbolStruct::effectiveOpInit(TaskContext& ctx) const
+const SymbolFunction* SymbolStruct::effectiveOpInit(const TaskContext& ctx) const
 {
     if (isGenericRoot() && !isGenericInstance())
         return nullptr;
@@ -845,7 +845,7 @@ const SymbolFunction* SymbolStruct::effectiveOpInit(TaskContext& ctx) const
     return findGeneratedInitWrapper(ctx, *this);
 }
 
-const SymbolFunction* SymbolStruct::effectiveOpDrop(TaskContext& ctx) const
+const SymbolFunction* SymbolStruct::effectiveOpDrop(const TaskContext& ctx) const
 {
     if (isGenericRoot() && !isGenericInstance())
         return nullptr;
@@ -861,7 +861,7 @@ SymbolFunction* SymbolStruct::effectiveOpPostCopy(TaskContext& ctx)
     return const_cast<SymbolFunction*>(const_cast<const SymbolStruct*>(this)->effectiveOpPostCopy(ctx));
 }
 
-const SymbolFunction* SymbolStruct::effectiveOpPostCopy(TaskContext& ctx) const
+const SymbolFunction* SymbolStruct::effectiveOpPostCopy(const TaskContext& ctx) const
 {
     if (isGenericRoot() && !isGenericInstance())
         return nullptr;
@@ -877,7 +877,7 @@ SymbolFunction* SymbolStruct::effectiveOpPostMove(TaskContext& ctx)
     return const_cast<SymbolFunction*>(const_cast<const SymbolStruct*>(this)->effectiveOpPostMove(ctx));
 }
 
-const SymbolFunction* SymbolStruct::effectiveOpPostMove(TaskContext& ctx) const
+const SymbolFunction* SymbolStruct::effectiveOpPostMove(const TaskContext& ctx) const
 {
     if (isGenericRoot() && !isGenericInstance())
         return nullptr;

@@ -1,9 +1,11 @@
+#include <print>
+
 #include "pch.h"
-#include "Compiler/CodeGen/Core/CodeGen.h"
 #include "Backend/ABI/CallConv.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroInstrInfo.h"
 #include "Backend/Micro/MicroReg.h"
+#include "Compiler/CodeGen/Core/CodeGen.h"
 #include "Compiler/CodeGen/Core/CodeGenCallHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenFunctionHelpers.h"
 #include "Compiler/Sema/Core/Sema.h"
@@ -82,10 +84,10 @@ namespace
     {
         const auto dumpNode = [](const AstNode& node, AstNodeRef nodeRef, const char* label) {
             const std::string_view nodeName = Ast::nodeIdName(node.id());
-            std::fprintf(stderr, "  %s=%u(%.*s)\n", label, nodeRef.get(), static_cast<int>(nodeName.size()), nodeName.data());
+            std::println(stderr, "  {}={}({:.{}})", label, nodeRef.get(), nodeName.data(), static_cast<int>(nodeName.size()));
         };
 
-        std::fprintf(stderr, "missing-codegen-payload:\n");
+        std::println(stderr, "missing-codegen-payload:");
         if (queryRef.isValid())
             dumpNode(codeGen.node(queryRef), queryRef, "query");
         if (resolvedRef.isValid())
@@ -93,13 +95,13 @@ namespace
         if (codeGen.curNodeRef().isValid())
             dumpNode(codeGen.curNode(), codeGen.curNodeRef(), "current");
 
-        std::fprintf(stderr, "  payload=%p regValid=%d\n", static_cast<void*>(payload), payload && payload->reg.isValid());
+        std::println(stderr, "  payload={} regValid={:d}", static_cast<void*>(payload), payload && payload->reg.isValid());
 
         if (queryRef.isValid())
         {
             const SemaNodeView storedView = codeGen.sema().viewStored(queryRef, SemaNodeViewPartE::Type | SemaNodeViewPartE::Symbol);
             const SemaNodeView liveView   = codeGen.viewTypeSymbol(queryRef);
-            std::fprintf(stderr, "  query storedType=%u liveType=%u storedSym=%d liveSym=%d\n",
+            std::println(stderr, "  query storedType={} liveType={} storedSym={:d} liveSym={:d}",
                          storedView.typeRef().isValid() ? storedView.typeRef().get() : 0,
                          liveView.typeRef().isValid() ? liveView.typeRef().get() : 0,
                          storedView.sym() != nullptr,

@@ -156,7 +156,7 @@ public:
     const std::vector<SymbolVariable*>& nativeGlobalVariables() const { return nativeGlobalVariables_; }
 
     Result setupSema(TaskContext& ctx);
-    bool   tryEnqueueCodeGenJob(Sema& sema, SymbolFunction& symbolFunc, AstNodeRef root);
+    bool   tryEnqueueCodeGenJob(Sema& sema, SymbolFunction& symbolFunc, AstNodeRef root) const;
     void   notifyAlive() { changed_.store(true, std::memory_order_release); }
     bool   changed() const { return changed_.load(std::memory_order_acquire); }
     bool   consumeChanged() { return changed_.exchange(false, std::memory_order_acq_rel); }
@@ -278,10 +278,10 @@ private:
     Result      collectImportedApiFiles(const TaskContext& ctx);
     bool        hasResolvedFilePath(const fs::path& path) const;
     void        adoptBuildCfg(const Runtime::BuildCfg& buildCfg);
-    Result      captureModuleSetupSnapshot(TaskContext& ctx, const CommandLine& setupCmdLine, ModuleSetupSnapshot& outSnapshot);
+    Result      captureModuleSetupSnapshot(const TaskContext& ctx, const CommandLine& setupCmdLine, ModuleSetupSnapshot& outSnapshot) const;
     Result      applyModuleSetupInputs(TaskContext& ctx, const ModuleSetupSnapshot& setupSnapshot);
     ExitCode    runWorkspace();
-    Result      runWorkspaceModule(const WorkspaceModuleBuild& moduleBuild, uint32_t moduleIndex, uint32_t moduleCount);
+    Result      runWorkspaceModule(const WorkspaceModuleBuild& moduleBuild, uint32_t moduleIndex, uint32_t moduleCount) const;
 
     const CommandLine*                       cmdLine_ = nullptr;
     const Global*                            global_  = nullptr;

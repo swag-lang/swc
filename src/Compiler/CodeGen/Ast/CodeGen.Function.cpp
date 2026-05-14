@@ -1020,7 +1020,7 @@ namespace
         codeGen.builder().emitLoadMemReg(captureDstReg, 0, sourcePayload->reg, storeBits);
     }
 
-    bool hasRuntimeStoragePayload(CodeGen& codeGen, AstNodeRef nodeRef)
+    bool hasRuntimeStoragePayload(const CodeGen& codeGen, AstNodeRef nodeRef)
     {
         const auto* payload = codeGen.loweringPayload(nodeRef);
         return payload && payload->runtimeStorageSym != nullptr;

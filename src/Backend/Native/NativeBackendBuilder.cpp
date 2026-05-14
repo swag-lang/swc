@@ -10,7 +10,6 @@
 #include "Compiler/SourceFile.h"
 #include "Main/Global.h"
 #include "Main/Stats.h"
-#include "Support/Core/Utf8Helper.h"
 #include "Support/Math/Hash.h"
 #include "Support/Memory/Heap.h"
 #include "Support/Memory/MemoryProfile.h"

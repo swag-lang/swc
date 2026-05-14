@@ -1,5 +1,6 @@
+#include <utility>
+
 #include "pch.h"
-#include "Main/CompilerInstance.h"
 #include "Backend/JIT/JIT.h"
 #include "Backend/JIT/JITExecManager.h"
 #include "Backend/JIT/JITMemoryManager.h"
@@ -23,6 +24,7 @@
 #include "Main/Command/Command.h"
 #include "Main/Command/CommandLine.h"
 #include "Main/Command/CommandLineParser.h"
+#include "Main/CompilerInstance.h"
 #include "Main/ExternalModuleManager.h"
 #include "Main/FileSystem.h"
 #include "Main/Global.h"
@@ -904,7 +906,7 @@ namespace
         if (deltaSnapshot.numFiles)
             parts.push_back(TimedActionLog::formatStatCount(ctx, deltaSnapshot.numFiles, "file"));
 
-        const Utf8 artifactLabel = compiler.lastArtifactLabel();
+        const Utf8& artifactLabel = compiler.lastArtifactLabel();
         if (!artifactLabel.empty())
             parts.push_back(TimedActionLog::formatStatName(ctx, artifactLabel));
 
@@ -1120,7 +1122,7 @@ Result CompilerInstance::setupSema(TaskContext& ctx)
     return Result::Continue;
 }
 
-bool CompilerInstance::tryEnqueueCodeGenJob(Sema& sema, SymbolFunction& symbolFunc, const AstNodeRef root)
+bool CompilerInstance::tryEnqueueCodeGenJob(Sema& sema, SymbolFunction& symbolFunc, const AstNodeRef root) const
 {
     if (!symbolFunc.tryMarkCodeGenJobScheduled())
         return false;
@@ -1717,7 +1719,7 @@ ExitCode CompilerInstance::runWorkspace()
 
     std::vector<size_t> buildOrder;
     buildOrder.reserve(activeModuleCount);
-    std::vector<bool> scheduled(modules.size(), false);
+    std::vector scheduled(modules.size(), false);
     while (buildOrder.size() < activeModuleCount)
     {
         size_t nextIndex = static_cast<size_t>(-1);
@@ -1730,7 +1732,7 @@ ExitCode CompilerInstance::runWorkspace()
             break;
         }
 
-        if (nextIndex == static_cast<size_t>(-1))
+        if (std::cmp_equal(nextIndex, -1))
         {
             for (size_t i = 0; i < modules.size(); ++i)
             {
@@ -1776,7 +1778,7 @@ ExitCode CompilerInstance::runWorkspace()
     return Stats::getNumErrors() > 0 ? ExitCode::CompileError : ExitCode::Success;
 }
 
-Result CompilerInstance::runWorkspaceModule(const WorkspaceModuleBuild& moduleBuild, const uint32_t moduleIndex, const uint32_t moduleCount)
+Result CompilerInstance::runWorkspaceModule(const WorkspaceModuleBuild& moduleBuild, const uint32_t moduleIndex, const uint32_t moduleCount) const
 {
     CommandLine moduleCmdLine    = cmdLine();
     moduleCmdLine.modulePath     = moduleBuild.moduleDir;
@@ -1800,7 +1802,7 @@ Result CompilerInstance::runWorkspaceModule(const WorkspaceModuleBuild& moduleBu
         .total = moduleCount,
     };
 
-    TaskContext                 moduleCtx(moduleCompiler);
+    const TaskContext           moduleCtx(moduleCompiler);
     TimedActionLog::ScopedStage moduleStage(moduleCtx, TimedActionLog::Stage::Module);
     moduleCompiler.processCommand();
     moduleStage.setStat(formatWorkspaceModuleStageStat(moduleCtx, moduleCompiler, moduleStage.delta()));
@@ -2478,7 +2480,7 @@ void CompilerInstance::adoptBuildCfg(const Runtime::BuildCfg& buildCfg)
     ownBuildCfgStrings(buildCfg_, ownedBuildCfgStrings_);
 }
 
-Result CompilerInstance::captureModuleSetupSnapshot(TaskContext& ctx, const CommandLine& setupCmdLine, ModuleSetupSnapshot& outSnapshot)
+Result CompilerInstance::captureModuleSetupSnapshot(const TaskContext& ctx, const CommandLine& setupCmdLine, ModuleSetupSnapshot& outSnapshot) const
 {
     SWC_UNUSED(ctx);
     outSnapshot = {};
@@ -2538,8 +2540,8 @@ Result CompilerInstance::captureModuleSetupSnapshot(TaskContext& ctx, const Comm
 
     SWC_RESULT(setupCompiler.setupSema(setupCtx));
 
-    auto* symModule           = Symbol::make<SymbolModule>(setupCtx, nullptr, TokenRef::invalid(), IdentifierRef::invalid(), SymbolFlagsE::Zero);
-    Utf8  moduleNamespaceName = buildModuleNamespaceName(setupCompiler);
+    auto*      symModule           = Symbol::make<SymbolModule>(setupCtx, nullptr, TokenRef::invalid(), IdentifierRef::invalid(), SymbolFlagsE::Zero);
+    const Utf8 moduleNamespaceName = buildModuleNamespaceName(setupCompiler);
 
     constexpr SymbolFlags namespaceFlags  = SymbolFlagsE::Declared | SymbolFlagsE::Typed | SymbolFlagsE::SemaCompleted;
     const IdentifierRef   idRef           = setupCtx.idMgr().addIdentifierOwned(moduleNamespaceName, Math::hash(moduleNamespaceName));

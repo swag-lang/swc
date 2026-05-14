@@ -5,7 +5,6 @@
 #include "Main/Command/CommandRun.h"
 #include "Main/CompilerInstance.h"
 #include "Main/Stats.h"
-#include "Support/Report/ScopedTimedAction.h"
 
 SWC_BEGIN_NAMESPACE();
 

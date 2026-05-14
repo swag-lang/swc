@@ -657,7 +657,7 @@ Result AstAnonymousUnionDecl::codeGenPreNode(const CodeGen& codeGen)
 Result AstIdentifier::codeGenPostNode(CodeGen& codeGen)
 {
     const SemaNodeView view   = codeGen.curViewSymbol();
-    Symbol*            symbol = view.sym();
+    const Symbol*      symbol = view.sym();
     if (!view.sym())
     {
         const AstNodeRef parentRef = codeGen.visit().parentNodeRef();

@@ -1,9 +1,11 @@
+#include <print>
+
 #include "pch.h"
-#include "Compiler/CodeGen/Core/CodeGen.h"
 #include "Backend/ABI/ABICall.h"
 #include "Backend/ABI/ABITypeNormalize.h"
 #include "Backend/ABI/CallConv.h"
 #include "Backend/Micro/MicroBuilder.h"
+#include "Compiler/CodeGen/Core/CodeGen.h"
 #include "Compiler/CodeGen/Core/CodeGenFunctionHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenMemoryHelpers.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
@@ -379,24 +381,24 @@ Result AstCompilerIf::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef& ch
         const AstNodeRef       resolvedCondRef = codeGen.resolvedNodeRef(nodeConditionRef);
         const SemaNodeView     storedCondView  = codeGen.sema().viewStored(nodeConditionRef, SemaNodeViewPartE::Node | SemaNodeViewPartE::Constant | SemaNodeViewPartE::Symbol);
         const std::string_view queryName       = Ast::nodeIdName(codeGen.node(nodeConditionRef).id());
-        std::fprintf(stderr, "compiler-if-missing-constant:\n");
-        std::fprintf(stderr, "  query=%u(%.*s) resolved=%u current=%u\n",
+        std::println(stderr, "compiler-if-missing-constant:");
+        std::println(stderr, "  query={}({:.{}}) resolved={} current={}",
                      nodeConditionRef.get(),
-                     static_cast<int>(queryName.size()),
                      queryName.data(),
+                     static_cast<int>(queryName.size()),
                      resolvedCondRef.isValid() ? resolvedCondRef.get() : 0,
                      codeGen.curNodeRef().isValid() ? codeGen.curNodeRef().get() : 0);
-        std::fprintf(stderr, "  storedConst=%d liveConst=%d storedSym=%d\n",
+        std::println(stderr, "  storedConst={:d} liveConst={:d} storedSym={:d}",
                      storedCondView.hasConstant(),
                      condView.hasConstant(),
                      storedCondView.sym() != nullptr);
         if (resolvedCondRef.isValid())
         {
             const std::string_view resolvedName = Ast::nodeIdName(codeGen.node(resolvedCondRef).id());
-            std::fprintf(stderr, "  resolvedNode=%u(%.*s)\n",
+            std::println(stderr, "  resolvedNode={}({:.{}})",
                          resolvedCondRef.get(),
-                         static_cast<int>(resolvedName.size()),
-                         resolvedName.data());
+                         resolvedName.data(),
+                         static_cast<int>(resolvedName.size()));
         }
 #endif
     }

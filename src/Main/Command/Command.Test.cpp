@@ -11,7 +11,6 @@
 #include "Main/Command/CommandRun.h"
 #include "Main/CompilerInstance.h"
 #include "Main/Stats.h"
-#include "Support/Core/Utf8Helper.h"
 #include "Support/Memory/MemoryProfile.h"
 #include "Support/Report/Diagnostic.h"
 #include "Support/Report/ScopedTimedAction.h"

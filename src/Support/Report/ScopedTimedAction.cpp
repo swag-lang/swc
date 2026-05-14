@@ -426,10 +426,10 @@ namespace
     Utf8 pluralLabel(const size_t value, const std::string_view singular, const char* plural)
     {
         if (value == 1)
-            return Utf8(singular);
+            return Utf8{singular};
 
         if (plural)
-            return Utf8(plural);
+            return Utf8{plural};
 
         Utf8 result(singular);
         result += "s";

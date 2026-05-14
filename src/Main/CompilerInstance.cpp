@@ -877,6 +877,58 @@ namespace
         return !name.empty() && name[0] == '.';
     }
 
+    Utf8 joinTextParts(const std::vector<Utf8>& parts)
+    {
+        Utf8 result;
+        bool first = true;
+        for (const Utf8& part : parts)
+        {
+            if (part.empty())
+                continue;
+
+            if (!first)
+                result += ", ";
+            result += part;
+            first = false;
+        }
+
+        return result;
+    }
+
+    Utf8 formatWorkspaceStageStat(const CompilerInstance::WorkspaceBuildLogState& workspaceLogState)
+    {
+        std::vector<Utf8> parts;
+        if (workspaceLogState.activeModules)
+        {
+            if (workspaceLogState.builtModules < workspaceLogState.activeModules)
+                parts.push_back(std::format("{}/{} modules", Utf8Helper::toNiceBigNumber(workspaceLogState.builtModules), Utf8Helper::toNiceBigNumber(workspaceLogState.activeModules)));
+            else
+                parts.push_back(Utf8Helper::countWithLabel(workspaceLogState.activeModules, "module"));
+        }
+        else if (workspaceLogState.discoveredModules)
+        {
+            parts.push_back(Utf8Helper::countWithLabel(workspaceLogState.discoveredModules, "module"));
+        }
+
+        if (workspaceLogState.ignoredModules)
+            parts.push_back(Utf8Helper::countWithLabel(workspaceLogState.ignoredModules, "ignored module"));
+
+        return joinTextParts(parts);
+    }
+
+    Utf8 formatWorkspaceModuleStageStat(const CompilerInstance& compiler, const TimedActionLog::StatsSnapshot& deltaSnapshot)
+    {
+        std::vector<Utf8> parts;
+        if (deltaSnapshot.numFiles)
+            parts.push_back(Utf8Helper::countWithLabel(deltaSnapshot.numFiles, "file"));
+
+        const Utf8 artifactLabel = compiler.lastArtifactLabel();
+        if (!artifactLabel.empty())
+            parts.push_back(artifactLabel);
+
+        return joinTextParts(parts);
+    }
+
     void initRuntimeContextTlsId()
     {
         g_RuntimeContextTlsId = Os::tlsAlloc();
@@ -1529,6 +1581,7 @@ ExitCode CompilerInstance::run()
 {
     Stats::resetCommandMetrics();
     logBefore();
+    const auto runStart = std::chrono::steady_clock::now();
     ExitCode exitCode;
     if (!cmdLine().workspacePath.empty())
         exitCode = runWorkspace();
@@ -1537,6 +1590,7 @@ ExitCode CompilerInstance::run()
         processCommand();
         exitCode = Stats::getNumErrors() > 0 ? ExitCode::CompileError : ExitCode::Success;
     }
+    commandWallTimeNs_ = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now() - runStart).count();
     logAfter();
     logStats();
     return exitCode;
@@ -1544,10 +1598,13 @@ ExitCode CompilerInstance::run()
 
 ExitCode CompilerInstance::runWorkspace()
 {
-    TaskContext ctx(*this);
-    fs::path    workspacePath = cmdLine().workspacePath;
-    fs::path    modulesPath   = workspaceModulesDirectory(workspacePath);
-    Utf8        because;
+    TaskContext                  ctx(*this);
+    TimedActionLog::ScopedStage  workspaceStage(ctx, TimedActionLog::Stage::Workspace);
+    fs::path                     workspacePath = cmdLine().workspacePath;
+    fs::path                     modulesPath   = workspaceModulesDirectory(workspacePath);
+    Utf8                         because;
+
+    workspaceBuildLogState_ = {};
 
     if (FileSystem::resolveExistingFolder(modulesPath, because) != Result::Continue)
     {
@@ -1671,6 +1728,11 @@ ExitCode CompilerInstance::runWorkspace()
         }
     }
 
+    workspaceBuildLogState_.discoveredModules = modules.size();
+    workspaceBuildLogState_.activeModules     = activeModuleCount;
+    workspaceBuildLogState_.ignoredModules    = modules.size() - activeModuleCount;
+    workspaceStage.setStat(formatWorkspaceStageStat(workspaceBuildLogState_));
+
     std::vector<size_t> buildOrder;
     buildOrder.reserve(activeModuleCount);
     std::vector<bool> scheduled(modules.size(), false);
@@ -1718,16 +1780,21 @@ ExitCode CompilerInstance::runWorkspace()
     if (FileSystem::clearDirectoryContents(ctx, dependencyDir, DiagnosticId::cmd_err_workspace_dir_clear_failed) != Result::Continue)
         return ExitCode::CompileError;
 
-    for (const size_t moduleIndex : buildOrder)
+    const uint32_t buildCount = static_cast<uint32_t>(buildOrder.size());
+    for (uint32_t buildIndex = 0; buildIndex < buildCount; ++buildIndex)
     {
-        if (runWorkspaceModule(modules[moduleIndex]) != Result::Continue)
+        const size_t moduleIndex = buildOrder[buildIndex];
+        if (runWorkspaceModule(modules[moduleIndex], buildIndex + 1, buildCount) != Result::Continue)
             return ExitCode::CompileError;
+
+        workspaceBuildLogState_.builtModules++;
+        workspaceStage.setStat(formatWorkspaceStageStat(workspaceBuildLogState_));
     }
 
     return Stats::getNumErrors() > 0 ? ExitCode::CompileError : ExitCode::Success;
 }
 
-Result CompilerInstance::runWorkspaceModule(const WorkspaceModuleBuild& moduleBuild)
+Result CompilerInstance::runWorkspaceModule(const WorkspaceModuleBuild& moduleBuild, const uint32_t moduleIndex, const uint32_t moduleCount)
 {
     CommandLine moduleCmdLine = cmdLine();
     moduleCmdLine.modulePath     = moduleBuild.moduleDir;
@@ -1745,7 +1812,16 @@ Result CompilerInstance::runWorkspaceModule(const WorkspaceModuleBuild& moduleBu
     const uint64_t errorsBefore = Stats::getNumErrors();
     CompilerInstance moduleCompiler(global(), moduleCmdLine);
     moduleCompiler.precomputedModuleSetup_ = &moduleBuild.setup;
+    moduleCompiler.workspaceModuleLogState_ = WorkspaceModuleLogState{
+        .name  = moduleBuild.name,
+        .index = moduleIndex,
+        .total = moduleCount,
+    };
+
+    TaskContext                 moduleCtx(moduleCompiler);
+    TimedActionLog::ScopedStage moduleStage(moduleCtx, TimedActionLog::Stage::Module);
     moduleCompiler.processCommand();
+    moduleStage.setStat(formatWorkspaceModuleStageStat(moduleCompiler, moduleStage.delta()));
     if (Stats::getNumErrors() != errorsBefore)
         return Result::Error;
 

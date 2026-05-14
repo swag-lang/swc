@@ -59,6 +59,21 @@ public:
         uint32_t codeStartOffset = 0;
     };
 
+    struct WorkspaceBuildLogState
+    {
+        size_t discoveredModules = 0;
+        size_t activeModules     = 0;
+        size_t ignoredModules    = 0;
+        size_t builtModules      = 0;
+    };
+
+    struct WorkspaceModuleLogState
+    {
+        Utf8     name;
+        uint32_t index = 0;
+        uint32_t total = 0;
+    };
+
     CompilerInstance(const Global& global, const CommandLine& cmdLine);
     ~CompilerInstance();
 
@@ -90,6 +105,10 @@ public:
     const Utf8&                     lastArtifactLabel() const { return lastArtifactLabel_; }
     void                            setLastArtifactLabel(Utf8 label) { lastArtifactLabel_ = std::move(label); }
     void                            clearLastArtifactLabel() { lastArtifactLabel_.clear(); }
+    const WorkspaceBuildLogState&   workspaceBuildLogState() const { return workspaceBuildLogState_; }
+    const WorkspaceModuleLogState*  workspaceModuleLogState() const { return workspaceModuleLogState_ ? &workspaceModuleLogState_.value() : nullptr; }
+    bool                            suppressBuildConfigurationLog() const { return suppressBuildConfigurationLog_; }
+    uint64_t                        commandWallTimeNs() const { return commandWallTimeNs_; }
     Runtime::ICompiler&             runtimeCompiler() { return runtimeCompiler_; }
     const Runtime::ICompiler&       runtimeCompiler() const { return runtimeCompiler_; }
     const Runtime::IAllocator&      runtimeAllocator() const { return runtimeAllocator_; }
@@ -262,7 +281,7 @@ private:
     Result      captureModuleSetupSnapshot(TaskContext& ctx, const CommandLine& setupCmdLine, ModuleSetupSnapshot& outSnapshot);
     Result      applyModuleSetupInputs(TaskContext& ctx, const ModuleSetupSnapshot& setupSnapshot);
     ExitCode    runWorkspace();
-    Result      runWorkspaceModule(const WorkspaceModuleBuild& moduleBuild);
+    Result      runWorkspaceModule(const WorkspaceModuleBuild& moduleBuild, uint32_t moduleIndex, uint32_t moduleCount);
 
     const CommandLine*                       cmdLine_ = nullptr;
     const Global*                            global_  = nullptr;
@@ -291,6 +310,10 @@ private:
     std::vector<std::unique_ptr<Utf8>>       ownedBuildCfgStrings_;
     const ModuleSetupSnapshot*               precomputedModuleSetup_ = nullptr;
     Utf8                                     lastArtifactLabel_;
+    WorkspaceBuildLogState                   workspaceBuildLogState_{};
+    std::optional<WorkspaceModuleLogState>   workspaceModuleLogState_;
+    bool                                     suppressBuildConfigurationLog_ = false;
+    uint64_t                                 commandWallTimeNs_ = 0;
     Runtime::ICompiler                       runtimeCompiler_{};
     Runtime::IAllocator                      runtimeAllocator_{};
     Runtime::CompilerMessage                 runtimeCompilerMessage_{};

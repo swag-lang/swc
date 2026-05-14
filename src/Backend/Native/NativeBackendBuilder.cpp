@@ -434,7 +434,13 @@ Result NativeBackendBuilder::run()
         TimedActionLog::ScopedStage stage(ctx_, TimedActionLog::Stage::Build);
 
         SWC_RESULT(prepare());
-        stage.setStat(Utf8Helper::countWithLabel(compiler_->nativeCodeSegment().size(), "function"));
+        Utf8 buildStat = Utf8Helper::countWithLabel(compiler_->nativeCodeSegment().size(), "function");
+        if (!compiler_->lastArtifactLabel().empty())
+        {
+            buildStat += ", ";
+            buildStat += compiler_->lastArtifactLabel();
+        }
+        stage.setStat(std::move(buildStat));
         SWC_RESULT(artifactBuilder.build());
         SWC_RESULT(writeObjects());
 

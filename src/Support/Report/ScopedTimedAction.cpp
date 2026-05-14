@@ -3,6 +3,7 @@
 #include "Backend/Runtime.h"
 #include "Backend/RuntimeName.h"
 #include "Main/Command/CommandLine.h"
+#include "Main/Command/CommandLineParser.h"
 #include "Main/CompilerInstance.h"
 #include "Main/FileSystem.h"
 #include "Main/Global.h"
@@ -22,153 +23,40 @@ namespace
 {
     constexpr size_t ACTION_LABEL_WIDTH = 10;
 
-    // ── Philosophy verb pools ──────────────────────────────────────────
-    // Each stage has a rotating set of short, craftsman-philosopher phrases.
-
-    constexpr std::string_view CONFIG_VERBS[] = {
-        "arming the forge",
-        "sharpening instruments",
-        "preparing the ground",
-        "readying the anvil",
-        "gathering tools",
-        "setting the stage",
-    };
-
-    constexpr std::string_view MODES_VERBS[] = {
-        "settling conditions",
-        "choosing the stance",
-        "aligning intent",
-        "tuning the approach",
-    };
-
-    constexpr std::string_view SYNTAX_VERBS[] = {
-        "shaping syntax",
-        "carving structure",
-        "tracing outlines",
-        "reading the grain",
-        "unfolding form",
-        "mapping contours",
-    };
-
-    constexpr std::string_view FORMAT_VERBS[] = {
-        "restoring cadence",
-        "aligning the lines",
-        "preserving the grain",
-        "rewriting with care",
-        "settling the text",
-        "matching the source",
-    };
-
-    constexpr std::string_view SEMA_VERBS[] = {
-        "weighing meaning",
-        "probing depth",
-        "seeking coherence",
-        "distilling intent",
-        "threading sense",
-        "reading between lines",
-    };
-
-    constexpr std::string_view JIT_VERBS[] = {
-        "sparking proofs",
-        "testing mettle",
-        "striking sparks",
-        "trial under fire",
-        "forging certainty",
-        "igniting trials",
-    };
-
-    constexpr std::string_view MICRO_VERBS[] = {
-        "honing the edge",
-        "polishing facets",
-        "stripping excess",
-        "refining precision",
-        "cutting to essence",
-        "chiseling details",
-    };
-
-    constexpr std::string_view BUILD_VERBS[] = {
-        "forging substance",
-        "casting the mold",
-        "hammering form",
-        "tempering steel",
-        "shaping the artifact",
-        "materializing intent",
-    };
-
-    constexpr std::string_view RUN_VERBS[] = {
-        "releasing creation",
-        "handing the reins",
-        "setting it free",
-        "breathing life",
-        "letting it fly",
-        "launching forward",
-    };
-
-    constexpr std::string_view VERIFY_VERBS[] = {
-        "measuring truth",
-        "weighing the yield",
-        "checking the mark",
-        "testing the claim",
-        "gauging results",
-        "confirming the craft",
-    };
-
-    constexpr std::string_view UNITTEST_VERBS[] = {
-        "probing foundations",
-        "testing the bones",
-        "checking integrity",
-        "stress-testing roots",
-        "verifying the core",
-    };
-
-    template<size_t N>
-    std::string_view pickVerb(const std::string_view (&pool)[N])
+    uint64_t saturatingSub64(const uint64_t lhs, const uint64_t rhs)
     {
-        static std::atomic<uint32_t> counter{0};
-        return pool[counter.fetch_add(1, std::memory_order_relaxed) % N];
+        return lhs >= rhs ? lhs - rhs : 0;
     }
 
-    std::string_view stageVerb(const Stage stage)
+    size_t saturatingSubSize(const size_t lhs, const size_t rhs)
     {
-        switch (stage)
-        {
-            case Stage::Config:
-                return pickVerb(CONFIG_VERBS);
-            case Stage::Modes:
-                return pickVerb(MODES_VERBS);
-            case Stage::Format:
-                return pickVerb(FORMAT_VERBS);
-            case Stage::Syntax:
-                return pickVerb(SYNTAX_VERBS);
-            case Stage::Sema:
-                return pickVerb(SEMA_VERBS);
-            case Stage::JIT:
-                return pickVerb(JIT_VERBS);
-            case Stage::Micro:
-                return pickVerb(MICRO_VERBS);
-            case Stage::Build:
-                return pickVerb(BUILD_VERBS);
-            case Stage::Run:
-                return pickVerb(RUN_VERBS);
-            case Stage::Verify:
-                return pickVerb(VERIFY_VERBS);
-            case Stage::Unittest:
-                return pickVerb(UNITTEST_VERBS);
-        }
-
-        SWC_UNREACHABLE();
+        return lhs >= rhs ? lhs - rhs : 0;
     }
 
-    // ── Stage properties ───────────────────────────────────────────────
+    TimedActionLog::StatsSnapshot subtractSnapshot(const TimedActionLog::StatsSnapshot& after, const TimedActionLog::StatsSnapshot& before)
+    {
+        TimedActionLog::StatsSnapshot result;
+        result.timeTotal               = saturatingSub64(after.timeTotal, before.timeTotal);
+        result.numErrors               = saturatingSubSize(after.numErrors, before.numErrors);
+        result.numWarnings             = saturatingSubSize(after.numWarnings, before.numWarnings);
+        result.numFiles                = saturatingSubSize(after.numFiles, before.numFiles);
+        result.numTokens               = saturatingSubSize(after.numTokens, before.numTokens);
+        result.numFormatRewrittenFiles = saturatingSubSize(after.numFormatRewrittenFiles, before.numFormatRewrittenFiles);
+        return result;
+    }
 
     std::string_view stageLabel(const Stage stage)
     {
         switch (stage)
         {
+            case Stage::Workspace:
+                return "Workspace";
+            case Stage::Module:
+                return "Module";
             case Stage::Config:
                 return "Config";
             case Stage::Modes:
-                return "Modes";
+                return "Mode";
             case Stage::Format:
                 return "Format";
             case Stage::Syntax:
@@ -196,18 +84,21 @@ namespace
     {
         switch (stage)
         {
+            case Stage::Workspace:
+            case Stage::Module:
+                return LogColor::BrightCyan;
             case Stage::Config:
             case Stage::Modes:
-            case Stage::Sema:
-                return LogColor::BrightBlue;
-            case Stage::Format:
-            case Stage::Syntax:
             case Stage::Verify:
             case Stage::Unittest:
-                return LogColor::BrightCyan;
+                return LogColor::Cyan;
+            case Stage::Format:
+            case Stage::Syntax:
+            case Stage::Sema:
+                return LogColor::BrightBlue;
             case Stage::JIT:
+                return LogColor::BrightCyan;
             case Stage::Micro:
-                return LogColor::BrightMagenta;
             case Stage::Build:
                 return LogColor::BrightYellow;
             case Stage::Run:
@@ -239,8 +130,6 @@ namespace
 
         return outcomeColor(outcome);
     }
-
-    // ── Source root formatting ──────────────────────────────────────────
 
     Utf8 displayPath(const fs::path& path)
     {
@@ -300,20 +189,130 @@ namespace
         return formatSourceRoots(roots);
     }
 
+    Utf8 workspaceDisplayName(const CommandLine& cmdLine)
+    {
+        if (cmdLine.workspacePath.empty())
+            return "workspace";
+
+        Utf8 result = Utf8(cmdLine.workspacePath.filename().string());
+        if (!result.empty())
+            return result;
+
+        return displayPath(cmdLine.workspacePath);
+    }
+
+    Utf8 moduleDisplayName(const CommandLine& cmdLine)
+    {
+        if (!cmdLine.modulePath.empty())
+        {
+            Utf8 result = Utf8(cmdLine.modulePath.filename().string());
+            if (!result.empty())
+                return result;
+        }
+
+        if (!cmdLine.moduleFilePath.empty())
+        {
+            Utf8 result = Utf8(cmdLine.moduleFilePath.parent_path().filename().string());
+            if (!result.empty())
+                return result;
+        }
+
+        return defaultArtifactName(cmdLine);
+    }
+
+    bool isModuleInput(const CommandLine& cmdLine)
+    {
+        return !cmdLine.modulePath.empty() || !cmdLine.moduleFilePath.empty();
+    }
+
+    Utf8 formatFileScopeDetail(const CommandLine& cmdLine)
+    {
+        const Utf8 roots = formatCommandSourceRoots(cmdLine);
+        if (roots.empty() || roots == "sources")
+            return "files";
+
+        return std::format("files in {}", roots);
+    }
+
+    Utf8 formatWorkspaceModuleProgress(const CompilerInstance::WorkspaceModuleLogState& moduleLogState)
+    {
+        if (!moduleLogState.total)
+            return std::format("module {}", moduleLogState.name);
+
+        return std::format("{}/{} {}", moduleLogState.index, moduleLogState.total, moduleLogState.name);
+    }
+
+    Utf8 formatCompileScopeDetail(const TaskContext& ctx)
+    {
+        if (ctx.hasCompiler())
+        {
+            if (const auto* moduleLogState = ctx.compiler().workspaceModuleLogState())
+                return std::format("module {}", moduleLogState->name);
+        }
+
+        if (!ctx.cmdLine().workspacePath.empty())
+            return std::format("workspace {}", workspaceDisplayName(ctx.cmdLine()));
+
+        if (isModuleInput(ctx.cmdLine()))
+            return std::format("module {}", moduleDisplayName(ctx.cmdLine()));
+
+        return formatFileScopeDetail(ctx.cmdLine());
+    }
+
+    Utf8 formatCommandValue(const TaskContext& ctx)
+    {
+        Utf8 result = Utf8(commandName(ctx.cmdLine().command));
+        const Utf8 scope = formatCompileScopeDetail(ctx);
+        if (!scope.empty())
+        {
+            result += " ";
+            result += scope;
+        }
+
+        return result;
+    }
+
     Utf8 stageDetail(const TaskContext& ctx, const Stage stage)
     {
         switch (stage)
         {
+            case Stage::Workspace:
+                return std::format("workspace {}", workspaceDisplayName(ctx.cmdLine()));
+            case Stage::Module:
+                if (ctx.hasCompiler())
+                {
+                    if (const auto* moduleLogState = ctx.compiler().workspaceModuleLogState())
+                        return formatWorkspaceModuleProgress(*moduleLogState);
+                }
+                return formatCompileScopeDetail(ctx);
             case Stage::Format:
             case Stage::Syntax:
             case Stage::Sema:
-                return formatCommandSourceRoots(ctx.cmdLine());
+            case Stage::JIT:
+            case Stage::Micro:
+            case Stage::Build:
+            case Stage::Run:
+                return formatCompileScopeDetail(ctx);
+            case Stage::Verify:
+                return "expected checks";
+            case Stage::Unittest:
+                return "internal compiler tests";
             default:
                 return {};
         }
     }
 
-    // ── Helpers ────────────────────────────────────────────────────────
+    Utf8 formatWorkspaceProgress(const CompilerInstance::WorkspaceBuildLogState& workspaceLogState, const bool hasErrors)
+    {
+        if (!workspaceLogState.activeModules)
+            return {};
+
+        if (hasErrors && workspaceLogState.builtModules < workspaceLogState.activeModules)
+            return std::format("{}/{} modules", Utf8Helper::toNiceBigNumber(workspaceLogState.builtModules), Utf8Helper::toNiceBigNumber(workspaceLogState.activeModules));
+
+        const size_t completedModules = workspaceLogState.builtModules ? workspaceLogState.builtModules : workspaceLogState.activeModules;
+        return Utf8Helper::countWithLabel(completedModules, "module");
+    }
 
     TimedActionLog::StageOutcome classifyOutcome(const TimedActionLog::StatsSnapshot& before, const TimedActionLog::StatsSnapshot& after)
     {
@@ -401,22 +400,16 @@ namespace
 
     Utf8 formatCommandHeader(const TaskContext& ctx)
     {
-        return formatTitleValueLine(ctx, stageStartGlyph(ctx), LogColor::BrightYellow, "Command", LogColor::BrightYellow, commandName(ctx.cmdLine().command), LogColor::White);
+        return formatTitleValueLine(ctx, stageStartGlyph(ctx), LogColor::BrightCyan, "Command", LogColor::BrightCyan, formatCommandValue(ctx), LogColor::White);
     }
 
     void appendStageText(Utf8& line, const TaskContext& ctx, const Stage stage, const std::string_view detail)
     {
-        const auto label  = stageLabel(stage);
-        const Utf8 bullet = LogSymbolHelper::toString(ctx, LogSymbol::DotList);
-        line += colorize(ctx, stageColor(stage), std::format("{:<{}}", label, ACTION_LABEL_WIDTH));
-        line += " ";
-        line += colorize(ctx, LogColor::White, stageVerb(stage));
+        line += colorize(ctx, stageColor(stage), std::format("{:<{}}", stageLabel(stage), ACTION_LABEL_WIDTH));
         if (!detail.empty())
         {
             line += " ";
-            line += colorize(ctx, LogColor::Gray, bullet);
-            line += " ";
-            line += colorize(ctx, LogColor::Gray, detail);
+            line += colorize(ctx, LogColor::White, detail);
         }
     }
 
@@ -442,11 +435,22 @@ namespace
         return line;
     }
 
-    Utf8 formatStageEnd(const TaskContext& ctx, const Stage stage, const TimedActionLog::StageOutcome outcome, const uint64_t durationNs, const Utf8& stat)
+    void appendStageMetric(Utf8& line, const TaskContext& ctx, const Utf8& metric)
+    {
+        if (metric.empty())
+            return;
+
+        const Utf8 bullet = LogSymbolHelper::toString(ctx, LogSymbol::DotList);
+        line += " ";
+        line += colorize(ctx, LogColor::Gray, bullet);
+        line += " ";
+        line += colorize(ctx, LogColor::White, metric);
+    }
+
+    Utf8 formatStageEnd(const TaskContext& ctx, const Stage stage, const std::string_view detail, const TimedActionLog::StageOutcome outcome, const uint64_t durationNs, const Utf8& stat)
     {
         const auto label           = stageLabel(stage);
         const Utf8 duration        = Utf8Helper::toNiceTime(Timer::toSeconds(durationNs));
-        const Utf8 bullet          = LogSymbolHelper::toString(ctx, LogSymbol::DotList);
         const auto outcomeLogColor = stageOutcomeColor(stage, outcome);
 
         Utf8 line;
@@ -454,15 +458,13 @@ namespace
         line += colorize(ctx, outcomeLogColor, stageOutcomeGlyph(ctx, outcome));
         line += "  ";
         line += colorize(ctx, outcomeLogColor, std::format("{:<{}}", label, ACTION_LABEL_WIDTH));
-        line += " ";
-        line += colorize(ctx, LogColor::White, duration);
-        if (!stat.empty())
+        if (!detail.empty())
         {
             line += " ";
-            line += colorize(ctx, LogColor::Gray, bullet);
-            line += " ";
-            line += colorize(ctx, LogColor::Gray, stat);
+            line += colorize(ctx, LogColor::White, detail);
         }
+        appendStageMetric(line, ctx, duration);
+        appendStageMetric(line, ctx, stat);
         line += resetColor(ctx);
         return line;
     }
@@ -480,7 +482,22 @@ namespace
     {
         const CommandLine&       cmdLine  = ctx.cmdLine();
         const Runtime::BuildCfg& buildCfg = cmdLine.defaultBuildCfg;
-        return joinParts(ctx, {cmdLine.buildCfg, backendKindName(buildCfg.backendKind), targetArchName(cmdLine.targetArch)}, LogColor::Gray);
+
+        std::vector<Utf8> parts;
+        if (ctx.hasCompiler())
+        {
+            if (const auto* moduleLogState = ctx.compiler().workspaceModuleLogState())
+                parts.push_back(std::format("module {}", moduleLogState->name));
+        }
+        if (parts.empty() && isModuleInput(cmdLine))
+        {
+            parts.push_back(std::format("module {}", moduleDisplayName(cmdLine)));
+        }
+
+        parts.push_back(cmdLine.buildCfg);
+        parts.push_back(backendKindName(buildCfg.backendKind));
+        parts.push_back(targetArchName(cmdLine.targetArch));
+        return joinParts(ctx, parts, LogColor::Gray);
     }
 }
 
@@ -518,6 +535,8 @@ void TimedActionLog::printCommandHeader(const TaskContext& ctx)
 void TimedActionLog::printBuildConfiguration(const TaskContext& ctx)
 {
     if (ctx.global().logger().stageOutputMuted())
+        return;
+    if (ctx.hasCompiler() && ctx.compiler().suppressBuildConfigurationLog())
         return;
 
     const Logger::ScopedLock loggerLock(ctx.global().logger());
@@ -557,26 +576,22 @@ void TimedActionLog::printSessionFlags(const TaskContext& ctx)
     printLineLocked(ctx, line);
 }
 
-TimedActionLog::ScopedStage::ScopedStage(const TaskContext& ctx, const Stage stage) :
+TimedActionLog::ScopedStage::ScopedStage(const TaskContext& ctx, const Stage stage, Utf8 detail) :
     ctx_(&ctx),
     stage_(stage),
-    startTick_(Clock::now())
+    startTick_(Clock::now()),
+    startSnapshot_(StatsSnapshot::capture()),
+    detail_(detail.empty() ? stageDetail(ctx, stage) : std::move(detail)),
+    printEnabled_(!ctx.global().logger().stageOutputMuted())
 {
-    const StatsSnapshot before = StatsSnapshot::capture();
-    startErrors_               = before.numErrors;
-    startWarnings_             = before.numWarnings;
-
-    if (ctx_->global().logger().stageOutputMuted())
-    {
-        ctx_ = nullptr;
+    if (!printEnabled_)
         return;
-    }
 
-    const Logger::ScopedLock loggerLock(ctx_->global().logger());
+    const Logger::ScopedLock loggerLock(ctx.global().logger());
 
-    Utf8 line = formatStageStart(*ctx_, stage_, stageDetail(*ctx_, stage_));
+    Utf8 line = formatStageStart(ctx, stage_, detail_);
     line += "\n";
-    printLineLocked(*ctx_, line);
+    printLineLocked(ctx, line);
 }
 
 TimedActionLog::ScopedStage::~ScopedStage()
@@ -587,19 +602,25 @@ TimedActionLog::ScopedStage::~ScopedStage()
     const uint64_t durationNs =
         std::chrono::duration_cast<std::chrono::nanoseconds>(Clock::now() - startTick_).count();
 
-    StatsSnapshot after = StatsSnapshot::capture();
-    after.numErrors     = after.numErrors >= startErrors_ ? after.numErrors - startErrors_ : 0;
-    after.numWarnings   = after.numWarnings >= startWarnings_ ? after.numWarnings - startWarnings_ : 0;
+    const StatsSnapshot deltaSnapshot = delta();
 
-    StageOutcome outcome = classifyOutcome({}, after);
+    StageOutcome outcome = classifyOutcome({}, deltaSnapshot);
     if (forcedOutcome_.has_value())
         outcome = mergeOutcome(outcome, forcedOutcome_.value());
 
+    if (!printEnabled_)
+        return;
+
     const Logger::ScopedLock loggerLock(ctx_->global().logger());
 
-    Utf8 line = formatStageEnd(*ctx_, stage_, outcome, durationNs, stat_);
+    Utf8 line = formatStageEnd(*ctx_, stage_, detail_, outcome, durationNs, stat_);
     line += "\n";
     printLineLocked(*ctx_, line);
+}
+
+TimedActionLog::StatsSnapshot TimedActionLog::ScopedStage::delta() const
+{
+    return subtractSnapshot(StatsSnapshot::capture(), startSnapshot_);
 }
 
 void TimedActionLog::ScopedStage::markOutcome(const StageOutcome outcome)
@@ -630,17 +651,49 @@ Utf8 TimedActionLog::formatSummaryLine(const TaskContext& ctx, const StatsSnapsh
         LogColor color;
     };
 
+    const bool hasErrors    = snapshot.numErrors != 0;
+    const bool hasWarnings  = snapshot.numWarnings != 0;
+    const bool isWorkspace  = !ctx.cmdLine().workspacePath.empty() && (!ctx.hasCompiler() || ctx.compiler().workspaceModuleLogState() == nullptr);
+    const bool isModuleMode = !isWorkspace && isModuleInput(ctx.cmdLine());
+
     std::vector<ColoredPart> parts;
+
+    if (isWorkspace)
+    {
+        parts.push_back({std::format("workspace {}", workspaceDisplayName(ctx.cmdLine())), LogColor::White});
+        if (ctx.hasCompiler())
+        {
+            const auto& workspaceLogState = ctx.compiler().workspaceBuildLogState();
+            const Utf8  workspaceProgress  = formatWorkspaceProgress(workspaceLogState, hasErrors);
+            if (!workspaceProgress.empty())
+                parts.push_back({workspaceProgress, LogColor::White});
+            if (workspaceLogState.ignoredModules)
+                parts.push_back({Utf8Helper::countWithLabel(workspaceLogState.ignoredModules, "ignored module"), LogColor::Gray});
+        }
+    }
+    else if (isModuleMode)
+    {
+        parts.push_back({std::format("module {}", moduleDisplayName(ctx.cmdLine())), LogColor::White});
+    }
+
     if (snapshot.numFiles)
         parts.push_back({Utf8Helper::countWithLabel(snapshot.numFiles, "file"), LogColor::White});
-    parts.push_back({Utf8Helper::toNiceTime(Timer::toSeconds(snapshot.timeTotal)), LogColor::White});
+
+    uint64_t summaryTimeNs = snapshot.timeTotal;
+    if (ctx.hasCompiler() && ctx.compiler().commandWallTimeNs())
+        summaryTimeNs = ctx.compiler().commandWallTimeNs();
+    parts.push_back({Utf8Helper::toNiceTime(Timer::toSeconds(summaryTimeNs)), LogColor::White});
+
     if (ctx.cmdLine().command == CommandKind::Format && !ctx.cmdLine().dryRun && snapshot.numErrors == 0)
         parts.push_back({Utf8Helper::countWithLabel(snapshot.numFormatRewrittenFiles, "written file"), LogColor::Gray});
+
     if (snapshot.numWarnings)
         parts.push_back({Utf8Helper::countWithLabel(snapshot.numWarnings, "warning"), LogColor::BrightYellow});
     if (snapshot.numErrors)
+    {
         parts.push_back({Utf8Helper::countWithLabel(snapshot.numErrors, "error"), LogColor::BrightRed});
-    else if (!snapshot.numWarnings)
+    }
+    else if (!hasWarnings && !isWorkspace)
     {
         const Utf8 artifactLabel = ctx.hasCompiler() ? ctx.compiler().lastArtifactLabel() : Utf8{};
         if (!artifactLabel.empty())
@@ -662,7 +715,6 @@ Utf8 TimedActionLog::formatSummaryLine(const TaskContext& ctx, const StatsSnapsh
         first = false;
     }
 
-    const bool hasErrors      = snapshot.numErrors != 0;
     const auto summaryColor   = hasErrors ? LogColor::BrightRed : LogColor::BrightGreen;
     const auto summaryOutcome = hasErrors ? StageOutcome::Error : StageOutcome::Success;
 
@@ -670,9 +722,12 @@ Utf8 TimedActionLog::formatSummaryLine(const TaskContext& ctx, const StatsSnapsh
     line += "  ";
     line += colorize(ctx, summaryColor, stageOutcomeGlyph(ctx, summaryOutcome));
     line += "  ";
-    line += colorize(ctx, summaryColor, std::format("{:<{}}", hasErrors ? "Aborted" : "Landed", ACTION_LABEL_WIDTH));
-    line += " ";
-    line += summaryText;
+    line += colorize(ctx, summaryColor, std::format("{:<{}}", hasErrors ? "Failed" : "Completed", ACTION_LABEL_WIDTH));
+    if (!summaryText.empty())
+    {
+        line += " ";
+        line += summaryText;
+    }
     line += resetColor(ctx);
     line += "\n\n";
     return line;

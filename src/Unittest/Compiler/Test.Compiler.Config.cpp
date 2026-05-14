@@ -547,15 +547,45 @@ SWC_TEST_BEGIN(Compiler_FormatSummaryLineShowsWrittenFilesAfterTime)
     const Utf8                          summaryLine     = TimedActionLog::formatSummaryLine(formatCtx, snapshot);
     const Utf8                          expectedTime    = Utf8Helper::toNiceTime(1.0);
     const Utf8                          expectedWritten = Utf8Helper::countWithLabel(2, "written file");
-    const size_t                        landedPos       = summaryLine.find("Landed");
+    const size_t                        completedPos    = summaryLine.find("Completed");
     const size_t                        timePos         = summaryLine.find(expectedTime);
     const size_t                        writtenPos      = summaryLine.find(expectedWritten);
 
     Stats::resetCommandMetrics();
 
-    if (landedPos == Utf8::npos || timePos == Utf8::npos || writtenPos == Utf8::npos)
+    if (completedPos == Utf8::npos || timePos == Utf8::npos || writtenPos == Utf8::npos)
         return Result::Error;
-    if (!(landedPos < timePos && timePos < writtenPos))
+    if (!(completedPos < timePos && timePos < writtenPos))
+        return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(Compiler_FormatCommandHeaderLineUsesWorkspaceScope)
+{
+    CommandLine cmdLine;
+    cmdLine.command       = CommandKind::Build;
+    cmdLine.workspacePath = "bin/std";
+    cmdLine.logColor      = false;
+
+    const TaskContext headerCtx(ctx.global(), cmdLine);
+    const Utf8        headerLine = TimedActionLog::formatCommandHeaderLine(headerCtx);
+
+    if (headerLine.find("build workspace std") == Utf8::npos)
+        return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(Compiler_FormatCommandHeaderLineUsesFileScope)
+{
+    CommandLine cmdLine;
+    cmdLine.command  = CommandKind::Syntax;
+    cmdLine.logColor = false;
+    cmdLine.directories.insert("bin/tests/parser");
+
+    const TaskContext headerCtx(ctx.global(), cmdLine);
+    const Utf8        headerLine = TimedActionLog::formatCommandHeaderLine(headerCtx);
+
+    if (headerLine.find("syntax files in bin/tests/parser") == Utf8::npos)
         return Result::Error;
 }
 SWC_TEST_END()

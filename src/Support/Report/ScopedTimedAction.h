@@ -10,6 +10,8 @@ namespace TimedActionLog
 
     enum class Stage : uint8_t
     {
+        Workspace,
+        Module,
         Config,
         Modes,
         Format,
@@ -48,25 +50,27 @@ namespace TimedActionLog
     class ScopedStage
     {
     public:
-        ScopedStage(const TaskContext& ctx, Stage stage);
+        explicit ScopedStage(const TaskContext& ctx, Stage stage, Utf8 detail = {});
         ~ScopedStage();
 
         ScopedStage(const ScopedStage&)            = delete;
         ScopedStage& operator=(const ScopedStage&) = delete;
 
+        StatsSnapshot delta() const;
         void markOutcome(StageOutcome outcome);
         void markFailure();
         void markWarning();
         void setStat(Utf8 stat);
 
     private:
-        const TaskContext*          ctx_ = nullptr;
+        const TaskContext*          ctx_          = nullptr;
         Stage                       stage_{};
         Clock::time_point           startTick_{};
-        size_t                      startErrors_   = 0;
-        size_t                      startWarnings_ = 0;
+        StatsSnapshot               startSnapshot_{};
         std::optional<StageOutcome> forcedOutcome_;
+        Utf8                        detail_;
         Utf8                        stat_;
+        bool                        printEnabled_ = true;
     };
 
     Utf8 formatCommandHeaderLine(const TaskContext& ctx);

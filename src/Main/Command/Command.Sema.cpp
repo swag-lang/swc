@@ -134,7 +134,22 @@ namespace Command
         if (!Stats::hasError() && compiler.exportModuleApi(ctx) == Result::Error)
             return;
 
-        stage.setStat(Utf8Helper::countWithLabel(Stats::get().numTokens.load(std::memory_order_relaxed), "token"));
+        const TimedActionLog::StatsSnapshot deltaSnapshot = stage.delta();
+        std::vector<Utf8>                   statParts;
+        if (deltaSnapshot.numFiles)
+            statParts.push_back(Utf8Helper::countWithLabel(deltaSnapshot.numFiles, "file"));
+        if (deltaSnapshot.numTokens)
+            statParts.push_back(Utf8Helper::countWithLabel(deltaSnapshot.numTokens, "token"));
+
+        Utf8 stat;
+        for (size_t i = 0; i < statParts.size(); ++i)
+        {
+            if (i)
+                stat += ", ";
+            stat += statParts[i];
+        }
+
+        stage.setStat(std::move(stat));
     }
 }
 

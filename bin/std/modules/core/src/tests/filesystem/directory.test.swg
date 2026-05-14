@@ -5,7 +5,7 @@ using Swag
 
 #test
 {
-    let dirName: string = "core_invalid?dir"
+    let dirName = CoreTests.makeFilesystemTestPath("core_invalid?dir")
 
     discard catch Directory.create(dirName)
     @assert(@err != null)

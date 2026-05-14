@@ -482,6 +482,8 @@ moduleprivate namespace Win32Priv
         func CreateDirectoryW(lpPathName: LPCWSTR, lpSecurityAttributes: #null *SECURITY_ATTRIBUTES)->BOOL;
         func GetCurrentDirectoryA(nBufferLength: DWORD, lpBuffer: LPCSTR)->DWORD;
         func GetCurrentDirectoryW(nBufferLength: DWORD, lpBuffer: LPCWSTR)->DWORD;
+        func GetTempPathA(nBufferLength: DWORD, lpBuffer: LPSTR)->DWORD;
+        func GetTempPathW(nBufferLength: DWORD, lpBuffer: LPWSTR)->DWORD;
         func SetCurrentDirectoryA(lpPathName: LPCSTR)->BOOL;
         func SetCurrentDirectoryW(lpPathName: LPCWSTR)->BOOL;
         func GetFullPathNameA(lpFileName: LPCSTR, nBufferLength: DWORD, lpBuffer: LPSTR, lpFilePart: #null *LPSTR)->DWORD;
@@ -718,6 +720,22 @@ moduleprivate namespace Win32Priv
     func GetCurrentDirectoryW(nBufferLength: DWORD, lpBuffer: LPCWSTR)->DWORD throw
     {
         let length = Win32Priv.GetCurrentDirectoryW(nBufferLength, lpBuffer)
+        if !length do
+            throwWinError(GetLastError())
+        return length
+    }
+
+    func GetTempPathA(nBufferLength: DWORD, lpBuffer: LPSTR)->DWORD throw
+    {
+        let length = Win32Priv.GetTempPathA(nBufferLength, lpBuffer)
+        if !length do
+            throwWinError(GetLastError())
+        return length
+    }
+
+    func GetTempPathW(nBufferLength: DWORD, lpBuffer: LPWSTR)->DWORD throw
+    {
+        let length = Win32Priv.GetTempPathW(nBufferLength, lpBuffer)
         if !length do
             throwWinError(GetLastError())
         return length

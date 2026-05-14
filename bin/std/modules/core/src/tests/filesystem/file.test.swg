@@ -18,7 +18,7 @@ func assertBytes(actual: const [..] u8, expected: const [..] u8)->bool
 
 #test
 {
-    let fileName: string = "core_file_append_existing.tmp"
+    let fileName = CoreTests.makeFilesystemTestPath("core_file_append_existing.tmp")
 
     discard catch File.writeAllBytes(fileName, ['a''u8, 'b''u8])
     @assert(@err == null)
@@ -44,7 +44,7 @@ func assertBytes(actual: const [..] u8, expected: const [..] u8)->bool
 
 #test
 {
-    let fileName: string = "core_file_append_create.tmp"
+    let fileName = CoreTests.makeFilesystemTestPath("core_file_append_create.tmp")
 
     var stream = catch File.open(fileName, File.FileMode.Append, File.FileAccess.Write, File.FileShare.Zero)
     @assert(@err == null)

@@ -30,6 +30,7 @@ func getExe()->string
 
 enum SpecialDirectory
 {
+    Temp
     Font
     UserAppData
     UserDocuments

@@ -4,15 +4,29 @@ using Win32
 
 public const EndLine = "\r\n"
 
-// The system font directory
+// Gets a well-known system directory
 public func getSpecialDirectory(what: SpecialDirectory)->String
 {
+    if what == SpecialDirectory.Temp
+    {
+        var a: [MAX_PATH] u8
+        let len = catch GetTempPathA(MAX_PATH, &a[0])
+        if @err != null or len >= MAX_PATH do
+            return ""
+
+        var result: retval = cast(string) @mkslice(&a[0], cast(u64) len)
+        Path.normalize(&result)
+        return result
+    }
+
     var a: [MAX_PATH] u8
     var v: s32
 
     #[Swag.Complete]
     switch what
     {
+    case Temp:
+        unreachable
     case Font:
         v = CSIDL_FONTS
     case Desktop:

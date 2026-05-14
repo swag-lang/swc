@@ -529,7 +529,7 @@ public func coreValue()->s32
 }
 SWC_TEST_END()
 
-SWC_TEST_BEGIN(Compiler_FormatSummaryLineShowsWrittenFilesAfterTime)
+SWC_TEST_BEGIN(Compiler_FormatSummaryLineShowsWrittenFilesBeforeTime)
 {
     Stats::resetCommandMetrics();
 
@@ -555,7 +555,7 @@ SWC_TEST_BEGIN(Compiler_FormatSummaryLineShowsWrittenFilesAfterTime)
 
     if (completedPos == Utf8::npos || timePos == Utf8::npos || writtenPos == Utf8::npos)
         return Result::Error;
-    if (!(completedPos < timePos && timePos < writtenPos))
+    if (!(completedPos < writtenPos && writtenPos < timePos))
         return Result::Error;
 }
 SWC_TEST_END()

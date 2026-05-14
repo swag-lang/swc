@@ -22,6 +22,29 @@ using Stage = TimedActionLog::Stage;
 namespace
 {
     constexpr size_t ACTION_LABEL_WIDTH = 10;
+    constexpr size_t LINE_BASE_INDENT   = 2;
+    constexpr size_t LINE_INDENT_STEP   = 2;
+    constexpr size_t VALUE_COLUMN       = LINE_BASE_INDENT + 2 * LINE_INDENT_STEP + 1 + 2 + ACTION_LABEL_WIDTH + 1;
+
+    constexpr LogColor structureColor()
+    {
+        return LogColor::Cyan;
+    }
+
+    constexpr LogColor emphasisColor()
+    {
+        return LogColor::BrightCyan;
+    }
+
+    constexpr LogColor primaryTextColor()
+    {
+        return LogColor::White;
+    }
+
+    constexpr LogColor secondaryTextColor()
+    {
+        return LogColor::Gray;
+    }
 
     uint64_t saturatingSub64(const uint64_t lhs, const uint64_t rhs)
     {
@@ -80,29 +103,24 @@ namespace
         SWC_UNREACHABLE();
     }
 
-    LogColor stageColor(const Stage stage)
+    LogColor stageLabelColor(const Stage stage)
     {
         switch (stage)
         {
             case Stage::Workspace:
             case Stage::Module:
-                return LogColor::BrightCyan;
             case Stage::Config:
             case Stage::Modes:
             case Stage::Verify:
             case Stage::Unittest:
-                return LogColor::Cyan;
             case Stage::Format:
             case Stage::Syntax:
             case Stage::Sema:
-                return LogColor::BrightBlue;
             case Stage::JIT:
-                return LogColor::BrightCyan;
             case Stage::Micro:
             case Stage::Build:
-                return LogColor::BrightYellow;
             case Stage::Run:
-                return LogColor::BrightGreen;
+                return structureColor();
         }
 
         SWC_UNREACHABLE();
@@ -125,9 +143,7 @@ namespace
 
     LogColor stageOutcomeColor(const Stage stage, const TimedActionLog::StageOutcome outcome)
     {
-        if (outcome == TimedActionLog::StageOutcome::Success)
-            return stageColor(stage);
-
+        SWC_UNUSED(stage);
         return outcomeColor(outcome);
     }
 
@@ -225,43 +241,89 @@ namespace
         return !cmdLine.modulePath.empty() || !cmdLine.moduleFilePath.empty();
     }
 
-    Utf8 formatFileScopeDetail(const CommandLine& cmdLine)
+    Utf8 colorize(const TaskContext& ctx, const LogColor color, const std::string_view text)
     {
-        const Utf8 roots = formatCommandSourceRoots(cmdLine);
-        if (roots.empty() || roots == "sources")
-            return "files";
-
-        return std::format("files in {}", roots);
+        Utf8 result;
+        result += LogColorHelper::toAnsi(ctx, color);
+        result += text;
+        return result;
     }
 
-    Utf8 formatWorkspaceModuleProgress(const CompilerInstance::WorkspaceModuleLogState& moduleLogState)
+    size_t stageIndentLevel(const TaskContext& ctx, const Stage stage)
+    {
+        if (!ctx.hasCompiler() || !ctx.compiler().workspaceModuleLogState())
+            return 0;
+        if (stage == Stage::Module)
+            return 1;
+        return 2;
+    }
+
+    void appendLineIndent(Utf8& line, const size_t indentLevel)
+    {
+        line.append(LINE_BASE_INDENT + indentLevel * LINE_INDENT_STEP, ' ');
+    }
+
+    size_t actionPrefixWidth(const size_t indentLevel, const std::string_view glyph)
+    {
+        return LINE_BASE_INDENT + indentLevel * LINE_INDENT_STEP + Utf8Helper::countChars(glyph) + 2 + ACTION_LABEL_WIDTH;
+    }
+
+    void appendAlignedValue(Utf8& line, const size_t prefixWidth, const Utf8& value)
+    {
+        if (value.empty())
+            return;
+
+        const size_t valuePadding = prefixWidth < VALUE_COLUMN ? VALUE_COLUMN - prefixWidth : 1;
+        line.append(valuePadding, ' ');
+        line += value;
+    }
+
+    Utf8 formatScopeEntity(const TaskContext& ctx, const std::string_view kind, const std::string_view name)
+    {
+        return TimedActionLog::formatStatEntity(ctx, kind, name, secondaryTextColor(), emphasisColor());
+    }
+
+    Utf8 formatFileScopeDetail(const TaskContext& ctx)
+    {
+        const Utf8 roots = formatCommandSourceRoots(ctx.cmdLine());
+        if (roots.empty() || roots == "sources")
+            return colorize(ctx, secondaryTextColor(), "files");
+
+        Utf8 result;
+        result += colorize(ctx, secondaryTextColor(), "files");
+        result += " ";
+        result += colorize(ctx, secondaryTextColor(), "in");
+        result += " ";
+        result += colorize(ctx, emphasisColor(), roots);
+        return result;
+    }
+
+    Utf8 formatWorkspaceModuleProgress(const TaskContext& ctx, const CompilerInstance::WorkspaceModuleLogState& moduleLogState)
     {
         if (!moduleLogState.total)
-            return std::format("module {}", moduleLogState.name);
+            return colorize(ctx, emphasisColor(), moduleLogState.name);
 
-        return std::format("{}/{} {}", moduleLogState.index, moduleLogState.total, moduleLogState.name);
+        Utf8 result;
+        result += colorize(ctx, primaryTextColor(), std::format("{}/{}", moduleLogState.index, moduleLogState.total));
+        result += " ";
+        result += colorize(ctx, emphasisColor(), moduleLogState.name);
+        return result;
     }
 
     Utf8 formatCompileScopeDetail(const TaskContext& ctx)
     {
-        if (ctx.hasCompiler())
-        {
-            if (const auto* moduleLogState = ctx.compiler().workspaceModuleLogState())
-                return std::format("module {}", moduleLogState->name);
-        }
-
-        if (!ctx.cmdLine().workspacePath.empty())
-            return std::format("workspace {}", workspaceDisplayName(ctx.cmdLine()));
+        if (!ctx.cmdLine().workspacePath.empty() && (!ctx.hasCompiler() || !ctx.compiler().workspaceModuleLogState()))
+            return formatScopeEntity(ctx, "workspace", workspaceDisplayName(ctx.cmdLine()));
 
         if (isModuleInput(ctx.cmdLine()))
-            return std::format("module {}", moduleDisplayName(ctx.cmdLine()));
+            return formatScopeEntity(ctx, "module", moduleDisplayName(ctx.cmdLine()));
 
-        return formatFileScopeDetail(ctx.cmdLine());
+        return formatFileScopeDetail(ctx);
     }
 
     Utf8 formatCommandValue(const TaskContext& ctx)
     {
-        Utf8 result = Utf8(commandName(ctx.cmdLine().command));
+        Utf8 result = colorize(ctx, emphasisColor(), commandName(ctx.cmdLine().command));
         const Utf8 scope = formatCompileScopeDetail(ctx);
         if (!scope.empty())
         {
@@ -277,12 +339,12 @@ namespace
         switch (stage)
         {
             case Stage::Workspace:
-                return std::format("workspace {}", workspaceDisplayName(ctx.cmdLine()));
+                return colorize(ctx, emphasisColor(), workspaceDisplayName(ctx.cmdLine()));
             case Stage::Module:
                 if (ctx.hasCompiler())
                 {
                     if (const auto* moduleLogState = ctx.compiler().workspaceModuleLogState())
-                        return formatWorkspaceModuleProgress(*moduleLogState);
+                        return formatWorkspaceModuleProgress(ctx, *moduleLogState);
                 }
                 return formatCompileScopeDetail(ctx);
             case Stage::Format:
@@ -292,26 +354,16 @@ namespace
             case Stage::Micro:
             case Stage::Build:
             case Stage::Run:
+                if (ctx.hasCompiler() && ctx.compiler().workspaceModuleLogState())
+                    return {};
                 return formatCompileScopeDetail(ctx);
             case Stage::Verify:
-                return "expected checks";
+                return TimedActionLog::formatStatText(ctx, "expected checks");
             case Stage::Unittest:
-                return "internal compiler tests";
+                return TimedActionLog::formatStatText(ctx, "internal compiler tests");
             default:
                 return {};
         }
-    }
-
-    Utf8 formatWorkspaceProgress(const CompilerInstance::WorkspaceBuildLogState& workspaceLogState, const bool hasErrors)
-    {
-        if (!workspaceLogState.activeModules)
-            return {};
-
-        if (hasErrors && workspaceLogState.builtModules < workspaceLogState.activeModules)
-            return std::format("{}/{} modules", Utf8Helper::toNiceBigNumber(workspaceLogState.builtModules), Utf8Helper::toNiceBigNumber(workspaceLogState.activeModules));
-
-        const size_t completedModules = workspaceLogState.builtModules ? workspaceLogState.builtModules : workspaceLogState.activeModules;
-        return Utf8Helper::countWithLabel(completedModules, "module");
     }
 
     TimedActionLog::StageOutcome classifyOutcome(const TimedActionLog::StatsSnapshot& before, const TimedActionLog::StatsSnapshot& after)
@@ -348,15 +400,7 @@ namespace
         SWC_UNREACHABLE();
     }
 
-    Utf8 colorize(const TaskContext& ctx, const LogColor color, const std::string_view text)
-    {
-        Utf8 result;
-        result += LogColorHelper::toAnsi(ctx, color);
-        result += text;
-        return result;
-    }
-
-    Utf8 joinParts(const TaskContext& ctx, const std::vector<Utf8>& parts, const LogColor partColor)
+    Utf8 joinParts(const TaskContext& ctx, const std::vector<Utf8>& parts)
     {
         Utf8       result;
         const Utf8 bullet = LogSymbolHelper::toString(ctx, LogSymbol::DotList);
@@ -369,8 +413,7 @@ namespace
             if (!first)
             {
                 result += " ";
-                result += colorize(ctx, LogColor::Gray, bullet);
-                result += LogColorHelper::toAnsi(ctx, partColor);
+                result += colorize(ctx, secondaryTextColor(), bullet);
                 result += " ";
             }
             result += part;
@@ -380,91 +423,99 @@ namespace
         return result;
     }
 
+    Utf8 pluralLabel(const size_t value, const std::string_view singular, const char* plural)
+    {
+        if (value == 1)
+            return Utf8(singular);
+
+        if (plural)
+            return Utf8(plural);
+
+        Utf8 result(singular);
+        result += "s";
+        return result;
+    }
+
     Utf8 resetColor(const TaskContext& ctx)
     {
         return LogColorHelper::toAnsi(ctx, LogColor::Reset);
     }
 
-    Utf8 formatTitleValueLine(const TaskContext& ctx, const Utf8& glyph, const LogColor glyphColor, const std::string_view title, const LogColor titleColor, const std::string_view value, const LogColor valueColor)
+    Utf8 formatTitleValueLine(const TaskContext& ctx, const Utf8& glyph, const LogColor glyphColor, const std::string_view title, const LogColor titleColor, const Utf8& value)
     {
         Utf8 line;
-        line += "  ";
+        appendLineIndent(line, 0);
         line += colorize(ctx, glyphColor, glyph);
         line += "  ";
         line += colorize(ctx, titleColor, std::format("{:<{}}", title, ACTION_LABEL_WIDTH));
-        line += " ";
-        line += colorize(ctx, valueColor, value);
+        appendAlignedValue(line, actionPrefixWidth(0, glyph), value);
         line += resetColor(ctx);
         return line;
     }
 
     Utf8 formatCommandHeader(const TaskContext& ctx)
     {
-        return formatTitleValueLine(ctx, stageStartGlyph(ctx), LogColor::BrightCyan, "Command", LogColor::BrightCyan, formatCommandValue(ctx), LogColor::White);
+        return formatTitleValueLine(ctx, stageStartGlyph(ctx), emphasisColor(), "Command", emphasisColor(), formatCommandValue(ctx));
     }
 
-    void appendStageText(Utf8& line, const TaskContext& ctx, const Stage stage, const std::string_view detail)
+    Utf8 stagePayload(const TaskContext& ctx, const std::string_view detail, const Utf8& stat, const std::optional<uint64_t> durationNs = {})
     {
-        line += colorize(ctx, stageColor(stage), std::format("{:<{}}", stageLabel(stage), ACTION_LABEL_WIDTH));
+        std::vector<Utf8> parts;
         if (!detail.empty())
-        {
-            line += " ";
-            line += colorize(ctx, LogColor::White, detail);
-        }
+            parts.emplace_back(detail);
+        if (!stat.empty())
+            parts.push_back(stat);
+        if (durationNs.has_value())
+            parts.push_back(TimedActionLog::formatStatDuration(ctx, durationNs.value()));
+        return joinParts(ctx, parts);
+    }
+
+    void appendStageText(Utf8& line, const TaskContext& ctx, const Stage stage)
+    {
+        line += colorize(ctx, stageLabelColor(stage), std::format("{:<{}}", stageLabel(stage), ACTION_LABEL_WIDTH));
     }
 
     Utf8 formatStageStart(const TaskContext& ctx, const Stage stage, const std::string_view detail)
     {
+        const size_t indentLevel = stageIndentLevel(ctx, stage);
+        const Utf8   glyph       = stageStartGlyph(ctx);
         Utf8 line;
+        appendLineIndent(line, indentLevel);
+        line += colorize(ctx, stageLabelColor(stage), glyph);
         line += "  ";
-        line += colorize(ctx, stageColor(stage), stageStartGlyph(ctx));
-        line += "  ";
-        appendStageText(line, ctx, stage, detail);
+        appendStageText(line, ctx, stage);
+        appendAlignedValue(line, actionPrefixWidth(indentLevel, glyph), stagePayload(ctx, detail, {}));
         line += resetColor(ctx);
         return line;
     }
 
-    Utf8 formatCompletedStageLine(const TaskContext& ctx, const Stage stage, const std::string_view detail)
+    Utf8 formatInfoStageLine(const TaskContext& ctx, const Stage stage, const std::string_view detail)
     {
+        const size_t indentLevel = stageIndentLevel(ctx, stage);
+        const Utf8   glyph       = stageStartGlyph(ctx);
         Utf8 line;
+        appendLineIndent(line, indentLevel);
+        line += colorize(ctx, stageLabelColor(stage), glyph);
         line += "  ";
-        line += colorize(ctx, stageColor(stage), stageOutcomeGlyph(ctx, TimedActionLog::StageOutcome::Success));
-        line += "  ";
-        appendStageText(line, ctx, stage, detail);
+        appendStageText(line, ctx, stage);
+        appendAlignedValue(line, actionPrefixWidth(indentLevel, glyph), stagePayload(ctx, detail, {}));
         line += resetColor(ctx);
         return line;
-    }
-
-    void appendStageMetric(Utf8& line, const TaskContext& ctx, const Utf8& metric)
-    {
-        if (metric.empty())
-            return;
-
-        const Utf8 bullet = LogSymbolHelper::toString(ctx, LogSymbol::DotList);
-        line += " ";
-        line += colorize(ctx, LogColor::Gray, bullet);
-        line += " ";
-        line += colorize(ctx, LogColor::White, metric);
     }
 
     Utf8 formatStageEnd(const TaskContext& ctx, const Stage stage, const std::string_view detail, const TimedActionLog::StageOutcome outcome, const uint64_t durationNs, const Utf8& stat)
     {
-        const auto label           = stageLabel(stage);
-        const Utf8 duration        = Utf8Helper::toNiceTime(Timer::toSeconds(durationNs));
-        const auto outcomeLogColor = stageOutcomeColor(stage, outcome);
+        const size_t indentLevel = stageIndentLevel(ctx, stage);
+        const Utf8   glyph       = stageOutcomeGlyph(ctx, outcome);
+        const auto labelColor = stageLabelColor(stage);
+        const auto glyphColor = stageOutcomeColor(stage, outcome);
 
         Utf8 line;
+        appendLineIndent(line, indentLevel);
+        line += colorize(ctx, glyphColor, glyph);
         line += "  ";
-        line += colorize(ctx, outcomeLogColor, stageOutcomeGlyph(ctx, outcome));
-        line += "  ";
-        line += colorize(ctx, outcomeLogColor, std::format("{:<{}}", label, ACTION_LABEL_WIDTH));
-        if (!detail.empty())
-        {
-            line += " ";
-            line += colorize(ctx, LogColor::White, detail);
-        }
-        appendStageMetric(line, ctx, duration);
-        appendStageMetric(line, ctx, stat);
+        line += colorize(ctx, labelColor, std::format("{:<{}}", stageLabel(stage), ACTION_LABEL_WIDTH));
+        appendAlignedValue(line, actionPrefixWidth(indentLevel, glyph), stagePayload(ctx, detail, stat, durationNs));
         line += resetColor(ctx);
         return line;
     }
@@ -481,23 +532,13 @@ namespace
     Utf8 formatBuildConfiguration(const TaskContext& ctx)
     {
         const CommandLine&       cmdLine  = ctx.cmdLine();
-        const Runtime::BuildCfg& buildCfg = cmdLine.defaultBuildCfg;
+        const Runtime::BuildCfg& buildCfg = ctx.hasCompiler() ? ctx.compiler().buildCfg() : cmdLine.defaultBuildCfg;
 
         std::vector<Utf8> parts;
-        if (ctx.hasCompiler())
-        {
-            if (const auto* moduleLogState = ctx.compiler().workspaceModuleLogState())
-                parts.push_back(std::format("module {}", moduleLogState->name));
-        }
-        if (parts.empty() && isModuleInput(cmdLine))
-        {
-            parts.push_back(std::format("module {}", moduleDisplayName(cmdLine)));
-        }
-
-        parts.push_back(cmdLine.buildCfg);
-        parts.push_back(backendKindName(buildCfg.backendKind));
-        parts.push_back(targetArchName(cmdLine.targetArch));
-        return joinParts(ctx, parts, LogColor::Gray);
+        parts.push_back(TimedActionLog::formatStatText(ctx, cmdLine.buildCfg));
+        parts.push_back(TimedActionLog::formatStatText(ctx, backendKindName(buildCfg.backendKind)));
+        parts.push_back(TimedActionLog::formatStatText(ctx, targetArchName(cmdLine.targetArch)));
+        return joinParts(ctx, parts);
     }
 }
 
@@ -521,6 +562,75 @@ Utf8 TimedActionLog::formatCommandHeaderLine(const TaskContext& ctx)
     return formatCommandHeader(ctx);
 }
 
+Utf8 TimedActionLog::formatStatText(const TaskContext& ctx, const std::string_view text, const LogColor color)
+{
+    return colorize(ctx, color, text);
+}
+
+Utf8 TimedActionLog::formatStatCount(const TaskContext& ctx, const size_t value, const std::string_view singular, const char* plural, const LogColor color)
+{
+    Utf8 result;
+    result += colorize(ctx, color, Utf8Helper::toNiceBigNumber(value));
+    result += " ";
+    result += colorize(ctx, color, pluralLabel(value, singular, plural));
+    return result;
+}
+
+Utf8 TimedActionLog::formatStatRatio(const TaskContext& ctx, const size_t value, const size_t total, const std::string_view singular, const char* plural, const LogColor color)
+{
+    Utf8 result;
+    result += colorize(ctx, color, Utf8Helper::toNiceBigNumber(value));
+    result += colorize(ctx, color, "/");
+    result += colorize(ctx, color, Utf8Helper::toNiceBigNumber(total));
+    result += " ";
+    result += colorize(ctx, color, pluralLabel(total, singular, plural));
+    return result;
+}
+
+Utf8 TimedActionLog::formatStatDuration(const TaskContext& ctx, const uint64_t durationNs, const LogColor color)
+{
+    return colorize(ctx, color, Utf8Helper::toNiceTime(Timer::toSeconds(durationNs)));
+}
+
+Utf8 TimedActionLog::formatStatName(const TaskContext& ctx, const std::string_view name, const LogColor color)
+{
+    return colorize(ctx, color, name);
+}
+
+Utf8 TimedActionLog::formatStatEntity(const TaskContext& ctx, const std::string_view kind, const std::string_view name, const LogColor kindColor, const LogColor nameColor)
+{
+    Utf8 result;
+    if (!kind.empty())
+        result += colorize(ctx, kindColor, kind);
+    if (!kind.empty() && !name.empty())
+        result += " ";
+    if (!name.empty())
+        result += colorize(ctx, nameColor, name);
+    return result;
+}
+
+Utf8 TimedActionLog::joinStatItems(const TaskContext& ctx, const std::vector<Utf8>& items)
+{
+    Utf8 result;
+    bool first = true;
+    for (const Utf8& item : items)
+    {
+        if (item.empty())
+            continue;
+
+        if (!first)
+        {
+            result += colorize(ctx, secondaryTextColor(), ",");
+            result += " ";
+        }
+
+        result += item;
+        first = false;
+    }
+
+    return result;
+}
+
 void TimedActionLog::printCommandHeader(const TaskContext& ctx)
 {
     if (ctx.global().logger().stageOutputMuted())
@@ -541,7 +651,7 @@ void TimedActionLog::printBuildConfiguration(const TaskContext& ctx)
 
     const Logger::ScopedLock loggerLock(ctx.global().logger());
 
-    Utf8 line = formatCompletedStageLine(ctx, Stage::Config, formatBuildConfiguration(ctx));
+    Utf8 line = formatInfoStageLine(ctx, Stage::Config, formatBuildConfiguration(ctx));
     line += "\n";
     printLineLocked(ctx, line);
 }
@@ -554,16 +664,16 @@ void TimedActionLog::printSessionFlags(const TaskContext& ctx)
     std::vector<Utf8> flags;
 
 #if SWC_DEBUG
-    flags.push_back("debug");
+    flags.push_back(formatStatText(ctx, "debug"));
 #elif SWC_DEV_MODE
-    flags.emplace_back("devmode");
+    flags.push_back(formatStatText(ctx, "devmode"));
 #elif SWC_STATS
-    flags.push_back("stats");
+    flags.push_back(formatStatText(ctx, "stats"));
 #endif
 
 #if SWC_DEBUG || SWC_DEV_MODE
     if (ctx.cmdLine().randomize)
-        flags.emplace_back(std::format("randomize seed={}", ctx.global().jobMgr().randSeed()));
+        flags.push_back(formatStatText(ctx, std::format("randomize seed={}", ctx.global().jobMgr().randSeed())));
 #endif
 
     if (flags.empty())
@@ -571,7 +681,7 @@ void TimedActionLog::printSessionFlags(const TaskContext& ctx)
 
     const Logger::ScopedLock loggerLock(ctx.global().logger());
 
-    Utf8 line = formatCompletedStageLine(ctx, Stage::Modes, joinParts(ctx, flags, LogColor::Gray));
+    Utf8 line = formatInfoStageLine(ctx, Stage::Modes, joinParts(ctx, flags));
     line += "\n";
     printLineLocked(ctx, line);
 }
@@ -645,89 +755,87 @@ void TimedActionLog::ScopedStage::setStat(Utf8 stat)
 
 Utf8 TimedActionLog::formatSummaryLine(const TaskContext& ctx, const StatsSnapshot& snapshot)
 {
-    struct ColoredPart
-    {
-        Utf8     text;
-        LogColor color;
-    };
-
     const bool hasErrors    = snapshot.numErrors != 0;
     const bool hasWarnings  = snapshot.numWarnings != 0;
     const bool isWorkspace  = !ctx.cmdLine().workspacePath.empty() && (!ctx.hasCompiler() || ctx.compiler().workspaceModuleLogState() == nullptr);
     const bool isModuleMode = !isWorkspace && isModuleInput(ctx.cmdLine());
 
-    std::vector<ColoredPart> parts;
+    std::vector<Utf8> parts;
 
     if (isWorkspace)
     {
-        parts.push_back({std::format("workspace {}", workspaceDisplayName(ctx.cmdLine())), LogColor::White});
+        parts.push_back(formatStatEntity(ctx, "workspace", workspaceDisplayName(ctx.cmdLine())));
         if (ctx.hasCompiler())
         {
             const auto& workspaceLogState = ctx.compiler().workspaceBuildLogState();
-            const Utf8  workspaceProgress  = formatWorkspaceProgress(workspaceLogState, hasErrors);
-            if (!workspaceProgress.empty())
-                parts.push_back({workspaceProgress, LogColor::White});
+            if (workspaceLogState.activeModules)
+            {
+                if (hasErrors && workspaceLogState.builtModules < workspaceLogState.activeModules)
+                    parts.push_back(formatStatRatio(ctx, workspaceLogState.builtModules, workspaceLogState.activeModules, "module"));
+                else
+                    parts.push_back(formatStatCount(ctx, workspaceLogState.activeModules, "module"));
+            }
             if (workspaceLogState.ignoredModules)
-                parts.push_back({Utf8Helper::countWithLabel(workspaceLogState.ignoredModules, "ignored module"), LogColor::Gray});
+                parts.push_back(formatStatCount(ctx, workspaceLogState.ignoredModules, "ignored module", nullptr, secondaryTextColor()));
         }
     }
     else if (isModuleMode)
     {
-        parts.push_back({std::format("module {}", moduleDisplayName(ctx.cmdLine())), LogColor::White});
+        parts.push_back(formatStatEntity(ctx, "module", moduleDisplayName(ctx.cmdLine())));
     }
 
     if (snapshot.numFiles)
-        parts.push_back({Utf8Helper::countWithLabel(snapshot.numFiles, "file"), LogColor::White});
+        parts.push_back(formatStatCount(ctx, snapshot.numFiles, "file"));
 
     uint64_t summaryTimeNs = snapshot.timeTotal;
     if (ctx.hasCompiler() && ctx.compiler().commandWallTimeNs())
         summaryTimeNs = ctx.compiler().commandWallTimeNs();
-    parts.push_back({Utf8Helper::toNiceTime(Timer::toSeconds(summaryTimeNs)), LogColor::White});
 
     if (ctx.cmdLine().command == CommandKind::Format && !ctx.cmdLine().dryRun && snapshot.numErrors == 0)
-        parts.push_back({Utf8Helper::countWithLabel(snapshot.numFormatRewrittenFiles, "written file"), LogColor::Gray});
+        parts.push_back(formatStatCount(ctx, snapshot.numFormatRewrittenFiles, "written file"));
 
     if (snapshot.numWarnings)
-        parts.push_back({Utf8Helper::countWithLabel(snapshot.numWarnings, "warning"), LogColor::BrightYellow});
+        parts.push_back(formatStatCount(ctx, snapshot.numWarnings, "warning", nullptr, LogColor::BrightYellow));
     if (snapshot.numErrors)
     {
-        parts.push_back({Utf8Helper::countWithLabel(snapshot.numErrors, "error"), LogColor::BrightRed});
+        parts.push_back(formatStatCount(ctx, snapshot.numErrors, "error", nullptr, LogColor::BrightRed));
     }
     else if (!hasWarnings && !isWorkspace)
     {
         const Utf8 artifactLabel = ctx.hasCompiler() ? ctx.compiler().lastArtifactLabel() : Utf8{};
         if (!artifactLabel.empty())
-            parts.push_back({artifactLabel, LogColor::Gray});
+            parts.push_back(formatStatName(ctx, artifactLabel));
     }
+    parts.push_back(formatStatDuration(ctx, summaryTimeNs));
 
     const Utf8 bullet = LogSymbolHelper::toString(ctx, LogSymbol::DotList);
     Utf8       summaryText;
     bool       first = true;
-    for (const auto& [text, color] : parts)
+    for (const Utf8& part : parts)
     {
+        if (part.empty())
+            continue;
+
         if (!first)
         {
             summaryText += " ";
-            summaryText += colorize(ctx, LogColor::Gray, bullet);
+            summaryText += colorize(ctx, secondaryTextColor(), bullet);
             summaryText += " ";
         }
-        summaryText += colorize(ctx, color, text);
+        summaryText += part;
         first = false;
     }
 
     const auto summaryColor   = hasErrors ? LogColor::BrightRed : LogColor::BrightGreen;
     const auto summaryOutcome = hasErrors ? StageOutcome::Error : StageOutcome::Success;
+    const Utf8 summaryGlyph   = stageOutcomeGlyph(ctx, summaryOutcome);
 
     Utf8 line;
-    line += "  ";
-    line += colorize(ctx, summaryColor, stageOutcomeGlyph(ctx, summaryOutcome));
+    appendLineIndent(line, 0);
+    line += colorize(ctx, summaryColor, summaryGlyph);
     line += "  ";
     line += colorize(ctx, summaryColor, std::format("{:<{}}", hasErrors ? "Failed" : "Completed", ACTION_LABEL_WIDTH));
-    if (!summaryText.empty())
-    {
-        line += " ";
-        line += summaryText;
-    }
+    appendAlignedValue(line, actionPrefixWidth(0, summaryGlyph), summaryText);
     line += resetColor(ctx);
     line += "\n\n";
     return line;

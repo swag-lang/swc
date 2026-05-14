@@ -69,29 +69,16 @@ namespace Command
                 skippedInvalidFiles++;
         }
 
-        Utf8              stat = Utf8Helper::countWithLabel(jobs.size(), "file");
-        std::vector<Utf8> details;
+        std::vector<Utf8> statItems;
+        statItems.push_back(TimedActionLog::formatStatCount(ctx, jobs.size(), "file"));
         if (rewrittenFiles)
-            details.push_back(Utf8Helper::countWithLabel(rewrittenFiles, "rewritten file"));
+            statItems.push_back(TimedActionLog::formatStatCount(ctx, rewrittenFiles, "rewritten file"));
         if (skippedFmtFiles)
-            details.push_back(Utf8Helper::countWithLabel(skippedFmtFiles, "format-skipped file"));
+            statItems.push_back(TimedActionLog::formatStatCount(ctx, skippedFmtFiles, "format-skipped file"));
         if (skippedInvalidFiles)
-            details.push_back(Utf8Helper::countWithLabel(skippedInvalidFiles, "skipped invalid file"));
+            statItems.push_back(TimedActionLog::formatStatCount(ctx, skippedInvalidFiles, "skipped invalid file"));
 
-        if (!details.empty())
-        {
-            stat += " (";
-            for (size_t i = 0; i < details.size(); ++i)
-            {
-                if (i)
-                    stat += ", ";
-                stat += details[i];
-            }
-
-            stat += ")";
-        }
-
-        stage.setStat(std::move(stat));
+        stage.setStat(TimedActionLog::joinStatItems(ctx, statItems));
     }
 }
 

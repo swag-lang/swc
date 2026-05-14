@@ -35,8 +35,6 @@ namespace Command
 
     void build(CompilerInstance& compiler)
     {
-        const TaskContext ctx(compiler);
-        TimedActionLog::printBuildConfiguration(ctx);
         const uint64_t errorsBefore = Stats::getNumErrors();
         sema(compiler);
         if (Stats::getNumErrors() != errorsBefore)
@@ -48,8 +46,6 @@ namespace Command
 
     void run(CompilerInstance& compiler)
     {
-        const TaskContext ctx(compiler);
-        TimedActionLog::printBuildConfiguration(ctx);
         const uint64_t errorsBefore = Stats::getNumErrors();
         sema(compiler);
         if (Stats::getNumErrors() != errorsBefore)

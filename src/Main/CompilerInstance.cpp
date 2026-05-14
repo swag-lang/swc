@@ -877,56 +877,38 @@ namespace
         return !name.empty() && name[0] == '.';
     }
 
-    Utf8 joinTextParts(const std::vector<Utf8>& parts)
-    {
-        Utf8 result;
-        bool first = true;
-        for (const Utf8& part : parts)
-        {
-            if (part.empty())
-                continue;
-
-            if (!first)
-                result += ", ";
-            result += part;
-            first = false;
-        }
-
-        return result;
-    }
-
-    Utf8 formatWorkspaceStageStat(const CompilerInstance::WorkspaceBuildLogState& workspaceLogState)
+    Utf8 formatWorkspaceStageStat(const TaskContext& ctx, const CompilerInstance::WorkspaceBuildLogState& workspaceLogState)
     {
         std::vector<Utf8> parts;
         if (workspaceLogState.activeModules)
         {
             if (workspaceLogState.builtModules < workspaceLogState.activeModules)
-                parts.push_back(std::format("{}/{} modules", Utf8Helper::toNiceBigNumber(workspaceLogState.builtModules), Utf8Helper::toNiceBigNumber(workspaceLogState.activeModules)));
+                parts.push_back(TimedActionLog::formatStatRatio(ctx, workspaceLogState.builtModules, workspaceLogState.activeModules, "module"));
             else
-                parts.push_back(Utf8Helper::countWithLabel(workspaceLogState.activeModules, "module"));
+                parts.push_back(TimedActionLog::formatStatCount(ctx, workspaceLogState.activeModules, "module"));
         }
         else if (workspaceLogState.discoveredModules)
         {
-            parts.push_back(Utf8Helper::countWithLabel(workspaceLogState.discoveredModules, "module"));
+            parts.push_back(TimedActionLog::formatStatCount(ctx, workspaceLogState.discoveredModules, "module"));
         }
 
         if (workspaceLogState.ignoredModules)
-            parts.push_back(Utf8Helper::countWithLabel(workspaceLogState.ignoredModules, "ignored module"));
+            parts.push_back(TimedActionLog::formatStatCount(ctx, workspaceLogState.ignoredModules, "ignored module", nullptr, LogColor::Gray));
 
-        return joinTextParts(parts);
+        return TimedActionLog::joinStatItems(ctx, parts);
     }
 
-    Utf8 formatWorkspaceModuleStageStat(const CompilerInstance& compiler, const TimedActionLog::StatsSnapshot& deltaSnapshot)
+    Utf8 formatWorkspaceModuleStageStat(const TaskContext& ctx, const CompilerInstance& compiler, const TimedActionLog::StatsSnapshot& deltaSnapshot)
     {
         std::vector<Utf8> parts;
         if (deltaSnapshot.numFiles)
-            parts.push_back(Utf8Helper::countWithLabel(deltaSnapshot.numFiles, "file"));
+            parts.push_back(TimedActionLog::formatStatCount(ctx, deltaSnapshot.numFiles, "file"));
 
         const Utf8 artifactLabel = compiler.lastArtifactLabel();
         if (!artifactLabel.empty())
-            parts.push_back(artifactLabel);
+            parts.push_back(TimedActionLog::formatStatName(ctx, artifactLabel));
 
-        return joinTextParts(parts);
+        return TimedActionLog::joinStatItems(ctx, parts);
     }
 
     void initRuntimeContextTlsId()
@@ -1731,7 +1713,7 @@ ExitCode CompilerInstance::runWorkspace()
     workspaceBuildLogState_.discoveredModules = modules.size();
     workspaceBuildLogState_.activeModules     = activeModuleCount;
     workspaceBuildLogState_.ignoredModules    = modules.size() - activeModuleCount;
-    workspaceStage.setStat(formatWorkspaceStageStat(workspaceBuildLogState_));
+    workspaceStage.setStat(formatWorkspaceStageStat(ctx, workspaceBuildLogState_));
 
     std::vector<size_t> buildOrder;
     buildOrder.reserve(activeModuleCount);
@@ -1788,7 +1770,7 @@ ExitCode CompilerInstance::runWorkspace()
             return ExitCode::CompileError;
 
         workspaceBuildLogState_.builtModules++;
-        workspaceStage.setStat(formatWorkspaceStageStat(workspaceBuildLogState_));
+        workspaceStage.setStat(formatWorkspaceStageStat(ctx, workspaceBuildLogState_));
     }
 
     return Stats::getNumErrors() > 0 ? ExitCode::CompileError : ExitCode::Success;
@@ -1821,7 +1803,7 @@ Result CompilerInstance::runWorkspaceModule(const WorkspaceModuleBuild& moduleBu
     TaskContext                 moduleCtx(moduleCompiler);
     TimedActionLog::ScopedStage moduleStage(moduleCtx, TimedActionLog::Stage::Module);
     moduleCompiler.processCommand();
-    moduleStage.setStat(formatWorkspaceModuleStageStat(moduleCompiler, moduleStage.delta()));
+    moduleStage.setStat(formatWorkspaceModuleStageStat(moduleCtx, moduleCompiler, moduleStage.delta()));
     if (Stats::getNumErrors() != errorsBefore)
         return Result::Error;
 

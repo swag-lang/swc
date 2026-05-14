@@ -37,6 +37,19 @@ namespace
             artifactName = defaultArtifactName(compiler.cmdLine());
         return defaultModuleNamespace(artifactName);
     }
+
+    bool shouldLogBuildConfiguration(const CompilerInstance& compiler)
+    {
+        switch (compiler.cmdLine().command)
+        {
+            case CommandKind::Build:
+            case CommandKind::Run:
+            case CommandKind::Test:
+                return true;
+            default:
+                return false;
+        }
+    }
 }
 
 namespace Command
@@ -44,8 +57,7 @@ namespace Command
     void sema(CompilerInstance& compiler)
     {
         SWC_MEM_SCOPE("Sema");
-        TaskContext                 ctx(compiler);
-        TimedActionLog::ScopedStage stage(ctx, TimedActionLog::Stage::Sema);
+        TaskContext ctx(compiler);
 
         const Global&     global   = ctx.global();
         JobManager&       jobMgr   = global.jobMgr();
@@ -56,6 +68,10 @@ namespace Command
             return;
         if (compiler.runModuleSetup(ctx) == Result::Error)
             return;
+        if (shouldLogBuildConfiguration(compiler))
+            TimedActionLog::printBuildConfiguration(ctx);
+
+        TimedActionLog::ScopedStage stage(ctx, TimedActionLog::Stage::Sema);
 
         std::vector<SourceFile*> inputFiles;
         inputFiles.reserve(compiler.files().size());
@@ -137,19 +153,11 @@ namespace Command
         const TimedActionLog::StatsSnapshot deltaSnapshot = stage.delta();
         std::vector<Utf8>                   statParts;
         if (deltaSnapshot.numFiles)
-            statParts.push_back(Utf8Helper::countWithLabel(deltaSnapshot.numFiles, "file"));
+            statParts.push_back(TimedActionLog::formatStatCount(ctx, deltaSnapshot.numFiles, "file"));
         if (deltaSnapshot.numTokens)
-            statParts.push_back(Utf8Helper::countWithLabel(deltaSnapshot.numTokens, "token"));
+            statParts.push_back(TimedActionLog::formatStatCount(ctx, deltaSnapshot.numTokens, "token"));
 
-        Utf8 stat;
-        for (size_t i = 0; i < statParts.size(); ++i)
-        {
-            if (i)
-                stat += ", ";
-            stat += statParts[i];
-        }
-
-        stage.setStat(std::move(stat));
+        stage.setStat(TimedActionLog::joinStatItems(ctx, statParts));
     }
 }
 

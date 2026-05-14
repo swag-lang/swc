@@ -434,11 +434,10 @@ Result NativeBackendBuilder::run()
         TimedActionLog::ScopedStage stage(ctx_, TimedActionLog::Stage::Build);
 
         SWC_RESULT(prepare());
-        Utf8 buildStat = Utf8Helper::countWithLabel(compiler_->nativeCodeSegment().size(), "function");
+        Utf8 buildStat = TimedActionLog::formatStatCount(ctx_, compiler_->nativeCodeSegment().size(), "function");
         if (!compiler_->lastArtifactLabel().empty())
         {
-            buildStat += ", ";
-            buildStat += compiler_->lastArtifactLabel();
+            buildStat = TimedActionLog::joinStatItems(ctx_, {buildStat, TimedActionLog::formatStatName(ctx_, compiler_->lastArtifactLabel())});
         }
         stage.setStat(std::move(buildStat));
         SWC_RESULT(artifactBuilder.build());
@@ -501,7 +500,7 @@ Result NativeBackendBuilder::prepare()
         if (!addedCallDeps && !addedConstantDeps)
         {
             if (microStage)
-                microStage->setStat(Utf8Helper::countWithLabel(functions.size(), "function"));
+                microStage->setStat(TimedActionLog::formatStatCount(ctx_, functions.size(), "function"));
             return Result::Continue;
         }
     }

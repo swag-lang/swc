@@ -485,7 +485,7 @@ namespace
             executedTestCount++;
         }
 
-        stage.setStat(Utf8Helper::countWithLabel(executedTestCount, "test"));
+        stage.setStat(TimedActionLog::formatStatCount(ctx, executedTestCount, "test"));
 
         if (executedTestCount != expectedTestCount)
             return reportJitTestCountMismatch(ctx, expectedTestCount, executedTestCount);
@@ -595,7 +595,6 @@ namespace Command
     {
         SWC_ASSERT(compiler.cmdLine().command == CommandKind::Test);
         TaskContext ctx(compiler);
-        TimedActionLog::printBuildConfiguration(ctx);
         const uint64_t errorsBefore = Stats::getNumErrors();
         sema(compiler);
         if (Stats::getNumErrors() != errorsBefore)

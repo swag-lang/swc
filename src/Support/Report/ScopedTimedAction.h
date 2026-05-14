@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Support/Report/LogColor.h"
 #include "Main/TaskContext.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -74,6 +75,13 @@ namespace TimedActionLog
     };
 
     Utf8 formatCommandHeaderLine(const TaskContext& ctx);
+    Utf8 formatStatText(const TaskContext& ctx, std::string_view text, LogColor color = LogColor::White);
+    Utf8 formatStatCount(const TaskContext& ctx, size_t value, std::string_view singular, const char* plural = nullptr, LogColor color = LogColor::White);
+    Utf8 formatStatRatio(const TaskContext& ctx, size_t value, size_t total, std::string_view singular, const char* plural = nullptr, LogColor color = LogColor::White);
+    Utf8 formatStatDuration(const TaskContext& ctx, uint64_t durationNs, LogColor color = LogColor::White);
+    Utf8 formatStatName(const TaskContext& ctx, std::string_view name, LogColor color = LogColor::BrightCyan);
+    Utf8 formatStatEntity(const TaskContext& ctx, std::string_view kind, std::string_view name, LogColor kindColor = LogColor::Gray, LogColor nameColor = LogColor::BrightCyan);
+    Utf8 joinStatItems(const TaskContext& ctx, const std::vector<Utf8>& items);
     void printCommandHeader(const TaskContext& ctx);
     Utf8 formatSummaryLine(const TaskContext& ctx, const StatsSnapshot& snapshot);
     void printSummary(const TaskContext& ctx);

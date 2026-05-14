@@ -136,6 +136,7 @@ struct CommandLine
     fs::path          configFile;
     fs::path          moduleFilePath;
     fs::path          modulePath;
+    fs::path          workspacePath;
     fs::path          exportApiDir;
     fs::path          outDir;
     fs::path          workDir;

@@ -9,6 +9,7 @@ struct ResolvedCallArgument;
 
 namespace SemaJIT
 {
+    void   clearConstCallCache();
     Result prepareFunction(Sema& sema, SymbolFunction& symFn);
     Result runStatement(Sema& sema, SymbolFunction& symFn, AstNodeRef nodeRef);
     Result runStatementImmediate(Sema& sema, SymbolFunction& symFn, AstNodeRef nodeRef);

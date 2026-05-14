@@ -215,6 +215,37 @@ public:
 private:
     friend class CompilerMessageTypeInfoJob;
 
+    struct ModuleSetupSnapshot
+    {
+        Runtime::BuildCfg                  buildCfg{};
+        std::set<Utf8>                     importModules;
+        std::set<fs::path>                 loadedFiles;
+        std::vector<std::unique_ptr<Utf8>> ownedStrings;
+
+        ModuleSetupSnapshot() = default;
+        ModuleSetupSnapshot(const ModuleSetupSnapshot&) = delete;
+        ModuleSetupSnapshot& operator=(const ModuleSetupSnapshot&) = delete;
+        ModuleSetupSnapshot(ModuleSetupSnapshot&&) noexcept = default;
+        ModuleSetupSnapshot& operator=(ModuleSetupSnapshot&&) noexcept = default;
+    };
+
+    struct WorkspaceModuleBuild
+    {
+        Utf8                     name;
+        fs::path                 moduleDir;
+        fs::path                 moduleFile;
+        fs::path                 sourceDir;
+        ModuleSetupSnapshot      setup;
+        std::vector<Utf8>        workspaceDependencies;
+        bool                     ignoreInWorkspace = false;
+
+        WorkspaceModuleBuild() = default;
+        WorkspaceModuleBuild(const WorkspaceModuleBuild&) = delete;
+        WorkspaceModuleBuild& operator=(const WorkspaceModuleBuild&) = delete;
+        WorkspaceModuleBuild(WorkspaceModuleBuild&&) noexcept = default;
+        WorkspaceModuleBuild& operator=(WorkspaceModuleBuild&&) noexcept = default;
+    };
+
     struct CompilerMessageTypeInfoPrepRequest
     {
         SourceFile* listenerFile = nullptr;
@@ -228,7 +259,10 @@ private:
     Result      collectImportedApiFiles(const TaskContext& ctx);
     bool        hasResolvedFilePath(const fs::path& path) const;
     void        adoptBuildCfg(const Runtime::BuildCfg& buildCfg);
-    Result      applyModuleSetupInputs(TaskContext& ctx, const CompilerInstance& setupCompiler);
+    Result      captureModuleSetupSnapshot(TaskContext& ctx, const CommandLine& setupCmdLine, ModuleSetupSnapshot& outSnapshot);
+    Result      applyModuleSetupInputs(TaskContext& ctx, const ModuleSetupSnapshot& setupSnapshot);
+    ExitCode    runWorkspace();
+    Result      runWorkspaceModule(const WorkspaceModuleBuild& moduleBuild);
 
     const CommandLine*                       cmdLine_ = nullptr;
     const Global*                            global_  = nullptr;
@@ -255,6 +289,7 @@ private:
     std::set<Utf8>                           moduleSetupImportModules_;
     std::set<fs::path>                       moduleSetupLoadedFiles_;
     std::vector<std::unique_ptr<Utf8>>       ownedBuildCfgStrings_;
+    const ModuleSetupSnapshot*               precomputedModuleSetup_ = nullptr;
     Utf8                                     lastArtifactLabel_;
     Runtime::ICompiler                       runtimeCompiler_{};
     Runtime::IAllocator                      runtimeAllocator_{};

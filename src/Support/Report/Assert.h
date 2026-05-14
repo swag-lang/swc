@@ -103,6 +103,11 @@ public:
         swcPanic("DevMode loop guard triggered!", file_, line_, label_, detail.view());
     }
 
+    void reset() const noexcept
+    {
+        iteration_.store(0, std::memory_order_release);
+    }
+
 private:
     const char*                   label_         = "<loop>";
     const char*                   file_          = nullptr;

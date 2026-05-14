@@ -3,6 +3,7 @@
 #include "Backend/JIT/JIT.h"
 #include "Backend/JIT/JITExecManager.h"
 #include "Backend/JIT/JITMemoryManager.h"
+#include "Backend/RuntimeName.h"
 #include "Backend/Native/SymbolSort.h"
 #include "Compiler/CodeGen/Core/CodeGenJob.h"
 #include "Compiler/Lexer/SourceView.h"
@@ -645,6 +646,62 @@ namespace
         return Utf8{value};
     }
 
+    void ownBuildCfgStrings(Runtime::BuildCfg& buildCfg, std::vector<std::unique_ptr<Utf8>>& ownedStrings)
+    {
+        std::vector<std::unique_ptr<Utf8>> newOwnedStrings;
+
+        auto copyString = [&](Runtime::String& value) {
+            if (!value.ptr || !value.length)
+            {
+                value = {};
+                return;
+            }
+
+            auto owned = std::make_unique<Utf8>(value);
+            value.ptr  = owned->data();
+            value.length = owned->size();
+            newOwnedStrings.push_back(std::move(owned));
+        };
+
+        copyString(buildCfg.moduleNamespace);
+        copyString(buildCfg.warnAsErrors);
+        copyString(buildCfg.warnAsWarning);
+        copyString(buildCfg.warnAsDisabled);
+        copyString(buildCfg.linkerArgs);
+        copyString(buildCfg.name);
+        copyString(buildCfg.outDir);
+        copyString(buildCfg.workDir);
+        copyString(buildCfg.repoPath);
+        copyString(buildCfg.resAppIcoFileName);
+        copyString(buildCfg.resAppName);
+        copyString(buildCfg.resAppDescription);
+        copyString(buildCfg.resAppCompany);
+        copyString(buildCfg.resAppCopyright);
+        copyString(buildCfg.genDoc.outputName);
+        copyString(buildCfg.genDoc.outputExtension);
+        copyString(buildCfg.genDoc.titleToc);
+        copyString(buildCfg.genDoc.titleContent);
+        copyString(buildCfg.genDoc.css);
+        copyString(buildCfg.genDoc.icon);
+        copyString(buildCfg.genDoc.startHead);
+        copyString(buildCfg.genDoc.endHead);
+        copyString(buildCfg.genDoc.startBody);
+        copyString(buildCfg.genDoc.endBody);
+        copyString(buildCfg.genDoc.morePages);
+        copyString(buildCfg.genDoc.quoteIconNote);
+        copyString(buildCfg.genDoc.quoteIconTip);
+        copyString(buildCfg.genDoc.quoteIconWarning);
+        copyString(buildCfg.genDoc.quoteIconAttention);
+        copyString(buildCfg.genDoc.quoteIconExample);
+        copyString(buildCfg.genDoc.quoteTitleNote);
+        copyString(buildCfg.genDoc.quoteTitleTip);
+        copyString(buildCfg.genDoc.quoteTitleWarning);
+        copyString(buildCfg.genDoc.quoteTitleAttention);
+        copyString(buildCfg.genDoc.quoteTitleExample);
+        copyString(buildCfg.registeredConfigs);
+        ownedStrings.swap(newOwnedStrings);
+    }
+
     fs::path generatedSourceDirectory(const CompilerInstance& compiler)
     {
         const Utf8 workDir = buildCfgString(compiler.buildCfg().workDir);
@@ -759,6 +816,65 @@ namespace
         }
 
         return Result::Continue;
+    }
+
+    Result ensureWorkspaceDirectory(TaskContext& ctx, const fs::path& path)
+    {
+        if (path.empty())
+            return Result::Continue;
+
+        std::error_code ec;
+        fs::create_directories(path, ec);
+        if (ec)
+        {
+            Diagnostic diag = Diagnostic::get(DiagnosticId::cmd_err_workspace_dir_create_failed);
+            FileSystem::setDiagnosticPathAndBecause(diag, &ctx, path, FileSystem::normalizeSystemMessage(ec));
+            diag.report(ctx);
+            return Result::Error;
+        }
+
+        return Result::Continue;
+    }
+
+    fs::path workspaceModulesDirectory(const fs::path& workspacePath)
+    {
+        return (workspacePath / "modules").lexically_normal();
+    }
+
+    fs::path workspaceModuleDirectory(const fs::path& workspacePath, std::string_view moduleName)
+    {
+        return (workspaceModulesDirectory(workspacePath) / fs::path(std::string(moduleName))).lexically_normal();
+    }
+
+    fs::path workspaceDependencyDirectory(const fs::path& workspacePath)
+    {
+        return (workspacePath / ".dependency").lexically_normal();
+    }
+
+    fs::path workspaceDependencyModuleDirectory(const fs::path& workspacePath, std::string_view moduleName)
+    {
+        return (workspaceDependencyDirectory(workspacePath) / fs::path(std::string(moduleName))).lexically_normal();
+    }
+
+    fs::path workspaceModuleOutputDirectory(const fs::path& workspacePath, const Utf8& moduleName, const CommandLine& cmdLine, const Runtime::BuildCfgBackendKind backendKind, const bool workDirectory)
+    {
+        fs::path result = workspacePath;
+        result /= workDirectory ? ".tmp" : ".output";
+        result /= fs::path(moduleName.c_str());
+        result /= fs::path(backendKindName(backendKind).c_str());
+        result /= fs::path(cmdLine.buildCfg.c_str());
+        result /= fs::path(targetArchName(cmdLine.targetArch).c_str());
+        return result.lexically_normal();
+    }
+
+    bool shouldSkipWorkspaceEntry(const fs::directory_entry& entry)
+    {
+        std::error_code ec;
+        if (!entry.is_directory(ec) || ec)
+            return true;
+
+        const std::string name = entry.path().filename().string();
+        return !name.empty() && name[0] == '.';
     }
 
     void initRuntimeContextTlsId()
@@ -1413,10 +1529,227 @@ ExitCode CompilerInstance::run()
 {
     Stats::resetCommandMetrics();
     logBefore();
-    processCommand();
+    ExitCode exitCode;
+    if (!cmdLine().workspacePath.empty())
+        exitCode = runWorkspace();
+    else
+    {
+        processCommand();
+        exitCode = Stats::getNumErrors() > 0 ? ExitCode::CompileError : ExitCode::Success;
+    }
     logAfter();
     logStats();
+    return exitCode;
+}
+
+ExitCode CompilerInstance::runWorkspace()
+{
+    TaskContext ctx(*this);
+    fs::path    workspacePath = cmdLine().workspacePath;
+    fs::path    modulesPath   = workspaceModulesDirectory(workspacePath);
+    Utf8        because;
+
+    if (FileSystem::resolveExistingFolder(modulesPath, because) != Result::Continue)
+    {
+        Diagnostic diag = Diagnostic::get(DiagnosticId::cmd_err_workspace_modules_missing);
+        FileSystem::setDiagnosticPath(diag, &ctx, workspacePath);
+        diag.report(ctx);
+        return ExitCode::CompileError;
+    }
+
+    std::vector<WorkspaceModuleBuild> modules;
+    std::error_code                   ec;
+    for (fs::directory_iterator it(modulesPath, fs::directory_options::skip_permission_denied, ec), end; it != end; it.increment(ec))
+    {
+        if (ec)
+        {
+            Diagnostic diag = Diagnostic::get(DiagnosticId::cmdline_err_invalid_folder);
+            FileSystem::setDiagnosticPathAndBecause(diag, &ctx, modulesPath, FileSystem::normalizeSystemMessage(ec));
+            diag.report(ctx);
+            return ExitCode::CompileError;
+        }
+
+        const fs::directory_entry& entry = *it;
+        if (shouldSkipWorkspaceEntry(entry))
+            continue;
+
+        WorkspaceModuleBuild moduleBuild;
+        moduleBuild.moduleDir  = FileSystem::normalizePath(entry.path());
+        moduleBuild.moduleFile = (moduleBuild.moduleDir / "module.swg").lexically_normal();
+        moduleBuild.sourceDir  = (moduleBuild.moduleDir / "src").lexically_normal();
+        moduleBuild.name       = moduleBuild.moduleDir.filename().string();
+
+        if (FileSystem::resolveExistingFile(moduleBuild.moduleFile, because) != Result::Continue)
+        {
+            Diagnostic diag = Diagnostic::get(DiagnosticId::cmd_err_workspace_module_file_missing);
+            FileSystem::setDiagnosticPath(diag, &ctx, moduleBuild.moduleDir);
+            diag.report(ctx);
+            return ExitCode::CompileError;
+        }
+
+        if (FileSystem::resolveExistingFolder(moduleBuild.sourceDir, because) != Result::Continue)
+        {
+            Diagnostic diag = Diagnostic::get(DiagnosticId::cmd_err_workspace_module_src_missing);
+            FileSystem::setDiagnosticPath(diag, &ctx, moduleBuild.moduleDir);
+            diag.report(ctx);
+            return ExitCode::CompileError;
+        }
+
+        modules.push_back(std::move(moduleBuild));
+    }
+
+    std::ranges::sort(modules, [](const WorkspaceModuleBuild& lhs, const WorkspaceModuleBuild& rhs) { return lhs.name < rhs.name; });
+    if (modules.empty())
+    {
+        const Diagnostic diag = Diagnostic::get(DiagnosticId::cmd_err_no_input);
+        diag.report(ctx);
+        return ExitCode::CompileError;
+    }
+
+    std::unordered_map<Utf8, size_t> moduleIndices;
+    moduleIndices.reserve(modules.size());
+    for (size_t i = 0; i < modules.size(); ++i)
+        moduleIndices.emplace(modules[i].name, i);
+
+    for (WorkspaceModuleBuild& moduleBuild : modules)
+    {
+        CommandLine setupCmdLine = cmdLine();
+        setupCmdLine.workspacePath.clear();
+        setupCmdLine.modulePath     = moduleBuild.moduleDir;
+        setupCmdLine.moduleFilePath = moduleBuild.moduleFile;
+        setupCmdLine.directories.clear();
+        setupCmdLine.files.clear();
+        CommandLineParser::refreshBuildCfg(setupCmdLine);
+
+        if (captureModuleSetupSnapshot(ctx, setupCmdLine, moduleBuild.setup) != Result::Continue)
+            return ExitCode::CompileError;
+
+        moduleBuild.ignoreInWorkspace = moduleBuild.setup.buildCfg.ignoreInWorkspace;
+        for (const Utf8& importModule : moduleBuild.setup.importModules)
+        {
+            if (moduleIndices.contains(importModule))
+                moduleBuild.workspaceDependencies.push_back(importModule);
+        }
+    }
+
+    for (const WorkspaceModuleBuild& moduleBuild : modules)
+    {
+        if (moduleBuild.ignoreInWorkspace)
+            continue;
+
+        for (const Utf8& dependency : moduleBuild.workspaceDependencies)
+        {
+            const WorkspaceModuleBuild& dependencyModule = modules[moduleIndices.at(dependency)];
+            if (!dependencyModule.ignoreInWorkspace)
+                continue;
+
+            Diagnostic diag = Diagnostic::get(DiagnosticId::cmd_err_workspace_ignored_dependency);
+            diag.addArgument(Diagnostic::ARG_SYM, moduleBuild.name);
+            diag.addArgument(Diagnostic::ARG_TARGET, dependency);
+            diag.report(ctx);
+            return ExitCode::CompileError;
+        }
+    }
+
+    std::vector<uint32_t> indegree(modules.size(), 0);
+    std::vector<std::vector<size_t>> dependents(modules.size());
+    size_t activeModuleCount = 0;
+    for (size_t i = 0; i < modules.size(); ++i)
+    {
+        if (modules[i].ignoreInWorkspace)
+            continue;
+
+        activeModuleCount++;
+        for (const Utf8& dependency : modules[i].workspaceDependencies)
+        {
+            const size_t dependencyIndex = moduleIndices.at(dependency);
+            if (modules[dependencyIndex].ignoreInWorkspace)
+                continue;
+
+            indegree[i]++;
+            dependents[dependencyIndex].push_back(i);
+        }
+    }
+
+    std::vector<size_t> buildOrder;
+    buildOrder.reserve(activeModuleCount);
+    std::vector<bool> scheduled(modules.size(), false);
+    while (buildOrder.size() < activeModuleCount)
+    {
+        size_t nextIndex = static_cast<size_t>(-1);
+        for (size_t i = 0; i < modules.size(); ++i)
+        {
+            if (modules[i].ignoreInWorkspace || scheduled[i] || indegree[i] != 0)
+                continue;
+
+            nextIndex = i;
+            break;
+        }
+
+        if (nextIndex == static_cast<size_t>(-1))
+        {
+            for (size_t i = 0; i < modules.size(); ++i)
+            {
+                if (modules[i].ignoreInWorkspace || scheduled[i])
+                    continue;
+
+                Diagnostic diag = Diagnostic::get(DiagnosticId::cmd_err_workspace_dependency_cycle);
+                diag.addArgument(Diagnostic::ARG_SYM, modules[i].name);
+                diag.report(ctx);
+                return ExitCode::CompileError;
+            }
+
+            break;
+        }
+
+        scheduled[nextIndex] = true;
+        buildOrder.push_back(nextIndex);
+        for (const size_t dependentIndex : dependents[nextIndex])
+        {
+            SWC_ASSERT(indegree[dependentIndex] > 0);
+            indegree[dependentIndex]--;
+        }
+    }
+
+    const fs::path dependencyDir = workspaceDependencyDirectory(workspacePath);
+    SWC_ASSERT(!dependencyDir.empty());
+    if (ensureWorkspaceDirectory(ctx, dependencyDir) != Result::Continue)
+        return ExitCode::CompileError;
+    if (FileSystem::clearDirectoryContents(ctx, dependencyDir, DiagnosticId::cmd_err_workspace_dir_clear_failed) != Result::Continue)
+        return ExitCode::CompileError;
+
+    for (const size_t moduleIndex : buildOrder)
+    {
+        if (runWorkspaceModule(modules[moduleIndex]) != Result::Continue)
+            return ExitCode::CompileError;
+    }
+
     return Stats::getNumErrors() > 0 ? ExitCode::CompileError : ExitCode::Success;
+}
+
+Result CompilerInstance::runWorkspaceModule(const WorkspaceModuleBuild& moduleBuild)
+{
+    CommandLine moduleCmdLine = cmdLine();
+    moduleCmdLine.modulePath     = moduleBuild.moduleDir;
+    moduleCmdLine.moduleFilePath = moduleBuild.moduleFile;
+    moduleCmdLine.directories.clear();
+    moduleCmdLine.directories.insert(moduleBuild.sourceDir);
+    moduleCmdLine.files.clear();
+    moduleCmdLine.exportApiDir = workspaceDependencyModuleDirectory(cmdLine().workspacePath, moduleBuild.name.view());
+    moduleCmdLine.outDir       = workspaceModuleOutputDirectory(cmdLine().workspacePath, moduleBuild.name, moduleCmdLine, moduleBuild.setup.buildCfg.backendKind, false);
+    moduleCmdLine.workDir      = workspaceModuleOutputDirectory(cmdLine().workspacePath, moduleBuild.name, moduleCmdLine, moduleBuild.setup.buildCfg.backendKind, true);
+    moduleCmdLine.outDirStorage  = Utf8(moduleCmdLine.outDir);
+    moduleCmdLine.workDirStorage = Utf8(moduleCmdLine.workDir);
+    CommandLineParser::refreshBuildCfg(moduleCmdLine);
+
+    const uint64_t errorsBefore = Stats::getNumErrors();
+    CompilerInstance moduleCompiler(global(), moduleCmdLine);
+    moduleCompiler.precomputedModuleSetup_ = &moduleBuild.setup;
+    moduleCompiler.processCommand();
+    if (Stats::getNumErrors() != errorsBefore)
+        return Result::Error;
+
+    return Result::Continue;
 }
 
 SourceView& CompilerInstance::addSourceView()
@@ -2084,100 +2417,22 @@ Result CompilerInstance::registerModuleSetupLoad(const fs::path& filePath)
 void CompilerInstance::adoptBuildCfg(const Runtime::BuildCfg& buildCfg)
 {
     buildCfg_ = buildCfg;
-    ownedBuildCfgStrings_.clear();
-
-    auto copyString = [&](Runtime::String& value) {
-        if (!value.ptr || !value.length)
-        {
-            value = {};
-            return;
-        }
-
-        auto owned = std::make_unique<Utf8>(value);
-        value.ptr  = owned->data();
-        value.length = owned->size();
-        ownedBuildCfgStrings_.push_back(std::move(owned));
-    };
-
-    copyString(buildCfg_.moduleNamespace);
-    copyString(buildCfg_.warnAsErrors);
-    copyString(buildCfg_.warnAsWarning);
-    copyString(buildCfg_.warnAsDisabled);
-    copyString(buildCfg_.linkerArgs);
-    copyString(buildCfg_.name);
-    copyString(buildCfg_.outDir);
-    copyString(buildCfg_.workDir);
-    copyString(buildCfg_.repoPath);
-    copyString(buildCfg_.resAppIcoFileName);
-    copyString(buildCfg_.resAppName);
-    copyString(buildCfg_.resAppDescription);
-    copyString(buildCfg_.resAppCompany);
-    copyString(buildCfg_.resAppCopyright);
-    copyString(buildCfg_.genDoc.outputName);
-    copyString(buildCfg_.genDoc.outputExtension);
-    copyString(buildCfg_.genDoc.titleToc);
-    copyString(buildCfg_.genDoc.titleContent);
-    copyString(buildCfg_.genDoc.css);
-    copyString(buildCfg_.genDoc.icon);
-    copyString(buildCfg_.genDoc.startHead);
-    copyString(buildCfg_.genDoc.endHead);
-    copyString(buildCfg_.genDoc.startBody);
-    copyString(buildCfg_.genDoc.endBody);
-    copyString(buildCfg_.genDoc.morePages);
-    copyString(buildCfg_.genDoc.quoteIconNote);
-    copyString(buildCfg_.genDoc.quoteIconTip);
-    copyString(buildCfg_.genDoc.quoteIconWarning);
-    copyString(buildCfg_.genDoc.quoteIconAttention);
-    copyString(buildCfg_.genDoc.quoteIconExample);
-    copyString(buildCfg_.genDoc.quoteTitleNote);
-    copyString(buildCfg_.genDoc.quoteTitleTip);
-    copyString(buildCfg_.genDoc.quoteTitleWarning);
-    copyString(buildCfg_.genDoc.quoteTitleAttention);
-    copyString(buildCfg_.genDoc.quoteTitleExample);
-    copyString(buildCfg_.registeredConfigs);
+    ownBuildCfgStrings(buildCfg_, ownedBuildCfgStrings_);
 }
 
-Result CompilerInstance::applyModuleSetupInputs(TaskContext& ctx, const CompilerInstance& setupCompiler)
+Result CompilerInstance::captureModuleSetupSnapshot(TaskContext& ctx, const CommandLine& setupCmdLine, ModuleSetupSnapshot& outSnapshot)
 {
-    for (const Utf8& moduleName : setupCompiler.moduleSetupImportModules_)
-    {
-        fs::path importDir = FileSystem::generatedDependencyApiDir(exeFullName_, moduleName.view());
-        SWC_RESULT(FileSystem::resolveFolder(ctx, importDir));
-        collectFolderFiles(importDir, FileFlagsE::ImportedApi, false);
-    }
-
-    for (const fs::path& filePath : setupCompiler.moduleSetupLoadedFiles_)
-    {
-        fs::path resolvedPath = filePath;
-        SWC_RESULT(FileSystem::resolveFile(ctx, resolvedPath));
-        if (hasResolvedFilePath(resolvedPath))
-            continue;
-
-        addResolvedFile(resolvedPath, FileFlagsE::ModuleSrc);
-    }
-
-    return Result::Continue;
-}
-
-Result CompilerInstance::runModuleSetup(TaskContext& ctx)
-{
-    if (modulePathFile_.empty() || cmdLine().moduleFilePath.empty())
-        return Result::Continue;
-
-    CommandLine setupCmdLine = cmdLine();
-    setupCmdLine.directories.clear();
-    setupCmdLine.files.clear();
-    setupCmdLine.importApiModules.clear();
-    setupCmdLine.importApiDirs.clear();
-    setupCmdLine.importApiFiles.clear();
-    setupCmdLine.exportApiDir.clear();
-    setupCmdLine.moduleFilePath = modulePathFile_;
-    setupCmdLine.modulePath     = modulePathFile_.parent_path();
-    setupCmdLine.runtime        = true;
-    CommandLineParser::refreshBuildCfg(setupCmdLine);
-
+    SWC_UNUSED(ctx);
+    outSnapshot = {};
     CompilerInstance setupCompiler(global(), setupCmdLine);
     setupCompiler.moduleSetupMode_ = true;
+    struct ConstCallCacheResetGuard
+    {
+        ~ConstCallCacheResetGuard()
+        {
+            SemaJIT::clearConstCallCache();
+        }
+    } constCallCacheResetGuard;
 
     TaskContext setupCtx(setupCompiler);
     SWC_RESULT(setupCompiler.collectFiles(setupCtx));
@@ -2215,7 +2470,13 @@ Result CompilerInstance::runModuleSetup(TaskContext& ctx)
     }
 
     if (files.empty())
-        return applyModuleSetupInputs(ctx, setupCompiler);
+    {
+        outSnapshot.buildCfg      = setupCompiler.buildCfg();
+        outSnapshot.importModules = setupCompiler.moduleSetupImportModules_;
+        outSnapshot.loadedFiles   = setupCompiler.moduleSetupLoadedFiles_;
+        ownBuildCfgStrings(outSnapshot.buildCfg, outSnapshot.ownedStrings);
+        return Result::Continue;
+    }
 
     SWC_RESULT(setupCompiler.setupSema(setupCtx));
 
@@ -2255,8 +2516,78 @@ Result CompilerInstance::runModuleSetup(TaskContext& ctx)
     if (Stats::getNumErrors() != errorsBefore)
         return Result::Error;
 
-    adoptBuildCfg(setupCompiler.buildCfg());
-    return applyModuleSetupInputs(ctx, setupCompiler);
+    outSnapshot.buildCfg      = setupCompiler.buildCfg();
+    outSnapshot.importModules = setupCompiler.moduleSetupImportModules_;
+    outSnapshot.loadedFiles   = setupCompiler.moduleSetupLoadedFiles_;
+    ownBuildCfgStrings(outSnapshot.buildCfg, outSnapshot.ownedStrings);
+    return Result::Continue;
+}
+
+Result CompilerInstance::applyModuleSetupInputs(TaskContext& ctx, const ModuleSetupSnapshot& setupSnapshot)
+{
+    for (const Utf8& moduleName : setupSnapshot.importModules)
+    {
+        fs::path importDir;
+        if (!cmdLine().workspacePath.empty())
+        {
+            fs::path workspaceModuleDir = workspaceModuleDirectory(cmdLine().workspacePath, moduleName.view());
+            std::error_code ec;
+            if (fs::is_directory(workspaceModuleDir, ec))
+                importDir = workspaceDependencyModuleDirectory(cmdLine().workspacePath, moduleName.view());
+        }
+
+        if (importDir.empty())
+            importDir = FileSystem::generatedDependencyApiDir(exeFullName_, moduleName.view());
+
+        SWC_RESULT(FileSystem::resolveFolder(ctx, importDir));
+        collectFolderFiles(importDir, FileFlagsE::ImportedApi, false);
+    }
+
+    for (const fs::path& filePath : setupSnapshot.loadedFiles)
+    {
+        fs::path resolvedPath = filePath;
+        SWC_RESULT(FileSystem::resolveFile(ctx, resolvedPath));
+        if (hasResolvedFilePath(resolvedPath))
+            continue;
+
+        addResolvedFile(resolvedPath, FileFlagsE::ModuleSrc);
+    }
+
+    return Result::Continue;
+}
+
+Result CompilerInstance::runModuleSetup(TaskContext& ctx)
+{
+    if (modulePathFile_.empty() || cmdLine().moduleFilePath.empty())
+        return Result::Continue;
+
+    if (precomputedModuleSetup_)
+    {
+        adoptBuildCfg(precomputedModuleSetup_->buildCfg);
+        if (cmdLine().defaultBuildCfg.outDir.ptr && cmdLine().defaultBuildCfg.outDir.length)
+            buildCfg_.outDir = cmdLine().defaultBuildCfg.outDir;
+        if (cmdLine().defaultBuildCfg.workDir.ptr && cmdLine().defaultBuildCfg.workDir.length)
+            buildCfg_.workDir = cmdLine().defaultBuildCfg.workDir;
+        ownBuildCfgStrings(buildCfg_, ownedBuildCfgStrings_);
+        return applyModuleSetupInputs(ctx, *precomputedModuleSetup_);
+    }
+
+    CommandLine setupCmdLine = cmdLine();
+    setupCmdLine.directories.clear();
+    setupCmdLine.files.clear();
+    setupCmdLine.importApiModules.clear();
+    setupCmdLine.importApiDirs.clear();
+    setupCmdLine.importApiFiles.clear();
+    setupCmdLine.exportApiDir.clear();
+    setupCmdLine.moduleFilePath = modulePathFile_;
+    setupCmdLine.modulePath     = modulePathFile_.parent_path();
+    setupCmdLine.runtime        = true;
+    CommandLineParser::refreshBuildCfg(setupCmdLine);
+
+    ModuleSetupSnapshot setupSnapshot;
+    SWC_RESULT(captureModuleSetupSnapshot(ctx, setupCmdLine, setupSnapshot));
+    adoptBuildCfg(setupSnapshot.buildCfg);
+    return applyModuleSetupInputs(ctx, setupSnapshot);
 }
 
 void CompilerInstance::appendResolvedFiles(std::vector<fs::path>& paths, FileFlags flags)

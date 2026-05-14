@@ -366,6 +366,38 @@ SWC_TEST_BEGIN(Compiler_CommandLineModuleFileResolvesRelativeInputsFromModuleFol
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(Compiler_CommandLineWorkspaceResolvesPath)
+{
+    const ScopedTempTree tempTree("compiler_workspace_path");
+    if (!tempTree.ready())
+        return Result::Error;
+
+    const fs::path workspaceDir = tempTree.root() / "workspace";
+    if (!ensureDirectory(workspaceDir / "modules"))
+        return Result::Error;
+
+    CommandLine                    cmdLine;
+    const uint64_t                 errorsBefore = Stats::getNumErrors();
+    const std::vector<std::string> args         = {
+        "swc_devmode",
+        "build",
+        "--workspace",
+        workspaceDir.string(),
+    };
+
+    if (parseCommandLine(ctx, cmdLine, args) != Result::Continue)
+        return Result::Error;
+    if (Stats::getNumErrors() != errorsBefore)
+        return Result::Error;
+    if (!FileSystem::pathEquals(cmdLine.workspacePath, workspaceDir))
+        return Result::Error;
+    if (defaultArtifactName(cmdLine) != "workspace")
+        return Result::Error;
+
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(Compiler_ModuleFileSetupConfiguresBuildAndLoadsExplicitSources)
 {
     const ScopedTempTree tempTree("compiler_module_file_setup");
@@ -420,6 +452,80 @@ SWC_TEST_BEGIN(Compiler_ModuleFileSetupConfiguresBuildAndLoadsExplicitSources)
 
     if (findCompilerFile(compiler, autoSrcFile) != nullptr)
         return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(Compiler_WorkspaceBuildUsesModuleSetupDependenciesAndSkipsIgnoredModules)
+{
+    const ScopedTempTree tempTree("compiler_workspace_build");
+    if (!tempTree.ready())
+        return Result::Error;
+
+    const fs::path workspaceDir = tempTree.root() / "workspace";
+    const fs::path depModuleDir = workspaceDir / "modules" / "dep";
+    const fs::path coreModuleDir = workspaceDir / "modules" / "core";
+    const fs::path ignoredModuleDir = workspaceDir / "modules" / "ignored";
+
+    if (!writeTextFile(depModuleDir / "module.swg", R"(#run
+{
+    let cfg = @compiler.getBuildCfg()
+    cfg.moduleNamespace = "Dep"
+    cfg.backendKind = .Export
+}
+)"))
+        return Result::Error;
+    if (!writeTextFile(depModuleDir / "src" / "api.swg", R"(#global export
+public func depValue()->s32
+{
+    return 7
+}
+)"))
+        return Result::Error;
+
+    if (!writeTextFile(coreModuleDir / "module.swg", R"(#import("dep")
+#run
+{
+    let cfg = @compiler.getBuildCfg()
+    cfg.moduleNamespace = "Core"
+    cfg.backendKind = .StaticLibrary
+}
+)"))
+        return Result::Error;
+    if (!writeTextFile(coreModuleDir / "src" / "main.swg", R"(using Dep
+
+public func coreValue()->s32
+{
+    return depValue()
+}
+)"))
+        return Result::Error;
+
+    if (!writeTextFile(ignoredModuleDir / "module.swg", R"(#run
+{
+    let cfg = @compiler.getBuildCfg()
+    cfg.moduleNamespace = "Ignored"
+    cfg.ignoreInWorkspace = true
+}
+)"))
+        return Result::Error;
+    if (!writeTextFile(ignoredModuleDir / "src" / "broken.swg", "#this_should_not_compile\n"))
+        return Result::Error;
+
+    CommandLine cmdLine;
+    cmdLine.command       = CommandKind::Sema;
+    cmdLine.workspacePath = workspaceDir;
+    cmdLine.silent        = true;
+    CommandLineParser::refreshBuildCfg(cmdLine);
+
+    CompilerInstance compiler(ctx.global(), cmdLine);
+    if (compiler.run() != ExitCode::Success)
+        return Result::Error;
+
+    const fs::path depApiFile = workspaceDir / ".dependency" / "dep" / "api.swg";
+    if (!fs::exists(depApiFile))
+        return Result::Error;
+
+    return Result::Continue;
 }
 SWC_TEST_END()
 

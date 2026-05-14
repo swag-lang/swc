@@ -1151,6 +1151,12 @@ Result SemaJIT::runStatement(Sema& sema, SymbolFunction& symFn, AstNodeRef nodeR
     return sema.compiler().jitExecMgr().submit(ctx, request);
 }
 
+void SemaJIT::clearConstCallCache()
+{
+    const std::scoped_lock lock(constCallCacheMutex());
+    constCallCache().clear();
+}
+
 Result SemaJIT::prepareFunction(Sema& sema, SymbolFunction& symFn)
 {
     return prepareJitFunction(sema, symFn);

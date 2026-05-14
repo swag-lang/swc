@@ -11,6 +11,7 @@
     cfg.moduleBuildNum  = #swcbuildnum
     cfg.moduleNamespace = "Gdi32"
     cfg.backendKind     = .Export
+    cfg.ignoreInWorkspace = true
     cfg.repoPath        = "https://github.com/swag-lang/swag/blob/master/bin/std/modules/gdi32"
 
     cfg.genDoc.kind            = .Api

@@ -445,6 +445,7 @@ namespace
     void prepareGenericNodeRunContext(Sema& child, Sema& sema, const Symbol& root)
     {
         prepareGenericDeclSemaContext(child, sema, root);
+        child.frame().addContextFlag(SemaFrameContextFlagsE::RequireConstExpr);
     }
 
     Result runGenericNode(Sema& sema, const Symbol& root, AstNodeRef nodeRef)

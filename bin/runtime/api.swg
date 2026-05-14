@@ -810,6 +810,7 @@ namespace Swag
         moduleBuildNum:                u32 = 0                              // The module build value
         moduleNamespace:               string                               // The namespace name of the module
         embeddedImports                = false                              // Module should embed all its dependencies
+        ignoreInWorkspace              = false                              // Skip this module when building a workspace
 
         tempAllocatorCapacity          = 4'u32 * 1024 * 1024                // Default capacity of the 'temp' allocator (in bytes)
         errorAllocatorCapacity         = 16'u32 * 1024                      // Default capacity of the 'error' allocator (in bytes)

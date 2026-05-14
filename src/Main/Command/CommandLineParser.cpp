@@ -186,8 +186,11 @@ namespace
         cmdLine.defaultBuildCfg  = buildCfg;
     }
 
-    fs::path moduleInputBaseDir(const CommandLine& cmdLine)
+    fs::path commandInputBaseDir(const CommandLine& cmdLine)
     {
+        if (!cmdLine.workspacePath.empty())
+            return cmdLine.workspacePath;
+
         if (cmdLine.moduleFilePath.empty())
             return {};
 
@@ -975,7 +978,40 @@ Result CommandLineParser::checkCommandLine(TaskContext& ctx) const
         cmdLine_->modulePath = derivedModulePath;
     }
 
-    const fs::path inputBaseDir = moduleInputBaseDir(*cmdLine_);
+    if (!cmdLine_->workspacePath.empty())
+    {
+        fs::path temp = cmdLine_->workspacePath;
+        SWC_RESULT(FileSystem::resolveFolder(ctx, temp));
+        cmdLine_->workspacePath = std::move(temp);
+    }
+
+    if (!cmdLine_->workspacePath.empty())
+    {
+        const auto reportWorkspaceConflict = [&](std::string_view otherArg) {
+            Diagnostic diag = Diagnostic::get(DiagnosticId::cmdline_err_conflicting_arg);
+            diag.addArgument(Diagnostic::ARG_ARG, "--workspace");
+            diag.addArgument(Diagnostic::ARG_VALUE, otherArg);
+            diag.report(ctx);
+            return Result::Error;
+        };
+
+        if (!cmdLine_->moduleFilePath.empty())
+            return reportWorkspaceConflict("--module-file");
+        if (!cmdLine_->modulePath.empty())
+            return reportWorkspaceConflict("--module");
+        if (!cmdLine_->directories.empty())
+            return reportWorkspaceConflict("--directory");
+        if (!cmdLine_->files.empty())
+            return reportWorkspaceConflict("--file");
+        if (!cmdLine_->outDir.empty())
+            return reportWorkspaceConflict("--out-dir");
+        if (!cmdLine_->workDir.empty())
+            return reportWorkspaceConflict("--work-dir");
+        if (!cmdLine_->exportApiDir.empty())
+            return reportWorkspaceConflict("--export-api-dir");
+    }
+
+    const fs::path inputBaseDir = commandInputBaseDir(*cmdLine_);
 
     std::set<fs::path> resolvedFolders;
     for (const fs::path& folder : cmdLine_->directories)

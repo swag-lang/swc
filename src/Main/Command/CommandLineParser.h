@@ -143,6 +143,9 @@ inline Utf8 defaultArtifactName(const CommandLine& cmdLine)
     if (!cmdLine.name.empty())
         return FileSystem::sanitizeFileName(cmdLine.name);
 
+    if (!cmdLine.workspacePath.empty())
+        return FileSystem::sanitizeFileName(Utf8(cmdLine.workspacePath.filename().string()));
+
     if (!cmdLine.modulePath.empty())
         return FileSystem::sanitizeFileName(Utf8(cmdLine.modulePath.filename().string()));
 

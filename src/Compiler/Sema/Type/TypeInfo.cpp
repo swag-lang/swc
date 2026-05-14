@@ -1144,7 +1144,11 @@ Symbol* TypeInfo::getNotCompletedSymbol(TaskContext& ctx) const
                     return sym;
             }
 
-            return directBlockingSymbol(&payloadSymFunction());
+            // Function type completeness is purely a signature question. The backing
+            // `SymbolFunction` can be an abstract callable descriptor (for example a
+            // function-typed variable parameter) with no declaration/body to sema.
+            // Waiting on that symbol creates fake dependencies for indirect calls.
+            return nullptr;
         }
 
         case TypeInfoKind::Array:

@@ -40,6 +40,7 @@ voice.play(Loop)
     cfg.moduleBuildNum  = #swcbuildnum
     cfg.moduleNamespace = "Audio"
     cfg.backendKind     = .StaticLibrary
+    cfg.ignoreInWorkspace = true
     cfg.repoPath        = "https://github.com/swag-lang/swag/blob/master/bin/std/modules/audio"
 
     cfg.genDoc.kind            = .Api

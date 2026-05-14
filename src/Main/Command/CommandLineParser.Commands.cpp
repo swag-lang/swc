@@ -51,6 +51,9 @@ void CommandLineParser::registerCommands()
     add(HelpOptionGroup::Input, "all", "--module", "-m",
         &cmdLine_->modulePath,
         "Specify a module path to compile.");
+    add(HelpOptionGroup::Input, "all", "--module-file", nullptr,
+        &cmdLine_->moduleFilePath,
+        "Specify the special module setup file to execute before compiling the rest of the module. When present, the module root is derived from the file parent folder.");
     add(HelpOptionGroup::Input, "sema test build run", "--import-api-module", nullptr,
         &cmdLine_->importApiModules,
         "Resolve a generated public API dependency from a module name, simulating a #import through <compiler-root>/.output/dep/<module>.");

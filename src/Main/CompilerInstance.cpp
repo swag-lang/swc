@@ -21,6 +21,7 @@
 #include "Compiler/SourceFile.h"
 #include "Main/Command/Command.h"
 #include "Main/Command/CommandLine.h"
+#include "Main/Command/CommandLineParser.h"
 #include "Main/ExternalModuleManager.h"
 #include "Main/FileSystem.h"
 #include "Main/Global.h"
@@ -28,6 +29,7 @@
 #include "Main/TaskContext.h"
 #include "Support/Core/Timer.h"
 #include "Support/Core/Utf8Helper.h"
+#include "Support/Math/Hash.h"
 #include "Support/Memory/Heap.h"
 #include "Support/Memory/mimalloc/include/mimalloc.h"
 #include "Support/Os/Os.h"
@@ -91,6 +93,9 @@ namespace
 {
     uint64_t       g_RuntimeContextTlsId;
     std::once_flag g_RuntimeContextTlsIdOnce;
+
+    fs::path generatedSourceDirectory(const CompilerInstance& compiler);
+    Utf8     buildModuleNamespaceName(const CompilerInstance& compiler);
 
     template<typename T>
     bool appendUnique(std::vector<T*>& values, T* value)
@@ -537,7 +542,7 @@ namespace
             return Result::Continue;
 
         CompilerInstance& compiler  = ctx.compiler();
-        const fs::path    directory = !ctx.cmdLine().workDir.empty() ? ctx.cmdLine().workDir : Os::getTemporaryPath().lexically_normal();
+        const fs::path    directory = generatedSourceDirectory(compiler);
 
         CompilerInstance::GeneratedSourceAppendResult appendResult;
         Utf8                                          because;
@@ -630,6 +635,86 @@ namespace
         if (content.find('\n') != std::string_view::npos)
             return "\n";
         return "\r\n";
+    }
+
+    Utf8 buildCfgString(const Runtime::String& value)
+    {
+        if (!value.ptr || !value.length)
+            return {};
+
+        return Utf8{value};
+    }
+
+    fs::path generatedSourceDirectory(const CompilerInstance& compiler)
+    {
+        const Utf8 workDir = buildCfgString(compiler.buildCfg().workDir);
+        if (!workDir.empty())
+            return fs::path(workDir.c_str()).lexically_normal();
+
+        if (!compiler.cmdLine().workDir.empty())
+            return compiler.cmdLine().workDir;
+
+        return Os::getTemporaryPath().lexically_normal();
+    }
+
+    Utf8 buildModuleNamespaceName(const CompilerInstance& compiler)
+    {
+        Utf8 moduleNamespaceName = buildCfgString(compiler.buildCfg().moduleNamespace);
+        if (!moduleNamespaceName.empty())
+            return moduleNamespaceName;
+
+        Utf8 artifactName = buildCfgString(compiler.buildCfg().name);
+        if (artifactName.empty())
+            artifactName = defaultArtifactName(compiler.cmdLine());
+        return defaultModuleNamespace(artifactName);
+    }
+
+    fs::path commonModuleSourceRoot(std::span<SourceFile* const> files)
+    {
+        fs::path result;
+        bool     hasResult = false;
+
+        for (const SourceFile* file : files)
+        {
+            if (!file || !file->hasFlag(FileFlagsE::ModuleSrc))
+                continue;
+
+            fs::path candidate = file->path().parent_path().lexically_normal();
+            if (!hasResult)
+            {
+                result    = std::move(candidate);
+                hasResult = true;
+                continue;
+            }
+
+            while (!result.empty() && !FileSystem::pathStartsWith(candidate, result))
+            {
+                const fs::path parent = result.parent_path();
+                if (parent == result)
+                {
+                    result.clear();
+                    break;
+                }
+
+                result = parent;
+            }
+
+            if (result.empty())
+                break;
+        }
+
+        return result;
+    }
+
+    fs::path moduleApiRelativePath(const SourceFile& file, const fs::path& explicitRoot, const fs::path& fallbackRoot)
+    {
+        if (!explicitRoot.empty() && FileSystem::pathStartsWith(file.path(), explicitRoot))
+            return file.path().lexically_relative(explicitRoot);
+
+        if (!fallbackRoot.empty() && FileSystem::pathStartsWith(file.path(), fallbackRoot))
+            return file.path().lexically_relative(fallbackRoot);
+
+        return file.path().filename();
     }
 
     Utf8 buildExportedModuleApiContent(const SourceFile& file, std::string_view moduleNamespace, const bool hasModuleNamespace)
@@ -1962,6 +2047,218 @@ std::span<SourceFile* const> CompilerInstance::files() const
     return filePtrs_;
 }
 
+bool CompilerInstance::hasResolvedFilePath(const fs::path& path) const
+{
+    const Utf8 wantedPathNormalized = Utf8Helper::normalizePathForCompare(path);
+
+    const std::shared_lock lock(mutex_);
+    for (const SourceFile* file : filePtrs_)
+    {
+        if (!file)
+            continue;
+        if (Utf8Helper::normalizePathForCompare(file->path()) == wantedPathNormalized)
+            return true;
+    }
+
+    return false;
+}
+
+Result CompilerInstance::registerModuleSetupImport(const std::string_view moduleName)
+{
+    if (moduleName.empty())
+        return Result::Continue;
+
+    moduleSetupImportModules_.insert(Utf8(moduleName));
+    return Result::Continue;
+}
+
+Result CompilerInstance::registerModuleSetupLoad(const fs::path& filePath)
+{
+    if (filePath.empty())
+        return Result::Continue;
+
+    moduleSetupLoadedFiles_.insert(FileSystem::normalizePath(filePath));
+    return Result::Continue;
+}
+
+void CompilerInstance::adoptBuildCfg(const Runtime::BuildCfg& buildCfg)
+{
+    buildCfg_ = buildCfg;
+    ownedBuildCfgStrings_.clear();
+
+    auto copyString = [&](Runtime::String& value) {
+        if (!value.ptr || !value.length)
+        {
+            value = {};
+            return;
+        }
+
+        auto owned = std::make_unique<Utf8>(value);
+        value.ptr  = owned->data();
+        value.length = owned->size();
+        ownedBuildCfgStrings_.push_back(std::move(owned));
+    };
+
+    copyString(buildCfg_.moduleNamespace);
+    copyString(buildCfg_.warnAsErrors);
+    copyString(buildCfg_.warnAsWarning);
+    copyString(buildCfg_.warnAsDisabled);
+    copyString(buildCfg_.linkerArgs);
+    copyString(buildCfg_.name);
+    copyString(buildCfg_.outDir);
+    copyString(buildCfg_.workDir);
+    copyString(buildCfg_.repoPath);
+    copyString(buildCfg_.resAppIcoFileName);
+    copyString(buildCfg_.resAppName);
+    copyString(buildCfg_.resAppDescription);
+    copyString(buildCfg_.resAppCompany);
+    copyString(buildCfg_.resAppCopyright);
+    copyString(buildCfg_.genDoc.outputName);
+    copyString(buildCfg_.genDoc.outputExtension);
+    copyString(buildCfg_.genDoc.titleToc);
+    copyString(buildCfg_.genDoc.titleContent);
+    copyString(buildCfg_.genDoc.css);
+    copyString(buildCfg_.genDoc.icon);
+    copyString(buildCfg_.genDoc.startHead);
+    copyString(buildCfg_.genDoc.endHead);
+    copyString(buildCfg_.genDoc.startBody);
+    copyString(buildCfg_.genDoc.endBody);
+    copyString(buildCfg_.genDoc.morePages);
+    copyString(buildCfg_.genDoc.quoteIconNote);
+    copyString(buildCfg_.genDoc.quoteIconTip);
+    copyString(buildCfg_.genDoc.quoteIconWarning);
+    copyString(buildCfg_.genDoc.quoteIconAttention);
+    copyString(buildCfg_.genDoc.quoteIconExample);
+    copyString(buildCfg_.genDoc.quoteTitleNote);
+    copyString(buildCfg_.genDoc.quoteTitleTip);
+    copyString(buildCfg_.genDoc.quoteTitleWarning);
+    copyString(buildCfg_.genDoc.quoteTitleAttention);
+    copyString(buildCfg_.genDoc.quoteTitleExample);
+    copyString(buildCfg_.registeredConfigs);
+}
+
+Result CompilerInstance::applyModuleSetupInputs(TaskContext& ctx, const CompilerInstance& setupCompiler)
+{
+    for (const Utf8& moduleName : setupCompiler.moduleSetupImportModules_)
+    {
+        fs::path importDir = FileSystem::generatedDependencyApiDir(exeFullName_, moduleName.view());
+        SWC_RESULT(FileSystem::resolveFolder(ctx, importDir));
+        collectFolderFiles(importDir, FileFlagsE::ImportedApi, false);
+    }
+
+    for (const fs::path& filePath : setupCompiler.moduleSetupLoadedFiles_)
+    {
+        fs::path resolvedPath = filePath;
+        SWC_RESULT(FileSystem::resolveFile(ctx, resolvedPath));
+        if (hasResolvedFilePath(resolvedPath))
+            continue;
+
+        addResolvedFile(resolvedPath, FileFlagsE::ModuleSrc);
+    }
+
+    return Result::Continue;
+}
+
+Result CompilerInstance::runModuleSetup(TaskContext& ctx)
+{
+    if (modulePathFile_.empty() || cmdLine().moduleFilePath.empty())
+        return Result::Continue;
+
+    CommandLine setupCmdLine = cmdLine();
+    setupCmdLine.directories.clear();
+    setupCmdLine.files.clear();
+    setupCmdLine.importApiModules.clear();
+    setupCmdLine.importApiDirs.clear();
+    setupCmdLine.importApiFiles.clear();
+    setupCmdLine.exportApiDir.clear();
+    setupCmdLine.moduleFilePath = modulePathFile_;
+    setupCmdLine.modulePath     = modulePathFile_.parent_path();
+    setupCmdLine.runtime        = true;
+    CommandLineParser::refreshBuildCfg(setupCmdLine);
+
+    CompilerInstance setupCompiler(global(), setupCmdLine);
+    setupCompiler.moduleSetupMode_ = true;
+
+    TaskContext setupCtx(setupCompiler);
+    SWC_RESULT(setupCompiler.collectFiles(setupCtx));
+
+    const Global&     global   = setupCtx.global();
+    JobManager&       jobMgr   = global.jobMgr();
+    const JobClientId clientId = setupCompiler.jobClientId();
+    const uint64_t    errorsBefore = Stats::getNumErrors();
+
+    for (SourceFile* file : setupCompiler.files())
+    {
+        auto* job = heapNew<ParserJob>(setupCtx, file);
+        jobMgr.enqueue(*job, JobPriority::Normal, clientId);
+    }
+
+    jobMgr.waitAll(clientId);
+#if SWC_DEV_MODE
+    jobMgr.assertNoWaitingJobs(clientId, "CompilerInstance::runModuleSetup parser waitAll");
+#endif
+    if (Stats::getNumErrors() != errorsBefore)
+        return Result::Error;
+
+    std::vector<SourceFile*> files;
+    files.reserve(setupCompiler.files().size());
+    for (SourceFile* file : setupCompiler.files())
+    {
+        const SourceView& srcView = file->ast().srcView();
+        if (srcView.mustSkip())
+            continue;
+        if (!srcView.runsSema())
+            continue;
+        if (file->hasError())
+            continue;
+        files.push_back(file);
+    }
+
+    if (files.empty())
+        return applyModuleSetupInputs(ctx, setupCompiler);
+
+    SWC_RESULT(setupCompiler.setupSema(setupCtx));
+
+    auto* symModule = Symbol::make<SymbolModule>(setupCtx, nullptr, TokenRef::invalid(), IdentifierRef::invalid(), SymbolFlagsE::Zero);
+    Utf8  moduleNamespaceName = buildModuleNamespaceName(setupCompiler);
+
+    constexpr SymbolFlags namespaceFlags  = SymbolFlagsE::Declared | SymbolFlagsE::Typed | SymbolFlagsE::SemaCompleted;
+    const IdentifierRef   idRef           = setupCtx.idMgr().addIdentifierOwned(moduleNamespaceName, Math::hash(moduleNamespaceName));
+    auto*                 moduleNamespace = Symbol::make<SymbolNamespace>(setupCtx, nullptr, TokenRef::invalid(), idRef, namespaceFlags);
+    symModule->addSingleSymbol(setupCtx, moduleNamespace);
+    setupCompiler.setSymModule(symModule);
+
+    for (SourceFile* file : files)
+    {
+        file->setModuleNamespace(*moduleNamespace);
+        auto* job = heapNew<SemaJob>(setupCtx, file->nodePayloadContext(), true);
+        jobMgr.enqueue(*job, JobPriority::Normal, clientId);
+    }
+
+    jobMgr.waitAll(clientId);
+#if SWC_DEV_MODE
+    jobMgr.assertNoWaitingJobs(clientId, "CompilerInstance::runModuleSetup decl waitAll");
+#endif
+    if (Stats::getNumErrors() != errorsBefore)
+        return Result::Error;
+
+    for (SourceFile* file : files)
+    {
+        auto* job = heapNew<SemaJob>(setupCtx, file->nodePayloadContext(), false);
+        jobMgr.enqueue(*job, JobPriority::Normal, clientId);
+    }
+
+    Sema::waitDone(setupCtx, clientId);
+#if SWC_DEV_MODE
+    jobMgr.assertNoWaitingJobs(clientId, "CompilerInstance::runModuleSetup full waitDone");
+#endif
+    if (Stats::getNumErrors() != errorsBefore)
+        return Result::Error;
+
+    adoptBuildCfg(setupCompiler.buildCfg());
+    return applyModuleSetupInputs(ctx, setupCompiler);
+}
+
 void CompilerInstance::appendResolvedFiles(std::vector<fs::path>& paths, FileFlags flags)
 {
     if (paths.empty())
@@ -1970,7 +2267,11 @@ void CompilerInstance::appendResolvedFiles(std::vector<fs::path>& paths, FileFla
     files_.reserve(files_.size() + paths.size());
     filePtrs_.reserve(filePtrs_.size() + paths.size());
     for (fs::path& path : paths)
+    {
+        if (hasResolvedFilePath(path))
+            continue;
         addResolvedFile(std::move(path), flags);
+    }
 }
 
 void CompilerInstance::collectFolderFiles(const fs::path& folder, FileFlags flags, const bool canFilter)
@@ -1994,7 +2295,11 @@ Result CompilerInstance::collectImportedApiFiles(const TaskContext& ctx)
     files_.reserve(files_.size() + cmdLine.importApiFiles.size());
     filePtrs_.reserve(filePtrs_.size() + cmdLine.importApiFiles.size());
     for (const fs::path& file : cmdLine.importApiFiles)
+    {
+        if (hasResolvedFilePath(file))
+            continue;
         addResolvedFile(file, FileFlagsE::ImportedApi);
+    }
 
     return Result::Continue;
 }
@@ -2002,10 +2307,11 @@ Result CompilerInstance::collectImportedApiFiles(const TaskContext& ctx)
 Result CompilerInstance::collectFiles(TaskContext& ctx)
 {
     const CommandLine& cmdLine = ctx.cmdLine();
+    const FileFlags    directSrcFlags = cmdLine.moduleFilePath.empty() ? FileFlagsE::CustomSrc : FileFlagsE::ModuleSrc;
 
     // Collect direct folders from the command line
     for (const fs::path& folder : cmdLine.directories)
-        collectFolderFiles(folder, FileFlagsE::CustomSrc, true);
+        collectFolderFiles(folder, directSrcFlags, true);
 
     // Collect direct files from the command line
     if (!cmdLine.files.empty())
@@ -2013,19 +2319,34 @@ Result CompilerInstance::collectFiles(TaskContext& ctx)
         files_.reserve(files_.size() + cmdLine.files.size());
         filePtrs_.reserve(filePtrs_.size() + cmdLine.files.size());
         for (const fs::path& file : cmdLine.files)
-            addResolvedFile(file, FileFlagsE::CustomSrc);
+        {
+            if (hasResolvedFilePath(file))
+                continue;
+            addResolvedFile(file, directSrcFlags);
+        }
     }
 
     // Collect files for the module
-    if (!cmdLine.modulePath.empty())
+    if (!cmdLine.moduleFilePath.empty())
+    {
+        modulePathFile_ = cmdLine.moduleFilePath;
+        SWC_RESULT(FileSystem::resolveFile(ctx, modulePathFile_));
+        if (!hasResolvedFilePath(modulePathFile_))
+            addResolvedFile(modulePathFile_, FileFlagsE::Module);
+    }
+    else if (!cmdLine.modulePath.empty())
     {
         modulePathFile_ = cmdLine.modulePath / "module.swg";
         SWC_RESULT(FileSystem::resolveFile(ctx, modulePathFile_));
-        addResolvedFile(modulePathFile_, FileFlagsE::Module);
+        if (!hasResolvedFilePath(modulePathFile_))
+            addResolvedFile(modulePathFile_, FileFlagsE::Module);
 
         modulePathSrc_ = cmdLine.modulePath / "src";
-        SWC_RESULT(FileSystem::resolveFolder(ctx, modulePathSrc_));
-        collectFolderFiles(modulePathSrc_, FileFlagsE::ModuleSrc, true);
+        Utf8 because;
+        if (FileSystem::resolveExistingFolder(modulePathSrc_, because) == Result::Continue)
+            collectFolderFiles(modulePathSrc_, FileFlagsE::ModuleSrc, true);
+        else
+            modulePathSrc_.clear();
     }
 
     SWC_RESULT(collectImportedApiFiles(ctx));
@@ -2053,8 +2374,23 @@ Result CompilerInstance::collectFiles(TaskContext& ctx)
 Result CompilerInstance::exportModuleApi(TaskContext& ctx)
 {
     const fs::path& exportApiDir = cmdLine().exportApiDir;
-    if (exportApiDir.empty() || modulePathSrc_.empty())
+    if (exportApiDir.empty())
         return Result::Continue;
+
+    bool hasModuleSources = false;
+    for (const SourceFile* file : files())
+    {
+        if (file && file->hasFlag(FileFlagsE::ModuleSrc))
+        {
+            hasModuleSources = true;
+            break;
+        }
+    }
+
+    if (!hasModuleSources)
+        return Result::Continue;
+
+    const fs::path fallbackModuleRoot = modulePathSrc_.empty() ? commonModuleSourceRoot(files()) : fs::path{};
 
     SWC_RESULT(ensureModuleApiDirectory(ctx, exportApiDir));
     SWC_RESULT(FileSystem::clearDirectoryContents(ctx, exportApiDir, DiagnosticId::cmd_err_api_dir_clear_failed));
@@ -2069,8 +2405,8 @@ Result CompilerInstance::exportModuleApi(TaskContext& ctx)
         if (!info.exported)
             continue;
 
-        fs::path relativePath = file->path().lexically_relative(modulePathSrc_);
-        if (relativePath.empty() || relativePath == "." || !FileSystem::pathStartsWith(file->path(), modulePathSrc_))
+        fs::path relativePath = moduleApiRelativePath(*file, modulePathSrc_, fallbackModuleRoot);
+        if (relativePath.empty() || relativePath == ".")
             relativePath = file->path().filename();
 
         const fs::path dstPath = exportApiDir / relativePath;

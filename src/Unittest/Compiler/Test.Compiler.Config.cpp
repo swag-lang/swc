@@ -5,6 +5,7 @@
 #include "Compiler/Parser/Parser/ParserJob.h"
 #include "Format/FormatOptionsLoader.h"
 #include "Format/Formatter.h"
+#include "Main/Command/Command.h"
 #include "Main/Command/CommandLine.h"
 #include "Main/Command/CommandLineParser.h"
 #include "Main/CompilerInstance.h"
@@ -85,6 +86,17 @@ namespace
         }
 
         return false;
+    }
+
+    const SourceFile* findCompilerFile(const CompilerInstance& compiler, const fs::path& expectedPath)
+    {
+        for (const SourceFile* file : compiler.files())
+        {
+            if (file && FileSystem::pathEquals(file->path(), expectedPath))
+                return file;
+        }
+
+        return nullptr;
     }
 
     Result parseCommandLine(const TaskContext& ctx, CommandLine& cmdLine, const std::vector<std::string>& args)
@@ -272,6 +284,98 @@ SWC_TEST_BEGIN(Compiler_CommandLineTestAcceptsImportedApiInputs)
     if (!containsPath(cmdLine.importApiDirs, importDir))
         return Result::Error;
     if (!containsPath(cmdLine.importApiFiles, importFile))
+        return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(Compiler_CommandLineModuleFileDerivesModulePath)
+{
+    const ScopedTempTree tempTree("compiler_module_file_path");
+    if (!tempTree.ready())
+        return Result::Error;
+
+    const fs::path moduleDir  = tempTree.root() / "pkg";
+    const fs::path moduleFile = moduleDir / "module.swg";
+    if (!writeTextFile(moduleFile, "#run {}\n"))
+        return Result::Error;
+
+    CommandLine                    cmdLine;
+    const uint64_t                 errorsBefore = Stats::getNumErrors();
+    const std::vector<std::string> args         = {
+        "swc_devmode",
+        "sema",
+        "--module-file",
+        moduleFile.string(),
+    };
+
+    if (parseCommandLine(ctx, cmdLine, args) != Result::Continue)
+        return Result::Error;
+    if (Stats::getNumErrors() != errorsBefore)
+        return Result::Error;
+    if (cmdLine.command != CommandKind::Sema)
+        return Result::Error;
+    if (!FileSystem::pathEquals(cmdLine.moduleFilePath, moduleFile))
+        return Result::Error;
+    if (!FileSystem::pathEquals(cmdLine.modulePath, moduleDir))
+        return Result::Error;
+    if (defaultArtifactName(cmdLine) != "pkg")
+        return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(Compiler_ModuleFileSetupConfiguresBuildAndLoadsExplicitSources)
+{
+    const ScopedTempTree tempTree("compiler_module_file_setup");
+    if (!tempTree.ready())
+        return Result::Error;
+
+    const fs::path moduleDir   = tempTree.root() / "module";
+    const fs::path moduleFile  = moduleDir / "module.swg";
+    const fs::path autoSrcFile = moduleDir / "src" / "should_not_be_loaded.swg";
+    const fs::path loadedFile  = tempTree.root() / "sources" / "loaded.swg";
+
+    if (!writeTextFile(moduleFile, R"(#run
+{
+    let cfg = @compiler.getBuildCfg()
+    cfg.moduleNamespace = "SetupNs"
+    cfg.name = "setup-artifact"
+    cfg.backendKind = .StaticLibrary
+}
+#load("../sources/loaded.swg")
+)"))
+        return Result::Error;
+    if (!writeTextFile(autoSrcFile, "#invalid_auto_src\n"))
+        return Result::Error;
+    if (!writeTextFile(loadedFile, "public func loaded() {}\n"))
+        return Result::Error;
+
+    CommandLine cmdLine;
+    cmdLine.command        = CommandKind::Sema;
+    cmdLine.moduleFilePath = moduleFile;
+    CommandLineParser::refreshBuildCfg(cmdLine);
+
+    const uint64_t   errorsBefore = Stats::getNumErrors();
+    CompilerInstance compiler(ctx.global(), cmdLine);
+    Command::sema(compiler);
+    if (Stats::getNumErrors() != errorsBefore)
+        return Result::Error;
+
+    if (Utf8(compiler.buildCfg().moduleNamespace) != "SetupNs")
+        return Result::Error;
+    if (Utf8(compiler.buildCfg().name) != "setup-artifact")
+        return Result::Error;
+    if (compiler.buildCfg().backendKind != Runtime::BuildCfgBackendKind::StaticLibrary)
+        return Result::Error;
+
+    const SourceFile* moduleSource = findCompilerFile(compiler, loadedFile);
+    if (!moduleSource || !moduleSource->hasFlag(FileFlagsE::ModuleSrc))
+        return Result::Error;
+
+    const SourceFile* setupSource = findCompilerFile(compiler, moduleFile);
+    if (!setupSource || !setupSource->hasFlag(FileFlagsE::Module))
+        return Result::Error;
+
+    if (findCompilerFile(compiler, autoSrcFile) != nullptr)
         return Result::Error;
 }
 SWC_TEST_END()

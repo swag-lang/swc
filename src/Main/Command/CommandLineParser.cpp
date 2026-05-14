@@ -975,12 +975,34 @@ Result CommandLineParser::checkCommandLine(TaskContext& ctx) const
     }
     cmdLine_->importApiFiles = std::move(resolvedImportApiFiles);
 
+    if (!cmdLine_->moduleFilePath.empty())
+    {
+        fs::path temp = cmdLine_->moduleFilePath;
+        SWC_RESULT(FileSystem::resolveFile(ctx, temp));
+        cmdLine_->moduleFilePath = std::move(temp);
+    }
+
     // Module path should exist
     if (!cmdLine_->modulePath.empty())
     {
         fs::path temp = cmdLine_->modulePath;
         SWC_RESULT(FileSystem::resolveFolder(ctx, temp));
         cmdLine_->modulePath = std::move(temp);
+    }
+
+    if (!cmdLine_->moduleFilePath.empty())
+    {
+        const fs::path derivedModulePath = cmdLine_->moduleFilePath.parent_path().lexically_normal();
+        if (!cmdLine_->modulePath.empty() && !FileSystem::pathEquals(cmdLine_->modulePath, derivedModulePath))
+        {
+            Diagnostic diag = Diagnostic::get(DiagnosticId::cmdline_err_conflicting_arg);
+            diag.addArgument(Diagnostic::ARG_ARG, "--module-file");
+            diag.addArgument(Diagnostic::ARG_VALUE, "--module");
+            diag.report(ctx);
+            return Result::Error;
+        }
+
+        cmdLine_->modulePath = derivedModulePath;
     }
 
     if (!cmdLine_->configFile.empty())

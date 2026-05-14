@@ -134,6 +134,7 @@ struct CommandLine
     std::set<fs::path> importApiFiles;
 
     fs::path          configFile;
+    fs::path          moduleFilePath;
     fs::path          modulePath;
     fs::path          exportApiDir;
     fs::path          outDir;

@@ -135,6 +135,31 @@ namespace
         return Result::Error;
     }
 
+    bool isModuleSetupDirectiveContext(const Sema& sema)
+    {
+        const SourceFile* sourceFile = sema.file();
+        return sema.compiler().isModuleSetupMode() &&
+               sourceFile != nullptr &&
+               sourceFile->hasFlag(FileFlagsE::Module);
+    }
+
+    Result ensureModuleSetupDirectiveContext(Sema& sema, AstNodeRef nodeRef)
+    {
+        if (isModuleSetupDirectiveContext(sema))
+            return Result::Continue;
+
+        return SemaError::raise(sema, DiagnosticId::sema_err_module_setup_only_directive, nodeRef, SemaError::ReportLocation::Token);
+    }
+
+    std::string_view moduleImportName(const Sema& sema, const AstCompilerImport& node)
+    {
+        const SourceView&      srcView    = sema.srcView(node.srcViewRef());
+        const std::string_view tokenValue = srcView.tokenString(node.tokModuleNameRef);
+        if (tokenValue.size() >= 2)
+            return tokenValue.substr(1, tokenValue.size() - 2);
+        return tokenValue;
+    }
+
     Result resolveCompilerIncludePath(Sema& sema, AstNodeRef nodeRef, std::string_view rawPath, fs::path& outPath)
     {
         fs::path includePath{std::string(rawPath)};
@@ -451,6 +476,10 @@ namespace
 
     fs::path compilerAstGeneratedDirectory(const Sema& sema)
     {
+        const Runtime::String& workDir = sema.compiler().buildCfg().workDir;
+        if (workDir.ptr && workDir.length)
+            return fs::path(Utf8{workDir}.c_str()).lexically_normal();
+
         if (!sema.ctx().cmdLine().workDir.empty())
             return sema.ctx().cmdLine().workDir;
 
@@ -1800,6 +1829,23 @@ namespace
         return Result::Continue;
     }
 
+    Result semaCompilerLoad(Sema& sema, const AstCompilerCallOne& node)
+    {
+        SWC_RESULT(ensureModuleSetupDirectiveContext(sema, sema.curNodeRef()));
+
+        const AstNodeRef childRef = node.nodeArgRef;
+        SWC_RESULT(SemaCheck::isConstant(sema, childRef));
+
+        const SemaNodeView view = sema.viewConstant(childRef);
+        SWC_ASSERT(view.cst());
+        if (!view.cst()->isString())
+            return SemaError::raiseInvalidType(sema, childRef, view.cst()->typeRef(), sema.typeMgr().typeString());
+
+        fs::path resolvedPath;
+        SWC_RESULT(resolveCompilerIncludePath(sema, childRef, view.cst()->getString(), resolvedPath));
+        return sema.compiler().registerModuleSetupLoad(resolvedPath);
+    }
+
     Result semaCompilerRunes(Sema& sema, const AstCompilerCallOne& node)
     {
         TaskContext&     ctx      = sema.ctx();
@@ -1838,6 +1884,12 @@ namespace
         sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(ctx, value));
         return Result::Continue;
     }
+}
+
+Result AstCompilerImport::semaPostNode(Sema& sema) const
+{
+    SWC_RESULT(ensureModuleSetupDirectiveContext(sema, sema.curNodeRef()));
+    return sema.compiler().registerModuleSetupImport(moduleImportName(sema, *this));
 }
 
 Result AstCompilerCallOne::semaPostNode(Sema& sema) const
@@ -1883,8 +1935,7 @@ Result AstCompilerCallOne::semaPostNode(Sema& sema) const
             return semaCompilerRunes(sema, *this);
 
         case TokenId::CompilerLoad:
-            // TODO
-            SWC_INTERNAL_ERROR();
+            return semaCompilerLoad(sema, *this);
 
         default:
             SWC_INTERNAL_ERROR();
@@ -1900,6 +1951,7 @@ Result AstCompilerCallOne::semaPreNodeChild(Sema& sema, const AstNodeRef& childR
     if (tok.id == TokenId::CompilerForeignLib ||
         tok.id == TokenId::CompilerHasTag ||
         tok.id == TokenId::CompilerInclude ||
+        tok.id == TokenId::CompilerLoad ||
         tok.id == TokenId::CompilerRunes ||
         tok.id == TokenId::CompilerDeclType)
         SemaHelpers::pushConstExprRequirement(sema, childRef);

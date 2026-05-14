@@ -20,6 +20,25 @@
 
 SWC_BEGIN_NAMESPACE();
 
+namespace
+{
+    Utf8 buildModuleNamespaceName(const CompilerInstance& compiler)
+    {
+        Utf8 moduleNamespaceName;
+        if (compiler.buildCfg().moduleNamespace.ptr && compiler.buildCfg().moduleNamespace.length)
+            moduleNamespaceName = compiler.buildCfg().moduleNamespace;
+        if (!moduleNamespaceName.empty())
+            return moduleNamespaceName;
+
+        Utf8 artifactName;
+        if (compiler.buildCfg().name.ptr && compiler.buildCfg().name.length)
+            artifactName = compiler.buildCfg().name;
+        if (artifactName.empty())
+            artifactName = defaultArtifactName(compiler.cmdLine());
+        return defaultModuleNamespace(artifactName);
+    }
+}
+
 namespace Command
 {
     void sema(CompilerInstance& compiler)
@@ -35,10 +54,23 @@ namespace Command
         // Collect files
         if (compiler.collectFiles(ctx) == Result::Error)
             return;
+        if (compiler.runModuleSetup(ctx) == Result::Error)
+            return;
+
+        std::vector<SourceFile*> inputFiles;
+        inputFiles.reserve(compiler.files().size());
+        for (SourceFile* f : compiler.files())
+        {
+            if (!f)
+                continue;
+            if (!compiler.cmdLine().moduleFilePath.empty() && f->hasFlag(FileFlagsE::Module))
+                continue;
+            inputFiles.push_back(f);
+        }
 
         // Parser
         const uint64_t errorsBefore = Stats::getNumErrors();
-        for (SourceFile* f : compiler.files())
+        for (SourceFile* f : inputFiles)
         {
             auto* job = heapNew<ParserJob>(ctx, f);
             jobMgr.enqueue(*job, JobPriority::Normal, clientId);
@@ -53,8 +85,8 @@ namespace Command
 
         // Filter files
         std::vector<SourceFile*> files;
-        files.reserve(compiler.files().size());
-        for (SourceFile* f : compiler.files())
+        files.reserve(inputFiles.size());
+        for (SourceFile* f : inputFiles)
         {
             const SourceView& srcView = f->ast().srcView();
             if (srcView.mustSkip())
@@ -70,9 +102,7 @@ namespace Command
             return;
 
         auto* symModule = Symbol::make<SymbolModule>(ctx, nullptr, TokenRef::invalid(), IdentifierRef::invalid(), SymbolFlagsE::Zero);
-        Utf8  moduleNamespaceName(compiler.buildCfg().moduleNamespace);
-        if (moduleNamespaceName.empty())
-            moduleNamespaceName = defaultModuleNamespace(defaultArtifactName(compiler.cmdLine()));
+        Utf8  moduleNamespaceName = buildModuleNamespaceName(compiler);
 
         constexpr SymbolFlags namespaceFlags  = SymbolFlagsE::Declared | SymbolFlagsE::Typed | SymbolFlagsE::SemaCompleted;
         const IdentifierRef   idRef           = ctx.idMgr().addIdentifierOwned(moduleNamespaceName, Math::hash(moduleNamespaceName));

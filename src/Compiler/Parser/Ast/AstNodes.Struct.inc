@@ -125,6 +125,7 @@ struct AstCompilerImport : AstNodeT<AstNodeId::CompilerImport>
     TokenRef tokLocationRef;
     TokenRef tokVersionRef;
 
+    Result     semaPostNode(Sema& sema) const;
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 

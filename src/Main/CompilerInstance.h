@@ -180,8 +180,12 @@ public:
     const SourceView* findSourceViewByFileName(std::string_view fileName) const;
 
     Result                       collectFiles(TaskContext& ctx);
+    Result                       runModuleSetup(TaskContext& ctx);
     Result                       exportModuleApi(TaskContext& ctx);
     std::span<SourceFile* const> files() const;
+    bool                         isModuleSetupMode() const { return moduleSetupMode_; }
+    Result                       registerModuleSetupImport(std::string_view moduleName);
+    Result                       registerModuleSetupLoad(const fs::path& filePath);
 
     template<typename T, typename... ARGS>
     T* allocate(ARGS&&... args)
@@ -222,6 +226,9 @@ private:
     void        appendResolvedFiles(std::vector<fs::path>& paths, FileFlags flags);
     void        collectFolderFiles(const fs::path& folder, FileFlags flags, bool canFilter);
     Result      collectImportedApiFiles(const TaskContext& ctx);
+    bool        hasResolvedFilePath(const fs::path& path) const;
+    void        adoptBuildCfg(const Runtime::BuildCfg& buildCfg);
+    Result      applyModuleSetupInputs(TaskContext& ctx, const CompilerInstance& setupCompiler);
 
     const CommandLine*                       cmdLine_ = nullptr;
     const Global*                            global_  = nullptr;
@@ -244,6 +251,10 @@ private:
     DataSegment                              globalInitSegment_;
     DataSegment                              compilerSegment_;
     Runtime::BuildCfg                        buildCfg_{};
+    bool                                     moduleSetupMode_ = false;
+    std::set<Utf8>                           moduleSetupImportModules_;
+    std::set<fs::path>                       moduleSetupLoadedFiles_;
+    std::vector<std::unique_ptr<Utf8>>       ownedBuildCfgStrings_;
     Utf8                                     lastArtifactLabel_;
     Runtime::ICompiler                       runtimeCompiler_{};
     Runtime::IAllocator                      runtimeAllocator_{};

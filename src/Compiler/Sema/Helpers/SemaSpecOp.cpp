@@ -2064,7 +2064,15 @@ namespace
 
         TaskContext&      ctx       = sema.ctx();
         CompilerInstance& compiler  = sema.compiler();
-        const fs::path    directory = useCmdLineWorkDir && !ctx.cmdLine().workDir.empty() ? ctx.cmdLine().workDir : Os::getTemporaryPath().lexically_normal();
+        fs::path          directory = Os::getTemporaryPath().lexically_normal();
+        if (useCmdLineWorkDir)
+        {
+            const Runtime::String& workDir = compiler.buildCfg().workDir;
+            if (workDir.ptr && workDir.length)
+                directory = fs::path(Utf8{workDir}.c_str()).lexically_normal();
+            else if (!ctx.cmdLine().workDir.empty())
+                directory = ctx.cmdLine().workDir;
+        }
 
         CompilerInstance::GeneratedSourceAppendResult appendResult;
         Utf8                                          because;

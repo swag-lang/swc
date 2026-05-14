@@ -26,6 +26,9 @@ namespace
         {
             if (!file || file->isRuntime())
                 continue;
+            if (!file->ast().hasSourceView())
+                continue;
+
             const SourceView& srcView = file->ast().srcView();
             if (srcView.mustSkip())
                 continue;
@@ -319,6 +322,8 @@ namespace
         for (SourceFile* file : ctx.compiler().files())
         {
             if (!file)
+                continue;
+            if (!file->ast().hasSourceView())
                 continue;
 
             const SourceView& srcView = file->ast().srcView();

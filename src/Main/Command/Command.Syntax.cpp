@@ -44,6 +44,9 @@ namespace Command
         {
             for (SourceFile* f : compiler.files())
             {
+                if (!f->ast().hasSourceView())
+                    continue;
+
                 const SourceView& srcView = f->ast().srcView();
                 if (srcView.mustSkip())
                     continue;

@@ -1307,6 +1307,9 @@ void Sema::waitDone(TaskContext& ctx, JobClientId clientId)
     {
         for (SourceFile* f : ctx.compiler().files())
         {
+            if (!f->ast().hasSourceView())
+                continue;
+
             const SourceView& srcView = f->ast().srcView();
             if (srcView.mustSkip())
                 continue;

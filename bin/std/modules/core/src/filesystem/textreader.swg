@@ -123,10 +123,17 @@ public impl TextReader
             // If we have a '\r', then eat the following '\n' if it exists
             if dref ptr == '\r'
             {
-                if .byteSeek == .buffer.count do
+                if ptr + 1'u64 < ptrE
+                {
+                    if dref (ptr + 1) == '\n' do
+                        .byteSeek += 1
+                }
+                else
+                {
                     .readBuffer()
-                if .buffer.count and .buffer[.byteSeek] == '\n' do
-                    .byteSeek += 1
+                    if .byteSeek < .buffer.count and .buffer[.byteSeek] == '\n' do
+                        .byteSeek += 1
+                }
             }
 
             break
@@ -154,9 +161,10 @@ public impl TextReader
         .readBuffer()
         while .buffer.count
         {
-            result.grow(result.length + (.buffer.count - .byteSeek))
-            Memory.copy(result.buffer + result.length, .buffer.buffer + .byteSeek, .buffer.count - .byteSeek)
-            result.length += .buffer.count
+            let remain = .buffer.count - .byteSeek
+            result.grow(result.length + remain)
+            Memory.copy(result.buffer + result.length, .buffer.buffer + .byteSeek, remain)
+            result.length += remain
             .readBuffer()
         }
 

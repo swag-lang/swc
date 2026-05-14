@@ -6,7 +6,8 @@ using Win32
 func create(dirname: string) throw
 {
     let winPath = Utf16.toZeroTerminated(dirname)
-    CreateDirectoryW(@dataof(winPath), null)
+    catch CreateDirectoryW(@dataof(winPath), null)
+    Errors.transformWinErrors(dirname)
 }
 
 // Returns true if the given directory exists

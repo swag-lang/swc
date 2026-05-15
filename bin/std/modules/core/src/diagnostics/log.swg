@@ -137,21 +137,22 @@ impl Log
         .buf.clear()
         .buildHeader(loc)
         .buf.appendString(text)
+        let rendered:     String = .buf.toString()
+        let renderedText: string = rendered.toString()
 
         // Output default result if no writers
         if .writers.isEmpty()
         {
             Console.lock()
-            Console.println(.buf.toString())
+            Console.println(renderedText)
             Console.unlock()
             return
         }
 
         // Otherwise call all writers
-        let str = .buf.toString()
         foreach w in .writers
         {
-            w.print(str)
+            w.print(renderedText)
         }
     }
 }

@@ -261,7 +261,7 @@ impl DateTime
         case TimeIso:
             return Format.toString("%{02}:%{02}:%{02}", .hour, .minute, .second)
         case TimeIsoMs:
-            return Format.toString("%{02}:%{02}:%{02}.%", .hour, .minute, .second, .millisecond)
+            return Format.toString("%{02}:%{02}:%{02}.%{03}", .hour, .minute, .second, .millisecond)
         case TimeIsoHM:
             return Format.toString("%{02}:%{02}", .hour, .minute)
         case Date:
@@ -269,11 +269,11 @@ impl DateTime
         case DateTime:
             return Format.toString("% % % % %{02}:%{02}:%{02}", dayOfWeekName(.dayOfWeek()), monthName(.month), .day, .year, .hour, .minute, .second)
         case DateTimeMs:
-            return Format.toString("% % % % %{02}:%{02}:%{02}.%", dayOfWeekName(.dayOfWeek()), monthName(.month), .day, .year, .hour, .minute, .second, .millisecond)
+            return Format.toString("% % % % %{02}:%{02}:%{02}.%{03}", dayOfWeekName(.dayOfWeek()), monthName(.month), .day, .year, .hour, .minute, .second, .millisecond)
         case DateTimeIso:
             return Format.toString("%-%{02}-%{02} %{02}:%{02}:%{02}", .year, .month, .day, .hour, .minute, .second)
         case DateTimeIsoMs:
-            return Format.toString("%-%{02}-%{02} %{02}:%{02}:%{02}.%", .year, .month, .day, .hour, .minute, .second, .millisecond)
+            return Format.toString("%-%{02}-%{02} %{02}:%{02}:%{02}.%{03}", .year, .month, .day, .hour, .minute, .second, .millisecond)
         case DateTimeIsoHM:
             return Format.toString("%-%{02}-%{02} %{02}:%{02}", .year, .month, .day, .hour, .minute)
         }

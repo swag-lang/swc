@@ -113,6 +113,7 @@ func assertDateTime(value: Time.DateTime, year, month, day, hour, minute, second
 #test
 {
     let value = Time.DateTime{2024, 2, 29, 1, 2, 3, 456}
+    let paddedMs = Time.DateTime{2024, 2, 29, 1, 2, 3, 4}
 
     @assert(value.toString(.DateIso) == "2024-02-29")
     @assert(value.toString(.TimeIso) == "01:02:03")
@@ -125,6 +126,10 @@ func assertDateTime(value: Time.DateTime, year, month, day, hour, minute, second
     @assert(value.toString(.DateTimeIsoMs) == "2024-02-29 01:02:03.456")
     @assert(value.toString(.DateTimeIsoHM) == "2024-02-29 01:02")
     @assert(value.toString() == "Thursday February 29 2024 01:02:03")
+
+    @assert(paddedMs.toString(.TimeIsoMs) == "01:02:03.004")
+    @assert(paddedMs.toString(.DateTimeMs) == "Thursday February 29 2024 01:02:03.004")
+    @assert(paddedMs.toString(.DateTimeIsoMs) == "2024-02-29 01:02:03.004")
 }
 
 #test

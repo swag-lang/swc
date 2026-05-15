@@ -28,4 +28,4 @@ These comments will be processed and included in the generated documentation, en
 
 # Source of Documentation
 
-The documentation you are reading is generated from the [std/reference/language](https://github.com/swag-lang/swag/tree/master/bin/reference/tests/language) module. This directory contains examples and files structured according to these guidelines, showcasing how to effectively create and manage documentation in `Swag.DocKind.Examples` mode.
+The documentation you are reading is generated from the [std/reference/language](https://github.com/swag-lang/swag/tree/master/bin/reference/modules/language) module. This directory contains examples and files structured according to these guidelines, showcasing how to effectively create and manage documentation in `Swag.DocKind.Examples` mode.

@@ -15,7 +15,7 @@ public func(T) hash32(value: T)->u32
     #elif Reflection.isStruct(T) and #defined(T.IHash32) do
         #ast "return " ++ #typeof(T).fullname ++ ".IHash32.compute(value)"
     #elif Reflection.isStruct(T) and #defined(T.IHash64) do
-        #ast "return " ++ #typeof(T).fullname ++ ".IHash64.compute(value)"
+        #ast "return cast(u32) " ++ #typeof(T).fullname ++ ".IHash64.compute(value)"
     #elif Reflection.isStruct(T) and #sizeof(T) == 8 do
         return cast(u32) murmur3(dref cast(const *u64) &value)
     #elif Reflection.isStruct(T) and #sizeof(T) == 4 do

@@ -229,8 +229,9 @@ namespace
         if (lifecycle.canCopy)
             addFlag(rtType, Runtime::TypeInfoFlags::CanCopy);
 
+        const Utf8 fullName    = type.toFullName(ctx);
         const Utf8 name        = type.toName(ctx);
-        rtType.fullname.length = storage.addString(offset, offsetof(Runtime::TypeInfo, fullname.ptr), name);
+        rtType.fullname.length = storage.addString(offset, offsetof(Runtime::TypeInfo, fullname.ptr), fullName);
         rtType.name.length     = storage.addString(offset, offsetof(Runtime::TypeInfo, name.ptr), name);
     }
 

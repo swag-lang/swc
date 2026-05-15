@@ -12,6 +12,19 @@
 struct A { R, G, B: s32 }
 #assert(@countof((cast(const *Swag.TypeInfoStruct) #typeof(A)).fields) == 3)
 
+namespace Scoped
+{
+    struct Box
+    {
+        value: s32
+    }
+
+    struct(T) Wrapper
+    {
+        value: T
+    }
+}
+
 #test
 {
     using Swag
@@ -57,6 +70,12 @@ const PA = cast(const *Swag.TypeInfoStruct) #typeof(A)
 #assert(PA.fields[0].offset == 0)
 #assert(PA.fields[1].offset == 4)
 #assert(PA.fields[2].offset == 8)
+
+const PScopedBox     = cast(const *Swag.TypeInfo) #typeof(Scoped.Box)
+const PScopedWrapper = cast(const *Swag.TypeInfo) #typeof(Scoped.Wrapper'(Scoped.Box))
+#assert(PScopedBox.name == "Box")
+#assert(PScopedBox.fullname == "Scoped.Box")
+#assert(PScopedWrapper.fullname == "Scoped.Wrapper'(Scoped.Box)")
 
 
 #test
@@ -124,4 +143,14 @@ const PA = cast(const *Swag.TypeInfoStruct) #typeof(A)
     const t = #typeof(A)
     #assert((cast(const *Swag.TypeInfo) t).name == "A")
     @assert((cast(const *Swag.TypeInfo) t).name == "A")
+}
+
+#test
+{
+    const boxType     = #typeof(Scoped.Box)
+    const wrapperType = #typeof(Scoped.Wrapper'(Scoped.Box))
+    #assert((cast(const *Swag.TypeInfo) boxType).fullname == "Scoped.Box")
+    #assert((cast(const *Swag.TypeInfo) wrapperType).fullname == "Scoped.Wrapper'(Scoped.Box)")
+    @assert((cast(const *Swag.TypeInfo) boxType).fullname == "Scoped.Box")
+    @assert((cast(const *Swag.TypeInfo) wrapperType).fullname == "Scoped.Wrapper'(Scoped.Box)")
 }

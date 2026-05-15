@@ -562,6 +562,108 @@ public func mainValue()->s32
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(Compiler_ModuleFileSetupKeepsExplicitCommandLineOverrides)
+{
+    const ScopedTempTree tempTree("compiler_module_file_cli_override");
+    if (!tempTree.ready())
+        return Result::Error;
+
+    const fs::path moduleDir  = tempTree.root() / "module";
+    const fs::path moduleFile = moduleDir / "module.swg";
+    const fs::path sourceFile = moduleDir / "src" / "main.swg";
+    const fs::path outDir     = tempTree.root() / "cli-out";
+    const fs::path workDir    = tempTree.root() / "cli-work";
+
+    if (!writeTextFile(moduleFile, R"(#run
+{
+    let cfg = @compiler.getBuildCfg()
+    cfg.moduleNamespace = "SetupNs"
+    cfg.name = "setup-artifact"
+    cfg.backendKind = .StaticLibrary
+    cfg.safetyGuards = .All
+    cfg.sanity = true
+    cfg.debugAllocator = true
+    cfg.errorStackTrace = true
+    cfg.backend.optimize = true
+    cfg.backend.debugInfo = false
+    cfg.backend.fpMathFma = false
+    cfg.backend.fpMathNoNaN = false
+    cfg.backend.fpMathNoInf = false
+    cfg.backend.fpMathNoSignedZero = false
+    cfg.outDir = "setup-out"
+    cfg.workDir = "setup-work"
+}
+#load("./src/main.swg")
+)"))
+        return Result::Error;
+    if (!writeTextFile(sourceFile, "public func helper() {}\n"))
+        return Result::Error;
+
+    CommandLine cmdLine;
+    if (parseCommandLine(ctx, cmdLine,
+                         {
+                             "swc",
+                             "test",
+                             "--module-file",
+                             moduleFile.string(),
+                             "--build-cfg",
+                             "release",
+                             "--artifact-kind",
+                             "executable",
+                             "--artifact-name",
+                             "cli-artifact",
+                             "--module-namespace",
+                             "CliNs",
+                             "--out-dir",
+                             outDir.string(),
+                             "--work-dir",
+                             workDir.string(),
+                             "--no-optimize",
+                         }) != Result::Continue)
+        return Result::Error;
+
+    const uint64_t   errorsBefore = Stats::getNumErrors();
+    CompilerInstance compiler(ctx.global(), cmdLine);
+    Command::sema(compiler);
+    if (Stats::getNumErrors() != errorsBefore)
+        return Result::Error;
+
+    if (compiler.buildCfg().backendKind != Runtime::BuildCfgBackendKind::Executable)
+        return Result::Error;
+    if (Utf8(compiler.buildCfg().name) != "cli-artifact")
+        return Result::Error;
+    if (Utf8(compiler.buildCfg().moduleNamespace) != "CliNs")
+        return Result::Error;
+    if (!FileSystem::pathEquals(fs::path(Utf8(compiler.buildCfg().outDir).c_str()), outDir))
+        return Result::Error;
+    if (!FileSystem::pathEquals(fs::path(Utf8(compiler.buildCfg().workDir).c_str()), workDir))
+        return Result::Error;
+
+    if (compiler.buildCfg().safetyGuards != Runtime::SafetyWhat::None)
+        return Result::Error;
+    if (compiler.buildCfg().sanity)
+        return Result::Error;
+    if (compiler.buildCfg().debugAllocator)
+        return Result::Error;
+    if (compiler.buildCfg().errorStackTrace)
+        return Result::Error;
+    if (compiler.buildCfg().backend.optimize)
+        return Result::Error;
+    if (!compiler.buildCfg().backend.debugInfo)
+        return Result::Error;
+    if (!compiler.buildCfg().backend.fpMathFma)
+        return Result::Error;
+    if (!compiler.buildCfg().backend.fpMathNoNaN)
+        return Result::Error;
+    if (!compiler.buildCfg().backend.fpMathNoInf)
+        return Result::Error;
+    if (!compiler.buildCfg().backend.fpMathNoSignedZero)
+        return Result::Error;
+
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(Compiler_WorkspaceBuildUsesModuleSetupDependenciesAndSkipsIgnoredModules)
 {
     const ScopedTempTree tempTree("compiler_workspace_build");

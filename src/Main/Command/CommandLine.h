@@ -85,7 +85,12 @@ struct CommandLine
     bool showConfig           = false;
     bool verboseVerify        = false;
     bool sourceDrivenTest     = false;
+    bool buildCfgExplicit     = false;
     bool artifactKindExplicit = false;
+    bool artifactNameExplicit = false;
+    bool moduleNamespaceExplicit = false;
+    bool outDirExplicit       = false;
+    bool workDirExplicit      = false;
     bool commandExplicit      = false;
     bool testNative           = true;
     bool nativeTestProgress   = false;

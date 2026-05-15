@@ -98,6 +98,39 @@ namespace
     fs::path generatedSourceDirectory(const CompilerInstance& compiler);
     Utf8     buildModuleNamespaceName(const CompilerInstance& compiler);
 
+    void reapplyBuildCfgPresetOverrides(Runtime::BuildCfg& buildCfg, const Runtime::BuildCfg& explicitBuildCfg)
+    {
+        buildCfg.safetyGuards               = explicitBuildCfg.safetyGuards;
+        buildCfg.sanity                     = explicitBuildCfg.sanity;
+        buildCfg.debugAllocator             = explicitBuildCfg.debugAllocator;
+        buildCfg.errorStackTrace            = explicitBuildCfg.errorStackTrace;
+        buildCfg.backend.optimize           = explicitBuildCfg.backend.optimize;
+        buildCfg.backend.debugInfo          = explicitBuildCfg.backend.debugInfo;
+        buildCfg.backend.fpMathFma          = explicitBuildCfg.backend.fpMathFma;
+        buildCfg.backend.fpMathNoNaN        = explicitBuildCfg.backend.fpMathNoNaN;
+        buildCfg.backend.fpMathNoInf        = explicitBuildCfg.backend.fpMathNoInf;
+        buildCfg.backend.fpMathNoSignedZero = explicitBuildCfg.backend.fpMathNoSignedZero;
+    }
+
+    void reapplyExplicitBuildCfgOverrides(Runtime::BuildCfg& buildCfg, const CommandLine& cmdLine)
+    {
+        if (cmdLine.buildCfgExplicit)
+            reapplyBuildCfgPresetOverrides(buildCfg, cmdLine.defaultBuildCfg);
+
+        buildCfg.backendKind = effectiveBackendKind(cmdLine, buildCfg.backendKind);
+        if (cmdLine.backendOptimize.has_value())
+            buildCfg.backend.optimize = cmdLine.backendOptimize.value();
+
+        if (cmdLine.artifactNameExplicit)
+            buildCfg.name = cmdLine.defaultBuildCfg.name;
+        if (cmdLine.moduleNamespaceExplicit)
+            buildCfg.moduleNamespace = cmdLine.defaultBuildCfg.moduleNamespace;
+        if (cmdLine.outDirExplicit)
+            buildCfg.outDir = cmdLine.defaultBuildCfg.outDir;
+        if (cmdLine.workDirExplicit)
+            buildCfg.workDir = cmdLine.defaultBuildCfg.workDir;
+    }
+
     template<typename T>
     bool appendUnique(std::vector<T*>& values, T* value)
     {
@@ -762,7 +795,7 @@ namespace
         }
 
         std::ranges::sort(matches);
-        matches.erase(std::unique(matches.begin(), matches.end()), matches.end());
+        matches.erase(std::ranges::unique(matches).begin(), matches.end());
         if (matches.size() != 1)
         {
             outBecause = std::format("multiple configuration folders match {} ({})", dependencyConfigurationLabel(cmdLine).c_str(), joinDependencyPaths(matches).c_str());
@@ -2613,10 +2646,7 @@ Result CompilerInstance::runModuleSetup(TaskContext& ctx)
     if (precomputedModuleSetup_)
     {
         adoptBuildCfg(precomputedModuleSetup_->buildCfg);
-        if (cmdLine().defaultBuildCfg.outDir.ptr && cmdLine().defaultBuildCfg.outDir.length)
-            buildCfg_.outDir = cmdLine().defaultBuildCfg.outDir;
-        if (cmdLine().defaultBuildCfg.workDir.ptr && cmdLine().defaultBuildCfg.workDir.length)
-            buildCfg_.workDir = cmdLine().defaultBuildCfg.workDir;
+        reapplyExplicitBuildCfgOverrides(buildCfg_, cmdLine());
         ownBuildCfgStrings(buildCfg_, ownedBuildCfgStrings_);
         return applyModuleSetupInputs(ctx, *precomputedModuleSetup_);
     }
@@ -2636,6 +2666,8 @@ Result CompilerInstance::runModuleSetup(TaskContext& ctx)
     ModuleSetupSnapshot setupSnapshot;
     SWC_RESULT(captureModuleSetupSnapshot(ctx, setupCmdLine, setupSnapshot));
     adoptBuildCfg(setupSnapshot.buildCfg);
+    reapplyExplicitBuildCfgOverrides(buildCfg_, cmdLine());
+    ownBuildCfgStrings(buildCfg_, ownedBuildCfgStrings_);
     return applyModuleSetupInputs(ctx, setupSnapshot);
 }
 

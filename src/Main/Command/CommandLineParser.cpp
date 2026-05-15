@@ -204,6 +204,32 @@ namespace
 
         path = (baseDir / path).lexically_normal();
     }
+
+    void markExplicitBuildCfgOverride(CommandLine& cmdLine, const ArgTarget& target)
+    {
+        if (const auto* t = std::get_if<Utf8*>(&target))
+        {
+            if (*t == &cmdLine.buildCfg)
+                cmdLine.buildCfgExplicit = true;
+            else if (*t == &cmdLine.name)
+                cmdLine.artifactNameExplicit = true;
+            else if (*t == &cmdLine.moduleNamespace)
+                cmdLine.moduleNamespaceExplicit = true;
+            return;
+        }
+
+        if (const auto* t = std::get_if<fs::path*>(&target))
+        {
+            if (*t == &cmdLine.outDir)
+                cmdLine.outDirExplicit = true;
+            else if (*t == &cmdLine.workDir)
+                cmdLine.workDirExplicit = true;
+            return;
+        }
+
+        if (const auto* t = std::get_if<EnumIntTarget>(&target); t && t->target == &cmdLine.backendKind)
+            cmdLine.artifactKindExplicit = true;
+    }
 }
 
 void CommandLineParser::refreshBuildCfg(CommandLine& cmdLine)
@@ -723,13 +749,20 @@ bool CommandLineParser::processArgument(TaskContext& ctx, const ArgInfo& info, c
     if (auto* t = std::get_if<Utf8*>(&info.target))
     {
         if (info.isEnum())
-            return parseEnumString(ctx, info, arg, value, *t);
+        {
+            const bool parsed = parseEnumString(ctx, info, arg, value, *t);
+            if (parsed)
+                markExplicitBuildCfgOverride(*cmdLine_, info.target);
+            return parsed;
+        }
         **t = value;
+        markExplicitBuildCfgOverride(*cmdLine_, info.target);
         return true;
     }
     if (auto* t = std::get_if<fs::path*>(&info.target))
     {
         **t = value.c_str();
+        markExplicitBuildCfgOverride(*cmdLine_, info.target);
         return true;
     }
     if (auto* t = std::get_if<std::vector<Utf8>*>(&info.target))
@@ -750,8 +783,8 @@ bool CommandLineParser::processArgument(TaskContext& ctx, const ArgInfo& info, c
     if (auto* t = std::get_if<EnumIntTarget>(&info.target))
     {
         const bool parsed = parseEnumInt(ctx, info, arg, value, *t);
-        if (parsed && t->target == &cmdLine_->backendKind)
-            cmdLine_->artifactKindExplicit = true;
+        if (parsed)
+            markExplicitBuildCfgOverride(*cmdLine_, info.target);
         return parsed;
     }
 

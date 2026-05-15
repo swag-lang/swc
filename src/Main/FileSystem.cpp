@@ -203,6 +203,7 @@ fs::path FileSystem::currentPathNoThrow()
 fs::path FileSystem::generatedDependencyApiDir(const fs::path& exeFullName, const std::string_view moduleName)
 {
     fs::path result = compilerResourceRoot(exeFullName);
+    result /= "std";
     result /= ".output";
     result /= "dep";
     result /= fs::path(std::string(moduleName));

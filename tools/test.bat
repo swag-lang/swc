@@ -10,5 +10,6 @@ call "%~dp0_test_module.bat" %* --bin-rel "tests\safety" --module-namespace "Saf
 call "%~dp0native.bat" %* --artifact-kind "executable" --build-cfg "fast-debug" || exit /b 1
 call "%~dp0reference.bat" %* --build-cfg "fast-debug" || exit /b 1
 call "%~dp0std.bat" %* --build-cfg "fast-debug" || exit /b 1
+call "%~dp0examples.bat" %* --build-cfg "fast-debug" || exit /b 1
 call "%~dp0core.bat" %* --build-cfg "fast-debug" || exit /b 1
 exit /b 0

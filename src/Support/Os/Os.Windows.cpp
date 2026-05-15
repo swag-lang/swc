@@ -839,6 +839,14 @@ namespace Os
         return az;
     }
 
+    std::optional<Utf8> readEnvironmentVariable(const std::string_view name)
+    {
+        if (name.empty())
+            return std::nullopt;
+
+        return readEnvUtf8(std::string(name).c_str());
+    }
+
     Utf8 formatProcessCommandLine(const fs::path& exePath, const std::span<const Utf8> args)
     {
         std::wstring commandLine;

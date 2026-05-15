@@ -151,13 +151,30 @@ namespace
         return SemaError::raise(sema, DiagnosticId::sema_err_module_setup_only_directive, nodeRef, SemaError::ReportLocation::Token);
     }
 
-    std::string_view moduleImportName(const Sema& sema, const AstCompilerImport& node)
+    std::string_view compilerImportTokenValue(const SourceView& srcView, const TokenRef tokenRef)
     {
-        const SourceView&      srcView    = sema.srcView(node.srcViewRef());
-        const std::string_view tokenValue = srcView.tokenString(node.tokModuleNameRef);
+        if (tokenRef.isInvalid())
+            return {};
+
+        const std::string_view tokenValue = srcView.tokenString(tokenRef);
         if (tokenValue.size() >= 2)
             return tokenValue.substr(1, tokenValue.size() - 2);
         return tokenValue;
+    }
+
+    std::string_view moduleImportName(const Sema& sema, const AstCompilerImport& node)
+    {
+        return compilerImportTokenValue(sema.srcView(node.srcViewRef()), node.tokModuleNameRef);
+    }
+
+    std::string_view moduleImportLocation(const Sema& sema, const AstCompilerImport& node)
+    {
+        return compilerImportTokenValue(sema.srcView(node.srcViewRef()), node.tokLocationRef);
+    }
+
+    std::string_view moduleImportVersion(const Sema& sema, const AstCompilerImport& node)
+    {
+        return compilerImportTokenValue(sema.srcView(node.srcViewRef()), node.tokVersionRef);
     }
 
     Result resolveCompilerIncludePath(Sema& sema, AstNodeRef nodeRef, std::string_view rawPath, fs::path& outPath)
@@ -1889,7 +1906,7 @@ namespace
 Result AstCompilerImport::semaPostNode(Sema& sema) const
 {
     SWC_RESULT(ensureModuleSetupDirectiveContext(sema, sema.curNodeRef()));
-    return sema.compiler().registerModuleSetupImport(moduleImportName(sema, *this));
+    return sema.compiler().registerModuleSetupImport(moduleImportName(sema, *this), moduleImportLocation(sema, *this), moduleImportVersion(sema, *this));
 }
 
 Result AstCompilerCallOne::semaPostNode(Sema& sema) const

@@ -62,7 +62,7 @@
     </ImportGroup>
     <PropertyGroup Label="UserMacros"/>
     <PropertyGroup>
-        <SwcOutputDir>.output/</SwcOutputDir>
+        <SwcOutputDir>bin/</SwcOutputDir>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
         <LinkIncremental>false</LinkIncremental>

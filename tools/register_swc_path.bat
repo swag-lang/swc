@@ -1,6 +1,6 @@
 @echo off
 setlocal
-set "REL_PATH=..\.output"
+set "REL_PATH=..\bin"
 rem Resolve to absolute path (remove trailing backslash if any)
 for %%I in ("%~dp0%REL_PATH%") do set "FULL_PATH=%%~fI"
 
@@ -20,5 +20,8 @@ if %errorlevel%==0 (
         setx PATH "%FULL_PATH%"
     )
 )
+
+echo Setting SWAG_PATH to "%FULL_PATH%"...
+setx SWAG_PATH "%FULL_PATH%"
 
 echo Done. You may need to restart your terminal.

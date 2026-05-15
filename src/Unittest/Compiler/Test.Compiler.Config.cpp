@@ -53,6 +53,38 @@ namespace
         bool     ready_ = false;
     };
 
+    class ScopedEnvVar
+    {
+    public:
+        ScopedEnvVar(std::string_view name, std::string_view value) :
+            name_(name)
+        {
+            char*  currentValue = nullptr;
+            size_t currentSize  = 0;
+            if (_dupenv_s(&currentValue, &currentSize, name_.c_str()) == 0 && currentValue)
+            {
+                hadValue_     = true;
+                previousValue_ = currentValue;
+                std::free(currentValue);
+            }
+
+            _putenv_s(name_.c_str(), std::string(value).c_str());
+        }
+
+        ~ScopedEnvVar()
+        {
+            if (hadValue_)
+                _putenv_s(name_.c_str(), previousValue_.c_str());
+            else
+                _putenv_s(name_.c_str(), "");
+        }
+
+    private:
+        std::string name_;
+        std::string previousValue_;
+        bool        hadValue_ = false;
+    };
+
     bool ensureDirectory(const fs::path& path)
     {
         std::error_code ec;
@@ -256,7 +288,8 @@ SWC_TEST_BEGIN(Compiler_CommandLineTestAcceptsImportedApiInputs)
     if (!tempTree.ready())
         return Result::Error;
 
-    const fs::path importDir  = tempTree.root() / "api";
+    const fs::path importRoot = tempTree.root() / "api";
+    const fs::path importDir  = importRoot / "dep" / "static-library" / "fast-debug" / "x86_64";
     const fs::path importFile = importDir / "dep.swg";
 
     if (!writeTextFile(importFile, "public func dependency() {}\n"))
@@ -268,7 +301,7 @@ SWC_TEST_BEGIN(Compiler_CommandLineTestAcceptsImportedApiInputs)
         "swc_devmode",
         "test",
         "--import-api-dir",
-        importDir.string(),
+        importRoot.string(),
         "--import-api-file",
         importFile.string(),
     };
@@ -281,7 +314,7 @@ SWC_TEST_BEGIN(Compiler_CommandLineTestAcceptsImportedApiInputs)
         return Result::Error;
     if (!cmdLine.sourceDrivenTest)
         return Result::Error;
-    if (!containsPath(cmdLine.importApiDirs, importDir))
+    if (!containsPath(cmdLine.importApiDirs, importRoot))
         return Result::Error;
     if (!containsPath(cmdLine.importApiFiles, importFile))
         return Result::Error;
@@ -455,6 +488,62 @@ SWC_TEST_BEGIN(Compiler_ModuleFileSetupConfiguresBuildAndLoadsExplicitSources)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(Compiler_ModuleFileSetupResolvesSwagStdImportFromConfiguredCompilerRoot)
+{
+    const ScopedTempTree tempTree("compiler_module_file_swag_std");
+    if (!tempTree.ready())
+        return Result::Error;
+
+    const fs::path compilerRoot = tempTree.root() / "compiler";
+    const fs::path moduleDir    = tempTree.root() / "module";
+    const fs::path moduleFile   = moduleDir / "module.swg";
+    const fs::path sourceFile   = moduleDir / "src" / "main.swg";
+    const fs::path importFile   = compilerRoot / "std" / ".output" / "dep" / "static-library" / "fast-debug" / "x86_64" / "api.swg";
+
+    if (!writeTextFile(importFile, R"(#global export
+public func depValue()->s32
+{
+    return 7
+}
+)"))
+        return Result::Error;
+    if (!writeTextFile(moduleFile, R"(#import("dep", location: "swag@std")
+#run
+{
+    let cfg = @compiler.getBuildCfg()
+    cfg.moduleNamespace = "Main"
+    cfg.backendKind = .Executable
+}
+)"))
+        return Result::Error;
+    if (!writeTextFile(sourceFile, R"(using Dep
+
+public func mainValue()->s32
+{
+    return depValue()
+}
+)"))
+        return Result::Error;
+
+    const ScopedEnvVar swagPath("SWAG_PATH", compilerRoot.string());
+
+    CommandLine cmdLine;
+    cmdLine.command        = CommandKind::Sema;
+    cmdLine.moduleFilePath = moduleFile;
+    CommandLineParser::refreshBuildCfg(cmdLine);
+
+    const uint64_t   errorsBefore = Stats::getNumErrors();
+    CompilerInstance compiler(ctx.global(), cmdLine);
+    Command::sema(compiler);
+    if (Stats::getNumErrors() != errorsBefore)
+        return Result::Error;
+
+    const SourceFile* importedSource = findCompilerFile(compiler, importFile);
+    if (!importedSource || !importedSource->hasFlag(FileFlagsE::ImportedApi))
+        return Result::Error;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(Compiler_WorkspaceBuildUsesModuleSetupDependenciesAndSkipsIgnoredModules)
 {
     const ScopedTempTree tempTree("compiler_workspace_build");
@@ -521,7 +610,7 @@ public func coreValue()->s32
     if (compiler.run() != ExitCode::Success)
         return Result::Error;
 
-    const fs::path depApiFile = workspaceDir / ".dependency" / "dep" / "api.swg";
+    const fs::path depApiFile = workspaceDir / ".output" / "dep" / "export" / "fast-debug" / "x86_64" / "api.swg";
     if (!fs::exists(depApiFile))
         return Result::Error;
 

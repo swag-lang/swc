@@ -35,6 +35,13 @@ struct CommandLine;
 class CompilerInstance
 {
 public:
+    struct ModuleSetupImport
+    {
+        Utf8 moduleName;
+        Utf8 location;
+        Utf8 version;
+    };
+
     struct CompilerMessageEvent
     {
         Runtime::CompilerMsgKind kind   = Runtime::CompilerMsgKind::PassAfterSemantic;
@@ -203,7 +210,7 @@ public:
     Result                       exportModuleApi(TaskContext& ctx);
     std::span<SourceFile* const> files() const;
     bool                         isModuleSetupMode() const { return moduleSetupMode_; }
-    Result                       registerModuleSetupImport(std::string_view moduleName);
+    Result                       registerModuleSetupImport(std::string_view moduleName, std::string_view location, std::string_view version);
     Result                       registerModuleSetupLoad(const fs::path& filePath);
 
     template<typename T, typename... ARGS>
@@ -237,7 +244,7 @@ private:
     struct ModuleSetupSnapshot
     {
         Runtime::BuildCfg                  buildCfg{};
-        std::set<Utf8>                     importModules;
+        std::vector<ModuleSetupImport>     imports;
         std::set<fs::path>                 loadedFiles;
         std::vector<std::unique_ptr<Utf8>> ownedStrings;
 
@@ -275,7 +282,7 @@ private:
     SourceFile& addResolvedFile(fs::path path, FileFlags flags);
     void        appendResolvedFiles(std::vector<fs::path>& paths, FileFlags flags);
     void        collectFolderFiles(const fs::path& folder, FileFlags flags, bool canFilter);
-    Result      collectImportedApiFiles(const TaskContext& ctx);
+    Result      collectImportedApiFiles(TaskContext& ctx);
     bool        hasResolvedFilePath(const fs::path& path) const;
     void        adoptBuildCfg(const Runtime::BuildCfg& buildCfg);
     Result      captureModuleSetupSnapshot(const TaskContext& ctx, const CommandLine& setupCmdLine, ModuleSetupSnapshot& outSnapshot) const;
@@ -305,7 +312,7 @@ private:
     DataSegment                              compilerSegment_;
     Runtime::BuildCfg                        buildCfg_{};
     bool                                     moduleSetupMode_ = false;
-    std::set<Utf8>                           moduleSetupImportModules_;
+    std::vector<ModuleSetupImport>           moduleSetupImports_;
     std::set<fs::path>                       moduleSetupLoadedFiles_;
     std::vector<std::unique_ptr<Utf8>>       ownedBuildCfgStrings_;
     const ModuleSetupSnapshot*               precomputedModuleSetup_ = nullptr;

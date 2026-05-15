@@ -56,13 +56,13 @@ void CommandLineParser::registerCommands()
         "Specify the special module setup file to execute before compiling the rest of the module. When present, the module root is derived from the file parent folder and relative input files/directories are resolved from there.");
     add(HelpOptionGroup::Input, "sema test build run", "--workspace", "-w",
         &cmdLine_->workspacePath,
-        "Specify a workspace folder containing modules/<module>/module.swg and modules/<module>/src. Workspaces own their .output, .tmp and .dependency folders and cannot be combined with --module, --module-file, --directory or --file.");
+        "Specify a workspace folder containing modules/<module>/module.swg and modules/<module>/src. Workspaces own their .output and .tmp folders and cannot be combined with --module, --module-file, --directory or --file.");
     add(HelpOptionGroup::Input, "sema test build run", "--import-api-module", nullptr,
         &cmdLine_->importApiModules,
-        "Resolve a generated public API dependency from a module name, simulating a #import through <compiler-root>/.output/dep/<module>.");
+        "Resolve a generated public API dependency from a module name through <compiler-root>/std/.output/dep/<module>/<matching-config>.");
     add(HelpOptionGroup::Input, "sema test build run", "--import-api-dir", nullptr,
         &cmdLine_->importApiDirs,
-        "Add a directory of generated public API files (.swg/.swgs) to the compilation input.");
+        "Add a read-only dependency root containing <module>/<backend>/<build-cfg>/<arch> folders of generated public API files (.swg/.swgs).");
     add(HelpOptionGroup::Input, "sema test build run", "--import-api-file", nullptr,
         &cmdLine_->importApiFiles,
         "Add one generated public API file (.swg/.swgs) to the compilation input.");

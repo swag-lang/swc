@@ -728,54 +728,6 @@ namespace
         return defaultModuleNamespace(artifactName);
     }
 
-    fs::path commonModuleSourceRoot(std::span<SourceFile* const> files)
-    {
-        fs::path result;
-        bool     hasResult = false;
-
-        for (const SourceFile* file : files)
-        {
-            if (!file || !file->hasFlag(FileFlagsE::ModuleSrc))
-                continue;
-
-            fs::path candidate = file->path().parent_path().lexically_normal();
-            if (!hasResult)
-            {
-                result    = std::move(candidate);
-                hasResult = true;
-                continue;
-            }
-
-            while (!result.empty() && !FileSystem::pathStartsWith(candidate, result))
-            {
-                const fs::path parent = result.parent_path();
-                if (parent == result)
-                {
-                    result.clear();
-                    break;
-                }
-
-                result = parent;
-            }
-
-            if (result.empty())
-                break;
-        }
-
-        return result;
-    }
-
-    fs::path moduleApiRelativePath(const SourceFile& file, const fs::path& explicitRoot, const fs::path& fallbackRoot)
-    {
-        if (!explicitRoot.empty() && FileSystem::pathStartsWith(file.path(), explicitRoot))
-            return file.path().lexically_relative(explicitRoot);
-
-        if (!fallbackRoot.empty() && FileSystem::pathStartsWith(file.path(), fallbackRoot))
-            return file.path().lexically_relative(fallbackRoot);
-
-        return file.path().filename();
-    }
-
     Utf8 buildExportedModuleApiContent(const SourceFile& file, std::string_view moduleNamespace, const bool hasModuleNamespace)
     {
         const std::string_view source = file.sourceView();
@@ -848,25 +800,102 @@ namespace
         return (workspaceModulesDirectory(workspacePath) / fs::path(std::string(moduleName))).lexically_normal();
     }
 
-    fs::path workspaceDependencyDirectory(const fs::path& workspacePath)
+    fs::path workspaceOutputDirectory(const fs::path& workspacePath)
     {
-        return (workspacePath / ".dependency").lexically_normal();
-    }
-
-    fs::path workspaceDependencyModuleDirectory(const fs::path& workspacePath, std::string_view moduleName)
-    {
-        return (workspaceDependencyDirectory(workspacePath) / fs::path(std::string(moduleName))).lexically_normal();
+        return (workspacePath / ".output").lexically_normal();
     }
 
     fs::path workspaceModuleOutputDirectory(const fs::path& workspacePath, const Utf8& moduleName, const CommandLine& cmdLine, const Runtime::BuildCfgBackendKind backendKind, const bool workDirectory)
     {
-        fs::path result = workspacePath;
-        result /= workDirectory ? ".tmp" : ".output";
+        fs::path result = workDirectory ? (workspacePath / ".tmp") : workspaceOutputDirectory(workspacePath);
         result /= fs::path(moduleName.c_str());
         result /= fs::path(backendKindName(backendKind).c_str());
         result /= fs::path(cmdLine.buildCfg.c_str());
         result /= fs::path(targetArchName(cmdLine.targetArch).c_str());
         return result.lexically_normal();
+    }
+
+    fs::path dependencyModuleDirectory(const fs::path& dependencyRoot, std::string_view moduleName)
+    {
+        return (dependencyRoot / fs::path(std::string(moduleName))).lexically_normal();
+    }
+
+    Result reportInvalidFolder(TaskContext& ctx, const fs::path& path, const Utf8& because)
+    {
+        Diagnostic diag = Diagnostic::get(DiagnosticId::cmdline_err_invalid_folder);
+        FileSystem::setDiagnosticPathAndBecause(diag, &ctx, path, because);
+        diag.report(ctx);
+        return Result::Error;
+    }
+
+    Utf8 dependencyConfigurationLabel(const CommandLine& cmdLine)
+    {
+        return std::format("build-cfg '{}' and arch '{}'", cmdLine.buildCfg.c_str(), targetArchName(cmdLine.targetArch).c_str());
+    }
+
+    Utf8 joinDependencyPaths(const std::vector<fs::path>& paths)
+    {
+        Utf8 result;
+        for (const fs::path& path : paths)
+        {
+            if (!result.empty())
+                result += ", ";
+            result += Utf8(path);
+        }
+
+        return result;
+    }
+
+    Result findDependencyConfigurationDirectory(fs::path& outDir, Utf8& outBecause, const fs::path& dependencyRoot, std::string_view moduleName, const CommandLine& cmdLine)
+    {
+        outDir.clear();
+        outBecause.clear();
+
+        const fs::path moduleDir = dependencyModuleDirectory(dependencyRoot, moduleName);
+        outDir = moduleDir;
+        if (FileSystem::resolveExistingFolder(outDir, outBecause) != Result::Continue)
+            return Result::Error;
+
+        std::vector<fs::path> matches;
+        const fs::path        buildCfgDir = fs::path(cmdLine.buildCfg.c_str());
+        const fs::path        archDir     = fs::path(targetArchName(cmdLine.targetArch).c_str());
+        std::error_code       ec;
+        for (fs::directory_iterator it(moduleDir, fs::directory_options::skip_permission_denied, ec), end; it != end; it.increment(ec))
+        {
+            if (ec)
+            {
+                outBecause = FileSystem::normalizeSystemMessage(ec);
+                return Result::Error;
+            }
+
+            ec.clear();
+            if (!it->is_directory(ec) || ec)
+                continue;
+
+            fs::path candidate = (it->path() / buildCfgDir / archDir).lexically_normal();
+            ec.clear();
+            if (!fs::is_directory(candidate, ec) || ec)
+                continue;
+
+            matches.push_back(FileSystem::normalizePath(candidate));
+        }
+
+        if (matches.empty())
+        {
+            outBecause = std::format("no configuration folder matches {}", dependencyConfigurationLabel(cmdLine).c_str());
+            return Result::Error;
+        }
+
+        std::ranges::sort(matches);
+        matches.erase(std::unique(matches.begin(), matches.end()), matches.end());
+        if (matches.size() != 1)
+        {
+            outBecause = std::format("multiple configuration folders match {} ({})", dependencyConfigurationLabel(cmdLine).c_str(), joinDependencyPaths(matches).c_str());
+            return Result::Error;
+        }
+
+        outDir = matches.front();
+        return Result::Continue;
     }
 
     bool shouldSkipWorkspaceEntry(const fs::directory_entry& entry)
@@ -1666,10 +1695,13 @@ ExitCode CompilerInstance::runWorkspace()
             return ExitCode::CompileError;
 
         moduleBuild.ignoreInWorkspace = moduleBuild.setup.buildCfg.ignoreInWorkspace;
-        for (const Utf8& importModule : moduleBuild.setup.importModules)
+        for (const ModuleSetupImport& importRequest : moduleBuild.setup.imports)
         {
-            if (moduleIndices.contains(importModule))
-                moduleBuild.workspaceDependencies.push_back(importModule);
+            if (!importRequest.location.empty())
+                continue;
+
+            if (moduleIndices.contains(importRequest.moduleName))
+                moduleBuild.workspaceDependencies.push_back(importRequest.moduleName);
         }
     }
 
@@ -1757,13 +1789,6 @@ ExitCode CompilerInstance::runWorkspace()
         }
     }
 
-    const fs::path dependencyDir = workspaceDependencyDirectory(workspacePath);
-    SWC_ASSERT(!dependencyDir.empty());
-    if (ensureWorkspaceDirectory(ctx, dependencyDir) != Result::Continue)
-        return ExitCode::CompileError;
-    if (FileSystem::clearDirectoryContents(ctx, dependencyDir, DiagnosticId::cmd_err_workspace_dir_clear_failed) != Result::Continue)
-        return ExitCode::CompileError;
-
     const uint32_t buildCount = static_cast<uint32_t>(buildOrder.size());
     for (uint32_t buildIndex = 0; buildIndex < buildCount; ++buildIndex)
     {
@@ -1786,9 +1811,9 @@ Result CompilerInstance::runWorkspaceModule(const WorkspaceModuleBuild& moduleBu
     moduleCmdLine.directories.clear();
     moduleCmdLine.directories.insert(moduleBuild.sourceDir);
     moduleCmdLine.files.clear();
-    moduleCmdLine.exportApiDir   = workspaceDependencyModuleDirectory(cmdLine().workspacePath, moduleBuild.name.view());
     moduleCmdLine.outDir         = workspaceModuleOutputDirectory(cmdLine().workspacePath, moduleBuild.name, moduleCmdLine, moduleBuild.setup.buildCfg.backendKind, false);
     moduleCmdLine.workDir        = workspaceModuleOutputDirectory(cmdLine().workspacePath, moduleBuild.name, moduleCmdLine, moduleBuild.setup.buildCfg.backendKind, true);
+    moduleCmdLine.exportApiDir   = moduleCmdLine.outDir;
     moduleCmdLine.outDirStorage  = Utf8(moduleCmdLine.outDir);
     moduleCmdLine.workDirStorage = Utf8(moduleCmdLine.workDir);
     CommandLineParser::refreshBuildCfg(moduleCmdLine);
@@ -2456,12 +2481,24 @@ bool CompilerInstance::hasResolvedFilePath(const fs::path& path) const
     return false;
 }
 
-Result CompilerInstance::registerModuleSetupImport(const std::string_view moduleName)
+Result CompilerInstance::registerModuleSetupImport(const std::string_view moduleName, const std::string_view location, const std::string_view version)
 {
     if (moduleName.empty())
         return Result::Continue;
 
-    moduleSetupImportModules_.insert(Utf8(moduleName));
+    for (const ModuleSetupImport& existingImport : moduleSetupImports_)
+    {
+        if (existingImport.moduleName == moduleName &&
+            existingImport.location == location &&
+            existingImport.version == version)
+            return Result::Continue;
+    }
+
+    ModuleSetupImport importRequest;
+    importRequest.moduleName = moduleName;
+    importRequest.location   = location;
+    importRequest.version    = version;
+    moduleSetupImports_.push_back(std::move(importRequest));
     return Result::Continue;
 }
 
@@ -2531,9 +2568,9 @@ Result CompilerInstance::captureModuleSetupSnapshot(const TaskContext& ctx, cons
 
     if (files.empty())
     {
-        outSnapshot.buildCfg      = setupCompiler.buildCfg();
-        outSnapshot.importModules = setupCompiler.moduleSetupImportModules_;
-        outSnapshot.loadedFiles   = setupCompiler.moduleSetupLoadedFiles_;
+        outSnapshot.buildCfg    = setupCompiler.buildCfg();
+        outSnapshot.imports     = setupCompiler.moduleSetupImports_;
+        outSnapshot.loadedFiles = setupCompiler.moduleSetupLoadedFiles_;
         ownBuildCfgStrings(outSnapshot.buildCfg, outSnapshot.ownedStrings);
         return Result::Continue;
     }
@@ -2576,30 +2613,104 @@ Result CompilerInstance::captureModuleSetupSnapshot(const TaskContext& ctx, cons
     if (Stats::getNumErrors() != errorsBefore)
         return Result::Error;
 
-    outSnapshot.buildCfg      = setupCompiler.buildCfg();
-    outSnapshot.importModules = setupCompiler.moduleSetupImportModules_;
-    outSnapshot.loadedFiles   = setupCompiler.moduleSetupLoadedFiles_;
+    outSnapshot.buildCfg    = setupCompiler.buildCfg();
+    outSnapshot.imports     = setupCompiler.moduleSetupImports_;
+    outSnapshot.loadedFiles = setupCompiler.moduleSetupLoadedFiles_;
     ownBuildCfgStrings(outSnapshot.buildCfg, outSnapshot.ownedStrings);
     return Result::Continue;
 }
 
 Result CompilerInstance::applyModuleSetupInputs(TaskContext& ctx, const ModuleSetupSnapshot& setupSnapshot)
 {
-    for (const Utf8& moduleName : setupSnapshot.importModules)
-    {
-        fs::path importDir;
-        if (!cmdLine().workspacePath.empty())
+    const auto resolveExplicitDependencyRoot = [&](fs::path& outRoot, const ModuleSetupImport& importRequest) -> Result {
+        if (importRequest.location == "swag@std")
         {
-            fs::path        workspaceModuleDir = workspaceModuleDirectory(cmdLine().workspacePath, moduleName.view());
-            std::error_code ec;
-            if (fs::is_directory(workspaceModuleDir, ec))
-                importDir = workspaceDependencyModuleDirectory(cmdLine().workspacePath, moduleName.view());
+            const std::optional<Utf8> installRoot = Os::readEnvironmentVariable("SWAG_PATH");
+            if (!installRoot.has_value() || installRoot->empty())
+                return reportInvalidFolder(ctx, "SWAG_PATH", "environment variable is not defined");
+
+            outRoot = fs::path(installRoot->c_str());
+            SWC_RESULT(FileSystem::resolveFolder(ctx, outRoot));
+            outRoot = (outRoot / "std" / ".output").lexically_normal();
+            return Result::Continue;
         }
 
-        if (importDir.empty())
-            importDir = FileSystem::generatedDependencyApiDir(exeFullName_, moduleName.view());
+        outRoot = fs::path(importRequest.location.c_str());
+        if (outRoot.is_relative())
+        {
+            fs::path baseDir = cmdLine().moduleFilePath.empty() ? FileSystem::currentPathNoThrow() : cmdLine().moduleFilePath.parent_path();
+            if (!baseDir.empty())
+                outRoot = (baseDir / outRoot).lexically_normal();
+        }
 
-        SWC_RESULT(FileSystem::resolveFolder(ctx, importDir));
+        SWC_RESULT(FileSystem::resolveFolder(ctx, outRoot));
+        return Result::Continue;
+    };
+
+    const auto resolveDependencyImportDir = [&](fs::path& outImportDir, const ModuleSetupImport& importRequest) -> Result {
+        outImportDir.clear();
+
+        if (!importRequest.location.empty())
+        {
+            fs::path dependencyRoot;
+            SWC_RESULT(resolveExplicitDependencyRoot(dependencyRoot, importRequest));
+
+            Utf8 because;
+            if (findDependencyConfigurationDirectory(outImportDir, because, dependencyRoot, importRequest.moduleName.view(), cmdLine()) != Result::Continue)
+                return reportInvalidFolder(ctx, dependencyModuleDirectory(dependencyRoot, importRequest.moduleName.view()), because);
+            return Result::Continue;
+        }
+
+        if (!cmdLine().workspacePath.empty())
+        {
+            fs::path        workspaceModuleDir = workspaceModuleDirectory(cmdLine().workspacePath, importRequest.moduleName.view());
+            std::error_code ec;
+            if (fs::is_directory(workspaceModuleDir, ec))
+            {
+                const fs::path dependencyRoot = workspaceOutputDirectory(cmdLine().workspacePath);
+                Utf8           because;
+                if (findDependencyConfigurationDirectory(outImportDir, because, dependencyRoot, importRequest.moduleName.view(), cmdLine()) != Result::Continue)
+                    return reportInvalidFolder(ctx, dependencyModuleDirectory(dependencyRoot, importRequest.moduleName.view()), because);
+                return Result::Continue;
+            }
+        }
+
+        std::vector<fs::path> matches;
+        for (const fs::path& dependencyRoot : cmdLine().importApiDirs)
+        {
+            fs::path configDir;
+            Utf8     because;
+            if (findDependencyConfigurationDirectory(configDir, because, dependencyRoot, importRequest.moduleName.view(), cmdLine()) != Result::Continue)
+                continue;
+
+            matches.push_back(std::move(configDir));
+        }
+
+        std::ranges::sort(matches);
+        matches.erase(std::unique(matches.begin(), matches.end()), matches.end());
+        if (matches.empty())
+        {
+            if (cmdLine().importApiDirs.empty())
+                return reportInvalidFolder(ctx, importRequest.moduleName.c_str(), "no workspace dependency was found and no --import-api-dir root was provided");
+
+            const Utf8 because = std::format("module '{}' was not found in any dependency root for {}", importRequest.moduleName.c_str(), dependencyConfigurationLabel(cmdLine()).c_str());
+            return reportInvalidFolder(ctx, importRequest.moduleName.c_str(), because);
+        }
+
+        if (matches.size() != 1)
+        {
+            const Utf8 because = std::format("multiple dependency roots match {} ({})", dependencyConfigurationLabel(cmdLine()).c_str(), joinDependencyPaths(matches).c_str());
+            return reportInvalidFolder(ctx, importRequest.moduleName.c_str(), because);
+        }
+
+        outImportDir = matches.front();
+        return Result::Continue;
+    };
+
+    for (const ModuleSetupImport& importRequest : setupSnapshot.imports)
+    {
+        fs::path importDir;
+        SWC_RESULT(resolveDependencyImportDir(importDir, importRequest));
         collectFolderFiles(importDir, FileFlagsE::ImportedApi, false);
     }
 
@@ -2673,12 +2784,23 @@ void CompilerInstance::collectFolderFiles(const fs::path& folder, FileFlags flag
     appendResolvedFiles(paths, flags);
 }
 
-Result CompilerInstance::collectImportedApiFiles(const TaskContext& ctx)
+Result CompilerInstance::collectImportedApiFiles(TaskContext& ctx)
 {
     const CommandLine& cmdLine = ctx.cmdLine();
 
-    for (const fs::path& folder : cmdLine.importApiDirs)
-        collectFolderFiles(folder, FileFlagsE::ImportedApi, false);
+    if (!cmdLine.importApiModules.empty())
+    {
+        const fs::path dependencyRoot = (FileSystem::compilerResourceRoot(exeFullName_) / "std" / ".output" / "dep").lexically_normal();
+        for (const Utf8& moduleName : cmdLine.importApiModules)
+        {
+            fs::path importDir;
+            Utf8     because;
+            if (findDependencyConfigurationDirectory(importDir, because, dependencyRoot, moduleName.view(), cmdLine) != Result::Continue)
+                return reportInvalidFolder(ctx, dependencyModuleDirectory(dependencyRoot, moduleName.view()), because);
+
+            collectFolderFiles(importDir, FileFlagsE::ImportedApi, false);
+        }
+    }
 
     if (cmdLine.importApiFiles.empty())
         return Result::Continue;
@@ -2781,12 +2903,11 @@ Result CompilerInstance::exportModuleApi(TaskContext& ctx)
     if (!hasModuleSources)
         return Result::Continue;
 
-    const fs::path fallbackModuleRoot = modulePathSrc_.empty() ? commonModuleSourceRoot(files()) : fs::path{};
-
     SWC_RESULT(ensureModuleApiDirectory(ctx, exportApiDir));
     SWC_RESULT(FileSystem::clearDirectoryContents(ctx, exportApiDir, DiagnosticId::cmd_err_api_dir_clear_failed));
 
     const Utf8 moduleNamespace = buildCfg().moduleNamespace.ptr ? Utf8(buildCfg().moduleNamespace) : Utf8{};
+    std::unordered_map<Utf8, fs::path> exportedFileNames;
     for (const SourceFile* file : files())
     {
         if (!file || !file->hasFlag(FileFlagsE::ModuleSrc))
@@ -2796,12 +2917,14 @@ Result CompilerInstance::exportModuleApi(TaskContext& ctx)
         if (!info.exported)
             continue;
 
-        fs::path relativePath = moduleApiRelativePath(*file, modulePathSrc_, fallbackModuleRoot);
-        if (relativePath.empty() || relativePath == ".")
-            relativePath = file->path().filename();
-
-        const fs::path dstPath = exportApiDir / relativePath;
-        SWC_RESULT(ensureModuleApiDirectory(ctx, dstPath.parent_path()));
+        const fs::path dstPath = (exportApiDir / file->path().filename()).lexically_normal();
+        const Utf8     fileName = dstPath.filename().string();
+        const auto     inserted = exportedFileNames.emplace(fileName, file->path());
+        if (!inserted.second)
+        {
+            const Utf8 because = std::format("duplicate exported API file name from '{}' and '{}'", inserted.first->second.string(), file->path().string());
+            return reportInvalidFolder(ctx, dstPath, because);
+        }
 
         const Utf8              content = buildExportedModuleApiContent(*file, moduleNamespace.view(), info.hasModuleNamespace);
         FileSystem::IoErrorInfo ioError;

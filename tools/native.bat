@@ -18,6 +18,12 @@ if /I "%~1"=="--build-cfg" (
     shift & shift
     goto parse_args
 )
+if /I "%~1"=="--target-arch" (
+    set "TARGET_ARCH=%~2"
+    set "EXTRA_ARGS=%EXTRA_ARGS% --target-arch %~2"
+    shift & shift
+    goto parse_args
+)
 if /I "%~1"=="--artifact-kind" (
     set "ARTIFACT_KIND=%~2"
     shift & shift

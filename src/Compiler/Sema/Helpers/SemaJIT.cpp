@@ -150,25 +150,51 @@ namespace
         return cache;
     }
 
-    bool buildConstCallCacheKey(Sema& sema, ConstCallCacheKey& outKey, const SymbolFunction& function, std::span<const JITArgument> args)
+    bool buildConstCallCacheKey(Sema& sema, ConstCallCacheKey& outKey, const SymbolFunction& function, std::span<const ResolvedCallArgument> resolvedArgs, std::span<const JITArgument> args)
     {
+        if (resolvedArgs.size() != args.size())
+            return false;
+
+        TaskContext& ctx = sema.ctx();
         outKey          = {};
         outKey.function = &function;
         outKey.args.reserve(args.size());
 
-        for (const JITArgument& arg : args)
+        for (size_t i = 0; i < args.size(); ++i)
         {
+            const JITArgument&          arg         = args[i];
+            const ResolvedCallArgument& resolvedArg = resolvedArgs[i];
             if (!arg.typeRef.isValid() || !arg.valuePtr)
                 return false;
 
-            const uint64_t byteSize = sema.typeMgr().get(arg.typeRef).sizeOf(sema.ctx());
-            if (!byteSize || byteSize > std::numeric_limits<uint32_t>::max())
+            const TypeInfo& argType = sema.typeMgr().get(arg.typeRef);
+            uint64_t        byteSize = argType.sizeOf(ctx);
+            const void*     sourcePtr = arg.valuePtr;
+
+            // Cache keys must reflect the referenced value, not the transient
+            // address of the JIT argument storage used to pass it.
+            if (resolvedArg.bindsReferenceToValue && argType.isReference())
+            {
+                const TypeRef pointeeTypeRef = argType.payloadTypeRef();
+                if (!pointeeTypeRef.isValid())
+                    return false;
+
+                byteSize = sema.typeMgr().get(pointeeTypeRef).sizeOf(ctx);
+                const auto pointeeAddress = *static_cast<const uint64_t*>(arg.valuePtr);
+                if (byteSize && !pointeeAddress)
+                    return false;
+
+                sourcePtr = reinterpret_cast<const void*>(pointeeAddress);
+            }
+
+            if (byteSize > std::numeric_limits<uint32_t>::max())
                 return false;
 
             ConstCallCacheArg cacheArg;
             cacheArg.typeRef = arg.typeRef;
             cacheArg.bytes.resize(byteSize);
-            std::memcpy(cacheArg.bytes.data(), arg.valuePtr, cacheArg.bytes.size());
+            if (byteSize)
+                std::memcpy(cacheArg.bytes.data(), sourcePtr, cacheArg.bytes.size());
             outKey.args.push_back(std::move(cacheArg));
         }
 
@@ -1054,7 +1080,7 @@ Result SemaJIT::tryRunConstCall(Sema& sema, SymbolFunction& calledFn, AstNodeRef
     const TypeRef           exprTypeRef = calledFn.returnTypeRef();
     const JITCallResultMeta resultMeta  = computeJitCallResultMeta(sema, exprTypeRef);
     ConstCallCacheKey       cacheKey;
-    if (buildConstCallCacheKey(sema, cacheKey, calledFn, payload->jitArgs.span()))
+    if (buildConstCallCacheKey(sema, cacheKey, calledFn, resolvedArgs, payload->jitArgs.span()))
     {
         if (const ConstantRef cachedRef = findConstCallCacheResult(cacheKey); cachedRef.isValid())
         {

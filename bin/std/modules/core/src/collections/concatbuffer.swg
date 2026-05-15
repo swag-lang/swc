@@ -470,8 +470,8 @@ impl ConcatBuffer
     // Otherwise, it falls back to copying the data.
     mtd moveToString()->String
     {
-        // Make a copy, as we have more than one bucket
-        if .lastBucket != .firstBucket do
+        // We can only steal the storage when the buffer owns a single heap bucket.
+        if .lastBucket != .firstBucket or .firstBucket == &.viewFirstBucket do
             return .toString(.allocator)
 
         // Otherwise we can just eat the buffer

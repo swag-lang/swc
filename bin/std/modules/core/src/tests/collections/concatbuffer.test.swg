@@ -56,3 +56,15 @@ func backBucketCount(buffer: const &ConcatBuffer)->u64
     @assert(frontBucketCount(buffer) == 3)
     @assert(backBucketCount(buffer) == 2)
 }
+
+#test
+{
+    let storage = cast([*] u8) Memory.alloc(8)
+    var buffer: ConcatBuffer
+    buffer.setFirstBucket(@mkslice(storage, 8))
+    buffer.addBytes(cast(const [..] u8) "abc")
+
+    let text = buffer.moveToString()
+    storage[0] = 'z''u8
+    @assert(text.toString() == "abc")
+}

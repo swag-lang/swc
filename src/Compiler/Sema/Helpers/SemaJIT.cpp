@@ -156,8 +156,8 @@ namespace
             return false;
 
         TaskContext& ctx = sema.ctx();
-        outKey          = {};
-        outKey.function = &function;
+        outKey           = {};
+        outKey.function  = &function;
         outKey.args.reserve(args.size());
 
         for (size_t i = 0; i < args.size(); ++i)
@@ -167,8 +167,8 @@ namespace
             if (!arg.typeRef.isValid() || !arg.valuePtr)
                 return false;
 
-            const TypeInfo& argType = sema.typeMgr().get(arg.typeRef);
-            uint64_t        byteSize = argType.sizeOf(ctx);
+            const TypeInfo& argType   = sema.typeMgr().get(arg.typeRef);
+            uint64_t        byteSize  = argType.sizeOf(ctx);
             const void*     sourcePtr = arg.valuePtr;
 
             // Cache keys must reflect the referenced value, not the transient
@@ -179,7 +179,7 @@ namespace
                 if (!pointeeTypeRef.isValid())
                     return false;
 
-                byteSize = sema.typeMgr().get(pointeeTypeRef).sizeOf(ctx);
+                byteSize                  = sema.typeMgr().get(pointeeTypeRef).sizeOf(ctx);
                 const auto pointeeAddress = *static_cast<const uint64_t*>(arg.valuePtr);
                 if (byteSize && !pointeeAddress)
                     return false;

@@ -63,7 +63,7 @@ namespace
             size_t currentSize  = 0;
             if (_dupenv_s(&currentValue, &currentSize, name_.c_str()) == 0 && currentValue)
             {
-                hadValue_     = true;
+                hadValue_      = true;
                 previousValue_ = currentValue;
                 std::free(currentValue);
             }

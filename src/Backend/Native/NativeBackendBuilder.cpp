@@ -223,7 +223,7 @@ namespace
         std::unordered_set           seenFunctions(functions.begin(), functions.end());
         std::unordered_set<uint64_t> visitedAllocations;
         bool                         changed = false;
-        
+
         // Newly discovered constant dependencies are appended to 'functions', so iterate by
         // index to keep traversal stable while still visiting the new entries in the same pass.
         for (size_t idx = 0; idx < functions.size(); ++idx)

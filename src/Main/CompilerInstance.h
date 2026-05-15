@@ -200,11 +200,13 @@ public:
     SourceFile&              file(FileRef ref) const;
     std::vector<SourceFile*> filesSnapshot() const;
 
-    SourceView&       addSourceView();
-    SourceView&       addSourceView(FileRef fileRef);
-    SourceView&       srcView(SourceViewRef ref);
-    const SourceView& srcView(SourceViewRef ref) const;
-    const SourceView* findSourceViewByFileName(std::string_view fileName) const;
+    SourceView&                   addSourceView();
+    SourceView&                   addSourceView(FileRef fileRef);
+    SourceView&                   srcView(SourceViewRef ref);
+    const SourceView&             srcView(SourceViewRef ref) const;
+    const SourceView*             findSourceViewByFileName(std::string_view fileName) const;
+    size_t                        numPerThreadData() const noexcept { return perThreadData_.size(); }
+    const ModuleApiPerThreadData& moduleApiPerThreadData(size_t index) const { return perThreadData_[index].moduleApi; }
 
     Result                       collectFiles(TaskContext& ctx);
     Result                       runModuleSetup(TaskContext& ctx);
@@ -337,8 +339,9 @@ private:
 
     struct PerThreadData
     {
-        Arena            arena;
-        Runtime::Context runtimeContext{};
+        Arena                  arena;
+        Runtime::Context       runtimeContext{};
+        ModuleApiPerThreadData moduleApi;
     };
 
     std::vector<PerThreadData>                            perThreadData_;
@@ -350,7 +353,6 @@ private:
     CompilerTagRegistry                                   compilerTags_;
     std::unordered_map<IdentifierRef, SymbolFunction*>    runtimeFunctionSymbols_;
     std::unordered_map<Utf8, Utf8>                        inMemoryFiles_;
-    ModuleApiState                                        moduleApiState_;
     mutable std::mutex                                    pendingImplRegistrationsMutex_;
     std::unordered_map<IdentifierRef, uint32_t>           pendingImplRegistrations_;
     std::mutex                                            reportedDiagnosticsMutex_;

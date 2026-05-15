@@ -1,9 +1,9 @@
 #include "pch.h"
+#include "Compiler/CodeGen/Core/CodeGen.h"
 #include "Backend/ABI/CallConv.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroInstrInfo.h"
 #include "Backend/Micro/MicroReg.h"
-#include "Compiler/CodeGen/Core/CodeGen.h"
 #include "Compiler/CodeGen/Core/CodeGenCallHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenFunctionHelpers.h"
 #include "Compiler/Sema/Core/Sema.h"
@@ -80,7 +80,7 @@ namespace
 #if SWC_DEV_MODE
     Utf8 formatMissingPayloadDebug(CodeGen& codeGen, AstNodeRef queryRef, AstNodeRef resolvedRef, CodeGenNodePayload* payload)
     {
-        Utf8       detail = "missing-codegen-payload:\n";
+        Utf8       detail   = "missing-codegen-payload:\n";
         const auto dumpNode = [&](const AstNode& node, AstNodeRef nodeRef, const char* label) {
             const std::string_view nodeName = Ast::nodeIdName(node.id());
             detail += std::format("  {}={}({:.{}})\n", label, nodeRef.get(), nodeName.data(), static_cast<int>(nodeName.size()));

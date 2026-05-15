@@ -68,42 +68,38 @@ namespace
         return symbol.decl()->is(AstNodeId::SingleVarDecl) || symbol.decl()->is(AstNodeId::MultiVarDecl);
     }
 
-    void recordPublicDecl(ModuleApiState& state, const SourceViewRef srcViewRef, const AstNodeRef declRef)
+    void mergeFileEntry(ModuleApiFileEntry& outEntry, const ModuleApiFileEntry& threadEntry)
+    {
+        outEntry.hasUnsupportedPublicDecl |= threadEntry.hasUnsupportedPublicDecl;
+        for (const AstNodeRef declRef : threadEntry.publicDeclRefs)
+        {
+            if (std::ranges::find(outEntry.publicDeclRefs, declRef) == outEntry.publicDeclRefs.end())
+                outEntry.publicDeclRefs.push_back(declRef);
+        }
+    }
+
+    void mergeThreadData(std::unordered_map<SourceViewRef, ModuleApiFileEntry>& outEntries, const ModuleApiPerThreadData& threadData)
+    {
+        for (const auto& [srcViewRef, threadEntry] : threadData.files)
+            mergeFileEntry(outEntries[srcViewRef], threadEntry);
+    }
+
+    void recordPublicDecl(ModuleApiPerThreadData& state, const SourceViewRef srcViewRef, const AstNodeRef declRef)
     {
         if (!srcViewRef.isValid() || declRef.isInvalid())
             return;
 
-        ModuleApiState::Shard& shard = state.shards[ModuleApiState::shardIndex(srcViewRef)];
-        const std::unique_lock lock(shard.mutex);
-        ModuleApiFileEntry&    entry = shard.files[srcViewRef];
+        ModuleApiFileEntry& entry = state.files[srcViewRef];
         if (std::ranges::find(entry.publicDeclRefs, declRef) == entry.publicDeclRefs.end())
             entry.publicDeclRefs.push_back(declRef);
     }
 
-    void markUnsupportedPublicDecl(ModuleApiState& state, const SourceViewRef srcViewRef)
+    void markUnsupportedPublicDecl(ModuleApiPerThreadData& state, const SourceViewRef srcViewRef)
     {
         if (!srcViewRef.isValid())
             return;
 
-        ModuleApiState::Shard& shard = state.shards[ModuleApiState::shardIndex(srcViewRef)];
-        const std::unique_lock lock(shard.mutex);
-        shard.files[srcViewRef].hasUnsupportedPublicDecl = true;
-    }
-
-    bool snapshotFileEntry(const ModuleApiState& state, const SourceViewRef srcViewRef, ModuleApiFileEntry& outEntry)
-    {
-        outEntry = {};
-        if (!srcViewRef.isValid())
-            return false;
-
-        const ModuleApiState::Shard& shard = state.shards[ModuleApiState::shardIndex(srcViewRef)];
-        const std::shared_lock       lock(shard.mutex);
-        const auto                   it = shard.files.find(srcViewRef);
-        if (it == shard.files.end())
-            return false;
-
-        outEntry = it->second;
-        return true;
+        state.files[srcViewRef].hasUnsupportedPublicDecl = true;
     }
 
     ModuleApiFileInfo analyzeModuleApiFile(const SourceFile& file, std::string_view moduleNamespace)
@@ -420,7 +416,7 @@ namespace
 
 namespace ModuleApi
 {
-    void onSymbolSemaCompleted(ModuleApiState& state, TaskContext& ctx, const Symbol& symbol)
+    void onSymbolSemaCompleted(ModuleApiPerThreadData& state, TaskContext& ctx, const Symbol& symbol)
     {
         if (!symbol.isPublic())
             return;
@@ -445,12 +441,16 @@ namespace ModuleApi
         recordPublicDecl(state, symbol.srcViewRef(), declRef);
     }
 
-    Result exportFiles(TaskContext& ctx, const ModuleApiState& state)
+    Result exportFiles(TaskContext& ctx)
     {
         CompilerInstance& compiler     = ctx.compiler();
         const fs::path&   exportApiDir = compiler.cmdLine().exportApiDir;
         if (exportApiDir.empty())
             return Result::Continue;
+
+        std::unordered_map<SourceViewRef, ModuleApiFileEntry> collectedEntries;
+        for (size_t i = 0; i < compiler.numPerThreadData(); ++i)
+            mergeThreadData(collectedEntries, compiler.moduleApiPerThreadData(i));
 
         const Utf8                          moduleNamespace      = buildModuleNamespaceName(compiler);
         const SourceFile*                   firstSourceFile      = nullptr;
@@ -471,9 +471,10 @@ namespace ModuleApi
             if (fileInfo.legacyExported)
                 continue;
 
-            ModuleApiFileEntry fileEntry;
-            if (!snapshotFileEntry(state, file->ast().srcView().ref(), fileEntry))
+            const auto fileEntryIt = collectedEntries.find(file->ast().srcView().ref());
+            if (fileEntryIt == collectedEntries.end())
                 continue;
+            const ModuleApiFileEntry& fileEntry = fileEntryIt->second;
 
             if (fileEntry.hasUnsupportedPublicDecl)
             {

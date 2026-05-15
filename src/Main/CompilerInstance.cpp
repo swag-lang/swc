@@ -2083,7 +2083,7 @@ void CompilerInstance::registerCompilerMessageFunction(SymbolFunction* symbol, c
 
 void CompilerInstance::onSymbolSemaCompleted(TaskContext& ctx, Symbol& symbol)
 {
-    ModuleApi::onSymbolSemaCompleted(moduleApiState_, ctx, symbol);
+    ModuleApi::onSymbolSemaCompleted(perThreadData_[JobManager::threadIndex()].moduleApi, ctx, symbol);
 
     const uint64_t activeMask = compilerMessageActiveMask_.load(std::memory_order_acquire);
     if (!activeMask)
@@ -2100,7 +2100,7 @@ void CompilerInstance::onSymbolSemaCompleted(TaskContext& ctx, Symbol& symbol)
 
     const SymbolFunction* preparationFunction = nullptr;
     AstNodeRef            preparationNodeRef  = AstNodeRef::invalid();
-    
+
     {
         const std::scoped_lock lock(compilerMessageMutex_);
         compilerMessageLog_.push_back(event);
@@ -2764,7 +2764,7 @@ Result CompilerInstance::collectFiles(TaskContext& ctx)
 
 Result CompilerInstance::exportModuleApi(TaskContext& ctx)
 {
-    return ModuleApi::exportFiles(ctx, moduleApiState_);
+    return ModuleApi::exportFiles(ctx);
 }
 
 SWC_END_NAMESPACE();

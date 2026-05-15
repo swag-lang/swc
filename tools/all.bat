@@ -15,6 +15,7 @@ call "%~dp0reference.bat" %* --build-cfg "release" || exit /b 1
 call "%~dp0std.bat" %* --build-cfg "release" || exit /b 1
 call "%~dp0examples.bat" %* --build-cfg "release" || exit /b 1
 call "%~dp0core.bat" %* --build-cfg "release" || exit /b 1
+call "%~dp0export.bat" %* --build-cfg "release" || exit /b 1
 call "%~dp0_test_module.bat" %* --bin-rel "tests\lexer" --module-namespace "Lexer" --artifact-label "lex-only" --build-cfg "debug" --lex-only || exit /b 1
 call "%~dp0_test_module.bat" %* --bin-rel "tests\parser" --module-namespace "Parser" --artifact-label "syntax-only" --build-cfg "debug" --syntax-only || exit /b 1
 call "%~dp0_test_module.bat" %* --bin-rel "tests\errors\lexer" --module-namespace "Lexer" --artifact-label "lex-only" --build-cfg "debug" --lex-only || exit /b 1
@@ -31,6 +32,7 @@ call "%~dp0reference.bat" %* --build-cfg "debug" || exit /b 1
 call "%~dp0std.bat" %* --build-cfg "debug" || exit /b 1
 call "%~dp0examples.bat" %* --build-cfg "debug" || exit /b 1
 call "%~dp0core.bat" %* --build-cfg "debug" || exit /b 1
+call "%~dp0export.bat" %* --build-cfg "debug" || exit /b 1
 call "%~dp0_test_module.bat" %* --bin-rel "tests\lexer" --module-namespace "Lexer" --artifact-label "lex-only" --build-cfg "fast-debug" --lex-only || exit /b 1
 call "%~dp0_test_module.bat" %* --bin-rel "tests\parser" --module-namespace "Parser" --artifact-label "syntax-only" --build-cfg "fast-debug" --syntax-only || exit /b 1
 call "%~dp0_test_module.bat" %* --bin-rel "tests\errors\lexer" --module-namespace "Lexer" --artifact-label "lex-only" --build-cfg "fast-debug" --lex-only || exit /b 1
@@ -47,6 +49,7 @@ call "%~dp0reference.bat" %* --build-cfg "fast-debug" || exit /b 1
 call "%~dp0std.bat" %* --build-cfg "fast-debug" || exit /b 1
 call "%~dp0examples.bat" %* --build-cfg "fast-debug" || exit /b 1
 call "%~dp0core.bat" %* --build-cfg "fast-debug" || exit /b 1
+call "%~dp0export.bat" %* --build-cfg "fast-debug" || exit /b 1
 call "%~dp0_test_module.bat" %* --bin-rel "tests\lexer" --module-namespace "Lexer" --artifact-label "lex-only" --build-cfg "fast-compile" --lex-only || exit /b 1
 call "%~dp0_test_module.bat" %* --bin-rel "tests\parser" --module-namespace "Parser" --artifact-label "syntax-only" --build-cfg "fast-compile" --syntax-only || exit /b 1
 call "%~dp0_test_module.bat" %* --bin-rel "tests\errors\lexer" --module-namespace "Lexer" --artifact-label "lex-only" --build-cfg "fast-compile" --lex-only || exit /b 1
@@ -63,4 +66,5 @@ call "%~dp0reference.bat" %* --build-cfg "fast-compile" || exit /b 1
 call "%~dp0std.bat" %* --build-cfg "fast-compile" || exit /b 1
 call "%~dp0examples.bat" %* --build-cfg "fast-compile" || exit /b 1
 call "%~dp0core.bat" %* --build-cfg "fast-compile" || exit /b 1
+call "%~dp0export.bat" %* --build-cfg "fast-compile" || exit /b 1
 exit /b 0

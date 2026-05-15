@@ -143,14 +143,14 @@ inline Utf8 defaultArtifactName(const CommandLine& cmdLine)
     if (!cmdLine.name.empty())
         return FileSystem::sanitizeFileName(cmdLine.name);
 
-    if (!cmdLine.workspacePath.empty())
-        return FileSystem::sanitizeFileName(Utf8(cmdLine.workspacePath.filename().string()));
-
     if (!cmdLine.modulePath.empty())
         return FileSystem::sanitizeFileName(Utf8(cmdLine.modulePath.filename().string()));
 
     if (!cmdLine.moduleFilePath.empty())
         return FileSystem::sanitizeFileName(Utf8(cmdLine.moduleFilePath.parent_path().filename().string()));
+
+    if (!cmdLine.workspacePath.empty())
+        return FileSystem::sanitizeFileName(Utf8(cmdLine.workspacePath.filename().string()));
 
     if (cmdLine.files.size() == 1)
         return FileSystem::sanitizeFileName(Utf8(cmdLine.files.begin()->stem().string()));

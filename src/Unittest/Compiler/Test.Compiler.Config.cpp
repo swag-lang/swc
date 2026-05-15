@@ -431,6 +431,24 @@ SWC_TEST_BEGIN(Compiler_CommandLineWorkspaceResolvesPath)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(Compiler_WorkspaceModuleDefaultsArtifactNameAndNamespaceFromModulePath)
+{
+    CommandLine cmdLine;
+    cmdLine.command        = CommandKind::Build;
+    cmdLine.workspacePath  = fs::path("workspace");
+    cmdLine.modulePath     = fs::path("workspace/modules/dep");
+    cmdLine.moduleFilePath = fs::path("workspace/modules/dep/module.swg");
+    CommandLineParser::refreshBuildCfg(cmdLine);
+
+    if (defaultArtifactName(cmdLine) != "dep")
+        return Result::Error;
+    if (Utf8(cmdLine.defaultBuildCfg.moduleNamespace) != "Dep")
+        return Result::Error;
+
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(Compiler_ModuleFileSetupConfiguresBuildAndLoadsExplicitSources)
 {
     const ScopedTempTree tempTree("compiler_module_file_setup");
@@ -563,11 +581,8 @@ SWC_TEST_BEGIN(Compiler_WorkspaceBuildUsesModuleSetupDependenciesAndSkipsIgnored
 }
 )"))
         return Result::Error;
-    if (!writeTextFile(depModuleDir / "src" / "api.swg", R"(#global export
-public func depValue()->s32
-{
-    return 7
-}
+    if (!writeTextFile(depModuleDir / "src" / "main.swg", R"(const PRIVATE_VALUE = 99
+public const DEP_VALUE = 7
 )"))
         return Result::Error;
 
@@ -584,7 +599,7 @@ public func depValue()->s32
 
 public func coreValue()->s32
 {
-    return depValue()
+    return DEP_VALUE
 }
 )"))
         return Result::Error;
@@ -610,8 +625,21 @@ public func coreValue()->s32
     if (compiler.run() != ExitCode::Success)
         return Result::Error;
 
-    const fs::path depApiFile = workspaceDir / ".output" / "dep" / "export" / "fast-debug" / "x86_64" / "api.swg";
+    const fs::path depApiFile = workspaceDir / ".output" / "dep" / "export" / "fast-debug" / "x86_64" / "dep.swg";
     if (!fs::exists(depApiFile))
+        return Result::Error;
+
+    const fs::path legacyApiFile = workspaceDir / ".output" / "dep" / "export" / "fast-debug" / "x86_64" / "api.swg";
+    if (fs::exists(legacyApiFile))
+        return Result::Error;
+
+    Utf8                    depApiContent;
+    FileSystem::IoErrorInfo ioError;
+    if (FileSystem::readTextFile(depApiFile, depApiContent, ioError) != Result::Continue)
+        return Result::Error;
+    if (!depApiContent.contains("public const DEP_VALUE = 7"))
+        return Result::Error;
+    if (depApiContent.contains("PRIVATE_VALUE"))
         return Result::Error;
 
     return Result::Continue;

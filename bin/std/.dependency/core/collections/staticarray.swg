@@ -493,8 +493,14 @@ impl StaticArray
                 @drop(&.buffer[index + idx])
         }
 
-        if index >= .count do
+        if index >= .count
+        {
+            #if Reflection.hasDrop(T) or Reflection.hasPostCopy(T) or Reflection.hasPostMove(T)
+            {
+                @init(&.buffer[.count], oldCount - .count)
+            }
             return
+        }
 
         #if Reflection.hasPostMove(T)
         {

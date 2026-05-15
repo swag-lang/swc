@@ -2,9 +2,34 @@
 #global fileprivate
 using Swag
 
+var StaticArrayDropCount: s32 = 0
+
 struct StaticArrayVisitProbe
 {
     value: s32
+}
+
+struct StaticArrayDropTracked
+{
+    value: s32
+}
+
+impl StaticArrayDropTracked
+{
+    mtd opDrop()
+    {
+        if .value == 0 do
+            return
+
+        @assert(.value > 0)
+        StaticArrayDropCount += 1
+        .value = -1
+    }
+}
+
+func resetStaticArrayDropTrace()
+{
+    StaticArrayDropCount = 0
 }
 
 func assertStaticIntArray(values: const &StaticArray'(s32, 4'u64), expected: const [..] s32)->bool
@@ -115,4 +140,26 @@ func visitStructStaticArrayReverse(values: &StaticArray'(StaticArrayVisitProbe, 
     }
 
     @assert(reverseIndex == 2)
+}
+
+#test
+{
+    resetStaticArrayDropTrace()
+
+    {
+        var values: StaticArray'(StaticArrayDropTracked, 4'u64)
+        let seed = values.emplaceAddress(4)
+        seed[0].value = 1
+        seed[1].value = 2
+        seed[2].value = 3
+        seed[3].value = 4
+
+        values.removeAtOrdered(2, 2)
+
+        @assert(values.count == 2)
+        @assert(values[0].value == 1)
+        @assert(values[1].value == 2)
+    }
+
+    @assert(StaticArrayDropCount == 4)
 }

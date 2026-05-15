@@ -57,6 +57,8 @@ impl String
         if @dataof(value) == null
         {
             .length = 0
+            if .buffer do
+                .buffer[0] = 0
             return
         }
 
@@ -253,6 +255,8 @@ impl String
     mtd clear()
     {
         .length = 0
+        if .buffer do
+            .buffer[0] = 0
     }
 
     // Returns true if the String has zero length

@@ -73,6 +73,8 @@ func reverseIndexOfByteAtLeast(value: const &String, minByte: u8)->u64
     @assert(value.isEmpty())
     @assert(value.isNullOrEmpty())
     @assert(assertString(value, ""))
+    let emptyCstr = cast(cstring) value
+    @assert(@countof(emptyCstr) == 0)
 
     value = "abc"
     @assert(assertString(value, "abc"))
@@ -83,6 +85,8 @@ func reverseIndexOfByteAtLeast(value: const &String, minByte: u8)->u64
     value = nullText
     @assert(value.isEmpty())
     @assert(assertString(value, ""))
+    let nullCstr = cast(cstring) value
+    @assert(@countof(nullCstr) == 0)
 }
 
 #test

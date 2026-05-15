@@ -17,17 +17,20 @@ func wait(threads: *Thread...)
 {
     var handles: [MAXIMUM_WAIT_OBJECTS] HANDLE
 
+    var startIndex: u64 = 0
     var total = @countof(threads)
     while total > 0
     {
         let toTreat = Math.min(MAXIMUM_WAIT_OBJECTS, cast(u32) total)
         for i in toTreat
         {
-            Debug.assert(threads[i].isValid())
-            handles[i] = threads[i].handle
+            let threadIndex = startIndex + cast(u64) i
+            Debug.assert(threads[threadIndex].isValid())
+            handles[i] = threads[threadIndex].handle
         }
 
         assume WaitForMultipleObjects(toTreat, &handles[0], TRUE, INFINITE)
+        startIndex += cast(u64) toTreat
         total -= toTreat
     }
 

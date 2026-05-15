@@ -205,7 +205,6 @@ fs::path FileSystem::generatedDependencyApiDir(const fs::path& exeFullName, cons
     fs::path result = compilerResourceRoot(exeFullName);
     result /= "std";
     result /= ".output";
-    result /= "dep";
     result /= fs::path(std::string(moduleName));
     return lexicallyNormalize(result);
 }

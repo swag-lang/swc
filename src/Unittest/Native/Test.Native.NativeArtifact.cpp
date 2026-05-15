@@ -232,7 +232,7 @@ SWC_TEST_BEGIN(NativeArtifact_ImportedApiKeepsLocalOutputTree)
     if (inputRoot.empty())
         return Result::Error;
 
-    cmdLine.importApiDirs.insert(inputRoot.parent_path().parent_path() / ".output" / "dep");
+    cmdLine.importApiDirs.insert(inputRoot.parent_path().parent_path() / ".output");
     CompilerInstance            compilerWithImport(ctx.global(), cmdLine);
     NativeBackendBuilder        nativeBuilderWithImport(compilerWithImport, false);
     const NativeArtifactBuilder artifactBuilderWithImport(nativeBuilderWithImport);

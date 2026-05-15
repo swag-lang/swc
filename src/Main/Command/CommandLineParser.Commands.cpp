@@ -59,7 +59,7 @@ void CommandLineParser::registerCommands()
         "Specify a workspace folder containing modules/<module>/module.swg and modules/<module>/src. Workspaces own their .output and .tmp folders and cannot be combined with --module, --module-file, --directory or --file.");
     add(HelpOptionGroup::Input, "sema test build run", "--import-api-module", nullptr,
         &cmdLine_->importApiModules,
-        "Resolve a generated public API dependency from a module name through <compiler-root>/std/.output/dep/<module>/<matching-config>.");
+        "Resolve a generated public API dependency from a module name through <compiler-root>/std/.output/<module>/<matching-config>.");
     add(HelpOptionGroup::Input, "sema test build run", "--import-api-dir", nullptr,
         &cmdLine_->importApiDirs,
         "Add a read-only dependency root containing <module>/<backend>/<build-cfg>/<arch> folders of generated public API files (.swg/.swgs).");

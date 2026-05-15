@@ -60,7 +60,9 @@ impl StringBuilder
     // Force a ending 0
     mtd zeroTerminate()
     {
+        let seek = .buffer.getSeek()
         .buffer.addNative(0'u8)
+        .buffer.setEndSeek(seek)
     }
 
     // Return the content as a string

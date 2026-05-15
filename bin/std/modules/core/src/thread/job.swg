@@ -155,6 +155,7 @@ public func setNumWorkers(numWorkers: u32 = 0) throw
 public func scheduleJob(job: *Job)
 {
     Sync.scopedLock(&g_mutexPendingJobs)
+    job.clearState(JobState.Done)
     job.setState(JobState.InPending)
     g_totalJobs += 1
     g_eventDone.reset()

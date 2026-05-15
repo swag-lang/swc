@@ -178,7 +178,7 @@ void Symbol::setSemaCompleted(TaskContext& ctx)
     }
 #endif
     flags_.add(SymbolFlagsE::SemaCompleted);
-    ctx.compiler().onSymbolSemaCompleted(*this);
+    ctx.compiler().onSymbolSemaCompleted(ctx, *this);
     ctx.compiler().notifyAlive();
 }
 

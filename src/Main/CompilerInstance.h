@@ -3,6 +3,7 @@
 #include "Compiler/SourceFile.h"
 #include "Main/CompilerTagRegistry.h"
 #include "Main/ExitCodes.h"
+#include "Main/ModuleApi.h"
 #include "Support/Core/DataSegment.h"
 #include "Support/Core/Utf8.h"
 #include "Support/Memory/Arena.h"
@@ -186,7 +187,7 @@ public:
     SymbolFunction*                 runtimeFunctionSymbol(IdentifierRef idRef) const;
     bool                            tryRegisterReportedDiagnostic(std::string_view message);
     void                            registerCompilerMessageFunction(SymbolFunction* symbol, AstNodeRef nodeRef, uint64_t mask);
-    void                            onSymbolSemaCompleted(Symbol& symbol);
+    void                            onSymbolSemaCompleted(TaskContext& ctx, Symbol& symbol);
     Result                          ensureCompilerMessagePass(Runtime::CompilerMsgKind kind);
     Result                          executePendingCompilerMessages(TaskContext& ctx);
     bool                            hasCompilerMessageInterest(Runtime::CompilerMsgKind kind) const;
@@ -349,6 +350,7 @@ private:
     CompilerTagRegistry                                   compilerTags_;
     std::unordered_map<IdentifierRef, SymbolFunction*>    runtimeFunctionSymbols_;
     std::unordered_map<Utf8, Utf8>                        inMemoryFiles_;
+    ModuleApiState                                        moduleApiState_;
     mutable std::mutex                                    pendingImplRegistrationsMutex_;
     std::unordered_map<IdentifierRef, uint32_t>           pendingImplRegistrations_;
     std::mutex                                            reportedDiagnosticsMutex_;

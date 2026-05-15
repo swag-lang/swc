@@ -577,270 +577,6 @@ namespace
         return Result::Continue;
     }
 
-    struct ModuleApiFileInfo
-    {
-        bool legacyExported     = false;
-        bool defaultPublic      = false;
-        bool hasModuleNamespace = false;
-    };
-
-    struct ModuleApiSnippet
-    {
-        const SourceFile* file    = nullptr;
-        AstNodeRef        nodeRef = AstNodeRef::invalid();
-    };
-
-    uint32_t sourceTokenByteStart(const SourceView& srcView, const Token& token)
-    {
-        if (token.id == TokenId::Identifier)
-            return srcView.identifiers()[token.byteStart].byteStart;
-
-        return token.byteStart;
-    }
-
-    uint32_t sourceTokenByteEnd(const SourceView& srcView, const Token& token)
-    {
-        return sourceTokenByteStart(srcView, token) + token.byteLength;
-    }
-
-    bool isConstVarDecl(const AstNode& node)
-    {
-        if (node.is(AstNodeId::SingleVarDecl))
-            return node.cast<AstSingleVarDecl>().hasFlag(AstVarDeclFlagsE::Const);
-        if (node.is(AstNodeId::MultiVarDecl))
-            return node.cast<AstMultiVarDecl>().hasFlag(AstVarDeclFlagsE::Const);
-
-        return false;
-    }
-
-    bool isConstVarDeclList(const Ast& ast, const AstNode& node)
-    {
-        if (node.isNot(AstNodeId::VarDeclList))
-            return false;
-
-        SmallVector<AstNodeRef> childRefs;
-        ast.appendNodes(childRefs, node.cast<AstVarDeclList>().spanChildrenRef);
-        if (childRefs.empty())
-            return false;
-
-        for (const AstNodeRef childRef : childRefs)
-        {
-            if (childRef.isInvalid() || !ast.hasNode(childRef))
-                return false;
-
-            const AstNode& childNode = ast.node(childRef);
-            if (!isConstVarDecl(childNode))
-                return false;
-        }
-
-        return true;
-    }
-
-    bool isModuleApiDeclarationNode(const AstNode& node)
-    {
-        switch (node.id())
-        {
-            case AstNodeId::AliasDecl:
-            case AstNodeId::AnonymousStructDecl:
-            case AstNodeId::AnonymousUnionDecl:
-            case AstNodeId::AttrDecl:
-            case AstNodeId::EnumDecl:
-            case AstNodeId::FunctionDecl:
-            case AstNodeId::Impl:
-            case AstNodeId::InterfaceDecl:
-            case AstNodeId::MultiVarDecl:
-            case AstNodeId::NamespaceDecl:
-            case AstNodeId::SingleVarDecl:
-            case AstNodeId::StructDecl:
-            case AstNodeId::UnionDecl:
-                return true;
-
-            default:
-                return false;
-        }
-    }
-
-    bool collectSupportedPublicModuleApiDecl(const SourceFile& file, const AstNodeRef nodeRef, const bool isPublic, AstNodeRef outerRef, SmallVector<AstNodeRef>& outSupportedDecls)
-    {
-        if (nodeRef.isInvalid())
-            return true;
-
-        const Ast&     ast  = file.ast();
-        const AstNode& node = ast.node(nodeRef);
-        if (!outerRef.isValid())
-            outerRef = nodeRef;
-
-        if (node.is(AstNodeId::AccessModifier))
-        {
-            const TokenId accessId    = ast.srcView().token(node.tokRef()).id;
-            const bool    childPublic = accessId == TokenId::KwdPublic;
-            return collectSupportedPublicModuleApiDecl(file, node.cast<AstAccessModifier>().nodeWhatRef, childPublic, outerRef, outSupportedDecls);
-        }
-
-        if (node.is(AstNodeId::AttributeList))
-            return collectSupportedPublicModuleApiDecl(file, node.cast<AstAttributeList>().nodeBodyRef, isPublic, outerRef, outSupportedDecls);
-
-        if (!isPublic)
-            return true;
-
-        if (node.is(AstNodeId::VarDeclList))
-        {
-            if (!isConstVarDeclList(ast, node))
-                return false;
-
-            outSupportedDecls.push_back(outerRef);
-            return true;
-        }
-
-        if (node.is(AstNodeId::SingleVarDecl) || node.is(AstNodeId::MultiVarDecl))
-        {
-            if (!isConstVarDecl(node))
-                return false;
-
-            outSupportedDecls.push_back(outerRef);
-            return true;
-        }
-
-        if (isModuleApiDeclarationNode(node))
-            return false;
-
-        return true;
-    }
-
-    bool collectSupportedPublicModuleApiDecls(const SourceFile& file, const bool defaultPublic, SmallVector<AstNodeRef>& outSupportedDecls)
-    {
-        const AstNodeRef rootRef = file.ast().root();
-        if (rootRef.isInvalid())
-            return true;
-
-        const AstNode& rootNode = file.ast().node(rootRef);
-        if (rootNode.isNot(AstNodeId::File))
-            return true;
-
-        const auto&             fileNode = rootNode.cast<AstFile>();
-        SmallVector<AstNodeRef> childRefs;
-        file.ast().appendNodes(childRefs, fileNode.spanChildrenRef);
-
-        for (const AstNodeRef childRef : childRefs)
-        {
-            if (!collectSupportedPublicModuleApiDecl(file, childRef, defaultPublic, AstNodeRef::invalid(), outSupportedDecls))
-                return false;
-        }
-
-        return true;
-    }
-
-    TokenRef moduleApiSnippetStartTokRef(const Ast& ast, const AstNode& node)
-    {
-        if (node.is(AstNodeId::VarDeclList))
-        {
-            SmallVector<AstNodeRef> childRefs;
-            ast.appendNodes(childRefs, node.cast<AstVarDeclList>().spanChildrenRef);
-            if (!childRefs.empty() && childRefs.front().isValid() && ast.hasNode(childRefs.front()))
-                return moduleApiSnippetStartTokRef(ast, ast.node(childRefs.front()));
-        }
-
-        return node.tokRef();
-    }
-
-    bool tryGetModuleApiSnippet(const SourceFile& file, const AstNodeRef nodeRef, std::string_view& outSnippet)
-    {
-        outSnippet = {};
-        if (nodeRef.isInvalid())
-            return false;
-
-        const Ast& ast = file.ast();
-        if (!ast.hasSourceView())
-            return false;
-
-        const AstNode& node        = ast.node(nodeRef);
-        const TokenRef startTokRef = moduleApiSnippetStartTokRef(ast, node);
-        if (!startTokRef.isValid())
-            return false;
-
-        const SourceView& srcView   = ast.srcView();
-        const TokenRef    endTokRef = node.tokRefEnd(ast);
-        if (!endTokRef.isValid())
-            return false;
-
-        const std::string_view source      = file.sourceView();
-        const uint32_t         startOffset = sourceTokenByteStart(srcView, srcView.token(startTokRef));
-        uint32_t               endOffset   = sourceTokenByteEnd(srcView, srcView.token(endTokRef));
-
-        if (endTokRef.get() + 1 < srcView.numTokens())
-        {
-            const Token& nextToken = srcView.token(TokenRef(endTokRef.get() + 1));
-            if (nextToken.id == TokenId::SymSemiColon)
-                endOffset = sourceTokenByteEnd(srcView, nextToken);
-        }
-
-        if (startOffset >= endOffset || endOffset > source.size())
-            return false;
-
-        outSnippet = source.substr(startOffset, endOffset - startOffset);
-        return true;
-    }
-
-    ModuleApiFileInfo analyzeModuleApiFile(const SourceFile& file, std::string_view moduleNamespace)
-    {
-        ModuleApiFileInfo result;
-        const AstNodeRef  rootRef = file.ast().root();
-        if (rootRef.isInvalid())
-            return result;
-
-        const AstNode& rootNode = file.ast().node(rootRef);
-        if (rootNode.isNot(AstNodeId::File))
-            return result;
-
-        const auto& fileNode = rootNode.cast<AstFile>();
-
-        SmallVector<AstNodeRef> globalRefs;
-        file.ast().appendNodes(globalRefs, fileNode.spanGlobalsRef);
-        for (uint32_t i = 0; i < globalRefs.size(); ++i)
-        {
-            const AstNodeRef globalRef = globalRefs[i];
-            if (globalRef.isInvalid())
-                continue;
-
-            const AstNode& globalNode = file.ast().node(globalRef);
-            if (globalNode.isNot(AstNodeId::CompilerGlobal))
-                continue;
-
-            const auto& global = globalNode.cast<AstCompilerGlobal>();
-            if (i == 0 && global.mode == AstCompilerGlobal::Mode::Export)
-                result.legacyExported = true;
-
-            if (global.mode == AstCompilerGlobal::Mode::AccessPublic)
-                result.defaultPublic = true;
-            else if (global.mode == AstCompilerGlobal::Mode::AccessFilePrivate || global.mode == AstCompilerGlobal::Mode::AccessModulePrivate)
-                result.defaultPublic = false;
-
-            if (global.mode != AstCompilerGlobal::Mode::Namespace)
-                continue;
-
-            SmallVector<TokenRef> nameRefs;
-            file.ast().appendTokens(nameRefs, global.spanNameRef);
-            if (nameRefs.size() != 1)
-                continue;
-
-            const std::string_view namespaceName = file.ast().srcView().tokenString(nameRefs[0]);
-            if (namespaceName == moduleNamespace)
-                result.hasModuleNamespace = true;
-        }
-
-        return result;
-    }
-
-    std::string_view preferredLineEnding(const SourceFile& file)
-    {
-        const std::string_view content = file.sourceView();
-        if (content.find("\r\n") != std::string_view::npos)
-            return "\r\n";
-        if (content.find('\n') != std::string_view::npos)
-            return "\n";
-        return "\r\n";
-    }
-
     Utf8 buildCfgString(const Runtime::String& value)
     {
         if (!value.ptr || !value.length)
@@ -927,105 +663,6 @@ namespace
         if (artifactName.empty())
             artifactName = defaultArtifactName(compiler.cmdLine());
         return defaultModuleNamespace(artifactName);
-    }
-
-    fs::path buildGeneratedModuleApiPath(const CompilerInstance& compiler, const fs::path& exportApiDir)
-    {
-        Utf8 moduleName = defaultArtifactName(compiler.cmdLine());
-        if (moduleName.empty())
-            moduleName = "module";
-
-        fs::path result = exportApiDir / fs::path(moduleName.c_str());
-        result.replace_extension(".swg");
-        return result.lexically_normal();
-    }
-
-    Utf8 buildExportedModuleApiContent(const SourceFile& file, std::string_view moduleNamespace, const bool hasModuleNamespace)
-    {
-        const std::string_view source = file.sourceView();
-        if (hasModuleNamespace)
-            return Utf8{source};
-
-        uint32_t insertOffset = file.ast().srcView().sourceStartOffset();
-        if (file.ast().srcView().numTokens())
-        {
-            const Token& firstToken = file.ast().srcView().token(TokenRef(0));
-            if (firstToken.id != TokenId::EndOfFile)
-                insertOffset = firstToken.byteStart;
-        }
-
-        insertOffset = std::min<uint32_t>(insertOffset, static_cast<uint32_t>(source.size()));
-
-        Utf8 content;
-        content.reserve(source.size() + moduleNamespace.size() + 32);
-        content.append(source.substr(0, insertOffset));
-        content += "#global namespace ";
-        content += moduleNamespace;
-        content += preferredLineEnding(file);
-        content.append(source.substr(insertOffset));
-        return content;
-    }
-
-    Utf8 buildGeneratedModuleApiContent(std::span<const ModuleApiSnippet> snippets, std::string_view moduleNamespace, std::string_view eol)
-    {
-        Utf8 content;
-        content += "#global namespace ";
-        content += moduleNamespace;
-        content += eol;
-        content += "#global public";
-        content += eol;
-
-        bool wroteSnippet = false;
-        for (const ModuleApiSnippet& snippet : snippets)
-        {
-            if (!snippet.file)
-                continue;
-
-            std::string_view snippetText;
-            if (!tryGetModuleApiSnippet(*snippet.file, snippet.nodeRef, snippetText))
-                continue;
-
-            content += eol;
-            content += snippetText;
-            if (!snippetText.empty() && snippetText.back() != '\n' && snippetText.back() != '\r')
-                content += eol;
-            wroteSnippet = true;
-        }
-
-        if (!wroteSnippet)
-            content += eol;
-
-        return content;
-    }
-
-    Result writeModuleApiFile(TaskContext& ctx, const fs::path& dstPath, std::string_view content)
-    {
-        FileSystem::IoErrorInfo ioError;
-        if (FileSystem::writeBinaryFile(dstPath, content.data(), content.size(), ioError) == Result::Continue)
-            return Result::Continue;
-
-        Diagnostic diag = Diagnostic::get(DiagnosticId::cmd_err_api_file_write_failed);
-        FileSystem::setDiagnosticPathAndBecause(diag, &ctx, dstPath, FileSystem::describeIoFailure(ioError));
-        diag.report(ctx);
-        return Result::Error;
-    }
-
-    Result ensureModuleApiDirectory(TaskContext& ctx, const fs::path& path)
-    {
-        if (path.empty())
-            return Result::Continue;
-
-        std::error_code ec;
-        fs::create_directories(path, ec);
-        if (ec)
-        {
-            Diagnostic diag = Diagnostic::get(DiagnosticId::cmd_err_api_dir_create_failed);
-            FileSystem::setDiagnosticPathAndBecause(diag, &ctx, path, FileSystem::normalizeSystemMessage(ec));
-            diag.report(ctx);
-            return Result::Error;
-        }
-
-        return Result::Continue;
     }
 
     fs::path workspaceModulesDirectory(const fs::path& workspacePath)
@@ -2444,8 +2081,10 @@ void CompilerInstance::registerCompilerMessageFunction(SymbolFunction* symbol, c
     notifyAlive();
 }
 
-void CompilerInstance::onSymbolSemaCompleted(Symbol& symbol)
+void CompilerInstance::onSymbolSemaCompleted(TaskContext& ctx, Symbol& symbol)
 {
+    ModuleApi::onSymbolSemaCompleted(moduleApiState_, ctx, symbol);
+
     const uint64_t activeMask = compilerMessageActiveMask_.load(std::memory_order_acquire);
     if (!activeMask)
         return;
@@ -2461,6 +2100,7 @@ void CompilerInstance::onSymbolSemaCompleted(Symbol& symbol)
 
     const SymbolFunction* preparationFunction = nullptr;
     AstNodeRef            preparationNodeRef  = AstNodeRef::invalid();
+    
     {
         const std::scoped_lock lock(compilerMessageMutex_);
         compilerMessageLog_.push_back(event);
@@ -2480,8 +2120,8 @@ void CompilerInstance::onSymbolSemaCompleted(Symbol& symbol)
 
     if (preparationFunction)
     {
-        TaskContext ctx(*this);
-        enqueueCompilerMessageTypeInfoPreparation(ctx, preparationFunction, preparationNodeRef, event);
+        TaskContext taskContext(*this);
+        enqueueCompilerMessageTypeInfoPreparation(taskContext, preparationFunction, preparationNodeRef, event);
     }
 
     notifyAlive();
@@ -3124,81 +2764,7 @@ Result CompilerInstance::collectFiles(TaskContext& ctx)
 
 Result CompilerInstance::exportModuleApi(TaskContext& ctx)
 {
-    const fs::path& exportApiDir = cmdLine().exportApiDir;
-    if (exportApiDir.empty())
-        return Result::Continue;
-
-    const Utf8                    moduleNamespace = buildModuleNamespaceName(*this);
-    SmallVector<ModuleApiSnippet> generatedSnippets;
-    const SourceFile*             firstGeneratedSource = nullptr;
-    bool                          hasModuleSources     = false;
-    bool                          supportsGeneratedApi = true;
-    for (const SourceFile* file : files())
-    {
-        if (!file || !file->hasFlag(FileFlagsE::ModuleSrc))
-            continue;
-
-        hasModuleSources = true;
-
-        const ModuleApiFileInfo info = analyzeModuleApiFile(*file, moduleNamespace.view());
-        if (info.legacyExported)
-            continue;
-
-        if (!firstGeneratedSource)
-            firstGeneratedSource = file;
-
-        SmallVector<AstNodeRef> fileGeneratedDecls;
-        if (!collectSupportedPublicModuleApiDecls(*file, info.defaultPublic, fileGeneratedDecls))
-            supportsGeneratedApi = false;
-
-        for (const AstNodeRef declRef : fileGeneratedDecls)
-            generatedSnippets.push_back({.file = file, .nodeRef = declRef});
-    }
-
-    if (!hasModuleSources)
-        return Result::Continue;
-
-    SWC_RESULT(ensureModuleApiDirectory(ctx, exportApiDir));
-    SWC_RESULT(FileSystem::clearDirectoryContents(ctx, exportApiDir, DiagnosticId::cmd_err_api_dir_clear_failed));
-
-    std::unordered_map<Utf8, fs::path> exportedFileNames;
-    for (const SourceFile* file : files())
-    {
-        if (!file || !file->hasFlag(FileFlagsE::ModuleSrc))
-            continue;
-
-        const ModuleApiFileInfo info = analyzeModuleApiFile(*file, moduleNamespace.view());
-        if (!info.legacyExported)
-            continue;
-
-        const fs::path dstPath  = (exportApiDir / file->path().filename()).lexically_normal();
-        const Utf8     fileName = dstPath.filename().string();
-        const auto     inserted = exportedFileNames.emplace(fileName, file->path());
-        if (!inserted.second)
-        {
-            const Utf8 because = std::format("duplicate exported API file name from '{}' and '{}'", inserted.first->second.string(), file->path().string());
-            return reportInvalidFolder(ctx, dstPath, because);
-        }
-
-        const Utf8 content = buildExportedModuleApiContent(*file, moduleNamespace.view(), info.hasModuleNamespace);
-        if (writeModuleApiFile(ctx, dstPath, content.view()) != Result::Continue)
-            return Result::Error;
-    }
-
-    if (!supportsGeneratedApi || generatedSnippets.empty() || !firstGeneratedSource)
-        return Result::Continue;
-
-    const fs::path generatedDstPath  = buildGeneratedModuleApiPath(*this, exportApiDir);
-    const Utf8     generatedFileName = generatedDstPath.filename().string();
-    if (exportedFileNames.contains(generatedFileName))
-        return Result::Continue;
-
-    const std::string_view eol     = preferredLineEnding(*firstGeneratedSource);
-    const Utf8             content = buildGeneratedModuleApiContent(generatedSnippets.span(), moduleNamespace.view(), eol);
-    if (writeModuleApiFile(ctx, generatedDstPath, content.view()) != Result::Continue)
-        return Result::Error;
-
-    return Result::Continue;
+    return ModuleApi::exportFiles(ctx, moduleApiState_);
 }
 
 SWC_END_NAMESPACE();

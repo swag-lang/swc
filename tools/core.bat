@@ -34,13 +34,13 @@ set "CORE_MODULE_FILE=%ROOT%\bin\%CORE_BIN_REL%\module.swg"
 call "%TOOLS_DIR%_common.bat" :set_paths "%WIN32_BIN_REL%" "export" "%BUILD_CFG%"
 if not "%ERRORLEVEL%"=="0" exit /b %ERRORLEVEL%
 
-"%SWC_EXE%" build --module-file "%WIN32_MODULE_FILE%" -d "src" --out-dir "%OUT_DIR%" --work-dir "%WORK_DIR%" --build-cfg %BUILD_CFG% --export-api-dir "%WIN32_API_DIR%"%EXTRA_ARGS%
+"%SWC_EXE%" build --no-unittest --module-file "%WIN32_MODULE_FILE%" -d "src" --out-dir "%OUT_DIR%" --work-dir "%WORK_DIR%" --build-cfg %BUILD_CFG% --export-api-dir "%WIN32_API_DIR%"%EXTRA_ARGS%
 if not "%ERRORLEVEL%"=="0" exit /b %ERRORLEVEL%
 
 call "%TOOLS_DIR%_common.bat" :set_paths "%XINPUT_BIN_REL%" "export" "%BUILD_CFG%"
 if not "%ERRORLEVEL%"=="0" exit /b %ERRORLEVEL%
 
-"%SWC_EXE%" build --module-file "%XINPUT_MODULE_FILE%" -d "src" --out-dir "%OUT_DIR%" --work-dir "%WORK_DIR%" --build-cfg %BUILD_CFG% --import-api-dir "%WIN32_API_DIR%" --export-api-dir "%XINPUT_API_DIR%"%EXTRA_ARGS%
+"%SWC_EXE%" build --no-unittest --module-file "%XINPUT_MODULE_FILE%" -d "src" --out-dir "%OUT_DIR%" --work-dir "%WORK_DIR%" --build-cfg %BUILD_CFG% --import-api-dir "%WIN32_API_DIR%" --export-api-dir "%XINPUT_API_DIR%"%EXTRA_ARGS%
 if not "%ERRORLEVEL%"=="0" exit /b %ERRORLEVEL%
 
 call "%TOOLS_DIR%_common.bat" :set_paths "%CORE_BIN_REL%" "executable" "%BUILD_CFG%"

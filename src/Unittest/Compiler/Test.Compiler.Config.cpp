@@ -587,6 +587,9 @@ public const DEP_VALUE = 7
         return Result::Error;
     if (!writeTextFile(depModuleDir / "src" / "public.swg", R"(#global public
 const DEP_PUBLIC_DEFAULT = 11
+const DEP_MULTI_A = 13, DEP_MULTI_B = 17
+fileprivate const DEP_FILE_PRIVATE = 23
+moduleprivate const DEP_MODULE_PRIVATE = 29
 )"))
         return Result::Error;
     if (!writeTextFile(depModuleDir / "src" / "legacy.swg", R"(#global export
@@ -610,7 +613,7 @@ public func depLegacyValue()->s32
 
 public func coreValue()->s32
 {
-    return DEP_VALUE + DEP_PUBLIC_DEFAULT + depLegacyValue()
+    return DEP_VALUE + DEP_PUBLIC_DEFAULT + DEP_MULTI_A + DEP_MULTI_B + depLegacyValue()
 }
 )"))
         return Result::Error;
@@ -657,7 +660,13 @@ public func coreValue()->s32
         return Result::Error;
     if (!depApiContent.contains("const DEP_PUBLIC_DEFAULT = 11"))
         return Result::Error;
+    if (!depApiContent.contains("const DEP_MULTI_A = 13, DEP_MULTI_B = 17"))
+        return Result::Error;
     if (depApiContent.contains("PRIVATE_VALUE"))
+        return Result::Error;
+    if (depApiContent.contains("DEP_FILE_PRIVATE"))
+        return Result::Error;
+    if (depApiContent.contains("DEP_MODULE_PRIVATE"))
         return Result::Error;
     if (depApiContent.contains("depLegacyValue"))
         return Result::Error;

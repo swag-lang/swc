@@ -1,6 +1,5 @@
-#include <utility>
-
 #include "pch.h"
+#include "Main/CompilerInstance.h"
 #include "Backend/JIT/JIT.h"
 #include "Backend/JIT/JITExecManager.h"
 #include "Backend/JIT/JITMemoryManager.h"
@@ -24,7 +23,6 @@
 #include "Main/Command/Command.h"
 #include "Main/Command/CommandLine.h"
 #include "Main/Command/CommandLineParser.h"
-#include "Main/CompilerInstance.h"
 #include "Main/ExternalModuleManager.h"
 #include "Main/FileSystem.h"
 #include "Main/Global.h"
@@ -615,6 +613,29 @@ namespace
         return false;
     }
 
+    bool isConstVarDeclList(const Ast& ast, const AstNode& node)
+    {
+        if (node.isNot(AstNodeId::VarDeclList))
+            return false;
+
+        SmallVector<AstNodeRef> childRefs;
+        ast.appendNodes(childRefs, node.cast<AstVarDeclList>().spanChildrenRef);
+        if (childRefs.empty())
+            return false;
+
+        for (const AstNodeRef childRef : childRefs)
+        {
+            if (childRef.isInvalid() || !ast.hasNode(childRef))
+                return false;
+
+            const AstNode& childNode = ast.node(childRef);
+            if (!isConstVarDecl(childNode))
+                return false;
+        }
+
+        return true;
+    }
+
     bool isModuleApiDeclarationNode(const AstNode& node)
     {
         switch (node.id())
@@ -651,7 +672,7 @@ namespace
 
         if (node.is(AstNodeId::AccessModifier))
         {
-            const TokenId accessId = ast.srcView().token(node.tokRef()).id;
+            const TokenId accessId    = ast.srcView().token(node.tokRef()).id;
             const bool    childPublic = accessId == TokenId::KwdPublic;
             return collectSupportedPublicModuleApiDecl(file, node.cast<AstAccessModifier>().nodeWhatRef, childPublic, outerRef, outSupportedDecls);
         }
@@ -661,6 +682,15 @@ namespace
 
         if (!isPublic)
             return true;
+
+        if (node.is(AstNodeId::VarDeclList))
+        {
+            if (!isConstVarDeclList(ast, node))
+                return false;
+
+            outSupportedDecls.push_back(outerRef);
+            return true;
+        }
 
         if (node.is(AstNodeId::SingleVarDecl) || node.is(AstNodeId::MultiVarDecl))
         {
@@ -687,7 +717,7 @@ namespace
         if (rootNode.isNot(AstNodeId::File))
             return true;
 
-        const auto& fileNode = rootNode.cast<AstFile>();
+        const auto&             fileNode = rootNode.cast<AstFile>();
         SmallVector<AstNodeRef> childRefs;
         file.ast().appendNodes(childRefs, fileNode.spanChildrenRef);
 
@@ -700,6 +730,19 @@ namespace
         return true;
     }
 
+    TokenRef moduleApiSnippetStartTokRef(const Ast& ast, const AstNode& node)
+    {
+        if (node.is(AstNodeId::VarDeclList))
+        {
+            SmallVector<AstNodeRef> childRefs;
+            ast.appendNodes(childRefs, node.cast<AstVarDeclList>().spanChildrenRef);
+            if (!childRefs.empty() && childRefs.front().isValid() && ast.hasNode(childRefs.front()))
+                return moduleApiSnippetStartTokRef(ast, ast.node(childRefs.front()));
+        }
+
+        return node.tokRef();
+    }
+
     bool tryGetModuleApiSnippet(const SourceFile& file, const AstNodeRef nodeRef, std::string_view& outSnippet)
     {
         outSnippet = {};
@@ -710,17 +753,18 @@ namespace
         if (!ast.hasSourceView())
             return false;
 
-        const AstNode& node = ast.node(nodeRef);
-        if (!node.tokRef().isValid())
+        const AstNode& node        = ast.node(nodeRef);
+        const TokenRef startTokRef = moduleApiSnippetStartTokRef(ast, node);
+        if (!startTokRef.isValid())
             return false;
 
-        const SourceView& srcView = ast.srcView();
+        const SourceView& srcView   = ast.srcView();
         const TokenRef    endTokRef = node.tokRefEnd(ast);
         if (!endTokRef.isValid())
             return false;
 
-        const std::string_view source = file.sourceView();
-        const uint32_t         startOffset = sourceTokenByteStart(srcView, srcView.token(node.tokRef()));
+        const std::string_view source      = file.sourceView();
+        const uint32_t         startOffset = sourceTokenByteStart(srcView, srcView.token(startTokRef));
         uint32_t               endOffset   = sourceTokenByteEnd(srcView, srcView.token(endTokRef));
 
         if (endTokRef.get() + 1 < srcView.numTokens())
@@ -984,24 +1028,6 @@ namespace
         return Result::Continue;
     }
 
-    Result ensureWorkspaceDirectory(TaskContext& ctx, const fs::path& path)
-    {
-        if (path.empty())
-            return Result::Continue;
-
-        std::error_code ec;
-        fs::create_directories(path, ec);
-        if (ec)
-        {
-            Diagnostic diag = Diagnostic::get(DiagnosticId::cmd_err_workspace_dir_create_failed);
-            FileSystem::setDiagnosticPathAndBecause(diag, &ctx, path, FileSystem::normalizeSystemMessage(ec));
-            diag.report(ctx);
-            return Result::Error;
-        }
-
-        return Result::Continue;
-    }
-
     fs::path workspaceModulesDirectory(const fs::path& workspacePath)
     {
         return (workspacePath / "modules").lexically_normal();
@@ -1064,13 +1090,13 @@ namespace
         outBecause.clear();
 
         const fs::path moduleDir = dependencyModuleDirectory(dependencyRoot, moduleName);
-        outDir = moduleDir;
+        outDir                   = moduleDir;
         if (FileSystem::resolveExistingFolder(outDir, outBecause) != Result::Continue)
             return Result::Error;
 
         std::vector<fs::path> matches;
-        const fs::path        buildCfgDir = fs::path(cmdLine.buildCfg.c_str());
-        const fs::path        archDir     = fs::path(targetArchName(cmdLine.targetArch).c_str());
+        const auto            buildCfgDir = fs::path(cmdLine.buildCfg.c_str());
+        const auto            archDir     = fs::path(targetArchName(cmdLine.targetArch).c_str());
         std::error_code       ec;
         for (fs::directory_iterator it(moduleDir, fs::directory_options::skip_permission_denied, ec), end; it != end; it.increment(ec))
         {
@@ -2850,7 +2876,7 @@ Result CompilerInstance::applyModuleSetupInputs(TaskContext& ctx, const ModuleSe
         outRoot = fs::path(importRequest.location.c_str());
         if (outRoot.is_relative())
         {
-            fs::path baseDir = cmdLine().moduleFilePath.empty() ? FileSystem::currentPathNoThrow() : cmdLine().moduleFilePath.parent_path();
+            const fs::path baseDir = cmdLine().moduleFilePath.empty() ? FileSystem::currentPathNoThrow() : cmdLine().moduleFilePath.parent_path();
             if (!baseDir.empty())
                 outRoot = (baseDir / outRoot).lexically_normal();
         }
@@ -2899,7 +2925,7 @@ Result CompilerInstance::applyModuleSetupInputs(TaskContext& ctx, const ModuleSe
         }
 
         std::ranges::sort(matches);
-        matches.erase(std::unique(matches.begin(), matches.end()), matches.end());
+        matches.erase(std::ranges::unique(matches).begin(), matches.end());
         if (matches.empty())
         {
             if (cmdLine().importApiDirs.empty())
@@ -3102,7 +3128,7 @@ Result CompilerInstance::exportModuleApi(TaskContext& ctx)
     if (exportApiDir.empty())
         return Result::Continue;
 
-    const Utf8                    moduleNamespace      = buildModuleNamespaceName(*this);
+    const Utf8                    moduleNamespace = buildModuleNamespaceName(*this);
     SmallVector<ModuleApiSnippet> generatedSnippets;
     const SourceFile*             firstGeneratedSource = nullptr;
     bool                          hasModuleSources     = false;
@@ -3145,7 +3171,7 @@ Result CompilerInstance::exportModuleApi(TaskContext& ctx)
         if (!info.legacyExported)
             continue;
 
-        const fs::path dstPath = (exportApiDir / file->path().filename()).lexically_normal();
+        const fs::path dstPath  = (exportApiDir / file->path().filename()).lexically_normal();
         const Utf8     fileName = dstPath.filename().string();
         const auto     inserted = exportedFileNames.emplace(fileName, file->path());
         if (!inserted.second)
@@ -3154,7 +3180,7 @@ Result CompilerInstance::exportModuleApi(TaskContext& ctx)
             return reportInvalidFolder(ctx, dstPath, because);
         }
 
-        const Utf8              content = buildExportedModuleApiContent(*file, moduleNamespace.view(), info.hasModuleNamespace);
+        const Utf8 content = buildExportedModuleApiContent(*file, moduleNamespace.view(), info.hasModuleNamespace);
         if (writeModuleApiFile(ctx, dstPath, content.view()) != Result::Continue)
             return Result::Error;
     }
@@ -3162,7 +3188,7 @@ Result CompilerInstance::exportModuleApi(TaskContext& ctx)
     if (!supportsGeneratedApi || generatedSnippets.empty() || !firstGeneratedSource)
         return Result::Continue;
 
-    const fs::path generatedDstPath = buildGeneratedModuleApiPath(*this, exportApiDir);
+    const fs::path generatedDstPath  = buildGeneratedModuleApiPath(*this, exportApiDir);
     const Utf8     generatedFileName = generatedDstPath.filename().string();
     if (exportedFileNames.contains(generatedFileName))
         return Result::Continue;

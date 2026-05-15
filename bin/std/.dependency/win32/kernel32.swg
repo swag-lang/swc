@@ -142,6 +142,7 @@ const THREAD_PRIORITY_BELOW_NORMAL = -1
 const THREAD_PRIORITY_NORMAL       = 0
 const THREAD_PRIORITY_ABOVE_NORMAL = 1
 const THREAD_PRIORITY_HIGHEST      = 2
+const THREAD_PRIORITY_ERROR_RETURN = 0x7FFFFFFF
 
 func LOWORD(l: u64) => cast(u32) (l & 0xffff)
 func HIWORD(l: u64) => cast(u32) ((l >> 16) & 0xffff)
@@ -431,6 +432,7 @@ moduleprivate namespace Win32Priv
         func GetConsoleScreenBufferInfo(hConsoleOutput: HANDLE, lpConsoleScreenBufferInfo: *CONSOLE_SCREEN_BUFFER_INFO)->BOOL;
 
         func CreateThread(lpThreadAttributes: #null *SECURITY_ATTRIBUTES, dwStackSize: SIZE_T, lpStartAddress: LPTHREAD_START_ROUTINE, lpParameter: *void, dwCreationFlags: DWORD, lpThreadId: *DWORD)->HANDLE;
+        func GetThreadPriority(hThread: HANDLE)->s32;
         func ResumeThread(hThread: HANDLE)->DWORD;
         func SetThreadPriority(hThread: HANDLE, nPriority: s32)->BOOL;
         func WaitForSingleObject(hHandle: HANDLE, dwMilliseconds: DWORD)->DWORD;
@@ -530,6 +532,14 @@ moduleprivate namespace Win32Priv
         if h == null do
             try Win32.throwWinError(GetLastError())
         return h
+    }
+
+    func GetThreadPriority(hThread: HANDLE)->s32 throw
+    {
+        let result = Win32Priv.GetThreadPriority(hThread)
+        if result == THREAD_PRIORITY_ERROR_RETURN do
+            throwWinError(GetLastError())
+        return result
     }
 
     #[Discardable]

@@ -107,7 +107,7 @@ impl Thread
             wprio = THREAD_PRIORITY_HIGHEST
         }
 
-        try SetThreadPriority(.handle, THREAD_PRIORITY_LOWEST)
+        try SetThreadPriority(.handle, wprio)
     }
 
     // Wait for the given thread to be done, and close it

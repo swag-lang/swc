@@ -26,12 +26,6 @@ impl StaticArray
         return &.buffer[0]
     }
 
-    // Ensures that if elements have destructors, they are called when the array goes out of scope.
-    mtd opDrop()
-    {
-        .free()
-    }
-
     // Allows the array to be implicitly cast to a mutable slice.
     #[Inline]
     mtd opCast()->[..] T
@@ -94,8 +88,21 @@ impl StaticArray
     mtd opSet(arr: const [..] T)
         where Reflection.canCopy(T)
     {
+        let countof = @countof(arr)
+        if countof
+        {
+            let dataof = @dataof(arr)
+            let buffer = cast([*] T) &.buffer[0]
+            if dataof >= buffer and dataof < buffer + .count
+            {
+                var copy: Array'T
+                copy.add(arr)
+                .opSet(copy.toSlice())
+                return
+            }
+        }
+
         .clear()
-        var countof = @countof(arr)
         if !countof do
             return
         Debug.assert(countof <= N, "slice is too big")
@@ -156,16 +163,7 @@ impl StaticArray
     // This is equivalent to 'clear' for this type.
     mtd free()
     {
-        if !.count do
-            return
-
-        // Need to drop every structs
-        #if Reflection.hasDrop(T)
-        {
-            @drop(&.buffer[0], .count)
-        }
-
-        .count = 0
+        .clear()
     }
 
     // Returns 'true' if the array contains no elements.
@@ -195,7 +193,9 @@ impl StaticArray
         else
         {
             let data = cast([*] T) &.buffer[0]
-            @drop(data + newCount, .count - newCount)
+            let droppedCount = .count - newCount
+            @drop(data + newCount, droppedCount)
+            @init(data + newCount, droppedCount)
             .count = newCount
         }
     }
@@ -204,10 +204,13 @@ impl StaticArray
     // This calls the destructor for each element if one exists.
     mtd clear()
     {
+        let oldCount = .count
         #if Reflection.hasDrop(T)
         {
-            for .count do
+            for oldCount do
                 @drop(&.buffer[@index])
+
+            @init(&.buffer[0], oldCount)
         }
 
         .count = 0
@@ -417,6 +420,7 @@ impl StaticArray
         if !num do
             return
         Debug.assert(index + num <= .count, "index out of range")
+        let oldCount   = .count
         let shiftCount = .count - (index + num)
 
         #if !Reflection.hasPostMove(T) and !Reflection.hasDrop(T)
@@ -438,6 +442,11 @@ impl StaticArray
         }
 
         .count -= num
+
+        #if Reflection.hasDrop(T) or Reflection.hasPostCopy(T) or Reflection.hasPostMove(T)
+        {
+            @init(&.buffer[.count], oldCount - .count)
+        }
     }
 
     // Removes the first occurrence of a given value from the array.
@@ -455,11 +464,17 @@ impl StaticArray
     mtd removeAt(index: u64)
     {
         Debug.assert(index < .count, "index out of range")
+        let oldCount = .count
         .count -= 1
         if index == .count do
             @drop(&.buffer[.count])
         else do
             .buffer[index] = #moveraw .buffer[.count]
+
+        #if Reflection.hasDrop(T) or Reflection.hasPostCopy(T) or Reflection.hasPostMove(T)
+        {
+            @init(&.buffer[.count], oldCount - .count)
+        }
     }
 
     // Removes one or more elements at a given index, shifting subsequent elements to the left.
@@ -469,6 +484,7 @@ impl StaticArray
         if !numValues do
             return
         Debug.assert(index + numValues <= .count, "index out of range")
+        let oldCount = .count
         .count -= numValues
 
         #if Reflection.hasDrop(T)
@@ -492,6 +508,11 @@ impl StaticArray
         #else
         {
             Memory.copyOver(&.buffer[index], &.buffer[index + numValues], #sizeof(T) * (.count - index))
+        }
+
+        #if Reflection.hasDrop(T) or Reflection.hasPostCopy(T) or Reflection.hasPostMove(T)
+        {
+            @init(&.buffer[.count], oldCount - .count)
         }
     }
 
@@ -570,7 +591,12 @@ impl StaticArray
     {
         Debug.assert(.count > 0, "array is empty")
         var result: retval = undefined
-        result = #nodrop #moveraw .buffer[.count - 1]
+        let backIndex = .count - 1
+        result = #nodrop #moveraw .buffer[backIndex]
+        #if Reflection.hasDrop(T) or Reflection.hasPostCopy(T) or Reflection.hasPostMove(T)
+        {
+            @init(&.buffer[backIndex], 1)
+        }
         .count -= 1
         return result
     }
@@ -580,7 +606,12 @@ impl StaticArray
     mtd removeBack()
     {
         Debug.assert(.count > 0, "array is empty")
-        @drop(&.buffer[.count - 1])
+        let backIndex = .count - 1
+        @drop(&.buffer[backIndex])
+        #if Reflection.hasDrop(T) or Reflection.hasPostCopy(T) or Reflection.hasPostMove(T)
+        {
+            @init(&.buffer[backIndex], 1)
+        }
         .count -= 1
     }
 }

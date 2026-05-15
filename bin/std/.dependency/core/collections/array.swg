@@ -47,6 +47,7 @@ impl Array
 
         #if Reflection.hasPostCopy(T)
         {
+            .initNewSlots(0, .count)
             for .count do
                 .buffer[@index] = #nodrop oldBuffer[@index]
         }
@@ -121,8 +122,20 @@ impl Array
     mtd opSet(arr: const [..] T)
         where Reflection.canCopy(T)
     {
+        let countof = @countof(arr)
+        if countof and .buffer
+        {
+            let dataof = @dataof(arr)
+            if dataof >= .buffer and dataof < .buffer + .count
+            {
+                var copy: Array'T
+                copy.add(arr)
+                .opSet(copy.toSlice())
+                return
+            }
+        }
+
         .clear()
-        var countof = @countof(arr)
         if !countof do
             return
         var dataof = @dataof(arr)
@@ -130,6 +143,7 @@ impl Array
         .grow(countof)
         #if Reflection.hasPostCopy(T)
         {
+            .initNewSlots(0, countof)
             for i in countof do
                 .buffer[i] = #nodrop dataof[i]
         }
@@ -285,6 +299,18 @@ impl Array
         return @mkslice(.buffer, .count)
     }
 
+    #[Inline]
+    mtd initNewSlots(index, num: u64)
+    {
+        if !num do
+            return
+
+        #if Reflection.hasDrop(T) or Reflection.hasPostCopy(T) or Reflection.hasPostMove(T)
+        {
+            @init(.buffer + index, num)
+        }
+    }
+
     // Ensures the array has enough capacity to store at least 'newCount' elements.
     // If the current capacity is insufficient, it will be increased.
     // The element me.count remains unchanged. See also [[reserve]].
@@ -373,6 +399,7 @@ impl Array
         if .contains(value) do
             return
         .grow(.count + 1)
+        .initNewSlots(.count, 1)
         .buffer[.count] = #nodrop value
         .count += 1
     }
@@ -382,6 +409,7 @@ impl Array
         where Reflection.canCopy(T)
     {
         .grow(.count + 1)
+        .initNewSlots(.count, 1)
         .buffer[.count] = #nodrop value
         .count += 1
     }
@@ -390,6 +418,7 @@ impl Array
     mtd add(value: &&T)
     {
         .grow(.count + 1)
+        .initNewSlots(.count, 1)
         .buffer[.count] = #nodrop #move value
         .count += 1
     }
@@ -424,6 +453,7 @@ impl Array
             return .add(value)
         .grow(.count + 1)
         .count += 1
+        .initNewSlots(.count - 1, 1)
 
         #if Reflection.hasPostMove(T)
         {
@@ -447,6 +477,7 @@ impl Array
             return .add(moveref value)
         .grow(.count + 1)
         .count += 1
+        .initNewSlots(.count - 1, 1)
 
         #if Reflection.hasPostMove(T)
         {
@@ -475,6 +506,7 @@ impl Array
             return .add(values)
         .grow(.count + sliceCount)
         .count += sliceCount
+        .initNewSlots(.count - sliceCount, sliceCount)
 
         #if Reflection.hasPostMove(T)
         {
@@ -511,6 +543,7 @@ impl Array
             return .add(values)
         .grow(.count + sliceCount)
         .count += sliceCount
+        .initNewSlots(.count - sliceCount, sliceCount)
 
         #if Reflection.hasPostMove(T)
         {
@@ -548,6 +581,7 @@ impl Array
         .grow(.count + sliceCount)
         var oldCount = .count
         .count += sliceCount
+        .initNewSlots(oldCount, sliceCount)
 
         #if Reflection.hasPostCopy(T)
         {

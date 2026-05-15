@@ -56,6 +56,34 @@ func assertIntArray(values: const &Array's32, expected: const [..] s32)->bool
     return true
 }
 
+func assertStringArray(values: const &Array'String, expected: const [..] string)->bool
+{
+    if values.count != @countof(expected) do
+        return false
+
+    for i in values.count
+    {
+        if values[i] != expected[i] do
+            return false
+    }
+
+    return true
+}
+
+func assertStaticStringArray(values: const &StaticArray'(String, 4'u64), expected: const [..] string)->bool
+{
+    if values.count != @countof(expected) do
+        return false
+
+    for i in values.count
+    {
+        if values[i] != expected[i] do
+            return false
+    }
+
+    return true
+}
+
 func visitStructArray(values: &Array'ArrayVisitProbe)->s32
 {
     foreach value, index in values where value.value != 12
@@ -346,6 +374,48 @@ func visitStructArrayReverse(values: &Array'ArrayVisitProbe)->s32
     }
 
     @assert(reverseIndex == 2)
+}
+
+#test
+{
+    var values: Array'String
+    values.add(String.from("11111111111111111111111111111111"))
+    values.add(String.from("22222222222222222222222222222222"))
+    values.add(String.from("33333333333333333333333333333333"))
+    values.add(String.from("44444444444444444444444444444444"))
+
+    let tail = values[1 to 3]
+    values.opSet(tail)
+
+    let expected: [3] string =
+        ["22222222222222222222222222222222", "33333333333333333333333333333333", "44444444444444444444444444444444"]
+    @assert(assertStringArray(values, expected))
+}
+
+#test
+{
+    var values: StaticArray'(String, 4'u64)
+    values.add(String.from("11111111111111111111111111111111"))
+
+    let expected: [1] string =
+        ["11111111111111111111111111111111"]
+    @assert(assertStaticStringArray(values, expected))
+}
+
+#test
+{
+    var values: StaticArray'(String, 4'u64)
+    values.add(String.from("11111111111111111111111111111111"))
+    values.add(String.from("22222222222222222222222222222222"))
+    values.add(String.from("33333333333333333333333333333333"))
+    values.add(String.from("44444444444444444444444444444444"))
+
+    let tail = values[1 to 3]
+    values.opSet(tail)
+
+    let expected: [3] string =
+        ["22222222222222222222222222222222", "33333333333333333333333333333333", "44444444444444444444444444444444"]
+    @assert(assertStaticStringArray(values, expected))
 }
 
 #test

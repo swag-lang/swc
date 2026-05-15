@@ -928,6 +928,8 @@ namespace
         content += "#global namespace ";
         content += moduleNamespace;
         content += eol;
+        content += "#global public";
+        content += eol;
 
         bool wroteSnippet = false;
         for (const ModuleApiSnippet& snippet : snippets)

@@ -585,6 +585,17 @@ SWC_TEST_BEGIN(Compiler_WorkspaceBuildUsesModuleSetupDependenciesAndSkipsIgnored
 public const DEP_VALUE = 7
 )"))
         return Result::Error;
+    if (!writeTextFile(depModuleDir / "src" / "public.swg", R"(#global public
+const DEP_PUBLIC_DEFAULT = 11
+)"))
+        return Result::Error;
+    if (!writeTextFile(depModuleDir / "src" / "legacy.swg", R"(#global export
+public func depLegacyValue()->s32
+{
+    return 5
+}
+)"))
+        return Result::Error;
 
     if (!writeTextFile(coreModuleDir / "module.swg", R"(#import("dep")
 #run
@@ -599,7 +610,7 @@ public const DEP_VALUE = 7
 
 public func coreValue()->s32
 {
-    return DEP_VALUE
+    return DEP_VALUE + DEP_PUBLIC_DEFAULT + depLegacyValue()
 }
 )"))
         return Result::Error;
@@ -632,14 +643,29 @@ public func coreValue()->s32
     const fs::path legacyApiFile = workspaceDir / ".output" / "dep" / "export" / "fast-debug" / "x86_64" / "api.swg";
     if (fs::exists(legacyApiFile))
         return Result::Error;
+    const fs::path copiedLegacyApiFile = workspaceDir / ".output" / "dep" / "export" / "fast-debug" / "x86_64" / "legacy.swg";
+    if (!fs::exists(copiedLegacyApiFile))
+        return Result::Error;
 
     Utf8                    depApiContent;
     FileSystem::IoErrorInfo ioError;
     if (FileSystem::readTextFile(depApiFile, depApiContent, ioError) != Result::Continue)
         return Result::Error;
+    if (!depApiContent.contains("#global public"))
+        return Result::Error;
     if (!depApiContent.contains("public const DEP_VALUE = 7"))
         return Result::Error;
+    if (!depApiContent.contains("const DEP_PUBLIC_DEFAULT = 11"))
+        return Result::Error;
     if (depApiContent.contains("PRIVATE_VALUE"))
+        return Result::Error;
+    if (depApiContent.contains("depLegacyValue"))
+        return Result::Error;
+
+    Utf8 copiedLegacyApiContent;
+    if (FileSystem::readTextFile(copiedLegacyApiFile, copiedLegacyApiContent, ioError) != Result::Continue)
+        return Result::Error;
+    if (!copiedLegacyApiContent.contains("public func depLegacyValue()->s32"))
         return Result::Error;
 
     return Result::Continue;

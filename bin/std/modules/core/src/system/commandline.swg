@@ -62,9 +62,13 @@ func isValue(oneArg: string, typeField: typeinfo, options: ParseOptions)->bool
     return true
 }
 
-// Clean and split a list of arguments
-// -option:value or -option=value => -option value
-func splitArguments(args: const [..] string, options: ParseOptions)->Array'string
+fileprivate struct SplitArgument
+{
+    value:         string
+    attachedValue: bool
+}
+
+fileprivate func splitArgumentsEx(args: const [..] string, options: ParseOptions)->Array'SplitArgument
 {
     var allArgs: retval
 
@@ -78,7 +82,7 @@ func splitArguments(args: const [..] string, options: ParseOptions)->Array'strin
 
         if !isOption(oneArg, options)
         {
-            allArgs.add(oneArg)
+            allArgs.add(SplitArgument{value: oneArg})
             continue
         }
 
@@ -86,15 +90,29 @@ func splitArguments(args: const [..] string, options: ParseOptions)->Array'strin
         if split.count == 2
         {
             let name = Latin1.trim(split[0])
-            allArgs.add(name)
+            allArgs.add(SplitArgument{value: name})
             let other = Latin1.trim(split[1])
             if @countof(other) do
-                allArgs.add(other)
+                allArgs.add(SplitArgument{value: other, attachedValue: true})
         }
         else
         {
-            allArgs.add(oneArg)
+            allArgs.add(SplitArgument{value: oneArg})
         }
+    }
+
+    return allArgs
+}
+
+// Clean and split a list of arguments
+// -option:value or -option=value => -option value
+func splitArguments(args: const [..] string, options: ParseOptions)->Array'string
+{
+    var allArgs: retval
+
+    foreach it in splitArgumentsEx(args, options)
+    {
+        allArgs.add(it.value)
     }
 
     return allArgs
@@ -134,26 +152,30 @@ func getField(typeStruct: const *Swag.TypeInfoStruct, name: string)->FieldResult
 }
 
 // Parse all the arguments and fill the result
-func(T) parse(st: *T, args: const [..] string, options = CommandLine.ParseOptions{})->Result throw
+func(T) parse(st: *T, args: const [..] string, options = ParseOptions{})->Result throw
 {
 #[Swag.Mixin]
     func checkNext(typeField: typeinfo) throw
     {
-        if itp + 1 == maxItp or !isValue(allArgs[itp + 1], typeField, options) do
+        if itp + 1 == maxItp do
+            throw SyntaxError{Errors.mkString(Format.toString("missing value for option [[%]]", oneArg))}
+
+        let nextArg = allArgs[itp + 1]
+        if !nextArg.attachedValue and !isValue(nextArg.value, typeField, options) do
             throw SyntaxError{Errors.mkString(Format.toString("missing value for option [[%]]", oneArg))}
     }
 
     var result: retval
 
     // First pass
-    let allArgs = splitArguments(args, options)
+    let allArgs = splitArgumentsEx(args, options)
 
     // Parse all
     let typeof = #typeof(T)
     let maxItp = @countof(allArgs)
     for var itp = 0; itp < maxItp; itp += 1
     {
-        var oneArg = allArgs[itp]
+        var oneArg = allArgs[itp].value
         if !isOption(oneArg, options) do
             throw SyntaxError{Errors.mkString(Format.toString("invalid option [[%]]", oneArg))}
 
@@ -171,7 +193,7 @@ func(T) parse(st: *T, args: const [..] string, options = CommandLine.ParseOption
 
         // Bool: Result is true if the option does not have an associated value
         if Reflection.isBool(typeField) and
-           (itp + 1 == maxItp or isOption(allArgs[itp + 1], options))
+           (itp + 1 == maxItp or isOption(allArgs[itp + 1].value, options))
         {
             dref cast(*bool) addr = true
         }
@@ -185,7 +207,7 @@ func(T) parse(st: *T, args: const [..] string, options = CommandLine.ParseOption
              Reflection.isEnum(typeField)
         {
             try checkNext(typeField)
-            let rest = catch StrConv.parseValue(addr, typeField, allArgs[itp + 1])
+            let rest = catch StrConv.parseValue(addr, typeField, allArgs[itp + 1].value)
             itp += 1
 
             if @err != null do
@@ -206,9 +228,13 @@ func(T) parse(st: *T, args: const [..] string, options = CommandLine.ParseOption
 
             // Make one single string with all values, for pokeValue
             var collect: String
-            while itp + 1 != maxItp and isValue(allArgs[itp + 1], arrayType, options)
+            while itp + 1 != maxItp
             {
-                var other = allArgs[itp + 1]
+                let nextArg = allArgs[itp + 1]
+                if !nextArg.attachedValue and !isValue(nextArg.value, arrayType, options) do
+                    break
+
+                var other = nextArg.value
                 if isString
                 {
                     other = Tokenize.eatQuotes(other)

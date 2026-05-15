@@ -156,6 +156,16 @@ func assertStringValues(values: const &Array'String, expected: const [..] string
 
 #test
 {
+    var options: NameOptions
+    let result = catch CommandLine.parse(&options, ["-n:-Alice"])
+    @assert(@err == null)
+
+    @assert(options.name == "-Alice")
+    @assert(result.isSet.name)
+}
+
+#test
+{
     var options: NumericOptions
     let result = catch CommandLine.parse(&options, ["-enabled", "false"])
     @assert(@err == null)
@@ -203,6 +213,17 @@ func assertStringValues(values: const &Array'String, expected: const [..] string
     @assert(@err == null)
 
     @assert(assertStringValues(options.labels, ["Bob Smith", "Alice"]))
+    @assert(!result.isSet.values)
+    @assert(result.isSet.labels)
+}
+
+#test
+{
+    var options: ArrayOptions
+    let result = catch CommandLine.parse(&options, ["-labels:-Bob", "Alice"])
+    @assert(@err == null)
+
+    @assert(assertStringValues(options.labels, ["-Bob", "Alice"]))
     @assert(!result.isSet.values)
     @assert(result.isSet.labels)
 }

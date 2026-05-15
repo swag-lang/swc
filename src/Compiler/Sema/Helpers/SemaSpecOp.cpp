@@ -1429,6 +1429,12 @@ namespace
         return mutex;
     }
 
+    std::mutex& generatedLifecycleGenerationMutex()
+    {
+        static std::mutex mutex;
+        return mutex;
+    }
+
     std::string_view predefinedName(Sema& sema, IdentifierManager::PredefinedName name)
     {
         return sema.idMgr().get(sema.idMgr().predefined(name)).name;
@@ -2225,10 +2231,11 @@ bool SemaSpecOp::typeHasLifecycle(TaskContext& ctx, TypeRef typeRef, SpecOpKind 
 
 Result SemaSpecOp::ensureGeneratedLifecycleFunctions(Sema& sema, SymbolStruct& ownerStruct)
 {
-    if (!ownerStruct.tryMarkGeneratedLifecycleFunctions())
+    const std::scoped_lock lock(generatedLifecycleGenerationMutex());
+    if (hasGeneratedLifecycleWrapper(sema.ctx(), ownerStruct))
         return Result::Continue;
 
-    if (hasGeneratedLifecycleWrapper(sema.ctx(), ownerStruct))
+    if (!ownerStruct.tryMarkGeneratedLifecycleFunctions())
         return Result::Continue;
 
     if (ownerStruct.isGenericInstance())

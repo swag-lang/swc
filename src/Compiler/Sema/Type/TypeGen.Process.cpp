@@ -2,6 +2,7 @@
 #include "Compiler/Sema/Type/TypeGen.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Core/Sema.h"
+#include "Compiler/Sema/Helpers/SemaSpecOp.h"
 #include "Compiler/Sema/Symbol/Symbol.Alias.h"
 #include "Compiler/Sema/Symbol/Symbol.Enum.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
@@ -37,6 +38,11 @@ namespace
             return false;
 
         return true;
+    }
+
+    bool shouldWaitReflectedLifecycleSema(const TaskContext& ctx, const SymbolFunction& symFunc)
+    {
+        return SemaSpecOp::isGeneratedLifecycleWrapperName(symFunc.name(ctx));
     }
 
     bool canReflectFunctionSignature(TaskContext& ctx, const SymbolFunction& symFunc, SmallVector<TypeRef>& visiting)
@@ -398,6 +404,10 @@ Result TypeGen::processTypeInfo(Sema& sema, TypeGenResult& result, DataSegment& 
                     continue;
 
                 SWC_RESULT(sema.waitTyped(method, node.codeRef()));
+                // Lifecycle typeinfo must not cache a direct hook while its generated wrapper is
+                // still in flight, otherwise reflection can freeze the wrong function pointer.
+                if (shouldWaitReflectedLifecycleSema(sema.ctx(), *method))
+                    SWC_RESULT(sema.waitSemaCompleted(method, node.codeRef()));
             }
         }
 

@@ -67,53 +67,41 @@ func splitLines(src: string)->Array'string
     return result
 }
 
+fileprivate func addSplitPart(result: &Array'string, value: string, removeEmpty: bool)
+{
+    if removeEmpty and !@countof(value) do
+        return
+    result.add(value)
+}
+
 // Splits the string into substrings using a byte as separator
 // Note that this returns an array of native strings, not copies.
 // All strings will be invalid if 'src' String is destroyed
 func split(src: string, separator: u8, maxSplit: u32 = 0, removeEmpty = true)->Array'string
 {
     let countof = @countof(src)
+    var result: retval
+    if !countof do
+        return result
 
-    var result:       retval
     var startbyteIdx: u64
+    var splitCount:   u32
 
-    while !maxSplit or result.count != maxSplit
+    while startbyteIdx != countof and (!maxSplit or splitCount != maxSplit)
     {
-        // Remove separator at the start
-        while startbyteIdx != countof
-        {
-            if src[startbyteIdx] != separator do
-                break
-            startbyteIdx += 1
-            if !removeEmpty do
-                break
-        }
-
-        if startbyteIdx == countof do
-            break
-
-        // Add all real characters until we found a separator
         var endbyteIdx = startbyteIdx
-        while endbyteIdx != countof
-        {
-            if src[endbyteIdx] == separator do
-                break
+        while endbyteIdx != countof and src[endbyteIdx] != separator do
             endbyteIdx += 1
-        }
 
-        result.add(src[startbyteIdx until endbyteIdx])
-        startbyteIdx = endbyteIdx
+        addSplitPart(&result, src[startbyteIdx until endbyteIdx], removeEmpty)
+        if endbyteIdx == countof do
+            return result
 
-        if startbyteIdx == countof do
-            break
-
-        startbyteIdx += 1
+        startbyteIdx = endbyteIdx + 1
+        splitCount += 1
     }
 
-    // Last split
-    if startbyteIdx != countof do
-        result.add(src[startbyteIdx until countof])
-
+    addSplitPart(&result, src[startbyteIdx until countof], removeEmpty)
     return result
 }
 
@@ -122,27 +110,23 @@ func split(src: string, separator: u8, maxSplit: u32 = 0, removeEmpty = true)->A
 // All strings will be invalid if 'src' String is destroyed
 func split(src: string, separator: string, maxSplit: u32 = 0, removeEmpty = true)->Array'string
 {
-    let countof = @countof(src)
+    let countof          = @countof(src)
+    let separatorCountof = @countof(separator)
 
-    var result:       retval
-    var startbyteIdx: u64
-
-    while !maxSplit or result.count != maxSplit
+    var result: retval
+    if !countof do
+        return result
+    if !separatorCountof
     {
-        // Remove separator at the start
-        while startbyteIdx != countof
-        {
-            if !Utf8.startsWith(src[startbyteIdx until countof], separator) do
-                break
-            startbyteIdx += @countof(separator)
-            if !removeEmpty do
-                break
-        }
+        addSplitPart(&result, src, removeEmpty)
+        return result
+    }
 
-        if startbyteIdx == countof do
-            break
+    var startbyteIdx: u64
+    var splitCount:   u32
 
-        // Add all real characters until we found a separator
+    while startbyteIdx != countof and (!maxSplit or splitCount != maxSplit)
+    {
         var endbyteIdx = startbyteIdx
         while endbyteIdx != countof
         {
@@ -151,23 +135,15 @@ func split(src: string, separator: string, maxSplit: u32 = 0, removeEmpty = true
             endbyteIdx += 1
         }
 
-        if startbyteIdx == endbyteIdx do
-            result.add("")
-        else do
-            result.add(src[startbyteIdx until endbyteIdx])
+        addSplitPart(&result, src[startbyteIdx until endbyteIdx], removeEmpty)
+        if endbyteIdx == countof do
+            return result
 
-        startbyteIdx = endbyteIdx
-        if startbyteIdx == countof do
-            break
+        startbyteIdx = endbyteIdx + separatorCountof
+        splitCount += 1
     }
 
-    // Last split
-    if startbyteIdx != countof
-    {
-        startbyteIdx += @countof(separator)
-        result.add(src[startbyteIdx until countof])
-    }
-
+    addSplitPart(&result, src[startbyteIdx until countof], removeEmpty)
     return result
 }
 
@@ -187,26 +163,15 @@ func splitAny(src: string, separators: const [..] rune, maxSplit: u32 = 0, remov
     let countof = @countof(src)
 
     var result: retval
+    if !countof do
+        return result
+
     var c:      rune
     var startbyteIdx, eat: u64
+    var splitCount:        u32
 
-    while !maxSplit or result.count != maxSplit
+    while startbyteIdx != countof and (!maxSplit or splitCount != maxSplit)
     {
-        // Remove separator at the start
-        while startbyteIdx != countof
-        {
-            (c, eat) = Utf8.decodeRune(src[startbyteIdx until countof])
-            if !Slice.contains(separators, c) do
-                break
-            startbyteIdx += eat
-            if !removeEmpty do
-                break
-        }
-
-        if startbyteIdx == countof do
-            break
-
-        // Add all real characters until we found a separator
         var endbyteIdx = startbyteIdx
         while endbyteIdx != countof
         {
@@ -216,23 +181,15 @@ func splitAny(src: string, separators: const [..] rune, maxSplit: u32 = 0, remov
             endbyteIdx += eat
         }
 
-        if startbyteIdx == endbyteIdx do
-            result.add("")
-        else do
-            result.add(src[startbyteIdx until endbyteIdx])
+        addSplitPart(&result, src[startbyteIdx until endbyteIdx], removeEmpty)
+        if endbyteIdx == countof do
+            return result
 
-        startbyteIdx = endbyteIdx
-        if startbyteIdx == countof do
-            break
+        startbyteIdx = endbyteIdx + eat
+        splitCount += 1
     }
 
-    // Last split
-    if startbyteIdx != countof
-    {
-        startbyteIdx += eat
-        result.add(src[startbyteIdx until countof])
-    }
-
+    addSplitPart(&result, src[startbyteIdx until countof], removeEmpty)
     return result
 }
 

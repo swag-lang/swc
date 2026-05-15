@@ -124,8 +124,14 @@ namespace
 
 SymbolMap* Sema::childStartSymMap(Sema& parent, NodePayload& payloadContext)
 {
+    inheritMissingNamespaces(parent.ctx(), payloadContext);
+
     if (&payloadContext != parent.nodePayloadContext_)
+    {
+        if (!payloadContext.moduleNamespace_)
+            payloadContext.moduleNamespace_ = parent.nodePayloadContext_->moduleNamespace_;
         return &payloadContext.moduleNamespace();
+    }
 
     if (!parent.curScope_)
         return parent.startSymMap_;
@@ -136,10 +142,39 @@ SymbolMap* Sema::childStartSymMap(Sema& parent, NodePayload& payloadContext)
     return parent.curScope_->symMap();
 }
 
+void Sema::inheritMissingNamespaces(TaskContext& ctx, NodePayload& payloadContext)
+{
+    if (payloadContext.moduleNamespace_ && payloadContext.fileNamespace_)
+        return;
+
+    if (!payloadContext.ast_.hasSourceView())
+        return;
+
+    const SourceView& srcView = payloadContext.ast_.srcView();
+    FileRef           owner   = srcView.ownerFileRef();
+    if (!owner.isValid())
+        owner = srcView.fileRef();
+    if (!owner.isValid())
+        return;
+
+    const NodePayload& ownerPayload = ctx.compiler().file(owner).nodePayloadContext();
+    if (!payloadContext.moduleNamespace_ && ownerPayload.moduleNamespace_)
+        payloadContext.moduleNamespace_ = ownerPayload.moduleNamespace_;
+    if (!payloadContext.fileNamespace_ && ownerPayload.fileNamespace_)
+        payloadContext.fileNamespace_ = ownerPayload.fileNamespace_;
+}
+
+SymbolMap* Sema::topLevelStartSymMap(TaskContext& ctx, NodePayload& payloadContext)
+{
+    inheritMissingNamespaces(ctx, payloadContext);
+    SWC_ASSERT(payloadContext.moduleNamespace_ != nullptr);
+    return payloadContext.moduleNamespace_->ownerSymMap();
+}
+
 Sema::Sema(TaskContext& ctx, NodePayload& payloadContext, bool declPass) :
     ctx_(&ctx),
     nodePayloadContext_(&payloadContext),
-    startSymMap_(nodePayloadContext().moduleNamespace().ownerSymMap()),
+    startSymMap_(topLevelStartSymMap(ctx, payloadContext)),
     declPass_(declPass)
 {
     visit_.start(nodePayloadContext_->ast(), nodePayloadContext_->ast().root());

@@ -363,6 +363,8 @@ private:
     void               popFrame();
     NodePayload&       nodePayloadContext() { return *(nodePayloadContext_); }
     const NodePayload& nodePayloadContext() const { return *(nodePayloadContext_); }
+    static void        inheritMissingNamespaces(TaskContext& ctx, NodePayload& payloadContext);
+    static SymbolMap*  topLevelStartSymMap(TaskContext& ctx, NodePayload& payloadContext);
     static SymbolMap*  childStartSymMap(Sema& parent, NodePayload& payloadContext);
 
     void   setVisitors();

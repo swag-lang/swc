@@ -311,7 +311,7 @@ namespace
         SourceFile* firstFile = nullptr;
         for (SourceFile* file : builder.compiler().files())
         {
-            if (file)
+            if (file && file->moduleNamespace())
             {
                 firstFile = file;
                 break;

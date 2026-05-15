@@ -427,12 +427,16 @@ func convertInt(buf: *ConcatBuffer, value: const any, fmt: ConvertFormatInt)
             break
     }
 
-    // Fill the remaining place with the padding character, so that the total result is 'fmt.width' long
+    // Fill the remaining place with the padding character, so that the total result,
+    // including an eventual sign, is 'fmt.width' long.
     if fmt.padding
     {
-        var curWidth = 63 - cpt
+        let signWidth = signedValue < 0 or fmt.forceSign ? 1'u32 : 0'u32
+        var curWidth  = 63 - cpt
         while curWidth < fmt.width and cpt > 1
         {
+            if curWidth + signWidth >= fmt.width do
+                break
             tmp[cpt] = fmt.padding
             curWidth += 1
             cpt -= 1

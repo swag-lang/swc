@@ -203,3 +203,18 @@ func assertTableStringValue(table: const &HashTable'(string, String), key: strin
     @assert(assertTableStringValue(copy, "alpha", "uno"))
     @assert(assertTableStringValue(copy, "beta", "two"))
 }
+
+#test
+{
+    var table: HashTable'(s32, s32)
+    table.add(1, 10)
+    table.add(2, 20)
+
+    table.opSet([struct { k: s32, v: s32 }{k: 3, v: 30}])
+
+    @assert(table.count == 1)
+    @assert(!table.contains(1))
+    @assert(!table.contains(2))
+    @assert(table.contains(3))
+    @assert(table[3] == 30)
+}

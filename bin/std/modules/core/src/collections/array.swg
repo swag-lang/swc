@@ -499,6 +499,16 @@ impl Array
         var sliceCount = @countof(values)
         if !sliceCount do
             return
+        if .buffer
+        {
+            let dataof = @dataof(values)
+            if dataof >= .buffer and dataof < .buffer + .count
+            {
+                var copy: Array'T
+                copy.add(values)
+                return .insertAt(index, copy.toSlice())
+            }
+        }
 
         Debug.safetyBoundCheck(index <= .count, "index out of range")
         if index == .count do
@@ -536,6 +546,16 @@ impl Array
         var sliceCount = @countof(values)
         if !sliceCount do
             return
+        if .buffer
+        {
+            let dataof = @dataof(values)
+            if dataof >= .buffer and dataof < .buffer + .count
+            {
+                var copy: Array'T
+                copy.add(values)
+                return .emplaceAt(index, copy.toSlice())
+            }
+        }
 
         Debug.safetyBoundCheck(index <= .count, "index out of range")
         if index == .count do
@@ -572,10 +592,16 @@ impl Array
         var sliceCount = @countof(values)
         if !sliceCount do
             return
-
-        // Do not add myself if there's not enough room (because we will reallocate)
-        if .count + sliceCount > .capacity do
-            Debug.assert(@dataof(values) < .buffer or @dataof(values) > .buffer + .capacity)
+        if .buffer
+        {
+            let dataof = @dataof(values)
+            if dataof >= .buffer and dataof < .buffer + .count
+            {
+                var copy: Array'T
+                copy.add(values)
+                return .add(copy.toSlice())
+            }
+        }
 
         .grow(.count + sliceCount)
         var oldCount = .count

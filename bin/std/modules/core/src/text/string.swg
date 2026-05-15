@@ -61,6 +61,16 @@ impl String
                 .buffer[0] = 0
             return
         }
+        if .buffer
+        {
+            let dataof = @dataof(value)
+            if dataof >= .buffer and dataof < .buffer + .length
+            {
+                let copy = String.from(value)
+                .opSet(copy.toString())
+                return
+            }
+        }
 
         let newCapacity = @countof(value) + 1
         .length = newCapacity - 1
@@ -293,6 +303,16 @@ impl String
     {
         if !.length do
             return
+        if .buffer
+        {
+            let dataof = @dataof(by)
+            if dataof >= .buffer and dataof < .buffer + .length
+            {
+                let copy = String.from(by)
+                .replace(what, copy.toString())
+                return
+            }
+        }
         let byLength = @countof(by)
 
         var idx = Utf8.indexOf(.toString(), what, 0)
@@ -318,6 +338,24 @@ impl String
         let whatLength = @countof(what)
         if !whatLength or whatLength > .length do
             return
+        if .buffer
+        {
+            let whatDataof = @dataof(what)
+            if whatDataof >= .buffer and whatDataof < .buffer + .length
+            {
+                let copy = String.from(what)
+                .replace(copy.toString(), by, comparisonType)
+                return
+            }
+
+            let byDataof = @dataof(by)
+            if byDataof >= .buffer and byDataof < .buffer + .length
+            {
+                let copy = String.from(by)
+                .replace(what, copy.toString(), comparisonType)
+                return
+            }
+        }
         let byLength = @countof(by)
 
         var idx = Utf8.indexOf(.toString(), what, 0, comparisonType)
@@ -397,6 +435,16 @@ impl String
         let countof = @countof(value)
         if !countof do
             return
+        if .buffer
+        {
+            let dataof = @dataof(value)
+            if dataof >= .buffer and dataof < .buffer + .length
+            {
+                let copy = String.from(value)
+                .insert(byteIndex, copy.toString())
+                return
+            }
+        }
 
         .grow(.length + countof + 1)
         Memory.copyOver(.buffer + byteIndex + countof, .buffer + byteIndex, .length - byteIndex + 1)
@@ -439,6 +487,16 @@ impl String
         let concatLength = @countof(value)
         if concatLength == 0 do
             return
+        if .buffer
+        {
+            let dataof = @dataof(value)
+            if dataof >= .buffer and dataof < .buffer + .length
+            {
+                let copy = String.from(value)
+                .append(copy.toString())
+                return
+            }
+        }
 
         let newLength = .length + concatLength + 1
         .grow(newLength)

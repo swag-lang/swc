@@ -43,6 +43,7 @@ impl HashSet
     // Replaces the content of the set with elements from a slice.
     mtd opSet(slice: const [..] K)
     {
+        .clear()
         foreach v in slice do
             .add(v)
     }

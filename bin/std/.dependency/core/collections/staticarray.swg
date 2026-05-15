@@ -322,6 +322,14 @@ impl StaticArray
         var sliceCount = @countof(values)
         if !sliceCount do
             return
+        let buffer = cast([*] T) &.buffer[0]
+        let dataof = @dataof(values)
+        if dataof >= buffer and dataof < buffer + .count
+        {
+            var copy: Array'T
+            copy.add(values)
+            return .insertAt(index, copy.toSlice())
+        }
 
         Debug.assert(index <= .count, "index out of range")
         if index == .count do
@@ -358,6 +366,14 @@ impl StaticArray
         var sliceCount = @countof(values)
         if !sliceCount do
             return
+        let buffer = cast([*] T) &.buffer[0]
+        let dataof = @dataof(values)
+        if dataof >= buffer and dataof < buffer + .count
+        {
+            var copy: Array'T
+            copy.add(values)
+            return .emplaceAt(index, copy.toSlice())
+        }
 
         Debug.assert(index <= .count, "index out of range")
         if index == .count do
@@ -394,6 +410,14 @@ impl StaticArray
         var sliceCount = @countof(values)
         if !sliceCount do
             return
+        let buffer = cast([*] T) &.buffer[0]
+        let dataof = @dataof(values)
+        if dataof >= buffer and dataof < buffer + .count
+        {
+            var copy: Array'T
+            copy.add(values)
+            return .add(copy.toSlice())
+        }
         Debug.assert(.count + sliceCount <= N, "the array is full")
         var oldCount = .count
         .count += sliceCount

@@ -70,6 +70,20 @@ func assertStringArray(values: const &Array'String, expected: const [..] string)
     return true
 }
 
+func assertStringSlice(values: const [..] String, expected: const [..] string)->bool
+{
+    if @countof(values) != @countof(expected) do
+        return false
+
+    for i in @countof(values)
+    {
+        if values[i] != expected[i] do
+            return false
+    }
+
+    return true
+}
+
 func assertStaticStringArray(values: const &StaticArray'(String, 4'u64), expected: const [..] string)->bool
 {
     if values.count != @countof(expected) do
@@ -416,6 +430,58 @@ func visitStructArrayReverse(values: &Array'ArrayVisitProbe)->s32
     let expected: [3] string =
         ["22222222222222222222222222222222", "33333333333333333333333333333333", "44444444444444444444444444444444"]
     @assert(assertStaticStringArray(values, expected))
+}
+
+#test
+{
+    var values: Array'String
+    values.reserve(8)
+    values.add(String.from("11111111111111111111111111111111"))
+    values.add(String.from("22222222222222222222222222222222"))
+    values.add(String.from("33333333333333333333333333333333"))
+    values.add(String.from("44444444444444444444444444444444"))
+
+    let middle = values[1 to 2]
+    values.insertAt(0, middle)
+
+    let expected: [6] string =
+        ["22222222222222222222222222222222", "33333333333333333333333333333333", "11111111111111111111111111111111",
+         "22222222222222222222222222222222", "33333333333333333333333333333333", "44444444444444444444444444444444"]
+    @assert(assertStringSlice(values.toSlice(), expected))
+}
+
+#test
+{
+    var values: StaticArray'(String, 8'u64)
+    values.add(String.from("11111111111111111111111111111111"))
+    values.add(String.from("22222222222222222222222222222222"))
+    values.add(String.from("33333333333333333333333333333333"))
+    values.add(String.from("44444444444444444444444444444444"))
+
+    let tail = values[1 to 2]
+    values.add(tail)
+
+    let expected: [6] string =
+        ["11111111111111111111111111111111", "22222222222222222222222222222222", "33333333333333333333333333333333",
+         "44444444444444444444444444444444", "22222222222222222222222222222222", "33333333333333333333333333333333"]
+    @assert(assertStringSlice(values.toSlice(), expected))
+}
+
+#test
+{
+    var values: StaticArray'(String, 8'u64)
+    values.add(String.from("11111111111111111111111111111111"))
+    values.add(String.from("22222222222222222222222222222222"))
+    values.add(String.from("33333333333333333333333333333333"))
+    values.add(String.from("44444444444444444444444444444444"))
+
+    let middle = values[1 to 2]
+    values.insertAt(0, middle)
+
+    let expected: [6] string =
+        ["22222222222222222222222222222222", "33333333333333333333333333333333", "11111111111111111111111111111111",
+         "22222222222222222222222222222222", "33333333333333333333333333333333", "44444444444444444444444444444444"]
+    @assert(assertStringSlice(values.toSlice(), expected))
 }
 
 #test

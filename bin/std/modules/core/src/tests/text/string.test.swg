@@ -178,6 +178,24 @@ func reverseIndexOfByteAtLeast(value: const &String, minByte: u8)->u64
 
 #test
 {
+    var value: String = "1234"
+    let tail = value[1 to 3]
+    value = tail
+    @assert(assertString(value, "234"))
+
+    value = "1234"
+    let middle = value[1 to 2]
+    value.insert(0, middle)
+    @assert(assertString(value, "231234"))
+
+    value = "1234"
+    let repl = value[1 to 2]
+    value.replace("1", repl)
+    @assert(assertString(value, "23234"))
+}
+
+#test
+{
     var value: String = "  \tcore\r\n"
     value.trimStart()
     @assert(assertString(value, "core\r\n"))

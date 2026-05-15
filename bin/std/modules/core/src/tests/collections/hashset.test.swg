@@ -121,3 +121,18 @@ func assertReverseIntSetIteration(values: const &HashSet's32)->bool
     @assert(assertStringSetHas(copy, "beta"))
     @assert(assertStringSetHas(copy, "gamma"))
 }
+
+#test
+{
+    var values: HashSet's32
+    values.add(1)
+    values.add(2)
+
+    let seed: [1] s32 = [3]
+    values = seed
+
+    @assert(values.count == 1)
+    @assert(!values.contains(1))
+    @assert(!values.contains(2))
+    @assert(values.contains(3))
+}

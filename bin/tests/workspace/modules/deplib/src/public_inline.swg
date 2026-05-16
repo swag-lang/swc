@@ -13,3 +13,5 @@ func depMixinAccumulateTwice(value: s32)
     let scaled = value * 2
     total += scaled
 }
+
+func(T) depMirror(value: T)->T => value

@@ -8,6 +8,8 @@ func keepDepScore(score: IDepScore)->IDepScore => score
     @assert(DEP_PUBLIC_DEFAULT == 11)
     @assert(DEP_MULTI_A == 13)
     @assert(DEP_MULTI_B == 17)
+    @assert(depFutureExport() == 7)
+    @assert(depGenericIdentity(42) == 42)
     @assert(DepTools.DEP_NAMESPACE_A == 31)
     @assert(DepTools.DEP_NAMESPACE_B == 37)
     @assert(DepTools.DEP_NAMESPACE_C == 41)
@@ -35,8 +37,11 @@ func keepDepScore(score: IDepScore)->IDepScore => score
     var namespaced: DepTools.DepNamespaced
     namespaced.value = 12
     @assert(namespaced.value == 12)
+    var ignoredContainer: DepIgnoredContainer
+    ignoredContainer.run()
 
     @assert(depDouble(21) == 42)
+    @assert(depMirror(42) == 42)
     @assert(depTriple(14) == 42)
     @assert(depMacroTwicePlus(20, 2) == 42)
     @assert(depScale(cast(s32) 10) == 40)

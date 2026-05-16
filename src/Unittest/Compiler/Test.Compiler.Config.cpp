@@ -691,6 +691,8 @@ public func depFutureExport()->s32
 {
     return DEP_VALUE
 }
+
+public func(T) depGenericIdentity(value: T)->T => value
 )"))
         return Result::Error;
     if (!writeTextFile(depModuleDir / "src" / "public.swg", R"(#global public
@@ -699,6 +701,7 @@ public func depFutureExport()->s32
 const DEP_PUBLIC_DEFAULT = 11 // Trailing comments must not leak either
 
 const DEP_MULTI_A = 13, DEP_MULTI_B = 17
+var DEP_IGNORED_GLOBAL = 59
 
 namespace DepTools
 {
@@ -878,6 +881,8 @@ func depMixinAccumulateTwice(value: s32)
     let scaled = value * 2
     total += scaled
 }
+
+func(T) depMirror(value: T)->T => value
 )"))
         return Result::Error;
 
@@ -914,11 +919,15 @@ public func coreValue()->s32
     var opaque: DepOpaque
     var namespaced: DepTools.DepNamespaced
     namespaced.value = 12
+    var ignoredContainer: DepIgnoredContainer
+    ignoredContainer.run()
     var total = 0
     depMixinAccumulateTwice(21)
     var calc = DepCalculator.make(5)
 
     return DEP_VALUE +
+           depFutureExport() +
+           depGenericIdentity(9) +
            DEP_PUBLIC_DEFAULT +
            DEP_MULTI_A +
            DEP_MULTI_B +
@@ -933,6 +942,7 @@ public func coreValue()->s32
            enumBonus +
            value.asInt +
            depDouble(21) +
+           depMirror(42) +
            depTriple(14) +
            depMacroTwicePlus(20, 2) +
            depScale(cast(s32) 10) +
@@ -1025,23 +1035,31 @@ public func coreValue()->s32
         return Result::Error;
     if (!depApiContent.contains("swagOpaqueStorage"))
         return Result::Error;
+    if (!depApiContent.contains("func depFutureExport()->s32"))
+        return Result::Error;
+    if (!depApiContent.contains("return DEP_VALUE"))
+        return Result::Error;
+    if (!depApiContent.contains("func(T) depGenericIdentity(value: T)->T"))
+        return Result::Error;
+    if (!depApiContent.contains("impl DepIgnoredContainer"))
+        return Result::Error;
+    if (!depApiContent.contains("mtd run()"))
+        return Result::Error;
+    if (!depApiContent.contains("DEP_LOCAL_VALUE = 53"))
+        return Result::Error;
     if (depApiContent.contains("PRIVATE_VALUE"))
         return Result::Error;
     if (depApiContent.contains("DEP_FILE_PRIVATE"))
         return Result::Error;
     if (depApiContent.contains("DEP_MODULE_PRIVATE"))
         return Result::Error;
-    if (depApiContent.contains("depFutureExport"))
-        return Result::Error;
-    if (depApiContent.contains("mtd run()"))
+    if (depApiContent.contains("DEP_IGNORED_GLOBAL"))
         return Result::Error;
     if (depApiContent.contains("#[Swag.Foreign(\"dep\","))
         return Result::Error;
     if (depApiContent.contains("depLegacyValue"))
         return Result::Error;
     if (depApiContent.contains("DEP_IMPL_VALUE"))
-        return Result::Error;
-    if (depApiContent.contains("DEP_LOCAL_VALUE"))
         return Result::Error;
     if (depApiContent.contains("opaqueHead"))
         return Result::Error;
@@ -1114,6 +1132,8 @@ public func coreValue()->s32
         return Result::Error;
     if (!depLibApiContent.contains("func depDouble(value: s32)->s32;"))
         return Result::Error;
+    if (!depLibApiContent.contains("func(T) depMirror(value: T)->T"))
+        return Result::Error;
     if (!depLibApiContent.contains("#[Swag.Macro]"))
         return Result::Error;
     if (!depLibApiContent.contains("func depMacroTwicePlus(value: s32, extra: s32 = 1)->s32"))
@@ -1162,6 +1182,8 @@ public func coreValue()->s32
         return Result::Error;
     if (depLibApiContent.contains("#[Swag.Foreign(\"deplib\", \"dep_mixin_accumulate_twice"))
         return Result::Error;
+    if (depLibApiContent.contains("#[Swag.Foreign(\"deplib\", \"dep_mirror"))
+        return Result::Error;
     if (depLibApiContent.contains("\npublic "))
         return Result::Error;
     return Result::Continue;
@@ -1191,6 +1213,46 @@ struct BadExport
 {
     moduleprivate hidden: s32
 }
+)"))
+        return Result::Error;
+
+    CommandLine cmdLine;
+    cmdLine.command       = CommandKind::Build;
+    cmdLine.workspacePath = workspaceDir;
+    cmdLine.silent        = true;
+    CommandLineParser::refreshBuildCfg(cmdLine);
+
+    CompilerInstance compiler(ctx.global(), cmdLine);
+    if (compiler.run() == ExitCode::Success)
+        return Result::Error;
+
+    const fs::path depApiFile = workspaceDir / ".output" / "dep" / "export" / "fast-debug" / "x86_64" / "dep.swg";
+    if (fs::exists(depApiFile))
+        return Result::Error;
+
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(Compiler_WorkspaceBuildRejectsExplicitPublicGlobalVariableInGeneratedApi)
+{
+    const ScopedTempTree tempTree("compiler_workspace_invalid_public_global");
+    if (!tempTree.ready())
+        return Result::Error;
+
+    const fs::path workspaceDir = tempTree.root() / "workspace";
+    const fs::path depModuleDir = workspaceDir / "modules" / "dep";
+
+    if (!writeTextFile(depModuleDir / "module.swg", R"(#run
+{
+    let cfg = @compiler.getBuildCfg()
+    cfg.moduleNamespace = "Dep"
+    cfg.backendKind = .Export
+}
+)"))
+        return Result::Error;
+
+    if (!writeTextFile(depModuleDir / "src" / "main.swg", R"(public var BadExport: s32 = 1
 )"))
         return Result::Error;
 

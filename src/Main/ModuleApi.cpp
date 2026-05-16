@@ -162,39 +162,6 @@ namespace
         return false;
     }
 
-    bool isSupportedPublicDeclSymbol(const Symbol& symbol)
-    {
-        if (!symbol.decl())
-            return false;
-
-        if (symbol.isConstant())
-            return symbol.decl()->is(AstNodeId::SingleVarDecl) || symbol.decl()->is(AstNodeId::MultiVarDecl);
-
-        if (const auto* symbolAlias = symbol.safeCast<SymbolAlias>())
-            return symbolAlias->decl()->is(AstNodeId::AliasDecl);
-
-        if (const auto* symbolStruct = symbol.safeCast<SymbolStruct>())
-        {
-            if (symbolStruct->isGenericInstance())
-                return false;
-
-            return symbolStruct->decl()->is(AstNodeId::StructDecl) || symbolStruct->decl()->is(AstNodeId::UnionDecl);
-        }
-
-        if (const auto* symbolEnum = symbol.safeCast<SymbolEnum>())
-            return symbolEnum->decl()->is(AstNodeId::EnumDecl);
-
-        if (const auto* symbolInterface = symbol.safeCast<SymbolInterface>())
-            return symbolInterface->decl()->is(AstNodeId::InterfaceDecl);
-
-        if (const auto* symbolFunction = symbol.safeCast<SymbolFunction>())
-        {
-            return symbolFunction->supportsGeneratedModuleApiExport();
-        }
-
-        return false;
-    }
-
     bool sameNamespacePath(std::span<const IdentifierRef> lhs, std::span<const IdentifierRef> rhs)
     {
         return lhs.size() == rhs.size() && std::equal(lhs.begin(), lhs.end(), rhs.begin());
@@ -374,8 +341,18 @@ namespace
         return Result::Error;
     }
 
+    Result reportModuleApiPublicGlobalVariable(TaskContext& ctx, const Symbol& symbol)
+    {
+        Diagnostic diag = Diagnostic::get(DiagnosticId::cmd_err_api_public_global_variable, ctx.compiler().srcView(symbol.srcViewRef()).fileRef());
+        diag.addArgument(Diagnostic::ARG_SYM, symbol.name(ctx));
+        diag.last().addSpan(symbol.codeRange(ctx), "", DiagnosticSeverity::Error);
+        diag.report(ctx);
+        return Result::Error;
+    }
+
     Result validatePublicTypeSymbol(TaskContext& ctx, const Symbol& symbol, SmallVector<const Symbol*>& stack);
     Result validatePublicFunctionSymbol(TaskContext& ctx, const SymbolFunction& symbolFunction, SmallVector<const Symbol*>& stack);
+    Result buildSanitizedRootSnippet(TaskContext& ctx, Utf8& outSnippet, const ModuleApiGeneratedRoot& root, const std::string_view eol);
     bool   isModuleApiDeclWrapper(const AstNode& node);
 
     Result validateTypeReferenceSymbol(TaskContext& ctx, const Symbol& ownerSymbol, const Symbol& focusSymbol, std::string_view usage, const Symbol& referencedSymbol, SmallVector<const Symbol*>& stack)
@@ -1464,32 +1441,16 @@ namespace
 
         if (const auto* symbolFunction = root.symbol ? root.symbol->safeCast<SymbolFunction>() : nullptr)
         {
-            if (symbolFunction->supportsPublicApiForeignExport())
-            {
-                if (!supportsGeneratedModuleApiForeignFunctions(ctx.compiler()))
-                    return Result::Continue;
+            SmallVector<const Symbol*> validationStack;
+            SWC_RESULT(validatePublicFunctionSymbol(ctx, *symbolFunction, validationStack));
 
-                SmallVector<const Symbol*> validationStack;
-                SWC_RESULT(validatePublicFunctionSymbol(ctx, *symbolFunction, validationStack));
+            if (symbolFunction->supportsPublicApiForeignExport() && supportsGeneratedModuleApiForeignFunctions(ctx.compiler()))
+            {
                 outSnippet = buildFunctionSnippet(ctx, root, eol);
                 return Result::Continue;
             }
 
-            if (symbolFunction->attributes().hasRtFlag(RtAttributeFlagsE::Macro) || symbolFunction->attributes().hasRtFlag(RtAttributeFlagsE::Mixin))
-            {
-                std::string_view snippetText;
-                if (!tryGetModuleApiSnippet(*root.file, root.nodeRef, snippetText))
-                    return Result::Continue;
-
-                uint32_t startOffset = 0;
-                uint32_t endOffset   = 0;
-                if (!tryGetModuleApiSnippetOffsets(*root.file, root.nodeRef, startOffset, endOffset))
-                    return Result::Continue;
-
-                outSnippet = buildSanitizedModuleApiSnippet(ctx, *root.file, root.nodeRef, startOffset, snippetText, eol);
-            }
-
-            return Result::Continue;
+            return buildSanitizedRootSnippet(ctx, outSnippet, root, eol);
         }
 
         if (root.symbol && (root.symbol->isAlias() || root.symbol->isStruct() || root.symbol->isEnum() || root.symbol->isInterface()))
@@ -1504,17 +1465,7 @@ namespace
             return Result::Continue;
         }
 
-        std::string_view snippetText;
-        if (!tryGetModuleApiSnippet(*root.file, root.nodeRef, snippetText))
-            return Result::Continue;
-
-        uint32_t startOffset = 0;
-        uint32_t endOffset   = 0;
-        if (!tryGetModuleApiSnippetOffsets(*root.file, root.nodeRef, startOffset, endOffset))
-            return Result::Continue;
-
-        outSnippet = buildSanitizedModuleApiSnippet(ctx, *root.file, root.nodeRef, startOffset, snippetText, eol);
-        return Result::Continue;
+        return buildSanitizedRootSnippet(ctx, outSnippet, root, eol);
     }
 
     bool isModuleApiDeclWrapper(const AstNode& node)
@@ -1554,6 +1505,28 @@ namespace
         return false;
     }
 
+    bool tryFindNodeRef(const Ast& ast, const AstNode* targetNode, AstNodeRef& outNodeRef)
+    {
+        outNodeRef = AstNodeRef::invalid();
+        if (!targetNode)
+            return false;
+
+        const AstNodeRef rootRef = ast.root();
+        if (rootRef.isInvalid())
+            return false;
+
+        Ast::visit(ast, rootRef, [&](const AstNodeRef nodeRef, const AstNode& node)
+        {
+            if (&node != targetNode)
+                return Ast::VisitResult::Continue;
+
+            outNodeRef = nodeRef;
+            return Ast::VisitResult::Stop;
+        });
+
+        return outNodeRef.isValid();
+    }
+
     AstNodeRef findExportDeclRoot(const SourceFile& file, const AstNodeRef declRef)
     {
         const AstNodeRef rootRef = file.ast().root();
@@ -1576,6 +1549,30 @@ namespace
         }
 
         return exportRootRef;
+    }
+
+    bool hasExplicitPublicAccessModifier(const SourceFile& file, const AstNodeRef declRef)
+    {
+        const AstNodeRef rootRef = file.ast().root();
+        if (rootRef.isInvalid() || !file.ast().hasSourceView())
+            return false;
+
+        SmallVector<AstNodeRef> nodePath;
+        if (!collectModuleApiNodePath(file.ast(), rootRef, declRef, nodePath))
+            return false;
+
+        for (size_t i = nodePath.size(); i > 1; --i)
+        {
+            const AstNodeRef parentRef = nodePath[i - 2];
+            const AstNode&   parent    = file.ast().node(parentRef);
+            if (!isModuleApiDeclWrapper(parent))
+                break;
+
+            if (parent.is(AstNodeId::AccessModifier) && parent.tokRef().isValid() && file.ast().srcView().token(parent.tokRef()).id == TokenId::KwdPublic)
+                return true;
+        }
+
+        return false;
     }
 
     bool isExportedPublicDeclScope(const SourceFile& file, const AstNodeRef declRef, const Symbol& symbol)
@@ -1663,6 +1660,22 @@ namespace
 
         for (const ModuleApiPublicEntry& publicEntry : sortedEntries)
             outRoots.push_back({.file = &file, .nodeRef = publicEntry.rootRef, .symbol = publicEntry.symbol, .namespacePath = publicEntry.namespacePath});
+    }
+
+    Result buildSanitizedRootSnippet(TaskContext& ctx, Utf8& outSnippet, const ModuleApiGeneratedRoot& root, const std::string_view eol)
+    {
+        outSnippet.clear();
+        std::string_view snippetText;
+        if (!root.file || !tryGetModuleApiSnippet(*root.file, root.nodeRef, snippetText))
+            return Result::Continue;
+
+        uint32_t startOffset = 0;
+        uint32_t endOffset   = 0;
+        if (!tryGetModuleApiSnippetOffsets(*root.file, root.nodeRef, startOffset, endOffset))
+            return Result::Continue;
+
+        outSnippet = buildSanitizedModuleApiSnippet(ctx, *root.file, root.nodeRef, startOffset, snippetText, eol);
+        return Result::Continue;
     }
 
     fs::path buildGeneratedModuleApiPath(const CompilerInstance& compiler, const fs::path& exportApiDir)
@@ -1890,7 +1903,7 @@ namespace
 
             const auto* symbolFunction = root.symbol ? root.symbol->safeCast<SymbolFunction>() : nullptr;
             const SymbolImpl* symImpl = symbolFunction ? symbolFunction->declImplContext() : nullptr;
-            if (symbolFunction && symImpl && symImpl->isForStruct() && symImpl->decl())
+            if (symbolFunction && symImpl && symImpl->decl())
             {
                 Utf8 implPrefix;
                 if (tryBuildImplPrefix(ctx, root, eol, implPrefix))
@@ -1961,15 +1974,21 @@ namespace ModuleApi
         const SourceFile* sourceFile = sourceFileFromRef(ctx.compiler(), symbol.srcViewRef());
         if (!sourceFile || !sourceFile->hasFlag(FileFlagsE::ModuleSrc) || sourceFile->isImportedApi())
             return;
-
-        if (!isSupportedPublicDeclSymbol(symbol))
+        if (!symbol.decl())
             return;
 
-        const AstNodeRef declRef = symbol.decl()->nodeRef(sourceFile->ast());
-        if (declRef.isInvalid())
+        AstNodeRef declRef;
+        if (!tryFindNodeRef(sourceFile->ast(), symbol.decl(), declRef))
             return;
         if (!isExportedPublicDeclScope(*sourceFile, declRef, symbol))
             return;
+
+        if (symbol.isVariable())
+        {
+            if (hasExplicitPublicAccessModifier(*sourceFile, declRef))
+                reportModuleApiPublicGlobalVariable(ctx, symbol);
+            return;
+        }
 
         ModuleApiPublicEntry publicEntry;
         publicEntry.rootRef = findExportDeclRoot(*sourceFile, declRef);

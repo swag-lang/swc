@@ -971,7 +971,7 @@ public func coreValue()->s32
         return Result::Error;
     if (!depApiContent.contains("#global public"))
         return Result::Error;
-    if (!depApiContent.contains("public const DEP_VALUE = 7"))
+    if (!depApiContent.contains("const DEP_VALUE = 7"))
         return Result::Error;
     if (!depApiContent.contains("const DEP_PUBLIC_DEFAULT = 11"))
         return Result::Error;
@@ -1048,6 +1048,8 @@ public func coreValue()->s32
         return Result::Error;
     if (normalizedDepApiContent.contains("\n\n"))
         return Result::Error;
+    if (normalizedDepApiContent.contains("\npublic "))
+        return Result::Error;
 
     Utf8 copiedLegacyApiContent;
     if (FileSystem::readTextFile(copiedLegacyApiFile, copiedLegacyApiContent, ioError) != Result::Continue)
@@ -1106,7 +1108,7 @@ public func coreValue()->s32
         return Result::Error;
     if (!depLibApiContent.contains("func depScale(value: f32)->f32;"))
         return Result::Error;
-    if (!depLibApiContent.contains("public func depTriple(value: s32)->s32;"))
+    if (!depLibApiContent.contains("func depTriple(value: s32)->s32;"))
         return Result::Error;
     if (!depLibApiContent.contains("impl DepCalculator"))
         return Result::Error;
@@ -1133,6 +1135,8 @@ public func coreValue()->s32
     if (depLibApiContent.contains("#[Swag.Foreign(\"deplib\", \"dep_macro_twice_plus"))
         return Result::Error;
     if (depLibApiContent.contains("#[Swag.Foreign(\"deplib\", \"dep_mixin_accumulate_twice"))
+        return Result::Error;
+    if (depLibApiContent.contains("\npublic "))
         return Result::Error;
 
     return Result::Continue;

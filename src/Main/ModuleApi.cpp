@@ -830,6 +830,93 @@ namespace
         return true;
     }
 
+    struct ModuleApiStripRange
+    {
+        uint32_t startOffset = 0;
+        uint32_t endOffset   = 0;
+    };
+
+    void collectModuleApiPublicStripRanges(const Ast& ast, const AstNodeRef nodeRef, std::vector<ModuleApiStripRange>& outRanges)
+    {
+        if (nodeRef.isInvalid() || ast.isAdditionalNode(nodeRef) || !ast.hasSourceView())
+            return;
+
+        const AstNode& node = ast.node(nodeRef);
+        if (const auto* accessNode = node.safeCast<AstAccessModifier>())
+        {
+            if (node.tokRef().isValid() && ast.srcView().token(node.tokRef()).id == TokenId::KwdPublic && accessNode->nodeWhatRef.isValid() && ast.hasNode(accessNode->nodeWhatRef))
+            {
+                const AstNode& childNode        = ast.node(accessNode->nodeWhatRef);
+                const TokenRef childStartTokRef = moduleApiSnippetStartTokRef(ast, childNode);
+                if (childStartTokRef.isValid())
+                {
+                    const SourceView& srcView     = ast.srcView();
+                    const uint32_t    startOffset = sourceTokenByteStart(srcView, srcView.token(node.tokRef()));
+                    const uint32_t    endOffset   = sourceTokenByteStart(srcView, srcView.token(childStartTokRef));
+                    if (startOffset < endOffset)
+                        outRanges.push_back({startOffset, endOffset});
+                }
+            }
+        }
+
+        SmallVector<AstNodeRef> childRefs;
+        node.collectChildrenFromAst(childRefs, ast);
+        for (const AstNodeRef childRef : childRefs)
+            collectModuleApiPublicStripRanges(ast, childRef, outRanges);
+    }
+
+    void normalizeModuleApiStripRanges(std::vector<ModuleApiStripRange>& ioRanges)
+    {
+        if (ioRanges.empty())
+            return;
+
+        std::ranges::sort(ioRanges, [](const ModuleApiStripRange& lhs, const ModuleApiStripRange& rhs) { return lhs.startOffset < rhs.startOffset; });
+
+        size_t writeIndex = 0;
+        for (size_t readIndex = 1; readIndex < ioRanges.size(); ++readIndex)
+        {
+            ModuleApiStripRange&       current = ioRanges[writeIndex];
+            const ModuleApiStripRange& next    = ioRanges[readIndex];
+            if (next.startOffset <= current.endOffset)
+            {
+                current.endOffset = std::max(current.endOffset, next.endOffset);
+                continue;
+            }
+
+            ioRanges[++writeIndex] = next;
+        }
+
+        ioRanges.resize(writeIndex + 1);
+    }
+
+    Utf8 stripModuleApiSourceRanges(const std::string_view snippetText, const uint32_t snippetStartOffset, std::span<const ModuleApiStripRange> stripRanges)
+    {
+        if (snippetText.empty() || stripRanges.empty())
+            return Utf8{snippetText};
+
+        Utf8     result;
+        uint32_t cursor = 0;
+        result.reserve(snippetText.size());
+
+        for (const ModuleApiStripRange& range : stripRanges)
+        {
+            if (range.endOffset <= snippetStartOffset)
+                continue;
+            if (range.startOffset >= snippetStartOffset + snippetText.size())
+                break;
+
+            const uint32_t relativeStart = range.startOffset <= snippetStartOffset ? 0 : range.startOffset - snippetStartOffset;
+            const uint32_t relativeEnd   = std::min<uint32_t>(static_cast<uint32_t>(snippetText.size()), range.endOffset - snippetStartOffset);
+            if (relativeStart > cursor)
+                result.append(snippetText.substr(cursor, relativeStart - cursor));
+            cursor = std::max(cursor, relativeEnd);
+        }
+
+        if (cursor < snippetText.size())
+            result.append(snippetText.substr(cursor));
+        return result;
+    }
+
     bool isModuleApiCommentToken(const TokenId tokenId)
     {
         return tokenId == TokenId::CommentLine || tokenId == TokenId::CommentBlock;
@@ -959,17 +1046,21 @@ namespace
         }
     }
 
-    Utf8 buildSanitizedModuleApiSnippet(TaskContext& ctx, const SourceFile& file, const std::string_view snippetText, const std::string_view eol)
+    Utf8 buildSanitizedModuleApiSnippet(TaskContext& ctx, const SourceFile& file, const AstNodeRef nodeRef, const uint32_t startOffset, const std::string_view snippetText, const std::string_view eol)
     {
         if (snippetText.empty())
             return {};
 
         const std::string_view source      = file.sourceView();
-        const uint32_t         startOffset = static_cast<uint32_t>(snippetText.data() - source.data());
         const std::string_view indentPrefixToStrip = moduleApiLeadingIndentPrefix(file, startOffset);
 
+        std::vector<ModuleApiStripRange> stripRanges;
+        collectModuleApiPublicStripRanges(file.ast(), nodeRef, stripRanges);
+        normalizeModuleApiStripRanges(stripRanges);
+        const Utf8 filteredSnippet = stripModuleApiSourceRanges(snippetText, startOffset, stripRanges);
+
         SourceFile lexFile(FileRef::invalid(), file.path(), FileFlagsE::CustomSrc);
-        lexFile.setContent(snippetText);
+        lexFile.setContent(filteredSnippet.view());
 
         SourceView srcView(SourceViewRef::invalid(), &lexFile);
         Lexer      lexer;
@@ -984,8 +1075,8 @@ namespace
         uint32_t triviaIndex    = 0;
         size_t   indentStripIndex = 0;
 
-        result.reserve(snippetText.size());
-        line.reserve(snippetText.size());
+        result.reserve(filteredSnippet.size());
+        line.reserve(filteredSnippet.size());
 
         while (true)
         {
@@ -1056,7 +1147,7 @@ namespace
         while (!prefixText.empty() && std::isspace(static_cast<unsigned char>(prefixText.back())))
             prefixText.remove_suffix(1);
 
-        outPrefix = buildSanitizedModuleApiSnippet(ctx, *root.file, prefixText, eol);
+        outPrefix = buildSanitizedModuleApiSnippet(ctx, *root.file, root.nodeRef, startOffset, prefixText, eol);
         return !outPrefix.empty();
     }
 
@@ -1182,7 +1273,7 @@ namespace
         if (startOffset >= endOffset)
             return false;
 
-        outPrefix = buildSanitizedModuleApiSnippet(ctx, *root.file, source.substr(startOffset, endOffset - startOffset), eol);
+        outPrefix = buildSanitizedModuleApiSnippet(ctx, *root.file, root.nodeRef, startOffset, source.substr(startOffset, endOffset - startOffset), eol);
         return !outPrefix.empty();
     }
 
@@ -1263,7 +1354,7 @@ namespace
         if (startOffset >= endOffset)
             return false;
 
-        outPrefix = buildSanitizedModuleApiSnippet(ctx, *root.file, source.substr(startOffset, endOffset - startOffset), eol);
+        outPrefix = buildSanitizedModuleApiSnippet(ctx, *root.file, root.nodeRef, startOffset, source.substr(startOffset, endOffset - startOffset), eol);
         trimTrailingModuleApiWhitespace(outPrefix);
         return !outPrefix.empty();
     }
@@ -1293,7 +1384,12 @@ namespace
                 if (!tryGetModuleApiSnippet(*root.file, root.nodeRef, snippetText))
                     return Result::Continue;
 
-                outSnippet = buildSanitizedModuleApiSnippet(ctx, *root.file, snippetText, eol);
+                uint32_t startOffset = 0;
+                uint32_t endOffset   = 0;
+                if (!tryGetModuleApiSnippetOffsets(*root.file, root.nodeRef, startOffset, endOffset))
+                    return Result::Continue;
+
+                outSnippet = buildSanitizedModuleApiSnippet(ctx, *root.file, root.nodeRef, startOffset, snippetText, eol);
             }
 
             return Result::Continue;
@@ -1315,7 +1411,12 @@ namespace
         if (!tryGetModuleApiSnippet(*root.file, root.nodeRef, snippetText))
             return Result::Continue;
 
-        outSnippet = buildSanitizedModuleApiSnippet(ctx, *root.file, snippetText, eol);
+        uint32_t startOffset = 0;
+        uint32_t endOffset   = 0;
+        if (!tryGetModuleApiSnippetOffsets(*root.file, root.nodeRef, startOffset, endOffset))
+            return Result::Continue;
+
+        outSnippet = buildSanitizedModuleApiSnippet(ctx, *root.file, root.nodeRef, startOffset, snippetText, eol);
         return Result::Continue;
     }
 

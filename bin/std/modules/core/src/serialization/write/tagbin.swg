@@ -34,6 +34,7 @@ struct TagBinSection
 }
 
 // Binary writer for serialized data with support for structured and raw output
+#[Swag.Opaque]
 struct TagBin
 {
     compressionFlags:        Core.Compress.Deflate.CompressionFlags = .Zero

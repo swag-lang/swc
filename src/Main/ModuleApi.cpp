@@ -4,6 +4,8 @@
 #include "Compiler/Lexer/SourceView.h"
 #include "Compiler/Parser/Ast/Ast.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
+#include "Compiler/Sema/Constant/ConstantManager.h"
+#include "Compiler/Sema/Constant/ConstantValue.h"
 #include "Compiler/Sema/Symbol/Symbols.h"
 #include "Compiler/SourceFile.h"
 #include "Format/Formatter.h"
@@ -28,6 +30,7 @@ namespace
     {
         const SourceFile*               file    = nullptr;
         AstNodeRef                      nodeRef = AstNodeRef::invalid();
+        const Symbol*                   symbol  = nullptr;
         std::vector<IdentifierRef>      namespacePath;
     };
 
@@ -67,14 +70,79 @@ namespace
         return defaultModuleNamespace(artifactName);
     }
 
+    const SourceFile* sourceFileFromSymbol(const CompilerInstance& compiler, const Symbol& symbol)
+    {
+        return sourceFileFromRef(compiler, symbol.srcViewRef());
+    }
+
+    bool isCurrentModuleSymbol(const CompilerInstance& compiler, const Symbol& symbol)
+    {
+        const SourceFile* sourceFile = sourceFileFromSymbol(compiler, symbol);
+        if (!sourceFile)
+            return false;
+
+        return sourceFile->hasFlag(FileFlagsE::ModuleSrc) && !sourceFile->isImportedApi();
+    }
+
+    bool isModuleApiOpaqueType(const Symbol& symbol)
+    {
+        return symbol.attributes().hasRtFlag(RtAttributeFlagsE::Opaque);
+    }
+
+    Utf8 moduleApiSymbolKindName(const Symbol& symbol)
+    {
+        if (const auto* symbolStruct = symbol.safeCast<SymbolStruct>())
+            return symbolStruct->isUnion() ? Utf8("union") : Utf8("struct");
+        if (symbol.isAlias())
+            return "alias";
+        return symbol.toFamily();
+    }
+
+    bool tryGetSwagAttributeIntValue(uint32_t& outValue, TaskContext& ctx, const Symbol& symbol, std::string_view attrName)
+    {
+        outValue = 0;
+        for (const AttributeInstance& attribute : symbol.attributes().attributes)
+        {
+            if (!attribute.symbol || !attribute.symbol->inSwagNamespace(ctx) || attribute.symbol->name(ctx) != attrName)
+                continue;
+
+            for (const AttributeParamInstance& param : attribute.params)
+            {
+                if (!param.valueCstRef.isValid())
+                    continue;
+
+                const ConstantValue& cst = ctx.cstMgr().get(param.valueCstRef);
+                if (!cst.isInt())
+                    continue;
+
+                outValue = static_cast<uint32_t>(cst.getInt().as64());
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     bool isSupportedPublicDeclSymbol(const Symbol& symbol)
     {
-        if (!symbol.isConstant())
-            return false;
         if (!symbol.decl())
             return false;
 
-        return symbol.decl()->is(AstNodeId::SingleVarDecl) || symbol.decl()->is(AstNodeId::MultiVarDecl);
+        if (symbol.isConstant())
+            return symbol.decl()->is(AstNodeId::SingleVarDecl) || symbol.decl()->is(AstNodeId::MultiVarDecl);
+
+        if (const auto* symbolAlias = symbol.safeCast<SymbolAlias>())
+            return symbolAlias->decl()->is(AstNodeId::AliasDecl);
+
+        if (const auto* symbolStruct = symbol.safeCast<SymbolStruct>())
+        {
+            if (symbolStruct->isGenericInstance())
+                return false;
+
+            return symbolStruct->decl()->is(AstNodeId::StructDecl) || symbolStruct->decl()->is(AstNodeId::UnionDecl);
+        }
+
+        return false;
     }
 
     bool sameNamespacePath(std::span<const IdentifierRef> lhs, std::span<const IdentifierRef> rhs)
@@ -112,6 +180,30 @@ namespace
         const auto          it    = std::ranges::find_if(entry.publicEntries, [&](const ModuleApiPublicEntry& candidate) { return samePublicEntry(candidate, publicEntry); });
         if (it == entry.publicEntries.end())
             entry.publicEntries.push_back(publicEntry);
+        else if (!it->symbol)
+            it->symbol = publicEntry.symbol;
+    }
+
+    bool isLegacyExportedFile(const SourceFile& file)
+    {
+        const AstNodeRef rootRef = file.ast().root();
+        if (rootRef.isInvalid())
+            return false;
+
+        const AstNode& rootNode = file.ast().node(rootRef);
+        if (rootNode.isNot(AstNodeId::File))
+            return false;
+
+        SmallVector<AstNodeRef> globalRefs;
+        file.ast().appendNodes(globalRefs, rootNode.cast<AstFile>().spanGlobalsRef);
+        if (globalRefs.empty() || globalRefs.front().isInvalid())
+            return false;
+
+        const AstNode& globalNode = file.ast().node(globalRefs.front());
+        if (globalNode.isNot(AstNodeId::CompilerGlobal))
+            return false;
+
+        return globalNode.cast<AstCompilerGlobal>().mode == AstCompilerGlobal::Mode::Export;
     }
 
     ModuleApiFileInfo analyzeModuleApiFile(const SourceFile& file, std::string_view moduleNamespace)
@@ -125,6 +217,7 @@ namespace
         if (rootNode.isNot(AstNodeId::File))
             return result;
 
+        result.legacyExported = isLegacyExportedFile(file);
         const auto& fileNode = rootNode.cast<AstFile>();
 
         SmallVector<AstNodeRef> globalRefs;
@@ -140,9 +233,6 @@ namespace
                 continue;
 
             const auto& global = globalNode.cast<AstCompilerGlobal>();
-            if (i == 0 && global.mode == AstCompilerGlobal::Mode::Export)
-                result.legacyExported = true;
-
             if (global.mode != AstCompilerGlobal::Mode::Namespace)
                 continue;
 
@@ -157,6 +247,12 @@ namespace
         }
 
         return result;
+    }
+
+    bool isLegacyExportedSymbol(const CompilerInstance& compiler, const Symbol& symbol)
+    {
+        const SourceFile* sourceFile = sourceFileFromSymbol(compiler, symbol);
+        return sourceFile && isLegacyExportedFile(*sourceFile);
     }
 
     std::string_view preferredLineEnding(const SourceFile& file)
@@ -180,6 +276,175 @@ namespace
     uint32_t sourceTokenByteEnd(const SourceView& srcView, const Token& token)
     {
         return sourceTokenByteStart(srcView, token) + token.byteLength;
+    }
+
+    bool moduleApiValidationStackContains(std::span<const Symbol*> stack, const Symbol& symbol)
+    {
+        return std::ranges::find(stack, &symbol) != stack.end();
+    }
+
+    struct ModuleApiValidationScope
+    {
+        SmallVector<const Symbol*>& stack;
+
+        ModuleApiValidationScope(SmallVector<const Symbol*>& stack, const Symbol& symbol) :
+            stack(stack)
+        {
+            stack.push_back(&symbol);
+        }
+
+        ~ModuleApiValidationScope()
+        {
+            stack.pop_back();
+        }
+    };
+
+    Result reportModuleApiFieldNotPublic(TaskContext& ctx, const SymbolStruct& ownerStruct, const SymbolVariable& field)
+    {
+        Diagnostic diag = Diagnostic::get(DiagnosticId::cmd_err_api_public_type_field_private, ctx.compiler().srcView(field.srcViewRef()).fileRef());
+        diag.addArgument(Diagnostic::ARG_WHAT, moduleApiSymbolKindName(ownerStruct));
+        diag.addArgument(Diagnostic::ARG_SYM, ownerStruct.name(ctx));
+        diag.addArgument(Diagnostic::ARG_VALUE, field.name(ctx));
+        diag.last().addSpan(field.codeRange(ctx), "", DiagnosticSeverity::Error);
+        diag.last().addSpan(ownerStruct.codeRange(ctx), "public type declared here", DiagnosticSeverity::Note);
+        diag.report(ctx);
+        return Result::Error;
+    }
+
+    Result reportModuleApiNonPublicTypeReference(TaskContext& ctx, const Symbol& ownerSymbol, const Symbol& focusSymbol, std::string_view usage, const Symbol& referencedSymbol)
+    {
+        Diagnostic diag = Diagnostic::get(DiagnosticId::cmd_err_api_public_type_reference_private, ctx.compiler().srcView(focusSymbol.srcViewRef()).fileRef());
+        diag.addArgument(Diagnostic::ARG_WHAT, moduleApiSymbolKindName(ownerSymbol));
+        diag.addArgument(Diagnostic::ARG_SYM, ownerSymbol.name(ctx));
+        diag.addArgument(Diagnostic::ARG_VALUE, usage);
+        diag.addArgument(Diagnostic::ARG_TYPE, referencedSymbol.getFullScopedName(ctx));
+        diag.last().addSpan(focusSymbol.codeRange(ctx), "", DiagnosticSeverity::Error);
+        diag.last().addSpan(referencedSymbol.codeRange(ctx), "referenced type declared here", DiagnosticSeverity::Note);
+        diag.report(ctx);
+        return Result::Error;
+    }
+
+    Result validatePublicTypeSymbol(TaskContext& ctx, const Symbol& symbol, SmallVector<const Symbol*>& stack);
+
+    Result validateTypeReferenceSymbol(TaskContext& ctx, const Symbol& ownerSymbol, const Symbol& focusSymbol, std::string_view usage, const Symbol& referencedSymbol, SmallVector<const Symbol*>& stack)
+    {
+        if (!isCurrentModuleSymbol(ctx.compiler(), referencedSymbol))
+            return Result::Continue;
+
+        if (isLegacyExportedSymbol(ctx.compiler(), referencedSymbol))
+            return Result::Continue;
+
+        if (!referencedSymbol.isPublic())
+            return reportModuleApiNonPublicTypeReference(ctx, ownerSymbol, focusSymbol, usage, referencedSymbol);
+
+        if (referencedSymbol.isAlias() || referencedSymbol.isStruct())
+            return validatePublicTypeSymbol(ctx, referencedSymbol, stack);
+
+        return Result::Continue;
+    }
+
+    Result validateExportedTypeRef(TaskContext& ctx, const Symbol& ownerSymbol, const Symbol& focusSymbol, std::string_view usage, const TypeRef typeRef, SmallVector<const Symbol*>& stack)
+    {
+        if (!typeRef.isValid())
+            return Result::Continue;
+
+        const TypeInfo& type = ctx.typeMgr().get(typeRef);
+        if (type.isAlias())
+        {
+            const SymbolAlias& alias = type.payloadSymAlias();
+            SWC_RESULT(validateTypeReferenceSymbol(ctx, ownerSymbol, focusSymbol, usage, alias, stack));
+            return validateExportedTypeRef(ctx, ownerSymbol, focusSymbol, usage, alias.underlyingTypeRef(), stack);
+        }
+
+        if (type.isStruct())
+        {
+            const SymbolStruct& symbolStruct = type.payloadSymStruct();
+            return validateTypeReferenceSymbol(ctx, ownerSymbol, focusSymbol, usage, symbolStruct, stack);
+        }
+
+        if (type.isInterface())
+            return validateTypeReferenceSymbol(ctx, ownerSymbol, focusSymbol, usage, type.payloadSymInterface(), stack);
+
+        if (type.isEnum())
+            return validateTypeReferenceSymbol(ctx, ownerSymbol, focusSymbol, usage, type.payloadSymEnum(), stack);
+
+        if (type.isArray())
+            return validateExportedTypeRef(ctx, ownerSymbol, focusSymbol, usage, type.payloadArrayElemTypeRef(), stack);
+
+        if (type.isSlice() || type.isAnyPointer() || type.isReference() || type.isTypeValue() || type.isTypedVariadic() || type.isCodeBlock())
+            return validateExportedTypeRef(ctx, ownerSymbol, focusSymbol, usage, type.payloadTypeRef(), stack);
+
+        if (type.isFunction())
+        {
+            const SymbolFunction& function = type.payloadSymFunction();
+            if (function.returnTypeRef().isValid() && function.returnTypeRef() != ctx.typeMgr().typeVoid())
+                SWC_RESULT(validateExportedTypeRef(ctx, ownerSymbol, focusSymbol, usage, function.returnTypeRef(), stack));
+
+            for (const SymbolVariable* param : function.parameters())
+            {
+                if (!param || !param->typeRef().isValid())
+                    continue;
+                SWC_RESULT(validateExportedTypeRef(ctx, ownerSymbol, focusSymbol, usage, param->typeRef(), stack));
+            }
+
+            return Result::Continue;
+        }
+
+        if (type.isAggregateStruct() || type.isAggregateArray())
+        {
+            for (const TypeRef childTypeRef : type.payloadAggregate().types)
+                SWC_RESULT(validateExportedTypeRef(ctx, ownerSymbol, focusSymbol, usage, childTypeRef, stack));
+        }
+
+        return Result::Continue;
+    }
+
+    Result validatePublicAliasSymbol(TaskContext& ctx, const SymbolAlias& symbolAlias, SmallVector<const Symbol*>& stack)
+    {
+        if (const Symbol* aliasedSymbol = symbolAlias.aliasedSymbol())
+            SWC_RESULT(validateTypeReferenceSymbol(ctx, symbolAlias, symbolAlias, "its target", *aliasedSymbol, stack));
+
+        if (!symbolAlias.underlyingTypeRef().isValid())
+            return Result::Continue;
+
+        return validateExportedTypeRef(ctx, symbolAlias, symbolAlias, "its target", symbolAlias.underlyingTypeRef(), stack);
+    }
+
+    Result validatePublicStructSymbol(TaskContext& ctx, const SymbolStruct& symbolStruct, SmallVector<const Symbol*>& stack)
+    {
+        if (isModuleApiOpaqueType(symbolStruct))
+            return Result::Continue;
+
+        for (const SymbolVariable* field : symbolStruct.fields())
+        {
+            if (!field || field->isIgnored())
+                continue;
+
+            if (!field->isPublic())
+                return reportModuleApiFieldNotPublic(ctx, symbolStruct, *field);
+
+            if (!field->typeRef().isValid())
+                continue;
+
+            const Utf8 usage = std::format("field '{}'", field->name(ctx));
+            SWC_RESULT(validateExportedTypeRef(ctx, symbolStruct, *field, usage.view(), field->typeRef(), stack));
+        }
+
+        return Result::Continue;
+    }
+
+    Result validatePublicTypeSymbol(TaskContext& ctx, const Symbol& symbol, SmallVector<const Symbol*>& stack)
+    {
+        if (moduleApiValidationStackContains(stack.span(), symbol))
+            return Result::Continue;
+
+        ModuleApiValidationScope validationScope(stack, symbol);
+        if (const auto* symbolAlias = symbol.safeCast<SymbolAlias>())
+            return validatePublicAliasSymbol(ctx, *symbolAlias, stack);
+        if (const auto* symbolStruct = symbol.safeCast<SymbolStruct>())
+            return validatePublicStructSymbol(ctx, *symbolStruct, stack);
+
+        return Result::Continue;
     }
 
     TokenRef moduleApiSnippetStartTokRef(const Ast& ast, const AstNode& node)
@@ -213,8 +478,18 @@ namespace
                         return prevTokRef;
                     break;
 
+                case AstNodeId::UnionDecl:
+                    if (prevId == TokenId::KwdUnion)
+                        return prevTokRef;
+                    break;
+
                 case AstNodeId::InterfaceDecl:
                     if (prevId == TokenId::KwdInterface)
+                        return prevTokRef;
+                    break;
+
+                case AstNodeId::AliasDecl:
+                    if (prevId == TokenId::KwdAlias)
                         return prevTokRef;
                     break;
 
@@ -587,6 +862,115 @@ namespace
         return result;
     }
 
+    AstNodeRef moduleApiOpaqueTypeBodyRef(const AstNode& declNode)
+    {
+        if (declNode.is(AstNodeId::StructDecl))
+            return declNode.cast<AstStructDecl>().nodeBodyRef;
+        if (declNode.is(AstNodeId::UnionDecl))
+            return declNode.cast<AstUnionDecl>().nodeBodyRef;
+        return AstNodeRef::invalid();
+    }
+
+    bool tryBuildOpaqueTypePrefix(TaskContext& ctx, const ModuleApiGeneratedRoot& root, const std::string_view eol, Utf8& outPrefix)
+    {
+        outPrefix.clear();
+        if (!root.file || !root.symbol || !root.symbol->decl())
+            return false;
+
+        const AstNode& declNode = *root.symbol->decl();
+        const AstNodeRef bodyRef = moduleApiOpaqueTypeBodyRef(declNode);
+        if (bodyRef.isInvalid())
+            return false;
+
+        uint32_t startOffset = 0;
+        uint32_t endOffset   = 0;
+        if (!tryGetModuleApiSnippetOffsets(*root.file, root.nodeRef, startOffset, endOffset))
+            return false;
+
+        const Ast& ast = root.file->ast();
+        if (!ast.hasSourceView() || ast.isAdditionalNode(bodyRef))
+            return false;
+
+        const AstNode& bodyNode = ast.node(bodyRef);
+        if (!bodyNode.tokRef().isValid())
+            return false;
+
+        const SourceView& srcView         = ast.srcView();
+        const uint32_t    bodyStartOffset = sourceTokenByteStart(srcView, srcView.token(bodyNode.tokRef()));
+        const std::string_view source     = root.file->sourceView();
+        if (bodyStartOffset <= startOffset || bodyStartOffset > source.size())
+            return false;
+
+        std::string_view prefixText = source.substr(startOffset, bodyStartOffset - startOffset);
+        while (!prefixText.empty() && std::isspace(static_cast<unsigned char>(prefixText.back())))
+            prefixText.remove_suffix(1);
+
+        outPrefix = buildSanitizedModuleApiSnippet(ctx, *root.file, prefixText, eol);
+        return !outPrefix.empty();
+    }
+
+    Utf8 buildOpaqueTypeSnippet(TaskContext& ctx, const ModuleApiGeneratedRoot& root, const std::string_view eol)
+    {
+        const auto* symbolStruct = root.symbol ? root.symbol->safeCast<SymbolStruct>() : nullptr;
+        if (!symbolStruct)
+            return {};
+
+        Utf8 prefix;
+        if (!tryBuildOpaqueTypePrefix(ctx, root, eol, prefix))
+        {
+            prefix += "#[Swag.Opaque]";
+            prefix += eol;
+            prefix += symbolStruct->isUnion() ? "union " : "struct ";
+            prefix += symbolStruct->name(ctx);
+        }
+
+        Utf8 result;
+        uint32_t alignValue = 0;
+        if (symbolStruct->alignment() > 1 && !tryGetSwagAttributeIntValue(alignValue, ctx, *symbolStruct, "Align"))
+        {
+            result += std::format("#[Swag.Align({})]", symbolStruct->alignment());
+            result += eol;
+        }
+
+        result += prefix;
+        if (!result.empty() && result.back() != ' ' && result.back() != '\t')
+            result += ' ';
+        result += "{";
+        result += eol;
+        result += "    moduleprivate swagOpaqueStorage: [";
+        result += std::format("{}", symbolStruct->sizeOf());
+        result += "] u8";
+        result += eol;
+        result += "}";
+        return result;
+    }
+
+    Result buildGeneratedRootSnippet(TaskContext& ctx, const ModuleApiGeneratedRoot& root, const std::string_view eol, Utf8& outSnippet)
+    {
+        outSnippet.clear();
+        if (!root.file)
+            return Result::Continue;
+
+        if (root.symbol && (root.symbol->isAlias() || root.symbol->isStruct()))
+        {
+            SmallVector<const Symbol*> validationStack;
+            SWC_RESULT(validatePublicTypeSymbol(ctx, *root.symbol, validationStack));
+        }
+
+        if (root.symbol && root.symbol->isStruct() && isModuleApiOpaqueType(*root.symbol))
+        {
+            outSnippet = buildOpaqueTypeSnippet(ctx, root, eol);
+            return Result::Continue;
+        }
+
+        std::string_view snippetText;
+        if (!tryGetModuleApiSnippet(*root.file, root.nodeRef, snippetText))
+            return Result::Continue;
+
+        outSnippet = buildSanitizedModuleApiSnippet(ctx, *root.file, snippetText, eol);
+        return Result::Continue;
+    }
+
     bool isModuleApiDeclWrapper(const AstNode& node)
     {
         return node.is(AstNodeId::AccessModifier) ||
@@ -719,7 +1103,7 @@ namespace
         });
 
         for (const ModuleApiPublicEntry& publicEntry : sortedEntries)
-            outRoots.push_back({.file = &file, .nodeRef = publicEntry.rootRef, .namespacePath = publicEntry.namespacePath});
+            outRoots.push_back({.file = &file, .nodeRef = publicEntry.rootRef, .symbol = publicEntry.symbol, .namespacePath = publicEntry.namespacePath});
     }
 
     fs::path buildGeneratedModuleApiPath(const CompilerInstance& compiler, const fs::path& exportApiDir)
@@ -885,14 +1269,8 @@ namespace
 
         for (const ModuleApiGeneratedRoot& root : roots)
         {
-            if (!root.file)
-                continue;
-
-            std::string_view snippetText;
-            if (!tryGetModuleApiSnippet(*root.file, root.nodeRef, snippetText))
-                continue;
-
-            Utf8 sanitizedSnippet = buildSanitizedModuleApiSnippet(ctx, *root.file, snippetText, eol);
+            Utf8 sanitizedSnippet;
+            SWC_RESULT(buildGeneratedRootSnippet(ctx, root, eol, sanitizedSnippet));
             if (sanitizedSnippet.empty())
                 continue;
 
@@ -968,6 +1346,7 @@ namespace ModuleApi
 
         ModuleApiPublicEntry publicEntry;
         publicEntry.rootRef = findExportDeclRoot(*sourceFile, declRef);
+        publicEntry.symbol  = &symbol;
         if (publicEntry.rootRef.isInvalid())
             return;
 

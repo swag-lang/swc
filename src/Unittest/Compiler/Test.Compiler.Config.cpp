@@ -736,6 +736,37 @@ public impl DepIgnoredContainer
 }
 )"))
         return Result::Error;
+    if (!writeTextFile(depModuleDir / "src" / "public_types.swg", R"(#global public
+alias DepCount = s32
+
+struct DepPair
+{
+    left:  DepCount
+    right: s32
+}
+
+union DepValue
+{
+    asInt:   s32
+    asFloat: f32
+}
+
+#[Swag.Opaque]
+struct DepOpaque
+{
+    opaqueHead: u64
+    opaqueTail: u32
+}
+
+namespace DepTools
+{
+    struct DepNamespaced
+    {
+        value: s16
+    }
+}
+)"))
+        return Result::Error;
     if (!writeTextFile(depModuleDir / "src" / "legacy.swg", R"(#global export
 public func depLegacyValue()->s32
 {
@@ -757,6 +788,18 @@ public func depLegacyValue()->s32
 
 public func coreValue()->s32
 {
+    var count: DepCount = 19
+    var pair: DepPair
+    pair.left  = 2
+    pair.right = 5
+    var value = DepValue{asInt: 0x1234}
+
+    #assert(#sizeof(DepOpaque) == 16)
+    #assert(#alignof(DepOpaque) == 8)
+    var opaque: DepOpaque
+    var namespaced: DepTools.DepNamespaced
+    namespaced.value = 12
+
     return DEP_VALUE +
            DEP_PUBLIC_DEFAULT +
            DEP_MULTI_A +
@@ -765,7 +808,13 @@ public func coreValue()->s32
            DepTools.DEP_NAMESPACE_B +
            DepTools.DEP_NAMESPACE_C +
            DepTools.Deep.DEP_NAMESPACE_DEEP +
-           depLegacyValue()
+           depLegacyValue() +
+           count +
+           pair.left +
+           pair.right +
+           value.asInt +
+           namespaced.value +
+           cast(s32) #sizeof(opaque)
 }
 )"))
         return Result::Error;
@@ -822,6 +871,18 @@ public func coreValue()->s32
         return Result::Error;
     if (!depApiContent.contains("const DEP_NAMESPACE_DEEP = 43"))
         return Result::Error;
+    if (!depApiContent.contains("alias DepCount = s32"))
+        return Result::Error;
+    if (!depApiContent.contains("struct DepPair"))
+        return Result::Error;
+    if (!depApiContent.contains("union DepValue"))
+        return Result::Error;
+    if (!depApiContent.contains("struct DepOpaque"))
+        return Result::Error;
+    if (!depApiContent.contains("struct DepNamespaced"))
+        return Result::Error;
+    if (!depApiContent.contains("swagOpaqueStorage"))
+        return Result::Error;
     if (depApiContent.contains("PRIVATE_VALUE"))
         return Result::Error;
     if (depApiContent.contains("DEP_FILE_PRIVATE"))
@@ -835,6 +896,10 @@ public func coreValue()->s32
     if (depApiContent.contains("DEP_IMPL_VALUE"))
         return Result::Error;
     if (depApiContent.contains("DEP_LOCAL_VALUE"))
+        return Result::Error;
+    if (depApiContent.contains("opaqueHead"))
+        return Result::Error;
+    if (depApiContent.contains("opaqueTail"))
         return Result::Error;
     if (depApiContent.contains("//") || depApiContent.contains("/*"))
         return Result::Error;
@@ -870,6 +935,50 @@ public func coreValue()->s32
     if (FileSystem::readTextFile(copiedLegacyApiFile, copiedLegacyApiContent, ioError) != Result::Continue)
         return Result::Error;
     if (!copiedLegacyApiContent.contains("public func depLegacyValue()->s32"))
+        return Result::Error;
+
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(Compiler_WorkspaceBuildRejectsPublicStructWithModuleprivateFieldInGeneratedApi)
+{
+    const ScopedTempTree tempTree("compiler_workspace_invalid_public_type");
+    if (!tempTree.ready())
+        return Result::Error;
+
+    const fs::path workspaceDir = tempTree.root() / "workspace";
+    const fs::path depModuleDir = workspaceDir / "modules" / "dep";
+
+    if (!writeTextFile(depModuleDir / "module.swg", R"(#run
+{
+    let cfg = @compiler.getBuildCfg()
+    cfg.moduleNamespace = "Dep"
+    cfg.backendKind = .Export
+}
+)"))
+        return Result::Error;
+
+    if (!writeTextFile(depModuleDir / "src" / "main.swg", R"(#global public
+struct BadExport
+{
+    moduleprivate hidden: s32
+}
+)"))
+        return Result::Error;
+
+    CommandLine cmdLine;
+    cmdLine.command       = CommandKind::Sema;
+    cmdLine.workspacePath = workspaceDir;
+    cmdLine.silent        = true;
+    CommandLineParser::refreshBuildCfg(cmdLine);
+
+    CompilerInstance compiler(ctx.global(), cmdLine);
+    if (compiler.run() == ExitCode::Success)
+        return Result::Error;
+
+    const fs::path depApiFile = workspaceDir / ".output" / "dep" / "export" / "fast-debug" / "x86_64" / "dep.swg";
+    if (fs::exists(depApiFile))
         return Result::Error;
 
     return Result::Continue;

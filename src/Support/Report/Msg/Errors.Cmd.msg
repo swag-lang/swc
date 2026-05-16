@@ -91,6 +91,8 @@ SWC_DIAG_DEF(cmd_err_native_artifact_missing, Error, "native backend did not pro
 SWC_DIAG_DEF(cmd_err_api_dir_clear_failed, Error, "cannot clear module API directory '{path}': {because}")
 SWC_DIAG_DEF(cmd_err_api_dir_create_failed, Error, "cannot create module API directory '{path}': {because}")
 SWC_DIAG_DEF(cmd_err_api_file_write_failed, Error, "cannot write module API file '{path}': {because}")
+SWC_DIAG_DEF(cmd_err_api_public_type_field_private, Error, "cannot export public {what} '{sym}' because field '{value}' is not public")
+SWC_DIAG_DEF(cmd_err_api_public_type_reference_private, Error, "cannot export public {what} '{sym}' because {value} uses non-public type '{type}'")
 SWC_DIAG_DEF(cmd_err_workspace_modules_missing, Error, "workspace '{path}' is missing the required 'modules' directory")
 SWC_DIAG_DEF(cmd_err_workspace_module_file_missing, Error, "workspace module '{path}' is missing 'module.swg'")
 SWC_DIAG_DEF(cmd_err_workspace_module_src_missing, Error, "workspace module '{path}' is missing the required 'src' directory")

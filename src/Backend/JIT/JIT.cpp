@@ -147,6 +147,79 @@ namespace
         return functionAddress;
     }
 
+    bool tryResolveForeignFunctionAddress(TaskContext& ctx, void*& outFunctionAddress, const SymbolFunction& targetFunction, RelocationResolveFailure* outFailure, JITRelocationPatchContext* patchContext = nullptr)
+    {
+        outFunctionAddress = nullptr;
+        if (!targetFunction.isForeign())
+        {
+            if (outFailure)
+            {
+                outFailure->kind         = RelocationResolveFailureKind::TargetFunctionNotForeign;
+                outFailure->targetSymbol = &targetFunction;
+            }
+
+            return false;
+        }
+
+        if (patchContext)
+        {
+            const auto cacheIt = patchContext->resolvedFunctionAddresses.find(&targetFunction);
+            if (cacheIt != patchContext->resolvedFunctionAddresses.end())
+            {
+                outFunctionAddress = reinterpret_cast<void*>(cacheIt->second);
+                return true;
+            }
+        }
+
+        const std::string_view moduleName = targetFunction.foreignModuleName();
+        if (moduleName.empty())
+        {
+            if (outFailure)
+            {
+                outFailure->kind         = RelocationResolveFailureKind::ForeignModuleMissing;
+                outFailure->targetSymbol = &targetFunction;
+            }
+
+            return false;
+        }
+
+        const Utf8 functionName = targetFunction.resolveForeignFunctionName(ctx);
+        if (functionName.empty())
+        {
+            if (outFailure)
+            {
+                outFailure->kind         = RelocationResolveFailureKind::ForeignFunctionMissing;
+                outFailure->targetSymbol = &targetFunction;
+                outFailure->moduleName   = Utf8(moduleName);
+            }
+
+            return false;
+        }
+
+        void* functionAddress = nullptr;
+        if (!ctx.compiler().externalModuleMgr().getFunctionAddress(functionAddress, moduleName, functionName))
+        {
+            if (outFailure)
+            {
+                outFailure->kind         = RelocationResolveFailureKind::ForeignLookupFailed;
+                outFailure->targetSymbol = &targetFunction;
+                outFailure->moduleName   = Utf8(moduleName);
+                outFailure->functionName = functionName;
+            }
+
+            return false;
+        }
+
+        outFunctionAddress = guardedForeignFunctionAddress(moduleName, functionName, functionAddress);
+        if (!outFunctionAddress)
+            return false;
+
+        if (patchContext)
+            patchContext->resolvedFunctionAddresses.try_emplace(&targetFunction, reinterpret_cast<uint64_t>(outFunctionAddress));
+
+        return true;
+    }
+
     Utf8 relocationSymbolName(const TaskContext& ctx, const Symbol* symbol)
     {
         if (!symbol)
@@ -502,59 +575,11 @@ namespace
             return false;
         }
 
-        if (patchContext)
-        {
-            const auto cacheIt = patchContext->resolvedFunctionAddresses.find(&targetFunction);
-            if (cacheIt != patchContext->resolvedFunctionAddresses.end())
-            {
-                outTargetAddress = cacheIt->second;
-                return true;
-            }
-        }
-
-        const std::string_view moduleName = targetFunction.foreignModuleName();
-        if (moduleName.empty())
-        {
-            if (outFailure)
-            {
-                outFailure->kind         = RelocationResolveFailureKind::ForeignModuleMissing;
-                outFailure->targetSymbol = targetSymbol;
-            }
-
-            return false;
-        }
-
-        const Utf8 functionName = targetFunction.resolveForeignFunctionName(ctx);
-        if (functionName.empty())
-        {
-            if (outFailure)
-            {
-                outFailure->kind         = RelocationResolveFailureKind::ForeignFunctionMissing;
-                outFailure->targetSymbol = targetSymbol;
-                outFailure->moduleName   = Utf8(moduleName);
-            }
-
-            return false;
-        }
-
         void* functionAddress = nullptr;
-        if (!ctx.compiler().externalModuleMgr().getFunctionAddress(functionAddress, moduleName, functionName))
-        {
-            if (outFailure)
-            {
-                outFailure->kind         = RelocationResolveFailureKind::ForeignLookupFailed;
-                outFailure->targetSymbol = targetSymbol;
-                outFailure->moduleName   = Utf8(moduleName);
-                outFailure->functionName = functionName;
-            }
-
+        if (!tryResolveForeignFunctionAddress(ctx, functionAddress, targetFunction, outFailure, patchContext))
             return false;
-        }
 
-        outTargetAddress = reinterpret_cast<uint64_t>(guardedForeignFunctionAddress(moduleName, functionName, functionAddress));
-        if (patchContext)
-            patchContext->resolvedFunctionAddresses.try_emplace(&targetFunction, outTargetAddress);
-
+        outTargetAddress = reinterpret_cast<uint64_t>(functionAddress);
         return outTargetAddress != 0;
     }
 
@@ -896,6 +921,12 @@ Result JIT::emit(TaskContext& ctx, JITMemory& outExecutableMemory, ByteSpan line
     SWC_RESULT(patch(ctx, outExecutableMemory, relocations, ownerFunction));
     finalize(outExecutableMemory);
     return Result::Continue;
+}
+
+bool JIT::resolveForeignFunctionAddress(TaskContext& ctx, void*& outFunctionAddress, const SymbolFunction& targetFunction)
+{
+    const TaskScopedContext scopedContext(ctx);
+    return tryResolveForeignFunctionAddress(ctx, outFunctionAddress, targetFunction, nullptr);
 }
 
 Result JIT::emitAndCall(TaskContext& ctx, void* targetFn, std::span<const JITArgument> args, const JITReturn& ret, CallConvKind callConvKind)

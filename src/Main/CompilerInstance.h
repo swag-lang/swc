@@ -38,9 +38,10 @@ class CompilerInstance
 public:
     struct ModuleSetupImport
     {
-        Utf8 moduleName;
-        Utf8 location;
-        Utf8 version;
+        Utf8                         moduleName;
+        Utf8                         location;
+        Utf8                         version;
+        Runtime::BuildCfgBackendKind linkBackendKind = Runtime::BuildCfgBackendKind::None;
     };
 
     struct CompilerMessageEvent
@@ -207,13 +208,15 @@ public:
     const SourceView*             findSourceViewByFileName(std::string_view fileName) const;
     size_t                        numPerThreadData() const noexcept { return perThreadData_.size(); }
     const ModuleApiPerThreadData& moduleApiPerThreadData(size_t index) const { return perThreadData_[index].moduleApi; }
+    const std::vector<fs::path>&  importedDependencyLinkDirs() const { return importedDependencyLinkDirs_; }
+    const std::vector<ModuleSetupImport>& moduleSetupImports() const { return moduleSetupImports_; }
 
     Result                       collectFiles(TaskContext& ctx);
     Result                       runModuleSetup(TaskContext& ctx);
     Result                       exportModuleApi(TaskContext& ctx);
     std::span<SourceFile* const> files() const;
     bool                         isModuleSetupMode() const { return moduleSetupMode_; }
-    Result                       registerModuleSetupImport(std::string_view moduleName, std::string_view location, std::string_view version);
+    Result                       registerModuleSetupImport(std::string_view moduleName, std::string_view location, std::string_view version, Runtime::BuildCfgBackendKind linkBackendKind = Runtime::BuildCfgBackendKind::None);
     Result                       registerModuleSetupLoad(const fs::path& filePath);
 
     template<typename T, typename... ARGS>
@@ -287,6 +290,8 @@ private:
     void        collectFolderFiles(const fs::path& folder, FileFlags flags, bool canFilter);
     Result      collectImportedApiFiles(TaskContext& ctx);
     bool        hasResolvedFilePath(const fs::path& path) const;
+    void        registerImportedDependencyLinkDir(const fs::path& path);
+    void        registerImportedSharedModuleDir(const fs::path& path);
     void        adoptBuildCfg(const Runtime::BuildCfg& buildCfg);
     Result      captureModuleSetupSnapshot(const TaskContext& ctx, const CommandLine& setupCmdLine, ModuleSetupSnapshot& outSnapshot) const;
     Result      applyModuleSetupInputs(TaskContext& ctx, const ModuleSetupSnapshot& setupSnapshot);
@@ -317,6 +322,7 @@ private:
     bool                                     moduleSetupMode_ = false;
     std::vector<ModuleSetupImport>           moduleSetupImports_;
     std::set<fs::path>                       moduleSetupLoadedFiles_;
+    std::vector<fs::path>                    importedDependencyLinkDirs_;
     std::vector<std::unique_ptr<Utf8>>       ownedBuildCfgStrings_;
     const ModuleSetupSnapshot*               precomputedModuleSetup_ = nullptr;
     Utf8                                     lastArtifactLabel_;

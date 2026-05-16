@@ -385,27 +385,29 @@ AstNodeRef Parser::parseCompilerImport()
     expectAndConsume(TokenId::SymLeftParen, DiagnosticId::parser_err_expected_token_before);
     nodePtr->tokModuleNameRef = expectAndConsume(TokenId::StringLine, DiagnosticId::parser_err_expected_token_before);
     nodePtr->tokLocationRef   = TokenRef::invalid();
+    nodePtr->tokLinkRef       = TokenRef::invalid();
     nodePtr->tokVersionRef    = TokenRef::invalid();
 
-    if (consumeIf(TokenId::SymComma).isValid())
+    while (consumeIf(TokenId::SymComma).isValid())
     {
-        std::string_view tokStr = tok().string(ast_->srcView());
+        TokenRef* targetRef = nullptr;
+        const std::string_view tokStr = tok().string(ast_->srcView());
         if (tokStr == Token::toName(TokenId::KwdLocation))
+            targetRef = &nodePtr->tokLocationRef;
+        else if (tokStr == Token::toName(TokenId::KwdLink))
+            targetRef = &nodePtr->tokLinkRef;
+        else if (tokStr == Token::toName(TokenId::KwdVersion))
+            targetRef = &nodePtr->tokVersionRef;
+        else
         {
-            consume();
-            expectAndConsume(TokenId::SymColon, DiagnosticId::parser_err_expected_token_before);
-            nodePtr->tokLocationRef = expectAndConsume(TokenId::StringLine, DiagnosticId::parser_err_expected_token_before);
-            if (consumeIf(TokenId::SymComma).isValid())
-            {
-                tokStr = tok().string(ast_->srcView());
-                if (tokStr == Token::toName(TokenId::KwdVersion))
-                {
-                    consume();
-                    expectAndConsume(TokenId::SymColon, DiagnosticId::parser_err_expected_token_before);
-                    nodePtr->tokVersionRef = expectAndConsume(TokenId::StringLine, DiagnosticId::parser_err_expected_token_before);
-                }
-            }
+            raiseError(DiagnosticId::parser_err_unexpected_token, ref());
+            skipTo({TokenId::SymComma, TokenId::SymRightParen});
+            continue;
         }
+
+        consume();
+        expectAndConsume(TokenId::SymColon, DiagnosticId::parser_err_expected_token_before);
+        *targetRef = expectAndConsume(TokenId::StringLine, DiagnosticId::parser_err_expected_token_before);
     }
 
     expectAndConsumeClosing(TokenId::SymRightParen, openRef);

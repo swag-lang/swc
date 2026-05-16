@@ -66,6 +66,50 @@ namespace
         }
     }
 
+    Symbol* recoverFunctionLocalIdentifierSymbol(const CodeGen& codeGen, AstNodeRef nodeRef)
+    {
+        if (!nodeRef.isValid())
+            return nullptr;
+
+        const AstNode& node = codeGen.node(nodeRef);
+        if (node.isNot(AstNodeId::Identifier) || !node.tokRef().isValid())
+            return nullptr;
+
+        const SourceView&      srcView        = codeGen.ast().srcView();
+        const std::string_view identifierName = srcView.tokenString(node.tokRef());
+        if (identifierName.empty())
+            return nullptr;
+
+        Symbol*     bestMatch = nullptr;
+        const auto tryMatch   = [&](const Symbol* symbol) {
+            if (!symbol || symbol->isIgnored() || symbol->name(codeGen.ctx()) != identifierName)
+                return;
+            if (symbol->tokRef().isValid() && symbol->tokRef().get() > node.tokRef().get())
+                return;
+            if (!bestMatch ||
+                !bestMatch->tokRef().isValid() ||
+                (symbol->tokRef().isValid() && bestMatch->tokRef().get() < symbol->tokRef().get()))
+                bestMatch = const_cast<Symbol*>(symbol);
+        };
+
+        for (const SymbolVariable* symVar : codeGen.function().parameters())
+            tryMatch(symVar);
+
+        for (const SymbolVariable* symVar : codeGen.function().localVariables())
+            tryMatch(symVar);
+
+        if (bestMatch)
+            return bestMatch;
+
+        std::vector<const Symbol*> localSymbols;
+        codeGen.function().getAllSymbols(localSymbols, true);
+
+        for (const Symbol* symbol : localSymbols)
+            tryMatch(symbol);
+
+        return bestMatch;
+    }
+
     Symbol* recoverIdentifierSymbol(CodeGen& codeGen, AstNodeRef nodeRef)
     {
         if (!nodeRef.isValid())
@@ -76,9 +120,15 @@ namespace
 
         const AstNodeRef resolvedRef = codeGen.resolvedNodeRef(nodeRef);
         if (resolvedRef.isValid() && resolvedRef != nodeRef)
-            return codeGen.sema().viewStored(resolvedRef, SemaNodeViewPartE::Symbol).sym();
+        {
+            if (Symbol* symbol = codeGen.sema().viewStored(resolvedRef, SemaNodeViewPartE::Symbol).sym())
+                return symbol;
 
-        return nullptr;
+            if (const SymbolVariable* symVar = findFunctionVariableDeclSymbol(codeGen, resolvedRef, TokenRef::invalid()))
+                return const_cast<SymbolVariable*>(symVar);
+        }
+
+        return recoverFunctionLocalIdentifierSymbol(codeGen, nodeRef);
     }
 
     const SymbolStruct* variableOwnerStruct(const SymbolVariable& symVar)

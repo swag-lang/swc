@@ -17,6 +17,30 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    bool shouldReadReferenceValue(Sema& sema, TypeRef typeRef)
+    {
+        if (!typeRef.isValid())
+            return false;
+
+        const TypeRef normalizedTypeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), typeRef);
+        if (!normalizedTypeRef.isValid())
+            return false;
+
+        const TypeInfo& normalizedType = sema.typeMgr().get(normalizedTypeRef);
+        return normalizedType.isReference();
+    }
+
+    Result readReferenceValue(Sema& sema, SemaNodeView& view)
+    {
+        if (!shouldReadReferenceValue(sema, view.typeRef()))
+            return Result::Continue;
+
+        const TypeRef normalizedTypeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), view.typeRef());
+        const TypeRef valueTypeRef      = sema.typeMgr().get(normalizedTypeRef).payloadTypeRef();
+        SWC_RESULT(Cast::cast(sema, view, valueTypeRef, CastKind::Implicit));
+        return Result::Continue;
+    }
+
     const TypeInfo& aliasEnumType(Sema& sema, const SemaNodeView& view)
     {
         const TypeRef typeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), view.typeRef());
@@ -417,6 +441,11 @@ Result AstUnaryExpr::semaPostNode(Sema& sema)
     const bool takesFunctionAddress = tok.id == TokenId::SymAmpersand && isFunctionAddressOperand(view);
     if (!takesFunctionAddress)
         SWC_RESULT(SemaCheck::isValue(sema, view.nodeRef()));
+    if (tok.id == TokenId::SymBang)
+    {
+        SWC_RESULT(readReferenceValue(sema, view));
+        SWC_RESULT(SemaCheck::prepareBoolExprValue(sema, view));
+    }
     sema.setIsValue(*this);
 
     bool handledSpecialOp = false;

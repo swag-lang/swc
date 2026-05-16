@@ -1,5 +1,5 @@
 #import("dep")
-#import("deplib")
+#import("deplib", link: "static-library")
 #run
 {
     let cfg = @compiler.getBuildCfg()

@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Main/ModuleApi.h"
+#include "Backend/RuntimeName.h"
 #include "Compiler/Lexer/Lexer.h"
 #include "Compiler/Lexer/SourceView.h"
 #include "Compiler/Parser/Ast/Ast.h"
@@ -62,6 +63,22 @@ namespace
         std::vector<Utf8>            snippets;
         std::vector<ImplNode>        impls;
         std::vector<ModuleApiNamespaceNode> children;
+    };
+
+    struct ModuleApiUsingSnippet
+    {
+        std::vector<IdentifierRef> namespacePath;
+        Utf8                       snippet;
+    };
+
+    struct ModuleApiOrderedEntry
+    {
+        std::vector<IdentifierRef> namespacePath;
+        std::vector<Utf8>          snippets;
+        Utf8                       implPrefix;
+        const SourceFile*          file    = nullptr;
+        AstNodeRef                 implRef = AstNodeRef::invalid();
+        bool                       isImpl  = false;
     };
 
     const SourceFile* sourceFileFromRef(const CompilerInstance& compiler, const SourceViewRef srcViewRef)
@@ -293,6 +310,55 @@ namespace
     uint32_t sourceTokenByteEnd(const SourceView& srcView, const Token& token)
     {
         return sourceTokenByteStart(srcView, token) + token.byteLength;
+    }
+
+    bool extractFileNamespacePath(TaskContext& ctx, const SourceFile& file, std::string_view moduleNamespace, std::vector<IdentifierRef>& outNamespacePath)
+    {
+        outNamespacePath.clear();
+        const AstNodeRef rootRef = file.ast().root();
+        if (rootRef.isInvalid())
+            return true;
+
+        const AstNode& rootNode = file.ast().node(rootRef);
+        if (rootNode.isNot(AstNodeId::File))
+            return true;
+
+        SmallVector<AstNodeRef> globalRefs;
+        file.ast().appendNodes(globalRefs, rootNode.cast<AstFile>().spanGlobalsRef);
+        for (const AstNodeRef globalRef : globalRefs)
+        {
+            if (globalRef.isInvalid())
+                continue;
+
+            const AstNode& globalNode = file.ast().node(globalRef);
+            if (globalNode.isNot(AstNodeId::CompilerGlobal))
+                continue;
+
+            const auto& global = globalNode.cast<AstCompilerGlobal>();
+            if (global.mode != AstCompilerGlobal::Mode::Namespace)
+                continue;
+
+            SmallVector<TokenRef> nameRefs;
+            file.ast().appendTokens(nameRefs, global.spanNameRef);
+            for (const TokenRef nameRef : nameRefs)
+            {
+                if (!nameRef.isValid())
+                    continue;
+
+                const std::string_view name = file.ast().srcView().tokenString(nameRef);
+                if (name.empty() || name == ".")
+                    continue;
+
+                if (outNamespacePath.empty() && name == moduleNamespace)
+                    continue;
+
+                outNamespacePath.push_back(ctx.idMgr().addIdentifier(name));
+            }
+
+            break;
+        }
+
+        return true;
     }
 
     bool moduleApiValidationStackContains(std::span<const Symbol*> stack, const Symbol& symbol)
@@ -551,6 +617,16 @@ namespace
             ast.appendNodes(childRefs, node.cast<AstVarDeclList>().spanChildrenRef);
             if (!childRefs.empty() && childRefs.front().isValid() && ast.hasNode(childRefs.front()))
                 return moduleApiSnippetStartTokRef(ast, ast.node(childRefs.front()));
+        }
+
+        if (node.is(AstNodeId::AttributeList))
+        {
+            if (node.tokRef().isValid())
+                return node.tokRef();
+
+            const auto& attrList = node.cast<AstAttributeList>();
+            if (attrList.nodeBodyRef.isValid() && ast.hasNode(attrList.nodeBodyRef))
+                return moduleApiSnippetStartTokRef(ast, ast.node(attrList.nodeBodyRef));
         }
 
         if (ast.hasSourceView() && node.tokRef().isValid() && node.tokRef().get() > 0)
@@ -1275,6 +1351,28 @@ namespace
         trimTrailingModuleApiWhitespace(text);
     }
 
+    void prependMissingFunctionAttributes(const SymbolFunction& symbolFunction, const std::string_view eol, Utf8& ioSnippet)
+    {
+        Utf8 prefix;
+        const auto appendAttrIfMissing = [&](const RtAttributeFlagsE flag, std::string_view marker, std::string_view attrText) {
+            if (!symbolFunction.attributes().hasRtFlag(flag))
+                return;
+            if (ioSnippet.contains(marker))
+                return;
+
+            prefix += attrText;
+            prefix += eol;
+        };
+
+        appendAttrIfMissing(RtAttributeFlagsE::Macro, "Macro", "#[Swag.Macro]");
+        appendAttrIfMissing(RtAttributeFlagsE::Mixin, "Mixin", "#[Swag.Mixin]");
+        appendAttrIfMissing(RtAttributeFlagsE::Inline, "Inline", "#[Swag.Inline]");
+        appendAttrIfMissing(RtAttributeFlagsE::ConstExpr, "ConstExpr", "#[Swag.ConstExpr]");
+        appendAttrIfMissing(RtAttributeFlagsE::Implicit, "Implicit", "#[Swag.Implicit]");
+        if (!prefix.empty())
+            ioSnippet = prefix + ioSnippet;
+    }
+
     bool tryFindFunctionBodyStartOffset(const ModuleApiGeneratedRoot& root, uint32_t& outBodyStartOffset)
     {
         outBodyStartOffset = 0;
@@ -1320,6 +1418,111 @@ namespace
         return true;
     }
 
+    TokenRef moduleApiFunctionParamsEndTokRef(const Ast& ast, const AstFunctionDecl& functionDecl)
+    {
+        if (!functionDecl.nodeParamsRef.isValid() || ast.isAdditionalNode(functionDecl.nodeParamsRef))
+            return TokenRef::invalid();
+
+        const AstNode& paramsNode = ast.node(functionDecl.nodeParamsRef);
+        TokenRef       startTokRef = moduleApiSnippetStartTokRef(ast, paramsNode);
+        if (!startTokRef.isValid())
+            startTokRef = paramsNode.tokRef();
+
+        const TokenRef endTokRef = paramsNode.tokRefEnd(ast);
+        if (!endTokRef.isValid())
+            return TokenRef::invalid();
+        if (!ast.hasSourceView() || !startTokRef.isValid())
+            return endTokRef;
+
+        const SourceView& srcView = ast.srcView();
+        if (srcView.token(startTokRef).id != TokenId::SymLeftParen)
+            return endTokRef;
+
+        uint32_t parenBalance = 0;
+        for (uint32_t tokIndex = startTokRef.get(); tokIndex < srcView.tokens().size(); ++tokIndex)
+        {
+            const TokenId tokenId = srcView.token(TokenRef(tokIndex)).id;
+            if (tokenId == TokenId::SymLeftParen)
+                parenBalance++;
+            else if (tokenId == TokenId::SymRightParen)
+            {
+                SWC_ASSERT(parenBalance != 0);
+                parenBalance--;
+                if (!parenBalance)
+                    return TokenRef(tokIndex);
+            }
+        }
+
+        return endTokRef;
+    }
+
+    bool functionDeclPrefixHasExplicitReturnType(const SourceFile& file, const AstFunctionDecl& functionDecl, const uint32_t prefixEndOffset)
+    {
+        const Ast& ast = file.ast();
+        if (!ast.hasSourceView() || !functionDecl.nodeParamsRef.isValid())
+            return false;
+
+        const TokenRef paramsEndTokRef = moduleApiFunctionParamsEndTokRef(ast, functionDecl);
+        if (!paramsEndTokRef.isValid())
+            return false;
+
+        const SourceView& srcView = ast.srcView();
+        for (uint32_t tokIndex = paramsEndTokRef.get() + 1; tokIndex < srcView.tokens().size(); ++tokIndex)
+        {
+            const Token& token = srcView.token(TokenRef(tokIndex));
+            if (sourceTokenByteStart(srcView, token) >= prefixEndOffset)
+                break;
+
+            if (token.id == TokenId::SymMinusGreater)
+                return true;
+        }
+
+        return false;
+    }
+
+    bool tryFindFunctionReturnTypeInsertOffset(const SourceFile& file, const AstFunctionDecl& functionDecl, const uint32_t prefixEndOffset, uint32_t& outInsertOffset)
+    {
+        outInsertOffset = 0;
+        const Ast& ast = file.ast();
+        if (!ast.hasSourceView() || !functionDecl.nodeParamsRef.isValid())
+            return false;
+
+        const TokenRef paramsEndTokRef = moduleApiFunctionParamsEndTokRef(ast, functionDecl);
+        if (!paramsEndTokRef.isValid())
+            return false;
+
+        const SourceView& srcView = ast.srcView();
+
+        for (uint32_t tokIndex = paramsEndTokRef.get() + 1; tokIndex < srcView.tokens().size(); ++tokIndex)
+        {
+            const Token& token = srcView.token(TokenRef(tokIndex));
+            if (sourceTokenByteStart(srcView, token) >= prefixEndOffset)
+                break;
+
+            switch (token.id)
+            {
+                case TokenId::SymMinusGreater:
+                    outInsertOffset = sourceTokenByteStart(srcView, token);
+                    return true;
+
+                case TokenId::KwdThrow:
+                case TokenId::KwdWhere:
+                case TokenId::KwdVerify:
+                case TokenId::SymEqualGreater:
+                case TokenId::SymLeftCurly:
+                case TokenId::SymSemiColon:
+                    outInsertOffset = sourceTokenByteStart(srcView, token);
+                    return true;
+
+                default:
+                    break;
+            }
+        }
+
+        outInsertOffset = sourceTokenByteEnd(srcView, srcView.token(paramsEndTokRef));
+        return true;
+    }
+
     bool tryBuildFunctionDeclPrefix(TaskContext& ctx, const ModuleApiGeneratedRoot& root, const std::string_view eol, Utf8& outPrefix)
     {
         outPrefix.clear();
@@ -1347,7 +1550,25 @@ namespace
         if (startOffset >= endOffset)
             return false;
 
-        outPrefix = buildSanitizedModuleApiSnippet(ctx, *root.file, root.nodeRef, startOffset, source.substr(startOffset, endOffset - startOffset), eol);
+        Utf8 rawPrefix = Utf8(source.substr(startOffset, endOffset - startOffset));
+        const auto* functionDecl = symbolFunction->decl()->safeCast<AstFunctionDecl>();
+        if (functionDecl &&
+            symbolFunction->returnTypeRef().isValid() &&
+            symbolFunction->returnTypeRef() != ctx.typeMgr().typeVoid() &&
+            !functionDeclPrefixHasExplicitReturnType(*root.file, *functionDecl, endOffset))
+        {
+            uint32_t insertOffset = 0;
+            if (tryFindFunctionReturnTypeInsertOffset(*root.file, *functionDecl, endOffset, insertOffset) &&
+                insertOffset >= startOffset &&
+                insertOffset <= endOffset)
+            {
+                Utf8 returnTypeName = ctx.typeMgr().get(symbolFunction->returnTypeRef()).toName(ctx);
+                Utf8 insertion      = std::format("->{} ", returnTypeName.c_str());
+                rawPrefix.insert(insertOffset - startOffset, insertion);
+            }
+        }
+
+        outPrefix = buildSanitizedModuleApiSnippet(ctx, *root.file, root.nodeRef, startOffset, rawPrefix.view(), eol);
         return !outPrefix.empty();
     }
 
@@ -1372,6 +1593,7 @@ namespace
         if (!tryBuildFunctionDeclPrefix(ctx, root, eol, prefix))
             return {};
 
+        prependMissingFunctionAttributes(*symbolFunction, eol, prefix);
         trimTrailingModuleApiDeclarationSeparator(prefix);
         if (prefix.empty())
             return {};
@@ -1385,30 +1607,24 @@ namespace
         return result;
     }
 
-    bool tryBuildImplPrefix(TaskContext& ctx, const ModuleApiGeneratedRoot& root, const std::string_view eol, Utf8& outPrefix)
+    bool tryBuildImplPrefix(TaskContext& ctx, const SourceFile& file, const AstNodeRef implRef, const std::string_view eol, Utf8& outPrefix)
     {
         outPrefix.clear();
-        const auto* symbolFunction = root.symbol ? root.symbol->safeCast<SymbolFunction>() : nullptr;
-        const SymbolImpl* symImpl = symbolFunction ? symbolFunction->declImplContext() : nullptr;
-        if (!symbolFunction || !symImpl || !root.file || !symImpl->decl())
+        if (!implRef.isValid())
             return false;
 
-        const Ast& ast = root.file->ast();
+        const Ast& ast = file.ast();
         if (!ast.hasSourceView())
-            return false;
-
-        const AstNodeRef implRef = symImpl->decl()->nodeRef(ast);
-        if (implRef.isInvalid())
             return false;
 
         uint32_t startOffset = 0;
         uint32_t endOffset   = 0;
-        if (!tryGetModuleApiSnippetOffsets(*root.file, implRef, startOffset, endOffset))
+        if (!tryGetModuleApiSnippetOffsets(file, implRef, startOffset, endOffset))
             return false;
 
-        const AstNode&   implNode = *symImpl->decl();
+        const AstNode&   implNode    = ast.node(implRef);
         const TokenRef   startTokRef = moduleApiSnippetStartTokRef(ast, implNode);
-        const TokenRef   endTokRef = implNode.tokRefEnd(ast);
+        const TokenRef   endTokRef   = implNode.tokRefEnd(ast);
         const SourceView& srcView = ast.srcView();
 
         for (uint32_t tokIndex = startTokRef.get(); tokIndex <= endTokRef.get() && tokIndex < srcView.tokens().size(); ++tokIndex)
@@ -1421,14 +1637,14 @@ namespace
             break;
         }
 
-        const std::string_view source = root.file->sourceView();
+        const std::string_view source = file.sourceView();
         endOffset = std::min<uint32_t>(endOffset, static_cast<uint32_t>(source.size()));
         while (endOffset > startOffset && std::isspace(static_cast<unsigned char>(source[endOffset - 1])))
             endOffset--;
         if (startOffset >= endOffset)
             return false;
 
-        outPrefix = buildSanitizedModuleApiSnippet(ctx, *root.file, root.nodeRef, startOffset, source.substr(startOffset, endOffset - startOffset), eol);
+        outPrefix = buildSanitizedModuleApiSnippet(ctx, file, implRef, startOffset, source.substr(startOffset, endOffset - startOffset), eol);
         trimTrailingModuleApiWhitespace(outPrefix);
         return !outPrefix.empty();
     }
@@ -1461,6 +1677,9 @@ namespace
 
         if (root.symbol && root.symbol->isStruct() && isModuleApiOpaqueType(*root.symbol))
         {
+            if (const auto* symbolStruct = root.symbol->safeCast<SymbolStruct>(); symbolStruct && symbolStruct->isGenericRoot() && !symbolStruct->isGenericInstance())
+                return buildSanitizedRootSnippet(ctx, outSnippet, root, eol);
+
             outSnippet = buildOpaqueTypeSnippet(ctx, root, eol);
             return Result::Continue;
         }
@@ -1590,7 +1809,7 @@ namespace
             const AstNode& node = file.ast().node(nodePath[i]);
             if (node.is(AstNodeId::Impl))
             {
-                if (symbol.isFunction())
+                if (symbol.isFunction() || symbol.isConstant() || symbol.isAlias() || symbol.isStruct() || symbol.isEnum() || symbol.isInterface())
                     continue;
                 return false;
             }
@@ -1602,11 +1821,29 @@ namespace
         return true;
     }
 
-    bool extractPublicNamespacePath(const Symbol& symbol, std::vector<IdentifierRef>& outNamespacePath)
+    AstNodeRef findEnclosingImplRef(const SourceFile& file, const AstNodeRef declRef)
+    {
+        const AstNodeRef rootRef = file.ast().root();
+        if (rootRef.isInvalid())
+            return AstNodeRef::invalid();
+
+        SmallVector<AstNodeRef> nodePath;
+        if (!collectModuleApiNodePath(file.ast(), rootRef, declRef, nodePath))
+            return AstNodeRef::invalid();
+
+        for (size_t i = 0; i + 1 < nodePath.size(); ++i)
+        {
+            const AstNodeRef nodeRef = nodePath[i];
+            if (file.ast().node(nodeRef).is(AstNodeId::Impl))
+                return nodeRef;
+        }
+
+        return AstNodeRef::invalid();
+    }
+
+    bool extractNamespacePathFromOwner(const SymbolMap* symMap, std::vector<IdentifierRef>& outNamespacePath)
     {
         outNamespacePath.clear();
-
-        const SymbolMap* symMap = symbol.ownerSymMap();
         while (symMap)
         {
             if (symMap->isModule())
@@ -1636,6 +1873,33 @@ namespace
 
         std::ranges::reverse(outNamespacePath);
         return true;
+    }
+
+    const SymbolMap* namespaceOwnerSymMapForPublicSymbol(const Symbol& symbol)
+    {
+        const SymbolMap* symMap = symbol.ownerSymMap();
+        const SymbolImpl* symImpl = nullptr;
+        if (const auto* symbolFunction = symbol.safeCast<SymbolFunction>())
+            symImpl = symbolFunction->declImplContext();
+        else if (symMap && symMap->isImpl())
+            symImpl = &symMap->cast<SymbolImpl>();
+
+        if (symImpl)
+        {
+            if (symImpl->isForStruct() && symImpl->symStruct())
+                symMap = symImpl->symStruct();
+            else if (symImpl->isForEnum() && symImpl->symEnum())
+                symMap = symImpl->symEnum();
+            else if (symImpl->isForInterface() && symImpl->symInterface())
+                symMap = symImpl->symInterface();
+        }
+
+        return symMap;
+    }
+
+    bool extractPublicNamespacePath(const Symbol& symbol, std::vector<IdentifierRef>& outNamespacePath)
+    {
+        return extractNamespacePathFromOwner(namespaceOwnerSymMapForPublicSymbol(symbol), outNamespacePath);
     }
 
     uint32_t moduleApiRootSortByte(const SourceFile& file, const AstNodeRef nodeRef)
@@ -1675,6 +1939,8 @@ namespace
             return Result::Continue;
 
         outSnippet = buildSanitizedModuleApiSnippet(ctx, *root.file, root.nodeRef, startOffset, snippetText, eol);
+        if (const auto* symbolFunction = root.symbol ? root.symbol->safeCast<SymbolFunction>() : nullptr)
+            prependMissingFunctionAttributes(*symbolFunction, eol, outSnippet);
         return Result::Continue;
     }
 
@@ -1773,6 +2039,21 @@ namespace
         }
 
         currentNode->snippets.push_back(std::move(snippet));
+    }
+
+    void appendNamespaceUniqueSnippet(ModuleApiNamespaceNode& rootNode, std::span<const IdentifierRef> namespacePath, const Utf8& snippet)
+    {
+        ModuleApiNamespaceNode* currentNode = &rootNode;
+        for (const IdentifierRef idRef : namespacePath)
+        {
+            currentNode = findOrAppendNamespaceChild(*currentNode, idRef);
+            SWC_ASSERT(currentNode);
+        }
+
+        if (std::ranges::find(currentNode->snippets, snippet) != currentNode->snippets.end())
+            return;
+
+        currentNode->snippets.push_back(snippet);
     }
 
     void appendNamespaceImplSnippet(ModuleApiNamespaceNode& rootNode, std::span<const IdentifierRef> namespacePath, const SourceFile& file, const AstNodeRef implRef, Utf8&& prefix, Utf8&& snippet)
@@ -1883,6 +2164,214 @@ namespace
         return Result::Continue;
     }
 
+    fs::path buildGeneratedModuleApiImportPath(const CompilerInstance& compiler, const fs::path& exportApiDir)
+    {
+        Utf8 moduleName = defaultArtifactName(compiler.cmdLine());
+        if (moduleName.empty())
+            moduleName = "module";
+
+        fs::path result = exportApiDir / fs::path(moduleName.c_str());
+        result.replace_extension(".deps");
+        return result.lexically_normal();
+    }
+
+    Utf8 moduleApiImportLocationForExport(const CompilerInstance& compiler, const CompilerInstance::ModuleSetupImport& importRequest)
+    {
+        if (importRequest.location.empty())
+            return {};
+        if (importRequest.location == "swag@std")
+            return importRequest.location;
+
+        fs::path locationPath{importRequest.location.c_str()};
+        if (locationPath.is_relative())
+        {
+            fs::path baseDir = compiler.cmdLine().moduleFilePath.parent_path();
+            if (!baseDir.empty())
+                locationPath = (baseDir / locationPath).lexically_normal();
+        }
+
+        return Utf8(FileSystem::normalizePath(locationPath));
+    }
+
+    Result writeModuleApiFile(TaskContext& ctx, const fs::path& dstPath, std::string_view content);
+
+    void appendGeneratedModuleImportLine(Utf8& outContent, const CompilerInstance& compiler, const CompilerInstance::ModuleSetupImport& importRequest, const std::string_view eol)
+    {
+        outContent += "#import(\"";
+        outContent += importRequest.moduleName;
+        outContent += "\"";
+
+        const Utf8 location = moduleApiImportLocationForExport(compiler, importRequest);
+        if (!location.empty())
+        {
+            outContent += ", location: \"";
+            outContent += location;
+            outContent += "\"";
+        }
+
+        if (!importRequest.version.empty())
+        {
+            outContent += ", version: \"";
+            outContent += importRequest.version;
+            outContent += "\"";
+        }
+
+        if (importRequest.linkBackendKind != Runtime::BuildCfgBackendKind::None)
+        {
+            outContent += ", link: \"";
+            outContent += backendKindName(importRequest.linkBackendKind);
+            outContent += "\"";
+        }
+
+        outContent += ")";
+        outContent += eol;
+    }
+
+    Result writeGeneratedModuleImports(TaskContext& ctx, const fs::path& exportApiDir, std::string_view eol)
+    {
+        const auto& moduleImports = ctx.compiler().moduleSetupImports();
+        if (moduleImports.empty())
+            return Result::Continue;
+
+        Utf8 content;
+        for (const CompilerInstance::ModuleSetupImport& importRequest : moduleImports)
+            appendGeneratedModuleImportLine(content, ctx.compiler(), importRequest, eol);
+
+        SWC_RESULT(formatGeneratedModuleApiContent(ctx, content));
+        return writeModuleApiFile(ctx, buildGeneratedModuleApiImportPath(ctx.compiler(), exportApiDir), content.view());
+    }
+
+    Result collectFileUsingSnippets(TaskContext& ctx, const SourceFile& file, std::string_view moduleNamespace, std::string_view eol, std::vector<ModuleApiUsingSnippet>& outSnippets)
+    {
+        const AstNodeRef rootRef = file.ast().root();
+        if (rootRef.isInvalid())
+            return Result::Continue;
+
+        const AstNode& rootNode = file.ast().node(rootRef);
+        if (rootNode.isNot(AstNodeId::File))
+            return Result::Continue;
+
+        std::vector<IdentifierRef> namespacePath;
+        extractFileNamespacePath(ctx, file, moduleNamespace, namespacePath);
+
+        SmallVector<AstNodeRef> usingRefs;
+        file.ast().appendNodes(usingRefs, rootNode.cast<AstFile>().spanUsingsRef);
+        for (const AstNodeRef usingRef : usingRefs)
+        {
+            if (usingRef.isInvalid())
+                continue;
+
+            std::string_view snippetText;
+            if (!tryGetModuleApiSnippet(file, usingRef, snippetText))
+                continue;
+
+            uint32_t startOffset = 0;
+            uint32_t endOffset   = 0;
+            if (!tryGetModuleApiSnippetOffsets(file, usingRef, startOffset, endOffset))
+                continue;
+
+            Utf8 sanitizedSnippet = buildSanitizedModuleApiSnippet(ctx, file, usingRef, startOffset, snippetText, eol);
+            if (sanitizedSnippet.empty())
+                continue;
+
+            outSnippets.push_back({.namespacePath = namespacePath, .snippet = std::move(sanitizedSnippet)});
+        }
+
+        return Result::Continue;
+    }
+
+    Utf8 buildNamespacePathKey(TaskContext& ctx, std::span<const IdentifierRef> namespacePath)
+    {
+        Utf8 key;
+        for (const IdentifierRef idRef : namespacePath)
+        {
+            key += "::";
+            key += ctx.idMgr().get(idRef).name;
+        }
+
+        return key;
+    }
+
+    uint32_t commonNamespacePrefixCount(std::span<const IdentifierRef> lhs, std::span<const IdentifierRef> rhs)
+    {
+        const uint32_t limit = std::min<uint32_t>(static_cast<uint32_t>(lhs.size()), static_cast<uint32_t>(rhs.size()));
+        uint32_t       count = 0;
+        while (count < limit && lhs[count] == rhs[count])
+            ++count;
+        return count;
+    }
+
+    Utf8 buildNamespaceIndent(const uint32_t depth)
+    {
+        Utf8 indent;
+        for (uint32_t i = 0; i < depth; ++i)
+            indent += "    ";
+        return indent;
+    }
+
+    void closeNamespaceBlocks(Utf8& outContent, std::span<const IdentifierRef> openNamespacePath, const uint32_t keepCount, std::string_view eol)
+    {
+        for (uint32_t depth = static_cast<uint32_t>(openNamespacePath.size()); depth > keepCount; --depth)
+        {
+            const Utf8 indent = buildNamespaceIndent(depth - 1);
+            outContent += indent;
+            outContent += "}";
+            outContent += eol;
+        }
+    }
+
+    void openNamespaceBlocks(TaskContext& ctx, Utf8& outContent, std::span<const IdentifierRef> namespacePath, const uint32_t fromCount, std::string_view eol)
+    {
+        for (uint32_t depth = fromCount; depth < namespacePath.size(); ++depth)
+        {
+            const Utf8 indent = buildNamespaceIndent(depth);
+            outContent += indent;
+            outContent += "namespace ";
+            outContent += ctx.idMgr().get(namespacePath[depth]).name;
+            outContent += eol;
+            outContent += indent;
+            outContent += "{";
+            outContent += eol;
+        }
+    }
+
+    void appendOrderedEntryContent(Utf8& outContent, const ModuleApiOrderedEntry& entry, std::string_view eol)
+    {
+        const Utf8 indent = buildNamespaceIndent(static_cast<uint32_t>(entry.namespacePath.size()));
+        if (entry.isImpl)
+        {
+            ModuleApiNamespaceNode::ImplNode implNode;
+            implNode.file     = entry.file;
+            implNode.implRef  = entry.implRef;
+            implNode.prefix   = entry.implPrefix;
+            implNode.snippets = entry.snippets;
+            appendNamespaceImplNode(outContent, implNode, indent, eol);
+            return;
+        }
+
+        for (const Utf8& snippet : entry.snippets)
+        {
+            appendIndentedSnippet(outContent, snippet.view(), indent.view(), eol);
+            if (snippet.back() != '\n' && snippet.back() != '\r')
+                outContent += eol;
+        }
+    }
+
+    void appendOrderedEntries(TaskContext& ctx, Utf8& outContent, std::span<const ModuleApiOrderedEntry> entries, std::string_view eol)
+    {
+        std::vector<IdentifierRef> openNamespacePath;
+        for (const ModuleApiOrderedEntry& entry : entries)
+        {
+            const uint32_t sharedCount = commonNamespacePrefixCount(openNamespacePath, entry.namespacePath);
+            closeNamespaceBlocks(outContent, openNamespacePath, sharedCount, eol);
+            openNamespaceBlocks(ctx, outContent, entry.namespacePath, sharedCount, eol);
+            openNamespacePath = entry.namespacePath;
+            appendOrderedEntryContent(outContent, entry, eol);
+        }
+
+        closeNamespaceBlocks(outContent, openNamespacePath, 0, eol);
+    }
+
     Result buildGeneratedModuleApiContent(TaskContext& ctx, std::span<const ModuleApiGeneratedRoot> roots, std::string_view moduleNamespace, std::string_view eol, Utf8& outContent)
     {
         outContent.clear();
@@ -1892,32 +2381,91 @@ namespace
         outContent += "#global public";
         outContent += eol;
 
-        ModuleApiNamespaceNode namespaceTree;
+        std::vector<ModuleApiOrderedEntry> orderedEntries;
+        std::unordered_set<Utf8>          emittedUsingKeys;
+        std::unordered_set<const SourceFile*> usingFiles;
+
+        const auto appendOrderedSnippet = [&](std::span<const IdentifierRef> namespacePath, Utf8&& snippet) {
+            if (snippet.empty())
+                return;
+
+            if (!orderedEntries.empty() &&
+                !orderedEntries.back().isImpl &&
+                sameNamespacePath(orderedEntries.back().namespacePath, namespacePath))
+            {
+                orderedEntries.back().snippets.push_back(std::move(snippet));
+                return;
+            }
+
+            ModuleApiOrderedEntry entry;
+            entry.namespacePath.assign(namespacePath.begin(), namespacePath.end());
+            entry.snippets.push_back(std::move(snippet));
+            orderedEntries.push_back(std::move(entry));
+        };
+
+        const auto appendOrderedImplSnippet = [&](std::span<const IdentifierRef> namespacePath, const SourceFile& file, AstNodeRef implRef, Utf8&& implPrefix, Utf8&& snippet) {
+            if (snippet.empty() || implPrefix.empty())
+                return;
+
+            if (!orderedEntries.empty() &&
+                orderedEntries.back().isImpl &&
+                orderedEntries.back().file == &file &&
+                orderedEntries.back().implRef == implRef &&
+                orderedEntries.back().implPrefix == implPrefix &&
+                sameNamespacePath(orderedEntries.back().namespacePath, namespacePath))
+            {
+                orderedEntries.back().snippets.push_back(std::move(snippet));
+                return;
+            }
+
+            ModuleApiOrderedEntry entry;
+            entry.namespacePath.assign(namespacePath.begin(), namespacePath.end());
+            entry.snippets.push_back(std::move(snippet));
+            entry.implPrefix = std::move(implPrefix);
+            entry.file       = &file;
+            entry.implRef    = implRef;
+            entry.isImpl     = true;
+            orderedEntries.push_back(std::move(entry));
+        };
 
         for (const ModuleApiGeneratedRoot& root : roots)
         {
+            if (root.file && usingFiles.insert(root.file).second)
+            {
+                std::vector<ModuleApiUsingSnippet> usingSnippets;
+                SWC_RESULT(collectFileUsingSnippets(ctx, *root.file, moduleNamespace, eol, usingSnippets));
+                for (ModuleApiUsingSnippet& usingSnippet : usingSnippets)
+                {
+                    Utf8 usingKey = buildNamespacePathKey(ctx, usingSnippet.namespacePath);
+                    usingKey += '\n';
+                    usingKey += usingSnippet.snippet;
+                    if (!emittedUsingKeys.insert(usingKey).second)
+                        continue;
+
+                    appendOrderedSnippet(usingSnippet.namespacePath, std::move(usingSnippet.snippet));
+                }
+            }
+
             Utf8 sanitizedSnippet;
             SWC_RESULT(buildGeneratedRootSnippet(ctx, root, eol, sanitizedSnippet));
             if (sanitizedSnippet.empty())
                 continue;
 
-            const auto* symbolFunction = root.symbol ? root.symbol->safeCast<SymbolFunction>() : nullptr;
-            const SymbolImpl* symImpl = symbolFunction ? symbolFunction->declImplContext() : nullptr;
-            if (symbolFunction && symImpl && symImpl->decl())
+            const AstNodeRef implRef = root.file ? findEnclosingImplRef(*root.file, root.nodeRef) : AstNodeRef::invalid();
+            if (root.file && implRef.isValid())
             {
                 Utf8 implPrefix;
-                if (tryBuildImplPrefix(ctx, root, eol, implPrefix))
+                if (tryBuildImplPrefix(ctx, *root.file, implRef, eol, implPrefix))
                 {
-                    const AstNodeRef implRef = symImpl->decl()->nodeRef(root.file->ast());
-                    appendNamespaceImplSnippet(namespaceTree, root.namespacePath, *root.file, implRef, std::move(implPrefix), std::move(sanitizedSnippet));
+                    appendOrderedImplSnippet(root.namespacePath, *root.file, implRef, std::move(implPrefix), std::move(sanitizedSnippet));
                     continue;
                 }
             }
 
-            appendNamespaceSnippet(namespaceTree, root.namespacePath, std::move(sanitizedSnippet));
+            appendOrderedSnippet(root.namespacePath, std::move(sanitizedSnippet));
         }
 
-        appendNamespaceTree(ctx, outContent, namespaceTree, eol);
+        appendOrderedEntries(ctx, outContent, orderedEntries, eol);
 
         if (roots.empty() && outContent.back() != '\n' && outContent.back() != '\r')
             outContent += eol;
@@ -1975,6 +2523,10 @@ namespace ModuleApi
         if (!sourceFile || !sourceFile->hasFlag(FileFlagsE::ModuleSrc) || sourceFile->isImportedApi())
             return;
         if (!symbol.decl())
+            return;
+        if (symbol.isFunction() && symbol.decl()->isNot(AstNodeId::FunctionDecl))
+            return;
+        if (symbol.isImpl())
             return;
 
         AstNodeRef declRef;
@@ -2076,6 +2628,8 @@ namespace ModuleApi
         if (!firstSourceFile)
             return Result::Continue;
 
+        SWC_RESULT(writeGeneratedModuleImports(ctx, exportApiDir, preferredLineEnding(*firstSourceFile)));
+
         const fs::path generatedDstPath  = buildGeneratedModuleApiPath(compiler, exportApiDir);
         const Utf8     generatedFileName = generatedDstPath.filename().string();
         if (exportedFileNames.contains(generatedFileName))
@@ -2085,7 +2639,6 @@ namespace ModuleApi
         SWC_RESULT(buildGeneratedModuleApiContent(ctx, generatedRoots, moduleNamespace.view(), preferredLineEnding(*firstSourceFile), content));
         if (writeModuleApiFile(ctx, generatedDstPath, content.view()) != Result::Continue)
             return Result::Error;
-
         return Result::Continue;
     }
 }

@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "Backend/RuntimeName.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Lexer/Lexer.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
@@ -175,6 +176,53 @@ namespace
     std::string_view moduleImportVersion(const Sema& sema, const AstCompilerImport& node)
     {
         return compilerImportTokenValue(sema.srcView(node.srcViewRef()), node.tokVersionRef);
+    }
+
+    std::string_view moduleImportLink(const Sema& sema, const AstCompilerImport& node)
+    {
+        return compilerImportTokenValue(sema.srcView(node.srcViewRef()), node.tokLinkRef);
+    }
+
+    Result reportInvalidImportConstraintValue(Sema& sema, const AstCompilerImport& node, const TokenRef tokenRef, std::string_view argName, std::string_view value, std::string_view allowedValues)
+    {
+        const FileRef fileRef = sema.srcView(node.srcViewRef()).fileRef();
+        Diagnostic    diag    = Diagnostic::get(DiagnosticId::sema_err_import_invalid_constraint_value, fileRef);
+        diag.last().addSpan(sema.srcView(node.srcViewRef()).tokenCodeRange(sema.ctx(), tokenRef), "", DiagnosticSeverity::Error);
+        diag.addArgument(Diagnostic::ARG_ARG, argName);
+        diag.addArgument(Diagnostic::ARG_VALUE, value);
+        diag.addArgument(Diagnostic::ARG_VALUES, allowedValues);
+        diag.report(sema.ctx());
+        return Result::Error;
+    }
+
+    Result resolveModuleImportLinkBackend(Sema& sema, const AstCompilerImport& node, Runtime::BuildCfgBackendKind& outBackendKind)
+    {
+        outBackendKind = Runtime::BuildCfgBackendKind::None;
+        if (node.tokLinkRef.isInvalid())
+            return Result::Continue;
+
+        const std::string_view linkValue = moduleImportLink(sema, node);
+        if (linkValue == backendKindName(Runtime::BuildCfgBackendKind::SharedLibrary).view())
+        {
+            outBackendKind = Runtime::BuildCfgBackendKind::SharedLibrary;
+            return Result::Continue;
+        }
+
+        if (linkValue == backendKindName(Runtime::BuildCfgBackendKind::StaticLibrary).view())
+        {
+            outBackendKind = Runtime::BuildCfgBackendKind::StaticLibrary;
+            return Result::Continue;
+        }
+
+        return reportInvalidImportConstraintValue(
+            sema,
+            node,
+            node.tokLinkRef,
+            Token::toName(TokenId::KwdLink),
+            linkValue,
+            std::format("{}|{}",
+                        backendKindName(Runtime::BuildCfgBackendKind::SharedLibrary).view(),
+                        backendKindName(Runtime::BuildCfgBackendKind::StaticLibrary).view()));
     }
 
     Result resolveCompilerIncludePath(Sema& sema, AstNodeRef nodeRef, std::string_view rawPath, fs::path& outPath)
@@ -403,7 +451,7 @@ namespace
             SemaScope* injectScope = sema.lookupScope();
             frame.setCurrentInlinePayload(inlinePayload->parentInlinePayload);
             frame.setLookupScope(injectScope ? injectScope : callerScope);
-            frame.setUpLookupScope(callerScope);
+            frame.setUpLookupScope(inlinePayload->upLookupScope ? inlinePayload->upLookupScope : callerScope);
             for (SymbolVariable* bindingVar : inlinePayload->callerBindingVars)
                 frame.pushBindingVar(bindingVar);
             for (const TypeRef bindingType : inlinePayload->callerBindingTypes)
@@ -689,8 +737,53 @@ namespace
         if (compilerAstStringType(sema, typeRef))
             return Result::Continue;
 
+        if (typeRef.isValid())
+        {
+            CastRequest castRequest(CastKind::Implicit);
+            castRequest.errorNodeRef = nodeRef;
+            const Result castResult  = Cast::castAllowed(sema, castRequest, typeRef, sema.typeMgr().typeString());
+            if (castResult == Result::Continue)
+                return Result::Continue;
+        }
+
         const TypeRef reportedTypeRef = typeRef.isValid() ? typeRef : sema.typeMgr().typeVoid();
         auto          diag            = SemaError::report(sema, DiagnosticId::sema_err_ast_requires_string, nodeRef);
+        diag.addArgument(Diagnostic::ARG_TYPE, sema.typeMgr().get(reportedTypeRef).toName(sema.ctx()));
+        diag.report(sema.ctx());
+        return Result::Error;
+    }
+
+    Result castCompilerAstResultToString(Sema& sema, SemaNodeView& ioView)
+    {
+        if (!ioView.typeRef().isValid())
+        {
+            auto diag = SemaError::report(sema, DiagnosticId::sema_err_ast_requires_string, ioView.nodeRef());
+            diag.addArgument(Diagnostic::ARG_TYPE, sema.typeMgr().typeVoid());
+            diag.report(sema.ctx());
+            return Result::Error;
+        }
+
+        if (!compilerAstStringType(sema, ioView.typeRef()))
+        {
+            CastRequest castRequest(CastKind::Implicit);
+            castRequest.errorNodeRef = ioView.nodeRef();
+            if (Cast::castAllowed(sema, castRequest, ioView.typeRef(), sema.typeMgr().typeString()) != Result::Continue)
+            {
+                const TypeRef reportedTypeRef = ioView.typeRef().isValid() ? ioView.typeRef() : sema.typeMgr().typeVoid();
+                auto          diag            = SemaError::report(sema, DiagnosticId::sema_err_ast_requires_string, ioView.nodeRef());
+                diag.addArgument(Diagnostic::ARG_TYPE, sema.typeMgr().get(reportedTypeRef).toName(sema.ctx()));
+                diag.report(sema.ctx());
+                return Result::Error;
+            }
+
+            SWC_RESULT(Cast::cast(sema, ioView, sema.typeMgr().typeString(), CastKind::Implicit));
+        }
+
+        if (ioView.cst() && ioView.cst()->isString())
+            return Result::Continue;
+
+        const TypeRef reportedTypeRef = ioView.typeRef().isValid() ? ioView.typeRef() : sema.typeMgr().typeVoid();
+        auto          diag            = SemaError::report(sema, DiagnosticId::sema_err_ast_requires_string, ioView.nodeRef());
         diag.addArgument(Diagnostic::ARG_TYPE, sema.typeMgr().get(reportedTypeRef).toName(sema.ctx()));
         diag.report(sema.ctx());
         return Result::Error;
@@ -1906,7 +1999,9 @@ namespace
 Result AstCompilerImport::semaPostNode(Sema& sema) const
 {
     SWC_RESULT(ensureModuleSetupDirectiveContext(sema, sema.curNodeRef()));
-    return sema.compiler().registerModuleSetupImport(moduleImportName(sema, *this), moduleImportLocation(sema, *this), moduleImportVersion(sema, *this));
+    Runtime::BuildCfgBackendKind linkBackendKind = Runtime::BuildCfgBackendKind::None;
+    SWC_RESULT(resolveModuleImportLinkBackend(sema, *this, linkBackendKind));
+    return sema.compiler().registerModuleSetupImport(moduleImportName(sema, *this), moduleImportLocation(sema, *this), moduleImportVersion(sema, *this), linkBackendKind);
 }
 
 Result AstCompilerCallOne::semaPostNode(Sema& sema) const
@@ -2000,6 +2095,14 @@ Result AstCompilerMacro::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef
 
     auto* hiddenScope = sema.curScopePtr();
     auto* callerScope = sema.resolvedUpLookupScope();
+    if (const auto* inlinePayload = sema.frame().currentInlinePayload();
+        inlinePayload &&
+        inlinePayload->sourceFunction &&
+        inlinePayload->sourceFunction->attributes().hasRtFlag(RtAttributeFlagsE::Macro) &&
+        inlinePayload->callerScope)
+    {
+        callerScope = inlinePayload->callerScope;
+    }
 
     auto* macroScope = sema.pushScopePopOnPostChild(SemaScopeFlagsE::Local, childRef);
     macroScope->setLookupParent(callerScope);
@@ -2052,10 +2155,8 @@ Result AstCompilerShortFunc::semaPostNode(Sema& sema) const
         return Result::Continue;
 
     SWC_RESULT(SemaCheck::isConstant(sema, nodeBodyRef));
-    const SemaNodeView view = sema.viewTypeConstant(nodeBodyRef);
-    SWC_RESULT(requireCompilerAstStringResult(sema, nodeBodyRef, view.typeRef()));
-    if (!view.cst() || !view.cst()->isString())
-        return Result::Error;
+    SemaNodeView view = sema.viewNodeTypeConstant(nodeBodyRef);
+    SWC_RESULT(castCompilerAstResultToString(sema, view));
 
     return substituteCompilerAstString(sema, sema.curNodeRef(), view.cst()->getString());
 }
@@ -2231,15 +2332,12 @@ Result AstCompilerFunc::semaPostNode(Sema& sema) const
     const TokenId tokenId = sema.token(codeRef()).id;
     if (tokenId == TokenId::CompilerAst)
     {
-        SWC_RESULT(requireCompilerAstStringResult(sema, sema.curNodeRef(), sym.returnTypeRef()));
         sym.setTyped(sema.ctx());
         sym.setSemaCompleted(sema.ctx());
         SWC_RESULT(SemaJIT::runFunctionResult(sema, sym, sema.curNodeRef()));
 
-        const SemaNodeView resultView = sema.viewConstant(sema.curNodeRef());
-        SWC_ASSERT(resultView.cst() != nullptr && resultView.cst()->isString());
-        if (!resultView.cst() || !resultView.cst()->isString())
-            return Result::Error;
+        SemaNodeView resultView = sema.viewNodeTypeConstant(sema.curNodeRef());
+        SWC_RESULT(castCompilerAstResultToString(sema, resultView));
 
         return substituteCompilerAstString(sema, sema.curNodeRef(), resultView.cst()->getString());
     }

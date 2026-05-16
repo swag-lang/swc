@@ -374,7 +374,10 @@ namespace
         for (const auto& info : builder.functionInfos)
         {
             if (!info.machineCode || info.machineCode->bytes.empty())
-                return builder.reportError(DiagnosticId::cmd_err_native_codegen_machine_code_missing, Diagnostic::ARG_SYM, info.symbolName);
+            {
+                const Utf8& reportedName = info.debugName.empty() ? info.symbolName : info.debugName;
+                return builder.reportError(DiagnosticId::cmd_err_native_codegen_machine_code_missing, Diagnostic::ARG_SYM, reportedName);
+            }
         }
 
         return Result::Continue;

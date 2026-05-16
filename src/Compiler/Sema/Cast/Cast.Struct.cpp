@@ -656,11 +656,24 @@ Result Cast::resolveStructOpCastCandidate(Sema& sema, const SourceCodeRef& codeR
     if (!srcTypeRef.isValid() || !dstTypeRef.isValid())
         return Result::Continue;
 
-    const TypeInfo& srcType = sema.typeMgr().get(srcTypeRef);
-    if (!srcType.isStruct())
+    const TypeManager& typeMgr = sema.typeMgr();
+    TypeRef            ownerTypeRef = typeMgr.unwrapAliasEnum(sema.ctx(), srcTypeRef);
+    if (!ownerTypeRef.isValid())
+        ownerTypeRef = srcTypeRef;
+
+    const TypeInfo* ownerType = &typeMgr.get(ownerTypeRef);
+    if (ownerType->isReference())
+    {
+        ownerTypeRef = typeMgr.unwrapAliasEnum(sema.ctx(), ownerType->payloadTypeRef());
+        if (!ownerTypeRef.isValid())
+            ownerTypeRef = ownerType->payloadTypeRef();
+        ownerType = &typeMgr.get(ownerTypeRef);
+    }
+
+    if (!ownerType->isStruct())
         return Result::Continue;
 
-    const SymbolStruct& ownerStruct = srcType.payloadSymStruct();
+    const SymbolStruct& ownerStruct = ownerType->payloadSymStruct();
     SWC_RESULT(sema.waitSemaCompleted(&ownerStruct, codeRef));
 
     const IdentifierRef                opCastId   = sema.idMgr().predefined(IdentifierManager::PredefinedName::OpCast);

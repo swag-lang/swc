@@ -21,6 +21,7 @@ struct SemaInlinePayload
     const SymbolFunction*                            sourceFunction      = nullptr;
     SemaInlinePayload*                               parentInlinePayload = nullptr;
     SemaScope*                                       callerScope         = nullptr;
+    SemaScope*                                       upLookupScope       = nullptr;
     bool                                             crossAstInline      = false;
     SymbolVariable*                                  resultVar           = nullptr;
     SmallVector<SemaClone::ParamBinding, 6>          argMappings;

@@ -33,6 +33,18 @@ namespace
         return sema.isConstAssignBindingStored(nodeRef);
     }
 
+    bool shouldReadReferenceForBoolExpr(Sema& sema, TypeRef typeRef)
+    {
+        if (!typeRef.isValid())
+            return false;
+
+        const TypeRef normalizedTypeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), typeRef);
+        if (!normalizedTypeRef.isValid())
+            return false;
+
+        return sema.typeMgr().get(normalizedTypeRef).isReference();
+    }
+
     AstNodeRef resolveNodeRefForCheck(Sema& sema, AstNodeRef nodeRef)
     {
         if (nodeRef.isInvalid())
@@ -342,7 +354,16 @@ Result SemaCheck::isValueOrTypeInfo(Sema& sema, SemaNodeView& view)
 Result SemaCheck::prepareBoolExprValue(Sema& sema, SemaNodeView& view)
 {
     SWC_RESULT(isValueOrTypeInfo(sema, view));
-    return normalizeTypeInfoValueIfNeeded(sema, view);
+    SWC_RESULT(normalizeTypeInfoValueIfNeeded(sema, view));
+
+    if (!shouldReadReferenceForBoolExpr(sema, view.typeRef()))
+        return Result::Continue;
+
+    const TypeRef normalizedTypeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), view.typeRef());
+    const TypeRef valueTypeRef      = sema.typeMgr().get(normalizedTypeRef).payloadTypeRef();
+    SWC_RESULT(Cast::cast(sema, view, valueTypeRef, CastKind::Implicit));
+    view.recompute(sema, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
+    return Result::Continue;
 }
 
 Result SemaCheck::castToBool(Sema& sema, SemaNodeView& view)

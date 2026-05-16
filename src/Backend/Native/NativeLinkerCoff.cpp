@@ -187,7 +187,10 @@ void NativeLinkerCoff::appendLinkSearchPaths(std::vector<Utf8>& args) const
     if (!toolchain_.sdkUcrtLibPath.empty())
         args.emplace_back(std::format("/LIBPATH:{}", Utf8(toolchain_.sdkUcrtLibPath)));
 
-    std::set<fs::path> importedApiDirs;
+    std::vector<fs::path> importedLinkDirs;
+    for (const fs::path& importedLinkDir : builder_->compiler().importedDependencyLinkDirs())
+        importedLinkDirs.push_back(importedLinkDir);
+
     for (const SourceFile* file : builder_->compiler().files())
     {
         if (!file || !file->hasFlag(FileFlagsE::ImportedApi))
@@ -195,11 +198,14 @@ void NativeLinkerCoff::appendLinkSearchPaths(std::vector<Utf8>& args) const
         if (!file->path().has_parent_path())
             continue;
 
-        importedApiDirs.emplace(file->path().parent_path().lexically_normal());
+        const fs::path parentPath = file->path().parent_path().lexically_normal();
+        if (std::ranges::find(importedLinkDirs, parentPath) != importedLinkDirs.end())
+            continue;
+        importedLinkDirs.push_back(parentPath);
     }
 
-    for (const fs::path& importedApiDir : importedApiDirs)
-        args.emplace_back(std::format("/LIBPATH:{}", Utf8(importedApiDir)));
+    for (const fs::path& importedLinkDir : importedLinkDirs)
+        args.emplace_back(std::format("/LIBPATH:{}", Utf8(importedLinkDir)));
 }
 
 void NativeLinkerCoff::collectLinkLibraries(std::set<Utf8>& out) const

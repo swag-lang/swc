@@ -149,35 +149,65 @@ namespace
         if (argRef.isInvalid())
             return std::nullopt;
 
-        const SemaNodeView argSymView = codeGen.viewSymbol(argRef);
-        const auto* const  symVar     = argSymView.sym() ? argSymView.sym()->safeCast<SymbolVariable>() : nullptr;
-        if (!symVar)
+        SmallVector<AstNodeRef> candidateRefs;
+        const auto appendCandidateRef = [&](const AstNodeRef candidateRef) {
+            if (candidateRef.isInvalid())
+                return;
+
+            if (std::ranges::find(candidateRefs, candidateRef) == candidateRefs.end())
+                candidateRefs.push_back(candidateRef);
+        };
+
+        appendCandidateRef(argRef);
+        appendCandidateRef(codeGen.resolvedNodeRef(argRef));
+        appendCandidateRef(resolvePreparedArgSourceRef(codeGen, argRef));
+        if (!candidateRefs.empty())
+            appendCandidateRef(codeGen.resolvedNodeRef(candidateRefs.back()));
+
+        const auto tryResolveSymbolPayload = [&](const SymbolVariable& symVar) -> std::optional<CodeGenNodePayload> {
+            if (symVar.isClosureCapture())
+                return CodeGenFunctionHelpers::resolveClosureCapturePayload(codeGen, symVar);
+
+            if (CodeGenFunctionHelpers::usesCallerReturnStorage(codeGen, symVar))
+                return CodeGenFunctionHelpers::resolveCallerReturnStoragePayload(codeGen, symVar);
+
+            if (symVar.hasExtraFlag(SymbolVariableFlagsE::Parameter))
+                return CodeGenFunctionHelpers::materializeFunctionParameter(codeGen, codeGen.function(), symVar);
+
+            if (const auto* payload = codeGen.variablePayload(symVar))
+                return *payload;
+
+            if (symVar.hasExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack) ||
+                (codeGen.localStackBaseReg().isValid() && symVar.hasExtraFlag(SymbolVariableFlagsE::FunctionLocal)))
+                return codeGen.resolveLocalStackPayload(symVar);
+
+            if (symVar.hasGlobalStorage())
+            {
+                CodeGenNodePayload payload;
+                payload.typeRef = symVar.typeRef();
+                payload.setIsAddress();
+                payload.reg = codeGen.nextVirtualIntRegister();
+                codeGen.builder().emitLoadRegDataSegmentReloc(payload.reg, symVar.globalStorageKind(), symVar.offset());
+                return payload;
+            }
+
             return std::nullopt;
+        };
 
-        if (symVar->isClosureCapture())
-            return CodeGenFunctionHelpers::resolveClosureCapturePayload(codeGen, *symVar);
-
-        if (CodeGenFunctionHelpers::usesCallerReturnStorage(codeGen, *symVar))
-            return CodeGenFunctionHelpers::resolveCallerReturnStoragePayload(codeGen, *symVar);
-
-        if (symVar->hasExtraFlag(SymbolVariableFlagsE::Parameter))
-            return CodeGenFunctionHelpers::materializeFunctionParameter(codeGen, codeGen.function(), *symVar);
-
-        if (const auto* payload = codeGen.variablePayload(*symVar))
-            return *payload;
-
-        if (symVar->hasExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack) ||
-            (codeGen.localStackBaseReg().isValid() && symVar->hasExtraFlag(SymbolVariableFlagsE::FunctionLocal)))
-            return codeGen.resolveLocalStackPayload(*symVar);
-
-        if (symVar->hasGlobalStorage())
+        for (const AstNodeRef candidateRef : candidateRefs)
         {
-            CodeGenNodePayload payload;
-            payload.typeRef = symVar->typeRef();
-            payload.setIsAddress();
-            payload.reg = codeGen.nextVirtualIntRegister();
-            codeGen.builder().emitLoadRegDataSegmentReloc(payload.reg, symVar->globalStorageKind(), symVar->offset());
-            return payload;
+            const auto tryResolveVariable = [&](SemaNodeView view) -> std::optional<CodeGenNodePayload> {
+                const auto* symVar = view.sym() ? view.sym()->safeCast<SymbolVariable>() : nullptr;
+                if (!symVar)
+                    return std::nullopt;
+                return tryResolveSymbolPayload(*symVar);
+            };
+
+            if (auto payload = tryResolveVariable(codeGen.viewSymbol(candidateRef)))
+                return payload;
+
+            if (auto payload = tryResolveVariable(codeGen.sema().viewStored(candidateRef, SemaNodeViewPartE::Symbol)))
+                return payload;
         }
 
         return std::nullopt;
@@ -252,6 +282,18 @@ namespace
 
         const TypeRef pointeeTypeRef = normalizedType.payloadTypeRef();
         return pointeeTypeRef.isValid() ? pointeeTypeRef : normalizedTypeRef;
+    }
+
+    bool prefersAddressBackedCallConstantPayload(const TypeInfo& typeInfo)
+    {
+        return typeInfo.isStruct() ||
+               typeInfo.isArray() ||
+               typeInfo.isAggregateStruct() ||
+               typeInfo.isAggregateArray() ||
+               typeInfo.isAny() ||
+               typeInfo.isInterface() ||
+               typeInfo.isString() ||
+               typeInfo.isSlice();
     }
 
     bool emitMaterializedConstantPayload(CodeGen& codeGen, CodeGenNodePayload& outPayload, TypeRef targetTypeRef, ConstantRef cstRef)
@@ -434,8 +476,28 @@ namespace
         const TypeRef   unaliasedTypeRef = targetType.unwrap(ctx, targetTypeRef, TypeExpandE::Alias);
         if (unaliasedTypeRef.isValid())
             storageTypeRef = unaliasedTypeRef;
+        const TypeInfo& storageType = ctx.typeMgr().get(storageTypeRef);
 
         const ConstantValue& defaultCst = codeGen.cstMgr().get(defaultCstRef);
+        if (prefersAddressBackedCallConstantPayload(storageType))
+        {
+            const uint64_t rawSize = storageType.sizeOf(ctx);
+            if (rawSize == 0 || rawSize > std::numeric_limits<uint32_t>::max())
+                return false;
+
+            SmallVector<std::byte> rawBytes;
+            rawBytes.resize(rawSize);
+            std::memset(rawBytes.data(), 0, rawBytes.size());
+            if (ConstantLower::lowerToBytes(codeGen.sema(), ByteSpanRW{rawBytes.data(), rawBytes.size()}, defaultCstRef, storageTypeRef) != Result::Continue)
+                return false;
+
+            const ConstantRef materializedCstRef = CodeGenConstantHelpers::materializeStaticPayloadConstant(codeGen, storageTypeRef, ByteSpan{rawBytes.data(), rawBytes.size()});
+            if (materializedCstRef.isInvalid())
+                return false;
+
+            return emitMaterializedConstantPayload(codeGen, outPayload, targetTypeRef, materializedCstRef);
+        }
+
         if ((defaultCst.isNull() || defaultCst.isValuePointer() || defaultCst.isBlockPointer()) &&
             emitMaterializedConstantPayload(codeGen, outPayload, targetTypeRef, defaultCstRef))
             return true;
@@ -447,7 +509,6 @@ namespace
                 return true;
         }
 
-        const TypeInfo& storageType = ctx.typeMgr().get(storageTypeRef);
         const uint64_t  rawSize     = storageType.sizeOf(ctx);
         if (rawSize == 0 || rawSize > std::numeric_limits<uint32_t>::max())
             return false;
@@ -694,6 +755,52 @@ namespace
         return storageReg;
     }
 
+    bool tryResolvePayloadRuntimeStorageAddress(CodeGen& codeGen, const CodeGenNodePayload& payload, MicroReg& outStorageReg)
+    {
+        outStorageReg = MicroReg::invalid();
+        const auto* storageSym = payload.runtimeStorageSym;
+        if (!storageSym)
+            return false;
+
+        if (CodeGenFunctionHelpers::usesCallerReturnStorage(codeGen, *storageSym))
+        {
+            const CodeGenNodePayload storagePayload = CodeGenFunctionHelpers::resolveCallerReturnStoragePayload(codeGen, *storageSym);
+            SWC_ASSERT(storagePayload.isAddress());
+            outStorageReg = storagePayload.reg;
+            return outStorageReg.isValid();
+        }
+
+        if (storageSym->hasExtraFlag(SymbolVariableFlagsE::Parameter))
+        {
+            const CodeGenNodePayload storagePayload = CodeGenFunctionHelpers::materializeFunctionParameter(codeGen, codeGen.function(), *storageSym);
+            if (!storagePayload.isAddress())
+                return false;
+
+            outStorageReg = storagePayload.reg;
+            return outStorageReg.isValid();
+        }
+
+        if ((storageSym->hasExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack) ||
+             (codeGen.localStackBaseReg().isValid() && storageSym->hasExtraFlag(SymbolVariableFlagsE::FunctionLocal))))
+        {
+            const CodeGenNodePayload storagePayload = codeGen.resolveLocalStackPayload(*storageSym);
+            SWC_ASSERT(storagePayload.isAddress());
+            outStorageReg = storagePayload.reg;
+            return outStorageReg.isValid();
+        }
+
+        if (!storageSym->hasGlobalStorage())
+            return false;
+
+        CodeGenNodePayload storagePayload;
+        storagePayload.typeRef = storageSym->typeRef();
+        storagePayload.setIsAddress();
+        storagePayload.reg = codeGen.nextVirtualIntRegister();
+        codeGen.builder().emitLoadRegDataSegmentReloc(storagePayload.reg, storageSym->globalStorageKind(), storageSym->offset());
+        outStorageReg = storagePayload.reg;
+        return outStorageReg.isValid();
+    }
+
     bool isTransparentCallResultParent(const AstNode& parent)
     {
         return parent.is(AstNodeId::AutoCastExpr) ||
@@ -768,18 +875,48 @@ namespace
         }
     }
 
-    void materializePreparedIndirectCopyArg(CodeGen& codeGen, CodeGenNodePayload& argPayload, const CallConv& callConv, TypeRef normalizedTypeRef, const ABITypeNormalize::NormalizedType& normalizedArg, uint32_t& outTransientStackSize)
+    void materializePreparedIndirectCopyArg(CodeGen& codeGen, CodeGenNodePayload& argPayload, const CallConv& callConv, TypeRef normalizedTypeRef, const ABITypeNormalize::NormalizedType& normalizedArg, AstNodeRef argRef, uint32_t& outTransientStackSize)
     {
         if (!normalizedArg.isIndirect || !normalizedArg.needsIndirectCopy)
             return;
 
         SWC_ASSERT(normalizedArg.indirectSize != 0);
-        SWC_ASSERT(argPayload.isAddress());
         if (!argPayload.isAddress())
-            return;
+        {
+            MicroReg storageReg = MicroReg::invalid();
+            if (tryResolvePayloadRuntimeStorageAddress(codeGen, argPayload, storageReg))
+            {
+                argPayload.reg     = storageReg;
+                argPayload.typeRef = normalizedTypeRef;
+                argPayload.setIsAddress();
+            }
+            else
+            {
+                const AstNodeRef sourceRef = resolvePreparedArgSourceRef(codeGen, argRef);
+                if (sourceRef.isValid())
+                {
+                    if (const auto sourcePayload = resolveVariableArgumentPayload(codeGen, sourceRef); sourcePayload && sourcePayload->isAddress())
+                    {
+                        argPayload.reg     = sourcePayload->reg;
+                        argPayload.typeRef = normalizedTypeRef;
+                        argPayload.setIsAddress();
+                    }
+                    else if (codeGen.runtimeStorageSymbol(sourceRef) != nullptr)
+                    {
+                        argPayload.reg     = codeGen.runtimeStorageAddressReg(sourceRef);
+                        argPayload.typeRef = normalizedTypeRef;
+                        argPayload.setIsAddress();
+                    }
+                }
+            }
+        }
 
         const MicroReg storageReg = reserveTransientCallStorage(codeGen, callConv, normalizedArg.indirectSize, outTransientStackSize);
-        CodeGenMemoryHelpers::emitMemCopy(codeGen, storageReg, argPayload.reg, normalizedArg.indirectSize);
+        // Some indirect ABI arguments are materialized as immediate payloads that still
+        // carry the address of their backing bytes in the register payload itself (for
+        // example a constant string value). Spill through the generic payload helper
+        // instead of requiring an l-value address here.
+        CodeGenMemoryHelpers::storePayloadToAddress(codeGen, storageReg, argPayload, normalizedArg.indirectSize);
 
         argPayload.reg     = storageReg;
         argPayload.typeRef = normalizedTypeRef;
@@ -998,7 +1135,7 @@ namespace
             materializePreparedReferenceArg(codeGen, argPayload, normalizedTypeRef, arg, argRef);
             materializePreparedPointerDecayArg(codeGen, argPayload, normalizedTypeRef, argRef);
             const ABITypeNormalize::NormalizedType normalizedArg = ABITypeNormalize::normalize(codeGen.ctx(), callConv, normalizedTypeRef, ABITypeNormalize::Usage::Argument);
-            materializePreparedIndirectCopyArg(codeGen, argPayload, callConv, normalizedTypeRef, normalizedArg, outTransientStackSize);
+            materializePreparedIndirectCopyArg(codeGen, argPayload, callConv, normalizedTypeRef, normalizedArg, argRef, outTransientStackSize);
             materializePreparedBorrowedAggregateArg(codeGen, argPayload, normalizedTypeRef, normalizedArg, argRef);
             materializePreparedDirectScalarArg(codeGen, argPayload, normalizedTypeRef, normalizedArg);
         }

@@ -562,6 +562,148 @@ public func mainValue()->s32
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(Compiler_ModuleFileSetupPrefersImportableSwagStdDependencyBackend)
+{
+    const ScopedTempTree tempTree("compiler_module_file_swag_std_backend_choice");
+    if (!tempTree.ready())
+        return Result::Error;
+
+    const fs::path compilerRoot       = tempTree.root() / "compiler";
+    const fs::path moduleDir          = tempTree.root() / "module";
+    const fs::path moduleFile         = moduleDir / "module.swg";
+    const fs::path sourceFile         = moduleDir / "src" / "main.swg";
+    const fs::path staticImportFile   = compilerRoot / "std" / ".output" / "dep" / "static-library" / "fast-debug" / "x86_64" / "api.swg";
+    const fs::path executableImportFile = compilerRoot / "std" / ".output" / "dep" / "executable" / "fast-debug" / "x86_64" / "api.swg";
+
+    if (!writeTextFile(staticImportFile, R"(#global export
+public func depValue()->s32
+{
+    return 7
+}
+)"))
+        return Result::Error;
+    if (!writeTextFile(executableImportFile, R"(#global export
+public func depValue()->s32
+{
+    return 9
+}
+)"))
+        return Result::Error;
+    if (!writeTextFile(moduleFile, R"(#import("dep", location: "swag@std")
+#run
+{
+    let cfg = @compiler.getBuildCfg()
+    cfg.moduleNamespace = "Main"
+    cfg.backendKind = .Executable
+}
+)"))
+        return Result::Error;
+    if (!writeTextFile(sourceFile, R"(using Dep
+
+public func mainValue()->s32
+{
+    return depValue()
+}
+)"))
+        return Result::Error;
+
+    const ScopedEnvVar swagPath("SWAG_PATH", compilerRoot.string());
+
+    CommandLine cmdLine;
+    cmdLine.command        = CommandKind::Sema;
+    cmdLine.moduleFilePath = moduleFile;
+    CommandLineParser::refreshBuildCfg(cmdLine);
+
+    const uint64_t   errorsBefore = Stats::getNumErrors();
+    CompilerInstance compiler(ctx.global(), cmdLine);
+    Command::sema(compiler);
+    if (Stats::getNumErrors() != errorsBefore)
+        return Result::Error;
+
+    const SourceFile* importedStaticSource = findCompilerFile(compiler, staticImportFile);
+    if (!importedStaticSource || !importedStaticSource->hasFlag(FileFlagsE::ImportedApi))
+        return Result::Error;
+
+    if (findCompilerFile(compiler, executableImportFile) != nullptr)
+        return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(Compiler_ModuleFileSetupSeparatesImportedApiFromRequestedLinkBackend)
+{
+    const ScopedTempTree tempTree("compiler_module_file_swag_std_link_choice");
+    if (!tempTree.ready())
+        return Result::Error;
+
+    const fs::path compilerRoot       = tempTree.root() / "compiler";
+    const fs::path moduleDir          = tempTree.root() / "module";
+    const fs::path moduleFile         = moduleDir / "module.swg";
+    const fs::path sourceFile         = moduleDir / "src" / "main.swg";
+    const fs::path sharedImportDir    = compilerRoot / "std" / ".output" / "dep" / "shared-library" / "fast-debug" / "x86_64";
+    const fs::path sharedImportFile   = sharedImportDir / "api.swg";
+    const fs::path staticImportDir    = compilerRoot / "std" / ".output" / "dep" / "static-library" / "fast-debug" / "x86_64";
+    const fs::path staticImportFile   = staticImportDir / "api.swg";
+
+    if (!writeTextFile(sharedImportFile, R"(#global export
+public func depValue()->s32
+{
+    return 7
+}
+)"))
+        return Result::Error;
+    if (!writeTextFile(staticImportFile, R"(#global export
+public func depValue()->s32
+{
+    return 9
+}
+)"))
+        return Result::Error;
+    if (!writeTextFile(moduleFile, R"(#import("dep", location: "swag@std", link: "static-library")
+#run
+{
+    let cfg = @compiler.getBuildCfg()
+    cfg.moduleNamespace = "Main"
+    cfg.backendKind = .Executable
+}
+)"))
+        return Result::Error;
+    if (!writeTextFile(sourceFile, R"(using Dep
+
+public func mainValue()->s32
+{
+    return depValue()
+}
+)"))
+        return Result::Error;
+
+    const ScopedEnvVar swagPath("SWAG_PATH", compilerRoot.string());
+
+    CommandLine cmdLine;
+    cmdLine.command        = CommandKind::Sema;
+    cmdLine.moduleFilePath = moduleFile;
+    CommandLineParser::refreshBuildCfg(cmdLine);
+
+    const uint64_t   errorsBefore = Stats::getNumErrors();
+    CompilerInstance compiler(ctx.global(), cmdLine);
+    Command::sema(compiler);
+    if (Stats::getNumErrors() != errorsBefore)
+        return Result::Error;
+
+    const SourceFile* importedSharedSource = findCompilerFile(compiler, sharedImportFile);
+    if (!importedSharedSource || !importedSharedSource->hasFlag(FileFlagsE::ImportedApi))
+        return Result::Error;
+
+    if (findCompilerFile(compiler, staticImportFile) != nullptr)
+        return Result::Error;
+
+    const auto& linkDirs = compiler.importedDependencyLinkDirs();
+    if (linkDirs.size() != 1)
+        return Result::Error;
+    if (!FileSystem::pathEquals(linkDirs.front(), staticImportDir))
+        return Result::Error;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(Compiler_ModuleFileSetupKeepsExplicitCommandLineOverrides)
 {
     const ScopedTempTree tempTree("compiler_module_file_cli_override");
@@ -658,6 +800,122 @@ SWC_TEST_BEGIN(Compiler_ModuleFileSetupKeepsExplicitCommandLineOverrides)
     if (!compiler.buildCfg().backend.fpMathNoInf)
         return Result::Error;
     if (!compiler.buildCfg().backend.fpMathNoSignedZero)
+        return Result::Error;
+
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(Compiler_WorkspaceBuildAllowsConstExprCallsFromGeneratedSharedDependencyApi)
+{
+    const ScopedTempTree tempTree("compiler_workspace_generated_shared_constexpr");
+    if (!tempTree.ready())
+        return Result::Error;
+
+    const fs::path workspaceDir = tempTree.root() / "workspace";
+    const fs::path depModuleDir = workspaceDir / "modules" / "dep";
+    const fs::path useModuleDir = workspaceDir / "modules" / "use";
+
+    if (!writeTextFile(depModuleDir / "module.swg", R"(#run
+{
+    let cfg = @compiler.getBuildCfg()
+    cfg.moduleNamespace = "Dep"
+    cfg.backendKind = .SharedLibrary
+}
+)"))
+        return Result::Error;
+    if (!writeTextFile(depModuleDir / "src" / "main.swg", R"(#global public
+namespace Debug
+{
+    #[Swag.Macro]
+    func depRequireNonNegative(value: #code s32, loc = #callerlocation)
+    {
+        if #inject(value) < 0 do
+            @panic("negative value", loc)
+    }
+}
+
+#[Swag.ConstExpr]
+func depAbs(value: s32)->s32
+{
+    if value < 0 do
+        return -value
+    return value
+}
+
+func(T) depCheckedIdentity(value: T, original: s32)->T
+{
+    Debug.depRequireNonNegative(original)
+    return value
+}
+)"))
+        return Result::Error;
+
+    if (!writeTextFile(useModuleDir / "module.swg", R"(#import("dep")
+#run
+{
+    let cfg = @compiler.getBuildCfg()
+    cfg.moduleNamespace = "Use"
+    cfg.backendKind = .Executable
+}
+)"))
+        return Result::Error;
+    if (!writeTextFile(useModuleDir / "src" / "main.swg", R"(using Dep
+
+const IMPORTED_ABS = depAbs(-21)
+
+func runtimeAbs(value: s32)->s32
+{
+    return depAbs(value)
+}
+
+func checked(value: s32)->s32
+{
+    return depCheckedIdentity(value, value)
+}
+
+func mainValue(value: s32)->s32
+{
+    #assert(IMPORTED_ABS == 21)
+    return IMPORTED_ABS + runtimeAbs(value) + checked(value)
+}
+
+#main
+{
+    var runtimeValue = 5
+    @assert(mainValue(runtimeValue) == 31)
+}
+)"))
+        return Result::Error;
+
+    CommandLine cmdLine;
+    cmdLine.command       = CommandKind::Build;
+    cmdLine.workspacePath = workspaceDir;
+    cmdLine.silent        = true;
+    CommandLineParser::refreshBuildCfg(cmdLine);
+
+    CompilerInstance compiler(ctx.global(), cmdLine);
+    if (compiler.run() != ExitCode::Success)
+        return Result::Error;
+
+    Utf8                    depApiContent;
+    FileSystem::IoErrorInfo ioError;
+    const fs::path          depApiFile = workspaceDir / ".output" / "dep" / "shared-library" / "fast-debug" / "x86_64" / "dep.swg";
+    if (!fs::exists(depApiFile))
+        return Result::Error;
+    if (FileSystem::readTextFile(depApiFile, depApiContent, ioError) != Result::Continue)
+        return Result::Error;
+    if (!depApiContent.contains("#[Swag.ConstExpr]"))
+        return Result::Error;
+    if (!depApiContent.contains("#[Swag.Foreign(\"dep\", \"dep_abs\")]"))
+        return Result::Error;
+    if (!depApiContent.contains("func depAbs(value: s32)->s32;"))
+        return Result::Error;
+    if (!depApiContent.contains("func depRequireNonNegative(value: #code s32"))
+        return Result::Error;
+    if (!depApiContent.contains("func(T) depCheckedIdentity(value: T, original: s32)->T"))
+        return Result::Error;
+    if (!depApiContent.contains("Debug.depRequireNonNegative(original)"))
         return Result::Error;
 
     return Result::Continue;
@@ -814,6 +1072,11 @@ func depScale(value: f32)->f32
     return value * 4
 }
 
+func depStringLength(text: string)->u64
+{
+    return @countof(text)
+}
+
 struct DepCalculator
 {
     base: s32
@@ -944,6 +1207,7 @@ public func coreValue()->s32
            depDouble(21) +
            depMirror(42) +
            depTriple(14) +
+           cast(s32) depStringLength("core") +
            depMacroTwicePlus(20, 2) +
            depScale(cast(s32) 10) +
            cast(s32) depScale(cast(f32) 2) +
@@ -1059,7 +1323,7 @@ public func coreValue()->s32
         return Result::Error;
     if (depApiContent.contains("depLegacyValue"))
         return Result::Error;
-    if (depApiContent.contains("DEP_IMPL_VALUE"))
+    if (!depApiContent.contains("DEP_IMPL_VALUE = 47"))
         return Result::Error;
     if (depApiContent.contains("opaqueHead"))
         return Result::Error;
@@ -1072,12 +1336,13 @@ public func coreValue()->s32
     const size_t depToolsPos = normalizedDepApiContent.find("namespace DepTools\n");
     if (depToolsPos == Utf8::npos)
         return Result::Error;
-    if (normalizedDepApiContent.find("namespace DepTools\n", depToolsPos + 1) != Utf8::npos)
-        return Result::Error;
     if (normalizedDepApiContent.contains("namespace DepTools.Deep\n"))
         return Result::Error;
-    const size_t depToolsDeepPos = normalizedDepApiContent.find("namespace Deep\n");
+    const size_t depToolsDeepPos = normalizedDepApiContent.find("namespace Deep\n", depToolsPos + 1);
     if (depToolsDeepPos == Utf8::npos)
+        return Result::Error;
+    const size_t depNamespacedPos = normalizedDepApiContent.find("struct DepNamespaced");
+    if (depNamespacedPos == Utf8::npos)
         return Result::Error;
     const size_t depNamespaceAPos = normalizedDepApiContent.find("DEP_NAMESPACE_A");
     const size_t depNamespaceBPos = normalizedDepApiContent.find("DEP_NAMESPACE_B");
@@ -1088,6 +1353,7 @@ public func coreValue()->s32
     if (!(depToolsPos < depNamespaceAPos &&
           depNamespaceAPos < depNamespaceBPos &&
           depNamespaceBPos < depNamespaceCPos &&
+          depNamespaceCPos < depNamespacedPos &&
           depNamespaceCPos < depToolsDeepPos &&
           depToolsDeepPos < depNamespaceDeepPos))
         return Result::Error;
@@ -1113,6 +1379,8 @@ public func coreValue()->s32
     if (!depLibApiContent.contains("#[Swag.Foreign(\"deplib\", \"dep_scale__s32\")]"))
         return Result::Error;
     if (!depLibApiContent.contains("#[Swag.Foreign(\"deplib\", \"dep_scale__f32\")]"))
+        return Result::Error;
+    if (!depLibApiContent.contains("#[Swag.Foreign(\"deplib\", \"dep_string_length\")]"))
         return Result::Error;
     if (!depLibApiContent.contains("#[Swag.Foreign(\"deplib\", \"dep_triple\")]"))
         return Result::Error;
@@ -1153,6 +1421,8 @@ public func coreValue()->s32
     if (!depLibApiContent.contains("func depScale(value: s32)->s32;"))
         return Result::Error;
     if (!depLibApiContent.contains("func depScale(value: f32)->f32;"))
+        return Result::Error;
+    if (!depLibApiContent.contains("func depStringLength(text: string)->u64;"))
         return Result::Error;
     if (!depLibApiContent.contains("func depTriple(value: s32)->s32;"))
         return Result::Error;

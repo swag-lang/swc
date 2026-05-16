@@ -8,6 +8,7 @@ class ExternalModuleManager
 public:
     ExternalModuleManager() = default;
 
+    void registerSearchPath(fs::path path);
     bool loadModule(void*& outModuleHandle, std::string_view moduleName);
     bool getFunctionAddress(void*& outFunctionAddress, std::string_view moduleName, std::string_view functionName);
 
@@ -20,6 +21,7 @@ private:
 
     mutable std::mutex       mutex_;
     std::vector<ModuleEntry> modules_;
+    std::vector<fs::path>    searchPaths_;
 };
 
 SWC_END_NAMESPACE();

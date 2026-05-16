@@ -1,3 +1,5 @@
+#global #if false
+
 /*
 --- Part Two ---
 Neat, right? You might also enjoy hearing John Conway talking about this sequence (that's Conway of Conway's Game of Life fame).

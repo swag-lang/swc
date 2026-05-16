@@ -609,7 +609,9 @@ namespace
             return false;
         if (!calledFn.isPure() && !calledFn.attributes().hasRtFlag(RtAttributeFlagsE::ConstExpr))
             return false;
-        if (calledFn.isForeign() || calledFn.isEmpty())
+        if (calledFn.isForeign() && !calledFn.attributes().hasRtFlag(RtAttributeFlagsE::ConstExpr))
+            return false;
+        if (calledFn.isEmpty() && !calledFn.isForeign())
             return false;
         if (!calledFn.returnTypeRef().isValid())
             return false;
@@ -631,7 +633,7 @@ namespace
             return false;
         if (!calledFn.attributes().hasRtFlag(RtAttributeFlagsE::ConstExpr))
             return false;
-        if (calledFn.isForeign() || calledFn.isEmpty())
+        if (calledFn.isEmpty() && !calledFn.isForeign())
             return false;
         if (!receiverTypeRef.isValid() || hasUnsupportedConstCallReturn(sema, receiverTypeRef))
             return false;
@@ -925,6 +927,20 @@ namespace
         outBuilt = outReceiverStorage != nullptr;
         return Result::Continue;
     }
+
+    Result emitForeignConstExprCall(Sema& sema, const SymbolFunction& calledFn, std::span<const JITArgument> jitArgs, const JITReturn& jitReturn)
+    {
+        TaskContext& ctx = sema.ctx();
+        void*        targetFn = nullptr;
+        if (!JIT::resolveForeignFunctionAddress(ctx, targetFn, calledFn))
+            return reportJitEvaluationFailure(sema, calledFn);
+
+        const Result jitResult = JIT::emitAndCall(ctx, targetFn, jitArgs, jitReturn, calledFn.callConvKind());
+        if (jitResult != Result::Continue)
+            return reportJitEvaluationFailure(sema, calledFn);
+
+        return Result::Continue;
+    }
 }
 
 Result SemaJIT::runExpr(Sema& sema, SymbolFunction& symFn, AstNodeRef nodeExprRef)
@@ -1092,9 +1108,21 @@ Result SemaJIT::tryRunConstCall(Sema& sema, SymbolFunction& calledFn, AstNodeRef
         payload->constCallCacheKey = std::move(cacheKey);
     }
 
-    SWC_RESULT(prepareJitFunction(sema, calledFn));
-
     payload->resultStorage.resize(resultMeta.resultSize);
+    if (calledFn.isForeign())
+    {
+        const JITReturn jitReturn = {.typeRef = exprTypeRef, .valuePtr = payload->resultStorage.data()};
+        SWC_RESULT(emitForeignConstExprCall(sema, calledFn, payload->jitArgs.span(), jitReturn));
+
+        const ConstantRef resultCstRef = makeJitCallResultConstantRef(sema, resultMeta, payload->resultStorage.data());
+        if (payload->constCallCacheKey)
+            cacheConstCallResult(std::move(*payload->constCallCacheKey), resultCstRef);
+        sema.setFoldedTypedConst(callRef);
+        sema.setConstant(callRef, resultCstRef);
+        return Result::Continue;
+    }
+
+    SWC_RESULT(prepareJitFunction(sema, calledFn));
 
     JITExecManager::Request request;
     request.function     = &calledFn;
@@ -1131,6 +1159,17 @@ Result SemaJIT::tryRunConstSetCall(Sema& sema, SymbolFunction& calledFn, AstNode
     SWC_RESULT(buildConstSetCallArguments(sema, built, calledFn, callRef, resolvedArgs, receiverTypeRef, receiverInitCstRef, receiverStorage, argStorage, jitArgs));
     if (!built)
         return Result::Continue;
+
+    if (calledFn.isForeign())
+    {
+        SWC_RESULT(emitForeignConstExprCall(sema, calledFn, jitArgs.span(), {.typeRef = sema.typeMgr().typeVoid(), .valuePtr = nullptr}));
+
+        const uint64_t    structSize   = sema.typeMgr().get(receiverTypeRef).sizeOf(sema.ctx());
+        const ConstantRef resultCstRef = ConstantHelpers::materializeStaticPayloadConstant(sema, receiverTypeRef, ByteSpan{receiverStorage, structSize});
+        sema.setConstant(callRef, resultCstRef);
+        sema.setFoldedTypedConst(callRef);
+        return Result::Continue;
+    }
 
     SWC_RESULT(prepareJitFunction(sema, calledFn));
 

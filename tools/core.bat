@@ -11,6 +11,7 @@ set "XINPUT_BIN_REL=std\modules\xinput"
 set "CORE_MODULE_REL=std\modules\core"
 set "CORE_OUT_REL=std\core"
 set "BUILD_CFG=fast-debug"
+set "ARTIFACT_KIND=executable"
 set "EXTRA_ARGS="
 
 :parse_args
@@ -24,6 +25,12 @@ if /I "%~1"=="--build-cfg" (
 if /I "%~1"=="--target-arch" (
     set "TARGET_ARCH=%~2"
     set "EXTRA_ARGS=%EXTRA_ARGS% --target-arch %~2"
+    shift
+    shift
+    goto parse_args
+)
+if /I "%~1"=="--artifact-kind" (
+    set "ARTIFACT_KIND=%~2"
     shift
     shift
     goto parse_args
@@ -50,10 +57,14 @@ if not "%ERRORLEVEL%"=="0" exit /b %ERRORLEVEL%
 "%SWC_EXE%" build --no-unittest --module-file "%XINPUT_MODULE_FILE%" -d "src" --out-dir "%OUT_DIR%" --work-dir "%WORK_DIR%" --build-cfg %BUILD_CFG% --import-api-dir "%DEP_ROOT%" --export-api-dir "%OUT_DIR%"%EXTRA_ARGS%
 if not "%ERRORLEVEL%"=="0" exit /b %ERRORLEVEL%
 
-call "%TOOLS_DIR%_common.bat" :set_paths "%CORE_OUT_REL%" "executable" "%BUILD_CFG%"
+call "%TOOLS_DIR%_common.bat" :set_paths "%CORE_OUT_REL%" "%ARTIFACT_KIND%" "%BUILD_CFG%"
 if not "%ERRORLEVEL%"=="0" exit /b %ERRORLEVEL%
 
-"%SWC_EXE%" test --module-file "%CORE_MODULE_FILE%" -d "src" --artifact-kind executable --out-dir "%OUT_DIR%" --work-dir "%WORK_DIR%" --build-cfg %BUILD_CFG% --import-api-dir "%DEP_ROOT%"%EXTRA_ARGS%
+if /I "%ARTIFACT_KIND%"=="executable" (
+    "%SWC_EXE%" test --module-file "%CORE_MODULE_FILE%" -d "src" --artifact-kind executable --out-dir "%OUT_DIR%" --work-dir "%WORK_DIR%" --build-cfg %BUILD_CFG% --import-api-dir "%DEP_ROOT%"%EXTRA_ARGS%
+) else (
+    "%SWC_EXE%" build --module-file "%CORE_MODULE_FILE%" -d "src" --artifact-kind %ARTIFACT_KIND% --out-dir "%OUT_DIR%" --work-dir "%WORK_DIR%" --build-cfg %BUILD_CFG% --import-api-dir "%DEP_ROOT%" --export-api-dir "%OUT_DIR%"%EXTRA_ARGS%
+)
 if not "%ERRORLEVEL%"=="0" exit /b %ERRORLEVEL%
 
 exit /b 0

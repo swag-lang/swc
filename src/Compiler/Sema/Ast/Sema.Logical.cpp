@@ -11,6 +11,29 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    bool shouldReadReferenceValue(Sema& sema, TypeRef typeRef)
+    {
+        if (!typeRef.isValid())
+            return false;
+
+        const TypeRef normalizedTypeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), typeRef);
+        if (!normalizedTypeRef.isValid())
+            return false;
+
+        return sema.typeMgr().get(normalizedTypeRef).isReference();
+    }
+
+    Result readReferenceValue(Sema& sema, SemaNodeView& view)
+    {
+        if (!shouldReadReferenceValue(sema, view.typeRef()))
+            return Result::Continue;
+
+        const TypeRef normalizedTypeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), view.typeRef());
+        const TypeRef valueTypeRef      = sema.typeMgr().get(normalizedTypeRef).payloadTypeRef();
+        SWC_RESULT(Cast::cast(sema, view, valueTypeRef, CastKind::Implicit));
+        return Result::Continue;
+    }
+
     Result constantFold(Sema& sema, ConstantRef& result, TokenId op, const SemaNodeView& nodeLeftView, const SemaNodeView& nodeRightView)
     {
         const ConstantRef leftCstRef  = nodeLeftView.cstRef();
@@ -60,6 +83,8 @@ Result AstLogicalExpr::semaPostNode(Sema& sema)
     SemaNodeView     nodeRightView = sema.viewNodeTypeConstant(nodeRightRef);
 
     // Value-check
+    SWC_RESULT(readReferenceValue(sema, nodeLeftView));
+    SWC_RESULT(readReferenceValue(sema, nodeRightView));
     SWC_RESULT(SemaCheck::prepareBoolExprValue(sema, nodeLeftView));
     SWC_RESULT(SemaCheck::prepareBoolExprValue(sema, nodeRightView));
     sema.setIsValue(*this);

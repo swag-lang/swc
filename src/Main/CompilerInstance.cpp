@@ -741,6 +741,40 @@ namespace
         return std::format("build-cfg '{}' and arch '{}'", cmdLine.buildCfg.c_str(), targetArchName(cmdLine.targetArch).c_str());
     }
 
+    struct DependencyConfigCandidate
+    {
+        fs::path                      path;
+        Runtime::BuildCfgBackendKind backendKind = Runtime::BuildCfgBackendKind::None;
+    };
+
+    Runtime::BuildCfgBackendKind dependencyBackendKindFromFolderName(const std::string_view name)
+    {
+        if (name == backendKindName(Runtime::BuildCfgBackendKind::Executable).view())
+            return Runtime::BuildCfgBackendKind::Executable;
+        if (name == backendKindName(Runtime::BuildCfgBackendKind::SharedLibrary).view())
+            return Runtime::BuildCfgBackendKind::SharedLibrary;
+        if (name == backendKindName(Runtime::BuildCfgBackendKind::StaticLibrary).view())
+            return Runtime::BuildCfgBackendKind::StaticLibrary;
+        if (name == backendKindName(Runtime::BuildCfgBackendKind::Export).view())
+            return Runtime::BuildCfgBackendKind::Export;
+        return Runtime::BuildCfgBackendKind::None;
+    }
+
+    bool isSharedDependencyBackendKind(const Runtime::BuildCfgBackendKind backendKind)
+    {
+        return backendKind == Runtime::BuildCfgBackendKind::SharedLibrary;
+    }
+
+    bool isStaticDependencyBackendKind(const Runtime::BuildCfgBackendKind backendKind)
+    {
+        return backendKind == Runtime::BuildCfgBackendKind::StaticLibrary;
+    }
+
+    bool isImportOnlyDependencyBackendKind(const Runtime::BuildCfgBackendKind backendKind)
+    {
+        return backendKind == Runtime::BuildCfgBackendKind::Export;
+    }
+
     Utf8 joinDependencyPaths(const std::vector<fs::path>& paths)
     {
         Utf8 result;
@@ -754,21 +788,20 @@ namespace
         return result;
     }
 
-    Result findDependencyConfigurationDirectory(fs::path& outDir, Utf8& outBecause, const fs::path& dependencyRoot, std::string_view moduleName, const CommandLine& cmdLine)
+    Result collectDependencyConfigurationMatches(std::vector<DependencyConfigCandidate>& outMatches, Utf8& outBecause, const fs::path& dependencyRoot, std::string_view moduleName, const CommandLine& cmdLine)
     {
-        outDir.clear();
+        outMatches.clear();
         outBecause.clear();
 
         const fs::path moduleDir = dependencyModuleDirectory(dependencyRoot, moduleName);
-        outDir                   = moduleDir;
-        if (FileSystem::resolveExistingFolder(outDir, outBecause) != Result::Continue)
+        fs::path       resolvedModuleDir = moduleDir;
+        if (FileSystem::resolveExistingFolder(resolvedModuleDir, outBecause) != Result::Continue)
             return Result::Error;
 
-        std::vector<fs::path> matches;
-        const auto            buildCfgDir = fs::path(cmdLine.buildCfg.c_str());
-        const auto            archDir     = fs::path(targetArchName(cmdLine.targetArch).c_str());
-        std::error_code       ec;
-        for (fs::directory_iterator it(moduleDir, fs::directory_options::skip_permission_denied, ec), end; it != end; it.increment(ec))
+        const auto                            buildCfgDir = fs::path(cmdLine.buildCfg.c_str());
+        const auto                            archDir     = fs::path(targetArchName(cmdLine.targetArch).c_str());
+        std::error_code                       ec;
+        for (fs::directory_iterator it(resolvedModuleDir, fs::directory_options::skip_permission_denied, ec), end; it != end; it.increment(ec))
         {
             if (ec)
             {
@@ -785,25 +818,130 @@ namespace
             if (!fs::is_directory(candidate, ec) || ec)
                 continue;
 
-            matches.push_back(FileSystem::normalizePath(candidate));
+            outMatches.push_back({.path        = FileSystem::normalizePath(candidate),
+                                  .backendKind = dependencyBackendKindFromFolderName(it->path().filename().string())});
         }
 
-        if (matches.empty())
+        if (outMatches.empty())
         {
             outBecause = std::format("no configuration folder matches {}", dependencyConfigurationLabel(cmdLine).c_str());
             return Result::Error;
         }
 
-        std::ranges::sort(matches);
-        matches.erase(std::ranges::unique(matches).begin(), matches.end());
+        std::ranges::sort(outMatches, [](const DependencyConfigCandidate& lhs, const DependencyConfigCandidate& rhs) { return lhs.path < rhs.path; });
+        outMatches.erase(std::ranges::unique(outMatches, {}, &DependencyConfigCandidate::path).begin(), outMatches.end());
+        return Result::Continue;
+    }
+
+    Result findDependencyConfigurationDirectory(fs::path& outDir, Utf8& outBecause, const fs::path& dependencyRoot, std::string_view moduleName, const CommandLine& cmdLine, Runtime::BuildCfgBackendKind* outBackendKind = nullptr)
+    {
+        outDir.clear();
+        if (outBackendKind)
+            *outBackendKind = Runtime::BuildCfgBackendKind::None;
+
+        std::vector<DependencyConfigCandidate> matches;
+        SWC_RESULT(collectDependencyConfigurationMatches(matches, outBecause, dependencyRoot, moduleName, cmdLine));
+        const auto selectUniqueMatch = [&](const auto& predicate, fs::path& selectedPath) -> bool {
+            fs::path candidatePath;
+            Runtime::BuildCfgBackendKind candidateBackendKind = Runtime::BuildCfgBackendKind::None;
+            for (const DependencyConfigCandidate& match : matches)
+            {
+                if (!predicate(match.backendKind))
+                    continue;
+
+                if (candidatePath.empty())
+                {
+                    candidatePath = match.path;
+                    candidateBackendKind = match.backendKind;
+                    continue;
+                }
+
+                selectedPath.clear();
+                return false;
+            }
+
+            if (candidatePath.empty())
+                return false;
+
+            selectedPath = std::move(candidatePath);
+            if (outBackendKind)
+                *outBackendKind = candidateBackendKind;
+            return true;
+        };
+
+        fs::path selectedPath;
+        if (selectUniqueMatch(isSharedDependencyBackendKind, selectedPath))
+        {
+            outDir = std::move(selectedPath);
+            return Result::Continue;
+        }
+
+        if (selectUniqueMatch(isImportOnlyDependencyBackendKind, selectedPath))
+        {
+            outDir = std::move(selectedPath);
+            return Result::Continue;
+        }
+
+        if (selectUniqueMatch(isStaticDependencyBackendKind, selectedPath))
+        {
+            outDir = std::move(selectedPath);
+            return Result::Continue;
+        }
+
         if (matches.size() != 1)
         {
-            outBecause = std::format("multiple configuration folders match {} ({})", dependencyConfigurationLabel(cmdLine).c_str(), joinDependencyPaths(matches).c_str());
+            std::vector<fs::path> paths;
+            paths.reserve(matches.size());
+            for (const DependencyConfigCandidate& match : matches)
+                paths.push_back(match.path);
+
+            outBecause = std::format("multiple configuration folders match {} ({})", dependencyConfigurationLabel(cmdLine).c_str(), joinDependencyPaths(paths).c_str());
             return Result::Error;
         }
 
-        outDir = matches.front();
+        if (matches.front().backendKind == Runtime::BuildCfgBackendKind::Executable)
+        {
+            outBecause = std::format("no importable dependency backend matches {} (found executable output only)", dependencyConfigurationLabel(cmdLine).c_str());
+            return Result::Error;
+        }
+
+        outDir = matches.front().path;
+        if (outBackendKind)
+            *outBackendKind = matches.front().backendKind;
         return Result::Continue;
+    }
+
+    Result findDependencyConfigurationDirectoryForBackend(fs::path& outDir, Utf8& outBecause, const fs::path& dependencyRoot, std::string_view moduleName, const CommandLine& cmdLine, const Runtime::BuildCfgBackendKind expectedBackendKind)
+    {
+        outDir.clear();
+
+        std::vector<DependencyConfigCandidate> matches;
+        SWC_RESULT(collectDependencyConfigurationMatches(matches, outBecause, dependencyRoot, moduleName, cmdLine));
+
+        const auto it = std::ranges::find(matches, expectedBackendKind, &DependencyConfigCandidate::backendKind);
+        if (it == matches.end())
+        {
+            outBecause = std::format("no '{}' dependency backend matches {}", backendKindName(expectedBackendKind).c_str(), dependencyConfigurationLabel(cmdLine).c_str());
+            return Result::Error;
+        }
+
+        outDir = it->path;
+        return Result::Continue;
+    }
+
+    fs::path dependencyRootFromConfigurationDir(const fs::path& configDir)
+    {
+        fs::path result = configDir;
+        for (uint32_t i = 0; i < 4 && result.has_parent_path(); ++i)
+            result = result.parent_path();
+        return result.lexically_normal();
+    }
+
+    fs::path dependencyImportMetadataPath(const fs::path& apiDir, std::string_view moduleName)
+    {
+        fs::path result = apiDir / fs::path(std::string(moduleName));
+        result.replace_extension(".deps");
+        return result.lexically_normal();
     }
 
     bool shouldSkipWorkspaceEntry(const fs::directory_entry& entry)
@@ -2394,7 +2532,7 @@ bool CompilerInstance::hasResolvedFilePath(const fs::path& path) const
     return false;
 }
 
-Result CompilerInstance::registerModuleSetupImport(const std::string_view moduleName, const std::string_view location, const std::string_view version)
+Result CompilerInstance::registerModuleSetupImport(const std::string_view moduleName, const std::string_view location, const std::string_view version, const Runtime::BuildCfgBackendKind linkBackendKind)
 {
     if (moduleName.empty())
         return Result::Continue;
@@ -2403,14 +2541,16 @@ Result CompilerInstance::registerModuleSetupImport(const std::string_view module
     {
         if (existingImport.moduleName == moduleName &&
             existingImport.location == location &&
-            existingImport.version == version)
+            existingImport.version == version &&
+            existingImport.linkBackendKind == linkBackendKind)
             return Result::Continue;
     }
 
     ModuleSetupImport importRequest;
-    importRequest.moduleName = moduleName;
-    importRequest.location   = location;
-    importRequest.version    = version;
+    importRequest.moduleName      = moduleName;
+    importRequest.location        = location;
+    importRequest.version         = version;
+    importRequest.linkBackendKind = linkBackendKind;
     moduleSetupImports_.push_back(std::move(importRequest));
     return Result::Continue;
 }
@@ -2422,6 +2562,26 @@ Result CompilerInstance::registerModuleSetupLoad(const fs::path& filePath)
 
     moduleSetupLoadedFiles_.insert(FileSystem::normalizePath(filePath));
     return Result::Continue;
+}
+
+void CompilerInstance::registerImportedDependencyLinkDir(const fs::path& path)
+{
+    if (path.empty())
+        return;
+
+    const fs::path normalizedPath = FileSystem::normalizePath(path);
+    if (std::ranges::find(importedDependencyLinkDirs_, normalizedPath) != importedDependencyLinkDirs_.end())
+        return;
+
+    importedDependencyLinkDirs_.push_back(normalizedPath);
+}
+
+void CompilerInstance::registerImportedSharedModuleDir(const fs::path& path)
+{
+    if (path.empty())
+        return;
+
+    externalModuleMgr().registerSearchPath(FileSystem::normalizePath(path));
 }
 
 void CompilerInstance::adoptBuildCfg(const Runtime::BuildCfg& buildCfg)
@@ -2535,6 +2695,18 @@ Result CompilerInstance::captureModuleSetupSnapshot(const TaskContext& ctx, cons
 
 Result CompilerInstance::applyModuleSetupInputs(TaskContext& ctx, const ModuleSetupSnapshot& setupSnapshot)
 {
+    moduleSetupImports_     = setupSnapshot.imports;
+    moduleSetupLoadedFiles_ = setupSnapshot.loadedFiles;
+
+    struct ResolvedModuleImportPaths
+    {
+        fs::path                      apiDir;
+        Runtime::BuildCfgBackendKind apiBackendKind = Runtime::BuildCfgBackendKind::None;
+        fs::path                      linkDir;
+        fs::path                      sharedDir;
+        fs::path                      dependencyRoot;
+    };
+
     const auto resolveExplicitDependencyRoot = [&](fs::path& outRoot, const ModuleSetupImport& importRequest) -> Result {
         if (importRequest.location == "swag@std")
         {
@@ -2560,8 +2732,36 @@ Result CompilerInstance::applyModuleSetupInputs(TaskContext& ctx, const ModuleSe
         return Result::Continue;
     };
 
-    const auto resolveDependencyImportDir = [&](fs::path& outImportDir, const ModuleSetupImport& importRequest) -> Result {
-        outImportDir.clear();
+    const auto resolveLinkAndSharedDirs = [&](ResolvedModuleImportPaths& outPaths, const fs::path& dependencyRoot, const ModuleSetupImport& importRequest) -> Result {
+        outPaths.linkDir.clear();
+        outPaths.sharedDir.clear();
+        outPaths.dependencyRoot = FileSystem::normalizePath(dependencyRoot);
+
+        Utf8     because;
+        fs::path sharedDir;
+        if (findDependencyConfigurationDirectoryForBackend(sharedDir, because, dependencyRoot, importRequest.moduleName.view(), cmdLine(), Runtime::BuildCfgBackendKind::SharedLibrary) == Result::Continue)
+            outPaths.sharedDir = std::move(sharedDir);
+
+        if (importRequest.linkBackendKind != Runtime::BuildCfgBackendKind::None)
+        {
+            if (findDependencyConfigurationDirectoryForBackend(outPaths.linkDir, because, dependencyRoot, importRequest.moduleName.view(), cmdLine(), importRequest.linkBackendKind) != Result::Continue)
+                return reportInvalidFolder(ctx, dependencyModuleDirectory(dependencyRoot, importRequest.moduleName.view()), because);
+            return Result::Continue;
+        }
+
+        if (!outPaths.sharedDir.empty())
+        {
+            outPaths.linkDir = outPaths.sharedDir;
+            return Result::Continue;
+        }
+
+        if (outPaths.apiBackendKind == Runtime::BuildCfgBackendKind::StaticLibrary)
+            outPaths.linkDir = outPaths.apiDir;
+        return Result::Continue;
+    };
+
+    const auto resolveDependencyImportDir = [&](ResolvedModuleImportPaths& outPaths, const ModuleSetupImport& importRequest, const fs::path* preferredDependencyRoot) -> Result {
+        outPaths = {};
 
         if (!importRequest.location.empty())
         {
@@ -2569,9 +2769,16 @@ Result CompilerInstance::applyModuleSetupInputs(TaskContext& ctx, const ModuleSe
             SWC_RESULT(resolveExplicitDependencyRoot(dependencyRoot, importRequest));
 
             Utf8 because;
-            if (findDependencyConfigurationDirectory(outImportDir, because, dependencyRoot, importRequest.moduleName.view(), cmdLine()) != Result::Continue)
+            if (findDependencyConfigurationDirectory(outPaths.apiDir, because, dependencyRoot, importRequest.moduleName.view(), cmdLine(), &outPaths.apiBackendKind) != Result::Continue)
                 return reportInvalidFolder(ctx, dependencyModuleDirectory(dependencyRoot, importRequest.moduleName.view()), because);
-            return Result::Continue;
+            return resolveLinkAndSharedDirs(outPaths, dependencyRoot, importRequest);
+        }
+
+        if (preferredDependencyRoot && !preferredDependencyRoot->empty())
+        {
+            Utf8 because;
+            if (findDependencyConfigurationDirectory(outPaths.apiDir, because, *preferredDependencyRoot, importRequest.moduleName.view(), cmdLine(), &outPaths.apiBackendKind) == Result::Continue)
+                return resolveLinkAndSharedDirs(outPaths, *preferredDependencyRoot, importRequest);
         }
 
         if (!cmdLine().workspacePath.empty())
@@ -2582,25 +2789,43 @@ Result CompilerInstance::applyModuleSetupInputs(TaskContext& ctx, const ModuleSe
             {
                 const fs::path dependencyRoot = workspaceOutputDirectory(cmdLine().workspacePath);
                 Utf8           because;
-                if (findDependencyConfigurationDirectory(outImportDir, because, dependencyRoot, importRequest.moduleName.view(), cmdLine()) != Result::Continue)
+                if (findDependencyConfigurationDirectory(outPaths.apiDir, because, dependencyRoot, importRequest.moduleName.view(), cmdLine(), &outPaths.apiBackendKind) != Result::Continue)
                     return reportInvalidFolder(ctx, dependencyModuleDirectory(dependencyRoot, importRequest.moduleName.view()), because);
-                return Result::Continue;
+                return resolveLinkAndSharedDirs(outPaths, dependencyRoot, importRequest);
             }
         }
 
         std::vector<fs::path> matches;
+        std::vector<Runtime::BuildCfgBackendKind> matchKinds;
         for (const fs::path& dependencyRoot : cmdLine().importApiDirs)
         {
             fs::path configDir;
             Utf8     because;
-            if (findDependencyConfigurationDirectory(configDir, because, dependencyRoot, importRequest.moduleName.view(), cmdLine()) != Result::Continue)
+            Runtime::BuildCfgBackendKind backendKind = Runtime::BuildCfgBackendKind::None;
+            if (findDependencyConfigurationDirectory(configDir, because, dependencyRoot, importRequest.moduleName.view(), cmdLine(), &backendKind) != Result::Continue)
                 continue;
 
             matches.push_back(std::move(configDir));
+            matchKinds.push_back(backendKind);
         }
 
-        std::ranges::sort(matches);
-        matches.erase(std::ranges::unique(matches).begin(), matches.end());
+        std::vector<size_t> order(matches.size());
+        std::iota(order.begin(), order.end(), 0);
+        std::ranges::sort(order, [&](const size_t lhs, const size_t rhs) { return matches[lhs] < matches[rhs]; });
+
+        std::vector<fs::path> uniqueMatches;
+        std::vector<Runtime::BuildCfgBackendKind> uniqueMatchKinds;
+        uniqueMatches.reserve(matches.size());
+        uniqueMatchKinds.reserve(matchKinds.size());
+        for (const size_t index : order)
+        {
+            if (!uniqueMatches.empty() && uniqueMatches.back() == matches[index])
+                continue;
+
+            uniqueMatches.push_back(matches[index]);
+            uniqueMatchKinds.push_back(matchKinds[index]);
+        }
+
         if (matches.empty())
         {
             if (cmdLine().importApiDirs.empty())
@@ -2610,22 +2835,58 @@ Result CompilerInstance::applyModuleSetupInputs(TaskContext& ctx, const ModuleSe
             return reportInvalidFolder(ctx, importRequest.moduleName.c_str(), because);
         }
 
-        if (matches.size() != 1)
+        if (uniqueMatches.size() != 1)
         {
-            const Utf8 because = std::format("multiple dependency roots match {} ({})", dependencyConfigurationLabel(cmdLine()).c_str(), joinDependencyPaths(matches).c_str());
+            const Utf8 because = std::format("multiple dependency roots match {} ({})", dependencyConfigurationLabel(cmdLine()).c_str(), joinDependencyPaths(uniqueMatches).c_str());
             return reportInvalidFolder(ctx, importRequest.moduleName.c_str(), because);
         }
 
-        outImportDir = matches.front();
+        outPaths.apiDir         = uniqueMatches.front();
+        outPaths.apiBackendKind = uniqueMatchKinds.front();
+        return resolveLinkAndSharedDirs(outPaths, dependencyRootFromConfigurationDir(outPaths.apiDir), importRequest);
+    };
+
+    const auto captureDependencyImportSnapshot = [&](const fs::path& depsFile, ModuleSetupSnapshot& outSnapshot) -> Result {
+        CommandLine setupCmdLine = cmdLine();
+        setupCmdLine.directories.clear();
+        setupCmdLine.files.clear();
+        setupCmdLine.importApiModules.clear();
+        setupCmdLine.importApiFiles.clear();
+        setupCmdLine.exportApiDir.clear();
+        setupCmdLine.modulePath.clear();
+        setupCmdLine.moduleFilePath = depsFile;
+        CommandLineParser::refreshBuildCfg(setupCmdLine);
+        return captureModuleSetupSnapshot(ctx, setupCmdLine, outSnapshot);
+    };
+
+    std::unordered_set<Utf8> processedDependencyApis;
+    const auto processImports = [&](auto&& self, std::span<const ModuleSetupImport> imports, const fs::path* preferredDependencyRoot) -> Result {
+        for (const ModuleSetupImport& importRequest : imports)
+        {
+            ResolvedModuleImportPaths importPaths;
+            SWC_RESULT(resolveDependencyImportDir(importPaths, importRequest, preferredDependencyRoot));
+            collectFolderFiles(importPaths.apiDir, FileFlagsE::ImportedApi, false);
+            registerImportedDependencyLinkDir(importPaths.linkDir);
+            registerImportedSharedModuleDir(importPaths.sharedDir);
+
+            const Utf8 apiDirKey = Utf8(FileSystem::normalizePath(importPaths.apiDir));
+            if (!processedDependencyApis.insert(apiDirKey).second)
+                continue;
+
+            fs::path       depsFile = dependencyImportMetadataPath(importPaths.apiDir, importRequest.moduleName.view());
+            Utf8           because;
+            ModuleSetupSnapshot nestedSnapshot;
+            if (FileSystem::resolveExistingFile(depsFile, because) != Result::Continue)
+                continue;
+
+            SWC_RESULT(captureDependencyImportSnapshot(depsFile, nestedSnapshot));
+            SWC_RESULT(self(self, nestedSnapshot.imports, &importPaths.dependencyRoot));
+        }
+
         return Result::Continue;
     };
 
-    for (const ModuleSetupImport& importRequest : setupSnapshot.imports)
-    {
-        fs::path importDir;
-        SWC_RESULT(resolveDependencyImportDir(importDir, importRequest));
-        collectFolderFiles(importDir, FileFlagsE::ImportedApi, false);
-    }
+    SWC_RESULT(processImports(processImports, setupSnapshot.imports, nullptr));
 
     for (const fs::path& filePath : setupSnapshot.loadedFiles)
     {
@@ -2705,12 +2966,23 @@ Result CompilerInstance::collectImportedApiFiles(TaskContext& ctx)
         const fs::path dependencyRoot = (FileSystem::compilerResourceRoot(exeFullName_) / "std" / ".output" / "dep").lexically_normal();
         for (const Utf8& moduleName : cmdLine.importApiModules)
         {
-            fs::path importDir;
-            Utf8     because;
-            if (findDependencyConfigurationDirectory(importDir, because, dependencyRoot, moduleName.view(), cmdLine) != Result::Continue)
+            fs::path                      importDir;
+            Runtime::BuildCfgBackendKind importBackendKind = Runtime::BuildCfgBackendKind::None;
+            Utf8                         because;
+            if (findDependencyConfigurationDirectory(importDir, because, dependencyRoot, moduleName.view(), cmdLine, &importBackendKind) != Result::Continue)
                 return reportInvalidFolder(ctx, dependencyModuleDirectory(dependencyRoot, moduleName.view()), because);
 
             collectFolderFiles(importDir, FileFlagsE::ImportedApi, false);
+            fs::path sharedDir;
+            if (findDependencyConfigurationDirectoryForBackend(sharedDir, because, dependencyRoot, moduleName.view(), cmdLine, Runtime::BuildCfgBackendKind::SharedLibrary) == Result::Continue)
+            {
+                registerImportedSharedModuleDir(sharedDir);
+                registerImportedDependencyLinkDir(sharedDir);
+            }
+            else if (importBackendKind == Runtime::BuildCfgBackendKind::StaticLibrary)
+            {
+                registerImportedDependencyLinkDir(importDir);
+            }
         }
     }
 
@@ -2724,6 +2996,8 @@ Result CompilerInstance::collectImportedApiFiles(TaskContext& ctx)
         if (hasResolvedFilePath(file))
             continue;
         addResolvedFile(file, FileFlagsE::ImportedApi);
+        if (file.has_parent_path())
+            registerImportedDependencyLinkDir(file.parent_path());
     }
 
     return Result::Continue;

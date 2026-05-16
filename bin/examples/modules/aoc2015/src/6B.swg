@@ -1,3 +1,4 @@
+#global #if false
 /*
 --- Part Two ---
 You just finish implementing your winning light pattern when you realize you mistranslated Santa's message from Ancient Nordic Elvish.

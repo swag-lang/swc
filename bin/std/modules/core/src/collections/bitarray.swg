@@ -136,7 +136,9 @@ public impl BitArray
 
         if !.count do
             return
-        let totalWords = .wordCount()
+        var totalWords = .count >> 5
+        if totalWords << 5 < .count do
+            totalWords += 1
         var countBits  = 0'u64
 
         #scope(Up)

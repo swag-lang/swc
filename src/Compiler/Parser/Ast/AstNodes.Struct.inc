@@ -123,6 +123,7 @@ struct AstCompilerImport : AstNodeT<AstNodeId::CompilerImport>
 {
     TokenRef tokModuleNameRef;
     TokenRef tokLocationRef;
+    TokenRef tokLinkRef;
     TokenRef tokVersionRef;
 
     Result     semaPostNode(Sema& sema) const;

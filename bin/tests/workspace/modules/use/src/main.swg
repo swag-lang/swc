@@ -43,6 +43,7 @@ func keepDepScore(score: IDepScore)->IDepScore => score
     @assert(depDouble(21) == 42)
     @assert(depMirror(42) == 42)
     @assert(depTriple(14) == 42)
+    @assert(depStringLength("workspace") == 9)
     @assert(depMacroTwicePlus(20, 2) == 42)
     @assert(depScale(cast(s32) 10) == 40)
     @assert(depScale(cast(f32) 2) == cast(f32) 8)

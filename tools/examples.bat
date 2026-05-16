@@ -4,7 +4,11 @@ setlocal
 for %%I in ("%~f0") do set "TOOLS_DIR=%%~dpI"
 call "%TOOLS_DIR%_common.bat" :init "%TOOLS_DIR%" "%~1"
 if not "%ERRORLEVEL%"=="0" exit /b %ERRORLEVEL%
-if /I "%~1"=="dm" shift
+set "MODE_ARG="
+if /I "%~1"=="dm" (
+    set "MODE_ARG=dm"
+    shift
+)
 
 set "EXAMPLES_WORKSPACE=%ROOT%\bin\examples"
 set "BUILD_CFG=fast-debug"
@@ -23,6 +27,9 @@ shift
 goto parse_args
 
 :run
+call "%TOOLS_DIR%core.bat" %MODE_ARG% --artifact-kind "shared-library" --build-cfg "%BUILD_CFG%"%EXTRA_ARGS%
+if not "%ERRORLEVEL%"=="0" exit /b %ERRORLEVEL%
+
 "%SWC_EXE%" build --workspace "%EXAMPLES_WORKSPACE%" --build-cfg %BUILD_CFG%%EXTRA_ARGS%
 if not "%ERRORLEVEL%"=="0" exit /b %ERRORLEVEL%
 

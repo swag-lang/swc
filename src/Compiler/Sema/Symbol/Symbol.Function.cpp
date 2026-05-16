@@ -931,7 +931,8 @@ bool SymbolFunction::supportsPublicApiForeignExport() const noexcept
 {
     return supportsGeneratedModuleApiExport() &&
            !attributes().hasRtFlag(RtAttributeFlagsE::Macro) &&
-           !attributes().hasRtFlag(RtAttributeFlagsE::Mixin);
+           !attributes().hasRtFlag(RtAttributeFlagsE::Mixin) &&
+           decl()->safeCast<AstFunctionDecl>();
 }
 
 uint32_t SymbolFunction::typeSignatureHash() const noexcept

@@ -335,6 +335,7 @@ namespace
     AstNodeRef bindingInlineArgumentRef(Sema& sema, const InlineArgumentMapContext& context, const SymbolVariable& param, size_t paramIndex, size_t numFixed, AstNodeRef argRef, AstNodeRef sourceArgRef = AstNodeRef::invalid())
     {
         AstNodeRef argValueRef = bindingArgumentRef(sema, param, argRef, sourceArgRef);
+
         if (!param.type(sema.ctx()).isCodeBlock())
         {
             const AstNodeRef resolvedArgRef = bindingResolvedArgumentRef(sema, param, context.resolvedArgs, paramIndex, argRef);
@@ -920,7 +921,8 @@ namespace
             const bool      forceVariadicMaterialization       = !bindingIsCaptured && forceMaterializeInlineVariadicBinding(binding, paramType, hasNonCountOfUse);
             const bool      forceIndexOrForeachMaterialization = !bindingIsCaptured &&
                                                             inlineBindingNeedsIndexOrForeachMaterialization(sema, sourceAst, decl.nodeBodyRef, binding.idRef);
-            const bool forceBindingMaterialization = forceVariadicMaterialization || forceIndexOrForeachMaterialization;
+            const bool forceBindingMaterialization = forceVariadicMaterialization ||
+                                                     forceIndexOrForeachMaterialization;
             if (paramType.isCodeBlock() || (paramType.isAnyVariadic() && !forceBindingMaterialization && !bindingIsCaptured && !bindingNeedsMaterialization))
             {
                 remainingBindings.push_back(binding);
@@ -1459,18 +1461,24 @@ Result SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFun
         if (SymbolVariable* receiver = receiverBinding(sema, fn))
             frame.pushBindingVar(receiver);
     }
+    const bool needsOwnerScope = isMacro;
+    SemaScope* ownerScope      = nullptr;
+    if (needsOwnerScope)
+    {
+        ownerScope = sema.pushScopePopOnPostNode(SemaScopeFlagsE::Local, inlineRootRef);
+        if (fn.ownerSymMap())
+            ownerScope->setSymMap(const_cast<SymbolMap*>(fn.ownerSymMap()));
+        ownerScope->setLookupParent(callerScope);
+    }
+
+    inlinePayload->upLookupScope = ownerScope ? ownerScope : callerScope;
     if (isMacro)
-        frame.setUpLookupScope(callerScope);
+        frame.setUpLookupScope(inlinePayload->upLookupScope);
     sema.pushFramePopOnPostNode(frame, inlineRootRef);
     if (!isMixin)
     {
-        if ((isMacro || isMixin) && isCrossAstInline)
+        if (needsOwnerScope)
         {
-            SemaScope* ownerScope = sema.pushScopePopOnPostNode(SemaScopeFlagsE::Local, inlineRootRef);
-            if (fn.ownerSymMap())
-                ownerScope->setSymMap(const_cast<SymbolMap*>(fn.ownerSymMap()));
-            ownerScope->setLookupParent(callerScope);
-
             SemaScope* inlineScope = sema.pushScopePopOnPostNode(SemaScopeFlagsE::Local, inlineRootRef);
             inlineScope->setSymMap(const_cast<SymbolFunction*>(&fn));
             inlineScope->setLookupParent(ownerScope);

@@ -693,8 +693,13 @@ public func depFutureExport()->s32
 )"))
         return Result::Error;
     if (!writeTextFile(depModuleDir / "src" / "public.swg", R"(#global public
-const DEP_PUBLIC_DEFAULT = 11
+// Exported comments must not leak in the generated module API
+
+const DEP_PUBLIC_DEFAULT = 11 // Trailing comments must not leak either
+
 const DEP_MULTI_A = 13, DEP_MULTI_B = 17
+
+/* Block comments must not leak */
 fileprivate const DEP_FILE_PRIVATE = 23
 moduleprivate const DEP_MODULE_PRIVATE = 29
 )"))
@@ -778,6 +783,13 @@ public func coreValue()->s32
     if (depApiContent.contains("depFutureExport"))
         return Result::Error;
     if (depApiContent.contains("depLegacyValue"))
+        return Result::Error;
+    if (depApiContent.contains("//") || depApiContent.contains("/*"))
+        return Result::Error;
+
+    Utf8 normalizedDepApiContent = depApiContent;
+    normalizedDepApiContent.replace_loop("\r", "");
+    if (normalizedDepApiContent.contains("\n\n"))
         return Result::Error;
 
     Utf8 copiedLegacyApiContent;

@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Main/ModuleApi.h"
+#include "Compiler/Lexer/Lexer.h"
 #include "Compiler/Lexer/SourceView.h"
 #include "Compiler/Parser/Ast/Ast.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
@@ -338,6 +339,144 @@ namespace
         return true;
     }
 
+    bool isModuleApiCommentToken(const TokenId tokenId)
+    {
+        return tokenId == TokenId::CommentLine || tokenId == TokenId::CommentBlock;
+    }
+
+    void flushModuleApiLine(Utf8& output, Utf8& line, const std::string_view eol, bool& wroteLine, bool& lineHasContent, const bool forceWrite)
+    {
+        if (forceWrite || lineHasContent)
+        {
+            if (wroteLine)
+                output += eol;
+            output += line;
+            wroteLine = true;
+        }
+
+        line.clear();
+        lineHasContent = false;
+    }
+
+    struct ModuleApiLexedPiece
+    {
+        TokenId          tokenId = TokenId::Invalid;
+        std::string_view text;
+    };
+
+    ModuleApiLexedPiece nextModuleApiLexedPiece(const SourceView& srcView, uint32_t& ioTokenIndex, uint32_t& ioTriviaIndex)
+    {
+        const auto& tokens = srcView.tokens();
+        while (ioTokenIndex < tokens.size())
+        {
+            const auto [triviaStart, triviaEnd] = srcView.triviaRangeForToken(TokenRef(ioTokenIndex));
+            ioTriviaIndex                       = std::max(ioTriviaIndex, triviaStart);
+            if (ioTriviaIndex < triviaEnd)
+            {
+                const SourceTrivia& trivia = srcView.trivia()[ioTriviaIndex++];
+                return {
+                    .tokenId = trivia.tok.id,
+                    .text    = trivia.tok.string(srcView),
+                };
+            }
+
+            const Token& token = tokens[ioTokenIndex++];
+            if (token.is(TokenId::EndOfFile))
+                continue;
+
+            return {
+                .tokenId = token.id,
+                .text    = token.string(srcView),
+            };
+        }
+
+        return {};
+    }
+
+    void appendModuleApiLexedText(Utf8& output, Utf8& line, const std::string_view text, const std::string_view eol, const bool preserveEmptyLine, bool& wroteLine, bool& lineHasContent, bool& pendingSpace)
+    {
+        size_t index = 0;
+        while (index < text.size())
+        {
+            const char c = text[index];
+            if (pendingSpace)
+            {
+                if (c == '\r' || c == '\n' || c == ' ' || c == '\t')
+                {
+                    pendingSpace = false;
+                }
+                else
+                {
+                    line += ' ';
+                    pendingSpace = false;
+                }
+            }
+
+            if (c == '\r' || c == '\n')
+            {
+                flushModuleApiLine(output, line, eol, wroteLine, lineHasContent, preserveEmptyLine);
+                if (c == '\r' && index + 1 < text.size() && text[index + 1] == '\n')
+                    index++;
+                index++;
+                continue;
+            }
+
+            line += c;
+            if (c != ' ' && c != '\t')
+                lineHasContent = true;
+            index++;
+        }
+    }
+
+    Utf8 buildSanitizedModuleApiSnippet(TaskContext& ctx, const SourceFile& file, const std::string_view snippetText, const std::string_view eol)
+    {
+        if (snippetText.empty())
+            return {};
+
+        SourceFile lexFile(FileRef::invalid(), file.path(), FileFlagsE::CustomSrc);
+        lexFile.setContent(snippetText);
+
+        SourceView srcView(SourceViewRef::invalid(), &lexFile);
+        Lexer      lexer;
+        lexer.tokenize(ctx, srcView, LexerFlagsE::EmitTrivia);
+
+        Utf8     result;
+        Utf8     line;
+        bool     wroteLine      = false;
+        bool     lineHasContent = false;
+        bool     pendingSpace   = false;
+        uint32_t tokenIndex     = 0;
+        uint32_t triviaIndex    = 0;
+
+        result.reserve(snippetText.size());
+        line.reserve(snippetText.size());
+
+        while (true)
+        {
+            const ModuleApiLexedPiece piece = nextModuleApiLexedPiece(srcView, tokenIndex, triviaIndex);
+            if (piece.tokenId == TokenId::Invalid)
+                break;
+
+            if (isModuleApiCommentToken(piece.tokenId))
+            {
+                if (!line.empty() && line.back() != ' ' && line.back() != '\t')
+                    pendingSpace = true;
+                continue;
+            }
+
+            if (piece.tokenId == TokenId::Whitespace)
+            {
+                appendModuleApiLexedText(result, line, piece.text, eol, false, wroteLine, lineHasContent, pendingSpace);
+                continue;
+            }
+
+            appendModuleApiLexedText(result, line, piece.text, eol, true, wroteLine, lineHasContent, pendingSpace);
+        }
+
+        flushModuleApiLine(result, line, eol, wroteLine, lineHasContent, false);
+        return result;
+    }
+
     bool containsExportRootDecl(const Ast& ast, const AstNodeRef nodeRef, const AstNodeRef declRef)
     {
         if (!nodeRef.isValid() || !declRef.isValid())
@@ -463,15 +602,20 @@ namespace
         return content;
     }
 
-    Result formatGeneratedModuleApiContent(const TaskContext& ctx, Utf8& outContent)
+    Result formatGeneratedModuleApiContent(TaskContext& ctx, Utf8& outContent)
     {
-        Formatter formatter;
+        FormatOptions options;
+        options.insertFinalNewline         = true;
+        options.trimTrailingNewlines       = true;
+        options.preserveTrailingWhitespace = false;
+
+        Formatter formatter(options);
         SWC_RESULT(formatter.prepare(ctx.global(), outContent.view()));
         outContent = formatter.text();
         return Result::Continue;
     }
 
-    Result buildGeneratedModuleApiContent(const TaskContext& ctx, std::span<const ModuleApiGeneratedRoot> roots, std::string_view moduleNamespace, std::string_view eol, Utf8& outContent)
+    Result buildGeneratedModuleApiContent(TaskContext& ctx, std::span<const ModuleApiGeneratedRoot> roots, std::string_view moduleNamespace, std::string_view eol, Utf8& outContent)
     {
         outContent.clear();
         outContent += "#global namespace ";
@@ -481,7 +625,7 @@ namespace
         outContent += eol;
 
         bool wroteSnippet = false;
-        std::vector<std::pair<fs::path, std::string_view>> seenSnippets;
+        std::vector<std::pair<fs::path, Utf8>> seenSnippets;
         seenSnippets.reserve(roots.size());
         for (size_t i = 0; i < roots.size(); ++i)
         {
@@ -502,18 +646,22 @@ namespace
             std::string_view snippetText;
             if (!tryGetModuleApiSnippet(*root.file, root.nodeRef, nextRootStart, snippetText))
                 continue;
-            if (std::ranges::any_of(seenSnippets, [&](const auto& seen) { return seen.first == root.file->path() && seen.second == snippetText; }))
-                continue;
-            seenSnippets.emplace_back(root.file->path(), snippetText);
 
-            outContent += eol;
-            outContent += snippetText;
-            if (!snippetText.empty() && snippetText.back() != '\n' && snippetText.back() != '\r')
+            Utf8 sanitizedSnippet = buildSanitizedModuleApiSnippet(ctx, *root.file, snippetText, eol);
+            if (sanitizedSnippet.empty())
+                continue;
+
+            if (std::ranges::any_of(seenSnippets, [&](const auto& seen) { return seen.first == root.file->path() && seen.second == sanitizedSnippet; }))
+                continue;
+            seenSnippets.emplace_back(root.file->path(), sanitizedSnippet);
+
+            outContent += sanitizedSnippet;
+            if (sanitizedSnippet.back() != '\n' && sanitizedSnippet.back() != '\r')
                 outContent += eol;
             wroteSnippet = true;
         }
 
-        if (!wroteSnippet)
+        if (!wroteSnippet && outContent.back() != '\n' && outContent.back() != '\r')
             outContent += eol;
 
         return formatGeneratedModuleApiContent(ctx, outContent);

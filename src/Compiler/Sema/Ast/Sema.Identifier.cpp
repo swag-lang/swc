@@ -427,7 +427,7 @@ Result AstAncestorIdentifier::semaPreNode(Sema& sema) const
     if (inlinePayload &&
         containsInlineBindingUse(sema, nodeIdentRef, inlinePayload->argMappings.span()))
     {
-        const SemaClone::CloneContext cloneContext{inlinePayload->argMappings.span()};
+        const SemaClone::CloneContext cloneContext{inlinePayload->argMappings.span(), std::span<const SemaClone::NodeReplacement>{}, false, nullptr, true};
         targetRef = SemaClone::cloneAst(sema, nodeIdentRef, cloneContext);
         if (targetRef.isInvalid())
             return Result::Error;

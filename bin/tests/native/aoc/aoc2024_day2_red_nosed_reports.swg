@@ -264,10 +264,13 @@ func isSafeReportWithLanguageFeatures(report: Report, skippedIndex: s32)->bool
     declareFeatureState()
     defer @assert(featureVisitedLevels <= report.count)
 
-    visitReportLevels(|level, rawIndex| report, skippedIndex)
+    for report.count
     {
+        let rawIndex = cast(u32) @index
+        if cast(s32) rawIndex == skippedIndex do
+            continue
         @assert(rawIndex < report.count)
-        noteFeatureLevel(level)
+        noteFeatureLevel(report.levels[rawIndex])
     }
 
     return featureSafe

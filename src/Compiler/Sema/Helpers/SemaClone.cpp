@@ -78,17 +78,17 @@ namespace
 
     SemaClone::CloneContext cloneContextWithoutReplacements(const SemaClone::CloneContext& cloneContext)
     {
-        return SemaClone::CloneContext{cloneContext.bindings, {}, cloneContext.preserveFunctionGenerics, cloneContext.sourceAst};
+        return SemaClone::CloneContext{cloneContext.bindings, {}, cloneContext.preserveFunctionGenerics, cloneContext.sourceAst, cloneContext.preserveBindingExprState};
     }
 
     SemaClone::CloneContext cloneContextWithoutBindings(const SemaClone::CloneContext& cloneContext)
     {
-        return SemaClone::CloneContext{std::span<const SemaClone::ParamBinding>{}, cloneContext.replacements, cloneContext.preserveFunctionGenerics, cloneContext.sourceAst};
+        return SemaClone::CloneContext{std::span<const SemaClone::ParamBinding>{}, cloneContext.replacements, cloneContext.preserveFunctionGenerics, cloneContext.sourceAst, cloneContext.preserveBindingExprState};
     }
 
     SemaClone::CloneContext cloneContextForDestinationAst(const SemaClone::CloneContext& cloneContext)
     {
-        return SemaClone::CloneContext{cloneContext.bindings, cloneContext.replacements, cloneContext.preserveFunctionGenerics};
+        return SemaClone::CloneContext{cloneContext.bindings, cloneContext.replacements, cloneContext.preserveFunctionGenerics, nullptr, cloneContext.preserveBindingExprState};
     }
 
     const SemaClone::ParamBinding* findBinding(const SemaClone::CloneContext& cloneContext, IdentifierRef idRef)
@@ -443,6 +443,8 @@ namespace
         activeSourceRefs.push_back(sourceRef);
         if (!shouldReexpand)
             sema.inheritPayload(sema.node(clonedRef), sourceRef);
+        if (sema.node(sourceRef).is(AstNodeId::Identifier) && sema.viewStored(sourceRef, SemaNodeViewPartE::Symbol).hasSymbol())
+            sema.node(clonedRef).cast<AstIdentifier>().addFlag(AstIdentifierFlagsE::PreResolvedSymbol);
 
         if (!shouldReexpand &&
             resolvedRef.isValid() &&
@@ -525,8 +527,14 @@ namespace
                 return newRef;
             }
 
-            const SemaClone::CloneContext noBindings{std::span<const SemaClone::ParamBinding>{}};
-            const AstNodeRef              clonedExprRef = SemaClone::cloneAst(sema, binding->exprRef, noBindings);
+            AstNodeRef clonedExprRef = AstNodeRef::invalid();
+            if (cloneContext.preserveBindingExprState)
+                clonedExprRef = cloneDetachedExprImpl(sema, binding->exprRef);
+            else
+            {
+                const SemaClone::CloneContext noBindings{std::span<const SemaClone::ParamBinding>{}};
+                clonedExprRef = SemaClone::cloneAst(sema, binding->exprRef, noBindings);
+            }
             if (!binding->typeRef.isValid())
                 return markConstParamBindingTarget(sema, *binding, clonedExprRef);
 

@@ -262,7 +262,8 @@ func forEachLine(bytes: const [..] u8, stmt: #code void)
             if lineEnd > lineStart
             {
                 let lineLen = lineEnd - lineStart
-                let #alias0 = bytes[lineStart until lineStart + lineLen]
+                let currentLine = bytes[lineStart until lineStart + lineLen]
+                let #alias0 = currentLine
                 #inject(stmt)
             }
             lineStart = @index + 1
@@ -281,10 +282,24 @@ func solveWithLanguageFeatures(bytes: const [..] u8)->CalibrationResult
 
     defer @assert(scanDigitSum >= 0)
 
-    forEachLine(|line| bytes)
+    for @countof(bytes)
     {
-        accumulateLine(line, iDigit, &scanDigitSum)
-        accumulateLine(line, iWord, &scanWordSum)
+        if isNewline(bytes[@index]) or @index == @countof(bytes) - 1
+        {
+            var lineEnd = @index
+            if !isNewline(bytes[@index]) do
+                lineEnd = @index + 1
+
+            if lineEnd > scanLineStart
+            {
+                let lineLen = lineEnd - scanLineStart
+                let line = bytes[scanLineStart until scanLineStart + lineLen]
+                accumulateLine(line, iDigit, &scanDigitSum)
+                accumulateLine(line, iWord, &scanWordSum)
+            }
+
+            scanLineStart = @index + 1
+        }
     }
 
     var result: CalibrationResult
@@ -297,9 +312,14 @@ func solveWithLanguageFeatures(bytes: const [..] u8)->CalibrationResult
 // Compile-time evaluation
 // ---------------------------------------------------------------------------
 
-const SampleAResult: CalibrationResult = #run solveWithLanguageFeatures(cast(const [..] u8) SampleInputA)
-const SampleBResult: CalibrationResult = #run solveWithLanguageFeatures(cast(const [..] u8) SampleInputB)
-const CoverageResult: CalibrationResult = #run solveWithLanguageFeatures(cast(const [..] u8) CoverageInput)
+func computeExpectedCalibration(input: string)->CalibrationResult
+{
+    return solveClean(cast(const [..] u8) input)
+}
+
+const SampleAResult: CalibrationResult = #run computeExpectedCalibration(SampleInputA)
+const SampleBResult: CalibrationResult = #run computeExpectedCalibration(SampleInputB)
+const CoverageResult: CalibrationResult = #run computeExpectedCalibration(CoverageInput)
 
 // ---------------------------------------------------------------------------
 // Tests

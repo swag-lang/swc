@@ -656,7 +656,7 @@ Result Cast::resolveStructOpCastCandidate(Sema& sema, const SourceCodeRef& codeR
     if (!srcTypeRef.isValid() || !dstTypeRef.isValid())
         return Result::Continue;
 
-    const TypeManager& typeMgr = sema.typeMgr();
+    const TypeManager& typeMgr      = sema.typeMgr();
     TypeRef            ownerTypeRef = typeMgr.unwrapAliasEnum(sema.ctx(), srcTypeRef);
     if (!ownerTypeRef.isValid())
         ownerTypeRef = srcTypeRef;

@@ -743,7 +743,7 @@ namespace
 
     struct DependencyConfigCandidate
     {
-        fs::path                      path;
+        fs::path                     path;
         Runtime::BuildCfgBackendKind backendKind = Runtime::BuildCfgBackendKind::None;
     };
 
@@ -793,14 +793,14 @@ namespace
         outMatches.clear();
         outBecause.clear();
 
-        const fs::path moduleDir = dependencyModuleDirectory(dependencyRoot, moduleName);
+        const fs::path moduleDir         = dependencyModuleDirectory(dependencyRoot, moduleName);
         fs::path       resolvedModuleDir = moduleDir;
         if (FileSystem::resolveExistingFolder(resolvedModuleDir, outBecause) != Result::Continue)
             return Result::Error;
 
-        const auto                            buildCfgDir = fs::path(cmdLine.buildCfg.c_str());
-        const auto                            archDir     = fs::path(targetArchName(cmdLine.targetArch).c_str());
-        std::error_code                       ec;
+        const auto      buildCfgDir = fs::path(cmdLine.buildCfg.c_str());
+        const auto      archDir     = fs::path(targetArchName(cmdLine.targetArch).c_str());
+        std::error_code ec;
         for (fs::directory_iterator it(resolvedModuleDir, fs::directory_options::skip_permission_denied, ec), end; it != end; it.increment(ec))
         {
             if (ec)
@@ -843,7 +843,7 @@ namespace
         SWC_RESULT(collectDependencyConfigurationMatches(matches, outBecause, dependencyRoot, moduleName, cmdLine));
         const auto selectUniqueMatch = [&](const auto& predicate, fs::path& selectedPath) -> bool {
             fs::path candidatePath;
-            Runtime::BuildCfgBackendKind candidateBackendKind = Runtime::BuildCfgBackendKind::None;
+            auto     candidateBackendKind = Runtime::BuildCfgBackendKind::None;
             for (const DependencyConfigCandidate& match : matches)
             {
                 if (!predicate(match.backendKind))
@@ -851,7 +851,7 @@ namespace
 
                 if (candidatePath.empty())
                 {
-                    candidatePath = match.path;
+                    candidatePath        = match.path;
                     candidateBackendKind = match.backendKind;
                     continue;
                 }
@@ -1857,13 +1857,13 @@ Result CompilerInstance::runWorkspaceModule(const WorkspaceModuleBuild& moduleBu
     moduleCmdLine.directories.clear();
     moduleCmdLine.directories.insert(moduleBuild.sourceDir);
     moduleCmdLine.files.clear();
-    moduleCmdLine.outDir         = workspaceModuleOutputDirectory(cmdLine().workspacePath, moduleBuild.name, moduleCmdLine, moduleBuild.setup.buildCfg.backendKind, false);
-    moduleCmdLine.workDir        = workspaceModuleOutputDirectory(cmdLine().workspacePath, moduleBuild.name, moduleCmdLine, moduleBuild.setup.buildCfg.backendKind, true);
-    moduleCmdLine.exportApiDir   = moduleCmdLine.outDir;
-    moduleCmdLine.outDirExplicit = true;
+    moduleCmdLine.outDir          = workspaceModuleOutputDirectory(cmdLine().workspacePath, moduleBuild.name, moduleCmdLine, moduleBuild.setup.buildCfg.backendKind, false);
+    moduleCmdLine.workDir         = workspaceModuleOutputDirectory(cmdLine().workspacePath, moduleBuild.name, moduleCmdLine, moduleBuild.setup.buildCfg.backendKind, true);
+    moduleCmdLine.exportApiDir    = moduleCmdLine.outDir;
+    moduleCmdLine.outDirExplicit  = true;
     moduleCmdLine.workDirExplicit = true;
-    moduleCmdLine.outDirStorage  = Utf8(moduleCmdLine.outDir);
-    moduleCmdLine.workDirStorage = Utf8(moduleCmdLine.workDir);
+    moduleCmdLine.outDirStorage   = Utf8(moduleCmdLine.outDir);
+    moduleCmdLine.workDirStorage  = Utf8(moduleCmdLine.workDir);
     CommandLineParser::refreshBuildCfg(moduleCmdLine);
 
     const uint64_t   errorsBefore = Stats::getNumErrors();
@@ -2700,11 +2700,11 @@ Result CompilerInstance::applyModuleSetupInputs(TaskContext& ctx, const ModuleSe
 
     struct ResolvedModuleImportPaths
     {
-        fs::path                      apiDir;
+        fs::path                     apiDir;
         Runtime::BuildCfgBackendKind apiBackendKind = Runtime::BuildCfgBackendKind::None;
-        fs::path                      linkDir;
-        fs::path                      sharedDir;
-        fs::path                      dependencyRoot;
+        fs::path                     linkDir;
+        fs::path                     sharedDir;
+        fs::path                     dependencyRoot;
     };
 
     const auto resolveExplicitDependencyRoot = [&](fs::path& outRoot, const ModuleSetupImport& importRequest) -> Result {
@@ -2795,13 +2795,13 @@ Result CompilerInstance::applyModuleSetupInputs(TaskContext& ctx, const ModuleSe
             }
         }
 
-        std::vector<fs::path> matches;
+        std::vector<fs::path>                     matches;
         std::vector<Runtime::BuildCfgBackendKind> matchKinds;
         for (const fs::path& dependencyRoot : cmdLine().importApiDirs)
         {
             fs::path configDir;
             Utf8     because;
-            Runtime::BuildCfgBackendKind backendKind = Runtime::BuildCfgBackendKind::None;
+            auto     backendKind = Runtime::BuildCfgBackendKind::None;
             if (findDependencyConfigurationDirectory(configDir, because, dependencyRoot, importRequest.moduleName.view(), cmdLine(), &backendKind) != Result::Continue)
                 continue;
 
@@ -2813,7 +2813,7 @@ Result CompilerInstance::applyModuleSetupInputs(TaskContext& ctx, const ModuleSe
         std::iota(order.begin(), order.end(), 0);
         std::ranges::sort(order, [&](const size_t lhs, const size_t rhs) { return matches[lhs] < matches[rhs]; });
 
-        std::vector<fs::path> uniqueMatches;
+        std::vector<fs::path>                     uniqueMatches;
         std::vector<Runtime::BuildCfgBackendKind> uniqueMatchKinds;
         uniqueMatches.reserve(matches.size());
         uniqueMatchKinds.reserve(matchKinds.size());
@@ -2860,7 +2860,7 @@ Result CompilerInstance::applyModuleSetupInputs(TaskContext& ctx, const ModuleSe
     };
 
     std::unordered_set<Utf8> processedDependencyApis;
-    const auto processImports = [&](auto&& self, std::span<const ModuleSetupImport> imports, const fs::path* preferredDependencyRoot) -> Result {
+    const auto               processImports = [&](auto&& self, std::span<const ModuleSetupImport> imports, const fs::path* preferredDependencyRoot) -> Result {
         for (const ModuleSetupImport& importRequest : imports)
         {
             ResolvedModuleImportPaths importPaths;
@@ -2869,12 +2869,12 @@ Result CompilerInstance::applyModuleSetupInputs(TaskContext& ctx, const ModuleSe
             registerImportedDependencyLinkDir(importPaths.linkDir);
             registerImportedSharedModuleDir(importPaths.sharedDir);
 
-            const Utf8 apiDirKey = Utf8(FileSystem::normalizePath(importPaths.apiDir));
+            const auto apiDirKey = Utf8(FileSystem::normalizePath(importPaths.apiDir));
             if (!processedDependencyApis.insert(apiDirKey).second)
                 continue;
 
-            fs::path       depsFile = dependencyImportMetadataPath(importPaths.apiDir, importRequest.moduleName.view());
-            Utf8           because;
+            fs::path            depsFile = dependencyImportMetadataPath(importPaths.apiDir, importRequest.moduleName.view());
+            Utf8                because;
             ModuleSetupSnapshot nestedSnapshot;
             if (FileSystem::resolveExistingFile(depsFile, because) != Result::Continue)
                 continue;
@@ -2966,9 +2966,9 @@ Result CompilerInstance::collectImportedApiFiles(TaskContext& ctx)
         const fs::path dependencyRoot = (FileSystem::compilerResourceRoot(exeFullName_) / "std" / ".output" / "dep").lexically_normal();
         for (const Utf8& moduleName : cmdLine.importApiModules)
         {
-            fs::path                      importDir;
-            Runtime::BuildCfgBackendKind importBackendKind = Runtime::BuildCfgBackendKind::None;
-            Utf8                         because;
+            fs::path importDir;
+            auto     importBackendKind = Runtime::BuildCfgBackendKind::None;
+            Utf8     because;
             if (findDependencyConfigurationDirectory(importDir, because, dependencyRoot, moduleName.view(), cmdLine, &importBackendKind) != Result::Continue)
                 return reportInvalidFolder(ctx, dependencyModuleDirectory(dependencyRoot, moduleName.view()), because);
 

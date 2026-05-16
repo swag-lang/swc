@@ -7,7 +7,6 @@
 #include "Backend/JIT/JITPatchJob.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
-#include "Compiler/SourceFile.h"
 #include "Compiler/Sema/Symbol/Symbol.Alias.h"
 #include "Compiler/Sema/Symbol/Symbol.Enum.h"
 #include "Compiler/Sema/Symbol/Symbol.Impl.h"
@@ -15,6 +14,7 @@
 #include "Compiler/Sema/Symbol/Symbol.Module.h"
 #include "Compiler/Sema/Symbol/Symbol.Struct.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
+#include "Compiler/SourceFile.h"
 #include "Support/Math/Hash.h"
 #include "Support/Math/Helpers.h"
 #include "Support/Memory/Heap.h"
@@ -36,7 +36,7 @@ namespace
     Utf8 sanitizePublicApiSymbolText(const std::string_view text)
     {
         Utf8 out;
-        bool lastWasUnderscore = true;
+        bool lastWasUnderscore       = true;
         bool previousWasLowerOrDigit = false;
         for (const char c : text)
         {
@@ -53,7 +53,7 @@ namespace
                 }
 
                 out += static_cast<char>(std::tolower(uc));
-                lastWasUnderscore = false;
+                lastWasUnderscore       = false;
                 previousWasLowerOrDigit = isLower || isDigit;
                 continue;
             }
@@ -250,7 +250,8 @@ namespace
             {
                 if (typeInfo.payloadIntBits() == 0)
                 {
-                    appendPublicApiSymbolFragment(out, typeInfo.payloadIntSign() == TypeInfo::Sign::Unsigned ? "uint" : typeInfo.payloadIntSign() == TypeInfo::Sign::Signed ? "sint" : "int");
+                    appendPublicApiSymbolFragment(out, typeInfo.payloadIntSign() == TypeInfo::Sign::Unsigned ? "uint" : typeInfo.payloadIntSign() == TypeInfo::Sign::Signed ? "sint"
+                                                                                                                                                                            : "int");
                     return;
                 }
 
@@ -335,7 +336,6 @@ namespace
 
             default:
                 appendPublicApiSymbolFragment(out, typeInfo.toName(ctx).view());
-                return;
         }
     }
 
@@ -437,7 +437,7 @@ namespace
 
     Utf8 buildPublicApiDetailedSignature(const TaskContext& ctx, const SymbolFunction& symbol)
     {
-        Utf8 result = buildPublicApiImplicitReceiverSignature(ctx, symbol);
+        Utf8 result         = buildPublicApiImplicitReceiverSignature(ctx, symbol);
         Utf8 paramSignature = buildPublicApiParameterSignature(ctx, symbol);
         if (!paramSignature.empty())
             appendPublicApiSymbolFragment(result, paramSignature.view());

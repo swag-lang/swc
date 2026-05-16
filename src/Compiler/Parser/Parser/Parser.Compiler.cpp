@@ -390,8 +390,8 @@ AstNodeRef Parser::parseCompilerImport()
 
     while (consumeIf(TokenId::SymComma).isValid())
     {
-        TokenRef* targetRef = nullptr;
-        const std::string_view tokStr = tok().string(ast_->srcView());
+        TokenRef*              targetRef = nullptr;
+        const std::string_view tokStr    = tok().string(ast_->srcView());
         if (tokStr == Token::toName(TokenId::KwdLocation))
             targetRef = &nodePtr->tokLocationRef;
         else if (tokStr == Token::toName(TokenId::KwdLink))

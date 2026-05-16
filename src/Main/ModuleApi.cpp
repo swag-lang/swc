@@ -43,25 +43,25 @@ namespace
 
     struct ModuleApiGeneratedRoot
     {
-        const SourceFile*               file    = nullptr;
-        AstNodeRef                      nodeRef = AstNodeRef::invalid();
-        const Symbol*                   symbol  = nullptr;
-        std::vector<IdentifierRef>      namespacePath;
+        const SourceFile*          file    = nullptr;
+        AstNodeRef                 nodeRef = AstNodeRef::invalid();
+        const Symbol*              symbol  = nullptr;
+        std::vector<IdentifierRef> namespacePath;
     };
 
     struct ModuleApiNamespaceNode
     {
         struct ImplNode
         {
-            const SourceFile*  file    = nullptr;
-            AstNodeRef         implRef = AstNodeRef::invalid();
-            Utf8               prefix;
-            std::vector<Utf8>  snippets;
+            const SourceFile* file    = nullptr;
+            AstNodeRef        implRef = AstNodeRef::invalid();
+            Utf8              prefix;
+            std::vector<Utf8> snippets;
         };
 
-        IdentifierRef                idRef = IdentifierRef::invalid();
-        std::vector<Utf8>            snippets;
-        std::vector<ImplNode>        impls;
+        IdentifierRef                       idRef = IdentifierRef::invalid();
+        std::vector<Utf8>                   snippets;
+        std::vector<ImplNode>               impls;
         std::vector<ModuleApiNamespaceNode> children;
     };
 
@@ -252,7 +252,7 @@ namespace
             return result;
 
         result.legacyExported = isLegacyExportedFile(file);
-        const auto& fileNode = rootNode.cast<AstFile>();
+        const auto& fileNode  = rootNode.cast<AstFile>();
 
         SmallVector<AstNodeRef> globalRefs;
         file.ast().appendNodes(globalRefs, fileNode.spanGlobalsRef);
@@ -418,7 +418,7 @@ namespace
 
     Result validatePublicTypeSymbol(TaskContext& ctx, const Symbol& symbol, SmallVector<const Symbol*>& stack);
     Result validatePublicFunctionSymbol(TaskContext& ctx, const SymbolFunction& symbolFunction, SmallVector<const Symbol*>& stack);
-    Result buildSanitizedRootSnippet(TaskContext& ctx, Utf8& outSnippet, const ModuleApiGeneratedRoot& root, const std::string_view eol);
+    Result buildSanitizedRootSnippet(TaskContext& ctx, Utf8& outSnippet, const ModuleApiGeneratedRoot& root, std::string_view eol);
     bool   isModuleApiDeclWrapper(const AstNode& node);
 
     Result validateTypeReferenceSymbol(TaskContext& ctx, const Symbol& ownerSymbol, const Symbol& focusSymbol, std::string_view usage, const Symbol& referencedSymbol, SmallVector<const Symbol*>& stack)
@@ -683,7 +683,7 @@ namespace
         if (!functionDecl.nodeBodyRef.isValid() || ast.isAdditionalNode(functionDecl.nodeBodyRef))
             return TokenRef::invalid();
 
-        const AstNode& bodyNode = ast.node(functionDecl.nodeBodyRef);
+        const AstNode& bodyNode        = ast.node(functionDecl.nodeBodyRef);
         TokenRef       bodyStartTokRef = moduleApiSnippetStartTokRef(ast, bodyNode);
         if (!bodyStartTokRef.isValid())
             bodyStartTokRef = bodyNode.tokRef();
@@ -892,7 +892,7 @@ namespace
 
         for (uint32_t tokIndex = endTokRef.get() + 1; tokIndex < srcView.tokens().size(); ++tokIndex)
         {
-            const Token& token = srcView.token(TokenRef(tokIndex));
+            const Token& token  = srcView.token(TokenRef(tokIndex));
             bool         extend = false;
 
             switch (token.id)
@@ -948,8 +948,8 @@ namespace
             return false;
 
         const SourceView& srcView = ast.srcView();
-        outStartOffset = sourceTokenByteStart(srcView, srcView.token(startTokRef));
-        outEndOffset   = sourceTokenByteEnd(srcView, srcView.token(endTokRef));
+        outStartOffset            = sourceTokenByteStart(srcView, srcView.token(startTokRef));
+        outEndOffset              = sourceTokenByteEnd(srcView, srcView.token(endTokRef));
         extendModuleApiSnippetEndOffset(srcView, startTokRef, endTokRef, outEndOffset);
         return true;
     }
@@ -962,14 +962,14 @@ namespace
 
     bool tryGetModuleApiSnippet(const SourceFile& file, const AstNodeRef nodeRef, std::string_view& outSnippet)
     {
-        outSnippet = {};
-        uint32_t   startOffset = 0;
-        uint32_t   endOffset   = 0;
+        outSnippet           = {};
+        uint32_t startOffset = 0;
+        uint32_t endOffset   = 0;
         if (!tryGetModuleApiSnippetOffsets(file, nodeRef, startOffset, endOffset))
             return false;
 
         const std::string_view source = file.sourceView();
-        endOffset = std::min(endOffset, static_cast<uint32_t>(source.size()));
+        endOffset                     = std::min(endOffset, static_cast<uint32_t>(source.size()));
         while (endOffset > startOffset && std::isspace(static_cast<unsigned char>(source[endOffset - 1])))
             endOffset--;
 
@@ -1165,7 +1165,7 @@ namespace
             if (c == '\r' || c == '\n')
             {
                 flushModuleApiLine(output, line, eol, wroteLine, lineHasContent, preserveEmptyLine);
-                pendingSpace = false;
+                pendingSpace       = false;
                 ioIndentStripIndex = 0;
                 if (c == '\r' && index + 1 < text.size() && text[index + 1] == '\n')
                     index++;
@@ -1201,7 +1201,7 @@ namespace
         if (snippetText.empty())
             return {};
 
-        const std::string_view source      = file.sourceView();
+        const std::string_view source              = file.sourceView();
         const std::string_view indentPrefixToStrip = moduleApiLeadingIndentPrefix(file, startOffset);
 
         std::vector<ModuleApiStripRange> stripRanges;
@@ -1218,11 +1218,11 @@ namespace
 
         Utf8     result;
         Utf8     line;
-        bool     wroteLine      = false;
-        bool     lineHasContent = false;
-        bool     pendingSpace   = false;
-        uint32_t tokenIndex     = 0;
-        uint32_t triviaIndex    = 0;
+        bool     wroteLine        = false;
+        bool     lineHasContent   = false;
+        bool     pendingSpace     = false;
+        uint32_t tokenIndex       = 0;
+        uint32_t triviaIndex      = 0;
         size_t   indentStripIndex = 0;
 
         result.reserve(filteredSnippet.size());
@@ -1269,8 +1269,8 @@ namespace
         if (!root.file || !root.symbol || !root.symbol->decl())
             return false;
 
-        const AstNode& declNode = *root.symbol->decl();
-        const AstNodeRef bodyRef = moduleApiOpaqueTypeBodyRef(declNode);
+        const AstNode&   declNode = *root.symbol->decl();
+        const AstNodeRef bodyRef  = moduleApiOpaqueTypeBodyRef(declNode);
         if (bodyRef.isInvalid())
             return false;
 
@@ -1287,9 +1287,9 @@ namespace
         if (!bodyNode.tokRef().isValid())
             return false;
 
-        const SourceView& srcView         = ast.srcView();
-        const uint32_t    bodyStartOffset = sourceTokenByteStart(srcView, srcView.token(bodyNode.tokRef()));
-        const std::string_view source     = root.file->sourceView();
+        const SourceView&      srcView         = ast.srcView();
+        const uint32_t         bodyStartOffset = sourceTokenByteStart(srcView, srcView.token(bodyNode.tokRef()));
+        const std::string_view source          = root.file->sourceView();
         if (bodyStartOffset <= startOffset || bodyStartOffset > source.size())
             return false;
 
@@ -1316,7 +1316,7 @@ namespace
             prefix += symbolStruct->name(ctx);
         }
 
-        Utf8 result;
+        Utf8     result;
         uint32_t alignValue = 0;
         if (symbolStruct->alignment() > 1 && !tryGetSwagAttributeIntValue(alignValue, ctx, *symbolStruct, "Align"))
         {
@@ -1353,7 +1353,7 @@ namespace
 
     void prependMissingFunctionAttributes(const SymbolFunction& symbolFunction, const std::string_view eol, Utf8& ioSnippet)
     {
-        Utf8 prefix;
+        Utf8       prefix;
         const auto appendAttrIfMissing = [&](const RtAttributeFlagsE flag, std::string_view marker, std::string_view attrText) {
             if (!symbolFunction.attributes().hasRtFlag(flag))
                 return;
@@ -1375,7 +1375,7 @@ namespace
 
     bool tryFindFunctionBodyStartOffset(const ModuleApiGeneratedRoot& root, uint32_t& outBodyStartOffset)
     {
-        outBodyStartOffset = 0;
+        outBodyStartOffset         = 0;
         const auto* symbolFunction = root.symbol ? root.symbol->safeCast<SymbolFunction>() : nullptr;
         if (!symbolFunction || !root.file || !symbolFunction->decl())
             return false;
@@ -1393,7 +1393,7 @@ namespace
         if (!startTokRef.isValid())
             return false;
 
-        const AstNode& bodyNode = ast.node(functionDecl->nodeBodyRef);
+        const AstNode& bodyNode   = ast.node(functionDecl->nodeBodyRef);
         TokenRef       bodyTokRef = moduleApiSnippetStartTokRef(ast, bodyNode);
         if (!bodyTokRef.isValid())
             bodyTokRef = bodyNode.tokRef();
@@ -1423,7 +1423,7 @@ namespace
         if (!functionDecl.nodeParamsRef.isValid() || ast.isAdditionalNode(functionDecl.nodeParamsRef))
             return TokenRef::invalid();
 
-        const AstNode& paramsNode = ast.node(functionDecl.nodeParamsRef);
+        const AstNode& paramsNode  = ast.node(functionDecl.nodeParamsRef);
         TokenRef       startTokRef = moduleApiSnippetStartTokRef(ast, paramsNode);
         if (!startTokRef.isValid())
             startTokRef = paramsNode.tokRef();
@@ -1483,7 +1483,7 @@ namespace
     bool tryFindFunctionReturnTypeInsertOffset(const SourceFile& file, const AstFunctionDecl& functionDecl, const uint32_t prefixEndOffset, uint32_t& outInsertOffset)
     {
         outInsertOffset = 0;
-        const Ast& ast = file.ast();
+        const Ast& ast  = file.ast();
         if (!ast.hasSourceView() || !functionDecl.nodeParamsRef.isValid())
             return false;
 
@@ -1543,14 +1543,14 @@ namespace
             endOffset = bodyStartOffset;
 
         const std::string_view source = root.file->sourceView();
-        endOffset = std::min<uint32_t>(endOffset, static_cast<uint32_t>(source.size()));
+        endOffset                     = std::min<uint32_t>(endOffset, static_cast<uint32_t>(source.size()));
         while (endOffset > startOffset && std::isspace(static_cast<unsigned char>(source[endOffset - 1])))
             endOffset--;
 
         if (startOffset >= endOffset)
             return false;
 
-        Utf8 rawPrefix = Utf8(source.substr(startOffset, endOffset - startOffset));
+        auto        rawPrefix    = Utf8(source.substr(startOffset, endOffset - startOffset));
         const auto* functionDecl = symbolFunction->decl()->safeCast<AstFunctionDecl>();
         if (functionDecl &&
             symbolFunction->returnTypeRef().isValid() &&
@@ -1622,10 +1622,10 @@ namespace
         if (!tryGetModuleApiSnippetOffsets(file, implRef, startOffset, endOffset))
             return false;
 
-        const AstNode&   implNode    = ast.node(implRef);
-        const TokenRef   startTokRef = moduleApiSnippetStartTokRef(ast, implNode);
-        const TokenRef   endTokRef   = implNode.tokRefEnd(ast);
-        const SourceView& srcView = ast.srcView();
+        const AstNode&    implNode    = ast.node(implRef);
+        const TokenRef    startTokRef = moduleApiSnippetStartTokRef(ast, implNode);
+        const TokenRef    endTokRef   = implNode.tokRefEnd(ast);
+        const SourceView& srcView     = ast.srcView();
 
         for (uint32_t tokIndex = startTokRef.get(); tokIndex <= endTokRef.get() && tokIndex < srcView.tokens().size(); ++tokIndex)
         {
@@ -1638,7 +1638,7 @@ namespace
         }
 
         const std::string_view source = file.sourceView();
-        endOffset = std::min<uint32_t>(endOffset, static_cast<uint32_t>(source.size()));
+        endOffset                     = std::min<uint32_t>(endOffset, static_cast<uint32_t>(source.size()));
         while (endOffset > startOffset && std::isspace(static_cast<unsigned char>(source[endOffset - 1])))
             endOffset--;
         if (startOffset >= endOffset)
@@ -1734,8 +1734,7 @@ namespace
         if (rootRef.isInvalid())
             return false;
 
-        Ast::visit(ast, rootRef, [&](const AstNodeRef nodeRef, const AstNode& node)
-        {
+        Ast::visit(ast, rootRef, [&](const AstNodeRef nodeRef, const AstNode& node) {
             if (&node != targetNode)
                 return Ast::VisitResult::Continue;
 
@@ -1877,7 +1876,7 @@ namespace
 
     const SymbolMap* namespaceOwnerSymMapForPublicSymbol(const Symbol& symbol)
     {
-        const SymbolMap* symMap = symbol.ownerSymMap();
+        const SymbolMap*  symMap  = symbol.ownerSymMap();
         const SymbolImpl* symImpl = nullptr;
         if (const auto* symbolFunction = symbol.safeCast<SymbolFunction>())
             symImpl = symbolFunction->declImplContext();
@@ -1917,8 +1916,7 @@ namespace
             return;
 
         std::vector<ModuleApiPublicEntry> sortedEntries = fileEntry.publicEntries;
-        std::ranges::stable_sort(sortedEntries, [&](const ModuleApiPublicEntry& lhs, const ModuleApiPublicEntry& rhs)
-        {
+        std::ranges::stable_sort(sortedEntries, [&](const ModuleApiPublicEntry& lhs, const ModuleApiPublicEntry& rhs) {
             return moduleApiRootSortByte(file, lhs.rootRef) < moduleApiRootSortByte(file, rhs.rootRef);
         });
 
@@ -2381,8 +2379,8 @@ namespace
         outContent += "#global public";
         outContent += eol;
 
-        std::vector<ModuleApiOrderedEntry> orderedEntries;
-        std::unordered_set<Utf8>          emittedUsingKeys;
+        std::vector<ModuleApiOrderedEntry>    orderedEntries;
+        std::unordered_set<Utf8>              emittedUsingKeys;
         std::unordered_set<const SourceFile*> usingFiles;
 
         const auto appendOrderedSnippet = [&](std::span<const IdentifierRef> namespacePath, Utf8&& snippet) {
@@ -2569,9 +2567,9 @@ namespace ModuleApi
         for (size_t i = 0; i < compiler.numPerThreadData(); ++i)
             mergeThreadData(collectedEntries, compiler.moduleApiPerThreadData(i));
 
-        const Utf8                          moduleNamespace      = buildModuleNamespaceName(compiler);
-        const SourceFile*                   firstSourceFile      = nullptr;
-        bool                                hasModuleSources     = false;
+        const Utf8                          moduleNamespace  = buildModuleNamespaceName(compiler);
+        const SourceFile*                   firstSourceFile  = nullptr;
+        bool                                hasModuleSources = false;
         std::vector<ModuleApiGeneratedRoot> generatedRoots;
 
         for (const SourceFile* file : compiler.files())

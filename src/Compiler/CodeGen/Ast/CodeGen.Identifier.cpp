@@ -80,8 +80,8 @@ namespace
         if (identifierName.empty())
             return nullptr;
 
-        Symbol*     bestMatch = nullptr;
-        const auto tryMatch   = [&](const Symbol* symbol) {
+        Symbol*    bestMatch = nullptr;
+        const auto tryMatch  = [&](const Symbol* symbol) {
             if (!symbol || symbol->isIgnored() || symbol->name(codeGen.ctx()) != identifierName)
                 return;
             if (symbol->tokRef().isValid() && symbol->tokRef().get() > node.tokRef().get())

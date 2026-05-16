@@ -10,9 +10,9 @@ class TaskContext;
 
 struct ModuleApiPublicEntry
 {
-    AstNodeRef                  rootRef = AstNodeRef::invalid();
-    const Symbol*               symbol  = nullptr;
-    std::vector<IdentifierRef>  namespacePath;
+    AstNodeRef                 rootRef = AstNodeRef::invalid();
+    const Symbol*              symbol  = nullptr;
+    std::vector<IdentifierRef> namespacePath;
 };
 
 struct ModuleApiFileEntry

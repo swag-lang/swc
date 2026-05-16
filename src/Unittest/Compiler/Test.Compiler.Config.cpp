@@ -568,11 +568,11 @@ SWC_TEST_BEGIN(Compiler_ModuleFileSetupPrefersImportableSwagStdDependencyBackend
     if (!tempTree.ready())
         return Result::Error;
 
-    const fs::path compilerRoot       = tempTree.root() / "compiler";
-    const fs::path moduleDir          = tempTree.root() / "module";
-    const fs::path moduleFile         = moduleDir / "module.swg";
-    const fs::path sourceFile         = moduleDir / "src" / "main.swg";
-    const fs::path staticImportFile   = compilerRoot / "std" / ".output" / "dep" / "static-library" / "fast-debug" / "x86_64" / "api.swg";
+    const fs::path compilerRoot         = tempTree.root() / "compiler";
+    const fs::path moduleDir            = tempTree.root() / "module";
+    const fs::path moduleFile           = moduleDir / "module.swg";
+    const fs::path sourceFile           = moduleDir / "src" / "main.swg";
+    const fs::path staticImportFile     = compilerRoot / "std" / ".output" / "dep" / "static-library" / "fast-debug" / "x86_64" / "api.swg";
     const fs::path executableImportFile = compilerRoot / "std" / ".output" / "dep" / "executable" / "fast-debug" / "x86_64" / "api.swg";
 
     if (!writeTextFile(staticImportFile, R"(#global export
@@ -635,14 +635,14 @@ SWC_TEST_BEGIN(Compiler_ModuleFileSetupSeparatesImportedApiFromRequestedLinkBack
     if (!tempTree.ready())
         return Result::Error;
 
-    const fs::path compilerRoot       = tempTree.root() / "compiler";
-    const fs::path moduleDir          = tempTree.root() / "module";
-    const fs::path moduleFile         = moduleDir / "module.swg";
-    const fs::path sourceFile         = moduleDir / "src" / "main.swg";
-    const fs::path sharedImportDir    = compilerRoot / "std" / ".output" / "dep" / "shared-library" / "fast-debug" / "x86_64";
-    const fs::path sharedImportFile   = sharedImportDir / "api.swg";
-    const fs::path staticImportDir    = compilerRoot / "std" / ".output" / "dep" / "static-library" / "fast-debug" / "x86_64";
-    const fs::path staticImportFile   = staticImportDir / "api.swg";
+    const fs::path compilerRoot     = tempTree.root() / "compiler";
+    const fs::path moduleDir        = tempTree.root() / "module";
+    const fs::path moduleFile       = moduleDir / "module.swg";
+    const fs::path sourceFile       = moduleDir / "src" / "main.swg";
+    const fs::path sharedImportDir  = compilerRoot / "std" / ".output" / "dep" / "shared-library" / "fast-debug" / "x86_64";
+    const fs::path sharedImportFile = sharedImportDir / "api.swg";
+    const fs::path staticImportDir  = compilerRoot / "std" / ".output" / "dep" / "static-library" / "fast-debug" / "x86_64";
+    const fs::path staticImportFile = staticImportDir / "api.swg";
 
     if (!writeTextFile(sharedImportFile, R"(#global export
 public func depValue()->s32
@@ -1344,9 +1344,9 @@ public func coreValue()->s32
     const size_t depNamespacedPos = normalizedDepApiContent.find("struct DepNamespaced");
     if (depNamespacedPos == Utf8::npos)
         return Result::Error;
-    const size_t depNamespaceAPos = normalizedDepApiContent.find("DEP_NAMESPACE_A");
-    const size_t depNamespaceBPos = normalizedDepApiContent.find("DEP_NAMESPACE_B");
-    const size_t depNamespaceCPos = normalizedDepApiContent.find("DEP_NAMESPACE_C");
+    const size_t depNamespaceAPos    = normalizedDepApiContent.find("DEP_NAMESPACE_A");
+    const size_t depNamespaceBPos    = normalizedDepApiContent.find("DEP_NAMESPACE_B");
+    const size_t depNamespaceCPos    = normalizedDepApiContent.find("DEP_NAMESPACE_C");
     const size_t depNamespaceDeepPos = normalizedDepApiContent.find("DEP_NAMESPACE_DEEP");
     if (depNamespaceAPos == Utf8::npos || depNamespaceBPos == Utf8::npos || depNamespaceCPos == Utf8::npos || depNamespaceDeepPos == Utf8::npos)
         return Result::Error;

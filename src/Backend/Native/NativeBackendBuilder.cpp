@@ -313,17 +313,17 @@ namespace
             SWC_ASSERT(symbol != nullptr);
 
             NativeFunctionInfo info;
-            info.symbol      = symbol;
-            info.machineCode = &symbol->loweredCode();
-            info.sortKey     = SymbolSort::locationKey(builder.compiler(), *symbol);
+            info.symbol                   = symbol;
+            info.machineCode              = &symbol->loweredCode();
+            info.sortKey                  = SymbolSort::locationKey(builder.compiler(), *symbol);
             const bool exportPublicSymbol = supportsExportedPublicFunctionSymbols(builder) && symbol->isPublic() && !isCompilerFunction(*symbol) && symbol->supportsPublicApiForeignExport();
             if (exportPublicSymbol)
                 info.symbolName = symbol->computePublicApiSymbolName(builder.ctx());
             else
                 info.symbolName = buildLocalFunctionSymbolName(builder, info, static_cast<uint32_t>(builder.functionInfos.size()));
-            info.debugName   = symbol->getFullScopedName(builder.ctx());
-            info.exported    = exportPublicSymbol;
-            info.compilerFn  = isCompilerFunction(*symbol);
+            info.debugName  = symbol->getFullScopedName(builder.ctx());
+            info.exported   = exportPublicSymbol;
+            info.compilerFn = isCompilerFunction(*symbol);
             builder.functionInfos.push_back(std::move(info));
         }
 

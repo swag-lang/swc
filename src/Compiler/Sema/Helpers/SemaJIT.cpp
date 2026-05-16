@@ -930,7 +930,7 @@ namespace
 
     Result emitForeignConstExprCall(Sema& sema, const SymbolFunction& calledFn, std::span<const JITArgument> jitArgs, const JITReturn& jitReturn)
     {
-        TaskContext& ctx = sema.ctx();
+        TaskContext& ctx      = sema.ctx();
         void*        targetFn = nullptr;
         if (!JIT::resolveForeignFunctionAddress(ctx, targetFn, calledFn))
             return reportJitEvaluationFailure(sema, calledFn);

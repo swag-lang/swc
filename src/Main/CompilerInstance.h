@@ -201,14 +201,14 @@ public:
     SourceFile&              file(FileRef ref) const;
     std::vector<SourceFile*> filesSnapshot() const;
 
-    SourceView&                   addSourceView();
-    SourceView&                   addSourceView(FileRef fileRef);
-    SourceView&                   srcView(SourceViewRef ref);
-    const SourceView&             srcView(SourceViewRef ref) const;
-    const SourceView*             findSourceViewByFileName(std::string_view fileName) const;
-    size_t                        numPerThreadData() const noexcept { return perThreadData_.size(); }
-    const ModuleApiPerThreadData& moduleApiPerThreadData(size_t index) const { return perThreadData_[index].moduleApi; }
-    const std::vector<fs::path>&  importedDependencyLinkDirs() const { return importedDependencyLinkDirs_; }
+    SourceView&                           addSourceView();
+    SourceView&                           addSourceView(FileRef fileRef);
+    SourceView&                           srcView(SourceViewRef ref);
+    const SourceView&                     srcView(SourceViewRef ref) const;
+    const SourceView*                     findSourceViewByFileName(std::string_view fileName) const;
+    size_t                                numPerThreadData() const noexcept { return perThreadData_.size(); }
+    const ModuleApiPerThreadData&         moduleApiPerThreadData(size_t index) const { return perThreadData_[index].moduleApi; }
+    const std::vector<fs::path>&          importedDependencyLinkDirs() const { return importedDependencyLinkDirs_; }
     const std::vector<ModuleSetupImport>& moduleSetupImports() const { return moduleSetupImports_; }
 
     Result                       collectFiles(TaskContext& ctx);

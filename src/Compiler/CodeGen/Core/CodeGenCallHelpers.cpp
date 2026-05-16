@@ -150,7 +150,7 @@ namespace
             return std::nullopt;
 
         SmallVector<AstNodeRef> candidateRefs;
-        const auto appendCandidateRef = [&](const AstNodeRef candidateRef) {
+        const auto              appendCandidateRef = [&](const AstNodeRef candidateRef) {
             if (candidateRef.isInvalid())
                 return;
 
@@ -509,7 +509,7 @@ namespace
                 return true;
         }
 
-        const uint64_t  rawSize     = storageType.sizeOf(ctx);
+        const uint64_t rawSize = storageType.sizeOf(ctx);
         if (rawSize == 0 || rawSize > std::numeric_limits<uint32_t>::max())
             return false;
 
@@ -757,7 +757,7 @@ namespace
 
     bool tryResolvePayloadRuntimeStorageAddress(CodeGen& codeGen, const CodeGenNodePayload& payload, MicroReg& outStorageReg)
     {
-        outStorageReg = MicroReg::invalid();
+        outStorageReg          = MicroReg::invalid();
         const auto* storageSym = payload.runtimeStorageSym;
         if (!storageSym)
             return false;

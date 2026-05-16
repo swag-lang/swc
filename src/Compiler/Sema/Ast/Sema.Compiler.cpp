@@ -1,6 +1,6 @@
 #include "pch.h"
-#include "Backend/RuntimeName.h"
 #include "Compiler/Sema/Core/Sema.h"
+#include "Backend/RuntimeName.h"
 #include "Compiler/Lexer/Lexer.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Parser/Parser/Parser.h"
@@ -1999,7 +1999,7 @@ namespace
 Result AstCompilerImport::semaPostNode(Sema& sema) const
 {
     SWC_RESULT(ensureModuleSetupDirectiveContext(sema, sema.curNodeRef()));
-    Runtime::BuildCfgBackendKind linkBackendKind = Runtime::BuildCfgBackendKind::None;
+    auto linkBackendKind = Runtime::BuildCfgBackendKind::None;
     SWC_RESULT(resolveModuleImportLinkBackend(sema, *this, linkBackendKind));
     return sema.compiler().registerModuleSetupImport(moduleImportName(sema, *this), moduleImportLocation(sema, *this), moduleImportVersion(sema, *this), linkBackendKind);
 }

@@ -740,6 +740,12 @@ public impl DepIgnoredContainer
     if (!writeTextFile(depModuleDir / "src" / "public_types.swg", R"(#global public
 alias DepCount = s32
 
+enum DepMode: s16
+{
+    Zero = 0
+    Big  = 42
+}
+
 struct DepPair
 {
     left:  DepCount
@@ -757,6 +763,11 @@ struct DepOpaque
 {
     opaqueHead: u64
     opaqueTail: u32
+}
+
+interface IDepScore
+{
+    mtd score(value: s32)->s32;
 }
 
 namespace DepTools
@@ -882,9 +893,17 @@ func depMixinAccumulateTwice(value: s32)
         return Result::Error;
     if (!writeTextFile(coreModuleDir / "src" / "main.swg", R"(using Dep, DepLib
 
+func keepDepScore(score: IDepScore)->IDepScore => score
+
 public func coreValue()->s32
 {
     var count: DepCount = 19
+    var mode: DepMode = .Big
+    var enumBonus = 0
+    if mode == .Big
+    {
+        enumBonus = 42
+    }
     var pair: DepPair
     pair.left  = 2
     pair.right = 5
@@ -911,6 +930,7 @@ public func coreValue()->s32
            count +
            pair.left +
            pair.right +
+           enumBonus +
            value.asInt +
            depDouble(21) +
            depTriple(14) +
@@ -987,11 +1007,19 @@ public func coreValue()->s32
         return Result::Error;
     if (!depApiContent.contains("alias DepCount = s32"))
         return Result::Error;
+    if (!depApiContent.contains("enum DepMode: s16"))
+        return Result::Error;
+    if (!depApiContent.contains("Big") || !depApiContent.contains("42"))
+        return Result::Error;
     if (!depApiContent.contains("struct DepPair"))
         return Result::Error;
     if (!depApiContent.contains("union DepValue"))
         return Result::Error;
     if (!depApiContent.contains("struct DepOpaque"))
+        return Result::Error;
+    if (!depApiContent.contains("interface IDepScore"))
+        return Result::Error;
+    if (!depApiContent.contains("mtd score(value: s32)->s32;"))
         return Result::Error;
     if (!depApiContent.contains("struct DepNamespaced"))
         return Result::Error;
@@ -1021,7 +1049,6 @@ public func coreValue()->s32
         return Result::Error;
     if (depApiContent.contains("//") || depApiContent.contains("/*"))
         return Result::Error;
-
     Utf8 normalizedDepApiContent = depApiContent;
     normalizedDepApiContent.replace_loop("\r", "");
     const size_t depToolsPos = normalizedDepApiContent.find("namespace DepTools\n");
@@ -1050,7 +1077,6 @@ public func coreValue()->s32
         return Result::Error;
     if (normalizedDepApiContent.contains("\npublic "))
         return Result::Error;
-
     Utf8 copiedLegacyApiContent;
     if (FileSystem::readTextFile(copiedLegacyApiFile, copiedLegacyApiContent, ioError) != Result::Continue)
         return Result::Error;
@@ -1138,7 +1164,6 @@ public func coreValue()->s32
         return Result::Error;
     if (depLibApiContent.contains("\npublic "))
         return Result::Error;
-
     return Result::Continue;
 }
 SWC_TEST_END()
@@ -1165,6 +1190,54 @@ SWC_TEST_BEGIN(Compiler_WorkspaceBuildRejectsPublicStructWithModuleprivateFieldI
 struct BadExport
 {
     moduleprivate hidden: s32
+}
+)"))
+        return Result::Error;
+
+    CommandLine cmdLine;
+    cmdLine.command       = CommandKind::Build;
+    cmdLine.workspacePath = workspaceDir;
+    cmdLine.silent        = true;
+    CommandLineParser::refreshBuildCfg(cmdLine);
+
+    CompilerInstance compiler(ctx.global(), cmdLine);
+    if (compiler.run() == ExitCode::Success)
+        return Result::Error;
+
+    const fs::path depApiFile = workspaceDir / ".output" / "dep" / "export" / "fast-debug" / "x86_64" / "dep.swg";
+    if (fs::exists(depApiFile))
+        return Result::Error;
+
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(Compiler_WorkspaceBuildRejectsPublicInterfaceReferencingPrivateTypeInGeneratedApi)
+{
+    const ScopedTempTree tempTree("compiler_workspace_invalid_public_interface");
+    if (!tempTree.ready())
+        return Result::Error;
+
+    const fs::path workspaceDir = tempTree.root() / "workspace";
+    const fs::path depModuleDir = workspaceDir / "modules" / "dep";
+
+    if (!writeTextFile(depModuleDir / "module.swg", R"(#run
+{
+    let cfg = @compiler.getBuildCfg()
+    cfg.moduleNamespace = "Dep"
+    cfg.backendKind = .Export
+}
+)"))
+        return Result::Error;
+
+    if (!writeTextFile(depModuleDir / "src" / "main.swg", R"(struct HiddenArg
+{
+    value: s32
+}
+
+public interface BadExport
+{
+    mtd score(arg: HiddenArg)->s32;
 }
 )"))
         return Result::Error;

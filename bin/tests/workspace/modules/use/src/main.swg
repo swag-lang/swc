@@ -1,5 +1,7 @@
 using Dep, DepLib
 
+func keepDepScore(score: IDepScore)->IDepScore => score
+
 #main
 {
     @assert(DEP_VALUE == 7)
@@ -14,6 +16,8 @@ using Dep, DepLib
 
     var count: DepCount = 19
     @assert(count == 19)
+    var mode: DepMode = .Big
+    @assert(mode == .Big)
 
     var pair: DepPair
     pair.left  = 2

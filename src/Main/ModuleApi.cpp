@@ -128,6 +128,10 @@ namespace
     {
         if (const auto* symbolStruct = symbol.safeCast<SymbolStruct>())
             return symbolStruct->isUnion() ? Utf8("union") : Utf8("struct");
+        if (symbol.isEnum())
+            return "enum";
+        if (symbol.isInterface())
+            return "interface";
         if (symbol.isAlias())
             return "alias";
         return symbol.toFamily();
@@ -176,6 +180,12 @@ namespace
 
             return symbolStruct->decl()->is(AstNodeId::StructDecl) || symbolStruct->decl()->is(AstNodeId::UnionDecl);
         }
+
+        if (const auto* symbolEnum = symbol.safeCast<SymbolEnum>())
+            return symbolEnum->decl()->is(AstNodeId::EnumDecl);
+
+        if (const auto* symbolInterface = symbol.safeCast<SymbolInterface>())
+            return symbolInterface->decl()->is(AstNodeId::InterfaceDecl);
 
         if (const auto* symbolFunction = symbol.safeCast<SymbolFunction>())
         {
@@ -379,7 +389,7 @@ namespace
         if (!referencedSymbol.isPublic())
             return reportModuleApiNonPublicTypeReference(ctx, ownerSymbol, focusSymbol, usage, referencedSymbol);
 
-        if (referencedSymbol.isAlias() || referencedSymbol.isStruct())
+        if (referencedSymbol.isAlias() || referencedSymbol.isStruct() || referencedSymbol.isEnum() || referencedSymbol.isInterface())
             return validatePublicTypeSymbol(ctx, referencedSymbol, stack);
 
         return Result::Continue;
@@ -452,6 +462,14 @@ namespace
         return validateExportedTypeRef(ctx, symbolAlias, symbolAlias, "its target", symbolAlias.underlyingTypeRef(), stack);
     }
 
+    Result validatePublicEnumSymbol(TaskContext& ctx, const SymbolEnum& symbolEnum, SmallVector<const Symbol*>& stack)
+    {
+        if (!symbolEnum.underlyingTypeRef().isValid())
+            return Result::Continue;
+
+        return validateExportedTypeRef(ctx, symbolEnum, symbolEnum, "its underlying type", symbolEnum.underlyingTypeRef(), stack);
+    }
+
     Result validatePublicStructSymbol(TaskContext& ctx, const SymbolStruct& symbolStruct, SmallVector<const Symbol*>& stack)
     {
         if (isModuleApiOpaqueType(symbolStruct))
@@ -475,6 +493,19 @@ namespace
         return Result::Continue;
     }
 
+    Result validatePublicInterfaceSymbol(TaskContext& ctx, const SymbolInterface& symbolInterface, SmallVector<const Symbol*>& stack)
+    {
+        for (const SymbolFunction* function : symbolInterface.functions())
+        {
+            if (!function)
+                continue;
+
+            SWC_RESULT(validatePublicFunctionSymbol(ctx, *function, stack));
+        }
+
+        return Result::Continue;
+    }
+
     Result validatePublicTypeSymbol(TaskContext& ctx, const Symbol& symbol, SmallVector<const Symbol*>& stack)
     {
         if (moduleApiValidationStackContains(stack.span(), symbol))
@@ -483,6 +514,10 @@ namespace
         ModuleApiValidationScope validationScope(stack, symbol);
         if (const auto* symbolAlias = symbol.safeCast<SymbolAlias>())
             return validatePublicAliasSymbol(ctx, *symbolAlias, stack);
+        if (const auto* symbolEnum = symbol.safeCast<SymbolEnum>())
+            return validatePublicEnumSymbol(ctx, *symbolEnum, stack);
+        if (const auto* symbolInterface = symbol.safeCast<SymbolInterface>())
+            return validatePublicInterfaceSymbol(ctx, *symbolInterface, stack);
         if (const auto* symbolStruct = symbol.safeCast<SymbolStruct>())
             return validatePublicStructSymbol(ctx, *symbolStruct, stack);
 
@@ -629,6 +664,65 @@ namespace
         return bodyEndTokRef;
     }
 
+    AstNodeRef moduleApiAggregateBodyRef(const AstNode& declNode)
+    {
+        switch (declNode.id())
+        {
+            case AstNodeId::StructDecl:
+                return declNode.cast<AstStructDecl>().nodeBodyRef;
+
+            case AstNodeId::UnionDecl:
+                return declNode.cast<AstUnionDecl>().nodeBodyRef;
+
+            case AstNodeId::EnumDecl:
+                return declNode.cast<AstEnumDecl>().nodeBodyRef;
+
+            case AstNodeId::InterfaceDecl:
+                return declNode.cast<AstInterfaceDecl>().nodeBodyRef;
+
+            default:
+                return AstNodeRef::invalid();
+        }
+    }
+
+    TokenRef moduleApiAggregateBodyEndTokRef(const Ast& ast, const AstNode& declNode)
+    {
+        const AstNodeRef bodyRef = moduleApiAggregateBodyRef(declNode);
+        if (!bodyRef.isValid() || ast.isAdditionalNode(bodyRef))
+            return TokenRef::invalid();
+
+        const AstNode& bodyNode = ast.node(bodyRef);
+        if (!bodyNode.tokRef().isValid())
+            return TokenRef::invalid();
+
+        const TokenRef bodyEndTokRef = bodyNode.tokRefEnd(ast);
+        if (!bodyEndTokRef.isValid())
+            return TokenRef::invalid();
+        if (!ast.hasSourceView())
+            return bodyEndTokRef;
+
+        const SourceView& srcView = ast.srcView();
+        if (srcView.token(bodyNode.tokRef()).id != TokenId::SymLeftCurly)
+            return bodyEndTokRef;
+
+        uint32_t curlyBalance = 0;
+        for (uint32_t tokIndex = bodyNode.tokRef().get(); tokIndex < srcView.tokens().size(); ++tokIndex)
+        {
+            const TokenId tokenId = srcView.token(TokenRef(tokIndex)).id;
+            if (tokenId == TokenId::SymLeftCurly)
+                curlyBalance++;
+            else if (tokenId == TokenId::SymRightCurly)
+            {
+                SWC_ASSERT(curlyBalance != 0);
+                curlyBalance--;
+                if (!curlyBalance)
+                    return TokenRef(tokIndex);
+            }
+        }
+
+        return bodyEndTokRef;
+    }
+
     TokenRef moduleApiSnippetEndTokRef(const Ast& ast, const AstNode& node)
     {
         if (isModuleApiDeclWrapper(node))
@@ -646,6 +740,9 @@ namespace
                     return childEndTokRef;
             }
         }
+
+        if (const TokenRef bodyEndTokRef = moduleApiAggregateBodyEndTokRef(ast, node); bodyEndTokRef.isValid())
+            return bodyEndTokRef;
 
         if (const auto* functionDecl = node.safeCast<AstFunctionDecl>())
         {
@@ -1395,7 +1492,7 @@ namespace
             return Result::Continue;
         }
 
-        if (root.symbol && (root.symbol->isAlias() || root.symbol->isStruct()))
+        if (root.symbol && (root.symbol->isAlias() || root.symbol->isStruct() || root.symbol->isEnum() || root.symbol->isInterface()))
         {
             SmallVector<const Symbol*> validationStack;
             SWC_RESULT(validatePublicTypeSymbol(ctx, *root.symbol, validationStack));

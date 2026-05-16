@@ -5,11 +5,14 @@
 #include "Backend/ABI/CallConv.h"
 #include "Backend/JIT/JIT.h"
 #include "Backend/JIT/JITPatchJob.h"
+#include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
+#include "Compiler/SourceFile.h"
 #include "Compiler/Sema/Symbol/Symbol.Alias.h"
 #include "Compiler/Sema/Symbol/Symbol.Enum.h"
 #include "Compiler/Sema/Symbol/Symbol.Impl.h"
 #include "Compiler/Sema/Symbol/Symbol.Interface.h"
+#include "Compiler/Sema/Symbol/Symbol.Module.h"
 #include "Compiler/Sema/Symbol/Symbol.Struct.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Support/Math/Hash.h"
@@ -30,15 +33,28 @@ namespace
         return std::isalnum(static_cast<unsigned char>(c)) != 0;
     }
 
-    void appendPublicApiSymbolFragment(Utf8& out, const std::string_view text)
+    Utf8 sanitizePublicApiSymbolText(const std::string_view text)
     {
-        bool lastWasUnderscore = out.empty() || out.back() == '_';
+        Utf8 out;
+        bool lastWasUnderscore = true;
+        bool previousWasLowerOrDigit = false;
         for (const char c : text)
         {
+            const auto uc = static_cast<unsigned char>(c);
             if (isPublicApiSymbolAlphaNumeric(c))
             {
-                out += static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
+                const bool isUpper = std::isupper(uc) != 0;
+                const bool isLower = std::islower(uc) != 0;
+                const bool isDigit = std::isdigit(uc) != 0;
+                if (isUpper && !out.empty() && !lastWasUnderscore && previousWasLowerOrDigit)
+                {
+                    out += '_';
+                    lastWasUnderscore = true;
+                }
+
+                out += static_cast<char>(std::tolower(uc));
                 lastWasUnderscore = false;
+                previousWasLowerOrDigit = isLower || isDigit;
                 continue;
             }
 
@@ -47,10 +63,406 @@ namespace
                 out += '_';
                 lastWasUnderscore = true;
             }
+
+            previousWasLowerOrDigit = false;
         }
 
         while (!out.empty() && out.back() == '_')
             out.pop_back();
+        return out;
+    }
+
+    void appendPublicApiSymbolFragment(Utf8& out, const std::string_view text)
+    {
+        const Utf8 fragment = sanitizePublicApiSymbolText(text);
+        if (fragment.empty())
+            return;
+
+        if (!out.empty() && out.back() != '_')
+            out += '_';
+        out += fragment;
+    }
+
+    void appendPublicApiTypeFragment(Utf8& out, const TaskContext& ctx, TypeRef typeRef);
+
+    const SymbolNamespace* publicApiModuleNamespace(const TaskContext& ctx, const Symbol& symbol)
+    {
+        if (!symbol.srcViewRef().isValid())
+            return nullptr;
+
+        const SourceFile* sourceFile = ctx.compiler().srcView(symbol.srcViewRef()).file();
+        return sourceFile ? sourceFile->moduleNamespace() : nullptr;
+    }
+
+    void appendPublicApiScopedSymbolPath(Utf8& out, const TaskContext& ctx, const Symbol& symbol, bool includeSymbol)
+    {
+        SmallVector8<const Symbol*> scopeChain;
+        if (includeSymbol)
+            scopeChain.push_back(&symbol);
+
+        const SymbolNamespace* moduleNamespace = publicApiModuleNamespace(ctx, symbol);
+        const SymbolMap*       scope           = symbol.ownerSymMap();
+        while (scope)
+        {
+            if (scope != moduleNamespace && !scope->isModule() && !scope->isImpl())
+                scopeChain.push_back(scope);
+            scope = scope->ownerSymMap();
+        }
+
+        for (const Symbol* current : std::ranges::reverse_view(scopeChain))
+        {
+            if (!current)
+                continue;
+            appendPublicApiSymbolFragment(out, current->name(ctx));
+        }
+    }
+
+    bool isPublicApiImplicitReceiverParam(const TaskContext& ctx, const SymbolVariable& param)
+    {
+        return param.idRef() == ctx.idMgr().predefined(IdentifierManager::PredefinedName::Me);
+    }
+
+    void appendPublicApiGenericStructArgs(Utf8& out, const TaskContext& ctx, const SymbolStruct& instance)
+    {
+        const SymbolStruct* root = instance.genericRootSym();
+        if (!root)
+            return;
+
+        SmallVector<GenericInstanceKey> args;
+        if (!root->tryGetGenericInstanceArgs(instance, args))
+            return;
+
+        appendPublicApiSymbolFragment(out, "gen");
+        for (const GenericInstanceKey& arg : args)
+        {
+            if (arg.typeRef.isValid())
+            {
+                appendPublicApiTypeFragment(out, ctx, arg.typeRef);
+                continue;
+            }
+
+            if (arg.cstRef.isValid())
+            {
+                appendPublicApiSymbolFragment(out, ctx.cstMgr().get(arg.cstRef).toString(ctx).view());
+                continue;
+            }
+
+            appendPublicApiSymbolFragment(out, "unknown");
+        }
+    }
+
+    void appendPublicApiTypeFragment(Utf8& out, const TaskContext& ctx, TypeRef typeRef)
+    {
+        if (!typeRef.isValid())
+        {
+            appendPublicApiSymbolFragment(out, "invalid");
+            return;
+        }
+
+        const TypeInfo& typeInfo = ctx.typeMgr().get(typeRef);
+        if (typeInfo.isNullable())
+            appendPublicApiSymbolFragment(out, "nullable");
+        if (typeInfo.isConst())
+            appendPublicApiSymbolFragment(out, "const");
+
+        switch (typeInfo.kind())
+        {
+            case TypeInfoKind::Bool:
+                appendPublicApiSymbolFragment(out, "bool");
+                return;
+            case TypeInfoKind::Char:
+                appendPublicApiSymbolFragment(out, "char");
+                return;
+            case TypeInfoKind::String:
+                appendPublicApiSymbolFragment(out, "string");
+                return;
+            case TypeInfoKind::Void:
+                appendPublicApiSymbolFragment(out, "void");
+                return;
+            case TypeInfoKind::Null:
+                appendPublicApiSymbolFragment(out, "null");
+                return;
+            case TypeInfoKind::Undefined:
+                appendPublicApiSymbolFragment(out, "undefined");
+                return;
+            case TypeInfoKind::Any:
+                appendPublicApiSymbolFragment(out, "any");
+                return;
+            case TypeInfoKind::Rune:
+                appendPublicApiSymbolFragment(out, "rune");
+                return;
+            case TypeInfoKind::CString:
+                appendPublicApiSymbolFragment(out, "cstring");
+                return;
+            case TypeInfoKind::CodeBlock:
+                appendPublicApiSymbolFragment(out, "code");
+                appendPublicApiTypeFragment(out, ctx, typeInfo.payloadTypeRef());
+                return;
+            case TypeInfoKind::TypeInfo:
+                appendPublicApiSymbolFragment(out, "typeinfo");
+                return;
+            case TypeInfoKind::AggregateStruct:
+                appendPublicApiSymbolFragment(out, "struct_literal");
+                return;
+            case TypeInfoKind::AggregateArray:
+                appendPublicApiSymbolFragment(out, "array_literal");
+                return;
+            case TypeInfoKind::Enum:
+                appendPublicApiSymbolFragment(out, typeInfo.payloadSymEnum().getFullScopedName(ctx).view());
+                return;
+            case TypeInfoKind::Struct:
+            {
+                const SymbolStruct& instance = typeInfo.payloadSymStruct();
+                const SymbolStruct* root     = instance.isGenericInstance() ? instance.genericRootSym() : &instance;
+                SWC_ASSERT(root != nullptr);
+                appendPublicApiSymbolFragment(out, root->getFullScopedName(ctx).view());
+                if (instance.isGenericInstance())
+                    appendPublicApiGenericStructArgs(out, ctx, instance);
+                return;
+            }
+            case TypeInfoKind::Interface:
+                appendPublicApiSymbolFragment(out, typeInfo.payloadSymInterface().getFullScopedName(ctx).view());
+                return;
+            case TypeInfoKind::Alias:
+                appendPublicApiSymbolFragment(out, typeInfo.payloadSymAlias().getFullScopedName(ctx).view());
+                return;
+            case TypeInfoKind::TypeValue:
+                appendPublicApiSymbolFragment(out, "typeinfo");
+                appendPublicApiTypeFragment(out, ctx, typeInfo.payloadTypeRef());
+                return;
+            case TypeInfoKind::ValuePointer:
+                appendPublicApiSymbolFragment(out, "ptr");
+                appendPublicApiTypeFragment(out, ctx, typeInfo.payloadTypeRef());
+                return;
+            case TypeInfoKind::BlockPointer:
+                appendPublicApiSymbolFragment(out, "block_ptr");
+                appendPublicApiTypeFragment(out, ctx, typeInfo.payloadTypeRef());
+                return;
+            case TypeInfoKind::Reference:
+                appendPublicApiSymbolFragment(out, "ref");
+                appendPublicApiTypeFragment(out, ctx, typeInfo.payloadTypeRef());
+                return;
+            case TypeInfoKind::MoveReference:
+                appendPublicApiSymbolFragment(out, "move_ref");
+                appendPublicApiTypeFragment(out, ctx, typeInfo.payloadTypeRef());
+                return;
+            case TypeInfoKind::Int:
+            {
+                if (typeInfo.payloadIntBits() == 0)
+                {
+                    appendPublicApiSymbolFragment(out, typeInfo.payloadIntSign() == TypeInfo::Sign::Unsigned ? "uint" : typeInfo.payloadIntSign() == TypeInfo::Sign::Signed ? "sint" : "int");
+                    return;
+                }
+
+                const auto intName = std::format("{}{}", typeInfo.payloadIntSign() == TypeInfo::Sign::Unsigned ? "u" : "s", typeInfo.payloadIntBits());
+                appendPublicApiSymbolFragment(out, intName);
+                return;
+            }
+            case TypeInfoKind::Float:
+            {
+                if (typeInfo.payloadFloatBits() == 0)
+                    appendPublicApiSymbolFragment(out, "float");
+                else
+                {
+                    const auto floatName = std::format("f{}", typeInfo.payloadFloatBits());
+                    appendPublicApiSymbolFragment(out, floatName);
+                }
+                return;
+            }
+            case TypeInfoKind::Slice:
+                appendPublicApiSymbolFragment(out, "slice");
+                appendPublicApiTypeFragment(out, ctx, typeInfo.payloadTypeRef());
+                return;
+            case TypeInfoKind::Array:
+            {
+                appendPublicApiSymbolFragment(out, "arr");
+                if (typeInfo.payloadArrayDims().empty())
+                {
+                    appendPublicApiSymbolFragment(out, "unknown");
+                }
+                else
+                {
+                    for (const uint64_t dim : typeInfo.payloadArrayDims())
+                    {
+                        const auto dimText = std::to_string(dim);
+                        appendPublicApiSymbolFragment(out, dimText);
+                    }
+                }
+
+                appendPublicApiTypeFragment(out, ctx, typeInfo.payloadArrayElemTypeRef());
+                return;
+            }
+            case TypeInfoKind::Variadic:
+                appendPublicApiSymbolFragment(out, "variadic");
+                return;
+            case TypeInfoKind::TypedVariadic:
+                appendPublicApiSymbolFragment(out, "typed_variadic");
+                appendPublicApiTypeFragment(out, ctx, typeInfo.payloadTypeRef());
+                return;
+            case TypeInfoKind::Function:
+            {
+                const SymbolFunction& function = typeInfo.payloadSymFunction();
+                appendPublicApiSymbolFragment(out, function.isMethod() ? "mtd" : "func");
+                if (function.isClosure())
+                    appendPublicApiSymbolFragment(out, "closure");
+                if (function.parameters().empty())
+                    appendPublicApiSymbolFragment(out, "void");
+                else
+                {
+                    for (const SymbolVariable* param : function.parameters())
+                    {
+                        SWC_ASSERT(param != nullptr);
+                        appendPublicApiTypeFragment(out, ctx, param->typeRef());
+                    }
+                }
+
+                if (function.isConst())
+                    appendPublicApiSymbolFragment(out, "const");
+                if (function.hasVariadicParam())
+                    appendPublicApiSymbolFragment(out, "variadic");
+                if (function.isThrowable())
+                    appendPublicApiSymbolFragment(out, "throw");
+                if (function.callConvKind() != CallConvKind::Host)
+                {
+                    appendPublicApiSymbolFragment(out, "cc");
+                    appendPublicApiSymbolFragment(out, CallConv::get(function.callConvKind()).name);
+                }
+
+                appendPublicApiSymbolFragment(out, "ret");
+                appendPublicApiTypeFragment(out, ctx, function.returnTypeRef());
+                return;
+            }
+
+            default:
+                appendPublicApiSymbolFragment(out, typeInfo.toName(ctx).view());
+                return;
+        }
+    }
+
+    void appendPublicApiFunctionScope(Utf8& out, const TaskContext& ctx, const SymbolFunction& symbol)
+    {
+        if (const SymbolStruct* ownerStruct = symbol.ownerStruct())
+        {
+            appendPublicApiScopedSymbolPath(out, ctx, *ownerStruct, true);
+            return;
+        }
+
+        appendPublicApiScopedSymbolPath(out, ctx, symbol, false);
+    }
+
+    bool isPublicApiExportedOverload(const SymbolFunction& candidate)
+    {
+        return candidate.isPublic() && candidate.supportsPublicApiExport();
+    }
+
+    template<typename FUNC>
+    void forEachPublicApiOverload(const SymbolFunction& symbol, const TaskContext& ctx, FUNC&& fn)
+    {
+        if (const SymbolStruct* ownerStruct = symbol.ownerStruct())
+        {
+            for (const SymbolFunction* candidate : ownerStruct->declaredMethods())
+            {
+                if (!candidate || candidate->idRef() != symbol.idRef())
+                    continue;
+                if (!isPublicApiExportedOverload(*candidate))
+                    continue;
+
+                fn(*candidate);
+            }
+
+            return;
+        }
+
+        const SymbolMap* ownerMap = symbol.ownerSymMap();
+        if (!ownerMap)
+            return;
+
+        std::vector<const Symbol*> symbols;
+        ownerMap->getAllSymbols(symbols);
+        for (const Symbol* candidateBase : symbols)
+        {
+            const auto* candidate = candidateBase ? candidateBase->safeCast<SymbolFunction>() : nullptr;
+            if (!candidate || candidate->idRef() != symbol.idRef())
+                continue;
+            if (!isPublicApiExportedOverload(*candidate))
+                continue;
+
+            fn(*candidate);
+        }
+    }
+
+    bool publicApiNeedsOverloadSuffix(const SymbolFunction& symbol, const TaskContext& ctx)
+    {
+        uint32_t count = 0;
+        forEachPublicApiOverload(symbol, ctx, [&](const SymbolFunction&) {
+            count++;
+        });
+        return count > 1;
+    }
+
+    Utf8 buildPublicApiParameterSignature(const TaskContext& ctx, const SymbolFunction& symbol)
+    {
+        Utf8 result;
+        bool hasExplicitParam = false;
+        for (const SymbolVariable* param : symbol.parameters())
+        {
+            SWC_ASSERT(param != nullptr);
+            if (isPublicApiImplicitReceiverParam(ctx, *param))
+                continue;
+
+            hasExplicitParam = true;
+            appendPublicApiTypeFragment(result, ctx, param->typeRef());
+        }
+
+        if (!hasExplicitParam)
+            appendPublicApiSymbolFragment(result, "void");
+        return result;
+    }
+
+    Utf8 buildPublicApiDetailedSignature(const TaskContext& ctx, const SymbolFunction& symbol)
+    {
+        Utf8 result = buildPublicApiParameterSignature(ctx, symbol);
+
+        if (symbol.isConst())
+            appendPublicApiSymbolFragment(result, "const");
+        if (symbol.hasVariadicParam())
+            appendPublicApiSymbolFragment(result, "variadic");
+        if (symbol.isThrowable())
+            appendPublicApiSymbolFragment(result, "throw");
+        if (symbol.callConvKind() != CallConvKind::Host)
+        {
+            appendPublicApiSymbolFragment(result, "cc");
+            appendPublicApiSymbolFragment(result, CallConv::get(symbol.callConvKind()).name);
+        }
+
+        appendPublicApiSymbolFragment(result, "ret");
+        appendPublicApiTypeFragment(result, ctx, symbol.returnTypeRef());
+        return result;
+    }
+
+    bool publicApiSignatureCollides(const SymbolFunction& symbol, const TaskContext& ctx, const Utf8& expectedSignature, const bool detailed)
+    {
+        bool collision = false;
+        forEachPublicApiOverload(symbol, ctx, [&](const SymbolFunction& candidate) {
+            if (&candidate == &symbol || collision)
+                return;
+
+            const Utf8 candidateSignature = detailed ? buildPublicApiDetailedSignature(ctx, candidate) : buildPublicApiParameterSignature(ctx, candidate);
+            if (candidateSignature == expectedSignature)
+                collision = true;
+        });
+
+        return collision;
+    }
+
+    void appendPublicApiOverloadSuffix(Utf8& out, const TaskContext& ctx, const SymbolFunction& symbol)
+    {
+        Utf8 signature = buildPublicApiParameterSignature(ctx, symbol);
+        if (publicApiSignatureCollides(symbol, ctx, signature, false))
+            signature = buildPublicApiDetailedSignature(ctx, symbol);
+
+        out += "__";
+        out += signature;
     }
 
     enum class DepVisitState : uint8_t
@@ -457,24 +869,39 @@ Utf8 SymbolFunction::computeName(const TaskContext& ctx) const
 
 Utf8 SymbolFunction::computePublicApiSymbolName(const TaskContext& ctx) const
 {
-    Utf8 apiName = "__swc_api_";
+    Utf8 apiName;
+    appendPublicApiFunctionScope(apiName, ctx, *this);
     appendPublicApiSymbolFragment(apiName, name(ctx));
 
-    if (const SymbolStruct* owner = ownerStruct())
+    if (apiName.empty())
+        apiName = "fn";
+    if (publicApiNeedsOverloadSuffix(*this, ctx))
+        appendPublicApiOverloadSuffix(apiName, ctx, *this);
+    return apiName;
+}
+
+bool SymbolFunction::supportsPublicApiExport() const noexcept
+{
+    if (!decl() || decl()->isNot(AstNodeId::FunctionDecl))
+        return false;
+    if (isAttribute() || isClosure() || isGenericRoot() || isGenericInstance() || hasUnmaterializedGenericBody())
+        return false;
+    if (attributes().hasRtFlag(RtAttributeFlagsE::Compiler) || attributes().hasRtFlag(RtAttributeFlagsE::Macro) || attributes().hasRtFlag(RtAttributeFlagsE::Mixin))
+        return false;
+    if (attributes().hasRtFlag(RtAttributeFlagsE::Implicit))
+        return false;
+    if (const SymbolImpl* symImpl = declImplContext(); symImpl && !symImpl->isForStruct())
+        return false;
+    if (!returnTypeRef().isValid())
+        return false;
+
+    for (const SymbolVariable* param : parameters())
     {
-        if (!apiName.empty() && apiName.back() != '_')
-            apiName += '_';
-        appendPublicApiSymbolFragment(apiName, owner->name(ctx));
+        if (!param || !param->typeRef().isValid())
+            return false;
     }
 
-    if (apiName == "__swc_api_")
-        apiName += "fn";
-
-    Utf8 signatureKey = getFullScopedName(ctx);
-    signatureKey += "|";
-    signatureKey += computeName(ctx);
-    apiName += std::format("_{:08x}_{:08x}", typeSignatureHash(), Math::hash(signatureKey.view()));
-    return apiName;
+    return true;
 }
 
 uint32_t SymbolFunction::typeSignatureHash() const noexcept

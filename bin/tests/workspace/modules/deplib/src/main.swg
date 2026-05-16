@@ -5,6 +5,16 @@ func depDouble(value: s32)->s32
     return value * 2
 }
 
+func depScale(value: s32)->s32
+{
+    return value * 4
+}
+
+func depScale(value: f32)->f32
+{
+    return value * 4
+}
+
 struct DepCalculator
 {
     base: s32

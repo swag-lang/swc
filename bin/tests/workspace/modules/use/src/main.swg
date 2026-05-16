@@ -34,9 +34,12 @@ using Dep, DepLib
 
     @assert(depDouble(21) == 42)
     @assert(depTriple(14) == 42)
+    @assert(depScale(cast(s32) 10) == 40)
+    @assert(depScale(cast(f32) 2) == cast(f32) 8)
 
     var calc = DepCalculator.make(5)
-    @assert(calc.add(7) == 12)
+    @assert(calc.add(cast(s32) 7) == 12)
+    @assert(calc.add(cast(f32) 2) == cast(f32) 7)
     @assert(calc.addTwice(7) == 19)
     @assert(calc.sub(2) == 3)
 }

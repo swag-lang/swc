@@ -60,6 +60,7 @@ public:
     void                                addLocalVariable(TaskContext& ctx, SymbolVariable* sym);
     Utf8                                computeName(const TaskContext& ctx) const;
     Utf8                                computePublicApiSymbolName(const TaskContext& ctx) const;
+    bool                                supportsPublicApiExport() const noexcept;
     uint32_t                            typeSignatureHash() const noexcept;
     bool                                sameTypeSignature(const SymbolFunction& otherFunc) const noexcept;
     bool                                sameTypeSignatureIgnoringClosure(const SymbolFunction& otherFunc) const noexcept;

@@ -179,17 +179,7 @@ namespace
 
         if (const auto* symbolFunction = symbol.safeCast<SymbolFunction>())
         {
-            if (symbolFunction->decl()->isNot(AstNodeId::FunctionDecl))
-                return false;
-            if (symbolFunction->isAttribute() || symbolFunction->isClosure() || symbolFunction->isGenericRoot() || symbolFunction->isGenericInstance() || symbolFunction->hasUnmaterializedGenericBody())
-                return false;
-            if (symbol.attributes().hasRtFlag(RtAttributeFlagsE::Compiler) || symbol.attributes().hasRtFlag(RtAttributeFlagsE::Macro) || symbol.attributes().hasRtFlag(RtAttributeFlagsE::Mixin))
-                return false;
-
-            if (const SymbolImpl* symImpl = symbolFunction->declImplContext(); symImpl && !symImpl->isForStruct())
-                return false;
-
-            return true;
+            return symbolFunction->supportsPublicApiExport();
         }
 
         return false;

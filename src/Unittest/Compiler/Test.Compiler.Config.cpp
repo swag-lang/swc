@@ -790,6 +790,16 @@ func depDouble(value: s32)->s32
     return value * 2
 }
 
+func depScale(value: s32)->s32
+{
+    return value * 4
+}
+
+func depScale(value: f32)->f32
+{
+    return value * 4
+}
+
 struct DepCalculator
 {
     base: s32
@@ -821,6 +831,11 @@ public func depTriple(value: s32)->s32
         return Result::Error;
     if (!writeTextFile(depLibModuleDir / "src" / "explicit_method.swg", R"(public impl DepCalculator
 {
+    mtd const add(value: f32)->f32
+    {
+        return cast(f32) .base + value
+    }
+
     mtd const sub(value: s32)->s32
     {
         return .base - value
@@ -871,7 +886,10 @@ public func coreValue()->s32
            value.asInt +
            depDouble(21) +
            depTriple(14) +
-           calc.add(7) +
+           depScale(cast(s32) 10) +
+           cast(s32) depScale(cast(f32) 2) +
+           calc.add(cast(s32) 7) +
+           cast(s32) calc.add(cast(f32) 2) +
            calc.addTwice(7) +
            calc.sub(2) +
            namespaced.value +
@@ -1010,7 +1028,33 @@ public func coreValue()->s32
         return Result::Error;
     if (!depLibApiContent.contains("#[Swag.Foreign(\"deplib\","))
         return Result::Error;
+    if (depLibApiContent.contains("__swc_api_"))
+        return Result::Error;
+    if (depLibApiContent.contains("dep_lib_"))
+        return Result::Error;
+    if (!depLibApiContent.contains("#[Swag.Foreign(\"deplib\", \"dep_double\")]"))
+        return Result::Error;
+    if (!depLibApiContent.contains("#[Swag.Foreign(\"deplib\", \"dep_scale__s32\")]"))
+        return Result::Error;
+    if (!depLibApiContent.contains("#[Swag.Foreign(\"deplib\", \"dep_scale__f32\")]"))
+        return Result::Error;
+    if (!depLibApiContent.contains("#[Swag.Foreign(\"deplib\", \"dep_triple\")]"))
+        return Result::Error;
+    if (!depLibApiContent.contains("#[Swag.Foreign(\"deplib\", \"dep_calculator_make\")]"))
+        return Result::Error;
+    if (!depLibApiContent.contains("#[Swag.Foreign(\"deplib\", \"dep_calculator_add__s32\")]"))
+        return Result::Error;
+    if (!depLibApiContent.contains("#[Swag.Foreign(\"deplib\", \"dep_calculator_add__f32\")]"))
+        return Result::Error;
+    if (!depLibApiContent.contains("#[Swag.Foreign(\"deplib\", \"dep_calculator_add_twice\")]"))
+        return Result::Error;
+    if (!depLibApiContent.contains("#[Swag.Foreign(\"deplib\", \"dep_calculator_sub\")]"))
+        return Result::Error;
     if (!depLibApiContent.contains("func depDouble(value: s32)->s32;"))
+        return Result::Error;
+    if (!depLibApiContent.contains("func depScale(value: s32)->s32;"))
+        return Result::Error;
+    if (!depLibApiContent.contains("func depScale(value: f32)->f32;"))
         return Result::Error;
     if (!depLibApiContent.contains("public func depTriple(value: s32)->s32;"))
         return Result::Error;
@@ -1019,6 +1063,8 @@ public func coreValue()->s32
     if (!depLibApiContent.contains("func make(base: s32)->DepCalculator;"))
         return Result::Error;
     if (!depLibApiContent.contains("mtd const add(value: s32)->s32;"))
+        return Result::Error;
+    if (!depLibApiContent.contains("mtd const add(value: f32)->f32;"))
         return Result::Error;
     if (!depLibApiContent.contains("mtd const addTwice(value: s32)->s32;"))
         return Result::Error;

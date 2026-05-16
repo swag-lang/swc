@@ -26,8 +26,16 @@ namespace
 
     struct ModuleApiGeneratedRoot
     {
-        const SourceFile* file    = nullptr;
-        AstNodeRef        nodeRef = AstNodeRef::invalid();
+        const SourceFile*               file    = nullptr;
+        AstNodeRef                      nodeRef = AstNodeRef::invalid();
+        std::vector<IdentifierRef>      namespacePath;
+    };
+
+    struct ModuleApiNamespaceNode
+    {
+        IdentifierRef                       idRef = IdentifierRef::invalid();
+        std::vector<Utf8>                   snippets;
+        std::vector<ModuleApiNamespaceNode> children;
     };
 
     const SourceFile* sourceFileFromRef(const CompilerInstance& compiler, const SourceViewRef srcViewRef)
@@ -69,12 +77,23 @@ namespace
         return symbol.decl()->is(AstNodeId::SingleVarDecl) || symbol.decl()->is(AstNodeId::MultiVarDecl);
     }
 
+    bool sameNamespacePath(std::span<const IdentifierRef> lhs, std::span<const IdentifierRef> rhs)
+    {
+        return lhs.size() == rhs.size() && std::equal(lhs.begin(), lhs.end(), rhs.begin());
+    }
+
+    bool samePublicEntry(const ModuleApiPublicEntry& lhs, const ModuleApiPublicEntry& rhs)
+    {
+        return lhs.rootRef == rhs.rootRef && sameNamespacePath(lhs.namespacePath, rhs.namespacePath);
+    }
+
     void mergeFileEntry(ModuleApiFileEntry& outEntry, const ModuleApiFileEntry& threadEntry)
     {
-        for (const AstNodeRef rootRef : threadEntry.publicRootRefs)
+        for (const ModuleApiPublicEntry& threadPublicEntry : threadEntry.publicEntries)
         {
-            if (std::ranges::find(outEntry.publicRootRefs, rootRef) == outEntry.publicRootRefs.end())
-                outEntry.publicRootRefs.push_back(rootRef);
+            const auto it = std::ranges::find_if(outEntry.publicEntries, [&](const ModuleApiPublicEntry& outPublicEntry) { return samePublicEntry(outPublicEntry, threadPublicEntry); });
+            if (it == outEntry.publicEntries.end())
+                outEntry.publicEntries.push_back(threadPublicEntry);
         }
     }
 
@@ -84,14 +103,15 @@ namespace
             mergeFileEntry(outEntries[srcViewRef], threadEntry);
     }
 
-    void recordPublicRoot(ModuleApiPerThreadData& state, const SourceViewRef srcViewRef, const AstNodeRef rootRef)
+    void recordPublicEntry(ModuleApiPerThreadData& state, const SourceViewRef srcViewRef, const ModuleApiPublicEntry& publicEntry)
     {
-        if (!srcViewRef.isValid() || rootRef.isInvalid())
+        if (!srcViewRef.isValid() || publicEntry.rootRef.isInvalid())
             return;
 
         ModuleApiFileEntry& entry = state.files[srcViewRef];
-        if (std::ranges::find(entry.publicRootRefs, rootRef) == entry.publicRootRefs.end())
-            entry.publicRootRefs.push_back(rootRef);
+        const auto          it    = std::ranges::find_if(entry.publicEntries, [&](const ModuleApiPublicEntry& candidate) { return samePublicEntry(candidate, publicEntry); });
+        if (it == entry.publicEntries.end())
+            entry.publicEntries.push_back(publicEntry);
     }
 
     ModuleApiFileInfo analyzeModuleApiFile(const SourceFile& file, std::string_view moduleNamespace)
@@ -155,6 +175,11 @@ namespace
             return srcView.identifiers()[token.byteStart].byteStart;
 
         return token.byteStart;
+    }
+
+    uint32_t sourceTokenByteEnd(const SourceView& srcView, const Token& token)
+    {
+        return sourceTokenByteStart(srcView, token) + token.byteLength;
     }
 
     TokenRef moduleApiSnippetStartTokRef(const Ast& ast, const AstNode& node)
@@ -232,72 +257,105 @@ namespace
         return result;
     }
 
-    void collectModuleApiSourceOrderedChildren(const Ast& ast, const SourceView& srcView, const AstNode& node, SmallVector<AstNodeRef>& outChildren)
+    struct ModuleApiDelimiterBalance
     {
-        outChildren.clear();
-        Ast::nodeIdInfos(node.id()).collectChildren(outChildren, ast, node);
-        std::ranges::stable_sort(outChildren, [&](const AstNodeRef left, const AstNodeRef right) { return moduleApiNodeSortByte(ast, srcView, left) < moduleApiNodeSortByte(ast, srcView, right); });
-    }
+        uint32_t paren  = 0;
+        uint32_t square = 0;
+        uint32_t curly  = 0;
 
-    void findNextSiblingSnippetStartOffsetRec(const SourceFile& file, const AstNodeRef currentRef, const AstNodeRef targetRef, bool& ioFoundTarget, uint32_t& ioNextOffset)
-    {
-        if (currentRef.isInvalid() || ioNextOffset != moduleApiInvalidByte)
-            return;
-
-        const Ast&        ast     = file.ast();
-        const SourceView& srcView = ast.srcView();
-        if (ast.isAdditionalNode(currentRef))
-            return;
-
-        const AstNode& currentNode = ast.node(currentRef);
-        SmallVector<AstNodeRef> children;
-        collectModuleApiSourceOrderedChildren(ast, srcView, currentNode, children);
-        for (size_t i = 0; i < children.size(); ++i)
+        bool empty() const
         {
-            const AstNodeRef childRef = children[i];
-            if (childRef.isInvalid() || ast.isAdditionalNode(childRef))
-                continue;
+            return !paren && !square && !curly;
+        }
+    };
 
-            if (childRef == targetRef)
-                ioFoundTarget = true;
-            else
-                findNextSiblingSnippetStartOffsetRec(file, childRef, targetRef, ioFoundTarget, ioNextOffset);
+    void updateModuleApiDelimiterBalance(ModuleApiDelimiterBalance& balance, const TokenId tokenId)
+    {
+        switch (tokenId)
+        {
+            case TokenId::SymLeftParen:
+                balance.paren++;
+                break;
 
-            if (ioNextOffset != moduleApiInvalidByte)
-                return;
+            case TokenId::SymRightParen:
+                if (balance.paren)
+                    balance.paren--;
+                break;
 
-            if (!ioFoundTarget)
-                continue;
+            case TokenId::SymLeftBracket:
+                balance.square++;
+                break;
 
-            for (size_t j = i + 1; j < children.size(); ++j)
-            {
-                uint32_t siblingStartOffset = 0;
-                if (!tryGetModuleApiSnippetStartOffset(file, children[j], siblingStartOffset))
-                    continue;
+            case TokenId::SymRightBracket:
+                if (balance.square)
+                    balance.square--;
+                break;
 
-                ioNextOffset = siblingStartOffset;
-                return;
-            }
+            case TokenId::SymLeftCurly:
+                balance.curly++;
+                break;
 
-            return;
+            case TokenId::SymRightCurly:
+                if (balance.curly)
+                    balance.curly--;
+                break;
+
+            default:
+                break;
         }
     }
 
-    uint32_t findNextSiblingSnippetStartOffset(const SourceFile& file, const AstNodeRef targetRef)
+    void extendModuleApiSnippetEndOffset(const SourceView& srcView, const TokenRef startTokRef, const TokenRef endTokRef, uint32_t& ioEndOffset)
     {
-        const AstNodeRef rootRef = file.ast().root();
-        if (rootRef.isInvalid())
-            return moduleApiInvalidByte;
+        ModuleApiDelimiterBalance balance;
+        for (uint32_t tokIndex = startTokRef.get(); tokIndex <= endTokRef.get() && tokIndex < srcView.tokens().size(); ++tokIndex)
+            updateModuleApiDelimiterBalance(balance, srcView.token(TokenRef(tokIndex)).id);
 
-        bool     foundTarget = false;
-        uint32_t nextOffset  = moduleApiInvalidByte;
-        findNextSiblingSnippetStartOffsetRec(file, rootRef, targetRef, foundTarget, nextOffset);
-        return nextOffset;
+        if (balance.empty())
+            return;
+
+        for (uint32_t tokIndex = endTokRef.get() + 1; tokIndex < srcView.tokens().size(); ++tokIndex)
+        {
+            const Token& token = srcView.token(TokenRef(tokIndex));
+            bool         extend = false;
+
+            switch (token.id)
+            {
+                case TokenId::SymRightParen:
+                    extend = balance.paren != 0;
+                    if (extend)
+                        balance.paren--;
+                    break;
+
+                case TokenId::SymRightBracket:
+                    extend = balance.square != 0;
+                    if (extend)
+                        balance.square--;
+                    break;
+
+                case TokenId::SymRightCurly:
+                    extend = balance.curly != 0;
+                    if (extend)
+                        balance.curly--;
+                    break;
+
+                default:
+                    return;
+            }
+
+            if (!extend)
+                return;
+
+            ioEndOffset = sourceTokenByteEnd(srcView, token);
+            if (balance.empty())
+                return;
+        }
     }
 
-    bool tryGetModuleApiSnippetStartOffset(const SourceFile& file, const AstNodeRef nodeRef, uint32_t& outStartOffset)
+    bool tryGetModuleApiSnippetOffsets(const SourceFile& file, const AstNodeRef nodeRef, uint32_t& outStartOffset, uint32_t& outEndOffset)
     {
         outStartOffset = 0;
+        outEndOffset   = 0;
         if (nodeRef.isInvalid())
             return false;
 
@@ -309,26 +367,33 @@ namespace
         const TokenRef startTokRef = moduleApiSnippetStartTokRef(ast, node);
         if (!startTokRef.isValid())
             return false;
+        const TokenRef endTokRef = node.tokRefEnd(ast);
+        if (!endTokRef.isValid())
+            return false;
 
         const SourceView& srcView = ast.srcView();
-        outStartOffset            = sourceTokenByteStart(srcView, srcView.token(startTokRef));
+        outStartOffset = sourceTokenByteStart(srcView, srcView.token(startTokRef));
+        outEndOffset   = sourceTokenByteEnd(srcView, srcView.token(endTokRef));
+        extendModuleApiSnippetEndOffset(srcView, startTokRef, endTokRef, outEndOffset);
         return true;
     }
 
-    bool tryGetModuleApiSnippet(const SourceFile& file, const AstNodeRef nodeRef, const uint32_t maxEndOffset, std::string_view& outSnippet)
+    bool tryGetModuleApiSnippetStartOffset(const SourceFile& file, const AstNodeRef nodeRef, uint32_t& outStartOffset)
+    {
+        uint32_t endOffset = 0;
+        return tryGetModuleApiSnippetOffsets(file, nodeRef, outStartOffset, endOffset);
+    }
+
+    bool tryGetModuleApiSnippet(const SourceFile& file, const AstNodeRef nodeRef, std::string_view& outSnippet)
     {
         outSnippet = {};
-        const Ast& ast = file.ast();
         uint32_t   startOffset = 0;
-        if (!tryGetModuleApiSnippetStartOffset(file, nodeRef, startOffset))
+        uint32_t   endOffset   = 0;
+        if (!tryGetModuleApiSnippetOffsets(file, nodeRef, startOffset, endOffset))
             return false;
 
-        const SourceView&      srcView   = ast.srcView();
-        const std::string_view source    = file.sourceView();
-        uint32_t               endOffset = static_cast<uint32_t>(source.size());
-        endOffset = std::min(endOffset, findNextSiblingSnippetStartOffset(file, nodeRef));
-
-        endOffset = std::min(endOffset, maxEndOffset);
+        const std::string_view source = file.sourceView();
+        endOffset = std::min(endOffset, static_cast<uint32_t>(source.size()));
         while (endOffset > startOffset && std::isspace(static_cast<unsigned char>(source[endOffset - 1])))
             endOffset--;
 
@@ -344,8 +409,30 @@ namespace
         return tokenId == TokenId::CommentLine || tokenId == TokenId::CommentBlock;
     }
 
+    std::string_view moduleApiLeadingIndentPrefix(const SourceFile& file, const uint32_t startOffset)
+    {
+        const std::string_view source = file.sourceView();
+        if (startOffset >= source.size())
+            return {};
+
+        uint32_t lineStart = startOffset;
+        while (lineStart > 0 && source[lineStart - 1] != '\n' && source[lineStart - 1] != '\r')
+            lineStart--;
+
+        uint32_t indentEnd = lineStart;
+        while (indentEnd < startOffset && (source[indentEnd] == ' ' || source[indentEnd] == '\t'))
+            indentEnd++;
+
+        if (indentEnd > startOffset)
+            indentEnd = startOffset;
+        return source.substr(lineStart, indentEnd - lineStart);
+    }
+
     void flushModuleApiLine(Utf8& output, Utf8& line, const std::string_view eol, bool& wroteLine, bool& lineHasContent, const bool forceWrite)
     {
+        while (!line.empty() && (line.back() == ' ' || line.back() == '\t'))
+            line.pop_back();
+
         if (forceWrite || lineHasContent)
         {
             if (wroteLine)
@@ -393,7 +480,7 @@ namespace
         return {};
     }
 
-    void appendModuleApiLexedText(Utf8& output, Utf8& line, const std::string_view text, const std::string_view eol, const bool preserveEmptyLine, bool& wroteLine, bool& lineHasContent, bool& pendingSpace)
+    void appendModuleApiLexedText(Utf8& output, Utf8& line, const std::string_view text, const std::string_view indentPrefixToStrip, const std::string_view eol, const bool preserveEmptyLine, bool& wroteLine, bool& lineHasContent, bool& pendingSpace, size_t& ioIndentStripIndex)
     {
         size_t index = 0;
         while (index < text.size())
@@ -415,10 +502,28 @@ namespace
             if (c == '\r' || c == '\n')
             {
                 flushModuleApiLine(output, line, eol, wroteLine, lineHasContent, preserveEmptyLine);
+                pendingSpace = false;
+                ioIndentStripIndex = 0;
                 if (c == '\r' && index + 1 < text.size() && text[index + 1] == '\n')
                     index++;
                 index++;
                 continue;
+            }
+
+            if (!lineHasContent && ioIndentStripIndex < indentPrefixToStrip.size() && (c == ' ' || c == '\t'))
+            {
+                if (c == indentPrefixToStrip[ioIndentStripIndex])
+                {
+                    ioIndentStripIndex++;
+                    index++;
+                    continue;
+                }
+
+                ioIndentStripIndex = indentPrefixToStrip.size();
+            }
+            else if (!lineHasContent)
+            {
+                ioIndentStripIndex = indentPrefixToStrip.size();
             }
 
             line += c;
@@ -432,6 +537,10 @@ namespace
     {
         if (snippetText.empty())
             return {};
+
+        const std::string_view source      = file.sourceView();
+        const uint32_t         startOffset = static_cast<uint32_t>(snippetText.data() - source.data());
+        const std::string_view indentPrefixToStrip = moduleApiLeadingIndentPrefix(file, startOffset);
 
         SourceFile lexFile(FileRef::invalid(), file.path(), FileFlagsE::CustomSrc);
         lexFile.setContent(snippetText);
@@ -447,6 +556,7 @@ namespace
         bool     pendingSpace   = false;
         uint32_t tokenIndex     = 0;
         uint32_t triviaIndex    = 0;
+        size_t   indentStripIndex = 0;
 
         result.reserve(snippetText.size());
         line.reserve(snippetText.size());
@@ -466,103 +576,150 @@ namespace
 
             if (piece.tokenId == TokenId::Whitespace)
             {
-                appendModuleApiLexedText(result, line, piece.text, eol, false, wroteLine, lineHasContent, pendingSpace);
+                appendModuleApiLexedText(result, line, piece.text, indentPrefixToStrip, eol, false, wroteLine, lineHasContent, pendingSpace, indentStripIndex);
                 continue;
             }
 
-            appendModuleApiLexedText(result, line, piece.text, eol, true, wroteLine, lineHasContent, pendingSpace);
+            appendModuleApiLexedText(result, line, piece.text, indentPrefixToStrip, eol, true, wroteLine, lineHasContent, pendingSpace, indentStripIndex);
         }
 
         flushModuleApiLine(result, line, eol, wroteLine, lineHasContent, false);
         return result;
     }
 
-    bool containsExportRootDecl(const Ast& ast, const AstNodeRef nodeRef, const AstNodeRef declRef)
+    bool isModuleApiDeclWrapper(const AstNode& node)
     {
-        if (!nodeRef.isValid() || !declRef.isValid())
+        return node.is(AstNodeId::AccessModifier) ||
+               node.is(AstNodeId::AttributeList) ||
+               node.is(AstNodeId::VarDeclList);
+    }
+
+    bool isModuleApiForbiddenContainer(const AstNode& node)
+    {
+        return node.is(AstNodeId::FunctionDecl) ||
+               node.is(AstNodeId::StructDecl) ||
+               node.is(AstNodeId::EnumDecl) ||
+               node.is(AstNodeId::InterfaceDecl) ||
+               node.is(AstNodeId::Impl);
+    }
+
+    bool collectModuleApiNodePath(const Ast& ast, const AstNodeRef currentRef, const AstNodeRef targetRef, SmallVector<AstNodeRef>& ioPath)
+    {
+        if (!currentRef.isValid() || ast.isAdditionalNode(currentRef))
             return false;
 
-        if (nodeRef == declRef)
+        ioPath.push_back(currentRef);
+        if (currentRef == targetRef)
             return true;
 
-        const AstNode& node = ast.node(nodeRef);
-        if (node.is(AstNodeId::AccessModifier))
-            return containsExportRootDecl(ast, node.cast<AstAccessModifier>().nodeWhatRef, declRef);
-
-        if (node.is(AstNodeId::AttributeList))
-            return containsExportRootDecl(ast, node.cast<AstAttributeList>().nodeBodyRef, declRef);
-
-        if (node.is(AstNodeId::VarDeclList))
+        SmallVector<AstNodeRef> childRefs;
+        ast.node(currentRef).collectChildrenFromAst(childRefs, ast);
+        for (const AstNodeRef childRef : childRefs)
         {
-            SmallVector<AstNodeRef> childRefs;
-            ast.appendNodes(childRefs, node.cast<AstVarDeclList>().spanChildrenRef);
-            for (const AstNodeRef childRef : childRefs)
-            {
-                if (containsExportRootDecl(ast, childRef, declRef))
-                    return true;
-            }
+            if (collectModuleApiNodePath(ast, childRef, targetRef, ioPath))
+                return true;
         }
 
+        ioPath.pop_back();
         return false;
     }
 
-    AstNodeRef findTopLevelExportRoot(const SourceFile& file, const AstNodeRef declRef)
+    AstNodeRef findExportDeclRoot(const SourceFile& file, const AstNodeRef declRef)
     {
         const AstNodeRef rootRef = file.ast().root();
         if (rootRef.isInvalid())
             return AstNodeRef::invalid();
 
-        const AstNode& rootNode = file.ast().node(rootRef);
-        if (rootNode.isNot(AstNodeId::File))
+        SmallVector<AstNodeRef> nodePath;
+        if (!collectModuleApiNodePath(file.ast(), rootRef, declRef, nodePath))
             return AstNodeRef::invalid();
 
-        SmallVector<AstNodeRef> childRefs;
-        file.ast().appendNodes(childRefs, rootNode.cast<AstFile>().spanChildrenRef);
-        for (const AstNodeRef childRef : childRefs)
+        AstNodeRef exportRootRef = declRef;
+        for (size_t i = nodePath.size(); i > 1; --i)
         {
-            if (containsExportRootDecl(file.ast(), childRef, declRef))
-                return childRef;
+            const AstNodeRef parentRef = nodePath[i - 2];
+            const AstNode&   parent    = file.ast().node(parentRef);
+            if (!isModuleApiDeclWrapper(parent))
+                break;
+
+            exportRootRef = parentRef;
         }
 
-        return AstNodeRef::invalid();
+        return exportRootRef;
+    }
+
+    bool isExportedPublicDeclScope(const SourceFile& file, const AstNodeRef declRef)
+    {
+        const AstNodeRef rootRef = file.ast().root();
+        if (rootRef.isInvalid())
+            return false;
+
+        SmallVector<AstNodeRef> nodePath;
+        if (!collectModuleApiNodePath(file.ast(), rootRef, declRef, nodePath))
+            return false;
+
+        for (size_t i = 0; i + 1 < nodePath.size(); ++i)
+        {
+            const AstNode& node = file.ast().node(nodePath[i]);
+            if (isModuleApiForbiddenContainer(node))
+                return false;
+        }
+
+        return true;
+    }
+
+    bool extractPublicNamespacePath(const Symbol& symbol, std::vector<IdentifierRef>& outNamespacePath)
+    {
+        outNamespacePath.clear();
+
+        const SymbolMap* symMap = symbol.ownerSymMap();
+        while (symMap)
+        {
+            if (symMap->isModule())
+                break;
+
+            if (!symMap->isNamespace())
+                return false;
+
+            const SymbolMap* ownerSymMap = symMap->ownerSymMap();
+            if (ownerSymMap && ownerSymMap->isModule())
+            {
+                symMap = ownerSymMap;
+                continue;
+            }
+
+            if (symMap->idRef().isValid())
+                outNamespacePath.push_back(symMap->idRef());
+
+            symMap = ownerSymMap;
+        }
+
+        std::ranges::reverse(outNamespacePath);
+        return true;
+    }
+
+    uint32_t moduleApiRootSortByte(const SourceFile& file, const AstNodeRef nodeRef)
+    {
+        uint32_t startOffset = moduleApiInvalidByte;
+        if (!tryGetModuleApiSnippetStartOffset(file, nodeRef, startOffset))
+            return moduleApiInvalidByte;
+
+        return startOffset;
     }
 
     void appendGeneratedRootsForFile(const SourceFile& file, const ModuleApiFileEntry& fileEntry, std::vector<ModuleApiGeneratedRoot>& outRoots)
     {
-        if (fileEntry.publicRootRefs.empty())
+        if (fileEntry.publicEntries.empty())
             return;
 
-        const AstNodeRef rootRef = file.ast().root();
-        if (rootRef.isInvalid())
-            return;
-
-        const AstNode& rootNode = file.ast().node(rootRef);
-        if (rootNode.isNot(AstNodeId::File))
-            return;
-
-        SmallVector<AstNodeRef> childRefs;
-        file.ast().appendNodes(childRefs, rootNode.cast<AstFile>().spanChildrenRef);
-        for (const AstNodeRef childRef : childRefs)
+        std::vector<ModuleApiPublicEntry> sortedEntries = fileEntry.publicEntries;
+        std::ranges::stable_sort(sortedEntries, [&](const ModuleApiPublicEntry& lhs, const ModuleApiPublicEntry& rhs)
         {
-            if (std::ranges::find(fileEntry.publicRootRefs, childRef) == fileEntry.publicRootRefs.end())
-                continue;
+            return moduleApiRootSortByte(file, lhs.rootRef) < moduleApiRootSortByte(file, rhs.rootRef);
+        });
 
-            const AstNode& childNode    = file.ast().node(childRef);
-            const TokenRef startTokRef  = moduleApiSnippetStartTokRef(file.ast(), childNode);
-            const bool     canMergeRoot = startTokRef.isValid() && !outRoots.empty() && outRoots.back().file == &file;
-            if (canMergeRoot)
-            {
-                const AstNode& previousNode      = file.ast().node(outRoots.back().nodeRef);
-                const TokenRef previousStartTok  = moduleApiSnippetStartTokRef(file.ast(), previousNode);
-                if (previousStartTok == startTokRef)
-                {
-                    outRoots.back().nodeRef = childRef;
-                    continue;
-                }
-            }
-
-            outRoots.push_back({.file = &file, .nodeRef = childRef});
-        }
+        for (const ModuleApiPublicEntry& publicEntry : sortedEntries)
+            outRoots.push_back({.file = &file, .nodeRef = publicEntry.rootRef, .namespacePath = publicEntry.namespacePath});
     }
 
     fs::path buildGeneratedModuleApiPath(const CompilerInstance& compiler, const fs::path& exportApiDir)
@@ -602,6 +759,106 @@ namespace
         return content;
     }
 
+    void appendIndentedSnippet(Utf8& outContent, std::string_view snippetText, std::string_view indent, std::string_view eol)
+    {
+        size_t pos = 0;
+        while (pos < snippetText.size())
+        {
+            const size_t lineStart = pos;
+            size_t       lineEnd   = pos;
+            while (lineEnd < snippetText.size() && snippetText[lineEnd] != '\r' && snippetText[lineEnd] != '\n')
+                lineEnd++;
+
+            const std::string_view line = snippetText.substr(lineStart, lineEnd - lineStart);
+            if (!line.empty())
+                outContent += indent;
+            outContent.append(line);
+
+            if (lineEnd < snippetText.size())
+            {
+                outContent += eol;
+                pos = lineEnd + 1;
+                if (snippetText[lineEnd] == '\r' && pos < snippetText.size() && snippetText[pos] == '\n')
+                    pos++;
+                continue;
+            }
+
+            pos = lineEnd;
+        }
+    }
+
+    ModuleApiNamespaceNode* findOrAppendNamespaceChild(ModuleApiNamespaceNode& node, const IdentifierRef idRef)
+    {
+        const auto it = std::ranges::find_if(node.children, [&](const ModuleApiNamespaceNode& child) { return child.idRef == idRef; });
+        if (it != node.children.end())
+            return &*it;
+
+        node.children.push_back({.idRef = idRef});
+        return &node.children.back();
+    }
+
+    void appendNamespaceSnippet(ModuleApiNamespaceNode& rootNode, std::span<const IdentifierRef> namespacePath, Utf8&& snippet)
+    {
+        ModuleApiNamespaceNode* currentNode = &rootNode;
+        for (const IdentifierRef idRef : namespacePath)
+        {
+            currentNode = findOrAppendNamespaceChild(*currentNode, idRef);
+            SWC_ASSERT(currentNode);
+        }
+
+        currentNode->snippets.push_back(std::move(snippet));
+    }
+
+    void appendNamespaceNode(TaskContext& ctx, Utf8& outContent, const ModuleApiNamespaceNode& node, const Utf8& indent, std::string_view eol)
+    {
+        if (node.idRef.isInvalid() && node.snippets.empty() && node.children.empty())
+            return;
+
+        Utf8 childIndent = indent;
+        if (node.idRef.isValid())
+        {
+            outContent += indent;
+            outContent += "namespace ";
+            outContent += ctx.idMgr().get(node.idRef).name;
+            outContent += eol;
+            outContent += indent;
+            outContent += "{";
+            outContent += eol;
+
+            childIndent += "    ";
+        }
+
+        for (const Utf8& snippet : node.snippets)
+        {
+            appendIndentedSnippet(outContent, snippet.view(), childIndent.view(), eol);
+            if (snippet.back() != '\n' && snippet.back() != '\r')
+                outContent += eol;
+        }
+
+        for (const ModuleApiNamespaceNode& child : node.children)
+            appendNamespaceNode(ctx, outContent, child, childIndent, eol);
+
+        if (node.idRef.isValid())
+        {
+            outContent += indent;
+            outContent += "}";
+            outContent += eol;
+        }
+    }
+
+    void appendNamespaceTree(TaskContext& ctx, Utf8& outContent, const ModuleApiNamespaceNode& rootNode, std::string_view eol)
+    {
+        for (const Utf8& snippet : rootNode.snippets)
+        {
+            outContent += snippet;
+            if (snippet.back() != '\n' && snippet.back() != '\r')
+                outContent += eol;
+        }
+
+        for (const ModuleApiNamespaceNode& child : rootNode.children)
+            appendNamespaceNode(ctx, outContent, child, {}, eol);
+    }
+
     Result formatGeneratedModuleApiContent(TaskContext& ctx, Utf8& outContent)
     {
         FormatOptions options;
@@ -624,44 +881,27 @@ namespace
         outContent += "#global public";
         outContent += eol;
 
-        bool wroteSnippet = false;
-        std::vector<std::pair<fs::path, Utf8>> seenSnippets;
-        seenSnippets.reserve(roots.size());
-        for (size_t i = 0; i < roots.size(); ++i)
+        ModuleApiNamespaceNode namespaceTree;
+
+        for (const ModuleApiGeneratedRoot& root : roots)
         {
-            const ModuleApiGeneratedRoot& root = roots[i];
             if (!root.file)
                 continue;
 
-            uint32_t nextRootStart = std::numeric_limits<uint32_t>::max();
-            for (size_t j = i + 1; j < roots.size(); ++j)
-            {
-                if (roots[j].file != root.file || !roots[j].file)
-                    break;
-
-                if (tryGetModuleApiSnippetStartOffset(*roots[j].file, roots[j].nodeRef, nextRootStart))
-                    break;
-            }
-
             std::string_view snippetText;
-            if (!tryGetModuleApiSnippet(*root.file, root.nodeRef, nextRootStart, snippetText))
+            if (!tryGetModuleApiSnippet(*root.file, root.nodeRef, snippetText))
                 continue;
 
             Utf8 sanitizedSnippet = buildSanitizedModuleApiSnippet(ctx, *root.file, snippetText, eol);
             if (sanitizedSnippet.empty())
                 continue;
 
-            if (std::ranges::any_of(seenSnippets, [&](const auto& seen) { return seen.first == root.file->path() && seen.second == sanitizedSnippet; }))
-                continue;
-            seenSnippets.emplace_back(root.file->path(), sanitizedSnippet);
-
-            outContent += sanitizedSnippet;
-            if (sanitizedSnippet.back() != '\n' && sanitizedSnippet.back() != '\r')
-                outContent += eol;
-            wroteSnippet = true;
+            appendNamespaceSnippet(namespaceTree, root.namespacePath, std::move(sanitizedSnippet));
         }
 
-        if (!wroteSnippet && outContent.back() != '\n' && outContent.back() != '\r')
+        appendNamespaceTree(ctx, outContent, namespaceTree, eol);
+
+        if (roots.empty() && outContent.back() != '\n' && outContent.back() != '\r')
             outContent += eol;
 
         return formatGeneratedModuleApiContent(ctx, outContent);
@@ -723,12 +963,22 @@ namespace ModuleApi
         const AstNodeRef declRef = symbol.decl()->nodeRef(sourceFile->ast());
         if (declRef.isInvalid())
             return;
+        if (!isExportedPublicDeclScope(*sourceFile, declRef))
+            return;
 
-        const AstNodeRef rootRef = findTopLevelExportRoot(*sourceFile, declRef);
+        ModuleApiPublicEntry publicEntry;
+        publicEntry.rootRef = findExportDeclRoot(*sourceFile, declRef);
+        if (publicEntry.rootRef.isInvalid())
+            return;
+
+        if (!extractPublicNamespacePath(symbol, publicEntry.namespacePath))
+            return;
+
+        const AstNodeRef rootRef = publicEntry.rootRef;
         if (rootRef.isInvalid())
             return;
 
-        recordPublicRoot(state, symbol.srcViewRef(), rootRef);
+        recordPublicEntry(state, symbol.srcViewRef(), publicEntry);
     }
 
     Result exportFiles(TaskContext& ctx)

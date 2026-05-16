@@ -699,9 +699,41 @@ const DEP_PUBLIC_DEFAULT = 11 // Trailing comments must not leak either
 
 const DEP_MULTI_A = 13, DEP_MULTI_B = 17
 
+namespace DepTools
+{
+    const DEP_NAMESPACE_A = 31
+    const DEP_NAMESPACE_B = 37
+}
+
 /* Block comments must not leak */
 fileprivate const DEP_FILE_PRIVATE = 23
 moduleprivate const DEP_MODULE_PRIVATE = 29
+)"))
+        return Result::Error;
+    if (!writeTextFile(depModuleDir / "src" / "public_more.swg", R"(#global public
+namespace DepTools
+{
+    const DEP_NAMESPACE_C = 41
+}
+
+namespace DepTools.Deep
+{
+    const DEP_NAMESPACE_DEEP = 43
+}
+
+public struct DepIgnoredContainer
+{
+}
+
+public impl DepIgnoredContainer
+{
+    const DEP_IMPL_VALUE = 47
+
+    mtd run()
+    {
+        const DEP_LOCAL_VALUE = 53
+    }
+}
 )"))
         return Result::Error;
     if (!writeTextFile(depModuleDir / "src" / "legacy.swg", R"(#global export
@@ -725,7 +757,15 @@ public func depLegacyValue()->s32
 
 public func coreValue()->s32
 {
-    return DEP_VALUE + DEP_PUBLIC_DEFAULT + DEP_MULTI_A + DEP_MULTI_B + depLegacyValue()
+    return DEP_VALUE +
+           DEP_PUBLIC_DEFAULT +
+           DEP_MULTI_A +
+           DEP_MULTI_B +
+           DepTools.DEP_NAMESPACE_A +
+           DepTools.DEP_NAMESPACE_B +
+           DepTools.DEP_NAMESPACE_C +
+           DepTools.Deep.DEP_NAMESPACE_DEEP +
+           depLegacyValue()
 }
 )"))
         return Result::Error;
@@ -774,6 +814,14 @@ public func coreValue()->s32
         return Result::Error;
     if (!depApiContent.contains("const DEP_MULTI_A = 13, DEP_MULTI_B = 17"))
         return Result::Error;
+    if (!depApiContent.contains("const DEP_NAMESPACE_A = 31"))
+        return Result::Error;
+    if (!depApiContent.contains("const DEP_NAMESPACE_B = 37"))
+        return Result::Error;
+    if (!depApiContent.contains("const DEP_NAMESPACE_C = 41"))
+        return Result::Error;
+    if (!depApiContent.contains("const DEP_NAMESPACE_DEEP = 43"))
+        return Result::Error;
     if (depApiContent.contains("PRIVATE_VALUE"))
         return Result::Error;
     if (depApiContent.contains("DEP_FILE_PRIVATE"))
@@ -784,11 +832,37 @@ public func coreValue()->s32
         return Result::Error;
     if (depApiContent.contains("depLegacyValue"))
         return Result::Error;
+    if (depApiContent.contains("DEP_IMPL_VALUE"))
+        return Result::Error;
+    if (depApiContent.contains("DEP_LOCAL_VALUE"))
+        return Result::Error;
     if (depApiContent.contains("//") || depApiContent.contains("/*"))
         return Result::Error;
 
     Utf8 normalizedDepApiContent = depApiContent;
     normalizedDepApiContent.replace_loop("\r", "");
+    const size_t depToolsPos = normalizedDepApiContent.find("namespace DepTools\n");
+    if (depToolsPos == Utf8::npos)
+        return Result::Error;
+    if (normalizedDepApiContent.find("namespace DepTools\n", depToolsPos + 1) != Utf8::npos)
+        return Result::Error;
+    if (normalizedDepApiContent.contains("namespace DepTools.Deep\n"))
+        return Result::Error;
+    const size_t depToolsDeepPos = normalizedDepApiContent.find("namespace Deep\n");
+    if (depToolsDeepPos == Utf8::npos)
+        return Result::Error;
+    const size_t depNamespaceAPos = normalizedDepApiContent.find("DEP_NAMESPACE_A");
+    const size_t depNamespaceBPos = normalizedDepApiContent.find("DEP_NAMESPACE_B");
+    const size_t depNamespaceCPos = normalizedDepApiContent.find("DEP_NAMESPACE_C");
+    const size_t depNamespaceDeepPos = normalizedDepApiContent.find("DEP_NAMESPACE_DEEP");
+    if (depNamespaceAPos == Utf8::npos || depNamespaceBPos == Utf8::npos || depNamespaceCPos == Utf8::npos || depNamespaceDeepPos == Utf8::npos)
+        return Result::Error;
+    if (!(depToolsPos < depNamespaceAPos &&
+          depNamespaceAPos < depNamespaceBPos &&
+          depNamespaceBPos < depNamespaceCPos &&
+          depNamespaceCPos < depToolsDeepPos &&
+          depToolsDeepPos < depNamespaceDeepPos))
+        return Result::Error;
     if (normalizedDepApiContent.contains("\n\n"))
         return Result::Error;
 

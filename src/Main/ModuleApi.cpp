@@ -1,5 +1,4 @@
 #include "pch.h"
-#include "Main/ModuleApi.h"
 #include "Backend/RuntimeName.h"
 #include "Compiler/Lexer/Lexer.h"
 #include "Compiler/Lexer/SourceView.h"
@@ -15,6 +14,7 @@
 #include "Main/Command/CommandLineParser.h"
 #include "Main/CompilerInstance.h"
 #include "Main/FileSystem.h"
+#include "Main/ModuleApi.h"
 #include "Main/TaskContext.h"
 #include "Support/Report/Diagnostic.h"
 
@@ -49,20 +49,10 @@ namespace
         std::vector<IdentifierRef> namespacePath;
     };
 
-    struct ModuleApiNamespaceNode
+    struct ModuleApiImplEntry
     {
-        struct ImplNode
-        {
-            const SourceFile* file    = nullptr;
-            AstNodeRef        implRef = AstNodeRef::invalid();
-            Utf8              prefix;
-            std::vector<Utf8> snippets;
-        };
-
-        IdentifierRef                       idRef = IdentifierRef::invalid();
-        std::vector<Utf8>                   snippets;
-        std::vector<ImplNode>               impls;
-        std::vector<ModuleApiNamespaceNode> children;
+        Utf8              prefix;
+        std::vector<Utf8> snippets;
     };
 
     struct ModuleApiUsingSnippet
@@ -256,9 +246,8 @@ namespace
 
         SmallVector<AstNodeRef> globalRefs;
         file.ast().appendNodes(globalRefs, fileNode.spanGlobalsRef);
-        for (uint32_t i = 0; i < globalRefs.size(); ++i)
+        for (auto globalRef : globalRefs)
         {
-            const AstNodeRef globalRef = globalRefs[i];
             if (globalRef.isInvalid())
                 continue;
 
@@ -368,17 +357,17 @@ namespace
 
     struct ModuleApiValidationScope
     {
-        SmallVector<const Symbol*>& stack;
+        SmallVector<const Symbol*>* stack = nullptr;
 
         ModuleApiValidationScope(SmallVector<const Symbol*>& stack, const Symbol& symbol) :
-            stack(stack)
+            stack(&stack)
         {
-            stack.push_back(&symbol);
+            this->stack->push_back(&symbol);
         }
 
         ~ModuleApiValidationScope()
         {
-            stack.pop_back();
+            stack->pop_back();
         }
     };
 
@@ -809,30 +798,6 @@ namespace
 
     bool tryGetModuleApiSnippetStartOffset(const SourceFile& file, AstNodeRef nodeRef, uint32_t& outStartOffset);
 
-    constexpr uint32_t moduleApiInvalidByte = 0xFFFFFFFFu;
-
-    uint32_t moduleApiNodeSortByte(const Ast& ast, const SourceView& srcView, const AstNodeRef nodeRef)
-    {
-        if (nodeRef.isInvalid() || ast.isAdditionalNode(nodeRef))
-            return moduleApiInvalidByte;
-
-        const AstNode& node = ast.node(nodeRef);
-        if (const TokenRef tokRef = node.tokRef(); tokRef.isValid())
-        {
-            const Token& tok = srcView.token(tokRef);
-            if (tok.isNot(TokenId::EndOfFile))
-                return sourceTokenByteStart(srcView, tok);
-        }
-
-        SmallVector<AstNodeRef> children;
-        Ast::nodeIdInfos(node.id()).collectChildren(children, ast, node);
-
-        uint32_t result = moduleApiInvalidByte;
-        for (const AstNodeRef childRef : children)
-            result = std::min(result, moduleApiNodeSortByte(ast, srcView, childRef));
-        return result;
-    }
-
     struct ModuleApiDelimiterBalance
     {
         uint32_t paren  = 0;
@@ -1086,8 +1051,7 @@ namespace
         while (indentEnd < startOffset && (source[indentEnd] == ' ' || source[indentEnd] == '\t'))
             indentEnd++;
 
-        if (indentEnd > startOffset)
-            indentEnd = startOffset;
+        indentEnd = std::min(indentEnd, startOffset);
         return source.substr(lineStart, indentEnd - lineStart);
     }
 
@@ -1201,7 +1165,6 @@ namespace
         if (snippetText.empty())
             return {};
 
-        const std::string_view source              = file.sourceView();
         const std::string_view indentPrefixToStrip = moduleApiLeadingIndentPrefix(file, startOffset);
 
         std::vector<ModuleApiStripRange> stripRanges;
@@ -1562,8 +1525,8 @@ namespace
                 insertOffset >= startOffset &&
                 insertOffset <= endOffset)
             {
-                Utf8 returnTypeName = ctx.typeMgr().get(symbolFunction->returnTypeRef()).toName(ctx);
-                Utf8 insertion      = std::format("->{} ", returnTypeName.c_str());
+                const Utf8 returnTypeName = ctx.typeMgr().get(symbolFunction->returnTypeRef()).toName(ctx);
+                const Utf8 insertion      = std::format("->{} ", returnTypeName.c_str());
                 rawPrefix.insert(insertOffset - startOffset, insertion);
             }
         }
@@ -1903,7 +1866,8 @@ namespace
 
     uint32_t moduleApiRootSortByte(const SourceFile& file, const AstNodeRef nodeRef)
     {
-        uint32_t startOffset = moduleApiInvalidByte;
+        constexpr uint32_t moduleApiInvalidByte = 0xFFFFFFFFu;
+        uint32_t           startOffset          = moduleApiInvalidByte;
         if (!tryGetModuleApiSnippetStartOffset(file, nodeRef, startOffset))
             return moduleApiInvalidByte;
 
@@ -2007,73 +1971,12 @@ namespace
         }
     }
 
-    ModuleApiNamespaceNode* findOrAppendNamespaceChild(ModuleApiNamespaceNode& node, const IdentifierRef idRef)
+    void appendImplEntry(Utf8& outContent, const ModuleApiImplEntry& entry, const Utf8& indent, const std::string_view eol)
     {
-        const auto it = std::ranges::find_if(node.children, [&](const ModuleApiNamespaceNode& child) { return child.idRef == idRef; });
-        if (it != node.children.end())
-            return &*it;
-
-        node.children.push_back({.idRef = idRef});
-        return &node.children.back();
-    }
-
-    ModuleApiNamespaceNode::ImplNode* findOrAppendNamespaceImpl(ModuleApiNamespaceNode& node, const SourceFile& file, const AstNodeRef implRef, Utf8&& prefix)
-    {
-        const auto it = std::ranges::find_if(node.impls, [&](const ModuleApiNamespaceNode::ImplNode& child) { return child.file == &file && child.implRef == implRef; });
-        if (it != node.impls.end())
-            return &*it;
-
-        node.impls.push_back({.file = &file, .implRef = implRef, .prefix = std::move(prefix)});
-        return &node.impls.back();
-    }
-
-    void appendNamespaceSnippet(ModuleApiNamespaceNode& rootNode, std::span<const IdentifierRef> namespacePath, Utf8&& snippet)
-    {
-        ModuleApiNamespaceNode* currentNode = &rootNode;
-        for (const IdentifierRef idRef : namespacePath)
-        {
-            currentNode = findOrAppendNamespaceChild(*currentNode, idRef);
-            SWC_ASSERT(currentNode);
-        }
-
-        currentNode->snippets.push_back(std::move(snippet));
-    }
-
-    void appendNamespaceUniqueSnippet(ModuleApiNamespaceNode& rootNode, std::span<const IdentifierRef> namespacePath, const Utf8& snippet)
-    {
-        ModuleApiNamespaceNode* currentNode = &rootNode;
-        for (const IdentifierRef idRef : namespacePath)
-        {
-            currentNode = findOrAppendNamespaceChild(*currentNode, idRef);
-            SWC_ASSERT(currentNode);
-        }
-
-        if (std::ranges::find(currentNode->snippets, snippet) != currentNode->snippets.end())
+        if (entry.prefix.empty())
             return;
 
-        currentNode->snippets.push_back(snippet);
-    }
-
-    void appendNamespaceImplSnippet(ModuleApiNamespaceNode& rootNode, std::span<const IdentifierRef> namespacePath, const SourceFile& file, const AstNodeRef implRef, Utf8&& prefix, Utf8&& snippet)
-    {
-        ModuleApiNamespaceNode* currentNode = &rootNode;
-        for (const IdentifierRef idRef : namespacePath)
-        {
-            currentNode = findOrAppendNamespaceChild(*currentNode, idRef);
-            SWC_ASSERT(currentNode);
-        }
-
-        auto* implNode = findOrAppendNamespaceImpl(*currentNode, file, implRef, std::move(prefix));
-        SWC_ASSERT(implNode);
-        implNode->snippets.push_back(std::move(snippet));
-    }
-
-    void appendNamespaceImplNode(Utf8& outContent, const ModuleApiNamespaceNode::ImplNode& node, const Utf8& indent, const std::string_view eol)
-    {
-        if (node.prefix.empty())
-            return;
-
-        appendIndentedSnippet(outContent, node.prefix.view(), indent.view(), eol);
+        appendIndentedSnippet(outContent, entry.prefix.view(), indent.view(), eol);
         outContent += eol;
         outContent += indent;
         outContent += "{";
@@ -2081,7 +1984,7 @@ namespace
 
         Utf8 childIndent = indent;
         childIndent += "    ";
-        for (const Utf8& snippet : node.snippets)
+        for (const Utf8& snippet : entry.snippets)
         {
             appendIndentedSnippet(outContent, snippet.view(), childIndent.view(), eol);
             if (snippet.back() != '\n' && snippet.back() != '\r')
@@ -2093,63 +1996,7 @@ namespace
         outContent += eol;
     }
 
-    void appendNamespaceNode(TaskContext& ctx, Utf8& outContent, const ModuleApiNamespaceNode& node, const Utf8& indent, std::string_view eol)
-    {
-        if (node.idRef.isInvalid() && node.snippets.empty() && node.impls.empty() && node.children.empty())
-            return;
-
-        Utf8 childIndent = indent;
-        if (node.idRef.isValid())
-        {
-            outContent += indent;
-            outContent += "namespace ";
-            outContent += ctx.idMgr().get(node.idRef).name;
-            outContent += eol;
-            outContent += indent;
-            outContent += "{";
-            outContent += eol;
-
-            childIndent += "    ";
-        }
-
-        for (const Utf8& snippet : node.snippets)
-        {
-            appendIndentedSnippet(outContent, snippet.view(), childIndent.view(), eol);
-            if (snippet.back() != '\n' && snippet.back() != '\r')
-                outContent += eol;
-        }
-
-        for (const auto& implNode : node.impls)
-            appendNamespaceImplNode(outContent, implNode, childIndent, eol);
-
-        for (const ModuleApiNamespaceNode& child : node.children)
-            appendNamespaceNode(ctx, outContent, child, childIndent, eol);
-
-        if (node.idRef.isValid())
-        {
-            outContent += indent;
-            outContent += "}";
-            outContent += eol;
-        }
-    }
-
-    void appendNamespaceTree(TaskContext& ctx, Utf8& outContent, const ModuleApiNamespaceNode& rootNode, std::string_view eol)
-    {
-        for (const Utf8& snippet : rootNode.snippets)
-        {
-            outContent += snippet;
-            if (snippet.back() != '\n' && snippet.back() != '\r')
-                outContent += eol;
-        }
-
-        for (const auto& implNode : rootNode.impls)
-            appendNamespaceImplNode(outContent, implNode, {}, eol);
-
-        for (const ModuleApiNamespaceNode& child : rootNode.children)
-            appendNamespaceNode(ctx, outContent, child, {}, eol);
-    }
-
-    Result formatGeneratedModuleApiContent(TaskContext& ctx, Utf8& outContent)
+    Result formatGeneratedModuleApiContent(const TaskContext& ctx, Utf8& outContent)
     {
         FormatOptions options;
         options.insertFinalNewline         = true;
@@ -2164,11 +2011,8 @@ namespace
 
     fs::path buildGeneratedModuleApiImportPath(const CompilerInstance& compiler, const fs::path& exportApiDir)
     {
-        Utf8 moduleName = defaultArtifactName(compiler.cmdLine());
-        if (moduleName.empty())
-            moduleName = "module";
-
-        fs::path result = exportApiDir / fs::path(moduleName.c_str());
+        const Utf8 moduleName = buildModuleArtifactName(compiler);
+        fs::path   result     = exportApiDir / fs::path(moduleName.c_str());
         result.replace_extension(".deps");
         return result.lexically_normal();
     }
@@ -2183,12 +2027,12 @@ namespace
         fs::path locationPath{importRequest.location.c_str()};
         if (locationPath.is_relative())
         {
-            fs::path baseDir = compiler.cmdLine().moduleFilePath.parent_path();
+            const fs::path baseDir = compiler.cmdLine().moduleFilePath.parent_path();
             if (!baseDir.empty())
                 locationPath = (baseDir / locationPath).lexically_normal();
         }
 
-        return Utf8(FileSystem::normalizePath(locationPath));
+        return Utf8{FileSystem::normalizePath(locationPath)};
     }
 
     Result writeModuleApiFile(TaskContext& ctx, const fs::path& dstPath, std::string_view content);
@@ -2338,12 +2182,7 @@ namespace
         const Utf8 indent = buildNamespaceIndent(static_cast<uint32_t>(entry.namespacePath.size()));
         if (entry.isImpl)
         {
-            ModuleApiNamespaceNode::ImplNode implNode;
-            implNode.file     = entry.file;
-            implNode.implRef  = entry.implRef;
-            implNode.prefix   = entry.implPrefix;
-            implNode.snippets = entry.snippets;
-            appendNamespaceImplNode(outContent, implNode, indent, eol);
+            appendImplEntry(outContent, {.prefix = entry.implPrefix, .snippets = entry.snippets}, indent, eol);
             return;
         }
 
@@ -2353,6 +2192,51 @@ namespace
             if (snippet.back() != '\n' && snippet.back() != '\r')
                 outContent += eol;
         }
+    }
+
+    void appendOrderedSnippet(std::vector<ModuleApiOrderedEntry>& outEntries, std::span<const IdentifierRef> namespacePath, Utf8&& snippet)
+    {
+        if (snippet.empty())
+            return;
+
+        if (!outEntries.empty() &&
+            !outEntries.back().isImpl &&
+            sameNamespacePath(outEntries.back().namespacePath, namespacePath))
+        {
+            outEntries.back().snippets.push_back(std::move(snippet));
+            return;
+        }
+
+        ModuleApiOrderedEntry entry;
+        entry.namespacePath.assign(namespacePath.begin(), namespacePath.end());
+        entry.snippets.push_back(std::move(snippet));
+        outEntries.push_back(std::move(entry));
+    }
+
+    void appendOrderedImplSnippet(std::vector<ModuleApiOrderedEntry>& outEntries, std::span<const IdentifierRef> namespacePath, const SourceFile& file, AstNodeRef implRef, Utf8&& implPrefix, Utf8&& snippet)
+    {
+        if (snippet.empty() || implPrefix.empty())
+            return;
+
+        if (!outEntries.empty() &&
+            outEntries.back().isImpl &&
+            outEntries.back().file == &file &&
+            outEntries.back().implRef == implRef &&
+            outEntries.back().implPrefix == implPrefix &&
+            sameNamespacePath(outEntries.back().namespacePath, namespacePath))
+        {
+            outEntries.back().snippets.push_back(std::move(snippet));
+            return;
+        }
+
+        ModuleApiOrderedEntry entry;
+        entry.namespacePath.assign(namespacePath.begin(), namespacePath.end());
+        entry.snippets.push_back(std::move(snippet));
+        entry.implPrefix = std::move(implPrefix);
+        entry.file       = &file;
+        entry.implRef    = implRef;
+        entry.isImpl     = true;
+        outEntries.push_back(std::move(entry));
     }
 
     void appendOrderedEntries(TaskContext& ctx, Utf8& outContent, std::span<const ModuleApiOrderedEntry> entries, std::string_view eol)
@@ -2383,49 +2267,6 @@ namespace
         std::unordered_set<Utf8>              emittedUsingKeys;
         std::unordered_set<const SourceFile*> usingFiles;
 
-        const auto appendOrderedSnippet = [&](std::span<const IdentifierRef> namespacePath, Utf8&& snippet) {
-            if (snippet.empty())
-                return;
-
-            if (!orderedEntries.empty() &&
-                !orderedEntries.back().isImpl &&
-                sameNamespacePath(orderedEntries.back().namespacePath, namespacePath))
-            {
-                orderedEntries.back().snippets.push_back(std::move(snippet));
-                return;
-            }
-
-            ModuleApiOrderedEntry entry;
-            entry.namespacePath.assign(namespacePath.begin(), namespacePath.end());
-            entry.snippets.push_back(std::move(snippet));
-            orderedEntries.push_back(std::move(entry));
-        };
-
-        const auto appendOrderedImplSnippet = [&](std::span<const IdentifierRef> namespacePath, const SourceFile& file, AstNodeRef implRef, Utf8&& implPrefix, Utf8&& snippet) {
-            if (snippet.empty() || implPrefix.empty())
-                return;
-
-            if (!orderedEntries.empty() &&
-                orderedEntries.back().isImpl &&
-                orderedEntries.back().file == &file &&
-                orderedEntries.back().implRef == implRef &&
-                orderedEntries.back().implPrefix == implPrefix &&
-                sameNamespacePath(orderedEntries.back().namespacePath, namespacePath))
-            {
-                orderedEntries.back().snippets.push_back(std::move(snippet));
-                return;
-            }
-
-            ModuleApiOrderedEntry entry;
-            entry.namespacePath.assign(namespacePath.begin(), namespacePath.end());
-            entry.snippets.push_back(std::move(snippet));
-            entry.implPrefix = std::move(implPrefix);
-            entry.file       = &file;
-            entry.implRef    = implRef;
-            entry.isImpl     = true;
-            orderedEntries.push_back(std::move(entry));
-        };
-
         for (const ModuleApiGeneratedRoot& root : roots)
         {
             if (root.file && usingFiles.insert(root.file).second)
@@ -2440,7 +2281,7 @@ namespace
                     if (!emittedUsingKeys.insert(usingKey).second)
                         continue;
 
-                    appendOrderedSnippet(usingSnippet.namespacePath, std::move(usingSnippet.snippet));
+                    appendOrderedSnippet(orderedEntries, usingSnippet.namespacePath, std::move(usingSnippet.snippet));
                 }
             }
 
@@ -2455,12 +2296,12 @@ namespace
                 Utf8 implPrefix;
                 if (tryBuildImplPrefix(ctx, *root.file, implRef, eol, implPrefix))
                 {
-                    appendOrderedImplSnippet(root.namespacePath, *root.file, implRef, std::move(implPrefix), std::move(sanitizedSnippet));
+                    appendOrderedImplSnippet(orderedEntries, root.namespacePath, *root.file, implRef, std::move(implPrefix), std::move(sanitizedSnippet));
                     continue;
                 }
             }
 
-            appendOrderedSnippet(root.namespacePath, std::move(sanitizedSnippet));
+            appendOrderedSnippet(orderedEntries, root.namespacePath, std::move(sanitizedSnippet));
         }
 
         appendOrderedEntries(ctx, outContent, orderedEntries, eol);

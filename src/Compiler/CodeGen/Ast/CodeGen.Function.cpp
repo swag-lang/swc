@@ -1026,7 +1026,7 @@ namespace
         return payload && payload->runtimeStorageSym != nullptr;
     }
 
-    AstNodeRef resolveClosureExprStorageNodeRef(CodeGen& codeGen, AstNodeRef nodeRef)
+    AstNodeRef resolveClosureExprStorageNodeRef(const CodeGen& codeGen, AstNodeRef nodeRef)
     {
         if (hasRuntimeStoragePayload(codeGen, nodeRef))
             return nodeRef;

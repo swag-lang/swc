@@ -1961,7 +1961,7 @@ namespace
         source += "    }\n";
     }
 
-    void appendGeneratedLifecycleWrappers(TaskContext& ctx, Utf8& source, const SymbolStruct& ownerStruct, std::span<const Utf8> fields, const GeneratedLifecyclePlan& plan)
+    void appendGeneratedLifecycleWrappers(const TaskContext& ctx, Utf8& source, const SymbolStruct& ownerStruct, std::span<const Utf8> fields, const GeneratedLifecyclePlan& plan)
     {
         bool addSeparator = false;
         if (plan.init)

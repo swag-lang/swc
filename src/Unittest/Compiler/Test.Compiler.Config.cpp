@@ -907,7 +907,7 @@ func mainValue(value: s32)->s32
         return Result::Error;
     if (!depApiContent.contains("#[Swag.ConstExpr]"))
         return Result::Error;
-    if (!depApiContent.contains("#[Swag.Foreign(\"dep\", \"dep_abs\")]"))
+    if (!depApiContent.contains(R"(#[Swag.Foreign("dep", "dep_abs")])"))
         return Result::Error;
     if (!depApiContent.contains("func depAbs(value: s32)->s32;"))
         return Result::Error;
@@ -1374,29 +1374,29 @@ public func coreValue()->s32
         return Result::Error;
     if (depLibApiContent.contains("__swc_api_"))
         return Result::Error;
-    if (!depLibApiContent.contains("#[Swag.Foreign(\"deplib\", \"dep_double\")]"))
+    if (!depLibApiContent.contains(R"(#[Swag.Foreign("deplib", "dep_double")])"))
         return Result::Error;
-    if (!depLibApiContent.contains("#[Swag.Foreign(\"deplib\", \"dep_scale__s32\")]"))
+    if (!depLibApiContent.contains(R"(#[Swag.Foreign("deplib", "dep_scale__s32")])"))
         return Result::Error;
-    if (!depLibApiContent.contains("#[Swag.Foreign(\"deplib\", \"dep_scale__f32\")]"))
+    if (!depLibApiContent.contains(R"(#[Swag.Foreign("deplib", "dep_scale__f32")])"))
         return Result::Error;
-    if (!depLibApiContent.contains("#[Swag.Foreign(\"deplib\", \"dep_string_length\")]"))
+    if (!depLibApiContent.contains(R"(#[Swag.Foreign("deplib", "dep_string_length")])"))
         return Result::Error;
-    if (!depLibApiContent.contains("#[Swag.Foreign(\"deplib\", \"dep_triple\")]"))
+    if (!depLibApiContent.contains(R"(#[Swag.Foreign("deplib", "dep_triple")])"))
         return Result::Error;
-    if (!depLibApiContent.contains("#[Swag.Foreign(\"deplib\", \"dep_calculator_make\")]"))
+    if (!depLibApiContent.contains(R"(#[Swag.Foreign("deplib", "dep_calculator_make")])"))
         return Result::Error;
-    if (!depLibApiContent.contains("#[Swag.Foreign(\"deplib\", \"dep_calculator_resolve__s32_ret_s32\")]"))
+    if (!depLibApiContent.contains(R"(#[Swag.Foreign("deplib", "dep_calculator_resolve__s32_ret_s32")])"))
         return Result::Error;
-    if (!depLibApiContent.contains("#[Swag.Foreign(\"deplib\", \"dep_calculator_resolve__ref_dep_lib_dep_calculator_s32_ret_s32\")]"))
+    if (!depLibApiContent.contains(R"(#[Swag.Foreign("deplib", "dep_calculator_resolve__ref_dep_lib_dep_calculator_s32_ret_s32")])"))
         return Result::Error;
-    if (!depLibApiContent.contains("#[Swag.Foreign(\"deplib\", \"dep_calculator_add__s32\")]"))
+    if (!depLibApiContent.contains(R"(#[Swag.Foreign("deplib", "dep_calculator_add__s32")])"))
         return Result::Error;
-    if (!depLibApiContent.contains("#[Swag.Foreign(\"deplib\", \"dep_calculator_add__f32\")]"))
+    if (!depLibApiContent.contains(R"(#[Swag.Foreign("deplib", "dep_calculator_add__f32")])"))
         return Result::Error;
-    if (!depLibApiContent.contains("#[Swag.Foreign(\"deplib\", \"dep_calculator_add_twice\")]"))
+    if (!depLibApiContent.contains(R"(#[Swag.Foreign("deplib", "dep_calculator_add_twice")])"))
         return Result::Error;
-    if (!depLibApiContent.contains("#[Swag.Foreign(\"deplib\", \"dep_calculator_sub\")]"))
+    if (!depLibApiContent.contains(R"(#[Swag.Foreign("deplib", "dep_calculator_sub")])"))
         return Result::Error;
     if (!depLibApiContent.contains("func depDouble(value: s32)->s32;"))
         return Result::Error;
@@ -1448,11 +1448,11 @@ public func coreValue()->s32
         return Result::Error;
     if (depLibApiContent.contains("return .base - value"))
         return Result::Error;
-    if (depLibApiContent.contains("#[Swag.Foreign(\"deplib\", \"dep_macro_twice_plus"))
+    if (depLibApiContent.contains(R"(#[Swag.Foreign("deplib", "dep_macro_twice_plus)"))
         return Result::Error;
-    if (depLibApiContent.contains("#[Swag.Foreign(\"deplib\", \"dep_mixin_accumulate_twice"))
+    if (depLibApiContent.contains(R"(#[Swag.Foreign("deplib", "dep_mixin_accumulate_twice)"))
         return Result::Error;
-    if (depLibApiContent.contains("#[Swag.Foreign(\"deplib\", \"dep_mirror"))
+    if (depLibApiContent.contains(R"(#[Swag.Foreign("deplib", "dep_mirror)"))
         return Result::Error;
     if (depLibApiContent.contains("\npublic "))
         return Result::Error;

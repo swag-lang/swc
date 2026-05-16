@@ -1,5 +1,4 @@
 #pragma once
-#include "Compiler/Parser/Ast/AstNode.h"
 
 SWC_BEGIN_NAMESPACE();
 class SymbolMap;

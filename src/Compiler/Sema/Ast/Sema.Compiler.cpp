@@ -732,27 +732,6 @@ namespace
         return Result::Continue;
     }
 
-    Result requireCompilerAstStringResult(Sema& sema, AstNodeRef nodeRef, TypeRef typeRef)
-    {
-        if (compilerAstStringType(sema, typeRef))
-            return Result::Continue;
-
-        if (typeRef.isValid())
-        {
-            CastRequest castRequest(CastKind::Implicit);
-            castRequest.errorNodeRef = nodeRef;
-            const Result castResult  = Cast::castAllowed(sema, castRequest, typeRef, sema.typeMgr().typeString());
-            if (castResult == Result::Continue)
-                return Result::Continue;
-        }
-
-        const TypeRef reportedTypeRef = typeRef.isValid() ? typeRef : sema.typeMgr().typeVoid();
-        auto          diag            = SemaError::report(sema, DiagnosticId::sema_err_ast_requires_string, nodeRef);
-        diag.addArgument(Diagnostic::ARG_TYPE, sema.typeMgr().get(reportedTypeRef).toName(sema.ctx()));
-        diag.report(sema.ctx());
-        return Result::Error;
-    }
-
     Result castCompilerAstResultToString(Sema& sema, SemaNodeView& ioView)
     {
         if (!ioView.typeRef().isValid())

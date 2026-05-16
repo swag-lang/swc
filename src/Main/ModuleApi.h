@@ -1,7 +1,6 @@
 #pragma once
 #include "Support/Core/RefTypes.h"
 #include "Support/Core/Result.h"
-#include <vector>
 
 SWC_BEGIN_NAMESPACE();
 

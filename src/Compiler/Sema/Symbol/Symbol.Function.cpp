@@ -47,10 +47,7 @@ namespace
                 const bool isLower = std::islower(uc) != 0;
                 const bool isDigit = std::isdigit(uc) != 0;
                 if (isUpper && !out.empty() && !lastWasUnderscore && previousWasLowerOrDigit)
-                {
                     out += '_';
-                    lastWasUnderscore = true;
-                }
 
                 out += static_cast<char>(std::tolower(uc));
                 lastWasUnderscore       = false;
@@ -356,7 +353,7 @@ namespace
     }
 
     template<typename FUNC>
-    void forEachPublicApiOverload(const SymbolFunction& symbol, const TaskContext& ctx, FUNC&& fn)
+    void forEachPublicApiOverload(const SymbolFunction& symbol, const TaskContext& ctx, const FUNC& fn)
     {
         if (const SymbolStruct* ownerStruct = symbol.ownerStruct())
         {
@@ -437,8 +434,8 @@ namespace
 
     Utf8 buildPublicApiDetailedSignature(const TaskContext& ctx, const SymbolFunction& symbol)
     {
-        Utf8 result         = buildPublicApiImplicitReceiverSignature(ctx, symbol);
-        Utf8 paramSignature = buildPublicApiParameterSignature(ctx, symbol);
+        Utf8       result         = buildPublicApiImplicitReceiverSignature(ctx, symbol);
+        const Utf8 paramSignature = buildPublicApiParameterSignature(ctx, symbol);
         if (!paramSignature.empty())
             appendPublicApiSymbolFragment(result, paramSignature.view());
 

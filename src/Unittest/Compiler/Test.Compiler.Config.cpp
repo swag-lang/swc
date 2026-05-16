@@ -685,6 +685,11 @@ SWC_TEST_BEGIN(Compiler_WorkspaceBuildUsesModuleSetupDependenciesAndSkipsIgnored
         return Result::Error;
     if (!writeTextFile(depModuleDir / "src" / "main.swg", R"(const PRIVATE_VALUE = 99
 public const DEP_VALUE = 7
+
+public func depFutureExport()->s32
+{
+    return DEP_VALUE
+}
 )"))
         return Result::Error;
     if (!writeTextFile(depModuleDir / "src" / "public.swg", R"(#global public
@@ -769,6 +774,8 @@ public func coreValue()->s32
     if (depApiContent.contains("DEP_FILE_PRIVATE"))
         return Result::Error;
     if (depApiContent.contains("DEP_MODULE_PRIVATE"))
+        return Result::Error;
+    if (depApiContent.contains("depFutureExport"))
         return Result::Error;
     if (depApiContent.contains("depLegacyValue"))
         return Result::Error;

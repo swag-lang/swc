@@ -9,8 +9,7 @@ class TaskContext;
 
 struct ModuleApiFileEntry
 {
-    std::vector<AstNodeRef> publicDeclRefs;
-    bool                    hasUnsupportedPublicDecl = false;
+    std::vector<AstNodeRef> publicRootRefs;
 };
 
 struct ModuleApiPerThreadData

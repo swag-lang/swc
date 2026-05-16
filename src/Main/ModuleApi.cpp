@@ -70,11 +70,10 @@ namespace
 
     void mergeFileEntry(ModuleApiFileEntry& outEntry, const ModuleApiFileEntry& threadEntry)
     {
-        outEntry.hasUnsupportedPublicDecl |= threadEntry.hasUnsupportedPublicDecl;
-        for (const AstNodeRef declRef : threadEntry.publicDeclRefs)
+        for (const AstNodeRef rootRef : threadEntry.publicRootRefs)
         {
-            if (std::ranges::find(outEntry.publicDeclRefs, declRef) == outEntry.publicDeclRefs.end())
-                outEntry.publicDeclRefs.push_back(declRef);
+            if (std::ranges::find(outEntry.publicRootRefs, rootRef) == outEntry.publicRootRefs.end())
+                outEntry.publicRootRefs.push_back(rootRef);
         }
     }
 
@@ -84,22 +83,14 @@ namespace
             mergeFileEntry(outEntries[srcViewRef], threadEntry);
     }
 
-    void recordPublicDecl(ModuleApiPerThreadData& state, const SourceViewRef srcViewRef, const AstNodeRef declRef)
+    void recordPublicRoot(ModuleApiPerThreadData& state, const SourceViewRef srcViewRef, const AstNodeRef rootRef)
     {
-        if (!srcViewRef.isValid() || declRef.isInvalid())
+        if (!srcViewRef.isValid() || rootRef.isInvalid())
             return;
 
         ModuleApiFileEntry& entry = state.files[srcViewRef];
-        if (std::ranges::find(entry.publicDeclRefs, declRef) == entry.publicDeclRefs.end())
-            entry.publicDeclRefs.push_back(declRef);
-    }
-
-    void markUnsupportedPublicDecl(ModuleApiPerThreadData& state, const SourceViewRef srcViewRef)
-    {
-        if (!srcViewRef.isValid())
-            return;
-
-        state.files[srcViewRef].hasUnsupportedPublicDecl = true;
+        if (std::ranges::find(entry.publicRootRefs, rootRef) == entry.publicRootRefs.end())
+            entry.publicRootRefs.push_back(rootRef);
     }
 
     ModuleApiFileInfo analyzeModuleApiFile(const SourceFile& file, std::string_view moduleNamespace)
@@ -165,11 +156,6 @@ namespace
         return token.byteStart;
     }
 
-    uint32_t sourceTokenByteEnd(const SourceView& srcView, const Token& token)
-    {
-        return sourceTokenByteStart(srcView, token) + token.byteLength;
-    }
-
     TokenRef moduleApiSnippetStartTokRef(const Ast& ast, const AstNode& node)
     {
         if (node.is(AstNodeId::VarDeclList))
@@ -180,12 +166,137 @@ namespace
                 return moduleApiSnippetStartTokRef(ast, ast.node(childRefs.front()));
         }
 
+        if (ast.hasSourceView() && node.tokRef().isValid() && node.tokRef().get() > 0)
+        {
+            const TokenRef prevTokRef(node.tokRef().get() - 1);
+            const TokenId  prevId = ast.srcView().token(prevTokRef).id;
+            switch (node.id())
+            {
+                case AstNodeId::FunctionDecl:
+                    if (prevId == TokenId::KwdFunc || prevId == TokenId::KwdMtd)
+                        return prevTokRef;
+                    break;
+
+                case AstNodeId::StructDecl:
+                    if (prevId == TokenId::KwdStruct)
+                        return prevTokRef;
+                    break;
+
+                case AstNodeId::EnumDecl:
+                    if (prevId == TokenId::KwdEnum)
+                        return prevTokRef;
+                    break;
+
+                case AstNodeId::InterfaceDecl:
+                    if (prevId == TokenId::KwdInterface)
+                        return prevTokRef;
+                    break;
+
+                case AstNodeId::Impl:
+                    if (prevId == TokenId::KwdImpl)
+                        return prevTokRef;
+                    break;
+
+                default:
+                    break;
+            }
+        }
+
         return node.tokRef();
     }
 
-    bool tryGetModuleApiSnippet(const SourceFile& file, const AstNodeRef nodeRef, std::string_view& outSnippet)
+    bool tryGetModuleApiSnippetStartOffset(const SourceFile& file, AstNodeRef nodeRef, uint32_t& outStartOffset);
+
+    constexpr uint32_t moduleApiInvalidByte = 0xFFFFFFFFu;
+
+    uint32_t moduleApiNodeSortByte(const Ast& ast, const SourceView& srcView, const AstNodeRef nodeRef)
     {
-        outSnippet = {};
+        if (nodeRef.isInvalid() || ast.isAdditionalNode(nodeRef))
+            return moduleApiInvalidByte;
+
+        const AstNode& node = ast.node(nodeRef);
+        if (const TokenRef tokRef = node.tokRef(); tokRef.isValid())
+        {
+            const Token& tok = srcView.token(tokRef);
+            if (tok.isNot(TokenId::EndOfFile))
+                return sourceTokenByteStart(srcView, tok);
+        }
+
+        SmallVector<AstNodeRef> children;
+        Ast::nodeIdInfos(node.id()).collectChildren(children, ast, node);
+
+        uint32_t result = moduleApiInvalidByte;
+        for (const AstNodeRef childRef : children)
+            result = std::min(result, moduleApiNodeSortByte(ast, srcView, childRef));
+        return result;
+    }
+
+    void collectModuleApiSourceOrderedChildren(const Ast& ast, const SourceView& srcView, const AstNode& node, SmallVector<AstNodeRef>& outChildren)
+    {
+        outChildren.clear();
+        Ast::nodeIdInfos(node.id()).collectChildren(outChildren, ast, node);
+        std::ranges::stable_sort(outChildren, [&](const AstNodeRef left, const AstNodeRef right) { return moduleApiNodeSortByte(ast, srcView, left) < moduleApiNodeSortByte(ast, srcView, right); });
+    }
+
+    void findNextSiblingSnippetStartOffsetRec(const SourceFile& file, const AstNodeRef currentRef, const AstNodeRef targetRef, bool& ioFoundTarget, uint32_t& ioNextOffset)
+    {
+        if (currentRef.isInvalid() || ioNextOffset != moduleApiInvalidByte)
+            return;
+
+        const Ast&        ast     = file.ast();
+        const SourceView& srcView = ast.srcView();
+        if (ast.isAdditionalNode(currentRef))
+            return;
+
+        const AstNode& currentNode = ast.node(currentRef);
+        SmallVector<AstNodeRef> children;
+        collectModuleApiSourceOrderedChildren(ast, srcView, currentNode, children);
+        for (size_t i = 0; i < children.size(); ++i)
+        {
+            const AstNodeRef childRef = children[i];
+            if (childRef.isInvalid() || ast.isAdditionalNode(childRef))
+                continue;
+
+            if (childRef == targetRef)
+                ioFoundTarget = true;
+            else
+                findNextSiblingSnippetStartOffsetRec(file, childRef, targetRef, ioFoundTarget, ioNextOffset);
+
+            if (ioNextOffset != moduleApiInvalidByte)
+                return;
+
+            if (!ioFoundTarget)
+                continue;
+
+            for (size_t j = i + 1; j < children.size(); ++j)
+            {
+                uint32_t siblingStartOffset = 0;
+                if (!tryGetModuleApiSnippetStartOffset(file, children[j], siblingStartOffset))
+                    continue;
+
+                ioNextOffset = siblingStartOffset;
+                return;
+            }
+
+            return;
+        }
+    }
+
+    uint32_t findNextSiblingSnippetStartOffset(const SourceFile& file, const AstNodeRef targetRef)
+    {
+        const AstNodeRef rootRef = file.ast().root();
+        if (rootRef.isInvalid())
+            return moduleApiInvalidByte;
+
+        bool     foundTarget = false;
+        uint32_t nextOffset  = moduleApiInvalidByte;
+        findNextSiblingSnippetStartOffsetRec(file, rootRef, targetRef, foundTarget, nextOffset);
+        return nextOffset;
+    }
+
+    bool tryGetModuleApiSnippetStartOffset(const SourceFile& file, const AstNodeRef nodeRef, uint32_t& outStartOffset)
+    {
+        outStartOffset = 0;
         if (nodeRef.isInvalid())
             return false;
 
@@ -198,21 +309,27 @@ namespace
         if (!startTokRef.isValid())
             return false;
 
-        const SourceView& srcView   = ast.srcView();
-        const TokenRef    endTokRef = node.tokRefEnd(ast);
-        if (!endTokRef.isValid())
+        const SourceView& srcView = ast.srcView();
+        outStartOffset            = sourceTokenByteStart(srcView, srcView.token(startTokRef));
+        return true;
+    }
+
+    bool tryGetModuleApiSnippet(const SourceFile& file, const AstNodeRef nodeRef, const uint32_t maxEndOffset, std::string_view& outSnippet)
+    {
+        outSnippet = {};
+        const Ast& ast = file.ast();
+        uint32_t   startOffset = 0;
+        if (!tryGetModuleApiSnippetStartOffset(file, nodeRef, startOffset))
             return false;
 
-        const std::string_view source      = file.sourceView();
-        const uint32_t         startOffset = sourceTokenByteStart(srcView, srcView.token(startTokRef));
-        uint32_t               endOffset   = sourceTokenByteEnd(srcView, srcView.token(endTokRef));
+        const SourceView&      srcView   = ast.srcView();
+        const std::string_view source    = file.sourceView();
+        uint32_t               endOffset = static_cast<uint32_t>(source.size());
+        endOffset = std::min(endOffset, findNextSiblingSnippetStartOffset(file, nodeRef));
 
-        if (endTokRef.get() + 1 < srcView.numTokens())
-        {
-            const Token& nextToken = srcView.token(TokenRef(endTokRef.get() + 1));
-            if (nextToken.id == TokenId::SymSemiColon)
-                endOffset = sourceTokenByteEnd(srcView, nextToken);
-        }
+        endOffset = std::min(endOffset, maxEndOffset);
+        while (endOffset > startOffset && std::isspace(static_cast<unsigned char>(source[endOffset - 1])))
+            endOffset--;
 
         if (startOffset >= endOffset || endOffset > source.size())
             return false;
@@ -221,81 +338,92 @@ namespace
         return true;
     }
 
-    bool matchVarDeclListRoot(const Ast& ast, const AstNode& node, std::unordered_set<AstNodeRef>& unmatchedDecls)
+    bool containsExportRootDecl(const Ast& ast, const AstNodeRef nodeRef, const AstNodeRef declRef)
     {
-        SmallVector<AstNodeRef> childRefs;
-        ast.appendNodes(childRefs, node.cast<AstVarDeclList>().spanChildrenRef);
-        if (childRefs.empty())
+        if (!nodeRef.isValid() || !declRef.isValid())
             return false;
 
-        for (const AstNodeRef childRef : childRefs)
-        {
-            if (!childRef.isValid() || !unmatchedDecls.contains(childRef))
-                return false;
-        }
-
-        for (const AstNodeRef childRef : childRefs)
-            unmatchedDecls.erase(childRef);
-        return true;
-    }
-
-    void collectGeneratedRootsForNode(const Ast& ast, const AstNodeRef nodeRef, AstNodeRef outerRef, std::unordered_set<AstNodeRef>& unmatchedDecls, std::vector<AstNodeRef>& outRootRefs)
-    {
-        if (nodeRef.isInvalid())
-            return;
+        if (nodeRef == declRef)
+            return true;
 
         const AstNode& node = ast.node(nodeRef);
-        if (!outerRef.isValid())
-            outerRef = nodeRef;
-
         if (node.is(AstNodeId::AccessModifier))
-        {
-            collectGeneratedRootsForNode(ast, node.cast<AstAccessModifier>().nodeWhatRef, outerRef, unmatchedDecls, outRootRefs);
-            return;
-        }
+            return containsExportRootDecl(ast, node.cast<AstAccessModifier>().nodeWhatRef, declRef);
 
         if (node.is(AstNodeId::AttributeList))
-        {
-            collectGeneratedRootsForNode(ast, node.cast<AstAttributeList>().nodeBodyRef, outerRef, unmatchedDecls, outRootRefs);
-            return;
-        }
+            return containsExportRootDecl(ast, node.cast<AstAttributeList>().nodeBodyRef, declRef);
 
         if (node.is(AstNodeId::VarDeclList))
         {
-            if (matchVarDeclListRoot(ast, node, unmatchedDecls))
-                outRootRefs.push_back(outerRef);
-            return;
+            SmallVector<AstNodeRef> childRefs;
+            ast.appendNodes(childRefs, node.cast<AstVarDeclList>().spanChildrenRef);
+            for (const AstNodeRef childRef : childRefs)
+            {
+                if (containsExportRootDecl(ast, childRef, declRef))
+                    return true;
+            }
         }
 
-        if (unmatchedDecls.erase(nodeRef))
-            outRootRefs.push_back(outerRef);
+        return false;
     }
 
-    bool collectGeneratedRootsForFile(const SourceFile& file, const ModuleApiFileEntry& fileEntry, std::vector<AstNodeRef>& outRootRefs)
+    AstNodeRef findTopLevelExportRoot(const SourceFile& file, const AstNodeRef declRef)
     {
-        outRootRefs.clear();
-        if (fileEntry.publicDeclRefs.empty())
-            return true;
-
         const AstNodeRef rootRef = file.ast().root();
         if (rootRef.isInvalid())
-            return false;
+            return AstNodeRef::invalid();
 
         const AstNode& rootNode = file.ast().node(rootRef);
         if (rootNode.isNot(AstNodeId::File))
-            return false;
-
-        std::unordered_set<AstNodeRef> unmatchedDecls;
-        unmatchedDecls.reserve(fileEntry.publicDeclRefs.size());
-        for (const AstNodeRef declRef : fileEntry.publicDeclRefs)
-            unmatchedDecls.insert(declRef);
+            return AstNodeRef::invalid();
 
         SmallVector<AstNodeRef> childRefs;
         file.ast().appendNodes(childRefs, rootNode.cast<AstFile>().spanChildrenRef);
         for (const AstNodeRef childRef : childRefs)
-            collectGeneratedRootsForNode(file.ast(), childRef, AstNodeRef::invalid(), unmatchedDecls, outRootRefs);
+        {
+            if (containsExportRootDecl(file.ast(), childRef, declRef))
+                return childRef;
+        }
 
-        return unmatchedDecls.empty();
+        return AstNodeRef::invalid();
+    }
+
+    void appendGeneratedRootsForFile(const SourceFile& file, const ModuleApiFileEntry& fileEntry, std::vector<ModuleApiGeneratedRoot>& outRoots)
+    {
+        if (fileEntry.publicRootRefs.empty())
+            return;
+
+        const AstNodeRef rootRef = file.ast().root();
+        if (rootRef.isInvalid())
+            return;
+
+        const AstNode& rootNode = file.ast().node(rootRef);
+        if (rootNode.isNot(AstNodeId::File))
+            return;
+
+        SmallVector<AstNodeRef> childRefs;
+        file.ast().appendNodes(childRefs, rootNode.cast<AstFile>().spanChildrenRef);
+        for (const AstNodeRef childRef : childRefs)
+        {
+            if (std::ranges::find(fileEntry.publicRootRefs, childRef) == fileEntry.publicRootRefs.end())
+                continue;
+
+            const AstNode& childNode    = file.ast().node(childRef);
+            const TokenRef startTokRef  = moduleApiSnippetStartTokRef(file.ast(), childNode);
+            const bool     canMergeRoot = startTokRef.isValid() && !outRoots.empty() && outRoots.back().file == &file;
+            if (canMergeRoot)
+            {
+                const AstNode& previousNode      = file.ast().node(outRoots.back().nodeRef);
+                const TokenRef previousStartTok  = moduleApiSnippetStartTokRef(file.ast(), previousNode);
+                if (previousStartTok == startTokRef)
+                {
+                    outRoots.back().nodeRef = childRef;
+                    continue;
+                }
+            }
+
+            outRoots.push_back({.file = &file, .nodeRef = childRef});
+        }
     }
 
     fs::path buildGeneratedModuleApiPath(const CompilerInstance& compiler, const fs::path& exportApiDir)
@@ -353,14 +481,30 @@ namespace
         outContent += eol;
 
         bool wroteSnippet = false;
-        for (const ModuleApiGeneratedRoot& root : roots)
+        std::vector<std::pair<fs::path, std::string_view>> seenSnippets;
+        seenSnippets.reserve(roots.size());
+        for (size_t i = 0; i < roots.size(); ++i)
         {
+            const ModuleApiGeneratedRoot& root = roots[i];
             if (!root.file)
                 continue;
 
+            uint32_t nextRootStart = std::numeric_limits<uint32_t>::max();
+            for (size_t j = i + 1; j < roots.size(); ++j)
+            {
+                if (roots[j].file != root.file || !roots[j].file)
+                    break;
+
+                if (tryGetModuleApiSnippetStartOffset(*roots[j].file, roots[j].nodeRef, nextRootStart))
+                    break;
+            }
+
             std::string_view snippetText;
-            if (!tryGetModuleApiSnippet(*root.file, root.nodeRef, snippetText))
+            if (!tryGetModuleApiSnippet(*root.file, root.nodeRef, nextRootStart, snippetText))
                 continue;
+            if (std::ranges::any_of(seenSnippets, [&](const auto& seen) { return seen.first == root.file->path() && seen.second == snippetText; }))
+                continue;
+            seenSnippets.emplace_back(root.file->path(), snippetText);
 
             outContent += eol;
             outContent += snippetText;
@@ -426,19 +570,17 @@ namespace ModuleApi
             return;
 
         if (!isSupportedPublicDeclSymbol(symbol))
-        {
-            markUnsupportedPublicDecl(state, symbol.srcViewRef());
             return;
-        }
 
         const AstNodeRef declRef = symbol.decl()->nodeRef(sourceFile->ast());
-        if (!declRef.isValid())
-        {
-            markUnsupportedPublicDecl(state, symbol.srcViewRef());
+        if (declRef.isInvalid())
             return;
-        }
 
-        recordPublicDecl(state, symbol.srcViewRef(), declRef);
+        const AstNodeRef rootRef = findTopLevelExportRoot(*sourceFile, declRef);
+        if (rootRef.isInvalid())
+            return;
+
+        recordPublicRoot(state, symbol.srcViewRef(), rootRef);
     }
 
     Result exportFiles(TaskContext& ctx)
@@ -455,7 +597,6 @@ namespace ModuleApi
         const Utf8                          moduleNamespace      = buildModuleNamespaceName(compiler);
         const SourceFile*                   firstSourceFile      = nullptr;
         bool                                hasModuleSources     = false;
-        bool                                supportsGeneratedApi = true;
         std::vector<ModuleApiGeneratedRoot> generatedRoots;
 
         for (const SourceFile* file : compiler.files())
@@ -476,21 +617,7 @@ namespace ModuleApi
                 continue;
             const ModuleApiFileEntry& fileEntry = fileEntryIt->second;
 
-            if (fileEntry.hasUnsupportedPublicDecl)
-            {
-                supportsGeneratedApi = false;
-                continue;
-            }
-
-            std::vector<AstNodeRef> fileRootRefs;
-            if (!collectGeneratedRootsForFile(*file, fileEntry, fileRootRefs))
-            {
-                supportsGeneratedApi = false;
-                continue;
-            }
-
-            for (const AstNodeRef rootRef : fileRootRefs)
-                generatedRoots.push_back({.file = file, .nodeRef = rootRef});
+            appendGeneratedRootsForFile(*file, fileEntry, generatedRoots);
         }
 
         if (!hasModuleSources)
@@ -523,7 +650,7 @@ namespace ModuleApi
                 return Result::Error;
         }
 
-        if (!supportsGeneratedApi || generatedRoots.empty() || !firstSourceFile)
+        if (!firstSourceFile)
             return Result::Continue;
 
         const fs::path generatedDstPath  = buildGeneratedModuleApiPath(compiler, exportApiDir);

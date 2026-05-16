@@ -18,6 +18,7 @@ public:
     void     addUsingSymMap(SymbolMap* symMap);
     void     copyUsingSymMaps(SmallVector<const SymbolMap*>& out) const;
     void     lookupAppend(IdentifierRef idRef, MatchContext& lookUpCxt) const;
+    void     getAllSymbols(std::vector<Symbol*>& out, bool includeIgnored = false);
     void     getAllSymbols(std::vector<const Symbol*>& out, bool includeIgnored = false) const;
     bool     empty() const noexcept;
     uint32_t count() const noexcept { return count_; }

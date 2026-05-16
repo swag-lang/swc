@@ -23,8 +23,8 @@ namespace CodeGenCallHelpers
     Result emitThrowableFailureJumpIfHasError(CodeGen& codeGen);
     void   appendPreparedStringCompareArg(SmallVector<ABICall::PreparedArg>& outArgs, CodeGen& codeGen, const CallConv& callConv, const CodeGenNodePayload& operandPayload, TypeRef argTypeRef);
     void   appendDirectPreparedArg(SmallVector<ABICall::PreparedArg>& outArgs, CodeGen& codeGen, const CallConv& callConv, TypeRef argTypeRef, MicroReg srcReg);
-    Result emitRuntimeCallWithDirectArgs(CodeGen& codeGen, SymbolFunction& runtimeFunction, std::span<const MicroReg> argRegs);
-    Result emitRuntimeCallWithDirectArgsToReg(CodeGen& codeGen, SymbolFunction& runtimeFunction, std::span<const MicroReg> argRegs, MicroReg resultReg);
+    Result emitRuntimeCallWithDirectArgs(CodeGen& codeGen, const SymbolFunction& runtimeFunction, std::span<const MicroReg> argRegs);
+    Result emitRuntimeCallWithDirectArgsToReg(CodeGen& codeGen, const SymbolFunction& runtimeFunction, std::span<const MicroReg> argRegs, MicroReg resultReg);
 }
 
 SWC_END_NAMESPACE();

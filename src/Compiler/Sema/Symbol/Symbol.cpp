@@ -14,7 +14,7 @@ namespace
     const AttributeList EMPTY_ATTRIBUTES;
 
 #if SWC_DEV_MODE
-    Utf8 formatLazyFunctionMarkedSemaComplete(TaskContext& ctx, const SymbolFunction& function)
+    Utf8 formatLazyFunctionMarkedSemaComplete(const TaskContext& ctx, const SymbolFunction& function)
     {
         Utf8 detail = "lazy-function-marked-sema-complete:\n";
         detail += std::format("  function={} full={} declNodeRef={} lazyRunning={} genericRoot={} genericInstance={} semaCompleted={}\n",

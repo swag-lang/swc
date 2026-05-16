@@ -336,7 +336,7 @@ void MicroBuilder::emitRet()
     addInstruction(MicroInstrOpcode::Ret, 0);
 }
 
-void MicroBuilder::emitCallLocal(Symbol* targetSymbol, const CallConvKind callConv, const uint8_t intArgMask, const uint8_t floatArgMask)
+void MicroBuilder::emitCallLocal(const Symbol* targetSymbol, const CallConvKind callConv, const uint8_t intArgMask, const uint8_t floatArgMask)
 {
     SWC_ASSERT(targetSymbol && targetSymbol->isFunction());
     const SymbolFunction& targetFunction = targetSymbol->cast<SymbolFunction>();
@@ -352,12 +352,12 @@ void MicroBuilder::emitCallLocal(Symbol* targetSymbol, const CallConvKind callCo
         .kind           = MicroRelocation::Kind::LocalFunctionAddress,
         .instructionRef = instRef,
         .targetAddress  = 0,
-        .targetSymbol   = targetSymbol,
+        .targetSymbol   = const_cast<Symbol*>(targetSymbol),
         .constantRef    = ConstantRef::invalid(),
     });
 }
 
-void MicroBuilder::emitCallExtern(Symbol* targetSymbol, const CallConvKind callConv, const uint8_t intArgMask, const uint8_t floatArgMask)
+void MicroBuilder::emitCallExtern(const Symbol* targetSymbol, const CallConvKind callConv, const uint8_t intArgMask, const uint8_t floatArgMask)
 {
     SWC_ASSERT(targetSymbol && targetSymbol->isFunction());
     const SymbolFunction& targetFunction = targetSymbol->cast<SymbolFunction>();
@@ -373,7 +373,7 @@ void MicroBuilder::emitCallExtern(Symbol* targetSymbol, const CallConvKind callC
         .kind           = MicroRelocation::Kind::ForeignFunctionAddress,
         .instructionRef = instRef,
         .targetAddress  = 0,
-        .targetSymbol   = targetSymbol,
+        .targetSymbol   = const_cast<Symbol*>(targetSymbol),
         .constantRef    = ConstantRef::invalid(),
     });
 }
@@ -433,7 +433,7 @@ void MicroBuilder::emitLoadRegPtrImm(MicroReg reg, uint64_t value)
     ops[2].valueU64         = value;
 }
 
-void MicroBuilder::emitLoadRegPtrReloc(MicroReg reg, uint64_t value, ConstantRef constantRef, Symbol* targetSymbol)
+void MicroBuilder::emitLoadRegPtrReloc(MicroReg reg, uint64_t value, ConstantRef constantRef, const Symbol* targetSymbol)
 {
     const bool hasFunctionTarget = targetSymbol && targetSymbol->isFunction();
     const bool hasConstantTarget = constantRef.isValid();
@@ -447,7 +447,7 @@ void MicroBuilder::emitLoadRegPtrReloc(MicroReg reg, uint64_t value, ConstantRef
     {
         const SymbolFunction& targetFunction = targetSymbol->cast<SymbolFunction>();
         relocationKind                       = targetFunction.isForeign() ? MicroRelocation::Kind::ForeignFunctionAddress : MicroRelocation::Kind::LocalFunctionAddress;
-        relocationTargetSymbol               = targetSymbol;
+        relocationTargetSymbol               = const_cast<Symbol*>(targetSymbol);
     }
 
     auto [instRef, inst]   = addInstructionWithRef(MicroInstrOpcode::LoadRegPtrReloc, 3);

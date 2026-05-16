@@ -108,7 +108,7 @@ public:
     MicroReg                debugStackBaseReg() const noexcept { return debugStackBaseReg_; }
     void                    setDebugStackBaseReg(MicroReg reg) noexcept { debugStackBaseReg_ = reg; }
     bool                    tryMarkCodeGenJobScheduled() noexcept;
-    void                    addCallDependency(SymbolFunction* sym);
+    void                    addCallDependency(const SymbolFunction* sym);
     void                    appendCallDependencies(SmallVector<SymbolFunction*>& out) const;
     void                    appendJitOrder(SmallVector<SymbolFunction*>& out) const;
     void*                   jitPatchAddress() const noexcept { return jitPatchedAddress_.load(std::memory_order_acquire); }

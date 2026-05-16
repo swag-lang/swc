@@ -120,15 +120,15 @@ public:
     void emitBreakpoint();
     void emitLabel(MicroLabelRef& outLabelRef);
     void emitRet();
-    void emitCallLocal(Symbol* targetSymbol, CallConvKind callConv, uint8_t intArgMask = K_CALL_ARG_MASK_ALL, uint8_t floatArgMask = K_CALL_ARG_MASK_ALL);
-    void emitCallExtern(Symbol* targetSymbol, CallConvKind callConv, uint8_t intArgMask = K_CALL_ARG_MASK_ALL, uint8_t floatArgMask = K_CALL_ARG_MASK_ALL);
+    void emitCallLocal(const Symbol* targetSymbol, CallConvKind callConv, uint8_t intArgMask = K_CALL_ARG_MASK_ALL, uint8_t floatArgMask = K_CALL_ARG_MASK_ALL);
+    void emitCallExtern(const Symbol* targetSymbol, CallConvKind callConv, uint8_t intArgMask = K_CALL_ARG_MASK_ALL, uint8_t floatArgMask = K_CALL_ARG_MASK_ALL);
     void emitCallReg(MicroReg reg, CallConvKind callConv, uint8_t intArgMask = K_CALL_ARG_MASK_ALL, uint8_t floatArgMask = K_CALL_ARG_MASK_ALL);
     void emitJumpToLabel(MicroCond cpuCond, MicroOpBits opBits, MicroLabelRef labelRef);
     void emitJumpReg(MicroReg reg);
     void emitLoadRegMem(MicroReg reg, MicroReg memReg, uint64_t memOffset, MicroOpBits opBits);
     void emitLoadRegImm(MicroReg reg, const ApInt& value, MicroOpBits opBits);
     void emitLoadRegPtrImm(MicroReg reg, uint64_t value);
-    void emitLoadRegPtrReloc(MicroReg reg, uint64_t value, ConstantRef constantRef = ConstantRef::invalid(), Symbol* targetSymbol = nullptr);
+    void emitLoadRegPtrReloc(MicroReg reg, uint64_t value, ConstantRef constantRef = ConstantRef::invalid(), const Symbol* targetSymbol = nullptr);
     void emitLoadRegDataSegmentReloc(MicroReg reg, DataSegmentKind kind, uint32_t offset);
     void emitLoadRegReg(MicroReg regDst, MicroReg regSrc, MicroOpBits opBits);
     void emitLoadSignedExtendRegMem(MicroReg reg, MicroReg memReg, uint64_t memOffset, MicroOpBits numBitsDst, MicroOpBits numBitsSrc);

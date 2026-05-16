@@ -19,7 +19,7 @@ namespace
 
     struct SymbolSortEntry
     {
-        const Symbol* symbol     = nullptr;
+        Symbol*       symbol     = nullptr;
         SourceViewRef srcViewRef = SourceViewRef::invalid();
         TokenRef      tokRef     = TokenRef::invalid();
         SymbolKind    kind       = SymbolKind::Invalid;
@@ -66,9 +66,9 @@ namespace
         return head;
     }
 
-    void appendSymbolsForSort(std::vector<SymbolSortEntry>& out, const Symbol* head, bool includeIgnored)
+    void appendSymbolsForSort(std::vector<SymbolSortEntry>& out, Symbol* head, bool includeIgnored)
     {
-        for (const Symbol* cur = head; cur; cur = cur->nextHomonym())
+        for (Symbol* cur = head; cur; cur = cur->nextHomonym())
         {
             if (!includeIgnored && cur->isIgnored())
                 continue;
@@ -83,7 +83,8 @@ namespace
         }
     }
 
-    void sortSymbolsByDeclaration(std::vector<const Symbol*>& symbols, std::vector<SymbolSortEntry>& entries)
+    template<typename T>
+    void sortSymbolsByDeclaration(std::vector<T*>& symbols, std::vector<SymbolSortEntry>& entries)
     {
         if (entries.size() < 2)
         {
@@ -266,17 +267,28 @@ void SymbolMap::lookupAppend(IdentifierRef idRef, MatchContext& lookUpCxt) const
     }
 }
 
+void SymbolMap::getAllSymbols(std::vector<Symbol*>& out, bool includeIgnored)
+{
+    std::vector<const Symbol*> symbols;
+    getAllSymbols(symbols, includeIgnored);
+
+    out.clear();
+    out.reserve(symbols.size());
+    for (const Symbol* symbol : symbols)
+        out.push_back(const_cast<Symbol*>(symbol));
+}
+
 void SymbolMap::getAllSymbols(std::vector<const Symbol*>& out, bool includeIgnored) const
 {
     out.clear();
     std::vector<SymbolSortEntry> ordered;
     ordered.reserve(count_);
 
-    if (const Shard* shards = shards_.load(std::memory_order_acquire))
+    if (Shard* shards = shards_.load(std::memory_order_acquire))
     {
         for (uint32_t i = 0; i < SHARD_COUNT; ++i)
         {
-            const Shard&           shard = shards[i];
+            Shard&                 shard = shards[i];
             const std::shared_lock lock(shard.mutex);
             for (const auto& val : shard.map | std::views::values)
                 appendSymbolsForSort(ordered, val, includeIgnored);
@@ -289,12 +301,12 @@ void SymbolMap::getAllSymbols(std::vector<const Symbol*>& out, bool includeIgnor
     std::shared_lock lk(mutex_);
 
     // Check sharded again after lock
-    if (const Shard* shards = shards_.load(std::memory_order_acquire))
+    if (Shard* shards = shards_.load(std::memory_order_acquire))
     {
         lk.unlock();
         for (uint32_t i = 0; i < SHARD_COUNT; ++i)
         {
-            const Shard&           shard = shards[i];
+            Shard&                 shard = shards[i];
             const std::shared_lock lock(shard.mutex);
             for (const auto& val : shard.map | std::views::values)
                 appendSymbolsForSort(ordered, val, includeIgnored);

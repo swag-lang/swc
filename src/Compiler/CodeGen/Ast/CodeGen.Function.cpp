@@ -68,7 +68,7 @@ namespace
         return typeInfo.payloadSymFunction();
     }
 
-    bool tryBuildGvtdEntry(const CodeGen& codeGen, TypeRef typeRef, SymbolFunction*& outOpDrop, uint32_t& outSizeOf, uint32_t& outCount)
+    bool tryBuildGvtdEntry(const CodeGen& codeGen, TypeRef typeRef, const SymbolFunction*& outOpDrop, uint32_t& outSizeOf, uint32_t& outCount)
     {
         return codeGen.tryBuildLifecycleAction(typeRef, CodeGen::LifecycleKind::Drop, outOpDrop, outSizeOf, outCount);
     }
@@ -480,9 +480,9 @@ namespace
                 if (storageKind != DataSegmentKind::GlobalZero && storageKind != DataSegmentKind::GlobalInit)
                     continue;
 
-                SymbolFunction* opDrop = nullptr;
-                uint32_t        sizeOf = 0;
-                uint32_t        count  = 0;
+                const SymbolFunction* opDrop = nullptr;
+                uint32_t              sizeOf = 0;
+                uint32_t              count  = 0;
                 if (!tryBuildGvtdEntry(codeGen, symVar->typeRef(), opDrop, sizeOf, count))
                     continue;
 

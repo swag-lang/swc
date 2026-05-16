@@ -174,19 +174,19 @@ namespace
 
     void appendImplFunctions(std::vector<SymbolFunction*>& out, const std::vector<SymbolImpl*>& implList)
     {
-        for (const SymbolImpl* symImpl : implList)
+        for (SymbolImpl* symImpl : implList)
         {
             if (!symImpl)
                 continue;
 
-            std::vector<const Symbol*> symbols;
+            std::vector<Symbol*> symbols;
             symImpl->getAllSymbols(symbols);
-            for (const Symbol* symbol : symbols)
+            for (Symbol* symbol : symbols)
             {
                 if (!symbol || !symbol->isFunction())
                     continue;
 
-                out.push_back(const_cast<SymbolFunction*>(&symbol->cast<SymbolFunction>()));
+                out.push_back(&symbol->cast<SymbolFunction>());
             }
         }
     }
@@ -827,16 +827,6 @@ Result SymbolStruct::registerSpecOp(SymbolFunction& symFunc, SpecOpKind kind)
     return Result::Continue;
 }
 
-SymbolFunction* SymbolStruct::effectiveOpDrop(TaskContext& ctx)
-{
-    return const_cast<SymbolFunction*>(const_cast<const SymbolStruct*>(this)->effectiveOpDrop(ctx));
-}
-
-SymbolFunction* SymbolStruct::effectiveOpInit(TaskContext& ctx)
-{
-    return const_cast<SymbolFunction*>(const_cast<const SymbolStruct*>(this)->effectiveOpInit(ctx));
-}
-
 const SymbolFunction* SymbolStruct::effectiveOpInit(const TaskContext& ctx) const
 {
     if (isGenericRoot() && !isGenericInstance())
@@ -856,11 +846,6 @@ const SymbolFunction* SymbolStruct::effectiveOpDrop(const TaskContext& ctx) cons
     return resolvedLifecycleFunction(ctx, *this, SpecOpKind::OpDrop);
 }
 
-SymbolFunction* SymbolStruct::effectiveOpPostCopy(TaskContext& ctx)
-{
-    return const_cast<SymbolFunction*>(const_cast<const SymbolStruct*>(this)->effectiveOpPostCopy(ctx));
-}
-
 const SymbolFunction* SymbolStruct::effectiveOpPostCopy(const TaskContext& ctx) const
 {
     if (isGenericRoot() && !isGenericInstance())
@@ -870,11 +855,6 @@ const SymbolFunction* SymbolStruct::effectiveOpPostCopy(const TaskContext& ctx) 
         return wrapper;
 
     return resolvedLifecycleFunction(ctx, *this, SpecOpKind::OpPostCopy);
-}
-
-SymbolFunction* SymbolStruct::effectiveOpPostMove(TaskContext& ctx)
-{
-    return const_cast<SymbolFunction*>(const_cast<const SymbolStruct*>(this)->effectiveOpPostMove(ctx));
 }
 
 const SymbolFunction* SymbolStruct::effectiveOpPostMove(const TaskContext& ctx) const

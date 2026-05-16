@@ -603,7 +603,7 @@ void ABICall::callAddress(MicroBuilder& builder, CallConvKind callConvKind, uint
     emitCallStackAdjust(builder, conv, stackAdjust, MicroOp::Add);
 }
 
-void ABICall::callLocal(MicroBuilder& builder, CallConvKind callConvKind, Symbol* targetSymbol, MicroReg targetReg, const PreparedCall& preparedCall, const Return& ret)
+void ABICall::callLocal(MicroBuilder& builder, CallConvKind callConvKind, const Symbol* targetSymbol, MicroReg targetReg, const PreparedCall& preparedCall, const Return& ret)
 {
     SWC_ASSERT(targetSymbol != nullptr);
     SWC_UNUSED(targetReg);
@@ -617,12 +617,12 @@ void ABICall::callLocal(MicroBuilder& builder, CallConvKind callConvKind, Symbol
     emitCallStackAdjust(builder, conv, stackAdjust.restore, MicroOp::Add);
 }
 
-void ABICall::callLocal(MicroBuilder& builder, CallConvKind callConvKind, Symbol* targetSymbol, const PreparedCall& preparedCall, const Return& ret)
+void ABICall::callLocal(MicroBuilder& builder, CallConvKind callConvKind, const Symbol* targetSymbol, const PreparedCall& preparedCall, const Return& ret)
 {
     callLocal(builder, callConvKind, targetSymbol, MicroReg::invalid(), preparedCall, ret);
 }
 
-void ABICall::callExtern(MicroBuilder& builder, CallConvKind callConvKind, Symbol* targetSymbol, MicroReg targetReg, const PreparedCall& preparedCall, const Return& ret)
+void ABICall::callExtern(MicroBuilder& builder, CallConvKind callConvKind, const Symbol* targetSymbol, MicroReg targetReg, const PreparedCall& preparedCall, const Return& ret)
 {
     SWC_ASSERT(targetSymbol != nullptr);
     SWC_UNUSED(targetReg);
@@ -636,17 +636,17 @@ void ABICall::callExtern(MicroBuilder& builder, CallConvKind callConvKind, Symbo
     emitCallStackAdjust(builder, conv, stackAdjust.restore, MicroOp::Add);
 }
 
-void ABICall::callExtern(MicroBuilder& builder, CallConvKind callConvKind, Symbol* targetSymbol, const PreparedCall& preparedCall, const Return& ret)
+void ABICall::callExtern(MicroBuilder& builder, CallConvKind callConvKind, const Symbol* targetSymbol, const PreparedCall& preparedCall, const Return& ret)
 {
     callExtern(builder, callConvKind, targetSymbol, MicroReg::invalid(), preparedCall, ret);
 }
 
-void ABICall::callExtern(MicroBuilder& builder, CallConvKind callConvKind, Symbol* targetSymbol, MicroReg targetReg, const PreparedCall& preparedCall)
+void ABICall::callExtern(MicroBuilder& builder, CallConvKind callConvKind, const Symbol* targetSymbol, MicroReg targetReg, const PreparedCall& preparedCall)
 {
     callExtern(builder, callConvKind, targetSymbol, targetReg, preparedCall, Return{});
 }
 
-void ABICall::callExtern(MicroBuilder& builder, CallConvKind callConvKind, Symbol* targetSymbol, const PreparedCall& preparedCall)
+void ABICall::callExtern(MicroBuilder& builder, CallConvKind callConvKind, const Symbol* targetSymbol, const PreparedCall& preparedCall)
 {
     callExtern(builder, callConvKind, targetSymbol, MicroReg::invalid(), preparedCall, Return{});
 }
@@ -673,12 +673,12 @@ void ABICall::callReg(MicroBuilder& builder, CallConvKind callConvKind, MicroReg
     callReg(builder, callConvKind, targetReg, preparedCall, Return{});
 }
 
-void ABICall::callLocal(MicroBuilder& builder, CallConvKind callConvKind, Symbol* targetSymbol, MicroReg targetReg, const PreparedCall& preparedCall)
+void ABICall::callLocal(MicroBuilder& builder, CallConvKind callConvKind, const Symbol* targetSymbol, MicroReg targetReg, const PreparedCall& preparedCall)
 {
     callLocal(builder, callConvKind, targetSymbol, targetReg, preparedCall, Return{});
 }
 
-void ABICall::callLocal(MicroBuilder& builder, CallConvKind callConvKind, Symbol* targetSymbol, const PreparedCall& preparedCall)
+void ABICall::callLocal(MicroBuilder& builder, CallConvKind callConvKind, const Symbol* targetSymbol, const PreparedCall& preparedCall)
 {
     callLocal(builder, callConvKind, targetSymbol, MicroReg::invalid(), preparedCall, Return{});
 }

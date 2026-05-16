@@ -76,13 +76,9 @@ public:
     const SymbolFunction*        opPostCopy() const { return opPostCopy_; }
     SymbolFunction*              opPostMove() { return opPostMove_; }
     const SymbolFunction*        opPostMove() const { return opPostMove_; }
-    SymbolFunction*              effectiveOpInit(TaskContext& ctx);
     const SymbolFunction*        effectiveOpInit(const TaskContext& ctx) const;
-    SymbolFunction*              effectiveOpDrop(TaskContext& ctx);
     const SymbolFunction*        effectiveOpDrop(const TaskContext& ctx) const;
-    SymbolFunction*              effectiveOpPostCopy(TaskContext& ctx);
     const SymbolFunction*        effectiveOpPostCopy(const TaskContext& ctx) const;
-    SymbolFunction*              effectiveOpPostMove(TaskContext& ctx);
     const SymbolFunction*        effectiveOpPostMove(const TaskContext& ctx) const;
 
     bool                          isGenericRoot() const noexcept { return hasExtraFlag(SymbolStructFlagsE::GenericRoot); }

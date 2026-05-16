@@ -1129,17 +1129,18 @@ bool SymbolFunction::tryMarkJitPatchJobScheduled() noexcept
     return jitPatchJobScheduled_.compare_exchange_strong(expected, true, std::memory_order_acq_rel, std::memory_order_acquire);
 }
 
-void SymbolFunction::addCallDependency(SymbolFunction* sym)
+void SymbolFunction::addCallDependency(const SymbolFunction* sym)
 {
     if (!sym || sym == this)
         return;
     if (sym->attributes().hasRtFlag(RtAttributeFlagsE::Macro) || sym->attributes().hasRtFlag(RtAttributeFlagsE::Mixin))
         return;
 
+    auto* const mutableSym = const_cast<SymbolFunction*>(sym);
     const std::scoped_lock lock(metadataMutex_);
-    if (std::ranges::find(callDependencies_, sym) != callDependencies_.end())
+    if (std::ranges::find(callDependencies_, mutableSym) != callDependencies_.end())
         return;
-    callDependencies_.push_back(sym);
+    callDependencies_.push_back(mutableSym);
 }
 
 void SymbolFunction::appendCallDependencies(SmallVector<SymbolFunction*>& out) const

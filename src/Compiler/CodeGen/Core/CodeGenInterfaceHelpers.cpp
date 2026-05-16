@@ -65,7 +65,7 @@ Result CodeGenInterfaceHelpers::loadInterfaceMethodTableAddress(MicroReg& outReg
             SWC_ASSERT(interfaceMethod != nullptr);
             const SymbolFunction* implMethod = castInfo.implSym->resolveInterfaceMethodTarget(*interfaceMethod);
             SWC_ASSERT(implMethod != nullptr);
-            codeGen.function().addCallDependency(const_cast<SymbolFunction*>(implMethod));
+            codeGen.function().addCallDependency(implMethod);
         }
     }
 

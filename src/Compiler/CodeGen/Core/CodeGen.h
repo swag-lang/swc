@@ -26,7 +26,7 @@ struct SemaInlinePayload;
 struct CodeGenGvtdEntry
 {
     const SymbolVariable* variable = nullptr;
-    SymbolFunction*       opDrop   = nullptr;
+    const SymbolFunction* opDrop   = nullptr;
     uint32_t              sizeOf   = 0;
     uint32_t              count    = 0;
 };
@@ -324,9 +324,9 @@ public:
     CodeGenNodePayload        resolveLocalStackPayload(const SymbolVariable& sym, bool cache = true);
     MicroReg                  runtimeStorageAddressReg(AstNodeRef nodeRef);
     bool                      hasLifecycle(TypeRef typeRef, LifecycleKind lifecycleKind) const;
-    bool                      tryBuildLifecycleAction(TypeRef typeRef, LifecycleKind lifecycleKind, SymbolFunction*& outFunction, uint32_t& outSizeOf, uint32_t& outCount) const;
-    Result                    emitLifecycleAction(SymbolFunction& calledFunction, MicroReg addressReg);
-    Result                    emitLifecycleAction(SymbolFunction& calledFunction, MicroReg addressReg, uint32_t sizeOf, uint32_t count);
+    bool                      tryBuildLifecycleAction(TypeRef typeRef, LifecycleKind lifecycleKind, const SymbolFunction*& outFunction, uint32_t& outSizeOf, uint32_t& outCount) const;
+    Result                    emitLifecycleAction(const SymbolFunction& calledFunction, MicroReg addressReg);
+    Result                    emitLifecycleAction(const SymbolFunction& calledFunction, MicroReg addressReg, uint32_t sizeOf, uint32_t count);
     Result                    emitLifecycle(TypeRef typeRef, LifecycleKind lifecycleKind, MicroReg addressReg);
     Result                    emitLifecycle(TypeRef typeRef, LifecycleKind lifecycleKind, MicroReg addressReg, uint32_t count);
     Result                    emitLifecycle(TypeRef typeRef, LifecycleKind lifecycleKind, MicroReg addressReg, MicroReg countReg);

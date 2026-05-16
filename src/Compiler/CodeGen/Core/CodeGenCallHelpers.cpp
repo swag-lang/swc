@@ -1627,7 +1627,7 @@ namespace
     }
 }
 
-Result CodeGenCallHelpers::emitRuntimeCallWithDirectArgsToReg(CodeGen& codeGen, SymbolFunction& runtimeFunction, std::span<const MicroReg> argRegs, MicroReg resultReg)
+Result CodeGenCallHelpers::emitRuntimeCallWithDirectArgsToReg(CodeGen& codeGen, const SymbolFunction& runtimeFunction, std::span<const MicroReg> argRegs, MicroReg resultReg)
 {
     codeGen.function().addCallDependency(&runtimeFunction);
 
@@ -1659,7 +1659,7 @@ Result CodeGenCallHelpers::emitRuntimeCallWithDirectArgsToReg(CodeGen& codeGen, 
     return Result::Continue;
 }
 
-Result CodeGenCallHelpers::emitRuntimeCallWithDirectArgs(CodeGen& codeGen, SymbolFunction& runtimeFunction, std::span<const MicroReg> argRegs)
+Result CodeGenCallHelpers::emitRuntimeCallWithDirectArgs(CodeGen& codeGen, const SymbolFunction& runtimeFunction, std::span<const MicroReg> argRegs)
 {
     codeGen.function().addCallDependency(&runtimeFunction);
 

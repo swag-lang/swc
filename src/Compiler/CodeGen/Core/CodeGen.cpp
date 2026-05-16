@@ -136,7 +136,7 @@ namespace
     }
 #endif
 
-    SymbolFunction* resolveDirectLifecycleFunction(const TypeInfo& typeInfo, const CodeGenLifecycleKind lifecycleKind)
+    const SymbolFunction* resolveDirectLifecycleFunction(const TypeInfo& typeInfo, const CodeGenLifecycleKind lifecycleKind)
     {
         if (!typeInfo.isStruct())
             return nullptr;
@@ -154,12 +154,12 @@ namespace
         return nullptr;
     }
 
-    SymbolFunction* resolveEffectiveLifecycleFunction(const CodeGen& codeGen, const TypeInfo& typeInfo, const CodeGenLifecycleKind lifecycleKind)
+    const SymbolFunction* resolveEffectiveLifecycleFunction(const CodeGen& codeGen, const TypeInfo& typeInfo, const CodeGenLifecycleKind lifecycleKind)
     {
         if (!typeInfo.isStruct())
             return nullptr;
 
-        auto& ctx = const_cast<TaskContext&>(codeGen.ctx());
+        const auto& ctx = codeGen.ctx();
         switch (lifecycleKind)
         {
             case CodeGenLifecycleKind::Drop:
@@ -211,7 +211,7 @@ namespace
         return false;
     }
 
-    bool tryBuildLifecycleActionRec(const CodeGen& codeGen, TypeRef typeRef, const CodeGen::LifecycleKind lifecycleKind, SymbolFunction*& outFunction, uint32_t& outSizeOf, uint32_t& outCount)
+    bool tryBuildLifecycleActionRec(const CodeGen& codeGen, TypeRef typeRef, const CodeGen::LifecycleKind lifecycleKind, const SymbolFunction*& outFunction, uint32_t& outSizeOf, uint32_t& outCount)
     {
         outFunction = nullptr;
         outSizeOf   = 0;
@@ -231,9 +231,9 @@ namespace
             if (!multiplier)
                 return false;
 
-            SymbolFunction* elemFunction = nullptr;
-            uint32_t        elemSizeOf   = 0;
-            uint32_t        elemCount    = 0;
+            const SymbolFunction* elemFunction = nullptr;
+            uint32_t              elemSizeOf   = 0;
+            uint32_t              elemCount    = 0;
             if (!tryBuildLifecycleActionRec(codeGen, typeInfo.payloadArrayElemTypeRef(), lifecycleKind, elemFunction, elemSizeOf, elemCount))
                 return false;
 
@@ -250,7 +250,7 @@ namespace
         if (!typeInfo.isStruct())
             return false;
 
-        SymbolFunction* lifecycleFunction = resolveEffectiveLifecycleFunction(codeGen, typeInfo, lifecycleKind);
+        const SymbolFunction* lifecycleFunction = resolveEffectiveLifecycleFunction(codeGen, typeInfo, lifecycleKind);
 
         if (!lifecycleFunction)
             return false;
@@ -285,8 +285,8 @@ namespace
         if (!typeInfo.isStruct())
             return Result::Continue;
 
-        SymbolFunction* directLifecycle = resolveDirectLifecycleFunction(typeInfo, lifecycleKind);
-        const auto&     fields          = typeInfo.payloadSymStruct().fields();
+        const SymbolFunction* directLifecycle = resolveDirectLifecycleFunction(typeInfo, lifecycleKind);
+        const auto&           fields          = typeInfo.payloadSymStruct().fields();
 
         // A user-defined drop must see its fields still alive. Post-copy and post-move run after the
         // contained fields have repaired their own state.
@@ -831,7 +831,7 @@ MicroReg CodeGen::runtimeStorageAddressReg(AstNodeRef nodeRef)
     return storagePayload.reg;
 }
 
-bool CodeGen::tryBuildLifecycleAction(const TypeRef typeRef, const LifecycleKind lifecycleKind, SymbolFunction*& outFunction, uint32_t& outSizeOf, uint32_t& outCount) const
+bool CodeGen::tryBuildLifecycleAction(const TypeRef typeRef, const LifecycleKind lifecycleKind, const SymbolFunction*& outFunction, uint32_t& outSizeOf, uint32_t& outCount) const
 {
     return tryBuildLifecycleActionRec(*this, typeRef, lifecycleKind, outFunction, outSizeOf, outCount);
 }
@@ -841,7 +841,7 @@ bool CodeGen::hasLifecycle(const TypeRef typeRef, const LifecycleKind lifecycleK
     return hasLifecycleRec(*this, typeRef, lifecycleKind);
 }
 
-Result CodeGen::emitLifecycleAction(SymbolFunction& calledFunction, const MicroReg addressReg)
+Result CodeGen::emitLifecycleAction(const SymbolFunction& calledFunction, const MicroReg addressReg)
 {
     SWC_ASSERT(addressReg.isValid());
 
@@ -862,7 +862,7 @@ Result CodeGen::emitLifecycle(const TypeRef typeRef, const LifecycleKind lifecyc
     return emitLifecycleRec(*this, typeRef, lifecycleKind, addressReg);
 }
 
-Result CodeGen::emitLifecycleAction(SymbolFunction& calledFunction, const MicroReg addressReg, const uint32_t sizeOf, const uint32_t count)
+Result CodeGen::emitLifecycleAction(const SymbolFunction& calledFunction, const MicroReg addressReg, const uint32_t sizeOf, const uint32_t count)
 {
     if (!count)
         return Result::Continue;

@@ -316,7 +316,7 @@ namespace
             info.symbol      = symbol;
             info.machineCode = &symbol->loweredCode();
             info.sortKey     = SymbolSort::locationKey(builder.compiler(), *symbol);
-            const bool exportPublicSymbol = supportsExportedPublicFunctionSymbols(builder) && symbol->isPublic() && !isCompilerFunction(*symbol) && symbol->supportsPublicApiExport();
+            const bool exportPublicSymbol = supportsExportedPublicFunctionSymbols(builder) && symbol->isPublic() && !isCompilerFunction(*symbol) && symbol->supportsPublicApiForeignExport();
             if (exportPublicSymbol)
                 info.symbolName = symbol->computePublicApiSymbolName(builder.ctx());
             else

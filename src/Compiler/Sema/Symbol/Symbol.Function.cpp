@@ -352,7 +352,7 @@ namespace
 
     bool isPublicApiExportedOverload(const SymbolFunction& candidate)
     {
-        return candidate.isPublic() && candidate.supportsPublicApiExport();
+        return candidate.isPublic() && candidate.supportsPublicApiForeignExport();
     }
 
     template<typename FUNC>
@@ -899,18 +899,22 @@ Utf8 SymbolFunction::computePublicApiSymbolName(const TaskContext& ctx) const
     return apiName;
 }
 
-bool SymbolFunction::supportsPublicApiExport() const noexcept
+bool SymbolFunction::supportsGeneratedModuleApiExport() const noexcept
 {
     if (!decl() || decl()->isNot(AstNodeId::FunctionDecl))
         return false;
     if (isAttribute() || isClosure() || isGenericRoot() || isGenericInstance() || hasUnmaterializedGenericBody())
         return false;
-    if (attributes().hasRtFlag(RtAttributeFlagsE::Compiler) || attributes().hasRtFlag(RtAttributeFlagsE::Macro) || attributes().hasRtFlag(RtAttributeFlagsE::Mixin))
+    if (attributes().hasRtFlag(RtAttributeFlagsE::Compiler))
         return false;
     if (attributes().hasRtFlag(RtAttributeFlagsE::Implicit))
         return false;
     if (const SymbolImpl* symImpl = declImplContext(); symImpl && !symImpl->isForStruct())
         return false;
+
+    if (attributes().hasRtFlag(RtAttributeFlagsE::Macro) || attributes().hasRtFlag(RtAttributeFlagsE::Mixin))
+        return true;
+
     if (!returnTypeRef().isValid())
         return false;
 
@@ -921,6 +925,13 @@ bool SymbolFunction::supportsPublicApiExport() const noexcept
     }
 
     return true;
+}
+
+bool SymbolFunction::supportsPublicApiForeignExport() const noexcept
+{
+    return supportsGeneratedModuleApiExport() &&
+           !attributes().hasRtFlag(RtAttributeFlagsE::Macro) &&
+           !attributes().hasRtFlag(RtAttributeFlagsE::Mixin);
 }
 
 uint32_t SymbolFunction::typeSignatureHash() const noexcept

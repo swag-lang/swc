@@ -179,7 +179,7 @@ namespace
 
         if (const auto* symbolFunction = symbol.safeCast<SymbolFunction>())
         {
-            return symbolFunction->supportsPublicApiExport();
+            return symbolFunction->supportsGeneratedModuleApiExport();
         }
 
         return false;
@@ -366,6 +366,7 @@ namespace
 
     Result validatePublicTypeSymbol(TaskContext& ctx, const Symbol& symbol, SmallVector<const Symbol*>& stack);
     Result validatePublicFunctionSymbol(TaskContext& ctx, const SymbolFunction& symbolFunction, SmallVector<const Symbol*>& stack);
+    bool   isModuleApiDeclWrapper(const AstNode& node);
 
     Result validateTypeReferenceSymbol(TaskContext& ctx, const Symbol& ownerSymbol, const Symbol& focusSymbol, std::string_view usage, const Symbol& referencedSymbol, SmallVector<const Symbol*>& stack)
     {
@@ -589,6 +590,73 @@ namespace
         return node.tokRef();
     }
 
+    TokenRef moduleApiFunctionBodyEndTokRef(const Ast& ast, const AstFunctionDecl& functionDecl)
+    {
+        if (!functionDecl.nodeBodyRef.isValid() || ast.isAdditionalNode(functionDecl.nodeBodyRef))
+            return TokenRef::invalid();
+
+        const AstNode& bodyNode = ast.node(functionDecl.nodeBodyRef);
+        TokenRef       bodyStartTokRef = moduleApiSnippetStartTokRef(ast, bodyNode);
+        if (!bodyStartTokRef.isValid())
+            bodyStartTokRef = bodyNode.tokRef();
+
+        const TokenRef bodyEndTokRef = bodyNode.tokRefEnd(ast);
+        if (!bodyEndTokRef.isValid())
+            return TokenRef::invalid();
+
+        if (!ast.hasSourceView() || !bodyStartTokRef.isValid())
+            return bodyEndTokRef;
+
+        const SourceView& srcView = ast.srcView();
+        if (srcView.token(bodyStartTokRef).id != TokenId::SymLeftCurly)
+            return bodyEndTokRef;
+
+        uint32_t curlyBalance = 0;
+        for (uint32_t tokIndex = bodyStartTokRef.get(); tokIndex < srcView.tokens().size(); ++tokIndex)
+        {
+            const TokenId tokenId = srcView.token(TokenRef(tokIndex)).id;
+            if (tokenId == TokenId::SymLeftCurly)
+                curlyBalance++;
+            else if (tokenId == TokenId::SymRightCurly)
+            {
+                SWC_ASSERT(curlyBalance != 0);
+                curlyBalance--;
+                if (!curlyBalance)
+                    return TokenRef(tokIndex);
+            }
+        }
+
+        return bodyEndTokRef;
+    }
+
+    TokenRef moduleApiSnippetEndTokRef(const Ast& ast, const AstNode& node)
+    {
+        if (isModuleApiDeclWrapper(node))
+        {
+            SmallVector<AstNodeRef> childRefs;
+            node.collectChildrenFromAst(childRefs, ast);
+            for (size_t i = childRefs.size(); i > 0; --i)
+            {
+                const AstNodeRef childRef = childRefs[i - 1];
+                if (!childRef.isValid() || !ast.hasNode(childRef))
+                    continue;
+
+                const TokenRef childEndTokRef = moduleApiSnippetEndTokRef(ast, ast.node(childRef));
+                if (childEndTokRef.isValid())
+                    return childEndTokRef;
+            }
+        }
+
+        if (const auto* functionDecl = node.safeCast<AstFunctionDecl>())
+        {
+            const TokenRef bodyEndTokRef = moduleApiFunctionBodyEndTokRef(ast, *functionDecl);
+            if (bodyEndTokRef.isValid())
+                return bodyEndTokRef;
+        }
+
+        return node.tokRefEnd(ast);
+    }
+
     bool tryGetModuleApiSnippetStartOffset(const SourceFile& file, AstNodeRef nodeRef, uint32_t& outStartOffset);
 
     constexpr uint32_t moduleApiInvalidByte = 0xFFFFFFFFu;
@@ -725,7 +793,7 @@ namespace
         const TokenRef startTokRef = moduleApiSnippetStartTokRef(ast, node);
         if (!startTokRef.isValid())
             return false;
-        const TokenRef endTokRef = node.tokRefEnd(ast);
+        const TokenRef endTokRef = moduleApiSnippetEndTokRef(ast, node);
         if (!endTokRef.isValid())
             return false;
 
@@ -1208,12 +1276,26 @@ namespace
 
         if (const auto* symbolFunction = root.symbol ? root.symbol->safeCast<SymbolFunction>() : nullptr)
         {
-            if (!supportsGeneratedModuleApiForeignFunctions(ctx.compiler()))
-                return Result::Continue;
+            if (symbolFunction->supportsPublicApiForeignExport())
+            {
+                if (!supportsGeneratedModuleApiForeignFunctions(ctx.compiler()))
+                    return Result::Continue;
 
-            SmallVector<const Symbol*> validationStack;
-            SWC_RESULT(validatePublicFunctionSymbol(ctx, *symbolFunction, validationStack));
-            outSnippet = buildFunctionSnippet(ctx, root, eol);
+                SmallVector<const Symbol*> validationStack;
+                SWC_RESULT(validatePublicFunctionSymbol(ctx, *symbolFunction, validationStack));
+                outSnippet = buildFunctionSnippet(ctx, root, eol);
+                return Result::Continue;
+            }
+
+            if (symbolFunction->attributes().hasRtFlag(RtAttributeFlagsE::Macro) || symbolFunction->attributes().hasRtFlag(RtAttributeFlagsE::Mixin))
+            {
+                std::string_view snippetText;
+                if (!tryGetModuleApiSnippet(*root.file, root.nodeRef, snippetText))
+                    return Result::Continue;
+
+                outSnippet = buildSanitizedModuleApiSnippet(ctx, *root.file, snippetText, eol);
+            }
+
             return Result::Continue;
         }
 

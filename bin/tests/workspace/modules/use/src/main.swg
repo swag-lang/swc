@@ -34,8 +34,13 @@ using Dep, DepLib
 
     @assert(depDouble(21) == 42)
     @assert(depTriple(14) == 42)
+    @assert(depMacroTwicePlus(20, 2) == 42)
     @assert(depScale(cast(s32) 10) == 40)
     @assert(depScale(cast(f32) 2) == cast(f32) 8)
+
+    var total = 0
+    depMixinAccumulateTwice(21)
+    @assert(total == 42)
 
     var calc = DepCalculator.make(5)
     @assert(DepCalculator.resolve(6) == 106)

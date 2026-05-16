@@ -853,6 +853,22 @@ public func depTriple(value: s32)->s32
 }
 )"))
         return Result::Error;
+    if (!writeTextFile(depLibModuleDir / "src" / "public_inline.swg", R"(#global public
+#[Swag.Macro]
+func depMacroTwicePlus(value: s32, extra: s32 = 1)->s32
+{
+    let result = value * 2
+    return result + extra
+}
+
+#[Swag.Mixin]
+func depMixinAccumulateTwice(value: s32)
+{
+    let scaled = value * 2
+    total += scaled
+}
+)"))
+        return Result::Error;
 
     if (!writeTextFile(coreModuleDir / "module.swg", R"(#import("dep")
 #import("deplib")
@@ -879,6 +895,8 @@ public func coreValue()->s32
     var opaque: DepOpaque
     var namespaced: DepTools.DepNamespaced
     namespaced.value = 12
+    var total = 0
+    depMixinAccumulateTwice(21)
     var calc = DepCalculator.make(5)
 
     return DEP_VALUE +
@@ -896,6 +914,7 @@ public func coreValue()->s32
            value.asInt +
            depDouble(21) +
            depTriple(14) +
+           depMacroTwicePlus(20, 2) +
            depScale(cast(s32) 10) +
            cast(s32) depScale(cast(f32) 2) +
            DepCalculator.resolve(6) +
@@ -904,6 +923,7 @@ public func coreValue()->s32
            cast(s32) calc.add(cast(f32) 2) +
            calc.addTwice(7) +
            calc.sub(2) +
+           total +
            namespaced.value +
            cast(s32) #sizeof(opaque)
 }
@@ -1066,6 +1086,22 @@ public func coreValue()->s32
         return Result::Error;
     if (!depLibApiContent.contains("func depDouble(value: s32)->s32;"))
         return Result::Error;
+    if (!depLibApiContent.contains("#[Swag.Macro]"))
+        return Result::Error;
+    if (!depLibApiContent.contains("func depMacroTwicePlus(value: s32, extra: s32 = 1)->s32"))
+        return Result::Error;
+    if (!depLibApiContent.contains("let result = value * 2"))
+        return Result::Error;
+    if (!depLibApiContent.contains("return result + extra"))
+        return Result::Error;
+    if (!depLibApiContent.contains("#[Swag.Mixin]"))
+        return Result::Error;
+    if (!depLibApiContent.contains("func depMixinAccumulateTwice(value: s32)"))
+        return Result::Error;
+    if (!depLibApiContent.contains("let scaled = value * 2"))
+        return Result::Error;
+    if (!depLibApiContent.contains("total += scaled"))
+        return Result::Error;
     if (!depLibApiContent.contains("func depScale(value: s32)->s32;"))
         return Result::Error;
     if (!depLibApiContent.contains("func depScale(value: f32)->f32;"))
@@ -1093,6 +1129,10 @@ public func coreValue()->s32
     if (depLibApiContent.contains("return .base + value"))
         return Result::Error;
     if (depLibApiContent.contains("return .base - value"))
+        return Result::Error;
+    if (depLibApiContent.contains("#[Swag.Foreign(\"deplib\", \"dep_macro_twice_plus"))
+        return Result::Error;
+    if (depLibApiContent.contains("#[Swag.Foreign(\"deplib\", \"dep_mixin_accumulate_twice"))
         return Result::Error;
 
     return Result::Continue;

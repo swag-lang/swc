@@ -1722,6 +1722,8 @@ Result CompilerInstance::runWorkspaceModule(const WorkspaceModuleBuild& moduleBu
     moduleCmdLine.outDir         = workspaceModuleOutputDirectory(cmdLine().workspacePath, moduleBuild.name, moduleCmdLine, moduleBuild.setup.buildCfg.backendKind, false);
     moduleCmdLine.workDir        = workspaceModuleOutputDirectory(cmdLine().workspacePath, moduleBuild.name, moduleCmdLine, moduleBuild.setup.buildCfg.backendKind, true);
     moduleCmdLine.exportApiDir   = moduleCmdLine.outDir;
+    moduleCmdLine.outDirExplicit = true;
+    moduleCmdLine.workDirExplicit = true;
     moduleCmdLine.outDirStorage  = Utf8(moduleCmdLine.outDir);
     moduleCmdLine.workDirStorage = Utf8(moduleCmdLine.workDir);
     CommandLineParser::refreshBuildCfg(moduleCmdLine);

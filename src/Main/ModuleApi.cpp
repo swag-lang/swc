@@ -6,6 +6,7 @@
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Constant/ConstantValue.h"
+#include "Compiler/Sema/Symbol/Symbol.Impl.h"
 #include "Compiler/Sema/Symbol/Symbols.h"
 #include "Compiler/SourceFile.h"
 #include "Format/Formatter.h"
@@ -20,6 +21,19 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    bool supportsGeneratedModuleApiForeignFunctions(const CompilerInstance& compiler)
+    {
+        switch (compiler.buildCfg().backendKind)
+        {
+            case Runtime::BuildCfgBackendKind::StaticLibrary:
+            case Runtime::BuildCfgBackendKind::SharedLibrary:
+                return true;
+
+            default:
+                return false;
+        }
+    }
+
     struct ModuleApiFileInfo
     {
         bool legacyExported     = false;
@@ -36,8 +50,17 @@ namespace
 
     struct ModuleApiNamespaceNode
     {
-        IdentifierRef                       idRef = IdentifierRef::invalid();
-        std::vector<Utf8>                   snippets;
+        struct ImplNode
+        {
+            const SourceFile*  file    = nullptr;
+            AstNodeRef         implRef = AstNodeRef::invalid();
+            Utf8               prefix;
+            std::vector<Utf8>  snippets;
+        };
+
+        IdentifierRef                idRef = IdentifierRef::invalid();
+        std::vector<Utf8>            snippets;
+        std::vector<ImplNode>        impls;
         std::vector<ModuleApiNamespaceNode> children;
     };
 
@@ -68,6 +91,18 @@ namespace
         if (artifactName.empty())
             artifactName = defaultArtifactName(compiler.cmdLine());
         return defaultModuleNamespace(artifactName);
+    }
+
+    Utf8 buildModuleArtifactName(const CompilerInstance& compiler)
+    {
+        Utf8 artifactName = buildCfgString(compiler.buildCfg().name);
+        if (!artifactName.empty())
+            return artifactName;
+
+        artifactName = defaultArtifactName(compiler.cmdLine());
+        if (!artifactName.empty())
+            return artifactName;
+        return "module";
     }
 
     const SourceFile* sourceFileFromSymbol(const CompilerInstance& compiler, const Symbol& symbol)
@@ -140,6 +175,21 @@ namespace
                 return false;
 
             return symbolStruct->decl()->is(AstNodeId::StructDecl) || symbolStruct->decl()->is(AstNodeId::UnionDecl);
+        }
+
+        if (const auto* symbolFunction = symbol.safeCast<SymbolFunction>())
+        {
+            if (symbolFunction->decl()->isNot(AstNodeId::FunctionDecl))
+                return false;
+            if (symbolFunction->isAttribute() || symbolFunction->isClosure() || symbolFunction->isGenericRoot() || symbolFunction->isGenericInstance() || symbolFunction->hasUnmaterializedGenericBody())
+                return false;
+            if (symbol.attributes().hasRtFlag(RtAttributeFlagsE::Compiler) || symbol.attributes().hasRtFlag(RtAttributeFlagsE::Macro) || symbol.attributes().hasRtFlag(RtAttributeFlagsE::Mixin))
+                return false;
+
+            if (const SymbolImpl* symImpl = symbolFunction->declImplContext(); symImpl && !symImpl->isForStruct())
+                return false;
+
+            return true;
         }
 
         return false;
@@ -325,6 +375,7 @@ namespace
     }
 
     Result validatePublicTypeSymbol(TaskContext& ctx, const Symbol& symbol, SmallVector<const Symbol*>& stack);
+    Result validatePublicFunctionSymbol(TaskContext& ctx, const SymbolFunction& symbolFunction, SmallVector<const Symbol*>& stack);
 
     Result validateTypeReferenceSymbol(TaskContext& ctx, const Symbol& ownerSymbol, const Symbol& focusSymbol, std::string_view usage, const Symbol& referencedSymbol, SmallVector<const Symbol*>& stack)
     {
@@ -443,6 +494,48 @@ namespace
             return validatePublicAliasSymbol(ctx, *symbolAlias, stack);
         if (const auto* symbolStruct = symbol.safeCast<SymbolStruct>())
             return validatePublicStructSymbol(ctx, *symbolStruct, stack);
+
+        return Result::Continue;
+    }
+
+    Result validatePublicFunctionOwner(TaskContext& ctx, const SymbolFunction& symbolFunction, SmallVector<const Symbol*>& stack)
+    {
+        const SymbolImpl* symImpl = symbolFunction.declImplContext();
+        if (!symImpl || !symImpl->isForStruct())
+            return Result::Continue;
+
+        const SymbolStruct* ownerStruct = symImpl->symStruct();
+        if (!ownerStruct)
+            return Result::Continue;
+
+        return validateTypeReferenceSymbol(ctx, symbolFunction, symbolFunction, "its owner type", *ownerStruct, stack);
+    }
+
+    Result validatePublicFunctionSymbol(TaskContext& ctx, const SymbolFunction& symbolFunction, SmallVector<const Symbol*>& stack)
+    {
+        if (moduleApiValidationStackContains(stack.span(), symbolFunction))
+            return Result::Continue;
+
+        ModuleApiValidationScope validationScope(stack, symbolFunction);
+        SWC_RESULT(validatePublicFunctionOwner(ctx, symbolFunction, stack));
+
+        if (symbolFunction.returnTypeRef().isValid() && symbolFunction.returnTypeRef() != ctx.typeMgr().typeVoid())
+            SWC_RESULT(validateExportedTypeRef(ctx, symbolFunction, symbolFunction, "its return type", symbolFunction.returnTypeRef(), stack));
+
+        const auto& parameters = symbolFunction.parameters();
+        for (uint32_t i = 0; i < parameters.size(); ++i)
+        {
+            const SymbolVariable* param = parameters[i];
+            if (!param || !param->typeRef().isValid())
+                continue;
+
+            Utf8 usage;
+            if (param->idRef().isValid())
+                usage = std::format("parameter '{}'", param->name(ctx));
+            else
+                usage = std::format("parameter #{}", i + 1);
+            SWC_RESULT(validateExportedTypeRef(ctx, symbolFunction, *param, usage.view(), param->typeRef(), stack));
+        }
 
         return Result::Continue;
     }
@@ -945,11 +1038,194 @@ namespace
         return result;
     }
 
+    void trimTrailingModuleApiWhitespace(Utf8& text)
+    {
+        while (!text.empty() && std::isspace(static_cast<unsigned char>(text.back())))
+            text.pop_back();
+    }
+
+    void trimTrailingModuleApiDeclarationSeparator(Utf8& text)
+    {
+        trimTrailingModuleApiWhitespace(text);
+        if (!text.empty() && text.back() == ';')
+            text.pop_back();
+        trimTrailingModuleApiWhitespace(text);
+    }
+
+    bool tryFindFunctionBodyStartOffset(const ModuleApiGeneratedRoot& root, uint32_t& outBodyStartOffset)
+    {
+        outBodyStartOffset = 0;
+        const auto* symbolFunction = root.symbol ? root.symbol->safeCast<SymbolFunction>() : nullptr;
+        if (!symbolFunction || !root.file || !symbolFunction->decl())
+            return false;
+
+        const Ast& ast = root.file->ast();
+        if (!ast.hasSourceView() || root.nodeRef.isInvalid())
+            return false;
+
+        const auto* functionDecl = symbolFunction->decl()->safeCast<AstFunctionDecl>();
+        if (!functionDecl || !functionDecl->nodeBodyRef.isValid() || ast.isAdditionalNode(functionDecl->nodeBodyRef))
+            return false;
+
+        const AstNode& rootNode    = ast.node(root.nodeRef);
+        const TokenRef startTokRef = moduleApiSnippetStartTokRef(ast, rootNode);
+        if (!startTokRef.isValid())
+            return false;
+
+        const AstNode& bodyNode = ast.node(functionDecl->nodeBodyRef);
+        TokenRef       bodyTokRef = moduleApiSnippetStartTokRef(ast, bodyNode);
+        if (!bodyTokRef.isValid())
+            bodyTokRef = bodyNode.tokRef();
+        if (!bodyTokRef.isValid())
+            return false;
+
+        const SourceView& srcView = ast.srcView();
+        if (functionDecl->hasFlag(AstFunctionFlagsE::Short))
+        {
+            for (uint32_t tokIndex = bodyTokRef.get(); tokIndex > startTokRef.get(); --tokIndex)
+            {
+                const TokenRef arrowTokRef(tokIndex - 1);
+                if (srcView.token(arrowTokRef).id != TokenId::SymEqualGreater)
+                    continue;
+
+                outBodyStartOffset = sourceTokenByteStart(srcView, srcView.token(arrowTokRef));
+                return true;
+            }
+        }
+
+        outBodyStartOffset = sourceTokenByteStart(srcView, srcView.token(bodyTokRef));
+        return true;
+    }
+
+    bool tryBuildFunctionDeclPrefix(TaskContext& ctx, const ModuleApiGeneratedRoot& root, const std::string_view eol, Utf8& outPrefix)
+    {
+        outPrefix.clear();
+        const auto* symbolFunction = root.symbol ? root.symbol->safeCast<SymbolFunction>() : nullptr;
+        if (!symbolFunction || !root.file || !symbolFunction->decl())
+            return false;
+
+        uint32_t startOffset = 0;
+        uint32_t endOffset   = 0;
+        if (!tryGetModuleApiSnippetOffsets(*root.file, root.nodeRef, startOffset, endOffset))
+            return false;
+
+        if (symbolFunction->decl()->isNot(AstNodeId::FunctionDecl))
+            return false;
+
+        uint32_t bodyStartOffset = 0;
+        if (tryFindFunctionBodyStartOffset(root, bodyStartOffset))
+            endOffset = bodyStartOffset;
+
+        const std::string_view source = root.file->sourceView();
+        endOffset = std::min<uint32_t>(endOffset, static_cast<uint32_t>(source.size()));
+        while (endOffset > startOffset && std::isspace(static_cast<unsigned char>(source[endOffset - 1])))
+            endOffset--;
+
+        if (startOffset >= endOffset)
+            return false;
+
+        outPrefix = buildSanitizedModuleApiSnippet(ctx, *root.file, source.substr(startOffset, endOffset - startOffset), eol);
+        return !outPrefix.empty();
+    }
+
+    Utf8 buildModuleApiForeignAttribute(TaskContext& ctx, const SymbolFunction& symbolFunction, const std::string_view eol)
+    {
+        Utf8 result = "#[Swag.Foreign(\"";
+        result += buildModuleArtifactName(ctx.compiler());
+        result += "\", \"";
+        result += symbolFunction.computePublicApiSymbolName(ctx);
+        result += "\")]";
+        result += eol;
+        return result;
+    }
+
+    Utf8 buildFunctionSnippet(TaskContext& ctx, const ModuleApiGeneratedRoot& root, const std::string_view eol)
+    {
+        const auto* symbolFunction = root.symbol ? root.symbol->safeCast<SymbolFunction>() : nullptr;
+        if (!symbolFunction)
+            return {};
+
+        Utf8 prefix;
+        if (!tryBuildFunctionDeclPrefix(ctx, root, eol, prefix))
+            return {};
+
+        trimTrailingModuleApiDeclarationSeparator(prefix);
+        if (prefix.empty())
+            return {};
+
+        Utf8 result;
+        if (!symbolFunction->isForeign())
+            result += buildModuleApiForeignAttribute(ctx, *symbolFunction, eol);
+
+        result += prefix;
+        result += ";";
+        return result;
+    }
+
+    bool tryBuildImplPrefix(TaskContext& ctx, const ModuleApiGeneratedRoot& root, const std::string_view eol, Utf8& outPrefix)
+    {
+        outPrefix.clear();
+        const auto* symbolFunction = root.symbol ? root.symbol->safeCast<SymbolFunction>() : nullptr;
+        const SymbolImpl* symImpl = symbolFunction ? symbolFunction->declImplContext() : nullptr;
+        if (!symbolFunction || !symImpl || !root.file || !symImpl->decl())
+            return false;
+
+        const Ast& ast = root.file->ast();
+        if (!ast.hasSourceView())
+            return false;
+
+        const AstNodeRef implRef = symImpl->decl()->nodeRef(ast);
+        if (implRef.isInvalid())
+            return false;
+
+        uint32_t startOffset = 0;
+        uint32_t endOffset   = 0;
+        if (!tryGetModuleApiSnippetOffsets(*root.file, implRef, startOffset, endOffset))
+            return false;
+
+        const AstNode&   implNode = *symImpl->decl();
+        const TokenRef   startTokRef = moduleApiSnippetStartTokRef(ast, implNode);
+        const TokenRef   endTokRef = implNode.tokRefEnd(ast);
+        const SourceView& srcView = ast.srcView();
+
+        for (uint32_t tokIndex = startTokRef.get(); tokIndex <= endTokRef.get() && tokIndex < srcView.tokens().size(); ++tokIndex)
+        {
+            const Token& token = srcView.token(TokenRef(tokIndex));
+            if (token.id != TokenId::SymLeftCurly)
+                continue;
+
+            endOffset = sourceTokenByteStart(srcView, token);
+            break;
+        }
+
+        const std::string_view source = root.file->sourceView();
+        endOffset = std::min<uint32_t>(endOffset, static_cast<uint32_t>(source.size()));
+        while (endOffset > startOffset && std::isspace(static_cast<unsigned char>(source[endOffset - 1])))
+            endOffset--;
+        if (startOffset >= endOffset)
+            return false;
+
+        outPrefix = buildSanitizedModuleApiSnippet(ctx, *root.file, source.substr(startOffset, endOffset - startOffset), eol);
+        trimTrailingModuleApiWhitespace(outPrefix);
+        return !outPrefix.empty();
+    }
+
     Result buildGeneratedRootSnippet(TaskContext& ctx, const ModuleApiGeneratedRoot& root, const std::string_view eol, Utf8& outSnippet)
     {
         outSnippet.clear();
         if (!root.file)
             return Result::Continue;
+
+        if (const auto* symbolFunction = root.symbol ? root.symbol->safeCast<SymbolFunction>() : nullptr)
+        {
+            if (!supportsGeneratedModuleApiForeignFunctions(ctx.compiler()))
+                return Result::Continue;
+
+            SmallVector<const Symbol*> validationStack;
+            SWC_RESULT(validatePublicFunctionSymbol(ctx, *symbolFunction, validationStack));
+            outSnippet = buildFunctionSnippet(ctx, root, eol);
+            return Result::Continue;
+        }
 
         if (root.symbol && (root.symbol->isAlias() || root.symbol->isStruct()))
         {
@@ -1032,7 +1308,7 @@ namespace
         return exportRootRef;
     }
 
-    bool isExportedPublicDeclScope(const SourceFile& file, const AstNodeRef declRef)
+    bool isExportedPublicDeclScope(const SourceFile& file, const AstNodeRef declRef, const Symbol& symbol)
     {
         const AstNodeRef rootRef = file.ast().root();
         if (rootRef.isInvalid())
@@ -1045,6 +1321,13 @@ namespace
         for (size_t i = 0; i + 1 < nodePath.size(); ++i)
         {
             const AstNode& node = file.ast().node(nodePath[i]);
+            if (node.is(AstNodeId::Impl))
+            {
+                if (symbol.isFunction())
+                    continue;
+                return false;
+            }
+
             if (isModuleApiForbiddenContainer(node))
                 return false;
         }
@@ -1061,6 +1344,12 @@ namespace
         {
             if (symMap->isModule())
                 break;
+
+            if (symMap->isImpl() || symMap->isStruct() || symMap->isEnum() || symMap->isInterface())
+            {
+                symMap = symMap->ownerSymMap();
+                continue;
+            }
 
             if (!symMap->isNamespace())
                 return false;
@@ -1181,6 +1470,16 @@ namespace
         return &node.children.back();
     }
 
+    ModuleApiNamespaceNode::ImplNode* findOrAppendNamespaceImpl(ModuleApiNamespaceNode& node, const SourceFile& file, const AstNodeRef implRef, Utf8&& prefix)
+    {
+        const auto it = std::ranges::find_if(node.impls, [&](const ModuleApiNamespaceNode::ImplNode& child) { return child.file == &file && child.implRef == implRef; });
+        if (it != node.impls.end())
+            return &*it;
+
+        node.impls.push_back({.file = &file, .implRef = implRef, .prefix = std::move(prefix)});
+        return &node.impls.back();
+    }
+
     void appendNamespaceSnippet(ModuleApiNamespaceNode& rootNode, std::span<const IdentifierRef> namespacePath, Utf8&& snippet)
     {
         ModuleApiNamespaceNode* currentNode = &rootNode;
@@ -1193,9 +1492,48 @@ namespace
         currentNode->snippets.push_back(std::move(snippet));
     }
 
+    void appendNamespaceImplSnippet(ModuleApiNamespaceNode& rootNode, std::span<const IdentifierRef> namespacePath, const SourceFile& file, const AstNodeRef implRef, Utf8&& prefix, Utf8&& snippet)
+    {
+        ModuleApiNamespaceNode* currentNode = &rootNode;
+        for (const IdentifierRef idRef : namespacePath)
+        {
+            currentNode = findOrAppendNamespaceChild(*currentNode, idRef);
+            SWC_ASSERT(currentNode);
+        }
+
+        auto* implNode = findOrAppendNamespaceImpl(*currentNode, file, implRef, std::move(prefix));
+        SWC_ASSERT(implNode);
+        implNode->snippets.push_back(std::move(snippet));
+    }
+
+    void appendNamespaceImplNode(Utf8& outContent, const ModuleApiNamespaceNode::ImplNode& node, const Utf8& indent, const std::string_view eol)
+    {
+        if (node.prefix.empty())
+            return;
+
+        appendIndentedSnippet(outContent, node.prefix.view(), indent.view(), eol);
+        outContent += eol;
+        outContent += indent;
+        outContent += "{";
+        outContent += eol;
+
+        Utf8 childIndent = indent;
+        childIndent += "    ";
+        for (const Utf8& snippet : node.snippets)
+        {
+            appendIndentedSnippet(outContent, snippet.view(), childIndent.view(), eol);
+            if (snippet.back() != '\n' && snippet.back() != '\r')
+                outContent += eol;
+        }
+
+        outContent += indent;
+        outContent += "}";
+        outContent += eol;
+    }
+
     void appendNamespaceNode(TaskContext& ctx, Utf8& outContent, const ModuleApiNamespaceNode& node, const Utf8& indent, std::string_view eol)
     {
-        if (node.idRef.isInvalid() && node.snippets.empty() && node.children.empty())
+        if (node.idRef.isInvalid() && node.snippets.empty() && node.impls.empty() && node.children.empty())
             return;
 
         Utf8 childIndent = indent;
@@ -1219,6 +1557,9 @@ namespace
                 outContent += eol;
         }
 
+        for (const auto& implNode : node.impls)
+            appendNamespaceImplNode(outContent, implNode, childIndent, eol);
+
         for (const ModuleApiNamespaceNode& child : node.children)
             appendNamespaceNode(ctx, outContent, child, childIndent, eol);
 
@@ -1238,6 +1579,9 @@ namespace
             if (snippet.back() != '\n' && snippet.back() != '\r')
                 outContent += eol;
         }
+
+        for (const auto& implNode : rootNode.impls)
+            appendNamespaceImplNode(outContent, implNode, {}, eol);
 
         for (const ModuleApiNamespaceNode& child : rootNode.children)
             appendNamespaceNode(ctx, outContent, child, {}, eol);
@@ -1273,6 +1617,19 @@ namespace
             SWC_RESULT(buildGeneratedRootSnippet(ctx, root, eol, sanitizedSnippet));
             if (sanitizedSnippet.empty())
                 continue;
+
+            const auto* symbolFunction = root.symbol ? root.symbol->safeCast<SymbolFunction>() : nullptr;
+            const SymbolImpl* symImpl = symbolFunction ? symbolFunction->declImplContext() : nullptr;
+            if (symbolFunction && symImpl && symImpl->isForStruct() && symImpl->decl())
+            {
+                Utf8 implPrefix;
+                if (tryBuildImplPrefix(ctx, root, eol, implPrefix))
+                {
+                    const AstNodeRef implRef = symImpl->decl()->nodeRef(root.file->ast());
+                    appendNamespaceImplSnippet(namespaceTree, root.namespacePath, *root.file, implRef, std::move(implPrefix), std::move(sanitizedSnippet));
+                    continue;
+                }
+            }
 
             appendNamespaceSnippet(namespaceTree, root.namespacePath, std::move(sanitizedSnippet));
         }
@@ -1341,7 +1698,7 @@ namespace ModuleApi
         const AstNodeRef declRef = symbol.decl()->nodeRef(sourceFile->ast());
         if (declRef.isInvalid())
             return;
-        if (!isExportedPublicDeclScope(*sourceFile, declRef))
+        if (!isExportedPublicDeclScope(*sourceFile, declRef, symbol))
             return;
 
         ModuleApiPublicEntry publicEntry;

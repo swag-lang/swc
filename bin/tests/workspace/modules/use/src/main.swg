@@ -1,4 +1,4 @@
-using Dep
+using Dep, DepLib
 
 #main
 {
@@ -31,4 +31,12 @@ using Dep
     var namespaced: DepTools.DepNamespaced
     namespaced.value = 12
     @assert(namespaced.value == 12)
+
+    @assert(depDouble(21) == 42)
+    @assert(depTriple(14) == 42)
+
+    var calc = DepCalculator.make(5)
+    @assert(calc.add(7) == 12)
+    @assert(calc.addTwice(7) == 19)
+    @assert(calc.sub(2) == 3)
 }

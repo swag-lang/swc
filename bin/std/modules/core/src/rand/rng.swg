@@ -1,6 +1,7 @@
 #global namespace Random
 #global public
 
+#[Swag.Opaque]
 struct(T = MWC) Rng
 {
     rng:          T

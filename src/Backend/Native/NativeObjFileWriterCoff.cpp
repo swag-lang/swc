@@ -400,20 +400,20 @@ Result NativeObjFileWriterCoff::appendSingleCodeRelocation(const uint32_t functi
             if (!builder_->tryMapRDataSourceOffset(mappedOffset, shardIndex, ref))
                 return builder_->reportError(DiagnosticId::cmd_err_native_constant_payload_unsupported, Diagnostic::ARG_SYM, ownerName);
 
-            record.symbolName = K_R_DATA_BASE_SYMBOL;
+            record.symbolName = nativeScopedSectionBaseSymbol(builder_->compiler(), K_R_DATA_BASE_SYMBOL);
             record.addend     = mappedOffset;
             writeU64(textSection.data.bytes, patchOffset, record.addend);
             break;
         }
 
         case MicroRelocation::Kind::GlobalInitAddress:
-            record.symbolName = K_DATA_BASE_SYMBOL;
+            record.symbolName = nativeScopedSectionBaseSymbol(builder_->compiler(), K_DATA_BASE_SYMBOL);
             record.addend     = relocation.targetAddress;
             writeU64(textSection.data.bytes, patchOffset, record.addend);
             break;
 
         case MicroRelocation::Kind::GlobalZeroAddress:
-            record.symbolName = K_BSS_BASE_SYMBOL;
+            record.symbolName = nativeScopedSectionBaseSymbol(builder_->compiler(), K_BSS_BASE_SYMBOL);
             record.addend     = relocation.targetAddress;
             writeU64(textSection.data.bytes, patchOffset, record.addend);
             break;
@@ -540,7 +540,7 @@ void NativeObjFileWriterCoff::addDefinedSymbols(const NativeObjDescription& desc
         if (section.data.name == ".rdata")
         {
             addSymbolRecord(symbols, symbolIndices, {
-                                                        .name          = K_R_DATA_BASE_SYMBOL,
+                                                        .name          = nativeScopedSectionBaseSymbol(builder_->compiler(), K_R_DATA_BASE_SYMBOL),
                                                         .sectionNumber = static_cast<int16_t>(section.sectionNumber),
                                                         .value         = 0,
                                                         .type          = 0,
@@ -550,7 +550,7 @@ void NativeObjFileWriterCoff::addDefinedSymbols(const NativeObjDescription& desc
         else if (section.data.name == ".data")
         {
             addSymbolRecord(symbols, symbolIndices, {
-                                                        .name          = K_DATA_BASE_SYMBOL,
+                                                        .name          = nativeScopedSectionBaseSymbol(builder_->compiler(), K_DATA_BASE_SYMBOL),
                                                         .sectionNumber = static_cast<int16_t>(section.sectionNumber),
                                                         .value         = 0,
                                                         .type          = 0,
@@ -560,7 +560,7 @@ void NativeObjFileWriterCoff::addDefinedSymbols(const NativeObjDescription& desc
         else if (section.data.name == ".bss")
         {
             addSymbolRecord(symbols, symbolIndices, {
-                                                        .name          = K_BSS_BASE_SYMBOL,
+                                                        .name          = nativeScopedSectionBaseSymbol(builder_->compiler(), K_BSS_BASE_SYMBOL),
                                                         .sectionNumber = static_cast<int16_t>(section.sectionNumber),
                                                         .value         = 0,
                                                         .type          = 0,

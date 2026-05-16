@@ -624,7 +624,7 @@ Result NativeArtifactBuilder::prepareDataSectionsWithoutStartup(NativeRDataColle
             record.offset = relocation.offset;
             if (relocation.kind == DataSegmentRelocationKind::DataSegmentOffset)
             {
-                record.symbolName = K_DATA_BASE_SYMBOL;
+                record.symbolName = nativeScopedSectionBaseSymbol(builder_->compiler(), K_DATA_BASE_SYMBOL);
                 record.addend     = relocation.targetOffset;
             }
             else

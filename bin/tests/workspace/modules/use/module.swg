@@ -1,4 +1,5 @@
 #import("dep")
+#import("deplib")
 #run
 {
     let cfg = @compiler.getBuildCfg()

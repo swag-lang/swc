@@ -4,6 +4,7 @@
 #include "Compiler/Sema/Symbol/Symbols.h"
 #include "Main/Command/CommandLine.h"
 #include "Main/CompilerInstance.h"
+#include "Support/Math/Hash.h"
 #include "Support/Os/Os.h"
 #include "Support/Report/Diagnostic.h"
 
@@ -12,6 +13,25 @@ SWC_BEGIN_NAMESPACE();
 inline constexpr auto K_R_DATA_BASE_SYMBOL = "__swc_rdata_base";
 inline constexpr auto K_DATA_BASE_SYMBOL   = "__swc_data_base";
 inline constexpr auto K_BSS_BASE_SYMBOL    = "__swc_bss_base";
+
+inline Utf8 nativeArtifactScopeName(const CompilerInstance& compiler)
+{
+    const Runtime::String& artifactName = compiler.buildCfg().name;
+    if (artifactName.ptr && artifactName.length)
+        return Utf8{artifactName};
+    if (!compiler.cmdLine().name.empty())
+        return compiler.cmdLine().name;
+    if (!compiler.cmdLine().modulePath.empty())
+        return Utf8(compiler.cmdLine().modulePath.filename().string());
+    if (!compiler.cmdLine().moduleFilePath.empty())
+        return Utf8(compiler.cmdLine().moduleFilePath.parent_path().filename().string());
+    return "module";
+}
+
+inline Utf8 nativeScopedSectionBaseSymbol(const CompilerInstance& compiler, std::string_view baseName)
+{
+    return std::format("{}_{:08x}", baseName, Math::hash(nativeArtifactScopeName(compiler).view()));
+}
 
 enum class NativeObjectFormat : uint8_t
 {

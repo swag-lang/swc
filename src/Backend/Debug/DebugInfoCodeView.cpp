@@ -664,13 +664,13 @@ namespace
         endRecord(bytes, recordOffset);
     }
 
-    void appendDataSymbol(std::vector<std::byte>& bytes, NativeSectionData& debugSection, const DebugInfoDataRecord& data, const uint32_t typeIndex)
+    void appendDataSymbol(std::vector<std::byte>& bytes, NativeSectionData& debugSection, const CompilerInstance& compiler, const DebugInfoDataRecord& data, const uint32_t typeIndex)
     {
         const uint32_t recordOffset = beginRecord(bytes, data.isGlobal ? K_S_GDATA32 : K_S_LDATA32);
         writeU32(bytes, typeIndex);
 
         const char*    relocBaseSymbol = sectionBaseSymbolName(data.sectionName);
-        const Utf8     relocSymbolName = relocBaseSymbol ? Utf8(relocBaseSymbol) : data.symbolName;
+        const Utf8     relocSymbolName = relocBaseSymbol ? nativeScopedSectionBaseSymbol(compiler, relocBaseSymbol) : data.symbolName;
         const uint32_t relocAddend     = relocBaseSymbol ? data.symbolOffset : 0;
         const uint32_t offRelocOffset  = static_cast<uint32_t>(bytes.size());
         writeU32(bytes, 0);
@@ -1315,7 +1315,7 @@ namespace
                     dataSym.value       = data.symbolOffset;
                     outResult.symbols.push_back(dataSym);
                 }
-                appendDataSymbol(debugSection.bytes, debugSection, data, globalTypeIndices[i]);
+                appendDataSymbol(debugSection.bytes, debugSection, request.ctx->compiler(), data, globalTypeIndices[i]);
             }
 
             for (size_t i = 0; i < request.constants.size(); ++i)

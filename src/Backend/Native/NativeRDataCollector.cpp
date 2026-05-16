@@ -213,7 +213,7 @@ Result NativeRDataCollector::emitReachableAllocations()
                         return builder_->reportError(DiagnosticId::cmd_err_native_constant_payload_unsupported, Diagnostic::ARG_SYM, ownerName);
                     }
 
-                    record.symbolName = K_R_DATA_BASE_SYMBOL;
+                    record.symbolName = nativeScopedSectionBaseSymbol(builder_->compiler(), K_R_DATA_BASE_SYMBOL);
                     record.addend     = targetOffset;
                     builder_->mergedRData.relocations.push_back(record);
                     continue;

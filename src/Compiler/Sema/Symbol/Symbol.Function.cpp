@@ -25,6 +25,34 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    bool isPublicApiSymbolAlphaNumeric(const char c)
+    {
+        return std::isalnum(static_cast<unsigned char>(c)) != 0;
+    }
+
+    void appendPublicApiSymbolFragment(Utf8& out, const std::string_view text)
+    {
+        bool lastWasUnderscore = out.empty() || out.back() == '_';
+        for (const char c : text)
+        {
+            if (isPublicApiSymbolAlphaNumeric(c))
+            {
+                out += static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
+                lastWasUnderscore = false;
+                continue;
+            }
+
+            if (!lastWasUnderscore)
+            {
+                out += '_';
+                lastWasUnderscore = true;
+            }
+        }
+
+        while (!out.empty() && out.back() == '_')
+            out.pop_back();
+    }
+
     enum class DepVisitState : uint8_t
     {
         Visiting,
@@ -425,6 +453,28 @@ Utf8 SymbolFunction::computeName(const TaskContext& ctx) const
 
     out += hasExtraFlag(SymbolFunctionFlagsE::Throwable) ? " throw" : "";
     return out;
+}
+
+Utf8 SymbolFunction::computePublicApiSymbolName(const TaskContext& ctx) const
+{
+    Utf8 apiName = "__swc_api_";
+    appendPublicApiSymbolFragment(apiName, name(ctx));
+
+    if (const SymbolStruct* owner = ownerStruct())
+    {
+        if (!apiName.empty() && apiName.back() != '_')
+            apiName += '_';
+        appendPublicApiSymbolFragment(apiName, owner->name(ctx));
+    }
+
+    if (apiName == "__swc_api_")
+        apiName += "fn";
+
+    Utf8 signatureKey = getFullScopedName(ctx);
+    signatureKey += "|";
+    signatureKey += computeName(ctx);
+    apiName += std::format("_{:08x}_{:08x}", typeSignatureHash(), Math::hash(signatureKey.view()));
+    return apiName;
 }
 
 uint32_t SymbolFunction::typeSignatureHash() const noexcept

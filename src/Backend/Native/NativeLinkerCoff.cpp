@@ -186,6 +186,20 @@ void NativeLinkerCoff::appendLinkSearchPaths(std::vector<Utf8>& args) const
         args.emplace_back(std::format("/LIBPATH:{}", Utf8(toolchain_.sdkUmLibPath)));
     if (!toolchain_.sdkUcrtLibPath.empty())
         args.emplace_back(std::format("/LIBPATH:{}", Utf8(toolchain_.sdkUcrtLibPath)));
+
+    std::set<fs::path> importedApiDirs;
+    for (const SourceFile* file : builder_->compiler().files())
+    {
+        if (!file || !file->hasFlag(FileFlagsE::ImportedApi))
+            continue;
+        if (!file->path().has_parent_path())
+            continue;
+
+        importedApiDirs.emplace(file->path().parent_path().lexically_normal());
+    }
+
+    for (const fs::path& importedApiDir : importedApiDirs)
+        args.emplace_back(std::format("/LIBPATH:{}", Utf8(importedApiDir)));
 }
 
 void NativeLinkerCoff::collectLinkLibraries(std::set<Utf8>& out) const

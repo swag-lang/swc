@@ -581,10 +581,11 @@ SWC_TEST_BEGIN(DebugInfo_EmitsWindowsVariableAndConstantRecords)
     if (!typeSectionContainsLeaf(typeBytes, K_LF_MODIFIER))
         return Result::Error;
 
-    bool sawDataBaseRelocation = false;
+    const Utf8 expectedDataBaseSymbol = nativeScopedSectionBaseSymbol(ctx.compiler(), K_DATA_BASE_SYMBOL);
+    bool       sawDataBaseRelocation  = false;
     for (const NativeSectionRelocation& relocation : debugSection->relocations)
     {
-        if (relocation.symbolName != K_DATA_BASE_SYMBOL)
+        if (relocation.symbolName != expectedDataBaseSymbol)
             continue;
 
         if (relocation.type != IMAGE_REL_AMD64_SECREL)

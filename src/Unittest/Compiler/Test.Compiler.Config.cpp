@@ -672,6 +672,7 @@ SWC_TEST_BEGIN(Compiler_WorkspaceBuildUsesModuleSetupDependenciesAndSkipsIgnored
 
     const fs::path workspaceDir     = tempTree.root() / "workspace";
     const fs::path depModuleDir     = workspaceDir / "modules" / "dep";
+    const fs::path depLibModuleDir  = workspaceDir / "modules" / "deplib";
     const fs::path coreModuleDir    = workspaceDir / "modules" / "core";
     const fs::path ignoredModuleDir = workspaceDir / "modules" / "ignored";
 
@@ -775,7 +776,61 @@ public func depLegacyValue()->s32
 )"))
         return Result::Error;
 
+    if (!writeTextFile(depLibModuleDir / "module.swg", R"(#run
+{
+    let cfg = @compiler.getBuildCfg()
+    cfg.moduleNamespace = "DepLib"
+    cfg.backendKind = .StaticLibrary
+}
+)"))
+        return Result::Error;
+    if (!writeTextFile(depLibModuleDir / "src" / "main.swg", R"(#global public
+func depDouble(value: s32)->s32
+{
+    return value * 2
+}
+
+struct DepCalculator
+{
+    base: s32
+}
+
+impl DepCalculator
+{
+    func make(base: s32)->DepCalculator
+    {
+        return {base}
+    }
+
+    mtd const add(value: s32)->s32
+    {
+        return .base + value
+    }
+
+    mtd const addTwice(value: s32)->s32 => .add(value) + value
+}
+)"))
+        return Result::Error;
+    if (!writeTextFile(depLibModuleDir / "src" / "explicit_func.swg", R"(const PRIVATE_FACTOR = 3
+
+public func depTriple(value: s32)->s32
+{
+    return value * PRIVATE_FACTOR
+}
+)"))
+        return Result::Error;
+    if (!writeTextFile(depLibModuleDir / "src" / "explicit_method.swg", R"(public impl DepCalculator
+{
+    mtd const sub(value: s32)->s32
+    {
+        return .base - value
+    }
+}
+)"))
+        return Result::Error;
+
     if (!writeTextFile(coreModuleDir / "module.swg", R"(#import("dep")
+#import("deplib")
 #run
 {
     let cfg = @compiler.getBuildCfg()
@@ -784,7 +839,7 @@ public func depLegacyValue()->s32
 }
 )"))
         return Result::Error;
-    if (!writeTextFile(coreModuleDir / "src" / "main.swg", R"(using Dep
+    if (!writeTextFile(coreModuleDir / "src" / "main.swg", R"(using Dep, DepLib
 
 public func coreValue()->s32
 {
@@ -799,6 +854,7 @@ public func coreValue()->s32
     var opaque: DepOpaque
     var namespaced: DepTools.DepNamespaced
     namespaced.value = 12
+    var calc = DepCalculator.make(5)
 
     return DEP_VALUE +
            DEP_PUBLIC_DEFAULT +
@@ -813,6 +869,11 @@ public func coreValue()->s32
            pair.left +
            pair.right +
            value.asInt +
+           depDouble(21) +
+           depTriple(14) +
+           calc.add(7) +
+           calc.addTwice(7) +
+           calc.sub(2) +
            namespaced.value +
            cast(s32) #sizeof(opaque)
 }
@@ -849,6 +910,9 @@ public func coreValue()->s32
         return Result::Error;
     const fs::path copiedLegacyApiFile = workspaceDir / ".output" / "dep" / "export" / "fast-debug" / "x86_64" / "legacy.swg";
     if (!fs::exists(copiedLegacyApiFile))
+        return Result::Error;
+    const fs::path depLibApiFile = workspaceDir / ".output" / "deplib" / "static-library" / "fast-debug" / "x86_64" / "deplib.swg";
+    if (!fs::exists(depLibApiFile))
         return Result::Error;
 
     Utf8                    depApiContent;
@@ -890,6 +954,10 @@ public func coreValue()->s32
     if (depApiContent.contains("DEP_MODULE_PRIVATE"))
         return Result::Error;
     if (depApiContent.contains("depFutureExport"))
+        return Result::Error;
+    if (depApiContent.contains("mtd run()"))
+        return Result::Error;
+    if (depApiContent.contains("#[Swag.Foreign(\"dep\","))
         return Result::Error;
     if (depApiContent.contains("depLegacyValue"))
         return Result::Error;
@@ -937,6 +1005,36 @@ public func coreValue()->s32
     if (!copiedLegacyApiContent.contains("public func depLegacyValue()->s32"))
         return Result::Error;
 
+    Utf8 depLibApiContent;
+    if (FileSystem::readTextFile(depLibApiFile, depLibApiContent, ioError) != Result::Continue)
+        return Result::Error;
+    if (!depLibApiContent.contains("#[Swag.Foreign(\"deplib\","))
+        return Result::Error;
+    if (!depLibApiContent.contains("func depDouble(value: s32)->s32;"))
+        return Result::Error;
+    if (!depLibApiContent.contains("public func depTriple(value: s32)->s32;"))
+        return Result::Error;
+    if (!depLibApiContent.contains("impl DepCalculator"))
+        return Result::Error;
+    if (!depLibApiContent.contains("func make(base: s32)->DepCalculator;"))
+        return Result::Error;
+    if (!depLibApiContent.contains("mtd const add(value: s32)->s32;"))
+        return Result::Error;
+    if (!depLibApiContent.contains("mtd const addTwice(value: s32)->s32;"))
+        return Result::Error;
+    if (!depLibApiContent.contains("mtd const sub(value: s32)->s32;"))
+        return Result::Error;
+    if (depLibApiContent.contains("PRIVATE_FACTOR"))
+        return Result::Error;
+    if (depLibApiContent.contains("return value * 2"))
+        return Result::Error;
+    if (depLibApiContent.contains("return value * PRIVATE_FACTOR"))
+        return Result::Error;
+    if (depLibApiContent.contains("return .base + value"))
+        return Result::Error;
+    if (depLibApiContent.contains("return .base - value"))
+        return Result::Error;
+
     return Result::Continue;
 }
 SWC_TEST_END()
@@ -968,7 +1066,7 @@ struct BadExport
         return Result::Error;
 
     CommandLine cmdLine;
-    cmdLine.command       = CommandKind::Sema;
+    cmdLine.command       = CommandKind::Build;
     cmdLine.workspacePath = workspaceDir;
     cmdLine.silent        = true;
     CommandLineParser::refreshBuildCfg(cmdLine);

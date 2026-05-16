@@ -8,6 +8,7 @@
 #include "Compiler/CodeGen/Core/CodeGenJob.h"
 #include "Compiler/Parser/Ast/Ast.h"
 #include "Compiler/SourceFile.h"
+#include "Main/Command/CommandLineParser.h"
 #include "Main/Global.h"
 #include "Main/Stats.h"
 #include "Support/Math/Hash.h"
@@ -26,6 +27,25 @@ namespace
     bool isCompilerFunction(const SymbolFunction& symbol)
     {
         return symbol.decl() && symbol.decl()->id() == AstNodeId::CompilerFunc;
+    }
+
+    Utf8 buildLocalFunctionSymbolName(const NativeBackendBuilder& builder, const NativeFunctionInfo& info, const uint32_t ordinal)
+    {
+        const uint32_t scopeHash = Math::hash(nativeArtifactScopeName(builder.compiler()).view());
+        return std::format("__swc_fn_{:08x}_{:06}_{:08x}", scopeHash, ordinal, Math::hash(info.sortKey));
+    }
+
+    bool supportsExportedPublicFunctionSymbols(const NativeBackendBuilder& builder)
+    {
+        switch (builder.compiler().buildCfg().backendKind)
+        {
+            case Runtime::BuildCfgBackendKind::StaticLibrary:
+            case Runtime::BuildCfgBackendKind::SharedLibrary:
+                return true;
+
+            default:
+                return false;
+        }
     }
 
     std::string_view lastNonEmptyOutputLine(const std::string_view output)
@@ -296,9 +316,13 @@ namespace
             info.symbol      = symbol;
             info.machineCode = &symbol->loweredCode();
             info.sortKey     = SymbolSort::locationKey(builder.compiler(), *symbol);
-            info.symbolName  = std::format("__swc_fn_{:06}_{:08x}", builder.functionInfos.size(), Math::hash(info.sortKey));
+            const bool exportPublicSymbol = supportsExportedPublicFunctionSymbols(builder) && symbol->isPublic() && !isCompilerFunction(*symbol);
+            if (exportPublicSymbol)
+                info.symbolName = symbol->computePublicApiSymbolName(builder.ctx());
+            else
+                info.symbolName = buildLocalFunctionSymbolName(builder, info, static_cast<uint32_t>(builder.functionInfos.size()));
             info.debugName   = symbol->getFullScopedName(builder.ctx());
-            info.exported    = symbol->isPublic() && !isCompilerFunction(*symbol);
+            info.exported    = exportPublicSymbol;
             info.compilerFn  = isCompilerFunction(*symbol);
             builder.functionInfos.push_back(std::move(info));
         }

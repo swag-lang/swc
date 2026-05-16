@@ -38,6 +38,8 @@ using Dep, DepLib
     @assert(depScale(cast(f32) 2) == cast(f32) 8)
 
     var calc = DepCalculator.make(5)
+    @assert(DepCalculator.resolve(6) == 106)
+    @assert(calc.resolve(6) == 1011)
     @assert(calc.add(cast(s32) 7) == 12)
     @assert(calc.add(cast(f32) 2) == cast(f32) 7)
     @assert(calc.addTwice(7) == 19)

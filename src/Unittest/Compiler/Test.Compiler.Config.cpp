@@ -812,6 +812,11 @@ impl DepCalculator
         return {base}
     }
 
+    func resolve(value: s32)->s32
+    {
+        return value + 100
+    }
+
     mtd const add(value: s32)->s32
     {
         return .base + value
@@ -831,6 +836,11 @@ public func depTriple(value: s32)->s32
         return Result::Error;
     if (!writeTextFile(depLibModuleDir / "src" / "explicit_method.swg", R"(public impl DepCalculator
 {
+    mtd resolve(value: s32)->s32
+    {
+        return .base + value + 1000
+    }
+
     mtd const add(value: f32)->f32
     {
         return cast(f32) .base + value
@@ -888,6 +898,8 @@ public func coreValue()->s32
            depTriple(14) +
            depScale(cast(s32) 10) +
            cast(s32) depScale(cast(f32) 2) +
+           DepCalculator.resolve(6) +
+           calc.resolve(6) +
            calc.add(cast(s32) 7) +
            cast(s32) calc.add(cast(f32) 2) +
            calc.addTwice(7) +
@@ -1030,8 +1042,6 @@ public func coreValue()->s32
         return Result::Error;
     if (depLibApiContent.contains("__swc_api_"))
         return Result::Error;
-    if (depLibApiContent.contains("dep_lib_"))
-        return Result::Error;
     if (!depLibApiContent.contains("#[Swag.Foreign(\"deplib\", \"dep_double\")]"))
         return Result::Error;
     if (!depLibApiContent.contains("#[Swag.Foreign(\"deplib\", \"dep_scale__s32\")]"))
@@ -1041,6 +1051,10 @@ public func coreValue()->s32
     if (!depLibApiContent.contains("#[Swag.Foreign(\"deplib\", \"dep_triple\")]"))
         return Result::Error;
     if (!depLibApiContent.contains("#[Swag.Foreign(\"deplib\", \"dep_calculator_make\")]"))
+        return Result::Error;
+    if (!depLibApiContent.contains("#[Swag.Foreign(\"deplib\", \"dep_calculator_resolve__s32_ret_s32\")]"))
+        return Result::Error;
+    if (!depLibApiContent.contains("#[Swag.Foreign(\"deplib\", \"dep_calculator_resolve__ref_dep_lib_dep_calculator_s32_ret_s32\")]"))
         return Result::Error;
     if (!depLibApiContent.contains("#[Swag.Foreign(\"deplib\", \"dep_calculator_add__s32\")]"))
         return Result::Error;

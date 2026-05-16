@@ -27,6 +27,11 @@ impl DepCalculator
         return {base}
     }
 
+    func resolve(value: s32)->s32
+    {
+        return value + 100
+    }
+
     mtd const add(value: s32)->s32
     {
         return .base + value

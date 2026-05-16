@@ -419,9 +419,28 @@ namespace
         return result;
     }
 
+    Utf8 buildPublicApiImplicitReceiverSignature(const TaskContext& ctx, const SymbolFunction& symbol)
+    {
+        Utf8 result;
+        for (const SymbolVariable* param : symbol.parameters())
+        {
+            SWC_ASSERT(param != nullptr);
+            if (!isPublicApiImplicitReceiverParam(ctx, *param))
+                continue;
+
+            appendPublicApiTypeFragment(result, ctx, param->typeRef());
+            break;
+        }
+
+        return result;
+    }
+
     Utf8 buildPublicApiDetailedSignature(const TaskContext& ctx, const SymbolFunction& symbol)
     {
-        Utf8 result = buildPublicApiParameterSignature(ctx, symbol);
+        Utf8 result = buildPublicApiImplicitReceiverSignature(ctx, symbol);
+        Utf8 paramSignature = buildPublicApiParameterSignature(ctx, symbol);
+        if (!paramSignature.empty())
+            appendPublicApiSymbolFragment(result, paramSignature.view());
 
         if (symbol.isConst())
             appendPublicApiSymbolFragment(result, "const");

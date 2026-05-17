@@ -2082,12 +2082,10 @@ namespace
     {
         CompilerInstance& compiler     = sema.compiler();
         const SourceView& ownerSrcView = sema.ast().srcView();
-        FileRef           ownerFileRef = ownerSrcView.ownerFileRef();
-        if (!ownerFileRef.isValid())
-            ownerFileRef = ownerSrcView.fileRef();
-        SWC_ASSERT(ownerFileRef.isValid());
+        const SourceFile* ownerSourceFile = compiler.owningSourceFile(ownerSrcView);
+        SWC_ASSERT(ownerSourceFile != nullptr);
 
-        SourceView&    sourceView   = compiler.addBufferedSourceView(ownerFileRef, source);
+        SourceView&    sourceView   = compiler.addBufferedSourceView(ownerSourceFile->ref(), source);
         const uint64_t errorsBefore = Stats::getNumErrors();
         Lexer          lexer;
         lexer.tokenize(sema.ctx(), sourceView, LexerFlagsE::Default);

@@ -353,38 +353,42 @@ namespace
         wait.waiterSymbol = ownerFunction;
     }
 
+    Result ensureLocalFunctionCodeGenCompleted(TaskContext& ctx, SymbolFunction& targetFunction, const SymbolFunction* ownerFunction)
+    {
+        if (targetFunction.isCodeGenCompleted())
+            return Result::Continue;
+        if (targetFunction.isIgnored())
+            return Result::Error;
+
+        const SourceFile* targetFile = ctx.compiler().sourceViewFile(targetFunction);
+        if (!targetFile)
+            return Result::Error;
+
+        Sema baseSema(ctx, ctx.compiler().file(targetFile->ref()).nodePayloadContext(), false);
+        if (targetFunction.tryMarkCodeGenJobScheduled())
+        {
+            const AstNodeRef declRoot = targetFunction.declNodeRef();
+            if (declRoot.isInvalid())
+                return Result::Error;
+
+            auto* job = heapNew<CodeGenJob>(ctx, baseSema, targetFunction, declRoot);
+            ctx.compiler().global().jobMgr().enqueue(*job, JobPriority::Normal, ctx.compiler().jobClientId());
+        }
+
+        // Re-check only after codegen reaches a completed state. Pre-solved
+        // progress is too early because dependencies can still expand.
+        setWaitCodeGenCompleted(ctx, ownerFunction, targetFunction);
+        return Result::Pause;
+    }
+
     Result ensureLocalFunctionTargetPrepared(TaskContext& ctx, SymbolFunction& targetFunction, const SymbolFunction* ownerFunction)
     {
         if (targetFunction.jitWorkAddress())
             return Result::Continue;
 
-        if (!targetFunction.isCodeGenCompleted())
-        {
-            if (targetFunction.isIgnored())
-                return Result::Error;
-
-            const SourceView& targetSrcView = ctx.compiler().srcView(targetFunction.srcViewRef());
-            const FileRef     fileRef       = targetSrcView.fileRef();
-            if (!fileRef.isValid())
-                return Result::Error;
-
-            SourceFile& targetFile = ctx.compiler().file(fileRef);
-            Sema        baseSema(ctx, targetFile.nodePayloadContext(), false);
-            if (targetFunction.tryMarkCodeGenJobScheduled())
-            {
-                const AstNodeRef declRoot = targetFunction.declNodeRef();
-                if (declRoot.isInvalid())
-                    return Result::Error;
-
-                auto* job = heapNew<CodeGenJob>(ctx, baseSema, targetFunction, declRoot);
-                ctx.compiler().global().jobMgr().enqueue(*job, JobPriority::Normal, ctx.compiler().jobClientId());
-            }
-
-            // Re-check only after codegen reaches a completed state. Pre-solved
-            // progress is too early because dependencies can still expand.
-            setWaitCodeGenCompleted(ctx, ownerFunction, targetFunction);
-            return Result::Pause;
-        }
+        const Result codeGenResult = ensureLocalFunctionCodeGenCompleted(ctx, targetFunction, ownerFunction);
+        if (codeGenResult != Result::Continue)
+            return codeGenResult;
 
         if (targetFunction.loweredCode().bytes.empty())
             return Result::Error;
@@ -402,31 +406,9 @@ namespace
         if (targetFunction.jitEntryAddress())
             return Result::Continue;
 
-        if (!targetFunction.isCodeGenCompleted())
-        {
-            if (targetFunction.isIgnored())
-                return Result::Error;
-
-            const SourceView& targetSrcView = ctx.compiler().srcView(targetFunction.srcViewRef());
-            const FileRef     fileRef       = targetSrcView.fileRef();
-            if (!fileRef.isValid())
-                return Result::Error;
-
-            SourceFile& targetFile = ctx.compiler().file(fileRef);
-            Sema        baseSema(ctx, targetFile.nodePayloadContext(), false);
-            if (targetFunction.tryMarkCodeGenJobScheduled())
-            {
-                const AstNodeRef declRoot = targetFunction.declNodeRef();
-                if (declRoot.isInvalid())
-                    return Result::Error;
-
-                auto* job = heapNew<CodeGenJob>(ctx, baseSema, targetFunction, declRoot);
-                ctx.compiler().global().jobMgr().enqueue(*job, JobPriority::Normal, ctx.compiler().jobClientId());
-            }
-
-            setWaitCodeGenCompleted(ctx, ownerFunction, targetFunction);
-            return Result::Pause;
-        }
+        const Result codeGenResult = ensureLocalFunctionCodeGenCompleted(ctx, targetFunction, ownerFunction);
+        if (codeGenResult != Result::Continue)
+            return codeGenResult;
 
         if (targetFunction.loweredCode().bytes.empty())
             return Result::Error;

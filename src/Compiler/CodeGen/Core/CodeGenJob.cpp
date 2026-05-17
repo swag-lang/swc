@@ -63,19 +63,13 @@ CodeGenJob::CodeGenJob(const TaskContext& ctx, Sema& sema, SymbolFunction& symbo
     nodePayloadCtx_ = const_cast<NodePayload*>(symbolFunc.declNodePayloadContext());
 
     if (!nodePayloadCtx_)
-    {
-        const SourceView& symbolSrcView = sema.compiler().srcView(symbolFunc.srcViewRef());
-        const FileRef     symbolFileRef = symbolSrcView.ownerFileRef();
-        if (symbolFileRef.isValid())
-            nodePayloadCtx_ = &sema.compiler().file(symbolFileRef).nodePayloadContext();
-    }
+        nodePayloadCtx_ = sema.owningNodePayloadContext(symbolFunc.srcViewRef());
 
     if (!nodePayloadCtx_)
     {
         const SourceFile* semaFile = sema.file();
         SWC_ASSERT(semaFile != nullptr);
-        const FileRef semaFileRef = sema.ast().srcView().fileRef();
-        nodePayloadCtx_           = &sema.compiler().file(semaFileRef).nodePayloadContext();
+        nodePayloadCtx_ = &sema.compiler().file(semaFile->ref()).nodePayloadContext();
     }
 }
 

@@ -150,14 +150,11 @@ void Sema::inheritMissingNamespaces(TaskContext& ctx, NodePayload& payloadContex
     if (!payloadContext.ast_.hasSourceView())
         return;
 
-    const SourceView& srcView = payloadContext.ast_.srcView();
-    FileRef           owner   = srcView.ownerFileRef();
-    if (!owner.isValid())
-        owner = srcView.fileRef();
-    if (!owner.isValid())
+    const SourceFile* ownerSourceFile = ctx.compiler().owningSourceFile(payloadContext.ast_.srcView());
+    if (!ownerSourceFile)
         return;
 
-    const NodePayload& ownerPayload = ctx.compiler().file(owner).nodePayloadContext();
+    const NodePayload& ownerPayload = ownerSourceFile->nodePayloadContext();
     if (!payloadContext.moduleNamespace_ && ownerPayload.moduleNamespace_)
         payloadContext.moduleNamespace_ = ownerPayload.moduleNamespace_;
     if (!payloadContext.fileNamespace_ && ownerPayload.fileNamespace_)

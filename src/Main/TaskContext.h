@@ -19,6 +19,10 @@ public:
 
     explicit TaskContext(const Global& global, const CommandLine& cmdLine);
     explicit TaskContext(CompilerInstance& compInst);
+    TaskContext(const TaskContext& other);
+    TaskContext& operator=(const TaskContext& other);
+    TaskContext(TaskContext&&) noexcept            = default;
+    TaskContext& operator=(TaskContext&&) noexcept = default;
 
     const Global&           global() const { return *(global_); }
     const CommandLine&      cmdLine() const { return *(cmdLine_); }
@@ -47,6 +51,8 @@ public:
     void                      setHasWarning() { hasWarning_ = true; }
     bool                      hasError() const { return hasError_; }
     bool                      hasWarning() const { return hasWarning_; }
+    std::shared_ptr<void>&    genericNodeRunCache() { return genericNodeRunCache_; }
+    const std::shared_ptr<void>& genericNodeRunCache() const { return genericNodeRunCache_; }
     static const TaskContext* current() noexcept { return current_; }
     static const TaskContext* setCurrent(const TaskContext* ctx) noexcept;
 
@@ -62,6 +68,7 @@ private:
     bool                                          hasError_         = false;
     bool                                          hasWarning_       = false;
     TaskState                                     state_;
+    std::shared_ptr<void>                         genericNodeRunCache_;
     inline static thread_local const TaskContext* current_ = nullptr;
 };
 

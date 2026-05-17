@@ -1,7 +1,5 @@
 #pragma once
 
-#include <algorithm>
-
 #include "Support/Core/Utf8Helper.h"
 #include "Support/Report/Logger.h"
 

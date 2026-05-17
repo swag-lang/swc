@@ -381,8 +381,7 @@ namespace
         std::unique_ptr<Sema> sema;
     };
 
-    std::mutex&                                                                                  genericNodeRunMutex();
-    std::unordered_map<GenericNodeRunKey, CachedSemaRun, GenericNodeRunKeyHash>&                 genericNodeRuns();
+    std::unordered_map<GenericNodeRunKey, CachedSemaRun, GenericNodeRunKeyHash>&                 genericNodeRuns(TaskContext& ctx);
     std::mutex&                                                                                  genericInstanceNodeRunMutex();
     std::unordered_map<GenericInstanceNodeRunKey, CachedSemaRun, GenericInstanceNodeRunKeyHash>& genericInstanceNodeRuns();
 
@@ -410,6 +409,26 @@ namespace
 
     std::mutex&                                                                            genericImplBlockRunMutex();
     std::unordered_map<GenericImplBlockRunKey, CachedSemaRun, GenericImplBlockRunKeyHash>& genericImplBlockRuns();
+
+    template<typename RUN, typename K, typename I>
+    Result runCachedSema(Sema& sema, RUN& runs, const K& key, const Symbol& waitSymbol, const I& initRun)
+    {
+        auto& run = runs[key];
+        if (!run.sema)
+            run.sema = initRun();
+        if (run.running)
+            return sema.waitSemaCompleted(&waitSymbol, waitSymbol.codeRef());
+
+        run.running = true;
+        Sema* child = run.sema.get();
+        SWC_ASSERT(child);
+
+        const Result result = child->execResult();
+        run.running         = false;
+        if (result != Result::Pause)
+            runs.erase(key);
+        return result;
+    }
 
     template<typename RUN, typename K, typename I>
     Result runCachedSema(Sema& sema, std::mutex& mutex, RUN& runs, const K& key, const Symbol& waitSymbol, const I& initRun)
@@ -458,7 +477,7 @@ namespace
             prepareGenericNodeRunContext(*child, sema, root);
             return child;
         };
-        return runCachedSema(sema, genericNodeRunMutex(), genericNodeRuns(), key, root, initRun);
+        return runCachedSema(sema, genericNodeRuns(sema.ctx()), key, root, initRun);
     }
 
     Result runGenericInstanceNode(Sema& sema, const Symbol& root, Symbol& instance)
@@ -579,16 +598,18 @@ namespace
         return mutex;
     }
 
-    std::mutex& genericNodeRunMutex()
+    std::unordered_map<GenericNodeRunKey, CachedSemaRun, GenericNodeRunKeyHash>& genericNodeRuns(TaskContext& ctx)
     {
-        static std::mutex mutex;
-        return mutex;
-    }
+        auto& cache = ctx.genericNodeRunCache();
+        if (!cache)
+        {
+            // TaskContext is job-owned and only one worker executes a given job at a
+            // time. Keep this paused-child cache there instead of routing every
+            // generic-node lookup through a global mutex.
+            cache = std::make_shared<std::unordered_map<GenericNodeRunKey, CachedSemaRun, GenericNodeRunKeyHash>>();
+        }
 
-    std::unordered_map<GenericNodeRunKey, CachedSemaRun, GenericNodeRunKeyHash>& genericNodeRuns()
-    {
-        static std::unordered_map<GenericNodeRunKey, CachedSemaRun, GenericNodeRunKeyHash> runs;
-        return runs;
+        return *std::static_pointer_cast<std::unordered_map<GenericNodeRunKey, CachedSemaRun, GenericNodeRunKeyHash>>(cache);
     }
 
     bool isGenericNodeRunActive(Sema& sema, AstNodeRef nodeRef)
@@ -597,9 +618,9 @@ namespace
             return false;
 
         const GenericNodeRunKey key{&sema.ctx(), &sema.ast(), nodeRef.get()};
-        const std::scoped_lock  lock(genericNodeRunMutex());
-        const auto              it = genericNodeRuns().find(key);
-        return it != genericNodeRuns().end() && it->second.running;
+        const auto&             runs = genericNodeRuns(sema.ctx());
+        const auto              it   = runs.find(key);
+        return it != runs.end() && it->second.running;
     }
 
     bool cachedGenericEvalNodeHasConstant(Sema& sema, AstNodeRef nodeRef)

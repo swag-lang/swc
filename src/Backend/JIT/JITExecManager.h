@@ -1,7 +1,6 @@
 #pragma once
 #include "Backend/JIT/JIT.h"
 #include "Main/TaskContext.h"
-#include <memory>
 
 SWC_BEGIN_NAMESPACE();
 

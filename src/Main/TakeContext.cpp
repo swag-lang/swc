@@ -17,6 +17,37 @@ TaskContext::TaskContext(CompilerInstance& compInst) :
     cmdLine_ = &compInst.cmdLine();
 }
 
+TaskContext::TaskContext(const TaskContext& other) :
+    global_(other.global_),
+    cmdLine_(other.cmdLine_),
+    compilerInstance_(other.compilerInstance_),
+    silentDiagnostic_(other.silentDiagnostic_),
+    reportToStats_(other.reportToStats_),
+    muteOutput_(other.muteOutput_),
+    hasError_(other.hasError_),
+    hasWarning_(other.hasWarning_),
+    state_(other.state_)
+{
+}
+
+TaskContext& TaskContext::operator=(const TaskContext& other)
+{
+    if (this == &other)
+        return *this;
+
+    global_           = other.global_;
+    cmdLine_          = other.cmdLine_;
+    compilerInstance_ = other.compilerInstance_;
+    silentDiagnostic_ = other.silentDiagnostic_;
+    reportToStats_    = other.reportToStats_;
+    muteOutput_       = other.muteOutput_;
+    hasError_         = other.hasError_;
+    hasWarning_       = other.hasWarning_;
+    state_            = other.state_;
+    genericNodeRunCache_.reset();
+    return *this;
+}
+
 ConstantManager& TaskContext::cstMgr()
 {
     return compiler().cstMgr();

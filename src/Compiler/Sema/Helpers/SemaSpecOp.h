@@ -1,7 +1,6 @@
 #pragma once
 #include "Compiler/Sema/Ast/Sema.Index.h"
 #include "Support/Core/SmallVector.h"
-#include <string_view>
 
 SWC_BEGIN_NAMESPACE();
 

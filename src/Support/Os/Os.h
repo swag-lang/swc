@@ -4,7 +4,6 @@
 #define NOMINMAX
 #include <windows.h>
 #endif
-#include <optional>
 
 SWC_BEGIN_NAMESPACE();
 

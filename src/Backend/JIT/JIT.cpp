@@ -67,6 +67,16 @@ namespace
         std::unordered_map<const SymbolFunction*, uint64_t> resolvedFunctionAddresses;
     };
 
+    struct RuntimeExceptionDiagnosticInfo
+    {
+        DiagnosticId       diagId          = DiagnosticId::None;
+        DiagnosticSeverity severity        = DiagnosticSeverity::Error;
+        JITCallErrorKind   errorKind       = JITCallErrorKind::None;
+        int                exceptionAction = SWC_EXCEPTION_EXECUTE_HANDLER;
+    };
+
+    std::string_view runtimeStringView(const Runtime::String& value);
+
     bool asciiEqualsIgnoreCase(const std::string_view left, const std::string_view right)
     {
         if (left.size() != right.size())
@@ -226,6 +236,11 @@ namespace
             return {};
 
         return symbol->getFullScopedName(ctx);
+    }
+
+    DiagnosticId relocationDiagnosticId(const bool isForeign)
+    {
+        return isForeign ? DiagnosticId::cmd_err_native_invalid_foreign_function_relocation : DiagnosticId::cmd_err_native_invalid_local_function_relocation;
     }
 
     template<typename T>
@@ -647,6 +662,60 @@ namespace
         }
     }
 
+    Result reportRelocationFailure(TaskContext& ctx, DiagnosticId diagId, std::string_view symbolName, const RelocationResolveFailure& failure)
+    {
+        Diagnostic diag = Diagnostic::get(diagId);
+        diag.addArgument(Diagnostic::ARG_SYM, symbolName);
+        addRelocationFailureNotes(diag, ctx, failure);
+        diag.report(ctx);
+        return Result::Error;
+    }
+
+    RuntimeExceptionDiagnosticInfo runtimeExceptionDiagnosticInfo(Runtime::ExceptionKind kind)
+    {
+        switch (kind)
+        {
+            case Runtime::ExceptionKind::Panic:
+                return {.diagId = DiagnosticId::sema_err_compiler_panic, .severity = DiagnosticSeverity::Error, .errorKind = JITCallErrorKind::HardwareException, .exceptionAction = SWC_EXCEPTION_EXECUTE_HANDLER};
+
+            case Runtime::ExceptionKind::Error:
+                return {.diagId = DiagnosticId::sema_err_compiler_error, .severity = DiagnosticSeverity::Error, .errorKind = JITCallErrorKind::HardwareException, .exceptionAction = SWC_EXCEPTION_EXECUTE_HANDLER};
+
+            case Runtime::ExceptionKind::Warning:
+                return {.diagId = DiagnosticId::sema_warn_compiler_warning, .severity = DiagnosticSeverity::Warning, .errorKind = JITCallErrorKind::None, .exceptionAction = SWC_EXCEPTION_CONTINUE_EXECUTION};
+
+            case Runtime::ExceptionKind::Assert:
+                return {.diagId = DiagnosticId::sema_err_assert_failed, .severity = DiagnosticSeverity::Error, .errorKind = JITCallErrorKind::HardwareException, .exceptionAction = SWC_EXCEPTION_EXECUTE_HANDLER};
+
+            case Runtime::ExceptionKind::Safety:
+                return {.diagId = DiagnosticId::safety_err_runtime, .severity = DiagnosticSeverity::Error, .errorKind = JITCallErrorKind::HardwareException, .exceptionAction = SWC_EXCEPTION_EXECUTE_HANDLER};
+
+            default:
+                SWC_UNREACHABLE();
+        }
+    }
+
+    Diagnostic buildRuntimeExceptionDiagnostic(TaskContext& ctx, const RuntimeExceptionDiagnosticInfo& info, const Runtime::SourceCodeLocation* location)
+    {
+        SourceCodeRange range;
+        FileRef         fileRef = FileRef::invalid();
+        if (location)
+        {
+            const std::string_view locationFileName = runtimeStringView(location->fileName);
+            const SourceView*      srcView          = ctx.compiler().findSourceViewByFileName(locationFileName);
+            if (srcView)
+            {
+                fileRef = srcView->fileRef();
+                srcView->codeRangeFromRuntimeLocation(ctx, *location, range);
+            }
+        }
+
+        Diagnostic diag = Diagnostic::get(info.diagId, fileRef);
+        if (range.srcView)
+            diag.last().addSpan(range, "", info.severity);
+        return diag;
+    }
+
     void patchAbsolute64(ByteSpanRW writableCode, const MicroRelocation& reloc, uint64_t targetAddress)
     {
         auto*          basePtr        = reinterpret_cast<uint8_t*>(writableCode.data());
@@ -693,12 +762,7 @@ namespace
                 return Result::Pause;
             if (resolveResult != Result::Continue)
             {
-                const DiagnosticId diagId = targetFunction->isForeign() ? DiagnosticId::cmd_err_native_invalid_foreign_function_relocation : DiagnosticId::cmd_err_native_invalid_local_function_relocation;
-                Diagnostic         diag   = Diagnostic::get(diagId);
-                diag.addArgument(Diagnostic::ARG_SYM, Utf8("<jit-constant>"));
-                addRelocationFailureNotes(diag, ctx, failure);
-                diag.report(ctx);
-                return Result::Error;
+                return reportRelocationFailure(ctx, relocationDiagnosticId(targetFunction->isForeign()), "<jit-constant>", failure);
             }
 
             patches.push_back({.offset = relocation.offset, .target = reinterpret_cast<void*>(targetAddress)});
@@ -755,15 +819,10 @@ namespace
                 if (reloc.kind == MicroRelocation::Kind::ConstantAddress)
                     continue;
 
-                const DiagnosticId diagId = reloc.kind == MicroRelocation::Kind::ForeignFunctionAddress ? DiagnosticId::cmd_err_native_invalid_foreign_function_relocation : DiagnosticId::cmd_err_native_invalid_local_function_relocation;
-                Diagnostic         diag   = Diagnostic::get(diagId);
+                const bool isForeign = reloc.kind == MicroRelocation::Kind::ForeignFunctionAddress;
                 if (ownerFunction)
-                    diag.addArgument(Diagnostic::ARG_SYM, ownerFunction->getFullScopedName(ctx));
-                else
-                    diag.addArgument(Diagnostic::ARG_SYM, Utf8("<jit>"));
-                addRelocationFailureNotes(diag, ctx, failure);
-                diag.report(ctx);
-                return Result::Error;
+                    return reportRelocationFailure(ctx, relocationDiagnosticId(isForeign), ownerFunction->getFullScopedName(ctx), failure);
+                return reportRelocationFailure(ctx, relocationDiagnosticId(isForeign), "<jit>", failure);
             }
 
             if (reloc.kind == MicroRelocation::Kind::ConstantAddress)
@@ -874,12 +933,7 @@ Result JIT::patchGlobalFunctionVariables(TaskContext& ctx)
             return Result::Pause;
         if (resolveResult != Result::Continue)
         {
-            const DiagnosticId diagId = targetFunction->isForeign() ? DiagnosticId::cmd_err_native_invalid_foreign_function_relocation : DiagnosticId::cmd_err_native_invalid_local_function_relocation;
-            Diagnostic         diag   = Diagnostic::get(diagId);
-            diag.addArgument(Diagnostic::ARG_SYM, symVar->getFullScopedName(ctx));
-            addRelocationFailureNotes(diag, ctx, failure);
-            diag.report(ctx);
-            return Result::Error;
+            return reportRelocationFailure(ctx, relocationDiagnosticId(targetFunction->isForeign()), symVar->getFullScopedName(ctx), failure);
         }
 
         auto* storage = reinterpret_cast<uint64_t*>(ctx.compiler().dataSegmentAddress(DataSegmentKind::GlobalInit, symVar->offset()));
@@ -1202,61 +1256,14 @@ namespace
         decodeCompilerDiagnosticException(platformExceptionPointers, location, message, kindRaw);
 
         const auto kind = static_cast<Runtime::ExceptionKind>(kindRaw);
+        const RuntimeExceptionDiagnosticInfo info = runtimeExceptionDiagnosticInfo(kind);
+        *outErrorKind                            = info.errorKind;
+        outExceptionAction                       = info.exceptionAction;
 
-        DiagnosticId       diagId;
-        DiagnosticSeverity severity;
-        switch (kind)
-        {
-            case Runtime::ExceptionKind::Panic:
-                diagId             = DiagnosticId::sema_err_compiler_panic;
-                severity           = DiagnosticSeverity::Error;
-                *outErrorKind      = JITCallErrorKind::HardwareException;
-                outExceptionAction = SWC_EXCEPTION_EXECUTE_HANDLER;
-                break;
-            case Runtime::ExceptionKind::Error:
-                diagId             = DiagnosticId::sema_err_compiler_error;
-                severity           = DiagnosticSeverity::Error;
-                *outErrorKind      = JITCallErrorKind::HardwareException;
-                outExceptionAction = SWC_EXCEPTION_EXECUTE_HANDLER;
-                break;
-            case Runtime::ExceptionKind::Warning:
-                diagId             = DiagnosticId::sema_warn_compiler_warning;
-                severity           = DiagnosticSeverity::Warning;
-                *outErrorKind      = JITCallErrorKind::None;
-                outExceptionAction = SWC_EXCEPTION_CONTINUE_EXECUTION;
-                break;
-            case Runtime::ExceptionKind::Assert:
-                diagId             = DiagnosticId::sema_err_assert_failed;
-                severity           = DiagnosticSeverity::Error;
-                *outErrorKind      = JITCallErrorKind::HardwareException;
-                outExceptionAction = SWC_EXCEPTION_EXECUTE_HANDLER;
-                break;
-            case Runtime::ExceptionKind::Safety:
-                diagId             = DiagnosticId::safety_err_runtime;
-                severity           = DiagnosticSeverity::Error;
-                *outErrorKind      = JITCallErrorKind::HardwareException;
-                outExceptionAction = SWC_EXCEPTION_EXECUTE_HANDLER;
-                break;
-            default:
-                SWC_UNREACHABLE();
-        }
-
+        Diagnostic diag = buildRuntimeExceptionDiagnostic(ctx, info, location);
         SourceCodeRange range;
-        FileRef         fileRef = FileRef::invalid();
-        if (location)
-        {
-            const std::string_view locationFileName = runtimeStringView(location->fileName);
-            const SourceView*      srcView          = ctx.compiler().findSourceViewByFileName(locationFileName);
-            if (srcView)
-            {
-                fileRef = srcView->fileRef();
-                srcView->codeRangeFromRuntimeLocation(ctx, *location, range);
-            }
-        }
-
-        Diagnostic diag = Diagnostic::get(diagId, fileRef);
-        if (range.srcView)
-            diag.last().addSpan(range, "", severity);
+        if (diag.last().hasSpans())
+            range = diag.last().codeRange(0, ctx);
 
         Utf8 diagMessage = message;
         if (kind == Runtime::ExceptionKind::Assert)
@@ -1345,12 +1352,11 @@ namespace
             if (!range.sourceCodeRef.isValid())
                 break;
 
-            const SourceView&     srcView    = ctx.compiler().srcView(range.sourceCodeRef.srcViewRef);
-            const Token&          token      = srcView.token(range.sourceCodeRef.tokRef);
-            const SourceCodeRange codeRange  = token.codeRange(ctx, srcView);
-            const SourceFile*     sourceFile = srcView.file();
-            if (sourceFile)
-                out += std::format("jit source: {}:{}:{}\n", sourceFile->path().string(), codeRange.line, codeRange.column);
+            CompilerInstance::ResolvedSourceCodeRef resolvedCodeRef;
+            if (!ctx.compiler().tryResolveSourceCodeRef(ctx, resolvedCodeRef, range.sourceCodeRef))
+                break;
+            if (resolvedCodeRef.sourceFile)
+                out += std::format("jit source: {}:{}:{}\n", resolvedCodeRef.sourceFile->path().string(), resolvedCodeRef.codeRange.line, resolvedCodeRef.codeRange.column);
             out += std::format("jit source span: [0x{:X}, 0x{:X})\n", range.codeStartOffset, range.codeEndOffset);
             break;
         }

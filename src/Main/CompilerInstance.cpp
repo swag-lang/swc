@@ -2023,6 +2023,32 @@ const SourceFile* CompilerInstance::owningSourceFile(const SourceView* srcView) 
     return owningSourceFile(*srcView);
 }
 
+bool CompilerInstance::tryTokenCodeRange(const TaskContext& ctx, SourceCodeRange& outCodeRange, const SourceCodeRef& codeRef) const
+{
+    outCodeRange = {};
+    if (!codeRef.isValid() || !codeRef.srcViewRef.isValid())
+        return false;
+    if (codeRef.srcViewRef.get() >= srcViewLookup_->size())
+        return false;
+
+    const SourceView& sourceView = srcView(codeRef.srcViewRef);
+    if (!codeRef.tokRef.isValid() || codeRef.tokRef.get() >= sourceView.numTokens())
+        return false;
+
+    outCodeRange = sourceView.tokenCodeRange(ctx, codeRef.tokRef);
+    return outCodeRange.srcView != nullptr && outCodeRange.len != 0;
+}
+
+bool CompilerInstance::tryResolveSourceCodeRef(const TaskContext& ctx, ResolvedSourceCodeRef& outResolvedCodeRef, const SourceCodeRef& codeRef) const
+{
+    outResolvedCodeRef = {};
+    if (!tryTokenCodeRange(ctx, outResolvedCodeRef.codeRange, codeRef))
+        return false;
+
+    outResolvedCodeRef.sourceFile = sourceViewFile(outResolvedCodeRef.codeRange.srcView->ref());
+    return true;
+}
+
 const SourceView* CompilerInstance::findSourceViewByFileName(const std::string_view fileName) const
 {
     if (fileName.empty())

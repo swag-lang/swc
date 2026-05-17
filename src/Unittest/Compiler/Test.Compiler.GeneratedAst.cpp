@@ -108,6 +108,22 @@ namespace
                content.contains("mtd const opCompare(");
     }
 
+    bool tryFindTokenCodeRef(const SourceView& srcView, std::string_view tokenText, SourceCodeRef& outCodeRef)
+    {
+        outCodeRef = SourceCodeRef::invalid();
+        for (uint32_t i = 0; i < srcView.numTokens(); ++i)
+        {
+            const TokenRef tokRef{i};
+            if (srcView.tokenString(tokRef) != tokenText)
+                continue;
+
+            outCodeRef = {.srcViewRef = srcView.ref(), .tokRef = tokRef};
+            return true;
+        }
+
+        return false;
+    }
+
     Result runLifecycleInitWrapperStressCompile(const TaskContext& ctx, uint32_t seed)
     {
         static constexpr std::string_view SOURCE = R"(#global fileprivate
@@ -407,6 +423,34 @@ SWC_TEST_BEGIN(Compiler_GeneratedAstMaterializesPerThreadFiles)
     }
 
     if (!foundGeneratedA || !foundGeneratedB || !foundLine2 || !foundLine3)
+        return Result::Error;
+
+    size_t resolvedGeneratedFiles = 0;
+    for (const SourceFile* file : generatedFiles)
+    {
+        SourceCodeRef generatedCodeRef;
+        if (!tryFindTokenCodeRef(file->ast().srcView(), "GeneratedA", generatedCodeRef) &&
+            !tryFindTokenCodeRef(file->ast().srcView(), "GeneratedB", generatedCodeRef))
+            continue;
+
+        CompilerInstance::ResolvedSourceCodeRef resolvedCodeRef;
+        if (!compiler.tryResolveSourceCodeRef(ctx, resolvedCodeRef, generatedCodeRef))
+            return Result::Error;
+        if (resolvedCodeRef.sourceFile != file)
+            return Result::Error;
+        if (resolvedCodeRef.sourceFile == originalFile)
+            return Result::Error;
+        if (resolvedCodeRef.codeRange.srcView != &file->ast().srcView())
+            return Result::Error;
+        if (!resolvedCodeRef.codeRange.line)
+            return Result::Error;
+        if (resolvedCodeRef.codeRange.line < 3)
+            return Result::Error;
+
+        ++resolvedGeneratedFiles;
+    }
+
+    if (resolvedGeneratedFiles != generatedFiles.size())
         return Result::Error;
 }
 SWC_TEST_END()

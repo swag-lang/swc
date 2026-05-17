@@ -47,23 +47,20 @@ namespace
         return WIDTH;
     }
 
-    bool tryGetInstructionSourceLine(const TaskContext& ctx, const MicroBuilder* builder, MicroInstrRef instRef, SourceCodeRef& outSourceCodeRef, uint32_t& outSourceLine)
+    bool tryGetInstructionSourceLine(const TaskContext& ctx, const MicroBuilder* builder, MicroInstrRef instRef, CompilerInstance::ResolvedSourceCodeRef& outResolvedCodeRef)
     {
-        outSourceCodeRef = SourceCodeRef::invalid();
-        outSourceLine    = 0;
+        outResolvedCodeRef = {};
         if (!builder || !builder->hasFlag(MicroBuilderFlagsE::DebugInfo))
             return false;
 
-        outSourceCodeRef = builder->instructionSourceCodeRef(instRef);
-        if (!outSourceCodeRef.isValid())
+        const SourceCodeRef sourceCodeRef = builder->instructionSourceCodeRef(instRef);
+        if (!sourceCodeRef.isValid())
+            return false;
+        if (!ctx.compiler().tryResolveSourceCodeRef(ctx, outResolvedCodeRef, sourceCodeRef))
+            return false;
+        if (!outResolvedCodeRef.codeRange.line)
             return false;
 
-        const SourceView& srcView = ctx.compiler().srcView(outSourceCodeRef.srcViewRef);
-        const auto        range   = srcView.tokenCodeRange(ctx, outSourceCodeRef.tokRef);
-        if (range.line == 0)
-            return false;
-
-        outSourceLine = range.line;
         return true;
     }
 
@@ -1347,20 +1344,22 @@ namespace
 
     bool appendInstructionDebugInfo(Utf8& out, const TaskContext& ctx, const MicroBuilder* builder, MicroInstrRef instRef, uint32_t instructionIndexWidth, std::unordered_set<uint64_t>& seenDebugLines)
     {
-        SourceCodeRef sourceCodeRef = SourceCodeRef::invalid();
-        uint32_t      sourceLine    = 0;
-        if (!tryGetInstructionSourceLine(ctx, builder, instRef, sourceCodeRef, sourceLine))
+        CompilerInstance::ResolvedSourceCodeRef resolvedCodeRef;
+        if (!tryGetInstructionSourceLine(ctx, builder, instRef, resolvedCodeRef))
             return false;
 
-        const SourceView& srcView  = ctx.compiler().srcView(sourceCodeRef.srcViewRef);
-        const uint64_t    debugKey = (static_cast<uint64_t>(sourceCodeRef.srcViewRef.get()) << 32) | static_cast<uint64_t>(sourceLine);
+        const uint32_t    sourceLine = resolvedCodeRef.codeRange.line;
+        const SourceView* srcView    = resolvedCodeRef.codeRange.srcView;
+        const uint64_t    fileKey    = resolvedCodeRef.sourceFile ? resolvedCodeRef.sourceFile->ref().get() : (srcView ? srcView->ref().get() : 0);
+        const uint64_t    debugKey   = (fileKey << 32) | static_cast<uint64_t>(sourceLine);
         if (seenDebugLines.contains(debugKey))
             return false;
         seenDebugLines.insert(debugKey);
 
         appendColored(out, ctx, SyntaxColor::Compiler, std::format("{:0{}}", sourceLine, instructionIndexWidth));
         out += " ";
-        Utf8 codeLine = srcView.codeLine(ctx, sourceLine);
+        SWC_ASSERT(srcView != nullptr);
+        Utf8 codeLine = srcView->codeLine(ctx, sourceLine);
         codeLine.trim();
         out += SyntaxColorHelper::colorize(ctx, SyntaxColorMode::ForLog, codeLine, true);
         out += '\n';

@@ -8,6 +8,7 @@
 #include "Compiler/Sema/Constant/ConstantValue.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Compiler/Sema/Type/TypeInfo.h"
+#include "Main/CompilerInstance.h"
 #include "Main/Version.h"
 #include "Support/Math/Helpers.h"
 #include "Support/Os/Os.h"
@@ -509,16 +510,13 @@ namespace
             if (!range.sourceCodeRef.isValid())
                 continue;
 
-            const SourceView& srcView = ctx.compiler().srcView(range.sourceCodeRef.srcViewRef);
-            const SourceFile* file    = srcView.file();
-            if (!file)
+            CompilerInstance::ResolvedSourceCodeRef resolvedCodeRef;
+            if (!ctx.compiler().tryResolveSourceCodeRef(ctx, resolvedCodeRef, range.sourceCodeRef) || !resolvedCodeRef.codeRange.line)
+                continue;
+            if (!resolvedCodeRef.sourceFile)
                 continue;
 
-            const SourceCodeRange codeRange = srcView.tokenCodeRange(ctx, range.sourceCodeRef.tokRef);
-            if (!codeRange.srcView || !codeRange.line)
-                continue;
-
-            const auto codeViewFileName = codeViewPathString(file->path());
+            const auto codeViewFileName = codeViewPathString(resolvedCodeRef.sourceFile->path());
 
             size_t     blockIndex = 0;
             const auto blockIt    = blockIndices.find(codeViewFileName);
@@ -534,7 +532,7 @@ namespace
             }
 
             auto&          entries = result.blocks[blockIndex].entries;
-            const uint32_t line    = std::min<uint32_t>(codeRange.line, 0x00FFFFFFu);
+            const uint32_t line    = std::min<uint32_t>(resolvedCodeRef.codeRange.line, 0x00FFFFFFu);
             if (!entries.empty() && entries.back().line == line)
                 continue;
 

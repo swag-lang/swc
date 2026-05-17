@@ -70,6 +70,12 @@ public:
         uint32_t lineOffset      = 0;
     };
 
+    struct ResolvedSourceCodeRef
+    {
+        SourceCodeRange   codeRange;
+        const SourceFile* sourceFile = nullptr;
+    };
+
     struct WorkspaceBuildLogState
     {
         size_t discoveredModules = 0;
@@ -215,6 +221,8 @@ public:
     const SourceFile*                     sourceViewFile(const Symbol& symbol) const;
     const SourceFile*                     owningSourceFile(const SourceView& srcView) const;
     const SourceFile*                     owningSourceFile(const SourceView* srcView) const;
+    bool                                  tryTokenCodeRange(const TaskContext& ctx, SourceCodeRange& outCodeRange, const SourceCodeRef& codeRef) const;
+    bool                                  tryResolveSourceCodeRef(const TaskContext& ctx, ResolvedSourceCodeRef& outResolvedCodeRef, const SourceCodeRef& codeRef) const;
     const SourceView*                     findSourceViewByFileName(std::string_view fileName) const;
     size_t                                numPerThreadData() const noexcept { return perThreadData_.size(); }
     const ModuleApiPerThreadData&         moduleApiPerThreadData(size_t index) const { return perThreadData_[index].moduleApi; }

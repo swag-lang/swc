@@ -578,7 +578,7 @@ namespace
 
         const TypeInfo& dstType = sema.typeMgr().get(dstTypeRef);
         SWC_RESULT(sema.waitSemaCompleted(&dstType, sema.curNodeRef()));
-        outInitCstRef = dstType.payloadSymStruct().computeDefaultValue(sema, dstTypeRef);
+        outInitCstRef = dstType.payloadSymStruct().resolveImplicitDefaultValueRef(sema, dstTypeRef);
         return Result::Continue;
     }
 

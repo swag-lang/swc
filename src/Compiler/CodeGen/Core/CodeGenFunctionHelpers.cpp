@@ -478,6 +478,89 @@ bool CodeGenFunctionHelpers::shouldMaterializeAddressBackedValue(CodeGen& codeGe
     return typeInfo.sizeOf(codeGen.ctx()) > sizeof(uint64_t);
 }
 
+namespace
+{
+    bool emitZeroOrSparsePayloadBytes(CodeGen& codeGen, MicroReg dstAddressReg, ByteSpan rawBytes)
+    {
+        if (rawBytes.empty())
+            return true;
+
+        if (allZeroBytes(rawBytes))
+        {
+            CodeGenMemoryHelpers::emitMemZero(codeGen, dstAddressReg, static_cast<uint32_t>(rawBytes.size()));
+            return true;
+        }
+
+        constexpr uint32_t sparseChunkSize  = 8;
+        constexpr uint32_t sparseStoreLimit = 4;
+        if (rawBytes.size() >= sparseChunkSize * 2 && (rawBytes.size() % sparseChunkSize) == 0)
+        {
+            uint32_t nonZeroChunks = 0;
+            for (uint32_t off = 0; off < rawBytes.size(); off += sparseChunkSize)
+            {
+                for (uint32_t i = 0; i < sparseChunkSize; ++i)
+                {
+                    if (rawBytes[off + i] != std::byte{})
+                    {
+                        ++nonZeroChunks;
+                        break;
+                    }
+                }
+
+                if (nonZeroChunks > sparseStoreLimit)
+                    break;
+            }
+
+            if (nonZeroChunks <= sparseStoreLimit)
+            {
+                MicroBuilder& builder = codeGen.builder();
+                CodeGenMemoryHelpers::emitMemZero(codeGen, dstAddressReg, static_cast<uint32_t>(rawBytes.size()));
+                for (uint32_t off = 0; off < rawBytes.size(); off += sparseChunkSize)
+                {
+                    uint64_t value = 0;
+                    for (uint32_t i = 0; i < sparseChunkSize; ++i)
+                        value |= static_cast<uint64_t>(static_cast<uint8_t>(rawBytes[off + i])) << (i * 8);
+                    if (value != 0)
+                        builder.emitLoadMemImm(dstAddressReg, off, ApInt(value, 64), MicroOpBits::B64);
+                }
+
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    bool tryGetStructDefaultPayload(CodeGen& codeGen, TypeRef typeRef, ConstantRef& outSafeDefaultValueRef, ByteSpan& outPayloadBytes)
+    {
+        outSafeDefaultValueRef = ConstantRef::invalid();
+        outPayloadBytes        = {};
+
+        const TypeRef rawTypeRef = codeGen.typeMgr().get(typeRef).unwrap(codeGen.ctx(), typeRef, TypeExpandE::Alias);
+        if (rawTypeRef.isValid())
+            typeRef = rawTypeRef;
+
+        const TypeInfo& typeInfo = codeGen.typeMgr().get(typeRef);
+        if (!typeInfo.isStruct())
+            return false;
+
+        const ConstantRef defaultValueRef = typeInfo.payloadSymStruct().resolveImplicitDefaultValueRef(codeGen.sema(), typeRef);
+        if (defaultValueRef.isInvalid())
+            return false;
+
+        outSafeDefaultValueRef = CodeGenConstantHelpers::ensureStaticPayloadConstant(codeGen, defaultValueRef, typeRef);
+        if (outSafeDefaultValueRef.isInvalid())
+            return false;
+
+        const ConstantValue& defaultValue = codeGen.cstMgr().get(outSafeDefaultValueRef);
+        if (!defaultValue.isStruct())
+            return false;
+
+        outPayloadBytes = defaultValue.getStruct();
+        return true;
+    }
+}
+
 Result CodeGenFunctionHelpers::emitStructDefaultValue(CodeGen& codeGen, TypeRef typeRef, MicroReg dstAddressReg)
 {
     const TypeRef rawTypeRef = codeGen.typeMgr().get(typeRef).unwrap(codeGen.ctx(), typeRef, TypeExpandE::Alias);
@@ -488,26 +571,107 @@ Result CodeGenFunctionHelpers::emitStructDefaultValue(CodeGen& codeGen, TypeRef 
     if (!typeInfo.isStruct())
         return Result::Continue;
 
-    const ConstantRef defaultValueRef = typeInfo.payloadSymStruct().computeDefaultValue(codeGen.sema(), typeRef);
-    SWC_ASSERT(defaultValueRef.isValid());
-    if (defaultValueRef.isInvalid())
+    auto& symStruct = typeInfo.payloadSymStruct();
+    symStruct.computeImplicitDefaultFlags(codeGen.sema());
+    if (symStruct.hasImplicitAllUndefinedDefault())
+        return Result::Continue;
+    if (symStruct.hasImplicitAllZeroDefault())
+    {
+        CodeGenMemoryHelpers::emitMemZero(codeGen, dstAddressReg, checkedTypeSizeInBytes(codeGen, typeInfo));
+        return Result::Continue;
+    }
+
+    ConstantRef safeDefaultValueRef = ConstantRef::invalid();
+    ByteSpan    payloadBytes;
+    if (!tryGetStructDefaultPayload(codeGen, typeRef, safeDefaultValueRef, payloadBytes))
         return Result::Continue;
 
-    const ConstantRef safeDefaultValueRef = CodeGenConstantHelpers::ensureStaticPayloadConstant(codeGen, defaultValueRef, typeRef);
-    SWC_ASSERT(safeDefaultValueRef.isValid());
-    if (safeDefaultValueRef.isInvalid())
-        return Result::Continue;
-
-    const ConstantValue& defaultValue = codeGen.cstMgr().get(safeDefaultValueRef);
-    SWC_ASSERT(defaultValue.isStruct());
-    if (!defaultValue.isStruct())
-        return Result::Continue;
-
-    const ByteSpan payloadBytes = defaultValue.getStruct();
     SWC_ASSERT(payloadBytes.size() <= std::numeric_limits<uint32_t>::max());
+    if (emitZeroOrSparsePayloadBytes(codeGen, dstAddressReg, payloadBytes))
+        return Result::Continue;
+
     const MicroReg payloadReg = codeGen.nextVirtualIntRegister();
     codeGen.builder().emitLoadRegPtrReloc(payloadReg, reinterpret_cast<uint64_t>(payloadBytes.data()), safeDefaultValueRef);
     CodeGenMemoryHelpers::emitMemCopy(codeGen, dstAddressReg, payloadReg, static_cast<uint32_t>(payloadBytes.size()));
+    return Result::Continue;
+}
+
+Result CodeGenFunctionHelpers::emitStructDefaultValue(CodeGen& codeGen, TypeRef typeRef, MicroReg dstAddressReg, uint32_t count)
+{
+    if (!count)
+        return Result::Continue;
+    if (count == 1)
+        return emitStructDefaultValue(codeGen, typeRef, dstAddressReg);
+
+    const TypeRef rawTypeRef = codeGen.typeMgr().get(typeRef).unwrap(codeGen.ctx(), typeRef, TypeExpandE::Alias);
+    if (rawTypeRef.isValid())
+        typeRef = rawTypeRef;
+
+    const TypeInfo& typeInfo = codeGen.typeMgr().get(typeRef);
+    if (!typeInfo.isStruct())
+        return Result::Continue;
+
+    auto& symStruct = typeInfo.payloadSymStruct();
+    symStruct.computeImplicitDefaultFlags(codeGen.sema());
+    if (symStruct.hasImplicitAllUndefinedDefault())
+        return Result::Continue;
+
+    const uint32_t sizeOf = checkedTypeSizeInBytes(codeGen, typeInfo);
+    if (symStruct.hasImplicitAllZeroDefault())
+    {
+        const uint64_t totalSize = static_cast<uint64_t>(sizeOf) * count;
+        SWC_ASSERT(totalSize <= std::numeric_limits<uint32_t>::max());
+        CodeGenMemoryHelpers::emitMemZero(codeGen, dstAddressReg, static_cast<uint32_t>(totalSize));
+        return Result::Continue;
+    }
+
+    ConstantRef safeDefaultValueRef = ConstantRef::invalid();
+    ByteSpan    payloadBytes;
+    if (!tryGetStructDefaultPayload(codeGen, typeRef, safeDefaultValueRef, payloadBytes))
+        return Result::Continue;
+
+    const MicroReg payloadReg = codeGen.nextVirtualIntRegister();
+    codeGen.builder().emitLoadRegPtrReloc(payloadReg, reinterpret_cast<uint64_t>(payloadBytes.data()), safeDefaultValueRef);
+    CodeGenMemoryHelpers::emitMemRepeatCopy(codeGen, dstAddressReg, payloadReg, sizeOf, count);
+    return Result::Continue;
+}
+
+Result CodeGenFunctionHelpers::emitStructDefaultValue(CodeGen& codeGen, TypeRef typeRef, MicroReg dstAddressReg, MicroReg countReg)
+{
+    const TypeRef rawTypeRef = codeGen.typeMgr().get(typeRef).unwrap(codeGen.ctx(), typeRef, TypeExpandE::Alias);
+    if (rawTypeRef.isValid())
+        typeRef = rawTypeRef;
+
+    const TypeInfo& typeInfo = codeGen.typeMgr().get(typeRef);
+    if (!typeInfo.isStruct())
+        return Result::Continue;
+
+    auto& symStruct = typeInfo.payloadSymStruct();
+    symStruct.computeImplicitDefaultFlags(codeGen.sema());
+    if (symStruct.hasImplicitAllUndefinedDefault())
+        return Result::Continue;
+
+    const uint32_t sizeOf = checkedTypeSizeInBytes(codeGen, typeInfo);
+    MicroBuilder&  builder = codeGen.builder();
+    const auto     loopLabel = builder.createLabel();
+    const auto     doneLabel = builder.createLabel();
+    const auto     cursorReg = codeGen.nextVirtualIntRegister();
+    const auto     iterReg = codeGen.nextVirtualIntRegister();
+    builder.emitLoadRegReg(cursorReg, dstAddressReg, MicroOpBits::B64);
+    builder.emitLoadRegReg(iterReg, countReg, MicroOpBits::B64);
+    builder.emitCmpRegImm(iterReg, ApInt(0, 64), MicroOpBits::B64);
+    builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, doneLabel);
+
+    builder.placeLabel(loopLabel);
+    if (symStruct.hasImplicitAllZeroDefault())
+        CodeGenMemoryHelpers::emitMemZero(codeGen, cursorReg, sizeOf);
+    else
+        SWC_RESULT(emitStructDefaultValue(codeGen, typeRef, cursorReg));
+    builder.emitOpBinaryRegImm(cursorReg, ApInt(sizeOf, 64), MicroOp::Add, MicroOpBits::B64);
+    builder.emitOpBinaryRegImm(iterReg, ApInt(1, 64), MicroOp::Subtract, MicroOpBits::B64);
+    builder.emitCmpRegImm(iterReg, ApInt(0, 64), MicroOpBits::B64);
+    builder.emitJumpToLabel(MicroCond::NotZero, MicroOpBits::B32, loopLabel);
+    builder.placeLabel(doneLabel);
     return Result::Continue;
 }
 

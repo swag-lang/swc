@@ -108,10 +108,15 @@ ConstantRef ConstantManager::addZeroPayloadConstant(TaskContext& ctx, const Type
     if (cached.isValid())
         return cached;
 
-    const TypeInfo& type = ctx.typeMgr().get(typeRef);
-    SWC_ASSERT(type.isStruct() || type.isString() || type.isAny() || type.isInterface() || type.isArray());
+    const TypeInfo& type           = ctx.typeMgr().get(typeRef);
+    TypeRef         storageTypeRef = typeRef;
+    if (const TypeRef unwrappedTypeRef = type.unwrap(ctx, typeRef, TypeExpandE::Alias | TypeExpandE::Enum); unwrappedTypeRef.isValid())
+        storageTypeRef = unwrappedTypeRef;
 
-    const uint64_t sizeOf = type.sizeOf(ctx);
+    const TypeInfo& storageType = ctx.typeMgr().get(storageTypeRef);
+    SWC_ASSERT(storageType.isStruct() || storageType.isString() || storageType.isAny() || storageType.isInterface() || storageType.isArray());
+
+    const uint64_t sizeOf = storageType.sizeOf(ctx);
     SWC_ASSERT(sizeOf && sizeOf <= std::numeric_limits<uint32_t>::max());
     if (!sizeOf || sizeOf > std::numeric_limits<uint32_t>::max())
         return ConstantRef::invalid();
@@ -121,7 +126,7 @@ ConstantRef ConstantManager::addZeroPayloadConstant(TaskContext& ctx, const Type
     std::memset(bytes.data(), 0, bytes.size());
 
     ConstantValue value;
-    if (type.isArray())
+    if (storageType.isArray())
         value = ConstantValue::makeArrayBorrowed(ctx, typeRef, ByteSpan{bytes.data(), bytes.size()});
     else
         value = ConstantValue::makeStructBorrowed(ctx, typeRef, ByteSpan{bytes.data(), bytes.size()});

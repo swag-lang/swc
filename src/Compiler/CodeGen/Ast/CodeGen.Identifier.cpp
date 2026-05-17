@@ -526,7 +526,7 @@ namespace
     Result materializeSingleVarFromInit(CodeGen& codeGen, const SymbolVariable& symVar, AstNodeRef initRef)
     {
         MicroBuilder& builder  = codeGen.builder();
-        const bool    skipInit = symVar.hasExtraFlag(SymbolVariableFlagsE::ExplicitUndefined);
+        const bool    skipInit = symVar.hasExtraFlag(SymbolVariableFlagsE::ExplicitUndefined) || symVar.hasExtraFlag(SymbolVariableFlagsE::ImplicitUndefinedInit);
         if (symVar.hasGlobalStorage())
             return Result::Continue;
 
@@ -576,7 +576,16 @@ namespace
             }
             else
             {
-                if (!emitDefaultValueToLocalStack(codeGen, symVar, symbolPayload.reg, localSize))
+                const TypeInfo& symType = codeGen.typeMgr().get(symVar.typeRef());
+                TypeRef         storageTypeRef = symVar.typeRef();
+                if (const TypeRef unwrappedTypeRef = symType.unwrap(codeGen.ctx(), symVar.typeRef(), TypeExpandE::Alias); unwrappedTypeRef.isValid())
+                    storageTypeRef = unwrappedTypeRef;
+
+                if (codeGen.typeMgr().get(storageTypeRef).isStruct())
+                {
+                    SWC_RESULT(CodeGenFunctionHelpers::emitStructDefaultValue(codeGen, symVar.typeRef(), symbolPayload.reg));
+                }
+                else if (!emitDefaultValueToLocalStack(codeGen, symVar, symbolPayload.reg, localSize))
                     CodeGenMemoryHelpers::emitMemZero(codeGen, symbolPayload.reg, localSize);
             }
 
@@ -632,7 +641,16 @@ namespace
                 {
                     // Prefer the declared default storage blob before falling back to zero-init for plain
                     // uninitialized stack locals.
-                    if (!emitDefaultValueToLocalStack(codeGen, symVar, symbolPayload.reg, localSize))
+                    const TypeInfo& symType = codeGen.typeMgr().get(symVar.typeRef());
+                    TypeRef         storageTypeRef = symVar.typeRef();
+                    if (const TypeRef unwrappedTypeRef = symType.unwrap(codeGen.ctx(), symVar.typeRef(), TypeExpandE::Alias); unwrappedTypeRef.isValid())
+                        storageTypeRef = unwrappedTypeRef;
+
+                    if (codeGen.typeMgr().get(storageTypeRef).isStruct())
+                    {
+                        SWC_RESULT(CodeGenFunctionHelpers::emitStructDefaultValue(codeGen, symVar.typeRef(), symbolPayload.reg));
+                    }
+                    else if (!emitDefaultValueToLocalStack(codeGen, symVar, symbolPayload.reg, localSize))
                         CodeGenMemoryHelpers::emitMemZero(codeGen, symbolPayload.reg, localSize);
                 }
             }

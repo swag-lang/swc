@@ -116,6 +116,191 @@ namespace
         return findGeneratedImplicitMethod(ctx, ownerStruct, SemaSpecOp::generatedInitWrapperName());
     }
 
+    enum class ImplicitDefaultKind : uint8_t
+    {
+        Mixed,
+        AllZero,
+        AllUndefined,
+    };
+
+    ImplicitDefaultKind classifyTypeImplicitDefault(Sema& sema, TypeRef typeRef);
+    ImplicitDefaultKind classifyConstantImplicitDefault(Sema& sema, TypeRef typeRef, ConstantRef cstRef);
+
+    bool updateImplicitDefaultKindState(bool& allZero, bool& allUndefined, const ImplicitDefaultKind childKind)
+    {
+        allZero &= childKind == ImplicitDefaultKind::AllZero;
+        allUndefined &= childKind == ImplicitDefaultKind::AllUndefined;
+        return allZero || allUndefined;
+    }
+
+    ImplicitDefaultKind combineImplicitDefaultKinds(const std::span<const ImplicitDefaultKind> childKinds)
+    {
+        if (childKinds.empty())
+            return ImplicitDefaultKind::AllZero;
+
+        bool allZero      = true;
+        bool allUndefined = true;
+        for (const ImplicitDefaultKind childKind : childKinds)
+        {
+            if (!updateImplicitDefaultKindState(allZero, allUndefined, childKind))
+                return ImplicitDefaultKind::Mixed;
+        }
+
+        if (allUndefined)
+            return ImplicitDefaultKind::AllUndefined;
+        if (allZero)
+            return ImplicitDefaultKind::AllZero;
+        return ImplicitDefaultKind::Mixed;
+    }
+
+    ImplicitDefaultKind classifyConstantChildrenImplicitDefault(Sema& sema, const std::span<const ConstantRef> childValues, const std::span<const TypeRef> childTypes)
+    {
+        if (childValues.size() != childTypes.size())
+            return ImplicitDefaultKind::Mixed;
+
+        SmallVector<ImplicitDefaultKind> childKinds;
+        childKinds.reserve(childValues.size());
+        for (size_t i = 0; i < childValues.size(); ++i)
+            childKinds.push_back(classifyConstantImplicitDefault(sema, childTypes[i], childValues[i]));
+
+        return combineImplicitDefaultKinds(childKinds);
+    }
+
+    ImplicitDefaultKind classifyRepeatedConstantImplicitDefault(Sema& sema, const std::span<const ConstantRef> childValues, const TypeRef childTypeRef)
+    {
+        SmallVector<ImplicitDefaultKind> childKinds;
+        childKinds.reserve(childValues.size());
+        for (const ConstantRef childValueRef : childValues)
+            childKinds.push_back(classifyConstantImplicitDefault(sema, childTypeRef, childValueRef));
+
+        return combineImplicitDefaultKinds(childKinds);
+    }
+
+    ImplicitDefaultKind classifyConstantImplicitDefault(Sema& sema, TypeRef typeRef, ConstantRef cstRef)
+    {
+        if (cstRef.isInvalid())
+            return ImplicitDefaultKind::Mixed;
+
+        const ConstantValue& cst = sema.cstMgr().get(cstRef);
+        if (cst.isUndefined())
+            return ImplicitDefaultKind::AllUndefined;
+
+        const TypeInfo& rawType = sema.typeMgr().get(typeRef);
+        if (const TypeRef storageTypeRef = rawType.unwrap(sema.ctx(), typeRef, TypeExpandE::Alias | TypeExpandE::Enum); storageTypeRef.isValid())
+            typeRef = storageTypeRef;
+
+        if (cst.isEnumValue())
+        {
+            const TypeInfo& type = sema.typeMgr().get(typeRef);
+            if (!type.isIntLike())
+                return ImplicitDefaultKind::Mixed;
+            return classifyConstantImplicitDefault(sema, typeRef, cst.getEnumValue());
+        }
+
+        if (cst.isStruct())
+            return allZeroBytes(cst.getStruct()) ? ImplicitDefaultKind::AllZero : ImplicitDefaultKind::Mixed;
+
+        if (cst.isArray())
+            return allZeroBytes(cst.getArray()) ? ImplicitDefaultKind::AllZero : ImplicitDefaultKind::Mixed;
+
+        const TypeInfo& type = sema.typeMgr().get(typeRef);
+        if (!type.sizeOf(sema.ctx()))
+            return ImplicitDefaultKind::AllZero;
+
+        if (cst.isNull())
+        {
+            if (type.isAnyPointer() || type.isReference() || type.isString() || type.isCString() || type.isSlice() || type.isAny() || type.isInterface() ||
+                type.isTypeInfo() || type.isFunction())
+                return ImplicitDefaultKind::AllZero;
+            return ImplicitDefaultKind::Mixed;
+        }
+
+        if (type.isBool())
+            return cst.isBool() && !cst.getBool() ? ImplicitDefaultKind::AllZero : ImplicitDefaultKind::Mixed;
+
+        if (type.isChar())
+            return cst.isChar() && cst.getChar() == 0 ? ImplicitDefaultKind::AllZero : ImplicitDefaultKind::Mixed;
+
+        if (type.isRune())
+            return cst.isRune() && cst.getRune() == 0 ? ImplicitDefaultKind::AllZero : ImplicitDefaultKind::Mixed;
+
+        if (type.isInt())
+            return cst.isInt() && cst.getInt().isZero() ? ImplicitDefaultKind::AllZero : ImplicitDefaultKind::Mixed;
+
+        if (type.isFloat())
+            return cst.isFloat() && cst.getFloat().isZero() ? ImplicitDefaultKind::AllZero : ImplicitDefaultKind::Mixed;
+
+        if (type.isSlice())
+            return cst.isSlice() && cst.getSliceCount() == 0 && cst.getSlice().empty() ? ImplicitDefaultKind::AllZero : ImplicitDefaultKind::Mixed;
+
+        if (type.isAnyPointer() || type.isReference() || type.isTypeInfo() || type.isFunction())
+        {
+            if (cst.isValuePointer())
+                return cst.getValuePointer() == 0 ? ImplicitDefaultKind::AllZero : ImplicitDefaultKind::Mixed;
+            if (cst.isBlockPointer())
+                return cst.getBlockPointer() == 0 ? ImplicitDefaultKind::AllZero : ImplicitDefaultKind::Mixed;
+            return ImplicitDefaultKind::Mixed;
+        }
+
+        if (type.isArray() && cst.isAggregateArray())
+        {
+            uint64_t totalCount = 1;
+            for (const uint64_t dim : type.payloadArrayDims())
+                totalCount *= dim;
+            if (cst.getAggregateArray().size() != totalCount)
+                return ImplicitDefaultKind::Mixed;
+            return classifyRepeatedConstantImplicitDefault(sema, cst.getAggregateArray(), type.payloadArrayElemTypeRef());
+        }
+
+        if (type.isAggregateStruct() && cst.isAggregateStruct())
+            return classifyConstantChildrenImplicitDefault(sema, cst.getAggregateStruct(), type.payloadAggregate().types);
+
+        if (type.isAggregateArray() && cst.isAggregateArray())
+            return classifyConstantChildrenImplicitDefault(sema, cst.getAggregateArray(), type.payloadAggregate().types);
+
+        return ImplicitDefaultKind::Mixed;
+    }
+
+    ImplicitDefaultKind classifyAggregateTypeImplicitDefault(Sema& sema, const std::span<const TypeRef> childTypes)
+    {
+        SmallVector<ImplicitDefaultKind> childKinds;
+        childKinds.reserve(childTypes.size());
+        for (const TypeRef childTypeRef : childTypes)
+            childKinds.push_back(classifyTypeImplicitDefault(sema, childTypeRef));
+
+        return combineImplicitDefaultKinds(childKinds);
+    }
+
+    ImplicitDefaultKind classifyTypeImplicitDefault(Sema& sema, TypeRef typeRef)
+    {
+        if (typeRef.isInvalid())
+            return ImplicitDefaultKind::Mixed;
+
+        const TypeInfo& rawType = sema.typeMgr().get(typeRef);
+        if (const TypeRef storageTypeRef = rawType.unwrap(sema.ctx(), typeRef, TypeExpandE::Alias | TypeExpandE::Enum); storageTypeRef.isValid())
+            typeRef = storageTypeRef;
+
+        const TypeInfo& type = sema.typeMgr().get(typeRef);
+        if (type.isStruct())
+        {
+            const auto& symStruct = type.payloadSymStruct();
+            symStruct.computeImplicitDefaultFlags(sema);
+            if (symStruct.hasImplicitAllUndefinedDefault())
+                return ImplicitDefaultKind::AllUndefined;
+            if (symStruct.hasImplicitAllZeroDefault())
+                return ImplicitDefaultKind::AllZero;
+            return ImplicitDefaultKind::Mixed;
+        }
+
+        if (type.isArray())
+            return classifyTypeImplicitDefault(sema, type.payloadArrayElemTypeRef());
+
+        if (type.isAggregateStruct() || type.isAggregateArray())
+            return classifyAggregateTypeImplicitDefault(sema, type.payloadAggregate().types);
+
+        return ImplicitDefaultKind::AllZero;
+    }
+
     Result lowerImplicitDefaultBytes(Sema& sema, ByteSpanRW dstBytes, TypeRef typeRef)
     {
         const TypeInfo& rawType = sema.typeMgr().get(typeRef);
@@ -533,6 +718,12 @@ void SymbolStruct::removeIgnoredFields()
 
 ConstantRef SymbolStruct::computeDefaultValue(Sema& sema, TypeRef typeRef)
 {
+    computeImplicitDefaultFlags(sema);
+    if (hasImplicitAllUndefinedDefault())
+        return ConstantRef::invalid();
+    if (hasImplicitAllZeroDefault())
+        return sema.cstMgr().addZeroPayloadConstant(sema.ctx(), typeRef);
+
     std::call_once(defaultStructOnce_, [&] {
         auto            ctx = sema.ctx();
         const TypeInfo& ty  = type(ctx);
@@ -553,6 +744,60 @@ ConstantRef SymbolStruct::computeDefaultValue(Sema& sema, TypeRef typeRef)
     });
 
     return defaultStructCst_;
+}
+
+void SymbolStruct::computeImplicitDefaultFlags(Sema& sema) const
+{
+    std::call_once(implicitDefaultFlagsOnce_, [&] {
+        auto* self = const_cast<SymbolStruct*>(this);
+        self->addExtraFlag(SymbolStructFlagsE::DefaultClassified);
+
+        if (fields_.empty())
+        {
+            self->addExtraFlag(SymbolStructFlagsE::DefaultAllZero);
+            return;
+        }
+
+        bool allZero      = true;
+        bool allUndefined = true;
+        for (const SymbolVariable* field : fields_)
+        {
+            if (!field)
+                continue;
+
+            ImplicitDefaultKind fieldKind = ImplicitDefaultKind::Mixed;
+            if (field->hasExtraFlag(SymbolVariableFlagsE::ExplicitUndefined))
+            {
+                fieldKind = ImplicitDefaultKind::AllUndefined;
+            }
+            else if (const ConstantRef valueRef = field->defaultValueRef(); valueRef.isValid())
+            {
+                fieldKind = classifyConstantImplicitDefault(sema, field->typeRef(), valueRef);
+            }
+            else
+            {
+                fieldKind = classifyTypeImplicitDefault(sema, field->typeRef());
+            }
+
+            allZero &= fieldKind == ImplicitDefaultKind::AllZero;
+            allUndefined &= fieldKind == ImplicitDefaultKind::AllUndefined;
+            if (!allZero && !allUndefined)
+                return;
+        }
+
+        if (allZero)
+            self->addExtraFlag(SymbolStructFlagsE::DefaultAllZero);
+        if (allUndefined)
+            self->addExtraFlag(SymbolStructFlagsE::DefaultAllUndefined);
+    });
+}
+
+ConstantRef SymbolStruct::resolveImplicitDefaultValueRef(Sema& sema, TypeRef typeRef) const
+{
+    computeImplicitDefaultFlags(sema);
+    if (hasImplicitAllUndefinedDefault())
+        return ConstantRef::invalid();
+    return const_cast<SymbolStruct*>(this)->computeDefaultValue(sema, typeRef);
 }
 
 namespace

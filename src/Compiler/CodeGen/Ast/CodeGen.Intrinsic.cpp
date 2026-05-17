@@ -495,16 +495,6 @@ namespace
         return result;
     }
 
-    CodeGenNodePayload makeIntrinsicInitDefaultStructPayload(CodeGen& codeGen, TypeRef fillTypeRef)
-    {
-        const TypeInfo& fillType = codeGen.typeMgr().get(fillTypeRef);
-        SWC_ASSERT(fillType.isStruct());
-
-        const ConstantRef defaultCstRef = CodeGenConstantHelpers::ensureStaticPayloadConstant(codeGen, fillType.payloadSymStruct().computeDefaultValue(codeGen.sema(), fillTypeRef), fillTypeRef);
-        SWC_ASSERT(defaultCstRef.isValid());
-        return makeAddressPayloadFromConstant(codeGen, defaultCstRef);
-    }
-
     Result emitIntrinsicInitStore(CodeGen& codeGen, TypeRef fillTypeRef, const CodeGenNodePayload& srcPayload, MicroReg dstAddressReg)
     {
         TaskContext&    ctx       = codeGen.ctx();
@@ -543,12 +533,8 @@ namespace
         const TypeInfo& fillType = codeGen.typeMgr().get(fillTypeRef);
         SWC_ASSERT(fillType.isStruct());
 
-        const CodeGenNodePayload defaultPayload = makeIntrinsicInitDefaultStructPayload(codeGen, fillTypeRef);
-        const uint64_t           sizeOf         = fillType.sizeOf(codeGen.ctx());
-        SWC_ASSERT(sizeOf <= std::numeric_limits<uint32_t>::max());
-
         const MicroReg storageReg = codeGen.runtimeStorageAddressReg(codeGen.curNodeRef());
-        CodeGenMemoryHelpers::emitMemCopy(codeGen, storageReg, defaultPayload.reg, static_cast<uint32_t>(sizeOf));
+        SWC_RESULT(CodeGenFunctionHelpers::emitStructDefaultValue(codeGen, fillTypeRef, storageReg));
 
         const auto& fields = fillType.payloadSymStruct().fields();
         for (size_t i = 0; i < args.size(); ++i)
@@ -665,14 +651,32 @@ namespace
         if (targetInfo.fillTypeRef.isInvalid())
             return Result::Continue;
 
+        const MicroReg dstAddressReg = materializeIntrinsicLifecycleAddress(codeGen, node.nodeWhatRef);
+        SWC_ASSERT(dstAddressReg.isValid());
+        if (!dstAddressReg.isValid())
+            return Result::Continue;
+
+        const TypeInfo& fillType = codeGen.typeMgr().get(targetInfo.fillTypeRef);
+        uint32_t        constantCount = 0;
+        const bool      hasConstantCount = tryIntrinsicInitConstantCount(codeGen, node.nodeCountRef, constantCount);
+        if (args.empty() && fillType.isStruct())
+        {
+            if (hasConstantCount)
+                return CodeGenFunctionHelpers::emitStructDefaultValue(codeGen, targetInfo.fillTypeRef, dstAddressReg, constantCount);
+
+            if (node.nodeCountRef.isValid())
+            {
+                const MicroReg countReg = materializeIntrinsicLifecycleCountReg(codeGen, node.nodeCountRef);
+                return CodeGenFunctionHelpers::emitStructDefaultValue(codeGen, targetInfo.fillTypeRef, dstAddressReg, countReg);
+            }
+
+            return CodeGenFunctionHelpers::emitStructDefaultValue(codeGen, targetInfo.fillTypeRef, dstAddressReg, targetInfo.implicitCount);
+        }
+
         CodeGenNodePayload srcPayload;
         if (args.empty())
         {
-            const TypeInfo& fillType = codeGen.typeMgr().get(targetInfo.fillTypeRef);
-            if (fillType.isStruct())
-                srcPayload = makeIntrinsicInitDefaultStructPayload(codeGen, targetInfo.fillTypeRef);
-            else
-                srcPayload = makeIntrinsicInitZeroScalarPayload(codeGen, targetInfo.fillTypeRef);
+            srcPayload = makeIntrinsicInitZeroScalarPayload(codeGen, targetInfo.fillTypeRef);
         }
         else if (intrinsicInitTreatsArgsAsStructTuple(codeGen, targetInfo.fillTypeRef, args))
         {
@@ -683,13 +687,7 @@ namespace
             srcPayload = codeGen.payload(args.front());
         }
 
-        const MicroReg dstAddressReg = materializeIntrinsicLifecycleAddress(codeGen, node.nodeWhatRef);
-        SWC_ASSERT(dstAddressReg.isValid());
-        if (!dstAddressReg.isValid())
-            return Result::Continue;
-
-        uint32_t constantCount = 0;
-        if (tryIntrinsicInitConstantCount(codeGen, node.nodeCountRef, constantCount))
+        if (hasConstantCount)
             return emitIntrinsicInitRepeatConst(codeGen, targetInfo.fillTypeRef, srcPayload, dstAddressReg, constantCount);
 
         if (node.nodeCountRef.isValid())

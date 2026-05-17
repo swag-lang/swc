@@ -17,6 +17,7 @@ enum class SymbolVariableFlagsE : uint16_t
     RetVal                  = 1 << 6,
     NeedsAddressableStorage = 1 << 7,
     CallerLocationDefault   = 1 << 8,
+    ImplicitUndefinedInit   = 1 << 9,
 };
 using SymbolVariableFlags = EnumFlags<SymbolVariableFlagsE>;
 

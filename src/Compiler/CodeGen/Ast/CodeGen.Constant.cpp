@@ -2,6 +2,7 @@
 #include "Compiler/CodeGen/Core/CodeGen.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Compiler/CodeGen/Core/CodeGenConstantHelpers.h"
+#include "Compiler/CodeGen/Core/CodeGenFunctionHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenMemoryHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenTypeHelpers.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
@@ -218,39 +219,27 @@ namespace
         return true;
     }
 
-    void emitConcreteLiteralStorageInit(CodeGen& codeGen, TypeRef storageTypeRef, MicroReg dstBaseReg)
+    Result emitConcreteLiteralStorageInit(CodeGen& codeGen, TypeRef storageTypeRef, MicroReg dstBaseReg)
     {
         if (storageTypeRef.isInvalid())
-            return;
+            return Result::Continue;
 
         const TypeInfo& storageType = codeGen.typeMgr().get(storageTypeRef);
         if (storageType.isArray())
         {
             const uint64_t totalSize = storageType.sizeOf(codeGen.ctx());
             if (!totalSize)
-                return;
+                return Result::Continue;
 
             SWC_ASSERT(totalSize <= std::numeric_limits<uint32_t>::max());
             CodeGenMemoryHelpers::emitMemZero(codeGen, dstBaseReg, static_cast<uint32_t>(totalSize));
-            return;
+            return Result::Continue;
         }
 
         if (!storageType.isStruct())
-            return;
+            return Result::Continue;
 
-        const ConstantRef defaultValueRef = storageType.payloadSymStruct().computeDefaultValue(codeGen.sema(), storageTypeRef);
-        SWC_ASSERT(defaultValueRef.isValid());
-        const ConstantRef safeDefaultValueRef = CodeGenConstantHelpers::ensureStaticPayloadConstant(codeGen, defaultValueRef, storageTypeRef);
-        SWC_ASSERT(safeDefaultValueRef.isValid());
-        const ConstantValue& defaultValue = codeGen.cstMgr().get(safeDefaultValueRef);
-        SWC_ASSERT(defaultValue.isStruct());
-
-        const ByteSpan payloadBytes = defaultValue.getStruct();
-        SWC_ASSERT(payloadBytes.size() == storageType.sizeOf(codeGen.ctx()));
-
-        const MicroReg payloadReg = codeGen.nextVirtualIntRegister();
-        codeGen.builder().emitLoadRegPtrReloc(payloadReg, reinterpret_cast<uint64_t>(payloadBytes.data()), safeDefaultValueRef);
-        CodeGenMemoryHelpers::emitMemCopy(codeGen, dstBaseReg, payloadReg, static_cast<uint32_t>(payloadBytes.size()));
+        return CodeGenFunctionHelpers::emitStructDefaultValue(codeGen, storageTypeRef, dstBaseReg);
     }
 
     bool tryResolveExistingAggregateElementPayload(CodeGenNodePayload& outPayload, CodeGen& codeGen, AstNodeRef valueRef, TypeRef targetTypeRef)
@@ -335,7 +324,7 @@ namespace
         // Concrete arrays/structs start from their default storage so omitted literal elements keep the
         // correct zeroed or default-initialized bytes.
         if (storageType.isArray() || storageType.isStruct())
-            emitConcreteLiteralStorageInit(codeGen, aggregateTypeRef, dstBaseReg);
+            SWC_RESULT(emitConcreteLiteralStorageInit(codeGen, aggregateTypeRef, dstBaseReg));
 
         for (const AggregateElementLayout& entry : layout)
         {

@@ -156,11 +156,11 @@ namespace
             alignment = 1;
 
         const bool      isCompilerGlobal   = symVar.attributes().hasRtFlag(RtAttributeFlagsE::Compiler);
-        const bool      explicitUndefined  = symVar.hasExtraFlag(SymbolVariableFlagsE::ExplicitUndefined);
-        const bool      hasInitializerData = symVar.cstRef().isValid() && !explicitUndefined;
-        const bool      hasFunctionInit    = symVar.globalFunctionInit() != nullptr && !explicitUndefined;
+        const bool      skipInit           = symVar.hasExtraFlag(SymbolVariableFlagsE::ExplicitUndefined) || symVar.hasExtraFlag(SymbolVariableFlagsE::ImplicitUndefinedInit);
+        const bool      hasInitializerData = symVar.cstRef().isValid() && !skipInit;
+        const bool      hasFunctionInit    = symVar.globalFunctionInit() != nullptr && !skipInit;
         DataSegmentKind storageKind        = isCompilerGlobal ? DataSegmentKind::Compiler : DataSegmentKind::GlobalZero;
-        if (!isCompilerGlobal && explicitUndefined)
+        if (!isCompilerGlobal && skipInit)
             storageKind = DataSegmentKind::GlobalInit;
         if (!isCompilerGlobal && hasFunctionInit)
             storageKind = DataSegmentKind::GlobalInit;
@@ -206,7 +206,7 @@ namespace
         }
         else
         {
-            const bool zeroInit = !explicitUndefined;
+            const bool zeroInit = !skipInit;
             offset              = segment.reserveBlock(size, alignment, zeroInit);
         }
 
@@ -619,7 +619,7 @@ namespace
             !payload->calledFn->attributes().hasRtFlag(RtAttributeFlagsE::Complete))
         {
             SWC_RESULT(sema.waitSemaCompleted(explicitType, context.nodeTypeRef));
-            outInfo.defaultValueCstRef = explicitType->payloadSymStruct().computeDefaultValue(sema, explicitTypeRef);
+            outInfo.defaultValueCstRef = explicitType->payloadSymStruct().resolveImplicitDefaultValueRef(sema, explicitTypeRef);
         }
 
         nodeInitView.recompute(sema, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
@@ -928,16 +928,23 @@ namespace
                                            fieldOwnerSymMap->isStruct() &&
                                            &explicitType->payloadSymStruct() == &fieldOwnerSymMap->cast<SymbolStruct>();
 
-        ConstantRef implicitStructCstRef = ConstantRef::invalid();
+        ConstantRef implicitStructCstRef     = ConstantRef::invalid();
+        bool        implicitStructZeroInit   = false;
+        bool        implicitStructNoInit     = false;
         if (context.nodeInitRef.isInvalid() && !isParameter && explicitTypeRef.isValid() && explicitType && explicitType->isStruct())
         {
             if (!directSelfStructField)
             {
                 SWC_RESULT(sema.waitSemaCompleted(explicitType, context.nodeTypeRef));
-                implicitStructCstRef = explicitType->payloadSymStruct().computeDefaultValue(sema, explicitTypeRef);
+                auto& symStruct = explicitType->payloadSymStruct();
+                symStruct.computeImplicitDefaultFlags(sema);
+                implicitStructZeroInit = symStruct.hasImplicitAllZeroDefault();
+                implicitStructNoInit   = symStruct.hasImplicitAllUndefinedDefault();
+                if (!implicitStructNoInit)
+                    implicitStructCstRef = symStruct.resolveImplicitDefaultValueRef(sema, explicitTypeRef);
             }
         }
-        const bool hasImplicitStructInit = implicitStructCstRef.isValid();
+        const bool hasImplicitStructInit = implicitStructZeroInit || implicitStructCstRef.isValid();
 
         // Constant
         if (isConst)
@@ -946,7 +953,8 @@ namespace
             {
                 if (!hasImplicitStructInit)
                     return reportMissingInitializer(sema, DiagnosticId::sema_err_const_missing_init, context, symbols);
-                completeConst(sema, symbols, implicitStructCstRef, explicitTypeRef);
+                const ConstantRef constInitCstRef = implicitStructCstRef.isValid() ? implicitStructCstRef : sema.cstMgr().addZeroPayloadConstant(sema.ctx(), explicitTypeRef);
+                completeConst(sema, symbols, constInitCstRef, explicitTypeRef);
                 return Result::Continue;
             }
             if (nodeInitView.cstRef().isInvalid())
@@ -992,16 +1000,19 @@ namespace
             }
         }
 
-        if (context.nodeInitRef.isValid() || hasImplicitStructInit)
+        if (context.nodeInitRef.isValid() || hasImplicitStructInit || implicitStructNoInit)
         {
             for (Symbol* s : symbols)
             {
                 auto& symVar = s->cast<SymbolVariable>();
+                if (implicitStructNoInit)
+                    symVar.addExtraFlag(SymbolVariableFlagsE::ImplicitUndefinedInit);
                 if (isExplicitUndefinedInit)
                     symVar.addExtraFlag(SymbolVariableFlagsE::ExplicitUndefined);
                 if (isCallerLocation)
                     symVar.addExtraFlag(SymbolVariableFlagsE::CallerLocationDefault);
-                symVar.addExtraFlag(SymbolVariableFlagsE::Initialized);
+                if (!implicitStructNoInit)
+                    symVar.addExtraFlag(SymbolVariableFlagsE::Initialized);
             }
         }
 

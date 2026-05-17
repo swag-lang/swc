@@ -129,10 +129,7 @@ namespace
 
     Result reportCompilerFileError(Sema& sema, DiagnosticId id, AstNodeRef nodeRef, const fs::path& path, const Utf8& because)
     {
-        const FileRef fileRef = sema.srcView(sema.node(nodeRef).srcViewRef()).fileRef();
-        Diagnostic    diag    = Diagnostic::get(id, fileRef);
-        diag.last().addSpan(sema.node(nodeRef).codeRangeWithChildren(sema.ctx(), sema.ast()), "", DiagnosticSeverity::Error);
-        SemaError::setReportArguments(sema, diag, nodeRef);
+        Diagnostic diag = SemaError::build(sema, id, nodeRef);
         FileSystem::setDiagnosticPathAndBecause(diag, &sema.ctx(), path, because);
         diag.report(sema.ctx());
         return Result::Error;
@@ -187,9 +184,7 @@ namespace
 
     Result reportInvalidImportConstraintValue(Sema& sema, const AstCompilerImport& node, const TokenRef tokenRef, std::string_view argName, std::string_view value, std::string_view allowedValues)
     {
-        const FileRef fileRef = sema.srcView(node.srcViewRef()).fileRef();
-        Diagnostic    diag    = Diagnostic::get(DiagnosticId::sema_err_import_invalid_constraint_value, fileRef);
-        diag.last().addSpan(sema.srcView(node.srcViewRef()).tokenCodeRange(sema.ctx(), tokenRef), "", DiagnosticSeverity::Error);
+        Diagnostic diag = SemaError::build(sema, DiagnosticId::sema_err_import_invalid_constraint_value, SourceCodeRef{node.srcViewRef(), tokenRef});
         diag.addArgument(Diagnostic::ARG_ARG, argName);
         diag.addArgument(Diagnostic::ARG_VALUE, value);
         diag.addArgument(Diagnostic::ARG_VALUES, allowedValues);

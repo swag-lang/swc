@@ -190,6 +190,13 @@ namespace
         else
             addGenericContextNotesFromSymbolMap(sema, diag, sema.curScopePtr() ? sema.curSymMap() : sema.topSymMap(), seen);
     }
+
+    Diagnostic buildDiagnostic(DiagnosticId id, FileRef fileRef, const SourceCodeRange& codeRange)
+    {
+        Diagnostic diag = Diagnostic::get(id, fileRef);
+        diag.last().addSpan(codeRange, "", DiagnosticSeverity::Error);
+        return diag;
+    }
 }
 
 SourceCodeRange SemaError::getNodeCodeRange(Sema& sema, AstNodeRef atNodeRef, ReportLocation location)
@@ -287,15 +294,19 @@ void SemaError::addSpan(Sema& sema, DiagnosticElement& element, AstNodeRef atNod
     element.addSpan(codeRange, message, severity);
 }
 
+Diagnostic SemaError::build(Sema& sema, DiagnosticId id, const SourceCodeRef& atCodeRef)
+{
+    const SourceView& srcView = sema.srcView(atCodeRef.srcViewRef);
+    Diagnostic        diag    = buildDiagnostic(id, srcView.fileRef(), srcView.tokenCodeRange(sema.ctx(), atCodeRef.tokRef));
+    setReportArguments(sema, diag, atCodeRef);
+    return diag;
+}
+
 Diagnostic SemaError::report(Sema& sema, DiagnosticId id, const SourceCodeRef& atCodeRef)
 {
     ignoreCurrentFunctionOnError(sema, id);
 
-    const SourceView& srcView = sema.srcView(atCodeRef.srcViewRef);
-    Diagnostic        diag    = Diagnostic::get(id, srcView.fileRef());
-    diag.last().addSpan(srcView.tokenCodeRange(sema.ctx(), atCodeRef.tokRef), "", DiagnosticSeverity::Error);
-
-    setReportArguments(sema, diag, atCodeRef);
+    Diagnostic diag = build(sema, id, atCodeRef);
     addGenericContextNotes(sema, diag, id);
     return diag;
 }
@@ -307,14 +318,19 @@ Result SemaError::raise(Sema& sema, DiagnosticId id, const SourceCodeRef& atCode
     return Result::Error;
 }
 
+Diagnostic SemaError::build(Sema& sema, DiagnosticId id, AstNodeRef atNodeRef, ReportLocation location)
+{
+    const FileRef fileRef = sema.srcView(sema.node(atNodeRef).srcViewRef()).fileRef();
+    Diagnostic    diag    = buildDiagnostic(id, fileRef, getNodeCodeRange(sema, atNodeRef, location));
+    setReportArguments(sema, diag, atNodeRef);
+    return diag;
+}
+
 Diagnostic SemaError::report(Sema& sema, DiagnosticId id, AstNodeRef atNodeRef, ReportLocation location)
 {
     ignoreCurrentFunctionOnError(sema, id);
 
-    const FileRef fileRef = sema.srcView(sema.node(atNodeRef).srcViewRef()).fileRef();
-    Diagnostic    diag    = Diagnostic::get(id, fileRef);
-    diag.last().addSpan(getNodeCodeRange(sema, atNodeRef, location), "", DiagnosticSeverity::Error);
-    setReportArguments(sema, diag, atNodeRef);
+    Diagnostic diag = build(sema, id, atNodeRef, location);
     addGenericContextNotes(sema, diag, id);
     return diag;
 }
@@ -324,6 +340,11 @@ Result SemaError::raise(Sema& sema, DiagnosticId id, AstNodeRef atNodeRef, Repor
     const auto diag = report(sema, id, atNodeRef, location);
     diag.report(sema.ctx());
     return Result::Error;
+}
+
+Diagnostic SemaError::build(Sema& sema, DiagnosticId id, const AstNode& atNode, ReportLocation location)
+{
+    return build(sema, id, atNode.nodeRef(sema.ast()), location);
 }
 
 Diagnostic SemaError::report(Sema& sema, DiagnosticId id, const AstNode& atNode, ReportLocation location)

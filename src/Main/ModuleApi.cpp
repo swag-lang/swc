@@ -357,13 +357,19 @@ namespace
         }
     };
 
+    Diagnostic buildModuleApiExportDiagnostic(TaskContext& ctx, DiagnosticId id, const Symbol& symbol)
+    {
+        Diagnostic diag = Diagnostic::get(id, ctx.compiler().srcView(symbol.srcViewRef()).fileRef());
+        diag.last().addSpan(symbol.codeRange(ctx), "", DiagnosticSeverity::Error);
+        return diag;
+    }
+
     Result reportModuleApiFieldNotPublic(TaskContext& ctx, const SymbolStruct& ownerStruct, const SymbolVariable& field)
     {
-        Diagnostic diag = Diagnostic::get(DiagnosticId::cmd_err_api_public_type_field_private, ctx.compiler().srcView(field.srcViewRef()).fileRef());
+        Diagnostic diag = buildModuleApiExportDiagnostic(ctx, DiagnosticId::cmd_err_api_public_type_field_private, field);
         diag.addArgument(Diagnostic::ARG_WHAT, moduleApiSymbolKindName(ownerStruct));
         diag.addArgument(Diagnostic::ARG_SYM, ownerStruct.name(ctx));
         diag.addArgument(Diagnostic::ARG_VALUE, field.name(ctx));
-        diag.last().addSpan(field.codeRange(ctx), "", DiagnosticSeverity::Error);
         diag.last().addSpan(ownerStruct.codeRange(ctx), "public type declared here", DiagnosticSeverity::Note);
         diag.report(ctx);
         return Result::Error;
@@ -371,12 +377,11 @@ namespace
 
     Result reportModuleApiNonPublicTypeReference(TaskContext& ctx, const Symbol& ownerSymbol, const Symbol& focusSymbol, std::string_view usage, const Symbol& referencedSymbol)
     {
-        Diagnostic diag = Diagnostic::get(DiagnosticId::cmd_err_api_public_type_reference_private, ctx.compiler().srcView(focusSymbol.srcViewRef()).fileRef());
+        Diagnostic diag = buildModuleApiExportDiagnostic(ctx, DiagnosticId::cmd_err_api_public_type_reference_private, focusSymbol);
         diag.addArgument(Diagnostic::ARG_WHAT, moduleApiSymbolKindName(ownerSymbol));
         diag.addArgument(Diagnostic::ARG_SYM, ownerSymbol.name(ctx));
         diag.addArgument(Diagnostic::ARG_VALUE, usage);
         diag.addArgument(Diagnostic::ARG_TYPE, referencedSymbol.getFullScopedName(ctx));
-        diag.last().addSpan(focusSymbol.codeRange(ctx), "", DiagnosticSeverity::Error);
         diag.last().addSpan(referencedSymbol.codeRange(ctx), "referenced type declared here", DiagnosticSeverity::Note);
         diag.report(ctx);
         return Result::Error;
@@ -384,9 +389,8 @@ namespace
 
     Result reportModuleApiPublicGlobalVariable(TaskContext& ctx, const Symbol& symbol)
     {
-        Diagnostic diag = Diagnostic::get(DiagnosticId::cmd_err_api_public_global_variable, ctx.compiler().srcView(symbol.srcViewRef()).fileRef());
+        Diagnostic diag = buildModuleApiExportDiagnostic(ctx, DiagnosticId::cmd_err_api_public_global_variable, symbol);
         diag.addArgument(Diagnostic::ARG_SYM, symbol.name(ctx));
-        diag.last().addSpan(symbol.codeRange(ctx), "", DiagnosticSeverity::Error);
         diag.report(ctx);
         return Result::Error;
     }

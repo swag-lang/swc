@@ -13,18 +13,12 @@ SWC_BEGIN_NAMESPACE();
 struct JobManager::RecordPool
 {
     // Thread-local free list (LIFO for cache locality).
-    static thread_local std::vector<JobRecord*> tls;
-
-    // Global fallback (small), guarded by a mutex.
-    static std::mutex              mtx;
-    static std::vector<JobRecord*> freeList;
-    static constexpr std::size_t   K_TLS_MAX = 1024; // cap per thread to avoid unbounded growth
+    static thread_local std::vector<std::unique_ptr<JobRecord>> tls;
+    static constexpr std::size_t                                K_TLS_MAX = 1024; // cap per thread to avoid unbounded growth
 };
 
-thread_local size_t                  JobManager::threadIndex_ = 0;
-thread_local std::vector<JobRecord*> JobManager::RecordPool::tls;
-std::mutex                           JobManager::RecordPool::mtx;
-std::vector<JobRecord*>              JobManager::RecordPool::freeList;
+thread_local size_t                                      JobManager::threadIndex_ = 0;
+thread_local std::vector<std::unique_ptr<JobRecord>>     JobManager::RecordPool::tls;
 
 #if SWC_DEV_MODE
 namespace
@@ -47,24 +41,14 @@ namespace
 JobRecord* JobManager::allocRecord()
 {
     // Fast path: thread-local
-    std::vector<JobRecord*>& v = RecordPool::tls;
-    if (!v.empty())
+    auto& tls = RecordPool::tls;
+    if (!tls.empty())
     {
-        JobRecord* r = v.back();
-        v.pop_back();
+        JobRecord* r = tls.back().release();
+        tls.pop_back();
         return r;
     }
 
-    // Slow path: global pool
-    const std::scoped_lock lk(RecordPool::mtx);
-    if (!RecordPool::freeList.empty())
-    {
-        JobRecord* r = RecordPool::freeList.back();
-        RecordPool::freeList.pop_back();
-        return r;
-    }
-
-    // Fallback: heap
     return new JobRecord();
 }
 
@@ -76,16 +60,16 @@ void JobManager::freeRecord(JobRecord* r)
     r->priority = JobPriority::Normal;
     r->clientId = 0;
 
-    // Try to return to TLS; spill to global if TLS is full.
-    std::vector<JobRecord*>& v = RecordPool::tls;
-    if (v.size() < RecordPool::K_TLS_MAX)
+    // Overflow is dropped back to the heap on purpose: a shared spill pool created
+    // cross-thread contention in the scheduler, which cost more than a rare reallocation.
+    auto& tls = RecordPool::tls;
+    if (tls.size() < RecordPool::K_TLS_MAX)
     {
-        v.push_back(r);
+        tls.emplace_back(r);
         return;
     }
 
-    const std::scoped_lock lk(RecordPool::mtx);
-    RecordPool::freeList.push_back(r);
+    delete r;
 }
 
 JobManager::~JobManager()

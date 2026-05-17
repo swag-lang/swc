@@ -1,6 +1,7 @@
 #pragma once
 #include "Backend/JIT/JIT.h"
 #include "Main/TaskContext.h"
+#include <memory>
 
 SWC_BEGIN_NAMESPACE();
 
@@ -26,13 +27,17 @@ public:
         JITReturn                    jitReturn;
         bool                         hasJitReturn = false;
         bool                         runImmediate = false;
+        // Returned to the caller with consumeCompletion so queued requests can
+        // keep companion state without a second global registry.
+        std::shared_ptr<void>        completionPayload;
         std::function<void(Result)>  onCompleted;
     };
 
     struct Completion
     {
-        bool   hasValue = false;
-        Result result   = Result::Continue;
+        bool                  hasValue = false;
+        Result                result   = Result::Continue;
+        std::shared_ptr<void> completionPayload;
     };
 
     void       setStrategy(Strategy strategy) noexcept { strategy_ = strategy; }

@@ -121,9 +121,13 @@ JITExecManager::Completion JITExecManager::consumeCompletion(const TaskContext& 
     if (item.status != Status::Completed)
         return {};
 
-    const Result result = item.result;
+    Completion completion = {
+        .hasValue           = true,
+        .result             = item.result,
+        .completionPayload  = item.request.completionPayload,
+    };
     items_.erase(it);
-    return {.hasValue = true, .result = result};
+    return completion;
 }
 
 bool JITExecManager::hasItem(const TaskContext& ctx, const AstNodeRef nodeRef, const SourceCodeRef& codeRef) const

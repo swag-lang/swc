@@ -99,6 +99,7 @@ public:
     void                          finishGenericCompletion() const noexcept;
     bool                          isGenericNodeCompleted() const noexcept;
     void                          setGenericNodeCompleted() const noexcept;
+    std::mutex&                   generatedOperatorsMutex() const noexcept { return generatedOperatorsMutex_; }
     bool                          tryMarkGeneratedLifecycleFunctions() const noexcept;
     bool                          tryMarkGeneratedOperators() const noexcept;
 
@@ -119,6 +120,7 @@ private:
     SymbolFunction*                   opDrop_                 = nullptr;
     SymbolFunction*                   opPostCopy_             = nullptr;
     SymbolFunction*                   opPostMove_             = nullptr;
+    mutable std::mutex                generatedOperatorsMutex_;
     mutable std::atomic<GenericData*> genericData_            = nullptr;
     mutable std::atomic_bool          generatedLifecycleDone_ = false;
     mutable std::atomic_bool          generatedOperatorsDone_ = false;

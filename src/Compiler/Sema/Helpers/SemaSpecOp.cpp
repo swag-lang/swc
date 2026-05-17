@@ -1423,12 +1423,6 @@ namespace
         return ownerStruct.codeRef();
     }
 
-    std::mutex& generatedOperatorGenerationMutex()
-    {
-        static std::mutex mutex;
-        return mutex;
-    }
-
     std::mutex& generatedLifecycleGenerationMutex()
     {
         static std::mutex mutex;
@@ -2257,7 +2251,7 @@ Result SemaSpecOp::ensureGeneratedOperators(Sema& sema, SymbolStruct& ownerStruc
     if (ownerStruct.isGenericInstance())
         return validateGeneratedOperatorFieldSupport(sema, ownerStruct, flags);
 
-    const std::scoped_lock lock(generatedOperatorGenerationMutex());
+    const std::scoped_lock lock(ownerStruct.generatedOperatorsMutex());
     if (!ownerStruct.tryMarkGeneratedOperators())
         return Result::Continue;
 

@@ -9,6 +9,12 @@ class CompilerInstance;
 class ConstantManager
 {
 public:
+    enum class TypeInfoLockMode : uint8_t
+    {
+        Wait,
+        TryLock,
+    };
+
     ConstantManager();
 
     void             setup(const TaskContext& ctx);
@@ -29,7 +35,7 @@ public:
     ConstantRef          cstS32(int32_t value) const;
     ConstantRef          cstNegBool(ConstantRef cstRef) const { return cstRef == cstBool_true_ ? cstBool_false_ : cstBool_true_; }
     const ConstantValue& get(ConstantRef constantRef) const;
-    Result               makeTypeInfo(Sema& sema, ConstantRef& outRef, TypeRef typeRef, AstNodeRef ownerNodeRef);
+    Result               makeTypeInfo(Sema& sema, ConstantRef& outRef, TypeRef typeRef, AstNodeRef ownerNodeRef, TypeInfoLockMode lockMode = TypeInfoLockMode::Wait);
     TypeRef              makeTypeValue(Sema& sema, ConstantRef cstRef) const;
     DataSegment&         shardDataSegment(uint32_t index);
     const DataSegment&   shardDataSegment(uint32_t index) const;

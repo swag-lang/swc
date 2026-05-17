@@ -45,37 +45,48 @@ TypeGen::TypeGenCache& TypeGen::cacheFor(const DataSegment& storage)
     return *it->second;
 }
 
-Result TypeGen::makeTypeInfo(Sema& sema, DataSegment& storage, TypeRef typeRef, AstNodeRef ownerNodeRef, TypeGenResult& result)
+Result TypeGen::makeTypeInfo(Sema& sema, DataSegment& storage, TypeRef typeRef, AstNodeRef ownerNodeRef, TypeGenResult& result, const LockMode lockMode)
 {
     auto& cache = cacheFor(storage);
+    std::unique_lock lock(cache.mutex, std::defer_lock);
+
+    if (lockMode == LockMode::TryLock)
+    {
+        // Compiler-message type-info preparation is opportunistic work: if another
+        // thread already owns this shard-local cache, yield instead of parking a
+        // worker on the mutex so sema/JIT can keep making forward progress.
+        if (!lock.try_lock())
+            return Result::Pause;
+    }
+    else
+    {
+        lock.lock();
+    }
 
     // Each call progresses as much as possible without relying on recursion.
     // It returns Result::Continue only when the requested type AND all its dependencies are fully done.
+    SWC_RESULT(processTypeInfo(sema, result, storage, typeRef, ownerNodeRef, cache));
+
+    if (!cache.pendingBackRefs.empty())
     {
-        const std::scoped_lock lk(cache.mutex);
-        SWC_RESULT(processTypeInfo(sema, result, storage, typeRef, ownerNodeRef, cache));
-
-        if (!cache.pendingBackRefs.empty())
+        const std::scoped_lock lk(ptrToTypeMutex_);
+        for (const TypeRef cachedTypeRef : cache.pendingBackRefs)
         {
-            const std::scoped_lock lk2(ptrToTypeMutex_);
-            for (const TypeRef cachedTypeRef : cache.pendingBackRefs)
-            {
-                auto it = cache.entries.find(cachedTypeRef);
-                SWC_ASSERT(it != cache.entries.end());
-                if (it == cache.entries.end())
-                    continue;
+            auto it = cache.entries.find(cachedTypeRef);
+            SWC_ASSERT(it != cache.entries.end());
+            if (it == cache.entries.end())
+                continue;
 
-                auto& entry = it->second;
-                if (entry.state != TypeGenCache::State::Done || entry.backRefPublished)
-                    continue;
+            auto& entry = it->second;
+            if (entry.state != TypeGenCache::State::Done || entry.backRefPublished)
+                continue;
 
-                const auto* ptr        = storage.ptr<std::byte>(entry.offset);
-                ptrToType_[ptr]        = cachedTypeRef;
-                entry.backRefPublished = true;
-            }
-
-            cache.pendingBackRefs.clear();
+            const auto* ptr        = storage.ptr<std::byte>(entry.offset);
+            ptrToType_[ptr]        = cachedTypeRef;
+            entry.backRefPublished = true;
         }
+
+        cache.pendingBackRefs.clear();
     }
 
     return Result::Continue;

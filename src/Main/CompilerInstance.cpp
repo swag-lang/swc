@@ -2193,7 +2193,7 @@ Result CompilerInstance::prepareCompilerMessageTypeInfo(Sema& sema, const TypeRe
         return Result::Continue;
 
     ConstantRef typeInfoCstRef = ConstantRef::invalid();
-    SWC_RESULT(sema.cstMgr().makeTypeInfo(sema, typeInfoCstRef, typeRef, ownerNodeRef));
+    SWC_RESULT(sema.cstMgr().makeTypeInfo(sema, typeInfoCstRef, typeRef, ownerNodeRef, ConstantManager::TypeInfoLockMode::TryLock));
 
     const ConstantValue& typeInfoCst = sema.cstMgr().get(typeInfoCstRef);
     SWC_ASSERT(typeInfoCst.isValuePointer());
@@ -2206,6 +2206,7 @@ Result CompilerInstance::prepareCompilerMessageTypeInfo(Sema& sema, const TypeRe
         return Result::Error;
 
     cacheCompilerMessageTypeInfo(typeRef, runtimeTypeInfo);
+    notifyAlive();
     return Result::Continue;
 }
 

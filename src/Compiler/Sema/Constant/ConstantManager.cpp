@@ -798,7 +798,7 @@ const ConstantValue& ConstantManager::get(ConstantRef constantRef) const
     return *(shards_[shardIndex].dataSegment.ptr<ConstantValue>(localIndex));
 }
 
-Result ConstantManager::makeTypeInfo(Sema& sema, ConstantRef& outRef, TypeRef typeRef, AstNodeRef ownerNodeRef)
+Result ConstantManager::makeTypeInfo(Sema& sema, ConstantRef& outRef, TypeRef typeRef, AstNodeRef ownerNodeRef, const TypeInfoLockMode lockMode)
 {
     TaskContext& ctx          = sema.ctx();
     typeRef                   = normalizeTypeInfoTarget(sema, typeRef);
@@ -814,7 +814,8 @@ Result ConstantManager::makeTypeInfo(Sema& sema, ConstantRef& outRef, TypeRef ty
     }
 
     TypeGen::TypeGenResult infoResult;
-    SWC_RESULT(sema.typeGen().makeTypeInfo(sema, shard.dataSegment, typeRef, ownerNodeRef, infoResult));
+    const TypeGen::LockMode typeGenLockMode = lockMode == TypeInfoLockMode::TryLock ? TypeGen::LockMode::TryLock : TypeGen::LockMode::Wait;
+    SWC_RESULT(sema.typeGen().makeTypeInfo(sema, shard.dataSegment, typeRef, ownerNodeRef, infoResult, typeGenLockMode));
     SWC_ASSERT(infoResult.span.data());
 
     const ConstantRef cachedAfterBuild = tryGetTypeInfoCache(shard, typeRef);

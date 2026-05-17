@@ -19,6 +19,12 @@ namespace Runtime
 class TypeGen
 {
 public:
+    enum class LockMode : uint8_t
+    {
+        Wait,
+        TryLock,
+    };
+
     struct TypeGenResult
     {
         ByteSpan span;
@@ -75,7 +81,7 @@ public:
         SmallVector<TypeRef>               pendingBackRefs;
     };
 
-    Result  makeTypeInfo(Sema& sema, DataSegment& storage, TypeRef typeRef, AstNodeRef ownerNodeRef, TypeGenResult& result);
+    Result  makeTypeInfo(Sema& sema, DataSegment& storage, TypeRef typeRef, AstNodeRef ownerNodeRef, TypeGenResult& result, LockMode lockMode = LockMode::Wait);
     TypeRef getBackTypeRef(const void* ptr) const;
 
 private:

@@ -46,6 +46,7 @@ TaskContext& TaskContext::operator=(const TaskContext& other)
     state_            = other.state_;
     genericNodeRunCache_.reset();
     genericInstanceNodeRunCache_.reset();
+    genericImplBlockRunCache_.reset();
     return *this;
 }
 

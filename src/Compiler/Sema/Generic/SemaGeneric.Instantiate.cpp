@@ -406,9 +406,6 @@ namespace
         }
     };
 
-    std::mutex&                                                                            genericImplBlockRunMutex();
-    std::unordered_map<GenericImplBlockRunKey, CachedSemaRun, GenericImplBlockRunKeyHash>& genericImplBlockRuns();
-
     template<typename RUN, typename K, typename I>
     Result runCachedSema(Sema& sema, RUN& runs, const K& key, const Symbol& waitSymbol, const I& initRun)
     {
@@ -426,37 +423,6 @@ namespace
         run.running         = false;
         if (result != Result::Pause)
             runs.erase(key);
-        return result;
-    }
-
-    template<typename RUN, typename K, typename I>
-    Result runCachedSema(Sema& sema, std::mutex& mutex, RUN& runs, const K& key, const Symbol& waitSymbol, const I& initRun)
-    {
-        Sema* child = nullptr;
-        {
-            const std::scoped_lock lock(mutex);
-            auto&                  run = runs[key];
-            if (!run.sema)
-                run.sema = initRun();
-            if (run.running)
-                return sema.waitSemaCompleted(&waitSymbol, waitSymbol.codeRef());
-            run.running = true;
-            child       = run.sema.get();
-        }
-
-        SWC_ASSERT(child);
-        const Result result = child->execResult();
-        {
-            const std::scoped_lock lock(mutex);
-            auto                   it = runs.find(key);
-            if (it != runs.end())
-            {
-                it->second.running = false;
-                if (result != Result::Pause)
-                    runs.erase(it);
-            }
-        }
-
         return result;
     }
 
@@ -650,16 +616,18 @@ namespace
         return *std::static_pointer_cast<std::unordered_map<GenericInstanceNodeRunKey, CachedSemaRun, GenericInstanceNodeRunKeyHash>>(cache);
     }
 
-    std::mutex& genericImplBlockRunMutex()
+    std::unordered_map<GenericImplBlockRunKey, CachedSemaRun, GenericImplBlockRunKeyHash>& genericImplBlockRuns(TaskContext& ctx)
     {
-        static std::mutex mutex;
-        return mutex;
-    }
+        auto& cache = ctx.genericImplBlockRunCache();
+        if (!cache)
+        {
+            // Generic impl-block runs are keyed by task context, so keep their
+            // paused-child cache on that owning task instead of serializing every
+            // lookup behind a process-wide mutex.
+            cache = std::make_shared<std::unordered_map<GenericImplBlockRunKey, CachedSemaRun, GenericImplBlockRunKeyHash>>();
+        }
 
-    std::unordered_map<GenericImplBlockRunKey, CachedSemaRun, GenericImplBlockRunKeyHash>& genericImplBlockRuns()
-    {
-        static std::unordered_map<GenericImplBlockRunKey, CachedSemaRun, GenericImplBlockRunKeyHash> runs;
-        return runs;
+        return *std::static_pointer_cast<std::unordered_map<GenericImplBlockRunKey, CachedSemaRun, GenericImplBlockRunKeyHash>>(cache);
     }
 
     Utf8 formatGenericInstanceKey(Sema& sema, const GenericInstanceKey& key)
@@ -1034,7 +1002,7 @@ namespace
             SemaGeneric::prepareGenericInstantiationContext(*child, impl.asSymMap(), &impl, itf, attrs);
             return child;
         };
-        return runCachedSema(sema, genericImplBlockRunMutex(), genericImplBlockRuns(), key, impl, initRun);
+        return runCachedSema(sema, genericImplBlockRuns(sema.ctx()), key, impl, initRun);
     }
 
     void completeGenericImplClone(TaskContext& ctx, SymbolImpl& implClone)

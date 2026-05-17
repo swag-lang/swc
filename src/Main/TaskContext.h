@@ -55,6 +55,8 @@ public:
     const std::shared_ptr<void>& genericNodeRunCache() const { return genericNodeRunCache_; }
     std::shared_ptr<void>&    genericInstanceNodeRunCache() { return genericInstanceNodeRunCache_; }
     const std::shared_ptr<void>& genericInstanceNodeRunCache() const { return genericInstanceNodeRunCache_; }
+    std::shared_ptr<void>&    genericImplBlockRunCache() { return genericImplBlockRunCache_; }
+    const std::shared_ptr<void>& genericImplBlockRunCache() const { return genericImplBlockRunCache_; }
     static const TaskContext* current() noexcept { return current_; }
     static const TaskContext* setCurrent(const TaskContext* ctx) noexcept;
 
@@ -72,6 +74,7 @@ private:
     TaskState                                     state_;
     std::shared_ptr<void>                         genericNodeRunCache_;
     std::shared_ptr<void>                         genericInstanceNodeRunCache_;
+    std::shared_ptr<void>                         genericImplBlockRunCache_;
     inline static thread_local const TaskContext* current_ = nullptr;
 };
 

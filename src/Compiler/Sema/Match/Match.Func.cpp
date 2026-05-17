@@ -41,19 +41,7 @@ namespace
 
     Sema* tryCreateSemaForFunctionDecl(Sema& sema, const SymbolFunction& fn, std::unique_ptr<Sema>& ownedSema)
     {
-        const SourceView& srcView        = sema.compiler().srcView(fn.srcViewRef());
-        NodePayload*      payloadContext = sema.owningNodePayloadContext(fn.srcViewRef());
-        if (!payloadContext || sema.usesOwningNodePayloadContext(fn.srcViewRef()))
-            return nullptr;
-
-        SourceFile& sourceFile = sema.compiler().file(srcView.ownerFileRef());
-        AstNodeRef  declRef    = fn.declNodeRef();
-        if (declRef.isInvalid() && fn.decl())
-            declRef = fn.decl()->nodeRef(sourceFile.ast());
-        SWC_ASSERT(declRef.isValid());
-
-        ownedSema = std::make_unique<Sema>(sema.ctx(), sema, *payloadContext, declRef);
-        return ownedSema.get();
+        return sema.tryCreateDeclSema(ownedSema, fn.srcViewRef(), fn.decl(), fn.declNodeRef());
     }
 
     void refreshNamedArgumentPayload(Sema& sema, AstNodeRef rawArgRef, AstNodeRef valueNodeRef)

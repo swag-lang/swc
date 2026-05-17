@@ -28,7 +28,7 @@ namespace
 
         const SourceView&     srcView    = sema.srcView(waitCodeRef.srcViewRef);
         const SourceFile*     waitFile   = srcView.file();
-        const SourceFile*     ownerFile  = srcView.ownerFileRef().isValid() ? &sema.compiler().file(srcView.ownerFileRef()) : nullptr;
+        const SourceFile*     ownerFile  = sema.ownerSourceFile(waitCodeRef.srcViewRef);
         const SourceCodeRange tokenRange = sema.tokenCodeRange(waitCodeRef);
         return (waitFile && waitFile->hasErrorLineInRange(tokenRange.line, tokenRange.line)) ||
                (ownerFile && ownerFile->hasErrorLineInRange(tokenRange.line, tokenRange.line));
@@ -281,14 +281,42 @@ const SourceView& Sema::srcView(SourceViewRef srcViewRef) const
     return compiler().srcView(srcViewRef);
 }
 
+const SourceFile* Sema::ownerSourceFile(SourceViewRef srcViewRef) const
+{
+    return compiler().ownerSourceFile(srcViewRef);
+}
+
 NodePayload* Sema::owningNodePayloadContext(SourceViewRef srcViewRef) const
 {
-    const SourceView& srcView = compiler().srcView(srcViewRef);
-    const FileRef     fileRef = srcView.ownerFileRef();
-    if (!fileRef.isValid())
+    const SourceFile* sourceFile = ownerSourceFile(srcViewRef);
+    if (!sourceFile)
         return nullptr;
 
-    return &compiler().file(fileRef).nodePayloadContext();
+    return &compiler().file(sourceFile->ref()).nodePayloadContext();
+}
+
+AstNodeRef Sema::ownerDeclNodeRef(SourceViewRef srcViewRef, const AstNode* decl, AstNodeRef declRef) const
+{
+    if (declRef.isValid() || !decl)
+        return declRef;
+
+    const SourceFile* sourceFile = ownerSourceFile(srcViewRef);
+    if (!sourceFile)
+        return AstNodeRef::invalid();
+
+    return decl->nodeRef(sourceFile->ast());
+}
+
+Sema* Sema::tryCreateDeclSema(std::unique_ptr<Sema>& outOwnedSema, SourceViewRef srcViewRef, const AstNode* decl, AstNodeRef declRef)
+{
+    NodePayload* payloadContext = owningNodePayloadContext(srcViewRef);
+    if (!payloadContext || payloadContext == nodePayloadContext_)
+        return nullptr;
+
+    declRef = ownerDeclNodeRef(srcViewRef, decl, declRef);
+    SWC_ASSERT(declRef.isValid());
+    outOwnedSema = std::make_unique<Sema>(ctx(), *this, *payloadContext, declRef);
+    return outOwnedSema.get();
 }
 
 bool Sema::usesOwningNodePayloadContext(SourceViewRef srcViewRef) const

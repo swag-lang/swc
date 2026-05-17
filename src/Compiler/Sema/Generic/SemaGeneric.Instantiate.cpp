@@ -292,20 +292,12 @@ namespace
 
     Sema* tryCreateSemaForGenericDecl(Sema& sema, const Symbol& root, std::unique_ptr<Sema>& ownedSema)
     {
-        const SourceView& srcView        = sema.compiler().srcView(root.srcViewRef());
-        NodePayload*      payloadContext = sema.owningNodePayloadContext(root.srcViewRef());
-        if (!payloadContext || sema.usesOwningNodePayloadContext(root.srcViewRef()))
+        Sema* result = sema.tryCreateDeclSema(ownedSema, root.srcViewRef(), root.decl(), genericDeclNodeRef(root));
+        if (!result)
             return nullptr;
 
-        SourceFile& sourceFile = sema.compiler().file(srcView.ownerFileRef());
-        AstNodeRef  declRef    = genericDeclNodeRef(root);
-        if (declRef.isInvalid() && root.decl())
-            declRef = root.decl()->nodeRef(sourceFile.ast());
-        SWC_ASSERT(declRef.isValid());
-
-        ownedSema = std::make_unique<Sema>(sema.ctx(), sema, *payloadContext, declRef);
         prepareGenericDeclSemaContext(*ownedSema, sema, root);
-        return ownedSema.get();
+        return result;
     }
 
     Sema* tryCreateSemaForSymbolDecl(Sema& sema, const Symbol& symbol, std::unique_ptr<Sema>& ownedSema)
@@ -314,18 +306,7 @@ namespace
         if (!decl)
             return nullptr;
 
-        const SourceView& srcView        = sema.compiler().srcView(decl->srcViewRef());
-        const FileRef     ownerFileRef   = srcView.ownerFileRef();
-        NodePayload*      payloadContext = sema.owningNodePayloadContext(decl->srcViewRef());
-        if (!ownerFileRef.isValid() || !payloadContext || sema.usesOwningNodePayloadContext(decl->srcViewRef()))
-            return nullptr;
-
-        SourceFile& sourceFile = sema.compiler().file(ownerFileRef);
-        AstNodeRef  declRef    = decl->nodeRef(sourceFile.ast());
-        SWC_ASSERT(declRef.isValid());
-
-        ownedSema = std::make_unique<Sema>(sema.ctx(), sema, *payloadContext, declRef);
-        return ownedSema.get();
+        return sema.tryCreateDeclSema(ownedSema, decl->srcViewRef(), decl);
     }
 
     struct GenericNodeRunKey

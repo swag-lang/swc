@@ -121,14 +121,13 @@ const SourceView& AstNode::srcView(const TaskContext& ctx) const
 const Ast* AstNode::sourceAst(const TaskContext& ctx) const
 {
     const SourceView& sourceView = srcView(ctx);
-    const FileRef     ownerFile  = sourceView.ownerFileRef();
-    if (!ownerFile.isValid())
+    const SourceFile* sourceFile = ctx.compiler().ownerSourceFile(sourceView);
+    if (!sourceFile)
         return nullptr;
 
-    const SourceFile& file = ctx.compiler().file(ownerFile);
-    if (!file.ast().hasSourceView())
+    if (!sourceFile->ast().hasSourceView())
         return nullptr;
-    return &file.ast();
+    return &sourceFile->ast();
 }
 
 TokenRef AstNode::tokRefEnd(const Ast& ast) const

@@ -20,6 +20,7 @@ class SymbolInterface;
 class MatchContext;
 class IdentifierManager;
 class Sema;
+class SourceFile;
 struct SemaInlinePayload;
 
 namespace SemaGeneric
@@ -78,7 +79,10 @@ public:
     const SourceView&                              srcView(SourceViewRef srcViewRef) const;
     NodePayload&                                   currentNodePayloadContext() { return nodePayloadContext(); }
     const NodePayload&                             currentNodePayloadContext() const { return nodePayloadContext(); }
+    const SourceFile*                              ownerSourceFile(SourceViewRef srcViewRef) const;
     NodePayload*                                   owningNodePayloadContext(SourceViewRef srcViewRef) const;
+    AstNodeRef                                     ownerDeclNodeRef(SourceViewRef srcViewRef, const AstNode* decl, AstNodeRef declRef = AstNodeRef::invalid()) const;
+    Sema*                                          tryCreateDeclSema(std::unique_ptr<Sema>& outOwnedSema, SourceViewRef srcViewRef, const AstNode* decl, AstNodeRef declRef = AstNodeRef::invalid());
     bool                                           usesOwningNodePayloadContext(SourceViewRef srcViewRef) const;
     Ast&                                           ast();
     const Ast&                                     ast() const;

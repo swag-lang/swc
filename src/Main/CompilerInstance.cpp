@@ -1977,6 +1977,22 @@ const SourceView& CompilerInstance::srcView(SourceViewRef ref) const
     return *srcViewLookup_->at(ref.get());
 }
 
+const SourceFile* CompilerInstance::ownerSourceFile(SourceViewRef ref) const
+{
+    if (!ref.isValid())
+        return nullptr;
+
+    return ownerSourceFile(srcView(ref));
+}
+
+const SourceFile* CompilerInstance::ownerSourceFile(const SourceView& srcView) const
+{
+    if (!srcView.ownerFileRef().isValid())
+        return nullptr;
+
+    return &file(srcView.ownerFileRef());
+}
+
 const SourceFile* CompilerInstance::sourceViewFile(SourceViewRef ref) const
 {
     if (!ref.isValid())

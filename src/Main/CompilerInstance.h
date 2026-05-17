@@ -209,6 +209,8 @@ public:
     SourceView&                           addBufferedSourceView(FileRef fileRef, std::string_view content);
     SourceView&                           srcView(SourceViewRef ref);
     const SourceView&                     srcView(SourceViewRef ref) const;
+    const SourceFile*                     ownerSourceFile(SourceViewRef ref) const;
+    const SourceFile*                     ownerSourceFile(const SourceView& srcView) const;
     const SourceFile*                     sourceViewFile(SourceViewRef ref) const;
     const SourceFile*                     sourceViewFile(const Symbol& symbol) const;
     const SourceFile*                     owningSourceFile(const SourceView& srcView) const;

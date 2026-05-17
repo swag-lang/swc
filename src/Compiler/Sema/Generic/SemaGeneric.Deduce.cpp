@@ -24,36 +24,12 @@ namespace
 
     Sema* tryCreateSemaForFunctionDecl(Sema& sema, const SymbolFunction& fn, std::unique_ptr<Sema>& ownedSema)
     {
-        const SourceView& srcView        = sema.compiler().srcView(fn.srcViewRef());
-        NodePayload*      payloadContext = sema.owningNodePayloadContext(fn.srcViewRef());
-        if (!payloadContext || sema.usesOwningNodePayloadContext(fn.srcViewRef()))
-            return nullptr;
-
-        SourceFile& sourceFile = sema.compiler().file(srcView.ownerFileRef());
-        AstNodeRef  declRef    = fn.declNodeRef();
-        if (declRef.isInvalid() && fn.decl())
-            declRef = fn.decl()->nodeRef(sourceFile.ast());
-        SWC_ASSERT(declRef.isValid());
-
-        ownedSema = std::make_unique<Sema>(sema.ctx(), sema, *payloadContext, declRef);
-        return ownedSema.get();
+        return sema.tryCreateDeclSema(ownedSema, fn.srcViewRef(), fn.decl(), fn.declNodeRef());
     }
 
     Sema* tryCreateSemaForStructDecl(Sema& sema, const SymbolStruct& st, std::unique_ptr<Sema>& ownedSema)
     {
-        const SourceView& srcView        = sema.compiler().srcView(st.srcViewRef());
-        NodePayload*      payloadContext = sema.owningNodePayloadContext(st.srcViewRef());
-        if (!payloadContext || sema.usesOwningNodePayloadContext(st.srcViewRef()))
-            return nullptr;
-
-        SourceFile& sourceFile = sema.compiler().file(srcView.ownerFileRef());
-        AstNodeRef  declRef    = st.declNodeRef();
-        if (declRef.isInvalid() && st.decl())
-            declRef = st.decl()->nodeRef(sourceFile.ast());
-        SWC_ASSERT(declRef.isValid());
-
-        ownedSema = std::make_unique<Sema>(sema.ctx(), sema, *payloadContext, declRef);
-        return ownedSema.get();
+        return sema.tryCreateDeclSema(ownedSema, st.srcViewRef(), st.decl(), st.declNodeRef());
     }
 
     const AstNode* genericStructDeclNode(const SymbolStruct& root)

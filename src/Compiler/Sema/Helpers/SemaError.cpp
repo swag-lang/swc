@@ -212,15 +212,13 @@ SemaError::SymbolDiagnosticOrigin SemaError::symbolDiagnosticOrigin(Sema& sema, 
     if (!symbol.decl() || symbol.srcViewRef().isInvalid())
         return SymbolDiagnosticOrigin::Unknown;
 
-    const SourceView& srcView = sema.compiler().srcView(symbol.srcViewRef());
-    const FileRef     fileRef = srcView.ownerFileRef();
-    if (fileRef.isInvalid())
+    const SourceFile* sourceFile = sema.ownerSourceFile(symbol.srcViewRef());
+    if (!sourceFile)
         return SymbolDiagnosticOrigin::Unknown;
 
-    const SourceFile& sourceFile = sema.compiler().file(fileRef);
-    if (sourceFile.hasFlag(FileFlagsE::ImportedApi) || sourceFile.hasFlag(FileFlagsE::Runtime))
+    if (sourceFile->hasFlag(FileFlagsE::ImportedApi) || sourceFile->hasFlag(FileFlagsE::Runtime))
         return SymbolDiagnosticOrigin::ExternalDependency;
-    if (sourceFile.hasFlag(FileFlagsE::Module) || sourceFile.hasFlag(FileFlagsE::ModuleSrc) || sourceFile.hasFlag(FileFlagsE::CustomSrc))
+    if (sourceFile->hasFlag(FileFlagsE::Module) || sourceFile->hasFlag(FileFlagsE::ModuleSrc) || sourceFile->hasFlag(FileFlagsE::CustomSrc))
         return SymbolDiagnosticOrigin::CurrentModule;
 
     return SymbolDiagnosticOrigin::Unknown;

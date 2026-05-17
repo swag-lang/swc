@@ -369,6 +369,8 @@ SWC_TEST_BEGIN(Compiler_GeneratedAstMaterializesPerThreadFiles)
             return Result::Error;
         if (!file->ast().hasSourceView())
             return Result::Error;
+        if (compiler.ownerSourceFile(file->ast().srcView()) != originalFile)
+            return Result::Error;
         if (compiler.sourceViewFile(file->ast().srcView().ref()) != file)
             return Result::Error;
         if (compiler.owningSourceFile(file->ast().srcView()) != originalFile)

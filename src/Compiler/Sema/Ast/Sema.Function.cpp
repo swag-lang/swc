@@ -247,9 +247,7 @@ namespace
         {
             if (declRef.isInvalid() && calledFn.decl())
             {
-                const SourceView& srcView    = sema.compiler().srcView(calledFn.srcViewRef());
-                SourceFile&       sourceFile = sema.compiler().file(srcView.ownerFileRef());
-                declRef                      = calledFn.decl()->nodeRef(sourceFile.ast());
+                declRef = sema.ownerDeclNodeRef(calledFn.srcViewRef(), calledFn.decl(), declRef);
             }
             SWC_ASSERT(declRef.isValid());
             child = std::make_unique<Sema>(sema.ctx(), sema, *payloadContext, declRef);

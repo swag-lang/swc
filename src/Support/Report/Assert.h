@@ -119,11 +119,16 @@ private:
 
 #define SWC_DEV_LOOP_GUARD(__name, __max_iterations, __label) const swc::DevLoopGuard __name((__label), __FILE__, __LINE__, (__max_iterations))
 #define SWC_DEV_LOOP_TICK(__name)                             (__name).tick()
+#define SWC_DEV_LOOP_RESET(__name)                            (__name).reset()
 #else
 #define SWC_DEV_LOOP_GUARD(__name, __max_iterations, __label)
 #define SWC_DEV_LOOP_TICK(__name) \
     do                            \
     {                             \
+    } while (0)
+#define SWC_DEV_LOOP_RESET(__name) \
+    do                             \
+    {                              \
     } while (0)
 #endif
 

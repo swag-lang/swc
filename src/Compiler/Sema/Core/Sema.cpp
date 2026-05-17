@@ -1285,7 +1285,7 @@ void Sema::waitDone(TaskContext& ctx, JobClientId clientId)
 
         if (compiler.jitExecMgr().executePendingMainThread())
         {
-            loopGuard.reset();
+            SWC_DEV_LOOP_RESET(loopGuard);
             jobMgr.wakeAll(clientId);
             continue;
         }
@@ -1293,7 +1293,7 @@ void Sema::waitDone(TaskContext& ctx, JobClientId clientId)
         const Result compilerMessageResult = compiler.executePendingCompilerMessages(ctx);
         if (compilerMessageResult == Result::Pause)
         {
-            loopGuard.reset();
+            SWC_DEV_LOOP_RESET(loopGuard);
             jobMgr.wakeAll(clientId);
             continue;
         }
@@ -1304,7 +1304,7 @@ void Sema::waitDone(TaskContext& ctx, JobClientId clientId)
         const Result afterSemanticResult = compiler.ensureCompilerMessagePass(Runtime::CompilerMsgKind::PassAfterSemantic);
         if (afterSemanticResult == Result::Pause)
         {
-            loopGuard.reset();
+            SWC_DEV_LOOP_RESET(loopGuard);
             jobMgr.wakeAll(clientId);
             continue;
         }
@@ -1314,7 +1314,7 @@ void Sema::waitDone(TaskContext& ctx, JobClientId clientId)
 
         if (compiler.consumeChanged())
         {
-            loopGuard.reset();
+            SWC_DEV_LOOP_RESET(loopGuard);
             compiler.jitExecMgr().wakeWaiting();
             jobMgr.wakeAll(clientId);
             continue;
@@ -1322,7 +1322,7 @@ void Sema::waitDone(TaskContext& ctx, JobClientId clientId)
 
         if (resolveCompilerDefined(ctx, clientId))
         {
-            loopGuard.reset();
+            SWC_DEV_LOOP_RESET(loopGuard);
             jobMgr.wakeAll(clientId);
             continue;
         }

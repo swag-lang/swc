@@ -2178,7 +2178,7 @@ namespace
 
     Result codeGenGetContextNative(CodeGen& codeGen)
     {
-        SymbolFunction*       tlsAllocFunction  = runtimeFunctionByName(codeGen, "__tlsAlloc");
+        const SymbolFunction* tlsAllocFunction  = runtimeFunctionByName(codeGen, "__tlsAlloc");
         const SymbolFunction* tlsGetPtrFunction = runtimeFunctionByName(codeGen, "__tlsGetPtr");
         SWC_ASSERT(tlsAllocFunction != nullptr);
         SWC_ASSERT(tlsGetPtrFunction != nullptr);
@@ -2280,7 +2280,7 @@ namespace
         MicroReg       tlsIdReg   = MicroReg::invalid();
         if (codeGen.isNativeBuild())
         {
-            SymbolFunction* tlsAllocFunction = runtimeFunctionByName(codeGen, "__tlsAlloc");
+            const SymbolFunction* tlsAllocFunction = runtimeFunctionByName(codeGen, "__tlsAlloc");
             SWC_ASSERT(tlsAllocFunction != nullptr);
             if (!tlsAllocFunction)
                 return Result::Error;

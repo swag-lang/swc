@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Compiler/Sema/Helpers/SemaSpecOp.h"
+#include "Compiler/Lexer/Lexer.h"
 #include "Compiler/Lexer/LangSpec.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Parser/Parser/Parser.h"
@@ -26,6 +27,7 @@
 #include "Main/Command/CommandLine.h"
 #include "Main/CompilerInstance.h"
 #include "Main/Global.h"
+#include "Main/Stats.h"
 #include "Support/Memory/Heap.h"
 #include "Support/Os/Os.h"
 #include "Support/Thread/JobManager.h"
@@ -464,21 +466,34 @@ namespace
         if (expected.empty())
             return false;
 
-        const SourceView&       declSrcView = sema.compiler().srcView(decl->srcViewRef());
-        const Ast&              declAst     = declSrcView.file()->ast();
+        const Ast* declAst = nullptr;
+        if (sema.ast().tryFindNodeRef(decl).isValid())
+        {
+            declAst = &sema.ast();
+        }
+        else
+        {
+            const SourceView& declSrcView = sema.compiler().srcView(decl->srcViewRef());
+            if (const SourceFile* sourceFile = declSrcView.file())
+                declAst = &sourceFile->ast();
+        }
+
+        if (!declAst)
+            return false;
+
         SmallVector<AstNodeRef> params;
-        declAst.appendNodes(params, decl->spanGenericParamsRef);
+        declAst->appendNodes(params, decl->spanGenericParamsRef);
         if (params.size() != expected.size())
             return false;
 
         for (size_t i = 0; i < params.size(); ++i)
         {
-            const auto* nodeValue = declAst.node(params[i]).safeCast<AstGenericParamValue>();
+            const auto* nodeValue = declAst->node(params[i]).safeCast<AstGenericParamValue>();
             if (!nodeValue)
                 return false;
             if (nodeValue->nodeAssignRef.isValid())
                 return false;
-            if (!hasSpecOpGenericValueType(sema, declAst, nodeValue->nodeTypeRef, expected[i]))
+            if (!hasSpecOpGenericValueType(sema, *declAst, nodeValue->nodeTypeRef, expected[i]))
                 return false;
         }
 
@@ -587,7 +602,7 @@ namespace
         if (!implDecl)
             return false;
 
-        if (sema.ast().findNodeRef(implDecl).isValid())
+        if (sema.ast().tryFindNodeRef(implDecl).isValid())
         {
             outAst = &sema.ast();
             outAst->appendNodes(outChildren, implDecl->spanChildrenRef);
@@ -1859,6 +1874,12 @@ namespace
         }
     };
 
+    struct PreparedGeneratedSourceView
+    {
+        SourceView* sourceView = nullptr;
+        bool        hasError   = false;
+    };
+
     GeneratedLifecyclePlan makeGeneratedLifecyclePlan(Sema& sema, const SymbolStruct& ownerStruct)
     {
         GeneratedLifecyclePlan plan;
@@ -1982,9 +2003,8 @@ namespace
         }
     }
 
-    Utf8 makeGeneratedLifecycleSource(Sema& sema, const SymbolStruct& ownerStruct)
+    Utf8 makeGeneratedLifecycleSource(Sema& sema, const SymbolStruct& ownerStruct, const GeneratedLifecyclePlan& plan)
     {
-        const GeneratedLifecyclePlan plan = makeGeneratedLifecyclePlan(sema, ownerStruct);
         if (!plan.any())
             return {};
 
@@ -2002,9 +2022,13 @@ namespace
         return source;
     }
 
-    Utf8 makeGeneratedLifecycleMethodsSource(Sema& sema, const SymbolStruct& ownerStruct)
+    Utf8 makeGeneratedLifecycleSource(Sema& sema, const SymbolStruct& ownerStruct)
     {
-        const GeneratedLifecyclePlan plan = makeGeneratedLifecyclePlan(sema, ownerStruct);
+        return makeGeneratedLifecycleSource(sema, ownerStruct, makeGeneratedLifecyclePlan(sema, ownerStruct));
+    }
+
+    Utf8 makeGeneratedLifecycleMethodsSource(Sema& sema, const SymbolStruct& ownerStruct, const GeneratedLifecyclePlan& plan)
+    {
         if (!plan.any())
             return {};
 
@@ -2015,6 +2039,11 @@ namespace
         source += "// Generated lifecycle wrappers.\n";
         appendGeneratedLifecycleWrappers(sema.ctx(), source, ownerStruct, fields.span(), plan);
         return source;
+    }
+
+    Utf8 makeGeneratedLifecycleMethodsSource(Sema& sema, const SymbolStruct& ownerStruct)
+    {
+        return makeGeneratedLifecycleMethodsSource(sema, ownerStruct, makeGeneratedLifecyclePlan(sema, ownerStruct));
     }
 
     Result attachDeclaredGeneratedImpls(Sema& sema, Sema& generatedSema, AstNodeRef nodeRef, SymbolStruct& ownerStruct, bool& outAttached)
@@ -2049,13 +2078,23 @@ namespace
         return Result::Continue;
     }
 
-    Result reportGeneratedOperatorWriteFailure(Sema& sema, const CompilerInstance::GeneratedSourceAppendResult& appendResult, const Utf8& because)
+    Result prepareGeneratedSourceView(Sema& sema, const std::string_view source, PreparedGeneratedSourceView& outPrepared)
     {
-        Diagnostic diag = Diagnostic::get(DiagnosticId::sema_err_ast_file_write_failed);
-        diag.addArgument(Diagnostic::ARG_PATH, Utf8(appendResult.path));
-        diag.addArgument(Diagnostic::ARG_BECAUSE, because);
-        diag.report(sema.ctx());
-        return Result::Error;
+        CompilerInstance& compiler = sema.compiler();
+        const SourceView& ownerSrcView  = sema.ast().srcView();
+        FileRef           ownerFileRef  = ownerSrcView.ownerFileRef();
+        if (!ownerFileRef.isValid())
+            ownerFileRef = ownerSrcView.fileRef();
+        SWC_ASSERT(ownerFileRef.isValid());
+
+        SourceView&    sourceView   = compiler.addBufferedSourceView(ownerFileRef, source);
+        const uint64_t errorsBefore = Stats::getNumErrors();
+        Lexer          lexer;
+        lexer.tokenize(sema.ctx(), sourceView, LexerFlagsE::Default);
+
+        outPrepared.sourceView = &sourceView;
+        outPrepared.hasError   = Stats::getNumErrors() != errorsBefore;
+        return Result::Continue;
     }
 
     Result declareGeneratedOperatorSource(Sema& sema, SymbolStruct& ownerStruct, std::string_view source)
@@ -2066,27 +2105,16 @@ namespace
         TaskContext&      ctx       = sema.ctx();
         CompilerInstance& compiler  = sema.compiler();
 
-        CompilerInstance::GeneratedSourceAppendResult appendResult;
-        Utf8                                          because;
-        if (compiler.appendGeneratedSource(appendResult, because, source, 0) != Result::Continue)
-            return reportGeneratedOperatorWriteFailure(sema, appendResult, because);
-
-        SourceFile& sourceFile = compiler.addFile(appendResult.path, FileFlagsE::CustomSrc | FileFlagsE::SkipFmt);
-        sourceFile.setContent(appendResult.snapshot.view());
-        sourceFile.setModuleNamespace(sema.moduleNamespace());
-
-        SWC_RESULT(sourceFile.loadContent(ctx));
-        sourceFile.ast().srcView().setLineOffset(appendResult.lineOffset);
-        SWC_RESULT(parseLoadedSourceFile(ctx, sourceFile, {}));
-
-        SourceView& srcView = sourceFile.ast().srcView();
-        srcView.setOwnerFileRef(sema.ast().srcView().fileRef());
-        if (sourceFile.hasError() || srcView.mustSkip() || !srcView.runsSema())
+        PreparedGeneratedSourceView prepared;
+        SWC_RESULT(prepareGeneratedSourceView(sema, source, prepared));
+        SourceView& srcView = *prepared.sourceView;
+        if (prepared.hasError || srcView.mustSkip() || !srcView.runsSema())
             return Result::Continue;
 
-        Parser     parser;
-        AstNodeRef generatedRoot = parser.parseGenerated(ctx, sema.ast(), srcView, ParserGeneratedMode::TopLevel);
-        if (generatedRoot.isInvalid())
+        const uint64_t errorsBefore = Stats::getNumErrors();
+        Parser         parser;
+        AstNodeRef     generatedRoot = parser.parseGenerated(ctx, sema.ast(), srcView, ParserGeneratedMode::TopLevel);
+        if (Stats::getNumErrors() != errorsBefore || generatedRoot.isInvalid())
             return Result::Continue;
 
         Sema         generatedDeclSema(ctx, sema, generatedRoot, true);
@@ -2112,27 +2140,16 @@ namespace
         TaskContext&      ctx       = sema.ctx();
         CompilerInstance& compiler  = sema.compiler();
 
-        CompilerInstance::GeneratedSourceAppendResult appendResult;
-        Utf8                                          because;
-        if (compiler.appendGeneratedSource(appendResult, because, source, 0) != Result::Continue)
-            return reportGeneratedOperatorWriteFailure(sema, appendResult, because);
-
-        SourceFile& sourceFile = compiler.addFile(appendResult.path, FileFlagsE::CustomSrc | FileFlagsE::SkipFmt);
-        sourceFile.setContent(appendResult.snapshot.view());
-        sourceFile.setModuleNamespace(sema.moduleNamespace());
-
-        SWC_RESULT(sourceFile.loadContent(ctx));
-        sourceFile.ast().srcView().setLineOffset(appendResult.lineOffset);
-        SWC_RESULT(parseLoadedSourceFile(ctx, sourceFile, {}));
-
-        SourceView& srcView = sourceFile.ast().srcView();
-        srcView.setOwnerFileRef(sema.ast().srcView().fileRef());
-        if (sourceFile.hasError() || srcView.mustSkip() || !srcView.runsSema())
+        PreparedGeneratedSourceView prepared;
+        SWC_RESULT(prepareGeneratedSourceView(sema, source, prepared));
+        SourceView& srcView = *prepared.sourceView;
+        if (prepared.hasError || srcView.mustSkip() || !srcView.runsSema())
             return Result::Continue;
 
-        Parser           parser;
+        const uint64_t errorsBefore = Stats::getNumErrors();
+        Parser         parser;
         const AstNodeRef generatedRoot = parser.parseGenerated(ctx, sema.ast(), srcView, ParserGeneratedMode::TopLevel);
-        if (generatedRoot.isInvalid())
+        if (Stats::getNumErrors() != errorsBefore || generatedRoot.isInvalid())
             return Result::Continue;
 
         auto* symImpl = Symbol::make<SymbolImpl>(ctx, ownerStruct.decl(), ownerStruct.tokRef(), ownerStruct.idRef(), SymbolFlagsE::Zero);
@@ -2218,13 +2235,17 @@ Result SemaSpecOp::ensureGeneratedLifecycleFunctions(Sema& sema, SymbolStruct& o
     if (!ownerStruct.tryMarkGeneratedLifecycleFunctions())
         return Result::Continue;
 
+    const GeneratedLifecyclePlan plan = makeGeneratedLifecyclePlan(sema, ownerStruct);
+    if (!plan.any())
+        return Result::Continue;
+
     if (ownerStruct.isGenericInstance())
     {
-        const Utf8 source = makeGeneratedLifecycleMethodsSource(sema, ownerStruct);
+        const Utf8 source = makeGeneratedLifecycleMethodsSource(sema, ownerStruct, plan);
         return declareGeneratedImplBlockSource(sema, ownerStruct, source.view());
     }
 
-    const Utf8 source = makeGeneratedLifecycleSource(sema, ownerStruct);
+    const Utf8 source = makeGeneratedLifecycleSource(sema, ownerStruct, plan);
     return declareGeneratedOperatorSource(sema, ownerStruct, source.view());
 }
 

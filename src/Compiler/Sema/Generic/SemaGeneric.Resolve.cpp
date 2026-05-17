@@ -155,15 +155,27 @@ namespace SemaGeneric
         if (spanRef.isInvalid())
             return;
 
-        const SourceView& srcView = sema.compiler().srcView(declNode.srcViewRef());
-        const Ast&        ast     = srcView.file()->ast();
+        const Ast* ast = nullptr;
+        if (sema.ast().tryFindNodeRef(&declNode).isValid())
+        {
+            ast = &sema.ast();
+        }
+        else
+        {
+            const SourceView& srcView = sema.compiler().srcView(declNode.srcViewRef());
+            if (const SourceFile* sourceFile = srcView.file())
+                ast = &sourceFile->ast();
+        }
+
+        if (!ast)
+            return;
 
         SmallVector<AstNodeRef> params;
-        ast.appendNodes(params, spanRef);
+        ast->appendNodes(params, spanRef);
         outParams.reserve(params.size());
 
         for (const AstNodeRef paramRef : params)
-            appendCollectedGenericParam(sema, ast.node(paramRef), paramRef, outParams);
+            appendCollectedGenericParam(sema, ast->node(paramRef), paramRef, outParams);
     }
 
     void prepareGenericInstantiationContext(Sema& sema, SymbolMap* startSymMap, const SymbolImpl* impl, const SymbolInterface* itf, const AttributeList& attrs)

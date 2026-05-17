@@ -64,7 +64,7 @@ namespace
             return file->hasError();
 
         const Ast& declAst = compiler.file(ownerFileRef).ast();
-        if (!declAst.hasSourceView() || declAst.findNodeRef(decl).isInvalid())
+        if (!declAst.hasSourceView() || declAst.tryFindNodeRef(decl).isInvalid())
             return file->hasError();
 
         const TaskContext     ctx(compiler.global(), compiler.cmdLine());

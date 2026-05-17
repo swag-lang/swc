@@ -90,24 +90,85 @@ private:
     bool                                                 hasCurrentRequest_ = false;
 };
 
+template<typename T>
+class AppendOnlyLookupTable
+{
+public:
+    // Readers only need ref->pointer lookup, so publish append-only slots and keep
+    // ownership elsewhere. This avoids taking CompilerInstance source-storage locks on hot paths.
+    static constexpr uint32_t CHUNK_BITS = 8;
+    static constexpr uint32_t CHUNK_SIZE = 1u << CHUNK_BITS;
+    static constexpr uint32_t CHUNK_MASK = CHUNK_SIZE - 1;
+    using Chunk                         = std::array<std::atomic<T*>, CHUNK_SIZE>;
+
+    AppendOnlyLookupTable()
+    {
+        publishChunkSnapshot();
+    }
+
+    uint32_t size() const
+    {
+        return size_.load(std::memory_order_acquire);
+    }
+
+    void pushBack(T* value)
+    {
+        SWC_ASSERT(value != nullptr);
+
+        const uint32_t index      = size_.load(std::memory_order_relaxed);
+        const uint32_t chunkIndex = index >> CHUNK_BITS;
+        const uint32_t chunkSlot  = index & CHUNK_MASK;
+        if (chunkIndex == chunks_.size())
+        {
+            auto chunk = std::make_unique<Chunk>();
+            for (std::atomic<T*>& slot : *chunk)
+                slot.store(nullptr, std::memory_order_relaxed);
+            chunks_.push_back(std::move(chunk));
+            publishChunkSnapshot();
+        }
+
+        chunks_[chunkIndex]->at(chunkSlot).store(value, std::memory_order_release);
+        size_.store(index + 1, std::memory_order_release);
+    }
+
+    T* at(const uint32_t index) const
+    {
+        const uint32_t publishedSize = size_.load(std::memory_order_acquire);
+        SWC_ASSERT(index < publishedSize);
+
+        const auto* chunks = publishedChunks_.load(std::memory_order_acquire);
+        SWC_ASSERT(chunks != nullptr);
+
+        const uint32_t chunkIndex = index >> CHUNK_BITS;
+        const uint32_t chunkSlot  = index & CHUNK_MASK;
+        SWC_ASSERT(chunkIndex < chunks->size());
+
+        T* value = (*chunks)[chunkIndex]->at(chunkSlot).load(std::memory_order_acquire);
+        SWC_ASSERT(value != nullptr);
+        return value;
+    }
+
+private:
+    void publishChunkSnapshot()
+    {
+        auto chunkSnapshot = std::make_unique<std::vector<Chunk*>>();
+        chunkSnapshot->reserve(chunks_.size());
+        for (const auto& chunk : chunks_)
+            chunkSnapshot->push_back(chunk.get());
+
+        const auto* published = chunkSnapshot.get();
+        publishedChunkStorage_.push_back(std::move(chunkSnapshot));
+        publishedChunks_.store(published, std::memory_order_release);
+    }
+
+    std::vector<std::unique_ptr<Chunk>>                    chunks_;
+    std::vector<std::unique_ptr<const std::vector<Chunk*>>> publishedChunkStorage_;
+    std::atomic<const std::vector<Chunk*>*>                publishedChunks_{nullptr};
+    std::atomic<uint32_t>                                  size_{0};
+};
+
 namespace
 {
-    constexpr size_t SOURCE_VIEW_LOOKUP_CACHE_SIZE = 8;
-
-    struct SourceViewLookupCacheEntry
-    {
-        uint64_t   compilerInstanceSerial = 0;
-        SourceViewRef ref                 = SourceViewRef::invalid();
-        SourceView* view                  = nullptr;
-    };
-
-    struct SourceViewLookupCache
-    {
-        std::array<SourceViewLookupCacheEntry, SOURCE_VIEW_LOOKUP_CACHE_SIZE> entries;
-    };
-
-    thread_local SourceViewLookupCache g_SourceViewLookupCache;
-    std::atomic<uint64_t>              g_NextCompilerInstanceSerial = 1;
 
     uint64_t       g_RuntimeContextTlsId;
     std::once_flag g_RuntimeContextTlsIdOnce;
@@ -115,11 +176,6 @@ namespace
     fs::path generatedSourceOutputDirectory(const CompilerInstance& compiler);
     fs::path generatedSourceDumpPath(const CompilerInstance& compiler, uint32_t threadIndex);
     Utf8     buildModuleNamespaceName(const CompilerInstance& compiler);
-
-    uint64_t nextCompilerInstanceSerial()
-    {
-        return g_NextCompilerInstanceSerial.fetch_add(1, std::memory_order_relaxed);
-    }
 
     void reapplyBuildCfgPresetOverrides(Runtime::BuildCfg& buildCfg, const Runtime::BuildCfg& explicitBuildCfg)
     {
@@ -610,14 +666,11 @@ namespace
             return Result::Error;
         }
 
-        SourceFile&            sourceFile               = compiler.addFile(appendResult.path, FileFlagsE::CustomSrc | FileFlagsE::SkipFmt);
-        sourceFile.setContent(appendResult.snapshot.view());
+        SourceFile&            sourceFile               = compiler.addLoadedFile(appendResult.path, FileFlagsE::CustomSrc | FileFlagsE::SkipFmt, appendResult.snapshot.view());
         const SymbolNamespace* generatedModuleNamespace = moduleNamespace ? moduleNamespace : currentModuleNamespace(ctx);
         if (generatedModuleNamespace)
             sourceFile.setModuleNamespace(*const_cast<SymbolNamespace*>(generatedModuleNamespace));
 
-        if (sourceFile.loadContent(ctx) != Result::Continue)
-            return Result::Error;
         sourceFile.ast().srcView().setLineOffset(appendResult.lineOffset);
         if (parseLoadedSourceFile(ctx, sourceFile, {}) != Result::Continue)
             return Result::Error;
@@ -1202,11 +1255,29 @@ namespace
     }
 }
 
+CompilerInstance::SourceViewBuffer::SourceViewBuffer(const std::string_view source)
+{
+    content.reserve(source.size() + TRAILING_0);
+    content.resize(source.size());
+    if (!source.empty())
+        std::memcpy(content.data(), source.data(), source.size());
+
+    for (uint32_t i = 0; i < TRAILING_0; ++i)
+        content.push_back(0);
+}
+
+std::string_view CompilerInstance::SourceViewBuffer::view() const
+{
+    if (content.size() < TRAILING_0)
+        return {};
+
+    return {reinterpret_cast<const char*>(content.data()), content.size() - TRAILING_0};
+}
+
 CompilerInstance::CompilerInstance(const Global& global, const CommandLine& cmdLine) :
     cmdLine_(&cmdLine),
     global_(&global),
-    buildCfg_(cmdLine.defaultBuildCfg),
-    instanceSerial_(nextCompilerInstanceSerial())
+    buildCfg_(cmdLine.defaultBuildCfg)
 {
     (void) runtimeContextTlsId();
 
@@ -1216,6 +1287,8 @@ CompilerInstance::CompilerInstance(const Global& global, const CommandLine& cmdL
     const uint32_t numWorkers     = global.jobMgr().numWorkers();
     const uint32_t perThreadSlots = global.jobMgr().isSingleThreaded() ? 1 : numWorkers + 1;
     perThreadData_.resize(perThreadSlots);
+    fileLookup_        = std::make_unique<AppendOnlyLookupTable<SourceFile>>();
+    srcViewLookup_     = std::make_unique<AppendOnlyLookupTable<SourceView>>();
     jitMemMgr_         = std::make_unique<JITMemoryManager>();
     jitExecMgr_        = std::make_unique<JITExecManager>();
     externalModuleMgr_ = std::make_unique<ExternalModuleManager>();
@@ -1500,7 +1573,7 @@ void CompilerInstance::registerNativeCodeFunction(SymbolFunction* symbol)
 
     bool inserted = false;
     {
-        const std::unique_lock lock(mutex_);
+        const std::unique_lock lock(stateMutex_);
         inserted = appendUnique(nativeCodeSegment_, symbol);
     }
 
@@ -1519,7 +1592,7 @@ void CompilerInstance::registerNativeTestFunction(SymbolFunction* symbol)
 
     bool inserted = false;
     {
-        const std::unique_lock lock(mutex_);
+        const std::unique_lock lock(stateMutex_);
         inserted |= appendUnique(nativeCodeSegment_, symbol);
         inserted |= appendUnique(nativeTestFunctions_, symbol);
     }
@@ -1539,7 +1612,7 @@ void CompilerInstance::registerNativeInitFunction(SymbolFunction* symbol)
 
     bool inserted = false;
     {
-        const std::unique_lock lock(mutex_);
+        const std::unique_lock lock(stateMutex_);
         inserted |= appendUnique(nativeCodeSegment_, symbol);
         inserted |= appendUnique(nativeInitFunctions_, symbol);
     }
@@ -1559,7 +1632,7 @@ void CompilerInstance::registerNativePreMainFunction(SymbolFunction* symbol)
 
     bool inserted = false;
     {
-        const std::unique_lock lock(mutex_);
+        const std::unique_lock lock(stateMutex_);
         inserted |= appendUnique(nativeCodeSegment_, symbol);
         inserted |= appendUnique(nativePreMainFunctions_, symbol);
     }
@@ -1579,7 +1652,7 @@ void CompilerInstance::registerNativeDropFunction(SymbolFunction* symbol)
 
     bool inserted = false;
     {
-        const std::unique_lock lock(mutex_);
+        const std::unique_lock lock(stateMutex_);
         inserted |= appendUnique(nativeCodeSegment_, symbol);
         inserted |= appendUnique(nativeDropFunctions_, symbol);
     }
@@ -1599,7 +1672,7 @@ void CompilerInstance::registerNativeMainFunction(SymbolFunction* symbol)
 
     bool inserted = false;
     {
-        const std::unique_lock lock(mutex_);
+        const std::unique_lock lock(stateMutex_);
         inserted |= appendUnique(nativeCodeSegment_, symbol);
         inserted |= appendUnique(nativeMainFunctions_, symbol);
     }
@@ -1621,7 +1694,7 @@ void CompilerInstance::registerNativeGlobalVariable(SymbolVariable* symbol)
 
     bool inserted = false;
     {
-        const std::unique_lock lock(mutex_);
+        const std::unique_lock lock(stateMutex_);
         inserted = appendUnique(nativeGlobalVariables_, symbol);
     }
 
@@ -1642,7 +1715,7 @@ void CompilerInstance::registerNativeGlobalFunctionInitTarget(SymbolFunction* sy
 
     bool inserted = false;
     {
-        const std::unique_lock lock(mutex_);
+        const std::unique_lock lock(stateMutex_);
         inserted = appendUnique(nativeGlobalFunctionInitTargets_, symbol);
     }
 
@@ -1658,7 +1731,7 @@ void CompilerInstance::registerPreparedJitFunction(SymbolFunction* symbol)
 {
     SWC_ASSERT(symbol != nullptr);
 
-    const std::unique_lock lock(mutex_);
+    const std::unique_lock lock(stateMutex_);
     if (appendUnique(jitPreparedFunctions_, symbol))
         invalidateGlobalFunctionBindings();
 }
@@ -1690,7 +1763,7 @@ void CompilerInstance::resetPreparedJitFunctions()
 {
     std::vector<SymbolFunction*> preparedFunctions;
     {
-        const std::unique_lock lock(mutex_);
+        const std::unique_lock lock(stateMutex_);
         preparedFunctions.swap(jitPreparedFunctions_);
     }
 
@@ -1703,19 +1776,19 @@ void CompilerInstance::resetPreparedJitFunctions()
 
 std::vector<SymbolFunction*> CompilerInstance::nativeGlobalFunctionInitTargetsSnapshot() const
 {
-    const std::shared_lock lock(mutex_);
+    const std::shared_lock lock(stateMutex_);
     return nativeGlobalFunctionInitTargets_;
 }
 
 std::vector<SymbolVariable*> CompilerInstance::nativeGlobalVariablesSnapshot() const
 {
-    const std::shared_lock lock(mutex_);
+    const std::shared_lock lock(stateMutex_);
     return nativeGlobalVariables_;
 }
 
 std::vector<SymbolFunction*> CompilerInstance::jitPreparedFunctionsSnapshot() const
 {
-    const std::shared_lock lock(mutex_);
+    const std::shared_lock lock(stateMutex_);
     return jitPreparedFunctions_;
 }
 
@@ -1976,9 +2049,11 @@ Result CompilerInstance::runWorkspaceModule(const WorkspaceModuleBuild& moduleBu
 
 SourceView& CompilerInstance::addSourceView()
 {
-    const std::unique_lock lock(mutex_);
-    auto                   srcViewRef = static_cast<SourceViewRef>(static_cast<uint32_t>(srcViews_.size()));
+    const std::unique_lock lock(sourceStorageMutex_);
+    SWC_ASSERT(srcViews_.size() == srcViewLookup_->size());
+    auto srcViewRef = SourceViewRef(srcViewLookup_->size());
     srcViews_.emplace_back(std::make_unique<SourceView>(srcViewRef, nullptr));
+    srcViewLookup_->pushBack(srcViews_.back().get());
 #if SWC_HAS_REF_DEBUG_INFO
     srcViewRef.dbgPtr = srcViews_.back().get();
 #endif
@@ -1989,70 +2064,49 @@ SourceView& CompilerInstance::addSourceView(FileRef fileRef)
 {
     SWC_ASSERT(fileRef.isValid());
 
-    const std::unique_lock lock(mutex_);
-    SWC_RACE_CONDITION_READ(rcFiles_);
-    SWC_ASSERT(fileRef.get() < files_.size());
-    auto        srcViewRef = static_cast<SourceViewRef>(static_cast<uint32_t>(srcViews_.size()));
-    SourceFile* ownerFile  = files_[fileRef.get()].get();
+    const std::unique_lock lock(sourceStorageMutex_);
+    SWC_ASSERT(srcViews_.size() == srcViewLookup_->size());
+    auto        srcViewRef = SourceViewRef(srcViewLookup_->size());
+    SourceFile* ownerFile  = fileLookup_->at(fileRef.get());
     srcViews_.emplace_back(std::make_unique<SourceView>(srcViewRef, ownerFile));
+    srcViewLookup_->pushBack(srcViews_.back().get());
 #if SWC_HAS_REF_DEBUG_INFO
     srcViewRef.dbgPtr = srcViews_.back().get();
 #endif
     return *srcViews_.back();
 }
 
-SourceView* CompilerInstance::tryCachedSourceView(const SourceViewRef ref) const
+SourceView& CompilerInstance::addBufferedSourceView(const FileRef fileRef, const std::string_view content)
 {
-    constexpr size_t cacheMask = SOURCE_VIEW_LOOKUP_CACHE_SIZE - 1;
-    static_assert((SOURCE_VIEW_LOOKUP_CACHE_SIZE & cacheMask) == 0);
+    SWC_ASSERT(fileRef.isValid());
 
-    // SourceView instances are individually heap-owned, so the pointer remains
-    // stable even when the owning lookup table grows on another thread.
-    const size_t                    cacheIndex = (static_cast<size_t>(ref.get()) ^ static_cast<size_t>(instanceSerial_)) & cacheMask;
-    SourceViewLookupCacheEntry&     entry      = g_SourceViewLookupCache.entries[cacheIndex];
-    if (entry.compilerInstanceSerial != instanceSerial_ || entry.ref != ref)
-        return nullptr;
+    const std::unique_lock lock(sourceStorageMutex_);
+    SWC_ASSERT(srcViews_.size() == srcViewLookup_->size());
 
-    return entry.view;
-}
+    auto        srcViewRef = SourceViewRef(srcViewLookup_->size());
+    SourceFile* ownerFile  = fileLookup_->at(fileRef.get());
+    auto        buffer     = std::make_unique<SourceViewBuffer>(content);
+    auto        sourceView = std::make_unique<SourceView>(srcViewRef, ownerFile, buffer->view());
 
-void CompilerInstance::cacheSourceView(const SourceViewRef ref, SourceView* view) const
-{
-    constexpr size_t cacheMask = SOURCE_VIEW_LOOKUP_CACHE_SIZE - 1;
-    static_assert((SOURCE_VIEW_LOOKUP_CACHE_SIZE & cacheMask) == 0);
-
-    const size_t cacheIndex = (static_cast<size_t>(ref.get()) ^ static_cast<size_t>(instanceSerial_)) & cacheMask;
-    g_SourceViewLookupCache.entries[cacheIndex] = {
-        .compilerInstanceSerial = instanceSerial_,
-        .ref                    = ref,
-        .view                   = view,
-    };
+    srcViewBuffers_.push_back(std::move(buffer));
+    srcViews_.push_back(std::move(sourceView));
+    srcViewLookup_->pushBack(srcViews_.back().get());
+#if SWC_HAS_REF_DEBUG_INFO
+    srcViewRef.dbgPtr = srcViews_.back().get();
+#endif
+    return *srcViews_.back();
 }
 
 SourceView& CompilerInstance::srcView(SourceViewRef ref)
 {
-    if (SourceView* view = tryCachedSourceView(ref))
-        return *view;
-
-    const std::shared_lock lock(mutex_);
-    SWC_ASSERT(ref.get() < srcViews_.size());
-
-    SourceView* view = srcViews_[ref.get()].get();
-    cacheSourceView(ref, view);
-    return *(view);
+    SWC_ASSERT(ref.isValid());
+    return *srcViewLookup_->at(ref.get());
 }
 
 const SourceView& CompilerInstance::srcView(SourceViewRef ref) const
 {
-    if (SourceView* view = tryCachedSourceView(ref))
-        return *view;
-
-    const std::shared_lock lock(mutex_);
-    SWC_ASSERT(ref.get() < srcViews_.size());
-
-    SourceView* view = srcViews_[ref.get()].get();
-    cacheSourceView(ref, view);
-    return *(view);
+    SWC_ASSERT(ref.isValid());
+    return *srcViewLookup_->at(ref.get());
 }
 
 const SourceView* CompilerInstance::findSourceViewByFileName(const std::string_view fileName) const
@@ -2063,13 +2117,10 @@ const SourceView* CompilerInstance::findSourceViewByFileName(const std::string_v
     const fs::path wantedPath{std::string(fileName)};
     const Utf8     wantedPathNormalized = Utf8Helper::normalizePathForCompare(wantedPath);
 
-    const std::shared_lock lock(mutex_);
-    for (const std::unique_ptr<SourceView>& srcViewPtr : srcViews_)
+    const uint32_t numSourceViews = srcViewLookup_->size();
+    for (uint32_t i = 0; i < numSourceViews; ++i)
     {
-        const SourceView* srcView = srcViewPtr.get();
-        if (!srcView)
-            continue;
-
+        const SourceView* srcView = srcViewLookup_->at(i);
         const SourceFile* sourceFile = srcView->file();
         if (!sourceFile)
             continue;
@@ -2083,7 +2134,7 @@ const SourceView* CompilerInstance::findSourceViewByFileName(const std::string_v
 
 bool CompilerInstance::setMainFunc(AstCompilerFunc* node)
 {
-    const std::unique_lock lock(mutex_);
+    const std::unique_lock lock(stateMutex_);
     if (mainFunc_)
         return false;
     mainFunc_ = node;
@@ -2097,7 +2148,7 @@ bool CompilerInstance::markNativeOutputsCleared()
 
 bool CompilerInstance::registerForeignLib(std::string_view name)
 {
-    const std::unique_lock lock(mutex_);
+    const std::unique_lock lock(stateMutex_);
     for (const Utf8& lib : foreignLibs_)
     {
         if (lib == name)
@@ -2119,7 +2170,7 @@ void CompilerInstance::registerRuntimeFunctionSymbol(const IdentifierRef idRef, 
     SWC_ASSERT(symbol != nullptr);
 
     bool                   inserted = false;
-    const std::unique_lock lock(mutex_);
+    const std::unique_lock lock(stateMutex_);
     const auto             it = runtimeFunctionSymbols_.find(idRef);
     if (it == runtimeFunctionSymbols_.end())
     {
@@ -2138,7 +2189,7 @@ void CompilerInstance::registerRuntimeFunctionSymbol(const IdentifierRef idRef, 
 
 SymbolFunction* CompilerInstance::runtimeFunctionSymbol(const IdentifierRef idRef) const
 {
-    const std::shared_lock lock(mutex_);
+    const std::shared_lock lock(stateMutex_);
     const auto             it = runtimeFunctionSymbols_.find(idRef);
     if (it == runtimeFunctionSymbols_.end())
         return nullptr;
@@ -2624,7 +2675,7 @@ void CompilerInstance::registerInMemoryFile(fs::path path, const std::string_vie
 
     path = path.lexically_normal();
 
-    const std::unique_lock lock(mutex_);
+    const std::unique_lock lock(sourceStorageMutex_);
     inMemoryFiles_[Utf8Helper::normalizePathForCompare(path)] = Utf8(content);
 }
 
@@ -2636,35 +2687,38 @@ SourceFile& CompilerInstance::addFile(fs::path path, FileFlags flags)
     return addResolvedFile(path.lexically_normal(), flags);
 }
 
+SourceFile& CompilerInstance::addLoadedFile(fs::path path, FileFlags flags, const std::string_view content)
+{
+    if (!path.is_absolute())
+        path = fs::absolute(path);
+
+    return addResolvedLoadedFile(path.lexically_normal(), flags, content);
+}
+
 SourceFile& CompilerInstance::file(const FileRef ref) const
 {
-    const std::shared_lock lock(mutex_);
-    SWC_RACE_CONDITION_READ(rcFiles_);
     SWC_ASSERT(ref.isValid());
-    SWC_ASSERT(ref.get() < files_.size());
-
-    SourceFile* file = files_[ref.get()].get();
+    SourceFile* file = fileLookup_->at(ref.get());
     SWC_ASSERT(file != nullptr);
     return *file;
 }
 
 std::vector<SourceFile*> CompilerInstance::filesSnapshot() const
 {
-    const std::shared_lock lock(mutex_);
-    SWC_RACE_CONDITION_READ(rcFiles_);
-    return filePtrs_;
+    return files();
 }
 
 SourceFile& CompilerInstance::addResolvedFile(fs::path path, FileFlags flags)
 {
-    const std::unique_lock lock(mutex_);
+    const std::unique_lock lock(sourceStorageMutex_);
     SWC_RACE_CONDITION_WRITE(rcFiles_);
     SWC_ASSERT(path.is_absolute());
     path = path.lexically_normal();
 
-    auto fileRef = static_cast<FileRef>(static_cast<uint32_t>(files_.size()));
+    SWC_ASSERT(files_.size() == fileLookup_->size());
+    auto fileRef = FileRef(fileLookup_->size());
     files_.emplace_back(std::make_unique<SourceFile>(fileRef, std::move(path), flags));
-    filePtrs_.push_back(files_.back().get());
+    fileLookup_->pushBack(files_.back().get());
 #if SWC_HAS_REF_DEBUG_INFO
     fileRef.dbgPtr = files_.back().get();
 #endif
@@ -2677,21 +2731,52 @@ SourceFile& CompilerInstance::addResolvedFile(fs::path path, FileFlags flags)
     return *files_.back();
 }
 
-std::span<SourceFile* const> CompilerInstance::files() const
+SourceFile& CompilerInstance::addResolvedLoadedFile(fs::path path, FileFlags flags, const std::string_view content)
 {
-    SWC_RACE_CONDITION_READ(rcFiles_);
-    return filePtrs_;
+    const std::unique_lock lock(sourceStorageMutex_);
+    SWC_RACE_CONDITION_WRITE(rcFiles_);
+    SWC_ASSERT(path.is_absolute());
+    path = path.lexically_normal();
+
+    SWC_ASSERT(files_.size() == fileLookup_->size());
+    auto sourceFileRef = FileRef(fileLookup_->size());
+    auto sourceFile    = std::make_unique<SourceFile>(sourceFileRef, std::move(path), flags);
+    sourceFile->setContent(content);
+
+    SWC_ASSERT(srcViews_.size() == srcViewLookup_->size());
+    auto sourceViewRef = SourceViewRef(srcViewLookup_->size());
+    auto sourceView    = std::make_unique<SourceView>(sourceViewRef, sourceFile.get());
+    sourceFile->ast().setSourceView(*sourceView);
+
+    files_.push_back(std::move(sourceFile));
+    fileLookup_->pushBack(files_.back().get());
+    srcViews_.push_back(std::move(sourceView));
+    srcViewLookup_->pushBack(srcViews_.back().get());
+#if SWC_HAS_REF_DEBUG_INFO
+    sourceFileRef.dbgPtr = files_.back().get();
+    sourceViewRef.dbgPtr = srcViews_.back().get();
+#endif
+    return *files_.back();
+}
+
+std::vector<SourceFile*> CompilerInstance::files() const
+{
+    std::vector<SourceFile*> result;
+    const uint32_t           numFiles = fileLookup_->size();
+    result.reserve(numFiles);
+    for (uint32_t i = 0; i < numFiles; ++i)
+        result.push_back(fileLookup_->at(i));
+    return result;
 }
 
 bool CompilerInstance::hasResolvedFilePath(const fs::path& path) const
 {
     const Utf8 wantedPathNormalized = Utf8Helper::normalizePathForCompare(path);
 
-    const std::shared_lock lock(mutex_);
-    for (const SourceFile* file : filePtrs_)
+    const uint32_t numFiles = fileLookup_->size();
+    for (uint32_t i = 0; i < numFiles; ++i)
     {
-        if (!file)
-            continue;
+        const SourceFile* file = fileLookup_->at(i);
         if (Utf8Helper::normalizePathForCompare(file->path()) == wantedPathNormalized)
             return true;
     }
@@ -3107,7 +3192,6 @@ void CompilerInstance::appendResolvedFiles(std::vector<fs::path>& paths, FileFla
         return;
 
     files_.reserve(files_.size() + paths.size());
-    filePtrs_.reserve(filePtrs_.size() + paths.size());
     for (fs::path& path : paths)
     {
         if (hasResolvedFilePath(path))
@@ -3157,7 +3241,6 @@ Result CompilerInstance::collectImportedApiFiles(TaskContext& ctx)
         return Result::Continue;
 
     files_.reserve(files_.size() + cmdLine.importApiFiles.size());
-    filePtrs_.reserve(filePtrs_.size() + cmdLine.importApiFiles.size());
     for (const fs::path& file : cmdLine.importApiFiles)
     {
         if (hasResolvedFilePath(file))
@@ -3183,7 +3266,6 @@ Result CompilerInstance::collectFiles(TaskContext& ctx)
     if (!cmdLine.files.empty())
     {
         files_.reserve(files_.size() + cmdLine.files.size());
-        filePtrs_.reserve(filePtrs_.size() + cmdLine.files.size());
         for (const fs::path& file : cmdLine.files)
         {
             if (hasResolvedFilePath(file))

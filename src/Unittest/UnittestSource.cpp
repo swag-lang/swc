@@ -38,9 +38,7 @@ namespace Unittest
 
     SourceFile& addTestSource(TaskContext& ctx, const fs::path& sourcePath, const std::string_view content, const FileFlags flags)
     {
-        SourceFile& sourceFile = ctx.compiler().addFile(sourcePath, flags);
-        sourceFile.setContent(content);
-        return sourceFile;
+        return ctx.compiler().addLoadedFile(sourcePath, flags, content);
     }
 
     SourceFile& addTestSource(TaskContext& ctx, const std::string_view partOfCompiler, const std::string_view testName, const std::string_view content, const FileFlags flags)

@@ -35,6 +35,7 @@ class SourceView
 {
 public:
     SourceView(SourceViewRef ref, const SourceFile* file);
+    SourceView(SourceViewRef ref, const SourceFile* file, std::string_view content);
     SourceView(const SourceView&)            = delete;
     SourceView& operator=(const SourceView&) = delete;
 

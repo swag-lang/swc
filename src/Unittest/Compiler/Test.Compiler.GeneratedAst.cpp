@@ -75,6 +75,11 @@ namespace
         return FileSystem::pathEquals(file.path().parent_path(), directory);
     }
 
+    bool isInternalGeneratedSourceFile(const SourceFile& file)
+    {
+        return file.path().filename().string().contains("__swag_internal_");
+    }
+
     Result readGeneratedFileText(std::string& outText, const fs::path& path)
     {
         FileSystem::IoErrorInfo ioError;
@@ -91,6 +96,214 @@ namespace
 
         paths.push_back(path);
         return true;
+    }
+
+    bool containsGeneratedSpecOpText(const std::string_view content)
+    {
+        return content.contains("swagLifecycleInitWrapper") ||
+               content.contains("swagLifecycleDropWrapper") ||
+               content.contains("swagLifecyclePostcopyWrapper") ||
+               content.contains("swagLifecyclePostmoveWrapper") ||
+               content.contains("mtd const opEquals(") ||
+               content.contains("mtd const opCompare(");
+    }
+
+    Result runLifecycleInitWrapperStressCompile(const TaskContext& ctx, uint32_t seed)
+    {
+        static constexpr std::string_view SOURCE = R"(#global fileprivate
+struct(T) Wrapper
+{
+    value: T
+}
+
+func touch()
+{
+    let a: Wrapper's8
+    let b: Wrapper's16
+    let c: Wrapper's32
+    let d: Wrapper's64
+    let e: Wrapper'u8
+    let f: Wrapper'u16
+    let g: Wrapper'u32
+    let h: Wrapper'u64
+    let i: Wrapper'f32
+    let j: Wrapper'f64
+    let k: Wrapper'bool
+    let l: Wrapper'string
+    let m: Wrapper'(Wrapper's32)
+    let n: Wrapper'(Wrapper'u64)
+
+    #assert(#typeof(a.value) == s8)
+    #assert(#typeof(b.value) == s16)
+    #assert(#typeof(c.value) == s32)
+    #assert(#typeof(d.value) == s64)
+    #assert(#typeof(e.value) == u8)
+    #assert(#typeof(f.value) == u16)
+    #assert(#typeof(g.value) == u32)
+    #assert(#typeof(h.value) == u64)
+    #assert(#typeof(i.value) == f32)
+    #assert(#typeof(j.value) == f64)
+    #assert(#typeof(k.value) == bool)
+    #assert(#typeof(l.value) == string)
+    #assert(#typeof(m.value.value) == s32)
+    #assert(#typeof(n.value.value) == u64)
+}
+)";
+
+        const fs::path sourcePath = Unittest::makeTestSourcePath("Compiler", std::format("LifecycleInitWrapperStressCompile_{}", seed));
+
+        CommandLine cmdLine;
+        cmdLine.command   = CommandKind::Sema;
+        cmdLine.name      = std::format("compiler_lifecycle_init_wrapper_stress_{}", seed);
+        cmdLine.silent    = true;
+        cmdLine.numCores  = 4;
+        cmdLine.randomize = true;
+        cmdLine.randSeed  = seed;
+        cmdLine.files.insert(sourcePath);
+        CommandLineParser::refreshBuildCfg(cmdLine);
+
+        const uint64_t    errorsBefore = Stats::getNumErrors();
+        const RestoreErrorCount restoreErrors{errorsBefore};
+        CompilerInstance  compiler(ctx.global(), cmdLine);
+        Unittest::registerTestSource(compiler, sourcePath, SOURCE);
+        if (compiler.run() != ExitCode::Success)
+            return Result::Error;
+        if (Stats::getNumErrors() != errorsBefore)
+            return Result::Error;
+
+        for (const SourceFile* file : compiler.files())
+        {
+            if (file && isInternalGeneratedSourceFile(*file))
+                return Result::Error;
+        }
+
+        return Result::Continue;
+    }
+
+    Result runGeneratedSpecOpStressCompile(const TaskContext& ctx, uint32_t seed)
+    {
+        static constexpr std::string_view SOURCE = R"(#global fileprivate
+using Swag
+
+struct Tracked
+{
+    value: s32 = 1
+}
+
+impl Tracked
+{
+    mtd opDrop()
+    {
+    }
+
+    mtd opPostCopy()
+    {
+        .value += 10
+    }
+
+    mtd opPostMove()
+    {
+        .value += 20
+    }
+}
+
+#[Swag.Operators(opEquals, opCompare)]
+struct GeneratedPair
+{
+    left, right: s32
+}
+
+#[Swag.Operators(opEquals, opCompare)]
+struct(T) GeneratedBox
+{
+    value: T
+}
+
+struct(T) LifecycleBox
+{
+    value: T
+}
+
+struct LifecycleOwner
+{
+    first:  Tracked
+    second: Tracked
+}
+
+func touch()
+{
+    let eqA = GeneratedBox's32{value: 1}
+    let eqB = GeneratedBox's32{value: 2}
+    let eqBoolA = eqA != eqB
+    let eqBoolB = eqA < eqB
+
+    let pairA = GeneratedPair{left: 1, right: 2}
+    let pairB = GeneratedPair{left: 1, right: 3}
+    let pairBoolA = pairA != pairB
+    let pairBoolB = pairA < pairB
+
+    let nestedA = GeneratedBox'GeneratedPair{value: GeneratedPair{left: 7, right: 8}}
+    let nestedB = GeneratedBox'GeneratedPair{value: GeneratedPair{left: 7, right: 9}}
+    let nestedBoolA = nestedA != nestedB
+    let nestedBoolB = nestedA < nestedB
+
+    var one: LifecycleBox'Tracked
+    var two: LifecycleBox'Tracked
+    var owner: LifecycleOwner
+    var nested: LifecycleBox'LifecycleOwner
+
+    @postcopy(one)
+    @postmove(two)
+    @drop(one)
+    @drop(two)
+
+    @postcopy(owner)
+    @postmove(owner)
+    @drop(owner)
+
+    @postcopy(nested)
+    @postmove(nested)
+    @drop(nested)
+
+    #assert(#typeof(eqBoolA) == bool)
+    #assert(#typeof(eqBoolB) == bool)
+    #assert(#typeof(pairBoolA) == bool)
+    #assert(#typeof(pairBoolB) == bool)
+    #assert(#typeof(nestedBoolA) == bool)
+    #assert(#typeof(nestedBoolB) == bool)
+    #assert(#typeof(one.value.value) == s32)
+    #assert(#typeof(nested.value.first.value) == s32)
+}
+)";
+
+        const fs::path sourcePath = Unittest::makeTestSourcePath("Compiler", std::format("GeneratedSpecOpStressCompile_{}", seed));
+
+        CommandLine cmdLine;
+        cmdLine.command   = CommandKind::Sema;
+        cmdLine.name      = std::format("compiler_generated_spec_op_stress_{}", seed);
+        cmdLine.silent    = true;
+        cmdLine.numCores  = 4;
+        cmdLine.randomize = true;
+        cmdLine.randSeed  = seed;
+        cmdLine.files.insert(sourcePath);
+        CommandLineParser::refreshBuildCfg(cmdLine);
+
+        const uint64_t    errorsBefore = Stats::getNumErrors();
+        const RestoreErrorCount restoreErrors{errorsBefore};
+        CompilerInstance  compiler(ctx.global(), cmdLine);
+        Unittest::registerTestSource(compiler, sourcePath, SOURCE);
+        if (compiler.run() != ExitCode::Success)
+            return Result::Error;
+        if (Stats::getNumErrors() != errorsBefore)
+            return Result::Error;
+
+        for (const SourceFile* file : compiler.files())
+        {
+            if (file && isInternalGeneratedSourceFile(*file))
+                return Result::Error;
+        }
+
+        return Result::Continue;
     }
 }
 
@@ -189,6 +402,202 @@ SWC_TEST_BEGIN(Compiler_GeneratedAstMaterializesPerThreadFiles)
 
     if (!foundGeneratedA || !foundGeneratedB || !foundLine2 || !foundLine3)
         return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(Compiler_LifecycleInitWrapperStaysOutOfGeneratedThreadFiles)
+{
+    static constexpr std::string_view SOURCE     = R"(#global fileprivate
+struct GeneratedInitNoise
+{
+    value: s32
+}
+
+#ast "const GeneratedValue = 1"
+#assert(GeneratedValue == 1)
+)";
+    const fs::path                    sourcePath = Unittest::makeTestSourcePath("Compiler", "LifecycleInitWrapperStaysOutOfGeneratedThreadFiles");
+    const ScopedGeneratedAstDirectory workDir("LifecycleInitWrapperStaysOutOfGeneratedThreadFiles");
+    if (!workDir.ready())
+        return Result::Error;
+
+    CommandLine cmdLine;
+    cmdLine.command  = CommandKind::Sema;
+    cmdLine.name     = "compiler_generated_init_wrapper_noise";
+    cmdLine.numCores = 1;
+    cmdLine.workDir  = workDir.root();
+    cmdLine.files.insert(sourcePath);
+    CommandLineParser::refreshBuildCfg(cmdLine);
+
+    const uint64_t          errorsBefore = Stats::getNumErrors();
+    const RestoreErrorCount restoreErrors{errorsBefore};
+    CompilerInstance        compiler(ctx.global(), cmdLine);
+    Unittest::registerTestSource(compiler, sourcePath, SOURCE);
+    if (compiler.run() != ExitCode::Success)
+        return Result::Error;
+    if (Stats::getNumErrors() != errorsBefore)
+        return Result::Error;
+
+    std::vector<fs::path> generatedPaths;
+    for (const SourceFile* file : compiler.files())
+    {
+        if (!file || !isGeneratedAstFile(*file, workDir.root()))
+            continue;
+        if (!fs::exists(file->path()))
+            return Result::Error;
+
+        appendUniquePath(generatedPaths, file->path());
+    }
+
+    if (generatedPaths.empty())
+        return Result::Error;
+
+    bool foundGeneratedValue = false;
+    for (const fs::path& generatedPath : generatedPaths)
+    {
+        std::string content;
+        SWC_RESULT(readGeneratedFileText(content, generatedPath));
+        if (content.contains("const GeneratedValue = 1"))
+            foundGeneratedValue = true;
+        if (content.contains("swagLifecycleInitWrapper"))
+            return Result::Error;
+        if (content.contains("@init(me, 1)"))
+            return Result::Error;
+    }
+
+    if (!foundGeneratedValue)
+        return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(Compiler_LifecycleInitWrapperDoesNotCreateSyntheticSourceFilesUnderStress)
+{
+    for (uint32_t i = 0; i < 32; ++i)
+        SWC_RESULT(runLifecycleInitWrapperStressCompile(ctx, 4000 + i));
+
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(Compiler_GeneratedSpecOpsStayOutOfGeneratedThreadFiles)
+{
+    static constexpr std::string_view SOURCE = R"(#global fileprivate
+using Swag
+
+struct Tracked
+{
+    value: s32 = 1
+}
+
+impl Tracked
+{
+    mtd opDrop()
+    {
+    }
+
+    mtd opPostCopy()
+    {
+        .value += 10
+    }
+
+    mtd opPostMove()
+    {
+        .value += 20
+    }
+}
+
+#[Swag.Operators(opEquals, opCompare)]
+struct GeneratedPair
+{
+    left, right: s32
+}
+
+struct LifecycleOwner
+{
+    first:  Tracked
+    second: Tracked
+}
+
+func touch()
+{
+    let pairA = GeneratedPair{left: 1, right: 2}
+    let pairB = GeneratedPair{left: 1, right: 3}
+    let pairBool = pairA < pairB
+
+    var owner: LifecycleOwner
+    @postcopy(owner)
+    @postmove(owner)
+    @drop(owner)
+
+    #assert(#typeof(pairBool) == bool)
+}
+
+#ast "const GeneratedValue = 1"
+#assert(GeneratedValue == 1)
+)";
+
+    const fs::path                    sourcePath = Unittest::makeTestSourcePath("Compiler", "GeneratedSpecOpsStayOutOfGeneratedThreadFiles");
+    const ScopedGeneratedAstDirectory workDir("GeneratedSpecOpsStayOutOfGeneratedThreadFiles");
+    if (!workDir.ready())
+        return Result::Error;
+
+    CommandLine cmdLine;
+    cmdLine.command  = CommandKind::Sema;
+    cmdLine.name     = "compiler_generated_spec_op_thread_files";
+    cmdLine.numCores = 1;
+    cmdLine.workDir  = workDir.root();
+    cmdLine.files.insert(sourcePath);
+    CommandLineParser::refreshBuildCfg(cmdLine);
+
+    const uint64_t          errorsBefore = Stats::getNumErrors();
+    const RestoreErrorCount restoreErrors{errorsBefore};
+    CompilerInstance        compiler(ctx.global(), cmdLine);
+    Unittest::registerTestSource(compiler, sourcePath, SOURCE);
+    if (compiler.run() != ExitCode::Success)
+        return Result::Error;
+    if (Stats::getNumErrors() != errorsBefore)
+        return Result::Error;
+
+    std::vector<fs::path> generatedPaths;
+    for (const SourceFile* file : compiler.files())
+    {
+        if (file && isInternalGeneratedSourceFile(*file))
+            return Result::Error;
+        if (!file || !isGeneratedAstFile(*file, workDir.root()))
+            continue;
+        if (!fs::exists(file->path()))
+            return Result::Error;
+
+        appendUniquePath(generatedPaths, file->path());
+    }
+
+    if (generatedPaths.empty())
+        return Result::Error;
+
+    bool foundGeneratedValue = false;
+    for (const fs::path& generatedPath : generatedPaths)
+    {
+        std::string content;
+        SWC_RESULT(readGeneratedFileText(content, generatedPath));
+        if (content.contains("const GeneratedValue = 1"))
+            foundGeneratedValue = true;
+        if (containsGeneratedSpecOpText(content))
+            return Result::Error;
+    }
+
+    if (!foundGeneratedValue)
+        return Result::Error;
+
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(Compiler_GeneratedSpecOpsDoNotCreateSyntheticSourceFilesUnderStress)
+{
+    for (uint32_t i = 0; i < 32; ++i)
+        SWC_RESULT(runGeneratedSpecOpStressCompile(ctx, 5000 + i));
+
+    return Result::Continue;
 }
 SWC_TEST_END()
 

@@ -33,6 +33,9 @@ class JITExecManager;
 class CompilerMessageTypeInfoJob;
 struct CommandLine;
 
+template<typename T>
+class AppendOnlyLookupTable;
+
 class CompilerInstance
 {
 public:
@@ -199,11 +202,13 @@ public:
     static const Sema*              tryGetJobSema(const Job* job);
 
     SourceFile&              addFile(fs::path path, FileFlags flags);
+    SourceFile&              addLoadedFile(fs::path path, FileFlags flags, std::string_view content);
     SourceFile&              file(FileRef ref) const;
     std::vector<SourceFile*> filesSnapshot() const;
 
     SourceView&                           addSourceView();
     SourceView&                           addSourceView(FileRef fileRef);
+    SourceView&                           addBufferedSourceView(FileRef fileRef, std::string_view content);
     SourceView&                           srcView(SourceViewRef ref);
     const SourceView&                     srcView(SourceViewRef ref) const;
     const SourceView*                     findSourceViewByFileName(std::string_view fileName) const;
@@ -215,7 +220,7 @@ public:
     Result                       collectFiles(TaskContext& ctx);
     Result                       runModuleSetup(TaskContext& ctx);
     static Result                exportModuleApi(TaskContext& ctx);
-    std::span<SourceFile* const> files() const;
+    std::vector<SourceFile*>     files() const;
     bool                         isModuleSetupMode() const { return moduleSetupMode_; }
     Result                       registerModuleSetupImport(std::string_view moduleName, std::string_view location, std::string_view version, Runtime::BuildCfgBackendKind linkBackendKind = Runtime::BuildCfgBackendKind::None);
     Result                       registerModuleSetupLoad(const fs::path& filePath);
@@ -286,7 +291,17 @@ private:
         TypeRef     typeRef      = TypeRef::invalid();
     };
 
+    struct SourceViewBuffer
+    {
+        explicit SourceViewBuffer(std::string_view content);
+        std::string_view view() const;
+
+        static constexpr uint32_t        TRAILING_0 = 4;
+        std::vector<char8_t>             content;
+    };
+
     SourceFile& addResolvedFile(fs::path path, FileFlags flags);
+    SourceFile& addResolvedLoadedFile(fs::path path, FileFlags flags, std::string_view content);
     void        appendResolvedFiles(std::vector<fs::path>& paths, FileFlags flags);
     void        collectFolderFiles(const fs::path& folder, FileFlags flags, bool canFilter);
     Result      collectImportedApiFiles(TaskContext& ctx);
@@ -299,14 +314,14 @@ private:
     ExitCode    runWorkspace();
     Result      runWorkspaceModule(const WorkspaceModuleBuild& moduleBuild, uint32_t moduleIndex, uint32_t moduleCount) const;
     Result      flushGeneratedSourceDumps(TaskContext& ctx);
-    SourceView* tryCachedSourceView(SourceViewRef ref) const;
-    void        cacheSourceView(SourceViewRef ref, SourceView* view) const;
 
     const CommandLine*                       cmdLine_ = nullptr;
     const Global*                            global_  = nullptr;
     std::vector<std::unique_ptr<SourceFile>> files_;
-    std::vector<SourceFile*>                 filePtrs_;
     std::vector<std::unique_ptr<SourceView>> srcViews_;
+    std::vector<std::unique_ptr<SourceViewBuffer>> srcViewBuffers_;
+    std::unique_ptr<AppendOnlyLookupTable<SourceFile>> fileLookup_;
+    std::unique_ptr<AppendOnlyLookupTable<SourceView>> srcViewLookup_;
     std::unique_ptr<TypeManager>             typeMgr_;
     std::unique_ptr<TypeGen>                 typeGen_;
     std::unique_ptr<ConstantManager>         cstMgr_;
@@ -340,8 +355,8 @@ private:
     std::unique_ptr<JITExecManager>          jitExecMgr_;
     void*                                    runtimeAllocatorITable_[2]{};
     void*                                    runtimeCompilerITable_[4]{};
-    mutable std::shared_mutex                mutex_;
-    uint64_t                                 instanceSerial_                 = 0;
+    mutable std::shared_mutex                stateMutex_;
+    mutable std::mutex                       sourceStorageMutex_;
     std::atomic<bool>                        changed_{true};
     std::mutex                               globalFunctionBindingsMutex_;
     std::atomic<uint64_t>                    globalFunctionBindingsVersion_{1};

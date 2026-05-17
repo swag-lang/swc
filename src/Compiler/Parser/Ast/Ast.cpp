@@ -149,6 +149,15 @@ void Ast::appendTokens(SmallVector<TokenRef>& out, SpanRef spanRef) const
 
 AstNodeRef Ast::findNodeRef(const AstNode* node) const
 {
+    const AstNodeRef ref = tryFindNodeRef(node);
+    if (ref.isValid())
+        return ref;
+
+    SWC_UNREACHABLE();
+}
+
+AstNodeRef Ast::tryFindNodeRef(const AstNode* node) const
+{
     for (uint32_t i = 0; i < SHARD_COUNT; i++)
     {
         const Ref local = shards_[i].store.findRef(node);
@@ -156,7 +165,7 @@ AstNodeRef Ast::findNodeRef(const AstNode* node) const
             return AstNodeRef{packRef(i, local)};
     }
 
-    SWC_UNREACHABLE();
+    return AstNodeRef::invalid();
 }
 
 void Ast::visit(const Ast& ast, AstNodeRef root, const Visitor& f)

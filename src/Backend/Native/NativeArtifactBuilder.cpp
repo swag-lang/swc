@@ -174,7 +174,7 @@ namespace
         const Ast*        sourceAst  = sourceFile && sourceFile->ast().hasSourceView() ? &sourceFile->ast() : nullptr;
         SourceCodeRange   codeRange;
 
-        if (decl && sourceAst && sourceAst->hasSourceView() && sourceAst->findNodeRef(decl).isValid())
+        if (decl && sourceAst && sourceAst->hasSourceView() && sourceAst->tryFindNodeRef(decl).isValid())
         {
             codeRange = decl->codeRangeWithChildren(ctx, *sourceAst, declView);
         }

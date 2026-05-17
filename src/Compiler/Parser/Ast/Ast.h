@@ -115,6 +115,7 @@ public:
     }
 
     AstNodeRef findNodeRef(const AstNode* node) const;
+    AstNodeRef tryFindNodeRef(const AstNode* node) const;
 
     enum class VisitResult
     {

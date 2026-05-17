@@ -732,9 +732,7 @@ namespace
             return reportCompilerFileError(sema, DiagnosticId::sema_err_ast_file_write_failed, ownerRef, appendResult.path, because);
         }
 
-        SourceFile& sourceFile = sema.compiler().addFile(appendResult.path, FileFlagsE::CustomSrc | FileFlagsE::SkipFmt);
-        sourceFile.setContent(appendResult.snapshot.view());
-        SWC_RESULT(sourceFile.loadContent(sema.ctx()));
+        SourceFile& sourceFile = sema.compiler().addLoadedFile(appendResult.path, FileFlagsE::CustomSrc | FileFlagsE::SkipFmt, appendResult.snapshot.view());
         sourceFile.ast().srcView().setLineOffset(appendResult.lineOffset);
         sourceFile.unitTest().tokenize(sema.ctx());
 
@@ -1547,8 +1545,16 @@ namespace
 
         SWC_RESULT(concretizeViewConstant(sema, view));
 
-        outTypeRef = view.typeRef();
-        if (view.type() && SemaHelpers::isTypeLikeTypeRef(sema.ctx(), view.typeRef()))
+        const TypeRef              viewTypeRef = view.typeRef();
+        const ConstantRef          viewCstRef  = view.cstRef();
+        const TypeInfo* const      viewType    = view.type();
+        const ConstantValue* const viewCst     = view.cst();
+        SWC_ASSERT(viewType != nullptr);
+        SWC_ASSERT(!viewCstRef.isValid() || viewCst != nullptr);
+
+        outTypeRef = viewTypeRef;
+        const bool isTypeLike = viewType->isTypeValue() || viewType->isAnyTypeInfo(sema.ctx()) || sema.typeMgr().isRuntimeTypeInfoPointer(sema.ctx(), viewTypeRef);
+        if (isTypeLike)
         {
             outTypeRef = SemaHelpers::resolveRepresentedTypeRef(sema, view);
             if (!outTypeRef.isValid())
@@ -1557,8 +1563,8 @@ namespace
             return Result::Continue;
         }
 
-        if (view.cstRef().isValid())
-            outTypeRef = SemaHelpers::deduceConcretizedAggregateLiteralType(sema, outTypeRef, view.cstRef());
+        if (viewCstRef.isValid())
+            outTypeRef = SemaHelpers::deduceConcretizedAggregateLiteralType(sema, outTypeRef, viewCstRef);
 
         SWC_RESULT(specializeCompilerOperandConcreteTypeRef(sema, outTypeRef));
         return Result::Continue;

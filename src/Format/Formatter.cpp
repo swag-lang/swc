@@ -57,10 +57,7 @@ Result Formatter::prepare(const Global& global, const std::string_view source)
     TaskContext      ctx(compiler);
 
     const fs::path path = "formatter_inline.swg";
-    compiler.registerInMemoryFile(path, source);
-
-    SourceFile& sourceFile = compiler.addFile(path, FileFlagsE::CustomSrc);
-    SWC_RESULT(sourceFile.loadContent(ctx));
+    SourceFile& sourceFile = compiler.addLoadedFile(path, FileFlagsE::CustomSrc, source);
 
     constexpr ParserJobOptions parserOptions = {
         .emitTrivia                 = true,

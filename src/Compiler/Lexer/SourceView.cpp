@@ -23,6 +23,23 @@ SourceView::SourceView(SourceViewRef ref, const SourceFile* file) :
 #endif
 }
 
+SourceView::SourceView(SourceViewRef ref, const SourceFile* file, const std::string_view content) :
+    ref_(ref)
+{
+    if (file)
+    {
+        file_         = file;
+        fileRef_      = file->ref();
+        ownerFileRef_ = fileRef_;
+    }
+
+    stringView_ = content;
+
+#if SWC_HAS_REF_DEBUG_INFO
+    ref_.dbgPtr = this;
+#endif
+}
+
 Utf8 SourceView::codeLine(const TaskContext& ctx, uint32_t line) const
 {
     const uint32_t localLine = clampLine(line) - 1;

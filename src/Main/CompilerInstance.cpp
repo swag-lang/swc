@@ -92,12 +92,34 @@ private:
 
 namespace
 {
+    constexpr size_t SOURCE_VIEW_LOOKUP_CACHE_SIZE = 8;
+
+    struct SourceViewLookupCacheEntry
+    {
+        uint64_t   compilerInstanceSerial = 0;
+        SourceViewRef ref                 = SourceViewRef::invalid();
+        SourceView* view                  = nullptr;
+    };
+
+    struct SourceViewLookupCache
+    {
+        std::array<SourceViewLookupCacheEntry, SOURCE_VIEW_LOOKUP_CACHE_SIZE> entries;
+    };
+
+    thread_local SourceViewLookupCache g_SourceViewLookupCache;
+    std::atomic<uint64_t>              g_NextCompilerInstanceSerial = 1;
+
     uint64_t       g_RuntimeContextTlsId;
     std::once_flag g_RuntimeContextTlsIdOnce;
 
     fs::path generatedSourceOutputDirectory(const CompilerInstance& compiler);
     fs::path generatedSourceDumpPath(const CompilerInstance& compiler, uint32_t threadIndex);
     Utf8     buildModuleNamespaceName(const CompilerInstance& compiler);
+
+    uint64_t nextCompilerInstanceSerial()
+    {
+        return g_NextCompilerInstanceSerial.fetch_add(1, std::memory_order_relaxed);
+    }
 
     void reapplyBuildCfgPresetOverrides(Runtime::BuildCfg& buildCfg, const Runtime::BuildCfg& explicitBuildCfg)
     {
@@ -1183,7 +1205,8 @@ namespace
 CompilerInstance::CompilerInstance(const Global& global, const CommandLine& cmdLine) :
     cmdLine_(&cmdLine),
     global_(&global),
-    buildCfg_(cmdLine.defaultBuildCfg)
+    buildCfg_(cmdLine.defaultBuildCfg),
+    instanceSerial_(nextCompilerInstanceSerial())
 {
     (void) runtimeContextTlsId();
 
@@ -1976,21 +1999,57 @@ SourceView& CompilerInstance::addSourceView(FileRef fileRef)
     return *srcViews_.back();
 }
 
+SourceView* CompilerInstance::tryCachedSourceView(const SourceViewRef ref) const
+{
+    constexpr size_t cacheMask = SOURCE_VIEW_LOOKUP_CACHE_SIZE - 1;
+    static_assert((SOURCE_VIEW_LOOKUP_CACHE_SIZE & cacheMask) == 0);
+
+    // SourceView instances are individually heap-owned, so the pointer remains
+    // stable even when the owning lookup table grows on another thread.
+    const size_t                    cacheIndex = (static_cast<size_t>(ref.get()) ^ static_cast<size_t>(instanceSerial_)) & cacheMask;
+    SourceViewLookupCacheEntry&     entry      = g_SourceViewLookupCache.entries[cacheIndex];
+    if (entry.compilerInstanceSerial != instanceSerial_ || entry.ref != ref)
+        return nullptr;
+
+    return entry.view;
+}
+
+void CompilerInstance::cacheSourceView(const SourceViewRef ref, SourceView* view) const
+{
+    constexpr size_t cacheMask = SOURCE_VIEW_LOOKUP_CACHE_SIZE - 1;
+    static_assert((SOURCE_VIEW_LOOKUP_CACHE_SIZE & cacheMask) == 0);
+
+    const size_t cacheIndex = (static_cast<size_t>(ref.get()) ^ static_cast<size_t>(instanceSerial_)) & cacheMask;
+    g_SourceViewLookupCache.entries[cacheIndex] = {
+        .compilerInstanceSerial = instanceSerial_,
+        .ref                    = ref,
+        .view                   = view,
+    };
+}
+
 SourceView& CompilerInstance::srcView(SourceViewRef ref)
 {
+    if (SourceView* view = tryCachedSourceView(ref))
+        return *view;
+
     const std::shared_lock lock(mutex_);
     SWC_ASSERT(ref.get() < srcViews_.size());
 
     SourceView* view = srcViews_[ref.get()].get();
+    cacheSourceView(ref, view);
     return *(view);
 }
 
 const SourceView& CompilerInstance::srcView(SourceViewRef ref) const
 {
+    if (SourceView* view = tryCachedSourceView(ref))
+        return *view;
+
     const std::shared_lock lock(mutex_);
     SWC_ASSERT(ref.get() < srcViews_.size());
 
-    const SourceView* view = srcViews_[ref.get()].get();
+    SourceView* view = srcViews_[ref.get()].get();
+    cacheSourceView(ref, view);
     return *(view);
 }
 

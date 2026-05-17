@@ -299,6 +299,8 @@ private:
     ExitCode    runWorkspace();
     Result      runWorkspaceModule(const WorkspaceModuleBuild& moduleBuild, uint32_t moduleIndex, uint32_t moduleCount) const;
     Result      flushGeneratedSourceDumps(TaskContext& ctx);
+    SourceView* tryCachedSourceView(SourceViewRef ref) const;
+    void        cacheSourceView(SourceViewRef ref, SourceView* view) const;
 
     const CommandLine*                       cmdLine_ = nullptr;
     const Global*                            global_  = nullptr;
@@ -339,6 +341,7 @@ private:
     void*                                    runtimeAllocatorITable_[2]{};
     void*                                    runtimeCompilerITable_[4]{};
     mutable std::shared_mutex                mutex_;
+    uint64_t                                 instanceSerial_                 = 0;
     std::atomic<bool>                        changed_{true};
     std::mutex                               globalFunctionBindingsMutex_;
     std::atomic<uint64_t>                    globalFunctionBindingsVersion_{1};

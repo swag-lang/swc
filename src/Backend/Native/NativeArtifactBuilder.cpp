@@ -59,17 +59,6 @@ namespace
 
     TestSourceLocation resolveTestSourceLocation(TaskContext& ctx, const CompilerInstance& compiler, const SymbolFunction& symbol);
 
-    const SourceFile* sourceFileFromView(const CompilerInstance& compiler, const SourceView* view)
-    {
-        if (!view)
-            return nullptr;
-        if (view->ownerFileRef().isValid())
-            return &compiler.file(view->ownerFileRef());
-        if (view->fileRef().isValid())
-            return &compiler.file(view->fileRef());
-        return view->file();
-    }
-
     Utf8 testSourceFileName(const SourceFile* sourceFile)
     {
         if (!sourceFile)
@@ -170,7 +159,7 @@ namespace
             return result;
 
         const SourceView& declView   = compiler.srcView(viewRef);
-        const SourceFile* sourceFile = sourceFileFromView(compiler, &declView);
+        const SourceFile* sourceFile = compiler.owningSourceFile(declView);
         const Ast*        sourceAst  = sourceFile && sourceFile->ast().hasSourceView() ? &sourceFile->ast() : nullptr;
         SourceCodeRange   codeRange;
 
@@ -187,14 +176,14 @@ namespace
             codeRange = symbol.codeRange(ctx);
         }
 
-        const SourceFile* codeRangeFile = sourceFileFromView(compiler, codeRange.srcView);
+        const SourceFile* codeRangeFile = compiler.owningSourceFile(codeRange.srcView);
         if (!assignTestSourceFileName(result.fileName, codeRangeFile))
             assignTestSourceFileName(result.fileName, sourceFile);
 
         if (result.fileName == "<unknown>" && symbol.srcViewRef().isValid())
         {
             const SourceView& symbolView = compiler.srcView(symbol.srcViewRef());
-            assignTestSourceFileName(result.fileName, sourceFileFromView(compiler, &symbolView));
+            assignTestSourceFileName(result.fileName, compiler.owningSourceFile(symbolView));
         }
 
         result.line = codeRange.line;

@@ -209,6 +209,10 @@ public:
     SourceView&                           addBufferedSourceView(FileRef fileRef, std::string_view content);
     SourceView&                           srcView(SourceViewRef ref);
     const SourceView&                     srcView(SourceViewRef ref) const;
+    const SourceFile*                     sourceViewFile(SourceViewRef ref) const;
+    const SourceFile*                     sourceViewFile(const Symbol& symbol) const;
+    const SourceFile*                     owningSourceFile(const SourceView& srcView) const;
+    const SourceFile*                     owningSourceFile(const SourceView* srcView) const;
     const SourceView*                     findSourceViewByFileName(std::string_view fileName) const;
     size_t                                numPerThreadData() const noexcept { return perThreadData_.size(); }
     const ModuleApiPerThreadData&         moduleApiPerThreadData(size_t index) const { return perThreadData_[index].moduleApi; }

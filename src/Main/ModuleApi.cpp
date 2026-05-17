@@ -71,15 +71,6 @@ namespace
         bool                       isImpl  = false;
     };
 
-    const SourceFile* sourceFileFromRef(const CompilerInstance& compiler, const SourceViewRef srcViewRef)
-    {
-        if (!srcViewRef.isValid())
-            return nullptr;
-
-        const SourceView& srcView = compiler.srcView(srcViewRef);
-        return srcView.file();
-    }
-
     Utf8 buildCfgString(const Runtime::String& value)
     {
         if (!value.ptr || !value.length)
@@ -112,14 +103,9 @@ namespace
         return "module";
     }
 
-    const SourceFile* sourceFileFromSymbol(const CompilerInstance& compiler, const Symbol& symbol)
-    {
-        return sourceFileFromRef(compiler, symbol.srcViewRef());
-    }
-
     bool isCurrentModuleSymbol(const CompilerInstance& compiler, const Symbol& symbol)
     {
-        const SourceFile* sourceFile = sourceFileFromSymbol(compiler, symbol);
+        const SourceFile* sourceFile = compiler.sourceViewFile(symbol);
         if (!sourceFile)
             return false;
 
@@ -274,7 +260,7 @@ namespace
 
     bool isLegacyExportedSymbol(const CompilerInstance& compiler, const Symbol& symbol)
     {
-        const SourceFile* sourceFile = sourceFileFromSymbol(compiler, symbol);
+        const SourceFile* sourceFile = compiler.sourceViewFile(symbol);
         return sourceFile && isLegacyExportedFile(*sourceFile);
     }
 
@@ -2358,7 +2344,7 @@ namespace ModuleApi
         if (!symbol.isPublic())
             return;
 
-        const SourceFile* sourceFile = sourceFileFromRef(ctx.compiler(), symbol.srcViewRef());
+        const SourceFile* sourceFile = ctx.compiler().sourceViewFile(symbol);
         if (!sourceFile || !sourceFile->hasFlag(FileFlagsE::ModuleSrc) || sourceFile->isImportedApi())
             return;
         if (!symbol.decl())

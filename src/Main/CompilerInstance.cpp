@@ -124,19 +124,10 @@ namespace
         return owner->isNamespace() && owner->idRef().isValid();
     }
 
-    const SourceFile* sourceFileFromRef(const CompilerInstance& compiler, const SourceViewRef srcViewRef)
-    {
-        if (!srcViewRef.isValid())
-            return nullptr;
-
-        const SourceView& srcView = compiler.srcView(srcViewRef);
-        return srcView.file();
-    }
-
     template<typename T>
     bool isImportedApiSource(const CompilerInstance& compiler, const T& symbol)
     {
-        const SourceFile* sourceFile = sourceFileFromRef(compiler, symbol.srcViewRef());
+        const SourceFile* sourceFile = compiler.sourceViewFile(symbol);
         return sourceFile && sourceFile->isImportedApi();
     }
 
@@ -241,7 +232,7 @@ namespace
             return Result::Continue;
         }
 
-        const SourceFile* listenerFile = sourceFileFromRef(ctx.compiler(), dispatch.function->srcViewRef());
+        const SourceFile* listenerFile = ctx.compiler().sourceViewFile(*dispatch.function);
         if (!listenerFile)
             return Result::Error;
 
@@ -272,7 +263,7 @@ namespace
         const TaskState& state = ctx.state();
         if (state.codeRef.srcViewRef.isValid())
         {
-            const SourceFile* file = sourceFileFromRef(ctx.compiler(), state.codeRef.srcViewRef);
+            const SourceFile* file = ctx.compiler().sourceViewFile(state.codeRef.srcViewRef);
             if (file && file->moduleNamespace())
                 return file->moduleNamespace();
         }
@@ -307,7 +298,7 @@ namespace
         if (!isModuleLevelSymbol(symbol))
             return false;
 
-        const SourceFile* sourceFile = sourceFileFromRef(compiler, symbol.srcViewRef());
+        const SourceFile* sourceFile = compiler.sourceViewFile(symbol);
         return sourceFile && !sourceFile->isRuntime();
     }
 
@@ -324,7 +315,7 @@ namespace
         if (!isModuleLevelSymbol(symbol))
             return false;
 
-        const SourceFile* sourceFile = sourceFileFromRef(compiler, symbol.srcViewRef());
+        const SourceFile* sourceFile = compiler.sourceViewFile(symbol);
         return sourceFile && !sourceFile->isRuntime();
     }
 
@@ -339,7 +330,7 @@ namespace
         if (!isModuleLevelSymbol(symbol))
             return false;
 
-        const SourceFile* sourceFile = sourceFileFromRef(compiler, symbol.srcViewRef());
+        const SourceFile* sourceFile = compiler.sourceViewFile(symbol);
         return sourceFile && !sourceFile->isRuntime();
     }
 
@@ -1986,6 +1977,36 @@ const SourceView& CompilerInstance::srcView(SourceViewRef ref) const
     return *srcViewLookup_->at(ref.get());
 }
 
+const SourceFile* CompilerInstance::sourceViewFile(SourceViewRef ref) const
+{
+    if (!ref.isValid())
+        return nullptr;
+
+    return srcView(ref).file();
+}
+
+const SourceFile* CompilerInstance::sourceViewFile(const Symbol& symbol) const
+{
+    return sourceViewFile(symbol.srcViewRef());
+}
+
+const SourceFile* CompilerInstance::owningSourceFile(const SourceView& srcView) const
+{
+    if (srcView.ownerFileRef().isValid())
+        return &file(srcView.ownerFileRef());
+    if (srcView.fileRef().isValid())
+        return &file(srcView.fileRef());
+    return srcView.file();
+}
+
+const SourceFile* CompilerInstance::owningSourceFile(const SourceView* srcView) const
+{
+    if (!srcView)
+        return nullptr;
+
+    return owningSourceFile(*srcView);
+}
+
 const SourceView* CompilerInstance::findSourceViewByFileName(const std::string_view fileName) const
 {
     if (fileName.empty())
@@ -2132,10 +2153,10 @@ void CompilerInstance::enqueueCompilerMessageTypeInfoPreparation(TaskContext& ct
     if (typeRef.isInvalid())
         return;
 
-    if (!listenerFunction || ownerNodeRef.isInvalid() || sourceFileFromRef(*this, listenerFunction->srcViewRef()) == nullptr)
+    if (!listenerFunction || ownerNodeRef.isInvalid() || sourceViewFile(*listenerFunction) == nullptr)
         return;
 
-    const SourceFile* listenerFile = sourceFileFromRef(*this, listenerFunction->srcViewRef());
+    const SourceFile* listenerFile = sourceViewFile(*listenerFunction);
     if (!listenerFile)
         return;
 
@@ -2172,7 +2193,7 @@ Result CompilerInstance::ensureCompilerMessageTypeInfoPrepared(TaskContext& ctx,
     if (tryGetCompilerMessageTypeInfo(typeRef, runtimeTypeInfo))
         return Result::Continue;
 
-    if (!listenerFunction || ownerNodeRef.isInvalid() || sourceFileFromRef(*this, listenerFunction->srcViewRef()) == nullptr)
+    if (!listenerFunction || ownerNodeRef.isInvalid() || sourceViewFile(*listenerFunction) == nullptr)
         return Result::Continue;
 
     enqueueCompilerMessageTypeInfoPreparation(ctx, listenerFunction, ownerNodeRef, event);
@@ -2328,7 +2349,7 @@ void CompilerInstance::onSymbolSemaCompleted(TaskContext& ctx, Symbol& symbol)
         {
             if (!(listener.mask & compilerMessageBit(event.kind)))
                 continue;
-            if (!listener.function || listener.nodeRef.isInvalid() || sourceFileFromRef(*this, listener.function->srcViewRef()) == nullptr)
+            if (!listener.function || listener.nodeRef.isInvalid() || sourceViewFile(*listener.function) == nullptr)
                 continue;
 
             preparationFunction = listener.function;

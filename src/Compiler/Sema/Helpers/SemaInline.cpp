@@ -883,7 +883,7 @@ namespace
         if (ioBindings.empty())
             return Result::Continue;
 
-        SmallVector<IdentifierRef>    localIdentifiers;
+        SmallVector<IdentifierRef> localIdentifiers;
         collectInlineLocalIdentifiers(sema, sourceAst, decl.nodeBodyRef, localIdentifiers);
         SmallVector<IdentifierRef> capturedIdentifiers;
         collectInlineClosureCaptureIdentifiers(sema, sourceAst, decl.nodeBodyRef, capturedIdentifiers, false);

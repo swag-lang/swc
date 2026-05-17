@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "Compiler/Sema/Helpers/SemaSpecOp.h"
-#include "Compiler/Lexer/Lexer.h"
 #include "Compiler/Lexer/LangSpec.h"
+#include "Compiler/Lexer/Lexer.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Parser/Parser/Parser.h"
 #include "Compiler/Parser/Parser/ParserJob.h"
@@ -2080,9 +2080,9 @@ namespace
 
     Result prepareGeneratedSourceView(Sema& sema, const std::string_view source, PreparedGeneratedSourceView& outPrepared)
     {
-        CompilerInstance& compiler = sema.compiler();
-        const SourceView& ownerSrcView  = sema.ast().srcView();
-        FileRef           ownerFileRef  = ownerSrcView.ownerFileRef();
+        CompilerInstance& compiler     = sema.compiler();
+        const SourceView& ownerSrcView = sema.ast().srcView();
+        FileRef           ownerFileRef = ownerSrcView.ownerFileRef();
         if (!ownerFileRef.isValid())
             ownerFileRef = ownerSrcView.fileRef();
         SWC_ASSERT(ownerFileRef.isValid());
@@ -2102,8 +2102,8 @@ namespace
         if (source.empty())
             return Result::Continue;
 
-        TaskContext&      ctx       = sema.ctx();
-        CompilerInstance& compiler  = sema.compiler();
+        TaskContext&      ctx      = sema.ctx();
+        CompilerInstance& compiler = sema.compiler();
 
         PreparedGeneratedSourceView prepared;
         SWC_RESULT(prepareGeneratedSourceView(sema, source, prepared));
@@ -2137,8 +2137,8 @@ namespace
         if (source.empty())
             return Result::Continue;
 
-        TaskContext&      ctx       = sema.ctx();
-        CompilerInstance& compiler  = sema.compiler();
+        TaskContext&      ctx      = sema.ctx();
+        CompilerInstance& compiler = sema.compiler();
 
         PreparedGeneratedSourceView prepared;
         SWC_RESULT(prepareGeneratedSourceView(sema, source, prepared));
@@ -2146,8 +2146,8 @@ namespace
         if (prepared.hasError || srcView.mustSkip() || !srcView.runsSema())
             return Result::Continue;
 
-        const uint64_t errorsBefore = Stats::getNumErrors();
-        Parser         parser;
+        const uint64_t   errorsBefore = Stats::getNumErrors();
+        Parser           parser;
         const AstNodeRef generatedRoot = parser.parseGenerated(ctx, sema.ast(), srcView, ParserGeneratedMode::TopLevel);
         if (Stats::getNumErrors() != errorsBefore || generatedRoot.isInvalid())
             return Result::Continue;

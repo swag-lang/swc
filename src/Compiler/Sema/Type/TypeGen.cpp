@@ -47,7 +47,7 @@ TypeGen::TypeGenCache& TypeGen::cacheFor(const DataSegment& storage)
 
 Result TypeGen::makeTypeInfo(Sema& sema, DataSegment& storage, TypeRef typeRef, AstNodeRef ownerNodeRef, TypeGenResult& result, const LockMode lockMode)
 {
-    auto& cache = cacheFor(storage);
+    auto&            cache = cacheFor(storage);
     std::unique_lock lock(cache.mutex, std::defer_lock);
 
     if (lockMode == LockMode::TryLock)

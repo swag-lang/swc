@@ -102,7 +102,7 @@ namespace
 
     ConstCallCacheStorage& constCallCacheStorage()
     {
-        static thread_local ConstCallCacheStorage storage;
+        thread_local ConstCallCacheStorage storage;
         return storage;
     }
 
@@ -460,12 +460,12 @@ namespace
     {
         TaskContext& ctx = sema.ctx();
 
-        auto pendingEntry = std::make_shared<JITPendingNodeData>();
-        pendingEntry->payload = payload;
-        pendingEntry->resultMeta = resultMeta;
+        auto pendingEntry                 = std::make_shared<JITPendingNodeData>();
+        pendingEntry->payload             = payload;
+        pendingEntry->resultMeta          = resultMeta;
         pendingEntry->setFoldedTypedConst = setFoldedTypedConst;
-        request.completionPayload = pendingEntry;
-        const Result submitResult = sema.compiler().jitExecMgr().submit(ctx, request);
+        request.completionPayload         = pendingEntry;
+        const Result submitResult         = sema.compiler().jitExecMgr().submit(ctx, request);
         if (submitResult == Result::Pause)
             return Result::Pause;
 
@@ -1153,7 +1153,7 @@ Result SemaJIT::runStatement(Sema& sema, SymbolFunction& symFn, AstNodeRef nodeR
 
 void SemaJIT::clearConstCallCache()
 {
-    auto& storage = constCallCacheStorage();
+    auto& storage    = constCallCacheStorage();
     storage.clientId = 0;
     storage.entries.clear();
 }

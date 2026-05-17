@@ -17,8 +17,8 @@ struct JobManager::RecordPool
     static constexpr std::size_t                                K_TLS_MAX = 1024; // cap per thread to avoid unbounded growth
 };
 
-thread_local size_t                                      JobManager::threadIndex_ = 0;
-thread_local std::vector<std::unique_ptr<JobRecord>>     JobManager::RecordPool::tls;
+thread_local size_t                                  JobManager::threadIndex_ = 0;
+thread_local std::vector<std::unique_ptr<JobRecord>> JobManager::RecordPool::tls;
 
 #if SWC_DEV_MODE
 namespace

@@ -275,7 +275,7 @@ namespace
     CodeGenNodePayload resolveIdentifierVariablePayload(CodeGen& codeGen, const SymbolVariable& symVar)
     {
         const SymbolVariable& payloadSym = *canonicalFunctionVariableSymbol(codeGen, symVar);
-        CodeGenNodePayload implicitFieldPayload;
+        CodeGenNodePayload    implicitFieldPayload;
         if (tryResolveImplicitReceiverFieldPayload(codeGen, payloadSym, implicitFieldPayload))
             return implicitFieldPayload;
 
@@ -576,7 +576,7 @@ namespace
             }
             else
             {
-                const TypeInfo& symType = codeGen.typeMgr().get(symVar.typeRef());
+                const TypeInfo& symType        = codeGen.typeMgr().get(symVar.typeRef());
                 TypeRef         storageTypeRef = symVar.typeRef();
                 if (const TypeRef unwrappedTypeRef = symType.unwrap(codeGen.ctx(), symVar.typeRef(), TypeExpandE::Alias); unwrappedTypeRef.isValid())
                     storageTypeRef = unwrappedTypeRef;
@@ -641,7 +641,7 @@ namespace
                 {
                     // Prefer the declared default storage blob before falling back to zero-init for plain
                     // uninitialized stack locals.
-                    const TypeInfo& symType = codeGen.typeMgr().get(symVar.typeRef());
+                    const TypeInfo& symType        = codeGen.typeMgr().get(symVar.typeRef());
                     TypeRef         storageTypeRef = symVar.typeRef();
                     if (const TypeRef unwrappedTypeRef = symType.unwrap(codeGen.ctx(), symVar.typeRef(), TypeExpandE::Alias); unwrappedTypeRef.isValid())
                         storageTypeRef = unwrappedTypeRef;

@@ -765,7 +765,7 @@ void SymbolStruct::computeImplicitDefaultFlags(Sema& sema) const
             if (!field)
                 continue;
 
-            ImplicitDefaultKind fieldKind = ImplicitDefaultKind::Mixed;
+            auto fieldKind = ImplicitDefaultKind::Mixed;
             if (field->hasExtraFlag(SymbolVariableFlagsE::ExplicitUndefined))
             {
                 fieldKind = ImplicitDefaultKind::AllUndefined;

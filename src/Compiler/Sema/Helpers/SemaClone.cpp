@@ -275,8 +275,8 @@ namespace
         if (!sourceStorageSym.typeRef().isValid())
             return &sourceStorageSym;
 
-        auto& clonedStorage = SemaHelpers::registerUniqueRuntimeStorageSymbol(sema, sema.node(clonedRef), "__cast_runtime_storage");
-        const Result result = SemaHelpers::ensureRuntimeStorageDeclaredAndCompleted(sema, clonedStorage, sourceStorageSym.typeRef());
+        auto&        clonedStorage = SemaHelpers::registerUniqueRuntimeStorageSymbol(sema, sema.node(clonedRef), "__cast_runtime_storage");
+        const Result result        = SemaHelpers::ensureRuntimeStorageDeclaredAndCompleted(sema, clonedStorage, sourceStorageSym.typeRef());
         SWC_ASSERT(result == Result::Continue);
         if (result != Result::Continue)
             return &sourceStorageSym;

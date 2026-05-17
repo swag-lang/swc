@@ -21,11 +21,11 @@ struct SymbolStructUsingPathStep
 
 enum class SymbolStructFlagsE : uint8_t
 {
-    Zero            = 0,
-    TypeInfo        = 1 << 0,
-    GenericRoot     = 1 << 1,
-    GenericInstance = 1 << 2,
-    Union           = 1 << 3,
+    Zero                = 0,
+    TypeInfo            = 1 << 0,
+    GenericRoot         = 1 << 1,
+    GenericInstance     = 1 << 2,
+    Union               = 1 << 3,
     DefaultClassified   = 1 << 4,
     DefaultAllZero      = 1 << 5,
     DefaultAllUndefined = 1 << 6,
@@ -126,9 +126,9 @@ private:
     std::vector<SymbolFunction*>      specOps_;
     mutable std::once_flag            implicitDefaultFlagsOnce_;
     std::once_flag                    defaultStructOnce_;
-    SymbolFunction*                   opDrop_                 = nullptr;
-    SymbolFunction*                   opPostCopy_             = nullptr;
-    SymbolFunction*                   opPostMove_             = nullptr;
+    SymbolFunction*                   opDrop_     = nullptr;
+    SymbolFunction*                   opPostCopy_ = nullptr;
+    SymbolFunction*                   opPostMove_ = nullptr;
     mutable std::mutex                generatedLifecycleMutex_;
     mutable std::mutex                generatedOperatorsMutex_;
     mutable std::atomic<GenericData*> genericData_            = nullptr;

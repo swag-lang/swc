@@ -54,19 +54,19 @@ namespace Unittest
 // Fast DevMode unit tests run on every compiler launch. By design they must never touch the filesystem:
 // no creating/removing directories, no reading/writing files, and no depending on materialized build outputs.
 // Any test that needs filesystem access must opt into SWC_FILESYSTEM_TEST_BEGIN so it only runs with --dev-full.
-#define SWC_TEST_BEGIN(__name)                                             \
-    namespace                                                              \
-    {                                                                      \
-        swc::Result                        __name(swc::TaskContext&);      \
+#define SWC_TEST_BEGIN(__name)                                                            \
+    namespace                                                                             \
+    {                                                                                     \
+        swc::Result                        __name(swc::TaskContext&);                     \
         const swc::Unittest::TestRegistrar reg_##__name{#__name, &__name, SWC_TEST_KIND}; \
-        swc::Result                        __name(swc::TaskContext& ctx)   \
+        swc::Result                        __name(swc::TaskContext& ctx)                  \
         {
-#define SWC_FILESYSTEM_TEST_BEGIN(__name)                                  \
-    namespace                                                              \
-    {                                                                      \
-        swc::Result                        __name(swc::TaskContext&);      \
+#define SWC_FILESYSTEM_TEST_BEGIN(__name)                                                                       \
+    namespace                                                                                                   \
+    {                                                                                                           \
+        swc::Result                        __name(swc::TaskContext&);                                           \
         const swc::Unittest::TestRegistrar reg_##__name{#__name, &__name, swc::Unittest::TestKind::Filesystem}; \
-        swc::Result                        __name(swc::TaskContext& ctx)   \
+        swc::Result                        __name(swc::TaskContext& ctx)                                        \
         {
 #define SWC_TEST_END()            \
     return swc::Result::Continue; \

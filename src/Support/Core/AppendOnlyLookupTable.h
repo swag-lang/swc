@@ -12,7 +12,7 @@ public:
 
     static constexpr uint32_t CHUNK_SIZE = 1u << CHUNK_BITS;
     static constexpr uint32_t CHUNK_MASK = CHUNK_SIZE - 1;
-    using Chunk                         = std::array<std::atomic<T*>, CHUNK_SIZE>;
+    using Chunk                          = std::array<std::atomic<T*>, CHUNK_SIZE>;
 
     AppendOnlyLookupTable()
     {

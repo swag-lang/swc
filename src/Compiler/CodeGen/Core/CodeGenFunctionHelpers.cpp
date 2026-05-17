@@ -651,12 +651,12 @@ Result CodeGenFunctionHelpers::emitStructDefaultValue(CodeGen& codeGen, TypeRef 
     if (symStruct.hasImplicitAllUndefinedDefault())
         return Result::Continue;
 
-    const uint32_t sizeOf = checkedTypeSizeInBytes(codeGen, typeInfo);
-    MicroBuilder&  builder = codeGen.builder();
+    const uint32_t sizeOf    = checkedTypeSizeInBytes(codeGen, typeInfo);
+    MicroBuilder&  builder   = codeGen.builder();
     const auto     loopLabel = builder.createLabel();
     const auto     doneLabel = builder.createLabel();
     const auto     cursorReg = codeGen.nextVirtualIntRegister();
-    const auto     iterReg = codeGen.nextVirtualIntRegister();
+    const auto     iterReg   = codeGen.nextVirtualIntRegister();
     builder.emitLoadRegReg(cursorReg, dstAddressReg, MicroOpBits::B64);
     builder.emitLoadRegReg(iterReg, countReg, MicroOpBits::B64);
     builder.emitCmpRegImm(iterReg, ApInt(0, 64), MicroOpBits::B64);

@@ -363,7 +363,7 @@ SWC_TEST_BEGIN(Compiler_GeneratedAstMaterializesPerThreadFiles)
             return Result::Error;
         if (!fs::exists(file->path()))
             return Result::Error;
-        if (!file->path().filename().string().contains("generated-thread-"))
+        if (!file->path().filename().string().contains("generated-source-"))
             return Result::Error;
         if (file->path().extension() != ".swgsrc")
             return Result::Error;
@@ -375,8 +375,8 @@ SWC_TEST_BEGIN(Compiler_GeneratedAstMaterializesPerThreadFiles)
         appendUniquePath(generatedPaths, file->path());
     }
 
-    // Generated snippets can land in one or more per-thread dumps depending on
-    // which compiler thread materializes each section.
+    // Generated snippets can land in one or more generated-source dumps depending
+    // on which compiler thread materializes each section.
     if (generatedPaths.empty() || generatedPaths.size() > generatedFiles.size())
         return Result::Error;
 

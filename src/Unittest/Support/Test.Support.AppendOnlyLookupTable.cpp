@@ -9,7 +9,7 @@ SWC_BEGIN_NAMESPACE();
 
 SWC_TEST_BEGIN(AppendOnlyLookupTable_GrowsAcrossChunks)
 {
-    AppendOnlyLookupTable<int, 2> table;
+    AppendOnlyLookupTable<int, 2>     table;
     std::vector<std::unique_ptr<int>> values;
     values.reserve(10);
     for (int i = 0; i < 10; ++i)
@@ -39,8 +39,7 @@ SWC_TEST_BEGIN(AppendOnlyLookupTable_ConcurrentReaderSeesPublishedEntries)
         values[i] = static_cast<int>(i * 3 + 1);
 
     std::atomic<bool> readerOk = true;
-    std::thread       reader([&]
-    {
+    std::thread       reader([&] {
         uint32_t observed = 0;
         while (observed < VALUE_COUNT)
         {

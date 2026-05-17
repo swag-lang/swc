@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "Main/ModuleApi.h"
 #include "Backend/RuntimeName.h"
 #include "Compiler/Lexer/Lexer.h"
 #include "Compiler/Lexer/SourceView.h"
@@ -14,7 +15,6 @@
 #include "Main/Command/CommandLineParser.h"
 #include "Main/CompilerInstance.h"
 #include "Main/FileSystem.h"
-#include "Main/ModuleApi.h"
 #include "Main/TaskContext.h"
 #include "Support/Report/Diagnostic.h"
 

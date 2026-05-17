@@ -693,7 +693,7 @@ namespace
     {
         const fs::path directory = generatedSourceOutputDirectory(compiler);
         const Utf8     baseName  = generatedSourceDumpBaseName(compiler);
-        return (directory / std::format("{}-generated-thread-{}.swgsrc", baseName.c_str(), threadIndex)).lexically_normal();
+        return (directory / std::format("{}-generated-source-{}.swgsrc", baseName.c_str(), threadIndex)).lexically_normal();
     }
 
     Utf8 buildModuleNamespaceName(const CompilerInstance& compiler)

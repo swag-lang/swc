@@ -928,9 +928,9 @@ namespace
                                            fieldOwnerSymMap->isStruct() &&
                                            &explicitType->payloadSymStruct() == &fieldOwnerSymMap->cast<SymbolStruct>();
 
-        ConstantRef implicitStructCstRef     = ConstantRef::invalid();
-        bool        implicitStructZeroInit   = false;
-        bool        implicitStructNoInit     = false;
+        ConstantRef implicitStructCstRef   = ConstantRef::invalid();
+        bool        implicitStructZeroInit = false;
+        bool        implicitStructNoInit   = false;
         if (context.nodeInitRef.isInvalid() && !isParameter && explicitTypeRef.isValid() && explicitType && explicitType->isStruct())
         {
             if (!directSelfStructField)

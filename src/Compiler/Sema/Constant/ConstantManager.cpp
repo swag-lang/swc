@@ -813,7 +813,7 @@ Result ConstantManager::makeTypeInfo(Sema& sema, ConstantRef& outRef, TypeRef ty
         return Result::Continue;
     }
 
-    TypeGen::TypeGenResult infoResult;
+    TypeGen::TypeGenResult  infoResult;
     const TypeGen::LockMode typeGenLockMode = lockMode == TypeInfoLockMode::TryLock ? TypeGen::LockMode::TryLock : TypeGen::LockMode::Wait;
     SWC_RESULT(sema.typeGen().makeTypeInfo(sema, shard.dataSegment, typeRef, ownerNodeRef, infoResult, typeGenLockMode));
     SWC_ASSERT(infoResult.span.data());

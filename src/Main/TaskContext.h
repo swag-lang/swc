@@ -41,24 +41,24 @@ public:
     IdentifierManager&       idMgr();
     const IdentifierManager& idMgr() const;
 
-    bool                      silentDiagnostic() const { return silentDiagnostic_; }
-    void                      setSilentDiagnostic(bool silent) { silentDiagnostic_ = silent; }
-    bool                      reportToStats() const { return reportToStats_; }
-    void                      setReportToStats(bool reportToStats) { reportToStats_ = reportToStats; }
-    bool                      muteOutput() const { return muteOutput_; }
-    void                      setMuteOutput(bool mute) { muteOutput_ = mute; }
-    void                      setHasError() { hasError_ = true; }
-    void                      setHasWarning() { hasWarning_ = true; }
-    bool                      hasError() const { return hasError_; }
-    bool                      hasWarning() const { return hasWarning_; }
-    std::shared_ptr<void>&    genericNodeRunCache() { return genericNodeRunCache_; }
+    bool                         silentDiagnostic() const { return silentDiagnostic_; }
+    void                         setSilentDiagnostic(bool silent) { silentDiagnostic_ = silent; }
+    bool                         reportToStats() const { return reportToStats_; }
+    void                         setReportToStats(bool reportToStats) { reportToStats_ = reportToStats; }
+    bool                         muteOutput() const { return muteOutput_; }
+    void                         setMuteOutput(bool mute) { muteOutput_ = mute; }
+    void                         setHasError() { hasError_ = true; }
+    void                         setHasWarning() { hasWarning_ = true; }
+    bool                         hasError() const { return hasError_; }
+    bool                         hasWarning() const { return hasWarning_; }
+    std::shared_ptr<void>&       genericNodeRunCache() { return genericNodeRunCache_; }
     const std::shared_ptr<void>& genericNodeRunCache() const { return genericNodeRunCache_; }
-    std::shared_ptr<void>&    genericInstanceNodeRunCache() { return genericInstanceNodeRunCache_; }
+    std::shared_ptr<void>&       genericInstanceNodeRunCache() { return genericInstanceNodeRunCache_; }
     const std::shared_ptr<void>& genericInstanceNodeRunCache() const { return genericInstanceNodeRunCache_; }
-    std::shared_ptr<void>&    genericImplBlockRunCache() { return genericImplBlockRunCache_; }
+    std::shared_ptr<void>&       genericImplBlockRunCache() { return genericImplBlockRunCache_; }
     const std::shared_ptr<void>& genericImplBlockRunCache() const { return genericImplBlockRunCache_; }
-    static const TaskContext* current() noexcept { return current_; }
-    static const TaskContext* setCurrent(const TaskContext* ctx) noexcept;
+    static const TaskContext*    current() noexcept { return current_; }
+    static const TaskContext*    setCurrent(const TaskContext* ctx) noexcept;
 
 private:
     friend class TaskScopedContext;

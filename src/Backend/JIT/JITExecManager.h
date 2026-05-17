@@ -28,8 +28,8 @@ public:
         bool                         runImmediate = false;
         // Returned to the caller with consumeCompletion so queued requests can
         // keep companion state without a second global registry.
-        std::shared_ptr<void>        completionPayload;
-        std::function<void(Result)>  onCompleted;
+        std::shared_ptr<void>       completionPayload;
+        std::function<void(Result)> onCompleted;
     };
 
     struct Completion

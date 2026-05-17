@@ -656,8 +656,8 @@ namespace
         if (!dstAddressReg.isValid())
             return Result::Continue;
 
-        const TypeInfo& fillType = codeGen.typeMgr().get(targetInfo.fillTypeRef);
-        uint32_t        constantCount = 0;
+        const TypeInfo& fillType         = codeGen.typeMgr().get(targetInfo.fillTypeRef);
+        uint32_t        constantCount    = 0;
         const bool      hasConstantCount = tryIntrinsicInitConstantCount(codeGen, node.nodeCountRef, constantCount);
         if (args.empty() && fillType.isStruct())
         {

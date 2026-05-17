@@ -488,7 +488,7 @@ namespace
             bindings = inlinePayload->argMappings.span();
         }
 
-        AstNodeRef clonedRef = AstNodeRef::invalid();
+        AstNodeRef clonedRef                     = AstNodeRef::invalid();
         const bool preserveResolvedCallerSymbols = isMacroInject;
         if (sema.node(exprRef).is(AstNodeId::CompilerCodeExpr) &&
             !injectCloneDependsOnContext(sema, rawRef, bindings, replacements))
@@ -722,8 +722,8 @@ namespace
         outSrcView     = nullptr;
         outStartTokRef = TokenRef::invalid();
 
-        uint32_t       sectionCodeOffset = 0;
-        const Utf8     sectionText       = buildCompilerAstGeneratedSection(sema, ownerRef, generatedCode, sectionCodeOffset);
+        uint32_t   sectionCodeOffset = 0;
+        const Utf8 sectionText       = buildCompilerAstGeneratedSection(sema, ownerRef, generatedCode, sectionCodeOffset);
 
         CompilerInstance::GeneratedSourceAppendResult appendResult;
         Utf8                                          because;
@@ -1552,7 +1552,7 @@ namespace
         SWC_ASSERT(viewType != nullptr);
         SWC_ASSERT(!viewCstRef.isValid() || viewCst != nullptr);
 
-        outTypeRef = viewTypeRef;
+        outTypeRef            = viewTypeRef;
         const bool isTypeLike = viewType->isTypeValue() || viewType->isAnyTypeInfo(sema.ctx()) || sema.typeMgr().isRuntimeTypeInfoPointer(sema.ctx(), viewTypeRef);
         if (isTypeLike)
         {

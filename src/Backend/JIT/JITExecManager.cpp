@@ -122,9 +122,9 @@ JITExecManager::Completion JITExecManager::consumeCompletion(const TaskContext& 
         return {};
 
     Completion completion = {
-        .hasValue           = true,
-        .result             = item.result,
-        .completionPayload  = item.request.completionPayload,
+        .hasValue          = true,
+        .result            = item.result,
+        .completionPayload = item.request.completionPayload,
     };
     items_.erase(it);
     return completion;

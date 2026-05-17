@@ -215,13 +215,13 @@ public:
     const std::vector<fs::path>&          importedDependencyLinkDirs() const { return importedDependencyLinkDirs_; }
     const std::vector<ModuleSetupImport>& moduleSetupImports() const { return moduleSetupImports_; }
 
-    Result                       collectFiles(TaskContext& ctx);
-    Result                       runModuleSetup(TaskContext& ctx);
-    static Result                exportModuleApi(TaskContext& ctx);
-    std::vector<SourceFile*>     files() const;
-    bool                         isModuleSetupMode() const { return moduleSetupMode_; }
-    Result                       registerModuleSetupImport(std::string_view moduleName, std::string_view location, std::string_view version, Runtime::BuildCfgBackendKind linkBackendKind = Runtime::BuildCfgBackendKind::None);
-    Result                       registerModuleSetupLoad(const fs::path& filePath);
+    Result                   collectFiles(TaskContext& ctx);
+    Result                   runModuleSetup(TaskContext& ctx);
+    static Result            exportModuleApi(TaskContext& ctx);
+    std::vector<SourceFile*> files() const;
+    bool                     isModuleSetupMode() const { return moduleSetupMode_; }
+    Result                   registerModuleSetupImport(std::string_view moduleName, std::string_view location, std::string_view version, Runtime::BuildCfgBackendKind linkBackendKind = Runtime::BuildCfgBackendKind::None);
+    Result                   registerModuleSetupLoad(const fs::path& filePath);
 
     template<typename T, typename... ARGS>
     T* allocate(ARGS&&... args)
@@ -294,8 +294,8 @@ private:
         explicit SourceViewBuffer(std::string_view content);
         std::string_view view() const;
 
-        static constexpr uint32_t        TRAILING_0 = 4;
-        std::vector<char8_t>             content;
+        static constexpr uint32_t TRAILING_0 = 4;
+        std::vector<char8_t>      content;
     };
 
     SourceFile& addResolvedFile(fs::path path, FileFlags flags);
@@ -313,53 +313,53 @@ private:
     Result      runWorkspaceModule(const WorkspaceModuleBuild& moduleBuild, uint32_t moduleIndex, uint32_t moduleCount) const;
     Result      flushGeneratedSourceDumps(TaskContext& ctx);
 
-    const CommandLine*                       cmdLine_ = nullptr;
-    const Global*                            global_  = nullptr;
-    std::vector<std::unique_ptr<SourceFile>> files_;
-    std::vector<std::unique_ptr<SourceView>> srcViews_;
-    std::vector<std::unique_ptr<SourceViewBuffer>> srcViewBuffers_;
+    const CommandLine*                                 cmdLine_ = nullptr;
+    const Global*                                      global_  = nullptr;
+    std::vector<std::unique_ptr<SourceFile>>           files_;
+    std::vector<std::unique_ptr<SourceView>>           srcViews_;
+    std::vector<std::unique_ptr<SourceViewBuffer>>     srcViewBuffers_;
     std::unique_ptr<AppendOnlyLookupTable<SourceFile>> fileLookup_;
     std::unique_ptr<AppendOnlyLookupTable<SourceView>> srcViewLookup_;
-    std::unique_ptr<TypeManager>             typeMgr_;
-    std::unique_ptr<TypeGen>                 typeGen_;
-    std::unique_ptr<ConstantManager>         cstMgr_;
-    std::unique_ptr<IdentifierManager>       idMgr_;
-    std::unique_ptr<JITMemoryManager>        jitMemMgr_;
-    std::unique_ptr<ExternalModuleManager>   externalModuleMgr_;
-    SymbolModule*                            symModule_   = nullptr;
-    JobClientId                              jobClientId_ = 0;
-    fs::path                                 modulePathSrc_;
-    fs::path                                 modulePathFile_;
-    fs::path                                 exeFullName_;
-    DataSegment                              constantSegment_;
-    DataSegment                              globalZeroSegment_;
-    DataSegment                              globalInitSegment_;
-    DataSegment                              compilerSegment_;
-    Runtime::BuildCfg                        buildCfg_{};
-    bool                                     moduleSetupMode_ = false;
-    std::vector<ModuleSetupImport>           moduleSetupImports_;
-    std::set<fs::path>                       moduleSetupLoadedFiles_;
-    std::vector<fs::path>                    importedDependencyLinkDirs_;
-    std::vector<std::unique_ptr<Utf8>>       ownedBuildCfgStrings_;
-    const ModuleSetupSnapshot*               precomputedModuleSetup_ = nullptr;
-    Utf8                                     lastArtifactLabel_;
-    WorkspaceBuildLogState                   workspaceBuildLogState_{};
-    std::optional<WorkspaceModuleLogState>   workspaceModuleLogState_;
-    bool                                     suppressBuildConfigurationLog_ = false;
-    uint64_t                                 commandWallTimeNs_             = 0;
-    Runtime::ICompiler                       runtimeCompiler_{};
-    Runtime::IAllocator                      runtimeAllocator_{};
-    Runtime::CompilerMessage                 runtimeCompilerMessage_{};
-    std::unique_ptr<JITExecManager>          jitExecMgr_;
-    void*                                    runtimeAllocatorITable_[2]{};
-    void*                                    runtimeCompilerITable_[4]{};
-    mutable std::shared_mutex                stateMutex_;
-    mutable std::mutex                       sourceStorageMutex_;
-    std::atomic<bool>                        changed_{true};
-    std::mutex                               globalFunctionBindingsMutex_;
-    std::atomic<uint64_t>                    globalFunctionBindingsVersion_{1};
-    std::atomic<uint64_t>                    patchedGlobalFunctionBindingsVersion_{0};
-    std::atomic<uint64_t>                    nativeGlobalFunctionInitTargetsVersion_{1};
+    std::unique_ptr<TypeManager>                       typeMgr_;
+    std::unique_ptr<TypeGen>                           typeGen_;
+    std::unique_ptr<ConstantManager>                   cstMgr_;
+    std::unique_ptr<IdentifierManager>                 idMgr_;
+    std::unique_ptr<JITMemoryManager>                  jitMemMgr_;
+    std::unique_ptr<ExternalModuleManager>             externalModuleMgr_;
+    SymbolModule*                                      symModule_   = nullptr;
+    JobClientId                                        jobClientId_ = 0;
+    fs::path                                           modulePathSrc_;
+    fs::path                                           modulePathFile_;
+    fs::path                                           exeFullName_;
+    DataSegment                                        constantSegment_;
+    DataSegment                                        globalZeroSegment_;
+    DataSegment                                        globalInitSegment_;
+    DataSegment                                        compilerSegment_;
+    Runtime::BuildCfg                                  buildCfg_{};
+    bool                                               moduleSetupMode_ = false;
+    std::vector<ModuleSetupImport>                     moduleSetupImports_;
+    std::set<fs::path>                                 moduleSetupLoadedFiles_;
+    std::vector<fs::path>                              importedDependencyLinkDirs_;
+    std::vector<std::unique_ptr<Utf8>>                 ownedBuildCfgStrings_;
+    const ModuleSetupSnapshot*                         precomputedModuleSetup_ = nullptr;
+    Utf8                                               lastArtifactLabel_;
+    WorkspaceBuildLogState                             workspaceBuildLogState_{};
+    std::optional<WorkspaceModuleLogState>             workspaceModuleLogState_;
+    bool                                               suppressBuildConfigurationLog_ = false;
+    uint64_t                                           commandWallTimeNs_             = 0;
+    Runtime::ICompiler                                 runtimeCompiler_{};
+    Runtime::IAllocator                                runtimeAllocator_{};
+    Runtime::CompilerMessage                           runtimeCompilerMessage_{};
+    std::unique_ptr<JITExecManager>                    jitExecMgr_;
+    void*                                              runtimeAllocatorITable_[2]{};
+    void*                                              runtimeCompilerITable_[4]{};
+    mutable std::shared_mutex                          stateMutex_;
+    mutable std::mutex                                 sourceStorageMutex_;
+    std::atomic<bool>                                  changed_{true};
+    std::mutex                                         globalFunctionBindingsMutex_;
+    std::atomic<uint64_t>                              globalFunctionBindingsVersion_{1};
+    std::atomic<uint64_t>                              patchedGlobalFunctionBindingsVersion_{0};
+    std::atomic<uint64_t>                              nativeGlobalFunctionInitTargetsVersion_{1};
 
     struct PerThreadData
     {
@@ -371,9 +371,9 @@ private:
             bool     dirty          = false;
         };
 
-        Arena                  arena;
-        Runtime::Context       runtimeContext{};
-        ModuleApiPerThreadData moduleApi;
+        Arena                     arena;
+        Runtime::Context          runtimeContext{};
+        ModuleApiPerThreadData    moduleApi;
         GeneratedSourceThreadData generatedSource;
     };
 
@@ -395,9 +395,9 @@ private:
     std::unordered_map<TypeRef, const Runtime::TypeInfo*> compilerMessageTypeInfoCache_;
     std::unordered_set<TypeRef>                           compilerMessageTypeInfoPrepScheduled_;
     std::deque<CompilerMessageTypeInfoPrepRequest>        compilerMessageTypeInfoPrepQueue_;
-    std::atomic<uint64_t>                                 compilerMessageActiveMask_            = 0;
-    std::atomic<uint64_t>                                 compilerMessageExecutedPassMask_      = 0;
-    std::atomic<bool>                                     compilerMessageTypeInfoPrepFailed_    = false;
+    std::atomic<uint64_t>                                 compilerMessageActiveMask_         = 0;
+    std::atomic<uint64_t>                                 compilerMessageExecutedPassMask_   = 0;
+    std::atomic<bool>                                     compilerMessageTypeInfoPrepFailed_ = false;
     std::once_flag                                        nativeRuntimeContextTlsIdOffsetOnce_;
     std::once_flag                                        nativeProcessInfosOffsetOnce_;
     uint32_t                                              nativeRuntimeContextTlsIdOffset_ = UINT32_MAX;

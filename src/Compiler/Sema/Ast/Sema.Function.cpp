@@ -193,7 +193,7 @@ namespace
         if (!state || !(*state))
             return nullptr;
 
-        return static_cast<LazyGenericBodyRun*>((*state).get());
+        return static_cast<LazyGenericBodyRun*>(state->get());
     }
 
     LazyGenericBodyRun& ensureLazyGenericBodyRun(const TaskContext& ctx, const SymbolFunction& calledFn)
@@ -266,7 +266,7 @@ namespace
         if (!state || !(*state))
             return;
 
-        auto* run = static_cast<LazyGenericBodyRun*>((*state).get());
+        auto* run = static_cast<LazyGenericBodyRun*>(state->get());
         SWC_ASSERT(run != nullptr);
         run->running = false;
         if (result != Result::Pause)

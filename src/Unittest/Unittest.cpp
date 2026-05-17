@@ -157,8 +157,8 @@ namespace Unittest
         TimedActionLog::ScopedStage stage(testCtx, TimedActionLog::Stage::Unittest);
         Logger::ScopedStageMute     muteNestedStages(testCtx.global().logger());
 
-        bool                         hasFailure      = false;
-        uint64_t                     setupDurationNs = 0;
+        bool                         hasFailure             = false;
+        uint64_t                     setupDurationNs        = 0;
         size_t                       skippedFilesystemTests = 0;
         std::vector<TimedTestResult> timedTests;
         const bool                   verboseUnittest = ctx.cmdLine().verboseUnittest;
@@ -186,7 +186,7 @@ namespace Unittest
             const Timer::Tick startTick  = Timer::Clock::now();
             const Result      result     = test.fn(testCtx);
             const uint64_t    durationNs = std::chrono::duration_cast<std::chrono::nanoseconds>(Timer::Clock::now() - startTick).count();
-            const bool ok = result == Result::Continue;
+            const bool        ok         = result == Result::Continue;
 
             timedTests.push_back({test.name, durationNs});
             if (ok)

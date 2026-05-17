@@ -4,6 +4,7 @@
 #include "Main/CompilerTagRegistry.h"
 #include "Main/ExitCodes.h"
 #include "Main/ModuleApi.h"
+#include "Support/Core/AppendOnlyLookupTable.h"
 #include "Support/Core/DataSegment.h"
 #include "Support/Core/Utf8.h"
 #include "Support/Memory/Arena.h"
@@ -32,9 +33,6 @@ class SourceFile;
 class JITExecManager;
 class CompilerMessageTypeInfoJob;
 struct CommandLine;
-
-template<typename T>
-class AppendOnlyLookupTable;
 
 class CompilerInstance
 {

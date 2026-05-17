@@ -23,11 +23,13 @@
 #include "Main/Command/Command.h"
 #include "Main/Command/CommandLine.h"
 #include "Main/Command/CommandLineParser.h"
+#include "Main/CompilerMessageTypeInfoJob.h"
 #include "Main/ExternalModuleManager.h"
 #include "Main/FileSystem.h"
 #include "Main/Global.h"
 #include "Main/Stats.h"
 #include "Main/TaskContext.h"
+#include "Support/Core/AppendOnlyLookupTable.h"
 #include "Support/Core/Timer.h"
 #include "Support/Core/Utf8Helper.h"
 #include "Support/Math/Hash.h"
@@ -43,133 +45,8 @@ SWC_BEGIN_NAMESPACE();
 
 bool CompilerInstance::dbgDevStop = false;
 
-class CompilerMessageTypeInfoJob : public Job
-{
-public:
-    explicit CompilerMessageTypeInfoJob(const TaskContext& ctx) :
-        Job(ctx, JobKind::CompilerMessage)
-    {
-    }
-
-    JobResult exec() override
-    {
-        SWC_DEV_LOOP_GUARD(loopGuard, 1000000, "CompilerMessageTypeInfoJob::exec");
-        while (true)
-        {
-            SWC_DEV_LOOP_TICK(loopGuard);
-            if (!hasCurrentRequest_)
-            {
-                if (!ctx().compiler().tryPopCompilerMessageTypeInfoPreparation(currentRequest_))
-                    return JobResult::Done;
-                hasCurrentRequest_ = true;
-            }
-
-            ctx().state().setNone();
-            if (!currentRequest_.listenerFile || currentRequest_.ownerNodeRef.isInvalid() || currentRequest_.typeRef.isInvalid())
-            {
-                hasCurrentRequest_ = false;
-                continue;
-            }
-
-            Sema         sema(ctx(), currentRequest_.listenerFile->nodePayloadContext(), false);
-            const Result result = ctx().compiler().prepareCompilerMessageTypeInfo(sema, currentRequest_.typeRef, currentRequest_.ownerNodeRef);
-            if (result == Result::Pause)
-                return JobResult::Sleep;
-
-            hasCurrentRequest_ = false;
-            if (result == Result::Error)
-            {
-                ctx().compiler().markCompilerMessageTypeInfoPreparationFailed();
-                return JobResult::Done;
-            }
-        }
-    }
-
-private:
-    CompilerInstance::CompilerMessageTypeInfoPrepRequest currentRequest_;
-    bool                                                 hasCurrentRequest_ = false;
-};
-
-template<typename T>
-class AppendOnlyLookupTable
-{
-public:
-    // Readers only need ref->pointer lookup, so publish append-only slots and keep
-    // ownership elsewhere. This avoids taking CompilerInstance source-storage locks on hot paths.
-    static constexpr uint32_t CHUNK_BITS = 8;
-    static constexpr uint32_t CHUNK_SIZE = 1u << CHUNK_BITS;
-    static constexpr uint32_t CHUNK_MASK = CHUNK_SIZE - 1;
-    using Chunk                         = std::array<std::atomic<T*>, CHUNK_SIZE>;
-
-    AppendOnlyLookupTable()
-    {
-        publishChunkSnapshot();
-    }
-
-    uint32_t size() const
-    {
-        return size_.load(std::memory_order_acquire);
-    }
-
-    void pushBack(T* value)
-    {
-        SWC_ASSERT(value != nullptr);
-
-        const uint32_t index      = size_.load(std::memory_order_relaxed);
-        const uint32_t chunkIndex = index >> CHUNK_BITS;
-        const uint32_t chunkSlot  = index & CHUNK_MASK;
-        if (chunkIndex == chunks_.size())
-        {
-            auto chunk = std::make_unique<Chunk>();
-            for (std::atomic<T*>& slot : *chunk)
-                slot.store(nullptr, std::memory_order_relaxed);
-            chunks_.push_back(std::move(chunk));
-            publishChunkSnapshot();
-        }
-
-        chunks_[chunkIndex]->at(chunkSlot).store(value, std::memory_order_release);
-        size_.store(index + 1, std::memory_order_release);
-    }
-
-    T* at(const uint32_t index) const
-    {
-        const uint32_t publishedSize = size_.load(std::memory_order_acquire);
-        SWC_ASSERT(index < publishedSize);
-
-        const auto* chunks = publishedChunks_.load(std::memory_order_acquire);
-        SWC_ASSERT(chunks != nullptr);
-
-        const uint32_t chunkIndex = index >> CHUNK_BITS;
-        const uint32_t chunkSlot  = index & CHUNK_MASK;
-        SWC_ASSERT(chunkIndex < chunks->size());
-
-        T* value = (*chunks)[chunkIndex]->at(chunkSlot).load(std::memory_order_acquire);
-        SWC_ASSERT(value != nullptr);
-        return value;
-    }
-
-private:
-    void publishChunkSnapshot()
-    {
-        auto chunkSnapshot = std::make_unique<std::vector<Chunk*>>();
-        chunkSnapshot->reserve(chunks_.size());
-        for (const auto& chunk : chunks_)
-            chunkSnapshot->push_back(chunk.get());
-
-        const auto* published = chunkSnapshot.get();
-        publishedChunkStorage_.push_back(std::move(chunkSnapshot));
-        publishedChunks_.store(published, std::memory_order_release);
-    }
-
-    std::vector<std::unique_ptr<Chunk>>                    chunks_;
-    std::vector<std::unique_ptr<const std::vector<Chunk*>>> publishedChunkStorage_;
-    std::atomic<const std::vector<Chunk*>*>                publishedChunks_{nullptr};
-    std::atomic<uint32_t>                                  size_{0};
-};
-
 namespace
 {
-
     uint64_t       g_RuntimeContextTlsId;
     std::once_flag g_RuntimeContextTlsIdOnce;
 
@@ -654,7 +531,7 @@ namespace
         if (generatedCode.empty())
             return Result::Continue;
 
-        CompilerInstance& compiler  = ctx.compiler();
+        CompilerInstance&                             compiler = ctx.compiler();
         CompilerInstance::GeneratedSourceAppendResult appendResult;
         Utf8                                          because;
         if (compiler.appendGeneratedSource(appendResult, because, generatedCode, 0) != Result::Continue)
@@ -2120,7 +1997,7 @@ const SourceView* CompilerInstance::findSourceViewByFileName(const std::string_v
     const uint32_t numSourceViews = srcViewLookup_->size();
     for (uint32_t i = 0; i < numSourceViews; ++i)
     {
-        const SourceView* srcView = srcViewLookup_->at(i);
+        const SourceView* srcView    = srcViewLookup_->at(i);
         const SourceFile* sourceFile = srcView->file();
         if (!sourceFile)
             continue;
@@ -2571,8 +2448,8 @@ Result CompilerInstance::appendGeneratedSource(GeneratedSourceAppendResult& outR
 
     SWC_ASSERT(codeOffsetInSection <= sectionText.size());
 
-    const auto  threadIndex = static_cast<uint32_t>(JobManager::threadIndex());
-    auto&       generated   = perThreadData_[threadIndex].generatedSource;
+    const auto threadIndex = static_cast<uint32_t>(JobManager::threadIndex());
+    auto&      generated   = perThreadData_[threadIndex].generatedSource;
     if (generated.path.empty())
         generated.path = generatedSourceDumpPath(*this, threadIndex);
 

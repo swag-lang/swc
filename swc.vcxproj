@@ -182,6 +182,7 @@
         <ClCompile Include="src\Unittest\Native\Test.Native.NativeArtifact.cpp"/>
         <ClCompile Include="src\Unittest\Sema\Test.Sema.Purity.cpp"/>
         <ClCompile Include="src\Unittest\Support\Test.Support.JobManager.cpp"/>
+        <ClCompile Include="src\Unittest\Support\Test.Support.AppendOnlyLookupTable.cpp"/>
         <ClCompile Include="src\Unittest\Support\Test.Support.PagedStore.cpp"/>
         <ClCompile Include="src\Unittest\UnittestHelpers.cpp"/>
         <ClCompile Include="src\Support\Thread\Job.cpp"/>
@@ -319,6 +320,7 @@
         <ClCompile Include="src\Main\Command\CommandLineParser.Help.cpp"/>
         <ClCompile Include="src\Main\FileSystem.cpp"/>
         <ClCompile Include="src\Main\Global.cpp"/>
+        <ClCompile Include="src\Main\CompilerMessageTypeInfoJob.cpp"/>
         <ClCompile Include="src\Main\CompilerTagRegistry.cpp"/>
         <ClCompile Include="src\Main\CompilerInstance.cpp"/>
         <ClCompile Include="src\Main\ExternalModuleManager.cpp"/>
@@ -526,6 +528,7 @@
         <ClInclude Include="src\Compiler\CodeGen\Core\CodeGenJob.h"/>
         <ClInclude Include="src\Compiler\Sema\Constant\ConstantIntrinsic.h"/>
         <ClInclude Include="src\Main\ExitCodes.h"/>
+        <ClInclude Include="src\Support\Core\AppendOnlyLookupTable.h"/>
         <ClInclude Include="src\Support\Core\ByteSpan.h"/>
         <ClInclude Include="src\Support\Core\DenseBits.h"/>
         <ClInclude Include="src\Support\Core\DataSegment.h"/>
@@ -561,6 +564,7 @@
         <ClInclude Include="src\Main\TaskState.h"/>
         <ClInclude Include="src\Main\FileSystem.h"/>
         <ClInclude Include="src\Main\Global.h"/>
+        <ClInclude Include="src\Main\CompilerMessageTypeInfoJob.h"/>
         <ClInclude Include="src\Main\CompilerTagRegistry.h"/>
         <ClInclude Include="src\Main\CompilerInstance.h"/>
         <ClInclude Include="src\Main\ExternalModuleManager.h"/>

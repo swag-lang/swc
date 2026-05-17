@@ -53,6 +53,8 @@ public:
     bool                      hasWarning() const { return hasWarning_; }
     std::shared_ptr<void>&    genericNodeRunCache() { return genericNodeRunCache_; }
     const std::shared_ptr<void>& genericNodeRunCache() const { return genericNodeRunCache_; }
+    std::shared_ptr<void>&    genericInstanceNodeRunCache() { return genericInstanceNodeRunCache_; }
+    const std::shared_ptr<void>& genericInstanceNodeRunCache() const { return genericInstanceNodeRunCache_; }
     static const TaskContext* current() noexcept { return current_; }
     static const TaskContext* setCurrent(const TaskContext* ctx) noexcept;
 
@@ -69,6 +71,7 @@ private:
     bool                                          hasWarning_       = false;
     TaskState                                     state_;
     std::shared_ptr<void>                         genericNodeRunCache_;
+    std::shared_ptr<void>                         genericInstanceNodeRunCache_;
     inline static thread_local const TaskContext* current_ = nullptr;
 };
 

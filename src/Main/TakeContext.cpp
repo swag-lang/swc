@@ -45,6 +45,7 @@ TaskContext& TaskContext::operator=(const TaskContext& other)
     hasWarning_       = other.hasWarning_;
     state_            = other.state_;
     genericNodeRunCache_.reset();
+    genericInstanceNodeRunCache_.reset();
     return *this;
 }
 

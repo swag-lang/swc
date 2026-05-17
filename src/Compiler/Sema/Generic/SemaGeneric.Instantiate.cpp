@@ -382,8 +382,7 @@ namespace
     };
 
     std::unordered_map<GenericNodeRunKey, CachedSemaRun, GenericNodeRunKeyHash>&                 genericNodeRuns(TaskContext& ctx);
-    std::mutex&                                                                                  genericInstanceNodeRunMutex();
-    std::unordered_map<GenericInstanceNodeRunKey, CachedSemaRun, GenericInstanceNodeRunKeyHash>& genericInstanceNodeRuns();
+    std::unordered_map<GenericInstanceNodeRunKey, CachedSemaRun, GenericInstanceNodeRunKeyHash>& genericInstanceNodeRuns(TaskContext& ctx);
 
     struct GenericImplBlockRunKey
     {
@@ -494,7 +493,7 @@ namespace
             prepareGenericNodeRunContext(*child, sema, root);
             return child;
         };
-        return runCachedSema(sema, genericInstanceNodeRunMutex(), genericInstanceNodeRuns(), key, instance, initRun);
+        return runCachedSema(sema, genericInstanceNodeRuns(sema.ctx()), key, instance, initRun);
     }
 
     void appendEnclosingFunctionGenericCloneBindings(Sema& sema, const SymbolFunction& root, SmallVector<SemaClone::ParamBinding>& outBindings)
@@ -637,16 +636,18 @@ namespace
         return sema.viewStored(nodeRef, SemaNodeViewPartE::Constant).cstRef().isValid();
     }
 
-    std::mutex& genericInstanceNodeRunMutex()
+    std::unordered_map<GenericInstanceNodeRunKey, CachedSemaRun, GenericInstanceNodeRunKeyHash>& genericInstanceNodeRuns(TaskContext& ctx)
     {
-        static std::mutex mutex;
-        return mutex;
-    }
+        auto& cache = ctx.genericInstanceNodeRunCache();
+        if (!cache)
+        {
+            // Generic-instance runs are keyed by task context already, so keep their
+            // paused-child cache with that owning task instead of funnelling every
+            // lookup through a process-wide mutex.
+            cache = std::make_shared<std::unordered_map<GenericInstanceNodeRunKey, CachedSemaRun, GenericInstanceNodeRunKeyHash>>();
+        }
 
-    std::unordered_map<GenericInstanceNodeRunKey, CachedSemaRun, GenericInstanceNodeRunKeyHash>& genericInstanceNodeRuns()
-    {
-        static std::unordered_map<GenericInstanceNodeRunKey, CachedSemaRun, GenericInstanceNodeRunKeyHash> runs;
-        return runs;
+        return *std::static_pointer_cast<std::unordered_map<GenericInstanceNodeRunKey, CachedSemaRun, GenericInstanceNodeRunKeyHash>>(cache);
     }
 
     std::mutex& genericImplBlockRunMutex()

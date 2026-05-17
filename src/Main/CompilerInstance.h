@@ -398,7 +398,6 @@ private:
     std::atomic<uint64_t>                                 compilerMessageActiveMask_            = 0;
     std::atomic<uint64_t>                                 compilerMessageExecutedPassMask_      = 0;
     std::atomic<bool>                                     compilerMessageTypeInfoPrepFailed_    = false;
-    bool                                                  compilerMessageTypeInfoPrepJobQueued_ = false;
     std::once_flag                                        nativeRuntimeContextTlsIdOffsetOnce_;
     std::once_flag                                        nativeProcessInfosOffsetOnce_;
     uint32_t                                              nativeRuntimeContextTlsIdOffset_ = UINT32_MAX;

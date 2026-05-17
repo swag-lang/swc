@@ -2114,7 +2114,6 @@ bool CompilerInstance::tryPopCompilerMessageTypeInfoPreparation(CompilerMessageT
         return true;
     }
 
-    compilerMessageTypeInfoPrepJobQueued_ = false;
     return false;
 }
 
@@ -2140,7 +2139,6 @@ void CompilerInstance::enqueueCompilerMessageTypeInfoPreparation(TaskContext& ct
     if (!listenerFile)
         return;
 
-    bool enqueueJob = false;
     {
         const std::scoped_lock lock(compilerMessageMutex_);
         if (compilerMessageTypeInfoCache_.contains(typeRef))
@@ -2154,16 +2152,10 @@ void CompilerInstance::enqueueCompilerMessageTypeInfoPreparation(TaskContext& ct
         request.ownerNodeRef = ownerNodeRef;
         request.typeRef      = typeRef;
         compilerMessageTypeInfoPrepQueue_.push_back(request);
-
-        enqueueJob                            = !compilerMessageTypeInfoPrepJobQueued_;
-        compilerMessageTypeInfoPrepJobQueued_ = true;
     }
 
-    if (enqueueJob)
-    {
-        auto* job = heapNew<CompilerMessageTypeInfoJob>(ctx);
-        global().jobMgr().enqueue(*job, JobPriority::Normal, jobClientId());
-    }
+    auto* job = heapNew<CompilerMessageTypeInfoJob>(ctx);
+    global().jobMgr().enqueue(*job, JobPriority::Normal, jobClientId());
     notifyAlive();
 }
 

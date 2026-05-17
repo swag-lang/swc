@@ -28,6 +28,9 @@ void CommandLineParser::registerCommands()
                               {"format", CommandKind::Format},
                               {"syntax", CommandKind::Syntax},
                               {"sema", CommandKind::Sema},
+#if SWC_HAS_UNITTEST
+                              {"unittest", CommandKind::Unittest},
+#endif
                               {"test", CommandKind::Test},
                               {"build", CommandKind::Build},
                               {"run", CommandKind::Run},
@@ -203,10 +206,7 @@ void CommandLineParser::registerCommands()
         "Force every compiled development test and validation.");
 
 #if SWC_HAS_UNITTEST
-    add(HelpOptionGroup::Development, "all", "--unittest", "-ut",
-        &cmdLine_->unittest,
-        "Run internal C++ unit tests before executing command.");
-    add(HelpOptionGroup::Development, "all", "--verbose-unittest", "-vu",
+    add(HelpOptionGroup::Development, "unittest", "--verbose-unittest", "-vu",
         &cmdLine_->verboseUnittest,
         "Print each internal unit test status.");
 #endif

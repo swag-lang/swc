@@ -106,6 +106,27 @@ SWC_TEST_BEGIN(Compiler_TestCommandEnablesSourceDrivenModeWhenParsed)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(Compiler_UnittestCommandKeepsSourceDrivenModeDisabledWhenParsed)
+{
+    CommandLine parserCmdLine;
+    char        arg0[] = "swc_devmode";
+    char        arg1[] = "unittest";
+    char        arg2[] = "--verbose-unittest";
+    char*       argv[] = {arg0, arg1, arg2};
+
+    CommandLineParser parser(const_cast<Global&>(ctx.global()), parserCmdLine);
+    if (parser.parse(std::size(argv), argv) != Result::Continue)
+        return Result::Error;
+
+    if (parserCmdLine.command != CommandKind::Unittest)
+        return Result::Error;
+    if (parserCmdLine.sourceDrivenTest)
+        return Result::Error;
+    if (!parserCmdLine.verboseUnittest)
+        return Result::Error;
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

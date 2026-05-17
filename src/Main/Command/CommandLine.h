@@ -4,30 +4,35 @@
 
 SWC_BEGIN_NAMESPACE();
 
-struct CommandInfo
-{
-    const char* name;
-    const char* description;
-};
-
-inline constexpr CommandInfo COMMANDS[] = {
-    {"format", "Parse source files and write formatted source back to disk."},
-    {"syntax", "Check the syntax of the source code without generating any IR or backend code."},
-    {"sema", "Perform semantic analysis on the source code, including type checking."},
-    {"test", "Run source-driven tests, expected diagnostics, and #test functions."},
-    {"build", "Build native artifacts from the input sources without running emitted executables."},
-    {"run", "Build native artifacts from the input sources and run emitted executables when available."},
-};
-
 enum class CommandKind
 {
     Invalid = -1,
     Format,
     Syntax,
     Sema,
+    Unittest,
     Test,
     Build,
     Run,
+};
+
+struct CommandInfo
+{
+    CommandKind kind;
+    const char* name;
+    const char* description;
+};
+
+inline constexpr CommandInfo COMMANDS[] = {
+    {CommandKind::Format, "format", "Parse source files and write formatted source back to disk."},
+    {CommandKind::Syntax, "syntax", "Check the syntax of the source code without generating any IR or backend code."},
+    {CommandKind::Sema, "sema", "Perform semantic analysis on the source code, including type checking."},
+#if SWC_HAS_UNITTEST
+    {CommandKind::Unittest, "unittest", "Run internal C++ unit tests only."},
+#endif
+    {CommandKind::Test, "test", "Run source-driven tests, expected diagnostics, and #test functions."},
+    {CommandKind::Build, "build", "Build native artifacts from the input sources without running emitted executables."},
+    {CommandKind::Run, "run", "Build native artifacts from the input sources and run emitted executables when available."},
 };
 
 inline Runtime::CompilerCommand compilerCommandFromKind(const CommandKind command)
@@ -40,6 +45,7 @@ inline Runtime::CompilerCommand compilerCommandFromKind(const CommandKind comman
             return Runtime::CompilerCommand::Format;
         case CommandKind::Syntax:
         case CommandKind::Sema:
+        case CommandKind::Unittest:
         case CommandKind::Build:
         case CommandKind::Run:
             return Runtime::CompilerCommand::Build;
@@ -105,7 +111,6 @@ struct CommandLine
     bool devFull = false;
 
 #if SWC_HAS_UNITTEST
-    bool unittest        = true;
     bool verboseUnittest = false;
 #endif
 
@@ -153,17 +158,19 @@ constexpr std::string_view commandName(const CommandKind command)
     switch (command)
     {
         case CommandKind::Format:
-            return COMMANDS[0].name;
+            return "format";
         case CommandKind::Syntax:
-            return COMMANDS[1].name;
+            return "syntax";
         case CommandKind::Sema:
-            return COMMANDS[2].name;
+            return "sema";
+        case CommandKind::Unittest:
+            return "unittest";
         case CommandKind::Test:
-            return COMMANDS[3].name;
+            return "test";
         case CommandKind::Build:
-            return COMMANDS[4].name;
+            return "build";
         case CommandKind::Run:
-            return COMMANDS[5].name;
+            return "run";
         case CommandKind::Invalid:
             return "invalid";
     }

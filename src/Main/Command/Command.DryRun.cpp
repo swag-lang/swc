@@ -101,6 +101,7 @@ namespace
             case CommandKind::Format:
             case CommandKind::Syntax:
             case CommandKind::Sema:
+            case CommandKind::Unittest:
                 return result;
 
             case CommandKind::Build:
@@ -263,7 +264,7 @@ namespace
         const CommandLine&              cmdLine = ctx.cmdLine();
         std::vector<Logger::FieldEntry> entries;
 
-        addInfoEntry(entries, "Command", COMMANDS[static_cast<int>(cmdLine.command)].name, LogColor::BrightYellow);
+        addInfoEntry(entries, "Command", commandName(cmdLine.command), LogColor::BrightYellow);
         addInfoEntry(entries, "Build config", cmdLine.buildCfg);
         addInfoEntry(entries, "Resolved inputs", Utf8Helper::countWithLabel(inputSummary.totalFiles, "file"), LogColor::BrightGreen);
         if (nativePreview.enabled || nativePreview.backendKind != Runtime::BuildCfgBackendKind::None)
@@ -308,15 +309,19 @@ namespace
         if (!nativePreview.paths.buildDir.empty() && !nativePreview.paths.name.empty())
             objectFiles = Utf8(nativePreview.paths.buildDir / std::format("{}_<NN>.obj", nativePreview.paths.name).c_str());
 
-#if SWC_HAS_UNITTEST
-        if (cmdLine.unittest)
-            addPlanEntry(entries, index++, "Skip", LogColor::Gray, "internal C++ unittests enabled by the active mode");
-#endif
-
-        addPlanEntry(entries, index++, "Would", LogColor::BrightGreen, std::format("collect and classify {}", inputCount));
+        if (cmdLine.command != CommandKind::Unittest)
+            addPlanEntry(entries, index++, "Would", LogColor::BrightGreen, std::format("collect and classify {}", inputCount));
 
         switch (cmdLine.command)
         {
+            case CommandKind::Unittest:
+                addPlanEntry(entries, index++, "Would", LogColor::BrightGreen, "run fast internal C++ unit tests");
+                if (cmdLine.devFull)
+                    addPlanEntry(entries, index, "Would", LogColor::BrightGreen, "also run filesystem-heavy internal C++ unit tests");
+                else
+                    addPlanEntry(entries, index, "Skip", LogColor::Gray, "filesystem-heavy internal C++ unit tests unless --dev-full is set");
+                break;
+
             case CommandKind::Format:
                 if (formatPreview.enabled)
                 {

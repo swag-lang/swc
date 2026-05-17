@@ -30,7 +30,7 @@ namespace
         const Runtime::BuildCfg&        buildCfg = cmdLine.defaultBuildCfg;
         std::vector<Logger::FieldEntry> entries;
 
-        addInfoEntry(entries, "Command", COMMANDS[static_cast<int>(cmdLine.command)].name, LogColor::BrightYellow);
+        addInfoEntry(entries, "Command", commandName(cmdLine.command), LogColor::BrightYellow);
         addInfoEntry(entries, "Target OS", targetOsName(cmdLine.targetOs));
         addInfoEntry(entries, "Target architecture", targetArchName(cmdLine.targetArch));
         addInfoEntry(entries, "Target CPU", cmdLine.targetCpu);
@@ -66,7 +66,6 @@ namespace
         addBoolEntry(entries, "Dev full", cmdLine.devFull);
 
 #if SWC_HAS_UNITTEST
-        addBoolEntry(entries, "Unittest", cmdLine.unittest);
         addBoolEntry(entries, "Verbose unittest", cmdLine.verboseUnittest);
 #endif
 

@@ -49,13 +49,13 @@ set "CORE_MODULE_FILE=%ROOT%\bin\%CORE_MODULE_REL%\module.swg"
 call "%TOOLS_DIR%_common.bat" :set_paths "std\win32" "export" "%BUILD_CFG%"
 if not "%ERRORLEVEL%"=="0" exit /b %ERRORLEVEL%
 
-call "%TOOLS_DIR%_common.bat" :run_swc build --no-unittest --module-file "%WIN32_MODULE_FILE%" -d "src" --out-dir "%OUT_DIR%" --work-dir "%WORK_DIR%" --build-cfg %BUILD_CFG% --export-api-dir "%OUT_DIR%"%EXTRA_ARGS%
+call "%TOOLS_DIR%_common.bat" :run_swc build --module-file "%WIN32_MODULE_FILE%" -d "src" --out-dir "%OUT_DIR%" --work-dir "%WORK_DIR%" --build-cfg %BUILD_CFG% --export-api-dir "%OUT_DIR%"%EXTRA_ARGS%
 if not "%ERRORLEVEL%"=="0" exit /b %ERRORLEVEL%
 
 call "%TOOLS_DIR%_common.bat" :set_paths "std\xinput" "export" "%BUILD_CFG%"
 if not "%ERRORLEVEL%"=="0" exit /b %ERRORLEVEL%
 
-call "%TOOLS_DIR%_common.bat" :run_swc build --no-unittest --module-file "%XINPUT_MODULE_FILE%" -d "src" --out-dir "%OUT_DIR%" --work-dir "%WORK_DIR%" --build-cfg %BUILD_CFG% --import-api-dir "%DEP_ROOT%" --export-api-dir "%OUT_DIR%"%EXTRA_ARGS%
+call "%TOOLS_DIR%_common.bat" :run_swc build --module-file "%XINPUT_MODULE_FILE%" -d "src" --out-dir "%OUT_DIR%" --work-dir "%WORK_DIR%" --build-cfg %BUILD_CFG% --import-api-dir "%DEP_ROOT%" --export-api-dir "%OUT_DIR%"%EXTRA_ARGS%
 if not "%ERRORLEVEL%"=="0" exit /b %ERRORLEVEL%
 
 call "%TOOLS_DIR%_common.bat" :set_paths "%CORE_OUT_REL%" "%ARTIFACT_KIND%" "%BUILD_CFG%"

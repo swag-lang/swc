@@ -77,10 +77,11 @@ int main(int argc, char* argv[])
     swc::TimedActionLog::printCommandHeader(startupCtx);
 
 #if SWC_HAS_UNITTEST
-    if (cmdLine.unittest && !cmdLine.dryRun && !cmdLine.showConfig)
+    if (cmdLine.command == swc::CommandKind::Unittest && !cmdLine.dryRun && !cmdLine.showConfig)
     {
         if (swc::Unittest::runAll(startupCtx) != swc::Result::Continue)
             return static_cast<int>(swc::ExitCode::ErrorCommand);
+        return static_cast<int>(swc::ExitCode::Success);
     }
 #endif
 

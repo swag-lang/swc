@@ -241,12 +241,10 @@ void CommandLineParser::refreshBuildCfg(CommandLine& cmdLine)
 
 CommandKind CommandLineParser::isAllowedCommand(const Utf8& cmd)
 {
-    int index = 0;
     for (const CommandInfo& allowed : COMMANDS)
     {
         if (allowed.name == cmd)
-            return static_cast<CommandKind>(index);
-        index++;
+            return allowed.kind;
     }
 
     return CommandKind::Invalid;
@@ -851,7 +849,7 @@ Result CommandLineParser::parse(int argc, char* argv[])
     }
     else if (cmdLine_->commandExplicit)
     {
-        command_ = COMMANDS[static_cast<int>(cmdLine_->command)].name;
+        command_ = commandName(cmdLine_->command);
     }
     else
     {
@@ -962,9 +960,6 @@ Result CommandLineParser::checkCommandLine(TaskContext& ctx) const
 
     if (cmdLine_->devFull)
     {
-#if SWC_HAS_UNITTEST
-        cmdLine_->unittest = true;
-#endif
 #if SWC_HAS_VALIDATE_MICRO
         cmdLine_->validateMicro = true;
 #endif

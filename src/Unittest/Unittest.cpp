@@ -27,6 +27,14 @@ namespace Unittest
             uint64_t    durationNs = 0;
         };
 
+        bool shouldRunTest(const CommandLine& cmdLine, const TestCase& test)
+        {
+            if (test.kind == TestKind::Filesystem && !cmdLine.devFull)
+                return false;
+
+            return true;
+        }
+
         CommandLine makeIsolatedUnittestCommandLine(const CommandLine& cmdLine)
         {
             CommandLine result = cmdLine;
@@ -54,7 +62,6 @@ namespace Unittest
             result.sourceDrivenTest     = false;
             result.artifactKindExplicit = false;
             result.commandExplicit      = false;
-            result.unittest             = false;
             result.verboseUnittest      = false;
             return result;
         }
@@ -101,7 +108,7 @@ namespace Unittest
             return result;
         }
 
-        void logUnittestSummary(const TaskContext& ctx, const std::vector<TimedTestResult>& timedTests, uint64_t setupDurationNs)
+        void logUnittestSummary(const TaskContext& ctx, const std::vector<TimedTestResult>& timedTests, uint64_t setupDurationNs, size_t skippedFilesystemTests)
         {
             const uint64_t totalTestDurationNs = totalTestDuration(timedTests);
             const Utf8     testsSummary        = std::format("{} tests ({})", Utf8Helper::toNiceBigNumber(timedTests.size()), formatDuration(totalTestDurationNs));
@@ -109,6 +116,12 @@ namespace Unittest
 
             if (setupDurationNs)
                 Logger::printHeaderDot(ctx, LogColor::BrightCyan, "Setup", LogColor::White, formatDuration(setupDurationNs));
+
+            if (skippedFilesystemTests)
+            {
+                const Utf8 skippedSummary = std::format("{} filesystem tests (run with --dev-full)", Utf8Helper::toNiceBigNumber(skippedFilesystemTests));
+                Logger::printHeaderDot(ctx, LogColor::BrightCyan, "Skipped", LogColor::White, skippedSummary);
+            }
 
             std::vector<TimedTestResult> slowTests = timedTests;
             std::ranges::sort(slowTests, hasLongerDuration);
@@ -146,6 +159,7 @@ namespace Unittest
 
         bool                         hasFailure      = false;
         uint64_t                     setupDurationNs = 0;
+        size_t                       skippedFilesystemTests = 0;
         std::vector<TimedTestResult> timedTests;
         const bool                   verboseUnittest = ctx.cmdLine().verboseUnittest;
         timedTests.reserve(testRegistry().size());
@@ -162,6 +176,13 @@ namespace Unittest
 
         for (const TestCase& test : testRegistry())
         {
+            if (!shouldRunTest(ctx.cmdLine(), test))
+            {
+                if (test.kind == TestKind::Filesystem)
+                    ++skippedFilesystemTests;
+                continue;
+            }
+
             const Timer::Tick startTick  = Timer::Clock::now();
             const Result      result     = test.fn(testCtx);
             const uint64_t    durationNs = std::chrono::duration_cast<std::chrono::nanoseconds>(Timer::Clock::now() - startTick).count();
@@ -184,7 +205,7 @@ namespace Unittest
         }
 
         if (verboseUnittest)
-            logUnittestSummary(testCtx, timedTests, setupDurationNs);
+            logUnittestSummary(testCtx, timedTests, setupDurationNs, skippedFilesystemTests);
 
         return hasFailure ? Result::Error : Result::Continue;
     }

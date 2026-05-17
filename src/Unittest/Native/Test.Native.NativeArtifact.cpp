@@ -75,7 +75,6 @@ namespace
         cmdLine.semaOnly         = false;
         cmdLine.output           = true;
         cmdLine.runtime          = true;
-        cmdLine.unittest         = false;
         cmdLine.verboseUnittest  = false;
         cmdLine.directories.clear();
         cmdLine.files.clear();
@@ -308,7 +307,7 @@ SWC_TEST_BEGIN(NativeArtifact_ExplicitArtifactKindOverridesBuildCfgMutation)
 }
 SWC_TEST_END()
 
-SWC_TEST_BEGIN(NativeArtifact_RDataKeepsOnlyReferencedConstants)
+SWC_FILESYSTEM_TEST_BEGIN(NativeArtifact_RDataKeepsOnlyReferencedConstants)
 {
     const CommandLine commandLine = makeStandaloneNativeArtifactCmdLine("rdata_keeps_only_referenced_constants", Runtime::BuildCfgBackendKind::SharedLibrary);
 
@@ -337,7 +336,7 @@ SWC_TEST_BEGIN(NativeArtifact_RDataKeepsOnlyReferencedConstants)
 }
 SWC_TEST_END()
 
-SWC_TEST_BEGIN(NativeArtifact_RDataAllowsInteriorConstantAddresses)
+SWC_FILESYSTEM_TEST_BEGIN(NativeArtifact_RDataAllowsInteriorConstantAddresses)
 {
     const CommandLine commandLine = makeStandaloneNativeArtifactCmdLine("rdata_allows_interior_constant_addresses", Runtime::BuildCfgBackendKind::SharedLibrary);
 
@@ -375,7 +374,7 @@ SWC_TEST_BEGIN(NativeArtifact_LinkerOutputFilterSuppressesDllImportLibraryLine)
 }
 SWC_TEST_END()
 
-SWC_TEST_BEGIN(NativeArtifact_RDataKeepsReferencedDependencies)
+SWC_FILESYSTEM_TEST_BEGIN(NativeArtifact_RDataKeepsReferencedDependencies)
 {
     const CommandLine commandLine = makeStandaloneNativeArtifactCmdLine("rdata_keeps_referenced_dependencies", Runtime::BuildCfgBackendKind::SharedLibrary);
 
@@ -421,7 +420,7 @@ SWC_TEST_BEGIN(NativeArtifact_RDataKeepsReferencedDependencies)
 }
 SWC_TEST_END()
 
-SWC_TEST_BEGIN(NativeArtifact_RDataEmitsFunctionRelocations)
+SWC_FILESYSTEM_TEST_BEGIN(NativeArtifact_RDataEmitsFunctionRelocations)
 {
     const CommandLine commandLine = makeStandaloneNativeArtifactCmdLine("rdata_emits_function_relocations", Runtime::BuildCfgBackendKind::SharedLibrary);
 
@@ -467,7 +466,7 @@ SWC_TEST_BEGIN(NativeArtifact_RDataEmitsFunctionRelocations)
 }
 SWC_TEST_END()
 
-SWC_TEST_BEGIN(NativeArtifact_StartupCallsRuntimeExitWrapper)
+SWC_FILESYSTEM_TEST_BEGIN(NativeArtifact_StartupCallsRuntimeExitWrapper)
 {
     const CommandLine commandLine = makeStandaloneNativeArtifactCmdLine("startup_calls_runtime_exit_wrapper", Runtime::BuildCfgBackendKind::Executable);
 
@@ -673,7 +672,7 @@ impl Buffer
 }
 SWC_TEST_END()
 
-SWC_TEST_BEGIN(NativeArtifact_TestCountMismatchIsReportedBeforeStartupBuild)
+SWC_FILESYSTEM_TEST_BEGIN(NativeArtifact_TestCountMismatchIsReportedBeforeStartupBuild)
 {
     static constexpr std::string_view SOURCE     = R"(#test
 {

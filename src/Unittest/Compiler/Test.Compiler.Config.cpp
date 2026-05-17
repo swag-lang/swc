@@ -17,6 +17,9 @@
 #include "Unittest/Unittest.h"
 #include "Unittest/UnittestSource.h"
 
+#undef SWC_TEST_KIND
+#define SWC_TEST_KIND swc::Unittest::TestKind::Filesystem
+
 SWC_BEGIN_NAMESPACE();
 
 namespace

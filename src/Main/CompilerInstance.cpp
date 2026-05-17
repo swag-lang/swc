@@ -1400,6 +1400,8 @@ void CompilerInstance::processCommand()
         case CommandKind::Sema:
             Command::sema(*this);
             break;
+        case CommandKind::Unittest:
+            return;
         case CommandKind::Test:
             Command::test(*this);
             break;

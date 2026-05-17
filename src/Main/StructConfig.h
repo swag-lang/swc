@@ -62,16 +62,13 @@ class StructConfigSchema
 {
 public:
     StructConfigEntry& add(const char* name, const StructConfigTarget& target, const char* description = nullptr, StructConfigAssignHook hook = {});
-    StructConfigEntry& add(const char* name, bool* target, const char* description = nullptr, StructConfigAssignHook hook = {});
-    StructConfigEntry& add(const char* name, int* target, const char* description = nullptr, StructConfigAssignHook hook = {});
-    StructConfigEntry& add(const char* name, uint32_t* target, const char* description = nullptr, StructConfigAssignHook hook = {});
-    StructConfigEntry& add(const char* name, Utf8* target, const char* description = nullptr, StructConfigAssignHook hook = {});
-    StructConfigEntry& add(const char* name, fs::path* target, const char* description = nullptr, StructConfigAssignHook hook = {});
-    StructConfigEntry& add(const char* name, std::vector<Utf8>* target, const char* description = nullptr, StructConfigAssignHook hook = {});
-    StructConfigEntry& add(const char* name, std::set<Utf8>* target, const char* description = nullptr, StructConfigAssignHook hook = {});
-    StructConfigEntry& add(const char* name, std::set<fs::path>* target, const char* description = nullptr, StructConfigAssignHook hook = {});
-    StructConfigEntry& add(const char* name, std::optional<bool>* target, const char* description = nullptr, StructConfigAssignHook hook = {});
     StructConfigEntry& addEnum(const char* name, Utf8* target, std::vector<Utf8> choices, const char* description = nullptr, StructConfigAssignHook hook = {});
+
+    template<typename T>
+    StructConfigEntry& add(const char* name, T* target, const char* description = nullptr, StructConfigAssignHook hook = {})
+    {
+        return addImpl(name, description, target, hook);
+    }
 
     template<typename E>
     StructConfigEntry& addEnum(const char* name, E* target, std::initializer_list<std::pair<const char*, E>> choices, const char* description = nullptr, StructConfigAssignHook hook = {})

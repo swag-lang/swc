@@ -6,6 +6,52 @@
 
 SWC_BEGIN_NAMESPACE();
 
+namespace
+{
+    Utf8 formatConfigLocation(const TaskContext& ctx, const fs::path& sourcePath, const uint32_t lineNo)
+    {
+        if (!lineNo)
+            return FileSystem::formatDiagnosticPath(&ctx, sourcePath);
+        return FileSystem::formatFileLocation(&ctx, sourcePath, lineNo);
+    }
+
+    template<typename IntType>
+    bool parseIntegerValue(std::string_view value, IntType& result)
+    {
+        const char* first        = value.data();
+        const char* last         = first + value.size();
+        const auto [ptr, error] = std::from_chars(first, last, result);
+        return !value.empty() && error == std::errc{} && ptr == last;
+    }
+
+    bool reportInvalidScalarValue(TaskContext& ctx, const DiagnosticId diagId, const StructConfigEntry& entry, const fs::path& sourcePath, const uint32_t lineNo, const Utf8& value)
+    {
+        Diagnostic diag = Diagnostic::get(diagId);
+        diag.addArgument(Diagnostic::ARG_ARG, entry.name);
+        diag.addArgument(Diagnostic::ARG_VALUE, value);
+        diag.addArgument(Diagnostic::ARG_PATH, formatConfigLocation(ctx, sourcePath, lineNo));
+        diag.report(ctx);
+        return false;
+    }
+
+    Result reportInvalidConfigEntry(TaskContext& ctx, const fs::path& sourcePath, const uint32_t lineNo, const std::string_view because)
+    {
+        Diagnostic diag = Diagnostic::get(DiagnosticId::cmd_err_config_invalid_entry);
+        diag.addArgument(Diagnostic::ARG_PATH, formatConfigLocation(ctx, sourcePath, lineNo));
+        diag.addArgument(Diagnostic::ARG_BECAUSE, because);
+        diag.report(ctx);
+        return Result::Error;
+    }
+
+    fs::path resolveConfigPathValue(const Utf8& value, const fs::path& baseDir)
+    {
+        fs::path path = value.c_str();
+        if (!value.empty() && path.is_relative())
+            path = (baseDir / path).lexically_normal();
+        return path;
+    }
+}
+
 StructConfigEntry& StructConfigSchema::addImpl(const char* name, const char* description, const StructConfigTarget& target, const StructConfigAssignHook hook)
 {
     StructConfigEntry entry;
@@ -24,51 +70,6 @@ StructConfigEntry& StructConfigSchema::addImpl(const char* name, const char* des
 }
 
 StructConfigEntry& StructConfigSchema::add(const char* name, const StructConfigTarget& target, const char* description, const StructConfigAssignHook hook)
-{
-    return addImpl(name, description, target, hook);
-}
-
-StructConfigEntry& StructConfigSchema::add(const char* name, bool* target, const char* description, const StructConfigAssignHook hook)
-{
-    return addImpl(name, description, target, hook);
-}
-
-StructConfigEntry& StructConfigSchema::add(const char* name, int* target, const char* description, const StructConfigAssignHook hook)
-{
-    return addImpl(name, description, target, hook);
-}
-
-StructConfigEntry& StructConfigSchema::add(const char* name, uint32_t* target, const char* description, const StructConfigAssignHook hook)
-{
-    return addImpl(name, description, target, hook);
-}
-
-StructConfigEntry& StructConfigSchema::add(const char* name, Utf8* target, const char* description, const StructConfigAssignHook hook)
-{
-    return addImpl(name, description, target, hook);
-}
-
-StructConfigEntry& StructConfigSchema::add(const char* name, fs::path* target, const char* description, const StructConfigAssignHook hook)
-{
-    return addImpl(name, description, target, hook);
-}
-
-StructConfigEntry& StructConfigSchema::add(const char* name, std::vector<Utf8>* target, const char* description, const StructConfigAssignHook hook)
-{
-    return addImpl(name, description, target, hook);
-}
-
-StructConfigEntry& StructConfigSchema::add(const char* name, std::set<Utf8>* target, const char* description, const StructConfigAssignHook hook)
-{
-    return addImpl(name, description, target, hook);
-}
-
-StructConfigEntry& StructConfigSchema::add(const char* name, std::set<fs::path>* target, const char* description, const StructConfigAssignHook hook)
-{
-    return addImpl(name, description, target, hook);
-}
-
-StructConfigEntry& StructConfigSchema::add(const char* name, std::optional<bool>* target, const char* description, const StructConfigAssignHook hook)
 {
     return addImpl(name, description, target, hook);
 }
@@ -188,7 +189,7 @@ bool StructConfigReader::reportUnknownKey(TaskContext& ctx, const fs::path& sour
 {
     Diagnostic diag = Diagnostic::get(DiagnosticId::cmd_err_config_unknown_key);
     diag.addArgument(Diagnostic::ARG_ARG, key);
-    diag.addArgument(Diagnostic::ARG_PATH, !lineNo ? FileSystem::formatDiagnosticPath(&ctx, sourcePath) : FileSystem::formatFileLocation(&ctx, sourcePath, lineNo));
+    diag.addArgument(Diagnostic::ARG_PATH, formatConfigLocation(ctx, sourcePath, lineNo));
     diag.addDidYouMeanNote(schema_->suggest(key.view()));
     diag.report(ctx);
     return false;
@@ -199,7 +200,7 @@ bool StructConfigReader::reportInvalidEnum(TaskContext& ctx, const StructConfigE
     Diagnostic diag = Diagnostic::get(DiagnosticId::cmd_err_config_invalid_enum);
     diag.addArgument(Diagnostic::ARG_ARG, entry.name);
     diag.addArgument(Diagnostic::ARG_VALUE, value);
-    diag.addArgument(Diagnostic::ARG_PATH, !lineNo ? FileSystem::formatDiagnosticPath(&ctx, sourcePath) : FileSystem::formatFileLocation(&ctx, sourcePath, lineNo));
+    diag.addArgument(Diagnostic::ARG_PATH, formatConfigLocation(ctx, sourcePath, lineNo));
     diag.addArgument(Diagnostic::ARG_VALUES, Utf8Helper::join(entry.choices, "|"));
     diag.addDidYouMeanNote(Utf8Helper::bestMatch(value.view(), entry.choices));
     diag.report(ctx);
@@ -221,14 +222,7 @@ bool StructConfigReader::applyEntry(TaskContext& ctx, const StructConfigEntry& e
     {
         bool parsedValue = false;
         if (!parseBool(value.view(), parsedValue))
-        {
-            Diagnostic diag = Diagnostic::get(DiagnosticId::cmd_err_config_invalid_bool);
-            diag.addArgument(Diagnostic::ARG_ARG, entry.name);
-            diag.addArgument(Diagnostic::ARG_VALUE, value);
-            diag.addArgument(Diagnostic::ARG_PATH, !lineNo ? FileSystem::formatDiagnosticPath(&ctx, sourcePath) : FileSystem::formatFileLocation(&ctx, sourcePath, lineNo));
-            diag.report(ctx);
-            return false;
-        }
+            return reportInvalidScalarValue(ctx, DiagnosticId::cmd_err_config_invalid_bool, entry, sourcePath, lineNo, value);
         **target = parsedValue;
         entry.afterSet.invoke();
         return true;
@@ -236,19 +230,9 @@ bool StructConfigReader::applyEntry(TaskContext& ctx, const StructConfigEntry& e
 
     if (auto* target = std::get_if<int*>(&entry.target))
     {
-        const char* first       = value.data();
-        const char* last        = first + value.size();
-        int         parsedValue = 0;
-        const auto [ptr, ec]    = std::from_chars(first, last, parsedValue);
-        if (value.empty() || ec != std::errc{} || ptr != last)
-        {
-            Diagnostic diag = Diagnostic::get(DiagnosticId::cmd_err_config_invalid_int);
-            diag.addArgument(Diagnostic::ARG_ARG, entry.name);
-            diag.addArgument(Diagnostic::ARG_VALUE, value);
-            diag.addArgument(Diagnostic::ARG_PATH, !lineNo ? FileSystem::formatDiagnosticPath(&ctx, sourcePath) : FileSystem::formatFileLocation(&ctx, sourcePath, lineNo));
-            diag.report(ctx);
-            return false;
-        }
+        int parsedValue = 0;
+        if (!parseIntegerValue(value, parsedValue))
+            return reportInvalidScalarValue(ctx, DiagnosticId::cmd_err_config_invalid_int, entry, sourcePath, lineNo, value);
         **target = parsedValue;
         entry.afterSet.invoke();
         return true;
@@ -256,19 +240,9 @@ bool StructConfigReader::applyEntry(TaskContext& ctx, const StructConfigEntry& e
 
     if (auto* target = std::get_if<uint32_t*>(&entry.target))
     {
-        const char* first       = value.data();
-        const char* last        = first + value.size();
-        uint32_t    parsedValue = 0;
-        const auto [ptr, ec]    = std::from_chars(first, last, parsedValue);
-        if (value.empty() || ec != std::errc{} || ptr != last)
-        {
-            Diagnostic diag = Diagnostic::get(DiagnosticId::cmd_err_config_invalid_int);
-            diag.addArgument(Diagnostic::ARG_ARG, entry.name);
-            diag.addArgument(Diagnostic::ARG_VALUE, value);
-            diag.addArgument(Diagnostic::ARG_PATH, !lineNo ? FileSystem::formatDiagnosticPath(&ctx, sourcePath) : FileSystem::formatFileLocation(&ctx, sourcePath, lineNo));
-            diag.report(ctx);
-            return false;
-        }
+        uint32_t parsedValue = 0;
+        if (!parseIntegerValue(value, parsedValue))
+            return reportInvalidScalarValue(ctx, DiagnosticId::cmd_err_config_invalid_int, entry, sourcePath, lineNo, value);
         **target = parsedValue;
         entry.afterSet.invoke();
         return true;
@@ -298,10 +272,7 @@ bool StructConfigReader::applyEntry(TaskContext& ctx, const StructConfigEntry& e
 
     if (auto* target = std::get_if<fs::path*>(&entry.target))
     {
-        fs::path path = value.c_str();
-        if (!value.empty() && path.is_relative())
-            path = (baseDir / path).lexically_normal();
-        **target = std::move(path);
+        **target = resolveConfigPathValue(value, baseDir);
         entry.afterSet.invoke();
         return true;
     }
@@ -322,10 +293,7 @@ bool StructConfigReader::applyEntry(TaskContext& ctx, const StructConfigEntry& e
 
     if (auto* target = std::get_if<std::set<fs::path>*>(&entry.target))
     {
-        fs::path path = value.c_str();
-        if (!value.empty() && path.is_relative())
-            path = (baseDir / path).lexically_normal();
-        (*target)->insert(std::move(path));
+        (*target)->insert(resolveConfigPathValue(value, baseDir));
         entry.afterSet.invoke();
         return true;
     }
@@ -343,14 +311,7 @@ bool StructConfigReader::applyEntry(TaskContext& ctx, const StructConfigEntry& e
 
         bool parsedValue = false;
         if (!parseBool(value.view(), parsedValue))
-        {
-            Diagnostic diag = Diagnostic::get(DiagnosticId::cmd_err_config_invalid_bool);
-            diag.addArgument(Diagnostic::ARG_ARG, entry.name);
-            diag.addArgument(Diagnostic::ARG_VALUE, value);
-            diag.addArgument(Diagnostic::ARG_PATH, !lineNo ? FileSystem::formatDiagnosticPath(&ctx, sourcePath) : FileSystem::formatFileLocation(&ctx, sourcePath, lineNo));
-            diag.report(ctx);
-            return false;
-        }
+            return reportInvalidScalarValue(ctx, DiagnosticId::cmd_err_config_invalid_bool, entry, sourcePath, lineNo, value);
         **target = parsedValue;
         entry.afterSet.invoke();
         return true;
@@ -410,13 +371,7 @@ Result StructConfigReader::readFile(TaskContext& ctx, const fs::path& path) cons
         bool unterminatedQuote = false;
         Utf8 line              = stripInlineComment(rawLine, unterminatedQuote);
         if (unterminatedQuote)
-        {
-            Diagnostic diag = Diagnostic::get(DiagnosticId::cmd_err_config_invalid_entry);
-            diag.addArgument(Diagnostic::ARG_PATH, FileSystem::formatFileLocation(&ctx, normalizedPath, lineNo));
-            diag.addArgument(Diagnostic::ARG_BECAUSE, "unterminated quoted value");
-            diag.report(ctx);
-            return Result::Error;
-        }
+            return reportInvalidConfigEntry(ctx, normalizedPath, lineNo, "unterminated quoted value");
 
         line.trim();
         if (line.empty())
@@ -424,23 +379,11 @@ Result StructConfigReader::readFile(TaskContext& ctx, const fs::path& path) cons
 
         const size_t assignPos = findAssignment(line.view());
         if (assignPos == std::string_view::npos)
-        {
-            Diagnostic diag = Diagnostic::get(DiagnosticId::cmd_err_config_invalid_entry);
-            diag.addArgument(Diagnostic::ARG_PATH, FileSystem::formatFileLocation(&ctx, normalizedPath, lineNo));
-            diag.addArgument(Diagnostic::ARG_BECAUSE, "expected 'key = value'");
-            diag.report(ctx);
-            return Result::Error;
-        }
+            return reportInvalidConfigEntry(ctx, normalizedPath, lineNo, "expected 'key = value'");
 
         auto key = Utf8(Utf8Helper::trim(line.view().substr(0, assignPos)));
         if (key.empty())
-        {
-            Diagnostic diag = Diagnostic::get(DiagnosticId::cmd_err_config_invalid_entry);
-            diag.addArgument(Diagnostic::ARG_PATH, FileSystem::formatFileLocation(&ctx, normalizedPath, lineNo));
-            diag.addArgument(Diagnostic::ARG_BECAUSE, "missing config key");
-            diag.report(ctx);
-            return Result::Error;
-        }
+            return reportInvalidConfigEntry(ctx, normalizedPath, lineNo, "missing config key");
 
         const StructConfigEntry* entry = schema_->find(key.view());
         if (!entry)

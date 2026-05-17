@@ -111,6 +111,20 @@ namespace
         return typeRef;
     }
 
+    Result makeTypeInfoWithoutBlocking(Sema& sema, ConstantRef& outRef, TypeRef typeRef, AstNodeRef ownerNodeRef)
+    {
+        const Result result = sema.cstMgr().makeTypeInfo(sema, outRef, typeRef, ownerNodeRef, ConstantManager::TypeInfoLockMode::TryLock);
+        if (result != Result::Pause)
+            return result;
+
+        if (sema.ctx().state().hasPauseReason())
+            return Result::Pause;
+
+        // Type-info cache contention is transient work sharing, not a semantic dependency.
+        // Yield here so another worker can keep progressing until the shard owner publishes.
+        return sema.waitTypeInfoGeneration(ownerNodeRef);
+    }
+
     TypeRef unwrapAliasEnumTypeRef(const TypeManager& typeMgr, const TaskContext& ctx, TypeRef typeRef)
     {
         if (!typeRef.isValid())
@@ -1843,7 +1857,7 @@ Result Cast::castFromTypeValue(Sema& sema, CastRequest& castRequest, TypeRef src
         if (castRequest.isConstantFolding())
         {
             const auto cst = sema.cstMgr().get(castRequest.srcConstRef);
-            SWC_RESULT(sema.cstMgr().makeTypeInfo(sema, castRequest.outConstRef, cst.getTypeValue(), castRequest.errorNodeRef));
+            SWC_RESULT(makeTypeInfoWithoutBlocking(sema, castRequest.outConstRef, cst.getTypeValue(), castRequest.errorNodeRef));
         }
 
         return Result::Continue;
@@ -2041,7 +2055,7 @@ Result Cast::castToAny(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef,
     const bool boxedAsTypeInfo = sema.typeMgr().get(boxedAnyTypeRef).isTypeInfo();
 
     ConstantRef typeInfoCstRef = ConstantRef::invalid();
-    SWC_RESULT(sema.cstMgr().makeTypeInfo(sema, typeInfoCstRef, boxedAnyTypeRef, castRequest.errorNodeRef));
+    SWC_RESULT(makeTypeInfoWithoutBlocking(sema, typeInfoCstRef, boxedAnyTypeRef, castRequest.errorNodeRef));
     const ConstantValue& typeInfoCst = sema.cstMgr().get(typeInfoCstRef);
     SWC_ASSERT(typeInfoCst.isValuePointer());
     DataSegmentRef typeInfoRef;

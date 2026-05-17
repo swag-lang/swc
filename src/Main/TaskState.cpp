@@ -39,6 +39,8 @@ const char* TaskState::kindName(const TaskStateKind kind)
             return "Wait symbol JIT completed";
         case TaskStateKind::SemaWaitTypeCompleted:
             return "Wait type completed";
+        case TaskStateKind::SemaWaitTypeInfoGeneration:
+            return "Wait typeinfo generation";
         case TaskStateKind::SemaWaitMainThreadRunJit:
             return "Wait main-thread JIT";
         default:
@@ -62,6 +64,7 @@ bool TaskState::hasPauseReason() const
         case TaskStateKind::SemaWaitSymJitPatched:
         case TaskStateKind::SemaWaitSymJitCompleted:
         case TaskStateKind::SemaWaitTypeCompleted:
+        case TaskStateKind::SemaWaitTypeInfoGeneration:
         case TaskStateKind::SemaWaitMainThreadRunJit:
             return true;
 
@@ -96,6 +99,9 @@ bool TaskState::canPause() const
             return nodeRef.isValid() && symbol != nullptr && waiterSymbol != nullptr;
 
         case TaskStateKind::SemaWaitTypeCompleted:
+            return nodeRef.isValid() && waiterSymbol != nullptr;
+
+        case TaskStateKind::SemaWaitTypeInfoGeneration:
             return nodeRef.isValid() && waiterSymbol != nullptr;
 
         case TaskStateKind::SemaWaitMainThreadRunJit:

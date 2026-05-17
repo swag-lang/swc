@@ -74,6 +74,8 @@ namespace
                 return "waiting for JIT completion";
             case TaskStateKind::SemaWaitTypeCompleted:
                 return "waiting for type completion";
+            case TaskStateKind::SemaWaitTypeInfoGeneration:
+                return "waiting for typeinfo generation";
             default:
                 return "waiting for dependency completion";
         }
@@ -409,6 +411,16 @@ void SemaCycle::check(TaskContext& ctx, JobClientId clientId)
             case TaskStateKind::SemaWaitTypeCompleted:
             {
                 if (state.symbol && !reportedSymbols.insert(state.symbol).second)
+                    break;
+                if (suppressStalledDependencies)
+                    break;
+                reportStalledDependency(*sema, ctx, state);
+                break;
+            }
+
+            case TaskStateKind::SemaWaitTypeInfoGeneration:
+            {
+                if (state.waiterSymbol && !reportedSymbols.insert(state.waiterSymbol).second)
                     break;
                 if (suppressStalledDependencies)
                     break;

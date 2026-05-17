@@ -324,6 +324,7 @@ public:
     Result      waitDeclared(const Symbol* symbol, const SourceCodeRef& codeRef);
     Result      waitTyped(const Symbol* symbol, const SourceCodeRef& codeRef);
     Result      waitSemaCompleted(const TypeInfo* type, AstNodeRef nodeRef);
+    Result      waitTypeInfoGeneration(AstNodeRef nodeRef, const SourceCodeRef& codeRef = SourceCodeRef::invalid());
     static void waitDone(TaskContext& ctx, JobClientId clientId);
 
 private:

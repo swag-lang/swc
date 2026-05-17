@@ -839,6 +839,19 @@ Result Sema::waitSemaCompleted(const TypeInfo* type, AstNodeRef nodeRef)
     return Result::Pause;
 }
 
+Result Sema::waitTypeInfoGeneration(AstNodeRef nodeRef, const SourceCodeRef& codeRef)
+{
+    if (shouldAbortWait(*this))
+        return Result::Error;
+    const AstNodeRef waitNodeRef = fallbackWaitNodeRef(*this, nodeRef);
+    TaskState&       wait        = ctx().state();
+    wait.kind                    = TaskStateKind::SemaWaitTypeInfoGeneration;
+    wait.nodeRef                 = waitNodeRef;
+    wait.codeRef                 = fallbackWaitCodeRef(*this, waitNodeRef, codeRef);
+    wait.waiterSymbol            = guessCurrentSymbol(*this);
+    return Result::Pause;
+}
+
 void Sema::setVisitors()
 {
     if (declPass_)

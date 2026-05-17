@@ -831,6 +831,7 @@ Result ConstantManager::makeTypeInfo(Sema& sema, ConstantRef& outRef, TypeRef ty
     const DataSegmentRef dataRef{.shardIndex = shardIndex, .offset = infoResult.offset};
     value.setDataSegmentRef(dataRef);
     outRef = publishTypeInfoCache(shard, typeRef, addConstant(sema.ctx(), value));
+    sema.compiler().notifyAlive();
     return Result::Continue;
 }
 

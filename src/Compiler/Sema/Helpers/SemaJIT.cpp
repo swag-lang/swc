@@ -94,16 +94,32 @@ namespace
         return true;
     }
 
-    std::mutex& constCallCacheMutex()
+    struct ConstCallCacheStorage
     {
-        static std::mutex mutex;
-        return mutex;
+        JobClientId                      clientId = 0;
+        std::vector<ConstCallCacheEntry> entries;
+    };
+
+    ConstCallCacheStorage& constCallCacheStorage()
+    {
+        static thread_local ConstCallCacheStorage storage;
+        return storage;
     }
 
-    std::vector<ConstCallCacheEntry>& constCallCache()
+    std::vector<ConstCallCacheEntry>& constCallCache(TaskContext& ctx)
     {
-        static std::vector<ConstCallCacheEntry> cache;
-        return cache;
+        auto&             storage  = constCallCacheStorage();
+        const JobClientId clientId = ctx.compiler().jobClientId();
+        if (storage.clientId != clientId)
+        {
+            // Pure-call folding is only a cache hint. Keep it local to the worker
+            // thread and current compiler client instead of serializing all jobs on
+            // one shared cache.
+            storage.clientId = clientId;
+            storage.entries.clear();
+        }
+
+        return storage.entries;
     }
 
     bool buildConstCallCacheKey(Sema& sema, ConstCallCacheKey& outKey, const SymbolFunction& function, std::span<const ResolvedCallArgument> resolvedArgs, std::span<const JITArgument> args)
@@ -157,10 +173,9 @@ namespace
         return true;
     }
 
-    ConstantRef findConstCallCacheResult(const ConstCallCacheKey& key)
+    ConstantRef findConstCallCacheResult(Sema& sema, const ConstCallCacheKey& key)
     {
-        const std::scoped_lock lock(constCallCacheMutex());
-        for (const ConstCallCacheEntry& entry : constCallCache())
+        for (const ConstCallCacheEntry& entry : constCallCache(sema.ctx()))
         {
             if (sameConstCallCacheKey(entry.key, key))
                 return entry.cstRef;
@@ -169,13 +184,13 @@ namespace
         return ConstantRef::invalid();
     }
 
-    void cacheConstCallResult(ConstCallCacheKey key, ConstantRef cstRef)
+    void cacheConstCallResult(Sema& sema, ConstCallCacheKey key, ConstantRef cstRef)
     {
         if (!cstRef.isValid())
             return;
 
-        const std::scoped_lock lock(constCallCacheMutex());
-        for (ConstCallCacheEntry& entry : constCallCache())
+        auto& cache = constCallCache(sema.ctx());
+        for (ConstCallCacheEntry& entry : cache)
         {
             if (!sameConstCallCacheKey(entry.key, key))
                 continue;
@@ -184,7 +199,7 @@ namespace
             return;
         }
 
-        constCallCache().push_back({std::move(key), cstRef});
+        cache.push_back({std::move(key), cstRef});
     }
 
     bool hasPendingJitNode(Sema& sema, AstNodeRef nodeRef)
@@ -272,7 +287,7 @@ namespace
             sema.setFoldedTypedConst(nodeRef);
         sema.setConstant(nodeRef, cstRef);
         if (pendingEntry.payload->constCallCacheKey)
-            cacheConstCallResult(std::move(*pendingEntry.payload->constCallCacheKey), cstRef);
+            cacheConstCallResult(sema, std::move(*pendingEntry.payload->constCallCacheKey), cstRef);
     }
 
     void appendGlobalFunctionInitJitOrder(Sema& sema, SmallVector<SymbolFunction*>& out)
@@ -1018,7 +1033,7 @@ Result SemaJIT::tryRunConstCall(Sema& sema, SymbolFunction& calledFn, AstNodeRef
     ConstCallCacheKey       cacheKey;
     if (buildConstCallCacheKey(sema, cacheKey, calledFn, resolvedArgs, payload->jitArgs.span()))
     {
-        if (const ConstantRef cachedRef = findConstCallCacheResult(cacheKey); cachedRef.isValid())
+        if (const ConstantRef cachedRef = findConstCallCacheResult(sema, cacheKey); cachedRef.isValid())
         {
             sema.setFoldedTypedConst(callRef);
             sema.setConstant(callRef, cachedRef);
@@ -1036,7 +1051,7 @@ Result SemaJIT::tryRunConstCall(Sema& sema, SymbolFunction& calledFn, AstNodeRef
 
         const ConstantRef resultCstRef = makeJitCallResultConstantRef(sema, resultMeta, payload->resultStorage.data());
         if (payload->constCallCacheKey)
-            cacheConstCallResult(std::move(*payload->constCallCacheKey), resultCstRef);
+            cacheConstCallResult(sema, std::move(*payload->constCallCacheKey), resultCstRef);
         sema.setFoldedTypedConst(callRef);
         sema.setConstant(callRef, resultCstRef);
         return Result::Continue;
@@ -1138,8 +1153,9 @@ Result SemaJIT::runStatement(Sema& sema, SymbolFunction& symFn, AstNodeRef nodeR
 
 void SemaJIT::clearConstCallCache()
 {
-    const std::scoped_lock lock(constCallCacheMutex());
-    constCallCache().clear();
+    auto& storage = constCallCacheStorage();
+    storage.clientId = 0;
+    storage.entries.clear();
 }
 
 Result SemaJIT::prepareFunction(Sema& sema, SymbolFunction& symFn)

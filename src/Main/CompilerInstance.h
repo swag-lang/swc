@@ -213,7 +213,7 @@ public:
 
     Result                       collectFiles(TaskContext& ctx);
     Result                       runModuleSetup(TaskContext& ctx);
-    Result                       exportModuleApi(TaskContext& ctx);
+    static Result                exportModuleApi(TaskContext& ctx);
     std::span<SourceFile* const> files() const;
     bool                         isModuleSetupMode() const { return moduleSetupMode_; }
     Result                       registerModuleSetupImport(std::string_view moduleName, std::string_view location, std::string_view version, Runtime::BuildCfgBackendKind linkBackendKind = Runtime::BuildCfgBackendKind::None);

@@ -355,6 +355,7 @@ namespace
     template<typename FUNC>
     void forEachPublicApiOverload(const SymbolFunction& symbol, const TaskContext& ctx, const FUNC& fn)
     {
+        SWC_UNUSED(ctx);
         if (const SymbolStruct* ownerStruct = symbol.ownerStruct())
         {
             for (const SymbolFunction* candidate : ownerStruct->declaredMethods())
@@ -1136,7 +1137,7 @@ void SymbolFunction::addCallDependency(const SymbolFunction* sym)
     if (sym->attributes().hasRtFlag(RtAttributeFlagsE::Macro) || sym->attributes().hasRtFlag(RtAttributeFlagsE::Mixin))
         return;
 
-    auto* const mutableSym = const_cast<SymbolFunction*>(sym);
+    auto* const            mutableSym = const_cast<SymbolFunction*>(sym);
     const std::scoped_lock lock(metadataMutex_);
     if (std::ranges::find(callDependencies_, mutableSym) != callDependencies_.end())
         return;

@@ -77,7 +77,7 @@ if not defined MODULE_NAMESPACE exit /b 1
 call "%TOOLS_DIR%_common.bat" :set_paths "%BIN_REL%" "%ARTIFACT_LABEL%" "%BUILD_CFG%"
 if not "%ERRORLEVEL%"=="0" exit /b %ERRORLEVEL%
 
-"%SWC_EXE%" test --artifact-kind executable -d "%ROOT%\bin\%BIN_REL%" --module-namespace %MODULE_NAMESPACE% --out-dir "%OUT_DIR%" --work-dir "%WORK_DIR%" --build-cfg %BUILD_CFG%%STAGE_ARGS%%EXTRA_ARGS%
+call "%TOOLS_DIR%_common.bat" :run_swc test --artifact-kind executable -d "%ROOT%\bin\%BIN_REL%" --module-namespace %MODULE_NAMESPACE% --out-dir "%OUT_DIR%" --work-dir "%WORK_DIR%" --build-cfg %BUILD_CFG%%STAGE_ARGS%%EXTRA_ARGS%
 if not "%ERRORLEVEL%"=="0" exit /b %ERRORLEVEL%
 
 exit /b 0

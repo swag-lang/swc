@@ -1,4 +1,7 @@
 @echo off
+setlocal
+call "%~dp0_common.bat" :batch_begin "%~f0"
+
 call "%~dp0_test_module.bat" %* --bin-rel "tests\lexer" --module-namespace "Lexer" --artifact-label "lex-only" --build-cfg "release" --lex-only || exit /b 1
 call "%~dp0_test_module.bat" %* --bin-rel "tests\parser" --module-namespace "Parser" --artifact-label "syntax-only" --build-cfg "release" --syntax-only || exit /b 1
 call "%~dp0_test_module.bat" %* --bin-rel "tests\errors\lexer" --module-namespace "Lexer" --artifact-label "lex-only" --build-cfg "release" --lex-only || exit /b 1
@@ -67,4 +70,6 @@ call "%~dp0std.bat" %* --build-cfg "fast-compile" || exit /b 1
 call "%~dp0examples.bat" %* --build-cfg "fast-compile" || exit /b 1
 call "%~dp0core.bat" %* --build-cfg "fast-compile" || exit /b 1
 call "%~dp0export.bat" %* --build-cfg "fast-compile" || exit /b 1
+
+call "%~dp0_common.bat" :batch_end "%~f0"
 exit /b 0

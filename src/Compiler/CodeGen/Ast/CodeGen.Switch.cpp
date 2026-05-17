@@ -144,8 +144,8 @@ namespace
         const auto* casePayload = codeGen.sema().semaPayload<DynamicStructSwitchCasePayload>(caseRef);
         SWC_ASSERT(casePayload != nullptr);
 
-        MicroBuilder&   builder   = codeGen.builder();
-        SymbolFunction* runtimeFn = switchState.dynamicAsFunction;
+        MicroBuilder&         builder   = codeGen.builder();
+        const SymbolFunction* runtimeFn = switchState.dynamicAsFunction;
         if (!runtimeFn)
             runtimeFn = runtimeDynamicAsFunction(codeGen);
 
@@ -153,7 +153,7 @@ namespace
         if (!runtimeFn)
             return Result::Error;
 
-        SymbolFunction* runtimeIsFn = switchState.dynamicIsFunction;
+        const SymbolFunction* runtimeIsFn = switchState.dynamicIsFunction;
         if (!runtimeIsFn)
             runtimeIsFn = runtimeDynamicIsFunction(codeGen);
 

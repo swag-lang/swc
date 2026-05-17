@@ -1042,7 +1042,7 @@ Result CodeGen::emitDeferredAction(const CodeGenDeferredAction& action)
             if (idRef.isInvalid())
                 return Result::Error;
 
-            SymbolFunction* runtimeIsErrContext = compiler().runtimeFunctionSymbol(idRef);
+            const SymbolFunction* runtimeIsErrContext = compiler().runtimeFunctionSymbol(idRef);
             SWC_ASSERT(runtimeIsErrContext != nullptr);
             if (!runtimeIsErrContext)
                 return Result::Error;

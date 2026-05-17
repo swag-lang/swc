@@ -2009,7 +2009,7 @@ namespace
         return codeGen.compiler().runtimeFunctionSymbol(idRef);
     }
 
-    Result materializeNativeRuntimeContextTlsId(MicroReg& outTlsIdReg, CodeGen& codeGen, SymbolFunction& tlsAllocFunction)
+    Result materializeNativeRuntimeContextTlsId(MicroReg& outTlsIdReg, CodeGen& codeGen, const SymbolFunction& tlsAllocFunction)
     {
         codeGen.function().addCallDependency(&tlsAllocFunction);
 
@@ -2058,7 +2058,7 @@ namespace
         return tlsIdReg;
     }
 
-    Result emitTlsSetValueCall(CodeGen& codeGen, SymbolFunction& tlsSetValueFunction, MicroReg tlsIdReg, MicroReg contextReg)
+    Result emitTlsSetValueCall(CodeGen& codeGen, const SymbolFunction& tlsSetValueFunction, MicroReg tlsIdReg, MicroReg contextReg)
     {
         codeGen.function().addCallDependency(&tlsSetValueFunction);
 
@@ -2178,8 +2178,8 @@ namespace
 
     Result codeGenGetContextNative(CodeGen& codeGen)
     {
-        SymbolFunction* tlsAllocFunction  = runtimeFunctionByName(codeGen, "__tlsAlloc");
-        SymbolFunction* tlsGetPtrFunction = runtimeFunctionByName(codeGen, "__tlsGetPtr");
+        SymbolFunction*       tlsAllocFunction  = runtimeFunctionByName(codeGen, "__tlsAlloc");
+        const SymbolFunction* tlsGetPtrFunction = runtimeFunctionByName(codeGen, "__tlsGetPtr");
         SWC_ASSERT(tlsAllocFunction != nullptr);
         SWC_ASSERT(tlsGetPtrFunction != nullptr);
         if (!tlsAllocFunction || !tlsGetPtrFunction)
@@ -2235,7 +2235,7 @@ namespace
         SWC_ASSERT(payload != nullptr);
         SWC_ASSERT(payload->runtimeFunctionSymbol != nullptr);
 
-        auto&                             tlsGetValueFunction = *payload->runtimeFunctionSymbol;
+        const auto&                       tlsGetValueFunction = *payload->runtimeFunctionSymbol;
         const CallConvKind                callConvKind        = tlsGetValueFunction.callConvKind();
         const TypeRef                     resultType          = codeGen.curViewType().typeRef();
         MicroBuilder&                     builder             = codeGen.builder();

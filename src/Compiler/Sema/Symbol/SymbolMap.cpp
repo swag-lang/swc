@@ -267,7 +267,7 @@ void SymbolMap::lookupAppend(IdentifierRef idRef, MatchContext& lookUpCxt) const
     }
 }
 
-void SymbolMap::getAllSymbols(std::vector<Symbol*>& out, bool includeIgnored)
+void SymbolMap::getAllSymbols(std::vector<Symbol*>& out, bool includeIgnored) const
 {
     std::vector<const Symbol*> symbols;
     getAllSymbols(symbols, includeIgnored);

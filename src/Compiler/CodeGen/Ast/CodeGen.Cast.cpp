@@ -476,7 +476,7 @@ namespace
         const auto* runtimePayload = codeGen.loweringPayload(codeGen.curNodeRef());
         SWC_ASSERT(runtimePayload != nullptr);
         SWC_ASSERT(runtimePayload->runtimeFunctionSymbol != nullptr);
-        auto& runtimeFunction = *runtimePayload->runtimeFunctionSymbol;
+        const auto& runtimeFunction = *runtimePayload->runtimeFunctionSymbol;
 
         const TypeRef       resultTypeRef = codeGen.curViewType().typeRef();
         CodeGenNodePayload& resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), resultTypeRef);
@@ -699,7 +699,7 @@ namespace
         return CodeGenSafety::emitDynCastCheck(codeGen, *panicFn, node);
     }
 
-    Result emitAnyRuntimeAsCall(MicroReg& outResultReg, CodeGen& codeGen, SymbolFunction& asFn, TypeRef targetTypeRef, MicroReg sourceTypeReg, MicroReg valueAddrReg)
+    Result emitAnyRuntimeAsCall(MicroReg& outResultReg, CodeGen& codeGen, const SymbolFunction& asFn, TypeRef targetTypeRef, MicroReg sourceTypeReg, MicroReg valueAddrReg)
     {
         MicroBuilder& builder = codeGen.builder();
 
@@ -718,7 +718,7 @@ namespace
         MicroReg      finalValueAddrReg = valueAddrReg;
         if (castPayload && castPayload->runtimeFunctionSymbol)
         {
-            auto&          runtimeAsFn   = *castPayload->runtimeFunctionSymbol;
+            const auto&    runtimeAsFn   = *castPayload->runtimeFunctionSymbol;
             const MicroReg sourceTypeReg = codeGen.nextVirtualIntRegister();
             builder.emitLoadRegMem(sourceTypeReg, srcPayload.reg, offsetof(Runtime::Any, type), MicroOpBits::B64);
 
@@ -762,7 +762,7 @@ namespace
         MicroReg asMutablePtrReg  = MicroReg::invalid();
         if (castPayload && castPayload->runtimeFunctionSymbol)
         {
-            auto& runtimeAsFn = *castPayload->runtimeFunctionSymbol;
+            const auto& runtimeAsFn = *castPayload->runtimeFunctionSymbol;
 
             const MicroReg sourceTypeReg = codeGen.nextVirtualIntRegister();
             builder.emitLoadRegMem(sourceTypeReg, srcPayload.reg, offsetof(Runtime::Any, type), MicroOpBits::B64);

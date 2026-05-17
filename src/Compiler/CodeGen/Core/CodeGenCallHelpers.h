@@ -17,8 +17,8 @@ namespace CodeGenCallHelpers
 {
     Result codeGenCallExprCommon(CodeGen& codeGen, AstNodeRef calleeRef);
     bool   materializeTypedConstantPayload(CodeGen& codeGen, CodeGenNodePayload& outPayload, TypeRef targetTypeRef, ConstantRef constantRef);
-    Result emitCallWithResolvedArgs(CodeGen& codeGen, AstNodeRef callRef, SymbolFunction& calledFunction, std::span<const ResolvedCallArgument> args);
-    Result emitCallWithResolvedArgsToReg(CodeGen& codeGen, AstNodeRef callRef, SymbolFunction& calledFunction, std::span<const ResolvedCallArgument> args, MicroReg resultReg);
+    Result emitCallWithResolvedArgs(CodeGen& codeGen, AstNodeRef callRef, const SymbolFunction& calledFunction, std::span<const ResolvedCallArgument> args);
+    Result emitCallWithResolvedArgsToReg(CodeGen& codeGen, AstNodeRef callRef, const SymbolFunction& calledFunction, std::span<const ResolvedCallArgument> args, MicroReg resultReg);
     Result emitThrowableFailureJump(CodeGen& codeGen);
     Result emitThrowableFailureJumpIfHasError(CodeGen& codeGen);
     void   appendPreparedStringCompareArg(SmallVector<ABICall::PreparedArg>& outArgs, CodeGen& codeGen, const CallConv& callConv, const CodeGenNodePayload& operandPayload, TypeRef argTypeRef);

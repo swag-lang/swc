@@ -1275,7 +1275,7 @@ SymbolVariable* SemaHelpers::currentRuntimeStorage(Sema& sema)
     return sym;
 }
 
-void SemaHelpers::addCurrentFunctionCallDependency(Sema& sema, SymbolFunction* calleeSym)
+void SemaHelpers::addCurrentFunctionCallDependency(Sema& sema, const SymbolFunction* calleeSym)
 {
     SWC_ASSERT(calleeSym);
     if (!sema.isCurrentFunction())

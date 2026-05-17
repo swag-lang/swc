@@ -65,7 +65,7 @@ namespace SemaHelpers
     TypeRef                 smallByValueArrayRuntimeStorageTypeRef(Sema& sema, AstNodeRef exprRef, TypeRef exprTypeRef, ConstantRef exprCstRef);
     Result                  attachBorrowedAggregateArgumentRuntimeStorageIfNeeded(Sema& sema, const SymbolFunction& calledFn, TypeRef paramTypeRef, AstNodeRef argRef);
     SymbolVariable*         currentRuntimeStorage(Sema& sema);
-    void                    addCurrentFunctionCallDependency(Sema& sema, SymbolFunction* calleeSym);
+    void                    addCurrentFunctionCallDependency(Sema& sema, const SymbolFunction* calleeSym);
     Result                  addCurrentFunctionLocalVariable(Sema& sema, SymbolVariable& symVar, TypeRef typeRef);
     Result                  addCurrentFunctionLocalVariable(Sema& sema, SymbolVariable& symVar);
     bool                    needsPersistentCompilerRunReturn(const Sema& sema, TypeRef typeRef);

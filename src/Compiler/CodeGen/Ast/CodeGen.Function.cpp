@@ -298,7 +298,7 @@ namespace
 
     Result emitRuntimeHelperCallWithNoArgs(CodeGen& codeGen, IdentifierManager::RuntimeFunctionKind kind, std::string_view missingHelperName, AstNodeRef nodeRef)
     {
-        SymbolFunction* runtimeFn = runtimeFunctionByKind(codeGen, kind);
+        const SymbolFunction* runtimeFn = runtimeFunctionByKind(codeGen, kind);
         SWC_ASSERT(runtimeFn != nullptr);
         if (!runtimeFn)
             return raiseInternalCodeGenError(codeGen, missingHelperName, nodeRef);
@@ -1038,7 +1038,7 @@ namespace
         return currentNodeRef;
     }
 
-    Result emitClosureExprValue(CodeGen& codeGen, AstNodeRef nodeRef, SymbolFunction& symFunc, TypeRef typeRef)
+    Result emitClosureExprValue(CodeGen& codeGen, AstNodeRef nodeRef, const SymbolFunction& symFunc, TypeRef typeRef)
     {
         const AstNodeRef storageNodeRef = resolveClosureExprStorageNodeRef(codeGen, nodeRef);
         MicroBuilder&    builder        = codeGen.builder();
@@ -1617,7 +1617,7 @@ Result CodeGenCallHelpers::emitThrowableFailureJump(CodeGen& codeGen)
 
 Result CodeGenCallHelpers::emitThrowableFailureJumpIfHasError(CodeGen& codeGen)
 {
-    SymbolFunction* runtimeHasErr = runtimeFunctionByKind(codeGen, IdentifierManager::RuntimeFunctionKind::HasErr);
+    const SymbolFunction* runtimeHasErr = runtimeFunctionByKind(codeGen, IdentifierManager::RuntimeFunctionKind::HasErr);
     SWC_ASSERT(runtimeHasErr != nullptr);
     if (!runtimeHasErr)
         return raiseInternalCodeGenError(codeGen, "missing runtime helper '__hasErr'");
@@ -1645,7 +1645,7 @@ Result CodeGenFunctionHelpers::emitThrowableWrapperPreNode(CodeGen& codeGen, Ast
     payload->throwableDoneLabel = builder.createLabel();
     codeGen.pushDeferScope(nodeRef);
 
-    SymbolFunction* runtimePushErr = runtimeFunctionByKind(codeGen, IdentifierManager::RuntimeFunctionKind::PushErr);
+    const SymbolFunction* runtimePushErr = runtimeFunctionByKind(codeGen, IdentifierManager::RuntimeFunctionKind::PushErr);
     SWC_ASSERT(runtimePushErr != nullptr);
     if (!runtimePushErr)
         return raiseInternalCodeGenError(codeGen, "missing runtime helper '__pushErr'", nodeRef);
@@ -1720,7 +1720,7 @@ Result AstFunctionExpr::codeGenPostNode(CodeGen& codeGen) const
     const AstNodeRef declRef = codeGen.viewZero(codeGen.curNodeRef()).nodeRef();
     if (!isActiveFunctionRoot(codeGen, declRef))
     {
-        auto&                     symFunc = functionExprSymbol(codeGen, declRef);
+        const auto&               symFunc = functionExprSymbol(codeGen, declRef);
         const SemaNodeView        view    = codeGen.curViewType();
         const CodeGenNodePayload& payload = codeGen.setPayloadValue(declRef, view.typeRef());
         MicroBuilder&             builder = codeGen.builder();

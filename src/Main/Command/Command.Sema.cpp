@@ -154,7 +154,7 @@ namespace Command
             jobMgr.assertNoWaitingJobs(clientId, "Command::sema sema waitDone");
         }
 #endif
-        if (!Stats::hasError() && compiler.exportModuleApi(ctx) == Result::Error)
+        if (!Stats::hasError() && CompilerInstance::exportModuleApi(ctx) == Result::Error)
             return;
 
         const TimedActionLog::StatsSnapshot deltaSnapshot = stage.delta();

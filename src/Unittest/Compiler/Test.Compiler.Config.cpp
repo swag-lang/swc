@@ -168,6 +168,27 @@ namespace
         outText = formatter.text();
         return Result::Continue;
     }
+
+    CommandLine makeSyntheticModuleFileCommand(const CommandKind command, const fs::path& moduleFilePath, const bool silent = false)
+    {
+        CommandLine cmdLine;
+        cmdLine.command        = command;
+        cmdLine.moduleFilePath = moduleFilePath;
+        cmdLine.runtime        = false;
+        cmdLine.silent         = silent;
+        CommandLineParser::refreshBuildCfg(cmdLine);
+        return cmdLine;
+    }
+
+    CommandLine makeSyntheticWorkspaceCommand(const CommandKind command, const fs::path& workspacePath, const bool silent = true)
+    {
+        CommandLine cmdLine;
+        cmdLine.command       = command;
+        cmdLine.workspacePath = workspacePath;
+        cmdLine.silent        = silent;
+        CommandLineParser::refreshBuildCfg(cmdLine);
+        return cmdLine;
+    }
 }
 
 SWC_TEST_BEGIN(Compiler_CommandLineConfigFileSetsCommandAndResolvesRelativePaths)
@@ -475,10 +496,7 @@ SWC_TEST_BEGIN(Compiler_ModuleFileSetupConfiguresBuildAndLoadsExplicitSources)
     if (!writeTextFile(loadedFile, "public func loaded() {}\n"))
         return Result::Error;
 
-    CommandLine cmdLine;
-    cmdLine.command        = CommandKind::Sema;
-    cmdLine.moduleFilePath = moduleFile;
-    CommandLineParser::refreshBuildCfg(cmdLine);
+    CommandLine cmdLine = makeSyntheticModuleFileCommand(CommandKind::Sema, moduleFile);
 
     const uint64_t   errorsBefore = Stats::getNumErrors();
     CompilerInstance compiler(ctx.global(), cmdLine);
@@ -545,10 +563,7 @@ public func mainValue()->s32
 
     const ScopedEnvVar swagPath("SWAG_PATH", compilerRoot.string());
 
-    CommandLine cmdLine;
-    cmdLine.command        = CommandKind::Sema;
-    cmdLine.moduleFilePath = moduleFile;
-    CommandLineParser::refreshBuildCfg(cmdLine);
+    CommandLine cmdLine = makeSyntheticModuleFileCommand(CommandKind::Sema, moduleFile);
 
     const uint64_t   errorsBefore = Stats::getNumErrors();
     CompilerInstance compiler(ctx.global(), cmdLine);
@@ -609,10 +624,7 @@ public func mainValue()->s32
 
     const ScopedEnvVar swagPath("SWAG_PATH", compilerRoot.string());
 
-    CommandLine cmdLine;
-    cmdLine.command        = CommandKind::Sema;
-    cmdLine.moduleFilePath = moduleFile;
-    CommandLineParser::refreshBuildCfg(cmdLine);
+    CommandLine cmdLine = makeSyntheticModuleFileCommand(CommandKind::Sema, moduleFile);
 
     const uint64_t   errorsBefore = Stats::getNumErrors();
     CompilerInstance compiler(ctx.global(), cmdLine);
@@ -678,10 +690,7 @@ public func mainValue()->s32
 
     const ScopedEnvVar swagPath("SWAG_PATH", compilerRoot.string());
 
-    CommandLine cmdLine;
-    cmdLine.command        = CommandKind::Sema;
-    cmdLine.moduleFilePath = moduleFile;
-    CommandLineParser::refreshBuildCfg(cmdLine);
+    CommandLine cmdLine = makeSyntheticModuleFileCommand(CommandKind::Sema, moduleFile);
 
     const uint64_t   errorsBefore = Stats::getNumErrors();
     CompilerInstance compiler(ctx.global(), cmdLine);
@@ -763,6 +772,8 @@ SWC_TEST_BEGIN(Compiler_ModuleFileSetupKeepsExplicitCommandLineOverrides)
                              "--no-optimize",
                          }) != Result::Continue)
         return Result::Error;
+    cmdLine.runtime = false;
+    CommandLineParser::refreshBuildCfg(cmdLine);
 
     const uint64_t   errorsBefore = Stats::getNumErrors();
     CompilerInstance compiler(ctx.global(), cmdLine);
@@ -888,11 +899,7 @@ func mainValue(value: s32)->s32
 )"))
         return Result::Error;
 
-    CommandLine cmdLine;
-    cmdLine.command       = CommandKind::Build;
-    cmdLine.workspacePath = workspaceDir;
-    cmdLine.silent        = true;
-    CommandLineParser::refreshBuildCfg(cmdLine);
+    CommandLine cmdLine = makeSyntheticWorkspaceCommand(CommandKind::Build, workspaceDir);
 
     CompilerInstance compiler(ctx.global(), cmdLine);
     if (compiler.run() != ExitCode::Success)
@@ -1235,11 +1242,7 @@ public func coreValue()->s32
     if (!writeTextFile(ignoredModuleDir / "src" / "broken.swg", "#this_should_not_compile\n"))
         return Result::Error;
 
-    CommandLine cmdLine;
-    cmdLine.command       = CommandKind::Sema;
-    cmdLine.workspacePath = workspaceDir;
-    cmdLine.silent        = true;
-    CommandLineParser::refreshBuildCfg(cmdLine);
+    CommandLine cmdLine = makeSyntheticWorkspaceCommand(CommandKind::Sema, workspaceDir);
 
     CompilerInstance compiler(ctx.global(), cmdLine);
     if (compiler.run() != ExitCode::Success)
@@ -1486,11 +1489,7 @@ struct BadExport
 )"))
         return Result::Error;
 
-    CommandLine cmdLine;
-    cmdLine.command       = CommandKind::Build;
-    cmdLine.workspacePath = workspaceDir;
-    cmdLine.silent        = true;
-    CommandLineParser::refreshBuildCfg(cmdLine);
+    CommandLine cmdLine = makeSyntheticWorkspaceCommand(CommandKind::Sema, workspaceDir);
 
     CompilerInstance compiler(ctx.global(), cmdLine);
     if (compiler.run() == ExitCode::Success)
@@ -1526,11 +1525,7 @@ SWC_TEST_BEGIN(Compiler_WorkspaceBuildRejectsExplicitPublicGlobalVariableInGener
 )"))
         return Result::Error;
 
-    CommandLine cmdLine;
-    cmdLine.command       = CommandKind::Build;
-    cmdLine.workspacePath = workspaceDir;
-    cmdLine.silent        = true;
-    CommandLineParser::refreshBuildCfg(cmdLine);
+    CommandLine cmdLine = makeSyntheticWorkspaceCommand(CommandKind::Sema, workspaceDir);
 
     CompilerInstance compiler(ctx.global(), cmdLine);
     if (compiler.run() == ExitCode::Success)
@@ -1574,11 +1569,7 @@ public interface BadExport
 )"))
         return Result::Error;
 
-    CommandLine cmdLine;
-    cmdLine.command       = CommandKind::Build;
-    cmdLine.workspacePath = workspaceDir;
-    cmdLine.silent        = true;
-    CommandLineParser::refreshBuildCfg(cmdLine);
+    CommandLine cmdLine = makeSyntheticWorkspaceCommand(CommandKind::Sema, workspaceDir);
 
     CompilerInstance compiler(ctx.global(), cmdLine);
     if (compiler.run() == ExitCode::Success)

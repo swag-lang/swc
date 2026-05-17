@@ -136,7 +136,7 @@ namespace
         {
             // Function symbols do not materialize an lvalue payload, so taking their address loads the
             // code pointer directly.
-            auto& symFunc = childView.sym()->cast<SymbolFunction>();
+            const auto& symFunc = childView.sym()->cast<SymbolFunction>();
             codeGen.builder().emitLoadRegPtrReloc(payload.reg, 0, ConstantRef::invalid(), &symFunc);
             return Result::Continue;
         }

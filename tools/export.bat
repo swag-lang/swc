@@ -23,7 +23,7 @@ shift
 goto parse_args
 
 :run
-"%SWC_EXE%" run --workspace "%EXPORT_WORKSPACE%" --build-cfg %BUILD_CFG%%EXTRA_ARGS%
+call "%TOOLS_DIR%_common.bat" :run_swc run --workspace "%EXPORT_WORKSPACE%" --build-cfg %BUILD_CFG%%EXTRA_ARGS%
 if not "%ERRORLEVEL%"=="0" exit /b %ERRORLEVEL%
 
 exit /b 0

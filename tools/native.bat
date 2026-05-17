@@ -40,14 +40,14 @@ goto test_artifact
 :run_artifact
 call "%TOOLS_DIR%_common.bat" :set_paths "%BIN_REL%" "run" "%BUILD_CFG%"
 if not "%ERRORLEVEL%"=="0" exit /b %ERRORLEVEL%
-"%SWC_EXE%" run -d "%ROOT%\bin\%BIN_REL%" --module-namespace Native --out-dir "%OUT_DIR%" --work-dir "%WORK_DIR%" --build-cfg %BUILD_CFG%%EXTRA_ARGS%
+call "%TOOLS_DIR%_common.bat" :run_swc run -d "%ROOT%\bin\%BIN_REL%" --module-namespace Native --out-dir "%OUT_DIR%" --work-dir "%WORK_DIR%" --build-cfg %BUILD_CFG%%EXTRA_ARGS%
 if not "%ERRORLEVEL%"=="0" exit /b %ERRORLEVEL%
 goto done
 
 :test_artifact
 call "%TOOLS_DIR%_common.bat" :set_paths "%BIN_REL%" "%ARTIFACT_KIND%" "%BUILD_CFG%"
 if not "%ERRORLEVEL%"=="0" exit /b %ERRORLEVEL%
-"%SWC_EXE%" test --artifact-kind %ARTIFACT_KIND% -d "%ROOT%\bin\%BIN_REL%" --module-namespace Native --out-dir "%OUT_DIR%" --work-dir "%WORK_DIR%" --build-cfg %BUILD_CFG%%EXTRA_ARGS%
+call "%TOOLS_DIR%_common.bat" :run_swc test --artifact-kind %ARTIFACT_KIND% -d "%ROOT%\bin\%BIN_REL%" --module-namespace Native --out-dir "%OUT_DIR%" --work-dir "%WORK_DIR%" --build-cfg %BUILD_CFG%%EXTRA_ARGS%
 if not "%ERRORLEVEL%"=="0" exit /b %ERRORLEVEL%
 
 :done

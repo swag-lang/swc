@@ -4,6 +4,7 @@ setlocal
 for %%I in ("%~f0") do set "TOOLS_DIR=%%~dpI"
 call "%TOOLS_DIR%_common.bat" :init "%TOOLS_DIR%" "%~1"
 if not "%ERRORLEVEL%"=="0" exit /b %ERRORLEVEL%
+call "%TOOLS_DIR%_common.bat" :batch_begin "%~f0"
 if /I "%~1"=="dm" shift
 
 set "WIN32_BIN_REL=std\modules\win32"
@@ -48,23 +49,24 @@ set "CORE_MODULE_FILE=%ROOT%\bin\%CORE_MODULE_REL%\module.swg"
 call "%TOOLS_DIR%_common.bat" :set_paths "std\win32" "export" "%BUILD_CFG%"
 if not "%ERRORLEVEL%"=="0" exit /b %ERRORLEVEL%
 
-"%SWC_EXE%" build --no-unittest --module-file "%WIN32_MODULE_FILE%" -d "src" --out-dir "%OUT_DIR%" --work-dir "%WORK_DIR%" --build-cfg %BUILD_CFG% --export-api-dir "%OUT_DIR%"%EXTRA_ARGS%
+call "%TOOLS_DIR%_common.bat" :run_swc build --no-unittest --module-file "%WIN32_MODULE_FILE%" -d "src" --out-dir "%OUT_DIR%" --work-dir "%WORK_DIR%" --build-cfg %BUILD_CFG% --export-api-dir "%OUT_DIR%"%EXTRA_ARGS%
 if not "%ERRORLEVEL%"=="0" exit /b %ERRORLEVEL%
 
 call "%TOOLS_DIR%_common.bat" :set_paths "std\xinput" "export" "%BUILD_CFG%"
 if not "%ERRORLEVEL%"=="0" exit /b %ERRORLEVEL%
 
-"%SWC_EXE%" build --no-unittest --module-file "%XINPUT_MODULE_FILE%" -d "src" --out-dir "%OUT_DIR%" --work-dir "%WORK_DIR%" --build-cfg %BUILD_CFG% --import-api-dir "%DEP_ROOT%" --export-api-dir "%OUT_DIR%"%EXTRA_ARGS%
+call "%TOOLS_DIR%_common.bat" :run_swc build --no-unittest --module-file "%XINPUT_MODULE_FILE%" -d "src" --out-dir "%OUT_DIR%" --work-dir "%WORK_DIR%" --build-cfg %BUILD_CFG% --import-api-dir "%DEP_ROOT%" --export-api-dir "%OUT_DIR%"%EXTRA_ARGS%
 if not "%ERRORLEVEL%"=="0" exit /b %ERRORLEVEL%
 
 call "%TOOLS_DIR%_common.bat" :set_paths "%CORE_OUT_REL%" "%ARTIFACT_KIND%" "%BUILD_CFG%"
 if not "%ERRORLEVEL%"=="0" exit /b %ERRORLEVEL%
 
 if /I "%ARTIFACT_KIND%"=="executable" (
-    "%SWC_EXE%" test --module-file "%CORE_MODULE_FILE%" -d "src" --artifact-kind executable --out-dir "%OUT_DIR%" --work-dir "%WORK_DIR%" --build-cfg %BUILD_CFG% --import-api-dir "%DEP_ROOT%"%EXTRA_ARGS%
+    call "%TOOLS_DIR%_common.bat" :run_swc test --module-file "%CORE_MODULE_FILE%" -d "src" --artifact-kind executable --out-dir "%OUT_DIR%" --work-dir "%WORK_DIR%" --build-cfg %BUILD_CFG% --import-api-dir "%DEP_ROOT%"%EXTRA_ARGS%
 ) else (
-    "%SWC_EXE%" build --module-file "%CORE_MODULE_FILE%" -d "src" --artifact-kind %ARTIFACT_KIND% --out-dir "%OUT_DIR%" --work-dir "%WORK_DIR%" --build-cfg %BUILD_CFG% --import-api-dir "%DEP_ROOT%" --export-api-dir "%OUT_DIR%"%EXTRA_ARGS%
+    call "%TOOLS_DIR%_common.bat" :run_swc build --module-file "%CORE_MODULE_FILE%" -d "src" --artifact-kind %ARTIFACT_KIND% --out-dir "%OUT_DIR%" --work-dir "%WORK_DIR%" --build-cfg %BUILD_CFG% --import-api-dir "%DEP_ROOT%" --export-api-dir "%OUT_DIR%"%EXTRA_ARGS%
 )
 if not "%ERRORLEVEL%"=="0" exit /b %ERRORLEVEL%
 
+call "%TOOLS_DIR%_common.bat" :batch_end "%~f0"
 exit /b 0

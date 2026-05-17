@@ -1186,7 +1186,7 @@ namespace
         return targetReg;
     }
 
-    void emitFunctionCall(CodeGen& codeGen, SymbolFunction& calledFunction, const ABICall::PreparedCall& preparedCall, MicroReg callTargetReg)
+    void emitFunctionCall(CodeGen& codeGen, const SymbolFunction& calledFunction, const ABICall::PreparedCall& preparedCall, MicroReg callTargetReg)
     {
         MicroBuilder&      builder      = codeGen.builder();
         const CallConvKind callConvKind = calledFunction.callConvKind();
@@ -1791,7 +1791,7 @@ bool CodeGenCallHelpers::materializeTypedConstantPayload(CodeGen& codeGen, CodeG
     return materializeDefaultConstantPayload(codeGen, outPayload, targetTypeRef, constantRef);
 }
 
-Result CodeGenCallHelpers::emitCallWithResolvedArgsToReg(CodeGen& codeGen, AstNodeRef callRef, SymbolFunction& calledFunction, std::span<const ResolvedCallArgument> args, MicroReg resultReg)
+Result CodeGenCallHelpers::emitCallWithResolvedArgsToReg(CodeGen& codeGen, AstNodeRef callRef, const SymbolFunction& calledFunction, std::span<const ResolvedCallArgument> args, MicroReg resultReg)
 {
     codeGen.function().addCallDependency(&calledFunction);
 
@@ -1820,7 +1820,7 @@ Result CodeGenCallHelpers::emitCallWithResolvedArgsToReg(CodeGen& codeGen, AstNo
     return Result::Continue;
 }
 
-Result CodeGenCallHelpers::emitCallWithResolvedArgs(CodeGen& codeGen, AstNodeRef callRef, SymbolFunction& calledFunction, std::span<const ResolvedCallArgument> args)
+Result CodeGenCallHelpers::emitCallWithResolvedArgs(CodeGen& codeGen, AstNodeRef callRef, const SymbolFunction& calledFunction, std::span<const ResolvedCallArgument> args)
 {
     codeGen.function().addCallDependency(&calledFunction);
 

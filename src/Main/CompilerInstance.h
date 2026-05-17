@@ -66,6 +66,7 @@ public:
         fs::path path;
         Utf8     snapshot;
         uint32_t codeStartOffset = 0;
+        uint32_t lineOffset      = 0;
     };
 
     struct WorkspaceBuildLogState
@@ -192,7 +193,7 @@ public:
     Result                          ensureCompilerMessagePass(Runtime::CompilerMsgKind kind);
     Result                          executePendingCompilerMessages(TaskContext& ctx);
     bool                            hasCompilerMessageInterest(Runtime::CompilerMsgKind kind) const;
-    Result                          appendGeneratedSource(GeneratedSourceAppendResult& outResult, Utf8& outBecause, const fs::path& directory, std::string_view sectionText, uint32_t codeOffsetInSection);
+    Result                          appendGeneratedSource(GeneratedSourceAppendResult& outResult, Utf8& outBecause, std::string_view sectionText, uint32_t codeOffsetInSection);
     void                            registerInMemoryFile(fs::path path, std::string_view content);
     static Sema*                    tryGetJobSema(Job* job);
     static const Sema*              tryGetJobSema(const Job* job);
@@ -297,6 +298,7 @@ private:
     Result      applyModuleSetupInputs(TaskContext& ctx, const ModuleSetupSnapshot& setupSnapshot);
     ExitCode    runWorkspace();
     Result      runWorkspaceModule(const WorkspaceModuleBuild& moduleBuild, uint32_t moduleIndex, uint32_t moduleCount) const;
+    Result      flushGeneratedSourceDumps(TaskContext& ctx);
 
     const CommandLine*                       cmdLine_ = nullptr;
     const Global*                            global_  = nullptr;
@@ -345,14 +347,22 @@ private:
 
     struct PerThreadData
     {
+        struct GeneratedSourceThreadData
+        {
+            fs::path path;
+            Utf8     content;
+            uint32_t nextLineOffset = 0;
+            bool     dirty          = false;
+        };
+
         Arena                  arena;
         Runtime::Context       runtimeContext{};
         ModuleApiPerThreadData moduleApi;
+        GeneratedSourceThreadData generatedSource;
     };
 
     std::vector<PerThreadData>                            perThreadData_;
     std::atomic<uint32_t>                                 atomicId_             = 0;
-    std::atomic<uint32_t>                                 generatedSourceId_    = 0;
     std::atomic<bool>                                     nativeOutputsCleared_ = false;
     AstCompilerFunc*                                      mainFunc_             = nullptr;
     std::vector<Utf8>                                     foreignLibs_;

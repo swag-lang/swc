@@ -25,17 +25,17 @@ SourceView::SourceView(SourceViewRef ref, const SourceFile* file) :
 
 Utf8 SourceView::codeLine(const TaskContext& ctx, uint32_t line) const
 {
-    line--;
-    SWC_ASSERT(line < lines_.size());
+    const uint32_t localLine = clampLine(line) - 1;
+    SWC_ASSERT(localLine < lines_.size());
 
-    const auto  offset      = lines_[line];
+    const auto  offset      = lines_[localLine];
     const auto* startBuffer = stringView_.data() + offset;
     const char* end;
 
-    if (line == lines_.size() - 1)
+    if (localLine == lines_.size() - 1)
         end = stringView_.data() + stringView_.size();
     else
-        end = stringView_.data() + lines_[line + 1];
+        end = stringView_.data() + lines_[localLine + 1];
 
     const auto* buffer = startBuffer;
     bool        hasTab = false;
@@ -94,6 +94,13 @@ SourceCodeRange SourceView::tokenCodeRange(const TaskContext& ctx, TokenRef tokR
 
 uint32_t SourceView::clampLine(uint32_t line) const
 {
+    if (lines_.empty())
+        return 1;
+
+    if (line <= lineOffset_)
+        return 1;
+
+    line -= lineOffset_;
     if (!line)
         return 1;
     return std::min(line, static_cast<uint32_t>(lines_.size()));

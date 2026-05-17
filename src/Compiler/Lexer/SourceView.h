@@ -54,6 +54,8 @@ public:
     std::vector<SourceIdentifier>&       identifiers() { return identifiers_; }
     uint32_t                             sourceStartOffset() const { return sourceStartOffset_; }
     void                                 setSourceStartOffset(const uint32_t offset) { sourceStartOffset_ = offset; }
+    uint32_t                             lineOffset() const { return lineOffset_; }
+    void                                 setLineOffset(const uint32_t offset) { lineOffset_ = offset; }
     const Token&                         token(TokenRef tok) const { return tokens_[tok.get()]; }
     uint32_t                             numTokens() const { return static_cast<uint32_t>(tokens_.size()); }
     const std::vector<uint32_t>&         triviaStart() const { return triviaStart_; }
@@ -99,6 +101,7 @@ private:
     std::vector<uint32_t>         triviaStart_;
     std::vector<SourceIdentifier> identifiers_;
     uint32_t                      sourceStartOffset_ = 0;
+    uint32_t                      lineOffset_        = 0;
     SourceViewFlags               parseFlags_        = SourceViewFlagsE::Zero;
 };
 

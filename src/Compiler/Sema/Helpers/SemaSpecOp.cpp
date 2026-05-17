@@ -2049,42 +2049,34 @@ namespace
         return Result::Continue;
     }
 
-    Result reportGeneratedOperatorWriteFailure(Sema& sema, const fs::path& directory, const CompilerInstance::GeneratedSourceAppendResult& appendResult, const Utf8& because)
+    Result reportGeneratedOperatorWriteFailure(Sema& sema, const CompilerInstance::GeneratedSourceAppendResult& appendResult, const Utf8& because)
     {
         Diagnostic diag = Diagnostic::get(DiagnosticId::sema_err_ast_file_write_failed);
-        diag.addArgument(Diagnostic::ARG_PATH, Utf8(appendResult.path.empty() ? directory : appendResult.path));
+        diag.addArgument(Diagnostic::ARG_PATH, Utf8(appendResult.path));
         diag.addArgument(Diagnostic::ARG_BECAUSE, because);
         diag.report(sema.ctx());
         return Result::Error;
     }
 
-    Result declareGeneratedOperatorSource(Sema& sema, SymbolStruct& ownerStruct, std::string_view source, const bool useCmdLineWorkDir = true)
+    Result declareGeneratedOperatorSource(Sema& sema, SymbolStruct& ownerStruct, std::string_view source)
     {
         if (source.empty())
             return Result::Continue;
 
         TaskContext&      ctx       = sema.ctx();
         CompilerInstance& compiler  = sema.compiler();
-        fs::path          directory = Os::getTemporaryPath().lexically_normal();
-        if (useCmdLineWorkDir)
-        {
-            const Runtime::String& workDir = compiler.buildCfg().workDir;
-            if (workDir.ptr && workDir.length)
-                directory = fs::path(Utf8{workDir}.c_str()).lexically_normal();
-            else if (!ctx.cmdLine().workDir.empty())
-                directory = ctx.cmdLine().workDir;
-        }
 
         CompilerInstance::GeneratedSourceAppendResult appendResult;
         Utf8                                          because;
-        if (compiler.appendGeneratedSource(appendResult, because, directory, source, 0) != Result::Continue)
-            return reportGeneratedOperatorWriteFailure(sema, directory, appendResult, because);
+        if (compiler.appendGeneratedSource(appendResult, because, source, 0) != Result::Continue)
+            return reportGeneratedOperatorWriteFailure(sema, appendResult, because);
 
-        compiler.registerInMemoryFile(appendResult.path, appendResult.snapshot.view());
         SourceFile& sourceFile = compiler.addFile(appendResult.path, FileFlagsE::CustomSrc | FileFlagsE::SkipFmt);
+        sourceFile.setContent(appendResult.snapshot.view());
         sourceFile.setModuleNamespace(sema.moduleNamespace());
 
         SWC_RESULT(sourceFile.loadContent(ctx));
+        sourceFile.ast().srcView().setLineOffset(appendResult.lineOffset);
         SWC_RESULT(parseLoadedSourceFile(ctx, sourceFile, {}));
 
         SourceView& srcView = sourceFile.ast().srcView();
@@ -2119,18 +2111,18 @@ namespace
 
         TaskContext&      ctx       = sema.ctx();
         CompilerInstance& compiler  = sema.compiler();
-        const fs::path    directory = Os::getTemporaryPath().lexically_normal();
 
         CompilerInstance::GeneratedSourceAppendResult appendResult;
         Utf8                                          because;
-        if (compiler.appendGeneratedSource(appendResult, because, directory, source, 0) != Result::Continue)
-            return reportGeneratedOperatorWriteFailure(sema, directory, appendResult, because);
+        if (compiler.appendGeneratedSource(appendResult, because, source, 0) != Result::Continue)
+            return reportGeneratedOperatorWriteFailure(sema, appendResult, because);
 
-        compiler.registerInMemoryFile(appendResult.path, appendResult.snapshot.view());
         SourceFile& sourceFile = compiler.addFile(appendResult.path, FileFlagsE::CustomSrc | FileFlagsE::SkipFmt);
+        sourceFile.setContent(appendResult.snapshot.view());
         sourceFile.setModuleNamespace(sema.moduleNamespace());
 
         SWC_RESULT(sourceFile.loadContent(ctx));
+        sourceFile.ast().srcView().setLineOffset(appendResult.lineOffset);
         SWC_RESULT(parseLoadedSourceFile(ctx, sourceFile, {}));
 
         SourceView& srcView = sourceFile.ast().srcView();
@@ -2233,7 +2225,7 @@ Result SemaSpecOp::ensureGeneratedLifecycleFunctions(Sema& sema, SymbolStruct& o
     }
 
     const Utf8 source = makeGeneratedLifecycleSource(sema, ownerStruct);
-    return declareGeneratedOperatorSource(sema, ownerStruct, source.view(), false);
+    return declareGeneratedOperatorSource(sema, ownerStruct, source.view());
 }
 
 Result SemaSpecOp::ensureGeneratedOperators(Sema& sema, SymbolStruct& ownerStruct)

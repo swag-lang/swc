@@ -614,18 +614,6 @@ namespace
         return Result::Continue;
     }
 
-    fs::path compilerAstGeneratedDirectory(const Sema& sema)
-    {
-        const Runtime::String& workDir = sema.compiler().buildCfg().workDir;
-        if (workDir.ptr && workDir.length)
-            return fs::path(Utf8{workDir}.c_str()).lexically_normal();
-
-        if (!sema.ctx().cmdLine().workDir.empty())
-            return sema.ctx().cmdLine().workDir;
-
-        return Os::getTemporaryPath().lexically_normal();
-    }
-
     std::string_view compilerAstLineEnding(const SourceView& srcView)
     {
         const std::string_view source = srcView.stringView();
@@ -736,19 +724,18 @@ namespace
 
         uint32_t       sectionCodeOffset = 0;
         const Utf8     sectionText       = buildCompilerAstGeneratedSection(sema, ownerRef, generatedCode, sectionCodeOffset);
-        const fs::path directory         = compilerAstGeneratedDirectory(sema);
 
         CompilerInstance::GeneratedSourceAppendResult appendResult;
         Utf8                                          because;
-        if (sema.compiler().appendGeneratedSource(appendResult, because, directory, sectionText.view(), sectionCodeOffset) != Result::Continue)
+        if (sema.compiler().appendGeneratedSource(appendResult, because, sectionText.view(), sectionCodeOffset) != Result::Continue)
         {
-            const fs::path errorPath = appendResult.path.empty() ? directory : appendResult.path;
-            return reportCompilerFileError(sema, DiagnosticId::sema_err_ast_file_write_failed, ownerRef, errorPath, because);
+            return reportCompilerFileError(sema, DiagnosticId::sema_err_ast_file_write_failed, ownerRef, appendResult.path, because);
         }
 
-        sema.compiler().registerInMemoryFile(appendResult.path, appendResult.snapshot.view());
         SourceFile& sourceFile = sema.compiler().addFile(appendResult.path, FileFlagsE::CustomSrc | FileFlagsE::SkipFmt);
+        sourceFile.setContent(appendResult.snapshot.view());
         SWC_RESULT(sourceFile.loadContent(sema.ctx()));
+        sourceFile.ast().srcView().setLineOffset(appendResult.lineOffset);
         sourceFile.unitTest().tokenize(sema.ctx());
 
         SourceView& srcView = sourceFile.ast().srcView();

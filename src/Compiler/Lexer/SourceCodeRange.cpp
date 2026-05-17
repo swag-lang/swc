@@ -64,7 +64,7 @@ void SourceCodeRange::fromOffset(const TaskContext& ctx, const SourceView& view,
     if (it == lines.begin())
     {
         // Offset is before the first line start
-        line   = 1;
+        line   = 1 + view.lineOffset();
         column = calculateColumn(ctx, reinterpret_cast<const char8_t*>(view.stringView().data()), 0, inOffset);
     }
     else
@@ -75,7 +75,7 @@ void SourceCodeRange::fromOffset(const TaskContext& ctx, const SourceView& view,
         const uint32_t lineStartOffset = *it;
 
         // Line numbers are 1-based
-        line = static_cast<uint32_t>(lineIndex + 1);
+        line = static_cast<uint32_t>(lineIndex + 1) + view.lineOffset();
 
         // Column is the offset from the start of the line (1-based)
         column = calculateColumn(ctx, reinterpret_cast<const char8_t*>(view.stringView().data()), lineStartOffset, inOffset);

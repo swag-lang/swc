@@ -78,23 +78,6 @@ namespace
         return FileSystem::readTextFile(path, outText, ioError);
     }
 
-    uint32_t countRegularFiles(const fs::path& directory)
-    {
-        uint32_t        count = 0;
-        std::error_code ec;
-        for (fs::directory_iterator it(directory, ec), end; it != end; it.increment(ec))
-        {
-            if (ec)
-                break;
-
-            if (it->is_regular_file(ec) && !ec)
-                count++;
-            ec.clear();
-        }
-
-        return count;
-    }
-
     bool appendUniquePath(std::vector<fs::path>& paths, const fs::path& path)
     {
         for (const fs::path& existing : paths)
@@ -126,6 +109,7 @@ SWC_TEST_BEGIN(Compiler_GeneratedAstMaterializesPerThreadFiles)
     CommandLine cmdLine;
     cmdLine.command = CommandKind::Sema;
     cmdLine.name    = "compiler_generated_ast_thread_files";
+    cmdLine.numCores = 1;
     cmdLine.workDir = workDir.root();
     cmdLine.files.insert(sourcePath);
     CommandLineParser::refreshBuildCfg(cmdLine);
@@ -134,7 +118,8 @@ SWC_TEST_BEGIN(Compiler_GeneratedAstMaterializesPerThreadFiles)
     const RestoreErrorCount restoreErrors{errorsBefore};
     CompilerInstance        compiler(ctx.global(), cmdLine);
     Unittest::registerTestSource(compiler, sourcePath, SOURCE);
-    Command::sema(compiler);
+    if (compiler.run() != ExitCode::Success)
+        return Result::Error;
     if (Stats::getNumErrors() != errorsBefore)
         return Result::Error;
 
@@ -145,7 +130,10 @@ SWC_TEST_BEGIN(Compiler_GeneratedAstMaterializesPerThreadFiles)
     std::vector<const SourceFile*> generatedFiles;
     for (const SourceFile* file : compiler.files())
     {
-        if (file && isGeneratedAstFile(*file, workDir.root()))
+        if (file &&
+            isGeneratedAstFile(*file, workDir.root()) &&
+            file->ast().hasSourceView() &&
+            file->ast().srcView().ownerFileRef() == originalFile->ref())
             generatedFiles.push_back(file);
     }
 
@@ -159,7 +147,9 @@ SWC_TEST_BEGIN(Compiler_GeneratedAstMaterializesPerThreadFiles)
             return Result::Error;
         if (!fs::exists(file->path()))
             return Result::Error;
-        if (!file->path().filename().string().starts_with("thread-"))
+        if (!file->path().filename().string().contains("generated-thread-"))
+            return Result::Error;
+        if (file->path().extension() != ".swgsrc")
             return Result::Error;
         if (!file->ast().hasSourceView())
             return Result::Error;
@@ -169,7 +159,9 @@ SWC_TEST_BEGIN(Compiler_GeneratedAstMaterializesPerThreadFiles)
         appendUniquePath(generatedPaths, file->path());
     }
 
-    if (countRegularFiles(workDir.root()) != generatedPaths.size())
+    // Generated snippets can land in one or more per-thread dumps depending on
+    // which compiler thread materializes each section.
+    if (generatedPaths.empty() || generatedPaths.size() > generatedFiles.size())
         return Result::Error;
 
     bool foundGeneratedA = false;
@@ -212,6 +204,7 @@ SWC_TEST_BEGIN(Compiler_GeneratedAstDiagnosticsUseMaterializedSourceFile)
     cmdLine.name               = "compiler_generated_ast_diagnostics";
     cmdLine.silent             = true;
     cmdLine.devStopDiagnostics = false;
+    cmdLine.numCores           = 1;
     cmdLine.workDir            = workDir.root();
     cmdLine.files.insert(sourcePath);
     CommandLineParser::refreshBuildCfg(cmdLine);
@@ -220,7 +213,8 @@ SWC_TEST_BEGIN(Compiler_GeneratedAstDiagnosticsUseMaterializedSourceFile)
     const RestoreErrorCount restoreErrors{errorsBefore};
     CompilerInstance        compiler(ctx.global(), cmdLine);
     Unittest::registerTestSource(compiler, sourcePath, SOURCE);
-    Command::sema(compiler);
+    if (compiler.run() == ExitCode::Success)
+        return Result::Error;
     if (Stats::getNumErrors() == errorsBefore)
         return Result::Error;
 

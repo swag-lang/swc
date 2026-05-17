@@ -95,7 +95,8 @@ namespace
     uint64_t       g_RuntimeContextTlsId;
     std::once_flag g_RuntimeContextTlsIdOnce;
 
-    fs::path generatedSourceDirectory(const CompilerInstance& compiler);
+    fs::path generatedSourceOutputDirectory(const CompilerInstance& compiler);
+    fs::path generatedSourceDumpPath(const CompilerInstance& compiler, uint32_t threadIndex);
     Utf8     buildModuleNamespaceName(const CompilerInstance& compiler);
 
     void reapplyBuildCfgPresetOverrides(Runtime::BuildCfg& buildCfg, const Runtime::BuildCfg& explicitBuildCfg)
@@ -576,27 +577,26 @@ namespace
             return Result::Continue;
 
         CompilerInstance& compiler  = ctx.compiler();
-        const fs::path    directory = generatedSourceDirectory(compiler);
-
         CompilerInstance::GeneratedSourceAppendResult appendResult;
         Utf8                                          because;
-        if (compiler.appendGeneratedSource(appendResult, because, directory, generatedCode, 0) != Result::Continue)
+        if (compiler.appendGeneratedSource(appendResult, because, generatedCode, 0) != Result::Continue)
         {
             Diagnostic diag = Diagnostic::get(DiagnosticId::sema_err_ast_file_write_failed);
-            diag.addArgument(Diagnostic::ARG_PATH, Utf8(appendResult.path.empty() ? directory : appendResult.path));
+            diag.addArgument(Diagnostic::ARG_PATH, Utf8(appendResult.path));
             diag.addArgument(Diagnostic::ARG_BECAUSE, because);
             diag.report(ctx);
             return Result::Error;
         }
 
-        compiler.registerInMemoryFile(appendResult.path, appendResult.snapshot.view());
         SourceFile&            sourceFile               = compiler.addFile(appendResult.path, FileFlagsE::CustomSrc | FileFlagsE::SkipFmt);
+        sourceFile.setContent(appendResult.snapshot.view());
         const SymbolNamespace* generatedModuleNamespace = moduleNamespace ? moduleNamespace : currentModuleNamespace(ctx);
         if (generatedModuleNamespace)
             sourceFile.setModuleNamespace(*const_cast<SymbolNamespace*>(generatedModuleNamespace));
 
         if (sourceFile.loadContent(ctx) != Result::Continue)
             return Result::Error;
+        sourceFile.ast().srcView().setLineOffset(appendResult.lineOffset);
         if (parseLoadedSourceFile(ctx, sourceFile, {}) != Result::Continue)
             return Result::Error;
 
@@ -674,16 +674,74 @@ namespace
         ownedStrings.swap(newOwnedStrings);
     }
 
-    fs::path generatedSourceDirectory(const CompilerInstance& compiler)
+    bool endsWithLineBreak(const std::string_view text)
     {
+        if (text.empty())
+            return false;
+
+        const char last = text.back();
+        return last == '\n' || last == '\r';
+    }
+
+    uint32_t countLineBreaks(const std::string_view text)
+    {
+        uint32_t count = 0;
+        for (size_t i = 0; i < text.size(); ++i)
+        {
+            if (text[i] == '\n')
+            {
+                count++;
+                continue;
+            }
+
+            if (text[i] != '\r')
+                continue;
+
+            count++;
+            if (i + 1 < text.size() && text[i + 1] == '\n')
+                i++;
+        }
+
+        return count;
+    }
+
+    Utf8 generatedSourceDumpBaseName(const CompilerInstance& compiler)
+    {
+        Utf8 baseName = buildCfgString(compiler.buildCfg().name);
+        if (baseName.empty())
+            baseName = defaultArtifactName(compiler.cmdLine());
+
+        baseName = FileSystem::sanitizeFileName(baseName);
+        if (baseName.empty())
+            baseName = "module";
+        return baseName;
+    }
+
+    fs::path generatedSourceOutputDirectory(const CompilerInstance& compiler)
+    {
+        const Utf8 outDir = buildCfgString(compiler.buildCfg().outDir);
+        if (!outDir.empty())
+            return FileSystem::absolutePathNoThrow(fs::path(outDir.c_str()));
+        if (!compiler.cmdLine().outDir.empty())
+            return FileSystem::absolutePathNoThrow(compiler.cmdLine().outDir);
+        if (!compiler.cmdLine().exportApiDir.empty())
+            return FileSystem::absolutePathNoThrow(compiler.cmdLine().exportApiDir);
+
         const Utf8 workDir = buildCfgString(compiler.buildCfg().workDir);
         if (!workDir.empty())
-            return fs::path(workDir.c_str()).lexically_normal();
+            return FileSystem::absolutePathNoThrow(fs::path(workDir.c_str()));
 
         if (!compiler.cmdLine().workDir.empty())
-            return compiler.cmdLine().workDir;
+            return FileSystem::absolutePathNoThrow(compiler.cmdLine().workDir);
 
-        return Os::getTemporaryPath().lexically_normal();
+        return FileSystem::absolutePathNoThrow(Os::getTemporaryPath());
+    }
+
+    fs::path generatedSourceDumpPath(const CompilerInstance& compiler, const uint32_t threadIndex)
+    {
+        const fs::path directory = generatedSourceOutputDirectory(compiler);
+        const Utf8     baseName  = generatedSourceDumpBaseName(compiler);
+        return (directory / std::format("{}-generated-thread-{}.swgsrc", baseName.c_str(), threadIndex)).lexically_normal();
     }
 
     Utf8 buildModuleNamespaceName(const CompilerInstance& compiler)
@@ -1647,6 +1705,12 @@ ExitCode CompilerInstance::run()
     else
     {
         processCommand();
+        if (!cmdLine().dryRun && !cmdLine().showConfig)
+        {
+            TaskContext ctx(*this);
+            (void) flushGeneratedSourceDumps(ctx);
+        }
+
         exitCode = Stats::getNumErrors() > 0 ? ExitCode::CompileError : ExitCode::Success;
     }
     commandWallTimeNs_ = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now() - runStart).count();
@@ -2388,63 +2452,105 @@ bool CompilerInstance::tryRegisterReportedDiagnostic(const std::string_view mess
     return reportedDiagnostics_.insert(std::move(messageUtf8)).second;
 }
 
-Result CompilerInstance::appendGeneratedSource(GeneratedSourceAppendResult& outResult, Utf8& outBecause, const fs::path& directory, const std::string_view sectionText, const uint32_t codeOffsetInSection)
+Result CompilerInstance::appendGeneratedSource(GeneratedSourceAppendResult& outResult, Utf8& outBecause, const std::string_view sectionText, const uint32_t codeOffsetInSection)
 {
     outResult = {};
     outBecause.clear();
 
-    SWC_ASSERT(directory.is_absolute());
     SWC_ASSERT(codeOffsetInSection <= sectionText.size());
 
-    const auto threadIndex = static_cast<uint32_t>(JobManager::threadIndex());
-    const auto sourceId    = generatedSourceId_.fetch_add(1, std::memory_order_relaxed);
+    const auto  threadIndex = static_cast<uint32_t>(JobManager::threadIndex());
+    auto&       generated   = perThreadData_[threadIndex].generatedSource;
+    if (generated.path.empty())
+        generated.path = generatedSourceDumpPath(*this, threadIndex);
 
-    // Keep generated source paths stable across identical compiler runs so debug/source
-    // metadata and any path-derived constants remain deterministic.
-    outResult.path            = (directory / std::format("thread-{}-g{}-c{}.swg", threadIndex, sourceId, jobClientId_)).lexically_normal();
+    outResult.path            = generated.path;
     outResult.codeStartOffset = codeOffsetInSection;
+    outResult.lineOffset      = generated.nextLineOffset;
     outResult.snapshot        = sectionText;
+    if (!outResult.snapshot.empty() && !endsWithLineBreak(outResult.snapshot.view()))
+        outResult.snapshot += "\n";
 
-    std::error_code ec;
-    fs::create_directories(directory, ec);
-    if (ec)
+    if (!outResult.snapshot.empty())
     {
-        outBecause = FileSystem::normalizeSystemMessage(ec);
-        return Result::Error;
+        generated.content += outResult.snapshot;
+        generated.nextLineOffset += countLineBreaks(outResult.snapshot.view());
+        generated.dirty = true;
     }
 
-    std::ofstream generatedStream(outResult.path, std::ios::binary | std::ios::trunc);
-    if (!generatedStream.is_open())
-    {
-        outBecause = Os::systemError();
-        if (outBecause.empty())
-            outBecause = FileSystem::describeIoProblem(FileSystem::IoProblem::OpenWrite);
-        else
-            outBecause = FileSystem::normalizeSystemMessage(outBecause);
-        return Result::Error;
-    }
+    return Result::Continue;
+}
 
-    if (!sectionText.empty())
-        generatedStream.write(sectionText.data(), static_cast<std::streamsize>(sectionText.size()));
+Result CompilerInstance::flushGeneratedSourceDumps(TaskContext& ctx)
+{
+    for (PerThreadData& td : perThreadData_)
+    {
+        auto& generated = td.generatedSource;
+        if (!generated.dirty || generated.path.empty())
+            continue;
 
-    if (!generatedStream)
-    {
-        outBecause = Os::systemError();
-        if (outBecause.empty())
-            outBecause = FileSystem::describeIoProblem(FileSystem::IoProblem::Write);
-        else
-            outBecause = FileSystem::normalizeSystemMessage(outBecause);
-        return Result::Error;
-    }
-    generatedStream.close();
-    if (!generatedStream)
-    {
-        outBecause = Os::systemError();
-        if (outBecause.empty())
-            outBecause = FileSystem::describeIoProblem(FileSystem::IoProblem::CloseWrite);
-        else
-            outBecause = FileSystem::normalizeSystemMessage(outBecause);
-        return Result::Error;
+        std::error_code ec;
+        fs::create_directories(generated.path.parent_path(), ec);
+        if (ec)
+        {
+            Diagnostic diag = Diagnostic::get(DiagnosticId::sema_err_ast_file_write_failed);
+            diag.addArgument(Diagnostic::ARG_PATH, Utf8(generated.path));
+            diag.addArgument(Diagnostic::ARG_BECAUSE, FileSystem::normalizeSystemMessage(ec));
+            diag.report(ctx);
+            return Result::Error;
+        }
+
+        std::ofstream generatedStream(generated.path, std::ios::binary | std::ios::trunc);
+        if (!generatedStream.is_open())
+        {
+            Utf8 because = Os::systemError();
+            if (because.empty())
+                because = FileSystem::describeIoProblem(FileSystem::IoProblem::OpenWrite);
+            else
+                because = FileSystem::normalizeSystemMessage(because);
+
+            Diagnostic diag = Diagnostic::get(DiagnosticId::sema_err_ast_file_write_failed);
+            diag.addArgument(Diagnostic::ARG_PATH, Utf8(generated.path));
+            diag.addArgument(Diagnostic::ARG_BECAUSE, because);
+            diag.report(ctx);
+            return Result::Error;
+        }
+
+        if (!generated.content.empty())
+            generatedStream.write(generated.content.data(), static_cast<std::streamsize>(generated.content.size()));
+
+        if (!generatedStream)
+        {
+            Utf8 because = Os::systemError();
+            if (because.empty())
+                because = FileSystem::describeIoProblem(FileSystem::IoProblem::Write);
+            else
+                because = FileSystem::normalizeSystemMessage(because);
+
+            Diagnostic diag = Diagnostic::get(DiagnosticId::sema_err_ast_file_write_failed);
+            diag.addArgument(Diagnostic::ARG_PATH, Utf8(generated.path));
+            diag.addArgument(Diagnostic::ARG_BECAUSE, because);
+            diag.report(ctx);
+            return Result::Error;
+        }
+
+        generatedStream.close();
+        if (!generatedStream)
+        {
+            Utf8 because = Os::systemError();
+            if (because.empty())
+                because = FileSystem::describeIoProblem(FileSystem::IoProblem::CloseWrite);
+            else
+                because = FileSystem::normalizeSystemMessage(because);
+
+            Diagnostic diag = Diagnostic::get(DiagnosticId::sema_err_ast_file_write_failed);
+            diag.addArgument(Diagnostic::ARG_PATH, Utf8(generated.path));
+            diag.addArgument(Diagnostic::ARG_BECAUSE, because);
+            diag.report(ctx);
+            return Result::Error;
+        }
+
+        generated.dirty = false;
     }
 
     return Result::Continue;

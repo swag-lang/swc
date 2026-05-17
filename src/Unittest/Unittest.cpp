@@ -5,6 +5,8 @@
 #include "Main/Command/CommandLine.h"
 #include "Main/CompilerInstance.h"
 #include "Main/Global.h"
+#include "Support/Core/Timer.h"
+#include "Support/Core/Utf8Helper.h"
 #include "Support/Os/Os.h"
 #include "Support/Report/LogColor.h"
 #include "Support/Report/Logger.h"
@@ -19,6 +21,12 @@ namespace Unittest
 {
     namespace
     {
+        struct TimedTestResult
+        {
+            const char* name       = nullptr;
+            uint64_t    durationNs = 0;
+        };
+
         CommandLine makeIsolatedUnittestCommandLine(const CommandLine& cmdLine)
         {
             CommandLine result = cmdLine;
@@ -63,12 +71,56 @@ namespace Unittest
             return allSetups;
         }
 
-        void logUnittestStatus(const TaskContext& ctx, const char* name, bool ok)
+        Utf8 formatDuration(uint64_t durationNs)
         {
-            const std::string header = std::format("Test-{}", name);
-            Logger::printHeaderDot(ctx, LogColor::BrightCyan, header, ok ? LogColor::BrightGreen : LogColor::BrightRed, ok ? "ok" : "fail");
+            return Utf8Helper::toNiceTime(Timer::toSeconds(durationNs));
         }
 
+        Utf8 formatUnittestStatus(bool ok, uint64_t durationNs)
+        {
+            return std::format("{} ({})", ok ? "ok" : "fail", formatDuration(durationNs));
+        }
+
+        void logUnittestStatus(const TaskContext& ctx, const char* name, bool ok, uint64_t durationNs)
+        {
+            const std::string header = std::format("Test-{}", name);
+            const Utf8        status = formatUnittestStatus(ok, durationNs);
+            Logger::printHeaderDot(ctx, LogColor::BrightCyan, header, ok ? LogColor::BrightGreen : LogColor::BrightRed, status);
+        }
+
+        bool hasLongerDuration(const TimedTestResult& lhs, const TimedTestResult& rhs)
+        {
+            return lhs.durationNs > rhs.durationNs;
+        }
+
+        uint64_t totalTestDuration(const std::vector<TimedTestResult>& timedTests)
+        {
+            uint64_t result = 0;
+            for (const TimedTestResult& timedTest : timedTests)
+                result += timedTest.durationNs;
+            return result;
+        }
+
+        void logUnittestSummary(const TaskContext& ctx, const std::vector<TimedTestResult>& timedTests, uint64_t setupDurationNs)
+        {
+            const uint64_t totalTestDurationNs = totalTestDuration(timedTests);
+            const Utf8     testsSummary        = std::format("{} tests ({})", Utf8Helper::toNiceBigNumber(timedTests.size()), formatDuration(totalTestDurationNs));
+            Logger::printHeaderDot(ctx, LogColor::BrightCyan, "Tests", LogColor::White, testsSummary);
+
+            if (setupDurationNs)
+                Logger::printHeaderDot(ctx, LogColor::BrightCyan, "Setup", LogColor::White, formatDuration(setupDurationNs));
+
+            std::vector<TimedTestResult> slowTests = timedTests;
+            std::ranges::sort(slowTests, hasLongerDuration);
+            const size_t count = std::min<size_t>(10, slowTests.size());
+            for (size_t i = 0; i < count; ++i)
+            {
+                const TimedTestResult& slowTest = slowTests[i];
+                const std::string      header   = std::format("Slow-{:02}", i + 1);
+                const Utf8             message  = std::format("{} ({})", slowTest.name, formatDuration(slowTest.durationNs));
+                Logger::printHeaderDot(ctx, LogColor::BrightCyan, header, LogColor::White, message);
+            }
+        }
     }
 
     void registerTest(TestCase test)
@@ -92,32 +144,47 @@ namespace Unittest
         TimedActionLog::ScopedStage stage(testCtx, TimedActionLog::Stage::Unittest);
         Logger::ScopedStageMute     muteNestedStages(testCtx.global().logger());
 
-        bool       hasFailure      = false;
-        const bool verboseUnittest = ctx.cmdLine().verboseUnittest;
+        bool                         hasFailure      = false;
+        uint64_t                     setupDurationNs = 0;
+        std::vector<TimedTestResult> timedTests;
+        const bool                   verboseUnittest = ctx.cmdLine().verboseUnittest;
+        timedTests.reserve(testRegistry().size());
 
         for (const SetupFn setupFn : setupRegistry())
         {
             if (setupFn)
+            {
+                const Timer::Tick startTick = Timer::Clock::now();
                 setupFn(testCtx);
+                setupDurationNs += std::chrono::duration_cast<std::chrono::nanoseconds>(Timer::Clock::now() - startTick).count();
+            }
         }
 
         for (const TestCase& test : testRegistry())
         {
-            const Result result = test.fn(testCtx);
-            if (result == Result::Continue)
+            const Timer::Tick startTick  = Timer::Clock::now();
+            const Result      result     = test.fn(testCtx);
+            const uint64_t    durationNs = std::chrono::duration_cast<std::chrono::nanoseconds>(Timer::Clock::now() - startTick).count();
+            const bool ok = result == Result::Continue;
+
+            timedTests.push_back({test.name, durationNs});
+            if (ok)
             {
                 if (verboseUnittest)
-                    logUnittestStatus(testCtx, test.name, true);
+                    logUnittestStatus(testCtx, test.name, true, durationNs);
             }
             else
             {
-                logUnittestStatus(testCtx, test.name, false);
+                logUnittestStatus(testCtx, test.name, false, durationNs);
                 if (CompilerInstance::dbgDevStop)
                     Os::panicBox("[DevMode] UNITTEST failed!");
                 hasFailure = true;
                 stage.markFailure();
             }
         }
+
+        if (verboseUnittest)
+            logUnittestSummary(testCtx, timedTests, setupDurationNs);
 
         return hasFailure ? Result::Error : Result::Continue;
     }

@@ -174,7 +174,7 @@ namespace
 
     void appendImplFunctions(std::vector<SymbolFunction*>& out, const std::vector<SymbolImpl*>& implList)
     {
-        for (SymbolImpl* symImpl : implList)
+        for (const SymbolImpl* symImpl : implList)
         {
             if (!symImpl)
                 continue;
@@ -534,14 +534,16 @@ void SymbolStruct::removeIgnoredFields()
 ConstantRef SymbolStruct::computeDefaultValue(Sema& sema, TypeRef typeRef)
 {
     std::call_once(defaultStructOnce_, [&] {
-        auto            ctx        = sema.ctx();
-        const TypeInfo& ty         = type(ctx);
-        uint64_t        structSize = ty.sizeOf(ctx);
+        auto            ctx = sema.ctx();
+        const TypeInfo& ty  = type(ctx);
+
+        uint64_t structSize = ty.sizeOf(ctx);
         if (!structSize)
         {
             SWC_INTERNAL_CHECK(computeLayout(ctx) == Result::Continue);
             structSize = ty.sizeOf(ctx);
         }
+
         SWC_ASSERT(structSize);
         std::vector<std::byte> buffer(structSize);
         const ByteSpanRW       bytes = asByteSpan(buffer);

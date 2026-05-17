@@ -20,6 +20,10 @@ constexpr std::string_view END_OF_OPTIONS     = "--";
 namespace
 {
     constexpr uint32_t RSP_MAX_DEPTH = 16;
+    constexpr std::string_view CONFIG_FILE_LONG_FORM  = "--config-file";
+    constexpr std::string_view CONFIG_FILE_SHORT_FORM = "-cf";
+
+    void resolveModuleRelativeInput(const fs::path& baseDir, fs::path& path);
 
     // Split response-file content into whitespace-separated tokens.
     // Supports `"..."` and `'...'` for tokens containing spaces. No escape sequences.
@@ -101,6 +105,80 @@ namespace
         }
 
         return false;
+    }
+
+    void splitInlineOptionValue(const Utf8& raw, Utf8& lookup, std::optional<Utf8>& inlineValue)
+    {
+        lookup = raw;
+        inlineValue.reset();
+        if (raw.substr(0, SHORT_PREFIX_LEN) != SHORT_PREFIX)
+            return;
+
+        const size_t eq = raw.find('=');
+        if (eq == Utf8::npos)
+            return;
+
+        lookup      = raw.substr(0, eq);
+        inlineValue = raw.substr(eq + 1);
+    }
+
+    template<typename T>
+    bool parseIntegerValue(std::string_view value, T& result)
+    {
+        const char* first        = value.data();
+        const char* last         = first + value.size();
+        const auto [ptr, error] = std::from_chars(first, last, result);
+        return !value.empty() && error == std::errc{} && ptr == last;
+    }
+
+    Result reportConflictingArgument(TaskContext& ctx, const std::string_view arg, const std::string_view otherArg)
+    {
+        Diagnostic diag = Diagnostic::get(DiagnosticId::cmdline_err_conflicting_arg);
+        diag.addArgument(Diagnostic::ARG_ARG, arg);
+        diag.addArgument(Diagnostic::ARG_VALUE, otherArg);
+        diag.report(ctx);
+        return Result::Error;
+    }
+
+    template<typename T>
+    Result resolveInputPathSet(TaskContext& ctx, const fs::path& baseDir, std::set<fs::path>& paths, T resolvePath)
+    {
+        std::set<fs::path> resolvedPaths;
+        for (const fs::path& rawPath : paths)
+        {
+            fs::path temp = rawPath;
+            resolveModuleRelativeInput(baseDir, temp);
+            SWC_RESULT(resolvePath(ctx, temp));
+            resolvedPaths.insert(std::move(temp));
+        }
+
+        paths = std::move(resolvedPaths);
+        return Result::Continue;
+    }
+
+    Result normalizeAbsoluteDirectory(TaskContext& ctx, fs::path& path, Utf8* storage = nullptr)
+    {
+        if (path.empty())
+        {
+            if (storage)
+                storage->clear();
+            return Result::Continue;
+        }
+
+        fs::path temp = path;
+        Utf8     because;
+        if (FileSystem::normalizeAbsolutePath(temp, because) != Result::Continue)
+        {
+            Diagnostic diag = Diagnostic::get(DiagnosticId::cmdline_err_invalid_folder);
+            FileSystem::setDiagnosticPathAndBecause(diag, &ctx, temp, because);
+            diag.report(ctx);
+            return Result::Error;
+        }
+
+        path = std::move(temp);
+        if (storage)
+            *storage = Utf8(path);
+        return Result::Continue;
     }
 
     bool applyBuildCfgPreset(Runtime::BuildCfg& buildCfg, const std::string_view cfgName)
@@ -395,17 +473,9 @@ Result CommandLineParser::applyConfigFile(TaskContext& ctx, const std::vector<Ut
 
         Utf8                lookup = raw;
         std::optional<Utf8> inlineValue;
-        if (raw.substr(0, SHORT_PREFIX_LEN) == SHORT_PREFIX)
-        {
-            const size_t eq = raw.find('=');
-            if (eq != Utf8::npos)
-            {
-                lookup      = raw.substr(0, eq);
-                inlineValue = raw.substr(eq + 1);
-            }
-        }
+        splitInlineOptionValue(raw, lookup, inlineValue);
 
-        if (lookup != "--config-file" && lookup != "-cf")
+        if (lookup != CONFIG_FILE_LONG_FORM && lookup != CONFIG_FILE_SHORT_FORM)
             continue;
 
         Utf8        value;
@@ -538,69 +608,6 @@ ArgInfo& CommandLineParser::addImpl(HelpOptionGroup group, const char* commands,
     return args_.back();
 }
 
-void CommandLineParser::add(HelpOptionGroup g, const char* cmds, const char* lf, const char* sf, bool* target, const char* desc, const bool allowInConfig, const StructConfigAssignHook hook)
-{
-    const ArgInfo& info = addImpl(g, cmds, lf, sf, desc, target);
-    if (allowInConfig)
-        registerConfigEntry(info, hook);
-}
-
-void CommandLineParser::add(HelpOptionGroup g, const char* cmds, const char* lf, const char* sf, int* target, const char* desc, const bool allowInConfig, const StructConfigAssignHook hook)
-{
-    const ArgInfo& info = addImpl(g, cmds, lf, sf, desc, target);
-    if (allowInConfig)
-        registerConfigEntry(info, hook);
-}
-
-void CommandLineParser::add(HelpOptionGroup g, const char* cmds, const char* lf, const char* sf, uint32_t* target, const char* desc, const bool allowInConfig, const StructConfigAssignHook hook)
-{
-    const ArgInfo& info = addImpl(g, cmds, lf, sf, desc, target);
-    if (allowInConfig)
-        registerConfigEntry(info, hook);
-}
-
-void CommandLineParser::add(HelpOptionGroup g, const char* cmds, const char* lf, const char* sf, Utf8* target, const char* desc, const bool allowInConfig, const StructConfigAssignHook hook)
-{
-    const ArgInfo& info = addImpl(g, cmds, lf, sf, desc, target);
-    if (allowInConfig)
-        registerConfigEntry(info, hook);
-}
-
-void CommandLineParser::add(HelpOptionGroup g, const char* cmds, const char* lf, const char* sf, fs::path* target, const char* desc, const bool allowInConfig, const StructConfigAssignHook hook)
-{
-    const ArgInfo& info = addImpl(g, cmds, lf, sf, desc, target);
-    if (allowInConfig)
-        registerConfigEntry(info, hook);
-}
-
-void CommandLineParser::add(HelpOptionGroup g, const char* cmds, const char* lf, const char* sf, std::vector<Utf8>* target, const char* desc, const bool allowInConfig, const StructConfigAssignHook hook)
-{
-    const ArgInfo& info = addImpl(g, cmds, lf, sf, desc, target);
-    if (allowInConfig)
-        registerConfigEntry(info, hook);
-}
-
-void CommandLineParser::add(HelpOptionGroup g, const char* cmds, const char* lf, const char* sf, std::set<Utf8>* target, const char* desc, const bool allowInConfig, const StructConfigAssignHook hook)
-{
-    const ArgInfo& info = addImpl(g, cmds, lf, sf, desc, target);
-    if (allowInConfig)
-        registerConfigEntry(info, hook);
-}
-
-void CommandLineParser::add(HelpOptionGroup g, const char* cmds, const char* lf, const char* sf, std::set<fs::path>* target, const char* desc, const bool allowInConfig, const StructConfigAssignHook hook)
-{
-    const ArgInfo& info = addImpl(g, cmds, lf, sf, desc, target);
-    if (allowInConfig)
-        registerConfigEntry(info, hook);
-}
-
-void CommandLineParser::add(HelpOptionGroup g, const char* cmds, const char* lf, const char* sf, std::optional<bool>* target, const char* desc, const bool allowInConfig, const StructConfigAssignHook hook)
-{
-    const ArgInfo& info = addImpl(g, cmds, lf, sf, desc, target);
-    if (allowInConfig)
-        registerConfigEntry(info, hook);
-}
-
 void CommandLineParser::addEnum(HelpOptionGroup g, const char* cmds, const char* lf, const char* sf, Utf8* target, std::vector<Utf8> choices, const char* desc, const bool allowInConfig, const StructConfigAssignHook hook)
 {
     ArgInfo& info = addImpl(g, cmds, lf, sf, desc, target);
@@ -724,22 +731,16 @@ bool CommandLineParser::processArgument(TaskContext& ctx, const ArgInfo& info, c
 
     if (auto* t = std::get_if<int*>(&info.target))
     {
-        const char* first       = value.data();
-        const char* last        = first + value.size();
-        int         parsedValue = 0;
-        const auto [ptr, ec]    = std::from_chars(first, last, parsedValue);
-        if (value.empty() || ec != std::errc{} || ptr != last)
+        int parsedValue = 0;
+        if (!parseIntegerValue(value, parsedValue))
             return reportIntError(ctx, info, arg, value);
         **t = parsedValue;
         return true;
     }
     if (auto* t = std::get_if<uint32_t*>(&info.target))
     {
-        const char* first       = value.data();
-        const char* last        = first + value.size();
-        uint32_t    parsedValue = 0;
-        const auto [ptr, ec]    = std::from_chars(first, last, parsedValue);
-        if (value.empty() || ec != std::errc{} || ptr != last)
+        uint32_t parsedValue = 0;
+        if (!parseIntegerValue(value, parsedValue))
             return reportIntError(ctx, info, arg, value);
         **t = parsedValue;
         return true;
@@ -884,15 +885,7 @@ Result CommandLineParser::parse(int argc, char* argv[])
         // Support `--long=value` and `-s=value`. Split once on the first '='.
         Utf8                lookup = raw;
         std::optional<Utf8> inlineValue;
-        if (raw.substr(0, SHORT_PREFIX_LEN) == SHORT_PREFIX)
-        {
-            const size_t eq = raw.find('=');
-            if (eq != Utf8::npos)
-            {
-                lookup      = raw.substr(0, eq);
-                inlineValue = raw.substr(eq + 1);
-            }
-        }
+        splitInlineOptionValue(raw, lookup, inlineValue);
 
         bool           invertBoolean = false;
         const ArgInfo* info          = findArgument(ctx, lookup, invertBoolean);
@@ -947,11 +940,7 @@ Result CommandLineParser::checkCommandLine(TaskContext& ctx) const
                 continue;
             }
 
-            Diagnostic diag = Diagnostic::get(DiagnosticId::cmdline_err_conflicting_arg);
-            diag.addArgument(Diagnostic::ARG_ARG, option.name);
-            diag.addArgument(Diagnostic::ARG_VALUE, selectedArg);
-            diag.report(ctx);
-            return Result::Error;
+            return reportConflictingArgument(ctx, option.name, selectedArg);
         }
     }
 
@@ -995,13 +984,7 @@ Result CommandLineParser::checkCommandLine(TaskContext& ctx) const
     {
         const fs::path derivedModulePath = cmdLine_->moduleFilePath.parent_path().lexically_normal();
         if (!cmdLine_->modulePath.empty() && !FileSystem::pathEquals(cmdLine_->modulePath, derivedModulePath))
-        {
-            Diagnostic diag = Diagnostic::get(DiagnosticId::cmdline_err_conflicting_arg);
-            diag.addArgument(Diagnostic::ARG_ARG, "--module-file");
-            diag.addArgument(Diagnostic::ARG_VALUE, "--module");
-            diag.report(ctx);
-            return Result::Error;
-        }
+            return reportConflictingArgument(ctx, "--module-file", "--module");
 
         cmdLine_->modulePath = derivedModulePath;
     }
@@ -1015,71 +998,28 @@ Result CommandLineParser::checkCommandLine(TaskContext& ctx) const
 
     if (!cmdLine_->workspacePath.empty())
     {
-        const auto reportWorkspaceConflict = [&](std::string_view otherArg) {
-            Diagnostic diag = Diagnostic::get(DiagnosticId::cmdline_err_conflicting_arg);
-            diag.addArgument(Diagnostic::ARG_ARG, "--workspace");
-            diag.addArgument(Diagnostic::ARG_VALUE, otherArg);
-            diag.report(ctx);
-            return Result::Error;
-        };
-
         if (!cmdLine_->moduleFilePath.empty())
-            return reportWorkspaceConflict("--module-file");
+            return reportConflictingArgument(ctx, "--workspace", "--module-file");
         if (!cmdLine_->modulePath.empty())
-            return reportWorkspaceConflict("--module");
+            return reportConflictingArgument(ctx, "--workspace", "--module");
         if (!cmdLine_->directories.empty())
-            return reportWorkspaceConflict("--directory");
+            return reportConflictingArgument(ctx, "--workspace", "--directory");
         if (!cmdLine_->files.empty())
-            return reportWorkspaceConflict("--file");
+            return reportConflictingArgument(ctx, "--workspace", "--file");
         if (!cmdLine_->outDir.empty())
-            return reportWorkspaceConflict("--out-dir");
+            return reportConflictingArgument(ctx, "--workspace", "--out-dir");
         if (!cmdLine_->workDir.empty())
-            return reportWorkspaceConflict("--work-dir");
+            return reportConflictingArgument(ctx, "--workspace", "--work-dir");
         if (!cmdLine_->exportApiDir.empty())
-            return reportWorkspaceConflict("--export-api-dir");
+            return reportConflictingArgument(ctx, "--workspace", "--export-api-dir");
     }
 
     const fs::path inputBaseDir = commandInputBaseDir(*cmdLine_);
 
-    std::set<fs::path> resolvedFolders;
-    for (const fs::path& folder : cmdLine_->directories)
-    {
-        fs::path temp = folder;
-        resolveModuleRelativeInput(inputBaseDir, temp);
-        SWC_RESULT(FileSystem::resolveFolder(ctx, temp));
-        resolvedFolders.insert(std::move(temp));
-    }
-    cmdLine_->directories = std::move(resolvedFolders);
-
-    std::set<fs::path> resolvedFiles;
-    for (const fs::path& file : cmdLine_->files)
-    {
-        fs::path temp = file;
-        resolveModuleRelativeInput(inputBaseDir, temp);
-        SWC_RESULT(FileSystem::resolveFile(ctx, temp));
-        resolvedFiles.insert(std::move(temp));
-    }
-    cmdLine_->files = std::move(resolvedFiles);
-
-    std::set<fs::path> resolvedImportApiDirs;
-    for (const fs::path& folder : cmdLine_->importApiDirs)
-    {
-        fs::path temp = folder;
-        resolveModuleRelativeInput(inputBaseDir, temp);
-        SWC_RESULT(FileSystem::resolveFolder(ctx, temp));
-        resolvedImportApiDirs.insert(std::move(temp));
-    }
-    cmdLine_->importApiDirs = std::move(resolvedImportApiDirs);
-
-    std::set<fs::path> resolvedImportApiFiles;
-    for (const fs::path& file : cmdLine_->importApiFiles)
-    {
-        fs::path temp = file;
-        resolveModuleRelativeInput(inputBaseDir, temp);
-        SWC_RESULT(FileSystem::resolveFile(ctx, temp));
-        resolvedImportApiFiles.insert(std::move(temp));
-    }
-    cmdLine_->importApiFiles = std::move(resolvedImportApiFiles);
+    SWC_RESULT(resolveInputPathSet(ctx, inputBaseDir, cmdLine_->directories, FileSystem::resolveFolder));
+    SWC_RESULT(resolveInputPathSet(ctx, inputBaseDir, cmdLine_->files, FileSystem::resolveFile));
+    SWC_RESULT(resolveInputPathSet(ctx, inputBaseDir, cmdLine_->importApiDirs, FileSystem::resolveFolder));
+    SWC_RESULT(resolveInputPathSet(ctx, inputBaseDir, cmdLine_->importApiFiles, FileSystem::resolveFile));
 
     if (!cmdLine_->configFile.empty())
     {
@@ -1088,60 +1028,9 @@ Result CommandLineParser::checkCommandLine(TaskContext& ctx) const
         cmdLine_->configFile = std::move(temp);
     }
 
-    if (!cmdLine_->outDir.empty())
-    {
-        fs::path temp = cmdLine_->outDir;
-        Utf8     because;
-        if (FileSystem::normalizeAbsolutePath(temp, because) != Result::Continue)
-        {
-            Diagnostic diag = Diagnostic::get(DiagnosticId::cmdline_err_invalid_folder);
-            FileSystem::setDiagnosticPathAndBecause(diag, &ctx, temp, because);
-            diag.report(ctx);
-            return Result::Error;
-        }
-
-        cmdLine_->outDir        = std::move(temp);
-        cmdLine_->outDirStorage = Utf8(cmdLine_->outDir);
-    }
-    else
-    {
-        cmdLine_->outDirStorage.clear();
-    }
-
-    if (!cmdLine_->workDir.empty())
-    {
-        fs::path temp = cmdLine_->workDir;
-        Utf8     because;
-        if (FileSystem::normalizeAbsolutePath(temp, because) != Result::Continue)
-        {
-            Diagnostic diag = Diagnostic::get(DiagnosticId::cmdline_err_invalid_folder);
-            FileSystem::setDiagnosticPathAndBecause(diag, &ctx, temp, because);
-            diag.report(ctx);
-            return Result::Error;
-        }
-
-        cmdLine_->workDir        = std::move(temp);
-        cmdLine_->workDirStorage = Utf8(cmdLine_->workDir);
-    }
-    else
-    {
-        cmdLine_->workDirStorage.clear();
-    }
-
-    if (!cmdLine_->exportApiDir.empty())
-    {
-        fs::path temp = cmdLine_->exportApiDir;
-        Utf8     because;
-        if (FileSystem::normalizeAbsolutePath(temp, because) != Result::Continue)
-        {
-            Diagnostic diag = Diagnostic::get(DiagnosticId::cmdline_err_invalid_folder);
-            FileSystem::setDiagnosticPathAndBecause(diag, &ctx, temp, because);
-            diag.report(ctx);
-            return Result::Error;
-        }
-
-        cmdLine_->exportApiDir = std::move(temp);
-    }
+    SWC_RESULT(normalizeAbsoluteDirectory(ctx, cmdLine_->outDir, &cmdLine_->outDirStorage));
+    SWC_RESULT(normalizeAbsoluteDirectory(ctx, cmdLine_->workDir, &cmdLine_->workDirStorage));
+    SWC_RESULT(normalizeAbsoluteDirectory(ctx, cmdLine_->exportApiDir));
 
     updateDefaultBuildCfg(*cmdLine_);
 

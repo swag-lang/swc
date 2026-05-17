@@ -99,15 +99,13 @@ private:
 
     ArgInfo& addImpl(HelpOptionGroup group, const char* commands, const char* longForm, const char* shortForm, const char* description, const ArgTarget& target);
 
-    void add(HelpOptionGroup g, const char* cmds, const char* lf, const char* sf, bool* target, const char* desc, bool allowInConfig = true, StructConfigAssignHook hook = {});
-    void add(HelpOptionGroup g, const char* cmds, const char* lf, const char* sf, int* target, const char* desc, bool allowInConfig = true, StructConfigAssignHook hook = {});
-    void add(HelpOptionGroup g, const char* cmds, const char* lf, const char* sf, uint32_t* target, const char* desc, bool allowInConfig = true, StructConfigAssignHook hook = {});
-    void add(HelpOptionGroup g, const char* cmds, const char* lf, const char* sf, Utf8* target, const char* desc, bool allowInConfig = true, StructConfigAssignHook hook = {});
-    void add(HelpOptionGroup g, const char* cmds, const char* lf, const char* sf, fs::path* target, const char* desc, bool allowInConfig = true, StructConfigAssignHook hook = {});
-    void add(HelpOptionGroup g, const char* cmds, const char* lf, const char* sf, std::vector<Utf8>* target, const char* desc, bool allowInConfig = true, StructConfigAssignHook hook = {});
-    void add(HelpOptionGroup g, const char* cmds, const char* lf, const char* sf, std::set<Utf8>* target, const char* desc, bool allowInConfig = true, StructConfigAssignHook hook = {});
-    void add(HelpOptionGroup g, const char* cmds, const char* lf, const char* sf, std::set<fs::path>* target, const char* desc, bool allowInConfig = true, StructConfigAssignHook hook = {});
-    void add(HelpOptionGroup g, const char* cmds, const char* lf, const char* sf, std::optional<bool>* target, const char* desc, bool allowInConfig = true, StructConfigAssignHook hook = {});
+    template<typename T>
+    void add(HelpOptionGroup g, const char* cmds, const char* lf, const char* sf, T* target, const char* desc, bool allowInConfig = true, StructConfigAssignHook hook = {})
+    {
+        const ArgInfo& info = addImpl(g, cmds, lf, sf, desc, target);
+        if (allowInConfig)
+            registerConfigEntry(info, hook);
+    }
 
     void addEnum(HelpOptionGroup g, const char* cmds, const char* lf, const char* sf, Utf8* target, std::vector<Utf8> choices, const char* desc, bool allowInConfig = true, StructConfigAssignHook hook = {});
 

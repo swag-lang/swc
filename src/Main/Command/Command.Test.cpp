@@ -304,6 +304,26 @@ namespace
         return !file || file->ast().srcView().runsNativeArtifact();
     }
 
+    bool hasRunnableNativeArtifactFunction(const CompilerInstance& compiler, const std::vector<SymbolFunction*>& functions)
+    {
+        for (const SymbolFunction* function : functions)
+        {
+            if (function && shouldRunNativeArtifactFunction(compiler, *function))
+                return true;
+        }
+
+        return false;
+    }
+
+    bool hasNativeArtifactEntryPoints(const CompilerInstance& compiler)
+    {
+        return hasRunnableNativeArtifactFunction(compiler, compiler.nativeTestFunctions()) ||
+               hasRunnableNativeArtifactFunction(compiler, compiler.nativeMainFunctions()) ||
+               hasRunnableNativeArtifactFunction(compiler, compiler.nativeInitFunctions()) ||
+               hasRunnableNativeArtifactFunction(compiler, compiler.nativePreMainFunctions()) ||
+               hasRunnableNativeArtifactFunction(compiler, compiler.nativeDropFunctions());
+    }
+
     bool reportJitTestCountMismatch(TaskContext& ctx, const uint32_t expectedCount, const uint32_t actualCount)
     {
         Diagnostic diag = Diagnostic::get(DiagnosticId::cmd_err_jit_test_count_mismatch);
@@ -499,65 +519,7 @@ namespace
 
         if (compiler.cmdLine().testNative && compiler.cmdLine().output)
         {
-            bool hasArtifactEntryPoints = false;
-            for (const SymbolFunction* function : compiler.nativeTestFunctions())
-            {
-                if (function && shouldRunNativeArtifactFunction(compiler, *function))
-                {
-                    hasArtifactEntryPoints = true;
-                    break;
-                }
-            }
-
-            if (!hasArtifactEntryPoints)
-            {
-                for (const SymbolFunction* function : compiler.nativeMainFunctions())
-                {
-                    if (function && shouldRunNativeArtifactFunction(compiler, *function))
-                    {
-                        hasArtifactEntryPoints = true;
-                        break;
-                    }
-                }
-            }
-
-            if (!hasArtifactEntryPoints)
-            {
-                for (const SymbolFunction* function : compiler.nativeInitFunctions())
-                {
-                    if (function && shouldRunNativeArtifactFunction(compiler, *function))
-                    {
-                        hasArtifactEntryPoints = true;
-                        break;
-                    }
-                }
-            }
-
-            if (!hasArtifactEntryPoints)
-            {
-                for (const SymbolFunction* function : compiler.nativePreMainFunctions())
-                {
-                    if (function && shouldRunNativeArtifactFunction(compiler, *function))
-                    {
-                        hasArtifactEntryPoints = true;
-                        break;
-                    }
-                }
-            }
-
-            if (!hasArtifactEntryPoints)
-            {
-                for (const SymbolFunction* function : compiler.nativeDropFunctions())
-                {
-                    if (function && shouldRunNativeArtifactFunction(compiler, *function))
-                    {
-                        hasArtifactEntryPoints = true;
-                        break;
-                    }
-                }
-            }
-
-            if (hasArtifactEntryPoints)
+            if (hasNativeArtifactEntryPoints(compiler))
             {
                 const Runtime::BuildCfgBackendKind backendKind = effectiveBackendKind(compiler.cmdLine(), compiler.buildCfg().backendKind);
                 compiler.buildCfg().backendKind                = backendKind;

@@ -306,6 +306,47 @@ artifact-kind = static-library
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(Compiler_CommandLineAcceptsInlineAssignmentSyntax)
+{
+    const ScopedTempTree tempTree("compiler_config_file_inline_assign");
+    if (!tempTree.ready())
+        return Result::Error;
+
+    const fs::path configPath = tempTree.root() / "swc.cfg";
+    if (!writeTextFile(configPath, R"(command = test
+runtime = off
+)"))
+        return Result::Error;
+
+    CommandLine                    cmdLine;
+    const uint64_t                 errorsBefore = Stats::getNumErrors();
+    const std::vector<std::string> args         = {
+        "swc_devmode",
+        std::format("--config-file={}", configPath.string()),
+        "--artifact-kind=static-library",
+    };
+
+    if (parseCommandLine(ctx, cmdLine, args) != Result::Continue)
+        return Result::Error;
+    if (Stats::getNumErrors() != errorsBefore)
+        return Result::Error;
+    if (cmdLine.command != CommandKind::Test)
+        return Result::Error;
+    if (!cmdLine.commandExplicit)
+        return Result::Error;
+    if (!cmdLine.sourceDrivenTest)
+        return Result::Error;
+    if (cmdLine.runtime)
+        return Result::Error;
+    if (cmdLine.backendKind != Runtime::BuildCfgBackendKind::StaticLibrary)
+        return Result::Error;
+    if (!cmdLine.artifactKindExplicit)
+        return Result::Error;
+
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(Compiler_CommandLineTestAcceptsImportedApiInputs)
 {
     const ScopedTempTree tempTree("compiler_test_imported_api_inputs");

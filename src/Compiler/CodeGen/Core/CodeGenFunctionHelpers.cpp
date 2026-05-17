@@ -25,6 +25,33 @@ namespace
 {
     constexpr uint64_t K_WINDOWS_STACK_PROBE_PAGE_SIZE = 4096;
 
+    const SymbolVariable* resolveCanonicalParameter(const SymbolFunction& symbolFunc, const SymbolVariable& symVar)
+    {
+        if (!symVar.hasExtraFlag(SymbolVariableFlagsE::Parameter))
+            return nullptr;
+
+        const auto& params = symbolFunc.parameters();
+        if (symVar.hasParameterIndex() && symVar.parameterIndex() < params.size())
+        {
+            const SymbolVariable* canonicalParam = params[symVar.parameterIndex()];
+            if (canonicalParam && canonicalParam != &symVar)
+                return canonicalParam;
+        }
+
+        if (!symVar.idRef().isValid())
+            return nullptr;
+
+        for (const SymbolVariable* param : params)
+        {
+            if (!param || param == &symVar)
+                continue;
+            if (param->idRef() == symVar.idRef())
+                return param;
+        }
+
+        return nullptr;
+    }
+
     bool needsWindowsStackProbe(CodeGen& codeGen, uint64_t sizeInBytes)
     {
         return sizeInBytes > K_WINDOWS_STACK_PROBE_PAGE_SIZE &&
@@ -387,28 +414,42 @@ void CodeGenFunctionHelpers::emitLoadFunctionParameterToReg(CodeGen& codeGen, co
 
 CodeGenNodePayload CodeGenFunctionHelpers::materializeFunctionParameter(CodeGen& codeGen, const SymbolFunction& symbolFunc, const SymbolVariable& symVar, const FunctionParameterInfo& paramInfo)
 {
-    if (const CodeGenNodePayload* symbolPayload = codeGen.variablePayload(symVar))
-        return *symbolPayload;
-
-    if (symVar.hasExtraFlag(SymbolVariableFlagsE::NeedsAddressableStorage) &&
-        symVar.hasExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack) &&
-        codeGen.localStackBaseReg().isValid())
+    const SymbolVariable* canonicalParam = resolveCanonicalParameter(symbolFunc, symVar);
+    const SymbolVariable& payloadSym     = canonicalParam ? *canonicalParam : symVar;
+    if (const CodeGenNodePayload* symbolPayload = codeGen.variablePayload(payloadSym))
     {
-        return codeGen.resolveLocalStackPayload(symVar);
+        if (&payloadSym != &symVar)
+            codeGen.setVariablePayload(symVar, *symbolPayload);
+        return *symbolPayload;
     }
 
+    if (payloadSym.hasExtraFlag(SymbolVariableFlagsE::NeedsAddressableStorage) &&
+        payloadSym.hasExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack) &&
+        codeGen.localStackBaseReg().isValid())
+    {
+        const CodeGenNodePayload payload = codeGen.resolveLocalStackPayload(payloadSym);
+        if (&payloadSym != &symVar)
+            codeGen.setVariablePayload(symVar, payload);
+        return payload;
+    }
+
+    FunctionParameterInfo effectiveParamInfo = paramInfo;
+    if (&payloadSym != &symVar)
+        effectiveParamInfo = functionParameterInfo(codeGen, symbolFunc, payloadSym);
+
     CodeGenNodePayload outPayload;
+    outPayload.typeRef = payloadSym.typeRef();
+    outPayload.reg     = codeGen.nextVirtualRegisterForType(payloadSym.typeRef());
+    emitLoadFunctionParameterToReg(codeGen, symbolFunc, effectiveParamInfo, outPayload.reg);
 
-    outPayload.typeRef = symVar.typeRef();
-    outPayload.reg     = codeGen.nextVirtualRegisterForType(symVar.typeRef());
-    emitLoadFunctionParameterToReg(codeGen, symbolFunc, paramInfo, outPayload.reg);
-
-    if (paramInfo.isIndirect)
+    if (effectiveParamInfo.isIndirect)
         outPayload.setIsAddress();
     else
         outPayload.setIsValue();
 
-    codeGen.setVariablePayload(symVar, outPayload);
+    codeGen.setVariablePayload(payloadSym, outPayload);
+    if (&payloadSym != &symVar)
+        codeGen.setVariablePayload(symVar, outPayload);
     return outPayload;
 }
 

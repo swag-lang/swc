@@ -268,11 +268,9 @@ func evaluateWithLanguageFeatures(stream: TokenStream)->MulResult
 {
     declareScannerState()
 
-    for stream.count
+    visitTokens(|tok, idx| stream)
     {
-        let idx = cast(u32) @index
         @assert(idx < stream.count)
-        let tok = stream.tokens[idx]
         switch tok.kind
         {
         case TokenKind.Do:

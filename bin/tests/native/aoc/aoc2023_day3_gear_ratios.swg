@@ -417,26 +417,16 @@ func solveWithLanguageFeatures(grid: Grid)->EngineResult
     for i in numbers.count
     {
         let entry = numbers.entries[i]
-        let rStart = maxOf's32(0, cast(s32) entry.row - 1)
-        let rEnd   = minOf's32(cast(s32) grid.height - 1, cast(s32) entry.row + 1)
-        let cStart = maxOf's32(0, cast(s32) entry.col0 - 1)
-        let cEnd   = minOf's32(cast(s32) grid.width - 1, cast(s32) entry.col1 + 1)
-        var foundGear = false
 
-        for r in rStart to rEnd
+        forEachNeighborCell(|nr, nc| grid, entry)
         {
-            for c in cStart to cEnd
+            if isGear(grid.at(nr, nc))
             {
-                if cast(u32) r == entry.row and cast(u32) c >= entry.col0 and cast(u32) c <= entry.col1 do
-                    continue
-                if !isGear(grid.at(cast(u32) r, cast(u32) c)) do
-                    continue
-
                 // Find or create gear entry
                 var found = false
                 for g in gears.count
                 {
-                    if gears.entries[g].row == cast(u32) r and gears.entries[g].col == cast(u32) c
+                    if gears.entries[g].row == nr and gears.entries[g].col == nc
                     {
                         gears.entries[g].adjCount += 1
                         gears.entries[g].secondVal = entry.value
@@ -448,19 +438,15 @@ func solveWithLanguageFeatures(grid: Grid)->EngineResult
                 if !found
                 {
                     var gc: GearCandidate
-                    gc.row = cast(u32) r
-                    gc.col = cast(u32) c
+                    gc.row = nr
+                    gc.col = nc
                     gc.adjCount = 1
                     gc.firstVal = entry.value
                     gears.push(gc)
                 }
 
-                foundGear = true
                 break
             }
-
-            if foundGear do
-                break
         }
     }
 

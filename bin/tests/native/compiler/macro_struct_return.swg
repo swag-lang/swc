@@ -19,6 +19,17 @@ struct InvoiceTotals
     totalCents:           s32
 }
 
+#[Swag.Macro]
+func visitInvoiceLines(lines: const [..] InvoiceLine, stmt: #code void)
+{
+    for @countof(lines)
+    {
+        let #alias0 = lines[@index]
+        let #alias1 = lines[@index].quantity * lines[@index].unitPriceCents
+        #inject(stmt)
+    }
+}
+
 func buildInvoiceTotals(lines: const [..] InvoiceLine, expeditedShipping: bool)->InvoiceTotals
 {
     var lineCount: s32
@@ -26,18 +37,14 @@ func buildInvoiceTotals(lines: const [..] InvoiceLine, expeditedShipping: bool)-
     var subtotalCents: s32
     var taxableSubtotalCents: s32
 
-    for @countof(lines)
+    visitInvoiceLines(|line, lineTotalCents| lines)
     {
-        let quantity = lines[@index].quantity
-        let unitPriceCents = lines[@index].unitPriceCents
-        let taxable = lines[@index].taxable
-        let lineTotalCents = quantity * unitPriceCents
-        @assert(quantity > 0)
-        @assert(unitPriceCents > 0)
-        @assert(lineTotalCents == quantity * unitPriceCents)
+        @assert(line.quantity > 0)
+        @assert(line.unitPriceCents > 0)
+        @assert(lineTotalCents == line.quantity * line.unitPriceCents)
         lineCount += 1
         subtotalCents += lineTotalCents
-        if taxable
+        if line.taxable
         {
             taxableLineCount += 1
             taxableSubtotalCents += lineTotalCents
@@ -61,7 +68,7 @@ func buildInvoiceTotals(lines: const [..] InvoiceLine, expeditedShipping: bool)-
     return result
 }
 
-// Invoice totals are accumulated and returned correctly.
+// Macro computes invoice totals correctly
 #test
 {
     const starterInvoice: [3] InvoiceLine =

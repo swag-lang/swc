@@ -17,6 +17,8 @@
 #include "Compiler/Sema/Helpers/SemaJIT.h"
 #include "Compiler/Sema/Helpers/SemaRuntime.h"
 #include "Compiler/Sema/Helpers/SemaSpecOp.h"
+#include "Compiler/Sema/Match/Match.h"
+#include "Compiler/Sema/Match/MatchContext.h"
 #include "Compiler/Sema/Symbol/Symbols.h"
 #include "Compiler/Sema/Type/TypeManager.h"
 #include "Compiler/SourceFile.h"
@@ -392,6 +394,71 @@ namespace
         }
     }
 
+    bool shouldPreResolveMacroInjectCallerIdentifier(const Sema& sema, AstNodeRef nodeRef, AstNodeRef parentRef)
+    {
+        if (nodeRef.isInvalid())
+            return false;
+
+        const auto* identifier = sema.node(nodeRef).safeCast<AstIdentifier>();
+        if (!identifier || identifier->hasFlag(AstIdentifierFlagsE::PreResolvedSymbol) || !identifier->codeRef().isValid())
+            return false;
+
+        if (!parentRef.isValid())
+            return true;
+
+        const AstNode& parentNode = sema.node(parentRef);
+        if (const auto* member = parentNode.safeCast<AstMemberAccessExpr>())
+            return member->nodeRightRef != nodeRef;
+        if (parentNode.is(AstNodeId::AutoMemberAccessExpr))
+            return false;
+
+        return true;
+    }
+
+    Result preResolveMacroInjectCallerIdentifiers(Sema& sema, AstNodeRef nodeRef, const SemaInlinePayload& inlinePayload, AstNodeRef parentRef = AstNodeRef::invalid())
+    {
+        if (nodeRef.isInvalid() || !inlinePayload.callerScope)
+            return Result::Continue;
+
+        if (shouldPreResolveMacroInjectCallerIdentifier(sema, nodeRef, parentRef))
+        {
+            MatchContext lookUpCxt;
+            lookUpCxt.codeRef       = sema.node(nodeRef).codeRef();
+            lookUpCxt.noWaitOnEmpty = true;
+
+            const auto savedFrame = sema.frame();
+            auto&      frame      = sema.frame();
+            while (!frame.bindingVars().empty())
+                frame.popBindingVar();
+            while (!frame.bindingTypes().empty())
+                frame.popBindingType();
+            frame.setCurrentInlinePayload(inlinePayload.parentInlinePayload);
+            frame.setLookupScope(inlinePayload.callerScope);
+            frame.setUpLookupScope(inlinePayload.callerScope);
+            for (SymbolVariable* bindingVar : inlinePayload.callerBindingVars)
+                frame.pushBindingVar(bindingVar);
+            for (const TypeRef bindingType : inlinePayload.callerBindingTypes)
+                frame.pushBindingType(bindingType);
+
+            const IdentifierRef idRef       = SemaHelpers::resolveIdentifier(sema, sema.node(nodeRef).codeRef());
+            const Result        matchResult = Match::match(sema, lookUpCxt, idRef);
+            sema.frame()                    = savedFrame;
+            SWC_ASSERT(matchResult != Result::Pause);
+            if (matchResult == Result::Continue && lookUpCxt.count() == 1 && lookUpCxt.first())
+            {
+                sema.setSymbol(nodeRef, lookUpCxt.first());
+                sema.node(nodeRef).cast<AstIdentifier>().addFlag(AstIdentifierFlagsE::PreResolvedSymbol);
+            }
+        }
+
+        SmallVector<AstNodeRef> children;
+        sema.node(nodeRef).collectChildrenFromAst(children, sema.ast());
+        for (const AstNodeRef childRef : children)
+            SWC_RESULT(preResolveMacroInjectCallerIdentifiers(sema, childRef, inlinePayload, nodeRef));
+
+        return Result::Continue;
+    }
+
     Result substituteCompilerInject(Sema& sema, AstNodeRef ownerRef, AstNodeRef exprRef, std::span<const SemaClone::NodeReplacement> replacements = std::span<const SemaClone::NodeReplacement>{})
     {
         SWC_RESULT(validateInjectArgument(sema, exprRef));
@@ -422,16 +489,23 @@ namespace
         }
 
         AstNodeRef clonedRef = AstNodeRef::invalid();
+        const bool preserveResolvedCallerSymbols = isMacroInject;
         if (sema.node(exprRef).is(AstNodeId::CompilerCodeExpr) &&
             !injectCloneDependsOnContext(sema, rawRef, bindings, replacements))
         {
             const SemaClone::CloneContext cloneContext{std::span<const SemaClone::ParamBinding>{}};
-            clonedRef = SemaClone::cloneAst(sema, rawRef, cloneContext);
+            if (preserveResolvedCallerSymbols)
+                clonedRef = SemaClone::cloneAstPreservingResolvedIdentifierSymbols(sema, rawRef, cloneContext);
+            else
+                clonedRef = SemaClone::cloneAst(sema, rawRef, cloneContext);
         }
         else
         {
             const SemaClone::CloneContext cloneContext{bindings, replacements};
-            clonedRef = SemaClone::cloneAst(sema, rawRef, cloneContext);
+            if (preserveResolvedCallerSymbols)
+                clonedRef = SemaClone::cloneAstPreservingResolvedIdentifierSymbols(sema, rawRef, cloneContext);
+            else
+                clonedRef = SemaClone::cloneAst(sema, rawRef, cloneContext);
         }
         if (clonedRef.isInvalid())
             return Result::Error;
@@ -439,6 +513,7 @@ namespace
         sema.setSubstitute(ownerRef, clonedRef);
         if (isMacroInject)
         {
+            SWC_RESULT(preResolveMacroInjectCallerIdentifiers(sema, clonedRef, *inlinePayload));
             if (injectsVoidCode)
             {
                 auto* inlineOverridePayload                = sema.compiler().allocate<SemaInlineContextOverride>();

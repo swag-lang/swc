@@ -8,19 +8,19 @@
 
 const SampleInput =
 """vJrwpWtwJgWrhcsFMMfFFhFp
-jqHRNqRjqzjGDLGLrsFMfFZSrLrFZsSL
-PmmdzqPrVvPwwTWBwg
-wMqvLMZHhHMvwLHjbvcjnnSBnvTQFn
-ttgJtRGJQctTZtZT
-CrZsJsPPZsGzwwsLwLmpwMDw"""
+   jqHRNqRjqzjGDLGLrsFMfFZSrLrFZsSL
+   PmmdzqPrVvPwwTWBwg
+   wMqvLMZHhHMvwLHjbvcjnnSBnvTQFn
+   ttgJtRGJQctTZtZT
+   CrZsJsPPZsGzwwsLwLmpwMDw"""
 
 const CoverageInput =
 """abca
-daea
-faag
-ZkZm
-qZZr
-sZtZ"""
+   daea
+   faag
+   ZkZm
+   qZZr
+   sZtZ"""
 
 const EdgeInput = "ammb\r\ncmmd\r\nemmf\r\n"
 
@@ -268,34 +268,20 @@ func solveWithLanguageFeatures(bytes: const [..] u8)->RucksackReport
 
     defer @assert(featureState == GroupState.NeedFirst)
 
-    var lineStart: u64
-    for @countof(bytes)
+    forEachLine(|line| bytes)
     {
-        if isLineBreak(bytes[@index]) or @index == @countof(bytes) - 1
+        featureRucksackCount += 1
+        featurePartOne += cast(u64) iDuplicate.score(line)
+
+        let slot = groupMaskIndex(featureState)
+        featureMasks[slot] = buildMask(line)
+        if featureState == GroupState.NeedThird
         {
-            var lineEnd = @index
-            if !isLineBreak(bytes[@index]) do
-                lineEnd = @index + 1
-
-            if lineEnd > lineStart
-            {
-                let line = bytes[lineStart until lineEnd]
-                featureRucksackCount += 1
-                featurePartOne += cast(u64) iDuplicate.score(line)
-
-                let slot = groupMaskIndex(featureState)
-                featureMasks[slot] = buildMask(line)
-                if featureState == GroupState.NeedThird
-                {
-                    featureGroupCount += 1
-                    featurePartTwo += cast(u64) iBadge.score(featureMasks[0], featureMasks[1], featureMasks[2])
-                }
-
-                featureState = nextGroupState(featureState)
-            }
-
-            lineStart = @index + 1
+            featureGroupCount += 1
+            featurePartTwo += cast(u64) iBadge.score(featureMasks[0], featureMasks[1], featureMasks[2])
         }
+
+        featureState = nextGroupState(featureState)
     }
 
     var result: RucksackReport
@@ -306,14 +292,9 @@ func solveWithLanguageFeatures(bytes: const [..] u8)->RucksackReport
     return result
 }
 
-func computeExpectedReport(input: string)->RucksackReport
-{
-    return solveClean(cast(const [..] u8) input)
-}
-
-const SampleFeatureReport: RucksackReport = #run computeExpectedReport(SampleInput)
-const CoverageFeatureReport: RucksackReport = #run computeExpectedReport(CoverageInput)
-const EdgeFeatureReport: RucksackReport = #run computeExpectedReport(EdgeInput)
+const SampleFeatureReport: RucksackReport = #run solveWithLanguageFeatures(cast(const [..] u8) SampleInput)
+const CoverageFeatureReport: RucksackReport = #run solveWithLanguageFeatures(cast(const [..] u8) CoverageInput)
+const EdgeFeatureReport: RucksackReport = #run solveWithLanguageFeatures(cast(const [..] u8) EdgeInput)
 
 #assert(#sizeof(GroupState) == 1)
 #assert(#sizeof(RucksackReport) != 0)

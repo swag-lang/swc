@@ -50,6 +50,19 @@ namespace
         return nullptr;
     }
 
+    const SymbolVariable* canonicalFunctionVariableSymbol(const CodeGen& codeGen, const SymbolVariable& symVar)
+    {
+        if (symVar.hasExtraFlag(SymbolVariableFlagsE::Parameter) &&
+            symVar.hasParameterIndex() &&
+            symVar.parameterIndex() < codeGen.function().parameters().size())
+        {
+            if (const SymbolVariable* canonicalParam = codeGen.function().parameters()[symVar.parameterIndex()])
+                return canonicalParam;
+        }
+
+        return &symVar;
+    }
+
     void recoverFunctionVariableDeclSymbols(const CodeGen& codeGen, const AstNodeRef declRef, std::span<const TokenRef> tokRefs, SmallVector<Symbol*>& outSymbols)
     {
         outSymbols.clear();
@@ -261,38 +274,39 @@ namespace
 
     CodeGenNodePayload resolveIdentifierVariablePayload(CodeGen& codeGen, const SymbolVariable& symVar)
     {
+        const SymbolVariable& payloadSym = *canonicalFunctionVariableSymbol(codeGen, symVar);
         CodeGenNodePayload implicitFieldPayload;
-        if (tryResolveImplicitReceiverFieldPayload(codeGen, symVar, implicitFieldPayload))
+        if (tryResolveImplicitReceiverFieldPayload(codeGen, payloadSym, implicitFieldPayload))
             return implicitFieldPayload;
 
-        if (symVar.isClosureCapture())
-            return CodeGenFunctionHelpers::resolveClosureCapturePayload(codeGen, symVar);
+        if (payloadSym.isClosureCapture())
+            return CodeGenFunctionHelpers::resolveClosureCapturePayload(codeGen, payloadSym);
 
-        if (CodeGenFunctionHelpers::usesCallerReturnStorage(codeGen, symVar))
-            return CodeGenFunctionHelpers::resolveCallerReturnStoragePayload(codeGen, symVar);
+        if (CodeGenFunctionHelpers::usesCallerReturnStorage(codeGen, payloadSym))
+            return CodeGenFunctionHelpers::resolveCallerReturnStoragePayload(codeGen, payloadSym);
 
-        if (symVar.hasExtraFlag(SymbolVariableFlagsE::Parameter))
+        if (payloadSym.hasExtraFlag(SymbolVariableFlagsE::Parameter))
         {
             const SymbolFunction& symbolFunc = codeGen.function();
-            return CodeGenFunctionHelpers::materializeFunctionParameter(codeGen, symbolFunc, symVar);
+            return CodeGenFunctionHelpers::materializeFunctionParameter(codeGen, symbolFunc, payloadSym);
         }
 
-        const CodeGenNodePayload* symbolPayload = codeGen.variablePayload(symVar);
+        const CodeGenNodePayload* symbolPayload = codeGen.variablePayload(payloadSym);
         if (symbolPayload)
             return *symbolPayload;
 
-        if (symVar.hasExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack))
-            return codeGen.resolveLocalStackPayload(symVar);
-        if (codeGen.localStackBaseReg().isValid() && symVar.hasExtraFlag(SymbolVariableFlagsE::FunctionLocal))
-            return codeGen.resolveLocalStackPayload(symVar);
+        if (payloadSym.hasExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack))
+            return codeGen.resolveLocalStackPayload(payloadSym);
+        if (codeGen.localStackBaseReg().isValid() && payloadSym.hasExtraFlag(SymbolVariableFlagsE::FunctionLocal))
+            return codeGen.resolveLocalStackPayload(payloadSym);
 
-        if (symVar.hasGlobalStorage())
+        if (payloadSym.hasGlobalStorage())
         {
             CodeGenNodePayload globalPayload;
-            globalPayload.typeRef = symVar.typeRef();
+            globalPayload.typeRef = payloadSym.typeRef();
             globalPayload.setIsAddress();
             globalPayload.reg = codeGen.nextVirtualIntRegister();
-            codeGen.builder().emitLoadRegDataSegmentReloc(globalPayload.reg, symVar.globalStorageKind(), symVar.offset());
+            codeGen.builder().emitLoadRegDataSegmentReloc(globalPayload.reg, payloadSym.globalStorageKind(), payloadSym.offset());
             return globalPayload;
         }
 

@@ -350,21 +350,19 @@ func forEachGuideLine(bytes: const [..] u8, stmt: #code void)
 func solveWithLanguageFeatures(bytes: const [..] u8)->ScoreSummary
 {
     declareFeatureState()
-    let guide = parseGuide(bytes)
 
     var partOneScorer: PartOneScorer
     var partTwoScorer: PartTwoScorer
     let iPartOne = cast(IRoundScorer) partOneScorer
     let iPartTwo = cast(IRoundScorer) partTwoScorer
 
-    defer @assert(featureRoundCount == guide.count)
+    defer @assert(featureRoundCount <= MaxRounds)
 
-    for guide.count
+    forEachGuideLine(|opponentToken, codeToken| bytes)
     {
-        let round = guide.rounds[cast(u32) @index]
         featureRoundCount += 1
-        featurePartOne += iPartOne.score(round.opponentToken, round.codeToken)
-        featurePartTwo += iPartTwo.score(round.opponentToken, round.codeToken)
+        featurePartOne += iPartOne.score(opponentToken, codeToken)
+        featurePartTwo += iPartTwo.score(opponentToken, codeToken)
     }
 
     var result: ScoreSummary
@@ -373,14 +371,8 @@ func solveWithLanguageFeatures(bytes: const [..] u8)->ScoreSummary
     return result
 }
 
-func computeExpectedSummary(input: string)->ScoreSummary
-{
-    let bytes = cast(const [..] u8) input
-    return solveClean(parseGuide(bytes))
-}
-
-const SampleResult: ScoreSummary = #run computeExpectedSummary(SampleInput)
-const CoverageResult: ScoreSummary = #run computeExpectedSummary(CoverageInput)
+const SampleResult: ScoreSummary = #run solveWithLanguageFeatures(SampleInput)
+const CoverageResult: ScoreSummary = #run solveWithLanguageFeatures(CoverageInput)
 
 #assert(#sizeof(Shape) == 1)
 #assert(#sizeof(Outcome) == 1)

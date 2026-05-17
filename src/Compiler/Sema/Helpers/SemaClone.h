@@ -32,18 +32,21 @@ namespace SemaClone
         const Ast*                       sourceAst                = nullptr;
         bool                             preserveFunctionGenerics = false;
         bool                             preserveBindingExprState = false;
+        bool                             duplicateRuntimeStorage  = false;
 
-        explicit CloneContext(std::span<const ParamBinding> inBindings, std::span<const NodeReplacement> inReplacements = std::span<const NodeReplacement>{}, bool inPreserveFunctionGenerics = false, const Ast* inSourceAst = nullptr, bool inPreserveBindingExprState = false) :
+        explicit CloneContext(std::span<const ParamBinding> inBindings, std::span<const NodeReplacement> inReplacements = std::span<const NodeReplacement>{}, bool inPreserveFunctionGenerics = false, const Ast* inSourceAst = nullptr, bool inPreserveBindingExprState = false, bool inDuplicateRuntimeStorage = false) :
             bindings(inBindings),
             replacements(inReplacements),
             sourceAst(inSourceAst),
             preserveFunctionGenerics(inPreserveFunctionGenerics),
-            preserveBindingExprState(inPreserveBindingExprState)
+            preserveBindingExprState(inPreserveBindingExprState),
+            duplicateRuntimeStorage(inDuplicateRuntimeStorage)
         {
         }
     };
 
     AstNodeRef cloneAst(Sema& sema, AstNodeRef nodeRef, const CloneContext& cloneContext);
+    AstNodeRef cloneAstPreservingResolvedIdentifierSymbols(Sema& sema, AstNodeRef nodeRef, const CloneContext& cloneContext);
     AstNodeRef cloneDetachedExpr(Sema& sema, AstNodeRef nodeRef);
 }
 

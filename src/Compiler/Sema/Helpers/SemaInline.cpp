@@ -883,7 +883,6 @@ namespace
         if (ioBindings.empty())
             return Result::Continue;
 
-        const SemaClone::CloneContext noBindings{std::span<const SemaClone::ParamBinding>{}};
         SmallVector<IdentifierRef>    localIdentifiers;
         collectInlineLocalIdentifiers(sema, sourceAst, decl.nodeBodyRef, localIdentifiers);
         SmallVector<IdentifierRef> capturedIdentifiers;
@@ -942,7 +941,7 @@ namespace
                 continue;
             }
 
-            AstNodeRef clonedInitRef = SemaClone::cloneAst(sema, binding.exprRef, noBindings);
+            AstNodeRef clonedInitRef = SemaClone::cloneDetachedExpr(sema, binding.exprRef);
             if (clonedInitRef.isInvalid())
                 return Result::Error;
 

@@ -187,26 +187,39 @@ namespace
         return run.sema.get() == &sema;
     }
 
-    std::mutex& lazyGenericBodyRunMutex()
+    LazyGenericBodyRun* lazyGenericBodyRun(const SymbolFunction& calledFn)
     {
-        static std::mutex mutex;
-        return mutex;
+        auto* state = calledFn.lazyGenericBodyRunState();
+        if (!state || !(*state))
+            return nullptr;
+
+        return static_cast<LazyGenericBodyRun*>((*state).get());
     }
 
-    std::unordered_map<const SymbolFunction*, LazyGenericBodyRun>& lazyGenericBodyRuns()
+    LazyGenericBodyRun& ensureLazyGenericBodyRun(const TaskContext& ctx, const SymbolFunction& calledFn)
     {
-        static std::unordered_map<const SymbolFunction*, LazyGenericBodyRun> runs;
-        return runs;
+        auto& state = calledFn.ensureLazyGenericBodyRunState(ctx);
+        if (!state)
+        {
+            // A paused lazy body is shared only between tasks waiting on the same
+            // function, so keep it on that function instead of routing every lookup
+            // through a compiler-wide mutex and map.
+            state = std::make_shared<LazyGenericBodyRun>();
+        }
+
+        auto* run = static_cast<LazyGenericBodyRun*>(state.get());
+        SWC_ASSERT(run != nullptr);
+        return *run;
     }
 
     bool isCurrentLazyGenericBodySema(const Sema& sema, const SymbolFunction& calledFn)
     {
-        const std::scoped_lock lock(lazyGenericBodyRunMutex());
-        const auto             it = lazyGenericBodyRuns().find(&calledFn);
-        if (it == lazyGenericBodyRuns().end())
+        const std::scoped_lock lock(calledFn.lazyGenericBodyRunMutex());
+        const auto*            run = lazyGenericBodyRun(calledFn);
+        if (!run)
             return false;
 
-        return it->second.sema.get() == &sema;
+        return run->sema.get() == &sema;
     }
 
     Result waitForOtherLazyGenericBodyRunner(Sema& sema, const SymbolFunction& symbol)
@@ -248,14 +261,16 @@ namespace
 
     void finishLazyGenericBodyRun(const SymbolFunction& calledFn, Result result)
     {
-        const std::scoped_lock lock(lazyGenericBodyRunMutex());
-        const auto             it = lazyGenericBodyRuns().find(&calledFn);
-        if (it == lazyGenericBodyRuns().end())
+        const std::scoped_lock lock(calledFn.lazyGenericBodyRunMutex());
+        auto*                  state = calledFn.lazyGenericBodyRunState();
+        if (!state || !(*state))
             return;
 
-        it->second.running = false;
+        auto* run = static_cast<LazyGenericBodyRun*>((*state).get());
+        SWC_ASSERT(run != nullptr);
+        run->running = false;
         if (result != Result::Pause)
-            lazyGenericBodyRuns().erase(it);
+            state->reset();
     }
 
     Result completeLazyGenericFunctionImpl(Sema& sema, SymbolFunction& calledFn)
@@ -268,9 +283,9 @@ namespace
             return Result::Continue;
         if (calledFn.hasExtraFlag(SymbolFunctionFlagsE::LazyGenericBodyRunning))
         {
-            const std::scoped_lock lock(lazyGenericBodyRunMutex());
-            const auto             it = lazyGenericBodyRuns().find(&calledFn);
-            if (it != lazyGenericBodyRuns().end() && it->second.running && isReentrantLazyGenericBodyRun(sema, calledFn, it->second))
+            const std::scoped_lock lock(calledFn.lazyGenericBodyRunMutex());
+            const auto*            run = lazyGenericBodyRun(calledFn);
+            if (run && run->running && isReentrantLazyGenericBodyRun(sema, calledFn, *run))
                 return Result::Continue;
             return sema.waitSemaCompletedNoLazy(&calledFn, calledFn.codeRef());
         }
@@ -281,8 +296,8 @@ namespace
 
         Sema* child = nullptr;
         {
-            const std::scoped_lock lock(lazyGenericBodyRunMutex());
-            auto&                  run = lazyGenericBodyRuns()[&calledFn];
+            const std::scoped_lock lock(calledFn.lazyGenericBodyRunMutex());
+            auto&                  run = ensureLazyGenericBodyRun(sema.ctx(), calledFn);
             if (run.sema)
             {
                 if (run.running)

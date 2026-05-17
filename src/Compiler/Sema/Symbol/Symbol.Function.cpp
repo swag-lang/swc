@@ -818,6 +818,7 @@ struct SymbolFunction::GenericData
     mutable std::atomic<uint32_t>   completionDepth = 0;
     mutable std::atomic<bool>       nodeCompleted   = false;
     SymbolFunction*                 rootSym         = nullptr;
+    std::shared_ptr<void>           lazyGenericBodyRun;
     mutable std::mutex              evalCacheMutex;
     std::vector<GenericEvalEntry>   evalCache;
 };
@@ -1177,6 +1178,17 @@ SymbolFunction::GenericData& SymbolFunction::ensureGenericData(const TaskContext
 GenericInstanceStorage& SymbolFunction::genericInstanceStorage(const TaskContext& ctx) const noexcept
 {
     return ensureGenericData(ctx).instances;
+}
+
+std::shared_ptr<void>* SymbolFunction::lazyGenericBodyRunState() const noexcept
+{
+    auto* data = genericData();
+    return data ? &data->lazyGenericBodyRun : nullptr;
+}
+
+std::shared_ptr<void>& SymbolFunction::ensureLazyGenericBodyRunState(const TaskContext& ctx) const noexcept
+{
+    return ensureGenericData(ctx).lazyGenericBodyRun;
 }
 
 AstNodeRef SymbolFunction::findGenericEvalNode(const TaskContext& ctx, const Ast& ownerAst, const AstNodeRef sourceRef, std::span<const SemaClone::ParamBinding> bindings) const

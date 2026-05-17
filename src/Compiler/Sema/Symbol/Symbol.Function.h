@@ -122,6 +122,9 @@ public:
     GenericInstanceStorage& genericInstanceStorage(const TaskContext& ctx) const noexcept;
     AstNodeRef              findGenericEvalNode(const TaskContext& ctx, const Ast& ownerAst, AstNodeRef sourceRef, std::span<const SemaClone::ParamBinding> bindings) const;
     void                    cacheGenericEvalNode(const TaskContext& ctx, const Ast& ownerAst, AstNodeRef sourceRef, std::span<const SemaClone::ParamBinding> bindings, AstNodeRef evalRef) const;
+    std::mutex&             lazyGenericBodyRunMutex() const noexcept { return metadataMutex_; }
+    std::shared_ptr<void>*  lazyGenericBodyRunState() const noexcept;
+    std::shared_ptr<void>&  ensureLazyGenericBodyRunState(const TaskContext& ctx) const noexcept;
     static Result           jitBatch(TaskContext& ctx, std::span<SymbolFunction* const> functions);
     Result                  jit(TaskContext& ctx);
     const MachineCode&      loweredCode() const noexcept { return loweredMicroCode_; }

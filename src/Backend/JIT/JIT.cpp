@@ -96,6 +96,12 @@ namespace
         uint32_t              codeOffset   = 0;
     };
 
+    enum class LocalFunctionAddressKind : uint8_t
+    {
+        Patchable,
+        Callable,
+    };
+
     bool asciiEqualsIgnoreCase(const std::string_view left, const std::string_view right)
     {
         if (left.size() != right.size())
@@ -343,48 +349,78 @@ namespace
         return &targetFunction;
     }
 
-    void setWaitCodeGenCompleted(TaskContext& ctx, const SymbolFunction* ownerFunction, const SymbolFunction& targetFunction)
+    TaskStateKind waitTaskKind(const LocalFunctionAddressKind addressKind)
+    {
+        switch (addressKind)
+        {
+            case LocalFunctionAddressKind::Patchable:
+                return TaskStateKind::SemaWaitSymJitPrepared;
+
+            case LocalFunctionAddressKind::Callable:
+                return TaskStateKind::SemaWaitSymJitCompleted;
+        }
+
+        SWC_UNREACHABLE();
+    }
+
+    bool hasLocalFunctionAddress(const SymbolFunction& targetFunction, const LocalFunctionAddressKind addressKind)
+    {
+        switch (addressKind)
+        {
+            case LocalFunctionAddressKind::Patchable:
+                return targetFunction.jitWorkAddress() != nullptr;
+
+            case LocalFunctionAddressKind::Callable:
+                return targetFunction.jitEntryAddress() != nullptr;
+        }
+
+        SWC_UNREACHABLE();
+    }
+
+    void* localFunctionAddress(const SymbolFunction& targetFunction, const LocalFunctionAddressKind addressKind)
+    {
+        switch (addressKind)
+        {
+            case LocalFunctionAddressKind::Patchable:
+                if (void* patchAddress = targetFunction.jitPatchAddress())
+                    return patchAddress;
+                return targetFunction.jitWorkAddress();
+
+            case LocalFunctionAddressKind::Callable:
+                return targetFunction.jitEntryAddress();
+        }
+
+        SWC_UNREACHABLE();
+    }
+
+    void setWaitFunctionTaskState(TaskContext& ctx, const TaskStateKind waitKind, const SymbolFunction* ownerFunction, const SymbolFunction& targetFunction, const bool useTargetFallback)
     {
         ownerFunction = waitOwnerFunction(ctx, ownerFunction, targetFunction);
 
         TaskState& wait   = ctx.state();
-        wait.kind         = TaskStateKind::SemaWaitSymCodeGenCompleted;
+        wait.kind         = waitKind;
         wait.nodeRef      = fallbackWaitNodeRef(ctx, ownerFunction);
         wait.codeRef      = fallbackWaitCodeRef(ctx, ownerFunction);
         wait.symbol       = &targetFunction;
         wait.waiterSymbol = ownerFunction;
-    }
 
-    void setWaitJitPrepared(TaskContext& ctx, const SymbolFunction* ownerFunction, const SymbolFunction& targetFunction)
-    {
-        ownerFunction = waitOwnerFunction(ctx, ownerFunction, targetFunction);
+        if (!useTargetFallback)
+            return;
 
-        TaskState& wait = ctx.state();
-        wait.kind       = TaskStateKind::SemaWaitSymJitPrepared;
-        wait.nodeRef    = fallbackWaitNodeRef(ctx, ownerFunction);
         if (wait.nodeRef.isInvalid())
             wait.nodeRef = targetFunction.declNodeRef();
-        wait.codeRef = fallbackWaitCodeRef(ctx, ownerFunction);
         if (!wait.codeRef.isValid())
             wait.codeRef = symbolCodeRef(targetFunction);
-        wait.symbol       = &targetFunction;
-        wait.waiterSymbol = ownerFunction;
     }
 
-    void setWaitJitCompleted(TaskContext& ctx, const SymbolFunction* ownerFunction, const SymbolFunction& targetFunction)
+    void setWaitCodeGenCompleted(TaskContext& ctx, const SymbolFunction* ownerFunction, const SymbolFunction& targetFunction)
     {
-        ownerFunction = waitOwnerFunction(ctx, ownerFunction, targetFunction);
+        setWaitFunctionTaskState(ctx, TaskStateKind::SemaWaitSymCodeGenCompleted, ownerFunction, targetFunction, false);
+    }
 
-        TaskState& wait = ctx.state();
-        wait.kind       = TaskStateKind::SemaWaitSymJitCompleted;
-        wait.nodeRef    = fallbackWaitNodeRef(ctx, ownerFunction);
-        if (wait.nodeRef.isInvalid())
-            wait.nodeRef = targetFunction.declNodeRef();
-        wait.codeRef = fallbackWaitCodeRef(ctx, ownerFunction);
-        if (!wait.codeRef.isValid())
-            wait.codeRef = symbolCodeRef(targetFunction);
-        wait.symbol       = &targetFunction;
-        wait.waiterSymbol = ownerFunction;
+    void setWaitLocalFunctionAddress(TaskContext& ctx, const SymbolFunction* ownerFunction, const SymbolFunction& targetFunction, const LocalFunctionAddressKind addressKind)
+    {
+        setWaitFunctionTaskState(ctx, waitTaskKind(addressKind), ownerFunction, targetFunction, true);
     }
 
     Result ensureLocalFunctionCodeGenCompleted(TaskContext& ctx, SymbolFunction& targetFunction, const SymbolFunction* ownerFunction)
@@ -415,9 +451,9 @@ namespace
         return Result::Pause;
     }
 
-    Result ensureLocalFunctionTargetPrepared(TaskContext& ctx, SymbolFunction& targetFunction, const SymbolFunction* ownerFunction)
+    Result ensureLocalFunctionAddressReady(TaskContext& ctx, SymbolFunction& targetFunction, const SymbolFunction* ownerFunction, const LocalFunctionAddressKind addressKind)
     {
-        if (targetFunction.jitWorkAddress())
+        if (hasLocalFunctionAddress(targetFunction, addressKind))
             return Result::Continue;
 
         const Result codeGenResult = ensureLocalFunctionCodeGenCompleted(ctx, targetFunction, ownerFunction);
@@ -428,30 +464,10 @@ namespace
             return Result::Error;
 
         JITPatchJob::schedule(ctx, targetFunction);
-        if (targetFunction.jitWorkAddress())
+        if (hasLocalFunctionAddress(targetFunction, addressKind))
             return Result::Continue;
 
-        setWaitJitPrepared(ctx, ownerFunction, targetFunction);
-        return Result::Pause;
-    }
-
-    Result ensureLocalFunctionTargetCallable(TaskContext& ctx, SymbolFunction& targetFunction, const SymbolFunction* ownerFunction)
-    {
-        if (targetFunction.jitEntryAddress())
-            return Result::Continue;
-
-        const Result codeGenResult = ensureLocalFunctionCodeGenCompleted(ctx, targetFunction, ownerFunction);
-        if (codeGenResult != Result::Continue)
-            return codeGenResult;
-
-        if (targetFunction.loweredCode().bytes.empty())
-            return Result::Error;
-
-        JITPatchJob::schedule(ctx, targetFunction);
-        if (targetFunction.jitEntryAddress())
-            return Result::Continue;
-
-        setWaitJitCompleted(ctx, ownerFunction, targetFunction);
+        setWaitLocalFunctionAddress(ctx, ownerFunction, targetFunction, addressKind);
         return Result::Pause;
     }
 
@@ -469,24 +485,27 @@ namespace
         return outArg;
     }
 
-    Result resolveLocalFunctionTargetAddress(TaskContext& ctx, uint64_t& outTargetAddress, const MicroRelocation& reloc, const uint8_t* basePtr, const SymbolFunction* ownerFunction, RelocationResolveFailure* outFailure, JITRelocationPatchContext* patchContext)
+    bool tryResolveDirectRelocationTargetAddress(uint64_t& outTargetAddress, const MicroRelocation& reloc, const uint8_t* basePtr)
     {
         outTargetAddress = reloc.targetAddress;
         if (outTargetAddress == MicroRelocation::K_SELF_ADDRESS)
         {
             outTargetAddress = reinterpret_cast<uint64_t>(basePtr);
-            return Result::Continue;
+            return true;
         }
 
-        if (outTargetAddress != 0)
-            return Result::Continue;
+        return outTargetAddress != 0;
+    }
 
+    bool tryResolveRelocationTargetFunction(SymbolFunction*& outTargetFunction, const MicroRelocation& reloc, RelocationResolveFailure* outFailure)
+    {
+        outTargetFunction = nullptr;
         Symbol* targetSymbol = reloc.targetSymbol;
         if (!targetSymbol)
         {
             if (outFailure)
                 outFailure->kind = RelocationResolveFailureKind::TargetSymbolMissing;
-            return Result::Error;
+            return false;
         }
 
         if (!targetSymbol->isFunction())
@@ -497,10 +516,16 @@ namespace
                 outFailure->targetSymbol = targetSymbol;
             }
 
-            return Result::Error;
+            return false;
         }
 
-        auto& targetFunction = targetSymbol->cast<SymbolFunction>();
+        outTargetFunction = &targetSymbol->cast<SymbolFunction>();
+        return true;
+    }
+
+    Result resolveLocalFunctionSymbolTargetAddress(TaskContext& ctx, uint64_t& outTargetAddress, SymbolFunction& targetFunction, const SymbolFunction* ownerFunction, const LocalFunctionAddressKind addressKind, RelocationResolveFailure* outFailure, JITRelocationPatchContext* patchContext)
+    {
+        outTargetAddress = 0;
         if (patchContext)
         {
             const auto cacheIt = patchContext->resolvedFunctionAddresses.find(&targetFunction);
@@ -511,88 +536,74 @@ namespace
             }
         }
 
-        void* entryAddress = targetFunction.jitPatchAddress();
-        if (!entryAddress)
+        const Result prepareResult = ensureLocalFunctionAddressReady(ctx, targetFunction, ownerFunction, addressKind);
+        if (prepareResult != Result::Continue)
         {
-            const Result prepareResult = ensureLocalFunctionTargetPrepared(ctx, targetFunction, ownerFunction);
-            if (prepareResult != Result::Continue)
+            if (prepareResult == Result::Error && outFailure)
             {
-                if (prepareResult == Result::Error && outFailure)
-                {
-                    outFailure->kind         = RelocationResolveFailureKind::LocalTargetUnavailable;
-                    outFailure->targetSymbol = targetSymbol;
-                }
-                return prepareResult;
+                outFailure->kind         = RelocationResolveFailureKind::LocalTargetUnavailable;
+                outFailure->targetSymbol = &targetFunction;
             }
-
-            entryAddress = targetFunction.jitPatchAddress();
-            if (!entryAddress)
-                entryAddress = targetFunction.jitWorkAddress();
+            return prepareResult;
         }
 
-        if (!entryAddress)
+        void* targetAddress = localFunctionAddress(targetFunction, addressKind);
+        if (!targetAddress)
         {
             if (outFailure)
             {
                 outFailure->kind         = RelocationResolveFailureKind::LocalTargetUnavailable;
-                outFailure->targetSymbol = targetSymbol;
+                outFailure->targetSymbol = &targetFunction;
             }
 
             return Result::Error;
         }
 
-        outTargetAddress = reinterpret_cast<uint64_t>(entryAddress);
+        outTargetAddress = reinterpret_cast<uint64_t>(targetAddress);
         if (patchContext)
             patchContext->resolvedFunctionAddresses.try_emplace(&targetFunction, outTargetAddress);
 
         return outTargetAddress != 0 ? Result::Continue : Result::Error;
     }
 
+    Result resolveFunctionSymbolTargetAddress(TaskContext& ctx, uint64_t& outTargetAddress, SymbolFunction& targetFunction, const SymbolFunction* ownerFunction, const LocalFunctionAddressKind addressKind, RelocationResolveFailure* outFailure, JITRelocationPatchContext* patchContext)
+    {
+        if (targetFunction.isForeign())
+        {
+            void* functionAddress = nullptr;
+            if (!tryResolveForeignFunctionAddress(ctx, functionAddress, targetFunction, outFailure, patchContext))
+                return Result::Error;
+
+            outTargetAddress = reinterpret_cast<uint64_t>(functionAddress);
+            return outTargetAddress != 0 ? Result::Continue : Result::Error;
+        }
+
+        return resolveLocalFunctionSymbolTargetAddress(ctx, outTargetAddress, targetFunction, ownerFunction, addressKind, outFailure, patchContext);
+    }
+
+    Result resolveLocalFunctionTargetAddress(TaskContext& ctx, uint64_t& outTargetAddress, const MicroRelocation& reloc, const uint8_t* basePtr, const SymbolFunction* ownerFunction, RelocationResolveFailure* outFailure, JITRelocationPatchContext* patchContext)
+    {
+        if (tryResolveDirectRelocationTargetAddress(outTargetAddress, reloc, basePtr))
+            return Result::Continue;
+
+        SymbolFunction* targetFunction = nullptr;
+        if (!tryResolveRelocationTargetFunction(targetFunction, reloc, outFailure))
+            return Result::Error;
+
+        return resolveLocalFunctionSymbolTargetAddress(ctx, outTargetAddress, *targetFunction, ownerFunction, LocalFunctionAddressKind::Patchable, outFailure, patchContext);
+    }
+
     bool resolveForeignFunctionTargetAddress(TaskContext& ctx, uint64_t& outTargetAddress, const MicroRelocation& reloc, const uint8_t* basePtr, RelocationResolveFailure* outFailure, JITRelocationPatchContext* patchContext)
     {
-        outTargetAddress = reloc.targetAddress;
-        if (outTargetAddress == MicroRelocation::K_SELF_ADDRESS)
-        {
-            outTargetAddress = reinterpret_cast<uint64_t>(basePtr);
-            return true;
-        }
-
-        if (outTargetAddress != 0)
+        if (tryResolveDirectRelocationTargetAddress(outTargetAddress, reloc, basePtr))
             return true;
 
-        Symbol* targetSymbol = reloc.targetSymbol;
-        if (!targetSymbol)
-        {
-            if (outFailure)
-                outFailure->kind = RelocationResolveFailureKind::TargetSymbolMissing;
+        SymbolFunction* targetFunction = nullptr;
+        if (!tryResolveRelocationTargetFunction(targetFunction, reloc, outFailure))
             return false;
-        }
-
-        if (!targetSymbol->isFunction())
-        {
-            if (outFailure)
-            {
-                outFailure->kind         = RelocationResolveFailureKind::TargetSymbolNotFunction;
-                outFailure->targetSymbol = targetSymbol;
-            }
-
-            return false;
-        }
-
-        const SymbolFunction& targetFunction = targetSymbol->cast<SymbolFunction>();
-        if (!targetFunction.isForeign())
-        {
-            if (outFailure)
-            {
-                outFailure->kind         = RelocationResolveFailureKind::TargetFunctionNotForeign;
-                outFailure->targetSymbol = targetSymbol;
-            }
-
-            return false;
-        }
 
         void* functionAddress = nullptr;
-        if (!tryResolveForeignFunctionAddress(ctx, functionAddress, targetFunction, outFailure, patchContext))
+        if (!tryResolveForeignFunctionAddress(ctx, functionAddress, *targetFunction, outFailure, patchContext))
             return false;
 
         outTargetAddress = reinterpret_cast<uint64_t>(functionAddress);
@@ -762,21 +773,19 @@ namespace
             }
 
             SWC_ASSERT(relocation.kind == DataSegmentRelocationKind::FunctionSymbol);
-            const SymbolFunction* targetFunction = relocation.targetSymbol;
-            SWC_ASSERT(targetFunction != nullptr);
-
-            MicroRelocation reloc;
-            reloc.kind         = targetFunction->isForeign() ? MicroRelocation::Kind::ForeignFunctionAddress : MicroRelocation::Kind::LocalFunctionAddress;
-            reloc.targetSymbol = const_cast<SymbolFunction*>(targetFunction);
+            SWC_ASSERT(relocation.targetSymbol != nullptr);
+            if (!relocation.targetSymbol)
+                return Result::Error;
+            SymbolFunction& targetFunction = *const_cast<SymbolFunction*>(relocation.targetSymbol);
 
             uint64_t                 targetAddress = 0;
             RelocationResolveFailure failure;
-            const Result             resolveResult = targetFunction->isForeign() ? (resolveForeignFunctionTargetAddress(ctx, targetAddress, reloc, nullptr, &failure, &patchContext) ? Result::Continue : Result::Error) : resolveLocalFunctionTargetAddress(ctx, targetAddress, reloc, nullptr, ownerFunction, &failure, &patchContext);
+            const Result             resolveResult = resolveFunctionSymbolTargetAddress(ctx, targetAddress, targetFunction, ownerFunction, LocalFunctionAddressKind::Patchable, &failure, &patchContext);
             if (resolveResult == Result::Pause)
                 return Result::Pause;
             if (resolveResult != Result::Continue)
             {
-                return reportRelocationFailure(ctx, relocationDiagnosticId(targetFunction->isForeign()), "<jit-constant>", failure);
+                return reportRelocationFailure(ctx, relocationDiagnosticId(targetFunction.isForeign()), "<jit-constant>", failure);
             }
 
             patches.push_back({.offset = relocation.offset, .target = reinterpret_cast<void*>(targetAddress)});
@@ -907,41 +916,9 @@ Result JIT::patchGlobalFunctionVariables(TaskContext& ctx)
         const TypeInfo& storageType = ctx.typeMgr().get(symVar->typeRef());
         SWC_ASSERT(storageType.sizeOf(ctx) == sizeof(uint64_t));
 
-        MicroRelocation reloc;
-        reloc.kind         = targetFunction->isForeign() ? MicroRelocation::Kind::ForeignFunctionAddress : MicroRelocation::Kind::LocalFunctionAddress;
-        reloc.targetSymbol = targetFunction;
-
         uint64_t                 targetAddress = 0;
         RelocationResolveFailure failure;
-        auto                     resolveResult = Result::Continue;
-        if (targetFunction->isForeign())
-        {
-            resolveResult = resolveForeignFunctionTargetAddress(ctx, targetAddress, reloc, nullptr, &failure, &patchContext) ? Result::Continue : Result::Error;
-        }
-        else
-        {
-            resolveResult = ensureLocalFunctionTargetCallable(ctx, *targetFunction, nullptr);
-            if (resolveResult == Result::Continue)
-            {
-                void* entryAddress = targetFunction->jitEntryAddress();
-                if (!entryAddress)
-                {
-                    failure.kind         = RelocationResolveFailureKind::LocalTargetUnavailable;
-                    failure.targetSymbol = targetFunction;
-                    resolveResult        = Result::Error;
-                }
-                else
-                {
-                    targetAddress = reinterpret_cast<uint64_t>(entryAddress);
-                    patchContext.resolvedFunctionAddresses.try_emplace(targetFunction, targetAddress);
-                }
-            }
-            else if (resolveResult == Result::Error)
-            {
-                failure.kind         = RelocationResolveFailureKind::LocalTargetUnavailable;
-                failure.targetSymbol = targetFunction;
-            }
-        }
+        const Result             resolveResult = resolveFunctionSymbolTargetAddress(ctx, targetAddress, *targetFunction, nullptr, LocalFunctionAddressKind::Callable, &failure, &patchContext);
 
         if (resolveResult == Result::Pause)
             return Result::Pause;
@@ -1503,7 +1480,7 @@ namespace
             return Result::Error;
         }
 
-        SWC_RESULT(ensureLocalFunctionTargetCallable(ctx, *setupFn, nullptr));
+        SWC_RESULT(ensureLocalFunctionAddressReady(ctx, *setupFn, nullptr, LocalFunctionAddressKind::Callable));
         SWC_ASSERT(setupFn->jitEntryAddress() != nullptr);
         outSetupInvoker = reinterpret_cast<RuntimeSetupInvoker>(setupFn->jitEntryAddress());
         return Result::Continue;

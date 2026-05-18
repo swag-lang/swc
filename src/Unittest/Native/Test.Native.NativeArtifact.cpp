@@ -184,6 +184,49 @@ namespace
         });
         return code;
     }
+
+    template<typename T>
+    bool containsPointer(std::span<T* const> values, const T* value)
+    {
+        return std::ranges::find(values, value) != values.end();
+    }
+
+    template<typename T>
+    bool hasUniquePointers(std::span<T* const> values)
+    {
+        std::unordered_set<const T*> seen;
+        for (const T* value : values)
+        {
+            if (!value)
+                return false;
+            if (!seen.emplace(value).second)
+                return false;
+        }
+
+        return true;
+    }
+
+    SymbolFunction* findFunctionByName(TaskContext& ctx, std::span<SymbolFunction* const> functions, std::string_view name)
+    {
+        for (SymbolFunction* function : functions)
+        {
+            if (function && function->name(ctx) == name)
+                return function;
+        }
+
+        return nullptr;
+    }
+
+    SymbolVariable* findGlobalByName(TaskContext& ctx, std::span<SymbolVariable* const> globals, std::string_view name)
+    {
+        for (SymbolVariable* global : globals)
+        {
+            if (global && global->name(ctx) == name)
+                return global;
+        }
+
+        return nullptr;
+    }
 }
 
 SWC_TEST_BEGIN(NativeArtifact_DefaultsToLocalOutputTree)
@@ -689,6 +732,162 @@ var GValue: s32 = 0
     const auto* globalValue = reinterpret_cast<const int32_t*>(compiler.dataSegmentAddress(globalVar->globalStorageKind(), globalVar->offset()));
     if (!globalValue || *globalValue != 666)
         return fail("unexpected final GValue");
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(NativeArtifact_CompilerInstanceNativeRegistrationKeepsBucketsConsistent)
+{
+    auto fail = [](const char* message) {
+        std::println(stderr, "NativeArtifact_CompilerInstanceNativeRegistrationKeepsBucketsConsistent: {}", message);
+        return Result::Error;
+    };
+
+    static constexpr std::string_view SOURCE     = R"(#global fileprivate
+
+alias UnaryFn = func(s32)->s32
+
+func addOne(value: s32)->s32
+{
+    return value + 1
+}
+
+var GAddOne: UnaryFn = &addOne
+
+#init
+{
+}
+
+#premain
+{
+}
+
+#test
+{
+    @assert(GAddOne(41) == 42)
+}
+
+#main
+{
+}
+
+#drop
+{
+}
+)";
+    const fs::path                    sourcePath = Unittest::makeTestSourcePath("NativeArtifact", "CompilerInstanceNativeRegistrationKeepsBucketsConsistent");
+
+    CommandLine cmdLine;
+    cmdLine.command     = CommandKind::Test;
+    cmdLine.buildCfg    = "debug";
+    cmdLine.backendKind = Runtime::BuildCfgBackendKind::Executable;
+    cmdLine.name        = "compiler_instance_native_registration";
+    cmdLine.files.insert(sourcePath);
+    CommandLineParser::refreshBuildCfg(cmdLine);
+
+    const uint64_t   errorsBefore = Stats::getNumErrors();
+    CompilerInstance compiler(ctx.global(), cmdLine);
+    Unittest::registerTestSource(compiler, sourcePath, SOURCE);
+    Command::sema(compiler);
+    if (Stats::getNumErrors() != errorsBefore)
+        return fail("errors after sema");
+
+    TaskContext compilerCtx(compiler);
+
+    const auto initTargets = compiler.nativeGlobalFunctionInitTargetsSnapshot();
+    if (compiler.nativeTestFunctions().size() != 1)
+        return fail("unexpected native test function count");
+    if (compiler.nativeInitFunctions().size() != 1)
+        return fail("unexpected native init function count");
+    if (compiler.nativePreMainFunctions().size() != 1)
+        return fail("unexpected native premain function count");
+    if (compiler.nativeMainFunctions().size() != 1)
+        return fail("unexpected native main function count");
+    if (compiler.nativeDropFunctions().size() != 1)
+        return fail("unexpected native drop function count");
+    if (initTargets.size() != 1)
+        return fail("unexpected native global init target count");
+
+    SymbolFunction* addOneFunction = findFunctionByName(compilerCtx, initTargets, "addOne");
+    if (!addOneFunction)
+        return fail("addOne not found in native init targets");
+
+    SymbolVariable* globalFunctionPtr = findGlobalByName(compilerCtx, compiler.nativeGlobalVariables(), "GAddOne");
+    if (!globalFunctionPtr)
+        return fail("GAddOne global not found");
+    if (globalFunctionPtr->globalFunctionInit() != addOneFunction)
+        return fail("GAddOne global init target mismatch");
+    if (initTargets.front() != addOneFunction)
+        return fail("native init target mismatch");
+
+    if (!hasUniquePointers(std::span{compiler.nativeCodeSegment()}))
+        return fail("native code segment contains duplicates");
+    if (!containsPointer(std::span{compiler.nativeCodeSegment()}, compiler.nativeTestFunctions().front()))
+        return fail("native code segment missing test function");
+    if (!containsPointer(std::span{compiler.nativeCodeSegment()}, compiler.nativeInitFunctions().front()))
+        return fail("native code segment missing init function");
+    if (!containsPointer(std::span{compiler.nativeCodeSegment()}, compiler.nativePreMainFunctions().front()))
+        return fail("native code segment missing premain function");
+    if (!containsPointer(std::span{compiler.nativeCodeSegment()}, compiler.nativeMainFunctions().front()))
+        return fail("native code segment missing main function");
+    if (!containsPointer(std::span{compiler.nativeCodeSegment()}, compiler.nativeDropFunctions().front()))
+        return fail("native code segment missing drop function");
+
+    const size_t   codeCount              = compiler.nativeCodeSegment().size();
+    const size_t   testCount              = compiler.nativeTestFunctions().size();
+    const size_t   initCount              = compiler.nativeInitFunctions().size();
+    const size_t   preMainCount           = compiler.nativePreMainFunctions().size();
+    const size_t   mainCount              = compiler.nativeMainFunctions().size();
+    const size_t   dropCount              = compiler.nativeDropFunctions().size();
+    const size_t   globalVariableCount    = compiler.nativeGlobalVariables().size();
+    const size_t   initTargetCount        = initTargets.size();
+    const auto     preparedJitFunctionsBefore = compiler.jitPreparedFunctionsSnapshot();
+    const size_t   preparedJitCount           = preparedJitFunctionsBefore.size();
+    const size_t   preparedJitTargetCount     = std::ranges::count(preparedJitFunctionsBefore, addOneFunction);
+    const uint64_t initTargetVersion      = compiler.nativeGlobalFunctionInitTargetsVersion();
+    SymbolFunction* const codeFunction    = compiler.nativeCodeSegment().front();
+    SymbolFunction* const testFunction    = compiler.nativeTestFunctions().front();
+    SymbolFunction* const initFunction    = compiler.nativeInitFunctions().front();
+    SymbolFunction* const preMainFunction = compiler.nativePreMainFunctions().front();
+    SymbolFunction* const mainFunction    = compiler.nativeMainFunctions().front();
+    SymbolFunction* const dropFunction    = compiler.nativeDropFunctions().front();
+
+    compiler.registerNativeCodeFunction(codeFunction);
+    compiler.registerNativeTestFunction(testFunction);
+    compiler.registerNativeInitFunction(initFunction);
+    compiler.registerNativePreMainFunction(preMainFunction);
+    compiler.registerNativeMainFunction(mainFunction);
+    compiler.registerNativeDropFunction(dropFunction);
+    compiler.registerNativeGlobalVariable(globalFunctionPtr);
+    compiler.registerNativeGlobalFunctionInitTarget(addOneFunction);
+    compiler.registerPreparedJitFunction(addOneFunction);
+    compiler.registerPreparedJitFunction(addOneFunction);
+
+    if (compiler.nativeCodeSegment().size() != codeCount)
+        return fail("native code segment changed after duplicate registration");
+    if (compiler.nativeTestFunctions().size() != testCount)
+        return fail("native test functions changed after duplicate registration");
+    if (compiler.nativeInitFunctions().size() != initCount)
+        return fail("native init functions changed after duplicate registration");
+    if (compiler.nativePreMainFunctions().size() != preMainCount)
+        return fail("native premain functions changed after duplicate registration");
+    if (compiler.nativeMainFunctions().size() != mainCount)
+        return fail("native main functions changed after duplicate registration");
+    if (compiler.nativeDropFunctions().size() != dropCount)
+        return fail("native drop functions changed after duplicate registration");
+    if (compiler.nativeGlobalVariables().size() != globalVariableCount)
+        return fail("native globals changed after duplicate registration");
+    if (compiler.nativeGlobalFunctionInitTargetsSnapshot().size() != initTargetCount)
+        return fail("native init targets changed after duplicate registration");
+    if (compiler.nativeGlobalFunctionInitTargetsVersion() != initTargetVersion)
+        return fail("native init target version changed after duplicate registration");
+
+    const auto jitPreparedFunctions = compiler.jitPreparedFunctionsSnapshot();
+    if (jitPreparedFunctions.size() != preparedJitCount + (preparedJitTargetCount ? 0u : 1u))
+        return fail("unexpected prepared jit function growth");
+    if (std::ranges::count(jitPreparedFunctions, addOneFunction) != 1)
+        return fail("prepared jit function target duplicated");
+
+    return Result::Continue;
 }
 SWC_TEST_END()
 

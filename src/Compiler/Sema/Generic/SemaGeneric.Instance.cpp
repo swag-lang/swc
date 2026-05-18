@@ -221,7 +221,7 @@ namespace
             outKeys.push_back(arg);
     }
 
-    static SymbolFlags clonedGenericSymbolFlags(const Symbol& root)
+    SymbolFlags clonedGenericSymbolFlags(const Symbol& root)
     {
         SymbolFlags flags = SymbolFlagsE::Zero;
         if (root.isPublic())
@@ -697,11 +697,11 @@ namespace SemaGeneric
         if (defaultRef.isInvalid())
             return Result::Continue;
 
-        const Internal::ResolvedGenericBindingSource source{params, resolvedArgs};
+        const ResolvedGenericBindingSource source{params, resolvedArgs};
         SmallVector<SemaClone::ParamBinding> bindings;
-        Internal::buildPartialGenericContextBindings(sema, root, source, params.size(), bindings);
+        buildPartialGenericContextBindings(sema, root, source, params.size(), bindings);
 
-        return Internal::evalGenericClonedNode(sema, root, defaultRef, bindings, outClonedRef);
+        return evalGenericClonedNode(sema, root, defaultRef, bindings, outClonedRef);
     }
 
     Result instantiateFunctionExplicit(Sema& sema, SymbolFunction& genericRoot, std::span<const AstNodeRef> genericArgNodes, SymbolFunction*& outInstance)
@@ -719,15 +719,15 @@ namespace SemaGeneric
             *outFailure = {};
         if (outFailureArgIndex)
             *outFailureArgIndex = UINT32_MAX;
-        if (!Internal::hasGenericParams(genericRoot))
+        if (!hasGenericParams(genericRoot))
             return Result::Continue;
 
-        const auto* decl = Internal::genericFunctionDecl(genericRoot);
+        const auto* decl = genericFunctionDecl(genericRoot);
         if (!decl)
             return Result::Continue;
 
         std::unique_ptr<Sema> sourceSemaHolder;
-        Sema*                 sourceSema = Internal::tryCreateSemaForGenericDecl(sema, genericRoot, sourceSemaHolder);
+        Sema*                 sourceSema = tryCreateSemaForGenericDecl(sema, genericRoot, sourceSemaHolder);
         if (!sourceSema)
             sourceSema = &sema;
 
@@ -763,12 +763,12 @@ namespace SemaGeneric
             return Result::Continue;
         }
 
-        const Internal::ResolvedGenericBindingSource source{params.span(), resolvedArgs.span()};
+        const ResolvedGenericBindingSource source{params.span(), resolvedArgs.span()};
         bool whereSatisfied = true;
         if (outFailure)
             *outFailure = {};
-        Internal::FunctionWhereInputs whereInputs;
-        Internal::buildFunctionWhereInputs(*sourceSema, genericRoot, source, whereInputs);
+        FunctionWhereInputs whereInputs;
+        buildFunctionWhereInputs(*sourceSema, genericRoot, source, whereInputs);
         CastFailure  localFailure;
         CastFailure* whereFailure = outFailure ? outFailure : &localFailure;
         SWC_RESULT(Internal::checkFunctionWhereConstraints(*sourceSema, whereSatisfied, genericRoot, whereInputs.bindings.span(), whereInputs.bindingText, whereFailure, errorNodeRef));
@@ -794,15 +794,15 @@ namespace SemaGeneric
         outInstance = nullptr;
 
         std::unique_ptr<Sema> targetSemaHolder;
-        Sema*                 targetSema = Internal::tryCreateSemaForGenericDecl(sema, genericRoot, targetSemaHolder);
+        Sema*                 targetSema = tryCreateSemaForGenericDecl(sema, genericRoot, targetSemaHolder);
         if (!targetSema)
             targetSema = &sema;
 
-        if (!Internal::hasGenericParams(genericRoot))
+        if (!hasGenericParams(genericRoot))
             return Result::Continue;
 
-        const auto*   targetDecl           = Internal::genericStructDeclNode(genericRoot);
-        const SpanRef spanGenericParamsRef = Internal::genericStructParamSpan(genericRoot);
+        const auto*   targetDecl           = genericStructDeclNode(genericRoot);
+        const SpanRef spanGenericParamsRef = genericStructParamSpan(genericRoot);
         if (!targetDecl || spanGenericParamsRef.isInvalid())
             return Result::Continue;
 

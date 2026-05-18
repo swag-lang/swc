@@ -1635,15 +1635,6 @@ namespace
                node.is(AstNodeId::VarDeclList);
     }
 
-    bool isModuleApiForbiddenContainer(const AstNode& node)
-    {
-        return node.is(AstNodeId::FunctionDecl) ||
-               node.is(AstNodeId::StructDecl) ||
-               node.is(AstNodeId::EnumDecl) ||
-               node.is(AstNodeId::InterfaceDecl) ||
-               node.is(AstNodeId::Impl);
-    }
-
     bool collectModuleApiNodePath(const Ast& ast, const AstNodeRef currentRef, const AstNodeRef targetRef, SmallVector<AstNodeRef>& ioPath)
     {
         if (!currentRef.isValid() || ast.isAdditionalNode(currentRef))

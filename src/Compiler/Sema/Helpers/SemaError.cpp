@@ -231,7 +231,7 @@ SemaError::SymbolDiagnosticOrigin SemaError::symbolDiagnosticOrigin(const Sema& 
     return SymbolDiagnosticOrigin::Unknown;
 }
 
-bool SemaError::isCurrentModuleSymbol(Sema& sema, const Symbol& symbol)
+bool SemaError::isCurrentModuleSymbol(const Sema& sema, const Symbol& symbol)
 {
     return symbolDiagnosticOrigin(sema, symbol) == SymbolDiagnosticOrigin::CurrentModule;
 }

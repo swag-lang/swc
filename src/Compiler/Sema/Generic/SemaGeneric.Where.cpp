@@ -14,13 +14,11 @@ namespace SemaGeneric
 namespace
 {
     using Internal::ResolvedGenericBindingSource;
-    using Internal::buildResolvedGenericContextBindings;
     using Internal::evalGenericConstraintNode;
-    using Internal::formatResolvedGenericBindings;
     using Internal::genericFunctionDecl;
     using Internal::genericStructWhereSpan;
 
-    static bool isWhereConstraint(Sema& sema, AstNodeRef constraintRef)
+    bool isWhereConstraint(Sema& sema, AstNodeRef constraintRef)
     {
         if (!constraintRef.isValid())
             return false;
@@ -234,7 +232,7 @@ namespace SemaGeneric
     Result evaluateFunctionWhereConstraints(Sema& sema, bool& outSatisfied, const SymbolFunction& function, CastFailure* outFailure)
     {
         outSatisfied     = true;
-        const auto* decl = Internal::genericFunctionDecl(function);
+        const auto* decl = genericFunctionDecl(function);
         if (!decl || decl->spanConstraintsRef.isInvalid())
             return Result::Continue;
 

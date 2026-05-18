@@ -268,6 +268,7 @@
         <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Cast.cpp"/>
         <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Conditional.cpp"/>
         <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Constant.cpp"/>
+        <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Intrinsic.Call.cpp"/>
         <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Intrinsic.cpp"/>
         <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Function.cpp"/>
         <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Identifier.cpp"/>

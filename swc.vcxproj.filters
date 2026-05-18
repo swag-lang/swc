@@ -459,6 +459,9 @@
     <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Intrinsic.cpp">
       <Filter>src\Compiler\CodeGen\Ast</Filter>
     </ClCompile>
+    <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Intrinsic.Call.cpp">
+      <Filter>src\Compiler\CodeGen\Ast</Filter>
+    </ClCompile>
     <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Function.cpp">
       <Filter>src\Compiler\CodeGen\Ast</Filter>
     </ClCompile>

@@ -804,6 +804,9 @@
     <ClCompile Include="src\Compiler\Sema\Ast\Sema.Function.cpp">
       <Filter>src\Compiler\Sema\Ast</Filter>
     </ClCompile>
+    <ClCompile Include="src\Compiler\Sema\Ast\Sema.Function.Flow.cpp">
+      <Filter>src\Compiler\Sema\Ast</Filter>
+    </ClCompile>
     <ClCompile Include="src\Compiler\Sema\Ast\Sema.If.cpp">
       <Filter>src\Compiler\Sema\Ast</Filter>
     </ClCompile>
@@ -1522,6 +1525,9 @@
     </ClInclude>
     <ClInclude Include="src\Compiler\Sema\Generic\SemaGeneric.Priv.h">
       <Filter>src\Compiler\Sema\Generic</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Compiler\Sema\Ast\Sema.Function.Priv.h">
+      <Filter>src\Compiler\Sema\Ast</Filter>
     </ClInclude>
     <ClInclude Include="src\Compiler\Sema\Generic\SemaGenericTraits.h">
       <Filter>src\Compiler\Sema\Generic</Filter>

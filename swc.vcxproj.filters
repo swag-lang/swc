@@ -897,7 +897,13 @@
     <ClCompile Include="src\Compiler\Sema\Generic\SemaGeneric.Deduce.cpp">
       <Filter>src\Compiler\Sema\Generic</Filter>
     </ClCompile>
+    <ClCompile Include="src\Compiler\Sema\Generic\SemaGeneric.Instance.cpp">
+      <Filter>src\Compiler\Sema\Generic</Filter>
+    </ClCompile>
     <ClCompile Include="src\Compiler\Sema\Generic\SemaGeneric.Instantiate.cpp">
+      <Filter>src\Compiler\Sema\Generic</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Compiler\Sema\Generic\SemaGeneric.Where.cpp">
       <Filter>src\Compiler\Sema\Generic</Filter>
     </ClCompile>
     <ClCompile Include="src\Compiler\Sema\Generic\SemaGeneric.Resolve.cpp">
@@ -1512,6 +1518,9 @@
       <Filter>src\Compiler\Sema\Generic</Filter>
     </ClInclude>
     <ClInclude Include="src\Compiler\Sema\Generic\SemaGeneric.h">
+      <Filter>src\Compiler\Sema\Generic</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Compiler\Sema\Generic\SemaGeneric.Priv.h">
       <Filter>src\Compiler\Sema\Generic</Filter>
     </ClInclude>
     <ClInclude Include="src\Compiler\Sema\Generic\SemaGenericTraits.h">

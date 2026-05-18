@@ -443,6 +443,7 @@
         <ClCompile Include="src\Compiler\Sema\Helpers\SemaHelpers.Type.cpp"/>
         <ClCompile Include="src\Compiler\Sema\Helpers\SemaJIT.cpp"/>
         <ClCompile Include="src\Compiler\Sema\Helpers\SemaSpecOp.Generated.cpp"/>
+        <ClCompile Include="src\Compiler\Sema\Helpers\SemaSpecOp.Resolve.cpp"/>
         <ClCompile Include="src\Compiler\Sema\Helpers\SemaSpecOp.cpp"/>
         <ClCompile Include="src\Compiler\Sema\Match\Match.cpp"/>
         <ClCompile Include="src\Compiler\Sema\Match\Match.Func.cpp"/>

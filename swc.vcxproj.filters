@@ -954,6 +954,9 @@
     <ClCompile Include="src\Compiler\Sema\Helpers\SemaSpecOp.Generated.cpp">
       <Filter>src\Compiler\Sema\Helpers</Filter>
     </ClCompile>
+    <ClCompile Include="src\Compiler\Sema\Helpers\SemaSpecOp.Resolve.cpp">
+      <Filter>src\Compiler\Sema\Helpers</Filter>
+    </ClCompile>
     <ClCompile Include="src\Compiler\Sema\Helpers\SemaSpecOp.cpp">
       <Filter>src\Compiler\Sema\Helpers</Filter>
     </ClCompile>

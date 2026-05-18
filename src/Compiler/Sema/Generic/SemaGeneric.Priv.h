@@ -19,8 +19,8 @@ namespace SemaGeneric::Internal
 {
     struct ResolvedGenericBindingSource
     {
-        std::span<const SemaGeneric::GenericParamDesc> params;
-        std::span<const SemaGeneric::GenericResolvedArg> resolvedArgs;
+        std::span<const GenericParamDesc> params;
+        std::span<const GenericResolvedArg> resolvedArgs;
     };
 
     struct FunctionWhereInputs
@@ -37,11 +37,11 @@ namespace SemaGeneric::Internal
     bool                   hasGenericParams(const Symbol& root);
     AstNodeRef             genericDeclNodeRef(const Symbol& root);
 
-    void buildGenericCloneBindings(std::span<const SemaGeneric::GenericParamDesc> params, std::span<const SemaGeneric::GenericResolvedArg> resolvedArgs, SmallVector<SemaClone::ParamBinding>& outBindings);
+    void buildGenericCloneBindings(std::span<const GenericParamDesc> params, std::span<const GenericResolvedArg> resolvedArgs, SmallVector<SemaClone::ParamBinding>& outBindings);
     void buildGenericCloneBindings(const ResolvedGenericBindingSource& source, SmallVector<SemaClone::ParamBinding>& outBindings);
 
-    bool loadFunctionInstanceGenericArgs(Sema& sema, const SymbolFunction& function, SmallVector<SemaGeneric::GenericParamDesc>& outParams, SmallVector<GenericInstanceKey>& outArgs);
-    bool loadOwnerStructGenericArgs(Sema& sema, const SymbolFunction& function, SmallVector<SemaGeneric::GenericParamDesc>& outParams, SmallVector<GenericInstanceKey>& outArgs);
+    bool loadFunctionInstanceGenericArgs(Sema& sema, const SymbolFunction& function, SmallVector<GenericParamDesc>& outParams, SmallVector<GenericInstanceKey>& outArgs);
+    bool loadOwnerStructGenericArgs(Sema& sema, const SymbolFunction& function, SmallVector<GenericParamDesc>& outParams, SmallVector<GenericInstanceKey>& outArgs);
     void collectAmbientGenericFunctions(const Sema& sema, SmallVector<const SymbolFunction*>& outFunctions);
 
     Sema* tryCreateSemaForGenericDecl(Sema& sema, const Symbol& root, std::unique_ptr<Sema>& ownedSema);
@@ -57,10 +57,10 @@ namespace SemaGeneric::Internal
     Result runGenericInstanceNode(Sema& sema, const Symbol& root, Symbol& instance);
     Result evalGenericConstraintNode(Sema& sema, const Symbol& root, AstNodeRef constraintRef, std::span<const SemaClone::ParamBinding> bindings, AstNodeRef& outEvalRef);
     Result evalGenericClonedNode(Sema& sema, const Symbol& root, AstNodeRef sourceRef, std::span<const SemaClone::ParamBinding> bindings, AstNodeRef& outClonedRef);
-    Result instantiateGenericStructImpls(Sema& sema, const SymbolStruct& root, SymbolStruct& instance, std::span<const SemaGeneric::GenericParamDesc> params, std::span<const SemaGeneric::GenericResolvedArg> resolvedArgs);
+    Result instantiateGenericStructImpls(Sema& sema, const SymbolStruct& root, SymbolStruct& instance, std::span<const GenericParamDesc> params, std::span<const GenericResolvedArg> resolvedArgs);
 
     Result checkFunctionWhereConstraints(Sema& sema, bool& outSatisfied, const SymbolFunction& function, std::span<const SemaClone::ParamBinding> bindings, const Utf8& bindingText, CastFailure* outFailure, AstNodeRef errorNodeRef);
-    Result validateGenericStructWhereConstraints(Sema& sema, const SymbolStruct& root, std::span<const SemaGeneric::GenericParamDesc> params, std::span<const SemaGeneric::GenericResolvedArg> resolvedArgs, AstNodeRef errorNodeRef);
+    Result validateGenericStructWhereConstraints(Sema& sema, const SymbolStruct& root, std::span<const GenericParamDesc> params, std::span<const GenericResolvedArg> resolvedArgs, AstNodeRef errorNodeRef);
 }
 
 SWC_END_NAMESPACE();

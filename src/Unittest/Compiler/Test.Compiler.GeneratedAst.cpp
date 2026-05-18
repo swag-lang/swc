@@ -4,7 +4,6 @@
 
 #include "Backend/Runtime.h"
 #include "Compiler/Parser/Ast/Ast.h"
-#include "Main/Command/Command.h"
 #include "Main/Command/CommandLine.h"
 #include "Main/Command/CommandLineParser.h"
 #include "Main/CompilerInstance.h"

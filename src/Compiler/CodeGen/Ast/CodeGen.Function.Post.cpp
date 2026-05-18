@@ -18,7 +18,6 @@
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.Module.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
-#include "Support/Math/Helpers.h"
 
 SWC_BEGIN_NAMESPACE();
 

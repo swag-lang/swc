@@ -202,7 +202,7 @@ namespace SemaGeneric::Internal
         return evaluateGenericWhereConstraints(sema, outSatisfied, context, outFailure);
     }
 
-    Result validateGenericStructWhereConstraints(Sema& sema, const SymbolStruct& root, std::span<const SemaGeneric::GenericParamDesc> params, std::span<const SemaGeneric::GenericResolvedArg> resolvedArgs, AstNodeRef errorNodeRef)
+    Result validateGenericStructWhereConstraints(Sema& sema, const SymbolStruct& root, std::span<const GenericParamDesc> params, std::span<const GenericResolvedArg> resolvedArgs, AstNodeRef errorNodeRef)
     {
         const ResolvedGenericBindingSource source{params, resolvedArgs};
         SmallVector<SemaClone::ParamBinding> bindings;

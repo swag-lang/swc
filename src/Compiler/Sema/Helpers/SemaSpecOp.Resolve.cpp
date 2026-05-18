@@ -10,7 +10,6 @@
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Constant/ConstantValue.h"
 #include "Compiler/Sema/Core/Sema.h"
-#include "Compiler/Sema/Core/SemaJob.h"
 #include "Compiler/Sema/Generic/SemaGeneric.h"
 #include "Compiler/Sema/Helpers/SemaCheck.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
@@ -24,13 +23,8 @@
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Compiler/Sema/Symbol/Symbols.h"
 #include "Compiler/SourceFile.h"
-#include "Main/Command/CommandLine.h"
 #include "Main/CompilerInstance.h"
-#include "Main/Global.h"
-#include "Main/Stats.h"
-#include "Support/Memory/Heap.h"
 #include "Support/Os/Os.h"
-#include "Support/Thread/JobManager.h"
 
 SWC_BEGIN_NAMESPACE();
 

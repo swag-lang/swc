@@ -3,7 +3,6 @@
 #include "Backend/Native/NativeBackendBuilder.h"
 #include "Backend/Runtime.h"
 #include "Backend/RuntimeName.h"
-#include "Compiler/Lexer/SourceView.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Constant/ConstantValue.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"

@@ -1,10 +1,7 @@
 ﻿#include "pch.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
-#include "Backend/ABI/ABICall.h"
-#include "Backend/ABI/ABITypeNormalize.h"
 #include "Backend/ABI/CallConv.h"
 #include "Backend/JIT/JIT.h"
-#include "Backend/JIT/JITPatchJob.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Compiler/Sema/Symbol/Symbol.Alias.h"
@@ -18,10 +15,7 @@
 #include "Support/Math/Hash.h"
 #include "Support/Math/Helpers.h"
 #include "Support/Memory/Heap.h"
-#include "Support/Memory/MemoryProfile.h"
 #if SWC_HAS_STATS
-#include "Main/Stats.h"
-#include "Support/Core/Timer.h"
 #endif
 
 SWC_BEGIN_NAMESPACE();

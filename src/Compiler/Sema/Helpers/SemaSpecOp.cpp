@@ -7,30 +7,17 @@
 #include "Compiler/Parser/Parser/ParserJob.h"
 #include "Compiler/Sema/Ast/Sema.Index.h"
 #include "Compiler/Sema/Cast/Cast.h"
-#include "Compiler/Sema/Constant/ConstantManager.h"
-#include "Compiler/Sema/Constant/ConstantValue.h"
 #include "Compiler/Sema/Core/Sema.h"
-#include "Compiler/Sema/Core/SemaJob.h"
-#include "Compiler/Sema/Generic/SemaGeneric.h"
-#include "Compiler/Sema/Helpers/SemaCheck.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
-#include "Compiler/Sema/Helpers/SemaInline.h"
-#include "Compiler/Sema/Helpers/SemaJIT.h"
-#include "Compiler/Sema/Match/Match.h"
 #include "Compiler/Sema/Symbol/IdentifierManager.h"
 #include "Compiler/Sema/Symbol/Symbol.Enum.h"
 #include "Compiler/Sema/Symbol/Symbol.Impl.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Compiler/Sema/Symbol/Symbols.h"
 #include "Compiler/SourceFile.h"
-#include "Main/Command/CommandLine.h"
 #include "Main/CompilerInstance.h"
-#include "Main/Global.h"
-#include "Main/Stats.h"
-#include "Support/Memory/Heap.h"
 #include "Support/Os/Os.h"
-#include "Support/Thread/JobManager.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -484,7 +471,7 @@ void SemaSpecOp::addMissingDeclarationHelp(Sema& sema, Diagnostic& diag, const S
         return;
 
     help->addArgument(Diagnostic::ARG_DECL_SYM, rootStruct->name(sema.ctx()));
-    help->addArgument(Diagnostic::ARG_SPEC_OP, SemaSpecOp::specOpFunctionName(kind));
+    help->addArgument(Diagnostic::ARG_SPEC_OP, specOpFunctionName(kind));
     help->addArgument(Diagnostic::ARG_SPEC_OP_SIGNATURE, specOpSignatureHint(kind));
 }
 

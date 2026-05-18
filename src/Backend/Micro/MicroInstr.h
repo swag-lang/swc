@@ -2,7 +2,6 @@
 #include "Backend/ABI/CallConv.h"
 #include "Backend/Encoder/Encoder.h"
 #include "Backend/Micro/MicroTypes.h"
-#include "Compiler/Lexer/SourceCodeRange.h"
 #include "Support/Core/Flags.h"
 #include "Support/Core/SmallVector.h"
 #include "Support/Math/ApInt.h"

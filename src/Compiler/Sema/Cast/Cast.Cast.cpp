@@ -13,7 +13,6 @@
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Compiler/Sema/Helpers/SemaJIT.h"
 #include "Compiler/Sema/Symbol/Symbols.h"
-#include "Compiler/Sema/Type/TypeGen.h"
 #include "Compiler/Sema/Type/TypeManager.h"
 #include "Support/Math/Helpers.h"
 #include "Support/Report/Diagnostic.h"

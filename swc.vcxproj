@@ -323,6 +323,7 @@
         <ClCompile Include="src\Main\CompilerMessageTypeInfoJob.cpp"/>
         <ClCompile Include="src\Main\CompilerTagRegistry.cpp"/>
         <ClCompile Include="src\Main\CompilerInstance.cpp"/>
+        <ClCompile Include="src\Main\CompilerInstance.Module.cpp"/>
         <ClCompile Include="src\Main\CompilerInstance.Message.cpp"/>
         <ClCompile Include="src\Main\ExternalModuleManager.cpp"/>
         <ClCompile Include="src\Main\ModuleApi.cpp"/>

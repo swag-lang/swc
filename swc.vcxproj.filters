@@ -618,6 +618,9 @@
     <ClCompile Include="src\Main\CompilerInstance.cpp">
       <Filter>src\Main</Filter>
     </ClCompile>
+    <ClCompile Include="src\Main\CompilerInstance.Module.cpp">
+      <Filter>src\Main</Filter>
+    </ClCompile>
     <ClCompile Include="src\Main\CompilerInstance.Message.cpp">
       <Filter>src\Main</Filter>
     </ClCompile>

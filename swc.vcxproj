@@ -435,6 +435,9 @@
         <ClCompile Include="src\Compiler\Sema\Generic\SemaGeneric.Where.cpp"/>
         <ClCompile Include="src\Compiler\Sema\Generic\SemaGeneric.Resolve.cpp"/>
         <ClCompile Include="src\Compiler\Sema\Helpers\SemaHelpers.cpp"/>
+        <ClCompile Include="src\Compiler\Sema\Helpers\SemaHelpers.Runtime.cpp"/>
+        <ClCompile Include="src\Compiler\Sema\Helpers\SemaHelpers.Symbol.cpp"/>
+        <ClCompile Include="src\Compiler\Sema\Helpers\SemaHelpers.Type.cpp"/>
         <ClCompile Include="src\Compiler\Sema\Helpers\SemaJIT.cpp"/>
         <ClCompile Include="src\Compiler\Sema\Helpers\SemaSpecOp.Generated.cpp"/>
         <ClCompile Include="src\Compiler\Sema\Helpers\SemaSpecOp.cpp"/>

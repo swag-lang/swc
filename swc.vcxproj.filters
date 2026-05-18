@@ -930,6 +930,15 @@
     <ClCompile Include="src\Compiler\Sema\Helpers\SemaHelpers.cpp">
       <Filter>src\Compiler\Sema\Helpers</Filter>
     </ClCompile>
+    <ClCompile Include="src\Compiler\Sema\Helpers\SemaHelpers.Runtime.cpp">
+      <Filter>src\Compiler\Sema\Helpers</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Compiler\Sema\Helpers\SemaHelpers.Symbol.cpp">
+      <Filter>src\Compiler\Sema\Helpers</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Compiler\Sema\Helpers\SemaHelpers.Type.cpp">
+      <Filter>src\Compiler\Sema\Helpers</Filter>
+    </ClCompile>
     <ClCompile Include="src\Compiler\Sema\Helpers\SemaJIT.cpp">
       <Filter>src\Compiler\Sema\Helpers</Filter>
     </ClCompile>

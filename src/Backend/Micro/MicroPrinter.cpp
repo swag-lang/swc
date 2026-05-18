@@ -47,18 +47,18 @@ namespace
         return WIDTH;
     }
 
-    bool tryGetInstructionSourceLine(const TaskContext& ctx, const MicroBuilder* builder, MicroInstrRef instRef, CompilerInstance::ResolvedSourceCodeRef& outResolvedCodeRef)
+    bool tryGetInstructionSourceLine(const TaskContext& ctx, const MicroBuilder* builder, MicroInstrRef instRef, CompilerInstance::ResolvedSourceLocation& outResolvedLocation)
     {
-        outResolvedCodeRef = {};
+        outResolvedLocation = {};
         if (!builder || !builder->hasFlag(MicroBuilderFlagsE::DebugInfo))
             return false;
 
         const SourceCodeRef sourceCodeRef = builder->instructionSourceCodeRef(instRef);
         if (!sourceCodeRef.isValid())
             return false;
-        if (!ctx.compiler().tryResolveSourceCodeRef(ctx, outResolvedCodeRef, sourceCodeRef))
+        if (!ctx.compiler().tryResolveSourceLocation(ctx, outResolvedLocation, sourceCodeRef))
             return false;
-        if (!outResolvedCodeRef.codeRange.line)
+        if (!outResolvedLocation.codeRange.line)
             return false;
 
         return true;
@@ -1344,13 +1344,13 @@ namespace
 
     bool appendInstructionDebugInfo(Utf8& out, const TaskContext& ctx, const MicroBuilder* builder, MicroInstrRef instRef, uint32_t instructionIndexWidth, std::unordered_set<uint64_t>& seenDebugLines)
     {
-        CompilerInstance::ResolvedSourceCodeRef resolvedCodeRef;
-        if (!tryGetInstructionSourceLine(ctx, builder, instRef, resolvedCodeRef))
+        CompilerInstance::ResolvedSourceLocation resolvedLocation;
+        if (!tryGetInstructionSourceLine(ctx, builder, instRef, resolvedLocation))
             return false;
 
-        const uint32_t    sourceLine = resolvedCodeRef.codeRange.line;
-        const SourceView* srcView    = resolvedCodeRef.codeRange.srcView;
-        const uint64_t    fileKey    = resolvedCodeRef.sourceFile ? resolvedCodeRef.sourceFile->ref().get() : (srcView ? srcView->ref().get() : 0);
+        const uint32_t    sourceLine = resolvedLocation.codeRange.line;
+        const SourceView* srcView    = resolvedLocation.codeRange.srcView;
+        const uint64_t    fileKey    = resolvedLocation.sourceFile ? resolvedLocation.sourceFile->ref().get() : (srcView ? srcView->ref().get() : 0);
         const uint64_t    debugKey   = (fileKey << 32) | static_cast<uint64_t>(sourceLine);
         if (seenDebugLines.contains(debugKey))
             return false;

@@ -2039,13 +2039,30 @@ bool CompilerInstance::tryTokenCodeRange(const TaskContext& ctx, SourceCodeRange
     return outCodeRange.srcView != nullptr && outCodeRange.len != 0;
 }
 
-bool CompilerInstance::tryResolveSourceCodeRef(const TaskContext& ctx, ResolvedSourceCodeRef& outResolvedCodeRef, const SourceCodeRef& codeRef) const
+bool CompilerInstance::tryResolveSourceLocation(const TaskContext& ctx, ResolvedSourceLocation& outResolvedLocation, const SourceCodeRef& codeRef) const
 {
-    outResolvedCodeRef = {};
-    if (!tryTokenCodeRange(ctx, outResolvedCodeRef.codeRange, codeRef))
+    outResolvedLocation = {};
+    if (!tryTokenCodeRange(ctx, outResolvedLocation.codeRange, codeRef))
         return false;
 
-    outResolvedCodeRef.sourceFile = sourceViewFile(outResolvedCodeRef.codeRange.srcView->ref());
+    outResolvedLocation.sourceFile = sourceViewFile(outResolvedLocation.codeRange.srcView->ref());
+    return true;
+}
+
+bool CompilerInstance::tryResolveSourceLocation(const TaskContext& ctx, ResolvedSourceLocation& outResolvedLocation, const Runtime::SourceCodeLocation& location) const
+{
+    outResolvedLocation = {};
+
+    const std::string_view locationFileName = std::string_view{location.fileName.ptr, static_cast<size_t>(location.fileName.length)};
+    const SourceView*      srcView          = findSourceViewByFileName(locationFileName);
+    if (!srcView)
+        return false;
+
+    srcView->codeRangeFromRuntimeLocation(ctx, location, outResolvedLocation.codeRange);
+    if (!outResolvedLocation.codeRange.srcView || !outResolvedLocation.codeRange.len)
+        return false;
+
+    outResolvedLocation.sourceFile = sourceViewFile(srcView->ref());
     return true;
 }
 

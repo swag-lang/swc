@@ -2,6 +2,7 @@
 
 #if SWC_HAS_UNITTEST
 
+#include "Backend/Runtime.h"
 #include "Compiler/Parser/Ast/Ast.h"
 #include "Main/Command/Command.h"
 #include "Main/Command/CommandLine.h"
@@ -433,18 +434,40 @@ SWC_TEST_BEGIN(Compiler_GeneratedAstMaterializesPerThreadFiles)
             !tryFindTokenCodeRef(file->ast().srcView(), "GeneratedB", generatedCodeRef))
             continue;
 
-        CompilerInstance::ResolvedSourceCodeRef resolvedCodeRef;
-        if (!compiler.tryResolveSourceCodeRef(ctx, resolvedCodeRef, generatedCodeRef))
+        CompilerInstance::ResolvedSourceLocation resolvedLocation;
+        if (!compiler.tryResolveSourceLocation(ctx, resolvedLocation, generatedCodeRef))
             return Result::Error;
-        if (resolvedCodeRef.sourceFile != file)
+        if (resolvedLocation.sourceFile != file)
             return Result::Error;
-        if (resolvedCodeRef.sourceFile == originalFile)
+        if (resolvedLocation.sourceFile == originalFile)
             return Result::Error;
-        if (resolvedCodeRef.codeRange.srcView != &file->ast().srcView())
+        if (resolvedLocation.codeRange.srcView != &file->ast().srcView())
             return Result::Error;
-        if (!resolvedCodeRef.codeRange.line)
+        if (!resolvedLocation.codeRange.line)
             return Result::Error;
-        if (resolvedCodeRef.codeRange.line < 3)
+        if (resolvedLocation.codeRange.line < 3)
+            return Result::Error;
+
+        const std::string locationFileName = file->path().string();
+        const Runtime::SourceCodeLocation runtimeLocation = {
+            .fileName  = {.ptr = locationFileName.c_str(), .length = locationFileName.size()},
+            .funcName  = {.ptr = nullptr, .length = 0},
+            .lineStart = resolvedLocation.codeRange.line,
+            .colStart  = resolvedLocation.codeRange.column,
+            .lineEnd   = resolvedLocation.codeRange.line,
+            .colEnd    = resolvedLocation.codeRange.column + resolvedLocation.codeRange.len,
+        };
+
+        CompilerInstance::ResolvedSourceLocation resolvedRuntimeLocation;
+        if (!compiler.tryResolveSourceLocation(ctx, resolvedRuntimeLocation, runtimeLocation))
+            return Result::Error;
+        if (resolvedRuntimeLocation.sourceFile != file)
+            return Result::Error;
+        if (resolvedRuntimeLocation.codeRange.srcView != &file->ast().srcView())
+            return Result::Error;
+        if (resolvedRuntimeLocation.codeRange.line != resolvedLocation.codeRange.line)
+            return Result::Error;
+        if (resolvedRuntimeLocation.codeRange.column != resolvedLocation.codeRange.column)
             return Result::Error;
 
         ++resolvedGeneratedFiles;

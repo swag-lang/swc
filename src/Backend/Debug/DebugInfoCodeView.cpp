@@ -510,13 +510,13 @@ namespace
             if (!range.sourceCodeRef.isValid())
                 continue;
 
-            CompilerInstance::ResolvedSourceCodeRef resolvedCodeRef;
-            if (!ctx.compiler().tryResolveSourceCodeRef(ctx, resolvedCodeRef, range.sourceCodeRef) || !resolvedCodeRef.codeRange.line)
+            CompilerInstance::ResolvedSourceLocation resolvedLocation;
+            if (!ctx.compiler().tryResolveSourceLocation(ctx, resolvedLocation, range.sourceCodeRef) || !resolvedLocation.codeRange.line)
                 continue;
-            if (!resolvedCodeRef.sourceFile)
+            if (!resolvedLocation.sourceFile)
                 continue;
 
-            const auto codeViewFileName = codeViewPathString(resolvedCodeRef.sourceFile->path());
+            const auto codeViewFileName = codeViewPathString(resolvedLocation.sourceFile->path());
 
             size_t     blockIndex = 0;
             const auto blockIt    = blockIndices.find(codeViewFileName);
@@ -532,7 +532,7 @@ namespace
             }
 
             auto&          entries = result.blocks[blockIndex].entries;
-            const uint32_t line    = std::min<uint32_t>(resolvedCodeRef.codeRange.line, 0x00FFFFFFu);
+            const uint32_t line    = std::min<uint32_t>(resolvedLocation.codeRange.line, 0x00FFFFFFu);
             if (!entries.empty() && entries.back().line == line)
                 continue;
 

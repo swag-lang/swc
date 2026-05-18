@@ -326,6 +326,7 @@
         <ClCompile Include="src\Main\CompilerInstance.Message.cpp"/>
         <ClCompile Include="src\Main\ExternalModuleManager.cpp"/>
         <ClCompile Include="src\Main\ModuleApi.cpp"/>
+        <ClCompile Include="src\Main\ModuleApi.Symbol.cpp"/>
         <ClCompile Include="src\Main\Stats.cpp"/>
         <ClCompile Include="src\Main\StructConfig.cpp"/>
         <ClCompile Include="src\Main\TakeContext.cpp"/>
@@ -577,6 +578,7 @@
         <ClInclude Include="src\Main\CompilerInstance.h"/>
         <ClInclude Include="src\Main\ExternalModuleManager.h"/>
         <ClInclude Include="src\Main\ModuleApi.h"/>
+        <ClInclude Include="src\Main\ModuleApi.Priv.h"/>
         <ClInclude Include="src\Main\Version.h"/>
         <ClInclude Include="src\Support\Math\ApFloat.h"/>
         <ClInclude Include="src\Support\Math\ApInt.h"/>

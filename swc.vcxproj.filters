@@ -627,6 +627,9 @@
     <ClCompile Include="src\Main\ModuleApi.cpp">
       <Filter>src\Main</Filter>
     </ClCompile>
+    <ClCompile Include="src\Main\ModuleApi.Symbol.cpp">
+      <Filter>src\Main</Filter>
+    </ClCompile>
     <ClCompile Include="src\Main\Stats.cpp">
       <Filter>src\Main</Filter>
     </ClCompile>
@@ -1317,6 +1320,9 @@
       <Filter>src\Main</Filter>
     </ClInclude>
     <ClInclude Include="src\Main\ModuleApi.h">
+      <Filter>src\Main</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Main\ModuleApi.Priv.h">
       <Filter>src\Main</Filter>
     </ClInclude>
     <ClInclude Include="src\Main\Version.h">

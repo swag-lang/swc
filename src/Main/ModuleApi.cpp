@@ -1,5 +1,5 @@
 #include "pch.h"
-#include "Main/ModuleApi.h"
+#include "Main/ModuleApi.Priv.h"
 #include "Backend/RuntimeName.h"
 #include "Compiler/Lexer/Lexer.h"
 #include "Compiler/Lexer/SourceView.h"
@@ -181,18 +181,6 @@ namespace
             mergeFileEntry(outEntries[srcViewRef], threadEntry);
     }
 
-    void recordPublicEntry(ModuleApiPerThreadData& state, const SourceViewRef srcViewRef, const ModuleApiPublicEntry& publicEntry)
-    {
-        if (!srcViewRef.isValid() || publicEntry.rootRef.isInvalid())
-            return;
-
-        ModuleApiFileEntry& entry = state.files[srcViewRef];
-        const auto          it    = std::ranges::find_if(entry.publicEntries, [&](const ModuleApiPublicEntry& candidate) { return samePublicEntry(candidate, publicEntry); });
-        if (it == entry.publicEntries.end())
-            entry.publicEntries.push_back(publicEntry);
-        else if (!it->symbol)
-            it->symbol = publicEntry.symbol;
-    }
 
     bool isLegacyExportedFile(const SourceFile& file)
     {
@@ -1677,6 +1665,10 @@ namespace
         return false;
     }
 
+}
+
+namespace ModuleApi
+{
     bool tryFindNodeRef(const Ast& ast, const AstNode* targetNode, AstNodeRef& outNodeRef)
     {
         outNodeRef = AstNodeRef::invalid();
@@ -1772,7 +1764,10 @@ namespace
 
         return true;
     }
+}
 
+namespace
+{
     AstNodeRef findEnclosingImplRef(const SourceFile& file, const AstNodeRef declRef)
     {
         const AstNodeRef rootRef = file.ast().root();
@@ -1848,12 +1843,18 @@ namespace
 
         return symMap;
     }
+}
 
+namespace ModuleApi
+{
     bool extractPublicNamespacePath(const Symbol& symbol, std::vector<IdentifierRef>& outNamespacePath)
     {
         return extractNamespacePathFromOwner(namespaceOwnerSymMapForPublicSymbol(symbol), outNamespacePath);
     }
+}
 
+namespace
+{
     uint32_t moduleApiRootSortByte(const SourceFile& file, const AstNodeRef nodeRef)
     {
         constexpr uint32_t moduleApiInvalidByte = 0xFFFFFFFFu;
@@ -2343,50 +2344,6 @@ namespace
 
 namespace ModuleApi
 {
-    void onSymbolSemaCompleted(ModuleApiPerThreadData& state, TaskContext& ctx, const Symbol& symbol)
-    {
-        if (!symbol.isPublic())
-            return;
-
-        const SourceFile* sourceFile = ctx.compiler().sourceViewFile(symbol);
-        if (!sourceFile || !sourceFile->hasFlag(FileFlagsE::ModuleSrc) || sourceFile->isImportedApi())
-            return;
-        if (!symbol.decl())
-            return;
-        if (symbol.isFunction() && symbol.decl()->isNot(AstNodeId::FunctionDecl))
-            return;
-        if (symbol.isImpl())
-            return;
-
-        AstNodeRef declRef;
-        if (!tryFindNodeRef(sourceFile->ast(), symbol.decl(), declRef))
-            return;
-        if (!isExportedPublicDeclScope(*sourceFile, declRef, symbol))
-            return;
-
-        if (symbol.isVariable())
-        {
-            if (hasExplicitPublicAccessModifier(*sourceFile, declRef))
-                reportModuleApiPublicGlobalVariable(ctx, symbol);
-            return;
-        }
-
-        ModuleApiPublicEntry publicEntry;
-        publicEntry.rootRef = findExportDeclRoot(*sourceFile, declRef);
-        publicEntry.symbol  = &symbol;
-        if (publicEntry.rootRef.isInvalid())
-            return;
-
-        if (!extractPublicNamespacePath(symbol, publicEntry.namespacePath))
-            return;
-
-        const AstNodeRef rootRef = publicEntry.rootRef;
-        if (rootRef.isInvalid())
-            return;
-
-        recordPublicEntry(state, symbol.srcViewRef(), publicEntry);
-    }
-
     Result exportFiles(TaskContext& ctx)
     {
         CompilerInstance& compiler     = ctx.compiler();

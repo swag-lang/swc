@@ -7,7 +7,6 @@
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.h"
-#include "Main/CompilerInstance.h"
 #include "Main/Global.h"
 #include "Main/TaskContext.h"
 #include "Support/Core/Utf8Helper.h"
@@ -47,16 +46,10 @@ namespace
         return WIDTH;
     }
 
-    bool tryGetInstructionSourceLine(const TaskContext& ctx, const MicroBuilder* builder, MicroInstrRef instRef, CompilerInstance::ResolvedSourceLocation& outResolvedLocation)
+    bool tryGetInstructionSourceLine(const TaskContext& ctx, const MicroInstr& instruction, ResolvedDebugSourceInfo& outResolvedLocation)
     {
         outResolvedLocation = {};
-        if (!builder || !builder->hasFlag(MicroBuilderFlagsE::DebugInfo))
-            return false;
-
-        const DebugSourceInfo debugSourceInfo = builder->instructionDebugSourceInfo(instRef);
-        if (!debugSourceInfo.isValid())
-            return false;
-        if (!ctx.compiler().tryResolveSourceLocation(ctx, outResolvedLocation, debugSourceInfo.sourceCodeRef))
+        if (!tryResolveDebugSourceInfo(ctx, outResolvedLocation, instruction.debugSourceInfo))
             return false;
         if (!outResolvedLocation.codeRange.line)
             return false;
@@ -1342,10 +1335,10 @@ namespace
         appendColored(out, ctx, SyntaxColor::Comment, std::format("// reloc = {} = {}", relocationKindName(*relocation), relocationTargetDebugValue(ctx, *relocation)));
     }
 
-    bool appendInstructionDebugInfo(Utf8& out, const TaskContext& ctx, const MicroBuilder* builder, MicroInstrRef instRef, uint32_t instructionIndexWidth, std::unordered_set<uint64_t>& seenDebugLines)
+    bool appendInstructionDebugInfo(Utf8& out, const TaskContext& ctx, const MicroInstr& inst, uint32_t instructionIndexWidth, std::unordered_set<uint64_t>& seenDebugLines)
     {
-        CompilerInstance::ResolvedSourceLocation resolvedLocation;
-        if (!tryGetInstructionSourceLine(ctx, builder, instRef, resolvedLocation))
+        ResolvedDebugSourceInfo resolvedLocation;
+        if (!tryGetInstructionSourceLine(ctx, inst, resolvedLocation))
             return false;
 
         const uint32_t    sourceLine = resolvedLocation.codeRange.line;
@@ -1402,13 +1395,10 @@ Utf8 MicroPrinter::format(const TaskContext& ctx, const MicroStorage& instructio
         const MicroLabelRef      labelRef(static_cast<uint32_t>(ops[0].valueU64));
         labelInstructionIndexByRef[labelRef] = it.current;
     }
-    if (builder)
+    for (auto it = view.begin(); it != view.end(); ++it)
     {
-        for (auto it = view.begin(); it != view.end(); ++it)
-        {
-            if (appendInstructionDebugInfo(out, ctx, builder, it.current, indexWidth, seenDebugLines))
-                break;
-        }
+        if (appendInstructionDebugInfo(out, ctx, *it, indexWidth, seenDebugLines))
+            break;
     }
 
     uint32_t printedIndex = 0;
@@ -1418,7 +1408,7 @@ Utf8 MicroPrinter::format(const TaskContext& ctx, const MicroStorage& instructio
         const MicroInstrRef      instRef = it.current;
         const MicroInstr&        inst    = *it;
         const MicroInstrOperand* ops     = inst.numOperands ? inst.ops(storeOps) : nullptr;
-        appendInstructionDebugInfo(out, ctx, builder, instRef, indexWidth, seenDebugLines);
+        appendInstructionDebugInfo(out, ctx, inst, indexWidth, seenDebugLines);
         const auto             relocIt               = relocationByInstructionRef.find(instRef);
         const MicroRelocation* instructionRelocation = relocIt != relocationByInstructionRef.end() ? relocIt->second : nullptr;
         const bool             hasInlineRelocation   = instructionRelocation != nullptr &&

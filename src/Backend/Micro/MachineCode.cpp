@@ -22,16 +22,10 @@ const MachineCode::DebugSourceRange* MachineCode::findDebugSourceRangeAtOffset(c
 bool MachineCode::tryResolveDebugSourceRange(const TaskContext& ctx, ResolvedDebugSourceRange& outResolvedRange, const DebugSourceRange& range) const
 {
     outResolvedRange = {};
-    if (!range.debugSourceInfo.isValid())
-        return false;
-
-    CompilerInstance::ResolvedSourceLocation resolvedLocation;
-    if (!ctx.compiler().tryResolveSourceLocation(ctx, resolvedLocation, range.debugSourceInfo.sourceCodeRef))
+    if (!tryResolveDebugSourceInfo(ctx, outResolvedRange.source, range.debugSourceInfo))
         return false;
 
     outResolvedRange.debugRange = &range;
-    outResolvedRange.codeRange  = resolvedLocation.codeRange;
-    outResolvedRange.sourceFile = resolvedLocation.sourceFile;
     return true;
 }
 

@@ -505,16 +505,16 @@ namespace
 
         for (const auto& range : code.debugSourceRanges)
         {
-            if (range.debugSourceInfo.debugNoStep)
+            if (!range.debugSourceInfo.isStepVisible())
                 continue;
 
             MachineCode::ResolvedDebugSourceRange resolvedRange;
-            if (!code.tryResolveDebugSourceRange(ctx, resolvedRange, range) || !resolvedRange.codeRange.line)
+            if (!code.tryResolveDebugSourceRange(ctx, resolvedRange, range) || !resolvedRange.source.codeRange.line)
                 continue;
-            if (!resolvedRange.sourceFile)
+            if (!resolvedRange.source.sourceFile)
                 continue;
 
-            const auto codeViewFileName = codeViewPathString(resolvedRange.sourceFile->path());
+            const auto codeViewFileName = codeViewPathString(resolvedRange.source.sourceFile->path());
 
             size_t     blockIndex = 0;
             const auto blockIt    = blockIndices.find(codeViewFileName);
@@ -530,7 +530,7 @@ namespace
             }
 
             auto&          entries = result.blocks[blockIndex].entries;
-            const uint32_t line    = std::min<uint32_t>(resolvedRange.codeRange.line, 0x00FFFFFFu);
+            const uint32_t line    = std::min<uint32_t>(resolvedRange.source.codeRange.line, 0x00FFFFFFu);
             if (!entries.empty() && entries.back().line == line)
                 continue;
 

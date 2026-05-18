@@ -821,6 +821,63 @@ SWC_TEST_BEGIN(DebugInfo_SkipsNoStepLineEntries)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(DebugInfo_ResolvesNoStepBackendSourceInfo)
+{
+    SourceFile& sourceFile = Unittest::addTestSource(ctx, "DebugInfo", "ResolvesNoStepBackendSourceInfo", "alpha\n");
+    SWC_RESULT(sourceFile.loadContent(ctx));
+
+    Lexer lexer;
+    lexer.tokenize(ctx, sourceFile.ast().srcView(), LexerFlagsE::Default);
+
+    const SourceView& srcView = sourceFile.ast().srcView();
+    TokenRef          tokenRef;
+    for (uint32_t i = 0; i < srcView.tokens().size(); ++i)
+    {
+        const TokenRef        candidate(i);
+        const SourceCodeRange codeRange = srcView.tokenCodeRange(ctx, candidate);
+        if (!codeRange.line)
+            continue;
+
+        tokenRef = candidate;
+        break;
+    }
+
+    if (!tokenRef.isValid())
+        return Result::Error;
+
+    const DebugSourceInfo debugSourceInfo = {
+        .sourceCodeRef = {.srcViewRef = srcView.ref(), .tokRef = tokenRef},
+        .debugNoStep   = true,
+    };
+
+    ResolvedDebugSourceInfo resolvedInfo;
+    if (!tryResolveDebugSourceInfo(ctx, resolvedInfo, debugSourceInfo))
+        return Result::Error;
+    if (resolvedInfo.sourceFile != &sourceFile)
+        return Result::Error;
+    if (resolvedInfo.codeRange.line != 1)
+        return Result::Error;
+
+    MachineCode code;
+    code.bytes = {std::byte{0x90}};
+    code.debugSourceRanges.push_back({
+        .codeStartOffset = 0,
+        .codeEndOffset   = 1,
+        .debugSourceInfo = debugSourceInfo,
+    });
+
+    MachineCode::ResolvedDebugSourceRange resolvedRange;
+    if (!code.tryResolveDebugSourceRangeAtOffset(ctx, resolvedRange, 0))
+        return Result::Error;
+    if (resolvedRange.debugRange != &code.debugSourceRanges.front())
+        return Result::Error;
+    if (resolvedRange.source.sourceFile != &sourceFile)
+        return Result::Error;
+    if (resolvedRange.source.codeRange.line != 1)
+        return Result::Error;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(DebugInfo_CompilerTestFunctionsPreserveStackDebugMetadata)
 {
     static constexpr std::string_view SOURCE     = R"(#test

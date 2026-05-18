@@ -11,6 +11,7 @@
 SWC_BEGIN_NAMESPACE();
 
 class TaskContext;
+class SourceFile;
 struct MicroInstr;
 struct MicroInstrOperand;
 struct MicroInstrUseDef;
@@ -51,6 +52,7 @@ struct DebugSourceInfo
     bool          debugNoStep   = false;
 
     bool isValid() const { return sourceCodeRef.isValid(); }
+    bool isStepVisible() const { return isValid() && !debugNoStep; }
 
     bool sameAs(const DebugSourceInfo& other) const
     {
@@ -66,6 +68,14 @@ struct EncoderDebugSourceRange
     uint32_t        codeEndOffset   = 0;
     DebugSourceInfo debugSourceInfo;
 };
+
+struct ResolvedDebugSourceInfo
+{
+    SourceCodeRange   codeRange;
+    const SourceFile* sourceFile = nullptr;
+};
+
+bool tryResolveDebugSourceInfo(const TaskContext& ctx, ResolvedDebugSourceInfo& outResolvedInfo, const DebugSourceInfo& debugSourceInfo);
 
 class Encoder
 {

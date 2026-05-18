@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Backend/Encoder/Encoder.h"
+#include "Main/CompilerInstance.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -19,6 +20,21 @@ uint8_t Encoder::byteAt(uint32_t index) const
 void Encoder::copyTo(ByteSpanRW dst) const
 {
     store_.copyTo(dst);
+}
+
+bool tryResolveDebugSourceInfo(const TaskContext& ctx, ResolvedDebugSourceInfo& outResolvedInfo, const DebugSourceInfo& debugSourceInfo)
+{
+    outResolvedInfo = {};
+    if (!debugSourceInfo.isValid())
+        return false;
+
+    CompilerInstance::ResolvedSourceLocation resolvedLocation;
+    if (!ctx.compiler().tryResolveSourceLocation(ctx, resolvedLocation, debugSourceInfo.sourceCodeRef))
+        return false;
+
+    outResolvedInfo.codeRange  = resolvedLocation.codeRange;
+    outResolvedInfo.sourceFile = resolvedLocation.sourceFile;
+    return true;
 }
 
 void Encoder::addDebugSourceRange(const uint32_t codeStartOffset, const uint32_t codeEndOffset, const DebugSourceInfo& debugSourceInfo)

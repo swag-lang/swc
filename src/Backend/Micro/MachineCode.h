@@ -14,8 +14,7 @@ struct MachineCode
     struct ResolvedDebugSourceRange
     {
         const DebugSourceRange* debugRange = nullptr;
-        SourceCodeRange         codeRange;
-        const SourceFile*       sourceFile = nullptr;
+        ResolvedDebugSourceInfo source;
     };
 
     std::vector<std::byte>        bytes;

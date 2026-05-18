@@ -1410,8 +1410,8 @@ namespace
         MachineCode::ResolvedDebugSourceRange sourceMatch;
         if (tryResolveJitCrashSourceMatch(ctx, functionMatch, sourceMatch))
         {
-            if (sourceMatch.sourceFile)
-                out += std::format("jit source: {}:{}:{}\n", sourceMatch.sourceFile->path().string(), sourceMatch.codeRange.line, sourceMatch.codeRange.column);
+            if (sourceMatch.source.sourceFile)
+                out += std::format("jit source: {}:{}:{}\n", sourceMatch.source.sourceFile->path().string(), sourceMatch.source.codeRange.line, sourceMatch.source.codeRange.column);
             SWC_ASSERT(sourceMatch.debugRange != nullptr);
             out += std::format("jit source span: [0x{:X}, 0x{:X})\n", sourceMatch.debugRange->codeStartOffset, sourceMatch.debugRange->codeEndOffset);
         }

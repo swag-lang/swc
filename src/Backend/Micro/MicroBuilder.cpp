@@ -99,18 +99,6 @@ void MicroBuilder::setCurrentDebugNoStep(const bool value)
     currentDebugSourceInfo_.debugNoStep = value;
 }
 
-DebugSourceInfo MicroBuilder::instructionDebugSourceInfo(MicroInstrRef instructionRef) const
-{
-    if (!hasFlag(MicroBuilderFlagsE::DebugInfo))
-        return {};
-
-    const MicroInstr* inst = instructions_.ptr(instructionRef);
-    if (!inst)
-        return {};
-
-    return inst->debugSourceInfo;
-}
-
 void MicroBuilder::addRelocation(const MicroRelocation& relocation)
 {
     SWC_ASSERT((relocation.constantShard == INVALID_REF) == (relocation.constantOffset == INVALID_REF));

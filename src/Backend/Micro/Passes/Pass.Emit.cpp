@@ -23,8 +23,8 @@
 //   2. Branch patching. Now that every Label has a concrete offset, walk the
 //      pending jump list and patch each placeholder displacement.
 //
-// Debug info source ranges are attached during stage 1 only when the builder
-// requested DebugInfo.
+// Debug info source ranges are attached during stage 1 whenever an instruction
+// carries valid debug metadata.
 
 SWC_BEGIN_NAMESPACE();
 
@@ -48,7 +48,6 @@ void MicroEmitPass::encodeInstruction(const MicroPassContext& context, MicroInst
     auto&                    encoder                    = *(context.encoder);
     const MicroInstrOperand* ops                        = inst.ops(*context.operands);
     const uint32_t           instructionCodeStartOffset = encoder.size();
-    const bool               emitDebugInfo              = context.builder && context.builder->hasFlag(MicroBuilderFlagsE::DebugInfo);
     switch (inst.op)
     {
         case MicroInstrOpcode::End:
@@ -228,9 +227,7 @@ void MicroEmitPass::encodeInstruction(const MicroPassContext& context, MicroInst
     }
 
     encoder.onInstructionEncoded(inst, ops, instructionCodeStartOffset, encoder.size());
-
-    if (emitDebugInfo)
-        encoder.addDebugSourceRange(instructionCodeStartOffset, encoder.size(), inst.debugSourceInfo);
+    encoder.addDebugSourceRange(instructionCodeStartOffset, encoder.size(), inst.debugSourceInfo);
 }
 
 Result MicroEmitPass::run(MicroPassContext& context)

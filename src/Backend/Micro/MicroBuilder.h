@@ -81,7 +81,6 @@ public:
     void                                                       setCurrentDebugSourceCodeRef(const SourceCodeRef& sourceCodeRef);
     void                                                       setCurrentDebugNoStep(bool value);
     bool                                                       currentDebugNoStep() const { return currentDebugSourceInfo_.debugNoStep; }
-    DebugSourceInfo                                            instructionDebugSourceInfo(MicroInstrRef instructionRef) const;
     void                                                       setPrintPassOptions(std::span<const Utf8> options) { printPassOptions_.assign(options.begin(), options.end()); }
     void                                                       setBackendBuildCfg(const Runtime::BuildCfgBackend& value) { backendBuildCfg_ = value; }
     const Runtime::BuildCfgBackend&                            backendBuildCfg() const { return backendBuildCfg_; }

@@ -10,6 +10,8 @@
 
 SWC_BEGIN_NAMESPACE();
 
+struct MicroRelocation;
+
 inline constexpr auto K_R_DATA_BASE_SYMBOL = "__swc_rdata_base";
 inline constexpr auto K_DATA_BASE_SYMBOL   = "__swc_data_base";
 inline constexpr auto K_BSS_BASE_SYMBOL    = "__swc_bss_base";
@@ -31,6 +33,14 @@ inline Utf8 nativeArtifactScopeName(const CompilerInstance& compiler)
 inline Utf8 nativeScopedSectionBaseSymbol(const CompilerInstance& compiler, std::string_view baseName)
 {
     return std::format("{}_{:08x}", baseName, Math::hash(nativeArtifactScopeName(compiler).view()));
+}
+
+inline Utf8 unresolvedFunctionSymbolName(const TaskContext& ctx, const SymbolFunction& function)
+{
+    Utf8 key = function.getFullScopedName(ctx);
+    key += "|";
+    key += std::to_string(function.tokRef().get());
+    return std::format("__swc_ext_fn_{:08x}", Math::hash(key.view()));
 }
 
 enum class NativeObjectFormat : uint8_t
@@ -119,6 +129,10 @@ public:
     const TaskContext&      ctx() const;
     CompilerInstance&       compiler();
     const CompilerInstance& compiler() const;
+    bool                    tryResolveConstantSourceRef(DataSegmentRef& outSourceRef, const MicroRelocation& relocation) const noexcept;
+    Result                  resolveConstantSourceRef(DataSegmentRef& outSourceRef, const Utf8& ownerName, const MicroRelocation& relocation);
+    const NativeFunctionInfo* tryFindFunctionInfo(const SymbolFunction& targetFunction) const noexcept;
+    Result                  resolveFunctionSymbolName(Utf8& outName, const SymbolFunction* targetFunction, bool allowUnresolvedSymbols = false);
     bool                    tryMapRDataSourceOffset(uint32_t& outOffset, uint32_t shardIndex, uint32_t sourceOffset) const noexcept;
     uint32_t                expectedTestFunctionCount() const;
     DiagnosticId            lastErrorId() const { return lastErrorId_; }

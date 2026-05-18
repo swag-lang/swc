@@ -115,7 +115,7 @@ void NativeValidate::validateRelocations(const SymbolFunction& owner, const Mach
             {
                 const auto* target = relocation.targetSymbol ? relocation.targetSymbol->safeCast<SymbolFunction>() : nullptr;
                 SWC_ASSERT(target != nullptr);
-                SWC_ASSERT(builder_->functionBySymbol.contains(target));
+                SWC_ASSERT(builder_->tryFindFunctionInfo(*target) != nullptr);
                 break;
             }
 
@@ -156,7 +156,7 @@ void NativeValidate::validateConstantRelocation(const MicroRelocation& relocatio
     if (!relocation.hasConstantSource())
     {
         DataSegmentRef sourceRef;
-        const bool     hasSourceRef = builder_->compiler().cstMgr().resolveConstantDataSegmentRef(sourceRef, relocation.constantRef, reinterpret_cast<const void*>(relocation.targetAddress));
+        const bool     hasSourceRef = builder_->tryResolveConstantSourceRef(sourceRef, relocation);
         SWC_ASSERT(hasSourceRef);
         if (!hasSourceRef)
             return;
@@ -461,7 +461,7 @@ void NativeValidate::validateNativeStaticPayload(const TypeRef typeRef, const ui
         SWC_ASSERT(findFunctionSymbolRelocation(targetFunction, shardIndex, baseOffset));
         SWC_ASSERT(targetFunction != nullptr);
         if (!targetFunction->isForeign())
-            SWC_ASSERT(builder_->functionBySymbol.contains(targetFunction));
+            SWC_ASSERT(builder_->tryFindFunctionInfo(*targetFunction) != nullptr);
         return;
     }
 

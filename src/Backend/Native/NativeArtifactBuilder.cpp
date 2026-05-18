@@ -2,7 +2,6 @@
 #include "Backend/Native/NativeArtifactBuilder.h"
 #include "Backend/ABI/ABICall.h"
 #include "Backend/Native/NativeRDataCollector.h"
-#include "Backend/Native/SymbolSort.h"
 #include "Backend/Runtime.h"
 #include "Compiler/Parser/Ast/Ast.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
@@ -188,18 +187,6 @@ namespace
 
         result.line = codeRange.line;
         return result;
-    }
-
-    const NativeFunctionInfo* findFunctionInfoByLocation(const NativeBackendBuilder& builder, const SymbolFunction& targetFunction)
-    {
-        const Utf8 sortKey = SymbolSort::locationKey(builder.compiler(), targetFunction);
-        for (const NativeFunctionInfo& info : builder.functionInfos)
-        {
-            if (info.sortKey == sortKey)
-                return &info;
-        }
-
-        return nullptr;
     }
 }
 
@@ -514,33 +501,6 @@ Result NativeArtifactBuilder::createBuildDir(const fs::path& buildDir) const
     return Result::Continue;
 }
 
-Result NativeArtifactBuilder::resolveFunctionRelocationName(Utf8& outName, const SymbolFunction* targetFunction) const
-{
-    SWC_ASSERT(targetFunction != nullptr);
-    if (!targetFunction)
-        return builder_->reportError(DiagnosticId::cmd_err_native_invalid_local_function_relocation, Diagnostic::ARG_SYM, Utf8("<null>"));
-
-    if (targetFunction->isForeign())
-    {
-        outName = targetFunction->resolveForeignFunctionName(builder_->ctx());
-        return Result::Continue;
-    }
-
-    const auto it = builder_->functionBySymbol.find(targetFunction);
-    if (it != builder_->functionBySymbol.end())
-    {
-        outName = it->second->symbolName;
-        return Result::Continue;
-    }
-
-    const NativeFunctionInfo* fallback = findFunctionInfoByLocation(*builder_, *targetFunction);
-    if (!fallback)
-        return builder_->reportError(DiagnosticId::cmd_err_native_invalid_local_function_relocation, Diagnostic::ARG_SYM, targetFunction->getFullScopedName(builder_->ctx()));
-
-    outName = fallback->symbolName;
-    return Result::Continue;
-}
-
 Result NativeArtifactBuilder::prepareDataSections() const
 {
     resetDataSections();
@@ -619,7 +579,7 @@ Result NativeArtifactBuilder::prepareDataSectionsWithoutStartup(NativeRDataColle
             else
             {
                 SWC_ASSERT(relocation.kind == DataSegmentRelocationKind::FunctionSymbol);
-                SWC_RESULT(resolveFunctionRelocationName(record.symbolName, relocation.targetSymbol));
+                SWC_RESULT(builder_->resolveFunctionSymbolName(record.symbolName, relocation.targetSymbol));
                 record.addend = 0;
             }
 
@@ -644,7 +604,7 @@ Result NativeArtifactBuilder::prepareDataSectionsWithoutStartup(NativeRDataColle
 
             NativeSectionRelocation record;
             record.offset = symbol->offset();
-            SWC_RESULT(resolveFunctionRelocationName(record.symbolName, targetFunction));
+            SWC_RESULT(builder_->resolveFunctionSymbolName(record.symbolName, targetFunction));
             record.addend = 0;
             builder_->mergedData.relocations.push_back(record);
         }

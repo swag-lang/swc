@@ -20,14 +20,6 @@ namespace
         std::vector<DebugInfoConstantRecord> constants;
     };
 
-    Utf8 unresolvedFunctionSymbolName(const TaskContext& ctx, const SymbolFunction& function)
-    {
-        Utf8 key = function.getFullScopedName(ctx);
-        key += "|";
-        key += std::to_string(function.tokRef().get());
-        return std::format("__swc_ext_fn_{:08x}", Math::hash(key.view()));
-    }
-
     Utf8 debugDataSymbolName(const TaskContext& ctx, const SymbolVariable& symbol)
     {
         Utf8 key = symbol.getFullScopedName(ctx);
@@ -345,32 +337,11 @@ Result NativeObjFileWriterCoff::appendSingleCodeRelocation(const uint32_t functi
     switch (relocation.kind)
     {
         case MicroRelocation::Kind::LocalFunctionAddress:
-        {
-            const auto* target = relocation.targetSymbol ? relocation.targetSymbol->safeCast<SymbolFunction>() : nullptr;
-            SWC_ASSERT(target != nullptr);
-            const auto it = builder_->functionBySymbol.find(target);
-            if (it != builder_->functionBySymbol.end())
-            {
-                record.symbolName = it->second->symbolName;
-            }
-            else if (allowUnresolvedSymbols && target)
-            {
-                record.symbolName = unresolvedFunctionSymbolName(builder_->ctx(), *target);
-            }
-            else
-            {
-                SWC_UNREACHABLE();
-            }
-            record.addend = 0;
-            writeU64(textSection.data.bytes, patchOffset, 0);
-            break;
-        }
-
         case MicroRelocation::Kind::ForeignFunctionAddress:
         {
             const auto* target = relocation.targetSymbol ? relocation.targetSymbol->safeCast<SymbolFunction>() : nullptr;
             SWC_ASSERT(target != nullptr);
-            record.symbolName = target->resolveForeignFunctionName(builder_->ctx());
+            SWC_RESULT(builder_->resolveFunctionSymbolName(record.symbolName, target, allowUnresolvedSymbols));
             record.addend     = 0;
             writeU64(textSection.data.bytes, patchOffset, 0);
             break;
@@ -378,26 +349,10 @@ Result NativeObjFileWriterCoff::appendSingleCodeRelocation(const uint32_t functi
 
         case MicroRelocation::Kind::ConstantAddress:
         {
-            uint32_t shardIndex = relocation.constantShard;
-            Ref      ref        = relocation.constantOffset;
-            if (!relocation.hasConstantSource())
-            {
-                DataSegmentRef sourceRef;
-                if (builder_->compiler().cstMgr().resolveConstantDataSegmentRef(sourceRef, relocation.constantRef, reinterpret_cast<const void*>(relocation.targetAddress)))
-                {
-                    shardIndex = sourceRef.shardIndex;
-                    ref        = sourceRef.offset;
-                }
-                else
-                {
-                    ref = INVALID_REF;
-                }
-            }
-            if (ref == INVALID_REF || shardIndex >= ConstantManager::SHARD_COUNT)
-                return builder_->reportError(DiagnosticId::cmd_err_native_constant_storage_unsupported, Diagnostic::ARG_SYM, ownerName);
-
+            DataSegmentRef sourceRef;
+            SWC_RESULT(builder_->resolveConstantSourceRef(sourceRef, ownerName, relocation));
             uint32_t mappedOffset = 0;
-            if (!builder_->tryMapRDataSourceOffset(mappedOffset, shardIndex, ref))
+            if (!builder_->tryMapRDataSourceOffset(mappedOffset, sourceRef.shardIndex, sourceRef.offset))
                 return builder_->reportError(DiagnosticId::cmd_err_native_constant_payload_unsupported, Diagnostic::ARG_SYM, ownerName);
 
             record.symbolName = nativeScopedSectionBaseSymbol(builder_->compiler(), K_R_DATA_BASE_SYMBOL);

@@ -259,20 +259,8 @@ namespace
                     continue;
 
                 DataSegmentRef sourceRef;
-                if (relocation.hasConstantSource())
-                {
-                    if (relocation.constantShard >= ConstantManager::SHARD_COUNT)
-                        continue;
-
-                    sourceRef = {
-                        .shardIndex = relocation.constantShard,
-                        .offset     = relocation.constantOffset,
-                    };
-                }
-                else if (!builder.compiler().cstMgr().resolveConstantDataSegmentRef(sourceRef, relocation.constantRef, reinterpret_cast<const void*>(relocation.targetAddress)))
-                {
+                if (!builder.tryResolveConstantSourceRef(sourceRef, relocation))
                     continue;
-                }
 
                 changed = appendConstantFunctionDependenciesRec(builder, functions, seenFunctions, visitedAllocations, sourceRef.shardIndex, sourceRef.offset) || changed;
             }
@@ -411,6 +399,79 @@ const CompilerInstance& NativeBackendBuilder::compiler() const
 {
     SWC_ASSERT(compiler_ != nullptr);
     return *compiler_;
+}
+
+bool NativeBackendBuilder::tryResolveConstantSourceRef(DataSegmentRef& outSourceRef, const MicroRelocation& relocation) const noexcept
+{
+    outSourceRef = {};
+    SWC_ASSERT(relocation.kind == MicroRelocation::Kind::ConstantAddress);
+    if (relocation.hasConstantSource())
+    {
+        if (relocation.constantShard >= ConstantManager::SHARD_COUNT)
+            return false;
+
+        outSourceRef = {
+            .shardIndex = relocation.constantShard,
+            .offset     = relocation.constantOffset,
+        };
+        return true;
+    }
+
+    return compiler().cstMgr().resolveConstantDataSegmentRef(outSourceRef, relocation.constantRef, reinterpret_cast<const void*>(relocation.targetAddress));
+}
+
+Result NativeBackendBuilder::resolveConstantSourceRef(DataSegmentRef& outSourceRef, const Utf8& ownerName, const MicroRelocation& relocation)
+{
+    if (tryResolveConstantSourceRef(outSourceRef, relocation))
+        return Result::Continue;
+
+    return reportError(DiagnosticId::cmd_err_native_constant_storage_unsupported, Diagnostic::ARG_SYM, ownerName);
+}
+
+const NativeFunctionInfo* NativeBackendBuilder::tryFindFunctionInfo(const SymbolFunction& targetFunction) const noexcept
+{
+    const auto it = functionBySymbol.find(&targetFunction);
+    if (it != functionBySymbol.end())
+        return it->second;
+
+    if (!targetFunction.srcViewRef().isValid())
+        return nullptr;
+
+    const Utf8 sortKey = SymbolSort::locationKey(compiler(), targetFunction);
+    for (const NativeFunctionInfo& info : functionInfos)
+    {
+        if (info.sortKey == sortKey)
+            return &info;
+    }
+
+    return nullptr;
+}
+
+Result NativeBackendBuilder::resolveFunctionSymbolName(Utf8& outName, const SymbolFunction* targetFunction, const bool allowUnresolvedSymbols)
+{
+    outName.clear();
+    if (!targetFunction)
+        return reportError(DiagnosticId::cmd_err_native_invalid_local_function_relocation, Diagnostic::ARG_SYM, Utf8("<null>"));
+
+    if (targetFunction->isForeign())
+    {
+        outName = targetFunction->resolveForeignFunctionName(ctx());
+        return Result::Continue;
+    }
+
+    if (const NativeFunctionInfo* info = tryFindFunctionInfo(*targetFunction))
+    {
+        outName = info->symbolName;
+        return Result::Continue;
+    }
+
+    if (allowUnresolvedSymbols)
+    {
+        outName = unresolvedFunctionSymbolName(ctx(), *targetFunction);
+        return Result::Continue;
+    }
+
+    return reportError(DiagnosticId::cmd_err_native_invalid_local_function_relocation, Diagnostic::ARG_SYM, targetFunction->getFullScopedName(ctx()));
 }
 
 uint32_t NativeBackendBuilder::expectedTestFunctionCount() const

@@ -129,6 +129,15 @@ namespace
         return function;
     }
 
+    SymbolVariable* makeTestGlobal(TaskContext& ctx, std::string_view name, const TypeRef typeRef)
+    {
+        auto* global = Symbol::make<SymbolVariable>(ctx, nullptr, TokenRef::invalid(), ctx.idMgr().addIdentifier(name), SymbolFlagsE::Zero);
+        global->setTypeRef(typeRef);
+        global->setTyped(ctx);
+        global->setSemaCompleted(ctx);
+        return global;
+    }
+
     ConstantRef addStringConstant(const TaskContext& ctx, CompilerInstance& compiler, DataSegment& segment, std::string_view value, Runtime::String*& outStorage)
     {
         const auto [stringView, stringOffset]                  = segment.addString(value);
@@ -154,6 +163,13 @@ namespace
             .symbolName  = symbolName,
             .debugName   = name,
         });
+    }
+
+    void rebuildFunctionInfoLookup(NativeBackendBuilder& nativeBuilder)
+    {
+        nativeBuilder.functionBySymbol.clear();
+        for (const auto& info : nativeBuilder.functionInfos)
+            nativeBuilder.functionBySymbol.emplace(info.symbol, &info);
     }
 
     MachineCode makeConstantAddressCode(const ConstantRef constantRef, const void* storage)
@@ -449,9 +465,7 @@ SWC_FILESYSTEM_TEST_BEGIN(NativeArtifact_RDataEmitsFunctionRelocations)
     MachineCode ownerCode = makeConstantAddressCode(rootRef, tableStorage);
     addNativeFunctionInfo(*fixture.nativeBuilder, *fixture.compilerCtx, ownerCode, "rdata_owner");
 
-    fixture.nativeBuilder->functionBySymbol.clear();
-    for (const auto& info : fixture.nativeBuilder->functionInfos)
-        fixture.nativeBuilder->functionBySymbol.emplace(info.symbol, &info);
+    rebuildFunctionInfoLookup(*fixture.nativeBuilder);
 
     SWC_RESULT(fixture.artifactBuilder->build());
 
@@ -462,6 +476,70 @@ SWC_FILESYSTEM_TEST_BEGIN(NativeArtifact_RDataEmitsFunctionRelocations)
     if (relocation.symbolName != "__test_rdata_target")
         return Result::Error;
     if (relocation.addend != 0)
+        return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_FILESYSTEM_TEST_BEGIN(NativeArtifact_DataEmitsFunctionRelocations)
+{
+    const CommandLine commandLine = makeStandaloneNativeArtifactCmdLine("data_emits_function_relocations", Runtime::BuildCfgBackendKind::SharedLibrary);
+
+    const NativeArtifactTestFixture fixture(ctx.global(), commandLine);
+
+    MachineCode targetCode;
+    targetCode.bytes.push_back(std::byte{0xC3});
+
+    auto* targetFunction = makeTestFunction(*fixture.compilerCtx, "data_target");
+    fixture.nativeBuilder->functionInfos.push_back({
+        .symbol      = targetFunction,
+        .machineCode = &targetCode,
+        .symbolName  = "__test_data_target",
+        .debugName   = "data_target",
+    });
+    rebuildFunctionInfoLookup(*fixture.nativeBuilder);
+
+    DataSegment& initSegment                  = fixture.compiler->globalInitSegment();
+    const auto [relocOffset, relocStorage]    = initSegment.reserve<uint64_t>();
+    const auto [globalOffset, globalStorage]  = initSegment.reserve<uint64_t>();
+    *relocStorage                             = 0;
+    *globalStorage                            = 0;
+    initSegment.addFunctionRelocation(relocOffset, targetFunction);
+
+    auto* global = makeTestGlobal(*fixture.compilerCtx, "GFunctionInit", fixture.compiler->typeMgr().typeU64());
+    global->setGlobalStorage(DataSegmentKind::GlobalInit, globalOffset);
+    global->setGlobalFunctionInit(targetFunction);
+    fixture.nativeBuilder->regularGlobals.push_back(global);
+
+    SWC_RESULT(fixture.artifactBuilder->build());
+
+    if (fixture.nativeBuilder->mergedData.relocations.size() != 2)
+        return Result::Error;
+
+    bool foundSegmentRelocation = false;
+    bool foundGlobalInitBinding = false;
+    for (const NativeSectionRelocation& relocation : fixture.nativeBuilder->mergedData.relocations)
+    {
+        if (relocation.symbolName != "__test_data_target")
+            return Result::Error;
+        if (relocation.addend != 0)
+            return Result::Error;
+
+        if (relocation.offset == relocOffset)
+        {
+            foundSegmentRelocation = true;
+            continue;
+        }
+
+        if (relocation.offset == globalOffset)
+        {
+            foundGlobalInitBinding = true;
+            continue;
+        }
+
+        return Result::Error;
+    }
+
+    if (!foundSegmentRelocation || !foundGlobalInitBinding)
         return Result::Error;
 }
 SWC_TEST_END()

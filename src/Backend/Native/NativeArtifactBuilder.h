@@ -43,7 +43,6 @@ private:
     void          resetDataSections() const;
     Result        prepareDataSectionsWithoutStartup(NativeRDataCollector& rdataCollector) const;
     static Result finishDataSections(NativeRDataCollector& rdataCollector);
-    Result        resolveFunctionRelocationName(Utf8& outName, const SymbolFunction* targetFunction) const;
     Result        partitionObjects() const;
     Result        prepareTestProgressEntries(TaskContext& ctx) const;
     Result        buildStartup(TaskContext& ctx) const;

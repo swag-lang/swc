@@ -1,25 +1,9 @@
 #include "pch.h"
 #include "Backend/Native/NativeRDataCollector.h"
-#include "Backend/Native/SymbolSort.h"
 
 #include "Support/Math/Helpers.h"
 
 SWC_BEGIN_NAMESPACE();
-
-namespace
-{
-    const NativeFunctionInfo* findFunctionInfoByLocation(const NativeBackendBuilder& builder, const SymbolFunction& targetFunction)
-    {
-        const Utf8 sortKey = SymbolSort::locationKey(builder.compiler(), targetFunction);
-        for (const NativeFunctionInfo& info : builder.functionInfos)
-        {
-            if (info.sortKey == sortKey)
-                return &info;
-        }
-
-        return nullptr;
-    }
-}
 
 NativeRDataCollector::NativeRDataCollector(NativeBackendBuilder& builder) :
     builder_(&builder)
@@ -104,17 +88,8 @@ Result NativeRDataCollector::collectCodeRoots(const Utf8& ownerName, const std::
 Result NativeRDataCollector::enqueueConstantRelocation(const Utf8& ownerName, const MicroRelocation& relocation)
 {
     SWC_ASSERT(relocation.kind == MicroRelocation::Kind::ConstantAddress);
-    if (relocation.hasConstantSource())
-    {
-        if (relocation.constantShard >= ConstantManager::SHARD_COUNT)
-            return builder_->reportError(DiagnosticId::cmd_err_native_constant_storage_unsupported, Diagnostic::ARG_SYM, ownerName);
-        return enqueueSourceOffset(ownerName, relocation.constantShard, relocation.constantOffset);
-    }
-
     DataSegmentRef sourceRef;
-    if (!builder_->compiler().cstMgr().resolveConstantDataSegmentRef(sourceRef, relocation.constantRef, reinterpret_cast<const void*>(relocation.targetAddress)))
-        return builder_->reportError(DiagnosticId::cmd_err_native_constant_storage_unsupported, Diagnostic::ARG_SYM, ownerName);
-
+    SWC_RESULT(builder_->resolveConstantSourceRef(sourceRef, ownerName, relocation));
     return enqueueSourceOffset(ownerName, sourceRef.shardIndex, sourceRef.offset);
 }
 
@@ -220,33 +195,7 @@ Result NativeRDataCollector::emitReachableAllocations()
                 }
 
                 SWC_ASSERT(relocation.kind == DataSegmentRelocationKind::FunctionSymbol);
-                const SymbolFunction* targetFunction = relocation.targetSymbol;
-                SWC_ASSERT(targetFunction != nullptr);
-                if (!targetFunction)
-                    return builder_->reportError(DiagnosticId::cmd_err_native_invalid_local_function_relocation, Diagnostic::ARG_SYM, Utf8("<null>"));
-
-                if (targetFunction->isForeign())
-                {
-                    record.symbolName = targetFunction->resolveForeignFunctionName(builder_->ctx());
-                    record.addend     = 0;
-                    builder_->mergedRData.relocations.push_back(record);
-                    continue;
-                }
-
-                const auto functionIt = builder_->functionBySymbol.find(relocation.targetSymbol);
-                if (functionIt != builder_->functionBySymbol.end())
-                {
-                    record.symbolName = functionIt->second->symbolName;
-                    record.addend     = 0;
-                    builder_->mergedRData.relocations.push_back(record);
-                    continue;
-                }
-
-                const NativeFunctionInfo* fallback = findFunctionInfoByLocation(*builder_, *targetFunction);
-                if (!fallback)
-                    return builder_->reportError(DiagnosticId::cmd_err_native_invalid_local_function_relocation, Diagnostic::ARG_SYM, targetFunction->getFullScopedName(builder_->ctx()));
-
-                record.symbolName = fallback->symbolName;
+                SWC_RESULT(builder_->resolveFunctionSymbolName(record.symbolName, relocation.targetSymbol));
                 record.addend     = 0;
                 builder_->mergedRData.relocations.push_back(record);
             }

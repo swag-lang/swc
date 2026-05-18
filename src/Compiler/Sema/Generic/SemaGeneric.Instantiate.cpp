@@ -82,12 +82,29 @@ namespace
         return nullptr;
     }
 
+    struct ResolvedGenericBindingSource
+    {
+        std::span<const SemaGeneric::GenericParamDesc> params;
+        std::span<const SemaGeneric::GenericResolvedArg> resolvedArgs;
+    };
+
+    struct FunctionWhereInputs
+    {
+        SmallVector<SemaClone::ParamBinding> bindings;
+        Utf8                                bindingText;
+    };
+
     void buildGenericCloneBindings(std::span<const SemaGeneric::GenericParamDesc> params, std::span<const SemaGeneric::GenericResolvedArg> resolvedArgs, SmallVector<SemaClone::ParamBinding>& outBindings)
     {
         outBindings.clear();
         outBindings.reserve(params.size());
         for (size_t i = 0; i < params.size(); ++i)
             SemaGeneric::appendResolvedGenericBinding(params[i], resolvedArgs[i], outBindings);
+    }
+
+    void buildGenericCloneBindings(const ResolvedGenericBindingSource& source, SmallVector<SemaClone::ParamBinding>& outBindings)
+    {
+        buildGenericCloneBindings(source.params, source.resolvedArgs, outBindings);
     }
 
     void appendGenericInstanceCloneBindings(Sema& sema, std::span<const SemaGeneric::GenericParamDesc> params, std::span<const GenericInstanceKey> args, SmallVector<SemaClone::ParamBinding>& outBindings)
@@ -485,6 +502,25 @@ namespace
         appendAmbientGenericCloneBindings(sema, outBindings);
     }
 
+    void buildResolvedGenericContextBindings(Sema& sema, const Symbol& root, const ResolvedGenericBindingSource& source, SmallVector<SemaClone::ParamBinding>& outBindings)
+    {
+        buildGenericCloneBindings(source, outBindings);
+        appendEnclosingGenericCloneBindings(sema, root, outBindings);
+    }
+
+    void buildPartialGenericContextBindings(Sema& sema, const Symbol& root, const ResolvedGenericBindingSource& source, size_t count, SmallVector<SemaClone::ParamBinding>& outBindings)
+    {
+        SemaGeneric::collectResolvedGenericBindings(source.params, source.resolvedArgs, count, outBindings);
+        appendEnclosingGenericCloneBindings(sema, root, outBindings);
+    }
+
+    void buildFunctionInstanceContextBindings(Sema& sema, const SymbolFunction& function, SmallVector<SemaClone::ParamBinding>& outBindings)
+    {
+        outBindings.clear();
+        appendFunctionInstanceCloneBindings(sema, function, outBindings);
+        appendEnclosingGenericCloneBindings(sema, function, outBindings);
+    }
+
     Result evalGenericClonedNode(Sema& sema, const Symbol& root, AstNodeRef sourceRef, std::span<const SemaClone::ParamBinding> bindings, AstNodeRef& outClonedRef);
 
     Utf8 formatResolvedGenericArg(Sema& sema, const SemaGeneric::GenericResolvedArg& arg)
@@ -496,17 +532,17 @@ namespace
         return "?";
     }
 
-    Utf8 formatResolvedGenericBindings(Sema& sema, std::span<const SemaGeneric::GenericParamDesc> params, std::span<const SemaGeneric::GenericResolvedArg> resolvedArgs)
+    Utf8 formatResolvedGenericBindings(Sema& sema, const ResolvedGenericBindingSource& source)
     {
         Utf8 result;
-        for (size_t i = 0; i < params.size(); ++i)
+        for (size_t i = 0; i < source.params.size(); ++i)
         {
             if (!result.empty())
                 result += ", ";
 
-            result += sema.idMgr().get(params[i].idRef).name;
+            result += sema.idMgr().get(source.params[i].idRef).name;
             result += " = ";
-            result += formatResolvedGenericArg(sema, resolvedArgs[i]);
+            result += formatResolvedGenericArg(sema, source.resolvedArgs[i]);
         }
 
         return result;
@@ -706,6 +742,18 @@ namespace
 
         appendAmbientBindingText(sema, seenIds, out);
         return out;
+    }
+
+    void buildFunctionWhereInputs(Sema& sema, const SymbolFunction& function, FunctionWhereInputs& outInputs)
+    {
+        buildFunctionInstanceContextBindings(sema, function, outInputs.bindings);
+        outInputs.bindingText = formatFunctionWhereBindings(sema, function);
+    }
+
+    void buildFunctionWhereInputs(Sema& sema, const SymbolFunction& function, const ResolvedGenericBindingSource& source, FunctionWhereInputs& outInputs)
+    {
+        buildResolvedGenericContextBindings(sema, function, source, outInputs.bindings);
+        outInputs.bindingText = formatFunctionWhereBindings(sema, function, source.params, source.resolvedArgs);
     }
 
     bool isWhereConstraint(Sema& sema, AstNodeRef constraintRef)
@@ -967,11 +1015,11 @@ namespace
 
     Result validateGenericStructWhereConstraints(Sema& sema, const SymbolStruct& root, std::span<const SemaGeneric::GenericParamDesc> params, std::span<const SemaGeneric::GenericResolvedArg> resolvedArgs, AstNodeRef errorNodeRef)
     {
+        const ResolvedGenericBindingSource source{params, resolvedArgs};
         SmallVector<SemaClone::ParamBinding> bindings;
-        buildGenericCloneBindings(params, resolvedArgs, bindings);
-        appendEnclosingGenericCloneBindings(sema, root, bindings);
+        buildResolvedGenericContextBindings(sema, root, source, bindings);
 
-        const Utf8                      bindingText = params.empty() ? Utf8{} : formatResolvedGenericBindings(sema, params, resolvedArgs);
+        const Utf8                      bindingText = params.empty() ? Utf8{} : formatResolvedGenericBindings(sema, source);
         const GenericConstraintContext context     = makeStructConstraintContext(sema, root, bindings.span(), errorNodeRef, bindingText);
         bool                            satisfied  = true;
         return evaluateGenericWhereConstraints(sema, satisfied, context, nullptr);
@@ -1125,8 +1173,9 @@ namespace
         if (rootImpls.empty() && rootInterfaces.empty())
             return Result::Continue;
 
+        const ResolvedGenericBindingSource source{params, resolvedArgs};
         SmallVector<SemaClone::ParamBinding> bindings;
-        buildGenericCloneBindings(params, resolvedArgs, bindings);
+        buildGenericCloneBindings(source, bindings);
 
         for (const auto* sourceImpl : rootImpls)
         {
@@ -1188,9 +1237,9 @@ namespace
         if (param.defaultRef.isInvalid())
             return Result::Continue;
 
+        const ResolvedGenericBindingSource source{params, resolvedArgs};
         SmallVector<SemaClone::ParamBinding> bindings;
-        SemaGeneric::collectResolvedGenericBindings(params, resolvedArgs, paramIndex, bindings);
-        appendEnclosingGenericCloneBindings(sema, root, bindings);
+        buildPartialGenericContextBindings(sema, root, source, paramIndex, bindings);
 
         AstNodeRef clonedRef = AstNodeRef::invalid();
         SWC_RESULT(evalGenericClonedNode(sema, root, param.defaultRef, bindings, clonedRef));
@@ -1207,9 +1256,9 @@ namespace
         if (param.explicitType.isInvalid())
             return Result::Continue;
 
+        const ResolvedGenericBindingSource source{params, resolvedArgs};
         SmallVector<SemaClone::ParamBinding> bindings;
-        SemaGeneric::collectResolvedGenericBindings(params, resolvedArgs, paramIndex, bindings);
-        appendEnclosingGenericCloneBindings(sema, root, bindings);
+        buildPartialGenericContextBindings(sema, root, source, paramIndex, bindings);
 
         AstNodeRef clonedTypeRef = AstNodeRef::invalid();
         SWC_RESULT(evalGenericClonedNode(sema, root, param.explicitType, bindings, clonedTypeRef));
@@ -1467,9 +1516,9 @@ namespace
         if (auto* instance = storage.findNoLock(keys.span()))
             return instance;
 
+        const ResolvedGenericBindingSource source{params, resolvedArgs};
         SmallVector<SemaClone::ParamBinding> bindings;
-        buildGenericCloneBindings(params, resolvedArgs, bindings);
-        appendEnclosingGenericCloneBindings(sema, root, bindings);
+        buildResolvedGenericContextBindings(sema, root, source, bindings);
 
         const SemaClone::CloneContext cloneContext{bindings};
         const AstNodeRef              cloneRef = SemaClone::cloneAst(sema, genericDeclNodeRef(root), cloneContext);
@@ -1581,6 +1630,7 @@ namespace
         SmallVector<SemaGeneric::GenericResolvedArg> resolvedArgs(params.size());
         for (size_t i = 0; i < genericArgNodes.size(); ++i)
             SWC_RESULT(SemaGeneric::resolveExplicitGenericArg(sema, params[i], genericArgNodes[i], resolvedArgs[i]));
+        const ResolvedGenericBindingSource source{params.span(), resolvedArgs.span()};
 
         if (const auto* genericStruct = genericRoot.safeCast<SymbolStruct>())
         {
@@ -1594,12 +1644,10 @@ namespace
 
         if (const auto* function = genericRoot.safeCast<SymbolFunction>())
         {
-            SmallVector<SemaClone::ParamBinding> cloneBindings;
-            buildGenericCloneBindings(params.span(), resolvedArgs.span(), cloneBindings);
-            appendEnclosingGenericCloneBindings(*sourceSema, *function, cloneBindings);
-            const Utf8 bindingText = formatFunctionWhereBindings(*sourceSema, *function, params.span(), resolvedArgs.span());
-            bool       satisfied   = true;
-            SWC_RESULT(checkFunctionWhereConstraints(*sourceSema, satisfied, *function, cloneBindings.span(), bindingText, nullptr, errorNodeRef));
+            FunctionWhereInputs whereInputs;
+            buildFunctionWhereInputs(*sourceSema, *function, source, whereInputs);
+            bool satisfied = true;
+            SWC_RESULT(checkFunctionWhereConstraints(*sourceSema, satisfied, *function, whereInputs.bindings.span(), whereInputs.bindingText, nullptr, errorNodeRef));
             if (!satisfied)
                 return Result::Error;
         }
@@ -1837,9 +1885,9 @@ namespace SemaGeneric
         if (defaultRef.isInvalid())
             return Result::Continue;
 
+        const ResolvedGenericBindingSource source{params, resolvedArgs};
         SmallVector<SemaClone::ParamBinding> bindings;
-        collectResolvedGenericBindings(params, resolvedArgs, params.size(), bindings);
-        appendEnclosingGenericCloneBindings(sema, root, bindings);
+        buildPartialGenericContextBindings(sema, root, source, params.size(), bindings);
 
         return evalGenericClonedNode(sema, root, defaultRef, bindings, outClonedRef);
     }
@@ -1855,11 +1903,9 @@ namespace SemaGeneric
         Sema*                 sourceSema = tryCreateSemaForGenericDecl(sema, function, sourceSemaHolder);
         if (!sourceSema)
             sourceSema = &sema;
-        const Utf8                           bindingText = formatFunctionWhereBindings(*sourceSema, function);
-        SmallVector<SemaClone::ParamBinding> cloneBindings;
-        appendFunctionInstanceCloneBindings(*sourceSema, function, cloneBindings);
-        appendEnclosingGenericCloneBindings(*sourceSema, function, cloneBindings);
-        return checkFunctionWhereConstraints(*sourceSema, outSatisfied, function, cloneBindings.span(), bindingText, outFailure, genericDeclNodeRef(function));
+        FunctionWhereInputs whereInputs;
+        buildFunctionWhereInputs(*sourceSema, function, whereInputs);
+        return checkFunctionWhereConstraints(*sourceSema, outSatisfied, function, whereInputs.bindings.span(), whereInputs.bindingText, outFailure, genericDeclNodeRef(function));
     }
 
     Result instantiateFunctionExplicit(Sema& sema, SymbolFunction& genericRoot, std::span<const AstNodeRef> genericArgNodes, SymbolFunction*& outInstance)
@@ -1921,16 +1967,15 @@ namespace SemaGeneric
             return Result::Continue;
         }
 
+        const ResolvedGenericBindingSource source{params.span(), resolvedArgs.span()};
         bool whereSatisfied = true;
         if (outFailure)
             *outFailure = {};
-        SmallVector<SemaClone::ParamBinding> cloneBindings;
-        buildGenericCloneBindings(params.span(), resolvedArgs.span(), cloneBindings);
-        appendEnclosingGenericCloneBindings(*sourceSema, genericRoot, cloneBindings);
-        const Utf8   bindingText = formatFunctionWhereBindings(*sourceSema, genericRoot, params.span(), resolvedArgs.span());
+        FunctionWhereInputs whereInputs;
+        buildFunctionWhereInputs(*sourceSema, genericRoot, source, whereInputs);
         CastFailure  localFailure;
         CastFailure* whereFailure = outFailure ? outFailure : &localFailure;
-        SWC_RESULT(checkFunctionWhereConstraints(*sourceSema, whereSatisfied, genericRoot, cloneBindings.span(), bindingText, whereFailure, errorNodeRef));
+        SWC_RESULT(checkFunctionWhereConstraints(*sourceSema, whereSatisfied, genericRoot, whereInputs.bindings.span(), whereInputs.bindingText, whereFailure, errorNodeRef));
         if (!whereSatisfied)
             return Result::Continue;
 

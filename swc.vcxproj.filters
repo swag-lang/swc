@@ -765,6 +765,9 @@
     <ClCompile Include="src\Compiler\Sema\Ast\Sema.Cast.cpp">
       <Filter>src\Compiler\Sema\Ast</Filter>
     </ClCompile>
+    <ClCompile Include="src\Compiler\Sema\Ast\Sema.Compiler.Body.cpp">
+      <Filter>src\Compiler\Sema\Ast</Filter>
+    </ClCompile>
     <ClCompile Include="src\Compiler\Sema\Ast\Sema.Compiler.cpp">
       <Filter>src\Compiler\Sema\Ast</Filter>
     </ClCompile>

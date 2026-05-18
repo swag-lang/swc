@@ -15,8 +15,56 @@ namespace
 {
     using Internal::ResolvedGenericBindingSource;
     using Internal::evalGenericConstraintNode;
-    using Internal::genericFunctionDecl;
-    using Internal::genericStructWhereSpan;
+
+    const AstFunctionDecl* genericFunctionDecl(const SymbolFunction& root)
+    {
+        return root.decl() ? root.decl()->safeCast<AstFunctionDecl>() : nullptr;
+    }
+
+    SpanRef genericStructWhereSpan(const SymbolStruct& root)
+    {
+        if (!root.decl())
+            return SpanRef::invalid();
+
+        const AstNode* decl = root.decl();
+        if (const auto* structDecl = decl->safeCast<AstStructDecl>())
+            return structDecl->spanWhereRef;
+        if (const auto* unionDecl = decl->safeCast<AstUnionDecl>())
+            return unionDecl->spanWhereRef;
+        return SpanRef::invalid();
+    }
+
+    AstNodeRef genericDeclNodeRef(const Symbol& root)
+    {
+        if (const auto* function = root.safeCast<SymbolFunction>())
+            return function->declNodeRef();
+        return root.cast<SymbolStruct>().declNodeRef();
+    }
+
+    Utf8 formatResolvedGenericArg(Sema& sema, const GenericResolvedArg& arg)
+    {
+        if (arg.cstRef.isValid())
+            return sema.cstMgr().get(arg.cstRef).toString(sema.ctx());
+        if (arg.typeRef.isValid())
+            return sema.typeMgr().get(arg.typeRef).toName(sema.ctx());
+        return "?";
+    }
+
+    Utf8 formatResolvedGenericBindings(Sema& sema, const ResolvedGenericBindingSource& source)
+    {
+        Utf8 result;
+        for (size_t i = 0; i < source.params.size(); ++i)
+        {
+            if (!result.empty())
+                result += ", ";
+
+            result += sema.idMgr().get(source.params[i].idRef).name;
+            result += " = ";
+            result += formatResolvedGenericArg(sema, source.resolvedArgs[i]);
+        }
+
+        return result;
+    }
 
     bool isWhereConstraint(Sema& sema, AstNodeRef constraintRef)
     {
@@ -243,7 +291,7 @@ namespace SemaGeneric
 
         Internal::FunctionWhereInputs whereInputs;
         Internal::buildFunctionWhereInputs(*sourceSema, function, whereInputs);
-        return Internal::checkFunctionWhereConstraints(*sourceSema, outSatisfied, function, whereInputs.bindings.span(), whereInputs.bindingText, outFailure, Internal::genericDeclNodeRef(function));
+        return Internal::checkFunctionWhereConstraints(*sourceSema, outSatisfied, function, whereInputs.bindings.span(), whereInputs.bindingText, outFailure, genericDeclNodeRef(function));
     }
 }
 

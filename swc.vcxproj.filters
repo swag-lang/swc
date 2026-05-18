@@ -498,6 +498,9 @@
     <ClCompile Include="src\Compiler\CodeGen\Core\CodeGenCallHelpers.cpp">
       <Filter>src\Compiler\CodeGen\Core</Filter>
     </ClCompile>
+    <ClCompile Include="src\Compiler\CodeGen\Core\CodeGenCallHelpers.Call.cpp">
+      <Filter>src\Compiler\CodeGen\Core</Filter>
+    </ClCompile>
     <ClCompile Include="src\Compiler\CodeGen\Core\CodeGenConstantHelpers.cpp">
       <Filter>src\Compiler\CodeGen\Core</Filter>
     </ClCompile>

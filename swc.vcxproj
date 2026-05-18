@@ -281,6 +281,7 @@
         <ClCompile Include="src\Compiler\CodeGen\Ast\CodeGen.Unary.cpp"/>
         <ClCompile Include="src\Compiler\CodeGen\Core\CodeGenJob.cpp"/>
         <ClCompile Include="src\Compiler\CodeGen\Core\CodeGenCallHelpers.cpp"/>
+        <ClCompile Include="src\Compiler\CodeGen\Core\CodeGenCallHelpers.Call.cpp"/>
         <ClCompile Include="src\Compiler\CodeGen\Core\CodeGenConstantHelpers.cpp"/>
         <ClCompile Include="src\Compiler\CodeGen\Core\CodeGenFunctionHelpers.cpp"/>
         <ClCompile Include="src\Compiler\CodeGen\Core\CodeGenInterfaceHelpers.cpp"/>

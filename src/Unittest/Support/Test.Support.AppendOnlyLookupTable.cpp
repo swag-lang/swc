@@ -46,7 +46,7 @@ SWC_TEST_BEGIN(AppendOnlyLookupTable_ConcurrentReaderSeesPublishedEntries)
             const uint32_t published = table.size();
             for (; observed < published; ++observed)
             {
-                int* value = table.at(observed);
+                const int* value = table.at(observed);
                 if (value != &values[observed] || *value != values[observed])
                 {
                     readerOk.store(false, std::memory_order_release);

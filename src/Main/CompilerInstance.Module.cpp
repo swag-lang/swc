@@ -1,5 +1,6 @@
+#include <numeric>
+
 #include "pch.h"
-#include "Main/CompilerInstance.h"
 #include "Backend/RuntimeName.h"
 #include "Compiler/Lexer/SourceView.h"
 #include "Compiler/Parser/Ast/Ast.h"
@@ -12,6 +13,7 @@
 #include "Compiler/SourceFile.h"
 #include "Main/Command/CommandLine.h"
 #include "Main/Command/CommandLineParser.h"
+#include "Main/CompilerInstance.h"
 #include "Main/ExternalModuleManager.h"
 #include "Main/FileSystem.h"
 #include "Main/Global.h"
@@ -120,14 +122,14 @@ namespace
 
     Utf8 buildModuleNamespaceName(const CompilerInstance& compiler)
     {
-        Utf8 moduleNamespaceName;
+        Utf8                   moduleNamespaceName;
         const Runtime::String& moduleNamespace = compiler.buildCfg().moduleNamespace;
         if (moduleNamespace.ptr && moduleNamespace.length)
             moduleNamespaceName = Utf8{moduleNamespace};
         if (!moduleNamespaceName.empty())
             return moduleNamespaceName;
 
-        Utf8 artifactName;
+        Utf8                   artifactName;
         const Runtime::String& artifact = compiler.buildCfg().name;
         if (artifact.ptr && artifact.length)
             artifactName = Utf8{artifact};
@@ -978,7 +980,7 @@ Result CompilerInstance::applyModuleSetupInputs(TaskContext& ctx, const ModuleSe
         }
 
         std::vector<size_t> order(matches.size());
-        std::iota(order.begin(), order.end(), 0);
+        std::ranges::iota(order, 0);
         std::ranges::sort(order, [&](const size_t lhs, const size_t rhs) { return matches[lhs] < matches[rhs]; });
 
         std::vector<fs::path>                     uniqueMatches;
@@ -1241,4 +1243,3 @@ Result CompilerInstance::exportModuleApi(TaskContext& ctx)
 }
 
 SWC_END_NAMESPACE();
-

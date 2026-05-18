@@ -181,7 +181,6 @@ namespace
             mergeFileEntry(outEntries[srcViewRef], threadEntry);
     }
 
-
     bool isLegacyExportedFile(const SourceFile& file)
     {
         const AstNodeRef rootRef = file.ast().root();
@@ -371,14 +370,6 @@ namespace
         diag.addArgument(Diagnostic::ARG_VALUE, usage);
         diag.addArgument(Diagnostic::ARG_TYPE, referencedSymbol.getFullScopedName(ctx));
         diag.last().addSpan(referencedSymbol.codeRange(ctx), "referenced type declared here", DiagnosticSeverity::Note);
-        diag.report(ctx);
-        return Result::Error;
-    }
-
-    Result reportModuleApiPublicGlobalVariable(TaskContext& ctx, const Symbol& symbol)
-    {
-        Diagnostic diag = buildModuleApiExportDiagnostic(ctx, DiagnosticId::cmd_err_api_public_global_variable, symbol);
-        diag.addArgument(Diagnostic::ARG_SYM, symbol.name(ctx));
         diag.report(ctx);
         return Result::Error;
     }

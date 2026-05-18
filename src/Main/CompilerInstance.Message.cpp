@@ -464,36 +464,6 @@ namespace
     }
 }
 
-const Runtime::CompilerMessage* runtimeCompilerGetMessage(const CompilerInstance* owner)
-{
-    SWC_ASSERT(owner != nullptr);
-    return &owner->runtimeCompilerMessage();
-}
-
-Runtime::BuildCfg* runtimeCompilerGetBuildCfg(CompilerInstance* owner)
-{
-    SWC_ASSERT(owner != nullptr);
-    return &owner->buildCfg();
-}
-
-void runtimeCompilerCompileString(const CompilerInstance* owner, Runtime::String str)
-{
-    SWC_ASSERT(owner != nullptr);
-    const TaskContext* currentCtx = TaskContext::current();
-    if (!currentCtx || !currentCtx->hasCompiler())
-        return;
-
-    TaskContext& ctx = *const_cast<TaskContext*>(currentCtx);
-    if (&ctx.compiler() != owner)
-        return;
-
-    const std::string_view generatedCode(str.ptr, str.length);
-    if (deferCompilerMessageGeneratedSource(*owner, generatedCode))
-        return;
-
-    (void) enqueueGeneratedSource(ctx, generatedCode);
-}
-
 bool CompilerInstance::hasCompilerMessageInterest(const Runtime::CompilerMsgKind kind) const
 {
     return (compilerMessageActiveMask_.load(std::memory_order_acquire) & compilerMessageBit(kind)) != 0;

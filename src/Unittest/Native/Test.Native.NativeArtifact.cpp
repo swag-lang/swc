@@ -791,7 +791,7 @@ var GAddOne: UnaryFn = &addOne
     if (Stats::getNumErrors() != errorsBefore)
         return fail("errors after sema");
 
-    TaskContext compilerCtx(compiler);
+    const TaskContext compilerCtx(compiler);
 
     const auto initTargets = compiler.nativeGlobalFunctionInitTargetsSnapshot();
     if (compiler.nativeTestFunctions().size() != 1)

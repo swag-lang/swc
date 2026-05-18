@@ -306,7 +306,7 @@ private:
 
     struct SourceViewBuffer
     {
-        explicit SourceViewBuffer(std::string_view content);
+        explicit SourceViewBuffer(std::string_view source);
         std::string_view view() const;
 
         static constexpr uint32_t TRAILING_0 = 4;

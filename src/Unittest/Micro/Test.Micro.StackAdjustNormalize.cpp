@@ -233,14 +233,14 @@ SWC_TEST_BEGIN(MicroStorage_InsertedInstructionsUseExplicitDebugInsertionKinds)
     MicroStorage        storage;
     MicroOperandStorage operands;
 
-    auto [anchorRef, anchor]              = storage.emplaceUninit();
-    const SourceCodeRef anchorSourceCodeRef = {.srcViewRef = SourceViewRef(17), .tokRef = TokenRef(42)};
-    anchor->op                              = MicroInstrOpcode::Ret;
-    anchor->debugSourceInfo.sourceCodeRef   = anchorSourceCodeRef;
+    auto [anchorRef, anchor]                    = storage.emplaceUninit();
+    constexpr SourceCodeRef anchorSourceCodeRef = {.srcViewRef = SourceViewRef(17), .tokRef = TokenRef(42)};
+    anchor->op                                  = MicroInstrOpcode::Ret;
+    anchor->debugSourceInfo.sourceCodeRef       = anchorSourceCodeRef;
 
-    const MicroInstrRef derivedRef   = storage.insertDerivedBefore(operands, anchorRef, MicroInstrOpcode::Nop, {});
-    const MicroInstrRef syntheticRef = storage.insertSyntheticBefore(operands, anchorRef, MicroInstrOpcode::Breakpoint, {});
-    const MicroInstr*   derivedInst  = storage.ptr(derivedRef);
+    const MicroInstrRef derivedRef    = storage.insertDerivedBefore(operands, anchorRef, MicroInstrOpcode::Nop, {});
+    const MicroInstrRef syntheticRef  = storage.insertSyntheticBefore(operands, anchorRef, MicroInstrOpcode::Breakpoint, {});
+    const MicroInstr*   derivedInst   = storage.ptr(derivedRef);
     const MicroInstr*   syntheticInst = storage.ptr(syntheticRef);
     if (!derivedInst || !syntheticInst)
         return Result::Error;
@@ -261,17 +261,17 @@ SWC_TEST_BEGIN(MicroStorage_InsertBeforePreservesExplicitNoStepWhenSourceIsInher
 {
     MicroStorage storage;
 
-    auto [anchorRef, anchor]              = storage.emplaceUninit();
-    const SourceCodeRef anchorSourceCodeRef = {.srcViewRef = SourceViewRef(23), .tokRef = TokenRef(99)};
-    anchor->op                              = MicroInstrOpcode::Ret;
-    anchor->debugSourceInfo.sourceCodeRef   = anchorSourceCodeRef;
+    auto [anchorRef, anchor]                    = storage.emplaceUninit();
+    constexpr SourceCodeRef anchorSourceCodeRef = {.srcViewRef = SourceViewRef(23), .tokRef = TokenRef(99)};
+    anchor->op                                  = MicroInstrOpcode::Ret;
+    anchor->debugSourceInfo.sourceCodeRef       = anchorSourceCodeRef;
 
     MicroInstr insertedInst;
-    insertedInst.op                           = MicroInstrOpcode::Breakpoint;
-    insertedInst.debugSourceInfo.debugNoStep  = true;
+    insertedInst.op                          = MicroInstrOpcode::Breakpoint;
+    insertedInst.debugSourceInfo.debugNoStep = true;
 
-    const MicroInstrRef insertedRef   = storage.insertBefore(anchorRef, insertedInst);
-    const MicroInstr*   resultInst    = storage.ptr(insertedRef);
+    const MicroInstrRef insertedRef = storage.insertBefore(anchorRef, insertedInst);
+    const MicroInstr*   resultInst  = storage.ptr(insertedRef);
     if (!resultInst)
         return Result::Error;
 

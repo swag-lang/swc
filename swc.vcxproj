@@ -381,6 +381,7 @@
         <ClCompile Include="src\Compiler\Sema\Ast\Sema.Block.cpp"/>
         <ClCompile Include="src\Compiler\Sema\Ast\Sema.Cast.cpp"/>
         <ClCompile Include="src\Compiler\Sema\Ast\Sema.Compiler.Body.cpp"/>
+        <ClCompile Include="src\Compiler\Sema\Ast\Sema.Compiler.Call.cpp"/>
         <ClCompile Include="src\Compiler\Sema\Ast\Sema.Compiler.cpp"/>
         <ClCompile Include="src\Compiler\Sema\Ast\Sema.Enum.cpp"/>
         <ClCompile Include="src\Compiler\Sema\Ast\Sema.Identifier.cpp"/>

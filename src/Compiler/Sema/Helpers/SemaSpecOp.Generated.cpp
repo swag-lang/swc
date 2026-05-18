@@ -826,8 +826,7 @@ namespace
         if (source.empty())
             return Result::Continue;
 
-        TaskContext&      ctx      = sema.ctx();
-        CompilerInstance& compiler = sema.compiler();
+        TaskContext& ctx = sema.ctx();
 
         PreparedGeneratedSourceView prepared;
         SWC_RESULT(prepareGeneratedSourceView(sema, source, prepared));
@@ -835,7 +834,7 @@ namespace
         if (prepared.hasError || srcView.mustSkip() || !srcView.runsSema())
             return Result::Continue;
 
-        const uint64_t   errorsBefore  = Stats::getNumErrors();
+        const uint64_t   errorsBefore = Stats::getNumErrors();
         Parser           parser;
         const AstNodeRef generatedRoot = parser.parseGenerated(ctx, sema.ast(), srcView, ParserGeneratedMode::TopLevel);
         if (Stats::getNumErrors() != errorsBefore || generatedRoot.isInvalid())

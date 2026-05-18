@@ -1395,9 +1395,10 @@ Utf8 MicroPrinter::format(const TaskContext& ctx, const MicroStorage& instructio
         const MicroLabelRef      labelRef(static_cast<uint32_t>(ops[0].valueU64));
         labelInstructionIndexByRef[labelRef] = it.current;
     }
-    for (auto it = view.begin(); it != view.end(); ++it)
+
+    for (const auto& it : view)
     {
-        if (appendInstructionDebugInfo(out, ctx, *it, indexWidth, seenDebugLines))
+        if (appendInstructionDebugInfo(out, ctx, it, indexWidth, seenDebugLines))
             break;
     }
 

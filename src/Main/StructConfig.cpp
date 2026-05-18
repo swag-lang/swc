@@ -15,8 +15,8 @@ namespace
         return FileSystem::formatFileLocation(&ctx, sourcePath, lineNo);
     }
 
-    template<typename IntType>
-    bool parseIntegerValue(std::string_view value, IntType& result)
+    template<typename T>
+    bool parseIntegerValue(std::string_view value, T& result)
     {
         const char* first        = value.data();
         const char* last         = first + value.size();

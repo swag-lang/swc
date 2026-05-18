@@ -571,7 +571,7 @@ Result CodeGenFunctionHelpers::emitStructDefaultValue(CodeGen& codeGen, TypeRef 
     if (!typeInfo.isStruct())
         return Result::Continue;
 
-    auto& symStruct = typeInfo.payloadSymStruct();
+    const auto& symStruct = typeInfo.payloadSymStruct();
     symStruct.computeImplicitDefaultFlags(codeGen.sema());
     if (symStruct.hasImplicitAllUndefinedDefault())
         return Result::Continue;
@@ -611,7 +611,7 @@ Result CodeGenFunctionHelpers::emitStructDefaultValue(CodeGen& codeGen, TypeRef 
     if (!typeInfo.isStruct())
         return Result::Continue;
 
-    auto& symStruct = typeInfo.payloadSymStruct();
+    const auto& symStruct = typeInfo.payloadSymStruct();
     symStruct.computeImplicitDefaultFlags(codeGen.sema());
     if (symStruct.hasImplicitAllUndefinedDefault())
         return Result::Continue;
@@ -646,7 +646,7 @@ Result CodeGenFunctionHelpers::emitStructDefaultValue(CodeGen& codeGen, TypeRef 
     if (!typeInfo.isStruct())
         return Result::Continue;
 
-    auto& symStruct = typeInfo.payloadSymStruct();
+    const auto& symStruct = typeInfo.payloadSymStruct();
     symStruct.computeImplicitDefaultFlags(codeGen.sema());
     if (symStruct.hasImplicitAllUndefinedDefault())
         return Result::Continue;

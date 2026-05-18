@@ -497,7 +497,7 @@ namespace
         return std::format("{} --build-cfg {} --artifact-kind {} --arch {}", codeViewPathString(Os::getExeFullName()), ctx.cmdLine().buildCfg, backendKindName(ctx.compiler().buildCfg().backendKind), targetArchName(ctx.cmdLine().targetArch));
     }
 
-    FunctionLines collectFunctionLines(TaskContext& ctx, const MachineCode& code)
+    FunctionLines collectFunctionLines(const TaskContext& ctx, const MachineCode& code)
     {
         FunctionLines                    result;
         std::unordered_map<Utf8, size_t> blockIndices;

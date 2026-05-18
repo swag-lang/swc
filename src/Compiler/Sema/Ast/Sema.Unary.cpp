@@ -296,7 +296,7 @@ namespace
         SWC_UNUSED(node);
         if (isFunctionAddressOperand(view))
         {
-            auto& symFunc = view.sym()->cast<SymbolFunction>();
+            const auto& symFunc = view.sym()->cast<SymbolFunction>();
             SemaHelpers::addCurrentFunctionCallDependency(sema, &symFunc);
 
             sema.setType(sema.curNodeRef(), view.typeRef());

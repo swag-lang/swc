@@ -214,7 +214,7 @@ SourceCodeRange SemaError::getNodeCodeRange(Sema& sema, AstNodeRef atNodeRef, Re
     SWC_UNREACHABLE();
 }
 
-SemaError::SymbolDiagnosticOrigin SemaError::symbolDiagnosticOrigin(Sema& sema, const Symbol& symbol)
+SemaError::SymbolDiagnosticOrigin SemaError::symbolDiagnosticOrigin(const Sema& sema, const Symbol& symbol)
 {
     if (!symbol.decl() || symbol.srcViewRef().isInvalid())
         return SymbolDiagnosticOrigin::Unknown;

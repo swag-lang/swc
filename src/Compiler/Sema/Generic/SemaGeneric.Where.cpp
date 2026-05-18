@@ -9,8 +9,17 @@
 
 SWC_BEGIN_NAMESPACE();
 
-namespace SemaGeneric::Internal
+namespace SemaGeneric
 {
+namespace
+{
+    using Internal::ResolvedGenericBindingSource;
+    using Internal::buildResolvedGenericContextBindings;
+    using Internal::evalGenericConstraintNode;
+    using Internal::formatResolvedGenericBindings;
+    using Internal::genericFunctionDecl;
+    using Internal::genericStructWhereSpan;
+
     static bool isWhereConstraint(Sema& sema, AstNodeRef constraintRef)
     {
         if (!constraintRef.isValid())
@@ -196,6 +205,10 @@ namespace SemaGeneric::Internal
         return Result::Continue;
     }
 
+}
+
+namespace Internal
+{
     Result checkFunctionWhereConstraints(Sema& sema, bool& outSatisfied, const SymbolFunction& function, std::span<const SemaClone::ParamBinding> bindings, const Utf8& bindingText, CastFailure* outFailure, AstNodeRef errorNodeRef)
     {
         const GenericConstraintContext context = makeFunctionConstraintContext(sema, function, bindings, errorNodeRef, bindingText);
@@ -213,6 +226,7 @@ namespace SemaGeneric::Internal
         bool                            satisfied  = true;
         return evaluateGenericWhereConstraints(sema, satisfied, context, nullptr);
     }
+}
 }
 
 namespace SemaGeneric

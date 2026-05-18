@@ -206,7 +206,7 @@ namespace
         return true;
     }
 
-    SymbolFunction* findFunctionByName(TaskContext& ctx, std::span<SymbolFunction* const> functions, std::string_view name)
+    SymbolFunction* findFunctionByName(const TaskContext& ctx, std::span<SymbolFunction* const> functions, std::string_view name)
     {
         for (SymbolFunction* function : functions)
         {
@@ -217,7 +217,7 @@ namespace
         return nullptr;
     }
 
-    SymbolVariable* findGlobalByName(TaskContext& ctx, std::span<SymbolVariable* const> globals, std::string_view name)
+    SymbolVariable* findGlobalByName(const TaskContext& ctx, std::span<SymbolVariable* const> globals, std::string_view name)
     {
         for (SymbolVariable* global : globals)
         {

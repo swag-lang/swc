@@ -14,8 +14,31 @@
 
 SWC_BEGIN_NAMESPACE();
 
-namespace SemaGeneric::Internal
+namespace SemaGeneric
 {
+namespace
+{
+    using Internal::ResolvedGenericBindingSource;
+    using Internal::FunctionWhereInputs;
+    using Internal::buildFunctionWhereInputs;
+    using Internal::buildPartialGenericContextBindings;
+    using Internal::buildResolvedGenericContextBindings;
+    using Internal::checkFunctionWhereConstraints;
+    using Internal::collectAmbientGenericFunctions;
+    using Internal::evalGenericClonedNode;
+    using Internal::genericDeclNodeRef;
+    using Internal::genericFunctionDecl;
+    using Internal::genericParamSpan;
+    using Internal::genericStructDeclNode;
+    using Internal::genericStructParamSpan;
+    using Internal::hasGenericParams;
+    using Internal::instantiateGenericStructImpls;
+    using Internal::loadFunctionInstanceGenericArgs;
+    using Internal::loadOwnerStructGenericArgs;
+    using Internal::runGenericInstanceNode;
+    using Internal::tryCreateSemaForGenericDecl;
+    using Internal::validateGenericStructWhereConstraints;
+
     void resolveStructArgsFromContext(Sema& sema, const SymbolStruct& genericRoot, std::span<const GenericParamDesc> targetParams, std::span<GenericResolvedArg> resolvedArgs);
 
     Result evalGenericDefaultArg(Sema& sema, const Symbol& root, std::span<const GenericParamDesc> params, std::span<const GenericResolvedArg> resolvedArgs, size_t paramIndex, GenericResolvedArg& outArg)
@@ -664,6 +687,7 @@ namespace SemaGeneric::Internal
             resolveArgsFromEnclosingStruct(sema, *enclosingInstance, targetParams, resolvedArgs);
     }
 }
+}
 
 namespace SemaGeneric
 {
@@ -683,7 +707,7 @@ namespace SemaGeneric
     Result instantiateFunctionExplicit(Sema& sema, SymbolFunction& genericRoot, std::span<const AstNodeRef> genericArgNodes, SymbolFunction*& outInstance)
     {
         Symbol* instance = nullptr;
-        SWC_RESULT(Internal::instantiateGenericExplicit(sema, genericRoot, genericArgNodes, instance));
+        SWC_RESULT(instantiateGenericExplicit(sema, genericRoot, genericArgNodes, instance));
         outInstance = instance ? &instance->cast<SymbolFunction>() : nullptr;
         return Result::Continue;
     }
@@ -722,7 +746,7 @@ namespace SemaGeneric
         if (outFailure && outFailure->diagId != DiagnosticId::None)
             return Result::Continue;
 
-        SWC_RESULT(Internal::materializeGenericArgs(*sourceSema, genericRoot, params.span(), resolvedArgs.span(), {}, errorNodeRef));
+        SWC_RESULT(materializeGenericArgs(*sourceSema, genericRoot, params.span(), resolvedArgs.span(), {}, errorNodeRef));
         if (hasMissingGenericArgs(resolvedArgs.span()))
         {
             if (outFailure)
@@ -731,7 +755,7 @@ namespace SemaGeneric
                 {
                     if (!resolvedArgs[i].present)
                     {
-                        Internal::setGenericParamNotDeducedFailure(sema, params[i], *outFailure);
+                        setGenericParamNotDeducedFailure(sema, params[i], *outFailure);
                         break;
                     }
                 }
@@ -752,7 +776,7 @@ namespace SemaGeneric
             return Result::Continue;
 
         Symbol* instance = nullptr;
-        SWC_RESULT(Internal::createGenericInstance(*sourceSema, genericRoot, params.span(), resolvedArgs.span(), instance, errorNodeRef));
+        SWC_RESULT(createGenericInstance(*sourceSema, genericRoot, params.span(), resolvedArgs.span(), instance, errorNodeRef));
         outInstance = instance ? &instance->cast<SymbolFunction>() : nullptr;
         return Result::Continue;
     }
@@ -760,7 +784,7 @@ namespace SemaGeneric
     Result instantiateStructExplicit(Sema& sema, SymbolStruct& genericRoot, std::span<const AstNodeRef> genericArgNodes, SymbolStruct*& outInstance)
     {
         Symbol* instance = nullptr;
-        SWC_RESULT(Internal::instantiateGenericExplicit(sema, genericRoot, genericArgNodes, instance));
+        SWC_RESULT(instantiateGenericExplicit(sema, genericRoot, genericArgNodes, instance));
         outInstance = instance ? &instance->cast<SymbolStruct>() : nullptr;
         return Result::Continue;
     }
@@ -786,14 +810,14 @@ namespace SemaGeneric
         collectGenericParams(*targetSema, *targetDecl, spanGenericParamsRef, targetParams);
 
         SmallVector<GenericResolvedArg> resolvedArgs(targetParams.size());
-        Internal::resolveStructArgsFromContext(sema, genericRoot, targetParams.span(), resolvedArgs.span());
+        resolveStructArgsFromContext(sema, genericRoot, targetParams.span(), resolvedArgs.span());
 
-        SWC_RESULT(Internal::materializeGenericArgs(*targetSema, genericRoot, targetParams.span(), resolvedArgs.span(), {}, Internal::genericDeclNodeRef(genericRoot)));
+        SWC_RESULT(materializeGenericArgs(*targetSema, genericRoot, targetParams.span(), resolvedArgs.span(), {}, Internal::genericDeclNodeRef(genericRoot)));
         if (hasMissingGenericArgs(resolvedArgs.span()))
             return Result::Continue;
 
         Symbol* instance = nullptr;
-        SWC_RESULT(Internal::createGenericInstance(*targetSema, genericRoot, targetParams.span(), resolvedArgs.span(), instance, Internal::genericDeclNodeRef(genericRoot)));
+        SWC_RESULT(createGenericInstance(*targetSema, genericRoot, targetParams.span(), resolvedArgs.span(), instance, Internal::genericDeclNodeRef(genericRoot)));
         outInstance = instance ? &instance->cast<SymbolStruct>() : nullptr;
         return Result::Continue;
     }

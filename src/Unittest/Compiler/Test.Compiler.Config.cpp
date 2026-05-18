@@ -540,7 +540,7 @@ SWC_TEST_BEGIN(Compiler_ModuleFileSetupConfiguresBuildAndLoadsExplicitSources)
     if (!writeTextFile(loadedFile, "public func loaded() {}\n"))
         return Result::Error;
 
-    CommandLine cmdLine = makeSyntheticModuleFileCommand(CommandKind::Sema, moduleFile);
+    const CommandLine cmdLine = makeSyntheticModuleFileCommand(CommandKind::Sema, moduleFile);
 
     const uint64_t   errorsBefore = Stats::getNumErrors();
     CompilerInstance compiler(ctx.global(), cmdLine);
@@ -607,7 +607,7 @@ public func mainValue()->s32
 
     const ScopedEnvVar swagPath("SWAG_PATH", compilerRoot.string());
 
-    CommandLine cmdLine = makeSyntheticModuleFileCommand(CommandKind::Sema, moduleFile);
+    const CommandLine cmdLine = makeSyntheticModuleFileCommand(CommandKind::Sema, moduleFile);
 
     const uint64_t   errorsBefore = Stats::getNumErrors();
     CompilerInstance compiler(ctx.global(), cmdLine);
@@ -943,7 +943,7 @@ func mainValue(value: s32)->s32
 )"))
         return Result::Error;
 
-    CommandLine cmdLine = makeSyntheticWorkspaceCommand(CommandKind::Build, workspaceDir);
+    const CommandLine cmdLine = makeSyntheticWorkspaceCommand(CommandKind::Build, workspaceDir);
 
     CompilerInstance compiler(ctx.global(), cmdLine);
     if (compiler.run() != ExitCode::Success)
@@ -1533,7 +1533,7 @@ struct BadExport
 )"))
         return Result::Error;
 
-    CommandLine cmdLine = makeSyntheticWorkspaceCommand(CommandKind::Sema, workspaceDir);
+    const CommandLine cmdLine = makeSyntheticWorkspaceCommand(CommandKind::Sema, workspaceDir);
 
     CompilerInstance compiler(ctx.global(), cmdLine);
     if (compiler.run() == ExitCode::Success)
@@ -1569,7 +1569,7 @@ SWC_TEST_BEGIN(Compiler_WorkspaceBuildRejectsExplicitPublicGlobalVariableInGener
 )"))
         return Result::Error;
 
-    CommandLine cmdLine = makeSyntheticWorkspaceCommand(CommandKind::Sema, workspaceDir);
+    const CommandLine cmdLine = makeSyntheticWorkspaceCommand(CommandKind::Sema, workspaceDir);
 
     CompilerInstance compiler(ctx.global(), cmdLine);
     if (compiler.run() == ExitCode::Success)
@@ -1613,7 +1613,7 @@ public interface BadExport
 )"))
         return Result::Error;
 
-    CommandLine cmdLine = makeSyntheticWorkspaceCommand(CommandKind::Sema, workspaceDir);
+    const CommandLine cmdLine = makeSyntheticWorkspaceCommand(CommandKind::Sema, workspaceDir);
 
     CompilerInstance compiler(ctx.global(), cmdLine);
     if (compiler.run() == ExitCode::Success)

@@ -437,8 +437,8 @@ namespace
 
     std::optional<JITExecManager::Completion> consumeJitExecCompletion(Sema& sema, AstNodeRef nodeRef)
     {
-        const SourceCodeRef              codeRef    = sema.node(nodeRef).codeRef();
-        const JITExecManager::Completion completion = sema.compiler().jitExecMgr().consumeCompletion(sema.ctx(), nodeRef, codeRef);
+        const SourceCodeRef        codeRef    = sema.node(nodeRef).codeRef();
+        JITExecManager::Completion completion = sema.compiler().jitExecMgr().consumeCompletion(sema.ctx(), nodeRef, codeRef);
         if (!completion.hasValue)
             return std::nullopt;
         return completion;
@@ -460,7 +460,7 @@ namespace
     {
         TaskContext& ctx = sema.ctx();
 
-        auto pendingEntry                 = std::make_shared<JITPendingNodeData>();
+        const auto pendingEntry           = std::make_shared<JITPendingNodeData>();
         pendingEntry->payload             = payload;
         pendingEntry->resultMeta          = resultMeta;
         pendingEntry->setFoldedTypedConst = setFoldedTypedConst;

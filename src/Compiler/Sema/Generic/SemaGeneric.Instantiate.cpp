@@ -12,7 +12,9 @@
 
 SWC_BEGIN_NAMESPACE();
 
-namespace SemaGeneric::Internal
+namespace SemaGeneric
+{
+namespace
 {
     const SymbolFunction* declContextRoot(const SymbolFunction& function)
     {
@@ -71,7 +73,10 @@ namespace SemaGeneric::Internal
 
         return nullptr;
     }
+}
 
+namespace Internal
+{
     void buildGenericCloneBindings(std::span<const GenericParamDesc> params, std::span<const GenericResolvedArg> resolvedArgs, SmallVector<SemaClone::ParamBinding>& outBindings)
     {
         outBindings.clear();
@@ -1004,7 +1009,7 @@ namespace SemaGeneric::Internal
 
         return runGenericNode(sema, root, outClonedRef);
     }
-
+}
 }
 
 SWC_END_NAMESPACE();

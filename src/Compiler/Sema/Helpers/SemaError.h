@@ -28,7 +28,7 @@ namespace SemaError
     Utf8                   formatEnumValueList(const TaskContext& ctx, const SymbolEnum& symEnum);
     Utf8                   formatStructFieldList(const TaskContext& ctx, const SymbolStruct& symStruct);
     Utf8                   formatStructMemberList(Sema& sema, TypeRef typeRef);
-    SymbolDiagnosticOrigin symbolDiagnosticOrigin(Sema& sema, const Symbol& symbol);
+    SymbolDiagnosticOrigin symbolDiagnosticOrigin(const Sema& sema, const Symbol& symbol);
     bool                   isCurrentModuleSymbol(Sema& sema, const Symbol& symbol);
     DiagnosticElement*     addCurrentModuleHelp(Sema& sema, Diagnostic& diag, const Symbol& symbol, DiagnosticId id);
     void                   setReportArguments(Sema& sema, Diagnostic& diag, const SourceCodeRef& codeRange);

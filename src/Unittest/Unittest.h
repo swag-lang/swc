@@ -24,7 +24,7 @@ namespace Unittest
         TestKind    kind = TestKind::Fast;
     };
 
-    void   registerTest(TestCase test);
+    void   registerTest(const TestCase& test);
     void   registerSetup(SetupFn setupFn);
     Result runAll(const TaskContext& ctx);
 

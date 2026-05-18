@@ -149,12 +149,6 @@ namespace
         return codeGen.ensureNodePayload<CodeGenNodePayload>(nodeRef);
     }
 
-    void clearThrowableFunctionPayload(CodeGen& codeGen, AstNodeRef nodeRef)
-    {
-        if (CodeGenNodePayload* payload = throwableFunctionPayload(codeGen, nodeRef))
-            payload->clearThrowableFunctionTarget();
-    }
-
     SymbolFunction* runtimeFunctionByKind(CodeGen& codeGen, IdentifierManager::RuntimeFunctionKind kind)
     {
         const IdentifierRef idRef = codeGen.idMgr().runtimeFunction(kind);
@@ -1074,7 +1068,6 @@ namespace
         return Result::Continue;
     }
 
-
     Result codeGenFunctionLikePostNode(CodeGen& codeGen, AstNodeRef declRef, AstNodeRef bodyRef, bool hasExpressionBody)
     {
         declRef = codeGen.viewZero(declRef).nodeRef();
@@ -1223,7 +1216,7 @@ Result AstClosureExpr::codeGenPostNode(CodeGen& codeGen) const
     const AstNodeRef declRef = codeGen.viewZero(codeGen.curNodeRef()).nodeRef();
     if (!isActiveFunctionRoot(codeGen, declRef))
     {
-        auto&              symFunc = functionExprSymbol(codeGen, declRef);
+        const auto&        symFunc = functionExprSymbol(codeGen, declRef);
         const SemaNodeView view    = codeGen.curViewType();
         return emitClosureExprValue(codeGen, declRef, symFunc, view.typeRef());
     }

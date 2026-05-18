@@ -136,7 +136,7 @@ namespace Unittest
         }
     }
 
-    void registerTest(TestCase test)
+    void registerTest(const TestCase& test)
     {
         testRegistry().push_back(test);
     }

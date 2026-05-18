@@ -461,7 +461,6 @@
         <ClInclude Include="src\Backend\Micro\MicroPassContext.h"/>
         <ClInclude Include="src\Backend\Micro\MicroVerify.h"/>
         <ClInclude Include="src\Backend\Micro\Passes\Pass.SsaValuePropagation.Internal.h"/>
-        <ClInclude Include="src\Compiler\Sema\Ast\Sema.Function.Priv.h"/>
         <ClInclude Include="src\Compiler\Sema\Ast\Sema.Index.h"/>
         <ClInclude Include="src\Compiler\Sema\Ast\Sema.Loop.h"/>
         <ClInclude Include="src\Compiler\Sema\Ast\Sema.Switch.h"/>

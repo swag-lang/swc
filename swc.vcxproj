@@ -453,6 +453,7 @@
         <ClCompile Include="src\Compiler\Sema\Symbol\IdentifierManager.cpp"/>
         <ClCompile Include="src\Compiler\Sema\Symbol\Symbol.Enum.cpp"/>
         <ClCompile Include="src\Compiler\Sema\Symbol\Symbol.Function.cpp"/>
+        <ClCompile Include="src\Compiler\Sema\Symbol\Symbol.Function.Jit.cpp"/>
         <ClCompile Include="src\Compiler\Sema\Symbol\Symbol.Impl.cpp"/>
         <ClCompile Include="src\Compiler\Sema\Symbol\Symbol.Interface.cpp"/>
         <ClCompile Include="src\Compiler\Sema\Symbol\Symbol.Struct.cpp"/>

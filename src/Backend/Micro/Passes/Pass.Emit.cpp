@@ -230,7 +230,7 @@ void MicroEmitPass::encodeInstruction(const MicroPassContext& context, MicroInst
     encoder.onInstructionEncoded(inst, ops, instructionCodeStartOffset, encoder.size());
 
     if (emitDebugInfo)
-        encoder.addDebugSourceRange(instructionCodeStartOffset, encoder.size(), inst.sourceCodeRef, inst.debugNoStep);
+        encoder.addDebugSourceRange(instructionCodeStartOffset, encoder.size(), inst.debugSourceInfo);
 }
 
 Result MicroEmitPass::run(MicroPassContext& context)

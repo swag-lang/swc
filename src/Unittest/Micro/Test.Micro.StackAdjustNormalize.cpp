@@ -12,6 +12,11 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    bool sameSourceCodeRef(const SourceCodeRef& left, const SourceCodeRef& right)
+    {
+        return left.srcViewRef == right.srcViewRef && left.tokRef == right.tokRef;
+    }
+
     Result runStackAdjustNormalizePass(MicroBuilder& builder)
     {
         MicroStackAdjustNormalizePass pass;
@@ -219,6 +224,60 @@ SWC_TEST_BEGIN(MicroStackAdjustNormalize_HandlesBranchingDepths)
     if (thenStoreOffset != 16)
         return Result::Error;
     if (elseStoreOffset != 8)
+        return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(MicroStorage_InsertedInstructionsUseExplicitDebugInsertionKinds)
+{
+    MicroStorage        storage;
+    MicroOperandStorage operands;
+
+    auto [anchorRef, anchor]              = storage.emplaceUninit();
+    const SourceCodeRef anchorSourceCodeRef = {.srcViewRef = SourceViewRef(17), .tokRef = TokenRef(42)};
+    anchor->op                              = MicroInstrOpcode::Ret;
+    anchor->debugSourceInfo.sourceCodeRef   = anchorSourceCodeRef;
+
+    const MicroInstrRef derivedRef   = storage.insertDerivedBefore(operands, anchorRef, MicroInstrOpcode::Nop, {});
+    const MicroInstrRef syntheticRef = storage.insertSyntheticBefore(operands, anchorRef, MicroInstrOpcode::Breakpoint, {});
+    const MicroInstr*   derivedInst  = storage.ptr(derivedRef);
+    const MicroInstr*   syntheticInst = storage.ptr(syntheticRef);
+    if (!derivedInst || !syntheticInst)
+        return Result::Error;
+
+    if (!sameSourceCodeRef(derivedInst->debugSourceInfo.sourceCodeRef, anchorSourceCodeRef))
+        return Result::Error;
+    if (derivedInst->debugSourceInfo.debugNoStep)
+        return Result::Error;
+
+    if (!sameSourceCodeRef(syntheticInst->debugSourceInfo.sourceCodeRef, anchorSourceCodeRef))
+        return Result::Error;
+    if (!syntheticInst->debugSourceInfo.debugNoStep)
+        return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(MicroStorage_InsertBeforePreservesExplicitNoStepWhenSourceIsInherited)
+{
+    MicroStorage storage;
+
+    auto [anchorRef, anchor]              = storage.emplaceUninit();
+    const SourceCodeRef anchorSourceCodeRef = {.srcViewRef = SourceViewRef(23), .tokRef = TokenRef(99)};
+    anchor->op                              = MicroInstrOpcode::Ret;
+    anchor->debugSourceInfo.sourceCodeRef   = anchorSourceCodeRef;
+
+    MicroInstr insertedInst;
+    insertedInst.op                           = MicroInstrOpcode::Breakpoint;
+    insertedInst.debugSourceInfo.debugNoStep  = true;
+
+    const MicroInstrRef insertedRef   = storage.insertBefore(anchorRef, insertedInst);
+    const MicroInstr*   resultInst    = storage.ptr(insertedRef);
+    if (!resultInst)
+        return Result::Error;
+
+    if (!resultInst->debugSourceInfo.debugNoStep)
+        return Result::Error;
+    if (!sameSourceCodeRef(resultInst->debugSourceInfo.sourceCodeRef, anchorSourceCodeRef))
         return Result::Error;
 }
 SWC_TEST_END()

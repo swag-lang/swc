@@ -26,6 +26,13 @@ namespace
         inOutHash *= K_HASH_PRIME;
     }
 
+    void mixDebugSourceInfoHash(uint64_t& inOutHash, const DebugSourceInfo& debugSourceInfo)
+    {
+        mixHash(inOutHash, debugSourceInfo.debugNoStep ? 1 : 0);
+        mixHash(inOutHash, debugSourceInfo.sourceCodeRef.srcViewRef.isValid() ? debugSourceInfo.sourceCodeRef.srcViewRef.get() : K_HASH_INVALID);
+        mixHash(inOutHash, debugSourceInfo.sourceCodeRef.tokRef.isValid() ? debugSourceInfo.sourceCodeRef.tokRef.get() : K_HASH_INVALID);
+    }
+
     bool shouldLogVerifyError(const MicroPassContext& context)
     {
         if (!context.taskContext)
@@ -573,9 +580,7 @@ uint64_t MicroVerify::computeStructuralHash(const MicroPassContext& context)
 
         mixHash(hash, static_cast<uint8_t>(inst.op));
         mixHash(hash, inst.numOperands);
-        mixHash(hash, inst.debugNoStep ? 1 : 0);
-        mixHash(hash, inst.sourceCodeRef.srcViewRef.isValid() ? inst.sourceCodeRef.srcViewRef.get() : K_HASH_INVALID);
-        mixHash(hash, inst.sourceCodeRef.tokRef.isValid() ? inst.sourceCodeRef.tokRef.get() : K_HASH_INVALID);
+        mixDebugSourceInfoHash(hash, inst.debugSourceInfo);
 
         if (!inst.numOperands)
         {
@@ -724,9 +729,7 @@ Result MicroVerify::verify(const MicroPassContext& context, std::string_view pha
         {
             mixHash(*outStructuralHash, static_cast<uint8_t>(inst.op));
             mixHash(*outStructuralHash, inst.numOperands);
-            mixHash(*outStructuralHash, inst.debugNoStep ? 1 : 0);
-            mixHash(*outStructuralHash, inst.sourceCodeRef.srcViewRef.isValid() ? inst.sourceCodeRef.srcViewRef.get() : K_HASH_INVALID);
-            mixHash(*outStructuralHash, inst.sourceCodeRef.tokRef.isValid() ? inst.sourceCodeRef.tokRef.get() : K_HASH_INVALID);
+            mixDebugSourceInfoHash(*outStructuralHash, inst.debugSourceInfo);
 
             if (!inst.numOperands)
             {

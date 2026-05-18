@@ -80,8 +80,7 @@ void MicroBuilder::storeInstructionDebugInfo(MicroInstrRef instructionRef)
 
     MicroInstr* inst = instructions_.ptr(instructionRef);
     SWC_ASSERT(inst != nullptr);
-    inst->sourceCodeRef = currentDebugSourceCodeRef_;
-    inst->debugNoStep   = currentDebugNoStep_;
+    inst->debugSourceInfo = currentDebugSourceInfo_;
 }
 
 void MicroBuilder::setCurrentDebugSourceCodeRef(const SourceCodeRef& sourceCodeRef)
@@ -89,7 +88,7 @@ void MicroBuilder::setCurrentDebugSourceCodeRef(const SourceCodeRef& sourceCodeR
     if (!hasFlag(MicroBuilderFlagsE::DebugInfo))
         return;
 
-    currentDebugSourceCodeRef_ = sourceCodeRef;
+    currentDebugSourceInfo_.sourceCodeRef = sourceCodeRef;
 }
 
 void MicroBuilder::setCurrentDebugNoStep(const bool value)
@@ -97,19 +96,19 @@ void MicroBuilder::setCurrentDebugNoStep(const bool value)
     if (!hasFlag(MicroBuilderFlagsE::DebugInfo))
         return;
 
-    currentDebugNoStep_ = value;
+    currentDebugSourceInfo_.debugNoStep = value;
 }
 
-SourceCodeRef MicroBuilder::instructionSourceCodeRef(MicroInstrRef instructionRef) const
+DebugSourceInfo MicroBuilder::instructionDebugSourceInfo(MicroInstrRef instructionRef) const
 {
     if (!hasFlag(MicroBuilderFlagsE::DebugInfo))
-        return SourceCodeRef::invalid();
+        return {};
 
     const MicroInstr* inst = instructions_.ptr(instructionRef);
     if (!inst)
-        return SourceCodeRef::invalid();
+        return {};
 
-    return inst->sourceCodeRef;
+    return inst->debugSourceInfo;
 }
 
 void MicroBuilder::addRelocation(const MicroRelocation& relocation)
@@ -822,19 +821,18 @@ void MicroBuilder::setPrintLocation(Utf8 symbolName, Utf8 filePath, uint32_t sou
 
 void MicroBuilder::releaseMemory()
 {
-    instructions_                    = {};
-    operands_                        = {};
-    currentDebugSourceCodeRef_       = SourceCodeRef::invalid();
-    currentDebugNoStep_              = false;
-    printSymbolName_                 = Utf8();
-    printFilePath_                   = Utf8();
-    printSourceLine_                 = 0;
-    usesIntReturnRegOnRet_           = true;
-    usesFloatReturnRegOnRet_         = true;
-    printPassOptions_                = {};
-    labels_                          = {};
-    relocations_                     = {};
-    virtualRegForbiddenPhysRegs_     = {};
+    instructions_                = {};
+    operands_                    = {};
+    currentDebugSourceInfo_      = {};
+    printSymbolName_             = Utf8();
+    printFilePath_               = Utf8();
+    printSourceLine_             = 0;
+    usesIntReturnRegOnRet_       = true;
+    usesFloatReturnRegOnRet_     = true;
+    printPassOptions_            = {};
+    labels_                      = {};
+    relocations_                 = {};
+    virtualRegForbiddenPhysRegs_ = {};
     controlFlowGraph_                = {};
     controlFlowGraphStorageRevision_ = 0;
     controlFlowGraphHash_            = 0;

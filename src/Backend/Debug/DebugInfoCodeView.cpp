@@ -505,18 +505,16 @@ namespace
 
         for (const auto& range : code.debugSourceRanges)
         {
-            if (range.debugNoStep)
-                continue;
-            if (!range.sourceCodeRef.isValid())
+            if (range.debugSourceInfo.debugNoStep)
                 continue;
 
-            CompilerInstance::ResolvedSourceLocation resolvedLocation;
-            if (!ctx.compiler().tryResolveSourceLocation(ctx, resolvedLocation, range.sourceCodeRef) || !resolvedLocation.codeRange.line)
+            MachineCode::ResolvedDebugSourceRange resolvedRange;
+            if (!code.tryResolveDebugSourceRange(ctx, resolvedRange, range) || !resolvedRange.codeRange.line)
                 continue;
-            if (!resolvedLocation.sourceFile)
+            if (!resolvedRange.sourceFile)
                 continue;
 
-            const auto codeViewFileName = codeViewPathString(resolvedLocation.sourceFile->path());
+            const auto codeViewFileName = codeViewPathString(resolvedRange.sourceFile->path());
 
             size_t     blockIndex = 0;
             const auto blockIt    = blockIndices.find(codeViewFileName);
@@ -532,12 +530,12 @@ namespace
             }
 
             auto&          entries = result.blocks[blockIndex].entries;
-            const uint32_t line    = std::min<uint32_t>(resolvedLocation.codeRange.line, 0x00FFFFFFu);
+            const uint32_t line    = std::min<uint32_t>(resolvedRange.codeRange.line, 0x00FFFFFFu);
             if (!entries.empty() && entries.back().line == line)
                 continue;
 
             LineEntry entry;
-            entry.codeOffset = range.codeStartOffset;
+            entry.codeOffset = resolvedRange.debugRange->codeStartOffset;
             entry.line       = line;
             entries.push_back(entry);
         }

@@ -21,21 +21,18 @@ void Encoder::copyTo(ByteSpanRW dst) const
     store_.copyTo(dst);
 }
 
-void Encoder::addDebugSourceRange(const uint32_t codeStartOffset, const uint32_t codeEndOffset, const SourceCodeRef& sourceCodeRef, const bool debugNoStep)
+void Encoder::addDebugSourceRange(const uint32_t codeStartOffset, const uint32_t codeEndOffset, const DebugSourceInfo& debugSourceInfo)
 {
     if (codeEndOffset <= codeStartOffset)
         return;
 
-    if (!sourceCodeRef.isValid())
+    if (!debugSourceInfo.isValid())
         return;
 
     if (!debugSourceRanges_.empty())
     {
         EncoderDebugSourceRange& previous = debugSourceRanges_.back();
-        if (previous.codeEndOffset == codeStartOffset &&
-            previous.debugNoStep == debugNoStep &&
-            previous.sourceCodeRef.srcViewRef == sourceCodeRef.srcViewRef &&
-            previous.sourceCodeRef.tokRef == sourceCodeRef.tokRef)
+        if (previous.codeEndOffset == codeStartOffset && previous.debugSourceInfo.sameAs(debugSourceInfo))
         {
             previous.codeEndOffset = codeEndOffset;
             return;
@@ -45,8 +42,7 @@ void Encoder::addDebugSourceRange(const uint32_t codeStartOffset, const uint32_t
     EncoderDebugSourceRange range;
     range.codeStartOffset = codeStartOffset;
     range.codeEndOffset   = codeEndOffset;
-    range.sourceCodeRef   = sourceCodeRef;
-    range.debugNoStep     = debugNoStep;
+    range.debugSourceInfo = debugSourceInfo;
     debugSourceRanges_.push_back(range);
 }
 

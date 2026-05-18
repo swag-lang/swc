@@ -332,7 +332,7 @@ namespace
             addOps[1].opBits   = MicroOpBits::B64;
             addOps[2].microOp  = MicroOp::Add;
             addOps[3].valueU64 = delta;
-            context.instructions->insertBefore(*context.operands, nextIt.current, MicroInstrOpcode::OpBinaryRegImm, addOps, true);
+            context.instructions->insertSyntheticBefore(*context.operands, nextIt.current, MicroInstrOpcode::OpBinaryRegImm, addOps);
         }
     }
 }
@@ -381,14 +381,14 @@ Result MicroStackAdjustNormalizePass::run(MicroPassContext& context)
     stackAdjustOps[1].opBits   = MicroOpBits::B64;
     stackAdjustOps[2].microOp  = MicroOp::Subtract;
     stackAdjustOps[3].valueU64 = analysisResult.frameSize;
-    context.instructions->insertBefore(*context.operands, beginIt.current, MicroInstrOpcode::OpBinaryRegImm, stackAdjustOps, true);
+    context.instructions->insertSyntheticBefore(*context.operands, beginIt.current, MicroInstrOpcode::OpBinaryRegImm, stackAdjustOps);
 
     stackAdjustOps[2].microOp = MicroOp::Add;
     for (const MicroInstrRef retRef : retRefs)
     {
         if (!context.instructions->ptr(retRef))
             continue;
-        context.instructions->insertBefore(*context.operands, retRef, MicroInstrOpcode::OpBinaryRegImm, stackAdjustOps, true);
+        context.instructions->insertSyntheticBefore(*context.operands, retRef, MicroInstrOpcode::OpBinaryRegImm, stackAdjustOps);
     }
 
     context.passChanged = true;

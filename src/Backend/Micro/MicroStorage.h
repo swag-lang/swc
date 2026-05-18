@@ -98,7 +98,8 @@ public:
     MicroInstrRef                         findNextInstructionRef(MicroInstrRef afterRef) const noexcept;
     MicroInstrRef                         findPreviousInstructionRef(MicroInstrRef beforeRef) const noexcept;
     MicroInstrRef                         insertBefore(MicroInstrRef beforeRef, const MicroInstr& value);
-    MicroInstrRef                         insertBefore(MicroOperandStorage& operands, MicroInstrRef beforeRef, MicroInstrOpcode op, std::span<const MicroInstrOperand> opsData, bool debugNoStep = false);
+    MicroInstrRef                         insertDerivedBefore(MicroOperandStorage& operands, MicroInstrRef beforeRef, MicroInstrOpcode op, std::span<const MicroInstrOperand> opsData);
+    MicroInstrRef                         insertSyntheticBefore(MicroOperandStorage& operands, MicroInstrRef beforeRef, MicroInstrOpcode op, std::span<const MicroInstrOperand> opsData);
     View                                  view() noexcept;
     ConstView                             view() const noexcept;
 
@@ -111,7 +112,9 @@ private:
         bool          alive = false;
     };
 
+    void          completeInsertedDebugSourceInfo(MicroInstrRef beforeRef, MicroInstr& inOutInstruction) const;
     MicroInstrRef allocNode();
+    MicroInstrRef insertBefore(MicroOperandStorage& operands, MicroInstrRef beforeRef, MicroInstrOpcode op, std::span<const MicroInstrOperand> opsData, const DebugSourceInfo& debugSourceInfo);
     void          linkAtEnd(MicroInstrRef ref);
 
     std::vector<Node>          nodes_;

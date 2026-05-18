@@ -7,6 +7,45 @@
 
 SWC_BEGIN_NAMESPACE();
 
+const MachineCode::DebugSourceRange* MachineCode::findDebugSourceRangeAtOffset(const uint32_t codeOffset) const
+{
+    for (const auto& range : debugSourceRanges)
+    {
+        if (codeOffset < range.codeStartOffset || codeOffset >= range.codeEndOffset)
+            continue;
+        return &range;
+    }
+
+    return nullptr;
+}
+
+bool MachineCode::tryResolveDebugSourceRange(const TaskContext& ctx, ResolvedDebugSourceRange& outResolvedRange, const DebugSourceRange& range) const
+{
+    outResolvedRange = {};
+    if (!range.debugSourceInfo.isValid())
+        return false;
+
+    CompilerInstance::ResolvedSourceLocation resolvedLocation;
+    if (!ctx.compiler().tryResolveSourceLocation(ctx, resolvedLocation, range.debugSourceInfo.sourceCodeRef))
+        return false;
+
+    outResolvedRange.debugRange = &range;
+    outResolvedRange.codeRange  = resolvedLocation.codeRange;
+    outResolvedRange.sourceFile = resolvedLocation.sourceFile;
+    return true;
+}
+
+bool MachineCode::tryResolveDebugSourceRangeAtOffset(const TaskContext& ctx, ResolvedDebugSourceRange& outResolvedRange, const uint32_t codeOffset) const
+{
+    outResolvedRange = {};
+
+    const auto* range = findDebugSourceRangeAtOffset(codeOffset);
+    if (!range)
+        return false;
+
+    return tryResolveDebugSourceRange(ctx, outResolvedRange, *range);
+}
+
 Result MachineCode::emit(TaskContext& ctx, MicroBuilder& builder)
 {
     const Runtime::BuildCfgBackend& backendBuildCfg   = ctx.compiler().buildCfg().backend;

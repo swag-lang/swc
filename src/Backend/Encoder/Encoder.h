@@ -45,12 +45,26 @@ struct MicroConformanceIssue
     MicroReg                  scratchReg;
 };
 
+struct DebugSourceInfo
+{
+    SourceCodeRef sourceCodeRef = SourceCodeRef::invalid();
+    bool          debugNoStep   = false;
+
+    bool isValid() const { return sourceCodeRef.isValid(); }
+
+    bool sameAs(const DebugSourceInfo& other) const
+    {
+        return debugNoStep == other.debugNoStep &&
+               sourceCodeRef.srcViewRef == other.sourceCodeRef.srcViewRef &&
+               sourceCodeRef.tokRef == other.sourceCodeRef.tokRef;
+    }
+};
+
 struct EncoderDebugSourceRange
 {
-    uint32_t      codeStartOffset = 0;
-    uint32_t      codeEndOffset   = 0;
-    SourceCodeRef sourceCodeRef   = SourceCodeRef::invalid();
-    bool          debugNoStep     = false;
+    uint32_t        codeStartOffset = 0;
+    uint32_t        codeEndOffset   = 0;
+    DebugSourceInfo debugSourceInfo;
 };
 
 class Encoder
@@ -66,7 +80,7 @@ public:
     uint8_t                                     byteAt(uint32_t index) const;
     void                                        copyTo(ByteSpanRW dst) const;
     void                                        clearDebugSourceRanges() { debugSourceRanges_.clear(); }
-    void                                        addDebugSourceRange(uint32_t codeStartOffset, uint32_t codeEndOffset, const SourceCodeRef& sourceCodeRef, bool debugNoStep = false);
+    void                                        addDebugSourceRange(uint32_t codeStartOffset, uint32_t codeEndOffset, const DebugSourceInfo& debugSourceInfo);
     const std::vector<EncoderDebugSourceRange>& debugSourceRanges() const { return debugSourceRanges_; }
     void                                        setBackendBuildCfg(const Runtime::BuildCfgBackend& value) { backendBuildCfg_ = value; }
     const Runtime::BuildCfgBackend&             backendBuildCfg() const { return backendBuildCfg_; }

@@ -297,8 +297,7 @@ MicroInstrRef MicroStorage::insertBefore(MicroInstrRef beforeRef, const MicroIns
     const MicroInstrRef ref  = allocNode();
     Node&               node = nodes_[ref.get()];
     node.instr               = value;
-    if (!node.instr.sourceCodeRef.isValid())
-        node.instr.sourceCodeRef = nodes_[beforeRef.get()].instr.sourceCodeRef;
+    completeInsertedDebugSourceInfo(beforeRef, node.instr);
     const MicroInstrRef prev     = nodes_[beforeRef.get()].prev;
     node.prev                    = prev;
     node.next                    = beforeRef;
@@ -313,12 +312,32 @@ MicroInstrRef MicroStorage::insertBefore(MicroInstrRef beforeRef, const MicroIns
     return ref;
 }
 
-MicroInstrRef MicroStorage::insertBefore(MicroOperandStorage& operands, MicroInstrRef beforeRef, MicroInstrOpcode op, std::span<const MicroInstrOperand> opsData, const bool debugNoStep)
+MicroInstrRef MicroStorage::insertDerivedBefore(MicroOperandStorage& operands, MicroInstrRef beforeRef, MicroInstrOpcode op, std::span<const MicroInstrOperand> opsData)
+{
+    return insertBefore(operands, beforeRef, op, opsData, {});
+}
+
+MicroInstrRef MicroStorage::insertSyntheticBefore(MicroOperandStorage& operands, MicroInstrRef beforeRef, MicroInstrOpcode op, std::span<const MicroInstrOperand> opsData)
+{
+    DebugSourceInfo debugSourceInfo;
+    debugSourceInfo.debugNoStep = true;
+    return insertBefore(operands, beforeRef, op, opsData, debugSourceInfo);
+}
+
+void MicroStorage::completeInsertedDebugSourceInfo(MicroInstrRef beforeRef, MicroInstr& inOutInstruction) const
+{
+    if (inOutInstruction.debugSourceInfo.isValid())
+        return;
+
+    inOutInstruction.debugSourceInfo.sourceCodeRef = nodes_[beforeRef.get()].instr.debugSourceInfo.sourceCodeRef;
+}
+
+MicroInstrRef MicroStorage::insertBefore(MicroOperandStorage& operands, MicroInstrRef beforeRef, MicroInstrOpcode op, std::span<const MicroInstrOperand> opsData, const DebugSourceInfo& debugSourceInfo)
 {
     MicroInstr inst;
-    inst.op          = op;
-    inst.numOperands = static_cast<uint8_t>(opsData.size());
-    inst.debugNoStep = debugNoStep;
+    inst.op              = op;
+    inst.numOperands     = static_cast<uint8_t>(opsData.size());
+    inst.debugSourceInfo = debugSourceInfo;
 
     if (!opsData.empty())
     {

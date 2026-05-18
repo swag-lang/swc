@@ -256,7 +256,7 @@ namespace
         stackAdjustOps[1].opBits   = MicroOpBits::B64;
         stackAdjustOps[2].microOp  = MicroOp::Subtract;
         stackAdjustOps[3].valueU64 = frameSize;
-        context.instructions->insertBefore(*context.operands, firstRef, MicroInstrOpcode::OpBinaryRegImm, stackAdjustOps, true);
+        context.instructions->insertSyntheticBefore(*context.operands, firstRef, MicroInstrOpcode::OpBinaryRegImm, stackAdjustOps);
 
         std::vector<MicroInstrRef> retRefs;
         for (auto it = context.instructions->view().begin(); it != context.instructions->view().end(); ++it)
@@ -267,7 +267,7 @@ namespace
 
         stackAdjustOps[2].microOp = MicroOp::Add;
         for (const MicroInstrRef retRef : retRefs)
-            context.instructions->insertBefore(*context.operands, retRef, MicroInstrOpcode::OpBinaryRegImm, stackAdjustOps, true);
+            context.instructions->insertSyntheticBefore(*context.operands, retRef, MicroInstrOpcode::OpBinaryRegImm, stackAdjustOps);
     }
 
     void removeInstruction(const MicroPassContext& context, MicroInstrRef instRef)
@@ -309,14 +309,14 @@ namespace
         lowOps[1].opBits   = MicroOpBits::B32;
         lowOps[2].valueU64 = memOffset;
         lowOps[3].valueU64 = lowU32;
-        context.instructions->insertBefore(*context.operands, instRef, MicroInstrOpcode::LoadMemImm, lowOps);
+        context.instructions->insertDerivedBefore(*context.operands, instRef, MicroInstrOpcode::LoadMemImm, lowOps);
 
         std::array<MicroInstrOperand, 4> highOps;
         highOps[0].reg      = memReg;
         highOps[1].opBits   = MicroOpBits::B32;
         highOps[2].valueU64 = memOffset + 4;
         highOps[3].valueU64 = highU32;
-        context.instructions->insertBefore(*context.operands, instRef, MicroInstrOpcode::LoadMemImm, highOps);
+        context.instructions->insertDerivedBefore(*context.operands, instRef, MicroInstrOpcode::LoadMemImm, highOps);
         removeInstruction(context, instRef);
     }
 
@@ -344,7 +344,7 @@ namespace
         lowOps[5].valueU64 = mulValue;
         lowOps[6].valueU64 = addValue;
         lowOps[7].valueU64 = lowU32;
-        context.instructions->insertBefore(*context.operands, instRef, MicroInstrOpcode::LoadAmcMemImm, lowOps);
+        context.instructions->insertDerivedBefore(*context.operands, instRef, MicroInstrOpcode::LoadAmcMemImm, lowOps);
 
         std::array<MicroInstrOperand, 8> highOps;
         highOps[0].reg      = regBase;
@@ -354,7 +354,7 @@ namespace
         highOps[5].valueU64 = mulValue;
         highOps[6].valueU64 = addValue + 4;
         highOps[7].valueU64 = highU32;
-        context.instructions->insertBefore(*context.operands, instRef, MicroInstrOpcode::LoadAmcMemImm, highOps);
+        context.instructions->insertDerivedBefore(*context.operands, instRef, MicroInstrOpcode::LoadAmcMemImm, highOps);
         removeInstruction(context, instRef);
     }
 
@@ -383,13 +383,13 @@ namespace
         loadImmOps[0].reg    = scratchReg;
         loadImmOps[1].opBits = opBits;
         loadImmOps[2]        = ops[2];
-        context.instructions->insertBefore(*context.operands, instRef, inst.op, loadImmOps);
+        context.instructions->insertDerivedBefore(*context.operands, instRef, inst.op, loadImmOps);
 
         std::array<MicroInstrOperand, 3> moveOps;
         moveOps[0].reg    = dstReg;
         moveOps[1].reg    = scratchReg;
         moveOps[2].opBits = opBits;
-        context.instructions->insertBefore(*context.operands, instRef, MicroInstrOpcode::LoadRegReg, moveOps);
+        context.instructions->insertDerivedBefore(*context.operands, instRef, MicroInstrOpcode::LoadRegReg, moveOps);
 
         removeInstruction(context, instRef);
     }
@@ -421,7 +421,7 @@ namespace
             moveOps[0].reg    = scaledIndexReg;
             moveOps[1].reg    = indexReg;
             moveOps[2].opBits = MicroOpBits::B64;
-            context.instructions->insertBefore(*context.operands, instRef, MicroInstrOpcode::LoadRegReg, moveOps);
+            context.instructions->insertDerivedBefore(*context.operands, instRef, MicroInstrOpcode::LoadRegReg, moveOps);
         }
 
         if (mulValue != 1)
@@ -431,7 +431,7 @@ namespace
             mulOps[1].opBits   = MicroOpBits::B64;
             mulOps[2].microOp  = MicroOp::MultiplySigned;
             mulOps[3].valueU64 = mulValue;
-            context.instructions->insertBefore(*context.operands, instRef, MicroInstrOpcode::OpBinaryRegImm, mulOps);
+            context.instructions->insertDerivedBefore(*context.operands, instRef, MicroInstrOpcode::OpBinaryRegImm, mulOps);
         }
 
         std::array<MicroInstrOperand, 4> addBaseOps;
@@ -439,7 +439,7 @@ namespace
         addBaseOps[1].reg     = dstReg == baseReg ? scaledIndexReg : baseReg;
         addBaseOps[2].opBits  = MicroOpBits::B64;
         addBaseOps[3].microOp = MicroOp::Add;
-        context.instructions->insertBefore(*context.operands, instRef, MicroInstrOpcode::OpBinaryRegReg, addBaseOps);
+        context.instructions->insertDerivedBefore(*context.operands, instRef, MicroInstrOpcode::OpBinaryRegReg, addBaseOps);
 
         if (addValue)
         {
@@ -448,7 +448,7 @@ namespace
             addImmOps[1].opBits   = MicroOpBits::B64;
             addImmOps[2].microOp  = MicroOp::Add;
             addImmOps[3].valueU64 = addValue;
-            context.instructions->insertBefore(*context.operands, instRef, MicroInstrOpcode::OpBinaryRegImm, addImmOps);
+            context.instructions->insertDerivedBefore(*context.operands, instRef, MicroInstrOpcode::OpBinaryRegImm, addImmOps);
         }
 
         removeInstruction(context, instRef);
@@ -460,7 +460,7 @@ namespace
         ops[0].reg    = dstReg;
         ops[1].reg    = srcReg;
         ops[2].opBits = opBits;
-        context.instructions->insertBefore(*context.operands, instRef, MicroInstrOpcode::LoadRegReg, ops);
+        context.instructions->insertDerivedBefore(*context.operands, instRef, MicroInstrOpcode::LoadRegReg, ops);
     }
 
     void insertLoadRegMem(const MicroPassContext& context, MicroInstrRef instRef, MicroReg dstReg, MicroReg memReg, uint64_t memOffset, MicroOpBits opBits)
@@ -470,7 +470,7 @@ namespace
         ops[1].reg      = memReg;
         ops[2].opBits   = opBits;
         ops[3].valueU64 = memOffset;
-        context.instructions->insertBefore(*context.operands, instRef, MicroInstrOpcode::LoadRegMem, ops);
+        context.instructions->insertDerivedBefore(*context.operands, instRef, MicroInstrOpcode::LoadRegMem, ops);
     }
 
     void insertLoadMemReg(const MicroPassContext& context, MicroInstrRef instRef, MicroReg memReg, uint64_t memOffset, MicroReg srcReg, MicroOpBits opBits)
@@ -480,7 +480,7 @@ namespace
         ops[1].reg      = srcReg;
         ops[2].opBits   = opBits;
         ops[3].valueU64 = memOffset;
-        context.instructions->insertBefore(*context.operands, instRef, MicroInstrOpcode::LoadMemReg, ops);
+        context.instructions->insertDerivedBefore(*context.operands, instRef, MicroInstrOpcode::LoadMemReg, ops);
     }
 
     void insertBinaryRegReg(const MicroPassContext& context, MicroInstrRef instRef, MicroReg dstReg, MicroReg srcReg, MicroOp op, MicroOpBits opBits)
@@ -490,7 +490,7 @@ namespace
         ops[1].reg     = srcReg;
         ops[2].opBits  = opBits;
         ops[3].microOp = op;
-        context.instructions->insertBefore(*context.operands, instRef, MicroInstrOpcode::OpBinaryRegReg, ops);
+        context.instructions->insertDerivedBefore(*context.operands, instRef, MicroInstrOpcode::OpBinaryRegReg, ops);
     }
 
     void insertBinaryMemReg(const MicroPassContext& context, MicroInstrRef instRef, MicroReg memReg, uint64_t memOffset, MicroReg srcReg, MicroOp op, MicroOpBits opBits)
@@ -501,7 +501,7 @@ namespace
         ops[2].opBits   = opBits;
         ops[3].microOp  = op;
         ops[4].valueU64 = memOffset;
-        context.instructions->insertBefore(*context.operands, instRef, MicroInstrOpcode::OpBinaryMemReg, ops);
+        context.instructions->insertDerivedBefore(*context.operands, instRef, MicroInstrOpcode::OpBinaryMemReg, ops);
     }
 
     void insertCmpRegReg(const MicroPassContext& context, MicroInstrRef instRef, MicroReg lhsReg, MicroReg rhsReg, MicroOpBits opBits)
@@ -510,7 +510,7 @@ namespace
         ops[0].reg    = lhsReg;
         ops[1].reg    = rhsReg;
         ops[2].opBits = opBits;
-        context.instructions->insertBefore(*context.operands, instRef, MicroInstrOpcode::CmpRegReg, ops);
+        context.instructions->insertDerivedBefore(*context.operands, instRef, MicroInstrOpcode::CmpRegReg, ops);
     }
 
     void insertCmpMemReg(const MicroPassContext& context, MicroInstrRef instRef, MicroReg memReg, uint64_t memOffset, MicroReg rhsReg, MicroOpBits opBits)
@@ -520,7 +520,7 @@ namespace
         ops[1].reg      = rhsReg;
         ops[2].opBits   = opBits;
         ops[3].valueU64 = memOffset;
-        context.instructions->insertBefore(*context.operands, instRef, MicroInstrOpcode::CmpMemReg, ops);
+        context.instructions->insertDerivedBefore(*context.operands, instRef, MicroInstrOpcode::CmpMemReg, ops);
     }
 
     void insertTernaryRegRegReg(const MicroPassContext& context, MicroInstrRef instRef, MicroReg reg0, MicroReg reg1, MicroReg reg2, MicroOp op, MicroOpBits opBits)
@@ -531,7 +531,7 @@ namespace
         ops[2].reg     = reg2;
         ops[3].opBits  = opBits;
         ops[4].microOp = op;
-        context.instructions->insertBefore(*context.operands, instRef, MicroInstrOpcode::OpTernaryRegRegReg, ops);
+        context.instructions->insertDerivedBefore(*context.operands, instRef, MicroInstrOpcode::OpTernaryRegRegReg, ops);
     }
 
     void insertLoadRegImm(const MicroPassContext& context, MicroInstrRef instRef, MicroReg dstReg, MicroOpBits opBits, const MicroInstrOperand& immOperand)
@@ -540,7 +540,7 @@ namespace
         ops[0].reg    = dstReg;
         ops[1].opBits = opBits;
         ops[2]        = immOperand;
-        context.instructions->insertBefore(*context.operands, instRef, MicroInstrOpcode::LoadRegImm, ops);
+        context.instructions->insertDerivedBefore(*context.operands, instRef, MicroInstrOpcode::LoadRegImm, ops);
     }
 
     void applyRewriteRegImmToRegReg(const MicroPassContext& context, MicroInstrRef instRef, const MicroInstr& inst, const MicroInstrOperand* ops, const MicroConformanceIssue& issue, uint32_t& nextVirtualIntRegIndex)

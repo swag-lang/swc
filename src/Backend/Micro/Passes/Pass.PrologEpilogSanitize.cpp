@@ -208,7 +208,7 @@ namespace
             if (!insertBeforeRef.isValid())
                 return false;
 
-            context.instructions->insertBefore(*context.operands, insertBeforeRef, MicroInstrOpcode::LoadRegReg, setFrameOps, true);
+            context.instructions->insertSyntheticBefore(*context.operands, insertBeforeRef, MicroInstrOpcode::LoadRegReg, setFrameOps);
             return true;
         }
 
@@ -218,7 +218,7 @@ namespace
         if (framePointerSetupRefs.size() == 1 && framePointerSetupRefs.front() == insertBeforeRef)
             return false;
 
-        context.instructions->insertBefore(*context.operands, insertBeforeRef, MicroInstrOpcode::LoadRegReg, setFrameOps, true);
+        context.instructions->insertSyntheticBefore(*context.operands, insertBeforeRef, MicroInstrOpcode::LoadRegReg, setFrameOps);
 
         bool changed = true;
         for (const MicroInstrRef ref : framePointerSetupRefs)
@@ -322,11 +322,11 @@ namespace
             {
                 remaining -= K_WINDOWS_STACK_PROBE_PAGE_SIZE;
                 probeOps[3].valueU64 = remaining;
-                context.instructions->insertBefore(*context.operands, insertBeforeRef, MicroInstrOpcode::LoadRegMem, probeOps, true);
+                context.instructions->insertSyntheticBefore(*context.operands, insertBeforeRef, MicroInstrOpcode::LoadRegMem, probeOps);
             }
 
             probeOps[3].valueU64 = 0;
-            context.instructions->insertBefore(*context.operands, insertBeforeRef, MicroInstrOpcode::LoadRegMem, probeOps, true);
+            context.instructions->insertSyntheticBefore(*context.operands, insertBeforeRef, MicroInstrOpcode::LoadRegMem, probeOps);
             return true;
         }
 

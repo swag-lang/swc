@@ -96,13 +96,6 @@ namespace
         uint32_t              codeOffset   = 0;
     };
 
-    struct JitCrashSourceMatch
-    {
-        CompilerInstance::ResolvedSourceLocation resolvedLocation;
-        uint32_t                                 codeStartOffset = 0;
-        uint32_t                                 codeEndOffset   = 0;
-    };
-
     bool asciiEqualsIgnoreCase(const std::string_view left, const std::string_view right)
     {
         if (left.size() != right.size())
@@ -1335,33 +1328,13 @@ namespace
         return false;
     }
 
-    const MachineCode::DebugSourceRange* findDebugSourceRangeAtOffset(const MachineCode& code, uint32_t codeOffset)
-    {
-        for (const auto& range : code.debugSourceRanges)
-        {
-            if (codeOffset < range.codeStartOffset || codeOffset >= range.codeEndOffset)
-                continue;
-            return &range;
-        }
-
-        return nullptr;
-    }
-
-    bool tryResolveJitCrashSourceMatch(const TaskContext& ctx, const JitCrashFunctionMatch& functionMatch, JitCrashSourceMatch& outSourceMatch)
+    bool tryResolveJitCrashSourceMatch(const TaskContext& ctx, const JitCrashFunctionMatch& functionMatch, MachineCode::ResolvedDebugSourceRange& outSourceMatch)
     {
         outSourceMatch = {};
         if (!functionMatch.machineCode)
             return false;
 
-        const auto* range = findDebugSourceRangeAtOffset(*functionMatch.machineCode, functionMatch.codeOffset);
-        if (!range || !range->sourceCodeRef.isValid())
-            return false;
-        if (!ctx.compiler().tryResolveSourceLocation(ctx, outSourceMatch.resolvedLocation, range->sourceCodeRef))
-            return false;
-
-        outSourceMatch.codeStartOffset = range->codeStartOffset;
-        outSourceMatch.codeEndOffset   = range->codeEndOffset;
-        return true;
+        return functionMatch.machineCode->tryResolveDebugSourceRangeAtOffset(ctx, outSourceMatch, functionMatch.codeOffset);
     }
 
     void appendCurrentJitFunctionContext(Utf8& out, const TaskContext& ctx)
@@ -1434,12 +1407,13 @@ namespace
         out += std::format("jit entry: 0x{:016X}\n", functionMatch.entryAddress);
         out += std::format("jit offset: 0x{:X}\n", functionMatch.codeOffset);
 
-        JitCrashSourceMatch sourceMatch;
+        MachineCode::ResolvedDebugSourceRange sourceMatch;
         if (tryResolveJitCrashSourceMatch(ctx, functionMatch, sourceMatch))
         {
-            if (sourceMatch.resolvedLocation.sourceFile)
-                out += std::format("jit source: {}:{}:{}\n", sourceMatch.resolvedLocation.sourceFile->path().string(), sourceMatch.resolvedLocation.codeRange.line, sourceMatch.resolvedLocation.codeRange.column);
-            out += std::format("jit source span: [0x{:X}, 0x{:X})\n", sourceMatch.codeStartOffset, sourceMatch.codeEndOffset);
+            if (sourceMatch.sourceFile)
+                out += std::format("jit source: {}:{}:{}\n", sourceMatch.sourceFile->path().string(), sourceMatch.codeRange.line, sourceMatch.codeRange.column);
+            SWC_ASSERT(sourceMatch.debugRange != nullptr);
+            out += std::format("jit source span: [0x{:X}, 0x{:X})\n", sourceMatch.debugRange->codeStartOffset, sourceMatch.debugRange->codeEndOffset);
         }
 
         appendJitByteDump(out, *functionMatch.machineCode, functionMatch.codeOffset);

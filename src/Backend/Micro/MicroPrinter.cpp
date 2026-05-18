@@ -53,10 +53,10 @@ namespace
         if (!builder || !builder->hasFlag(MicroBuilderFlagsE::DebugInfo))
             return false;
 
-        const SourceCodeRef sourceCodeRef = builder->instructionSourceCodeRef(instRef);
-        if (!sourceCodeRef.isValid())
+        const DebugSourceInfo debugSourceInfo = builder->instructionDebugSourceInfo(instRef);
+        if (!debugSourceInfo.isValid())
             return false;
-        if (!ctx.compiler().tryResolveSourceLocation(ctx, outResolvedLocation, sourceCodeRef))
+        if (!ctx.compiler().tryResolveSourceLocation(ctx, outResolvedLocation, debugSourceInfo.sourceCodeRef))
             return false;
         if (!outResolvedLocation.codeRange.line)
             return false;

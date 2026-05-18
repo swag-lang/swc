@@ -633,6 +633,9 @@
     <ClCompile Include="src\Main\ModuleApi.cpp">
       <Filter>src\Main</Filter>
     </ClCompile>
+    <ClCompile Include="src\Main\ModuleApi.Export.cpp">
+      <Filter>src\Main</Filter>
+    </ClCompile>
     <ClCompile Include="src\Main\ModuleApi.Symbol.cpp">
       <Filter>src\Main</Filter>
     </ClCompile>

@@ -328,6 +328,7 @@
         <ClCompile Include="src\Main\CompilerInstance.Message.cpp"/>
         <ClCompile Include="src\Main\ExternalModuleManager.cpp"/>
         <ClCompile Include="src\Main\ModuleApi.cpp"/>
+        <ClCompile Include="src\Main\ModuleApi.Export.cpp"/>
         <ClCompile Include="src\Main\ModuleApi.Symbol.cpp"/>
         <ClCompile Include="src\Main\Stats.cpp"/>
         <ClCompile Include="src\Main\StructConfig.cpp"/>

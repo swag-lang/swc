@@ -867,6 +867,9 @@
     <ClCompile Include="src\Compiler\Sema\Cast\Cast.Convert.cpp">
       <Filter>src\Compiler\Sema\Cast</Filter>
     </ClCompile>
+    <ClCompile Include="src\Compiler\Sema\Cast\Cast.Runtime.cpp">
+      <Filter>src\Compiler\Sema\Cast</Filter>
+    </ClCompile>
     <ClCompile Include="src\Compiler\Sema\Cast\CastRequest.cpp">
       <Filter>src\Compiler\Sema\Cast</Filter>
     </ClCompile>

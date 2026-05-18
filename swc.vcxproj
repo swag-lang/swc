@@ -414,6 +414,7 @@
         <ClCompile Include="src\Compiler\Sema\Cast\Cast.Cast.cpp"/>
         <ClCompile Include="src\Compiler\Sema\Cast\Cast.Const.cpp"/>
         <ClCompile Include="src\Compiler\Sema\Cast\Cast.Convert.cpp"/>
+        <ClCompile Include="src\Compiler\Sema\Cast\Cast.Runtime.cpp"/>
         <ClCompile Include="src\Compiler\Sema\Cast\CastRequest.cpp"/>
         <ClCompile Include="src\Compiler\Sema\Cast\CastFailure.cpp"/>
         <ClCompile Include="src\Compiler\Sema\Cast\Cast.Struct.cpp"/>

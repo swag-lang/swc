@@ -783,16 +783,116 @@ namespace
         return Result::Continue;
     }
 
-    Diagnostic reportFunctionConstraintDiag(Sema& sema, DiagnosticId diagId, const SymbolFunction& function, AstNodeRef errorNodeRef, AstNodeRef whereRef, const Utf8& bindings)
+    enum class GenericConstraintOutcomeKind : uint8_t
     {
-        const AstNodeRef mainRef = errorNodeRef.isValid() ? errorNodeRef : function.declNodeRef();
-        auto             diag    = SemaError::report(sema, diagId, mainRef);
-        diag.addArgument(Diagnostic::ARG_SYM, function.name(sema.ctx()));
+        Satisfied,
+        NotBool,
+        NotConst,
+        Failed,
+    };
 
-        if (!bindings.empty())
+    struct GenericConstraintDiagnosticIds
+    {
+        DiagnosticId notBool  = DiagnosticId::None;
+        DiagnosticId notConst = DiagnosticId::None;
+        DiagnosticId failed   = DiagnosticId::None;
+    };
+
+    struct GenericConstraintContext
+    {
+        const Symbol*                               root       = nullptr;
+        std::span<const SemaClone::ParamBinding>    bindings;
+        SpanRef                                     spanWhereRef = SpanRef::invalid();
+        AstNodeRef                                  mainRef      = AstNodeRef::invalid();
+        std::string_view                            symbolName;
+        const Utf8*                                 bindingText = nullptr;
+        GenericConstraintDiagnosticIds              diagIds;
+    };
+
+    struct GenericConstraintOutcome
+    {
+        GenericConstraintOutcomeKind kind    = GenericConstraintOutcomeKind::Satisfied;
+        TypeRef                      typeRef = TypeRef::invalid();
+    };
+
+    GenericConstraintContext makeFunctionConstraintContext(Sema& sema, const SymbolFunction& function, std::span<const SemaClone::ParamBinding> bindings, AstNodeRef errorNodeRef, const Utf8& bindingText)
+    {
+        GenericConstraintContext context;
+        context.root         = &function;
+        context.bindings     = bindings;
+        context.mainRef      = errorNodeRef.isValid() ? errorNodeRef : function.declNodeRef();
+        context.symbolName   = function.name(sema.ctx());
+        context.bindingText  = &bindingText;
+        context.diagIds      = {
+                 .notBool  = DiagnosticId::sema_err_function_where_not_bool,
+                 .notConst = DiagnosticId::sema_err_function_where_not_const,
+                 .failed   = DiagnosticId::sema_err_function_where_failed,
+        };
+        if (const auto* decl = genericFunctionDecl(function))
+            context.spanWhereRef = decl->spanConstraintsRef;
+        return context;
+    }
+
+    GenericConstraintContext makeStructConstraintContext(Sema& sema, const SymbolStruct& root, std::span<const SemaClone::ParamBinding> bindings, AstNodeRef errorNodeRef, const Utf8& bindingText)
+    {
+        GenericConstraintContext context;
+        context.root         = &root;
+        context.bindings     = bindings;
+        context.spanWhereRef = genericStructWhereSpan(root);
+        context.mainRef      = errorNodeRef.isValid() ? errorNodeRef : root.declNodeRef();
+        context.symbolName   = root.name(sema.ctx());
+        context.bindingText  = &bindingText;
+        context.diagIds      = {
+                 .notBool  = DiagnosticId::sema_err_generic_struct_where_not_bool,
+                 .notConst = DiagnosticId::sema_err_generic_struct_where_not_const,
+                 .failed   = DiagnosticId::sema_err_generic_struct_where_failed,
+        };
+        return context;
+    }
+
+    bool hasGenericConstraintBindingText(const GenericConstraintContext& context)
+    {
+        return context.bindingText && !context.bindingText->empty();
+    }
+
+    DiagnosticId genericConstraintDiagId(const GenericConstraintContext& context, const GenericConstraintOutcomeKind outcomeKind)
+    {
+        switch (outcomeKind)
+        {
+            case GenericConstraintOutcomeKind::NotBool:
+                return context.diagIds.notBool;
+            case GenericConstraintOutcomeKind::NotConst:
+                return context.diagIds.notConst;
+            case GenericConstraintOutcomeKind::Failed:
+                return context.diagIds.failed;
+            case GenericConstraintOutcomeKind::Satisfied:
+                break;
+        }
+
+        SWC_UNREACHABLE();
+    }
+
+    GenericConstraintOutcome classifyGenericConstraintOutcome(Sema& sema, const SemaNodeView& whereView)
+    {
+        if (!whereView.typeRef().isValid() || !whereView.type()->isBool())
+            return {.kind = GenericConstraintOutcomeKind::NotBool, .typeRef = whereView.typeRef()};
+        if (!whereView.cstRef().isValid())
+            return {.kind = GenericConstraintOutcomeKind::NotConst};
+        if (whereView.cstRef() != sema.cstMgr().cstTrue())
+            return {.kind = GenericConstraintOutcomeKind::Failed};
+        return {};
+    }
+
+    Diagnostic reportGenericConstraintDiag(Sema& sema, DiagnosticId diagId, const GenericConstraintContext& context, AstNodeRef whereRef)
+    {
+        SWC_ASSERT(context.mainRef.isValid());
+        auto diag = SemaError::report(sema, diagId, context.mainRef);
+        diag.addArgument(Diagnostic::ARG_SYM, context.symbolName);
+
+        if (hasGenericConstraintBindingText(context))
         {
             diag.addNote(DiagnosticId::sema_note_generic_instantiated_with);
-            diag.last().addArgument(Diagnostic::ARG_VALUES, bindings);
+            diag.last().addArgument(Diagnostic::ARG_VALUES, *context.bindingText);
         }
 
         if (whereRef.isValid())
@@ -804,175 +904,77 @@ namespace
         return diag;
     }
 
-    void fillFunctionConstraintFailure(Sema& sema, CastFailure& outFailure, DiagnosticId diagId, AstNodeRef whereRef, TypeRef typeRef, const Utf8& bindings)
+    void fillGenericConstraintFailure(Sema& sema, CastFailure& outFailure, const GenericConstraintContext& context, AstNodeRef whereRef, const GenericConstraintOutcome& outcome)
     {
         outFailure            = {};
-        outFailure.diagId     = diagId;
-        outFailure.srcTypeRef = typeRef;
+        outFailure.diagId     = genericConstraintDiagId(context, outcome.kind);
+        outFailure.srcTypeRef = outcome.typeRef;
         if (whereRef.isValid())
             outFailure.noteCodeRef = sema.node(whereRef).codeRef();
-        if (!bindings.empty())
-            outFailure.addArgument(Diagnostic::ARG_VALUES, bindings);
+        if (hasGenericConstraintBindingText(context))
+            outFailure.addArgument(Diagnostic::ARG_VALUES, *context.bindingText);
     }
 
-    Result raiseFunctionConstraintNotBool(Sema& sema, const SymbolFunction& function, AstNodeRef errorNodeRef, AstNodeRef whereRef, TypeRef typeRef, const Utf8& bindings)
+    Result reportGenericConstraintFailure(Sema& sema, const GenericConstraintContext& context, AstNodeRef whereRef, const GenericConstraintOutcome& outcome)
     {
-        auto diag = reportFunctionConstraintDiag(sema, DiagnosticId::sema_err_function_where_not_bool, function, errorNodeRef, whereRef, bindings);
-        diag.addArgument(Diagnostic::ARG_TYPE, typeRef.isValid() ? sema.typeMgr().get(typeRef).toName(sema.ctx()) : Utf8{"<invalid>"});
+        auto diag = reportGenericConstraintDiag(sema, genericConstraintDiagId(context, outcome.kind), context, whereRef);
+        if (outcome.kind == GenericConstraintOutcomeKind::NotBool)
+            diag.addArgument(Diagnostic::ARG_TYPE, outcome.typeRef.isValid() ? sema.typeMgr().get(outcome.typeRef).toName(sema.ctx()) : Utf8{"<invalid>"});
         diag.report(sema.ctx());
         return Result::Error;
     }
 
-    Result raiseFunctionConstraintNotConst(Sema& sema, const SymbolFunction& function, AstNodeRef errorNodeRef, AstNodeRef whereRef, const Utf8& bindings)
-    {
-        const auto diag = reportFunctionConstraintDiag(sema, DiagnosticId::sema_err_function_where_not_const, function, errorNodeRef, whereRef, bindings);
-        diag.report(sema.ctx());
-        return Result::Error;
-    }
-
-    Result raiseFunctionConstraintFailed(Sema& sema, const SymbolFunction& function, AstNodeRef errorNodeRef, AstNodeRef whereRef, const Utf8& bindings)
-    {
-        const auto diag = reportFunctionConstraintDiag(sema, DiagnosticId::sema_err_function_where_failed, function, errorNodeRef, whereRef, bindings);
-        diag.report(sema.ctx());
-        return Result::Error;
-    }
-
-    Result checkFunctionWhereConstraints(Sema& sema, bool& outSatisfied, const SymbolFunction& function, std::span<const SemaClone::ParamBinding> bindings, const Utf8& bindingText, CastFailure* outFailure, AstNodeRef errorNodeRef)
+    Result evaluateGenericWhereConstraints(Sema& sema, bool& outSatisfied, const GenericConstraintContext& context, CastFailure* outFailure)
     {
         outSatisfied = true;
-
-        const auto* decl = genericFunctionDecl(function);
-        if (!decl || decl->spanConstraintsRef.isInvalid())
+        if (!context.root || context.spanWhereRef.isInvalid())
             return Result::Continue;
 
         SmallVector<AstNodeRef> constraintRefs;
-        sema.ast().appendNodes(constraintRefs, decl->spanConstraintsRef);
+        sema.ast().appendNodes(constraintRefs, context.spanWhereRef);
         for (const AstNodeRef constraintRef : constraintRefs)
         {
             if (!isWhereConstraint(sema, constraintRef))
                 continue;
 
             AstNodeRef evalRef = AstNodeRef::invalid();
-            SWC_RESULT(evalGenericConstraintNode(sema, function, constraintRef, bindings, evalRef));
+            SWC_RESULT(evalGenericConstraintNode(sema, *context.root, constraintRef, context.bindings, evalRef));
             if (evalRef.isInvalid())
                 continue;
 
-            const SemaNodeView whereView = sema.viewNodeTypeConstant(evalRef);
-            if (!whereView.typeRef().isValid() || !whereView.type()->isBool())
-            {
-                outSatisfied = false;
-                if (outFailure)
-                {
-                    fillFunctionConstraintFailure(sema, *outFailure, DiagnosticId::sema_err_function_where_not_bool, constraintRef, whereView.typeRef(), bindingText);
-                    return Result::Continue;
-                }
+            const GenericConstraintOutcome outcome = classifyGenericConstraintOutcome(sema, sema.viewNodeTypeConstant(evalRef));
+            if (outcome.kind == GenericConstraintOutcomeKind::Satisfied)
+                continue;
 
-                return raiseFunctionConstraintNotBool(sema, function, errorNodeRef, constraintRef, whereView.typeRef(), bindingText);
+            outSatisfied = false;
+            if (outFailure)
+            {
+                fillGenericConstraintFailure(sema, *outFailure, context, constraintRef, outcome);
+                return Result::Continue;
             }
 
-            if (!whereView.cstRef().isValid())
-            {
-                outSatisfied = false;
-                if (outFailure)
-                {
-                    fillFunctionConstraintFailure(sema, *outFailure, DiagnosticId::sema_err_function_where_not_const, constraintRef, TypeRef::invalid(), bindingText);
-                    return Result::Continue;
-                }
-
-                return raiseFunctionConstraintNotConst(sema, function, errorNodeRef, constraintRef, bindingText);
-            }
-
-            if (whereView.cstRef() != sema.cstMgr().cstTrue())
-            {
-                outSatisfied = false;
-                if (outFailure)
-                {
-                    fillFunctionConstraintFailure(sema, *outFailure, DiagnosticId::sema_err_function_where_failed, constraintRef, TypeRef::invalid(), bindingText);
-                    return Result::Continue;
-                }
-
-                return raiseFunctionConstraintFailed(sema, function, errorNodeRef, constraintRef, bindingText);
-            }
+            return reportGenericConstraintFailure(sema, context, constraintRef, outcome);
         }
 
         return Result::Continue;
     }
 
-    Diagnostic reportGenericStructConstraintDiag(Sema& sema, DiagnosticId diagId, const SymbolStruct& root, std::span<const SemaGeneric::GenericParamDesc> params, std::span<const SemaGeneric::GenericResolvedArg> resolvedArgs, AstNodeRef errorNodeRef, AstNodeRef whereRef)
+    Result checkFunctionWhereConstraints(Sema& sema, bool& outSatisfied, const SymbolFunction& function, std::span<const SemaClone::ParamBinding> bindings, const Utf8& bindingText, CastFailure* outFailure, AstNodeRef errorNodeRef)
     {
-        const AstNodeRef mainRef = errorNodeRef.isValid() ? errorNodeRef : root.declNodeRef();
-        auto             diag    = SemaError::report(sema, diagId, mainRef);
-        diag.addArgument(Diagnostic::ARG_SYM, root.name(sema.ctx()));
-
-        if (!params.empty())
-        {
-            diag.addNote(DiagnosticId::sema_note_generic_instantiated_with);
-            diag.last().addArgument(Diagnostic::ARG_VALUES, formatResolvedGenericBindings(sema, params, resolvedArgs));
-        }
-
-        if (whereRef.isValid())
-        {
-            diag.addNote(DiagnosticId::sema_note_generic_where_declared_here);
-            SemaError::addSpan(sema, diag.last(), whereRef);
-        }
-
-        return diag;
-    }
-
-    Result raiseGenericStructConstraintNotBool(Sema& sema, const SymbolStruct& root, std::span<const SemaGeneric::GenericParamDesc> params, std::span<const SemaGeneric::GenericResolvedArg> resolvedArgs, AstNodeRef errorNodeRef, AstNodeRef whereRef, TypeRef typeRef)
-    {
-        auto diag = reportGenericStructConstraintDiag(sema, DiagnosticId::sema_err_generic_struct_where_not_bool, root, params, resolvedArgs, errorNodeRef, whereRef);
-        diag.addArgument(Diagnostic::ARG_TYPE, typeRef.isValid() ? sema.typeMgr().get(typeRef).toName(sema.ctx()) : Utf8{"<invalid>"});
-        diag.report(sema.ctx());
-        return Result::Error;
-    }
-
-    Result raiseGenericStructConstraintNotConst(Sema& sema, const SymbolStruct& root, std::span<const SemaGeneric::GenericParamDesc> params, std::span<const SemaGeneric::GenericResolvedArg> resolvedArgs, AstNodeRef errorNodeRef, AstNodeRef whereRef)
-    {
-        const auto diag = reportGenericStructConstraintDiag(sema, DiagnosticId::sema_err_generic_struct_where_not_const, root, params, resolvedArgs, errorNodeRef, whereRef);
-        diag.report(sema.ctx());
-        return Result::Error;
-    }
-
-    Result raiseGenericStructConstraintFailed(Sema& sema, const SymbolStruct& root, std::span<const SemaGeneric::GenericParamDesc> params, std::span<const SemaGeneric::GenericResolvedArg> resolvedArgs, AstNodeRef errorNodeRef, AstNodeRef whereRef)
-    {
-        const auto diag = reportGenericStructConstraintDiag(sema, DiagnosticId::sema_err_generic_struct_where_failed, root, params, resolvedArgs, errorNodeRef, whereRef);
-        diag.report(sema.ctx());
-        return Result::Error;
+        const GenericConstraintContext context = makeFunctionConstraintContext(sema, function, bindings, errorNodeRef, bindingText);
+        return evaluateGenericWhereConstraints(sema, outSatisfied, context, outFailure);
     }
 
     Result validateGenericStructWhereConstraints(Sema& sema, const SymbolStruct& root, std::span<const SemaGeneric::GenericParamDesc> params, std::span<const SemaGeneric::GenericResolvedArg> resolvedArgs, AstNodeRef errorNodeRef)
     {
-        const auto*   decl         = genericStructDeclNode(root);
-        const SpanRef spanWhereRef = genericStructWhereSpan(root);
-        if (!decl || spanWhereRef.isInvalid())
-            return Result::Continue;
-
         SmallVector<SemaClone::ParamBinding> bindings;
         buildGenericCloneBindings(params, resolvedArgs, bindings);
         appendEnclosingGenericCloneBindings(sema, root, bindings);
 
-        SmallVector<AstNodeRef> whereRefs;
-        sema.ast().appendNodes(whereRefs, spanWhereRef);
-        for (const AstNodeRef whereRef : whereRefs)
-        {
-            AstNodeRef evalRef = AstNodeRef::invalid();
-            SWC_RESULT(evalGenericConstraintNode(sema, root, whereRef, bindings.span(), evalRef));
-            if (evalRef.isInvalid())
-                continue;
-
-            const SemaNodeView whereView = sema.viewNodeTypeConstant(evalRef);
-            if (!whereView.typeRef().isValid() || !whereView.type()->isBool())
-                return raiseGenericStructConstraintNotBool(sema, root, params, resolvedArgs, errorNodeRef, whereRef, whereView.typeRef());
-
-            if (!whereView.cstRef().isValid())
-                return raiseGenericStructConstraintNotConst(sema, root, params, resolvedArgs, errorNodeRef, whereRef);
-
-            if (whereView.cstRef() != sema.cstMgr().cstTrue())
-                return raiseGenericStructConstraintFailed(sema, root, params, resolvedArgs, errorNodeRef, whereRef);
-        }
-
-        return Result::Continue;
+        const Utf8                      bindingText = params.empty() ? Utf8{} : formatResolvedGenericBindings(sema, params, resolvedArgs);
+        const GenericConstraintContext context     = makeStructConstraintContext(sema, root, bindings.span(), errorNodeRef, bindingText);
+        bool                            satisfied  = true;
+        return evaluateGenericWhereConstraints(sema, satisfied, context, nullptr);
     }
 
     Result runGenericImplBlockPass(Sema& sema, AstNodeRef blockRef, SymbolImpl& impl, const SymbolInterface* itf, const AttributeList& attrs, bool declPass)

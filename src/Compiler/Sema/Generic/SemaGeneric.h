@@ -1,4 +1,5 @@
 #pragma once
+#include "Compiler/Sema/Generic/GenericInstanceStorage.h"
 #include "Compiler/Sema/Helpers/SemaClone.h"
 #include "Support/Core/SmallVector.h"
 #include "Support/Core/Utf8.h"
@@ -13,6 +14,8 @@ class SymbolImpl;
 class SymbolInterface;
 class SymbolFunction;
 class SymbolStruct;
+struct AstFunctionDecl;
+struct AstNode;
 struct AttributeList;
 struct CastFailure;
 
@@ -93,6 +96,14 @@ namespace SemaGeneric
             SmallVector<SemaClone::ParamBinding> bindings;
             Utf8                                 bindingText;
         };
+
+        const AstFunctionDecl* genericFunctionDecl(const SymbolFunction& root);
+        const AstNode*         genericStructDeclNode(const SymbolStruct& root);
+        SpanRef                genericStructParamSpan(const SymbolStruct& root);
+        AstNodeRef             genericDeclNodeRef(const Symbol& root);
+        bool                   loadFunctionInstanceGenericArgs(Sema& sema, const SymbolFunction& function, SmallVector<GenericParamDesc>& outParams, SmallVector<GenericInstanceKey>& outArgs);
+        bool                   loadOwnerStructGenericArgs(Sema& sema, const SymbolFunction& function, SmallVector<GenericParamDesc>& outParams, SmallVector<GenericInstanceKey>& outArgs);
+        void                   collectAmbientGenericFunctions(const Sema& sema, SmallVector<const SymbolFunction*>& outFunctions);
 
         Sema* tryCreateSemaForGenericDecl(Sema& sema, const Symbol& root, std::unique_ptr<Sema>& ownedSema);
 

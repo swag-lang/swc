@@ -14,6 +14,8 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    using SemaGeneric::Internal::genericStructDeclNode;
+
     constexpr std::string_view K_ARG_PREV_INDEX = "{prev-index}";
 
     enum class DeductionMode
@@ -30,17 +32,6 @@ namespace
     Sema* tryCreateSemaForStructDecl(Sema& sema, const SymbolStruct& st, std::unique_ptr<Sema>& ownedSema)
     {
         return sema.tryCreateDeclSema(ownedSema, st.srcViewRef(), st.decl(), st.declNodeRef());
-    }
-
-    const AstNode* genericStructDeclNode(const SymbolStruct& root)
-    {
-        if (!root.decl())
-            return nullptr;
-
-        const AstNode* decl = root.decl();
-        if (decl->is(AstNodeId::StructDecl) || decl->is(AstNodeId::UnionDecl))
-            return decl;
-        return nullptr;
     }
 
     SpanRef genericStructParamSpan(const AstNode& declNode)

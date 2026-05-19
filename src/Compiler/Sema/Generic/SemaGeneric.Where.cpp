@@ -14,12 +14,9 @@ namespace SemaGeneric
     namespace
     {
         using Internal::evalGenericConstraintNode;
+        using Internal::genericDeclNodeRef;
+        using Internal::genericFunctionDecl;
         using Internal::ResolvedGenericBindingSource;
-
-        const AstFunctionDecl* genericFunctionDecl(const SymbolFunction& root)
-        {
-            return root.decl() ? root.decl()->safeCast<AstFunctionDecl>() : nullptr;
-        }
 
         SpanRef genericStructWhereSpan(const SymbolStruct& root)
         {
@@ -32,13 +29,6 @@ namespace SemaGeneric
             if (const auto* unionDecl = decl->safeCast<AstUnionDecl>())
                 return unionDecl->spanWhereRef;
             return SpanRef::invalid();
-        }
-
-        AstNodeRef genericDeclNodeRef(const Symbol& root)
-        {
-            if (const auto* function = root.safeCast<SymbolFunction>())
-                return function->declNodeRef();
-            return root.cast<SymbolStruct>().declNodeRef();
         }
 
         Utf8 formatResolvedGenericArg(Sema& sema, const GenericResolvedArg& arg)

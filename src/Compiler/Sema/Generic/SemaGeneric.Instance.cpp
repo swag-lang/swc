@@ -22,40 +22,20 @@ namespace SemaGeneric
         using Internal::buildPartialGenericContextBindings;
         using Internal::buildResolvedGenericContextBindings;
         using Internal::checkFunctionWhereConstraints;
+        using Internal::collectAmbientGenericFunctions;
         using Internal::evalGenericClonedNode;
         using Internal::FunctionWhereInputs;
+        using Internal::genericDeclNodeRef;
+        using Internal::genericFunctionDecl;
+        using Internal::genericStructDeclNode;
+        using Internal::genericStructParamSpan;
         using Internal::instantiateGenericStructImpls;
+        using Internal::loadFunctionInstanceGenericArgs;
+        using Internal::loadOwnerStructGenericArgs;
         using Internal::ResolvedGenericBindingSource;
         using Internal::runGenericInstanceNode;
         using Internal::tryCreateSemaForGenericDecl;
         using Internal::validateGenericStructWhereConstraints;
-
-        const AstFunctionDecl* genericFunctionDecl(const SymbolFunction& root)
-        {
-            return root.decl() ? root.decl()->safeCast<AstFunctionDecl>() : nullptr;
-        }
-
-        const AstNode* genericStructDeclNode(const SymbolStruct& root)
-        {
-            if (!root.decl())
-                return nullptr;
-
-            const AstNode* decl = root.decl();
-            if (decl->is(AstNodeId::StructDecl) || decl->is(AstNodeId::UnionDecl))
-                return decl;
-            return nullptr;
-        }
-
-        SpanRef genericStructParamSpan(const SymbolStruct& root)
-        {
-            const AstNode* decl = genericStructDeclNode(root);
-            if (!decl)
-                return SpanRef::invalid();
-
-            if (const auto* structDecl = decl->safeCast<AstStructDecl>())
-                return structDecl->spanGenericParamsRef;
-            return decl->cast<AstUnionDecl>().spanGenericParamsRef;
-        }
 
         SpanRef genericParamSpan(const Symbol& root)
         {
@@ -79,99 +59,6 @@ namespace SemaGeneric
 
             const auto& st = root.cast<SymbolStruct>();
             return !st.isGenericInstance() && genericStructParamSpan(st).isValid();
-        }
-
-        AstNodeRef genericDeclNodeRef(const Symbol& root)
-        {
-            if (const auto* function = root.safeCast<SymbolFunction>())
-                return function->declNodeRef();
-            return root.cast<SymbolStruct>().declNodeRef();
-        }
-
-        bool loadFunctionInstanceGenericArgs(Sema& sema, const SymbolFunction& function, SmallVector<GenericParamDesc>& outParams, SmallVector<GenericInstanceKey>& outArgs)
-        {
-            if (!function.isGenericInstance())
-                return false;
-
-            const SymbolFunction* root = function.genericRootSym();
-            if (!root)
-                return false;
-
-            const auto* decl = genericFunctionDecl(*root);
-            if (!decl || decl->spanGenericParamsRef.isInvalid())
-                return false;
-
-            collectGenericParams(sema, *decl, decl->spanGenericParamsRef, outParams);
-            if (outParams.empty())
-                return false;
-
-            if (!root->genericInstanceStorage(sema.ctx()).tryGetArgs(function, outArgs))
-                return false;
-            if (outArgs.size() < outParams.size())
-                return false;
-            if (outArgs.size() > outParams.size())
-                outArgs.resize(outParams.size());
-            return true;
-        }
-
-        bool loadOwnerStructGenericArgs(Sema& sema, const SymbolFunction& function, SmallVector<GenericParamDesc>& outParams, SmallVector<GenericInstanceKey>& outArgs)
-        {
-            const SymbolStruct* ownerInstance = function.ownerStruct();
-            if (!ownerInstance || !ownerInstance->isGenericInstance())
-                return false;
-
-            const SymbolStruct* ownerRoot = ownerInstance->genericRootSym();
-            if (!ownerRoot)
-                return false;
-
-            const auto*   decl                 = genericStructDeclNode(*ownerRoot);
-            const SpanRef spanGenericParamsRef = genericStructParamSpan(*ownerRoot);
-            if (!decl || spanGenericParamsRef.isInvalid())
-                return false;
-
-            collectGenericParams(sema, *decl, spanGenericParamsRef, outParams);
-            if (outParams.empty())
-                return false;
-
-            return ownerRoot->tryGetGenericInstanceArgs(*ownerInstance, outArgs);
-        }
-
-        const SymbolFunction* matchingGenericFunctionInstance(const SymbolFunction* function)
-        {
-            if (!function || !function->isGenericInstance())
-                return nullptr;
-            return function;
-        }
-
-        bool containsFunctionInstance(std::span<const SymbolFunction* const> functions, const SymbolFunction* function)
-        {
-            return std::ranges::find(functions, function) != functions.end();
-        }
-
-        void collectAmbientGenericFunctions(const Sema& sema, SmallVector<const SymbolFunction*>& outFunctions)
-        {
-            outFunctions.clear();
-
-            for (size_t i = sema.frames().size(); i > 0; --i)
-            {
-                const SemaInlinePayload* inlinePayload = sema.frames()[i - 1].currentInlinePayload();
-                while (inlinePayload)
-                {
-                    if (const SymbolFunction* function = matchingGenericFunctionInstance(inlinePayload->sourceFunction))
-                    {
-                        if (!containsFunctionInstance(outFunctions.span(), function))
-                            outFunctions.push_back(function);
-                    }
-
-                    inlinePayload = inlinePayload->parentInlinePayload;
-                }
-            }
-
-            if (const SymbolFunction* function = matchingGenericFunctionInstance(sema.currentFunction()))
-            {
-                if (!containsFunctionInstance(outFunctions.span(), function))
-                    outFunctions.push_back(function);
-            }
         }
 
         void resolveStructArgsFromContext(Sema& sema, const SymbolStruct& genericRoot, std::span<const GenericParamDesc> targetParams, std::span<GenericResolvedArg> resolvedArgs);

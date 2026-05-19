@@ -14,10 +14,8 @@ SWC_BEGIN_NAMESPACE();
 
 namespace SemaGeneric
 {
-    namespace
+    namespace Internal
     {
-        using Internal::ResolvedGenericBindingSource;
-
         const AstFunctionDecl* genericFunctionDecl(const SymbolFunction& root)
         {
             return root.decl() ? root.decl()->safeCast<AstFunctionDecl>() : nullptr;
@@ -51,6 +49,102 @@ namespace SemaGeneric
                 return function->declNodeRef();
             return root.cast<SymbolStruct>().declNodeRef();
         }
+
+        bool loadFunctionInstanceGenericArgs(Sema& sema, const SymbolFunction& function, SmallVector<GenericParamDesc>& outParams, SmallVector<GenericInstanceKey>& outArgs)
+        {
+            if (!function.isGenericInstance())
+                return false;
+
+            const SymbolFunction* root = function.genericRootSym();
+            if (!root)
+                return false;
+
+            const auto* decl = genericFunctionDecl(*root);
+            if (!decl || decl->spanGenericParamsRef.isInvalid())
+                return false;
+
+            collectGenericParams(sema, *decl, decl->spanGenericParamsRef, outParams);
+            if (outParams.empty())
+                return false;
+
+            if (!root->genericInstanceStorage(sema.ctx()).tryGetArgs(function, outArgs))
+                return false;
+            if (outArgs.size() < outParams.size())
+                return false;
+            if (outArgs.size() > outParams.size())
+                outArgs.resize(outParams.size());
+            return true;
+        }
+
+        bool loadOwnerStructGenericArgs(Sema& sema, const SymbolFunction& function, SmallVector<GenericParamDesc>& outParams, SmallVector<GenericInstanceKey>& outArgs)
+        {
+            const SymbolStruct* ownerInstance = function.ownerStruct();
+            if (!ownerInstance || !ownerInstance->isGenericInstance())
+                return false;
+
+            const SymbolStruct* ownerRoot = ownerInstance->genericRootSym();
+            if (!ownerRoot)
+                return false;
+
+            const auto*   decl                 = genericStructDeclNode(*ownerRoot);
+            const SpanRef spanGenericParamsRef = genericStructParamSpan(*ownerRoot);
+            if (!decl || spanGenericParamsRef.isInvalid())
+                return false;
+
+            collectGenericParams(sema, *decl, spanGenericParamsRef, outParams);
+            if (outParams.empty())
+                return false;
+
+            return ownerRoot->tryGetGenericInstanceArgs(*ownerInstance, outArgs);
+        }
+
+        void collectAmbientGenericFunctions(const Sema& sema, SmallVector<const SymbolFunction*>& outFunctions)
+        {
+            const auto matchingGenericFunctionInstance = [](const SymbolFunction* function) -> const SymbolFunction* {
+                if (!function || !function->isGenericInstance())
+                    return nullptr;
+                return function;
+            };
+
+            const auto containsFunctionInstance = [](std::span<const SymbolFunction* const> functions, const SymbolFunction* function) {
+                return std::ranges::find(functions, function) != functions.end();
+            };
+
+            outFunctions.clear();
+
+            for (size_t i = sema.frames().size(); i > 0; --i)
+            {
+                const SemaInlinePayload* inlinePayload = sema.frames()[i - 1].currentInlinePayload();
+                while (inlinePayload)
+                {
+                    if (const SymbolFunction* function = matchingGenericFunctionInstance(inlinePayload->sourceFunction))
+                    {
+                        if (!containsFunctionInstance(outFunctions.span(), function))
+                            outFunctions.push_back(function);
+                    }
+
+                    inlinePayload = inlinePayload->parentInlinePayload;
+                }
+            }
+
+            if (const SymbolFunction* function = matchingGenericFunctionInstance(sema.currentFunction()))
+            {
+                if (!containsFunctionInstance(outFunctions.span(), function))
+                    outFunctions.push_back(function);
+            }
+        }
+    }
+
+    namespace
+    {
+        using Internal::ResolvedGenericBindingSource;
+        using Internal::collectAmbientGenericFunctions;
+        using Internal::genericDeclNodeRef;
+        using Internal::genericFunctionDecl;
+        using Internal::genericStructDeclNode;
+        using Internal::genericStructParamSpan;
+        using Internal::loadFunctionInstanceGenericArgs;
+        using Internal::loadOwnerStructGenericArgs;
 
         const SymbolFunction* declContextRoot(const SymbolFunction& function)
         {
@@ -143,54 +237,6 @@ namespace SemaGeneric
             }
         }
 
-        bool loadFunctionInstanceGenericArgs(Sema& sema, const SymbolFunction& function, SmallVector<GenericParamDesc>& outParams, SmallVector<GenericInstanceKey>& outArgs)
-        {
-            if (!function.isGenericInstance())
-                return false;
-
-            const SymbolFunction* root = function.genericRootSym();
-            if (!root)
-                return false;
-
-            const auto* decl = genericFunctionDecl(*root);
-            if (!decl || decl->spanGenericParamsRef.isInvalid())
-                return false;
-
-            collectGenericParams(sema, *decl, decl->spanGenericParamsRef, outParams);
-            if (outParams.empty())
-                return false;
-
-            if (!root->genericInstanceStorage(sema.ctx()).tryGetArgs(function, outArgs))
-                return false;
-            if (outArgs.size() < outParams.size())
-                return false;
-            if (outArgs.size() > outParams.size())
-                outArgs.resize(outParams.size());
-            return true;
-        }
-
-        bool loadOwnerStructGenericArgs(Sema& sema, const SymbolFunction& function, SmallVector<GenericParamDesc>& outParams, SmallVector<GenericInstanceKey>& outArgs)
-        {
-            const SymbolStruct* ownerInstance = function.ownerStruct();
-            if (!ownerInstance || !ownerInstance->isGenericInstance())
-                return false;
-
-            const SymbolStruct* ownerRoot = ownerInstance->genericRootSym();
-            if (!ownerRoot)
-                return false;
-
-            const auto*   decl                 = genericStructDeclNode(*ownerRoot);
-            const SpanRef spanGenericParamsRef = genericStructParamSpan(*ownerRoot);
-            if (!decl || spanGenericParamsRef.isInvalid())
-                return false;
-
-            collectGenericParams(sema, *decl, spanGenericParamsRef, outParams);
-            if (outParams.empty())
-                return false;
-
-            return ownerRoot->tryGetGenericInstanceArgs(*ownerInstance, outArgs);
-        }
-
         void appendOwnerStructCloneBindings(Sema& sema, const SymbolFunction& function, SmallVector<SemaClone::ParamBinding>& outBindings)
         {
             SmallVector<GenericParamDesc>   ownerParams;
@@ -199,44 +245,6 @@ namespace SemaGeneric
                 return;
 
             appendGenericInstanceCloneBindings(sema, ownerParams.span(), ownerArgs.span(), outBindings);
-        }
-
-        const SymbolFunction* matchingGenericFunctionInstance(const SymbolFunction* function)
-        {
-            if (!function || !function->isGenericInstance())
-                return nullptr;
-            return function;
-        }
-
-        bool containsFunctionInstance(std::span<const SymbolFunction* const> functions, const SymbolFunction* function)
-        {
-            return std::ranges::find(functions, function) != functions.end();
-        }
-
-        void collectAmbientGenericFunctions(const Sema& sema, SmallVector<const SymbolFunction*>& outFunctions)
-        {
-            outFunctions.clear();
-
-            for (size_t i = sema.frames().size(); i > 0; --i)
-            {
-                const SemaInlinePayload* inlinePayload = sema.frames()[i - 1].currentInlinePayload();
-                while (inlinePayload)
-                {
-                    if (const SymbolFunction* function = matchingGenericFunctionInstance(inlinePayload->sourceFunction))
-                    {
-                        if (!containsFunctionInstance(outFunctions.span(), function))
-                            outFunctions.push_back(function);
-                    }
-
-                    inlinePayload = inlinePayload->parentInlinePayload;
-                }
-            }
-
-            if (const SymbolFunction* function = matchingGenericFunctionInstance(sema.currentFunction()))
-            {
-                if (!containsFunctionInstance(outFunctions.span(), function))
-                    outFunctions.push_back(function);
-            }
         }
 
         SymbolFlags clonedGenericSymbolFlags(const Symbol& root)

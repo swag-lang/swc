@@ -108,7 +108,7 @@ namespace
             return false;
 
         const SymbolStruct& receiverStruct = receiverType.payloadSymStruct();
-        return receiverStruct.genericRootOrSelf() == owner.genericRootOrSelf();
+        return receiverStruct.sameGenericFamily(owner);
     }
 
     bool isConstSpecOpReceiver(TaskContext& ctx, const SymbolStruct& owner, TypeRef typeRef)

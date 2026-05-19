@@ -93,6 +93,7 @@ public:
     bool                          isGenericInstance() const noexcept { return hasExtraFlag(SymbolStructFlagsE::GenericInstance); }
     bool                          isUnion() const noexcept { return hasExtraFlag(SymbolStructFlagsE::Union); }
     void                          setGenericInstance(SymbolStruct* root) noexcept;
+    bool                          sameGenericFamily(const SymbolStruct& other) const noexcept;
     SymbolStruct*                 genericRootOrSelf() noexcept;
     const SymbolStruct*           genericRootOrSelf() const noexcept;
     SymbolStruct*                 genericRootSym() noexcept;

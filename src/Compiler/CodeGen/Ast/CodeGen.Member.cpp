@@ -272,9 +272,7 @@ namespace
         const auto* ownerStruct = memberSym.ownerSymMap() ? memberSym.ownerSymMap()->safeCast<SymbolStruct>() : nullptr;
         if (!ownerStruct || ownerStruct == leftStruct)
             return nullptr;
-        const SymbolStruct* leftRoot  = leftStruct->genericRootOrSelf();
-        const SymbolStruct* ownerRoot = ownerStruct->genericRootOrSelf();
-        if (leftRoot != ownerRoot)
+        if (!ownerStruct->sameGenericFamily(*leftStruct))
             return nullptr;
 
         for (const SymbolVariable* field : leftStruct->fields())

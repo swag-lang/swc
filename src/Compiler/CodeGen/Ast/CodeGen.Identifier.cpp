@@ -163,14 +163,6 @@ namespace
         return nullptr;
     }
 
-    bool sameStructFamily(const SymbolStruct& lhs, const SymbolStruct& rhs)
-    {
-        if (&lhs == &rhs)
-            return true;
-
-        return lhs.genericRootOrSelf() == rhs.genericRootOrSelf();
-    }
-
     const SymbolStruct* receiverRuntimeStruct(CodeGen& codeGen, const SymbolVariable& receiver)
     {
         const TypeRef receiverTypeRef = codeGen.typeMgr().unwrapAliasEnum(codeGen.ctx(), receiver.typeRef());
@@ -197,7 +189,7 @@ namespace
         const SymbolStruct* fieldOwner = variableOwnerStruct(symVar);
         if (!fieldOwner || fieldOwner == &receiverStruct)
             return nullptr;
-        if (!sameStructFamily(*fieldOwner, receiverStruct))
+        if (!fieldOwner->sameGenericFamily(receiverStruct))
             return nullptr;
 
         for (const SymbolVariable* field : receiverStruct.fields())
@@ -235,7 +227,7 @@ namespace
         const SymbolVariable* concreteField = tryResolveConcreteReceiverFieldSymbol(*receiverStruct, symVar);
         const SymbolVariable& resolvedField = concreteField ? *concreteField : symVar;
         const SymbolStruct*   fieldOwner    = variableOwnerStruct(resolvedField);
-        if (!fieldOwner || !sameStructFamily(*fieldOwner, *receiverStruct))
+        if (!fieldOwner || !fieldOwner->sameGenericFamily(*receiverStruct))
             return false;
 
         const CodeGenNodePayload receiverPayload = CodeGenFunctionHelpers::materializeFunctionParameter(codeGen, codeGen.function(), *receiver);

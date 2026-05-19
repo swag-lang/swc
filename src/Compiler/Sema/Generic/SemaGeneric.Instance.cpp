@@ -605,7 +605,7 @@ namespace SemaGeneric
             if (!instance || !instance->isGenericInstance())
                 return nullptr;
 
-            return instance->genericRootSym() == &genericRoot ? instance : nullptr;
+            return instance->sameGenericFamily(genericRoot) ? instance : nullptr;
         }
 
         const SymbolStruct* genericStructInstanceFromFunctionOwner(const SymbolStruct& genericRoot, const SymbolFunction* function)

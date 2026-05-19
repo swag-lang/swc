@@ -132,14 +132,6 @@ namespace
         return nullptr;
     }
 
-    bool sameStructFamily(const SymbolStruct& lhs, const SymbolStruct& rhs)
-    {
-        if (&lhs == &rhs)
-            return true;
-
-        return lhs.genericRootOrSelf() == rhs.genericRootOrSelf();
-    }
-
     const SymbolStruct* resolveRuntimeStructType(CodeGen& codeGen, TypeRef typeRef)
     {
         if (!typeRef.isValid())
@@ -171,7 +163,7 @@ namespace
         const SymbolStruct* ownerStruct = variableOwnerStruct(memberSym);
         if (!ownerStruct || ownerStruct == leftStruct)
             return nullptr;
-        if (!sameStructFamily(*ownerStruct, *leftStruct))
+        if (!ownerStruct->sameGenericFamily(*leftStruct))
             return nullptr;
 
         for (const SymbolVariable* field : leftStruct->fields())
@@ -239,7 +231,7 @@ namespace
         const SymbolStruct* fieldOwner = variableOwnerStruct(fieldSym);
         if (!fieldOwner || fieldOwner == receiverStruct)
             return nullptr;
-        if (!sameStructFamily(*fieldOwner, *receiverStruct))
+        if (!fieldOwner->sameGenericFamily(*receiverStruct))
             return nullptr;
 
         for (const SymbolVariable* field : receiverStruct->fields())

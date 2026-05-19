@@ -1066,6 +1066,14 @@ void SymbolStruct::setGenericInstance(SymbolStruct* root) noexcept
     }
 }
 
+bool SymbolStruct::sameGenericFamily(const SymbolStruct& other) const noexcept
+{
+    if (this == &other)
+        return true;
+
+    return genericRootOrSelf() == other.genericRootOrSelf();
+}
+
 SymbolStruct* SymbolStruct::genericRootOrSelf() noexcept
 {
     SymbolStruct* root = genericRootSym();

@@ -665,6 +665,17 @@ std::vector<SymbolImpl*> SymbolStruct::interfaces() const
 void SymbolStruct::removeIgnoredFields()
 {
     std::erase_if(fields_, std::mem_fn(&Symbol::isIgnored));
+    rebuildFieldIndexMap();
+}
+
+bool SymbolStruct::tryGetFieldIndex(size_t& outIndex, const SymbolVariable& sym) const noexcept
+{
+    const auto it = fieldIndexMap_.find(&sym);
+    if (it == fieldIndexMap_.end())
+        return false;
+
+    outIndex = it->second;
+    return true;
 }
 
 ConstantRef SymbolStruct::computeDefaultValue(Sema& sema, TypeRef typeRef)
@@ -891,7 +902,20 @@ Result SymbolStruct::registerSpecOps(Sema& sema) const
 void SymbolStruct::addField(SymbolVariable* sym)
 {
     SWC_ASSERT(sym != nullptr);
+    SWC_ASSERT(!fieldIndexMap_.contains(sym));
+    fieldIndexMap_.emplace(sym, fields_.size());
     fields_.push_back(sym);
+}
+
+void SymbolStruct::rebuildFieldIndexMap() noexcept
+{
+    fieldIndexMap_.clear();
+    for (size_t i = 0; i < fields_.size(); ++i)
+    {
+        SymbolVariable* field = fields_[i];
+        if (field)
+            fieldIndexMap_.emplace(field, i);
+    }
 }
 
 Result SymbolStruct::computeLayout(TaskContext& ctx)

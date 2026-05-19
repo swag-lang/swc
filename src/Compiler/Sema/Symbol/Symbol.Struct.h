@@ -54,6 +54,7 @@ public:
     void                                removeIgnoredFields();
     std::vector<SymbolVariable*>&       fields() { return fields_; }
     const std::vector<SymbolVariable*>& fields() const { return fields_; }
+    bool                                tryGetFieldIndex(size_t& outIndex, const SymbolVariable& sym) const noexcept;
 
     void                         addImpl(Sema& sema, SymbolImpl& symImpl);
     std::vector<SymbolImpl*>     impls() const;
@@ -120,8 +121,10 @@ private:
 
     GenericData& ensureGenericData() const noexcept;
     GenericData* genericData() const noexcept;
+    void         rebuildFieldIndexMap() noexcept;
 
     std::vector<SymbolVariable*>      fields_;
+    std::unordered_map<const SymbolVariable*, size_t> fieldIndexMap_;
     mutable std::shared_mutex         mutexImpls_;
     std::vector<SymbolImpl*>          impls_;
     std::unordered_set<SymbolImpl*>   implsSet_;

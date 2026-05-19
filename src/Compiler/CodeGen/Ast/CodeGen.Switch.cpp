@@ -31,6 +31,7 @@ namespace
         MicroLabelRef bodyLabel     = MicroLabelRef::invalid();
         MicroLabelRef nextTestLabel = MicroLabelRef::invalid();
         MicroLabelRef nextBodyLabel = MicroLabelRef::invalid();
+        AstNodeRef    nextCaseRef   = AstNodeRef::invalid();
         bool          hasNextCase   = false;
     };
 
@@ -402,16 +403,6 @@ namespace
         return Result::Continue;
     }
 
-    AstNodeRef nextSwitchCaseRef(CodeGen& codeGen, AstNodeRef switchRef, AstNodeRef caseRef)
-    {
-        const auto caseRefs = collectSwitchCaseRefs(codeGen, codeGen.node(switchRef).cast<AstSwitchStmt>());
-
-        const auto itCase = std::ranges::find(caseRefs, caseRef);
-        if (itCase == caseRefs.end() || itCase + 1 == caseRefs.end())
-            return AstNodeRef::invalid();
-
-        return *(itCase + 1);
-    }
 }
 
 Result AstSwitchStmt::codeGenPreNode(CodeGen& codeGen) const
@@ -449,6 +440,7 @@ Result AstSwitchStmt::codeGenPreNode(CodeGen& codeGen) const
             SWC_ASSERT(itNextCase != switchState.caseStates.end());
 
             caseState.hasNextCase   = true;
+            caseState.nextCaseRef   = nextCaseRef;
             caseState.nextTestLabel = itNextCase->second.testLabel;
             caseState.nextBodyLabel = itNextCase->second.bodyLabel;
         }
@@ -737,10 +729,9 @@ Result AstFallThroughStmt::codeGenPostNode(CodeGen& codeGen)
         return Result::Continue;
 
     SWC_RESULT(codeGen.emitDeferredActionsUntilSwitchCase(caseRef));
-    const AstNodeRef    nextCaseRef = nextSwitchCaseRef(codeGen, switchRef, caseRef);
     MicroBuilder&       builder     = codeGen.builder();
     const MicroLabelRef targetLabel =
-        isDynamicStructSwitchCaseTarget(codeGen, switchRef, nextCaseRef) ? itCase->second.nextTestLabel : itCase->second.nextBodyLabel;
+        isDynamicStructSwitchCaseTarget(codeGen, switchRef, itCase->second.nextCaseRef) ? itCase->second.nextTestLabel : itCase->second.nextBodyLabel;
     builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, targetLabel);
     return Result::Continue;
 }

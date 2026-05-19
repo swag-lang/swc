@@ -105,6 +105,17 @@ namespace
             symbols.push_back(entry.symbol);
     }
 
+    const Symbol* firstVisibleSymbol(const Symbol* head, bool includeIgnored)
+    {
+        for (const Symbol* cur = head; cur; cur = cur->nextHomonym())
+        {
+            if (includeIgnored || !cur->isIgnored())
+                return cur;
+        }
+
+        return nullptr;
+    }
+
 }
 
 SymbolMap::SymbolMap(const AstNode* decl, TokenRef tokRef, SymbolKind kind, IdentifierRef idRef, const SymbolFlags& flags) :
@@ -265,6 +276,48 @@ void SymbolMap::lookupAppend(IdentifierRef idRef, MatchContext& lookUpCxt) const
         else
             lookUpCxt.addSymbol(cur);
     }
+}
+
+const Symbol* SymbolMap::findFirstSymbol(IdentifierRef idRef, bool includeIgnored) const
+{
+    if (const Shard* shards = shards_.load(std::memory_order_acquire))
+    {
+        const Shard&           shard = shards[shardIndex(idRef)];
+        const std::shared_lock lock(shard.mutex);
+        const auto             it = shard.map.find(idRef);
+        if (it == shard.map.end())
+            return nullptr;
+
+        return firstVisibleSymbol(it->second, includeIgnored);
+    }
+
+    std::shared_lock lk(mutex_);
+
+    if (const Shard* shards = shards_.load(std::memory_order_acquire))
+    {
+        lk.unlock();
+        const Shard&           shard = shards[shardIndex(idRef)];
+        const std::shared_lock lock(shard.mutex);
+        const auto             it = shard.map.find(idRef);
+        if (it == shard.map.end())
+            return nullptr;
+
+        return firstVisibleSymbol(it->second, includeIgnored);
+    }
+
+    const Symbol* head = nullptr;
+    if (isBig())
+    {
+        const auto it = bigMap_.find(idRef);
+        if (it != bigMap_.end())
+            head = it->second;
+    }
+    else if (const Entry* e = smallFind(idRef))
+    {
+        head = e->head;
+    }
+
+    return firstVisibleSymbol(head, includeIgnored);
 }
 
 void SymbolMap::getAllSymbols(std::vector<Symbol*>& out, bool includeIgnored) const

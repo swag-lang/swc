@@ -23,6 +23,8 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    using InlineBindingIdentifierSet = std::unordered_set<IdentifierRef>;
+
     const Symbol* resolveAliasedBaseSymbol(const Symbol* symbol)
     {
         const Symbol* current = symbol;
@@ -62,28 +64,43 @@ namespace
         return !outSymbols.empty();
     }
 
-    bool containsInlineBindingUse(Sema& sema, AstNodeRef nodeRef, std::span<const SemaClone::ParamBinding> bindings)
+    InlineBindingIdentifierSet collectInlineBindingIdentifiers(std::span<const SemaClone::ParamBinding> bindings)
     {
-        if (nodeRef.isInvalid() || bindings.empty())
+        InlineBindingIdentifierSet bindingIds;
+        bindingIds.reserve(bindings.size());
+        for (const SemaClone::ParamBinding& binding : bindings)
+            bindingIds.insert(binding.idRef);
+        return bindingIds;
+    }
+
+    bool containsInlineBindingUse(Sema& sema, AstNodeRef nodeRef, const InlineBindingIdentifierSet& bindingIds)
+    {
+        if (nodeRef.isInvalid() || bindingIds.empty())
             return false;
 
-        const AstNode& node = sema.node(nodeRef);
-        if (const auto* ident = node.safeCast<AstIdentifier>())
+        SmallVector<AstNodeRef> children;
+        SmallVector<AstNodeRef> stack;
+        stack.push_back(nodeRef);
+
+        while (!stack.empty())
         {
-            const IdentifierRef idRef = SemaHelpers::resolveIdentifier(sema, ident->codeRef());
-            for (const SemaClone::ParamBinding& binding : bindings)
+            const AstNodeRef currentRef = stack.back();
+            stack.pop_back();
+            if (currentRef.isInvalid())
+                continue;
+
+            const AstNode& node = sema.node(currentRef);
+            if (const auto* ident = node.safeCast<AstIdentifier>())
             {
-                if (binding.idRef == idRef)
+                const IdentifierRef idRef = SemaHelpers::resolveIdentifier(sema, ident->codeRef());
+                if (bindingIds.contains(idRef))
                     return true;
             }
-        }
 
-        SmallVector<AstNodeRef> children;
-        node.collectChildrenFromAst(children, sema.ast());
-        for (const AstNodeRef childRef : children)
-        {
-            if (containsInlineBindingUse(sema, childRef, bindings))
-                return true;
+            children.clear();
+            node.collectChildrenFromAst(children, sema.ast());
+            for (const AstNodeRef childRef : std::ranges::reverse_view(children))
+                stack.push_back(childRef);
         }
 
         return false;
@@ -423,14 +440,17 @@ Result AstAncestorIdentifier::semaPreNode(Sema& sema) const
     AstNodeRef  targetRef         = nodeIdentRef;
     bool        usedInlineBinding = false;
     const auto* inlinePayload     = sema.frame().currentInlinePayload();
-    if (inlinePayload &&
-        containsInlineBindingUse(sema, nodeIdentRef, inlinePayload->argMappings.span()))
+    if (inlinePayload)
     {
-        const SemaClone::CloneContext cloneContext{inlinePayload->argMappings.span(), std::span<const SemaClone::NodeReplacement>{}, false, nullptr, true};
-        targetRef = SemaClone::cloneAst(sema, nodeIdentRef, cloneContext);
-        if (targetRef.isInvalid())
-            return Result::Error;
-        usedInlineBinding = true;
+        const auto bindingIds = collectInlineBindingIdentifiers(inlinePayload->argMappings.span());
+        if (containsInlineBindingUse(sema, nodeIdentRef, bindingIds))
+        {
+            const SemaClone::CloneContext cloneContext{inlinePayload->argMappings.span(), std::span<const SemaClone::NodeReplacement>{}, false, nullptr, true};
+            targetRef = SemaClone::cloneAst(sema, nodeIdentRef, cloneContext);
+            if (targetRef.isInvalid())
+                return Result::Error;
+            usedInlineBinding = true;
+        }
     }
 
     auto* lookupScope = usedInlineBinding ? sema.lookupScope() : sema.resolvedUpLookupScope();

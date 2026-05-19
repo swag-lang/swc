@@ -128,15 +128,12 @@ namespace
         }
         const auto& sym = owner->cast<SymbolStruct>();
 
-        const auto& fields = sym.fields();
-        const auto  it     = std::ranges::find(fields, &symVar);
-        if (it == fields.end())
+        size_t fieldIndex = 0;
+        if (!sym.tryGetFieldIndex(fieldIndex, symVar))
         {
             failStructMemberType(sema, symVar, nodeMemberRef);
             return;
         }
-
-        const auto fieldIndex = static_cast<size_t>(std::distance(fields.begin(), it));
         if (std::cmp_greater_equal(fieldIndex, values.size()))
         {
             failStructMemberType(sema, symVar, nodeMemberRef);

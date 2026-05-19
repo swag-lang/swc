@@ -17,6 +17,7 @@ public:
     Symbol*  addSingleSymbolOrError(Sema& sema, Symbol* symbol);
     void     addUsingSymMap(SymbolMap* symMap);
     void     copyUsingSymMaps(SmallVector<const SymbolMap*>& out) const;
+    const Symbol* findFirstSymbol(IdentifierRef idRef, bool includeIgnored = false) const;
     void     lookupAppend(IdentifierRef idRef, MatchContext& lookUpCxt) const;
     void     getAllSymbols(std::vector<Symbol*>& out, bool includeIgnored = false) const;
     void     getAllSymbols(std::vector<const Symbol*>& out, bool includeIgnored = false) const;

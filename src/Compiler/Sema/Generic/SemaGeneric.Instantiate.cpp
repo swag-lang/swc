@@ -120,11 +120,8 @@ namespace SemaGeneric
                 return function;
             };
 
-            const auto containsFunctionInstance = [](std::span<const SymbolFunction* const> functions, const SymbolFunction* function) {
-                return std::ranges::find(functions, function) != functions.end();
-            };
-
             outFunctions.clear();
+            std::unordered_set<const SymbolFunction*> seenFunctions;
 
             for (size_t i = sema.frames().size(); i > 0; --i)
             {
@@ -133,7 +130,7 @@ namespace SemaGeneric
                 {
                     if (const SymbolFunction* function = matchingGenericFunctionInstance(inlinePayload->sourceFunction))
                     {
-                        if (!containsFunctionInstance(outFunctions.span(), function))
+                        if (seenFunctions.insert(function).second)
                             outFunctions.push_back(function);
                     }
 
@@ -143,7 +140,7 @@ namespace SemaGeneric
 
             if (const SymbolFunction* function = matchingGenericFunctionInstance(sema.currentFunction()))
             {
-                if (!containsFunctionInstance(outFunctions.span(), function))
+                if (seenFunctions.insert(function).second)
                     outFunctions.push_back(function);
             }
         }

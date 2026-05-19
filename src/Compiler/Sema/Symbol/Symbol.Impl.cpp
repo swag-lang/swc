@@ -58,11 +58,9 @@ void SymbolImpl::addFunction(const TaskContext& ctx, SymbolFunction* sym)
 
 const SymbolFunction* SymbolImpl::findFunction(IdentifierRef functionIdRef) const
 {
-    std::vector<const Symbol*> symbols;
-    getAllSymbols(symbols);
-    for (const Symbol* symbol : symbols)
+    for (const Symbol* symbol = findFirstSymbol(functionIdRef); symbol; symbol = symbol->nextHomonym())
     {
-        if (symbol && symbol->isFunction() && symbol->idRef() == functionIdRef)
+        if (symbol->isFunction())
             return &symbol->cast<SymbolFunction>();
     }
 

@@ -86,12 +86,7 @@ namespace
         InterfaceCastInfo castInfo;
     };
 
-    bool containsRuntimeInterfaceSymbol(std::span<const SymbolInterface* const> symbols, const SymbolInterface* target)
-    {
-        return std::ranges::find(symbols, target) != symbols.end();
-    }
-
-    void collectRuntimeInterfaceSymbolsRec(const SymbolMap& symbolMap, SmallVector<const SymbolInterface*>& outSymbols)
+    void collectRuntimeInterfaceSymbolsRec(const SymbolMap& symbolMap, SmallVector<const SymbolInterface*>& outSymbols, std::unordered_set<const SymbolInterface*>& seenSymbols)
     {
         std::vector<const Symbol*> symbols;
         symbolMap.getAllSymbols(symbols);
@@ -102,12 +97,12 @@ namespace
             if (symbol->isInterface())
             {
                 const auto* symInterface = &symbol->cast<SymbolInterface>();
-                if (!containsRuntimeInterfaceSymbol(outSymbols.span(), symInterface))
+                if (seenSymbols.insert(symInterface).second)
                     outSymbols.push_back(symInterface);
             }
 
             if (symbol->isModule() || symbol->isNamespace() || symbol->isStruct())
-                collectRuntimeInterfaceSymbolsRec(*symbol->asSymMap(), outSymbols);
+                collectRuntimeInterfaceSymbolsRec(*symbol->asSymMap(), outSymbols, seenSymbols);
         }
     }
 
@@ -870,8 +865,9 @@ namespace
         builder.emitLoadRegImm(resultPayload.reg, ApInt(0, 64), MicroOpBits::B64);
 
         SmallVector<const SymbolInterface*> interfaces;
+        std::unordered_set<const SymbolInterface*> seenInterfaces;
         if (const SymbolModule* rootModule = codeGen.compiler().symModule())
-            collectRuntimeInterfaceSymbolsRec(*rootModule, interfaces);
+            collectRuntimeInterfaceSymbolsRec(*rootModule, interfaces, seenInterfaces);
         if (interfaces.empty())
             return Result::Continue;
 

@@ -168,29 +168,38 @@ namespace
         return whereView.cstRef().isValid() && whereView.cstRef() == sema.cstMgr().cstTrue();
     }
 
-    SmallVector<AstNodeRef> collectSwitchCaseExprRefs(Sema& sema, const AstSwitchCaseStmt& caseStmt)
+    size_t switchSpanNodeCount(const Ast& ast, SpanRef spanRef)
     {
-        SmallVector<AstNodeRef> exprRefs;
-        if (caseStmt.spanExprRef.isValid())
-            sema.ast().appendNodes(exprRefs, caseStmt.spanExprRef);
-        return exprRefs;
+        if (spanRef.isInvalid())
+            return 0;
+        return ast.spanSize(spanRef);
     }
 
-    SmallVector<AstNodeRef> collectSwitchStmtCaseRefs(Sema& sema, const AstSwitchStmt& switchStmt)
+    bool switchSpanContainsNodeRef(const Ast& ast, SpanRef spanRef, AstNodeRef targetRef)
     {
-        SmallVector<AstNodeRef> caseRefs;
-        if (switchStmt.spanChildrenRef.isValid())
-            sema.ast().appendNodes(caseRefs, switchStmt.spanChildrenRef);
-        return caseRefs;
+        const size_t count = switchSpanNodeCount(ast, spanRef);
+        for (size_t i = 0; i < count; ++i)
+        {
+            if (ast.nthNode(spanRef, i) == targetRef)
+                return true;
+        }
+
+        return false;
     }
 
-    SmallVector<AstNodeRef> collectSwitchCaseBodyStmtRefs(Sema& sema, const AstSwitchCaseStmt& caseStmt)
+    AstNodeRef switchSpanNextNodeRef(const Ast& ast, SpanRef spanRef, AstNodeRef currentRef)
     {
-        SmallVector<AstNodeRef> stmtRefs;
-        const auto&             caseBody = sema.node(caseStmt.nodeBodyRef).cast<AstSwitchCaseBody>();
-        if (caseBody.spanChildrenRef.isValid())
-            sema.ast().appendNodes(stmtRefs, caseBody.spanChildrenRef);
-        return stmtRefs;
+        const size_t count = switchSpanNodeCount(ast, spanRef);
+        for (size_t i = 0; i < count; ++i)
+        {
+            if (ast.nthNode(spanRef, i) != currentRef)
+                continue;
+            if (i + 1 >= count)
+                return AstNodeRef::invalid();
+            return ast.nthNode(spanRef, i + 1);
+        }
+
+        return AstNodeRef::invalid();
     }
 
     AstNodeRef dynamicStructSwitchBindingIdentRef(Sema& sema, AstNodeRef nodeRef)
@@ -302,14 +311,13 @@ namespace
 
     Result validateDynamicStructCaseExpr(Sema& sema, AstNodeRef switchRef, AstNodeRef caseRef, AstNodeRef caseExprRef)
     {
-        const auto& caseStmt     = sema.node(caseRef).cast<AstSwitchCaseStmt>();
-        const auto  caseExprRefs = collectSwitchCaseExprRefs(sema, caseStmt);
+        const auto& caseStmt = sema.node(caseRef).cast<AstSwitchCaseStmt>();
 
         AstNodeRef typeExprRef     = caseExprRef;
         AstNodeRef bindingIdentRef = AstNodeRef::invalid();
         if (sema.node(caseExprRef).is(AstNodeId::AsCastExpr))
         {
-            if (caseExprRefs.size() != 1)
+            if (switchSpanNodeCount(sema.ast(), caseStmt.spanExprRef) != 1)
                 return raiseDynamicStructSwitchCaseSyntaxError(sema, caseExprRef);
 
             const auto& asExpr = sema.node(caseExprRef).cast<AstAsCastExpr>();
@@ -514,9 +522,7 @@ Result AstSwitchCaseStmt::semaPreNodeChild(Sema& sema, AstNodeRef& childRef) con
     if (!spanExprRef.isValid())
         return Result::Continue;
 
-    const auto expressions = collectSwitchCaseExprRefs(sema, *this);
-    const bool isExprChild = std::ranges::find(expressions, childRef) != expressions.end();
-    if (!isExprChild)
+    if (!switchSpanContainsNodeRef(sema.ast(), spanExprRef, childRef))
         return Result::Continue;
 
     if (isDynamicStructSwitchCase(sema, switchRef) && sema.node(childRef).is(AstNodeId::AsCastExpr))
@@ -621,9 +627,10 @@ namespace
             return Result::Continue;
         }
 
-        const auto expressions = collectSwitchCaseExprRefs(sema, caseStmt);
-        for (const AstNodeRef exprRef : expressions)
+        const size_t exprCount = switchSpanNodeCount(sema.ast(), caseStmt.spanExprRef);
+        for (size_t i = 0; i < exprCount; ++i)
         {
+            const AstNodeRef exprRef = sema.ast().nthNode(caseStmt.spanExprRef, i);
             if (sema.node(exprRef).is(AstNodeId::RangeExpr))
                 continue;
 
@@ -635,11 +642,11 @@ namespace
 
     Result validateFallthroughStatementPosition(Sema& sema, AstNodeRef caseRef, AstNodeRef stmtRef)
     {
-        const auto  statements = collectSwitchCaseBodyStmtRefs(sema, sema.node(caseRef).cast<AstSwitchCaseStmt>());
-        const auto* itStmt     = std::ranges::find(statements, stmtRef);
-        if (itStmt == statements.end())
+        const auto& caseStmt = sema.node(caseRef).cast<AstSwitchCaseStmt>();
+        const auto& caseBody = sema.node(caseStmt.nodeBodyRef).cast<AstSwitchCaseBody>();
+        if (!switchSpanContainsNodeRef(sema.ast(), caseBody.spanChildrenRef, stmtRef))
             return SemaError::raise(sema, DiagnosticId::sema_err_fallthrough_outside_switch_case, stmtRef);
-        if (itStmt + 1 != statements.end())
+        if (switchSpanNextNodeRef(sema.ast(), caseBody.spanChildrenRef, stmtRef).isValid())
             return SemaError::raise(sema, DiagnosticId::sema_err_fallthrough_not_last_stmt, stmtRef);
 
         return Result::Continue;
@@ -647,11 +654,10 @@ namespace
 
     Result validateFallthroughHasNextCase(Sema& sema, AstNodeRef switchRef, AstNodeRef caseRef, AstNodeRef stmtRef)
     {
-        const auto  cases  = collectSwitchStmtCaseRefs(sema, sema.node(switchRef).cast<AstSwitchStmt>());
-        const auto* itCase = std::ranges::find(cases, caseRef);
-        if (itCase == cases.end())
+        const auto& switchStmt = sema.node(switchRef).cast<AstSwitchStmt>();
+        if (!switchSpanContainsNodeRef(sema.ast(), switchStmt.spanChildrenRef, caseRef))
             return SemaError::raise(sema, DiagnosticId::sema_err_fallthrough_outside_switch_case, stmtRef);
-        if (itCase + 1 == cases.end())
+        if (switchSpanNextNodeRef(sema.ast(), switchStmt.spanChildrenRef, caseRef).isInvalid())
             return SemaError::raise(sema, DiagnosticId::sema_err_fallthrough_in_last_case, stmtRef);
 
         return Result::Continue;

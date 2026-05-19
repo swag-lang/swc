@@ -327,6 +327,8 @@ private:
     ExitCode    runWorkspace();
     Result      runWorkspaceModule(const WorkspaceModuleBuild& moduleBuild, uint32_t moduleIndex, uint32_t moduleCount) const;
     Result      flushGeneratedSourceDumps(TaskContext& ctx);
+    const SourceView* findFirstSourceViewByNormalizedPath(const Utf8& normalizedPath) const;
+    const SourceView* findSourceViewByNormalizedPathAndRuntimeLine(const Utf8& normalizedPath, uint32_t runtimeLine) const;
 
     static const Runtime::CompilerMessage* runtimeCompilerGetMessage(const CompilerInstance* owner);
     static Runtime::BuildCfg*              runtimeCompilerGetBuildCfg(CompilerInstance* owner);

@@ -193,6 +193,20 @@ namespace
         return runtimeLine >= firstLine && runtimeLine <= lastLine;
     }
 
+    bool sourceFilePathMatchesNormalized(const SourceFile& sourceFile, const Utf8& normalizedPath)
+    {
+        return Utf8Helper::normalizePathForCompare(sourceFile.path()) == normalizedPath;
+    }
+
+    const SourceView* preferHigherLineOffsetMatch(const SourceView* currentMatch, const SourceView* candidate)
+    {
+        if (!candidate)
+            return currentMatch;
+        if (!currentMatch || candidate->lineOffset() > currentMatch->lineOffset())
+            return candidate;
+        return currentMatch;
+    }
+
     Utf8 generatedSourceDumpBaseName(const CompilerInstance& compiler)
     {
         Utf8 baseName = buildCfgString(compiler.buildCfg().name);
@@ -932,6 +946,45 @@ bool CompilerInstance::tryResolveSourceLocation(const TaskContext& ctx, Resolved
     return true;
 }
 
+const SourceView* CompilerInstance::findFirstSourceViewByNormalizedPath(const Utf8& normalizedPath) const
+{
+    const uint32_t numSourceViews = srcViewLookup_->size();
+    for (uint32_t i = 0; i < numSourceViews; ++i)
+    {
+        const SourceView* srcView    = srcViewLookup_->at(i);
+        const SourceFile* sourceFile = srcView->file();
+        if (!sourceFile)
+            continue;
+
+        if (sourceFilePathMatchesNormalized(*sourceFile, normalizedPath))
+            return srcView;
+    }
+
+    return nullptr;
+}
+
+const SourceView* CompilerInstance::findSourceViewByNormalizedPathAndRuntimeLine(const Utf8& normalizedPath, const uint32_t runtimeLine) const
+{
+    const SourceView* bestMatch      = nullptr;
+    const uint32_t    numSourceViews = srcViewLookup_->size();
+    for (uint32_t i = 0; i < numSourceViews; ++i)
+    {
+        const SourceView* srcView    = srcViewLookup_->at(i);
+        const SourceFile* sourceFile = srcView->file();
+        if (!sourceFile)
+            continue;
+
+        if (!sourceFilePathMatchesNormalized(*sourceFile, normalizedPath))
+            continue;
+        if (!sourceViewContainsRuntimeLine(*srcView, runtimeLine))
+            continue;
+
+        bestMatch = preferHigherLineOffsetMatch(bestMatch, srcView);
+    }
+
+    return bestMatch;
+}
+
 const SourceView* CompilerInstance::findSourceViewByLocation(const Runtime::SourceCodeLocation& location) const
 {
     const auto locationFileName = std::string_view{location.fileName.ptr, static_cast<size_t>(location.fileName.length)};
@@ -940,46 +993,18 @@ const SourceView* CompilerInstance::findSourceViewByLocation(const Runtime::Sour
 
     const fs::path wantedPath{std::string(locationFileName)};
     const Utf8     wantedPathNormalized = Utf8Helper::normalizePathForCompare(wantedPath);
+    const uint32_t requestedStartLine = location.lineStart ? location.lineStart : 1;
+    const uint32_t requestedEndLine   = location.lineEnd ? location.lineEnd : requestedStartLine;
 
-    const SourceView* firstPathMatch      = nullptr;
-    const SourceView* lineStartMatch      = nullptr;
-    const SourceView* lineEndMatch        = nullptr;
-    const uint32_t    requestedStartLine  = location.lineStart ? location.lineStart : 1;
-    const uint32_t    requestedEndLine    = location.lineEnd ? location.lineEnd : requestedStartLine;
-    const uint32_t    numSourceViews      = srcViewLookup_->size();
-
-    for (uint32_t i = 0; i < numSourceViews; ++i)
+    if (const SourceView* srcView = findSourceViewByNormalizedPathAndRuntimeLine(wantedPathNormalized, requestedStartLine))
+        return srcView;
+    if (requestedEndLine != requestedStartLine)
     {
-        const SourceView* srcView    = srcViewLookup_->at(i);
-        const SourceFile* sourceFile = srcView->file();
-        if (!sourceFile)
-            continue;
-
-        if (Utf8Helper::normalizePathForCompare(sourceFile->path()) != wantedPathNormalized)
-            continue;
-
-        if (!firstPathMatch)
-            firstPathMatch = srcView;
-
-        if (sourceViewContainsRuntimeLine(*srcView, requestedStartLine))
-        {
-            if (!lineStartMatch || srcView->lineOffset() > lineStartMatch->lineOffset())
-                lineStartMatch = srcView;
-            continue;
-        }
-
-        if (sourceViewContainsRuntimeLine(*srcView, requestedEndLine))
-        {
-            if (!lineEndMatch || srcView->lineOffset() > lineEndMatch->lineOffset())
-                lineEndMatch = srcView;
-        }
+        if (const SourceView* srcView = findSourceViewByNormalizedPathAndRuntimeLine(wantedPathNormalized, requestedEndLine))
+            return srcView;
     }
 
-    if (lineStartMatch)
-        return lineStartMatch;
-    if (lineEndMatch)
-        return lineEndMatch;
-    return firstPathMatch;
+    return findFirstSourceViewByNormalizedPath(wantedPathNormalized);
 }
 
 const SourceView* CompilerInstance::findSourceViewByFileName(const std::string_view fileName) const
@@ -989,20 +1014,7 @@ const SourceView* CompilerInstance::findSourceViewByFileName(const std::string_v
 
     const fs::path wantedPath{std::string(fileName)};
     const Utf8     wantedPathNormalized = Utf8Helper::normalizePathForCompare(wantedPath);
-
-    const uint32_t numSourceViews = srcViewLookup_->size();
-    for (uint32_t i = 0; i < numSourceViews; ++i)
-    {
-        const SourceView* srcView    = srcViewLookup_->at(i);
-        const SourceFile* sourceFile = srcView->file();
-        if (!sourceFile)
-            continue;
-
-        if (Utf8Helper::normalizePathForCompare(sourceFile->path()) == wantedPathNormalized)
-            return srcView;
-    }
-
-    return nullptr;
+    return findFirstSourceViewByNormalizedPath(wantedPathNormalized);
 }
 
 bool CompilerInstance::setMainFunc(AstCompilerFunc* node)
@@ -1289,7 +1301,7 @@ bool CompilerInstance::hasResolvedFilePath(const fs::path& path) const
     for (uint32_t i = 0; i < numFiles; ++i)
     {
         const SourceFile* file = fileLookup_->at(i);
-        if (Utf8Helper::normalizePathForCompare(file->path()) == wantedPathNormalized)
+        if (sourceFilePathMatchesNormalized(*file, wantedPathNormalized))
             return true;
     }
 

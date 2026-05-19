@@ -19,7 +19,7 @@ const MachineCode::DebugSourceRange* MachineCode::findDebugSourceRangeAtOffset(c
     return nullptr;
 }
 
-bool MachineCode::tryResolveDebugSourceRange(const TaskContext& ctx, ResolvedDebugSourceRange& outResolvedRange, const DebugSourceRange& range) const
+bool MachineCode::tryResolveDebugSourceRange(const TaskContext& ctx, ResolvedDebugSourceRange& outResolvedRange, const DebugSourceRange& range)
 {
     outResolvedRange = {};
     if (!tryResolveDebugSourceInfo(ctx, outResolvedRange.source, range.debugSourceInfo))

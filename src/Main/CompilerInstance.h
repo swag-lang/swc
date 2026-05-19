@@ -328,6 +328,10 @@ private:
     Result      runWorkspaceModule(const WorkspaceModuleBuild& moduleBuild, uint32_t moduleIndex, uint32_t moduleCount) const;
     Result      flushGeneratedSourceDumps(TaskContext& ctx);
 
+    static const Runtime::CompilerMessage* runtimeCompilerGetMessage(const CompilerInstance* owner);
+    static Runtime::BuildCfg*              runtimeCompilerGetBuildCfg(CompilerInstance* owner);
+    static void                            runtimeCompilerCompileString(const CompilerInstance* owner, Runtime::String str);
+
     const CommandLine*                                 cmdLine_ = nullptr;
     const Global*                                      global_  = nullptr;
     std::vector<std::unique_ptr<SourceFile>>           files_;

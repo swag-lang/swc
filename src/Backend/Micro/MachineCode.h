@@ -23,7 +23,7 @@ struct MachineCode
     std::vector<DebugSourceRange> debugSourceRanges;
 
     const DebugSourceRange* findDebugSourceRangeAtOffset(uint32_t codeOffset) const;
-    bool                    tryResolveDebugSourceRange(const TaskContext& ctx, ResolvedDebugSourceRange& outResolvedRange, const DebugSourceRange& range) const;
+    static bool             tryResolveDebugSourceRange(const TaskContext& ctx, ResolvedDebugSourceRange& outResolvedRange, const DebugSourceRange& range);
     bool                    tryResolveDebugSourceRangeAtOffset(const TaskContext& ctx, ResolvedDebugSourceRange& outResolvedRange, uint32_t codeOffset) const;
     Result                  emit(TaskContext& ctx, MicroBuilder& builder);
 };

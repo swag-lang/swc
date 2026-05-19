@@ -464,19 +464,19 @@ namespace
     }
 }
 
-const Runtime::CompilerMessage* runtimeCompilerGetMessage(const CompilerInstance* owner)
+const Runtime::CompilerMessage* CompilerInstance::runtimeCompilerGetMessage(const CompilerInstance* owner)
 {
     SWC_ASSERT(owner != nullptr);
     return &owner->runtimeCompilerMessage();
 }
 
-Runtime::BuildCfg* runtimeCompilerGetBuildCfg(CompilerInstance* owner)
+Runtime::BuildCfg* CompilerInstance::runtimeCompilerGetBuildCfg(CompilerInstance* owner)
 {
     SWC_ASSERT(owner != nullptr);
     return &owner->buildCfg();
 }
 
-void runtimeCompilerCompileString(const CompilerInstance* owner, Runtime::String str)
+void CompilerInstance::runtimeCompilerCompileString(const CompilerInstance* owner, Runtime::String str)
 {
     SWC_ASSERT(owner != nullptr);
     const TaskContext* currentCtx = TaskContext::current();

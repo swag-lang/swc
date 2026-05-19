@@ -1,5 +1,3 @@
-#include <numeric>
-
 #include "pch.h"
 #include "Backend/RuntimeName.h"
 #include "Compiler/Lexer/SourceView.h"

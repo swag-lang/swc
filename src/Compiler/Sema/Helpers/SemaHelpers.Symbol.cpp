@@ -490,11 +490,6 @@ Result SemaHelpers::castBinaryRightToLeft(Sema& sema, TokenId op, AstNodeRef nod
     return Result::Continue;
 }
 
-namespace
-{
-    TypeRef countOfPassthroughTypeRef(TaskContext& ctx, TypeRef typeRef);
-}
-
 Result SemaHelpers::resolveCountOfResult(Sema& sema, CountOfResultInfo& outResult, AstNodeRef exprRef)
 {
     outResult               = {};

@@ -493,7 +493,7 @@ namespace
 
         constexpr uint32_t sparseChunkSize  = 8;
         constexpr uint32_t sparseStoreLimit = 4;
-        if (rawBytes.size() >= sparseChunkSize * 2 && (rawBytes.size() % sparseChunkSize) == 0)
+        if (rawBytes.size() >= sparseChunkSize * 2ull && (rawBytes.size() % sparseChunkSize) == 0)
         {
             uint32_t nonZeroChunks = 0;
             for (uint32_t off = 0; off < rawBytes.size(); off += sparseChunkSize)

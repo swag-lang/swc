@@ -1,5 +1,4 @@
 #pragma once
-#include "Main/ModuleApi.h"
 
 SWC_BEGIN_NAMESPACE();
 

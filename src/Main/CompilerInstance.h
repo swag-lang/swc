@@ -331,6 +331,7 @@ private:
     static const Runtime::CompilerMessage* runtimeCompilerGetMessage(const CompilerInstance* owner);
     static Runtime::BuildCfg*              runtimeCompilerGetBuildCfg(CompilerInstance* owner);
     static void                            runtimeCompilerCompileString(const CompilerInstance* owner, Runtime::String str);
+    const SourceView*                      findSourceViewByLocation(const Runtime::SourceCodeLocation& location) const;
 
     const CommandLine*                                 cmdLine_ = nullptr;
     const Global*                                      global_  = nullptr;

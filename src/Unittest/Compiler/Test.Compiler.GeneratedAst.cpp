@@ -3,12 +3,14 @@
 #if SWC_HAS_UNITTEST
 
 #include "Backend/Runtime.h"
+#include "Compiler/Lexer/Lexer.h"
 #include "Compiler/Parser/Ast/Ast.h"
 #include "Main/Command/CommandLine.h"
 #include "Main/Command/CommandLineParser.h"
 #include "Main/CompilerInstance.h"
 #include "Main/FileSystem.h"
 #include "Main/Stats.h"
+#include "Main/TaskContext.h"
 #include "Support/Os/Os.h"
 #include "Unittest/Unittest.h"
 #include "Unittest/UnittestSource.h"
@@ -473,6 +475,62 @@ SWC_TEST_BEGIN(Compiler_GeneratedAstMaterializesPerThreadFiles)
     }
 
     if (resolvedGeneratedFiles != generatedFiles.size())
+        return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(Compiler_RuntimeLocationPicksGeneratedSourceViewMatchingLineOffset)
+{
+    static constexpr std::string_view FIRST_CONTENT  = R"(// #ast source: fake.swg
+// #ast line: 2
+const GeneratedA = 1
+)";
+    static constexpr std::string_view SECOND_CONTENT = R"(// #ast source: fake.swg
+// #ast line: 3
+const GeneratedB = 2
+)";
+
+    const ScopedGeneratedAstDirectory workDir("RuntimeLocationPicksGeneratedSourceViewMatchingLineOffset");
+    if (!workDir.ready())
+        return Result::Error;
+
+    CommandLine cmdLine;
+    cmdLine.command = CommandKind::Sema;
+    cmdLine.name    = "compiler_generated_ast_runtime_location";
+    CommandLineParser::refreshBuildCfg(cmdLine);
+
+    CompilerInstance compiler(ctx.global(), cmdLine);
+    TaskContext      generatedCtx(compiler);
+
+    const fs::path generatedPath = (workDir.root() / "generated-source-0.swgsrc").lexically_normal();
+    SourceFile&     firstFile    = compiler.addLoadedFile(generatedPath, FileFlagsE::CustomSrc | FileFlagsE::SkipFmt, FIRST_CONTENT);
+    SourceFile&     secondFile   = compiler.addLoadedFile(generatedPath, FileFlagsE::CustomSrc | FileFlagsE::SkipFmt, SECOND_CONTENT);
+
+    firstFile.ast().srcView().setLineOffset(0);
+    secondFile.ast().srcView().setLineOffset(3);
+
+    Lexer lexer;
+    lexer.tokenize(generatedCtx, firstFile.ast().srcView(), LexerFlagsE::Default);
+    lexer.tokenize(generatedCtx, secondFile.ast().srcView(), LexerFlagsE::Default);
+
+    const std::string                 locationFileName = generatedPath.string();
+    const Runtime::SourceCodeLocation runtimeLocation  = {
+         .fileName  = {.ptr = locationFileName.c_str(), .length = locationFileName.size()},
+         .funcName  = {.ptr = nullptr, .length = 0},
+         .lineStart = 6,
+         .colStart  = 1,
+         .lineEnd   = 6,
+         .colEnd    = 6,
+    };
+
+    CompilerInstance::ResolvedSourceLocation resolvedLocation;
+    if (!compiler.tryResolveSourceLocation(generatedCtx, resolvedLocation, runtimeLocation))
+        return Result::Error;
+    if (resolvedLocation.sourceFile != &secondFile)
+        return Result::Error;
+    if (resolvedLocation.codeRange.srcView != &secondFile.ast().srcView())
+        return Result::Error;
+    if (resolvedLocation.codeRange.line != runtimeLocation.lineStart)
         return Result::Error;
 }
 SWC_TEST_END()

@@ -166,6 +166,33 @@ namespace
         return count;
     }
 
+    uint32_t effectiveSourceViewLineCount(const SourceView& srcView)
+    {
+        const auto& lines = srcView.lines();
+        if (lines.empty())
+            return 0;
+
+        uint32_t count = static_cast<uint32_t>(lines.size());
+        if (!srcView.stringView().empty() && lines.back() == srcView.stringView().size())
+            count--;
+
+        return std::max(count, 1u);
+    }
+
+    bool sourceViewContainsRuntimeLine(const SourceView& srcView, const uint32_t runtimeLine)
+    {
+        if (!runtimeLine)
+            return false;
+
+        const uint32_t lineCount = effectiveSourceViewLineCount(srcView);
+        if (!lineCount)
+            return false;
+
+        const uint32_t firstLine = srcView.lineOffset() + 1;
+        const uint32_t lastLine  = srcView.lineOffset() + lineCount;
+        return runtimeLine >= firstLine && runtimeLine <= lastLine;
+    }
+
     Utf8 generatedSourceDumpBaseName(const CompilerInstance& compiler)
     {
         Utf8 baseName = buildCfgString(compiler.buildCfg().name);
@@ -893,9 +920,7 @@ bool CompilerInstance::tryResolveSourceLocation(const TaskContext& ctx, Resolved
 bool CompilerInstance::tryResolveSourceLocation(const TaskContext& ctx, ResolvedSourceLocation& outResolvedLocation, const Runtime::SourceCodeLocation& location) const
 {
     outResolvedLocation = {};
-
-    const auto        locationFileName = std::string_view{location.fileName.ptr, static_cast<size_t>(location.fileName.length)};
-    const SourceView* srcView          = findSourceViewByFileName(locationFileName);
+    const SourceView* srcView = findSourceViewByLocation(location);
     if (!srcView)
         return false;
 
@@ -905,6 +930,56 @@ bool CompilerInstance::tryResolveSourceLocation(const TaskContext& ctx, Resolved
 
     outResolvedLocation.sourceFile = sourceViewFile(srcView->ref());
     return true;
+}
+
+const SourceView* CompilerInstance::findSourceViewByLocation(const Runtime::SourceCodeLocation& location) const
+{
+    const auto locationFileName = std::string_view{location.fileName.ptr, static_cast<size_t>(location.fileName.length)};
+    if (locationFileName.empty())
+        return nullptr;
+
+    const fs::path wantedPath{std::string(locationFileName)};
+    const Utf8     wantedPathNormalized = Utf8Helper::normalizePathForCompare(wantedPath);
+
+    const SourceView* firstPathMatch      = nullptr;
+    const SourceView* lineStartMatch      = nullptr;
+    const SourceView* lineEndMatch        = nullptr;
+    const uint32_t    requestedStartLine  = location.lineStart ? location.lineStart : 1;
+    const uint32_t    requestedEndLine    = location.lineEnd ? location.lineEnd : requestedStartLine;
+    const uint32_t    numSourceViews      = srcViewLookup_->size();
+
+    for (uint32_t i = 0; i < numSourceViews; ++i)
+    {
+        const SourceView* srcView    = srcViewLookup_->at(i);
+        const SourceFile* sourceFile = srcView->file();
+        if (!sourceFile)
+            continue;
+
+        if (Utf8Helper::normalizePathForCompare(sourceFile->path()) != wantedPathNormalized)
+            continue;
+
+        if (!firstPathMatch)
+            firstPathMatch = srcView;
+
+        if (sourceViewContainsRuntimeLine(*srcView, requestedStartLine))
+        {
+            if (!lineStartMatch || srcView->lineOffset() > lineStartMatch->lineOffset())
+                lineStartMatch = srcView;
+            continue;
+        }
+
+        if (sourceViewContainsRuntimeLine(*srcView, requestedEndLine))
+        {
+            if (!lineEndMatch || srcView->lineOffset() > lineEndMatch->lineOffset())
+                lineEndMatch = srcView;
+        }
+    }
+
+    if (lineStartMatch)
+        return lineStartMatch;
+    if (lineEndMatch)
+        return lineEndMatch;
+    return firstPathMatch;
 }
 
 const SourceView* CompilerInstance::findSourceViewByFileName(const std::string_view fileName) const

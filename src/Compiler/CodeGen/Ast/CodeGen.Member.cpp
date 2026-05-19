@@ -36,18 +36,13 @@ namespace
         bool                  isPointer = false;
     };
 
-    bool resolveUsingMemberPathRec(CodeGen& codeGen, const SymbolStruct& currentStruct, const SymbolStruct& targetStruct, SmallVector<StructUsingPathStep>& outSteps, SmallVector<const SymbolStruct*>& visited)
+    bool resolveUsingMemberPathRec(CodeGen& codeGen, const SymbolStruct& currentStruct, const SymbolStruct& targetStruct, SmallVector<StructUsingPathStep>& outSteps, std::unordered_set<const SymbolStruct*>& visited)
     {
         if (&currentStruct == &targetStruct)
             return true;
+        if (!visited.insert(&currentStruct).second)
+            return false;
 
-        for (const SymbolStruct* visitedStruct : visited)
-        {
-            if (visitedStruct == &currentStruct)
-                return false;
-        }
-
-        visited.push_back(&currentStruct);
         for (const SymbolVariable* field : currentStruct.fields())
         {
             SWC_ASSERT(field != nullptr);
@@ -92,7 +87,7 @@ namespace
         if (!baseTypeInfo->isStruct())
             return false;
 
-        SmallVector<const SymbolStruct*> visited;
+        std::unordered_set<const SymbolStruct*> visited;
         return resolveUsingMemberPathRec(codeGen, baseTypeInfo->payloadSymStruct(), *ownerStruct, outSteps, visited);
     }
 

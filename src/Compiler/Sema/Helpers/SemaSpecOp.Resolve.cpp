@@ -405,15 +405,10 @@ namespace
         return Result::Continue;
     }
 
-    Result collectSpecOpCandidatesRec(Sema& sema, const SymbolStruct& ownerStruct, IdentifierRef idRef, std::span<const AstNodeRef> genericArgNodes, SmallVector<Symbol*>& outCandidates, SmallVector<const SymbolStruct*>& visited, bool requireDeclaredGenericRoots)
+    Result collectSpecOpCandidatesRec(Sema& sema, const SymbolStruct& ownerStruct, IdentifierRef idRef, std::span<const AstNodeRef> genericArgNodes, SmallVector<Symbol*>& outCandidates, std::unordered_set<const SymbolStruct*>& visited, bool requireDeclaredGenericRoots)
     {
-        for (const SymbolStruct* visitedStruct : visited)
-        {
-            if (visitedStruct == &ownerStruct)
-                return Result::Continue;
-        }
-
-        visited.push_back(&ownerStruct);
+        if (!visited.insert(&ownerStruct).second)
+            return Result::Continue;
 
         for (const SymbolImpl* symImpl : ownerStruct.impls())
         {
@@ -480,7 +475,7 @@ namespace
     {
         outCandidates.clear();
 
-        SmallVector<const SymbolStruct*> visited;
+        std::unordered_set<const SymbolStruct*> visited;
         SWC_RESULT(collectSpecOpCandidatesRec(sema, ownerStruct, idRef, genericArgNodes, outCandidates, visited, requireDeclaredGenericRoots));
         return Result::Continue;
     }

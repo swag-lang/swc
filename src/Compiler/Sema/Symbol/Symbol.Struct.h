@@ -124,10 +124,13 @@ private:
     std::vector<SymbolVariable*>      fields_;
     mutable std::shared_mutex         mutexImpls_;
     std::vector<SymbolImpl*>          impls_;
+    std::unordered_set<SymbolImpl*>   implsSet_;
     mutable std::shared_mutex         mutexInterfaces_;
     std::vector<SymbolImpl*>          interfaces_;
+    std::unordered_set<SymbolImpl*>   interfacesSet_;
     mutable std::shared_mutex         mutexSpecOps_;
     std::vector<SymbolFunction*>      specOps_;
+    std::unordered_set<SymbolFunction*> specOpsSet_;
     mutable std::once_flag            implicitDefaultFlagsOnce_;
     std::once_flag                    defaultStructOnce_;
     SymbolFunction*                   opDrop_     = nullptr;

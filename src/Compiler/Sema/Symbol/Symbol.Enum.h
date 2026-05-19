@@ -62,6 +62,7 @@ private:
 
     mutable std::shared_mutex mutexImpls_;
     std::vector<SymbolImpl*>  impls_;
+    std::unordered_set<SymbolImpl*>  implsSet_;
 };
 
 SWC_END_NAMESPACE();

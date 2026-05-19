@@ -517,18 +517,13 @@ namespace
         return std::max<uint32_t>(alignOf, 1);
     }
 
-    bool resolveUsingFieldPathRec(const TaskContext& ctx, const SymbolStruct& currentStruct, const SymbolStruct& targetStruct, SmallVector<SymbolStructUsingPathStep>& outSteps, SmallVector<const SymbolStruct*>& visited)
+    bool resolveUsingFieldPathRec(const TaskContext& ctx, const SymbolStruct& currentStruct, const SymbolStruct& targetStruct, SmallVector<SymbolStructUsingPathStep>& outSteps, std::unordered_set<const SymbolStruct*>& visited)
     {
         if (&currentStruct == &targetStruct)
             return true;
+        if (!visited.insert(&currentStruct).second)
+            return false;
 
-        for (const SymbolStruct* visitedStruct : visited)
-        {
-            if (visitedStruct == &currentStruct)
-                return false;
-        }
-
-        visited.push_back(&currentStruct);
         for (const SymbolVariable* field : currentStruct.fields())
         {
             if (!field || !field->isUsingField())
@@ -563,8 +558,7 @@ namespace
 void SymbolStruct::addImpl(Sema& sema, SymbolImpl& symImpl)
 {
     const std::unique_lock lk(mutexImpls_);
-
-    if (std::ranges::find(impls_, &symImpl) != impls_.end())
+    if (!implsSet_.insert(&symImpl).second)
     {
         symImpl.setSymStruct(this);
         return;
@@ -613,8 +607,7 @@ std::vector<SymbolFunction*> SymbolStruct::methods() const
 void SymbolStruct::addInterface(SymbolImpl& symImpl)
 {
     const std::unique_lock lk(mutexInterfaces_);
-
-    if (std::ranges::find(interfaces_, &symImpl) != interfaces_.end())
+    if (!interfacesSet_.insert(&symImpl).second)
     {
         symImpl.setSymStruct(this);
         return;
@@ -627,14 +620,14 @@ void SymbolStruct::addInterface(SymbolImpl& symImpl)
 Result SymbolStruct::addInterface(Sema& sema, SymbolImpl& symImpl)
 {
     const std::unique_lock lk(mutexInterfaces_);
+    if (interfacesSet_.contains(&symImpl))
+    {
+        symImpl.setSymStruct(this);
+        return Result::Continue;
+    }
+
     for (const auto* itf : interfaces_)
     {
-        if (itf == &symImpl)
-        {
-            symImpl.setSymStruct(this);
-            return Result::Continue;
-        }
-
         if (sameInterfaceImplementation(*itf, symImpl))
         {
             auto diag = SemaError::report(sema, DiagnosticId::sema_err_interface_already_implemented, symImpl);
@@ -658,6 +651,7 @@ Result SymbolStruct::addInterface(Sema& sema, SymbolImpl& symImpl)
 
     symImpl.setSymStruct(this);
     interfaces_.push_back(&symImpl);
+    interfacesSet_.insert(&symImpl);
     sema.compiler().notifyAlive();
     return Result::Continue;
 }
@@ -816,7 +810,7 @@ bool SymbolStruct::implementsInterfaceOrUsingFields(Sema& sema, const SymbolInte
 bool SymbolStruct::resolveUsingFieldPath(const TaskContext& ctx, const SymbolStruct& targetStruct, SmallVector<SymbolStructUsingPathStep>& outSteps) const
 {
     outSteps.clear();
-    SmallVector<const SymbolStruct*> visited;
+    std::unordered_set<const SymbolStruct*> visited;
     return resolveUsingFieldPathRec(ctx, *this, targetStruct, outSteps, visited);
 }
 
@@ -977,7 +971,7 @@ SmallVector<SymbolFunction*> SymbolStruct::getSpecOp(IdentifierRef identifierRef
 Result SymbolStruct::registerSpecOp(SymbolFunction& symFunc, SpecOpKind kind)
 {
     const std::unique_lock lk(mutexSpecOps_);
-    if (std::ranges::find(specOps_, &symFunc) != specOps_.end())
+    if (!specOpsSet_.insert(&symFunc).second)
         return Result::Continue;
     specOps_.push_back(&symFunc);
 

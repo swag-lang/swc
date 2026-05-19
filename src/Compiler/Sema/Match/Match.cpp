@@ -150,15 +150,10 @@ namespace
         addPersistedUsingSymMaps(lookUpCxt, symMap, priority);
     }
 
-    Result addUsingMemberSymMaps(Sema& sema, MatchContext& lookUpCxt, const SymbolStruct& symStruct, uint16_t& searchOrder, SmallVector<const SymbolStruct*>& visited)
+    Result addUsingMemberSymMaps(Sema& sema, MatchContext& lookUpCxt, const SymbolStruct& symStruct, uint16_t& searchOrder, std::unordered_set<const SymbolStruct*>& visited)
     {
-        for (const Symbol* s : visited)
-        {
-            if (s == &symStruct)
-                return Result::Continue;
-        }
-
-        visited.push_back(&symStruct);
+        if (!visited.insert(&symStruct).second)
+            return Result::Continue;
 
         for (const Symbol* field : symStruct.fields())
         {
@@ -240,8 +235,8 @@ namespace
             // Struct member lookup must also see members of `using` fields.
             if (lookUpCxt.symMapHint->isStruct())
             {
-                const auto&                      structSym = lookUpCxt.symMapHint->cast<SymbolStruct>();
-                SmallVector<const SymbolStruct*> visited;
+                const auto& structSym = lookUpCxt.symMapHint->cast<SymbolStruct>();
+                std::unordered_set<const SymbolStruct*> visited;
                 SWC_RESULT(addUsingMemberSymMaps(sema, lookUpCxt, structSym, searchOrder, visited));
             }
 

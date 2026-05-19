@@ -4,6 +4,7 @@
 #include "Support/Core/SmallVector.h"
 #include "Support/Core/Utf8.h"
 #include <memory>
+#include <string_view>
 
 SWC_BEGIN_NAMESPACE();
 
@@ -104,6 +105,11 @@ namespace SemaGeneric
         bool                   loadFunctionInstanceGenericArgs(Sema& sema, const SymbolFunction& function, SmallVector<GenericParamDesc>& outParams, SmallVector<GenericInstanceKey>& outArgs);
         bool                   loadOwnerStructGenericArgs(Sema& sema, const SymbolFunction& function, SmallVector<GenericParamDesc>& outParams, SmallVector<GenericInstanceKey>& outArgs);
         void                   collectAmbientGenericFunctions(const Sema& sema, SmallVector<const SymbolFunction*>& outFunctions);
+        Utf8                   formatResolvedGenericArg(Sema& sema, const GenericResolvedArg& arg);
+        Utf8                   formatGenericInstanceKey(Sema& sema, const GenericInstanceKey& key);
+        void                   appendFormattedBinding(Utf8& out, std::string_view name, const Utf8& value);
+        Utf8                   formatResolvedGenericBindings(Sema& sema, const ResolvedGenericBindingSource& source);
+        Utf8                   formatGenericInstanceBindings(Sema& sema, std::span<const GenericParamDesc> params, std::span<const GenericInstanceKey> args);
 
         Sema* tryCreateSemaForGenericDecl(Sema& sema, const Symbol& root, std::unique_ptr<Sema>& ownedSema);
 

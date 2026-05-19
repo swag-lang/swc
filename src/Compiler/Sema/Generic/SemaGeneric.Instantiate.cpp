@@ -133,16 +133,77 @@ namespace SemaGeneric
                     outFunctions.push_back(function);
             }
         }
+
+        Utf8 formatResolvedGenericArg(Sema& sema, const GenericResolvedArg& arg)
+        {
+            if (arg.cstRef.isValid())
+                return sema.cstMgr().get(arg.cstRef).toString(sema.ctx());
+            if (arg.typeRef.isValid())
+                return sema.typeMgr().get(arg.typeRef).toName(sema.ctx());
+            return "?";
+        }
+
+        Utf8 formatGenericInstanceKey(Sema& sema, const GenericInstanceKey& key)
+        {
+            if (key.typeRef.isValid())
+                return sema.typeMgr().get(key.typeRef).toName(sema.ctx());
+            if (key.cstRef.isValid())
+                return sema.cstMgr().get(key.cstRef).toString(sema.ctx());
+            return "?";
+        }
+
+        void appendFormattedBinding(Utf8& out, const std::string_view name, const Utf8& value)
+        {
+            if (!out.empty())
+                out += ", ";
+
+            out += name;
+            out += " = ";
+            out += value;
+        }
+
+        Utf8 formatResolvedGenericBindings(Sema& sema, const ResolvedGenericBindingSource& source)
+        {
+            Utf8 result;
+            if (source.params.size() != source.resolvedArgs.size())
+                return result;
+
+            for (size_t i = 0; i < source.params.size(); ++i)
+            {
+                if (!source.params[i].idRef.isValid())
+                    continue;
+
+                appendFormattedBinding(result, sema.idMgr().get(source.params[i].idRef).name, formatResolvedGenericArg(sema, source.resolvedArgs[i]));
+            }
+
+            return result;
+        }
+
+        Utf8 formatGenericInstanceBindings(Sema& sema, const std::span<const GenericParamDesc> params, const std::span<const GenericInstanceKey> args)
+        {
+            Utf8 result;
+            if (params.size() != args.size())
+                return result;
+
+            for (size_t i = 0; i < params.size(); ++i)
+            {
+                if (!params[i].idRef.isValid())
+                    continue;
+
+                appendFormattedBinding(result, sema.idMgr().get(params[i].idRef).name, formatGenericInstanceKey(sema, args[i]));
+            }
+
+            return result;
+        }
     }
 
     namespace
     {
         using Internal::ResolvedGenericBindingSource;
+        using Internal::appendFormattedBinding;
         using Internal::collectAmbientGenericFunctions;
-        using Internal::genericDeclNodeRef;
-        using Internal::genericFunctionDecl;
-        using Internal::genericStructDeclNode;
-        using Internal::genericStructParamSpan;
+        using Internal::formatGenericInstanceKey;
+        using Internal::formatResolvedGenericArg;
         using Internal::loadFunctionInstanceGenericArgs;
         using Internal::loadOwnerStructGenericArgs;
 
@@ -524,15 +585,6 @@ namespace SemaGeneric
             appendEnclosingGenericCloneBindings(sema, function, outBindings);
         }
 
-        Utf8 formatResolvedGenericArg(Sema& sema, const GenericResolvedArg& arg)
-        {
-            if (arg.cstRef.isValid())
-                return sema.cstMgr().get(arg.cstRef).toString(sema.ctx());
-            if (arg.typeRef.isValid())
-                return sema.typeMgr().get(arg.typeRef).toName(sema.ctx());
-            return "?";
-        }
-
         bool hasFormattedBinding(std::span<const IdentifierRef> ids, IdentifierRef idRef)
         {
             for (const IdentifierRef it : ids)
@@ -602,25 +654,6 @@ namespace SemaGeneric
             }
 
             return *std::static_pointer_cast<std::unordered_map<GenericImplBlockRunKey, CachedSemaRun, GenericImplBlockRunKeyHash>>(cache);
-        }
-
-        Utf8 formatGenericInstanceKey(Sema& sema, const GenericInstanceKey& key)
-        {
-            if (key.typeRef.isValid())
-                return sema.typeMgr().get(key.typeRef).toName(sema.ctx());
-            if (key.cstRef.isValid())
-                return sema.cstMgr().get(key.cstRef).toString(sema.ctx());
-            return "?";
-        }
-
-        void appendFormattedBinding(Utf8& out, std::string_view name, const Utf8& value)
-        {
-            if (!out.empty())
-                out += ", ";
-
-            out += name;
-            out += " = ";
-            out += value;
         }
 
         void appendResolvedBindingText(Sema& sema, std::span<const GenericParamDesc> params, std::span<const GenericResolvedArg> resolvedArgs, SmallVector<IdentifierRef>& seenIds, Utf8& out)

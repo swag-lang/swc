@@ -52,25 +52,6 @@ namespace
             currentFn->setIgnored(sema.ctx());
     }
 
-    Utf8 formatGenericInstanceKey(Sema& sema, const GenericInstanceKey& key)
-    {
-        if (key.typeRef.isValid())
-            return sema.typeMgr().get(key.typeRef).toName(sema.ctx());
-        if (key.cstRef.isValid())
-            return sema.cstMgr().get(key.cstRef).toString(sema.ctx());
-        return "?";
-    }
-
-    void appendGenericBinding(Utf8& out, std::string_view name, const Utf8& value)
-    {
-        if (!out.empty())
-            out += ", ";
-
-        out += name;
-        out += " = ";
-        out += value;
-    }
-
     bool hasSeenGenericContext(std::span<const Symbol*> seen, const Symbol* symbol)
     {
         for (const Symbol* it : seen)
@@ -86,19 +67,7 @@ namespace
     {
         SmallVector<SemaGeneric::GenericParamDesc> params;
         SemaGeneric::collectGenericParams(sema, rootDecl, genericParamsRef, params);
-        if (params.empty() || params.size() != args.size())
-            return {};
-
-        Utf8 out;
-        for (size_t i = 0; i < params.size(); ++i)
-        {
-            if (!params[i].idRef.isValid())
-                continue;
-
-            appendGenericBinding(out, sema.idMgr().get(params[i].idRef).name, formatGenericInstanceKey(sema, args[i]));
-        }
-
-        return out;
+        return SemaGeneric::Internal::formatGenericInstanceBindings(sema, params.span(), args);
     }
 
     void addGenericContextNote(Sema& sema, Diagnostic& diag, const Symbol& root, std::string_view family, const Utf8& bindings)

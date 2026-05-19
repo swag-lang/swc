@@ -31,31 +31,6 @@ namespace SemaGeneric
             return SpanRef::invalid();
         }
 
-        Utf8 formatResolvedGenericArg(Sema& sema, const GenericResolvedArg& arg)
-        {
-            if (arg.cstRef.isValid())
-                return sema.cstMgr().get(arg.cstRef).toString(sema.ctx());
-            if (arg.typeRef.isValid())
-                return sema.typeMgr().get(arg.typeRef).toName(sema.ctx());
-            return "?";
-        }
-
-        Utf8 formatResolvedGenericBindings(Sema& sema, const ResolvedGenericBindingSource& source)
-        {
-            Utf8 result;
-            for (size_t i = 0; i < source.params.size(); ++i)
-            {
-                if (!result.empty())
-                    result += ", ";
-
-                result += sema.idMgr().get(source.params[i].idRef).name;
-                result += " = ";
-                result += formatResolvedGenericArg(sema, source.resolvedArgs[i]);
-            }
-
-            return result;
-        }
-
         bool isWhereConstraint(Sema& sema, AstNodeRef constraintRef)
         {
             if (!constraintRef.isValid())

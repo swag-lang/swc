@@ -1,6 +1,10 @@
 #pragma once
+#include <span>
+#include <vector>
+
 #include "Compiler/Parser/Ast/AstNode.h"
 #include "Compiler/Sema/Core/AttributeList.h"
+#include "Compiler/Sema/Helpers/SemaClone.h"
 #include "Compiler/Sema/Type/TypeInfo.h"
 #include "Compiler/Sema/Type/TypeManager.h"
 #include "Main/CompilerInstance.h"
@@ -11,6 +15,30 @@ SWC_BEGIN_NAMESPACE();
 
 class TaskContext;
 class SymbolMap;
+
+namespace SymbolInternal
+{
+    struct GenericEvalBindingKey
+    {
+        IdentifierRef idRef;
+        AstNodeRef    exprRef;
+        TypeRef       typeRef = TypeRef::invalid();
+        ConstantRef   cstRef  = ConstantRef::invalid();
+    };
+
+    struct GenericEvalEntry
+    {
+        const Ast*                         ownerAst  = nullptr;
+        AstNodeRef                         sourceRef = AstNodeRef::invalid();
+        std::vector<GenericEvalBindingKey> bindings;
+        AstNodeRef                         evalRef = AstNodeRef::invalid();
+    };
+
+    bool       sameGenericEvalBindings(std::span<const GenericEvalBindingKey> lhs, std::span<const SemaClone::ParamBinding> rhs);
+    void       copyGenericEvalBindings(std::vector<GenericEvalBindingKey>& out, std::span<const SemaClone::ParamBinding> bindings);
+    AstNodeRef findGenericEvalNode(std::span<const GenericEvalEntry> entries, const Ast& ownerAst, AstNodeRef sourceRef, std::span<const SemaClone::ParamBinding> bindings);
+    void       cacheGenericEvalNode(std::vector<GenericEvalEntry>& entries, const Ast& ownerAst, AstNodeRef sourceRef, std::span<const SemaClone::ParamBinding> bindings, AstNodeRef evalRef);
+}
 
 enum class SymbolAccess : uint8_t
 {

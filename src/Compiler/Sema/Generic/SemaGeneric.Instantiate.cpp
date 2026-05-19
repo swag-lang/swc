@@ -578,6 +578,8 @@ namespace SemaGeneric
 
     namespace
     {
+        using Internal::GenericEvalReadyKind;
+
         void buildFunctionInstanceContextBindings(Sema& sema, const SymbolFunction& function, SmallVector<SemaClone::ParamBinding>& outBindings)
         {
             outBindings.clear();
@@ -603,6 +605,26 @@ namespace SemaGeneric
             return root.cast<SymbolStruct>().findGenericEvalNode(sema.ast(), sourceRef, bindings);
         }
 
+        bool hasCachedGenericEvalResult(Sema& sema, AstNodeRef nodeRef, GenericEvalReadyKind readyKind)
+        {
+            if (nodeRef.isInvalid())
+                return false;
+
+            switch (readyKind)
+            {
+                case GenericEvalReadyKind::Constant:
+                    return sema.viewStored(nodeRef, SemaNodeViewPartE::Constant).cstRef().isValid();
+
+                case GenericEvalReadyKind::TypeOrSymbol:
+                {
+                    const SemaNodeView storedView = sema.viewStored(nodeRef, SemaNodeViewPartE::Type | SemaNodeViewPartE::Symbol);
+                    return storedView.typeRef().isValid() || (storedView.hasSymbol() && storedView.sym() && storedView.sym()->isType());
+                }
+            }
+
+            SWC_UNREACHABLE();
+        }
+
         void cacheGenericEvalNode(Sema& sema, const Symbol& root, AstNodeRef sourceRef, std::span<const SemaClone::ParamBinding> bindings, AstNodeRef evalRef)
         {
             if (const auto* function = root.safeCast<SymbolFunction>())
@@ -615,31 +637,6 @@ namespace SemaGeneric
         {
             static std::recursive_mutex mutex;
             return mutex;
-        }
-
-        bool isGenericNodeRunActive(Sema& sema, AstNodeRef nodeRef)
-        {
-            if (nodeRef.isInvalid())
-                return false;
-
-            const GenericNodeRunKey key{&sema.ctx(), &sema.ast(), nodeRef.get()};
-            const auto&             runs = genericNodeRuns(sema.ctx());
-            const auto              it   = runs.find(key);
-            return it != runs.end() && it->second.running;
-        }
-
-        bool cachedGenericEvalNodeHasConstant(Sema& sema, AstNodeRef nodeRef)
-        {
-            if (nodeRef.isInvalid())
-                return false;
-
-            // Cached generic-eval nodes live in shared AST storage. While their dedicated
-            // sema runner is active, another thread must not peek at partially-updated
-            // payloads; it has to go through runGenericNode() and wait there instead.
-            if (isGenericNodeRunActive(sema, nodeRef))
-                return false;
-
-            return sema.viewStored(nodeRef, SemaNodeViewPartE::Constant).cstRef().isValid();
         }
 
         std::unordered_map<GenericImplBlockRunKey, CachedSemaRun, GenericImplBlockRunKeyHash>& genericImplBlockRuns(TaskContext& ctx)
@@ -795,27 +792,27 @@ namespace SemaGeneric
             if (const auto* constraintExpr = sema.node(constraintRef).safeCast<AstConstraintExpr>())
             {
                 outEvalRef = findCachedGenericEvalNode(sema, root, constraintExpr->nodeExprRef, bindings);
-                if (cachedGenericEvalNodeHasConstant(sema, outEvalRef))
+                if (hasCachedGenericEvalResult(sema, outEvalRef, GenericEvalReadyKind::Constant))
                     return Result::Continue;
-                return evalGenericClonedNode(sema, root, constraintExpr->nodeExprRef, bindings, outEvalRef);
+                return evalGenericClonedNode(sema, root, constraintExpr->nodeExprRef, bindings, GenericEvalReadyKind::Constant, outEvalRef);
             }
 
             if (sema.node(constraintRef).is(AstNodeId::ConstraintBlock))
             {
                 const std::scoped_lock lock(genericEvalRunMutex());
                 outEvalRef = findCachedGenericEvalNode(sema, root, constraintRef, bindings);
-                if (outEvalRef.isValid())
-                {
-                    if (cachedGenericEvalNodeHasConstant(sema, outEvalRef))
-                        return Result::Continue;
-                }
-                else
+                if (hasCachedGenericEvalResult(sema, outEvalRef, GenericEvalReadyKind::Constant))
+                    return Result::Continue;
+
+                if (outEvalRef.isInvalid())
                 {
                     outEvalRef = makeConstraintBlockRunNode(sema, constraintRef, bindings);
+                    if (outEvalRef.isInvalid())
+                        return Result::Error;
+
                     cacheGenericEvalNode(sema, root, constraintRef, bindings, outEvalRef);
                 }
-                if (outEvalRef.isInvalid())
-                    return Result::Error;
+
                 return runGenericNode(sema, root, outEvalRef);
             }
 
@@ -1007,7 +1004,7 @@ namespace SemaGeneric
             return Result::Continue;
         }
 
-        Result evalGenericClonedNode(Sema& sema, const Symbol& root, AstNodeRef sourceRef, std::span<const SemaClone::ParamBinding> bindings, AstNodeRef& outClonedRef)
+        Result evalGenericClonedNode(Sema& sema, const Symbol& root, AstNodeRef sourceRef, std::span<const SemaClone::ParamBinding> bindings, GenericEvalReadyKind readyKind, AstNodeRef& outClonedRef)
         {
             outClonedRef = AstNodeRef::invalid();
             if (sourceRef.isInvalid())
@@ -1015,12 +1012,10 @@ namespace SemaGeneric
 
             const std::scoped_lock lock(genericEvalRunMutex());
             outClonedRef = findCachedGenericEvalNode(sema, root, sourceRef, bindings);
-            if (outClonedRef.isValid())
-            {
-                if (cachedGenericEvalNodeHasConstant(sema, outClonedRef))
-                    return Result::Continue;
-            }
-            else
+            if (hasCachedGenericEvalResult(sema, outClonedRef, readyKind))
+                return Result::Continue;
+
+            if (outClonedRef.isInvalid())
             {
                 const SemaClone::CloneContext cloneContext{bindings};
                 outClonedRef = SemaClone::cloneAst(sema, sourceRef, cloneContext);

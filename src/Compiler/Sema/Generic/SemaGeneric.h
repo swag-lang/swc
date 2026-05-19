@@ -98,6 +98,12 @@ namespace SemaGeneric
             Utf8                                 bindingText;
         };
 
+        enum class GenericEvalReadyKind : uint8_t
+        {
+            Constant,
+            TypeOrSymbol,
+        };
+
         const AstFunctionDecl* genericFunctionDecl(const SymbolFunction& root);
         const AstNode*         genericStructDeclNode(const SymbolStruct& root);
         SpanRef                genericStructParamSpan(const SymbolStruct& root);
@@ -120,7 +126,7 @@ namespace SemaGeneric
 
         Result runGenericInstanceNode(Sema& sema, const Symbol& root, Symbol& instance);
         Result evalGenericConstraintNode(Sema& sema, const Symbol& root, AstNodeRef constraintRef, std::span<const SemaClone::ParamBinding> bindings, AstNodeRef& outEvalRef);
-        Result evalGenericClonedNode(Sema& sema, const Symbol& root, AstNodeRef sourceRef, std::span<const SemaClone::ParamBinding> bindings, AstNodeRef& outClonedRef);
+        Result evalGenericClonedNode(Sema& sema, const Symbol& root, AstNodeRef sourceRef, std::span<const SemaClone::ParamBinding> bindings, GenericEvalReadyKind readyKind, AstNodeRef& outClonedRef);
         Result instantiateGenericStructImpls(Sema& sema, const SymbolStruct& root, SymbolStruct& instance, std::span<const GenericParamDesc> params, std::span<const GenericResolvedArg> resolvedArgs);
 
         Result checkFunctionWhereConstraints(Sema& sema, bool& outSatisfied, const SymbolFunction& function, std::span<const SemaClone::ParamBinding> bindings, const Utf8& bindingText, CastFailure* outFailure, AstNodeRef errorNodeRef);

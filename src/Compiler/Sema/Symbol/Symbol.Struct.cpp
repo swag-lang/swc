@@ -548,49 +548,6 @@ namespace
         return false;
     }
 
-    struct GenericEvalBindingKey
-    {
-        IdentifierRef idRef;
-        AstNodeRef    exprRef;
-        TypeRef       typeRef = TypeRef::invalid();
-        ConstantRef   cstRef  = ConstantRef::invalid();
-    };
-
-    struct GenericEvalEntry
-    {
-        const Ast*                         ownerAst  = nullptr;
-        AstNodeRef                         sourceRef = AstNodeRef::invalid();
-        std::vector<GenericEvalBindingKey> bindings;
-        AstNodeRef                         evalRef = AstNodeRef::invalid();
-    };
-
-    bool sameGenericEvalBindings(std::span<const GenericEvalBindingKey> lhs, std::span<const SemaClone::ParamBinding> rhs)
-    {
-        if (lhs.size() != rhs.size())
-            return false;
-
-        for (size_t i = 0; i < lhs.size(); ++i)
-        {
-            if (lhs[i].idRef != rhs[i].idRef ||
-                lhs[i].exprRef != rhs[i].exprRef ||
-                lhs[i].typeRef != rhs[i].typeRef ||
-                lhs[i].cstRef != rhs[i].cstRef)
-                return false;
-        }
-
-        return true;
-    }
-
-    void copyGenericEvalBindings(std::vector<GenericEvalBindingKey>& out, std::span<const SemaClone::ParamBinding> bindings)
-    {
-        out.clear();
-        out.reserve(bindings.size());
-        for (const auto& binding : bindings)
-        {
-            out.push_back({.idRef = binding.idRef, .exprRef = binding.exprRef, .typeRef = binding.typeRef, .cstRef = binding.cstRef});
-        }
-    }
-
     bool sameInterfaceImplementation(const SymbolImpl& lhs, const SymbolImpl& rhs)
     {
         if (const SymbolInterface* lhsInterface = lhs.symInterface())
@@ -814,7 +771,7 @@ struct SymbolStruct::GenericData
     mutable std::atomic<uint32_t>   completionState = 0;
     SymbolStruct*                   rootSym         = nullptr;
     mutable std::mutex              evalCacheMutex;
-    std::vector<GenericEvalEntry>   evalCache;
+    std::vector<SymbolInternal::GenericEvalEntry> evalCache;
 };
 
 const SymbolImpl* SymbolStruct::findInterfaceImpl(IdentifierRef interfaceIdRef) const
@@ -905,19 +862,7 @@ AstNodeRef SymbolStruct::findGenericEvalNode(const Ast& ownerAst, const AstNodeR
 {
     const auto&            data = ensureGenericData();
     const std::scoped_lock lock(data.evalCacheMutex);
-    for (const auto& entry : data.evalCache)
-    {
-        if (entry.ownerAst != &ownerAst)
-            continue;
-        if (entry.sourceRef != sourceRef)
-            continue;
-        if (!sameGenericEvalBindings(entry.bindings, bindings))
-            continue;
-
-        return entry.evalRef;
-    }
-
-    return AstNodeRef::invalid();
+    return SymbolInternal::findGenericEvalNode(data.evalCache, ownerAst, sourceRef, bindings);
 }
 
 void SymbolStruct::cacheGenericEvalNode(const Ast& ownerAst, const AstNodeRef sourceRef, std::span<const SemaClone::ParamBinding> bindings, const AstNodeRef evalRef) const
@@ -927,24 +872,7 @@ void SymbolStruct::cacheGenericEvalNode(const Ast& ownerAst, const AstNodeRef so
 
     auto&                  data = ensureGenericData();
     const std::scoped_lock lock(data.evalCacheMutex);
-    for (auto& entry : data.evalCache)
-    {
-        if (entry.ownerAst != &ownerAst)
-            continue;
-        if (entry.sourceRef != sourceRef)
-            continue;
-        if (!sameGenericEvalBindings(entry.bindings, bindings))
-            continue;
-
-        entry.evalRef = evalRef;
-        return;
-    }
-
-    auto& newEntry     = data.evalCache.emplace_back();
-    newEntry.ownerAst  = &ownerAst;
-    newEntry.sourceRef = sourceRef;
-    newEntry.evalRef   = evalRef;
-    copyGenericEvalBindings(newEntry.bindings, bindings);
+    SymbolInternal::cacheGenericEvalNode(data.evalCache, ownerAst, sourceRef, bindings, evalRef);
 }
 
 Result SymbolStruct::registerSpecOps(Sema& sema) const

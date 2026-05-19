@@ -43,6 +43,73 @@ namespace
 #endif
 }
 
+namespace SymbolInternal
+{
+    bool sameGenericEvalBindings(std::span<const GenericEvalBindingKey> lhs, std::span<const SemaClone::ParamBinding> rhs)
+    {
+        if (lhs.size() != rhs.size())
+            return false;
+
+        for (size_t i = 0; i < lhs.size(); ++i)
+        {
+            if (lhs[i].idRef != rhs[i].idRef ||
+                lhs[i].exprRef != rhs[i].exprRef ||
+                lhs[i].typeRef != rhs[i].typeRef ||
+                lhs[i].cstRef != rhs[i].cstRef)
+                return false;
+        }
+
+        return true;
+    }
+
+    void copyGenericEvalBindings(std::vector<GenericEvalBindingKey>& out, std::span<const SemaClone::ParamBinding> bindings)
+    {
+        out.clear();
+        out.reserve(bindings.size());
+        for (const auto& binding : bindings)
+            out.push_back({.idRef = binding.idRef, .exprRef = binding.exprRef, .typeRef = binding.typeRef, .cstRef = binding.cstRef});
+    }
+
+    AstNodeRef findGenericEvalNode(std::span<const GenericEvalEntry> entries, const Ast& ownerAst, const AstNodeRef sourceRef, std::span<const SemaClone::ParamBinding> bindings)
+    {
+        for (const auto& entry : entries)
+        {
+            if (entry.ownerAst != &ownerAst)
+                continue;
+            if (entry.sourceRef != sourceRef)
+                continue;
+            if (!sameGenericEvalBindings(entry.bindings, bindings))
+                continue;
+
+            return entry.evalRef;
+        }
+
+        return AstNodeRef::invalid();
+    }
+
+    void cacheGenericEvalNode(std::vector<GenericEvalEntry>& entries, const Ast& ownerAst, const AstNodeRef sourceRef, std::span<const SemaClone::ParamBinding> bindings, const AstNodeRef evalRef)
+    {
+        for (auto& entry : entries)
+        {
+            if (entry.ownerAst != &ownerAst)
+                continue;
+            if (entry.sourceRef != sourceRef)
+                continue;
+            if (!sameGenericEvalBindings(entry.bindings, bindings))
+                continue;
+
+            entry.evalRef = evalRef;
+            return;
+        }
+
+        auto& newEntry     = entries.emplace_back();
+        newEntry.ownerAst  = &ownerAst;
+        newEntry.sourceRef = sourceRef;
+        newEntry.evalRef   = evalRef;
+        copyGenericEvalBindings(newEntry.bindings, bindings);
+    }
+}
+
 SourceCodeRange Symbol::codeRange(TaskContext& ctx) const noexcept
 {
     const SourceView& srcView = ctx.compiler().srcView(srcViewRef());

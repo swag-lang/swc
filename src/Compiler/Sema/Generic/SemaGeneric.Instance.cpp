@@ -25,6 +25,7 @@ namespace SemaGeneric
         using Internal::collectAmbientGenericFunctions;
         using Internal::evalGenericClonedNode;
         using Internal::FunctionWhereInputs;
+        using Internal::GenericEvalReadyKind;
         using Internal::genericDeclNodeRef;
         using Internal::genericFunctionDecl;
         using Internal::genericStructDeclNode;
@@ -75,7 +76,7 @@ namespace SemaGeneric
             buildPartialGenericContextBindings(sema, root, source, paramIndex, bindings);
 
             AstNodeRef clonedRef = AstNodeRef::invalid();
-            SWC_RESULT(evalGenericClonedNode(sema, root, param.defaultRef, bindings, clonedRef));
+            SWC_RESULT(evalGenericClonedNode(sema, root, param.defaultRef, bindings, GenericEvalReadyKind::Constant, clonedRef));
             if (clonedRef.isInvalid())
                 return Result::Error;
 
@@ -94,7 +95,7 @@ namespace SemaGeneric
             buildPartialGenericContextBindings(sema, root, source, paramIndex, bindings);
 
             AstNodeRef clonedTypeRef = AstNodeRef::invalid();
-            SWC_RESULT(evalGenericClonedNode(sema, root, param.explicitType, bindings, clonedTypeRef));
+            SWC_RESULT(evalGenericClonedNode(sema, root, param.explicitType, bindings, GenericEvalReadyKind::TypeOrSymbol, clonedTypeRef));
             if (clonedTypeRef.isInvalid())
                 return Result::Error;
 
@@ -723,7 +724,7 @@ namespace SemaGeneric
         SmallVector<SemaClone::ParamBinding> bindings;
         buildPartialGenericContextBindings(sema, root, source, params.size(), bindings);
 
-        return evalGenericClonedNode(sema, root, defaultRef, bindings, outClonedRef);
+        return evalGenericClonedNode(sema, root, defaultRef, bindings, GenericEvalReadyKind::Constant, outClonedRef);
     }
 
     Result instantiateFunctionExplicit(Sema& sema, SymbolFunction& genericRoot, std::span<const AstNodeRef> genericArgNodes, SymbolFunction*& outInstance)

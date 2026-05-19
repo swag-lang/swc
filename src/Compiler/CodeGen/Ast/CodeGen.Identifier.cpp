@@ -168,9 +168,7 @@ namespace
         if (&lhs == &rhs)
             return true;
 
-        const SymbolStruct* lhsRoot = lhs.isGenericInstance() && lhs.genericRootSym() ? lhs.genericRootSym() : &lhs;
-        const SymbolStruct* rhsRoot = rhs.isGenericInstance() && rhs.genericRootSym() ? rhs.genericRootSym() : &rhs;
-        return lhsRoot == rhsRoot;
+        return lhs.genericRootOrSelf() == rhs.genericRootOrSelf();
     }
 
     const SymbolStruct* receiverRuntimeStruct(CodeGen& codeGen, const SymbolVariable& receiver)

@@ -93,6 +93,8 @@ public:
     bool                          isGenericInstance() const noexcept { return hasExtraFlag(SymbolStructFlagsE::GenericInstance); }
     bool                          isUnion() const noexcept { return hasExtraFlag(SymbolStructFlagsE::Union); }
     void                          setGenericInstance(SymbolStruct* root) noexcept;
+    SymbolStruct*                 genericRootOrSelf() noexcept;
+    const SymbolStruct*           genericRootOrSelf() const noexcept;
     SymbolStruct*                 genericRootSym() noexcept;
     const SymbolStruct*           genericRootSym() const noexcept;
     AstNodeRef                    findGenericEvalNode(const Ast& ownerAst, AstNodeRef sourceRef, std::span<const SemaClone::ParamBinding> bindings) const;

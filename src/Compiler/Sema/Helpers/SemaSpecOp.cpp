@@ -108,15 +108,7 @@ namespace
             return false;
 
         const SymbolStruct& receiverStruct = receiverType.payloadSymStruct();
-        if (receiverStruct.isGenericInstance() && receiverStruct.genericRootSym() == &owner)
-            return true;
-        if (owner.isGenericInstance() && owner.genericRootSym() == &receiverStruct)
-            return true;
-        const SymbolStruct* receiverRoot = receiverStruct.isGenericInstance() ? receiverStruct.genericRootSym() : &receiverStruct;
-        const SymbolStruct* ownerRoot    = owner.isGenericInstance() ? owner.genericRootSym() : &owner;
-        if (receiverRoot && ownerRoot && receiverRoot == ownerRoot)
-            return true;
-        return false;
+        return receiverStruct.genericRootOrSelf() == owner.genericRootOrSelf();
     }
 
     bool isConstSpecOpReceiver(TaskContext& ctx, const SymbolStruct& owner, TypeRef typeRef)
@@ -185,10 +177,7 @@ namespace
 
     const AstFunctionDecl* specOpDeclForGenericSignature(const SymbolFunction& sym)
     {
-        const SymbolFunction* root = &sym;
-        if (sym.isGenericInstance() && sym.genericRootSym())
-            root = sym.genericRootSym();
-
+        const SymbolFunction* root = sym.genericRootOrSelf();
         return root->decl() ? root->decl()->safeCast<AstFunctionDecl>() : nullptr;
     }
 
@@ -462,10 +451,7 @@ std::string_view SemaSpecOp::specOpFunctionName(const SpecOpKind kind)
 
 void SemaSpecOp::addMissingDeclarationHelp(Sema& sema, Diagnostic& diag, const SymbolStruct& ownerStruct, SpecOpKind kind)
 {
-    const SymbolStruct* rootStruct = &ownerStruct;
-    if (ownerStruct.isGenericInstance() && ownerStruct.genericRootSym())
-        rootStruct = ownerStruct.genericRootSym();
-
+    const SymbolStruct* rootStruct = ownerStruct.genericRootOrSelf();
     DiagnosticElement* help = SemaError::addCurrentModuleHelp(sema, diag, *rootStruct, DiagnosticId::sema_help_missing_spec_op);
     if (!help)
         return;

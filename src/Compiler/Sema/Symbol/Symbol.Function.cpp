@@ -200,7 +200,7 @@ namespace
             case TypeInfoKind::Struct:
             {
                 const SymbolStruct& instance = typeInfo.payloadSymStruct();
-                const SymbolStruct* root     = instance.isGenericInstance() ? instance.genericRootSym() : &instance;
+                const SymbolStruct* root     = instance.genericRootOrSelf();
                 SWC_ASSERT(root != nullptr);
                 appendPublicApiSymbolFragment(out, root->getFullScopedName(ctx).view());
                 if (instance.isGenericInstance())
@@ -1004,6 +1004,20 @@ bool SymbolFunction::hasUnmaterializedGenericBody() const noexcept
     }
 
     return false;
+}
+
+SymbolFunction* SymbolFunction::genericRootOrSelf() noexcept
+{
+    SymbolFunction* root = genericRootSym();
+    SWC_ASSERT(root != nullptr || !isGenericInstance());
+    return root ? root : this;
+}
+
+const SymbolFunction* SymbolFunction::genericRootOrSelf() const noexcept
+{
+    const SymbolFunction* root = genericRootSym();
+    SWC_ASSERT(root != nullptr || !isGenericInstance());
+    return root ? root : this;
 }
 
 SymbolFunction* SymbolFunction::genericRootSym() noexcept

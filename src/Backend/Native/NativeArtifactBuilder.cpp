@@ -82,12 +82,8 @@ namespace
     {
         const SymbolFunction* location = SemaRuntime::transparentLocationFunction(&symbol);
         if (!location)
-            return symbol.genericRootSym() ? symbol.genericRootSym() : &symbol;
-
-        if (location->genericRootSym())
-            return location->genericRootSym();
-
-        return location;
+            return symbol.genericRootOrSelf();
+        return location->genericRootOrSelf();
     }
 
     MicroReg nextVirtualIntReg(uint32_t& nextIndex)

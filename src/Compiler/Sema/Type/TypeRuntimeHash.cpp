@@ -169,12 +169,9 @@ namespace
 
         if (const auto* symStruct = symbol.safeCast<SymbolStruct>())
         {
-            const SymbolStruct* root = symStruct;
+            const SymbolStruct* root = symStruct->genericRootOrSelf();
             if (symStruct->isGenericInstance())
             {
-                root = symStruct->genericRootSym();
-                SWC_ASSERT(root != nullptr);
-
                 SmallVector<GenericInstanceKey> args;
                 if (symStruct->tryGetGenericInstanceArgs(args))
                 {
@@ -190,12 +187,9 @@ namespace
 
         if (const auto* symFunction = symbol.safeCast<SymbolFunction>())
         {
-            const SymbolFunction* root = symFunction;
+            const SymbolFunction* root = symFunction->genericRootOrSelf();
             if (symFunction->isGenericInstance())
             {
-                root = symFunction->genericRootSym();
-                SWC_ASSERT(root != nullptr);
-
                 SmallVector<GenericInstanceKey> args;
                 if (symFunction->tryGetGenericInstanceArgs(ctx, args))
                 {

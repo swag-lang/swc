@@ -461,7 +461,7 @@ namespace
             case TypeInfoKind::Struct:
             {
                 const SymbolStruct& instance = typeInfo.payloadSymStruct();
-                const SymbolStruct* root     = instance.isGenericInstance() ? instance.genericRootSym() : &instance;
+                const SymbolStruct* root     = instance.genericRootOrSelf();
                 SWC_ASSERT(root != nullptr);
                 out += mode == TypeNameMode::Full ? root->getFullScopedName(ctx) : Utf8(root->name(ctx));
                 if (instance.isGenericInstance())

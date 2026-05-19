@@ -28,9 +28,7 @@ namespace
 {
     SymbolMap* lazyGenericFunctionStartSymMap(const SymbolFunction& function)
     {
-        if (const auto* root = function.genericRootSym())
-            return const_cast<SymbolMap*>(root->ownerSymMap());
-        return const_cast<SymbolMap*>(function.ownerSymMap());
+        return const_cast<SymbolMap*>(function.genericRootOrSelf()->ownerSymMap());
     }
 
     const SymbolImpl* functionDeclImplContext(Sema& sema, const SymbolFunction* symFunc = nullptr)

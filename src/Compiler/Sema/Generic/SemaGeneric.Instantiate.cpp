@@ -209,9 +209,7 @@ namespace SemaGeneric
 
         const SymbolFunction* declContextRoot(const SymbolFunction& function)
         {
-            if (const auto* root = function.genericRootSym())
-                return root;
-            return &function;
+            return function.genericRootOrSelf();
         }
 
         SymbolMap* functionDeclStartSymMap(const SymbolFunction& function)

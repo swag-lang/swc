@@ -1066,6 +1066,20 @@ void SymbolStruct::setGenericInstance(SymbolStruct* root) noexcept
     }
 }
 
+SymbolStruct* SymbolStruct::genericRootOrSelf() noexcept
+{
+    SymbolStruct* root = genericRootSym();
+    SWC_ASSERT(root != nullptr || !isGenericInstance());
+    return root ? root : this;
+}
+
+const SymbolStruct* SymbolStruct::genericRootOrSelf() const noexcept
+{
+    const SymbolStruct* root = genericRootSym();
+    SWC_ASSERT(root != nullptr || !isGenericInstance());
+    return root ? root : this;
+}
+
 SymbolStruct* SymbolStruct::genericRootSym() noexcept
 {
     if (const auto* data = genericData())

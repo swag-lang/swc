@@ -272,8 +272,8 @@ namespace
         const auto* ownerStruct = memberSym.ownerSymMap() ? memberSym.ownerSymMap()->safeCast<SymbolStruct>() : nullptr;
         if (!ownerStruct || ownerStruct == leftStruct)
             return nullptr;
-        const SymbolStruct* leftRoot  = leftStruct->isGenericInstance() ? leftStruct->genericRootSym() : leftStruct;
-        const SymbolStruct* ownerRoot = ownerStruct->isGenericInstance() ? ownerStruct->genericRootSym() : ownerStruct;
+        const SymbolStruct* leftRoot  = leftStruct->genericRootOrSelf();
+        const SymbolStruct* ownerRoot = ownerStruct->genericRootOrSelf();
         if (leftRoot != ownerRoot)
             return nullptr;
 

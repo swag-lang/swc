@@ -683,7 +683,7 @@ namespace SemaGeneric
             collectGenericParams(sema, *enclosingDecl, spanGenericParamsRef, enclosingParams);
 
             SmallVector<GenericInstanceKey> enclosingArgs;
-            if (!enclosingRoot->tryGetGenericInstanceArgs(enclosingInstance, enclosingArgs))
+            if (!enclosingInstance.tryGetGenericInstanceArgs(enclosingArgs))
                 return;
 
             resolveArgsFromGenericContext(enclosingParams.span(), enclosingArgs.span(), targetParams, resolvedArgs, true);

@@ -135,7 +135,7 @@ namespace
             return;
 
         SmallVector<GenericInstanceKey> args;
-        if (!root->genericInstanceStorage(sema.ctx()).tryGetArgs(fn, args))
+        if (!fn.tryGetGenericInstanceArgs(sema.ctx(), args))
             return;
         if (args.size() > params.size())
             args.resize(params.size());
@@ -163,7 +163,7 @@ namespace
             return;
 
         SmallVector<GenericInstanceKey> args;
-        if (!root->tryGetGenericInstanceArgs(*ownerInstance, args))
+        if (!ownerInstance->tryGetGenericInstanceArgs(args))
             return;
         if (args.size() > params.size())
             args.resize(params.size());

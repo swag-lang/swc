@@ -21,12 +21,8 @@ namespace
 
     void appendGenericStructInstanceArgs(Utf8& out, const SymbolStruct& instance, const TaskContext& ctx, const TypeNameMode mode)
     {
-        const SymbolStruct* root = instance.genericRootSym();
-        if (!root)
-            return;
-
         SmallVector<GenericInstanceKey> args;
-        if (!root->tryGetGenericInstanceArgs(instance, args))
+        if (!instance.tryGetGenericInstanceArgs(args))
             return;
 
         out += "'(";

@@ -686,7 +686,7 @@ namespace
             return Result::Continue;
 
         SmallVector<GenericInstanceKey> actualArgs;
-        if (!actualRoot->tryGetGenericInstanceArgs(argStruct, actualArgs))
+        if (!argStruct.tryGetGenericInstanceArgs(actualArgs))
             return Result::Continue;
         if (patternArgs.size() != actualArgs.size())
             return Result::Continue;

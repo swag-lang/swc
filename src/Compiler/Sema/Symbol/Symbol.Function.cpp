@@ -115,12 +115,8 @@ namespace
 
     void appendPublicApiGenericStructArgs(Utf8& out, const TaskContext& ctx, const SymbolStruct& instance)
     {
-        const SymbolStruct* root = instance.genericRootSym();
-        if (!root)
-            return;
-
         SmallVector<GenericInstanceKey> args;
-        if (!root->tryGetGenericInstanceArgs(instance, args))
+        if (!instance.tryGetGenericInstanceArgs(args))
             return;
 
         appendPublicApiSymbolFragment(out, "gen");
@@ -868,6 +864,21 @@ SymbolFunction::GenericData& SymbolFunction::ensureGenericData(const TaskContext
 GenericInstanceStorage& SymbolFunction::genericInstanceStorage(const TaskContext& ctx) const noexcept
 {
     return ensureGenericData(ctx).instances;
+}
+
+bool SymbolFunction::tryGetGenericInstanceArgs(const TaskContext& ctx, const SymbolFunction& instance, SmallVector<GenericInstanceKey>& outArgs) const
+{
+    return genericInstanceStorage(ctx).tryGetArgs(instance, outArgs);
+}
+
+bool SymbolFunction::tryGetGenericInstanceArgs(const TaskContext& ctx, SmallVector<GenericInstanceKey>& outArgs) const
+{
+    if (!isGenericInstance())
+        return false;
+
+    const SymbolFunction* root = genericRootSym();
+    SWC_ASSERT(root != nullptr);
+    return root && root->tryGetGenericInstanceArgs(ctx, *this, outArgs);
 }
 
 std::shared_ptr<void>* SymbolFunction::lazyGenericBodyRunState() const noexcept

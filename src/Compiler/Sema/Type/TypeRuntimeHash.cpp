@@ -176,7 +176,7 @@ namespace
                 SWC_ASSERT(root != nullptr);
 
                 SmallVector<GenericInstanceKey> args;
-                if (root && root->tryGetGenericInstanceArgs(*symStruct, args))
+                if (symStruct->tryGetGenericInstanceArgs(args))
                 {
                     combineSymbolBaseHash(h, ctx, *root);
                     combineGenericArgsHash(h, ctx, args.span());
@@ -197,7 +197,7 @@ namespace
                 SWC_ASSERT(root != nullptr);
 
                 SmallVector<GenericInstanceKey> args;
-                if (root && root->genericInstanceStorage(ctx).tryGetArgs(*symFunction, args))
+                if (symFunction->tryGetGenericInstanceArgs(ctx, args))
                 {
                     combineSymbolBaseHash(h, ctx, *root);
                     combineGenericArgsHash(h, ctx, args.span());

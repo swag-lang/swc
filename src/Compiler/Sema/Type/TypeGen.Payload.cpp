@@ -593,7 +593,7 @@ namespace
                     entry.structFromGenericTypeRef = genericRoot->typeRef();
 
                     SmallVector<GenericInstanceKey> genericArgs;
-                    if (genericRoot->tryGetGenericInstanceArgs(symStruct, genericArgs) && !genericArgs.empty())
+                    if (symStruct.tryGetGenericInstanceArgs(genericArgs) && !genericArgs.empty())
                     {
                         SmallVector<SemaGeneric::GenericParamDesc> genericParams;
                         if (const auto* decl = genericRoot->decl() ? genericRoot->decl()->safeCast<AstStructDecl>() : nullptr; decl && decl->spanGenericParamsRef.isValid())
@@ -885,7 +885,7 @@ namespace
         {
             const SymbolFunction*           genericRoot = symFunc.genericRootSym();
             SmallVector<GenericInstanceKey> genericArgs;
-            if (genericRoot && genericRoot->genericInstanceStorage(ctx).tryGetArgs(symFunc, genericArgs) && !genericArgs.empty())
+            if (genericRoot && symFunc.tryGetGenericInstanceArgs(ctx, genericArgs) && !genericArgs.empty())
             {
                 SmallVector<SemaGeneric::GenericParamDesc> genericParams;
                 if (const auto* decl = genericRoot->decl() ? genericRoot->decl()->safeCast<AstFunctionDecl>() : nullptr; decl && decl->spanGenericParamsRef.isValid())

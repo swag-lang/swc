@@ -67,7 +67,7 @@ namespace SemaGeneric
             if (outParams.empty())
                 return false;
 
-            if (!root->genericInstanceStorage(sema.ctx()).tryGetArgs(function, outArgs))
+            if (!function.tryGetGenericInstanceArgs(sema.ctx(), outArgs))
                 return false;
             if (outArgs.size() < outParams.size())
                 return false;
@@ -95,7 +95,7 @@ namespace SemaGeneric
             if (outParams.empty())
                 return false;
 
-            return ownerRoot->tryGetGenericInstanceArgs(*ownerInstance, outArgs);
+            return ownerInstance->tryGetGenericInstanceArgs(outArgs);
         }
 
         void collectAmbientGenericFunctions(const Sema& sema, SmallVector<const SymbolFunction*>& outFunctions)

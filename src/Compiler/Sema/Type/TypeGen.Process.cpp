@@ -222,7 +222,7 @@ SmallVector<TypeRef> TypeGen::computeDeps(TypeManager& tm, const TaskContext& ct
                     deps.push_back(genericRoot->typeRef());
 
                 SmallVector<GenericInstanceKey> genericArgs;
-                if (genericRoot && genericRoot->tryGetGenericInstanceArgs(symStruct, genericArgs))
+                if (symStruct.tryGetGenericInstanceArgs(genericArgs))
                 {
                     for (const GenericInstanceKey& arg : genericArgs)
                     {
@@ -292,7 +292,7 @@ SmallVector<TypeRef> TypeGen::computeDeps(TypeManager& tm, const TaskContext& ct
             {
                 const SymbolFunction*           genericRoot = symFunc.genericRootSym();
                 SmallVector<GenericInstanceKey> genericArgs;
-                if (genericRoot && genericRoot->genericInstanceStorage(ctx).tryGetArgs(symFunc, genericArgs))
+                if (symFunc.tryGetGenericInstanceArgs(ctx, genericArgs))
                 {
                     for (const GenericInstanceKey& arg : genericArgs)
                     {

@@ -1120,6 +1120,16 @@ bool SymbolStruct::tryGetGenericInstanceArgs(const SymbolStruct& instance, Small
     return false;
 }
 
+bool SymbolStruct::tryGetGenericInstanceArgs(SmallVector<GenericInstanceKey>& outArgs) const
+{
+    if (!isGenericInstance())
+        return false;
+
+    const SymbolStruct* root = genericRootSym();
+    SWC_ASSERT(root != nullptr);
+    return root && root->tryGetGenericInstanceArgs(*this, outArgs);
+}
+
 void SymbolStruct::setGenericCompletionOwner(const TaskContext& ctx) const noexcept
 {
     auto&              data     = ensureGenericData();

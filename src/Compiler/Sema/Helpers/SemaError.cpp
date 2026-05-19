@@ -97,7 +97,7 @@ namespace
             return;
 
         SmallVector<GenericInstanceKey> args;
-        if (!root->genericInstanceStorage(sema.ctx()).tryGetArgs(function, args))
+        if (!function.tryGetGenericInstanceArgs(sema.ctx(), args))
             return;
 
         const Utf8 bindings = formatGenericInstanceBindings(sema, *decl, decl->spanGenericParamsRef, args.span());
@@ -119,7 +119,7 @@ namespace
             return;
 
         SmallVector<GenericInstanceKey> args;
-        if (!root->tryGetGenericInstanceArgs(st, args))
+        if (!st.tryGetGenericInstanceArgs(args))
             return;
 
         const Utf8 bindings = formatGenericInstanceBindings(sema, *decl, decl->spanGenericParamsRef, args.span());

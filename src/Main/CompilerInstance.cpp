@@ -45,7 +45,6 @@ namespace
     uint64_t       g_RuntimeContextTlsId;
     std::once_flag g_RuntimeContextTlsIdOnce;
 
-
     template<typename T>
     bool appendUnique(std::vector<T*>& values, T* value)
     {
@@ -136,7 +135,6 @@ namespace
         return Utf8{value};
     }
 
-
     bool endsWithLineBreak(const std::string_view text)
     {
         if (text.empty())
@@ -206,8 +204,6 @@ namespace
         const Utf8     baseName  = generatedSourceDumpBaseName(compiler);
         return (directory / std::format("{}-generated-source-{}.swgsrc", baseName.c_str(), threadIndex)).lexically_normal();
     }
-
-
 
     void initRuntimeContextTlsId()
     {
@@ -764,7 +760,6 @@ ExitCode CompilerInstance::run()
     return exitCode;
 }
 
-
 SourceView& CompilerInstance::addSourceView()
 {
     const std::unique_lock lock(sourceStorageMutex_);
@@ -903,8 +898,8 @@ bool CompilerInstance::tryResolveSourceLocation(const TaskContext& ctx, Resolved
 {
     outResolvedLocation = {};
 
-    const std::string_view locationFileName = std::string_view{location.fileName.ptr, static_cast<size_t>(location.fileName.length)};
-    const SourceView*      srcView          = findSourceViewByFileName(locationFileName);
+    const auto        locationFileName = std::string_view{location.fileName.ptr, static_cast<size_t>(location.fileName.length)};
+    const SourceView* srcView          = findSourceViewByFileName(locationFileName);
     if (!srcView)
         return false;
 
@@ -1229,6 +1224,5 @@ bool CompilerInstance::hasResolvedFilePath(const fs::path& path) const
 
     return false;
 }
-
 
 SWC_END_NAMESPACE();

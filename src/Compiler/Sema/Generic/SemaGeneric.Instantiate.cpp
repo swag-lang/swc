@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "Compiler/Sema/Cast/CastRequest.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
-#include "Compiler/Sema/Generic/SemaGeneric.Priv.h"
+#include "Compiler/Sema/Generic/SemaGeneric.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Compiler/Sema/Symbol/Symbol.Enum.h"
@@ -14,43 +14,43 @@ SWC_BEGIN_NAMESPACE();
 
 namespace SemaGeneric
 {
-namespace
-{
-    using Internal::ResolvedGenericBindingSource;
-
-    const AstFunctionDecl* genericFunctionDecl(const SymbolFunction& root)
+    namespace
     {
-        return root.decl() ? root.decl()->safeCast<AstFunctionDecl>() : nullptr;
-    }
+        using Internal::ResolvedGenericBindingSource;
 
-    const AstNode* genericStructDeclNode(const SymbolStruct& root)
-    {
-        if (!root.decl())
+        const AstFunctionDecl* genericFunctionDecl(const SymbolFunction& root)
+        {
+            return root.decl() ? root.decl()->safeCast<AstFunctionDecl>() : nullptr;
+        }
+
+        const AstNode* genericStructDeclNode(const SymbolStruct& root)
+        {
+            if (!root.decl())
+                return nullptr;
+
+            const AstNode* decl = root.decl();
+            if (decl->is(AstNodeId::StructDecl) || decl->is(AstNodeId::UnionDecl))
+                return decl;
             return nullptr;
+        }
 
-        const AstNode* decl = root.decl();
-        if (decl->is(AstNodeId::StructDecl) || decl->is(AstNodeId::UnionDecl))
-            return decl;
-        return nullptr;
-    }
+        SpanRef genericStructParamSpan(const SymbolStruct& root)
+        {
+            const AstNode* decl = genericStructDeclNode(root);
+            if (!decl)
+                return SpanRef::invalid();
 
-    SpanRef genericStructParamSpan(const SymbolStruct& root)
-    {
-        const AstNode* decl = genericStructDeclNode(root);
-        if (!decl)
-            return SpanRef::invalid();
+            if (const auto* structDecl = decl->safeCast<AstStructDecl>())
+                return structDecl->spanGenericParamsRef;
+            return decl->cast<AstUnionDecl>().spanGenericParamsRef;
+        }
 
-        if (const auto* structDecl = decl->safeCast<AstStructDecl>())
-            return structDecl->spanGenericParamsRef;
-        return decl->cast<AstUnionDecl>().spanGenericParamsRef;
-    }
-
-    AstNodeRef genericDeclNodeRef(const Symbol& root)
-    {
-        if (const auto* function = root.safeCast<SymbolFunction>())
-            return function->declNodeRef();
-        return root.cast<SymbolStruct>().declNodeRef();
-    }
+        AstNodeRef genericDeclNodeRef(const Symbol& root)
+        {
+            if (const auto* function = root.safeCast<SymbolFunction>())
+                return function->declNodeRef();
+            return root.cast<SymbolStruct>().declNodeRef();
+        }
 
         const SymbolFunction* declContextRoot(const SymbolFunction& function)
         {
@@ -247,7 +247,7 @@ namespace
             return flags;
         }
 
-    void prepareGenericDeclSemaContext(Sema& child, Sema& sema, const Symbol& root)
+        void prepareGenericDeclSemaContext(Sema& child, Sema& sema, const Symbol& root)
         {
             if (const auto* function = root.safeCast<SymbolFunction>())
             {

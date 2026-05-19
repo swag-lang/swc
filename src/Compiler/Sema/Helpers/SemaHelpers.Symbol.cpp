@@ -641,7 +641,6 @@ Result SemaHelpers::intrinsicCountOf(Sema& sema, AstNodeRef targetRef, AstNodeRe
     return Result::Continue;
 }
 
-
 void SemaHelpers::handleSymbolRegistration(Sema& sema, SymbolMap* symbolMap, Symbol* sym)
 {
     SWC_ASSERT(symbolMap != nullptr);
@@ -1119,7 +1118,6 @@ namespace
         return Result::SkipChildren;
     }
 }
-
 
 Result SemaHelpers::resolveMemberAccess(Sema& sema, AstNodeRef memberRef, AstMemberAccessExpr& node, bool allowOverloadSet)
 {

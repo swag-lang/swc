@@ -499,7 +499,7 @@ namespace
 
     bool tryResolveRelocationTargetFunction(SymbolFunction*& outTargetFunction, const MicroRelocation& reloc, RelocationResolveFailure* outFailure)
     {
-        outTargetFunction = nullptr;
+        outTargetFunction    = nullptr;
         Symbol* targetSymbol = reloc.targetSymbol;
         if (!targetSymbol)
         {
@@ -727,9 +727,9 @@ namespace
 
     RuntimeExceptionReport buildRuntimeExceptionDiagnostic(TaskContext& ctx, const RuntimeExceptionDiagnosticInfo& info, const Runtime::SourceCodeLocation* location)
     {
-        RuntimeExceptionReport report;
+        RuntimeExceptionReport                   report;
         CompilerInstance::ResolvedSourceLocation resolvedLocation;
-        const bool                              hasResolvedLocation = location && ctx.compiler().tryResolveSourceLocation(ctx, resolvedLocation, *location);
+        const bool                               hasResolvedLocation = location && ctx.compiler().tryResolveSourceLocation(ctx, resolvedLocation, *location);
 
         report.diag = Diagnostic::get(info.diagId, hasResolvedLocation && resolvedLocation.sourceFile ? resolvedLocation.sourceFile->ref() : FileRef::invalid());
         if (hasResolvedLocation)
@@ -1200,9 +1200,9 @@ namespace
         if (record && record->NumberParameters >= 4)
         {
             outException.location = reinterpret_cast<const Runtime::SourceCodeLocation*>(record->ExceptionInformation[0]);
-            auto       msgPtr   = reinterpret_cast<const char*>(record->ExceptionInformation[1]);
-            const auto msgCount = static_cast<uint64_t>(record->ExceptionInformation[2]);
-            outException.kind   = static_cast<Runtime::ExceptionKind>(record->ExceptionInformation[3]);
+            auto       msgPtr     = reinterpret_cast<const char*>(record->ExceptionInformation[1]);
+            const auto msgCount   = static_cast<uint64_t>(record->ExceptionInformation[2]);
+            outException.kind     = static_cast<Runtime::ExceptionKind>(record->ExceptionInformation[3]);
             if (msgPtr && msgCount)
                 outException.message = {msgPtr, static_cast<size_t>(msgCount)};
         }
@@ -1238,8 +1238,8 @@ namespace
         decodeCompilerDiagnosticException(platformExceptionPointers, decodedException);
 
         const RuntimeExceptionDiagnosticInfo info = runtimeExceptionDiagnosticInfo(decodedException.kind);
-        *outErrorKind                            = info.errorKind;
-        outExceptionAction                       = info.exceptionAction;
+        *outErrorKind                             = info.errorKind;
+        outExceptionAction                        = info.exceptionAction;
 
         RuntimeExceptionReport report = buildRuntimeExceptionDiagnostic(ctx, info, decodedException.location);
 
@@ -1370,9 +1370,9 @@ namespace
         if (!context)
             return {};
 
-        const uint64_t         rip = context->Rip;
-        JitCrashFunctionMatch  functionMatch;
-        Utf8 out;
+        const uint64_t        rip = context->Rip;
+        JitCrashFunctionMatch functionMatch;
+        Utf8                  out;
         if (!tryResolveJitCrashFunction(ctx, rip, functionMatch))
         {
             appendCurrentJitFunctionContext(out, ctx);

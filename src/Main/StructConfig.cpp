@@ -18,8 +18,8 @@ namespace
     template<typename T>
     bool parseIntegerValue(std::string_view value, T& result)
     {
-        const char* first        = value.data();
-        const char* last         = first + value.size();
+        const char* first       = value.data();
+        const char* last        = first + value.size();
         const auto [ptr, error] = std::from_chars(first, last, result);
         return !value.empty() && error == std::errc{} && ptr == last;
     }

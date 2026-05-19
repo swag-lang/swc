@@ -39,7 +39,7 @@ SWC_TEST_BEGIN(AppendOnlyLookupTable_ConcurrentReaderSeesPublishedEntries)
         values[i] = static_cast<int>(i * 3 + 1);
 
     std::atomic readerOk = true;
-    std::thread       reader([&] {
+    std::thread reader([&] {
         uint32_t observed = 0;
         while (observed < VALUE_COUNT)
         {

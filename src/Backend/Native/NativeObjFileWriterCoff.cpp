@@ -342,7 +342,7 @@ Result NativeObjFileWriterCoff::appendSingleCodeRelocation(const uint32_t functi
             const auto* target = relocation.targetSymbol ? relocation.targetSymbol->safeCast<SymbolFunction>() : nullptr;
             SWC_ASSERT(target != nullptr);
             SWC_RESULT(builder_->resolveFunctionSymbolName(record.symbolName, target, allowUnresolvedSymbols));
-            record.addend     = 0;
+            record.addend = 0;
             writeU64(textSection.data.bytes, patchOffset, 0);
             break;
         }

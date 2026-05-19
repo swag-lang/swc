@@ -125,17 +125,17 @@ class NativeBackendBuilder
 public:
     NativeBackendBuilder(CompilerInstance& compiler, bool runArtifact);
 
-    TaskContext&            ctx();
-    const TaskContext&      ctx() const;
-    CompilerInstance&       compiler();
-    const CompilerInstance& compiler() const;
-    bool                    tryResolveConstantSourceRef(DataSegmentRef& outSourceRef, const MicroRelocation& relocation) const noexcept;
-    Result                  resolveConstantSourceRef(DataSegmentRef& outSourceRef, const Utf8& ownerName, const MicroRelocation& relocation);
+    TaskContext&              ctx();
+    const TaskContext&        ctx() const;
+    CompilerInstance&         compiler();
+    const CompilerInstance&   compiler() const;
+    bool                      tryResolveConstantSourceRef(DataSegmentRef& outSourceRef, const MicroRelocation& relocation) const noexcept;
+    Result                    resolveConstantSourceRef(DataSegmentRef& outSourceRef, const Utf8& ownerName, const MicroRelocation& relocation);
     const NativeFunctionInfo* tryFindFunctionInfo(const SymbolFunction& targetFunction) const noexcept;
-    Result                  resolveFunctionSymbolName(Utf8& outName, const SymbolFunction* targetFunction, bool allowUnresolvedSymbols = false);
-    bool                    tryMapRDataSourceOffset(uint32_t& outOffset, uint32_t shardIndex, uint32_t sourceOffset) const noexcept;
-    uint32_t                expectedTestFunctionCount() const;
-    DiagnosticId            lastErrorId() const { return lastErrorId_; }
+    Result                    resolveFunctionSymbolName(Utf8& outName, const SymbolFunction* targetFunction, bool allowUnresolvedSymbols = false);
+    bool                      tryMapRDataSourceOffset(uint32_t& outOffset, uint32_t shardIndex, uint32_t sourceOffset) const noexcept;
+    uint32_t                  expectedTestFunctionCount() const;
+    DiagnosticId              lastErrorId() const { return lastErrorId_; }
 
     Result run();
     Result prepare();

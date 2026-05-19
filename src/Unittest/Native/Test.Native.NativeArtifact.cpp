@@ -541,11 +541,11 @@ SWC_FILESYSTEM_TEST_BEGIN(NativeArtifact_DataEmitsFunctionRelocations)
     });
     rebuildFunctionInfoLookup(*fixture.nativeBuilder);
 
-    DataSegment& initSegment                  = fixture.compiler->globalInitSegment();
-    const auto [relocOffset, relocStorage]    = initSegment.reserve<uint64_t>();
-    const auto [globalOffset, globalStorage]  = initSegment.reserve<uint64_t>();
-    *relocStorage                             = 0;
-    *globalStorage                            = 0;
+    DataSegment& initSegment                 = fixture.compiler->globalInitSegment();
+    const auto [relocOffset, relocStorage]   = initSegment.reserve<uint64_t>();
+    const auto [globalOffset, globalStorage] = initSegment.reserve<uint64_t>();
+    *relocStorage                            = 0;
+    *globalStorage                           = 0;
     initSegment.addFunctionRelocation(relocOffset, targetFunction);
 
     auto* global = makeTestGlobal(*fixture.compilerCtx, "GFunctionInit", fixture.compiler->typeMgr().typeU64());
@@ -832,24 +832,24 @@ var GAddOne: UnaryFn = &addOne
     if (!containsPointer(std::span{compiler.nativeCodeSegment()}, compiler.nativeDropFunctions().front()))
         return fail("native code segment missing drop function");
 
-    const size_t   codeCount              = compiler.nativeCodeSegment().size();
-    const size_t   testCount              = compiler.nativeTestFunctions().size();
-    const size_t   initCount              = compiler.nativeInitFunctions().size();
-    const size_t   preMainCount           = compiler.nativePreMainFunctions().size();
-    const size_t   mainCount              = compiler.nativeMainFunctions().size();
-    const size_t   dropCount              = compiler.nativeDropFunctions().size();
-    const size_t   globalVariableCount    = compiler.nativeGlobalVariables().size();
-    const size_t   initTargetCount        = initTargets.size();
-    const auto     preparedJitFunctionsBefore = compiler.jitPreparedFunctionsSnapshot();
-    const size_t   preparedJitCount           = preparedJitFunctionsBefore.size();
-    const size_t   preparedJitTargetCount     = std::ranges::count(preparedJitFunctionsBefore, addOneFunction);
-    const uint64_t initTargetVersion      = compiler.nativeGlobalFunctionInitTargetsVersion();
-    SymbolFunction* const codeFunction    = compiler.nativeCodeSegment().front();
-    SymbolFunction* const testFunction    = compiler.nativeTestFunctions().front();
-    SymbolFunction* const initFunction    = compiler.nativeInitFunctions().front();
-    SymbolFunction* const preMainFunction = compiler.nativePreMainFunctions().front();
-    SymbolFunction* const mainFunction    = compiler.nativeMainFunctions().front();
-    SymbolFunction* const dropFunction    = compiler.nativeDropFunctions().front();
+    const size_t          codeCount                  = compiler.nativeCodeSegment().size();
+    const size_t          testCount                  = compiler.nativeTestFunctions().size();
+    const size_t          initCount                  = compiler.nativeInitFunctions().size();
+    const size_t          preMainCount               = compiler.nativePreMainFunctions().size();
+    const size_t          mainCount                  = compiler.nativeMainFunctions().size();
+    const size_t          dropCount                  = compiler.nativeDropFunctions().size();
+    const size_t          globalVariableCount        = compiler.nativeGlobalVariables().size();
+    const size_t          initTargetCount            = initTargets.size();
+    const auto            preparedJitFunctionsBefore = compiler.jitPreparedFunctionsSnapshot();
+    const size_t          preparedJitCount           = preparedJitFunctionsBefore.size();
+    const size_t          preparedJitTargetCount     = std::ranges::count(preparedJitFunctionsBefore, addOneFunction);
+    const uint64_t        initTargetVersion          = compiler.nativeGlobalFunctionInitTargetsVersion();
+    SymbolFunction* const codeFunction               = compiler.nativeCodeSegment().front();
+    SymbolFunction* const testFunction               = compiler.nativeTestFunctions().front();
+    SymbolFunction* const initFunction               = compiler.nativeInitFunctions().front();
+    SymbolFunction* const preMainFunction            = compiler.nativePreMainFunctions().front();
+    SymbolFunction* const mainFunction               = compiler.nativeMainFunctions().front();
+    SymbolFunction* const dropFunction               = compiler.nativeDropFunctions().front();
 
     compiler.registerNativeCodeFunction(codeFunction);
     compiler.registerNativeTestFunction(testFunction);

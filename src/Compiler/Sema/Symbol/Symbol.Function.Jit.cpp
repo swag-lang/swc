@@ -1,5 +1,4 @@
 #include "pch.h"
-#include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Backend/ABI/ABICall.h"
 #include "Backend/ABI/ABITypeNormalize.h"
 #include "Backend/ABI/CallConv.h"
@@ -7,6 +6,7 @@
 #include "Backend/JIT/JITPatchJob.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Compiler/Sema/Symbol/Symbol.Alias.h"
+#include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Support/Memory/MemoryProfile.h"
 #if SWC_HAS_STATS

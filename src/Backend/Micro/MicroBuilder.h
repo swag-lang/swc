@@ -165,7 +165,7 @@ private:
     TaskContext*                                        ctx_ = nullptr;
     MicroStorage                                        instructions_;
     MicroOperandStorage                                 operands_;
-    MicroBuilderFlags                                   flags_                     = MicroBuilderFlagsE::Zero;
+    MicroBuilderFlags                                   flags_ = MicroBuilderFlagsE::Zero;
     DebugSourceInfo                                     currentDebugSourceInfo_;
     Utf8                                                printSymbolName_;
     Utf8                                                printFilePath_;

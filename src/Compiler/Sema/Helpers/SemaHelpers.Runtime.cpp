@@ -234,7 +234,6 @@ Result SemaHelpers::attachRuntimeStringCmpFunctionToNode(Sema& sema, AstNodeRef 
     return attachRuntimeFunctionToNode(sema, nodeRef, IdentifierManager::RuntimeFunctionKind::StringCmp, codeRef);
 }
 
-
 Result SemaHelpers::setupRuntimeSafetyPanic(Sema& sema, AstNodeRef nodeRef, Runtime::SafetyWhat safetyKind, const SourceCodeRef& codeRef)
 {
     if (!sema.frame().currentAttributes().hasRuntimeSafety(sema.buildCfg().safetyGuards, safetyKind))
@@ -482,6 +481,5 @@ bool SemaHelpers::usesCallerReturnStorage(TaskContext& ctx, const SymbolFunction
     return symVar.hasExtraFlag(SymbolVariableFlagsE::RetVal) &&
            functionUsesIndirectReturnStorage(ctx, function);
 }
-
 
 SWC_END_NAMESPACE();

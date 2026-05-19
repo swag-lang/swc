@@ -19,7 +19,7 @@ constexpr std::string_view END_OF_OPTIONS     = "--";
 
 namespace
 {
-    constexpr uint32_t RSP_MAX_DEPTH = 16;
+    constexpr uint32_t         RSP_MAX_DEPTH          = 16;
     constexpr std::string_view CONFIG_FILE_LONG_FORM  = "--config-file";
     constexpr std::string_view CONFIG_FILE_SHORT_FORM = "-cf";
 
@@ -131,8 +131,8 @@ namespace
     template<typename T>
     bool parseIntegerValue(std::string_view value, T& result)
     {
-        const char* first        = value.data();
-        const char* last         = first + value.size();
+        const char* first       = value.data();
+        const char* last        = first + value.size();
         const auto [ptr, error] = std::from_chars(first, last, result);
         return !value.empty() && error == std::errc{} && ptr == last;
     }

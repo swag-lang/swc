@@ -272,7 +272,6 @@ namespace
         return false;
     }
 
-
     Result foldConstantPointerLikeToBool(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef)
     {
         const TypeInfo& srcType = sema.typeMgr().get(srcTypeRef);
@@ -1272,7 +1271,6 @@ Result Cast::castToReference(Sema& sema, CastRequest& castRequest, TypeRef srcTy
 
     return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
 }
-
 
 Result Cast::castAllowed(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef)
 {

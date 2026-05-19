@@ -25,7 +25,6 @@ namespace
         return codeGen.tryBuildLifecycleAction(typeRef, CodeGen::LifecycleKind::Drop, outOpDrop, outSizeOf, outCount);
     }
 
-
     void collectGvtdEntriesRec(CodeGen& codeGen, const SymbolMap& symbolMap, SmallVector<CodeGenGvtdEntry>& outEntries)
     {
         std::vector<const Symbol*> symbols;
@@ -248,7 +247,6 @@ namespace
         codeGen.function().setDebugStackBaseReg(frameBaseReg);
     }
 
-
     void spillParametersToDebugSlots(CodeGen& codeGen, const SymbolFunction& symbolFunc)
     {
         if (!codeGen.isDebugInfoEnabled())
@@ -311,7 +309,6 @@ namespace
         SWC_ASSERT(paramInfo.slotIndex < callConv.intArgRegs.size());
         return callConv.intArgRegs[paramInfo.slotIndex];
     }
-
 
     void collectFunctionParameterInfos(SmallVector<CodeGenFunctionHelpers::FunctionParameterInfo>& outParamInfos, CodeGen& codeGen, const SymbolFunction& symbolFunc)
     {
@@ -459,7 +456,6 @@ namespace
             payload->clearThrowableFunctionTarget();
     }
 
-
     Result codeGenFunctionLikePreBody(CodeGen& codeGen, AstNodeRef declRef, AstNodeRef childRef, AstNodeRef bodyRef)
     {
         declRef = codeGen.viewZero(declRef).nodeRef();
@@ -529,7 +525,6 @@ namespace
     }
 }
 
-
 Result AstFunctionDecl::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const
 {
     return codeGenFunctionLikePreBody(codeGen, codeGen.curNodeRef(), childRef, nodeBodyRef);
@@ -552,7 +547,6 @@ Result AstClosureExpr::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef& c
 
     return codeGenFunctionLikePreBody(codeGen, codeGen.curNodeRef(), childRef, nodeBodyRef);
 }
-
 
 Result AstCallExpr::codeGenPostNode(CodeGen& codeGen) const
 {

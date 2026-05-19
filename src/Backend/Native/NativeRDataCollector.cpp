@@ -196,7 +196,7 @@ Result NativeRDataCollector::emitReachableAllocations()
 
                 SWC_ASSERT(relocation.kind == DataSegmentRelocationKind::FunctionSymbol);
                 SWC_RESULT(builder_->resolveFunctionSymbolName(record.symbolName, relocation.targetSymbol));
-                record.addend     = 0;
+                record.addend = 0;
                 builder_->mergedRData.relocations.push_back(record);
             }
         }

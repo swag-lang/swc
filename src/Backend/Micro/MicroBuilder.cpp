@@ -809,18 +809,18 @@ void MicroBuilder::setPrintLocation(Utf8 symbolName, Utf8 filePath, uint32_t sou
 
 void MicroBuilder::releaseMemory()
 {
-    instructions_                = {};
-    operands_                    = {};
-    currentDebugSourceInfo_      = {};
-    printSymbolName_             = Utf8();
-    printFilePath_               = Utf8();
-    printSourceLine_             = 0;
-    usesIntReturnRegOnRet_       = true;
-    usesFloatReturnRegOnRet_     = true;
-    printPassOptions_            = {};
-    labels_                      = {};
-    relocations_                 = {};
-    virtualRegForbiddenPhysRegs_ = {};
+    instructions_                    = {};
+    operands_                        = {};
+    currentDebugSourceInfo_          = {};
+    printSymbolName_                 = Utf8();
+    printFilePath_                   = Utf8();
+    printSourceLine_                 = 0;
+    usesIntReturnRegOnRet_           = true;
+    usesFloatReturnRegOnRet_         = true;
+    printPassOptions_                = {};
+    labels_                          = {};
+    relocations_                     = {};
+    virtualRegForbiddenPhysRegs_     = {};
     controlFlowGraph_                = {};
     controlFlowGraphStorageRevision_ = 0;
     controlFlowGraphHash_            = 0;

@@ -704,7 +704,6 @@ TypeRef SemaHelpers::normalizeTypeLikeValueTypeRef(Sema& sema, TypeRef typeRef, 
     return typeInfo.isAnyTypeInfo(sema.ctx()) ? typeRef : sema.typeMgr().typeTypeInfo();
 }
 
-
 TypeRef SemaHelpers::preciseAnyBoxedValueTypeRef(Sema& sema, TypeRef valueTypeRef, ConstantRef valueCstRef, AstNodeRef ownerNodeRef)
 {
     if (!valueTypeRef.isValid())
@@ -823,7 +822,6 @@ namespace
 
         return typeRef;
     }
-
 
     IdentifierRef namedArgumentIdentifier(Sema& sema, AstNodeRef childRef)
     {
@@ -1024,7 +1022,6 @@ Result SemaHelpers::resolveArrayLikeChildBindingType(Sema& sema, std::span<const
     outTypeRef = elementTypes[childIndex];
     return Result::Continue;
 }
-
 
 bool SemaHelpers::resolveAggregateMemberIndex(Sema& sema, const TypeInfo& aggregateType, IdentifierRef idRef, size_t& outIndex)
 {

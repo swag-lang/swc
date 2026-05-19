@@ -1,10 +1,10 @@
 #include "pch.h"
-#include "Main/ModuleApi.Priv.h"
 #include "Compiler/Parser/Ast/Ast.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Symbol/Symbols.h"
 #include "Compiler/SourceFile.h"
 #include "Main/CompilerInstance.h"
+#include "Main/ModuleApi.Priv.h"
 #include "Main/TaskContext.h"
 #include "Support/Report/Diagnostic.h"
 

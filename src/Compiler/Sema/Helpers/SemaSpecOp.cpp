@@ -597,5 +597,4 @@ SpecOpKind SemaSpecOp::computeSymbolKind(const Sema& sema, const SymbolFunction&
     return SpecOpKind::Invalid;
 }
 
-
 SWC_END_NAMESPACE();

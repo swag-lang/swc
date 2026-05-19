@@ -178,9 +178,9 @@ func touch()
         cmdLine.files.insert(sourcePath);
         CommandLineParser::refreshBuildCfg(cmdLine);
 
-        const uint64_t    errorsBefore = Stats::getNumErrors();
+        const uint64_t          errorsBefore = Stats::getNumErrors();
         const RestoreErrorCount restoreErrors{errorsBefore};
-        CompilerInstance  compiler(ctx.global(), cmdLine);
+        CompilerInstance        compiler(ctx.global(), cmdLine);
         Unittest::registerTestSource(compiler, sourcePath, SOURCE);
         if (compiler.run() != ExitCode::Success)
             return Result::Error;
@@ -304,9 +304,9 @@ func touch()
         cmdLine.files.insert(sourcePath);
         CommandLineParser::refreshBuildCfg(cmdLine);
 
-        const uint64_t    errorsBefore = Stats::getNumErrors();
+        const uint64_t          errorsBefore = Stats::getNumErrors();
         const RestoreErrorCount restoreErrors{errorsBefore};
-        CompilerInstance  compiler(ctx.global(), cmdLine);
+        CompilerInstance        compiler(ctx.global(), cmdLine);
         Unittest::registerTestSource(compiler, sourcePath, SOURCE);
         if (compiler.run() != ExitCode::Success)
             return Result::Error;
@@ -339,10 +339,10 @@ SWC_TEST_BEGIN(Compiler_GeneratedAstMaterializesPerThreadFiles)
         return Result::Error;
 
     CommandLine cmdLine;
-    cmdLine.command = CommandKind::Sema;
-    cmdLine.name    = "compiler_generated_ast_thread_files";
+    cmdLine.command  = CommandKind::Sema;
+    cmdLine.name     = "compiler_generated_ast_thread_files";
     cmdLine.numCores = 1;
-    cmdLine.workDir = workDir.root();
+    cmdLine.workDir  = workDir.root();
     cmdLine.files.insert(sourcePath);
     CommandLineParser::refreshBuildCfg(cmdLine);
 
@@ -447,14 +447,14 @@ SWC_TEST_BEGIN(Compiler_GeneratedAstMaterializesPerThreadFiles)
         if (resolvedLocation.codeRange.line < 3)
             return Result::Error;
 
-        const std::string locationFileName = file->path().string();
-        const Runtime::SourceCodeLocation runtimeLocation = {
-            .fileName  = {.ptr = locationFileName.c_str(), .length = locationFileName.size()},
-            .funcName  = {.ptr = nullptr, .length = 0},
-            .lineStart = resolvedLocation.codeRange.line,
-            .colStart  = resolvedLocation.codeRange.column,
-            .lineEnd   = resolvedLocation.codeRange.line,
-            .colEnd    = resolvedLocation.codeRange.column + resolvedLocation.codeRange.len,
+        const std::string                 locationFileName = file->path().string();
+        const Runtime::SourceCodeLocation runtimeLocation  = {
+             .fileName  = {.ptr = locationFileName.c_str(), .length = locationFileName.size()},
+             .funcName  = {.ptr = nullptr, .length = 0},
+             .lineStart = resolvedLocation.codeRange.line,
+             .colStart  = resolvedLocation.codeRange.column,
+             .lineEnd   = resolvedLocation.codeRange.line,
+             .colEnd    = resolvedLocation.codeRange.column + resolvedLocation.codeRange.len,
         };
 
         CompilerInstance::ResolvedSourceLocation resolvedRuntimeLocation;

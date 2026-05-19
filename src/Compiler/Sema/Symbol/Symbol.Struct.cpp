@@ -775,7 +775,8 @@ struct SymbolStruct::GenericData
     std::atomic<const TaskContext*> completionOwner = nullptr;
     mutable std::atomic<uint32_t>   completionState = 0;
     SymbolStruct*                   rootSym         = nullptr;
-    mutable std::mutex              evalCacheMutex;
+    mutable std::recursive_mutex    evalRunMutex;
+    mutable std::shared_mutex       evalCacheMutex;
     std::vector<SymbolInternal::GenericEvalEntry> evalCache;
 };
 
@@ -866,7 +867,7 @@ Result SymbolStruct::canBeCompleted(Sema& sema) const
 AstNodeRef SymbolStruct::findGenericEvalNode(const Ast& ownerAst, const AstNodeRef sourceRef, std::span<const SemaClone::ParamBinding> bindings) const
 {
     const auto&            data = ensureGenericData();
-    const std::scoped_lock lock(data.evalCacheMutex);
+    const std::shared_lock lock(data.evalCacheMutex);
     return SymbolInternal::findGenericEvalNode(data.evalCache, ownerAst, sourceRef, bindings);
 }
 
@@ -876,8 +877,13 @@ void SymbolStruct::cacheGenericEvalNode(const Ast& ownerAst, const AstNodeRef so
         return;
 
     auto&                  data = ensureGenericData();
-    const std::scoped_lock lock(data.evalCacheMutex);
+    const std::unique_lock lock(data.evalCacheMutex);
     SymbolInternal::cacheGenericEvalNode(data.evalCache, ownerAst, sourceRef, bindings, evalRef);
+}
+
+std::recursive_mutex& SymbolStruct::genericEvalRunMutex() const noexcept
+{
+    return ensureGenericData().evalRunMutex;
 }
 
 Result SymbolStruct::registerSpecOps(Sema& sema) const

@@ -36,8 +36,14 @@ TypeRef TypeGen::resolveArrayFinalTypeRef(const TypeManager& tm, const TaskConte
 
 TypeGen::TypeGenCache& TypeGen::cacheFor(const DataSegment& storage)
 {
-    std::scoped_lock lk(cachesMutex_);
+    {
+        const std::shared_lock lk(cachesMutex_);
+        const auto             it = caches_.find(&storage);
+        if (it != caches_.end())
+            return *it->second;
+    }
 
+    const std::scoped_lock lk(cachesMutex_);
     auto [it, inserted] = caches_.try_emplace(&storage);
     if (!it->second)
         it->second = std::make_unique<TypeGenCache>();
@@ -94,7 +100,7 @@ Result TypeGen::makeTypeInfo(Sema& sema, DataSegment& storage, TypeRef typeRef, 
 
 TypeRef TypeGen::getBackTypeRef(const void* ptr) const
 {
-    const std::scoped_lock lk(ptrToTypeMutex_);
+    const std::shared_lock lk(ptrToTypeMutex_);
     const auto             it = ptrToType_.find(ptr);
     if (it != ptrToType_.end())
         return it->second;

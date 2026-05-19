@@ -354,6 +354,8 @@ namespace SemaGeneric
                 appendOwnerStructGenericKeys(sema, *function, keys);
 
             GenericInstanceStorage& storage = root.isFunction() ? root.cast<SymbolFunction>().genericInstanceStorage(sema.ctx()) : root.cast<SymbolStruct>().genericInstanceStorage();
+            if (auto* instance = storage.find(keys.span()))
+                return instance;
 
             std::unique_lock lk(storage.getMutex());
             if (auto* instance = storage.findNoLock(keys.span()))

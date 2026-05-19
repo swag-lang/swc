@@ -125,6 +125,7 @@ public:
     bool                    tryGetGenericInstanceArgs(const TaskContext& ctx, SmallVector<GenericInstanceKey>& outArgs) const;
     AstNodeRef              findGenericEvalNode(const TaskContext& ctx, const Ast& ownerAst, AstNodeRef sourceRef, std::span<const SemaClone::ParamBinding> bindings) const;
     void                    cacheGenericEvalNode(const TaskContext& ctx, const Ast& ownerAst, AstNodeRef sourceRef, std::span<const SemaClone::ParamBinding> bindings, AstNodeRef evalRef) const;
+    std::recursive_mutex&   genericEvalRunMutex(const TaskContext& ctx) const noexcept;
     std::mutex&             lazyGenericBodyRunMutex() const noexcept { return metadataMutex_; }
     std::shared_ptr<void>*  lazyGenericBodyRunState() const noexcept;
     std::shared_ptr<void>&  ensureLazyGenericBodyRunState(const TaskContext& ctx) const noexcept;

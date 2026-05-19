@@ -186,7 +186,12 @@ private:
 
     struct Shard
     {
-        mutable std::shared_mutex               mutex;
+        mutable std::mutex                      storeMutex;
+        mutable std::shared_mutex               loweringPayloadsMutex;
+        mutable std::shared_mutex               inlinePayloadsMutex;
+        mutable std::shared_mutex               inlineContextOverridesMutex;
+        mutable std::shared_mutex               semaPayloadsMutex;
+        mutable std::shared_mutex               resolvedCallArgsMutex;
         PagedStore                              store;
         std::unordered_map<AstNodeRef, void*>   loweringPayloads;
         std::unordered_map<AstNodeRef, void*>   inlinePayloads;

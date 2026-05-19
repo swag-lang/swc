@@ -642,10 +642,11 @@ namespace SemaGeneric
                 root.cast<SymbolStruct>().cacheGenericEvalNode(sema.ast(), sourceRef, bindings, evalRef);
         }
 
-        std::recursive_mutex& genericEvalRunMutex()
+        std::recursive_mutex& genericEvalRunMutex(Sema& sema, const Symbol& root)
         {
-            static std::recursive_mutex mutex;
-            return mutex;
+            if (const auto* function = root.safeCast<SymbolFunction>())
+                return function->genericEvalRunMutex(sema.ctx());
+            return root.cast<SymbolStruct>().genericEvalRunMutex();
         }
 
         std::unordered_map<GenericImplBlockRunKey, CachedSemaRun, GenericImplBlockRunKeyHash>& genericImplBlockRuns(TaskContext& ctx)
@@ -808,7 +809,7 @@ namespace SemaGeneric
 
             if (sema.node(constraintRef).is(AstNodeId::ConstraintBlock))
             {
-                const std::scoped_lock lock(genericEvalRunMutex());
+                const std::scoped_lock lock(genericEvalRunMutex(sema, root));
                 outEvalRef = findCachedGenericEvalNode(sema, root, constraintRef, bindings);
                 if (hasCachedGenericEvalResult(sema, outEvalRef, GenericEvalReadyKind::Constant))
                     return Result::Continue;
@@ -1019,7 +1020,7 @@ namespace SemaGeneric
             if (sourceRef.isInvalid())
                 return Result::Continue;
 
-            const std::scoped_lock lock(genericEvalRunMutex());
+            const std::scoped_lock lock(genericEvalRunMutex(sema, root));
             outClonedRef = findCachedGenericEvalNode(sema, root, sourceRef, bindings);
             if (hasCachedGenericEvalResult(sema, outClonedRef, readyKind))
                 return Result::Continue;

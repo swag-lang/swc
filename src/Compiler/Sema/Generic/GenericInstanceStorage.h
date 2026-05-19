@@ -27,32 +27,28 @@ class GenericInstanceStorage
 public:
     Symbol* find(std::span<const GenericInstanceKey> args) const
     {
-        const std::scoped_lock lock(genericMutex_);
+        const std::shared_lock lock(genericMutex_);
         return findNoLock(args);
     }
 
     Symbol* add(std::span<const GenericInstanceKey> args, Symbol* instance)
     {
-        const std::scoped_lock lock(genericMutex_);
+        const std::unique_lock lock(genericMutex_);
         return addNoLock(args, instance);
     }
 
     bool tryGetArgs(const Symbol& instance, SmallVector<GenericInstanceKey>& outArgs) const
     {
-        const std::scoped_lock lock(genericMutex_);
-        for (const auto& entry : genericInstances_)
-        {
-            if (entry.symbol != &instance)
-                continue;
+        const std::shared_lock lock(genericMutex_);
+        const auto             it = genericInstanceIndices_.find(&instance);
+        if (it == genericInstanceIndices_.end())
+            return false;
 
-            outArgs = entry.args;
-            return true;
-        }
-
-        return false;
+        outArgs = genericInstances_[it->second].args;
+        return true;
     }
 
-    std::mutex& getMutex() const noexcept { return genericMutex_; }
+    std::shared_mutex& getMutex() const noexcept { return genericMutex_; }
 
     Symbol* findNoLock(std::span<const GenericInstanceKey> args) const
     {
@@ -70,15 +66,14 @@ public:
         if (auto* existing = findNoLock(args))
             return existing;
 
-        for (const auto& entry : genericInstances_)
-        {
-            if (entry.symbol == instance)
-                return entry.symbol;
-        }
+        const auto it = genericInstanceIndices_.find(instance);
+        if (it != genericInstanceIndices_.end())
+            return genericInstances_[it->second].symbol;
 
         GenericInstanceEntry entry;
         entry.symbol = instance;
         entry.args.assign(args.begin(), args.end());
+        genericInstanceIndices_[instance] = genericInstances_.size();
         genericInstances_.push_back(std::move(entry));
         return instance;
     }
@@ -98,8 +93,9 @@ private:
         return true;
     }
 
-    mutable std::mutex                genericMutex_;
-    std::vector<GenericInstanceEntry> genericInstances_;
+    mutable std::shared_mutex                 genericMutex_;
+    std::vector<GenericInstanceEntry>         genericInstances_;
+    std::unordered_map<const Symbol*, size_t> genericInstanceIndices_;
 };
 
 SWC_END_NAMESPACE();

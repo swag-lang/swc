@@ -522,7 +522,8 @@ struct SymbolFunction::GenericData
     mutable std::atomic<bool>       nodeCompleted   = false;
     SymbolFunction*                 rootSym         = nullptr;
     std::shared_ptr<void>           lazyGenericBodyRun;
-    mutable std::mutex              evalCacheMutex;
+    mutable std::recursive_mutex    evalRunMutex;
+    mutable std::shared_mutex       evalCacheMutex;
     std::vector<SymbolInternal::GenericEvalEntry> evalCache;
 };
 
@@ -898,7 +899,7 @@ std::shared_ptr<void>& SymbolFunction::ensureLazyGenericBodyRunState(const TaskC
 AstNodeRef SymbolFunction::findGenericEvalNode(const TaskContext& ctx, const Ast& ownerAst, const AstNodeRef sourceRef, std::span<const SemaClone::ParamBinding> bindings) const
 {
     const auto&            data = ensureGenericData(ctx);
-    const std::scoped_lock lock(data.evalCacheMutex);
+    const std::shared_lock lock(data.evalCacheMutex);
     return SymbolInternal::findGenericEvalNode(data.evalCache, ownerAst, sourceRef, bindings);
 }
 
@@ -908,8 +909,13 @@ void SymbolFunction::cacheGenericEvalNode(const TaskContext& ctx, const Ast& own
         return;
 
     auto&                  data = ensureGenericData(ctx);
-    const std::scoped_lock lock(data.evalCacheMutex);
+    const std::unique_lock lock(data.evalCacheMutex);
     SymbolInternal::cacheGenericEvalNode(data.evalCache, ownerAst, sourceRef, bindings, evalRef);
+}
+
+std::recursive_mutex& SymbolFunction::genericEvalRunMutex(const TaskContext& ctx) const noexcept
+{
+    return ensureGenericData(ctx).evalRunMutex;
 }
 
 void SymbolFunction::setGenericCompletionOwner(const TaskContext& ctx) const noexcept

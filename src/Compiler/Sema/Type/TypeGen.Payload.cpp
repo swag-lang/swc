@@ -21,9 +21,9 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    bool canReflectTypeRef(TaskContext& ctx, TypeRef typeRef, SmallVector<TypeRef>& visiting);
+    bool canReflectTypeRef(TaskContext& ctx, TypeRef typeRef, std::unordered_set<TypeRef>& visiting);
 
-    bool canReflectFunctionSignature(TaskContext& ctx, const SymbolFunction& symFunc, SmallVector<TypeRef>& visiting)
+    bool canReflectFunctionSignature(TaskContext& ctx, const SymbolFunction& symFunc, std::unordered_set<TypeRef>& visiting)
     {
         if (!symFunc.returnTypeRef().isValid() || !canReflectTypeRef(ctx, symFunc.returnTypeRef(), visiting))
             return false;
@@ -37,15 +37,14 @@ namespace
         return true;
     }
 
-    bool canReflectTypeRef(TaskContext& ctx, TypeRef typeRef, SmallVector<TypeRef>& visiting)
+    bool canReflectTypeRef(TaskContext& ctx, TypeRef typeRef, std::unordered_set<TypeRef>& visiting)
     {
         if (!typeRef.isValid())
             return false;
 
-        if (std::ranges::find(visiting, typeRef) != visiting.end())
+        if (!visiting.insert(typeRef).second)
             return true;
 
-        visiting.push_back(typeRef);
         const TypeInfo& type = ctx.typeMgr().get(typeRef);
         bool            ok   = true;
 
@@ -71,7 +70,7 @@ namespace
         else if (type.isFunction())
             ok = canReflectFunctionSignature(ctx, type.payloadSymFunction(), visiting);
 
-        visiting.pop_back();
+        visiting.erase(typeRef);
         return ok;
     }
 
@@ -202,23 +201,22 @@ namespace
         ioFlags.canCopy     = ioFlags.canCopy && fieldFlags.canCopy;
     }
 
-    LifecycleFlags lifecycleFlagsOfType(TaskContext& ctx, const TypeInfo& type, SmallVector<TypeRef>& visiting);
+    LifecycleFlags lifecycleFlagsOfType(TaskContext& ctx, const TypeInfo& type, std::unordered_set<TypeRef>& visiting);
 
-    LifecycleFlags lifecycleFlagsOfTypeRef(TaskContext& ctx, TypeRef typeRef, SmallVector<TypeRef>& visiting)
+    LifecycleFlags lifecycleFlagsOfTypeRef(TaskContext& ctx, TypeRef typeRef, std::unordered_set<TypeRef>& visiting)
     {
         if (typeRef.isInvalid())
             return {};
 
-        if (std::ranges::find(visiting, typeRef) != visiting.end())
+        if (!visiting.insert(typeRef).second)
             return {};
 
-        visiting.push_back(typeRef);
         const LifecycleFlags flags = lifecycleFlagsOfType(ctx, ctx.typeMgr().get(typeRef), visiting);
-        visiting.pop_back();
+        visiting.erase(typeRef);
         return flags;
     }
 
-    LifecycleFlags lifecycleFlagsOfFields(TaskContext& ctx, std::span<const TypeRef> fieldTypes, SmallVector<TypeRef>& visiting)
+    LifecycleFlags lifecycleFlagsOfFields(TaskContext& ctx, std::span<const TypeRef> fieldTypes, std::unordered_set<TypeRef>& visiting)
     {
         LifecycleFlags flags;
         for (const TypeRef fieldTypeRef : fieldTypes)
@@ -226,7 +224,7 @@ namespace
         return flags;
     }
 
-    LifecycleFlags lifecycleFlagsOfType(TaskContext& ctx, const TypeInfo& type, SmallVector<TypeRef>& visiting)
+    LifecycleFlags lifecycleFlagsOfType(TaskContext& ctx, const TypeInfo& type, std::unordered_set<TypeRef>& visiting)
     {
         if (type.isVoid() || type.isNull() || type.isUndefined())
             return {.canCopy = false};
@@ -260,7 +258,7 @@ namespace
 
     LifecycleFlags lifecycleFlagsOfType(TaskContext& ctx, const TypeInfo& type)
     {
-        SmallVector<TypeRef> visiting;
+        std::unordered_set<TypeRef> visiting;
         return lifecycleFlagsOfType(ctx, type, visiting);
     }
 
@@ -450,7 +448,7 @@ namespace
             symFunc.attributes().hasRtFlag(RtAttributeFlagsE::Compiler))
             return TypeRef::invalid();
 
-        SmallVector<TypeRef> visiting;
+        std::unordered_set<TypeRef> visiting;
         if (!canReflectFunctionSignature(ctx, symFunc, visiting))
             return TypeRef::invalid();
 

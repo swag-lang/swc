@@ -197,9 +197,7 @@ namespace
         if (!payloadSize)
             return false;
 
-        std::vector<DataSegmentRelocation> relocations;
-        manager.shardDataSegment(ref.shardIndex).copyRelocations(relocations, ref.offset, payloadSize);
-        return !relocations.empty();
+        return manager.shardDataSegment(ref.shardIndex).hasRelocations(ref.offset, payloadSize);
     }
 
     ConstantRef addCstFinalize(const ConstantManager& manager, ConstantRef cstRef)

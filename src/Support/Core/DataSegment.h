@@ -78,6 +78,7 @@ public:
     void                                      restoreFromPreserveOffsets(ByteSpan src) const;
     std::vector<DataSegmentRelocation>        copyRelocations() const;
     void                                      copyRelocations(std::vector<DataSegmentRelocation>& outRelocations, uint32_t offset, uint32_t size) const;
+    bool                                      hasRelocations(uint32_t offset, uint32_t size) const;
     const std::vector<DataSegmentRelocation>& relocations() const { return relocations_; }
     std::mutex&                               allocationMutex(uint32_t allocationOffset) const;
     template<typename T>
@@ -136,6 +137,7 @@ private:
     const std::byte*                                                       findPtrLocked(Ref ref, uint32_t size) const noexcept;
     Ref                                                                    findLargeBlockRefLocked(const void* ptr) const noexcept;
     void                                                                   copyRelocationsLocked(std::vector<DataSegmentRelocation>& outRelocations, uint32_t offset, uint32_t size) const;
+    bool                                                                   hasRelocationsLocked(uint32_t offset, uint32_t size) const;
     void                                                                   rebuildRelocationsByOffsetLocked() const;
     void                                                                   recordAllocation(uint32_t offset, uint32_t size, uint32_t align);
     PagedStore                                                             store_;

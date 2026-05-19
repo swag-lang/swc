@@ -62,21 +62,19 @@ namespace
         }
     }
 
-    bool typeHasLifecycleRec(TaskContext& ctx, TypeRef typeRef, const SpecOpKind kind, SmallVector<TypeRef>& visiting)
+    bool typeHasLifecycleRec(TaskContext& ctx, TypeRef typeRef, const SpecOpKind kind, std::unordered_set<TypeRef>& visiting)
     {
         typeRef = unwrapAlias(ctx, typeRef);
         if (typeRef.isInvalid())
             return false;
 
-        if (std::ranges::find(visiting, typeRef) != visiting.end())
+        if (!visiting.insert(typeRef).second)
             return false;
-
-        visiting.push_back(typeRef);
 
         const TypeInfo& type = ctx.typeMgr().get(typeRef);
         if (type.isVoid() || type.isNull() || type.isUndefined())
         {
-            visiting.pop_back();
+            visiting.erase(typeRef);
             return false;
         }
 
@@ -86,7 +84,7 @@ namespace
             for (const uint64_t dim : type.payloadArrayDims())
                 totalCount *= dim;
             const bool result = totalCount && typeHasLifecycleRec(ctx, type.payloadArrayElemTypeRef(), kind, visiting);
-            visiting.pop_back();
+            visiting.erase(typeRef);
             return result;
         }
 
@@ -96,25 +94,25 @@ namespace
             {
                 if (typeHasLifecycleRec(ctx, fieldTypeRef, kind, visiting))
                 {
-                    visiting.pop_back();
+                    visiting.erase(typeRef);
                     return true;
                 }
             }
 
-            visiting.pop_back();
+            visiting.erase(typeRef);
             return false;
         }
 
         if (!type.isStruct())
         {
-            visiting.pop_back();
+            visiting.erase(typeRef);
             return false;
         }
 
         const SymbolStruct& ownerStruct = type.payloadSymStruct();
         if (hasDirectLifecycle(ctx, ownerStruct, kind))
         {
-            visiting.pop_back();
+            visiting.erase(typeRef);
             return true;
         }
 
@@ -122,12 +120,12 @@ namespace
         {
             if (field && typeHasLifecycleRec(ctx, field->typeRef(), kind, visiting))
             {
-                visiting.pop_back();
+                visiting.erase(typeRef);
                 return true;
             }
         }
 
-        visiting.pop_back();
+        visiting.erase(typeRef);
         return false;
     }
 
@@ -894,7 +892,7 @@ bool SemaSpecOp::isGeneratedLifecycleWrapperName(const std::string_view name)
 
 bool SemaSpecOp::typeHasLifecycle(TaskContext& ctx, TypeRef typeRef, SpecOpKind kind)
 {
-    SmallVector<TypeRef> visiting;
+    std::unordered_set<TypeRef> visiting;
     return typeHasLifecycleRec(ctx, typeRef, kind, visiting);
 }
 

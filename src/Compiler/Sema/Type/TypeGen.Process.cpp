@@ -19,7 +19,7 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    bool canReflectTypeRef(TaskContext& ctx, TypeRef typeRef, SmallVector<TypeRef>& visiting);
+    bool canReflectTypeRef(TaskContext& ctx, TypeRef typeRef, std::unordered_set<TypeRef>& visiting);
 
     bool shouldWaitReflectedMethodTyping(const SymbolFunction& symFunc)
     {
@@ -45,7 +45,7 @@ namespace
         return SemaSpecOp::isGeneratedLifecycleWrapperName(symFunc.name(ctx));
     }
 
-    bool canReflectFunctionSignature(TaskContext& ctx, const SymbolFunction& symFunc, SmallVector<TypeRef>& visiting)
+    bool canReflectFunctionSignature(TaskContext& ctx, const SymbolFunction& symFunc, std::unordered_set<TypeRef>& visiting)
     {
         if (!symFunc.returnTypeRef().isValid() || !canReflectTypeRef(ctx, symFunc.returnTypeRef(), visiting))
             return false;
@@ -59,15 +59,14 @@ namespace
         return true;
     }
 
-    bool canReflectTypeRef(TaskContext& ctx, TypeRef typeRef, SmallVector<TypeRef>& visiting)
+    bool canReflectTypeRef(TaskContext& ctx, TypeRef typeRef, std::unordered_set<TypeRef>& visiting)
     {
         if (!typeRef.isValid())
             return false;
 
-        if (std::ranges::find(visiting, typeRef) != visiting.end())
+        if (!visiting.insert(typeRef).second)
             return true;
 
-        visiting.push_back(typeRef);
         const TypeInfo& type = ctx.typeMgr().get(typeRef);
         bool            ok   = true;
 
@@ -93,7 +92,7 @@ namespace
         else if (type.isFunction())
             ok = canReflectFunctionSignature(ctx, type.payloadSymFunction(), visiting);
 
-        visiting.pop_back();
+        visiting.erase(typeRef);
         return ok;
     }
 
@@ -180,7 +179,7 @@ namespace
             symFunc.attributes().hasRtFlag(RtAttributeFlagsE::Compiler))
             return TypeRef::invalid();
 
-        SmallVector<TypeRef> visiting;
+        std::unordered_set<TypeRef> visiting;
         if (!canReflectFunctionSignature(ctx, symFunc, visiting))
             return TypeRef::invalid();
 
@@ -345,8 +344,10 @@ Result TypeGen::processTypeInfo(Sema& sema, TypeGenResult& result, DataSegment& 
     //
     // This is intentionally iterative to avoid recursion depth issues and to allow
     // pausing/resuming if needed by the compiler pipeline.
-    SmallVector<TypeRef> stack;
+    SmallVector<TypeRef>    stack;
+    std::unordered_set<TypeRef> stackSet;
     stack.push_back(typeRef);
+    stackSet.insert(typeRef);
 
     while (!stack.empty())
     {
@@ -415,6 +416,7 @@ Result TypeGen::processTypeInfo(Sema& sema, TypeGenResult& result, DataSegment& 
         if (entry.state == TypeGenCache::State::Done)
         {
             // Fully processed: pop and continue unwinding.
+            stackSet.erase(key);
             stack.pop_back();
             continue;
         }
@@ -439,13 +441,14 @@ Result TypeGen::processTypeInfo(Sema& sema, TypeGenResult& result, DataSegment& 
                 // If this dependency is already on the current DFS stack, we are in
                 // a recursion cycle and keep unwinding. Relocations can still be
                 // wired because payload offsets are already reserved during init.
-                const bool depOnStack = std::ranges::find(stack, depKey) != stack.end();
+                const bool depOnStack = stackSet.contains(depKey);
                 if (depOnStack)
                     continue;
             }
 
             // Depth-first: create this dependency payload before completing 'key'.
             stack.push_back(depKey);
+            stackSet.insert(depKey);
             pushedDep = true;
             break;
         }

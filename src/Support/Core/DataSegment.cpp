@@ -245,6 +245,22 @@ void DataSegment::copyRelocations(std::vector<DataSegmentRelocation>& outRelocat
     copyRelocationsLocked(outRelocations, offset, size);
 }
 
+bool DataSegment::hasRelocations(const uint32_t offset, const uint32_t size) const
+{
+    if (!size)
+        return false;
+
+    {
+        const std::shared_lock lock(mutex_);
+        if (!relocationsByOffsetDirty_ && relocationsByOffset_.size() == relocations_.size())
+            return hasRelocationsLocked(offset, size);
+    }
+
+    const std::unique_lock lock(mutex_);
+    rebuildRelocationsByOffsetLocked();
+    return hasRelocationsLocked(offset, size);
+}
+
 void DataSegment::copyRelocationsLocked(std::vector<DataSegmentRelocation>& outRelocations, const uint32_t offset, const uint32_t size) const
 {
     const RelocationOffsetProjection projection{.relocations = &relocations_};
@@ -258,6 +274,17 @@ void DataSegment::copyRelocationsLocked(std::vector<DataSegmentRelocation>& outR
 
         outRelocations.push_back(relocation);
     }
+}
+
+bool DataSegment::hasRelocationsLocked(const uint32_t offset, const uint32_t size) const
+{
+    const RelocationOffsetProjection projection{.relocations = &relocations_};
+    const auto                       it = std::ranges::lower_bound(relocationsByOffset_, offset, {}, projection);
+    if (it == relocationsByOffset_.end())
+        return false;
+
+    const DataSegmentRelocation& relocation = relocations_[*it];
+    return relocation.offset - offset < size;
 }
 
 std::mutex& DataSegment::allocationMutex(const uint32_t allocationOffset) const

@@ -27,9 +27,9 @@ namespace
         return hash & (ConstantManager::SHARD_COUNT - 1);
     }
 
-    Result waitStaticPayloadTypeReadyRec(Sema& sema, TypeRef typeRef, AstNodeRef waitNodeRef, SmallVector<TypeRef>& visited);
+    Result waitStaticPayloadTypeReadyRec(Sema& sema, TypeRef typeRef, AstNodeRef waitNodeRef, std::unordered_set<TypeRef>& visited);
 
-    Result waitStaticPayloadTypeReadyRecImpl(Sema& sema, TypeRef typeRef, AstNodeRef waitNodeRef, SmallVector<TypeRef>& visited)
+    Result waitStaticPayloadTypeReadyRecImpl(Sema& sema, TypeRef typeRef, AstNodeRef waitNodeRef, std::unordered_set<TypeRef>& visited)
     {
         TaskContext&    ctx      = sema.ctx();
         const TypeInfo& typeInfo = ctx.typeMgr().get(typeRef);
@@ -73,16 +73,15 @@ namespace
         return Result::Continue;
     }
 
-    Result waitStaticPayloadTypeReadyRec(Sema& sema, TypeRef typeRef, AstNodeRef waitNodeRef, SmallVector<TypeRef>& visited)
+    Result waitStaticPayloadTypeReadyRec(Sema& sema, TypeRef typeRef, AstNodeRef waitNodeRef, std::unordered_set<TypeRef>& visited)
     {
         if (typeRef.isInvalid())
             return Result::Continue;
-        if (std::ranges::find(visited, typeRef) != visited.end())
+        if (!visited.insert(typeRef).second)
             return Result::Continue;
 
-        visited.push_back(typeRef);
         const Result result = waitStaticPayloadTypeReadyRecImpl(sema, typeRef, waitNodeRef, visited);
-        visited.pop_back();
+        visited.erase(typeRef);
         return result;
     }
 
@@ -326,7 +325,7 @@ namespace
 
 Result ConstantHelpers::waitStaticPayloadTypeReady(Sema& sema, TypeRef typeRef, AstNodeRef waitNodeRef)
 {
-    SmallVector<TypeRef> visited;
+    std::unordered_set<TypeRef> visited;
     return waitStaticPayloadTypeReadyRec(sema, typeRef, waitNodeRef, visited);
 }
 

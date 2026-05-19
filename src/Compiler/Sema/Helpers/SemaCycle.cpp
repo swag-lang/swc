@@ -211,10 +211,11 @@ void SemaCycle::reportCycle(const std::vector<const Symbol*>& cycle)
     diag.report(*ctx_);
 }
 
-void SemaCycle::findCycles(const Symbol* v, std::vector<const Symbol*>& stack, SymbolSet& visited, SymbolSet& onStack)
+void SemaCycle::findCycles(const Symbol* v, std::vector<const Symbol*>& stack, SymbolSet& visited, SymbolSet& onStack, SymbolIndexMap& stackPositions)
 {
     visited.insert(v);
     onStack.insert(v);
+    stackPositions.emplace(v, stack.size());
     stack.push_back(v);
 
     const auto it = graph_.adj.find(v);
@@ -225,18 +226,20 @@ void SemaCycle::findCycles(const Symbol* v, std::vector<const Symbol*>& stack, S
             if (onStack.contains(w))
             {
                 std::vector<const Symbol*> cycle;
-                const auto                 itCyc = std::ranges::find(stack, w);
-                cycle.insert(cycle.end(), itCyc, stack.end());
+                const auto                 itPos = stackPositions.find(w);
+                SWC_ASSERT(itPos != stackPositions.end());
+                cycle.insert(cycle.end(), stack.begin() + static_cast<ptrdiff_t>(itPos->second), stack.end());
                 reportCycle(cycle);
             }
             else if (!visited.contains(w))
             {
-                findCycles(w, stack, visited, onStack);
+                findCycles(w, stack, visited, onStack, stackPositions);
             }
         }
     }
 
     stack.pop_back();
+    stackPositions.erase(v);
     onStack.erase(v);
 }
 
@@ -245,11 +248,12 @@ void SemaCycle::detectAndReportCycles()
     SymbolSet                  visited;
     SymbolSet                  onStack;
     std::vector<const Symbol*> stack;
+    SymbolIndexMap             stackPositions;
 
     for (const auto& key : graph_.adj | std::views::keys)
     {
         if (!visited.contains(key))
-            findCycles(key, stack, visited, onStack);
+            findCycles(key, stack, visited, onStack, stackPositions);
     }
 }
 

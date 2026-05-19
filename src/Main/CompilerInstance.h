@@ -362,6 +362,7 @@ private:
     std::vector<ModuleSetupImport>                     moduleSetupImports_;
     std::set<fs::path>                                 moduleSetupLoadedFiles_;
     std::vector<fs::path>                              importedDependencyLinkDirs_;
+    std::unordered_set<fs::path>                       importedDependencyLinkDirSet_;
     std::vector<std::unique_ptr<Utf8>>                 ownedBuildCfgStrings_;
     const ModuleSetupSnapshot*                         precomputedModuleSetup_ = nullptr;
     Utf8                                               lastArtifactLabel_;

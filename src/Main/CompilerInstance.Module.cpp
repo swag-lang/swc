@@ -738,7 +738,7 @@ void CompilerInstance::registerImportedDependencyLinkDir(const fs::path& path)
         return;
 
     const fs::path normalizedPath = FileSystem::normalizePath(path);
-    if (std::ranges::find(importedDependencyLinkDirs_, normalizedPath) != importedDependencyLinkDirs_.end())
+    if (!importedDependencyLinkDirSet_.insert(normalizedPath).second)
         return;
 
     importedDependencyLinkDirs_.push_back(normalizedPath);

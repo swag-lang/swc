@@ -22,6 +22,7 @@ private:
     mutable std::mutex       mutex_;
     std::vector<ModuleEntry> modules_;
     std::vector<fs::path>    searchPaths_;
+    std::unordered_set<fs::path> searchPathSet_;
 };
 
 SWC_END_NAMESPACE();

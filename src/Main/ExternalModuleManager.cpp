@@ -13,7 +13,7 @@ void ExternalModuleManager::registerSearchPath(fs::path path)
     path = FileSystem::normalizePath(path);
 
     const std::unique_lock lock(mutex_);
-    if (std::ranges::find(searchPaths_, path) != searchPaths_.end())
+    if (!searchPathSet_.insert(path).second)
         return;
 
     searchPaths_.push_back(std::move(path));

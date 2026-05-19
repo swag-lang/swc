@@ -323,24 +323,43 @@ namespace
         return true;
     }
 
-    bool moduleApiValidationStackContains(std::span<const Symbol*> stack, const Symbol& symbol)
+    struct ModuleApiValidationStack
     {
-        return std::ranges::find(stack, &symbol) != stack.end();
-    }
+        SmallVector<const Symbol*> values;
+        std::unordered_set<const Symbol*> set;
+
+        bool contains(const Symbol& symbol) const
+        {
+            return set.contains(&symbol);
+        }
+
+        void push(const Symbol& symbol)
+        {
+            values.push_back(&symbol);
+            set.insert(&symbol);
+        }
+
+        void pop()
+        {
+            const Symbol* symbol = values.back();
+            values.pop_back();
+            set.erase(symbol);
+        }
+    };
 
     struct ModuleApiValidationScope
     {
-        SmallVector<const Symbol*>* stack = nullptr;
+        ModuleApiValidationStack* stack = nullptr;
 
-        ModuleApiValidationScope(SmallVector<const Symbol*>& stack, const Symbol& symbol) :
+        ModuleApiValidationScope(ModuleApiValidationStack& stack, const Symbol& symbol) :
             stack(&stack)
         {
-            this->stack->push_back(&symbol);
+            this->stack->push(symbol);
         }
 
         ~ModuleApiValidationScope()
         {
-            stack->pop_back();
+            stack->pop();
         }
     };
 
@@ -374,12 +393,12 @@ namespace
         return Result::Error;
     }
 
-    Result validatePublicTypeSymbol(TaskContext& ctx, const Symbol& symbol, SmallVector<const Symbol*>& stack);
-    Result validatePublicFunctionSymbol(TaskContext& ctx, const SymbolFunction& symbolFunction, SmallVector<const Symbol*>& stack);
+    Result validatePublicTypeSymbol(TaskContext& ctx, const Symbol& symbol, ModuleApiValidationStack& stack);
+    Result validatePublicFunctionSymbol(TaskContext& ctx, const SymbolFunction& symbolFunction, ModuleApiValidationStack& stack);
     Result buildSanitizedRootSnippet(TaskContext& ctx, Utf8& outSnippet, const ModuleApiGeneratedRoot& root, std::string_view eol);
     bool   isModuleApiDeclWrapper(const AstNode& node);
 
-    Result validateTypeReferenceSymbol(TaskContext& ctx, const Symbol& ownerSymbol, const Symbol& focusSymbol, std::string_view usage, const Symbol& referencedSymbol, SmallVector<const Symbol*>& stack)
+    Result validateTypeReferenceSymbol(TaskContext& ctx, const Symbol& ownerSymbol, const Symbol& focusSymbol, std::string_view usage, const Symbol& referencedSymbol, ModuleApiValidationStack& stack)
     {
         if (!isCurrentModuleSymbol(ctx.compiler(), referencedSymbol))
             return Result::Continue;
@@ -396,7 +415,7 @@ namespace
         return Result::Continue;
     }
 
-    Result validateExportedTypeRef(TaskContext& ctx, const Symbol& ownerSymbol, const Symbol& focusSymbol, std::string_view usage, const TypeRef typeRef, SmallVector<const Symbol*>& stack)
+    Result validateExportedTypeRef(TaskContext& ctx, const Symbol& ownerSymbol, const Symbol& focusSymbol, std::string_view usage, const TypeRef typeRef, ModuleApiValidationStack& stack)
     {
         if (!typeRef.isValid())
             return Result::Continue;
@@ -452,7 +471,7 @@ namespace
         return Result::Continue;
     }
 
-    Result validatePublicAliasSymbol(TaskContext& ctx, const SymbolAlias& symbolAlias, SmallVector<const Symbol*>& stack)
+    Result validatePublicAliasSymbol(TaskContext& ctx, const SymbolAlias& symbolAlias, ModuleApiValidationStack& stack)
     {
         if (const Symbol* aliasedSymbol = symbolAlias.aliasedSymbol())
             SWC_RESULT(validateTypeReferenceSymbol(ctx, symbolAlias, symbolAlias, "its target", *aliasedSymbol, stack));
@@ -463,7 +482,7 @@ namespace
         return validateExportedTypeRef(ctx, symbolAlias, symbolAlias, "its target", symbolAlias.underlyingTypeRef(), stack);
     }
 
-    Result validatePublicEnumSymbol(TaskContext& ctx, const SymbolEnum& symbolEnum, SmallVector<const Symbol*>& stack)
+    Result validatePublicEnumSymbol(TaskContext& ctx, const SymbolEnum& symbolEnum, ModuleApiValidationStack& stack)
     {
         if (!symbolEnum.underlyingTypeRef().isValid())
             return Result::Continue;
@@ -471,7 +490,7 @@ namespace
         return validateExportedTypeRef(ctx, symbolEnum, symbolEnum, "its underlying type", symbolEnum.underlyingTypeRef(), stack);
     }
 
-    Result validatePublicStructSymbol(TaskContext& ctx, const SymbolStruct& symbolStruct, SmallVector<const Symbol*>& stack)
+    Result validatePublicStructSymbol(TaskContext& ctx, const SymbolStruct& symbolStruct, ModuleApiValidationStack& stack)
     {
         if (isModuleApiOpaqueType(symbolStruct))
             return Result::Continue;
@@ -494,7 +513,7 @@ namespace
         return Result::Continue;
     }
 
-    Result validatePublicInterfaceSymbol(TaskContext& ctx, const SymbolInterface& symbolInterface, SmallVector<const Symbol*>& stack)
+    Result validatePublicInterfaceSymbol(TaskContext& ctx, const SymbolInterface& symbolInterface, ModuleApiValidationStack& stack)
     {
         for (const SymbolFunction* function : symbolInterface.functions())
         {
@@ -507,9 +526,9 @@ namespace
         return Result::Continue;
     }
 
-    Result validatePublicTypeSymbol(TaskContext& ctx, const Symbol& symbol, SmallVector<const Symbol*>& stack)
+    Result validatePublicTypeSymbol(TaskContext& ctx, const Symbol& symbol, ModuleApiValidationStack& stack)
     {
-        if (moduleApiValidationStackContains(stack.span(), symbol))
+        if (stack.contains(symbol))
             return Result::Continue;
 
         ModuleApiValidationScope validationScope(stack, symbol);
@@ -525,7 +544,7 @@ namespace
         return Result::Continue;
     }
 
-    Result validatePublicFunctionOwner(TaskContext& ctx, const SymbolFunction& symbolFunction, SmallVector<const Symbol*>& stack)
+    Result validatePublicFunctionOwner(TaskContext& ctx, const SymbolFunction& symbolFunction, ModuleApiValidationStack& stack)
     {
         const SymbolImpl* symImpl = symbolFunction.declImplContext();
         if (!symImpl || !symImpl->isForStruct())
@@ -538,9 +557,9 @@ namespace
         return validateTypeReferenceSymbol(ctx, symbolFunction, symbolFunction, "its owner type", *ownerStruct, stack);
     }
 
-    Result validatePublicFunctionSymbol(TaskContext& ctx, const SymbolFunction& symbolFunction, SmallVector<const Symbol*>& stack)
+    Result validatePublicFunctionSymbol(TaskContext& ctx, const SymbolFunction& symbolFunction, ModuleApiValidationStack& stack)
     {
-        if (moduleApiValidationStackContains(stack.span(), symbolFunction))
+        if (stack.contains(symbolFunction))
             return Result::Continue;
 
         ModuleApiValidationScope validationScope(stack, symbolFunction);
@@ -1589,7 +1608,7 @@ namespace
 
         if (const auto* symbolFunction = root.symbol ? root.symbol->safeCast<SymbolFunction>() : nullptr)
         {
-            SmallVector<const Symbol*> validationStack;
+            ModuleApiValidationStack validationStack;
             SWC_RESULT(validatePublicFunctionSymbol(ctx, *symbolFunction, validationStack));
 
             if (symbolFunction->supportsPublicApiForeignExport() && supportsGeneratedModuleApiForeignFunctions(ctx.compiler()))
@@ -1603,7 +1622,7 @@ namespace
 
         if (root.symbol && (root.symbol->isAlias() || root.symbol->isStruct() || root.symbol->isEnum() || root.symbol->isInterface()))
         {
-            SmallVector<const Symbol*> validationStack;
+            ModuleApiValidationStack validationStack;
             SWC_RESULT(validatePublicTypeSymbol(ctx, *root.symbol, validationStack));
         }
 

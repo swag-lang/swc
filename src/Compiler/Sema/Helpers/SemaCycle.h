@@ -15,6 +15,7 @@ public:
 
 private:
     using SymbolSet = std::unordered_set<const Symbol*>;
+    using SymbolIndexMap = std::unordered_map<const Symbol*, size_t>;
 
     struct WaitGraph
     {
@@ -31,7 +32,7 @@ private:
     void addNodeIfNeeded(const Symbol* sym);
     void addEdge(const Symbol* from, const Symbol* to, Job* job, const TaskState& state);
     void reportCycle(const std::vector<const Symbol*>& cycle);
-    void findCycles(const Symbol* v, std::vector<const Symbol*>& stack, SymbolSet& visited, SymbolSet& onStack);
+    void findCycles(const Symbol* v, std::vector<const Symbol*>& stack, SymbolSet& visited, SymbolSet& onStack, SymbolIndexMap& stackPositions);
     void detectAndReportCycles();
 
     TaskContext* ctx_ = nullptr;

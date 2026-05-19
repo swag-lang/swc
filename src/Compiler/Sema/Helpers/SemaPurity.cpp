@@ -57,9 +57,7 @@ namespace
     {
         if (var.isFunctionLocalVariable(fn))
             return true;
-
-        const auto& locals = fn.localVariables();
-        return std::ranges::find(locals, &var) != locals.end();
+        return fn.containsLocalVariable(var);
     }
 
     bool isFunctionInputOrLocalVariable(const SymbolFunction& fn, const SymbolVariable& var)

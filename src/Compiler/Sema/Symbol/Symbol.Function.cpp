@@ -787,6 +787,9 @@ void SymbolFunction::addLocalVariable(TaskContext& ctx, SymbolVariable* sym)
         return;
 
     sym->addExtraFlag(SymbolVariableFlagsE::FunctionLocal);
+    if (!localVariableSet_.insert(sym).second)
+        return;
+
     localVariables_.push_back(sym);
     while (numComputedLocals_ < localVariables_.size())
     {

@@ -692,12 +692,12 @@ namespace
             collectInlineClosureCaptureIdentifiers(sema, sourceAst, childRef, outIdentifiers, byRefOnly);
     }
 
-    bool inlineBindingIsCaptured(IdentifierRef idRef, const SmallVector<IdentifierRef>& capturedIdentifiers)
+    bool inlineBindingIsCaptured(IdentifierRef idRef, const std::unordered_set<IdentifierRef>& capturedIdentifiers)
     {
-        return idRef.isValid() && std::ranges::find(capturedIdentifiers, idRef) != capturedIdentifiers.end();
+        return idRef.isValid() && capturedIdentifiers.contains(idRef);
     }
 
-    bool inlineBindingNeedsMaterialization(Sema& sema, AstNodeRef exprRef, const SmallVector<IdentifierRef>& localIdentifiers)
+    bool inlineBindingNeedsMaterialization(Sema& sema, AstNodeRef exprRef, const std::unordered_set<IdentifierRef>& localIdentifiers)
     {
         if (exprRef.isInvalid() || localIdentifiers.empty())
             return false;
@@ -706,7 +706,7 @@ namespace
         collectIdentifierUses(sema, exprRef, exprIdentifiers);
         for (const IdentifierRef exprIdRef : exprIdentifiers)
         {
-            if (std::ranges::find(localIdentifiers, exprIdRef) != localIdentifiers.end())
+            if (localIdentifiers.contains(exprIdRef))
                 return true;
         }
 
@@ -854,6 +854,9 @@ namespace
         collectInlineClosureCaptureIdentifiers(sema, sourceAst, decl.nodeBodyRef, capturedIdentifiers, false);
         SmallVector<IdentifierRef> capturedByRefIdentifiers;
         collectInlineClosureCaptureIdentifiers(sema, sourceAst, decl.nodeBodyRef, capturedByRefIdentifiers, true);
+        const std::unordered_set<IdentifierRef> localIdentifierSet{localIdentifiers.begin(), localIdentifiers.end()};
+        const std::unordered_set<IdentifierRef> capturedIdentifierSet{capturedIdentifiers.begin(), capturedIdentifiers.end()};
+        const std::unordered_set<IdentifierRef> capturedByRefIdentifierSet{capturedByRefIdentifiers.begin(), capturedByRefIdentifiers.end()};
 
         SmallVector<SemaClone::ParamBinding> remainingBindings;
         remainingBindings.reserve(ioBindings.size());
@@ -878,8 +881,8 @@ namespace
             if (!param)
                 continue;
 
-            const bool      bindingIsCaptured                  = inlineBindingIsCaptured(binding.idRef, capturedIdentifiers);
-            const bool      bindingNeedsMaterialization        = inlineBindingNeedsMaterialization(sema, binding.exprRef, localIdentifiers);
+            const bool      bindingIsCaptured                  = inlineBindingIsCaptured(binding.idRef, capturedIdentifierSet);
+            const bool      bindingNeedsMaterialization        = inlineBindingNeedsMaterialization(sema, binding.exprRef, localIdentifierSet);
             const TypeInfo& paramType                          = param->type(sema.ctx());
             const bool      hasNonCountOfUse                   = inlineBindingHasNonCountOfUse(sema, sourceAst, decl.nodeBodyRef, binding.idRef);
             const bool      forceVariadicMaterialization       = !bindingIsCaptured && forceMaterializeInlineVariadicBinding(binding, paramType, hasNonCountOfUse);
@@ -911,7 +914,7 @@ namespace
                 return Result::Error;
 
             auto [declRef, declPtr]      = sema.ast().makeNode<AstNodeId::SingleVarDecl>(paramNameRef);
-            const bool materializedAsLet = !inlineBindingIsCaptured(binding.idRef, capturedByRefIdentifiers);
+            const bool materializedAsLet = !inlineBindingIsCaptured(binding.idRef, capturedByRefIdentifierSet);
             declPtr->flags()             = materializedAsLet ? AstVarDeclFlagsE::Let : AstVarDeclFlagsE::Zero;
             declPtr->tokNameRef          = paramNameRef;
             if (!paramType.isAnyVariadic() && SemaHelpers::canUseContextualBinding(sema, binding.exprRef))

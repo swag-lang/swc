@@ -130,8 +130,7 @@ namespace
         // the function's local variable list directly.
         if (symVar.hasExtraFlag(SymbolVariableFlagsE::FunctionLocal))
         {
-            const auto& locals = currentFn->localVariables();
-            if (std::ranges::find(locals, &symVar) != locals.end())
+            if (currentFn->containsLocalVariable(symVar))
                 return false;
         }
 

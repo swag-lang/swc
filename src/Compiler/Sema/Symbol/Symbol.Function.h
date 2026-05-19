@@ -55,6 +55,7 @@ public:
     const std::vector<SymbolVariable*>& parameters() const { return parameters_; }
     std::vector<SymbolVariable*>&       parameters() { return parameters_; }
     const std::vector<SymbolVariable*>& localVariables() const { return localVariables_; }
+    bool                                containsLocalVariable(const SymbolVariable& var) const noexcept { return localVariableSet_.contains(&var); }
     void                                addParameter(SymbolVariable* sym);
     void                                setVariadicParamFlag(TaskContext& ctx);
     void                                addLocalVariable(TaskContext& ctx, SymbolVariable* sym);
@@ -178,6 +179,7 @@ private:
 
     std::vector<SymbolVariable*> parameters_;
     std::vector<SymbolVariable*> localVariables_;
+    std::unordered_set<const SymbolVariable*> localVariableSet_;
     std::vector<SymbolFunction*> callDependencies_;
     std::unordered_set<SymbolFunction*> callDependencySet_;
     uint32_t                     numComputedLocals_   = 0;

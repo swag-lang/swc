@@ -404,6 +404,7 @@ private:
     std::atomic<bool>                                     nativeOutputsCleared_ = false;
     AstCompilerFunc*                                      mainFunc_             = nullptr;
     std::vector<Utf8>                                     foreignLibs_;
+    std::unordered_set<Utf8>                              foreignLibSet_;
     CompilerTagRegistry                                   compilerTags_;
     std::unordered_map<IdentifierRef, SymbolFunction*>    runtimeFunctionSymbols_;
     std::unordered_map<Utf8, Utf8>                        inMemoryFiles_;
@@ -425,14 +426,24 @@ private:
     uint32_t                                              nativeRuntimeContextTlsIdOffset_ = UINT32_MAX;
     uint32_t                                              nativeProcessInfosOffset_        = UINT32_MAX;
     std::vector<SymbolFunction*>                          nativeCodeSegment_;
+    std::unordered_set<SymbolFunction*>                   nativeCodeSegmentSet_;
     std::vector<SymbolFunction*>                          nativeTestFunctions_;
+    std::unordered_set<SymbolFunction*>                   nativeTestFunctionsSet_;
     std::vector<SymbolFunction*>                          nativeInitFunctions_;
+    std::unordered_set<SymbolFunction*>                   nativeInitFunctionsSet_;
     std::vector<SymbolFunction*>                          nativePreMainFunctions_;
+    std::unordered_set<SymbolFunction*>                   nativePreMainFunctionsSet_;
     std::vector<SymbolFunction*>                          nativeDropFunctions_;
+    std::unordered_set<SymbolFunction*>                   nativeDropFunctionsSet_;
     std::vector<SymbolFunction*>                          nativeMainFunctions_;
+    std::unordered_set<SymbolFunction*>                   nativeMainFunctionsSet_;
     std::vector<SymbolFunction*>                          nativeGlobalFunctionInitTargets_;
+    std::unordered_set<SymbolFunction*>                   nativeGlobalFunctionInitTargetsSet_;
     std::vector<SymbolVariable*>                          nativeGlobalVariables_;
+    std::unordered_set<SymbolVariable*>                   nativeGlobalVariablesSet_;
     std::vector<SymbolFunction*>                          jitPreparedFunctions_;
+    std::unordered_set<SymbolFunction*>                   jitPreparedFunctionsSet_;
+    std::unordered_set<Utf8>                              resolvedFilePaths_;
 
     SWC_RACE_CONDITION_INSTANCE(rcFiles_);
 

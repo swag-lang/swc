@@ -826,7 +826,7 @@ void SymbolFunction::addCallDependency(const SymbolFunction* sym)
 
     auto* const            mutableSym = const_cast<SymbolFunction*>(sym);
     const std::scoped_lock lock(metadataMutex_);
-    if (std::ranges::find(callDependencies_, mutableSym) != callDependencies_.end())
+    if (!callDependencySet_.insert(mutableSym).second)
         return;
     callDependencies_.push_back(mutableSym);
 }

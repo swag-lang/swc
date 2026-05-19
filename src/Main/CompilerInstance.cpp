@@ -46,9 +46,16 @@ namespace
     std::once_flag g_RuntimeContextTlsIdOnce;
 
     template<typename T>
-    bool appendUnique(std::vector<T*>& values, T* value)
+    struct UniqueBucket
     {
-        if (std::ranges::find(values, value) != values.end())
+        std::vector<T*>*            values = nullptr;
+        std::unordered_set<T*>*     seen   = nullptr;
+    };
+
+    template<typename T>
+    bool appendUnique(std::vector<T*>& values, std::unordered_set<T*>& seen, T* value)
+    {
+        if (!seen.insert(value).second)
             return false;
 
         values.push_back(value);
@@ -108,20 +115,21 @@ namespace
     }
 
     template<typename T>
-    bool appendUniqueBuckets(std::initializer_list<std::vector<T*>*> buckets, T* value)
+    bool appendUniqueBuckets(std::initializer_list<UniqueBucket<T>> buckets, T* value)
     {
         bool inserted = false;
-        for (std::vector<T*>* bucket : buckets)
+        for (const UniqueBucket<T>& bucket : buckets)
         {
-            SWC_ASSERT(bucket != nullptr);
-            inserted |= appendUnique(*bucket, value);
+            SWC_ASSERT(bucket.values != nullptr);
+            SWC_ASSERT(bucket.seen != nullptr);
+            inserted |= appendUnique(*bucket.values, *bucket.seen, value);
         }
 
         return inserted;
     }
 
     template<typename T>
-    bool appendUniqueStateBuckets(std::shared_mutex& mutex, std::initializer_list<std::vector<T*>*> buckets, T* value)
+    bool appendUniqueStateBuckets(std::shared_mutex& mutex, std::initializer_list<UniqueBucket<T>> buckets, T* value)
     {
         const std::unique_lock lock(mutex);
         return appendUniqueBuckets(buckets, value);
@@ -619,7 +627,7 @@ void CompilerInstance::registerNativeCodeFunction(SymbolFunction* symbol)
     if (!canRegisterNativeFunction(*this, *symbol, true))
         return;
 
-    if (appendUniqueStateBuckets(stateMutex_, {&nativeCodeSegment_}, symbol))
+    if (appendUniqueStateBuckets(stateMutex_, {{&nativeCodeSegment_, &nativeCodeSegmentSet_}}, symbol))
         notifyAlive();
 }
 
@@ -630,7 +638,7 @@ void CompilerInstance::registerNativeTestFunction(SymbolFunction* symbol)
     if (!canRegisterNativeFunction(*this, *symbol, false))
         return;
 
-    if (appendUniqueStateBuckets(stateMutex_, {&nativeCodeSegment_, &nativeTestFunctions_}, symbol))
+    if (appendUniqueStateBuckets(stateMutex_, {{&nativeCodeSegment_, &nativeCodeSegmentSet_}, {&nativeTestFunctions_, &nativeTestFunctionsSet_}}, symbol))
         notifyAlive();
 }
 
@@ -641,7 +649,7 @@ void CompilerInstance::registerNativeInitFunction(SymbolFunction* symbol)
     if (!canRegisterNativeFunction(*this, *symbol, false))
         return;
 
-    if (appendUniqueStateBuckets(stateMutex_, {&nativeCodeSegment_, &nativeInitFunctions_}, symbol))
+    if (appendUniqueStateBuckets(stateMutex_, {{&nativeCodeSegment_, &nativeCodeSegmentSet_}, {&nativeInitFunctions_, &nativeInitFunctionsSet_}}, symbol))
         notifyAlive();
 }
 
@@ -652,7 +660,7 @@ void CompilerInstance::registerNativePreMainFunction(SymbolFunction* symbol)
     if (!canRegisterNativeFunction(*this, *symbol, false))
         return;
 
-    if (appendUniqueStateBuckets(stateMutex_, {&nativeCodeSegment_, &nativePreMainFunctions_}, symbol))
+    if (appendUniqueStateBuckets(stateMutex_, {{&nativeCodeSegment_, &nativeCodeSegmentSet_}, {&nativePreMainFunctions_, &nativePreMainFunctionsSet_}}, symbol))
         notifyAlive();
 }
 
@@ -663,7 +671,7 @@ void CompilerInstance::registerNativeDropFunction(SymbolFunction* symbol)
     if (!canRegisterNativeFunction(*this, *symbol, false))
         return;
 
-    if (appendUniqueStateBuckets(stateMutex_, {&nativeCodeSegment_, &nativeDropFunctions_}, symbol))
+    if (appendUniqueStateBuckets(stateMutex_, {{&nativeCodeSegment_, &nativeCodeSegmentSet_}, {&nativeDropFunctions_, &nativeDropFunctionsSet_}}, symbol))
         notifyAlive();
 }
 
@@ -674,7 +682,7 @@ void CompilerInstance::registerNativeMainFunction(SymbolFunction* symbol)
     if (!canRegisterNativeFunction(*this, *symbol, false))
         return;
 
-    if (appendUniqueStateBuckets(stateMutex_, {&nativeCodeSegment_, &nativeMainFunctions_}, symbol))
+    if (appendUniqueStateBuckets(stateMutex_, {{&nativeCodeSegment_, &nativeCodeSegmentSet_}, {&nativeMainFunctions_, &nativeMainFunctionsSet_}}, symbol))
         notifyAlive();
 }
 
@@ -685,7 +693,7 @@ void CompilerInstance::registerNativeGlobalVariable(SymbolVariable* symbol)
     if (!canRegisterNativeGlobalVariable(*this, *symbol))
         return;
 
-    if (appendUniqueStateBuckets(stateMutex_, {&nativeGlobalVariables_}, symbol))
+    if (appendUniqueStateBuckets(stateMutex_, {{&nativeGlobalVariables_, &nativeGlobalVariablesSet_}}, symbol))
     {
         if (symbol->globalStorageKind() == DataSegmentKind::GlobalInit &&
             symbol->globalFunctionInit() != nullptr)
@@ -700,7 +708,7 @@ void CompilerInstance::registerNativeGlobalFunctionInitTarget(SymbolFunction* sy
     if (isImportedApiSource(*this, *symbol))
         return;
 
-    if (appendUniqueStateBuckets(stateMutex_, {&nativeGlobalFunctionInitTargets_}, symbol))
+    if (appendUniqueStateBuckets(stateMutex_, {{&nativeGlobalFunctionInitTargets_, &nativeGlobalFunctionInitTargetsSet_}}, symbol))
     {
         nativeGlobalFunctionInitTargetsVersion_.fetch_add(1, std::memory_order_release);
         invalidateGlobalFunctionBindings();
@@ -712,7 +720,7 @@ void CompilerInstance::registerPreparedJitFunction(SymbolFunction* symbol)
 {
     SWC_ASSERT(symbol != nullptr);
 
-    if (appendUniqueStateBuckets(stateMutex_, {&jitPreparedFunctions_}, symbol))
+    if (appendUniqueStateBuckets(stateMutex_, {{&jitPreparedFunctions_, &jitPreparedFunctionsSet_}}, symbol))
         invalidateGlobalFunctionBindings();
 }
 
@@ -745,6 +753,7 @@ void CompilerInstance::resetPreparedJitFunctions()
     {
         const std::unique_lock lock(stateMutex_);
         preparedFunctions.swap(jitPreparedFunctions_);
+        jitPreparedFunctionsSet_.clear();
     }
 
     for (SymbolFunction* function : preparedFunctions)
@@ -1034,13 +1043,11 @@ bool CompilerInstance::markNativeOutputsCleared()
 bool CompilerInstance::registerForeignLib(std::string_view name)
 {
     const std::unique_lock lock(stateMutex_);
-    for (const Utf8& lib : foreignLibs_)
-    {
-        if (lib == name)
-            return false;
-    }
+    Utf8                   lib(name);
+    if (!foreignLibSet_.insert(lib).second)
+        return false;
 
-    foreignLibs_.emplace_back(name);
+    foreignLibs_.push_back(std::move(lib));
     return true;
 }
 
@@ -1238,6 +1245,7 @@ SourceFile& CompilerInstance::addResolvedFile(fs::path path, FileFlags flags)
     SWC_RACE_CONDITION_WRITE(rcFiles_);
     SWC_ASSERT(path.is_absolute());
     path = path.lexically_normal();
+    const Utf8 key = Utf8Helper::normalizePathForCompare(path);
 
     SWC_ASSERT(files_.size() == fileLookup_->size());
     auto fileRef = FileRef(fileLookup_->size());
@@ -1247,8 +1255,9 @@ SourceFile& CompilerInstance::addResolvedFile(fs::path path, FileFlags flags)
     fileRef.dbgPtr = files_.back().get();
 #endif
 
-    const Utf8 key = Utf8Helper::normalizePathForCompare(files_.back()->path());
-    const auto it  = inMemoryFiles_.find(key);
+    resolvedFilePaths_.insert(key);
+
+    const auto it = inMemoryFiles_.find(key);
     if (it != inMemoryFiles_.end())
         files_.back()->setContent(it->second.view());
 
@@ -1261,6 +1270,7 @@ SourceFile& CompilerInstance::addResolvedLoadedFile(fs::path path, FileFlags fla
     SWC_RACE_CONDITION_WRITE(rcFiles_);
     SWC_ASSERT(path.is_absolute());
     path = path.lexically_normal();
+    Utf8 key = Utf8Helper::normalizePathForCompare(path);
 
     SWC_ASSERT(files_.size() == fileLookup_->size());
     auto sourceFileRef = FileRef(fileLookup_->size());
@@ -1280,6 +1290,7 @@ SourceFile& CompilerInstance::addResolvedLoadedFile(fs::path path, FileFlags fla
     sourceFileRef.dbgPtr = files_.back().get();
     sourceViewRef.dbgPtr = srcViews_.back().get();
 #endif
+    resolvedFilePaths_.insert(std::move(key));
     return *files_.back();
 }
 
@@ -1295,17 +1306,8 @@ std::vector<SourceFile*> CompilerInstance::files() const
 
 bool CompilerInstance::hasResolvedFilePath(const fs::path& path) const
 {
-    const Utf8 wantedPathNormalized = Utf8Helper::normalizePathForCompare(path);
-
-    const uint32_t numFiles = fileLookup_->size();
-    for (uint32_t i = 0; i < numFiles; ++i)
-    {
-        const SourceFile* file = fileLookup_->at(i);
-        if (sourceFilePathMatchesNormalized(*file, wantedPathNormalized))
-            return true;
-    }
-
-    return false;
+    const std::scoped_lock lock(sourceStorageMutex_);
+    return resolvedFilePaths_.contains(Utf8Helper::normalizePathForCompare(path));
 }
 
 SWC_END_NAMESPACE();

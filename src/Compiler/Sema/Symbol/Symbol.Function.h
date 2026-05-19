@@ -179,6 +179,7 @@ private:
     std::vector<SymbolVariable*> parameters_;
     std::vector<SymbolVariable*> localVariables_;
     std::vector<SymbolFunction*> callDependencies_;
+    std::unordered_set<SymbolFunction*> callDependencySet_;
     uint32_t                     numComputedLocals_   = 0;
     uint32_t                     localStackOffset_    = 0;
     TypeRef                      returnType_          = TypeRef::invalid();

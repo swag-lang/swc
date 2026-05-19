@@ -45,9 +45,6 @@ namespace
     uint64_t       g_RuntimeContextTlsId;
     std::once_flag g_RuntimeContextTlsIdOnce;
 
-    fs::path generatedSourceOutputDirectory(const CompilerInstance& compiler);
-    fs::path generatedSourceDumpPath(const CompilerInstance& compiler, uint32_t threadIndex);
-
 
     template<typename T>
     bool appendUnique(std::vector<T*>& values, T* value)

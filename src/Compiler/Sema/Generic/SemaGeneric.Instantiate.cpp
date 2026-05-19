@@ -14,14 +14,43 @@ SWC_BEGIN_NAMESPACE();
 
 namespace SemaGeneric
 {
-    namespace
-    {
-        using Internal::ResolvedGenericBindingSource;
+namespace
+{
+    using Internal::ResolvedGenericBindingSource;
 
-        const AstFunctionDecl* genericFunctionDecl(const SymbolFunction& root);
-        const AstNode*         genericStructDeclNode(const SymbolStruct& root);
-        SpanRef                genericStructParamSpan(const SymbolStruct& root);
-        AstNodeRef             genericDeclNodeRef(const Symbol& root);
+    const AstFunctionDecl* genericFunctionDecl(const SymbolFunction& root)
+    {
+        return root.decl() ? root.decl()->safeCast<AstFunctionDecl>() : nullptr;
+    }
+
+    const AstNode* genericStructDeclNode(const SymbolStruct& root)
+    {
+        if (!root.decl())
+            return nullptr;
+
+        const AstNode* decl = root.decl();
+        if (decl->is(AstNodeId::StructDecl) || decl->is(AstNodeId::UnionDecl))
+            return decl;
+        return nullptr;
+    }
+
+    SpanRef genericStructParamSpan(const SymbolStruct& root)
+    {
+        const AstNode* decl = genericStructDeclNode(root);
+        if (!decl)
+            return SpanRef::invalid();
+
+        if (const auto* structDecl = decl->safeCast<AstStructDecl>())
+            return structDecl->spanGenericParamsRef;
+        return decl->cast<AstUnionDecl>().spanGenericParamsRef;
+    }
+
+    AstNodeRef genericDeclNodeRef(const Symbol& root)
+    {
+        if (const auto* function = root.safeCast<SymbolFunction>())
+            return function->declNodeRef();
+        return root.cast<SymbolStruct>().declNodeRef();
+    }
 
         const SymbolFunction* declContextRoot(const SymbolFunction& function)
         {
@@ -218,41 +247,7 @@ namespace SemaGeneric
             return flags;
         }
 
-        const AstFunctionDecl* genericFunctionDecl(const SymbolFunction& root)
-        {
-            return root.decl() ? root.decl()->safeCast<AstFunctionDecl>() : nullptr;
-        }
-
-        const AstNode* genericStructDeclNode(const SymbolStruct& root)
-        {
-            if (!root.decl())
-                return nullptr;
-
-            const AstNode* decl = root.decl();
-            if (decl->is(AstNodeId::StructDecl) || decl->is(AstNodeId::UnionDecl))
-                return decl;
-            return nullptr;
-        }
-
-        SpanRef genericStructParamSpan(const SymbolStruct& root)
-        {
-            const AstNode* decl = genericStructDeclNode(root);
-            if (!decl)
-                return SpanRef::invalid();
-
-            if (const auto* structDecl = decl->safeCast<AstStructDecl>())
-                return structDecl->spanGenericParamsRef;
-            return decl->cast<AstUnionDecl>().spanGenericParamsRef;
-        }
-
-        AstNodeRef genericDeclNodeRef(const Symbol& root)
-        {
-            if (const auto* function = root.safeCast<SymbolFunction>())
-                return function->declNodeRef();
-            return root.cast<SymbolStruct>().declNodeRef();
-        }
-
-        void prepareGenericDeclSemaContext(Sema& child, Sema& sema, const Symbol& root)
+    void prepareGenericDeclSemaContext(Sema& child, Sema& sema, const Symbol& root)
         {
             if (const auto* function = root.safeCast<SymbolFunction>())
             {
@@ -341,9 +336,6 @@ namespace SemaGeneric
             std::unique_ptr<Sema> sema;
         };
 
-        std::unordered_map<GenericNodeRunKey, CachedSemaRun, GenericNodeRunKeyHash>&                 genericNodeRuns(TaskContext& ctx);
-        std::unordered_map<GenericInstanceNodeRunKey, CachedSemaRun, GenericInstanceNodeRunKeyHash>& genericInstanceNodeRuns(TaskContext& ctx);
-
         struct GenericImplBlockRunKey
         {
             const TaskContext* ctx      = nullptr;
@@ -365,6 +357,34 @@ namespace SemaGeneric
                 return combineHash(hash, std::hash<bool>{}(key.declPass));
             }
         };
+
+        std::unordered_map<GenericNodeRunKey, CachedSemaRun, GenericNodeRunKeyHash>& genericNodeRuns(TaskContext& ctx)
+        {
+            auto& cache = ctx.genericNodeRunCache();
+            if (!cache)
+            {
+                // TaskContext is job-owned and only one worker executes a given job at a
+                // time. Keep this paused-child cache there instead of routing every
+                // generic-node lookup through a global mutex.
+                cache = std::make_shared<std::unordered_map<GenericNodeRunKey, CachedSemaRun, GenericNodeRunKeyHash>>();
+            }
+
+            return *std::static_pointer_cast<std::unordered_map<GenericNodeRunKey, CachedSemaRun, GenericNodeRunKeyHash>>(cache);
+        }
+
+        std::unordered_map<GenericInstanceNodeRunKey, CachedSemaRun, GenericInstanceNodeRunKeyHash>& genericInstanceNodeRuns(TaskContext& ctx)
+        {
+            auto& cache = ctx.genericInstanceNodeRunCache();
+            if (!cache)
+            {
+                // Generic-instance runs are keyed by task context already, so keep their
+                // paused-child cache with that owning task instead of funnelling every
+                // lookup through a process-wide mutex.
+                cache = std::make_shared<std::unordered_map<GenericInstanceNodeRunKey, CachedSemaRun, GenericInstanceNodeRunKeyHash>>();
+            }
+
+            return *std::static_pointer_cast<std::unordered_map<GenericInstanceNodeRunKey, CachedSemaRun, GenericInstanceNodeRunKeyHash>>(cache);
+        }
 
         template<typename RUN, typename K, typename I>
         Result runCachedSema(Sema& sema, RUN& runs, const K& key, const Symbol& waitSymbol, const I& initRun)
@@ -537,20 +557,6 @@ namespace SemaGeneric
             return mutex;
         }
 
-        std::unordered_map<GenericNodeRunKey, CachedSemaRun, GenericNodeRunKeyHash>& genericNodeRuns(TaskContext& ctx)
-        {
-            auto& cache = ctx.genericNodeRunCache();
-            if (!cache)
-            {
-                // TaskContext is job-owned and only one worker executes a given job at a
-                // time. Keep this paused-child cache there instead of routing every
-                // generic-node lookup through a global mutex.
-                cache = std::make_shared<std::unordered_map<GenericNodeRunKey, CachedSemaRun, GenericNodeRunKeyHash>>();
-            }
-
-            return *std::static_pointer_cast<std::unordered_map<GenericNodeRunKey, CachedSemaRun, GenericNodeRunKeyHash>>(cache);
-        }
-
         bool isGenericNodeRunActive(Sema& sema, AstNodeRef nodeRef)
         {
             if (nodeRef.isInvalid())
@@ -574,20 +580,6 @@ namespace SemaGeneric
                 return false;
 
             return sema.viewStored(nodeRef, SemaNodeViewPartE::Constant).cstRef().isValid();
-        }
-
-        std::unordered_map<GenericInstanceNodeRunKey, CachedSemaRun, GenericInstanceNodeRunKeyHash>& genericInstanceNodeRuns(TaskContext& ctx)
-        {
-            auto& cache = ctx.genericInstanceNodeRunCache();
-            if (!cache)
-            {
-                // Generic-instance runs are keyed by task context already, so keep their
-                // paused-child cache with that owning task instead of funnelling every
-                // lookup through a process-wide mutex.
-                cache = std::make_shared<std::unordered_map<GenericInstanceNodeRunKey, CachedSemaRun, GenericInstanceNodeRunKeyHash>>();
-            }
-
-            return *std::static_pointer_cast<std::unordered_map<GenericInstanceNodeRunKey, CachedSemaRun, GenericInstanceNodeRunKeyHash>>(cache);
         }
 
         std::unordered_map<GenericImplBlockRunKey, CachedSemaRun, GenericImplBlockRunKeyHash>& genericImplBlockRuns(TaskContext& ctx)

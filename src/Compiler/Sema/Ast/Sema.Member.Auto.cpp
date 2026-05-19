@@ -70,7 +70,19 @@ namespace
         SmallVector<const Symbol*> symbols;
     };
 
-    SymbolVariable* activeReceiverBinding(Sema& sema);
+    SymbolVariable* activeReceiverBinding(Sema& sema)
+    {
+        const IdentifierRef                    meId     = sema.idMgr().predefined(IdentifierManager::PredefinedName::Me);
+        const std::span<SymbolVariable* const> bindings = sema.frame().bindingVars();
+        for (size_t i = bindings.size(); i > 0; --i)
+        {
+            SymbolVariable* binding = bindings[i - 1];
+            if (binding && binding->idRef() == meId)
+                return binding;
+        }
+
+        return nullptr;
+    }
 
     // `with` rewrites must not reuse an existing resolved expression subtree directly.
     // A fresh syntax clone lets semantic analysis rebuild substitutes in the new context.
@@ -421,20 +433,6 @@ namespace
         const auto diag = reportCannotComputeAutoScopeMember(sema, autoMemberRef, idRef);
         diag.report(sema.ctx());
         return Result::Error;
-    }
-
-    SymbolVariable* activeReceiverBinding(Sema& sema)
-    {
-        const IdentifierRef                    meId     = sema.idMgr().predefined(IdentifierManager::PredefinedName::Me);
-        const std::span<SymbolVariable* const> bindings = sema.frame().bindingVars();
-        for (size_t i = bindings.size(); i > 0; --i)
-        {
-            SymbolVariable* binding = bindings[i - 1];
-            if (binding && binding->idRef() == meId)
-                return binding;
-        }
-
-        return nullptr;
     }
 
     SymbolVariable* currentMethodReceiver(Sema& sema)

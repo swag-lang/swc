@@ -23,7 +23,13 @@ namespace
     constexpr std::string_view CONFIG_FILE_LONG_FORM  = "--config-file";
     constexpr std::string_view CONFIG_FILE_SHORT_FORM = "-cf";
 
-    void resolveModuleRelativeInput(const fs::path& baseDir, fs::path& path);
+    void resolveModuleRelativeInput(const fs::path& baseDir, fs::path& path)
+    {
+        if (baseDir.empty() || !path.is_relative())
+            return;
+
+        path = (baseDir / path).lexically_normal();
+    }
 
     // Split response-file content into whitespace-separated tokens.
     // Supports `"..."` and `'...'` for tokens containing spaces. No escape sequences.
@@ -273,14 +279,6 @@ namespace
             return {};
 
         return cmdLine.moduleFilePath.parent_path();
-    }
-
-    void resolveModuleRelativeInput(const fs::path& baseDir, fs::path& path)
-    {
-        if (baseDir.empty() || !path.is_relative())
-            return;
-
-        path = (baseDir / path).lexically_normal();
     }
 
     void markExplicitBuildCfgOverride(CommandLine& cmdLine, const ArgTarget& target)

@@ -75,11 +75,6 @@ namespace
 
     TypeRef deduceConcretizedAggregateArrayElementType(Sema& sema, std::span<const TypeRef> elemTypes, const std::vector<ConstantRef>* values);
     TypeRef deduceConcretizedAggregateStructType(Sema& sema, TypeRef typeRef, ConstantRef cstRef);
-    TypeRef deduceConcretizedAggregateStructArrayElementType(Sema& sema, std::span<const TypeRef> elemTypes, const std::vector<ConstantRef>* values);
-    bool    isAggregateTypeLikeElement(Sema& sema, TypeRef typeRef);
-    TypeRef normalizeAggregateTypeLikeElementType(Sema& sema, TypeRef typeRef, ConstantRef cstRef);
-    bool    sameArrayDimensions(std::span<const uint64_t> leftDims, std::span<const uint64_t> rightDims);
-    TypeRef mergeConcretizedArrayTypes(Sema& sema, TypeRef leftTypeRef, TypeRef rightTypeRef);
 
     void tryMaterializeAggregateLiteralConstant(Sema& sema, SemaNodeView& defaultView)
     {
@@ -120,6 +115,18 @@ namespace
         ConstantValue cst = typeInfo.isAggregateArray() ? ConstantValue::makeAggregateArray(sema.ctx(), values) : ConstantValue::makeAggregateStruct(sema.ctx(), names, values);
         sema.setConstant(defaultView.nodeRef(), sema.cstMgr().addConstant(sema.ctx(), cst));
         defaultView.recompute(sema, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
+    }
+
+    bool isAggregateTypeLikeElement(Sema& sema, TypeRef typeRef)
+    {
+        return SemaHelpers::isTypeLikeTypeRef(sema.ctx(), typeRef);
+    }
+
+    TypeRef normalizeAggregateTypeLikeElementType(Sema& sema, TypeRef typeRef, ConstantRef cstRef)
+    {
+        if (!isAggregateTypeLikeElement(sema, typeRef))
+            return typeRef;
+        return SemaHelpers::normalizeTypeLikeValueTypeRef(sema, typeRef, cstRef, sema.ctx().state().nodeRef);
     }
 
     Result normalizeDefaultValueView(Sema& sema, SemaNodeView& defaultView, TypeRef targetTypeRef, TypeRef* outResolvedTypeRef = nullptr)
@@ -170,11 +177,6 @@ namespace
         if (outResolvedTypeRef)
             *outResolvedTypeRef = resolvedTypeRef;
         return Result::Continue;
-    }
-
-    bool isAggregateTypeLikeElement(Sema& sema, TypeRef typeRef)
-    {
-        return SemaHelpers::isTypeLikeTypeRef(sema.ctx(), typeRef);
     }
 
     TypeRef runtimeTypeRefOrDeclaredSymbolTypeRef(Sema& sema, IdentifierManager::PredefinedName name)
@@ -240,13 +242,6 @@ namespace
             return TypeRef::invalid();
 
         return sema.typeMgr().addType(TypeInfo::makeValuePointer(structTypeRef, TypeInfoFlagsE::Const));
-    }
-
-    TypeRef normalizeAggregateTypeLikeElementType(Sema& sema, TypeRef typeRef, ConstantRef cstRef)
-    {
-        if (!isAggregateTypeLikeElement(sema, typeRef))
-            return typeRef;
-        return SemaHelpers::normalizeTypeLikeValueTypeRef(sema, typeRef, cstRef, sema.ctx().state().nodeRef);
     }
 
     TypeRef deduceConcretizedAggregateLiteralTypeImpl(Sema& sema, TypeRef typeRef, ConstantRef cstRef)

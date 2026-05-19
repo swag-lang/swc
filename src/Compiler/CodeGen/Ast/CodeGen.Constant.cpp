@@ -23,8 +23,6 @@ namespace
         uint32_t   offset   = 0;
     };
 
-    Result emitConstantToPayload(CodeGen& codeGen, CodeGenNodePayload& payload, ConstantRef cstRef, const ConstantValue& cst, TypeRef targetTypeRef);
-
     uint64_t sliceCountFromArrayCast(CodeGen& codeGen, const TypeInfo& srcArrayType, const TypeInfo& dstElementType)
     {
         const uint64_t dstElementSize = dstElementType.sizeOf(codeGen.ctx());
@@ -267,27 +265,6 @@ namespace
         return true;
     }
 
-    Result resolveConstantAggregateElementPayload(CodeGenNodePayload& outPayload, CodeGen& codeGen, AstNodeRef valueRef, TypeRef targetTypeRef)
-    {
-        const SemaNodeView valueView = codeGen.viewTypeConstant(valueRef);
-        if (!valueView.cstRef().isValid())
-            SWC_INTERNAL_CHECK(false);
-
-        outPayload         = {};
-        outPayload.reg     = codeGen.nextVirtualRegisterForType(targetTypeRef);
-        outPayload.typeRef = targetTypeRef;
-        outPayload.setIsValue();
-        return emitConstantToPayload(codeGen, outPayload, valueView.cstRef(), codeGen.cstMgr().get(valueView.cstRef()), targetTypeRef);
-    }
-
-    Result resolveAggregateElementPayload(CodeGenNodePayload& outPayload, CodeGen& codeGen, AstNodeRef valueRef, TypeRef targetTypeRef)
-    {
-        if (tryResolveExistingAggregateElementPayload(outPayload, codeGen, valueRef, targetTypeRef))
-            return Result::Continue;
-
-        return resolveConstantAggregateElementPayload(outPayload, codeGen, valueRef, targetTypeRef);
-    }
-
     MicroReg aggregateElementAddressReg(CodeGen& codeGen, MicroReg dstBaseReg, uint32_t offset)
     {
         if (!offset)
@@ -309,38 +286,6 @@ namespace
         }
 
         codeGen.builder().emitLoadMemReg(dstElementReg, 0, elementPayload.reg, storeBits);
-    }
-
-    Result emitAggregateLiteralPayload(CodeGen& codeGen, AstNodeRef nodeRef, std::span<const AstNodeRef> elementRefs, TypeRef aggregateTypeRef)
-    {
-        SmallVector<AggregateElementLayout> layout;
-        uint32_t                            totalSize = 0;
-        const bool                          hasLayout = computeLiteralLayout(codeGen, aggregateTypeRef, elementRefs, layout, totalSize);
-        SWC_INTERNAL_CHECK(hasLayout);
-        SWC_INTERNAL_CHECK(totalSize == codeGen.typeMgr().get(aggregateTypeRef).sizeOf(codeGen.ctx()));
-
-        const MicroReg  dstBaseReg  = codeGen.runtimeStorageAddressReg(nodeRef);
-        const TypeInfo& storageType = codeGen.typeMgr().get(aggregateTypeRef);
-        // Concrete arrays/structs start from their default storage so omitted literal elements keep the
-        // correct zeroed or default-initialized bytes.
-        if (storageType.isArray() || storageType.isStruct())
-            SWC_RESULT(emitConcreteLiteralStorageInit(codeGen, aggregateTypeRef, dstBaseReg));
-
-        for (const AggregateElementLayout& entry : layout)
-        {
-            CodeGenNodePayload elementPayload;
-            SWC_RESULT(resolveAggregateElementPayload(elementPayload, codeGen, entry.valueRef, entry.typeRef));
-            const uint64_t elementSize = codeGen.typeMgr().get(entry.typeRef).sizeOf(codeGen.ctx());
-            if (!elementSize)
-                continue;
-
-            SWC_ASSERT(elementSize <= std::numeric_limits<uint32_t>::max());
-            const MicroReg dstElementReg = aggregateElementAddressReg(codeGen, dstBaseReg, entry.offset);
-            emitAggregateElementStore(codeGen, dstElementReg, elementPayload, static_cast<uint32_t>(elementSize));
-        }
-
-        codeGen.setPayloadAddressReg(nodeRef, dstBaseReg, aggregateTypeRef);
-        return Result::Continue;
     }
 
     TypeRef resolvedLiteralStorageTypeRef(CodeGen& codeGen, AstNodeRef nodeRef)
@@ -661,6 +606,59 @@ namespace
             default:
                 SWC_UNREACHABLE();
         }
+    }
+
+    Result resolveConstantAggregateElementPayload(CodeGenNodePayload& outPayload, CodeGen& codeGen, AstNodeRef valueRef, TypeRef targetTypeRef)
+    {
+        const SemaNodeView valueView = codeGen.viewTypeConstant(valueRef);
+        if (!valueView.cstRef().isValid())
+            SWC_INTERNAL_CHECK(false);
+
+        outPayload         = {};
+        outPayload.reg     = codeGen.nextVirtualRegisterForType(targetTypeRef);
+        outPayload.typeRef = targetTypeRef;
+        outPayload.setIsValue();
+        return emitConstantToPayload(codeGen, outPayload, valueView.cstRef(), codeGen.cstMgr().get(valueView.cstRef()), targetTypeRef);
+    }
+
+    Result resolveAggregateElementPayload(CodeGenNodePayload& outPayload, CodeGen& codeGen, AstNodeRef valueRef, TypeRef targetTypeRef)
+    {
+        if (tryResolveExistingAggregateElementPayload(outPayload, codeGen, valueRef, targetTypeRef))
+            return Result::Continue;
+
+        return resolveConstantAggregateElementPayload(outPayload, codeGen, valueRef, targetTypeRef);
+    }
+
+    Result emitAggregateLiteralPayload(CodeGen& codeGen, AstNodeRef nodeRef, std::span<const AstNodeRef> elementRefs, TypeRef aggregateTypeRef)
+    {
+        SmallVector<AggregateElementLayout> layout;
+        uint32_t                            totalSize = 0;
+        const bool                          hasLayout = computeLiteralLayout(codeGen, aggregateTypeRef, elementRefs, layout, totalSize);
+        SWC_INTERNAL_CHECK(hasLayout);
+        SWC_INTERNAL_CHECK(totalSize == codeGen.typeMgr().get(aggregateTypeRef).sizeOf(codeGen.ctx()));
+
+        const MicroReg  dstBaseReg  = codeGen.runtimeStorageAddressReg(nodeRef);
+        const TypeInfo& storageType = codeGen.typeMgr().get(aggregateTypeRef);
+        // Concrete arrays/structs start from their default storage so omitted literal elements keep the
+        // correct zeroed or default-initialized bytes.
+        if (storageType.isArray() || storageType.isStruct())
+            SWC_RESULT(emitConcreteLiteralStorageInit(codeGen, aggregateTypeRef, dstBaseReg));
+
+        for (const AggregateElementLayout& entry : layout)
+        {
+            CodeGenNodePayload elementPayload;
+            SWC_RESULT(resolveAggregateElementPayload(elementPayload, codeGen, entry.valueRef, entry.typeRef));
+            const uint64_t elementSize = codeGen.typeMgr().get(entry.typeRef).sizeOf(codeGen.ctx());
+            if (!elementSize)
+                continue;
+
+            SWC_ASSERT(elementSize <= std::numeric_limits<uint32_t>::max());
+            const MicroReg dstElementReg = aggregateElementAddressReg(codeGen, dstBaseReg, entry.offset);
+            emitAggregateElementStore(codeGen, dstElementReg, elementPayload, static_cast<uint32_t>(elementSize));
+        }
+
+        codeGen.setPayloadAddressReg(nodeRef, dstBaseReg, aggregateTypeRef);
+        return Result::Continue;
     }
 
     bool resolveRuntimeArrayFillLayout(uint32_t& outElementSize, uint32_t& outElementCount, CodeGen& codeGen, TypeRef arrayTypeRef, TypeRef elementTypeRef)

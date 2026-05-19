@@ -56,8 +56,6 @@ namespace
         uint32_t line     = 0;
     };
 
-    TestSourceLocation resolveTestSourceLocation(TaskContext& ctx, const CompilerInstance& compiler, const SymbolFunction& symbol);
-
     Utf8 testSourceFileName(const SourceFile* sourceFile)
     {
         if (!sourceFile)

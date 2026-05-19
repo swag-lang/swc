@@ -15,7 +15,6 @@ SWC_BEGIN_NAMESPACE();
 namespace
 {
     bool isConstAssignmentTargetImpl(Sema& sema, AstNodeRef leftExprRef, const SemaNodeView& leftView);
-    bool isSyntheticAutoMemberLeft(const Sema& sema, AstNodeRef nodeRef);
 
     bool isIgnoredValuePoison(Sema& sema, AstNodeRef nodeRef)
     {
@@ -123,6 +122,15 @@ namespace
         return param && isReadOnlyAggregateFunctionParameter(sema, *param);
     }
 
+    bool isSyntheticAutoMemberLeft(const Sema& sema, AstNodeRef nodeRef)
+    {
+        if (nodeRef.isInvalid())
+            return false;
+
+        const AstNode& node = sema.node(nodeRef);
+        return node.is(AstNodeId::Identifier) && node.codeRef().isValid() && sema.token(node.codeRef()).id == TokenId::SymDot;
+    }
+
     bool isReadOnlyAggregateParameterPath(Sema& sema, AstNodeRef nodeRef)
     {
         const AstNodeRef resolvedRef = resolveNodeRefForCheck(sema, nodeRef);
@@ -155,15 +163,6 @@ namespace
 
         const TypeInfo& sourceType = sema.typeMgr().get(sourceTypeRef);
         return sourceType.isString() || sourceType.isCString();
-    }
-
-    bool isSyntheticAutoMemberLeft(const Sema& sema, AstNodeRef nodeRef)
-    {
-        if (nodeRef.isInvalid())
-            return false;
-
-        const AstNode& node = sema.node(nodeRef);
-        return node.is(AstNodeId::Identifier) && node.codeRef().isValid() && sema.token(node.codeRef()).id == TokenId::SymDot;
     }
 
     AstNodeRef indexedSourceRef(Sema& sema, AstNodeRef nodeRef)

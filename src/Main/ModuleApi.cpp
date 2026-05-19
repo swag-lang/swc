@@ -4,7 +4,7 @@
 #include "Compiler/Sema/Symbol/Symbol.Impl.h"
 #include "Compiler/Sema/Symbol/Symbols.h"
 #include "Compiler/SourceFile.h"
-#include "Main/ModuleApi.Priv.h"
+#include "Main/ModuleApi.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -104,7 +104,7 @@ namespace
     }
 }
 
-namespace ModuleApi
+namespace ModuleApi::Internal
 {
     bool tryFindNodeRef(const Ast& ast, const AstNode* targetNode, AstNodeRef& outNodeRef)
     {

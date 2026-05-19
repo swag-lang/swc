@@ -4,7 +4,7 @@
 #include "Compiler/Sema/Symbol/Symbols.h"
 #include "Compiler/SourceFile.h"
 #include "Main/CompilerInstance.h"
-#include "Main/ModuleApi.Priv.h"
+#include "Main/ModuleApi.h"
 #include "Main/TaskContext.h"
 #include "Support/Report/Diagnostic.h"
 
@@ -58,25 +58,25 @@ namespace ModuleApi
             return;
 
         AstNodeRef declRef;
-        if (!tryFindNodeRef(sourceFile->ast(), symbol.decl(), declRef))
+        if (!Internal::tryFindNodeRef(sourceFile->ast(), symbol.decl(), declRef))
             return;
-        if (!isExportedPublicDeclScope(*sourceFile, declRef, symbol))
+        if (!Internal::isExportedPublicDeclScope(*sourceFile, declRef, symbol))
             return;
 
         if (symbol.isVariable())
         {
-            if (hasExplicitPublicAccessModifier(*sourceFile, declRef))
+            if (Internal::hasExplicitPublicAccessModifier(*sourceFile, declRef))
                 reportModuleApiPublicGlobalVariable(ctx, symbol);
             return;
         }
 
         ModuleApiPublicEntry publicEntry;
-        publicEntry.rootRef = findExportDeclRoot(*sourceFile, declRef);
+        publicEntry.rootRef = Internal::findExportDeclRoot(*sourceFile, declRef);
         publicEntry.symbol  = &symbol;
         if (publicEntry.rootRef.isInvalid())
             return;
 
-        if (!extractPublicNamespacePath(symbol, publicEntry.namespacePath))
+        if (!Internal::extractPublicNamespacePath(symbol, publicEntry.namespacePath))
             return;
 
         recordPublicEntry(state, symbol.srcViewRef(), publicEntry);

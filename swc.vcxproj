@@ -588,7 +588,6 @@
         <ClInclude Include="src\Main\CompilerInstance.h"/>
         <ClInclude Include="src\Main\ExternalModuleManager.h"/>
         <ClInclude Include="src\Main\ModuleApi.h"/>
-        <ClInclude Include="src\Main\ModuleApi.Priv.h"/>
         <ClInclude Include="src\Main\Version.h"/>
         <ClInclude Include="src\Support\Math\ApFloat.h"/>
         <ClInclude Include="src\Support\Math\ApInt.h"/>

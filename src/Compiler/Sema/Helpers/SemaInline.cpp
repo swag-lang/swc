@@ -118,55 +118,20 @@ namespace
 
     void appendFunctionGenericBindings(Sema& sema, const SymbolFunction& fn, SmallVector<SemaClone::ParamBinding>& outBindings)
     {
-        if (!fn.isGenericInstance())
-            return;
-
-        const SymbolFunction* root = fn.genericRootSym();
-        if (!root || !root->decl())
-            return;
-
-        const auto* decl = root->decl()->safeCast<AstFunctionDecl>();
-        if (!decl || decl->spanGenericParamsRef.isInvalid())
-            return;
-
         SmallVector<SemaGeneric::GenericParamDesc> params;
-        SemaGeneric::collectGenericParams(sema, *decl, decl->spanGenericParamsRef, params);
-        if (params.empty())
-            return;
-
         SmallVector<GenericInstanceKey> args;
-        if (!fn.tryGetGenericInstanceArgs(sema.ctx(), args))
+        if (!SemaGeneric::Internal::loadFunctionInstanceGenericArgs(sema, fn, params, args))
             return;
-        if (args.size() > params.size())
-            args.resize(params.size());
 
         appendGenericBindingsFromKeys(sema, params.span(), args.span(), outBindings);
     }
 
     void appendOwnerStructGenericBindings(Sema& sema, const SymbolFunction& fn, SmallVector<SemaClone::ParamBinding>& outBindings)
     {
-        const SymbolStruct* ownerInstance = fn.ownerStruct();
-        if (!ownerInstance || !ownerInstance->isGenericInstance())
-            return;
-
-        const SymbolStruct* root = ownerInstance->genericRootSym();
-        if (!root || !root->decl())
-            return;
-
-        const auto* decl = root->decl()->safeCast<AstStructDecl>();
-        if (!decl || decl->spanGenericParamsRef.isInvalid())
-            return;
-
         SmallVector<SemaGeneric::GenericParamDesc> params;
-        SemaGeneric::collectGenericParams(sema, *decl, decl->spanGenericParamsRef, params);
-        if (params.empty())
-            return;
-
         SmallVector<GenericInstanceKey> args;
-        if (!ownerInstance->tryGetGenericInstanceArgs(args))
+        if (!SemaGeneric::Internal::loadOwnerStructGenericArgs(sema, fn, params, args))
             return;
-        if (args.size() > params.size())
-            args.resize(params.size());
 
         appendGenericBindingsFromKeys(sema, params.span(), args.span(), outBindings);
     }

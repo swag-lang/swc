@@ -33,6 +33,7 @@ namespace SemaGeneric
         using Internal::instantiateGenericStructImpls;
         using Internal::loadFunctionInstanceGenericArgs;
         using Internal::loadOwnerStructGenericArgs;
+        using Internal::loadStructInstanceGenericArgs;
         using Internal::ResolvedGenericBindingSource;
         using Internal::runGenericInstanceNode;
         using Internal::tryCreateSemaForGenericDecl;
@@ -670,20 +671,9 @@ namespace SemaGeneric
 
         void resolveArgsFromEnclosingStruct(Sema& sema, const SymbolStruct& enclosingInstance, std::span<const GenericParamDesc> targetParams, std::span<GenericResolvedArg> resolvedArgs)
         {
-            const SymbolStruct* enclosingRoot = enclosingInstance.genericRootSym();
-            if (!enclosingRoot)
-                return;
-
-            const auto*   enclosingDecl        = genericStructDeclNode(*enclosingRoot);
-            const SpanRef spanGenericParamsRef = genericStructParamSpan(*enclosingRoot);
-            if (!enclosingDecl || !spanGenericParamsRef.isValid())
-                return;
-
             SmallVector<GenericParamDesc> enclosingParams;
-            collectGenericParams(sema, *enclosingDecl, spanGenericParamsRef, enclosingParams);
-
             SmallVector<GenericInstanceKey> enclosingArgs;
-            if (!enclosingInstance.tryGetGenericInstanceArgs(enclosingArgs))
+            if (!loadStructInstanceGenericArgs(sema, enclosingInstance, enclosingParams, enclosingArgs))
                 return;
 
             resolveArgsFromGenericContext(enclosingParams.span(), enclosingArgs.span(), targetParams, resolvedArgs, true);

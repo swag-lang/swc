@@ -112,6 +112,80 @@ namespace
         *ptrField             = storage.ptr<Runtime::TypeInfo>(targetOffset);
     }
 
+    TypeRef genericArgValueTypeRef(TaskContext& ctx, const GenericInstanceKey& arg)
+    {
+        if (arg.typeRef.isValid())
+            return arg.typeRef;
+        if (arg.cstRef.isValid())
+            return ctx.cstMgr().get(arg.cstRef).typeRef();
+        return TypeRef::invalid();
+    }
+
+    void materializeGenericArgRuntimeValue(Sema& sema, DataSegment& storage, uint32_t elemOffset, const GenericInstanceKey& arg, TypeRef valueTypeRef, Runtime::TypeValue& tv)
+    {
+        if (!arg.cstRef.isValid() || !valueTypeRef.isValid())
+            return;
+
+        TaskContext&         ctx = sema.ctx();
+        const ConstantValue& cst = ctx.cstMgr().get(arg.cstRef);
+        const uint64_t       valueSize = ctx.typeMgr().get(valueTypeRef).sizeOf(ctx);
+        if (!valueSize)
+            return;
+
+        std::vector valueBytes(valueSize, std::byte{0});
+        ConstantLower::lowerToBytes(sema, valueBytes, arg.cstRef, valueTypeRef);
+
+        uint32_t     valueOffset    = INVALID_REF;
+        const Result materializeRes = ConstantLower::materializeStaticPayload(valueOffset, sema, storage, valueTypeRef, valueBytes);
+        SWC_ASSERT(materializeRes == Result::Continue);
+        SWC_ASSERT(valueOffset != INVALID_REF);
+        storage.addRelocation(elemOffset + offsetof(Runtime::TypeValue, value), valueOffset);
+        tv.value = storage.ptr<std::byte>(valueOffset);
+    }
+
+    template<typename T>
+    void exportGenericRuntimeTypeValues(Sema& sema,
+                                        DataSegment& storage,
+                                        uint32_t ownerOffset,
+                                        uint32_t genericsPtrFieldOffset,
+                                        T& rtType,
+                                        std::span<const SemaGeneric::GenericParamDesc> genericParams,
+                                        std::span<const GenericInstanceKey> genericArgs,
+                                        uint32_t& entryGenericsOffset,
+                                        uint32_t& entryGenericsCount,
+                                        SmallVector<TypeRef>& entryGenericTypes)
+    {
+        if (genericArgs.empty())
+            return;
+
+        TaskContext& ctx = sema.ctx();
+
+        entryGenericsCount                  = static_cast<uint32_t>(genericArgs.size());
+        const auto [genericsOffset, genericsPtr] = storage.reserveSpan<Runtime::TypeValue>(entryGenericsCount);
+        entryGenericsOffset                 = genericsOffset;
+        rtType.generics.ptr                 = genericsPtr;
+        rtType.generics.count               = entryGenericsCount;
+        storage.addRelocation(ownerOffset + genericsPtrFieldOffset, genericsOffset);
+
+        entryGenericTypes.reserve(entryGenericsCount);
+        for (uint32_t i = 0; i < entryGenericsCount; ++i)
+        {
+            const GenericInstanceKey& arg        = genericArgs[i];
+            Runtime::TypeValue&       tv         = genericsPtr[i];
+            const uint32_t            elemOffset = genericsOffset + static_cast<uint32_t>(i * sizeof(Runtime::TypeValue));
+
+            if (i < genericParams.size() && genericParams[i].idRef.isValid())
+            {
+                const auto& id = ctx.idMgr().get(genericParams[i].idRef);
+                tv.name.length = storage.addString(elemOffset, offsetof(Runtime::TypeValue, name.ptr), Utf8{id.name});
+            }
+
+            const TypeRef valueTypeRef = genericArgValueTypeRef(ctx, arg);
+            materializeGenericArgRuntimeValue(sema, storage, elemOffset, arg, valueTypeRef, tv);
+            entryGenericTypes.push_back(valueTypeRef);
+        }
+    }
+
     struct LifecycleFlags
     {
         bool hasPostCopy = false;
@@ -592,63 +666,10 @@ namespace
                 {
                     entry.structFromGenericTypeRef = genericRoot->typeRef();
 
-                    SmallVector<GenericInstanceKey> genericArgs;
-                    if (symStruct.tryGetGenericInstanceArgs(genericArgs) && !genericArgs.empty())
-                    {
-                        SmallVector<SemaGeneric::GenericParamDesc> genericParams;
-                        if (const auto* decl = genericRoot->decl() ? genericRoot->decl()->safeCast<AstStructDecl>() : nullptr; decl && decl->spanGenericParamsRef.isValid())
-                            SemaGeneric::collectGenericParams(sema, *decl, decl->spanGenericParamsRef, genericParams);
-
-                        entry.structGenericsCount                = static_cast<uint32_t>(genericArgs.size());
-                        const auto [genericsOffset, genericsPtr] = storage.reserveSpan<Runtime::TypeValue>(entry.structGenericsCount);
-                        entry.structGenericsOffset               = genericsOffset;
-                        rtType.generics.ptr                      = genericsPtr;
-                        rtType.generics.count                    = entry.structGenericsCount;
-                        storage.addRelocation(offset + offsetof(Runtime::TypeInfoStruct, generics.ptr), genericsOffset);
-
-                        entry.structGenericTypes.reserve(entry.structGenericsCount);
-                        for (uint32_t i = 0; i < entry.structGenericsCount; ++i)
-                        {
-                            const GenericInstanceKey& arg        = genericArgs[i];
-                            Runtime::TypeValue&       tv         = genericsPtr[i];
-                            const uint32_t            elemOffset = genericsOffset + static_cast<uint32_t>(i * sizeof(Runtime::TypeValue));
-
-                            if (i < genericParams.size() && genericParams[i].idRef.isValid())
-                            {
-                                const auto& id = ctx.idMgr().get(genericParams[i].idRef);
-                                tv.name.length = storage.addString(elemOffset, offsetof(Runtime::TypeValue, name.ptr), Utf8{id.name});
-                            }
-
-                            TypeRef valueTypeRef = TypeRef::invalid();
-                            if (arg.typeRef.isValid())
-                            {
-                                valueTypeRef = arg.typeRef;
-                            }
-                            else if (arg.cstRef.isValid())
-                            {
-                                const ConstantValue& cst = ctx.cstMgr().get(arg.cstRef);
-                                valueTypeRef             = cst.typeRef();
-                                if (valueTypeRef.isValid())
-                                {
-                                    const uint64_t valueSize = ctx.typeMgr().get(valueTypeRef).sizeOf(ctx);
-                                    if (valueSize)
-                                    {
-                                        std::vector valueBytes(valueSize, std::byte{0});
-                                        ConstantLower::lowerToBytes(sema, valueBytes, arg.cstRef, valueTypeRef);
-
-                                        uint32_t     valueOffset    = INVALID_REF;
-                                        const Result materializeRes = ConstantLower::materializeStaticPayload(valueOffset, sema, storage, valueTypeRef, valueBytes);
-                                        SWC_ASSERT(materializeRes == Result::Continue);
-                                        SWC_ASSERT(valueOffset != INVALID_REF);
-                                        storage.addRelocation(elemOffset + offsetof(Runtime::TypeValue, value), valueOffset);
-                                        tv.value = storage.ptr<std::byte>(valueOffset);
-                                    }
-                                }
-                            }
-
-                            entry.structGenericTypes.push_back(valueTypeRef);
-                        }
-                    }
+                    SmallVector<SemaGeneric::GenericParamDesc> genericParams;
+                    SmallVector<GenericInstanceKey>            genericArgs;
+                    if (SemaGeneric::Internal::loadStructInstanceGenericArgs(sema, symStruct, genericParams, genericArgs))
+                        exportGenericRuntimeTypeValues(sema, storage, offset, offsetof(Runtime::TypeInfoStruct, generics.ptr), rtType, genericParams.span(), genericArgs.span(), entry.structGenericsOffset, entry.structGenericsCount, entry.structGenericTypes);
                 }
             }
         }
@@ -883,64 +904,10 @@ namespace
 
         if (symFunc.isGenericInstance())
         {
-            const SymbolFunction*           genericRoot = symFunc.genericRootSym();
-            SmallVector<GenericInstanceKey> genericArgs;
-            if (genericRoot && symFunc.tryGetGenericInstanceArgs(ctx, genericArgs) && !genericArgs.empty())
-            {
-                SmallVector<SemaGeneric::GenericParamDesc> genericParams;
-                if (const auto* decl = genericRoot->decl() ? genericRoot->decl()->safeCast<AstFunctionDecl>() : nullptr; decl && decl->spanGenericParamsRef.isValid())
-                    SemaGeneric::collectGenericParams(sema, *decl, decl->spanGenericParamsRef, genericParams);
-
-                entry.funcGenericsCount                  = static_cast<uint32_t>(genericArgs.size());
-                const auto [genericsOffset, genericsPtr] = storage.reserveSpan<Runtime::TypeValue>(entry.funcGenericsCount);
-                entry.funcGenericsOffset                 = genericsOffset;
-                rtType.generics.ptr                      = genericsPtr;
-                rtType.generics.count                    = entry.funcGenericsCount;
-                storage.addRelocation(offset + offsetof(Runtime::TypeInfoFunc, generics.ptr), genericsOffset);
-
-                entry.funcGenericTypes.reserve(entry.funcGenericsCount);
-                for (uint32_t i = 0; i < entry.funcGenericsCount; ++i)
-                {
-                    const GenericInstanceKey& arg        = genericArgs[i];
-                    Runtime::TypeValue&       tv         = genericsPtr[i];
-                    const uint32_t            elemOffset = genericsOffset + static_cast<uint32_t>(i * sizeof(Runtime::TypeValue));
-
-                    if (i < genericParams.size() && genericParams[i].idRef.isValid())
-                    {
-                        const auto& id = ctx.idMgr().get(genericParams[i].idRef);
-                        tv.name.length = storage.addString(elemOffset, offsetof(Runtime::TypeValue, name.ptr), Utf8{id.name});
-                    }
-
-                    TypeRef valueTypeRef = TypeRef::invalid();
-                    if (arg.typeRef.isValid())
-                    {
-                        valueTypeRef = arg.typeRef;
-                    }
-                    else if (arg.cstRef.isValid())
-                    {
-                        const ConstantValue& cst = ctx.cstMgr().get(arg.cstRef);
-                        valueTypeRef             = cst.typeRef();
-                        if (valueTypeRef.isValid())
-                        {
-                            const uint64_t valueSize = ctx.typeMgr().get(valueTypeRef).sizeOf(ctx);
-                            if (valueSize)
-                            {
-                                std::vector valueBytes(valueSize, std::byte{0});
-                                ConstantLower::lowerToBytes(sema, valueBytes, arg.cstRef, valueTypeRef);
-
-                                uint32_t     valueOffset    = INVALID_REF;
-                                const Result materializeRes = ConstantLower::materializeStaticPayload(valueOffset, sema, storage, valueTypeRef, valueBytes);
-                                SWC_ASSERT(materializeRes == Result::Continue);
-                                SWC_ASSERT(valueOffset != INVALID_REF);
-                                storage.addRelocation(elemOffset + offsetof(Runtime::TypeValue, value), valueOffset);
-                                tv.value = storage.ptr<std::byte>(valueOffset);
-                            }
-                        }
-                    }
-
-                    entry.funcGenericTypes.push_back(valueTypeRef);
-                }
-            }
+            SmallVector<SemaGeneric::GenericParamDesc> genericParams;
+            SmallVector<GenericInstanceKey>            genericArgs;
+            if (SemaGeneric::Internal::loadFunctionInstanceGenericArgs(sema, symFunc, genericParams, genericArgs))
+                exportGenericRuntimeTypeValues(sema, storage, offset, offsetof(Runtime::TypeInfoFunc, generics.ptr), rtType, genericParams.span(), genericArgs.span(), entry.funcGenericsOffset, entry.funcGenericsCount, entry.funcGenericTypes);
         }
 
         if (!parameters.empty())

@@ -140,6 +140,39 @@ namespace
         }
     }
 
+    TypeRef genericArgValueTypeRef(const TaskContext& ctx, const GenericInstanceKey& arg)
+    {
+        if (arg.typeRef.isValid())
+            return arg.typeRef;
+        if (arg.cstRef.isValid())
+            return ctx.cstMgr().get(arg.cstRef).typeRef();
+        return TypeRef::invalid();
+    }
+
+    void appendGenericArgDeps(SmallVector<TypeRef>& deps, const TaskContext& ctx, std::span<const GenericInstanceKey> genericArgs)
+    {
+        for (const GenericInstanceKey& arg : genericArgs)
+        {
+            const TypeRef valueTypeRef = genericArgValueTypeRef(ctx, arg);
+            if (!valueTypeRef.isValid())
+                continue;
+            deps.push_back(valueTypeRef);
+
+            if (!arg.cstRef.isValid())
+                continue;
+
+            const ConstantValue& cst       = ctx.cstMgr().get(arg.cstRef);
+            const TypeInfo&      valueType = ctx.typeMgr().get(valueTypeRef);
+            if (!valueType.isAnyTypeInfo(ctx) || !cst.isValuePointer())
+                continue;
+
+            const auto*   typePtr        = reinterpret_cast<const void*>(cst.getValuePointer());
+            const TypeRef pointedTypeRef = ctx.typeGen().getBackTypeRef(typePtr);
+            if (pointedTypeRef.isValid())
+                deps.push_back(pointedTypeRef);
+        }
+    }
+
     TypeRef reflectedMethodTypeRef(TaskContext& ctx, const SymbolFunction& symFunc)
     {
         if (symFunc.attributes().hasRtFlag(RtAttributeFlagsE::Macro) ||
@@ -223,34 +256,7 @@ SmallVector<TypeRef> TypeGen::computeDeps(TypeManager& tm, const TaskContext& ct
 
                 SmallVector<GenericInstanceKey> genericArgs;
                 if (symStruct.tryGetGenericInstanceArgs(genericArgs))
-                {
-                    for (const GenericInstanceKey& arg : genericArgs)
-                    {
-                        if (arg.typeRef.isValid())
-                        {
-                            deps.push_back(arg.typeRef);
-                            continue;
-                        }
-
-                        if (!arg.cstRef.isValid())
-                            continue;
-
-                        const ConstantValue& cst          = ctx.cstMgr().get(arg.cstRef);
-                        const TypeRef        valueTypeRef = cst.typeRef();
-                        if (!valueTypeRef.isValid())
-                            continue;
-                        deps.push_back(valueTypeRef);
-
-                        const TypeInfo& valueType = ctx.typeMgr().get(valueTypeRef);
-                        if (!valueType.isAnyTypeInfo(ctx) || !cst.isValuePointer())
-                            continue;
-
-                        const auto*   typePtr        = reinterpret_cast<const void*>(cst.getValuePointer());
-                        const TypeRef pointedTypeRef = ctx.typeGen().getBackTypeRef(typePtr);
-                        if (pointedTypeRef.isValid())
-                            deps.push_back(pointedTypeRef);
-                    }
-                }
+                    appendGenericArgDeps(deps, ctx, genericArgs.span());
             }
             appendAttributeDeps(deps, ctx, symStruct.attributes());
 
@@ -290,37 +296,9 @@ SmallVector<TypeRef> TypeGen::computeDeps(TypeManager& tm, const TaskContext& ct
 
             if (symFunc.isGenericInstance())
             {
-                const SymbolFunction*           genericRoot = symFunc.genericRootSym();
                 SmallVector<GenericInstanceKey> genericArgs;
                 if (symFunc.tryGetGenericInstanceArgs(ctx, genericArgs))
-                {
-                    for (const GenericInstanceKey& arg : genericArgs)
-                    {
-                        if (arg.typeRef.isValid())
-                        {
-                            deps.push_back(arg.typeRef);
-                            continue;
-                        }
-
-                        if (!arg.cstRef.isValid())
-                            continue;
-
-                        const ConstantValue& cst          = ctx.cstMgr().get(arg.cstRef);
-                        const TypeRef        valueTypeRef = cst.typeRef();
-                        if (!valueTypeRef.isValid())
-                            continue;
-                        deps.push_back(valueTypeRef);
-
-                        const TypeInfo& valueType = ctx.typeMgr().get(valueTypeRef);
-                        if (!valueType.isAnyTypeInfo(ctx) || !cst.isValuePointer())
-                            continue;
-
-                        const auto*   typePtr        = reinterpret_cast<const void*>(cst.getValuePointer());
-                        const TypeRef pointedTypeRef = ctx.typeGen().getBackTypeRef(typePtr);
-                        if (pointedTypeRef.isValid())
-                            deps.push_back(pointedTypeRef);
-                    }
-                }
+                    appendGenericArgDeps(deps, ctx, genericArgs.span());
             }
 
             if (symFunc.returnTypeRef().isValid())

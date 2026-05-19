@@ -50,6 +50,33 @@ namespace SemaGeneric
             return root.cast<SymbolStruct>().declNodeRef();
         }
 
+        bool loadStructInstanceGenericArgs(Sema& sema, const SymbolStruct& instance, SmallVector<GenericParamDesc>& outParams, SmallVector<GenericInstanceKey>& outArgs)
+        {
+            if (!instance.isGenericInstance())
+                return false;
+
+            const SymbolStruct* root = instance.genericRootSym();
+            if (!root)
+                return false;
+
+            const auto*   decl                 = genericStructDeclNode(*root);
+            const SpanRef spanGenericParamsRef = genericStructParamSpan(*root);
+            if (!decl || spanGenericParamsRef.isInvalid())
+                return false;
+
+            collectGenericParams(sema, *decl, spanGenericParamsRef, outParams);
+            if (outParams.empty())
+                return false;
+
+            if (!instance.tryGetGenericInstanceArgs(outArgs))
+                return false;
+            if (outArgs.size() < outParams.size())
+                return false;
+            if (outArgs.size() > outParams.size())
+                outArgs.resize(outParams.size());
+            return true;
+        }
+
         bool loadFunctionInstanceGenericArgs(Sema& sema, const SymbolFunction& function, SmallVector<GenericParamDesc>& outParams, SmallVector<GenericInstanceKey>& outArgs)
         {
             if (!function.isGenericInstance())
@@ -79,23 +106,10 @@ namespace SemaGeneric
         bool loadOwnerStructGenericArgs(Sema& sema, const SymbolFunction& function, SmallVector<GenericParamDesc>& outParams, SmallVector<GenericInstanceKey>& outArgs)
         {
             const SymbolStruct* ownerInstance = function.ownerStruct();
-            if (!ownerInstance || !ownerInstance->isGenericInstance())
+            if (!ownerInstance)
                 return false;
 
-            const SymbolStruct* ownerRoot = ownerInstance->genericRootSym();
-            if (!ownerRoot)
-                return false;
-
-            const auto*   decl                 = genericStructDeclNode(*ownerRoot);
-            const SpanRef spanGenericParamsRef = genericStructParamSpan(*ownerRoot);
-            if (!decl || spanGenericParamsRef.isInvalid())
-                return false;
-
-            collectGenericParams(sema, *decl, spanGenericParamsRef, outParams);
-            if (outParams.empty())
-                return false;
-
-            return ownerInstance->tryGetGenericInstanceArgs(outArgs);
+            return loadStructInstanceGenericArgs(sema, *ownerInstance, outParams, outArgs);
         }
 
         void collectAmbientGenericFunctions(const Sema& sema, SmallVector<const SymbolFunction*>& outFunctions)

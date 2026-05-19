@@ -63,13 +63,6 @@ namespace
         return false;
     }
 
-    Utf8 formatGenericInstanceBindings(Sema& sema, const AstNode& rootDecl, SpanRef genericParamsRef, std::span<const GenericInstanceKey> args)
-    {
-        SmallVector<SemaGeneric::GenericParamDesc> params;
-        SemaGeneric::collectGenericParams(sema, rootDecl, genericParamsRef, params);
-        return SemaGeneric::Internal::formatGenericInstanceBindings(sema, params.span(), args);
-    }
-
     void addGenericContextNote(Sema& sema, Diagnostic& diag, const Symbol& root, std::string_view family, const Utf8& bindings)
     {
         if (bindings.empty())
@@ -84,45 +77,35 @@ namespace
 
     void addFunctionGenericContext(Sema& sema, Diagnostic& diag, const SymbolFunction& function, SmallVector<const Symbol*>& seen)
     {
-        if (!function.isGenericInstance())
+        SmallVector<SemaGeneric::GenericParamDesc> params;
+        SmallVector<GenericInstanceKey>            args;
+        if (!SemaGeneric::Internal::loadFunctionInstanceGenericArgs(sema, function, params, args))
             return;
 
         const SymbolFunction* root = function.genericRootSym();
-        if (!root || hasSeenGenericContext(seen.span(), root))
+        SWC_ASSERT(root != nullptr);
+        if (hasSeenGenericContext(seen.span(), root))
             return;
 
         seen.push_back(root);
-        const auto* decl = root->decl() ? root->decl()->safeCast<AstFunctionDecl>() : nullptr;
-        if (!decl || decl->spanGenericParamsRef.isInvalid())
-            return;
-
-        SmallVector<GenericInstanceKey> args;
-        if (!function.tryGetGenericInstanceArgs(sema.ctx(), args))
-            return;
-
-        const Utf8 bindings = formatGenericInstanceBindings(sema, *decl, decl->spanGenericParamsRef, args.span());
+        const Utf8 bindings = SemaGeneric::Internal::formatGenericInstanceBindings(sema, params.span(), args.span());
         addGenericContextNote(sema, diag, *root, "function", bindings);
     }
 
     void addStructGenericContext(Sema& sema, Diagnostic& diag, const SymbolStruct& st, SmallVector<const Symbol*>& seen)
     {
-        if (!st.isGenericInstance())
+        SmallVector<SemaGeneric::GenericParamDesc> params;
+        SmallVector<GenericInstanceKey>            args;
+        if (!SemaGeneric::Internal::loadStructInstanceGenericArgs(sema, st, params, args))
             return;
 
         const SymbolStruct* root = st.genericRootSym();
-        if (!root || hasSeenGenericContext(seen.span(), root))
+        SWC_ASSERT(root != nullptr);
+        if (hasSeenGenericContext(seen.span(), root))
             return;
 
         seen.push_back(root);
-        const auto* decl = root->decl() ? root->decl()->safeCast<AstStructDecl>() : nullptr;
-        if (!decl || decl->spanGenericParamsRef.isInvalid())
-            return;
-
-        SmallVector<GenericInstanceKey> args;
-        if (!st.tryGetGenericInstanceArgs(args))
-            return;
-
-        const Utf8 bindings = formatGenericInstanceBindings(sema, *decl, decl->spanGenericParamsRef, args.span());
+        const Utf8 bindings = SemaGeneric::Internal::formatGenericInstanceBindings(sema, params.span(), args.span());
         addGenericContextNote(sema, diag, *root, "struct", bindings);
     }
 

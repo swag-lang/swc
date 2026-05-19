@@ -949,18 +949,20 @@ ConstantRef ConstantManager::publishRuntimeBufferConstant(const uint32_t shardIn
 
 uint32_t ConstantManager::runtimeStringConstantCacheShard(const TypeRef typeRef, const std::string_view value)
 {
-    RuntimeStringConstantCacheKey key;
-    key.typeRef = typeRef;
-    key.value   = Utf8(value);
+    const RuntimeStringConstantCacheLookupKey key{
+        .typeRef = typeRef,
+        .value   = value,
+    };
     return static_cast<uint32_t>(RuntimeStringConstantCacheKeyHash{}(key)) & (SHARD_COUNT - 1);
 }
 
 ConstantRef ConstantManager::findRuntimeStringConstant(const uint32_t shardIndex, const TypeRef typeRef, const std::string_view value) const
 {
     SWC_ASSERT(shardIndex < SHARD_COUNT);
-    RuntimeStringConstantCacheKey key;
-    key.typeRef = typeRef;
-    key.value   = Utf8(value);
+    const RuntimeStringConstantCacheLookupKey key{
+        .typeRef = typeRef,
+        .value   = value,
+    };
 
     const Shard&           shard = shards_[shardIndex];
     const std::shared_lock lock(shard.runtimeStringMutex);

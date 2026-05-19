@@ -72,18 +72,40 @@ public:
     {
         TypeRef typeRef;
         Utf8    value;
+    };
 
-        bool operator==(const RuntimeStringConstantCacheKey& rhs) const noexcept { return typeRef == rhs.typeRef && value == rhs.value; }
+    struct RuntimeStringConstantCacheLookupKey
+    {
+        TypeRef          typeRef;
+        std::string_view value;
     };
 
     struct RuntimeStringConstantCacheKeyHash
     {
-        size_t operator()(const RuntimeStringConstantCacheKey& key) const noexcept
+        using is_transparent = void;
+
+        static size_t hash(TypeRef typeRef, std::string_view value) noexcept
         {
-            size_t h = std::hash<uint32_t>{}(key.typeRef.get());
-            h ^= std::hash<Utf8>{}(key.value) + 0x9e3779b97f4a7c15ull + (h << 6) + (h >> 2);
+            size_t h = std::hash<uint32_t>{}(typeRef.get());
+            h ^= std::hash<std::string_view>{}(value) + 0x9e3779b97f4a7c15ull + (h << 6) + (h >> 2);
             return h;
         }
+
+        size_t operator()(const RuntimeStringConstantCacheKey& key) const noexcept
+        {
+            return hash(key.typeRef, key.value.view());
+        }
+
+        size_t operator()(const RuntimeStringConstantCacheLookupKey& key) const noexcept { return hash(key.typeRef, key.value); }
+    };
+
+    struct RuntimeStringConstantCacheKeyEqual
+    {
+        using is_transparent = void;
+
+        bool operator()(const RuntimeStringConstantCacheKey& lhs, const RuntimeStringConstantCacheKey& rhs) const noexcept { return lhs.typeRef == rhs.typeRef && lhs.value == rhs.value; }
+        bool operator()(const RuntimeStringConstantCacheKey& lhs, const RuntimeStringConstantCacheLookupKey& rhs) const noexcept { return lhs.typeRef == rhs.typeRef && lhs.value.view() == rhs.value; }
+        bool operator()(const RuntimeStringConstantCacheLookupKey& lhs, const RuntimeStringConstantCacheKey& rhs) const noexcept { return lhs.typeRef == rhs.typeRef && lhs.value == rhs.value.view(); }
     };
 
     static constexpr uint32_t INTERN_STRIPE_BITS  = 4;
@@ -102,7 +124,7 @@ public:
         std::unordered_map<TypeRef, ConstantRef>                                                          typeInfoMap;
         std::unordered_map<TypeRef, ConstantRef>                                                          zeroPayloadMap;
         std::unordered_map<RuntimeBufferConstantCacheKey, ConstantRef, RuntimeBufferConstantCacheKeyHash> runtimeBufferMap;
-        std::unordered_map<RuntimeStringConstantCacheKey, ConstantRef, RuntimeStringConstantCacheKeyHash> runtimeStringMap;
+        std::unordered_map<RuntimeStringConstantCacheKey, ConstantRef, RuntimeStringConstantCacheKeyHash, RuntimeStringConstantCacheKeyEqual> runtimeStringMap;
         mutable std::shared_mutex                                                                         typeInfoMutex;
         mutable std::shared_mutex                                                                         zeroPayloadMutex;
         mutable std::shared_mutex                                                                         runtimeBufferMutex;

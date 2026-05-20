@@ -757,6 +757,125 @@ public func mainValue()->s32
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(Compiler_ImportedApiModulesResolveSwagStdFromEnvironment)
+{
+    const ScopedTempTree tempTree("compiler_import_api_module_swag_std");
+    if (!tempTree.ready())
+        return Result::Error;
+
+    const fs::path compilerRoot = tempTree.root() / "compiler";
+    const fs::path sourceDir    = tempTree.root() / "sources";
+    const fs::path sourceFile   = sourceDir / "main.swg";
+    const fs::path importFile   = compilerRoot / "std" / ".output" / "dep" / "dep_env_probe" / "shared-library" / "fast-debug" / "x86_64" / "api.swg";
+
+    if (!writeTextFile(importFile, R"(#global export
+public func depValue()->s32
+{
+    return 7
+}
+)"))
+        return Result::Error;
+    if (!writeTextFile(sourceFile, R"(public func mainValue()->s32
+{
+    return 1
+}
+)"))
+        return Result::Error;
+
+    const ScopedEnvVar swagPath("SWAG_PATH", compilerRoot.string());
+
+    CommandLine cmdLine;
+    cmdLine.command = CommandKind::Sema;
+    cmdLine.runtime = false;
+    cmdLine.silent  = true;
+    cmdLine.files.insert(sourceFile);
+    cmdLine.importApiModules.insert("dep_env_probe");
+    CommandLineParser::refreshBuildCfg(cmdLine);
+
+    const uint64_t   errorsBefore = Stats::getNumErrors();
+    CompilerInstance compiler(ctx.global(), cmdLine);
+    Command::sema(compiler);
+    if (Stats::getNumErrors() != errorsBefore)
+        return Result::Error;
+
+    const SourceFile* importedSource = findCompilerFile(compiler, importFile);
+    if (!importedSource || !importedSource->hasFlag(FileFlagsE::ImportedApi))
+        return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(Compiler_WorkspaceSemaMirrorsExternalDependenciesIntoDepFolder)
+{
+    const ScopedTempTree tempTree("compiler_workspace_dep_mirror");
+    if (!tempTree.ready())
+        return Result::Error;
+
+    const fs::path compilerRoot   = tempTree.root() / "compiler";
+    const fs::path workspaceDir   = tempTree.root() / "workspace";
+    const fs::path appModuleDir   = workspaceDir / "modules" / "app";
+    const fs::path coreConfigDir  = compilerRoot / "std" / ".output" / "core" / "shared-library" / "fast-debug" / "x86_64";
+    const fs::path win32ConfigDir = compilerRoot / "std" / ".output" / "win32" / "export" / "fast-debug" / "x86_64";
+
+    if (!writeTextFile(coreConfigDir / "core.swg", R"(#global export
+public func coreValue()->s32
+{
+    return 7
+}
+)"))
+        return Result::Error;
+    if (!writeTextFile(coreConfigDir / "core.deps", R"(#import("win32", location: "swag@std")
+)"))
+        return Result::Error;
+    if (!writeTextFile(coreConfigDir / "core.dll", "fake core dll"))
+        return Result::Error;
+    if (!writeTextFile(win32ConfigDir / "win32.swg", R"(#global export
+public func win32Value()->s32
+{
+    return 3
+}
+)"))
+        return Result::Error;
+    if (!writeTextFile(win32ConfigDir / "win32.deps", ""))
+        return Result::Error;
+
+    if (!writeTextFile(appModuleDir / "module.swg", R"(#import("core", location: "swag@std")
+#run
+{
+    let cfg = @compiler.getBuildCfg()
+    cfg.moduleNamespace = "App"
+    cfg.backendKind = .Executable
+}
+)"))
+        return Result::Error;
+    if (!writeTextFile(appModuleDir / "src" / "main.swg", R"(public func value()->s32
+{
+    return 1
+}
+)"))
+        return Result::Error;
+
+    const ScopedEnvVar swagPath("SWAG_PATH", compilerRoot.string());
+
+    CommandLine cmdLine = makeSyntheticWorkspaceCommand(CommandKind::Sema, workspaceDir);
+    CompilerInstance compiler(ctx.global(), cmdLine);
+    if (compiler.run() != ExitCode::Success)
+        return Result::Error;
+
+    const fs::path copiedCoreDir  = workspaceDir / ".dep" / "core" / "shared-library" / "fast-debug" / "x86_64";
+    const fs::path copiedWin32Dir = workspaceDir / ".dep" / "win32" / "export" / "fast-debug" / "x86_64";
+    if (!fs::exists(copiedCoreDir / "core.swg"))
+        return Result::Error;
+    if (!fs::exists(copiedCoreDir / "core.deps"))
+        return Result::Error;
+    if (!fs::exists(copiedCoreDir / "core.dll"))
+        return Result::Error;
+    if (!fs::exists(copiedWin32Dir / "win32.swg"))
+        return Result::Error;
+    if (!fs::exists(copiedWin32Dir / "win32.deps"))
+        return Result::Error;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(Compiler_ModuleFileSetupKeepsExplicitCommandLineOverrides)
 {
     const ScopedTempTree tempTree("compiler_module_file_cli_override");

@@ -43,6 +43,7 @@ public:
         Utf8                         moduleName;
         Utf8                         location;
         Utf8                         version;
+        fs::path                     baseDir;
         Runtime::BuildCfgBackendKind linkBackendKind = Runtime::BuildCfgBackendKind::None;
     };
 

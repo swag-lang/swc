@@ -101,3 +101,4 @@ SWC_DIAG_DEF(cmd_err_workspace_dependency_cycle, Error, "workspace dependency cy
 SWC_DIAG_DEF(cmd_err_workspace_ignored_dependency, Error, "workspace module '{sym}' depends on ignored module '{target}'")
 SWC_DIAG_DEF(cmd_err_workspace_dir_clear_failed, Error, "cannot clear workspace directory '{path}': {because}")
 SWC_DIAG_DEF(cmd_err_workspace_dir_create_failed, Error, "cannot create workspace directory '{path}': {because}")
+SWC_DIAG_DEF(cmd_err_workspace_dependency_sync_failed, Error, "cannot synchronize workspace dependency '{path}': {because}")

@@ -2,7 +2,7 @@ bin/*.exe
 bin/*.pdb
 .tmp/
 .output/
-.dependency/
+.dep/
 .vs/
 .idea/
 /packages/

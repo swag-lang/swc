@@ -50,6 +50,7 @@ namespace Os
         bool                                  forwardOutput  = true;
         const TaskContext*                    logCtx         = nullptr;
         std::function<bool(std::string_view)> outputLineFilter;
+        std::span<const fs::path>             additionalPathDirectories;
     };
 
     void initialize();

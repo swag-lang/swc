@@ -151,6 +151,11 @@ namespace
         return (workspacePath / ".output").lexically_normal();
     }
 
+    fs::path workspaceDependencyDirectory(const fs::path& workspacePath)
+    {
+        return (workspacePath / ".dep").lexically_normal();
+    }
+
     fs::path workspaceModuleOutputDirectory(const fs::path& workspacePath, const Utf8& moduleName, const CommandLine& cmdLine, const Runtime::BuildCfgBackendKind backendKind, const bool workDirectory)
     {
         fs::path result = workDirectory ? (workspacePath / ".tmp") : workspaceOutputDirectory(workspacePath);
@@ -172,6 +177,176 @@ namespace
         FileSystem::setDiagnosticPathAndBecause(diag, &ctx, path, because);
         diag.report(ctx);
         return Result::Error;
+    }
+
+    Result resolveSwagStdOutputRoot(fs::path& outRoot, TaskContext& ctx)
+    {
+        outRoot.clear();
+
+        const std::optional<Utf8> installRoot = Os::readEnvironmentVariable("SWAG_PATH");
+        if (!installRoot.has_value() || installRoot->empty())
+            return reportInvalidFolder(ctx, "SWAG_PATH", "environment variable is not defined");
+
+        outRoot = fs::path(installRoot->c_str());
+        SWC_RESULT(FileSystem::resolveFolder(ctx, outRoot));
+        outRoot = (outRoot / "std" / ".output").lexically_normal();
+        return Result::Continue;
+    }
+
+    Result reportWorkspaceDependencySyncFailure(TaskContext& ctx, const fs::path& path, const Utf8& because)
+    {
+        Diagnostic diag = Diagnostic::get(DiagnosticId::cmd_err_workspace_dependency_sync_failed);
+        FileSystem::setDiagnosticPathAndBecause(diag, &ctx, path, because);
+        diag.report(ctx);
+        return Result::Error;
+    }
+
+    bool pathIsCurrentOrParentDirectory(const fs::path& path)
+    {
+        return path == "." || path == "..";
+    }
+
+    bool shouldCopyWorkspaceDependencyFile(const fs::path& srcPath, const fs::path& dstPath)
+    {
+        std::error_code ec;
+        const bool      dstExists = fs::exists(dstPath, ec);
+        if (ec || !dstExists)
+            return true;
+
+        ec.clear();
+        if (!fs::is_regular_file(dstPath, ec) || ec)
+            return true;
+
+        ec.clear();
+        const uintmax_t srcSize = fs::file_size(srcPath, ec);
+        if (ec)
+            return true;
+
+        ec.clear();
+        const uintmax_t dstSize = fs::file_size(dstPath, ec);
+        if (ec || srcSize != dstSize)
+            return true;
+
+        ec.clear();
+        const auto srcTime = fs::last_write_time(srcPath, ec);
+        if (ec)
+            return true;
+
+        ec.clear();
+        const auto dstTime = fs::last_write_time(dstPath, ec);
+        if (ec)
+            return true;
+
+        return srcTime != dstTime;
+    }
+
+    Result syncWorkspaceDependencyDirectory(TaskContext& ctx, const fs::path& srcDir, const fs::path& dstDir)
+    {
+        if (srcDir.empty() || dstDir.empty())
+            return Result::Continue;
+
+        const fs::path normalizedSrcDir = FileSystem::normalizePath(srcDir);
+        const fs::path normalizedDstDir = FileSystem::normalizePath(dstDir);
+        if (FileSystem::pathEquals(normalizedSrcDir, normalizedDstDir))
+            return Result::Continue;
+
+        Utf8     because;
+        fs::path resolvedSrcDir = normalizedSrcDir;
+        if (FileSystem::resolveExistingFolder(resolvedSrcDir, because) != Result::Continue)
+            return reportWorkspaceDependencySyncFailure(ctx, resolvedSrcDir, because);
+
+        std::error_code ec;
+        fs::create_directories(normalizedDstDir, ec);
+        if (ec)
+            return reportWorkspaceDependencySyncFailure(ctx, normalizedDstDir, FileSystem::normalizeSystemMessage(ec));
+
+        for (fs::recursive_directory_iterator it(resolvedSrcDir, fs::directory_options::skip_permission_denied, ec), end; it != end; it.increment(ec))
+        {
+            if (ec)
+                return reportWorkspaceDependencySyncFailure(ctx, resolvedSrcDir, FileSystem::normalizeSystemMessage(ec));
+
+            const fs::path relativePath = it->path().lexically_relative(resolvedSrcDir);
+            if (relativePath.empty())
+                continue;
+
+            fs::path dstPath = (normalizedDstDir / relativePath).lexically_normal();
+            ec.clear();
+            if (it->is_directory(ec))
+            {
+                fs::create_directories(dstPath, ec);
+                if (ec)
+                    return reportWorkspaceDependencySyncFailure(ctx, dstPath, FileSystem::normalizeSystemMessage(ec));
+                continue;
+            }
+
+            if (ec)
+                return reportWorkspaceDependencySyncFailure(ctx, it->path(), FileSystem::normalizeSystemMessage(ec));
+
+            ec.clear();
+            if (!it->is_regular_file(ec))
+            {
+                if (ec)
+                    return reportWorkspaceDependencySyncFailure(ctx, it->path(), FileSystem::normalizeSystemMessage(ec));
+                continue;
+            }
+
+            const fs::path dstParent = dstPath.parent_path();
+            if (!dstParent.empty())
+            {
+                fs::create_directories(dstParent, ec);
+                if (ec)
+                    return reportWorkspaceDependencySyncFailure(ctx, dstParent, FileSystem::normalizeSystemMessage(ec));
+            }
+
+            if (!shouldCopyWorkspaceDependencyFile(it->path(), dstPath))
+                continue;
+
+            fs::copy_file(it->path(), dstPath, fs::copy_options::overwrite_existing, ec);
+            if (ec)
+                return reportWorkspaceDependencySyncFailure(ctx, dstPath, FileSystem::normalizeSystemMessage(ec));
+
+            ec.clear();
+            const auto srcTime = fs::last_write_time(it->path(), ec);
+            if (!ec)
+            {
+                ec.clear();
+                fs::last_write_time(dstPath, srcTime, ec);
+                if (ec)
+                    return reportWorkspaceDependencySyncFailure(ctx, dstPath, FileSystem::normalizeSystemMessage(ec));
+            }
+        }
+
+        std::vector<fs::path> stalePaths;
+        for (fs::recursive_directory_iterator it(normalizedDstDir, fs::directory_options::skip_permission_denied, ec), end; it != end; it.increment(ec))
+        {
+            if (ec)
+                return reportWorkspaceDependencySyncFailure(ctx, normalizedDstDir, FileSystem::normalizeSystemMessage(ec));
+
+            const fs::path relativePath = it->path().lexically_relative(normalizedDstDir);
+            if (relativePath.empty() || pathIsCurrentOrParentDirectory(relativePath))
+                continue;
+
+            const fs::path srcPath = (resolvedSrcDir / relativePath).lexically_normal();
+            ec.clear();
+            if (!fs::exists(srcPath, ec))
+            {
+                if (ec)
+                    return reportWorkspaceDependencySyncFailure(ctx, srcPath, FileSystem::normalizeSystemMessage(ec));
+                stalePaths.push_back(it->path());
+            }
+        }
+
+        std::ranges::sort(stalePaths, [](const fs::path& lhs, const fs::path& rhs) { return lhs.native().size() > rhs.native().size(); });
+        stalePaths.erase(std::ranges::unique(stalePaths).begin(), stalePaths.end());
+        for (const fs::path& stalePath : stalePaths)
+        {
+            ec.clear();
+            fs::remove_all(stalePath, ec);
+            if (ec)
+                return reportWorkspaceDependencySyncFailure(ctx, stalePath, FileSystem::normalizeSystemMessage(ec));
+        }
+
+        return Result::Continue;
     }
 
     Utf8 dependencyConfigurationLabel(const CommandLine& cmdLine)
@@ -705,11 +880,23 @@ Result CompilerInstance::registerModuleSetupImport(const std::string_view module
     if (moduleName.empty())
         return Result::Continue;
 
+    fs::path baseDir;
+    if (!modulePathFile_.empty())
+        baseDir = modulePathFile_.parent_path();
+    else if (!cmdLine().moduleFilePath.empty())
+        baseDir = cmdLine().moduleFilePath.parent_path();
+    else
+        baseDir = FileSystem::currentPathNoThrow();
+
+    if (!baseDir.empty())
+        baseDir = FileSystem::normalizePath(baseDir);
+
     for (const ModuleSetupImport& existingImport : moduleSetupImports_)
     {
         if (existingImport.moduleName == moduleName &&
             existingImport.location == location &&
             existingImport.version == version &&
+            FileSystem::pathEquals(existingImport.baseDir, baseDir) &&
             existingImport.linkBackendKind == linkBackendKind)
             return Result::Continue;
     }
@@ -718,6 +905,7 @@ Result CompilerInstance::registerModuleSetupImport(const std::string_view module
     importRequest.moduleName      = moduleName;
     importRequest.location        = location;
     importRequest.version         = version;
+    importRequest.baseDir         = std::move(baseDir);
     importRequest.linkBackendKind = linkBackendKind;
     moduleSetupImports_.push_back(std::move(importRequest));
     return Result::Continue;
@@ -875,23 +1063,17 @@ Result CompilerInstance::applyModuleSetupInputs(TaskContext& ctx, const ModuleSe
         fs::path                     dependencyRoot;
     };
 
+    const fs::path           workspaceDependencyRoot = cmdLine().workspacePath.empty() ? fs::path() : FileSystem::normalizePath(workspaceDependencyDirectory(cmdLine().workspacePath));
+    std::unordered_set<Utf8> mirroredDependencyDirs;
+
     const auto resolveExplicitDependencyRoot = [&](fs::path& outRoot, const ModuleSetupImport& importRequest) -> Result {
         if (importRequest.location == "swag@std")
-        {
-            const std::optional<Utf8> installRoot = Os::readEnvironmentVariable("SWAG_PATH");
-            if (!installRoot.has_value() || installRoot->empty())
-                return reportInvalidFolder(ctx, "SWAG_PATH", "environment variable is not defined");
-
-            outRoot = fs::path(installRoot->c_str());
-            SWC_RESULT(FileSystem::resolveFolder(ctx, outRoot));
-            outRoot = (outRoot / "std" / ".output").lexically_normal();
-            return Result::Continue;
-        }
+            return resolveSwagStdOutputRoot(outRoot, ctx);
 
         outRoot = fs::path(importRequest.location.c_str());
         if (outRoot.is_relative())
         {
-            const fs::path baseDir = cmdLine().moduleFilePath.empty() ? FileSystem::currentPathNoThrow() : cmdLine().moduleFilePath.parent_path();
+            const fs::path baseDir = !importRequest.baseDir.empty() ? importRequest.baseDir : (cmdLine().moduleFilePath.empty() ? FileSystem::currentPathNoThrow() : cmdLine().moduleFilePath.parent_path());
             if (!baseDir.empty())
                 outRoot = (baseDir / outRoot).lexically_normal();
         }
@@ -925,6 +1107,40 @@ Result CompilerInstance::applyModuleSetupInputs(TaskContext& ctx, const ModuleSe
 
         if (outPaths.apiBackendKind == Runtime::BuildCfgBackendKind::StaticLibrary)
             outPaths.linkDir = outPaths.apiDir;
+        return Result::Continue;
+    };
+
+    const auto mirrorWorkspaceDependencyDir = [&](fs::path& ioDir, const fs::path& sourceDependencyRoot) -> Result {
+        if (workspaceDependencyRoot.empty() || ioDir.empty())
+            return Result::Continue;
+
+        const fs::path normalizedSourceDir  = FileSystem::normalizePath(ioDir);
+        const fs::path normalizedSourceRoot = FileSystem::normalizePath(sourceDependencyRoot);
+        if (FileSystem::pathEquals(normalizedSourceRoot, workspaceDependencyRoot))
+        {
+            ioDir = normalizedSourceDir;
+            return Result::Continue;
+        }
+
+        if (!FileSystem::pathStartsWith(normalizedSourceDir, normalizedSourceRoot))
+        {
+            const Utf8 because = std::format("dependency folder '{}' is not under root '{}'", Utf8(normalizedSourceDir).c_str(), Utf8(normalizedSourceRoot).c_str());
+            return reportWorkspaceDependencySyncFailure(ctx, normalizedSourceDir, because);
+        }
+
+        const fs::path relativePath = normalizedSourceDir.lexically_relative(normalizedSourceRoot);
+        if (relativePath.empty() || pathIsCurrentOrParentDirectory(relativePath))
+        {
+            const Utf8 because = std::format("cannot mirror dependency folder '{}' from root '{}'", Utf8(normalizedSourceDir).c_str(), Utf8(normalizedSourceRoot).c_str());
+            return reportWorkspaceDependencySyncFailure(ctx, normalizedSourceDir, because);
+        }
+
+        fs::path   destinationDir = (workspaceDependencyRoot / relativePath).lexically_normal();
+        const Utf8 mirrorKey      = std::format("{}|{}", Utf8(normalizedSourceDir).c_str(), Utf8(destinationDir).c_str());
+        if (mirroredDependencyDirs.insert(mirrorKey).second)
+            SWC_RESULT(syncWorkspaceDependencyDirectory(ctx, normalizedSourceDir, destinationDir));
+
+        ioDir = std::move(destinationDir);
         return Result::Continue;
     };
 
@@ -1033,6 +1249,15 @@ Result CompilerInstance::applyModuleSetupInputs(TaskContext& ctx, const ModuleSe
         {
             ResolvedModuleImportPaths importPaths;
             SWC_RESULT(resolveDependencyImportDir(importPaths, importRequest, preferredDependencyRoot));
+            const fs::path sourceDependencyRoot = importPaths.dependencyRoot;
+            if (!workspaceDependencyRoot.empty())
+            {
+                SWC_RESULT(mirrorWorkspaceDependencyDir(importPaths.apiDir, importPaths.dependencyRoot));
+                SWC_RESULT(mirrorWorkspaceDependencyDir(importPaths.linkDir, importPaths.dependencyRoot));
+                SWC_RESULT(mirrorWorkspaceDependencyDir(importPaths.sharedDir, importPaths.dependencyRoot));
+                importPaths.dependencyRoot = workspaceDependencyRoot;
+            }
+
             collectFolderFiles(importPaths.apiDir, FileFlagsE::ImportedApi, false);
             registerImportedDependencyLinkDir(importPaths.linkDir);
             registerImportedSharedModuleDir(importPaths.sharedDir);
@@ -1048,7 +1273,7 @@ Result CompilerInstance::applyModuleSetupInputs(TaskContext& ctx, const ModuleSe
                 continue;
 
             SWC_RESULT(captureDependencyImportSnapshot(depsFile, nestedSnapshot));
-            SWC_RESULT(self(self, nestedSnapshot.imports, &importPaths.dependencyRoot));
+            SWC_RESULT(self(self, nestedSnapshot.imports, &sourceDependencyRoot));
         }
 
         return Result::Continue;
@@ -1130,7 +1355,9 @@ Result CompilerInstance::collectImportedApiFiles(TaskContext& ctx)
 
     if (!cmdLine.importApiModules.empty())
     {
-        const fs::path dependencyRoot = (FileSystem::compilerResourceRoot(exeFullName_) / "std" / ".output" / "dep").lexically_normal();
+        fs::path dependencyRoot;
+        SWC_RESULT(resolveSwagStdOutputRoot(dependencyRoot, ctx));
+        dependencyRoot = (dependencyRoot / "dep").lexically_normal();
         for (const Utf8& moduleName : cmdLine.importApiModules)
         {
             fs::path importDir;

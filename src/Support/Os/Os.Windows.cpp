@@ -9,6 +9,7 @@
 #include "Support/Report/LogColor.h"
 #include "Support/Report/Logger.h"
 #include <dbghelp.h>
+#include <cwctype>
 #include <psapi.h>
 
 #pragma comment(lib, "Dbghelp.lib")
@@ -140,6 +141,102 @@ namespace
         result.resize(static_cast<size_t>(wideCount));
         MultiByteToWideChar(CP_UTF8, 0, value.data(), static_cast<int>(value.size()), result.data(), wideCount);
         return result;
+    }
+
+    bool envKeyEqualsInsensitive(const std::wstring_view entry, const std::wstring_view key)
+    {
+        if (entry.size() <= key.size() || entry[key.size()] != L'=')
+            return false;
+
+        for (size_t i = 0; i < key.size(); ++i)
+        {
+            if (std::towlower(entry[i]) != std::towlower(key[i]))
+                return false;
+        }
+
+        return true;
+    }
+
+    std::wstring buildAdditionalProcessPath(const std::span<const fs::path> additionalPathDirectories)
+    {
+        std::wstring pathValue;
+        for (const fs::path& directory : additionalPathDirectories)
+        {
+            if (directory.empty())
+                continue;
+
+            const fs::path normalizedDir = FileSystem::normalizePath(directory);
+            if (normalizedDir.empty())
+                continue;
+
+            const std::wstring wideDir = normalizedDir.wstring();
+            if (wideDir.empty())
+                continue;
+
+            if (!pathValue.empty())
+                pathValue += L';';
+            pathValue += wideDir;
+        }
+
+        if (pathValue.empty())
+            return {};
+
+        const DWORD existingSize = GetEnvironmentVariableW(L"PATH", nullptr, 0);
+        if (!existingSize)
+            return pathValue;
+
+        std::wstring existingPath(existingSize, L'\0');
+        const DWORD  writtenSize = GetEnvironmentVariableW(L"PATH", existingPath.data(), existingSize);
+        if (!writtenSize)
+            return pathValue;
+        if (!existingPath.empty())
+            existingPath.resize(writtenSize);
+
+        if (!existingPath.empty())
+        {
+            pathValue += L';';
+            pathValue += existingPath;
+        }
+
+        return pathValue;
+    }
+
+    std::vector<wchar_t> buildProcessEnvironmentBlock(const std::span<const fs::path> additionalPathDirectories)
+    {
+        std::vector<wchar_t> environmentBlock;
+        const std::wstring   pathValue = buildAdditionalProcessPath(additionalPathDirectories);
+        if (pathValue.empty())
+            return environmentBlock;
+
+        LPWCH rawEnvironment = GetEnvironmentStringsW();
+        if (!rawEnvironment)
+            return environmentBlock;
+
+        bool     pathInserted = false;
+        wchar_t* current      = rawEnvironment;
+        while (*current)
+        {
+            const std::wstring_view entry = current;
+            const bool              isPath = envKeyEqualsInsensitive(entry, L"PATH");
+            const std::wstring      value  = isPath ? std::format(L"PATH={}", pathValue) : std::wstring(entry);
+            if (isPath)
+                pathInserted = true;
+
+            environmentBlock.insert(environmentBlock.end(), value.begin(), value.end());
+            environmentBlock.push_back(L'\0');
+            current += entry.size() + 1;
+        }
+
+        if (!pathInserted)
+        {
+            const std::wstring value = std::format(L"PATH={}", pathValue);
+            environmentBlock.insert(environmentBlock.end(), value.begin(), value.end());
+            environmentBlock.push_back(L'\0');
+        }
+
+        environmentBlock.push_back(L'\0');
+        FreeEnvironmentStringsW(rawEnvironment);
+        return environmentBlock;
     }
 
     void appendQuotedCommandArg(std::wstring& out, const std::wstring_view arg)
@@ -878,6 +975,9 @@ namespace Os
 
         const Utf8         commandLineUtf8 = formatProcessCommandLine(exePath, args);
         const std::wstring commandLine     = toWide(commandLineUtf8);
+        std::vector<wchar_t> environmentBlock;
+        if (options && !options->additionalPathDirectories.empty())
+            environmentBlock = buildProcessEnvironmentBlock(options->additionalPathDirectories);
 
         STARTUPINFOW        startupInfo{};
         PROCESS_INFORMATION processInfo{};
@@ -910,7 +1010,9 @@ namespace Os
 
         std::wstring       mutableCommandLine = commandLine;
         const std::wstring workingDirW        = workingDirectory.empty() ? std::wstring() : workingDirectory.wstring();
-        if (!CreateProcessW(exePath.wstring().c_str(), mutableCommandLine.data(), nullptr, nullptr, childOutputWrite != nullptr, 0, nullptr, workingDirW.empty() ? nullptr : workingDirW.c_str(), &startupInfo, &processInfo))
+        void*              environment        = environmentBlock.empty() ? nullptr : environmentBlock.data();
+        const DWORD        creationFlags      = environmentBlock.empty() ? 0 : CREATE_UNICODE_ENVIRONMENT;
+        if (!CreateProcessW(exePath.wstring().c_str(), mutableCommandLine.data(), nullptr, nullptr, childOutputWrite != nullptr, creationFlags, environment, workingDirW.empty() ? nullptr : workingDirW.c_str(), &startupInfo, &processInfo))
         {
             if (childOutputRead)
                 CloseHandle(childOutputRead);

@@ -674,10 +674,18 @@ Result NativeBackendBuilder::runGeneratedArtifact()
 
     uint32_t                    exitCode = 0;
     std::string                 artifactOutput;
+    std::vector<fs::path>       runtimePathDirs;
     const fs::path              artifactDir = artifactPath.parent_path();
+    for (const fs::path& importedLinkDir : compiler_->importedDependencyLinkDirs())
+    {
+        if (!importedLinkDir.empty())
+            runtimePathDirs.push_back(importedLinkDir);
+    }
+
     const Os::ProcessRunOptions options{
-        .capturedOutput = &artifactOutput,
-        .logCtx         = &ctx_,
+        .capturedOutput            = &artifactOutput,
+        .logCtx                    = &ctx_,
+        .additionalPathDirectories = runtimePathDirs,
     };
 
     const auto result = Os::runProcess(exitCode, artifactPath, {}, artifactDir.empty() ? buildDir : artifactDir, &options);

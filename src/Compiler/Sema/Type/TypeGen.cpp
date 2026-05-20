@@ -5,6 +5,27 @@
 
 SWC_BEGIN_NAMESPACE();
 
+namespace
+{
+    bool tryGetCompletedTypeInfoResult(TaskContext& ctx, DataSegment& storage, const TypeGen::TypeGenCache& cache, const TypeRef typeRef, TypeGen::TypeGenResult& result)
+    {
+        const auto it = cache.entries.find(typeRef);
+        if (it == cache.entries.end())
+            return false;
+
+        const auto& entry = it->second;
+        if (entry.state != TypeGen::TypeGenCache::State::Done || !entry.backRefPublished)
+            return false;
+
+        result.offset    = entry.offset;
+        result.rtTypeRef = entry.rtTypeRef;
+
+        const TypeInfo& structType = ctx.typeMgr().get(result.rtTypeRef);
+        result.span                = ByteSpan{storage.ptr<std::byte>(result.offset), structType.sizeOf(ctx)};
+        return true;
+    }
+}
+
 TypeRef TypeGen::resolveArrayPointedTypeRef(TypeManager& tm, const TypeInfo& arrayType)
 {
     SWC_ASSERT(arrayType.isArray());
@@ -54,6 +75,22 @@ TypeGen::TypeGenCache& TypeGen::cacheFor(const DataSegment& storage)
 Result TypeGen::makeTypeInfo(Sema& sema, DataSegment& storage, TypeRef typeRef, AstNodeRef ownerNodeRef, TypeGenResult& result, const LockMode lockMode)
 {
     auto&            cache = cacheFor(storage);
+    {
+        std::shared_lock lock(cache.mutex, std::defer_lock);
+        if (lockMode == LockMode::TryLock)
+        {
+            if (!lock.try_lock())
+                return Result::Pause;
+        }
+        else
+        {
+            lock.lock();
+        }
+
+        if (tryGetCompletedTypeInfoResult(sema.ctx(), storage, cache, typeRef, result))
+            return Result::Continue;
+    }
+
     std::unique_lock lock(cache.mutex, std::defer_lock);
 
     if (lockMode == LockMode::TryLock)

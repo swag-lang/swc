@@ -114,6 +114,10 @@ public:
     void                          setGenericNodeCompleted() const noexcept;
     std::mutex&                   generatedLifecycleMutex() const noexcept { return generatedLifecycleMutex_; }
     std::mutex&                   generatedOperatorsMutex() const noexcept { return generatedOperatorsMutex_; }
+    bool                          generatedLifecyclePublished() const noexcept { return generatedLifecyclePublished_.load(std::memory_order_acquire); }
+    bool                          generatedOperatorsPublished() const noexcept { return generatedOperatorsPublished_.load(std::memory_order_acquire); }
+    void                          publishGeneratedLifecycle() const noexcept { generatedLifecyclePublished_.store(true, std::memory_order_release); }
+    void                          publishGeneratedOperators() const noexcept { generatedOperatorsPublished_.store(true, std::memory_order_release); }
     bool                          tryMarkGeneratedLifecycleFunctions() const noexcept;
     bool                          tryMarkGeneratedOperators() const noexcept;
 
@@ -124,31 +128,33 @@ private:
     GenericData* genericData() const noexcept;
     void         rebuildFieldIndexMap() noexcept;
 
-    std::vector<SymbolVariable*>      fields_;
+    std::vector<SymbolVariable*>                fields_;
     std::unordered_map<const SymbolVariable*, size_t> fieldIndexMap_;
-    mutable std::shared_mutex         mutexImpls_;
-    std::vector<SymbolImpl*>          impls_;
-    std::unordered_set<SymbolImpl*>   implsSet_;
-    mutable std::shared_mutex         mutexInterfaces_;
-    std::vector<SymbolImpl*>          interfaces_;
-    std::unordered_set<SymbolImpl*>   interfacesSet_;
-    mutable std::shared_mutex         mutexSpecOps_;
-    std::vector<SymbolFunction*>      specOps_;
-    std::unordered_set<SymbolFunction*> specOpsSet_;
-    mutable std::once_flag            implicitDefaultFlagsOnce_;
-    std::once_flag                    defaultStructOnce_;
-    SymbolFunction*                   opDrop_     = nullptr;
-    SymbolFunction*                   opPostCopy_ = nullptr;
-    SymbolFunction*                   opPostMove_ = nullptr;
-    mutable std::mutex                generatedLifecycleMutex_;
-    mutable std::mutex                generatedOperatorsMutex_;
-    mutable std::atomic<GenericData*> genericData_            = nullptr;
-    mutable std::atomic_bool          generatedLifecycleDone_ = false;
-    mutable std::atomic_bool          generatedOperatorsDone_ = false;
-    uint64_t                          sizeInBytes_            = 0;
-    ConstantRef                       defaultStructCst_       = ConstantRef::invalid();
-    uint32_t                          alignment_              = 0;
-    AstNodeRef                        declNodeRef_            = AstNodeRef::invalid();
+    mutable std::shared_mutex                   mutexImpls_;
+    std::vector<SymbolImpl*>                    impls_;
+    std::unordered_set<SymbolImpl*>             implsSet_;
+    mutable std::shared_mutex                   mutexInterfaces_;
+    std::vector<SymbolImpl*>                    interfaces_;
+    std::unordered_set<SymbolImpl*>             interfacesSet_;
+    mutable std::shared_mutex                   mutexSpecOps_;
+    std::vector<SymbolFunction*>                specOps_;
+    std::unordered_set<SymbolFunction*>         specOpsSet_;
+    mutable std::once_flag                      implicitDefaultFlagsOnce_;
+    std::once_flag                              defaultStructOnce_;
+    SymbolFunction*                             opDrop_                     = nullptr;
+    SymbolFunction*                             opPostCopy_                 = nullptr;
+    SymbolFunction*                             opPostMove_                 = nullptr;
+    mutable std::mutex                          generatedLifecycleMutex_;
+    mutable std::mutex                          generatedOperatorsMutex_;
+    mutable std::atomic<GenericData*>           genericData_                = nullptr;
+    mutable std::atomic_bool                    generatedLifecycleDone_      = false;
+    mutable std::atomic_bool                    generatedOperatorsDone_      = false;
+    mutable std::atomic_bool                    generatedLifecyclePublished_ = false;
+    mutable std::atomic_bool                    generatedOperatorsPublished_ = false;
+    uint64_t                                    sizeInBytes_                = 0;
+    ConstantRef                                 defaultStructCst_           = ConstantRef::invalid();
+    uint32_t                                    alignment_                  = 0;
+    AstNodeRef                                  declNodeRef_                = AstNodeRef::invalid();
 };
 
 SWC_END_NAMESPACE();

@@ -90,11 +90,19 @@ Result SymbolImpl::ensureInterfaceMethodTable(Sema& sema, ConstantRef& outRef) c
     if (!isForInterface())
         return Result::Error;
 
+    const ConstantRef publishedRef{interfaceMethodTablePublishedRef_.load(std::memory_order_acquire)};
+    if (publishedRef.isValid())
+    {
+        outRef = publishedRef;
+        return Result::Continue;
+    }
+
     {
         const std::scoped_lock lk(interfaceMethodTableMutex_);
         if (interfaceMethodTableRef_.isValid())
         {
             outRef = interfaceMethodTableRef_;
+            interfaceMethodTablePublishedRef_.store(outRef.get(), std::memory_order_release);
             return Result::Continue;
         }
     }
@@ -144,6 +152,7 @@ Result SymbolImpl::ensureInterfaceMethodTable(Sema& sema, ConstantRef& outRef) c
     if (interfaceMethodTableRef_.isValid())
     {
         outRef = interfaceMethodTableRef_;
+        interfaceMethodTablePublishedRef_.store(outRef.get(), std::memory_order_release);
         return Result::Continue;
     }
 
@@ -165,6 +174,7 @@ Result SymbolImpl::ensureInterfaceMethodTable(Sema& sema, ConstantRef& outRef) c
     tableCst.setDataSegmentRef({.shardIndex = shardIndex, .offset = tableOffset});
     interfaceMethodTableRef_ = sema.cstMgr().addMaterializedPayloadConstant(tableCst);
     SWC_ASSERT(interfaceMethodTableRef_.isValid());
+    interfaceMethodTablePublishedRef_.store(interfaceMethodTableRef_.get(), std::memory_order_release);
     outRef = interfaceMethodTableRef_;
     return Result::Continue;
 }

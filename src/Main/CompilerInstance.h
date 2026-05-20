@@ -407,6 +407,7 @@ private:
     std::vector<Utf8>                                     foreignLibs_;
     std::unordered_set<Utf8>                              foreignLibSet_;
     CompilerTagRegistry                                   compilerTags_;
+    mutable std::shared_mutex                             runtimeFunctionSymbolsMutex_;
     std::unordered_map<IdentifierRef, SymbolFunction*>    runtimeFunctionSymbols_;
     std::unordered_map<Utf8, Utf8>                        inMemoryFiles_;
     mutable std::shared_mutex                             pendingImplRegistrationsMutex_;

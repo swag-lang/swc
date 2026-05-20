@@ -76,7 +76,7 @@ public:
             TypeRef                            funcReturnTypeRef = TypeRef::invalid();
         };
 
-        mutable std::mutex                 mutex;
+        mutable std::shared_mutex          mutex;
         std::unordered_map<TypeRef, Entry> entries;
         SmallVector<TypeRef>               pendingBackRefs;
     };

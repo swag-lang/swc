@@ -898,25 +898,44 @@ bool SemaSpecOp::typeHasLifecycle(TaskContext& ctx, TypeRef typeRef, SpecOpKind 
 
 Result SemaSpecOp::ensureGeneratedLifecycleFunctions(Sema& sema, SymbolStruct& ownerStruct)
 {
-    const std::scoped_lock lock(ownerStruct.generatedLifecycleMutex());
-    if (hasGeneratedLifecycleWrapper(sema.ctx(), ownerStruct))
+    if (ownerStruct.generatedLifecyclePublished())
         return Result::Continue;
 
-    if (!ownerStruct.tryMarkGeneratedLifecycleFunctions())
+    const std::scoped_lock lock(ownerStruct.generatedLifecycleMutex());
+    if (ownerStruct.generatedLifecyclePublished())
         return Result::Continue;
+
+    if (hasGeneratedLifecycleWrapper(sema.ctx(), ownerStruct))
+    {
+        ownerStruct.publishGeneratedLifecycle();
+        return Result::Continue;
+    }
+
+    if (!ownerStruct.tryMarkGeneratedLifecycleFunctions())
+    {
+        ownerStruct.publishGeneratedLifecycle();
+        return Result::Continue;
+    }
 
     const GeneratedLifecyclePlan plan = makeGeneratedLifecyclePlan(sema, ownerStruct);
     if (!plan.any())
+    {
+        ownerStruct.publishGeneratedLifecycle();
         return Result::Continue;
+    }
 
     if (ownerStruct.isGenericInstance())
     {
         const Utf8 source = makeGeneratedLifecycleMethodsSource(sema, ownerStruct, plan);
-        return declareGeneratedImplBlockSource(sema, ownerStruct, source.view());
+        SWC_RESULT(declareGeneratedImplBlockSource(sema, ownerStruct, source.view()));
+        ownerStruct.publishGeneratedLifecycle();
+        return Result::Continue;
     }
 
     const Utf8 source = makeGeneratedLifecycleSource(sema, ownerStruct, plan);
-    return declareGeneratedOperatorSource(sema, ownerStruct, source.view());
+    SWC_RESULT(declareGeneratedOperatorSource(sema, ownerStruct, source.view()));
+    ownerStruct.publishGeneratedLifecycle();
+    return Result::Continue;
 }
 
 Result SemaSpecOp::ensureGeneratedOperators(Sema& sema, SymbolStruct& ownerStruct)
@@ -928,16 +947,27 @@ Result SemaSpecOp::ensureGeneratedOperators(Sema& sema, SymbolStruct& ownerStruc
     if (ownerStruct.isGenericInstance())
         return validateGeneratedOperatorFieldSupport(sema, ownerStruct, flags);
 
-    const std::scoped_lock lock(ownerStruct.generatedOperatorsMutex());
-    if (!ownerStruct.tryMarkGeneratedOperators())
+    if (ownerStruct.generatedOperatorsPublished())
         return Result::Continue;
+
+    const std::scoped_lock lock(ownerStruct.generatedOperatorsMutex());
+    if (ownerStruct.generatedOperatorsPublished())
+        return Result::Continue;
+
+    if (!ownerStruct.tryMarkGeneratedOperators())
+    {
+        ownerStruct.publishGeneratedOperators();
+        return Result::Continue;
+    }
 
     SWC_RESULT(validateGeneratedOperatorDuplicates(sema, ownerStruct, flags));
     if (!ownerStruct.isGenericRoot())
         SWC_RESULT(validateGeneratedOperatorFieldSupport(sema, ownerStruct, flags));
 
     const Utf8 source = makeGeneratedOperatorsSource(sema, ownerStruct, flags);
-    return declareGeneratedOperatorSource(sema, ownerStruct, source.view());
+    SWC_RESULT(declareGeneratedOperatorSource(sema, ownerStruct, source.view()));
+    ownerStruct.publishGeneratedOperators();
+    return Result::Continue;
 }
 
 SWC_END_NAMESPACE();

@@ -1,5 +1,6 @@
 #pragma once
 #include "Backend/Runtime.h"
+#include "Compiler/Sema/Symbol/IdentifierManager.h"
 #include "Compiler/SourceFile.h"
 #include "Main/CompilerTagRegistry.h"
 #include "Main/ExitCodes.h"
@@ -412,8 +413,7 @@ private:
     std::vector<Utf8>                                     foreignLibs_;
     std::unordered_set<Utf8>                              foreignLibSet_;
     CompilerTagRegistry                                   compilerTags_;
-    mutable std::shared_mutex                             runtimeFunctionSymbolsMutex_;
-    std::unordered_map<IdentifierRef, SymbolFunction*>    runtimeFunctionSymbols_;
+    std::array<std::atomic<SymbolFunction*>, static_cast<size_t>(IdentifierManager::RuntimeFunctionKind::Count)> runtimeFunctionSymbols_{};
     std::unordered_map<Utf8, Utf8>                        inMemoryFiles_;
     mutable std::shared_mutex                             pendingImplRegistrationsMutex_;
     std::unordered_map<IdentifierRef, uint32_t>           pendingImplRegistrations_;

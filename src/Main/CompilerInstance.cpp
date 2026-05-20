@@ -1108,34 +1108,23 @@ void CompilerInstance::registerRuntimeFunctionSymbol(const IdentifierRef idRef, 
     SWC_ASSERT(idRef.isValid());
     SWC_ASSERT(symbol != nullptr);
 
-    bool inserted = false;
-    
-    {
-        const std::unique_lock lock(runtimeFunctionSymbolsMutex_);
-        const auto             it = runtimeFunctionSymbols_.find(idRef);
-        if (it == runtimeFunctionSymbols_.end())
-        {
-            runtimeFunctionSymbols_.emplace(idRef, symbol);
-            inserted = true;
-        }
-        else if (it->second == nullptr)
-        {
-            it->second = symbol;
-            inserted   = true;
-        }
-    }
+    const auto kind = idMgr().runtimeFunctionKind(idRef);
+    if (kind == IdentifierManager::RuntimeFunctionKind::Count)
+        return;
 
+    SymbolFunction* expected = nullptr;
+    const bool inserted      = runtimeFunctionSymbols_[static_cast<size_t>(kind)].compare_exchange_strong(expected, symbol, std::memory_order_release, std::memory_order_acquire);
     if (inserted)
         notifyAlive();
 }
 
 SymbolFunction* CompilerInstance::runtimeFunctionSymbol(const IdentifierRef idRef) const
 {
-    const std::shared_lock lock(runtimeFunctionSymbolsMutex_);
-    const auto             it = runtimeFunctionSymbols_.find(idRef);
-    if (it == runtimeFunctionSymbols_.end())
+    const auto kind = idMgr().runtimeFunctionKind(idRef);
+    if (kind == IdentifierManager::RuntimeFunctionKind::Count)
         return nullptr;
-    return it->second;
+
+    return runtimeFunctionSymbols_[static_cast<size_t>(kind)].load(std::memory_order_acquire);
 }
 
 bool CompilerInstance::tryRegisterReportedDiagnostic(const std::string_view message)

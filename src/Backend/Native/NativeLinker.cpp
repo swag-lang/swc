@@ -193,7 +193,7 @@ Result NativeLinker::runToolAndValidateArtifacts(const fs::path& exePath, const 
     {
         Diagnostic diag = Diagnostic::get(DiagnosticId::cmd_err_native_tool_failed);
         diag.addArgument(Diagnostic::ARG_TOOL, Utf8(exePath.filename()));
-        diag.addArgument(Diagnostic::ARG_VALUE, exitCode);
+        diag.addArgument(Diagnostic::ARG_VALUE, Os::formatProcessExitCode(exitCode));
         if (!toolOutput.empty())
         {
             std::string_view trimmedOutput = toolOutput;

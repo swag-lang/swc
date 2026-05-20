@@ -703,7 +703,7 @@ Result NativeBackendBuilder::runGeneratedArtifact()
     }
 
     if (exitCode != 0)
-        return reportError(DiagnosticId::cmd_err_native_artifact_failed, Diagnostic::ARG_VALUE, exitCode);
+        return reportError(DiagnosticId::cmd_err_native_artifact_failed, Diagnostic::ARG_VALUE, Os::formatProcessExitCode(exitCode));
 
     if (compiler_->cmdLine().command == CommandKind::Test &&
         expectedTestCount &&

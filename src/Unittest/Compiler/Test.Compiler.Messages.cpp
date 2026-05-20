@@ -8,6 +8,7 @@
 #include "Main/Command/CommandLine.h"
 #include "Main/CompilerInstance.h"
 #include "Main/TaskContext.h"
+#include "Support/Os/Os.h"
 #include "Support/Report/Diagnostic.h"
 #include "Support/Report/DiagnosticBuilder.h"
 #include "Unittest/Unittest.h"
@@ -111,6 +112,25 @@ SWC_TEST_BEGIN(Compiler_DiagnosticEscapesQuotedArgumentTicks)
     const Utf8        text = builder.build();
 
     if (text.find("type 'List'(s32)' does not support indexing") == Utf8::npos)
+        return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(Compiler_NativeExitCodeDiagnosticShowsDecimalAndHex)
+{
+    CommandLine cmdLine;
+    cmdLine.command     = CommandKind::Test;
+    cmdLine.logColor    = false;
+    cmdLine.syntaxColor = false;
+
+    const TaskContext localCtx(ctx.global(), cmdLine);
+    Diagnostic        diag = Diagnostic::get(DiagnosticId::cmd_err_native_artifact_failed);
+    diag.addArgument(Diagnostic::ARG_VALUE, Os::formatProcessExitCode(0xC0000135u));
+
+    DiagnosticBuilder builder(localCtx, diag);
+    const Utf8        text = builder.build();
+
+    if (text.find("generated executable exited with code 3221225781 (0xC0000135)") == Utf8::npos)
         return Result::Error;
 }
 SWC_TEST_END()

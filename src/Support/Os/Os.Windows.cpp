@@ -847,6 +847,11 @@ namespace Os
         return readEnvUtf8(std::string(name).c_str());
     }
 
+    Utf8 formatProcessExitCode(const uint32_t exitCode)
+    {
+        return std::format("{} (0x{:08X})", exitCode, exitCode);
+    }
+
     Utf8 formatProcessCommandLine(const fs::path& exePath, const std::span<const Utf8> args)
     {
         std::wstring commandLine;

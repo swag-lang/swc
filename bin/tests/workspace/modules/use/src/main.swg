@@ -1,6 +1,25 @@
-using Dep, DepLib
+using Dep, DepLib, Shrd, Dir
 
 func keepDepScore(score: IDepScore)->IDepScore => score
+
+#init
+{
+    @assert((@getcontext().user1 & CTX_SHARED_INIT_FLAG) != 0)
+    @assert((@getcontext().user1 & CTX_DIRECT_INIT_FLAG) != 0)
+}
+
+#premain
+{
+    @assert((@getcontext().user1 & CTX_SHARED_PREMAIN_FLAG) != 0)
+    @assert((@getcontext().user1 & CTX_DIRECT_PREMAIN_FLAG) != 0)
+}
+
+#drop
+{
+    var cxt = dref @getcontext()
+    cxt.user0 = 43
+    @setcontext(cxt)
+}
 
 #main
 {
@@ -59,4 +78,14 @@ func keepDepScore(score: IDepScore)->IDepScore => score
     @assert(calc.add(cast(f32) 2) == cast(f32) 7)
     @assert(calc.addTwice(7) == 19)
     @assert(calc.sub(2) == 3)
+    var cxt = dref @getcontext()
+    cxt.user0 = 42
+    cxt.user2 = cast(u64) @getcontext()
+    @setcontext(cxt)
+
+    let expectedContext = @getcontext().user2
+    @assert(ctxSharedReadContext() == 42)
+    @assert(ctxDirectReadContext() == 42)
+    @assert(ctxSharedContextMarker() == expectedContext)
+    @assert(ctxDirectContextMarker() == expectedContext)
 }

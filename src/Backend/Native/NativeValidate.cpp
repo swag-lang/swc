@@ -41,9 +41,8 @@ void NativeValidate::validate() const
 
     for (const auto& info : builder_->functionInfos)
     {
-        SWC_ASSERT(info.symbol != nullptr);
         SWC_ASSERT(info.machineCode != nullptr);
-        validateRelocations(*info.symbol, *info.machineCode);
+        validateRelocations(*info.machineCode);
     }
 }
 
@@ -100,10 +99,8 @@ bool NativeValidate::isNativeStaticType(const TypeRef typeRef) const
     return false;
 }
 
-void NativeValidate::validateRelocations(const SymbolFunction& owner, const MachineCode& code) const
+void NativeValidate::validateRelocations(const MachineCode& code) const
 {
-    SWC_UNUSED(owner);
-
     for (const auto& relocation : code.codeRelocations)
     {
         switch (relocation.kind)

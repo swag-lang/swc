@@ -44,6 +44,7 @@ private:
     Result        prepareDataSectionsWithoutStartup(NativeRDataCollector& rdataCollector) const;
     static Result finishDataSections(NativeRDataCollector& rdataCollector);
     Result        partitionObjects() const;
+    Result        buildRuntimeHook(TaskContext& ctx) const;
     Result        prepareTestProgressEntries(TaskContext& ctx) const;
     Result        buildStartup(TaskContext& ctx) const;
 

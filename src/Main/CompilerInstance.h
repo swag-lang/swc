@@ -47,6 +47,13 @@ public:
         Runtime::BuildCfgBackendKind linkBackendKind = Runtime::BuildCfgBackendKind::None;
     };
 
+    struct NativeRuntimeImport
+    {
+        Utf8              moduleName;
+        Utf8              linkModuleName;
+        std::vector<Utf8> transitiveImports;
+    };
+
     struct CompilerMessageEvent
     {
         Runtime::CompilerMsgKind kind   = Runtime::CompilerMsgKind::PassAfterSemantic;
@@ -231,6 +238,7 @@ public:
     const ModuleApiPerThreadData&         moduleApiPerThreadData(size_t index) const { return perThreadData_[index].moduleApi; }
     const std::vector<fs::path>&          importedDependencyLinkDirs() const { return importedDependencyLinkDirs_; }
     const std::vector<ModuleSetupImport>& moduleSetupImports() const { return moduleSetupImports_; }
+    const std::vector<NativeRuntimeImport>& nativeRuntimeImports() const { return nativeRuntimeImports_; }
 
     Result                   collectFiles(TaskContext& ctx);
     Result                   runModuleSetup(TaskContext& ctx);
@@ -319,6 +327,7 @@ private:
     SourceFile&       addResolvedLoadedFile(fs::path path, FileFlags flags, std::string_view content);
     void              appendResolvedFiles(std::vector<fs::path>& paths, FileFlags flags);
     void              collectFolderFiles(const fs::path& folder, FileFlags flags, bool canFilter);
+    void              collectImportedApiFolderFiles(const fs::path& folder, std::string_view moduleName);
     Result            collectImportedApiFiles(TaskContext& ctx);
     bool              hasResolvedFilePath(const fs::path& path) const;
     void              registerImportedDependencyLinkDir(const fs::path& path);
@@ -362,6 +371,7 @@ private:
     Runtime::BuildCfg                                  buildCfg_{};
     bool                                               moduleSetupMode_ = false;
     std::vector<ModuleSetupImport>                     moduleSetupImports_;
+    std::vector<NativeRuntimeImport>                   nativeRuntimeImports_;
     std::set<fs::path>                                 moduleSetupLoadedFiles_;
     std::vector<fs::path>                              importedDependencyLinkDirs_;
     std::unordered_set<fs::path>                       importedDependencyLinkDirSet_;

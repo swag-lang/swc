@@ -43,6 +43,13 @@ inline Utf8 unresolvedFunctionSymbolName(const TaskContext& ctx, const SymbolFun
     return std::format("__swc_ext_fn_{:08x}", Math::hash(key.view()));
 }
 
+inline Utf8 nativeRuntimeHookSymbolName(std::string_view artifactName)
+{
+    Utf8 key = artifactName;
+    key.make_lower();
+    return std::format("__swc_rt_stage_{:08x}", Math::hash(key.view()));
+}
+
 enum class NativeObjectFormat : uint8_t
 {
     WindowsCoff,
@@ -83,6 +90,15 @@ struct NativeStartupInfo
 struct NativeTestProgressEntry
 {
     ConstantRef messageRuntimeStringCstRef = ConstantRef::invalid();
+};
+
+struct NativeRuntimeDependency
+{
+    Utf8              moduleName;
+    Utf8              linkModuleName;
+    Utf8              hookSymbolName;
+    std::vector<Utf8> transitiveImports;
+    SymbolFunction*   hookSymbol = nullptr;
 };
 
 struct NativeSectionRelocation
@@ -166,8 +182,12 @@ public:
     std::vector<SymbolFunction*>                                                         dropFunctions;
     std::vector<SymbolFunction*>                                                         mainFunctions;
     std::vector<SymbolVariable*>                                                         regularGlobals;
+    std::vector<NativeRuntimeDependency>                                                 runtimeDependencies;
+    std::vector<uint32_t>                                                                runtimeDependencyInitOrder;
+    std::vector<uint32_t>                                                                runtimeDependencyDropOrder;
     std::vector<NativeFunctionInfo>                                                      functionInfos;
     std::unordered_map<const SymbolFunction*, const NativeFunctionInfo*>                 functionBySymbol;
+    std::vector<std::unique_ptr<MachineCode>>                                            generatedMachineCodes;
     std::unique_ptr<NativeStartupInfo>                                                   startup;
     std::vector<NativeTestProgressEntry>                                                 testProgressEntries;
     NativeSectionData                                                                    mergedRData;

@@ -876,6 +876,99 @@ public func win32Value()->s32
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(Compiler_WorkspaceSemaRefreshesMirroredDependencyArtifactWhenContentChangesWithSameTimestamp)
+{
+    const ScopedTempTree tempTree("compiler_workspace_dep_refresh");
+    if (!tempTree.ready())
+        return Result::Error;
+
+    const fs::path compilerRoot  = tempTree.root() / "compiler";
+    const fs::path workspaceDir  = tempTree.root() / "workspace";
+    const fs::path appModuleDir  = workspaceDir / "modules" / "app";
+    const fs::path coreConfigDir = compilerRoot / "std" / ".output" / "core" / "shared-library" / "fast-debug" / "x86_64";
+
+    if (!writeTextFile(coreConfigDir / "core.swg", R"(#global export
+public func coreValue()->s32
+{
+    return 7
+}
+)"))
+        return Result::Error;
+    if (!writeTextFile(coreConfigDir / "core.deps", ""))
+        return Result::Error;
+    if (!writeTextFile(coreConfigDir / "core.dll", "fake core dll A"))
+        return Result::Error;
+
+    if (!writeTextFile(appModuleDir / "module.swg", R"(#import("core", location: "swag@std")
+#run
+{
+    let cfg = @compiler.getBuildCfg()
+    cfg.moduleNamespace = "App"
+    cfg.backendKind = .Executable
+}
+)"))
+        return Result::Error;
+    if (!writeTextFile(appModuleDir / "src" / "main.swg", R"(public func value()->s32
+{
+    return 1
+}
+)"))
+        return Result::Error;
+
+    const ScopedEnvVar swagPath("SWAG_PATH", compilerRoot.string());
+
+    CommandLine cmdLine = makeSyntheticWorkspaceCommand(CommandKind::Sema, workspaceDir);
+    {
+        CompilerInstance compiler(ctx.global(), cmdLine);
+        if (compiler.run() != ExitCode::Success)
+            return Result::Error;
+    }
+
+    const fs::path copiedCoreDll = workspaceDir / ".dep" / "core" / "shared-library" / "fast-debug" / "x86_64" / "core.dll";
+    FileSystem::IoErrorInfo ioError;
+    std::string             copiedDllContent;
+    if (FileSystem::readTextFile(copiedCoreDll, copiedDllContent, ioError) != Result::Continue)
+        return Result::Error;
+    if (copiedDllContent != "fake core dll A")
+        return Result::Error;
+
+    std::error_code ec;
+    const auto      copiedTime = fs::last_write_time(copiedCoreDll, ec);
+    if (ec)
+        return Result::Error;
+
+    const fs::path sourceCoreDll = coreConfigDir / "core.dll";
+    if (!writeTextFile(sourceCoreDll, "fake core dll B"))
+        return Result::Error;
+
+    ec.clear();
+    const auto sourceSize = fs::file_size(sourceCoreDll, ec);
+    if (ec)
+        return Result::Error;
+    ec.clear();
+    const auto copiedSize = fs::file_size(copiedCoreDll, ec);
+    if (ec || sourceSize != copiedSize)
+        return Result::Error;
+
+    ec.clear();
+    fs::last_write_time(sourceCoreDll, copiedTime, ec);
+    if (ec)
+        return Result::Error;
+
+    {
+        CompilerInstance compiler(ctx.global(), cmdLine);
+        if (compiler.run() != ExitCode::Success)
+            return Result::Error;
+    }
+
+    copiedDllContent.clear();
+    if (FileSystem::readTextFile(copiedCoreDll, copiedDllContent, ioError) != Result::Continue)
+        return Result::Error;
+    if (copiedDllContent != "fake core dll B")
+        return Result::Error;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(Compiler_ModuleFileSetupKeepsExplicitCommandLineOverrides)
 {
     const ScopedTempTree tempTree("compiler_module_file_cli_override");
@@ -1499,10 +1592,8 @@ public func coreValue()->s32
         return Result::Error;
     Utf8 normalizedDepApiContent = depApiContent;
     normalizedDepApiContent.replace_loop("\r", "");
-    const size_t depToolsPos = normalizedDepApiContent.find("namespace DepTools\n");
+    const size_t depToolsPos = normalizedDepApiContent.find("namespace DepTools\n{\n    const DEP_NAMESPACE_A");
     if (depToolsPos == Utf8::npos)
-        return Result::Error;
-    if (normalizedDepApiContent.contains("namespace DepTools.Deep\n"))
         return Result::Error;
     const size_t depToolsDeepPos = normalizedDepApiContent.find("namespace Deep\n", depToolsPos + 1);
     if (depToolsDeepPos == Utf8::npos)
@@ -1523,7 +1614,7 @@ public func coreValue()->s32
           depNamespaceCPos < depToolsDeepPos &&
           depToolsDeepPos < depNamespaceDeepPos))
         return Result::Error;
-    if (normalizedDepApiContent.contains("\n\n"))
+    if (normalizedDepApiContent.contains("\n\n\n"))
         return Result::Error;
     if (normalizedDepApiContent.contains("\npublic "))
         return Result::Error;
@@ -1804,6 +1895,288 @@ SWC_TEST_BEGIN(Compiler_FormatCommandHeaderLineUsesFileScope)
 
     if (headerLine.find("syntax files in bin/tests/parser") == Utf8::npos)
         return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(Compiler_WorkspaceBuildAllowsBorrowedIndirectCallsFromGeneratedSharedDependencyApi)
+{
+    const ScopedTempTree tempTree("compiler_workspace_generated_shared_indirect");
+    if (!tempTree.ready())
+        return Result::Error;
+
+    const fs::path workspaceDir = tempTree.root() / "workspace";
+    const fs::path depModuleDir = workspaceDir / "modules" / "dep";
+    const fs::path useModuleDir = workspaceDir / "modules" / "use";
+
+    if (!writeTextFile(depModuleDir / "module.swg", R"(#run
+{
+    let cfg = @compiler.getBuildCfg()
+    cfg.moduleNamespace = "Dep"
+    cfg.backendKind = .SharedLibrary
+}
+)"))
+        return Result::Error;
+    if (!writeTextFile(depModuleDir / "src" / "main.swg", R"(#global public
+func countString(value: string)->u64
+{
+    return @countof(value)
+}
+
+func echoString(value: string)->string
+{
+    return value
+}
+)"))
+        return Result::Error;
+
+    if (!writeTextFile(useModuleDir / "module.swg", R"(#import("dep")
+#run
+{
+    let cfg = @compiler.getBuildCfg()
+    cfg.moduleNamespace = "Use"
+    cfg.backendKind = .Executable
+}
+)"))
+        return Result::Error;
+    if (!writeTextFile(useModuleDir / "src" / "main.swg", R"(using Dep
+
+func mainValue()->u64
+{
+    let echoed = echoString("abcd")
+    @assert(@countof(echoed) == 4)
+    @assert(countString(echoed) == 4)
+    return countString(#file)
+}
+
+#main
+{
+    @assert(mainValue() > 0)
+}
+)"))
+        return Result::Error;
+
+    CommandLine cmdLine = makeSyntheticWorkspaceCommand(CommandKind::Build, workspaceDir);
+    cmdLine.runtime     = true;
+
+    CompilerInstance compiler(ctx.global(), cmdLine);
+    if (compiler.run() != ExitCode::Success)
+        return Result::Error;
+
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(Compiler_WorkspaceRunSharesRuntimeContextAcrossSharedAndStaticDependencies)
+{
+    const ScopedTempTree tempTree("compiler_workspace_runtime_context_shared");
+    if (!tempTree.ready())
+        return Result::Error;
+
+    const fs::path workspaceDir  = tempTree.root() / "workspace";
+    const fs::path baseModuleDir = workspaceDir / "modules" / "ctxbase";
+    const fs::path depModuleDir  = workspaceDir / "modules" / "ctxshared";
+    const fs::path dirModuleDir  = workspaceDir / "modules" / "ctxdirect";
+    const fs::path appModuleDir  = workspaceDir / "modules" / "app";
+
+    if (!writeTextFile(baseModuleDir / "module.swg", R"(#run
+{
+    let cfg = @compiler.getBuildCfg()
+    cfg.embeddedImports = true
+    cfg.moduleNamespace = "Base"
+    cfg.backendKind = .StaticLibrary
+}
+)"))
+        return Result::Error;
+    if (!writeTextFile(baseModuleDir / "src" / "main.swg", R"(public const CTX_BASE_INIT_FLAG    = 0x0001'u64
+public const CTX_BASE_PREMAIN_FLAG = 0x0002'u64
+public const CTX_BASE_DROP_FLAG    = 0x0004'u64
+
+#init
+{
+    @assert(@getcontext().allocator != null)
+    @getcontext().user1 |= CTX_BASE_INIT_FLAG
+}
+
+#premain
+{
+    @assert((@getcontext().user1 & CTX_BASE_INIT_FLAG) != 0)
+    @getcontext().user1 |= CTX_BASE_PREMAIN_FLAG
+}
+
+#drop
+{
+    @assert(@getcontext().user0 == 43)
+    @getcontext().user1 |= CTX_BASE_DROP_FLAG
+}
+
+public func ctxBaseReadContext()->u64
+{
+    @assert(@getcontext().allocator != null)
+    return @getcontext().user0
+}
+
+public func ctxBaseContextMarker()->u64
+{
+    @assert(@getcontext().allocator != null)
+    return @getcontext().user2
+}
+)"))
+        return Result::Error;
+
+    if (!writeTextFile(depModuleDir / "module.swg", R"(#import("ctxbase", link: "static-library")
+#run
+{
+    let cfg = @compiler.getBuildCfg()
+    cfg.embeddedImports = true
+    cfg.moduleNamespace = "Shrd"
+    cfg.backendKind = .SharedLibrary
+}
+)"))
+        return Result::Error;
+    if (!writeTextFile(depModuleDir / "src" / "main.swg", R"(using Base
+
+public const CTX_SHARED_INIT_FLAG    = 0x0008'u64
+public const CTX_SHARED_PREMAIN_FLAG = 0x0010'u64
+public const CTX_SHARED_DROP_FLAG    = 0x0020'u64
+
+#init
+{
+    @assert((@getcontext().user1 & CTX_BASE_INIT_FLAG) != 0)
+    @assert(@getcontext().allocator != null)
+    @getcontext().user1 |= CTX_SHARED_INIT_FLAG
+}
+
+#premain
+{
+    @assert((@getcontext().user1 & CTX_BASE_PREMAIN_FLAG) != 0)
+    @getcontext().user1 |= CTX_SHARED_PREMAIN_FLAG
+}
+
+#drop
+{
+    @assert(@getcontext().user0 == 43)
+    @getcontext().user1 |= CTX_SHARED_DROP_FLAG
+}
+
+public func ctxSharedReadContext()->u64
+{
+    return ctxBaseReadContext()
+}
+
+public func ctxSharedContextMarker()->u64
+{
+    return ctxBaseContextMarker()
+}
+)"))
+        return Result::Error;
+
+    if (!writeTextFile(dirModuleDir / "module.swg", R"(#run
+{
+    let cfg = @compiler.getBuildCfg()
+    cfg.embeddedImports = true
+    cfg.moduleNamespace = "Dir"
+    cfg.backendKind = .StaticLibrary
+}
+)"))
+        return Result::Error;
+    if (!writeTextFile(dirModuleDir / "src" / "main.swg", R"(public const CTX_DIRECT_INIT_FLAG    = 0x0040'u64
+public const CTX_DIRECT_PREMAIN_FLAG = 0x0080'u64
+public const CTX_DIRECT_DROP_FLAG    = 0x0100'u64
+
+#init
+{
+    @assert(@getcontext().allocator != null)
+    @getcontext().user1 |= CTX_DIRECT_INIT_FLAG
+}
+
+#premain
+{
+    @assert((@getcontext().user1 & CTX_DIRECT_INIT_FLAG) != 0)
+    @getcontext().user1 |= CTX_DIRECT_PREMAIN_FLAG
+}
+
+#drop
+{
+    @assert(@getcontext().user0 == 43)
+    @getcontext().user1 |= CTX_DIRECT_DROP_FLAG
+}
+
+public func ctxDirectReadContext()->u64
+{
+    @assert(@getcontext().allocator != null)
+    return @getcontext().user0
+}
+
+public func ctxDirectContextMarker()->u64
+{
+    @assert(@getcontext().allocator != null)
+    return @getcontext().user2
+}
+)"))
+        return Result::Error;
+
+    if (!writeTextFile(appModuleDir / "module.swg", R"(#import("ctxshared")
+#import("ctxdirect", link: "static-library")
+#run
+{
+    let cfg = @compiler.getBuildCfg()
+    cfg.embeddedImports = true
+    cfg.moduleNamespace = "App"
+    cfg.backendKind = .Executable
+}
+)"))
+        return Result::Error;
+    if (!writeTextFile(appModuleDir / "src" / "main.swg", R"(using Shrd, Dir
+
+#init
+{
+    @assert((@getcontext().user1 & CTX_SHARED_INIT_FLAG) != 0)
+    @assert((@getcontext().user1 & CTX_DIRECT_INIT_FLAG) != 0)
+}
+
+#premain
+{
+    @assert((@getcontext().user1 & CTX_SHARED_PREMAIN_FLAG) != 0)
+    @assert((@getcontext().user1 & CTX_DIRECT_PREMAIN_FLAG) != 0)
+}
+
+#drop
+{
+    var cxt = dref @getcontext()
+    cxt.user0 = 43
+    @setcontext(cxt)
+}
+
+#main
+{
+    var cxt = dref @getcontext()
+    cxt.user0 = 42
+    cxt.user2 = cast(u64) @getcontext()
+    @setcontext(cxt)
+    let expectedContext = @getcontext().user2
+    @assert(ctxSharedReadContext() == 42)
+    @assert(ctxDirectReadContext() == 42)
+    @assert(ctxSharedContextMarker() == expectedContext)
+    @assert(ctxDirectContextMarker() == expectedContext)
+}
+)"))
+        return Result::Error;
+
+    CommandLine cmdLine = makeSyntheticWorkspaceCommand(CommandKind::Run, workspaceDir);
+    cmdLine.runtime     = true;
+
+    CompilerInstance compiler(ctx.global(), cmdLine);
+    if (compiler.run() != ExitCode::Success)
+        return Result::Error;
+
+    if (!fs::exists(workspaceDir / ".output" / "ctxshared" / "shared-library" / "fast-debug" / "x86_64" / "ctxshared.dll"))
+        return Result::Error;
+    if (!fs::exists(workspaceDir / ".output" / "ctxdirect" / "static-library" / "fast-debug" / "x86_64" / "ctxdirect.lib"))
+        return Result::Error;
+    if (!fs::exists(workspaceDir / ".output" / "app" / "executable" / "fast-debug" / "x86_64" / "app.exe"))
+        return Result::Error;
+
+    return Result::Continue;
 }
 SWC_TEST_END()
 

@@ -74,6 +74,85 @@ namespace
         return {};
     }
 
+    SymbolFunction* createRuntimeDependencyHookSymbol(NativeBackendBuilder& builder, NativeRuntimeDependency& dependency)
+    {
+        constexpr SymbolFlags syntheticFlags = SymbolFlagsE::Declared | SymbolFlagsE::Typed | SymbolFlagsE::SemaCompleted;
+
+        const IdentifierRef idRef = builder.ctx().idMgr().addIdentifier(dependency.hookSymbolName.view());
+        auto*               hook  = Symbol::make<SymbolFunction>(builder.ctx(), nullptr, TokenRef::invalid(), idRef, syntheticFlags);
+        hook->setReturnTypeRef(builder.ctx().typeMgr().typeVoid());
+        hook->setCallConvKind(CallConvKind::Host);
+        hook->ensureAttributes(builder.ctx()).setForeign(dependency.linkModuleName.view(), dependency.hookSymbolName.view(), dependency.linkModuleName.view());
+        return hook;
+    }
+
+    void buildRuntimeDependencyOrders(NativeBackendBuilder& builder)
+    {
+        builder.runtimeDependencyInitOrder.clear();
+        builder.runtimeDependencyDropOrder.clear();
+        if (builder.runtimeDependencies.empty())
+            return;
+
+        std::unordered_map<Utf8, uint32_t> dependencyIndices;
+        dependencyIndices.reserve(builder.runtimeDependencies.size());
+        for (uint32_t i = 0; i < builder.runtimeDependencies.size(); ++i)
+            dependencyIndices.emplace(builder.runtimeDependencies[i].moduleName, i);
+
+        std::vector<std::vector<uint32_t>> outgoing(builder.runtimeDependencies.size());
+        std::vector<uint32_t>              indegree(builder.runtimeDependencies.size(), 0);
+        for (uint32_t i = 0; i < builder.runtimeDependencies.size(); ++i)
+        {
+            std::unordered_set<uint32_t> directDependencies;
+            for (const Utf8& importedModule : builder.runtimeDependencies[i].transitiveImports)
+            {
+                const auto it = dependencyIndices.find(importedModule);
+                if (it == dependencyIndices.end() || it->second == i || !directDependencies.insert(it->second).second)
+                    continue;
+
+                outgoing[it->second].push_back(i);
+                indegree[i] += 1;
+            }
+        }
+
+        builder.runtimeDependencyInitOrder.reserve(builder.runtimeDependencies.size());
+        std::vector<bool> scheduled(builder.runtimeDependencies.size(), false);
+        while (builder.runtimeDependencyInitOrder.size() < builder.runtimeDependencies.size())
+        {
+            bool progressed = false;
+            for (uint32_t i = 0; i < builder.runtimeDependencies.size(); ++i)
+            {
+                if (scheduled[i] || indegree[i] != 0)
+                    continue;
+
+                scheduled[i] = true;
+                builder.runtimeDependencyInitOrder.push_back(i);
+                for (const uint32_t dependentIndex : outgoing[i])
+                {
+                    SWC_ASSERT(indegree[dependentIndex] != 0);
+                    indegree[dependentIndex] -= 1;
+                }
+
+                progressed = true;
+                break;
+            }
+
+            if (progressed)
+                continue;
+
+            for (uint32_t i = 0; i < builder.runtimeDependencies.size(); ++i)
+            {
+                if (scheduled[i])
+                    continue;
+
+                scheduled[i] = true;
+                builder.runtimeDependencyInitOrder.push_back(i);
+            }
+        }
+
+        builder.runtimeDependencyDropOrder = builder.runtimeDependencyInitOrder;
+        std::reverse(builder.runtimeDependencyDropOrder.begin(), builder.runtimeDependencyDropOrder.end());
+    }
+
     Utf8 expectedNativeTestSuccessLine()
     {
         return "success";
@@ -547,8 +626,12 @@ Result NativeBackendBuilder::run()
 
 Result NativeBackendBuilder::prepare()
 {
+    runtimeDependencies.clear();
+    runtimeDependencyInitOrder.clear();
+    runtimeDependencyDropOrder.clear();
     functionInfos.clear();
     functionBySymbol.clear();
+    generatedMachineCodes.clear();
     SWC_ASSERT(compiler_ != nullptr);
     testFunctions    = compiler_->nativeTestFunctions();
     initFunctions    = compiler_->nativeInitFunctions();
@@ -572,6 +655,22 @@ Result NativeBackendBuilder::prepare()
     SymbolSort::sortAndUniqueByLocation(mainFunctions, *compiler_);
     SymbolSort::sortAndUniqueByLocation(regularGlobals, *compiler_);
     appendGlobalFunctionInitDependencies(*this, functions, regularGlobals);
+
+    const auto& importedRuntimeDeps = compiler_->nativeRuntimeImports();
+    runtimeDependencies.reserve(importedRuntimeDeps.size());
+    for (const auto& importedRuntimeDep : importedRuntimeDeps)
+    {
+        NativeRuntimeDependency dependency;
+        dependency.moduleName       = importedRuntimeDep.moduleName;
+        dependency.linkModuleName   = importedRuntimeDep.linkModuleName;
+        dependency.hookSymbolName   = nativeRuntimeHookSymbolName(dependency.linkModuleName.view());
+        dependency.transitiveImports = importedRuntimeDep.transitiveImports;
+        runtimeDependencies.push_back(std::move(dependency));
+    }
+
+    for (auto& runtimeDependency : runtimeDependencies)
+        runtimeDependency.hookSymbol = createRuntimeDependencyHookSymbol(*this, runtimeDependency);
+    buildRuntimeDependencyOrders(*this);
 
     std::optional<TimedActionLog::ScopedStage> microStage;
     if (ctx_.global().logger().claimStageOnce("micro"))

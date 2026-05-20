@@ -449,7 +449,7 @@ uint32_t CompilerInstance::pendingImplRegistrations(const IdentifierRef idRef) c
     if (!idRef.isValid())
         return 0;
 
-    const std::scoped_lock lock(pendingImplRegistrationsMutex_);
+    const std::shared_lock lock(pendingImplRegistrationsMutex_);
     const auto             it = pendingImplRegistrations_.find(idRef);
     if (it == pendingImplRegistrations_.end())
         return 0;
@@ -460,7 +460,7 @@ uint32_t CompilerInstance::pendingImplRegistrations(const IdentifierRef idRef) c
 void CompilerInstance::incPendingImplRegistrations(const IdentifierRef idRef)
 {
     SWC_ASSERT(idRef.isValid());
-    const std::scoped_lock lock(pendingImplRegistrationsMutex_);
+    const std::unique_lock lock(pendingImplRegistrationsMutex_);
     pendingImplRegistrations_[idRef]++;
 }
 
@@ -470,7 +470,7 @@ void CompilerInstance::decPendingImplRegistrations(const IdentifierRef idRef)
 
     bool notify = false;
     {
-        const std::scoped_lock lock(pendingImplRegistrationsMutex_);
+        const std::unique_lock lock(pendingImplRegistrationsMutex_);
         const auto             it = pendingImplRegistrations_.find(idRef);
         SWC_ASSERT(it != pendingImplRegistrations_.end());
         SWC_ASSERT(it->second > 0);
@@ -1306,7 +1306,7 @@ std::vector<SourceFile*> CompilerInstance::files() const
 
 bool CompilerInstance::hasResolvedFilePath(const fs::path& path) const
 {
-    const std::scoped_lock lock(sourceStorageMutex_);
+    const std::shared_lock lock(sourceStorageMutex_);
     return resolvedFilePaths_.contains(Utf8Helper::normalizePathForCompare(path));
 }
 

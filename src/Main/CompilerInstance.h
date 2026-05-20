@@ -377,7 +377,7 @@ private:
     void*                                              runtimeAllocatorITable_[2]{};
     void*                                              runtimeCompilerITable_[4]{};
     mutable std::shared_mutex                          stateMutex_;
-    mutable std::mutex                                 sourceStorageMutex_;
+    mutable std::shared_mutex                          sourceStorageMutex_;
     std::atomic<bool>                                  changed_{true};
     std::mutex                                         globalFunctionBindingsMutex_;
     std::atomic<uint64_t>                              globalFunctionBindingsVersion_{1};
@@ -409,7 +409,7 @@ private:
     CompilerTagRegistry                                   compilerTags_;
     std::unordered_map<IdentifierRef, SymbolFunction*>    runtimeFunctionSymbols_;
     std::unordered_map<Utf8, Utf8>                        inMemoryFiles_;
-    mutable std::mutex                                    pendingImplRegistrationsMutex_;
+    mutable std::shared_mutex                             pendingImplRegistrationsMutex_;
     std::unordered_map<IdentifierRef, uint32_t>           pendingImplRegistrations_;
     std::mutex                                            reportedDiagnosticsMutex_;
     std::unordered_set<Utf8>                              reportedDiagnostics_;

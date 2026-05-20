@@ -347,10 +347,16 @@ Result SymbolFunction::ensureClosureAdapter(TaskContext& ctx, SymbolFunction*& o
     outAdapter = nullptr;
     SWC_ASSERT(isClosure());
 
-    const std::scoped_lock lock(closureAdapterMutex_);
-    if (closureAdapter_ != nullptr)
+    if (SymbolFunction* const publishedAdapter = closureAdapterPublished_.load(std::memory_order_acquire))
     {
-        outAdapter = closureAdapter_;
+        outAdapter = publishedAdapter;
+        return Result::Continue;
+    }
+
+    const std::scoped_lock lock(closureAdapterMutex_);
+    if (SymbolFunction* const publishedAdapter = closureAdapterPublished_.load(std::memory_order_acquire))
+    {
+        outAdapter = publishedAdapter;
         return Result::Continue;
     }
 
@@ -385,8 +391,8 @@ Result SymbolFunction::ensureClosureAdapter(TaskContext& ctx, SymbolFunction*& o
 
     SWC_RESULT(buildClosureAdapterMicroCode(ctx, *adapter));
 
-    closureAdapter_ = adapter;
-    outAdapter      = adapter;
+    closureAdapterPublished_.store(adapter, std::memory_order_release);
+    outAdapter = adapter;
     return Result::Continue;
 }
 

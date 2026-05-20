@@ -200,7 +200,7 @@ private:
     mutable std::shared_mutex         callDependenciesMutex_;
     mutable std::mutex                closureAdapterMutex_;
     mutable std::mutex                lazyGenericBodyRunMutex_;
-    SymbolFunction*                   closureAdapter_ = nullptr;
+    mutable std::atomic<SymbolFunction*> closureAdapterPublished_ = nullptr;
     std::mutex                        emitMutex_;
     JITMemory                         jitExecMemory_;
     std::atomic<void*>                jitPatchedAddress_    = nullptr;

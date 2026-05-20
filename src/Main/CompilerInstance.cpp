@@ -1075,11 +1075,9 @@ const SourceView* CompilerInstance::findSourceViewByFileName(const std::string_v
 
 bool CompilerInstance::setMainFunc(AstCompilerFunc* node)
 {
-    const std::unique_lock lock(stateMutex_);
-    if (mainFunc_)
-        return false;
-    mainFunc_ = node;
-    return true;
+    SWC_ASSERT(node != nullptr);
+    AstCompilerFunc* expected = nullptr;
+    return mainFunc_.compare_exchange_strong(expected, node, std::memory_order_release, std::memory_order_acquire);
 }
 
 bool CompilerInstance::markNativeOutputsCleared()
@@ -1089,7 +1087,7 @@ bool CompilerInstance::markNativeOutputsCleared()
 
 bool CompilerInstance::registerForeignLib(std::string_view name)
 {
-    const std::unique_lock lock(stateMutex_);
+    const std::scoped_lock lock(foreignLibsMutex_);
     Utf8                   lib(name);
     if (!foreignLibSet_.insert(lib).second)
         return false;

@@ -187,7 +187,7 @@ public:
     const std::atomic<uint32_t>& atomicId() const { return atomicId_; }
     bool                         markNativeOutputsCleared();
     bool                         setMainFunc(AstCompilerFunc* node);
-    AstCompilerFunc*             mainFunc() const { return mainFunc_; }
+    AstCompilerFunc*             mainFunc() const { return mainFunc_.load(std::memory_order_acquire); }
 
     bool                            registerForeignLib(std::string_view name);
     const std::vector<Utf8>&        foreignLibs() const { return foreignLibs_; }
@@ -377,13 +377,13 @@ private:
     std::unique_ptr<JITExecManager>                    jitExecMgr_;
     void*                                              runtimeAllocatorITable_[2]{};
     void*                                              runtimeCompilerITable_[4]{};
-    mutable std::shared_mutex                          stateMutex_;
     mutable std::shared_mutex                          sourceStorageMutex_;
     mutable std::shared_mutex                          nativeCodeSegmentMutex_;
     mutable std::shared_mutex                          nativeSpecialFunctionsMutex_;
     mutable std::shared_mutex                          nativeGlobalFunctionInitTargetsMutex_;
     mutable std::shared_mutex                          nativeGlobalVariablesMutex_;
     mutable std::shared_mutex                          jitPreparedFunctionsMutex_;
+    mutable std::mutex                                 foreignLibsMutex_;
     std::atomic<bool>                                  changed_{true};
     std::mutex                                         globalFunctionBindingsMutex_;
     std::atomic<uint64_t>                              globalFunctionBindingsVersion_{1};
@@ -409,7 +409,7 @@ private:
     std::vector<PerThreadData>                            perThreadData_;
     std::atomic<uint32_t>                                 atomicId_             = 0;
     std::atomic<bool>                                     nativeOutputsCleared_ = false;
-    AstCompilerFunc*                                      mainFunc_             = nullptr;
+    std::atomic<AstCompilerFunc*>                         mainFunc_{nullptr};
     std::vector<Utf8>                                     foreignLibs_;
     std::unordered_set<Utf8>                              foreignLibSet_;
     CompilerTagRegistry                                   compilerTags_;
@@ -419,9 +419,10 @@ private:
     std::unordered_map<IdentifierRef, uint32_t>           pendingImplRegistrations_;
     std::mutex                                            reportedDiagnosticsMutex_;
     std::unordered_set<Utf8>                              reportedDiagnostics_;
-    std::mutex                                            compilerMessageMutex_;
+    mutable std::mutex                                    compilerMessageDispatchMutex_;
     std::deque<CompilerMessageListener>                   compilerMessageListeners_;
     std::vector<CompilerMessageEvent>                     compilerMessageLog_;
+    mutable std::shared_mutex                             compilerMessageTypeInfoMutex_;
     std::unordered_map<TypeRef, const Runtime::TypeInfo*> compilerMessageTypeInfoCache_;
     std::unordered_set<TypeRef>                           compilerMessageTypeInfoPrepScheduled_;
     std::deque<CompilerMessageTypeInfoPrepRequest>        compilerMessageTypeInfoPrepQueue_;

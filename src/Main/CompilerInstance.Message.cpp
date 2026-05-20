@@ -502,7 +502,7 @@ bool CompilerInstance::hasCompilerMessageInterest(const Runtime::CompilerMsgKind
 bool CompilerInstance::tryGetCompilerMessageTypeInfo(const TypeRef typeRef, const Runtime::TypeInfo*& outType)
 {
     outType = nullptr;
-    const std::scoped_lock lock(compilerMessageMutex_);
+    const std::shared_lock lock(compilerMessageTypeInfoMutex_);
     const auto             it = compilerMessageTypeInfoCache_.find(typeRef);
     if (it == compilerMessageTypeInfoCache_.end())
         return false;
@@ -513,14 +513,14 @@ bool CompilerInstance::tryGetCompilerMessageTypeInfo(const TypeRef typeRef, cons
 
 void CompilerInstance::cacheCompilerMessageTypeInfo(const TypeRef typeRef, const Runtime::TypeInfo* runtimeTypeInfo)
 {
-    const std::scoped_lock lock(compilerMessageMutex_);
+    const std::unique_lock lock(compilerMessageTypeInfoMutex_);
     compilerMessageTypeInfoCache_[typeRef] = runtimeTypeInfo;
     compilerMessageTypeInfoPrepScheduled_.erase(typeRef);
 }
 
 bool CompilerInstance::tryPopCompilerMessageTypeInfoPreparation(CompilerMessageTypeInfoPrepRequest& outRequest)
 {
-    const std::scoped_lock lock(compilerMessageMutex_);
+    const std::unique_lock lock(compilerMessageTypeInfoMutex_);
     while (!compilerMessageTypeInfoPrepQueue_.empty())
     {
         outRequest = compilerMessageTypeInfoPrepQueue_.front();
@@ -561,7 +561,7 @@ void CompilerInstance::enqueueCompilerMessageTypeInfoPreparation(TaskContext& ct
         return;
 
     {
-        const std::scoped_lock lock(compilerMessageMutex_);
+        const std::unique_lock lock(compilerMessageTypeInfoMutex_);
         if (compilerMessageTypeInfoCache_.contains(typeRef))
             return;
 
@@ -678,7 +678,7 @@ void CompilerInstance::registerCompilerMessageFunction(SymbolFunction* symbol, c
 
     std::vector<CompilerMessageEvent> replayEventsToPrepare;
     {
-        const std::scoped_lock lock(compilerMessageMutex_);
+        const std::scoped_lock lock(compilerMessageDispatchMutex_);
         for (const CompilerMessageListener& listener : compilerMessageListeners_)
         {
             if (listener.function == symbol && listener.nodeRef == nodeRef)
@@ -742,7 +742,7 @@ void CompilerInstance::onSymbolSemaCompleted(TaskContext& ctx, Symbol& symbol)
     AstNodeRef            preparationNodeRef  = AstNodeRef::invalid();
 
     {
-        const std::scoped_lock lock(compilerMessageMutex_);
+        const std::scoped_lock lock(compilerMessageDispatchMutex_);
         compilerMessageLog_.push_back(event);
 
         for (const CompilerMessageListener& listener : compilerMessageListeners_)
@@ -777,7 +777,7 @@ Result CompilerInstance::ensureCompilerMessagePass(const Runtime::CompilerMsgKin
         return Result::Continue;
 
     {
-        const std::scoped_lock lock(compilerMessageMutex_);
+        const std::scoped_lock lock(compilerMessageDispatchMutex_);
         const uint64_t         executedMask = compilerMessageExecutedPassMask_.load(std::memory_order_relaxed);
         if (executedMask & passBit)
             return Result::Continue;
@@ -793,7 +793,7 @@ Result CompilerInstance::ensureCompilerMessagePass(const Runtime::CompilerMsgKin
 Result CompilerInstance::executePendingCompilerMessages(TaskContext& ctx)
 {
     {
-        const std::scoped_lock lock(compilerMessageMutex_);
+        const std::scoped_lock lock(compilerMessageDispatchMutex_);
         if (compilerMessageListeners_.empty())
             return Result::Continue;
     }
@@ -808,7 +808,7 @@ Result CompilerInstance::executePendingCompilerMessages(TaskContext& ctx)
         CompilerMessageDispatchStep dispatch;
         bool                        found = false;
         {
-            const std::scoped_lock lock(compilerMessageMutex_);
+            const std::scoped_lock lock(compilerMessageDispatchMutex_);
             found = trySelectCompilerMessageDispatchStep(dispatch, compilerMessageListeners_, compilerMessageLog_);
         }
 
@@ -833,7 +833,7 @@ Result CompilerInstance::executePendingCompilerMessages(TaskContext& ctx)
             SWC_RESULT(SemaJIT::runStatementImmediate(*sema, *dispatch.function, dispatch.nodeRef));
         }
 
-        const std::scoped_lock lock(compilerMessageMutex_);
+        const std::scoped_lock lock(compilerMessageDispatchMutex_);
         auto&                  listener = compilerMessageListeners_[dispatch.listenerIndex];
         finalizeCompilerMessageDispatchStep(listener, dispatch, compilerMessageLog_.size());
 

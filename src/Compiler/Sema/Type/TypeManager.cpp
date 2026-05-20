@@ -90,8 +90,8 @@ void TypeManager::setup(TaskContext& ctx)
         mapRtKind_[idMgr.predefined(name)] = kind;
     }
 
-    for (TypeRef& rt : runtimeTypes_)
-        rt = TypeRef::invalid();
+    for (auto& rt : runtimeTypeRefs_)
+        rt.store(TypeRef::invalid().get(), std::memory_order_relaxed);
 
     typeIntUnsigned_ = addType(TypeInfo::makeInt(0, TypeInfo::Sign::Unsigned));
     typeIntSigned_   = addType(TypeInfo::makeInt(0, TypeInfo::Sign::Signed));
@@ -330,17 +330,16 @@ bool TypeManager::isRuntimeTypeInfoPointer(const TaskContext& ctx, TypeRef typeR
 
 void TypeManager::registerRuntimeType(IdentifierRef idRef, TypeRef typeRef)
 {
-    const std::unique_lock lk(mutexRt_);
     const auto             it = mapRtKind_.find(idRef);
     if (it == mapRtKind_.end())
         return;
-    runtimeTypes_[static_cast<uint32_t>(it->second)] = typeRef;
+
+    runtimeTypeRefs_[static_cast<uint32_t>(it->second)].store(typeRef.get(), std::memory_order_release);
 }
 
 TypeRef TypeManager::runtimeType(RuntimeTypeKind kind) const
 {
-    const std::shared_lock lk(mutexRt_);
-    return runtimeTypes_[static_cast<uint32_t>(kind)];
+    return TypeRef{runtimeTypeRefs_[static_cast<uint32_t>(kind)].load(std::memory_order_acquire)};
 }
 
 TypeRef TypeManager::runtimeType(IdentifierManager::PredefinedName name) const

@@ -378,6 +378,11 @@ private:
     void*                                              runtimeCompilerITable_[4]{};
     mutable std::shared_mutex                          stateMutex_;
     mutable std::shared_mutex                          sourceStorageMutex_;
+    mutable std::shared_mutex                          nativeCodeSegmentMutex_;
+    mutable std::shared_mutex                          nativeSpecialFunctionsMutex_;
+    mutable std::shared_mutex                          nativeGlobalFunctionInitTargetsMutex_;
+    mutable std::shared_mutex                          nativeGlobalVariablesMutex_;
+    mutable std::shared_mutex                          jitPreparedFunctionsMutex_;
     std::atomic<bool>                                  changed_{true};
     std::mutex                                         globalFunctionBindingsMutex_;
     std::atomic<uint64_t>                              globalFunctionBindingsVersion_{1};

@@ -128,13 +128,6 @@ namespace
         return inserted;
     }
 
-    template<typename T>
-    bool appendUniqueStateBuckets(std::shared_mutex& mutex, std::initializer_list<UniqueBucket<T>> buckets, T* value)
-    {
-        const std::unique_lock lock(mutex);
-        return appendUniqueBuckets(buckets, value);
-    }
-
     Utf8 buildCfgString(const Runtime::String& value)
     {
         if (!value.ptr || !value.length)
@@ -627,7 +620,13 @@ void CompilerInstance::registerNativeCodeFunction(SymbolFunction* symbol)
     if (!canRegisterNativeFunction(*this, *symbol, true))
         return;
 
-    if (appendUniqueStateBuckets(stateMutex_, {{&nativeCodeSegment_, &nativeCodeSegmentSet_}}, symbol))
+    bool inserted = false;
+    {
+        const std::unique_lock lock(nativeCodeSegmentMutex_);
+        inserted = appendUniqueBuckets({{&nativeCodeSegment_, &nativeCodeSegmentSet_}}, symbol);
+    }
+
+    if (inserted)
         notifyAlive();
 }
 
@@ -638,7 +637,13 @@ void CompilerInstance::registerNativeTestFunction(SymbolFunction* symbol)
     if (!canRegisterNativeFunction(*this, *symbol, false))
         return;
 
-    if (appendUniqueStateBuckets(stateMutex_, {{&nativeCodeSegment_, &nativeCodeSegmentSet_}, {&nativeTestFunctions_, &nativeTestFunctionsSet_}}, symbol))
+    bool inserted = false;
+    {
+        const std::scoped_lock lock(nativeCodeSegmentMutex_, nativeSpecialFunctionsMutex_);
+        inserted = appendUniqueBuckets({{&nativeCodeSegment_, &nativeCodeSegmentSet_}, {&nativeTestFunctions_, &nativeTestFunctionsSet_}}, symbol);
+    }
+
+    if (inserted)
         notifyAlive();
 }
 
@@ -649,7 +654,13 @@ void CompilerInstance::registerNativeInitFunction(SymbolFunction* symbol)
     if (!canRegisterNativeFunction(*this, *symbol, false))
         return;
 
-    if (appendUniqueStateBuckets(stateMutex_, {{&nativeCodeSegment_, &nativeCodeSegmentSet_}, {&nativeInitFunctions_, &nativeInitFunctionsSet_}}, symbol))
+    bool inserted = false;
+    {
+        const std::scoped_lock lock(nativeCodeSegmentMutex_, nativeSpecialFunctionsMutex_);
+        inserted = appendUniqueBuckets({{&nativeCodeSegment_, &nativeCodeSegmentSet_}, {&nativeInitFunctions_, &nativeInitFunctionsSet_}}, symbol);
+    }
+
+    if (inserted)
         notifyAlive();
 }
 
@@ -660,7 +671,13 @@ void CompilerInstance::registerNativePreMainFunction(SymbolFunction* symbol)
     if (!canRegisterNativeFunction(*this, *symbol, false))
         return;
 
-    if (appendUniqueStateBuckets(stateMutex_, {{&nativeCodeSegment_, &nativeCodeSegmentSet_}, {&nativePreMainFunctions_, &nativePreMainFunctionsSet_}}, symbol))
+    bool inserted = false;
+    {
+        const std::scoped_lock lock(nativeCodeSegmentMutex_, nativeSpecialFunctionsMutex_);
+        inserted = appendUniqueBuckets({{&nativeCodeSegment_, &nativeCodeSegmentSet_}, {&nativePreMainFunctions_, &nativePreMainFunctionsSet_}}, symbol);
+    }
+
+    if (inserted)
         notifyAlive();
 }
 
@@ -671,7 +688,13 @@ void CompilerInstance::registerNativeDropFunction(SymbolFunction* symbol)
     if (!canRegisterNativeFunction(*this, *symbol, false))
         return;
 
-    if (appendUniqueStateBuckets(stateMutex_, {{&nativeCodeSegment_, &nativeCodeSegmentSet_}, {&nativeDropFunctions_, &nativeDropFunctionsSet_}}, symbol))
+    bool inserted = false;
+    {
+        const std::scoped_lock lock(nativeCodeSegmentMutex_, nativeSpecialFunctionsMutex_);
+        inserted = appendUniqueBuckets({{&nativeCodeSegment_, &nativeCodeSegmentSet_}, {&nativeDropFunctions_, &nativeDropFunctionsSet_}}, symbol);
+    }
+
+    if (inserted)
         notifyAlive();
 }
 
@@ -682,7 +705,13 @@ void CompilerInstance::registerNativeMainFunction(SymbolFunction* symbol)
     if (!canRegisterNativeFunction(*this, *symbol, false))
         return;
 
-    if (appendUniqueStateBuckets(stateMutex_, {{&nativeCodeSegment_, &nativeCodeSegmentSet_}, {&nativeMainFunctions_, &nativeMainFunctionsSet_}}, symbol))
+    bool inserted = false;
+    {
+        const std::scoped_lock lock(nativeCodeSegmentMutex_, nativeSpecialFunctionsMutex_);
+        inserted = appendUniqueBuckets({{&nativeCodeSegment_, &nativeCodeSegmentSet_}, {&nativeMainFunctions_, &nativeMainFunctionsSet_}}, symbol);
+    }
+
+    if (inserted)
         notifyAlive();
 }
 
@@ -693,7 +722,13 @@ void CompilerInstance::registerNativeGlobalVariable(SymbolVariable* symbol)
     if (!canRegisterNativeGlobalVariable(*this, *symbol))
         return;
 
-    if (appendUniqueStateBuckets(stateMutex_, {{&nativeGlobalVariables_, &nativeGlobalVariablesSet_}}, symbol))
+    bool inserted = false;
+    {
+        const std::unique_lock lock(nativeGlobalVariablesMutex_);
+        inserted = appendUniqueBuckets({{&nativeGlobalVariables_, &nativeGlobalVariablesSet_}}, symbol);
+    }
+
+    if (inserted)
     {
         if (symbol->globalStorageKind() == DataSegmentKind::GlobalInit &&
             symbol->globalFunctionInit() != nullptr)
@@ -708,7 +743,13 @@ void CompilerInstance::registerNativeGlobalFunctionInitTarget(SymbolFunction* sy
     if (isImportedApiSource(*this, *symbol))
         return;
 
-    if (appendUniqueStateBuckets(stateMutex_, {{&nativeGlobalFunctionInitTargets_, &nativeGlobalFunctionInitTargetsSet_}}, symbol))
+    bool inserted = false;
+    {
+        const std::unique_lock lock(nativeGlobalFunctionInitTargetsMutex_);
+        inserted = appendUniqueBuckets({{&nativeGlobalFunctionInitTargets_, &nativeGlobalFunctionInitTargetsSet_}}, symbol);
+    }
+
+    if (inserted)
     {
         nativeGlobalFunctionInitTargetsVersion_.fetch_add(1, std::memory_order_release);
         invalidateGlobalFunctionBindings();
@@ -720,7 +761,13 @@ void CompilerInstance::registerPreparedJitFunction(SymbolFunction* symbol)
 {
     SWC_ASSERT(symbol != nullptr);
 
-    if (appendUniqueStateBuckets(stateMutex_, {{&jitPreparedFunctions_, &jitPreparedFunctionsSet_}}, symbol))
+    bool inserted = false;
+    {
+        const std::unique_lock lock(jitPreparedFunctionsMutex_);
+        inserted = appendUniqueBuckets({{&jitPreparedFunctions_, &jitPreparedFunctionsSet_}}, symbol);
+    }
+
+    if (inserted)
         invalidateGlobalFunctionBindings();
 }
 
@@ -751,7 +798,7 @@ void CompilerInstance::resetPreparedJitFunctions()
 {
     std::vector<SymbolFunction*> preparedFunctions;
     {
-        const std::unique_lock lock(stateMutex_);
+        const std::unique_lock lock(jitPreparedFunctionsMutex_);
         preparedFunctions.swap(jitPreparedFunctions_);
         jitPreparedFunctionsSet_.clear();
     }
@@ -765,19 +812,19 @@ void CompilerInstance::resetPreparedJitFunctions()
 
 std::vector<SymbolFunction*> CompilerInstance::nativeGlobalFunctionInitTargetsSnapshot() const
 {
-    const std::shared_lock lock(stateMutex_);
+    const std::shared_lock lock(nativeGlobalFunctionInitTargetsMutex_);
     return nativeGlobalFunctionInitTargets_;
 }
 
 std::vector<SymbolVariable*> CompilerInstance::nativeGlobalVariablesSnapshot() const
 {
-    const std::shared_lock lock(stateMutex_);
+    const std::shared_lock lock(nativeGlobalVariablesMutex_);
     return nativeGlobalVariables_;
 }
 
 std::vector<SymbolFunction*> CompilerInstance::jitPreparedFunctionsSnapshot() const
 {
-    const std::shared_lock lock(stateMutex_);
+    const std::shared_lock lock(jitPreparedFunctionsMutex_);
     return jitPreparedFunctions_;
 }
 

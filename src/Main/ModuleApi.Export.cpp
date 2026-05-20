@@ -325,7 +325,7 @@ namespace
 
     struct ModuleApiValidationStack
     {
-        SmallVector<const Symbol*> values;
+        SmallVector<const Symbol*>        values;
         std::unordered_set<const Symbol*> set;
 
         bool contains(const Symbol& symbol) const

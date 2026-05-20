@@ -503,8 +503,8 @@ const GeneratedB = 2
     TaskContext      generatedCtx(compiler);
 
     const fs::path generatedPath = (workDir.root() / "generated-source-0.swgsrc").lexically_normal();
-    SourceFile&     firstFile    = compiler.addLoadedFile(generatedPath, FileFlagsE::CustomSrc | FileFlagsE::SkipFmt, FIRST_CONTENT);
-    SourceFile&     secondFile   = compiler.addLoadedFile(generatedPath, FileFlagsE::CustomSrc | FileFlagsE::SkipFmt, SECOND_CONTENT);
+    SourceFile&    firstFile     = compiler.addLoadedFile(generatedPath, FileFlagsE::CustomSrc | FileFlagsE::SkipFmt, FIRST_CONTENT);
+    SourceFile&    secondFile    = compiler.addLoadedFile(generatedPath, FileFlagsE::CustomSrc | FileFlagsE::SkipFmt, SECOND_CONTENT);
 
     firstFile.ast().srcView().setLineOffset(0);
     secondFile.ast().srcView().setLineOffset(3);

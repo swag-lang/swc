@@ -452,7 +452,7 @@ std::string_view SemaSpecOp::specOpFunctionName(const SpecOpKind kind)
 void SemaSpecOp::addMissingDeclarationHelp(Sema& sema, Diagnostic& diag, const SymbolStruct& ownerStruct, SpecOpKind kind)
 {
     const SymbolStruct* rootStruct = ownerStruct.genericRootOrSelf();
-    DiagnosticElement* help = SemaError::addCurrentModuleHelp(sema, diag, *rootStruct, DiagnosticId::sema_help_missing_spec_op);
+    DiagnosticElement*  help       = SemaError::addCurrentModuleHelp(sema, diag, *rootStruct, DiagnosticId::sema_help_missing_spec_op);
     if (!help)
         return;
 

@@ -125,8 +125,8 @@ namespace
         if (!arg.cstRef.isValid() || !valueTypeRef.isValid())
             return;
 
-        TaskContext&         ctx = sema.ctx();
-        const ConstantValue& cst = ctx.cstMgr().get(arg.cstRef);
+        TaskContext&         ctx       = sema.ctx();
+        const ConstantValue& cst       = ctx.cstMgr().get(arg.cstRef);
         const uint64_t       valueSize = ctx.typeMgr().get(valueTypeRef).sizeOf(ctx);
         if (!valueSize)
             return;
@@ -143,27 +143,27 @@ namespace
     }
 
     template<typename T>
-    void exportGenericRuntimeTypeValues(Sema& sema,
-                                        DataSegment& storage,
-                                        uint32_t ownerOffset,
-                                        uint32_t genericsPtrFieldOffset,
-                                        T& rtType,
+    void exportGenericRuntimeTypeValues(Sema&                                          sema,
+                                        DataSegment&                                   storage,
+                                        uint32_t                                       ownerOffset,
+                                        uint32_t                                       genericsPtrFieldOffset,
+                                        T&                                             rtType,
                                         std::span<const SemaGeneric::GenericParamDesc> genericParams,
-                                        std::span<const GenericInstanceKey> genericArgs,
-                                        uint32_t& entryGenericsOffset,
-                                        uint32_t& entryGenericsCount,
-                                        SmallVector<TypeRef>& entryGenericTypes)
+                                        std::span<const GenericInstanceKey>            genericArgs,
+                                        uint32_t&                                      entryGenericsOffset,
+                                        uint32_t&                                      entryGenericsCount,
+                                        SmallVector<TypeRef>&                          entryGenericTypes)
     {
         if (genericArgs.empty())
             return;
 
         TaskContext& ctx = sema.ctx();
 
-        entryGenericsCount                  = static_cast<uint32_t>(genericArgs.size());
+        entryGenericsCount                       = static_cast<uint32_t>(genericArgs.size());
         const auto [genericsOffset, genericsPtr] = storage.reserveSpan<Runtime::TypeValue>(entryGenericsCount);
-        entryGenericsOffset                 = genericsOffset;
-        rtType.generics.ptr                 = genericsPtr;
-        rtType.generics.count               = entryGenericsCount;
+        entryGenericsOffset                      = genericsOffset;
+        rtType.generics.ptr                      = genericsPtr;
+        rtType.generics.count                    = entryGenericsCount;
         storage.addRelocation(ownerOffset + genericsPtrFieldOffset, genericsOffset);
 
         entryGenericTypes.reserve(entryGenericsCount);

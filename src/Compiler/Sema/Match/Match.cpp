@@ -235,7 +235,7 @@ namespace
             // Struct member lookup must also see members of `using` fields.
             if (lookUpCxt.symMapHint->isStruct())
             {
-                const auto& structSym = lookUpCxt.symMapHint->cast<SymbolStruct>();
+                const auto&                             structSym = lookUpCxt.symMapHint->cast<SymbolStruct>();
                 std::unordered_set<const SymbolStruct*> visited;
                 SWC_RESULT(addUsingMemberSymMaps(sema, lookUpCxt, structSym, searchOrder, visited));
             }

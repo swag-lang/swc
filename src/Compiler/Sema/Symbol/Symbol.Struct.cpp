@@ -771,12 +771,12 @@ namespace
 struct SymbolStruct::GenericData
 {
     // Keep generic-only state off the main symbol so non-generic structs stay compact.
-    GenericInstanceStorage          instances;
-    std::atomic<const TaskContext*> completionOwner = nullptr;
-    mutable std::atomic<uint32_t>   completionState = 0;
-    SymbolStruct*                   rootSym         = nullptr;
-    mutable std::recursive_mutex    evalRunMutex;
-    mutable std::shared_mutex       evalCacheMutex;
+    GenericInstanceStorage                        instances;
+    std::atomic<const TaskContext*>               completionOwner = nullptr;
+    mutable std::atomic<uint32_t>                 completionState = 0;
+    SymbolStruct*                                 rootSym         = nullptr;
+    mutable std::recursive_mutex                  evalRunMutex;
+    mutable std::shared_mutex                     evalCacheMutex;
     std::vector<SymbolInternal::GenericEvalEntry> evalCache;
 };
 

@@ -516,14 +516,14 @@ namespace
 
 struct SymbolFunction::GenericData
 {
-    GenericInstanceStorage          instances;
-    std::atomic<const TaskContext*> completionOwner = nullptr;
-    mutable std::atomic<uint32_t>   completionDepth = 0;
-    mutable std::atomic<bool>       nodeCompleted   = false;
-    SymbolFunction*                 rootSym         = nullptr;
-    std::shared_ptr<void>           lazyGenericBodyRun;
-    mutable std::recursive_mutex    evalRunMutex;
-    mutable std::shared_mutex       evalCacheMutex;
+    GenericInstanceStorage                        instances;
+    std::atomic<const TaskContext*>               completionOwner = nullptr;
+    mutable std::atomic<uint32_t>                 completionDepth = 0;
+    mutable std::atomic<bool>                     nodeCompleted   = false;
+    SymbolFunction*                               rootSym         = nullptr;
+    std::shared_ptr<void>                         lazyGenericBodyRun;
+    mutable std::recursive_mutex                  evalRunMutex;
+    mutable std::shared_mutex                     evalCacheMutex;
     std::vector<SymbolInternal::GenericEvalEntry> evalCache;
 };
 

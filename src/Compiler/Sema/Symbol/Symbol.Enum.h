@@ -60,9 +60,9 @@ private:
     TypeRef underlyingTypeRef_ = TypeRef::invalid();
     ApsInt  nextValue_;
 
-    mutable std::shared_mutex mutexImpls_;
-    std::vector<SymbolImpl*>  impls_;
-    std::unordered_set<SymbolImpl*>  implsSet_;
+    mutable std::shared_mutex       mutexImpls_;
+    std::vector<SymbolImpl*>        impls_;
+    std::unordered_set<SymbolImpl*> implsSet_;
 };
 
 SWC_END_NAMESPACE();

@@ -53,10 +53,10 @@ public:
     Result                       ensureInterfaceMethodTable(Sema& sema, ConstantRef& outRef) const;
 
 private:
-    std::vector<SymbolFunction*>   specOps_;
-    mutable std::mutex             interfaceMethodTableMutex_;
-    mutable ConstantRef            interfaceMethodTableRef_         = ConstantRef::invalid();
-    mutable std::atomic<uint32_t>  interfaceMethodTablePublishedRef_ = ConstantRef::invalid().get();
+    std::vector<SymbolFunction*>  specOps_;
+    mutable std::mutex            interfaceMethodTableMutex_;
+    mutable ConstantRef           interfaceMethodTableRef_          = ConstantRef::invalid();
+    mutable std::atomic<uint32_t> interfaceMethodTablePublishedRef_ = ConstantRef::invalid().get();
 
     union
     {

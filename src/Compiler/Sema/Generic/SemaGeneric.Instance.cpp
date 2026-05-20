@@ -1,9 +1,9 @@
 #include "pch.h"
+#include "Compiler/Sema/Generic/SemaGeneric.h"
 #include "Compiler/Sema/Cast/Cast.h"
 #include "Compiler/Sema/Cast/CastFailure.h"
 #include "Compiler/Sema/Cast/CastRequest.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
-#include "Compiler/Sema/Generic/SemaGeneric.h"
 #include "Compiler/Sema/Helpers/SemaInline.h"
 #include "Compiler/Sema/Helpers/SemaSpecOp.h"
 #include "Compiler/Sema/Symbol/Symbol.Enum.h"
@@ -25,8 +25,8 @@ namespace SemaGeneric
         using Internal::collectAmbientGenericFunctions;
         using Internal::evalGenericClonedNode;
         using Internal::FunctionWhereInputs;
-        using Internal::GenericEvalReadyKind;
         using Internal::genericDeclNodeRef;
+        using Internal::GenericEvalReadyKind;
         using Internal::genericFunctionDecl;
         using Internal::genericStructDeclNode;
         using Internal::genericStructParamSpan;
@@ -673,7 +673,7 @@ namespace SemaGeneric
 
         void resolveArgsFromEnclosingStruct(Sema& sema, const SymbolStruct& enclosingInstance, std::span<const GenericParamDesc> targetParams, std::span<GenericResolvedArg> resolvedArgs)
         {
-            SmallVector<GenericParamDesc> enclosingParams;
+            SmallVector<GenericParamDesc>   enclosingParams;
             SmallVector<GenericInstanceKey> enclosingArgs;
             if (!loadStructInstanceGenericArgs(sema, enclosingInstance, enclosingParams, enclosingArgs))
                 return;

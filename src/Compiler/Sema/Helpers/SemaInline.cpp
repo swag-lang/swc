@@ -119,7 +119,7 @@ namespace
     void appendFunctionGenericBindings(Sema& sema, const SymbolFunction& fn, SmallVector<SemaClone::ParamBinding>& outBindings)
     {
         SmallVector<SemaGeneric::GenericParamDesc> params;
-        SmallVector<GenericInstanceKey> args;
+        SmallVector<GenericInstanceKey>            args;
         if (!SemaGeneric::Internal::loadFunctionInstanceGenericArgs(sema, fn, params, args))
             return;
 
@@ -129,7 +129,7 @@ namespace
     void appendOwnerStructGenericBindings(Sema& sema, const SymbolFunction& fn, SmallVector<SemaClone::ParamBinding>& outBindings)
     {
         SmallVector<SemaGeneric::GenericParamDesc> params;
-        SmallVector<GenericInstanceKey> args;
+        SmallVector<GenericInstanceKey>            args;
         if (!SemaGeneric::Internal::loadOwnerStructGenericArgs(sema, fn, params, args))
             return;
 

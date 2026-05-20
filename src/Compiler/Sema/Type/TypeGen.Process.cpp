@@ -344,7 +344,7 @@ Result TypeGen::processTypeInfo(Sema& sema, TypeGenResult& result, DataSegment& 
     //
     // This is intentionally iterative to avoid recursion depth issues and to allow
     // pausing/resuming if needed by the compiler pipeline.
-    SmallVector<TypeRef>    stack;
+    SmallVector<TypeRef>        stack;
     std::unordered_set<TypeRef> stackSet;
     stack.push_back(typeRef);
     stackSet.insert(typeRef);

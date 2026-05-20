@@ -48,8 +48,8 @@ namespace
     template<typename T>
     struct UniqueBucket
     {
-        std::vector<T*>*            values = nullptr;
-        std::unordered_set<T*>*     seen   = nullptr;
+        std::vector<T*>*        values = nullptr;
+        std::unordered_set<T*>* seen   = nullptr;
     };
 
     template<typename T>
@@ -989,7 +989,7 @@ bool CompilerInstance::tryResolveSourceLocation(const TaskContext& ctx, Resolved
 
 bool CompilerInstance::tryResolveSourceLocation(const TaskContext& ctx, ResolvedSourceLocation& outResolvedLocation, const Runtime::SourceCodeLocation& location) const
 {
-    outResolvedLocation = {};
+    outResolvedLocation       = {};
     const SourceView* srcView = findSourceViewByLocation(location);
     if (!srcView)
         return false;
@@ -1049,8 +1049,8 @@ const SourceView* CompilerInstance::findSourceViewByLocation(const Runtime::Sour
 
     const fs::path wantedPath{std::string(locationFileName)};
     const Utf8     wantedPathNormalized = Utf8Helper::normalizePathForCompare(wantedPath);
-    const uint32_t requestedStartLine = location.lineStart ? location.lineStart : 1;
-    const uint32_t requestedEndLine   = location.lineEnd ? location.lineEnd : requestedStartLine;
+    const uint32_t requestedStartLine   = location.lineStart ? location.lineStart : 1;
+    const uint32_t requestedEndLine     = location.lineEnd ? location.lineEnd : requestedStartLine;
 
     if (const SourceView* srcView = findSourceViewByNormalizedPathAndRuntimeLine(wantedPathNormalized, requestedStartLine))
         return srcView;
@@ -1111,7 +1111,7 @@ void CompilerInstance::registerRuntimeFunctionSymbol(const IdentifierRef idRef, 
         return;
 
     SymbolFunction* expected = nullptr;
-    const bool inserted      = runtimeFunctionSymbols_[static_cast<size_t>(kind)].compare_exchange_strong(expected, symbol, std::memory_order_release, std::memory_order_acquire);
+    const bool      inserted = runtimeFunctionSymbols_[static_cast<size_t>(kind)].compare_exchange_strong(expected, symbol, std::memory_order_release, std::memory_order_acquire);
     if (inserted)
         notifyAlive();
 }
@@ -1281,7 +1281,7 @@ SourceFile& CompilerInstance::addResolvedFile(fs::path path, FileFlags flags)
     const std::unique_lock lock(sourceStorageMutex_);
     SWC_RACE_CONDITION_WRITE(rcFiles_);
     SWC_ASSERT(path.is_absolute());
-    path = path.lexically_normal();
+    path           = path.lexically_normal();
     const Utf8 key = Utf8Helper::normalizePathForCompare(path);
 
     SWC_ASSERT(files_.size() == fileLookup_->size());
@@ -1306,7 +1306,7 @@ SourceFile& CompilerInstance::addResolvedLoadedFile(fs::path path, FileFlags fla
     const std::unique_lock lock(sourceStorageMutex_);
     SWC_RACE_CONDITION_WRITE(rcFiles_);
     SWC_ASSERT(path.is_absolute());
-    path = path.lexically_normal();
+    path     = path.lexically_normal();
     Utf8 key = Utf8Helper::normalizePathForCompare(path);
 
     SWC_ASSERT(files_.size() == fileLookup_->size());

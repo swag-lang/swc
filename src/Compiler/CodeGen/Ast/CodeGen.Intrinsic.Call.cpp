@@ -864,7 +864,7 @@ namespace
         MicroBuilder&             builder       = codeGen.builder();
         builder.emitLoadRegImm(resultPayload.reg, ApInt(0, 64), MicroOpBits::B64);
 
-        SmallVector<const SymbolInterface*> interfaces;
+        SmallVector<const SymbolInterface*>        interfaces;
         std::unordered_set<const SymbolInterface*> seenInterfaces;
         if (const SymbolModule* rootModule = codeGen.compiler().symModule())
             collectRuntimeInterfaceSymbolsRec(*rootModule, interfaces, seenInterfaces);

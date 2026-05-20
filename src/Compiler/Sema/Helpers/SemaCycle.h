@@ -14,7 +14,7 @@ public:
     void check(TaskContext& ctx, JobClientId clientId);
 
 private:
-    using SymbolSet = std::unordered_set<const Symbol*>;
+    using SymbolSet      = std::unordered_set<const Symbol*>;
     using SymbolIndexMap = std::unordered_map<const Symbol*, size_t>;
 
     struct WaitGraph

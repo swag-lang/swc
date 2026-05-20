@@ -162,7 +162,7 @@ private:
     Shard                     shards_[SHARD_COUNT];
 
     // Runtime types
-    std::unordered_map<IdentifierRef, RuntimeTypeKind>                           mapRtKind_;
+    std::unordered_map<IdentifierRef, RuntimeTypeKind>                               mapRtKind_;
     std::array<std::atomic<uint32_t>, static_cast<uint32_t>(RuntimeTypeKind::Count)> runtimeTypeRefs_{};
 
     // Predefined types

@@ -330,7 +330,7 @@ bool TypeManager::isRuntimeTypeInfoPointer(const TaskContext& ctx, TypeRef typeR
 
 void TypeManager::registerRuntimeType(IdentifierRef idRef, TypeRef typeRef)
 {
-    const auto             it = mapRtKind_.find(idRef);
+    const auto it = mapRtKind_.find(idRef);
     if (it == mapRtKind_.end())
         return;
 

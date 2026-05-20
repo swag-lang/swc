@@ -729,7 +729,7 @@ Result AstFallThroughStmt::codeGenPostNode(CodeGen& codeGen)
         return Result::Continue;
 
     SWC_RESULT(codeGen.emitDeferredActionsUntilSwitchCase(caseRef));
-    MicroBuilder&       builder     = codeGen.builder();
+    MicroBuilder&       builder = codeGen.builder();
     const MicroLabelRef targetLabel =
         isDynamicStructSwitchCaseTarget(codeGen, switchRef, itCase->second.nextCaseRef) ? itCase->second.nextTestLabel : itCase->second.nextBodyLabel;
     builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, targetLabel);

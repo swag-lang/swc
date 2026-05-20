@@ -12,17 +12,17 @@ class SymbolMap : public Symbol
 public:
     explicit SymbolMap(const AstNode* decl, TokenRef tokRef, SymbolKind kind, IdentifierRef idRef, const SymbolFlags& flags);
 
-    Symbol*  addSymbol(TaskContext& ctx, Symbol* symbol, bool acceptHomonyms);
-    Symbol*  addSingleSymbol(TaskContext& ctx, Symbol* symbol);
-    Symbol*  addSingleSymbolOrError(Sema& sema, Symbol* symbol);
-    void     addUsingSymMap(SymbolMap* symMap);
-    void     copyUsingSymMaps(SmallVector<const SymbolMap*>& out) const;
+    Symbol*       addSymbol(TaskContext& ctx, Symbol* symbol, bool acceptHomonyms);
+    Symbol*       addSingleSymbol(TaskContext& ctx, Symbol* symbol);
+    Symbol*       addSingleSymbolOrError(Sema& sema, Symbol* symbol);
+    void          addUsingSymMap(SymbolMap* symMap);
+    void          copyUsingSymMaps(SmallVector<const SymbolMap*>& out) const;
     const Symbol* findFirstSymbol(IdentifierRef idRef, bool includeIgnored = false) const;
-    void     lookupAppend(IdentifierRef idRef, MatchContext& lookUpCxt) const;
-    void     getAllSymbols(std::vector<Symbol*>& out, bool includeIgnored = false) const;
-    void     getAllSymbols(std::vector<const Symbol*>& out, bool includeIgnored = false) const;
-    bool     empty() const noexcept;
-    uint32_t count() const noexcept { return count_; }
+    void          lookupAppend(IdentifierRef idRef, MatchContext& lookUpCxt) const;
+    void          getAllSymbols(std::vector<Symbol*>& out, bool includeIgnored = false) const;
+    void          getAllSymbols(std::vector<const Symbol*>& out, bool includeIgnored = false) const;
+    bool          empty() const noexcept;
+    uint32_t      count() const noexcept { return count_; }
 
 protected:
     struct Entry

@@ -1,6 +1,7 @@
 #import("dep")
 #import("deplib", link: "static-library")
 #import("ctxshared")
+#import("ctxbase", link: "static-library")
 #import("ctxdirect", link: "static-library")
 #run
 {

@@ -1,4 +1,4 @@
-using Dep, DepLib, Shrd, Dir
+using Dep, DepLib, Shrd, Base, Dir
 
 func keepDepScore(score: IDepScore)->IDepScore => score
 
@@ -84,8 +84,12 @@ func keepDepScore(score: IDepScore)->IDepScore => score
     @setcontext(cxt)
 
     let expectedContext = @getcontext().user2
+    @assert(ctxBaseReadContext() == 42)
     @assert(ctxSharedReadContext() == 42)
     @assert(ctxDirectReadContext() == 42)
+    @assert(ctxBaseContextMarker() == expectedContext)
     @assert(ctxSharedContextMarker() == expectedContext)
     @assert(ctxDirectContextMarker() == expectedContext)
+    @assert(ctxBaseInitCount() == 2)
+    @assert(ctxBasePreMainCount() == 2)
 }

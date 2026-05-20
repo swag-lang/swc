@@ -1995,12 +1995,14 @@ public const CTX_BASE_DROP_FLAG    = 0x0004'u64
 {
     @assert(@getcontext().allocator != null)
     @getcontext().user1 |= CTX_BASE_INIT_FLAG
+    @getcontext().user3 += 1
 }
 
 #premain
 {
     @assert((@getcontext().user1 & CTX_BASE_INIT_FLAG) != 0)
     @getcontext().user1 |= CTX_BASE_PREMAIN_FLAG
+    @getcontext().user3 += 0x100
 }
 
 #drop
@@ -2019,6 +2021,18 @@ public func ctxBaseContextMarker()->u64
 {
     @assert(@getcontext().allocator != null)
     return @getcontext().user2
+}
+
+public func ctxBaseInitCount()->u64
+{
+    @assert(@getcontext().allocator != null)
+    return @getcontext().user3 & 0xff
+}
+
+public func ctxBasePreMainCount()->u64
+{
+    @assert(@getcontext().allocator != null)
+    return (@getcontext().user3 >> 8) & 0xff
 }
 )"))
         return Result::Error;
@@ -2116,6 +2130,7 @@ public func ctxDirectContextMarker()->u64
         return Result::Error;
 
     if (!writeTextFile(appModuleDir / "module.swg", R"(#import("ctxshared")
+#import("ctxbase", link: "static-library")
 #import("ctxdirect", link: "static-library")
 #run
 {
@@ -2126,7 +2141,7 @@ public func ctxDirectContextMarker()->u64
 }
 )"))
         return Result::Error;
-    if (!writeTextFile(appModuleDir / "src" / "main.swg", R"(using Shrd, Dir
+    if (!writeTextFile(appModuleDir / "src" / "main.swg", R"(using Shrd, Base, Dir
 
 #init
 {
@@ -2154,10 +2169,14 @@ public func ctxDirectContextMarker()->u64
     cxt.user2 = cast(u64) @getcontext()
     @setcontext(cxt)
     let expectedContext = @getcontext().user2
+    @assert(ctxBaseReadContext() == 42)
     @assert(ctxSharedReadContext() == 42)
     @assert(ctxDirectReadContext() == 42)
+    @assert(ctxBaseContextMarker() == expectedContext)
     @assert(ctxSharedContextMarker() == expectedContext)
     @assert(ctxDirectContextMarker() == expectedContext)
+    @assert(ctxBaseInitCount() == 2)
+    @assert(ctxBasePreMainCount() == 2)
 }
 )"))
         return Result::Error;
@@ -2169,6 +2188,8 @@ public func ctxDirectContextMarker()->u64
     if (compiler.run() != ExitCode::Success)
         return Result::Error;
 
+    if (!fs::exists(workspaceDir / ".output" / "ctxbase" / "static-library" / "fast-debug" / "x86_64" / "ctxbase.lib"))
+        return Result::Error;
     if (!fs::exists(workspaceDir / ".output" / "ctxshared" / "shared-library" / "fast-debug" / "x86_64" / "ctxshared.dll"))
         return Result::Error;
     if (!fs::exists(workspaceDir / ".output" / "ctxdirect" / "static-library" / "fast-debug" / "x86_64" / "ctxdirect.lib"))

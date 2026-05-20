@@ -153,6 +153,41 @@ namespace
         }
     }
 
+    void emitLifecycleCalls(MicroBuilder& builder, const std::span<SymbolFunction* const> functions)
+    {
+        for (SymbolFunction* symbol : functions)
+            ABICall::callLocal(builder, symbol->callConvKind(), symbol, {});
+    }
+
+    template<typename F>
+    void emitGuardedRuntimeHookStage(MicroBuilder& builder, const MicroLabelRef stageLabel, const MicroLabelRef doneLabel, const RuntimeHookStage stage, const uint32_t lifecycleStateOffset, F&& body, uint32_t& nextVirtualIntRegIndex)
+    {
+        builder.placeLabel(stageLabel);
+
+        const MicroReg lifecycleStateReg = nextVirtualIntReg(nextVirtualIntRegIndex);
+        builder.emitLoadRegDataSegmentReloc(lifecycleStateReg, DataSegmentKind::GlobalZero, lifecycleStateOffset);
+
+        const MicroReg existingStateReg = nextVirtualIntReg(nextVirtualIntRegIndex);
+        builder.emitLoadRegMem(existingStateReg, lifecycleStateReg, 0, MicroOpBits::B32);
+
+        const MicroReg maskedStateReg = nextVirtualIntReg(nextVirtualIntRegIndex);
+        builder.emitLoadRegReg(maskedStateReg, existingStateReg, MicroOpBits::B32);
+
+        const uint32_t      doneMask  = runtimeHookStageDoneMask(stage);
+        const MicroLabelRef skipLabel = builder.createLabel();
+        builder.emitOpBinaryRegImm(maskedStateReg, ApInt(doneMask, 64), MicroOp::And, MicroOpBits::B32);
+        builder.emitCmpRegImm(maskedStateReg, ApInt(0, 64), MicroOpBits::B32);
+        builder.emitJumpToLabel(MicroCond::NotEqual, MicroOpBits::B32, skipLabel);
+
+        builder.emitOpBinaryRegImm(existingStateReg, ApInt(doneMask, 64), MicroOp::Or, MicroOpBits::B32);
+        builder.emitLoadMemReg(lifecycleStateReg, 0, existingStateReg, MicroOpBits::B32);
+
+        body();
+
+        builder.placeLabel(skipLabel);
+        builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, doneLabel);
+    }
+
     ConstantRef materializeRuntimeStringConstant(TaskContext& ctx, std::string_view value)
     {
         ConstantManager&  cstMgr          = ctx.cstMgr();
@@ -327,50 +362,20 @@ Result NativeArtifactBuilder::buildRuntimeHook(TaskContext& ctx) const
     builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, dropLabel);
     builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, doneLabel);
 
-    const auto emitGuardedStage = [&](const MicroLabelRef stageLabel, const RuntimeHookStage stage, const auto& body) {
-        builder.placeLabel(stageLabel);
-
-        const MicroReg lifecycleStateReg = nextVirtualIntReg(nextVirtualIntRegIndex);
-        builder.emitLoadRegDataSegmentReloc(lifecycleStateReg, DataSegmentKind::GlobalZero, lifecycleStateOffset);
-
-        const MicroReg existingStateReg = nextVirtualIntReg(nextVirtualIntRegIndex);
-        builder.emitLoadRegMem(existingStateReg, lifecycleStateReg, 0, MicroOpBits::B32);
-
-        const MicroReg maskedStateReg = nextVirtualIntReg(nextVirtualIntRegIndex);
-        builder.emitLoadRegReg(maskedStateReg, existingStateReg, MicroOpBits::B32);
-
-        const uint32_t     doneMask = runtimeHookStageDoneMask(stage);
-        const MicroLabelRef skipLabel = builder.createLabel();
-        builder.emitOpBinaryRegImm(maskedStateReg, ApInt(doneMask, 64), MicroOp::And, MicroOpBits::B32);
-        builder.emitCmpRegImm(maskedStateReg, ApInt(0, 64), MicroOpBits::B32);
-        builder.emitJumpToLabel(MicroCond::NotEqual, MicroOpBits::B32, skipLabel);
-
-        builder.emitOpBinaryRegImm(existingStateReg, ApInt(doneMask, 64), MicroOp::Or, MicroOpBits::B32);
-        builder.emitLoadMemReg(lifecycleStateReg, 0, existingStateReg, MicroOpBits::B32);
-
-        body();
-
-        builder.placeLabel(skipLabel);
-        builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, doneLabel);
-    };
-
-    emitGuardedStage(initLabel, RuntimeHookStage::Init, [&] {
+    emitGuardedRuntimeHookStage(builder, initLabel, doneLabel, RuntimeHookStage::Init, lifecycleStateOffset, [&] {
         emitRuntimeDependencyHookCalls(builder, *builder_, builder_->runtimeDependencyInitOrder, RuntimeHookStage::Init, tlsIdPlusOneReg, nextVirtualIntRegIndex);
-        for (SymbolFunction* symbol : builder_->initFunctions)
-            ABICall::callLocal(builder, symbol->callConvKind(), symbol, {});
-    });
+        emitLifecycleCalls(builder, builder_->initFunctions);
+    }, nextVirtualIntRegIndex);
 
-    emitGuardedStage(preMainLabel, RuntimeHookStage::PreMain, [&] {
+    emitGuardedRuntimeHookStage(builder, preMainLabel, doneLabel, RuntimeHookStage::PreMain, lifecycleStateOffset, [&] {
         emitRuntimeDependencyHookCalls(builder, *builder_, builder_->runtimeDependencyInitOrder, RuntimeHookStage::PreMain, tlsIdPlusOneReg, nextVirtualIntRegIndex);
-        for (SymbolFunction* symbol : builder_->preMainFunctions)
-            ABICall::callLocal(builder, symbol->callConvKind(), symbol, {});
-    });
+        emitLifecycleCalls(builder, builder_->preMainFunctions);
+    }, nextVirtualIntRegIndex);
 
-    emitGuardedStage(dropLabel, RuntimeHookStage::Drop, [&] {
-        for (SymbolFunction* symbol : builder_->dropFunctions)
-            ABICall::callLocal(builder, symbol->callConvKind(), symbol, {});
+    emitGuardedRuntimeHookStage(builder, dropLabel, doneLabel, RuntimeHookStage::Drop, lifecycleStateOffset, [&] {
+        emitLifecycleCalls(builder, builder_->dropFunctions);
         emitRuntimeDependencyHookCalls(builder, *builder_, builder_->runtimeDependencyDropOrder, RuntimeHookStage::Drop, tlsIdPlusOneReg, nextVirtualIntRegIndex);
-    });
+    }, nextVirtualIntRegIndex);
 
     builder.placeLabel(doneLabel);
     builder.emitRet();
@@ -912,11 +917,9 @@ Result NativeArtifactBuilder::buildStartup(TaskContext& ctx) const
     // The startup thunk runs compiler-generated lifecycle hooks and then hands off
     // process termination to the runtime wrapper for the active target.
     emitRuntimeDependencyHookCalls(builder, *builder_, builder_->runtimeDependencyInitOrder, RuntimeHookStage::Init, tlsIdPlusOneReg, nextVirtualIntRegIndex);
-    for (SymbolFunction* symbol : builder_->initFunctions)
-        ABICall::callLocal(builder, symbol->callConvKind(), symbol, {});
+    emitLifecycleCalls(builder, builder_->initFunctions);
     emitRuntimeDependencyHookCalls(builder, *builder_, builder_->runtimeDependencyInitOrder, RuntimeHookStage::PreMain, tlsIdPlusOneReg, nextVirtualIntRegIndex);
-    for (SymbolFunction* symbol : builder_->preMainFunctions)
-        ABICall::callLocal(builder, symbol->callConvKind(), symbol, {});
+    emitLifecycleCalls(builder, builder_->preMainFunctions);
 
     if (testCountInitFn)
     {
@@ -975,10 +978,8 @@ Result NativeArtifactBuilder::buildStartup(TaskContext& ctx) const
             ABICall::callLocal(builder, testCountTickFn->callConvKind(), testCountTickFn, preparedTick);
         }
     }
-    for (SymbolFunction* symbol : builder_->mainFunctions)
-        ABICall::callLocal(builder, symbol->callConvKind(), symbol, {});
-    for (SymbolFunction* symbol : builder_->dropFunctions)
-        ABICall::callLocal(builder, symbol->callConvKind(), symbol, {});
+    emitLifecycleCalls(builder, builder_->mainFunctions);
+    emitLifecycleCalls(builder, builder_->dropFunctions);
     emitRuntimeDependencyHookCalls(builder, *builder_, builder_->runtimeDependencyDropOrder, RuntimeHookStage::Drop, tlsIdPlusOneReg, nextVirtualIntRegIndex);
     if (testPrintDoneFn)
     {

@@ -126,7 +126,7 @@ public:
     AstNodeRef              findGenericEvalNode(const TaskContext& ctx, const Ast& ownerAst, AstNodeRef sourceRef, std::span<const SemaClone::ParamBinding> bindings) const;
     void                    cacheGenericEvalNode(const TaskContext& ctx, const Ast& ownerAst, AstNodeRef sourceRef, std::span<const SemaClone::ParamBinding> bindings, AstNodeRef evalRef) const;
     std::recursive_mutex&   genericEvalRunMutex(const TaskContext& ctx) const noexcept;
-    std::mutex&             lazyGenericBodyRunMutex() const noexcept { return metadataMutex_; }
+    std::mutex&             lazyGenericBodyRunMutex() const noexcept { return lazyGenericBodyRunMutex_; }
     std::shared_ptr<void>*  lazyGenericBodyRunState() const noexcept;
     std::shared_ptr<void>&  ensureLazyGenericBodyRunState(const TaskContext& ctx) const noexcept;
     static Result           jitBatch(TaskContext& ctx, std::span<SymbolFunction* const> functions);
@@ -197,7 +197,9 @@ private:
 
     MicroBuilder                      microInstrBuilder_;
     MachineCode                       loweredMicroCode_;
-    mutable std::mutex                metadataMutex_;
+    mutable std::shared_mutex         callDependenciesMutex_;
+    mutable std::mutex                closureAdapterMutex_;
+    mutable std::mutex                lazyGenericBodyRunMutex_;
     SymbolFunction*                   closureAdapter_ = nullptr;
     std::mutex                        emitMutex_;
     JITMemory                         jitExecMemory_;

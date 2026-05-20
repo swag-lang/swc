@@ -829,7 +829,7 @@ void SymbolFunction::addCallDependency(const SymbolFunction* sym)
         return;
 
     auto* const            mutableSym = const_cast<SymbolFunction*>(sym);
-    const std::scoped_lock lock(metadataMutex_);
+    const std::unique_lock lock(callDependenciesMutex_);
     if (!callDependencySet_.insert(mutableSym).second)
         return;
     callDependencies_.push_back(mutableSym);
@@ -837,7 +837,7 @@ void SymbolFunction::addCallDependency(const SymbolFunction* sym)
 
 void SymbolFunction::appendCallDependencies(SmallVector<SymbolFunction*>& out) const
 {
-    const std::scoped_lock lock(metadataMutex_);
+    const std::shared_lock lock(callDependenciesMutex_);
     out.reserve(out.size() + callDependencies_.size());
     for (SymbolFunction* dep : callDependencies_)
         out.push_back(dep);

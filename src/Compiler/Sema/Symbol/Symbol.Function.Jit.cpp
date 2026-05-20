@@ -347,7 +347,7 @@ Result SymbolFunction::ensureClosureAdapter(TaskContext& ctx, SymbolFunction*& o
     outAdapter = nullptr;
     SWC_ASSERT(isClosure());
 
-    const std::scoped_lock lock(metadataMutex_);
+    const std::scoped_lock lock(closureAdapterMutex_);
     if (closureAdapter_ != nullptr)
     {
         outAdapter = closureAdapter_;

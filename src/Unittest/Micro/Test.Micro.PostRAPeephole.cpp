@@ -20,7 +20,7 @@ namespace
         passManager.addStartPass(pass);
 
         MicroPassContext passContext;
-        passContext.callConvKind = CallConvKind::Host;
+        passContext.callConvKind = CallConvKind::Swag;
         return builder.runPasses(passManager, nullptr, passContext);
     }
 
@@ -53,7 +53,7 @@ SWC_TEST_END()
 
 SWC_TEST_BEGIN(PostRAPeephole_SelfCopy_B64_Erased)
 {
-    const CallConv& conv = CallConv::get(CallConvKind::Host);
+    const CallConv& conv = CallConv::get(CallConvKind::Swag);
     MicroBuilder    builder(ctx);
 
     builder.emitLoadRegReg(conv.intReturn, conv.intReturn, MicroOpBits::B64);
@@ -69,7 +69,7 @@ SWC_TEST_END()
 
 SWC_TEST_BEGIN(PostRAPeephole_SelfCopy_IntB32_Preserved)
 {
-    const CallConv& conv = CallConv::get(CallConvKind::Host);
+    const CallConv& conv = CallConv::get(CallConvKind::Swag);
     MicroBuilder    builder(ctx);
 
     builder.emitLoadRegReg(conv.intReturn, conv.intReturn, MicroOpBits::B32);
@@ -85,7 +85,7 @@ SWC_TEST_END()
 
 SWC_TEST_BEGIN(PostRAPeephole_FallthroughJumpSkipsTrivialGap)
 {
-    const CallConv&     conv = CallConv::get(CallConvKind::Host);
+    const CallConv&     conv = CallConv::get(CallConvKind::Swag);
     MicroBuilder        builder(ctx);
     const MicroLabelRef nextLabel = builder.createLabel();
 
@@ -109,7 +109,7 @@ SWC_TEST_END()
 
 SWC_TEST_BEGIN(PostRAPeephole_DeadCompareBeforeRet_Erased)
 {
-    const CallConv& conv = CallConv::get(CallConvKind::Host);
+    const CallConv& conv = CallConv::get(CallConvKind::Swag);
     MicroBuilder    builder(ctx);
 
     builder.emitCmpRegReg(conv.intRegs[0], conv.intRegs[1], MicroOpBits::B64);
@@ -125,7 +125,7 @@ SWC_TEST_END()
 
 SWC_TEST_BEGIN(PostRAPeephole_DeadCompareAfterRedundantJump_Erased)
 {
-    const CallConv&     conv = CallConv::get(CallConvKind::Host);
+    const CallConv&     conv = CallConv::get(CallConvKind::Swag);
     MicroBuilder        builder(ctx);
     const MicroLabelRef nextLabel = builder.createLabel();
 
@@ -146,7 +146,7 @@ SWC_TEST_END()
 
 SWC_TEST_BEGIN(PostRAPeephole_LiveCompareForBranch_Preserved)
 {
-    const CallConv&     conv = CallConv::get(CallConvKind::Host);
+    const CallConv&     conv = CallConv::get(CallConvKind::Swag);
     MicroBuilder        builder(ctx);
     const MicroLabelRef takenLabel = builder.createLabel();
 

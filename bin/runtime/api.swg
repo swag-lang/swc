@@ -22,7 +22,7 @@ namespace Swag
     {
         C          // Target C ABI for the selected platform
         WindowsX64 // Concrete Windows x64 ABI
-        Host       // Swag compiled/JIT ABI for the current target runtime
+        Swag       // Swag compiled/JIT ABI for the current target runtime
     }
 
     // #########################################################

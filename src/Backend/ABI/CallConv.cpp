@@ -5,10 +5,10 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    constexpr size_t K_CALL_CONV_COUNT = static_cast<size_t>(CallConvKind::Host) + 1;
+    constexpr size_t K_CALL_CONV_COUNT = static_cast<size_t>(CallConvKind::Swag) + 1;
     CallConv         g_CallConvs[K_CALL_CONV_COUNT];
 
-    CallConvKind resolveHostCallConvKind()
+    CallConvKind resolveNativeTargetCallConvKind()
     {
 #if defined(_WIN32) && defined(_M_X64)
         return CallConvKind::WindowsX64;
@@ -203,17 +203,17 @@ void CallConv::setup()
 {
     setupCallConvWindowsX64(g_CallConvs[static_cast<size_t>(CallConvKind::WindowsX64)]);
 
-    const auto hostCallConvKind                    = resolveHostCallConvKind();
-    auto&      host                                = g_CallConvs[static_cast<size_t>(CallConvKind::Host)];
+    const auto nativeTargetCallConvKind            = resolveNativeTargetCallConvKind();
+    auto&      swag                                = g_CallConvs[static_cast<size_t>(CallConvKind::Swag)];
     auto&      c                                   = g_CallConvs[static_cast<size_t>(CallConvKind::C)];
-    host                                           = g_CallConvs[static_cast<size_t>(hostCallConvKind)];
-    c                                              = g_CallConvs[static_cast<size_t>(hostCallConvKind)];
-    host.name                                      = "host";
+    swag                                           = g_CallConvs[static_cast<size_t>(nativeTargetCallConvKind)];
+    c                                              = g_CallConvs[static_cast<size_t>(nativeTargetCallConvKind)];
+    swag.name                                      = "swag";
     c.name                                         = "c";
-    // Host keeps Swag's internal ABI stable for compiled/JIT calls on the current target:
+    // Swag keeps the language internal ABI stable for compiled/JIT calls on the current target:
     // it reuses the native register/stack contract, but keeps aggregate arguments indirect.
-    host.structArgPassing.passByValueSizeMask      = 0;
-    host.structArgPassing.passByReferenceNeedsCopy = false;
+    swag.structArgPassing.passByValueSizeMask      = 0;
+    swag.structArgPassing.passByReferenceNeedsCopy = false;
 }
 
 const CallConv& CallConv::get(CallConvKind kind)
@@ -223,9 +223,9 @@ const CallConv& CallConv::get(CallConvKind kind)
     return g_CallConvs[index];
 }
 
-const CallConv& CallConv::host()
+const CallConv& CallConv::swag()
 {
-    return get(CallConvKind::Host);
+    return get(CallConvKind::Swag);
 }
 
 SWC_END_NAMESPACE();

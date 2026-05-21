@@ -309,12 +309,12 @@ SWC_TEST_BEGIN(FFI_CallNativePointerArg)
 }
 SWC_TEST_END()
 
-SWC_TEST_BEGIN(ABI_HostStructArgsAreBorrowed)
+SWC_TEST_BEGIN(ABI_SwagStructArgsAreBorrowed)
 {
-    const CallConv& host = CallConv::host();
-    if (host.classifyStructArgPassing(sizeof(FFIStructPair32)) != StructArgPassingKind::ByReference)
+    const CallConv& swag = CallConv::swag();
+    if (swag.classifyStructArgPassing(sizeof(FFIStructPair32)) != StructArgPassingKind::ByReference)
         return Result::Error;
-    if (host.structArgPassing.passByReferenceNeedsCopy)
+    if (swag.structArgPassing.passByReferenceNeedsCopy)
         return Result::Error;
 
     const CallConv& c = CallConv::get(CallConvKind::C);

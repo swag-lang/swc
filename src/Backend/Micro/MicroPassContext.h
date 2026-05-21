@@ -22,7 +22,7 @@ struct MicroPassContext
     MicroStorage*         instructions            = nullptr;
     MicroOperandStorage*  operands                = nullptr;
     std::span<const Utf8> passPrintOptions        = {};
-    CallConvKind          callConvKind            = CallConvKind::Host;
+    CallConvKind          callConvKind            = CallConvKind::Swag;
     bool                  preservePersistentRegs  = false;
     bool                  forceFramePointer       = false;
     bool                  validateMicro           = false;

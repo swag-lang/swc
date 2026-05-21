@@ -438,7 +438,7 @@ namespace
         TaskContext&                           ctx            = sema.ctx();
         const TypeRef                          storageTypeRef = computeRunExprStorageTypeRef(sema, exprTypeRef);
         const TypeInfo&                        storageType    = sema.typeMgr().get(storageTypeRef);
-        const ABITypeNormalize::NormalizedType normalizedRet  = ABITypeNormalize::normalize(ctx, CallConv::host(), exprTypeRef, ABITypeNormalize::Usage::Return);
+        const ABITypeNormalize::NormalizedType normalizedRet  = ABITypeNormalize::normalize(ctx, CallConv::swag(), exprTypeRef, ABITypeNormalize::Usage::Return);
         SWC_ASSERT(!storageType.isVoid());
 
         uint64_t resultSize = storageType.sizeOf(ctx);

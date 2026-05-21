@@ -323,7 +323,7 @@ namespace
                     appendPublicApiSymbolFragment(out, "variadic");
                 if (function.isThrowable())
                     appendPublicApiSymbolFragment(out, "throw");
-                if (function.callConvKind() != CallConvKind::Host)
+                if (function.callConvKind() != CallConvKind::Swag)
                 {
                     appendPublicApiSymbolFragment(out, "cc");
                     appendPublicApiSymbolFragment(out, CallConv::get(function.callConvKind()).name);
@@ -449,7 +449,7 @@ namespace
             appendPublicApiSymbolFragment(result, "variadic");
         if (symbol.isThrowable())
             appendPublicApiSymbolFragment(result, "throw");
-        if (symbol.callConvKind() != CallConvKind::Host)
+        if (symbol.callConvKind() != CallConvKind::Swag)
         {
             appendPublicApiSymbolFragment(result, "cc");
             appendPublicApiSymbolFragment(result, CallConv::get(symbol.callConvKind()).name);

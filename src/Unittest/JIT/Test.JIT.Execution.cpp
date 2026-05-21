@@ -21,7 +21,7 @@ namespace
 
     Result runCase(TaskContext& ctx, void (*buildFn)(MicroBuilder&, const CallConv&), uint64_t expectedResult)
     {
-        const CallConv& callConv = CallConv::host();
+        const CallConv& callConv = CallConv::swag();
 
         MicroBuilder builder(ctx);
         buildFn(builder, callConv);
@@ -180,7 +180,7 @@ SWC_TEST_END()
 
 SWC_TEST_BEGIN(JIT_PersistentRegPreservedAcrossCall)
 {
-    const CallConv& callConv = CallConv::host();
+    const CallConv& callConv = CallConv::swag();
 
     MicroBuilder calleeBuilder(ctx);
     calleeBuilder.emitLoadRegImm(MicroReg::intReg(15), ApInt(0x1234, 64), MicroOpBits::B64);
@@ -200,7 +200,7 @@ SWC_TEST_BEGIN(JIT_PersistentRegPreservedAcrossCall)
     MicroBuilder callerBuilder(ctx);
     callerBuilder.emitLoadRegImm(MicroReg::intReg(15), ApInt(7, 64), MicroOpBits::B64);
     callerBuilder.emitLoadRegPtrImm(MicroReg::intReg(10), reinterpret_cast<uint64_t>(calleeFn));
-    callerBuilder.emitCallReg(MicroReg::intReg(10), CallConvKind::Host);
+    callerBuilder.emitCallReg(MicroReg::intReg(10), CallConvKind::Swag);
     callerBuilder.emitOpBinaryRegImm(MicroReg::intReg(15), ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
     callerBuilder.emitLoadRegReg(callConv.intReturn, MicroReg::intReg(15), MicroOpBits::B64);
     callerBuilder.emitRet();

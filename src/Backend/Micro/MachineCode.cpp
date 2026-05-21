@@ -46,7 +46,7 @@ Result MachineCode::emit(TaskContext& ctx, MicroBuilder& builder)
     const bool                      computeUnwindInfo = backendBuildCfg.enableExceptions || backendBuildCfg.debugInfo;
 
     MicroPassContext passContext;
-    passContext.callConvKind           = CallConvKind::Host;
+    passContext.callConvKind           = CallConvKind::Swag;
     passContext.preservePersistentRegs = true;
     passContext.forceFramePointer      = computeUnwindInfo;
 

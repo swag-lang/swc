@@ -81,8 +81,8 @@ namespace
         const IdentifierRef idRef = builder.ctx().idMgr().addIdentifier(dependency.hookSymbolName.view());
         auto*               hook  = Symbol::make<SymbolFunction>(builder.ctx(), nullptr, TokenRef::invalid(), idRef, syntheticFlags);
         hook->setReturnTypeRef(builder.ctx().typeMgr().typeVoid());
-        hook->setCallConvKind(CallConvKind::Host);
-        hook->ensureAttributes(builder.ctx()).setForeign(dependency.linkModuleName.view(), dependency.hookSymbolName.view(), dependency.linkModuleName.view(), CallConvKind::Host);
+        hook->setCallConvKind(CallConvKind::Swag);
+        hook->ensureAttributes(builder.ctx()).setForeign(dependency.linkModuleName.view(), dependency.hookSymbolName.view(), dependency.linkModuleName.view(), CallConvKind::Swag);
         return hook;
     }
 

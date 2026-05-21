@@ -24,7 +24,7 @@ namespace
         passManager.addStartPass(pass);
 
         MicroPassContext passContext;
-        passContext.callConvKind = CallConvKind::Host;
+        passContext.callConvKind = CallConvKind::Swag;
         return builder.runPasses(passManager, nullptr, passContext);
     }
 
@@ -292,12 +292,12 @@ SWC_TEST_BEGIN(MicroStackAdjustNormalize_SkipsCallsBelowMaxDepth)
 
     builder.emitOpBinaryRegImm(rsp, ApInt(40, 64), MicroOp::Subtract, MicroOpBits::B64);
     builder.emitLoadMemReg(rsp, 0, r10, MicroOpBits::B64);
-    builder.emitCallReg(rax, CallConvKind::Host);
+    builder.emitCallReg(rax, CallConvKind::Swag);
     builder.emitOpBinaryRegImm(rsp, ApInt(40, 64), MicroOp::Add, MicroOpBits::B64);
 
     builder.emitOpBinaryRegImm(rsp, ApInt(56, 64), MicroOp::Subtract, MicroOpBits::B64);
     builder.emitLoadMemReg(rsp, 32, r11, MicroOpBits::B64);
-    builder.emitCallReg(rax, CallConvKind::Host);
+    builder.emitCallReg(rax, CallConvKind::Swag);
     builder.emitOpBinaryRegImm(rsp, ApInt(56, 64), MicroOp::Add, MicroOpBits::B64);
 
     builder.emitRet();

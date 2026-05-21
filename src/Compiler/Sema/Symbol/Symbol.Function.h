@@ -189,7 +189,7 @@ private:
     TypeRef                                   returnType_          = TypeRef::invalid();
     uint8_t                                   rtAttributeBitIndex_ = K_INVALID_RT_ATTRIBUTE_BIT_INDEX;
     SpecOpKind                                specOpKind_          = SpecOpKind::None;
-    CallConvKind                              callConvKind_        = CallConvKind::Host;
+    CallConvKind                              callConvKind_        = CallConvKind::Swag;
     AstNodeRef                                declNodeRef_         = AstNodeRef::invalid();
     const NodePayload*                        declNodePayloadCtx_  = nullptr;
     uint32_t                                  interfaceMethodSlot_ = K_INVALID_INTERFACE_METHOD_SLOT;

@@ -20,7 +20,7 @@ namespace
         passManager.addStartPass(pass);
 
         MicroPassContext passContext;
-        passContext.callConvKind = CallConvKind::Host;
+        passContext.callConvKind = CallConvKind::Swag;
         return builder.runPasses(passManager, nullptr, passContext);
     }
 
@@ -167,7 +167,7 @@ SWC_TEST_END()
 // Replacing v2 by v1 must carry v2's forbidden physical-register set onto v1.
 SWC_TEST_BEGIN(CopyElim_TransfersForbiddenPhysRegsToCanonicalSource)
 {
-    const CallConv&    callConv = CallConv::get(CallConvKind::Host);
+    const CallConv&    callConv = CallConv::get(CallConvKind::Swag);
     constexpr MicroReg v1       = MicroReg::virtualIntReg(1);
     constexpr MicroReg v2       = MicroReg::virtualIntReg(2);
     MicroBuilder       builder(ctx);

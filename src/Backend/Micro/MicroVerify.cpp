@@ -94,7 +94,7 @@ namespace
 
     bool isValidCallConv(const CallConvKind kind)
     {
-        return static_cast<uint8_t>(kind) <= static_cast<uint8_t>(CallConvKind::Host);
+        return static_cast<uint8_t>(kind) <= static_cast<uint8_t>(CallConvKind::Swag);
     }
 
     bool isValidAnyRegister(const MicroReg reg)

@@ -334,7 +334,7 @@ Result NativeArtifactBuilder::buildRuntimeHook(TaskContext& ctx) const
     builder.setBackendBuildCfg(compiler.buildCfg().backend);
     uint32_t nextVirtualIntRegIndex = builder.nextVirtualIntRegIndexHint();
 
-    const CallConv& callConv = CallConv::host();
+    const CallConv& callConv = CallConv::swag();
     SWC_ASSERT(callConv.intArgRegs.size() >= 2);
     if (callConv.intArgRegs.size() < 2)
         return builder_->reportError(DiagnosticId::cmd_err_native_test_entry_lower_failed);

@@ -19,7 +19,7 @@ namespace
         passManager.addStartPass(pass);
 
         MicroPassContext passContext;
-        passContext.callConvKind      = CallConvKind::Host;
+        passContext.callConvKind      = CallConvKind::Swag;
         passContext.forceFramePointer = forceFramePointer;
         return builder.runPasses(passManager, nullptr, passContext);
     }

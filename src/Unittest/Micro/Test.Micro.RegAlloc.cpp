@@ -21,7 +21,7 @@ namespace
         static constexpr std::array CALL_CONVS = {
             CallConvKind::C,
             CallConvKind::WindowsX64,
-            CallConvKind::Host,
+            CallConvKind::Swag,
         };
         return CALL_CONVS;
     }

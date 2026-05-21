@@ -11,7 +11,7 @@ enum class CallConvKind : uint8_t
     // Concrete Windows x64 ABI.
     WindowsX64,
     // Swag's default compiled/JIT ABI for the current target runtime.
-    Host,
+    Swag,
 };
 
 constexpr bool isValidCallConvKind(CallConvKind kind) noexcept
@@ -20,7 +20,7 @@ constexpr bool isValidCallConvKind(CallConvKind kind) noexcept
     {
         case CallConvKind::C:
         case CallConvKind::WindowsX64:
-        case CallConvKind::Host:
+        case CallConvKind::Swag:
             return true;
     }
 
@@ -92,7 +92,7 @@ struct CallConv
 
     static void            setup();
     static const CallConv& get(CallConvKind kind);
-    static const CallConv& host();
+    static const CallConv& swag();
 };
 
 SWC_END_NAMESPACE();

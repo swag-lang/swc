@@ -1536,8 +1536,8 @@ namespace
             case CallConvKind::WindowsX64:
                 callConvName = "Swag.CallConv.WindowsX64";
                 break;
-            case CallConvKind::Host:
-                callConvName = "Swag.CallConv.Host";
+            case CallConvKind::Swag:
+                callConvName = "Swag.CallConv.Swag";
                 break;
             default:
                 SWC_UNREACHABLE();

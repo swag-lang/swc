@@ -97,6 +97,17 @@ using Swag
 
 #test
 {
+    var overload: Parser.RegExp
+
+    @assert(assume overload.match(#"(\d+)"#, "123"))
+    @assert(overload.getCapture(1) == "123")
+    @assert(!(assume overload.match(#"(\d+)"#, "abc")))
+    @assert(overload.getCaptures().count == 0)
+    @assert(assume overload.match("AbC", "abc", true))
+}
+
+#test
+{
     var repeated = assume Parser.RegExp.create(#"([a-z])\1"#)
 
     @assert(repeated.match("ll"))
@@ -122,6 +133,72 @@ using Swag
     @assert(all[0] == "12")
     @assert(all[1] == "345")
     @assert(all[2] == "6")
+}
+
+#test
+{
+    let first = assume Parser.RegExp.grep(#"\d+"#, "aa12bb34")
+    let none  = assume Parser.RegExp.grepAll(#"\d+"#, null)
+    var part  = assume Parser.RegExp.create(#"\d+"#)
+
+    @assert(first == "12")
+    @assert(none.count == 0)
+    @assert(part.partialMatch(null) == null)
+}
+
+#test
+{
+    var anchored = assume Parser.RegExp.create(#"^\bcat\b$"#)
+    var letters  = assume Parser.RegExp.create(#"\pL+"#)
+
+    @assert(anchored.match("cat"))
+    @assert(!anchored.match("scatter"))
+    @assert(letters.match("Cafe"))
+    @assert(letters.match("CafeNoir"))
+}
+
+#test
+{
+    var star = assume Parser.RegExp.create(#"ba{0,}c"#)
+    var opt  = assume Parser.RegExp.create(#"ba{0,1}c"#)
+    var plus = assume Parser.RegExp.create(#"ba{1,}c"#)
+    var same = assume Parser.RegExp.create(#"ba{1,1}c"#)
+
+    @assert(star.match("bc"))
+    @assert(star.match("baaac"))
+    @assert(opt.match("bc"))
+    @assert(opt.match("bac"))
+    @assert(!opt.match("baac"))
+    @assert(plus.match("bac"))
+    @assert(plus.match("baaac"))
+    @assert(!plus.match("bc"))
+    @assert(same.match("bac"))
+    @assert(!same.match("baac"))
+}
+
+#test
+{
+    var blanks      = assume Parser.RegExp.create(#"\s+\t\l+"#)
+    var nonDigits   = assume Parser.RegExp.create(#"\D+"#)
+    var nonWords    = assume Parser.RegExp.create(#"\W+"#)
+    var nonSpaces   = assume Parser.RegExp.create(#"\S+"#)
+    var unicodeLow  = assume Parser.RegExp.create(#"\p{Ll}+"#, true)
+    var unicodeUp   = assume Parser.RegExp.create(#"\p{Lu}+"#)
+    var unicodeNum  = assume Parser.RegExp.create(#"\pN+"#)
+    var unicodeMath = assume Parser.RegExp.create(#"\p{Sm}+"#)
+
+    @assert(blanks.match(" \tabc"))
+    @assert(nonDigits.match("abc!?"))
+    @assert(!nonDigits.match("abc3"))
+    @assert(nonWords.match("!? "))
+    @assert(!nonWords.match("word_"))
+    @assert(nonSpaces.match("abc!?"))
+    @assert(!nonSpaces.match("abc "))
+    @assert(unicodeLow.match("AbC"))
+    @assert(unicodeUp.match("ABC"))
+    @assert(!unicodeUp.match("AbC"))
+    @assert(unicodeNum.match("123"))
+    @assert(unicodeMath.match("+="))
 }
 
 #test

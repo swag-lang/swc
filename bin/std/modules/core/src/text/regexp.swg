@@ -262,7 +262,15 @@ impl RegExp
             if !val do
                 break
             result.add(val)
-            let newStart = @dataof(val) + @countof(val)
+
+            var newStart = @dataof(val) + @countof(val)
+            if newStart == @dataof(res)
+            {
+                // Empty matches are valid, but a grep-all must still move forward.
+                let (_, eat) = Utf8.decodeRune(@mkslice(newStart, end - newStart))
+                newStart += eat
+            }
+
             res = @mkstring(newStart, end - newStart)
         }
 

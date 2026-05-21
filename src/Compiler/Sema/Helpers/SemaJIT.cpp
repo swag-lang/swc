@@ -325,8 +325,33 @@ namespace
         }
     }
 
+    bool jitEntryNeedsRuntimeSetup(Sema& sema, const SymbolFunction& symFn)
+    {
+        if (sema.idMgr().runtimeFunctionKind(symFn.idRef()) == IdentifierManager::RuntimeFunctionKind::SetupRuntime)
+            return false;
+        if (!symFn.srcViewRef().isValid())
+            return true;
+        return !sema.compiler().srcView(symFn.srcViewRef()).isRuntimeFile();
+    }
+
+    Result prepareJitFunction(Sema& sema, SymbolFunction& symFn);
+    Result prepareJitSetupRuntimeFunction(Sema& sema, SymbolFunction& symFn)
+    {
+        if (!jitEntryNeedsRuntimeSetup(sema, symFn))
+            return Result::Continue;
+
+        SymbolFunction* setupFn = nullptr;
+        SWC_RESULT(sema.waitRuntimeFunction(IdentifierManager::RuntimeFunctionKind::SetupRuntime, setupFn, symFn.codeRef()));
+        if (!setupFn || setupFn == &symFn)
+            return Result::Continue;
+
+        return prepareJitFunction(sema, *setupFn);
+    }
+
     Result prepareJitFunction(Sema& sema, SymbolFunction& symFn)
     {
+        SWC_RESULT(prepareJitSetupRuntimeFunction(sema, symFn));
+
         TaskContext& ctx                  = sema.ctx();
         ctx.state().jitEmissionError      = false;
         const uint64_t initTargetsVersion = sema.compiler().nativeGlobalFunctionInitTargetsVersion();

@@ -599,10 +599,8 @@ uint32_t CompilerInstance::nativeProcessInfosOffset()
 
 void CompilerInstance::initPerThreadRuntimeContextForJit()
 {
-    PerThreadData& td              = perThreadData_[JobManager::threadIndex()];
-    td.runtimeContext.runtimeFlags = Runtime::RuntimeFlags::FromCompiler;
-    if (!td.runtimeContext.allocator.obj || !td.runtimeContext.allocator.itable)
-        td.runtimeContext.allocator = runtimeAllocator();
+    PerThreadData& td        = perThreadData_[JobManager::threadIndex()];
+    td.runtimeContext.allocator = runtimeAllocator();
     setRuntimeContextForCurrentThread(&td.runtimeContext);
 
     if (nativeRuntimeContextTlsIdOffset_ != UINT32_MAX)

@@ -111,6 +111,9 @@ void IdentifierManager::setup(const TaskContext& ctx)
         {.name = PredefinedName::BuildCfg, .str = "BuildCfg"},
         {.name = PredefinedName::RuntimeExit, .str = "__exit"},
         {.name = PredefinedName::RuntimeEnsureRuntimeAllocator, .str = "__ensureRuntimeAllocator"},
+        {.name = PredefinedName::RuntimeSetupRuntime, .str = "__setupRuntime"},
+        {.name = PredefinedName::RuntimeReleaseRuntime, .str = "__releaseRuntime"},
+        {.name = PredefinedName::RuntimeCloseRuntime, .str = "__closeRuntime"},
         {.name = PredefinedName::RuntimeTestCountInit, .str = "__testCountInit"},
         {.name = PredefinedName::RuntimeTestPrintStart, .str = "__testPrintStart"},
         {.name = PredefinedName::RuntimeTestPrintProgress, .str = "__testPrintProgress"},
@@ -141,6 +144,9 @@ void IdentifierManager::setup(const TaskContext& ctx)
 
     runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::Exit)]                   = predefined(PredefinedName::RuntimeExit);
     runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::EnsureRuntimeAllocator)] = predefined(PredefinedName::RuntimeEnsureRuntimeAllocator);
+    runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::SetupRuntime)]           = predefined(PredefinedName::RuntimeSetupRuntime);
+    runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::ReleaseRuntime)]         = predefined(PredefinedName::RuntimeReleaseRuntime);
+    runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::CloseRuntime)]           = predefined(PredefinedName::RuntimeCloseRuntime);
     runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::TestCountInit)]          = predefined(PredefinedName::RuntimeTestCountInit);
     runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::TestPrintStart)]         = predefined(PredefinedName::RuntimeTestPrintStart);
     runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::TestPrintProgress)]      = predefined(PredefinedName::RuntimeTestPrintProgress);

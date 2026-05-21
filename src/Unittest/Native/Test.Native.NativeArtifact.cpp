@@ -587,17 +587,17 @@ SWC_FILESYSTEM_TEST_BEGIN(NativeArtifact_DataEmitsFunctionRelocations)
 }
 SWC_TEST_END()
 
-SWC_FILESYSTEM_TEST_BEGIN(NativeArtifact_StartupCallsRuntimeExitWrapper)
+SWC_FILESYSTEM_TEST_BEGIN(NativeArtifact_StartupCallsRuntimeSetupAndCloseWrappers)
 {
-    const CommandLine commandLine = makeStandaloneNativeArtifactCmdLine("startup_calls_runtime_exit_wrapper", Runtime::BuildCfgBackendKind::Executable);
+    const CommandLine commandLine = makeStandaloneNativeArtifactCmdLine("startup_calls_runtime_setup_and_close_wrappers", Runtime::BuildCfgBackendKind::Executable);
 
     const NativeArtifactTestFixture fixture(ctx.global(), commandLine);
 
-    auto* mainFunction  = makeTestFunction(*fixture.compilerCtx, "main");
-    auto* setupFunction = makeTestFunction(*fixture.compilerCtx, "__ensureRuntimeAllocator");
-    auto* exitFunction  = makeTestFunction(*fixture.compilerCtx, "__exit");
-    fixture.compiler->registerRuntimeFunctionSymbol(fixture.compilerCtx->idMgr().runtimeFunction(IdentifierManager::RuntimeFunctionKind::EnsureRuntimeAllocator), setupFunction);
-    fixture.compiler->registerRuntimeFunctionSymbol(fixture.compilerCtx->idMgr().runtimeFunction(IdentifierManager::RuntimeFunctionKind::Exit), exitFunction);
+    auto* mainFunction         = makeTestFunction(*fixture.compilerCtx, "main");
+    auto* setupRuntimeFunction = makeTestFunction(*fixture.compilerCtx, "__setupRuntime");
+    auto* closeRuntimeFunction = makeTestFunction(*fixture.compilerCtx, "__closeRuntime");
+    fixture.compiler->registerRuntimeFunctionSymbol(fixture.compilerCtx->idMgr().runtimeFunction(IdentifierManager::RuntimeFunctionKind::SetupRuntime), setupRuntimeFunction);
+    fixture.compiler->registerRuntimeFunctionSymbol(fixture.compilerCtx->idMgr().runtimeFunction(IdentifierManager::RuntimeFunctionKind::CloseRuntime), closeRuntimeFunction);
     fixture.nativeBuilder->mainFunctions.push_back(mainFunction);
 
     SWC_RESULT(fixture.artifactBuilder->build());
@@ -606,10 +606,10 @@ SWC_FILESYSTEM_TEST_BEGIN(NativeArtifact_StartupCallsRuntimeExitWrapper)
         return Result::Error;
 
     bool foundSetupRelocation = false;
-    bool foundExitRelocation  = false;
+    bool foundCloseRelocation = false;
     for (const auto& relocation : fixture.nativeBuilder->startup->code.codeRelocations)
     {
-        if (relocation.targetSymbol == setupFunction)
+        if (relocation.targetSymbol == setupRuntimeFunction)
         {
             if (relocation.kind != MicroRelocation::Kind::LocalFunctionAddress)
                 return Result::Error;
@@ -618,16 +618,16 @@ SWC_FILESYSTEM_TEST_BEGIN(NativeArtifact_StartupCallsRuntimeExitWrapper)
             continue;
         }
 
-        if (relocation.targetSymbol != exitFunction)
+        if (relocation.targetSymbol != closeRuntimeFunction)
             continue;
 
         if (relocation.kind != MicroRelocation::Kind::LocalFunctionAddress)
             return Result::Error;
 
-        foundExitRelocation = true;
+        foundCloseRelocation = true;
     }
 
-    if (!foundSetupRelocation || !foundExitRelocation)
+    if (!foundSetupRelocation || !foundCloseRelocation)
         return Result::Error;
 }
 SWC_TEST_END()

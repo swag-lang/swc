@@ -250,6 +250,14 @@ func __runtimeAllocator()->IAllocator
     return cxt.allocator
 }
 
+func __runtimeBaseAllocator()->IAllocator
+{
+    let cxt = @getcontext()
+    if cxt.debugAllocator do
+        return @dbgalloc().allocator
+    return __runtimeAllocator()
+}
+
 func __ensureRuntimeAllocator()
 {
     let _ = __runtimeAllocator()
@@ -293,8 +301,22 @@ func __testPrintDone()
     @print("success\n")
 }
 
+func __resetRuntimeContext()
+{
+    let cxt       = @getcontext()
+    let allocator = __runtimeBaseAllocator()
+
+    cxt.tempAllocator.release()
+    cxt.errorAllocator.release()
+
+    @memset(cxt, 0, #sizeof(Swag.Context))
+    cxt.allocator = allocator
+}
+
 func __setupRuntime(flags: RuntimeFlags)
 {
+    __resetRuntimeContext()
+
     let cxt = @getcontext()
     cxt.runtimeFlags = flags
     let allocator    = __runtimeAllocator()
@@ -302,26 +324,28 @@ func __setupRuntime(flags: RuntimeFlags)
     cxt.tempAllocator.setCapacity(__buildCfg.tempAllocatorCapacity, allocator)
     cxt.errorAllocator.setCapacity(__buildCfg.errorAllocatorCapacity, allocator)
 
-    if __buildCfg.debugAllocator
+    if !(flags & .FromCompiler) and __buildCfg.debugAllocator
     {
         let alloc: *DebugAllocator = @alloc(#sizeof(DebugAllocator))
         @init(alloc, 1)
         alloc.captureAllocStack = __buildCfg.debugAllocatorCaptureStack
         alloc.detectLeaks       = __buildCfg.debugAllocatorLeaks
         alloc.setup(allocator)
-        cxt.allocator      = dref alloc
+        cxt.allocator      = @mkinterface(alloc, #typeof(dref alloc), IAllocator)
         cxt.debugAllocator = alloc
     }
 }
 
-func __closeRuntime()
+func __releaseRuntime()
 {
-    @getcontext().tempAllocator.release()
-    @getcontext().errorAllocator.release()
-
-    if !(@rtflags & .FromCompiler) and __buildCfg.debugAllocator do
+    if !(@rtflags & .FromCompiler) and __buildCfg.debugAllocator and @getcontext().debugAllocator do
         @dbgalloc().printLeaks()
 
+    __resetRuntimeContext()
+}
+
+func __closeRuntime()
+{
     __exit()
 }
 

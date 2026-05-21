@@ -155,7 +155,7 @@ namespace
 
     void emitLifecycleCalls(MicroBuilder& builder, const std::span<SymbolFunction* const> functions)
     {
-        for (SymbolFunction* symbol : functions)
+        for (const SymbolFunction* symbol : functions)
             ABICall::callLocal(builder, symbol->callConvKind(), symbol, {});
     }
 
@@ -322,9 +322,9 @@ Result NativeArtifactBuilder::buildRuntimeHook(TaskContext& ctx) const
             return Result::Continue;
     }
 
-    CompilerInstance& compiler = builder_->compiler();
+    CompilerInstance& compiler                               = builder_->compiler();
     const auto [lifecycleStateOffset, lifecycleStateStorage] = compiler.globalZeroSegment().reserve<uint32_t>();
-    auto* const lifecycleStatePtr                           = reinterpret_cast<uint32_t*>(lifecycleStateStorage);
+    auto* const lifecycleStatePtr                            = reinterpret_cast<uint32_t*>(lifecycleStateStorage);
     if (lifecycleStatePtr)
         *lifecycleStatePtr = 0;
 
@@ -364,18 +364,15 @@ Result NativeArtifactBuilder::buildRuntimeHook(TaskContext& ctx) const
 
     emitGuardedRuntimeHookStage(builder, initLabel, doneLabel, RuntimeHookStage::Init, lifecycleStateOffset, [&] {
         emitRuntimeDependencyHookCalls(builder, *builder_, builder_->runtimeDependencyInitOrder, RuntimeHookStage::Init, tlsIdPlusOneReg, nextVirtualIntRegIndex);
-        emitLifecycleCalls(builder, builder_->initFunctions);
-    }, nextVirtualIntRegIndex);
+        emitLifecycleCalls(builder, builder_->initFunctions); }, nextVirtualIntRegIndex);
 
     emitGuardedRuntimeHookStage(builder, preMainLabel, doneLabel, RuntimeHookStage::PreMain, lifecycleStateOffset, [&] {
         emitRuntimeDependencyHookCalls(builder, *builder_, builder_->runtimeDependencyInitOrder, RuntimeHookStage::PreMain, tlsIdPlusOneReg, nextVirtualIntRegIndex);
-        emitLifecycleCalls(builder, builder_->preMainFunctions);
-    }, nextVirtualIntRegIndex);
+        emitLifecycleCalls(builder, builder_->preMainFunctions); }, nextVirtualIntRegIndex);
 
     emitGuardedRuntimeHookStage(builder, dropLabel, doneLabel, RuntimeHookStage::Drop, lifecycleStateOffset, [&] {
         emitLifecycleCalls(builder, builder_->dropFunctions);
-        emitRuntimeDependencyHookCalls(builder, *builder_, builder_->runtimeDependencyDropOrder, RuntimeHookStage::Drop, tlsIdPlusOneReg, nextVirtualIntRegIndex);
-    }, nextVirtualIntRegIndex);
+        emitRuntimeDependencyHookCalls(builder, *builder_, builder_->runtimeDependencyDropOrder, RuntimeHookStage::Drop, tlsIdPlusOneReg, nextVirtualIntRegIndex); }, nextVirtualIntRegIndex);
 
     builder.placeLabel(doneLabel);
     builder.emitRet();
@@ -866,15 +863,18 @@ Result NativeArtifactBuilder::buildStartup(TaskContext& ctx) const
     uint32_t       nextVirtualIntRegIndex = builder.nextVirtualIntRegIndexHint();
     const MicroReg testProgressMessageReg = emitTestProgress ? nextVirtualIntReg(nextVirtualIntRegIndex) : MicroReg::invalid();
 
-    const IdentifierRef ensureRuntimeAllocatorIdRef = ctx.idMgr().runtimeFunction(IdentifierManager::RuntimeFunctionKind::EnsureRuntimeAllocator);
-    SymbolFunction*     ensureRuntimeAllocatorFn    = builder_->compiler().runtimeFunctionSymbol(ensureRuntimeAllocatorIdRef);
-    SymbolFunction*     testCountInitFn             = nullptr;
-    SymbolFunction*     testCountTickFn             = nullptr;
-    SymbolFunction*     testPrintStartFn            = nullptr;
-    SymbolFunction*     testPrintProgressFn         = nullptr;
-    SymbolFunction*     testPrintDoneFn             = nullptr;
-    SWC_ASSERT(ensureRuntimeAllocatorFn != nullptr);
-    if (!ensureRuntimeAllocatorFn)
+    const IdentifierRef setupRuntimeIdRef   = ctx.idMgr().runtimeFunction(IdentifierManager::RuntimeFunctionKind::SetupRuntime);
+    const IdentifierRef closeRuntimeIdRef   = ctx.idMgr().runtimeFunction(IdentifierManager::RuntimeFunctionKind::CloseRuntime);
+    SymbolFunction*     setupRuntimeFn      = builder_->compiler().runtimeFunctionSymbol(setupRuntimeIdRef);
+    SymbolFunction*     closeRuntimeFn      = builder_->compiler().runtimeFunctionSymbol(closeRuntimeIdRef);
+    SymbolFunction*     testCountInitFn     = nullptr;
+    SymbolFunction*     testCountTickFn     = nullptr;
+    SymbolFunction*     testPrintStartFn    = nullptr;
+    SymbolFunction*     testPrintProgressFn = nullptr;
+    SymbolFunction*     testPrintDoneFn     = nullptr;
+    SWC_ASSERT(setupRuntimeFn != nullptr);
+    SWC_ASSERT(closeRuntimeFn != nullptr);
+    if (!setupRuntimeFn || !closeRuntimeFn)
         return builder_->reportError(DiagnosticId::cmd_err_native_test_entry_lower_failed);
     if (expectedTestCount)
     {
@@ -906,7 +906,19 @@ Result NativeArtifactBuilder::buildStartup(TaskContext& ctx) const
             return builder_->reportError(DiagnosticId::cmd_err_native_test_entry_lower_failed);
     }
 
-    ABICall::callLocal(builder, ensureRuntimeAllocatorFn->callConvKind(), ensureRuntimeAllocatorFn, {});
+    const MicroReg runtimeFlagsReg = nextVirtualIntReg(nextVirtualIntRegIndex);
+    builder.emitLoadRegImm(runtimeFlagsReg, ApInt(static_cast<uint64_t>(Runtime::RuntimeFlags::Zero), 64), MicroOpBits::B64);
+
+    ABICall::PreparedArg runtimeFlagsArg;
+    runtimeFlagsArg.srcReg  = runtimeFlagsReg;
+    runtimeFlagsArg.kind    = ABICall::PreparedArgKind::Direct;
+    runtimeFlagsArg.numBits = 64;
+
+    SmallVector<ABICall::PreparedArg> setupRuntimeArgs;
+    setupRuntimeArgs.push_back(runtimeFlagsArg);
+
+    const ABICall::PreparedCall preparedSetupRuntime = ABICall::prepareArgs(builder, setupRuntimeFn->callConvKind(), setupRuntimeArgs);
+    ABICall::callLocal(builder, setupRuntimeFn->callConvKind(), setupRuntimeFn, preparedSetupRuntime);
 
     const MicroReg tlsStorageReg = nextVirtualIntReg(nextVirtualIntRegIndex);
     builder.emitLoadRegDataSegmentReloc(tlsStorageReg, DataSegmentKind::GlobalZero, builder_->compiler().nativeRuntimeContextTlsIdOffset());
@@ -987,14 +999,10 @@ Result NativeArtifactBuilder::buildStartup(TaskContext& ctx) const
         ABICall::callLocal(builder, testPrintDoneFn->callConvKind(), testPrintDoneFn, preparedDone);
     }
 
-    const IdentifierRef exitIdRef = ctx.idMgr().runtimeFunction(IdentifierManager::RuntimeFunctionKind::Exit);
-    SymbolFunction*     exitFn    = builder_->compiler().runtimeFunctionSymbol(exitIdRef);
-    SWC_ASSERT(exitFn != nullptr);
-
-    // Startup calls the runtime wrapper instead of a raw OS entry point, so the
-    // emitted startup sequence stays stable across target-specific runtimes.
-    const ABICall::PreparedCall preparedExit = ABICall::prepareArgs(builder, exitFn->callConvKind(), {});
-    ABICall::callLocal(builder, exitFn->callConvKind(), exitFn, preparedExit);
+    // Startup closes the runtime through the shared runtime wrapper so setup and
+    // teardown stay aligned across native entry points.
+    const ABICall::PreparedCall preparedCloseRuntime = ABICall::prepareArgs(builder, closeRuntimeFn->callConvKind(), {});
+    ABICall::callLocal(builder, closeRuntimeFn->callConvKind(), closeRuntimeFn, preparedCloseRuntime);
     builder.emitRet();
 
     if (startup->code.emit(ctx, builder) != Result::Continue)

@@ -33,7 +33,7 @@ SWC_BEGIN_NAMESPACE();
 namespace
 {
     constexpr uint32_t K_COMPILER_EXCEPTION_CODE = 666;
-    using RuntimeSetupInvoker                    = void (*)();
+    using RuntimeSetupInvoker                    = void (*)(Runtime::RuntimeFlags);
 
     enum class RelocationResolveFailureKind : uint8_t
     {
@@ -74,6 +74,24 @@ namespace
         JITCallErrorKind   errorKind       = JITCallErrorKind::None;
         int                exceptionAction = SWC_EXCEPTION_EXECUTE_HANDLER;
     };
+
+    bool isSetupRuntimeFunction(TaskContext& ctx, const SymbolFunction* function)
+    {
+        if (!function)
+            return false;
+        return ctx.idMgr().runtimeFunctionKind(function->idRef()) == IdentifierManager::RuntimeFunctionKind::SetupRuntime;
+    }
+
+    bool shouldUseSharedRuntimeSetup(TaskContext& ctx, const SymbolFunction* function)
+    {
+        if (!function)
+            return false;
+        if (isSetupRuntimeFunction(ctx, function))
+            return false;
+        if (!function->srcViewRef().isValid())
+            return true;
+        return !ctx.compiler().srcView(function->srcViewRef()).isRuntimeFile();
+    }
 
     struct RuntimeExceptionReport
     {
@@ -1425,60 +1443,18 @@ namespace
         return SWC_EXCEPTION_EXECUTE_HANDLER;
     }
 
-    bool isRuntimeArtifactJitEntry(TaskContext& ctx)
-    {
-        const SymbolFunction* function = ctx.state().runJitFunction;
-        if (!function)
-            return false;
-        if (function->attributes().hasRtFlag(RtAttributeFlagsE::Compiler))
-            return false;
-        if (ctx.state().nodeRef != function->declNodeRef())
-            return false;
-
-        const AstNode* decl = function->decl();
-        if (!decl)
-            return false;
-        if (!decl->is(AstNodeId::CompilerFunc))
-            return false;
-
-        const TokenId tokenId = ctx.compiler().srcView(function->srcViewRef()).token(function->tokRef()).id;
-        switch (tokenId)
-        {
-            case TokenId::CompilerFuncTest:
-            case TokenId::CompilerFuncInit:
-            case TokenId::CompilerFuncDrop:
-            case TokenId::CompilerFuncMain:
-            case TokenId::CompilerFuncPreMain:
-                return true;
-
-            default:
-                return false;
-        }
-    }
-
     Result ensureJitRuntimeSetup(TaskContext& ctx, RuntimeSetupInvoker& outSetupInvoker)
     {
         outSetupInvoker = nullptr;
         ctx.compiler().initPerThreadRuntimeContextForJit();
-        if (!isRuntimeArtifactJitEntry(ctx))
+        if (!shouldUseSharedRuntimeSetup(ctx, ctx.state().runJitFunction))
             return Result::Continue;
 
-        const Runtime::Context* runtimeContext = CompilerInstance::runtimeContextFromTls();
-        if (!runtimeContext)
-            return Result::Continue;
-        if (runtimeContext->allocator.obj && runtimeContext->allocator.itable)
-            return Result::Continue;
-
-        const IdentifierRef setupIdRef = ctx.idMgr().runtimeFunction(IdentifierManager::RuntimeFunctionKind::EnsureRuntimeAllocator);
+        const IdentifierRef setupIdRef = ctx.idMgr().runtimeFunction(IdentifierManager::RuntimeFunctionKind::SetupRuntime);
         SymbolFunction*     setupFn    = ctx.compiler().runtimeFunctionSymbol(setupIdRef);
-        SWC_ASSERT(setupFn != nullptr);
-        if (!setupFn)
-        {
-            Diagnostic diag = Diagnostic::get(DiagnosticId::sema_err_compiler_error);
-            diag.addArgument(Diagnostic::ARG_BECAUSE, "missing runtime helper '__ensureRuntimeAllocator'");
-            diag.report(ctx);
+        SWC_ASSERT(setupFn != nullptr && setupFn->isSemaCompleted());
+        if (!setupFn || !setupFn->isSemaCompleted())
             return Result::Error;
-        }
 
         SWC_RESULT(ensureLocalFunctionAddressReady(ctx, *setupFn, nullptr, LocalFunctionAddressKind::Callable));
         SWC_ASSERT(setupFn->jitEntryAddress() != nullptr);
@@ -1506,7 +1482,7 @@ Result JIT::call(TaskContext& ctx, void* invoker, const uint64_t* arg0, JITCallE
     SWC_TRY
     {
         if (setupInvoker)
-            setupInvoker();
+            setupInvoker(Runtime::RuntimeFlags::FromCompiler);
 
         if (arg0)
         {

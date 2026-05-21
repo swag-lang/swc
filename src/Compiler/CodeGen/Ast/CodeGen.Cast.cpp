@@ -1377,8 +1377,9 @@ namespace
 
         if (resolvedDstType.isBool() && (resolvedSrcType.isPointerLike() || resolvedSrcType.isReference() || resolvedSrcType.isMoveReference() || resolvedSrcType.isNull()))
         {
-            MicroReg srcReg = srcPayload.reg;
-            if (srcPayload.isAddress())
+            MicroReg  srcReg             = srcPayload.reg;
+            const bool addressBackedValue = !srcPayload.isAddress() && srcType.sizeOf(codeGen.ctx()) > 8;
+            if (srcPayload.isAddress() || addressBackedValue)
             {
                 srcReg = codeGen.nextVirtualIntRegister();
                 builder.emitLoadRegMem(srcReg, srcPayload.reg, 0, MicroOpBits::B64);

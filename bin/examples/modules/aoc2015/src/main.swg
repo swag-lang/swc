@@ -14,7 +14,7 @@
     day3B()
     day4A()
     day4B()
-    //day5A()  temporarily disabled with shared core dependency
+    day5A()
     //day5B()  temporarily disabled with shared core dependency
     //day6A()  temporarily disabled
     //day6B()  temporarily disabled

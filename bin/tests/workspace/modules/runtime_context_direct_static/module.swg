@@ -2,6 +2,6 @@
 {
     let cfg = @compiler.getBuildCfg()
     cfg.embeddedImports = true
-    cfg.moduleNamespace = "Dir"
+    cfg.moduleNamespace = "RuntimeCtxDirect"
     cfg.backendKind = .StaticLibrary
 }

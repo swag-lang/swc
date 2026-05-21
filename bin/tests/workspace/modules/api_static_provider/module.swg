@@ -1,6 +1,6 @@
 #run
 {
     let cfg = @compiler.getBuildCfg()
-    cfg.moduleNamespace = "DepLib"
+    cfg.moduleNamespace = "StaticApi"
     cfg.backendKind = .StaticLibrary
 }

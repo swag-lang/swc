@@ -1,4 +1,4 @@
-using Dep, DepLib, Shrd, Base, Dir
+using ExportApi, StaticApi, RuntimeCtxDll, RuntimeCtxBase, RuntimeCtxDirect
 
 func keepDepScore(score: IDepScore)->IDepScore => score
 

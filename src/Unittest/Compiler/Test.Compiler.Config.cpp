@@ -1966,23 +1966,23 @@ func mainValue()->u64
 }
 SWC_TEST_END()
 
-SWC_TEST_BEGIN(Compiler_WorkspaceRunSharesRuntimeContextAcrossSharedAndStaticDependencies)
+SWC_TEST_BEGIN(Compiler_WorkspaceRunExecutableUsesDllAndSharesRuntimeContextAcrossDependencies)
 {
-    const ScopedTempTree tempTree("compiler_workspace_runtime_context_shared");
+    const ScopedTempTree tempTree("compiler_workspace_runtime_context_exe_uses_dll");
     if (!tempTree.ready())
         return Result::Error;
 
-    const fs::path workspaceDir  = tempTree.root() / "workspace";
-    const fs::path baseModuleDir = workspaceDir / "modules" / "ctxbase";
-    const fs::path depModuleDir  = workspaceDir / "modules" / "ctxshared";
-    const fs::path dirModuleDir  = workspaceDir / "modules" / "ctxdirect";
-    const fs::path appModuleDir  = workspaceDir / "modules" / "app";
+    const fs::path workspaceDir       = tempTree.root() / "workspace";
+    const fs::path baseModuleDir      = workspaceDir / "modules" / "runtime_context_base_static";
+    const fs::path dllModuleDir       = workspaceDir / "modules" / "runtime_context_bridge_dll";
+    const fs::path directModuleDir    = workspaceDir / "modules" / "runtime_context_direct_static";
+    const fs::path consumerModuleDir  = workspaceDir / "modules" / "consumer_exe";
 
     if (!writeTextFile(baseModuleDir / "module.swg", R"(#run
 {
     let cfg = @compiler.getBuildCfg()
     cfg.embeddedImports = true
-    cfg.moduleNamespace = "Base"
+    cfg.moduleNamespace = "RuntimeCtxBase"
     cfg.backendKind = .StaticLibrary
 }
 )"))
@@ -2037,17 +2037,17 @@ public func ctxBasePreMainCount()->u64
 )"))
         return Result::Error;
 
-    if (!writeTextFile(depModuleDir / "module.swg", R"(#import("ctxbase", link: "static-library")
+    if (!writeTextFile(dllModuleDir / "module.swg", R"(#import("runtime_context_base_static", link: "static-library")
 #run
 {
     let cfg = @compiler.getBuildCfg()
     cfg.embeddedImports = true
-    cfg.moduleNamespace = "Shrd"
+    cfg.moduleNamespace = "RuntimeCtxDll"
     cfg.backendKind = .SharedLibrary
 }
 )"))
         return Result::Error;
-    if (!writeTextFile(depModuleDir / "src" / "main.swg", R"(using Base
+    if (!writeTextFile(dllModuleDir / "src" / "main.swg", R"(using RuntimeCtxBase
 
 public const CTX_SHARED_INIT_FLAG    = 0x0008'u64
 public const CTX_SHARED_PREMAIN_FLAG = 0x0010'u64
@@ -2084,16 +2084,16 @@ public func ctxSharedContextMarker()->u64
 )"))
         return Result::Error;
 
-    if (!writeTextFile(dirModuleDir / "module.swg", R"(#run
+    if (!writeTextFile(directModuleDir / "module.swg", R"(#run
 {
     let cfg = @compiler.getBuildCfg()
     cfg.embeddedImports = true
-    cfg.moduleNamespace = "Dir"
+    cfg.moduleNamespace = "RuntimeCtxDirect"
     cfg.backendKind = .StaticLibrary
 }
 )"))
         return Result::Error;
-    if (!writeTextFile(dirModuleDir / "src" / "main.swg", R"(public const CTX_DIRECT_INIT_FLAG    = 0x0040'u64
+    if (!writeTextFile(directModuleDir / "src" / "main.swg", R"(public const CTX_DIRECT_INIT_FLAG    = 0x0040'u64
 public const CTX_DIRECT_PREMAIN_FLAG = 0x0080'u64
 public const CTX_DIRECT_DROP_FLAG    = 0x0100'u64
 
@@ -2129,19 +2129,20 @@ public func ctxDirectContextMarker()->u64
 )"))
         return Result::Error;
 
-    if (!writeTextFile(appModuleDir / "module.swg", R"(#import("ctxshared")
-#import("ctxbase", link: "static-library")
-#import("ctxdirect", link: "static-library")
+    if (!writeTextFile(consumerModuleDir / "module.swg", R"(#import("runtime_context_bridge_dll")
+#import("runtime_context_base_static", link: "static-library")
+#import("runtime_context_direct_static", link: "static-library")
 #run
 {
+    // Keep the workspace rooted at an executable so we validate direct exe -> dll usage.
     let cfg = @compiler.getBuildCfg()
     cfg.embeddedImports = true
-    cfg.moduleNamespace = "App"
+    cfg.moduleNamespace = "ConsumerExe"
     cfg.backendKind = .Executable
 }
 )"))
         return Result::Error;
-    if (!writeTextFile(appModuleDir / "src" / "main.swg", R"(using Shrd, Base, Dir
+    if (!writeTextFile(consumerModuleDir / "src" / "main.swg", R"(using RuntimeCtxDll, RuntimeCtxBase, RuntimeCtxDirect
 
 #init
 {
@@ -2188,13 +2189,13 @@ public func ctxDirectContextMarker()->u64
     if (compiler.run() != ExitCode::Success)
         return Result::Error;
 
-    if (!fs::exists(workspaceDir / ".output" / "ctxbase" / "static-library" / "fast-debug" / "x86_64" / "ctxbase.lib"))
+    if (!fs::exists(workspaceDir / ".output" / "runtime_context_base_static" / "static-library" / "fast-debug" / "x86_64" / "runtime_context_base_static.lib"))
         return Result::Error;
-    if (!fs::exists(workspaceDir / ".output" / "ctxshared" / "shared-library" / "fast-debug" / "x86_64" / "ctxshared.dll"))
+    if (!fs::exists(workspaceDir / ".output" / "runtime_context_bridge_dll" / "shared-library" / "fast-debug" / "x86_64" / "runtime_context_bridge_dll.dll"))
         return Result::Error;
-    if (!fs::exists(workspaceDir / ".output" / "ctxdirect" / "static-library" / "fast-debug" / "x86_64" / "ctxdirect.lib"))
+    if (!fs::exists(workspaceDir / ".output" / "runtime_context_direct_static" / "static-library" / "fast-debug" / "x86_64" / "runtime_context_direct_static.lib"))
         return Result::Error;
-    if (!fs::exists(workspaceDir / ".output" / "app" / "executable" / "fast-debug" / "x86_64" / "app.exe"))
+    if (!fs::exists(workspaceDir / ".output" / "consumer_exe" / "executable" / "fast-debug" / "x86_64" / "consumer_exe.exe"))
         return Result::Error;
 
     return Result::Continue;

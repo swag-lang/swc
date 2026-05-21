@@ -1,6 +1,6 @@
 #run
 {
     let cfg = @compiler.getBuildCfg()
-    cfg.moduleNamespace = "Dep"
+    cfg.moduleNamespace = "ExportApi"
     cfg.backendKind = .Export
 }

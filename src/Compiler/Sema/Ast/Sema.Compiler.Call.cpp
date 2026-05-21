@@ -250,7 +250,8 @@ namespace
         if (replacementRef.isInvalid())
             return;
 
-        outReplacements.push_back({nodeId, replacementRef});
+        const bool topLevelBreakableOnly = nodeId == AstNodeId::BreakStmt || nodeId == AstNodeId::ContinueStmt;
+        outReplacements.push_back({nodeId, replacementRef, topLevelBreakableOnly});
     }
 
     bool injectCloneDependsOnContext(Sema& sema, AstNodeRef nodeRef, std::span<const SemaClone::ParamBinding> bindings, std::span<const SemaClone::NodeReplacement> replacements)

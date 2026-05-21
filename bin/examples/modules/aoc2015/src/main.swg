@@ -8,8 +8,8 @@
 {
     day1A()
     day1B()
-    //day2A()
-    //day2B()
+    day2A()
+    day2B()
     //day3A()
     //day3B()
     //day4A()

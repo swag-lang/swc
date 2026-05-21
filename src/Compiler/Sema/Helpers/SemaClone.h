@@ -21,8 +21,9 @@ namespace SemaClone
 
     struct NodeReplacement
     {
-        AstNodeId  nodeId         = AstNodeId::Invalid;
-        AstNodeRef replacementRef = AstNodeRef::invalid();
+        AstNodeId  nodeId                = AstNodeId::Invalid;
+        AstNodeRef replacementRef        = AstNodeRef::invalid();
+        bool       topLevelBreakableOnly = false;
     };
 
     struct CloneContext final : swc::CloneContext
@@ -33,14 +34,15 @@ namespace SemaClone
         bool                             preserveFunctionGenerics = false;
         bool                             preserveBindingExprState = false;
         bool                             duplicateRuntimeStorage  = false;
-
-        explicit CloneContext(std::span<const ParamBinding> inBindings, std::span<const NodeReplacement> inReplacements = std::span<const NodeReplacement>{}, bool inPreserveFunctionGenerics = false, const Ast* inSourceAst = nullptr, bool inPreserveBindingExprState = false, bool inDuplicateRuntimeStorage = false) :
+        uint32_t                         breakableDepth           = 0;
+        explicit CloneContext(std::span<const ParamBinding> inBindings, std::span<const NodeReplacement> inReplacements = std::span<const NodeReplacement>{}, bool inPreserveFunctionGenerics = false, const Ast* inSourceAst = nullptr, bool inPreserveBindingExprState = false, bool inDuplicateRuntimeStorage = false, uint32_t inBreakableDepth = 0) :
             bindings(inBindings),
             replacements(inReplacements),
             sourceAst(inSourceAst),
             preserveFunctionGenerics(inPreserveFunctionGenerics),
             preserveBindingExprState(inPreserveBindingExprState),
-            duplicateRuntimeStorage(inDuplicateRuntimeStorage)
+            duplicateRuntimeStorage(inDuplicateRuntimeStorage),
+            breakableDepth(inBreakableDepth)
         {
         }
     };

@@ -78,17 +78,33 @@ namespace
 
     SemaClone::CloneContext cloneContextWithoutReplacements(const SemaClone::CloneContext& cloneContext)
     {
-        return SemaClone::CloneContext{cloneContext.bindings, {}, cloneContext.preserveFunctionGenerics, cloneContext.sourceAst, cloneContext.preserveBindingExprState, cloneContext.duplicateRuntimeStorage};
+        return SemaClone::CloneContext{cloneContext.bindings, {}, cloneContext.preserveFunctionGenerics, cloneContext.sourceAst, cloneContext.preserveBindingExprState, cloneContext.duplicateRuntimeStorage, cloneContext.breakableDepth};
     }
 
     SemaClone::CloneContext cloneContextWithoutBindings(const SemaClone::CloneContext& cloneContext)
     {
-        return SemaClone::CloneContext{std::span<const SemaClone::ParamBinding>{}, cloneContext.replacements, cloneContext.preserveFunctionGenerics, cloneContext.sourceAst, cloneContext.preserveBindingExprState, cloneContext.duplicateRuntimeStorage};
+        return SemaClone::CloneContext{std::span<const SemaClone::ParamBinding>{}, cloneContext.replacements, cloneContext.preserveFunctionGenerics, cloneContext.sourceAst, cloneContext.preserveBindingExprState, cloneContext.duplicateRuntimeStorage, cloneContext.breakableDepth};
     }
 
     SemaClone::CloneContext cloneContextForDestinationAst(const SemaClone::CloneContext& cloneContext)
     {
-        return SemaClone::CloneContext{cloneContext.bindings, cloneContext.replacements, cloneContext.preserveFunctionGenerics, nullptr, cloneContext.preserveBindingExprState, cloneContext.duplicateRuntimeStorage};
+        return SemaClone::CloneContext{cloneContext.bindings, cloneContext.replacements, cloneContext.preserveFunctionGenerics, nullptr, cloneContext.preserveBindingExprState, cloneContext.duplicateRuntimeStorage, cloneContext.breakableDepth};
+    }
+
+    SemaClone::CloneContext cloneContextInsideBreakable(const SemaClone::CloneContext& cloneContext)
+    {
+        return SemaClone::CloneContext{cloneContext.bindings, cloneContext.replacements, cloneContext.preserveFunctionGenerics, cloneContext.sourceAst, cloneContext.preserveBindingExprState, cloneContext.duplicateRuntimeStorage, cloneContext.breakableDepth + 1};
+    }
+
+    bool startsNestedBreakableContext(const AstNode& node)
+    {
+        return node.is(AstNodeId::WhileStmt) ||
+               node.is(AstNodeId::ForeachStmt) ||
+               node.is(AstNodeId::ForCStyleStmt) ||
+               node.is(AstNodeId::ForStmt) ||
+               node.is(AstNodeId::InfiniteLoopStmt) ||
+               node.is(AstNodeId::SwitchStmt) ||
+               node.is(AstNodeId::CompilerScope);
     }
 
     const SemaClone::ParamBinding* findBinding(const SemaClone::CloneContext& cloneContext, IdentifierRef idRef)
@@ -231,6 +247,8 @@ namespace
     {
         const auto* replacement = findReplacement(cloneContext, node.id());
         if (!replacement)
+            return AstNodeRef::invalid();
+        if (replacement->topLevelBreakableOnly && cloneContext.breakableDepth != 0)
             return AstNodeRef::invalid();
 
         const auto destinationContext = cloneContextForDestinationAst(cloneContext);
@@ -663,7 +681,8 @@ AstNodeRef SemaClone::cloneAst(Sema& sema, AstNodeRef nodeRef, const CloneContex
         return clonedRef;
     }
 
-    clonedRef = Ast::nodeIdInfos(node.id()).semaClone(sema, node, cloneContext);
+    const CloneContext childCloneContext = startsNestedBreakableContext(node) ? cloneContextInsideBreakable(cloneContext) : cloneContext;
+    clonedRef                            = Ast::nodeIdInfos(node.id()).semaClone(sema, node, childCloneContext);
     SWC_ASSERT(clonedRef.isValid());
     if (clonedRef.isInvalid())
     {

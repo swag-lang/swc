@@ -166,13 +166,20 @@ impl RegExp
         .nfaNodes.clear()
         .dfaNodes.clear()
         .nfaTables.clear()
+        .nfaStack.clear()
         .charSet.clear()
+        .groupTransform.clear()
         .openParen.clear()
         .orOpStack.clear()
         .orOpLevel.clear()
         .preprocessed.clear()
 
         .clearMatch()
+    }
+
+    mtd addPatternRune(c: rune)
+    {
+        .preprocessed.add(.ignoreCase ? Unicode.toUpper(c) : c)
     }
 
     // Creates and return an expression
@@ -1007,14 +1014,14 @@ impl RegExp
 
                 if Unicode.compare(subSlice, #runes("[:lower:]"), false, 9) == 0
                 {
-                    .preprocessed.add(RuneAsciiLower | invert)
+                    .preprocessed.add((.ignoreCase ? RuneAsciiLetter : RuneAsciiLower) | invert)
                     pz += 9
                     continue
                 }
 
                 if Unicode.compare(subSlice, #runes("[:upper:]"), false, 9) == 0
                 {
-                    .preprocessed.add(RuneAsciiUpper)
+                    .preprocessed.add((.ignoreCase ? RuneAsciiLetter : RuneAsciiUpper) | invert)
                     pz += 9
                     continue
                 }
@@ -1057,21 +1064,21 @@ impl RegExp
                     swap(&first, &end)
 
                 if first == 'A' and end == 'Z' do
-                    .preprocessed.add(RuneAsciiUpper)
+                    .preprocessed.add((.ignoreCase ? RuneAsciiLetter : RuneAsciiUpper) | invert)
                 elif first == 'a' and end == 'z' do
-                    .preprocessed.add(RuneAsciiLower)
+                    .preprocessed.add((.ignoreCase ? RuneAsciiLetter : RuneAsciiLower) | invert)
                 elif first == '0' and end == '9' do
-                    .preprocessed.add(RuneAsciiDigit)
+                    .preprocessed.add(RuneAsciiDigit | invert)
                 else
                 {
                     while first < end
                     {
-                        .preprocessed.add(first)
+                        .addPatternRune(first)
                         .preprocessed.add('|')
                         first += 1
                     }
 
-                    .preprocessed.add(first)
+                    .addPatternRune(first)
                 }
 
                 pz += 3
@@ -1082,12 +1089,12 @@ impl RegExp
             if isReservedChar(dref pz)
             {
                 .preprocessed.add('\\')
-                .preprocessed.add(dref pz)
+                .addPatternRune(dref pz)
                 pz += 1
             }
             else
             {
-                pz = .preprocessEscape(@mkslice(pz, pz - pzStart), true)
+                pz = .preprocessEscape(@mkslice(pz, pzEnd - pz), true)
             }
         }
 
@@ -1229,10 +1236,10 @@ impl RegExp
                 switch pz[2]
                 {
                 case 'l':
-                    .preprocessed.add(RuneUnicodeLetterLower)
+                    .preprocessed.add(.ignoreCase ? RuneUnicodeLetter : RuneUnicodeLetterLower)
                     return pz + 4
                 case 'u':
-                    .preprocessed.add(RuneUnicodeLetterUpper)
+                    .preprocessed.add(.ignoreCase ? RuneUnicodeLetter : RuneUnicodeLetterUpper)
                     return pz + 4
                 }
             }
@@ -1336,7 +1343,7 @@ impl RegExp
         elif c == '$' and !inInter do
             .preprocessed.add(RuneEnd)
         else do
-            .preprocessed.add(c)
+            .addPatternRune(c)
 
         return pz + 1
     }

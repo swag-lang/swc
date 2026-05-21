@@ -77,6 +77,17 @@ namespace
         }
     }
 
+    void mergeNodePayloadMetadata(CodeGenNodePayload& dst, const CodeGenNodePayload& src)
+    {
+        if (src.runtimeStorageOverridden)
+        {
+            dst.runtimeStorageSym        = src.runtimeStorageSym;
+            dst.runtimeStorageOverridden = true;
+        }
+
+        mergeNodeLoweringMetadata(dst, src);
+    }
+
 #if SWC_DEV_MODE
     Utf8 formatMissingPayloadDebug(CodeGen& codeGen, AstNodeRef queryRef, AstNodeRef resolvedRef, CodeGenNodePayload* payload)
     {
@@ -734,6 +745,7 @@ CodeGenNodePayload& CodeGen::inheritPayload(AstNodeRef dstNodeRef, AstNodeRef sr
     dstPayload.storageKind         = srcPayloadCopy.storageKind;
     if (srcPayloadCopy.hasMaterializedPointerLikeValue())
         dstPayload.markMaterializedPointerLikeValue();
+    mergeNodePayloadMetadata(dstPayload, srcPayloadCopy);
     return dstPayload;
 }
 
@@ -745,6 +757,7 @@ CodeGenNodePayload& CodeGen::setPayload(AstNodeRef nodeRef, TypeRef typeRef)
     nodePayload.typeRef     = typeRef;
     nodePayload.storageKind = CodeGenNodePayload::StorageKind::Value;
     nodePayload.clearMaterializedPointerLikeValue();
+    mergeLoweringNodePayloadMetadata(nodePayload, nodeRef);
     return nodePayload;
 }
 

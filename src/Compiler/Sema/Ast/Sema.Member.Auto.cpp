@@ -283,8 +283,17 @@ namespace
             if (binding.idRef != meId || binding.exprRef.isInvalid())
                 continue;
 
+            if (const Symbol* boundSymbol = sema.viewSymbol(binding.exprRef).sym(); boundSymbol && boundSymbol->isVariable())
+            {
+                const auto& boundVar = boundSymbol->cast<SymbolVariable>();
+                SWC_RESULT(addCandidateFromType(sema, outCandidates, boundVar.typeRef(), &boundVar, AstNodeRef::invalid(), precedence++));
+                return Result::Continue;
+            }
+
             if (const SymbolVariable* receiver = activeReceiverBinding(sema))
             {
+                if (binding.forceMaterialize)
+                    return Result::Continue;
                 if (expressionResolvesToVariable(sema, binding.exprRef, *receiver))
                     return Result::Continue;
             }

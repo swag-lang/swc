@@ -47,3 +47,32 @@ func assertString(value: const &String, expected: string)->bool
     discard catch File.delete(fileName)
     @assert(@err == null)
 }
+
+#test
+{
+    let fileName = CoreTests.makeFilesystemTestPath("core_textreader_foreach_temp.tmp")
+
+    var content: String
+    for 40 do
+        content += "2x3x4\n"
+
+    discard catch File.writeAllBytes(fileName, content.toSlice())
+    @assert(@err == null)
+
+    var lineCount = 0
+    var totalSize = 0'u64
+    assume
+    {
+        foreach line in File.readAllLines(fileName)
+        {
+            lineCount += 1
+            totalSize += @countof(line)
+        }
+    }
+
+    @assert(lineCount == 40)
+    @assert(totalSize == 200)
+
+    discard catch File.delete(fileName)
+    @assert(@err == null)
+}

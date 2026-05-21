@@ -99,6 +99,21 @@ namespace
         return nullptr;
     }
 
+    SymbolVariable* materializedReceiverBinding(Sema& sema, const SymbolVariable& receiver, std::span<const SemaClone::ParamBinding> bindings)
+    {
+        for (const SemaClone::ParamBinding& binding : bindings)
+        {
+            if (binding.idRef != receiver.idRef() || !binding.exprRef.isValid())
+                continue;
+
+            Symbol* sym = sema.viewSymbol(binding.exprRef).sym();
+            if (sym && sym->isVariable())
+                return &sym->cast<SymbolVariable>();
+        }
+
+        return nullptr;
+    }
+
     void appendGenericBindingsFromKeys(Sema& sema, std::span<const SemaGeneric::GenericParamDesc> params, std::span<const GenericInstanceKey> args, SmallVector<SemaClone::ParamBinding>& outBindings)
     {
         if (params.size() != args.size())
@@ -582,19 +597,36 @@ namespace
         return bodyRef;
     }
 
-    SymbolVariable* makeMaterializedInlineBindingSymbol(Sema& sema, const SymbolVariable& sourceParam, const AstSingleVarDecl& materializedDecl, const bool materializedAsLet)
+    TokenRef materializedInlineBindingTokRef(Sema& sema, const SymbolVariable& sourceParam, AstNodeRef exprRef)
+    {
+        const AstNode* const paramDecl = sourceParam.decl();
+        if (paramDecl &&
+            paramDecl->srcViewRef() == sema.curNode().srcViewRef() &&
+            sourceParam.tokRef().isValid())
+        {
+            return sourceParam.tokRef();
+        }
+
+        if (exprRef.isValid() && sema.node(exprRef).tokRef().isValid())
+            return sema.node(exprRef).tokRef();
+        if (sema.curNodeRef().isValid())
+            return sema.node(sema.curNodeRef()).tokRef();
+        return TokenRef::invalid();
+    }
+
+    SymbolVariable* makeMaterializedInlineBindingSymbol(Sema& sema, const SymbolVariable& sourceParam, TokenRef tokRef, const AstSingleVarDecl& materializedDecl, const bool materializedAsLet)
     {
         const IdentifierRef idRef  = SemaHelpers::getUniqueIdentifier(sema, "__inline_arg");
         const SymbolFlags   flags  = sema.frame().flagsForCurrentAccess();
-        auto*               symVar = Symbol::make<SymbolVariable>(sema.ctx(), &materializedDecl, sourceParam.tokRef(), idRef, flags);
+        auto*               symVar = Symbol::make<SymbolVariable>(sema.ctx(), &materializedDecl, tokRef, idRef, flags);
         if (materializedAsLet)
             symVar->addExtraFlag(SymbolVariableFlagsE::Let);
         return symVar;
     }
 
-    AstNodeRef makeMaterializedInlineBindingUse(Sema& sema, const SymbolVariable& sourceParam, SymbolVariable& materializedSym)
+    AstNodeRef makeMaterializedInlineBindingUse(Sema& sema, TokenRef tokRef, SymbolVariable& materializedSym)
     {
-        auto [identRef, identPtr] = sema.ast().makeNode<AstNodeId::Identifier>(sourceParam.tokRef());
+        auto [identRef, identPtr] = sema.ast().makeNode<AstNodeId::Identifier>(tokRef);
         identPtr->addFlag(AstIdentifierFlagsE::PreResolvedSymbol);
         sema.setSymbol(identRef, &materializedSym);
         return identRef;
@@ -745,6 +777,39 @@ namespace
         return hasNonCountOfUse;
     }
 
+    uint32_t inlineBindingUseCount(Sema& sema, const Ast& sourceAst, AstNodeRef nodeRef, IdentifierRef idRef)
+    {
+        if (nodeRef.isInvalid() || !idRef.isValid())
+            return 0;
+
+        uint32_t count = 0;
+        const AstNode& node  = sourceAst.node(nodeRef);
+        if (node.is(AstNodeId::Identifier) &&
+            sema.idMgr().addIdentifier(sema.ctx(), node.codeRef()) == idRef)
+        {
+            count += 1;
+        }
+
+        SmallVector<AstNodeRef> children;
+        node.collectChildrenFromAst(children, sourceAst);
+        for (const AstNodeRef childRef : children)
+            count += inlineBindingUseCount(sema, sourceAst, childRef, idRef);
+
+        return count;
+    }
+
+    bool inlineBindingNeedsRepeatedRValueMaterialization(Sema& sema, const Ast& sourceAst, AstNodeRef nodeRef, const SemaClone::ParamBinding& binding)
+    {
+        if (!binding.exprRef.isValid() || !binding.idRef.isValid())
+            return false;
+        if (sema.viewConstant(binding.exprRef).hasConstant())
+            return false;
+        if (sema.isLValue(binding.exprRef))
+            return false;
+
+        return inlineBindingUseCount(sema, sourceAst, nodeRef, binding.idRef) > 1;
+    }
+
     bool sourceSubtreeUsesIdentifier(Sema& sema, const Ast& sourceAst, AstNodeRef nodeRef, IdentifierRef idRef)
     {
         if (nodeRef.isInvalid() || !idRef.isValid())
@@ -842,9 +907,45 @@ namespace
         return bodyRootRef;
     }
 
+    Result materializeInlineReceiverBinding(Sema& sema, SmallVector<SemaClone::ParamBinding>& ioBindings, SmallVector<AstNodeRef>& outStatements)
+    {
+        const IdentifierRef meId = sema.idMgr().predefined(IdentifierManager::PredefinedName::Me);
+        for (SemaClone::ParamBinding& binding : ioBindings)
+        {
+            if (binding.idRef != meId || !binding.exprRef.isValid() || binding.sourceParam == nullptr)
+                continue;
+            if (sema.viewConstant(binding.exprRef).hasConstant() || sema.isLValue(binding.exprRef))
+                return Result::Continue;
+
+            const TypeInfo& paramType = binding.sourceParam->type(sema.ctx());
+            if (paramType.isCodeBlock() || paramType.isAnyVariadic())
+                return Result::Continue;
+
+            const TokenRef tokRef = materializedInlineBindingTokRef(sema, *binding.sourceParam, binding.exprRef);
+            AstNodeRef      clonedInitRef = SemaClone::cloneDetachedExpr(sema, binding.exprRef);
+            if (clonedInitRef.isInvalid())
+                return Result::Error;
+
+            auto [declRef, declPtr] = sema.ast().makeNode<AstNodeId::SingleVarDecl>(tokRef);
+            declPtr->flags()        = AstVarDeclFlagsE::Let;
+            declPtr->tokNameRef     = tokRef;
+            declPtr->nodeInitRef    = clonedInitRef;
+
+            SymbolVariable* materializedSym = makeMaterializedInlineBindingSymbol(sema, *binding.sourceParam, tokRef, *declPtr, true);
+            sema.setSymbol(declRef, materializedSym);
+            outStatements.push_back(declRef);
+
+            binding.exprRef          = makeMaterializedInlineBindingUse(sema, tokRef, *materializedSym);
+            binding.typeRef          = TypeRef::invalid();
+            binding.forceMaterialize = false;
+            return Result::Continue;
+        }
+
+        return Result::Continue;
+    }
+
     Result materializeInlineBindings(Sema& sema, const SymbolFunction& fn, const Ast& sourceAst, const AstFunctionDecl& decl, SmallVector<SemaClone::ParamBinding>& ioBindings, SmallVector<AstNodeRef>& outStatements)
     {
-        outStatements.clear();
         if (ioBindings.empty())
             return Result::Continue;
 
@@ -884,12 +985,17 @@ namespace
             const bool      bindingIsCaptured                  = inlineBindingIsCaptured(binding.idRef, capturedIdentifierSet);
             const bool      bindingNeedsMaterialization        = inlineBindingNeedsMaterialization(sema, binding.exprRef, localIdentifierSet);
             const TypeInfo& paramType                          = param->type(sema.ctx());
+            const bool      forceExplicitMaterialization       = !bindingIsCaptured && binding.forceMaterialize && !paramType.isAnyVariadic();
             const bool      hasNonCountOfUse                   = inlineBindingHasNonCountOfUse(sema, sourceAst, decl.nodeBodyRef, binding.idRef);
             const bool      forceVariadicMaterialization       = !bindingIsCaptured && forceMaterializeInlineVariadicBinding(binding, paramType, hasNonCountOfUse);
             const bool      forceIndexOrForeachMaterialization = !bindingIsCaptured &&
                                                             inlineBindingNeedsIndexOrForeachMaterialization(sema, sourceAst, decl.nodeBodyRef, binding.idRef);
-            const bool forceBindingMaterialization = forceVariadicMaterialization ||
-                                                     forceIndexOrForeachMaterialization;
+            const bool forceRepeatedRValueMaterialization = !bindingIsCaptured &&
+                                                            inlineBindingNeedsRepeatedRValueMaterialization(sema, sourceAst, decl.nodeBodyRef, binding);
+            const bool forceBindingMaterialization = forceExplicitMaterialization ||
+                                                     forceVariadicMaterialization ||
+                                                     forceIndexOrForeachMaterialization ||
+                                                     forceRepeatedRValueMaterialization;
             if (paramType.isCodeBlock() || (paramType.isAnyVariadic() && !forceBindingMaterialization && !bindingIsCaptured && !bindingNeedsMaterialization))
             {
                 remainingBindings.push_back(binding);
@@ -902,12 +1008,7 @@ namespace
                 continue;
             }
 
-            const TokenRef paramNameRef = param->tokRef();
-            if (paramNameRef.isInvalid())
-            {
-                remainingBindings.push_back(binding);
-                continue;
-            }
+            const TokenRef paramNameRef = materializedInlineBindingTokRef(sema, *param, binding.exprRef);
 
             AstNodeRef clonedInitRef = SemaClone::cloneDetachedExpr(sema, binding.exprRef);
             if (clonedInitRef.isInvalid())
@@ -926,11 +1027,11 @@ namespace
                 }
             }
             declPtr->nodeInitRef            = clonedInitRef;
-            SymbolVariable* materializedSym = makeMaterializedInlineBindingSymbol(sema, *param, *declPtr, materializedAsLet);
+            SymbolVariable* materializedSym = makeMaterializedInlineBindingSymbol(sema, *param, paramNameRef, *declPtr, materializedAsLet);
             sema.setSymbol(declRef, materializedSym);
             outStatements.push_back(declRef);
 
-            binding.exprRef = makeMaterializedInlineBindingUse(sema, *param, *materializedSym);
+            binding.exprRef = makeMaterializedInlineBindingUse(sema, paramNameRef, *materializedSym);
             if (!forceVariadicMaterialization)
                 binding.typeRef = TypeRef::invalid();
             remainingBindings.push_back(binding);
@@ -1148,6 +1249,10 @@ namespace
             if (numFixed > 0)
             {
                 assignInlineBindingExpr(bound[0], *params[0], ufcsRef);
+                // UFCS receivers are consumed through implicit `.member` accesses, so clone-time
+                // identifier scans cannot see every use of `me`. Non-lvalue temporaries therefore
+                // need a concrete local up front to avoid re-evaluating the receiver expression.
+                bound[0].forceMaterialize = !sema.viewConstant(ufcsRef).hasConstant() && !sema.isLValue(ufcsRef);
                 nextParam = 1;
             }
             else if (hasAnyVariadic)
@@ -1383,6 +1488,8 @@ Result SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFun
     SWC_RESULT(waitInlineResultTypeIfNeeded(sema, callRef, returnTypeRef));
 
     SmallVector<AstNodeRef> materializedBindings;
+    materializedBindings.clear();
+    SWC_RESULT(materializeInlineReceiverBinding(sema, bindings, materializedBindings));
     // Inline functions, mixins, and macros all substitute runtime bindings into the caller body.
     // Closure captures and non-addressable aggregate uses still need concrete locals before
     // cloning, while #code parameters are explicitly skipped inside materializeInlineBindings.
@@ -1423,10 +1530,15 @@ Result SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFun
     if (returnTypeRef != sema.typeMgr().typeVoid())
         frame.pushBindingType(returnTypeRef);
     frame.setCurrentInlinePayload(inlinePayload);
-    if ((isMacro || isMixin) && isCrossAstInline)
+    if (isMacro || isMixin)
     {
         if (SymbolVariable* receiver = receiverBinding(sema, fn))
-            frame.pushBindingVar(receiver);
+        {
+            if (SymbolVariable* materializedReceiver = materializedReceiverBinding(sema, *receiver, bindings.span()))
+                frame.pushBindingVar(materializedReceiver);
+            else
+                frame.pushBindingVar(receiver);
+        }
     }
     const bool needsOwnerScope = isMacro;
     SemaScope* ownerScope      = nullptr;

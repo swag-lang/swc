@@ -46,10 +46,24 @@ func captureValue(line: string)->string throw
     return r.getCapture()
 }
 
+func captureValueInAssumeBlock(line: string)->string
+{
+    var result = ""
+    assume
+    {
+        var r = BigOpaque.create("init")
+        discard r.match(line)
+        result = r.getCapture()
+    }
+
+    return result
+}
+
 #test
 {
     assume
     {
         @assert(captureValue("2x3x4") == "2x3x4")
+        @assert(captureValueInAssumeBlock("2x3x4") == "2x3x4")
     }
 }

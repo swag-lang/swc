@@ -492,6 +492,15 @@ namespace
         CodeGenMemoryHelpers::storePayloadToAddress(codeGen, outAddressReg, sourcePayload, static_cast<uint32_t>(sourceSize));
     }
 
+    bool initPayloadAliasesSymbolStorage(const CodeGen& codeGen, const SymbolVariable& symVar, AstNodeRef payloadNodeRef, const CodeGenNodePayload& initPayload)
+    {
+        if (!initPayload.isAddress() || initPayload.runtimeStorageSym != &symVar)
+            return false;
+        if (initPayload.runtimeStorageOverridden)
+            return true;
+        return payloadNodeRef.isValid() && codeGen.node(payloadNodeRef).is(AstNodeId::TryCatchExpr);
+    }
+
     bool varInitNeedsPostCopy(CodeGen& codeGen, AstNodeRef initRef, const CodeGenNodePayload& initPayload)
     {
         const AstNodeRef resolvedInitRef = initRef.isValid() ? codeGen.viewZero(initRef).nodeRef() : AstNodeRef::invalid();
@@ -503,6 +512,8 @@ namespace
     Result emitVarInitPostCopy(CodeGen& codeGen, const SymbolVariable& symVar, AstNodeRef initRef, const CodeGenNodePayload& initPayload, const CodeGenNodePayload& symbolPayload)
     {
         if (!symbolPayload.isAddress())
+            return Result::Continue;
+        if (initPayloadAliasesSymbolStorage(codeGen, symVar, initRef, initPayload))
             return Result::Continue;
         if (initPayload.isAddress() && initPayload.reg == symbolPayload.reg)
             return Result::Continue;
@@ -529,14 +540,22 @@ namespace
             if (skipInit)
                 return Result::Continue;
 
-            const AstNodeRef resolvedInitRef = initRef.isValid() ? codeGen.viewZero(initRef).nodeRef() : AstNodeRef::invalid();
-            const auto*      initNodePayload = resolvedInitRef.isValid() ? codeGen.safeNodePayload<CodeGenNodePayload>(resolvedInitRef) : nullptr;
-            if (initNodePayload && initNodePayload->runtimeStorageSym == &symVar && initNodePayload->isAddress())
+            const auto* initNodePayload = initRef.isValid() ? codeGen.safeNodePayload<CodeGenNodePayload>(initRef) : nullptr;
+            if ((!initNodePayload || !initPayloadAliasesSymbolStorage(codeGen, symVar, initRef, *initNodePayload)) && initRef.isValid())
+            {
+                const AstNodeRef resolvedInitRef = codeGen.viewZero(initRef).nodeRef();
+                if (resolvedInitRef.isValid() && resolvedInitRef != initRef)
+                    initNodePayload = codeGen.safeNodePayload<CodeGenNodePayload>(resolvedInitRef);
+            }
+
+            if (initNodePayload && initPayloadAliasesSymbolStorage(codeGen, symVar, initRef, *initNodePayload))
                 return Result::Continue;
 
             if (initRef.isValid())
             {
                 const CodeGenNodePayload& initPayload = codeGen.payload(initRef);
+                if (initPayloadAliasesSymbolStorage(codeGen, symVar, initRef, initPayload))
+                    return Result::Continue;
                 if (initPayload.isAddress())
                 {
                     CodeGenMemoryHelpers::emitMemCopy(codeGen, symbolPayload.reg, initPayload.reg, localSize);
@@ -589,10 +608,15 @@ namespace
             const uint32_t localSize = symVar.codeGenLocalSize();
             SWC_ASSERT(localSize > 0);
             const CodeGenNodePayload symbolPayload   = codeGen.resolveLocalStackPayload(symVar);
-            const AstNodeRef         resolvedInitRef = initRef.isValid() ? codeGen.viewZero(initRef).nodeRef() : AstNodeRef::invalid();
-            const auto*              initNodePayload = resolvedInitRef.isValid() ? codeGen.safeNodePayload<CodeGenNodePayload>(resolvedInitRef) : nullptr;
+            const auto* initNodePayload = initRef.isValid() ? codeGen.safeNodePayload<CodeGenNodePayload>(initRef) : nullptr;
+            if ((!initNodePayload || !initPayloadAliasesSymbolStorage(codeGen, symVar, initRef, *initNodePayload)) && initRef.isValid())
+            {
+                const AstNodeRef resolvedInitRef = codeGen.viewZero(initRef).nodeRef();
+                if (resolvedInitRef.isValid() && resolvedInitRef != initRef)
+                    initNodePayload = codeGen.safeNodePayload<CodeGenNodePayload>(resolvedInitRef);
+            }
 
-            if (initNodePayload && initNodePayload->runtimeStorageSym == &symVar && initNodePayload->isAddress())
+            if (initNodePayload && initPayloadAliasesSymbolStorage(codeGen, symVar, initRef, *initNodePayload))
                 return Result::Continue;
 
             if (!skipInit)
@@ -600,6 +624,8 @@ namespace
                 if (initRef.isValid())
                 {
                     const CodeGenNodePayload& initPayload = codeGen.payload(initRef);
+                    if (initPayloadAliasesSymbolStorage(codeGen, symVar, initRef, initPayload))
+                        return Result::Continue;
                     if (initPayload.isAddress())
                     {
                         CodeGenMemoryHelpers::emitMemCopy(codeGen, symbolPayload.reg, initPayload.reg, localSize);

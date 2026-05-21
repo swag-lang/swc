@@ -113,6 +113,19 @@ namespace
         return param.idRef() == ctx.idMgr().predefined(IdentifierManager::PredefinedName::Me);
     }
 
+    bool isFunctionNestedInFunctionScope(const SymbolFunction& symbol)
+    {
+        const SymbolMap* scope = symbol.ownerSymMap();
+        while (scope)
+        {
+            if (scope->isFunction())
+                return true;
+            scope = scope->ownerSymMap();
+        }
+
+        return false;
+    }
+
     void appendPublicApiGenericStructArgs(Utf8& out, const TaskContext& ctx, const SymbolStruct& instance)
     {
         SmallVector<GenericInstanceKey> args;
@@ -607,6 +620,8 @@ bool SymbolFunction::supportsGeneratedModuleApiExport() const noexcept
     if (!decl() || decl()->isNot(AstNodeId::FunctionDecl))
         return false;
     if (isAttribute() || isClosure() || isGenericRoot() || isGenericInstance() || hasUnmaterializedGenericBody())
+        return false;
+    if (isFunctionNestedInFunctionScope(*this))
         return false;
     if (attributes().hasRtFlag(RtAttributeFlagsE::Compiler))
         return false;

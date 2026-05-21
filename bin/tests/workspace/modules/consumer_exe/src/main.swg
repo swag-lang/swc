@@ -1,27 +1,17 @@
 using ExportApi, StaticApi, RuntimeCtxDll, RuntimeCtxBase, RuntimeCtxDirect
 
+#assert(#sizeof(CtxAbiPair) == 8)
+#assert(#alignof(CtxAbiPair) == 4)
+#assert(#sizeof(CtxAbiPayload) == 32)
+#assert(#alignof(CtxAbiPayload) == 8)
+#assert(#sizeof(CtxAbiOffsets) == 16)
+#assert(#alignof(CtxAbiOffsets) == 8)
+#assert(#sizeof(CtxAbiFloatPack) == 24)
+#assert(#alignof(CtxAbiFloatPack) == 8)
+
 func keepDepScore(score: IDepScore)->IDepScore => score
 
-#init
-{
-    @assert((@getcontext().user1 & CTX_SHARED_INIT_FLAG) != 0)
-    @assert((@getcontext().user1 & CTX_DIRECT_INIT_FLAG) != 0)
-}
-
-#premain
-{
-    @assert((@getcontext().user1 & CTX_SHARED_PREMAIN_FLAG) != 0)
-    @assert((@getcontext().user1 & CTX_DIRECT_PREMAIN_FLAG) != 0)
-}
-
-#drop
-{
-    var cxt = dref @getcontext()
-    cxt.user0 = 43
-    @setcontext(cxt)
-}
-
-#main
+func verifyExportAndStaticModules()
 {
     @assert(DEP_VALUE == 7)
     @assert(DEP_PUBLIC_DEFAULT == 11)
@@ -78,6 +68,129 @@ func keepDepScore(score: IDepScore)->IDepScore => score
     @assert(calc.add(cast(f32) 2) == cast(f32) 7)
     @assert(calc.addTwice(7) == 19)
     @assert(calc.sub(2) == 3)
+}
+
+func verifyDllAbiCalls()
+{
+    @assert(ctxSharedPassString("abi-string") == "abi-string")
+    @assert(ctxSharedPassString("abi-string-2") == "abi-string-2")
+    @assert(ctxSharedPassStringAt("abi-string", 1) == 98'u8)
+    @assert(ctxSharedPassStringAt("abi-string", 2) == 'i''u8)
+    @assert(ctxSharedPassStringAt("abi-string", 9) == 'g''u8)
+
+    let array0 = ctxSharedPassArray([11, 22, 33, 44])
+    let array1 = ctxSharedPassArray([101, 202, 303, 404])
+    let array2 = ctxSharedPassArray([-1, -2, -3, -4])
+    @assert(array0[0] == 11)
+    @assert(array0[3] == 44)
+    @assert(array1[0] == 101)
+    @assert(array1[3] == 404)
+    @assert(array2[0] == -1)
+    @assert(array2[3] == -4)
+
+    let pair0 = ctxSharedPassPair({a: 9, b: 13})
+    let pair1 = ctxSharedMakePair(-9, -13)
+    let payload0 = ctxSharedPassPayload(ctxSharedMakePayload(10))
+    let payload1 = ctxSharedClonePayload(ctxSharedMakePayload(1))
+    @assert(pair0.a == 9)
+    @assert(pair0.b == 13)
+    @assert(pair1.a == -9)
+    @assert(pair1.b == -13)
+    @assert(ctxSharedPassPairSum({a: 9, b: 13}) == 22)
+    @assert(ctxSharedPassPairSum({a: 90, b: 130}) == 220)
+    @assert(ctxSharedPassPairSum({a: -90, b: 130}) == 40)
+    @assert(payload0.a0 == 11'u64)
+    @assert(payload0.a3 == 14'u64)
+    @assert(payload1.a0 == 2'u64)
+    @assert(payload1.a3 == 5'u64)
+
+    let offsets0 = ctxSharedMakeOffsets(1'u8, 2'u16, 3'u32, 4'u64)
+    @assert(offsets0.a == 1'u8)
+    @assert(offsets0.b == 2'u16)
+    @assert(offsets0.c == 3'u32)
+    @assert(offsets0.d == 4'u64)
+    @assert(ctxSharedPassOffsets(offsets0) == 10'u64)
+
+    let p0 = ctxSharedPassPointer(null)
+    let p1 = ctxSharedPassPointer(cast(*void) 0x1234'u64)
+    @assert(p0 == null)
+    @assert(p1 == cast(*void) 0x1234'u64)
+    @assert(ctxSharedPassMixed(3, "mix", {a: 10, b: 11}, [8, 9], null) == 131)
+    @assert(ctxSharedPassMixed(30, "mix2", {a: 100, b: 110}, [80, 90], cast(*void) 0x4567'u64) == 330)
+
+    const pairRef: CtxAbiPair = {a: 6, b: 7}
+    @assert(ctxSharedPassConstRef(pairRef) == 13)
+    @assert(ctxSharedPassConstRef({a: 8, b: 9}) == 17)
+    @assert(ctxSharedPassScalars(-5's8, -123's16, 77's32, 5000's64, 9'u8, 10'u16, 11'u32, 12'u64, 1.25'f32, 2.5'f64, true, 'R') == 5077)
+    @assert(ctxSharedPassBoolRunePositions(true, 3, 'Q', 4, true, 'W') == 177)
+    @assert(ctxSharedPassBoolRunePositions(false, 30, 'Q', 40, false, 'W') == 238)
+    @assert(ctxSharedPassBoolRunePositions(true, -3, 'Q', 7, false, 'W') == 173)
+    @assert(ctxSharedPassAliasEnum(1, cast(CtxAbiAlias) 2, CtxAbiEnum.A, 3) == 23)
+    @assert(ctxSharedPassAliasEnum(10, cast(CtxAbiAlias) 20, CtxAbiEnum.B, 30) == 183)
+    @assert(ctxSharedPassAliasEnum(-10, cast(CtxAbiAlias) 20, CtxAbiEnum.A, -30) == -3)
+
+    const values0: [4] s32 = [11, 22, 33, 44]
+    const values1: [4] s32 = [101, 202, 303, 404]
+    const values2: [4] s32 = [-1, -2, -3, -4]
+    @assert(ctxSharedPassSlice(values0, 2) == 33)
+    @assert(ctxSharedPassSlice(values1, 3) == 404)
+    @assert(ctxSharedPassSlice(values2, 0) == -1)
+    @assert(ctxSharedPassAggregatePositions(cast(*void) 0x10'u64, [5, 6], "abc", {a: 7, b: 8}, {a0: 1'u64, a1: 2'u64, a2: 3'u64, a3: 4'u64}) == 115'u64)
+    @assert(ctxSharedPassAggregatePositions(null, [50, 60], "Abc", {a: 70, b: 80}, {a0: 10'u64, a1: 20'u64, a2: 30'u64, a3: 40'u64}) == 235'u64)
+    @assert(ctxSharedPassNested({p: {a: 3, b: 4}, q: {a0: 10'u64, a1: 20'u64, a2: 30'u64, a3: 40'u64}}, 5) == 62'u64)
+    @assert(ctxSharedPassKindof({a: 1, b: 2}, {a0: 3'u64, a1: 4'u64, a2: 5'u64, a3: 6'u64}, "ok", null, [7, 8], CtxAbiEnum.A))
+    @assert(ctxSharedPassNestedArray({p: {a: 10, b: 11}, q: {a0: 1'u64, a1: 2'u64, a2: 3'u64, a3: 4'u64}}, [{a: 20, b: 21}, {a: 30, b: 31}]) == 61)
+
+    var nested0 = ctxSharedMakeNested(7)
+    @assert(nested0.p.a == 7)
+    @assert(nested0.p.b == 8)
+    @assert(nested0.q.a0 == 17'u64)
+    @assert(nested0.q.a3 == 47'u64)
+
+    let float0 = ctxSharedMakeFloatPack(0.5)
+    let float1 = ctxSharedCloneFloatPack(ctxSharedMakeFloatPack(1.5))
+    @assert(float0.r == 0.5)
+    @assert(float0.g == 0.75)
+    @assert(float0.b == 1.0)
+    @assert(float1.r == 1.5)
+    @assert(float1.g == 1.75)
+    @assert(float1.b == 2.0)
+
+    var writtenPair: CtxAbiPair = {a: 0, b: 0}
+    ctxSharedWritePair(&writtenPair, 77, -33)
+    @assert(writtenPair.a == 77)
+    @assert(writtenPair.b == -33)
+
+    var writtenPayload = CtxAbiPayload{a0: 0'u64, a1: 0'u64, a2: 0'u64, a3: 0'u64}
+    ctxSharedWritePayload(&writtenPayload, 30'u64)
+    @assert(writtenPayload.a0 == 31'u64)
+    @assert(writtenPayload.a1 == 32'u64)
+    @assert(writtenPayload.a2 == 33'u64)
+    @assert(writtenPayload.a3 == 34'u64)
+
+    @assert(ctxSharedScale(cast(s32) 10) == 40)
+    @assert(ctxSharedScale(cast(f32) 2) == cast(f32) 8)
+
+    var calc = CtxAbiCalculator.make(5)
+    @assert(CtxAbiCalculator.resolve(6) == 106)
+    @assert(calc.resolve(6) == 1011)
+    @assert(calc.add(cast(s32) 7) == 12)
+    @assert(calc.add(cast(f32) 2) == cast(f32) 7)
+    @assert(calc.sub(2) == 3)
+
+    let calcPair = calc.makePair(2)
+    @assert(calcPair.a == 7)
+    @assert(calcPair.b == 3)
+
+    let calcPayload = calc.makePayload(20'u64)
+    @assert(calcPayload.a0 == 26'u64)
+    @assert(calcPayload.a1 == 27'u64)
+    @assert(calcPayload.a2 == 28'u64)
+    @assert(calcPayload.a3 == 29'u64)
+}
+
+func verifyRuntimeContext()
+{
     var cxt = dref @getcontext()
     cxt.user0 = 42
     cxt.user2 = cast(u64) @getcontext()
@@ -92,4 +205,30 @@ func keepDepScore(score: IDepScore)->IDepScore => score
     @assert(ctxDirectContextMarker() == expectedContext)
     @assert(ctxBaseInitCount() == 2)
     @assert(ctxBasePreMainCount() == 2)
+}
+
+#init
+{
+    @assert((@getcontext().user1 & CTX_SHARED_INIT_FLAG) != 0)
+    @assert((@getcontext().user1 & CTX_DIRECT_INIT_FLAG) != 0)
+}
+
+#premain
+{
+    @assert((@getcontext().user1 & CTX_SHARED_PREMAIN_FLAG) != 0)
+    @assert((@getcontext().user1 & CTX_DIRECT_PREMAIN_FLAG) != 0)
+}
+
+#drop
+{
+    var cxt = dref @getcontext()
+    cxt.user0 = 43
+    @setcontext(cxt)
+}
+
+#main
+{
+    verifyExportAndStaticModules()
+    verifyDllAbiCalls()
+    verifyRuntimeContext()
 }

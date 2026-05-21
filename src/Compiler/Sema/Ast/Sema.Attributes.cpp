@@ -293,6 +293,22 @@ namespace
         return Result::Continue;
     }
 
+    Result collectForeignCallConvValue(Sema& sema, CallConvKind& outValue, const ResolvedCallArgument& arg)
+    {
+        const ConstantValue* value = nullptr;
+        SWC_RESULT(collectResolvedConstantValue(sema, arg, value));
+        SWC_ASSERT(value != nullptr);
+        SWC_ASSERT(value->isInt());
+        SWC_ASSERT(value->getInt().fits64());
+
+        const auto callConvKind = static_cast<CallConvKind>(value->getInt().asI64());
+        if (!isValidCallConvKind(callConvKind))
+            return SemaError::raise(sema, DiagnosticId::sema_err_foreign_invalid_callconv, arg.argRef.isValid() ? arg.argRef : sema.curNodeRef());
+
+        outValue = callConvKind;
+        return Result::Continue;
+    }
+
     Result collectForeignOptions(Sema& sema, std::span<const ResolvedCallArgument> args, AttributeList& outAttributes)
     {
         SWC_ASSERT(!args.empty());
@@ -300,13 +316,20 @@ namespace
         Utf8 moduleName;
         Utf8 functionName;
         Utf8 linkModuleName;
+        std::optional<CallConvKind> callConvKind;
         SWC_RESULT(collectForeignStringValue(sema, moduleName, args[0]));
         if (args.size() > 1)
             SWC_RESULT(collectForeignStringValue(sema, functionName, args[1]));
         if (args.size() > 2)
             SWC_RESULT(collectForeignStringValue(sema, linkModuleName, args[2]));
+        if (args.size() > 3 && args[3].argRef.isValid())
+        {
+            CallConvKind explicitCallConvKind = CallConvKind::C;
+            SWC_RESULT(collectForeignCallConvValue(sema, explicitCallConvKind, args[3]));
+            callConvKind = explicitCallConvKind;
+        }
 
-        outAttributes.setForeign(moduleName, functionName, linkModuleName);
+        outAttributes.setForeign(moduleName, functionName, linkModuleName, callConvKind);
         return Result::Continue;
     }
 

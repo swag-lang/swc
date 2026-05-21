@@ -18,6 +18,13 @@ namespace Swag
         All               = 0x04000000
     }
 
+    enum CallConv: u8
+    {
+        C          // Target C ABI for the selected platform
+        WindowsX64 // Concrete Windows x64 ABI
+        Host       // Swag compiled/JIT ABI for the current target runtime
+    }
+
     // #########################################################
     // Attributes
     // #########################################################
@@ -96,7 +103,7 @@ namespace Swag
 
     // The following function is foreign (imported)
     #[AttrUsage(AttributeUsage.Function)]
-    attr Foreign(module: string, function: string = "", link: string = "")
+    attr Foreign(module: string, function: string = "", link: string = "", callconv: CallConv = Swag.CallConv.C)
 
     // The following function accepts that the called does not use its return value
     #[AttrUsage(AttributeUsage.Function | AttributeUsage.Variable)]

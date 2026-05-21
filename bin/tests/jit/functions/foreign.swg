@@ -4,6 +4,12 @@
 #[Swag.Foreign("kernel32", "GetCurrentProcessId")]
 func GetPidAlias()->u32;
 
+#[Swag.Foreign(module: "kernel32", function: "GetCurrentProcessId", callconv: Swag.CallConv.C)]
+func GetPidExplicitC()->u32;
+
+#[Swag.Foreign(module: "kernel32", function: "GetCurrentProcessId", callconv: Swag.CallConv.WindowsX64)]
+func GetPidExplicitWin64()->u32;
+
 #[Swag.Foreign("kernel32", "GetCurrentProcess")]
 func GetCurrentProcess()->*void;
 
@@ -24,9 +30,13 @@ func VirtualFree(address: *void, bytes: u64, freeType: u32)->bool;
 #test
 {
     const A = #run GetPidAlias()
+    const C = #run GetPidExplicitC()
+    const W = #run GetPidExplicitWin64()
     const B = #run GetCurrentProcessId()
     #assert(A != 0'u32)
     #assert(B != 0'u32)
+    #assert(C == A)
+    #assert(W == A)
     #assert(A == B)
 }
 

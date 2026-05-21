@@ -104,6 +104,7 @@ SWC_DIAG_DEF(sema_err_not_attribute, Error, "'{sym}' cannot be used as an attrib
 SWC_DIAG_DEF(sema_err_attribute_inline_noinline_conflict, Error, "'Swag.Inline' and 'Swag.NoInline' cannot be used together")
 SWC_DIAG_DEF(sema_err_attribute_inline_macro_mixin_conflict, Error, "'Swag.Inline', 'Swag.Macro', and 'Swag.Mixin' are mutually exclusive")
 SWC_DIAG_DEF(sema_err_foreign_cannot_have_body, Error, "a function marked with 'Swag.Foreign' cannot have a body")
+SWC_DIAG_DEF(sema_err_foreign_invalid_callconv, Error, "invalid calling convention passed to 'Swag.Foreign'")
 SWC_DIAG_DEF(sema_err_not_value_expr, Error, "expected a value expression here")
 SWC_DIAG_DEF(sema_err_not_value_expr, Error, "'{sym}' is not a value expression; it is {a-sym-fam}")
 SWC_DIAG_DEF(sema_err_array_dim_not_int, Error, "array dimension must be an integer, found '{type}'")

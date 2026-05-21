@@ -1,4 +1,5 @@
 ﻿#pragma once
+#include "Backend/ABI/CallConv.h"
 #include "Backend/Runtime.h"
 #include "Compiler/Sema/Helpers/SemaSafety.h"
 #include "Support/Core/RefTypes.h"
@@ -81,6 +82,7 @@ struct AttributeList
     Utf8                                foreignModuleName;
     Utf8                                foreignFunctionName;
     Utf8                                foreignLinkModuleName;
+    std::optional<CallConvKind>         foreignCallConvKind;
     GeneratedOperatorFlags              generatedOperators = GeneratedOperatorFlagsE::Zero;
     SourceCodeRef                       generatedOperatorsCodeRef;
 
@@ -96,6 +98,7 @@ struct AttributeList
                foreignModuleName.empty() &&
                foreignFunctionName.empty() &&
                foreignLinkModuleName.empty() &&
+               !foreignCallConvKind.has_value() &&
                generatedOperators.none();
     }
 
@@ -139,12 +142,18 @@ struct AttributeList
         backendOptimize = value;
     }
 
-    void setForeign(std::string_view moduleName, std::string_view functionName, std::string_view linkModuleName = {})
+    CallConvKind resolvedForeignCallConvKind() const
+    {
+        return foreignCallConvKind.value_or(CallConvKind::C);
+    }
+
+    void setForeign(std::string_view moduleName, std::string_view functionName, std::string_view linkModuleName = {}, std::optional<CallConvKind> callConvKind = std::nullopt)
     {
         hasForeign            = true;
         foreignModuleName     = moduleName;
         foreignFunctionName   = functionName;
         foreignLinkModuleName = linkModuleName;
+        foreignCallConvKind   = callConvKind;
     }
 };
 

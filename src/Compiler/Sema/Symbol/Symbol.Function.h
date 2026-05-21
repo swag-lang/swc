@@ -85,6 +85,7 @@ public:
     std::string_view foreignModuleName() const { return attributes().foreignModuleName; }
     std::string_view foreignFunctionName() const { return attributes().foreignFunctionName; }
     std::string_view foreignLinkModuleName() const { return attributes().foreignLinkModuleName; }
+    CallConvKind     foreignCallConvKind() const noexcept { return attributes().resolvedForeignCallConvKind(); }
     Utf8             resolveForeignFunctionName(const TaskContext& ctx) const;
 
     bool usesGvtd() const noexcept { return hasExtraFlag(SymbolFunctionFlagsE::UsesGvtd); }

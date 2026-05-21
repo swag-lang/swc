@@ -1170,7 +1170,7 @@ func mainValue(value: s32)->s32
         return Result::Error;
     if (!depApiContent.contains("#[Swag.ConstExpr]"))
         return Result::Error;
-    if (!depApiContent.contains(R"(#[Swag.Foreign("dep", "dep_abs")])"))
+    if (!depApiContent.contains(R"(#[Swag.Foreign(module: "dep", function: "dep_abs", callconv: Swag.CallConv.Host)])"))
         return Result::Error;
     if (!depApiContent.contains("func depAbs(value: s32)->s32;"))
         return Result::Error;
@@ -1627,33 +1627,33 @@ public func coreValue()->s32
     Utf8 depLibApiContent;
     if (FileSystem::readTextFile(depLibApiFile, depLibApiContent, ioError) != Result::Continue)
         return Result::Error;
-    if (!depLibApiContent.contains("#[Swag.Foreign(\"deplib\","))
+    if (!depLibApiContent.contains("#[Swag.Foreign(module: \"deplib\","))
         return Result::Error;
     if (depLibApiContent.contains("__swc_api_"))
         return Result::Error;
-    if (!depLibApiContent.contains(R"(#[Swag.Foreign("deplib", "dep_double")])"))
+    if (!depLibApiContent.contains(R"(#[Swag.Foreign(module: "deplib", function: "dep_double", callconv: Swag.CallConv.Host)])"))
         return Result::Error;
-    if (!depLibApiContent.contains(R"(#[Swag.Foreign("deplib", "dep_scale__s32")])"))
+    if (!depLibApiContent.contains(R"(#[Swag.Foreign(module: "deplib", function: "dep_scale__s32", callconv: Swag.CallConv.Host)])"))
         return Result::Error;
-    if (!depLibApiContent.contains(R"(#[Swag.Foreign("deplib", "dep_scale__f32")])"))
+    if (!depLibApiContent.contains(R"(#[Swag.Foreign(module: "deplib", function: "dep_scale__f32", callconv: Swag.CallConv.Host)])"))
         return Result::Error;
-    if (!depLibApiContent.contains(R"(#[Swag.Foreign("deplib", "dep_string_length")])"))
+    if (!depLibApiContent.contains(R"(#[Swag.Foreign(module: "deplib", function: "dep_string_length", callconv: Swag.CallConv.Host)])"))
         return Result::Error;
-    if (!depLibApiContent.contains(R"(#[Swag.Foreign("deplib", "dep_triple")])"))
+    if (!depLibApiContent.contains(R"(#[Swag.Foreign(module: "deplib", function: "dep_triple", callconv: Swag.CallConv.Host)])"))
         return Result::Error;
-    if (!depLibApiContent.contains(R"(#[Swag.Foreign("deplib", "dep_calculator_make")])"))
+    if (!depLibApiContent.contains(R"(#[Swag.Foreign(module: "deplib", function: "dep_calculator_make", callconv: Swag.CallConv.Host)])"))
         return Result::Error;
-    if (!depLibApiContent.contains(R"(#[Swag.Foreign("deplib", "dep_calculator_resolve__s32_ret_s32")])"))
+    if (!depLibApiContent.contains(R"(#[Swag.Foreign(module: "deplib", function: "dep_calculator_resolve__s32_ret_s32", callconv: Swag.CallConv.Host)])"))
         return Result::Error;
-    if (!depLibApiContent.contains(R"(#[Swag.Foreign("deplib", "dep_calculator_resolve__ref_dep_lib_dep_calculator_s32_ret_s32")])"))
+    if (!depLibApiContent.contains(R"(#[Swag.Foreign(module: "deplib", function: "dep_calculator_resolve__ref_dep_lib_dep_calculator_s32_ret_s32", callconv: Swag.CallConv.Host)])"))
         return Result::Error;
-    if (!depLibApiContent.contains(R"(#[Swag.Foreign("deplib", "dep_calculator_add__s32")])"))
+    if (!depLibApiContent.contains(R"(#[Swag.Foreign(module: "deplib", function: "dep_calculator_add__s32", callconv: Swag.CallConv.Host)])"))
         return Result::Error;
-    if (!depLibApiContent.contains(R"(#[Swag.Foreign("deplib", "dep_calculator_add__f32")])"))
+    if (!depLibApiContent.contains(R"(#[Swag.Foreign(module: "deplib", function: "dep_calculator_add__f32", callconv: Swag.CallConv.Host)])"))
         return Result::Error;
-    if (!depLibApiContent.contains(R"(#[Swag.Foreign("deplib", "dep_calculator_add_twice")])"))
+    if (!depLibApiContent.contains(R"(#[Swag.Foreign(module: "deplib", function: "dep_calculator_add_twice", callconv: Swag.CallConv.Host)])"))
         return Result::Error;
-    if (!depLibApiContent.contains(R"(#[Swag.Foreign("deplib", "dep_calculator_sub")])"))
+    if (!depLibApiContent.contains(R"(#[Swag.Foreign(module: "deplib", function: "dep_calculator_sub", callconv: Swag.CallConv.Host)])"))
         return Result::Error;
     if (!depLibApiContent.contains("func depDouble(value: s32)->s32;"))
         return Result::Error;
@@ -1705,11 +1705,11 @@ public func coreValue()->s32
         return Result::Error;
     if (depLibApiContent.contains("return .base - value"))
         return Result::Error;
-    if (depLibApiContent.contains(R"(#[Swag.Foreign("deplib", "dep_macro_twice_plus)"))
+    if (depLibApiContent.contains(R"(#[Swag.Foreign(module: "deplib", function: "dep_macro_twice_plus)"))
         return Result::Error;
-    if (depLibApiContent.contains(R"(#[Swag.Foreign("deplib", "dep_mixin_accumulate_twice)"))
+    if (depLibApiContent.contains(R"(#[Swag.Foreign(module: "deplib", function: "dep_mixin_accumulate_twice)"))
         return Result::Error;
-    if (depLibApiContent.contains(R"(#[Swag.Foreign("deplib", "dep_mirror)"))
+    if (depLibApiContent.contains(R"(#[Swag.Foreign(module: "deplib", function: "dep_mirror)"))
         return Result::Error;
     if (depLibApiContent.contains("\npublic "))
         return Result::Error;

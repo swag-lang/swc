@@ -74,7 +74,7 @@ attr OperatorIgnore()      // Exclude a field from generated operator overloads
 */
 
 #[AttrUsage(AttributeUsage.Function)]
-attr Foreign(module: string, function: string = "") // Imported function
+attr Foreign(module: string, function: string = "", link: string = "", callconv: Swag.CallConv = Swag.CallConv.C) // Imported function
 
 /**
 # Result Usage & Deprecation & Generic Control

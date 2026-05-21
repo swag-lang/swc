@@ -1527,11 +1527,29 @@ namespace
 
     Utf8 buildModuleApiForeignAttribute(TaskContext& ctx, const SymbolFunction& symbolFunction, const std::string_view eol)
     {
-        Utf8 result = "#[Swag.Foreign(\"";
+        std::string_view callConvName = "Swag.CallConv.C";
+        switch (symbolFunction.callConvKind())
+        {
+            case CallConvKind::C:
+                callConvName = "Swag.CallConv.C";
+                break;
+            case CallConvKind::WindowsX64:
+                callConvName = "Swag.CallConv.WindowsX64";
+                break;
+            case CallConvKind::Host:
+                callConvName = "Swag.CallConv.Host";
+                break;
+            default:
+                SWC_UNREACHABLE();
+        }
+
+        Utf8 result = "#[Swag.Foreign(module: \"";
         result += buildModuleArtifactName(ctx.compiler());
-        result += "\", \"";
+        result += "\", function: \"";
         result += symbolFunction.computePublicApiSymbolName(ctx);
-        result += "\")]";
+        result += "\", callconv: ";
+        result += callConvName;
+        result += ")]";
         result += eol;
         return result;
     }

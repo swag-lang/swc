@@ -210,6 +210,8 @@ void CallConv::setup()
     c                                              = g_CallConvs[static_cast<size_t>(hostCallConvKind)];
     host.name                                      = "host";
     c.name                                         = "c";
+    // Host keeps Swag's internal ABI stable for compiled/JIT calls on the current target:
+    // it reuses the native register/stack contract, but keeps aggregate arguments indirect.
     host.structArgPassing.passByValueSizeMask      = 0;
     host.structArgPassing.passByReferenceNeedsCopy = false;
 }

@@ -19,11 +19,11 @@ impl GenericSizeBox
     #[Swag.NoInline]
     mtd byteCount(count: u64)->u64
     {
-        #assert(#sizeof(GenericSizeEntry) == #sizeof(GenericSizeEntry's32))
-        #assert(#alignof(GenericSizeEntry) == #alignof(GenericSizeEntry's32))
-        #assert(#sizeof(GenericSizeEntryAlias) == #sizeof(GenericSizeEntry's32))
-        #assert(#alignof(GenericSizeEntryAlias) == #alignof(GenericSizeEntry's32))
-        return count * #sizeof(GenericSizeEntry) + #alignof(GenericSizeEntry)
+        #assert(#sizeof(GenericSizeEntry'(T)) == #sizeof(GenericSizeEntry's32))
+        #assert(#alignof(GenericSizeEntry'(T)) == #alignof(GenericSizeEntry's32))
+        #assert(#sizeof(GenericSizeEntryAlias'(T)) == #sizeof(GenericSizeEntry's32))
+        #assert(#alignof(GenericSizeEntryAlias'(T)) == #alignof(GenericSizeEntry's32))
+        return count * #sizeof(GenericSizeEntry'(T)) + #alignof(GenericSizeEntry'(T))
     }
 
     #[Swag.NoInline]

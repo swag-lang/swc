@@ -59,8 +59,8 @@ impl HashTable
         if .allocator == null do
             .allocator = @getcontext().allocator
 
-        let newTable = cast([*] HashTableEntry) Memory.alloc(.capacity * #sizeof(HashTableEntry), .allocator)
-        Memory.clear(newTable, .capacity * #sizeof(HashTableEntry))
+        let newTable = cast([*] HashTableEntry'(K, V)) Memory.alloc(.capacity * #sizeof(HashTableEntry'(K, V)), .allocator)
+        Memory.clear(newTable, .capacity * #sizeof(HashTableEntry'(K, V)))
         #if Reflection.hasPostCopy(K) or Reflection.hasPostCopy(V)
         {
             for i in .capacity
@@ -76,7 +76,7 @@ impl HashTable
         }
         #else
         {
-            Memory.copy(newTable, .table, .capacity * #sizeof(HashTableEntry))
+            Memory.copy(newTable, .table, .capacity * #sizeof(HashTableEntry'(K, V)))
         }
 
         .table = newTable
@@ -194,7 +194,7 @@ impl HashTable
             }
         }
 
-        Memory.free(.table, .capacity * #sizeof(HashTableEntry), .allocator)
+        Memory.free(.table, .capacity * #sizeof(HashTableEntry'(K, V)), .allocator)
         .table = null
         .count, .capacity, .deleted = 0
     }
@@ -220,7 +220,7 @@ impl HashTable
 
         let oldTable = .table
         .count, .deleted = 0
-        let newCapacityBytes = reqCapacity * #sizeof(HashTableEntry)
+        let newCapacityBytes = reqCapacity * #sizeof(HashTableEntry'(K, V))
 
         if .allocator == null do
             .allocator = @getcontext().allocator
@@ -246,7 +246,7 @@ impl HashTable
             }
         }
 
-        Memory.free(oldTable, oldCapacity * #sizeof(HashTableEntry), .allocator)
+        Memory.free(oldTable, oldCapacity * #sizeof(HashTableEntry'(K, V)), .allocator)
     }
 
     // Finds the correct index for a new key, handling collisions and me.deleted slots.

@@ -385,6 +385,9 @@ namespace SemaGeneric
             auto& instanceStruct = instance.cast<SymbolStruct>();
             SWC_RESULT(SemaSpecOp::ensureGeneratedOperators(sema, rootStruct));
             SWC_RESULT(instantiateGenericStructImpls(sema, rootStruct, instanceStruct, params, resolvedArgs));
+            instanceStruct.removeIgnoredFields();
+            SWC_RESULT(instanceStruct.canBeCompleted(sema));
+            SWC_RESULT(instanceStruct.computeLayout(sema.ctx()));
             SWC_RESULT(SemaSpecOp::ensureGeneratedLifecycleFunctions(sema, instanceStruct));
             SWC_RESULT(instanceStruct.registerSpecOps(sema));
             instanceStruct.setSemaCompleted(sema.ctx());

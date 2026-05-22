@@ -18,11 +18,11 @@ impl SemaGenericSizeBox
 {
     func byteCount(count: u64)->u64
     {
-        #assert(#sizeof(SemaGenericSizeEntry) == #sizeof(SemaGenericSizeEntry's32))
-        #assert(#alignof(SemaGenericSizeEntry) == #alignof(SemaGenericSizeEntry's32))
-        #assert(#sizeof(SemaGenericSizeEntryAlias) == #sizeof(SemaGenericSizeEntry's32))
-        #assert(#alignof(SemaGenericSizeEntryAlias) == #alignof(SemaGenericSizeEntry's32))
-        return count * #sizeof(SemaGenericSizeEntry) + #alignof(SemaGenericSizeEntry)
+        #assert(#sizeof(SemaGenericSizeEntry'(T)) == #sizeof(SemaGenericSizeEntry's32))
+        #assert(#alignof(SemaGenericSizeEntry'(T)) == #alignof(SemaGenericSizeEntry's32))
+        #assert(#sizeof(SemaGenericSizeEntryAlias'(T)) == #sizeof(SemaGenericSizeEntry's32))
+        #assert(#alignof(SemaGenericSizeEntryAlias'(T)) == #alignof(SemaGenericSizeEntry's32))
+        return count * #sizeof(SemaGenericSizeEntry'(T)) + #alignof(SemaGenericSizeEntry'(T))
     }
 
     func makeEntry(value: T)->SemaGenericSizeEntry

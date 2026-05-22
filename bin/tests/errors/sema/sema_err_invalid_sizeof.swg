@@ -24,3 +24,10 @@
 
 namespace NS {}
 #assert(#sizeof(NS) == 0) // swc-expected-error {{sema_err_invalid_sizeof}}
+
+struct(T) GenericSizeofProbe
+{
+    value: T
+}
+
+#assert(#sizeof(GenericSizeofProbe) == 0) // swc-expected-error {{sema_err_invalid_sizeof}}

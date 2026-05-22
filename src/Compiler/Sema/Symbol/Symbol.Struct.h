@@ -88,6 +88,7 @@ public:
     const SymbolFunction*        effectiveOpDrop(const TaskContext& ctx) const;
     const SymbolFunction*        effectiveOpPostCopy(const TaskContext& ctx) const;
     const SymbolFunction*        effectiveOpPostMove(const TaskContext& ctx) const;
+    bool                         hasConcreteLayout() const noexcept;
 
     bool                          isGenericRoot() const noexcept { return hasExtraFlag(SymbolStructFlagsE::GenericRoot); }
     void                          setGenericRoot(bool value) noexcept;

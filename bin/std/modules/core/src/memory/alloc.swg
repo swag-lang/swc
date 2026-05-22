@@ -2,6 +2,27 @@
 #global namespace Memory
 using Swag
 
+func allocZeroSizeMessage(kind: string, size: u64, hint: string, loc: Swag.SourceCodeLocation)->String
+{
+    var result: retval
+    result.append(kind)
+    result.append(" expects a non-zero size")
+    result.append(", got ")
+    result.appendFormat("%", size)
+    if @countof(hint)
+    {
+        result.append(" [")
+        result.append(hint)
+        result.append("]")
+    }
+
+    result.append(" at ")
+    result.append(loc.fileName)
+    result.append(":")
+    result.appendFormat("%", loc.lineStart + 1)
+    return result
+}
+
 // Check if a given pointer is allocated
 func assertIsAllocated(buffer: [*] void, size: u64, allocator: IAllocator = null, hint: string = null, loc = #callerlocation)
 {
@@ -51,6 +72,9 @@ func freeAll(allocator: IAllocator, hint: string = null, loc = #callerlocation)
 // Reallocate/allocate a given amount of bytes
 func realloc(buffer: [*] void, newSize: u64, oldSize: u64, allocator: IAllocator = null, alignment: u16 = 0, hint: string = null, loc = #callerlocation)->[*] void
 {
+    if !newSize do
+        @panic(allocZeroSizeMessage("Memory.realloc", newSize, hint, loc), loc)
+
     var req: AllocatorRequest
     req.callerLoc = loc
     req.hint      = hint
@@ -69,6 +93,9 @@ func realloc(buffer: [*] void, newSize: u64, oldSize: u64, allocator: IAllocator
 // Allocate a given amount of bytes
 func alloc(size: u64, allocator: IAllocator = null, alignment: u32 = 0, hint: string = null, loc = #callerlocation)->[*] void
 {
+    if !size do
+        @panic(allocZeroSizeMessage("Memory.alloc", size, hint, loc), loc)
+
     var req: AllocatorRequest
     req.callerLoc = loc
     req.hint      = hint
@@ -85,6 +112,9 @@ func alloc(size: u64, allocator: IAllocator = null, alignment: u32 = 0, hint: st
 // Allocate a given amount of bytes in the temporary allocator
 func tempAlloc(size: u64, alignment: u32 = 0, hint: string = null, loc = #callerlocation)->[*] void
 {
+    if !size do
+        @panic(allocZeroSizeMessage("Memory.tempAlloc", size, hint, loc), loc)
+
     var req: AllocatorRequest
     req.callerLoc = loc
     req.hint      = hint

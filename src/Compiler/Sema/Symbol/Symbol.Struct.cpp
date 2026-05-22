@@ -883,6 +883,14 @@ uint64_t SymbolStruct::sizeOf() const
     return checkedStructLayoutSize(*this, sizeInBytes_);
 }
 
+bool SymbolStruct::hasConcreteLayout() const noexcept
+{
+    if (!isConcreteStructLayoutPending(*this))
+        return true;
+
+    return sizeInBytes_ != 0 && alignment_ != 0;
+}
+
 uint32_t SymbolStruct::alignment() const
 {
     return checkedStructLayoutAlignment(*this, alignment_);

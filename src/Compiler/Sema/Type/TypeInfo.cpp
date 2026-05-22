@@ -1057,7 +1057,7 @@ bool TypeInfo::isCompleted(TaskContext& ctx) const
     switch (kind_)
     {
         case TypeInfoKind::Struct:
-            return payloadSymStruct().isSemaCompleted();
+            return payloadSymStruct().isSemaCompleted() && payloadSymStruct().hasConcreteLayout();
         case TypeInfoKind::Enum:
             return payloadSymEnum().isSemaCompleted();
         case TypeInfoKind::Interface:
@@ -1121,7 +1121,12 @@ Symbol* TypeInfo::getNotCompletedSymbol(TaskContext& ctx) const
     switch (kind_)
     {
         case TypeInfoKind::Struct:
-            return directBlockingSymbol(&payloadSymStruct());
+        {
+            auto& symStruct = payloadSymStruct();
+            if (symStruct.isSemaCompleted() && symStruct.hasConcreteLayout())
+                return nullptr;
+            return &symStruct;
+        }
         case TypeInfoKind::Enum:
             return directBlockingSymbol(&payloadSymEnum());
         case TypeInfoKind::Interface:

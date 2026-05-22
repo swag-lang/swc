@@ -58,8 +58,8 @@ impl HashSet
         if .allocator == null do
             .allocator = @getcontext().allocator
 
-        let newTable = cast([*] HashSetEntry) Memory.alloc(.capacity * #sizeof(HashSetEntry), .allocator)
-        Memory.clear(newTable, .capacity * #sizeof(HashSetEntry))
+        let newTable = cast([*] HashSetEntry'(K)) Memory.alloc(.capacity * #sizeof(HashSetEntry'(K)), .allocator)
+        Memory.clear(newTable, .capacity * #sizeof(HashSetEntry'(K)))
         #if Reflection.hasPostCopy(K)
         {
             for i in .capacity
@@ -74,7 +74,7 @@ impl HashSet
         }
         #else
         {
-            Memory.copy(newTable, .table, .capacity * #sizeof(HashSetEntry))
+            Memory.copy(newTable, .table, .capacity * #sizeof(HashSetEntry'(K)))
         }
 
         .table = newTable
@@ -151,7 +151,7 @@ impl HashSet
             }
         }
 
-        Memory.free(.table, .capacity * #sizeof(HashSetEntry), .allocator)
+        Memory.free(.table, .capacity * #sizeof(HashSetEntry'(K)), .allocator)
         .table = null
         .count, .capacity, .deleted = 0
     }
@@ -177,7 +177,7 @@ impl HashSet
 
         let oldTable = .table
         .count, .deleted = 0
-        let newCapacityBytes = reqCapacity * #sizeof(HashSetEntry)
+        let newCapacityBytes = reqCapacity * #sizeof(HashSetEntry'(K))
 
         if .allocator == null do
             .allocator = @getcontext().allocator
@@ -202,7 +202,7 @@ impl HashSet
             }
         }
 
-        Memory.free(oldTable, oldCapacity * #sizeof(HashSetEntry), .allocator)
+        Memory.free(oldTable, oldCapacity * #sizeof(HashSetEntry'(K)), .allocator)
     }
 
     // Finds the correct index for a new key, handling collisions and me.deleted slots.

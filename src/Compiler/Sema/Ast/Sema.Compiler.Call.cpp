@@ -721,6 +721,63 @@ namespace
         return Result::Continue;
     }
 
+    void assertConcreteStructCompilerSizeOperand(const TypeInfo& typeInfo)
+    {
+        if (!typeInfo.isStruct())
+            return;
+
+        const auto& symStruct = typeInfo.payloadSymStruct();
+        if (!symStruct.isGenericRoot() || symStruct.isGenericInstance())
+            return;
+
+#if SWC_DEV_MODE
+        Utf8 detail;
+        detail += std::format("  structPtr={} semaCompleted={} typed={} declared={} genericRoot={} genericInstance={} union={} fields={} declNodeRef={}\n",
+                              static_cast<const void*>(&symStruct),
+                              symStruct.isSemaCompleted(),
+                              symStruct.isTyped(),
+                              symStruct.isDeclared(),
+                              symStruct.isGenericRoot(),
+                              symStruct.isGenericInstance(),
+                              symStruct.isUnion(),
+                              symStruct.fields().size(),
+                              symStruct.declNodeRef().get());
+        swcAssertDetail("compiler #sizeof/#alignof operand must be a concrete struct instance", __FILE__, __LINE__, detail.view());
+#endif
+
+        SWC_ASSERT(!symStruct.isGenericRoot() || symStruct.isGenericInstance());
+    }
+
+    void assertConcreteStructCompilerSizeValue(const TypeInfo& typeInfo, const uint64_t value)
+    {
+        if (!typeInfo.isStruct())
+            return;
+
+        const auto& symStruct = typeInfo.payloadSymStruct();
+        if (symStruct.isGenericRoot() && !symStruct.isGenericInstance())
+            return;
+
+#if SWC_DEV_MODE
+        if (!value)
+        {
+            Utf8 detail;
+            detail += std::format("  structPtr={} semaCompleted={} typed={} declared={} genericRoot={} genericInstance={} union={} fields={} declNodeRef={}\n",
+                                  static_cast<const void*>(&symStruct),
+                                  symStruct.isSemaCompleted(),
+                                  symStruct.isTyped(),
+                                  symStruct.isDeclared(),
+                                  symStruct.isGenericRoot(),
+                                  symStruct.isGenericInstance(),
+                                  symStruct.isUnion(),
+                                  symStruct.fields().size(),
+                                  symStruct.declNodeRef().get());
+            swcAssertDetail("compiler #sizeof/#alignof concrete struct value must be non-zero", __FILE__, __LINE__, detail.view());
+        }
+#endif
+
+        SWC_ASSERT(value != 0);
+    }
+
     Result semaCompilerTypeOf(Sema& sema, const AstCompilerCallOne& node)
     {
         const AstNodeRef childRef = node.nodeArgRef;
@@ -796,8 +853,18 @@ namespace
         SWC_RESULT(resolveCompilerOperandConcreteType(sema, view, childRef, typeRef));
 
         const TypeInfo& typeInfo = sema.typeMgr().get(typeRef);
+        if (typeInfo.isStruct())
+        {
+            const auto& symStruct = typeInfo.payloadSymStruct();
+            if (symStruct.isGenericRoot() && !symStruct.isGenericInstance())
+                return SemaError::raise(sema, DiagnosticId::sema_err_invalid_sizeof, childRef);
+        }
+
+        assertConcreteStructCompilerSizeOperand(typeInfo);
         SWC_RESULT(sema.waitSemaCompleted(&typeInfo, childRef));
-        sema.setConstant(sema.curNodeRef(), sema.cstMgr().addInt(sema.ctx(), typeInfo.sizeOf(sema.ctx())));
+        const uint64_t sizeOf = typeInfo.sizeOf(sema.ctx());
+        assertConcreteStructCompilerSizeValue(typeInfo, sizeOf);
+        sema.setConstant(sema.curNodeRef(), sema.cstMgr().addInt(sema.ctx(), sizeOf));
         return Result::Continue;
     }
 
@@ -826,8 +893,18 @@ namespace
         SWC_RESULT(resolveCompilerOperandConcreteType(sema, view, childRef, typeRef));
 
         const TypeInfo& typeInfo = sema.typeMgr().get(typeRef);
+        if (typeInfo.isStruct())
+        {
+            const auto& symStruct = typeInfo.payloadSymStruct();
+            if (symStruct.isGenericRoot() && !symStruct.isGenericInstance())
+                return SemaError::raise(sema, DiagnosticId::sema_err_invalid_alignof, childRef);
+        }
+
+        assertConcreteStructCompilerSizeOperand(typeInfo);
         SWC_RESULT(sema.waitSemaCompleted(&typeInfo, childRef));
-        sema.setConstant(sema.curNodeRef(), sema.cstMgr().addInt(sema.ctx(), typeInfo.alignOf(sema.ctx())));
+        const uint64_t alignOf = typeInfo.alignOf(sema.ctx());
+        assertConcreteStructCompilerSizeValue(typeInfo, alignOf);
+        sema.setConstant(sema.curNodeRef(), sema.cstMgr().addInt(sema.ctx(), alignOf));
         return Result::Continue;
     }
 

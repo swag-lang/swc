@@ -495,7 +495,13 @@ impl ConcatBuffer
         if .lastBucket == .firstBucket do
             return
 
-        let total    = .count()
+        let total = .count()
+        if !total
+        {
+            .release()
+            return
+        }
+
         let newDatas = cast([*] u8) Memory.alloc(total, .allocator)
 
         var curPtr = newDatas

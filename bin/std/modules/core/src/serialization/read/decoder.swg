@@ -320,6 +320,9 @@ impl IDecoder for Decoder
 
     mtd impl readBufferU8(count: u64)->*u8 throw
     {
+        if !count do
+            return null
+
         let data = cast([*] u8) Memory.alloc(count)
 
         var cpt     = count

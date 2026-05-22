@@ -32,17 +32,17 @@ impl RecursiveAssocTable
     #[Swag.NoInline]
     mtd entrySize()->u64
     {
-        return #sizeof(RecursiveAssocEntry)
+        return #sizeof(RecursiveAssocEntry'(K, V))
     }
 
     #[Swag.NoInline]
     mtd entryAlign()->u64
     {
-        return #alignof(RecursiveAssocEntry)
+        return #alignof(RecursiveAssocEntry'(K, V))
     }
 
     #[Swag.NoInline]
-    mtd makeEntry(key: K, value: V)->RecursiveAssocEntry
+    mtd makeEntry(key: K, value: V)->RecursiveAssocEntry'(K, V)
     {
         return {hash: 7, key: key, value: value}
     }
@@ -54,7 +54,7 @@ impl RecursiveAssocTable
 
         let oldTable = .table
         let oldCapacity = .capacity
-        .table = cast([*] RecursiveAssocEntry) @alloc(oldCapacity * #sizeof(RecursiveAssocEntry))
+        .table = cast([*] RecursiveAssocEntry'(K, V)) @alloc(oldCapacity * #sizeof(RecursiveAssocEntry'(K, V)))
 
         for i in oldCapacity
         {
@@ -94,7 +94,7 @@ impl RecursiveAssocTable
         let oldTable = .table
         let oldCapacity = .capacity
 
-        .table = cast([*] RecursiveAssocEntry) @alloc(reqCapacity * #sizeof(RecursiveAssocEntry))
+        .table = cast([*] RecursiveAssocEntry'(K, V)) @alloc(reqCapacity * #sizeof(RecursiveAssocEntry'(K, V)))
         .count = 0
         .deleted = 0
         .capacity = reqCapacity
@@ -117,7 +117,7 @@ impl RecursiveAssocTable
     }
 
     #[Discardable]
-    mtd emplaceInternal(hashVal: u32, key: &K, value: &V)->*RecursiveAssocEntry
+    mtd emplaceInternal(hashVal: u32, key: &K, value: &V)->*RecursiveAssocEntry'(K, V)
     {
         .grow()
 
@@ -141,7 +141,7 @@ impl RecursiveAssocTable
     }
 
     #[Discardable]
-    mtd add(key: K, value: V)->*RecursiveAssocEntry
+    mtd add(key: K, value: V)->*RecursiveAssocEntry'(K, V)
     {
         let hashVal = recursiveHash(cast(u32) key)
         return .emplaceInternal(hashVal, &key, &value)
@@ -152,7 +152,7 @@ impl RecursiveAssocTable
         return .tryFind(key) != null
     }
 
-    mtd tryFind(key: K)->#null *RecursiveAssocEntry
+    mtd tryFind(key: K)->#null *RecursiveAssocEntry'(K, V)
     {
         if .table == null do
             return null

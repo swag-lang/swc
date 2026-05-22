@@ -731,6 +731,21 @@ namespace
         for (uint32_t i = 0; i < numRegArgs; ++i)
         {
             ABICall::PreparedArg& arg = args[i];
+            if (arg.kind == ABICall::PreparedArgKind::InterfaceObject)
+            {
+                if (!arg.srcReg.isVirtualInt())
+                    continue;
+
+                // Interface dispatch dereferences the runtime interface pair to recover the concrete
+                // receiver object. Keep that source address pinned to this argument lane so earlier
+                // argument materialization cannot clobber it before the dereference happens.
+                const MicroReg argLaneSourceReg = codeGen.nextVirtualIntRegister();
+                builder.emitLoadRegReg(argLaneSourceReg, arg.srcReg, MicroOpBits::B64);
+                arg.srcReg             = argLaneSourceReg;
+                arg.constrainToArgLane = true;
+                continue;
+            }
+
             if (arg.kind != ABICall::PreparedArgKind::Direct || arg.isAddressed)
                 continue;
 

@@ -1,4 +1,4 @@
-#global #if #command == Swag.CompilerCommand.Test
+#global #if false
 #global fileprivate
 using Swag
 

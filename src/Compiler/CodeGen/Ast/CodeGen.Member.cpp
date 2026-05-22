@@ -220,6 +220,23 @@ namespace
         return &baseTypeInfo->payloadSymStruct();
     }
 
+    const SymbolVariable* findDirectStructFieldById(const SymbolStruct& owner, const IdentifierRef idRef)
+    {
+        for (const SymbolVariable* field : owner.fields())
+        {
+            if (field && field->idRef() == idRef)
+                return field;
+        }
+
+        return nullptr;
+    }
+
+    bool ownerStructReachableThroughUsing(CodeGen& codeGen, const SymbolStruct& leftStruct, const SymbolStruct& ownerStruct)
+    {
+        SmallVector<SymbolStructUsingPathStep> ignoredSteps;
+        return leftStruct.resolveUsingFieldPath(codeGen.ctx(), ownerStruct, ignoredSteps);
+    }
+
     const SymbolStruct* receiverRuntimeStruct(CodeGen& codeGen)
     {
         const auto& params = codeGen.function().parameters();
@@ -267,14 +284,15 @@ namespace
         const auto* ownerStruct = memberSym.ownerSymMap() ? memberSym.ownerSymMap()->safeCast<SymbolStruct>() : nullptr;
         if (!ownerStruct || ownerStruct == leftStruct)
             return nullptr;
-        if (!ownerStruct->sameGenericFamily(*leftStruct))
+
+        const SymbolVariable* directField = findDirectStructFieldById(*leftStruct, memberSym.idRef());
+        if (!directField)
             return nullptr;
 
-        for (const SymbolVariable* field : leftStruct->fields())
-        {
-            if (field && field->idRef() == memberSym.idRef())
-                return field;
-        }
+        if (ownerStruct->sameGenericFamily(*leftStruct))
+            return directField;
+        if (!ownerStructReachableThroughUsing(codeGen, *leftStruct, *ownerStruct))
+            return directField;
 
         return nullptr;
     }

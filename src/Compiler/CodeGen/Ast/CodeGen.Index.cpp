@@ -154,6 +154,23 @@ namespace
         return &typeInfo->payloadSymStruct();
     }
 
+    const SymbolVariable* findDirectStructFieldById(const SymbolStruct& owner, const IdentifierRef idRef)
+    {
+        for (const SymbolVariable* field : owner.fields())
+        {
+            if (field && field->idRef() == idRef)
+                return field;
+        }
+
+        return nullptr;
+    }
+
+    bool ownerStructReachableThroughUsing(CodeGen& codeGen, const SymbolStruct& leftStruct, const SymbolStruct& ownerStruct)
+    {
+        SmallVector<SymbolStructUsingPathStep> ignoredSteps;
+        return leftStruct.resolveUsingFieldPath(codeGen.ctx(), ownerStruct, ignoredSteps);
+    }
+
     const SymbolVariable* tryResolveConcreteStructMemberSymbol(CodeGen& codeGen, TypeRef leftTypeRef, const SymbolVariable& memberSym)
     {
         const SymbolStruct* leftStruct = resolveRuntimeStructType(codeGen, leftTypeRef);
@@ -163,14 +180,15 @@ namespace
         const SymbolStruct* ownerStruct = variableOwnerStruct(memberSym);
         if (!ownerStruct || ownerStruct == leftStruct)
             return nullptr;
-        if (!ownerStruct->sameGenericFamily(*leftStruct))
+
+        const SymbolVariable* directField = findDirectStructFieldById(*leftStruct, memberSym.idRef());
+        if (!directField)
             return nullptr;
 
-        for (const SymbolVariable* field : leftStruct->fields())
-        {
-            if (field && field->idRef() == memberSym.idRef())
-                return field;
-        }
+        if (ownerStruct->sameGenericFamily(*leftStruct))
+            return directField;
+        if (!ownerStructReachableThroughUsing(codeGen, *leftStruct, *ownerStruct))
+            return directField;
 
         return nullptr;
     }
@@ -231,14 +249,15 @@ namespace
         const SymbolStruct* fieldOwner = variableOwnerStruct(fieldSym);
         if (!fieldOwner || fieldOwner == receiverStruct)
             return nullptr;
-        if (!fieldOwner->sameGenericFamily(*receiverStruct))
+
+        const SymbolVariable* directField = findDirectStructFieldById(*receiverStruct, fieldSym.idRef());
+        if (!directField)
             return nullptr;
 
-        for (const SymbolVariable* field : receiverStruct->fields())
-        {
-            if (field && field->idRef() == fieldSym.idRef())
-                return field;
-        }
+        if (fieldOwner->sameGenericFamily(*receiverStruct))
+            return directField;
+        if (!ownerStructReachableThroughUsing(codeGen, *receiverStruct, *fieldOwner))
+            return directField;
 
         return nullptr;
     }

@@ -51,6 +51,26 @@ func copiedContextAllocatorRoundtrip()->bool
     return true
 }
 
+func coalescedContextAllocatorRoundtrip()->bool
+{
+    var req: AllocatorRequest
+    req.mode = .Alloc
+    req.size = 16
+
+    let allocator = cast(IAllocator) null orelse @getcontext().allocator
+    let runtimeItf = cast(const *Swag.Interface) &allocator
+    if runtimeItf == null or runtimeItf.obj == null or runtimeItf.itable == null do
+        return false
+
+    allocator.req(&req)
+    if !req.address do
+        return false
+
+    req.mode = .Free
+    allocator.req(&req)
+    return true
+}
+
 #test
 {
     @assert(contextPointerIsPresent())
@@ -58,4 +78,5 @@ func copiedContextAllocatorRoundtrip()->bool
     @assert(copiedContextAllocatorHasRuntimeShape())
     @assert(directContextAllocatorRoundtrip())
     @assert(copiedContextAllocatorRoundtrip())
+    @assert(coalescedContextAllocatorRoundtrip())
 }

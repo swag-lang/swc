@@ -96,3 +96,10 @@ func consumeCannotCastExactGrid(grid: [2, 3] s16)
     let view: const [..] s32 = cast(const [..] s32) values
     consumeCannotCastExact4(view) // swc-expected-error {{sema_err_cannot_cast}}
 }
+
+#test
+{
+    let value: any = null
+    let fallback: any = true
+    let resolved = value orelse fallback // swc-expected-error {{sema_err_cannot_cast}}
+}

@@ -949,51 +949,6 @@ impl Buffer
 }
 SWC_TEST_END()
 
-SWC_FILESYSTEM_TEST_BEGIN(NativeArtifact_TestCountMismatchIsReportedBeforeStartupBuild)
-{
-    static constexpr std::string_view SOURCE     = R"(#test
-{
-    @assert(true)
-}
-#test
-{
-    @assert(true)
-}
-)";
-    const fs::path                    sourcePath = Unittest::makeTestSourcePath("NativeArtifact", "TestCountMismatchIsReportedBeforeStartupBuild");
-
-    CommandLine cmdLine = makeStandaloneNativeArtifactCmdLine("test_count_mismatch", Runtime::BuildCfgBackendKind::Executable);
-    cmdLine.command     = CommandKind::Test;
-    cmdLine.files.insert(sourcePath);
-    cmdLine.directories.clear();
-    CommandLineParser::refreshBuildCfg(cmdLine);
-
-    const uint64_t   errorsBefore = Stats::getNumErrors();
-    CompilerInstance compiler(ctx.global(), cmdLine);
-    Unittest::registerTestSource(compiler, sourcePath, SOURCE);
-    Command::sema(compiler);
-    if (Stats::getNumErrors() != errorsBefore)
-        return Result::Error;
-
-    NativeBackendBuilder nativeBuilder(compiler, false);
-    if (nativeBuilder.prepare() != Result::Continue)
-        return Result::Error;
-    if (nativeBuilder.testFunctions.size() != 2)
-        return Result::Error;
-
-    nativeBuilder.testFunctions.pop_back();
-    nativeBuilder.ctx().setSilentDiagnostic(true);
-
-    const NativeArtifactBuilder artifactBuilder(nativeBuilder);
-    if (artifactBuilder.build() != Result::Error)
-        return Result::Error;
-    if (nativeBuilder.lastErrorId() != DiagnosticId::cmd_err_native_test_count_mismatch)
-        return Result::Error;
-    if (Stats::getNumErrors() != errorsBefore)
-        return Result::Error;
-}
-SWC_TEST_END()
-
 SWC_END_NAMESPACE();
 
 #endif

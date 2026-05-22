@@ -87,11 +87,6 @@ struct NativeStartupInfo
     uint32_t    textOffset = 0;
 };
 
-struct NativeTestProgressEntry
-{
-    ConstantRef messageRuntimeStringCstRef = ConstantRef::invalid();
-};
-
 struct NativeRuntimeDependency
 {
     Utf8              moduleName;
@@ -150,7 +145,6 @@ public:
     const NativeFunctionInfo* tryFindFunctionInfo(const SymbolFunction& targetFunction) const noexcept;
     Result                    resolveFunctionSymbolName(Utf8& outName, const SymbolFunction* targetFunction, bool allowUnresolvedSymbols = false);
     bool                      tryMapRDataSourceOffset(uint32_t& outOffset, uint32_t shardIndex, uint32_t sourceOffset) const noexcept;
-    uint32_t                  expectedTestFunctionCount() const;
     DiagnosticId              lastErrorId() const { return lastErrorId_; }
 
     Result run();
@@ -189,7 +183,6 @@ public:
     std::unordered_map<const SymbolFunction*, const NativeFunctionInfo*>                 functionBySymbol;
     std::vector<std::unique_ptr<MachineCode>>                                            generatedMachineCodes;
     std::unique_ptr<NativeStartupInfo>                                                   startup;
-    std::vector<NativeTestProgressEntry>                                                 testProgressEntries;
     NativeSectionData                                                                    mergedRData;
     NativeSectionData                                                                    mergedData;
     NativeSectionData                                                                    mergedBss;

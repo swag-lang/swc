@@ -452,8 +452,8 @@ namespace Swag
         errorAllocator:      ScratchAllocator                          // A temporary allocator to store the error values
         debugAllocator:      *void                                     // If defined, the used debug allocator
         runtimeFlags:        RuntimeFlags                              // As initialized by the runtime
-        testExpectedCount:   u64                                       // Expected number of compiler-driven #test entries
-        testExecutedCount:   u64                                       // Number of compiler-driven #test entries that returned
+        reserved0:           u64                                       // Reserved for runtime ABI stability
+        reserved1:           u64                                       // Reserved for runtime ABI stability
         user0:               u64                                       // For user usage
         user1:               u64                                       // For user usage
         user2:               u64                                       // For user usage

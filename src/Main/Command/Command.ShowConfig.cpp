@@ -56,7 +56,6 @@ namespace
         addBoolEntry(entries, "Verbose verify", cmdLine.verboseVerify);
         addBoolEntry(entries, "Source-driven tests", cmdLine.sourceDrivenTest);
         addBoolEntry(entries, "Test native", cmdLine.testNative);
-        addBoolEntry(entries, "Native test progress", cmdLine.nativeTestProgress);
         addBoolEntry(entries, "Test JIT", cmdLine.testJit);
         addBoolEntry(entries, "Lexer only", cmdLine.lexOnly);
         addBoolEntry(entries, "Syntax only", cmdLine.syntaxOnly);

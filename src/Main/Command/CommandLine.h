@@ -99,7 +99,6 @@ struct CommandLine
     bool workDirExplicit         = false;
     bool commandExplicit         = false;
     bool testNative              = true;
-    bool nativeTestProgress      = false;
     bool testJit                 = true;
     bool lexOnly                 = false;
     bool syntaxOnly              = false;

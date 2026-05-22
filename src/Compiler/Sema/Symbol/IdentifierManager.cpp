@@ -114,11 +114,6 @@ void IdentifierManager::setup(const TaskContext& ctx)
         {.name = PredefinedName::RuntimeSetupRuntime, .str = "__setupRuntime"},
         {.name = PredefinedName::RuntimeReleaseRuntime, .str = "__releaseRuntime"},
         {.name = PredefinedName::RuntimeCloseRuntime, .str = "__closeRuntime"},
-        {.name = PredefinedName::RuntimeTestCountInit, .str = "__testCountInit"},
-        {.name = PredefinedName::RuntimeTestPrintStart, .str = "__testPrintStart"},
-        {.name = PredefinedName::RuntimeTestPrintProgress, .str = "__testPrintProgress"},
-        {.name = PredefinedName::RuntimeTestCountTick, .str = "__testCountTick"},
-        {.name = PredefinedName::RuntimeTestPrintDone, .str = "__testPrintDone"},
         {.name = PredefinedName::RuntimeHasErr, .str = "__hasErr"},
         {.name = PredefinedName::RuntimeIsErrContext, .str = "__isErrContext"},
         {.name = PredefinedName::RuntimeSetErrRaw, .str = "__setErrRaw"},
@@ -147,11 +142,6 @@ void IdentifierManager::setup(const TaskContext& ctx)
     runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::SetupRuntime)]           = predefined(PredefinedName::RuntimeSetupRuntime);
     runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::ReleaseRuntime)]         = predefined(PredefinedName::RuntimeReleaseRuntime);
     runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::CloseRuntime)]           = predefined(PredefinedName::RuntimeCloseRuntime);
-    runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::TestCountInit)]          = predefined(PredefinedName::RuntimeTestCountInit);
-    runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::TestPrintStart)]         = predefined(PredefinedName::RuntimeTestPrintStart);
-    runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::TestPrintProgress)]      = predefined(PredefinedName::RuntimeTestPrintProgress);
-    runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::TestCountTick)]          = predefined(PredefinedName::RuntimeTestCountTick);
-    runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::TestPrintDone)]          = predefined(PredefinedName::RuntimeTestPrintDone);
     runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::HasErr)]                 = predefined(PredefinedName::RuntimeHasErr);
     runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::IsErrContext)]           = predefined(PredefinedName::RuntimeIsErrContext);
     runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::SetErrRaw)]              = predefined(PredefinedName::RuntimeSetErrRaw);

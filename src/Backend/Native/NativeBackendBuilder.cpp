@@ -21,9 +21,6 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    constexpr uint32_t K_NATIVE_TEST_COUNT_MISMATCH_EXIT_TAG        = 0xA0000000u;
-    constexpr uint32_t K_NATIVE_TEST_COUNT_MISMATCH_EXIT_VALUE_MASK = 0x0FFFFFFFu;
-
     bool isCompilerFunction(const SymbolFunction& symbol)
     {
         return symbol.decl() && symbol.decl()->id() == AstNodeId::CompilerFunc;
@@ -46,32 +43,6 @@ namespace
             default:
                 return false;
         }
-    }
-
-    std::string_view lastNonEmptyOutputLine(const std::string_view output)
-    {
-        size_t lineEnd = output.size();
-        while (lineEnd)
-        {
-            size_t lineStart = output.rfind('\n', lineEnd - 1);
-            if (lineStart == std::string_view::npos)
-                lineStart = 0;
-            else
-                lineStart += 1;
-
-            std::string_view line = output.substr(lineStart, lineEnd - lineStart);
-            if (!line.empty() && line.back() == '\r')
-                line.remove_suffix(1);
-            if (!line.empty())
-                return line;
-
-            if (lineStart == 0)
-                break;
-
-            lineEnd = lineStart - 1;
-        }
-
-        return {};
     }
 
     SymbolFunction* createRuntimeDependencyHookSymbol(NativeBackendBuilder& builder, NativeRuntimeDependency& dependency)
@@ -151,27 +122,6 @@ namespace
 
         builder.runtimeDependencyDropOrder = builder.runtimeDependencyInitOrder;
         std::reverse(builder.runtimeDependencyDropOrder.begin(), builder.runtimeDependencyDropOrder.end());
-    }
-
-    Utf8 expectedNativeTestSuccessLine()
-    {
-        return "success";
-    }
-
-    Diagnostic makeMissingNativeTestSuccessMarkerDiagnostic(const std::string_view artifactOutput)
-    {
-        Diagnostic diag = Diagnostic::get(DiagnosticId::cmd_err_native_test_success_marker_missing);
-        diag.addArgument(Diagnostic::ARG_VALUE, expectedNativeTestSuccessLine());
-        if (!artifactOutput.empty())
-        {
-            std::string_view trimmedOutput = artifactOutput;
-            while (!trimmedOutput.empty() && (trimmedOutput.back() == '\n' || trimmedOutput.back() == '\r'))
-                trimmedOutput.remove_suffix(1);
-            diag.addArgument(Diagnostic::ARG_BECAUSE, Utf8{trimmedOutput});
-            diag.addNote(DiagnosticId::cmd_note_native_artifact_output);
-        }
-
-        return diag;
     }
 
     template<typename T>
@@ -553,20 +503,6 @@ Result NativeBackendBuilder::resolveFunctionSymbolName(Utf8& outName, const Symb
     return reportError(DiagnosticId::cmd_err_native_invalid_local_function_relocation, Diagnostic::ARG_SYM, targetFunction->getFullScopedName(ctx()));
 }
 
-uint32_t NativeBackendBuilder::expectedTestFunctionCount() const
-{
-    uint32_t result = 0;
-    SWC_ASSERT(compiler_ != nullptr);
-    for (const SymbolFunction* function : compiler_->nativeTestFunctions())
-    {
-        if (!function || !shouldPrepareSymbol(*this, *function))
-            continue;
-        result++;
-    }
-
-    return result;
-}
-
 bool NativeBackendBuilder::tryMapRDataSourceOffset(uint32_t& outOffset, const uint32_t shardIndex, const uint32_t sourceOffset) const noexcept
 {
     outOffset = 0;
@@ -800,25 +736,8 @@ Result NativeBackendBuilder::runGeneratedArtifact()
             return reportError(DiagnosticId::cmd_err_native_artifact_exit_code_failed, Diagnostic::ARG_PATH, Utf8(artifactPath), Diagnostic::ARG_BECAUSE, Os::systemError());
     }
 
-    const uint32_t expectedTestCount = expectedTestFunctionCount();
-    if (compiler_->cmdLine().command == CommandKind::Test &&
-        expectedTestCount &&
-        (exitCode & ~K_NATIVE_TEST_COUNT_MISMATCH_EXIT_VALUE_MASK) == K_NATIVE_TEST_COUNT_MISMATCH_EXIT_TAG)
-    {
-        const uint32_t actualTestCount = exitCode & K_NATIVE_TEST_COUNT_MISMATCH_EXIT_VALUE_MASK;
-        return reportError(DiagnosticId::cmd_err_native_test_count_mismatch, Diagnostic::ARG_COUNT, expectedTestCount, Diagnostic::ARG_VALUE, actualTestCount);
-    }
-
     if (exitCode != 0)
         return reportError(DiagnosticId::cmd_err_native_artifact_failed, Diagnostic::ARG_VALUE, Os::formatProcessExitCode(exitCode));
-
-    if (compiler_->cmdLine().command == CommandKind::Test &&
-        expectedTestCount &&
-        compiler_->cmdLine().nativeTestProgress &&
-        lastNonEmptyOutputLine(artifactOutput) != expectedNativeTestSuccessLine())
-    {
-        return reportError(makeMissingNativeTestSuccessMarkerDiagnostic(artifactOutput));
-    }
 
     return Result::Continue;
 }

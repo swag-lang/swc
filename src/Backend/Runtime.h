@@ -357,8 +357,8 @@ namespace Runtime
         ScratchAllocator          errorAllocator;
         void*                     debugAllocator;
         RuntimeFlags              runtimeFlags;
-        uint64_t                  testExpectedCount;
-        uint64_t                  testExecutedCount;
+        uint64_t                  reserved0;
+        uint64_t                  reserved1;
         uint64_t                  user0;
         uint64_t                  user1;
         uint64_t                  user2;

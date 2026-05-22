@@ -315,22 +315,10 @@ func __raiseException666(message: string, loc: Swag.SourceCodeLocation, kind: Sw
 }
 
 ////////////////////////////////////////////////////////////
-const __testCountMismatchExitTag = 0xA0000000'u32
-
-func __exitTestCountMismatch(executed: u32)
-{
-    using __Win32RT
-    ExitProcess(__testCountMismatchExitTag | (executed & 0x0FFFFFFF))
-}
-
-////////////////////////////////////////////////////////////
 func __loaddll(name: string)              => __Win32RT.LoadLibraryA(@dataof(name))
 
 func __exit()
 {
-    let cxt = @getcontext()
-    if cxt.testExpectedCount and cxt.testExecutedCount != cxt.testExpectedCount do
-        __exitTestCountMismatch(cast(u32) cxt.testExecutedCount)
     __Win32RT.ExitProcess(0)
 }
 

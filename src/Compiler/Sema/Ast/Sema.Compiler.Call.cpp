@@ -623,6 +623,21 @@ namespace
         return Result::Continue;
     }
 
+    bool isUnresolvedGenericRootCompilerTypeOperand(Sema& sema, const SemaNodeView& view)
+    {
+        const SymbolStruct* genericRoot = compilerGenericRootStructFromView(sema, view);
+        if (!genericRoot)
+            return false;
+
+        TypeRef unresolvedTypeRef = TypeRef::invalid();
+        if (view.sym())
+            unresolvedTypeRef = compilerOperandTypeRefFromSymbol(*view.sym());
+        if (!unresolvedTypeRef.isValid())
+            unresolvedTypeRef = genericRoot->typeRef();
+
+        return !view.typeRef().isValid() || view.typeRef() == unresolvedTypeRef;
+    }
+
     Result concretizeViewConstant(Sema& sema, SemaNodeView& view)
     {
         if (!view.cstRef().isValid())
@@ -847,6 +862,8 @@ namespace
         const AstNodeRef childRef = node.nodeArgRef;
         SemaNodeView     view(sema, childRef, SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant | SemaNodeViewPartE::Symbol);
         SWC_RESULT(instantiateCompilerGenericTypeOperand(sema, view));
+        if (isUnresolvedGenericRootCompilerTypeOperand(sema, view))
+            return SemaError::raise(sema, DiagnosticId::sema_err_invalid_sizeof, childRef);
         if (!view.typeRef().isValid())
             return SemaError::raise(sema, DiagnosticId::sema_err_invalid_sizeof, childRef);
         TypeRef typeRef = TypeRef::invalid();
@@ -887,6 +904,8 @@ namespace
         const AstNodeRef childRef = node.nodeArgRef;
         SemaNodeView     view(sema, childRef, SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant | SemaNodeViewPartE::Symbol);
         SWC_RESULT(instantiateCompilerGenericTypeOperand(sema, view));
+        if (isUnresolvedGenericRootCompilerTypeOperand(sema, view))
+            return SemaError::raise(sema, DiagnosticId::sema_err_invalid_alignof, childRef);
         if (!view.typeRef().isValid())
             return SemaError::raise(sema, DiagnosticId::sema_err_invalid_alignof, childRef);
         TypeRef typeRef = TypeRef::invalid();

@@ -43,7 +43,7 @@ public:
     }
 
     SymbolStructFlags structFlags() const noexcept { return extraFlags(); }
-    uint64_t          sizeOf() const { return sizeInBytes_; }
+    uint64_t          sizeOf() const;
     uint32_t          alignment() const { return alignment_; }
     AstNodeRef        declNodeRef() const noexcept { return declNodeRef_; }
     void              setDeclNodeRef(AstNodeRef nodeRef) noexcept { declNodeRef_ = nodeRef; }

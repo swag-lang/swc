@@ -19,6 +19,12 @@ SWC_BEGIN_NAMESPACE();
 
 Result SemaHelpers::attachIndirectReturnRuntimeStorageIfNeeded(Sema& sema, AstNodeRef payloadNodeRef, const AstNode& storageNode, const SymbolFunction& calledFn, std::string_view privateName)
 {
+    if (const TypeRef returnTypeRef = calledFn.returnTypeRef(); returnTypeRef.isValid())
+    {
+        const TypeInfo& returnType = sema.typeMgr().get(returnTypeRef);
+        SWC_RESULT(sema.waitSemaCompleted(&returnType, payloadNodeRef));
+    }
+
     return attachRuntimeStorageIfNeeded(sema, payloadNodeRef, storageNode, indirectReturnRuntimeStorageTypeRef(sema, calledFn), privateName);
 }
 
@@ -75,6 +81,12 @@ Result SemaHelpers::attachBorrowedAggregateArgumentRuntimeStorageIfNeeded(Sema& 
 {
     if (argRef.isInvalid())
         return Result::Continue;
+
+    if (paramTypeRef.isValid())
+    {
+        const TypeInfo& paramType = sema.typeMgr().get(paramTypeRef);
+        SWC_RESULT(sema.waitSemaCompleted(&paramType, argRef));
+    }
 
     const TypeRef storageTypeRef = borrowedAggregateArgumentRuntimeStorageTypeRef(sema, calledFn, paramTypeRef);
     return attachRuntimeStorageIfNeeded(sema, argRef, sema.node(argRef), storageTypeRef, "__call_arg_ref_storage");
@@ -470,10 +482,22 @@ bool SemaHelpers::functionUsesIndirectReturnStorage(TaskContext& ctx, const Symb
     return normalizedRet.isIndirect;
 }
 
-bool SemaHelpers::currentFunctionUsesIndirectReturnStorage(Sema& sema)
+Result SemaHelpers::currentFunctionUsesIndirectReturnStorage(bool& outUsesIndirectReturnStorage, Sema& sema)
 {
+    outUsesIndirectReturnStorage = false;
+
     const SymbolFunction* currentFn = sema.currentFunction();
-    return currentFn && functionUsesIndirectReturnStorage(sema.ctx(), *currentFn);
+    if (!currentFn)
+        return Result::Continue;
+
+    if (const TypeRef returnTypeRef = currentFn->returnTypeRef(); returnTypeRef.isValid())
+    {
+        const TypeInfo& returnType = sema.typeMgr().get(returnTypeRef);
+        SWC_RESULT(sema.waitSemaCompleted(&returnType, sema.curNodeRef()));
+    }
+
+    outUsesIndirectReturnStorage = functionUsesIndirectReturnStorage(sema.ctx(), *currentFn);
+    return Result::Continue;
 }
 
 bool SemaHelpers::usesCallerReturnStorage(TaskContext& ctx, const SymbolFunction& function, const SymbolVariable& symVar)

@@ -130,18 +130,19 @@ Result AstStructDecl::semaPostNode(Sema& sema)
         return SemaSpecOp::ensureGeneratedOperators(sema, sym);
     }
 
+    sym.removeIgnoredFields();
+    SWC_RESULT(sym.canBeCompleted(sema));
+    SWC_RESULT(sym.computeLayout(sema.ctx()));
+
     // Ensure all `impl` blocks (including interface implementations) have been registered
     // before a struct can be marked as completed.
     if (sema.compiler().pendingImplRegistrations(sym.idRef()) != 0)
         return sema.waitImplRegistrations(sym.idRef(), sym.codeRef());
 
-    sym.removeIgnoredFields();
-    SWC_RESULT(sym.canBeCompleted(sema));
     if (!sym.isGenericInstance())
         SWC_RESULT(SemaSpecOp::ensureGeneratedLifecycleFunctions(sema, sym));
     SWC_RESULT(SemaSpecOp::ensureGeneratedOperators(sema, sym));
     SWC_RESULT(sym.registerSpecOps(sema));
-    SWC_RESULT(sym.computeLayout(sema.ctx()));
 
     // Runtime struct
     if (sym.inSwagNamespace(sema.ctx()))
@@ -191,13 +192,14 @@ Result AstUnionDecl::semaPostNode(Sema& sema)
     if (sym.isGenericRoot() && !sym.isGenericInstance())
         return Result::Continue;
 
+    sym.removeIgnoredFields();
+    SWC_RESULT(sym.canBeCompleted(sema));
+    SWC_RESULT(sym.computeLayout(sema.ctx()));
+
     if (sema.compiler().pendingImplRegistrations(sym.idRef()) != 0)
         return sema.waitImplRegistrations(sym.idRef(), sym.codeRef());
 
-    sym.removeIgnoredFields();
-    SWC_RESULT(sym.canBeCompleted(sema));
     SWC_RESULT(sym.registerSpecOps(sema));
-    SWC_RESULT(sym.computeLayout(sema.ctx()));
 
     if (sym.isGenericInstance())
         return Result::Continue;
@@ -229,14 +231,15 @@ Result AstAnonymousStructDecl::semaPostNode(Sema& sema)
 {
     auto& sym = sema.curViewSymbol().sym()->cast<SymbolStruct>();
 
+    sym.removeIgnoredFields();
+    SWC_RESULT(sym.canBeCompleted(sema));
+    SWC_RESULT(sym.computeLayout(sema.ctx()));
+
     // Ensure all `impl` blocks (including interface implementations) have been registered
     // before a struct can be marked as completed.
     if (sema.compiler().pendingImplRegistrations(sym.idRef()) != 0)
         return sema.waitImplRegistrations(sym.idRef(), sym.codeRef());
 
-    sym.removeIgnoredFields();
-    SWC_RESULT(sym.canBeCompleted(sema));
-    SWC_RESULT(sym.computeLayout(sema.ctx()));
     sym.setSemaCompleted(sema.ctx());
     sema.setType(sema.curNodeRef(), sym.typeRef());
     return Result::Continue;

@@ -17,6 +17,33 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    uint64_t checkedStructLayoutSize(const SymbolStruct& symbolStruct, const uint64_t sizeInBytes)
+    {
+        if (symbolStruct.isGenericRoot() && !symbolStruct.isGenericInstance())
+            return 0;
+
+#if SWC_DEV_MODE
+        if (!sizeInBytes)
+        {
+            Utf8 detail;
+            detail += std::format("  structPtr={} semaCompleted={} typed={} declared={} genericRoot={} genericInstance={} union={} fields={} declNodeRef={}\n",
+                                  static_cast<const void*>(&symbolStruct),
+                                  symbolStruct.isSemaCompleted(),
+                                  symbolStruct.isTyped(),
+                                  symbolStruct.isDeclared(),
+                                  symbolStruct.isGenericRoot(),
+                                  symbolStruct.isGenericInstance(),
+                                  symbolStruct.isUnion(),
+                                  symbolStruct.fields().size(),
+                                  symbolStruct.declNodeRef().get());
+            swcAssertDetail("sizeInBytes != 0", __FILE__, __LINE__, detail.view());
+        }
+#endif
+
+        SWC_ASSERT(sizeInBytes != 0);
+        return sizeInBytes;
+    }
+
     bool compareFunctionOrder(const SymbolFunction* left, const SymbolFunction* right)
     {
         SWC_ASSERT(left);
@@ -817,6 +844,11 @@ bool SymbolStruct::implementsInterfaceOrUsingFields(Sema& sema, const SymbolInte
     }
 
     return false;
+}
+
+uint64_t SymbolStruct::sizeOf() const
+{
+    return checkedStructLayoutSize(*this, sizeInBytes_);
 }
 
 bool SymbolStruct::resolveUsingFieldPath(const TaskContext& ctx, const SymbolStruct& targetStruct, SmallVector<SymbolStructUsingPathStep>& outSteps) const

@@ -214,7 +214,7 @@ namespace
         return TypeRef::invalid();
     }
 
-    TypeRef indexRuntimeStorageTypeRef(Sema& sema, const SemaNodeView& indexedView, AstNodeRef indexedRef);
+    Result indexRuntimeStorageTypeRef(TypeRef& outRuntimeStorageTypeRef, Sema& sema, const SemaNodeView& indexedView, AstNodeRef indexedRef);
 
     Result completeSliceRuntimeStorage(Sema& sema, TypeRef storageTypeRef)
     {
@@ -228,7 +228,8 @@ namespace
         if (!sema.isCurrentFunction())
             return Result::Continue;
 
-        const TypeRef storageTypeRef = indexRuntimeStorageTypeRef(sema, indexedView, indexedRef);
+        TypeRef storageTypeRef = TypeRef::invalid();
+        SWC_RESULT(indexRuntimeStorageTypeRef(storageTypeRef, sema, indexedView, indexedRef));
         if (storageTypeRef.isInvalid())
             return Result::Continue;
 
@@ -283,17 +284,19 @@ namespace
         return Result::Continue;
     }
 
-    TypeRef indexRuntimeStorageTypeRef(Sema& sema, const SemaNodeView& indexedView, AstNodeRef indexedRef)
+    Result indexRuntimeStorageTypeRef(TypeRef& outRuntimeStorageTypeRef, Sema& sema, const SemaNodeView& indexedView, AstNodeRef indexedRef)
     {
+        outRuntimeStorageTypeRef = TypeRef::invalid();
         if (!indexedView.type())
-            return TypeRef::invalid();
+            return Result::Continue;
 
         const TypeRef   indexedTypeRef = resolveIndexedExprTypeRef(sema, indexedView);
         const TypeInfo& indexedType    = sema.typeMgr().get(indexedTypeRef);
+        SWC_RESULT(sema.waitSemaCompleted(&indexedType, indexedRef));
         if (!indexedType.isArray())
-            return TypeRef::invalid();
+            return Result::Continue;
         if (indexedView.hasConstant())
-            return TypeRef::invalid();
+            return Result::Continue;
 
         bool needsRuntimeStorage = !sema.isLValue(indexedRef);
         if (!needsRuntimeStorage)
@@ -307,15 +310,16 @@ namespace
         }
 
         if (!needsRuntimeStorage)
-            return TypeRef::invalid();
+            return Result::Continue;
 
         const uint64_t valueSize = indexedType.sizeOf(sema.ctx());
         if (valueSize != 1 && valueSize != 2 && valueSize != 4 && valueSize != 8)
-            return TypeRef::invalid();
+            return Result::Continue;
 
         SmallVector<uint64_t> dims;
         dims.push_back(8);
-        return sema.typeMgr().addType(TypeInfo::makeArray(dims.span(), sema.typeMgr().typeU8()));
+        outRuntimeStorageTypeRef = sema.typeMgr().addType(TypeInfo::makeArray(dims.span(), sema.typeMgr().typeU8()));
+        return Result::Continue;
     }
 }
 
@@ -428,7 +432,8 @@ Result AstIndexExpr::semaPostNode(Sema& sema)
 
     SWC_RESULT(setupIndexBoundCheck(sema, sema.curNodeRef(), indexedType, codeRef()));
 
-    const TypeRef runtimeStorageTypeRef = indexRuntimeStorageTypeRef(sema, nodeExprView, nodeExprRef);
+    TypeRef runtimeStorageTypeRef = TypeRef::invalid();
+    SWC_RESULT(indexRuntimeStorageTypeRef(runtimeStorageTypeRef, sema, nodeExprView, nodeExprRef));
     if (runtimeStorageTypeRef.isValid() && sema.isCurrentFunction())
         SWC_RESULT(SemaHelpers::attachRuntimeStorageIfNeeded(sema, *this, runtimeStorageTypeRef, "__index_runtime_storage"));
 
@@ -584,7 +589,8 @@ Result AstIndexListExpr::semaPostNode(Sema& sema)
     }
     SWC_RESULT(setupIndexBoundCheck(sema, sema.curNodeRef(), indexedType, codeRef()));
 
-    const TypeRef runtimeStorageTypeRef = indexRuntimeStorageTypeRef(sema, nodeExprView, nodeExprRef);
+    TypeRef runtimeStorageTypeRef = TypeRef::invalid();
+    SWC_RESULT(indexRuntimeStorageTypeRef(runtimeStorageTypeRef, sema, nodeExprView, nodeExprRef));
     if (runtimeStorageTypeRef.isValid() && sema.isCurrentFunction())
         SWC_RESULT(SemaHelpers::attachRuntimeStorageIfNeeded(sema, *this, runtimeStorageTypeRef, "__index_runtime_storage"));
 

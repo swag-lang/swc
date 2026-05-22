@@ -70,7 +70,7 @@ namespace SemaHelpers
     Result                  addCurrentFunctionLocalVariable(Sema& sema, SymbolVariable& symVar);
     bool                    needsPersistentCompilerRunReturn(const Sema& sema, TypeRef typeRef);
     bool                    functionUsesIndirectReturnStorage(TaskContext& ctx, const SymbolFunction& function);
-    bool                    currentFunctionUsesIndirectReturnStorage(Sema& sema);
+    Result                  currentFunctionUsesIndirectReturnStorage(bool& outUsesIndirectReturnStorage, Sema& sema);
     bool                    usesCallerReturnStorage(TaskContext& ctx, const SymbolFunction& function, const SymbolVariable& symVar);
     const SymbolFunction*   currentLocationFunction(const Sema& sema);
     AstNodeRef              defaultArgumentExprRef(const SymbolVariable& param);

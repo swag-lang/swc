@@ -44,7 +44,7 @@ public:
 
     SymbolStructFlags structFlags() const noexcept { return extraFlags(); }
     uint64_t          sizeOf() const;
-    uint32_t          alignment() const { return alignment_; }
+    uint32_t          alignment() const;
     AstNodeRef        declNodeRef() const noexcept { return declNodeRef_; }
     void              setDeclNodeRef(AstNodeRef nodeRef) noexcept { declNodeRef_ = nodeRef; }
     Result            canBeCompleted(Sema& sema) const;

@@ -17,9 +17,14 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    bool isConcreteStructLayoutPending(const SymbolStruct& symbolStruct)
+    {
+        return !symbolStruct.isGenericRoot() || symbolStruct.isGenericInstance();
+    }
+
     uint64_t checkedStructLayoutSize(const SymbolStruct& symbolStruct, const uint64_t sizeInBytes)
     {
-        if (symbolStruct.isGenericRoot() && !symbolStruct.isGenericInstance())
+        if (!isConcreteStructLayoutPending(symbolStruct))
             return 0;
 
 #if SWC_DEV_MODE
@@ -42,6 +47,33 @@ namespace
 
         SWC_ASSERT(sizeInBytes != 0);
         return sizeInBytes;
+    }
+
+    uint32_t checkedStructLayoutAlignment(const SymbolStruct& symbolStruct, const uint32_t alignment)
+    {
+        if (!isConcreteStructLayoutPending(symbolStruct))
+            return 0;
+
+#if SWC_DEV_MODE
+        if (!alignment)
+        {
+            Utf8 detail;
+            detail += std::format("  structPtr={} semaCompleted={} typed={} declared={} genericRoot={} genericInstance={} union={} fields={} declNodeRef={}\n",
+                                  static_cast<const void*>(&symbolStruct),
+                                  symbolStruct.isSemaCompleted(),
+                                  symbolStruct.isTyped(),
+                                  symbolStruct.isDeclared(),
+                                  symbolStruct.isGenericRoot(),
+                                  symbolStruct.isGenericInstance(),
+                                  symbolStruct.isUnion(),
+                                  symbolStruct.fields().size(),
+                                  symbolStruct.declNodeRef().get());
+            swcAssertDetail("alignment != 0", __FILE__, __LINE__, detail.view());
+        }
+#endif
+
+        SWC_ASSERT(alignment != 0);
+        return alignment;
     }
 
     bool compareFunctionOrder(const SymbolFunction* left, const SymbolFunction* right)
@@ -849,6 +881,11 @@ bool SymbolStruct::implementsInterfaceOrUsingFields(Sema& sema, const SymbolInte
 uint64_t SymbolStruct::sizeOf() const
 {
     return checkedStructLayoutSize(*this, sizeInBytes_);
+}
+
+uint32_t SymbolStruct::alignment() const
+{
+    return checkedStructLayoutAlignment(*this, alignment_);
 }
 
 bool SymbolStruct::resolveUsingFieldPath(const TaskContext& ctx, const SymbolStruct& targetStruct, SmallVector<SymbolStructUsingPathStep>& outSteps) const

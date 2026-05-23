@@ -102,6 +102,29 @@ using Swag
 
 #test
 {
+    var wildcard   = assume Parser.RegExp.create(#"a.c"#)
+    var alnum      = assume Parser.RegExp.create(#"[[:alnum:]]+"#)
+    var asciiOnly  = assume Parser.RegExp.create(#"[[:ascii:]]+"#)
+    var notLower   = assume Parser.RegExp.create(#"\L+"#)
+    var notUpper   = assume Parser.RegExp.create(#"\U+"#)
+    var unicodeSym = assume Parser.RegExp.create(#"\pS+"#)
+
+    @assert(wildcard.match("abc"))
+    @assert(wildcard.match("a\u00E9c"))
+    @assert(!wildcard.match("ac"))
+    @assert(alnum.match("abc123"))
+    @assert(!alnum.match("abc-123"))
+    @assert(asciiOnly.match("AZ09!?"))
+    @assert(!asciiOnly.match("\u00E9"))
+    @assert(notLower.match("ABC!?"))
+    @assert(!notLower.match("AbC"))
+    @assert(notUpper.match("abc!?"))
+    @assert(!notUpper.match("aBc"))
+    @assert(unicodeSym.match("+="))
+}
+
+#test
+{
     var captures = assume Parser.RegExp.create(#"(\d+)-(\w+)"#)
 
     @assert(captures.match("42-test"))
@@ -201,24 +224,80 @@ using Swag
 
 #test
 {
+    var endOfBuffer = assume Parser.RegExp.create(#"$"#)
+
+    let match = endOfBuffer.grep("abc")
+    @assert(match != null)
+    @assert(cast(string) match == "")
+
+    let all = endOfBuffer.grepAll("abc")
+    @assert(all.count == 1)
+    @assert(all[0] == "")
+}
+
+#test
+{
+    var empty = assume Parser.RegExp.create(#"^$"#)
+
+    let match = empty.grep("")
+    @assert(match != null)
+    @assert(cast(string) match == "")
+
+    let all = empty.grepAll("")
+    @assert(all.count == 1)
+    @assert(all[0] == "")
+}
+
+#test
+{
     var words = assume Parser.RegExp.create(#"\bcat\b"#)
-    let first = words.grep("é scatter cat")
-    let second = words.grep("é scatter cat")
+    let first  = words.grep("\u00E9 scatter cat")
+    let second = words.grep("\u00E9 scatter cat")
 
     @assert(first != null)
     @assert(cast(string) first == "cat")
     @assert(second != null)
     @assert(cast(string) second == "cat")
-    @assert(words.grep("é scatter catnap") == null)
+    @assert(words.grep("\u00E9 scatter catnap") == null)
 }
 
 #test
 {
-    let all = assume Parser.RegExp.grepAll(#"\d+"#, "é12β345")
+    let all = assume Parser.RegExp.grepAll(#"\d+"#, "\u00E912\u03B2345")
 
     @assert(all.count == 2)
     @assert(all[0] == "12")
     @assert(all[1] == "345")
+}
+
+#test
+{
+    var anchored = assume Parser.RegExp.create(#"^\d+"#)
+
+    let atStart = anchored.grep("12 34")
+    @assert(atStart != null)
+    @assert(cast(string) atStart == "12")
+    @assert(anchored.grep("aa12") == null)
+
+    let all = anchored.grepAll("12 34")
+    @assert(all.count == 1)
+    @assert(all[0] == "12")
+}
+
+#test
+{
+    var words = assume Parser.RegExp.create(#"\bcat\b"#)
+
+    @assert(words.grep("\u00E9cat") == null)
+
+    let match = words.grep("\u00E9 cat")
+    @assert(match != null)
+    @assert(cast(string) match == "cat")
+
+    let all = words.grepAll("\u00E9 cat catnap cat")
+    @assert(all.count == 2)
+    @assert(all[0] == "cat")
+    @assert(all[1] == "cat")
 }
 
 #test

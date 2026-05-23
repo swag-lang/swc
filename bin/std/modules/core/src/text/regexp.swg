@@ -160,6 +160,16 @@ impl RegExp
         .groups.clear()
     }
 
+    mtd resetMatchContext(atBufferStart: bool, prevWasWord = false)
+    {
+        .clearMatch()
+        if !atBufferStart
+        {
+            .hasStarted = true
+            .wasWord    = prevWasWord
+        }
+    }
+
     // Clear content
     public mtd clear()
     {
@@ -232,7 +242,7 @@ impl RegExp
     // Should have been compiled before.
     public mtd match(str: string)->bool
     {
-        .clearMatch()
+        .resetMatchContext(true)
         let (ok, ?) = .matchInternal(str, false)
         return ok
     }
@@ -252,25 +262,32 @@ impl RegExp
         if str == null do
             return result
 
-        var res = str
-        let end = @dataof(str) + @countof(str)
-        .clearMatch()
+        var res              = str
+        let end              = @dataof(str) + @countof(str)
+        var atBufferStart    = true
+        var previousWasWord  = false
 
         for
         {
-            let val = .internalGrep(res)
+            let val = .internalGrep(res, atBufferStart, previousWasWord)
             if !val do
                 break
             result.add(val)
 
             var newStart = @dataof(val) + @countof(val)
-            if newStart == @dataof(res)
+            if @countof(val) == 0
             {
                 // Empty matches are valid, but a grep-all must still move forward.
-                let (_, eat) = Utf8.decodeRune(@mkslice(newStart, end - newStart))
+                if newStart == end do
+                    break
+                let (c, eat) = Utf8.decodeRune(@mkslice(newStart, end - newStart))
+                previousWasWord = Unicode.isWord(c)
                 newStart += eat
             }
+            else do
+                previousWasWord = Unicode.isWord(Utf8.lastRune(val))
 
+            atBufferStart = false
             res = @mkstring(newStart, end - newStart)
         }
 
@@ -289,7 +306,6 @@ impl RegExp
     {
         if str == null do
             return null
-        .clearMatch()
         return .internalGrep(str)
     }
 
@@ -298,7 +314,7 @@ impl RegExp
     {
         if str == null do
             return null
-        .clearMatch()
+        .resetMatchContext(true)
         let beg  = cast(const [*] u8) @dataof(str)
         let last = beg + @countof(str)
 
@@ -308,17 +324,26 @@ impl RegExp
         return null
     }
 
-    mtd internalGrep(str: string)->#null string
+    mtd internalGrep(str: string, atBufferStart = true, prevWasWord = false)->#null string
     {
         var beg  = cast(const [*] u8) @dataof(str)
         let last = beg + @countof(str)
+        var atStart   = atBufferStart
+        var wasWord   = prevWasWord
 
-        while beg != last
+        for
         {
+            .resetMatchContext(atStart, wasWord)
             let res = .matchInternal(@mkstring(beg, last - beg), true)
             if res.ok do
                 return @mkstring(beg, res.buf - beg)
-            beg += 1
+            if beg == last do
+                break
+
+            let (c, eat) = Utf8.decodeRune(@mkslice(beg, last - beg))
+            wasWord = Unicode.isWord(c)
+            atStart = false
+            beg += eat
         }
 
         return null

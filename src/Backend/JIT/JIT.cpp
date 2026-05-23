@@ -8,6 +8,7 @@
 #include "Backend/JIT/JITPatchJob.h"
 #include "Backend/Micro/MachineCode.h"
 #include "Backend/Micro/MicroBuilder.h"
+#include "Backend/RuntimeName.h"
 #include "Compiler/CodeGen/Core/CodeGenJob.h"
 #include "Compiler/Lexer/SourceView.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
@@ -34,6 +35,13 @@ namespace
 {
     constexpr uint32_t K_COMPILER_EXCEPTION_CODE = 666;
     using RuntimeSetupInvoker                    = void (*)(Runtime::RuntimeFlags);
+    using RuntimeHookInvoker                     = void (*)(uint64_t, uint64_t);
+
+    enum class RuntimeHookStage : uint64_t
+    {
+        Init    = 1,
+        PreMain = 2,
+    };
 
     enum class RelocationResolveFailureKind : uint8_t
     {
@@ -75,6 +83,8 @@ namespace
         int                exceptionAction = SWC_EXCEPTION_EXECUTE_HANDLER;
     };
 
+    Result reportRelocationFailure(TaskContext& ctx, DiagnosticId diagId, std::string_view symbolName, const RelocationResolveFailure& failure);
+
     bool isSetupRuntimeFunction(TaskContext& ctx, const SymbolFunction* function)
     {
         if (!function)
@@ -91,6 +101,43 @@ namespace
         if (!function->srcViewRef().isValid())
             return true;
         return !ctx.compiler().srcView(function->srcViewRef()).isRuntimeFile();
+    }
+
+    Result synchronizeImportedRuntimeContexts(TaskContext& ctx)
+    {
+        if (!shouldUseSharedRuntimeSetup(ctx, ctx.state().runJitFunction))
+            return Result::Continue;
+
+        const auto& runtimeImports = ctx.compiler().nativeRuntimeImports();
+        if (runtimeImports.empty())
+            return Result::Continue;
+
+        const uint64_t tlsIdPlusOne = *CompilerInstance::runtimeContextTlsIdStorage() + 1;
+        for (const CompilerInstance::NativeRuntimeImport& runtimeImport : runtimeImports)
+        {
+            if (!runtimeImport.hasSharedRuntimeHook)
+                continue;
+
+            const Utf8 hookSymbolName = runtimeHookSymbolName(runtimeImport.linkModuleName.view());
+            void*      hookAddress    = nullptr;
+            if (!ctx.compiler().externalModuleMgr().getFunctionAddress(hookAddress, runtimeImport.linkModuleName.view(), hookSymbolName.view()))
+            {
+                RelocationResolveFailure failure;
+                failure.kind         = RelocationResolveFailureKind::ForeignLookupFailed;
+                failure.moduleName   = runtimeImport.linkModuleName;
+                failure.functionName = hookSymbolName;
+                return reportRelocationFailure(ctx, DiagnosticId::cmd_err_native_invalid_foreign_function_relocation, hookSymbolName.view(), failure);
+            }
+
+            // Shared runtime hooks refresh the imported module TLS slot before
+            // their one-time lifecycle guards, which is exactly what JIT needs
+            // to keep @getcontext() valid inside imported DLL code like core.dll.
+            const auto hookInvoker = reinterpret_cast<RuntimeHookInvoker>(hookAddress);
+            hookInvoker(static_cast<uint64_t>(RuntimeHookStage::Init), tlsIdPlusOne);
+            hookInvoker(static_cast<uint64_t>(RuntimeHookStage::PreMain), tlsIdPlusOne);
+        }
+
+        return Result::Continue;
     }
 
     struct RuntimeExceptionReport
@@ -1478,23 +1525,28 @@ Result JIT::call(TaskContext& ctx, void* invoker, const uint64_t* arg0, JITCallE
 
     bool hasException = false;
     auto callError    = JITCallErrorKind::None;
+    Result callResult = Result::Continue;
 
     SWC_TRY
     {
         if (setupInvoker)
             setupInvoker(Runtime::RuntimeFlags::FromCompiler);
 
-        if (arg0)
+        callResult = synchronizeImportedRuntimeContexts(ctx);
+        if (callResult == Result::Continue)
         {
-            using InvokerVoidU64    = void (*)(uint64_t);
-            const auto typedInvoker = reinterpret_cast<InvokerVoidU64>(invoker);
-            typedInvoker(*arg0);
-        }
-        else
-        {
-            using InvokerFn         = void (*)();
-            const auto typedInvoker = reinterpret_cast<InvokerFn>(invoker);
-            typedInvoker();
+            if (arg0)
+            {
+                using InvokerVoidU64    = void (*)(uint64_t);
+                const auto typedInvoker = reinterpret_cast<InvokerVoidU64>(invoker);
+                typedInvoker(*arg0);
+            }
+            else
+            {
+                using InvokerFn         = void (*)();
+                const auto typedInvoker = reinterpret_cast<InvokerFn>(invoker);
+                typedInvoker();
+            }
         }
     }
     SWC_EXCEPT(exceptionHandler(ctx, SWC_GET_EXCEPTION_INFOS(), callError))
@@ -1504,6 +1556,12 @@ Result JIT::call(TaskContext& ctx, void* invoker, const uint64_t* arg0, JITCallE
 
     if (outErrorKind)
         *outErrorKind = hasException ? callError : JITCallErrorKind::None;
+
+    if (callResult != Result::Continue)
+    {
+        TaskContext::setCurrent(savedContext);
+        return callResult;
+    }
 
     TaskContext::setCurrent(savedContext);
     return hasException ? Result::Error : Result::Continue;

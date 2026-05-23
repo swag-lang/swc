@@ -1056,8 +1056,9 @@ Result ModuleSetupInputApplier::processImports(std::span<const CompilerInstance:
         if (recordDirectImports && !importPaths.linkDir.empty())
         {
             CompilerInstance::NativeRuntimeImport runtimeImport;
-            runtimeImport.moduleName     = importRequest.moduleName;
-            runtimeImport.linkModuleName = resolveDependencyLinkModuleName(importPaths.linkDir, importRequest.moduleName.view());
+            runtimeImport.moduleName          = importRequest.moduleName;
+            runtimeImport.linkModuleName      = resolveDependencyLinkModuleName(importPaths.linkDir, importRequest.moduleName.view());
+            runtimeImport.hasSharedRuntimeHook = !importPaths.sharedDir.empty();
             if (hasDepsFile)
                 SWC_RESULT(collectDependencyClosure(runtimeImport.transitiveImports, nestedSnapshot.imports, &sourceDependencyRoot));
             instance().nativeRuntimeImports_.push_back(std::move(runtimeImport));

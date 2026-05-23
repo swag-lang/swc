@@ -614,7 +614,7 @@ Result NativeBackendBuilder::prepare()
         NativeRuntimeDependency dependency;
         dependency.moduleName        = importedRuntimeDep.moduleName;
         dependency.linkModuleName    = importedRuntimeDep.linkModuleName;
-        dependency.hookSymbolName    = nativeRuntimeHookSymbolName(dependency.linkModuleName.view());
+        dependency.hookSymbolName    = runtimeHookSymbolName(dependency.linkModuleName.view());
         dependency.transitiveImports = importedRuntimeDep.transitiveImports;
         runtimeDependencies.push_back(std::move(dependency));
     }

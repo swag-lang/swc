@@ -62,6 +62,20 @@ struct Vector3
 #ast "const GlobalGenerated = 123"
 #assert(GlobalGenerated == 123)
 
+#ast "const ForwardGeneratedA = ForwardGeneratedB + 2\nconst ForwardGeneratedB = 5"
+#assert(ForwardGeneratedA == 7)
+
+#ast
+{
+    return "const GeneratedGraphA = GeneratedGraphB | GeneratedGraphC\n" ++
+           "const GeneratedGraphB = GeneratedGraphD & GeneratedGraphE\n" ++
+           "const GeneratedGraphC = GeneratedGraphF >> 1\n" ++
+           "const GeneratedGraphD = 1\n" ++
+           "const GeneratedGraphE = 3\n" ++
+           "const GeneratedGraphF = 8"
+}
+#assert(GeneratedGraphA == 5)
+
 #run
 {
     let fields: GeneratedFields

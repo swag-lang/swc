@@ -1,4 +1,5 @@
 #pragma once
+#include "Backend/RuntimeName.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Compiler/Sema/Symbol/Symbols.h"
@@ -41,13 +42,6 @@ inline Utf8 unresolvedFunctionSymbolName(const TaskContext& ctx, const SymbolFun
     key += "|";
     key += std::to_string(function.tokRef().get());
     return std::format("__swc_ext_fn_{:08x}", Math::hash(key.view()));
-}
-
-inline Utf8 nativeRuntimeHookSymbolName(std::string_view artifactName)
-{
-    Utf8 key = artifactName;
-    key.make_lower();
-    return std::format("__swc_rt_stage_{:08x}", Math::hash(key.view()));
 }
 
 enum class NativeObjectFormat : uint8_t

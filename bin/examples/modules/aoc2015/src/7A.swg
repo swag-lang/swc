@@ -1,5 +1,3 @@
-#global #if false
-
 /*
 --- Day 7: Some Assembly Required ---
 This year, Santa brought little Bobby Tables a set of wires and bitwise logic gates! Unfortunately, little Bobby is a little under the recommended age range, and he needs help assembling the circuit.
@@ -65,16 +63,35 @@ using Core
             l.replace("in", "_in")
 
             result += "moduleprivate const "
-            if r.match(#"(\w+) -> (\w+)"#, l) do
-                result += Format.toString("% = %", r[2], r[1])
-            elif r.match(#"(\w+) (\w+) (\w+) -> (\w+)"#, l) do
-                result += Format.toString("% = % % %", r[4], r[1], map.find(r[2]).value, r[3])
-            elif r.match(#"NOT (\w+) -> (\w+)"#, l) do
-                result += Format.toString("% = ~%", r[2], r[1])
+            if r.match(#"(\w+) -> (\w+)"#, l)
+            {
+                result += r[2]
+                result += " = "
+                result += r[1]
+            }
+            elif r.match(#"(\w+) (\w+) (\w+) -> (\w+)"#, l)
+            {
+                result += r[4]
+                result += " = "
+                result += r[1]
+                result += " "
+                result += map.find(r[2]).value
+                result += " "
+                result += r[3]
+            }
+            elif r.match(#"NOT (\w+) -> (\w+)"#, l)
+            {
+                result += r[2]
+                result += " = ~"
+                result += r[1]
+            }
             result += "\n"
         }
     }
 
-    return result
+    return cast(string) result
 }
-#assert(a == 46065)
+func day7A()
+{
+    @assert(a == 46065)
+}

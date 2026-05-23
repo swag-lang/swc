@@ -53,6 +53,7 @@ public:
         Utf8              moduleName;
         Utf8              linkModuleName;
         std::vector<Utf8> transitiveImports;
+        bool              hasSharedRuntimeHook = false;
     };
 
     struct CompilerMessageEvent

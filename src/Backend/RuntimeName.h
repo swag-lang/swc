@@ -1,5 +1,6 @@
 #pragma once
 #include "Backend/Runtime.h"
+#include "Support/Math/Hash.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -42,6 +43,13 @@ inline Utf8 targetOsName(const Runtime::TargetOs value)
     }
 
     SWC_UNREACHABLE();
+}
+
+inline Utf8 runtimeHookSymbolName(std::string_view artifactName)
+{
+    Utf8 key = artifactName;
+    key.make_lower();
+    return std::format("__swc_rt_stage_{:08x}", Math::hash(key.view()));
 }
 
 SWC_END_NAMESPACE();

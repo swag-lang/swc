@@ -40,6 +40,7 @@ public:
     };
 
     Sema(TaskContext& ctx, NodePayload& payloadContext, bool declPass);
+    Sema(TaskContext& ctx, NodePayload& payloadContext, AstNodeRef root, bool declPass);
     Sema(TaskContext& ctx, Sema& parent, AstNodeRef root);
     Sema(TaskContext& ctx, Sema& parent, AstNodeRef root, bool declPass);
     Sema(TaskContext& ctx, Sema& parent, NodePayload& payloadContext, AstNodeRef root);

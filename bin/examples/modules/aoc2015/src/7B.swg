@@ -1,5 +1,3 @@
-#global #if false
-
 /*
 --- Part Two ---
 Now, take the signal you got on wire a, override wire b to that signal, and reset the other wires (including wire a). What new signal is ultimately provided to wire a?
@@ -23,18 +21,39 @@ using Core
         {
             l.makeUpper()
             result += "moduleprivate const "
-            if r.match(#"(\w+) -> B"#, l) do
-                result += Format.toString("B = %", 46065)
-            elif r.match(#"(\w+) -> (\w+)"#, l) do
-                result += Format.toString("% = %", r[2], r[1])
-            elif r.match(#"(\w+) (\w+) (\w+) -> (\w+)"#, l) do
-                result += Format.toString("% = % % %", r[4], r[1], map.find(r[2]).value, r[3])
-            elif r.match(#"NOT (\w+) -> (\w+)"#, l) do
-                result += Format.toString("% = ~%", r[2], r[1])
+            if r.match(#"(\w+) -> B"#, l)
+            {
+                result += "B = 46065"
+            }
+            elif r.match(#"(\w+) -> (\w+)"#, l)
+            {
+                result += r[2]
+                result += " = "
+                result += r[1]
+            }
+            elif r.match(#"(\w+) (\w+) (\w+) -> (\w+)"#, l)
+            {
+                result += r[4]
+                result += " = "
+                result += r[1]
+                result += " "
+                result += map.find(r[2]).value
+                result += " "
+                result += r[3]
+            }
+            elif r.match(#"NOT (\w+) -> (\w+)"#, l)
+            {
+                result += r[2]
+                result += " = ~"
+                result += r[1]
+            }
             result += "\n"
         }
     }
 
-    return result
+    return cast(string) result
 }
-#assert(A == 14134)
+func day7B()
+{
+    @assert(A == 14134)
+}

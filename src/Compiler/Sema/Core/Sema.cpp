@@ -120,6 +120,23 @@ namespace
         return sema.token(node.codeRef()).id == TokenId::CompilerAst;
     }
 
+    bool isGeneratedTopLevelContext(const Sema& sema, const AstNode& node)
+    {
+        if (node.is(AstNodeId::TopLevelBlock))
+            return true;
+
+        for (size_t up = 0;; up++)
+        {
+            const AstNodeRef parentRef = sema.visit().parentNodeRef(up);
+            if (parentRef.isInvalid())
+                break;
+            if (sema.node(parentRef).is(AstNodeId::TopLevelBlock))
+                return true;
+        }
+
+        return false;
+    }
+
 }
 
 SymbolMap* Sema::childStartSymMap(Sema& parent, NodePayload& payloadContext)
@@ -175,6 +192,17 @@ Sema::Sema(TaskContext& ctx, NodePayload& payloadContext, bool declPass) :
     declPass_(declPass)
 {
     visit_.start(nodePayloadContext_->ast(), nodePayloadContext_->ast().root());
+    setVisitors();
+    pushFrame({});
+}
+
+Sema::Sema(TaskContext& ctx, NodePayload& payloadContext, AstNodeRef root, bool declPass) :
+    ctx_(&ctx),
+    nodePayloadContext_(&payloadContext),
+    startSymMap_(topLevelStartSymMap(ctx, payloadContext)),
+    declPass_(declPass)
+{
+    visit_.start(nodePayloadContext_->ast(), root);
     setVisitors();
     pushFrame({});
 }
@@ -1013,9 +1041,12 @@ Result Sema::preNodeChild(AstNode& node, AstNodeRef& childRef)
 
         if (!compilerAstExpansions_.empty())
         {
-            // Generated top-level declarations must be visible before later deferred
-            // items are released; otherwise overload lookup can race the generated job.
-            if (compilerRun || compilerAst || childInfo.hasFlag(AstNodeIdFlagsE::SemaJob))
+            const bool generatedTopLevelContext = isGeneratedTopLevelContext(*this, node);
+
+            // Nested generated top-level blocks now receive their own decl pass before
+            // the full pass reaches this point. That restores the same symbol visibility
+            // contract as regular files, so their declaration jobs can stay deferred.
+            if (compilerRun || compilerAst || (!generatedTopLevelContext && childInfo.hasFlag(AstNodeIdFlagsE::SemaJob)))
                 return Result::Continue;
         }
 

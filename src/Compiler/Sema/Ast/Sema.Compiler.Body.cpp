@@ -258,9 +258,31 @@ namespace
         return Result::Continue;
     }
 
+    Result declareCompilerAstGeneratedTopLevel(Sema& sema, AstNodeRef generatedRef, const ParserGeneratedMode parseMode)
+    {
+        if (parseMode != ParserGeneratedMode::TopLevel)
+            return Result::Continue;
+
+        Sema         generatedDeclSema(sema.ctx(), sema.currentNodePayloadContext(), generatedRef, true);
+        auto         generatedFrame = SemaFrame{};
+        generatedFrame.setCurrentAccess(sema.frame().currentAccess());
+        generatedFrame.setGlobalCompilerIfEnabled(sema.frame().globalCompilerIfEnabled());
+        generatedFrame.currentAttributes() = sema.frame().currentAttributes();
+        generatedFrame.setCurrentCompilerIf(sema.frame().currentCompilerIf());
+        generatedFrame.setCurrentImpl(sema.frame().currentImpl());
+        generatedFrame.setCurrentInterface(sema.frame().currentInterface());
+        for (const IdentifierRef idRef : sema.frame().nsPath())
+            generatedFrame.pushNs(idRef);
+        generatedDeclSema.frame() = generatedFrame;
+        const Result declResult = generatedDeclSema.execResult();
+        SWC_ASSERT(declResult != Result::Pause);
+        return declResult;
+    }
+
     Result parseCompilerAstGenerated(Sema& sema, AstNodeRef ownerRef, std::string_view generatedCode, AstNodeRef& outGeneratedRef)
     {
         outGeneratedRef = AstNodeRef::invalid();
+        const ParserGeneratedMode parseMode = compilerAstParseMode(sema, ownerRef);
 
         SourceView* generatedSrcView = nullptr;
         TokenRef    generatedStartTokRef;
@@ -271,12 +293,13 @@ namespace
 
         const uint64_t errorsBefore = Stats::getNumErrors();
         Parser         parser;
-        outGeneratedRef = parser.parseGenerated(sema.ctx(), sema.ast(), *generatedSrcView, compilerAstParseMode(sema, ownerRef), generatedStartTokRef);
+        outGeneratedRef = parser.parseGenerated(sema.ctx(), sema.ast(), *generatedSrcView, parseMode, generatedStartTokRef);
         if (Stats::getNumErrors() != errorsBefore)
             return Result::Error;
         if (!outGeneratedRef.isValid())
             return Result::Error;
 
+        SWC_RESULT(declareCompilerAstGeneratedTopLevel(sema, outGeneratedRef, parseMode));
         return Result::Continue;
     }
 
@@ -311,7 +334,11 @@ namespace
         {
             CastRequest castRequest(CastKind::Implicit);
             castRequest.errorNodeRef = ioView.nodeRef();
-            if (Cast::castAllowed(sema, castRequest, ioView.typeRef(), sema.typeMgr().typeString()) != Result::Continue)
+            const Result castAllowedResult = Cast::castAllowed(sema, castRequest, ioView.typeRef(), sema.typeMgr().typeString());
+            if (castAllowedResult == Result::Pause)
+                return Result::Pause;
+
+            if (castAllowedResult != Result::Continue)
             {
                 const TypeRef reportedTypeRef = ioView.typeRef().isValid() ? ioView.typeRef() : sema.typeMgr().typeVoid();
                 auto          diag            = SemaError::report(sema, DiagnosticId::sema_err_ast_requires_string, ioView.nodeRef());

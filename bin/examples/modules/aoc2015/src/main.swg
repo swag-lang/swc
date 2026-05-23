@@ -18,7 +18,8 @@
     day5B()
     day6A()
     day6B()
-    //day7A/day7B()  temporarily disabled by a separate #ast JIT crash
+    day7A()
+    day7B()
     day8A()
     day8B()
     day9A()

@@ -249,7 +249,7 @@ Result NativeArtifactBuilder::buildRuntimeHook(TaskContext& ctx) const
 
     NativeFunctionInfo info;
     info.machineCode = machineCode.get();
-    info.sortKey     = nativeRuntimeHookSymbolName(nativeArtifactScopeName(compiler).view());
+    info.sortKey     = runtimeHookSymbolName(nativeArtifactScopeName(compiler).view());
     info.symbolName  = info.sortKey;
     info.debugName   = std::format("{}::__runtimeHook", nativeArtifactScopeName(compiler));
     info.exported    = compiler.buildCfg().backendKind == Runtime::BuildCfgBackendKind::SharedLibrary;

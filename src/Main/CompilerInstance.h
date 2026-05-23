@@ -33,6 +33,7 @@ class Global;
 class SourceFile;
 class JITExecManager;
 class CompilerMessageTypeInfoJob;
+struct ModuleSetupInputApplier;
 struct CommandLine;
 
 class CompilerInstance
@@ -275,6 +276,7 @@ public:
 
 private:
     friend class CompilerMessageTypeInfoJob;
+    friend struct ModuleSetupInputApplier;
 
     struct ModuleSetupSnapshot
     {

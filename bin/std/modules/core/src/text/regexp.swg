@@ -1366,7 +1366,7 @@ impl RegExp
             let expr = .previousExpression()
 
             if n == 0 do
-                .preprocessed.add(expr.toSlice())
+                .preprocessed.add('?')
             else
             {
                 var i = n - 1
@@ -1403,7 +1403,9 @@ impl RegExp
         let pze      = .preprocessed.buffer + .preprocessed.count - 1
         var pz1      = pze
         var cptParen = 0
-        if pz1[0] == ')' or pz1[0] == RuneCloseParen do
+        if pz1 != .preprocessed.buffer and (pz1 - 1)[0] == '\\' and isReservedChar(pz1[0]) do
+            pz1 -= 1
+        elif pz1[0] == ')' or pz1[0] == RuneCloseParen do
             cptParen += 1
         while cptParen and pz1 != .preprocessed.buffer
         {

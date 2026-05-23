@@ -470,13 +470,26 @@ impl RegExp
 
             var strGroup: string
             var hasGroup = false
+            let rank = 1 + (what - RuneGroup1)
             foreach g in state.groups
             {
-                if g.rank == 1 + (what - RuneGroup1)
+                if g.rank == rank
                 {
                     hasGroup = true
                     strGroup = g.value
                     break
+                }
+            }
+
+            if !hasGroup
+            {
+                foreach n in state.node.table
+                {
+                    if .groupTransform[n.group] == rank
+                    {
+                        hasGroup = true
+                        break
+                    }
                 }
             }
 
@@ -494,6 +507,17 @@ impl RegExp
         }
     }
 
+    mtd materializeImplicitEmptyGroup(state: *DfaState)
+    {
+        if state.node.group != 0 and state.node.group != state.lastGroup
+        {
+            let ptr = .bufStart + state.parseIdx
+            setCapture(state, state.node.group, "")
+            state.lastGroup  = state.node.group
+            state.groupStart = ptr
+        }
+    }
+
     mtd dfaMatch(out: *Array'DfaState, c: rune, eat: s32, curState: *DfaState)
     {
         var ok = false
@@ -505,6 +529,7 @@ impl RegExp
             if #uniq1
             {
                 var st = dref curState
+                .materializeImplicitEmptyGroup(&st)
                 st.node = #uniq1.value
                 if st.node.group != st.lastGroup do
                     .closeGroup(&st)
@@ -518,7 +543,8 @@ impl RegExp
         if !.hasStarted
         {
             .checkTr(RuneStart, 0)
-            .checkTr(RuneWordSwap, 0)
+            if Unicode.isWord(c) do
+                .checkTr(RuneWordSwap, 0)
             .hasStarted = true
             if ok do
                 return
@@ -1097,6 +1123,9 @@ impl RegExp
                     pz += 8
                     continue
                 }
+
+                if @countof(subSlice) >= 2 and pz[1] == ':' do
+                    throw SyntaxError{"invalid predefined class"}
             }
 
             // Specified interval

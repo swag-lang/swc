@@ -232,6 +232,18 @@ using Swag
 
 #test
 {
+    var emptyGroup = assume Parser.RegExp.create(#"([a-z]*)"#)
+    var emptyRef   = assume Parser.RegExp.create(#"([a-z]*)-\1"#)
+
+    @assert(emptyGroup.match(""))
+    @assert(emptyGroup.getCapture(1) == "")
+
+    @assert(emptyRef.match("-"))
+    @assert(emptyRef.getCapture(1) == "")
+}
+
+#test
+{
     var digits = assume Parser.RegExp.create(#"\d+"#)
 
     let prefix = digits.partialMatch("123abc")
@@ -356,6 +368,23 @@ using Swag
     @assert(second != null)
     @assert(cast(string) second == "cat")
     @assert(words.grep("\u00E9 scatter catnap") == null)
+}
+
+#test
+{
+    var boundary = assume Parser.RegExp.create(#"\b"#)
+
+    let word = boundary.grep("cat")
+    @assert(word != null)
+    @assert(cast(string) word == "")
+
+    @assert(boundary.grep("!?") == null)
+    @assert(boundary.grep("") == null)
+
+    let all = boundary.grepAll(" cat!")
+    @assert(all.count == 2)
+    @assert(all[0] == "")
+    @assert(all[1] == "")
 }
 
 #test
@@ -560,6 +589,22 @@ using Swag
 #test
 {
     discard catch Parser.RegExp.create(#"\p{L"#)
+
+    @assert(@err != null)
+    @assert(@err is Errors.SyntaxError)
+}
+
+#test
+{
+    discard catch Parser.RegExp.create(#"[[:bogus:]]"#)
+
+    @assert(@err != null)
+    @assert(@err is Errors.SyntaxError)
+}
+
+#test
+{
+    discard catch Parser.RegExp.create(#"[[:digit]]"#)
 
     @assert(@err != null)
     @assert(@err is Errors.SyntaxError)

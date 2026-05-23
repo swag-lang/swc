@@ -335,7 +335,8 @@ namespace
     }
 
     Result prepareJitFunction(Sema& sema, SymbolFunction& symFn);
-    Result prepareJitSetupRuntimeFunction(Sema& sema, SymbolFunction& symFn)
+
+    Result prepareJitSetupRuntimeFunction(Sema& sema, const SymbolFunction& symFn)
     {
         if (!jitEntryNeedsRuntimeSetup(sema, symFn))
             return Result::Continue;

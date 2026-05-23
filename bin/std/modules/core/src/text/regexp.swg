@@ -968,6 +968,7 @@ impl RegExp
 
         var pz  = .preprocessed.buffer
         var cpt = 0
+        var expectAltExpr = true
 
         while cpt < .preprocessed.count
         {
@@ -978,40 +979,54 @@ impl RegExp
                 .openParen.add(cast(u32) .nfaStack.count)
 
             case RuneCloseParen:
-                .unionValidate()
                 let op = .openParen.popBack()
+                if .nfaStack.count == op do
+                    .nfaPushEmpty()
+                .unionValidate()
                 .operatorConcat(.nfaStack.count - op, false)
+                expectAltExpr = false
 
             case ')':
-                .unionValidate()
                 if .openParen.isEmpty() do
                     throw SyntaxError{"unexpected right parenthesis"}
                 let op = .openParen.popBack()
+                if .nfaStack.count == op do
+                    .nfaPushEmpty()
+                .unionValidate()
                 let rank = .captureRanks[.captureRankIdx]
                 .captureRankIdx += 1
                 .operatorConcat(.nfaStack.count - op, true, rank)
+                expectAltExpr = false
 
             case '*':
                 .operatorStar()
+                expectAltExpr = false
 
             case '+':
                 .operatorPlus()
+                expectAltExpr = false
 
             case '?':
                 .operatorQuestion()
+                expectAltExpr = false
 
             case '|':
+                if expectAltExpr do
+                    .nfaPushEmpty()
                 .unionValidate()
                 .orOpStack.add(c)
                 .orOpLevel.add(cast(u32) .openParen.count)
+                expectAltExpr = true
 
             case '.':
                 .unionValidate()
                 .nfaPush(RuneWhatever)
+                expectAltExpr = false
 
             case RuneEmpty:
                 .unionValidate()
                 .nfaPushEmpty()
+                expectAltExpr = false
 
             case '\\':
                 if isReservedChar(pz[1])
@@ -1022,14 +1037,19 @@ impl RegExp
 
                 .unionValidate()
                 .nfaPush(c)
+                expectAltExpr = false
 
             default:
                 .unionValidate()
                 .nfaPush(c)
+                expectAltExpr = false
             }
 
             cpt, pz += 1
         }
+
+        if expectAltExpr and !.orOpStack.isEmpty() do
+            .nfaPushEmpty()
 
         // Remaining operators
         .unionValidate()
@@ -1700,20 +1720,38 @@ impl RegExp
                     switch uni32[iminus]
                     {
                     case ']':
+                        if isEscaped(uni32, iminus) do
+                            break
                         cpt0 += 1
-                    case ')', RuneCloseParen:
+                    case ')':
+                        if isEscaped(uni32, iminus) do
+                            break
+                        cpt1 += 1
+                    case RuneCloseParen:
                         cpt1 += 1
                     case '}':
+                        if isEscaped(uni32, iminus) do
+                            break
                         cpt2 += 1
                     case '[':
+                        if isEscaped(uni32, iminus) do
+                            break
                         if cpt0 == 0 do
                             break to Loop
                         cpt0 -= 1
-                    case '(', RuneOpenParen:
+                    case '(':
+                        if isEscaped(uni32, iminus) do
+                            break
+                        if cpt1 == 0 do
+                            break to Loop
+                        cpt1 -= 1
+                    case RuneOpenParen:
                         if cpt1 == 0 do
                             break to Loop
                         cpt1 -= 1
                     case '{':
+                        if isEscaped(uni32, iminus) do
+                            break
                         if cpt2 == 0 do
                             break to Loop
                         cpt2 -= 1
@@ -1733,20 +1771,38 @@ impl RegExp
                     switch uni32[iplus]
                     {
                     case '[':
+                        if isEscaped(uni32, iplus) do
+                            break
                         cpt0 += 1
-                    case '(', RuneOpenParen:
+                    case '(':
+                        if isEscaped(uni32, iplus) do
+                            break
+                        cpt1 += 1
+                    case RuneOpenParen:
                         cpt1 += 1
                     case '{':
+                        if isEscaped(uni32, iplus) do
+                            break
                         cpt2 += 1
                     case ']':
+                        if isEscaped(uni32, iplus) do
+                            break
                         if cpt0 == 0 do
                             break to Loop
                         cpt0 -= 1
-                    case ')', RuneCloseParen:
+                    case ')':
+                        if isEscaped(uni32, iplus) do
+                            break
+                        if cpt1 == 0 do
+                            break to Loop
+                        cpt1 -= 1
+                    case RuneCloseParen:
                         if cpt1 == 0 do
                             break to Loop
                         cpt1 -= 1
                     case '}':
+                        if isEscaped(uni32, iplus) do
+                            break
                         if cpt2 == 0 do
                             break to Loop
                         cpt2 -= 1

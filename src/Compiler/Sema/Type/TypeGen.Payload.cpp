@@ -126,7 +126,6 @@ namespace
             return;
 
         TaskContext&         ctx       = sema.ctx();
-        const ConstantValue& cst       = ctx.cstMgr().get(arg.cstRef);
         const uint64_t       valueSize = ctx.typeMgr().get(valueTypeRef).sizeOf(ctx);
         if (!valueSize)
             return;

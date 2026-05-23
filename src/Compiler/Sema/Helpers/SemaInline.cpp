@@ -616,6 +616,7 @@ namespace
 
     SymbolVariable* makeMaterializedInlineBindingSymbol(Sema& sema, const SymbolVariable& sourceParam, TokenRef tokRef, const AstSingleVarDecl& materializedDecl, const bool materializedAsLet)
     {
+        SWC_UNUSED(sourceParam);
         const IdentifierRef idRef  = SemaHelpers::getUniqueIdentifier(sema, "__inline_arg");
         const SymbolFlags   flags  = sema.frame().flagsForCurrentAccess();
         auto*               symVar = Symbol::make<SymbolVariable>(sema.ctx(), &materializedDecl, tokRef, idRef, flags);
@@ -921,8 +922,8 @@ namespace
             if (paramType.isCodeBlock() || paramType.isAnyVariadic())
                 return Result::Continue;
 
-            const TokenRef tokRef        = materializedInlineBindingTokRef(sema, *binding.sourceParam, binding.exprRef);
-            AstNodeRef     clonedInitRef = SemaClone::cloneDetachedExpr(sema, binding.exprRef);
+            const TokenRef   tokRef        = materializedInlineBindingTokRef(sema, *binding.sourceParam, binding.exprRef);
+            const AstNodeRef clonedInitRef = SemaClone::cloneDetachedExpr(sema, binding.exprRef);
             if (clonedInitRef.isInvalid())
                 return Result::Error;
 

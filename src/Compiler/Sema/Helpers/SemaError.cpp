@@ -1,6 +1,5 @@
 #include "pch.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
-#include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Generic/SemaGeneric.h"

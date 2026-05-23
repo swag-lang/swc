@@ -89,20 +89,22 @@ namespace
     }
 
 #if SWC_DEV_MODE
+    void appendMissingPayloadDebugNode(Utf8& outDetail, const AstNode& node, const AstNodeRef nodeRef, const char* label)
+    {
+        const std::string_view nodeName = Ast::nodeIdName(node.id());
+        outDetail += std::format("  {}={}({:.{}})\n", label, nodeRef.get(), nodeName.data(), static_cast<int>(nodeName.size()));
+    }
+
     Utf8 formatMissingPayloadDebug(CodeGen& codeGen, AstNodeRef queryRef, AstNodeRef resolvedRef, CodeGenNodePayload* payload)
     {
-        Utf8       detail   = "missing-codegen-payload:\n";
-        const auto dumpNode = [&](const AstNode& node, AstNodeRef nodeRef, const char* label) {
-            const std::string_view nodeName = Ast::nodeIdName(node.id());
-            detail += std::format("  {}={}({:.{}})\n", label, nodeRef.get(), nodeName.data(), static_cast<int>(nodeName.size()));
-        };
+        Utf8 detail = "missing-codegen-payload:\n";
 
         if (queryRef.isValid())
-            dumpNode(codeGen.node(queryRef), queryRef, "query");
+            appendMissingPayloadDebugNode(detail, codeGen.node(queryRef), queryRef, "query");
         if (resolvedRef.isValid())
-            dumpNode(codeGen.node(resolvedRef), resolvedRef, "resolved");
+            appendMissingPayloadDebugNode(detail, codeGen.node(resolvedRef), resolvedRef, "resolved");
         if (codeGen.curNodeRef().isValid())
-            dumpNode(codeGen.curNode(), codeGen.curNodeRef(), "current");
+            appendMissingPayloadDebugNode(detail, codeGen.curNode(), codeGen.curNodeRef(), "current");
 
         detail += std::format("  payload={} regValid={}\n", static_cast<void*>(payload), payload && payload->reg.isValid());
 
@@ -121,9 +123,9 @@ namespace
                 const AstNodeRef identRef         = autoMember->nodeIdentRef;
                 const AstNodeRef resolvedIdentRef = codeGen.resolvedNodeRef(identRef);
                 if (identRef.isValid())
-                    dumpNode(codeGen.node(identRef), identRef, "auto-ident");
+                    appendMissingPayloadDebugNode(detail, codeGen.node(identRef), identRef, "auto-ident");
                 if (resolvedIdentRef.isValid() && resolvedIdentRef != identRef)
-                    dumpNode(codeGen.node(resolvedIdentRef), resolvedIdentRef, "auto-ident-resolved");
+                    appendMissingPayloadDebugNode(detail, codeGen.node(resolvedIdentRef), resolvedIdentRef, "auto-ident-resolved");
             }
         }
 
@@ -135,11 +137,11 @@ namespace
                 const AstNodeRef rightRef         = member->nodeRightRef;
                 const AstNodeRef resolvedRightRef = codeGen.resolvedNodeRef(rightRef);
                 if (leftRef.isValid())
-                    dumpNode(codeGen.node(leftRef), leftRef, "member-left");
+                    appendMissingPayloadDebugNode(detail, codeGen.node(leftRef), leftRef, "member-left");
                 if (rightRef.isValid())
-                    dumpNode(codeGen.node(rightRef), rightRef, "member-right");
+                    appendMissingPayloadDebugNode(detail, codeGen.node(rightRef), rightRef, "member-right");
                 if (resolvedRightRef.isValid() && resolvedRightRef != rightRef)
-                    dumpNode(codeGen.node(resolvedRightRef), resolvedRightRef, "member-right-resolved");
+                    appendMissingPayloadDebugNode(detail, codeGen.node(resolvedRightRef), resolvedRightRef, "member-right-resolved");
             }
         }
 

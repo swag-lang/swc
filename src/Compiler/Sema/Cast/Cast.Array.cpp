@@ -43,6 +43,19 @@ namespace
         return res;
     }
 
+    bool aggregateArraySourceHasNestedArrays(const CastArrayArgs& args)
+    {
+        const auto& srcTypes = args.srcType->payloadAggregate().types;
+        for (const TypeRef srcElemTypeRef : srcTypes)
+        {
+            const TypeInfo& srcElemType = args.sema->typeMgr().get(srcElemTypeRef);
+            if (!srcElemType.isAggregateArray() && !srcElemType.isArray())
+                return false;
+        }
+
+        return true;
+    }
+
     Result failArrayTooManyValues(const CastArrayArgs& args, size_t srcCount, uint64_t dstCount)
     {
         const Result res = args.castRequest->fail(DiagnosticId::sema_err_array_cast_too_many_values, args.srcTypeRef, args.dstTypeRef);
@@ -187,7 +200,7 @@ namespace
         const std::vector<ConstantRef>* srcValues      = nullptr;
         SWC_RESULT(getAggregateConstantValues(args, srcValues));
 
-        const bool hasNestedSource = dstDims.size() > 1 && std::ranges::all_of(srcTypes, [&](const TypeRef srcElemTypeRef) { const TypeInfo& srcElemType = args.sema->typeMgr().get(srcElemTypeRef); return srcElemType.isAggregateArray() || srcElemType.isArray(); });
+        const bool hasNestedSource = dstDims.size() > 1 && aggregateArraySourceHasNestedArrays(args);
 
         if (hasNestedSource)
         {

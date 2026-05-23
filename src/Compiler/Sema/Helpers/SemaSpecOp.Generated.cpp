@@ -44,6 +44,15 @@ namespace
         return nullptr;
     }
 
+    Result runGeneratedImplPass(TaskContext& ctx, Sema& sema, AstNodeRef generatedRoot, SymbolImpl& symImpl, const AttributeList& attributes, const bool declPass)
+    {
+        Sema generatedSema(ctx, sema, generatedRoot, declPass);
+        SemaGeneric::prepareGenericInstantiationContext(generatedSema, symImpl.asSymMap(), &symImpl, nullptr, attributes);
+        const Result result = generatedSema.execResult();
+        SWC_ASSERT(result != Result::Pause);
+        return result;
+    }
+
     bool hasDirectLifecycle(const TaskContext& ctx, const SymbolStruct& ownerStruct, const SpecOpKind kind)
     {
         if (findDeclaredLifecycleMethod(ctx, ownerStruct, kind))
@@ -843,16 +852,8 @@ namespace
         symImpl->setSymStruct(&ownerStruct);
         ownerStruct.addImpl(sema, *symImpl);
 
-        auto runPass = [&](const bool declPass) -> Result {
-            Sema generatedSema(ctx, sema, generatedRoot, declPass);
-            SemaGeneric::prepareGenericInstantiationContext(generatedSema, symImpl->asSymMap(), symImpl, nullptr, ownerStruct.attributes());
-            const Result result = generatedSema.execResult();
-            SWC_ASSERT(result != Result::Pause);
-            return result;
-        };
-
-        SWC_RESULT(runPass(true));
-        SWC_RESULT(runPass(false));
+        SWC_RESULT(runGeneratedImplPass(ctx, sema, generatedRoot, *symImpl, ownerStruct.attributes(), true));
+        SWC_RESULT(runGeneratedImplPass(ctx, sema, generatedRoot, *symImpl, ownerStruct.attributes(), false));
         symImpl->setDeclared(ctx);
         symImpl->setTyped(ctx);
         symImpl->setSemaCompleted(ctx);

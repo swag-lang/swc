@@ -40,6 +40,52 @@ namespace
         return sema.typeMgr().get(aliasEnumTypeRef(sema, view.typeRef()));
     }
 
+    Result checkPointerArithmeticOperand(Sema& sema, AstNodeRef nodeRef, AstNodeRef operandRef, const SemaNodeView& operandView)
+    {
+        if (!operandView.type())
+            return Result::Continue;
+
+        const TypeInfo& operandType = aliasEnumType(sema, operandView);
+        if (!operandType.isAnyPointer())
+            return Result::Continue;
+
+        TypeRef payloadTypeRef = operandType.payloadTypeRef();
+        if (payloadTypeRef != sema.typeMgr().typeVoid())
+        {
+            const TypeRef unwrappedTypeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), payloadTypeRef);
+            if (unwrappedTypeRef.isValid())
+                payloadTypeRef = unwrappedTypeRef;
+        }
+
+        if (payloadTypeRef == sema.typeMgr().typeVoid())
+            return SemaError::raisePointerArithmeticVoidPointer(sema, nodeRef, operandRef, operandView.typeRef());
+        if (operandType.isValuePointer())
+            return SemaError::raisePointerArithmeticValuePointer(sema, nodeRef, operandRef, operandView.typeRef());
+
+        return Result::Continue;
+    }
+
+    bool blockPointerPayloadsMatch(Sema& sema, const SemaNodeView& leftOperandView, const SemaNodeView& rightOperandView)
+    {
+        const TypeInfo& leftType  = aliasEnumType(sema, leftOperandView);
+        const TypeInfo& rightType = aliasEnumType(sema, rightOperandView);
+
+        TypeRef leftPayloadTypeRef  = leftType.payloadTypeRef();
+        TypeRef rightPayloadTypeRef = rightType.payloadTypeRef();
+        if (leftPayloadTypeRef == rightPayloadTypeRef)
+            return true;
+
+        const TypeRef leftUnwrappedTypeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), leftPayloadTypeRef);
+        if (leftUnwrappedTypeRef.isValid())
+            leftPayloadTypeRef = leftUnwrappedTypeRef;
+
+        const TypeRef rightUnwrappedTypeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), rightPayloadTypeRef);
+        if (rightUnwrappedTypeRef.isValid())
+            rightPayloadTypeRef = rightUnwrappedTypeRef;
+
+        return leftPayloadTypeRef == rightPayloadTypeRef;
+    }
+
     const TypeInfo& aliasType(Sema& sema, const SemaNodeView& view)
     {
         const TypeRef typeRef = sema.typeMgr().get(view.typeRef()).unwrap(sema.ctx(), view.typeRef(), TypeExpandE::Alias);
@@ -337,50 +383,6 @@ IdentifierRef SemaHelpers::resolveUniqIdentifier(Sema& sema, const TokenId token
 
 Result SemaHelpers::checkBinaryOperandTypes(Sema& sema, AstNodeRef nodeRef, TokenId op, AstNodeRef leftRef, AstNodeRef rightRef, const SemaNodeView& leftView, const SemaNodeView& rightView)
 {
-    const auto checkPointerArithmeticOperand = [](Sema& inSema, AstNodeRef inNodeRef, AstNodeRef operandRef, const SemaNodeView& operandView) -> Result {
-        if (!operandView.type())
-            return Result::Continue;
-
-        const TypeInfo& operandType = aliasEnumType(inSema, operandView);
-        if (!operandType.isAnyPointer())
-            return Result::Continue;
-
-        TypeRef payloadTypeRef = operandType.payloadTypeRef();
-        if (payloadTypeRef != inSema.typeMgr().typeVoid())
-        {
-            const TypeRef unwrappedTypeRef = inSema.typeMgr().unwrapAliasEnum(inSema.ctx(), payloadTypeRef);
-            if (unwrappedTypeRef.isValid())
-                payloadTypeRef = unwrappedTypeRef;
-        }
-
-        if (payloadTypeRef == inSema.typeMgr().typeVoid())
-            return SemaError::raisePointerArithmeticVoidPointer(inSema, inNodeRef, operandRef, operandView.typeRef());
-        if (operandType.isValuePointer())
-            return SemaError::raisePointerArithmeticValuePointer(inSema, inNodeRef, operandRef, operandView.typeRef());
-
-        return Result::Continue;
-    };
-
-    const auto blockPointerPayloadsMatch = [](Sema& inSema, const SemaNodeView& leftOperandView, const SemaNodeView& rightOperandView) {
-        const TypeInfo& leftType  = aliasEnumType(inSema, leftOperandView);
-        const TypeInfo& rightType = aliasEnumType(inSema, rightOperandView);
-
-        TypeRef leftPayloadTypeRef  = leftType.payloadTypeRef();
-        TypeRef rightPayloadTypeRef = rightType.payloadTypeRef();
-        if (leftPayloadTypeRef == rightPayloadTypeRef)
-            return true;
-
-        const TypeRef leftUnwrappedTypeRef = inSema.typeMgr().unwrapAliasEnum(inSema.ctx(), leftPayloadTypeRef);
-        if (leftUnwrappedTypeRef.isValid())
-            leftPayloadTypeRef = leftUnwrappedTypeRef;
-
-        const TypeRef rightUnwrappedTypeRef = inSema.typeMgr().unwrapAliasEnum(inSema.ctx(), rightPayloadTypeRef);
-        if (rightUnwrappedTypeRef.isValid())
-            rightPayloadTypeRef = rightUnwrappedTypeRef;
-
-        return leftPayloadTypeRef == rightPayloadTypeRef;
-    };
-
     const TypeInfo& leftType  = aliasEnumType(sema, leftView);
     const TypeInfo& rightType = aliasEnumType(sema, rightView);
     switch (op)

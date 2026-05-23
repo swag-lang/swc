@@ -26,6 +26,12 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    Result failNativeArtifactTest(const char* testName, const char* message)
+    {
+        std::println(stderr, "{}: {}", testName, message);
+        return Result::Error;
+    }
+
     struct NativeArtifactTestFixture
     {
         CommandLine                            cmdLine;
@@ -634,11 +640,6 @@ SWC_TEST_END()
 
 SWC_TEST_BEGIN(NativeArtifact_CompilerRunExprInsideTestKeepsJitRunnable)
 {
-    auto fail = [](const char* message) {
-        std::println(stderr, "NativeArtifact_CompilerRunExprInsideTestKeepsJitRunnable: {}", message);
-        return Result::Error;
-    };
-
     static constexpr std::string_view SOURCE     = R"(#global fileprivate
 var GValue: s32 = 0
 #test
@@ -664,16 +665,16 @@ var GValue: s32 = 0
     Unittest::registerTestSource(compiler, sourcePath, SOURCE);
     Command::sema(compiler);
     if (Stats::getNumErrors() != errorsBefore)
-        return fail("errors after sema");
+        return failNativeArtifactTest("NativeArtifact_CompilerRunExprInsideTestKeepsJitRunnable", "errors after sema");
 
     if (compiler.nativeTestFunctions().size() != 1)
-        return fail("unexpected native test function count");
+        return failNativeArtifactTest("NativeArtifact_CompilerRunExprInsideTestKeepsJitRunnable", "unexpected native test function count");
 
     NativeBackendBuilder nativeBuilder(compiler, false);
     if (nativeBuilder.prepare() != Result::Continue)
-        return fail("nativeBuilder.prepare failed");
+        return failNativeArtifactTest("NativeArtifact_CompilerRunExprInsideTestKeepsJitRunnable", "nativeBuilder.prepare failed");
     if (Stats::getNumErrors() != errorsBefore)
-        return fail("errors after nativeBuilder.prepare");
+        return failNativeArtifactTest("NativeArtifact_CompilerRunExprInsideTestKeepsJitRunnable", "errors after nativeBuilder.prepare");
 
     TaskContext           compilerCtx(compiler);
     const SymbolVariable* globalVar = nullptr;
@@ -689,11 +690,11 @@ var GValue: s32 = 0
     }
 
     if (!globalVar || !globalVar->hasGlobalStorage())
-        return fail("global GValue not found");
+        return failNativeArtifactTest("NativeArtifact_CompilerRunExprInsideTestKeepsJitRunnable", "global GValue not found");
 
     const auto& nativeFunctions = compiler.nativeCodeSegment();
     if (nativeFunctions.empty())
-        return fail("native code segment empty");
+        return failNativeArtifactTest("NativeArtifact_CompilerRunExprInsideTestKeepsJitRunnable", "native code segment empty");
 
     while (true)
     {
@@ -702,22 +703,22 @@ var GValue: s32 = 0
             break;
 
         if (jitBatchResult == Result::Error)
-            return fail("jitBatch returned error");
+            return failNativeArtifactTest("NativeArtifact_CompilerRunExprInsideTestKeepsJitRunnable", "jitBatch returned error");
 
         Sema::waitDone(compilerCtx, compilerCtx.compiler().jobClientId());
         if (Stats::hasError())
-            return fail("jitBatch wait reported stats error");
+            return failNativeArtifactTest("NativeArtifact_CompilerRunExprInsideTestKeepsJitRunnable", "jitBatch wait reported stats error");
         if (compilerCtx.state().jitEmissionError)
-            return fail("jitBatch wait reported jit emission error");
+            return failNativeArtifactTest("NativeArtifact_CompilerRunExprInsideTestKeepsJitRunnable", "jitBatch wait reported jit emission error");
     }
     if (Stats::getNumErrors() != errorsBefore)
-        return fail("errors after jitBatch");
+        return failNativeArtifactTest("NativeArtifact_CompilerRunExprInsideTestKeepsJitRunnable", "errors after jitBatch");
 
     const SymbolFunction* testFn = compiler.nativeTestFunctions().front();
     if (!testFn)
-        return fail("missing native test function");
+        return failNativeArtifactTest("NativeArtifact_CompilerRunExprInsideTestKeepsJitRunnable", "missing native test function");
     if (!testFn->jitEntryAddress())
-        return fail("native test function has no jit entry");
+        return failNativeArtifactTest("NativeArtifact_CompilerRunExprInsideTestKeepsJitRunnable", "native test function has no jit entry");
 
     JITExecManager::Request request;
     request.function     = testFn;
@@ -725,23 +726,18 @@ var GValue: s32 = 0
     request.codeRef      = testFn->decl() ? testFn->decl()->codeRef() : SourceCodeRef::invalid();
     request.runImmediate = true;
     if (compiler.jitExecMgr().submit(compilerCtx, request) != Result::Continue)
-        return fail("jit submit failed");
+        return failNativeArtifactTest("NativeArtifact_CompilerRunExprInsideTestKeepsJitRunnable", "jit submit failed");
     if (Stats::getNumErrors() != errorsBefore)
-        return fail("errors after jit submit");
+        return failNativeArtifactTest("NativeArtifact_CompilerRunExprInsideTestKeepsJitRunnable", "errors after jit submit");
 
     const auto* globalValue = reinterpret_cast<const int32_t*>(compiler.dataSegmentAddress(globalVar->globalStorageKind(), globalVar->offset()));
     if (!globalValue || *globalValue != 666)
-        return fail("unexpected final GValue");
+        return failNativeArtifactTest("NativeArtifact_CompilerRunExprInsideTestKeepsJitRunnable", "unexpected final GValue");
 }
 SWC_TEST_END()
 
 SWC_TEST_BEGIN(NativeArtifact_CompilerInstanceNativeRegistrationKeepsBucketsConsistent)
 {
-    auto fail = [](const char* message) {
-        std::println(stderr, "NativeArtifact_CompilerInstanceNativeRegistrationKeepsBucketsConsistent: {}", message);
-        return Result::Error;
-    };
-
     static constexpr std::string_view SOURCE     = R"(#global fileprivate
 
 alias UnaryFn = func(s32)->s32
@@ -789,48 +785,48 @@ var GAddOne: UnaryFn = &addOne
     Unittest::registerTestSource(compiler, sourcePath, SOURCE);
     Command::sema(compiler);
     if (Stats::getNumErrors() != errorsBefore)
-        return fail("errors after sema");
+        return failNativeArtifactTest("NativeArtifact_CompilerInstanceNativeRegistrationKeepsBucketsConsistent", "errors after sema");
 
     const TaskContext compilerCtx(compiler);
 
     const auto initTargets = compiler.nativeGlobalFunctionInitTargetsSnapshot();
     if (compiler.nativeTestFunctions().size() != 1)
-        return fail("unexpected native test function count");
+        return failNativeArtifactTest("NativeArtifact_CompilerInstanceNativeRegistrationKeepsBucketsConsistent", "unexpected native test function count");
     if (compiler.nativeInitFunctions().size() != 1)
-        return fail("unexpected native init function count");
+        return failNativeArtifactTest("NativeArtifact_CompilerInstanceNativeRegistrationKeepsBucketsConsistent", "unexpected native init function count");
     if (compiler.nativePreMainFunctions().size() != 1)
-        return fail("unexpected native premain function count");
+        return failNativeArtifactTest("NativeArtifact_CompilerInstanceNativeRegistrationKeepsBucketsConsistent", "unexpected native premain function count");
     if (compiler.nativeMainFunctions().size() != 1)
-        return fail("unexpected native main function count");
+        return failNativeArtifactTest("NativeArtifact_CompilerInstanceNativeRegistrationKeepsBucketsConsistent", "unexpected native main function count");
     if (compiler.nativeDropFunctions().size() != 1)
-        return fail("unexpected native drop function count");
+        return failNativeArtifactTest("NativeArtifact_CompilerInstanceNativeRegistrationKeepsBucketsConsistent", "unexpected native drop function count");
     if (initTargets.size() != 1)
-        return fail("unexpected native global init target count");
+        return failNativeArtifactTest("NativeArtifact_CompilerInstanceNativeRegistrationKeepsBucketsConsistent", "unexpected native global init target count");
 
     SymbolFunction* addOneFunction = findFunctionByName(compilerCtx, initTargets, "addOne");
     if (!addOneFunction)
-        return fail("addOne not found in native init targets");
+        return failNativeArtifactTest("NativeArtifact_CompilerInstanceNativeRegistrationKeepsBucketsConsistent", "addOne not found in native init targets");
 
     SymbolVariable* globalFunctionPtr = findGlobalByName(compilerCtx, compiler.nativeGlobalVariables(), "GAddOne");
     if (!globalFunctionPtr)
-        return fail("GAddOne global not found");
+        return failNativeArtifactTest("NativeArtifact_CompilerInstanceNativeRegistrationKeepsBucketsConsistent", "GAddOne global not found");
     if (globalFunctionPtr->globalFunctionInit() != addOneFunction)
-        return fail("GAddOne global init target mismatch");
+        return failNativeArtifactTest("NativeArtifact_CompilerInstanceNativeRegistrationKeepsBucketsConsistent", "GAddOne global init target mismatch");
     if (initTargets.front() != addOneFunction)
-        return fail("native init target mismatch");
+        return failNativeArtifactTest("NativeArtifact_CompilerInstanceNativeRegistrationKeepsBucketsConsistent", "native init target mismatch");
 
     if (!hasUniquePointers(std::span{compiler.nativeCodeSegment()}))
-        return fail("native code segment contains duplicates");
+        return failNativeArtifactTest("NativeArtifact_CompilerInstanceNativeRegistrationKeepsBucketsConsistent", "native code segment contains duplicates");
     if (!containsPointer(std::span{compiler.nativeCodeSegment()}, compiler.nativeTestFunctions().front()))
-        return fail("native code segment missing test function");
+        return failNativeArtifactTest("NativeArtifact_CompilerInstanceNativeRegistrationKeepsBucketsConsistent", "native code segment missing test function");
     if (!containsPointer(std::span{compiler.nativeCodeSegment()}, compiler.nativeInitFunctions().front()))
-        return fail("native code segment missing init function");
+        return failNativeArtifactTest("NativeArtifact_CompilerInstanceNativeRegistrationKeepsBucketsConsistent", "native code segment missing init function");
     if (!containsPointer(std::span{compiler.nativeCodeSegment()}, compiler.nativePreMainFunctions().front()))
-        return fail("native code segment missing premain function");
+        return failNativeArtifactTest("NativeArtifact_CompilerInstanceNativeRegistrationKeepsBucketsConsistent", "native code segment missing premain function");
     if (!containsPointer(std::span{compiler.nativeCodeSegment()}, compiler.nativeMainFunctions().front()))
-        return fail("native code segment missing main function");
+        return failNativeArtifactTest("NativeArtifact_CompilerInstanceNativeRegistrationKeepsBucketsConsistent", "native code segment missing main function");
     if (!containsPointer(std::span{compiler.nativeCodeSegment()}, compiler.nativeDropFunctions().front()))
-        return fail("native code segment missing drop function");
+        return failNativeArtifactTest("NativeArtifact_CompilerInstanceNativeRegistrationKeepsBucketsConsistent", "native code segment missing drop function");
 
     const size_t          codeCount                  = compiler.nativeCodeSegment().size();
     const size_t          testCount                  = compiler.nativeTestFunctions().size();
@@ -863,29 +859,29 @@ var GAddOne: UnaryFn = &addOne
     compiler.registerPreparedJitFunction(addOneFunction);
 
     if (compiler.nativeCodeSegment().size() != codeCount)
-        return fail("native code segment changed after duplicate registration");
+        return failNativeArtifactTest("NativeArtifact_CompilerInstanceNativeRegistrationKeepsBucketsConsistent", "native code segment changed after duplicate registration");
     if (compiler.nativeTestFunctions().size() != testCount)
-        return fail("native test functions changed after duplicate registration");
+        return failNativeArtifactTest("NativeArtifact_CompilerInstanceNativeRegistrationKeepsBucketsConsistent", "native test functions changed after duplicate registration");
     if (compiler.nativeInitFunctions().size() != initCount)
-        return fail("native init functions changed after duplicate registration");
+        return failNativeArtifactTest("NativeArtifact_CompilerInstanceNativeRegistrationKeepsBucketsConsistent", "native init functions changed after duplicate registration");
     if (compiler.nativePreMainFunctions().size() != preMainCount)
-        return fail("native premain functions changed after duplicate registration");
+        return failNativeArtifactTest("NativeArtifact_CompilerInstanceNativeRegistrationKeepsBucketsConsistent", "native premain functions changed after duplicate registration");
     if (compiler.nativeMainFunctions().size() != mainCount)
-        return fail("native main functions changed after duplicate registration");
+        return failNativeArtifactTest("NativeArtifact_CompilerInstanceNativeRegistrationKeepsBucketsConsistent", "native main functions changed after duplicate registration");
     if (compiler.nativeDropFunctions().size() != dropCount)
-        return fail("native drop functions changed after duplicate registration");
+        return failNativeArtifactTest("NativeArtifact_CompilerInstanceNativeRegistrationKeepsBucketsConsistent", "native drop functions changed after duplicate registration");
     if (compiler.nativeGlobalVariables().size() != globalVariableCount)
-        return fail("native globals changed after duplicate registration");
+        return failNativeArtifactTest("NativeArtifact_CompilerInstanceNativeRegistrationKeepsBucketsConsistent", "native globals changed after duplicate registration");
     if (compiler.nativeGlobalFunctionInitTargetsSnapshot().size() != initTargetCount)
-        return fail("native init targets changed after duplicate registration");
+        return failNativeArtifactTest("NativeArtifact_CompilerInstanceNativeRegistrationKeepsBucketsConsistent", "native init targets changed after duplicate registration");
     if (compiler.nativeGlobalFunctionInitTargetsVersion() != initTargetVersion)
-        return fail("native init target version changed after duplicate registration");
+        return failNativeArtifactTest("NativeArtifact_CompilerInstanceNativeRegistrationKeepsBucketsConsistent", "native init target version changed after duplicate registration");
 
     const auto jitPreparedFunctions = compiler.jitPreparedFunctionsSnapshot();
     if (jitPreparedFunctions.size() != preparedJitCount + (preparedJitTargetCount ? 0u : 1u))
-        return fail("unexpected prepared jit function growth");
+        return failNativeArtifactTest("NativeArtifact_CompilerInstanceNativeRegistrationKeepsBucketsConsistent", "unexpected prepared jit function growth");
     if (std::ranges::count(jitPreparedFunctions, addOneFunction) != 1)
-        return fail("prepared jit function target duplicated");
+        return failNativeArtifactTest("NativeArtifact_CompilerInstanceNativeRegistrationKeepsBucketsConsistent", "prepared jit function target duplicated");
 
     return Result::Continue;
 }

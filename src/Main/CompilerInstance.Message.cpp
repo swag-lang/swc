@@ -66,6 +66,13 @@ namespace
         Utf8                     key;
     };
 
+    bool compilerMessageBacklogEntryLess(const CompilerMessageBacklogEntry& lhs, const CompilerMessageBacklogEntry& rhs)
+    {
+        if (lhs.key != rhs.key)
+            return lhs.key < rhs.key;
+        return static_cast<uint32_t>(lhs.kind) < static_cast<uint32_t>(rhs.kind);
+    }
+
     struct CompilerMessageDispatchStep
     {
         size_t                                 listenerIndex = 0;
@@ -315,11 +322,7 @@ namespace
             collectCompilerMessageBacklogRec(compiler, *fileNamespace->asSymMap(), visited, activationMask, entries);
         }
 
-        std::ranges::stable_sort(entries, [](const CompilerMessageBacklogEntry& lhs, const CompilerMessageBacklogEntry& rhs) {
-            if (lhs.key != rhs.key)
-                return lhs.key < rhs.key;
-            return static_cast<uint32_t>(lhs.kind) < static_cast<uint32_t>(rhs.kind);
-        });
+        std::ranges::stable_sort(entries, compilerMessageBacklogEntryLess);
 
         out.reserve(out.size() + entries.size());
         for (const CompilerMessageBacklogEntry& entry : entries)

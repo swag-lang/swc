@@ -166,7 +166,7 @@ void JobManager::waitingJobs(std::vector<Job*>& waiting, JobClientId client) con
             temp.push_back(rec);
     }
 
-    std::ranges::sort(temp, [](const JobRecord* lhs, const JobRecord* rhs) { return lhs->index < rhs->index; });
+    std::ranges::sort(temp, {}, &JobRecord::index);
 
     for (const JobRecord* t : temp)
         waiting.push_back(t->job);
@@ -299,7 +299,7 @@ bool JobManager::wakeAll(JobClientId client)
                 temp.push_back(rec);
         }
 
-        std::ranges::sort(temp, [](const JobRecord* lhs, const JobRecord* rhs) { return lhs->index < rhs->index; });
+        std::ranges::sort(temp, {}, &JobRecord::index);
         for (JobRecord* rec : temp)
         {
             rec->state = JobRecord::State::Ready;
@@ -466,7 +466,7 @@ Utf8 JobManager::debugDescribeStateLocked(const std::optional<JobClientId> clien
     if (waitingJobs.empty())
         return detail;
 
-    std::ranges::sort(waitingJobs, [](const JobRecord* lhs, const JobRecord* rhs) { return lhs->index < rhs->index; });
+    std::ranges::sort(waitingJobs, {}, &JobRecord::index);
     detail += "waiting jobs:\n";
     for (const JobRecord* rec : waitingJobs)
     {

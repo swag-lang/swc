@@ -112,14 +112,15 @@ namespace SemaGeneric
             return loadStructInstanceGenericArgs(sema, *ownerInstance, outParams, outArgs);
         }
 
+        const SymbolFunction* genericFunctionInstanceOrNull(const SymbolFunction* function)
+        {
+            if (!function || !function->isGenericInstance())
+                return nullptr;
+            return function;
+        }
+
         void collectAmbientGenericFunctions(const Sema& sema, SmallVector<const SymbolFunction*>& outFunctions)
         {
-            const auto matchingGenericFunctionInstance = [](const SymbolFunction* function) -> const SymbolFunction* {
-                if (!function || !function->isGenericInstance())
-                    return nullptr;
-                return function;
-            };
-
             outFunctions.clear();
             std::unordered_set<const SymbolFunction*> seenFunctions;
 
@@ -128,7 +129,7 @@ namespace SemaGeneric
                 const SemaInlinePayload* inlinePayload = sema.frames()[i - 1].currentInlinePayload();
                 while (inlinePayload)
                 {
-                    if (const SymbolFunction* function = matchingGenericFunctionInstance(inlinePayload->sourceFunction))
+                    if (const SymbolFunction* function = genericFunctionInstanceOrNull(inlinePayload->sourceFunction))
                     {
                         if (seenFunctions.insert(function).second)
                             outFunctions.push_back(function);
@@ -138,7 +139,7 @@ namespace SemaGeneric
                 }
             }
 
-            if (const SymbolFunction* function = matchingGenericFunctionInstance(sema.currentFunction()))
+            if (const SymbolFunction* function = genericFunctionInstanceOrNull(sema.currentFunction()))
             {
                 if (seenFunctions.insert(function).second)
                     outFunctions.push_back(function);
@@ -490,16 +491,44 @@ namespace SemaGeneric
             child.frame().addContextFlag(SemaFrameContextFlagsE::RequireConstExpr);
         }
 
+        struct GenericNodeRunInitializer
+        {
+            Sema*          sema   = nullptr;
+            const Symbol*  root   = nullptr;
+            AstNodeRef     nodeRef;
+
+            std::unique_ptr<Sema> operator()() const
+            {
+                SWC_ASSERT(sema != nullptr);
+                SWC_ASSERT(root != nullptr);
+                auto child = std::make_unique<Sema>(sema->ctx(), *sema, nodeRef);
+                prepareGenericNodeRunContext(*child, *sema, *root);
+                return child;
+            }
+        };
+
+        struct GenericInstanceNodeRunInitializer
+        {
+            Sema*          sema   = nullptr;
+            const Symbol*  root   = nullptr;
+            AstNodeRef     nodeRef;
+
+            std::unique_ptr<Sema> operator()() const
+            {
+                SWC_ASSERT(sema != nullptr);
+                SWC_ASSERT(root != nullptr);
+                auto child = std::make_unique<Sema>(sema->ctx(), *sema, nodeRef);
+                prepareGenericNodeRunContext(*child, *sema, *root);
+                return child;
+            }
+        };
+
         Result runGenericNode(Sema& sema, const Symbol& root, AstNodeRef nodeRef)
         {
             SWC_ASSERT(root.isFunction() || root.isStruct());
 
             const GenericNodeRunKey key{&sema.ctx(), &sema.ast(), nodeRef.get()};
-            auto                    initRun = [&] {
-                auto child = std::make_unique<Sema>(sema.ctx(), sema, nodeRef);
-                prepareGenericNodeRunContext(*child, sema, root);
-                return child;
-            };
+            const GenericNodeRunInitializer initRun{.sema = &sema, .root = &root, .nodeRef = nodeRef};
             return runCachedSema(sema, genericNodeRuns(sema.ctx()), key, root, initRun);
         }
 
@@ -516,11 +545,7 @@ namespace SemaGeneric
                 return Result::Error;
 
             const GenericInstanceNodeRunKey key{&sema.ctx(), &instance};
-            auto                            initRun = [&] {
-                auto child = std::make_unique<Sema>(sema.ctx(), sema, nodeRef);
-                prepareGenericNodeRunContext(*child, sema, root);
-                return child;
-            };
+            const GenericInstanceNodeRunInitializer initRun{.sema = &sema, .root = &root, .nodeRef = nodeRef};
             return runCachedSema(sema, genericInstanceNodeRuns(sema.ctx()), key, instance, initRun);
         }
     }
@@ -834,14 +859,30 @@ namespace SemaGeneric
 
     namespace
     {
+        struct GenericImplBlockRunInitializer
+        {
+            Sema*                  sema    = nullptr;
+            AstNodeRef             blockRef;
+            SymbolImpl*            impl    = nullptr;
+            const SymbolInterface* itf     = nullptr;
+            const AttributeList*   attrs   = nullptr;
+            bool                   declPass = false;
+
+            std::unique_ptr<Sema> operator()() const
+            {
+                SWC_ASSERT(sema != nullptr);
+                SWC_ASSERT(impl != nullptr);
+                SWC_ASSERT(attrs != nullptr);
+                auto child = std::make_unique<Sema>(sema->ctx(), *sema, blockRef, declPass);
+                prepareGenericInstantiationContext(*child, impl->asSymMap(), impl, itf, *attrs);
+                return child;
+            }
+        };
+
         Result runGenericImplBlockPass(Sema& sema, AstNodeRef blockRef, SymbolImpl& impl, const SymbolInterface* itf, const AttributeList& attrs, bool declPass)
         {
             const GenericImplBlockRunKey key{&sema.ctx(), &impl, declPass};
-            auto                         initRun = [&] {
-                auto child = std::make_unique<Sema>(sema.ctx(), sema, blockRef, declPass);
-                prepareGenericInstantiationContext(*child, impl.asSymMap(), &impl, itf, attrs);
-                return child;
-            };
+            const GenericImplBlockRunInitializer initRun{.sema = &sema, .blockRef = blockRef, .impl = &impl, .itf = itf, .attrs = &attrs, .declPass = declPass};
             return runCachedSema(sema, genericImplBlockRuns(sema.ctx()), key, impl, initRun);
         }
 

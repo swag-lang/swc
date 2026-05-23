@@ -112,6 +112,11 @@ namespace
         uint32_t                                  expectedTestCount = 0;
     };
 
+    bool shouldKeepSelectedJitFunction(const JitFunctionSelection& selection, const SymbolFunction* function)
+    {
+        return function != nullptr && selection.functions.contains(function);
+    }
+
     using ReverseDependencyMap = std::unordered_map<const SymbolFunction*, std::vector<const SymbolFunction*>>;
 
     struct TestFunctionGraph
@@ -243,7 +248,16 @@ namespace
 
     void filterJitFunctions(std::vector<SymbolFunction*>& functions, const JitFunctionSelection& selection)
     {
-        std::erase_if(functions, [&](const SymbolFunction* function) { return function == nullptr || !selection.functions.contains(function); });
+        size_t writeIndex = 0;
+        for (size_t readIndex = 0; readIndex < functions.size(); ++readIndex)
+        {
+            if (!shouldKeepSelectedJitFunction(selection, functions[readIndex]))
+                continue;
+
+            functions[writeIndex++] = functions[readIndex];
+        }
+
+        functions.resize(writeIndex);
     }
 
     std::vector<SymbolFunction*> collectPreparedFunctions(const NativeBackendBuilder& builder)

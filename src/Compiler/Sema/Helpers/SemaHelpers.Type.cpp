@@ -886,6 +886,43 @@ namespace
 
         return false;
     }
+
+    bool resolveStructFieldIndex(std::span<const SymbolVariable* const> fields, const IdentifierRef idRef, size_t& outIndex)
+    {
+        for (size_t i = 0; i < fields.size(); ++i)
+        {
+            if (fields[i] && fields[i]->idRef() == idRef)
+            {
+                outIndex = i;
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    struct StructFieldIndexResolver
+    {
+        std::span<const SymbolVariable* const> fields;
+
+        bool operator()(const IdentifierRef idRef, size_t& outIndex) const
+        {
+            return resolveStructFieldIndex(fields, idRef, outIndex);
+        }
+    };
+
+    struct AggregateMemberIndexResolver
+    {
+        Sema*           sema       = nullptr;
+        const TypeInfo* targetType = nullptr;
+
+        bool operator()(const IdentifierRef idRef, size_t& outIndex) const
+        {
+            SWC_ASSERT(sema != nullptr);
+            SWC_ASSERT(targetType != nullptr);
+            return SemaHelpers::resolveAggregateMemberIndex(*sema, *targetType, idRef, outIndex);
+        }
+    };
 }
 
 Result SemaHelpers::finalizeAggregateStruct(Sema& sema, const SmallVector<AstNodeRef>& children, bool autoNameFromIdentifiers)
@@ -944,19 +981,9 @@ Result SemaHelpers::resolveStructLikeChildBindingType(Sema& sema, std::span<cons
     if (targetType.isStruct())
     {
         SWC_RESULT(sema.waitSemaCompleted(&targetType, childRef));
-        const auto& fields         = targetType.payloadSymStruct().fields();
-        const auto  findFieldIndex = [&](IdentifierRef idRef, size_t& outIndex) {
-            for (size_t i = 0; i < fields.size(); ++i)
-            {
-                if (fields[i] && fields[i]->idRef() == idRef)
-                {
-                    outIndex = i;
-                    return true;
-                }
-            }
-            return false;
-        };
-        const bool found = resolveAggregateChildIndex(sema, children, childRef, fields.size(), findFieldIndex, fieldIndex);
+        const auto&                 fields           = targetType.payloadSymStruct().fields();
+        const StructFieldIndexResolver findFieldIndex{fields};
+        const bool                  found            = resolveAggregateChildIndex(sema, children, childRef, fields.size(), findFieldIndex, fieldIndex);
         if (!found || fieldIndex >= fields.size() || !fields[fieldIndex])
             return Result::Continue;
 
@@ -968,7 +995,8 @@ Result SemaHelpers::resolveStructLikeChildBindingType(Sema& sema, std::span<cons
         return Result::Continue;
 
     const auto& aggregate = targetType.payloadAggregate();
-    const bool  found     = resolveAggregateChildIndex(sema, children, childRef, aggregate.types.size(), [&](IdentifierRef idRef, size_t& outIndex) { return resolveAggregateMemberIndex(sema, targetType, idRef, outIndex); }, fieldIndex);
+    const AggregateMemberIndexResolver resolveMemberIndex{.sema = &sema, .targetType = &targetType};
+    const bool                         found = resolveAggregateChildIndex(sema, children, childRef, aggregate.types.size(), resolveMemberIndex, fieldIndex);
     if (!found || fieldIndex >= aggregate.types.size())
         return Result::Continue;
 

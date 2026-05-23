@@ -182,7 +182,7 @@ namespace
         sorted.reserve(node.children.size());
         for (const auto& child : node.children | std::views::values)
             sorted.push_back(child.get());
-        std::ranges::sort(sorted, [](const TreeNode* lhs, const TreeNode* rhs) { return lhs->peakBytes > rhs->peakBytes; });
+        std::ranges::sort(sorted, std::ranges::greater{}, &TreeNode::peakBytes);
 
         for (const TreeNode* child : sorted)
         {

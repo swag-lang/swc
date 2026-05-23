@@ -166,6 +166,80 @@ namespace
             return result;
         }
     }
+
+    struct AstPrintNodeRefResolver
+    {
+        Sema* sema = nullptr;
+
+        AstNodeRef operator()(const AstNodeRef nodeRef) const
+        {
+            return resolvePrintNodeRef(sema, nodeRef);
+        }
+    };
+
+    struct AstVisitChildCounter
+    {
+        AstVisit*                                     visit       = nullptr;
+        std::unordered_map<AstNodeRef, uint32_t>* countsByParent = nullptr;
+
+        Result operator()(AstNode&, AstNodeRef&) const
+        {
+            SWC_ASSERT(visit != nullptr);
+            SWC_ASSERT(countsByParent != nullptr);
+            const AstNodeRef parentRef = visit->currentNodeRef();
+            uint32_t&        numChild  = (*countsByParent)[parentRef];
+            numChild++;
+            return Result::Continue;
+        }
+    };
+
+    struct AstPrintPreNodeVisitor
+    {
+        Utf8*                                           out                     = nullptr;
+        const TaskContext*                              ctx                     = nullptr;
+        Ast*                                            ast                     = nullptr;
+        AstVisit*                                       visit                   = nullptr;
+        std::unordered_map<AstNodeRef, uint32_t>*       totalChildrenByParent   = nullptr;
+        std::unordered_map<AstNodeRef, uint32_t>*       visitedChildrenByParent = nullptr;
+        std::unordered_map<AstNodeRef, AstPrintNodeEntry>* nodeEntries         = nullptr;
+        Sema*                                           sema                    = nullptr;
+
+        Result operator()(AstNode&) const
+        {
+            SWC_ASSERT(out != nullptr);
+            SWC_ASSERT(ctx != nullptr);
+            SWC_ASSERT(ast != nullptr);
+            SWC_ASSERT(visit != nullptr);
+            SWC_ASSERT(totalChildrenByParent != nullptr);
+            SWC_ASSERT(visitedChildrenByParent != nullptr);
+            SWC_ASSERT(nodeEntries != nullptr);
+
+            const AstNodeRef nodeRef   = visit->currentNodeRef();
+            const AstNodeRef parentRef = visit->parentNodeRef();
+
+            AstPrintNodeEntry entry;
+            if (parentRef.isInvalid())
+            {
+                entry.prefix.clear();
+                entry.isLastChild = true;
+            }
+            else
+            {
+                const auto parentIt = nodeEntries->find(parentRef);
+                SWC_ASSERT(parentIt != nodeEntries->end());
+                entry.prefix = parentIt->second.prefix;
+                entry.prefix += parentIt->second.isLastChild ? "   " : "|  ";
+
+                const uint32_t totalChildren = (*totalChildrenByParent)[parentRef];
+                const uint32_t childOrder    = (*visitedChildrenByParent)[parentRef];
+                entry.isLastChild            = childOrder == totalChildren;
+            }
+
+            appendNodeLine(*out, *ctx, *ast, nodeRef, entry, sema);
+            (*nodeEntries)[nodeRef] = entry;
+            return Result::Continue;
+        }
+    };
 }
 
 Utf8 AstPrinter::format(const TaskContext& ctx, Ast& ast, AstNodeRef root, Sema* sema)
@@ -182,9 +256,8 @@ Utf8 AstPrinter::format(const TaskContext& ctx, Ast& ast, AstNodeRef root, Sema*
     // Count children per node
     AstVisit orderingVisit;
     orderingVisit.setMode(AstVisitMode::ResolveBeforeCallbacks);
-    orderingVisit.setNodeRefResolver([sema](AstNodeRef nodeRef) { return resolvePrintNodeRef(sema, nodeRef); });
-
-    orderingVisit.setPreChildVisitor([&](AstNode&, AstNodeRef&) -> Result { const AstNodeRef parentRef = orderingVisit.currentNodeRef(); uint32_t& numChild = totalChildrenByParent[parentRef]; numChild++; return Result::Continue; });
+    orderingVisit.setNodeRefResolver(AstPrintNodeRefResolver{.sema = sema});
+    orderingVisit.setPreChildVisitor(AstVisitChildCounter{.visit = &orderingVisit, .countsByParent = &totalChildrenByParent});
 
     orderingVisit.start(ast, root);
     if (runVisit(orderingVisit, ctx) == AstVisitResult::Error)
@@ -193,37 +266,9 @@ Utf8 AstPrinter::format(const TaskContext& ctx, Ast& ast, AstNodeRef root, Sema*
     // Print
     AstVisit printVisit;
     printVisit.setMode(AstVisitMode::ResolveBeforeCallbacks);
-    printVisit.setNodeRefResolver([sema](AstNodeRef nodeRef) { return resolvePrintNodeRef(sema, nodeRef); });
-    printVisit.setPreChildVisitor([&](AstNode&, AstNodeRef&) -> Result { const AstNodeRef parentRef = printVisit.currentNodeRef(); uint32_t& numChild = visitedChildrenByParent[parentRef]; numChild++; return Result::Continue; });
-
-    const auto preNodeVisitorFn = [&](AstNode&) -> Result {
-        const AstNodeRef nodeRef   = printVisit.currentNodeRef();
-        const AstNodeRef parentRef = printVisit.parentNodeRef();
-
-        AstPrintNodeEntry entry;
-        if (parentRef.isInvalid())
-        {
-            entry.prefix.clear();
-            entry.isLastChild = true;
-        }
-        else
-        {
-            const auto parentIt = nodeEntries.find(parentRef);
-            SWC_ASSERT(parentIt != nodeEntries.end());
-            entry.prefix = parentIt->second.prefix;
-            entry.prefix += parentIt->second.isLastChild ? "   " : "|  ";
-
-            const uint32_t totalChildren = totalChildrenByParent[parentRef];
-            const uint32_t childOrder    = visitedChildrenByParent[parentRef];
-            entry.isLastChild            = childOrder == totalChildren;
-        }
-
-        appendNodeLine(out, ctx, ast, nodeRef, entry, sema);
-        nodeEntries[nodeRef] = entry;
-
-        return Result::Continue;
-    };
-    printVisit.setPreNodeVisitor(preNodeVisitorFn);
+    printVisit.setNodeRefResolver(AstPrintNodeRefResolver{.sema = sema});
+    printVisit.setPreChildVisitor(AstVisitChildCounter{.visit = &printVisit, .countsByParent = &visitedChildrenByParent});
+    printVisit.setPreNodeVisitor(AstPrintPreNodeVisitor{.out = &out, .ctx = &ctx, .ast = &ast, .visit = &printVisit, .totalChildrenByParent = &totalChildrenByParent, .visitedChildrenByParent = &visitedChildrenByParent, .nodeEntries = &nodeEntries, .sema = sema});
 
     printVisit.start(ast, root);
     if (runVisit(printVisit, ctx) == AstVisitResult::Error)

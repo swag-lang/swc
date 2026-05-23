@@ -49,6 +49,21 @@ namespace
         }
     };
 
+    struct DiagnosticSpanColumnLess
+    {
+        const DiagnosticElement* element = nullptr;
+        const TaskContext*       ctx     = nullptr;
+
+        bool operator()(const DiagnosticSpan& lhs, const DiagnosticSpan& rhs) const
+        {
+            SWC_ASSERT(element != nullptr);
+            SWC_ASSERT(ctx != nullptr);
+            const SourceCodeRange leftRange  = element->codeRange(lhs, *ctx);
+            const SourceCodeRange rightRange = element->codeRange(rhs, *ctx);
+            return leftRange.column < rightRange.column;
+        }
+    };
+
     // tag → severity mapping
     std::optional<DiagnosticSeverity> tagToSeverity(std::string_view s)
     {
@@ -782,7 +797,7 @@ void DiagnosticBuilder::writeCodeBlock(const DiagnosticElement& el)
 
     // Sort underlines by column to process them in order
     std::vector<DiagnosticSpan> sortedSpans = el.spans();
-    std::ranges::sort(sortedSpans, [&](const DiagnosticSpan& a, const DiagnosticSpan& b) { const SourceCodeRange loc1 = el.codeRange(a, *ctx_); const SourceCodeRange loc2 = el.codeRange(b, *ctx_); return loc1.column < loc2.column; });
+    std::ranges::sort(sortedSpans, DiagnosticSpanColumnLess{.element = &el, .ctx = ctx_});
 
     const uint32_t diagMax = ctx_->cmdLine().diagMaxColumn;
 

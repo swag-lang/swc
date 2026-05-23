@@ -23,27 +23,41 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    bool functionVariableDeclSymbolMatches(const AstNode* decl, TokenRef tokRef, const SymbolVariable* symVar)
+    {
+        if (!symVar || symVar->decl() != decl)
+            return false;
+        return !tokRef.isValid() || symVar->tokRef() == tokRef;
+    }
+
+    void tryRecoverFunctionLocalSymbolMatch(Symbol*& ioBestMatch, const CodeGen& codeGen, const TokenRef nodeTokRef, const std::string_view identifierName, const Symbol* symbol)
+    {
+        if (!symbol || symbol->isIgnored() || symbol->name(codeGen.ctx()) != identifierName)
+            return;
+        if (symbol->tokRef().isValid() && symbol->tokRef().get() > nodeTokRef.get())
+            return;
+        if (!ioBestMatch ||
+            !ioBestMatch->tokRef().isValid() ||
+            (symbol->tokRef().isValid() && ioBestMatch->tokRef().get() < symbol->tokRef().get()))
+            ioBestMatch = const_cast<Symbol*>(symbol);
+    }
+
     const SymbolVariable* findFunctionVariableDeclSymbol(const CodeGen& codeGen, const AstNodeRef declRef, const TokenRef tokRef)
     {
         if (!declRef.isValid())
             return nullptr;
 
-        const AstNode* const decl            = &codeGen.node(declRef);
-        const auto           matchDeclSymbol = [&](const SymbolVariable* symVar) -> bool {
-            if (!symVar || symVar->decl() != decl)
-                return false;
-            return !tokRef.isValid() || symVar->tokRef() == tokRef;
-        };
+        const AstNode* const decl = &codeGen.node(declRef);
 
         for (const SymbolVariable* symVar : codeGen.function().parameters())
         {
-            if (matchDeclSymbol(symVar))
+            if (functionVariableDeclSymbolMatches(decl, tokRef, symVar))
                 return symVar;
         }
 
         for (const SymbolVariable* symVar : codeGen.function().localVariables())
         {
-            if (matchDeclSymbol(symVar))
+            if (functionVariableDeclSymbolMatches(decl, tokRef, symVar))
                 return symVar;
         }
 
@@ -93,23 +107,13 @@ namespace
         if (identifierName.empty())
             return nullptr;
 
-        Symbol*    bestMatch = nullptr;
-        const auto tryMatch  = [&](const Symbol* symbol) {
-            if (!symbol || symbol->isIgnored() || symbol->name(codeGen.ctx()) != identifierName)
-                return;
-            if (symbol->tokRef().isValid() && symbol->tokRef().get() > node.tokRef().get())
-                return;
-            if (!bestMatch ||
-                !bestMatch->tokRef().isValid() ||
-                (symbol->tokRef().isValid() && bestMatch->tokRef().get() < symbol->tokRef().get()))
-                bestMatch = const_cast<Symbol*>(symbol);
-        };
+        Symbol* bestMatch = nullptr;
 
         for (const SymbolVariable* symVar : codeGen.function().parameters())
-            tryMatch(symVar);
+            tryRecoverFunctionLocalSymbolMatch(bestMatch, codeGen, node.tokRef(), identifierName, symVar);
 
         for (const SymbolVariable* symVar : codeGen.function().localVariables())
-            tryMatch(symVar);
+            tryRecoverFunctionLocalSymbolMatch(bestMatch, codeGen, node.tokRef(), identifierName, symVar);
 
         if (bestMatch)
             return bestMatch;
@@ -118,7 +122,7 @@ namespace
         codeGen.function().getAllSymbols(localSymbols, true);
 
         for (const Symbol* symbol : localSymbols)
-            tryMatch(symbol);
+            tryRecoverFunctionLocalSymbolMatch(bestMatch, codeGen, node.tokRef(), identifierName, symbol);
 
         return bestMatch;
     }

@@ -23,6 +23,27 @@ namespace
         HelpOptionGroup group = HelpOptionGroup::Other;
     };
 
+    Utf8 pathToUtf8String(const fs::path& path)
+    {
+        return Utf8(path.string());
+    }
+
+    bool commandInfoNameLess(const CommandInfo& lhs, const CommandInfo& rhs)
+    {
+        return Utf8(lhs.name) < Utf8(rhs.name);
+    }
+
+    bool helpOptionEntryLess(const HelpOptionEntry& lhs, const HelpOptionEntry& rhs)
+    {
+        const int leftOrder  = static_cast<int>(lhs.group);
+        const int rightOrder = static_cast<int>(rhs.group);
+        if (leftOrder != rightOrder)
+            return leftOrder < rightOrder;
+        if (lhs.displayName != rhs.displayName)
+            return lhs.displayName < rhs.displayName;
+        return lhs.arg->description < rhs.arg->description;
+    }
+
     const char* helpOptionGroupName(const HelpOptionGroup group)
     {
         switch (group)
@@ -75,7 +96,7 @@ namespace
         }
         if (auto* t = std::get_if<std::set<fs::path>*>(&arg.target))
         {
-            const Utf8 value = Utf8Helper::join(**t, ", ", [](const fs::path& entry) { return Utf8(entry.string()); });
+            const Utf8 value = Utf8Helper::join(**t, ", ", pathToUtf8String);
             return value.empty() ? Utf8("(none)") : value;
         }
         if (auto* t = std::get_if<std::optional<bool>*>(&arg.target))
@@ -124,7 +145,7 @@ void CommandLineParser::printHelp(const TaskContext& ctx, const Utf8& command)
 
         entries.clear();
         std::vector commands(std::begin(COMMANDS), std::end(COMMANDS));
-        std::ranges::sort(commands, [](const CommandInfo& lhs, const CommandInfo& rhs) { return Utf8(lhs.name) < Utf8(rhs.name); });
+        std::ranges::sort(commands, commandInfoNameLess);
         for (const CommandInfo& cmd : commands)
             addInfoEntry(entries, cmd.name, cmd.description, LogColor::White, 0, helpArgumentLabelColor());
         Logger::printFieldGroup(ctx, "Commands", entries, nextHelpGroupStyle(hasPrintedGroup, 12));
@@ -157,16 +178,7 @@ void CommandLineParser::printHelp(const TaskContext& ctx, const Utf8& command)
         helpEntries.push_back(std::move(entry));
     }
 
-    const auto compareHelpEntry = [](const HelpOptionEntry& lhs, const HelpOptionEntry& rhs) {
-        const int leftOrder  = static_cast<int>(lhs.group);
-        const int rightOrder = static_cast<int>(rhs.group);
-        if (leftOrder != rightOrder)
-            return leftOrder < rightOrder;
-        if (lhs.displayName != rhs.displayName)
-            return lhs.displayName < rhs.displayName;
-        return lhs.arg->description < rhs.arg->description;
-    };
-    std::ranges::sort(helpEntries, compareHelpEntry);
+    std::ranges::sort(helpEntries, helpOptionEntryLess);
 
     auto                            currentGroup = HelpOptionGroup::Other;
     bool                            firstGroup   = true;

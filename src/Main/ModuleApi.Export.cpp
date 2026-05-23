@@ -167,11 +167,33 @@ namespace
         return lhs.rootRef == rhs.rootRef && sameNamespacePath(lhs.namespacePath, rhs.namespacePath);
     }
 
+    std::vector<ModuleApiPublicEntry>::iterator findPublicEntry(std::vector<ModuleApiPublicEntry>& entries, const ModuleApiPublicEntry& needle)
+    {
+        for (auto it = entries.begin(); it != entries.end(); ++it)
+        {
+            if (samePublicEntry(*it, needle))
+                return it;
+        }
+
+        return entries.end();
+    }
+
+    void appendMissingFunctionAttributeLine(Utf8& ioPrefix, const SymbolFunction& symbolFunction, const std::string_view eol, const std::string_view snippet, const RtAttributeFlagsE flag, const std::string_view marker, const std::string_view attrText)
+    {
+        if (!symbolFunction.attributes().hasRtFlag(flag))
+            return;
+        if (snippet.contains(marker))
+            return;
+
+        ioPrefix += attrText;
+        ioPrefix += eol;
+    }
+
     void mergeFileEntry(ModuleApiFileEntry& outEntry, const ModuleApiFileEntry& threadEntry)
     {
         for (const ModuleApiPublicEntry& threadPublicEntry : threadEntry.publicEntries)
         {
-            const auto it = std::ranges::find_if(outEntry.publicEntries, [&](const ModuleApiPublicEntry& outPublicEntry) { return samePublicEntry(outPublicEntry, threadPublicEntry); });
+            const auto it = findPublicEntry(outEntry.publicEntries, threadPublicEntry);
             if (it == outEntry.publicEntries.end())
                 outEntry.publicEntries.push_back(threadPublicEntry);
         }
@@ -941,6 +963,11 @@ namespace
         uint32_t endOffset   = 0;
     };
 
+    bool moduleApiStripRangeStartsBefore(const ModuleApiStripRange& lhs, const ModuleApiStripRange& rhs)
+    {
+        return lhs.startOffset < rhs.startOffset;
+    }
+
     void collectModuleApiPublicStripRanges(const Ast& ast, const AstNodeRef nodeRef, std::vector<ModuleApiStripRange>& outRanges)
     {
         if (nodeRef.isInvalid() || ast.isAdditionalNode(nodeRef) || !ast.hasSourceView())
@@ -975,7 +1002,7 @@ namespace
         if (ioRanges.empty())
             return;
 
-        std::ranges::sort(ioRanges, [](const ModuleApiStripRange& lhs, const ModuleApiStripRange& rhs) { return lhs.startOffset < rhs.startOffset; });
+        std::ranges::sort(ioRanges, moduleApiStripRangeStartsBefore);
 
         size_t writeIndex = 0;
         for (size_t readIndex = 1; readIndex < ioRanges.size(); ++readIndex)
@@ -1306,22 +1333,12 @@ namespace
 
     void prependMissingFunctionAttributes(const SymbolFunction& symbolFunction, const std::string_view eol, Utf8& ioSnippet)
     {
-        Utf8       prefix;
-        const auto appendAttrIfMissing = [&](const RtAttributeFlagsE flag, std::string_view marker, std::string_view attrText) {
-            if (!symbolFunction.attributes().hasRtFlag(flag))
-                return;
-            if (ioSnippet.contains(marker))
-                return;
-
-            prefix += attrText;
-            prefix += eol;
-        };
-
-        appendAttrIfMissing(RtAttributeFlagsE::Macro, "Macro", "#[Swag.Macro]");
-        appendAttrIfMissing(RtAttributeFlagsE::Mixin, "Mixin", "#[Swag.Mixin]");
-        appendAttrIfMissing(RtAttributeFlagsE::Inline, "Inline", "#[Swag.Inline]");
-        appendAttrIfMissing(RtAttributeFlagsE::ConstExpr, "ConstExpr", "#[Swag.ConstExpr]");
-        appendAttrIfMissing(RtAttributeFlagsE::Implicit, "Implicit", "#[Swag.Implicit]");
+        Utf8 prefix;
+        appendMissingFunctionAttributeLine(prefix, symbolFunction, eol, ioSnippet, RtAttributeFlagsE::Macro, "Macro", "#[Swag.Macro]");
+        appendMissingFunctionAttributeLine(prefix, symbolFunction, eol, ioSnippet, RtAttributeFlagsE::Mixin, "Mixin", "#[Swag.Mixin]");
+        appendMissingFunctionAttributeLine(prefix, symbolFunction, eol, ioSnippet, RtAttributeFlagsE::Inline, "Inline", "#[Swag.Inline]");
+        appendMissingFunctionAttributeLine(prefix, symbolFunction, eol, ioSnippet, RtAttributeFlagsE::ConstExpr, "ConstExpr", "#[Swag.ConstExpr]");
+        appendMissingFunctionAttributeLine(prefix, symbolFunction, eol, ioSnippet, RtAttributeFlagsE::Implicit, "Implicit", "#[Swag.Implicit]");
         if (!prefix.empty())
             ioSnippet = prefix + ioSnippet;
     }
@@ -1716,15 +1733,24 @@ namespace
         return startOffset;
     }
 
+    struct ModuleApiRootSortProjection
+    {
+        const SourceFile* file = nullptr;
+
+        uint32_t operator()(const ModuleApiPublicEntry& entry) const
+        {
+            SWC_ASSERT(file != nullptr);
+            return moduleApiRootSortByte(*file, entry.rootRef);
+        }
+    };
+
     void appendGeneratedRootsForFile(const SourceFile& file, const ModuleApiFileEntry& fileEntry, std::vector<ModuleApiGeneratedRoot>& outRoots)
     {
         if (fileEntry.publicEntries.empty())
             return;
 
         std::vector<ModuleApiPublicEntry> sortedEntries = fileEntry.publicEntries;
-        std::ranges::stable_sort(sortedEntries, [&](const ModuleApiPublicEntry& lhs, const ModuleApiPublicEntry& rhs) {
-            return moduleApiRootSortByte(file, lhs.rootRef) < moduleApiRootSortByte(file, rhs.rootRef);
-        });
+        std::ranges::stable_sort(sortedEntries, {}, ModuleApiRootSortProjection{.file = &file});
 
         for (const ModuleApiPublicEntry& publicEntry : sortedEntries)
             outRoots.push_back({.file = &file, .nodeRef = publicEntry.rootRef, .symbol = publicEntry.symbol, .namespacePath = publicEntry.namespacePath});

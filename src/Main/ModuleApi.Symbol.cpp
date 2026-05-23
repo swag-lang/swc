@@ -12,22 +12,33 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    bool samePublicEntryNamespacePath(std::span<const IdentifierRef> lhs, std::span<const IdentifierRef> rhs)
+    {
+        return lhs.size() == rhs.size() && std::equal(lhs.begin(), lhs.end(), rhs.begin());
+    }
+
+    ModuleApiPublicEntry* findMatchingPublicEntry(std::vector<ModuleApiPublicEntry>& entries, const ModuleApiPublicEntry& needle)
+    {
+        for (ModuleApiPublicEntry& entry : entries)
+        {
+            if (entry.rootRef == needle.rootRef && samePublicEntryNamespacePath(entry.namespacePath, needle.namespacePath))
+                return &entry;
+        }
+
+        return nullptr;
+    }
+
     void recordPublicEntry(ModuleApiPerThreadData& state, const SourceViewRef srcViewRef, const ModuleApiPublicEntry& publicEntry)
     {
         if (!srcViewRef.isValid() || publicEntry.rootRef.isInvalid())
             return;
 
         ModuleApiFileEntry& entry = state.files[srcViewRef];
-        const auto          it    = std::ranges::find_if(entry.publicEntries, [&](const ModuleApiPublicEntry& candidate) {
-            return candidate.rootRef == publicEntry.rootRef &&
-                   candidate.namespacePath.size() == publicEntry.namespacePath.size() &&
-                   std::equal(candidate.namespacePath.begin(), candidate.namespacePath.end(), publicEntry.namespacePath.begin());
-        });
-
-        if (it == entry.publicEntries.end())
+        ModuleApiPublicEntry* existingEntry = findMatchingPublicEntry(entry.publicEntries, publicEntry);
+        if (!existingEntry)
             entry.publicEntries.push_back(publicEntry);
-        else if (!it->symbol)
-            it->symbol = publicEntry.symbol;
+        else if (!existingEntry->symbol)
+            existingEntry->symbol = publicEntry.symbol;
     }
 
     Result reportModuleApiPublicGlobalVariable(TaskContext& ctx, const Symbol& symbol)

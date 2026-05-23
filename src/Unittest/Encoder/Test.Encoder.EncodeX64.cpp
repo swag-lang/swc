@@ -19,6 +19,18 @@ namespace
     using BuilderCaseFn = std::function<void(MicroBuilder&)>;
     using RunCaseFn     = std::function<Result(const char*, const char*, const BuilderCaseFn&)>;
 
+    struct EncoderRunCase
+    {
+        TaskContext* ctx = nullptr;
+
+        Result operator()(const char* name, const char* expectedHex, const BuilderCaseFn& fn) const
+        {
+            SWC_ASSERT(ctx != nullptr);
+            X64Encoder encoder(*ctx);
+            return Backend::Unittest::runEncodeCase(*ctx, encoder, name, expectedHex, fn);
+        }
+    };
+
     constexpr MicroReg RAX  = MicroReg::intReg(0);
     constexpr MicroReg RBX  = MicroReg::intReg(1);
     constexpr MicroReg RCX  = MicroReg::intReg(2);
@@ -327,10 +339,7 @@ namespace
 
     Result runCase(TaskContext& ctx, Result (*buildFn)(const RunCaseFn&))
     {
-        const RunCaseFn runOneCase = [&](const char* name, const char* expectedHex, const BuilderCaseFn& fn) {
-            X64Encoder encoder(ctx);
-            return Backend::Unittest::runEncodeCase(ctx, encoder, name, expectedHex, fn);
-        };
+        const RunCaseFn runOneCase = EncoderRunCase{.ctx = &ctx};
         return buildFn(runOneCase);
     }
 

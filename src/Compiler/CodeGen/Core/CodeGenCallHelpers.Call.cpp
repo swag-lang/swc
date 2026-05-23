@@ -62,6 +62,54 @@ namespace
         return &symbol->cast<SymbolFunction>();
     }
 
+    void appendUniqueCandidateRef(SmallVector<AstNodeRef>& outCandidateRefs, const AstNodeRef candidateRef)
+    {
+        if (candidateRef.isInvalid())
+            return;
+
+        if (std::ranges::find(outCandidateRefs, candidateRef) == outCandidateRefs.end())
+            outCandidateRefs.push_back(candidateRef);
+    }
+
+    std::optional<CodeGenNodePayload> tryResolveVariableSymbolPayload(CodeGen& codeGen, const SymbolVariable& symVar)
+    {
+        if (symVar.isClosureCapture())
+            return CodeGenFunctionHelpers::resolveClosureCapturePayload(codeGen, symVar);
+
+        if (CodeGenFunctionHelpers::usesCallerReturnStorage(codeGen, symVar))
+            return CodeGenFunctionHelpers::resolveCallerReturnStoragePayload(codeGen, symVar);
+
+        if (symVar.hasExtraFlag(SymbolVariableFlagsE::Parameter))
+            return CodeGenFunctionHelpers::materializeFunctionParameter(codeGen, codeGen.function(), symVar);
+
+        if (const auto* payload = codeGen.variablePayload(symVar))
+            return *payload;
+
+        if (symVar.hasExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack) ||
+            (codeGen.localStackBaseReg().isValid() && symVar.hasExtraFlag(SymbolVariableFlagsE::FunctionLocal)))
+            return codeGen.resolveLocalStackPayload(symVar);
+
+        if (symVar.hasGlobalStorage())
+        {
+            CodeGenNodePayload payload;
+            payload.typeRef = symVar.typeRef();
+            payload.setIsAddress();
+            payload.reg = codeGen.nextVirtualIntRegister();
+            codeGen.builder().emitLoadRegDataSegmentReloc(payload.reg, symVar.globalStorageKind(), symVar.offset());
+            return payload;
+        }
+
+        return std::nullopt;
+    }
+
+    std::optional<CodeGenNodePayload> tryResolveVariableViewPayload(CodeGen& codeGen, const SemaNodeView view)
+    {
+        const auto* symVar = view.sym() ? view.sym()->safeCast<SymbolVariable>() : nullptr;
+        if (!symVar)
+            return std::nullopt;
+        return tryResolveVariableSymbolPayload(codeGen, *symVar);
+    }
+
     Result resolveSelectedCallFunction(CodeGen& codeGen, AstNodeRef calleeRef, SymbolFunction*& outCalledFunction)
     {
         outCalledFunction = nullptr;
@@ -149,63 +197,18 @@ namespace
             return std::nullopt;
 
         SmallVector<AstNodeRef> candidateRefs;
-        const auto              appendCandidateRef = [&](const AstNodeRef candidateRef) {
-            if (candidateRef.isInvalid())
-                return;
-
-            if (std::ranges::find(candidateRefs, candidateRef) == candidateRefs.end())
-                candidateRefs.push_back(candidateRef);
-        };
-
-        appendCandidateRef(argRef);
-        appendCandidateRef(codeGen.resolvedNodeRef(argRef));
-        appendCandidateRef(resolvePreparedArgSourceRef(codeGen, argRef));
+        appendUniqueCandidateRef(candidateRefs, argRef);
+        appendUniqueCandidateRef(candidateRefs, codeGen.resolvedNodeRef(argRef));
+        appendUniqueCandidateRef(candidateRefs, resolvePreparedArgSourceRef(codeGen, argRef));
         if (!candidateRefs.empty())
-            appendCandidateRef(codeGen.resolvedNodeRef(candidateRefs.back()));
-
-        const auto tryResolveSymbolPayload = [&](const SymbolVariable& symVar) -> std::optional<CodeGenNodePayload> {
-            if (symVar.isClosureCapture())
-                return CodeGenFunctionHelpers::resolveClosureCapturePayload(codeGen, symVar);
-
-            if (CodeGenFunctionHelpers::usesCallerReturnStorage(codeGen, symVar))
-                return CodeGenFunctionHelpers::resolveCallerReturnStoragePayload(codeGen, symVar);
-
-            if (symVar.hasExtraFlag(SymbolVariableFlagsE::Parameter))
-                return CodeGenFunctionHelpers::materializeFunctionParameter(codeGen, codeGen.function(), symVar);
-
-            if (const auto* payload = codeGen.variablePayload(symVar))
-                return *payload;
-
-            if (symVar.hasExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack) ||
-                (codeGen.localStackBaseReg().isValid() && symVar.hasExtraFlag(SymbolVariableFlagsE::FunctionLocal)))
-                return codeGen.resolveLocalStackPayload(symVar);
-
-            if (symVar.hasGlobalStorage())
-            {
-                CodeGenNodePayload payload;
-                payload.typeRef = symVar.typeRef();
-                payload.setIsAddress();
-                payload.reg = codeGen.nextVirtualIntRegister();
-                codeGen.builder().emitLoadRegDataSegmentReloc(payload.reg, symVar.globalStorageKind(), symVar.offset());
-                return payload;
-            }
-
-            return std::nullopt;
-        };
+            appendUniqueCandidateRef(candidateRefs, codeGen.resolvedNodeRef(candidateRefs.back()));
 
         for (const AstNodeRef candidateRef : candidateRefs)
         {
-            const auto tryResolveVariable = [&](SemaNodeView view) -> std::optional<CodeGenNodePayload> {
-                const auto* symVar = view.sym() ? view.sym()->safeCast<SymbolVariable>() : nullptr;
-                if (!symVar)
-                    return std::nullopt;
-                return tryResolveSymbolPayload(*symVar);
-            };
-
-            if (auto payload = tryResolveVariable(codeGen.viewSymbol(candidateRef)))
+            if (auto payload = tryResolveVariableViewPayload(codeGen, codeGen.viewSymbol(candidateRef)))
                 return payload;
 
-            if (auto payload = tryResolveVariable(codeGen.sema().viewStored(candidateRef, SemaNodeViewPartE::Symbol)))
+            if (auto payload = tryResolveVariableViewPayload(codeGen, codeGen.sema().viewStored(candidateRef, SemaNodeViewPartE::Symbol)))
                 return payload;
         }
 

@@ -571,14 +571,7 @@ impl RegExp
 
             if !hasGroup
             {
-                foreach n in st.node.table
-                {
-                    if .groupTransform[n.group] == rank
-                    {
-                        hasGroup = true
-                        break
-                    }
-                }
+                hasGroup = .hasAvailableEmptyCapture(&st, rank)
             }
 
             if hasGroup
@@ -601,6 +594,38 @@ impl RegExp
             if g.rank == rank do
                 return true
         }
+
+        return false
+    }
+
+    mtd hasAvailableEmptyCapture(state: *DfaState, rank: u32)->bool
+    {
+        foreach n in state.node.table
+        {
+            if .groupTransform[n.group] == rank do
+                return true
+        }
+
+        for var raw = 1; raw < .groupTransform.count; raw += 1
+        {
+            if .groupTransform[raw] != rank do
+                continue
+
+            var parent = .groupParent[raw]
+            while parent != 0
+            {
+                foreach n in state.node.table
+                {
+                    if n.group == parent and .groupTransform[parent] != 0 do
+                        return true
+                }
+
+                parent = .groupParent[parent]
+            }
+        }
+
+        if .captureRanks.contains(rank) do
+            return true
 
         return false
     }
@@ -634,13 +659,40 @@ impl RegExp
         return false
     }
 
+    mtd transitionTargetRawGroup(state: *DfaState, c: rune)->u32
+    {
+        var result: retval
+        var bestDepth: u32
+        let currentRaw  = state.activeGroups.count ? state.activeGroups.back().rawGroup : 0
+        let currentRank = state.activeGroups.count ? state.activeGroups.back().rank : 0
+        foreach node in state.node.table
+        {
+            let find = node.transitions.tryFind(c)
+            if !find do
+                continue
+
+            foreach next in find.value
+            {
+                let depth = .rawGroupDepth(next.group)
+                let rank  = .groupTransform[next.group]
+                if depth > bestDepth or (depth == bestDepth and result == currentRaw and next.group != currentRaw and rank == currentRank)
+                {
+                    bestDepth = depth
+                    result    = next.group
+                }
+            }
+        }
+
+        return result
+    }
+
     mtd findDisappearingEmptyGroup(state: *DfaState, nextNode: *DfaNode, c: rune)->u32
     {
         var rank: retval
         foreach n in state.node.table
         {
             let grp = .groupTransform[n.group]
-            if grp == 0 or .hasActiveCapture(state, grp) or .hasCapture(state, grp) do
+            if grp == 0 or .hasActiveCapture(state, grp) do
                 continue
             if !.canReachTransition(&state.node.table, n, c) do
                 continue
@@ -677,7 +729,11 @@ impl RegExp
                 if pendingEmptyGroup do
                     setCapture(&st, cast(s32) pendingEmptyGroup, "")
 
-                .syncActiveGroups(&st, #uniq1.value.rawGroup)
+                let directRaw = .transitionTargetRawGroup(&st, c)
+                var nextRaw   = #uniq1.value.rawGroup
+                if directRaw and nextRaw and directRaw != nextRaw and st.activeGroups.count and st.activeGroups.back().rank != .groupTransform[directRaw] do
+                    nextRaw = directRaw
+                .syncActiveGroups(&st, nextRaw)
                 st.node = #uniq1.value
                 st.parseIdx += length
                 out.add(st)

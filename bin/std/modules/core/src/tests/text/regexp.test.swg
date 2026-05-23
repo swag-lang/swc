@@ -139,6 +139,7 @@ using Swag
     var closeBracket = assume Parser.RegExp.create(#"[\]]+"#)
     var openBracket  = assume Parser.RegExp.create(#"[\[]+"#)
     var backslash    = assume Parser.RegExp.create(#"[\\]+"#)
+    var backspace    = assume Parser.RegExp.create(#"[\b]+"#)
     var hyphen       = assume Parser.RegExp.create(#"[\-]+"#)
     var caret        = assume Parser.RegExp.create(#"[\^]+"#)
     var digits       = assume Parser.RegExp.create(#"[\dA]+"#)
@@ -147,6 +148,9 @@ using Swag
     @assert(closeBracket.match("]]"))
     @assert(openBracket.match("[["))
     @assert(backslash.match("\\"))
+    @assert(backspace.match("\b\b"))
+    @assert(!backspace.match("ab"))
+    @assert(backspace.grep("ab") == null)
     @assert(hyphen.match("--"))
     @assert(caret.match("^^"))
     @assert(digits.match("A42"))
@@ -516,6 +520,46 @@ using Swag
 #test
 {
     discard catch Parser.RegExp.create(#"\p{Lx}"#)
+
+    @assert(@err != null)
+    @assert(@err is Errors.SyntaxError)
+}
+
+#test
+{
+    discard catch Parser.RegExp.create("\\")
+
+    @assert(@err != null)
+    @assert(@err is Errors.SyntaxError)
+}
+
+#test
+{
+    discard catch Parser.RegExp.create(#"\q"#)
+
+    @assert(@err != null)
+    @assert(@err is Errors.SyntaxError)
+}
+
+#test
+{
+    discard catch Parser.RegExp.create(#"[\q]"#)
+
+    @assert(@err != null)
+    @assert(@err is Errors.SyntaxError)
+}
+
+#test
+{
+    discard catch Parser.RegExp.create(#"\p"#)
+
+    @assert(@err != null)
+    @assert(@err is Errors.SyntaxError)
+}
+
+#test
+{
+    discard catch Parser.RegExp.create(#"\p{L"#)
 
     @assert(@err != null)
     @assert(@err is Errors.SyntaxError)

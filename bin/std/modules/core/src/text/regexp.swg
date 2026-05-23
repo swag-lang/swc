@@ -1276,10 +1276,12 @@ impl RegExp
 
     mtd preprocessUnicode(sl: const [..] rune)->const [*] rune throw
     {
-        let pz = @dataof(sl) + 2
+        let pz    = @dataof(sl) + 2
+        let pzEnd = @dataof(sl) + @countof(sl)
+
         if pz[0] == '{'
         {
-            if pz[1] == 'L' and pz[3] == '}'
+            if pz + 3 < pzEnd and pz[1] == 'L' and pz[3] == '}'
             {
                 switch pz[2]
                 {
@@ -1291,7 +1293,7 @@ impl RegExp
                     return pz + 4
                 }
             }
-            elif pz[1] == 'S' and pz[3] == '}'
+            elif pz + 3 < pzEnd and pz[1] == 'S' and pz[3] == '}'
             {
                 switch pz[2]
                 {
@@ -1324,6 +1326,9 @@ impl RegExp
         let c  = dref pz
         if c == '\\'
         {
+            if pz[1] == 0 do
+                throw SyntaxError{"unterminated escape"}
+
             if isReservedChar(pz[1])
             {
                 .preprocessed.add('\\')
@@ -1367,7 +1372,7 @@ impl RegExp
                 .preprocessed.add('\a')
                 return pz + 2
             case 'b':
-                .preprocessed.add(RuneWordSwap)
+                .preprocessed.add(inInter ? '\b' : RuneWordSwap)
                 return pz + 2
             case 'f':
                 .preprocessed.add('\f')
@@ -1391,6 +1396,8 @@ impl RegExp
                 .preprocessed.add(RuneGroup1 + (pz[1] - '1'))
                 return pz + 2
             }
+
+            throw SyntaxError{"invalid escape"}
         }
 
         if c == '^' and !inInter do

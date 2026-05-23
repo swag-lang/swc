@@ -298,6 +298,7 @@ impl RegExp
     {
         if str == null do
             return null
+        .clearMatch()
         let beg  = cast(const [*] u8) @dataof(str)
         let last = beg + @countof(str)
 

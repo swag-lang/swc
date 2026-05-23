@@ -72,13 +72,32 @@ using Swag
     var middleRange  = assume Parser.RegExp.create(#"[b-d]+"#, true)
     var literals     = assume Parser.RegExp.create(#"[abc]+"#)
     var noCaseList   = assume Parser.RegExp.create(#"[ab]+"#, true)
+    var posixHex     = assume Parser.RegExp.create(#"[[:xdigit:]]+"#)
+    var noDigits     = assume Parser.RegExp.create(#"[^[:digit:]]+"#)
 
     @assert(asciiLetters.match("ABC"))
     @assert(middleRange.match("BCD"))
     @assert(literals.match("cab"))
     @assert(noCaseList.match("ABBA"))
+    @assert(posixHex.match("1A2f"))
+    @assert(noDigits.match("abc!?"))
     @assert(!middleRange.match("AE"))
     @assert(!literals.match("cadz"))
+    @assert(!posixHex.match("1A2g"))
+    @assert(!noDigits.match("abc3"))
+}
+
+#test
+{
+    var simpleAlt  = assume Parser.RegExp.create(#"a|bc"#)
+    var groupedAlt = assume Parser.RegExp.create(#"(ab|cd)e"#)
+
+    @assert(simpleAlt.match("a"))
+    @assert(simpleAlt.match("bc"))
+    @assert(!simpleAlt.match("b"))
+    @assert(groupedAlt.match("abe"))
+    @assert(groupedAlt.match("cde"))
+    @assert(!groupedAlt.match("abce"))
 }
 
 #test
@@ -127,6 +146,40 @@ using Swag
 
 #test
 {
+    var anchored = assume Parser.RegExp.create(#"^(\d+)"#)
+
+    let first = anchored.partialMatch("123abc")
+    @assert(first != null)
+    @assert(cast(string) first == "123")
+    @assert(anchored.getCapture(1) == "123")
+
+    let second = anchored.partialMatch("456def")
+    @assert(second != null)
+    @assert(cast(string) second == "456")
+    @assert(anchored.getCapture(1) == "456")
+
+    @assert(anchored.partialMatch("abc") == null)
+    @assert(anchored.getCaptures().count == 0)
+}
+
+#test
+{
+    assume
+    {
+        var anchored = Parser.RegExp.create(#"^(\d+)"#)
+
+        for 256
+        {
+            let prefix = anchored.partialMatch("789xyz")
+            @assert(prefix != null)
+            @assert(cast(string) prefix == "789")
+            @assert(anchored.getCapture(1) == "789")
+        }
+    }
+}
+
+#test
+{
     let all = assume Parser.RegExp.grepAll(#"\d+"#, "a12b345c6")
 
     @assert(all.count == 3)
@@ -144,6 +197,28 @@ using Swag
     @assert(first == "12")
     @assert(none.count == 0)
     @assert(part.partialMatch(null) == null)
+}
+
+#test
+{
+    var words = assume Parser.RegExp.create(#"\bcat\b"#)
+    let first = words.grep("é scatter cat")
+    let second = words.grep("é scatter cat")
+
+    @assert(first != null)
+    @assert(cast(string) first == "cat")
+    @assert(second != null)
+    @assert(cast(string) second == "cat")
+    @assert(words.grep("é scatter catnap") == null)
+}
+
+#test
+{
+    let all = assume Parser.RegExp.grepAll(#"\d+"#, "é12β345")
+
+    @assert(all.count == 2)
+    @assert(all[0] == "12")
+    @assert(all[1] == "345")
 }
 
 #test

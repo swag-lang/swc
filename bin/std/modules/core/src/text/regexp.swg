@@ -125,6 +125,7 @@ public struct RegExp
     groups:             Array'RegExpGroup
     groupTransform:     Array'u32
     captureRanks:       Array'u32
+    captureRankStack:   Array'u32
     openParen:          Array'u32
     orOpStack:          Array'rune
     orOpLevel:          Array'u32
@@ -187,6 +188,7 @@ impl RegExp
         .groupTransform.clear()
         .groupTransform.add(0)
         .captureRanks.clear()
+        .captureRankStack.clear()
         .openParen.clear()
         .orOpStack.clear()
         .orOpLevel.clear()
@@ -1037,7 +1039,7 @@ impl RegExp
             throw SyntaxError{"missing ')'"}
 
         // Concat the remaining nodes
-        .operatorConcat(.nfaStack.count, true, .captureRankMax + 1)
+        .operatorConcat(.nfaStack.count, true, 0)
     }
 
     func dfaEClosure(inH, outH: *Array'(*NfaNode))
@@ -1651,10 +1653,15 @@ impl RegExp
         else
         {
             .addPatternRune(c)
-            if c == ')'
+            if c == '('
             {
                 .captureRankMax += 1
-                .captureRanks.add(.captureRankMax)
+                .captureRankStack.add(.captureRankMax)
+            }
+            elif c == ')' and !.captureRankStack.isEmpty()
+            {
+                .captureRanks.add(.captureRankStack.back())
+                discard .captureRankStack.popBack()
             }
         }
 
@@ -1681,8 +1688,8 @@ impl RegExp
         {
             if uni32[i] == '|' and !isEscaped(uni32, i)
             {
-                uni32.insertAt(cast() i, ')''rune)
-                uni32.insertAt(cast() (i + 2), '(''rune)
+                uni32.insertAt(cast() i, RuneCloseParen)
+                uni32.insertAt(cast() (i + 2), RuneOpenParen)
 
                 var cpt0, cpt1, cpt2: s32
                 var iminus = i - 1
@@ -1694,7 +1701,7 @@ impl RegExp
                     {
                     case ']':
                         cpt0 += 1
-                    case ')':
+                    case ')', RuneCloseParen:
                         cpt1 += 1
                     case '}':
                         cpt2 += 1
@@ -1702,7 +1709,7 @@ impl RegExp
                         if cpt0 == 0 do
                             break to Loop
                         cpt0 -= 1
-                    case '(':
+                    case '(', RuneOpenParen:
                         if cpt1 == 0 do
                             break to Loop
                         cpt1 -= 1
@@ -1715,7 +1722,7 @@ impl RegExp
                     iminus -= 1
                 }
 
-                uni32.insertAt(cast() (iminus + 1), '(''rune)
+                uni32.insertAt(cast() (iminus + 1), RuneOpenParen)
 
                 cpt0, cpt1, cpt2 = 0
                 var iplus = i + 4
@@ -1727,7 +1734,7 @@ impl RegExp
                     {
                     case '[':
                         cpt0 += 1
-                    case '(':
+                    case '(', RuneOpenParen:
                         cpt1 += 1
                     case '{':
                         cpt2 += 1
@@ -1735,7 +1742,7 @@ impl RegExp
                         if cpt0 == 0 do
                             break to Loop
                         cpt0 -= 1
-                    case ')':
+                    case ')', RuneCloseParen:
                         if cpt1 == 0 do
                             break to Loop
                         cpt1 -= 1
@@ -1748,7 +1755,7 @@ impl RegExp
                     iplus += 1
                 }
 
-                uni32.insertAt(cast() iplus, ')''rune)
+                uni32.insertAt(cast() iplus, RuneCloseParen)
                 i += 4
             }
         }

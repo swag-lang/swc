@@ -65,13 +65,18 @@ struct RegExpGroup
     value:     string
 }
 
+struct ActiveGroup
+{
+    rawGroup:     u32
+    rank:         u32
+    startIdx:     s32
+}
+
 struct DfaState
 {
     node:           *DfaNode
-    groupStart:     const [*] u8
     parseIdx:       s32
-    lastGroup:      s32
-    lastRawGroup:   s32
+    activeGroups:   Array'ActiveGroup
     groups:         Array'RegExpGroup
 }
 
@@ -124,6 +129,7 @@ public struct RegExp
     charSet:            HashSet'rune
     groups:             Array'RegExpGroup
     groupTransform:     Array'u32
+    groupParent:        Array'u32
     captureRanks:       Array'u32
     captureRankStack:   Array'u32
     openParen:          Array'u32
@@ -187,6 +193,8 @@ impl RegExp
         .charSet.clear()
         .groupTransform.clear()
         .groupTransform.add(0)
+        .groupParent.clear()
+        .groupParent.add(0)
         .captureRanks.clear()
         .captureRankStack.clear()
         .openParen.clear()
@@ -375,6 +383,39 @@ impl RegExp
         state.groups.add({rank, str})
     }
 
+    mtd hasActiveCapture(state: *DfaState, rank: u32)->bool
+    {
+        foreach g in state.activeGroups
+        {
+            if g.rank == rank do
+                return true
+        }
+
+        return false
+    }
+
+    mtd rawGroupDepth(rawGroup: u32)->u32
+    {
+        var depth: retval
+        var group = rawGroup
+        while group and group < .groupParent.count
+        {
+            depth += 1
+            group = .groupParent[group]
+        }
+
+        return depth
+    }
+
+    mtd closeActiveGroup(state: *DfaState, idx: u64)
+    {
+        let group = state.activeGroups[idx]
+        let ptr   = .bufStart + state.parseIdx
+        let start = .bufStart + group.startIdx
+        let value = @mkstring(start, ptr - start)
+        setCapture(state, cast(s32) group.rank, value)
+    }
+
     mtd matchInternal(str: string, forGrep: bool)->{ ok: bool, buf: const [*] u8 }
     {
         var result: retval
@@ -389,8 +430,7 @@ impl RegExp
         var grepTerm: DfaState
 
         var st: DfaState
-        st.node       = .dfaNodes[0]
-        st.groupStart = .bufStart
+        st.node = .dfaNodes[0]
         stack1.add(st)
 
         var pstack1 = &stack1
@@ -464,16 +504,49 @@ impl RegExp
 
     mtd closeGroup(state: *DfaState)
     {
-        let ptr = .bufStart + state.parseIdx
-        if state.lastGroup
+        while state.activeGroups.count
         {
-            let strGroup = @mkstring(state.groupStart, ptr - state.groupStart)
-            setCapture(state, state.lastGroup, strGroup)
+            let idx = state.activeGroups.count - 1
+            .closeActiveGroup(state, idx)
+            discard state.activeGroups.popBack()
+        }
+    }
+
+    mtd syncActiveGroups(state: *DfaState, nextRawGroup: u32)
+    {
+        var desiredRawGroups: Array'u32
+        var rawGroup = nextRawGroup
+        while rawGroup and rawGroup < .groupParent.count
+        {
+            let rank = .groupTransform[rawGroup]
+            if rank do
+                desiredRawGroups.add(rawGroup)
+            rawGroup = .groupParent[rawGroup]
         }
 
-        state.lastGroup    = state.node.group
-        state.lastRawGroup = state.node.rawGroup
-        state.groupStart   = ptr
+        var common: u64 = 0
+        while common < state.activeGroups.count and common < desiredRawGroups.count
+        {
+            let desiredRaw = desiredRawGroups[desiredRawGroups.count - common - 1]
+            if state.activeGroups[common].rawGroup != desiredRaw do
+                break
+            common += 1
+        }
+
+        while state.activeGroups.count > common
+        {
+            let idx = state.activeGroups.count - 1
+            .closeActiveGroup(state, idx)
+            discard state.activeGroups.popBack()
+        }
+
+        var idx = desiredRawGroups.count
+        while idx > common
+        {
+            idx -= 1
+            let raw = desiredRawGroups[idx]
+            state.activeGroups.add({raw, .groupTransform[raw], state.parseIdx})
+        }
     }
 
     mtd backward(out: *Array'DfaState, what: rune, state: *DfaState)
@@ -481,12 +554,12 @@ impl RegExp
         let grp = state.node.transitions.tryFind(what)
         if grp
         {
-            .closeGroup(state)
-
+            var st = dref state
+            .syncActiveGroups(&st, grp.value.rawGroup)
             var strGroup: string
             var hasGroup = false
             let rank = 1 + (what - RuneGroup1)
-            foreach g in state.groups
+            foreach g in st.groups
             {
                 if g.rank == rank
                 {
@@ -498,7 +571,7 @@ impl RegExp
 
             if !hasGroup
             {
-                foreach n in state.node.table
+                foreach n in st.node.table
                 {
                     if .groupTransform[n.group] == rank
                     {
@@ -510,10 +583,9 @@ impl RegExp
 
             if hasGroup
             {
-                let ptr = .bufStart + state.parseIdx
-                if !@countof(strGroup) or Utf8.startsWith(@mkslice(ptr, .bufLength - state.parseIdx), strGroup, .ignoreCase ? .UnicodeNoCase : .Unicode)
+                let ptr = .bufStart + st.parseIdx
+                if !@countof(strGroup) or Utf8.startsWith(@mkslice(ptr, .bufLength - st.parseIdx), strGroup, .ignoreCase ? .UnicodeNoCase : .Unicode)
                 {
-                    var st = dref state
                     st.node = grp.value
                     st.parseIdx += cast(s32) @countof(strGroup)
                     out.add(st)
@@ -568,7 +640,7 @@ impl RegExp
         foreach n in state.node.table
         {
             let grp = .groupTransform[n.group]
-            if grp == 0 or grp == state.lastGroup or .hasCapture(state, grp) do
+            if grp == 0 or .hasActiveCapture(state, grp) or .hasCapture(state, grp) do
                 continue
             if !.canReachTransition(&state.node.table, n, c) do
                 continue
@@ -602,22 +674,11 @@ impl RegExp
             {
                 var st = dref curState
                 let pendingEmptyGroup = .findDisappearingEmptyGroup(&st, #uniq1.value, c)
-                if pendingEmptyGroup and pendingEmptyGroup != st.lastGroup
-                {
-                    let ptr = .bufStart + st.parseIdx
-                    if st.lastGroup
-                    {
-                        let strGroup = @mkstring(st.groupStart, ptr - st.groupStart)
-                        setCapture(&st, st.lastGroup, strGroup)
-                    }
+                if pendingEmptyGroup do
+                    setCapture(&st, cast(s32) pendingEmptyGroup, "")
 
-                    st.lastGroup  = pendingEmptyGroup
-                    st.groupStart = ptr
-                }
-
+                .syncActiveGroups(&st, #uniq1.value.rawGroup)
                 st.node = #uniq1.value
-                if st.node.rawGroup != st.lastRawGroup do
-                    .closeGroup(&st)
                 st.parseIdx += length
                 out.add(st)
                 ok = true
@@ -875,9 +936,25 @@ impl RegExp
                 .group += 1
                 if .groupTransform.count <= .group do
                     .groupTransform.resize(cast(u64) .group + 1)
+                if .groupParent.count <= .group
+                {
+                    let oldCount = .groupParent.count
+                    .groupParent.resize(cast(u64) .group + 1)
+                    for var i = oldCount; i < .groupParent.count; i += 1 do
+                        .groupParent[i] = 0
+                }
                 .groupTransform[.group] = logicalRank
+                .groupParent[.group] = 0
                 foreach n in table1.nodes
                 {
+                    if n.group != 0
+                    {
+                        var rootGroup = n.group
+                        while .groupParent[rootGroup] != 0
+                            do rootGroup = .groupParent[rootGroup]
+                        if rootGroup != .group and .groupParent[rootGroup] == 0 do
+                            .groupParent[rootGroup] = .group
+                    }
                     if n.group == 0 do
                         n.group = .group
                 }
@@ -1094,12 +1171,12 @@ impl RegExp
         {
             if node.rawGroup == 0 do
                 node.rawGroup = n.group
-            if node.group == 0 do
-                node.group = .groupTransform[n.group]
 
             if n.terminal do
                 node.terminal = true
         }
+
+        node.group = .groupTransform[node.rawGroup]
     }
 
     func dfaMoveNode(out: *Array'(*NfaNode), c: rune, inH: Array'(*NfaNode))

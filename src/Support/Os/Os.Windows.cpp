@@ -8,8 +8,8 @@
 #include "Support/Os/Os.h"
 #include "Support/Report/LogColor.h"
 #include "Support/Report/Logger.h"
-#include <dbghelp.h>
 #include <cwctype>
+#include <dbghelp.h>
 #include <psapi.h>
 
 #pragma comment(lib, "Dbghelp.lib")
@@ -216,7 +216,7 @@ namespace
         wchar_t* current      = rawEnvironment;
         while (*current)
         {
-            const std::wstring_view entry = current;
+            const std::wstring_view entry  = current;
             const bool              isPath = envKeyEqualsInsensitive(entry, L"PATH");
             const std::wstring      value  = isPath ? std::format(L"PATH={}", pathValue) : std::wstring(entry);
             if (isPath)
@@ -973,8 +973,8 @@ namespace Os
     {
         outExitCode = 0;
 
-        const Utf8         commandLineUtf8 = formatProcessCommandLine(exePath, args);
-        const std::wstring commandLine     = toWide(commandLineUtf8);
+        const Utf8           commandLineUtf8 = formatProcessCommandLine(exePath, args);
+        const std::wstring   commandLine     = toWide(commandLineUtf8);
         std::vector<wchar_t> environmentBlock;
         if (options && !options->additionalPathDirectories.empty())
             environmentBlock = buildProcessEnvironmentBlock(options->additionalPathDirectories);

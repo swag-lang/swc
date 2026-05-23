@@ -597,9 +597,9 @@ Result NativeBackendBuilder::prepare()
     for (const auto& importedRuntimeDep : importedRuntimeDeps)
     {
         NativeRuntimeDependency dependency;
-        dependency.moduleName       = importedRuntimeDep.moduleName;
-        dependency.linkModuleName   = importedRuntimeDep.linkModuleName;
-        dependency.hookSymbolName   = nativeRuntimeHookSymbolName(dependency.linkModuleName.view());
+        dependency.moduleName        = importedRuntimeDep.moduleName;
+        dependency.linkModuleName    = importedRuntimeDep.linkModuleName;
+        dependency.hookSymbolName    = nativeRuntimeHookSymbolName(dependency.linkModuleName.view());
         dependency.transitiveImports = importedRuntimeDep.transitiveImports;
         runtimeDependencies.push_back(std::move(dependency));
     }
@@ -707,10 +707,10 @@ Result NativeBackendBuilder::runGeneratedArtifact()
 {
     TimedActionLog::ScopedStage stage(ctx_, TimedActionLog::Stage::Run);
 
-    uint32_t                    exitCode = 0;
-    std::string                 artifactOutput;
-    std::vector<fs::path>       runtimePathDirs;
-    const fs::path              artifactDir = artifactPath.parent_path();
+    uint32_t              exitCode = 0;
+    std::string           artifactOutput;
+    std::vector<fs::path> runtimePathDirs;
+    const fs::path        artifactDir = artifactPath.parent_path();
     for (const fs::path& importedLinkDir : compiler_->importedDependencyLinkDirs())
     {
         if (!importedLinkDir.empty())

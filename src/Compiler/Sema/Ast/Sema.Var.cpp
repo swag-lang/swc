@@ -1089,7 +1089,7 @@ Result AstSingleVarDecl::semaPostNodeChild(Sema& sema, const AstNodeRef& childRe
                 nodeTypeView.typeRef().isValid() &&
                 sema.typeMgr().get(nodeTypeView.typeRef()).isArray();
             const bool bindClosureRuntimeStorage = nodeTypeView.typeRef().isValid() && sema.typeMgr().get(nodeTypeView.typeRef()).isLambdaClosure();
-            bool       bindRetValRuntimeStorage = false;
+            bool       bindRetValRuntimeStorage  = false;
             if (isRetVal)
                 SWC_RESULT(SemaHelpers::currentFunctionUsesIndirectReturnStorage(bindRetValRuntimeStorage, sema));
             if (bindArrayRuntimeStorage ||

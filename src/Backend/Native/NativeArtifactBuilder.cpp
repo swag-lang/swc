@@ -649,12 +649,12 @@ Result NativeArtifactBuilder::buildStartup(TaskContext& ctx) const
     auto         startup = std::make_unique<NativeStartupInfo>();
     MicroBuilder builder(builder_->ctx());
     builder.setBackendBuildCfg(builder_->compiler().buildCfg().backend);
-    uint32_t       nextVirtualIntRegIndex = builder.nextVirtualIntRegIndexHint();
+    uint32_t nextVirtualIntRegIndex = builder.nextVirtualIntRegIndexHint();
 
-    const IdentifierRef setupRuntimeIdRef   = ctx.idMgr().runtimeFunction(IdentifierManager::RuntimeFunctionKind::SetupRuntime);
-    const IdentifierRef closeRuntimeIdRef   = ctx.idMgr().runtimeFunction(IdentifierManager::RuntimeFunctionKind::CloseRuntime);
-    SymbolFunction*     setupRuntimeFn      = builder_->compiler().runtimeFunctionSymbol(setupRuntimeIdRef);
-    SymbolFunction*     closeRuntimeFn      = builder_->compiler().runtimeFunctionSymbol(closeRuntimeIdRef);
+    const IdentifierRef setupRuntimeIdRef = ctx.idMgr().runtimeFunction(IdentifierManager::RuntimeFunctionKind::SetupRuntime);
+    const IdentifierRef closeRuntimeIdRef = ctx.idMgr().runtimeFunction(IdentifierManager::RuntimeFunctionKind::CloseRuntime);
+    SymbolFunction*     setupRuntimeFn    = builder_->compiler().runtimeFunctionSymbol(setupRuntimeIdRef);
+    SymbolFunction*     closeRuntimeFn    = builder_->compiler().runtimeFunctionSymbol(closeRuntimeIdRef);
     SWC_ASSERT(setupRuntimeFn != nullptr);
     SWC_ASSERT(closeRuntimeFn != nullptr);
     if (!setupRuntimeFn || !closeRuntimeFn)

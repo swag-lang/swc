@@ -29,9 +29,9 @@ namespace SymbolInternal
 
     struct GenericEvalEntry
     {
-        const NodePayload*               payloadContext = nullptr;
-        const Ast*                         ownerAst  = nullptr;
-        AstNodeRef                         sourceRef = AstNodeRef::invalid();
+        const NodePayload*                 payloadContext = nullptr;
+        const Ast*                         ownerAst       = nullptr;
+        AstNodeRef                         sourceRef      = AstNodeRef::invalid();
         std::vector<GenericEvalBindingKey> bindings;
         AstNodeRef                         evalRef = AstNodeRef::invalid();
     };

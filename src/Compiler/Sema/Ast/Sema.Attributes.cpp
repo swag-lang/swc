@@ -313,9 +313,9 @@ namespace
     {
         SWC_ASSERT(!args.empty());
 
-        Utf8 moduleName;
-        Utf8 functionName;
-        Utf8 linkModuleName;
+        Utf8                        moduleName;
+        Utf8                        functionName;
+        Utf8                        linkModuleName;
         std::optional<CallConvKind> callConvKind;
         SWC_RESULT(collectForeignStringValue(sema, moduleName, args[0]));
         if (args.size() > 1)
@@ -324,7 +324,7 @@ namespace
             SWC_RESULT(collectForeignStringValue(sema, linkModuleName, args[2]));
         if (args.size() > 3 && args[3].argRef.isValid())
         {
-            CallConvKind explicitCallConvKind = CallConvKind::C;
+            auto explicitCallConvKind = CallConvKind::C;
             SWC_RESULT(collectForeignCallConvValue(sema, explicitCallConvKind, args[3]));
             callConvKind = explicitCallConvKind;
         }

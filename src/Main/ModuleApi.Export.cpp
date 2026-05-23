@@ -2146,10 +2146,10 @@ namespace
 
     bool appendForwardNamespaceDecls(TaskContext& ctx, Utf8& outContent, std::span<const ModuleApiGeneratedRoot> roots, std::string_view eol)
     {
-        bool                     emitted = false;
-        std::unordered_set<Utf8> emittedPaths;
+        bool                       emitted = false;
+        std::unordered_set<Utf8>   emittedPaths;
         std::vector<IdentifierRef> namespacePath;
-        Utf8                     snippet;
+        Utf8                       snippet;
 
         for (const ModuleApiGeneratedRoot& root : roots)
         {

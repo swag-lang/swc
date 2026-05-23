@@ -856,7 +856,7 @@ public func win32Value()->s32
 
     const ScopedEnvVar swagPath("SWAG_PATH", compilerRoot.string());
 
-    CommandLine cmdLine = makeSyntheticWorkspaceCommand(CommandKind::Sema, workspaceDir);
+    CommandLine      cmdLine = makeSyntheticWorkspaceCommand(CommandKind::Sema, workspaceDir);
     CompilerInstance compiler(ctx.global(), cmdLine);
     if (compiler.run() != ExitCode::Success)
         return Result::Error;
@@ -924,7 +924,7 @@ public func coreValue()->s32
             return Result::Error;
     }
 
-    const fs::path copiedCoreDll = workspaceDir / ".dep" / "core" / "shared-library" / "fast-debug" / "x86_64" / "core.dll";
+    const fs::path          copiedCoreDll = workspaceDir / ".dep" / "core" / "shared-library" / "fast-debug" / "x86_64" / "core.dll";
     FileSystem::IoErrorInfo ioError;
     std::string             copiedDllContent;
     if (FileSystem::readTextFile(copiedCoreDll, copiedDllContent, ioError) != Result::Continue)
@@ -1972,11 +1972,11 @@ SWC_TEST_BEGIN(Compiler_WorkspaceRunExecutableUsesDllAndSharesRuntimeContextAcro
     if (!tempTree.ready())
         return Result::Error;
 
-    const fs::path workspaceDir       = tempTree.root() / "workspace";
-    const fs::path baseModuleDir      = workspaceDir / "modules" / "runtime_context_base_static";
-    const fs::path dllModuleDir       = workspaceDir / "modules" / "runtime_context_bridge_dll";
-    const fs::path directModuleDir    = workspaceDir / "modules" / "runtime_context_direct_static";
-    const fs::path consumerModuleDir  = workspaceDir / "modules" / "consumer_exe";
+    const fs::path workspaceDir      = tempTree.root() / "workspace";
+    const fs::path baseModuleDir     = workspaceDir / "modules" / "runtime_context_base_static";
+    const fs::path dllModuleDir      = workspaceDir / "modules" / "runtime_context_bridge_dll";
+    const fs::path directModuleDir   = workspaceDir / "modules" / "runtime_context_direct_static";
+    const fs::path consumerModuleDir = workspaceDir / "modules" / "consumer_exe";
 
     if (!writeTextFile(baseModuleDir / "module.swg", R"(#run
 {

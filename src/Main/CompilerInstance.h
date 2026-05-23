@@ -219,25 +219,25 @@ public:
     SourceFile&              file(FileRef ref) const;
     std::vector<SourceFile*> filesSnapshot() const;
 
-    SourceView&                           addSourceView();
-    SourceView&                           addSourceView(FileRef fileRef);
-    SourceView&                           addBufferedSourceView(FileRef fileRef, std::string_view content);
-    SourceView&                           srcView(SourceViewRef ref);
-    const SourceView&                     srcView(SourceViewRef ref) const;
-    const SourceFile*                     ownerSourceFile(SourceViewRef ref) const;
-    const SourceFile*                     ownerSourceFile(const SourceView& srcView) const;
-    const SourceFile*                     sourceViewFile(SourceViewRef ref) const;
-    const SourceFile*                     sourceViewFile(const Symbol& symbol) const;
-    const SourceFile*                     owningSourceFile(const SourceView& srcView) const;
-    const SourceFile*                     owningSourceFile(const SourceView* srcView) const;
-    bool                                  tryTokenCodeRange(const TaskContext& ctx, SourceCodeRange& outCodeRange, const SourceCodeRef& codeRef) const;
-    bool                                  tryResolveSourceLocation(const TaskContext& ctx, ResolvedSourceLocation& outResolvedLocation, const SourceCodeRef& codeRef) const;
-    bool                                  tryResolveSourceLocation(const TaskContext& ctx, ResolvedSourceLocation& outResolvedLocation, const Runtime::SourceCodeLocation& location) const;
-    const SourceView*                     findSourceViewByFileName(std::string_view fileName) const;
-    size_t                                numPerThreadData() const noexcept { return perThreadData_.size(); }
-    const ModuleApiPerThreadData&         moduleApiPerThreadData(size_t index) const { return perThreadData_[index].moduleApi; }
-    const std::vector<fs::path>&          importedDependencyLinkDirs() const { return importedDependencyLinkDirs_; }
-    const std::vector<ModuleSetupImport>& moduleSetupImports() const { return moduleSetupImports_; }
+    SourceView&                             addSourceView();
+    SourceView&                             addSourceView(FileRef fileRef);
+    SourceView&                             addBufferedSourceView(FileRef fileRef, std::string_view content);
+    SourceView&                             srcView(SourceViewRef ref);
+    const SourceView&                       srcView(SourceViewRef ref) const;
+    const SourceFile*                       ownerSourceFile(SourceViewRef ref) const;
+    const SourceFile*                       ownerSourceFile(const SourceView& srcView) const;
+    const SourceFile*                       sourceViewFile(SourceViewRef ref) const;
+    const SourceFile*                       sourceViewFile(const Symbol& symbol) const;
+    const SourceFile*                       owningSourceFile(const SourceView& srcView) const;
+    const SourceFile*                       owningSourceFile(const SourceView* srcView) const;
+    bool                                    tryTokenCodeRange(const TaskContext& ctx, SourceCodeRange& outCodeRange, const SourceCodeRef& codeRef) const;
+    bool                                    tryResolveSourceLocation(const TaskContext& ctx, ResolvedSourceLocation& outResolvedLocation, const SourceCodeRef& codeRef) const;
+    bool                                    tryResolveSourceLocation(const TaskContext& ctx, ResolvedSourceLocation& outResolvedLocation, const Runtime::SourceCodeLocation& location) const;
+    const SourceView*                       findSourceViewByFileName(std::string_view fileName) const;
+    size_t                                  numPerThreadData() const noexcept { return perThreadData_.size(); }
+    const ModuleApiPerThreadData&           moduleApiPerThreadData(size_t index) const { return perThreadData_[index].moduleApi; }
+    const std::vector<fs::path>&            importedDependencyLinkDirs() const { return importedDependencyLinkDirs_; }
+    const std::vector<ModuleSetupImport>&   moduleSetupImports() const { return moduleSetupImports_; }
     const std::vector<NativeRuntimeImport>& nativeRuntimeImports() const { return nativeRuntimeImports_; }
 
     Result                   collectFiles(TaskContext& ctx);

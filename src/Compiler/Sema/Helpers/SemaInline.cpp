@@ -782,7 +782,7 @@ namespace
         if (nodeRef.isInvalid() || !idRef.isValid())
             return 0;
 
-        uint32_t count = 0;
+        uint32_t       count = 0;
         const AstNode& node  = sourceAst.node(nodeRef);
         if (node.is(AstNodeId::Identifier) &&
             sema.idMgr().addIdentifier(sema.ctx(), node.codeRef()) == idRef)
@@ -921,8 +921,8 @@ namespace
             if (paramType.isCodeBlock() || paramType.isAnyVariadic())
                 return Result::Continue;
 
-            const TokenRef tokRef = materializedInlineBindingTokRef(sema, *binding.sourceParam, binding.exprRef);
-            AstNodeRef      clonedInitRef = SemaClone::cloneDetachedExpr(sema, binding.exprRef);
+            const TokenRef tokRef        = materializedInlineBindingTokRef(sema, *binding.sourceParam, binding.exprRef);
+            AstNodeRef     clonedInitRef = SemaClone::cloneDetachedExpr(sema, binding.exprRef);
             if (clonedInitRef.isInvalid())
                 return Result::Error;
 
@@ -1253,7 +1253,7 @@ namespace
                 // identifier scans cannot see every use of `me`. Non-lvalue temporaries therefore
                 // need a concrete local up front to avoid re-evaluating the receiver expression.
                 bound[0].forceMaterialize = !sema.viewConstant(ufcsRef).hasConstant() && !sema.isLValue(ufcsRef);
-                nextParam = 1;
+                nextParam                 = 1;
             }
             else if (hasAnyVariadic)
             {

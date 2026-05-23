@@ -599,7 +599,7 @@ uint32_t CompilerInstance::nativeProcessInfosOffset()
 
 void CompilerInstance::initPerThreadRuntimeContextForJit()
 {
-    PerThreadData& td        = perThreadData_[JobManager::threadIndex()];
+    PerThreadData& td           = perThreadData_[JobManager::threadIndex()];
     td.runtimeContext.allocator = runtimeAllocator();
     setRuntimeContextForCurrentThread(&td.runtimeContext);
 

@@ -1124,7 +1124,7 @@ Result CompilerInstance::captureModuleSetupSnapshot(const TaskContext& ctx, cons
 
 Result CompilerInstance::applyModuleSetupInputs(TaskContext& ctx, const ModuleSetupSnapshot& setupSnapshot)
 {
-    moduleSetupImports_     = setupSnapshot.imports;
+    moduleSetupImports_ = setupSnapshot.imports;
     nativeRuntimeImports_.clear();
     moduleSetupLoadedFiles_ = setupSnapshot.loadedFiles;
 
@@ -1327,7 +1327,7 @@ Result CompilerInstance::applyModuleSetupInputs(TaskContext& ctx, const ModuleSe
     };
 
     std::unordered_map<Utf8, std::vector<Utf8>> dependencyClosureCache;
-    const auto collectDependencyClosure = [&](auto&& self, std::vector<Utf8>& outModules, const std::span<const ModuleSetupImport> imports, const fs::path* preferredDependencyRoot) -> Result {
+    const auto                                  collectDependencyClosure = [&](auto&& self, std::vector<Utf8>& outModules, const std::span<const ModuleSetupImport> imports, const fs::path* preferredDependencyRoot) -> Result {
         std::unordered_set<Utf8> seenModules(outModules.begin(), outModules.end());
         for (const ModuleSetupImport& importRequest : imports)
         {
@@ -1339,7 +1339,7 @@ Result CompilerInstance::applyModuleSetupInputs(TaskContext& ctx, const ModuleSe
             if (importPaths.apiDir.empty())
                 continue;
 
-            const Utf8 cacheKey = Utf8(FileSystem::normalizePath(importPaths.apiDir));
+            const auto cacheKey = Utf8(FileSystem::normalizePath(importPaths.apiDir));
             const auto cacheIt  = dependencyClosureCache.find(cacheKey);
             if (cacheIt != dependencyClosureCache.end())
             {
@@ -1492,7 +1492,7 @@ void CompilerInstance::collectImportedApiFolderFiles(const fs::path& folder, con
     std::vector<fs::path> paths;
     collectSwagFilesRec(cmdLine(), folder, paths, false);
 
-    const fs::path generatedSplitDir = (folder / fs::path(K_GENERATED_API_SPLIT_DIR)).lexically_normal();
+    const fs::path  generatedSplitDir = (folder / fs::path(K_GENERATED_API_SPLIT_DIR)).lexically_normal();
     std::error_code ec;
     if (fs::exists(generatedSplitDir, ec) && !ec)
     {

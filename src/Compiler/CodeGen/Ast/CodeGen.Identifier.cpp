@@ -608,7 +608,7 @@ namespace
             const uint32_t localSize = symVar.codeGenLocalSize();
             SWC_ASSERT(localSize > 0);
             const CodeGenNodePayload symbolPayload   = codeGen.resolveLocalStackPayload(symVar);
-            const auto* initNodePayload = initRef.isValid() ? codeGen.safeNodePayload<CodeGenNodePayload>(initRef) : nullptr;
+            const auto*              initNodePayload = initRef.isValid() ? codeGen.safeNodePayload<CodeGenNodePayload>(initRef) : nullptr;
             if ((!initNodePayload || !initPayloadAliasesSymbolStorage(codeGen, symVar, initRef, *initNodePayload)) && initRef.isValid())
             {
                 const AstNodeRef resolvedInitRef = codeGen.viewZero(initRef).nodeRef();

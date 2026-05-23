@@ -203,13 +203,13 @@ void CallConv::setup()
 {
     setupCallConvWindowsX64(g_CallConvs[static_cast<size_t>(CallConvKind::WindowsX64)]);
 
-    const auto nativeTargetCallConvKind            = resolveNativeTargetCallConvKind();
-    auto&      swag                                = g_CallConvs[static_cast<size_t>(CallConvKind::Swag)];
-    auto&      c                                   = g_CallConvs[static_cast<size_t>(CallConvKind::C)];
-    swag                                           = g_CallConvs[static_cast<size_t>(nativeTargetCallConvKind)];
-    c                                              = g_CallConvs[static_cast<size_t>(nativeTargetCallConvKind)];
-    swag.name                                      = "swag";
-    c.name                                         = "c";
+    const auto nativeTargetCallConvKind = resolveNativeTargetCallConvKind();
+    auto&      swag                     = g_CallConvs[static_cast<size_t>(CallConvKind::Swag)];
+    auto&      c                        = g_CallConvs[static_cast<size_t>(CallConvKind::C)];
+    swag                                = g_CallConvs[static_cast<size_t>(nativeTargetCallConvKind)];
+    c                                   = g_CallConvs[static_cast<size_t>(nativeTargetCallConvKind)];
+    swag.name                           = "swag";
+    c.name                              = "c";
     // Swag keeps the language internal ABI stable for compiled/JIT calls on the current target:
     // it reuses the native register/stack contract, but keeps aggregate arguments indirect.
     swag.structArgPassing.passByValueSizeMask      = 0;

@@ -106,11 +106,11 @@ namespace SymbolInternal
             return;
         }
 
-        auto& newEntry     = entries.emplace_back();
+        auto& newEntry          = entries.emplace_back();
         newEntry.payloadContext = payloadContext;
-        newEntry.ownerAst  = &ownerAst;
-        newEntry.sourceRef = sourceRef;
-        newEntry.evalRef   = evalRef;
+        newEntry.ownerAst       = &ownerAst;
+        newEntry.sourceRef      = sourceRef;
+        newEntry.evalRef        = evalRef;
         copyGenericEvalBindings(newEntry.bindings, bindings);
     }
 }

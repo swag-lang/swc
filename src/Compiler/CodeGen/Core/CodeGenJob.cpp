@@ -33,7 +33,7 @@ namespace
     }
 #endif
 
-    JobResult waitCodeGenPreSolved(TaskContext& ctx, const SymbolFunction& waiterSymbol, const Symbol& waitedSymbol, AstNodeRef nodeRef)
+    bool prepareWaitCodeGenPreSolved(TaskContext& ctx, const SymbolFunction& waiterSymbol, const Symbol& waitedSymbol, AstNodeRef nodeRef)
     {
         TaskState& wait   = ctx.state();
         wait.kind         = TaskStateKind::SemaWaitSymCodeGenPreSolved;
@@ -41,7 +41,17 @@ namespace
         wait.codeRef      = waiterSymbol.codeRef();
         wait.symbol       = &waitedSymbol;
         wait.waiterSymbol = &waiterSymbol;
-        return JobResult::Sleep;
+
+        // Re-check after publishing the wait state so we do not sleep on a dependency
+        // that reached CodeGenPreSolved/Completed concurrently between the caller check
+        // and the scheduler transition to Waiting.
+        if (waitedSymbol.isCodeGenPreSolved() || waitedSymbol.isCodeGenCompleted())
+        {
+            ctx.state().setNone();
+            return false;
+        }
+
+        return true;
     }
 
     JobResult abortCodeGen(TaskContext& ctx, SymbolFunction& symbolFunc, Result result)
@@ -172,7 +182,10 @@ JobResult CodeGenJob::exec()
         sema().compiler().tryEnqueueCodeGenJob(sema(), *dep, dep->declNodeRef());
 
         if (!dep->isCodeGenPreSolved() && !dep->isCodeGenCompleted())
-            return waitCodeGenPreSolved(ctx(), *symbolFunc_, *dep, root_);
+        {
+            if (prepareWaitCodeGenPreSolved(ctx(), *symbolFunc_, *dep, root_))
+                return JobResult::Sleep;
+        }
     }
 
     symbolFunc_->setCodeGenCompleted(ctx());

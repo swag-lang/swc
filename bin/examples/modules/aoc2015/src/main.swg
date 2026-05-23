@@ -6,16 +6,16 @@
 
 #main
 {
-    //day1A()
-    //day1B()
-    //day2A()
-    //day2B()
-    //day3A()
-    //day3B()
-    //day4A()
+    day1A()
+    day1B()
+    day2A()
+    day2B()
+    day3A()
+    day3B()
+    day4A()
     //day4B()
-    //day5A()
-    //day5B()  temporarily disabled with shared core dependency
+    day5A()
+    day5B()
     //day6A()  temporarily disabled
     //day6B()  temporarily disabled
     //day7A()  resolved by the compiler

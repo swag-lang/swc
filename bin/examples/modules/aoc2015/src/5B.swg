@@ -1,5 +1,3 @@
-#global #if false
-
 /*
 --- Part Two ---
 Realizing the error of his ways, Santa has switched to a better model of determining whether a string is naughty or nice. None of the old rules apply, as they are all clearly ridiculous.

@@ -540,8 +540,8 @@ impl RegExp
             discard state.activeGroups.popBack()
         }
 
-        var idx = desiredRawGroups.count
-        while idx > common
+        var idx = desiredRawGroups.count - common
+        while idx
         {
             idx -= 1
             let raw = desiredRawGroups[idx]

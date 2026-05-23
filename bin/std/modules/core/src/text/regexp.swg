@@ -26,6 +26,7 @@ const RuneGroup7      = cast(rune) 0x8000_0070
 const RuneGroup8      = cast(rune) 0x8000_0080
 const RuneGroup9      = cast(rune) 0x8000_0090
 const RuneWhatever    = cast(rune) 0x8000_00A0
+const RuneEmpty       = cast(rune) 0x8000_00A1
 
 const RuneUnicodeLetter      = cast(rune) 0x8001_0006
 const RuneUnicodeLetterLower = cast(rune) 0x8001_0007
@@ -390,6 +391,8 @@ impl RegExp
             while !pstack1.isEmpty()
             {
                 var curState = pstack1.popBack()
+                if curState.node.terminal and forGrep do
+                    grepTerm = curState
                 if curState.parseIdx >= .bufLength
                 {
                     pstack2.add(curState)
@@ -751,6 +754,20 @@ impl RegExp
         .charSet.add(c)
     }
 
+    mtd nfaPushEmpty()
+    {
+        let table = .nfaTables.addNewPtr()
+        let s1    = .nfaNodes.addNewPtr()
+        let s2    = .nfaNodes.addNewPtr()
+
+        table.level = cast(u32) .openParen.count
+        s1.addTransition(0'rune, s2)
+
+        table.nodes.add(s1)
+        table.nodes.add(s2)
+        .nfaStack.add(table)
+    }
+
     mtd tableHasGroup(table: *NfaTable)->bool
     {
         foreach n in table.nodes
@@ -928,6 +945,12 @@ impl RegExp
 
     mtd nfaBuild() throw
     {
+        if .preprocessed.isEmpty()
+        {
+            .nfaPushEmpty()
+            return
+        }
+
         var pz  = .preprocessed.buffer
         var cpt = 0
 
@@ -968,6 +991,10 @@ impl RegExp
             case '.':
                 .unionValidate()
                 .nfaPush(RuneWhatever)
+
+            case RuneEmpty:
+                .unionValidate()
+                .nfaPushEmpty()
 
             case '\\':
                 if isReservedChar(pz[1])
@@ -1352,6 +1379,7 @@ impl RegExp
         {
             let expr = .previousExpression()
             .preprocessed.resize(.preprocessed.count - expr.count)
+            .preprocessed.add(.emptyExpression(expr).toSlice())
             return pz
         }
 
@@ -1427,6 +1455,43 @@ impl RegExp
         }
 
         return expr
+    }
+
+    mtd emptyExpression(expr: Array'rune)->Array'rune
+    {
+        var result: retval
+        var hasContent: Array'bool
+        var idx = 0
+        while idx < expr.count
+        {
+            let c = expr[idx]
+            if c == '\\' and idx + 1 < expr.count and isReservedChar(expr[idx + 1])
+            {
+                idx += 2
+                continue
+            }
+
+            switch c
+            {
+            case '(', RuneOpenParen:
+                if !hasContent.isEmpty() do
+                    hasContent[hasContent.count - 1] = true
+                result.add(c)
+                hasContent.add(false)
+
+            case ')', RuneCloseParen:
+                if !hasContent.back() do
+                    result.add(RuneEmpty)
+                result.add(c)
+                discard hasContent.popBack()
+            }
+
+            idx += 1
+        }
+
+        if result.isEmpty() do
+            result.add(RuneEmpty)
+        return result
     }
 
     mtd preprocessUnicode(sl: const [..] rune)->const [*] rune throw

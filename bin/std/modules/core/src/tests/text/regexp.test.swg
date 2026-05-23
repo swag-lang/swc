@@ -553,6 +553,20 @@ using Swag
 
 #test
 {
+    var exactZero   = assume Parser.RegExp.create(#"a{0}bc"#)
+    var rangeZero   = assume Parser.RegExp.create(#"[ab]{0,0}c"#)
+    var groupedZero = assume Parser.RegExp.create(#"(ab){0}c"#)
+
+    @assert(exactZero.match("bc"))
+    @assert(!exactZero.match("abc"))
+    @assert(rangeZero.match("c"))
+    @assert(!rangeZero.match("ac"))
+    @assert(groupedZero.match("c"))
+    @assert(!groupedZero.match("abc"))
+}
+
+#test
+{
     discard catch Parser.RegExp.create(#"a{2,1}"#)
 
     @assert(@err != null)

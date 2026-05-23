@@ -1345,10 +1345,15 @@ impl RegExp
             throw SyntaxError{"enum, missing '}'"}
         if m != -1 and m < n do
             throw SyntaxError{"enum m < n in {n,m}"}
-        if m == 0 and n == 0 do
-            throw SyntaxError{"enum m and n are zero in {n,m}"}
 
         pz += 1
+
+        if m == 0 and n == 0
+        {
+            let expr = .previousExpression()
+            .preprocessed.resize(.preprocessed.count - expr.count)
+            return pz
+        }
 
         if n == 0 and m == -1 do
             .preprocessed.add('*')
@@ -1358,30 +1363,7 @@ impl RegExp
             .preprocessed.add('+')
         elif n != 1 or m != 1 // {1,1}
         {
-            // Isolate expression to duplicate
-            let pze      = .preprocessed.buffer + .preprocessed.count - 1
-            var pz1      = pze
-            var cptParen = 0
-            if pz1[0] == ')' or pz1[0] == RuneCloseParen do
-                cptParen += 1
-            while cptParen and pz1 != .preprocessed.buffer
-            {
-                pz1 -= 1
-                if pz1[0] == ')' or pz1[0] == RuneCloseParen do
-                    cptParen += 1
-                if pz1[0] == '(' or pz1[0] == RuneOpenParen do
-                    cptParen -= 1
-            }
-
-            if cptParen do
-                throw SyntaxError{"missing '('"}
-
-            var expr: Array'rune
-            while pz1 <= pze
-            {
-                expr.add(pz1[0])
-                pz1 += 1
-            }
+            let expr = .previousExpression()
 
             if n == 0 do
                 .preprocessed.add(expr.toSlice())
@@ -1414,6 +1396,35 @@ impl RegExp
         }
 
         return pz
+    }
+
+    mtd previousExpression()->Array'rune throw
+    {
+        let pze      = .preprocessed.buffer + .preprocessed.count - 1
+        var pz1      = pze
+        var cptParen = 0
+        if pz1[0] == ')' or pz1[0] == RuneCloseParen do
+            cptParen += 1
+        while cptParen and pz1 != .preprocessed.buffer
+        {
+            pz1 -= 1
+            if pz1[0] == ')' or pz1[0] == RuneCloseParen do
+                cptParen += 1
+            if pz1[0] == '(' or pz1[0] == RuneOpenParen do
+                cptParen -= 1
+        }
+
+        if cptParen do
+            throw SyntaxError{"missing '('"}
+
+        var expr: retval
+        while pz1 <= pze
+        {
+            expr.add(pz1[0])
+            pz1 += 1
+        }
+
+        return expr
     }
 
     mtd preprocessUnicode(sl: const [..] rune)->const [*] rune throw

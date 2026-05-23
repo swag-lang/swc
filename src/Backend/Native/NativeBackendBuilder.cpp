@@ -185,7 +185,12 @@ namespace
     template<>
     bool shouldPrepareSymbol<SymbolFunction>(const NativeBackendBuilder& builder, const SymbolFunction& symbol)
     {
-        return !symbol.isIgnored() && shouldPrepareFile(sourceFileForSymbol(builder, symbol)) && isRuntimeArtifactFunction(builder, symbol);
+        return !symbol.isIgnored() &&
+               !symbol.isForeign() &&
+               !symbol.isEmpty() &&
+               !symbol.isAttribute() &&
+               shouldPrepareFile(sourceFileForSymbol(builder, symbol)) &&
+               isRuntimeArtifactFunction(builder, symbol);
     }
 
     template<typename T>

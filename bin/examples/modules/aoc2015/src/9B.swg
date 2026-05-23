@@ -1,5 +1,3 @@
-#global #if false
-
 /*
 --- Part Two ---
 The next year, just to show off, Santa decides to take the route with the longest distance instead.

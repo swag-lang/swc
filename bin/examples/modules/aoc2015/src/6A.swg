@@ -1,5 +1,3 @@
-#global #if false
-
 /*
 --- Day 6: Probably a Fire Hazard ---
 Because your neighbors keep defeating you in the holiday house decorating contest year after year, you've decided to deploy one million lights in a 1000x1000 grid.
@@ -46,24 +44,28 @@ func day6A0()
     {
         if r0.match(l)
         {
-            for x in cast(u64) assume StrConv.toS32(r0.getCapture(1)) to cast(u64) assume StrConv.toS32(r0.getCapture(3)) do
-                for y in assume StrConv.toS32(r0.getCapture(2)) to assume StrConv.toS32(r0.getCapture(4)) do
-                    lights.add((x << 32) | y)
+            for xOn in cast(u64) assume StrConv.toS32(r0.getCapture(1)) to cast(u64) assume StrConv.toS32(r0.getCapture(3)) do
+                for yOn in assume StrConv.toS32(r0.getCapture(2)) to assume StrConv.toS32(r0.getCapture(4)) do
+                    lights.add((xOn << 32) | yOn)
         }
         elif r1.match(l)
         {
-            for x in cast(u64) assume StrConv.toS32(r1.getCapture(1)) to cast(u64) assume StrConv.toS32(r1.getCapture(3)) do
-                for y in assume StrConv.toS32(r1.getCapture(2)) to assume StrConv.toS32(r1.getCapture(4)) do
-                    lights.remove((x << 32) | y)
+            for xOff in cast(u64) assume StrConv.toS32(r1.getCapture(1)) to cast(u64) assume StrConv.toS32(r1.getCapture(3)) do
+                for yOff in assume StrConv.toS32(r1.getCapture(2)) to assume StrConv.toS32(r1.getCapture(4)) do
+                    lights.remove((xOff << 32) | yOff)
         }
         elif r2.match(l)
         {
-            for x in cast(u64) assume StrConv.toS32(r2.getCapture(1)) to cast(u64) assume StrConv.toS32(r2.getCapture(3)) do
-                for y in assume StrConv.toS32(r2.getCapture(2)) to assume StrConv.toS32(r2.getCapture(4)) do
-                    if lights.contains((x << 32) | y) do
-                        lights.remove((x << 32) | y)
-                    else do
-                        lights.add((x << 32) | y)
+            for xToggle in cast(u64) assume StrConv.toS32(r2.getCapture(1)) to cast(u64) assume StrConv.toS32(r2.getCapture(3)) do
+                for yToggle in assume StrConv.toS32(r2.getCapture(2)) to assume StrConv.toS32(r2.getCapture(4)) do
+                    if lights.contains((xToggle << 32) | yToggle)
+                    {
+                        lights.remove((xToggle << 32) | yToggle)
+                    }
+                    else
+                    {
+                        lights.add((xToggle << 32) | yToggle)
+                    }
         }
     }
 

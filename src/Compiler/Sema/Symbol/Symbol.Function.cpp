@@ -840,6 +840,8 @@ void SymbolFunction::addCallDependency(const SymbolFunction* sym)
 {
     if (!sym || sym == this)
         return;
+    if (sym->isForeign() || sym->isEmpty() || sym->isAttribute())
+        return;
     if (sym->attributes().hasRtFlag(RtAttributeFlagsE::Macro) || sym->attributes().hasRtFlag(RtAttributeFlagsE::Mixin))
         return;
 

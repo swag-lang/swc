@@ -16,14 +16,13 @@
     //day4B()
     day5A()
     day5B()
-    //day6A()  temporarily disabled
-    //day6B()  temporarily disabled
-    //day7A()  resolved by the compiler
-    //day7B()  resolved by the compiler
-    //day8A()  temporarily disabled with shared core dependency
-    //day8B()  temporarily disabled with shared core dependency
-    //day9A()  temporarily disabled with shared core dependency
-    //day9B()  temporarily disabled with shared core dependency
-    //day10A() temporarily disabled with shared core dependency
-    //day10B() temporarily disabled with shared core dependency
+    day6A()
+    day6B()
+    //day7A/day7B()  temporarily disabled by a separate #ast JIT crash
+    day8A()
+    day8B()
+    day9A()
+    day9B()
+    day10A()
+    day10B()
 }

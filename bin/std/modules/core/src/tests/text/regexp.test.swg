@@ -264,6 +264,31 @@ using Swag
 
 #test
 {
+    var baseline      = assume Parser.RegExp.create(#"b(c)"#)
+    var optionalGroup = assume Parser.RegExp.create(#"(a)?b(c)"#)
+    var optionalStar  = assume Parser.RegExp.create(#"(a)*b(c)"#)
+
+    @assert(baseline.match("bc"))
+    let baselineCount = baseline.getCaptures().count
+
+    @assert(optionalGroup.match("bc"))
+    @assert(optionalGroup.getCapture(2) == "c")
+    @assert(optionalGroup.getCaptures().count == baselineCount)
+
+    @assert(optionalGroup.match("abc"))
+    @assert(optionalGroup.getCapture(1) == "a")
+    @assert(optionalGroup.getCapture(2) == "c")
+    @assert(optionalGroup.match("bc"))
+    @assert(optionalGroup.getCapture(2) == "c")
+    @assert(optionalGroup.getCaptures().count == baselineCount)
+
+    @assert(optionalStar.match("bc"))
+    @assert(optionalStar.getCapture(2) == "c")
+    @assert(optionalStar.getCaptures().count == baselineCount)
+}
+
+#test
+{
     var digits = assume Parser.RegExp.create(#"\d+"#)
 
     let prefix = digits.partialMatch("123abc")

@@ -518,24 +518,44 @@ impl RegExp
         return false
     }
 
-    mtd materializeImplicitEmptyGroup(state: *DfaState)
+    mtd canReachTransition(table: *Array'(*NfaNode), fromNode: *NfaNode, c: rune)->bool
     {
-        if state.node.group != 0 and state.node.group != state.lastGroup
+        var stack: Array'(*NfaNode)
+        var done: Array'(*NfaNode)
+        stack.add(fromNode)
+        while stack.count
         {
-            let ptr = .bufStart + state.parseIdx
-            setCapture(state, state.node.group, "")
-            state.lastGroup  = state.node.group
-            state.groupStart = ptr
+            let node = stack.popBack()
+            if done.contains(node) do
+                continue
+            done.add(node)
+
+            if node.transitions.tryFind(c) do
+                return true
+
+            let epsilon = node.transitions.tryFind(0'rune)
+            if !epsilon do
+                continue
+
+            foreach next in epsilon.value
+            {
+                if table.contains(next) and !done.contains(next) do
+                    stack.add(next)
+            }
         }
+
+        return false
     }
 
-    mtd findDisappearingEmptyGroup(state: *DfaState, nextNode: *DfaNode)->u32
+    mtd findDisappearingEmptyGroup(state: *DfaState, nextNode: *DfaNode, c: rune)->u32
     {
         var rank: retval
         foreach n in state.node.table
         {
             let grp = .groupTransform[n.group]
             if grp == 0 or grp == state.lastGroup or .hasCapture(state, grp) do
+                continue
+            if !.canReachTransition(&state.node.table, n, c) do
                 continue
 
             var stillThere = false
@@ -566,9 +586,7 @@ impl RegExp
             if #uniq1
             {
                 var st = dref curState
-                .materializeImplicitEmptyGroup(&st)
-
-                let pendingEmptyGroup = .findDisappearingEmptyGroup(&st, #uniq1.value)
+                let pendingEmptyGroup = .findDisappearingEmptyGroup(&st, #uniq1.value, c)
                 if pendingEmptyGroup and pendingEmptyGroup != st.lastGroup
                 {
                     let ptr = .bufStart + st.parseIdx
@@ -733,6 +751,17 @@ impl RegExp
         .charSet.add(c)
     }
 
+    mtd tableHasGroup(table: *NfaTable)->bool
+    {
+        foreach n in table.nodes
+        {
+            if n.group != 0 do
+                return true
+        }
+
+        return false
+    }
+
     mtd unionValidate() throw
     {
         if .orOpStack.isEmpty() do
@@ -831,6 +860,24 @@ impl RegExp
         let table = .nfaPop()
         let s1    = table.nodes.front()
         let s2    = table.nodes.back()
+        if .tableHasGroup(table)
+        {
+            let ns1 = .nfaNodes.addNewPtr()
+            let ns2 = .nfaNodes.addNewPtr()
+            let ns3 = .nfaNodes.addNewPtr()
+            ns1.addTransition(0'rune, s1)
+            ns1.addTransition(0'rune, ns3)
+            s2.addTransition(0'rune, ns2)
+            ns2.addTransition(0'rune, s1)
+            ns2.addTransition(0'rune, ns3)
+
+            table.nodes.insertAt(0, ns1)
+            table.nodes.add(ns2)
+            table.nodes.add(ns3)
+            .nfaStack.add(table)
+            return
+        }
+
         s1.addTransition(0'rune, s2)
         s2.addTransition(0'rune, s1)
         .nfaStack.add(table)
@@ -850,6 +897,20 @@ impl RegExp
         let table = .nfaPop()
         let s1    = table.nodes.front()
         let s2    = table.nodes.back()
+        if .tableHasGroup(table)
+        {
+            let ns1 = .nfaNodes.addNewPtr()
+            let ns2 = .nfaNodes.addNewPtr()
+            ns1.addTransition(0'rune, s1)
+            ns1.addTransition(0'rune, ns2)
+            s2.addTransition(0'rune, ns2)
+
+            table.nodes.insertAt(0, ns1)
+            table.nodes.add(ns2)
+            .nfaStack.add(table)
+            return
+        }
+
         s1.addTransition(0'rune, s2)
         .nfaStack.add(table)
     }

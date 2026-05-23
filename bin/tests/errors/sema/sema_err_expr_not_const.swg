@@ -32,6 +32,73 @@ func failConstExprCallResult()
     const Y = constMul(x, 2) // swc-expected-error {{sema_err_expr_not_const}}
 }
 
+var RuntimeBias = 2
+
+func impureAdd(a: s32, b: s32)->s32
+{
+    return a + b + RuntimeBias
+}
+
+func conditionalImpureAdd(cond: bool, a: s32, b: s32)->s32
+{
+    if cond
+    {
+        return impureAdd(a, b)
+    }
+
+    return a + b
+}
+
+namespace ExprNotConstNs
+{
+    var RuntimeBias = 3
+
+    func impureAdd(a: s32, b: s32)->s32
+    {
+        return a + b + RuntimeBias
+    }
+
+    func wrapper(a: s32, b: s32)->s32
+    {
+        return impureAdd(a, b)
+    }
+
+    func conditionalWrapper(cond: bool, a: s32, b: s32)->s32
+    {
+        if cond
+        {
+            return impureAdd(a, b)
+        }
+
+        return a + b
+    }
+}
+
+func failImpureCallResult()
+{
+    const Y = impureAdd(40, 2) // swc-expected-error {{sema_err_expr_not_const}}
+}
+
+func failConditionalImpureCallResult()
+{
+    const Y = conditionalImpureAdd(false, 40, 2) // swc-expected-error {{sema_err_expr_not_const}}
+}
+
+func failNamespacedImpureCallResult()
+{
+    const Y = ExprNotConstNs.wrapper(40, 2) // swc-expected-error {{sema_err_expr_not_const}}
+}
+
+func failConditionalNamespacedImpureCallResult()
+{
+    const Y = ExprNotConstNs.conditionalWrapper(false, 40, 2) // swc-expected-error {{sema_err_expr_not_const}}
+}
+
+func failNamespacedDefaultArg(value: s32 = ExprNotConstNs.wrapper(40, 2))->s32 // swc-expected-error {{sema_err_expr_not_const}}
+{
+    return value
+}
+
 func defaultFromPreviousParam(a: s32, b: s32 = a + 1)->s32 // swc-expected-error {{sema_err_expr_not_const}}
 {
     return b

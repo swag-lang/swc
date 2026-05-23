@@ -8,6 +8,51 @@ func pureAdd(a: s32, b: s32)->s32
     return sum
 }
 
+var RuntimeBias = 2
+
+func impureAdd(a: s32, b: s32)->s32
+{
+    return a + b + RuntimeBias
+}
+
+func conditionalImpureAdd(cond: bool, a: s32, b: s32)->s32
+{
+    if cond
+    {
+        return impureAdd(a, b)
+    }
+
+    return a + b
+}
+
+namespace ImpureNs
+{
+    var RuntimeBias = 3
+
+    func add(a: s32, b: s32)->s32
+    {
+        return a + b + RuntimeBias
+    }
+}
+
+namespace WrapperNs
+{
+    func impureAdd(a: s32, b: s32)->s32
+    {
+        return ImpureNs.add(a, b)
+    }
+
+    func conditionalImpureAdd(cond: bool, a: s32, b: s32)->s32
+    {
+        if cond
+        {
+            return ImpureNs.add(a, b)
+        }
+
+        return a + b
+    }
+}
+
 #[Swag.Inline]
 func inlineTypedVariadicCount(values: s32...)->s32 => cast(s32) @countof(values)
 
@@ -40,6 +85,13 @@ func semaTest001()
 {
     @assert(defaultPureArg() == 42)
     @assert(#isconstexpr(macroAdd(20, 22)))
+    @assert(!#isconstexpr(impureAdd(20, 22)))
+    @assert(!#isconstexpr(conditionalImpureAdd(true, 20, 22)))
+    @assert(!#isconstexpr(conditionalImpureAdd(false, 20, 22)))
+    @assert(!#isconstexpr(ImpureNs.add(20, 22)))
+    @assert(!#isconstexpr(WrapperNs.impureAdd(20, 22)))
+    @assert(!#isconstexpr(WrapperNs.conditionalImpureAdd(true, 20, 22)))
+    @assert(!#isconstexpr(WrapperNs.conditionalImpureAdd(false, 20, 22)))
 
     if Cfg.backend.optimize
     {

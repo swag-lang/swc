@@ -136,13 +136,41 @@ using Swag
 
 #test
 {
+    var closeBracket = assume Parser.RegExp.create(#"[\]]+"#)
+    var openBracket  = assume Parser.RegExp.create(#"[\[]+"#)
+    var backslash    = assume Parser.RegExp.create(#"[\\]+"#)
+    var hyphen       = assume Parser.RegExp.create(#"[\-]+"#)
+    var caret        = assume Parser.RegExp.create(#"[\^]+"#)
+    var digits       = assume Parser.RegExp.create(#"[\dA]+"#)
+    var spaces       = assume Parser.RegExp.create(#"[a\s]+"#)
+
+    @assert(closeBracket.match("]]"))
+    @assert(openBracket.match("[["))
+    @assert(backslash.match("\\"))
+    @assert(hyphen.match("--"))
+    @assert(caret.match("^^"))
+    @assert(digits.match("A42"))
+    @assert(!digits.match("A4-2"))
+    @assert(spaces.match("a \t"))
+    @assert(!spaces.match("ab"))
+}
+
+#test
+{
     var literalAlt = assume Parser.RegExp.create(#"a\|b"#)
+    var parenAlt   = assume Parser.RegExp.create(#"\(|a"#)
     var escaped    = assume Parser.RegExp.create(#"\(\)\[\]\{\}\.\+\*\?"#)
+    var anchors    = assume Parser.RegExp.create(#"\^\$"#)
+    var slash      = assume Parser.RegExp.create(#"\/path\\file"#)
     var controls   = assume Parser.RegExp.create("\\n\\r\\t\\f\\v\\a")
 
     @assert(literalAlt.match("a|b"))
     @assert(!literalAlt.match("ab"))
+    @assert(parenAlt.match("("))
+    @assert(parenAlt.match("a"))
     @assert(escaped.match("()[]{}.+*?"))
+    @assert(anchors.match("^$"))
+    @assert(slash.match("/path\\file"))
     @assert(controls.match("\n\r\t\f\v\a"))
 }
 
@@ -265,6 +293,30 @@ using Swag
 
 #test
 {
+    assume
+    {
+        var captures = Parser.RegExp.create(#"(\d+)"#)
+
+        for 256
+        {
+            let first = captures.grep("a12")
+            @assert(first != null)
+            @assert(cast(string) first == "12")
+            @assert(captures.getCapture(1) == "12")
+
+            @assert(captures.grep("abc") == null)
+            @assert(captures.getCaptures().count == 0)
+
+            let second = captures.grep("34x")
+            @assert(second != null)
+            @assert(cast(string) second == "34")
+            @assert(captures.getCapture(1) == "34")
+        }
+    }
+}
+
+#test
+{
     var endOfBuffer = assume Parser.RegExp.create(#"$"#)
 
     let match = endOfBuffer.grep("abc")
@@ -354,6 +406,21 @@ using Swag
 
 #test
 {
+    var optional   = assume Parser.RegExp.create(#"colou?r"#)
+    var revRange   = assume Parser.RegExp.create(#"[d-b]+"#)
+    var nonLetters = assume Parser.RegExp.create(#"[^a-z]+"#)
+
+    @assert(optional.match("color"))
+    @assert(optional.match("colour"))
+    @assert(!optional.match("colouur"))
+    @assert(revRange.match("bcd"))
+    @assert(!revRange.match("abe"))
+    @assert(nonLetters.match("123!?"))
+    @assert(!nonLetters.match("abc"))
+}
+
+#test
+{
     var star = assume Parser.RegExp.create(#"ba{0,}c"#)
     var opt  = assume Parser.RegExp.create(#"ba{0,1}c"#)
     var plus = assume Parser.RegExp.create(#"ba{1,}c"#)
@@ -417,6 +484,38 @@ using Swag
 #test
 {
     discard catch Parser.RegExp.create(#"{1}"#)
+
+    @assert(@err != null)
+    @assert(@err is Errors.SyntaxError)
+}
+
+#test
+{
+    discard catch Parser.RegExp.create(#"("#)
+
+    @assert(@err != null)
+    @assert(@err is Errors.SyntaxError)
+}
+
+#test
+{
+    discard catch Parser.RegExp.create(#"[abc"#)
+
+    @assert(@err != null)
+    @assert(@err is Errors.SyntaxError)
+}
+
+#test
+{
+    discard catch Parser.RegExp.create(#"\pQ"#)
+
+    @assert(@err != null)
+    @assert(@err is Errors.SyntaxError)
+}
+
+#test
+{
+    discard catch Parser.RegExp.create(#"\p{Lx}"#)
 
     @assert(@err != null)
     @assert(@err is Errors.SyntaxError)

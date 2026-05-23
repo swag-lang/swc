@@ -780,7 +780,7 @@ impl RegExp
     {
         switch c
         {
-        case '\\', '(', ')', '*', '?', '+', '.', '|', '[', ']', '{', '}', '/':
+        case '\\', '(', ')', '*', '?', '+', '.', '|', '[', ']', '{', '}', '/', '^', '$', '-':
             return true
         }
 
@@ -852,6 +852,8 @@ impl RegExp
         .unionValidate()
         if !.orOpStack.isEmpty() do
             throw SyntaxError{}
+        if !.openParen.isEmpty() do
+            throw SyntaxError{"missing ')'"}
 
         // Concat the remaining nodes
         .operatorConcat(.nfaStack.count)
@@ -1005,12 +1007,18 @@ impl RegExp
 
         // Negation
         var invert: rune
-        if dref pz == '^' do
+        if dref pz == '^'
+        {
             invert = RuneInvert
+            pz += 1
+        }
 
         var firstExp = true
         while pz != pzEnd and pz[0] != ']'
         {
+            if pz[0] == 0 do
+                throw SyntaxError{"unterminated '['"}
+
             if !firstExp do
                 .preprocessed.add('|')
             firstExp = false
@@ -1122,7 +1130,11 @@ impl RegExp
             }
 
             // This is not an interval
-            if isReservedChar(dref pz)
+            if dref pz == '\\'
+            {
+                pz = .preprocessEscape(@mkslice(pz, pzEnd - pz), true)
+            }
+            elif isReservedChar(dref pz)
             {
                 .preprocessed.add('\\')
                 .addPatternRune(dref pz)
@@ -1303,7 +1315,7 @@ impl RegExp
             return pz + 1
         }
 
-        return pz
+        throw SyntaxError{"invalid unicode property"}
     }
 
     mtd preprocessEscape(sl: const [..] rune, inInter = false)->const [*] rune throw

@@ -104,7 +104,11 @@ using Swag
 {
     var wildcard   = assume Parser.RegExp.create(#"a.c"#)
     var alnum      = assume Parser.RegExp.create(#"[[:alnum:]]+"#)
+    var alpha      = assume Parser.RegExp.create(#"[[:alpha:]]+"#)
     var asciiOnly  = assume Parser.RegExp.create(#"[[:ascii:]]+"#)
+    var blanks     = assume Parser.RegExp.create(#"[[:blank:]]+"#)
+    var spaces     = assume Parser.RegExp.create(#"[[:space:]]+"#)
+    var words      = assume Parser.RegExp.create(#"[[:word:]]+"#)
     var notLower   = assume Parser.RegExp.create(#"\L+"#)
     var notUpper   = assume Parser.RegExp.create(#"\U+"#)
     var unicodeSym = assume Parser.RegExp.create(#"\pS+"#)
@@ -113,14 +117,33 @@ using Swag
     @assert(wildcard.match("a\u00E9c"))
     @assert(!wildcard.match("ac"))
     @assert(alnum.match("abc123"))
+    @assert(alpha.match("abcXYZ"))
     @assert(!alnum.match("abc-123"))
+    @assert(!alpha.match("abc1"))
     @assert(asciiOnly.match("AZ09!?"))
     @assert(!asciiOnly.match("\u00E9"))
+    @assert(blanks.match(" \t"))
+    @assert(!blanks.match(" \n"))
+    @assert(spaces.match(" \t\n"))
+    @assert(words.match("abc_123"))
+    @assert(!words.match("abc-123"))
     @assert(notLower.match("ABC!?"))
     @assert(!notLower.match("AbC"))
     @assert(notUpper.match("abc!?"))
     @assert(!notUpper.match("aBc"))
     @assert(unicodeSym.match("+="))
+}
+
+#test
+{
+    var literalAlt = assume Parser.RegExp.create(#"a\|b"#)
+    var escaped    = assume Parser.RegExp.create(#"\(\)\[\]\{\}\.\+\*\?"#)
+    var controls   = assume Parser.RegExp.create("\\n\\r\\t\\f\\v\\a")
+
+    @assert(literalAlt.match("a|b"))
+    @assert(!literalAlt.match("ab"))
+    @assert(escaped.match("()[]{}.+*?"))
+    @assert(controls.match("\n\r\t\f\v\a"))
 }
 
 #test
@@ -155,6 +178,24 @@ using Swag
     @assert(repeated.match("ll"))
     @assert(repeated.getCapture(1) == "l")
     @assert(!repeated.match("ab"))
+}
+
+#test
+{
+    assume
+    {
+        var repeated = Parser.RegExp.create(#"([a-z]+)-\1"#)
+
+        @assert(repeated.match("abc-abc"))
+        @assert(repeated.getCapture(1) == "abc")
+        @assert(!repeated.match("abc-ab"))
+
+        for 256
+        {
+            @assert(repeated.match("xyz-xyz"))
+            @assert(repeated.getCapture(1) == "xyz")
+        }
+    }
 }
 
 #test

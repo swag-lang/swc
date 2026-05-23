@@ -469,19 +469,21 @@ impl RegExp
             .closeGroup(state)
 
             var strGroup: string
+            var hasGroup = false
             foreach g in state.groups
             {
                 if g.rank == 1 + (what - RuneGroup1)
                 {
+                    hasGroup = true
                     strGroup = g.value
                     break
                 }
             }
 
-            if @countof(strGroup)
+            if hasGroup
             {
                 let ptr = .bufStart + state.parseIdx
-                if Utf8.startsWith(@mkslice(ptr, .bufLength - state.parseIdx), strGroup, .ignoreCase ? .UnicodeNoCase : .Unicode)
+                if !@countof(strGroup) or Utf8.startsWith(@mkslice(ptr, .bufLength - state.parseIdx), strGroup, .ignoreCase ? .UnicodeNoCase : .Unicode)
                 {
                     var st = dref state
                     st.node = grp.value
@@ -1310,6 +1312,13 @@ impl RegExp
         let c  = dref pz
         if c == '\\'
         {
+            if isReservedChar(pz[1])
+            {
+                .preprocessed.add('\\')
+                .addPatternRune(pz[1])
+                return pz + 2
+            }
+
             switch pz[1]
             {
             case 'd':
@@ -1384,9 +1393,23 @@ impl RegExp
 
     func addParenthesis(uni32: &Array'rune)
     {
+        #[Swag.Discardable]
+        func isEscaped(uni32: &Array'rune, idx: s32)->bool
+        {
+            var count = 0
+            var i     = idx - 1
+            while i >= 0 and uni32[i] == '\\'
+            {
+                count += 1
+                i -= 1
+            }
+
+            return (count & 1) != 0
+        }
+
         for var i = 1's32; i < uni32.count - 1; i += 1
         {
-            if uni32[i] == '|'
+            if uni32[i] == '|' and !isEscaped(uni32, i)
             {
                 uni32.insertAt(cast() i, ')''rune)
                 uni32.insertAt(cast() (i + 2), '(''rune)

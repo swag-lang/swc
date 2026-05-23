@@ -100,8 +100,8 @@ public:
     const SymbolStruct*           genericRootOrSelf() const noexcept;
     SymbolStruct*                 genericRootSym() noexcept;
     const SymbolStruct*           genericRootSym() const noexcept;
-    AstNodeRef                    findGenericEvalNode(const Ast& ownerAst, AstNodeRef sourceRef, std::span<const SemaClone::ParamBinding> bindings) const;
-    void                          cacheGenericEvalNode(const Ast& ownerAst, AstNodeRef sourceRef, std::span<const SemaClone::ParamBinding> bindings, AstNodeRef evalRef) const;
+    AstNodeRef                    findGenericEvalNode(const NodePayload* payloadContext, const Ast& ownerAst, AstNodeRef sourceRef, std::span<const SemaClone::ParamBinding> bindings) const;
+    void                          cacheGenericEvalNode(const NodePayload* payloadContext, const Ast& ownerAst, AstNodeRef sourceRef, std::span<const SemaClone::ParamBinding> bindings, AstNodeRef evalRef) const;
     std::recursive_mutex&         genericEvalRunMutex() const noexcept;
     bool                          tryGetGenericInstanceArgs(SmallVector<GenericInstanceKey>& outArgs) const;
     bool                          tryGetGenericInstanceArgs(const SymbolStruct& instance, SmallVector<GenericInstanceKey>& outArgs) const;

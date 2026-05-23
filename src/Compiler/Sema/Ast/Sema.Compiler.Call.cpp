@@ -736,6 +736,19 @@ namespace
         return Result::Continue;
     }
 
+    const SymbolStruct* compilerOffsetOwnerStruct(const SymbolVariable& symVar)
+    {
+        const SymbolMap* owner = symVar.ownerSymMap();
+        while (owner)
+        {
+            if (owner->isStruct())
+                return &owner->cast<SymbolStruct>();
+            owner = owner->ownerSymMap();
+        }
+
+        return nullptr;
+    }
+
     void assertConcreteStructCompilerSizeOperand(const TypeInfo& typeInfo)
     {
         if (!typeInfo.isStruct())
@@ -791,6 +804,41 @@ namespace
 #endif
 
         SWC_ASSERT(value != 0);
+    }
+
+    Result ensureCompilerOffsetOperandReady(Sema& sema, const SymbolVariable& symVar, AstNodeRef childRef)
+    {
+        const SymbolStruct* ownerStruct = compilerOffsetOwnerStruct(symVar);
+        if (!ownerStruct)
+            return Result::Continue;
+
+        if (ownerStruct->isGenericRoot() && !ownerStruct->isGenericInstance())
+            return SemaError::raise(sema, DiagnosticId::sema_err_invalid_offsetof, childRef);
+
+        SWC_RESULT(sema.waitSemaCompleted(ownerStruct, sema.node(childRef).codeRef()));
+
+#if SWC_DEV_MODE
+        if (!ownerStruct->hasConcreteLayout())
+        {
+            Utf8 detail;
+            detail += std::format("  structPtr={} semaCompleted={} typed={} declared={} genericRoot={} genericInstance={} union={} fields={} declNodeRef={}\n",
+                                  static_cast<const void*>(ownerStruct),
+                                  ownerStruct->isSemaCompleted(),
+                                  ownerStruct->isTyped(),
+                                  ownerStruct->isDeclared(),
+                                  ownerStruct->isGenericRoot(),
+                                  ownerStruct->isGenericInstance(),
+                                  ownerStruct->isUnion(),
+                                  ownerStruct->fields().size(),
+                                  ownerStruct->declNodeRef().get());
+            swcAssertDetail("compiler #offsetof owner struct must have a concrete layout", __FILE__, __LINE__, detail.view());
+        }
+#endif
+
+        if (!ownerStruct->hasConcreteLayout())
+            return SemaError::raise(sema, DiagnosticId::sema_err_invalid_offsetof, childRef);
+
+        return Result::Continue;
     }
 
     Result semaCompilerTypeOf(Sema& sema, const AstCompilerCallOne& node)
@@ -887,14 +935,16 @@ namespace
 
     Result semaCompilerOffsetOf(Sema& sema, const AstCompilerCallOne& node)
     {
-        const AstNodeRef   childRef = node.nodeArgRef;
-        const SemaNodeView view     = sema.viewNodeTypeConstantSymbol(childRef);
+        const AstNodeRef childRef = node.nodeArgRef;
+        SemaNodeView     view(sema, childRef, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant | SemaNodeViewPartE::Symbol);
+        SWC_RESULT(instantiateCompilerGenericTypeOperand(sema, view));
         if (!view.hasSymbol() && !view.hasType() && !view.hasConstant())
             return Result::Error;
         if (!view.sym() || !view.sym()->isVariable())
             return SemaError::raise(sema, DiagnosticId::sema_err_invalid_offsetof, childRef);
 
         const SymbolVariable& symVar = view.sym()->cast<SymbolVariable>();
+        SWC_RESULT(ensureCompilerOffsetOperandReady(sema, symVar, childRef));
         sema.setConstant(sema.curNodeRef(), sema.cstMgr().addInt(sema.ctx(), symVar.offset()));
         return Result::Continue;
     }

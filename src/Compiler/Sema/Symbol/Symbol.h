@@ -15,6 +15,7 @@ SWC_BEGIN_NAMESPACE();
 
 class TaskContext;
 class SymbolMap;
+class NodePayload;
 
 namespace SymbolInternal
 {
@@ -28,6 +29,7 @@ namespace SymbolInternal
 
     struct GenericEvalEntry
     {
+        const NodePayload*               payloadContext = nullptr;
         const Ast*                         ownerAst  = nullptr;
         AstNodeRef                         sourceRef = AstNodeRef::invalid();
         std::vector<GenericEvalBindingKey> bindings;
@@ -36,8 +38,8 @@ namespace SymbolInternal
 
     bool       sameGenericEvalBindings(std::span<const GenericEvalBindingKey> lhs, std::span<const SemaClone::ParamBinding> rhs);
     void       copyGenericEvalBindings(std::vector<GenericEvalBindingKey>& out, std::span<const SemaClone::ParamBinding> bindings);
-    AstNodeRef findGenericEvalNode(std::span<const GenericEvalEntry> entries, const Ast& ownerAst, AstNodeRef sourceRef, std::span<const SemaClone::ParamBinding> bindings);
-    void       cacheGenericEvalNode(std::vector<GenericEvalEntry>& entries, const Ast& ownerAst, AstNodeRef sourceRef, std::span<const SemaClone::ParamBinding> bindings, AstNodeRef evalRef);
+    AstNodeRef findGenericEvalNode(std::span<const GenericEvalEntry> entries, const NodePayload* payloadContext, const Ast& ownerAst, AstNodeRef sourceRef, std::span<const SemaClone::ParamBinding> bindings);
+    void       cacheGenericEvalNode(std::vector<GenericEvalEntry>& entries, const NodePayload* payloadContext, const Ast& ownerAst, AstNodeRef sourceRef, std::span<const SemaClone::ParamBinding> bindings, AstNodeRef evalRef);
 }
 
 enum class SymbolAccess : uint8_t

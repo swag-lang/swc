@@ -46,6 +46,12 @@ impl NativeGenericSizeBox
     let entry = box.makeEntry(7)
     let aliasEntry = box.makeAliasedEntry(9)
 
+    #assert(#offsetof(entry.hash) == 0)
+    #assert(#offsetof(entry.first) == 4)
+    #assert(#offsetof(entry.second) == 8)
+    #assert(#offsetof(aliasEntry.hash) == 0)
+    #assert(#offsetof(aliasEntry.first) == 4)
+    #assert(#offsetof(aliasEntry.second) == 8)
     #assert(#typeof(entry) == NativeGenericSizeEntry's32)
     #assert(#typeof(aliasEntry) == NativeGenericSizeEntry's32)
     @assert(box.byteCount(4) == 52)

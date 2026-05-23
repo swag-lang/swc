@@ -941,21 +941,21 @@ Result SymbolStruct::canBeCompleted(Sema& sema) const
     return Result::Continue;
 }
 
-AstNodeRef SymbolStruct::findGenericEvalNode(const Ast& ownerAst, const AstNodeRef sourceRef, std::span<const SemaClone::ParamBinding> bindings) const
+AstNodeRef SymbolStruct::findGenericEvalNode(const NodePayload* payloadContext, const Ast& ownerAst, const AstNodeRef sourceRef, std::span<const SemaClone::ParamBinding> bindings) const
 {
     const auto&            data = ensureGenericData();
     const std::shared_lock lock(data.evalCacheMutex);
-    return SymbolInternal::findGenericEvalNode(data.evalCache, ownerAst, sourceRef, bindings);
+    return SymbolInternal::findGenericEvalNode(data.evalCache, payloadContext, ownerAst, sourceRef, bindings);
 }
 
-void SymbolStruct::cacheGenericEvalNode(const Ast& ownerAst, const AstNodeRef sourceRef, std::span<const SemaClone::ParamBinding> bindings, const AstNodeRef evalRef) const
+void SymbolStruct::cacheGenericEvalNode(const NodePayload* payloadContext, const Ast& ownerAst, const AstNodeRef sourceRef, std::span<const SemaClone::ParamBinding> bindings, const AstNodeRef evalRef) const
 {
     if (sourceRef.isInvalid() || evalRef.isInvalid())
         return;
 
     auto&                  data = ensureGenericData();
     const std::unique_lock lock(data.evalCacheMutex);
-    SymbolInternal::cacheGenericEvalNode(data.evalCache, ownerAst, sourceRef, bindings, evalRef);
+    SymbolInternal::cacheGenericEvalNode(data.evalCache, payloadContext, ownerAst, sourceRef, bindings, evalRef);
 }
 
 std::recursive_mutex& SymbolStruct::genericEvalRunMutex() const noexcept

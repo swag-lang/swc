@@ -124,8 +124,8 @@ public:
     GenericInstanceStorage& genericInstanceStorage(const TaskContext& ctx) const noexcept;
     bool                    tryGetGenericInstanceArgs(const TaskContext& ctx, const SymbolFunction& instance, SmallVector<GenericInstanceKey>& outArgs) const;
     bool                    tryGetGenericInstanceArgs(const TaskContext& ctx, SmallVector<GenericInstanceKey>& outArgs) const;
-    AstNodeRef              findGenericEvalNode(const TaskContext& ctx, const Ast& ownerAst, AstNodeRef sourceRef, std::span<const SemaClone::ParamBinding> bindings) const;
-    void                    cacheGenericEvalNode(const TaskContext& ctx, const Ast& ownerAst, AstNodeRef sourceRef, std::span<const SemaClone::ParamBinding> bindings, AstNodeRef evalRef) const;
+    AstNodeRef              findGenericEvalNode(const TaskContext& ctx, const NodePayload* payloadContext, const Ast& ownerAst, AstNodeRef sourceRef, std::span<const SemaClone::ParamBinding> bindings) const;
+    void                    cacheGenericEvalNode(const TaskContext& ctx, const NodePayload* payloadContext, const Ast& ownerAst, AstNodeRef sourceRef, std::span<const SemaClone::ParamBinding> bindings, AstNodeRef evalRef) const;
     std::recursive_mutex&   genericEvalRunMutex(const TaskContext& ctx) const noexcept;
     std::mutex&             lazyGenericBodyRunMutex() const noexcept { return lazyGenericBodyRunMutex_; }
     std::shared_ptr<void>*  lazyGenericBodyRunState() const noexcept;

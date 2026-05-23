@@ -911,21 +911,21 @@ std::shared_ptr<void>& SymbolFunction::ensureLazyGenericBodyRunState(const TaskC
     return ensureGenericData(ctx).lazyGenericBodyRun;
 }
 
-AstNodeRef SymbolFunction::findGenericEvalNode(const TaskContext& ctx, const Ast& ownerAst, const AstNodeRef sourceRef, std::span<const SemaClone::ParamBinding> bindings) const
+AstNodeRef SymbolFunction::findGenericEvalNode(const TaskContext& ctx, const NodePayload* payloadContext, const Ast& ownerAst, const AstNodeRef sourceRef, std::span<const SemaClone::ParamBinding> bindings) const
 {
     const auto&            data = ensureGenericData(ctx);
     const std::shared_lock lock(data.evalCacheMutex);
-    return SymbolInternal::findGenericEvalNode(data.evalCache, ownerAst, sourceRef, bindings);
+    return SymbolInternal::findGenericEvalNode(data.evalCache, payloadContext, ownerAst, sourceRef, bindings);
 }
 
-void SymbolFunction::cacheGenericEvalNode(const TaskContext& ctx, const Ast& ownerAst, const AstNodeRef sourceRef, std::span<const SemaClone::ParamBinding> bindings, const AstNodeRef evalRef) const
+void SymbolFunction::cacheGenericEvalNode(const TaskContext& ctx, const NodePayload* payloadContext, const Ast& ownerAst, const AstNodeRef sourceRef, std::span<const SemaClone::ParamBinding> bindings, const AstNodeRef evalRef) const
 {
     if (sourceRef.isInvalid() || evalRef.isInvalid())
         return;
 
     auto&                  data = ensureGenericData(ctx);
     const std::unique_lock lock(data.evalCacheMutex);
-    SymbolInternal::cacheGenericEvalNode(data.evalCache, ownerAst, sourceRef, bindings, evalRef);
+    SymbolInternal::cacheGenericEvalNode(data.evalCache, payloadContext, ownerAst, sourceRef, bindings, evalRef);
 }
 
 std::recursive_mutex& SymbolFunction::genericEvalRunMutex(const TaskContext& ctx) const noexcept

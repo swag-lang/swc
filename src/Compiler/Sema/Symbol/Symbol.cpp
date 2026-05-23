@@ -70,10 +70,12 @@ namespace SymbolInternal
             out.push_back({.idRef = binding.idRef, .exprRef = binding.exprRef, .typeRef = binding.typeRef, .cstRef = binding.cstRef});
     }
 
-    AstNodeRef findGenericEvalNode(std::span<const GenericEvalEntry> entries, const Ast& ownerAst, const AstNodeRef sourceRef, std::span<const SemaClone::ParamBinding> bindings)
+    AstNodeRef findGenericEvalNode(std::span<const GenericEvalEntry> entries, const NodePayload* payloadContext, const Ast& ownerAst, const AstNodeRef sourceRef, std::span<const SemaClone::ParamBinding> bindings)
     {
         for (const auto& entry : entries)
         {
+            if (entry.payloadContext != payloadContext)
+                continue;
             if (entry.ownerAst != &ownerAst)
                 continue;
             if (entry.sourceRef != sourceRef)
@@ -87,10 +89,12 @@ namespace SymbolInternal
         return AstNodeRef::invalid();
     }
 
-    void cacheGenericEvalNode(std::vector<GenericEvalEntry>& entries, const Ast& ownerAst, const AstNodeRef sourceRef, std::span<const SemaClone::ParamBinding> bindings, const AstNodeRef evalRef)
+    void cacheGenericEvalNode(std::vector<GenericEvalEntry>& entries, const NodePayload* payloadContext, const Ast& ownerAst, const AstNodeRef sourceRef, std::span<const SemaClone::ParamBinding> bindings, const AstNodeRef evalRef)
     {
         for (auto& entry : entries)
         {
+            if (entry.payloadContext != payloadContext)
+                continue;
             if (entry.ownerAst != &ownerAst)
                 continue;
             if (entry.sourceRef != sourceRef)
@@ -103,6 +107,7 @@ namespace SymbolInternal
         }
 
         auto& newEntry     = entries.emplace_back();
+        newEntry.payloadContext = payloadContext;
         newEntry.ownerAst  = &ownerAst;
         newEntry.sourceRef = sourceRef;
         newEntry.evalRef   = evalRef;

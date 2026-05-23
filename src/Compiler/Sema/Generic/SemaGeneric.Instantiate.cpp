@@ -609,9 +609,10 @@ namespace SemaGeneric
 
         AstNodeRef findCachedGenericEvalNode(Sema& sema, const Symbol& root, AstNodeRef sourceRef, std::span<const SemaClone::ParamBinding> bindings)
         {
+            const NodePayload* payloadContext = &sema.currentNodePayloadContext();
             if (const auto* function = root.safeCast<SymbolFunction>())
-                return function->findGenericEvalNode(sema.ctx(), sema.ast(), sourceRef, bindings);
-            return root.cast<SymbolStruct>().findGenericEvalNode(sema.ast(), sourceRef, bindings);
+                return function->findGenericEvalNode(sema.ctx(), payloadContext, sema.ast(), sourceRef, bindings);
+            return root.cast<SymbolStruct>().findGenericEvalNode(payloadContext, sema.ast(), sourceRef, bindings);
         }
 
         bool hasCachedGenericEvalResult(Sema& sema, AstNodeRef nodeRef, GenericEvalReadyKind readyKind)
@@ -636,10 +637,11 @@ namespace SemaGeneric
 
         void cacheGenericEvalNode(Sema& sema, const Symbol& root, AstNodeRef sourceRef, std::span<const SemaClone::ParamBinding> bindings, AstNodeRef evalRef)
         {
+            const NodePayload* payloadContext = &sema.currentNodePayloadContext();
             if (const auto* function = root.safeCast<SymbolFunction>())
-                function->cacheGenericEvalNode(sema.ctx(), sema.ast(), sourceRef, bindings, evalRef);
+                function->cacheGenericEvalNode(sema.ctx(), payloadContext, sema.ast(), sourceRef, bindings, evalRef);
             else
-                root.cast<SymbolStruct>().cacheGenericEvalNode(sema.ast(), sourceRef, bindings, evalRef);
+                root.cast<SymbolStruct>().cacheGenericEvalNode(payloadContext, sema.ast(), sourceRef, bindings, evalRef);
         }
 
         std::recursive_mutex& genericEvalRunMutex(Sema& sema, const Symbol& root)

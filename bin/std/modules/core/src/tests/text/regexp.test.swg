@@ -270,6 +270,9 @@ using Swag
     var optionalRef   = assume Parser.RegExp.create(#"(a)?\1"#)
     var zeroRef       = assume Parser.RegExp.create(#"(a){0}\1"#)
     var zeroFirst     = assume Parser.RegExp.create(#"(a){0}(b)"#)
+    var zeroNested    = assume Parser.RegExp.create(#"((a)b){0}(c)"#)
+    var zeroNestedRef1 = assume Parser.RegExp.create(#"((a)b){0}\1"#)
+    var zeroNestedRef2 = assume Parser.RegExp.create(#"((a)b){0}\2"#)
 
     @assert(baseline.match("bc"))
     let baselineCount = baseline.getCaptures().count
@@ -296,6 +299,12 @@ using Swag
     @assert(!zeroRef.match("a"))
     @assert(zeroFirst.match("b"))
     @assert(zeroFirst.getCapture(2) == "b")
+    @assert(zeroNested.match("c"))
+    @assert(zeroNested.getCapture(1) == "")
+    @assert(zeroNested.getCapture(2) == "")
+    @assert(zeroNested.getCapture(3) == "c")
+    @assert(zeroNestedRef1.match(""))
+    @assert(zeroNestedRef2.match(""))
 }
 
 #test
@@ -555,11 +564,28 @@ using Swag
 #test
 {
     var counted = assume Parser.RegExp.create(#"ab{2,3}c"#)
+    var countedGroup = assume Parser.RegExp.create(#"(a){2}(b)"#)
+    var countedRangeGroup = assume Parser.RegExp.create(#"(a){0,2}(b)"#)
+    var countedBackRef = assume Parser.RegExp.create(#"([ab]){2}\1"#)
 
     @assert(counted.match("abbc"))
     @assert(counted.match("abbbc"))
     @assert(!counted.match("abc"))
     @assert(!counted.match("abbbbc"))
+    @assert(countedGroup.match("aab"))
+    @assert(countedGroup.getCapture(1) == "a")
+    @assert(countedGroup.getCapture(2) == "b")
+    @assert(countedRangeGroup.match("b"))
+    @assert(countedRangeGroup.getCapture(2) == "b")
+    @assert(countedRangeGroup.match("ab"))
+    @assert(countedRangeGroup.getCapture(1) == "a")
+    @assert(countedRangeGroup.getCapture(2) == "b")
+    @assert(countedRangeGroup.match("aab"))
+    @assert(countedRangeGroup.getCapture(1) == "a")
+    @assert(countedRangeGroup.getCapture(2) == "b")
+    @assert(countedBackRef.match("abb"))
+    @assert(countedBackRef.match("baa"))
+    @assert(!countedBackRef.match("aba"))
 }
 
 #test

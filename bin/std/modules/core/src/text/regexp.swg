@@ -54,6 +54,7 @@ struct DfaNode
 {
     table:           Array'(*NfaNode)
     transitions:     HashTable'(rune, *DfaNode)
+    rawGroup:        u32
     group:           u32
     terminal:        bool
 }
@@ -70,6 +71,7 @@ struct DfaState
     groupStart:     const [*] u8
     parseIdx:       s32
     lastGroup:      s32
+    lastRawGroup:   s32
     groups:         Array'RegExpGroup
 }
 
@@ -122,11 +124,14 @@ public struct RegExp
     charSet:            HashSet'rune
     groups:             Array'RegExpGroup
     groupTransform:     Array'u32
+    captureRanks:       Array'u32
     openParen:          Array'u32
     orOpStack:          Array'rune
     orOpLevel:          Array'u32
     preprocessed:       Array'rune
     group:              u32
+    captureRankMax:     u32
+    captureRankIdx:     u64
     hasStarted:         bool
     wasWord:            bool
     ignoreCase:         bool
@@ -180,10 +185,14 @@ impl RegExp
         .nfaStack.clear()
         .charSet.clear()
         .groupTransform.clear()
+        .groupTransform.add(0)
+        .captureRanks.clear()
         .openParen.clear()
         .orOpStack.clear()
         .orOpLevel.clear()
         .preprocessed.clear()
+        .captureRankMax = 0
+        .captureRankIdx = 0
 
         .clearMatch()
     }
@@ -460,8 +469,9 @@ impl RegExp
             setCapture(state, state.lastGroup, strGroup)
         }
 
-        state.lastGroup  = state.node.group
-        state.groupStart = ptr
+        state.lastGroup    = state.node.group
+        state.lastRawGroup = state.node.rawGroup
+        state.groupStart   = ptr
     }
 
     mtd backward(out: *Array'DfaState, what: rune, state: *DfaState)
@@ -604,7 +614,7 @@ impl RegExp
                 }
 
                 st.node = #uniq1.value
-                if st.node.group != st.lastGroup do
+                if st.node.rawGroup != st.lastRawGroup do
                     .closeGroup(&st)
                 st.parseIdx += length
                 out.add(st)
@@ -830,7 +840,7 @@ impl RegExp
         .nfaStack.add(table1)
     }
 
-    mtd operatorConcat(cpt: u64, canGroup = true) throw
+    mtd operatorConcat(cpt: u64, canGroup = true, logicalRank: u32 = 0) throw
     {
         var count = cpt
         while count >= 2
@@ -861,6 +871,9 @@ impl RegExp
             if canGroup
             {
                 .group += 1
+                if .groupTransform.count <= .group do
+                    .groupTransform.resize(cast(u64) .group + 1)
+                .groupTransform[.group] = logicalRank
                 foreach n in table1.nodes
                 {
                     if n.group == 0 do
@@ -972,7 +985,9 @@ impl RegExp
                 if .openParen.isEmpty() do
                     throw SyntaxError{"unexpected right parenthesis"}
                 let op = .openParen.popBack()
-                .operatorConcat(.nfaStack.count - op)
+                let rank = .captureRanks[.captureRankIdx]
+                .captureRankIdx += 1
+                .operatorConcat(.nfaStack.count - op, true, rank)
 
             case '*':
                 .operatorStar()
@@ -1022,7 +1037,7 @@ impl RegExp
             throw SyntaxError{"missing ')'"}
 
         // Concat the remaining nodes
-        .operatorConcat(.nfaStack.count)
+        .operatorConcat(.nfaStack.count, true, .captureRankMax + 1)
     }
 
     func dfaEClosure(inH, outH: *Array'(*NfaNode))
@@ -1055,6 +1070,8 @@ impl RegExp
         node.table = #move dref tbl
         foreach n in node.table
         {
+            if node.rawGroup == 0 do
+                node.rawGroup = n.group
             if node.group == 0 do
                 node.group = .groupTransform[n.group]
 
@@ -1098,23 +1115,6 @@ impl RegExp
 
         // Last state of NFA table is a terminal
         table.nodes.back().terminal = true
-
-        // Group transformation
-        var grp: Array'u32
-        foreach n in table.nodes do
-            grp.add(n.group)
-        grp.sort()
-
-        var curGroup, curGroupSwap: u32
-
-        .groupTransform.resize(cast(u64) .group + 1)
-        foreach n in grp
-        {
-            if n != curGroup do
-                curGroupSwap += 1
-            curGroup           = n
-            .groupTransform[n] = curGroupSwap
-        }
 
         // Build the first state of the DFA table
         var nfaStart, dfaStart: Array'(*NfaNode)
@@ -1374,12 +1374,15 @@ impl RegExp
             throw SyntaxError{"enum m < n in {n,m}"}
 
         pz += 1
+        let expr      = .previousExpression()
+        let exprRanks = .previousExpressionCaptureRanks(expr)
 
         if m == 0 and n == 0
         {
-            let expr = .previousExpression()
             .preprocessed.resize(.preprocessed.count - expr.count)
+            .captureRanks.resize(.captureRanks.count - exprRanks.count)
             .preprocessed.add(.emptyExpression(expr).toSlice())
+            .captureRanks.add(exprRanks.toSlice())
             return pz
         }
 
@@ -1391,8 +1394,6 @@ impl RegExp
             .preprocessed.add('+')
         elif n != 1 or m != 1 // {1,1}
         {
-            let expr = .previousExpression()
-
             if n == 0 do
                 .preprocessed.add('?')
             else
@@ -1401,6 +1402,7 @@ impl RegExp
                 while i
                 {
                     .preprocessed.add(expr.toSlice())
+                    .captureRanks.add(exprRanks.toSlice())
                     i -= 1
                 }
             }
@@ -1417,6 +1419,7 @@ impl RegExp
                 while m
                 {
                     .preprocessed.add(expr.toSlice())
+                    .captureRanks.add(exprRanks.toSlice())
                     .preprocessed.add('?')
                     m -= 1
                 }
@@ -1457,10 +1460,36 @@ impl RegExp
         return expr
     }
 
+    mtd previousExpressionCaptureRanks(expr: Array'rune)->Array'u32
+    {
+        var count = 0
+        var idx   = 0
+        while idx < expr.count
+        {
+            if expr[idx] == '\\' and idx + 1 < expr.count and isReservedChar(expr[idx + 1])
+            {
+                idx += 2
+                continue
+            }
+
+            if expr[idx] == ')' do
+                count += 1
+            idx += 1
+        }
+
+        var result: retval
+        if count == 0 do
+            return result
+
+        let start = .captureRanks.count - count
+        for var i = start; i < .captureRanks.count; i += 1 do
+            result.add(.captureRanks[i])
+        return result
+    }
+
     mtd emptyExpression(expr: Array'rune)->Array'rune
     {
         var result: retval
-        var hasContent: Array'bool
         var idx = 0
         while idx < expr.count
         {
@@ -1474,16 +1503,11 @@ impl RegExp
             switch c
             {
             case '(', RuneOpenParen:
-                if !hasContent.isEmpty() do
-                    hasContent[hasContent.count - 1] = true
                 result.add(c)
-                hasContent.add(false)
 
             case ')', RuneCloseParen:
-                if !hasContent.back() do
-                    result.add(RuneEmpty)
+                result.add(RuneEmpty)
                 result.add(c)
-                discard hasContent.popBack()
             }
 
             idx += 1
@@ -1624,8 +1648,15 @@ impl RegExp
             .preprocessed.add(RuneStart)
         elif c == '$' and !inInter do
             .preprocessed.add(RuneEnd)
-        else do
+        else
+        {
             .addPatternRune(c)
+            if c == ')'
+            {
+                .captureRankMax += 1
+                .captureRanks.add(.captureRankMax)
+            }
+        }
 
         return pz + 1
     }

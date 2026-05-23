@@ -507,6 +507,17 @@ impl RegExp
         }
     }
 
+    mtd hasCapture(state: *DfaState, rank: u32)->bool
+    {
+        foreach g in state.groups
+        {
+            if g.rank == rank do
+                return true
+        }
+
+        return false
+    }
+
     mtd materializeImplicitEmptyGroup(state: *DfaState)
     {
         if state.node.group != 0 and state.node.group != state.lastGroup
@@ -516,6 +527,32 @@ impl RegExp
             state.lastGroup  = state.node.group
             state.groupStart = ptr
         }
+    }
+
+    mtd findDisappearingEmptyGroup(state: *DfaState, nextNode: *DfaNode)->u32
+    {
+        var rank: retval
+        foreach n in state.node.table
+        {
+            let grp = .groupTransform[n.group]
+            if grp == 0 or grp == state.lastGroup or .hasCapture(state, grp) do
+                continue
+
+            var stillThere = false
+            foreach nn in nextNode.table
+            {
+                if .groupTransform[nn.group] == grp
+                {
+                    stillThere = true
+                    break
+                }
+            }
+
+            if !stillThere and grp > rank do
+                rank = grp
+        }
+
+        return rank
     }
 
     mtd dfaMatch(out: *Array'DfaState, c: rune, eat: s32, curState: *DfaState)
@@ -530,6 +567,21 @@ impl RegExp
             {
                 var st = dref curState
                 .materializeImplicitEmptyGroup(&st)
+
+                let pendingEmptyGroup = .findDisappearingEmptyGroup(&st, #uniq1.value)
+                if pendingEmptyGroup and pendingEmptyGroup != st.lastGroup
+                {
+                    let ptr = .bufStart + st.parseIdx
+                    if st.lastGroup
+                    {
+                        let strGroup = @mkstring(st.groupStart, ptr - st.groupStart)
+                        setCapture(&st, st.lastGroup, strGroup)
+                    }
+
+                    st.lastGroup  = pendingEmptyGroup
+                    st.groupStart = ptr
+                }
+
                 st.node = #uniq1.value
                 if st.node.group != st.lastGroup do
                     .closeGroup(&st)

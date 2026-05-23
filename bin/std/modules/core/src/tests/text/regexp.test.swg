@@ -234,12 +234,32 @@ using Swag
 {
     var emptyGroup = assume Parser.RegExp.create(#"([a-z]*)"#)
     var emptyRef   = assume Parser.RegExp.create(#"([a-z]*)-\1"#)
+    var emptyTail  = assume Parser.RegExp.create(#"([a-z]+)(\d*)"#)
+    var emptyTailSep = assume Parser.RegExp.create(#"([a-z]+)(\d*)-"#)
+    var nonEmptyTailRef = assume Parser.RegExp.create(#"([a-z]+)(\d+)-\2"#)
+    var emptyTailRef = assume Parser.RegExp.create(#"([a-z]+)(\d*)-\2"#)
 
     @assert(emptyGroup.match(""))
     @assert(emptyGroup.getCapture(1) == "")
 
     @assert(emptyRef.match("-"))
     @assert(emptyRef.getCapture(1) == "")
+
+    @assert(emptyTail.match("abc"))
+    @assert(emptyTail.getCapture(1) == "abc")
+    @assert(emptyTail.getCapture(2) == "")
+
+    @assert(emptyTailSep.match("abc-"))
+    @assert(emptyTailSep.getCapture(1) == "abc")
+    @assert(emptyTailSep.getCapture(2) == "")
+
+    @assert(nonEmptyTailRef.match("abc12-12"))
+    @assert(nonEmptyTailRef.getCapture(1) == "abc")
+    @assert(nonEmptyTailRef.getCapture(2) == "12")
+
+    @assert(emptyTailRef.match("abc-"))
+    @assert(emptyTailRef.getCapture(1) == "abc")
+    @assert(emptyTailRef.getCapture(2) == "")
 }
 
 #test

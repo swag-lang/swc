@@ -3,6 +3,7 @@
 #include "Backend/ABI/ABICall.h"
 #include "Backend/Native/NativeRDataCollector.h"
 #include "Backend/Runtime.h"
+#include "Backend/RuntimeName.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Main/Command/CommandLineParser.h"
 #include "Main/FileSystem.h"

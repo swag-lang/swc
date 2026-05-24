@@ -488,12 +488,27 @@ SemaScope* Sema::pushScope(SemaScopeFlags flags)
     SemaScope* scope = scopes_.back().get();
     scope->setSymMap(parent->symMap());
     curScope_ = scope;
+
+    if (const SemaScope* lookupScope = frame().lookupScope())
+    {
+        for (const SemaScope* it = parent; it; it = it->parent())
+        {
+            if (it != lookupScope)
+                continue;
+
+            frame().setLookupScope(scope);
+            break;
+        }
+    }
+
     return scope;
 }
 
 void Sema::popScope()
 {
     SWC_ASSERT(curScope_);
+    if (frame().lookupScope() == curScope_)
+        frame().setLookupScope(curScope_->lookupParent());
     curScope_ = curScope_->parent();
     scopes_.pop_back();
 }

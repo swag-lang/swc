@@ -251,3 +251,17 @@ func semaTest029()
         var x = idx
     }
 }
+
+func semaTest030()
+{
+    switch
+    {
+    case true:
+        for x in 1 do
+            var y = x
+
+    case false:
+        let x = 0
+        var y = x
+    }
+}

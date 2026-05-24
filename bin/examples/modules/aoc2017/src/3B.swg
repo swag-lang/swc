@@ -39,11 +39,11 @@ func day3B()
 
     var x, y: s32
     var l = 0
-    let directions: [4] { dl, dx, dy: s32 } = [{dl: 1, dx: 1, dy: 0}, {dl: 0, dx: 0, dy: -1}, {dl: 1, dx: -1, dy: 0}, {dl: 0, dx: 0, dy: 1}]
 
     for
     {
-        foreach v in directions
+        const O = [{dl: 1, dx: 1, dy: 0}, {0, 0, -1}, {1, -1, 0}, {0, 0, 1}]
+        foreach v in O
         {
             l += v.dl
             for l

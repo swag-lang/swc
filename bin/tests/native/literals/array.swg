@@ -150,3 +150,12 @@ fileprivate
     @assert(a[0] == 0xF0'u8)
     @assert(a[2] == 0xF0'u8)
 }
+
+#test
+{
+    const a = [{x: 1, y: 2}, {3, 4}]
+    @assert(a[0].x == 1)
+    @assert(a[0].y == 2)
+    @assert(a[1].x == 3)
+    @assert(a[1].y == 4)
+}

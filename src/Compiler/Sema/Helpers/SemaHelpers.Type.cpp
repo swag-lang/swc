@@ -397,6 +397,12 @@ namespace
             return TypeRef::invalid();
 
         const auto& firstAggregate = firstStructType.payloadAggregate();
+        SmallVector<IdentifierRef> mergedFieldNames;
+        mergedFieldNames.reserve(firstAggregate.names.size());
+        for (const IdentifierRef fieldName : firstAggregate.names)
+            mergedFieldNames.push_back(fieldName);
+
+        bool namesChanged = false;
         for (size_t i = 1; i < elemTypes.size(); ++i)
         {
             const TypeInfo& structType = typeMgr.get(elemTypes[i]);
@@ -409,8 +415,15 @@ namespace
 
             for (size_t fieldIndex = 0; fieldIndex < aggregate.names.size(); ++fieldIndex)
             {
-                if (aggregate.names[fieldIndex] != firstAggregate.names[fieldIndex])
+                const IdentifierRef incomingName = aggregate.names[fieldIndex];
+                const IdentifierRef mergedName   = mergedFieldNames[fieldIndex];
+                if (mergedName.isValid() && incomingName.isValid() && incomingName != mergedName)
                     return TypeRef::invalid();
+                if (!mergedName.isValid() && incomingName.isValid())
+                {
+                    mergedFieldNames[fieldIndex] = incomingName;
+                    namesChanged                 = true;
+                }
             }
         }
 
@@ -469,15 +482,10 @@ namespace
             changed = changed || mergedFieldTypeRef != firstAggregate.types[fieldIndex];
         }
 
-        if (!changed)
+        if (!changed && !namesChanged)
             return elemTypes.front();
 
-        SmallVector<IdentifierRef> fieldNames;
-        fieldNames.reserve(firstAggregate.names.size());
-        for (const IdentifierRef fieldName : firstAggregate.names)
-            fieldNames.push_back(fieldName);
-
-        return typeMgr.addType(TypeInfo::makeAggregateStruct(fieldNames, mergedFieldTypes));
+        return typeMgr.addType(TypeInfo::makeAggregateStruct(mergedFieldNames, mergedFieldTypes));
     }
 
     bool sameArrayDimensions(std::span<const uint64_t> leftDims, std::span<const uint64_t> rightDims)

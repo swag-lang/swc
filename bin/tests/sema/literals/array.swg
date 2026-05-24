@@ -97,3 +97,12 @@ const SemaLitArr6: [3] u8 = HexFill
 #assert(#typeof(SemaLitArr6) == #type [3] u8)
 #assert(SemaLitArr6[0] == 0xF0'u8)
 #assert(SemaLitArr6[2] == 0xF0'u8)
+
+func semaTest003()
+{
+    const values = [{x: 1, y: 2}, {3, 4}]
+    var firstX   = values[0].x
+    var secondY  = values[1].y
+    #assert(#typeof(firstX) == s32)
+    #assert(#typeof(secondY) == s32)
+}

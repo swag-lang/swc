@@ -1,5 +1,3 @@
-#global #if false
-
 /*
 --- Part Two ---
 With all the decoy data out of the way, it's time to decrypt this list and get moving.
@@ -34,7 +32,7 @@ func day4B()
         let res = assume StrConv.parseS64(l[idx to ])
 
         for i in str do
-            str[i] = 'a' + cast(u8) ((str[i] + res.value) % 26)
+            str[i] = cast(u8) ((str[i] + res.value) % 26 + 'a')
 
         if Utf8.contains(str, "north")
         {

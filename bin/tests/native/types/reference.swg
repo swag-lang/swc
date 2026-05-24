@@ -323,3 +323,15 @@ func(T) dampRefValueWithLiterals(current, target: T, currentVelocity: &T, smooth
     #assert(#typeof(temp) == f32)
     @assert(temp == 3.375'f32)
 }
+
+#test
+{
+    var grid: [2, 3] u32
+    var valueRef: &u32 = &grid[1, 2]
+
+    valueRef += 1'u32
+    @assert(grid[1, 2] == 1'u32)
+
+    valueRef = 7'u32
+    @assert(grid[1, 2] == 7'u32)
+}

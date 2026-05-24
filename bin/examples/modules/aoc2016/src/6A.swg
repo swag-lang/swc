@@ -1,5 +1,3 @@
-#global #if false
-
 /*
 --- Day 6: Signals and Noise ---
 Something is jamming your communications with Santa. Fortunately, your signal is only partially jammed, and protocol in situations like this is to switch to a simple repetition code to get the message through.
@@ -76,7 +74,6 @@ func day6A1()
 {
     let dataPath = Path.combine(Path.getDirectoryName(#file), "6.txt")
     let lines    = assume File.readAllLines(dataPath)
-
     var freq: [8, 26] u32
     var best: [8] u32
     var pwd:  String = "        "
@@ -85,7 +82,7 @@ func day6A1()
     {
         foreach c, i in l
         {
-            var v = #ref &freq[i, c - 'a']
+            var v: &u32 = &freq[i, c - 'a']
             v += 1
 
             if v > best[i]

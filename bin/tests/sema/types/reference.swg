@@ -139,3 +139,24 @@ func semaTest010()
 
     #assert(#typeof(temp) == f32)
 }
+
+func semaTest011()
+{
+    var grid: [2, 3] u32
+    var valueRef: &u32 = &grid[1, 2]
+    valueRef += 1'u32
+
+    #assert(#typeof(valueRef) == #type &u32)
+}
+
+func semaTest012()
+{
+    var freq: [8, 26] u32
+    let text: string = "abc"
+
+    foreach c, i in text
+    {
+        var valueRef: &u32 = &freq[i, c - 'a']
+        valueRef += 1'u32
+    }
+}

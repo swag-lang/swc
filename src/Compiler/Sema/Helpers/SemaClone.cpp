@@ -230,6 +230,18 @@ namespace
         return SemaClone::cloneAst(sema, nodeRef, noBindings);
     }
 
+    AstNodeRef cloneCodeNodeRefWithoutReplacements(Sema& sema, AstNodeRef nodeRef, const SemaClone::CloneContext& cloneContext)
+    {
+        if (nodeRef.isInvalid())
+            return AstNodeRef::invalid();
+
+        const Ast& sourceAst = cloneSourceAst(sema, cloneContext);
+        if (sourceAst.hasNode(nodeRef))
+            return cloneNodeRefWithoutReplacements(sema, nodeRef, cloneContext);
+
+        return nodeRef;
+    }
+
     AstNodeRef markConstParamBindingTarget(Sema& sema, const SemaClone::ParamBinding& binding, AstNodeRef targetRef)
     {
         if (binding.sourceParam != nullptr && targetRef.isValid())
@@ -1173,7 +1185,7 @@ AstNodeRef AstCompilerCodeBlock::semaClone(Sema& sema, const CloneContext& clone
 {
     const AstNodeRef newRef = cloneNodeCopy<AstNodeId::CompilerCodeBlock>(sema, *this);
     auto&            cloned = sema.node(newRef).cast<AstCompilerCodeBlock>();
-    cloned.nodeBodyRef      = cloneNodeRefWithoutReplacements(sema, nodeBodyRef, cloneContextAsInline(cloneContext));
+    cloned.nodeBodyRef      = cloneCodeNodeRefWithoutReplacements(sema, nodeBodyRef, cloneContextAsInline(cloneContext));
     cloned.payloadTypeRef   = payloadTypeRef;
     return newRef;
 }
@@ -1950,7 +1962,7 @@ AstNodeRef AstCompilerRunExpr::semaClone(Sema& sema, const CloneContext& cloneCo
 AstNodeRef AstCompilerCodeExpr::semaClone(Sema& sema, const CloneContext& cloneContext) const
 {
     auto [newRef, newPtr]  = sema.ast().makeNode<AstNodeId::CompilerCodeExpr>(tokRef());
-    newPtr->nodeExprRef    = cloneNodeRefWithoutReplacements(sema, nodeExprRef, cloneContextAsInline(cloneContext));
+    newPtr->nodeExprRef    = cloneCodeNodeRefWithoutReplacements(sema, nodeExprRef, cloneContextAsInline(cloneContext));
     newPtr->payloadTypeRef = payloadTypeRef;
     return newRef;
 }

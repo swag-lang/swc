@@ -6,6 +6,34 @@ alias ForeachStrictArray = [3] s32
 #[Swag.Strict]
 alias ForeachStrictSlice = [..] s32
 
+struct ForeachAliasBuffer
+{
+    data: [3] u8
+}
+
+impl ForeachAliasBuffer
+{
+    #[Macro, Swag.CalleeReturn]
+    mtd(ptr: bool, back: bool) const opVisit(stmt: #code void)
+    {
+        #if back do
+            #error("reverse visit not supported")
+
+        for @countof(.data)
+        {
+            #macro
+            {
+                #if #up ptr do
+                    var #alias0 = &me.data[@index]
+                #else do
+                    var #alias0 = me.data[@index]
+                var #alias1 = @index
+                #inject(#up stmt)
+            }
+        }
+    }
+}
+
 func semaTest001()
 {
     var arr: [3] s32 = [1, 2, 3]
@@ -128,5 +156,17 @@ func semaTest010()
         #assert(#typeof(idx) == u64)
         var x = value
         var y = idx
+    }
+}
+
+func semaTest011()
+{
+    let text: ForeachAliasBuffer = {data: ['a''u8, 'b''u8, 'c''u8]}
+    var freq: [3, 26] u32
+
+    foreach c, i in text
+    {
+        var cell: &u32 = &freq[i, c - 'a']
+        cell += 1'u32
     }
 }

@@ -676,6 +676,26 @@ namespace
             collectInlineLocalIdentifiers(sema, sourceAst, childRef, outIdentifiers);
     }
 
+    IdentifierRef collectResolvedIdentifier(Sema& sema, AstNodeRef nodeRef)
+    {
+        if (nodeRef.isInvalid())
+            return IdentifierRef::invalid();
+
+        if (const Symbol* symbol = sema.viewStored(nodeRef, SemaNodeViewPartE::Symbol).sym())
+            return symbol->idRef();
+
+        const AstNode& node = sema.node(nodeRef);
+        const SourceCodeRef codeRef = node.codeRef();
+        if (!codeRef.isValid())
+            return IdentifierRef::invalid();
+
+        const TokenId tokenId = sema.token(codeRef).id;
+        if (tokenId == TokenId::Identifier || Token::isCompilerAlias(tokenId) || Token::isCompilerUniq(tokenId))
+            return SemaHelpers::resolveIdentifier(sema, codeRef);
+
+        return IdentifierRef::invalid();
+    }
+
     void collectIdentifierUses(Sema& sema, AstNodeRef nodeRef, SmallVector<IdentifierRef>& outIdentifiers)
     {
         if (nodeRef.isInvalid())
@@ -683,7 +703,10 @@ namespace
 
         const AstNode& node = sema.node(nodeRef);
         if (node.is(AstNodeId::Identifier))
-            outIdentifiers.push_back(sema.idMgr().addIdentifier(sema.ctx(), node.codeRef()));
+        {
+            if (const IdentifierRef idRef = collectResolvedIdentifier(sema, nodeRef); idRef.isValid())
+                outIdentifiers.push_back(idRef);
+        }
 
         SmallVector<AstNodeRef> children;
         node.collectChildrenFromAst(children, sema.ast());
@@ -698,7 +721,7 @@ namespace
 
         const AstNode& node = sourceAst.node(nodeRef);
         if (node.is(AstNodeId::Identifier))
-            outIdentifiers.push_back(sema.idMgr().addIdentifier(sema.ctx(), node.codeRef()));
+            outIdentifiers.push_back(SemaHelpers::resolveIdentifier(sema, node.codeRef()));
 
         SmallVector<AstNodeRef> children;
         node.collectChildrenFromAst(children, sourceAst);

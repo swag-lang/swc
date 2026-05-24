@@ -514,3 +514,25 @@ func semaTest009()
         var y = ordinal
     }
 }
+
+func semaTest010()
+{
+    var visits = SemaReverseVisits{}
+    var outside: s32 = 0
+    var inside: s32 = 0
+
+    foreach value, i in visits
+    {
+        if !(i & 1) do
+            outside += value
+        else do
+            inside += value
+    }
+
+    for i in 0 until 1
+    {
+        var x = i
+    }
+
+    var total = outside + inside
+}

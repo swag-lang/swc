@@ -19,7 +19,7 @@
     day6A()
     day6B()
     day7A()
-    // day7B()
+    day7B()
     // day8A()
     day9A()
     day9B()

@@ -111,7 +111,7 @@ namespace SemaHelpers
 
     inline SemaScope* currentLocalSymbolScope(Sema& sema)
     {
-        SemaScope* lookupScope = sema.frame().lookupScope();
+        SemaScope* lookupScope = sema.lookupScope();
         if (lookupScope && lookupScope->isLocal())
             return lookupScope;
         return sema.curScope().isLocal() ? sema.curScopePtr() : nullptr;
@@ -137,9 +137,13 @@ namespace SemaHelpers
 
         T*         sym       = Symbol::make<T>(ctx, &node, tokNameRef, idRef, flags);
         SymbolMap* symbolMap = SemaFrame::currentSymMap(sema);
+        SemaScope* localScope = currentLocalSymbolScope(sema);
 
-        if (currentLocalSymbolScope(sema))
-            addCurrentScopeSymbol(sema, sym);
+        if (localScope)
+        {
+            localScope->addSymbol(sym);
+            sema.compiler().notifyAlive();
+        }
         else
             symbolMap->addSymbol(ctx, sym, true);
 

@@ -104,8 +104,8 @@ public:
     const SemaScope*           curScopePtr() const { return curScope_; }
     SemaScope&                 curScope() { return *(curScope_); }
     const SemaScope&           curScope() const { return *(curScope_); }
-    SemaScope*                 lookupScope() { return frame().lookupScope() ? frame().lookupScope() : curScope_; }
-    const SemaScope*           lookupScope() const { return frame().lookupScope() ? frame().lookupScope() : curScope_; }
+    SemaScope*                 lookupScope();
+    const SemaScope*           lookupScope() const;
     SemaScope*                 upLookupScope() { return frame().upLookupScope(); }
     const SemaScope*           upLookupScope() const { return frame().upLookupScope(); }
     SemaScope*                 resolvedUpLookupScope();
@@ -336,6 +336,7 @@ private:
     friend struct SemaNodeView;
     friend void SemaGeneric::prepareGenericInstantiationContext(Sema& sema, SymbolMap* startSymMap, const SymbolImpl* impl, const SymbolInterface* itf, const AttributeList& attrs);
 
+    bool                     hasActiveLookupScopeOverride() const;
     AstNodeRef               resolvedNodeRef(AstNodeRef n) const { return nodePayloadContext().getSubstituteRef(n); }
     TypeRef                  typeRefOf(AstNodeRef n) const { return nodePayloadContext().getTypeRef(ctx(), resolvedNodeRef(n)); }
     ConstantRef              constantRefOf(AstNodeRef n) const { return nodePayloadContext().getConstantRef(ctx(), resolvedNodeRef(n)); }

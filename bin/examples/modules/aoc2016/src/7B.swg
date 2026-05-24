@@ -1,5 +1,3 @@
-#global #if false
-
 /*
 --- Part Two ---
 You would also like to know which IPs support SSL (super-secret listening).

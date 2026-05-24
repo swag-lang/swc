@@ -20,6 +20,31 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    // Loop locals are lexical declarations and must not inherit a caller lookup override.
+    template<typename T>
+    T& registerLoopScopeSymbol(Sema& sema, const AstNode& node, TokenRef tokNameRef)
+    {
+        const auto savedFrame = sema.frame();
+        auto&      frame      = sema.frame();
+        frame.setLookupScope(nullptr);
+        frame.setLookupScopeRootRef(AstNodeRef::invalid());
+        auto& sym = SemaHelpers::registerSymbol<T>(sema, node, tokNameRef);
+        sema.frame() = savedFrame;
+        return sym;
+    }
+
+    template<typename T>
+    T& registerUniqueLoopScopeSymbol(Sema& sema, const AstNode& node, std::string_view name)
+    {
+        const auto savedFrame = sema.frame();
+        auto&      frame      = sema.frame();
+        frame.setLookupScope(nullptr);
+        frame.setLookupScopeRootRef(AstNodeRef::invalid());
+        auto& sym = SemaHelpers::registerUniqueSymbol<T>(sema, node, name);
+        sema.frame() = savedFrame;
+        return sym;
+    }
+
     uint64_t enumValueCount(const SymbolEnum& symEnum)
     {
         std::vector<const Symbol*> symbols;
@@ -238,7 +263,7 @@ namespace
             if (tokNameRef.isInvalid())
                 continue;
 
-            auto& symVar = getOrCreateLoopLocalSymbol(payload, index, [&]() -> SymbolVariable& { return SemaHelpers::registerSymbol<SymbolVariable>(sema, node, tokNameRef); });
+            auto& symVar = getOrCreateLoopLocalSymbol(payload, index, [&]() -> SymbolVariable& { return registerLoopScopeSymbol<SymbolVariable>(sema, node, tokNameRef); });
             SWC_RESULT(ensureLoopLocalStorage(sema, symVar, index == 0 ? valueTypeRef : indexTypeRef));
             outSymbols.push_back(&symVar);
             index += 1;
@@ -304,7 +329,7 @@ Result AstForCStyleStmt::semaPreNode(Sema& sema)
     const auto& forNode = sema.curNode().cast<AstForCStyleStmt>();
 
     SmallVector<Symbol*> symbols;
-    auto&                stateSym = SemaHelpers::registerUniqueSymbol<SymbolVariable>(sema, forNode, "for_index_state");
+    auto&                stateSym = registerUniqueLoopScopeSymbol<SymbolVariable>(sema, forNode, "for_index_state");
     SWC_RESULT(SemaHelpers::declareGhostAndCompleteStorage(sema, stateSym, sema.typeMgr().typeU64()));
     symbols.push_back(&stateSym);
     sema.setSymbolList(sema.curNodeRef(), symbols.span());
@@ -365,11 +390,11 @@ Result AstForeachStmt::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) 
         SWC_RESULT(appendForeachAliasSymbols(sema, symbols, pl, *this, valueTypeRef, indexTypeRef));
 
         const size_t stateIndex = symbols.size();
-        auto&        stateSym   = getOrCreateLoopLocalSymbol(pl, stateIndex, [&]() -> SymbolVariable& { return SemaHelpers::registerUniqueSymbol<SymbolVariable>(sema, *this, "foreach_state"); });
+        auto&        stateSym   = getOrCreateLoopLocalSymbol(pl, stateIndex, [&]() -> SymbolVariable& { return registerUniqueLoopScopeSymbol<SymbolVariable>(sema, *this, "foreach_state"); });
         SWC_RESULT(ensureLoopLocalStorage(sema, stateSym, foreachInternalArrayType(sema, sema.typeMgr().typeU64(), 3)));
         symbols.push_back(&stateSym);
 
-        auto& sourceSpillSym = getOrCreateLoopLocalSymbol(pl, stateIndex + 1, [&]() -> SymbolVariable& { return SemaHelpers::registerUniqueSymbol<SymbolVariable>(sema, *this, "foreach_source_spill"); });
+        auto& sourceSpillSym = getOrCreateLoopLocalSymbol(pl, stateIndex + 1, [&]() -> SymbolVariable& { return registerUniqueLoopScopeSymbol<SymbolVariable>(sema, *this, "foreach_source_spill"); });
         SWC_RESULT(ensureLoopLocalStorage(sema, sourceSpillSym, foreachInternalArrayType(sema, sema.typeMgr().typeU8(), 8)));
         symbols.push_back(&sourceSpillSym);
 
@@ -444,7 +469,7 @@ Result AstForStmt::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) cons
         // Create a variable
         if (tokNameRef.isValid())
         {
-            auto&   symVar   = SemaHelpers::registerSymbol<SymbolVariable>(sema, *this, tokNameRef);
+            auto&   symVar   = registerLoopScopeSymbol<SymbolVariable>(sema, *this, tokNameRef);
             TypeRef indexRef = TypeRef::invalid();
             SWC_RESULT(resolveForStmtIndexTypeRef(sema, indexRef, sema.curNodeRef(), *this));
             SWC_RESULT(SemaHelpers::declareGhostAndCompleteStorage(sema, symVar, indexRef));
@@ -550,7 +575,7 @@ Result AstInfiniteLoopStmt::semaPreNodeChild(Sema& sema, const AstNodeRef& child
         sema.pushScopePopOnPostChild(SemaScopeFlagsE::Local, childRef);
 
         SmallVector<Symbol*> symbols;
-        auto&                stateSym = SemaHelpers::registerUniqueSymbol<SymbolVariable>(sema, *this, "for_index_state");
+        auto&                stateSym = registerUniqueLoopScopeSymbol<SymbolVariable>(sema, *this, "for_index_state");
         SWC_RESULT(SemaHelpers::declareGhostAndCompleteStorage(sema, stateSym, sema.typeMgr().typeU64()));
         symbols.push_back(&stateSym);
         sema.setSymbolList(sema.curNodeRef(), symbols.span());

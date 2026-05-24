@@ -384,8 +384,42 @@ const SemaScope* Sema::resolvedUpLookupScope() const
 void Sema::configureLookupFrame(SemaFrame& frame, SemaScope* lookupScope, bool ignoreRuntimeAccess)
 {
     frame.setLookupScope(lookupScope);
+    frame.setLookupScopeRootRef(AstNodeRef::invalid());
     frame.setUpLookupScope(lookupScope ? lookupScope->lookupParent() : nullptr);
     frame.setIgnoreRuntimeAccess(ignoreRuntimeAccess);
+}
+
+bool Sema::hasActiveLookupScopeOverride() const
+{
+    const SemaScope* scope = frame().lookupScope();
+    if (!scope)
+        return false;
+
+    const AstNodeRef rootRef = frame().lookupScopeRootRef();
+    if (rootRef.isInvalid())
+        return true;
+
+    if (curNodeRef() == rootRef)
+        return true;
+
+    for (size_t parentIndex = 0;; ++parentIndex)
+    {
+        const AstNodeRef parentRef = visit().parentNodeRef(parentIndex);
+        if (parentRef.isInvalid())
+            return false;
+        if (parentRef == rootRef)
+            return true;
+    }
+}
+
+SemaScope* Sema::lookupScope()
+{
+    return hasActiveLookupScopeOverride() ? frame().lookupScope() : curScope_;
+}
+
+const SemaScope* Sema::lookupScope() const
+{
+    return hasActiveLookupScopeOverride() ? frame().lookupScope() : curScope_;
 }
 
 void Sema::restartCurrentNode(AstNodeRef nodeRef)

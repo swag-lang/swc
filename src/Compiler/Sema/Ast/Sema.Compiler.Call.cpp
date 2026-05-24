@@ -344,6 +344,7 @@ namespace
                 frame.popBindingType();
             frame.setCurrentInlinePayload(inlinePayload.parentInlinePayload);
             frame.setLookupScope(inlinePayload.callerScope);
+            frame.setLookupScopeRootRef(AstNodeRef::invalid());
             frame.setUpLookupScope(inlinePayload.callerScope);
             for (SymbolVariable* bindingVar : inlinePayload.callerBindingVars)
                 frame.pushBindingVar(bindingVar);
@@ -436,6 +437,7 @@ namespace
             SemaScope* injectScope = sema.lookupScope();
             frame.setCurrentInlinePayload(inlinePayload->parentInlinePayload);
             frame.setLookupScope(injectScope ? injectScope : callerScope);
+            frame.setLookupScopeRootRef(clonedRef);
             frame.setUpLookupScope(inlinePayload->upLookupScope ? inlinePayload->upLookupScope : callerScope);
             for (SymbolVariable* bindingVar : inlinePayload->callerBindingVars)
                 frame.pushBindingVar(bindingVar);

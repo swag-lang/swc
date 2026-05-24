@@ -84,6 +84,8 @@ public:
     void                     setCurrentInlinePayload(SemaInlinePayload* payload) { inlinePayload_ = payload; }
     SemaScope*               lookupScope() const { return lookupScope_; }
     void                     setLookupScope(SemaScope* scope) { lookupScope_ = scope; }
+    AstNodeRef               lookupScopeRootRef() const { return lookupScopeRootRef_; }
+    void                     setLookupScopeRootRef(AstNodeRef nodeRef) { lookupScopeRootRef_ = nodeRef; }
     SemaScope*               upLookupScope() const { return upLookupScope_; }
     void                     setUpLookupScope(SemaScope* scope) { upLookupScope_ = scope; }
     bool                     ignoreRuntimeAccess() const { return ignoreRuntimeAccess_; }
@@ -139,6 +141,7 @@ private:
     SemaFrameContextFlags         contextFlags_        = SemaFrameContextFlagsE::Zero;
     SemaInlinePayload*            inlinePayload_       = nullptr;
     SemaScope*                    lookupScope_         = nullptr;
+    AstNodeRef                    lookupScopeRootRef_  = AstNodeRef::invalid();
     SemaScope*                    upLookupScope_       = nullptr;
     bool                          ignoreRuntimeAccess_ = false;
     BreakContext                  breakable_;

@@ -94,6 +94,30 @@ namespace
         return sema.typeMgr().get(typeRef);
     }
 
+    bool shouldReadReferenceValue(Sema& sema, TypeRef typeRef)
+    {
+        if (!typeRef.isValid())
+            return false;
+
+        const TypeRef normalizedTypeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), typeRef);
+        if (!normalizedTypeRef.isValid())
+            return false;
+
+        const TypeInfo& normalizedType = sema.typeMgr().get(normalizedTypeRef);
+        return normalizedType.isReference();
+    }
+
+    Result readReferenceValue(Sema& sema, SemaNodeView& view)
+    {
+        if (!shouldReadReferenceValue(sema, view.typeRef()))
+            return Result::Continue;
+
+        const TypeRef normalizedTypeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), view.typeRef());
+        const TypeRef valueTypeRef      = sema.typeMgr().get(normalizedTypeRef).payloadTypeRef();
+        SWC_RESULT(Cast::cast(sema, view, valueTypeRef, CastKind::Implicit));
+        return Result::Continue;
+    }
+
     Result checkIntegerModifiers(Sema& sema, const AstAssignStmt& node, const SemaNodeView& nodeLeftView)
     {
         if (!node.modifierFlags.hasAny({AstModifierFlagsE::Wrap, AstModifierFlagsE::Promote}))
@@ -355,7 +379,7 @@ namespace
                 continue;
 
             const SemaNodeView leftView = sema.viewNodeTypeSymbol(leftRef);
-            SWC_RESULT(SemaCheck::isAssignable(sema, sema.curNodeRef(), leftRef, leftView));
+            SWC_RESULT(SemaCheck::isAssignable(sema, sema.curNodeRef(), leftRef, leftView, true));
             markAssignmentTargetAddressableStorage(leftView, false);
 
             SWC_RESULT(tryAssignmentCast(sema, leftRef, leftView, fields[i]->typeRef(), false));
@@ -371,9 +395,6 @@ namespace
 
         applyMoveAssignmentModifiers(sema, modifierFlags, nodeRightView);
 
-        if (nodeRightView.cstRef().isValid())
-            SWC_RESULT(checkRightConstant(sema, tok.id, sema.curNodeRef(), nodeRightView));
-
         if (tok.id == TokenId::SymEqual)
         {
             SWC_RESULT(SemaCheck::isValueOrType(sema, nodeRightView));
@@ -381,7 +402,11 @@ namespace
         else
         {
             SWC_RESULT(SemaCheck::isValue(sema, nodeRightView.nodeRef()));
+            SWC_RESULT(readReferenceValue(sema, nodeRightView));
         }
+
+        if (nodeRightView.cstRef().isValid())
+            SWC_RESULT(checkRightConstant(sema, tok.id, sema.curNodeRef(), nodeRightView));
 
         for (const auto leftRef : leftRefs)
         {
@@ -390,7 +415,7 @@ namespace
 
             const SemaNodeView leftView        = sema.viewNodeTypeSymbol(leftRef);
             const bool         rebindReference = isReferenceRebindAssignment(sema, tok.id, leftView);
-            SWC_RESULT(SemaCheck::isAssignable(sema, sema.curNodeRef(), leftRef, leftView));
+            SWC_RESULT(SemaCheck::isAssignable(sema, sema.curNodeRef(), leftRef, leftView, !rebindReference));
             markAssignmentTargetAddressableStorage(leftView, rebindReference);
 
             if (tok.id != TokenId::SymEqual)
@@ -454,12 +479,11 @@ Result AstAssignStmt::semaPostNode(Sema& sema) const
         return Result::Continue;
 
     const bool rebindReference = isReferenceRebindAssignment(sema, tok.id, nodeLeftView);
-    SWC_RESULT(SemaCheck::isAssignable(sema, sema.curNodeRef(), nodeLeftRef, nodeLeftView));
+    SWC_RESULT(SemaCheck::isAssignable(sema, sema.curNodeRef(), nodeLeftRef, nodeLeftView, !rebindReference));
     markAssignmentTargetAddressableStorage(nodeLeftView, rebindReference);
     SWC_RESULT(SemaSpecOp::tryResolveAssign(sema, *this, nodeLeftView, handled));
     if (handled)
         return Result::Continue;
-    SWC_RESULT(check(sema, tok.id, sema.curNodeRef(), nodeRightView));
 
     applyMoveAssignmentModifiers(sema, modifierFlags, nodeRightView);
     markMoveAssignmentSourceAddressableStorage(modifierFlags, nodeRightView);
@@ -467,10 +491,13 @@ Result AstAssignStmt::semaPostNode(Sema& sema) const
     if (tok.id == TokenId::SymEqual)
     {
         SWC_RESULT(SemaCheck::isValueOrType(sema, nodeRightView));
+        SWC_RESULT(check(sema, tok.id, sema.curNodeRef(), nodeRightView));
     }
     else
     {
         SWC_RESULT(SemaCheck::isValue(sema, nodeRightView.nodeRef()));
+        SWC_RESULT(readReferenceValue(sema, nodeRightView));
+        SWC_RESULT(check(sema, tok.id, sema.curNodeRef(), nodeRightView));
         const TokenId binOp          = Token::assignToBinary(tok.id);
         const auto    targetLeftView = assignmentTargetView(sema, nodeLeftView, rebindReference);
         SWC_RESULT(SemaHelpers::checkBinaryOperandTypes(sema, sema.curNodeRef(), binOp, nodeLeftRef, nodeRightRef, targetLeftView, nodeRightView));

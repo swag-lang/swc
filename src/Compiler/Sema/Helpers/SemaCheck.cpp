@@ -470,7 +470,7 @@ Result SemaCheck::isValidSignature(Sema& sema, const std::vector<SymbolVariable*
     return Result::Continue;
 }
 
-Result SemaCheck::isAssignable(Sema& sema, AstNodeRef errorNodeRef, AstNodeRef leftExprRef, const SemaNodeView& leftView)
+Result SemaCheck::isAssignable(Sema& sema, AstNodeRef errorNodeRef, AstNodeRef leftExprRef, const SemaNodeView& leftView, const bool allowLetReferenceWriteThrough)
 {
     if (isInlineConstAssignmentBinding(sema, leftExprRef))
     {
@@ -484,13 +484,19 @@ Result SemaCheck::isAssignable(Sema& sema, AstNodeRef errorNodeRef, AstNodeRef l
     {
         if (leftView.sym()->isLetVariable())
         {
-            auto diag = SemaError::report(sema, DiagnosticId::sema_err_assign_to_let, errorNodeRef);
-            SemaError::setReportArguments(sema, diag, leftView.sym());
-            diag.addNote(DiagnosticId::sema_note_let_variable_declared_here);
-            diag.last().addArgument(Diagnostic::ARG_SYM, leftView.sym()->name(sema.ctx()));
-            diag.last().addSpan(leftView.sym()->codeRange(sema.ctx()));
-            diag.report(sema.ctx());
-            return Result::Error;
+            const bool canWriteThroughReference = allowLetReferenceWriteThrough &&
+                                                  leftView.type() &&
+                                                  leftView.type()->isReference();
+            if (!canWriteThroughReference)
+            {
+                auto diag = SemaError::report(sema, DiagnosticId::sema_err_assign_to_let, errorNodeRef);
+                SemaError::setReportArguments(sema, diag, leftView.sym());
+                diag.addNote(DiagnosticId::sema_note_let_variable_declared_here);
+                diag.last().addArgument(Diagnostic::ARG_SYM, leftView.sym()->name(sema.ctx()));
+                diag.last().addSpan(leftView.sym()->codeRange(sema.ctx()));
+                diag.report(sema.ctx());
+                return Result::Error;
+            }
         }
 
         if (leftView.sym()->isConstant())

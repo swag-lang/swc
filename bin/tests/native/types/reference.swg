@@ -7,6 +7,16 @@ struct Vec2
     y: s32
 }
 
+struct RefIndexBuffer
+{
+    values: [1] s32
+}
+
+impl RefIndexBuffer
+{
+    mtd ref1(index: u64)->&s32 { return &me.values[index] }
+}
+
 #test
 {
     func testRead(x: &Vec2)->s32 { return x.x + x.y; }
@@ -173,6 +183,21 @@ func writeVecRef(target: &Vec2, value: Vec2)
     @assert(nextDigit(bytes, &index) == '4''u8)
     @assert(nextDigit(bytes, &index) == '2''u8)
     @assert(index == 2'u64)
+}
+
+#test
+{
+    var values: RefIndexBuffer = {values: [12]}
+    var total = 1's32
+    var index = 0's64
+
+    let valueRef = #ref values.ref1(index)
+    total += valueRef
+    valueRef += 5
+
+    @assert(total == 13)
+    @assert(valueRef == 17)
+    @assert(values.values[0] == 17)
 }
 
 struct A {}

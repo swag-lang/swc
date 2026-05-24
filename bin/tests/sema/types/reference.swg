@@ -62,6 +62,16 @@ struct RefFloatBox
     value: f32
 }
 
+struct RefIndexBuffer
+{
+    values: [1] s32
+}
+
+impl RefIndexBuffer
+{
+    mtd ref1(index: u64)->&s32 { return &me.values[index] }
+}
+
 func sumConstPair(value: const &RefPair)->s32 { return value.x + value.y }
 func(T) addRefValue(value: &T, rhs: T)->T { return value + rhs }
 func(T) dampRefValue(currentVelocity: &T, omega, clampedChange, deltaTime: T)->T
@@ -159,4 +169,18 @@ func semaTest012()
         var valueRef: &u32 = &freq[i, c - 'a']
         valueRef += 1'u32
     }
+}
+
+func semaTest013()
+{
+    var values: RefIndexBuffer = {values: [12]}
+    var total = 1's32
+    var index = 0's64
+
+    let valueRef = #ref values.ref1(index)
+    total += valueRef
+    valueRef += 5
+
+    #assert(#typeof(valueRef) == #type &s32)
+    #assert(#typeof(total) == s32)
 }

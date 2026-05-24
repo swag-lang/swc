@@ -13,6 +13,7 @@ func day10B()
     for 50
     {
         var str: String
+        str.reserve(l.length * 2)
         var i    = 0
         while i < l.length
         {

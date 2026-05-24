@@ -28,6 +28,15 @@ struct(K, V) HashTable
 
 impl HashTable
 {
+    func normalizeCapacity(newCapacity: u64)->u64
+    {
+        var result = 32'u64
+        let target = Math.max(newCapacity, result)
+        while result < target do
+            result <<= 1
+        return result
+    }
+
     // Returns the number of key-value pairs in the me.table.
     #[Inline]
     mtd opCount()->u64
@@ -214,7 +223,7 @@ impl HashTable
     // Resizes the hash me.table to a new me.capacity, rehashing all existing elements.
     mtd reserve(newCapacity: u64)
     {
-        let reqCapacity = Math.max(newCapacity, 32)
+        let reqCapacity = normalizeCapacity(newCapacity)
         if reqCapacity <= .capacity do
             return
 
@@ -253,29 +262,24 @@ impl HashTable
     // Uses linear probing to find the next available slot.
     mtd getNewIndex(key: K, idx: u64, hashVal: u64)->u64
     {
-        var firstFree    = Swag.U64.Max
         var firstDeleted = Swag.U64.Max
+        let mask         = .capacity - 1
         var index        = idx
 
-        while .table[index].hash
+        for
         {
-            if .table[index].hash == HashTable.HASH_DELETED and firstDeleted == Swag.U64.Max do
-                firstDeleted = index
-            elif .table[index].hash == HashTable.HASH_FREE and firstFree == Swag.U64.Max do
-                firstFree = index
+            let entryHash = .table[index].hash
+            if entryHash == HashTable.HASH_FREE do
+                return firstDeleted != Swag.U64.Max ? firstDeleted : index
 
-            if .table[index].hash == hashVal and .table[index].key == key do
+            if entryHash == HashTable.HASH_DELETED and firstDeleted == Swag.U64.Max do
+                firstDeleted = index
+
+            if entryHash == hashVal and .table[index].key == key do
                 return index
 
-            index = (index + 1) % .capacity
+            index = (index + 1) & mask
         }
-
-        if firstDeleted != Swag.U64.Max do
-            index = firstDeleted
-        elif firstFree != Swag.U64.Max do
-            index = firstFree
-
-        return index
     }
 
     // Adds a new key-value pair to the me.table by copying them.
@@ -287,7 +291,7 @@ impl HashTable
         .grow()
 
         let hashVal = hashKey(key)
-        var index   = hashVal % .capacity
+        var index   = cast(u64) hashVal & (.capacity - 1)
 
         index = .getNewIndex(key, index, hashVal)
         if .table[index].hash >= HashTable.HASH_FIRST
@@ -324,7 +328,7 @@ impl HashTable
         .grow()
 
         let hashVal = hashKey(key)
-        var index   = hashVal % .capacity
+        var index   = cast(u64) hashVal & (.capacity - 1)
 
         index = .getNewIndex(key, index, hashVal)
         if .table[index].hash >= HashTable.HASH_FIRST
@@ -359,7 +363,7 @@ impl HashTable
     {
         .grow()
 
-        var index = hashVal % .capacity
+        var index = cast(u64) hashVal & (.capacity - 1)
 
         index = .getNewIndex(key, index, hashVal)
         if .table[index].hash >= HashTable.HASH_FIRST
@@ -394,7 +398,8 @@ impl HashTable
             return
 
         let hashVal = hashKey(key)
-        var index   = hashVal % .capacity
+        let mask    = .capacity - 1
+        var index   = cast(u64) hashVal & mask
 
         while .table[index].hash
         {
@@ -406,7 +411,7 @@ impl HashTable
                 return
             }
 
-            index = (index + 1) % .capacity
+            index = (index + 1) & mask
         }
     }
 
@@ -417,13 +422,14 @@ impl HashTable
             return false
 
         let hashVal = hashKey(key)
-        var index   = hashVal % .capacity
+        let mask    = .capacity - 1
+        var index   = cast(u64) hashVal & mask
 
         while .table[index].hash
         {
             if .table[index].hash == hashVal and .table[index].key == key do
                 return true
-            index = (index + 1) % .capacity
+            index = (index + 1) & mask
         }
 
         return false
@@ -437,13 +443,14 @@ impl HashTable
             return null
 
         let hashVal = hashKey(key)
-        var index   = hashVal % .capacity
+        let mask    = .capacity - 1
+        var index   = cast(u64) hashVal & mask
 
         while .table[index].hash
         {
             if .table[index].hash == hashVal and .table[index].key == key do
                 return .table + index
-            index = (index + 1) % .capacity
+            index = (index + 1) & mask
         }
 
         return null
@@ -456,13 +463,14 @@ impl HashTable
         Debug.assert(.table != null)
 
         let hashVal = hashKey(key)
-        var index   = hashVal % .capacity
+        let mask    = .capacity - 1
+        var index   = cast(u64) hashVal & mask
 
         while .table[index].hash
         {
             if .table[index].hash == hashVal and .table[index].key == key do
                 return .table + index
-            index = (index + 1) % .capacity
+            index = (index + 1) & mask
         }
 
         unreachable

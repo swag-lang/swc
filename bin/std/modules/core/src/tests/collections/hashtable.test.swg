@@ -218,3 +218,21 @@ func assertTableStringValue(table: const &HashTable'(string, String), key: strin
     @assert(table.contains(3))
     @assert(table[3] == 30)
 }
+
+#test
+{
+    var table: HashTable'(s32, s32)
+    table.reserve(33)
+
+    table.add(10, 100)
+    table.add(42, 420)
+    table.add(74, 740)
+
+    @assert(table.capacity >= 33)
+    @assert(table.contains(10))
+    @assert(table.contains(42))
+    @assert(table.contains(74))
+    @assert(table[10] == 100)
+    @assert(table[42] == 420)
+    @assert(table[74] == 740)
+}

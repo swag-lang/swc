@@ -13,12 +13,45 @@ Your puzzle input is yzbqklnj.
 
 using Core
 
-func day4A()
+moduleprivate const DAY4_SECRET = "yzbqklnj"
+
+moduleprivate func day4InitBuffer(buffer: &[16] u8)
 {
+    Memory.copy(&buffer[0], @dataof(DAY4_SECRET), @countof(DAY4_SECRET))
+}
+
+moduleprivate func day4BuildInput(buffer: &[16] u8, value: u64)->const [..] u8
+{
+    var digits: [20] u8
+    var digitCount = 0'u64
+    var remaining  = value
     for
     {
-        let str = Format.toString("yzbqklnj%", @index)
-        let v   = Hash.Md5.compute(str)
+        digits[digitCount] = cast(u8) (remaining % 10) + '0'
+        digitCount += 1
+        remaining /= 10
+        if !remaining do
+            break
+    }
+
+    var writeIndex = @countof(DAY4_SECRET)
+    while digitCount
+    {
+        digitCount -= 1
+        buffer[writeIndex] = digits[digitCount]
+        writeIndex += 1
+    }
+
+    return @mkslice(&buffer[0], writeIndex)
+}
+
+func day4A()
+{
+    var buffer: [16] u8
+    day4InitBuffer(&buffer)
+    for
+    {
+        let v = Hash.Md5.compute(day4BuildInput(&buffer, @index))
         if v[0] == 0 and v[1] == 0 and (v[2] & 0xF0) == 0
         {
             //Console.print("total: ", @index)

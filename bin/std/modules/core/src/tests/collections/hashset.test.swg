@@ -136,3 +136,36 @@ func assertReverseIntSetIteration(values: const &HashSet's32)->bool
     @assert(!values.contains(2))
     @assert(values.contains(3))
 }
+
+#test
+{
+    var values: HashSet's32
+    values.reserve(33)
+
+    values.add(10)
+    values.add(42)
+    values.add(74)
+
+    @assert(values.capacity >= 33)
+    @assert(values.contains(10))
+    @assert(values.contains(42))
+    @assert(values.contains(74))
+}
+
+#test
+{
+    var values: HashSet's32
+
+    @assert(values.toggleKey(10))
+    @assert(values.contains(10))
+    @assert(values.count == 1)
+
+    @assert(!values.toggleKey(10))
+    @assert(!values.contains(10))
+    @assert(values.count == 0)
+
+    values.add(42)
+    @assert(!values.toggleKey(42))
+    @assert(!values.contains(42))
+    @assert(values.count == 0)
+}

@@ -18,6 +18,75 @@ After following the instructions, how many lights are lit?
 
 using Core
 
+moduleprivate const DAY6_GRID_SIZE = 1000'u64
+moduleprivate const DAY6_GRID_SIZE32 = 1000'u32
+
+moduleprivate enum Day6Action
+{
+    TurnOn
+    TurnOff
+    Toggle
+}
+
+moduleprivate struct Day6Instruction
+{
+    action:       Day6Action
+    x0:           u16
+    y0:           u16
+    x1:           u16
+    y1:           u16
+}
+
+moduleprivate var day6InstructionsLoaded = false
+moduleprivate var day6Instructions: Array'Day6Instruction
+
+moduleprivate func day6ParseNumber(line: string, cursor: &u64)->u16
+{
+    while cursor < @countof(line) and (line[cursor] < '0' or line[cursor] > '9') do
+        cursor += 1
+
+    var result = 0'u16
+    while cursor < @countof(line) and line[cursor] >= '0' and line[cursor] <= '9'
+    {
+        result *= 10
+        result += cast(u16) line[cursor] - '0'
+        cursor += 1
+    }
+
+    return result
+}
+
+moduleprivate func day6EnsureInstructions()
+{
+    if day6InstructionsLoaded do
+        return
+
+    let dataPath = Path.combine(Path.getDirectoryName(#file), "6.txt")
+    let lines    = assume File.readAllLines(dataPath)
+
+    day6Instructions.reserve(lines.count)
+    foreach line in lines
+    {
+        var cursor = 0'u64
+        var instruction: Day6Instruction
+
+        if line[6] == 'n' do
+            instruction.action = .TurnOn
+        elif line[6] == 'f' do
+            instruction.action = .TurnOff
+        else do
+            instruction.action = .Toggle
+
+        instruction.x0 = day6ParseNumber(line, &cursor)
+        instruction.y0 = day6ParseNumber(line, &cursor)
+        instruction.x1 = day6ParseNumber(line, &cursor)
+        instruction.y1 = day6ParseNumber(line, &cursor)
+        day6Instructions.add(instruction)
+    }
+
+    day6InstructionsLoaded = true
+}
+
 func day6A()
 {
     day6A0()
@@ -31,41 +100,51 @@ func day6A0()
 {
     //Time.Stopwatch.scopeMeasure()
 
-    let dataPath = Path.combine(Path.getDirectoryName(#file), "6.txt")
-    let lines    = assume File.readAllLines(dataPath)
+    day6EnsureInstructions()
+    var lights: HashSet'u32
+    lights.reserve(DAY6_GRID_SIZE * DAY6_GRID_SIZE)
 
-    var lights: HashSet'u64
-
-    var r0 = assume Parser.RegExp.create(#"turn on (\d+),(\d+) through (\d+),(\d+)"#)
-    var r1 = assume Parser.RegExp.create(#"turn off (\d+),(\d+) through (\d+),(\d+)"#)
-    var r2 = assume Parser.RegExp.create(#"toggle (\d+),(\d+) through (\d+),(\d+)"#)
-
-    foreach l in lines
+    foreach instruction in day6Instructions
     {
-        if r0.match(l)
+        let x0         = cast(u32) instruction.x0
+        let y0         = cast(u32) instruction.y0
+        let y1         = cast(u32) instruction.y1
+        let writeCount = cast(u32) instruction.x1 - x0 + 1
+
+        switch instruction.action
         {
-            for xOn in cast(u64) assume StrConv.toS32(r0.getCapture(1)) to cast(u64) assume StrConv.toS32(r0.getCapture(3)) do
-                for yOn in assume StrConv.toS32(r0.getCapture(2)) to assume StrConv.toS32(r0.getCapture(4)) do
-                    lights.add((xOn << 32) | yOn)
-        }
-        elif r1.match(l)
-        {
-            for xOff in cast(u64) assume StrConv.toS32(r1.getCapture(1)) to cast(u64) assume StrConv.toS32(r1.getCapture(3)) do
-                for yOff in assume StrConv.toS32(r1.getCapture(2)) to assume StrConv.toS32(r1.getCapture(4)) do
-                    lights.remove((xOff << 32) | yOff)
-        }
-        elif r2.match(l)
-        {
-            for xToggle in cast(u64) assume StrConv.toS32(r2.getCapture(1)) to cast(u64) assume StrConv.toS32(r2.getCapture(3)) do
-                for yToggle in assume StrConv.toS32(r2.getCapture(2)) to assume StrConv.toS32(r2.getCapture(4)) do
-                    if lights.contains((xToggle << 32) | yToggle)
-                    {
-                        lights.remove((xToggle << 32) | yToggle)
-                    }
-                    else
-                    {
-                        lights.add((xToggle << 32) | yToggle)
-                    }
+        case .TurnOn:
+            for y in y0 to y1
+            {
+                var coord = x0 + (y * DAY6_GRID_SIZE32)
+                for writeCount
+                {
+                    lights.add(coord)
+                    coord += 1
+                }
+            }
+
+        case .TurnOff:
+            for y in y0 to y1
+            {
+                var coord = x0 + (y * DAY6_GRID_SIZE32)
+                for writeCount
+                {
+                    lights.remove(coord)
+                    coord += 1
+                }
+            }
+
+        case .Toggle:
+            for y in y0 to y1
+            {
+                var coord = x0 + (y * DAY6_GRID_SIZE32)
+                for writeCount
+                {
+                    lights.toggleKey(coord)
+                    coord += 1
+                }
+            }
         }
     }
 
@@ -79,31 +158,50 @@ func day6A1()
 {
     //Time.Stopwatch.scopeMeasure()
 
-    let dataPath = Path.combine(Path.getDirectoryName(#file), "6.txt")
-    let lines    = assume File.readAllLines(dataPath)
-
+    day6EnsureInstructions()
     var lights: Array'bool
-    lights.resize(1000 * 1000)
+    lights.resize(DAY6_GRID_SIZE * DAY6_GRID_SIZE)
 
-    var r = assume Parser.RegExp.create(#"\d+"#)
-    foreach l in lines
+    foreach instruction in day6Instructions
     {
-        let nums = r.grepAll(l)
-        let x0   = assume StrConv.toU64(nums[0])
-        let y0   = assume StrConv.toU64(nums[1])
-        let x1   = assume StrConv.toU64(nums[2])
-        let y1   = assume StrConv.toU64(nums[3])
+        let x0         = cast(u64) instruction.x0
+        let y0         = cast(u64) instruction.y0
+        let y1         = cast(u64) instruction.y1
+        let writeCount = cast(u64) instruction.x1 - x0 + 1
 
-        for x in x0 to x1
+        switch instruction.action
         {
+        case .TurnOn:
             for y in y0 to y1
             {
-                if l[6] == 'n' do
-                    lights.ref2(x, y, 1000) = true
-                elif l[6] == 'f' do
-                    lights.ref2(x, y, 1000) = false
-                else do
-                    lights.ref2(x, y, 1000) = !lights.ref2(x, y, 1000)
+                var scan = lights.buffer + (y * DAY6_GRID_SIZE) + x0
+                for writeCount
+                {
+                    scan[0] = true
+                    scan += 1
+                }
+            }
+
+        case .TurnOff:
+            for y in y0 to y1
+            {
+                var scan = lights.buffer + (y * DAY6_GRID_SIZE) + x0
+                for writeCount
+                {
+                    scan[0] = false
+                    scan += 1
+                }
+            }
+
+        case .Toggle:
+            for y in y0 to y1
+            {
+                var scan = lights.buffer + (y * DAY6_GRID_SIZE) + x0
+                for writeCount
+                {
+                    scan[0] = !scan[0]
+                    scan += 1
+                }
             }
         }
     }
@@ -122,32 +220,50 @@ func day6A2()
 {
     //Time.Stopwatch.scopeMeasure()
 
-    let dataPath = Path.combine(Path.getDirectoryName(#file), "6.txt")
-    let lines    = assume File.readAllLines(dataPath)
-
+    day6EnsureInstructions()
     var lights: BitArray
-    lights.reserve(1000 * 1000'u64, false)
+    lights.reserve(DAY6_GRID_SIZE * DAY6_GRID_SIZE, false)
 
-    var r = assume Parser.RegExp.create(#"\d+"#)
-    foreach l in lines
+    foreach instruction in day6Instructions
     {
-        let nums = r.grepAll(l)
-        let x0   = assume StrConv.toU64(nums[0])
-        let y0   = assume StrConv.toU64(nums[1])
-        let x1   = assume StrConv.toU64(nums[2])
-        let y1   = assume StrConv.toU64(nums[3])
+        let x0         = cast(u64) instruction.x0
+        let y0         = cast(u64) instruction.y0
+        let y1         = cast(u64) instruction.y1
+        let writeCount = cast(u64) instruction.x1 - x0 + 1
 
-        for x in x0 to x1
+        switch instruction.action
         {
+        case .TurnOn:
             for y in y0 to y1
             {
-                let coord = x + (y * 1000)
-                if l[6] == 'n' do
+                var coord = x0 + (y * DAY6_GRID_SIZE)
+                for writeCount
+                {
                     lights.set(coord, true)
-                elif l[6] == 'f' do
+                    coord += 1
+                }
+            }
+
+        case .TurnOff:
+            for y in y0 to y1
+            {
+                var coord = x0 + (y * DAY6_GRID_SIZE)
+                for writeCount
+                {
                     lights.set(coord, false)
-                else do
+                    coord += 1
+                }
+            }
+
+        case .Toggle:
+            for y in y0 to y1
+            {
+                var coord = x0 + (y * DAY6_GRID_SIZE)
+                for writeCount
+                {
                     lights.invert(coord)
+                    coord += 1
+                }
             }
         }
     }

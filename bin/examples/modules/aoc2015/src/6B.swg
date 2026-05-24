@@ -24,31 +24,51 @@ func day6B()
 {
     //Time.Stopwatch.scopeMeasure()
 
-    let dataPath = Path.combine(Path.getDirectoryName(#file), "6.txt")
-    let lines    = assume File.readAllLines(dataPath)
-
+    day6EnsureInstructions()
     var lights: Array's32
-    lights.resize(1000 * 1000)
+    lights.resize(DAY6_GRID_SIZE * DAY6_GRID_SIZE)
 
-    var r = assume Parser.RegExp.create(#"\d+"#)
-    foreach l in lines
+    foreach instruction in day6Instructions
     {
-        let nums = r.grepAll(l)
-        let x0   = assume StrConv.toU64(nums[0])
-        let y0   = assume StrConv.toU64(nums[1])
-        let x1   = assume StrConv.toU64(nums[2])
-        let y1   = assume StrConv.toU64(nums[3])
+        let x0         = cast(u64) instruction.x0
+        let y0         = cast(u64) instruction.y0
+        let y1         = cast(u64) instruction.y1
+        let writeCount = cast(u64) instruction.x1 - x0 + 1
 
-        for x in x0 to x1
+        switch instruction.action
         {
+        case .TurnOn:
             for y in y0 to y1
             {
-                if l[6] == 'n' do
-                    lights.ref2(x, y, 1000) += 1
-                elif l[6] == 'f' and lights.ref2(x, y, 1000) do
-                    lights.ref2(x, y, 1000) -= 1
-                elif l[6] == ' ' do
-                    lights.ref2(x, y, 1000) += 2
+                var scan = lights.buffer + (y * DAY6_GRID_SIZE) + x0
+                for writeCount
+                {
+                    scan[0] += 1
+                    scan += 1
+                }
+            }
+
+        case .TurnOff:
+            for y in y0 to y1
+            {
+                var scan = lights.buffer + (y * DAY6_GRID_SIZE) + x0
+                for writeCount
+                {
+                    if scan[0] do
+                        scan[0] -= 1
+                    scan += 1
+                }
+            }
+
+        case .Toggle:
+            for y in y0 to y1
+            {
+                var scan = lights.buffer + (y * DAY6_GRID_SIZE) + x0
+                for writeCount
+                {
+                    scan[0] += 2
+                    scan += 1
+                }
             }
         }
     }

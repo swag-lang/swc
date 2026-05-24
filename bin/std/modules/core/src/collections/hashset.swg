@@ -27,6 +27,15 @@ struct(K) HashSet
 
 impl HashSet
 {
+    func normalizeCapacity(newCapacity: u64)->u64
+    {
+        var result = 32'u64
+        let target = Math.max(newCapacity, result)
+        while result < target do
+            result <<= 1
+        return result
+    }
+
     // Returns the number of elements in the set.
     #[Inline]
     mtd opCount()->u64
@@ -171,7 +180,7 @@ impl HashSet
     // Resizes the hash me.table to a new me.capacity, rehashing all existing elements.
     mtd reserve(newCapacity: u64)
     {
-        let reqCapacity = Math.max(newCapacity, 32)
+        let reqCapacity = normalizeCapacity(newCapacity)
         if reqCapacity <= .capacity do
             return
 
@@ -209,29 +218,24 @@ impl HashSet
     // Uses linear probing to find the next available slot.
     mtd getNewIndex(key: K, idx: u64, hashVal: u64)->u64
     {
-        var firstFree    = Swag.U64.Max
         var firstDeleted = Swag.U64.Max
+        let mask         = .capacity - 1
         var index        = idx
 
-        while .table[index].hash
+        for
         {
-            if .table[index].hash == HashSet.HASH_DELETED and firstDeleted == Swag.U64.Max do
-                firstDeleted = index
-            elif .table[index].hash == HashSet.HASH_FREE and firstFree == Swag.U64.Max do
-                firstFree = index
+            let entryHash = .table[index].hash
+            if entryHash == HashSet.HASH_FREE do
+                return firstDeleted != Swag.U64.Max ? firstDeleted : index
 
-            if .table[index].hash == hashVal and .table[index].key == key do
+            if entryHash == HashSet.HASH_DELETED and firstDeleted == Swag.U64.Max do
+                firstDeleted = index
+
+            if entryHash == hashVal and .table[index].key == key do
                 return index
 
-            index = (index + 1) % .capacity
+            index = (index + 1) & mask
         }
-
-        if firstDeleted != Swag.U64.Max do
-            index = firstDeleted
-        elif firstFree != Swag.U64.Max do
-            index = firstFree
-
-        return index
     }
 
     // Adds a new key to the set by copying it.
@@ -243,7 +247,7 @@ impl HashSet
         .grow()
 
         let hashVal = hashKey(key)
-        var index   = hashVal % .capacity
+        var index   = cast(u64) hashVal & (.capacity - 1)
 
         index = .getNewIndex(key, index, hashVal)
         if .table[index].hash >= HashSet.HASH_FIRST do
@@ -273,7 +277,7 @@ impl HashSet
         .grow()
 
         let hashVal = hashKey(key)
-        var index   = hashVal % .capacity
+        var index   = cast(u64) hashVal & (.capacity - 1)
 
         index = .getNewIndex(key, index, hashVal)
         if .table[index].hash >= HASH_FIRST do
@@ -302,7 +306,7 @@ impl HashSet
     {
         .grow()
 
-        var index = hashVal % .capacity
+        var index = cast(u64) hashVal & (.capacity - 1)
 
         index = .getNewIndex(key, index, hashVal)
         if .table[index].hash >= HashSet.HASH_FIRST do
@@ -324,6 +328,56 @@ impl HashSet
         return .table + index
     }
 
+    // Toggles the presence of a key in the set.
+    // Returns 'true' if the key is present after the operation, or 'false' if it was removed.
+    #[Discardable]
+    public mtd toggleKey(key: K)->bool
+        where Reflection.canCopy(#typeof(K))
+    {
+        .grow()
+
+        let hashVal       = hashKey(key)
+        let mask          = .capacity - 1
+        var firstDeleted  = Swag.U64.Max
+        var index         = cast(u64) hashVal & mask
+
+        for
+        {
+            let entryHash = .table[index].hash
+            if entryHash == HashSet.HASH_FREE
+            {
+                let targetIndex = firstDeleted != Swag.U64.Max ? firstDeleted : index
+                if .table[targetIndex].hash == HashSet.HASH_FREE
+                {
+                    .table[targetIndex].key = #nodrop key
+                }
+                else
+                {
+                    .deleted -= 1
+                    .table[targetIndex].key = key
+                }
+
+                .table[targetIndex].hash = hashVal
+                .count += 1
+                return true
+            }
+
+            if entryHash == HashSet.HASH_DELETED and firstDeleted == Swag.U64.Max
+            {
+                firstDeleted = index
+            }
+            elif entryHash == hashVal and .table[index].key == key
+            {
+                .table[index].hash = HashSet.HASH_DELETED
+                .count -= 1
+                .deleted += 1
+                return false
+            }
+
+            index = (index + 1) & mask
+        }
+    }
+
     // Removes a key from the set.
     // If the key exists, its slot is marked as 'DELETED'. Does nothing if the key is not found.
     mtd remove(key: K)
@@ -332,7 +386,8 @@ impl HashSet
             return
 
         let hashVal = hashKey(key)
-        var index   = hashVal % .capacity
+        let mask    = .capacity - 1
+        var index   = cast(u64) hashVal & mask
 
         while .table[index].hash
         {
@@ -344,7 +399,7 @@ impl HashSet
                 return
             }
 
-            index = (index + 1) % .capacity
+            index = (index + 1) & mask
         }
     }
 
@@ -355,13 +410,14 @@ impl HashSet
             return false
 
         let hashVal = hashKey(key)
-        var index   = hashVal % .capacity
+        let mask    = .capacity - 1
+        var index   = cast(u64) hashVal & mask
 
         while .table[index].hash
         {
             if .table[index].hash == hashVal and .table[index].key == key do
                 return true
-            index = (index + 1) % .capacity
+            index = (index + 1) & mask
         }
 
         return false

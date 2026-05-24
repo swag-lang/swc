@@ -79,28 +79,28 @@ public impl Md5
         if bufferLen < 56
         {
             // Short buffers fit in a single MD5 block, so skip the generic update/final pipeline.
-            var v: Md5
-            v.init()
+            var state: [4] u32 = [0x67452301, 0xefcdab89, 0x98badcfe, 0x10325476]
+            var block: [64] u8
 
             if bufferLen do
-                Memory.copy(&v.buffer[0], @dataof(buffer), bufferLen)
+                Memory.copy(&block[0], @dataof(buffer), bufferLen)
 
-            v.buffer[bufferLen] = 0x80
+            block[bufferLen] = 0x80
 
             let bitCount = cast(u64) bufferLen << 3
-            v.buffer[56] = cast(u8) bitCount
-            v.buffer[57] = cast(u8) (bitCount >> 8)
-            v.buffer[58] = cast(u8) (bitCount >> 16)
-            v.buffer[59] = cast(u8) (bitCount >> 24)
-            v.buffer[60] = cast(u8) (bitCount >> 32)
-            v.buffer[61] = cast(u8) (bitCount >> 40)
-            v.buffer[62] = cast(u8) (bitCount >> 48)
-            v.buffer[63] = cast(u8) (bitCount >> 56)
+            block[56] = cast(u8) bitCount
+            block[57] = cast(u8) (bitCount >> 8)
+            block[58] = cast(u8) (bitCount >> 16)
+            block[59] = cast(u8) (bitCount >> 24)
+            block[60] = cast(u8) (bitCount >> 32)
+            block[61] = cast(u8) (bitCount >> 40)
+            block[62] = cast(u8) (bitCount >> 48)
+            block[63] = cast(u8) (bitCount >> 56)
 
-            transform(v.state, &v.buffer[0])
+            transform(state, &block[0])
 
             var result: retval
-            encode(&result[0], v.state, 16)
+            encode(&result[0], state, 16)
             return result
         }
 

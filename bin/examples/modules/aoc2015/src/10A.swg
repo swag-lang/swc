@@ -18,29 +18,90 @@ Your puzzle input is 1113122113.
 
 using Core
 
-func day10A()
-{
-    var l: String = "1113122113"
-    for 40
-    {
-        var str: String
-        str.reserve(l.length * 2)
-        var i    = 0
-        while i < l.length
-        {
-            str += '1''u8
-            str += l[i]
-            i += 1
-            while i < l.length and l[i] == str[str.length - 1]
-            {
-                str[str.length - 2] += 1
-                i += 1
-            }
-        }
+moduleprivate var day10LengthsReady = false
+moduleprivate var day10Length40, day10Length50: u64
 
-        l = str
+moduleprivate func day10WriteCount(write: [*] u8, count: u64)->[*] u8
+{
+    if count < 10
+    {
+        write[0] = cast(u8) count + '0'
+        return write + 1
     }
 
-    //Console.print(l.length)
-    @assert(l.length == 360154)
+    var scan = write
+    var digits: [20] u8
+    var digitCount = 0'u64
+    var remaining  = count
+    for
+    {
+        digits[digitCount] = cast(u8) (remaining % 10) + '0'
+        digitCount += 1
+        remaining /= 10
+        if !remaining do
+            break
+    }
+
+    while digitCount
+    {
+        digitCount -= 1
+        scan[0] = digits[digitCount]
+        scan += 1
+    }
+
+    return scan
+}
+
+moduleprivate func day10RunStep(input: string, output: &String)
+{
+    output.clear()
+    output.reserve((@countof(input) * 2) + 1)
+
+    let inputLen = @countof(input)
+    var i        = 0'u64
+    var write    = output.buffer
+    while i < inputLen
+    {
+        let digit = input[i]
+        var count = 1'u64
+        i += 1
+        while i < inputLen and input[i] == digit
+        {
+            count += 1
+            i += 1
+        }
+
+        write    = day10WriteCount(write, count)
+        write[0] = digit
+        write += 1
+    }
+
+    output.length = cast(u64) (write - output.buffer)
+    output.buffer[output.length] = 0
+}
+
+moduleprivate func day10EnsureLengths()
+{
+    if day10LengthsReady do
+        return
+
+    var current: String = "1113122113"
+    var next: String
+    for 50
+    {
+        day10RunStep(current.toString(), &next)
+        swap(&current, &next)
+
+        if @index == 39 do
+            day10Length40 = current.length
+    }
+
+    day10Length50    = current.length
+    day10LengthsReady = true
+}
+
+func day10A()
+{
+    day10EnsureLengths()
+    @assert(day10Length40 == 360154)
 }

@@ -9,27 +9,6 @@ using Core
 
 func day10B()
 {
-    var l: String = "1113122113"
-    for 50
-    {
-        var str: String
-        str.reserve(l.length * 2)
-        var i    = 0
-        while i < l.length
-        {
-            str += '1''u8
-            str += l[i]
-            i += 1
-            while i < l.length and l[i] == str[str.length - 1]
-            {
-                str[str.length - 2] += 1
-                i += 1
-            }
-        }
-
-        l = str
-    }
-
-    //Console.print(l.length)
-    @assert(l.length == 5103798)
+    day10EnsureLengths()
+    @assert(day10Length50 == 5103798)
 }

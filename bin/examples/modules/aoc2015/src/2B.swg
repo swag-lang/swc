@@ -23,22 +23,14 @@ func day2B()
 /////////////////////////////////////////////////////////////////
 func day2B0()
 {
-    let dataPath = Path.combine(Path.getDirectoryName(#file), "2.txt")
+    day2EnsurePresents()
 
     var total: u64
-    assume
+    foreach gift in day2Presents
     {
-        var r = Parser.RegExp.create(#"(\d+)x(\d+)x(\d+)"#)
-        foreach line in File.readAllLines(dataPath)
-        {
-            discard r.match(line)
-            var f: [3] s32
-            f[0] = StrConv.toS32(r.getCapture(1))
-            f[1] = StrConv.toS32(r.getCapture(2))
-            f[2] = StrConv.toS32(r.getCapture(3))
-            Slice.sort(f[ to ])
-            total += f[0] * f[1] * f[2] + 2 * f[0] + 2 * f[1]
-        }
+        let x = gift.x
+        let y = gift.y
+        total += gift.x * gift.y * gift.z + 2 * x + 2 * y
     }
 
     //Console.print("total: ", total)
@@ -49,20 +41,11 @@ func day2B0()
 /////////////////////////////////////////////////////////////////
 func day2B1()
 {
-    let dataPath = Path.combine(Path.getDirectoryName(#file), "2.txt")
+    day2EnsurePresents()
 
     var total: u64
-    assume
-    {
-        var r = Parser.RegExp.create(#"(\d+)x(\d+)x(\d+)"#)
-        foreach line in File.readAllLines(dataPath)
-        {
-            discard r.match(line)
-            let f = [StrConv.toS32(r.getCapture(1)), StrConv.toS32(r.getCapture(2)), StrConv.toS32(r.getCapture(3))]
-            Slice.sort(f[ to ])
-            total += f[0] * f[1] * f[2] + 2 * f[0] + 2 * f[1]
-        }
-    }
+    foreach gift in day2Presents do
+        total += gift.x * gift.y * gift.z + 2 * gift.x + 2 * gift.y
 
     //Console.print("total: ", total)
     @assert(total == 3783758)

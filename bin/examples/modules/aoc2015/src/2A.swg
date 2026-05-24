@@ -13,23 +13,63 @@ All numbers in the elves' list are in feet. How many total square feet of wrappi
 
 using Core
 
+moduleprivate struct Day2Present
+{
+    x: u32
+    y: u32
+    z: u32
+}
+
+moduleprivate var day2PresentsLoaded = false
+moduleprivate var day2Presents: Array'Day2Present
+
+moduleprivate func day2ParseNumber(line: string, cursor: &u64)->u32
+{
+    var result = 0'u32
+    while cursor < @countof(line) and line[cursor] >= '0' and line[cursor] <= '9'
+    {
+        result *= 10
+        result += cast(u32) line[cursor] - '0'
+        cursor += 1
+    }
+
+    if cursor < @countof(line) and line[cursor] == 'x' do
+        cursor += 1
+
+    return result
+}
+
+moduleprivate func day2EnsurePresents()
+{
+    if day2PresentsLoaded do
+        return
+
+    let dataPath = Path.combine(Path.getDirectoryName(#file), "2.txt")
+    let lines    = assume File.readAllLines(dataPath)
+
+    day2Presents.reserve(lines.count)
+    foreach line in lines
+    {
+        var cursor = 0'u64
+        var x = day2ParseNumber(line, &cursor)
+        var y = day2ParseNumber(line, &cursor)
+        var z = day2ParseNumber(line, &cursor)
+        orderMinMax(&x, &y)
+        orderMinMax(&y, &z)
+        orderMinMax(&x, &y)
+        day2Presents.add(Day2Present{x, y, z})
+    }
+
+    day2PresentsLoaded = true
+}
+
 func day2A()
 {
-    let dataPath = Path.combine(Path.getDirectoryName(#file), "2.txt")
+    day2EnsurePresents()
 
     var total: u64
-    assume
-    {
-        var r = Parser.RegExp.create(#"(\d+)x(\d+)x(\d+)"#)
-        foreach line in File.readAllLines(dataPath)
-        {
-            discard r.match(line)
-            let l = StrConv.toS32(r.getCapture(1))
-            let w = StrConv.toS32(r.getCapture(2))
-            let h = StrConv.toS32(r.getCapture(3))
-            total += 2 * l * w + 2 * w * h + 2 * h * l + Math.min(l * w, w * h, h * l)
-        }
-    }
+    foreach gift in day2Presents do
+        total += 3 * gift.x * gift.y + 2 * gift.y * gift.z + 2 * gift.z * gift.x
 
     //Console.print("total: ", total)
     @assert(total == 1588178)

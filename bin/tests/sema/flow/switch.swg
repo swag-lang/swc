@@ -145,3 +145,28 @@ func semaTest011()
 
     #assert(#typeof(hit) == s32)
 }
+
+func semaTest012()
+{
+    var c = '{'
+    var garbage, group, score, count = 0
+    switch
+    {
+        case c == '!' and garbage:
+            count += 10
+        case c == '>' and garbage:
+            garbage -= 1
+        case c == '<' and !garbage:
+            garbage += 1
+        case c == '{' and !garbage:
+            group += 1; score += group
+        case c == '}' and !garbage:
+            group -= 1
+        case garbage:
+            count += 1
+        default:
+            break
+    }
+
+    #assert(#typeof(score) == s32)
+}

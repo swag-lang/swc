@@ -236,6 +236,34 @@ alias StrictSwitchF32 = f32
 
 #test
 {
+    var c = '{'
+    var garbage, group, score, count = 0
+    switch
+    {
+        case c == '!' and garbage:
+            count += 10
+        case c == '>' and garbage:
+            garbage -= 1
+        case c == '<' and !garbage:
+            garbage += 1
+        case c == '{' and !garbage:
+            group += 1; score += group
+        case c == '}' and !garbage:
+            group -= 1
+        case garbage:
+            count += 1
+        default:
+            count = -1
+            break
+    }
+
+    @assert(group == 1)
+    @assert(score == 1)
+    @assert(count == 0)
+}
+
+#test
+{
     var v = true
     var hit = 0
     switch v

@@ -358,7 +358,7 @@ namespace
             if (matchResult == Result::Continue && lookUpCxt.count() == 1 && lookUpCxt.first())
             {
                 sema.setSymbol(nodeRef, lookUpCxt.first());
-                sema.node(nodeRef).cast<AstIdentifier>().addFlag(AstIdentifierFlagsE::PreResolvedSymbol);
+                sema.node(nodeRef).cast<AstIdentifier>().addFlag(AstIdentifierFlagsE::PreResolvedSymbol | AstIdentifierFlagsE::MacroInjectCallerBinding);
             }
         }
 

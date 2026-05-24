@@ -61,8 +61,22 @@ void SemaNodeView::compute(Sema& sema, AstNodeRef ref, SemaNodeViewPart part, Se
     if (!part.has(SemaNodeViewPartE::Symbol))
         return;
 
+    const auto trySetTypeFromResolvedSymbol = [&]()
+    {
+        if (!part.has(SemaNodeViewPartE::Type) || typeRef_.isValid())
+            return;
+        if (!sym_ || (hasSymList_ && symList_.size() != 1) || !sym_->typeRef().isValid())
+            return;
+
+        typeRef_ = sym_->typeRef();
+        type_    = &sema.typeMgr().get(typeRef_);
+    };
+
     if (loadResolvedSymbols(sema, nodeRef_, mode))
+    {
+        trySetTypeFromResolvedSymbol();
         return;
+    }
 
     if (mode == SemaNodeViewResolveE::Stored)
         return;
@@ -79,6 +93,8 @@ void SemaNodeView::compute(Sema& sema, AstNodeRef ref, SemaNodeViewPart part, Se
             sym_       = &sema.symbolOfRaw(queryNodeRef_);
         }
     }
+
+    trySetTypeFromResolvedSymbol();
 }
 
 void SemaNodeView::assignSymbolList(std::span<Symbol*> symbols)

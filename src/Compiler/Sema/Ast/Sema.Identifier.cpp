@@ -106,6 +106,23 @@ namespace
         return false;
     }
 
+    bool hasMacroInjectCallerShadowingLocalSymbol(Sema& sema, IdentifierRef idRef, const Symbol& preResolvedSymbol)
+    {
+        const Symbol* const targetSymbol = resolveAliasedBaseSymbol(&preResolvedSymbol);
+        for (const SemaScope* scope = sema.lookupScope(); scope; scope = scope->lookupParent())
+        {
+            for (const Symbol* symbol : scope->symbols())
+            {
+                if (!symbol || sema.frame().isLookupSymbolHidden(symbol) || symbol->idRef() != idRef)
+                    continue;
+
+                return resolveAliasedBaseSymbol(symbol) != targetSymbol;
+            }
+        }
+
+        return false;
+    }
+
     using SemaHelpers::resolveLambdaBindingFunction;
 
     bool requiresExplicitCaptureList(Sema& sema, const SymbolFunction& function)
@@ -474,8 +491,19 @@ Result AstIdentifier::semaPostNode(Sema& sema) const
     if (view.cstRef().isValid())
         return Result::Continue;
 
-    if ((hasFlag(AstIdentifierFlagsE::PreResolvedSymbol) || !codeRef().isValid()) && sema.curViewSymbol().sym())
+    const Symbol* const storedSymbol = sema.curViewSymbol().sym();
+    if (!codeRef().isValid() && storedSymbol)
         return Result::Continue;
+
+    if (hasFlag(AstIdentifierFlagsE::PreResolvedSymbol) && storedSymbol)
+    {
+        if (!hasFlag(AstIdentifierFlagsE::MacroInjectCallerBinding))
+            return Result::Continue;
+
+        const IdentifierRef idRef = SemaHelpers::resolveIdentifier(sema, codeRef());
+        if (!hasMacroInjectCallerShadowingLocalSymbol(sema, idRef, *storedSymbol))
+            return Result::Continue;
+    }
 
     const AstNodeRef parentRef = sema.visit().parentNodeRef();
     if (!sema.curViewSymbol().sym() &&

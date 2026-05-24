@@ -458,6 +458,7 @@ enum class AstIdentifierFlagsE : AstNode::ParserFlags
     InClosureCapture   = 1 << 2,
     GenericTypeBinding = 1 << 3,
     PreResolvedSymbol  = 1 << 4,
+    MacroInjectCallerBinding = 1 << 5,
 };
 
 struct AstIdentifier : AstNodeT<AstNodeId::Identifier, AstIdentifierFlagsE>

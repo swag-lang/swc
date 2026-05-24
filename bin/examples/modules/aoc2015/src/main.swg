@@ -13,7 +13,7 @@
     day3A()
     day3B()
     day4A()
-    //day4B()
+    day4B()
     day5A()
     day5B()
     day6A()

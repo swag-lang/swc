@@ -75,6 +75,23 @@ namespace
         return isFunctionInputOrLocalVariable(fn, var);
     }
 
+    bool isPureMemberAccessBase(Sema& sema, const SymbolFunction& fn, AstNodeRef memberRef)
+    {
+        const SemaNodeView view = sema.viewSymbol(memberRef);
+        if (!view.hasSymbol() || !view.sym() || !view.sym()->isVariable())
+            return true;
+
+        const auto& var = view.sym()->cast<SymbolVariable>();
+        if (isFunctionInputOrLocalVariable(fn, var))
+            return true;
+
+        const SymbolMap* owner = var.ownerSymMap();
+        if (!owner)
+            return false;
+
+        return owner->isStruct() || owner->isInterface();
+    }
+
     bool isWritableAssignmentTarget(Sema& sema, const SymbolFunction& fn, AstNodeRef leftRef)
     {
         if (leftRef.isInvalid())
@@ -189,6 +206,9 @@ namespace
 
             if (node.is(AstNodeId::MemberAccessExpr))
             {
+                if (!isPureMemberAccessBase(sema, fn, currentRef))
+                    return false;
+
                 const auto& memberAccess = node.cast<AstMemberAccessExpr>();
                 if (memberAccess.nodeLeftRef.isValid())
                     toScan.push_back(memberAccess.nodeLeftRef);

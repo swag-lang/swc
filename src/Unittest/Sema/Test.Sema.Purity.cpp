@@ -64,6 +64,53 @@ func divideByRuntimeDenominator(value: u64)->u64
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(SemaPurity_NamespaceQualifiedGlobalFieldReadIsNotConstFolded)
+{
+    static constexpr std::string_view SOURCE = R"(#global public
+
+namespace Env
+{
+    struct SysInfo
+    {
+        denominator: u64
+    }
+
+    var g_SysInfo: SysInfo
+}
+
+func runtimeDenominator()->u64
+{
+    return Env.g_SysInfo.denominator
+}
+
+func divideByRuntimeDenominator(value: u64)->u64
+{
+    return value / runtimeDenominator()
+}
+)";
+
+    const fs::path sourcePath = Unittest::makeTestSourcePath("Sema", "PurityNamespaceQualifiedGlobalFieldReadIsNotConstFolded");
+
+    CommandLine cmdLine;
+    cmdLine.command         = CommandKind::Sema;
+    cmdLine.name            = "sema_purity_namespace_qualified_global_field_read";
+    cmdLine.moduleNamespace = "SemaPurity";
+    cmdLine.silent          = true;
+    cmdLine.backendOptimize = true;
+    cmdLine.files.insert(sourcePath);
+    CommandLineParser::refreshBuildCfg(cmdLine);
+
+    const uint64_t    errorsBefore = Stats::getNumErrors();
+    RestoreErrorCount restoreErrors{errorsBefore};
+    CompilerInstance  compiler(ctx.global(), cmdLine);
+    Unittest::registerTestSource(compiler, sourcePath, SOURCE);
+
+    Command::sema(compiler);
+    if (Stats::getNumErrors() != errorsBefore)
+        return Result::Error;
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

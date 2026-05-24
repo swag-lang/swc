@@ -1,3 +1,5 @@
+#global #if false
+
 /*
 --- Part Two ---
 Of course, that would be the message - if you hadn't agreed to use a modified repetition code instead.

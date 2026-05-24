@@ -1,3 +1,5 @@
+#global #if false
+
 /*
 --- Part Two ---
 With all the decoy data out of the way, it's time to decrypt this list and get moving.

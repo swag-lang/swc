@@ -1,3 +1,5 @@
+#global #if false
+
 /*
 --- Day 10: Balance Bots ---
 You come upon a factory in which many robots are zooming around handing small microchips to each other.

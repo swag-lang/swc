@@ -981,9 +981,9 @@ Result SemaHelpers::resolveStructLikeChildBindingType(Sema& sema, std::span<cons
     if (targetType.isStruct())
     {
         SWC_RESULT(sema.waitSemaCompleted(&targetType, childRef));
-        const auto&                 fields           = targetType.payloadSymStruct().fields();
+        const auto&                    fields = targetType.payloadSymStruct().fields();
         const StructFieldIndexResolver findFieldIndex{fields};
-        const bool                  found            = resolveAggregateChildIndex(sema, children, childRef, fields.size(), findFieldIndex, fieldIndex);
+        const bool                     found = resolveAggregateChildIndex(sema, children, childRef, fields.size(), findFieldIndex, fieldIndex);
         if (!found || fieldIndex >= fields.size() || !fields[fieldIndex])
             return Result::Continue;
 
@@ -994,7 +994,7 @@ Result SemaHelpers::resolveStructLikeChildBindingType(Sema& sema, std::span<cons
     if (!targetType.isAggregateStruct())
         return Result::Continue;
 
-    const auto& aggregate = targetType.payloadAggregate();
+    const auto&                        aggregate = targetType.payloadAggregate();
     const AggregateMemberIndexResolver resolveMemberIndex{.sema = &sema, .targetType = &targetType};
     const bool                         found = resolveAggregateChildIndex(sema, children, childRef, aggregate.types.size(), resolveMemberIndex, fieldIndex);
     if (!found || fieldIndex >= aggregate.types.size())

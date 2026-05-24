@@ -493,9 +493,9 @@ namespace SemaGeneric
 
         struct GenericNodeRunInitializer
         {
-            Sema*          sema   = nullptr;
-            const Symbol*  root   = nullptr;
-            AstNodeRef     nodeRef;
+            Sema*         sema = nullptr;
+            const Symbol* root = nullptr;
+            AstNodeRef    nodeRef;
 
             std::unique_ptr<Sema> operator()() const
             {
@@ -509,9 +509,9 @@ namespace SemaGeneric
 
         struct GenericInstanceNodeRunInitializer
         {
-            Sema*          sema   = nullptr;
-            const Symbol*  root   = nullptr;
-            AstNodeRef     nodeRef;
+            Sema*         sema = nullptr;
+            const Symbol* root = nullptr;
+            AstNodeRef    nodeRef;
 
             std::unique_ptr<Sema> operator()() const
             {
@@ -527,7 +527,7 @@ namespace SemaGeneric
         {
             SWC_ASSERT(root.isFunction() || root.isStruct());
 
-            const GenericNodeRunKey key{&sema.ctx(), &sema.ast(), nodeRef.get()};
+            const GenericNodeRunKey         key{&sema.ctx(), &sema.ast(), nodeRef.get()};
             const GenericNodeRunInitializer initRun{.sema = &sema, .root = &root, .nodeRef = nodeRef};
             return runCachedSema(sema, genericNodeRuns(sema.ctx()), key, root, initRun);
         }
@@ -544,7 +544,7 @@ namespace SemaGeneric
             if (nodeRef.isInvalid())
                 return Result::Error;
 
-            const GenericInstanceNodeRunKey key{&sema.ctx(), &instance};
+            const GenericInstanceNodeRunKey         key{&sema.ctx(), &instance};
             const GenericInstanceNodeRunInitializer initRun{.sema = &sema, .root = &root, .nodeRef = nodeRef};
             return runCachedSema(sema, genericInstanceNodeRuns(sema.ctx()), key, instance, initRun);
         }
@@ -861,11 +861,11 @@ namespace SemaGeneric
     {
         struct GenericImplBlockRunInitializer
         {
-            Sema*                  sema    = nullptr;
+            Sema*                  sema = nullptr;
             AstNodeRef             blockRef;
-            SymbolImpl*            impl    = nullptr;
-            const SymbolInterface* itf     = nullptr;
-            const AttributeList*   attrs   = nullptr;
+            SymbolImpl*            impl     = nullptr;
+            const SymbolInterface* itf      = nullptr;
+            const AttributeList*   attrs    = nullptr;
             bool                   declPass = false;
 
             std::unique_ptr<Sema> operator()() const
@@ -881,7 +881,7 @@ namespace SemaGeneric
 
         Result runGenericImplBlockPass(Sema& sema, AstNodeRef blockRef, SymbolImpl& impl, const SymbolInterface* itf, const AttributeList& attrs, bool declPass)
         {
-            const GenericImplBlockRunKey key{&sema.ctx(), &impl, declPass};
+            const GenericImplBlockRunKey         key{&sema.ctx(), &impl, declPass};
             const GenericImplBlockRunInitializer initRun{.sema = &sema, .blockRef = blockRef, .impl = &impl, .itf = itf, .attrs = &attrs, .declPass = declPass};
             return runCachedSema(sema, genericImplBlockRuns(sema.ctx()), key, impl, initRun);
         }

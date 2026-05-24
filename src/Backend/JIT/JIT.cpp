@@ -1525,7 +1525,7 @@ Result JIT::call(TaskContext& ctx, void* invoker, const uint64_t* arg0, JITCallE
 
     bool hasException = false;
     auto callError    = JITCallErrorKind::None;
-    Result callResult = Result::Continue;
+    auto callResult   = Result::Continue;
 
     SWC_TRY
     {

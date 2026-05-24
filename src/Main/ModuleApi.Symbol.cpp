@@ -33,7 +33,7 @@ namespace
         if (!srcViewRef.isValid() || publicEntry.rootRef.isInvalid())
             return;
 
-        ModuleApiFileEntry& entry = state.files[srcViewRef];
+        ModuleApiFileEntry&   entry         = state.files[srcViewRef];
         ModuleApiPublicEntry* existingEntry = findMatchingPublicEntry(entry.publicEntries, publicEntry);
         if (!existingEntry)
             entry.publicEntries.push_back(publicEntry);

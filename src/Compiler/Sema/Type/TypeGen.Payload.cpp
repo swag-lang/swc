@@ -125,8 +125,8 @@ namespace
         if (!arg.cstRef.isValid() || !valueTypeRef.isValid())
             return;
 
-        TaskContext&         ctx       = sema.ctx();
-        const uint64_t       valueSize = ctx.typeMgr().get(valueTypeRef).sizeOf(ctx);
+        TaskContext&   ctx       = sema.ctx();
+        const uint64_t valueSize = ctx.typeMgr().get(valueTypeRef).sizeOf(ctx);
         if (!valueSize)
             return;
 

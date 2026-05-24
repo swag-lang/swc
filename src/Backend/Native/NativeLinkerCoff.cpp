@@ -90,7 +90,7 @@ Result NativeLinkerCoff::link()
             args                     = buildLinkArguments(true);
             exePath                  = &toolchain_.linkExe;
             options.outputLineFilter = shouldForwardSharedLibraryLinkerOutputLine;
-            runOptions = &options;
+            runOptions               = &options;
             break;
         case Runtime::BuildCfgBackendKind::StaticLibrary:
             args    = buildLibArguments();

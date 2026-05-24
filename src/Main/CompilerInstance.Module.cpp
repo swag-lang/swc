@@ -573,8 +573,8 @@ namespace
 
         std::vector<DependencyConfigCandidate> matches;
         SWC_RESULT(collectDependencyConfigurationMatches(matches, outBecause, dependencyRoot, moduleName, cmdLine));
-        fs::path                     selectedPath;
-        Runtime::BuildCfgBackendKind selectedBackendKind = Runtime::BuildCfgBackendKind::None;
+        fs::path selectedPath;
+        auto     selectedBackendKind = Runtime::BuildCfgBackendKind::None;
         if (selectUniqueDependencyConfigMatch(selectedPath, selectedBackendKind, matches, isSharedDependencyBackendKind))
         {
             if (outBackendKind)
@@ -778,12 +778,12 @@ struct ModuleSetupInputApplier
         return *ctx;
     }
 
-    CompilerInstance*                                  compiler = nullptr;
-    TaskContext*                                       ctx      = nullptr;
-    fs::path                                           workspaceDependencyRoot;
-    std::unordered_set<Utf8>                           mirroredDependencyDirs;
-    std::unordered_map<Utf8, std::vector<Utf8>>        dependencyClosureCache;
-    std::unordered_set<Utf8>                           processedDependencyApis;
+    CompilerInstance*                           compiler = nullptr;
+    TaskContext*                                ctx      = nullptr;
+    fs::path                                    workspaceDependencyRoot;
+    std::unordered_set<Utf8>                    mirroredDependencyDirs;
+    std::unordered_map<Utf8, std::vector<Utf8>> dependencyClosureCache;
+    std::unordered_set<Utf8>                    processedDependencyApis;
 };
 
 ModuleSetupInputApplier::ModuleSetupInputApplier(CompilerInstance& compilerInstance, TaskContext& taskContext)
@@ -796,7 +796,7 @@ ModuleSetupInputApplier::ModuleSetupInputApplier(CompilerInstance& compilerInsta
 
 Result ModuleSetupInputApplier::apply(const CompilerInstance::ModuleSetupSnapshot& setupSnapshot)
 {
-    instance().moduleSetupImports_     = setupSnapshot.imports;
+    instance().moduleSetupImports_ = setupSnapshot.imports;
     instance().nativeRuntimeImports_.clear();
     instance().moduleSetupLoadedFiles_ = setupSnapshot.loadedFiles;
 
@@ -936,7 +936,7 @@ Result ModuleSetupInputApplier::resolveDependencyImportDir(ResolvedModuleImportP
     for (const fs::path& dependencyRoot : instance().cmdLine().importApiDirs)
     {
         DependencyConfigCandidate match;
-        Utf8                     because;
+        Utf8                      because;
         if (findDependencyConfigurationDirectory(match.path, because, dependencyRoot, importRequest.moduleName.view(), instance().cmdLine(), &match.backendKind) != Result::Continue)
             continue;
 
@@ -1046,18 +1046,18 @@ Result ModuleSetupInputApplier::processImports(std::span<const CompilerInstance:
         instance().registerImportedDependencyLinkDir(importPaths.linkDir);
         instance().registerImportedSharedModuleDir(importPaths.sharedDir);
 
-        fs::path                             depsFile = dependencyImportMetadataPath(importPaths.apiDir, importRequest.moduleName.view());
-        Utf8                                 because;
+        fs::path                              depsFile = dependencyImportMetadataPath(importPaths.apiDir, importRequest.moduleName.view());
+        Utf8                                  because;
         CompilerInstance::ModuleSetupSnapshot nestedSnapshot;
-        const bool                           hasDepsFile = FileSystem::resolveExistingFile(depsFile, because) == Result::Continue;
+        const bool                            hasDepsFile = FileSystem::resolveExistingFile(depsFile, because) == Result::Continue;
         if (hasDepsFile)
             SWC_RESULT(captureDependencyImportSnapshot(depsFile, nestedSnapshot));
 
         if (recordDirectImports && !importPaths.linkDir.empty())
         {
             CompilerInstance::NativeRuntimeImport runtimeImport;
-            runtimeImport.moduleName          = importRequest.moduleName;
-            runtimeImport.linkModuleName      = resolveDependencyLinkModuleName(importPaths.linkDir, importRequest.moduleName.view());
+            runtimeImport.moduleName           = importRequest.moduleName;
+            runtimeImport.linkModuleName       = resolveDependencyLinkModuleName(importPaths.linkDir, importRequest.moduleName.view());
             runtimeImport.hasSharedRuntimeHook = !importPaths.sharedDir.empty();
             if (hasDepsFile)
                 SWC_RESULT(collectDependencyClosure(runtimeImport.transitiveImports, nestedSnapshot.imports, &sourceDependencyRoot));
@@ -1553,7 +1553,7 @@ void CompilerInstance::collectImportedApiFolderFiles(const fs::path& folder, con
         fs::path mergedApiPath = folder / fs::path(std::string(moduleName));
         mergedApiPath.replace_extension(".swg");
         const fs::path normalizedMergedApiPath = mergedApiPath.lexically_normal();
-        const auto erased = std::ranges::remove(paths, normalizedMergedApiPath, lexicallyNormalizedPath);
+        const auto     erased                  = std::ranges::remove(paths, normalizedMergedApiPath, lexicallyNormalizedPath);
         paths.erase(erased.begin(), erased.end());
     }
 

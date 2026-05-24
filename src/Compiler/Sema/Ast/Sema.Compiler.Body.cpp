@@ -263,8 +263,8 @@ namespace
         if (parseMode != ParserGeneratedMode::TopLevel)
             return Result::Continue;
 
-        Sema         generatedDeclSema(sema.ctx(), sema.currentNodePayloadContext(), generatedRef, true);
-        auto         generatedFrame = SemaFrame{};
+        Sema generatedDeclSema(sema.ctx(), sema.currentNodePayloadContext(), generatedRef, true);
+        auto generatedFrame = SemaFrame{};
         generatedFrame.setCurrentAccess(sema.frame().currentAccess());
         generatedFrame.setGlobalCompilerIfEnabled(sema.frame().globalCompilerIfEnabled());
         generatedFrame.currentAttributes() = sema.frame().currentAttributes();
@@ -274,14 +274,14 @@ namespace
         for (const IdentifierRef idRef : sema.frame().nsPath())
             generatedFrame.pushNs(idRef);
         generatedDeclSema.frame() = generatedFrame;
-        const Result declResult = generatedDeclSema.execResult();
+        const Result declResult   = generatedDeclSema.execResult();
         SWC_ASSERT(declResult != Result::Pause);
         return declResult;
     }
 
     Result parseCompilerAstGenerated(Sema& sema, AstNodeRef ownerRef, std::string_view generatedCode, AstNodeRef& outGeneratedRef)
     {
-        outGeneratedRef = AstNodeRef::invalid();
+        outGeneratedRef                     = AstNodeRef::invalid();
         const ParserGeneratedMode parseMode = compilerAstParseMode(sema, ownerRef);
 
         SourceView* generatedSrcView = nullptr;
@@ -333,7 +333,7 @@ namespace
         if (!compilerAstStringType(sema, ioView.typeRef()))
         {
             CastRequest castRequest(CastKind::Implicit);
-            castRequest.errorNodeRef = ioView.nodeRef();
+            castRequest.errorNodeRef       = ioView.nodeRef();
             const Result castAllowedResult = Cast::castAllowed(sema, castRequest, ioView.typeRef(), sema.typeMgr().typeString());
             if (castAllowedResult == Result::Pause)
                 return Result::Pause;

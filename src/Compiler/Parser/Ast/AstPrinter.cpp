@@ -179,7 +179,7 @@ namespace
 
     struct AstVisitChildCounter
     {
-        AstVisit*                                     visit       = nullptr;
+        AstVisit*                                 visit          = nullptr;
         std::unordered_map<AstNodeRef, uint32_t>* countsByParent = nullptr;
 
         Result operator()(AstNode&, AstNodeRef&) const
@@ -195,14 +195,14 @@ namespace
 
     struct AstPrintPreNodeVisitor
     {
-        Utf8*                                           out                     = nullptr;
-        const TaskContext*                              ctx                     = nullptr;
-        Ast*                                            ast                     = nullptr;
-        AstVisit*                                       visit                   = nullptr;
-        std::unordered_map<AstNodeRef, uint32_t>*       totalChildrenByParent   = nullptr;
-        std::unordered_map<AstNodeRef, uint32_t>*       visitedChildrenByParent = nullptr;
-        std::unordered_map<AstNodeRef, AstPrintNodeEntry>* nodeEntries         = nullptr;
-        Sema*                                           sema                    = nullptr;
+        Utf8*                                              out                     = nullptr;
+        const TaskContext*                                 ctx                     = nullptr;
+        Ast*                                               ast                     = nullptr;
+        AstVisit*                                          visit                   = nullptr;
+        std::unordered_map<AstNodeRef, uint32_t>*          totalChildrenByParent   = nullptr;
+        std::unordered_map<AstNodeRef, uint32_t>*          visitedChildrenByParent = nullptr;
+        std::unordered_map<AstNodeRef, AstPrintNodeEntry>* nodeEntries             = nullptr;
+        Sema*                                              sema                    = nullptr;
 
         Result operator()(AstNode&) const
         {

@@ -72,59 +72,11 @@ func day7B()
 
         if sums.count > 1 and dref result == 0
         {
-            var minTotal = sums[0].total
-            var maxTotal = sums[0].total
-            var minCount = 0'u64
-            var maxCount = 0'u64
-            var minRank  = sums[0].rank
-            var maxRank  = sums[0].rank
-
-            foreach s in sums
+            sums.sort(func(x, y) => x.total <=> y.total)
+            if sums[sums.count - 2].total != sums[sums.count - 1].total
             {
-                if s.total < minTotal
-                {
-                    minTotal = s.total
-                    minCount = 1
-                    minRank  = s.rank
-                }
-                elif s.total == minTotal do
-                    minCount += 1
-
-                if s.total > maxTotal
-                {
-                    maxTotal = s.total
-                    maxCount = 1
-                    maxRank  = s.rank
-                }
-                elif s.total == maxTotal do
-                    maxCount += 1
-            }
-
-            if minTotal != maxTotal
-            {
-                var badRank: u64
-                var expected, actual: s64
-
-                if minCount == 1 and maxCount > 1
-                {
-                    badRank  = minRank
-                    expected = maxTotal
-                    actual   = minTotal
-                }
-                elif maxCount == 1 and minCount > 1
-                {
-                    badRank  = maxRank
-                    expected = minTotal
-                    actual   = maxTotal
-                }
-                else do
-                    badRank = Swag.U64.Max
-
-                if badRank != Swag.U64.Max
-                {
-                    let v = set.find(w.childs[badRank])
-                    dref result = expected - actual + v.value.val
-                }
+                let v = set.find(w.childs[sums[sums.count - 1].rank])
+                dref result = sums[sums.count - 2].total - sums[sums.count - 1].total + v.value.val
             }
         }
 

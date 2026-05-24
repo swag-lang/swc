@@ -520,7 +520,8 @@ AstNodeRef Parser::parseSwitch()
                 }
 
                 const AstNodeRef stmtRef = parseEmbeddedStmt();
-                nodeStmts.push_back(stmtRef);
+                if (stmtRef.isValid())
+                    nodeStmts.push_back(stmtRef);
                 break;
             }
         }

@@ -1494,7 +1494,7 @@ namespace
         return Result::Continue;
     }
 
-    Result tryInstantiateGenericCandidate(Sema& sema, SymbolFunction& fn, std::span<AstNodeRef> args, AstNodeRef ufcsArg, std::span<const AstNodeRef> explicitGenericArgNodes, Match::ResolveCallMode mode, Candidate& outCandidate, MatchFailure& outFail)
+    Result tryInstantiateGenericCandidate(Sema& sema, SymbolFunction& fn, std::span<AstNodeRef> args, AstNodeRef ufcsArg, std::span<const AstNodeRef> explicitGenericArgNodes, Match::ResolveCallMode mode, bool suppressInstantiationErrors, Candidate& outCandidate, MatchFailure& outFail)
     {
         outCandidate = {};
         outFail      = {};
@@ -1506,7 +1506,22 @@ namespace
         SymbolFunction* concreteFn          = nullptr;
         CastFailure     genericFailure      = {};
         uint32_t        genericFailureIndex = UINT32_MAX;
-        SWC_RESULT(SemaGeneric::instantiateFunctionFromCall(sema, fn, args, ufcsArg, explicitGenericArgNodes, concreteFn, &genericFailure, &genericFailureIndex));
+        Result          instantiateResult   = Result::Continue;
+        if (suppressInstantiationErrors)
+        {
+            const bool savedSilent = sema.ctx().silentDiagnostic();
+            sema.ctx().setSilentDiagnostic(true);
+            instantiateResult = SemaGeneric::instantiateFunctionFromCall(sema, fn, args, ufcsArg, explicitGenericArgNodes, concreteFn, &genericFailure, &genericFailureIndex);
+            sema.ctx().setSilentDiagnostic(savedSilent);
+        }
+        else
+        {
+            instantiateResult = SemaGeneric::instantiateFunctionFromCall(sema, fn, args, ufcsArg, explicitGenericArgNodes, concreteFn, &genericFailure, &genericFailureIndex);
+        }
+        if (instantiateResult == Result::Pause)
+            return Result::Pause;
+        if (instantiateResult != Result::Continue)
+            return suppressInstantiationErrors ? Result::Continue : instantiateResult;
         if (!concreteFn)
         {
             if (genericFailure.diagId != DiagnosticId::None)
@@ -1858,7 +1873,27 @@ namespace
             if (!explicitGenericArgNodes.empty() && !fn->isGenericRoot() && !fn->isGenericInstance())
                 continue;
 
+            bool alreadyAdded = false;
+            for (const SymbolFunction* addedFn : outFunctionSymbols)
+            {
+                if (addedFn == fn)
+                {
+                    alreadyAdded = true;
+                    break;
+                }
+            }
+
+            if (alreadyAdded)
+                continue;
+
             outFunctionSymbols.push_back(fn);
+        }
+
+        const bool suppressGenericInstantiationErrors = outFunctionSymbols.size() > 1;
+
+        for (SymbolFunction* fn : outFunctionSymbols)
+        {
+            SWC_ASSERT(fn != nullptr);
 
             Attempt a;
             a.fn = fn;
@@ -1867,7 +1902,7 @@ namespace
             {
                 MatchFailure fail;
                 Candidate    candidate;
-                SWC_RESULT(tryInstantiateGenericCandidate(sema, *fn, args, AstNodeRef::invalid(), explicitGenericArgNodes, mode, candidate, fail));
+                SWC_RESULT(tryInstantiateGenericCandidate(sema, *fn, args, AstNodeRef::invalid(), explicitGenericArgNodes, mode, suppressGenericInstantiationErrors, candidate, fail));
                 if (candidate.viable)
                 {
                     a.viable    = true;
@@ -1878,7 +1913,7 @@ namespace
                 {
                     candidate = {};
                     fail      = {};
-                    SWC_RESULT(tryInstantiateGenericCandidate(sema, *fn, args, ufcsArg, explicitGenericArgNodes, mode, candidate, fail));
+                    SWC_RESULT(tryInstantiateGenericCandidate(sema, *fn, args, ufcsArg, explicitGenericArgNodes, mode, suppressGenericInstantiationErrors, candidate, fail));
                     if (candidate.viable)
                     {
                         a.viable    = true;

@@ -222,6 +222,20 @@ alias StrictSwitchF32 = f32
 
 #test
 {
+    var hit = 0
+    switch 1
+    {
+        case 1: hit += 1; hit += 2
+        default:
+            hit = -1
+            break
+    }
+
+    @assert(hit == 3)
+}
+
+#test
+{
     var v = true
     var hit = 0
     switch v

@@ -22,36 +22,17 @@ func day4B()
     var total = 0
     foreach l in lines
     {
-        let s      = Tokenize.split(l, " ")
-        var words: Array'String
+        let s    = Tokenize.split(l, " ")
+        var set: HashSet'string
 
         foreach w in s
         {
             var str: String = w
             Slice.sort(str.toSlice())
-            words.add(str)
+            set.add(str)
         }
 
-        var valid = true
-        for i in words.count
-        {
-            var j = i + 1
-            while j < words.count
-            {
-                if words[i] == words[j]
-                {
-                    valid = false
-                    break
-                }
-
-                j += 1
-            }
-
-            if !valid do
-                break
-        }
-
-        total += cast(s32) valid
+        total += cast(s32) (set.count == s.count)
     }
 
     @assert(total == 186)

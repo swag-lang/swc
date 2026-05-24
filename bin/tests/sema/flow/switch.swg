@@ -132,3 +132,16 @@ func semaTest010()
         break
     }
 }
+
+func semaTest011()
+{
+    var hit = 0
+    switch 1
+    {
+        case 1: hit += 1; hit += 2
+        default:
+            break
+    }
+
+    #assert(#typeof(hit) == s32)
+}

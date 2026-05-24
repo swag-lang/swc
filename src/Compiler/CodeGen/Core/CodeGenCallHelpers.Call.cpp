@@ -102,7 +102,7 @@ namespace
         return std::nullopt;
     }
 
-    std::optional<CodeGenNodePayload> tryResolveVariableViewPayload(CodeGen& codeGen, const SemaNodeView view)
+    std::optional<CodeGenNodePayload> tryResolveVariableViewPayload(CodeGen& codeGen, const SemaNodeView& view)
     {
         const auto* symVar = view.sym() ? view.sym()->safeCast<SymbolVariable>() : nullptr;
         if (!symVar)
@@ -205,10 +205,10 @@ namespace
 
         for (const AstNodeRef candidateRef : candidateRefs)
         {
-            if (auto payload = tryResolveVariableViewPayload(codeGen, codeGen.viewSymbol(candidateRef)))
+            if (const auto payload = tryResolveVariableViewPayload(codeGen, codeGen.viewSymbol(candidateRef)))
                 return payload;
 
-            if (auto payload = tryResolveVariableViewPayload(codeGen, codeGen.sema().viewStored(candidateRef, SemaNodeViewPartE::Symbol)))
+            if (const auto payload = tryResolveVariableViewPayload(codeGen, codeGen.sema().viewStored(candidateRef, SemaNodeViewPartE::Symbol)))
                 return payload;
         }
 

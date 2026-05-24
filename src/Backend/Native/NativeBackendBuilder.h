@@ -1,5 +1,4 @@
 #pragma once
-#include "Backend/RuntimeName.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Compiler/Sema/Symbol/Symbols.h"

@@ -25,7 +25,7 @@ namespace
 
     Utf8 pathToUtf8String(const fs::path& path)
     {
-        return Utf8(path.string());
+        return Utf8{path.string()};
     }
 
     bool commandInfoNameLess(const CommandInfo& lhs, const CommandInfo& rhs)

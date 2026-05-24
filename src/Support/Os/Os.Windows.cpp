@@ -208,12 +208,12 @@ namespace
         if (pathValue.empty())
             return environmentBlock;
 
-        LPWCH rawEnvironment = GetEnvironmentStringsW();
+        const LPWCH rawEnvironment = GetEnvironmentStringsW();
         if (!rawEnvironment)
             return environmentBlock;
 
-        bool     pathInserted = false;
-        wchar_t* current      = rawEnvironment;
+        bool           pathInserted = false;
+        const wchar_t* current      = rawEnvironment;
         while (*current)
         {
             const std::wstring_view entry  = current;

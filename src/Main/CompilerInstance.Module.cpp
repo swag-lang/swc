@@ -986,7 +986,7 @@ Result ModuleSetupInputApplier::captureDependencyImportSnapshot(const fs::path& 
 
 Result ModuleSetupInputApplier::collectDependencyClosure(std::vector<Utf8>& outModules, std::span<const CompilerInstance::ModuleSetupImport> imports, const fs::path* preferredDependencyRoot)
 {
-    std::unordered_set<Utf8> seenModules(outModules.begin(), outModules.end());
+    std::unordered_set seenModules(outModules.begin(), outModules.end());
     for (const CompilerInstance::ModuleSetupImport& importRequest : imports)
     {
         if (seenModules.insert(importRequest.moduleName).second)

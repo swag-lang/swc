@@ -120,7 +120,7 @@ namespace
     }
 
     template<typename F>
-    void emitGuardedRuntimeHookStage(MicroBuilder& builder, const MicroLabelRef stageLabel, const MicroLabelRef doneLabel, const RuntimeHookStage stage, const uint32_t lifecycleStateOffset, F&& body, uint32_t& nextVirtualIntRegIndex)
+    void emitGuardedRuntimeHookStage(MicroBuilder& builder, const MicroLabelRef stageLabel, const MicroLabelRef doneLabel, const RuntimeHookStage stage, const uint32_t lifecycleStateOffset, const F& body, uint32_t& nextVirtualIntRegIndex)
     {
         builder.placeLabel(stageLabel);
 
@@ -651,10 +651,10 @@ Result NativeArtifactBuilder::buildStartup(TaskContext& ctx) const
     builder.setBackendBuildCfg(builder_->compiler().buildCfg().backend);
     uint32_t nextVirtualIntRegIndex = builder.nextVirtualIntRegIndexHint();
 
-    const IdentifierRef setupRuntimeIdRef = ctx.idMgr().runtimeFunction(IdentifierManager::RuntimeFunctionKind::SetupRuntime);
-    const IdentifierRef closeRuntimeIdRef = ctx.idMgr().runtimeFunction(IdentifierManager::RuntimeFunctionKind::CloseRuntime);
-    SymbolFunction*     setupRuntimeFn    = builder_->compiler().runtimeFunctionSymbol(setupRuntimeIdRef);
-    SymbolFunction*     closeRuntimeFn    = builder_->compiler().runtimeFunctionSymbol(closeRuntimeIdRef);
+    const IdentifierRef   setupRuntimeIdRef = ctx.idMgr().runtimeFunction(IdentifierManager::RuntimeFunctionKind::SetupRuntime);
+    const IdentifierRef   closeRuntimeIdRef = ctx.idMgr().runtimeFunction(IdentifierManager::RuntimeFunctionKind::CloseRuntime);
+    const SymbolFunction* setupRuntimeFn    = builder_->compiler().runtimeFunctionSymbol(setupRuntimeIdRef);
+    const SymbolFunction* closeRuntimeFn    = builder_->compiler().runtimeFunctionSymbol(closeRuntimeIdRef);
     SWC_ASSERT(setupRuntimeFn != nullptr);
     SWC_ASSERT(closeRuntimeFn != nullptr);
     if (!setupRuntimeFn || !closeRuntimeFn)
@@ -687,7 +687,7 @@ Result NativeArtifactBuilder::buildStartup(TaskContext& ctx) const
     emitRuntimeDependencyHookCalls(builder, *builder_, builder_->runtimeDependencyInitOrder, RuntimeHookStage::PreMain, tlsIdPlusOneReg, nextVirtualIntRegIndex);
     emitLifecycleCalls(builder, builder_->preMainFunctions);
 
-    for (SymbolFunction* symbol : builder_->testFunctions)
+    for (const SymbolFunction* symbol : builder_->testFunctions)
     {
         ABICall::callLocal(builder, symbol->callConvKind(), symbol, {});
     }

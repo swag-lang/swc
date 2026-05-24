@@ -12,6 +12,16 @@
 
 SWC_BEGIN_NAMESPACE();
 
+namespace
+{
+    const SymbolFunction* genericFunctionInstanceOrNull(const SymbolFunction* function)
+    {
+        if (!function || !function->isGenericInstance())
+            return nullptr;
+        return function;
+    }
+}
+
 namespace SemaGeneric
 {
     namespace Internal
@@ -110,13 +120,6 @@ namespace SemaGeneric
                 return false;
 
             return loadStructInstanceGenericArgs(sema, *ownerInstance, outParams, outArgs);
-        }
-
-        const SymbolFunction* genericFunctionInstanceOrNull(const SymbolFunction* function)
-        {
-            if (!function || !function->isGenericInstance())
-                return nullptr;
-            return function;
         }
 
         void collectAmbientGenericFunctions(const Sema& sema, SmallVector<const SymbolFunction*>& outFunctions)

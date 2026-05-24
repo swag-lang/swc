@@ -45,7 +45,7 @@ namespace
         }
     }
 
-    SymbolFunction* createRuntimeDependencyHookSymbol(NativeBackendBuilder& builder, NativeRuntimeDependency& dependency)
+    SymbolFunction* createRuntimeDependencyHookSymbol(NativeBackendBuilder& builder, const NativeRuntimeDependency& dependency)
     {
         constexpr SymbolFlags syntheticFlags = SymbolFlagsE::Declared | SymbolFlagsE::Typed | SymbolFlagsE::SemaCompleted;
 
@@ -86,7 +86,7 @@ namespace
         }
 
         builder.runtimeDependencyInitOrder.reserve(builder.runtimeDependencies.size());
-        std::vector<bool> scheduled(builder.runtimeDependencies.size(), false);
+        std::vector scheduled(builder.runtimeDependencies.size(), false);
         while (builder.runtimeDependencyInitOrder.size() < builder.runtimeDependencies.size())
         {
             bool progressed = false;
@@ -121,7 +121,7 @@ namespace
         }
 
         builder.runtimeDependencyDropOrder = builder.runtimeDependencyInitOrder;
-        std::reverse(builder.runtimeDependencyDropOrder.begin(), builder.runtimeDependencyDropOrder.end());
+        std::ranges::reverse(builder.runtimeDependencyDropOrder);
     }
 
     template<typename T>

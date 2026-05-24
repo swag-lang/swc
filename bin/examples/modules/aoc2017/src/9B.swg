@@ -24,21 +24,21 @@ func day9B()
     var garbage, group, score, count = 0
     for var i = 0; i < @countof(line); i += 1
     {
-        switch
-        {
-        case line[i] == '!' and garbage:
+        if line[i] == '!' and garbage do
             i += 1
-        case line[i] == '>' and garbage:
+        elif line[i] == '>' and garbage do
             garbage -= 1
-        case line[i] == '<' and !garbage:
+        elif line[i] == '<' and !garbage do
             garbage += 1
-        case line[i] == '{' and !garbage:
-            group += 1; score += group
-        case line[i] == '}' and !garbage:
-            group -= 1
-        case garbage:
-            count += 1
+        elif line[i] == '{' and !garbage
+        {
+            group += 1
+            score += group
         }
+        elif line[i] == '}' and !garbage do
+            group -= 1
+        elif garbage do
+            count += 1
     }
 
     @assert(count == 5601)

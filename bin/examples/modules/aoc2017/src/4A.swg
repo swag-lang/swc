@@ -22,9 +22,28 @@ func day4A()
     var total = 0
     foreach l in lines
     {
-        let s    = Tokenize.split(l, " ")
-        let set: HashSet'string = s[ to ]
-        total += cast(s32) (set.count == s.count)
+        let s     = Tokenize.split(l, " ")
+        var valid = true
+
+        for i in s.count
+        {
+            var j = i + 1
+            while j < s.count
+            {
+                if s[i] == s[j]
+                {
+                    valid = false
+                    break
+                }
+
+                j += 1
+            }
+
+            if !valid do
+                break
+        }
+
+        total += cast(s32) valid
     }
 
     @assert(total == 455)

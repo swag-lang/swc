@@ -34,6 +34,21 @@ namespace
         return sema.tryCreateDeclSema(ownedSema, st.srcViewRef(), st.decl(), st.declNodeRef());
     }
 
+    void collectExplicitGenericArgNodes(const AstNode& calleeNode, const Ast& ast, SmallVector<AstNodeRef>& outArgs)
+    {
+        outArgs.clear();
+
+        if (const auto* quotedExpr = calleeNode.safeCast<AstQuotedExpr>())
+        {
+            if (quotedExpr->nodeSuffixRef.isValid())
+                outArgs.push_back(quotedExpr->nodeSuffixRef);
+            return;
+        }
+
+        if (const auto* quotedList = calleeNode.safeCast<AstQuotedListExpr>())
+            ast.appendNodes(outArgs, quotedList->spanChildrenRef);
+    }
+
     SpanRef genericStructParamSpan(const AstNode& declNode)
     {
         if (const auto* structDecl = declNode.safeCast<AstStructDecl>())
@@ -1245,6 +1260,89 @@ namespace
 
         return true;
     }
+
+    bool resolveStoredTypeOrSymbol(Sema& sema, AstNodeRef nodeRef, TypeRef& outTypeRef)
+    {
+        outTypeRef = TypeRef::invalid();
+        if (nodeRef.isInvalid())
+            return false;
+
+        const SemaNodeView storedView = sema.viewStored(nodeRef, SemaNodeViewPartE::Type | SemaNodeViewPartE::Symbol);
+        outTypeRef                    = storedView.typeRef();
+        if (!outTypeRef.isValid() && storedView.hasSymbol() && storedView.sym() && storedView.sym()->isType())
+            outTypeRef = storedView.sym()->typeRef();
+
+        if (!outTypeRef.isValid())
+        {
+            const AstNode& typeNode = sema.node(nodeRef);
+            if (const auto* namedType = typeNode.safeCast<AstNamedType>())
+            {
+                const SemaNodeView identView = sema.viewStored(namedType->nodeIdentRef, SemaNodeViewPartE::Type | SemaNodeViewPartE::Symbol);
+                outTypeRef                   = identView.typeRef();
+                if (!outTypeRef.isValid() && identView.hasSymbol() && identView.sym() && identView.sym()->isType())
+                    outTypeRef = identView.sym()->typeRef();
+            }
+        }
+
+        return outTypeRef.isValid();
+    }
+
+    Result resolveBoundTypeNode(Sema& sema, const SymbolFunction& function, AstNodeRef sourceRef, std::span<const SemaClone::ParamBinding> bindings, TypeRef& outTypeRef)
+    {
+        outTypeRef = TypeRef::invalid();
+
+        AstNodeRef clonedTypeRef = AstNodeRef::invalid();
+        SWC_RESULT(SemaGeneric::Internal::evalGenericClonedNode(sema, function, sourceRef, bindings, SemaGeneric::Internal::GenericEvalReadyKind::TypeOrSymbol, clonedTypeRef));
+        resolveStoredTypeOrSymbol(sema, clonedTypeRef, outTypeRef);
+        return Result::Continue;
+    }
+
+    Result buildPartialLambdaBindingType(Sema& sema, const SymbolFunction& function, const AstLambdaType& lambdaType, std::span<const SemaClone::ParamBinding> bindings, TypeRef& outTypeRef)
+    {
+        outTypeRef       = TypeRef::invalid();
+        TaskContext& ctx = sema.ctx();
+
+        auto* symFunc = Symbol::make<SymbolFunction>(ctx, &lambdaType, lambdaType.tokRef(), IdentifierRef::invalid(), SymbolFlagsE::Zero);
+
+        SmallVector<AstNodeRef> params;
+        sema.ast().appendNodes(params, lambdaType.spanParamsRef);
+
+        for (const AstNodeRef paramRef : params)
+        {
+            const AstLambdaParam& param = sema.node(paramRef).cast<AstLambdaParam>();
+            if (param.nodeTypeRef.isInvalid())
+                return Result::Continue;
+
+            TypeRef paramTypeRef = TypeRef::invalid();
+            SWC_RESULT(resolveBoundTypeNode(sema, function, param.nodeTypeRef, bindings, paramTypeRef));
+            if (!paramTypeRef.isValid())
+                return Result::Continue;
+
+            IdentifierRef idRef = IdentifierRef::invalid();
+            if (param.hasFlag(AstLambdaParamFlagsE::Named))
+                idRef = sema.idMgr().addIdentifier(ctx, param.codeRef());
+
+            auto* symVar = Symbol::make<SymbolVariable>(ctx, &param, param.tokRef(), idRef, SymbolFlagsE::Zero);
+            symVar->setTypeRef(paramTypeRef);
+            symFunc->addParameter(symVar);
+            if (idRef.isValid())
+                symFunc->addSymbol(ctx, symVar, false);
+        }
+
+        symFunc->setVariadicParamFlag(ctx);
+
+        TypeRef returnTypeRef = lambdaType.nodeReturnTypeRef.isValid() ? TypeRef::invalid() : ctx.typeMgr().typeVoid();
+
+        symFunc->setReturnTypeRef(returnTypeRef);
+        symFunc->setExtraFlags(lambdaType.flags());
+
+        outTypeRef = sema.typeMgr().addType(TypeInfo::makeFunction(symFunc, TypeInfoFlagsE::Zero));
+        symFunc->setTypeRef(outTypeRef);
+        symFunc->setDeclared(ctx);
+        symFunc->setTyped(ctx);
+        symFunc->setSemaCompleted(ctx);
+        return Result::Continue;
+    }
 }
 
 namespace SemaGeneric
@@ -1356,6 +1454,81 @@ namespace SemaGeneric
                 return Result::Continue;
         }
 
+        return Result::Continue;
+    }
+
+    Result resolveFunctionCallParamType(Sema& sema, const SymbolFunction& function, AstNodeRef calleeRef, std::span<AstNodeRef> args, AstNodeRef ufcsArg, AstNodeRef childRef, TypeRef& outTypeRef)
+    {
+        outTypeRef       = TypeRef::invalid();
+        const auto* decl = function.decl() ? function.decl()->safeCast<AstFunctionDecl>() : nullptr;
+        if (!decl)
+            return Result::Continue;
+
+        std::unique_ptr<Sema> declSemaHolder;
+        Sema*                 declSema = tryCreateSemaForFunctionDecl(sema, function, declSemaHolder);
+        if (!declSema)
+            declSema = &sema;
+
+        SmallVector<GenericFunctionParamDesc> params;
+        collectFunctionParamDescs(*declSema, function, *decl, params);
+        if (params.empty())
+            return Result::Continue;
+
+        GenericCallArgMapping mapping;
+        const bool            prependUfcsArg = ufcsArg.isValid() && (!function.isMethod() || genericFunctionParamsExposeReceiver(sema, params.span()));
+        if (!buildGenericCallArgMapping(sema, params.span(), args, ufcsArg, prependUfcsArg, mapping))
+            return Result::Continue;
+
+        int32_t paramIndex = -1;
+        for (uint32_t i = 0; i < mapping.paramArgs.size(); ++i)
+        {
+            if (mapping.paramArgs[i].argRef == childRef)
+            {
+                paramIndex = static_cast<int32_t>(i);
+                break;
+            }
+        }
+
+        if (paramIndex < 0)
+            return Result::Continue;
+
+        const GenericFunctionParamDesc& param = params[paramIndex];
+        if (param.typeRef.isInvalid())
+            return Result::Continue;
+
+        if (!decl->spanGenericParamsRef.isValid() || function.isGenericInstance())
+        {
+            outTypeRef = declSema->viewType(param.typeRef).typeRef();
+            return Result::Continue;
+        }
+
+        SmallVector<GenericParamDesc> genericParams;
+        collectGenericParams(*declSema, *decl, decl->spanGenericParamsRef, genericParams);
+        if (genericParams.empty())
+        {
+            outTypeRef = declSema->viewType(param.typeRef).typeRef();
+            return Result::Continue;
+        }
+
+        SmallVector<GenericResolvedArg> resolvedArgs(genericParams.size());
+        SmallVector<AstNodeRef>         explicitGenericArgNodes;
+        collectExplicitGenericArgNodes(sema.node(calleeRef), sema.ast(), explicitGenericArgNodes);
+        if (explicitGenericArgNodes.size() > genericParams.size())
+            return Result::Continue;
+
+        for (size_t i = 0; i < explicitGenericArgNodes.size(); ++i)
+            SWC_RESULT(resolveExplicitGenericArg(sema, genericParams[i], explicitGenericArgNodes[i], resolvedArgs[i]));
+
+        SWC_RESULT(deduceGenericFunctionArgs(sema, function, genericParams.span(), resolvedArgs, args, ufcsArg));
+
+        const Internal::ResolvedGenericBindingSource source{genericParams.span(), resolvedArgs.span()};
+        SmallVector<SemaClone::ParamBinding>         bindings;
+        Internal::buildPartialGenericContextBindings(sema, function, source, genericParams.size(), bindings);
+
+        if (const auto* lambdaType = declSema->node(param.typeRef).safeCast<AstLambdaType>())
+            return buildPartialLambdaBindingType(*declSema, function, *lambdaType, bindings.span(), outTypeRef);
+
+        SWC_RESULT(resolveBoundTypeNode(*declSema, function, param.typeRef, bindings.span(), outTypeRef));
         return Result::Continue;
     }
 }

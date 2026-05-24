@@ -24,13 +24,18 @@ moduleprivate struct Pile
     childs:     Array'string
 }
 
-moduleprivate var set: HashTable'(string, Pile)
-moduleprivate var result: s64
+moduleprivate struct ChildTotal
+{
+    rank:  u64
+    total: s64
+}
 
 func day7B()
 {
     let dataPath = Path.combine(Path.getDirectoryName(#file), "7.txt")
     let lines    = assume File.readAllLines(dataPath)
+    var set:     HashTable'(string, Pile)
+    var result:  s64
 
     var r0 = assume Parser.RegExp.create(#"(\l+) \((\d+)\)"#)
     foreach l in lines
@@ -50,34 +55,82 @@ func day7B()
             self.value.childs.add(v)
     }
 
-    func sum(w: Pile)->u64
+    func sum(set: &HashTable'(string, Pile), result: &s64, w: Pile)->u64
     {
-        if result do
+        if dref result do
             return 0
 
         var total: u64
-        var sums:  Array'{ rank: u64, total: s64 }
+        var sums:  Array'ChildTotal
 
         foreach v, i in w.childs
         {
-            let s = sum(set.find(v).value)
+            let s = sum(set, result, set.find(v).value)
             sums.add({i, s})
             total += s
         }
 
-        if sums.count > 1 and result == 0
+        if sums.count > 1 and dref result == 0
         {
-            sums.sort(func(x, y) => x.total <=> y.total)
-            if sums[sums.count - 2].total != sums[sums.count - 1].total
+            var minTotal = sums[0].total
+            var maxTotal = sums[0].total
+            var minCount = 0'u64
+            var maxCount = 0'u64
+            var minRank  = sums[0].rank
+            var maxRank  = sums[0].rank
+
+            foreach s in sums
             {
-                let v = set.find(w.childs[sums[sums.count - 1].rank])
-                result = sums[sums.count - 2].total - sums[sums.count - 1].total + v.value.val
+                if s.total < minTotal
+                {
+                    minTotal = s.total
+                    minCount = 1
+                    minRank  = s.rank
+                }
+                elif s.total == minTotal do
+                    minCount += 1
+
+                if s.total > maxTotal
+                {
+                    maxTotal = s.total
+                    maxCount = 1
+                    maxRank  = s.rank
+                }
+                elif s.total == maxTotal do
+                    maxCount += 1
+            }
+
+            if minTotal != maxTotal
+            {
+                var badRank: u64
+                var expected, actual: s64
+
+                if minCount == 1 and maxCount > 1
+                {
+                    badRank  = minRank
+                    expected = maxTotal
+                    actual   = minTotal
+                }
+                elif maxCount == 1 and minCount > 1
+                {
+                    badRank  = maxRank
+                    expected = minTotal
+                    actual   = maxTotal
+                }
+                else do
+                    badRank = Swag.U64.Max
+
+                if badRank != Swag.U64.Max
+                {
+                    let v = set.find(w.childs[badRank])
+                    dref result = expected - actual + v.value.val
+                }
             }
         }
 
         return w.val + total
     }
 
-    discard sum(set.find("eugwuhl").value)
+    discard sum(&set, &result, set.find("eugwuhl").value)
     @assert(result == 420)
 }

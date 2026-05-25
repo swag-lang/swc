@@ -11,7 +11,7 @@
     day2A()
     day2B()
     day3A()
-    // day3B() disabled: compiler bug on array literal indexing
+    day3B()
     day4A()
     day4B()
     day5A()

@@ -14,9 +14,6 @@ In the above example, these slopes would find 2, 7, 3, 4, and 2 tree(s) respecti
 What: you get if you multiply together the number of trees encountered on each of the listed slopes?
 */
 
-/*
-Disabled in the examples workspace: compiler bug on array literal indexing.
-
 using Core
 
 func day3B()
@@ -43,4 +40,3 @@ func day3B()
     //Console.print("total: ", total)
     @assert(total == 3584591857)
 }
-*/

@@ -272,6 +272,31 @@ namespace
         return Result::Continue;
     }
 
+    Result concretizeForeachAggregateArraySource(Sema& sema, AstNodeRef exprRef)
+    {
+        SemaNodeView exprView(sema, exprRef, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
+        if (!exprView.type() || !exprView.type()->isAggregateArray())
+            return Result::Continue;
+
+        if (exprView.cst())
+        {
+            ConstantRef newCstRef = ConstantRef::invalid();
+            SWC_RESULT(Cast::concretizeConstant(sema, newCstRef, exprView.nodeRef(), exprView.cstRef(), TypeInfo::Sign::Unknown));
+            sema.setConstant(exprView.nodeRef(), newCstRef);
+            exprView = SemaNodeView(sema, exprRef, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
+        }
+
+        const TypeRef concreteArrayTypeRef = SemaHelpers::deduceConcretizedAggregateArrayType(sema, exprView.typeRef(), exprView.cstRef());
+        if (concreteArrayTypeRef == exprView.typeRef())
+            return Result::Continue;
+
+        const AstNodeRef sourceNodeRef = exprView.nodeRef();
+        SWC_RESULT(Cast::cast(sema, exprView, concreteArrayTypeRef, CastKind::Implicit));
+        if (exprView.nodeRef() != sourceNodeRef)
+            sema.setSubstitute(exprRef, exprView.nodeRef());
+        return Result::Continue;
+    }
+
     Result foreachElementTypes(Sema& sema, const AstForeachStmt& node, const SemaNodeView& exprView, TypeRef& valueTypeRef, TypeRef& indexTypeRef)
     {
         bool sourceIsConst = false;
@@ -377,7 +402,7 @@ Result AstForeachStmt::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) 
     {
         SWC_RESULT(validateForeachAliasCount(sema, *this));
 
-        const SemaNodeView exprView     = sema.viewType(nodeExprRef);
+        const SemaNodeView exprView     = sema.viewTypeConstant(nodeExprRef);
         TypeRef            valueTypeRef = TypeRef::invalid();
         TypeRef            indexTypeRef = TypeRef::invalid();
         auto&              pl           = ensureLoopSemaPayload(sema, sema.curNodeRef());
@@ -410,6 +435,7 @@ Result AstForeachStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef)
     if (childRef == nodeExprRef)
     {
         SWC_RESULT(validateForeachAliasCount(sema, *this));
+        SWC_RESULT(concretizeForeachAggregateArraySource(sema, nodeExprRef));
 
         bool canResolveVisit = false;
         SWC_RESULT(SemaSpecOp::canResolveVisit(sema, *this, canResolveVisit));

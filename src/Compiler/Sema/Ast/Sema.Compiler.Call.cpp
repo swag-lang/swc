@@ -359,7 +359,7 @@ namespace
             frame.setCurrentInlinePayload(inlinePayload.parentInlinePayload);
             frame.setInlineContextRootRef(AstNodeRef::invalid());
             frame.setLookupScope(inlinePayload.callerScope);
-            frame.setLookupScopeRootRef(AstNodeRef::invalid());
+            frame.setLookupScopeOverrideNodes(nullptr);
             frame.setUpLookupScope(inlinePayload.callerScope);
             for (SymbolVariable* bindingVar : inlinePayload.callerBindingVars)
                 frame.pushBindingVar(bindingVar);
@@ -388,6 +388,36 @@ namespace
         }
 
         return Result::Continue;
+    }
+
+    SemaLookupScopeOverrideNodes* makeLookupScopeOverrideNodes(Sema& sema, AstNodeRef rootRef)
+    {
+        SWC_ASSERT(rootRef.isValid());
+
+        auto* payload = sema.compiler().allocate<SemaLookupScopeOverrideNodes>();
+        payload->ast  = &sema.ast();
+
+        // Macro-inject lookup overrides are bounded to the cloned subtree. Materialize
+        // that node set once so later lookups do not need to rescan parent chains.
+        SmallVector<AstNodeRef> pending;
+        pending.push_back(rootRef);
+        while (!pending.empty())
+        {
+            const AstNodeRef nodeRef = pending.back();
+            pending.pop_back();
+            if (!payload->nodeRefs.insert(nodeRef).second)
+                continue;
+
+            SmallVector<AstNodeRef> children;
+            sema.node(nodeRef).collectChildrenFromAst(children, sema.ast());
+            for (const AstNodeRef childRef : children)
+            {
+                if (childRef.isValid())
+                    pending.push_back(childRef);
+            }
+        }
+
+        return payload;
     }
 
     Result substituteCompilerInject(Sema& sema, AstNodeRef ownerRef, AstNodeRef exprRef, std::span<const SemaClone::NodeReplacement> replacements = std::span<const SemaClone::NodeReplacement>{})
@@ -460,7 +490,7 @@ namespace
             frame.setCurrentInlinePayload(inlinePayload->parentInlinePayload);
             frame.setInlineContextRootRef(AstNodeRef::invalid());
             frame.setLookupScope(injectScope ? injectScope : callerScope);
-            frame.setLookupScopeRootRef(clonedRef);
+            frame.setLookupScopeOverrideNodes(makeLookupScopeOverrideNodes(sema, clonedRef));
             frame.setUpLookupScope(inlinePayload->upLookupScope ? inlinePayload->upLookupScope : callerScope);
             for (SymbolVariable* bindingVar : inlinePayload->callerBindingVars)
                 frame.pushBindingVar(bindingVar);

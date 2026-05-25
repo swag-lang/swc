@@ -1,4 +1,5 @@
 #pragma once
+#include <unordered_set>
 #include "Compiler/Parser/Ast/AstNode.h"
 #include "Compiler/Sema/Core/AttributeList.h"
 #include "Compiler/Sema/Symbol/Symbol.Struct.h"
@@ -8,6 +9,7 @@ SWC_BEGIN_NAMESPACE();
 
 class SymbolEnum;
 class SemaScope;
+class Ast;
 struct SemaInlinePayload;
 
 struct SemaCompilerIf
@@ -29,12 +31,19 @@ struct SemaNamedCompilerScope
     SemaNamedCompilerScope*  parent    = nullptr;
 };
 
+struct SemaLookupScopeOverrideNodes
+{
+    const Ast*                     ast = nullptr;
+    std::unordered_set<AstNodeRef> nodeRefs;
+};
+
 enum class SemaFrameContextFlagsE
 {
     Zero             = 0,
     RunExpr          = 1 << 0,
     RequireConstExpr = 1 << 1,
     CompilerEval     = 1 << 2,
+    GeneratedTopLevel = 1 << 3,
 };
 using SemaFrameContextFlags = EnumFlags<SemaFrameContextFlagsE>;
 
@@ -100,8 +109,8 @@ public:
     void                     setInlineContextRootRef(AstNodeRef nodeRef) { inlineContextRootRef_ = nodeRef; }
     SemaScope*               lookupScope() const { return lookupScope_; }
     void                     setLookupScope(SemaScope* scope) { lookupScope_ = scope; }
-    AstNodeRef               lookupScopeRootRef() const { return lookupScopeRootRef_; }
-    void                     setLookupScopeRootRef(AstNodeRef nodeRef) { lookupScopeRootRef_ = nodeRef; }
+    const SemaLookupScopeOverrideNodes* lookupScopeOverrideNodes() const { return lookupScopeOverrideNodes_; }
+    void                                setLookupScopeOverrideNodes(const SemaLookupScopeOverrideNodes* nodes) { lookupScopeOverrideNodes_ = nodes; }
     SemaScope*               upLookupScope() const { return upLookupScope_; }
     void                     setUpLookupScope(SemaScope* scope) { upLookupScope_ = scope; }
     bool                     ignoreRuntimeAccess() const { return ignoreRuntimeAccess_; }
@@ -161,7 +170,7 @@ private:
     SemaInlinePayload*            inlinePayload_       = nullptr;
     AstNodeRef                    inlineContextRootRef_  = AstNodeRef::invalid();
     SemaScope*                    lookupScope_         = nullptr;
-    AstNodeRef                    lookupScopeRootRef_  = AstNodeRef::invalid();
+    const SemaLookupScopeOverrideNodes* lookupScopeOverrideNodes_ = nullptr;
     SemaScope*                    upLookupScope_       = nullptr;
     bool                          ignoreRuntimeAccess_ = false;
     BreakContext                  breakable_;

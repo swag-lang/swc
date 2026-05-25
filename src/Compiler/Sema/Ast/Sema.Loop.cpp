@@ -27,7 +27,7 @@ namespace
         const auto savedFrame = sema.frame();
         auto&      frame      = sema.frame();
         frame.setLookupScope(nullptr);
-        frame.setLookupScopeRootRef(AstNodeRef::invalid());
+        frame.setLookupScopeOverrideNodes(nullptr);
         auto& sym = SemaHelpers::registerSymbol<T>(sema, node, tokNameRef);
         sema.frame() = savedFrame;
         return sym;
@@ -39,7 +39,7 @@ namespace
         const auto savedFrame = sema.frame();
         auto&      frame      = sema.frame();
         frame.setLookupScope(nullptr);
-        frame.setLookupScopeRootRef(AstNodeRef::invalid());
+        frame.setLookupScopeOverrideNodes(nullptr);
         auto& sym = SemaHelpers::registerUniqueSymbol<T>(sema, node, name);
         sema.frame() = savedFrame;
         return sym;

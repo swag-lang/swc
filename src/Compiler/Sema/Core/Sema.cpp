@@ -121,23 +121,6 @@ namespace
         return sema.token(node.codeRef()).id == TokenId::CompilerAst;
     }
 
-    bool isGeneratedTopLevelContext(const Sema& sema, const AstNode& node)
-    {
-        if (node.is(AstNodeId::TopLevelBlock))
-            return true;
-
-        for (size_t up = 0;; up++)
-        {
-            const AstNodeRef parentRef = sema.visit().parentNodeRef(up);
-            if (parentRef.isInvalid())
-                break;
-            if (sema.node(parentRef).is(AstNodeId::TopLevelBlock))
-                return true;
-        }
-
-        return false;
-    }
-
 }
 
 SymbolMap* Sema::childStartSymMap(Sema& parent, NodePayload& payloadContext)
@@ -235,6 +218,7 @@ Sema::Sema(TaskContext& ctx, Sema& parent, NodePayload& payloadContext, AstNodeR
     // starts a fresh walk from `root`, so inheriting those markers would leak state
     // outside the original AST branch.
     frame().removeContextFlag(SemaFrameContextFlagsE::CompilerEval);
+    frame().removeContextFlag(SemaFrameContextFlagsE::GeneratedTopLevel);
     frame().setSyntaxScopeNodeRef(AstNodeRef::invalid());
     frame().setCurrentNamedCompilerScope(nullptr);
     frame().setCurrentInlinePayload(nullptr);
@@ -392,7 +376,7 @@ const SemaScope* Sema::resolvedUpLookupScope() const
 void Sema::configureLookupFrame(SemaFrame& frame, SemaScope* lookupScope, bool ignoreRuntimeAccess)
 {
     frame.setLookupScope(lookupScope);
-    frame.setLookupScopeRootRef(AstNodeRef::invalid());
+    frame.setLookupScopeOverrideNodes(nullptr);
     frame.setUpLookupScope(lookupScope ? lookupScope->lookupParent() : nullptr);
     frame.setIgnoreRuntimeAccess(ignoreRuntimeAccess);
 }
@@ -403,21 +387,12 @@ bool Sema::hasActiveLookupScopeOverride() const
     if (!scope)
         return false;
 
-    const AstNodeRef rootRef = frame().lookupScopeRootRef();
-    if (rootRef.isInvalid())
+    const auto* overrideNodes = frame().lookupScopeOverrideNodes();
+    if (!overrideNodes)
         return true;
-
-    if (curNodeRef() == rootRef)
-        return true;
-
-    for (size_t parentIndex = 0;; ++parentIndex)
-    {
-        const AstNodeRef parentRef = visit().parentNodeRef(parentIndex);
-        if (parentRef.isInvalid())
-            return false;
-        if (parentRef == rootRef)
-            return true;
-    }
+    if (overrideNodes->ast != &ast())
+        return false;
+    return overrideNodes->nodeRefs.contains(curNodeRef());
 }
 
 SemaScope* Sema::lookupScope()
@@ -1035,6 +1010,14 @@ Result Sema::preNode(AstNode& node)
         pushContextFrame = true;
     }
 
+    if (!compilerAstExpansions_.empty() && node.is(AstNodeId::TopLevelBlock))
+    {
+        // Nested compiler-ast expansions need to know when they already run inside
+        // a generated top-level subtree, without rediscovering that ancestor on demand.
+        frame.addContextFlag(SemaFrameContextFlagsE::GeneratedTopLevel);
+        pushContextFrame = true;
+    }
+
     if (pushContextFrame)
         pushFramePopOnPostNode(frame);
 
@@ -1119,7 +1102,7 @@ Result Sema::preNodeChild(AstNode& node, AstNodeRef& childRef)
 
         if (!compilerAstExpansions_.empty())
         {
-            const bool generatedTopLevelContext = isGeneratedTopLevelContext(*this, node);
+            const bool generatedTopLevelContext = frame().hasContextFlag(SemaFrameContextFlagsE::GeneratedTopLevel);
 
             // Nested generated top-level blocks now receive their own decl pass before
             // the full pass reaches this point. That restores the same symbol visibility

@@ -1554,7 +1554,7 @@ Result SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFun
     // Lookup-scope overrides are expression-local. A fresh inline body must start from
     // its own lexical scope so nested macro locals do not inherit a caller #inject scope.
     frame.setLookupScope(nullptr);
-    frame.setLookupScopeRootRef(AstNodeRef::invalid());
+    frame.setLookupScopeOverrideNodes(nullptr);
 
     if (returnTypeRef != sema.typeMgr().typeVoid())
         frame.pushBindingType(returnTypeRef);

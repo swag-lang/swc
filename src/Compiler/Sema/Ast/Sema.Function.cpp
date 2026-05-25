@@ -33,7 +33,7 @@ namespace
         const auto savedFrame = sema.frame();
         auto&      frame      = sema.frame();
         frame.setLookupScope(nullptr);
-        frame.setLookupScopeRootRef(AstNodeRef::invalid());
+        frame.setLookupScopeOverrideNodes(nullptr);
         auto& sym = SemaHelpers::registerSymbol<SymbolFunction>(sema, node, node.tokNameRef);
         sema.frame() = savedFrame;
         return sym;

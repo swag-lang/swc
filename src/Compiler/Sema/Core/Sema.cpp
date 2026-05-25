@@ -231,11 +231,13 @@ Sema::Sema(TaskContext& ctx, Sema& parent, NodePayload& payloadContext, AstNodeR
 {
     visit_.start(nodePayloadContext_->ast(), root);
     pushFrame(parent.frame());
-    // Compiler-eval context is rooted in the active visit subtree. A child sema starts
-    // a fresh walk from `root`, so inheriting the parent's dynamic compiler-eval flag
-    // would leak that context outside the original AST branch.
+    // Ancestor-derived contexts are rooted in the active visit subtree. A child sema
+    // starts a fresh walk from `root`, so inheriting those markers would leak state
+    // outside the original AST branch.
     frame().removeContextFlag(SemaFrameContextFlagsE::CompilerEval);
+    frame().setSyntaxScopeNodeRef(AstNodeRef::invalid());
     frame().setCurrentInlinePayload(nullptr);
+    frame().setInlineContextRootRef(AstNodeRef::invalid());
     setVisitors();
     compilerAstExpansions_ = parent.compilerAstExpansions_;
 
@@ -1014,14 +1016,26 @@ Result Sema::preNode(AstNode& node)
     if (result != Result::Continue)
         return result;
 
+    bool      pushContextFrame = false;
+    SemaFrame frame            = this->frame();
+    if (node.is(AstNodeId::FunctionBody) || node.is(AstNodeId::EmbeddedBlock))
+    {
+        // `__uniq` is scoped to the nearest syntactic body/block, so cache that root
+        // once at entry instead of rediscovering it through parent walks on demand.
+        frame.setSyntaxScopeNodeRef(curNodeRef());
+        pushContextFrame = true;
+    }
+
     if (SemaRuntime::isCompilerEvalContextNode(*this, node))
     {
         // Compiler-eval availability is part of sema's dynamic context. Push it once
         // at node entry so descendants do not have to rescan the AST parent chain.
-        auto frame = this->frame();
         frame.addContextFlag(SemaFrameContextFlagsE::CompilerEval);
-        pushFramePopOnPostNode(frame);
+        pushContextFrame = true;
     }
+
+    if (pushContextFrame)
+        pushFramePopOnPostNode(frame);
 
     const SemaNodeView view = viewSymbol(curNodeRef());
     if (view.hasSymbol() && view.sym() && view.sym()->isIgnored())

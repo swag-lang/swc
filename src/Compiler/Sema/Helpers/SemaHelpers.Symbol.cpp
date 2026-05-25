@@ -274,19 +274,7 @@ uint32_t SemaHelpers::uniqSlotIndex(const TokenId tokenId)
 
 AstNodeRef SemaHelpers::uniqSyntaxScopeNodeRef(Sema& sema)
 {
-    if (sema.curNode().is(AstNodeId::FunctionBody) || sema.curNode().is(AstNodeId::EmbeddedBlock))
-        return sema.curNodeRef();
-
-    for (size_t parentIndex = 0;; parentIndex++)
-    {
-        const AstNodeRef parentRef = sema.visit().parentNodeRef(parentIndex);
-        if (parentRef.isInvalid())
-            return AstNodeRef::invalid();
-
-        const AstNodeId parentId = sema.node(parentRef).id();
-        if (parentId == AstNodeId::FunctionBody || parentId == AstNodeId::EmbeddedBlock)
-            return parentRef;
-    }
+    return sema.frame().syntaxScopeNodeRef();
 }
 
 SemaInlinePayload* SemaHelpers::mixinInlinePayloadForUniq(Sema& sema)
@@ -303,32 +291,16 @@ SemaInlinePayload* SemaHelpers::mixinInlinePayloadForUniq(Sema& sema)
 
 namespace
 {
-    bool isInsideInlineRoot(Sema& sema, AstNodeRef inlineRootRef)
-    {
-        if (inlineRootRef.isInvalid())
-            return false;
-
-        if (sema.curNodeRef() == inlineRootRef)
-            return true;
-
-        for (size_t parentIndex = 0;; parentIndex++)
-        {
-            const AstNodeRef parentRef = sema.visit().parentNodeRef(parentIndex);
-            if (parentRef.isInvalid())
-                return false;
-            if (parentRef == inlineRootRef)
-                return true;
-        }
-    }
-
     const SemaInlinePayload* mixinInlinePayloadForNestedUniqUse(Sema& sema)
     {
         const auto* inlinePayload = sema.frame().currentInlinePayload();
         if (!inlinePayload || !inlinePayload->sourceFunction)
             return nullptr;
+        if (inlinePayload->inlineRootRef.isInvalid())
+            return nullptr;
         if (!inlinePayload->sourceFunction->attributes().hasRtFlag(RtAttributeFlagsE::Mixin))
             return nullptr;
-        if (!isInsideInlineRoot(sema, inlinePayload->inlineRootRef))
+        if (sema.frame().inlineContextRootRef() != inlinePayload->inlineRootRef)
             return nullptr;
         return inlinePayload;
     }

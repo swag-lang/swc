@@ -472,6 +472,7 @@ Result AstFunctionDecl::semaPreNode(Sema& sema) const
     frame.setEnclosingFunction(sema.currentFunction());
     frame.setCurrentFunction(&sym);
     frame.setCurrentInlinePayload(nullptr);
+    frame.setInlineContextRootRef(AstNodeRef::invalid());
     frame.setCurrentErrorContext(AstNodeRef::invalid(), SemaFrame::ErrorContextMode::None);
     sema.pushFramePopOnPostNode(frame);
     return Result::Continue;
@@ -502,6 +503,7 @@ Result AstFunctionExpr::semaPreNode(Sema& sema) const
     frame.setEnclosingFunction(sema.currentFunction());
     frame.setCurrentFunction(&sym);
     frame.setCurrentInlinePayload(nullptr);
+    frame.setInlineContextRootRef(AstNodeRef::invalid());
     frame.setCurrentErrorContext(AstNodeRef::invalid(), SemaFrame::ErrorContextMode::None);
     sema.pushFramePopOnPostNode(frame);
     return Result::Continue;
@@ -532,6 +534,7 @@ Result AstClosureExpr::semaPreNode(Sema& sema) const
     frame.setEnclosingFunction(sema.currentFunction());
     frame.setCurrentFunction(&sym);
     frame.setCurrentInlinePayload(nullptr);
+    frame.setInlineContextRootRef(AstNodeRef::invalid());
     frame.setCurrentErrorContext(AstNodeRef::invalid(), SemaFrame::ErrorContextMode::None);
     sema.pushFramePopOnPostNode(frame);
     return Result::Continue;

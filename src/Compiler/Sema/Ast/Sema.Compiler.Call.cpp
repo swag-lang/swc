@@ -357,6 +357,7 @@ namespace
             while (!frame.bindingTypes().empty())
                 frame.popBindingType();
             frame.setCurrentInlinePayload(inlinePayload.parentInlinePayload);
+            frame.setInlineContextRootRef(AstNodeRef::invalid());
             frame.setLookupScope(inlinePayload.callerScope);
             frame.setLookupScopeRootRef(AstNodeRef::invalid());
             frame.setUpLookupScope(inlinePayload.callerScope);
@@ -454,7 +455,10 @@ namespace
             auto       frame       = sema.frame();
             SemaScope* callerScope = inlinePayload->callerScope;
             SemaScope* injectScope = sema.lookupScope();
+            // Caller aliases/bindings still come from the parent inline payload, but the
+            // cloned #inject subtree is not structurally inside that original inline root.
             frame.setCurrentInlinePayload(inlinePayload->parentInlinePayload);
+            frame.setInlineContextRootRef(AstNodeRef::invalid());
             frame.setLookupScope(injectScope ? injectScope : callerScope);
             frame.setLookupScopeRootRef(clonedRef);
             frame.setUpLookupScope(inlinePayload->upLookupScope ? inlinePayload->upLookupScope : callerScope);

@@ -82,9 +82,13 @@ public:
     bool                     hasContextFlag(SemaFrameContextFlagsE flag) const { return contextFlags_.has(flag); }
     void                     addContextFlag(SemaFrameContextFlagsE flag) { contextFlags_.add(flag); }
     void                     removeContextFlag(SemaFrameContextFlagsE flag) { contextFlags_.remove(flag); }
+    AstNodeRef               syntaxScopeNodeRef() const { return syntaxScopeNodeRef_; }
+    void                     setSyntaxScopeNodeRef(AstNodeRef nodeRef) { syntaxScopeNodeRef_ = nodeRef; }
     SemaInlinePayload*       currentInlinePayload() { return inlinePayload_; }
     const SemaInlinePayload* currentInlinePayload() const { return inlinePayload_; }
     void                     setCurrentInlinePayload(SemaInlinePayload* payload) { inlinePayload_ = payload; }
+    AstNodeRef               inlineContextRootRef() const { return inlineContextRootRef_; }
+    void                     setInlineContextRootRef(AstNodeRef nodeRef) { inlineContextRootRef_ = nodeRef; }
     SemaScope*               lookupScope() const { return lookupScope_; }
     void                     setLookupScope(SemaScope* scope) { lookupScope_ = scope; }
     AstNodeRef               lookupScopeRootRef() const { return lookupScopeRootRef_; }
@@ -143,7 +147,9 @@ private:
     SymbolFunction*               function_            = nullptr;
     SymbolFunction*               enclosingFunction_   = nullptr;
     SemaFrameContextFlags         contextFlags_        = SemaFrameContextFlagsE::Zero;
+    AstNodeRef                    syntaxScopeNodeRef_  = AstNodeRef::invalid();
     SemaInlinePayload*            inlinePayload_       = nullptr;
+    AstNodeRef                    inlineContextRootRef_  = AstNodeRef::invalid();
     SemaScope*                    lookupScope_         = nullptr;
     AstNodeRef                    lookupScopeRootRef_  = AstNodeRef::invalid();
     SemaScope*                    upLookupScope_       = nullptr;

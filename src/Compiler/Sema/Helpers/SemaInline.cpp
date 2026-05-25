@@ -1559,6 +1559,7 @@ Result SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFun
     if (returnTypeRef != sema.typeMgr().typeVoid())
         frame.pushBindingType(returnTypeRef);
     frame.setCurrentInlinePayload(inlinePayload);
+    frame.setInlineContextRootRef(inlineRootRef);
     if (isMacro || isMixin)
     {
         if (SymbolVariable* receiver = receiverBinding(sema, fn))

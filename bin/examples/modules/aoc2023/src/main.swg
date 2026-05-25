@@ -10,7 +10,7 @@
     day1B()
     day2A()
     day2B()
-    // day3A() disabled: compiler bug / missing equality support for anonymous struct lookup
+    day3A()
     // day3B() disabled: compiler bug / duplicate moduleprivate symbols
     day4A()
     day4B()

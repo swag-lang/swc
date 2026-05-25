@@ -582,6 +582,20 @@ namespace
 
             return Result::Continue;
         }
+
+        Result structLiteralForEquality(Sema& sema, SemaNodeView& self, const SemaNodeView& other)
+        {
+            if (!self.type() || !other.type())
+                return Result::Continue;
+
+            const TypeInfo& selfType  = aliasEnumType(sema, self);
+            const TypeInfo& otherType = aliasEnumType(sema, other);
+            if (!selfType.isAggregateStruct() || !otherType.isStruct())
+                return Result::Continue;
+
+            SWC_RESULT(Cast::cast(sema, self, other.typeRef(), CastKind::Implicit));
+            return Result::Continue;
+        }
     }
 
     Result promote(Sema& sema, TokenId op, const AstRelationalExpr& node, SemaNodeView& nodeLeftView, SemaNodeView& nodeRightView)
@@ -618,6 +632,8 @@ namespace
             nullForEquality(sema, nodeRightView, nodeLeftView);
             SWC_RESULT(typeInfoForEquality(sema, nodeLeftView, nodeRightView));
             SWC_RESULT(typeInfoForEquality(sema, nodeRightView, nodeLeftView));
+            SWC_RESULT(structLiteralForEquality(sema, nodeLeftView, nodeRightView));
+            SWC_RESULT(structLiteralForEquality(sema, nodeRightView, nodeLeftView));
         }
 
         return Result::Continue;

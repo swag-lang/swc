@@ -29,9 +29,7 @@ In this schematic, two numbers are not part numbers because they are not adjacen
 Of course, the actual engine schematic is much larger. What is the sum of all of the part numbers in the engine schematic?
 */
 
-/*
-Disabled in the examples workspace: compiler bug / missing equality support for anonymous struct lookup.
-
+// Restored after the anonymous-struct equality promotion fix.
 using Core
 
 moduleprivate var symbols: Array'{ x, y: s32 }
@@ -99,4 +97,3 @@ func day3A()
     //Console.print("total: ", total)
     @assert(total == 553825)
 }
-*/

@@ -82,9 +82,134 @@ public struct CtxAbiCalculator
     base: s32
 }
 
+public struct CtxClosureByteSet
+{
+    values: [4] u8
+    count:  u32
+}
+
+public struct CtxSelfBufferSet
+{
+    buffer:  [*] u8
+    count:   u32
+    storage: [4] u8
+}
+
+public impl CtxClosureByteSet
+{
+    #[Swag.NoInline]
+    mtd const contains(value: u8)->bool
+    {
+        return ctxSharedContains(values, count, value)
+    }
+}
+
+public impl CtxSelfBufferSet
+{
+    mtd opPostMove()
+    {
+        if buffer do
+            buffer = cast([*] u8) &storage[0]
+    }
+
+    mtd opPostCopy()
+    {
+        if buffer do
+            buffer = cast([*] u8) &storage[0]
+    }
+
+    #[Swag.NoInline]
+    mtd const toSlice()->const [..] u8
+    {
+        @assert(buffer == cast([*] u8) &storage[0])
+        return @mkslice(buffer, count)
+    }
+
+    #[Swag.NoInline]
+    mtd const contains(value: u8)->bool
+    {
+        @assert(buffer == cast([*] u8) &storage[0])
+        return ctxSharedContains(.toSlice(), count, value)
+    }
+
+    #[Swag.NoInline]
+    mtd const containsViaGeneric(value: u8)->bool
+    {
+        @assert(buffer == cast([*] u8) &storage[0])
+        return ctxSharedContainsGeneric(.toSlice(), count, value)
+    }
+}
+
+#[Swag.NoInline]
+public func ctxSharedMakeSelfBufferSet(a: u8, b: u8, c: u8, d: u8, count: u32)->CtxSelfBufferSet
+{
+    var result: retval = undefined
+    result.storage = [a, b, c, d]
+    result.buffer  = cast([*] u8) &result.storage[0]
+    result.count   = count
+    return result
+}
+
+#[Swag.NoInline]
+public func ctxSharedContains(values: const [..] u8, count: u32, value: u8)->bool
+{
+    for i in count
+    {
+        if values[i] == value do
+            return true
+    }
+
+    return false
+}
+
+#[Swag.NoInline]
+public func(T) ctxSharedContainsGeneric(values: const [..] T, count: u32, value: T)->bool
+{
+    for i in count
+    {
+        if values[i] == value do
+            return true
+    }
+
+    return false
+}
+
+public impl CtxClosureByteSet
+{
+    #[Swag.NoInline]
+    mtd const containsViaGeneric(value: u8)->bool
+    {
+        return ctxSharedContainsGeneric(values, count, value)
+    }
+}
+
 public func ctxSharedPassString(text: string)->string
 {
     return text
+}
+
+#[Swag.NoInline]
+public func ctxSharedInvokeUnary(value: u8, cb: func||(u8)->bool)->bool
+{
+    return cb(value)
+}
+
+#[Swag.NoInline]
+public func(T) ctxSharedInvokeGeneric(value: T, cb: func||(T)->bool)->bool
+{
+    return cb(value)
+}
+
+#[Swag.NoInline]
+public func(T) ctxSharedAllOf(values: const [..] T, cb: func||(T)->bool)->bool
+{
+    foreach v in values
+    {
+        if !cb(v) do
+            return false
+    }
+
+    return true
 }
 
 public func ctxSharedPassStringAt(text: string, idx: s32)->u8

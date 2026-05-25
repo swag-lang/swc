@@ -32,6 +32,7 @@ namespace
     struct ForeachStmtCodeGenPayload
     {
         MicroLabelRef         loopLabel        = MicroLabelRef::invalid();
+        MicroLabelRef         whereFalseLabel  = MicroLabelRef::invalid();
         MicroLabelRef         continueLabel    = MicroLabelRef::invalid();
         MicroLabelRef         doneLabel        = MicroLabelRef::invalid();
         MicroReg              baseReg          = MicroReg::invalid();
@@ -311,12 +312,40 @@ namespace
         builder.emitLoadRegMem(loopState.indexReg, stateAddressReg, offsetof(ForeachLoopRuntimeState, index), MicroOpBits::B64);
     }
 
-    void emitForeachBindSymbols(CodeGen& codeGen, const AstForeachStmt& node, const ForeachStmtCodeGenPayload& loopState)
+    void registerForeachAliasImplicitDrops(CodeGen& codeGen, const ForeachStmtCodeGenPayload& loopState)
+    {
+        const auto   symbols    = foreachSymbols(codeGen, codeGen.curNodeRef());
+        const size_t aliasCount = std::min<size_t>(loopState.aliasSymbolCount, symbols.size());
+        for (size_t i = 0; i < aliasCount; ++i)
+            codeGen.registerImplicitDrop(symbols[i]->cast<SymbolVariable>());
+    }
+
+    Result emitForeachAliasDrops(CodeGen& codeGen, const ForeachStmtCodeGenPayload& loopState)
+    {
+        const auto   symbols    = foreachSymbols(codeGen, codeGen.curNodeRef());
+        const size_t aliasCount = std::min<size_t>(loopState.aliasSymbolCount, symbols.size());
+        for (size_t i = 0; i < aliasCount; ++i)
+        {
+            const SymbolVariable& symVar = symbols[i]->cast<SymbolVariable>();
+            if (!codeGen.hasLifecycle(symVar.typeRef(), CodeGen::LifecycleKind::Drop))
+                continue;
+
+            const CodeGenNodePayload valuePayload = resolveForeachVariablePayload(codeGen, symVar);
+            if (!valuePayload.isAddress())
+                continue;
+
+            SWC_RESULT(codeGen.emitLifecycle(symVar.typeRef(), CodeGen::LifecycleKind::Drop, valuePayload.reg));
+        }
+
+        return Result::Continue;
+    }
+
+    Result emitForeachBindSymbols(CodeGen& codeGen, const AstForeachStmt& node, const ForeachStmtCodeGenPayload& loopState)
     {
         const auto   symbols    = foreachSymbols(codeGen, codeGen.curNodeRef());
         const size_t aliasCount = std::min<size_t>(loopState.aliasSymbolCount, symbols.size());
         if (!aliasCount)
-            return;
+            return Result::Continue;
 
         const MicroReg elementAddressReg = emitForeachValueAddress(codeGen, loopState);
         MicroBuilder&  builder           = codeGen.builder();
@@ -342,10 +371,15 @@ namespace
                 SWC_ASSERT(loopState.valueSize == 1 || loopState.valueSize == 2 || loopState.valueSize == 4 || loopState.valueSize == 8);
                 builder.emitLoadRegMem(valuePayload.reg, elementAddressReg, 0, microOpBitsFromChunkSize(static_cast<uint32_t>(loopState.valueSize)));
             }
+
+            // Foreach materializes a fresh by-value alias from the source element, so addressable
+            // loop storage needs the same post-copy fixups as any other copied local.
+            if (valuePayload.isAddress() && codeGen.hasLifecycle(valueSym.typeRef(), CodeGen::LifecycleKind::PostCopy))
+                SWC_RESULT(codeGen.emitLifecycle(valueSym.typeRef(), CodeGen::LifecycleKind::PostCopy, valuePayload.reg));
         }
 
         if (aliasCount < 2)
-            return;
+            return Result::Continue;
 
         const SymbolVariable&    indexSym     = symbols[1]->cast<SymbolVariable>();
         const CodeGenNodePayload indexPayload = resolveForeachVariablePayload(codeGen, indexSym);
@@ -353,6 +387,7 @@ namespace
             builder.emitLoadMemReg(indexPayload.reg, 0, loopState.indexReg, MicroOpBits::B64);
         else
             builder.emitLoadRegReg(indexPayload.reg, loopState.indexReg, MicroOpBits::B64);
+        return Result::Continue;
     }
 
     MicroReg emitLoadCStringReg(CodeGen& codeGen, const CodeGenNodePayload& payload)
@@ -509,6 +544,7 @@ Result AstForeachStmt::codeGenPreNode(CodeGen& codeGen) const
 
     MicroBuilder& builder   = codeGen.builder();
     loopState.loopLabel     = builder.createLabel();
+    loopState.whereFalseLabel = builder.createLabel();
     loopState.continueLabel = builder.createLabel();
     loopState.doneLabel     = builder.createLabel();
     loopState.reverse       = modifierFlags.has(AstModifierFlagsE::Reverse);
@@ -533,6 +569,7 @@ Result AstForeachStmt::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef& c
     frame.setCurrentLoopIndex(loopState->indexReg, codeGen.typeMgr().typeU64());
     codeGen.pushFrame(frame);
     codeGen.pushDeferScope(AstNodeRef::invalid(), codeGen.curNodeRef());
+    registerForeachAliasImplicitDrops(codeGen, *loopState);
     return Result::Continue;
 }
 
@@ -561,7 +598,7 @@ Result AstForeachStmt::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& 
             builder.emitLoadRegReg(loopState->indexReg, loopState->countReg, MicroOpBits::B64);
             builder.emitOpBinaryRegImm(loopState->indexReg, ApInt(1, 64), MicroOp::Subtract, MicroOpBits::B64);
         }
-        emitForeachBindSymbols(codeGen, *this, *loopState);
+        SWC_RESULT(emitForeachBindSymbols(codeGen, *this, *loopState));
         return Result::Continue;
     }
 
@@ -569,7 +606,7 @@ Result AstForeachStmt::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& 
     {
         const CodeGenNodePayload& wherePayload = codeGen.payload(whereRef);
         const SemaNodeView        whereView    = codeGen.viewType(whereRef);
-        CodeGenCompareHelpers::emitConditionFalseJump(codeGen, wherePayload, whereView.typeRef(), loopState->continueLabel);
+        CodeGenCompareHelpers::emitConditionFalseJump(codeGen, wherePayload, whereView.typeRef(), loopState->whereFalseLabel);
         return Result::Continue;
     }
 
@@ -585,6 +622,12 @@ Result AstForeachStmt::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& 
 
         builder.setCurrentDebugSourceCodeRef(codeGen.node(codeGen.curNodeRef()).codeRef());
         builder.setCurrentDebugNoStep(false);
+        if (whereRef.isValid())
+        {
+            builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, loopState->continueLabel);
+            builder.placeLabel(loopState->whereFalseLabel);
+            SWC_RESULT(emitForeachAliasDrops(codeGen, *loopState));
+        }
         builder.placeLabel(loopState->continueLabel);
         emitForeachLoadLoopState(codeGen, *loopState);
         if (!loopState->reverse)

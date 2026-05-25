@@ -325,6 +325,20 @@ namespace
         return true;
     }
 
+    bool shouldSkipMacroInjectPreResolveChild(const AstNode& parentNode, AstNodeRef childRef)
+    {
+        if (const auto* closureExpr = parentNode.safeCast<AstClosureExpr>())
+            return childRef == closureExpr->nodeBodyRef;
+
+        if (const auto* functionExpr = parentNode.safeCast<AstFunctionExpr>())
+            return childRef == functionExpr->nodeBodyRef;
+
+        if (const auto* functionDecl = parentNode.safeCast<AstFunctionDecl>())
+            return childRef == functionDecl->nodeBodyRef;
+
+        return false;
+    }
+
     Result preResolveMacroInjectCallerIdentifiers(Sema& sema, AstNodeRef nodeRef, const SemaInlinePayload& inlinePayload, AstNodeRef parentRef = AstNodeRef::invalid())
     {
         if (nodeRef.isInvalid() || !inlinePayload.callerScope)
@@ -363,9 +377,14 @@ namespace
         }
 
         SmallVector<AstNodeRef> children;
-        sema.node(nodeRef).collectChildrenFromAst(children, sema.ast());
+        const AstNode&          parentNode = sema.node(nodeRef);
+        parentNode.collectChildrenFromAst(children, sema.ast());
         for (const AstNodeRef childRef : children)
+        {
+            if (shouldSkipMacroInjectPreResolveChild(parentNode, childRef))
+                continue;
             SWC_RESULT(preResolveMacroInjectCallerIdentifiers(sema, childRef, inlinePayload, nodeRef));
+        }
 
         return Result::Continue;
     }

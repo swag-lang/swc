@@ -416,6 +416,10 @@ AstNodeRef Parser::parseIdentifierSuffixValue()
 
 AstNodeRef Parser::parseQuotedSingleSuffixValue()
 {
+    // `Type'Arg` must recognize the same leading type syntax as `Type'(Arg, ...)`.
+    if (isAny(TokenId::SymLeftCurly, TokenId::KwdFunc, TokenId::KwdMtd))
+        return parseType();
+
     AstNodeRef nodeRef = parsePrimaryExpression();
     if (nodeRef.isInvalid())
         return AstNodeRef::invalid();

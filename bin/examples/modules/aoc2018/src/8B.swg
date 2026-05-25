@@ -19,7 +19,7 @@ What is the value of the root node?
 
 using Core
 
-moduleprivate var total = 0
+moduleprivate var rootNodeTotal = 0
 
 //#[Swag.Sanity(false)]
 //#[Swag.PrintGenBc]
@@ -62,6 +62,6 @@ func day8B()
         return {start + nm, sum}
     }
 
-    (?, total) = read(nums, 0)
-    @assert(total == 22989)
+    (?, rootNodeTotal) = read(nums, 0)
+    @assert(rootNodeTotal == 22989)
 }

@@ -34,7 +34,7 @@ What is the sum of all metadata entries?
 
 using Core
 
-moduleprivate var total = 0
+moduleprivate var metadataTotal = 0
 
 func day8A()
 {
@@ -52,10 +52,10 @@ func day8A()
         for nc do
             start = read(n, start)
         for i in nm do
-            total += n[start + i]
+            metadataTotal += n[start + i]
         return start + nm
     }
 
     discard read(nums, 0)
-    @assert(total == 45194)
+    @assert(metadataTotal == 45194)
 }

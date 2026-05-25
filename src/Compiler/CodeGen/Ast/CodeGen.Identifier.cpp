@@ -862,7 +862,8 @@ Result AstMultiVarDecl::codeGenPostNode(CodeGen& codeGen) const
 
 Result AstVarDeclDestructuring::codeGenPostNode(CodeGen& codeGen) const
 {
-    const SemaNodeView initView = codeGen.viewType(nodeInitRef);
+    const SemaNodeView initView      = codeGen.viewType(nodeInitRef);
+    const SemaNodeView initConstView = codeGen.viewTypeConstant(nodeInitRef);
     SWC_ASSERT(initView.type() && (initView.type()->isStruct() || initView.type()->isAggregateStruct()));
 
     SmallVector<TokenRef> tokNames;
@@ -879,71 +880,110 @@ Result AstVarDeclDestructuring::codeGenPostNode(CodeGen& codeGen) const
 
     SWC_ASSERT(!symbols.empty());
 
-    // Aggregate struct literals have no runtime layout. Initialize each
-    // decomposed variable from its compile-time constant value.
+    // Aggregate struct literals can be purely compile-time values or runtime
+    // temporaries materialized in scratch storage. Handle the constant case
+    // directly, and otherwise destructure from the runtime aggregate layout.
     if (initView.type()->isAggregateStruct())
     {
-        MicroBuilder& builder = codeGen.builder();
-
-        for (Symbol* sym : symbols)
+        if (initConstView.hasConstant())
         {
-            auto& symVar = sym->cast<SymbolVariable>();
-            if (symVar.hasGlobalStorage())
-                continue;
-            if (symVar.hasExtraFlag(SymbolVariableFlagsE::Let))
-                continue;
-
-            if (symVar.cstRef().isValid())
+            MicroBuilder& builder = codeGen.builder();
+            for (Symbol* sym : symbols)
             {
-                const ConstantValue& cst = codeGen.cstMgr().get(symVar.cstRef());
+                auto& symVar = sym->cast<SymbolVariable>();
+                if (symVar.hasGlobalStorage())
+                    continue;
+                if (symVar.hasExtraFlag(SymbolVariableFlagsE::Let))
+                    continue;
 
-                CodeGenNodePayload fieldPayload;
-                fieldPayload.typeRef = symVar.typeRef();
-                fieldPayload.setIsValue();
+                if (symVar.cstRef().isValid())
+                {
+                    const ConstantValue& cst = codeGen.cstMgr().get(symVar.cstRef());
 
-                if (cst.isInt())
-                {
-                    fieldPayload.reg = codeGen.nextVirtualIntRegister();
-                    builder.emitLoadRegImm(fieldPayload.reg, ApInt(static_cast<uint64_t>(cst.getInt().asI64()), 64), MicroOpBits::B64);
-                }
-                else if (cst.isBool())
-                {
-                    fieldPayload.reg = codeGen.nextVirtualIntRegister();
-                    builder.emitLoadRegImm(fieldPayload.reg, ApInt(cst.getBool() ? 1 : 0, 64), MicroOpBits::B64);
-                }
-                else if (cst.isFloat())
-                {
-                    fieldPayload.reg = codeGen.nextVirtualFloatRegister();
-                    const auto bits  = std::bit_cast<uint64_t>(cst.getFloat().asDouble());
-                    builder.emitLoadRegImm(fieldPayload.reg, ApInt(bits, 64), MicroOpBits::B64);
-                }
-                else if (cst.isString())
-                {
-                    const std::string_view strVal    = cst.getString();
-                    const ConstantRef      strCstRef = CodeGenConstantHelpers::materializeRuntimeBufferConstant(codeGen, symVar.typeRef(), strVal.data(), strVal.size());
-                    const ConstantValue&   strCst    = codeGen.cstMgr().get(strCstRef);
-                    fieldPayload.reg                 = codeGen.nextVirtualIntRegister();
-                    builder.emitLoadRegPtrReloc(fieldPayload.reg, reinterpret_cast<uint64_t>(strCst.getStruct().data()), strCstRef);
-                }
-                else if (cst.isValuePointer())
-                {
-                    fieldPayload.reg = codeGen.nextVirtualIntRegister();
-                    builder.emitLoadRegPtrReloc(fieldPayload.reg, cst.getValuePointer(), symVar.cstRef());
+                    CodeGenNodePayload fieldPayload;
+                    fieldPayload.typeRef = symVar.typeRef();
+                    fieldPayload.setIsValue();
+
+                    if (cst.isInt())
+                    {
+                        fieldPayload.reg = codeGen.nextVirtualIntRegister();
+                        builder.emitLoadRegImm(fieldPayload.reg, ApInt(static_cast<uint64_t>(cst.getInt().asI64()), 64), MicroOpBits::B64);
+                    }
+                    else if (cst.isBool())
+                    {
+                        fieldPayload.reg = codeGen.nextVirtualIntRegister();
+                        builder.emitLoadRegImm(fieldPayload.reg, ApInt(cst.getBool() ? 1 : 0, 64), MicroOpBits::B64);
+                    }
+                    else if (cst.isFloat())
+                    {
+                        fieldPayload.reg = codeGen.nextVirtualFloatRegister();
+                        const auto bits  = std::bit_cast<uint64_t>(cst.getFloat().asDouble());
+                        builder.emitLoadRegImm(fieldPayload.reg, ApInt(bits, 64), MicroOpBits::B64);
+                    }
+                    else if (cst.isString())
+                    {
+                        const std::string_view strVal    = cst.getString();
+                        const ConstantRef      strCstRef = CodeGenConstantHelpers::materializeRuntimeBufferConstant(codeGen, symVar.typeRef(), strVal.data(), strVal.size());
+                        const ConstantValue&   strCst    = codeGen.cstMgr().get(strCstRef);
+                        fieldPayload.reg                 = codeGen.nextVirtualIntRegister();
+                        builder.emitLoadRegPtrReloc(fieldPayload.reg, reinterpret_cast<uint64_t>(strCst.getStruct().data()), strCstRef);
+                    }
+                    else if (cst.isValuePointer())
+                    {
+                        fieldPayload.reg = codeGen.nextVirtualIntRegister();
+                        builder.emitLoadRegPtrReloc(fieldPayload.reg, cst.getValuePointer(), symVar.cstRef());
+                    }
+                    else
+                    {
+                        fieldPayload.reg = codeGen.nextVirtualIntRegister();
+                        builder.emitClearReg(fieldPayload.reg, identifierPayloadCopyBits(codeGen, symVar.typeRef()));
+                    }
+
+                    materializeSingleVarFromPayload(codeGen, symVar, fieldPayload);
                 }
                 else
                 {
-                    fieldPayload.reg = codeGen.nextVirtualIntRegister();
-                    builder.emitClearReg(fieldPayload.reg, identifierPayloadCopyBits(codeGen, symVar.typeRef()));
+                    SWC_RESULT(materializeSingleVarFromInit(codeGen, symVar, AstNodeRef::invalid()));
                 }
 
-                materializeSingleVarFromPayload(codeGen, symVar, fieldPayload);
+                codeGen.registerImplicitDrop(symVar);
             }
-            else
-            {
-                SWC_RESULT(materializeSingleVarFromInit(codeGen, symVar, AstNodeRef::invalid()));
-            }
+        }
+        else
+        {
+            const CodeGenNodePayload& initPayload = codeGen.payload(nodeInitRef);
+            MicroReg                  baseAddress = MicroReg::invalid();
+            materializeAggregateSourceAddress(codeGen, codeGen.curNodeRef(), initView.typeRef(), initPayload, baseAddress);
 
-            codeGen.registerImplicitDrop(symVar);
+            const auto& aggregateTypes = initView.type()->payloadAggregate().types;
+            uint64_t    offset         = 0;
+            size_t      symbolIndex    = 0;
+            for (size_t i = 0; i < tokNames.size(); ++i)
+            {
+                SWC_ASSERT(i < aggregateTypes.size());
+                const TypeRef fieldTypeRef = aggregateTypes[i];
+                const auto&   fieldType    = codeGen.typeMgr().get(fieldTypeRef);
+                const uint32_t fieldAlign  = std::max<uint32_t>(fieldType.alignOf(codeGen.ctx()), 1);
+                const uint64_t fieldSize   = fieldType.sizeOf(codeGen.ctx());
+                if (fieldSize)
+                    offset = ((offset + static_cast<uint64_t>(fieldAlign) - 1) / static_cast<uint64_t>(fieldAlign)) * static_cast<uint64_t>(fieldAlign);
+
+                if (tokNames[i].isValid())
+                {
+                    SWC_ASSERT(symbolIndex < symbols.size());
+                    const SymbolVariable& symVar = symbols[symbolIndex++]->cast<SymbolVariable>();
+
+                    CodeGenNodePayload fieldPayload;
+                    fieldPayload.typeRef = fieldTypeRef;
+                    fieldPayload.setIsAddress();
+                    fieldPayload.reg = codeGen.offsetAddressReg(baseAddress, static_cast<uint32_t>(offset));
+
+                    materializeSingleVarFromPayload(codeGen, symVar, fieldPayload);
+                    codeGen.registerImplicitDrop(symVar);
+                }
+
+                offset += fieldSize;
+            }
         }
 
         return Result::Continue;

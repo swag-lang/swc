@@ -10,8 +10,8 @@
     day1B()
     day2A()
     day2B()
-    // day3A() disabled: compiler bug in for-in codegen over strings
-    // day3B() disabled: compiler bug in for-in codegen over strings
+    day3A()
+    day3B()
     // day4A() disabled: runtime compiler bug / integer overflow during execution
     // day4B() disabled: runtime compiler bug / integer overflow during execution
     // day5A() disabled: compiler bug in scoped bindings from assume blocks

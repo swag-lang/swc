@@ -12,7 +12,7 @@
     day2B()
     day3A()
     day3B()
-    // day4A() disabled: compiler bug in for-in codegen over strings
+    day4A()
     day4B()
     // day5A() disabled: runtime failure during execution
     // day5B() disabled: runtime failure during execution

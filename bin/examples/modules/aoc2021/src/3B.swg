@@ -34,9 +34,7 @@ using Core
 
 moduleprivate var lines: Array'String
 
-/*
-Disabled in the examples workspace: compiler bug in for-in codegen over strings.
-
+// Restored after the for-in codegen fix for resolved string sources.
 func calc(a, b: u8)->u64
 {
     var scan = lines
@@ -74,4 +72,3 @@ func day3B()
     //Console.print("total: ", o2*co2)
     @assert(o2 * co2 == 7041258)
 }
-*/

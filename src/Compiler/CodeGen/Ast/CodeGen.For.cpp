@@ -79,6 +79,66 @@ namespace
             *payload = {};
     }
 
+    bool matchesChildRef(CodeGen& codeGen, AstNodeRef callbackRef, AstNodeRef targetRef)
+    {
+        if (callbackRef.isInvalid() || targetRef.isInvalid())
+            return false;
+
+        const auto sameRef = [&](AstNodeRef leftRef, AstNodeRef rightRef) -> bool
+        {
+            if (leftRef == rightRef)
+                return true;
+
+            const AstNodeRef resolvedLeftRef = codeGen.resolvedNodeRef(leftRef);
+            if (resolvedLeftRef.isValid() && resolvedLeftRef == rightRef)
+                return true;
+
+            const AstNodeRef resolvedRightRef = codeGen.resolvedNodeRef(rightRef);
+            if (resolvedRightRef.isValid() && leftRef == resolvedRightRef)
+                return true;
+
+            return resolvedLeftRef.isValid() && resolvedRightRef.isValid() && resolvedLeftRef == resolvedRightRef;
+        };
+
+        const auto transparentOperandRef = [&](AstNodeRef nodeRef) -> AstNodeRef
+        {
+            if (nodeRef.isInvalid())
+                return AstNodeRef::invalid();
+
+            const AstNode& node = codeGen.node(nodeRef);
+            switch (node.id())
+            {
+                case AstNodeId::CastExpr:
+                    return node.cast<AstCastExpr>().nodeExprRef;
+                case AstNodeId::AutoCastExpr:
+                    return node.cast<AstAutoCastExpr>().nodeExprRef;
+                case AstNodeId::AsCastExpr:
+                    return node.cast<AstAsCastExpr>().nodeExprRef;
+                case AstNodeId::ParenExpr:
+                    return node.cast<AstParenExpr>().nodeExprRef;
+                default:
+                    return AstNodeRef::invalid();
+            }
+        };
+
+        AstNodeRef currentCallbackRef = callbackRef;
+        while (currentCallbackRef.isValid())
+        {
+            AstNodeRef currentTargetRef = targetRef;
+            while (currentTargetRef.isValid())
+            {
+                if (sameRef(currentCallbackRef, currentTargetRef))
+                    return true;
+
+                currentTargetRef = transparentOperandRef(currentTargetRef);
+            }
+
+            currentCallbackRef = transparentOperandRef(currentCallbackRef);
+        }
+
+        return false;
+    }
+
     TypeRef loopCompareTypeRef(CodeGen& codeGen, TypeRef typeRef)
     {
         const TypeRef unwrappedTypeRef = codeGen.typeMgr().unwrapAliasEnum(codeGen.ctx(), typeRef);
@@ -546,9 +606,9 @@ Result AstForStmt::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef& child
     const ForStmtCodeGenPayload* loopState = forStmtCodeGenPayload(codeGen, codeGen.curNodeRef());
     SWC_ASSERT(loopState != nullptr);
 
-    const AstNodeRef whereRef = codeGen.resolvedNodeRef(nodeWhereRef);
-    const AstNodeRef bodyRef  = codeGen.resolvedNodeRef(nodeBodyRef);
-    if (childRef != whereRef && !(childRef == bodyRef && whereRef.isInvalid()))
+    const bool isWhereChild = nodeWhereRef.isValid() && matchesChildRef(codeGen, childRef, nodeWhereRef);
+    const bool isBodyChild  = nodeBodyRef.isValid() && matchesChildRef(codeGen, childRef, nodeBodyRef);
+    if (!isWhereChild && !(isBodyChild && nodeWhereRef.isInvalid()))
         return Result::Continue;
 
     CodeGenFrame frame = codeGen.frame();
@@ -566,11 +626,11 @@ Result AstForStmt::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& chil
     ForStmtCodeGenPayload* loopState = forStmtCodeGenPayload(codeGen, codeGen.curNodeRef());
     SWC_ASSERT(loopState != nullptr);
 
-    const AstNodeRef exprRef  = codeGen.resolvedNodeRef(nodeExprRef);
-    const AstNodeRef whereRef = codeGen.resolvedNodeRef(nodeWhereRef);
-    const AstNodeRef bodyRef  = codeGen.resolvedNodeRef(nodeBodyRef);
+    const bool isExprChild  = matchesChildRef(codeGen, childRef, nodeExprRef);
+    const bool isWhereChild = nodeWhereRef.isValid() && matchesChildRef(codeGen, childRef, nodeWhereRef);
+    const bool isBodyChild  = nodeBodyRef.isValid() && matchesChildRef(codeGen, childRef, nodeBodyRef);
 
-    if (childRef == exprRef)
+    if (isExprChild)
     {
         SWC_RESULT(emitForInit(codeGen, *this, *loopState));
         MicroBuilder& builder = codeGen.builder();
@@ -580,19 +640,19 @@ Result AstForStmt::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& chil
         return Result::Continue;
     }
 
-    if (childRef == whereRef)
+    if (isWhereChild)
     {
-        const CodeGenNodePayload& wherePayload = codeGen.payload(whereRef);
-        const SemaNodeView        whereView    = codeGen.viewType(whereRef);
+        const CodeGenNodePayload& wherePayload = codeGen.payload(childRef);
+        const SemaNodeView        whereView    = codeGen.viewType(childRef);
         CodeGenCompareHelpers::emitConditionFalseJump(codeGen, wherePayload, whereView.typeRef(), loopState->continueLabel);
         return Result::Continue;
     }
 
-    if (childRef == bodyRef)
+    if (isBodyChild)
     {
         SWC_RESULT(codeGen.popDeferScope());
 
-        if (whereRef.isInvalid() && codeGen.currentInstructionBlocksFallthrough() && !codeGen.frame().currentLoopHasContinueJump())
+        if (nodeWhereRef.isInvalid() && codeGen.currentInstructionBlocksFallthrough() && !codeGen.frame().currentLoopHasContinueJump())
         {
             codeGen.popFrame();
             return Result::Continue;

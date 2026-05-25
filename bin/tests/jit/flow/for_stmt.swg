@@ -9,6 +9,11 @@ struct FixedCountedLoop
 {
 }
 
+struct StringRefIndexBox
+{
+    rows: [2] string
+}
+
 impl CountedLoop
 {
     mtd opCount() => me.count
@@ -17,6 +22,19 @@ impl CountedLoop
 impl FixedCountedLoop
 {
     mtd opCount() => 4'u64
+}
+
+impl StringRefIndexBox
+{
+    mtd opIndex(index: s32) -> &string
+    {
+        return &.rows[index]
+    }
+
+    mtd const opIndex(index: s32) -> const &string
+    {
+        return &.rows[index]
+    }
 }
 
 #test
@@ -156,4 +174,19 @@ impl FixedCountedLoop
 
     const V = #run fixedStructIndexedLoop()
     #assert(V == 6)
+}
+
+#test
+{
+    func indexedStringLoop()->s32
+    {
+        var box = StringRefIndexBox{rows: ["10110", "00100"]}
+        var sum = 0
+        for i in box[0] do
+            sum += cast(s32) i
+        return sum
+    }
+
+    const V = #run indexedStringLoop()
+    #assert(V == 10)
 }

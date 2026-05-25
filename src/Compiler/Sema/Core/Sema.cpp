@@ -236,6 +236,7 @@ Sema::Sema(TaskContext& ctx, Sema& parent, NodePayload& payloadContext, AstNodeR
     // outside the original AST branch.
     frame().removeContextFlag(SemaFrameContextFlagsE::CompilerEval);
     frame().setSyntaxScopeNodeRef(AstNodeRef::invalid());
+    frame().setCurrentNamedCompilerScope(nullptr);
     frame().setCurrentInlinePayload(nullptr);
     frame().setInlineContextRootRef(AstNodeRef::invalid());
     setVisitors();

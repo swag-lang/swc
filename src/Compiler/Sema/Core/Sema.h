@@ -22,6 +22,10 @@ class IdentifierManager;
 class Sema;
 class SourceFile;
 struct SemaInlinePayload;
+struct ScopedBreakSemaPayload
+{
+    AstNodeRef targetScopeRef = AstNodeRef::invalid();
+};
 
 namespace SemaGeneric
 {

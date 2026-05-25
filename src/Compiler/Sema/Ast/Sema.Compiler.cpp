@@ -34,6 +34,16 @@ namespace
         SemaCompilerIf* elseData = nullptr;
     };
 
+    ScopedBreakSemaPayload& ensureScopedBreakSemaPayload(Sema& sema, AstNodeRef nodeRef)
+    {
+        if (auto* payload = sema.semaPayload<ScopedBreakSemaPayload>(nodeRef))
+            return *payload;
+
+        auto* payload = sema.compiler().allocate<ScopedBreakSemaPayload>();
+        sema.setSemaPayload(nodeRef, payload);
+        return *payload;
+    }
+
     CompilerIfSemaPayload& ensureCompilerIfSemaPayload(Sema& sema, AstNodeRef nodeRef)
     {
         if (auto* payload = sema.semaPayload<CompilerIfSemaPayload>(nodeRef))
@@ -66,27 +76,15 @@ namespace
         return false;
     }
 
-    AstNodeRef findNamedCompilerScope(Sema& sema, std::string_view scopeName)
+    const SemaNamedCompilerScope* findNamedCompilerScope(Sema& sema, IdentifierRef scopeIdRef)
     {
-        for (size_t parentIndex = 0;; ++parentIndex)
+        for (const SemaNamedCompilerScope* scope = sema.frame().currentNamedCompilerScope(); scope; scope = scope->parent)
         {
-            const AstNodeRef parentRef = sema.visit().parentNodeRef(parentIndex);
-            if (parentRef.isInvalid())
-                return AstNodeRef::invalid();
-
-            const AstNode& parentNode = sema.ast().node(parentRef);
-            if (parentNode.isNot(AstNodeId::CompilerScope))
-                continue;
-
-            const auto& scopeNode = parentNode.cast<AstCompilerScope>();
-            if (scopeNode.tokNameRef.isInvalid())
-                continue;
-
-            const SourceCodeRef scopeCodeRef{scopeNode.srcViewRef(), scopeNode.tokNameRef};
-            const Token&        scopeTok = sema.token(scopeCodeRef);
-            if (scopeTok.string(sema.srcView(scopeCodeRef.srcViewRef)) == scopeName)
-                return parentRef;
+            if (scope->idRef == scopeIdRef)
+                return scope;
         }
+
+        return nullptr;
     }
 
     constexpr Runtime::TargetOs nativeTargetOs()
@@ -115,6 +113,16 @@ Result AstCompilerScope::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef
 
     SemaFrame frame = sema.frame();
     frame.setCurrentBreakContent(sema.curNodeRef(), SemaFrame::BreakContextKind::Scope);
+    if (tokNameRef.isValid())
+    {
+        // Named `#scope` resolution is an ancestor context just like `break` ownership,
+        // so cache the active chain in the frame instead of rescanning parent nodes.
+        auto* namedScope  = sema.compiler().allocate<SemaNamedCompilerScope>();
+        namedScope->idRef = sema.idMgr().addIdentifier(sema.ctx(), SourceCodeRef{srcViewRef(), tokNameRef});
+        namedScope->scopeRef = sema.curNodeRef();
+        namedScope->parent = sema.frame().currentNamedCompilerScope();
+        frame.setCurrentNamedCompilerScope(namedScope);
+    }
     sema.pushFramePopOnPostChild(frame, childRef);
     return Result::Continue;
 }
@@ -123,11 +131,14 @@ Result AstScopedBreakStmt::semaPreNode(Sema& sema)
 {
     const auto&         node = sema.curNode().cast<AstScopedBreakStmt>();
     const SourceCodeRef nameCodeRef{node.srcViewRef(), node.tokNameRef};
-    const Token&        tokScopeName = sema.token(nameCodeRef);
-    const AstNodeRef    scopeRef     = findNamedCompilerScope(sema, tokScopeName.string(sema.srcView(nameCodeRef.srcViewRef)));
-    if (scopeRef.isValid())
+    const IdentifierRef scopeIdRef = sema.idMgr().addIdentifier(sema.ctx(), nameCodeRef);
+    if (const auto* scope = findNamedCompilerScope(sema, scopeIdRef))
+    {
+        ensureScopedBreakSemaPayload(sema, sema.curNodeRef()).targetScopeRef = scope->scopeRef;
         return Result::Continue;
+    }
 
+    const Token& tokScopeName = sema.token(nameCodeRef);
     auto diag = SemaError::report(sema, DiagnosticId::sema_err_unknown_scope_name, SourceCodeRef{node.srcViewRef(), node.tokNameRef});
     diag.addArgument(Diagnostic::ARG_SYM, tokScopeName.string(sema.srcView(nameCodeRef.srcViewRef)));
     diag.report(sema.ctx());

@@ -80,29 +80,6 @@ namespace
             *payload = {};
     }
 
-    AstNodeRef findNamedCompilerScope(CodeGen& codeGen, std::string_view scopeName)
-    {
-        for (size_t parentIndex = 0;; ++parentIndex)
-        {
-            const AstNodeRef parentRef = codeGen.visit().parentNodeRef(parentIndex);
-            if (parentRef.isInvalid())
-                return AstNodeRef::invalid();
-
-            const AstNode& parentNode = codeGen.ast().node(parentRef);
-            if (parentNode.isNot(AstNodeId::CompilerScope))
-                continue;
-
-            const auto& scopeNode = parentNode.cast<AstCompilerScope>();
-            if (scopeNode.tokNameRef.isInvalid())
-                continue;
-
-            const SourceCodeRef scopeCodeRef{scopeNode.srcViewRef(), scopeNode.tokNameRef};
-            const Token&        scopeTok = codeGen.token(scopeCodeRef);
-            if (scopeTok.string(codeGen.srcView(scopeCodeRef.srcViewRef)) == scopeName)
-                return parentRef;
-        }
-    }
-
     void buildCompilerFunctionStackLayout(CodeGen& codeGen)
     {
         const std::vector<SymbolVariable*>& localSymbols = codeGen.function().localVariables();
@@ -476,10 +453,13 @@ Result AstCompilerScope::codeGenPostNode(CodeGen& codeGen)
 
 Result AstScopedBreakStmt::codeGenPostNode(CodeGen& codeGen)
 {
-    const auto&         node = codeGen.curNode().cast<AstScopedBreakStmt>();
-    const SourceCodeRef nameCodeRef{node.srcViewRef(), node.tokNameRef};
-    const Token&        tokScopeName = codeGen.token(nameCodeRef);
-    const AstNodeRef    scopeRef     = findNamedCompilerScope(codeGen, tokScopeName.string(codeGen.srcView(nameCodeRef.srcViewRef)));
+    // Sema already resolved the target `#scope`; codegen only consumes that decision.
+    const auto* payload = codeGen.sema().semaPayload<ScopedBreakSemaPayload>(codeGen.curNodeRef());
+    SWC_ASSERT(payload != nullptr);
+    if (!payload)
+        return Result::Continue;
+
+    const AstNodeRef scopeRef = payload->targetScopeRef;
     SWC_ASSERT(scopeRef.isValid());
     if (scopeRef.isInvalid())
         return Result::Continue;

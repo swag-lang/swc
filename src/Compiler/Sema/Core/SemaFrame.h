@@ -22,6 +22,13 @@ struct SemaCompilerIf
     }
 };
 
+struct SemaNamedCompilerScope
+{
+    IdentifierRef            idRef     = IdentifierRef::invalid();
+    AstNodeRef               scopeRef  = AstNodeRef::invalid();
+    SemaNamedCompilerScope*  parent    = nullptr;
+};
+
 enum class SemaFrameContextFlagsE
 {
     Zero             = 0,
@@ -78,6 +85,8 @@ public:
     void                     setCurrentFunction(SymbolFunction* func) { function_ = func; }
     SymbolFunction*          enclosingFunction() const { return enclosingFunction_; }
     void                     setEnclosingFunction(SymbolFunction* func) { enclosingFunction_ = func; }
+    SemaNamedCompilerScope*  currentNamedCompilerScope() const { return namedCompilerScope_; }
+    void                     setCurrentNamedCompilerScope(SemaNamedCompilerScope* scope) { namedCompilerScope_ = scope; }
     SemaFrameContextFlags    contextFlags() const { return contextFlags_; }
     bool                     hasContextFlag(SemaFrameContextFlagsE flag) const { return contextFlags_.has(flag); }
     void                     addContextFlag(SemaFrameContextFlagsE flag) { contextFlags_.add(flag); }
@@ -146,6 +155,7 @@ private:
     const SymbolInterface*        interface_           = nullptr;
     SymbolFunction*               function_            = nullptr;
     SymbolFunction*               enclosingFunction_   = nullptr;
+    SemaNamedCompilerScope*       namedCompilerScope_  = nullptr;
     SemaFrameContextFlags         contextFlags_        = SemaFrameContextFlagsE::Zero;
     AstNodeRef                    syntaxScopeNodeRef_  = AstNodeRef::invalid();
     SemaInlinePayload*            inlinePayload_       = nullptr;

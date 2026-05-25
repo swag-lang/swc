@@ -108,6 +108,28 @@ impl EmbeddedTrackedWithOps
     }
 }
 
+struct ForeachTrackedValues
+{
+    item: Tracked
+}
+
+impl ForeachTrackedValues
+{
+    #[Macro]
+    func(ptr: bool, back: bool) opVisit(me, stmt: #code void)
+    {
+        #macro
+        {
+            #if #up ptr do
+                let #alias0 = &#up me.item
+            #else do
+                let #alias0 = cast(&#up Tracked) &#up me.item
+            let #alias1 = 0
+            #inject(#up stmt)
+        }
+    }
+}
+
 func assignTracked(dst: &Tracked, src: &&Tracked)
 {
     dst = #move src
@@ -230,6 +252,26 @@ func overloadMoveInfo()->LifecycleInfo
     var src = Tracked{9}
     assignTracked(&dst, moveref &src)
     return {dst.value, src.value, DropCount, DropTrace, PostCopyCount, PostMoveCount}
+}
+
+func foreachOverloadCopyInfo()->LifecycleInfo
+{
+    var dst: Tracked
+    var values = ForeachTrackedValues{Tracked{9}}
+    resetLifecycleHooks()
+    foreach value in values do
+        assignTracked(&dst, value)
+    return {dst.value, values.item.value, DropCount, DropTrace, PostCopyCount, PostMoveCount}
+}
+
+func foreachOverloadMoveInfo()->LifecycleInfo
+{
+    var dst: Tracked
+    var values = ForeachTrackedValues{Tracked{9}}
+    resetLifecycleHooks()
+    foreach value in values do
+        assignTracked(&dst, moveref value)
+    return {dst.value, values.item.value, DropCount, DropTrace, PostCopyCount, PostMoveCount}
 }
 
 func borrowedParamInfo()->LifecycleInfo
@@ -497,6 +539,28 @@ func semaTest019()
 {
     const V = #run sliceMoveRefAssignInfo()
     #assert(V.dst == 21)
+    #assert(V.src == 5)
+    #assert(V.drops == 1)
+    #assert(V.dropTrace == 5)
+    #assert(V.postCopy == 0)
+    #assert(V.postMove == 1)
+}
+
+func semaTest020()
+{
+    const V = #run foreachOverloadCopyInfo()
+    #assert(V.dst == 19)
+    #assert(V.src == 9)
+    #assert(V.drops == 1)
+    #assert(V.dropTrace == 5)
+    #assert(V.postCopy == 1)
+    #assert(V.postMove == 0)
+}
+
+func semaTest021()
+{
+    const V = #run foreachOverloadMoveInfo()
+    #assert(V.dst == 29)
     #assert(V.src == 5)
     #assert(V.drops == 1)
     #assert(V.dropTrace == 5)

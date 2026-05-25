@@ -108,6 +108,28 @@ impl EmbeddedTrackedWithOps
     }
 }
 
+struct ForeachTrackedValues
+{
+    item: Tracked
+}
+
+impl ForeachTrackedValues
+{
+    #[Macro]
+    func(ptr: bool, back: bool) opVisit(me, stmt: #code void)
+    {
+        #macro
+        {
+            #if #up ptr do
+                let #alias0 = &#up me.item
+            #else do
+                let #alias0 = cast(&#up Tracked) &#up me.item
+            let #alias1 = 0
+            #inject(#up stmt)
+        }
+    }
+}
+
 func assignTracked(dst: &Tracked, src: &&Tracked)
 {
     dst = #move src
@@ -230,6 +252,26 @@ func overloadMoveInfo()->LifecycleInfo
     var src = Tracked{9}
     assignTracked(&dst, moveref &src)
     return {dst.value, src.value, DropCount, DropTrace, PostCopyCount, PostMoveCount}
+}
+
+func foreachOverloadCopyInfo()->LifecycleInfo
+{
+    var dst: Tracked
+    var values = ForeachTrackedValues{Tracked{9}}
+    resetLifecycleHooks()
+    foreach value in values do
+        assignTracked(&dst, value)
+    return {dst.value, values.item.value, DropCount, DropTrace, PostCopyCount, PostMoveCount}
+}
+
+func foreachOverloadMoveInfo()->LifecycleInfo
+{
+    var dst: Tracked
+    var values = ForeachTrackedValues{Tracked{9}}
+    resetLifecycleHooks()
+    foreach value in values do
+        assignTracked(&dst, moveref value)
+    return {dst.value, values.item.value, DropCount, DropTrace, PostCopyCount, PostMoveCount}
 }
 
 func borrowedParamInfo()->LifecycleInfo
@@ -497,6 +539,28 @@ func returnCopyInfo()->LifecycleInfo
 {
     let v = sliceMoveRefAssignInfo()
     @assert(v.dst == 21)
+    @assert(v.src == 5)
+    @assert(v.drops == 1)
+    @assert(v.dropTrace == 5)
+    @assert(v.postCopy == 0)
+    @assert(v.postMove == 1)
+}
+
+#test
+{
+    let v = foreachOverloadCopyInfo()
+    @assert(v.dst == 19)
+    @assert(v.src == 9)
+    @assert(v.drops == 1)
+    @assert(v.dropTrace == 5)
+    @assert(v.postCopy == 1)
+    @assert(v.postMove == 0)
+}
+
+#test
+{
+    let v = foreachOverloadMoveInfo()
+    @assert(v.dst == 29)
     @assert(v.src == 5)
     @assert(v.drops == 1)
     @assert(v.dropTrace == 5)

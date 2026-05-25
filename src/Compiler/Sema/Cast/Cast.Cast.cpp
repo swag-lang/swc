@@ -1172,6 +1172,8 @@ Result Cast::castToReference(Sema& sema, CastRequest& castRequest, TypeRef srcTy
     {
         if (srcType.isConst() && !dstType.isConst() && !castRequest.flags.has(CastFlagsE::UnConst))
             return castRequest.fail(DiagnosticId::sema_err_cannot_cast_const, srcTypeRef, dstTypeRef);
+        if (dstType.isMoveReference() && !srcType.isMoveReference())
+            return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
 
         const auto      srcPointeeTypeRef = srcType.payloadTypeRef();
         const TypeInfo& srcPointeeType    = typeMgr.get(srcPointeeTypeRef);

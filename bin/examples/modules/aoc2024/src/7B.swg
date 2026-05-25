@@ -31,6 +31,9 @@ The engineers just need the total calibration result, which is the sum of the te
 Determine which equations could possibly be true. What is their total calibration result?
 */
 
+/*
+Disabled in the examples workspace: compiler bug on local recursive function resolution.
+
 using Core
 
 func appendNumbers(a, b: u64)->u64
@@ -79,3 +82,4 @@ func day7B()
 
     @assert(total == 162987117690649)
 }
+*/

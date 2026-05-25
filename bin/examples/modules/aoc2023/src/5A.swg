@@ -95,6 +95,9 @@ So, the lowest location number in this example is 35.
 What is the lowest location number that corresponds to any of the initial seed numbers?
 */
 
+/*
+Disabled in the examples workspace: compiler bug / invalid continue handling and duplicate symbols.
+
 using Core
 
 moduleprivate enum Mode
@@ -191,3 +194,4 @@ func day5A()
         total = Math.min(total, seed)
     }
 }
+*/

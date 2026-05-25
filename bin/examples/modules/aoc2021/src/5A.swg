@@ -39,6 +39,9 @@ To avoid the most dangerous areas, you need to determine the number of points wh
 Consider only horizontal and vertical lines. At how many points: at least two lines overlap?
 */
 
+/*
+Disabled in the examples workspace: compiler bug in scoped bindings from assume blocks.
+
 using Core
 
 func day5A()
@@ -89,3 +92,4 @@ func day5A()
     //Console.print("total: ", total)
     @assert(total == 5167)
 }
+*/

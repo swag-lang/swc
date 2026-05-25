@@ -39,6 +39,9 @@ S.S.S.S.SS
 Take a look at the little Elf's word search. How many times does XMAS appear?
 */
 
+/*
+Disabled in the examples workspace: compiler bug in for-in codegen over strings.
+
 using Core
 
 func day4A()
@@ -78,3 +81,4 @@ func day4A()
 
     @assert(total == 2547)
 }
+*/

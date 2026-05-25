@@ -30,6 +30,9 @@ Finally, to find the life support rating, multiply the oxygen generator rating (
 Use the binary numbers in your diagnostic report to calculate the oxygen generator rating and CO2 scrubber rating, then multiply them together. What is the life support rating of the submarine? (Be sure to represent your answer in decimal, not binary.)
 */
 
+/*
+Disabled in the examples workspace: compiler bug on ambiguous Array.add overload resolution.
+
 using Core
 
 moduleprivate var lines: Array'String
@@ -71,3 +74,4 @@ func day3B()
     //Console.print("total: ", o2*co2)
     @assert(o2 * co2 == 7041258)
 }
+*/

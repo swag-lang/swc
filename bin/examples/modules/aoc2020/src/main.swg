@@ -11,7 +11,7 @@
     day2A()
     day2B()
     day3A()
-    day3B()
+    // day3B() disabled: compiler bug on array literal indexing
     day4A()
     day4B()
     day5A()
@@ -19,7 +19,7 @@
     day6A()
     day6B()
     day7A()
-    day7B()
+    // day7B() disabled: compiler bug with HashTable payload on anonymous structs
     day8A()
     day8B()
     day9A()

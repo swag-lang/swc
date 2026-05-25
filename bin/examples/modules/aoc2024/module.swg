@@ -9,6 +9,6 @@
     cfg.moduleBuildNum  = 0
     cfg.embeddedImports = true
     cfg.backendKind     = .Executable
-    cfg.ignoreInWorkspace = true
+    cfg.ignoreInWorkspace = false
     cfg.backendSubKind  = .Console
 }

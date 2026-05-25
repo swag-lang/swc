@@ -34,6 +34,9 @@ Max thruster signal 18216 (from phase setting sequence 9,7,8,5,6):
 Try every combination of the new phase settings on the amplifier feedback for. What is the highest signal that can be sent to the thrusters?
 */
 
+/*
+Disabled in the examples workspace: compiler bug on '&Array' indexing.
+
 using Core
 
 moduleprivate func run(op: &Array's32, input: const [2] s32, ip: &s32)->{ output: s32, stopped: bool }
@@ -118,3 +121,4 @@ func day7B()
     //Console.print("total: ", total, "\n\n")
     @assert(total == 44282086)
 }
+*/

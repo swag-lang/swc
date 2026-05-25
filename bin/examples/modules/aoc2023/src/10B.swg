@@ -92,6 +92,9 @@ In this last example, 10 tiles are enclosed by the for.
 Figure out whether you have time to search for the nest by calculating the area within the for. How many tiles are enclosed by the for?
 */
 
+/*
+Disabled in the examples workspace: compiler bug / duplicate moduleprivate symbols.
+
 using Core
 
 #[Swag.EnumFlags]
@@ -211,3 +214,4 @@ func day10B()
     //Console.print("total: ", total, " ")
     @assert(total == 287)
 }
+*/

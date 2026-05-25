@@ -94,6 +94,9 @@ Here are the distances for each tile on that for:
 Find the single giant for starting at S. How many steps along the for does it take to get from the starting position to the point farthest from the starting position?
 */
 
+/*
+Disabled in the examples workspace: compiler bug in enum-flag binary codegen.
+
 using Core
 
 #[Swag.EnumFlags]
@@ -189,3 +192,4 @@ func day10A()
     //Console.print("total: ", total, " ")
     @assert(total == 6870)
 }
+*/

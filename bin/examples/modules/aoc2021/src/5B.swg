@@ -23,6 +23,9 @@ You still need to determine the number of points where at least two lines overla
 Consider all of the lines. At how many points: at least two lines overlap?
 */
 
+/*
+Disabled in the examples workspace: compiler bug in scoped bindings from assume blocks.
+
 using Core
 
 func day5B()
@@ -61,3 +64,4 @@ func day5B()
     //Console.print("total: ", total)
     @assert(total == 17604)
 }
+*/

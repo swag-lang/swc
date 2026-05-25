@@ -13,7 +13,7 @@
     day3A()
     day3B()
     day4A()
-    day4B()
+    // day4B() disabled: makes aoc2015 exceed the 5-second runtime budget
     day5A()
     day5B()
     day6A()

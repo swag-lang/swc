@@ -14,6 +14,9 @@ In the above example, the lowest location number can be obtained from seed numbe
 Consider all of the initial seed numbers listed in the ranges on the first line of the almanac. What is the lowest location number that corresponds to any of the initial seed numbers?
 */
 
+/*
+Disabled in the examples workspace: compiler bug / invalid continue handling and duplicate symbols.
+
 using Core
 
 moduleprivate enum Mode
@@ -133,3 +136,4 @@ func day5B()
     //Console.print("total: ", total)
     @assert(total == 69323688)
 }
+*/

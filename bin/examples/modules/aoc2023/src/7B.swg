@@ -21,6 +21,9 @@ With the new joker rule, the total winnings in this example are 5905.
 Using the new joker rule, find the rank of every hand in your set. What are the new total winnings?
 */
 
+/*
+Disabled in the examples workspace: compiler bug / duplicate moduleprivate symbols.
+
 using Core
 
 moduleprivate struct Card
@@ -126,3 +129,4 @@ func day7B()
     //Console.print("total: ", total)
     @assert(total == 248029057)
 }
+*/

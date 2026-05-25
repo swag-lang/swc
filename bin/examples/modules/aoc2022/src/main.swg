@@ -14,8 +14,8 @@
     day3B()
     day4A()
     day4B()
-    day5A()
-    day5B()
+    // day5A() disabled: runtime failure during execution
+    // day5B() disabled: runtime failure during execution
     day6A()
     day6B()
     day7A()

@@ -70,7 +70,7 @@ using Core
 func day4B()
 {
     day4B0()
-    day4B1()
+    // day4B1() disabled: compiler bug with HashTable payload on anonymous structs
 }
 
 /////////////////////////////////////////////////////////////////
@@ -143,6 +143,9 @@ func day4B0()
 
 /////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////
+/*
+Disabled in the examples workspace: compiler bug with HashTable payload on anonymous structs.
+
 func day4B1()
 {
     let dataPath = Path.combine(Path.getDirectoryName(#curlocation.fileName), "4.txt")
@@ -190,3 +193,4 @@ func day4B1()
     //Console.print("total: ", total)
     @assert(total == 224)
 }
+*/

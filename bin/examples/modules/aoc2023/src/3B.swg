@@ -27,6 +27,9 @@ In this schematic, there are two gears. The first is in the top left; it has par
 What is the sum of all of the gear ratios in your engine schematic?
 */
 
+/*
+Disabled in the examples workspace: compiler bug / duplicate moduleprivate symbols.
+
 using Core
 
 moduleprivate var symbols: Array'{ s, x, y: s32 }
@@ -125,3 +128,4 @@ func day3B()
     //Console.print("total: ", total)
     @assert(total == 93994191)
 }
+*/

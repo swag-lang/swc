@@ -2,9 +2,11 @@
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Cast/Cast.h"
+#include "Compiler/Sema/Core/CodeGenLoweringPayload.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Helpers/SemaCheck.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
+#include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Compiler/Sema/Symbol/Symbol.Alias.h"
 #include "Compiler/Sema/Symbol/Symbol.Constant.h"
 #include "Compiler/Sema/Symbol/Symbol.Enum.h"
@@ -392,8 +394,12 @@ Result AstIfVarDecl::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) c
     if (childRef == nodeVarRef)
     {
         SWC_RESULT(checkIfVarDeclCondition(sema, nodeVarRef));
-        if (nodeWhereRef.isValid() && ifVarDeclNeedsWhereShortCircuit(sema, nodeVarRef))
+        const bool usesConditionBinding = nodeWhereRef.isValid() && ifVarDeclNeedsWhereShortCircuit(sema, nodeVarRef);
+        SemaHelpers::ensureCodeGenLoweringPayload(sema, sema.curNodeRef()).ifVarDeclWhereUsesConditionBinding = usesConditionBinding;
+        if (usesConditionBinding)
+        {
             maybeMaskIfVarDeclConditionForWhere(sema, sema.curNodeRef(), nodeVarRef);
+        }
     }
 
     if (childRef == nodeWhereRef)

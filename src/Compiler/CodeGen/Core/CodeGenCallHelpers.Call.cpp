@@ -15,6 +15,7 @@
 #include "Compiler/Sema/Constant/ConstantValue.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
+#include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Compiler/Sema/Helpers/SemaInline.h"
 #include "Compiler/Sema/Helpers/SemaRuntime.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
@@ -163,32 +164,7 @@ namespace
         AstNodeRef sourceRef = codeGen.resolvedNodeRef(argRef);
         if (sourceRef.isInvalid())
             sourceRef = argRef;
-
-        while (sourceRef.isValid())
-        {
-            const AstNode& sourceNode = codeGen.node(sourceRef);
-            if (sourceNode.is(AstNodeId::AutoCastExpr))
-            {
-                sourceRef = sourceNode.cast<AstAutoCastExpr>().nodeExprRef;
-                continue;
-            }
-
-            if (sourceNode.is(AstNodeId::CastExpr))
-            {
-                sourceRef = sourceNode.cast<AstCastExpr>().nodeExprRef;
-                continue;
-            }
-
-            if (sourceNode.is(AstNodeId::AsCastExpr))
-            {
-                sourceRef = sourceNode.cast<AstAsCastExpr>().nodeExprRef;
-                continue;
-            }
-
-            return sourceRef;
-        }
-
-        return sourceRef;
+        return SemaHelpers::resolveTransparentExprSourceRef(codeGen.sema(), sourceRef);
     }
 
     std::optional<CodeGenNodePayload> resolveVariableArgumentPayload(CodeGen& codeGen, AstNodeRef argRef)
@@ -535,10 +511,8 @@ namespace
 
     bool isTransparentCallResultParent(const AstNode& parent)
     {
-        return parent.is(AstNodeId::AutoCastExpr) ||
-               parent.is(AstNodeId::CastExpr) ||
-               parent.is(AstNodeId::InitializerExpr) ||
-               parent.is(AstNodeId::ParenExpr);
+        return (SemaHelpers::isTransparentExprNode(parent) && parent.isNot(AstNodeId::AsCastExpr)) ||
+               parent.is(AstNodeId::InitializerExpr);
     }
 
     bool tryUseVarInitStorageForDirectCallResult(CodeGen& codeGen, AstNodeRef callRef, TypeRef returnTypeRef, MicroReg& outStorageReg, SymbolVariable*& outStorageSym)

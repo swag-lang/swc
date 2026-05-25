@@ -12,6 +12,39 @@
 
 SWC_BEGIN_NAMESPACE();
 
+namespace
+{
+    AstNodeRef transparentCastExprOperandRef(const AstNode& node)
+    {
+        switch (node.id())
+        {
+            case AstNodeId::AutoCastExpr:
+                return node.cast<AstAutoCastExpr>().nodeExprRef;
+            case AstNodeId::CastExpr:
+                return node.cast<AstCastExpr>().nodeExprRef;
+            case AstNodeId::AsCastExpr:
+                return node.cast<AstAsCastExpr>().nodeExprRef;
+            default:
+                return AstNodeRef::invalid();
+        }
+    }
+
+    AstNodeRef transparentConditionExprOperandRef(const AstNode& node)
+    {
+        const AstNodeRef castOperandRef = transparentCastExprOperandRef(node);
+        if (castOperandRef.isValid())
+            return castOperandRef;
+
+        switch (node.id())
+        {
+            case AstNodeId::ParenExpr:
+                return node.cast<AstParenExpr>().nodeExprRef;
+            default:
+                return AstNodeRef::invalid();
+        }
+    }
+}
+
 TypeRef SemaHelpers::unwrapLambdaBindingType(TaskContext& ctx, TypeRef typeRef)
 {
     while (typeRef.isValid())
@@ -167,6 +200,41 @@ bool SemaHelpers::canUseContextualBinding(Sema& sema, AstNodeRef nodeRef)
         default:
             return false;
     }
+}
+
+bool SemaHelpers::isTransparentExprNode(const AstNode& node)
+{
+    return transparentConditionExprOperandRef(node).isValid();
+}
+
+AstNodeRef SemaHelpers::resolveTransparentExprSourceRef(Sema& sema, AstNodeRef nodeRef)
+{
+    AstNodeRef sourceRef = nodeRef;
+    while (sourceRef.isValid())
+    {
+        const AstNodeRef nextRef = transparentCastExprOperandRef(sema.node(sourceRef));
+        if (nextRef.isInvalid())
+            return sourceRef;
+
+        sourceRef = nextRef;
+    }
+
+    return AstNodeRef::invalid();
+}
+
+AstNodeRef SemaHelpers::resolveTransparentConditionExprSourceRef(Sema& sema, AstNodeRef nodeRef)
+{
+    AstNodeRef sourceRef = nodeRef;
+    while (sourceRef.isValid())
+    {
+        const AstNodeRef nextRef = transparentConditionExprOperandRef(sema.node(sourceRef));
+        if (nextRef.isInvalid())
+            return sourceRef;
+
+        sourceRef = nextRef;
+    }
+
+    return AstNodeRef::invalid();
 }
 
 SWC_END_NAMESPACE();

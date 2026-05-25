@@ -10,6 +10,7 @@ SWC_BEGIN_NAMESPACE();
 
 class SymbolFunction;
 class SymbolStruct;
+struct AstNode;
 struct CodeGenLoweringPayload;
 
 namespace SemaHelpers
@@ -33,6 +34,9 @@ namespace SemaHelpers
     Result                  setupRuntimeSafetyPanic(Sema& sema, AstNodeRef nodeRef, Runtime::SafetyWhat safetyKind, const SourceCodeRef& codeRef);
     bool                    binaryOpNeedsOverflowSafety(TokenId canonicalOp, AstModifierFlags modifierFlags);
     bool                    canUseContextualBinding(Sema& sema, AstNodeRef nodeRef);
+    bool                    isTransparentExprNode(const AstNode& node);
+    AstNodeRef              resolveTransparentExprSourceRef(Sema& sema, AstNodeRef nodeRef);
+    AstNodeRef              resolveTransparentConditionExprSourceRef(Sema& sema, AstNodeRef nodeRef);
     TypeRef                 unwrapLambdaBindingType(TaskContext& ctx, TypeRef typeRef);
     TypeRef                 ensureStructTypeRef(Sema& sema, SymbolStruct& symStruct);
     TypeRef                 unwrapAliasRefType(TaskContext& ctx, TypeRef typeRef);

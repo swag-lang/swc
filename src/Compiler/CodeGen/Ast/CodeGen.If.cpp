@@ -57,55 +57,6 @@ namespace
         CodeGenCompareHelpers::emitConditionFalseJump(codeGen, conditionPayload, conditionTypeRef, state->falseLabel);
     }
 
-    AstNodeRef singleIfVarDeclDeclRef(CodeGen& codeGen, AstNodeRef varDeclRef)
-    {
-        AstNodeRef     declRef = varDeclRef;
-        const AstNode& varNode = codeGen.node(varDeclRef);
-        if (varNode.is(AstNodeId::VarDeclList))
-        {
-            const auto&             list = varNode.cast<AstVarDeclList>();
-            SmallVector<AstNodeRef> decls;
-            codeGen.ast().appendNodes(decls, list.spanChildrenRef);
-            if (decls.size() != 1)
-                return AstNodeRef::invalid();
-            declRef = decls.front();
-        }
-
-        return declRef;
-    }
-
-    bool ifVarDeclUsesLetBinding(CodeGen& codeGen, AstNodeRef varDeclRef)
-    {
-        const AstNodeRef declRef = singleIfVarDeclDeclRef(codeGen, varDeclRef);
-        if (declRef.isInvalid())
-            return false;
-
-        const AstNode& declNode = codeGen.node(declRef);
-        if (const auto* singleDecl = declNode.safeCast<AstSingleVarDecl>())
-            return singleDecl->hasFlag(AstVarDeclFlagsE::Let);
-        if (const auto* multiDecl = declNode.safeCast<AstMultiVarDecl>())
-            return multiDecl->hasFlag(AstVarDeclFlagsE::Let);
-        return false;
-    }
-
-    bool ifVarDeclNeedsWhereShortCircuit(CodeGen& codeGen, AstNodeRef varDeclRef)
-    {
-        if (!ifVarDeclUsesLetBinding(codeGen, varDeclRef))
-            return false;
-
-        SmallVector<Symbol*> symbols;
-        codeGen.viewSymbol(varDeclRef).getSymbols(symbols);
-        if (symbols.size() != 1)
-            return false;
-
-        const TypeRef typeRef = symbols.front()->typeRef();
-        if (typeRef.isInvalid())
-            return false;
-
-        const TypeInfo& typeInfo = codeGen.typeMgr().get(typeRef);
-        return typeInfo.isPointerLikeAliasAware(codeGen.ctx()) || typeInfo.isNull();
-    }
-
     Result codeGenIfStmtPostBlockChild(CodeGen& codeGen, AstNodeRef ifRef, AstNodeRef ifBlockRef, AstNodeRef elseBlockRef, AstNodeRef childRef)
     {
         const bool isIfBlockChild   = ifBlockRef.isValid() && childRef == ifBlockRef;
@@ -188,7 +139,8 @@ Result AstIfVarDecl::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& ch
     const AstNodeRef resolvedIfBlockRef   = codeGen.resolvedNodeRef(nodeIfBlockRef);
     const AstNodeRef resolvedElseBlockRef = codeGen.resolvedNodeRef(nodeElseBlockRef);
     const AstNodeRef resolvedChildRef     = codeGen.resolvedNodeRef(childRef);
-    const bool       gateWhereWithBinding = resolvedWhereRef.isInvalid() || ifVarDeclNeedsWhereShortCircuit(codeGen, resolvedVarRef);
+    const auto*      loweringPayload      = codeGen.loweringPayload(ifRef);
+    const bool       gateWhereWithBinding = resolvedWhereRef.isInvalid() || (loweringPayload && loweringPayload->ifVarDeclWhereUsesConditionBinding);
 
     if (gateWhereWithBinding && resolvedVarRef.isValid() && resolvedChildRef == resolvedVarRef)
     {

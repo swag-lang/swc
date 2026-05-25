@@ -2354,34 +2354,6 @@ namespace
         return Result::Continue;
     }
 
-    AstNodeRef resolveResolvedArgSourceRef(Sema& sema, AstNodeRef argRef)
-    {
-        AstNodeRef sourceRef = argRef;
-        for (;;)
-        {
-            const AstNode& sourceNode = sema.node(sourceRef);
-            if (sourceNode.is(AstNodeId::AutoCastExpr))
-            {
-                sourceRef = sourceNode.cast<AstAutoCastExpr>().nodeExprRef;
-                continue;
-            }
-
-            if (sourceNode.is(AstNodeId::CastExpr))
-            {
-                sourceRef = sourceNode.cast<AstCastExpr>().nodeExprRef;
-                continue;
-            }
-
-            if (sourceNode.is(AstNodeId::AsCastExpr))
-            {
-                sourceRef = sourceNode.cast<AstAsCastExpr>().nodeExprRef;
-                continue;
-            }
-
-            return sourceRef;
-        }
-    }
-
     bool bindsReferenceToValue(Sema& sema, TypeRef paramTypeRef, AstNodeRef argRef)
     {
         if (argRef.isInvalid())
@@ -2391,7 +2363,7 @@ namespace
         if (!paramType.isReference())
             return false;
 
-        const AstNodeRef sourceRef     = resolveResolvedArgSourceRef(sema, argRef);
+        const AstNodeRef sourceRef     = SemaHelpers::resolveTransparentExprSourceRef(sema, argRef);
         const TypeRef    sourceTypeRef = sema.viewStored(sourceRef, SemaNodeViewPartE::Type).typeRef();
         if (sourceTypeRef.isInvalid())
             return true;
@@ -2414,7 +2386,7 @@ namespace
         if (!paramType.isAnyPointer())
             return false;
 
-        const AstNodeRef sourceRef     = resolveResolvedArgSourceRef(sema, argRef);
+        const AstNodeRef sourceRef     = SemaHelpers::resolveTransparentExprSourceRef(sema, argRef);
         const TypeRef    sourceTypeRef = sema.viewStored(sourceRef, SemaNodeViewPartE::Type).typeRef();
         if (!sourceTypeRef.isValid())
             return false;
@@ -2439,7 +2411,7 @@ namespace
         if (!paramType.isReference())
             return TypeRef::invalid();
 
-        const AstNodeRef sourceRef     = resolveResolvedArgSourceRef(sema, argRef);
+        const AstNodeRef sourceRef     = SemaHelpers::resolveTransparentExprSourceRef(sema, argRef);
         const TypeRef    sourceTypeRef = sema.viewStored(sourceRef, SemaNodeViewPartE::Type).typeRef();
         if (!sourceTypeRef.isValid())
             return paramType.payloadTypeRef();

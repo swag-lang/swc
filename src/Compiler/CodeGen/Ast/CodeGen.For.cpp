@@ -12,6 +12,7 @@
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Constant/ConstantValue.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
+#include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Compiler/Sema/Type/TypeInfo.h"
@@ -79,64 +80,20 @@ namespace
             *payload = {};
     }
 
+    AstNodeRef preparedChildRef(CodeGen& codeGen, AstNodeRef nodeRef)
+    {
+        AstNodeRef preparedRef = codeGen.resolvedNodeRef(nodeRef);
+        if (preparedRef.isInvalid())
+            preparedRef = nodeRef;
+        return SemaHelpers::resolveTransparentConditionExprSourceRef(codeGen.sema(), preparedRef);
+    }
+
     bool matchesChildRef(CodeGen& codeGen, AstNodeRef callbackRef, AstNodeRef targetRef)
     {
         if (callbackRef.isInvalid() || targetRef.isInvalid())
             return false;
 
-        const auto sameRef = [&](AstNodeRef leftRef, AstNodeRef rightRef) -> bool
-        {
-            if (leftRef == rightRef)
-                return true;
-
-            const AstNodeRef resolvedLeftRef = codeGen.resolvedNodeRef(leftRef);
-            if (resolvedLeftRef.isValid() && resolvedLeftRef == rightRef)
-                return true;
-
-            const AstNodeRef resolvedRightRef = codeGen.resolvedNodeRef(rightRef);
-            if (resolvedRightRef.isValid() && leftRef == resolvedRightRef)
-                return true;
-
-            return resolvedLeftRef.isValid() && resolvedRightRef.isValid() && resolvedLeftRef == resolvedRightRef;
-        };
-
-        const auto transparentOperandRef = [&](AstNodeRef nodeRef) -> AstNodeRef
-        {
-            if (nodeRef.isInvalid())
-                return AstNodeRef::invalid();
-
-            const AstNode& node = codeGen.node(nodeRef);
-            switch (node.id())
-            {
-                case AstNodeId::CastExpr:
-                    return node.cast<AstCastExpr>().nodeExprRef;
-                case AstNodeId::AutoCastExpr:
-                    return node.cast<AstAutoCastExpr>().nodeExprRef;
-                case AstNodeId::AsCastExpr:
-                    return node.cast<AstAsCastExpr>().nodeExprRef;
-                case AstNodeId::ParenExpr:
-                    return node.cast<AstParenExpr>().nodeExprRef;
-                default:
-                    return AstNodeRef::invalid();
-            }
-        };
-
-        AstNodeRef currentCallbackRef = callbackRef;
-        while (currentCallbackRef.isValid())
-        {
-            AstNodeRef currentTargetRef = targetRef;
-            while (currentTargetRef.isValid())
-            {
-                if (sameRef(currentCallbackRef, currentTargetRef))
-                    return true;
-
-                currentTargetRef = transparentOperandRef(currentTargetRef);
-            }
-
-            currentCallbackRef = transparentOperandRef(currentCallbackRef);
-        }
-
-        return false;
+        return preparedChildRef(codeGen, callbackRef) == preparedChildRef(codeGen, targetRef);
     }
 
     TypeRef loopCompareTypeRef(CodeGen& codeGen, TypeRef typeRef)

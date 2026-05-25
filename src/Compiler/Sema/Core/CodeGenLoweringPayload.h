@@ -18,6 +18,7 @@ struct CodeGenLoweringPayload
     uint16_t        runtimeSafetyMask        = 0;
     AstNodeRef      throwableWrapperOwnerRef = AstNodeRef::invalid();
     TokenId         throwableWrapperTokenId  = TokenId::Invalid;
+    bool            ifVarDeclWhereUsesConditionBinding = false;
 
     void addRuntimeSafety(Runtime::SafetyWhat what)
     {

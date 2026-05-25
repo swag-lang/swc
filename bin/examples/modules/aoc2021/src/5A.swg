@@ -40,7 +40,7 @@ Consider only horizontal and vertical lines. At how many points: at least two li
 */
 
 /*
-Disabled in the examples workspace: compiler bug in scoped bindings from assume blocks.
+Disabled in the examples workspace: compiler bug on '#ref' pointer comparison in vent map update.
 
 using Core
 

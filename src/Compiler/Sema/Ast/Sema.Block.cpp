@@ -12,6 +12,22 @@
 
 SWC_BEGIN_NAMESPACE();
 
+namespace
+{
+    bool isTransparentAssumeBlock(Sema& sema)
+    {
+        const AstNodeRef parentRef = sema.visit().parentNodeRef();
+        if (parentRef.isInvalid())
+            return false;
+
+        const AstNode& parentNode = sema.node(parentRef);
+        if (parentNode.isNot(AstNodeId::TryCatchStmt))
+            return false;
+
+        return sema.token(parentNode.codeRef()).id == TokenId::KwdAssume;
+    }
+}
+
 Result AstFile::semaPreDecl(Sema& sema) const
 {
     auto* fileNamespace = Symbol::make<SymbolNamespace>(sema.ctx(), this, tokRef(), IdentifierRef::invalid(), SymbolFlagsE::Zero);
@@ -142,6 +158,8 @@ Result AstEmbeddedBlock::semaPreNode(Sema& sema)
 {
     const auto& node = sema.curNode().cast<AstEmbeddedBlock>();
     if (node.hasFlag(AstEmbeddedBlockFlagsE::CompilerMacroBody))
+        return Result::Continue;
+    if (isTransparentAssumeBlock(sema))
         return Result::Continue;
 
     sema.pushScopePopOnPostNode(SemaScopeFlagsE::Local);

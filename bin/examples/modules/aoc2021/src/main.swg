@@ -14,8 +14,8 @@
     day3B()
     // day4A() disabled: runtime compiler bug / integer overflow during execution
     // day4B() disabled: runtime compiler bug / integer overflow during execution
-    // day5A() disabled: compiler bug in scoped bindings from assume blocks
-    // day5B() disabled: compiler bug in scoped bindings from assume blocks
+    // day5A() disabled: compiler bug on '#ref' pointer comparison in vent map update
+    day5B()
     day6A()
     day6B()
     day7A()

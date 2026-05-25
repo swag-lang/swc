@@ -27,6 +27,7 @@ enum class SemaFrameContextFlagsE
     Zero             = 0,
     RunExpr          = 1 << 0,
     RequireConstExpr = 1 << 1,
+    CompilerEval     = 1 << 2,
 };
 using SemaFrameContextFlags = EnumFlags<SemaFrameContextFlagsE>;
 

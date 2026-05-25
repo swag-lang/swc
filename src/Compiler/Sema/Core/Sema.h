@@ -65,6 +65,7 @@ public:
     bool                            isOptimizeEnabled() const { return buildCfgBackend().optimize; }
     bool                            isConstExprRequired() const { return frame().hasContextFlag(SemaFrameContextFlagsE::RequireConstExpr); }
     bool                            isRunExprContext() const { return frame().hasContextFlag(SemaFrameContextFlagsE::RunExpr); }
+    bool                            isCompilerEvalContext() const { return frame().hasContextFlag(SemaFrameContextFlagsE::CompilerEval); }
     bool                            isDeclPass() const { return declPass_; }
     bool                            enteringState() const { return visit_.enteringState(); }
 

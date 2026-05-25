@@ -126,23 +126,6 @@ namespace SemaRuntime
         }
     }
 
-    inline bool hasCompilerEvalAstContext(const Sema& sema)
-    {
-        if (isCompilerEvalContextNode(sema, sema.curNode()))
-            return true;
-
-        for (size_t parentIndex = 0;; ++parentIndex)
-        {
-            const AstNodeRef parentRef = sema.visit().parentNodeRef(parentIndex);
-            if (parentRef.isInvalid())
-                break;
-            if (isCompilerEvalContextNode(sema, sema.node(parentRef)))
-                return true;
-        }
-
-        return false;
-    }
-
     inline bool isRuntimeArtifactContext(const Sema& sema)
     {
         if (sema.frame().ignoreRuntimeAccess())
@@ -151,7 +134,7 @@ namespace SemaRuntime
             return false;
         if (sema.isConstExprRequired())
             return false;
-        if (hasCompilerEvalAstContext(sema))
+        if (sema.isCompilerEvalContext())
             return false;
 
         const auto* currentFunction = sema.currentFunction();

@@ -6,6 +6,7 @@
 #include "Compiler/Sema/Core/SemaJob.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Core/SemaScope.h"
+#include "Compiler/Sema/Helpers/SemaRuntime.h"
 #include "Compiler/Sema/Helpers/SemaCycle.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Symbol/Symbol.Impl.h"
@@ -230,6 +231,10 @@ Sema::Sema(TaskContext& ctx, Sema& parent, NodePayload& payloadContext, AstNodeR
 {
     visit_.start(nodePayloadContext_->ast(), root);
     pushFrame(parent.frame());
+    // Compiler-eval context is rooted in the active visit subtree. A child sema starts
+    // a fresh walk from `root`, so inheriting the parent's dynamic compiler-eval flag
+    // would leak that context outside the original AST branch.
+    frame().removeContextFlag(SemaFrameContextFlagsE::CompilerEval);
     frame().setCurrentInlinePayload(nullptr);
     setVisitors();
     compilerAstExpansions_ = parent.compilerAstExpansions_;
@@ -1008,6 +1013,15 @@ Result Sema::preNode(AstNode& node)
     const Result         result = info.semaPreNode(*this, node);
     if (result != Result::Continue)
         return result;
+
+    if (SemaRuntime::isCompilerEvalContextNode(*this, node))
+    {
+        // Compiler-eval availability is part of sema's dynamic context. Push it once
+        // at node entry so descendants do not have to rescan the AST parent chain.
+        auto frame = this->frame();
+        frame.addContextFlag(SemaFrameContextFlagsE::CompilerEval);
+        pushFramePopOnPostNode(frame);
+    }
 
     const SemaNodeView view = viewSymbol(curNodeRef());
     if (view.hasSymbol() && view.sym() && view.sym()->isIgnored())

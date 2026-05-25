@@ -18,7 +18,7 @@
     // day5B() disabled: runtime failure during execution
     day6A()
     day6B()
-    // day7A() disabled: compiler bug on local recursive function resolution
+    day7A()
     // day7B() disabled: compiler bug on local recursive function resolution
     day8A()
     day8B()

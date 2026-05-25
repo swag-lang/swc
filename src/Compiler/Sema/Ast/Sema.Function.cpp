@@ -25,6 +25,20 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    SymbolFunction& registerFunctionSymbol(Sema& sema, const AstFunctionDecl& node)
+    {
+        if (!sema.curScope().isLocal())
+            return SemaHelpers::registerSymbol<SymbolFunction>(sema, node, node.tokNameRef);
+
+        const auto savedFrame = sema.frame();
+        auto&      frame      = sema.frame();
+        frame.setLookupScope(nullptr);
+        frame.setLookupScopeRootRef(AstNodeRef::invalid());
+        auto& sym = SemaHelpers::registerSymbol<SymbolFunction>(sema, node, node.tokNameRef);
+        sema.frame() = savedFrame;
+        return sym;
+    }
+
     SymbolMap* lazyGenericFunctionStartSymMap(const SymbolFunction& function)
     {
         return const_cast<SymbolMap*>(function.genericRootOrSelf()->ownerSymMap());
@@ -131,10 +145,11 @@ namespace
         if (sym.isGenericInstance())
             return Result::Continue;
 
+        const SymbolMap*   ownerMap = sym.ownerSymMap();
         const SymbolStruct* owner = sym.ownerStruct();
-        if (!owner && declImpl && declImpl->isForStruct())
+        if (!owner && ownerMap && declImpl && declImpl->isForStruct())
             owner = declImpl->symStruct();
-        if (!owner && declImpl)
+        if (!owner && ownerMap && declImpl)
         {
             MatchContext context;
             context.codeRef       = declImpl->codeRef();
@@ -157,8 +172,9 @@ namespace
 
     bool isGenericInstanceImplFunction(const SymbolFunction& sym, const SymbolImpl* declImpl)
     {
+        const SymbolMap*   ownerMap = sym.ownerSymMap();
         const SymbolStruct* owner = sym.ownerStruct();
-        if (!owner && declImpl && declImpl->isForStruct())
+        if (!owner && ownerMap && declImpl && declImpl->isForStruct())
             owner = declImpl->symStruct();
 
         return owner && owner->isGenericInstance();
@@ -385,7 +401,7 @@ Result Sema::completeLazyGenericFunction(SymbolFunction& calledFn)
 
 Result AstFunctionDecl::semaPreDecl(Sema& sema) const
 {
-    auto& sym = SemaHelpers::registerSymbol<SymbolFunction>(sema, *this, tokNameRef);
+    auto& sym = registerFunctionSymbol(sema, *this);
 
     sym.setExtraFlags(flags());
     sym.setDeclNodeRef(sema.curNodeRef());

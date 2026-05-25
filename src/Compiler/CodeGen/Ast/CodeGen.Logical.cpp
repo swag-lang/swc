@@ -68,13 +68,15 @@ Result AstLogicalExpr::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& 
     const AstNodeRef resolvedLeftRef  = codeGen.resolvedNodeRef(nodeLeftRef);
     const AstNodeRef resolvedRightRef = codeGen.resolvedNodeRef(nodeRightRef);
     const AstNodeRef resolvedChildRef = codeGen.resolvedNodeRef(childRef);
+    const auto*      logicalState     = logicalExprCodeGenPayload(codeGen, codeGen.curNodeRef());
 
-    if (resolvedLeftRef.isValid() && resolvedChildRef == resolvedLeftRef)
+    // Some semantic rewrites can substitute the lhs through helper nodes that no longer compare
+    // equal by ref at codegen time. The first callback for a logical expression is still the lhs.
+    if ((resolvedLeftRef.isValid() && resolvedChildRef == resolvedLeftRef) || logicalState == nullptr)
     {
         const CodeGenNodePayload& leftPayload = codeGen.payload(nodeLeftRef);
         const SemaNodeView        leftView    = codeGen.viewType(nodeLeftRef);
         const TypeRef             leftType    = leftPayload.typeRef.isValid() ? leftPayload.typeRef : leftView.typeRef();
-        const TypeInfo&           leftInfo    = codeGen.typeMgr().get(leftType);
 
         MicroReg leftReg;
         materializeLogicalOperand(leftReg, codeGen, leftPayload, leftType);
@@ -88,8 +90,7 @@ Result AstLogicalExpr::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& 
 
         // Short-circuit by keeping the lhs boolean as the provisional result and only evaluating rhs when
         // the operator still needs it.
-        if (leftInfo.isBool())
-            builder.emitCmpRegImm(state.reg, ApInt(0, 64), MicroOpBits::B8);
+        builder.emitCmpRegImm(state.reg, ApInt(0, 64), MicroOpBits::B8);
         if (tok.id == TokenId::KwdAnd)
             builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, state.doneLabel);
         else if (tok.id == TokenId::KwdOr)

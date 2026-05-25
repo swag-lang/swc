@@ -22,7 +22,7 @@
     // day7B() disabled: compiler bug / duplicate moduleprivate symbols
     day8A()
     day8B()
-    // day9A() disabled: compiler bug in logical expression codegen
+    day9A()
     day9B()
     // day10A() disabled: compiler bug in enum-flag binary codegen
     // day10B() disabled: compiler bug / duplicate moduleprivate symbols

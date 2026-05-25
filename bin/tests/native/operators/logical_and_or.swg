@@ -116,3 +116,45 @@ func sideEffect(flag: bool, delta: s32)->bool
     @assert(!b)
     @assert(c)
 }
+
+func logicalValueProbe(value: s64, delta: s32)->s64
+{
+    LogCounter += delta
+    return value
+}
+
+// Non-bool lhs truthiness must still short-circuit `or`
+#test
+{
+    LogCounter = 0
+    let value = logicalValueProbe(3, 1) or sideEffect(true, 10)
+    @assert(value)
+    @assert(LogCounter == 1)
+}
+
+// Non-bool lhs truthiness must still short-circuit `and`
+#test
+{
+    LogCounter = 0
+    let value = logicalValueProbe(0, 1) and sideEffect(true, 10)
+    @assert(!value)
+    @assert(LogCounter == 1)
+}
+
+// Falsey non-bool lhs must evaluate rhs for `or`
+#test
+{
+    LogCounter = 0
+    let value = logicalValueProbe(0, 1) or sideEffect(true, 10)
+    @assert(value)
+    @assert(LogCounter == 11)
+}
+
+// Truthy non-bool lhs must evaluate rhs for `and`
+#test
+{
+    LogCounter = 0
+    let value = logicalValueProbe(2, 1) and sideEffect(true, 10)
+    @assert(value)
+    @assert(LogCounter == 11)
+}

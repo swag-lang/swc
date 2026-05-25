@@ -381,6 +381,7 @@ namespace
 
         auto frame                = sema.frame();
         frame.currentAttributes() = symFn.attributes();
+        frame.setEnclosingFunction(sema.currentFunction());
         frame.setCurrentFunction(&symFn);
 
         sema.pushFramePopOnPostNode(frame);
@@ -428,6 +429,7 @@ namespace
         // into the final runtime dependency graph.
 
         frame.currentAttributes() = symFn.attributes();
+        frame.setEnclosingFunction(sema.currentFunction());
         frame.setCurrentFunction(&symFn);
         frame.addContextFlag(SemaFrameContextFlagsE::RunExpr);
         sema.pushFramePopOnPostNode(frame);

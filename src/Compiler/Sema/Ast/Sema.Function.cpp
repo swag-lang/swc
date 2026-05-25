@@ -469,6 +469,7 @@ Result AstFunctionDecl::semaPreNode(Sema& sema) const
     frame.currentAttributes() = sym.attributes();
     frame.setCurrentImpl(declImpl);
     frame.setCurrentInterface(declItf);
+    frame.setEnclosingFunction(sema.currentFunction());
     frame.setCurrentFunction(&sym);
     frame.setCurrentInlinePayload(nullptr);
     frame.setCurrentErrorContext(AstNodeRef::invalid(), SemaFrame::ErrorContextMode::None);
@@ -498,6 +499,7 @@ Result AstFunctionExpr::semaPreNode(Sema& sema) const
 
     auto&     sym   = sema.curViewSymbol().sym()->cast<SymbolFunction>();
     SemaFrame frame = sema.frame();
+    frame.setEnclosingFunction(sema.currentFunction());
     frame.setCurrentFunction(&sym);
     frame.setCurrentInlinePayload(nullptr);
     frame.setCurrentErrorContext(AstNodeRef::invalid(), SemaFrame::ErrorContextMode::None);
@@ -527,6 +529,7 @@ Result AstClosureExpr::semaPreNode(Sema& sema) const
 
     auto&     sym   = sema.curViewSymbol().sym()->cast<SymbolFunction>();
     SemaFrame frame = sema.frame();
+    frame.setEnclosingFunction(sema.currentFunction());
     frame.setCurrentFunction(&sym);
     frame.setCurrentInlinePayload(nullptr);
     frame.setCurrentErrorContext(AstNodeRef::invalid(), SemaFrame::ErrorContextMode::None);
@@ -910,22 +913,6 @@ namespace
         return Result::Continue;
     }
 
-    SymbolFunction* resolveEnclosingFunctionForClosureRuntimeStorage(Sema& sema)
-    {
-        for (size_t parentIndex = 0;; ++parentIndex)
-        {
-            const AstNodeRef parentRef = sema.visit().parentNodeRef(parentIndex);
-            if (parentRef.isInvalid())
-                break;
-
-            Symbol* symbol = sema.viewSymbol(parentRef).sym();
-            if (symbol && symbol->isFunction())
-                return &symbol->cast<SymbolFunction>();
-        }
-
-        return nullptr;
-    }
-
     Result attachClosureExprRuntimeStorageIfNeeded(Sema& sema, const AstClosureExpr& node, const SymbolFunction& sym)
     {
         if (sema.isGlobalScope())
@@ -960,9 +947,9 @@ namespace
             SWC_RESULT(Match::ghosting(sema, storageSym));
         }
 
-        // Closure storage must live in the enclosing function (resolved by walking parents),
-        // not the symbol that the closure body is currently being analysed under.
-        SymbolFunction* ownerFunction = resolveEnclosingFunctionForClosureRuntimeStorage(sema);
+        // Closure storage must live in the enclosing function, not the closure function
+        // symbol currently being analysed.
+        SymbolFunction* ownerFunction = sema.frame().enclosingFunction();
         if (!ownerFunction)
             ownerFunction = sema.currentFunction();
         if (!storageSym.isSemaCompleted() && ownerFunction)

@@ -75,6 +75,8 @@ public:
     void                     setCurrentInterface(const SymbolInterface* itf) { interface_ = itf; }
     SymbolFunction*          currentFunction() const { return function_; }
     void                     setCurrentFunction(SymbolFunction* func) { function_ = func; }
+    SymbolFunction*          enclosingFunction() const { return enclosingFunction_; }
+    void                     setEnclosingFunction(SymbolFunction* func) { enclosingFunction_ = func; }
     SemaFrameContextFlags    contextFlags() const { return contextFlags_; }
     bool                     hasContextFlag(SemaFrameContextFlagsE flag) const { return contextFlags_.has(flag); }
     void                     addContextFlag(SemaFrameContextFlagsE flag) { contextFlags_.add(flag); }
@@ -138,6 +140,7 @@ private:
     const SymbolImpl*             impl_                = nullptr;
     const SymbolInterface*        interface_           = nullptr;
     SymbolFunction*               function_            = nullptr;
+    SymbolFunction*               enclosingFunction_   = nullptr;
     SemaFrameContextFlags         contextFlags_        = SemaFrameContextFlagsE::Zero;
     SemaInlinePayload*            inlinePayload_       = nullptr;
     SemaScope*                    lookupScope_         = nullptr;

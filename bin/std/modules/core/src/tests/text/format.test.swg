@@ -39,3 +39,20 @@ func assertFormatString(value: const &String, expected: string)->bool
     let forcedNegative = Format.toString("%{+04}", -7)
     @assert(assertFormatString(forcedNegative, "-007"))
 }
+
+#test
+{
+    var direct: ConcatBuffer
+    let fmt: StrConv.ConvertFormat
+    let text = "variable"
+
+    StrConv.convertAny(&direct, "literal", fmt, null)
+    StrConv.convertAny(&direct, " ", fmt, null)
+    StrConv.convertAny(&direct, text, fmt, null)
+    StrConv.convertAny(&direct, " ", fmt, null)
+    StrConv.convertAny(&direct, true, fmt, null)
+    StrConv.convertAny(&direct, " ", fmt, null)
+    StrConv.convertAny(&direct, cast(rune) 'A', fmt, null)
+
+    @assert(assertFormatString(direct.toString(), "literal variable true A"))
+}

@@ -280,20 +280,28 @@ func convertAny(buf: *ConcatBuffer, value: const any, convFmt: ConvertFormat, st
         return
     }
 
-    switch type
+    // `const any` keeps qualifiers on native payload types, so exact typeinfo
+    // matching is too strict here. Switch on the native kind instead.
+    if Reflection.isNative(type)
     {
-    case bool:
-        convertBool(buf, cast(bool) concreteValue)
+        let typeNative = cast(const *TypeInfoNative) type
+        switch typeNative.nativeKind
+        {
+        case Bool:
+            convertBool(buf, cast(bool) concreteValue)
+            return
 
-    case rune:
-        convertRune(buf, cast(rune) concreteValue)
+        case Rune:
+            convertRune(buf, cast(rune) concreteValue)
+            return
 
-    case string:
-        buf.addBytes(cast(string) concreteValue)
-
-    default:
-        buf.addBytes("?")
+        case String:
+            buf.addBytes(cast(string) concreteValue)
+            return
+        }
     }
+
+    buf.addBytes("?")
 }
 
 // Convert a structure content to an utf8 string, and put the result in a ConcatBuffer

@@ -12,8 +12,8 @@
     day2B()
     day3A()
     day3B()
-    // day4A() disabled: runtime compiler bug / integer overflow during execution
-    // day4B() disabled: runtime compiler bug / integer overflow during execution
+    day4A()
+    day4B()
     // day5A() disabled: compiler bug on '#ref' pointer comparison in vent map update
     day5B()
     day6A()

@@ -18,7 +18,7 @@
     // day5B() disabled: runtime compiler bug in array access / execution
     day6A()
     day6B()
-    // day7A() disabled: runtime compiler bug in array access / execution
+    day7A()
     day7B()
     day8A()
     day8B()

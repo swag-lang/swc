@@ -94,13 +94,10 @@ Here are the distances for each tile on that for:
 Find the single giant for starting at S. How many steps along the for does it take to get from the starting position to the point farthest from the starting position?
 */
 
-/*
-Disabled in the examples workspace: compiler bug in enum-flag binary codegen.
-
 using Core
 
 #[Swag.EnumFlags]
-moduleprivate enum Dir
+fileprivate enum Dir
 {
     Zero  = 0
     West
@@ -115,8 +112,9 @@ func day10A()
     let lines    = assume File.readAllLines(dataPath)
 
     var maze: Array'Dir
-    let width = lines[0].length + 2
-    maze.resize(width * width)
+    let width  = lines[0].length + 2
+    let height = lines.count + 2
+    maze.resize(width * height)
 
     #[Swag.Mixin]
     func mp(x0, y0: s64)->&Dir => maze.buffer + ((x0 + 1) + (y0 + 1) * width)
@@ -192,4 +190,3 @@ func day10A()
     //Console.print("total: ", total, " ")
     @assert(total == 6870)
 }
-*/

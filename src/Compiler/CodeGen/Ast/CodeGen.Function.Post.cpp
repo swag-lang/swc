@@ -214,6 +214,35 @@ namespace
         return CodeGenTypeHelpers::scalarStoreBits(codeGen.typeMgr().get(scalarTypeRef), codeGen.ctx());
     }
 
+    TypeRef unwrapAliasTypeRef(CodeGen& codeGen, TypeRef typeRef)
+    {
+        if (!typeRef.isValid())
+            return TypeRef::invalid();
+
+        const TypeRef unwrappedTypeRef = codeGen.typeMgr().get(typeRef).unwrap(codeGen.ctx(), typeRef, TypeExpandE::Alias);
+        return unwrappedTypeRef.isValid() ? unwrappedTypeRef : typeRef;
+    }
+
+    bool isReferenceValueType(CodeGen& codeGen, TypeRef typeRef)
+    {
+        if (!typeRef.isValid())
+            return false;
+        return codeGen.typeMgr().get(unwrapAliasTypeRef(codeGen, typeRef)).isReference();
+    }
+
+    MicroReg materializeReferenceValueReg(CodeGen& codeGen, const CodeGenNodePayload& payload, TypeRef sourceTypeRef)
+    {
+        if (payload.isValue())
+            return payload.reg;
+
+        const MicroReg resultReg = codeGen.nextVirtualIntRegister();
+        if (isReferenceValueType(codeGen, sourceTypeRef))
+            codeGen.builder().emitLoadRegMem(resultReg, payload.reg, 0, MicroOpBits::B64);
+        else
+            codeGen.builder().emitLoadRegReg(resultReg, payload.reg, MicroOpBits::B64);
+        return resultReg;
+    }
+
     bool isEnumOrAliasEnum(CodeGen& codeGen, TypeRef typeRef)
     {
         if (!typeRef.isValid())
@@ -407,6 +436,13 @@ namespace
     {
         const TypeInfo& typeInfo = codeGen.typeMgr().get(typeRef);
         const uint32_t  sizeOf   = CodeGenFunctionHelpers::checkedTypeSizeInBytes(codeGen, typeInfo);
+        if (typeInfo.isReference())
+        {
+            const MicroReg referenceReg = materializeReferenceValueReg(codeGen, srcPayload, srcPayload.typeRef);
+            codeGen.builder().emitLoadMemReg(dstAddressReg, 0, referenceReg, MicroOpBits::B64);
+            return Result::Continue;
+        }
+
         if (srcPayload.isAddress())
         {
             CodeGenMemoryHelpers::emitMemCopy(codeGen, dstAddressReg, srcPayload.reg, sizeOf);
@@ -786,9 +822,16 @@ namespace
             SWC_ASSERT(retBits != MicroOpBits::Zero);
 
             const MicroReg returnValueReg = codeGen.nextVirtualRegisterForType(returnTypeRef);
+            const TypeRef  exprTypeRef    = codeGen.viewType(exprRef).typeRef();
             if (!delayReturnMaterialization)
             {
-                if (exprPayload.isAddress())
+                if (returnTypeInfo.isReference())
+                {
+                    const MicroReg referenceReg = materializeReferenceValueReg(codeGen, exprPayload, exprTypeRef);
+                    if (referenceReg != returnValueReg)
+                        builder.emitLoadRegReg(returnValueReg, referenceReg, MicroOpBits::B64);
+                }
+                else if (exprPayload.isAddress())
                     builder.emitLoadRegMem(returnValueReg, exprPayload.reg, 0, retBits);
                 else
                     builder.emitLoadRegReg(returnValueReg, exprPayload.reg, retBits);
@@ -797,7 +840,13 @@ namespace
             SWC_RESULT(codeGen.emitDeferredActionsForReturn());
             if (delayReturnMaterialization)
             {
-                if (exprPayload.isAddress())
+                if (returnTypeInfo.isReference())
+                {
+                    const MicroReg referenceReg = materializeReferenceValueReg(codeGen, exprPayload, exprTypeRef);
+                    if (referenceReg != returnValueReg)
+                        builder.emitLoadRegReg(returnValueReg, referenceReg, MicroOpBits::B64);
+                }
+                else if (exprPayload.isAddress())
                     builder.emitLoadRegMem(returnValueReg, exprPayload.reg, 0, retBits);
                 else
                     builder.emitLoadRegReg(returnValueReg, exprPayload.reg, retBits);

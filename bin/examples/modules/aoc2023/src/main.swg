@@ -24,6 +24,6 @@
     day8B()
     day9A()
     day9B()
-    // day10A() disabled: compiler bug in enum-flag binary codegen
-    // day10B() still disabled: compiler bug in enum-flag binary codegen
+    day10A()
+    day10B()
 }

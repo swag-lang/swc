@@ -12,6 +12,46 @@ enum TestFlags: u32
 #[Swag.Strict]
 alias StrictTestFlags = TestFlags
 
+#[Swag.EnumFlags]
+enum RefTestFlags: u32
+{
+    Zero = 0,
+    A,
+    B,
+    C,
+    D,
+}
+
+struct RefTestFlagBuffer
+{
+    values: [2] RefTestFlags
+}
+
+impl RefTestFlagBuffer
+{
+    mtd refAt(index: u64)->&RefTestFlags { return &me.values[index] }
+}
+
+#[Swag.EnumFlags]
+enum ImplicitRefTestFlags
+{
+    Zero = 0,
+    West,
+    East,
+    North,
+    South,
+}
+
+struct ImplicitRefTestFlagBuffer
+{
+    values: [2] ImplicitRefTestFlags
+}
+
+impl ImplicitRefTestFlagBuffer
+{
+    mtd refAt(index: u64)->&ImplicitRefTestFlags { return &me.values[index] }
+}
+
 func boxStrictTestFlags(value: StrictTestFlags)->bool
 {
     let boxed: any = value
@@ -109,4 +149,62 @@ const RunStrictTestFlags: [2] StrictTestFlags = #run makeStrictTestFlagArray()
     let runtimeInverted = invertStrictTestFlags(cast(StrictTestFlags) TestFlags.C)
     #assert(#typeof(runtimeInverted) == StrictTestFlags)
     @assert((cast(u32) runtimeInverted & cast(u32) TestFlags.A) != 0)
+}
+
+#test
+{
+    var values: RefTestFlagBuffer
+    let firstRef = #ref values.refAt(0)
+    firstRef = RefTestFlags.A | RefTestFlags.B
+    values.values[0] = RefTestFlags.A | RefTestFlags.B
+    values.values[1] = RefTestFlags.B | RefTestFlags.C
+
+    values.refAt(0) &= ~RefTestFlags.A
+    @assert(values.values[0] == RefTestFlags.B)
+
+    let valueRef = #ref values.refAt(1)
+    valueRef |= RefTestFlags.D
+    @assert(values.values[1] == (RefTestFlags.B | RefTestFlags.C | RefTestFlags.D))
+}
+
+#test
+{
+    var values: [2] RefTestFlags
+
+    #[Swag.Mixin]
+    func refAt(index: u64)->&RefTestFlags => &values[index]
+
+    let firstRef = #ref refAt(0)
+    firstRef = RefTestFlags.A | RefTestFlags.B
+    @assert(values[0] == (RefTestFlags.A | RefTestFlags.B))
+}
+
+#test
+{
+    var values: ImplicitRefTestFlagBuffer
+    values.values[0] = .West | .East
+    values.values[1] = .North | .South
+
+    var tookEast = false
+    let horizontal = values.refAt(0)
+    switch
+    {
+    case horizontal & .East:
+        tookEast = true
+    }
+
+    var tookSouth = false
+    if values.refAt(1) & .South do
+        tookSouth = true
+
+    var missingWest = false
+    if !(values.refAt(1) & .West) do
+        missingWest = true
+
+    values.refAt(0) &= ~.West
+
+    @assert(tookEast)
+    @assert(tookSouth)
+    @assert(missingWest)
+    @assert(values.values[0] == .East)
 }

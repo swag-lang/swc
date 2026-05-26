@@ -64,10 +64,9 @@ func day5B()
             let colFrom = assume StrConv.toS32(r.getCapture(2)) - 1
             let colTo   = assume StrConv.toS32(r.getCapture(3)) - 1
 
-            let str   = #ref stacks[colFrom]
-            let slice = str[0 until count]
-            stacks[colTo].insert(0, slice)
-            str.remove(0, count)
+            let crates = String.from(stacks[colFrom][0 until count])
+            stacks[colTo].insert(0, crates.toString())
+            stacks[colFrom].remove(0, count)
         }
         elif l[1] == '1'
         {

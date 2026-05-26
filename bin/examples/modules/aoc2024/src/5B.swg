@@ -13,13 +13,13 @@ Find the updates which are not in the correct order. What do you get if you add 
 */
 
 using Core
-moduleprivate var order: HashTable'(s32, Array's32)
 
 func day5B()
 {
     let dataPath = Path.combine(Path.getDirectoryName(#curlocation.fileName), "5.txt")
     let lines    = assume File.readAllLines(dataPath)
 
+    var order: HashTable'(s32, Array's32)
     var first = true
     var total = 0
 
@@ -34,48 +34,79 @@ func day5B()
         if first
         {
             let split = Tokenize.split(f, '|''u8)
+            @assert(split.count == 2)
             order.findOrAdd(assume StrConv.toS32(split[0])).value.add(assume StrConv.toS32(split[1]))
         }
         else
         {
-            var split = Slice.map(Tokenize.split(f, ',''u8).toSlice(), func(x) => assume StrConv.toS32(x))
+            var update = Slice.map(Tokenize.split(f, ',''u8).toSlice(), func(x) => assume StrConv.toS32(x))
+            @assert(update.count != 0)
 
-            var ok = true
-            for i in split
+            var isOrdered = true
+            for beforeIndex in update.count
             {
-                let v0 = split[i]
+                let beforePage = update[beforeIndex]
+                if beforeIndex + 1 >= update.count do
+                    continue
 
-                for j in i + 1 until split.count
+                for afterIndex in beforeIndex + 1 to update.count - 1
                 {
-                    let v1 = split[j]
-
-                    if let r0 = order.tryFind(v0) where !r0.value.contains(v1)
+                    let afterPage = update[afterIndex]
+                    if let nextPages = order.tryFind(afterPage) where nextPages.value.contains(beforePage)
                     {
-                        ok = false
-                        break
-                    }
-
-                    if let r1 = order.tryFind(v1) where r1.value.contains(v0)
-                    {
-                        ok = false
+                        isOrdered = false
                         break
                     }
                 }
             }
 
-            if !ok
+            if !isOrdered
             {
-                split.sort(func(x, y)
+                var repaired: Array's32
+                repaired.resize(update.count)
+
+                var used: Array'bool
+                used.resize(update.count)
+
+                var writeIndex = 0'u64
+                while writeIndex < update.count
                 {
-                    if let r0 = order.tryFind(x) where r0.value.contains(y) do
-                        return -1
-                    if let r1 = order.tryFind(y) where r1.value.contains(x) do
-                        return 1
+                    var found = false
 
-                    return x <=> y
-                })
+                    for candidateIndex in update.count
+                    {
+                        if used[candidateIndex] do
+                            continue
 
-                total += split[split.count / 2]
+                        let candidatePage = update[candidateIndex]
+                        var hasIncoming = false
+
+                        for otherIndex in update.count
+                        {
+                            if used[otherIndex] or otherIndex == candidateIndex do
+                                continue
+                            if let nextPages = order.tryFind(update[otherIndex]) where nextPages.value.contains(candidatePage)
+                            {
+                                hasIncoming = true
+                                break
+                            }
+                        }
+
+                        if hasIncoming do
+                            continue
+
+                        repaired[writeIndex] = candidatePage
+                        used[candidateIndex] = true
+                        writeIndex += 1
+                        found = true
+                        break
+                    }
+
+                    @assert(found)
+                }
+
+                @assert(repaired.count & 1 == 1)
+                total += repaired[repaired.count / 2]
             }
         }
     }

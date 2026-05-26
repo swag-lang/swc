@@ -26,9 +26,6 @@ In this example, a single shiny gold bag must contain 126 other bags.
 How many individual bags are required inside your single shiny gold bag?
 */
 
-/*
-Disabled in the examples workspace: compiler bug with HashTable payload on anonymous structs.
-
 using Core
 
 func day7B()
@@ -116,4 +113,3 @@ func day7B1()
     //Console.print("total: ", total)
     @assert(total == 9339)
 }
-*/

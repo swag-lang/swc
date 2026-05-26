@@ -1331,7 +1331,7 @@ namespace
 
         symFunc->setVariadicParamFlag(ctx);
 
-        TypeRef returnTypeRef = lambdaType.nodeReturnTypeRef.isValid() ? TypeRef::invalid() : ctx.typeMgr().typeVoid();
+        const TypeRef returnTypeRef = lambdaType.nodeReturnTypeRef.isValid() ? TypeRef::invalid() : ctx.typeMgr().typeVoid();
 
         symFunc->setReturnTypeRef(returnTypeRef);
         symFunc->setExtraFlags(lambdaType.flags());

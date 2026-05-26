@@ -61,7 +61,7 @@ void SemaNodeView::compute(Sema& sema, AstNodeRef ref, SemaNodeViewPart part, Se
     if (!part.has(SemaNodeViewPartE::Symbol))
         return;
 
-    const auto trySetTypeFromResolvedSymbol = [&]() {
+    const auto trySetTypeFromResolvedSymbol = [&] {
         if (!part.has(SemaNodeViewPartE::Type) || typeRef_.isValid())
             return;
         if (!sym_ || (hasSymList_ && symList_.size() != 1) || !sym_->typeRef().isValid())

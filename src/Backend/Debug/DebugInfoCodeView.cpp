@@ -508,7 +508,7 @@ namespace
                 continue;
 
             MachineCode::ResolvedDebugSourceRange resolvedRange;
-            if (!code.tryResolveDebugSourceRange(ctx, resolvedRange, range) || !resolvedRange.source.codeRange.line)
+            if (!MachineCode::tryResolveDebugSourceRange(ctx, resolvedRange, range) || !resolvedRange.source.codeRange.line)
                 continue;
             if (!resolvedRange.source.sourceFile)
                 continue;

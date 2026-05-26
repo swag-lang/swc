@@ -27,16 +27,12 @@ In this schematic, there are two gears. The first is in the top left; it has par
 What is the sum of all of the gear ratios in your engine schematic?
 */
 
-/*
-Disabled in the examples workspace: compiler bug / duplicate moduleprivate symbols.
-
 using Core
 
-moduleprivate var symbols: Array'{ s, x, y: s32 }
-moduleprivate var nums: Array'{ num, x, lx, y: s32 }
-moduleprivate var parts: Array'{ num, x, lx, y: s32 }
-
-moduleprivate func hasSymbol(x, y: s32)->bool
+fileprivate var symbols: Array'{ s, x, y: s32 }
+fileprivate var nums: Array'{ num, x, lx, y: s32 }
+fileprivate var parts: Array'{ num, x, lx, y: s32 }
+fileprivate func hasSymbol(x, y: s32)->bool
 {
     foreach s in symbols
     {
@@ -95,7 +91,7 @@ func day3B()
                hasSymbol(x + 1, n.y) or
                hasSymbol(x + 1, n.y + 1)
             {
-                parts.add(n)
+                parts.add({n.num, n.x, n.lx, n.y})
                 break
             }
         }
@@ -108,7 +104,7 @@ func day3B()
 
         var gear = 1
         var cpt  = 0
-        foreach n in nums
+        foreach n in parts
         {
             if n.y < s.y - 1 or n.y > s.y + 1 do
                 continue
@@ -128,4 +124,3 @@ func day3B()
     //Console.print("total: ", total)
     @assert(total == 93994191)
 }
-*/

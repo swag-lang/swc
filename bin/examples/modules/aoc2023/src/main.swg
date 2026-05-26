@@ -11,19 +11,19 @@
     day2A()
     day2B()
     day3A()
-    // day3B() disabled: compiler bug / duplicate moduleprivate symbols
+    day3B()
     day4A()
     day4B()
     // day5A() disabled: compiler bug / invalid continue handling and duplicate symbols
     // day5B() disabled: compiler bug / invalid continue handling and duplicate symbols
     day6A()
     day6B()
-    // day7A() disabled: compiler bug / duplicate moduleprivate symbols
-    // day7B() disabled: compiler bug / duplicate moduleprivate symbols
+    day7A()
+    day7B()
     day8A()
     day8B()
     day9A()
     day9B()
     // day10A() disabled: compiler bug in enum-flag binary codegen
-    // day10B() disabled: compiler bug / duplicate moduleprivate symbols
+    // day10B() still disabled: compiler bug in enum-flag binary codegen
 }

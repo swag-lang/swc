@@ -21,12 +21,9 @@ With the new joker rule, the total winnings in this example are 5905.
 Using the new joker rule, find the rank of every hand in your set. What are the new total winnings?
 */
 
-/*
-Disabled in the examples workspace: compiler bug / duplicate moduleprivate symbols.
-
 using Core
 
-moduleprivate struct Card
+fileprivate struct Card
 {
     val:        string
     bid:        u64
@@ -35,10 +32,10 @@ moduleprivate struct Card
     value:      s32
 }
 
-moduleprivate var map: [256] u8
-moduleprivate var cards: Array'Card
+fileprivate var map: [256] u8
+fileprivate var cards: Array'Card
 
-moduleprivate func sort()
+fileprivate func sort()
 {
     cards.sort(func(a, b)
     {
@@ -62,19 +59,19 @@ func day7B()
     let dataPath = Path.combine(Path.getDirectoryName(#curlocation.fileName), "7.txt")
     let lines    = assume File.readAllLines(dataPath)
 
-    map['A'] = 12
-    map['K'] = 11
-    map['Q'] = 10
-    map['T'] = 9
-    map['9'] = 8
-    map['8'] = 7
-    map['7'] = 6
-    map['6'] = 5
-    map['5'] = 4
-    map['4'] = 3
-    map['3'] = 2
-    map['2'] = 1
-    map['J'] = 0
+    map['A''u8] = 12
+    map['K''u8] = 11
+    map['Q''u8] = 10
+    map['T''u8] = 9
+    map['9''u8] = 8
+    map['8''u8] = 7
+    map['7''u8] = 6
+    map['6''u8] = 5
+    map['5''u8] = 4
+    map['4''u8] = 3
+    map['3''u8] = 2
+    map['2''u8] = 1
+    map['J''u8] = 0
 
     foreach l in lines
     {
@@ -129,4 +126,3 @@ func day7B()
     //Console.print("total: ", total)
     @assert(total == 248029057)
 }
-*/

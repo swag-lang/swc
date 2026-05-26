@@ -92,13 +92,10 @@ In this last example, 10 tiles are enclosed by the for.
 Figure out whether you have time to search for the nest by calculating the area within the for. How many tiles are enclosed by the for?
 */
 
-/*
-Disabled in the examples workspace: compiler bug / duplicate moduleprivate symbols.
-
 using Core
 
 #[Swag.EnumFlags]
-moduleprivate enum Dir
+fileprivate enum Dir
 {
     Zero  = 0
     West
@@ -170,23 +167,26 @@ func day10B()
     {
         let one = #ref mp(visitX, visitY)
         one |= .Edge
+        var moved = false
 
         switch
         {
         case one & .East and !(mp(visitX + 1, visitY) & .Edge):
             visitX += 1
-            continue
+            moved = true
         case one & .West and !(mp(visitX - 1, visitY) & .Edge):
             visitX -= 1
-            continue
+            moved = true
         case one & .North and !(mp(visitX, visitY - 1) & .Edge):
             visitY -= 1
-            continue
+            moved = true
         case one & .South and !(mp(visitX, visitY + 1) & .Edge):
             visitY += 1
-            continue
+            moved = true
         }
 
+        if moved do
+            continue
         break
     }
 
@@ -214,4 +214,3 @@ func day10B()
     //Console.print("total: ", total, " ")
     @assert(total == 287)
 }
-*/

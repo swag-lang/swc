@@ -52,12 +52,9 @@ Now, you can determine the total winnings of this set of hands by adding up the 
 Find the rank of every hand in your set. What are the total winnings?
 */
 
-/*
-Disabled in the examples workspace: compiler bug / duplicate moduleprivate symbols.
-
 using Core
 
-moduleprivate struct Card
+fileprivate struct Card
 {
     val:        string
     bid:        u64
@@ -66,10 +63,10 @@ moduleprivate struct Card
     value:      s32
 }
 
-moduleprivate var map: HashTable'(u8, u8)
-moduleprivate var cards: Array'Card
+fileprivate var map: HashTable'(u8, u8)
+fileprivate var cards: Array'Card
 
-moduleprivate func sort()
+fileprivate func sort()
 {
     cards.sort(func(a, b)
     {
@@ -153,4 +150,3 @@ func day7A()
     //Console.print("total: ", total)
     @assert(total == 249748283)
 }
-*/

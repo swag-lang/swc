@@ -19,7 +19,7 @@
     day6A()
     day6B()
     // day7A() disabled: runtime compiler bug in array access / execution
-    // day7B() disabled: compiler bug on '&Array' indexing
+    day7B()
     day8A()
     day8B()
     // day9A() disabled: compiler bug / sema conflict in day 9 helpers

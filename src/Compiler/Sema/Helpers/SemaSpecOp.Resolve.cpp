@@ -574,6 +574,23 @@ namespace
         ast.appendNodes(outArgs, node.spanChildrenRef);
     }
 
+    AstNodeRef normalizeIndexSpecOpArgRef(Sema& sema, AstNodeRef argRef)
+    {
+        if (argRef.isInvalid())
+            return AstNodeRef::invalid();
+
+        const SemaNodeView argView(sema, argRef, SemaNodeViewPartE::Type);
+        if (!argView.type())
+            return argRef;
+
+        const TypeRef   argTypeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), argView.typeRef());
+        const TypeInfo& argType    = sema.typeMgr().get(argTypeRef.isValid() ? argTypeRef : argView.typeRef());
+        if (!argType.isReference())
+            return argRef;
+
+        return Cast::createCastNode(sema, argType.payloadTypeRef(), argRef);
+    }
+
     bool collectIndexAccessArgs(Sema& sema, AstNodeRef& outIndexedExprRef, SmallVector<AstNodeRef>& outArgs, AstNodeRef indexNodeRef)
     {
         outIndexedExprRef = AstNodeRef::invalid();
@@ -680,7 +697,9 @@ namespace
         outMatched  = false;
 
         SmallVector<AstNodeRef> args;
-        args.append(indexArgRefs.data(), indexArgRefs.size());
+        args.reserve(indexArgRefs.size() + 1);
+        for (const AstNodeRef indexArgRef : indexArgRefs)
+            args.push_back(normalizeIndexSpecOpArgRef(sema, indexArgRef));
         args.push_back(node.nodeRightRef);
 
         SmallVector<ResolvedCallArgument> resolvedArgs;
@@ -1266,7 +1285,9 @@ namespace
         }
 
         SmallVector<AstNodeRef> args;
-        args.append(indexArgRefs.data(), indexArgRefs.size());
+        args.reserve(indexArgRefs.size());
+        for (const AstNodeRef indexArgRef : indexArgRefs)
+            args.push_back(normalizeIndexSpecOpArgRef(sema, indexArgRef));
 
         bool            matched  = false;
         SymbolFunction* calledFn = nullptr;
@@ -1415,7 +1436,9 @@ Result SemaSpecOp::tryResolveIndexAssign(Sema& sema, const AstAssignStmt& node, 
             if (!canAssignThroughRef)
             {
                 SmallVector<AstNodeRef> args;
-                args.append(indexArgRefs.data(), indexArgRefs.size());
+                args.reserve(indexArgRefs.size() + 1);
+                for (const AstNodeRef indexArgRef : indexArgRefs)
+                    args.push_back(normalizeIndexSpecOpArgRef(sema, indexArgRef));
                 args.push_back(node.nodeRightRef);
                 sema.clearSemaPayload(leftNodeRef);
                 auto* deferredPayload = sema.compiler().allocate<DeferredIndexAssignSpecOpPayload>();
@@ -1441,7 +1464,9 @@ Result SemaSpecOp::tryResolveIndexAssign(Sema& sema, const AstAssignStmt& node, 
     }
 
     SmallVector<AstNodeRef> args;
-    args.append(indexArgRefs.data(), indexArgRefs.size());
+    args.reserve(indexArgRefs.size() + 1);
+    for (const AstNodeRef indexArgRef : indexArgRefs)
+        args.push_back(normalizeIndexSpecOpArgRef(sema, indexArgRef));
     args.push_back(node.nodeRightRef);
     sema.clearSemaPayload(leftNodeRef);
     auto* deferredPayload = sema.compiler().allocate<DeferredIndexAssignSpecOpPayload>();

@@ -31,6 +31,8 @@ namespace
 {
     using CodeGenInterfaceHelpers::InterfaceCastInfo;
 
+    MicroReg emitUnsignedIntToFloatReg(CodeGen& codeGen, MicroReg srcReg, const TypeInfo& srcType, TypeRef dstTypeRef);
+
     bool isExplicitBitCast(const CodeGen& codeGen)
     {
         const AstNode& node = codeGen.node(codeGen.curNodeRef());
@@ -353,6 +355,130 @@ namespace
 
         codeGen.setPayloadAddressReg(codeGen.curNodeRef(), storageReg, dstTypeRef);
         return true;
+    }
+
+    Result tryEmitReferenceScalarNumericCast(CodeGen& codeGen, AstNodeRef srcNodeRef, TypeRef sourceTypeRef, TypeRef dstTypeRef, bool& outHandled)
+    {
+        outHandled = false;
+        const TypeManager& typeMgr            = codeGen.typeMgr();
+        const TypeRef      resolvedSourceRef  = unwrapAliasEnumTypeRef(typeMgr, codeGen.ctx(), sourceTypeRef);
+        const TypeRef      resolvedDstTypeRef = unwrapAliasEnumTypeRef(typeMgr, codeGen.ctx(), dstTypeRef);
+        if (!resolvedSourceRef.isValid() || !resolvedDstTypeRef.isValid())
+            return Result::Continue;
+
+        const TypeInfo& sourceType = typeMgr.get(resolvedSourceRef);
+        const TypeInfo& dstType    = typeMgr.get(resolvedDstTypeRef);
+        if (!(sourceType.isReference() || sourceType.isMoveReference()))
+            return Result::Continue;
+
+        const TypeRef pointeeTypeRef = unwrapAliasEnumTypeRef(typeMgr, codeGen.ctx(), sourceType.payloadTypeRef());
+        if (!pointeeTypeRef.isValid())
+            return Result::Continue;
+
+        const TypeInfo& pointeeType = typeMgr.get(pointeeTypeRef);
+        if (!pointeeType.isScalarNumeric() || !dstType.isScalarNumeric())
+            return Result::Continue;
+
+        const bool srcFloatType   = pointeeType.isFloat();
+        const bool srcIntLikeType = pointeeType.isNumericIntLike();
+        const bool dstFloatType   = dstType.isFloat();
+        const bool dstIntLikeType = dstType.isNumericIntLike();
+        if (!((srcIntLikeType && dstIntLikeType) || (srcIntLikeType && dstFloatType) || (srcFloatType && dstFloatType) || (srcFloatType && dstIntLikeType)))
+            return Result::Continue;
+
+        CodeGenNodePayload readPayload = sourcePayloadForCast(codeGen, srcNodeRef);
+        TypeRef            readTypeRef = sourceTypeRef;
+        CodeGenReferenceHelpers::unwrapAliasRefPayload(codeGen, readPayload, readTypeRef);
+        SWC_ASSERT(readTypeRef.isValid());
+        SWC_ASSERT(readPayload.isAddress());
+
+        const TypeRef     resolvedReadTypeRef = unwrapAliasEnumTypeRef(typeMgr, codeGen.ctx(), readTypeRef);
+        const TypeInfo&   readType            = typeMgr.get(resolvedReadTypeRef.isValid() ? resolvedReadTypeRef : readTypeRef);
+        const MicroOpBits srcOpBits           = CodeGenTypeHelpers::numericOrBoolBits(readType);
+        const MicroOpBits dstOpBits           = CodeGenTypeHelpers::numericOrBoolBits(dstType);
+        SWC_ASSERT(srcOpBits != MicroOpBits::Zero);
+        SWC_ASSERT(dstOpBits != MicroOpBits::Zero);
+        if (srcOpBits == MicroOpBits::Zero || dstOpBits == MicroOpBits::Zero)
+            return Result::Continue;
+
+        MicroBuilder& builder = codeGen.builder();
+        MicroReg      srcReg  = codeGen.nextVirtualRegisterForType(readTypeRef);
+        builder.emitLoadRegMem(srcReg, readPayload.reg, 0, srcOpBits);
+
+        CodeGenNodePayload& dstPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), dstTypeRef);
+        outHandled                     = true;
+
+        if (srcIntLikeType && dstIntLikeType)
+        {
+            SWC_RESULT(CodeGenSafety::emitIntLikeCastOverflowCheck(codeGen, codeGen.node(codeGen.curNodeRef()), srcReg, readType, dstType));
+            dstPayload.reg = codeGen.nextVirtualIntRegister();
+
+            if (dstType.isBool())
+            {
+                builder.emitCmpRegImm(srcReg, ApInt(0, 64), srcOpBits);
+                builder.emitSetCondReg(dstPayload.reg, MicroCond::NotEqual);
+                return Result::Continue;
+            }
+
+            const uint32_t srcWidth = getNumBits(srcOpBits);
+            const uint32_t dstWidth = getNumBits(dstOpBits);
+            if (srcWidth == dstWidth || srcWidth > dstWidth)
+            {
+                builder.emitLoadRegReg(dstPayload.reg, srcReg, dstOpBits);
+                return Result::Continue;
+            }
+
+            if (readType.isNumericSigned())
+            {
+                builder.emitLoadSignedExtendRegReg(dstPayload.reg, srcReg, dstOpBits, srcOpBits);
+                return Result::Continue;
+            }
+
+            builder.emitLoadZeroExtendRegReg(dstPayload.reg, srcReg, dstOpBits, srcOpBits);
+            return Result::Continue;
+        }
+
+        if (srcIntLikeType && dstFloatType)
+        {
+            if (pointeeType.isIntLikeUnsigned())
+            {
+                dstPayload.reg = emitUnsignedIntToFloatReg(codeGen, srcReg, pointeeType, dstTypeRef);
+                return Result::Continue;
+            }
+
+            if (getNumBits(srcOpBits) < 32 || (dstOpBits == MicroOpBits::B64 && getNumBits(srcOpBits) == 32))
+            {
+                const MicroReg    widenedReg  = codeGen.nextVirtualIntRegister();
+                const MicroOpBits widenedBits = dstOpBits == MicroOpBits::B64 ? MicroOpBits::B64 : MicroOpBits::B32;
+                builder.emitLoadSignedExtendRegReg(widenedReg, srcReg, widenedBits, srcOpBits);
+                srcReg = widenedReg;
+            }
+
+            dstPayload.reg = codeGen.nextVirtualRegisterForType(dstTypeRef);
+            builder.emitClearReg(dstPayload.reg, dstOpBits);
+            builder.emitOpBinaryRegReg(dstPayload.reg, srcReg, MicroOp::ConvertIntToFloat, dstOpBits);
+            return Result::Continue;
+        }
+
+        if (srcFloatType && dstFloatType)
+        {
+            if (srcOpBits == dstOpBits)
+            {
+                dstPayload.reg = srcReg;
+                return Result::Continue;
+            }
+
+            dstPayload.reg = codeGen.nextVirtualRegisterForType(dstTypeRef);
+            builder.emitClearReg(dstPayload.reg, dstOpBits);
+            builder.emitOpBinaryRegReg(dstPayload.reg, srcReg, MicroOp::ConvertFloatToFloat, srcOpBits);
+            return Result::Continue;
+        }
+
+        dstPayload.reg = codeGen.nextVirtualRegisterForType(dstTypeRef);
+        SWC_RESULT(CodeGenSafety::emitFloatToIntCastOverflowCheck(codeGen, codeGen.node(codeGen.curNodeRef()), srcReg, readType, dstType));
+        builder.emitClearReg(dstPayload.reg, dstOpBits);
+        builder.emitOpBinaryRegReg(dstPayload.reg, srcReg, MicroOp::ConvertFloatToInt, srcOpBits);
+        return Result::Continue;
     }
 
     Result emitUsingPointerLikeCast(CodeGen& codeGen, AstNodeRef srcNodeRef, TypeRef sourceTypeRef, TypeRef dstTypeRef, const SmallVector<SymbolStructUsingPathStep>& usingPath)
@@ -1194,6 +1320,11 @@ namespace
                 builder.emitLoadZeroExtendRegReg(dstPayload.reg, srcReg, MicroOpBits::B64, srcOpBits);
             return Result::Continue;
         }
+
+        bool handledReferenceScalarNumericCast = false;
+        SWC_RESULT(tryEmitReferenceScalarNumericCast(codeGen, srcNodeRef, sourceTypeRef, dstTypeRef, handledReferenceScalarNumericCast));
+        if (handledReferenceScalarNumericCast)
+            return Result::Continue;
 
         if (tryEmitReferenceValueCast(codeGen, srcNodeRef, sourceTypeRef, dstTypeRef))
             return Result::Continue;

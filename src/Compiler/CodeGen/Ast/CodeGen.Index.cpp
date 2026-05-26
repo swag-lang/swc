@@ -687,7 +687,9 @@ namespace
 
     Result emitIndexSpecOpCall(CodeGen& codeGen, SymbolFunction& calledFn)
     {
-        const TypeRef semanticTypeRef = codeGen.curViewType().typeRef();
+        TypeRef semanticTypeRef = codeGen.sema().viewStored(codeGen.curNodeRef(), SemaNodeViewPartE::Type).typeRef();
+        if (semanticTypeRef.isInvalid())
+            semanticTypeRef = codeGen.curViewType().typeRef();
         const bool    wasLValue       = codeGen.sema().isLValue(codeGen.curNodeRef());
 
         codeGen.sema().setSymbol(codeGen.curNodeRef(), &calledFn);

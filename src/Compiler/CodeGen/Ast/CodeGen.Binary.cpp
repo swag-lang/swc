@@ -6,6 +6,7 @@
 #include "Compiler/CodeGen/Core/CodeGenSafety.h"
 #include "Compiler/CodeGen/Core/CodeGenTypeHelpers.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
+#include "Compiler/Sema/Cast/Cast.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Type/TypeInfo.h"
@@ -64,6 +65,32 @@ namespace
         SWC_UNREACHABLE();
     }
 
+    TypeRef resolveImplicitBinaryOperandSourceTypeRef(CodeGen& codeGen, TypeRef storedSourceTypeRef, TypeRef castResultTypeRef)
+    {
+        if (!storedSourceTypeRef.isValid())
+            return TypeRef::invalid();
+
+        if (castResultTypeRef.isValid() &&
+            Cast::referenceValueCastTypeRef(codeGen.sema(), storedSourceTypeRef, castResultTypeRef).isValid())
+            return castResultTypeRef;
+
+        return storedSourceTypeRef;
+    }
+
+    SemaNodeView resolveBinaryOperandSemanticView(CodeGen& codeGen, AstNodeRef operandRef)
+    {
+        SemaNodeView semanticView = codeGen.viewType(operandRef);
+        const AstNode& operand    = codeGen.node(operandRef);
+        if (operand.isNot(AstNodeId::CastExpr) && operand.isNot(AstNodeId::AutoCastExpr) && operand.isNot(AstNodeId::AsCastExpr))
+            return semanticView;
+
+        const SemaNodeView storedView = codeGen.sema().viewStored(operandRef, SemaNodeViewPartE::Type);
+        if (storedView.typeRef().isValid())
+            return storedView;
+
+        return semanticView;
+    }
+
     TypeRef resolveBinaryOperandSourceTypeRef(CodeGen& codeGen, AstNodeRef operandRef, const SemaNodeView& operandView, const CodeGenNodePayload& operandPayload)
     {
         const AstNode& operand = codeGen.node(operandRef);
@@ -74,7 +101,7 @@ namespace
             {
                 const TypeRef storedSourceTypeRef = codeGen.sema().viewStored(castNode.nodeExprRef, SemaNodeViewPartE::Type).typeRef();
                 if (storedSourceTypeRef.isValid())
-                    return storedSourceTypeRef;
+                    return resolveImplicitBinaryOperandSourceTypeRef(codeGen, storedSourceTypeRef, operandPayload.typeRef);
             }
 
             if (operandPayload.typeRef.isValid())
@@ -87,7 +114,7 @@ namespace
             {
                 const TypeRef storedSourceTypeRef = codeGen.sema().viewStored(autoCastNode.nodeExprRef, SemaNodeViewPartE::Type).typeRef();
                 if (storedSourceTypeRef.isValid())
-                    return storedSourceTypeRef;
+                    return resolveImplicitBinaryOperandSourceTypeRef(codeGen, storedSourceTypeRef, operandPayload.typeRef);
             }
 
             if (operandPayload.typeRef.isValid())
@@ -115,8 +142,8 @@ namespace
         BinaryEncodeContext ctx;
         const TypeManager&  typeMgr = codeGen.typeMgr();
 
-        const SemaNodeView leftView  = codeGen.viewType(node.nodeLeftRef);
-        const SemaNodeView rightView = codeGen.viewType(node.nodeRightRef);
+        const SemaNodeView leftView  = resolveBinaryOperandSemanticView(codeGen, node.nodeLeftRef);
+        const SemaNodeView rightView = resolveBinaryOperandSemanticView(codeGen, node.nodeRightRef);
         SWC_ASSERT(leftView.type() && rightView.type());
 
         ctx.leftPayload         = &codeGen.payload(node.nodeLeftRef);
@@ -134,7 +161,16 @@ namespace
         }
         ctx.operationTypeRef = typeMgr.get(leftView.typeRef()).unwrapAliasEnum(codeGen.ctx(), leftView.typeRef());
         if (!ctx.operationTypeRef.isValid())
-            ctx.operationTypeRef = ctx.leftOperandTypeRef;
+            ctx.operationTypeRef = leftView.typeRef().isValid() ? leftView.typeRef() : ctx.leftOperandTypeRef;
+        const TypeInfo& resultType = typeMgr.get(ctx.resultTypeRef);
+        const TypeInfo& opType     = typeMgr.get(ctx.operationTypeRef);
+        if (!resultType.isBool() && resultType.isScalarNumeric() && opType.isScalarNumeric())
+        {
+            const MicroOpBits resultBits = CodeGenTypeHelpers::numericOrBoolBits(resultType);
+            const MicroOpBits opBits     = CodeGenTypeHelpers::numericOrBoolBits(opType);
+            if (resultType.isFloat() != opType.isFloat() || resultBits != opBits)
+                ctx.operationTypeRef = ctx.resultTypeRef;
+        }
         if (ctx.resultTypeRef.isValid() && typeMgr.get(ctx.resultTypeRef).isBool() && typeMgr.get(ctx.leftOperandTypeRef).isNumericIntLike())
             ctx.operationTypeRef = ctx.leftOperandTypeRef;
         if (ctx.resultTypeRef.isValid() && typeMgr.get(ctx.resultTypeRef).isBool() && typeMgr.get(ctx.operationTypeRef).isNumericIntLike())
@@ -147,9 +183,9 @@ namespace
         TypeRef leftSemanticTypeRef  = typeMgr.get(leftView.typeRef()).unwrapAliasEnum(codeGen.ctx(), leftView.typeRef());
         TypeRef rightSemanticTypeRef = typeMgr.get(rightView.typeRef()).unwrapAliasEnum(codeGen.ctx(), rightView.typeRef());
         if (!leftSemanticTypeRef.isValid())
-            leftSemanticTypeRef = ctx.leftOperandTypeRef;
+            leftSemanticTypeRef = leftView.typeRef().isValid() ? leftView.typeRef() : ctx.leftOperandTypeRef;
         if (!rightSemanticTypeRef.isValid())
-            rightSemanticTypeRef = ctx.rightOperandTypeRef;
+            rightSemanticTypeRef = rightView.typeRef().isValid() ? rightView.typeRef() : ctx.rightOperandTypeRef;
 
         const TypeInfo& leftSemanticType  = typeMgr.get(leftSemanticTypeRef);
         const TypeInfo& rightSemanticType = typeMgr.get(rightSemanticTypeRef);
@@ -185,6 +221,10 @@ namespace
 
         const TypeInfo& sourceType  = codeGen.typeMgr().get(sourceTypeRef);
         const TypeInfo& payloadType = codeGen.typeMgr().get(payloadTypeRef);
+        if ((sourceType.isReference() || sourceType.isMoveReference()) &&
+            !payloadType.isReference() &&
+            !payloadType.isMoveReference())
+            return payloadTypeRef;
         if (payloadType.isFloat() && operandPayload.reg.isAnyFloat() && !sourceType.isFloat())
             return payloadTypeRef;
         if ((payloadType.isIntLike() || payloadType.isBool()) && operandPayload.reg.isAnyInt() && sourceType.isFloat())

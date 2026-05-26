@@ -95,12 +95,9 @@ So, the lowest location number in this example is 35.
 What is the lowest location number that corresponds to any of the initial seed numbers?
 */
 
-/*
-Disabled in the examples workspace: compiler bug / invalid continue handling and duplicate symbols.
-
 using Core
 
-moduleprivate enum Mode
+fileprivate enum Mode
 {
     ToSoil
     ToFertilizer
@@ -112,14 +109,14 @@ moduleprivate enum Mode
     Invalid
 }
 
-moduleprivate struct Range
+fileprivate struct Range
 {
     src, dst:     u64
     range:        u64
 }
 
-moduleprivate var seeds: Array'u64
-moduleprivate var convert: [7] Array'Range
+fileprivate var seeds: Array'u64
+fileprivate var convert: [7] Array'Range
 
 func day5A()
 {
@@ -132,30 +129,33 @@ func day5A()
         if l.isEmpty() do
             continue
 
+        var isHeader = false
         switch l.toString()
         {
         case "seed-to-soil map:":
             mode = .ToSoil
-            continue
+            isHeader = true
         case "soil-to-fertilizer map:":
             mode = .ToFertilizer
-            continue
+            isHeader = true
         case "fertilizer-to-water map:":
             mode = .ToWater
-            continue
+            isHeader = true
         case "water-to-light map:":
             mode = .ToLight
-            continue
+            isHeader = true
         case "light-to-temperature map:":
             mode = .ToTemperature
-            continue
+            isHeader = true
         case "temperature-to-humidity map:":
             mode = .ToHumidity
-            continue
+            isHeader = true
         case "humidity-to-location map:":
             mode = .ToLocation
-            continue
+            isHeader = true
         }
+        if isHeader do
+            continue
 
         if mode == .Invalid
         {
@@ -183,7 +183,7 @@ func day5A()
         {
             foreach r in convert[i]
             {
-                if seed >= r.src and seed <= r.src + r.range
+                if seed >= r.src and seed < r.src + r.range
                 {
                     seed = r.dst + (seed - r.src)
                     break
@@ -193,5 +193,7 @@ func day5A()
 
         total = Math.min(total, seed)
     }
+
+    //Console.print("total: ", total)
+    @assert(total == 111627841)
 }
-*/

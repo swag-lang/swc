@@ -14,12 +14,9 @@ In the above example, the lowest location number can be obtained from seed numbe
 Consider all of the initial seed numbers listed in the ranges on the first line of the almanac. What is the lowest location number that corresponds to any of the initial seed numbers?
 */
 
-/*
-Disabled in the examples workspace: compiler bug / invalid continue handling and duplicate symbols.
-
 using Core
 
-moduleprivate enum Mode
+fileprivate enum Mode
 {
     ToSoil
     ToFertilizer
@@ -31,14 +28,19 @@ moduleprivate enum Mode
     Invalid
 }
 
-moduleprivate struct Range
+fileprivate struct Range
 {
     src, srcE:     u64
     dst:           u64
 }
 
-moduleprivate var seeds: Array'u64
-moduleprivate var convert: [7] Array'Range
+fileprivate struct SeedRange
+{
+    start, end:    u64
+}
+
+fileprivate var seeds: Array'u64
+fileprivate var convert: [7] Array'Range
 
 func day5B()
 {
@@ -51,30 +53,33 @@ func day5B()
         if l.isEmpty() do
             continue
 
+        var isHeader = false
         switch l.toString()
         {
         case "seed-to-soil map:":
             mode = .ToSoil
-            continue
+            isHeader = true
         case "soil-to-fertilizer map:":
             mode = .ToFertilizer
-            continue
+            isHeader = true
         case "fertilizer-to-water map:":
             mode = .ToWater
-            continue
+            isHeader = true
         case "water-to-light map:":
             mode = .ToLight
-            continue
+            isHeader = true
         case "light-to-temperature map:":
             mode = .ToTemperature
-            continue
+            isHeader = true
         case "temperature-to-humidity map:":
             mode = .ToHumidity
-            continue
+            isHeader = true
         case "humidity-to-location map:":
             mode = .ToLocation
-            continue
+            isHeader = true
         }
+        if isHeader do
+            continue
 
         if mode == .Invalid
         {
@@ -94,13 +99,13 @@ func day5B()
         convert[cast(s32) mode].add(range)
     }
 
-    var ranges: Array'{ start, end: u64 }
+    var ranges: Array'SeedRange
     for var x = 0; x < seeds.count; x += 2 do
         ranges.add({seeds[x], seeds[x] + seeds[x + 1] - 1})
 
     for i in 7
     {
-        var newRanges: Array'{ start, end: u64 }
+        var newRanges: Array'SeedRange
         for var idx = 0; idx < ranges.count; idx += 1
         {
             let range = ranges[idx]
@@ -136,4 +141,3 @@ func day5B()
     //Console.print("total: ", total)
     @assert(total == 69323688)
 }
-*/

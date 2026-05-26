@@ -14,8 +14,8 @@
     day3B()
     day4A()
     day4B()
-    // day5A() disabled: compiler bug / invalid continue handling and duplicate symbols
-    // day5B() disabled: compiler bug / invalid continue handling and duplicate symbols
+    day5A()
+    day5B()
     day6A()
     day6B()
     day7A()

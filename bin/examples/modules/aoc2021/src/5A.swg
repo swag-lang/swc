@@ -39,9 +39,6 @@ To avoid the most dangerous areas, you need to determine the number of points wh
 Consider only horizontal and vertical lines. At how many points: at least two lines overlap?
 */
 
-/*
-Disabled in the examples workspace: compiler bug on '#ref' pointer comparison in vent map update.
-
 using Core
 
 func day5A()
@@ -73,23 +70,28 @@ func day5A()
         Core.orderMinMax(&x0, &x1)
         Core.orderMinMax(&y0, &y1)
 
-        if x0 != x1 do
-            for x in x0 to x1
+        if x0 != x1
+        {
+            let yy0 = cast(u64) y0
+            for x in cast(u64) x0 to cast(u64) x1
             {
-                let c = #ref (m.buffer + (x + y0 * W))
+                let c = #ref m.ref2(x, yy0, W)
                 total += (c == 1 ? 1 : 0)
                 c += 1
             }
-        elif y0 != y1 do
-            for y in y0 to y1
+        }
+        elif y0 != y1
+        {
+            let xx0 = cast(u64) x0
+            for y in cast(u64) y0 to cast(u64) y1
             {
-                let c = #ref (m.buffer + (x0 + y * W))
+                let c = #ref m.ref2(xx0, y, W)
                 total += (c == 1 ? 1 : 0)
                 c += 1
             }
+        }
     }
 
     //Console.print("total: ", total)
     @assert(total == 5167)
 }
-*/

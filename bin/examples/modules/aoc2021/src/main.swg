@@ -14,7 +14,7 @@
     day3B()
     day4A()
     day4B()
-    // day5A() disabled: compiler bug on '#ref' pointer comparison in vent map update
+    day5A()
     day5B()
     day6A()
     day6B()

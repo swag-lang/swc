@@ -117,10 +117,10 @@ Result AstCompilerScope::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef
     {
         // Named `#scope` resolution is an ancestor context just like `break` ownership,
         // so cache the active chain in the frame instead of rescanning parent nodes.
-        auto* namedScope  = sema.compiler().allocate<SemaNamedCompilerScope>();
-        namedScope->idRef = sema.idMgr().addIdentifier(sema.ctx(), SourceCodeRef{srcViewRef(), tokNameRef});
+        auto* namedScope     = sema.compiler().allocate<SemaNamedCompilerScope>();
+        namedScope->idRef    = sema.idMgr().addIdentifier(sema.ctx(), SourceCodeRef{srcViewRef(), tokNameRef});
         namedScope->scopeRef = sema.curNodeRef();
-        namedScope->parent = sema.frame().currentNamedCompilerScope();
+        namedScope->parent   = sema.frame().currentNamedCompilerScope();
         frame.setCurrentNamedCompilerScope(namedScope);
     }
     sema.pushFramePopOnPostChild(frame, childRef);
@@ -139,7 +139,7 @@ Result AstScopedBreakStmt::semaPreNode(Sema& sema)
     }
 
     const Token& tokScopeName = sema.token(nameCodeRef);
-    auto diag = SemaError::report(sema, DiagnosticId::sema_err_unknown_scope_name, SourceCodeRef{node.srcViewRef(), node.tokNameRef});
+    auto         diag         = SemaError::report(sema, DiagnosticId::sema_err_unknown_scope_name, SourceCodeRef{node.srcViewRef(), node.tokNameRef});
     diag.addArgument(Diagnostic::ARG_SYM, tokScopeName.string(sema.srcView(nameCodeRef.srcViewRef)));
     diag.report(sema.ctx());
     return Result::Error;

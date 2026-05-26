@@ -11,13 +11,13 @@ class SymbolVariable;
 
 struct CodeGenLoweringPayload
 {
-    TypeRef         runtimeArrayFillTypeRef  = TypeRef::invalid();
-    SymbolVariable* runtimeStorageSym        = nullptr;
-    SymbolFunction* runtimeFunctionSymbol    = nullptr;
-    ConstantRef     runtimeArrayFillCstRef   = ConstantRef::invalid();
-    uint16_t        runtimeSafetyMask        = 0;
-    AstNodeRef      throwableWrapperOwnerRef = AstNodeRef::invalid();
-    TokenId         throwableWrapperTokenId  = TokenId::Invalid;
+    TypeRef         runtimeArrayFillTypeRef            = TypeRef::invalid();
+    SymbolVariable* runtimeStorageSym                  = nullptr;
+    SymbolFunction* runtimeFunctionSymbol              = nullptr;
+    ConstantRef     runtimeArrayFillCstRef             = ConstantRef::invalid();
+    uint16_t        runtimeSafetyMask                  = 0;
+    AstNodeRef      throwableWrapperOwnerRef           = AstNodeRef::invalid();
+    TokenId         throwableWrapperTokenId            = TokenId::Invalid;
     bool            ifVarDeclWhereUsesConditionBinding = false;
 
     void addRuntimeSafety(Runtime::SafetyWhat what)

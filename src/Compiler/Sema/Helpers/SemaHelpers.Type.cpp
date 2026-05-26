@@ -396,7 +396,7 @@ namespace
         if (!firstStructType.isAggregateStruct())
             return TypeRef::invalid();
 
-        const auto& firstAggregate = firstStructType.payloadAggregate();
+        const auto&                firstAggregate = firstStructType.payloadAggregate();
         SmallVector<IdentifierRef> mergedFieldNames;
         mergedFieldNames.reserve(firstAggregate.names.size());
         for (const IdentifierRef fieldName : firstAggregate.names)

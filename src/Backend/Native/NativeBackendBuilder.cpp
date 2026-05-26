@@ -1,6 +1,6 @@
 #include "pch.h"
-#include "Backend/Native/NativeArtifactBuilder.h"
 #include "Backend/Native/NativeBackendBuilder.h"
+#include "Backend/Native/NativeArtifactBuilder.h"
 #include "Backend/Native/NativeLinker.h"
 #include "Backend/Native/NativeObjFileWriter.h"
 #include "Backend/Native/NativeObjJob.h"

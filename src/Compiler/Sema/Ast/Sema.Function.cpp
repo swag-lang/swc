@@ -34,7 +34,7 @@ namespace
         auto&      frame      = sema.frame();
         frame.setLookupScope(nullptr);
         frame.setLookupScopeOverrideNodes(nullptr);
-        auto& sym = SemaHelpers::registerSymbol<SymbolFunction>(sema, node, node.tokNameRef);
+        auto& sym    = SemaHelpers::registerSymbol<SymbolFunction>(sema, node, node.tokNameRef);
         sema.frame() = savedFrame;
         return sym;
     }
@@ -145,8 +145,8 @@ namespace
         if (sym.isGenericInstance())
             return Result::Continue;
 
-        const SymbolMap*   ownerMap = sym.ownerSymMap();
-        const SymbolStruct* owner = sym.ownerStruct();
+        const SymbolMap*    ownerMap = sym.ownerSymMap();
+        const SymbolStruct* owner    = sym.ownerStruct();
         if (!owner && ownerMap && declImpl && declImpl->isForStruct())
             owner = declImpl->symStruct();
         if (!owner && ownerMap && declImpl)
@@ -172,8 +172,8 @@ namespace
 
     bool isGenericInstanceImplFunction(const SymbolFunction& sym, const SymbolImpl* declImpl)
     {
-        const SymbolMap*   ownerMap = sym.ownerSymMap();
-        const SymbolStruct* owner = sym.ownerStruct();
+        const SymbolMap*    ownerMap = sym.ownerSymMap();
+        const SymbolStruct* owner    = sym.ownerStruct();
         if (!owner && ownerMap && declImpl && declImpl->isForStruct())
             owner = declImpl->symStruct();
 

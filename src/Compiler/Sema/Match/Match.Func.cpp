@@ -1506,7 +1506,7 @@ namespace
         SymbolFunction* concreteFn          = nullptr;
         CastFailure     genericFailure      = {};
         uint32_t        genericFailureIndex = UINT32_MAX;
-        Result          instantiateResult   = Result::Continue;
+        auto            instantiateResult   = Result::Continue;
         if (suppressInstantiationErrors)
         {
             const bool savedSilent = sema.ctx().silentDiagnostic();

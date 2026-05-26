@@ -28,7 +28,7 @@ namespace
         auto&      frame      = sema.frame();
         frame.setLookupScope(nullptr);
         frame.setLookupScopeOverrideNodes(nullptr);
-        auto& sym = SemaHelpers::registerSymbol<T>(sema, node, tokNameRef);
+        auto& sym    = SemaHelpers::registerSymbol<T>(sema, node, tokNameRef);
         sema.frame() = savedFrame;
         return sym;
     }
@@ -40,7 +40,7 @@ namespace
         auto&      frame      = sema.frame();
         frame.setLookupScope(nullptr);
         frame.setLookupScopeOverrideNodes(nullptr);
-        auto& sym = SemaHelpers::registerUniqueSymbol<T>(sema, node, name);
+        auto& sym    = SemaHelpers::registerUniqueSymbol<T>(sema, node, name);
         sema.frame() = savedFrame;
         return sym;
     }

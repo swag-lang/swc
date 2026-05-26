@@ -961,10 +961,10 @@ Result AstVarDeclDestructuring::codeGenPostNode(CodeGen& codeGen) const
             for (size_t i = 0; i < tokNames.size(); ++i)
             {
                 SWC_ASSERT(i < aggregateTypes.size());
-                const TypeRef fieldTypeRef = aggregateTypes[i];
-                const auto&   fieldType    = codeGen.typeMgr().get(fieldTypeRef);
-                const uint32_t fieldAlign  = std::max<uint32_t>(fieldType.alignOf(codeGen.ctx()), 1);
-                const uint64_t fieldSize   = fieldType.sizeOf(codeGen.ctx());
+                const TypeRef  fieldTypeRef = aggregateTypes[i];
+                const auto&    fieldType    = codeGen.typeMgr().get(fieldTypeRef);
+                const uint32_t fieldAlign   = std::max<uint32_t>(fieldType.alignOf(codeGen.ctx()), 1);
+                const uint64_t fieldSize    = fieldType.sizeOf(codeGen.ctx());
                 if (fieldSize)
                     offset = ((offset + static_cast<uint64_t>(fieldAlign) - 1) / static_cast<uint64_t>(fieldAlign)) * static_cast<uint64_t>(fieldAlign);
 

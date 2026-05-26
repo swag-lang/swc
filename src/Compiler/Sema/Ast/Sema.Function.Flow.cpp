@@ -751,7 +751,7 @@ namespace
     template<typename T>
     Result resolveCallArgumentLambdaBindingType(Sema& sema, const T& call, AstNodeRef childRef, TypeRef& outBindingTypeRef)
     {
-        outBindingTypeRef = TypeRef::invalid();
+        outBindingTypeRef        = TypeRef::invalid();
         const AstNode& childNode = sema.node(childRef);
         if (!childCanConsumeLambdaBinding(childNode))
             return Result::Continue;
@@ -762,7 +762,7 @@ namespace
         SmallVector<AstNodeRef> args;
         call.collectArguments(args, sema.ast());
 
-        const AstNodeRef ufcsArg = resolveUfcsReceiverArg(sema, call.nodeExprRef);
+        const AstNodeRef ufcsArg        = resolveUfcsReceiverArg(sema, call.nodeExprRef);
         TypeRef          compareTypeRef = TypeRef::invalid();
 
         for (Symbol* sym : symbols)
@@ -788,7 +788,7 @@ namespace
             if (compareTypeRef.isInvalid())
             {
                 outBindingTypeRef = paramTypeRef;
-                compareTypeRef = resolvedTypeRef;
+                compareTypeRef    = resolvedTypeRef;
                 continue;
             }
 

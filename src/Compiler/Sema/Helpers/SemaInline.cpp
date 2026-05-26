@@ -684,7 +684,7 @@ namespace
         if (const Symbol* symbol = sema.viewStored(nodeRef, SemaNodeViewPartE::Symbol).sym())
             return symbol->idRef();
 
-        const AstNode& node = sema.node(nodeRef);
+        const AstNode&      node    = sema.node(nodeRef);
         const SourceCodeRef codeRef = node.codeRef();
         if (!codeRef.isValid())
             return IdentifierRef::invalid();

@@ -394,7 +394,7 @@ Result AstIfVarDecl::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) c
     if (childRef == nodeVarRef)
     {
         SWC_RESULT(checkIfVarDeclCondition(sema, nodeVarRef));
-        const bool usesConditionBinding = nodeWhereRef.isValid() && ifVarDeclNeedsWhereShortCircuit(sema, nodeVarRef);
+        const bool usesConditionBinding                                                                       = nodeWhereRef.isValid() && ifVarDeclNeedsWhereShortCircuit(sema, nodeVarRef);
         SemaHelpers::ensureCodeGenLoweringPayload(sema, sema.curNodeRef()).ifVarDeclWhereUsesConditionBinding = usesConditionBinding;
         if (usesConditionBinding)
         {

@@ -164,8 +164,8 @@ void IdentifierManager::setup(const TaskContext& ctx)
 
 IdentifierRef IdentifierManager::addIdentifier(const TaskContext& ctx, const SourceCodeRef& codeRef)
 {
-    const SourceView&      srcView = ctx.compiler().srcView(codeRef.srcViewRef);
-    const Token&           tok     = srcView.token(codeRef.tokRef);
+    const SourceView& srcView = ctx.compiler().srcView(codeRef.srcViewRef);
+    const Token&      tok     = srcView.token(codeRef.tokRef);
 
     if (tok.id == TokenId::Identifier)
     {
@@ -181,7 +181,7 @@ IdentifierRef IdentifierManager::addIdentifier(const TaskContext& ctx, const Sou
         SWC_ASSERT(tok.byteStart + tok.byteLength <= srcView.stringView().size());
     }
 
-    const std::string_view name    = tok.string(srcView);
+    const std::string_view name = tok.string(srcView);
 
     if (tok.id == TokenId::Identifier)
     {

@@ -542,12 +542,12 @@ Result AstForeachStmt::codeGenPreNode(CodeGen& codeGen) const
         loopState.sourceSpillSym   = &symbols[spillIndex]->cast<SymbolVariable>();
     }
 
-    MicroBuilder& builder   = codeGen.builder();
-    loopState.loopLabel     = builder.createLabel();
+    MicroBuilder& builder     = codeGen.builder();
+    loopState.loopLabel       = builder.createLabel();
     loopState.whereFalseLabel = builder.createLabel();
-    loopState.continueLabel = builder.createLabel();
-    loopState.doneLabel     = builder.createLabel();
-    loopState.reverse       = modifierFlags.has(AstModifierFlagsE::Reverse);
+    loopState.continueLabel   = builder.createLabel();
+    loopState.doneLabel       = builder.createLabel();
+    loopState.reverse         = modifierFlags.has(AstModifierFlagsE::Reverse);
     setForeachStmtCodeGenPayload(codeGen, codeGen.curNodeRef(), loopState);
     return Result::Continue;
 }

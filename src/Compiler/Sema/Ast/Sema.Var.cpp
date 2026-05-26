@@ -1320,8 +1320,8 @@ Result AstInitializerExpr::semaPostNode(Sema& sema)
                                          AstModifierFlagsE::MoveRaw;
     SWC_RESULT(SemaCheck::modifiers(sema, *this, modifierFlags, allowed));
 
-    const AstNodeRef resolvedExprRef = sema.viewZero(nodeExprRef).nodeRef();
-    const SemaNodeView exprView      = sema.viewNodeTypeConstant(resolvedExprRef);
+    const AstNodeRef   resolvedExprRef = sema.viewZero(nodeExprRef).nodeRef();
+    const SemaNodeView exprView        = sema.viewNodeTypeConstant(resolvedExprRef);
     if (exprView.typeRef().isValid())
     {
         sema.inheritPayloadFlags(sema.curNode(), resolvedExprRef);

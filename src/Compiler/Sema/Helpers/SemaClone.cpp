@@ -540,7 +540,6 @@ namespace
             sema.inheritPayload(sema.node(clonedRef), sourceRef);
         if (sema.node(sourceRef).is(AstNodeId::Identifier) && sema.viewStored(sourceRef, SemaNodeViewPartE::Symbol).hasSymbol())
             sema.node(clonedRef).cast<AstIdentifier>().addFlag(AstIdentifierFlagsE::PreResolvedSymbol);
-        
 
         if (!shouldReexpand &&
             resolvedRef.isValid() &&

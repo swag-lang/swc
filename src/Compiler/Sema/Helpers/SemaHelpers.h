@@ -139,8 +139,8 @@ namespace SemaHelpers
 
         const SymbolFlags flags = sema.frame().flagsForCurrentAccess();
 
-        T*         sym       = Symbol::make<T>(ctx, &node, tokNameRef, idRef, flags);
-        SymbolMap* symbolMap = SemaFrame::currentSymMap(sema);
+        T*         sym        = Symbol::make<T>(ctx, &node, tokNameRef, idRef, flags);
+        SymbolMap* symbolMap  = SemaFrame::currentSymMap(sema);
         SemaScope* localScope = currentLocalSymbolScope(sema);
 
         if (localScope)

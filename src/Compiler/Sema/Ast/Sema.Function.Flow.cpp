@@ -208,6 +208,29 @@ namespace
         return currentFn && currentFn->isThrowable();
     }
 
+    bool isNativeArtifactCompilerEntryContext(const Sema& sema)
+    {
+        const auto* currentFn = sema.currentFunction();
+        if (!currentFn)
+            return false;
+
+        const AstNode* decl = currentFn->decl();
+        if (!decl || decl->id() != AstNodeId::CompilerFunc)
+            return false;
+
+        switch (sema.token(decl->codeRef()).id)
+        {
+            case TokenId::CompilerFuncInit:
+            case TokenId::CompilerFuncDrop:
+            case TokenId::CompilerFuncMain:
+            case TokenId::CompilerFuncPreMain:
+                return true;
+
+            default:
+                return false;
+        }
+    }
+
     bool isCompilerTestFunctionContext(const Sema& sema)
     {
         const auto* currentFn = sema.currentFunction();
@@ -231,7 +254,9 @@ namespace
 
     bool canPropagateThrowableResult(const Sema& sema)
     {
-        return isThrowableFunctionContext(sema) || sema.frame().currentErrorContextMode() != SemaFrame::ErrorContextMode::None;
+        return isThrowableFunctionContext(sema) ||
+               isNativeArtifactCompilerEntryContext(sema) ||
+               sema.frame().currentErrorContextMode() != SemaFrame::ErrorContextMode::None;
     }
 
     void addFunctionDeclaredHereNote(Sema& sema, Diagnostic& diag, const SymbolFunction& fn)

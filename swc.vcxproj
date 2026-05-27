@@ -157,7 +157,6 @@
     <ItemGroup>
         <ClCompile Include="src\Unittest\ABI\Test.ABI.FFI.cpp"/>
         <ClCompile Include="src\Unittest\Compiler\Test.Compiler.ConstantManager.cpp"/>
-        <ClCompile Include="src\Unittest\Compiler\Test.Compiler.Config.cpp"/>
         <ClCompile Include="src\Unittest\Compiler\Test.Compiler.GeneratedAst.cpp"/>
         <ClCompile Include="src\Unittest\Compiler\Test.Compiler.InMemorySource.cpp"/>
         <ClCompile Include="src\Unittest\Compiler\Test.Compiler.Messages.cpp"/>

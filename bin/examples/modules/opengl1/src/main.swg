@@ -3,6 +3,9 @@ using Core, Win32, Ogl, Gdi32
 
 var g_HDC:   HDC
 var g_Frame: Time.FrameTiming
+var g_IsReady = false
+
+const AUTOMATED_RUN = #command == Swag.CompilerCommand.Build or #command == Swag.CompilerCommand.Test
 
 func display()
 {
@@ -27,15 +30,19 @@ func winProc(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM)->LRESULT
     switch msg
     {
     case WM_PAINT:
-        display()
         var ps: PAINTSTRUCT
         BeginPaint(hWnd, &ps)
+        if g_IsReady do
+            display()
         EndPaint(hWnd, &ps)
         return 0
 
     case WM_SIZE:
-        glViewport(0, 0, LOWORD(lParam), HIWORD(lParam))
-        assume PostMessageA(hWnd, WM_PAINT, 0, 0)
+        if g_IsReady
+        {
+            glViewport(0, 0, LOWORD(lParam), HIWORD(lParam))
+            assume PostMessageA(hWnd, WM_PAINT, 0, 0)
+        }
         return 0
 
     case WM_DESTROY:
@@ -93,8 +100,8 @@ func messageLoop()
 
         display()
 
-        if Env.hasArg("swag.test") do
-            cpt += 1
+        //#if AUTOMATED_RUN do
+        //    cpt += 1
     }
 }
 
@@ -105,6 +112,7 @@ func messageLoop()
     g_HDC = GetDC(hWnd)
     let hRC = try wglCreateContext(g_HDC)
     try wglMakeCurrent(g_HDC, hRC)
+    g_IsReady = true
 
     display()
     ShowWindow(hWnd, SW_SHOW)
@@ -112,6 +120,7 @@ func messageLoop()
 
     messageLoop()
 
+    g_IsReady = false
     try wglMakeCurrent(null, null)
     try wglDeleteContext(hRC)
     ReleaseDC(hWnd, g_HDC)

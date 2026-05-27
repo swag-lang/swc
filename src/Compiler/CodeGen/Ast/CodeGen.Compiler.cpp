@@ -294,6 +294,22 @@ namespace
 
         const CallConvKind callConvKind = codeGen.function().callConvKind();
         MicroBuilder&      builder      = codeGen.builder();
+
+        if (CodeGenNodePayload* payload = codeGen.safePayload(codeGen.curNodeRef()); payload && payload->throwableFunctionFailLabel.isValid())
+        {
+            if (!codeGen.currentInstructionBlocksFallthrough())
+            {
+                emitCompilerFunctionStackEpilogue(codeGen, callConvKind);
+                builder.emitRet();
+            }
+
+            builder.placeLabel(payload->throwableFunctionFailLabel);
+            emitCompilerFunctionStackEpilogue(codeGen, callConvKind);
+            builder.emitRet();
+            payload->clearThrowableFunctionTarget();
+            return Result::Continue;
+        }
+
         emitCompilerFunctionStackEpilogue(codeGen, callConvKind);
         builder.emitRet();
         return Result::Continue;

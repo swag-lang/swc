@@ -42,14 +42,9 @@ namespace
             HardwareException::appendField(outMsg, "src view ref", std::format("{}", state.codeRef.srcViewRef.get()));
             HardwareException::appendField(outMsg, "token ref", std::format("{}", state.codeRef.tokRef.get()));
 
-            const SourceView&     srcView    = ctx->compiler().srcView(state.codeRef.srcViewRef);
-            const Token&          token      = srcView.token(state.codeRef.tokRef);
-            const SourceCodeRange codeRange  = token.codeRange(*ctx, srcView);
-            const SourceFile*     sourceFile = srcView.file();
-            if (sourceFile)
-            {
-                HardwareException::appendField(outMsg, "source", sourceFile->formatFileLocation(ctx, codeRange.line, codeRange.column));
-            }
+            CompilerInstance::ResolvedSourceLocation resolvedLocation;
+            if (ctx->compiler().tryResolveSourceLocation(*ctx, resolvedLocation, state.codeRef) && resolvedLocation.sourceFile)
+                HardwareException::appendField(outMsg, "source", resolvedLocation.sourceFile->formatFileLocation(ctx, resolvedLocation.codeRange.line, resolvedLocation.codeRange.column));
         }
 
         appendTaskFunction(outMsg, *ctx, state.runJitFunction);

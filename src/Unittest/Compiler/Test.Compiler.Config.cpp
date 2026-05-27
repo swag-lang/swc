@@ -113,6 +113,45 @@ namespace
         return stream.good();
     }
 
+    bool copyDirectoryTree(const fs::path& srcPath, const fs::path& dstPath)
+    {
+        std::error_code ec;
+        if (!fs::is_directory(srcPath, ec) || ec)
+            return false;
+
+        if (!ensureDirectory(dstPath))
+            return false;
+
+        for (fs::recursive_directory_iterator it(srcPath, ec); !ec && it != fs::recursive_directory_iterator(); ++it)
+        {
+            const fs::path relativePath = fs::relative(it->path(), srcPath, ec);
+            if (ec)
+                return false;
+
+            const fs::path dstEntryPath = dstPath / relativePath;
+            if (it->is_directory())
+            {
+                if (!ensureDirectory(dstEntryPath))
+                    return false;
+
+                continue;
+            }
+
+            if (!it->is_regular_file())
+                continue;
+
+            if (!ensureDirectory(dstEntryPath.parent_path()))
+                return false;
+
+            ec.clear();
+            fs::copy_file(it->path(), dstEntryPath, fs::copy_options::overwrite_existing, ec);
+            if (ec)
+                return false;
+        }
+
+        return !ec;
+    }
+
     void waitForTimestampTick()
     {
         std::this_thread::sleep_for(std::chrono::milliseconds(250));
@@ -1187,6 +1226,41 @@ func testBasic()->u64
         if (ec)
             return Result::Error;
 
+        CompilerInstance compiler(ctx.global(), cmdLine);
+        if (compiler.run() != ExitCode::Success)
+            return Result::Error;
+    }
+
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(Compiler_WorkspaceExampleReleaseBuildRemainsStableAcrossRepeatedRebuilds)
+{
+    const ScopedTempTree tempTree("compiler_workspace_example_release_repeat");
+    if (!tempTree.ready())
+        return Result::Error;
+
+    const fs::path workspaceDir = tempTree.root() / "workspace";
+    const fs::path aoc2015Dir   = workspaceDir / "modules" / "aoc2015";
+    const fs::path aoc2016Dir   = workspaceDir / "modules" / "aoc2016";
+
+    if (!copyDirectoryTree("bin/examples/modules/aoc2015", aoc2015Dir))
+        return Result::Error;
+    if (!copyDirectoryTree("bin/examples/modules/aoc2016", aoc2016Dir))
+        return Result::Error;
+
+    const ScopedEnvVar swagPath("SWAG_PATH", Os::getExeFullName().parent_path().string());
+
+    CommandLine cmdLine = makeSyntheticWorkspaceCommand(CommandKind::Build, workspaceDir);
+    cmdLine.buildCfg    = "release";
+    cmdLine.buildCfgExplicit = true;
+    cmdLine.clear       = true;
+    cmdLine.rebuild     = true;
+    CommandLineParser::refreshBuildCfg(cmdLine);
+
+    for (uint32_t iteration = 0; iteration < 12; iteration++)
+    {
         CompilerInstance compiler(ctx.global(), cmdLine);
         if (compiler.run() != ExitCode::Success)
             return Result::Error;

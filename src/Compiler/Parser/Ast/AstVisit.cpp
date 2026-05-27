@@ -2,6 +2,7 @@
 #include "Compiler/Parser/Ast/AstVisit.h"
 #include "Compiler/Parser/Ast/Ast.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
+#include "Main/CompilerInstance.h"
 #include "Main/Stats.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -55,13 +56,27 @@ AstVisitResult AstVisit::step(const TaskContext& ctx)
     Frame& frame = stack_.back();
 
 #if SWC_HAS_VISIT_DEBUG_INFO
-    dbgNode                   = &ast_->node(frame.nodeRef);
-    const SourceView& dbgView = dbgNode->srcView(ctx);
-    dbgTokRef                 = dbgNode->tokRef();
-    dbgTok                    = dbgTokRef.isValid() ? &dbgView.token(dbgTokRef) : nullptr;
-    dbgTokView                = dbgTok ? dbgTok->string(dbgView) : "";
-    dbgSrcFile                = dbgView.file();
-    dbgLoc                    = dbgTok ? dbgTok->codeRange(ctx, dbgView) : SourceCodeRange{};
+    dbgSrcFile = nullptr;
+    dbgNode    = ast_->hasNode(frame.nodeRef) ? &ast_->node(frame.nodeRef) : nullptr;
+    dbgTok     = nullptr;
+    dbgTokView = {};
+    dbgTokRef  = TokenRef::invalid();
+    dbgLoc     = {};
+
+    if (dbgNode)
+    {
+        dbgTokRef = dbgNode->tokRef();
+
+        CompilerInstance::ResolvedSourceLocation resolvedLocation;
+        if (ctx.compiler().tryResolveSourceLocation(ctx, resolvedLocation, dbgNode->codeRef()))
+        {
+            dbgSrcFile                = resolvedLocation.sourceFile;
+            dbgLoc                    = resolvedLocation.codeRange;
+            const SourceView& dbgView = *resolvedLocation.codeRange.srcView;
+            dbgTok                    = dbgTokRef.isValid() ? &dbgView.token(dbgTokRef) : nullptr;
+            dbgTokView                = dbgTok ? dbgTok->string(dbgView) : "";
+        }
+    }
 #endif
 
     switch (frame.stage)

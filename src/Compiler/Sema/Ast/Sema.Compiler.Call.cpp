@@ -339,6 +339,17 @@ namespace
         return false;
     }
 
+    bool isReadyMacroInjectPreResolveSymbol(const Symbol& symbol)
+    {
+        if (!symbol.isDeclared())
+            return false;
+        if (symbol.isFunction() && symbol.cast<SymbolFunction>().isGenericRoot())
+            return true;
+        if (symbol.isStruct() && symbol.cast<SymbolStruct>().isGenericRoot())
+            return true;
+        return symbol.isTyped();
+    }
+
     Result preResolveMacroInjectCallerIdentifiers(Sema& sema, AstNodeRef nodeRef, const SemaInlinePayload& inlinePayload, AstNodeRef parentRef = AstNodeRef::invalid())
     {
         if (nodeRef.isInvalid() || !inlinePayload.callerScope)
@@ -347,8 +358,9 @@ namespace
         if (shouldPreResolveMacroInjectCallerIdentifier(sema, nodeRef, parentRef))
         {
             MatchContext lookUpCxt;
-            lookUpCxt.codeRef       = sema.node(nodeRef).codeRef();
-            lookUpCxt.noWaitOnEmpty = true;
+            lookUpCxt.codeRef                = sema.node(nodeRef).codeRef();
+            lookUpCxt.noWaitOnEmpty          = true;
+            lookUpCxt.noWaitOnPendingSymbols = true;
 
             const auto savedFrame = sema.frame();
             auto&      frame      = sema.frame();
@@ -369,8 +381,10 @@ namespace
             const IdentifierRef idRef       = SemaHelpers::resolveIdentifier(sema, sema.node(nodeRef).codeRef());
             const Result        matchResult = Match::match(sema, lookUpCxt, idRef);
             sema.frame()                    = savedFrame;
-            SWC_ASSERT(matchResult != Result::Pause);
-            if (matchResult == Result::Continue && lookUpCxt.count() == 1 && lookUpCxt.first())
+            if (matchResult == Result::Continue &&
+                lookUpCxt.count() == 1 &&
+                lookUpCxt.first() &&
+                isReadyMacroInjectPreResolveSymbol(*lookUpCxt.first()))
             {
                 sema.setSymbol(nodeRef, lookUpCxt.first());
                 sema.node(nodeRef).cast<AstIdentifier>().addFlag(AstIdentifierFlagsE::PreResolvedSymbol | AstIdentifierFlagsE::MacroInjectCallerBinding);

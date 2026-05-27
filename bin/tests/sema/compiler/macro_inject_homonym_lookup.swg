@@ -67,3 +67,14 @@ func semaTest004()
         #assert(#typeof(fallback) == s32)
     }
 }
+
+func semaTest005()
+{
+    injectPlain()
+    {
+        let result = lateMacroHelper()
+        #assert(#typeof(result) == s32)
+    }
+}
+
+func lateMacroHelper()->s32 { return 27 }

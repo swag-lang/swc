@@ -13,7 +13,6 @@
     cfg.moduleBuildNum  = #swcbuildnum
     cfg.moduleNamespace = "Ogl"
     cfg.backendKind     = .StaticLibrary
-    cfg.ignoreInWorkspace = true
     cfg.repoPath        = "https://github.com/swag-lang/swag/blob/master/bin/std/modules/ogl"
 
     cfg.genDoc.kind            = .Api

@@ -36,6 +36,11 @@ public:
     // This is useful for speculative/probing lookups where the caller will try other strategies.
     bool noWaitOnEmpty = false;
 
+    // When true, `Match::match` will not wait for matched symbols that are not
+    // declared or typed yet. Callers can use this to probe visible symbols
+    // without turning an eager lookup into a hard dependency.
+    bool noWaitOnPendingSymbols = false;
+
     void clear();
     void resetCandidates();
     void beginSymMapLookup(const Priority& priority);

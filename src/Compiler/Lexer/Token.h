@@ -42,7 +42,7 @@ enum class TokenId : uint16_t
     Count
 };
 
-constexpr std::array TOKEN_ID_INFOS = {
+inline constexpr std::array TOKEN_ID_INFOS = {
 #define SWC_TOKEN_DEF(__enum, __name, __kind) TokenIdInfo{#__enum, __name, TokenIdKind{__kind}},
 #include "Compiler/Lexer/Tokens.Def.inc"
 

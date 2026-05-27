@@ -526,7 +526,7 @@ Result codeGenPostNode(CodeGen& codeGen, AstNode& node)
     return node.cast<NodeType>().codeGenPostNode(codeGen);
 }
 
-constexpr std::array AST_NODE_ID_INFOS = {
+inline constexpr std::array AST_NODE_ID_INFOS = {
 #define SWC_NODE_DEF(__enum, __flags) AstNodeIdInfo{                                \
                                           #__enum,                                  \
                                           __flags,                                  \

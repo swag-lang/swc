@@ -60,7 +60,7 @@ enum class MicroInstrOpcode : uint8_t
 #undef SWC_MICRO_INSTR_DEF
 };
 
-constexpr std::array MICRO_INSTR_OPCODE_INFOS = {
+inline constexpr std::array MICRO_INSTR_OPCODE_INFOS = {
 #define SWC_MICRO_INSTR_DEF(__enum, ...) __VA_ARGS__,
 #include "Backend/Micro/MicroInstr.Def.inc"
 

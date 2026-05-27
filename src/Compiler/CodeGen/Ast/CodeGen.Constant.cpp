@@ -276,8 +276,16 @@ namespace
         return dstElementReg;
     }
 
-    void emitAggregateElementStore(CodeGen& codeGen, MicroReg dstElementReg, const CodeGenNodePayload& elementPayload, uint32_t elementSize)
+    void emitAggregateElementStore(CodeGen& codeGen, MicroReg dstElementReg, const CodeGenNodePayload& elementPayload, TypeRef sourceTypeRef, TypeRef targetTypeRef, uint32_t elementSize)
     {
+        const MicroOpBits scalarStoreBits = CodeGenTypeHelpers::scalarStoreBits(codeGen.typeMgr().get(targetTypeRef), codeGen.ctx());
+        if (scalarStoreBits != MicroOpBits::Zero)
+        {
+            const MicroReg valueReg = CodeGenMemoryHelpers::materializeScalarPayloadForStore(codeGen, elementPayload, sourceTypeRef, targetTypeRef);
+            codeGen.builder().emitLoadMemReg(dstElementReg, 0, valueReg, scalarStoreBits);
+            return;
+        }
+
         const MicroOpBits storeBits = CodeGenTypeHelpers::bitsFromStorageSize(elementSize);
         if (elementPayload.isAddress() || storeBits == MicroOpBits::Zero)
         {
@@ -654,7 +662,8 @@ namespace
 
             SWC_ASSERT(elementSize <= std::numeric_limits<uint32_t>::max());
             const MicroReg dstElementReg = aggregateElementAddressReg(codeGen, dstBaseReg, entry.offset);
-            emitAggregateElementStore(codeGen, dstElementReg, elementPayload, static_cast<uint32_t>(elementSize));
+            const TypeRef  sourceTypeRef = elementPayload.effectiveTypeRef(entry.typeRef);
+            emitAggregateElementStore(codeGen, dstElementReg, elementPayload, sourceTypeRef, entry.typeRef, static_cast<uint32_t>(elementSize));
         }
 
         codeGen.setPayloadAddressReg(nodeRef, dstBaseReg, aggregateTypeRef);

@@ -22,6 +22,6 @@
     day7B()
     day8A()
     day8B()
-    // day9A() disabled: hangs during execution
-    // day9B() disabled: hangs during execution in release config
+    day9A()
+    day9B()
 }

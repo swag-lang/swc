@@ -102,125 +102,6 @@ namespace
         return codeGen.typeMgr().get(typeRef).unwrapAliasEnum(codeGen.ctx(), typeRef);
     }
 
-    MicroReg loadAssignOperand(CodeGen& codeGen, const CodeGenNodePayload& operandPayload, TypeRef operandTypeRef, MicroOpBits opBits)
-    {
-        SWC_ASSERT(opBits != MicroOpBits::Zero);
-        MicroReg operandReg;
-        CodeGenMemoryHelpers::loadOperandToRegister(operandReg, codeGen, operandPayload, operandTypeRef, opBits);
-        return operandReg;
-    }
-
-    MicroReg materializeAssignScalarOperand(CodeGen& codeGen, const CodeGenNodePayload& operandPayload, TypeRef operandTypeRef, TypeRef targetTypeRef)
-    {
-        operandTypeRef = unwrapAssignScalarTypeRef(codeGen, operandTypeRef);
-        targetTypeRef  = unwrapAssignScalarTypeRef(codeGen, targetTypeRef);
-        SWC_ASSERT(operandTypeRef.isValid());
-        SWC_ASSERT(targetTypeRef.isValid());
-
-        const TypeInfo&   srcType   = codeGen.typeMgr().get(operandTypeRef);
-        const TypeInfo&   dstType   = codeGen.typeMgr().get(targetTypeRef);
-        const MicroOpBits srcOpBits = CodeGenTypeHelpers::scalarStoreBits(srcType, codeGen.ctx());
-        const MicroOpBits dstOpBits = CodeGenTypeHelpers::scalarStoreBits(dstType, codeGen.ctx());
-        SWC_ASSERT(dstOpBits != MicroOpBits::Zero);
-        if (srcOpBits == MicroOpBits::Zero)
-            return loadAssignOperand(codeGen, operandPayload, targetTypeRef, dstOpBits);
-
-        const bool srcIntLikeType = srcType.isIntLike() || srcType.isBool();
-        const bool dstIntLikeType = dstType.isIntLike() || dstType.isBool();
-        const bool srcFloatType   = srcType.isFloat();
-        const bool dstFloatType   = dstType.isFloat();
-
-        MicroBuilder& builder = codeGen.builder();
-        MicroReg      srcReg  = operandPayload.reg;
-        if (operandPayload.isAddress())
-            srcReg = loadAssignOperand(codeGen, operandPayload, operandTypeRef, srcOpBits);
-
-        if (srcIntLikeType && dstIntLikeType)
-        {
-            if (dstType.isBool())
-            {
-                const MicroReg dstReg = codeGen.nextVirtualIntRegister();
-                builder.emitCmpRegImm(srcReg, ApInt(0, 64), srcOpBits);
-                builder.emitSetCondReg(dstReg, MicroCond::NotEqual);
-                return dstReg;
-            }
-
-            const uint32_t srcWidth = getNumBits(srcOpBits);
-            const uint32_t dstWidth = getNumBits(dstOpBits);
-            const MicroReg dstReg   = codeGen.nextVirtualIntRegister();
-            if (srcWidth == dstWidth)
-            {
-                builder.emitLoadRegReg(dstReg, srcReg, dstOpBits);
-                return dstReg;
-            }
-
-            if (srcWidth > dstWidth)
-            {
-                builder.emitLoadRegReg(dstReg, srcReg, dstOpBits);
-                return dstReg;
-            }
-
-            if (srcType.isNumericSigned())
-            {
-                builder.emitLoadSignedExtendRegReg(dstReg, srcReg, dstOpBits, srcOpBits);
-                return dstReg;
-            }
-
-            builder.emitLoadZeroExtendRegReg(dstReg, srcReg, dstOpBits, srcOpBits);
-            return dstReg;
-        }
-
-        if (srcIntLikeType && dstFloatType)
-        {
-            if (getNumBits(srcOpBits) < 32 || (dstOpBits == MicroOpBits::B64 && getNumBits(srcOpBits) == 32))
-            {
-                const MicroReg    widenedReg  = codeGen.nextVirtualIntRegister();
-                const MicroOpBits widenedBits = dstOpBits == MicroOpBits::B64 ? MicroOpBits::B64 : MicroOpBits::B32;
-                if (srcType.isIntSigned())
-                    builder.emitLoadSignedExtendRegReg(widenedReg, srcReg, widenedBits, srcOpBits);
-                else
-                    builder.emitLoadZeroExtendRegReg(widenedReg, srcReg, widenedBits, srcOpBits);
-                srcReg = widenedReg;
-            }
-
-            const MicroReg dstReg = codeGen.nextVirtualRegisterForType(targetTypeRef);
-            builder.emitClearReg(dstReg, dstOpBits);
-            builder.emitOpBinaryRegReg(dstReg, srcReg, MicroOp::ConvertIntToFloat, dstOpBits);
-            return dstReg;
-        }
-
-        if (srcFloatType && dstFloatType)
-        {
-            if (srcOpBits == dstOpBits)
-                return srcReg;
-
-            const MicroReg dstReg = codeGen.nextVirtualRegisterForType(targetTypeRef);
-            builder.emitClearReg(dstReg, dstOpBits);
-            builder.emitOpBinaryRegReg(dstReg, srcReg, MicroOp::ConvertFloatToFloat, srcOpBits);
-            return dstReg;
-        }
-
-        if (srcFloatType && dstIntLikeType)
-        {
-            if (dstType.isBool())
-            {
-                const MicroReg zeroReg = codeGen.nextVirtualRegisterForType(operandTypeRef);
-                const MicroReg dstReg  = codeGen.nextVirtualIntRegister();
-                builder.emitClearReg(zeroReg, srcOpBits);
-                builder.emitCmpRegReg(srcReg, zeroReg, srcOpBits);
-                builder.emitSetCondReg(dstReg, MicroCond::NotEqual);
-                return dstReg;
-            }
-
-            const MicroReg dstReg = codeGen.nextVirtualRegisterForType(targetTypeRef);
-            builder.emitClearReg(dstReg, dstOpBits);
-            builder.emitOpBinaryRegReg(dstReg, srcReg, MicroOp::ConvertFloatToInt, srcOpBits);
-            return dstReg;
-        }
-
-        return loadAssignOperand(codeGen, operandPayload, operandTypeRef, dstOpBits);
-    }
-
     MicroReg materializeAssignPointerIndexReg(CodeGen& codeGen, const CodeGenNodePayload& operandPayload, TypeRef operandTypeRef)
     {
         operandTypeRef                = unwrapAssignScalarTypeRef(codeGen, operandTypeRef);
@@ -398,7 +279,7 @@ namespace
             rightPayload.reg = stableSourceReg;
         }
 
-        const MicroReg rightReg = materializeAssignScalarOperand(codeGen, rightPayload, encodeCtx.rightTypeRef, encodeCtx.target.opTypeRef);
+        const MicroReg rightReg = CodeGenMemoryHelpers::materializeScalarPayloadForStore(codeGen, rightPayload, encodeCtx.rightTypeRef, encodeCtx.target.opTypeRef);
         builder.emitLoadMemReg(targetAddressReg, 0, rightReg, encodeCtx.opBits);
         return Result::Continue;
     }
@@ -421,7 +302,7 @@ namespace
         const MicroReg  leftReg    = codeGen.nextVirtualRegisterForType(encodeCtx.target.typeRef);
         builder.emitLoadRegMem(leftReg, encodeCtx.target.payload.reg, 0, encodeCtx.opBits);
 
-        const MicroReg rightReg = materializeAssignScalarOperand(codeGen, *encodeCtx.rightPayload, encodeCtx.rightTypeRef, encodeCtx.target.opTypeRef);
+        const MicroReg rightReg = CodeGenMemoryHelpers::materializeScalarPayloadForStore(codeGen, *encodeCtx.rightPayload, encodeCtx.rightTypeRef, encodeCtx.target.opTypeRef);
 
         if (assignOp == TokenId::SymLowerLowerEqual || assignOp == TokenId::SymGreaterGreaterEqual)
         {
@@ -459,7 +340,7 @@ namespace
         const MicroReg leftReg  = codeGen.nextVirtualRegisterForType(encodeCtx.target.typeRef);
         builder.emitLoadRegMem(leftReg, encodeCtx.target.payload.reg, 0, encodeCtx.opBits);
 
-        const MicroReg rightReg = materializeAssignScalarOperand(codeGen, *encodeCtx.rightPayload, encodeCtx.rightTypeRef, encodeCtx.target.opTypeRef);
+        const MicroReg rightReg = CodeGenMemoryHelpers::materializeScalarPayloadForStore(codeGen, *encodeCtx.rightPayload, encodeCtx.rightTypeRef, encodeCtx.target.opTypeRef);
         builder.emitOpBinaryRegReg(leftReg, rightReg, op, encodeCtx.opBits);
         builder.emitLoadMemReg(encodeCtx.target.payload.reg, 0, leftReg, encodeCtx.opBits);
         return Result::Continue;

@@ -1078,7 +1078,7 @@ Result ModuleSetupInputApplier::processImports(std::span<const CompilerInstance:
     return Result::Continue;
 }
 
-bool CompilerInstance::isWorkspaceModuleActive(const WorkspaceModuleBuild& moduleBuild) const
+bool CompilerInstance::isWorkspaceModuleActive(const WorkspaceModuleBuild& moduleBuild)
 {
     return !moduleBuild.ignoreInWorkspace && !moduleBuild.filteredOut;
 }
@@ -1098,7 +1098,7 @@ Result CompilerInstance::applyWorkspaceModuleFilter(TaskContext& ctx, std::vecto
         return Result::Error;
     }
 
-    std::vector<bool> selected(modules.size(), false);
+    std::vector         selected(modules.size(), false);
     std::vector<size_t> stack;
     stack.push_back(it->second);
     while (!stack.empty())
@@ -1245,9 +1245,9 @@ ExitCode CompilerInstance::runWorkspace()
 
     std::vector<uint32_t>            indegree(modules.size(), 0);
     std::vector<std::vector<size_t>> dependents(modules.size());
-    size_t                           activeModuleCount = 0;
+    size_t                           activeModuleCount   = 0;
     size_t                           filteredModuleCount = 0;
-    size_t                           ignoredModuleCount = 0;
+    size_t                           ignoredModuleCount  = 0;
     for (size_t i = 0; i < modules.size(); ++i)
     {
         if (modules[i].ignoreInWorkspace)

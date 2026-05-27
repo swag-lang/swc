@@ -79,8 +79,8 @@ namespace
 
     SemaNodeView resolveBinaryOperandSemanticView(CodeGen& codeGen, AstNodeRef operandRef)
     {
-        SemaNodeView   semanticView = codeGen.viewType(operandRef);
-        const AstNode& operand      = codeGen.node(operandRef);
+        const SemaNodeView semanticView = codeGen.viewType(operandRef);
+        const AstNode&     operand      = codeGen.node(operandRef);
         if (operand.isNot(AstNodeId::CastExpr) && operand.isNot(AstNodeId::AutoCastExpr) && operand.isNot(AstNodeId::AsCastExpr))
             return semanticView;
 

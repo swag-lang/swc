@@ -1022,7 +1022,7 @@ namespace
         MicroReg finalValueAddrReg = valueAddrReg;
         if (castPayload && castPayload->runtimeFunctionSymbol)
         {
-            auto& runtimeAsFn = *castPayload->runtimeFunctionSymbol;
+            const auto& runtimeAsFn = *castPayload->runtimeFunctionSymbol;
 
             const MicroReg sourceTypeReg = codeGen.nextVirtualIntRegister();
             builder.emitLoadRegMem(sourceTypeReg, srcPayload.reg, offsetof(Runtime::Any, type), MicroOpBits::B64);

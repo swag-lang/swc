@@ -936,7 +936,7 @@ namespace
             if (!directSelfStructField)
             {
                 SWC_RESULT(sema.waitSemaCompleted(explicitType, context.nodeTypeRef));
-                auto& symStruct = explicitType->payloadSymStruct();
+                const auto& symStruct = explicitType->payloadSymStruct();
                 symStruct.computeImplicitDefaultFlags(sema);
                 implicitStructZeroInit = symStruct.hasImplicitAllZeroDefault();
                 implicitStructNoInit   = symStruct.hasImplicitAllUndefinedDefault();

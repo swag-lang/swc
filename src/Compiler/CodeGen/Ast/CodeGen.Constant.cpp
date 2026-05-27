@@ -148,7 +148,7 @@ namespace
         std::vector fieldUsed(fields.size(), false);
         bool        seenNamed = false;
         size_t      nextPos   = 0;
-        for (auto elementRef : elementRefs)
+        for (const auto elementRef : elementRefs)
         {
             AstNodeRef     valueRef  = elementRef;
             IdentifierRef  fieldName = IdentifierRef::invalid();

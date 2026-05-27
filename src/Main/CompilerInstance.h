@@ -340,7 +340,7 @@ private:
     void              adoptBuildCfg(const Runtime::BuildCfg& buildCfg);
     Result            captureModuleSetupSnapshot(const TaskContext& ctx, const CommandLine& setupCmdLine, ModuleSetupSnapshot& outSnapshot) const;
     Result            applyModuleSetupInputs(TaskContext& ctx, const ModuleSetupSnapshot& setupSnapshot);
-    bool              isWorkspaceModuleActive(const WorkspaceModuleBuild& moduleBuild) const;
+    static bool       isWorkspaceModuleActive(const WorkspaceModuleBuild& moduleBuild);
     Result            applyWorkspaceModuleFilter(TaskContext& ctx, std::vector<WorkspaceModuleBuild>& modules, const std::unordered_map<Utf8, size_t>& moduleIndices) const;
     ExitCode          runWorkspace();
     Result            runWorkspaceModule(const WorkspaceModuleBuild& moduleBuild, uint32_t moduleIndex, uint32_t moduleCount) const;

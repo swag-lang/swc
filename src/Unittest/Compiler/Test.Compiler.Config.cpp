@@ -464,6 +464,38 @@ SWC_TEST_BEGIN(Compiler_CommandLineModuleFileResolvesRelativeInputsFromModuleFol
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(Compiler_CommandLineModuleShortFormMfResolvesModulePath)
+{
+    const ScopedTempTree tempTree("compiler_module_short_form_mf");
+    if (!tempTree.ready())
+        return Result::Error;
+
+    const fs::path moduleDir = tempTree.root() / "pkg";
+    if (!ensureDirectory(moduleDir))
+        return Result::Error;
+
+    CommandLine                    cmdLine;
+    const uint64_t                 errorsBefore = Stats::getNumErrors();
+    const std::vector<std::string> args         = {
+        "swc_devmode",
+        "build",
+        "-mf",
+        moduleDir.string(),
+    };
+
+    if (parseCommandLine(ctx, cmdLine, args) != Result::Continue)
+        return Result::Error;
+    if (Stats::getNumErrors() != errorsBefore)
+        return Result::Error;
+    if (!FileSystem::pathEquals(cmdLine.modulePath, moduleDir))
+        return Result::Error;
+    if (defaultArtifactName(cmdLine) != "pkg")
+        return Result::Error;
+
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(Compiler_CommandLineWorkspaceResolvesPath)
 {
     const ScopedTempTree tempTree("compiler_workspace_path");
@@ -490,6 +522,60 @@ SWC_TEST_BEGIN(Compiler_CommandLineWorkspaceResolvesPath)
     if (!FileSystem::pathEquals(cmdLine.workspacePath, workspaceDir))
         return Result::Error;
     if (defaultArtifactName(cmdLine) != "workspace")
+        return Result::Error;
+
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(Compiler_CommandLineWorkspaceModuleFilterResolvesPath)
+{
+    const ScopedTempTree tempTree("compiler_workspace_module_filter");
+    if (!tempTree.ready())
+        return Result::Error;
+
+    const fs::path workspaceDir = tempTree.root() / "workspace";
+    if (!ensureDirectory(workspaceDir / "modules"))
+        return Result::Error;
+
+    CommandLine                    cmdLine;
+    const uint64_t                 errorsBefore = Stats::getNumErrors();
+    const std::vector<std::string> args         = {
+        "swc_devmode",
+        "build",
+        "--workspace",
+        workspaceDir.string(),
+        "-m",
+        "aoc2019",
+    };
+
+    if (parseCommandLine(ctx, cmdLine, args) != Result::Continue)
+        return Result::Error;
+    if (Stats::getNumErrors() != errorsBefore)
+        return Result::Error;
+    if (!FileSystem::pathEquals(cmdLine.workspacePath, workspaceDir))
+        return Result::Error;
+    if (cmdLine.workspaceModuleFilter != "aoc2019")
+        return Result::Error;
+
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(Compiler_CommandLineWorkspaceModuleFilterRequiresWorkspace)
+{
+    CommandLine                    cmdLine;
+    const uint64_t                 errorsBefore = Stats::getNumErrors();
+    const std::vector<std::string> args         = {
+        "swc_devmode",
+        "build",
+        "-m",
+        "aoc2019",
+    };
+
+    if (parseCommandLine(ctx, cmdLine, args) != Result::Error)
+        return Result::Error;
+    if (Stats::getNumErrors() != errorsBefore + 1)
         return Result::Error;
 
     return Result::Continue;
@@ -1713,6 +1799,110 @@ public func coreValue()->s32
         return Result::Error;
     if (depLibApiContent.contains("\npublic "))
         return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(Compiler_WorkspaceBuildFilterCompilesRequestedModuleAndDependencies)
+{
+    const ScopedTempTree tempTree("compiler_workspace_build_filter");
+    if (!tempTree.ready())
+        return Result::Error;
+
+    const fs::path workspaceDir = tempTree.root() / "workspace";
+    const fs::path baseModuleDir = workspaceDir / "modules" / "base";
+    const fs::path midModuleDir  = workspaceDir / "modules" / "mid";
+    const fs::path appModuleDir  = workspaceDir / "modules" / "app";
+    const fs::path otherModuleDir = workspaceDir / "modules" / "other";
+
+    if (!writeTextFile(baseModuleDir / "module.swg", R"(#run
+{
+    let cfg = @compiler.getBuildCfg()
+    cfg.moduleNamespace = "Base"
+    cfg.backendKind = .Export
+}
+)"))
+        return Result::Error;
+    if (!writeTextFile(baseModuleDir / "src" / "main.swg", R"(#global public
+func baseValue()->s32
+{
+    return 1
+}
+)"))
+        return Result::Error;
+
+    if (!writeTextFile(midModuleDir / "module.swg", R"(#import("base")
+#run
+{
+    let cfg = @compiler.getBuildCfg()
+    cfg.moduleNamespace = "Mid"
+    cfg.backendKind = .Export
+}
+)"))
+        return Result::Error;
+    if (!writeTextFile(midModuleDir / "src" / "main.swg", R"(#global public
+func midValue()->s32
+{
+    return 2
+}
+)"))
+        return Result::Error;
+
+    if (!writeTextFile(appModuleDir / "module.swg", R"(#import("mid")
+#run
+{
+    let cfg = @compiler.getBuildCfg()
+    cfg.moduleNamespace = "App"
+    cfg.backendKind = .Export
+}
+)"))
+        return Result::Error;
+    if (!writeTextFile(appModuleDir / "src" / "main.swg", R"(#global public
+func appValue()->s32
+{
+    return 3
+}
+)"))
+        return Result::Error;
+
+    if (!writeTextFile(otherModuleDir / "module.swg", R"(#run
+{
+    let cfg = @compiler.getBuildCfg()
+    cfg.moduleNamespace = "Other"
+    cfg.backendKind = .Export
+}
+)"))
+        return Result::Error;
+    if (!writeTextFile(otherModuleDir / "src" / "main.swg", R"(#global public
+func otherValue()->s32
+{
+    return 4
+}
+)"))
+        return Result::Error;
+
+    CommandLine cmdLine = makeSyntheticWorkspaceCommand(CommandKind::Sema, workspaceDir);
+    cmdLine.workspaceModuleFilter = "app";
+    CommandLineParser::refreshBuildCfg(cmdLine);
+
+    CompilerInstance compiler(ctx.global(), cmdLine);
+    if (compiler.run() != ExitCode::Success)
+        return Result::Error;
+
+    const fs::path baseApiFile  = workspaceDir / ".output" / "base" / "export" / "fast-debug" / "x86_64" / "base.swg";
+    const fs::path midApiFile   = workspaceDir / ".output" / "mid" / "export" / "fast-debug" / "x86_64" / "mid.swg";
+    const fs::path appApiFile   = workspaceDir / ".output" / "app" / "export" / "fast-debug" / "x86_64" / "app.swg";
+    const fs::path otherApiFile = workspaceDir / ".output" / "other" / "export" / "fast-debug" / "x86_64" / "other.swg";
+
+    if (!fs::exists(baseApiFile))
+        return Result::Error;
+    if (!fs::exists(midApiFile))
+        return Result::Error;
+    if (!fs::exists(appApiFile))
+        return Result::Error;
+    if (fs::exists(otherApiFile))
+        return Result::Error;
+
     return Result::Continue;
 }
 SWC_TEST_END()

@@ -51,7 +51,7 @@ void CommandLineParser::registerCommands()
     add(HelpOptionGroup::Input, "all", "--file-filter", "-ff",
         &cmdLine_->fileFilter,
         "Apply a substring filter to input paths.");
-    add(HelpOptionGroup::Input, "all", "--module", "-m",
+    add(HelpOptionGroup::Input, "all", "--module", "-mf",
         &cmdLine_->modulePath,
         "Specify a module path to compile.");
     add(HelpOptionGroup::Input, "all", "--module-file", nullptr,
@@ -60,6 +60,9 @@ void CommandLineParser::registerCommands()
     add(HelpOptionGroup::Input, "sema test build run", "--workspace", "-w",
         &cmdLine_->workspacePath,
         "Specify a workspace folder containing modules/<module>/module.swg and modules/<module>/src. Workspaces own their .output and .tmp folders and cannot be combined with --module, --module-file, --directory or --file.");
+    add(HelpOptionGroup::Input, "sema test build run", "--workspace-module", "-m",
+        &cmdLine_->workspaceModuleFilter,
+        "When --workspace is present, compile only the named workspace module and its internal workspace dependencies.");
     add(HelpOptionGroup::Input, "sema test build run", "--import-api-module", nullptr,
         &cmdLine_->importApiModules,
         "Resolve a generated public API dependency from a module name through <compiler-root>/std/.output/<module>/<matching-config>.");

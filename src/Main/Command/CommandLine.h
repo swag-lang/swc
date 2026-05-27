@@ -73,6 +73,7 @@ struct CommandLine
     Utf8                buildCfg = "fast-debug";
     Utf8                name;
     Utf8                moduleNamespace;
+    Utf8                workspaceModuleFilter;
     Utf8                moduleNamespaceStorage;
     Utf8                outDirStorage;
     Utf8                workDirStorage;

@@ -92,6 +92,7 @@ namespace
         entries.clear();
         addInfoEntry(entries, "Config file", cmdLine.configFile);
         addInfoEntry(entries, "Workspace path", cmdLine.workspacePath);
+        addInfoEntry(entries, "Workspace module", cmdLine.workspaceModuleFilter);
         addInfoEntry(entries, "Module path", cmdLine.modulePath);
         addInfoEntry(entries, "Export API directory", cmdLine.exportApiDir);
         addInfoEntry(entries, "Output directory", Utf8(buildCfg.outDir));

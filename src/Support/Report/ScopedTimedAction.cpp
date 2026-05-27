@@ -207,14 +207,23 @@ namespace
 
     Utf8 workspaceDisplayName(const CommandLine& cmdLine)
     {
+        Utf8 result;
         if (cmdLine.workspacePath.empty())
-            return "workspace";
+            result = "workspace";
+        else
+        {
+            result = Utf8(cmdLine.workspacePath.filename().string());
+            if (result.empty())
+                result = displayPath(cmdLine.workspacePath);
+        }
 
-        auto result = Utf8(cmdLine.workspacePath.filename().string());
-        if (!result.empty())
+        if (cmdLine.workspaceModuleFilter.empty())
             return result;
 
-        return displayPath(cmdLine.workspacePath);
+        result += " [";
+        result += cmdLine.workspaceModuleFilter;
+        result += "]";
+        return result;
     }
 
     Utf8 moduleDisplayName(const CommandLine& cmdLine)
@@ -777,6 +786,8 @@ Utf8 TimedActionLog::formatSummaryLine(const TaskContext& ctx, const StatsSnapsh
             }
             if (workspaceLogState.ignoredModules)
                 parts.push_back(formatStatCount(ctx, workspaceLogState.ignoredModules, "ignored module", nullptr, secondaryTextColor()));
+            if (workspaceLogState.filteredModules)
+                parts.push_back(formatStatCount(ctx, workspaceLogState.filteredModules, "filtered module", nullptr, secondaryTextColor()));
         }
     }
     else if (isModuleMode)

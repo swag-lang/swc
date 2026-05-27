@@ -11,18 +11,18 @@ This documentation is auto-generated directly from the module's source code and 
 The `language` module in the `reference` workspace is implemented as a test module to demonstrate the language's core features in action. You can run the module by executing the following commands from the terminal:
 
 ```bash
-swag test --workspace:c:/swag-lang/swag/bin/reference
-swag test -w:c:/swag-lang/swag/bin/reference
+swag test --workspace c:/swag-lang/swag/bin/reference
+swag test -w c:/swag-lang/swag/bin/reference
 ```
 
 These commands execute all test modules within the specified workspace, including `language`. If you are already working within the workspace directory, the `--workspace` flag (or shorthand `-w`) can be omitted.
 
 # Compiling and Running a Specific Test Module
 
-To compile and execute a specific module, such as `language`, use the `--module` (or `-m`) flag in conjunction with the `swag test` command:
+To compile and execute a specific workspace module, such as `language`, use the `--workspace-module` (or `-m`) flag in conjunction with the `swag test` command:
 
 ```bash
-swag test -w:c:/swag-lang/swag/bin/reference -m:language
+swag test -w c:/swag-lang/swag/bin/reference -m language
 ```
 
 This will target and run only the specified module, enabling you to focus on individual components for testing and development purposes.

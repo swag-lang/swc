@@ -994,6 +994,14 @@ Result CommandLineParser::checkCommandLine(TaskContext& ctx) const
         cmdLine_->workspacePath = std::move(temp);
     }
 
+    if (!cmdLine_->workspaceModuleFilter.empty() && cmdLine_->workspacePath.empty())
+    {
+        Diagnostic diag = Diagnostic::get(DiagnosticId::cmdline_err_workspace_module_requires_workspace);
+        diag.addArgument(Diagnostic::ARG_ARG, "--workspace-module");
+        diag.report(ctx);
+        return Result::Error;
+    }
+
     if (!cmdLine_->workspacePath.empty())
     {
         if (!cmdLine_->moduleFilePath.empty())

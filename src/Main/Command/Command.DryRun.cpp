@@ -289,6 +289,7 @@ namespace
         addInfoEntry(entries, "Imported API files", Utf8Helper::countWithLabel(inputSummary.importedApiFiles, "file"));
         addInfoEntry(entries, "Runtime files", Utf8Helper::countWithLabel(inputSummary.runtimeFiles, "file"));
         addInfoEntry(entries, "Workspace path", cmdLine.workspacePath);
+        addInfoEntry(entries, "Workspace module", cmdLine.workspaceModuleFilter);
         addInfoEntry(entries, "Module path", cmdLine.modulePath);
         addInfoEntry(entries, "Export API directory", cmdLine.exportApiDir);
         addPathSet(entries, "Source directories", cmdLine.directories);

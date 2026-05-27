@@ -359,7 +359,7 @@ namespace
 
     Result tryEmitReferenceScalarNumericCast(CodeGen& codeGen, AstNodeRef srcNodeRef, TypeRef sourceTypeRef, TypeRef dstTypeRef, bool& outHandled)
     {
-        outHandled = false;
+        outHandled                            = false;
         const TypeManager& typeMgr            = codeGen.typeMgr();
         const TypeRef      resolvedSourceRef  = unwrapAliasEnumTypeRef(typeMgr, codeGen.ctx(), sourceTypeRef);
         const TypeRef      resolvedDstTypeRef = unwrapAliasEnumTypeRef(typeMgr, codeGen.ctx(), dstTypeRef);

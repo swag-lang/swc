@@ -682,6 +682,8 @@ namespace
 
         if (workspaceLogState.ignoredModules)
             parts.push_back(TimedActionLog::formatStatCount(ctx, workspaceLogState.ignoredModules, "ignored module", nullptr, LogColor::Gray));
+        if (workspaceLogState.filteredModules)
+            parts.push_back(TimedActionLog::formatStatCount(ctx, workspaceLogState.filteredModules, "filtered module", nullptr, LogColor::Gray));
 
         return TimedActionLog::joinStatItems(ctx, parts);
     }
@@ -1076,6 +1078,53 @@ Result ModuleSetupInputApplier::processImports(std::span<const CompilerInstance:
     return Result::Continue;
 }
 
+bool CompilerInstance::isWorkspaceModuleActive(const WorkspaceModuleBuild& moduleBuild) const
+{
+    return !moduleBuild.ignoreInWorkspace && !moduleBuild.filteredOut;
+}
+
+Result CompilerInstance::applyWorkspaceModuleFilter(TaskContext& ctx, std::vector<WorkspaceModuleBuild>& modules, const std::unordered_map<Utf8, size_t>& moduleIndices) const
+{
+    if (cmdLine().workspaceModuleFilter.empty())
+        return Result::Continue;
+
+    const auto it = moduleIndices.find(cmdLine().workspaceModuleFilter);
+    if (it == moduleIndices.end())
+    {
+        Diagnostic diag = Diagnostic::get(DiagnosticId::cmd_err_workspace_requested_module_missing);
+        FileSystem::setDiagnosticPath(diag, &ctx, cmdLine().workspacePath);
+        diag.addArgument(Diagnostic::ARG_SYM, cmdLine().workspaceModuleFilter);
+        diag.report(ctx);
+        return Result::Error;
+    }
+
+    std::vector<bool> selected(modules.size(), false);
+    std::vector<size_t> stack;
+    stack.push_back(it->second);
+    while (!stack.empty())
+    {
+        const size_t moduleIndex = stack.back();
+        stack.pop_back();
+        if (selected[moduleIndex])
+            continue;
+
+        selected[moduleIndex] = true;
+        for (const Utf8& dependency : modules[moduleIndex].workspaceDependencies)
+            stack.push_back(moduleIndices.at(dependency));
+    }
+
+    for (size_t i = 0; i < modules.size(); ++i)
+        modules[i].filteredOut = !selected[i];
+
+    if (!modules[it->second].ignoreInWorkspace)
+        return Result::Continue;
+
+    Diagnostic diag = Diagnostic::get(DiagnosticId::cmd_err_workspace_requested_module_ignored);
+    diag.addArgument(Diagnostic::ARG_SYM, modules[it->second].name);
+    diag.report(ctx);
+    return Result::Error;
+}
+
 ExitCode CompilerInstance::runWorkspace()
 {
     TaskContext                 ctx(*this);
@@ -1172,9 +1221,12 @@ ExitCode CompilerInstance::runWorkspace()
         }
     }
 
+    if (applyWorkspaceModuleFilter(ctx, modules, moduleIndices) != Result::Continue)
+        return ExitCode::CompileError;
+
     for (const WorkspaceModuleBuild& moduleBuild : modules)
     {
-        if (moduleBuild.ignoreInWorkspace)
+        if (!isWorkspaceModuleActive(moduleBuild))
             continue;
 
         for (const Utf8& dependency : moduleBuild.workspaceDependencies)
@@ -1194,10 +1246,20 @@ ExitCode CompilerInstance::runWorkspace()
     std::vector<uint32_t>            indegree(modules.size(), 0);
     std::vector<std::vector<size_t>> dependents(modules.size());
     size_t                           activeModuleCount = 0;
+    size_t                           filteredModuleCount = 0;
+    size_t                           ignoredModuleCount = 0;
     for (size_t i = 0; i < modules.size(); ++i)
     {
         if (modules[i].ignoreInWorkspace)
+        {
+            ignoredModuleCount++;
             continue;
+        }
+        if (modules[i].filteredOut)
+        {
+            filteredModuleCount++;
+            continue;
+        }
 
         activeModuleCount++;
         for (const Utf8& dependency : modules[i].workspaceDependencies)
@@ -1213,7 +1275,8 @@ ExitCode CompilerInstance::runWorkspace()
 
     workspaceBuildLogState_.discoveredModules = modules.size();
     workspaceBuildLogState_.activeModules     = activeModuleCount;
-    workspaceBuildLogState_.ignoredModules    = modules.size() - activeModuleCount;
+    workspaceBuildLogState_.filteredModules   = filteredModuleCount;
+    workspaceBuildLogState_.ignoredModules    = ignoredModuleCount;
     workspaceStage.setStat(formatWorkspaceStageStat(ctx, workspaceBuildLogState_));
 
     std::vector<size_t> buildOrder;
@@ -1224,7 +1287,7 @@ ExitCode CompilerInstance::runWorkspace()
         size_t nextIndex = static_cast<size_t>(-1);
         for (size_t i = 0; i < modules.size(); ++i)
         {
-            if (modules[i].ignoreInWorkspace || scheduled[i] || indegree[i] != 0)
+            if (!isWorkspaceModuleActive(modules[i]) || scheduled[i] || indegree[i] != 0)
                 continue;
 
             nextIndex = i;
@@ -1235,7 +1298,7 @@ ExitCode CompilerInstance::runWorkspace()
         {
             for (size_t i = 0; i < modules.size(); ++i)
             {
-                if (modules[i].ignoreInWorkspace || scheduled[i])
+                if (!isWorkspaceModuleActive(modules[i]) || scheduled[i])
                     continue;
 
                 Diagnostic diag = Diagnostic::get(DiagnosticId::cmd_err_workspace_dependency_cycle);

@@ -28,9 +28,6 @@ shift
 goto parse_args
 
 :run
-call "%TOOLS_DIR%core.bat" %MODE_ARG% --artifact-kind "shared-library" --build-cfg "%BUILD_CFG%"%EXTRA_ARGS%
-if not "%ERRORLEVEL%"=="0" exit /b %ERRORLEVEL%
-
 call "%TOOLS_DIR%_common.bat" :run_swc run --workspace "%EXAMPLES_WORKSPACE%" --build-cfg %BUILD_CFG%%EXTRA_ARGS%
 if not "%ERRORLEVEL%"=="0" exit /b %ERRORLEVEL%
 

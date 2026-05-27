@@ -680,11 +680,6 @@ namespace
             parts.push_back(TimedActionLog::formatStatCount(ctx, workspaceLogState.discoveredModules, "module"));
         }
 
-        if (workspaceLogState.ignoredModules)
-            parts.push_back(TimedActionLog::formatStatCount(ctx, workspaceLogState.ignoredModules, "ignored module", nullptr, LogColor::Gray));
-        if (workspaceLogState.filteredModules)
-            parts.push_back(TimedActionLog::formatStatCount(ctx, workspaceLogState.filteredModules, "filtered module", nullptr, LogColor::Gray));
-
         return TimedActionLog::joinStatItems(ctx, parts);
     }
 

@@ -267,6 +267,15 @@ namespace
         return 2;
     }
 
+    bool shouldPrintSpacerBeforeStage(const TaskContext& ctx, const Stage stage)
+    {
+        if (stage != Stage::Module || !ctx.hasCompiler())
+            return false;
+
+        const auto* moduleLogState = ctx.compiler().workspaceModuleLogState();
+        return moduleLogState && moduleLogState->index > 1;
+    }
+
     void appendLineIndent(Utf8& line, const size_t indentLevel)
     {
         line.append(LINE_BASE_INDENT + indentLevel * LINE_INDENT_STEP, ' ');
@@ -620,24 +629,7 @@ Utf8 TimedActionLog::formatStatEntity(const TaskContext& ctx, const std::string_
 
 Utf8 TimedActionLog::joinStatItems(const TaskContext& ctx, const std::vector<Utf8>& items)
 {
-    Utf8 result;
-    bool first = true;
-    for (const Utf8& item : items)
-    {
-        if (item.empty())
-            continue;
-
-        if (!first)
-        {
-            result += colorize(ctx, secondaryTextColor(), ",");
-            result += " ";
-        }
-
-        result += item;
-        first = false;
-    }
-
-    return result;
+    return joinParts(ctx, items);
 }
 
 void TimedActionLog::printCommandHeader(const TaskContext& ctx)
@@ -707,6 +699,8 @@ TimedActionLog::ScopedStage::ScopedStage(const TaskContext& ctx, const Stage sta
         return;
 
     const Logger::ScopedLock loggerLock(ctx.global().logger());
+    if (shouldPrintSpacerBeforeStage(ctx, stage_))
+        printLineLocked(ctx, "\n");
 
     Utf8 line = formatStageStart(ctx, stage_, detail_);
     line += "\n";
@@ -784,10 +778,6 @@ Utf8 TimedActionLog::formatSummaryLine(const TaskContext& ctx, const StatsSnapsh
                 else
                     parts.push_back(formatStatCount(ctx, workspaceLogState.activeModules, "module"));
             }
-            if (workspaceLogState.ignoredModules)
-                parts.push_back(formatStatCount(ctx, workspaceLogState.ignoredModules, "ignored module", nullptr, secondaryTextColor()));
-            if (workspaceLogState.filteredModules)
-                parts.push_back(formatStatCount(ctx, workspaceLogState.filteredModules, "filtered module", nullptr, secondaryTextColor()));
         }
     }
     else if (isModuleMode)

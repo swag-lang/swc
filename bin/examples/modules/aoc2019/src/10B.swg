@@ -70,7 +70,14 @@ func day10B()
     {
         pos:       Math.Vector2
         angle:     f32
-        dist:      f32
+        dist2:     s64
+        dirX:      s64
+        dirY:      s64
+    }
+
+    struct DirectionGroup
+    {
+        asteroids: Array'Pos
     }
 
     var arr: Array'Pos
@@ -82,29 +89,32 @@ func day10B()
                 arr.add({{cast(f32) x, cast(f32) y}})
     tot.resize(arr.count)
 
-    for i in arr
+    if arr.count > 1
     {
-        let v0 = arr[i].pos
-        for j in i + 1 until arr.count
+        for i in 0 until arr.count - 1
         {
-            let v1  = arr[j].pos
-            var hit = false
-            for k in arr
+            let v0 = arr[i].pos
+            for j in i + 1 until arr.count
             {
-                if k == i or k == j do
-                    continue
-                let f = Math.Geometry.distanceToSegment(arr[k].pos, v0, v1)
-                if Math.isZeroEpsilon(f)
+                let v1  = arr[j].pos
+                var hit = false
+                for k in arr.count
                 {
-                    hit = true
-                    break
+                    if k == i or k == j do
+                        continue
+                    let f = Math.Geometry.distanceToSegment(arr[k].pos, v0, v1)
+                    if Math.isZeroEpsilon(f)
+                    {
+                        hit = true
+                        break
+                    }
                 }
-            }
 
-            if !hit
-            {
-                tot[i] += 1
-                tot[j] += 1
+                if !hit
+                {
+                    tot[i] += 1
+                    tot[j] += 1
+                }
             }
         }
     }
@@ -113,40 +123,73 @@ func day10B()
     let posStart = arr[idxStart].pos
     arr.removeAt(idxStart)
 
-    // Precompute angle between 0 and 2Pi, and distance to the start position
+    // Precompute an exact reduced direction, a clockwise angle from the up vector,
+    // and an exact squared distance to keep same-ray asteroids in near-to-far order.
     foreach &it in arr
     {
-        let v = it.pos - posStart
-        it.angle = v.angle0To2Pi({0, -1})
-        it.dist  = v.length()
+        let dx  = cast(s64) it.pos.x - cast(s64) posStart.x
+        let dy  = cast(s64) it.pos.y - cast(s64) posStart.y
+        let gcd = Math.gcd(dx, dy)
+        it.dirX = dx / gcd
+        it.dirY = dy / gcd
+        it.dist2 = (dx * dx) + (dy * dy)
+        it.angle = Math.atan2(cast(f32) it.dirX, cast(f32) -it.dirY)
+        if it.angle < 0 do
+            it.angle += Math.ConstF32.TwoPi
     }
 
-    // Sort from small angle to big angle. If angles are the same, sort by distance (closest first)
+    // Sort clockwise from the up vector. Asteroids sharing a direction stay together, closest first.
     arr.sort(func(x, y)
     {
-        if Math.isEqualEpsilon(x.angle, y.angle) do
-            return x.dist <=> y.dist
+        if x.dirX == y.dirX and x.dirY == y.dirY do
+            return x.dist2 <=> y.dist2
         return x.angle <=> y.angle
     })
 
-    var total, index = 0'u64
+    var groups: Array'DirectionGroup
+    var haveGroup = false
+    var lastDirX, lastDirY = 0's64
+    foreach it in arr
+    {
+        if !haveGroup or it.dirX != lastDirX or it.dirY != lastDirY
+        {
+            var group: DirectionGroup
+            group.asteroids.add(it)
+            groups.add(group)
+            lastDirX = it.dirX
+            lastDirY = it.dirY
+            haveGroup = true
+        }
+        else
+        {
+            groups.backPtr().asteroids.add(it)
+        }
+    }
+
+    var total = 0'u64
     for
     {
-        total += 1
-
-        if total == 200
+        var vaporizedOne = false
+        for gi in groups.count
         {
-            let result = (arr[index].pos.x * 100) + arr[index].pos.y
-            @assert(result == 502)
-            break
+            if !groups[gi].asteroids.count do
+                continue
+
+            vaporizedOne = true
+            let vaporized = groups[gi].asteroids[0]
+            groups[gi].asteroids.removeAtOrdered(0)
+            total += 1
+
+            if total == 200
+            {
+                let resultX = cast(s64) vaporized.pos.x
+                let resultY = cast(s64) vaporized.pos.y
+                @assert((resultX * 100) + resultY == 502)
+                return
+            }
         }
 
-        let curAngle = arr[index].angle
-        arr.removeAtOrdered(index)
-
-        var nindex = index
-        while Math.isEqualEpsilon(arr[nindex].angle, curAngle) do
-            nindex = (nindex + 1) % arr.count
-        index = nindex
+        if !vaporizedOne do
+            break
     }
 }

@@ -113,29 +113,32 @@ func day10A()
                 arr.add({cast(f32) x + 0.5, cast(f32) y + 0.5})
     tot.resize(arr.count)
 
-    for i in arr
+    if arr.count > 1
     {
-        let v0 = arr[i]
-        for j in i + 1 until arr.count
+        for i in 0 until arr.count - 1
         {
-            let v1  = arr[j]
-            var hit = false
-            for k in arr
+            let v0 = arr[i]
+            for j in i + 1 until arr.count
             {
-                if k == i or k == j do
-                    continue
-                let f = Math.Geometry.distanceToSegment(arr[k], v0, v1)
-                if Math.isZeroEpsilon(f)
+                let v1  = arr[j]
+                var hit = false
+                for k in arr.count
                 {
-                    hit = true
-                    break
+                    if k == i or k == j do
+                        continue
+                    let f = Math.Geometry.distanceToSegment(arr[k], v0, v1)
+                    if Math.isZeroEpsilon(f)
+                    {
+                        hit = true
+                        break
+                    }
                 }
-            }
 
-            if !hit
-            {
-                tot[i] += 1
-                tot[j] += 1
+                if !hit
+                {
+                    tot[i] += 1
+                    tot[j] += 1
+                }
             }
         }
     }

@@ -577,7 +577,14 @@ Result AstCompilerFunc::semaPreNode(Sema& sema)
     {
         const AstNodeRef curNodeRef = sema.curNodeRef();
         if (!sema.viewSymbol(curNodeRef).hasSymbol())
-            sema.curNode().cast<AstCompilerFunc>().semaPreDecl(sema);
+        {
+            const Result declResult = sema.curNode().cast<AstCompilerFunc>().semaPreDecl(sema);
+            if (declResult == Result::Error || declResult == Result::Pause)
+                return declResult;
+        }
+
+        if (!sema.viewSymbol(curNodeRef).hasSymbol())
+            return Result::Error;
 
         auto& declaredSym = sema.viewSymbol(curNodeRef).sym()->cast<SymbolFunction>();
         declaredSym.registerAttributes(sema);

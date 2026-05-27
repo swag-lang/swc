@@ -100,8 +100,8 @@ func messageLoop()
 
         display()
 
-        //#if AUTOMATED_RUN do
-        //    cpt += 1
+        #if AUTOMATED_RUN do
+            cpt += 1
     }
 }
 

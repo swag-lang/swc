@@ -65,7 +65,7 @@ Examples (write these as top-level directives):
   #global namespace Toto              // Place all symbols in namespace 'Toto'.
   #global #if DEBUG == true           // Conditional compilation for the file.
   #global #[Swag.Safety('', true)]    // Apply an attribute to all declarations.
-  #global export                      // Export the file; copied to the public folder.
+  #global export                      // Export the full file as-is into the module API output.
 */
 
 /**

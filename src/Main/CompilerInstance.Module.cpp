@@ -29,8 +29,6 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    constexpr std::string_view K_GENERATED_API_SPLIT_DIR = "__generated__";
-
     void ownBuildCfgString(Runtime::String& value, std::vector<std::unique_ptr<Utf8>>& ownedStrings)
     {
         if (!value.ptr || !value.length)
@@ -1039,7 +1037,7 @@ Result ModuleSetupInputApplier::processImports(std::span<const CompilerInstance:
             importPaths.dependencyRoot = workspaceDependencyRoot;
         }
 
-        instance().collectImportedApiFolderFiles(importPaths.apiDir, importRequest.moduleName.view());
+        instance().collectImportedApiFolderFiles(importPaths.apiDir);
         instance().registerImportedDependencyLinkDir(importPaths.linkDir);
         instance().registerImportedSharedModuleDir(importPaths.sharedDir);
 
@@ -1599,22 +1597,10 @@ void CompilerInstance::collectFolderFiles(const fs::path& folder, FileFlags flag
     appendResolvedFiles(paths, flags);
 }
 
-void CompilerInstance::collectImportedApiFolderFiles(const fs::path& folder, const std::string_view moduleName)
+void CompilerInstance::collectImportedApiFolderFiles(const fs::path& folder)
 {
     std::vector<fs::path> paths;
     collectSwagFilesRec(cmdLine(), folder, paths, false);
-
-    const fs::path  generatedSplitDir = (folder / fs::path(K_GENERATED_API_SPLIT_DIR)).lexically_normal();
-    std::error_code ec;
-    if (fs::exists(generatedSplitDir, ec) && !ec)
-    {
-        fs::path mergedApiPath = folder / fs::path(std::string(moduleName));
-        mergedApiPath.replace_extension(".swg");
-        const fs::path normalizedMergedApiPath = mergedApiPath.lexically_normal();
-        const auto     erased                  = std::ranges::remove(paths, normalizedMergedApiPath, lexicallyNormalizedPath);
-        paths.erase(erased.begin(), erased.end());
-    }
-
     std::ranges::sort(paths);
     appendResolvedFiles(paths, FileFlagsE::ImportedApi);
 }
@@ -1636,7 +1622,7 @@ Result CompilerInstance::collectImportedApiFiles(TaskContext& ctx)
             if (findDependencyConfigurationDirectory(importDir, because, dependencyRoot, moduleName.view(), cmdLine, &importBackendKind) != Result::Continue)
                 return reportInvalidFolder(ctx, dependencyModuleDirectory(dependencyRoot, moduleName.view()), because);
 
-            collectImportedApiFolderFiles(importDir, moduleName.view());
+            collectImportedApiFolderFiles(importDir);
             fs::path sharedDir;
             if (findDependencyConfigurationDirectoryForBackend(sharedDir, because, dependencyRoot, moduleName.view(), cmdLine, Runtime::BuildCfgBackendKind::SharedLibrary) == Result::Continue)
             {

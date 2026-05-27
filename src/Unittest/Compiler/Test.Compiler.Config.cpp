@@ -1593,15 +1593,21 @@ public func coreValue()->s32
     const fs::path depApiFile = workspaceDir / ".output" / "dep" / "export" / "fast-debug" / "x86_64" / "dep.swg";
     if (!fs::exists(depApiFile))
         return Result::Error;
+    const fs::path depGeneratedDir = workspaceDir / ".output" / "dep" / "export" / "fast-debug" / "x86_64" / "__generated__";
+    if (fs::exists(depGeneratedDir))
+        return Result::Error;
 
     const fs::path legacyApiFile = workspaceDir / ".output" / "dep" / "export" / "fast-debug" / "x86_64" / "api.swg";
     if (fs::exists(legacyApiFile))
         return Result::Error;
-    const fs::path copiedLegacyApiFile = workspaceDir / ".output" / "dep" / "export" / "fast-debug" / "x86_64" / "legacy.swg";
-    if (!fs::exists(copiedLegacyApiFile))
+    const fs::path copiedExportApiFile = workspaceDir / ".output" / "dep" / "export" / "fast-debug" / "x86_64" / "legacy.swg";
+    if (!fs::exists(copiedExportApiFile))
         return Result::Error;
     const fs::path depLibApiFile = workspaceDir / ".output" / "deplib" / "static-library" / "fast-debug" / "x86_64" / "deplib.swg";
     if (!fs::exists(depLibApiFile))
+        return Result::Error;
+    const fs::path depLibGeneratedDir = workspaceDir / ".output" / "deplib" / "static-library" / "fast-debug" / "x86_64" / "__generated__";
+    if (fs::exists(depLibGeneratedDir))
         return Result::Error;
 
     Utf8                    depApiContent;
@@ -1704,10 +1710,10 @@ public func coreValue()->s32
         return Result::Error;
     if (normalizedDepApiContent.contains("\npublic "))
         return Result::Error;
-    Utf8 copiedLegacyApiContent;
-    if (FileSystem::readTextFile(copiedLegacyApiFile, copiedLegacyApiContent, ioError) != Result::Continue)
+    Utf8 copiedExportApiContent;
+    if (FileSystem::readTextFile(copiedExportApiFile, copiedExportApiContent, ioError) != Result::Continue)
         return Result::Error;
-    if (!copiedLegacyApiContent.contains("public func depLegacyValue()->s32"))
+    if (!copiedExportApiContent.contains("public func depLegacyValue()->s32"))
         return Result::Error;
 
     Utf8 depLibApiContent;
@@ -1799,6 +1805,42 @@ public func coreValue()->s32
         return Result::Error;
     if (depLibApiContent.contains("\npublic "))
         return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(Compiler_WorkspaceBuildRejectsWholeFileExportNameConflict)
+{
+    const ScopedTempTree tempTree("compiler_workspace_export_name_conflict");
+    if (!tempTree.ready())
+        return Result::Error;
+
+    const fs::path workspaceDir = tempTree.root() / "workspace";
+    const fs::path depModuleDir = workspaceDir / "modules" / "dep";
+
+    if (!writeTextFile(depModuleDir / "module.swg", R"(#run
+{
+    let cfg = @compiler.getBuildCfg()
+    cfg.moduleNamespace = "Dep"
+    cfg.backendKind = .Export
+}
+)"))
+        return Result::Error;
+    if (!writeTextFile(depModuleDir / "src" / "dep.swg", R"(#global export
+public const DEP_FILE_EXPORT = 1
+)"))
+        return Result::Error;
+    if (!writeTextFile(depModuleDir / "src" / "public.swg", R"(#global public
+const DEP_GENERATED_PUBLIC = 2
+)"))
+        return Result::Error;
+
+    CommandLine cmdLine = makeSyntheticWorkspaceCommand(CommandKind::Sema, workspaceDir);
+
+    CompilerInstance compiler(ctx.global(), cmdLine);
+    if (compiler.run() == ExitCode::Success)
+        return Result::Error;
+
     return Result::Continue;
 }
 SWC_TEST_END()

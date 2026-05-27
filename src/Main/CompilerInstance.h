@@ -332,7 +332,7 @@ private:
     SourceFile&       addResolvedLoadedFile(fs::path path, FileFlags flags, std::string_view content);
     void              appendResolvedFiles(std::vector<fs::path>& paths, FileFlags flags);
     void              collectFolderFiles(const fs::path& folder, FileFlags flags, bool canFilter);
-    void              collectImportedApiFolderFiles(const fs::path& folder, std::string_view moduleName);
+    void              collectImportedApiFolderFiles(const fs::path& folder);
     Result            collectImportedApiFiles(TaskContext& ctx);
     bool              hasResolvedFilePath(const fs::path& path) const;
     void              registerImportedDependencyLinkDir(const fs::path& path);

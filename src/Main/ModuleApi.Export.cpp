@@ -37,7 +37,7 @@ namespace
 
     struct ModuleApiFileInfo
     {
-        bool legacyExported     = false;
+        bool wholeFileExported  = false;
         bool hasModuleNamespace = false;
     };
 
@@ -70,8 +70,6 @@ namespace
         AstNodeRef                 implRef = AstNodeRef::invalid();
         bool                       isImpl  = false;
     };
-
-    constexpr std::string_view K_GENERATED_API_SPLIT_DIR = "__generated__";
 
     Utf8 buildCfgString(const Runtime::String& value)
     {
@@ -205,7 +203,7 @@ namespace
             mergeFileEntry(outEntries[srcViewRef], threadEntry);
     }
 
-    bool isLegacyExportedFile(const SourceFile& file)
+    bool isWholeFileExported(const SourceFile& file)
     {
         const AstNodeRef rootRef = file.ast().root();
         if (rootRef.isInvalid())
@@ -238,7 +236,7 @@ namespace
         if (rootNode.isNot(AstNodeId::File))
             return result;
 
-        result.legacyExported = isLegacyExportedFile(file);
+        result.wholeFileExported = isWholeFileExported(file);
         const auto& fileNode  = rootNode.cast<AstFile>();
 
         SmallVector<AstNodeRef> globalRefs;
@@ -269,10 +267,10 @@ namespace
         return result;
     }
 
-    bool isLegacyExportedSymbol(const CompilerInstance& compiler, const Symbol& symbol)
+    bool isWholeFileExportedSymbol(const CompilerInstance& compiler, const Symbol& symbol)
     {
         const SourceFile* sourceFile = compiler.sourceViewFile(symbol);
-        return sourceFile && isLegacyExportedFile(*sourceFile);
+        return sourceFile && isWholeFileExported(*sourceFile);
     }
 
     std::string_view preferredLineEnding(const SourceFile& file)
@@ -427,7 +425,7 @@ namespace
         if (!isCurrentModuleSymbol(ctx.compiler(), referencedSymbol))
             return Result::Continue;
 
-        if (isLegacyExportedSymbol(ctx.compiler(), referencedSymbol))
+        if (isWholeFileExportedSymbol(ctx.compiler(), referencedSymbol))
             return Result::Continue;
 
         if (!referencedSymbol.isPublic())
@@ -1785,22 +1783,6 @@ namespace
         return result.lexically_normal();
     }
 
-    fs::path buildGeneratedModuleApiSplitDir(const fs::path& exportApiDir)
-    {
-        return (exportApiDir / fs::path(K_GENERATED_API_SPLIT_DIR)).lexically_normal();
-    }
-
-    fs::path buildGeneratedModuleApiSplitPath(const fs::path& exportApiDir, const uint32_t index, const SourceFile& file)
-    {
-        Utf8 fileName = FileSystem::sanitizeFileName(file.path().filename().string());
-        if (fileName.empty())
-            fileName = "module";
-
-        fs::path result = buildGeneratedModuleApiSplitDir(exportApiDir) / fs::path(std::format("{:04}-{}", index, fileName.c_str()));
-        result.replace_extension(".swg");
-        return result.lexically_normal();
-    }
-
     Utf8 buildExportedModuleApiContent(const SourceFile& file, std::string_view moduleNamespace, bool hasModuleNamespace)
     {
         const std::string_view source = file.sourceView();
@@ -2283,6 +2265,113 @@ namespace
         return formatGeneratedModuleApiContent(ctx, outContent);
     }
 
+    Result removeGeneratedModuleApiHeader(Utf8& ioContent, std::string_view moduleNamespace, std::string_view eol)
+    {
+        Utf8 prefix;
+        prefix += "#global namespace ";
+        prefix += moduleNamespace;
+        prefix += eol;
+        prefix += "#global public";
+        prefix += eol;
+        if (!ioContent.starts_with(prefix))
+            return Result::Error;
+
+        ioContent.erase(0, prefix.size());
+        if (ioContent.starts_with(eol))
+            ioContent.erase(0, eol.size());
+        return Result::Continue;
+    }
+
+    bool isGeneratedModuleApiPreambleLine(std::string_view line)
+    {
+        return line.starts_with("using ") || (line.starts_with("namespace ") && line.ends_with(" {}"));
+    }
+
+    void trimLeadingGeneratedModulePreamble(Utf8& ioContent, std::unordered_set<Utf8>& emittedPreambleLines, std::string_view eol)
+    {
+        size_t pos = 0;
+        Utf8   trimmed;
+        bool   emittedAnyPreambleLine = false;
+        while (pos < ioContent.size())
+        {
+            const size_t lineStart = pos;
+            size_t       lineEnd   = pos;
+            while (lineEnd < ioContent.size() && ioContent[lineEnd] != '\r' && ioContent[lineEnd] != '\n')
+                ++lineEnd;
+
+            const std::string_view line = ioContent.substr(lineStart, lineEnd - lineStart);
+            if (line.empty())
+            {
+                pos = lineEnd;
+                while (pos < ioContent.size() && (ioContent[pos] == '\r' || ioContent[pos] == '\n'))
+                    ++pos;
+                continue;
+            }
+
+            if (!isGeneratedModuleApiPreambleLine(line))
+                break;
+
+            Utf8 preambleLine{line};
+            if (emittedPreambleLines.insert(preambleLine).second)
+            {
+                trimmed += preambleLine;
+                trimmed += eol;
+                emittedAnyPreambleLine = true;
+            }
+
+            pos = lineEnd;
+            while (pos < ioContent.size() && (ioContent[pos] == '\r' || ioContent[pos] == '\n'))
+                ++pos;
+        }
+
+        if (emittedAnyPreambleLine && pos < ioContent.size())
+            trimmed += eol;
+
+        trimmed.append(ioContent.substr(pos));
+        ioContent = std::move(trimmed);
+    }
+
+    Result buildGeneratedModuleApiSingleFileContent(TaskContext& ctx, std::span<const ModuleApiGeneratedRoot> roots, std::string_view moduleNamespace, std::string_view eol, Utf8& outContent)
+    {
+        outContent.clear();
+        outContent += "#global namespace ";
+        outContent += moduleNamespace;
+        outContent += eol;
+        outContent += "#global public";
+        outContent += eol;
+
+        std::unordered_set<Utf8> emittedPreambleLines;
+        size_t                   rootIndex     = 0;
+        bool                     appendedBlock = false;
+        while (rootIndex < roots.size())
+        {
+            const SourceFile* sourceFile = roots[rootIndex].file;
+            size_t            nextIndex  = rootIndex + 1;
+            while (nextIndex < roots.size() && roots[nextIndex].file == sourceFile)
+                ++nextIndex;
+
+            Utf8 fileContent;
+            SWC_RESULT(buildGeneratedModuleApiContent(ctx, roots.subspan(rootIndex, nextIndex - rootIndex), moduleNamespace, eol, fileContent));
+            SWC_RESULT(removeGeneratedModuleApiHeader(fileContent, moduleNamespace, eol));
+            trimLeadingGeneratedModulePreamble(fileContent, emittedPreambleLines, eol);
+            if (!fileContent.empty())
+            {
+                outContent += eol;
+                if (appendedBlock && !outContent.ends_with(eol))
+                    outContent += eol;
+                outContent += fileContent;
+                appendedBlock = true;
+            }
+
+            rootIndex = nextIndex;
+        }
+
+        const Utf8 tripleBreak = std::format("{}{}{}", eol, eol, eol);
+        const Utf8 doubleBreak = std::format("{}{}", eol, eol);
+        outContent.replace_loop(tripleBreak.view(), doubleBreak.view());
+        return formatGeneratedModuleApiContent(ctx, outContent);
+    }
+
     Result writeModuleApiFile(TaskContext& ctx, const fs::path& dstPath, std::string_view content)
     {
         FileSystem::IoErrorInfo ioError;
@@ -2308,38 +2397,6 @@ namespace
             FileSystem::setDiagnosticPathAndBecause(diag, &ctx, path, FileSystem::normalizeSystemMessage(ec));
             diag.report(ctx);
             return Result::Error;
-        }
-
-        return Result::Continue;
-    }
-
-    Result writeGeneratedModuleApiSplitFiles(TaskContext& ctx, const fs::path& exportApiDir, std::span<const ModuleApiGeneratedRoot> roots, std::string_view moduleNamespace, std::string_view eol)
-    {
-        if (roots.empty())
-            return Result::Continue;
-
-        const fs::path splitDir = buildGeneratedModuleApiSplitDir(exportApiDir);
-        SWC_RESULT(ensureModuleApiDirectory(ctx, splitDir));
-
-        uint32_t fileIndex = 0;
-        size_t   rootIndex = 0;
-        while (rootIndex < roots.size())
-        {
-            const SourceFile* sourceFile = roots[rootIndex].file;
-            size_t            nextIndex  = rootIndex + 1;
-            while (nextIndex < roots.size() && roots[nextIndex].file == sourceFile)
-                ++nextIndex;
-
-            if (sourceFile)
-            {
-                Utf8 content;
-                SWC_RESULT(buildGeneratedModuleApiContent(ctx, roots.subspan(rootIndex, nextIndex - rootIndex), moduleNamespace, eol, content));
-                if (!content.empty())
-                    SWC_RESULT(writeModuleApiFile(ctx, buildGeneratedModuleApiSplitPath(exportApiDir, fileIndex, *sourceFile), content.view()));
-            }
-
-            fileIndex++;
-            rootIndex = nextIndex;
         }
 
         return Result::Continue;
@@ -2382,7 +2439,7 @@ namespace ModuleApi
                 firstSourceFile = file;
 
             const ModuleApiFileInfo fileInfo = analyzeModuleApiFile(*file, moduleNamespace.view());
-            if (fileInfo.legacyExported)
+            if (fileInfo.wholeFileExported)
                 continue;
 
             const auto fileEntryIt = collectedEntries.find(file->ast().srcView().ref());
@@ -2399,19 +2456,19 @@ namespace ModuleApi
         SWC_RESULT(ensureModuleApiDirectory(ctx, exportApiDir));
         SWC_RESULT(FileSystem::clearDirectoryContents(ctx, exportApiDir, DiagnosticId::cmd_err_api_dir_clear_failed));
 
-        std::unordered_map<Utf8, fs::path> exportedFileNames;
+        std::unordered_map<Utf8, fs::path> wholeFileExportNames;
         for (const SourceFile* file : compiler.files())
         {
             if (!file || !file->hasFlag(FileFlagsE::ModuleSrc))
                 continue;
 
             const ModuleApiFileInfo fileInfo = analyzeModuleApiFile(*file, moduleNamespace.view());
-            if (!fileInfo.legacyExported)
+            if (!fileInfo.wholeFileExported)
                 continue;
 
             const fs::path dstPath  = (exportApiDir / file->path().filename()).lexically_normal();
             const Utf8     fileName = dstPath.filename().string();
-            const auto     inserted = exportedFileNames.emplace(fileName, file->path());
+            const auto     inserted = wholeFileExportNames.emplace(fileName, file->path());
             if (!inserted.second)
             {
                 const Utf8 because = std::format("duplicate exported API file name from '{}' and '{}'", inserted.first->second.string(), file->path().string());
@@ -2427,16 +2484,19 @@ namespace ModuleApi
             return Result::Continue;
 
         SWC_RESULT(writeGeneratedModuleImports(ctx, exportApiDir, preferredLineEnding(*firstSourceFile)));
+        if (generatedRoots.empty())
+            return Result::Continue;
 
         const fs::path generatedDstPath  = buildGeneratedModuleApiPath(compiler, exportApiDir);
         const Utf8     generatedFileName = generatedDstPath.filename().string();
-        if (exportedFileNames.contains(generatedFileName))
-            return Result::Continue;
-
-        SWC_RESULT(writeGeneratedModuleApiSplitFiles(ctx, exportApiDir, generatedRoots, moduleNamespace.view(), preferredLineEnding(*firstSourceFile)));
+        if (const auto it = wholeFileExportNames.find(generatedFileName); it != wholeFileExportNames.end())
+        {
+            const Utf8 because = std::format("generated module API file name '{}' conflicts with exported file '{}'", generatedFileName.c_str(), it->second.string());
+            return reportInvalidFolder(ctx, generatedDstPath, because);
+        }
 
         Utf8 content;
-        SWC_RESULT(buildGeneratedModuleApiContent(ctx, generatedRoots, moduleNamespace.view(), preferredLineEnding(*firstSourceFile), content));
+        SWC_RESULT(buildGeneratedModuleApiSingleFileContent(ctx, generatedRoots, moduleNamespace.view(), preferredLineEnding(*firstSourceFile), content));
         if (writeModuleApiFile(ctx, generatedDstPath, content.view()) != Result::Continue)
             return Result::Error;
         return Result::Continue;

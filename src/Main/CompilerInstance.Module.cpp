@@ -1,5 +1,7 @@
 #include "pch.h"
 #include "Main/CompilerInstance.h"
+#include "Backend/Native/NativeArtifactBuilder.h"
+#include "Backend/Native/NativeBackendBuilder.h"
 #include "Backend/RuntimeName.h"
 #include "Compiler/Lexer/SourceView.h"
 #include "Compiler/Parser/Ast/Ast.h"
@@ -737,6 +739,331 @@ namespace
             files.push_back(path);
         }
     }
+
+    constexpr std::string_view K_WORKSPACE_ARTIFACT_MANIFEST_FILE = ".swc-artifacts";
+
+    struct WorkspaceArtifactManifest
+    {
+        std::vector<fs::path> inputs;
+        std::vector<fs::path> dependencyDirs;
+        std::vector<fs::path> artifacts;
+    };
+
+    fs::path workspaceArtifactManifestPath(const fs::path& outDir)
+    {
+        return (outDir / fs::path(std::string(K_WORKSPACE_ARTIFACT_MANIFEST_FILE))).lexically_normal();
+    }
+
+    void normalizeWorkspacePaths(std::vector<fs::path>& paths)
+    {
+        for (fs::path& path : paths)
+            path = FileSystem::normalizePath(path);
+
+        std::ranges::sort(paths, {}, [](const fs::path& path) { return path.native(); });
+        paths.erase(std::unique(paths.begin(), paths.end()), paths.end());
+    }
+
+    void normalizeWorkspaceRelativePaths(std::vector<fs::path>& paths)
+    {
+        for (fs::path& path : paths)
+            path = path.lexically_normal();
+
+        std::ranges::sort(paths, {}, [](const fs::path& path) { return path.native(); });
+        paths.erase(std::unique(paths.begin(), paths.end()), paths.end());
+    }
+
+    bool sameWorkspacePathList(std::span<const fs::path> lhs, std::span<const fs::path> rhs)
+    {
+        return lhs.size() == rhs.size() && std::ranges::equal(lhs, rhs);
+    }
+
+    bool tryGetWorkspacePathWriteTime(fs::file_time_type& outTime, const fs::path& path)
+    {
+        std::error_code ec;
+        outTime = fs::last_write_time(path, ec);
+        return !ec;
+    }
+
+    bool tryCollectLatestWorkspaceTreeWriteTime(fs::file_time_type& outTime, const fs::path& root)
+    {
+        if (!tryGetWorkspacePathWriteTime(outTime, root))
+            return false;
+
+        std::error_code ec;
+        for (fs::recursive_directory_iterator it(root, fs::directory_options::skip_permission_denied, ec), end; it != end; it.increment(ec))
+        {
+            if (ec)
+                return false;
+
+            fs::file_time_type entryTime;
+            if (!tryGetWorkspacePathWriteTime(entryTime, it->path()))
+                return false;
+            if (entryTime > outTime)
+                outTime = entryTime;
+        }
+
+        return true;
+    }
+
+    void collectWorkspaceModuleInputs(std::vector<fs::path>& outInputs, const CommandLine& cmdLine, const fs::path& moduleFile, const fs::path& sourceDir, const std::set<fs::path>& loadedFiles)
+    {
+        outInputs.clear();
+        if (!moduleFile.empty())
+            outInputs.push_back(moduleFile);
+
+        if (!sourceDir.empty())
+            collectSwagFilesRec(cmdLine, sourceDir, outInputs, true);
+
+        outInputs.reserve(outInputs.size() + loadedFiles.size());
+        for (const fs::path& filePath : loadedFiles)
+            outInputs.push_back(filePath);
+
+        normalizeWorkspacePaths(outInputs);
+    }
+
+    void collectWorkspaceOutputArtifacts(std::vector<fs::path>& outArtifacts, const fs::path& outDir)
+    {
+        outArtifacts.clear();
+        if (outDir.empty())
+            return;
+
+        const fs::path manifestPath = workspaceArtifactManifestPath(outDir);
+        std::error_code ec;
+        for (fs::recursive_directory_iterator it(outDir, fs::directory_options::skip_permission_denied, ec), end; it != end; it.increment(ec))
+        {
+            if (ec)
+                return;
+
+            ec.clear();
+            if (!it->is_regular_file(ec) || ec)
+                continue;
+
+            const fs::path normalizedPath = FileSystem::normalizePath(it->path());
+            if (FileSystem::pathEquals(normalizedPath, manifestPath))
+                continue;
+
+            fs::path relativePath = normalizedPath.lexically_relative(outDir);
+            if (relativePath.empty())
+                relativePath = normalizedPath.filename();
+            outArtifacts.push_back(relativePath.lexically_normal());
+        }
+
+        normalizeWorkspaceRelativePaths(outArtifacts);
+    }
+
+    bool readWorkspaceArtifactManifest(WorkspaceArtifactManifest& outManifest, const fs::path& manifestPath)
+    {
+        outManifest = {};
+
+        FileSystem::IoErrorInfo ioError;
+        std::string             content;
+        if (FileSystem::readTextFile(manifestPath, content, ioError) != Result::Continue)
+            return false;
+
+        enum class Section : uint8_t
+        {
+            None,
+            Inputs,
+            Dependencies,
+            Artifacts,
+        };
+
+        Section currentSection = Section::None;
+        size_t  start          = 0;
+        while (start <= content.size())
+        {
+            size_t end = content.find('\n', start);
+            if (end == std::string::npos)
+                end = content.size();
+
+            std::string_view line(content.data() + start, end - start);
+            if (!line.empty() && line.back() == '\r')
+                line.remove_suffix(1);
+
+            if (line.empty())
+            {
+                if (end == content.size())
+                    break;
+                start = end + 1;
+                continue;
+            }
+
+            if (line == "version=1")
+            {
+                if (end == content.size())
+                    break;
+                start = end + 1;
+                continue;
+            }
+
+            if (line == "[inputs]")
+                currentSection = Section::Inputs;
+            else if (line == "[dependencies]")
+                currentSection = Section::Dependencies;
+            else if (line == "[artifacts]")
+                currentSection = Section::Artifacts;
+            else
+            {
+                if (currentSection == Section::None)
+                    return false;
+
+                fs::path parsedPath{std::string(line)};
+                switch (currentSection)
+                {
+                    case Section::Inputs:
+                        outManifest.inputs.push_back(std::move(parsedPath));
+                        break;
+                    case Section::Dependencies:
+                        outManifest.dependencyDirs.push_back(std::move(parsedPath));
+                        break;
+                    case Section::Artifacts:
+                        outManifest.artifacts.push_back(std::move(parsedPath));
+                        break;
+                    case Section::None:
+                        break;
+                }
+            }
+
+            if (end == content.size())
+                break;
+            start = end + 1;
+        }
+
+        normalizeWorkspacePaths(outManifest.inputs);
+        normalizeWorkspacePaths(outManifest.dependencyDirs);
+        normalizeWorkspaceRelativePaths(outManifest.artifacts);
+        return true;
+    }
+
+    Result writeWorkspaceArtifactManifest(TaskContext& ctx, const WorkspaceArtifactManifest& manifest, const fs::path& manifestPath)
+    {
+        Utf8 content = "version=1\n[inputs]\n";
+        for (const fs::path& path : manifest.inputs)
+        {
+            content += Utf8(path);
+            content += '\n';
+        }
+
+        content += "[dependencies]\n";
+        for (const fs::path& path : manifest.dependencyDirs)
+        {
+            content += Utf8(path);
+            content += '\n';
+        }
+
+        content += "[artifacts]\n";
+        for (const fs::path& path : manifest.artifacts)
+        {
+            content += Utf8(path);
+            content += '\n';
+        }
+
+        FileSystem::IoErrorInfo ioError;
+        if (FileSystem::writeBinaryFile(manifestPath, content.data(), content.size(), ioError) == Result::Continue)
+            return Result::Continue;
+
+        Diagnostic diag = Diagnostic::get(DiagnosticId::cmd_err_api_file_write_failed);
+        FileSystem::setDiagnosticPathAndBecause(diag, &ctx, manifestPath, FileSystem::describeIoFailure(ioError));
+        diag.report(ctx);
+        return Result::Error;
+    }
+
+    bool workspaceArtifactsAreUpToDate(const WorkspaceArtifactManifest& manifest, const fs::path& outDir, const fs::path& compilerPath, const std::span<const fs::path> currentInputs, const std::span<const fs::path> currentDependencyDirs, const std::span<const fs::path> requiredArtifacts)
+    {
+        if (!sameWorkspacePathList(manifest.inputs, currentInputs))
+            return false;
+        if (!sameWorkspacePathList(manifest.dependencyDirs, currentDependencyDirs))
+            return false;
+
+        fs::file_time_type latestInputTime{};
+        bool               hasInputTime = false;
+        for (const fs::path& path : currentInputs)
+        {
+            fs::file_time_type pathTime;
+            if (!tryGetWorkspacePathWriteTime(pathTime, path))
+                return false;
+            if (!hasInputTime || pathTime > latestInputTime)
+            {
+                latestInputTime = pathTime;
+                hasInputTime    = true;
+            }
+        }
+
+        fs::file_time_type compilerTime{};
+        if (!tryGetWorkspacePathWriteTime(compilerTime, compilerPath))
+            return false;
+
+        fs::file_time_type latestDependencyTime{};
+        bool               hasDependencyTime = false;
+        for (const fs::path& dependencyDir : currentDependencyDirs)
+        {
+            fs::file_time_type dependencyTime;
+            if (!tryCollectLatestWorkspaceTreeWriteTime(dependencyTime, dependencyDir))
+                return false;
+            if (!hasDependencyTime || dependencyTime > latestDependencyTime)
+            {
+                latestDependencyTime = dependencyTime;
+                hasDependencyTime    = true;
+            }
+        }
+
+        std::vector<fs::path> absoluteArtifactPaths;
+        absoluteArtifactPaths.reserve(manifest.artifacts.size() + requiredArtifacts.size());
+        for (const fs::path& relativeArtifactPath : manifest.artifacts)
+        {
+            absoluteArtifactPaths.push_back((outDir / relativeArtifactPath).lexically_normal());
+        }
+
+        for (const fs::path& artifactPath : requiredArtifacts)
+            absoluteArtifactPaths.push_back(artifactPath);
+
+        normalizeWorkspacePaths(absoluteArtifactPaths);
+
+        fs::file_time_type earliestArtifactTime{};
+        bool               hasArtifactTime = false;
+        for (const fs::path& artifactPath : absoluteArtifactPaths)
+        {
+            fs::file_time_type artifactTime;
+            if (!tryGetWorkspacePathWriteTime(artifactTime, artifactPath))
+                return false;
+            if (!hasArtifactTime || artifactTime < earliestArtifactTime)
+            {
+                earliestArtifactTime = artifactTime;
+                hasArtifactTime      = true;
+            }
+        }
+
+        if (!hasArtifactTime)
+        {
+            const fs::path manifestPath = workspaceArtifactManifestPath(outDir);
+            if (!tryGetWorkspacePathWriteTime(earliestArtifactTime, manifestPath))
+                return false;
+            hasArtifactTime = true;
+        }
+
+        if (hasInputTime && earliestArtifactTime < latestInputTime)
+            return false;
+        if (hasDependencyTime && earliestArtifactTime < latestDependencyTime)
+            return false;
+        return earliestArtifactTime >= compilerTime;
+    }
+
+    bool shouldTryReuseWorkspaceArtifacts(const CommandLine& cmdLine)
+    {
+        if (cmdLine.rebuild || cmdLine.clear || cmdLine.dryRun || cmdLine.showConfig)
+            return false;
+
+        return cmdLine.command != CommandKind::Test;
+    }
+
+    Utf8 formatWorkspaceReuseStat(const TaskContext& ctx, const CompilerInstance& compiler)
+    {
+        std::vector<Utf8> parts;
+        parts.push_back(TimedActionLog::formatStatName(ctx, "up-to-date"));
+        if (!compiler.lastArtifactLabel().empty())
+            parts.push_back(TimedActionLog::formatStatName(ctx, compiler.lastArtifactLabel()));
+        return TimedActionLog::joinStatItems(ctx, parts);
+    }
 }
 
 struct ModuleSetupInputApplier
@@ -1343,21 +1670,117 @@ Result CompilerInstance::runWorkspaceModule(const WorkspaceModuleBuild& moduleBu
     moduleCmdLine.workDirStorage  = Utf8(moduleCmdLine.workDir);
     CommandLineParser::refreshBuildCfg(moduleCmdLine);
 
-    const uint64_t   errorsBefore = Stats::getNumErrors();
-    CompilerInstance moduleCompiler(global(), moduleCmdLine);
-    moduleCompiler.precomputedModuleSetup_  = &moduleBuild.setup;
-    moduleCompiler.workspaceModuleLogState_ = WorkspaceModuleLogState{
+    const WorkspaceModuleLogState workspaceLogState = {
         .name  = moduleBuild.name,
         .index = moduleIndex,
         .total = moduleCount,
     };
 
-    const TaskContext           moduleCtx(moduleCompiler);
+    if (shouldTryReuseWorkspaceArtifacts(moduleCmdLine))
+    {
+        std::vector<fs::path> currentInputs;
+        collectWorkspaceModuleInputs(currentInputs, moduleCmdLine, moduleBuild.moduleFile, moduleBuild.sourceDir, moduleBuild.setup.loadedFiles);
+
+        CompilerInstance probeCompiler(global(), moduleCmdLine);
+        probeCompiler.precomputedModuleSetup_  = &moduleBuild.setup;
+        probeCompiler.workspaceModuleLogState_ = workspaceLogState;
+
+        TaskContext probeCtx(probeCompiler);
+        if (probeCompiler.runModuleSetup(probeCtx) != Result::Continue)
+            return Result::Error;
+
+        std::vector<fs::path> requiredArtifacts;
+        if ((moduleCmdLine.command == CommandKind::Build || moduleCmdLine.command == CommandKind::Run) &&
+            Runtime::backendKindProducesNativeArtifact(probeCompiler.buildCfg().backendKind))
+        {
+            NativeBackendBuilder      nativeProbeBuilder(probeCompiler, false);
+            const NativeArtifactBuilder artifactProbeBuilder(nativeProbeBuilder);
+            NativeArtifactPaths         artifactPaths;
+            artifactProbeBuilder.queryPaths(artifactPaths);
+            requiredArtifacts.push_back(artifactPaths.artifactPath);
+            if (probeCompiler.buildCfg().backend.debugInfo && !artifactPaths.pdbPath.empty())
+                requiredArtifacts.push_back(artifactPaths.pdbPath);
+            probeCompiler.setLastArtifactLabel(artifactPaths.artifactPath.filename().empty() ? Utf8(artifactPaths.artifactPath) : Utf8(artifactPaths.artifactPath.filename()));
+        }
+
+        ModuleSetupInputApplier probeApplier(probeCompiler, probeCtx);
+        std::vector<fs::path>   currentDependencyDirs;
+        currentDependencyDirs.reserve(moduleBuild.setup.imports.size() * 3);
+        for (const ModuleSetupImport& importRequest : moduleBuild.setup.imports)
+        {
+            ModuleSetupInputApplier::ResolvedModuleImportPaths importPaths;
+            if (probeApplier.resolveDependencyImportDir(importPaths, importRequest, nullptr) != Result::Continue)
+                return Result::Error;
+
+            if (!importPaths.apiDir.empty())
+                currentDependencyDirs.push_back(importPaths.apiDir);
+            if (!importPaths.linkDir.empty())
+                currentDependencyDirs.push_back(importPaths.linkDir);
+            if (!importPaths.sharedDir.empty())
+                currentDependencyDirs.push_back(importPaths.sharedDir);
+        }
+
+        normalizeWorkspacePaths(currentDependencyDirs);
+
+        WorkspaceArtifactManifest manifest;
+        const fs::path            manifestPath = workspaceArtifactManifestPath(moduleCmdLine.outDir);
+        if (readWorkspaceArtifactManifest(manifest, manifestPath) &&
+            workspaceArtifactsAreUpToDate(manifest, moduleCmdLine.outDir, exeFullName_, currentInputs, currentDependencyDirs, requiredArtifacts))
+        {
+            TimedActionLog::ScopedStage moduleStage(probeCtx, TimedActionLog::Stage::Module);
+            if (moduleCmdLine.command == CommandKind::Run)
+            {
+                if (probeCompiler.buildCfg().backendKind == Runtime::BuildCfgBackendKind::Executable)
+                {
+                    NativeBackendBuilder runBuilder(probeCompiler, true);
+                    if (runBuilder.runExistingArtifact() != Result::Continue)
+                        return Result::Error;
+                }
+            }
+
+            moduleStage.setStat(formatWorkspaceReuseStat(probeCtx, probeCompiler));
+            return Result::Continue;
+        }
+    }
+
+    const uint64_t   errorsBefore = Stats::getNumErrors();
+    CompilerInstance moduleCompiler(global(), moduleCmdLine);
+    moduleCompiler.precomputedModuleSetup_  = &moduleBuild.setup;
+    moduleCompiler.workspaceModuleLogState_ = workspaceLogState;
+
+    TaskContext                 moduleCtx(moduleCompiler);
     TimedActionLog::ScopedStage moduleStage(moduleCtx, TimedActionLog::Stage::Module);
     moduleCompiler.processCommand();
     moduleStage.setStat(formatWorkspaceModuleStageStat(moduleCtx, moduleCompiler, moduleStage.delta()));
     if (Stats::getNumErrors() != errorsBefore)
         return Result::Error;
+
+    if (moduleCmdLine.command != CommandKind::Test)
+    {
+        WorkspaceArtifactManifest manifest;
+        collectWorkspaceModuleInputs(manifest.inputs, moduleCmdLine, moduleBuild.moduleFile, moduleBuild.sourceDir, moduleBuild.setup.loadedFiles);
+
+        ModuleSetupInputApplier manifestApplier(moduleCompiler, moduleCtx);
+        manifest.dependencyDirs.reserve(moduleBuild.setup.imports.size() * 3);
+        for (const ModuleSetupImport& importRequest : moduleBuild.setup.imports)
+        {
+            ModuleSetupInputApplier::ResolvedModuleImportPaths importPaths;
+            if (manifestApplier.resolveDependencyImportDir(importPaths, importRequest, nullptr) != Result::Continue)
+                return Result::Error;
+
+            if (!importPaths.apiDir.empty())
+                manifest.dependencyDirs.push_back(importPaths.apiDir);
+            if (!importPaths.linkDir.empty())
+                manifest.dependencyDirs.push_back(importPaths.linkDir);
+            if (!importPaths.sharedDir.empty())
+                manifest.dependencyDirs.push_back(importPaths.sharedDir);
+        }
+
+        normalizeWorkspacePaths(manifest.dependencyDirs);
+        collectWorkspaceOutputArtifacts(manifest.artifacts, moduleCmdLine.outDir);
+        if (writeWorkspaceArtifactManifest(moduleCtx, manifest, workspaceArtifactManifestPath(moduleCmdLine.outDir)) != Result::Continue)
+            return Result::Error;
+    }
 
     return Result::Continue;
 }
@@ -1542,8 +1965,43 @@ Result CompilerInstance::applyModuleSetupInputs(TaskContext& ctx, const ModuleSe
     return applier.apply(setupSnapshot);
 }
 
+Result CompilerInstance::resolveModuleInputPaths(TaskContext& ctx)
+{
+    const CommandLine& cmdLine = ctx.cmdLine();
+    if (!cmdLine.moduleFilePath.empty())
+    {
+        if (modulePathFile_.empty())
+        {
+            modulePathFile_ = cmdLine.moduleFilePath;
+            SWC_RESULT(FileSystem::resolveFile(ctx, modulePathFile_));
+        }
+
+        return Result::Continue;
+    }
+
+    if (cmdLine.modulePath.empty())
+        return Result::Continue;
+
+    if (modulePathFile_.empty())
+    {
+        modulePathFile_ = cmdLine.modulePath / "module.swg";
+        SWC_RESULT(FileSystem::resolveFile(ctx, modulePathFile_));
+    }
+
+    if (modulePathSrc_.empty())
+    {
+        modulePathSrc_ = cmdLine.modulePath / "src";
+        Utf8 because;
+        if (FileSystem::resolveExistingFolder(modulePathSrc_, because) != Result::Continue)
+            modulePathSrc_.clear();
+    }
+
+    return Result::Continue;
+}
+
 Result CompilerInstance::runModuleSetup(TaskContext& ctx)
 {
+    SWC_RESULT(resolveModuleInputPaths(ctx));
     if (modulePathFile_.empty() || cmdLine().moduleFilePath.empty())
         return Result::Continue;
 
@@ -1674,26 +2132,16 @@ Result CompilerInstance::collectFiles(TaskContext& ctx)
     }
 
     // Collect files for the module
-    if (!cmdLine.moduleFilePath.empty())
+    SWC_RESULT(resolveModuleInputPaths(ctx));
+    if (!modulePathFile_.empty())
     {
-        modulePathFile_ = cmdLine.moduleFilePath;
-        SWC_RESULT(FileSystem::resolveFile(ctx, modulePathFile_));
         if (!hasResolvedFilePath(modulePathFile_))
             addResolvedFile(modulePathFile_, FileFlagsE::Module);
     }
-    else if (!cmdLine.modulePath.empty())
+    if (!cmdLine.modulePath.empty())
     {
-        modulePathFile_ = cmdLine.modulePath / "module.swg";
-        SWC_RESULT(FileSystem::resolveFile(ctx, modulePathFile_));
-        if (!hasResolvedFilePath(modulePathFile_))
-            addResolvedFile(modulePathFile_, FileFlagsE::Module);
-
-        modulePathSrc_ = cmdLine.modulePath / "src";
-        Utf8 because;
-        if (FileSystem::resolveExistingFolder(modulePathSrc_, because) == Result::Continue)
+        if (!modulePathSrc_.empty())
             collectFolderFiles(modulePathSrc_, FileFlagsE::ModuleSrc, true);
-        else
-            modulePathSrc_.clear();
     }
 
     SWC_RESULT(collectImportedApiFiles(ctx));

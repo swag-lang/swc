@@ -16,6 +16,7 @@
 #include "Support/Report/ScopedTimedAction.h"
 #include "Unittest/Unittest.h"
 #include "Unittest/UnittestSource.h"
+#include <thread>
 
 #undef SWC_TEST_KIND
 #define SWC_TEST_KIND swc::Unittest::TestKind::Filesystem
@@ -111,6 +112,46 @@ namespace
         stream.write(content.data(), static_cast<std::streamsize>(content.size()));
         return stream.good();
     }
+
+    void waitForTimestampTick()
+    {
+        std::this_thread::sleep_for(std::chrono::milliseconds(250));
+    }
+
+    bool tryGetPathWriteTime(fs::file_time_type& outTime, const fs::path& path)
+    {
+        std::error_code ec;
+        outTime = fs::last_write_time(path, ec);
+        return !ec;
+    }
+
+    bool setPathWriteTime(const fs::path& path, const fs::file_time_type time)
+    {
+        std::error_code ec;
+        fs::last_write_time(path, time, ec);
+        return !ec;
+    }
+
+    class ScopedPathWriteTime
+    {
+    public:
+        explicit ScopedPathWriteTime(const fs::path& path) :
+            path_(path)
+        {
+            hadTime_ = tryGetPathWriteTime(originalTime_, path_);
+        }
+
+        ~ScopedPathWriteTime()
+        {
+            if (hadTime_)
+                setPathWriteTime(path_, originalTime_);
+        }
+
+    private:
+        fs::path            path_;
+        fs::file_time_type  originalTime_{};
+        bool                hadTime_ = false;
+    };
 
     bool containsPath(const std::set<fs::path>& paths, const fs::path& expectedPath)
     {
@@ -522,6 +563,39 @@ SWC_TEST_BEGIN(Compiler_CommandLineWorkspaceResolvesPath)
     if (!FileSystem::pathEquals(cmdLine.workspacePath, workspaceDir))
         return Result::Error;
     if (defaultArtifactName(cmdLine) != "workspace")
+        return Result::Error;
+
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(Compiler_CommandLineWorkspaceAcceptsRebuildFlag)
+{
+    const ScopedTempTree tempTree("compiler_workspace_rebuild_flag");
+    if (!tempTree.ready())
+        return Result::Error;
+
+    const fs::path workspaceDir = tempTree.root() / "workspace";
+    if (!ensureDirectory(workspaceDir / "modules"))
+        return Result::Error;
+
+    CommandLine                    cmdLine;
+    const uint64_t                 errorsBefore = Stats::getNumErrors();
+    const std::vector<std::string> args         = {
+        "swc_devmode",
+        "build",
+        "--workspace",
+        workspaceDir.string(),
+        "--rebuild",
+    };
+
+    if (parseCommandLine(ctx, cmdLine, args) != Result::Continue)
+        return Result::Error;
+    if (Stats::getNumErrors() != errorsBefore)
+        return Result::Error;
+    if (!FileSystem::pathEquals(cmdLine.workspacePath, workspaceDir))
+        return Result::Error;
+    if (!cmdLine.rebuild)
         return Result::Error;
 
     return Result::Continue;
@@ -2127,6 +2201,245 @@ SWC_TEST_BEGIN(Compiler_FormatCommandHeaderLineUsesFileScope)
 
     if (headerLine.find("syntax files in bin/tests/parser") == Utf8::npos)
         return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(Compiler_WorkspaceBuildSkipsUnchangedModuleAndRebuildFlagForcesRecompile)
+{
+    const ScopedTempTree tempTree("compiler_workspace_skip_and_rebuild");
+    if (!tempTree.ready())
+        return Result::Error;
+
+    const fs::path workspaceDir = tempTree.root() / "workspace";
+    const fs::path moduleDir    = workspaceDir / "modules" / "dep";
+    const fs::path sourceFile   = moduleDir / "src" / "main.swg";
+    const fs::path artifactPath = workspaceDir / ".output" / "dep" / "export" / "fast-debug" / "x86_64" / "dep.swg";
+    const fs::path manifestPath = artifactPath.parent_path() / ".swc-artifacts";
+
+    if (!writeTextFile(moduleDir / "module.swg", R"(#run
+{
+    let cfg = @compiler.getBuildCfg()
+    cfg.moduleNamespace = "Dep"
+    cfg.backendKind = .Export
+}
+)"))
+        return Result::Error;
+    if (!writeTextFile(sourceFile, "public const VALUE: s32 = 1\n"))
+        return Result::Error;
+
+    CommandLine cmdLine = makeSyntheticWorkspaceCommand(CommandKind::Build, workspaceDir);
+    cmdLine.runtime     = true;
+
+    CompilerInstance firstCompiler(ctx.global(), cmdLine);
+    if (firstCompiler.run() != ExitCode::Success)
+        return Result::Error;
+    if (!fs::exists(artifactPath) || !fs::exists(manifestPath))
+        return Result::Error;
+
+    fs::file_time_type firstTime;
+    if (!tryGetPathWriteTime(firstTime, artifactPath))
+        return Result::Error;
+
+    waitForTimestampTick();
+
+    CompilerInstance secondCompiler(ctx.global(), cmdLine);
+    if (secondCompiler.run() != ExitCode::Success)
+        return Result::Error;
+
+    fs::file_time_type secondTime;
+    if (!tryGetPathWriteTime(secondTime, artifactPath))
+        return Result::Error;
+    if (secondTime != firstTime)
+        return Result::Error;
+
+    waitForTimestampTick();
+
+    cmdLine.rebuild = true;
+    CompilerInstance thirdCompiler(ctx.global(), cmdLine);
+    if (thirdCompiler.run() != ExitCode::Success)
+        return Result::Error;
+
+    fs::file_time_type thirdTime;
+    if (!tryGetPathWriteTime(thirdTime, artifactPath))
+        return Result::Error;
+    if (thirdTime <= secondTime)
+        return Result::Error;
+
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(Compiler_WorkspaceBuildRecompilesWhenModuleSourceChanges)
+{
+    const ScopedTempTree tempTree("compiler_workspace_rebuild_on_source_change");
+    if (!tempTree.ready())
+        return Result::Error;
+
+    const fs::path workspaceDir = tempTree.root() / "workspace";
+    const fs::path moduleDir    = workspaceDir / "modules" / "dep";
+    const fs::path sourceFile   = moduleDir / "src" / "main.swg";
+    const fs::path artifactPath = workspaceDir / ".output" / "dep" / "export" / "fast-debug" / "x86_64" / "dep.swg";
+
+    if (!writeTextFile(moduleDir / "module.swg", R"(#run
+{
+    let cfg = @compiler.getBuildCfg()
+    cfg.moduleNamespace = "Dep"
+    cfg.backendKind = .Export
+}
+)"))
+        return Result::Error;
+    if (!writeTextFile(sourceFile, "public const VALUE: s32 = 1\n"))
+        return Result::Error;
+
+    CommandLine cmdLine = makeSyntheticWorkspaceCommand(CommandKind::Build, workspaceDir);
+    cmdLine.runtime     = true;
+
+    CompilerInstance firstCompiler(ctx.global(), cmdLine);
+    if (firstCompiler.run() != ExitCode::Success)
+        return Result::Error;
+
+    fs::file_time_type firstTime;
+    if (!tryGetPathWriteTime(firstTime, artifactPath))
+        return Result::Error;
+
+    waitForTimestampTick();
+    if (!writeTextFile(sourceFile, "public const VALUE: s32 = 2\n"))
+        return Result::Error;
+
+    CompilerInstance secondCompiler(ctx.global(), cmdLine);
+    if (secondCompiler.run() != ExitCode::Success)
+        return Result::Error;
+
+    fs::file_time_type secondTime;
+    if (!tryGetPathWriteTime(secondTime, artifactPath))
+        return Result::Error;
+    if (secondTime <= firstTime)
+        return Result::Error;
+
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(Compiler_WorkspaceBuildRecompilesWhenDependencyChanges)
+{
+    const ScopedTempTree tempTree("compiler_workspace_rebuild_on_dependency_change");
+    if (!tempTree.ready())
+        return Result::Error;
+
+    const fs::path workspaceDir   = tempTree.root() / "workspace";
+    const fs::path depModuleDir   = workspaceDir / "modules" / "dep";
+    const fs::path useModuleDir   = workspaceDir / "modules" / "use";
+    const fs::path depSourceFile  = depModuleDir / "src" / "main.swg";
+    const fs::path useArtifact    = workspaceDir / ".output" / "use" / "export" / "fast-debug" / "x86_64" / "use.swg";
+
+    if (!writeTextFile(depModuleDir / "module.swg", R"(#run
+{
+    let cfg = @compiler.getBuildCfg()
+    cfg.moduleNamespace = "Dep"
+    cfg.backendKind = .Export
+}
+)"))
+        return Result::Error;
+    if (!writeTextFile(depSourceFile, "public const VALUE: s32 = 1\n"))
+        return Result::Error;
+
+    if (!writeTextFile(useModuleDir / "module.swg", R"(#import("dep")
+#run
+{
+    let cfg = @compiler.getBuildCfg()
+    cfg.moduleNamespace = "Use"
+    cfg.backendKind = .Export
+}
+)"))
+        return Result::Error;
+    if (!writeTextFile(useModuleDir / "src" / "main.swg", R"(using Dep
+
+public func readValue()->s32
+{
+    return VALUE
+}
+)"))
+        return Result::Error;
+
+    CommandLine cmdLine = makeSyntheticWorkspaceCommand(CommandKind::Build, workspaceDir);
+    cmdLine.runtime     = true;
+
+    CompilerInstance firstCompiler(ctx.global(), cmdLine);
+    if (firstCompiler.run() != ExitCode::Success)
+        return Result::Error;
+
+    fs::file_time_type firstTime;
+    if (!tryGetPathWriteTime(firstTime, useArtifact))
+        return Result::Error;
+
+    waitForTimestampTick();
+    if (!writeTextFile(depSourceFile, "public const VALUE: s32 = 2\n"))
+        return Result::Error;
+
+    CompilerInstance secondCompiler(ctx.global(), cmdLine);
+    if (secondCompiler.run() != ExitCode::Success)
+        return Result::Error;
+
+    fs::file_time_type secondTime;
+    if (!tryGetPathWriteTime(secondTime, useArtifact))
+        return Result::Error;
+    if (secondTime <= firstTime)
+        return Result::Error;
+
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(Compiler_WorkspaceBuildRecompilesWhenCompilerTimestampChanges)
+{
+    const ScopedTempTree tempTree("compiler_workspace_rebuild_on_compiler_change");
+    if (!tempTree.ready())
+        return Result::Error;
+
+    const fs::path workspaceDir = tempTree.root() / "workspace";
+    const fs::path moduleDir    = workspaceDir / "modules" / "dep";
+    const fs::path artifactPath = workspaceDir / ".output" / "dep" / "export" / "fast-debug" / "x86_64" / "dep.swg";
+    const fs::path exePath      = Os::getExeFullName();
+
+    if (!writeTextFile(moduleDir / "module.swg", R"(#run
+{
+    let cfg = @compiler.getBuildCfg()
+    cfg.moduleNamespace = "Dep"
+    cfg.backendKind = .Export
+}
+)"))
+        return Result::Error;
+    if (!writeTextFile(moduleDir / "src" / "main.swg", "public const VALUE: s32 = 1\n"))
+        return Result::Error;
+
+    CommandLine cmdLine = makeSyntheticWorkspaceCommand(CommandKind::Build, workspaceDir);
+    cmdLine.runtime     = true;
+
+    CompilerInstance firstCompiler(ctx.global(), cmdLine);
+    if (firstCompiler.run() != ExitCode::Success)
+        return Result::Error;
+
+    fs::file_time_type firstTime;
+    if (!tryGetPathWriteTime(firstTime, artifactPath))
+        return Result::Error;
+
+    const ScopedPathWriteTime restoreExeTime(exePath);
+    if (!setPathWriteTime(exePath, firstTime + std::chrono::seconds(10)))
+        return Result::Error;
+
+    waitForTimestampTick();
+
+    CompilerInstance secondCompiler(ctx.global(), cmdLine);
+    if (secondCompiler.run() != ExitCode::Success)
+        return Result::Error;
+
+    fs::file_time_type secondTime;
+    if (!tryGetPathWriteTime(secondTime, artifactPath))
+        return Result::Error;
+    if (secondTime <= firstTime)
+        return Result::Error;
+
+    return Result::Continue;
 }
 SWC_TEST_END()
 

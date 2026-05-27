@@ -141,6 +141,7 @@ public:
     DiagnosticId              lastErrorId() const { return lastErrorId_; }
 
     Result run();
+    Result runExistingArtifact();
     Result prepare();
     Result writeObject(uint32_t objIndex);
 

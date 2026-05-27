@@ -334,6 +334,7 @@ private:
     void              collectFolderFiles(const fs::path& folder, FileFlags flags, bool canFilter);
     void              collectImportedApiFolderFiles(const fs::path& folder);
     Result            collectImportedApiFiles(TaskContext& ctx);
+    Result            resolveModuleInputPaths(TaskContext& ctx);
     bool              hasResolvedFilePath(const fs::path& path) const;
     void              registerImportedDependencyLinkDir(const fs::path& path);
     void              registerImportedSharedModuleDir(const fs::path& path);

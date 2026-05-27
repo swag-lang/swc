@@ -134,6 +134,9 @@ void CommandLineParser::registerCommands()
     add(HelpOptionGroup::Compiler, "test build run", "--clear-output", "-co",
         &cmdLine_->clear,
         "Clear native work and artifact folders before building native outputs.");
+    add(HelpOptionGroup::Compiler, "sema test build run", "--rebuild", nullptr,
+        &cmdLine_->rebuild,
+        "When --workspace is present, force recompilation of every selected workspace module even if all generated outputs are already up to date.");
 
     addEnum<FileSystem::FilePathDisplayMode>(
         HelpOptionGroup::Diagnostics, "all", "--path-display", "-pd",

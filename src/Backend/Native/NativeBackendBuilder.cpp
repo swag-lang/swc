@@ -576,6 +576,25 @@ Result NativeBackendBuilder::run()
     return Result::Continue;
 }
 
+Result NativeBackendBuilder::runExistingArtifact()
+{
+    SWC_MEM_SCOPE("Backend/Native");
+    SWC_ASSERT(compiler_ != nullptr);
+    if (compiler_->buildCfg().backendKind != Runtime::BuildCfgBackendKind::Executable)
+        return Result::Continue;
+
+    SWC_RESULT(validateTarget());
+
+    const NativeArtifactBuilder artifactBuilder(*this);
+    NativeArtifactPaths         paths;
+    artifactBuilder.queryPaths(paths);
+    buildDir     = paths.buildDir;
+    artifactPath = paths.artifactPath;
+    pdbPath      = paths.pdbPath;
+    compiler_->setLastArtifactLabel(paths.artifactPath.filename().empty() ? Utf8(paths.artifactPath) : Utf8(paths.artifactPath.filename()));
+    return runGeneratedArtifact();
+}
+
 Result NativeBackendBuilder::prepare()
 {
     runtimeDependencies.clear();

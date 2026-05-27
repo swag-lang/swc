@@ -22,8 +22,8 @@
     day7B()
     day8A()
     day8B()
-    // day9A() disabled: compiler bug / sema conflict in day 9 helpers
-    // day9B() disabled: compiler bug / sema conflict in day 9 helpers
+    day9A()
+    day9B()
     // day10A() disabled: runtime compiler bug / bounds issue during execution
     // day10B() disabled: runtime compiler bug / bounds issue during execution
 }

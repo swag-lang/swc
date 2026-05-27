@@ -35,12 +35,9 @@ The BOOST program will ask for a single input; run it in test mode by providing 
 Once your Intcode computer is fully functional, the BOOST program should report no malfunctioning opcodes when run in test mode; it should only output a single value, the BOOST keycode. What BOOST keycode does it produce?
 */
 
-/*
-Disabled in the examples workspace: compiler bug / sema conflict in day 9 helpers.
-
 using Core
 
-moduleprivate func run(op: &Array's64, input: s64)->s64
+fileprivate func run(op: &Array's64, input: s64)->s64
 {
     var output, ip, base = 0's64
 
@@ -108,4 +105,3 @@ func day9B()
     //Console.print("total: ", total)
     @assert(total == 50158)
 }
-*/

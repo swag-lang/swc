@@ -146,6 +146,7 @@ public:
     const SymbolInterface*  declInterfaceContext() const noexcept;
     void                    setGenericCompletionOwner(const TaskContext& ctx) const noexcept;
     bool                    isGenericCompletionOwner(const TaskContext& ctx) const noexcept;
+    bool                    isGenericCompletionActive(const TaskContext& ctx) const noexcept;
     bool                    tryStartGenericCompletion(const TaskContext& ctx) const noexcept;
     void                    finishGenericCompletion() const noexcept;
     bool                    isGenericNodeCompleted() const noexcept;

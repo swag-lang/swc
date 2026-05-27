@@ -949,6 +949,14 @@ bool SymbolFunction::isGenericCompletionOwner(const TaskContext& ctx) const noex
     return data && data->completionOwner.load(std::memory_order_acquire) == &ctx;
 }
 
+bool SymbolFunction::isGenericCompletionActive(const TaskContext& ctx) const noexcept
+{
+    const auto* data = genericData();
+    return data &&
+           data->completionOwner.load(std::memory_order_acquire) == &ctx &&
+           data->completionDepth.load(std::memory_order_acquire) != 0;
+}
+
 bool SymbolFunction::tryStartGenericCompletion(const TaskContext& ctx) const noexcept
 {
     SWC_ASSERT(isGenericCompletionOwner(ctx));

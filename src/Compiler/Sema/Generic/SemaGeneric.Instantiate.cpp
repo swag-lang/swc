@@ -475,7 +475,12 @@ namespace SemaGeneric
             if (!run.sema)
                 run.sema = initRun();
             if (run.running)
-                return sema.waitSemaCompleted(&waitSymbol, waitSymbol.codeRef());
+            {
+                // These caches live on the task context, so a running entry can only be
+                // re-entered by the same job. Waiting on the symbol here would make that
+                // job sleep on work that only it can resume.
+                return Result::Continue;
+            }
 
             run.running = true;
             Sema* child = run.sema.get();

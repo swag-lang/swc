@@ -845,6 +845,17 @@ Result Sema::waitSemaCompleted(const Symbol* symbol, const SourceCodeRef& codeRe
     if (shouldAbortWait(*this, symbol))
         return Result::Error;
 
+    if (const auto* function = symbol->safeCast<SymbolFunction>())
+    {
+        if (function->isGenericInstance() && function->isGenericCompletionActive(ctx()))
+            return Result::Continue;
+    }
+    else if (const auto* ownerStruct = symbol->safeCast<SymbolStruct>())
+    {
+        if (ownerStruct->isGenericInstance() && ownerStruct->isGenericCompletionActive(ctx()))
+            return Result::Continue;
+    }
+
     const auto* function = symbol->safeCast<SymbolFunction>();
     if (function && !function->isSemaCompleted())
     {

@@ -1129,6 +1129,73 @@ public func coreValue()->s32
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(Compiler_WorkspaceImportedStdGenericRunRemainsStableAcrossRepeatedBuilds)
+{
+    const ScopedTempTree tempTree("compiler_workspace_imported_std_generic_repeat");
+    if (!tempTree.ready())
+        return Result::Error;
+
+    const fs::path workspaceDir = tempTree.root() / "workspace";
+    const fs::path appModuleDir = workspaceDir / "modules" / "app";
+
+    if (!writeTextFile(appModuleDir / "module.swg", R"(#import("core", location: "swag@std")
+#run
+{
+    let cfg = @compiler.getBuildCfg()
+    cfg.moduleNamespace = "App"
+    cfg.backendKind = .Executable
+}
+)"))
+        return Result::Error;
+
+    if (!writeTextFile(appModuleDir / "src" / "main.swg", R"(using Core
+
+func testBasic()->u64
+{
+    var table: HashTable'(u32, u64)
+    table.add(1, 42)
+    let found = table.tryFind(1)
+    return found ? found.value : 0
+}
+
+#main
+{
+    @assert(testBasic() == 42)
+}
+)"))
+        return Result::Error;
+
+    const ScopedEnvVar swagPath("SWAG_PATH", Os::getExeFullName().parent_path().string());
+
+    CommandLine cmdLine = makeSyntheticWorkspaceCommand(CommandKind::Run, workspaceDir);
+    cmdLine.runtime     = true;
+    cmdLine.buildCfg    = "fast-compile";
+    cmdLine.buildCfgExplicit = true;
+    CommandLineParser::refreshBuildCfg(cmdLine);
+
+    const fs::path appOutputDir = workspaceDir / ".output" / "app" / "executable" / "fast-compile";
+    const fs::path appTempDir   = workspaceDir / ".tmp" / "app" / "executable" / "fast-compile";
+    for (uint32_t iteration = 0; iteration < 40; iteration++)
+    {
+        std::error_code ec;
+        fs::remove_all(appOutputDir, ec);
+        if (ec)
+            return Result::Error;
+
+        ec.clear();
+        fs::remove_all(appTempDir, ec);
+        if (ec)
+            return Result::Error;
+
+        CompilerInstance compiler(ctx.global(), cmdLine);
+        if (compiler.run() != ExitCode::Success)
+            return Result::Error;
+    }
+
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(Compiler_ModuleFileSetupKeepsExplicitCommandLineOverrides)
 {
     const ScopedTempTree tempTree("compiler_module_file_cli_override");

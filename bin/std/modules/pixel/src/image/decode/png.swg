@@ -610,14 +610,14 @@ impl Decoder
         // Paletted, no transparency
         if .inChannels == 1 and .seenPLTE and !.seenTRSN
         {
-            let srcPixels = .dstPixels
-            let dec       = me
-            result.visitPixels()
+            var pm = {dstPixels: .dstPixels, dec: me}
+            result.visitPixels(&pm)
             {
-                var src    = srcPixels
+                let params = cast(*#decltype(pm)) userData
+                var src    = params.dstPixels
                 src += x + y * image.width
                 let pal   = src[0]
-                let color = dec.palette[pal]
+                let color = params.dec.palette[pal]
                 pix[0] = cast() ((color >> 16) & 0xFF)
                 pix[1] = cast() ((color >> 8) & 0xFF)
                 pix[2] = cast() (color & 0xFF)
@@ -629,18 +629,18 @@ impl Decoder
         // Paletted, transparency
         elif .inChannels == 1 and .seenPLTE and .seenTRSN
         {
-            let srcPixels = .dstPixels
-            let dec       = me
-            result.visitPixels()
+            var pm = {dstPixels: .dstPixels, dec: me}
+            result.visitPixels(&pm)
             {
-                var src    = srcPixels
+                let params = cast(*#decltype(pm)) userData
+                var src    = params.dstPixels
                 src += x + y * image.width
                 let pal   = src[0]
-                let color = dec.palette[pal]
+                let color = params.dec.palette[pal]
                 pix[0] = cast() ((color >> 16) & 0xFF)
                 pix[1] = cast() ((color >> 8) & 0xFF)
                 pix[2] = cast() (color & 0xFF)
-                pix[3] = pal < @countof(dec.chunkTRNS.datas) ? dec.chunkTRNS.datas[pal] : 255
+                pix[3] = pal < @countof(params.dec.chunkTRNS.datas) ? params.dec.chunkTRNS.datas[pal] : 255
             }
         }
 
@@ -665,16 +665,16 @@ impl Decoder
             var key   = .chunkTRNS.datas[1]
             let scale = .header.bitDepth == 1 ? 255'u8 : .header.bitDepth == 2 ? 85'u8 : 17'u8
             key *= scale
-            let srcPixels = .dstPixels
-            let grayKey   = key
-            result.visitPixels()
+            var pm = {dstPixels: .dstPixels, key: key}
+            result.visitPixels(&pm)
             {
-                var src    = srcPixels
+                let params = cast(*#decltype(pm)) userData
+                var src    = params.dstPixels
                 src += x + y * image.width
                 pix[0] = src[0]
                 pix[1] = src[0]
                 pix[2] = src[0]
-                pix[3] = src[0] == grayKey ? 0 : 255
+                pix[3] = src[0] == params.key ? 0 : 255
             }
         }
 
@@ -700,15 +700,16 @@ impl Decoder
             let key0 = key[1]
             let key1 = key[3]
             let key2 = key[5]
-            let srcPixels = .dstPixels
-            result.visitPixels()
+            var pm   = {dstPixels: .dstPixels, key0: key0, key1: key1, key2: key2}
+            result.visitPixels(&pm)
             {
-                var src    = srcPixels
+                let params = cast(*#decltype(pm)) userData
+                var src    = params.dstPixels
                 src += (x * 3) + (y * image.width * 3)
                 pix[0] = src[0]
                 pix[1] = src[1]
                 pix[2] = src[2]
-                if src[0] == key0 and src[1] == key1 and src[2] == key2 do
+                if src[0] == params.key0 and src[1] == params.key1 and src[2] == params.key2 do
                     pix[3] = 0
                 else do
                     pix[3] = 255

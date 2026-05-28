@@ -38,16 +38,18 @@ impl Image
             }
         }
 
-        .visitPixels()
+        var f = {precalc: cast([*] f32) &convArr[0, 0], st: st}
+        .visitPixels(&f)
         {
+            let params = cast(*#decltype(f)) userData
             let min = Math.min(pix[0], pix[1], pix[2])
             let max = Math.max(pix[0], pix[1], pix[2])
             let lum = cast(u8) ((max + min) / 2)
 
-            let precalc = cast([*] f32) &convArr[lum, 0]
-            pix[0] = cast(u8) Math.lerp(cast(f32) pix[0], precalc[0], st)
-            pix[1] = cast(u8) Math.lerp(cast(f32) pix[1], precalc[1], st)
-            pix[2] = cast(u8) Math.lerp(cast(f32) pix[2], precalc[2], st)
+            let precalc = params.precalc + (lum * 3)
+            pix[0] = cast(u8) Math.lerp(cast(f32) pix[0], precalc[0], params.st)
+            pix[1] = cast(u8) Math.lerp(cast(f32) pix[1], precalc[1], params.st)
+            pix[2] = cast(u8) Math.lerp(cast(f32) pix[2], precalc[2], params.st)
         }
     }
 }

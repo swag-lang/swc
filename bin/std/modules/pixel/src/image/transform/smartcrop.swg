@@ -166,13 +166,15 @@ public impl Image
     // Build luminance & saturation once (used by saliency and, indirectly, edge)
     moduleprivate mtd const extractLumSat(lum: &Array'f32, sat: &Array'f32)
     {
+        var f   = {lum: lum, sat: sat}
         let mec = cast #unconst (*Image) me
-        mec.visitPixels()
+        mec.visitPixels(&f)
         {
             let p      = image.getPixelColor(x, y)
+            let params = cast(*#decltype(f)) userData
 
             // linear luminance
-            lum.buffer[index] = p.getRelativeLuminance()
+            params.lum.buffer[index] = p.getRelativeLuminance()
 
             // saturation in sRGB
             let rs   = p.r / 255.0
@@ -181,7 +183,7 @@ public impl Image
             let maxC = Math.max(Math.max(rs, gs), bs)
             let minC = Math.min(Math.min(rs, gs), bs)
             let eps  = 1e-6'f32
-            sat.buffer[index] = (maxC > 0.0) ? ((maxC - minC) / (maxC + eps)) : 0.0
+            params.sat.buffer[index] = (maxC > 0.0) ? ((maxC - minC) / (maxC + eps)) : 0.0
         }
     }
 

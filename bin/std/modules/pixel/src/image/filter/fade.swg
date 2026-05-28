@@ -32,14 +32,13 @@ impl Image
             }
         }
 
-        let fadeR = cast([*] u8) &convArrR[0]
-        let fadeG = cast([*] u8) &convArrG[0]
-        let fadeB = cast([*] u8) &convArrB[0]
-        .visitPixels()
+        var f = {r: cast([*] u8) &convArrR[0], g: cast([*] u8) &convArrG[0], b: cast([*] u8) &convArrB[0]}
+        .visitPixels(&f)
         {
-            pix[0] = fadeR[pix[0]]
-            pix[1] = fadeG[pix[1]]
-            pix[2] = fadeB[pix[2]]
+            let arr = cast(*#decltype(f)) userData
+            pix[0] = arr.r[pix[0]]
+            pix[1] = arr.g[pix[1]]
+            pix[2] = arr.b[pix[2]]
         }
     }
 }

@@ -81,10 +81,13 @@ impl Image
             }
 
         case SaturationVert:
-            .visitPixels()
+            var pms = {hsl: hsl, swapRB: swapRB}
+            .visitPixels(&pms)
             {
+                let params  = dref cast(*#decltype(pms)) userData
+                let swapRB  = params.swapRB
                 let factor0 = y / cast(f32) image.height
-                let col     = Color.fromHsl(hsl.h, factor0, 0.5)
+                let col     = Color.fromHsl(params.hsl.h, factor0, 0.5)
                 if swapRB
                 {
                     pix[0] = col.r
@@ -130,10 +133,13 @@ impl Image
             }
 
         case LightnessVert:
-            .visitPixels()
+            var pms = {hsl: hsl, swapRB: swapRB}
+            .visitPixels(&pms)
             {
+                let params  = dref cast(*#decltype(pms)) userData
+                let swapRB  = params.swapRB
                 let factor0 = y / cast(f32) image.height
-                let col     = Color.fromHsl(hsl.h, 1, factor0)
+                let col     = Color.fromHsl(params.hsl.h, 1, factor0)
                 if swapRB
                 {
                     pix[0] = col.r
@@ -179,12 +185,14 @@ impl Image
             }
 
         case HueSaturation:
-            .visitPixels()
+            var pms = {hsl: hsl, swapRB: swapRB}
+            .visitPixels(&pms)
             {
+                let params  = dref cast(*#decltype(pms)) userData
                 let factor0 = x / cast(f32) image.width
                 let factor1 = y / cast(f32) image.height
                 let col     = Color.fromHsl(factor0, factor1, 0.5)
-                if swapRB
+                if params.swapRB
                 {
                     pix[0] = col.r
                     pix[1] = col.g
@@ -201,12 +209,14 @@ impl Image
             }
 
         case HueLightness:
-            .visitPixels()
+            var pms = {hsl: hsl, swapRB: swapRB}
+            .visitPixels(&pms)
             {
+                let params  = dref cast(*#decltype(pms)) userData
                 let factor0 = x / cast(f32) image.width
                 let factor1 = y / cast(f32) image.height
                 let col     = Color.fromHsl(factor0, 1, factor1)
-                if swapRB
+                if params.swapRB
                 {
                     pix[0] = col.r
                     pix[1] = col.g
@@ -223,14 +233,16 @@ impl Image
             }
 
         case SaturationLightness:
-            .visitPixels()
+            var pms = {hsl: hsl, swapRB: swapRB}
+            .visitPixels(&pms)
             {
+                let params  = dref cast(*#decltype(pms)) userData
                 let factor0 = x / cast(f32) image.width
                 let factor1 = y / cast(f32) image.height
                 var l       = 0.5 + ((1 - factor0) * 0.5)
                 l = Math.lerp(0, l, factor1)
-                let col = Color.fromHsl(hsl.h, factor0, l)
-                if swapRB
+                let col = Color.fromHsl(params.hsl.h, factor0, l)
+                if params.swapRB
                 {
                     pix[0] = col.r
                     pix[1] = col.g
@@ -247,13 +259,14 @@ impl Image
             }
 
         case GreenBlue:
-            let fixedRed = color.r / 255.0
-            .visitPixels()
+            var pms = {fixedRed: color.r / 255.0, swapRB: swapRB}
+            .visitPixels(&pms)
             {
+                let params  = dref cast(*#decltype(pms)) userData
                 let factor0 = x / cast(f32) image.width
                 let factor1 = 1 - (y / cast(f32) image.height)
-                let col     = Color.fromRgbf(fixedRed, factor0, factor1)
-                if swapRB
+                let col     = Color.fromRgbf(params.fixedRed, factor0, factor1)
+                if params.swapRB
                 {
                     pix[0] = col.r
                     pix[1] = col.g
@@ -270,13 +283,14 @@ impl Image
             }
 
         case RedBlue:
-            let fixedGreen = color.g / 255.0
-            .visitPixels()
+            var pms = {fixedGreen: color.g / 255.0, swapRB: swapRB}
+            .visitPixels(&pms)
             {
+                let params  = dref cast(*#decltype(pms)) userData
                 let factor0 = x / cast(f32) image.width
                 let factor1 = 1 - (y / cast(f32) image.height)
-                let col     = Color.fromRgbf(factor0, fixedGreen, factor1)
-                if swapRB
+                let col     = Color.fromRgbf(factor0, params.fixedGreen, factor1)
+                if params.swapRB
                 {
                     pix[0] = col.r
                     pix[1] = col.g
@@ -293,13 +307,14 @@ impl Image
             }
 
         case RedGreen:
-            let fixedBlue = color.b / 255.0
-            .visitPixels()
+            var pms = {fixedBlue: color.b / 255.0, swapRB: swapRB}
+            .visitPixels(&pms)
             {
+                let params  = dref cast(*#decltype(pms)) userData
                 let factor0 = x / cast(f32) image.width
                 let factor1 = 1 - (y / cast(f32) image.height)
-                let col     = Color.fromRgbf(factor0, factor1, fixedBlue)
-                if swapRB
+                let col     = Color.fromRgbf(factor0, factor1, params.fixedBlue)
+                if params.swapRB
                 {
                     pix[0] = col.r
                     pix[1] = col.g

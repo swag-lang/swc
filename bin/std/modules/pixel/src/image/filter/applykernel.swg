@@ -42,17 +42,17 @@ impl Image
         if .pf.channels() < 3 or .pf.bitDepth() != 8 do
             return
 
-        let kernelData = cast(const [..] s32) kernel
-        let dstTarget  = dstImage
-        .visitPixels()
+        var f = {kernel: cast(const [..] s32) kernel, dstImage: dstImage}
+        .visitPixels(&f)
         {
-            let kernelSize = kernelData[0] / 2
+            let params     = cast(*#decltype(f)) userData
+            let kernelSize = params.kernel[0] / 2
             let b8         = image.bpp8
             let w8         = image.width8
             let w          = image.width
             let h          = image.height
             let px         = image.pixels.buffer
-            var ks         = @dataof(kernelData) + 2
+            var ks         = @dataof(params.kernel) + 2
 
             var bs, gs, rs: s32
 
@@ -97,11 +97,11 @@ impl Image
                 }
             }
 
-            let ksum = kernelData[1]
+            let ksum = params.kernel[1]
             if ksum > 1 do
                 bs, gs, rs /= ksum
 
-            var dpix = dstTarget.pixels.buffer + (x * b8) + (y * w8)
+            var dpix = params.dstImage.pixels.buffer + (x * b8) + (y * w8)
             dpix[0] = cast(u8) Math.clamp(bs, 0, 255)
             dpix[1] = cast(u8) Math.clamp(gs, 0, 255)
             dpix[2] = cast(u8) Math.clamp(rs, 0, 255)

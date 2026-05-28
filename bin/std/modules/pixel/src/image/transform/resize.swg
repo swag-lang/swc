@@ -359,8 +359,14 @@ namespace ResizeTools
         let dh      = cast(s64) imgDst.height
         var contrib = calcContributions(dh, sh, cast(f64) dh / sh, rmode)
 
-        for imgDst.width do
-            scaleCol(imgDst, imgSrc, cast(s64) @index, &contrib)
+        var f = {imgDst: imgDst, imgSrc: imgSrc, contrib: &contrib}
+        Jobs.parallelFor(|index, data| cast(u32) imgDst.width, &f)
+        {
+            if !data do
+                return
+            let params = cast(*#decltype(f)) data
+            scaleCol(params.imgDst, params.imgSrc, cast(s64) index, params.contrib)
+        }
     }
 
     func scaleRow(imgDst: *Image, imgSrc: const *Image, rmode: Image.ResizeMode)
@@ -369,8 +375,14 @@ namespace ResizeTools
         let dw      = cast(s64) imgDst.width
         var contrib = calcContributions(dw, sw, cast(f64) dw / sw, rmode)
 
-        for imgDst.height do
-            scaleRow(imgDst, imgSrc, cast(s64) @index, &contrib)
+        var f = {imgDst: imgDst, imgSrc: imgSrc, contrib: &contrib}
+        Jobs.parallelFor(|index, data| cast(u32) imgDst.height, &f)
+        {
+            if !data do
+                return
+            let params = cast(*#decltype(f)) data
+            scaleRow(params.imgDst, params.imgSrc, cast(s64) index, params.contrib)
+        }
     }
 
     func doResizeFilter(dstImage: *Image, srcImage: const *Image, mode: Image.ResizeMode)
@@ -384,15 +396,17 @@ namespace ResizeTools
     {
         let xscale = srcImage.width / cast(f32) dstImage.width
         let yscale = srcImage.height / cast(f32) dstImage.height
+        var f      = {xscale: xscale, yscale: yscale, srcImage: srcImage}
 
         #[Swag.Mixin]
         func(BPP: u8) doIt()
         {
-            dstImage.visitPixels()
+            dstImage.visitPixels(&f)
             {
-                let fx     = cast(u32) (x * xscale)
-                let fy     = cast(u32) (y * yscale)
-                let pixSrc = srcImage.pixels.buffer + (fx * image.bpp8) + (fy * srcImage.width * image.bpp8)
+                let params = cast(*#decltype(f)) userData
+                let fx     = cast(u32) (x * params.xscale)
+                let fy     = cast(u32) (y * params.yscale)
+                let pixSrc = params.srcImage.pixels.buffer + (fx * image.bpp8) + (fy * params.srcImage.width * image.bpp8)
                 Image.copyPixelDirect'BPP(pix, pixSrc)
             }
         }

@@ -54,17 +54,15 @@ impl Image
         if .pf.channels() < 3 or .pf.bitDepth() != 8 do
             return
 
-        var f = {topLeft: topLeft, topRight: topRight, bottomLeft: bottomLeft, bottomRight: bottomRight}
         #[Swag.Mixin]
         mtd(PF: PixelFormat) doIt()
         {
-            .visitPixels(&f)
+            .visitPixels()
             {
-                let params  = cast(*#decltype(f)) userData
                 let factor0 = x / cast(f32) image.width
                 let factor1 = y / cast(f32) image.height
-                let colH1   = Color.getBlend(params.topLeft, params.topRight, factor0)
-                let colH0   = Color.getBlend(params.bottomLeft, params.bottomRight, factor0)
+                let colH1   = Color.getBlend(topLeft, topRight, factor0)
+                let colH0   = Color.getBlend(bottomLeft, bottomRight, factor0)
                 let col     = Color.getBlend(colH0, colH1, factor1)
                 convertToRGBA8'PF(pix, col.r, col.g, col.b, col.a)
             }

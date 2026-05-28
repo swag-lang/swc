@@ -1245,14 +1245,39 @@ namespace
             return;
         }
 
-        outParams = std::move(declaredParamDescs);
-        for (uint32_t i = 0; i < outParams.size() && i < symbolParamDescs.size(); ++i)
+        outParams.clear();
+        outParams.reserve(std::max(declaredParamDescs.size(), symbolParamDescs.size()));
+
+        size_t              symbolIndex = 0;
+        const IdentifierRef meId        = declSema->idMgr().predefined(IdentifierManager::PredefinedName::Me);
+        if (root.isMethod() && (declaredParamDescs.empty() || declaredParamDescs.front().idRef != meId))
         {
-            if (outParams[i].idRef != symbolParamDescs[i].idRef)
-                continue;
-            if (!outParams[i].resolvedTypeRef.isValid())
-                outParams[i].resolvedTypeRef = symbolParamDescs[i].resolvedTypeRef;
-            outParams[i].isVariadic = outParams[i].isVariadic || symbolParamDescs[i].isVariadic;
+            // Function declarations omit the implicit receiver, but UFCS/method call shape
+            // consumers still need that leading slot to keep positional and named arguments aligned.
+            if (!symbolParamDescs.empty() && symbolParamDescs.front().idRef == meId)
+            {
+                outParams.push_back(symbolParamDescs.front());
+                symbolIndex = 1;
+            }
+            else
+            {
+                SemaGeneric::GenericFunctionParamDesc desc;
+                desc.idRef = meId;
+                outParams.push_back(desc);
+            }
+        }
+
+        for (auto desc : declaredParamDescs)
+        {
+            if (symbolIndex < symbolParamDescs.size() && symbolParamDescs[symbolIndex].idRef == desc.idRef)
+            {
+                if (!desc.resolvedTypeRef.isValid())
+                    desc.resolvedTypeRef = symbolParamDescs[symbolIndex].resolvedTypeRef;
+                desc.isVariadic = desc.isVariadic || symbolParamDescs[symbolIndex].isVariadic;
+                ++symbolIndex;
+            }
+
+            outParams.push_back(desc);
         }
     }
 

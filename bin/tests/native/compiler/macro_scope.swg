@@ -185,6 +185,21 @@ impl MemberMacroWalker
             }
         }
     }
+
+    #[Swag.Macro]
+    mtd visitWithData(userData: *s32 = null, scale: s32 = 1, stmt: #code void)
+    {
+        let values = .values
+        for @countof(values)
+        {
+            #macro
+            {
+                let item = #up values[@index] * #up scale
+                let out  = #up userData
+                #inject(#up stmt)
+            }
+        }
+    }
 }
 
 namespace QualifiedMacroScope
@@ -394,6 +409,23 @@ namespace QualifiedMacroScope
     walker.visit(scale: 2)
     {
         sum += item
+    }
+
+    @assert(sum == 12)
+}
+
+// Member macro calls keep the trailing code block after positional and named arguments.
+#test
+{
+    var walker: MemberMacroWalker
+    walker.values[0] = 1
+    walker.values[1] = 2
+    walker.values[2] = 3
+
+    var sum = 0
+    walker.visitWithData(&sum, scale: 2)
+    {
+        dref out += item
     }
 
     @assert(sum == 12)

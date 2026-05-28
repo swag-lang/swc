@@ -6,7 +6,7 @@ impl Image
     {
         let self = me
         var f = {x: x, y: .height - y - h, self: self}
-        dstImage.visitPixels(pixelUserData: &f, stride: w)
+        dstImage.visitPixels(&f, stride: w)
         {
             let params = cast(*#decltype(f)) userData
             var srcPix = params.self.pixels.buffer + (y + params.y) * params.self.width8

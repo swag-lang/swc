@@ -108,6 +108,21 @@ impl MemberMacroWalker
             }
         }
     }
+
+    #[Swag.Macro]
+    mtd visitWithData(userData: *s32 = null, scale: s32 = 1, stmt: #code void)
+    {
+        let values = .values
+        for @countof(values)
+        {
+            #macro
+            {
+                let item = #up values[@index] * #up scale
+                let out  = #up userData
+                #inject(#up stmt)
+            }
+        }
+    }
 }
 
 namespace QualifiedMacroScope
@@ -224,6 +239,22 @@ func runMemberMacroWithNamedArg()->bool
     return sum == 12
 }
 
+func runMemberMacroWithPositionalThenNamedArg()->bool
+{
+    var walker: MemberMacroWalker
+    walker.values[0] = 1
+    walker.values[1] = 2
+    walker.values[2] = 3
+
+    var sum = 0
+    walker.visitWithData(&sum, scale: 2)
+    {
+        dref out += item
+    }
+
+    return sum == 12
+}
+
 func runQualifiedGenericMacro()->bool
 {
     let values = [1, 2, 3]
@@ -244,6 +275,7 @@ const MacroScopeBindTypedAliasOk = #run runBindTypedAlias()
 const MacroScopeNestedBlockOk    = #run runNestedBlock()
 const MacroScopeGenericAliasOk   = #run runGenericAliasFold()
 const MacroScopeMemberMacroOk    = #run runMemberMacroWithNamedArg()
+const MacroScopeMemberMacroPosOk = #run runMemberMacroWithPositionalThenNamedArg()
 const MacroScopeQualifiedMacroOk = #run runQualifiedGenericMacro()
 
 #assert(MacroScopeDoItTwiceOk)
@@ -254,4 +286,5 @@ const MacroScopeQualifiedMacroOk = #run runQualifiedGenericMacro()
 #assert(MacroScopeNestedBlockOk)
 #assert(MacroScopeGenericAliasOk)
 #assert(MacroScopeMemberMacroOk)
+#assert(MacroScopeMemberMacroPosOk)
 #assert(MacroScopeQualifiedMacroOk)

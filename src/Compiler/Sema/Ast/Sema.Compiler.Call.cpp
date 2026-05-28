@@ -254,6 +254,19 @@ namespace
         outReplacements.push_back({nodeId, replacementRef, topLevelBreakableOnly});
     }
 
+    bool canResolveInjectDependencyIdentifier(const Sema& sema, const SourceCodeRef& codeRef)
+    {
+        if (!codeRef.isValid())
+            return false;
+
+        const SourceView& srcView = sema.srcView(codeRef.srcViewRef);
+        if (codeRef.tokRef.get() >= srcView.tokens().size())
+            return false;
+
+        const Token& tok = srcView.token(codeRef.tokRef);
+        return tok.byteStart + tok.byteLength <= srcView.stringView().size();
+    }
+
     bool injectCloneDependsOnContext(Sema& sema, AstNodeRef nodeRef, std::span<const SemaClone::ParamBinding> bindings, std::span<const SemaClone::NodeReplacement> replacements)
     {
         if (nodeRef.isInvalid())
@@ -268,7 +281,15 @@ namespace
 
         if (const auto* identifier = node.safeCast<AstIdentifier>())
         {
-            const IdentifierRef idRef = sema.idMgr().addIdentifier(sema.ctx(), identifier->codeRef());
+            IdentifierRef idRef = IdentifierRef::invalid();
+            const auto    view  = SemaNodeView(sema, nodeRef, SemaNodeViewPartE::Symbol, SemaNodeViewResolveE::Stored);
+            if (view.sym())
+                idRef = view.sym()->idRef();
+            else if (canResolveInjectDependencyIdentifier(sema, identifier->codeRef()))
+                idRef = sema.idMgr().addIdentifier(sema.ctx(), identifier->codeRef());
+            else
+                return true;
+
             for (const auto& binding : bindings)
             {
                 if (binding.idRef == idRef)

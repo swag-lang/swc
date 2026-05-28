@@ -1,7 +1,7 @@
 #global namespace Jpg
 using Swag, Core, Core.Errors
 
-moduleprivate
+fileprivate
 {
     const InBufSize       = 4096
     const MaxHeight       = 8192
@@ -1491,7 +1491,7 @@ impl Decoder
         }
     }
 
-    mtd decodeScan(fn: func(*Decoder, u32, s32, s32) throw) throw
+    mtd decodeScan(dcOnlyScan, refinementScan: bool) throw
     {
         var blockMcutX: [MaxComponents] s32
         var blockMcutY: [MaxComponents] s32
@@ -1510,7 +1510,22 @@ impl Decoder
                 for mcuBlock in .blocksPerMcu
                 {
                     let componentId = .mcuOrg[mcuBlock]
-                    fn(me, componentId, blockMcutX[componentId] + blockMcuOfsX, blockMcutY[componentId] + blockMcuOfsY)
+                    let blkX = blockMcutX[componentId] + blockMcuOfsX
+                    let blkY = blockMcutY[componentId] + blockMcuOfsY
+                    if dcOnlyScan
+                    {
+                        if refinementScan do
+                            .decodeBlockDcRefine(componentId, blkX, blkY)
+                        else do
+                            .decodeBlockDcFirst(componentId, blkX, blkY)
+                    }
+                    else
+                    {
+                        if refinementScan do
+                            .decodeBlockAcRefine(componentId, blkX, blkY)
+                        else do
+                            .decodeBlockAcFirst(componentId, blkX, blkY)
+                    }
 
                     if .compsInScan == 1 do
                         blockMcutX[componentId] += 1
@@ -1582,23 +1597,7 @@ impl Decoder
             if refinementScan and (.successiveLow != .successiveHigh - 1) do
                 throw InvalidFormatError{"bad sos successive"}
 
-            var decodeBlockFunc: func(*Decoder, u32, s32, s32) throw
-            if dcOnlyScan
-            {
-                if refinementScan do
-                    decodeBlockFunc = &decodeBlockDcRefine
-                else do
-                    decodeBlockFunc = &decodeBlockDcFirst
-            }
-            else
-            {
-                if refinementScan do
-                    decodeBlockFunc = &decodeBlockAcRefine
-                else do
-                    decodeBlockFunc = &decodeBlockAcFirst
-            }
-
-            .decodeScan(decodeBlockFunc)
+            .decodeScan(dcOnlyScan, refinementScan)
 
             .bitsLeft = 16
 

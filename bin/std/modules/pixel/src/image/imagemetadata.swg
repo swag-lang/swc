@@ -10,6 +10,35 @@ struct ImageMetaData
 
 impl ImageMetaData
 {
+    mtd const opCompare(other: ImageMetaData)->s32
+    {
+        let sigCmp = .sig <=> other.sig
+        if sigCmp do
+            return sigCmp
+
+        let tagCount = Math.min(.tag.count, other.tag.count)
+        if tagCount
+        {
+            let tagCmp = Memory.compare(.tag.buffer, other.tag.buffer, tagCount)
+            if tagCmp do
+                return tagCmp
+        }
+
+        let tagLenCmp = .tag.count <=> other.tag.count
+        if tagLenCmp do
+            return tagLenCmp
+
+        let valueCount = Math.min(.value.count, other.value.count)
+        if valueCount
+        {
+            let valueCmp = Memory.compare(.value.buffer, other.value.buffer, valueCount)
+            if valueCmp do
+                return valueCmp
+        }
+
+        return .value.count <=> other.value.count
+    }
+
     // Returns true if the metadata has the tag 'val'
     mtd isTag(val: const [..] u8)->bool
     {

@@ -22,6 +22,9 @@ struct Color
 
 impl Color
 {
+    #[Inline]
+    mtd const opCompare(other: Color)->s32 => .argb <=> other.argb
+
     // Assignment operator for u32 ARGB value.
     #[Complete, Inline, ConstExpr]
     func opSet(me, argb: u32) { .argb = argb }
@@ -414,7 +417,7 @@ impl Color
         let x2   = cast(f32) .g - col.g
         let x3   = cast(f32) .b - col.b
         var dist = Math.sqrt((x1 * x1) + (x2 * x2) + (x3 * x3))
-        dist /= Math.sqrt(255.0 * 255.0 * 3.0) // Normalize to [0, 1]
+        dist /= Math.sqrt(cast(f32) (255.0 * 255.0 * 3.0)) // Normalize to [0, 1]
         return dist
     }
 

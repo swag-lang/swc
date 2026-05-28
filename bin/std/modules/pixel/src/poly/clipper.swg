@@ -87,7 +87,7 @@ struct LocalMinimum
 
 impl LocalMinimum
 {
-    mtd opCompare(other: LocalMinimum)->s32
+    mtd const opCompare(other: LocalMinimum)->s32
     {
         return other.y <=> .y
     }
@@ -190,7 +190,7 @@ impl Transform
     public mtd opDrop()
     {
         foreach it in .edgeList do
-            Memory.delete(it.item0, it.item1)
+            Memory.delete(it.edge, it.rank)
     }
 
     mtd execute(clipT: ClipType, solution: *ClipperPaths, subjFillT, clipFillT: PolyFillType)
@@ -1048,7 +1048,7 @@ impl Transform
         {
             if !outRec.pts or outRec.isOpen do
                 continue
-            if (outRec.isHole ^ .reverseOutput) == (area(outRec.pts) > 0) do
+            if (outRec.isHole != .reverseOutput) == (area(outRec.pts) > 0) do
                 reversePolyPtLinks(outRec.pts)
         }
 
@@ -1667,7 +1667,7 @@ impl Transform
                     outRec2.firstLeft = outRec1
                     if .usingPolyTree do
                         .fixupFirstLefts2(outRec2, outRec1)
-                    if (outRec2.isHole ^ .reverseOutput) == (area(outRec2.pts) > 0) do
+                    if (outRec2.isHole != .reverseOutput) == (area(outRec2.pts) > 0) do
                         reversePolyPtLinks(outRec2.pts)
                 }
                 elif poly2ContainsPoly1(outRec1.pts, outRec2.pts)
@@ -1678,7 +1678,7 @@ impl Transform
                     outRec1.firstLeft = outRec2
                     if .usingPolyTree do
                         .fixupFirstLefts2(outRec1, outRec2)
-                    if (outRec1.isHole ^ .reverseOutput) == (area(outRec1.pts) > 0) do
+                    if (outRec1.isHole != .reverseOutput) == (area(outRec1.pts) > 0) do
                         reversePolyPtLinks(outRec1.pts)
                 }
                 else

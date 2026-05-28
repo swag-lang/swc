@@ -139,7 +139,11 @@ namespace
         if (ctx.srcType->isAggregateStruct())
             ctx.castRequest->failure.addArgument(Diagnostic::ARG_WHAT, "struct literal");
         if (field.decl())
-            setStructFieldFailureNote(*ctx.castRequest, DiagnosticId::sema_note_required_struct_field_declared_here, field.decl()->nodeRef(ctx.sema->ast()), fieldName);
+        {
+            const AstNodeRef declNodeRef = ctx.sema->ownerDeclNodeRef(field.srcViewRef(), field.decl());
+            if (declNodeRef.isValid())
+                setStructFieldFailureNote(*ctx.castRequest, DiagnosticId::sema_note_required_struct_field_declared_here, declNodeRef, fieldName);
+        }
         return res;
     }
 

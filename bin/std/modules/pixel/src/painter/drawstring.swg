@@ -45,8 +45,8 @@ struct RichStringFormat
     font:              FontFamily
     fontStyle:         FontFamilyStyle = Regular
     palette:           [4] Color                       // Color of text between <p?>...<p?> markers
-    colorUrl:          Color = Argb.White              // Color of text between <url>...<url> markers
-    colorHotUrl:       Color = Argb.Blue               // Color of text between <url>...<url> markers when mouse is inside
+    colorUrl:          Color = Color.fromArgb(Argb.White)              // Color of text between <url>...<url> markers
+    colorHotUrl:       Color = Color.fromArgb(Argb.Blue)               // Color of text between <url>...<url> markers when mouse is inside
     brush:             Brush
     horzAlignment:     StringHorzAlignment = Left
     vertAlignment:     StringVertAlignment = Top
@@ -91,7 +91,8 @@ impl Painter
         var result: retval
         if !font do
             return result
-        let desc = font.getGlyphDesc(c)
+        let localFont = cast(*Font) font
+        let desc = localFont.getGlyphDesc(c)
         result.x = desc.advanceX
         result.y = desc.shiftY + desc.height
         return result

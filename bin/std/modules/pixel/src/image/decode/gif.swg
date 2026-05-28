@@ -5,7 +5,7 @@
 #global namespace Gif
 using Swag, Core, Core.Errors
 
-moduleprivate
+fileprivate
 {
     struct Entry
     {
@@ -34,6 +34,22 @@ moduleprivate
         disposal:         u8
         input:            s32
         transparency:     s32
+    }
+}
+
+impl Entry
+{
+    mtd const opCompare(other: Entry)->s32
+    {
+        let lenCmp = .length <=> other.length
+        if lenCmp do
+            return lenCmp
+
+        let prefixCmp = .prefix <=> other.prefix
+        if prefixCmp do
+            return prefixCmp
+
+        return .suffix <=> other.suffix
     }
 }
 
@@ -387,7 +403,7 @@ impl Decoder
                 for k in cast(u32) .fw
                 {
                     let index = .frame[(.fy + j) * cast(u32) .width + (.fx + k)]
-                    let color = &.palette.colors[index * 3'u32]
+                    let color = cast([*] u8) &.palette.colors[index * 3'u32]
                     let b     = buffer + (i + k) * 4
                     b[0] = color[0]
                     b[1] = color[1]
@@ -405,7 +421,7 @@ impl Decoder
                 for k in .fw
                 {
                     let index = .frame[(.fy + j) * .width + (.fx + k)]
-                    let color = &.palette.colors[index * 3]
+                    let color = cast([*] u8) &.palette.colors[index * 3]
                     let b     = buffer + (i + k) * 4
                     b[0] = color[0]
                     b[1] = color[1]
@@ -489,7 +505,7 @@ public impl Decoder
             Memory.set(.frame.buffer, .bgIndex, size)
             .canvas = &.frame.buffer[size]
 
-            let bgcolor = &.palette.colors[.bgIndex * 3'u32]
+            let bgcolor = cast([*] u8) &.palette.colors[.bgIndex * 3'u32]
             if bgcolor[0] or bgcolor[1] or bgcolor[2]
             {
                 for i in size do

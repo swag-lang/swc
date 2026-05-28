@@ -1,7 +1,7 @@
 #global namespace Jpg
 using Core
 
-moduleprivate
+fileprivate
 {
     struct SOF0InfoType
     {
@@ -129,28 +129,52 @@ moduleprivate
     var TabCrB: [256] s32 = undefined
 }
 
+impl ColorRGB
+{
+    mtd const opCompare(other: ColorRGB)->s32
+    {
+        let bCmp = .b <=> other.b
+        if bCmp do
+            return bCmp
+
+        let gCmp = .g <=> other.g
+        if gCmp do
+            return gCmp
+
+        return .r <=> other.r
+    }
+}
+
+impl BitString
+{
+    mtd const opCompare(other: BitString)->s32
+    {
+        let lenCmp = .length <=> other.length
+        if lenCmp do
+            return lenCmp
+
+        return .value <=> other.value
+    }
+}
+
 // Precalculate YCbCr tables
 #run
 {
     for r in 256
     {
-        TabYR[r]  = cast(s32) (65536 * 0.299 + 0.5) * r
-        TabCbR[r] = cast(s32) (65536 * -0.16874 + 0.5) * r
-        TabCrR[r] = cast(s32) 32768 * r
+        let rr = cast(s32) r
+        TabYR[r]  = cast(s32) (65536.0 * 0.299 + 0.5) * rr
+        TabCbR[r] = cast(s32) (65536.0 * -0.16874 + 0.5) * rr
+        TabCrR[r] = cast(s32) 32768 * rr
 
-        TabYG[r]  = cast(s32) (65536 * 0.587 + 0.5) * r
-        TabCbG[r] = cast(s32) (65536 * -0.33126 + 0.5) * r
-        TabCrG[r] = cast(s32) (65536 * -0.41869 + 0.5) * r
+        TabYG[r]  = cast(s32) (65536.0 * 0.587 + 0.5) * rr
+        TabCbG[r] = cast(s32) (65536.0 * -0.33126 + 0.5) * rr
+        TabCrG[r] = cast(s32) (65536.0 * -0.41869 + 0.5) * rr
 
-        TabYB[r]  = cast(s32) (65536 * 0.114 + 0.5) * r
-        TabCbB[r] = cast(s32) 32768 * r
-        TabCrB[r] = cast(s32) (65536 * -0.08131 + 0.5) * r
+        TabYB[r]  = cast(s32) (65536.0 * 0.114 + 0.5) * rr
+        TabCbB[r] = cast(s32) 32768 * rr
+        TabCrB[r] = cast(s32) (65536.0 * -0.08131 + 0.5) * rr
     }
-}
-
-public struct EncodeOptions
-{
-    quality: u8 = 95 // Encoding quality between 1 and 100
 }
 
 #[Swag.Opaque]
@@ -236,7 +260,7 @@ impl Encoder
         }
 
         .imageX = cast(u16) xDiv8
-        let tmpline = Array.createBuffer(cast(u64) .imageX * #sizeof(ColorRGB))
+        let tmpline = Array'u8.createBuffer(cast(u64) .imageX * #sizeof(ColorRGB))
 
         // Reorder in memory the inversed bitmap
         var nrLineUp = cast(u32) .imageY - 1
@@ -502,13 +526,6 @@ impl Encoder
 
     mtd loadFromRGB(xpos: u16, ypos: u16)
     {
-        #[Swag.Inline]
-        {
-            func Y(r, g, b: u8)  => cast(s8) (((TabYR[r] + TabYG[g] + TabYB[b]) >> 16) - 128)
-            func Cb(r, g, b: u8) => cast(s8) ((TabCbR[r] + TabCbG[g] + TabCbB[b]) >> 16)
-            func Cr(r, g, b: u8) => cast(s8) ((TabCrR[r] + TabCrG[g] + TabCrB[b]) >> 16)
-        }
-
         var pos      = 0
         var location = cast(s32) ypos * .imageX + xpos
         let pdst     = .bufferRGB.buffer
@@ -520,9 +537,9 @@ impl Encoder
                 let r = pdst[location].r
                 let g = pdst[location].g
                 let b = pdst[location].b
-                .duY[pos]  = Y(r, g, b)
-                .duCb[pos] = Cb(r, g, b)
-                .duCr[pos] = Cr(r, g, b)
+                .duY[pos]  = cast(s8) (((TabYR[r] + TabYG[g] + TabYB[b]) >> 16) - 128)
+                .duCb[pos] = cast(s8) ((TabCbR[r] + TabCbG[g] + TabCbB[b]) >> 16)
+                .duCr[pos] = cast(s8) ((TabCrR[r] + TabCrG[g] + TabCrB[b]) >> 16)
                 location += 1
                 pos += 1
             }
@@ -537,7 +554,7 @@ impl Encoder
         for i in 64 do
             dataFloat[i] = data[i]
 
-        var dataptr = &dataFloat
+        var dataptr = cast([*] f32) &dataFloat[0]
         for #reverse ctr in 0 to 7
         {
             let tmp0 = dataptr[0] + dataptr[7]
@@ -581,7 +598,7 @@ impl Encoder
             dataptr += 8
         }
 
-        dataptr = dataFloat
+        dataptr = &dataFloat[0]
 
         for #reverse ctr in 0 to 7
         {
@@ -723,7 +740,7 @@ public impl IImageEncoder for Encoder
 
         .stream      = result
         .srcImage    = &image
-        .scaleFactor = cast(u8) (100 - Math.clamp(opt.quality, 1, 100))
+        .scaleFactor = cast(u8) (100 - Math.clamp(opt.quality, 1'u8, 100'u8))
 
         .loadBitmap(image)
 

@@ -8,7 +8,7 @@
 #global namespace Png
 using Swag, Core, Core.Errors
 
-moduleprivate
+fileprivate
 {
     enum ChunkType: u32
     {
@@ -155,7 +155,7 @@ impl Decoder
             if .interlaceMethod != .None and .interlaceMethod != .Adam7 do
                 throw InvalidFormatError{"invalid interlace mtd"}
 
-            if .colorType > 7 do
+            if cast(u8) .colorType > 7 do
                 throw InvalidFormatError{"invalid color type"}
             if .bitDepth > 8 do
                 throw UnsupportedFormatError{"unsupported bit depth"}
@@ -530,7 +530,7 @@ impl Decoder
                 if seenIDAT do
                     throw InvalidFormatError{"invalid PLTE chunk"}
                 let chunk = .readChunk(ch)
-                let len   = @countof(cast(cstring) chunk.datas)
+                let len   = @countof(chunk.datas)
                 if len % 3 != 0 or len > 768 do
                     throw InvalidFormatError{"invalid PLTE chunk"}
                 .seenPLTE = true
@@ -546,13 +546,17 @@ impl Decoder
                 let chunk = .readChunk(ch)
                 if .decOptions.decodeMetaDatas
                 {
-                    let len = @countof(cast(cstring) chunk.datas)
+                    let len = @countof(chunk.datas)
                     if len > 1
                     {
+                        var sep = 0'u64
+                        while sep < len and chunk.datas[sep] != 0 do
+                            sep += 1
+
                         var md: ImageMetaData
-                        md.tag = cast(string) chunk.datas[ until len]
-                        if len != @countof(cast(cstring) chunk.datas) - 1 do
-                            md.value = cast(string) chunk.datas[len + 1 to ]
+                        md.tag = cast(string) chunk.datas[ until sep]
+                        if sep + 1 < len do
+                            md.value = cast(string) chunk.datas[sep + 1 to ]
                         result.metaDatas.add(md)
                     }
                 }
@@ -606,14 +610,14 @@ impl Decoder
         // Paletted, no transparency
         if .inChannels == 1 and .seenPLTE and !.seenTRSN
         {
-            var pm = {.dstPixels, dec: me}
-            result.visitPixels(&pm)
+            let srcPixels = .dstPixels
+            let dec       = me
+            result.visitPixels()
             {
-                let params = cast(*#decltype(pm)) userData
-                var src    = params.dstPixels
+                var src    = srcPixels
                 src += x + y * image.width
                 let pal   = src[0]
-                let color = params.dec.palette[pal]
+                let color = dec.palette[pal]
                 pix[0] = cast() ((color >> 16) & 0xFF)
                 pix[1] = cast() ((color >> 8) & 0xFF)
                 pix[2] = cast() (color & 0xFF)
@@ -625,18 +629,18 @@ impl Decoder
         // Paletted, transparency
         elif .inChannels == 1 and .seenPLTE and .seenTRSN
         {
-            var pm = {.dstPixels, dec: me}
-            result.visitPixels(&pm)
+            let srcPixels = .dstPixels
+            let dec       = me
+            result.visitPixels()
             {
-                let params = cast(*#decltype(pm)) userData
-                var src    = params.dstPixels
+                var src    = srcPixels
                 src += x + y * image.width
                 let pal   = src[0]
-                let color = params.dec.palette[pal]
+                let color = dec.palette[pal]
                 pix[0] = cast() ((color >> 16) & 0xFF)
                 pix[1] = cast() ((color >> 8) & 0xFF)
                 pix[2] = cast() (color & 0xFF)
-                pix[3] = pal < @countof(params.dec.chunkTRNS.datas) ? params.dec.chunkTRNS.datas[pal] : 255
+                pix[3] = pal < @countof(dec.chunkTRNS.datas) ? dec.chunkTRNS.datas[pal] : 255
             }
         }
 
@@ -661,16 +665,16 @@ impl Decoder
             var key   = .chunkTRNS.datas[1]
             let scale = .header.bitDepth == 1 ? 255'u8 : .header.bitDepth == 2 ? 85'u8 : 17'u8
             key *= scale
-            var pm = {.dstPixels, key}
-            result.visitPixels(&pm)
+            let srcPixels = .dstPixels
+            let grayKey   = key
+            result.visitPixels()
             {
-                let params = cast(*#decltype(pm)) userData
-                var src    = params.dstPixels
+                var src    = srcPixels
                 src += x + y * image.width
                 pix[0] = src[0]
                 pix[1] = src[0]
                 pix[2] = src[0]
-                pix[3] = src[0] == params.key ? 0 : 255
+                pix[3] = src[0] == grayKey ? 0 : 255
             }
         }
 
@@ -696,16 +700,15 @@ impl Decoder
             let key0 = key[1]
             let key1 = key[3]
             let key2 = key[5]
-            var pm   = {.dstPixels, key0, key1, key2}
-            result.visitPixels(&pm)
+            let srcPixels = .dstPixels
+            result.visitPixels()
             {
-                let params = cast(*#decltype(pm)) userData
-                var src    = params.dstPixels
+                var src    = srcPixels
                 src += (x * 3) + (y * image.width * 3)
                 pix[0] = src[0]
                 pix[1] = src[1]
                 pix[2] = src[2]
-                if src[0] == params.key0 and src[1] == params.key1 and src[2] == params.key2 do
+                if src[0] == key0 and src[1] == key1 and src[2] == key2 do
                     pix[3] = 0
                 else do
                     pix[3] = 255

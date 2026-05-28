@@ -8,7 +8,7 @@
 #global namespace Png
 using Core, Core.Errors
 
-moduleprivate
+fileprivate
 {
     const Adam7StartX: [7] u32 = [0, 4, 0, 2, 0, 1, 0]
     const Adam7StartY: [7] u32 = [0, 0, 4, 0, 2, 0, 1]
@@ -149,7 +149,7 @@ public struct Encoder
 
 impl Encoder
 {
-    func writeU32(dst: *u8, val: u32)
+    func writeU32(dst: [*] u8, val: u32)
     {
         let v = Math.nativeToBigEndian(val)
         dref cast(*u32) dst = v
@@ -207,7 +207,7 @@ impl Encoder
     {
         .writeData(PngSignature, 8)
 
-        var dst = &.tmpBuf[0]
+        var dst = cast([*] u8) &.tmpBuf[0]
         writeU32(dst, .ihdr.width)
         writeU32(dst + 4, .ihdr.height)
         dst[8]  = .ihdr.bitDepth
@@ -548,7 +548,7 @@ impl Encoder
         filtered_sl[0] = cast(u8) filter
         filtered_sl += 1
 
-        if filter do
+        if filter != .None do
             .filterScanline(filtered_sl, scanlineWidth - 1, filter)
 
         .writeIDatBytes(filtered_sl - 1, scanlineWidth)

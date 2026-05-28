@@ -143,17 +143,16 @@ impl Image
     // | y         | the pixel y coordinates
     // | userData  | as passed to the macro
     #[Swag.Macro]
-    mtd visitPixels(userData: *void = null, stride: s32 = 1, stmt: #code void)
+    mtd visitPixels(pixelUserData: *void = null, stride: s32 = 1, stmt: #code void)
     {
         Debug.assert(stride > 0)
 
         let self = me
-        var p = {self, userData}
-        Jobs.parallelVisit(|buffer, data| .pixels.toSlice(), cast(u32) (.bpp8 * stride), &p)
+        var p      = {self: self, userData: pixelUserData}
+        let offset = cast(u64) (.bpp8 * stride)
+        var buffer = self.pixels.buffer
+        for .size / offset
         {
-            if !data do
-                return
-            let p = cast(*#decltype(p)) data
             #macro
             {
                 let image    = #up p.self
@@ -166,6 +165,8 @@ impl Image
 
                 #inject(#up stmt)
             }
+
+            buffer += offset
         }
     }
 
@@ -295,7 +296,8 @@ impl Image
             return .getPixelColorDirect'BGR8(pixX, pixY)
         }
 
-        return {}
+        Debug.assert(false)
+        return Color.fromArgb(0'u32)
     }
 
     // Returns the image aspect ratio

@@ -166,15 +166,13 @@ public impl Image
     // Build luminance & saturation once (used by saliency and, indirectly, edge)
     moduleprivate mtd const extractLumSat(lum: &Array'f32, sat: &Array'f32)
     {
-        var f   = {lum: lum, sat: sat}
         let mec = cast #unconst (*Image) me
-        mec.visitPixels(&f)
+        mec.visitPixels()
         {
             let p      = image.getPixelColor(x, y)
-            let params = cast(*#decltype(f)) userData
 
             // linear luminance
-            params.lum.buffer[index] = p.getRelativeLuminance()
+            lum.buffer[index] = p.getRelativeLuminance()
 
             // saturation in sRGB
             let rs   = p.r / 255.0
@@ -183,7 +181,7 @@ public impl Image
             let maxC = Math.max(Math.max(rs, gs), bs)
             let minC = Math.min(Math.min(rs, gs), bs)
             let eps  = 1e-6'f32
-            params.sat.buffer[index] = (maxC > 0.0) ? ((maxC - minC) / (maxC + eps)) : 0.0
+            sat.buffer[index] = (maxC > 0.0) ? ((maxC - minC) / (maxC + eps)) : 0.0
         }
     }
 
@@ -276,7 +274,7 @@ public impl Image
         }
 
         // Blur luminance and compute Sobel once
-        var lumBlur  = boxBlurViaIntegral(&lum, w, h, 1)
+        var lumBlur  = boxBlurViaIntegral(lum, w, h, 1)
         var edgeMag: Array'f32
         edgeMag.resize(N)
         sobelMagFromLumBlur(&lumBlur, w, h, &edgeMag)
@@ -361,7 +359,7 @@ public impl Image
         var (S, Eedge) = .buildSaliencyAndEdges(w, h, ENHANCED_WEIGHTS)
 
         // Blur saliency
-        var sb = boxBlurViaIntegral(&S, w, h, opts.blurRadius)
+        var sb = boxBlurViaIntegral(S, w, h, opts.blurRadius)
 
         // Thirds map (or zero)
         var T = getThirdsOrZero(w, h, opts.thirdsWeight > 0.01)
@@ -380,9 +378,9 @@ public impl Image
         }
 
         // Build integrals
-        let iiS = buildIntegral(&sb, w, h)
-        let iiT = buildIntegral(&T, w, h)
-        let iiE = buildIntegral(&E, w, h)
+        let iiS = buildIntegral(sb, w, h)
+        let iiT = buildIntegral(T, w, h)
+        let iiE = buildIntegral(E, w, h)
 
         var pack: retval
         pack.sblur = sb
@@ -467,8 +465,8 @@ public impl Image
         let maxX   = ctx.w - bestW
         let maxY   = ctx.h - bestH
         var bx = bestX, by = bestY
-        var bScore = -1.0e30
-        var bD2    = 1.0e30
+        var bScore: f32 = -1.0e30
+        var bD2:    f32 = 1.0e30
 
         let r0 = scoreWindow(ctx, bx, by, bestW, bestH)
         bScore = r0.score; bD2    = r0.d2
@@ -500,8 +498,8 @@ public impl Image
         let scales: [5] f32 = [0.88, 0.94, 1.00, 1.06, 1.12]
 
         var bx = bestX, by = bestY, bw = bestW, bh = bestH
-        var bScore = -1.0e30
-        var bD2    = 1.0e30
+        var bScore: f32 = -1.0e30
+        var bD2:    f32 = 1.0e30
 
         {
             let r0 = scoreWindow(ctx, bestX, bestY, bestW, bestH)
@@ -568,8 +566,8 @@ public impl Image
         var ctx     = prepareScoreCtx(w, h, &pack, imgArea, opts, 0.0)     // single-scale ignores shrink prior
 
         var bestX, bestY = 0
-        var bestScore = -1.0e30
-        var bestD2    = 1.0e30
+        var bestScore: f32 = -1.0e30
+        var bestD2:    f32 = 1.0e30
 
         let maxX   = w - cropW
         let maxY   = h - cropH
@@ -629,8 +627,8 @@ public impl Image
         let steps   = opts.maxSearchSteps
 
         var bestX, bestY, bestW, bestH = 0
-        var bestScore    = -1.0e30
-        var bestCenterD2 = 1.0e30
+        var bestScore:    f32 = -1.0e30
+        var bestCenterD2: f32 = 1.0e30
 
         for step in 0 to (steps - 1)
         {
@@ -752,7 +750,7 @@ public impl Image
             }
         }
 
-        var ii   = buildIntegral(&pack.sblur, w, h)
+        var ii   = buildIntegral(pack.sblur, w, h)
         let area = cast(f32) (rect.width * rect.height)
         let sumS = sumRect(&ii, w, h, cast() rect.x, cast() rect.y, cast() rect.right(), cast() rect.bottom())
         return sumS / area

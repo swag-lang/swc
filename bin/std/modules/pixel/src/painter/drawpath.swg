@@ -505,8 +505,11 @@ impl Painter
         case Pattern:
             cxt.pattern      = cxt.pen.pattern.buffer
             cxt.patternCount = cast(s32) cxt.pen.pattern.count
-            if cxt.patternCount == 0 do
-                fallthrough
+            if cxt.patternCount != 0 do
+                break
+            const P = [1.0, 1.0]
+            cxt.pattern      = @dataof(P)
+            cxt.patternCount = 2
         case Dot:
             const P = [1.0, 1.0]
             cxt.pattern      = @dataof(P)

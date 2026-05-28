@@ -45,36 +45,35 @@ impl Image
                 return
         }
 
-        var f = {rmode, value, color}
-        .visitPixels(&f)
+        let channelMode = rmode
+        let valueMode   = value
+        let fixedColor  = color
+        .visitPixels()
         {
-            let params = cast(*#decltype(f)) userData
-            let mode   = params.rmode
-
-            var color: u8 = undefined
+            var channelValue: u8 = undefined
             #[Swag.Complete]
-            switch params.value
+            switch valueMode
             {
             case Color:
-                color = params.color
+                channelValue = fixedColor
             case MinRGB:
-                color = Math.min(pix[0], pix[1], pix[2])
+                channelValue = Math.min(pix[0], pix[1], pix[2])
             case MaxRGB:
-                color = Math.max(pix[0], pix[1], pix[2])
+                channelValue = Math.max(pix[0], pix[1], pix[2])
             case MeanRGB:
-                color = cast(u8) ((pix[0] + #prom pix[1] + #prom pix[2]) / 3)
+                channelValue = cast(u8) ((pix[0] + #prom pix[1] + #prom pix[2]) / 3)
             case Alpha:
-                color = pix[3]
+                channelValue = pix[3]
             }
 
-            if mode & .Blue do
-                pix[0] = color
-            if mode & .Green do
-                pix[1] = color
-            if mode & .Red do
-                pix[2] = color
-            if mode & .Alpha do
-                pix[3] = color
+            if channelMode & .Blue do
+                pix[0] = channelValue
+            if channelMode & .Green do
+                pix[1] = channelValue
+            if channelMode & .Red do
+                pix[2] = channelValue
+            if channelMode & .Alpha do
+                pix[3] = channelValue
         }
     }
 }

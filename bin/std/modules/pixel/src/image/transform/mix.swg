@@ -13,36 +13,36 @@ impl Image
         Debug.assert(srcImage.pf.hasAlpha() or mode != .AlphaBlend)
 
         let mec = cast #unconst (*Image) me
-        var f   = {dstImage, srcImage: &srcImage, x, y, mode}
+        let dstTarget = dstImage
+        let srcTarget = &srcImage
+        let offsetX   = x
+        let offsetY   = y
+        let mixMode   = mode
 
         #[Swag.Mixin]
         func(BPP: u8) doIt()
         {
-            mec.visitPixels(&f)
+            mec.visitPixels()
             {
-                let params   = cast(*#decltype(f)) userData
-                let dstImage = cast(*Image) params.dstImage
-                let srcImage = cast(const *Image) params.srcImage
-
-                var pixDst = dstImage.pixels.buffer + x * image.bpp8
+                var pixDst = dstTarget.pixels.buffer + x * image.bpp8
                 pixDst += cast(u64) (y * (image.width * image.bpp8))
 
                 // fast path: outside blit rect, keep pixel as-is
-                if x < params.x or y < params.y or
-                   x >= params.x + srcImage.width or
-                   y >= params.y + srcImage.height
+                if x < offsetX or y < offsetY or
+                   x >= offsetX + srcTarget.width or
+                   y >= offsetY + srcTarget.height
                 {
                     copyPixelDirect'BPP(pixDst, pix) // copy current dst pixel back (no change)
                 }
                 else
                 {
-                    let x1     = x - params.x
-                    let y1     = y - params.y
-                    var pixSrc = srcImage.pixels.buffer + x1 * srcImage.bpp8
-                    pixSrc += cast(u64) (y1 * (srcImage.width * srcImage.bpp8))
+                    let x1     = x - offsetX
+                    let y1     = y - offsetY
+                    var pixSrc = srcTarget.pixels.buffer + x1 * srcTarget.bpp8
+                    pixSrc += cast(u64) (y1 * (srcTarget.width * srcTarget.bpp8))
 
                     #[Swag.Complete]
-                    switch params.mode
+                    switch mixMode
                     {
                     case Copy:
                         copyPixelDirect'BPP(pixDst, pixSrc)

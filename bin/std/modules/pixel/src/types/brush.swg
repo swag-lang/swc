@@ -10,7 +10,7 @@ enum BrushType
 
 struct Brush
 {
-    color:       Color = Argb.White
+    color:       Color = Color.fromArgb(Argb.White)
     type:        BrushType = SolidColor
     hatch:       HatchStyle = Dot
     texture:     Texture
@@ -33,7 +33,7 @@ impl Brush
     func createTexture(texture: Texture)->Brush
     {
         var result: retval
-        result.color   = Argb.White
+        result.color   = Color.fromArgb(Argb.White)
         result.type    = BrushType.Texture
         result.texture = texture
         result.uvMode  = .Fill
@@ -44,7 +44,7 @@ impl Brush
     func createTiled(texture: Texture)->Brush
     {
         var result: retval
-        result.color   = Argb.White
+        result.color   = Color.fromArgb(Argb.White)
         result.type    = BrushType.Texture
         result.texture = texture
         result.uvMode  = .Tile

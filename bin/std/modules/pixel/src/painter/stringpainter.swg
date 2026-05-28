@@ -43,6 +43,6 @@ impl StringPainter
     mtd draw(painter: *Painter, rect: Math.Rectangle, what: string)
     {
         .str.set(what)
-        painter.drawRichString(rect, &.str, &.fmt)
+        painter.drawRichString(rect, &.str, .fmt)
     }
 }

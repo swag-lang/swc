@@ -192,24 +192,27 @@ impl Triangle
 
     mtd edgeIndex(p1, p2: *Point)->s32
     {
-        switch p1
+        let idx1 = .index(p1)
+        let idx2 = .index(p2)
+        if idx1 == 0
         {
-        case .points[0]:
-            if .points[1] == p2 do
+            if idx2 == 1 do
                 return 2
-            if .points[2] == p2 do
+            if idx2 == 2 do
                 return 1
-
-        case .points[1]:
-            if .points[2] == p2 do
+        }
+        elif idx1 == 1
+        {
+            if idx2 == 2 do
                 return 0
-            if .points[0] == p2 do
+            if idx2 == 0 do
                 return 2
-
-        case .points[2]:
-            if .points[0] == p2 do
+        }
+        elif idx1 == 2
+        {
+            if idx2 == 0 do
                 return 1
-            if .points[1] == p2 do
+            if idx2 == 1 do
                 return 0
         }
 
@@ -218,15 +221,12 @@ impl Triangle
 
     mtd index(p: *Point)->s32
     {
-        switch p
-        {
-        case .points[0]:
+        if p == .points[0] do
             return 0
-        case .points[1]:
+        if p == .points[1] do
             return 1
-        case .points[2]:
+        if p == .points[2] do
             return 2
-        }
 
         Debug.assert(false)
         return -1
@@ -234,171 +234,203 @@ impl Triangle
 
     mtd neighborAcross(point: *Point)->*Triangle
     {
-        switch point
-        {
-        case .points[0]:
+        let idx = .index(point)
+        if idx == 0 do
             return .neighbors[0]
-        case .points[1]:
+        if idx == 1 do
             return .neighbors[1]
-        default:
+        if idx == 2 do
             return .neighbors[2]
-        }
+        Debug.assert(false)
+        return null
     }
 
     mtd neighborCW(point: *Point)->*Triangle
     {
-        switch point
-        {
-        case .points[0]:
+        let idx = .index(point)
+        if idx == 0 do
             return .neighbors[1]
-        case .points[1]:
+        if idx == 1 do
             return .neighbors[2]
-        default:
+        if idx == 2 do
             return .neighbors[0]
-        }
+        Debug.assert(false)
+        return null
     }
 
     mtd neighborCCW(p: *Point)->*Triangle
     {
-        switch p
-        {
-        case .points[0]:
+        let idx = .index(p)
+        if idx == 0 do
             return .neighbors[2]
-        case .points[1]:
+        if idx == 1 do
             return .neighbors[0]
-        default:
+        if idx == 2 do
             return .neighbors[1]
-        }
+        Debug.assert(false)
+        return null
     }
 
     mtd getConstrainedEdgeCCW(p: *Point)->bool
     {
-        switch p
-        {
-        case .points[0]:
+        let idx = .index(p)
+        if idx == 0 do
             return .constrainedEdge[2]
-        case .points[1]:
+        if idx == 1 do
             return .constrainedEdge[0]
-        default:
+        if idx == 2 do
             return .constrainedEdge[1]
-        }
+        Debug.assert(false)
+        return false
     }
 
     mtd getConstrainedEdgeCW(p: *Point)->bool
     {
-        switch p
-        {
-        case .points[0]:
+        let idx = .index(p)
+        if idx == 0 do
             return .constrainedEdge[1]
-        case .points[1]:
+        if idx == 1 do
             return .constrainedEdge[2]
-        default:
+        if idx == 2 do
             return .constrainedEdge[0]
-        }
+        Debug.assert(false)
+        return false
     }
 
     mtd pointCW(point: *Point)->*Point
     {
-        switch point
-        {
-        case .points[0]:
+        let idx = .index(point)
+        if idx == 0 do
             return .points[2]
-        case .points[1]:
+        if idx == 1 do
             return .points[0]
-        default:
+        if idx == 2 do
             return .points[1]
-        }
+        Debug.assert(false)
+        return null
     }
 
     mtd pointCCW(point: *Point)->*Point
     {
-        switch point
-        {
-        case .points[0]:
+        let idx = .index(point)
+        if idx == 0 do
             return .points[1]
-        case .points[1]:
+        if idx == 1 do
             return .points[2]
-        default:
+        if idx == 2 do
             return .points[0]
-        }
+        Debug.assert(false)
+        return null
     }
 
     mtd getDelaunayEdgeCCW(p: *Point)->bool
     {
-        switch p
-        {
-        case .points[0]:
+        let idx = .index(p)
+        if idx == 0 do
             return .delaunayEdge[2]
-        case .points[1]:
+        if idx == 1 do
             return .delaunayEdge[0]
-        default:
+        if idx == 2 do
             return .delaunayEdge[1]
-        }
+        Debug.assert(false)
+        return false
     }
 
     mtd getDelaunayEdgeCW(p: *Point)->bool
     {
-        switch p
-        {
-        case .points[0]:
+        let idx = .index(p)
+        if idx == 0 do
             return .delaunayEdge[1]
-        case .points[1]:
+        if idx == 1 do
             return .delaunayEdge[2]
-        default:
+        if idx == 2 do
             return .delaunayEdge[0]
-        }
+        Debug.assert(false)
+        return false
     }
 
     mtd setDelaunayEdgeCCW(p: *Point, e: bool)
     {
-        switch p
+        let idx = .index(p)
+        if idx == 0
         {
-        case .points[0]:
             .delaunayEdge[2] = e
-        case .points[1]:
-            .delaunayEdge[0] = e
-        default:
-            .delaunayEdge[1] = e
+            return
         }
+        if idx == 1
+        {
+            .delaunayEdge[0] = e
+            return
+        }
+        if idx == 2
+        {
+            .delaunayEdge[1] = e
+            return
+        }
+        Debug.assert(false)
     }
 
     mtd setDelaunayEdgeCW(p: *Point, e: bool)
     {
-        switch p
+        let idx = .index(p)
+        if idx == 0
         {
-        case .points[0]:
             .delaunayEdge[1] = e
-        case .points[1]:
-            .delaunayEdge[2] = e
-        default:
-            .delaunayEdge[0] = e
+            return
         }
+        if idx == 1
+        {
+            .delaunayEdge[2] = e
+            return
+        }
+        if idx == 2
+        {
+            .delaunayEdge[0] = e
+            return
+        }
+        Debug.assert(false)
     }
 
     mtd setConstrainedEdgeCCW(p: *Point, ce: bool)
     {
-        switch p
+        let idx = .index(p)
+        if idx == 0
         {
-        case .points[0]:
             .constrainedEdge[2] = ce
-        case .points[1]:
-            .constrainedEdge[0] = ce
-        default:
-            .constrainedEdge[1] = ce
+            return
         }
+        if idx == 1
+        {
+            .constrainedEdge[0] = ce
+            return
+        }
+        if idx == 2
+        {
+            .constrainedEdge[1] = ce
+            return
+        }
+        Debug.assert(false)
     }
 
     mtd setConstrainedEdgeCW(p: *Point, ce: bool)
     {
-        switch p
+        let idx = .index(p)
+        if idx == 0
         {
-        case .points[0]:
             .constrainedEdge[1] = ce
-        case .points[1]:
-            .constrainedEdge[2] = ce
-        default:
-            .constrainedEdge[0] = ce
+            return
         }
+        if idx == 1
+        {
+            .constrainedEdge[2] = ce
+            return
+        }
+        if idx == 2
+        {
+            .constrainedEdge[0] = ce
+            return
+        }
+        Debug.assert(false)
     }
 
     mtd clearNeighbors()
@@ -458,23 +490,30 @@ impl Triangle
 
     mtd legalize(opoint, npoint: *Point)
     {
-        switch opoint
+        let idx = .index(opoint)
+        if idx == 0
         {
-        case .points[0]:
             .points[1] = .points[0]
             .points[0] = .points[2]
             .points[2] = npoint
-        case .points[1]:
+            return
+        }
+        if idx == 1
+        {
             .points[2] = .points[1]
             .points[1] = .points[0]
             .points[0] = npoint
-        case .points[2]:
+            return
+        }
+        if idx == 2
+        {
             .points[0] = .points[2]
             .points[2] = .points[1]
             .points[1] = npoint
-        default:
-            Debug.assert(false)
+            return
         }
+
+        Debug.assert(false)
     }
 }
 

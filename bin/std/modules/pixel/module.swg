@@ -1,6 +1,6 @@
 #import("core")
 #import("ogl")
-#import("freetype")
+#import("truetype")
 
 #run
 {
@@ -10,8 +10,7 @@
     cfg.moduleRevision  = #swcrevision
     cfg.moduleBuildNum  = #swcbuildnum
     cfg.moduleNamespace = "Pixel"
-    cfg.backendKind     = .StaticLibrary
-    cfg.ignoreInWorkspace = true
+    cfg.backendKind     = .SharedLibrary
     cfg.repoPath        = "https://github.com/swag-lang/swag/blob/master/bin/std/modules/pixel"
 
     cfg.genDoc.kind            = .Api

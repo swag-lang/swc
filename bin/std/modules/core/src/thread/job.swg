@@ -219,66 +219,19 @@ public func(T) parallelVisit(range: [..] T, offset: u32 = 1, userData: *void = n
         return
     Debug.assert(offset != 0)
 
-    func jobEntry(jobData: *void)
+    var scan    = @dataof(range)
+    let countof = @countof(range)
+    for countof / offset
     {
-        let oneJob = cast(*SliceJob'T) jobData
-        visitSlice(oneJob.buffer, oneJob.offset, oneJob.userData)
-    }
-
-    func visitSlice(buffer: [..] T, offset: u32, userData: #null *void)
-    {
-        var scan    = @dataof(buffer)
-        let countof = @countof(buffer)
-        for countof / offset
+        #macro
         {
-            #macro
-            {
-                let #alias0 = #up scan
-                let #alias1 = #up userData
-                #inject(#up stmt)
-            }
-
-            scan += offset
+            let #alias0 = #up scan
+            let #alias1 = #up userData
+            #inject(#up stmt)
         }
+
+        scan += offset
     }
-
-    // Force synchrone execution if range is too small
-    let wh         = @countof(range) / offset
-    let numWorkers = Math.min(getNumWorkers(), cast(u32) wh)
-    if isSynchrone() or numWorkers <= 1
-    {
-        visitSlice(range, offset, userData)
-        return
-    }
-
-    // Compute size of each chunk (and size of the last one)
-    var splitSize     = wh / numWorkers
-    var lastSplitSize = splitSize + (wh - (splitSize * numWorkers))
-    splitSize *= offset
-    lastSplitSize *= offset
-
-    // Launch jobs
-    var sliceJobs: Array'(SliceJob'T)
-    sliceJobs.resize(cast(u64) numWorkers)
-
-    var ptr = @dataof(range)
-    foreach &j in sliceJobs
-    {
-        let sizeSlice = @index == sliceJobs.count - 1 ? lastSplitSize : splitSize
-
-        j.base.lambda = &jobEntry
-        j.base.data   = j
-        j.offset      = offset
-        j.userData    = userData
-        j.buffer      = @mkslice(ptr, sizeSlice)
-        ptr += sizeSlice
-
-        scheduleJob(j)
-    }
-
-    // Sync
-    foreach &j in sliceJobs do
-        waitJob(j)
 }
 
 // Do a for for in parallel chunks.
@@ -291,60 +244,16 @@ public func parallelFor(count: u32, userData: *void = null, stmt: #code void)
     if !count do
         return
 
-    func jobEntry(jobData: *void)
+    var curIndex = 0'u32
+    for count
     {
-        let oneJob = cast(*ForJob) jobData
-        visitFor(oneJob.startIndex, oneJob.endIndex, oneJob.userData)
-    }
-
-    func visitFor(startIndex, endIndex: u32, userData: #null *void)
-    {
-        var curIndex = startIndex
-        for (endIndex - startIndex) + 1
+        #macro
         {
-            #macro
-            {
-                let #alias0 = #up curIndex
-                let #alias1 = #up userData
-                #inject(#up stmt)
-            }
-
-            curIndex += 1
+            let #alias0 = #up curIndex
+            let #alias1 = #up userData
+            #inject(#up stmt)
         }
+
+        curIndex += 1
     }
-
-    // Force synchrone execution if range is too small
-    let numWorkers = Math.min(getNumWorkers(), count)
-    if isSynchrone() or numWorkers <= 1
-    {
-        visitFor(0, count - 1, userData)
-        return
-    }
-
-    // Compute size of each chunk (and size of the last one)
-    let splitSize     = count / numWorkers
-    let lastSplitSize = splitSize + (count - (splitSize * numWorkers))
-
-    // Launch jobs
-    var sliceJobs: Array'ForJob
-    sliceJobs.resize(cast(u64) numWorkers)
-
-    var startIndex = 0'u32
-    foreach &j in sliceJobs
-    {
-        let sizeSlice = @index == sliceJobs.count - 1 ? lastSplitSize : splitSize
-
-        j.base.lambda = &jobEntry
-        j.base.data   = j
-        j.startIndex  = startIndex
-        j.endIndex    = startIndex + sizeSlice - 1
-        j.userData    = userData
-        startIndex += sizeSlice
-
-        scheduleJob(j)
-    }
-
-    // Sync
-    foreach &j in sliceJobs do
-        waitJob(j)
 }

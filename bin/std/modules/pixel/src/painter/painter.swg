@@ -85,9 +85,9 @@ struct PaintState
     paintQuality:          PaintQuality = Normal
     transform:             Transform2
     blendingMode:          BlendingMode = Alpha
-    interpolationMode:     InterpolationMode = Pixel
-    clippingRect:          Rectangle
-    stackClipRect:         Array'Rectangle
+    interpolationMode:     InterpolationMode = .Pixel
+    clippingRect:          Math.Rectangle
+    stackClipRect:         Array'Math.Rectangle
     clippingRectOn:        bool
     colorMask:             ColorMask
 }
@@ -103,7 +103,7 @@ struct Command
         clear:              struct{ color: Color }
         drawTriangles:      struct{ start: u32, count: u32 }
         transform:          struct{ tr: Transform2 }
-        clippingRect:       struct{ rect: Rectangle }
+        clippingRect:       struct{ rect: Math.Rectangle }
         clippingRegion:     struct{ mode: ClippingMode = undefined }
         font:               struct{ fontRef: *Font }
         blendingMode:       struct{ mode: BlendingMode = undefined }
@@ -644,7 +644,7 @@ impl Painter
     }
 
     // Set the current clipping rectangle
-    mtd setClippingRect(rect: Rectangle)
+    mtd setClippingRect(rect: Math.Rectangle)
     {
         if .curState.clippingRect == rect and .curState.clippingRectOn do
             return
@@ -666,13 +666,13 @@ impl Painter
     }
 
     // Interface the given rectangle with the current clipping rectangle
-    mtd pushClippingSurfaceRect(rect: Rectangle)
+    mtd pushClippingSurfaceRect(rect: Math.Rectangle)
     {
         .pushClippingRect(rect, true)
     }
 
     // Interface the given rectangle with the current clipping rectangle
-    mtd pushClippingRect(rect: Rectangle, isSurfacePos = false)
+    mtd pushClippingRect(rect: Math.Rectangle, isSurfacePos = false)
     {
         var rrect = rect
         if !isSurfacePos do
@@ -707,7 +707,7 @@ impl Painter
     }
 
     // Get the current clipping rectangle
-    mtd getClippingRect()->Rectangle
+    mtd getClippingRect()->Math.Rectangle
     {
         if .curState.clippingRectOn do
             return .curState.clippingRect

@@ -140,29 +140,33 @@ impl RichString
         while count
         {
             let sl = @mkslice(scan, count)
+            var handled = false
             switch
             {
             case Utf8.startsWith(sl, "<u>"), Utf8.startsWith(sl, "<b>"), Utf8.startsWith(sl, "<i>"):
                 scan += 3
                 count -= 3
-                continue
+                handled = true
             case Utf8.startsWith(sl, "</u>"), Utf8.startsWith(sl, "</b>"), Utf8.startsWith(sl, "</i>"), Utf8.startsWith(sl, "</p>"):
                 scan += 4
                 count -= 4
-                continue
+                handled = true
             case Utf8.startsWith(sl, "<p1>"), Utf8.startsWith(sl, "<p2>"), Utf8.startsWith(sl, "<p3>"):
                 scan += 4
                 count -= 4
-                continue
+                handled = true
             case Utf8.startsWith(sl, "<url>"):
                 scan += 5
                 count -= 5
-                continue
+                handled = true
             case Utf8.startsWith(sl, "</url>"):
                 scan += 6
                 count -= 6
-                continue
+                handled = true
             }
+
+            if handled do
+                continue
 
             result += dref scan
             scan += 1
@@ -229,6 +233,7 @@ impl RichString
         while count
         {
             var sl = @mkslice(scan, count)
+            var handled = false
             switch
             {
             case sl[0] != '<':
@@ -238,61 +243,61 @@ impl RichString
                 under.add(UnderlineStyle.Underline)
                 byteIdx, scan, startChunk += 3
                 count -= 3
-                continue
+                handled = true
             case Utf8.startsWith(sl, "</u>"):
                 .addChunk(byteIdx)
                 if under.count > 1 do
                     under.removeBack()
                 byteIdx, scan, startChunk += 4
                 count -= 4
-                continue
+                handled = true
 
             case Utf8.startsWith(sl, "<b>"):
                 .addChunk(byteIdx)
                 isBold.add(true)
                 byteIdx, scan, startChunk += 3
                 count -= 3
-                continue
+                handled = true
             case Utf8.startsWith(sl, "</b>"):
                 .addChunk(byteIdx)
                 if isBold.count > 1 do
                     isBold.removeBack()
                 byteIdx, scan, startChunk += 4
                 count -= 4
-                continue
+                handled = true
 
             case Utf8.startsWith(sl, "<i>"):
                 .addChunk(byteIdx)
                 isItalic.add(true)
                 byteIdx, scan, startChunk += 3
                 count -= 3
-                continue
+                handled = true
             case Utf8.startsWith(sl, "</i>"):
                 .addChunk(byteIdx)
                 if isItalic.count > 1 do
                     isItalic.removeBack()
                 byteIdx, scan, startChunk += 4
                 count -= 4
-                continue
+                handled = true
 
             case Utf8.startsWith(sl, "<p1>"):
                 .addChunk(byteIdx)
                 colorFg.add(1)
                 byteIdx, scan, startChunk += 4
                 count -= 4
-                continue
+                handled = true
             case Utf8.startsWith(sl, "<p2>"):
                 .addChunk(byteIdx)
                 colorFg.add(2)
                 byteIdx, scan, startChunk += 4
                 count -= 4
-                continue
+                handled = true
             case Utf8.startsWith(sl, "<p3>"):
                 .addChunk(byteIdx)
                 colorFg.add(3)
                 byteIdx, scan, startChunk += 4
                 count -= 4
-                continue
+                handled = true
 
             case Utf8.startsWith(sl, "</p>"):
                 .addChunk(byteIdx)
@@ -300,25 +305,28 @@ impl RichString
                     colorFg.removeBack()
                 byteIdx, scan, startChunk += 4
                 count -= 4
-                continue
+                handled = true
 
             case Utf8.startsWith(sl, "<url>"):
                 .addChunk(byteIdx)
                 byteIdx, scan, startChunk += 5
                 count -= 5
-                continue
+                handled = true
             case Utf8.startsWith(sl, "</url>"):
                 .addChunk(byteIdx, url: true)
                 byteIdx, scan, startChunk += 6
                 count -= 6
-                continue
+                handled = true
             }
+
+            if handled do
+                continue
 
             var (c, eat) = Utf8.decodeRune(sl)
             if eat == 0 do
                 break
 
-            if c == "\n"
+            if c == '\n'
             {
                 .addChunk(byteIdx)
                 byteIdx, scan += eat

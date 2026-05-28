@@ -4,7 +4,7 @@ using Core
 impl Painter
 {
     // Draw a texture image
-    mtd drawTexture(x, y, width, height: f32, texture: Texture, color: Color = Argb.White)
+    mtd drawTexture(x, y, width, height: f32, texture: Texture, color: Color = Color.fromArgb(Argb.White))
     {
         if width == 0 or height == 0 or color.a == 0 do
             return
@@ -13,12 +13,12 @@ impl Painter
         .fillRect(x, y, width, height, brush)
     }
 
-    mtd drawTexture(rect: Math.Rectangle, texture: Texture, color: Color = Argb.White)
+    mtd drawTexture(rect: Math.Rectangle, texture: Texture, color: Color = Color.fromArgb(Argb.White))
     {
         .drawTexture(rect.x, rect.y, rect.width, rect.height, texture, color)
     }
 
-    mtd drawTexture(x, y: f32, texture: Texture, color: Color = Argb.White)
+    mtd drawTexture(x, y: f32, texture: Texture, color: Color = Color.fromArgb(Argb.White))
     {
         if color.a == 0 do
             return
@@ -28,7 +28,7 @@ impl Painter
     }
 
     // Draw a portion of an image
-    mtd drawTexture(x, y, width, height: f32, srcRect: Math.Rectangle, texture: Texture, color: Color = Argb.White)
+    mtd drawTexture(x, y, width, height: f32, srcRect: Math.Rectangle, texture: Texture, color: Color = Color.fromArgb(Argb.White))
     {
         if srcRect.isEmpty() or width == 0 or height == 0 or color.a == 0 do
             return
@@ -37,12 +37,12 @@ impl Painter
         .fillRect(x, y, width, height, brush)
     }
 
-    mtd drawTexture(dstRect, srcRect: Math.Rectangle, texture: Texture, color: Color = Argb.White)
+    mtd drawTexture(dstRect, srcRect: Math.Rectangle, texture: Texture, color: Color = Color.fromArgb(Argb.White))
     {
         .drawTexture(dstRect.x, dstRect.y, dstRect.width, dstRect.height, srcRect, texture, color)
     }
 
-    mtd drawTexture(x, y: f32, srcRect: Math.Rectangle, texture: Texture, color: Color = Argb.White)
+    mtd drawTexture(x, y: f32, srcRect: Math.Rectangle, texture: Texture, color: Color = Color.fromArgb(Argb.White))
     {
         if srcRect.isEmpty() or color.a == 0 do
             return

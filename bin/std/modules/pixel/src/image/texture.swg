@@ -5,8 +5,9 @@ struct Texture
 {
     handle:            TextureHandle = InvalidTextureHandle
     pf:                PixelFormat = undefined
-    width, height:     s32
-    valid:             bool
+    width:             s32 = 0
+    height:            s32 = 0
+    valid:             bool = false
 }
 
 enum InterpolationMode

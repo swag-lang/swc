@@ -269,11 +269,9 @@ namespace
 
     bool shouldPrintSpacerBeforeStage(const TaskContext& ctx, const Stage stage)
     {
-        if (stage != Stage::Module || !ctx.hasCompiler())
-            return false;
-
-        const auto* moduleLogState = ctx.compiler().workspaceModuleLogState();
-        return moduleLogState && moduleLogState->index > 1;
+        SWC_UNUSED(ctx);
+        SWC_UNUSED(stage);
+        return false;
     }
 
     void appendLineIndent(Utf8& line, const size_t indentLevel)

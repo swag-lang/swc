@@ -149,21 +149,46 @@ namespace
         return false;
     }
 
-    MicroReg resolveAggregateMemberBaseAddress(CodeGen& codeGen, const SemaNodeView& leftTypeView, const CodeGenNodePayload& leftPayload)
+    TypeRef resolveAggregateMemberOwnerTypeRef(CodeGen& codeGen, TypeRef leftTypeRef)
+    {
+        if (!leftTypeRef.isValid())
+            return TypeRef::invalid();
+
+        leftTypeRef = aliasEnumTypeRef(codeGen, leftTypeRef);
+        const TypeInfo* leftTypeInfo = &codeGen.typeMgr().get(leftTypeRef);
+        if (leftTypeInfo->isPointerOrReference())
+        {
+            leftTypeRef  = aliasEnumTypeRef(codeGen, leftTypeInfo->payloadTypeRef());
+            leftTypeInfo = &codeGen.typeMgr().get(leftTypeRef);
+        }
+
+        if (!leftTypeInfo->isAggregateStruct())
+            return TypeRef::invalid();
+
+        return leftTypeRef;
+    }
+
+    MicroReg resolveAggregateMemberBaseAddress(CodeGen& codeGen, TypeRef leftTypeRef, const CodeGenNodePayload& leftPayload)
     {
         MicroBuilder& builder = codeGen.builder();
+        const TypeInfo& leftTypeInfo = codeGen.typeMgr().get(aliasEnumTypeRef(codeGen, leftTypeRef));
 
-        if (leftTypeView.type() && aliasEnumType(codeGen, leftTypeView).isReference() && leftPayload.isAddress())
+        if (leftTypeInfo.isPointerOrReference() || leftTypeInfo.isTypeInfo())
         {
-            const MicroReg baseAddressReg = codeGen.nextVirtualIntRegister();
-            builder.emitLoadRegMem(baseAddressReg, leftPayload.reg, 0, MicroOpBits::B64);
-            return baseAddressReg;
+            if (leftPayload.isAddress())
+            {
+                const MicroReg baseAddressReg = codeGen.nextVirtualIntRegister();
+                builder.emitLoadRegMem(baseAddressReg, leftPayload.reg, 0, MicroOpBits::B64);
+                return baseAddressReg;
+            }
+
+            return leftPayload.reg;
         }
 
         if (leftPayload.isAddress())
             return leftPayload.reg;
 
-        const uint64_t leftSize = leftTypeView.type()->sizeOf(codeGen.ctx());
+        const uint64_t leftSize = leftTypeInfo.sizeOf(codeGen.ctx());
         SWC_ASSERT(leftSize > 0);
         if (leftSize == 1 || leftSize == 2 || leftSize == 4 || leftSize == 8)
         {
@@ -383,14 +408,16 @@ namespace
         const CodeGenNodePayload& leftPayload  = codeGen.payload(node.nodeLeftRef);
         const SemaNodeView        leftTypeView = codeGen.viewType(node.nodeLeftRef);
         SWC_ASSERT(leftTypeView.type() != nullptr);
+        const TypeRef aggregateTypeRef = resolveAggregateMemberOwnerTypeRef(codeGen, leftPayload.effectiveTypeRef(leftTypeView.typeRef()));
+        SWC_ASSERT(aggregateTypeRef.isValid());
 
         AggregateMemberInfo memberInfo;
-        if (!resolveAggregateMemberInfo(codeGen, *leftTypeView.type(), node.nodeRightRef, memberInfo))
+        if (!resolveAggregateMemberInfo(codeGen, codeGen.typeMgr().get(aggregateTypeRef), node.nodeRightRef, memberInfo))
             SWC_UNREACHABLE();
 
         const CodeGenNodePayload& payload = codeGen.setPayloadAddress(codeGen.curNodeRef(), memberInfo.memberTypeRef);
         MicroBuilder&             builder = codeGen.builder();
-        const MicroReg            baseReg = resolveAggregateMemberBaseAddress(codeGen, leftTypeView, leftPayload);
+        const MicroReg            baseReg = resolveAggregateMemberBaseAddress(codeGen, leftPayload.effectiveTypeRef(leftTypeView.typeRef()), leftPayload);
         builder.emitLoadAddressRegMem(payload.reg, baseReg, memberInfo.offset, MicroOpBits::B64);
         return Result::Continue;
     }
@@ -495,7 +522,7 @@ Result AstMemberAccessExpr::codeGenPostNode(CodeGen& codeGen) const
 
     if (leftIsRuntimeValue && leftView.type() && leftView.type()->isInterface())
         return finalizeRuntimeMemberAccess(codeGen, codeGenInterfaceMethodMemberAccess(codeGen, *this));
-    if (leftIsRuntimeValue && leftView.type() && leftView.type()->isAggregateStruct())
+    if (leftIsRuntimeValue && resolveAggregateMemberOwnerTypeRef(codeGen, leftView.typeRef()).isValid())
         return finalizeRuntimeMemberAccess(codeGen, codeGenAggregateStructMemberAccess(codeGen, *this));
 
     const SemaNodeView rightView = codeGen.viewSymbol(nodeRightRef);

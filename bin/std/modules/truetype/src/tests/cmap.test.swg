@@ -25,14 +25,14 @@ using Swag, Core
 
 #test
 {
-    withFace(func(_, _, face)
-    {
-        let glyphA = FT_Get_Char_Index(face, 'A''u32)
-        let glyphE = FT_Get_Char_Index(face, 0x00E9)
-        let glyphMissing = FT_Get_Char_Index(face, 0x10FFFF)
+    var scope: FaceScope
+    scope.init()
 
-        @assert(glyphA > 0)
-        @assert(glyphE > 0)
-        @assert(glyphMissing == 0)
-    })
+    let glyphA = FT_Get_Char_Index(scope.face, 'A''u32)
+    let glyphE = FT_Get_Char_Index(scope.face, 0x00E9)
+    let glyphMissing = FT_Get_Char_Index(scope.face, 0x10FFFF)
+
+    @assert(glyphA > 0)
+    @assert(glyphE > 0)
+    @assert(glyphMissing == 0)
 }

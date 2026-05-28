@@ -24,31 +24,64 @@ func loadFontBytes(fileName: string = "segoeui.ttf")->Array'u8
     return bytes
 }
 
-func withLibrary(cb: func||(FT_Library))
+struct LibraryScope
 {
-    var library: FT_Library
-    discard catch FT_Init_FreeType(&library)
-    @assert(@err == null)
-    defer catch FT_Done_FreeType(library)
-    cb(library)
+    library:     FT_Library
 }
 
-func withFace(cb: func||(const *Array'u8, FT_Library, FT_Face), fileName: string = "segoeui.ttf")
+impl LibraryScope
 {
-    var library: FT_Library
-    discard catch FT_Init_FreeType(&library)
-    @assert(@err == null)
-    defer catch FT_Done_FreeType(library)
+    mtd init()
+    {
+        discard catch FT_Init_FreeType(&.library)
+        @assert(@err == null)
+    }
 
-    let bytes = loadFontBytes(fileName)
+    mtd opDrop()
+    {
+        if .library
+        {
+            discard catch FT_Done_FreeType(.library)
+            .library = null
+        }
+    }
+}
 
-    var face: FT_Face
-    discard catch FT_New_Memory_Face(library, bytes.buffer, cast(FT_Long) bytes.count, 0, &face)
-    @assert(@err == null)
-    @assert(face != null)
-    defer FT_Done_Face(face)
+struct FaceScope
+{
+    bytes:       Array'u8
+    library:     FT_Library
+    face:        FT_Face
+}
 
-    cb(&bytes, library, face)
+impl FaceScope
+{
+    mtd init(fileName: string = "segoeui.ttf")
+    {
+        discard catch FT_Init_FreeType(&.library)
+        @assert(@err == null)
+
+        .bytes = loadFontBytes(fileName)
+
+        discard catch FT_New_Memory_Face(.library, .bytes.buffer, cast(FT_Long) .bytes.count, 0, &.face)
+        @assert(@err == null)
+        @assert(.face != null)
+    }
+
+    mtd opDrop()
+    {
+        if .face
+        {
+            FT_Done_Face(.face)
+            .face = null
+        }
+
+        if .library
+        {
+            discard catch FT_Done_FreeType(.library)
+            .library = null
+        }
+    }
 }
 
 func getFaceData(face: FT_Face)->*FreeTypePriv.FaceImpl

@@ -29,18 +29,18 @@ using Swag, Core
 
 #test
 {
-    withLibrary(func(library)
-    {
-        var face: FT_Face
+    var scope: LibraryScope
+    scope.init()
 
-        discard catch FT_New_Memory_Face(library, &BrokenFontBytes[0], cast(FT_Long) @countof(BrokenFontBytes), 0, &face)
-        @assert(@err != null)
+    var face: FT_Face
 
-        discard catch FT_New_Memory_Face(library, null, 12, 0, &face)
-        @assert(@err != null)
+    discard catch FT_New_Memory_Face(scope.library, &BrokenFontBytes[0], cast(FT_Long) @countof(BrokenFontBytes), 0, &face)
+    @assert(@err != null)
 
-        let bytes = loadFontBytes()
-        discard catch FT_New_Memory_Face(library, bytes.buffer, cast(FT_Long) bytes.count, 1, &face)
-        @assert(@err != null)
-    })
+    discard catch FT_New_Memory_Face(scope.library, null, 12, 0, &face)
+    @assert(@err != null)
+
+    let bytes = loadFontBytes()
+    discard catch FT_New_Memory_Face(scope.library, bytes.buffer, cast(FT_Long) bytes.count, 1, &face)
+    @assert(@err != null)
 }

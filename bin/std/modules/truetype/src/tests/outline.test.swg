@@ -33,58 +33,58 @@ using Swag, Core
 
 #test
 {
-    withFace(func(_, _, face)
-    {
-        discard catch FT_Set_Pixel_Sizes(face, 0, 18)
-        @assert(@err == null)
+    var scope: FaceScope
+    scope.init()
 
-        discard catch FT_Load_Char(face, 'A''u32, FT_LOAD_NO_BITMAP)
-        @assert(@err == null)
-        @assert(face.glyph.outline.n_contours > 0)
-        @assert(face.glyph.outline.n_points > 0)
-        @assert(face.glyph.advance.x > 0)
+    discard catch FT_Set_Pixel_Sizes(scope.face, 0, 18)
+    @assert(@err == null)
 
-        var funcs: FT_Outline_Funcs
-        funcs.move_to  = cast(*void) &moveToCounter
-        funcs.line_to  = cast(*void) &lineToCounter
-        funcs.conic_to = cast(*void) &conicToCounter
+    discard catch FT_Load_Char(scope.face, 'A''u32, FT_LOAD_NO_BITMAP)
+    @assert(@err == null)
+    @assert(scope.face.glyph.outline.n_contours > 0)
+    @assert(scope.face.glyph.outline.n_points > 0)
+    @assert(scope.face.glyph.advance.x > 0)
 
-        var counter: OutlineCounter
-        discard catch FT_Outline_Decompose(&face.glyph.outline, &funcs, &counter)
-        @assert(@err == null)
-        @assert(counter.moves > 0)
-        @assert(counter.lines + counter.conics > 0)
+    var funcs: FT_Outline_Funcs
+    funcs.move_to  = cast(*void) &moveToCounter
+    funcs.line_to  = cast(*void) &lineToCounter
+    funcs.conic_to = cast(*void) &conicToCounter
 
-        let bounds0 = getOutlineBounds(&face.glyph.outline)
-        FT_Outline_Translate(&face.glyph.outline, 64, 0)
-        let bounds1 = getOutlineBounds(&face.glyph.outline)
-        @assert(bounds1.xMin == bounds0.xMin + 64)
-        @assert(bounds1.xMax == bounds0.xMax + 64)
+    var counter: OutlineCounter
+    discard catch FT_Outline_Decompose(&scope.face.glyph.outline, &funcs, &counter)
+    @assert(@err == null)
+    @assert(counter.moves > 0)
+    @assert(counter.lines + counter.conics > 0)
 
-        discard catch FT_Load_Char(face, 'A''u32, FT_LOAD_NO_BITMAP)
-        @assert(@err == null)
-        let transformIdx = findPointWithNonZeroY(&face.glyph.outline)
-        let beforeTransformX = face.glyph.outline.points[transformIdx].x
-        let beforeTransformY = face.glyph.outline.points[transformIdx].y
-        let scaleY = FT_Matrix{xx: 65536, yy: 131072}
-        FT_Outline_Transform(&face.glyph.outline, &scaleY)
-        @assert(face.glyph.outline.points[transformIdx].x == beforeTransformX)
-        @assert(face.glyph.outline.points[transformIdx].y == beforeTransformY * 2)
+    let bounds0 = getOutlineBounds(&scope.face.glyph.outline)
+    FT_Outline_Translate(&scope.face.glyph.outline, 64, 0)
+    let bounds1 = getOutlineBounds(&scope.face.glyph.outline)
+    @assert(bounds1.xMin == bounds0.xMin + 64)
+    @assert(bounds1.xMax == bounds0.xMax + 64)
 
-        discard catch FT_Load_Char(face, 'A''u32, FT_LOAD_NO_BITMAP)
-        @assert(@err == null)
-        let bounds2 = getOutlineBounds(&face.glyph.outline)
-        discard catch FT_Outline_Embolden(&face.glyph.outline, 64)
-        @assert(@err == null)
-        let bounds3 = getOutlineBounds(&face.glyph.outline)
-        @assert(bounds3.xMax - bounds3.xMin >= bounds2.xMax - bounds2.xMin)
+    discard catch FT_Load_Char(scope.face, 'A''u32, FT_LOAD_NO_BITMAP)
+    @assert(@err == null)
+    let transformIdx = findPointWithNonZeroY(&scope.face.glyph.outline)
+    let beforeTransformX = scope.face.glyph.outline.points[transformIdx].x
+    let beforeTransformY = scope.face.glyph.outline.points[transformIdx].y
+    let scaleY = FT_Matrix{xx: 65536, yy: 131072}
+    FT_Outline_Transform(&scope.face.glyph.outline, &scaleY)
+    @assert(scope.face.glyph.outline.points[transformIdx].x == beforeTransformX)
+    @assert(scope.face.glyph.outline.points[transformIdx].y == beforeTransformY * 2)
 
-        discard catch FT_Load_Char(face, 'A''u32, FT_LOAD_NO_BITMAP)
-        @assert(@err == null)
-        let sampleIdx = findPointWithNonZeroY(&face.glyph.outline)
-        let sampleBeforeX = face.glyph.outline.points[sampleIdx].x
-        let sampleBeforeY = face.glyph.outline.points[sampleIdx].y
-        FT_GlyphSlot_Oblique(face.glyph)
-        @assert(face.glyph.outline.points[sampleIdx].x == sampleBeforeX + cast(s32) Math.round(sampleBeforeY * 0.21256))
-    })
+    discard catch FT_Load_Char(scope.face, 'A''u32, FT_LOAD_NO_BITMAP)
+    @assert(@err == null)
+    let bounds2 = getOutlineBounds(&scope.face.glyph.outline)
+    discard catch FT_Outline_Embolden(&scope.face.glyph.outline, 64)
+    @assert(@err == null)
+    let bounds3 = getOutlineBounds(&scope.face.glyph.outline)
+    @assert(bounds3.xMax - bounds3.xMin >= bounds2.xMax - bounds2.xMin)
+
+    discard catch FT_Load_Char(scope.face, 'A''u32, FT_LOAD_NO_BITMAP)
+    @assert(@err == null)
+    let sampleIdx = findPointWithNonZeroY(&scope.face.glyph.outline)
+    let sampleBeforeX = scope.face.glyph.outline.points[sampleIdx].x
+    let sampleBeforeY = scope.face.glyph.outline.points[sampleIdx].y
+    FT_GlyphSlot_Oblique(scope.face.glyph)
+    @assert(scope.face.glyph.outline.points[sampleIdx].x == sampleBeforeX + cast(s32) Math.round(sampleBeforeY * 0.21256))
 }

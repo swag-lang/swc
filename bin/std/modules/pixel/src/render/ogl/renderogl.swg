@@ -64,7 +64,7 @@ fileprivate impl RenderOgl
         glGetShaderiv(shaderID, GL_COMPILE_STATUS, &result)
         glGetShaderiv(shaderID, GL_INFO_LOG_LENGTH, &infoLogLength)
         infoLog.reserve(cast(u64) infoLogLength + 1)
-        glGetShaderInfoLog(shaderID, infoLogLength, null, @dataof(infoLog))
+        glGetShaderInfoLog(shaderID, infoLogLength, null, infoLog.buffer)
         if infoLogLength
         {
             infoLog.length = infoLogLength

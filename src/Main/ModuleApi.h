@@ -29,6 +29,7 @@ struct ModuleApiPerThreadData
 
 namespace ModuleApi
 {
+    bool   isCurrentModuleSourceFile(const SourceFile& sourceFile);
     void   onSymbolSemaCompleted(ModuleApiPerThreadData& state, TaskContext& ctx, const Symbol& symbol);
     Result exportFiles(TaskContext& ctx);
 

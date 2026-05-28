@@ -131,6 +131,9 @@ void CommandLineParser::registerCommands()
     add(HelpOptionGroup::Compiler, "sema test build run", "--tag", nullptr,
         &cmdLine_->tags,
         "Register a compiler tag consumed by #hastag and #gettag. Syntax: Name, Name = value, or Name: type = value.");
+    add(HelpOptionGroup::Compiler, "run", "--run-arg", nullptr,
+        &cmdLine_->runArgs,
+        "Append one argument to every emitted executable launched by the run command. May be specified multiple times.");
     add(HelpOptionGroup::Compiler, "test build run", "--clear-output", "-co",
         &cmdLine_->clear,
         "Clear native work and artifact folders before building native outputs.");

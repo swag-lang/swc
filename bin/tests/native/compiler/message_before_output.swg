@@ -1,7 +1,7 @@
 #global fileprivate
 using Swag
 
-public var MessageBeforeOutputValue = 0
+moduleprivate var MessageBeforeOutputValue = 0
 
 #message(CompilerMsgMask.PassBeforeOutput)
 {

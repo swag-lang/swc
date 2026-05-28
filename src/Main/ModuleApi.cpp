@@ -104,6 +104,20 @@ namespace
     }
 }
 
+namespace ModuleApi
+{
+    bool isCurrentModuleSourceFile(const SourceFile& sourceFile)
+    {
+        if (sourceFile.isImportedApi())
+            return false;
+
+        if (sourceFile.hasFlag(FileFlagsE::ModuleSrc))
+            return true;
+
+        return sourceFile.hasFlag(FileFlagsE::CustomSrc) && sourceFile.moduleNamespace() != nullptr;
+    }
+}
+
 namespace ModuleApi::Internal
 {
     bool tryFindNodeRef(const Ast& ast, const AstNode* targetNode, AstNodeRef& outNodeRef)

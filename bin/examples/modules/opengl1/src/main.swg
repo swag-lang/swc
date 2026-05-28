@@ -5,8 +5,6 @@ var g_HDC:   HDC
 var g_Frame: Time.FrameTiming
 var g_IsReady = false
 
-const AUTOMATED_RUN = #command == Swag.CompilerCommand.Build or #command == Swag.CompilerCommand.Test
-
 func display()
 {
     const SPEED = 100
@@ -100,7 +98,7 @@ func messageLoop()
 
         display()
 
-        #if AUTOMATED_RUN do
+        if Env.hasArg("swag.test") do
             cpt += 1
     }
 }

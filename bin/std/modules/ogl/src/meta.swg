@@ -5,7 +5,7 @@ attr Extension()
 
 struct OneFunc
 {
-    type:     typeinfo
+    type:     const *TypeInfoFunc
     name:     string
 }
 
@@ -18,60 +18,83 @@ var g_Functions: Array'OneFunc
     let msg = itf.getMessage()
     if msg == null or msg.type == null do
         return
-    if !Reflection.hasAttribute(msg.type, Extension) do
+    if msg.kind != CompilerMsgKind.SemFunctions do
         return
-    g_Functions.add({msg.type, msg.name})
+    if msg.type.kind != TypeInfoKind.Func do
+        return
+
+    let typeFunc = cast(const *TypeInfoFunc) msg.type
+    if !Reflection.hasAttribute(typeFunc, Extension) do
+        return
+    g_Functions.add({type: typeFunc, name: msg.name})
 }
 
 #message(CompilerMsgMask.PassAfterSemantic)
 {
-    var builderVars: StringBuilder
+    let itf = @compiler
     var builderInit: StringBuilder
 
     builderInit.appendString("public func glInitExtensions()\n{\n")
 
     foreach e in g_Functions
     {
-        // Declare a lambda variable for that extension
-        builderVars.appendFormat("var ext_%: %\n", e.name, (cast(const *TypeInfoFunc) e.type).name)
+        var builderVars: StringBuilder
 
-        // Make a wrapper function
-        builderVars.appendFormat("public func %(", e.name)
-        foreach p, i in (cast(const *TypeInfoFunc) e.type).parameters
+        // Declare a lambda variable for that extension.
+        builderVars.appendString("var ext_")
+        builderVars.appendString(e.name)
+        builderVars.appendString(": ")
+        builderVars.appendString(e.type.fullname)
+        builderVars.appendString("\n")
+
+        // Generate the wrapper function body.
+        builderVars.appendString("public func ")
+        builderVars.appendString(e.name)
+        builderVars.appendString("(")
+        foreach p, i in e.type.parameters
         {
             if i != 0 do
                 builderVars.appendString(", ")
-            builderVars.appendFormat("p%: %", i, p.pointedType.name)
+            builderVars.appendString(p.name)
+            builderVars.appendString(": ")
+            builderVars.appendString(p.pointedType.fullname)
         }
 
-        if (cast(const *TypeInfoFunc) e.type).returnType == void
+        if e.type.returnType == null or e.type.returnType == void
         {
-            builderVars.appendFormat(")\n{\n")
+            builderVars.appendString(")\n{\n\text_")
         }
         else
         {
-            builderVars.appendFormat(")->%\n{\n", (cast(const *TypeInfoFunc) e.type).returnType.name)
+            builderVars.appendString(")->")
+            builderVars.appendString(e.type.returnType.fullname)
+            builderVars.appendString("\n{\n\treturn ext_")
         }
 
-        builderVars.appendFormat("\treturn ext_%(", e.name)
-        foreach p, i in (cast(const *TypeInfoFunc) e.type).parameters
+        builderVars.appendString(e.name)
+        builderVars.appendString("(")
+        foreach p, i in e.type.parameters
         {
             if i != 0 do
                 builderVars.appendString(", ")
-            builderVars.appendFormat("p%", i)
+            builderVars.appendString(p.name)
         }
 
         builderVars.appendString(");\n}\n\n")
+        let wrapper = builderVars.moveToString()
+        itf.compileString(wrapper.toString())
 
-        // Initialize the variable with the getExtensionAddress
-        builderInit.appendFormat("\text_% = cast(%) getExtensionAddress(@dataof(\"%\"))\n", e.name, (cast(const *TypeInfoFunc) e.type).name, e.name)
+        // Initialize the variable with the getExtensionAddress.
+        builderInit.appendString("\text_")
+        builderInit.appendString(e.name)
+        builderInit.appendString(" = cast(")
+        builderInit.appendString(e.type.fullname)
+        builderInit.appendString(") getExtensionAddress(@dataof(\"")
+        builderInit.appendString(e.name)
+        builderInit.appendString("\"))\n")
     }
 
-    let itf = @compiler
-    var str = builderVars.toString()
-    itf.compileString(str.toString())
-
     builderInit.appendString("}\n")
-    str = builderInit.toString()
-    itf.compileString(str.toString())
+    let initFunc = builderInit.moveToString()
+    itf.compileString(initFunc.toString())
 }

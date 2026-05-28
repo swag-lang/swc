@@ -59,11 +59,13 @@ namespace ModuleApi
             return;
 
         const SourceFile* sourceFile = ctx.compiler().sourceViewFile(symbol);
-        if (!sourceFile || !sourceFile->hasFlag(FileFlagsE::ModuleSrc) || sourceFile->isImportedApi())
+        if (!sourceFile || !isCurrentModuleSourceFile(*sourceFile))
             return;
         if (!symbol.decl())
             return;
         if (symbol.isFunction() && symbol.decl()->isNot(AstNodeId::FunctionDecl))
+            return;
+        if (symbol.isFunction() && symbol.attributes().hasRtFlag(RtAttributeFlagsE::PlaceHolder))
             return;
         if (symbol.isImpl())
             return;

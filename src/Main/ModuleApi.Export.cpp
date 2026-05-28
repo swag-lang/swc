@@ -109,7 +109,7 @@ namespace
         if (!sourceFile)
             return false;
 
-        return sourceFile->hasFlag(FileFlagsE::ModuleSrc) && !sourceFile->isImportedApi();
+        return ModuleApi::isCurrentModuleSourceFile(*sourceFile);
     }
 
     bool isModuleApiOpaqueType(const Symbol& symbol)
@@ -2431,12 +2431,15 @@ namespace ModuleApi
 
         for (const SourceFile* file : compiler.files())
         {
-            if (!file || !file->hasFlag(FileFlagsE::ModuleSrc))
+            if (!file || !isCurrentModuleSourceFile(*file))
                 continue;
 
-            hasModuleSources = true;
-            if (!firstSourceFile)
-                firstSourceFile = file;
+            if (file->hasFlag(FileFlagsE::ModuleSrc))
+            {
+                hasModuleSources = true;
+                if (!firstSourceFile)
+                    firstSourceFile = file;
+            }
 
             const ModuleApiFileInfo fileInfo = analyzeModuleApiFile(*file, moduleNamespace.view());
             if (fileInfo.wholeFileExported)

@@ -28,7 +28,7 @@ shift
 goto parse_args
 
 :run
-call "%TOOLS_DIR%_common.bat" :run_swc run --workspace "%EXAMPLES_WORKSPACE%" --build-cfg %BUILD_CFG%%EXTRA_ARGS%
+call "%TOOLS_DIR%_common.bat" :run_swc run --workspace "%EXAMPLES_WORKSPACE%" --build-cfg %BUILD_CFG% --run-arg swag.test%EXTRA_ARGS%
 if not "%ERRORLEVEL%"=="0" exit /b %ERRORLEVEL%
 
 call "%TOOLS_DIR%_common.bat" :batch_end "%~f0"

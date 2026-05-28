@@ -3,6 +3,7 @@ using Swag
 
 func MessageBatchEarly()->s32 => 3
 public func MessageBatchLate()->s32 => 11
+func MessagePlaceholderOnly(value: s32)->s32;
 
 struct MessageLateType
 {
@@ -42,10 +43,16 @@ var MessageSawUnknownCountArray = false
 var MessageSawCompilerOnlyFunction = false
 
 #[Compiler]
+var MessageSawPlaceholderFunction = false
+
+#[Compiler]
 var MessageEarlyFunctionCount = 0
 
 #[Compiler]
 var MessageLateFunctionCount = 0
+
+#[Compiler]
+var MessagePlaceholderFunctionCount = 0
 
 #[Compiler]
 var MessageLateTypeCount = 0
@@ -82,6 +89,17 @@ var MessageUnknownCountArrayCount = 0
         MessageSawLateFunction = true
         let typeFunc = cast(const *TypeInfoFunc) msg.type
         @assert(@countof(typeFunc.parameters) == 0)
+        @assert(typeFunc.returnType.name == "s32")
+    }
+
+    if msg.name == "MessagePlaceholderOnly"
+    {
+        MessagePlaceholderFunctionCount += 1
+        MessageSawPlaceholderFunction = true
+        let typeFunc = cast(const *TypeInfoFunc) msg.type
+        @assert(@countof(typeFunc.parameters) == 1)
+        @assert(typeFunc.parameters[0].name == "value")
+        @assert(typeFunc.parameters[0].pointedType.name == "s32")
         @assert(typeFunc.returnType.name == "s32")
     }
 }
@@ -149,6 +167,7 @@ var MessageUnknownCountArrayCount = 0
     let itf = @compiler
     @assert(MessageSawEarlyFunction)
     @assert(MessageSawLateFunction)
+    @assert(MessageSawPlaceholderFunction)
     @assert(MessageSawLateType)
     @assert(MessageSawLateGlobal)
     @assert(MessageSawStrictAlias)
@@ -156,6 +175,7 @@ var MessageUnknownCountArrayCount = 0
     @assert(!MessageSawCompilerOnlyFunction)
     @assert(MessageEarlyFunctionCount == 1)
     @assert(MessageLateFunctionCount == 1)
+    @assert(MessagePlaceholderFunctionCount == 1)
     @assert(MessageLateTypeCount == 1)
     @assert(MessageLateGlobalCount == 1)
     @assert(MessageStrictAliasCount == 1)

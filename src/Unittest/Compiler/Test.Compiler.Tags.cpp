@@ -127,6 +127,31 @@ SWC_TEST_BEGIN(Compiler_UnittestCommandKeepsSourceDrivenModeDisabledWhenParsed)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(Compiler_RunCommandParsesRunArgs)
+{
+    CommandLine parserCmdLine;
+    char        arg0[] = "swc_devmode";
+    char        arg1[] = "run";
+    char        arg2[] = "--run-arg";
+    char        arg3[] = "swag.test";
+    char        arg4[] = "--run-arg=keep-open";
+    char*       argv[] = {arg0, arg1, arg2, arg3, arg4};
+
+    CommandLineParser parser(const_cast<Global&>(ctx.global()), parserCmdLine);
+    if (parser.parse(std::size(argv), argv) != Result::Continue)
+        return Result::Error;
+
+    if (parserCmdLine.command != CommandKind::Run)
+        return Result::Error;
+    if (parserCmdLine.runArgs.size() != 2)
+        return Result::Error;
+    if (parserCmdLine.runArgs[0] != "swag.test")
+        return Result::Error;
+    if (parserCmdLine.runArgs[1] != "keep-open")
+        return Result::Error;
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

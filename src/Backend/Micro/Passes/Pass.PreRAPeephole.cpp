@@ -63,6 +63,7 @@ Result MicroPreRaPeepholePass::run(MicroPassContext& context)
     SWC_ASSERT(context.operands != nullptr);
 
     Context ctx;
+    ctx.builder  = context.builder;
     ctx.storage  = context.instructions;
     ctx.operands = context.operands;
 

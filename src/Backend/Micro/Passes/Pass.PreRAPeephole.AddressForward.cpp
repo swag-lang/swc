@@ -218,9 +218,11 @@ namespace PreRaPeephole
             }
         }
 
-        bool buildAddrAmcRewrite(ConsumerRewrite& out, const MicroInstr& consumer, const MicroInstrOperand* ops, MicroReg addrReg, MicroReg baseReg, MicroReg indexReg, MicroOpBits addrBits, uint64_t scale, uint64_t add)
+        bool buildAddrAmcRewrite(ConsumerRewrite& out, const Context& ctx, const MicroInstr& consumer, const MicroInstrOperand* ops, MicroReg addrReg, MicroReg baseReg, MicroReg indexReg, MicroOpBits addrBits, uint64_t scale, uint64_t add)
         {
             if (!ops)
+                return false;
+            if (hasVirtualForbiddenPhysRegs(ctx, addrReg) || hasVirtualForbiddenPhysRegs(ctx, baseReg) || hasVirtualForbiddenPhysRegs(ctx, indexReg))
                 return false;
 
             switch (consumer.op)
@@ -335,6 +337,8 @@ namespace PreRaPeephole
         const MicroReg baseReg = defOps[1].reg;
         if (!addrReg.isVirtualInt() || !baseReg.isAnyInt())
             return false;
+        if (hasVirtualForbiddenPhysRegs(ctx, addrReg) || hasVirtualForbiddenPhysRegs(ctx, baseReg))
+            return false;
 
         const MicroInstrRef consumerRef = ctx.nextRef(defRef);
         if (!consumerRef.isValid() || ctx.isClaimed(consumerRef))
@@ -368,6 +372,8 @@ namespace PreRaPeephole
         const MicroReg addrReg = defOps[0].reg;
         if (!addrReg.isVirtualInt())
             return false;
+        if (hasVirtualForbiddenPhysRegs(ctx, addrReg) || hasVirtualForbiddenPhysRegs(ctx, defOps[1].reg) || hasVirtualForbiddenPhysRegs(ctx, defOps[2].reg))
+            return false;
 
         const MicroInstrRef consumerRef = ctx.nextRef(defRef);
         if (!consumerRef.isValid() || ctx.isClaimed(consumerRef))
@@ -378,7 +384,7 @@ namespace PreRaPeephole
             return false;
 
         ConsumerRewrite rewrite;
-        if (!buildAddrAmcRewrite(rewrite, *consumer, ctx.operandsFor(consumerRef), addrReg, defOps[1].reg, defOps[2].reg, defOps[4].opBits, defOps[5].valueU64, defOps[6].valueU64))
+        if (!buildAddrAmcRewrite(rewrite, ctx, *consumer, ctx.operandsFor(consumerRef), addrReg, defOps[1].reg, defOps[2].reg, defOps[4].opBits, defOps[5].valueU64, defOps[6].valueU64))
             return false;
 
         if (!ctx.claimAll({consumerRef}))

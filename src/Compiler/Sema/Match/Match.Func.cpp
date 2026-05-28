@@ -1294,6 +1294,52 @@ namespace
         return required;
     }
 
+    TypeRef builtinTypeRef(Sema& sema, const AstBuiltinType& builtinType)
+    {
+        const Token&       tok     = sema.token(builtinType.codeRef());
+        const TypeManager& typeMgr = sema.typeMgr();
+
+        switch (tok.id)
+        {
+            case TokenId::TypeS8:
+                return typeMgr.typeInt(8, TypeInfo::Sign::Signed);
+            case TokenId::TypeS16:
+                return typeMgr.typeInt(16, TypeInfo::Sign::Signed);
+            case TokenId::TypeS32:
+                return typeMgr.typeInt(32, TypeInfo::Sign::Signed);
+            case TokenId::TypeS64:
+                return typeMgr.typeInt(64, TypeInfo::Sign::Signed);
+            case TokenId::TypeU8:
+                return typeMgr.typeInt(8, TypeInfo::Sign::Unsigned);
+            case TokenId::TypeU16:
+                return typeMgr.typeInt(16, TypeInfo::Sign::Unsigned);
+            case TokenId::TypeU32:
+                return typeMgr.typeInt(32, TypeInfo::Sign::Unsigned);
+            case TokenId::TypeU64:
+                return typeMgr.typeInt(64, TypeInfo::Sign::Unsigned);
+            case TokenId::TypeF32:
+                return typeMgr.typeF32();
+            case TokenId::TypeF64:
+                return typeMgr.typeF64();
+            case TokenId::TypeBool:
+                return typeMgr.typeBool();
+            case TokenId::TypeString:
+                return typeMgr.typeString();
+            case TokenId::TypeVoid:
+                return typeMgr.typeVoid();
+            case TokenId::TypeAny:
+                return typeMgr.typeAny();
+            case TokenId::TypeCString:
+                return typeMgr.typeCString();
+            case TokenId::TypeRune:
+                return typeMgr.typeRune();
+            case TokenId::TypeTypeInfo:
+                return typeMgr.typeTypeInfo();
+            default:
+                return TypeRef::invalid();
+        }
+    }
+
     TypeRef typeRefFromTypeNode(Sema& sema, AstNodeRef typeNodeRef)
     {
         if (typeNodeRef.isInvalid())
@@ -1304,6 +1350,54 @@ namespace
             return typeRef;
 
         const AstNode& typeNode = sema.node(typeNodeRef);
+        if (const auto* builtinType = typeNode.safeCast<AstBuiltinType>())
+            return builtinTypeRef(sema, *builtinType);
+
+        if (const auto* codeType = typeNode.safeCast<AstCodeType>())
+        {
+            const TypeRef payloadTypeRef = typeRefFromTypeNode(sema, codeType->nodeTypeRef);
+            return payloadTypeRef.isValid() ? sema.typeMgr().addType(TypeInfo::makeCodeBlock(payloadTypeRef)) : TypeRef::invalid();
+        }
+
+        if (typeNode.is(AstNodeId::VariadicType))
+            return sema.typeMgr().typeVariadic();
+
+        if (const auto* typedVariadicType = typeNode.safeCast<AstTypedVariadicType>())
+        {
+            const TypeRef elementTypeRef = typeRefFromTypeNode(sema, typedVariadicType->nodeTypeRef);
+            return elementTypeRef.isValid() ? sema.typeMgr().addType(TypeInfo::makeTypedVariadic(elementTypeRef)) : TypeRef::invalid();
+        }
+
+        if (const auto* refType = typeNode.safeCast<AstReferenceType>())
+        {
+            const TypeRef pointeeTypeRef = typeRefFromTypeNode(sema, refType->nodePointeeTypeRef);
+            return pointeeTypeRef.isValid() ? sema.typeMgr().addType(TypeInfo::makeReference(pointeeTypeRef)) : TypeRef::invalid();
+        }
+
+        if (const auto* moveRefType = typeNode.safeCast<AstMoveRefType>())
+        {
+            const TypeRef pointeeTypeRef = typeRefFromTypeNode(sema, moveRefType->nodePointeeTypeRef);
+            return pointeeTypeRef.isValid() ? sema.typeMgr().addType(TypeInfo::makeMoveReference(pointeeTypeRef)) : TypeRef::invalid();
+        }
+
+        if (const auto* valuePtrType = typeNode.safeCast<AstValuePointerType>())
+        {
+            const TypeRef pointeeTypeRef = typeRefFromTypeNode(sema, valuePtrType->nodePointeeTypeRef);
+            return pointeeTypeRef.isValid() ? sema.typeMgr().addType(TypeInfo::makeValuePointer(pointeeTypeRef)) : TypeRef::invalid();
+        }
+
+        if (const auto* blockPtrType = typeNode.safeCast<AstBlockPointerType>())
+        {
+            const TypeRef pointeeTypeRef = typeRefFromTypeNode(sema, blockPtrType->nodePointeeTypeRef);
+            return pointeeTypeRef.isValid() ? sema.typeMgr().addType(TypeInfo::makeBlockPointer(pointeeTypeRef)) : TypeRef::invalid();
+        }
+
+        if (const auto* sliceType = typeNode.safeCast<AstSliceType>())
+        {
+            const TypeRef elementTypeRef = typeRefFromTypeNode(sema, sliceType->nodePointeeTypeRef);
+            return elementTypeRef.isValid() ? sema.typeMgr().addType(TypeInfo::makeSlice(elementTypeRef)) : TypeRef::invalid();
+        }
+
         if (const auto* namedType = typeNode.safeCast<AstNamedType>())
         {
             const SemaNodeView identView = sema.viewNodeTypeSymbol(namedType->nodeIdentRef);

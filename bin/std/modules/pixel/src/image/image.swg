@@ -148,16 +148,17 @@ impl Image
         Debug.assert(stride > 0)
 
         let self = me
-        var p      = {self: self, userData: pixelUserData}
-        let offset = cast(u64) (.bpp8 * stride)
-        var buffer = self.pixels.buffer
-        for .size / offset
+        var p = {image: self, userData: pixelUserData}
+        Jobs.parallelVisit(|buffer, data| @mkslice(cast([*] u8) self.pixels.buffer, self.pixels.count), cast(u32) (.bpp8 * stride), &p)
         {
+            if !data do
+                return
+            let p = cast(*#decltype(p)) data
             #macro
             {
-                let image    = #up p.self
+                let image    = #up p.image
                 let userData = #up p.userData
-                let pix      = #up buffer
+                var pix      = cast([*] u8) #up buffer
 
                 let index = cast(u64) (pix - image.pixels.buffer) / image.bpp8
                 let x     = cast(s32) index % image.width
@@ -165,8 +166,6 @@ impl Image
 
                 #inject(#up stmt)
             }
-
-            buffer += offset
         }
     }
 

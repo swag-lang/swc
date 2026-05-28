@@ -6,7 +6,7 @@ impl Image
     {
         let mec = cast #unconst (*Image) me
         let f   = dstImage
-        mec.visitPixels(f, stride: .width)
+        mec.visitPixels(pixelUserData: f, stride: .width)
         {
             let dstImage = cast(*Image) userData
             let w8       = image.width * image.bpp8

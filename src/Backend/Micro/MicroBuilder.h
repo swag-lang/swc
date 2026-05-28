@@ -99,10 +99,14 @@ public:
     std::vector<MicroRelocation>&                              codeRelocations() { return relocations_; }
     const std::vector<MicroRelocation>&                        codeRelocations() const { return relocations_; }
     const std::unordered_map<MicroReg, SmallVector<MicroReg>>& virtualRegForbiddenPhysRegs() const { return virtualRegForbiddenPhysRegs_; }
+    const std::unordered_set<MicroReg>&                        preservedVirtualCopyRegs() const { return preservedVirtualCopyRegs_; }
     void                                                       addVirtualRegForbiddenPhysReg(MicroReg virtualReg, MicroReg forbiddenReg);
     void                                                       addVirtualRegForbiddenPhysRegs(MicroReg virtualReg, MicroRegSpan forbiddenRegs);
+    void                                                       mergeVirtualRegForbiddenPhysRegs(MicroReg fromReg, MicroReg toReg);
     bool                                                       isVirtualRegPhysRegForbidden(MicroReg virtualReg, MicroReg physReg) const;
     bool                                                       isVirtualRegPhysRegForbidden(uint32_t virtualRegKey, MicroReg physReg) const;
+    void                                                       preserveVirtualCopy(MicroReg virtualReg);
+    bool                                                       shouldPreserveVirtualCopy(MicroReg virtualReg) const;
     uint32_t                                                   nextVirtualIntRegIndexHint() const;
     const MicroControlFlowGraph&                               controlFlowGraph();
     void                                                       invalidateControlFlowGraph();
@@ -177,6 +181,7 @@ private:
     std::vector<MicroInstrRef>                          labels_;
     std::vector<MicroRelocation>                        relocations_;
     std::unordered_map<MicroReg, SmallVector<MicroReg>> virtualRegForbiddenPhysRegs_;
+    std::unordered_set<MicroReg>                        preservedVirtualCopyRegs_;
     MicroControlFlowGraph                               controlFlowGraph_;
     uint64_t                                            controlFlowGraphStorageRevision_ = 0;
     uint64_t                                            controlFlowGraphHash_            = 0;

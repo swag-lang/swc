@@ -104,7 +104,6 @@ private:
     void             rebuildCurrentConcreteLiveOutRegs();
     bool             isInstructionReachable(uint32_t instructionIndex) const;
     bool             canEraseCoalescedCopy(MicroInstrRef copyRef, MicroReg dstReg) const;
-    void             mergeVirtualForbiddenRegs(MicroReg dstReg, MicroReg srcReg) const;
     bool             isCurrentConcreteLiveOut(MicroReg key) const;
     void             setupPools();
     void             ensureSpillSlot(VRegState& regState, bool isFloat);

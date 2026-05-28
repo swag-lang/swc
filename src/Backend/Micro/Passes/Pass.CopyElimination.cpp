@@ -127,18 +127,6 @@ namespace
         computeSsaValueFixedPoint<CanonicalValue, CanonicalValueTraits>(outValues, outFlags, ssaState, context, tryInferInstructionCanonical);
     }
 
-    void mergeVirtualForbiddenRegs(MicroBuilder& builder, const MicroReg fromReg, const MicroReg toReg)
-    {
-        if (!fromReg.isVirtual() || !toReg.isVirtual() || fromReg == toReg)
-            return;
-
-        const auto it = builder.virtualRegForbiddenPhysRegs().find(fromReg);
-        if (it == builder.virtualRegForbiddenPhysRegs().end())
-            return;
-
-        builder.addVirtualRegForbiddenPhysRegs(toReg, it->second.span());
-    }
-
     bool rewriteCanonicalUses(MicroBuilder* builder, const MicroSsaState& ssaState, const std::vector<CanonicalValue>& canonicalValues, const std::vector<uint8_t>& canonicalFlags, MicroStorage& storage, MicroOperandStorage& operands)
     {
         const CanonicalValueContext context{&ssaState, &storage, &operands};
@@ -163,13 +151,17 @@ namespace
                     continue;
                 if (!canonicalValue.valid() || canonicalValue.reg == oldReg)
                     continue;
+                if (builder &&
+                    (builder->shouldPreserveVirtualCopy(oldReg) ||
+                     (canonicalValue.reg.isVirtual() && builder->shouldPreserveVirtualCopy(canonicalValue.reg))))
+                    continue;
 
                 const auto rootReachingDef = ssaState.reachingDef(canonicalValue.reg, instRef);
                 if (!rootReachingDef.valid() || rootReachingDef.valueId != canonicalValue.valueId)
                     continue;
 
                 if (builder)
-                    mergeVirtualForbiddenRegs(*builder, oldReg, canonicalValue.reg);
+                    builder->mergeVirtualRegForbiddenPhysRegs(oldReg, canonicalValue.reg);
 
                 *ref.reg = canonicalValue.reg;
                 changed  = true;

@@ -718,6 +718,7 @@ namespace
                 // argument materialization cannot clobber it before the dereference happens.
                 const MicroReg argLaneSourceReg = codeGen.nextVirtualIntRegister();
                 builder.emitLoadRegReg(argLaneSourceReg, arg.srcReg, MicroOpBits::B64);
+                builder.preserveVirtualCopy(argLaneSourceReg);
                 arg.srcReg             = argLaneSourceReg;
                 arg.constrainToArgLane = true;
                 continue;
@@ -743,6 +744,7 @@ namespace
             }
 
             builder.emitLoadRegReg(argLaneSourceReg, arg.srcReg, preparedArgDirectCopyBits(arg));
+            builder.preserveVirtualCopy(argLaneSourceReg);
             arg.srcReg             = argLaneSourceReg;
             arg.constrainToArgLane = true;
         }

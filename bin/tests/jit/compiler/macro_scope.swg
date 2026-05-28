@@ -74,6 +74,59 @@ func nestedBlock(seed: s32, stmt: #code void)
     }
 }
 
+#[Swag.Macro]
+func(T) genericAliasFold(values: [..] T, delta: T, sumPtr: *T, stmt: #code void)
+{
+    for @countof(values)
+    {
+        #macro
+        {
+            let #alias0 = #up values[@index] + #up delta
+            let #alias1 = #up sumPtr
+            #inject(#up stmt)
+        }
+    }
+}
+
+struct MemberMacroWalker
+{
+    values: [3] s32
+}
+
+impl MemberMacroWalker
+{
+    #[Swag.Macro]
+    mtd visit(scale: s32 = 1, stmt: #code void)
+    {
+        let values = .values
+        for @countof(values)
+        {
+            #macro
+            {
+                let item = #up values[@index] * #up scale
+                #inject(#up stmt)
+            }
+        }
+    }
+}
+
+namespace QualifiedMacroScope
+{
+    #[Swag.Macro]
+    public func(T) fold(values: [..] T, delta: T, sumPtr: *T, stmt: #code void)
+    {
+        for @countof(values)
+        {
+            #macro
+            {
+                let item = #up values[@index] + #up delta
+                let out  = #up sumPtr
+                #inject(#up stmt)
+            }
+        }
+    }
+}
+
 func runDoItTwice()->bool
 {
     var a = 1
@@ -143,12 +196,55 @@ func runNestedBlock()->bool
     return result == 42
 }
 
+func runGenericAliasFold()->bool
+{
+    let values = [1, 2, 3]
+    var sum    = 0
+    genericAliasFold(|value, out| values, 10, &sum)
+    {
+        dref out += value
+    }
+
+    return sum == 36
+}
+
+func runMemberMacroWithNamedArg()->bool
+{
+    var walker: MemberMacroWalker
+    walker.values[0] = 1
+    walker.values[1] = 2
+    walker.values[2] = 3
+
+    var sum = 0
+    walker.visit(scale: 2)
+    {
+        sum += item
+    }
+
+    return sum == 12
+}
+
+func runQualifiedGenericMacro()->bool
+{
+    let values = [1, 2, 3]
+    var sum    = 0
+    QualifiedMacroScope.fold(values, 10, &sum)
+    {
+        dref out += item
+    }
+
+    return sum == 36
+}
+
 const MacroScopeDoItTwiceOk      = #run runDoItTwice()
 const MacroScopeCallerScopeOk    = #run runPreferCallerScope()
 const MacroScopeRepeatWithIdxOk  = #run runRepeatWithIndex()
 const MacroScopeApplyConfigOk    = #run runApplyConfig()
 const MacroScopeBindTypedAliasOk = #run runBindTypedAlias()
 const MacroScopeNestedBlockOk    = #run runNestedBlock()
+const MacroScopeGenericAliasOk   = #run runGenericAliasFold()
+const MacroScopeMemberMacroOk    = #run runMemberMacroWithNamedArg()
+const MacroScopeQualifiedMacroOk = #run runQualifiedGenericMacro()
 
 #assert(MacroScopeDoItTwiceOk)
 #assert(MacroScopeCallerScopeOk)
@@ -156,3 +252,6 @@ const MacroScopeNestedBlockOk    = #run runNestedBlock()
 #assert(MacroScopeApplyConfigOk)
 #assert(MacroScopeBindTypedAliasOk)
 #assert(MacroScopeNestedBlockOk)
+#assert(MacroScopeGenericAliasOk)
+#assert(MacroScopeMemberMacroOk)
+#assert(MacroScopeQualifiedMacroOk)

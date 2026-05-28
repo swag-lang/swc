@@ -6,6 +6,7 @@ SWC_BEGIN_NAMESPACE();
 
 class MicroStorage;
 class MicroOperandStorage;
+class MicroBuilder;
 
 namespace PreRaPeephole
 {
@@ -23,6 +24,7 @@ namespace PreRaPeephole
 
     struct Context
     {
+        MicroBuilder*                builder  = nullptr;
         MicroStorage*                storage  = nullptr;
         MicroOperandStorage*         operands = nullptr;
         std::unordered_set<uint32_t> claimed;
@@ -49,6 +51,8 @@ namespace PreRaPeephole
         std::span<const PatternFn> patternsFor(MicroInstrOpcode op) const;
     };
 
+    bool     hasVirtualForbiddenPhysRegs(const Context& ctx, MicroReg reg);
+    void     mergeVirtualForbiddenRegs(const Context& ctx, MicroReg fromReg, MicroReg toReg);
     bool     buildUseOnlyRegRewrite(Action& outAction, const MicroInstr& consumer, const MicroInstrOperand* ops, MicroReg fromReg, MicroReg toReg);
     uint64_t extendBits(uint64_t value, MicroOpBits srcBits, MicroOpBits dstBits, bool isSigned);
     void     setMaskedImmediateValue(MicroInstrOperand& op, uint64_t value, MicroOpBits bits);

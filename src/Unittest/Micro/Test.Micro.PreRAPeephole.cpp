@@ -2,6 +2,7 @@
 
 #if SWC_HAS_UNITTEST
 
+#include "Backend/ABI/CallConv.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroPassManager.h"
@@ -168,6 +169,38 @@ SWC_TEST_BEGIN(PreRAPeephole_ForwardsCopyIntoNextUseOnlySlots)
     builder.emitRet();
 
     SWC_RESULT(runPreRaPeepholePass(builder));
+
+    const MicroInstr* cmpInst = findFirstOpcode(builder, MicroInstrOpcode::CmpMemReg);
+    if (!cmpInst)
+        return Result::Error;
+
+    const MicroInstrOperand* ops = cmpInst->ops(builder.operands());
+    if (!ops || ops[1].reg != src)
+        return Result::Error;
+
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(PreRAPeephole_TransfersForbiddenPhysRegsAcrossCopyForward)
+{
+    const CallConv&    callConv = CallConv::get(CallConvKind::Swag);
+    constexpr MicroReg base     = MicroReg::virtualIntReg(1);
+    constexpr MicroReg src      = MicroReg::virtualIntReg(2);
+    constexpr MicroReg tmp      = MicroReg::virtualIntReg(3);
+    MicroBuilder       builder(ctx);
+
+    builder.addVirtualRegForbiddenPhysReg(tmp, callConv.intReturn);
+    builder.emitLoadRegImm(base, ApInt(0x4100, 64), MicroOpBits::B64);
+    builder.emitLoadRegMem(src, base, 32, MicroOpBits::B64);
+    builder.emitLoadRegReg(tmp, src, MicroOpBits::B64);
+    builder.emitCmpMemReg(base, 0, tmp, MicroOpBits::B64);
+    builder.emitRet();
+
+    SWC_RESULT(runPreRaPeepholePass(builder));
+
+    if (!builder.isVirtualRegPhysRegForbidden(src, callConv.intReturn))
+        return Result::Error;
 
     const MicroInstr* cmpInst = findFirstOpcode(builder, MicroInstrOpcode::CmpMemReg);
     if (!cmpInst)
@@ -381,6 +414,39 @@ SWC_TEST_BEGIN(PreRAPeephole_FoldsCopyAddIntoLoadAddress)
     constexpr MicroReg addr = MicroReg::virtualIntReg(2);
     MicroBuilder       builder(ctx);
 
+    builder.emitLoadRegReg(addr, base, MicroOpBits::B64);
+    builder.emitOpBinaryRegImm(addr, ApInt(0xD0, 64), MicroOp::Add, MicroOpBits::B64);
+    builder.emitRet();
+
+    SWC_RESULT(runPreRaPeepholePass(builder));
+
+    if (countOpcode(builder, MicroInstrOpcode::LoadRegReg) != 0)
+        return Result::Error;
+    if (countOpcode(builder, MicroInstrOpcode::OpBinaryRegImm) != 0)
+        return Result::Error;
+    if (countOpcode(builder, MicroInstrOpcode::LoadAddrRegMem) != 1)
+        return Result::Error;
+
+    const MicroInstr* addrInst = findFirstOpcode(builder, MicroInstrOpcode::LoadAddrRegMem);
+    if (!addrInst)
+        return Result::Error;
+
+    const MicroInstrOperand* ops = addrInst->ops(builder.operands());
+    if (!ops || ops[0].reg != addr || ops[1].reg != base || ops[2].opBits != MicroOpBits::B64 || ops[3].valueU64 != 0xD0)
+        return Result::Error;
+
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(PreRAPeephole_FoldsCopyAddIntoLoadAddressDespiteMismatchedForbiddenRegs)
+{
+    const CallConv&    callConv = CallConv::get(CallConvKind::Swag);
+    constexpr MicroReg base     = MicroReg::virtualIntReg(1);
+    constexpr MicroReg addr     = MicroReg::virtualIntReg(2);
+    MicroBuilder       builder(ctx);
+
+    builder.addVirtualRegForbiddenPhysReg(addr, callConv.intReturn);
     builder.emitLoadRegReg(addr, base, MicroOpBits::B64);
     builder.emitOpBinaryRegImm(addr, ApInt(0xD0, 64), MicroOp::Add, MicroOpBits::B64);
     builder.emitRet();

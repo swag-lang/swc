@@ -66,7 +66,7 @@ fileprivate
     }
 
     #[Swag.EnumFlags]
-    enum ColorType: u8
+    enum DecodeColorType: u8
     {
         Grayscale = 0
         Paletted  = 1
@@ -79,13 +79,13 @@ fileprivate
         width:                 u32
         height:                u32
         bitDepth:              u8
-        colorType:             ColorType
+        colorType:             DecodeColorType
         compressionMethod:     u8
         filterMethod:          u8
         interlaceMethod:       InterlaceMethod = undefined
     }
 
-    struct Chunk
+    struct DecodeChunk
     {
         header:     ChunkHeader
         datas:      const [..] u8
@@ -104,7 +104,7 @@ public struct Decoder
     dcmpBuf:           Array'u8
     dstPixels:         [*] u8
     dstPixelsSize:     u64
-    chunkTRNS:         Chunk
+    chunkTRNS:         DecodeChunk
     palette:           [256] u32
     paletteCount:      s32
     seenTRSN:          bool
@@ -115,7 +115,7 @@ public struct Decoder
 
 impl Decoder
 {
-    mtd readChunk(ch: ChunkHeader)->Chunk throw
+    mtd readChunk(ch: ChunkHeader)->DecodeChunk throw
     {
         var result: retval
 

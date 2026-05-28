@@ -193,7 +193,8 @@ void MicroRegisterAllocationPass::coalesceLocalCopies() const
             continue;
         if (!dstReg.isSameClass(srcReg))
             continue;
-        if (context_->builder->virtualRegForbiddenPhysRegs().contains(dstReg))
+        if (context_->builder &&
+            (context_->builder->shouldPreserveVirtualCopy(dstReg) || context_->builder->shouldPreserveVirtualCopy(srcReg)))
             continue;
 
         if (dstReg == srcReg)
@@ -231,7 +232,7 @@ void MicroRegisterAllocationPass::coalesceLocalCopies() const
         if (!replacedUses)
             continue;
 
-        mergeVirtualForbiddenRegs(dstReg, srcReg);
+        context_->builder->mergeVirtualRegForbiddenPhysRegs(dstReg, srcReg);
         if (canEraseCoalescedCopy(instructionRef, dstReg))
             instructions_->erase(instructionRef);
 
@@ -523,24 +524,6 @@ bool MicroRegisterAllocationPass::canEraseCoalescedCopy(const MicroInstrRef copy
     }
 
     return true;
-}
-
-void MicroRegisterAllocationPass::mergeVirtualForbiddenRegs(MicroReg dstReg, MicroReg srcReg) const
-{
-    SWC_ASSERT(context_ != nullptr);
-    SWC_ASSERT(context_->builder != nullptr);
-
-    const auto& forbiddenByVirtual = context_->builder->virtualRegForbiddenPhysRegs();
-    const auto  it                 = forbiddenByVirtual.find(dstReg);
-    if (it == forbiddenByVirtual.end())
-        return;
-
-    SmallVector<MicroReg> mergedRegs;
-    mergedRegs.reserve(it->second.size());
-    for (const MicroReg forbiddenReg : it->second)
-        mergedRegs.push_back(forbiddenReg);
-
-    context_->builder->addVirtualRegForbiddenPhysRegs(srcReg, mergedRegs.span());
 }
 
 void MicroRegisterAllocationPass::prepareInstructionData()
@@ -1448,9 +1431,7 @@ MicroReg MicroRegisterAllocationPass::allocatePhysical(const AllocRequest& reque
     if (!selectEvictionCandidateWithFallback(request.virtKey, request.instructionIndex, isFloatReg, preferPersistentPool, protectedKeys, forbiddenPhysRegs, stamp, false, victimKey, victimReg))
     {
         if (!selectEvictionCandidateWithFallback(request.virtKey, request.instructionIndex, isFloatReg, preferPersistentPool, protectedKeys, forbiddenPhysRegs, stamp, true, victimKey, victimReg))
-        {
             SWC_INTERNAL_CHECK(false);
-        }
     }
 
     auto&      victimState   = stateForVirtual(victimKey);
@@ -1923,7 +1904,7 @@ void MicroRegisterAllocationPass::rewriteInstructions()
             {
                 for (const MicroReg key : currentConcreteLiveOut_)
                 {
-                    if (!key.isInt())
+                    if (!request.virtReg.isSameClass(key))
                         continue;
                     if (!isConcreteLiveInAt(key, idx))
                         continue;

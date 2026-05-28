@@ -89,6 +89,25 @@ namespace
         return !typeInfo.isPointerLike() && !typeInfo.isArray();
     }
 
+    bool canResolveFunctionParameterIdentifier(const Sema& sema, const SourceCodeRef& codeRef)
+    {
+        if (!codeRef.isValid())
+            return false;
+
+        const SourceView& srcView = sema.srcView(codeRef.srcViewRef);
+        if (codeRef.tokRef.get() >= srcView.tokens().size())
+            return false;
+
+        const Token& tok = srcView.token(codeRef.tokRef);
+        if (tok.id != TokenId::Identifier)
+            return false;
+        if (tok.byteStart >= srcView.identifiers().size())
+            return false;
+
+        const uint32_t byteStart = srcView.identifiers()[tok.byteStart].byteStart;
+        return byteStart + tok.byteLength <= srcView.stringView().size();
+    }
+
     const SymbolVariable* currentFunctionParameterByIdentifier(Sema& sema, AstNodeRef nodeRef)
     {
         if (!sema.isCurrentFunction() || nodeRef.isInvalid())
@@ -97,7 +116,7 @@ namespace
             return nullptr;
 
         const SourceCodeRef codeRef = sema.node(nodeRef).codeRef();
-        if (!codeRef.isValid())
+        if (!canResolveFunctionParameterIdentifier(sema, codeRef))
             return nullptr;
 
         const IdentifierRef idRef = sema.idMgr().addIdentifier(sema.ctx(), codeRef);

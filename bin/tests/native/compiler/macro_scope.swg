@@ -151,6 +151,59 @@ func aliasWithConfig(cfg: MacroScopeConfig, stmt: #code void)
     }
 }
 
+#[Swag.Macro]
+func(T) genericAliasFold(values: [..] T, delta: T, sumPtr: *T, stmt: #code void)
+{
+    for @countof(values)
+    {
+        #macro
+        {
+            let #alias0 = #up values[@index] + #up delta
+            let #alias1 = #up sumPtr
+            #inject(#up stmt)
+        }
+    }
+}
+
+struct MemberMacroWalker
+{
+    values: [3] s32
+}
+
+impl MemberMacroWalker
+{
+    #[Swag.Macro]
+    mtd visit(scale: s32 = 1, stmt: #code void)
+    {
+        let values = .values
+        for @countof(values)
+        {
+            #macro
+            {
+                let item = #up values[@index] * #up scale
+                #inject(#up stmt)
+            }
+        }
+    }
+}
+
+namespace QualifiedMacroScope
+{
+    #[Swag.Macro]
+    public func(T) fold(values: [..] T, delta: T, sumPtr: *T, stmt: #code void)
+    {
+        for @countof(values)
+        {
+            #macro
+            {
+                let item = #up values[@index] + #up delta
+                let out  = #up sumPtr
+                #inject(#up stmt)
+            }
+        }
+    }
+}
+
 // #macro injects statement twice
 #test
 {
@@ -314,4 +367,47 @@ func aliasWithConfig(cfg: MacroScopeConfig, stmt: #code void)
     }
 
     @assert(result == 5 + 10)
+}
+
+// Generic macro alias calls keep the trailing code block argument
+#test
+{
+    let values = [1, 2, 3]
+    var sum    = 0
+    genericAliasFold(|value, out| values, 10, &sum)
+    {
+        dref out += value
+    }
+
+    @assert(sum == 36)
+}
+
+// Member macro calls keep the trailing code block after named arguments.
+#test
+{
+    var walker: MemberMacroWalker
+    walker.values[0] = 1
+    walker.values[1] = 2
+    walker.values[2] = 3
+
+    var sum = 0
+    walker.visit(scale: 2)
+    {
+        sum += item
+    }
+
+    @assert(sum == 12)
+}
+
+// Qualified generic macro calls still consume the implicit trailing code block.
+#test
+{
+    let values = [1, 2, 3]
+    var sum    = 0
+    QualifiedMacroScope.fold(values, 10, &sum)
+    {
+        dref out += item
+    }
+
+    @assert(sum == 36)
 }

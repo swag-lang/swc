@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroStorage.h"
 #include "Backend/Micro/Passes/Pass.PreRAPeephole.Internal.h"
 
@@ -135,6 +136,22 @@ namespace PreRaPeephole
 
         inst->op          = action.newOp;
         inst->numOperands = action.numOps;
+    }
+
+    bool hasVirtualForbiddenPhysRegs(const Context& ctx, MicroReg reg)
+    {
+        if (!ctx.builder || !reg.isVirtual())
+            return false;
+
+        return ctx.builder->virtualRegForbiddenPhysRegs().contains(reg);
+    }
+
+    void mergeVirtualForbiddenRegs(const Context& ctx, const MicroReg fromReg, const MicroReg toReg)
+    {
+        if (!ctx.builder)
+            return;
+
+        ctx.builder->mergeVirtualRegForbiddenPhysRegs(fromReg, toReg);
     }
 
     bool buildUseOnlyRegRewrite(Action& outAction, const MicroInstr& consumer, const MicroInstrOperand* ops, const MicroReg fromReg, const MicroReg toReg)

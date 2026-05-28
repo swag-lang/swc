@@ -432,9 +432,34 @@ namespace
             return nullptr;
         if (sym->isFunction())
             return &sym->cast<SymbolFunction>();
+        if (sym->isAlias())
+            return resolveCalledFunction(sema, const_cast<Symbol*>(sym->cast<SymbolAlias>().aliasedSymbol()));
         if (sym->isVariable())
             return SemaHelpers::callableTypeFunction(sema.ctx(), sym->typeRef());
         return nullptr;
+    }
+
+    bool hasCallableCalleeSymbols(Sema& sema, std::span<Symbol* const> symbols)
+    {
+        for (Symbol* sym : symbols)
+        {
+            if (resolveCalledFunction(sema, sym))
+                return true;
+        }
+
+        return false;
+    }
+
+    bool canConsumeTrailingCodeBlockSyntax(Sema& sema, const SymbolFunction& fn)
+    {
+        if (fn.isClosure() || fn.isForeign())
+            return false;
+
+        const AttributeList& attributes = fn.attributes();
+        if (attributes.hasRtFlag(RtAttributeFlagsE::Macro) || attributes.hasRtFlag(RtAttributeFlagsE::Mixin))
+            return true;
+
+        return SemaInline::canInlineCall(sema, fn);
     }
 
     void collectQuotedCalleeBaseSymbols(Sema& sema, const AstNode& calleeNode, SmallVector<Symbol*>& outSymbols)
@@ -459,11 +484,47 @@ namespace
         baseView.getSymbols(outSymbols);
     }
 
+    void collectMemberCalleeSymbols(Sema& sema, const AstNode& calleeNode, SmallVector<Symbol*>& outSymbols)
+    {
+        AstNodeRef memberNameRef = AstNodeRef::invalid();
+        if (const auto* memberAccess = calleeNode.safeCast<AstMemberAccessExpr>())
+            memberNameRef = SemaHelpers::unwrapCallCalleeRef(sema, memberAccess->nodeRightRef);
+        else if (const auto* autoMemberAccess = calleeNode.safeCast<AstAutoMemberAccessExpr>())
+            memberNameRef = SemaHelpers::unwrapCallCalleeRef(sema, autoMemberAccess->nodeIdentRef);
+        else
+            return;
+
+        if (memberNameRef.isInvalid())
+            return;
+
+        SemaNodeView memberView(sema, memberNameRef, SemaNodeViewPartE::Symbol);
+        memberView.getSymbols(outSymbols);
+        if (!outSymbols.empty())
+            return;
+
+        memberView.compute(sema, memberNameRef, SemaNodeViewPartE::Symbol, SemaNodeViewResolveE::Stored);
+        memberView.getSymbols(outSymbols);
+    }
+
     void collectCalleeSymbolsWithFallback(Sema& sema, const SemaNodeView& nodeCallee, SmallVector<Symbol*>& outSymbols)
     {
         nodeCallee.getSymbols(outSymbols);
-        if (outSymbols.empty())
-            collectQuotedCalleeBaseSymbols(sema, *nodeCallee.node(), outSymbols);
+        if (!hasCallableCalleeSymbols(sema, outSymbols))
+        {
+            SmallVector<Symbol*> quotedSymbols;
+            collectQuotedCalleeBaseSymbols(sema, *nodeCallee.node(), quotedSymbols);
+            if (hasCallableCalleeSymbols(sema, quotedSymbols.span()))
+                outSymbols = std::move(quotedSymbols);
+        }
+
+        if (!hasCallableCalleeSymbols(sema, outSymbols))
+        {
+            SmallVector<Symbol*> memberSymbols;
+            collectMemberCalleeSymbols(sema, *nodeCallee.node(), memberSymbols);
+            if (hasCallableCalleeSymbols(sema, memberSymbols.span()))
+                outSymbols = std::move(memberSymbols);
+        }
+
         if (outSymbols.empty() && sema.isValue(nodeCallee.nodeRef()))
         {
             if (auto* symFunc = SemaHelpers::callableTypeFunction(sema.ctx(), nodeCallee.typeRef()))
@@ -474,6 +535,17 @@ namespace
     bool isVoidCodeBlockParameter(Sema& sema, const SymbolVariable& param)
     {
         const TypeInfo& paramType = param.type(sema.ctx());
+        return paramType.isCodeBlock() && paramType.payloadTypeRef() == sema.typeMgr().typeVoid();
+    }
+
+    bool isVoidCodeBlockParameter(Sema& sema, const SemaGeneric::GenericFunctionParamDesc& param)
+    {
+        if (!param.resolvedTypeRef.isValid())
+            return false;
+
+        const TypeRef resolvedTypeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), param.resolvedTypeRef);
+        const TypeRef effectiveTypeRef = resolvedTypeRef.isValid() ? resolvedTypeRef : param.resolvedTypeRef;
+        const TypeInfo& paramType = sema.typeMgr().get(effectiveTypeRef);
         return paramType.isCodeBlock() && paramType.payloadTypeRef() == sema.typeMgr().typeVoid();
     }
 
@@ -523,70 +595,136 @@ namespace
         return assigned.back() != 0;
     }
 
-    bool canConsumeTrailingCodeBlock(Sema& sema, const SymbolFunction& fn, std::span<const AstNodeRef> args, AstNodeRef ufcsArg)
+    bool hasExplicitLastArgumentBinding(Sema& sema, std::span<const SemaGeneric::GenericFunctionParamDesc> params, std::span<const AstNodeRef> args, AstNodeRef ufcsArg)
     {
-        if (!SemaInline::canInlineCall(sema, fn))
-            return false;
-
-        const auto& params = fn.parameters();
         if (params.empty())
             return false;
-        if (!isVoidCodeBlockParameter(sema, *params.back()))
-            return false;
-        if (hasExplicitLastArgumentBinding(sema, fn, args, ufcsArg))
-            return false;
 
-        return true;
+        std::vector<uint8_t> assigned(params.size(), 0);
+        if (ufcsArg.isValid())
+            assigned[0] = 1;
+
+        for (const AstNodeRef argRef : args)
+        {
+            if (!sema.node(argRef).is(AstNodeId::NamedArgument))
+                continue;
+
+            const IdentifierRef idRef = sema.idMgr().addIdentifier(sema.ctx(), sema.node(argRef).codeRef());
+            for (size_t paramIndex = 0; paramIndex < params.size(); ++paramIndex)
+            {
+                if (params[paramIndex].idRef == idRef)
+                {
+                    assigned[paramIndex] = 1;
+                    break;
+                }
+            }
+        }
+
+        size_t nextParam = ufcsArg.isValid() ? 1 : 0;
+        for (const AstNodeRef argRef : args)
+        {
+            if (sema.node(argRef).is(AstNodeId::NamedArgument))
+                continue;
+
+            while (nextParam < params.size() && assigned[nextParam])
+                ++nextParam;
+            if (nextParam >= params.size())
+                break;
+
+            assigned[nextParam] = 1;
+            ++nextParam;
+        }
+
+        return assigned.back() != 0;
+    }
+
+    TypeRef consumableTrailingCodeBlockPayloadType(Sema& sema, const SymbolFunction& fn, std::span<const AstNodeRef> args, AstNodeRef ufcsArg)
+    {
+        if (!canConsumeTrailingCodeBlockSyntax(sema, fn))
+            return TypeRef::invalid();
+
+        SmallVector<SemaGeneric::GenericFunctionParamDesc> paramDescs;
+        SemaGeneric::collectFunctionParamDescs(sema, fn, paramDescs);
+        if (!paramDescs.empty())
+        {
+            if (isVoidCodeBlockParameter(sema, paramDescs.back()))
+            {
+                if (hasExplicitLastArgumentBinding(sema, paramDescs.span(), args, ufcsArg))
+                    return TypeRef::invalid();
+                return sema.typeMgr().typeVoid();
+            }
+        }
+
+        const auto& params = fn.parameters();
+        if (!params.empty())
+        {
+            if (!isVoidCodeBlockParameter(sema, *params.back()))
+                return TypeRef::invalid();
+            if (hasExplicitLastArgumentBinding(sema, fn, args, ufcsArg))
+                return TypeRef::invalid();
+            return params.back()->type(sema.ctx()).payloadTypeRef();
+        }
+
+        return TypeRef::invalid();
     }
 
     AstNodeRef findTrailingCodeBlockSibling(Sema& sema, AstNodeRef callRef)
     {
-        const AstNode* parentNode = sema.visit().parentNode();
-        if (!parentNode)
-            return AstNodeRef::invalid();
-
-        switch (parentNode->id())
+        AstNodeRef searchRef = callRef;
+        for (size_t up = 0;; ++up)
         {
-            case AstNodeId::EmbeddedBlock:
-            case AstNodeId::FunctionBody:
-            case AstNodeId::SwitchCaseBody:
-            case AstNodeId::TopLevelBlock:
-                break;
-            default:
+            const AstNode* parentNode = sema.visit().parentNode(up);
+            if (!parentNode)
                 return AstNodeRef::invalid();
-        }
 
-        SmallVector<AstNodeRef> children;
-        parentNode->collectChildrenFromAst(children, sema.ast());
-
-        for (size_t childIndex = 0; childIndex < children.size(); ++childIndex)
-        {
-            if (children[childIndex] != callRef)
-                continue;
-
-            for (size_t nextIndex = childIndex + 1; nextIndex < children.size(); ++nextIndex)
+            switch (parentNode->id())
             {
-                const AstNodeRef siblingRef = children[nextIndex];
-                if (siblingRef.isInvalid())
-                    continue;
-                if (siblingRef == callRef)
-                    continue;
-
-                return sema.node(siblingRef).is(AstNodeId::EmbeddedBlock) ? siblingRef : AstNodeRef::invalid();
+                case AstNodeId::EmbeddedBlock:
+                case AstNodeId::FunctionBody:
+                case AstNodeId::SwitchCaseBody:
+                case AstNodeId::TopLevelBlock:
+                    break;
+                default:
+                    return AstNodeRef::invalid();
             }
 
-            break;
-        }
+            SmallVector<AstNodeRef> children;
+            parentNode->collectChildrenFromAst(children, sema.ast());
 
-        return AstNodeRef::invalid();
+            bool wrappedInSingleStmtBlock = false;
+            for (size_t childIndex = 0; childIndex < children.size(); ++childIndex)
+            {
+                if (children[childIndex] != searchRef)
+                    continue;
+
+                for (size_t nextIndex = childIndex + 1; nextIndex < children.size(); ++nextIndex)
+                {
+                    const AstNodeRef siblingRef = children[nextIndex];
+                    if (siblingRef.isInvalid() || siblingRef == searchRef)
+                        continue;
+
+                    return sema.node(siblingRef).is(AstNodeId::EmbeddedBlock) ? siblingRef : AstNodeRef::invalid();
+                }
+
+                wrappedInSingleStmtBlock = parentNode->is(AstNodeId::EmbeddedBlock) && children.size() == 1;
+                break;
+            }
+
+            if (!wrappedInSingleStmtBlock)
+                return AstNodeRef::invalid();
+
+            searchRef = sema.visit().parentNodeRef(up);
+            if (searchRef.isInvalid())
+                return AstNodeRef::invalid();
+        }
     }
 
-    AstNodeRef makeTrailingCodeBlockArgument(Sema& sema, AstNodeRef siblingRef, const SymbolVariable& param)
+    AstNodeRef makeTrailingCodeBlockArgument(Sema& sema, AstNodeRef siblingRef, TypeRef payloadTypeRef)
     {
         auto [wrappedRef, wrappedPtr] = sema.ast().makeNode<AstNodeId::CompilerCodeBlock>(sema.node(siblingRef).tokRef());
         wrappedPtr->setCodeRef(sema.node(siblingRef).codeRef());
         wrappedPtr->nodeBodyRef    = siblingRef;
-        wrappedPtr->payloadTypeRef = param.type(sema.ctx()).payloadTypeRef();
+        wrappedPtr->payloadTypeRef = payloadTypeRef;
         return wrappedRef;
     }
 
@@ -599,15 +737,23 @@ namespace
         for (Symbol* sym : symbols)
         {
             const SymbolFunction* fn = resolveCalledFunction(sema, sym);
-            if (fn && canConsumeTrailingCodeBlock(sema, *fn, args, ufcsArg))
-                return makeTrailingCodeBlockArgument(sema, outSiblingRef, *fn->parameters().back());
+            if (!fn)
+                continue;
+
+            const TypeRef payloadTypeRef = consumableTrailingCodeBlockPayloadType(sema, *fn, args, ufcsArg);
+            if (payloadTypeRef.isValid())
+                return makeTrailingCodeBlockArgument(sema, outSiblingRef, payloadTypeRef);
         }
 
         if (symbols.empty() && sema.isValue(nodeCallee.nodeRef()))
         {
             const auto* fn = SemaHelpers::callableTypeFunction(sema.ctx(), nodeCallee.typeRef());
-            if (fn && canConsumeTrailingCodeBlock(sema, *fn, args, ufcsArg))
-                return makeTrailingCodeBlockArgument(sema, outSiblingRef, *fn->parameters().back());
+            if (fn)
+            {
+                const TypeRef payloadTypeRef = consumableTrailingCodeBlockPayloadType(sema, *fn, args, ufcsArg);
+                if (payloadTypeRef.isValid())
+                    return makeTrailingCodeBlockArgument(sema, outSiblingRef, payloadTypeRef);
+            }
         }
 
         outSiblingRef.setInvalid();

@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroPassHelpers.h"
 #include "Backend/Micro/Passes/Pass.PreRAPeephole.Internal.h"
 
@@ -102,6 +103,9 @@ namespace PreRaPeephole
         const MicroReg copySrc = copyOps[1].reg;
         if (copyDst == copySrc || !copyDst.isVirtual() || !copySrc.isVirtual() || !copyDst.isSameClass(copySrc))
             return false;
+        if (ctx.builder &&
+            (ctx.builder->shouldPreserveVirtualCopy(copyDst) || ctx.builder->shouldPreserveVirtualCopy(copySrc)))
+            return false;
 
         const MicroInstrRef consumerRef = ctx.nextRef(copyRef);
         if (!consumerRef.isValid() || ctx.isClaimed(consumerRef))
@@ -118,6 +122,7 @@ namespace PreRaPeephole
         if (!ctx.claimAll({consumerRef}))
             return false;
 
+        mergeVirtualForbiddenRegs(ctx, copyDst, copySrc);
         rewrite.ref = consumerRef;
         ctx.actions.push_back(rewrite);
         return true;

@@ -211,9 +211,9 @@ public func waitJob(job: *Job)
 // Operate on a range in parallel chunks.
 // Exposed variables:
 // - buffer: address of the element of the range to process
-// - data:   userData as passed to the macro
+// - data:   user data as passed to the macro
 #[Swag.Macro]
-public func(T) parallelVisit(range: [..] T, offset: u32 = 1, userData: *void = null, stmt: #code void)
+public func(T) parallelVisit(range: [..] T, offset: u32 = 1, contextData: *void = null, stmt: #code void)
 {
     if !@countof(range) do
         return
@@ -225,8 +225,8 @@ public func(T) parallelVisit(range: [..] T, offset: u32 = 1, userData: *void = n
     {
         #macro
         {
-            let #alias0 = #up scan
-            let #alias1 = #up userData
+            var #alias0 = cast #unconst (*#up T) #up scan
+            let #alias1 = #up contextData
             #inject(#up stmt)
         }
 
@@ -237,9 +237,9 @@ public func(T) parallelVisit(range: [..] T, offset: u32 = 1, userData: *void = n
 // Do a for for in parallel chunks.
 // Exposed variables:
 // - #alias0: current for index
-// - #alias1: userData as passed to the macro
+// - #alias1: user data as passed to the macro
 #[Swag.Macro]
-public func parallelFor(count: u32, userData: *void = null, stmt: #code void)
+public func parallelFor(count: u32, contextData: *void = null, stmt: #code void)
 {
     if !count do
         return
@@ -250,7 +250,7 @@ public func parallelFor(count: u32, userData: *void = null, stmt: #code void)
         #macro
         {
             let #alias0 = #up curIndex
-            let #alias1 = #up userData
+            let #alias1 = #up contextData
             #inject(#up stmt)
         }
 

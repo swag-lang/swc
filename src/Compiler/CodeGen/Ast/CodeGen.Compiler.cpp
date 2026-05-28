@@ -217,6 +217,14 @@ namespace
         const CallConv& callConv = CallConv::get(symbolFunc.callConvKind());
         SWC_ASSERT(paramInfos.size() == params.size());
 
+        struct RegisterParameterPayload
+        {
+            const SymbolVariable*                            symVar       = nullptr;
+            CodeGenNodePayload                               payload      = {};
+            CodeGenFunctionHelpers::FunctionParameterInfo    paramInfo    = {};
+            bool                                             needsRebind  = false;
+        };
+
         SmallVector<uint32_t> registerParamIndices;
         registerParamIndices.reserve(params.size());
         for (size_t i = 0; i < params.size(); ++i)
@@ -227,6 +235,8 @@ namespace
         }
 
         MicroBuilder& builder = codeGen.builder();
+        SmallVector<RegisterParameterPayload> registerPayloads;
+        registerPayloads.reserve(registerParamIndices.size());
         for (size_t i = 0; i < registerParamIndices.size(); ++i)
         {
             const uint32_t paramIndex = registerParamIndices[i];
@@ -242,13 +252,36 @@ namespace
             for (size_t j = i + 1; j < registerParamIndices.size(); ++j)
             {
                 const uint32_t laterParamIndex = registerParamIndices[j];
+                if (paramInfos[laterParamIndex].isFloat != paramInfos[paramIndex].isFloat)
+                    continue;
+
                 futureSourceRegs.push_back(parameterSourcePhysReg(callConv, paramInfos[laterParamIndex]));
             }
 
             builder.addVirtualRegForbiddenPhysRegs(symbolPayload.reg, futureSourceRegs.span());
+            if (!futureSourceRegs.empty())
+                builder.preserveVirtualCopy(symbolPayload.reg);
             CodeGenFunctionHelpers::emitLoadFunctionParameterToReg(codeGen, symbolFunc, paramInfos[paramIndex], symbolPayload.reg);
             symbolPayload.setValueOrAddress(paramInfos[paramIndex].isIndirect);
             codeGen.setVariablePayload(*symVar, symbolPayload);
+
+            RegisterParameterPayload registerPayload;
+            registerPayload.symVar      = symVar;
+            registerPayload.payload     = symbolPayload;
+            registerPayload.paramInfo   = paramInfos[paramIndex];
+            registerPayload.needsRebind = !futureSourceRegs.empty();
+            registerPayloads.push_back(registerPayload);
+        }
+
+        for (const auto& registerPayload : registerPayloads)
+        {
+            if (!registerPayload.needsRebind)
+                continue;
+
+            CodeGenNodePayload reboundPayload = registerPayload.payload;
+            reboundPayload.reg                = registerPayload.paramInfo.isFloat ? codeGen.nextVirtualFloatRegister() : codeGen.nextVirtualIntRegister();
+            builder.emitLoadRegReg(reboundPayload.reg, registerPayload.payload.reg, registerPayload.paramInfo.opBits);
+            codeGen.setVariablePayload(*registerPayload.symVar, reboundPayload);
         }
     }
 

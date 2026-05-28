@@ -93,6 +93,13 @@ SymbolMap* SemaFrame::currentSymMap(Sema& sema)
     if (!sema.curScope().isTopLevel() || sema.curScope().isImpl())
         return symbolMap;
 
+    // Explicit namespace scopes already carry the resolved namespace symbol map.
+    // Re-rooting them through file/module access can create a sibling namespace
+    // with the same id under another visibility root, which splits later member
+    // declarations and qualified lookups across different namespace objects.
+    if (symbolMap && !sema.frame().nsPath().empty())
+        return symbolMap;
+
     const SymbolAccess access = sema.frame().currentAccess();
 
     SymbolMap* root = nullptr;

@@ -187,6 +187,18 @@ void MicroBuilder::addVirtualRegForbiddenPhysRegs(MicroReg virtualReg, MicroRegS
         addVirtualRegForbiddenPhysReg(virtualReg, forbiddenReg);
 }
 
+void MicroBuilder::mergeVirtualRegForbiddenPhysRegs(MicroReg fromReg, MicroReg toReg)
+{
+    if (!fromReg.isVirtual() || !toReg.isVirtual() || fromReg == toReg)
+        return;
+
+    const auto it = virtualRegForbiddenPhysRegs_.find(fromReg);
+    if (it == virtualRegForbiddenPhysRegs_.end())
+        return;
+
+    addVirtualRegForbiddenPhysRegs(toReg, it->second.span());
+}
+
 bool MicroBuilder::isVirtualRegPhysRegForbidden(MicroReg virtualReg, MicroReg physReg) const
 {
     if (!virtualReg.isVirtual())
@@ -213,6 +225,19 @@ bool MicroBuilder::isVirtualRegPhysRegForbidden(uint32_t virtualRegKey, MicroReg
     MicroReg virtualReg = MicroReg::invalid();
     virtualReg.packed   = virtualRegKey;
     return isVirtualRegPhysRegForbidden(virtualReg, physReg);
+}
+
+void MicroBuilder::preserveVirtualCopy(MicroReg virtualReg)
+{
+    if (!virtualReg.isVirtual())
+        return;
+
+    preservedVirtualCopyRegs_.insert(virtualReg);
+}
+
+bool MicroBuilder::shouldPreserveVirtualCopy(MicroReg virtualReg) const
+{
+    return virtualReg.isVirtual() && preservedVirtualCopyRegs_.contains(virtualReg);
 }
 
 uint32_t MicroBuilder::nextVirtualIntRegIndexHint() const
@@ -821,6 +846,7 @@ void MicroBuilder::releaseMemory()
     labels_                          = {};
     relocations_                     = {};
     virtualRegForbiddenPhysRegs_     = {};
+    preservedVirtualCopyRegs_        = {};
     controlFlowGraph_                = {};
     controlFlowGraphStorageRevision_ = 0;
     controlFlowGraphHash_            = 0;

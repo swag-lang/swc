@@ -351,8 +351,18 @@ namespace
         MicroBuilder&                       builder  = codeGen.builder();
         SWC_ASSERT(paramInfos.size() == params.size());
 
+        struct RegisterParameterPayload
+        {
+            const SymbolVariable*                            symVar       = nullptr;
+            CodeGenNodePayload                               payload      = {};
+            CodeGenFunctionHelpers::FunctionParameterInfo    paramInfo    = {};
+            bool                                             needsRebind  = false;
+        };
+
         SmallVector<uint32_t> registerParamIndices;
         collectRegisterParameterIndices(registerParamIndices, params, paramInfos);
+        SmallVector<RegisterParameterPayload> registerPayloads;
+        registerPayloads.reserve(registerParamIndices.size());
 
         for (size_t i = 0; i < registerParamIndices.size(); ++i)
         {
@@ -361,26 +371,45 @@ namespace
             SWC_ASSERT(symVar != nullptr);
             const auto paramInfo = paramInfos[paramIndex];
 
-            CodeGenNodePayload symbolPayload;
-            symbolPayload.reg     = paramInfo.isFloat ? codeGen.nextVirtualFloatRegister() : codeGen.nextVirtualIntRegister();
-            symbolPayload.typeRef = symVar->typeRef();
-
             SmallVector<MicroReg> futureSourceRegs;
             futureSourceRegs.reserve(registerParamIndices.size() - i - 1);
             for (size_t j = i + 1; j < registerParamIndices.size(); ++j)
             {
                 const uint32_t                                      laterParamIndex = registerParamIndices[j];
                 const CodeGenFunctionHelpers::FunctionParameterInfo laterParamInfo  = paramInfos[laterParamIndex];
+                if (laterParamInfo.isFloat != paramInfo.isFloat)
+                    continue;
+
                 futureSourceRegs.push_back(parameterSourcePhysReg(callConv, laterParamInfo));
             }
 
-            // Keep the allocator away from source argument registers that still need to be read for the
-            // remaining parameters, otherwise early materialization can clobber a later one.
-            builder.addVirtualRegForbiddenPhysRegs(symbolPayload.reg, futureSourceRegs);
+            CodeGenNodePayload symbolPayload;
+            symbolPayload.reg     = paramInfo.isFloat ? codeGen.nextVirtualFloatRegister() : codeGen.nextVirtualIntRegister();
+            symbolPayload.typeRef = symVar->typeRef();
+            builder.addVirtualRegForbiddenPhysRegs(symbolPayload.reg, futureSourceRegs.span());
+            if (!futureSourceRegs.empty())
+                builder.preserveVirtualCopy(symbolPayload.reg);
             CodeGenFunctionHelpers::emitLoadFunctionParameterToReg(codeGen, symbolFunc, paramInfo, symbolPayload.reg);
             symbolPayload.setValueOrAddress(paramInfo.isIndirect);
-
             codeGen.setVariablePayload(*symVar, symbolPayload);
+
+            RegisterParameterPayload registerPayload;
+            registerPayload.symVar      = symVar;
+            registerPayload.payload     = symbolPayload;
+            registerPayload.paramInfo   = paramInfo;
+            registerPayload.needsRebind = !futureSourceRegs.empty();
+            registerPayloads.push_back(registerPayload);
+        }
+
+        for (const auto& registerPayload : registerPayloads)
+        {
+            if (!registerPayload.needsRebind)
+                continue;
+
+            CodeGenNodePayload reboundPayload = registerPayload.payload;
+            reboundPayload.reg                = registerPayload.paramInfo.isFloat ? codeGen.nextVirtualFloatRegister() : codeGen.nextVirtualIntRegister();
+            builder.emitLoadRegReg(reboundPayload.reg, registerPayload.payload.reg, registerPayload.paramInfo.opBits);
+            codeGen.setVariablePayload(*registerPayload.symVar, reboundPayload);
         }
     }
 

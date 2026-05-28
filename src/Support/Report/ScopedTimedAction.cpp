@@ -350,6 +350,28 @@ namespace
         return result;
     }
 
+    bool shouldElideModuleScopeInStageDetail(const TaskContext& ctx, const Stage stage)
+    {
+        if (ctx.cmdLine().command != CommandKind::Test)
+            return false;
+        if (!isModuleInput(ctx.cmdLine()))
+            return false;
+
+        switch (stage)
+        {
+            case Stage::Format:
+            case Stage::Syntax:
+            case Stage::Sema:
+            case Stage::JIT:
+            case Stage::Micro:
+            case Stage::Build:
+            case Stage::Run:
+                return true;
+            default:
+                return false;
+        }
+    }
+
     Utf8 stageDetail(const TaskContext& ctx, const Stage stage)
     {
         switch (stage)
@@ -371,6 +393,8 @@ namespace
             case Stage::Build:
             case Stage::Run:
                 if (ctx.hasCompiler() && ctx.compiler().workspaceModuleLogState())
+                    return {};
+                if (shouldElideModuleScopeInStageDetail(ctx, stage))
                     return {};
                 return formatCompileScopeDetail(ctx);
             case Stage::Verify:

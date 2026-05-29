@@ -179,6 +179,90 @@ namespace
         return true;
     }
 
+    bool functionOwnsVariable(const SymbolFunction& function, const SymbolVariable& symVar)
+    {
+        if (symVar.ownerSymMap() == &function)
+            return true;
+        if (function.containsLocalVariable(symVar))
+            return true;
+
+        const auto& params = function.parameters();
+        return std::ranges::find(params, &symVar) != params.end();
+    }
+
+    const SymbolFunction* parentLexicalFunction(const SymbolFunction& function)
+    {
+        const SymbolMap* map = function.ownerSymMap();
+        while (map)
+        {
+            if (map->isFunction())
+                return &map->cast<SymbolFunction>();
+            map = map->ownerSymMap();
+        }
+
+        return nullptr;
+    }
+
+    const SymbolFunction* localFunctionBoundaryForOuterVariable(const SymbolFunction& currentFn, const SymbolVariable& symVar)
+    {
+        if (symVar.hasGlobalStorage())
+            return nullptr;
+
+        if (!(symVar.hasExtraFlag(SymbolVariableFlagsE::Parameter) ||
+              symVar.hasExtraFlag(SymbolVariableFlagsE::FunctionLocal) ||
+              symVar.isClosureCapture()))
+            return nullptr;
+
+        const SymbolFunction* fn = &currentFn;
+        while (fn)
+        {
+            if (functionOwnsVariable(*fn, symVar))
+                return nullptr;
+
+            const AstNode* decl = fn->decl();
+            if (decl && decl->is(AstNodeId::FunctionDecl))
+                return fn;
+
+            fn = parentLexicalFunction(*fn);
+        }
+
+        return nullptr;
+    }
+
+    bool isTypeOnlyCompilerIntrinsic(TokenId tokenId)
+    {
+        switch (tokenId)
+        {
+            case TokenId::CompilerTypeOf:
+            case TokenId::CompilerKindOf:
+            case TokenId::CompilerDeclType:
+            case TokenId::CompilerSizeOf:
+            case TokenId::CompilerAlignOf:
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    bool isTypeOnlyCompilerIdentifierUse(Sema& sema)
+    {
+        for (size_t up = 0;; ++up)
+        {
+            const AstNode* parentNode = sema.visit().parentNode(up);
+            if (!parentNode)
+                return false;
+
+            if (parentNode->is(AstNodeId::CompilerTypeExpr))
+                return true;
+
+            if (const auto* compilerCall = parentNode->safeCast<AstCompilerCallOne>())
+            {
+                if (isTypeOnlyCompilerIntrinsic(sema.token(compilerCall->codeRef()).id))
+                    return true;
+            }
+        }
+    }
+
     bool isCurrentImplFamilySymbol(const SymbolImpl& currentImpl, const Symbol& symbol)
     {
         const SymbolMap* owner = symbol.ownerSymMap();
@@ -552,16 +636,8 @@ Result AstIdentifier::semaPostNode(Sema& sema) const
 
                 if (const auto* compilerCall = parentNode.safeCast<AstCompilerCallOne>())
                 {
-                    switch (sema.token(compilerCall->codeRef()).id)
-                    {
-                        case TokenId::CompilerTypeOf:
-                        case TokenId::CompilerKindOf:
-                        case TokenId::CompilerSizeOf:
-                        case TokenId::CompilerAlignOf:
-                            return Result::Continue;
-                        default:
-                            break;
-                    }
+                    if (isTypeOnlyCompilerIntrinsic(sema.token(compilerCall->codeRef()).id))
+                        return Result::Continue;
                 }
             }
         }
@@ -587,6 +663,37 @@ Result AstIdentifier::semaPostNode(Sema& sema) const
 
     SWC_RESULT(SemaSymbolLookup::bindResolvedSymbols(sema, sema.curNodeRef(), allowOverloadSet, lookUpCxt.symbols().span()));
     const Symbol* sym = sema.curViewSymbol().sym();
+    if (sym && sym->isVariable())
+    {
+        const SymbolVariable&    symVar            = sym->cast<SymbolVariable>();
+        const IdentifierRef      meId              = sema.idMgr().predefined(IdentifierManager::PredefinedName::Me);
+        const bool               isImplicitReceiver = symVar.idRef() == meId;
+        const bool               isCompilerDefined = hasFlag(AstIdentifierFlagsE::InCompilerDefined) || isTypeOnlyCompilerIdentifierUse(sema);
+        const SymbolFunction*    localFnBoundary   = !isImplicitReceiver && !isCompilerDefined && sema.currentFunction() ? localFunctionBoundaryForOuterVariable(*sema.currentFunction(), symVar) : nullptr;
+        if (localFnBoundary)
+        {
+            auto diag = SemaError::report(sema, DiagnosticId::sema_err_local_function_outer_scope_variable, sema.curNodeRef());
+            diag.addArgument(Diagnostic::ARG_SYM, symVar.name(sema.ctx()));
+
+            if (localFnBoundary->decl())
+            {
+                diag.addNote(DiagnosticId::sema_note_function_declared_here);
+                diag.last().addArgument(Diagnostic::ARG_SYM, localFnBoundary->name(sema.ctx()));
+                diag.last().addSpan(localFnBoundary->codeRange(sema.ctx()));
+            }
+
+            if (symVar.decl())
+            {
+                diag.addNote(DiagnosticId::sema_note_capture_source_declared_here);
+                diag.last().addArgument(Diagnostic::ARG_SYM, symVar.name(sema.ctx()));
+                diag.last().addSpan(symVar.codeRange(sema.ctx()));
+            }
+
+            diag.report(sema.ctx());
+            return Result::Error;
+        }
+    }
+
     if (sym && requiresExplicitClosureCapture(sema, *sym))
     {
         auto diag = SemaError::report(sema, DiagnosticId::sema_err_closure_capture_missing, sema.curNodeRef());

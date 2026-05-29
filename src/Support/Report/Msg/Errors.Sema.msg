@@ -158,6 +158,7 @@ SWC_DIAG_DEF(sema_err_closure_capture_duplicate, Error, "closure capture '{sym}'
 SWC_DIAG_DEF(sema_err_closure_capture_too_large, Error, "closure capture of type '{type}' exceeds the fixed capture buffer size of {value} bytes")
 SWC_DIAG_DEF(sema_err_closure_capture_missing, Error, "variable '{sym}' from an outer scope must be explicitly captured by the closure; [help] add '{sym}' to the capture list, for example 'func|{sym}| ...'")
 SWC_DIAG_DEF(sema_err_closure_capture_missing, Error, "identifier from an outer scope must be explicitly captured by the closure")
+SWC_DIAG_DEF(sema_err_local_function_outer_scope_variable, Error, "local function cannot reference outer-scope variable '{sym}'; [help] use a closure expression if you need to capture outer locals")
 SWC_DIAG_DEF(sema_err_closure_capture_let_by_ref, Error, "cannot capture 'let' variable '{sym}' by reference; [help] remove '&' to capture it by value, or declare it with 'var'")
 SWC_DIAG_DEF(sema_err_take_address_not_lvalue, Error, "cannot take the address of this expression because it is not addressable; [help] use a variable, field, or index expression that refers to storage")
 SWC_DIAG_DEF(sema_err_take_address_not_lvalue, Error, "cannot take the address of a non-addressable expression; [help] use a variable, field, or index expression that refers to storage")

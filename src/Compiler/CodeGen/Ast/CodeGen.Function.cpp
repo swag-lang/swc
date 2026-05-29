@@ -156,12 +156,23 @@ namespace
         }
     }
 
+    void emitCurrentFunctionIndirectReturnStoragePrologue(CodeGen& codeGen, const CallConv& callConv)
+    {
+        if (!codeGen.hasCurrentFunctionIndirectReturnStackOffset())
+            return;
+
+        SWC_ASSERT(codeGen.localStackBaseReg().isValid());
+        SWC_ASSERT(!callConv.intArgRegs.empty());
+        codeGen.builder().emitLoadMemReg(codeGen.localStackBaseReg(), codeGen.currentFunctionIndirectReturnStackOffset(), callConv.intArgRegs[0], MicroOpBits::B64);
+    }
+
     void buildLocalStackLayout(CodeGen& codeGen)
     {
         const std::vector<SymbolVariable*>& localSymbols = codeGen.function().localVariables();
         const std::vector<SymbolVariable*>& params       = codeGen.function().parameters();
         const CallConv&                     callConv     = CallConv::get(codeGen.function().callConvKind());
         uint64_t                            frameSize    = 0;
+        codeGen.clearCurrentFunctionIndirectReturnStackOffset();
         for (SymbolVariable* symVar : localSymbols)
         {
             SWC_ASSERT(symVar != nullptr);
@@ -212,6 +223,16 @@ namespace
 
         appendDebugParameterSlots(codeGen, frameSize);
         configureGvtdScratchLayout(codeGen, frameSize);
+        if (CodeGenFunctionHelpers::functionUsesIndirectReturnStorage(codeGen, codeGen.function()))
+        {
+            constexpr uint32_t hiddenReturnStorageSize      = sizeof(uint64_t);
+            constexpr uint32_t hiddenReturnStorageAlignment = alignof(uint64_t);
+            frameSize = Math::alignUpU64(frameSize, hiddenReturnStorageAlignment);
+            SWC_ASSERT(frameSize <= std::numeric_limits<uint32_t>::max());
+            codeGen.setCurrentFunctionIndirectReturnStackOffset(static_cast<uint32_t>(frameSize));
+            frameSize += hiddenReturnStorageSize;
+        }
+
         const uint32_t stackAlignment = callConv.stackAlignment ? callConv.stackAlignment : 16;
         frameSize                     = Math::alignUpU64(frameSize, stackAlignment);
         SWC_ASSERT(frameSize <= std::numeric_limits<uint32_t>::max());
@@ -512,18 +533,7 @@ namespace
             MicroBuilder&           builder = codeGen.builder();
             const ScopedDebugNoStep noStep(builder, true);
             emitLocalStackFramePrologue(codeGen, callConvKind);
-        }
-
-        if (normalizedRet.isIndirect)
-        {
-            SWC_ASSERT(!callConv.intArgRegs.empty());
-            MicroBuilder&           builder = codeGen.builder();
-            const ScopedDebugNoStep noStep(builder, true);
-            // Capture the hidden return-buffer argument before parameter materialization starts consuming
-            // the ABI argument registers.
-            const MicroReg outputStorageReg = codeGen.nextVirtualIntRegister();
-            builder.emitLoadRegReg(outputStorageReg, callConv.intArgRegs[0], MicroOpBits::B64);
-            codeGen.setCurrentFunctionIndirectReturnReg(outputStorageReg);
+            emitCurrentFunctionIndirectReturnStoragePrologue(codeGen, callConv);
         }
 
         if (symbolFunc.isClosure())

@@ -6,6 +6,7 @@
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Runtime.h"
 #include "Compiler/CodeGen/Core/CodeGen.h"
+#include "Compiler/CodeGen/Core/CodeGenCallHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenConstantHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenMemoryHelpers.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
@@ -263,15 +264,29 @@ bool CodeGenFunctionHelpers::usesCallerReturnStorage(CodeGen& codeGen, const Sym
 
 CodeGenNodePayload CodeGenFunctionHelpers::resolveCallerReturnStoragePayload(CodeGen& codeGen, const SymbolVariable& symVar)
 {
+    SWC_ASSERT(usesCallerReturnStorage(codeGen, symVar));
+
+    if (codeGen.hasCurrentFunctionIndirectReturnStackOffset())
+    {
+        SWC_ASSERT(codeGen.localStackBaseReg().isValid());
+
+        CodeGenNodePayload symbolPayload;
+        symbolPayload.typeRef = symVar.typeRef();
+        symbolPayload.setIsAddress();
+        symbolPayload.reg = codeGen.ensureCurrentFunctionIndirectReturnReg(codeGen.function().callConvKind());
+        return symbolPayload;
+    }
+
     if (const CodeGenNodePayload* symbolPayload = codeGen.variablePayload(symVar))
         return *symbolPayload;
-
-    SWC_ASSERT(usesCallerReturnStorage(codeGen, symVar));
 
     CodeGenNodePayload symbolPayload;
     symbolPayload.typeRef = symVar.typeRef();
     symbolPayload.setIsAddress();
-    symbolPayload.reg = codeGen.currentFunctionIndirectReturnReg();
+    symbolPayload.reg = codeGen.nextVirtualIntRegister();
+    SWC_ASSERT(codeGen.currentFunctionIndirectReturnReg().isValid());
+    codeGen.builder().emitLoadRegReg(symbolPayload.reg, codeGen.currentFunctionIndirectReturnReg(), MicroOpBits::B64);
+    codeGen.builder().preserveVirtualCopy(symbolPayload.reg);
     SWC_ASSERT(symbolPayload.reg.isValid());
     codeGen.setVariablePayload(symVar, symbolPayload);
     return symbolPayload;
@@ -712,7 +727,7 @@ void CodeGenFunctionHelpers::emitStackPointerSubtract(CodeGen& codeGen, const Ca
 bool CodeGenFunctionHelpers::tryUseCurrentFunctionReturnStorageForDirectExpr(CodeGen& codeGen, AstNodeRef nodeRef, MicroReg& outStorageReg)
 {
     outStorageReg = MicroReg::invalid();
-    if (!codeGen.currentFunctionIndirectReturnReg().isValid())
+    if (!codeGen.currentFunctionIndirectReturnReg().isValid() && !codeGen.hasCurrentFunctionIndirectReturnStackOffset())
         return false;
 
     const AstNodeRef resolvedNodeRef = codeGen.viewZero(nodeRef).nodeRef();
@@ -737,7 +752,7 @@ bool CodeGenFunctionHelpers::tryUseCurrentFunctionReturnStorageForDirectExpr(Cod
         if (resolvedReturnRef != resolvedNodeRef)
             return false;
 
-        outStorageReg = codeGen.currentFunctionIndirectReturnReg();
+        outStorageReg = codeGen.ensureCurrentFunctionIndirectReturnReg(codeGen.function().callConvKind());
         return true;
     }
 }
@@ -777,6 +792,8 @@ void CodeGenFunctionHelpers::emitPersistCompilerRunValue(CodeGen& codeGen, TypeR
     preparedArgs.push_back({.srcReg = stackBaseReg, .numBits = 64});
     preparedArgs.push_back({.srcReg = stackSizeReg, .numBits = 64});
 
+    const CallConv& callConv = CallConv::get(callConvKind);
+    CodeGenCallHelpers::isolatePreparedRegisterArgSources(codeGen, callConv, preparedArgs);
     const ABICall::PreparedCall preparedCall = ABICall::prepareArgs(builder, callConvKind, preparedArgs.span());
     ABICall::callReg(builder, callConvKind, targetReg, preparedCall);
 }

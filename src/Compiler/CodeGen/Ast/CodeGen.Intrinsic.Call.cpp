@@ -279,6 +279,8 @@ namespace
             CodeGenCallHelpers::appendDirectPreparedArg(preparedArgs, codeGen, callConv, params[i]->typeRef(), argRegs[i]);
         }
 
+        CodeGenCallHelpers::isolatePreparedRegisterArgSources(codeGen, callConv, preparedArgs);
+        
         MicroBuilder&               builder      = codeGen.builder();
         const ABICall::PreparedCall preparedCall = ABICall::prepareArgs(builder, callConvKind, preparedArgs.span());
         if (runtimeFunction.isForeign())
@@ -1067,6 +1069,7 @@ namespace
         const MicroLabelRef doneLabel = builder.createLabel();
         builder.emitCmpRegImm(condReg, ApInt(0, 64), condBits);
         builder.emitJumpToLabel(MicroCond::NotEqual, MicroOpBits::B32, doneLabel);
+        CodeGenCallHelpers::isolatePreparedRegisterArgSources(codeGen, callConv, preparedArgs);
         const ABICall::PreparedCall preparedCall = ABICall::prepareArgs(builder, callConvKind, preparedArgs.span());
         ABICall::callLocal(builder, callConvKind, &raiseExceptionFunction, preparedCall);
         builder.placeLabel(doneLabel);
@@ -1526,8 +1529,10 @@ namespace
         directU64Arg.srcReg = contextReg;
         preparedArgs.push_back(directU64Arg);
 
-        MicroBuilder&               builder      = codeGen.builder();
         const CallConvKind          callConvKind = tlsSetValueFunction.callConvKind();
+        const CallConv&             callConv     = CallConv::get(callConvKind);
+        CodeGenCallHelpers::isolatePreparedRegisterArgSources(codeGen, callConv, preparedArgs);
+        MicroBuilder&               builder      = codeGen.builder();
         const ABICall::PreparedCall preparedCall = ABICall::prepareArgs(builder, callConvKind, preparedArgs.span());
         ABICall::callLocal(builder, callConvKind, &tlsSetValueFunction, preparedCall);
         return Result::Continue;
@@ -1705,10 +1710,11 @@ namespace
         arg.numBits     = 64;
         preparedArgs.push_back(arg);
 
+        const CallConv& callConv = CallConv::get(callConvKind);
+        CodeGenCallHelpers::isolatePreparedRegisterArgSources(codeGen, callConv, preparedArgs);
         const ABICall::PreparedCall preparedCall = ABICall::prepareArgs(builder, callConvKind, preparedArgs.span());
         ABICall::callLocal(builder, callConvKind, &tlsGetValueFunction, preparedCall);
 
-        const CallConv&                        callConv      = CallConv::get(callConvKind);
         const ABITypeNormalize::NormalizedType normalizedRet = ABITypeNormalize::normalize(codeGen.ctx(), callConv, resultType, ABITypeNormalize::Usage::Return);
         SWC_ASSERT(!normalizedRet.isVoid);
         SWC_ASSERT(!normalizedRet.isIndirect);

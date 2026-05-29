@@ -307,12 +307,7 @@ namespace
             const ABITypeNormalize::NormalizedType normalizedRet = ABITypeNormalize::normalize(codeGen.ctx(), callConv, returnTypeRef, ABITypeNormalize::Usage::Return);
             if (normalizedRet.isIndirect)
             {
-                SWC_ASSERT(!callConv.intArgRegs.empty());
-
-                MicroBuilder&  builder          = codeGen.builder();
-                const MicroReg outputStorageReg = codeGen.nextVirtualIntRegister();
-                builder.emitLoadRegReg(outputStorageReg, callConv.intArgRegs[0], MicroOpBits::B64);
-                codeGen.setCurrentFunctionIndirectReturnReg(outputStorageReg);
+                codeGen.ensureCurrentFunctionIndirectReturnReg(callConvKind);
             }
         }
 
@@ -386,10 +381,7 @@ Result AstCompilerRunBlock::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeR
     buildCompilerFunctionStackLayout(codeGen);
     emitCompilerFunctionStackPrologue(codeGen, callConvKind);
 
-    MicroBuilder&  builder          = codeGen.builder();
-    const MicroReg outputStorageReg = codeGen.nextVirtualIntRegister();
-    builder.emitLoadRegReg(outputStorageReg, callConv.intArgRegs[0], MicroOpBits::B64);
-    codeGen.setCurrentFunctionIndirectReturnReg(outputStorageReg);
+    codeGen.ensureCurrentFunctionIndirectReturnReg(callConvKind);
 
     materializeCompilerRegisterParameters(codeGen, codeGen.function(), paramInfos.span());
     return Result::Continue;

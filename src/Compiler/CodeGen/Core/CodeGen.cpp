@@ -427,6 +427,7 @@ Result CodeGen::exec(SymbolFunction& symbolFunc, AstNodeRef root)
         nextVirtualRegister_              = 1;
         localStackFrameSize_              = 0;
         localStackBaseReg_                = MicroReg::invalid();
+        currentFunctionIndirectReturnStackOffset_ = 0xFFFFFFFFu;
         currentFunctionIndirectReturnReg_ = MicroReg::invalid();
         currentFunctionClosureContextReg_ = MicroReg::invalid();
         deferScopes_.clear();
@@ -820,6 +821,15 @@ CodeGenNodePayload CodeGen::resolveLocalStackPayload(const SymbolVariable& sym, 
 
 MicroReg CodeGen::ensureCurrentFunctionIndirectReturnReg(const CallConvKind callConvKind)
 {
+    if (hasCurrentFunctionIndirectReturnStackOffset() && localStackBaseReg().isValid())
+    {
+        MicroBuilder&           builder = this->builder();
+        const ScopedDebugNoStep noStep(builder, true);
+        const MicroReg          outputStorageReg = nextVirtualIntRegister();
+        builder.emitLoadRegMem(outputStorageReg, localStackBaseReg(), currentFunctionIndirectReturnStackOffset(), MicroOpBits::B64);
+        return outputStorageReg;
+    }
+
     if (currentFunctionIndirectReturnReg_.isValid())
         return currentFunctionIndirectReturnReg_;
 
@@ -830,6 +840,7 @@ MicroReg CodeGen::ensureCurrentFunctionIndirectReturnReg(const CallConvKind call
     const ScopedDebugNoStep noStep(builder, true);
     const MicroReg          outputStorageReg = nextVirtualIntRegister();
     builder.emitLoadRegReg(outputStorageReg, callConv.intArgRegs[0], MicroOpBits::B64);
+    builder.preserveVirtualCopy(outputStorageReg);
     currentFunctionIndirectReturnReg_ = outputStorageReg;
     return outputStorageReg;
 }
@@ -1589,6 +1600,7 @@ Result CodeGen::postNodeChild(AstNode& node, AstNodeRef& childRef)
 {
     if (childRef.isValid())
         builder().setCurrentDebugSourceCodeRef(this->node(childRef).codeRef());
+
     const AstNodeIdInfo& info = Ast::nodeIdInfos(node.id());
     return info.codeGenPostNodeChild(*this, node, childRef);
 }

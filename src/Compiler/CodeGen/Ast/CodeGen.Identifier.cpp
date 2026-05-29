@@ -537,12 +537,12 @@ namespace
 
         if (CodeGenFunctionHelpers::usesCallerReturnStorage(codeGen, symVar))
         {
+            if (skipInit)
+                return Result::Continue;
+
             const uint32_t localSize = CodeGenFunctionHelpers::checkedTypeSizeInBytes(codeGen, codeGen.typeMgr().get(symVar.typeRef()));
             SWC_ASSERT(localSize > 0);
             const CodeGenNodePayload symbolPayload = CodeGenFunctionHelpers::resolveCallerReturnStoragePayload(codeGen, symVar);
-
-            if (skipInit)
-                return Result::Continue;
 
             const auto* initNodePayload = initRef.isValid() ? codeGen.safeNodePayload<CodeGenNodePayload>(initRef) : nullptr;
             if ((!initNodePayload || !initPayloadAliasesSymbolStorage(codeGen, symVar, initRef, *initNodePayload)) && initRef.isValid())

@@ -82,6 +82,8 @@ namespace
         const auto sourceLocArg = makeAddressPayloadFromConstant(codeGen, sourceLocCstRef);
         CodeGenCallHelpers::appendDirectPreparedArg(preparedArgs, codeGen, callConv, runtimeFunction.parameters()[1]->typeRef(), sourceLocArg.reg);
 
+        CodeGenCallHelpers::isolatePreparedRegisterArgSources(codeGen, callConv, preparedArgs);
+        
         MicroBuilder&               builder      = codeGen.builder();
         const ABICall::PreparedCall preparedCall = ABICall::prepareArgs(builder, callConvKind, preparedArgs.span());
         if (runtimeFunction.isForeign())

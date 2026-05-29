@@ -701,7 +701,7 @@ namespace
         return bits;
     }
 
-    void isolatePreparedRegisterArgSources(CodeGen& codeGen, const CallConv& callConv, SmallVector<ABICall::PreparedArg>& args)
+    void doIsolatePreparedRegisterArgSources(CodeGen& codeGen, const CallConv& callConv, SmallVector<ABICall::PreparedArg>& args)
     {
         MicroBuilder&  builder    = codeGen.builder();
         const uint32_t numRegArgs = std::min(static_cast<uint32_t>(args.size()), callConv.numArgRegisterSlots());
@@ -1361,6 +1361,11 @@ namespace
         outArgs.push_back(variadicPreparedArg);
         return Result::Continue;
     }
+}
+
+void CodeGenCallHelpers::isolatePreparedRegisterArgSources(CodeGen& codeGen, const CallConv& callConv, SmallVector<ABICall::PreparedArg>& args)
+{
+    doIsolatePreparedRegisterArgSources(codeGen, callConv, args);
 }
 
 Result CodeGenCallHelpers::emitRuntimeCallWithDirectArgsToReg(CodeGen& codeGen, const SymbolFunction& runtimeFunction, std::span<const MicroReg> argRegs, MicroReg resultReg)

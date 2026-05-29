@@ -309,6 +309,10 @@ public:
     bool                      hasLocalStackFrame() const { return localStackFrameSize_ != 0; }
     void                      setLocalStackBaseReg(MicroReg reg) { localStackBaseReg_ = reg; }
     MicroReg                  localStackBaseReg() const { return localStackBaseReg_; }
+    void                      setCurrentFunctionIndirectReturnStackOffset(uint32_t offset) { currentFunctionIndirectReturnStackOffset_ = offset; }
+    void                      clearCurrentFunctionIndirectReturnStackOffset() { currentFunctionIndirectReturnStackOffset_ = 0xFFFFFFFFu; }
+    bool                      hasCurrentFunctionIndirectReturnStackOffset() const { return currentFunctionIndirectReturnStackOffset_ != 0xFFFFFFFFu; }
+    uint32_t                  currentFunctionIndirectReturnStackOffset() const { return currentFunctionIndirectReturnStackOffset_; }
     void                      setCurrentFunctionIndirectReturnReg(MicroReg reg) { currentFunctionIndirectReturnReg_ = reg; }
     MicroReg                  currentFunctionIndirectReturnReg() const { return currentFunctionIndirectReturnReg_; }
     MicroReg                  ensureCurrentFunctionIndirectReturnReg(CallConvKind callConvKind);
@@ -389,6 +393,7 @@ private:
     uint32_t                                                        nextVirtualRegister_ = 1;
     uint32_t                                                        localStackFrameSize_ = 0;
     MicroReg                                                        localStackBaseReg_;
+    uint32_t                                                        currentFunctionIndirectReturnStackOffset_ = 0xFFFFFFFFu;
     MicroReg                                                        currentFunctionIndirectReturnReg_;
     MicroReg                                                        currentFunctionClosureContextReg_;
     SmallVector<CodeGenDeferScope, 32>                              deferScopes_;

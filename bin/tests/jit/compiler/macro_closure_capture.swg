@@ -122,3 +122,24 @@ func macroClosureCaptureValue(value: s32)->s32
         @assert(cb() == 43)
     }
 }
+
+#test
+{
+    jitMacroInjectCallerScopeAliasClosureCapture(|start| 41)
+    {
+        func makeCounter(seed: s32)->func||()->s32
+        {
+            var total = seed
+            let step  = 2
+            return func|total, step|()->s32
+            {
+                total += step
+                return total
+            }
+        }
+
+        let cb = makeCounter(start)
+        @assert(cb() == 43)
+        @assert(cb() == 45)
+    }
+}

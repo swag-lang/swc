@@ -160,6 +160,27 @@ func macroClosureCaptureRef(payload: MacroClosurePayload)->s32
         func makeCounter(seed: s32)->func||()->s32
         {
             var state = MacroClosureState{total: seed, step: 2}
+            let bias  = 1
+            return func|state, bias|()->s32
+            {
+                state.total += state.step
+                return state.total + bias
+            }
+        }
+
+        let cb = makeCounter(start)
+        @assert(cb() == 44)
+        @assert(cb() == 46)
+    }
+}
+
+#test
+{
+    macroInjectCallerScopeAliasClosureCapture(|start| 41)
+    {
+        func makeCounter(seed: s32)->func||()->s32
+        {
+            var state = MacroClosureState{total: seed, step: 2}
             return func|state|()->s32
             {
                 state.total += state.step

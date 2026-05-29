@@ -20,6 +20,16 @@ func macroInjectCallerScopeClosureCapture(stmt: #code void)
     }
 }
 
+#[Swag.Macro]
+func macroInjectCallerScopeAliasClosureCapture(seed: s32, stmt: #code void)
+{
+    #macro
+    {
+        let #alias0 = #up seed
+        #inject(#up stmt)
+    }
+}
+
 func macroClosureCaptureRunTwice(cb: func||()->s32)->s32
 {
     let first  = cb()
@@ -91,6 +101,26 @@ func macroClosureCaptureRef(payload: MacroClosurePayload)->s32
         }
 
         let cb = makeCounter(41)
+        @assert(cb() == 42)
+        @assert(cb() == 43)
+    }
+}
+
+#test
+{
+    macroInjectCallerScopeAliasClosureCapture(|start| 41)
+    {
+        func makeCounter(seed: s32)->func||()->s32
+        {
+            var total = seed
+            return func|total|()->s32
+            {
+                total += 1
+                return total
+            }
+        }
+
+        let cb = makeCounter(start)
         @assert(cb() == 42)
         @assert(cb() == 43)
     }

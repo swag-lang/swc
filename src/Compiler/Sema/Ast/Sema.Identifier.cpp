@@ -678,11 +678,11 @@ Result AstIdentifier::semaPostNode(Sema& sema) const
     const Symbol* sym = sema.curViewSymbol().sym();
     if (sym && sym->isVariable())
     {
-        const SymbolVariable&    symVar            = sym->cast<SymbolVariable>();
-        const IdentifierRef      meId              = sema.idMgr().predefined(IdentifierManager::PredefinedName::Me);
-        const bool               isImplicitReceiver = symVar.idRef() == meId;
-        const bool               isCompilerDefined = hasFlag(AstIdentifierFlagsE::InCompilerDefined) || isTypeOnlyCompilerIdentifierUse(sema);
-        const SymbolFunction*    localFnBoundary   = !isImplicitReceiver && !isCompilerDefined && sema.currentFunction() ? localFunctionBoundaryForOuterVariable(*sema.currentFunction(), symVar) : nullptr;
+        const SymbolVariable& symVar             = sym->cast<SymbolVariable>();
+        const IdentifierRef   meId               = sema.idMgr().predefined(IdentifierManager::PredefinedName::Me);
+        const bool            isImplicitReceiver = symVar.idRef() == meId;
+        const bool            isCompilerDefined  = hasFlag(AstIdentifierFlagsE::InCompilerDefined) || isTypeOnlyCompilerIdentifierUse(sema);
+        const SymbolFunction* localFnBoundary    = !isImplicitReceiver && !isCompilerDefined && sema.currentFunction() ? localFunctionBoundaryForOuterVariable(*sema.currentFunction(), symVar) : nullptr;
         if (localFnBoundary)
         {
             auto diag = SemaError::report(sema, DiagnosticId::sema_err_local_function_outer_scope_variable, sema.curNodeRef());

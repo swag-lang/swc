@@ -827,7 +827,7 @@ namespace
         if (outDir.empty())
             return;
 
-        const fs::path manifestPath = workspaceArtifactManifestPath(outDir);
+        const fs::path  manifestPath = workspaceArtifactManifestPath(outDir);
         std::error_code ec;
         for (fs::recursive_directory_iterator it(outDir, fs::directory_options::skip_permission_denied, ec), end; it != end; it.increment(ec))
         {
@@ -868,8 +868,8 @@ namespace
             Artifacts,
         };
 
-        Section currentSection = Section::None;
-        size_t  start          = 0;
+        auto   currentSection = Section::None;
+        size_t start          = 0;
         while (start <= content.size())
         {
             size_t end = content.find('\n', start);
@@ -1693,7 +1693,7 @@ Result CompilerInstance::runWorkspaceModule(const WorkspaceModuleBuild& moduleBu
         if ((moduleCmdLine.command == CommandKind::Build || moduleCmdLine.command == CommandKind::Run) &&
             Runtime::backendKindProducesNativeArtifact(probeCompiler.buildCfg().backendKind))
         {
-            NativeBackendBuilder      nativeProbeBuilder(probeCompiler, false);
+            NativeBackendBuilder        nativeProbeBuilder(probeCompiler, false);
             const NativeArtifactBuilder artifactProbeBuilder(nativeProbeBuilder);
             NativeArtifactPaths         artifactPaths;
             artifactProbeBuilder.queryPaths(artifactPaths);

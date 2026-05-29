@@ -237,7 +237,7 @@ namespace
             return result;
 
         result.wholeFileExported = isWholeFileExported(file);
-        const auto& fileNode  = rootNode.cast<AstFile>();
+        const auto& fileNode     = rootNode.cast<AstFile>();
 
         SmallVector<AstNodeRef> globalRefs;
         file.ast().appendNodes(globalRefs, fileNode.spanGlobalsRef);

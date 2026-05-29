@@ -543,9 +543,9 @@ namespace
         if (!param.resolvedTypeRef.isValid())
             return false;
 
-        const TypeRef resolvedTypeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), param.resolvedTypeRef);
-        const TypeRef effectiveTypeRef = resolvedTypeRef.isValid() ? resolvedTypeRef : param.resolvedTypeRef;
-        const TypeInfo& paramType = sema.typeMgr().get(effectiveTypeRef);
+        const TypeRef   resolvedTypeRef  = sema.typeMgr().unwrapAliasEnum(sema.ctx(), param.resolvedTypeRef);
+        const TypeRef   effectiveTypeRef = resolvedTypeRef.isValid() ? resolvedTypeRef : param.resolvedTypeRef;
+        const TypeInfo& paramType        = sema.typeMgr().get(effectiveTypeRef);
         return paramType.isCodeBlock() && paramType.payloadTypeRef() == sema.typeMgr().typeVoid();
     }
 

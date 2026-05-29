@@ -233,6 +233,7 @@ public:
     bool               hasInlinePayload(AstNodeRef n) const { return nodePayloadContext().hasInlinePayload(n); }
     void               setInlinePayload(AstNodeRef n, SemaInlinePayload* payload) { nodePayloadContext().setInlinePayload(n, payload); }
     SemaInlinePayload* inlinePayload(AstNodeRef n) const { return static_cast<SemaInlinePayload*>(nodePayloadContext().getInlinePayload(n)); }
+    SemaInlinePayload* inlinePayload(const SymbolFunction& function) const;
     template<typename T>
     void setInlineContextOverride(AstNodeRef n, T* payload)
     {
@@ -335,6 +336,7 @@ public:
     Result      waitTyped(const Symbol* symbol, const SourceCodeRef& codeRef);
     Result      waitSemaCompleted(const TypeInfo* type, AstNodeRef nodeRef);
     Result      waitTypeInfoGeneration(AstNodeRef nodeRef, const SourceCodeRef& codeRef = SourceCodeRef::invalid());
+    Result      prepareFunctionSignature(AstNodeRef functionRef);
     static void waitDone(TaskContext& ctx, JobClientId clientId);
 
 private:

@@ -312,6 +312,19 @@ NodePayload* Sema::owningNodePayloadContext(SourceViewRef srcViewRef) const
     return &compiler().file(sourceFile->ref()).nodePayloadContext();
 }
 
+SemaInlinePayload* Sema::inlinePayload(const SymbolFunction& function) const
+{
+    const AstNodeRef declRef = function.declNodeRef();
+    if (declRef.isInvalid())
+        return nullptr;
+
+    const NodePayload* payloadContext = function.declNodePayloadContext();
+    if (!payloadContext)
+        return nullptr;
+
+    return static_cast<SemaInlinePayload*>(payloadContext->getInlinePayload(declRef));
+}
+
 AstNodeRef Sema::ownerDeclNodeRef(SourceViewRef srcViewRef, const AstNode* decl, AstNodeRef declRef) const
 {
     if (declRef.isValid() || !decl)
@@ -379,6 +392,7 @@ void Sema::configureLookupFrame(SemaFrame& frame, SemaScope* lookupScope, bool i
     frame.setLookupScopeOverrideNodes(nullptr);
     frame.setUpLookupScope(lookupScope ? lookupScope->lookupParent() : nullptr);
     frame.setIgnoreRuntimeAccess(ignoreRuntimeAccess);
+    frame.setIgnoreRedirectedLookupSymMaps(false);
 }
 
 bool Sema::hasActiveLookupScopeOverride() const

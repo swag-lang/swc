@@ -38,7 +38,7 @@ namespace
 
     bool isMacroInlineContext(const Sema& sema)
     {
-        return isMacroFunction(sema.frame().currentInlinePayload() ? sema.frame().currentInlinePayload()->sourceFunction : nullptr);
+        return isMacroFunction(SemaHelpers::effectiveInlinePayload(sema) ? SemaHelpers::effectiveInlinePayload(sema)->sourceFunction : nullptr);
     }
 
     Result reportCompilerFileError(Sema& sema, DiagnosticId id, AstNodeRef nodeRef, const fs::path& path, const Utf8& because)
@@ -172,7 +172,7 @@ namespace
         if (nodeRef.isInvalid())
             return nullptr;
 
-        const auto* inlinePayload = sema.frame().currentInlinePayload();
+        const auto* inlinePayload = SemaHelpers::effectiveInlinePayload(sema);
         if (!inlinePayload)
             return nullptr;
 
@@ -464,7 +464,7 @@ namespace
             return Result::Error;
 
         std::span<const SemaClone::ParamBinding> bindings;
-        const auto*                              inlinePayload = sema.frame().currentInlinePayload();
+        const auto*                              inlinePayload = SemaHelpers::effectiveInlinePayload(sema);
         const bool                               isMixinInject = inlinePayload &&
                                    inlinePayload->sourceFunction &&
                                    inlinePayload->sourceFunction->attributes().hasRtFlag(RtAttributeFlagsE::Mixin);
@@ -1529,7 +1529,7 @@ Result AstCompilerMacro::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef
 
     auto* hiddenScope = sema.curScopePtr();
     auto* callerScope = sema.resolvedUpLookupScope();
-    if (const auto* inlinePayload = sema.frame().currentInlinePayload();
+    if (const auto* inlinePayload = SemaHelpers::effectiveInlinePayload(sema);
         inlinePayload &&
         inlinePayload->sourceFunction &&
         inlinePayload->sourceFunction->attributes().hasRtFlag(RtAttributeFlagsE::Macro) &&

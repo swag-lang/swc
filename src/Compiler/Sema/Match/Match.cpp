@@ -13,6 +13,17 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    bool scopeUsesRedirectedLookupChain(const SemaScope* scope)
+    {
+        for (const SemaScope* it = scope; it; it = it->parent())
+        {
+            if (it->lookupParent() != it->parent())
+                return true;
+        }
+
+        return false;
+    }
+
     bool symbolDeclaredBefore(const Symbol& lhs, const Symbol& rhs)
     {
         if (lhs.srcViewRef() != rhs.srcViewRef())
@@ -249,13 +260,17 @@ namespace
         const SemaScope* scope = sema.lookupScope();
         while (scope)
         {
-            if (const SymbolMap* symMap = scope->symMap())
+            const bool skipRedirectedSymMap = sema.frame().ignoreRedirectedLookupSymMaps() && scopeUsesRedirectedLookupChain(scope);
+            if (!skipRedirectedSymMap)
             {
-                MatchContext::Priority priority;
-                priority.scopeDepth = scopeDepth;
-                priority.visibility = MatchContext::VisibilityTier::LocalScope;
-                addSymMap(lookUpCxt, symMap, priority);
-                addPersistedUsingSymMaps(lookUpCxt, symMap, priority);
+                if (const SymbolMap* symMap = scope->symMap())
+                {
+                    MatchContext::Priority priority;
+                    priority.scopeDepth = scopeDepth;
+                    priority.visibility = MatchContext::VisibilityTier::LocalScope;
+                    addSymMap(lookUpCxt, symMap, priority);
+                    addPersistedUsingSymMaps(lookUpCxt, symMap, priority);
+                }
             }
 
             for (const Symbol* symbol : scope->symbols())

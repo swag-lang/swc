@@ -175,7 +175,7 @@ AstNodeRef SemaHelpers::unwrapCallCalleeRef(Sema& sema, AstNodeRef nodeRef)
 
 const SymbolFunction* SemaHelpers::currentLocationFunction(const Sema& sema)
 {
-    const auto* inlinePayload = sema.frame().currentInlinePayload();
+    const auto* inlinePayload = effectiveInlinePayload(sema);
     if (inlinePayload && inlinePayload->sourceFunction)
         return SemaRuntime::transparentLocationFunction(inlinePayload->sourceFunction);
 
@@ -245,6 +245,18 @@ IdentifierRef SemaHelpers::resolveIdentifier(Sema& sema, const SourceCodeRef& co
     return sema.idMgr().addIdentifier(sema.ctx(), codeRef);
 }
 
+const SemaInlinePayload* SemaHelpers::effectiveInlinePayload(const Sema& sema)
+{
+    if (const auto* inlinePayload = sema.frame().currentInlinePayload())
+        return inlinePayload;
+
+    const SymbolFunction* currentFn = sema.currentFunction();
+    if (!currentFn)
+        return nullptr;
+
+    return sema.inlinePayload(*currentFn);
+}
+
 uint32_t SemaHelpers::aliasSlotIndex(const TokenId tokenId)
 {
     SWC_ASSERT(Token::isCompilerAlias(tokenId));
@@ -255,7 +267,7 @@ IdentifierRef SemaHelpers::resolveAliasIdentifier(Sema& sema, const TokenId toke
 {
     SWC_ASSERT(Token::isCompilerAlias(tokenId));
 
-    const auto* inlinePayload = sema.frame().currentInlinePayload();
+    const auto* inlinePayload = effectiveInlinePayload(sema);
     if (!inlinePayload)
         return IdentifierRef::invalid();
 

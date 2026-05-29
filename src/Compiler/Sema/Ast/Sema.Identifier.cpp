@@ -25,6 +25,17 @@ namespace
 {
     using InlineBindingIdentifierSet = std::unordered_set<IdentifierRef>;
 
+    bool scopeUsesRedirectedLookupChain(const SemaScope* scope)
+    {
+        for (const SemaScope* it = scope; it; it = it->parent())
+        {
+            if (it->lookupParent() != it->parent())
+                return true;
+        }
+
+        return false;
+    }
+
     const Symbol* resolveAliasedBaseSymbol(const Symbol* symbol)
     {
         const Symbol* current = symbol;
@@ -540,7 +551,7 @@ Result AstAncestorIdentifier::semaPreNode(Sema& sema) const
 
     AstNodeRef  targetRef         = nodeIdentRef;
     bool        usedInlineBinding = false;
-    const auto* inlinePayload     = sema.frame().currentInlinePayload();
+    const auto* inlinePayload     = SemaHelpers::effectiveInlinePayload(sema);
     if (inlinePayload)
     {
         const auto bindingIds = collectInlineBindingIdentifiers(inlinePayload->argMappings.span());
@@ -559,6 +570,8 @@ Result AstAncestorIdentifier::semaPreNode(Sema& sema) const
     {
         auto frame = sema.frame();
         Sema::configureLookupFrame(frame, lookupScope, true);
+        if (!usedInlineBinding && scopeUsesRedirectedLookupChain(lookupScope))
+            frame.setIgnoreRedirectedLookupSymMaps(true);
         sema.pushFramePopOnPostNode(frame, targetRef);
     }
 

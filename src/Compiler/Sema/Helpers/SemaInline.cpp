@@ -416,16 +416,22 @@ namespace
         uint32_t      usedSlot    = 0;
     };
 
-    void collectAliasUsage(Sema& sema, const Ast& sourceAst, AstNodeRef nodeRef, AliasRefArray& outAliasRefs)
+    void collectAliasUsage(const Ast& sourceAst, SourceViewRef ownerSrcViewRef, AstNodeRef nodeRef, AliasRefArray& outAliasRefs)
     {
-        if (nodeRef.isInvalid())
+        if (nodeRef.isInvalid() || !sourceAst.hasNode(nodeRef))
             return;
 
         const AstNode& node = sourceAst.node(nodeRef);
         if (node.tokRef().isInvalid())
             return;
 
-        const SourceView& sourceView = sema.srcView(node.srcViewRef());
+        // Alias placeholders belong to the macro declaration source itself.
+        // Injected/generated child nodes can carry foreign source views and AST ownership,
+        // so alias detection must stay lexical and limited to the declaration body range.
+        if (node.srcViewRef().isInvalid() || node.srcViewRef() != ownerSrcViewRef)
+            return;
+
+        const SourceView& sourceView = sourceAst.srcView();
         const TokenRef    endTokRef  = node.tokRefEnd(sourceAst);
         if (endTokRef.isInvalid())
             return;
@@ -441,11 +447,6 @@ namespace
             if (slot < outAliasRefs.size() && !outAliasRefs[slot].isValid())
                 outAliasRefs[slot] = SourceCodeRef{node.srcViewRef(), tokRef};
         }
-
-        SmallVector<AstNodeRef> children;
-        node.collectChildrenFromAst(children, sourceAst);
-        for (const AstNodeRef childRef : children)
-            collectAliasUsage(sema, sourceAst, childRef, outAliasRefs);
     }
 
     Result collectAliasUsageInfo(Sema& sema, const Ast& sourceAst, const AstFunctionDecl& decl, AliasUsageInfo& outInfo)
@@ -454,8 +455,9 @@ namespace
         if (decl.nodeBodyRef.isInvalid())
             return Result::Continue;
 
-        AliasRefArray aliasRefs = {};
-        collectAliasUsage(sema, sourceAst, decl.nodeBodyRef, aliasRefs);
+        AliasRefArray       aliasRefs       = {};
+        const SourceViewRef ownerSrcViewRef = sourceAst.srcView().ref();
+        collectAliasUsage(sourceAst, ownerSrcViewRef, decl.nodeBodyRef, aliasRefs);
 
         int32_t highestSlot = -1;
         for (int32_t slot = static_cast<int32_t>(aliasRefs.size()) - 1; slot >= 0; --slot)
@@ -653,25 +655,61 @@ namespace
             appendInlineLocalIdentifier(sema, node, tokNameRef, outIdentifiers);
     }
 
-    void collectInlineLocalIdentifiers(Sema& sema, const Ast& sourceAst, AstNodeRef nodeRef, SmallVector<IdentifierRef>& outIdentifiers)
+    const Ast* resolveInlineAnalysisNodeAst(Sema& sema, const Ast& sourceAst, AstNodeRef nodeRef)
     {
         if (nodeRef.isInvalid())
+            return nullptr;
+        if (sourceAst.hasNode(nodeRef))
+            return &sourceAst;
+        if (sema.ast().hasNode(nodeRef))
+            return &sema.ast();
+        return nullptr;
+    }
+
+    const Ast* resolveInlineAnalysisSpanAst(Sema& sema, const Ast& sourceAst, SpanRef spanRef)
+    {
+        if (spanRef.isInvalid())
+            return nullptr;
+        if (sourceAst.hasSpan(spanRef))
+            return &sourceAst;
+        if (sema.ast().hasSpan(spanRef))
+            return &sema.ast();
+        return nullptr;
+    }
+
+    void collectInlineAnalysisChildren(Sema& sema, const Ast& sourceAst, const Ast& nodeAst, const AstNode& node, SmallVector<AstNodeRef>& outChildren)
+    {
+        if (const auto* inject = node.safeCast<AstCompilerInject>())
+        {
+            AstNode::collectChildren(outChildren, {inject->nodeExprRef});
+            if (const Ast* replaceAst = resolveInlineAnalysisSpanAst(sema, sourceAst, inject->spanReplaceNodeRef))
+                AstNode::collectChildren(outChildren, *replaceAst, inject->spanReplaceNodeRef);
+            return;
+        }
+
+        node.collectChildrenFromAst(outChildren, nodeAst);
+    }
+
+    void collectInlineLocalIdentifiers(Sema& sema, const Ast& sourceAst, AstNodeRef nodeRef, SmallVector<IdentifierRef>& outIdentifiers)
+    {
+        const Ast* nodeAst = resolveInlineAnalysisNodeAst(sema, sourceAst, nodeRef);
+        if (!nodeAst)
             return;
 
-        const AstNode& node = sourceAst.node(nodeRef);
+        const AstNode& node = nodeAst->node(nodeRef);
         if (const auto* singleVar = node.safeCast<AstSingleVarDecl>())
             appendInlineLocalIdentifier(sema, node, singleVar->tokNameRef, outIdentifiers);
         else if (const auto* multiVar = node.safeCast<AstMultiVarDecl>())
-            appendInlineLocalIdentifiers(sema, sourceAst, node, multiVar->spanNamesRef, outIdentifiers);
+            appendInlineLocalIdentifiers(sema, *nodeAst, node, multiVar->spanNamesRef, outIdentifiers);
         else if (const auto* destructuring = node.safeCast<AstVarDeclDestructuring>())
-            appendInlineLocalIdentifiers(sema, sourceAst, node, destructuring->spanNamesRef, outIdentifiers);
+            appendInlineLocalIdentifiers(sema, *nodeAst, node, destructuring->spanNamesRef, outIdentifiers);
         else if (const auto* forStmt = node.safeCast<AstForStmt>())
             appendInlineLocalIdentifier(sema, node, forStmt->tokNameRef, outIdentifiers);
         else if (const auto* foreachStmt = node.safeCast<AstForeachStmt>())
-            appendInlineLocalIdentifiers(sema, sourceAst, node, foreachStmt->spanNamesRef, outIdentifiers);
+            appendInlineLocalIdentifiers(sema, *nodeAst, node, foreachStmt->spanNamesRef, outIdentifiers);
 
         SmallVector<AstNodeRef> children;
-        node.collectChildrenFromAst(children, sourceAst);
+        collectInlineAnalysisChildren(sema, sourceAst, *nodeAst, node, children);
         for (const AstNodeRef childRef : children)
             collectInlineLocalIdentifiers(sema, sourceAst, childRef, outIdentifiers);
     }
@@ -716,25 +754,27 @@ namespace
 
     void collectSourceIdentifierUses(Sema& sema, const Ast& sourceAst, AstNodeRef nodeRef, SmallVector<IdentifierRef>& outIdentifiers)
     {
-        if (nodeRef.isInvalid())
+        const Ast* nodeAst = resolveInlineAnalysisNodeAst(sema, sourceAst, nodeRef);
+        if (!nodeAst)
             return;
 
-        const AstNode& node = sourceAst.node(nodeRef);
+        const AstNode& node = nodeAst->node(nodeRef);
         if (node.is(AstNodeId::Identifier))
             outIdentifiers.push_back(SemaHelpers::resolveIdentifier(sema, node.codeRef()));
 
         SmallVector<AstNodeRef> children;
-        node.collectChildrenFromAst(children, sourceAst);
+        collectInlineAnalysisChildren(sema, sourceAst, *nodeAst, node, children);
         for (const AstNodeRef childRef : children)
             collectSourceIdentifierUses(sema, sourceAst, childRef, outIdentifiers);
     }
 
     void collectInlineClosureCaptureIdentifiers(Sema& sema, const Ast& sourceAst, AstNodeRef nodeRef, SmallVector<IdentifierRef>& outIdentifiers, const bool byRefOnly)
     {
-        if (nodeRef.isInvalid())
+        const Ast* nodeAst = resolveInlineAnalysisNodeAst(sema, sourceAst, nodeRef);
+        if (!nodeAst)
             return;
 
-        const AstNode& node = sourceAst.node(nodeRef);
+        const AstNode& node = nodeAst->node(nodeRef);
         if (const auto* closureArg = node.safeCast<AstClosureArgument>())
         {
             if (!byRefOnly || closureArg->hasFlag(AstClosureArgumentFlagsE::Address))
@@ -743,7 +783,7 @@ namespace
         }
 
         SmallVector<AstNodeRef> children;
-        node.collectChildrenFromAst(children, sourceAst);
+        collectInlineAnalysisChildren(sema, sourceAst, *nodeAst, node, children);
         for (const AstNodeRef childRef : children)
             collectInlineClosureCaptureIdentifiers(sema, sourceAst, childRef, outIdentifiers, byRefOnly);
     }
@@ -771,18 +811,20 @@ namespace
 
     bool inlineBindingHasNonCountOfUse(Sema& sema, const Ast& sourceAst, AstNodeRef nodeRef, IdentifierRef idRef, AstNodeRef parentRef = AstNodeRef::invalid())
     {
-        if (nodeRef.isInvalid() || !idRef.isValid())
+        const Ast* nodeAst = resolveInlineAnalysisNodeAst(sema, sourceAst, nodeRef);
+        if (!nodeAst || !idRef.isValid())
             return false;
 
-        const AstNode& node = sourceAst.node(nodeRef);
+        const AstNode& node = nodeAst->node(nodeRef);
         if (node.is(AstNodeId::Identifier) &&
             sema.idMgr().addIdentifier(sema.ctx(), node.codeRef()) == idRef)
         {
-            return parentRef.isInvalid() || sourceAst.node(parentRef).isNot(AstNodeId::CountOfExpr);
+            const Ast* parentAst = resolveInlineAnalysisNodeAst(sema, sourceAst, parentRef);
+            return !parentAst || parentAst->node(parentRef).isNot(AstNodeId::CountOfExpr);
         }
 
         SmallVector<AstNodeRef> children;
-        node.collectChildrenFromAst(children, sourceAst);
+        collectInlineAnalysisChildren(sema, sourceAst, *nodeAst, node, children);
         for (const AstNodeRef childRef : children)
         {
             if (inlineBindingHasNonCountOfUse(sema, sourceAst, childRef, idRef, nodeRef))
@@ -803,11 +845,12 @@ namespace
 
     uint32_t inlineBindingUseCount(Sema& sema, const Ast& sourceAst, AstNodeRef nodeRef, IdentifierRef idRef)
     {
-        if (nodeRef.isInvalid() || !idRef.isValid())
+        const Ast* nodeAst = resolveInlineAnalysisNodeAst(sema, sourceAst, nodeRef);
+        if (!nodeAst || !idRef.isValid())
             return 0;
 
         uint32_t       count = 0;
-        const AstNode& node  = sourceAst.node(nodeRef);
+        const AstNode& node  = nodeAst->node(nodeRef);
         if (node.is(AstNodeId::Identifier) &&
             sema.idMgr().addIdentifier(sema.ctx(), node.codeRef()) == idRef)
         {
@@ -815,7 +858,7 @@ namespace
         }
 
         SmallVector<AstNodeRef> children;
-        node.collectChildrenFromAst(children, sourceAst);
+        collectInlineAnalysisChildren(sema, sourceAst, *nodeAst, node, children);
         for (const AstNodeRef childRef : children)
             count += inlineBindingUseCount(sema, sourceAst, childRef, idRef);
 
@@ -836,10 +879,11 @@ namespace
 
     bool sourceSubtreeUsesIdentifier(Sema& sema, const Ast& sourceAst, AstNodeRef nodeRef, IdentifierRef idRef)
     {
-        if (nodeRef.isInvalid() || !idRef.isValid())
+        const Ast* nodeAst = resolveInlineAnalysisNodeAst(sema, sourceAst, nodeRef);
+        if (!nodeAst || !idRef.isValid())
             return false;
 
-        const AstNode& node = sourceAst.node(nodeRef);
+        const AstNode& node = nodeAst->node(nodeRef);
         if (node.is(AstNodeId::Identifier) &&
             sema.idMgr().addIdentifier(sema.ctx(), node.codeRef()) == idRef)
         {
@@ -847,7 +891,7 @@ namespace
         }
 
         SmallVector<AstNodeRef> children;
-        node.collectChildrenFromAst(children, sourceAst);
+        collectInlineAnalysisChildren(sema, sourceAst, *nodeAst, node, children);
         for (const AstNodeRef childRef : children)
         {
             if (sourceSubtreeUsesIdentifier(sema, sourceAst, childRef, idRef))
@@ -859,10 +903,11 @@ namespace
 
     bool inlineBindingNeedsIndexOrForeachMaterialization(Sema& sema, const Ast& sourceAst, AstNodeRef nodeRef, IdentifierRef idRef, AstNodeRef parentRef = AstNodeRef::invalid())
     {
-        if (nodeRef.isInvalid() || !idRef.isValid())
+        const Ast* nodeAst = resolveInlineAnalysisNodeAst(sema, sourceAst, nodeRef);
+        if (!nodeAst || !idRef.isValid())
             return false;
 
-        const AstNode& node = sourceAst.node(nodeRef);
+        const AstNode& node = nodeAst->node(nodeRef);
         if (const auto* foreachStmt = node.safeCast<AstForeachStmt>())
         {
             if (sourceSubtreeUsesIdentifier(sema, sourceAst, foreachStmt->nodeExprRef, idRef))
@@ -873,11 +918,12 @@ namespace
             sema.idMgr().addIdentifier(sema.ctx(), node.codeRef()) == idRef &&
             parentRef.isValid())
         {
-            return sourceAst.node(parentRef).is(AstNodeId::IndexExpr);
+            const Ast* parentAst = resolveInlineAnalysisNodeAst(sema, sourceAst, parentRef);
+            return parentAst && parentAst->node(parentRef).is(AstNodeId::IndexExpr);
         }
 
         SmallVector<AstNodeRef> children;
-        node.collectChildrenFromAst(children, sourceAst);
+        collectInlineAnalysisChildren(sema, sourceAst, *nodeAst, node, children);
         for (const AstNodeRef childRef : children)
         {
             if (inlineBindingNeedsIndexOrForeachMaterialization(sema, sourceAst, childRef, idRef, nodeRef))
@@ -1103,6 +1149,66 @@ namespace
             return AstNodeRef::invalid();
 
         return buildInlineRoot(sema, decl, AstNodeId::FunctionBody, prefixStatements, clonedBodyRef);
+    }
+
+    void collectInlineLocalFunctionDecls(Sema& sema, AstNodeRef nodeRef, SmallVector<AstNodeRef>& outFunctionRefs)
+    {
+        if (nodeRef.isInvalid())
+            return;
+
+        const AstNode& node = sema.node(nodeRef);
+        if (node.is(AstNodeId::FunctionDecl))
+        {
+            outFunctionRefs.push_back(nodeRef);
+            return;
+        }
+
+        if (node.is(AstNodeId::FunctionExpr) || node.is(AstNodeId::ClosureExpr))
+            return;
+
+        SmallVector<AstNodeRef> children;
+        node.collectChildrenFromAst(children, sema.ast());
+        for (const AstNodeRef childRef : children)
+            collectInlineLocalFunctionDecls(sema, childRef, outFunctionRefs);
+    }
+
+    Result predeclareInlineLocalFunctions(Sema& sema, AstNodeRef inlineRootRef, SemaInlinePayload& inlinePayload)
+    {
+        if (inlineRootRef.isInvalid())
+            return Result::Continue;
+
+        SmallVector<AstNodeRef> functionRefs;
+        collectInlineLocalFunctionDecls(sema, inlineRootRef, functionRefs);
+        for (const AstNodeRef childRef : functionRefs)
+        {
+            const auto* functionDecl = sema.node(childRef).safeCast<AstFunctionDecl>();
+            if (!functionDecl)
+                continue;
+
+            sema.setInlinePayload(childRef, &inlinePayload);
+
+            if (!sema.viewSymbol(childRef).hasSymbol())
+            {
+                Sema   declSema(sema.ctx(), sema, childRef, true);
+                Result declResult = declSema.execResult();
+                if (declResult != Result::Continue)
+                    return declResult;
+            }
+
+            if (Symbol* sym = sema.viewSymbol(childRef).sym())
+            {
+                SemaHelpers::ensureCurrentLocalScopeSymbol(sema, sym);
+                if (!sym->isDeclared())
+                {
+                    sym->registerAttributes(sema);
+                    sym->setDeclared(sema.ctx());
+                }
+            }
+
+            SWC_RESULT(sema.prepareFunctionSignature(childRef));
+        }
+
+        return Result::Continue;
     }
 
     Result createInlineResultVariable(Sema& sema, AstNodeRef callRef, TypeRef typeRef, SymbolVariable*& outResultVar)
@@ -1597,6 +1703,8 @@ Result SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFun
             sema.pushScopePopOnPostNode(SemaScopeFlagsE::Local, inlineRootRef);
         }
     }
+
+    SWC_RESULT(predeclareInlineLocalFunctions(sema, inlineRootRef, *inlinePayload));
 
     sema.deferPostNodeAction(inlineRootRef, [inlinePayload](Sema& inSema, AstNodeRef nodeRef) {
         SWC_ASSERT(inlinePayload != nullptr);

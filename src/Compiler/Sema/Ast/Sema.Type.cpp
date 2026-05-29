@@ -17,6 +17,11 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    bool usesInlineReturnContext(const Sema& sema, const SemaInlinePayload& inlinePayload)
+    {
+        return !inlinePayload.returnsToCallerSite() && inlinePayload.returnTypeRef.isValid();
+    }
+
     SymbolStruct* resolveGenericRootStructAlias(Symbol* symbol)
     {
         Symbol* current = symbol;
@@ -165,7 +170,7 @@ Result AstRetValType::semaPostNode(Sema& sema)
     // function. Use the inline payload's return type so that `retval` resolves correctly.
     if (const SemaInlinePayload* inlinePayload = sema.frame().currentInlinePayload())
     {
-        if (!inlinePayload->returnsToCallerSite() && inlinePayload->returnTypeRef.isValid())
+        if (usesInlineReturnContext(sema, *inlinePayload))
         {
             sema.setType(sema.curNodeRef(), inlinePayload->returnTypeRef);
             return Result::Continue;

@@ -901,6 +901,11 @@ SourceView& CompilerInstance::addBufferedSourceView(const FileRef fileRef, const
     return *srcViews_.back();
 }
 
+bool CompilerInstance::hasSourceView(SourceViewRef ref) const
+{
+    return ref.isValid() && ref.get() < srcViewLookup_->size();
+}
+
 SourceView& CompilerInstance::srcView(SourceViewRef ref)
 {
     SWC_ASSERT(ref.isValid());

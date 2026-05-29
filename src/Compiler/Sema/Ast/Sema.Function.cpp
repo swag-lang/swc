@@ -25,6 +25,16 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    bool functionSignatureNeedsBody(const AstFunctionDecl& node)
+    {
+        return node.hasFlag(AstFunctionFlagsE::Short) && node.nodeReturnTypeRef.isInvalid();
+    }
+
+    bool usesInlineReturnContext(const Sema& sema, const SemaInlinePayload& inlinePayload)
+    {
+        return !inlinePayload.returnsToCallerSite() && inlinePayload.returnTypeRef.isValid();
+    }
+
     SymbolFunction& registerFunctionSymbol(Sema& sema, const AstFunctionDecl& node)
     {
         if (!sema.curScope().isLocal())
@@ -392,11 +402,61 @@ namespace
 
         sema.compiler().registerRuntimeFunctionSymbol(sym.idRef(), &sym);
     }
+
 }
 
 Result Sema::completeLazyGenericFunction(SymbolFunction& calledFn)
 {
     return completeLazyGenericFunctionImpl(*this, calledFn);
+}
+
+Result Sema::prepareFunctionSignature(AstNodeRef functionRef)
+{
+    const auto* functionDecl = node(functionRef).safeCast<AstFunctionDecl>();
+    if (!functionDecl)
+        return Result::Continue;
+
+    Symbol* symbol = viewSymbol(functionRef).sym();
+    if (!symbol || !symbol->isFunction())
+        return Result::Continue;
+
+    auto& sym = symbol->cast<SymbolFunction>();
+    if (sym.isTyped() || functionSignatureNeedsBody(*functionDecl))
+        return Result::Continue;
+
+    Sema functionSema(ctx(), *this, functionRef);
+    AstNode& functionNode = functionSema.node(functionRef);
+    Result   result       = functionSema.preNode(functionNode);
+    if (result == Result::SkipChildren || sym.isTyped())
+        return Result::Continue;
+    if (result != Result::Continue)
+        return result;
+
+    const auto prepareChild = [&](AstNodeRef childRef) -> Result
+    {
+        if (childRef.isInvalid())
+            return Result::Continue;
+
+        Result childResult = functionSema.preNodeChild(functionNode, childRef);
+        if (childResult != Result::Continue && childResult != Result::SkipChildren)
+            return childResult;
+
+        if (childResult != Result::SkipChildren)
+        {
+            Sema child(ctx(), functionSema, childRef);
+            childResult = child.execResult();
+            if (childResult != Result::Continue)
+                return childResult;
+        }
+
+        return functionSema.postNodeChild(functionNode, childRef);
+    };
+
+    result = prepareChild(functionDecl->nodeParamsRef);
+    if (result != Result::Continue || sym.isTyped())
+        return result;
+
+    return prepareChild(functionDecl->nodeReturnTypeRef);
 }
 
 Result AstFunctionDecl::semaPreDecl(Sema& sema) const
@@ -709,7 +769,7 @@ namespace
     {
         outTypeRef                             = TypeRef::invalid();
         const SemaInlinePayload* inlinePayload = sema.frame().currentInlinePayload();
-        if (inlinePayload && !inlinePayload->returnsToCallerSite())
+        if (inlinePayload && usesInlineReturnContext(sema, *inlinePayload))
         {
             outTypeRef = inlinePayload->returnTypeRef;
             return Result::Continue;
@@ -1504,7 +1564,7 @@ Result AstReturnStmt::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) c
 
     TypeRef                  returnTypeRef = TypeRef::invalid();
     const SemaInlinePayload* inlinePayload = sema.frame().currentInlinePayload();
-    if (inlinePayload && !inlinePayload->returnsToCallerSite())
+    if (inlinePayload && usesInlineReturnContext(sema, *inlinePayload))
     {
         returnTypeRef = inlinePayload->returnTypeRef;
     }

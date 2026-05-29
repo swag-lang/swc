@@ -54,6 +54,9 @@ namespace
 
 void AstNode::collectChildren(SmallVector<AstNodeRef>& out, const Ast& ast, SpanRef spanRef)
 {
+    if (!ast.hasSpan(spanRef))
+        return;
+
     ast.appendNodes(out, spanRef);
 }
 

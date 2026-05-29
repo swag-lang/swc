@@ -115,6 +115,8 @@ public:
     void                                setUpLookupScope(SemaScope* scope) { upLookupScope_ = scope; }
     bool                                ignoreRuntimeAccess() const { return ignoreRuntimeAccess_; }
     void                                setIgnoreRuntimeAccess(bool value) { ignoreRuntimeAccess_ = value; }
+    bool                                ignoreRedirectedLookupSymMaps() const { return ignoreRedirectedLookupSymMaps_; }
+    void                                setIgnoreRedirectedLookupSymMaps(bool value) { ignoreRedirectedLookupSymMaps_ = value; }
 
     const BreakContext& currentBreakContext() const { return breakable_; }
     void                setCurrentBreakContent(AstNodeRef nodeRef, BreakContextKind kind);
@@ -173,6 +175,7 @@ private:
     const SemaLookupScopeOverrideNodes* lookupScopeOverrideNodes_ = nullptr;
     SemaScope*                          upLookupScope_            = nullptr;
     bool                                ignoreRuntimeAccess_      = false;
+    bool                                ignoreRedirectedLookupSymMaps_ = false;
     BreakContext                        breakable_;
     AstNodeRef                          currentErrorScope_        = AstNodeRef::invalid();
     ErrorContextMode                    currentErrorContextMode_  = ErrorContextMode::None;

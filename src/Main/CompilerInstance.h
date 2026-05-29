@@ -225,6 +225,7 @@ public:
     SourceView&                             addSourceView();
     SourceView&                             addSourceView(FileRef fileRef);
     SourceView&                             addBufferedSourceView(FileRef fileRef, std::string_view content);
+    bool                                    hasSourceView(SourceViewRef ref) const;
     SourceView&                             srcView(SourceViewRef ref);
     const SourceView&                       srcView(SourceViewRef ref) const;
     const SourceFile*                       ownerSourceFile(SourceViewRef ref) const;

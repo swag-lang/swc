@@ -28,6 +28,41 @@ namespace
         return cloneContext.sourceAst ? *cloneContext.sourceAst : sema.ast();
     }
 
+    const Ast* resolveCloneNodeAst(Sema& sema, AstNodeRef nodeRef, const SemaClone::CloneContext& cloneContext)
+    {
+        if (nodeRef.isInvalid())
+            return nullptr;
+
+        const Ast& sourceAst = cloneSourceAst(sema, cloneContext);
+        if (sourceAst.hasNode(nodeRef))
+            return &sourceAst;
+        if (sema.ast().hasNode(nodeRef))
+            return &sema.ast();
+        return nullptr;
+    }
+
+    const SourceView* resolveCloneSourceView(Sema& sema, const Ast& sourceAst, const AstNode& node)
+    {
+        if (sema.compiler().hasSourceView(node.srcViewRef()))
+            return &sema.srcView(node.srcViewRef());
+        if (sourceAst.hasSourceView())
+            return &sourceAst.srcView();
+        return nullptr;
+    }
+
+    const Ast* resolveCloneSpanAst(Sema& sema, SpanRef spanRef, const SemaClone::CloneContext& cloneContext)
+    {
+        if (spanRef.isInvalid())
+            return nullptr;
+
+        const Ast& sourceAst = cloneSourceAst(sema, cloneContext);
+        if (sourceAst.hasSpan(spanRef))
+            return &sourceAst;
+        if (sema.ast().hasSpan(spanRef))
+            return &sema.ast();
+        return nullptr;
+    }
+
     bool canReadSourcePayload(Sema& sema, const SemaClone::CloneContext& cloneContext)
     {
         return &cloneSourceAst(sema, cloneContext) == &sema.ast();
@@ -64,12 +99,15 @@ namespace
         if (sourceRef.isInvalid())
             return std::nullopt;
 
-        const Ast& sourceAst = cloneSourceAst(sema, cloneContext);
-        if (&sourceAst == &sema.ast())
+        const Ast* sourceAst = resolveCloneNodeAst(sema, sourceRef, cloneContext);
+        if (!sourceAst)
+            return std::nullopt;
+        if (sourceAst == &sema.ast())
             return currentStoredView(sema, sourceRef);
 
-        const AstNode&    sourceNode = sourceAst.node(sourceRef);
-        const SourceFile* sourceFile = sema.srcView(sourceNode.srcViewRef()).file();
+        const AstNode&      sourceNode     = sourceAst->node(sourceRef);
+        const SourceView*   sourceView     = resolveCloneSourceView(sema, *sourceAst, sourceNode);
+        const SourceFile*   sourceFile     = sourceView ? sourceView->file() : nullptr;
         if (!sourceFile)
             return std::nullopt;
 
@@ -426,8 +464,12 @@ namespace
         if (spanRef.isInvalid())
             return SpanRef::invalid();
 
+        const Ast* spanAst = resolveCloneSpanAst(sema, spanRef, cloneContext);
+        if (!spanAst)
+            return SpanRef::invalid();
+
         SmallVector<AstNodeRef> children;
-        cloneSourceAst(sema, cloneContext).appendNodes(children, spanRef);
+        spanAst->appendNodes(children, spanRef);
         if (children.empty())
             return SpanRef::invalid();
 
@@ -449,8 +491,12 @@ namespace
         if (spanRef.isInvalid())
             return SpanRef::invalid();
 
+        const Ast* spanAst = resolveCloneSpanAst(sema, spanRef, cloneContext);
+        if (!spanAst)
+            return SpanRef::invalid();
+
         SmallVector<TokenRef> tokens;
-        cloneSourceAst(sema, cloneContext).appendTokens(tokens, spanRef);
+        spanAst->appendTokens(tokens, spanRef);
         if (tokens.empty())
             return SpanRef::invalid();
 
@@ -638,17 +684,22 @@ namespace
             return markConstParamBindingTarget(sema, *binding, castRef);
         }
 
+        const bool crossAstSource      = &sourceAst != &sema.ast();
         auto [nodeRef, nodePtr] = sema.ast().makeNode<AstNodeId::Identifier>(node.tokRef());
         nodePtr->flags()        = node.flags();
         nodePtr->setCodeRef(node.codeRef());
+        const bool sourceSymbolOwnedByFunction = storedView &&
+                                                 storedView->sym &&
+                                                 storedView->sym->ownerSymMap() &&
+                                                 storedView->sym->ownerSymMap()->isFunction();
         const bool preserveSyntheticSymbol = storedView && storedView->sym &&
                                              (node.hasFlag(AstIdentifierFlagsE::PreResolvedSymbol) ||
-                                              !storedView->sym->isFunctionLocalVariable() ||
-                                              !node.codeRef().isValid() ||
-                                              sema.token(node.codeRef()).id != TokenId::Identifier);
+                                              ((!crossAstSource || !sourceSymbolOwnedByFunction) &&
+                                               (!storedView->sym->isFunctionLocalVariable() ||
+                                                !node.codeRef().isValid() ||
+                                                sema.token(node.codeRef()).id != TokenId::Identifier)));
         if (preserveSyntheticSymbol)
             sema.setSymbol(nodeRef, storedView->sym);
-        const bool crossAstSource      = &sourceAst != &sema.ast();
         const bool carryResolvedTypeId = storedView &&
                                          storedView->typeRef.isValid() &&
                                          !storedView->cstRef.isValid() &&
@@ -682,9 +733,15 @@ namespace
 AstNodeRef SemaClone::cloneAst(Sema& sema, AstNodeRef nodeRef, const CloneContext& cloneContext)
 {
     SWC_ASSERT(nodeRef.isValid());
-    const Ast&  sourceAst       = cloneSourceAst(sema, cloneContext);
-    auto&       node            = const_cast<AstNode&>(sourceAst.node(nodeRef));
-    SourceView* previousSrcView = Ast::setThreadSourceViewOverride(&sema.srcView(node.srcViewRef()));
+    const Ast* sourceAst = resolveCloneNodeAst(sema, nodeRef, cloneContext);
+    SWC_ASSERT(sourceAst != nullptr);
+    if (!sourceAst)
+        return AstNodeRef::invalid();
+
+    auto&       node            = const_cast<AstNode&>(sourceAst->node(nodeRef));
+    const SourceView* nodeSourceView = resolveCloneSourceView(sema, *sourceAst, node);
+    SWC_ASSERT(nodeSourceView != nullptr);
+    SourceView*      previousSrcView = Ast::setThreadSourceViewOverride(const_cast<SourceView*>(nodeSourceView));
 
     AstNodeRef clonedRef = cloneNodeReplacement(sema, node, cloneContext);
     if (clonedRef.isValid())

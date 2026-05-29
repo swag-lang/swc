@@ -13,7 +13,7 @@
     1. Compile a **DevMode** build.
     2. Run `test.bat dm`.
     3. If either step fails, fix the issue before proceeding.
-    4. Run `all.bat dm`.
+    4. Run `all.bat dm` (only if you have change c++ files)
     5. Compile the **Release** build (`swc.exe`).
     6. Run `test.bat`.
     7. If either release step fails, fix the issue before proceeding.

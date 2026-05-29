@@ -5,6 +5,12 @@ struct JitMacroClosurePayload
     total: s32
 }
 
+struct JitMacroClosureState
+{
+    total: s32
+    step:  s32
+}
+
 #[Swag.Macro]
 func jitMacroInjectClosureCapture(stmt: #code void)
 {
@@ -135,6 +141,26 @@ func macroClosureCaptureValue(value: s32)->s32
             {
                 total += step
                 return total
+            }
+        }
+
+        let cb = makeCounter(start)
+        @assert(cb() == 43)
+        @assert(cb() == 45)
+    }
+}
+
+#test
+{
+    jitMacroInjectCallerScopeAliasClosureCapture(|start| 41)
+    {
+        func makeCounter(seed: s32)->func||()->s32
+        {
+            var state = JitMacroClosureState{total: seed, step: 2}
+            return func|state|()->s32
+            {
+                state.total += state.step
+                return state.total
             }
         }
 

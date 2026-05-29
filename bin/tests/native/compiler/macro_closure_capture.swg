@@ -5,6 +5,12 @@ struct MacroClosurePayload
     total: s32
 }
 
+struct MacroClosureState
+{
+    total: s32
+    step:  s32
+}
+
 #[Swag.Macro]
 func macroInjectClosureCapture(stmt: #code void)
 {
@@ -138,6 +144,26 @@ func macroClosureCaptureRef(payload: MacroClosurePayload)->s32
             {
                 total += step
                 return total
+            }
+        }
+
+        let cb = makeCounter(start)
+        @assert(cb() == 43)
+        @assert(cb() == 45)
+    }
+}
+
+#test
+{
+    macroInjectCallerScopeAliasClosureCapture(|start| 41)
+    {
+        func makeCounter(seed: s32)->func||()->s32
+        {
+            var state = MacroClosureState{total: seed, step: 2}
+            return func|state|()->s32
+            {
+                state.total += state.step
+                return state.total
             }
         }
 

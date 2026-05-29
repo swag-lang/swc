@@ -154,7 +154,7 @@ namespace
         if (!leftTypeRef.isValid())
             return TypeRef::invalid();
 
-        leftTypeRef = aliasEnumTypeRef(codeGen, leftTypeRef);
+        leftTypeRef                  = aliasEnumTypeRef(codeGen, leftTypeRef);
         const TypeInfo* leftTypeInfo = &codeGen.typeMgr().get(leftTypeRef);
         if (leftTypeInfo->isPointerOrReference())
         {
@@ -170,7 +170,7 @@ namespace
 
     MicroReg resolveAggregateMemberBaseAddress(CodeGen& codeGen, TypeRef leftTypeRef, const CodeGenNodePayload& leftPayload)
     {
-        MicroBuilder& builder = codeGen.builder();
+        MicroBuilder&   builder      = codeGen.builder();
         const TypeInfo& leftTypeInfo = codeGen.typeMgr().get(aliasEnumTypeRef(codeGen, leftTypeRef));
 
         if (leftTypeInfo.isPointerOrReference() || leftTypeInfo.isTypeInfo())

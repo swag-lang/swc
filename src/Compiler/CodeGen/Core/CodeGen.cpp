@@ -424,12 +424,12 @@ Result CodeGen::exec(SymbolFunction& symbolFunc, AstNodeRef root)
         builder_  = &symbolFunc.microInstrBuilder(ctx());
         visit_.start(ast(), root);
 
-        nextVirtualRegister_              = 1;
-        localStackFrameSize_              = 0;
-        localStackBaseReg_                = MicroReg::invalid();
+        nextVirtualRegister_                      = 1;
+        localStackFrameSize_                      = 0;
+        localStackBaseReg_                        = MicroReg::invalid();
         currentFunctionIndirectReturnStackOffset_ = 0xFFFFFFFFu;
-        currentFunctionIndirectReturnReg_ = MicroReg::invalid();
-        currentFunctionClosureContextReg_ = MicroReg::invalid();
+        currentFunctionIndirectReturnReg_         = MicroReg::invalid();
+        currentFunctionClosureContextReg_         = MicroReg::invalid();
         deferScopes_.clear();
         deferredEmissionCursors_.clear();
         deferredEmitDepth_                = 0;

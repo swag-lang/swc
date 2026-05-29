@@ -245,7 +245,7 @@ namespace
         CodeGenCallHelpers::appendPreparedStringCompareArg(preparedArgs, codeGen, callConv, casePayload, params[1]->typeRef());
 
         CodeGenCallHelpers::isolatePreparedRegisterArgSources(codeGen, callConv, preparedArgs);
-        
+
         MicroBuilder&               builder      = codeGen.builder();
         const ABICall::PreparedCall preparedCall = ABICall::prepareArgs(builder, callConvKind, preparedArgs.span());
         if (stringCmpFunction.isForeign())

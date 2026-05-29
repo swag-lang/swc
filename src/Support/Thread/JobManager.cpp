@@ -1,11 +1,11 @@
 #include "pch.h"
+#include "Support/Thread/JobManager.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.h"
 #include "Main/Command/CommandLine.h"
 #include "Main/Stats.h"
 #include "Support/Os/Os.h"
 #include "Support/Report/HardwareException.h"
-#include "Support/Thread/JobManager.h"
 
 SWC_BEGIN_NAMESPACE();
 

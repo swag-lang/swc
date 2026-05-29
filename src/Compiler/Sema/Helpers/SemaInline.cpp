@@ -10,8 +10,8 @@
 #include "Compiler/Sema/Helpers/SemaClone.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
-#include "Compiler/Sema/Symbol/Symbol.Struct.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
+#include "Compiler/Sema/Symbol/Symbol.Struct.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Compiler/Sema/Type/TypeInfo.h"
 
@@ -138,12 +138,12 @@ namespace
                 const Symbol* sym = sema.viewStored(nodeRef, SemaNodeViewPartE::Symbol).sym();
                 if (sym && sym->isVariable())
                 {
-                    const auto&          symVar         = sym->cast<SymbolVariable>();
+                    const auto&           symVar        = sym->cast<SymbolVariable>();
                     const SymbolFunction* localBoundary = localFunctionBoundaryForOuterVariable(*currentFn, symVar);
                     if (localBoundary)
                     {
                         const std::string_view symName = node.codeRef().isValid() ? sema.tokenString(node.codeRef()) : symVar.name(sema.ctx());
-                        auto diag = SemaError::report(sema, DiagnosticId::sema_err_local_function_outer_scope_variable, nodeRef);
+                        auto                   diag    = SemaError::report(sema, DiagnosticId::sema_err_local_function_outer_scope_variable, nodeRef);
                         diag.addArgument(Diagnostic::ARG_SYM, symName);
 
                         if (localBoundary->decl())

@@ -1193,7 +1193,7 @@ namespace
             declSema = &sema;
 
         SmallVector<SemaGeneric::GenericFunctionParamDesc> symbolParamDescs;
-        const auto& symbolParams = root.parameters();
+        const auto&                                        symbolParams = root.parameters();
         if (!symbolParams.empty())
         {
             symbolParamDescs.reserve(symbolParams.size());
@@ -1231,7 +1231,7 @@ namespace
             return;
         }
 
-        SmallVector<AstNodeRef>                          params;
+        SmallVector<AstNodeRef>                            params;
         SmallVector<SemaGeneric::GenericFunctionParamDesc> declaredParamDescs;
         appendFunctionParamNodes(*declSema, decl.nodeParamsRef, params);
         declaredParamDescs.reserve(params.size());

@@ -273,7 +273,7 @@ namespace
         SWC_ASSERT(encodeCtx.rightTypeRef.isValid());
         SWC_ASSERT(encodeCtx.opBits != MicroOpBits::Zero);
 
-        MicroBuilder&      builder      = codeGen.builder();
+        MicroBuilder&      builder       = codeGen.builder();
         CodeGenNodePayload targetPayload = encodeCtx.target.payload;
         CodeGenNodePayload rightPayload  = *encodeCtx.rightPayload;
         stabilizeAssignAddressPayload(codeGen, targetPayload);
@@ -292,13 +292,13 @@ namespace
         SWC_ASSERT(encodeCtx.rightTypeRef.isValid());
         SWC_ASSERT(encodeCtx.opBits != MicroOpBits::Zero);
 
-        const auto&     node        = codeGen.node(codeGen.curNodeRef()).cast<AstAssignStmt>();
-        const TypeInfo& targetType  = codeGen.typeMgr().get(encodeCtx.target.opTypeRef);
-        const bool      isSigned    = targetType.isIntLike() && !targetType.isIntLikeUnsigned();
-        const TokenId   binaryOp    = Token::assignToBinary(assignOp);
-        const MicroOp   op          = intBinaryMicroOp(binaryOp, isSigned);
-        const bool      hasSafety   = CodeGenSafety::hasOverflowRuntimeSafety(codeGen);
-        MicroBuilder&   builder     = codeGen.builder();
+        const auto&        node          = codeGen.node(codeGen.curNodeRef()).cast<AstAssignStmt>();
+        const TypeInfo&    targetType    = codeGen.typeMgr().get(encodeCtx.target.opTypeRef);
+        const bool         isSigned      = targetType.isIntLike() && !targetType.isIntLikeUnsigned();
+        const TokenId      binaryOp      = Token::assignToBinary(assignOp);
+        const MicroOp      op            = intBinaryMicroOp(binaryOp, isSigned);
+        const bool         hasSafety     = CodeGenSafety::hasOverflowRuntimeSafety(codeGen);
+        MicroBuilder&      builder       = codeGen.builder();
         CodeGenNodePayload targetPayload = encodeCtx.target.payload;
         stabilizeAssignAddressPayload(codeGen, targetPayload);
         const MicroReg leftReg = codeGen.nextVirtualRegisterForType(encodeCtx.target.typeRef);
@@ -336,9 +336,9 @@ namespace
         const TypeInfo& targetType = codeGen.typeMgr().get(encodeCtx.target.opTypeRef);
         SWC_ASSERT(targetType.isFloat());
 
-        const TokenId         binaryOp = Token::assignToBinary(assignOp);
-        const MicroOp         op       = floatBinaryMicroOp(binaryOp);
-        MicroBuilder&         builder  = codeGen.builder();
+        const TokenId      binaryOp      = Token::assignToBinary(assignOp);
+        const MicroOp      op            = floatBinaryMicroOp(binaryOp);
+        MicroBuilder&      builder       = codeGen.builder();
         CodeGenNodePayload targetPayload = encodeCtx.target.payload;
         stabilizeAssignAddressPayload(codeGen, targetPayload);
         const MicroReg leftReg = codeGen.nextVirtualRegisterForType(encodeCtx.target.typeRef);
@@ -357,10 +357,10 @@ namespace
         SWC_ASSERT(encodeCtx.rightTypeRef.isValid());
         SWC_ASSERT(assignOp == TokenId::SymPlusEqual || assignOp == TokenId::SymMinusEqual);
 
-        const uint64_t       stride   = CodeGenTypeHelpers::blockPointerStride(codeGen.ctx(), encodeCtx.target.opTypeRef);
-        const MicroReg       leftReg  = codeGen.nextVirtualIntRegister();
-        const MicroReg       indexReg = materializeAssignPointerIndexReg(codeGen, *encodeCtx.rightPayload, encodeCtx.rightTypeRef);
-        MicroBuilder&        builder  = codeGen.builder();
+        const uint64_t     stride        = CodeGenTypeHelpers::blockPointerStride(codeGen.ctx(), encodeCtx.target.opTypeRef);
+        const MicroReg     leftReg       = codeGen.nextVirtualIntRegister();
+        const MicroReg     indexReg      = materializeAssignPointerIndexReg(codeGen, *encodeCtx.rightPayload, encodeCtx.rightTypeRef);
+        MicroBuilder&      builder       = codeGen.builder();
         CodeGenNodePayload targetPayload = encodeCtx.target.payload;
         stabilizeAssignAddressPayload(codeGen, targetPayload);
         builder.emitLoadRegMem(leftReg, targetPayload.reg, 0, MicroOpBits::B64);

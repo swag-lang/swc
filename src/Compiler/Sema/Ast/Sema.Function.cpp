@@ -424,7 +424,7 @@ Result Sema::prepareFunctionSignature(AstNodeRef functionRef)
     if (sym.isTyped() || functionSignatureNeedsBody(*functionDecl))
         return Result::Continue;
 
-    Sema functionSema(ctx(), *this, functionRef);
+    Sema     functionSema(ctx(), *this, functionRef);
     AstNode& functionNode = functionSema.node(functionRef);
     Result   result       = functionSema.preNode(functionNode);
     if (result == Result::SkipChildren || sym.isTyped())
@@ -432,8 +432,7 @@ Result Sema::prepareFunctionSignature(AstNodeRef functionRef)
     if (result != Result::Continue)
         return result;
 
-    const auto prepareChild = [&](AstNodeRef childRef) -> Result
-    {
+    const auto prepareChild = [&](AstNodeRef childRef) -> Result {
         if (childRef.isInvalid())
             return Result::Continue;
 

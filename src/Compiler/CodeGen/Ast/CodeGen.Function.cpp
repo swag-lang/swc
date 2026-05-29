@@ -227,7 +227,7 @@ namespace
         {
             constexpr uint32_t hiddenReturnStorageSize      = sizeof(uint64_t);
             constexpr uint32_t hiddenReturnStorageAlignment = alignof(uint64_t);
-            frameSize = Math::alignUpU64(frameSize, hiddenReturnStorageAlignment);
+            frameSize                                       = Math::alignUpU64(frameSize, hiddenReturnStorageAlignment);
             SWC_ASSERT(frameSize <= std::numeric_limits<uint32_t>::max());
             codeGen.setCurrentFunctionIndirectReturnStackOffset(static_cast<uint32_t>(frameSize));
             frameSize += hiddenReturnStorageSize;
@@ -374,10 +374,10 @@ namespace
 
         struct RegisterParameterPayload
         {
-            const SymbolVariable*                            symVar       = nullptr;
-            CodeGenNodePayload                               payload      = {};
-            CodeGenFunctionHelpers::FunctionParameterInfo    paramInfo    = {};
-            bool                                             needsRebind  = false;
+            const SymbolVariable*                         symVar      = nullptr;
+            CodeGenNodePayload                            payload     = {};
+            CodeGenFunctionHelpers::FunctionParameterInfo paramInfo   = {};
+            bool                                          needsRebind = false;
         };
 
         SmallVector<uint32_t> registerParamIndices;

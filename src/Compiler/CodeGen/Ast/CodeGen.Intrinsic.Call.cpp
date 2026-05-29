@@ -280,7 +280,7 @@ namespace
         }
 
         CodeGenCallHelpers::isolatePreparedRegisterArgSources(codeGen, callConv, preparedArgs);
-        
+
         MicroBuilder&               builder      = codeGen.builder();
         const ABICall::PreparedCall preparedCall = ABICall::prepareArgs(builder, callConvKind, preparedArgs.span());
         if (runtimeFunction.isForeign())
@@ -1529,8 +1529,8 @@ namespace
         directU64Arg.srcReg = contextReg;
         preparedArgs.push_back(directU64Arg);
 
-        const CallConvKind          callConvKind = tlsSetValueFunction.callConvKind();
-        const CallConv&             callConv     = CallConv::get(callConvKind);
+        const CallConvKind callConvKind = tlsSetValueFunction.callConvKind();
+        const CallConv&    callConv     = CallConv::get(callConvKind);
         CodeGenCallHelpers::isolatePreparedRegisterArgSources(codeGen, callConv, preparedArgs);
         MicroBuilder&               builder      = codeGen.builder();
         const ABICall::PreparedCall preparedCall = ABICall::prepareArgs(builder, callConvKind, preparedArgs.span());

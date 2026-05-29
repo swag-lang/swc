@@ -219,10 +219,10 @@ namespace
 
         struct RegisterParameterPayload
         {
-            const SymbolVariable*                            symVar       = nullptr;
-            CodeGenNodePayload                               payload      = {};
-            CodeGenFunctionHelpers::FunctionParameterInfo    paramInfo    = {};
-            bool                                             needsRebind  = false;
+            const SymbolVariable*                         symVar      = nullptr;
+            CodeGenNodePayload                            payload     = {};
+            CodeGenFunctionHelpers::FunctionParameterInfo paramInfo   = {};
+            bool                                          needsRebind = false;
         };
 
         SmallVector<uint32_t> registerParamIndices;
@@ -234,7 +234,7 @@ namespace
                 registerParamIndices.push_back(static_cast<uint32_t>(i));
         }
 
-        MicroBuilder& builder = codeGen.builder();
+        MicroBuilder&                         builder = codeGen.builder();
         SmallVector<RegisterParameterPayload> registerPayloads;
         registerPayloads.reserve(registerParamIndices.size());
         for (size_t i = 0; i < registerParamIndices.size(); ++i)

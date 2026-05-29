@@ -44,3 +44,22 @@ func macroClosureCaptureValue(value: s32)->s32
         }) == 464)
     })
 }
+
+#test
+{
+    jitMacroInjectClosureCapture(#code {
+        func makeCounter(start: s32)->func||()->s32
+        {
+            var total = start
+            return func|total|()->s32
+            {
+                total += 1
+                return total
+            }
+        }
+
+        let cb = makeCounter(41)
+        @assert(cb() == 42)
+        @assert(cb() == 43)
+    })
+}

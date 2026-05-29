@@ -47,3 +47,22 @@ func macroClosureCaptureRef(payload: MacroClosurePayload)->s32
         }) == 464)
     })
 }
+
+#test
+{
+    macroInjectClosureCapture(#code {
+        func makeCounter(start: s32)->func||()->s32
+        {
+            var total = start
+            return func|total|()->s32
+            {
+                total += 1
+                return total
+            }
+        }
+
+        let cb = makeCounter(41)
+        @assert(cb() == 42)
+        @assert(cb() == 43)
+    })
+}

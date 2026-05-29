@@ -11,6 +11,7 @@
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Compiler/Sema/Symbol/Symbol.Struct.h"
+#include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Compiler/Sema/Type/TypeInfo.h"
 
@@ -57,6 +58,125 @@ namespace
         binding.exprRef     = exprRef;
         binding.typeRef     = TypeRef::invalid();
         binding.sourceParam = &param;
+    }
+
+    bool functionOwnsVariable(const SymbolFunction& function, const SymbolVariable& symVar)
+    {
+        if (symVar.ownerSymMap() == &function)
+            return true;
+        if (function.containsLocalVariable(symVar))
+            return true;
+
+        const auto& params = function.parameters();
+        return std::ranges::find(params, &symVar) != params.end();
+    }
+
+    const SymbolFunction* parentLexicalFunction(const SymbolFunction& function)
+    {
+        const SymbolMap* map = function.ownerSymMap();
+        while (map)
+        {
+            if (map->isFunction())
+                return &map->cast<SymbolFunction>();
+            map = map->ownerSymMap();
+        }
+
+        return nullptr;
+    }
+
+    const SymbolFunction* localFunctionBoundaryForOuterVariable(const SymbolFunction& currentFn, const SymbolVariable& symVar)
+    {
+        if (symVar.hasGlobalStorage())
+            return nullptr;
+
+        if (!(symVar.hasExtraFlag(SymbolVariableFlagsE::Parameter) ||
+              symVar.hasExtraFlag(SymbolVariableFlagsE::FunctionLocal) ||
+              symVar.isClosureCapture()))
+            return nullptr;
+
+        const SymbolFunction* fn = &currentFn;
+        while (fn)
+        {
+            if (functionOwnsVariable(*fn, symVar))
+                return nullptr;
+
+            const AstNode* decl = fn->decl();
+            if (decl && decl->is(AstNodeId::FunctionDecl))
+                return fn;
+
+            fn = parentLexicalFunction(*fn);
+        }
+
+        return nullptr;
+    }
+
+    Result validateInlineBindingOuterScopeVariables(Sema& sema, AstNodeRef exprRef)
+    {
+        if (exprRef.isInvalid())
+            return Result::Continue;
+
+        const SymbolFunction* currentFn = sema.currentFunction();
+        if (!currentFn)
+            return Result::Continue;
+
+        SmallVector<AstNodeRef> pending;
+        SmallVector<AstNodeRef> visited;
+        pending.push_back(exprRef);
+        while (!pending.empty())
+        {
+            const AstNodeRef nodeRef = pending.back();
+            pending.pop_back();
+            if (nodeRef.isInvalid())
+                continue;
+            if (std::ranges::find(visited, nodeRef) != visited.end())
+                continue;
+            visited.push_back(nodeRef);
+
+            const AstNode& node = sema.node(nodeRef);
+            if (node.is(AstNodeId::Identifier))
+            {
+                const Symbol* sym = sema.viewStored(nodeRef, SemaNodeViewPartE::Symbol).sym();
+                if (sym && sym->isVariable())
+                {
+                    const auto&          symVar         = sym->cast<SymbolVariable>();
+                    const SymbolFunction* localBoundary = localFunctionBoundaryForOuterVariable(*currentFn, symVar);
+                    if (localBoundary)
+                    {
+                        const std::string_view symName = node.codeRef().isValid() ? sema.tokenString(node.codeRef()) : symVar.name(sema.ctx());
+                        auto diag = SemaError::report(sema, DiagnosticId::sema_err_local_function_outer_scope_variable, nodeRef);
+                        diag.addArgument(Diagnostic::ARG_SYM, symName);
+
+                        if (localBoundary->decl())
+                        {
+                            diag.addNote(DiagnosticId::sema_note_function_declared_here);
+                            diag.last().addArgument(Diagnostic::ARG_SYM, localBoundary->name(sema.ctx()));
+                            diag.last().addSpan(localBoundary->codeRange(sema.ctx()));
+                        }
+
+                        if (symVar.decl())
+                        {
+                            diag.addNote(DiagnosticId::sema_note_capture_source_declared_here);
+                            diag.last().addArgument(Diagnostic::ARG_SYM, symName);
+                            diag.last().addSpan(symVar.codeRange(sema.ctx()));
+                        }
+
+                        diag.report(sema.ctx());
+                        return Result::Error;
+                    }
+                }
+            }
+
+            const AstNodeRef resolvedRef = sema.viewZero(nodeRef).nodeRef();
+            if (resolvedRef.isValid() && resolvedRef != nodeRef)
+                pending.push_back(resolvedRef);
+
+            SmallVector<AstNodeRef> children;
+            node.collectChildrenFromAst(children, sema.ast());
+            for (const AstNodeRef childRef : children)
+                pending.push_back(childRef);
+        }
+
+        return Result::Continue;
     }
 
     struct InlineVariadicBinding
@@ -1594,6 +1714,9 @@ Result SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFun
     }
     if (isCrossAstInline || isMacro || isMixin)
         appendGenericInstanceBindings(sema, fn, bindings);
+
+    for (const SemaClone::ParamBinding& binding : bindings)
+        SWC_RESULT(validateInlineBindingOuterScopeVariables(sema, binding.exprRef));
 
     AliasIdentifierArray aliasIdentifiers = {};
     SWC_RESULT(collectAliasIdentifiers(sema, callRef, *declAst, *decl, aliasIdentifiers));

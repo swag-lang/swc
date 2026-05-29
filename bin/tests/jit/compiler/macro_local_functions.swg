@@ -41,12 +41,26 @@ func aliasBounce(value: s32)->s32
 #[Swag.Macro]
 func localNestedUpShadow(seed: s32)->s32
 {
-    func pick(buffer: s32)->s32
+    func pick(seed: s32, buffer: s32)->s32
     {
         return aliasBounce(|buffer| #up seed)
     }
 
-    return pick(1000)
+    return pick(seed, 1000)
+}
+
+func forcedLocalMacroRelay(seed: s32)->s32
+{
+    #[Swag.Macro]
+    func emit(value: s32)->s32
+    {
+        #macro
+        {
+            return #up value * 3
+        }
+    }
+
+    return emit(seed)
 }
 
 #test
@@ -62,4 +76,9 @@ func localNestedUpShadow(seed: s32)->s32
 #test
 {
     @assert(localNestedUpShadow(41) == 42)
+}
+
+#test
+{
+    @assert(forcedLocalMacroRelay(14) == 42)
 }

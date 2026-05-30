@@ -21,7 +21,7 @@ goto parse_args
 
 :run
 for %%C in (release debug fast-debug fast-compile) do (
-    call "%TOOLS_DIR%test.bat" %MODE_ARG% --build-cfg "%%C"%EXTRA_ARGS% || exit /b 1
+    call "%TOOLS_DIR%tests.bat" %MODE_ARG% --build-cfg "%%C"%EXTRA_ARGS% || exit /b 1
 )
 
 call "%TOOLS_DIR%_common.bat" :batch_end "%~f0"

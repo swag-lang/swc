@@ -53,7 +53,7 @@ call "%TOOLS_DIR%_common.bat" :batch_end "%~f0"
 exit /b 0
 
 :run_source_test
-call "%TOOLS_DIR%_test_module.bat" %MODE_ARG%%EXTRA_ARGS% --bin-rel "%~1" --module-namespace "%~2" --artifact-label "%~3" --build-cfg "%BUILD_CFG%" %~4
+call "%TOOLS_DIR%_source_tests.bat" %MODE_ARG%%EXTRA_ARGS% --bin-rel "%~1" --module-namespace "%~2" --artifact-label "%~3" --build-cfg "%BUILD_CFG%" %~4
 exit /b %ERRORLEVEL%
 
 :run_native_test

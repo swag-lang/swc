@@ -443,3 +443,42 @@ namespace QualifiedMacroScope
 
     @assert(sum == 36)
 }
+
+// #[Swag.Macro] variadic with same-name caller local variable and #up access
+// Matches the shape in the existing genericAliasFold / QualifiedMacroScope.fold tests.
+#[Swag.Macro]
+func(T) variadicUpSameName(values: [..] T, sumPtr: *T)
+{
+    for @countof(values)
+    {
+        #macro
+        {
+            let item = #up values[@index]
+            dref #up sumPtr += item
+        }
+    }
+}
+
+#test
+{
+    let values: [3] s32 = [1, 2, 3]
+    var sum: s32         = 0
+    variadicUpSameName(values, &sum)
+    @assert(sum == 6)
+}
+
+#test
+{
+    let arr: [3] s32 = [1, 2, 3]
+    var sum: s32      = 0
+    variadicUpSameName(arr, &sum)
+    @assert(sum == 6)
+}
+
+#test
+{
+    let values2: [3] s32 = [10, 20, 30]
+    var sum2: s32         = 0
+    variadicUpSameName(values2, &sum2)
+    @assert(sum2 == 60)
+}

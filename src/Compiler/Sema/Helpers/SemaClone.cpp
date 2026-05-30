@@ -379,10 +379,12 @@ namespace
         if (sourceNode.cast<AstCastExpr>().hasFlag(AstCastExprFlagsE::Explicit))
             return;
         const SemaNodeView storedView = sema.viewStored(sourceRef, SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
-        if (storedView.hasConstant())
-            return;
+        // Always preserve the cast's target type: semaPostNode is skipped for implicit casts
+        // and the clone must carry the type even when the source was constant-folded.
         if (storedView.typeRef().isValid())
             sema.setType(clonedRef, storedView.typeRef());
+        if (storedView.hasConstant())
+            return;
         if (sema.isValueStored(sourceRef))
             sema.setIsValue(clonedRef);
         if (sema.isLValueStored(sourceRef))

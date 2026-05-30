@@ -1427,7 +1427,9 @@ namespace
                 const TypeInfo& argType = sema.typeMgr().get(argTypeRef);
                 if (argType.isTypedVariadic() && argType.payloadTypeRef() == targetElemTypeRef)
                 {
-                    outExprRef = SemaClone::cloneAst(sema, argRef, noBindings);
+                    // Preserve resolved symbols to prevent circular substitute chains in code gen
+                    // (see copyImplicitCastSubstitute: inner identifiers get a back-reference substitute).
+                    outExprRef = SemaClone::cloneAstPreservingResolvedIdentifierSymbols(sema, argRef, noBindings);
                     if (outExprRef.isInvalid())
                         return Result::Continue;
                     outExprTypeRef = argTypeRef;

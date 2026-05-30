@@ -312,7 +312,7 @@ NodePayload* Sema::owningNodePayloadContext(SourceViewRef srcViewRef) const
     return &compiler().file(sourceFile->ref()).nodePayloadContext();
 }
 
-SemaInlinePayload* Sema::inlinePayload(const SymbolFunction& function) const
+SemaInlinePayload* Sema::inlinePayload(const SymbolFunction& function)
 {
     const AstNodeRef declRef = function.declNodeRef();
     if (declRef.isInvalid())

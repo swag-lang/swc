@@ -230,10 +230,11 @@ public:
         return payload;
     }
 
-    bool               hasInlinePayload(AstNodeRef n) const { return nodePayloadContext().hasInlinePayload(n); }
-    void               setInlinePayload(AstNodeRef n, SemaInlinePayload* payload) { nodePayloadContext().setInlinePayload(n, payload); }
-    SemaInlinePayload* inlinePayload(AstNodeRef n) const { return static_cast<SemaInlinePayload*>(nodePayloadContext().getInlinePayload(n)); }
-    SemaInlinePayload* inlinePayload(const SymbolFunction& function) const;
+    bool                      hasInlinePayload(AstNodeRef n) const { return nodePayloadContext().hasInlinePayload(n); }
+    void                      setInlinePayload(AstNodeRef n, SemaInlinePayload* payload) { nodePayloadContext().setInlinePayload(n, payload); }
+    SemaInlinePayload*        inlinePayload(AstNodeRef n) const { return static_cast<SemaInlinePayload*>(nodePayloadContext().getInlinePayload(n)); }
+    static SemaInlinePayload* inlinePayload(const SymbolFunction& function);
+
     template<typename T>
     void setInlineContextOverride(AstNodeRef n, T* payload)
     {

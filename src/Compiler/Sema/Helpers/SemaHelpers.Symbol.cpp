@@ -263,7 +263,7 @@ uint32_t SemaHelpers::aliasSlotIndex(const TokenId tokenId)
     return static_cast<uint32_t>(tokenId) - static_cast<uint32_t>(TokenId::CompilerAlias0);
 }
 
-IdentifierRef SemaHelpers::resolveAliasIdentifier(Sema& sema, const TokenId tokenId)
+IdentifierRef SemaHelpers::resolveAliasIdentifier(const Sema& sema, const TokenId tokenId)
 {
     SWC_ASSERT(Token::isCompilerAlias(tokenId));
 

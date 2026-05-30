@@ -471,6 +471,9 @@ namespace SemaGeneric
         template<typename RUN, typename K, typename I>
         Result runCachedSema(Sema& sema, RUN& runs, const K& key, const Symbol& waitSymbol, const I& initRun)
         {
+            SWC_UNUSED(sema);
+            SWC_UNUSED(waitSymbol);
+
             auto& run = runs[key];
             if (!run.sema)
                 run.sema = initRun();

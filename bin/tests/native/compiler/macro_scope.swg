@@ -444,8 +444,11 @@ namespace QualifiedMacroScope
     @assert(sum == 36)
 }
 
-// #[Swag.Macro] variadic with same-name caller local variable and #up access
-// Matches the shape in the existing genericAliasFold / QualifiedMacroScope.fold tests.
+// #[Swag.Macro] variadic [..] T parameter with for @countof + #up values[@index].
+// Fixed two bugs:
+//   1. copyImplicitCastPayload lost the type on constant-cast clones (hit by let/const arrays).
+//   2. cloneAstPreservingResolvedIdentifierSymbols prevents circular substitute chains that
+//      caused wrong JIT runtime values (hit by any typed-variadic clone).
 #[Swag.Macro]
 func(T) variadicUpSameName(values: [..] T, sumPtr: *T)
 {
@@ -459,6 +462,7 @@ func(T) variadicUpSameName(values: [..] T, sumPtr: *T)
     }
 }
 
+// Caller variable same name as macro parameter, explicit type (const path: both bug 1 and 2).
 #test
 {
     let values: [3] s32 = [1, 2, 3]
@@ -467,6 +471,16 @@ func(T) variadicUpSameName(values: [..] T, sumPtr: *T)
     @assert(sum == 6)
 }
 
+// Caller variable same name, inferred type (the exact shape from the bug report).
+#test
+{
+    var sum: s32   = 0
+    let values     = [1's32, 2, 3]
+    variadicUpSameName(values, &sum)
+    @assert(sum == 6)
+}
+
+// Caller variable with a different name — verifies the fix doesn't regress non-collision cases.
 #test
 {
     let arr: [3] s32 = [1, 2, 3]
@@ -475,10 +489,29 @@ func(T) variadicUpSameName(values: [..] T, sumPtr: *T)
     @assert(sum == 6)
 }
 
+// Different values, same-name (additional const-array regression check).
 #test
 {
-    let values2: [3] s32 = [10, 20, 30]
-    var sum2: s32         = 0
-    variadicUpSameName(values2, &sum2)
-    @assert(sum2 == 60)
+    let values: [3] s32 = [10, 20, 30]
+    var sum: s32         = 0
+    variadicUpSameName(values, &sum)
+    @assert(sum == 60)
+}
+
+// Different generic T (s64) — verifies generic type resolution is unaffected.
+#test
+{
+    let values: [3] s64 = [10, 20, 30]
+    var sum: s64         = 0
+    variadicUpSameName(values, &sum)
+    @assert(sum == 60)
+}
+
+// Single-element array — verifies count = 1 works correctly.
+#test
+{
+    let values: [1] s32 = [42]
+    var sum: s32         = 0
+    variadicUpSameName(values, &sum)
+    @assert(sum == 42)
 }

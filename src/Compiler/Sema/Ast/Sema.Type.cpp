@@ -19,6 +19,7 @@ namespace
 {
     bool usesInlineReturnContext(const Sema& sema, const SemaInlinePayload& inlinePayload)
     {
+        SWC_UNUSED(sema);
         return !inlinePayload.returnsToCallerSite() && inlinePayload.returnTypeRef.isValid();
     }
 

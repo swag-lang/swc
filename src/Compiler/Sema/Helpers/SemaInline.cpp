@@ -569,8 +569,10 @@ namespace
         }
     }
 
-    Result collectAliasUsageInfo(Sema& sema, const Ast& sourceAst, const AstFunctionDecl& decl, AliasUsageInfo& outInfo)
+    Result collectAliasUsageInfo(const Sema& sema, const Ast& sourceAst, const AstFunctionDecl& decl, AliasUsageInfo& outInfo)
     {
+        SWC_UNUSED(sema);
+
         outInfo = {};
         if (decl.nodeBodyRef.isInvalid())
             return Result::Continue;
@@ -1309,8 +1311,8 @@ namespace
 
             if (!sema.viewSymbol(childRef).hasSymbol())
             {
-                Sema   declSema(sema.ctx(), sema, childRef, true);
-                Result declResult = declSema.execResult();
+                Sema         declSema(sema.ctx(), sema, childRef, true);
+                const Result declResult = declSema.execResult();
                 if (declResult != Result::Continue)
                     return declResult;
             }
@@ -1427,8 +1429,9 @@ namespace
                 const TypeInfo& argType = sema.typeMgr().get(argTypeRef);
                 if (argType.isTypedVariadic() && argType.payloadTypeRef() == targetElemTypeRef)
                 {
-                    // Preserve resolved symbols to prevent circular substitute chains in code gen
-                    // (see copyImplicitCastSubstitute: inner identifiers get a back-reference substitute).
+                    // Preserve resolved symbols so the code gen can resolve the caller variable
+                    // directly instead of relying on the implicit-cast substitute chain, which
+                    // can cycle when copyImplicitCastSubstitute wraps the identifier back in itself.
                     outExprRef = SemaClone::cloneAstPreservingResolvedIdentifierSymbols(sema, argRef, noBindings);
                     if (outExprRef.isInvalid())
                         return Result::Continue;

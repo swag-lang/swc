@@ -515,11 +515,6 @@ namespace
         }
     }
 
-    fs::path lexicallyNormalizedPath(const fs::path& path)
-    {
-        return path.lexically_normal();
-    }
-
     Result collectDependencyConfigurationMatches(std::vector<DependencyConfigCandidate>& outMatches, Utf8& outBecause, const fs::path& dependencyRoot, std::string_view moduleName, const CommandLine& cmdLine)
     {
         outMatches.clear();
@@ -760,7 +755,7 @@ namespace
             path = FileSystem::normalizePath(path);
 
         std::ranges::sort(paths, {}, [](const fs::path& path) { return path.native(); });
-        paths.erase(std::unique(paths.begin(), paths.end()), paths.end());
+        paths.erase(std::ranges::unique(paths).begin(), paths.end());
     }
 
     void normalizeWorkspaceRelativePaths(std::vector<fs::path>& paths)
@@ -769,7 +764,7 @@ namespace
             path = path.lexically_normal();
 
         std::ranges::sort(paths, {}, [](const fs::path& path) { return path.native(); });
-        paths.erase(std::unique(paths.begin(), paths.end()), paths.end());
+        paths.erase(std::ranges::unique(paths).begin(), paths.end());
     }
 
     bool sameWorkspacePathList(std::span<const fs::path> lhs, std::span<const fs::path> rhs)
@@ -1038,7 +1033,6 @@ namespace
             const fs::path manifestPath = workspaceArtifactManifestPath(outDir);
             if (!tryGetWorkspacePathWriteTime(earliestArtifactTime, manifestPath))
                 return false;
-            hasArtifactTime = true;
         }
 
         if (hasInputTime && earliestArtifactTime < latestInputTime)

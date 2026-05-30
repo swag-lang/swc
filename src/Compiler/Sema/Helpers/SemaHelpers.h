@@ -86,7 +86,7 @@ namespace SemaHelpers
     IdentifierRef            getUniqueIdentifier(Sema& sema, const std::string_view& name);
     IdentifierRef            resolveIdentifier(Sema& sema, const SourceCodeRef& codeRef);
     uint32_t                 aliasSlotIndex(TokenId tokenId);
-    IdentifierRef            resolveAliasIdentifier(Sema& sema, TokenId tokenId);
+    IdentifierRef            resolveAliasIdentifier(const Sema& sema, TokenId tokenId);
     uint32_t                 uniqSlotIndex(TokenId tokenId);
     AstNodeRef               uniqSyntaxScopeNodeRef(Sema& sema);
     SemaInlinePayload*       mixinInlinePayloadForUniq(Sema& sema);

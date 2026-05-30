@@ -32,6 +32,7 @@ namespace
 
     bool usesInlineReturnContext(const Sema& sema, const SemaInlinePayload& inlinePayload)
     {
+        SWC_UNUSED(sema);
         return !inlinePayload.returnsToCallerSite() && inlinePayload.returnTypeRef.isValid();
     }
 
@@ -420,7 +421,7 @@ Result Sema::prepareFunctionSignature(AstNodeRef functionRef)
     if (!symbol || !symbol->isFunction())
         return Result::Continue;
 
-    auto& sym = symbol->cast<SymbolFunction>();
+    const auto& sym = symbol->cast<SymbolFunction>();
     if (sym.isTyped() || functionSignatureNeedsBody(*functionDecl))
         return Result::Continue;
 

@@ -1325,6 +1325,14 @@ namespace
                     sym->registerAttributes(sema);
                     sym->setDeclared(sema.ctx());
                 }
+
+                // Mark local functions inside inline macro expansions so the native backend
+                // assigns them a unique private symbol name instead of a shared public API
+                // name. Without this, the same macro expanded at multiple call sites in
+                // different translation units produces functions with identical public
+                // symbol names, causing multiply-defined-symbol linker errors.
+                if (sym->isFunction())
+                    sym->cast<SymbolFunction>().addExtraFlag(SymbolFunctionFlagsE::InlineLocalFunction);
             }
 
             SWC_RESULT(sema.prepareFunctionSignature(childRef));

@@ -105,9 +105,10 @@ public:
 
     struct InlineContext
     {
-        AstNodeRef               rootNodeRef = AstNodeRef::invalid();
-        const SemaInlinePayload* payload     = nullptr;
-        MicroLabelRef            doneLabel   = MicroLabelRef::invalid();
+        AstNodeRef               rootNodeRef       = AstNodeRef::invalid();
+        const SemaInlinePayload* payload           = nullptr;
+        MicroLabelRef            doneLabel         = MicroLabelRef::invalid();
+        bool                     noOuterDoneLabel  = false; // true when in local-function context
     };
 
     const BreakContext&  currentBreakContext() const { return breakable_; }
@@ -127,6 +128,7 @@ public:
     void                 setCurrentLoopIndex(MicroReg reg, TypeRef typeRef);
     TypeRef              currentLoopIndexTypeRef() const { return currentLoopIndexTypeRef_; }
     const InlineContext& currentInlineContext() const { return inlineContext_; }
+    InlineContext&       currentInlineContextRef() { return inlineContext_; }
     void                 setCurrentInlineContext(AstNodeRef rootNodeRef, const SemaInlinePayload* payload, MicroLabelRef doneLabel);
     void                 clearCurrentInlineContext() { inlineContext_ = {}; }
     AstNodeRef           currentInlineBoundaryRootRef() const { return inlineBoundaryRootRef_; }

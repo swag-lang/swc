@@ -35,6 +35,7 @@ enum class SymbolFunctionFlagsE : uint16_t
     LazyGenericBody        = 1 << 11,
     LazyGenericBodyRunning = 1 << 12,
     WhereConstraintFailed  = 1 << 13,
+    InlineLocalFunction    = 1 << 14,
 };
 using SymbolFunctionFlags = EnumFlags<SymbolFunctionFlagsE>;
 

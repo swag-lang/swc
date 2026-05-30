@@ -621,6 +621,8 @@ bool SymbolFunction::supportsGeneratedModuleApiExport() const noexcept
         return false;
     if (isAttribute() || isClosure() || isGenericRoot() || isGenericInstance() || hasUnmaterializedGenericBody())
         return false;
+    if (hasExtraFlag(SymbolFunctionFlagsE::InlineLocalFunction))
+        return false;
     if (isFunctionNestedInFunctionScope(*this))
         return false;
     if (attributes().hasRtFlag(RtAttributeFlagsE::Compiler))

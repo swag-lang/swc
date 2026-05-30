@@ -39,6 +39,24 @@ namespace
         return MicroLabelRef::invalid();
     }
 
+    bool hasMatchingInlineFrame(std::span<const CodeGenFrame> frames, AstNodeRef rootNodeRef, const SemaInlinePayload* payload)
+    {
+        if (!payload || rootNodeRef.isInvalid())
+            return false;
+
+        for (size_t frameIndex = frames.size(); frameIndex != 0; --frameIndex)
+        {
+            const CodeGenFrame& frame = frames[frameIndex - 1];
+            if (!frame.hasCurrentInlineContext())
+                continue;
+            const CodeGenFrame::InlineContext& inlineCtx = frame.currentInlineContext();
+            if (inlineCtx.rootNodeRef == rootNodeRef && inlineCtx.payload == payload)
+                return true;
+        }
+
+        return false;
+    }
+
     bool isStackAddressPayload(const CodeGen& codeGen, const SymbolVariable& sym, const CodeGenNodePayload& payload)
     {
         if (!payload.isAddress())
@@ -1526,6 +1544,11 @@ Result CodeGen::preNode(AstNode& node)
         {
             const MicroLabelRef doneLabel = findMatchingInlineDoneLabel(frames(), targetInlinePayload->inlineRootRef, targetInlinePayload);
             frame.setCurrentInlineContext(targetInlinePayload->inlineRootRef, targetInlinePayload, doneLabel);
+            // When no matching frame is found in the frame stack, we are inside a locally
+            // compiled function (e.g., a local function inside a macro expansion). In that
+            // case, any doneLabel created by emitInlineReturn must be placed at this boundary
+            // since the outer expansion won't do it.
+            frame.currentInlineContextRef().noOuterDoneLabel = !hasMatchingInlineFrame(frames(), targetInlinePayload->inlineRootRef, targetInlinePayload);
         }
         else
         {
@@ -1578,6 +1601,19 @@ Result CodeGen::postNode(AstNode& node)
                 inlineNodePayload.setIsAddress();
                 inlineNodePayload.reg = offsetAddressReg(localStackBaseReg(), resultVar.offset());
             }
+        }
+        else if (frame().hasCurrentInlineContext() && frame().currentInlineContext().noOuterDoneLabel)
+        {
+            // When the inline boundary is inside a locally compiled function (e.g., a local
+            // function inside a macro expansion), the inline root lives in the caller's AST
+            // context and rootNodeRef won't match curNodeRef. Any doneLabel created by
+            // emitInlineReturn for a 'return' inside the injected code must still be placed
+            // at the boundary so jumps to it resolve correctly. We only do this when
+            // noOuterDoneLabel is set, meaning no matching outer label was found in preNode,
+            // so the outer expansion won't place it.
+            const MicroLabelRef doneLabel = frame().currentInlineContext().doneLabel;
+            if (doneLabel.isValid())
+                builder().placeLabel(doneLabel);
         }
 
         popFrame();

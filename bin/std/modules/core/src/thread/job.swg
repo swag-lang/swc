@@ -22,9 +22,9 @@ public struct Job
 public struct(T) SliceJob
 {
     using base:     Job
-    buffer:         [..] T
+    buffer:         const [..] T
     offset:         u32
-    userData:       *void
+    contextData:    *void
 }
 
 public struct ForJob
@@ -32,7 +32,7 @@ public struct ForJob
     using base:     Job
     startIndex:     u32
     endIndex:       u32
-    userData:       *void
+    contextData:    *void
 }
 
 var g_Allocator:        Swag.IAllocator
@@ -211,7 +211,7 @@ public func waitJob(job: *Job)
 // Operate on a range in parallel chunks.
 // Exposed variables:
 // - buffer: address of the element of the range to process
-// - data:   user data as passed to the macro
+// - data:   contextData as passed to the macro
 #[Swag.Macro]
 public func(T) parallelVisit(range: [..] T, offset: u32 = 1, contextData: *void = null, stmt: #code void)
 {
@@ -219,41 +219,132 @@ public func(T) parallelVisit(range: [..] T, offset: u32 = 1, contextData: *void 
         return
     Debug.assert(offset != 0)
 
-    var scan    = @dataof(range)
-    let countof = @countof(range)
-    for countof / offset
+    func jobEntry(jobData: *void)
     {
-        #macro
-        {
-            var #alias0 = cast #unconst (*#up T) #up scan
-            let #alias1 = #up contextData
-            #inject(#up stmt)
-        }
-
-        scan += offset
+        let oneJob = cast(*SliceJob'T) jobData
+        visitSlice(oneJob.buffer, oneJob.offset, oneJob.contextData)
     }
+
+    func visitSlice(sliceBuffer: const [..] T, sliceOffset: u32, sliceContextData: #null *void)
+    {
+        var scan    = @dataof(sliceBuffer)
+        let countof = @countof(sliceBuffer)
+        for countof / sliceOffset
+        {
+            #macro
+            {
+                var #alias0 = cast #unconst (*#up T) #up scan
+                let #alias1 = #up sliceContextData
+                #inject(#up stmt)
+            }
+
+            scan += sliceOffset
+        }
+    }
+
+    // Force synchronous execution if range is too small
+    let wh         = @countof(range) / offset
+    let numWorkers = Math.min(getNumWorkers(), cast(u32) wh)
+    if isSynchrone() or numWorkers <= 1
+    {
+        visitSlice(range, offset, contextData)
+        return
+    }
+
+    // Compute size of each chunk (and size of the last one)
+    var splitSize     = wh / numWorkers
+    var lastSplitSize = splitSize + (wh - (splitSize * numWorkers))
+    splitSize *= offset
+    lastSplitSize *= offset
+
+    // Launch jobs
+    var sliceJobs: Array'(SliceJob'T)
+    sliceJobs.resize(cast(u64) numWorkers)
+
+    var ptr = @dataof(range)
+    foreach &j in sliceJobs
+    {
+        let sizeSlice = @index == sliceJobs.count - 1 ? lastSplitSize : splitSize
+
+        j.base.lambda   = &jobEntry
+        j.base.data     = j
+        j.offset        = offset
+        j.contextData   = contextData
+        j.buffer        = @mkslice(ptr, sizeSlice)
+        ptr += sizeSlice
+
+        scheduleJob(j)
+    }
+
+    // Sync
+    foreach &j in sliceJobs do
+        waitJob(j)
 }
 
-// Do a for for in parallel chunks.
+// Do a for in parallel chunks.
 // Exposed variables:
 // - #alias0: current for index
-// - #alias1: user data as passed to the macro
+// - #alias1: contextData as passed to the macro
 #[Swag.Macro]
 public func parallelFor(count: u32, contextData: *void = null, stmt: #code void)
 {
     if !count do
         return
 
-    var curIndex = 0'u32
-    for count
+    func jobEntry(jobData: *void)
     {
-        #macro
-        {
-            let #alias0 = #up curIndex
-            let #alias1 = #up contextData
-            #inject(#up stmt)
-        }
-
-        curIndex += 1
+        let oneJob = cast(*ForJob) jobData
+        visitFor(oneJob.startIndex, oneJob.endIndex, oneJob.contextData)
     }
+
+    func visitFor(forStart, forEnd: u32, forContextData: #null *void)
+    {
+        var curIndex = forStart
+        for (forEnd - forStart) + 1
+        {
+            #macro
+            {
+                let #alias0 = #up curIndex
+                let #alias1 = #up forContextData
+                #inject(#up stmt)
+            }
+
+            curIndex += 1
+        }
+    }
+
+    // Force synchronous execution if range is too small
+    let numWorkers = Math.min(getNumWorkers(), count)
+    if isSynchrone() or numWorkers <= 1
+    {
+        visitFor(0, count - 1, contextData)
+        return
+    }
+
+    // Compute size of each chunk (and size of the last one)
+    let splitSize     = count / numWorkers
+    let lastSplitSize = splitSize + (count - (splitSize * numWorkers))
+
+    // Launch jobs
+    var sliceJobs: Array'ForJob
+    sliceJobs.resize(cast(u64) numWorkers)
+
+    var startIndex = 0'u32
+    foreach &j in sliceJobs
+    {
+        let sizeSlice = @index == sliceJobs.count - 1 ? lastSplitSize : splitSize
+
+        j.base.lambda   = &jobEntry
+        j.base.data     = j
+        j.startIndex    = startIndex
+        j.endIndex      = startIndex + sizeSlice - 1
+        j.contextData   = contextData
+        startIndex += sizeSlice
+
+        scheduleJob(j)
+    }
+
+    // Sync
+    foreach &j in sliceJobs do
+        waitJob(j)
 }

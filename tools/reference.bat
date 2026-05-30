@@ -7,8 +7,17 @@ if not "%ERRORLEVEL%"=="0" exit /b %ERRORLEVEL%
 if /I "%~1"=="dm" shift
 
 set "REFERENCE_WORKSPACE=%ROOT%\bin\reference"
+set "SWC_COMMAND=test"
+set "REFERENCE_ARGS="
 set "BUILD_CFG=fast-debug"
 set "EXTRA_ARGS="
+
+if /I "%~1"=="build" (
+    set "REFERENCE_ARGS= --no-test-jit --no-output"
+    shift
+) else if /I "%~1"=="test" (
+    shift
+)
 
 :parse_args
 if "%~1"=="" goto run
@@ -18,19 +27,10 @@ if /I "%~1"=="--build-cfg" (
     shift
     goto parse_args
 )
-if /I "%~1"=="--target-arch" (
-    set "TARGET_ARCH=%~2"
-    set "EXTRA_ARGS=%EXTRA_ARGS% --target-arch %~2"
-    shift
-    shift
-    goto parse_args
-)
 set "EXTRA_ARGS=%EXTRA_ARGS% %1"
 shift
 goto parse_args
 
 :run
-call "%TOOLS_DIR%_common.bat" :run_swc test --workspace "%REFERENCE_WORKSPACE%" --build-cfg %BUILD_CFG%%EXTRA_ARGS%
-if not "%ERRORLEVEL%"=="0" exit /b %ERRORLEVEL%
-
-exit /b 0
+call "%TOOLS_DIR%_common.bat" :run_swc %SWC_COMMAND% --workspace "%REFERENCE_WORKSPACE%" --build-cfg %BUILD_CFG%%REFERENCE_ARGS%%EXTRA_ARGS%
+exit /b %ERRORLEVEL%

@@ -50,10 +50,8 @@ goto parse_args
 :run
 if /I "%SWC_COMMAND%"=="test" goto run_test
 
-call "%TOOLS_DIR%_common.bat" :run_swc %SWC_COMMAND% --workspace "%STD_WORKSPACE%" --build-cfg %BUILD_CFG%%WORKSPACE_ARGS%%EXTRA_ARGS%
-if not "%ERRORLEVEL%"=="0" exit /b %ERRORLEVEL%
-
-exit /b 0
+call "%TOOLS_DIR%_common.bat" :run_swc build --workspace "%STD_WORKSPACE%" --build-cfg %BUILD_CFG%%WORKSPACE_ARGS%%EXTRA_ARGS%
+exit /b %ERRORLEVEL%
 
 :run_test
 call "%TOOLS_DIR%_common.bat" :run_swc build --workspace "%STD_WORKSPACE%" --build-cfg %BUILD_CFG%%WORKSPACE_ARGS%%EXTRA_ARGS%

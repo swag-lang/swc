@@ -11,13 +11,13 @@
 
 - After any change:
     1. Compile a **DevMode** build.
-    2. Run `test.bat dm`.
+    2. Run `tests.bat dm`.
     3. If either step fails, fix the issue before proceeding.
-    4. Run `all.bat dm` (only if you have change c++ files)
+    4. Run `alltests.bat dm` (only if you have change c++ files)
     5. Compile the **Release** build (`swc.exe`).
-    6. Run `test.bat`.
+    6. Run `tests.bat`.
     7. If either release step fails, fix the issue before proceeding.
-    8. Do not run `all.bat` in release mode as part of the default validation workflow.
+    8. Do not run `alltests.bat` in release mode as part of the default validation workflow.
 
 ---
 

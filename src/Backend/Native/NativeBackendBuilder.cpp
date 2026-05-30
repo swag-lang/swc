@@ -758,7 +758,8 @@ Result NativeBackendBuilder::runGeneratedArtifact()
         .additionalPathDirectories = runtimePathDirs,
     };
 
-    const auto result = Os::runProcess(exitCode, artifactPath, compiler_->cmdLine().runArgs, artifactDir.empty() ? buildDir : artifactDir, &options);
+    const std::vector<Utf8> runArgs = effectiveGeneratedArtifactRunArgs(compiler_->cmdLine());
+    const auto              result  = Os::runProcess(exitCode, artifactPath, runArgs, artifactDir.empty() ? buildDir : artifactDir, &options);
     switch (result)
     {
         case Os::ProcessRunResult::Ok:

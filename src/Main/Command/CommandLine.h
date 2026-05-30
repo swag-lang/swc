@@ -35,6 +35,8 @@ inline constexpr CommandInfo COMMANDS[] = {
     {CommandKind::Run, "run", "Build native artifacts from the input sources and run emitted executables when available."},
 };
 
+inline constexpr std::string_view SWAG_TEST_RUN_ARG = "swag.test";
+
 inline Runtime::CompilerCommand compilerCommandFromKind(const CommandKind command)
 {
     switch (command)
@@ -52,6 +54,17 @@ inline Runtime::CompilerCommand compilerCommandFromKind(const CommandKind comman
         default:
             SWC_UNREACHABLE();
     }
+}
+
+inline bool hasRunArg(const std::vector<Utf8>& runArgs, const std::string_view value)
+{
+    for (const Utf8& arg : runArgs)
+    {
+        if (arg.view() == value)
+            return true;
+    }
+
+    return false;
 }
 
 struct CommandLine
@@ -178,6 +191,14 @@ constexpr std::string_view commandName(const CommandKind command)
     }
 
     SWC_UNREACHABLE();
+}
+
+inline std::vector<Utf8> effectiveGeneratedArtifactRunArgs(const CommandLine& cmdLine)
+{
+    std::vector<Utf8> result = cmdLine.runArgs;
+    if (cmdLine.command == CommandKind::Test && !hasRunArg(result, SWAG_TEST_RUN_ARG))
+        result.emplace_back(SWAG_TEST_RUN_ARG);
+    return result;
 }
 
 SWC_END_NAMESPACE();

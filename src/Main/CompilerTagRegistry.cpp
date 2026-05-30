@@ -456,17 +456,27 @@ namespace
             case Runtime::TargetArch::X86_64:
                 tag.cstRef = ctx.cstMgr().addConstant(ctx, ConstantValue::makeString(ctx, "little"));
                 outTags.push_back(std::move(tag));
-                return;
+                break;
+
+            default:
+                SWC_UNREACHABLE();
         }
 
-        SWC_UNREACHABLE();
+        if (ctx.cmdLine().command == CommandKind::Test)
+        {
+            CompilerTag testTag;
+            testTag.name   = SWAG_TEST_RUN_ARG;
+            testTag.source = "<internal>";
+            testTag.cstRef = ctx.cstMgr().addConstant(ctx, ConstantValue::makeBool(ctx, true));
+            outTags.push_back(std::move(testTag));
+        }
     }
 }
 
 Result CompilerTagRegistry::setup(TaskContext& ctx)
 {
     tags_.clear();
-    tags_.reserve(1 + ctx.cmdLine().tags.size());
+    tags_.reserve(2 + ctx.cmdLine().tags.size());
     addInternalCompilerTags(ctx, tags_);
 
     for (const Utf8& rawTag : ctx.cmdLine().tags)

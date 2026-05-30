@@ -21,16 +21,8 @@ goto parse_args
 
 :run
 for %%C in (release debug fast-debug fast-compile) do (
-    call :build_config "%%C" || exit /b 1
+    call "%TOOLS_DIR%test.bat" %MODE_ARG% --build-cfg "%%C"%EXTRA_ARGS% || exit /b 1
 )
 
 call "%TOOLS_DIR%_common.bat" :batch_end "%~f0"
-exit /b 0
-
-:build_config
-set "BUILD_CFG=%~1"
-call "%TOOLS_DIR%std.bat" %MODE_ARG% build --build-cfg "%BUILD_CFG%"%EXTRA_ARGS% || exit /b 1
-call "%TOOLS_DIR%examples.bat" %MODE_ARG% build --build-cfg "%BUILD_CFG%"%EXTRA_ARGS% || exit /b 1
-call "%TOOLS_DIR%reference.bat" %MODE_ARG% build --build-cfg "%BUILD_CFG%"%EXTRA_ARGS% || exit /b 1
-call "%TOOLS_DIR%_common.bat" :run_swc build --workspace "%ROOT%\bin\tests\workspace" --build-cfg "%BUILD_CFG%"%EXTRA_ARGS% || exit /b 1
 exit /b 0

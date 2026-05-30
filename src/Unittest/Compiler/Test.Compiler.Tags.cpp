@@ -106,6 +106,33 @@ SWC_TEST_BEGIN(Compiler_TestCommandEnablesSourceDrivenModeWhenParsed)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(Compiler_TestCommandRegistersSwagTestCompilerTag)
+{
+    static constexpr std::string_view SOURCE     = R"(#global fileprivate
+#assert(#hastag("swag.test"))
+#assert(#gettag("swag.test", bool, false))
+)";
+    const fs::path                    sourcePath = Unittest::makeTestSourcePath("Compiler", "TestCommandRegistersSwagTestCompilerTag");
+
+    CommandLine cmdLine;
+    cmdLine.command = CommandKind::Test;
+    cmdLine.name    = "compiler_test_command_swag_test_tag";
+    cmdLine.files.insert(sourcePath);
+    CommandLineParser::refreshBuildCfg(cmdLine);
+
+    const uint64_t   errorsBefore = Stats::getNumErrors();
+    CompilerInstance compiler(ctx.global(), cmdLine);
+    Unittest::registerTestSource(compiler, sourcePath, SOURCE);
+    Command::sema(compiler);
+    if (Stats::getNumErrors() != errorsBefore)
+        return Result::Error;
+
+    const auto* tag = compiler.findCompilerTag("swag.test");
+    if (!tag || !compiler.cstMgr().get(tag->cstRef).getBool())
+        return Result::Error;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(Compiler_UnittestCommandKeepsSourceDrivenModeDisabledWhenParsed)
 {
     CommandLine parserCmdLine;
@@ -148,6 +175,44 @@ SWC_TEST_BEGIN(Compiler_RunCommandParsesRunArgs)
     if (parserCmdLine.runArgs[0] != "swag.test")
         return Result::Error;
     if (parserCmdLine.runArgs[1] != "keep-open")
+        return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(Compiler_TestCommandForcesSwagTestRunArg)
+{
+    CommandLine parserCmdLine;
+    char        arg0[] = "swc_devmode";
+    char        arg1[] = "test";
+    char        arg2[] = "--run-arg";
+    char        arg3[] = "custom";
+    char*       argv[] = {arg0, arg1, arg2, arg3};
+
+    CommandLineParser parser(const_cast<Global&>(ctx.global()), parserCmdLine);
+    if (parser.parse(std::size(argv), argv) != Result::Continue)
+        return Result::Error;
+
+    if (parserCmdLine.command != CommandKind::Test)
+        return Result::Error;
+    if (parserCmdLine.runArgs.size() != 1 || parserCmdLine.runArgs[0] != "custom")
+        return Result::Error;
+
+    const std::vector<Utf8> runArgs = effectiveGeneratedArtifactRunArgs(parserCmdLine);
+    if (runArgs.size() != 2)
+        return Result::Error;
+    if (runArgs[0] != "custom" || runArgs[1] != SWAG_TEST_RUN_ARG)
+        return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(Compiler_TestCommandDoesNotDuplicateSwagTestRunArg)
+{
+    CommandLine cmdLine;
+    cmdLine.command = CommandKind::Test;
+    cmdLine.runArgs.emplace_back(SWAG_TEST_RUN_ARG);
+
+    const std::vector<Utf8> runArgs = effectiveGeneratedArtifactRunArgs(cmdLine);
+    if (runArgs.size() != 1 || runArgs[0] != SWAG_TEST_RUN_ARG)
         return Result::Error;
 }
 SWC_TEST_END()

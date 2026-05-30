@@ -18,3 +18,12 @@ func makeTempBmpPath()->String
     name += ".bmp"
     return Path.combine(tempDir.toString(), name.toString())
 }
+
+func makeTempTgaPath()->String
+{
+    let tempDir = Env.getSpecialDirectory(Env.SpecialDirectory.Temp)
+    var name: String = "swag_pixel_tga_"
+    name += GUID64.getRandom().getString()
+    name += ".tga"
+    return Path.combine(tempDir.toString(), name.toString())
+}

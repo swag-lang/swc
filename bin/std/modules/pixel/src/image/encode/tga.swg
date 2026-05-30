@@ -12,40 +12,45 @@ public impl IImageEncoder for Encoder
 
     mtd impl encode(result: *ConcatBuffer, image: Image, options: any) throw
     {
+        if image.width <= 0 or image.height <= 0 or !image.pixels.buffer do
+            throw InvalidFormatError{"invalid image"}
         if image.width > Swag.U16.Max do
             throw UnsupportedFormatError{"width is too big"}
         if image.height > Swag.U16.Max do
             throw UnsupportedFormatError{"height is too big"}
 
         var header: Header
-        header.bpp           = image.bpp
-        header.imageTypeCode = cast(u8) TYPE_RGB
-        header.width         = cast(u16) image.width
-        header.height        = cast(u16) image.height
+        header.imageTypeCode  = cast(u8) TYPE_RGB
+        header.width          = cast(u16) image.width
+        header.height         = cast(u16) image.height
+        header.bpp            = image.bpp
+        header.descriptorByte = image.pf.hasAlpha() ? 8'u8 : 0'u8
         result.addStruct(header)
 
-        // Need to encode as BGR or BGRA
+        var psrc = image.pixels.buffer
         switch image.pf
         {
+        case BGR8, BGRA8:
+            result.addBytes(image.pixels.toSlice())
+
         case RGB8:
-            for var i = 0; i < image.pixels.count; i += 3
+            for image.width * image.height
             {
-                result.addNative(image.pixels.buffer[i + 2])
-                result.addNative(image.pixels.buffer[i + 1])
-                result.addNative(image.pixels.buffer[i + 0])
+                result.addNative(psrc[2])
+                result.addNative(psrc[1])
+                result.addNative(psrc[0])
+                psrc += 3
             }
 
         case RGBA8:
-            for var i = 0; i < image.pixels.count; i += 4
+            for image.width * image.height
             {
-                result.addNative(image.pixels.buffer[i + 2])
-                result.addNative(image.pixels.buffer[i + 1])
-                result.addNative(image.pixels.buffer[i + 0])
-                result.addNative(image.pixels.buffer[i + 3])
+                result.addNative(psrc[2])
+                result.addNative(psrc[1])
+                result.addNative(psrc[0])
+                result.addNative(psrc[3])
+                psrc += 4
             }
-
-        default:
-            result.addBytes(image.pixels.toSlice())
         }
     }
 }

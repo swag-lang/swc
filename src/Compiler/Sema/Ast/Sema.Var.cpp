@@ -1005,13 +1005,14 @@ namespace
             for (Symbol* s : symbols)
             {
                 auto& symVar = s->cast<SymbolVariable>();
-                if (implicitStructNoInit)
+                const bool forceRetValDefaultInit = symVar.hasExtraFlag(SymbolVariableFlagsE::RetVal);
+                if (implicitStructNoInit && !forceRetValDefaultInit)
                     symVar.addExtraFlag(SymbolVariableFlagsE::ImplicitUndefinedInit);
                 if (isExplicitUndefinedInit)
                     symVar.addExtraFlag(SymbolVariableFlagsE::ExplicitUndefined);
                 if (isCallerLocation)
                     symVar.addExtraFlag(SymbolVariableFlagsE::CallerLocationDefault);
-                if (!implicitStructNoInit)
+                if (!implicitStructNoInit || forceRetValDefaultInit)
                     symVar.addExtraFlag(SymbolVariableFlagsE::Initialized);
             }
         }

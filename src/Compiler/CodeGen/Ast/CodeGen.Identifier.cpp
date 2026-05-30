@@ -400,6 +400,42 @@ namespace
         return true;
     }
 
+    bool shouldSkipVariableDefaultInit(const SymbolVariable& symVar)
+    {
+        if (symVar.hasExtraFlag(SymbolVariableFlagsE::ExplicitUndefined))
+            return true;
+        if (symVar.hasExtraFlag(SymbolVariableFlagsE::RetVal))
+            return false;
+        return symVar.hasExtraFlag(SymbolVariableFlagsE::ImplicitUndefinedInit);
+    }
+
+    Result emitVariableDefaultValueToAddress(CodeGen& codeGen, const SymbolVariable& symVar, const MicroReg dstReg, uint32_t localSize)
+    {
+        const TypeInfo& symType        = codeGen.typeMgr().get(symVar.typeRef());
+        TypeRef         storageTypeRef = symVar.typeRef();
+        if (const TypeRef unwrappedTypeRef = symType.unwrap(codeGen.ctx(), symVar.typeRef(), TypeExpandE::Alias); unwrappedTypeRef.isValid())
+            storageTypeRef = unwrappedTypeRef;
+
+        const TypeInfo& storageType = codeGen.typeMgr().get(storageTypeRef);
+        if (storageType.isStruct())
+        {
+            const auto& symStruct = storageType.payloadSymStruct();
+            symStruct.computeImplicitDefaultFlags(codeGen.sema());
+            if (symVar.hasExtraFlag(SymbolVariableFlagsE::RetVal) && symStruct.hasImplicitAllUndefinedDefault())
+            {
+                CodeGenMemoryHelpers::emitMemZero(codeGen, dstReg, localSize);
+                return Result::Continue;
+            }
+
+            SWC_RESULT(CodeGenFunctionHelpers::emitStructDefaultValue(codeGen, symVar.typeRef(), dstReg));
+            return Result::Continue;
+        }
+
+        if (!emitDefaultValueToLocalStack(codeGen, symVar, dstReg, localSize))
+            CodeGenMemoryHelpers::emitMemZero(codeGen, dstReg, localSize);
+        return Result::Continue;
+    }
+
     void codeGenIdentifierVariable(CodeGen& codeGen, const SymbolVariable& symVar)
     {
         const CodeGenNodePayload symbolPayload = resolveIdentifierVariablePayload(codeGen, symVar);
@@ -531,7 +567,7 @@ namespace
     Result materializeSingleVarFromInit(CodeGen& codeGen, const SymbolVariable& symVar, AstNodeRef initRef)
     {
         MicroBuilder& builder  = codeGen.builder();
-        const bool    skipInit = symVar.hasExtraFlag(SymbolVariableFlagsE::ExplicitUndefined) || symVar.hasExtraFlag(SymbolVariableFlagsE::ImplicitUndefinedInit);
+        const bool    skipInit = shouldSkipVariableDefaultInit(symVar);
         if (symVar.hasGlobalStorage())
             return Result::Continue;
 
@@ -589,17 +625,7 @@ namespace
             }
             else
             {
-                const TypeInfo& symType        = codeGen.typeMgr().get(symVar.typeRef());
-                TypeRef         storageTypeRef = symVar.typeRef();
-                if (const TypeRef unwrappedTypeRef = symType.unwrap(codeGen.ctx(), symVar.typeRef(), TypeExpandE::Alias); unwrappedTypeRef.isValid())
-                    storageTypeRef = unwrappedTypeRef;
-
-                if (codeGen.typeMgr().get(storageTypeRef).isStruct())
-                {
-                    SWC_RESULT(CodeGenFunctionHelpers::emitStructDefaultValue(codeGen, symVar.typeRef(), symbolPayload.reg));
-                }
-                else if (!emitDefaultValueToLocalStack(codeGen, symVar, symbolPayload.reg, localSize))
-                    CodeGenMemoryHelpers::emitMemZero(codeGen, symbolPayload.reg, localSize);
+                SWC_RESULT(emitVariableDefaultValueToAddress(codeGen, symVar, symbolPayload.reg, localSize));
             }
 
             return Result::Continue;
@@ -659,19 +685,7 @@ namespace
                 }
                 else
                 {
-                    // Prefer the declared default storage blob before falling back to zero-init for plain
-                    // uninitialized stack locals.
-                    const TypeInfo& symType        = codeGen.typeMgr().get(symVar.typeRef());
-                    TypeRef         storageTypeRef = symVar.typeRef();
-                    if (const TypeRef unwrappedTypeRef = symType.unwrap(codeGen.ctx(), symVar.typeRef(), TypeExpandE::Alias); unwrappedTypeRef.isValid())
-                        storageTypeRef = unwrappedTypeRef;
-
-                    if (codeGen.typeMgr().get(storageTypeRef).isStruct())
-                    {
-                        SWC_RESULT(CodeGenFunctionHelpers::emitStructDefaultValue(codeGen, symVar.typeRef(), symbolPayload.reg));
-                    }
-                    else if (!emitDefaultValueToLocalStack(codeGen, symVar, symbolPayload.reg, localSize))
-                        CodeGenMemoryHelpers::emitMemZero(codeGen, symbolPayload.reg, localSize);
+                    SWC_RESULT(emitVariableDefaultValueToAddress(codeGen, symVar, symbolPayload.reg, localSize));
                 }
             }
             return Result::Continue;

@@ -839,6 +839,9 @@ CodeGenNodePayload CodeGen::resolveLocalStackPayload(const SymbolVariable& sym, 
 
 MicroReg CodeGen::ensureCurrentFunctionIndirectReturnReg(const CallConvKind callConvKind)
 {
+    if (currentFunctionIndirectReturnReg_.isValid())
+        return currentFunctionIndirectReturnReg_;
+
     if (hasCurrentFunctionIndirectReturnStackOffset() && localStackBaseReg().isValid())
     {
         MicroBuilder&           builder = this->builder();
@@ -847,9 +850,6 @@ MicroReg CodeGen::ensureCurrentFunctionIndirectReturnReg(const CallConvKind call
         builder.emitLoadRegMem(outputStorageReg, localStackBaseReg(), currentFunctionIndirectReturnStackOffset(), MicroOpBits::B64);
         return outputStorageReg;
     }
-
-    if (currentFunctionIndirectReturnReg_.isValid())
-        return currentFunctionIndirectReturnReg_;
 
     const CallConv& callConv = CallConv::get(callConvKind);
     SWC_ASSERT(!callConv.intArgRegs.empty());

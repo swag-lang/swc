@@ -1,5 +1,5 @@
 #global namespace Bmp
-using Core
+using Core, Core.Errors
 
 public struct Encoder {}
 
@@ -12,9 +12,21 @@ public impl IImageEncoder for Encoder
 
     mtd impl encode(result: *ConcatBuffer, image: Image, options: any) throw
     {
+        if image.width <= 0 or image.height <= 0 or !image.pixels.buffer do
+            throw InvalidFormatError{"invalid image"}
+        if image.width > Swag.S32.Max / image.bpp8 or image.height > Swag.S32.Max / image.width do
+            throw UnsupportedFormatError{"image is too big"}
+
+        let rowBytes  = cast(u64) image.width * image.bpp8
+        let stride    = rowStride(image.width, image.bpp)
+        let imageSize = stride * cast(u64) image.height
+        let fileSize  = cast(u64) #sizeof(FileHeader) + #sizeof(Header) + imageSize
+        if fileSize > Swag.U32.Max do
+            throw UnsupportedFormatError{"image is too big"}
+
         var fileHeader: FileHeader
         fileHeader.bfType    = 0x4d42
-        fileHeader.bfSize    = cast(u32) image.size + #sizeof(FileHeader)
+        fileHeader.bfSize    = cast(u32) fileSize
         fileHeader.bfOffBits = #sizeof(FileHeader) + #sizeof(Header)
         result.addStruct(fileHeader)
 
@@ -25,16 +37,29 @@ public impl IImageEncoder for Encoder
         header.biPlanes      = 1
         header.biBitCount    = image.bpp
         header.biCompression = BI_RGB
+        header.biSizeImage   = cast(u32) imageSize
         result.addStruct(header)
 
-        let align = (header.biWidth * 3) & 3
-        var psrc  = image.pixels.buffer
-
-        if image.pf == .RGBA8
+        var psrc = image.pixels.buffer
+        for image.height
         {
-            for y in header.biHeight
+            switch image.pf
             {
-                for x in header.biWidth
+            case BGR8, BGRA8:
+                result.addBytes(@mkslice(psrc, rowBytes))
+                psrc += rowBytes
+
+            case RGB8:
+                for image.width
+                {
+                    result.addNative(psrc[2])
+                    result.addNative(psrc[1])
+                    result.addNative(psrc[0])
+                    psrc += 3
+                }
+
+            case RGBA8:
+                for image.width
                 {
                     result.addNative(psrc[2])
                     result.addNative(psrc[1])
@@ -43,38 +68,11 @@ public impl IImageEncoder for Encoder
                     psrc += 4
                 }
             }
-        }
-        elif image.pf == .RGB8
-        {
-            for y in header.biHeight
-            {
-                for x in header.biWidth
-                {
-                    result.addNative(psrc[2])
-                    result.addNative(psrc[1])
-                    result.addNative(psrc[0])
-                    psrc += 3
-                }
 
-                if align
-                {
-                    for 4 - align do
-                        result.addNative(0'u8)
-                }
-            }
-        }
-        elif image.bpp != 24 or !align
-        {
-            result.addBytes(image.pixels.toSlice())
-        }
-        else
-        {
-            for y in header.biHeight
+            let padding = stride - rowBytes
+            if padding
             {
-                result.addBytes(@mkslice(psrc, header.biWidth * 3))
-                psrc += header.biWidth * 3
-
-                for 4 - align do
+                for padding do
                     result.addNative(0'u8)
             }
         }

@@ -79,6 +79,17 @@ func consumeDropHolder(value: DeferDropHolder)
 {
 }
 
+#[Swag.NoInline]
+func deferSkippedAddressBranch()->bool
+{
+    return false
+}
+
+#[Swag.NoInline]
+func consumePointerForDefer(value: *u8)
+{
+}
+
 func deferParameterDropInfo()->DeferDropInfo
 {
     DropCount = 0
@@ -634,4 +645,23 @@ func deferReturnDropInfo()->DeferDropInfo
 
     const V = #run deferNoErrAfterCaughtFailureTrace()
     #assert(V == 3165)
+}
+
+#test
+{
+    func deferStackAddressAfterSkippedBranch()->*u8
+    {
+        var value = cast(*u8) 0x1234'u64
+        defer
+        {
+            if deferSkippedAddressBranch() do
+                consumePointerForDefer(value)
+            @assert(value == cast(*u8) 0x1234'u64)
+        }
+
+        return value
+    }
+
+    const V = #run deferStackAddressAfterSkippedBranch()
+    #assert(V == cast(*u8) 0x1234'u64)
 }

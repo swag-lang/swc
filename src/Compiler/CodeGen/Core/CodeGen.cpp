@@ -721,6 +721,9 @@ void CodeGen::setVariablePayload(const SymbolVariable& sym, const CodeGenNodePay
     if (sym.hasGlobalStorage())
         return;
 
+    if (inDeferredEmission() && isStackAddressPayload(*this, sym, payload))
+        return;
+
     VariablePayloadState& symbolPayload = variablePayloads_[&sym];
     symbolPayload.payload               = payload;
     symbolPayload.hasPayload            = true;
@@ -739,6 +742,7 @@ const CodeGenNodePayload* CodeGen::variablePayload(const SymbolVariable& sym) co
     if (isStackAddressPayload(*this, sym, symbolPayload.payload) &&
         symbolPayload.addressGeneration != currentDeferredAddressGeneration_)
         return nullptr;
+
     return &symbolPayload.payload;
 }
 

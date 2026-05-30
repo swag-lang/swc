@@ -9,3 +9,12 @@ func getTestDataPath(fileName: string, loc = #callerlocation)->string
     @assert(File.exists(path))
     return path
 }
+
+func makeTempBmpPath()->String
+{
+    let tempDir = Env.getSpecialDirectory(Env.SpecialDirectory.Temp)
+    var name: String = "swag_pixel_bmp_"
+    name += GUID64.getRandom().getString()
+    name += ".bmp"
+    return Path.combine(tempDir.toString(), name.toString())
+}

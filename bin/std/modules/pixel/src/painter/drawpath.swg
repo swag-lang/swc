@@ -404,13 +404,16 @@ impl Painter
         if cxt.pen.dashEndCapStyle != DashCapStyle.None do
             .drawDashCap(cxt, cxt.pen.dashEndCapStyle, posCap, normalCap, -1.0)
 
-        // AA end edge if no cap
+        // AA end edge if no cap. Copy the positions out first: addEdgeAA appends
+        // fringe geometry, which may reallocate the vertex buffer and invalidate
+        // any pointer into it.
         elif .curState.paintParams & .Antialiased
         {
             let prim2p = .vertexBuffer.buffer + cxt.prim2
-            let prim2t = prim2p + 2
-            .addEdgeAA(cxt.prim1, prim2p.pos, prim2t.pos)
-            .addEdgeAA(cxt.prim2, prim2p.pos, prim2t.pos)
+            let p      = prim2p.pos
+            let q      = (prim2p + 2).pos
+            .addEdgeAA(cxt.prim1, p, q)
+            .addEdgeAA(cxt.prim2, p, q)
         }
     }
 
@@ -837,10 +840,13 @@ impl Painter
         // Handle AA and closing as before...
         if !cxt.lastLineInvalid and !cxt.path.isClosed and (.curState.paintParams & .Antialiased) and (cxt.pen.endCapStyle == .None)
         {
+            // Copy positions out before addEdgeAA: it appends geometry and may
+            // reallocate the vertex buffer, invalidating pointers into it.
             let prim2p = .vertexBuffer.buffer + cxt.prim2
-            let prim2t = prim2p + 2
-            .addEdgeAA(cxt.prim1, prim2p.pos, prim2t.pos)
-            .addEdgeAA(cxt.prim2, prim2p.pos, prim2t.pos)
+            let p      = prim2p.pos
+            let q      = (prim2p + 2).pos
+            .addEdgeAA(cxt.prim1, p, q)
+            .addEdgeAA(cxt.prim2, p, q)
         }
         elif cxt.path.isClosed and !cxt.firstLine and !cxt.beginLine
         {

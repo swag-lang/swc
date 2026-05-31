@@ -1,9 +1,10 @@
-#global #if #os == Swag.TargetOs.Windows
-using Core, Win32, Ogl, Gdi32, Core.Time
+using Core, Ogl, Core.Time
 
-var g_HDC:          HDC
+var g_Window:       Env.Window
+var g_Context:      Ogl.Platform.Win32.Context
 var g_VertexBuffer: GLuint
 var g_ProgramID:    GLuint
+var g_IsReady       = false
 
 const VertexBufferData: [?] GLfloat = [
     -1.0, -1.0, 0.0,
@@ -45,74 +46,35 @@ func display()
     glDisableVertexAttribArray(0)
 
     glFlush()
-    assume SwapBuffers(g_HDC)
+    g_Context.swapBuffers()
 }
 
-func winProc(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM)->LRESULT
+func onPaint(_window: *Env.Window)
 {
-    switch msg
-    {
-    case WM_PAINT:
+    if g_IsReady do
         display()
-
-    case WM_SIZE:
-        glViewport(0, 0, LOWORD(lParam), HIWORD(lParam))
-        display()
-        return 0
-
-    case WM_DESTROY:
-        PostQuitMessage(0)
-    }
-
-    return DefWindowProcA(hWnd, msg, wParam, lParam)
 }
 
-func createWindow()->HWND
+func onResize(_window: *Env.Window, width, height: s32)
 {
-    var wc: WNDCLASSA
-    wc.style         = CS_OWNDC
-    wc.lpfnWndProc   = cast() &winProc
-    wc.hInstance     = GetModuleHandleA(null)
-    wc.lpszClassName = @dataof("CLASS_NAME")
-    assume RegisterClassA(wc)
+    if !g_IsReady do
+        return
 
-    let hWnd = CreateWindowExA(0, @dataof("CLASS_NAME"), @dataof("Example"), WS_OVERLAPPEDWINDOW | WS_CLIPSIBLINGS | WS_CLIPCHILDREN, CW_USEDEFAULT, CW_USEDEFAULT, 512, 512, null, null, wc.hInstance, null)
+    glViewport(0, 0, width, height)
+    display()
+}
 
-    g_HDC = GetDC(hWnd)
-
-    var pfd: PIXELFORMATDESCRIPTOR
-    pfd.nSize      = #sizeof(pfd)
-    pfd.nVersion   = 1
-    pfd.dwFlags    = PFD_DRAW_TO_WINDOW | PFD_SUPPORT_OPENGL
-    pfd.iPixelType = PFD_TYPE_RGBA
-    pfd.cColorBits = 32
-
-    let pf = assume ChoosePixelFormat(g_HDC, &pfd)
-    assume SetPixelFormat(g_HDC, pf, &pfd)
-    assume DescribePixelFormat(g_HDC, pf, cast(UINT) #sizeof(PIXELFORMATDESCRIPTOR), &pfd)
-
-    ReleaseDC(hWnd, g_HDC)
-    return hWnd
+func createWindow() throw
+{
+    try Env.createWindow(&g_Window, {className: "OPENGL2_CLASS_NAME", title: "OpenGL example", width: 512, height: 512})
 }
 
 func messageLoop()
 {
-    var msg: MSG
-    var cpt  = 0
-    while cpt < 100
+    var loop: Env.WindowLoop
+    while loop.next()
     {
-        while PeekMessageA(&msg, null, 0, 0, PM_REMOVE) != 0
-        {
-            if msg.message == WM_QUIT do
-                return
-            TranslateMessage(&msg)
-            DispatchMessageA(&msg)
-        }
-
         display()
-
-        if Env.hasArg("swag.test") do
-            cpt += 1
     }
 }
 
@@ -156,25 +118,24 @@ func createShader()
 
 #main
 {
-    let hWnd = createWindow()
+    try createWindow()
 
-    g_HDC = GetDC(hWnd)
-    let hRC = try wglCreateContext(g_HDC)
-    try wglMakeCurrent(g_HDC, hRC)
+    g_Context = try Ogl.Platform.Win32.createContext(&g_Window)
     glInitExtensions()
 
     glGenBuffers(1, &g_VertexBuffer)
     glBindBuffer(GL_ARRAY_BUFFER, g_VertexBuffer)
     glBufferData(GL_ARRAY_BUFFER, #sizeof(VertexBufferData), @dataof(VertexBufferData), GL_STATIC_DRAW)
     createShader()
+    g_IsReady = true
+    g_Window.callbacks.onPaint  = &onPaint
+    g_Window.callbacks.onResize = &onResize
 
     display()
-    ShowWindow(hWnd, SW_SHOW)
-    try UpdateWindow(hWnd)
+    try g_Window.show()
 
     messageLoop()
 
-    try wglMakeCurrent(null, null)
-    try wglDeleteContext(hRC)
-    ReleaseDC(hWnd, g_HDC)
+    g_IsReady = false
+    g_Context.destroy()
 }

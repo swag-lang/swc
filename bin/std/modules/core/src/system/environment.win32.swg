@@ -268,3 +268,160 @@ public func getDPIScale()->f32
     discard SetThreadDpiAwarenessContext(prev)
     return cast(f32) w1 / cast(f32) w0
 }
+
+public alias WindowPaintCallback  = func||(*Window)
+public alias WindowResizeCallback = func||(*Window, s32, s32)
+
+public struct WindowCallbacks
+{
+    onPaint:      WindowPaintCallback
+    onResize:     WindowResizeCallback
+}
+
+public struct WindowOptions
+{
+    className:      string
+    title:          string
+    width:          s32
+    height:         s32
+    x:              s32 = CW_USEDEFAULT
+    y:              s32 = CW_USEDEFAULT
+    style:          u32 = WS_OVERLAPPEDWINDOW | WS_CLIPSIBLINGS | WS_CLIPCHILDREN
+    exStyle:        u32
+    classStyle:     u32 = CS_OWNDC
+    showCommand:    s32 = SW_SHOW
+}
+
+public struct Window
+{
+    nativeHandle:      HWND
+    callbacks:         WindowCallbacks
+    showCommand:       s32 = SW_SHOW
+}
+
+public struct WindowLoop
+{
+    maxTestFrames:     u32 = 100
+    testFrames:        u32
+}
+
+fileprivate func getWindowFromHandle(hWnd: HWND)->*Window
+{
+    return cast(*Window) GetWindowLongPtrA(hWnd, GWLP_USERDATA)
+}
+
+fileprivate func envWindowProc(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM)->LRESULT
+{
+    if msg == WM_CREATE
+    {
+        let createStruct = cast(*CREATESTRUCTA) cast(u64) lParam
+        SetWindowLongPtrA(hWnd, GWLP_USERDATA, createStruct.lpCreateParams)
+
+        let window = cast(*Window) createStruct.lpCreateParams
+        window.nativeHandle = hWnd
+    }
+
+    let window = getWindowFromHandle(hWnd)
+    if window
+    {
+        switch msg
+        {
+        case WM_PAINT:
+            var ps: PAINTSTRUCT
+            BeginPaint(hWnd, &ps)
+            if window.callbacks.onPaint do
+                window.callbacks.onPaint(window)
+            EndPaint(hWnd, &ps)
+            return 0
+
+        case WM_SIZE:
+            if window.callbacks.onResize do
+                window.callbacks.onResize(window, LOWORD(lParam), HIWORD(lParam))
+            return 0
+
+        case WM_DESTROY:
+            PostQuitMessage(0)
+            return 0
+        }
+    }
+
+    return DefWindowProcA(hWnd, msg, wParam, lParam)
+}
+
+// Creates a native application window. Platform-specific state stays behind Window.nativeHandle.
+public func createWindow(window: &Window, options: WindowOptions) throw
+{
+    window.nativeHandle = null
+    window.callbacks    = {}
+    window.showCommand  = options.showCommand
+
+    var wc: WNDCLASSA
+    wc.style         = options.classStyle
+    wc.lpfnWndProc   = cast() &envWindowProc
+    wc.hInstance     = GetModuleHandleA(null)
+    wc.lpszClassName = @dataof(options.className)
+    try RegisterClassA(wc)
+
+    let hWnd = CreateWindowExA(options.exStyle, @dataof(options.className), @dataof(options.title), options.style, options.x, options.y, options.width, options.height, null, null, wc.hInstance, &window)
+    if !hWnd do
+        throwWinError(GetLastError())
+
+    window.nativeHandle = hWnd
+}
+
+// Processes all pending window messages. Returns false when the application should exit.
+public func processWindowMessages()->bool
+{
+    var msg: MSG
+    while PeekMessageA(&msg, null, 0, 0, PM_REMOVE) != 0
+    {
+        if msg.message == WM_QUIT do
+            return false
+
+        TranslateMessage(&msg)
+        DispatchMessageA(&msg)
+    }
+
+    return true
+}
+
+public impl Window
+{
+    mtd getDC()->HDC
+    {
+        return GetDC(.nativeHandle)
+    }
+
+    mtd releaseDC(hDC: HDC)
+    {
+        ReleaseDC(.nativeHandle, hDC)
+    }
+
+    mtd requestPaint()
+    {
+        assume PostMessageA(.nativeHandle, WM_PAINT, 0, 0)
+    }
+
+    mtd show() throw
+    {
+        ShowWindow(.nativeHandle, .showCommand)
+        try UpdateWindow(.nativeHandle)
+    }
+}
+
+public impl WindowLoop
+{
+    mtd next()->bool
+    {
+        if Env.hasArg("swag.test") and .testFrames >= .maxTestFrames do
+            return false
+
+        if !processWindowMessages() do
+            return false
+
+        if Env.hasArg("swag.test") do
+            .testFrames += 1
+
+        return true
+    }
+}

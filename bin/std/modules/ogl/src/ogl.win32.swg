@@ -1,7 +1,7 @@
 #global export
 #global #if #os == Swag.TargetOs.Windows
 #foreignlib("opengl32")
-using Swag, Win32
+using Swag, Core, Win32, Gdi32
 
 alias HGLRC               = const *void
 alias getExtensionAddress = wglGetProcAddress
@@ -48,5 +48,70 @@ moduleprivate namespace PrivOgl
     {
         if !PrivOgl.wglShareLists(hRc0, hRc1) do
             throwWinError(GetLastError())
+    }
+}
+
+namespace Platform.Win32
+{
+    public struct Context
+    {
+        hDC:          HDC
+        hRC:          HGLRC
+        window:       *Env.Window
+    }
+
+    public func createContext(window: &Env.Window, colorBits: u8 = 32, makeCurrent = true)->Context throw
+    {
+        var result: retval
+        result.window = &window
+        result.hDC    = window.getDC()
+
+        var pfd: PIXELFORMATDESCRIPTOR
+        pfd.nSize      = #sizeof(pfd)
+        pfd.nVersion   = 1
+        pfd.dwFlags    = PFD_DRAW_TO_WINDOW | PFD_SUPPORT_OPENGL
+        pfd.iPixelType = PFD_TYPE_RGBA
+        pfd.cColorBits = colorBits
+
+        let pf = try ChoosePixelFormat(result.hDC, &pfd)
+        try SetPixelFormat(result.hDC, pf, &pfd)
+        try DescribePixelFormat(result.hDC, pf, cast(u32) #sizeof(PIXELFORMATDESCRIPTOR), &pfd)
+
+        result.hRC = try wglCreateContext(result.hDC)
+        if makeCurrent do
+            try result.makeCurrent()
+
+        return result
+    }
+
+    public impl Context
+    {
+        mtd makeCurrent() throw
+        {
+            try wglMakeCurrent(.hDC, .hRC)
+        }
+
+        mtd clearCurrent() throw
+        {
+            try wglMakeCurrent(null, null)
+        }
+
+        mtd swapBuffers()
+        {
+            assume SwapBuffers(.hDC)
+        }
+
+        mtd destroy()
+        {
+            catch .clearCurrent()
+            catch wglDeleteContext(.hRC)
+
+            if .window and .hDC do
+                .window.releaseDC(.hDC)
+
+            .hRC    = null
+            .hDC    = null
+            .window = null
+        }
     }
 }

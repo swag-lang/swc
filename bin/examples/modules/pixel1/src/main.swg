@@ -1,9 +1,9 @@
-#global #if #os == Swag.TargetOs.Windows
-using Core, Win32, Pixel, Core.Math
+using Core, Pixel, Core.Math
 
 const W = 640
 const H = 480
 
+var g_Window:   Env.Window
 var g_Renderer: Pixel.RenderOgl
 var g_Painter:  Pixel.Painter
 var g_RC:       Pixel.RenderingContext
@@ -42,82 +42,51 @@ func display()
     g_Renderer.end()
 }
 
-func winProc(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM)->LRESULT
+func onPaint(_window: *Env.Window)
 {
-    switch msg
-    {
-    case WM_PAINT:
-        var ps: PAINTSTRUCT
-        BeginPaint(hWnd, &ps)
-        display()
-        EndPaint(hWnd, &ps)
-        return 0
-
-    case WM_SIZE:
-        if g_IsReady
-        {
-            g_RC.width  = LOWORD(lParam)
-            g_RC.height = HIWORD(lParam)
-            assume PostMessageA(hWnd, WM_PAINT, 0, 0)
-        }
-        return 0
-
-    case WM_DESTROY:
-        PostQuitMessage(0)
-    }
-
-    return DefWindowProcA(hWnd, msg, wParam, lParam)
+    display()
 }
 
-func createWindow()->HWND
+func onResize(_window: *Env.Window, width, height: s32)
 {
-    var wc: WNDCLASSA
-    wc.style         = CS_OWNDC
-    wc.lpfnWndProc   = cast() &winProc
-    wc.hInstance     = GetModuleHandleA(null)
-    wc.lpszClassName = @dataof("PIXEL1_CLASS_NAME")
-    assume RegisterClassA(wc)
+    if !g_IsReady do
+        return
 
-    return CreateWindowExA(0, @dataof("PIXEL1_CLASS_NAME"), @dataof("Pixel example"), WS_OVERLAPPEDWINDOW | WS_CLIPSIBLINGS | WS_CLIPCHILDREN, CW_USEDEFAULT, CW_USEDEFAULT, W, H, null, null, wc.hInstance, null)
+    g_RC.width  = width
+    g_RC.height = height
+    g_Window.requestPaint()
+}
+
+func createWindow() throw
+{
+    try Env.createWindow(&g_Window, {className: "PIXEL1_CLASS_NAME", title: "Pixel example", width: W, height: H})
 }
 
 func messageLoop()
 {
-    var msg: MSG
-    var cpt  = 0
-    while cpt < 100
+    var loop: Env.WindowLoop
+    while loop.next()
     {
-        while PeekMessageA(&msg, null, 0, 0, PM_REMOVE) != 0
-        {
-            if msg.message == WM_QUIT do
-                return
-            TranslateMessage(&msg)
-            DispatchMessageA(&msg)
-        }
-
         display()
-
-        if Env.hasArg("swag.test") do
-            cpt += 1
     }
 }
 
 #main
 {
-    let hWnd = createWindow()
+    try createWindow()
 
-    g_RC = try g_Renderer.native.createContext(hWnd, W, H)
+    g_RC = try g_Renderer.native.createContext(&g_Window, W, H)
     g_Renderer.setCurrentContext(g_RC)
     g_Renderer.init()
     g_IsReady = true
+    g_Window.callbacks.onPaint  = &onPaint
+    g_Window.callbacks.onResize = &onResize
 
     display()
-    ShowWindow(hWnd, SW_SHOW)
-    try UpdateWindow(hWnd)
+    try g_Window.show()
 
     messageLoop()
 
     g_IsReady = false
     g_Renderer.native.dropContext(g_RC)
-    ReleaseDC(hWnd, g_RC.hDC)
 }

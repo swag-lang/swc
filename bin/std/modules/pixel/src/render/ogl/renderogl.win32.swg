@@ -7,8 +7,11 @@ public struct RenderingContext
 {
     hDC:        HDC
     hRC:        HGLRC
+    hWnd:       HWND
     width:      s32
     height:     s32
+    ownsDC:     bool
+    ownsRC:     bool
 }
 
 public impl NativeRenderOgl
@@ -16,7 +19,16 @@ public impl NativeRenderOgl
     #[Warning("Wrn0006", WarningLevel.Disable)]
     mtd createContext(hWnd: HWND, width, height: s32, mainRC: HGLRC = null)->RenderingContext throw
     {
-        return try .createContext(GetDC(hWnd), width, height, mainRC)
+        var result = try .createContext(GetDC(hWnd), width, height, mainRC)
+        result.hWnd   = hWnd
+        result.ownsDC = true
+        return result
+    }
+
+    #[Warning("Wrn0006", WarningLevel.Disable)]
+    mtd createContext(window: &Env.Window, width, height: s32, mainRC: HGLRC = null)->RenderingContext throw
+    {
+        return try .createContext(window.nativeHandle, width, height, mainRC)
     }
 
     #[Warning("Wrn0006", WarningLevel.Disable)]
@@ -38,7 +50,8 @@ public impl NativeRenderOgl
         let pf = try ChoosePixelFormat(hdc, &pfd)
         try SetPixelFormat(hdc, pf, &pfd)
 
-        result.hRC = mainRC orelse try Ogl.wglCreateContext(result.hDC)
+        result.hRC    = mainRC orelse try Ogl.wglCreateContext(result.hDC)
+        result.ownsRC = mainRC == null
 
         return result
     }
@@ -47,7 +60,10 @@ public impl NativeRenderOgl
     mtd dropContext(rc: RenderingContext)
     {
         catch wglMakeCurrent(null, null)
-        catch wglDeleteContext(rc.hRC)
+        if rc.ownsRC do
+            catch wglDeleteContext(rc.hRC)
+        if rc.ownsDC do
+            ReleaseDC(rc.hWnd, rc.hDC)
     }
 
     #[Warning("Wrn0006", WarningLevel.Disable)]

@@ -26,44 +26,32 @@ func loadFontBytes(fileName: string = "segoeui.ttf")->Array'u8
 
 struct LibraryScope
 {
-    library:     FT_Library
+    library:     Library
 }
 
 impl LibraryScope
 {
     mtd init()
     {
-        discard catch FT_Init_FreeType(&.library)
-        @assert(@err == null)
-    }
-
-    mtd opDrop()
-    {
-        if .library
-        {
-            discard catch FT_Done_FreeType(.library)
-            .library = null
-        }
+        .library.init()
     }
 }
 
 struct FaceScope
 {
     bytes:       Array'u8
-    library:     FT_Library
-    face:        FT_Face
+    library:     Library
+    face:        *Face
 }
 
 impl FaceScope
 {
     mtd init(fileName: string = "segoeui.ttf")
     {
-        discard catch FT_Init_FreeType(&.library)
-        @assert(@err == null)
-
+        .library.init()
         .bytes = loadFontBytes(fileName)
 
-        discard catch FT_New_Memory_Face(.library, .bytes.buffer, cast(FT_Long) .bytes.count, 0, &.face)
+        .face = catch .library.loadFace(.bytes.toSlice())
         @assert(@err == null)
         @assert(.face != null)
     }
@@ -72,24 +60,18 @@ impl FaceScope
     {
         if .face
         {
-            FT_Done_Face(.face)
+            .face.destroy()
             .face = null
-        }
-
-        if .library
-        {
-            discard catch FT_Done_FreeType(.library)
-            .library = null
         }
     }
 }
 
-func getFaceData(face: FT_Face)->*FreeTypePriv.FaceImpl
+func getFaceData(face: *Face)->*FaceImpl
 {
-    return cast(*FreeTypePriv.FaceImpl) face.finternal
+    return cast(*FaceImpl) cast(*void) face
 }
 
-func getOutlineBounds(outline: const *FT_Outline)->FT_BBox
+func getOutlineBounds(outline: const *Outline)->BBox
 {
     var result: retval
     result.xMin = Swag.S32.Max
@@ -97,13 +79,13 @@ func getOutlineBounds(outline: const *FT_Outline)->FT_BBox
     result.xMax = Swag.S32.Min
     result.yMax = Swag.S32.Min
 
-    if !outline or outline.n_points <= 0
+    if !outline or outline.pointCount <= 0
     {
         result = {}
         return result
     }
 
-    for cast(u32) outline.n_points
+    for cast(u32) outline.pointCount
     {
         let pt = outline.points[@index]
         result.xMin = Math.min(result.xMin, pt.x)
@@ -115,7 +97,7 @@ func getOutlineBounds(outline: const *FT_Outline)->FT_BBox
     return result
 }
 
-func countBitmapCoverage(bitmap: const *FT_Bitmap)->u32
+func countBitmapCoverage(bitmap: const *Bitmap)->u32
 {
     if !bitmap or !bitmap.buffer do
         return 0
@@ -130,36 +112,15 @@ func countBitmapCoverage(bitmap: const *FT_Bitmap)->u32
     return count
 }
 
-func findPointWithNonZeroY(outline: const *FT_Outline)->u32
+func findPointWithNonZeroY(outline: const *Outline)->u32
 {
     @assert(outline != null)
-    for cast(u32) outline.n_points
+    for cast(u32) outline.pointCount
     {
         if outline.points[@index].y != 0 do
             return @index
     }
 
     @assert(false)
-    return 0
-}
-
-func moveToCounter(_: const *FT_Vector, user: *void)->s32
-{
-    let counter = cast(*OutlineCounter) user
-    counter.moves += 1
-    return 0
-}
-
-func lineToCounter(_: const *FT_Vector, user: *void)->s32
-{
-    let counter = cast(*OutlineCounter) user
-    counter.lines += 1
-    return 0
-}
-
-func conicToCounter(_: const *FT_Vector, dest: const *FT_Vector, user: *void)->s32
-{
-    let counter = cast(*OutlineCounter) user
-    counter.conics += 1
     return 0
 }

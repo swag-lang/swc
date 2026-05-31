@@ -6,20 +6,20 @@ using Swag, Core
     var scope: FaceScope
     scope.init()
 
-    discard catch FT_Set_Pixel_Sizes(scope.face, 0, 20)
+    discard catch scope.face.setPixelSize(0, 20)
     @assert(@err == null)
 
-    let glyphIndex = FT_Get_Char_Index(scope.face, 'A''u32)
-    discard catch FT_Load_Glyph(scope.face, glyphIndex, FT_LOAD_RENDER)
+    let glyphIndex = scope.face.glyphIndex('A')
+    discard catch scope.face.loadGlyph(glyphIndex, .Render)
     @assert(@err == null)
     @assert(scope.face.glyph.bitmap.width > 0)
     @assert(scope.face.glyph.bitmap.rows > 0)
     @assert(scope.face.glyph.bitmap.pitch == cast(s32) scope.face.glyph.bitmap.width)
     @assert(countBitmapCoverage(&scope.face.glyph.bitmap) > 0)
 
-    discard catch FT_Load_Char(scope.face, ' ''u32, FT_LOAD_DEFAULT)
+    discard catch scope.face.loadChar(' ', .Default)
     @assert(@err == null)
-    discard catch FT_Render_Glyph(scope.face.glyph, .FT_RENDER_MODE_NORMAL)
+    discard catch scope.face.renderGlyph()
     @assert(@err == null)
     @assert(countBitmapCoverage(&scope.face.glyph.bitmap) == 0)
 }
@@ -29,14 +29,14 @@ using Swag, Core
     var scope: FaceScope
     scope.init()
 
-    discard catch FT_Set_Pixel_Sizes(scope.face, 0, 20)
+    discard catch scope.face.setPixelSize(0, 20)
     @assert(@err == null)
 
-    discard catch FT_Load_Char(scope.face, 'A''u32, FT_LOAD_DEFAULT)
+    discard catch scope.face.loadChar('A', .Default)
     @assert(@err == null)
-    discard catch FT_Render_Glyph(scope.face.glyph, .FT_RENDER_MODE_MONO)
+    discard catch scope.face.renderGlyph(.Mono)
     @assert(@err != null)
 
-    discard catch FT_Load_Glyph(scope.face, cast(FT_UInt) scope.face.num_glyphs + 1, FT_LOAD_DEFAULT)
+    discard catch scope.face.loadGlyph(scope.face.glyphCount + 1, .Default)
     @assert(@err != null)
 }

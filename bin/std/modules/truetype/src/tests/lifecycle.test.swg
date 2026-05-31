@@ -1,25 +1,25 @@
 #global #if #command == Swag.CompilerCommand.Test
 using Swag, Core
 
-func assertFixtureFontLoads(fileName: string, expectedFlags: FT_Long)
+func assertFixtureFontLoads(fileName: string, expectedStyle: StyleFlag)
 {
     var scope: FaceScope
     scope.init(fileName)
 
     @assert(scope.bytes.count > 0)
-    @assert(scope.face.num_faces == 1)
-    @assert(scope.face.face_index == 0)
-    @assert(scope.face.num_glyphs > 0)
-    @assert(scope.face.family_name != null)
-    @assert(scope.face.style_name != null)
-    @assert((scope.face.style_flags & (FT_STYLE_FLAG_BOLD | FT_STYLE_FLAG_ITALIC)) == expectedFlags)
+    @assert(scope.face.faceCount == 1)
+    @assert(scope.face.faceIndex == 0)
+    @assert(scope.face.glyphCount > 0)
+    @assert(!scope.face.familyName.isEmpty())
+    @assert(!scope.face.styleName.isEmpty())
+    @assert((scope.face.style & (.Bold | .Italic)) == expectedStyle)
 
-    let glyphA = FT_Get_Char_Index(scope.face, 'A''u32)
+    let glyphA = scope.face.glyphIndex('A')
     @assert(glyphA > 0)
 
-    discard catch FT_Set_Pixel_Sizes(scope.face, 0, 18)
+    discard catch scope.face.setPixelSize(0, 18)
     @assert(@err == null)
-    discard catch FT_Load_Glyph(scope.face, glyphA, FT_LOAD_RENDER)
+    discard catch scope.face.loadGlyph(glyphA, .Render)
     @assert(@err == null)
     @assert(scope.face.glyph.bitmap.width > 0)
     @assert(scope.face.glyph.bitmap.rows > 0)
@@ -28,26 +28,35 @@ func assertFixtureFontLoads(fileName: string, expectedFlags: FT_Long)
 
 #test
 {
-    discard catch FT_Init_FreeType(null)
+    var library: Library
+    library.init()
+
+    discard catch library.loadFace(BrokenFontBytes)
     @assert(@err != null)
 
-    discard catch FT_Done_FreeType(null)
+    var empty: Array'u8
+    discard catch library.loadFace(empty.toSlice())
+    @assert(@err != null)
+
+    let bytes = loadFontBytes()
+    discard catch library.loadFace(bytes.toSlice(), 1)
     @assert(@err != null)
 }
 
 #test
 {
-    var scope: LibraryScope
-    scope.init()
+    var library: Library
+    library.init()
 
-    discard catch FT_Library_SetLcdFilter(scope.library, .FT_LCD_FILTER_DEFAULT)
+    discard catch library.setLcdFilter(.Default)
     @assert(@err == null)
 
     let weights: [5] u8 = [0x08, 0x4D, 0x56, 0x4D, 0x08]
-    discard catch FT_Library_SetLcdFilterWeights(scope.library, &weights[0])
+    discard catch library.setLcdFilterWeights(weights)
     @assert(@err == null)
 
-    discard catch FT_Library_SetLcdFilterWeights(scope.library, null)
+    var empty: Array'u8
+    discard catch library.setLcdFilterWeights(empty.toSlice())
     @assert(@err != null)
 }
 
@@ -57,38 +66,35 @@ func assertFixtureFontLoads(fileName: string, expectedFlags: FT_Long)
     scope.init()
 
     @assert(scope.bytes.count > 0)
-    @assert(scope.face.num_glyphs > 0)
-    @assert(scope.face.family_name != null)
-    @assert(scope.face.style_name != null)
-    @assert(scope.face.units_per_EM > 0)
+    @assert(scope.face.glyphCount > 0)
+    @assert(!scope.face.familyName.isEmpty())
+    @assert(!scope.face.styleName.isEmpty())
+    @assert(scope.face.unitsPerEm > 0)
     @assert(scope.face.ascender > 0)
     @assert(scope.face.descender < 0)
-    @assert(scope.face.max_advance_width > 0)
-    @assert(scope.face.glyph != null)
-    @assert(scope.face.size != null)
-    @assert(scope.face.charmap != null)
+    @assert(scope.face.maxAdvanceWidth > 0)
 
-    discard catch FT_Set_Pixel_Sizes(scope.face, 0, 16)
+    discard catch scope.face.setPixelSize(0, 16)
     @assert(@err == null)
-    @assert(scope.face.size.metrics.x_ppem == 16)
-    @assert(scope.face.size.metrics.y_ppem == 16)
+    @assert(scope.face.size.metrics.xPpem == 16)
+    @assert(scope.face.size.metrics.yPpem == 16)
     @assert(scope.face.size.metrics.ascender > 0)
     @assert(scope.face.size.metrics.descender < 0)
-    @assert(scope.face.size.metrics.max_advance > 0)
+    @assert(scope.face.size.metrics.maxAdvance > 0)
 
-    discard catch FT_Set_Pixel_Sizes(scope.face, 24, 0)
+    discard catch scope.face.setPixelSize(24, 0)
     @assert(@err == null)
-    @assert(scope.face.size.metrics.x_ppem == 24)
-    @assert(scope.face.size.metrics.y_ppem == 24)
+    @assert(scope.face.size.metrics.xPpem == 24)
+    @assert(scope.face.size.metrics.yPpem == 24)
 
-    discard catch FT_Set_Pixel_Sizes(scope.face, 0, 0)
+    discard catch scope.face.setPixelSize(0, 0)
     @assert(@err != null)
 }
 
 #test
 {
-    assertFixtureFontLoads("arial.ttf", 0)
-    assertFixtureFontLoads("arialbd.ttf", FT_STYLE_FLAG_BOLD)
-    assertFixtureFontLoads("ariali.ttf", FT_STYLE_FLAG_ITALIC)
-    assertFixtureFontLoads("arialbi.ttf", FT_STYLE_FLAG_BOLD | FT_STYLE_FLAG_ITALIC)
+    assertFixtureFontLoads("arial.ttf", .None)
+    assertFixtureFontLoads("arialbd.ttf", .Bold)
+    assertFixtureFontLoads("ariali.ttf", .Italic)
+    assertFixtureFontLoads("arialbi.ttf", .Bold | .Italic)
 }

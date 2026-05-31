@@ -1,16 +1,16 @@
-using Core, FreeType
+using Core, TrueType
 
-var g_FT: FT_Library
+var g_TrueType: Library
 #init
 {
-    catch FT_Init_FreeType(&g_FT)
+    g_TrueType.init()
 }
 
 public struct TypeFace
 {
     fullname:         string
     buffer:           Array'u8
-    face:             FT_Face
+    face:             *Face
     forceBoldDiv:     u32 = 11
     forceItalic:      bool
     forceBold:        bool
@@ -29,55 +29,48 @@ impl TypeFace
 {
     var lock: Sync.Mutex
 
-    func moveTo(toV: const *FT_Vector, pathList: *LinePathList)->s32
+    func addOutlineToPathList(pathList: *LinePathList, commands: const [..] OutlineCommand)
     {
-        let path = pathList.newPath()
-        path.start(toV.x / 64.0, -toV.y / 64.0)
-        return 0
-    }
+        foreach cmd in commands
+        {
+            switch cmd.kind
+            {
+            case MoveTo:
+                let path = pathList.newPath()
+                path.start(cmd.p0.x / 64.0, -cmd.p0.y / 64.0)
 
-    func lineTo(toV: const *FT_Vector, pathList: *LinePathList)->s32
-    {
-        let path = pathList.paths[pathList.paths.count - 1]
-        path.lineTo(toV.x / 64.0, -toV.y / 64.0)
-        return 0
-    }
+            case LineTo:
+                let path = pathList.paths[pathList.paths.count - 1]
+                path.lineTo(cmd.p0.x / 64.0, -cmd.p0.y / 64.0)
 
-    func conicTo(ctrl, toV: const *FT_Vector, pathList: *LinePathList)->s32
-    {
-        let path = pathList.paths[pathList.paths.count - 1]
-        path.bezierTo(toV.x / 64.0, -toV.y / 64.0, ctrl.x / 64.0, -ctrl.y / 64.0)
-        return 0
-    }
+            case ConicTo:
+                let path = pathList.paths[pathList.paths.count - 1]
+                path.bezierTo(cmd.p1.x / 64.0, -cmd.p1.y / 64.0, cmd.p0.x / 64.0, -cmd.p0.y / 64.0)
 
-    func bezierTo(ctrl1, ctrl2, toV: const *FT_Vector, pathList: *LinePathList)->s32
-    {
-        let path = pathList.paths[pathList.paths.count - 1]
-        path.bezierTo(toV.x / 64.0, -toV.y / 64.0, ctrl1.x / 64.0, -ctrl1.y / 64.0, ctrl2.x / 64.0, -ctrl2.y / 64.0)
-        return 0
+            case CubicTo:
+                let path = pathList.paths[pathList.paths.count - 1]
+                path.bezierTo(cmd.p2.x / 64.0, -cmd.p2.y / 64.0, cmd.p0.x / 64.0, -cmd.p0.y / 64.0, cmd.p1.x / 64.0, -cmd.p1.y / 64.0)
+            }
+        }
     }
 }
 
 public impl TypeFace
 {
-    // Returns true if the typeface is bold
-    mtd const isBold()->bool
+    mtd opDrop()
     {
-        return cast(bool) (.face.style_flags & FT_STYLE_FLAG_BOLD)
+        if .face do
+            .face.destroy()
     }
+
+    // Returns true if the typeface is bold
+    mtd const isBold()->bool => .face.isBold()
 
     // Returns true if the typeface is italic
-    mtd const isItalic()->bool
-    {
-        return cast(bool) (.face.style_flags & FT_STYLE_FLAG_ITALIC)
-    }
+    mtd const isItalic()->bool => .face.isItalic()
 
     // Returns the underlying font family name
-    mtd const getFamilyName()->string
-    {
-        let defname = @mkstring(.face.family_name, @countof(cast(cstring) .face.family_name))
-        return defname
-    }
+    mtd const getFamilyName()->string => .face.familyName
 
     // Release the given typeface
     func release(typeface: *TypeFace)
@@ -101,7 +94,7 @@ public impl TypeFace
         let tf = Memory.new'TypeFace()
         tf.fullname = fullname
         tf.buffer   = bytes
-        FT_New_Memory_Face(g_FT, tf.buffer.buffer, cast(FT_Long) tf.buffer.count, 0, &tf.face)
+        tf.face     = try g_TrueType.loadFace(tf.buffer.toSlice())
 
         g_HashTypeFace.add(fullname, tf)
         return tf
@@ -130,7 +123,7 @@ public impl TypeFace
             tf.buffer = File.readAllBytes(fullname)
         }
 
-        FT_New_Memory_Face(g_FT, tf.buffer.buffer, cast(FT_Long) tf.buffer.count, 0, &tf.face)
+        tf.face = try g_TrueType.loadFace(tf.buffer.toSlice())
 
         g_HashTypeFace.add(fullname, tf)
         return tf
@@ -141,18 +134,18 @@ public impl TypeFace
         var emb = .forceBold or forceBold ? Math.max(1, size / .forceBoldDiv) : 0
         emb += embolden
         if emb do
-            FT_Outline_Embolden(&.face.glyph.outline, cast(FT_Pos) emb * 64)
+            .face.glyph.outline.embolden(cast(s32) emb * 64)
         if .forceItalic or forceItalic do
-            FT_GlyphSlot_Oblique(.face.glyph)
+            .face.glyph.oblique()
     }
 
     // Render one glyph
-    mtd renderGlyph(c: rune, size: u32, forceBold, forceItalic = false)->const *FT_Bitmap throw
+    mtd renderGlyph(c: rune, size: u32, forceBold, forceItalic = false)->const *Bitmap throw
     {
-        FT_Set_Pixel_Sizes(.face, 0, size)
-        FT_Load_Char(.face, cast(FT_ULong) c, FT_LOAD_DEFAULT)
+        .face.setPixelSize(0, size)
+        .face.loadChar(c)
         .transform(size, 0, forceBold, forceItalic)
-        FT_Render_Glyph(.face.glyph, .FT_RENDER_MODE_NORMAL)
+        .face.renderGlyph()
         return &.face.glyph.bitmap
     }
 
@@ -160,20 +153,15 @@ public impl TypeFace
     #[Swag.Discardable]
     mtd getRuneOutline(pathList: *LinePathList, c: rune, size: u32, embolden: u32 = 0)->f32 throw
     {
-        var itf: FT_Outline_Funcs
-
         pathList.clear()
-        itf.move_to  = cast(*void) &moveTo
-        itf.line_to  = cast(*void) &lineTo
-        itf.conic_to = cast(*void) &conicTo
-        itf.cubic_to = cast(*void) &bezierTo
 
-        FT_Set_Pixel_Sizes(.face, 0, size)
-        FT_Load_Char(.face, cast(FT_ULong) c, FT_LOAD_NO_BITMAP)
+        .face.setPixelSize(0, size)
+        .face.loadChar(c, .NoBitmap)
         .transform(size, embolden)
 
         let prevIdx = pathList.paths.count
-        FT_Outline_Decompose(&.face.glyph.outline, &itf, pathList)
+        let commands = .face.glyph.outline.decompose()
+        addOutlineToPathList(pathList, commands.toSlice())
 
         if prevIdx != pathList.paths.count
         {
@@ -187,28 +175,23 @@ public impl TypeFace
     // Convert a string to its outline, at a given size
     mtd getStringOutline(pathList: *LinePathList, text: string, size: u32, embolden: u32 = 0) throw
     {
-        var itf: FT_Outline_Funcs
-
         pathList.clear()
-        itf.move_to  = cast(*void) &moveTo
-        itf.line_to  = cast(*void) &lineTo
-        itf.conic_to = cast(*void) &conicTo
-        itf.cubic_to = cast(*void) &bezierTo
 
-        try FT_Set_Pixel_Sizes(.face, 0, size)
+        try .face.setPixelSize(0, size)
 
         var serial = 0
         var x      = 0
 
         Utf8.visitRunes(|c| text)
         {
-            FT_Load_Char(.face, cast(FT_ULong) c, FT_LOAD_NO_BITMAP)
+            .face.loadChar(c, .NoBitmap)
             .transform(size, embolden)
 
-            FT_Outline_Translate(.face.glyph.outline, x, 0)
+            .face.glyph.outline.translate(x, 0)
 
             let prevIdx = pathList.paths.count
-            FT_Outline_Decompose(&.face.glyph.outline, &itf, pathList)
+            let commands = .face.glyph.outline.decompose()
+            addOutlineToPathList(pathList, commands.toSlice())
 
             if prevIdx != pathList.paths.count
             {

@@ -1,4 +1,4 @@
-using Core, FreeType
+using Core, TrueType
 
 public struct GlyphAtlas
 {
@@ -108,13 +108,13 @@ public impl Font
         font.forceBold   = forceBold
         font.forceItalic = forceItalic
 
-        assume FT_Set_Pixel_Sizes(typeFace.face, 0, size)
+        assume typeFace.face.setPixelSize(0, size)
         let metrics = &typeFace.face.size.metrics
         font.ascent        = metrics.ascender / 64.0
         font.descent       = metrics.descender / 64.0
         font.height        = font.ascent - font.descent
-        font.underlinePos  = mulFix(cast(s32) typeFace.face.underline_position, metrics.y_scale) / 64.0
-        font.underlineSize = mulFix(cast(s32) typeFace.face.underline_thickness, metrics.y_scale) / 64.0
+        font.underlinePos  = mulFix(cast(s32) typeFace.face.underlinePosition, metrics.yScale) / 64.0
+        font.underlineSize = mulFix(cast(s32) typeFace.face.underlineThickness, metrics.yScale) / 64.0
 
         g_HashFont.add(str, font)
         return font
@@ -211,8 +211,8 @@ public impl Font
         let glyph = .typeFace.face.glyph
         refr.advanceX = glyph.advance.x / 64.0
         refr.advanceY = glyph.advance.y / 64.0
-        refr.shiftX   = glyph.bitmap_left
-        refr.shiftY   = glyph.bitmap_top
+        refr.shiftX   = glyph.bitmapLeft
+        refr.shiftY   = glyph.bitmapTop
 
         let widthf  = cast(f32) atlas.width
         let heightf = cast(f32) atlas.height

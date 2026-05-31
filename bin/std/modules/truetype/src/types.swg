@@ -1,317 +1,221 @@
-#global export
 using Swag, Core
 
-alias FT_Library       = *FT_LibraryRec
-alias FT_Face          = *FT_FaceRec
-alias FT_CharMap       = *FT_CharMapRec
-alias FT_GlyphSlot     = *FT_GlyphSlotRec
-alias FT_SubGlyph      = *FT_SubGlyphRec
-alias FT_Size          = *FT_SizeRec
-alias FT_Slot_Internal = *void
-alias FT_Size_Internal = *void
-alias FT_Face_Internal = *void
-alias FT_Memory        = *void
-alias FT_Module        = *void
-alias FT_Renderer      = *void
-alias FT_DebugHook_Func = *void
-alias FT_ListNode      = *void
-alias FT_Driver        = *void
-alias FT_Stream        = *void
-
-alias FT_String = u8
-alias FT_Int    = s32
-alias FT_UInt   = u32
-alias FT_Long   = s32
-alias FT_ULong  = u32
-alias FT_Short  = s16
-alias FT_UShort = u16
-alias FT_Pos    = s32
-alias FT_Error  = s32
-alias FT_Fixed  = s32
-alias FT_Byte   = u8
-alias FT_Int32  = s32
-
-const FT_LOAD_DEFAULT                     = 0x0
-const FT_LOAD_NO_SCALE                    = 1 << 0
-const FT_LOAD_NO_HINTING                  = 1 << 1
-const FT_LOAD_RENDER                      = 1 << 2
-const FT_LOAD_NO_BITMAP                   = 1 << 3
-const FT_LOAD_VERTICAL_LAYOUT             = 1 << 4
-const FT_LOAD_FORCE_AUTOHINT              = 1 << 5
-const FT_LOAD_CROP_BITMAP                 = 1 << 6
-const FT_LOAD_PEDANTIC                    = 1 << 7
-const FT_LOAD_ADVANCE_ONLY                = 1 << 8
-const FT_LOAD_IGNORE_GLOBAL_ADVANCE_WIDTH = 1 << 9
-const FT_LOAD_NO_RECURSE                  = 1 << 10
-const FT_LOAD_IGNORE_TRANSFORM            = 1 << 11
-const FT_LOAD_MONOCHROME                  = 1 << 12
-const FT_LOAD_LINEAR_DESIGN               = 1 << 13
-const FT_LOAD_SBITS_ONLY                  = 1 << 14
-const FT_LOAD_NO_AUTOHINT                 = 1 << 15
-const FT_LOAD_COLOR                       = 1 << 20
-const FT_LOAD_COMPUTE_METRICS             = 1 << 21
-const FT_LOAD_BITMAP_METRICS_ONLY         = 1 << 22
-
-const FT_STYLE_FLAG_ITALIC = 1 << 0
-const FT_STYLE_FLAG_BOLD   = 1 << 1
-
-#[ConstExpr]
-func FT_LOAD_TARGET(x: FT_Int32)->FT_Int32 => cast(FT_Int32) (x & 15) << 16
-
-const FT_LOAD_TARGET_NORMAL = FT_LOAD_TARGET(cast(FT_Int32) FT_Render_Mode.FT_RENDER_MODE_NORMAL)
-const FT_LOAD_TARGET_LIGHT  = FT_LOAD_TARGET(cast(FT_Int32) FT_Render_Mode.FT_RENDER_MODE_LIGHT)
-const FT_LOAD_TARGET_MONO   = FT_LOAD_TARGET(cast(FT_Int32) FT_Render_Mode.FT_RENDER_MODE_MONO)
-const FT_LOAD_TARGET_LCD    = FT_LOAD_TARGET(cast(FT_Int32) FT_Render_Mode.FT_RENDER_MODE_LCD)
-const FT_LOAD_TARGET_LCD_V  = FT_LOAD_TARGET(cast(FT_Int32) FT_Render_Mode.FT_RENDER_MODE_LCD_V)
-
-const FT_MAX_MODULES = 32
-
-enum FT_Render_Mode
+#[Swag.EnumFlags]
+public enum LoadFlag
 {
-    FT_RENDER_MODE_NORMAL = 0
-    FT_RENDER_MODE_LIGHT
-    FT_RENDER_MODE_MONO
-    FT_RENDER_MODE_LCD
-    FT_RENDER_MODE_LCD_V
-    FT_RENDER_MODE_MAX
+    Default                   = 0
+    NoScale
+    NoHinting
+    Render
+    NoBitmap
+    VerticalLayout
+    ForceAutoHint
+    CropBitmap
+    Pedantic
+    AdvanceOnly
+    IgnoreGlobalAdvanceWidth
+    NoRecurse
+    IgnoreTransform
+    Monochrome
+    LinearDesign
+    SBitsOnly
+    NoAutoHint
+    Color                    = 1 << 20
+    ComputeMetrics           = 1 << 21
+    BitmapMetricsOnly        = 1 << 22
 }
 
-struct FT_LibraryRec
+#[Swag.EnumFlags]
+public enum StyleFlag
 {
-    memory:            FT_Memory
-    version_major:     FT_Int
-    version_minor:     FT_Int
-    version_patch:     FT_Int
-    num_modules:       FT_UInt
-    modules:           [FT_MAX_MODULES] FT_Module
-    renderers:         FT_ListRec
-    cur_renderer:      FT_Renderer
-    auto_hinter:       FT_Module
-    debug_hooks:       [4] FT_DebugHook_Func
-    lcd_geometry:      [3] FT_Vector
-    refcount:          FT_Int
+    None = 0
+    Italic
+    Bold
 }
 
-struct FT_FaceRec
+public enum RenderMode
 {
-    num_faces:               FT_Long
-    face_index:              FT_Long
-    face_flags:              FT_Long
-    style_flags:             FT_Long
-    num_glyphs:              FT_Long
-    family_name:             [*] FT_String
-    style_name:              [*] FT_String
-    num_fixed_sizes:         FT_Int
-    available_sizes:         [*] FT_Bitmap_Size
-    num_charmaps:            FT_Int
-    charmaps:                [*] FT_CharMap
-    generic:                 FT_Generic
-    bbox:                    FT_BBox
-    units_per_EM:            FT_UShort
-    ascender:                FT_Short
-    descender:               FT_Short
-    height:                  FT_Short
-    max_advance_width:       FT_Short
-    max_advance_height:      FT_Short
-    underline_position:      FT_Short
-    underline_thickness:     FT_Short
-    glyph:                   FT_GlyphSlot
-    size:                    FT_Size
-    charmap:                 FT_CharMap
-    driver:                  FT_Driver
-    memory:                  FT_Memory
-    stream:                  FT_Stream
-    sizes_list:              FT_ListRec
-    autohint:                FT_Generic
-    extensions:              [*] void
-    finternal:               FT_Face_Internal
-}
-
-struct FT_BBox { xMin, yMin: FT_Pos, xMax, yMax: FT_Pos }
-
-struct FT_Generic
-{
-    data:          *void
-    finalizer:     *void
-}
-
-struct FT_CharMapRec
-{
-    face:            FT_Face
-    encoding:        u32
-    platform_id:     FT_UShort
-    encoding_id:     FT_UShort
-}
-
-struct FT_Bitmap_Size
-{
-    height:     FT_Short
-    width:      FT_Short
-    size:       FT_Pos
-    x_ppem:     FT_Pos
-    y_ppem:     FT_Pos
-}
-
-struct FT_ListRec
-{
-    head:     FT_ListNode
-    tail:     FT_ListNode
-}
-
-struct FT_Vector
-{
-    x:     FT_Pos
-    y:     FT_Pos
-}
-
-struct FT_Matrix { xx, xy: FT_Fixed, yx, yy: FT_Fixed }
-
-struct FT_GlyphSlotRec
-{
-    library:               FT_Library
-    face:                  FT_Face
-    next:                  FT_GlyphSlot
-    glyph_index:           FT_UInt
-    generic:               FT_Generic
-    metrics:               FT_Glyph_Metrics
-    linearHoriAdvance:     FT_Fixed
-    linearVertAdvance:     FT_Fixed
-    advance:               FT_Vector
-    format:                FT_Glyph_Format = FT_GLYPH_FORMAT_NONE
-    bitmap:                FT_Bitmap
-    bitmap_left:           FT_Int
-    bitmap_top:            FT_Int
-    outline:               FT_Outline
-    num_subglyphs:         FT_UInt
-    subglyphs:             FT_SubGlyph
-    control_data:          *void
-    control_len:           s32
-    lsb_delta:             FT_Pos
-    rsb_delta:             FT_Pos
-    other:                 *void
-    finternal:             FT_Slot_Internal
+    Normal = 0
+    Light
+    Mono
+    Lcd
+    LcdV
 }
 
 #[ConstExpr]
-func FT_IMAGE_TAG(x1, x2, x3, x4: u32)->u32 => (x1 << 24) | (x2 << 16) | (x3 << 8) | x4
+func imageTag(x1, x2, x3, x4: u32)->u32 => (x1 << 24) | (x2 << 16) | (x3 << 8) | x4
 
-enum FT_Glyph_Format
+public enum GlyphFormat
 {
-    FT_GLYPH_FORMAT_NONE      = 0
-    FT_GLYPH_FORMAT_COMPOSITE = FT_IMAGE_TAG('c''u32, 'o''u32, 'm''u32, 'p''u32)
-    FT_GLYPH_FORMAT_BITMAP    = FT_IMAGE_TAG('b''u32, 'i''u32, 't''u32, 's''u32)
-    FT_GLYPH_FORMAT_OUTLINE   = FT_IMAGE_TAG('o''u32, 'u''u32, 't''u32, 'l''u32)
-    FT_GLYPH_FORMAT_POLTTER   = FT_IMAGE_TAG('p''u32, 'l''u32, 'o''u32, 't''u32)
+    None      = 0
+    Composite = 0x636F6D70
+    Bitmap    = 0x62697473
+    Outline   = 0x6F75746C
+    Plotter   = 0x706C6F74
 }
 
-struct FT_Bitmap
+public enum LcdFilter
+{
+    None    = 0
+    Default = 1
+    Light   = 2
+    Legacy1 = 3
+    Legacy  = 16
+    Max
+}
+
+public enum PixelMode
+{
+    None
+    Mono
+    Gray
+    Gray2
+    Gray4
+    Lcd
+    LcdV
+    Bgra
+    Max
+}
+
+public struct BBox { xMin, yMin: s32, xMax, yMax: s32 }
+
+public struct Vector
+{
+    x: s32
+    y: s32
+}
+
+public struct Matrix { xx, xy: s32, yx, yy: s32 }
+
+public enum OutlineCommandKind
+{
+    MoveTo
+    LineTo
+    ConicTo
+    CubicTo
+}
+
+public struct OutlineCommand
+{
+    kind:     OutlineCommandKind
+    p0:       Vector
+    p1:       Vector
+    p2:       Vector
+}
+
+public struct Bitmap
 {
     rows:             u32
     width:            u32
     pitch:            s32
     buffer:           [*] u8
-    num_grays:        u16
-    pixel_mode:       u8
-    palette_mode:     u8
-    palette:          [*] void
+    grayCount:        u16
+    pixelMode:        PixelMode
 }
 
-struct FT_Outline
+public struct Outline
 {
-    n_contours:     s16
-    n_points:       s16
-    points:         [*] FT_Vector
-    tags:           [*] u8
-    contours:       [*] s16
-    flags:          s32
+    contourCount:     s16
+    pointCount:       s16
+    points:           [*] Vector
+    tags:             [*] u8
+    contours:         [*] s16
+    flags:            s32
 }
 
-struct FT_Glyph_Metrics
+public struct GlyphMetrics
 {
-    width:            FT_Pos
-    height:           FT_Pos
-    horiBearingX:     FT_Pos
-    horiBearingY:     FT_Pos
-    horiAdvance:      FT_Pos
-    vertBearingX:     FT_Pos
-    vertBearingY:     FT_Pos
-    vertAdvance:      FT_Pos
+    width:            s32
+    height:           s32
+    horizontalBearingX: s32
+    horizontalBearingY: s32
+    horizontalAdvance:  s32
+    verticalBearingX:   s32
+    verticalBearingY:   s32
+    verticalAdvance:    s32
 }
 
-struct FT_SubGlyphRec
+public struct SizeMetrics
 {
-    index:         FT_Int
-    flags:         FT_UShort
-    arg1:          FT_Int
-    arg2:          FT_Int
-    transform:     FT_Matrix
+    xPpem:          u16
+    yPpem:          u16
+    xScale:         s32
+    yScale:         s32
+    ascender:       s32
+    descender:      s32
+    height:         s32
+    maxAdvance:     s32
 }
 
-struct FT_SizeRec
+public struct Size
 {
-    face:          FT_Face
-    generic:       FT_Generic
-    metrics:       FT_Size_Metrics
-    sinternal:     FT_Size_Internal
+    face:      *Face
+    metrics:   SizeMetrics
 }
 
-struct FT_Size_Metrics
+public struct CharMap
 {
-    x_ppem:          FT_UShort
-    y_ppem:          FT_UShort
-    x_scale:         FT_Fixed
-    y_scale:         FT_Fixed
-    ascender:        FT_Pos
-    descender:       FT_Pos
-    height:          FT_Pos
-    max_advance:     FT_Pos
+    face:         *Face
+    encoding:     u32
+    platformID:   u16
+    encodingID:   u16
 }
 
-alias FT_Outline_MoveToFunc  = func(const *FT_Vector, *void)->s32
-alias FT_Outline_LineToFunc  = func(const *FT_Vector, *void)->s32
-alias FT_Outline_ConicToFunc = func(const *FT_Vector, const *FT_Vector, *void)->s32
-alias FT_Outline_CubicToFunc = func(const *FT_Vector, const *FT_Vector, const *FT_Vector, *void)->s32
-
-struct FT_Outline_Funcs
+public struct GlyphSlot
 {
-    move_to:      *void
-    line_to:      *void
-    conic_to:     *void
-    cubic_to:     *void
-    shift:        s32
-    delta:        FT_Pos
+    face:                   *Face
+    index:                  u32
+    metrics:                GlyphMetrics
+    linearHorizontalAdvance: s32
+    linearVerticalAdvance:   s32
+    advance:                Vector
+    format:                 GlyphFormat = GlyphFormat.None
+    bitmap:                 Bitmap
+    bitmapLeft:             s32
+    bitmapTop:              s32
+    outline:                Outline
+    leftSideBearingDelta:   s32
+    rightSideBearingDelta:  s32
 }
 
-enum FT_LcdFilter
+public struct Face
 {
-    FT_LCD_FILTER_NONE    = 0
-    FT_LCD_FILTER_DEFAULT = 1
-    FT_LCD_FILTER_LIGHT   = 2
-    FT_LCD_FILTER_LEGACY1 = 3
-    FT_LCD_FILTER_LEGACY  = 16
-    FT_LCD_FILTER_MAX
+    faceCount:            s32
+    faceIndex:            s32
+    flags:                s32
+    style:                StyleFlag
+    glyphCount:           u32
+    familyName:           String
+    styleName:            String
+    bbox:                 BBox
+    unitsPerEm:           u16
+    ascender:             s16
+    descender:            s16
+    height:               s16
+    maxAdvanceWidth:      s16
+    maxAdvanceHeight:     s16
+    underlinePosition:    s16
+    underlineThickness:   s16
+    glyph:                GlyphSlot
+    size:                 Size
+    charMap:              CharMap
 }
 
-enum FT_Pixel_Mode
+public struct Library
 {
-    FT_PIXEL_MODE_NONE
-    FT_PIXEL_MODE_MONO
-    FT_PIXEL_MODE_GRAY
-    FT_PIXEL_MODE_GRAY2
-    FT_PIXEL_MODE_GRAY4
-    FT_PIXEL_MODE_LCD
-    FT_PIXEL_MODE_LCD_V
-    FT_PIXEL_MODE_BGRA
-    FT_PIXEL_MODE_MAX
+    versionMajor: s32
+    versionMinor: s32
+    versionPatch: s32
 }
 
 var Errors: [0xFF] string = undefined
+
 #init
 {
     Errors[0x01] = "cannot open resource"
     Errors[0x02] = "unknown file format"
     Errors[0x03] = "broken file"
-    Errors[0x04] = "invalid FreeType version"
+    Errors[0x04] = "invalid TrueType version"
     Errors[0x05] = "module version is too low"
     Errors[0x06] = "invalid argument"
     Errors[0x07] = "unimplemented feature"

@@ -1,5 +1,5 @@
 #global #if #os == Swag.TargetOs.Windows
-using Core, Win32, Gdi32, FreeType
+using Core, Win32, Gdi32, TrueType
 
 impl TypeFace
 {
@@ -34,7 +34,7 @@ impl TypeFace
         tf.fullname = fullname
         tf.buffer   = getDataFromHFONT(hf)
 
-        try FT_New_Memory_Face(g_FT, tf.buffer.buffer, cast(FT_Long) tf.buffer.count, 0, &tf.face)
+        tf.face = try g_TrueType.loadFace(tf.buffer.toSlice())
 
         g_HashTypeFace.add(str, tf)
         return tf

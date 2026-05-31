@@ -317,10 +317,16 @@ namespace
         return child;
     }
 
-    void finishLazyGenericBodyRun(const SymbolFunction& calledFn, Result result)
+    void finishLazyGenericBodyRun(SymbolFunction& calledFn, Result result)
     {
         const std::scoped_lock lock(calledFn.lazyGenericBodyRunMutex());
-        auto*                  state = calledFn.lazyGenericBodyRunState();
+        // Reset both run.running and LazyGenericBodyRunning atomically under the same
+        // lock to prevent another task from seeing LazyGenericBodyRunning=false while
+        // run.running is still true, which would cause it to wait on calledFn instead
+        // of taking over the paused body — potentially deadlocking if that task is the
+        // owner of a generic instance that calledFn's body is waiting for.
+        calledFn.removeExtraFlag(SymbolFunctionFlagsE::LazyGenericBodyRunning);
+        auto* state = calledFn.lazyGenericBodyRunState();
         if (!state || !(*state))
             return;
 
@@ -383,7 +389,6 @@ namespace
         SWC_ASSERT(child);
         calledFn.addExtraFlag(SymbolFunctionFlagsE::LazyGenericBodyRunning);
         const Result result = child->execResult();
-        calledFn.removeExtraFlag(SymbolFunctionFlagsE::LazyGenericBodyRunning);
         finishLazyGenericBodyRun(calledFn, result);
         return result;
     }

@@ -1,4 +1,4 @@
-#global fileprivate // 
+#global fileprivate
 
 var GNullShortCounter: s32
 var GNullShortValue:   s32 = 33

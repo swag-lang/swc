@@ -423,7 +423,7 @@ impl Vector2
             return .toNormalized() * minLength
         elif len > maxLength do
             return .toNormalized() * maxLength
-        return dref me
+        return me
     }
 
     // Returns the absolute value of each component.
@@ -499,23 +499,23 @@ impl Vector2
     // If the distance to 'target' is less than 'maxDistance', moves directly to target.
     mtd moveTowards(target: Vector2, maxDistance: f32)
     {
-        let dir  = target - dref me
+        let dir  = target - me
         let dist = dir.length()
         if dist <= maxDistance do
-            dref me = target
+            me = target
         else do
-            dref me += dir * (maxDistance / dist)
+            me += dir * (maxDistance / dist)
     }
 
     // Returns a vector moved towards 'target' by a maximum distance of 'maxDistance'.
     // If the distance to 'target' is less than 'maxDistance', returns the target directly.
     mtd const toMovedTowards(target: Vector2, maxDistance: f32)->Vector2
     {
-        let dir  = target - dref me
+        let dir  = target - me
         let dist = dir.length()
         if dist <= maxDistance do
             return target
-        return dref me + (dir * (maxDistance / dist))
+        return me + (dir * (maxDistance / dist))
     }
 
     // Perform smooth damping interpolation towards 'target'.

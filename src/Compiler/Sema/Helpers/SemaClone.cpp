@@ -3,6 +3,7 @@
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Ast/Sema.Loop.h"
 #include "Compiler/Sema/Cast/Cast.h"
+#include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Core/CodeGenLoweringPayload.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
@@ -291,6 +292,24 @@ namespace
                 sema.setConstAssignTarget(targetRef);
         }
         return targetRef;
+    }
+
+    void copyTypedBindingConstant(Sema& sema, const SemaClone::ParamBinding& binding, AstNodeRef castRef)
+    {
+        if (!binding.typeRef.isValid() || binding.exprRef.isInvalid() || castRef.isInvalid())
+            return;
+
+        const SemaNodeView sourceView = sema.viewConstant(binding.exprRef);
+        if (!sourceView.hasConstant())
+            return;
+
+        const ConstantValue& value = sema.cstMgr().get(sourceView.cstRef());
+        if (value.typeRef() != binding.typeRef)
+            return;
+
+        sema.setConstant(castRef, sourceView.cstRef());
+        if (sema.isFoldedTypedConst(binding.exprRef))
+            sema.setFoldedTypedConst(castRef);
     }
 
     AstNodeRef cloneNodeReplacement(Sema& sema, const AstNode& node, const SemaClone::CloneContext& cloneContext)
@@ -683,6 +702,7 @@ namespace
             const AstNodeRef castRef = Cast::createCast(sema, binding->typeRef, clonedExprRef);
             if (castRef.isInvalid())
                 return AstNodeRef::invalid();
+            copyTypedBindingConstant(sema, *binding, castRef);
             return markConstParamBindingTarget(sema, *binding, castRef);
         }
 

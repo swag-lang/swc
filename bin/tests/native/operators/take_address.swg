@@ -1,4 +1,4 @@
-#global fileprivate // 
+#global fileprivate
 
 func nativeFunctionAddressAsPointer()->s32 => 1
 

@@ -695,7 +695,7 @@ impl String
     // Returns a new String in upper case
     mtd toUpper(set = CharacterSet.Latin1)->String
     {
-        var result: retval = dref me
+        var result: retval = me
         result.makeUpper(set)
         return result
     }
@@ -711,7 +711,7 @@ impl String
     // Returns a new String in lower case
     mtd toLower(set = CharacterSet.Latin1)->String
     {
-        var result: retval = dref me
+        var result: retval = me
         result.makeLower(set)
         return result
     }

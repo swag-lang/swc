@@ -1,4 +1,4 @@
-#global fileprivate // 
+#global fileprivate
 
 struct Pair { a: s32; b: bool }
 

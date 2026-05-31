@@ -1,4 +1,4 @@
-#global fileprivate // 
+#global fileprivate
 const SelfBytes = #include(#file)
 
 // #include reads own file as byte array

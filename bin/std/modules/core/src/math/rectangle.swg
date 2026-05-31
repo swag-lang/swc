@@ -296,7 +296,8 @@ impl Rectangle
     // Modifies this rectangle to contain only the overlapping area with 'other'.
     mtd intersect(other: Rectangle)
     {
-        dref me = intersect(dref me, other)
+        let current: Rectangle = me
+        me = intersect(current, other)
     }
 
     // Create a rectangle representing the intersection of two rectangles.
@@ -323,7 +324,8 @@ impl Rectangle
     // Modifies this rectangle to be the smallest rectangle containing both this and 'other'.
     mtd setUnion(other: Rectangle)
     {
-        dref me = getUnion(dref me, other)
+        let current: Rectangle = me
+        me = getUnion(current, other)
     }
 
     // Create a rectangle representing the union of two rectangles.
@@ -382,7 +384,7 @@ impl Rectangle
     // Returns a new rectangle with positive width and height without modifying the original.
     mtd const toNormalized()->Rectangle
     {
-        var result = dref me
+        var result: retval = me
         result.normalize()
         return result
     }

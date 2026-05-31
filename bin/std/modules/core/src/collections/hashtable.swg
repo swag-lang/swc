@@ -534,7 +534,7 @@ impl StrConv.IConvert for HashTable
     mtd const impl convert(buf: *ConcatBuffer, convFmt: StrConv.ConvertFormat, strFormat: string)
     {
         buf.addBytes("[")
-        foreach k, v in dref me
+        foreach k, v in me
         {
             if @index do
                 buf.addBytes(", ")

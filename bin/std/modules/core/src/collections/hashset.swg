@@ -456,7 +456,7 @@ impl StrConv.IConvert for HashSet
     mtd const impl convert(buf: *ConcatBuffer, convFormat: StrConv.ConvertFormat, strFormat: string)
     {
         buf.addBytes("[")
-        foreach k in dref me
+        foreach k in me
         {
             if @index do
                 buf.addBytes(", ")

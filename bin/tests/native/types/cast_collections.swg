@@ -1,4 +1,4 @@
-#global fileprivate // 
+#global fileprivate
 
 #[Swag.Strict]
 alias StrictS32Triple = [3] s32

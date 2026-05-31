@@ -291,7 +291,7 @@ impl Serialization.ISerialize for DateTime
         if decoder.isTextual()
         {
             let val = decoder.readString()
-            dref me = parse(val).value
+            me = parse(val).value
             return true
         }
 

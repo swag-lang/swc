@@ -830,7 +830,7 @@ public impl Image
                 let w2    = Math.max(1, Math.roundS32(scale * w0))
                 let h2    = Math.max(1, Math.roundS32(scale * h0))
 
-                var work = dref me
+                var work = me
                 work.resize(w2, h2)
 
                 // Scale the input rect down to the working copy
@@ -871,7 +871,7 @@ public impl Image
                 let h2    = Math.max(1, Math.roundS32(scale * h0))
 
                 // Working copy (resized) — use it only to compute the rectangle
-                var work = dref me
+                var work = me
                 work.resize(w2, h2)
 
                 let rSmall = work.calculateReframeRect(rect.width, rect.height, opts)

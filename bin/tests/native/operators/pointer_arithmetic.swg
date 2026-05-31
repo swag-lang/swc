@@ -1,4 +1,4 @@
-#global fileprivate // 
+#global fileprivate
 
 #[Swag.Strict]
 alias PointerArithmeticStrictS32Ptr = [*] s32

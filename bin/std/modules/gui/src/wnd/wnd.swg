@@ -400,7 +400,7 @@ impl Wnd
     // Returns true if window and all its parents are visible
     mtd isVisible(onlyMe = false)->bool
     {
-        var toCheck = me
+        var toCheck = &me
         while toCheck
         {
             if toCheck.wndFlags.has(.Hidden) do
@@ -423,7 +423,7 @@ impl Wnd
     // Returns true if window, and all its parents, are enabled
     mtd isEnabled(onlyMe = false)->bool
     {
-        var toCheck = me
+        var toCheck = &me
         while toCheck
         {
             if toCheck.wndFlags.has(.Disabled) do

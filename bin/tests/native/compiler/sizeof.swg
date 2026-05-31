@@ -1,4 +1,4 @@
-#global fileprivate // 
+#global fileprivate
 struct SizedPair
 {
     a: s32

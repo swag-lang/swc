@@ -1035,10 +1035,14 @@ void CodeGen::registerImplicitDrop(const SymbolVariable& symVar)
         return;
     if (symVar.hasExtraFlag(SymbolVariableFlagsE::RetVal))
         return;
-    if (symVar.hasExtraFlag(SymbolVariableFlagsE::Parameter) &&
-        !symVar.hasExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack) &&
-        !CodeGenFunctionHelpers::canUseIncomingIndirectCopyAsAddressableParameter(*this, function(), symVar))
-        return;
+    if (symVar.hasExtraFlag(SymbolVariableFlagsE::Parameter))
+    {
+        if (CodeGenFunctionHelpers::isBorrowedIndirectParameter(*this, function(), symVar))
+            return;
+        if (!symVar.hasExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack) &&
+            !CodeGenFunctionHelpers::canUseIncomingIndirectParameterAsAddressableParameter(*this, function(), symVar))
+            return;
+    }
     if (!symVar.hasExtraFlag(SymbolVariableFlagsE::Parameter) &&
         !symVar.hasExtraFlag(SymbolVariableFlagsE::Initialized))
         return;

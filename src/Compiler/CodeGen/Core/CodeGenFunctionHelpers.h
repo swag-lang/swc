@@ -17,13 +17,14 @@ namespace CodeGenFunctionHelpers
 {
     struct FunctionParameterInfo
     {
-        uint32_t    slotIndex     = 0;
-        MicroOpBits opBits        = MicroOpBits::Zero;
-        bool        isFloat       = false;
-        bool        isSigned      = false;
-        bool        isIndirect    = false;
-        bool        isRegisterArg = false;
-        uint8_t     numBits       = 0;
+        uint32_t    slotIndex         = 0;
+        MicroOpBits opBits            = MicroOpBits::Zero;
+        bool        isFloat           = false;
+        bool        isSigned          = false;
+        bool        isIndirect        = false;
+        bool        needsIndirectCopy = false;
+        bool        isRegisterArg     = false;
+        uint8_t     numBits           = 0;
     };
 
     bool                  functionUsesIndirectReturnStorage(CodeGen& codeGen, const SymbolFunction& symbolFunc);
@@ -33,7 +34,8 @@ namespace CodeGenFunctionHelpers
     CodeGenNodePayload    resolveStoredVariablePayload(CodeGen& codeGen, const SymbolVariable& symVar);
     FunctionParameterInfo functionParameterInfo(CodeGen& codeGen, const SymbolFunction& symbolFunc, const SymbolVariable& symVar, bool hasIndirectReturnArg, bool hasClosureContextArg);
     FunctionParameterInfo functionParameterInfo(CodeGen& codeGen, const SymbolFunction& symbolFunc, const SymbolVariable& symVar);
-    bool                  canUseIncomingIndirectCopyAsAddressableParameter(CodeGen& codeGen, const SymbolFunction& symbolFunc, const SymbolVariable& symVar);
+    bool                  canUseIncomingIndirectParameterAsAddressableParameter(CodeGen& codeGen, const SymbolFunction& symbolFunc, const SymbolVariable& symVar);
+    bool                  isBorrowedIndirectParameter(CodeGen& codeGen, const SymbolFunction& symbolFunc, const SymbolVariable& symVar);
     void                  emitLoadFunctionParameterToReg(CodeGen& codeGen, const SymbolFunction& symbolFunc, const FunctionParameterInfo& paramInfo, MicroReg dstReg);
     CodeGenNodePayload    materializeFunctionParameter(CodeGen& codeGen, const SymbolFunction& symbolFunc, const SymbolVariable& symVar, const FunctionParameterInfo& paramInfo);
     CodeGenNodePayload    materializeFunctionParameter(CodeGen& codeGen, const SymbolFunction& symbolFunc, const SymbolVariable& symVar);

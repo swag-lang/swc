@@ -372,13 +372,14 @@ CodeGenFunctionHelpers::FunctionParameterInfo CodeGenFunctionHelpers::functionPa
     const uint32_t                         parameterIndex  = symVar.parameterIndex();
     const ABITypeNormalize::NormalizedType normalizedParam = ABITypeNormalize::normalize(codeGen.ctx(), callConv, symVar.typeRef(), ABITypeNormalize::Usage::Argument);
 
-    result.slotIndex     = parameterIndex + (hasIndirectReturnArg ? 1u : 0u) + (hasClosureContextArg ? 1u : 0u);
-    result.isFloat       = normalizedParam.isFloat;
-    result.isSigned      = normalizedParam.isSigned;
-    result.isIndirect    = normalizedParam.isIndirect;
-    result.numBits       = normalizedParam.numBits;
-    result.opBits        = functionParameterLoadBits(normalizedParam.isFloat, normalizedParam.numBits);
-    result.isRegisterArg = result.slotIndex < callConv.numArgRegisterSlots();
+    result.slotIndex         = parameterIndex + (hasIndirectReturnArg ? 1u : 0u) + (hasClosureContextArg ? 1u : 0u);
+    result.isFloat           = normalizedParam.isFloat;
+    result.isSigned          = normalizedParam.isSigned;
+    result.isIndirect        = normalizedParam.isIndirect;
+    result.needsIndirectCopy = normalizedParam.needsIndirectCopy;
+    result.numBits           = normalizedParam.numBits;
+    result.opBits            = functionParameterLoadBits(normalizedParam.isFloat, normalizedParam.numBits);
+    result.isRegisterArg     = result.slotIndex < callConv.numArgRegisterSlots();
     return result;
 }
 
@@ -387,7 +388,7 @@ CodeGenFunctionHelpers::FunctionParameterInfo CodeGenFunctionHelpers::functionPa
     return functionParameterInfo(codeGen, symbolFunc, symVar, functionUsesIndirectReturnStorage(codeGen, symbolFunc), symbolFunc.isClosure());
 }
 
-bool CodeGenFunctionHelpers::canUseIncomingIndirectCopyAsAddressableParameter(CodeGen& codeGen, const SymbolFunction& symbolFunc, const SymbolVariable& symVar)
+bool CodeGenFunctionHelpers::canUseIncomingIndirectParameterAsAddressableParameter(CodeGen& codeGen, const SymbolFunction& symbolFunc, const SymbolVariable& symVar)
 {
     if (!symVar.hasExtraFlag(SymbolVariableFlagsE::Parameter))
         return false;
@@ -396,7 +397,17 @@ bool CodeGenFunctionHelpers::canUseIncomingIndirectCopyAsAddressableParameter(Co
 
     const CallConv&                        callConv        = CallConv::get(symbolFunc.callConvKind());
     const ABITypeNormalize::NormalizedType normalizedParam = ABITypeNormalize::normalize(codeGen.ctx(), callConv, symVar.typeRef(), ABITypeNormalize::Usage::Argument);
-    return normalizedParam.isIndirect && normalizedParam.needsIndirectCopy;
+    return normalizedParam.isIndirect;
+}
+
+bool CodeGenFunctionHelpers::isBorrowedIndirectParameter(CodeGen& codeGen, const SymbolFunction& symbolFunc, const SymbolVariable& symVar)
+{
+    if (!symVar.hasExtraFlag(SymbolVariableFlagsE::Parameter))
+        return false;
+
+    const CallConv&                        callConv        = CallConv::get(symbolFunc.callConvKind());
+    const ABITypeNormalize::NormalizedType normalizedParam = ABITypeNormalize::normalize(codeGen.ctx(), callConv, symVar.typeRef(), ABITypeNormalize::Usage::Argument);
+    return normalizedParam.isIndirect && !normalizedParam.needsIndirectCopy;
 }
 
 void CodeGenFunctionHelpers::emitLoadFunctionParameterToReg(CodeGen& codeGen, const SymbolFunction& symbolFunc, const FunctionParameterInfo& paramInfo, MicroReg dstReg)

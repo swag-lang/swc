@@ -1,4 +1,4 @@
-#global fileprivate // 
+#global fileprivate
 #global #if #os == Swag.TargetOs.Windows
 
 alias HANDLE     = const [*] void

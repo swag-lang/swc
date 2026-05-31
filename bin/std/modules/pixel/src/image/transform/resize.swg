@@ -37,7 +37,7 @@ public impl Image
         let nh = newHeight orelse cast(s32) (newWidth * (.height / cast(f32) .width))
         if nw == .width and nh == .height
         {
-            var result: retval = dref me
+            var result: retval = me
             return result
         }
 

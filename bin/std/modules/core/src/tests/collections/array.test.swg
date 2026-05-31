@@ -175,10 +175,10 @@ func visitStructArrayReverse(values: &Array'ArrayVisitProbe)->s32
     @assert(asSlice[3] == 2)
 
     let first = values.ref1(0)
-    dref first = 9
+    first = 9
 
     let bottomRight = values.ref2(1, 1, 2)
-    dref bottomRight = 7
+    bottomRight = 7
 
     let expectedGrid: [4] s32 = [9, 1, 3, 7]
     @assert(assertIntArray(values, expectedGrid))

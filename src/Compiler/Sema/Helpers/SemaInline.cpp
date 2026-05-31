@@ -52,11 +52,28 @@ namespace
         return binding.exprRef.isValid() || binding.cstRef.isValid();
     }
 
-    void assignInlineBindingExpr(SemaClone::ParamBinding& binding, const SymbolVariable& param, AstNodeRef exprRef)
+    TypeRef inlineContextualBindingTypeRef(Sema& sema, const SymbolVariable& param, AstNodeRef exprRef)
+    {
+        const TypeRef paramTypeRef = param.typeRef();
+        if (paramTypeRef.isInvalid() || exprRef.isInvalid())
+            return TypeRef::invalid();
+
+        const TypeInfo& paramType = param.type(sema.ctx());
+        if (paramType.isCodeBlock() || paramType.isAnyVariadic() || paramType.isReference())
+            return TypeRef::invalid();
+        const AstNode& exprNode = sema.node(exprRef);
+        const bool isCastExpr = exprNode.is(AstNodeId::CastExpr) || exprNode.is(AstNodeId::AutoCastExpr);
+        if (!isCastExpr && !SemaHelpers::canUseContextualBinding(sema, exprRef))
+            return TypeRef::invalid();
+
+        return paramTypeRef;
+    }
+
+    void assignInlineBindingExpr(Sema& sema, SemaClone::ParamBinding& binding, const SymbolVariable& param, AstNodeRef exprRef)
     {
         binding.idRef       = param.idRef();
         binding.exprRef     = exprRef;
-        binding.typeRef     = TypeRef::invalid();
+        binding.typeRef     = inlineContextualBindingTypeRef(sema, param, exprRef);
         binding.sourceParam = &param;
     }
 
@@ -1511,7 +1528,7 @@ namespace
             const AstNodeRef ufcsRef = bindingArgumentRef(sema, *params[0], context.ufcsArg);
             if (numFixed > 0)
             {
-                assignInlineBindingExpr(bound[0], *params[0], ufcsRef);
+                assignInlineBindingExpr(sema, bound[0], *params[0], ufcsRef);
                 // UFCS receivers are consumed through implicit `.member` accesses, so clone-time
                 // identifier scans cannot see every use of `me`. Non-lvalue temporaries therefore
                 // need a concrete local up front to avoid re-evaluating the receiver expression.
@@ -1572,7 +1589,7 @@ namespace
             if (isBindingAssigned(bound[paramIndex]))
                 return Result::Continue;
 
-            assignInlineBindingExpr(bound[paramIndex], *params[paramIndex], argValueRef);
+            assignInlineBindingExpr(sema, bound[paramIndex], *params[paramIndex], argValueRef);
         }
 
         for (size_t argIndex = 0; argIndex < args.size(); ++argIndex)
@@ -1589,7 +1606,7 @@ namespace
                 !isBindingAssigned(bound[numFixed - 1]))
             {
                 const size_t trailingParamIndex = numFixed - 1;
-                assignInlineBindingExpr(bound[trailingParamIndex], *params[trailingParamIndex], bindingInlineArgumentRef(sema, context, *params[trailingParamIndex], trailingParamIndex, numFixed, argRef, sourceArgRef));
+                assignInlineBindingExpr(sema, bound[trailingParamIndex], *params[trailingParamIndex], bindingInlineArgumentRef(sema, context, *params[trailingParamIndex], trailingParamIndex, numFixed, argRef, sourceArgRef));
                 continue;
             }
 
@@ -1599,7 +1616,7 @@ namespace
             AstNodeRef argValueRef = nextParam < numFixed ? bindingInlineArgumentRef(sema, context, *params[nextParam], nextParam, numFixed, argRef, sourceArgRef) : bindingValueArgumentRef(sema, argRef);
             if (nextParam < numFixed)
             {
-                assignInlineBindingExpr(bound[nextParam], *params[nextParam], argValueRef);
+                assignInlineBindingExpr(sema, bound[nextParam], *params[nextParam], argValueRef);
                 nextParam++;
                 continue;
             }
@@ -1639,7 +1656,7 @@ namespace
                     const AstNodeRef defaultRef    = bindingArgumentRef(sema, *param, defaultArgRef);
                     if (defaultRef.isInvalid())
                         return Result::Continue;
-                    assignInlineBindingExpr(bound[i], *param, defaultRef);
+                    assignInlineBindingExpr(sema, bound[i], *param, defaultRef);
                 }
             }
 

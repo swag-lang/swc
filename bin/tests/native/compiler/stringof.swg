@@ -1,4 +1,4 @@
-#global fileprivate // 
+#global fileprivate
 const GlobalZero = 0
 
 enum Mode

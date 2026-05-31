@@ -350,7 +350,7 @@ namespace
     Result checkDRef(Sema& sema, const SemaNodeView& view)
     {
         const TypeInfo& type = aliasEnumType(sema, view);
-        if (!type.isPointerOrReference())
+        if (!type.isAnyPointer())
             return SemaError::raiseUnaryOperandType(sema, sema.curNodeRef(), view.nodeRef(), view.typeRef());
         return Result::Continue;
     }

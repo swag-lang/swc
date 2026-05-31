@@ -1,4 +1,4 @@
-#global fileprivate // 
+#global fileprivate
 
 var A: [..] s32
 #assert(#typeof(A) == [..] s32)

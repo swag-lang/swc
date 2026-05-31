@@ -4,7 +4,7 @@ impl Image
 {
     mtd const doCrop(dstImage: *Image, x, y, w, h: s32)
     {
-        let self = me
+        let self: const &Image = me
         var f = {x: x, y: .height - y - h, self: self}
         dstImage.visitPixels(&f, stride: w)
         {

@@ -206,7 +206,7 @@ namespace
             SWC_ASSERT(symVar != nullptr);
             if (!symVar->hasExtraFlag(SymbolVariableFlagsE::NeedsAddressableStorage))
                 continue;
-            if (CodeGenFunctionHelpers::canUseIncomingIndirectCopyAsAddressableParameter(codeGen, codeGen.function(), *symVar))
+            if (CodeGenFunctionHelpers::canUseIncomingIndirectParameterAsAddressableParameter(codeGen, codeGen.function(), *symVar))
                 continue;
 
             const TypeRef typeRef = symVar->typeRef();

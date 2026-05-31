@@ -1,4 +1,4 @@
-#global fileprivate // 
+#global fileprivate
 
 #[Swag.Strict]
 alias UnaryPlusStrictS32 = s32

@@ -64,10 +64,16 @@ TypeRef Cast::referenceValueCastTypeRef(const Sema& sema, TypeRef srcTypeRef, Ty
         return TypeRef::invalid();
 
     const TypeRef pointeeTypeRef = srcType.payloadTypeRef();
-    if (pointeeTypeRef != dstTypeRef && pointeeTypeRef != dstTypeToCheck)
+    if (pointeeTypeRef == dstTypeRef)
+        return pointeeTypeRef;
+
+    if (sema.typeMgr().get(dstTypeRef).isAlias())
         return TypeRef::invalid();
 
-    return pointeeTypeRef;
+    if (pointeeTypeRef == dstTypeToCheck)
+        return pointeeTypeRef;
+
+    return TypeRef::invalid();
 }
 
 TypeRef Cast::runtimeStorageTypeRef(Sema& sema, TypeRef srcTypeRef, TypeRef dstTypeRef, ConstantRef srcConstRef)

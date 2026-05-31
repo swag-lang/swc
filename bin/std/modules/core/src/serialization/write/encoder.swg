@@ -211,7 +211,7 @@ impl Encoder
             let itf = @mkinterface(data, type, ISerialize)
             if itf != null
             {
-                if itf.write(cast(IEncoder) dref me) do
+                if itf.write(cast(IEncoder) dref &me) do
                     return
             }
 
@@ -230,7 +230,7 @@ impl Encoder
                 if Reflection.hasAttribute(field.pointedType, NoSerialize) do
                     continue
 
-                if !itf or !itf.writeElement(field, cast(const [*] u8) data + field.offset, cast(IEncoder) dref me)
+                if !itf or !itf.writeElement(field, cast(const [*] u8) data + field.offset, cast(IEncoder) dref &me)
                 {
                     .writeTypeValue(field, cast(const [*] u8) data + field.offset)
                 }

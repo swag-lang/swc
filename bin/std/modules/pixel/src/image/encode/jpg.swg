@@ -237,26 +237,49 @@ impl Encoder
 
         for nrline in .imageY
         {
-            switch image.bpp
+            let line = pdst + nrline * xDiv8
+            switch image.pf
             {
-            case 24:
-                Memory.copy(pdst + nrline * xDiv8, pref, .imageX * 3'u64)
-                pref += .imageX * 3'u64
-
-            case 32:
+            case BGR8:
                 for column in .imageX
                 {
-                    pdst[column + nrline * xDiv8].b = pref[0]
-                    pdst[column + nrline * xDiv8].g = pref[1]
-                    pdst[column + nrline * xDiv8].r = pref[2]
+                    line[column].b = pref[0]
+                    line[column].g = pref[1]
+                    line[column].r = pref[2]
+                    pref += 3
+                }
+
+            case RGB8:
+                for column in .imageX
+                {
+                    line[column].b = pref[2]
+                    line[column].g = pref[1]
+                    line[column].r = pref[0]
+                    pref += 3
+                }
+
+            case BGRA8:
+                for column in .imageX
+                {
+                    line[column].b = pref[0]
+                    line[column].g = pref[1]
+                    line[column].r = pref[2]
+                    pref += 4
+                }
+
+            case RGBA8:
+                for column in .imageX
+                {
+                    line[column].b = pref[2]
+                    line[column].g = pref[1]
+                    line[column].r = pref[0]
                     pref += 4
                 }
             }
 
-            var lastcolor: ColorRGB = undefined
-            Memory.copy(&lastcolor, pdst + nrline * xDiv8 + .imageX - 1, 3)
+            let lastcolor = line[.imageX - 1]
             for var column = .imageX; column < xDiv8; column += 1 do
-                Memory.copy(pdst + nrline * xDiv8 + column, &lastcolor, 3)
+                line[column] = lastcolor
         }
 
         .imageX = cast(u16) xDiv8
@@ -265,7 +288,7 @@ impl Encoder
         // Reorder in memory the inversed bitmap
         var nrLineUp = cast(u32) .imageY - 1
         var nrLineDn = 0'u32
-        let dimline  = cast(u32) .imageX * 3'u64
+        let dimline  = cast(u64) .imageX * #sizeof(ColorRGB)
         while nrLineUp > nrLineDn
         {
             Memory.copy(tmpline.buffer, pdst + nrLineUp * .imageX, dimline)
@@ -433,15 +456,10 @@ impl Encoder
             .bytepos -= 1
             if .bytepos < 0
             {
-                if .bytenew == 0xFF
-                {
-                    .writeByte(0xFF)
+                let written = .bytenew
+                .writeByte(written)
+                if written == 0xFF do
                     .writeByte(0)
-                }
-                else
-                {
-                    .writeByte(.bytenew)
-                }
 
                 .bytepos = 7
                 .bytenew = 0
@@ -707,7 +725,9 @@ impl Encoder
 
     mtd encoder()
     {
-        var dcy, dccb, dccr: s16
+        var dcy: s16  = 0
+        var dccb: s16 = 0
+        var dccr: s16 = 0
         for var ypos = 0'u16; ypos < .imageY; ypos += 8
         {
             for var xpos = 0'u16; xpos < .imageX; xpos += 8

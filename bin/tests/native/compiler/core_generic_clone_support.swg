@@ -164,7 +164,7 @@ namespace GenericCloneCodegenSupport
 
         mtd clearOwned()
         {
-            foreach item in dref me do
+            foreach item in me do
                 @free(item)
             .first = null
             .second = null

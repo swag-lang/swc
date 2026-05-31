@@ -1,4 +1,4 @@
-#global fileprivate // 
+#global fileprivate
 
 #[Swag.Strict]
 alias ForStrictS32 = s32
@@ -45,7 +45,7 @@ impl StringRefIndexBox
 
 func forStrictU8RefValue(value: const &ForStrictU8)->ForStrictU8
 {
-    return dref value
+    return value
 }
 
 #test

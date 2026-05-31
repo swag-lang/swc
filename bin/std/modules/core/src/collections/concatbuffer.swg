@@ -505,7 +505,7 @@ impl ConcatBuffer
         let newDatas = cast([*] u8) Memory.alloc(total, .allocator)
 
         var curPtr = newDatas
-        foreach b in dref me
+        foreach b in me
         {
             Memory.copy(curPtr, b.datas, b.count)
             curPtr += b.count

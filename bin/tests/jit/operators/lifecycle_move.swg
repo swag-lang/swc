@@ -82,6 +82,15 @@ struct EmbeddedTracked
     inner: Tracked
 }
 
+struct LargeTracked
+{
+    a: u64
+    b: u64
+    c: u64
+    d: u64
+    item: Tracked
+}
+
 struct EmbeddedTrackedWithOps
 {
     inner: Tracked
@@ -143,6 +152,12 @@ func assignTracked(dst: &Tracked, src: Tracked)
 func takeTracked(src: Tracked)->s32
 {
     return src.value
+}
+
+func takeLargeTrackedAddress(src: LargeTracked)->s32
+{
+    let ptr: const *LargeTracked = &src
+    return ptr.item.value
 }
 
 func copyAssignInfo()->LifecycleInfo
@@ -280,6 +295,14 @@ func borrowedParamInfo()->LifecycleInfo
     var src = Tracked{7}
     let value = takeTracked(src)
     return {value, src.value, DropCount, DropTrace, PostCopyCount, PostMoveCount}
+}
+
+func borrowedAddressableParamInfo()->LifecycleInfo
+{
+    resetLifecycleHooks()
+    var src = LargeTracked{1, 2, 3, 4, Tracked{7}}
+    let value = takeLargeTrackedAddress(src)
+    return {value, src.item.value, DropCount, DropTrace, PostCopyCount, PostMoveCount}
 }
 
 func embeddedCopyAssignInfo()->LifecycleInfo
@@ -465,6 +488,17 @@ func returnCopyInfo()->LifecycleInfo
 #test
 {
     let v = borrowedParamInfo()
+    @assert(v.dst == 7)
+    @assert(v.src == 7)
+    @assert(v.drops == 0)
+    @assert(v.dropTrace == 0)
+    @assert(v.postCopy == 0)
+    @assert(v.postMove == 0)
+}
+
+#test
+{
+    let v = borrowedAddressableParamInfo()
     @assert(v.dst == 7)
     @assert(v.src == 7)
     @assert(v.drops == 0)

@@ -181,7 +181,7 @@ impl Image
         Debug.assert(.pixels.buffer != null)
 
         if newPf == .pf do
-            return dref me
+            return me
 
         var result: retval = create(.width, .height, newPf)
         .doChangePf(&result)

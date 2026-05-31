@@ -1,4 +1,4 @@
-#global fileprivate // 
+#global fileprivate
 
 #test
 {

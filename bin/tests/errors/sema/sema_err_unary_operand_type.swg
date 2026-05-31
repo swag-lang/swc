@@ -23,6 +23,13 @@
 
 #test
 {
+    var value: s32
+    var ref: &s32 = &value
+    let bad = dref ref // swc-expected-error {{sema_err_unary_operand_type}}
+}
+
+#test
+{
     func unaryTildeU64(a: u64)->u64 { return ~a }
     const V = #run unaryTildeU64(0xFFFF_FFFF_FFFF_FFD5'u64)
     #assert(#typeof(V) == u64)

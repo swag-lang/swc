@@ -1294,6 +1294,7 @@ Result Cast::castAllowed(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRe
     const TypeManager& typeMgr = sema.typeMgr();
     const TypeInfo&    srcType = typeMgr.get(srcTypeRef);
     const TypeInfo&    dstType = typeMgr.get(dstTypeRef);
+    const TypeRef      referenceValueTypeRef = referenceValueCastTypeRef(sema, srcTypeRef, dstTypeRef);
 
     if (isImplicitNullableQualificationCast(srcType, dstType))
         return castAddNullableQualifier(castRequest);
@@ -1310,7 +1311,8 @@ Result Cast::castAllowed(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRe
         const bool allowAliasAnyCast          = dstType.isAny();
         const bool allowAliasNullableCast     = isImplicitNullableQualificationCast(resolvedSrcType, resolvedDstType);
         const bool allowAliasUfcsReceiverCast = castRequest.flags.has(CastFlagsE::UfcsArgument) && resolvedSrcType.isAnyPointer() && resolvedDstType.isReference();
-        if (castRequest.kind != CastKind::Explicit && !allowAliasBoolCast && !allowAliasNullCast && !allowAliasAnyCast && !allowAliasNullableCast && !allowAliasUfcsReceiverCast)
+        const bool allowAliasReferenceValueCast = referenceValueTypeRef.isValid();
+        if (castRequest.kind != CastKind::Explicit && !allowAliasBoolCast && !allowAliasNullCast && !allowAliasAnyCast && !allowAliasNullableCast && !allowAliasUfcsReceiverCast && !allowAliasReferenceValueCast)
             return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
     }
 
@@ -1327,6 +1329,8 @@ Result Cast::castAllowed(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRe
             return castRequest.fail(DiagnosticId::sema_err_cannot_cast_const, srcTypeRef, dstTypeRef);
         res = castToAny(sema, castRequest, srcTypeRef, dstTypeRef);
     }
+    else if (referenceValueTypeRef.isValid())
+        res = castFromReference(sema, castRequest, srcTypeRef, dstTypeRef);
     else if (srcType.isAlias())
         res = castAllowed(sema, castRequest, srcType.payloadSymAlias().underlyingTypeRef(), dstTypeRef);
     else if (srcType.isAny())
@@ -1335,8 +1339,6 @@ Result Cast::castAllowed(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRe
         res = castAllowed(sema, castRequest, srcTypeRef, dstType.payloadSymAlias().underlyingTypeRef());
     else if (srcType.isAggregateStruct() && dstType.isAggregateStruct())
         res = castAggregateStructToAggregateStruct(sema, castRequest, srcTypeRef, dstTypeRef, srcType, dstType);
-    else if (referenceValueCastTypeRef(sema, srcTypeRef, dstTypeRef).isValid())
-        res = castFromReference(sema, castRequest, srcTypeRef, dstTypeRef);
     else if (castRequest.flags.has(CastFlagsE::BitCast))
         res = castBit(sema, castRequest, srcTypeRef, dstTypeRef);
     else if (shouldRouteEnumViaUnderlying(castRequest, srcType, dstType))

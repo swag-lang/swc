@@ -407,7 +407,7 @@ impl Encoder
         return cast() bestFilter
     }
 
-    func paeth(a, b, c: s32)->u32
+    func paeth(a, b, c: s32)->s32
     {
         let p  = cast(s16) (a + b - c)
         let pa = Math.abs(cast(s16) (p - a))

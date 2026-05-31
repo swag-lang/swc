@@ -89,18 +89,19 @@ moduleprivate
 
             for i in 1 to 16
             {
-                if sizes[i] > (1 << i) do
+                if cast(u32) sizes[i] > (1'u32 << i) do
                     throw InvalidFormatError{"bad huffman sizes"}
             }
 
-            var k, cde = 0'u16
+            var k   = 0'u16
+            var cde = 0'u32
             for i in 1 to 15
             {
-                nextCode[i]     = cde
-                .firstCode[i]   = cde
+                nextCode[i]     = cast(u16) cde
+                .firstCode[i]   = cast(u16) cde
                 .firstSymbol[i] = k
                 cde += sizes[i]
-                if sizes[i] != 0 and (cde - 1) >= (1 << i) do
+                if sizes[i] != 0 and (cast(u32) cde - 1) >= (1'u32 << i) do
                     throw InvalidFormatError{"huffman bad code lengths"}
                 .maxCode[i] = cast(s64) cde << (16 - i)
                 cde <<= 1

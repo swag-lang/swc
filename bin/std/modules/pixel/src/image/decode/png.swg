@@ -610,52 +610,50 @@ impl Decoder
         // Paletted, no transparency
         if .inChannels == 1 and .seenPLTE and !.seenTRSN
         {
-            var pm = {dstPixels: .dstPixels, dec: me}
-            result.visitPixels(&pm)
+            var src = .dstPixels
+            var dst = result.pixels.buffer
+            for result.width * result.height
             {
-                let params = cast(*#decltype(pm)) userData
-                var src    = params.dstPixels
-                src += x + y * image.width
-                let pal   = src[0]
-                let color = params.dec.palette[pal]
-                pix[0] = cast() ((color >> 16) & 0xFF)
-                pix[1] = cast() ((color >> 8) & 0xFF)
-                pix[2] = cast() (color & 0xFF)
-                if image.bpp == 32 do
-                    pix[3] = 255
+                let pal  = src[0]
+                let color = .palette[pal]
+                dst[0] = cast() ((color >> 16) & 0xFF)
+                dst[1] = cast() ((color >> 8) & 0xFF)
+                dst[2] = cast() (color & 0xFF)
+                src += 1
+                dst += result.bpp8
             }
         }
 
         // Paletted, transparency
         elif .inChannels == 1 and .seenPLTE and .seenTRSN
         {
-            var pm = {dstPixels: .dstPixels, dec: me}
-            result.visitPixels(&pm)
+            var src = .dstPixels
+            var dst = result.pixels.buffer
+            for result.width * result.height
             {
-                let params = cast(*#decltype(pm)) userData
-                var src    = params.dstPixels
-                src += x + y * image.width
-                let pal   = src[0]
-                let color = params.dec.palette[pal]
-                pix[0] = cast() ((color >> 16) & 0xFF)
-                pix[1] = cast() ((color >> 8) & 0xFF)
-                pix[2] = cast() (color & 0xFF)
-                pix[3] = pal < @countof(params.dec.chunkTRNS.datas) ? params.dec.chunkTRNS.datas[pal] : 255
+                let pal  = src[0]
+                let color = .palette[pal]
+                dst[0] = cast() ((color >> 16) & 0xFF)
+                dst[1] = cast() ((color >> 8) & 0xFF)
+                dst[2] = cast() (color & 0xFF)
+                dst[3] = pal < @countof(.chunkTRNS.datas) ? .chunkTRNS.datas[pal] : 255
+                src += 1
+                dst += result.bpp8
             }
         }
 
         // Grayscale without alpha channel, no transparency
         elif .inChannels == 1 and !.seenTRSN
         {
-            result.visitPixels(&.dstPixels)
+            var src = .dstPixels
+            var dst = result.pixels.buffer
+            for result.width * result.height
             {
-                var src = dref cast([*] [*] u8) userData
-                src += x + y * image.width
-                pix[0] = src[0]
-                pix[1] = src[0]
-                pix[2] = src[0]
-                if image.bpp == 32 do
-                    pix[3] = 255
+                dst[0] = src[0]
+                dst[1] = src[0]
+                dst[2] = src[0]
+                src += 1
+                dst += result.bpp8
             }
         }
 
@@ -665,31 +663,32 @@ impl Decoder
             var key   = .chunkTRNS.datas[1]
             let scale = .header.bitDepth == 1 ? 255'u8 : .header.bitDepth == 2 ? 85'u8 : 17'u8
             key *= scale
-            var pm = {dstPixels: .dstPixels, key: key}
-            result.visitPixels(&pm)
+            var src = .dstPixels
+            var dst = result.pixels.buffer
+            for result.width * result.height
             {
-                let params = cast(*#decltype(pm)) userData
-                var src    = params.dstPixels
-                src += x + y * image.width
-                pix[0] = src[0]
-                pix[1] = src[0]
-                pix[2] = src[0]
-                pix[3] = src[0] == params.key ? 0 : 255
+                dst[0] = src[0]
+                dst[1] = src[0]
+                dst[2] = src[0]
+                dst[3] = src[0] == key ? 0 : 255
+                src += 1
+                dst += result.bpp8
             }
         }
 
         // Grayscale with alpha channel
         elif .inChannels == 2
         {
-            result.visitPixels(&.dstPixels)
+            var src = .dstPixels
+            var dst = result.pixels.buffer
+            for result.width * result.height
             {
-                var src = dref cast([*] [*] u8) userData
-                src += (x * 2) + (y * image.width * 2)
-                pix[0] = src[0]
-                pix[1] = src[0]
-                pix[2] = src[0]
-                if image.bpp == 32 do
-                    pix[3] = src[1]
+                dst[0] = src[0]
+                dst[1] = src[0]
+                dst[2] = src[0]
+                dst[3] = src[1]
+                src += 2
+                dst += result.bpp8
             }
         }
 
@@ -700,19 +699,19 @@ impl Decoder
             let key0 = key[1]
             let key1 = key[3]
             let key2 = key[5]
-            var pm   = {dstPixels: .dstPixels, key0: key0, key1: key1, key2: key2}
-            result.visitPixels(&pm)
+            var src  = .dstPixels
+            var dst  = result.pixels.buffer
+            for result.width * result.height
             {
-                let params = cast(*#decltype(pm)) userData
-                var src    = params.dstPixels
-                src += (x * 3) + (y * image.width * 3)
-                pix[0] = src[0]
-                pix[1] = src[1]
-                pix[2] = src[2]
-                if src[0] == params.key0 and src[1] == params.key1 and src[2] == params.key2 do
-                    pix[3] = 0
+                dst[0] = src[0]
+                dst[1] = src[1]
+                dst[2] = src[2]
+                if src[0] == key0 and src[1] == key1 and src[2] == key2 do
+                    dst[3] = 0
                 else do
-                    pix[3] = 255
+                    dst[3] = 255
+                src += 3
+                dst += result.bpp8
             }
         }
     }

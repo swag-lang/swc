@@ -4,7 +4,6 @@ var g_Window:       Env.Window
 var g_Context:      Ogl.Platform.Win32.Context
 var g_VertexBuffer: GLuint
 var g_ProgramID:    GLuint
-var g_IsReady       = false
 
 const VertexBufferData: [?] GLfloat = [
     -1.0, -1.0, 0.0,
@@ -51,31 +50,13 @@ func display()
 
 func onPaint(_window: *Env.Window)
 {
-    if g_IsReady do
-        display()
+    display()
 }
 
 func onResize(_window: *Env.Window, width, height: s32)
 {
-    if !g_IsReady do
-        return
-
     glViewport(0, 0, width, height)
     display()
-}
-
-func createWindow() throw
-{
-    try Env.createWindow(&g_Window, {className: "OPENGL2_CLASS_NAME", title: "OpenGL example", width: 512, height: 512})
-}
-
-func messageLoop()
-{
-    var loop: Env.WindowLoop
-    while loop.next()
-    {
-        display()
-    }
 }
 
 func createShader()
@@ -118,8 +99,7 @@ func createShader()
 
 #main
 {
-    try createWindow()
-
+    try Env.createWindow(&g_Window, {className: "OPENGL2_CLASS_NAME", title: "OpenGL example", width: 512, height: 512})
     g_Context = try Ogl.Platform.Win32.createContext(&g_Window)
     glInitExtensions()
 
@@ -127,15 +107,18 @@ func createShader()
     glBindBuffer(GL_ARRAY_BUFFER, g_VertexBuffer)
     glBufferData(GL_ARRAY_BUFFER, #sizeof(VertexBufferData), @dataof(VertexBufferData), GL_STATIC_DRAW)
     createShader()
-    g_IsReady = true
+
     g_Window.callbacks.onPaint  = &onPaint
     g_Window.callbacks.onResize = &onResize
 
     display()
     try g_Window.show()
 
-    messageLoop()
+    var loop: Env.WindowLoop
+    while loop.next()
+    {
+        display()
+    }
 
-    g_IsReady = false
     g_Context.destroy()
 }

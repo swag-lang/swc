@@ -7,7 +7,6 @@ var g_Window:   Env.Window
 var g_Renderer: Pixel.RenderOgl
 var g_Painter:  Pixel.Painter
 var g_RC:       Pixel.RenderingContext
-var g_IsReady   = false
 
 var g_FontBytes:  Array'u8
 var g_FTLibrary:  FT_Library
@@ -90,9 +89,6 @@ func drawScene(painter: *Pixel.Painter)
 
 func display()
 {
-    if !g_IsReady do
-        return
-
     g_Renderer.begin(g_RC)
     g_Painter.begin()
     drawScene(&g_Painter)
@@ -106,50 +102,35 @@ func onPaint(_window: *Env.Window)
     display()
 }
 
-func onResize(_window: *Env.Window, width, height: s32)
+func onResize(window: *Env.Window, width, height: s32)
 {
-    if !g_IsReady do
-        return
-
     g_RC.width  = width
     g_RC.height = height
-    g_Window.requestPaint()
-}
-
-func createWindow() throw
-{
-    try Env.createWindow(&g_Window, {className: "PIXEL2_CLASS_NAME", title: "Pixel TrueType example", width: W, height: H})
-}
-
-func messageLoop()
-{
-    var loop: Env.WindowLoop
-    while loop.next()
-    {
-        display()
-    }
+    window.requestPaint()
 }
 
 #main
 {
-    try createWindow()
-
+    try Env.createWindow(&g_Window, {className: "PIXEL2_CLASS_NAME", title: "Pixel TrueType example", width: W, height: H})
     g_RC = try g_Renderer.native.createContext(&g_Window, W, H)
     g_Renderer.setCurrentContext(g_RC)
     g_Renderer.init()
 
     // RenderOgl.init clears font caches, so create Pixel fonts after it.
     try loadFonts()
-    g_IsReady = true
+
     g_Window.callbacks.onPaint  = &onPaint
     g_Window.callbacks.onResize = &onResize
 
     display()
     try g_Window.show()
 
-    messageLoop()
+    var loop: Env.WindowLoop
+    while loop.next()
+    {
+        display()
+    }
 
-    g_IsReady = false
     g_Renderer.native.dropContext(g_RC)
     dropFonts()
 }

@@ -108,6 +108,11 @@ public impl Face
             fail(0x07)
         renderCurrentOutline(&.glyph)
     }
+
+    mtd renderGlyphSdf(spread: u32 = 8) throw
+    {
+        renderCurrentOutlineSdf(&.glyph, spread)
+    }
 }
 
 public impl Outline

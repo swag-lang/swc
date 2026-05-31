@@ -1004,6 +1004,38 @@ namespace
         return count;
     }
 
+    // Resolves through transparent cast/paren wrappers to decide whether an expression is
+    // ultimately a direct reference to a stable storage variable (a local, parameter, or `me`).
+    bool inlineBindingExprIsStableVariableRef(Sema& sema, AstNodeRef exprRef)
+    {
+        AstNodeRef ref = exprRef;
+        for (uint32_t depth = 0; depth < 8 && ref.isValid(); ++depth)
+        {
+            if (const Symbol* sym = sema.viewStored(ref, SemaNodeViewPartE::Symbol).sym(); sym && sym->isVariable())
+                return true;
+
+            const AstNode& node = sema.node(ref);
+            if (const auto* castNode = node.safeCast<AstCastExpr>())
+            {
+                ref = castNode->nodeExprRef;
+                continue;
+            }
+            if (const auto* autoCastNode = node.safeCast<AstAutoCastExpr>())
+            {
+                ref = autoCastNode->nodeExprRef;
+                continue;
+            }
+            if (const auto* parenNode = node.safeCast<AstParenExpr>())
+            {
+                ref = parenNode->nodeExprRef;
+                continue;
+            }
+            break;
+        }
+
+        return false;
+    }
+
     bool inlineBindingNeedsRepeatedRValueMaterialization(Sema& sema, const Ast& sourceAst, AstNodeRef nodeRef, const SemaClone::ParamBinding& binding)
     {
         if (!binding.exprRef.isValid() || !binding.idRef.isValid())
@@ -1012,6 +1044,20 @@ namespace
             return false;
         if (sema.isLValue(binding.exprRef))
             return false;
+
+        // Aggregate parameters are passed by reference, so a value-copy materialization of the
+        // argument is read back through the by-reference access convention of the inlined body
+        // (a dereference). When the argument is a plain variable reference such as `me`, that is
+        // both unnecessary (re-evaluating a stable storage reference is free and side effect
+        // free) and incorrect (the copied value would be dereferenced as a pointer). Substitute
+        // the reference directly instead of materializing a mismatched value local.
+        if (binding.sourceParam)
+        {
+            const TypeInfo& paramType = binding.sourceParam->type(sema.ctx());
+            if ((paramType.isStruct() || paramType.isArray() || paramType.isAggregate()) &&
+                inlineBindingExprIsStableVariableRef(sema, binding.exprRef))
+                return false;
+        }
 
         return inlineBindingUseCount(sema, sourceAst, nodeRef, binding.idRef) > 1;
     }

@@ -16,6 +16,7 @@ fileprivate
 
     const VertexShaderFont = #include("shaders/font.vert")
     const PixelShaderFont  = #include("shaders/font.frag")
+    const PixelShaderFontSdf  = #include("shaders/font_sdf.frag")
 }
 
 #[Swag.Strict]
@@ -39,6 +40,7 @@ struct RenderOgl
     shaderAA:            ShaderAA
     shaderBlur:          ShaderBlur
     shaderFont:          ShaderFont
+    shaderFontSdf:       ShaderFont
     worldTransform:      Transform2
     orthoMatrix:         Matrix4x4
     modelMatrix:         Matrix4x4
@@ -96,6 +98,15 @@ fileprivate impl RenderOgl
             let text0 = glGetUniformLocation(cast(GLuint) .shaderFont.handle, @dataof("inTexture0"))
             let text1 = glGetUniformLocation(cast(GLuint) .shaderFont.handle, @dataof("inTexture1"))
             glUseProgram(cast(GLuint) .shaderFont.handle)
+            glUniform1i(text0, 0)
+            glUniform1i(text1, 1)
+        }
+
+        {
+            assume createShader(&.shaderFontSdf, VertexShaderFont, PixelShaderFontSdf)
+            let text0 = glGetUniformLocation(cast(GLuint) .shaderFontSdf.handle, @dataof("inTexture0"))
+            let text1 = glGetUniformLocation(cast(GLuint) .shaderFontSdf.handle, @dataof("inTexture1"))
+            glUseProgram(cast(GLuint) .shaderFontSdf.handle)
             glUniform1i(text0, 0)
             glUniform1i(text1, 1)
         }
@@ -727,18 +738,21 @@ impl RenderOgl
 
         case StartFont:
             .setShader(&.shaderFont)
+        case StartSdfFont:
+            .setShader(&.shaderFontSdf)
         case EndFont:
             .setShader(&.shaderAA)
 
         case BindTextureFont:
             let params = &cmd.textureFont
+            let filter = params.font.renderMode == .SignedDistanceField ? GL_LINEAR : GL_NEAREST
             glActiveTexture(GL_TEXTURE1)
             let texture = params.font.atlases[params.atlasIndex].texture.handle
             glBindTexture(GL_TEXTURE_2D, cast(GLuint) texture)
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE)
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE)
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST)
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST)
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, filter)
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, filter)
 
         case ResetTextureFont:
             glActiveTexture(GL_TEXTURE1)
@@ -746,10 +760,9 @@ impl RenderOgl
 
         case UpdateFont:
             let font = cmd.font.fontRef
+            let filter = font.renderMode == .SignedDistanceField ? GL_LINEAR : GL_NEAREST
             font.dirty = false
             glActiveTexture(GL_TEXTURE1)
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST)
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST)
             foreach &atlas in font.atlases
             {
                 if !atlas.dirty do
@@ -761,6 +774,10 @@ impl RenderOgl
                 atlas.texture.height = atlas.height
                 atlas.texture.pf     = atlas.bpp == 1 ? .RGBA8 : .RGB8
                 glBindTexture(GL_TEXTURE_2D, cast(GLuint) atlas.texture.handle)
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE)
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE)
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, filter)
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, filter)
                 glPixelStorei(GL_UNPACK_ALIGNMENT, 1)
                 let fmt = atlas.bpp == 1 ? GL_RED : GL_RGB
                 glTexImage2D(GL_TEXTURE_2D, 0, fmt, cast(GLsizei) atlas.texture.width, cast(GLsizei) atlas.texture.height, 0, fmt, GL_UNSIGNED_BYTE, atlas.datas.buffer)
@@ -836,7 +853,7 @@ impl RenderOgl
                     let cmd1 = dc.commandBuffer[i]
                     switch cmd1.id
                     {
-                    case Transform, ResetTexture0, BindTexture0, ResetTextureFont, BindTextureFont, DrawTriangles:
+                    case Transform, StartFont, StartSdfFont, EndFont, ResetTexture0, BindTexture0, ResetTextureFont, BindTextureFont, DrawTriangles:
                         .executeCommand(dc, cmd1, cast(u64) i, width, height)
                     }
                 }

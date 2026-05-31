@@ -308,12 +308,6 @@ Result SymbolFunction::emit(TaskContext& ctx)
 #if SWC_HAS_STATS
     Timer timeMicroLower(Stats::timedMetric(Stats::get().timeMicroLower));
 #endif
-    if (name(ctx) == "moveTowards" && getFullScopedName(ctx).view().find("Vector2") != std::string_view::npos)
-    {
-        const Utf8    dump = builder.formatInstructions();
-        std::ofstream ofs("c:\\Perso\\swag-lang\\swc\\_v2_fix.txt", std::ios::binary | std::ios::trunc);
-        ofs.write(dump.view().data(), static_cast<std::streamsize>(dump.view().size()));
-    }
     const Result emitResult = loweredMicroCode_.emit(ctx, builder);
     if (emitResult != Result::Continue)
     {

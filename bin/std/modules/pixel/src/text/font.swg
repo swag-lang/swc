@@ -25,6 +25,12 @@ public struct GlyphDesc
     height:         f32
 }
 
+public enum FontRenderMode
+{
+    Bitmap
+    SignedDistanceField
+}
+
 public struct Font
 {
     ascent:            f32
@@ -38,6 +44,8 @@ public struct Font
     fullname:          String
     typeFace:          *TypeFace
     size:              u32
+    renderMode:        FontRenderMode
+    sdfSpread:         u32
     atlases:           Array'GlyphAtlas
     asciiRef:          [128] GlyphDesc
     unicodeRef:        HashTable'(rune, *GlyphDesc)
@@ -87,13 +95,13 @@ public impl Font
         Memory.delete(font)
     }
 
-    // Creates a new Font of the given typeface and size
-    func create(typeFace: *TypeFace, size: u32, forceBold, forceItalic = false)->*Font
+    fileprivate func createWithMode(typeFace: *TypeFace, size, spread: u32, renderMode: FontRenderMode, forceBold, forceItalic: bool)->*Font
     {
         Debug.assert(typeFace != null)
         Debug.assert(size > 0)
 
-        let str = Format.toString("%_%_%_%", typeFace.fullname, size, forceBold, forceItalic)
+        let renderName = renderMode == .SignedDistanceField ? "sdf" : "bitmap"
+        let str = Format.toString("%_%_%_%_%_%", typeFace.fullname, size, forceBold, forceItalic, renderName, spread)
 
         Sync.scopedLock(&lock)
 
@@ -105,6 +113,8 @@ public impl Font
         font.fullname    = str
         font.typeFace    = typeFace
         font.size        = size
+        font.renderMode  = renderMode
+        font.sdfSpread   = spread
         font.forceBold   = forceBold
         font.forceItalic = forceItalic
 
@@ -120,6 +130,19 @@ public impl Font
         return font
     }
 
+    // Creates a new Font of the given typeface and size
+    func create(typeFace: *TypeFace, size: u32, forceBold, forceItalic = false)->*Font
+    {
+        return createWithMode(typeFace, size, 0, .Bitmap, forceBold, forceItalic)
+    }
+
+    // Creates a new signed distance field Font of the given typeface and size
+    func createSdf(typeFace: *TypeFace, size, spread: u32, forceBold, forceItalic = false)->*Font
+    {
+        Debug.assert(spread > 0)
+        return createWithMode(typeFace, size, spread, .SignedDistanceField, forceBold, forceItalic)
+    }
+
     // Creates a new Font with the given filename and size
     func create(fullname: string, size: u32, forceBold, forceItalic = false)->*Font throw
     {
@@ -128,6 +151,16 @@ public impl Font
 
         let typeFace = try TypeFace.load(fullname)
         return create(typeFace, size, forceBold, forceItalic)
+    }
+
+    // Creates a new signed distance field Font with the given filename and size
+    func createSdf(fullname: string, size, spread: u32, forceBold, forceItalic = false)->*Font throw
+    {
+        Debug.assert(@countof(fullname) != 0)
+        Debug.assert(size > 0)
+
+        let typeFace = try TypeFace.load(fullname)
+        return createSdf(typeFace, size, spread, forceBold, forceItalic)
     }
 
     // Returns the glyph descriptor of a given rune
@@ -147,7 +180,11 @@ public impl Font
         }
 
         // Render the glyph
-        let bmp = assume .typeFace.renderGlyph(c, .size, .forceBold, .forceItalic)
+        var bmp: const *Bitmap
+        if .renderMode == .SignedDistanceField do
+            bmp = assume .typeFace.renderGlyphSdf(c, .size, .sdfSpread, .forceBold, .forceItalic)
+        else do
+            bmp = assume .typeFace.renderGlyph(c, .size, .forceBold, .forceItalic)
 
         // Creates a new atlas if this is the first time, or if the last atlas is full
         var atlas = .atlases.count ? &.atlases.buffer[.atlases.count - 1] : null
@@ -171,8 +208,9 @@ public impl Font
         {
             var newAtlas: GlyphAtlas
             newAtlas.bpp    = 1
-            newAtlas.width  = Math.roundUpToPowerOf2(.size * 4) * newAtlas.bpp
-            newAtlas.height = Math.roundUpToPowerOf2(.size * 4)
+            let atlasSide   = Math.roundUpToPowerOf2(Math.max(.size * 4, Math.max(bmp.width, bmp.rows) * 2))
+            newAtlas.width  = atlasSide * newAtlas.bpp
+            newAtlas.height = atlasSide
             newAtlas.datas.resize(cast(u64) newAtlas.width * newAtlas.height)
             Memory.clear(newAtlas.datas.buffer, newAtlas.datas.count)
             .atlases.add(newAtlas)

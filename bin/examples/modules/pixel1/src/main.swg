@@ -1,4 +1,4 @@
-using Core, Pixel, Core.Math
+using Core, Pixel
 
 const W = 640
 const H = 480
@@ -38,16 +38,10 @@ func display()
     g_Renderer.end()
 }
 
-func onPaint(_window: *Env.Window)
-{
-    display()
-}
-
-func onResize(window: *Env.Window, width, height: s32)
+func onResize(_window: *Env.Window, width, height: s32)
 {
     g_RC.width  = width
     g_RC.height = height
-    window.requestPaint()
 }
 
 #main
@@ -57,10 +51,8 @@ func onResize(window: *Env.Window, width, height: s32)
     g_Renderer.setCurrentContext(g_RC)
     g_Renderer.init()
 
-    g_Window.callbacks.onPaint  = &onPaint
     g_Window.callbacks.onResize = &onResize
 
-    display()
     try g_Window.show()
 
     var loop: Env.WindowLoop

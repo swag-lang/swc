@@ -1,4 +1,4 @@
-using Core, Ogl, Core.Time
+using Core, Ogl
 
 var g_Window:       Env.Window
 var g_Context:      Ogl.Platform.Win32.Context
@@ -48,15 +48,9 @@ func display()
     g_Context.swapBuffers()
 }
 
-func onPaint(_window: *Env.Window)
-{
-    display()
-}
-
 func onResize(_window: *Env.Window, width, height: s32)
 {
     glViewport(0, 0, width, height)
-    display()
 }
 
 func createShader()
@@ -108,10 +102,8 @@ func createShader()
     glBufferData(GL_ARRAY_BUFFER, #sizeof(VertexBufferData), @dataof(VertexBufferData), GL_STATIC_DRAW)
     createShader()
 
-    g_Window.callbacks.onPaint  = &onPaint
     g_Window.callbacks.onResize = &onResize
 
-    display()
     try g_Window.show()
 
     var loop: Env.WindowLoop

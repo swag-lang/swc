@@ -69,6 +69,35 @@ using Swag, Core
     @assert(img.pixels.count == 48)
 }
 
+// Load larger RGB/RGBA fixtures copied from the historical pixel test data.
+#test
+{
+    var rgb: Image
+    rgb = catch Image.load(getTestDataPath("rgb.bmp"))
+    @assert(@err == null)
+    @assert(rgb.isValid())
+    @assert(rgb.width == 660)
+    @assert(rgb.height == 441)
+    @assert(rgb.pf == .BGR8)
+    @assert(rgb.pixels.count == 873180)
+    @assert(rgb.pixels.buffer[0] == 201'u8)
+    @assert(rgb.pixels.buffer[1] == 205'u8)
+    @assert(rgb.pixels.buffer[2] == 194'u8)
+
+    var rgba: Image
+    rgba = catch Image.load(getTestDataPath("rgba.bmp"))
+    @assert(@err == null)
+    @assert(rgba.isValid())
+    @assert(rgba.width == 660)
+    @assert(rgba.height == 441)
+    @assert(rgba.pf == .BGRA8)
+    @assert(rgba.pixels.count == 1164240)
+    @assert(rgba.pixels.buffer[0] == 201'u8)
+    @assert(rgba.pixels.buffer[1] == 205'u8)
+    @assert(rgba.pixels.buffer[2] == 194'u8)
+    @assert(rgba.pixels.buffer[3] == 255'u8)
+}
+
 // Decode tests - various BMP formats.
 
 // Test-only structs that mirror the private Bmp file-header types so we can

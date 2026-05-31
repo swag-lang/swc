@@ -1,6 +1,31 @@
 #global #if #command == Swag.CompilerCommand.Test
 using Swag, Core
 
+func assertFixtureFontLoads(fileName: string, expectedFlags: FT_Long)
+{
+    var scope: FaceScope
+    scope.init(fileName)
+
+    @assert(scope.bytes.count > 0)
+    @assert(scope.face.num_faces == 1)
+    @assert(scope.face.face_index == 0)
+    @assert(scope.face.num_glyphs > 0)
+    @assert(scope.face.family_name != null)
+    @assert(scope.face.style_name != null)
+    @assert((scope.face.style_flags & (FT_STYLE_FLAG_BOLD | FT_STYLE_FLAG_ITALIC)) == expectedFlags)
+
+    let glyphA = FT_Get_Char_Index(scope.face, 'A''u32)
+    @assert(glyphA > 0)
+
+    discard catch FT_Set_Pixel_Sizes(scope.face, 0, 18)
+    @assert(@err == null)
+    discard catch FT_Load_Glyph(scope.face, glyphA, FT_LOAD_RENDER)
+    @assert(@err == null)
+    @assert(scope.face.glyph.bitmap.width > 0)
+    @assert(scope.face.glyph.bitmap.rows > 0)
+    @assert(countBitmapCoverage(&scope.face.glyph.bitmap) > 0)
+}
+
 #test
 {
     discard catch FT_Init_FreeType(null)
@@ -58,4 +83,12 @@ using Swag, Core
 
     discard catch FT_Set_Pixel_Sizes(scope.face, 0, 0)
     @assert(@err != null)
+}
+
+#test
+{
+    assertFixtureFontLoads("arial.ttf", 0)
+    assertFixtureFontLoads("arialbd.ttf", FT_STYLE_FLAG_BOLD)
+    assertFixtureFontLoads("ariali.ttf", FT_STYLE_FLAG_ITALIC)
+    assertFixtureFontLoads("arialbi.ttf", FT_STYLE_FLAG_BOLD | FT_STYLE_FLAG_ITALIC)
 }

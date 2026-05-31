@@ -99,6 +99,62 @@ func addTgaPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     @assert(img.pixels.buffer[11] == 120'u8)
 }
 
+// Load larger RGB/RGBA fixtures copied from the historical pixel test data.
+#test
+{
+    var rgb: Image
+    rgb = catch Image.load(getTestDataPath("rgb.tga"))
+    @assert(@err == null)
+    @assert(rgb.isValid())
+    @assert(rgb.width == 660)
+    @assert(rgb.height == 441)
+    @assert(rgb.pf == .BGR8)
+    @assert(rgb.pixels.count == 873180)
+    @assert(rgb.pixels.buffer[0] == 201'u8)
+    @assert(rgb.pixels.buffer[1] == 205'u8)
+    @assert(rgb.pixels.buffer[2] == 194'u8)
+
+    var rgba: Image
+    rgba = catch Image.load(getTestDataPath("rgba.tga"))
+    @assert(@err == null)
+    @assert(rgba.isValid())
+    @assert(rgba.width == 660)
+    @assert(rgba.height == 441)
+    @assert(rgba.pf == .BGRA8)
+    @assert(rgba.pixels.count == 1164240)
+    @assert(rgba.pixels.buffer[0] == 201'u8)
+    @assert(rgba.pixels.buffer[1] == 205'u8)
+    @assert(rgba.pixels.buffer[2] == 194'u8)
+    @assert(rgba.pixels.buffer[3] == 255'u8)
+}
+
+// Load RLE RGB/RGBA fixtures copied from the historical pixel test data.
+#test
+{
+    var rle24: Image
+    rle24 = catch Image.load(getTestDataPath("rle24.tga"))
+    @assert(@err == null)
+    @assert(rle24.isValid())
+    @assert(rle24.width == 660)
+    @assert(rle24.height == 441)
+    @assert(rle24.pf == .BGR8)
+    @assert(rle24.pixels.buffer[0] == 201'u8)
+    @assert(rle24.pixels.buffer[1] == 205'u8)
+    @assert(rle24.pixels.buffer[2] == 194'u8)
+
+    var rle32: Image
+    rle32 = catch Image.load(getTestDataPath("rle32.tga"))
+    @assert(@err == null)
+    @assert(rle32.isValid())
+    @assert(rle32.width == 660)
+    @assert(rle32.height == 441)
+    @assert(rle32.pf == .BGRA8)
+    @assert(rle32.pixels.buffer[0] == 201'u8)
+    @assert(rle32.pixels.buffer[1] == 205'u8)
+    @assert(rle32.pixels.buffer[2] == 194'u8)
+    @assert(rle32.pixels.buffer[3] == 255'u8)
+}
+
 // Decode skips the optional image ID field before pixel data.
 #test
 {

@@ -67,6 +67,25 @@ namespace
         return typeInfo.payloadSymFunction();
     }
 
+    SymbolFunction* singleFunctionFromView(const SemaNodeView& view)
+    {
+        if (view.hasSymbolList())
+        {
+            if (view.symList().size() != 1)
+                return nullptr;
+
+            Symbol* symbol = view.symList().front();
+            if (!symbol || !symbol->isFunction())
+                return nullptr;
+            return &symbol->cast<SymbolFunction>();
+        }
+
+        Symbol* symbol = view.sym();
+        if (!symbol || !symbol->isFunction())
+            return nullptr;
+        return &symbol->cast<SymbolFunction>();
+    }
+
     enum class ThrowableHandlerKind : uint8_t
     {
         None,
@@ -502,6 +521,36 @@ namespace
         return codeGen.offsetAddressReg(codeGen.localStackBaseReg(), symVar.offset());
     }
 
+    bool tryEmitInlineDirectCallResultStore(CodeGen& codeGen, const SemaInlinePayload& inlinePayload, AstNodeRef exprRef)
+    {
+        if (exprRef.isInvalid())
+            return false;
+
+        const AstNodeRef resolvedExprRef = codeGen.viewZero(exprRef).nodeRef();
+        if (!resolvedExprRef.isValid())
+            return false;
+
+        const AstNode& exprNode = codeGen.node(resolvedExprRef);
+        if (exprNode.isNot(AstNodeId::CallExpr) && exprNode.isNot(AstNodeId::AliasCallExpr))
+            return false;
+
+        SymbolFunction* calledFunction = singleFunctionFromView(codeGen.sema().viewStored(resolvedExprRef, SemaNodeViewPartE::Symbol));
+        if (!calledFunction)
+            calledFunction = singleFunctionFromView(codeGen.viewSymbol(resolvedExprRef));
+        if (!calledFunction)
+            return false;
+
+        const CallConvKind                     callConvKind = calledFunction->callConvKind();
+        const CallConv&                        callConv     = CallConv::get(callConvKind);
+        const ABITypeNormalize::NormalizedType normalizedRet = ABITypeNormalize::normalize(codeGen.ctx(), callConv, calledFunction->returnTypeRef(), ABITypeNormalize::Usage::Return);
+        if (normalizedRet.isVoid || normalizedRet.isIndirect)
+            return false;
+
+        const MicroReg resultAddr = inlineResultAddressReg(codeGen, *inlinePayload.resultVar);
+        ABICall::storeReturnRegsToReturnBuffer(codeGen.builder(), callConvKind, resultAddr, normalizedRet);
+        return true;
+    }
+
     Result emitInlineResultStore(CodeGen& codeGen, const SemaInlinePayload& inlinePayload, AstNodeRef exprRef)
     {
         SWC_ASSERT(inlinePayload.resultVar != nullptr);
@@ -509,6 +558,8 @@ namespace
 
         const SymbolVariable& resultVar  = *inlinePayload.resultVar;
         const MicroReg        resultAddr = inlineResultAddressReg(codeGen, resultVar);
+        if (tryEmitInlineDirectCallResultStore(codeGen, inlinePayload, exprRef))
+            return Result::Continue;
 
         const CodeGenNodePayload& exprPayload = codeGen.payload(exprRef);
         return emitPayloadToAddress(codeGen, resultAddr, exprPayload, inlinePayload.returnTypeRef);

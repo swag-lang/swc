@@ -592,6 +592,7 @@ Result AstIdentifier::semaPostNode(Sema& sema) const
     if (!codeRef().isValid() && storedSymbol)
         return Result::Continue;
 
+    const Symbol* macroInjectStoredSymbol = nullptr;
     if (hasFlag(AstIdentifierFlagsE::PreResolvedSymbol) && storedSymbol)
     {
         if (!hasFlag(AstIdentifierFlagsE::MacroInjectCallerBinding))
@@ -599,7 +600,7 @@ Result AstIdentifier::semaPostNode(Sema& sema) const
 
         const IdentifierRef idRef = SemaHelpers::resolveIdentifier(sema, codeRef());
         if (!hasMacroInjectCallerShadowingLocalSymbol(sema, idRef, *storedSymbol))
-            return Result::Continue;
+            macroInjectStoredSymbol = storedSymbol;
     }
 
     const AstNodeRef parentRef = sema.visit().parentNodeRef();
@@ -656,33 +657,38 @@ Result AstIdentifier::semaPostNode(Sema& sema) const
         }
     }
 
-    const IdentifierRef idRef = SemaHelpers::resolveIdentifier(sema, codeRef());
-    // Parser tags the callee expression when building a call: `foo()`.
-    const bool allowOverloadSet = hasFlag(AstIdentifierFlagsE::CallCallee) || hasFlag(AstIdentifierFlagsE::InCompilerDefined);
+    const Symbol* sym = macroInjectStoredSymbol;
+    if (!sym)
+    {
+        const IdentifierRef idRef = SemaHelpers::resolveIdentifier(sema, codeRef());
+        // Parser tags the callee expression when building a call: `foo()`.
+        const bool allowOverloadSet = hasFlag(AstIdentifierFlagsE::CallCallee) || hasFlag(AstIdentifierFlagsE::InCompilerDefined);
 
-    MatchContext lookUpCxt;
-    lookUpCxt.codeRef = codeRef();
+        MatchContext lookUpCxt;
+        lookUpCxt.codeRef = codeRef();
 
-    const Result ret = Match::match(sema, lookUpCxt, idRef);
-    if (ret == Result::Pause && hasFlag(AstIdentifierFlagsE::InCompilerDefined))
-        return sema.waitCompilerDefined(idRef, codeRef());
-    SWC_RESULT(ret);
+        const Result ret = Match::match(sema, lookUpCxt, idRef);
+        if (ret == Result::Pause && hasFlag(AstIdentifierFlagsE::InCompilerDefined))
+            return sema.waitCompilerDefined(idRef, codeRef());
+        SWC_RESULT(ret);
 
-    // A call inside an impl can see the current impl before sibling impls have
-    // finished registering. Wait once so overload resolution sees the whole set.
-    const IdentifierRef pendingImplTargetIdRef = pendingImplOverloadTargetId(sema, allowOverloadSet, lookUpCxt.symbols().span());
-    if (pendingImplTargetIdRef.isValid())
-        return sema.waitImplRegistrations(pendingImplTargetIdRef, codeRef());
+        // A call inside an impl can see the current impl before sibling impls have
+        // finished registering. Wait once so overload resolution sees the whole set.
+        const IdentifierRef pendingImplTargetIdRef = pendingImplOverloadTargetId(sema, allowOverloadSet, lookUpCxt.symbols().span());
+        if (pendingImplTargetIdRef.isValid())
+            return sema.waitImplRegistrations(pendingImplTargetIdRef, codeRef());
 
-    SWC_RESULT(SemaSymbolLookup::bindResolvedSymbols(sema, sema.curNodeRef(), allowOverloadSet, lookUpCxt.symbols().span()));
-    const Symbol* sym = sema.curViewSymbol().sym();
+        SWC_RESULT(SemaSymbolLookup::bindResolvedSymbols(sema, sema.curNodeRef(), allowOverloadSet, lookUpCxt.symbols().span()));
+        sym = sema.curViewSymbol().sym();
+    }
     if (sym && sym->isVariable())
     {
         const SymbolVariable& symVar             = sym->cast<SymbolVariable>();
         const IdentifierRef   meId               = sema.idMgr().predefined(IdentifierManager::PredefinedName::Me);
+        const bool            isMacroInjectClosureCapture = macroInjectStoredSymbol == sym && hasFlag(AstIdentifierFlagsE::InClosureCapture);
         const bool            isImplicitReceiver = symVar.idRef() == meId;
         const bool            isCompilerDefined  = hasFlag(AstIdentifierFlagsE::InCompilerDefined) || isTypeOnlyCompilerIdentifierUse(sema);
-        const SymbolFunction* localFnBoundary    = !isImplicitReceiver && !isCompilerDefined && sema.currentFunction() ? localFunctionBoundaryForOuterVariable(*sema.currentFunction(), symVar) : nullptr;
+        const SymbolFunction* localFnBoundary    = !isMacroInjectClosureCapture && !isImplicitReceiver && !isCompilerDefined && sema.currentFunction() ? localFunctionBoundaryForOuterVariable(*sema.currentFunction(), symVar) : nullptr;
         if (localFnBoundary)
         {
             auto diag = SemaError::report(sema, DiagnosticId::sema_err_local_function_outer_scope_variable, sema.curNodeRef());

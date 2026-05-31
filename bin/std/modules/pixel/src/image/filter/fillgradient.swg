@@ -1,5 +1,10 @@
 using Core
 
+struct FillGradient4Context
+{
+    topLeft, topRight, bottomLeft, bottomRight: Color
+}
+
 impl Image
 {
     // Fill with an horizontal gradient from 'color0' to 'color1'
@@ -54,15 +59,18 @@ impl Image
         if .pf.channels() < 3 or .pf.bitDepth() != 8 do
             return
 
+        var ctx = FillGradient4Context{topLeft, topRight, bottomLeft, bottomRight}
+
         #[Swag.Mixin]
         mtd(PF: PixelFormat) doIt()
         {
-            .visitPixels()
+            .visitPixels(&ctx)
             {
+                let colors  = cast(*FillGradient4Context) userData
                 let factor0 = x / cast(f32) image.width
                 let factor1 = y / cast(f32) image.height
-                let colH1   = Color.getBlend(topLeft, topRight, factor0)
-                let colH0   = Color.getBlend(bottomLeft, bottomRight, factor0)
+                let colH1   = Color.getBlend(colors.topLeft, colors.topRight, factor0)
+                let colH0   = Color.getBlend(colors.bottomLeft, colors.bottomRight, factor0)
                 let col     = Color.getBlend(colH0, colH1, factor1)
                 convertToRGBA8'PF(pix, col.r, col.g, col.b, col.a)
             }

@@ -206,21 +206,7 @@ namespace
         if (leftTypeView.type() && aliasEnumType(codeGen, leftTypeView).isReference())
             return false;
 
-        if (leftPayload.isValue())
-            return true;
-
-        const SemaNodeView leftSymbolView = codeGen.viewSymbol(leftRef);
-        if (!leftSymbolView.sym() || !leftSymbolView.sym()->isVariable())
-            return false;
-
-        const SymbolVariable& symVar = leftSymbolView.sym()->cast<SymbolVariable>();
-        if (!symVar.hasExtraFlag(SymbolVariableFlagsE::Parameter))
-            return false;
-        if (!symVar.hasParameterIndex())
-            return false;
-
-        const CodeGenFunctionHelpers::FunctionParameterInfo paramInfo = CodeGenFunctionHelpers::functionParameterInfo(codeGen, codeGen.function(), symVar);
-        return !paramInfo.isIndirect;
+        return leftPayload.isValue();
     }
 
     const SymbolStruct* resolveRuntimeStructType(CodeGen& codeGen, TypeRef leftTypeRef)

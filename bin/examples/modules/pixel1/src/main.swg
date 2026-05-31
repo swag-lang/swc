@@ -14,16 +14,16 @@ func drawScene(painter: *Pixel.Painter)
     painter.clear(Argb.WhiteSmoke)
     painter.setParams(.Antialiased)
 
-    painter.fillRoundRect(48, 48, 240, 160, 18, 18, Color.fromArgb(Argb.SteelBlue))
-    painter.drawRoundRect(48, 48, 240, 160, 18, 18, Color.fromArgb(Argb.MidnightBlue), 4)
+    painter.fillRoundRect(48, 48, 240, 160, 18, 18, Argb.SteelBlue)
+    painter.drawRoundRect(48, 48, 240, 160, 18, 18, Argb.MidnightBlue, 4)
 
-    painter.fillCircle(414, 132, 72, Color.fromArgb(Argb.Tomato))
-    painter.drawCircle(414, 132, 72, Color.fromArgb(Argb.Firebrick), 5)
+    painter.fillCircle(414, 132, 72, Argb.Tomato)
+    painter.drawCircle(414, 132, 72, Argb.Firebrick, 5)
 
-    painter.fillRect(96, 310, 448, 72, Color.fromArgb(Argb.MediumSeaGreen))
-    painter.drawRect(96, 310, 448, 72, Color.fromArgb(Argb.DarkGreen), 4)
+    painter.fillRect(96, 310, 448, 72, Argb.MediumSeaGreen)
+    painter.drawRect(96, 310, 448, 72, Argb.DarkGreen, 4)
 
-    var pen = Pen.createSolid(Color.fromArgb(Argb.Goldenrod), 10)
+    var pen = Pen.createSolid(Argb.Goldenrod, 10)
     pen.begCapStyle = .Round
     pen.endCapStyle = .Round
     painter.drawLine(80, 240, 560, 240, pen)

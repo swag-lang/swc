@@ -61,7 +61,6 @@ impl Painter
     func getGlyphs(text: string, font: *Font)->Array'(const *GlyphDesc)
     {
         var result: retval
-        result.allocator = @getcontext().tempAllocator
         result.reserve(@countof(text))
         Utf8.visitRunes(|c| text)
         {
@@ -75,7 +74,6 @@ impl Painter
     func getGlyphs(text: Array'rune, font: *Font)->Array'(const *GlyphDesc)
     {
         var result: retval
-        result.allocator = @getcontext().tempAllocator
         result.reserve(@countof(text))
         foreach c in text
         {

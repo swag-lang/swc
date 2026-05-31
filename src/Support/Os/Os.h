@@ -83,6 +83,7 @@ namespace Os
     void     freeExecutableMemory(void* ptr);
     bool     addHostJitFunctionTable(JITMemory& executableMemory);
     void     removeHostJitFunctionTable(JITMemory& executableMemory);
+    void     registerExternalModuleSearchPath(const fs::path& path);
     bool     loadExternalModule(void*& outModuleHandle, std::string_view moduleName);
     bool     getExternalSymbolAddress(void*& outFunctionAddress, void* moduleHandle, std::string_view functionName);
     uint64_t tlsAlloc();

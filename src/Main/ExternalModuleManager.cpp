@@ -16,6 +16,7 @@ void ExternalModuleManager::registerSearchPath(fs::path path)
     if (!searchPathSet_.insert(path).second)
         return;
 
+    Os::registerExternalModuleSearchPath(path);
     searchPaths_.push_back(std::move(path));
 }
 

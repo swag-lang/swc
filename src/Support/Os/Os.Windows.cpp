@@ -699,8 +699,15 @@ namespace
 
     bool tryLoadExternalModulePath(void*& outModuleHandle, const fs::path& modulePath)
     {
-        const Utf8    moduleFileName = modulePath.string();
-        const HMODULE moduleHandle   = LoadLibraryA(moduleFileName.c_str());
+        constexpr DWORD loadFlags = LOAD_LIBRARY_SEARCH_DEFAULT_DIRS | LOAD_LIBRARY_SEARCH_DLL_LOAD_DIR | LOAD_LIBRARY_SEARCH_USER_DIRS;
+
+        HMODULE moduleHandle = LoadLibraryExW(modulePath.wstring().c_str(), nullptr, loadFlags);
+        if (!moduleHandle)
+        {
+            const Utf8 moduleFileName = modulePath.string();
+            moduleHandle             = LoadLibraryA(moduleFileName.c_str());
+        }
+
         if (!moduleHandle)
             return false;
 
@@ -1220,6 +1227,14 @@ namespace Os
         (void) RtlDeleteFunctionTable(runtimeFunction);
         delete runtimeFunction;
         executableMemory.hostRuntimeFunction_ = nullptr;
+    }
+
+    void registerExternalModuleSearchPath(const fs::path& path)
+    {
+        if (path.empty())
+            return;
+
+        (void) AddDllDirectory(path.wstring().c_str());
     }
 
     bool loadExternalModule(void*& outModuleHandle, std::string_view moduleName)

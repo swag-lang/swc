@@ -234,12 +234,15 @@ impl Inflate
             }
             else
             {
-                // Copy an already decoded sequence of bytes, and repeat the last one
-                for length
+                // Overlapping back-reference: grow once, then copy forward so each byte
+                // naturally references previously written output (handles distance < length)
+                dest.grow(dest.count + length)
+                let start = dest.count
+                for i in cast(u64) length
                 {
-                    let b = dest.buffer[dest.count - distance]
-                    dest.add(b)
+                    dest.buffer[start + i] = dest.buffer[start + i - distance]
                 }
+                dest.count += length
             }
         }
     }

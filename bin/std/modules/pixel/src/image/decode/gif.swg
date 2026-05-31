@@ -217,7 +217,7 @@ impl Decoder
 
     mtd getKey(keySize: s32, subLen, shift, byte: *u8)->u16 throw
     {
-        var key       = 0'u16
+        var key       = 0'u32
         var frag_size = 0
         for var bits_read = 0; bits_read < keySize; bits_read += frag_size
         {
@@ -237,13 +237,13 @@ impl Decoder
             }
 
             frag_size = Math.min(cast(s32) (keySize - bits_read), cast(s32) (8 - rpad))
-            key |= cast(u16) ((dref byte) >> rpad) << bits_read
+            key |= (cast(u32) (dref byte) >> rpad) << bits_read
         }
 
         // Clear extra bits to the left
-        key &= cast(u16) ((1 << keySize) - 1)
+        key &= (1'u32 << keySize) - 1
         dref shift = cast(u8) ((dref shift + keySize) % 8)
-        return key
+        return cast(u16) key
     }
 
     mtd addEntry(length: u16, prefix: u16, suffix: u8)->s32
@@ -421,8 +421,8 @@ impl Decoder
                 for k in .fw
                 {
                     let index = .frame[(.fy + j) * .width + (.fx + k)]
-                    let color = cast([*] u8) &.palette.colors[index * 3]
-                    let b     = buffer + (i + k) * 4
+                    let color = cast([*] u8) &.palette.colors[index * 3'u32]
+                    let b     = buffer + (i + k) * 3
                     b[0] = color[0]
                     b[1] = color[1]
                     b[2] = color[2]

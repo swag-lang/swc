@@ -30,8 +30,8 @@ impl ZLib
         return result
     }
 
-    // Decompress stream
-    mtd decompress(buffer: const [..] u8)->Array'u8 throw
+    // Decompress stream. hintSize pre-reserves the output buffer to avoid realloc churn.
+    mtd decompress(buffer: const [..] u8, hintSize: u64 = 0)->Array'u8 throw
     {
         var bs = ByteStream.openRead(buffer)
         if bs.length() < 6 do
@@ -60,6 +60,8 @@ impl ZLib
         //var flevel = (flg >> 6) & 3
 
         var result: Array'u8
+        if hintSize do
+            result.grow(hintSize)
         try .decoder.decompress(&result, bs.remainReadToSlice(), winSize)
 
         // Now we should have the checksum

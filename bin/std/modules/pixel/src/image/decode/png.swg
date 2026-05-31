@@ -492,11 +492,6 @@ impl Decoder
                 if !firstChunk do
                     throw InvalidFormatError{"invalid first chunk"}
                 .readHeader(ch)
-                if .decOptions.decodePixels
-                {
-                    .dstPixelsSize = .header.width * .header.height * .inChannels
-                    .dstPixels     = Memory.alloc(.dstPixelsSize)
-                }
 
             case TRNS:
                 .seenTRSN = true
@@ -583,22 +578,32 @@ impl Decoder
         if !.decOptions.decodePixels do
             return result
 
-        // deflate content
+        // Allocate destination: defilter directly into result pixels when channels match
+        // to avoid an extra full-image allocation and memcpy
+        .dstPixelsSize = .header.width * .header.height * .inChannels
+        if .inChannels == .outChannels
+        {
+            result.allocPixels()
+            .dstPixels = result.pixels.buffer
+        }
+        else
+        {
+            .dstPixels = Memory.alloc(.dstPixelsSize)
+        }
+
+        // deflate content; hint the expected decompressed size to avoid realloc churn
         var dec: Compress.ZLib
-        .dcmpBuf = dec.decompress(iDataBuf.toSlice())
+        let hintSize = (.getStrideIn(.header.width) + 1) * .header.height
+        .dcmpBuf = dec.decompress(iDataBuf.toSlice(), hintSize)
 
         // defilter content
         .defilter()
 
-        // If source == wanted channels, then we are done, dstPixels already contains everything
-        result.allocPixels()
-        if .inChannels == .outChannels
-        {
-            Memory.copy(result.pixels.buffer, .dstPixels, result.size)
-            Memory.free(.dstPixels, .dstPixelsSize)
+        // Channels match: result.pixels was already populated directly by defilter
+        if .inChannels == .outChannels do
             return result
-        }
 
+        result.allocPixels()
         .convert(&result)
         return result
     }

@@ -36,3 +36,12 @@ func makeTempPngPath()->String
     name += ".png"
     return Path.combine(tempDir.toString(), name.toString())
 }
+
+func makeTempGifPath()->String
+{
+    let tempDir = Env.getSpecialDirectory(Env.SpecialDirectory.Temp)
+    var name: String = "swag_pixel_gif_"
+    name += GUID64.getRandom().getString()
+    name += ".gif"
+    return Path.combine(tempDir.toString(), name.toString())
+}

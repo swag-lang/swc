@@ -1,5 +1,4 @@
 #import("pixel", location: "swag@std")
-#import("truetype", location: "swag@std")
 
 #run
 {

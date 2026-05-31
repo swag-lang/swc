@@ -1,7 +1,7 @@
-using Core, Pixel, TrueType
+using Core, Pixel
 
-const W = 920
-const H = 520
+const W = 980
+const H = 640
 
 var g_Window:   Env.Window
 var g_Renderer: Pixel.RenderOgl
@@ -9,15 +9,15 @@ var g_Painter:  Pixel.Painter
 var g_RC:       Pixel.RenderingContext
 
 var g_FontBytes:   Array'u8
-var g_TrueType:    Library
-var g_Face:        *Face
 var g_TypeFace:    *Pixel.TypeFace
 var g_TitleFont:   *Pixel.Font
-var g_BigSdfFont:  *Pixel.Font
-var g_BodySdfFont: *Pixel.Font
-var g_BitmapFont:  *Pixel.Font
-var g_InfoFont:    *Pixel.Font
-var g_FontInfo:    String
+var g_LabelFont:   *Pixel.Font
+var g_Sdf14Font:   *Pixel.Font
+var g_Sdf18Font:   *Pixel.Font
+var g_Sdf26Font:   *Pixel.Font
+var g_Sdf38Font:   *Pixel.Font
+var g_Sdf54Font:   *Pixel.Font
+var g_ZoomFont:    *Pixel.Font
 
 func fontPath(fileName: string, loc = #callerlocation)->String
 {
@@ -30,70 +30,63 @@ func loadFonts() throw
     let path = fontPath("segoeui.ttf")
 
     g_FontBytes = File.readAllBytes(path)
-    g_TrueType.init()
-    g_Face = try g_TrueType.loadFace(g_FontBytes.toSlice())
+    g_TypeFace  = TypeFace.create(path, g_FontBytes.toSlice())
 
-    g_FontInfo = Format.toString("% % | % glyphs | SDF atlas spread 10", g_Face.familyName, g_Face.styleName, g_Face.glyphCount)
-
-    g_TypeFace    = TypeFace.create(path, g_FontBytes.toSlice())
-    g_TitleFont   = Font.createSdf(g_TypeFace, 42, 10)
-    g_BigSdfFont  = Font.createSdf(g_TypeFace, 38, 10)
-    g_BodySdfFont = Font.createSdf(g_TypeFace, 26, 8)
-    g_BitmapFont  = Font.create(g_TypeFace, 38)
-    g_InfoFont    = Font.create(g_TypeFace, 18)
+    g_TitleFont = Font.createSdf(g_TypeFace, 42, 10)
+    g_LabelFont = Font.createSdf(g_TypeFace, 16, 6)
+    g_Sdf14Font = Font.createSdf(g_TypeFace, 14, 5)
+    g_Sdf18Font = Font.createSdf(g_TypeFace, 18, 6)
+    g_Sdf26Font = Font.createSdf(g_TypeFace, 26, 8)
+    g_Sdf38Font = Font.createSdf(g_TypeFace, 38, 10)
+    g_Sdf54Font = Font.createSdf(g_TypeFace, 54, 12)
+    g_ZoomFont  = Font.createSdf(g_TypeFace, 28, 10)
 }
 
-func dropFonts()
+func drawSampleLine(painter: *Pixel.Painter, y: f32, label, text: string, font: *Pixel.Font, color: Color)
 {
-    if g_Face
-    {
-        g_Face.destroy()
-        g_Face = null
-    }
+    painter.drawString(42, y + 4, label, g_LabelFont, Argb.LightSlateGray)
+    painter.drawString(154, y, text, font, color)
 }
 
-func drawTextSample(painter: *Pixel.Painter)
+func drawZoomSample(painter: *Pixel.Painter, y: f32, label: string, zoom: f32, color: Color)
 {
-    painter.drawString(74, 76, "Signed distance field text", g_TitleFont, Argb.White)
-    painter.drawString(78, 148, "Smooth at 2.4x", g_BigSdfFont, Argb.MintCream, .None, 2.4)
-    painter.drawString(78, 300, "The glyph atlas stores distances, then the shader reconstructs the edge.", g_BodySdfFont, Argb.LightCyan)
-    painter.drawString(78, 338, g_FontInfo, g_InfoFont, Argb.PaleGoldenrod)
+    painter.drawString(550, y + 8, label, g_LabelFont, Argb.LightSlateGray)
+    painter.drawString(652, y, "SDF", g_ZoomFont, color, .None, zoom)
 }
 
-func drawBitmapComparison(painter: *Pixel.Painter)
+func drawNativeSizes(painter: *Pixel.Painter)
 {
-    var labelColor: Color = Argb.LightSteelBlue
-    labelColor.a = 210
+    painter.drawString(42, 28, "SDF text rendering", g_TitleFont, Argb.MidnightBlue)
+    painter.drawString(44, 80, "Separate SDF atlases at native sizes", g_LabelFont, Argb.DimGray)
 
-    painter.drawString(586, 120, "Bitmap atlas", g_InfoFont, labelColor)
-    painter.drawString(586, 154, "Smooth", g_BitmapFont, Argb.White, .None, 2.4)
+    drawSampleLine(painter, 118, "14 px", "Small text stays readable: 0123456789", g_Sdf14Font, Argb.DarkSlateGray)
+    drawSampleLine(painter, 154, "18 px", "The quick brown fox jumps.", g_Sdf18Font, Argb.Black)
+    drawSampleLine(painter, 202, "26 px", "Mixed case, punctuation, accents.", g_Sdf26Font, Argb.SeaGreen)
+    drawSampleLine(painter, 270, "38 px", "Sharp curves", g_Sdf38Font, Argb.Crimson)
+    drawSampleLine(painter, 366, "54 px", "Large text", g_Sdf54Font, Argb.RoyalBlue)
+}
+
+func drawZoomSizes(painter: *Pixel.Painter)
+{
+    painter.drawString(550, 80, "Same SDF font, different draw zooms", g_LabelFont, Argb.DimGray)
+
+    drawZoomSample(painter, 120, "1.0x", 1.0, Argb.DarkSlateGray)
+    drawZoomSample(painter, 174, "1.6x", 1.6, Argb.SeaGreen)
+    drawZoomSample(painter, 256, "2.4x", 2.4, Argb.Crimson)
+    drawZoomSample(painter, 384, "3.4x", 3.4, Argb.RoyalBlue)
+
+    painter.drawString(552, 552, "The shader reconstructs the glyph edge from the distance value.", g_Sdf18Font, Argb.DarkSlateGray)
 }
 
 func drawScene(painter: *Pixel.Painter)
 {
-    painter.clear(Argb.WhiteSmoke)
+    painter.clear(Argb.GhostWhite)
     painter.setParams(.Antialiased)
 
-    var panelColor: Color = Argb.MidnightBlue
-    var accentColor: Color = Argb.DeepSkyBlue
-    var shadowColor: Color = Argb.Black
-    accentColor.a = 72
-    shadowColor.a = 28
+    drawNativeSizes(painter)
+    drawZoomSizes(painter)
 
-    painter.fillRoundRect(46, 48, 828, 384, 20, 20, shadowColor)
-    painter.fillRoundRect(58, 38, 804, 386, 20, 20, panelColor)
-    painter.fillCircle(728, 106, 92, accentColor)
-    painter.drawRoundRect(58, 38, 804, 386, 20, 20, Argb.DarkSlateBlue, 3)
-
-    drawTextSample(painter)
-    drawBitmapComparison(painter)
-
-    var baseline = Pen.createSolid(Argb.CadetBlue, 2)
-    baseline.begCapStyle = .Round
-    baseline.endCapStyle = .Round
-    painter.drawLine(74, 390, 820, 390, baseline)
-
-    painter.drawStringCenter(W * 0.5, 468, "Pixel text shader", g_BodySdfFont, Argb.DarkSlateGray)
+    painter.drawStringCenter(W * 0.5, 610, "Pixel SDF font atlas", g_Sdf26Font, Argb.DimGray)
 }
 
 func display()
@@ -114,7 +107,7 @@ func onResize(_window: *Env.Window, width, height: s32)
 
 #main
 {
-    try Env.createWindow(&g_Window, {className: "PIXEL3_CLASS_NAME", title: "Pixel signed distance field text", width: W, height: H})
+    try Env.createWindow(&g_Window, {className: "PIXEL3_CLASS_NAME", title: "Pixel SDF font rendering", width: W, height: H})
     g_RC = try g_Renderer.native.createContext(&g_Window, W, H)
     g_Renderer.setCurrentContext(g_RC)
     g_Renderer.init()
@@ -133,5 +126,4 @@ func onResize(_window: *Env.Window, width, height: s32)
     }
 
     g_Renderer.native.dropContext(g_RC)
-    dropFonts()
 }

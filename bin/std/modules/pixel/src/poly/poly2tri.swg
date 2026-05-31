@@ -190,29 +190,30 @@ impl Triangle
         return .pointCW(cw)
     }
 
+    // Index of the edge whose endpoints are 'p1' and 'p2', or -1 if 'p1'/'p2' are
+    // not both vertices of this triangle. Callers (e.g. isEdgeSideOfTriangle) rely
+    // on the -1 result, so this must not go through the asserting .index().
     mtd edgeIndex(p1, p2: *Point)->s32
     {
-        let idx1 = .index(p1)
-        let idx2 = .index(p2)
-        if idx1 == 0
+        if p1 == .points[0]
         {
-            if idx2 == 1 do
+            if p2 == .points[1] do
                 return 2
-            if idx2 == 2 do
+            if p2 == .points[2] do
                 return 1
         }
-        elif idx1 == 1
+        elif p1 == .points[1]
         {
-            if idx2 == 2 do
+            if p2 == .points[2] do
                 return 0
-            if idx2 == 0 do
+            if p2 == .points[0] do
                 return 2
         }
-        elif idx1 == 2
+        elif p1 == .points[2]
         {
-            if idx2 == 0 do
+            if p2 == .points[0] do
                 return 1
-            if idx2 == 1 do
+            if p2 == .points[1] do
                 return 0
         }
 

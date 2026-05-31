@@ -10,8 +10,12 @@ set "EXAMPLES_WORKSPACE=%ROOT%\bin\examples"
 set "SWC_COMMAND=build"
 set "BUILD_CFG=fast-debug"
 set "EXTRA_ARGS="
+set "WORKSPACE_ARGS="
 
 if /I "%~1"=="build" (
+    shift
+) else if /I "%~1"=="run" (
+    set "SWC_COMMAND=run"
     shift
 ) else if /I "%~1"=="test" (
     set "SWC_COMMAND=test"
@@ -26,10 +30,22 @@ if /I "%~1"=="--build-cfg" (
     shift
     goto parse_args
 )
+if /I "%~1"=="--workspace-module" (
+    set "WORKSPACE_ARGS=%WORKSPACE_ARGS% --workspace-module %~2"
+    shift
+    shift
+    goto parse_args
+)
+if /I "%~1"=="-m" (
+    set "WORKSPACE_ARGS=%WORKSPACE_ARGS% --workspace-module %~2"
+    shift
+    shift
+    goto parse_args
+)
 set "EXTRA_ARGS=%EXTRA_ARGS% %1"
 shift
 goto parse_args
 
 :run
-call "%TOOLS_DIR%_common.bat" :run_swc %SWC_COMMAND% --workspace "%EXAMPLES_WORKSPACE%" --build-cfg %BUILD_CFG%%EXTRA_ARGS%
+call "%TOOLS_DIR%_common.bat" :run_swc %SWC_COMMAND% --workspace "%EXAMPLES_WORKSPACE%" --build-cfg %BUILD_CFG%%WORKSPACE_ARGS%%EXTRA_ARGS%
 exit /b %ERRORLEVEL%

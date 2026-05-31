@@ -2,6 +2,28 @@ using Core, Core.Math
 
 public impl Painter
 {
+    // Emit a connected, mitered antialiasing fringe ring around a closed polygon
+    // contour. Adjacent edges share their mitered inner/outer vertices, so corners
+    // stay seamless (no per-edge wedges). The band is centered on the contour
+    // (AAHalf inside / AAHalf outside).
+    fileprivate mtd fillContourAA(polygon: *Polygon, color: Color)
+    {
+        let count = polygon.points.count - 1
+        if count < 2 do
+            return
+
+        let argb = color.argb
+        for i in count
+        {
+            let j      = (i + 1) % count
+            let innerA = polygon.getPoint(i, -AAHalf)
+            let outerA = polygon.getPoint(i, AAHalf)
+            let innerB = polygon.getPoint(j, -AAHalf)
+            let outerB = polygon.getPoint(j, AAHalf)
+            .pushFringeQuad(innerA, outerA, innerB, outerB, argb)
+        }
+    }
+
     fileprivate mtd fillPath(t: *Poly2Tri.Tessellate, p: *LinePath, bvMin, bvMax: Vector2, brush: Brush)
     {
         .setTexture0(bvMin, bvMax, brush)
@@ -15,35 +37,19 @@ public impl Painter
             t.clear()
         }
 
-        // Paint
+        // Paint the solid interior on the true contour (the triangulation is cached,
+        // so it must not be inset). The fringe is added separately as a centered band;
+        // its inner half overlaps the solid, which is harmless for opaque fills (same
+        // colour over same colour). Convex fills inset the solid to avoid the overlap
+        // entirely; non-convex fills accept a faint rim on translucent colours.
         foreach i in p.triangles.triIndices
         {
-            let tri  = p.triangles.triangles[i]
-            let prim = .pushTriangle(tri.points[0].v, tri.points[1].v, tri.points[2].v, brush.color)
-            if .curState.paintParams & .Antialiased
-            {
-                var e = tri.points[0].border[0]
-                if e do
-                    .addEdgeAA(prim, e.p.x, e.p.y, e.q.x, e.q.y)
-                e = tri.points[0].border[1]
-                if e do
-                    .addEdgeAA(prim, e.p.x, e.p.y, e.q.x, e.q.y)
-
-                e = tri.points[1].border[0]
-                if e do
-                    .addEdgeAA(prim, e.p.x, e.p.y, e.q.x, e.q.y)
-                e = tri.points[1].border[1]
-                if e do
-                    .addEdgeAA(prim, e.p.x, e.p.y, e.q.x, e.q.y)
-
-                e = tri.points[2].border[0]
-                if e do
-                    .addEdgeAA(prim, e.p.x, e.p.y, e.q.x, e.q.y)
-                e = tri.points[2].border[1]
-                if e do
-                    .addEdgeAA(prim, e.p.x, e.p.y, e.q.x, e.q.y)
-            }
+            let tri = p.triangles.triangles[i]
+            discard .pushTriangle(tri.points[0].v, tri.points[1].v, tri.points[2].v, brush.color)
         }
+
+        if .curState.paintParams & .Antialiased do
+            .fillContourAA(&p.polygon, brush.color)
     }
 
     // Fill a list of paths.
@@ -72,41 +78,28 @@ public impl Painter
 
             let count = path.polygon.points.count - 1
 
+            // When antialiased, inset the solid by half a fringe so that the centered
+            // fringe band (added afterwards) never overlaps the solid fill. This keeps
+            // translucent fills clean and the silhouette at its true size.
+            var so = 0'f32
+            if .curState.paintParams & .Antialiased do
+                so = -AAHalf
+
             // Convex shape : 1 triangle
             if count == 3
             {
-                let v0   = polygon.getPoint(0)
-                let v1   = polygon.getPoint(1)
-                let v2   = polygon.getPoint(2)
-                let prim = .pushTriangle(v0, v1, v2, brush.color)
-                if .curState.paintParams & .Antialiased
-                {
-                    .addEdgeAA(prim, v0, v1)
-                    .addEdgeAA(prim, v1, v2)
-                    .addEdgeAA(prim, v2, v0)
-                }
+                discard .pushTriangle(polygon.getPoint(0, so), polygon.getPoint(1, so), polygon.getPoint(2, so), brush.color)
             }
 
             // Convex shape : 2 triangles
             elif count == 4
             {
-                let v0    = polygon.getPoint(0)
-                let v1    = polygon.getPoint(1)
-                let v2    = polygon.getPoint(2)
-                let v3    = polygon.getPoint(3)
-                let prim0 = .pushTriangle(v0, v1, v2, brush.color)
-                let prim1 = .pushTriangle(v0, v2, v3, brush.color)
-                if .curState.paintParams & .Antialiased
-                {
-                    .addEdgeAA(prim0, v0, v1)
-                    .addEdgeAA(prim0, v1, v2)
-                    .addEdgeAA(prim0, v2, v3)
-                    .addEdgeAA(prim0, v3, v0)
-                    .addEdgeAA(prim1, v0, v1)
-                    .addEdgeAA(prim1, v1, v2)
-                    .addEdgeAA(prim1, v2, v3)
-                    .addEdgeAA(prim1, v3, v0)
-                }
+                let v0 = polygon.getPoint(0, so)
+                let v1 = polygon.getPoint(1, so)
+                let v2 = polygon.getPoint(2, so)
+                let v3 = polygon.getPoint(3, so)
+                discard .pushTriangle(v0, v1, v2, brush.color)
+                discard .pushTriangle(v0, v2, v3, brush.color)
             }
 
             // Convex shape: add a triangle from the center of the shape to each pair of
@@ -116,20 +109,14 @@ public impl Painter
                 let center = Vector2{path.bvMin.x + (path.bvMax.x - path.bvMin.x) * 0.5, path.bvMin.y + (path.bvMax.y - path.bvMin.y) * 0.5}
                 for i in count
                 {
-                    let v0   = polygon.getPoint(i)
-                    let v1   = polygon.getPoint((i + 1) % count)
-                    let prim = .pushTriangle(center, v0, v1, brush.color)
-
-                    if .curState.paintParams & .Antialiased
-                    {
-                        let v2 = polygon.getPoint((i + 2) % count)
-                        let vp = polygon.getPoint((i + count - 1) % count)
-                        .addEdgeAA(prim, v0, v1)
-                        .addEdgeAA(prim, v1, v2)
-                        .addEdgeAA(prim, vp, v0)
-                    }
+                    let v0 = polygon.getPoint(i, so)
+                    let v1 = polygon.getPoint((i + 1) % count, so)
+                    discard .pushTriangle(center, v0, v1, brush.color)
                 }
             }
+
+            if .curState.paintParams & .Antialiased do
+                .fillContourAA(polygon, brush.color)
         }
 
         // Non convex shape: complex painting (triangulation)

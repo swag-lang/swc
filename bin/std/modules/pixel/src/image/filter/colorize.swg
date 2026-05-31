@@ -44,9 +44,9 @@ impl Image
             let params = cast(*#decltype(f)) userData
             let min = Math.min(pix[0], pix[1], pix[2])
             let max = Math.max(pix[0], pix[1], pix[2])
-            let lum = cast(u8) ((max + min) / 2)
+            let lum = cast(u8) ((cast(s32) max + cast(s32) min) / 2)
 
-            let precalc = params.precalc + (lum * 3)
+            let precalc = params.precalc + (cast(s32) lum * 3)
             pix[0] = cast(u8) Math.lerp(cast(f32) pix[0], precalc[0], params.st)
             pix[1] = cast(u8) Math.lerp(cast(f32) pix[1], precalc[1], params.st)
             pix[2] = cast(u8) Math.lerp(cast(f32) pix[2], precalc[2], params.st)

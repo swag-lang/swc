@@ -28,8 +28,6 @@ impl Painter
         var w = Math.round(width)
         var h = Math.round(height)
 
-        let aa = .curState.paintParams & .Antialiased
-
         #[Swag.Complete]
         switch pen.borderPos
         {
@@ -47,14 +45,6 @@ impl Painter
             h -= 2 * o
         }
 
-        if aa
-        {
-            l -= 0.5
-            t -= 0.5
-            w += 1.0
-            h += 1.0
-        }
-
         .sharedLinePath.setRectRaw(l, t, w, h)
         .drawPath(&.sharedLinePath, pen)
     }
@@ -70,19 +60,10 @@ impl Painter
         if width == 0 or height == 0 or brush.color.a == 0 do
             return
 
-        var l = Math.round(left)
-        var t = Math.round(top)
-        var w = Math.round(width)
-        var h = Math.round(height)
-
-        let aa = .curState.paintParams & .Antialiased
-        if aa
-        {
-            l -= 0.5
-            t -= 0.5
-            w += 1
-            h += 1
-        }
+        let l = Math.round(left)
+        let t = Math.round(top)
+        let w = Math.round(width)
+        let h = Math.round(height)
 
         .sharedLinePath.setRectRaw(l, t, w, h)
         .fillPath(&.sharedLinePath, brush)
@@ -127,8 +108,6 @@ impl Painter
         var w = Math.round(width)
         var h = Math.round(height)
 
-        let aa = .curState.paintParams & .Antialiased
-
         #[Swag.Complete]
         switch pen.borderPos
         {
@@ -144,14 +123,6 @@ impl Painter
             t += o
             w -= 2 * o
             h -= 2 * o
-        }
-
-        if aa
-        {
-            l -= 0.5
-            t -= 0.5
-            w += 1.0
-            h += 1.0
         }
 
         .sharedLinePath.setRoundRect(l, t, w, h, radiusX, radiusY)

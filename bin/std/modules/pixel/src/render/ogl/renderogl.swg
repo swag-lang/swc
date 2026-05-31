@@ -318,34 +318,8 @@ impl RenderOgl
         glVertexAttribPointer(2, 4, GL_UNSIGNED_BYTE, GL_TRUE, #sizeof(VertexLayout), offset)
         offset += #sizeof(u32)
 
-        // aa
-        glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE, #sizeof(VertexLayout), offset)
-        offset += #sizeof(Vector4)
-        glVertexAttribPointer(4, 4, GL_FLOAT, GL_FALSE, #sizeof(VertexLayout), offset)
-        offset += #sizeof(Vector4)
-        glVertexAttribPointer(5, 4, GL_FLOAT, GL_FALSE, #sizeof(VertexLayout), offset)
-        offset += #sizeof(Vector4)
-        glVertexAttribPointer(6, 4, GL_FLOAT, GL_FALSE, #sizeof(VertexLayout), offset)
-        offset += #sizeof(Vector4)
-        glVertexAttribPointer(7, 4, GL_FLOAT, GL_FALSE, #sizeof(VertexLayout), offset)
-        offset += #sizeof(Vector4)
-        glVertexAttribPointer(8, 4, GL_FLOAT, GL_FALSE, #sizeof(VertexLayout), offset)
-        offset += #sizeof(Vector4)
-        glVertexAttribPointer(9, 4, GL_FLOAT, GL_FALSE, #sizeof(VertexLayout), offset)
-        offset += #sizeof(Vector4)
-        glVertexAttribPointer(10, 4, GL_FLOAT, GL_FALSE, #sizeof(VertexLayout), offset)
-        offset += #sizeof(Vector4)
-        glVertexAttribPointer(11, 4, GL_FLOAT, GL_FALSE, #sizeof(VertexLayout), offset)
-        offset += #sizeof(Vector4)
-        glVertexAttribPointer(12, 4, GL_FLOAT, GL_FALSE, #sizeof(VertexLayout), offset)
-        offset += #sizeof(Vector4)
-        glVertexAttribPointer(13, 4, GL_FLOAT, GL_FALSE, #sizeof(VertexLayout), offset)
-        offset += #sizeof(Vector4)
-        glVertexAttribPointer(14, 4, GL_FLOAT, GL_FALSE, #sizeof(VertexLayout), offset)
-        offset += #sizeof(Vector4)
-
-        // aanum
-        glVertexAttribPointer(15, 1, GL_FLOAT, GL_FALSE, #sizeof(VertexLayout), offset)
+        // antialiasing coverage
+        glVertexAttribPointer(3, 1, GL_FLOAT, GL_FALSE, #sizeof(VertexLayout), offset)
 
         // Generate predefined textures
         .whiteTexture = generateTexture([1], 1, 1)
@@ -912,11 +886,11 @@ impl RenderOgl
         .setBlendingMode(BlendingMode.Alpha)
         glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_FALSE)
 
-        for i in 16 do
+        for i in 4 do
             glEnableVertexAttribArray(cast(GLuint) i)
         foreach cmd, cmdIdx in dc.commandBuffer do
             .executeCommand(dc, cmd, cmdIdx, width, height)
-        for i in 16 do
+        for i in 4 do
             glDisableVertexAttribArray(cast(GLuint) i)
     }
 

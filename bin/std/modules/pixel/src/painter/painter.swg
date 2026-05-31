@@ -7,7 +7,10 @@ enum DefaultShaderId
     Blur
 }
 
-const MaxAAEdge = 12
+// Antialiasing fringe half-width, in (untransformed) path-space pixels.
+// The fringe band is centered on the shape contour (AAHalf inside / AAHalf
+// outside), giving a 1px transition with 50% coverage on the true edge.
+const AAHalf = 0.5'f32
 
 #[Swag.Pack(1)]
 struct VertexLayout
@@ -15,8 +18,7 @@ struct VertexLayout
     pos:       Vector2
     uv:        Vector2
     color:     u32
-    aa:        [MaxAAEdge] Vector4
-    aanum:     f32
+    cov:       f32     // antialiasing coverage: 1 = solid, 0 = outer fringe edge
 }
 
 enum CommandId
@@ -303,17 +305,17 @@ impl Painter
         var ptr = .vertexBuffer.emplaceAddress(3)
         ptr.pos   = p1
         ptr.color = color.argb
-        ptr.aanum = 0
+        ptr.cov   = 1
         ptr.uv    = uv1
         ptr += 1
         ptr.pos   = p2
         ptr.color = color.argb
-        ptr.aanum = 0
+        ptr.cov   = 1
         ptr.uv    = uv2
         ptr += 1
         ptr.pos   = p3
         ptr.color = color.argb
-        ptr.aanum = 0
+        ptr.cov   = 1
         ptr.uv    = uv3
 
         return .vertexBuffer.count - 3
@@ -327,50 +329,64 @@ impl Painter
         var ptr = .vertexBuffer.emplaceAddress(3)
         ptr.pos   = p1
         ptr.color = color.argb
-        ptr.aanum = 0
+        ptr.cov   = 1
         ptr += 1
         ptr.pos   = p2
         ptr.color = color.argb
-        ptr.aanum = 0
+        ptr.cov   = 1
         ptr += 1
         ptr.pos   = p3
         ptr.color = color.argb
-        ptr.aanum = 0
+        ptr.cov   = 1
 
         return .vertexBuffer.count - 3
     }
 
+    // Emit a fringe quad: the (innerA, innerB) edge sits at full coverage and the
+    // (outerA, outerB) edge fades to zero. Two triangles are appended to the
+    // current draw command, reusing the given color.
+    #[Swag.Safety(.All, false)]
+    fileprivate mtd pushFringeQuad(innerA, outerA, innerB, outerB: Vector2, color: u32)
+    {
+        let cmd = .pushTriangleCmd()
+        cmd.drawTriangles.count += 6
+
+        var ptr = .vertexBuffer.emplaceAddress(6)
+        ptr.pos = innerA; ptr.color = color; ptr.cov = 1
+        ptr += 1
+        ptr.pos = innerB; ptr.color = color; ptr.cov = 1
+        ptr += 1
+        ptr.pos = outerA; ptr.color = color; ptr.cov = 0
+        ptr += 1
+        ptr.pos = innerB; ptr.color = color; ptr.cov = 1
+        ptr += 1
+        ptr.pos = outerB; ptr.color = color; ptr.cov = 0
+        ptr += 1
+        ptr.pos = outerA; ptr.color = color; ptr.cov = 0
+    }
+
+    // Emit a centered antialiasing fringe along the edge (startx,starty)-(endx,endy)
+    // of the triangle 'tri'. The band straddles the edge (AAHalf inside / AAHalf
+    // outside), the outside direction being the one pointing away from the
+    // triangle centroid. Used by stroke geometry, where overlap on the inner half
+    // is handled by the no-overlap blending pass (or is harmless for opaque pens).
     #[Swag.Safety(.All, false)]
     fileprivate mtd addEdgeAA(tri: u64, startx, starty, endx, endy: f32)
     {
-        var ptr = .vertexBuffer.buffer + tri
-        if ptr.aanum == MaxAAEdge do
-            return
+        let v0 = .vertexBuffer.buffer + tri
+        let p  = Vector2{startx, starty}
+        let q  = Vector2{endx, endy}
 
-        let idx = cast(u32) ptr.aanum
+        // Outward normal: perpendicular to the edge, pointing away from the centroid.
+        let centroid = (v0[0].pos + v0[1].pos + v0[2].pos) * (1.0 / 3.0)
+        var n        = Vector2{q.y - p.y, p.x - q.x}
+        n.normalizeSafe()
+        let mid = (p + q) * 0.5
+        if n.dot(mid - centroid) < 0 do
+            n = -n
 
-        var ptr1 = cast([*] Vector4) &ptr.aa[0] + idx
-        ptr1.x = startx
-        ptr1.y = starty
-        ptr1.z = endx
-        ptr1.w = endy
-        ptr.aanum += 1
-
-        ptr += 1
-        ptr1   = cast([*] Vector4) &ptr.aa[0] + idx
-        ptr1.x = startx
-        ptr1.y = starty
-        ptr1.z = endx
-        ptr1.w = endy
-        ptr.aanum += 1
-
-        ptr += 1
-        ptr1   = cast([*] Vector4) &ptr.aa[0] + idx
-        ptr1.x = startx
-        ptr1.y = starty
-        ptr1.z = endx
-        ptr1.w = endy
-        ptr.aanum += 1
+        let off = n * AAHalf
+        .pushFringeQuad(p - off, p + off, q - off, q + off, v0.color)
     }
 
     #[Swag.Inline]

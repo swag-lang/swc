@@ -45,3 +45,32 @@ func makeTempGifPath()->String
     name += ".gif"
     return Path.combine(tempDir.toString(), name.toString())
 }
+
+func makeImage(width, height: s32, pf: PixelFormat, buffer: const [..] u8)->Image
+{
+    let expectedSize = cast(u64) (width * height * cast(s32) (pf.bpp() >> 3))
+    @assert(@countof(buffer) == expectedSize)
+    return Image.create(width, height, pf, buffer)
+}
+
+func assertImage(img: Image, width, height: s32, pf: PixelFormat)
+{
+    @assert(img.isValid())
+    @assert(img.width == width)
+    @assert(img.height == height)
+    @assert(img.pf == pf)
+}
+
+func assertPixel(img: Image, x, y: s32, expected: Color)
+{
+    let got = img.getPixelColor(x, y)
+    @assert(got.r == expected.r)
+    @assert(got.g == expected.g)
+    @assert(got.b == expected.b)
+    @assert(got.a == expected.a)
+}
+
+func assertPixel(img: Image, x, y: s32, argb: u32)
+{
+    assertPixel(img, x, y, Color.fromArgb(argb))
+}

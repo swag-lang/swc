@@ -628,6 +628,8 @@ namespace
     {
         if (!srcType.isEnum())
             return false;
+        if (dstType.isStruct())
+            return false;
         if (dstType.isEnum() && castRequest.kind != CastKind::Explicit)
             return false;
         if (dstType.isReference())

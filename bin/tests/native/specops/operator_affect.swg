@@ -52,6 +52,19 @@ struct RuntimeParamSetTarget
     sentinel: s32 = 777
 }
 
+enum RuntimeEnumSetSource: u32
+{
+    Red   = 0x11223344
+    Green = 0x55667788
+}
+
+struct RuntimeEnumSetTarget
+{
+    raw: u32
+    tag: s32
+    sentinel: s32 = 4321
+}
+
 impl RuntimeParamSetTarget
 {
     #[Swag.NoInline]
@@ -74,6 +87,23 @@ impl RuntimeParamSetTarget
         .value = cast(s32) value
         .tag = 30
         .sentinel = cast(s32) value
+    }
+}
+
+impl RuntimeEnumSetTarget
+{
+    #[Swag.NoInline]
+    mtd opSet(value: u32)
+    {
+        .raw = value
+        .tag = 10
+    }
+
+    #[Swag.Implicit, Swag.NoInline]
+    mtd opSet(value: RuntimeEnumSetSource)
+    {
+        .raw = cast(u32) value
+        .tag = 20
     }
 }
 
@@ -289,6 +319,24 @@ func assertRuntimeLiteralOverloadSet(value: RuntimeLiteralOverloadTarget, expect
 
     takesExplicit(cast(RuntimeParamSetTarget) 5's32)
     takesImplicit(7'u16)
+}
+
+#test
+{
+    let initialized: RuntimeEnumSetTarget = RuntimeEnumSetSource.Red
+
+    @assert(initialized.raw == 0x11223344)
+    @assert(initialized.tag == 20)
+    @assert(initialized.sentinel == 4321)
+
+    func takesImplicit(value: RuntimeEnumSetTarget)
+    {
+        @assert(value.raw == 0x55667788)
+        @assert(value.tag == 20)
+        @assert(value.sentinel == 4321)
+    }
+
+    takesImplicit(RuntimeEnumSetSource.Green)
 }
 
 #test

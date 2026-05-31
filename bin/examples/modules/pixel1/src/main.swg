@@ -11,7 +11,7 @@ var g_IsReady   = false
 
 func drawScene(painter: *Pixel.Painter)
 {
-    painter.clear(Color.fromArgb(Argb.WhiteSmoke))
+    painter.clear(Argb.WhiteSmoke)
     painter.setParams(.Antialiased)
 
     painter.fillRoundRect(48, 48, 240, 160, 18, 18, Color.fromArgb(Argb.SteelBlue))

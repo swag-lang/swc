@@ -1,5 +1,29 @@
 #global fileprivate
 
+struct PointerFieldHolder
+{
+    ptr: [*] u8
+    len: s32
+    buf: [8] u8
+}
+
+impl PointerFieldHolder
+{
+    mtd assignArrayFieldToPointer()
+    {
+        .ptr = .buf
+    }
+
+    mtd writeAfterPointerOffset()->u16
+    {
+        .len = 4
+        .assignArrayFieldToPointer()
+        var tail = cast([*] u16) (.ptr + .len)
+        dref tail = 0x1234'u16
+        return cast(u16) .buf[4] | (cast(u16) .buf[5] << 8)
+    }
+}
+
 #test
 {
     func pointerStepAndDistance()->s64
@@ -64,4 +88,16 @@
 
     const V = #run pointerDifferenceFromOffset()
     #assert(V == 4)
+}
+
+#test
+{
+    func arrayFieldPointerDecay()->u16
+    {
+        var holder: PointerFieldHolder
+        return holder.writeAfterPointerOffset()
+    }
+
+    const V = #run arrayFieldPointerDecay()
+    #assert(V == 0x1234'u16)
 }

@@ -628,6 +628,24 @@ namespace
 
 }
 
+SWC_TEST_BEGIN(MicroReg_SameClassMatchesVirtualAndPhysicalRegisters)
+{
+    if (!MicroReg::virtualIntReg(0).isSameClass(MicroReg::intReg(1)))
+        return Result::Error;
+    if (!MicroReg::intReg(1).isSameClass(MicroReg::virtualIntReg(0)))
+        return Result::Error;
+    if (!MicroReg::virtualFloatReg(0).isSameClass(MicroReg::floatReg(1)))
+        return Result::Error;
+    if (!MicroReg::floatReg(1).isSameClass(MicroReg::virtualFloatReg(0)))
+        return Result::Error;
+
+    if (MicroReg::virtualIntReg(0).isSameClass(MicroReg::floatReg(0)))
+        return Result::Error;
+    if (MicroReg::virtualFloatReg(0).isSameClass(MicroReg::intReg(0)))
+        return Result::Error;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(RegAlloc_PersistentAcross)
 {
     SWC_RESULT(runCase(ctx, buildPersistentAcross));

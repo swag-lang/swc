@@ -5,13 +5,9 @@ SWC_BEGIN_NAMESPACE();
 
 bool MicroReg::isSameClass(MicroReg other) const
 {
-    if (isInt() && other.isInt())
+    if (isAnyInt() && other.isAnyInt())
         return true;
-    if (isFloat() && other.isFloat())
-        return true;
-    if (isVirtualInt() && other.isVirtualInt())
-        return true;
-    if (isVirtualFloat() && other.isVirtualFloat())
+    if (isAnyFloat() && other.isAnyFloat())
         return true;
     return false;
 }

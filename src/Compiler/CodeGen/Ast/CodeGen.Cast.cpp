@@ -759,6 +759,34 @@ namespace
         return Result::Continue;
     }
 
+    Result emitArrayToPointerCast(CodeGen& codeGen, AstNodeRef srcNodeRef, TypeRef dstTypeRef, const TypeInfo& srcType)
+    {
+        MicroBuilder&            builder    = codeGen.builder();
+        const CodeGenNodePayload srcPayload = sourcePayloadForCast(codeGen, srcNodeRef);
+
+        const SemaNodeView srcConstView = codeGen.viewConstant(srcNodeRef);
+        if (srcConstView.hasConstant())
+        {
+            const ConstantValue& srcConst = codeGen.cstMgr().get(srcConstView.cstRef());
+            if (srcConst.isArray())
+            {
+                const ConstantRef safeArrayCstRef = CodeGenConstantHelpers::ensureStaticPayloadConstant(codeGen, srcConstView.cstRef(), srcConst.typeRef());
+                SWC_ASSERT(safeArrayCstRef.isValid());
+                const ConstantValue& safeArrayCst = codeGen.cstMgr().get(safeArrayCstRef);
+
+                CodeGenNodePayload& dstPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), dstTypeRef);
+                builder.emitLoadRegPtrReloc(dstPayload.reg, reinterpret_cast<uint64_t>(safeArrayCst.getArray().data()), safeArrayCstRef);
+                dstPayload.markMaterializedPointerLikeValue();
+                return Result::Continue;
+            }
+        }
+
+        CodeGenNodePayload& dstPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), dstTypeRef);
+        dstPayload.reg                 = materializeArrayCastSourceAddress(codeGen, srcNodeRef, srcPayload, srcType);
+        dstPayload.markMaterializedPointerLikeValue();
+        return Result::Continue;
+    }
+
     MicroReg emitLoadCStringReg(CodeGen& codeGen, const CodeGenNodePayload& payload)
     {
         const MicroReg cstrReg = codeGen.nextVirtualIntRegister();
@@ -1335,6 +1363,8 @@ namespace
         if (tryEmitValueBackedPointerLikeCast(codeGen, srcPayload, sourceTypeRef, dstTypeRef, castPayload))
             return Result::Continue;
 
+        if (resolvedSrcType.isArray() && resolvedDstType.isAnyPointer())
+            return emitArrayToPointerCast(codeGen, srcNodeRef, dstTypeRef, resolvedSrcType);
         if (resolvedDstType.isString() && resolvedSrcType.isArray())
             return emitArrayToStringCast(codeGen, srcNodeRef, dstTypeRef, resolvedSrcType);
         if ((resolvedDstType.isString() || resolvedDstType.isSlice()) && resolvedSrcType.isCString())

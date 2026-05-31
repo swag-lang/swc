@@ -1897,10 +1897,10 @@ void MicroRegisterAllocationPass::rewriteInstructions()
                  (it->op == MicroInstrOpcode::LoadZeroExtRegReg && !instOps[1].reg.isVirtual()));
 
             SmallVector<MicroReg> forbiddenPhysRegs;
-            forbiddenPhysRegs.reserve(((request.isUse || defOnlyCopyFromConcrete) ? currentConcreteLiveOut_.size() : 0) + addressSourceRegs.size());
+            forbiddenPhysRegs.reserve((defOnlyCopyFromConcrete ? currentConcreteLiveOut_.size() : 0) + addressSourceRegs.size());
             SmallVector<MicroReg> remapForbiddenPhysRegs;
             remapForbiddenPhysRegs.reserve(1);
-            if (request.isUse || defOnlyCopyFromConcrete)
+            if (defOnlyCopyFromConcrete)
             {
                 for (const MicroReg key : currentConcreteLiveOut_)
                 {

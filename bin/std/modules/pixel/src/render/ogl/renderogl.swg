@@ -16,7 +16,6 @@ fileprivate
 
     const VertexShaderFont = #include("shaders/font.vert")
     const PixelShaderFont  = #include("shaders/font.frag")
-    const PixelShaderFontSdf  = #include("shaders/font_sdf.frag")
     const PixelShaderFontMsdf = #include("shaders/font_msdf.frag")
 }
 
@@ -41,7 +40,6 @@ struct RenderOgl
     shaderAA:            ShaderAA
     shaderBlur:          ShaderBlur
     shaderFont:          ShaderFont
-    shaderFontSdf:       ShaderFont
     shaderFontMsdf:      ShaderFont
     worldTransform:      Transform2
     orthoMatrix:         Matrix4x4
@@ -100,15 +98,6 @@ fileprivate impl RenderOgl
             let text0 = glGetUniformLocation(cast(GLuint) .shaderFont.handle, @dataof("inTexture0"))
             let text1 = glGetUniformLocation(cast(GLuint) .shaderFont.handle, @dataof("inTexture1"))
             glUseProgram(cast(GLuint) .shaderFont.handle)
-            glUniform1i(text0, 0)
-            glUniform1i(text1, 1)
-        }
-
-        {
-            assume createShader(&.shaderFontSdf, VertexShaderFont, PixelShaderFontSdf)
-            let text0 = glGetUniformLocation(cast(GLuint) .shaderFontSdf.handle, @dataof("inTexture0"))
-            let text1 = glGetUniformLocation(cast(GLuint) .shaderFontSdf.handle, @dataof("inTexture1"))
-            glUseProgram(cast(GLuint) .shaderFontSdf.handle)
             glUniform1i(text0, 0)
             glUniform1i(text1, 1)
         }
@@ -723,8 +712,6 @@ impl RenderOgl
 
         case StartFont:
             .setShader(&.shaderFont)
-        case StartSdfFont:
-            .setShader(&.shaderFontSdf)
         case StartMsdfFont:
             .setShader(&.shaderFontMsdf)
         case EndFont:
@@ -841,7 +828,7 @@ impl RenderOgl
                     let cmd1 = dc.commandBuffer[i]
                     switch cmd1.id
                     {
-                    case Transform, StartFont, StartSdfFont, StartMsdfFont, EndFont, ResetTexture0, BindTexture0, ResetTextureFont, BindTextureFont, DrawTriangles:
+                    case Transform, StartFont, StartMsdfFont, EndFont, ResetTexture0, BindTexture0, ResetTextureFont, BindTextureFont, DrawTriangles:
                         .executeCommand(dc, cmd1, cast(u64) i, width, height)
                     }
                 }

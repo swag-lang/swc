@@ -30,7 +30,6 @@ enum CommandId
     BindTexture0
     ResetTexture0
     StartFont
-    StartSdfFont
     StartMsdfFont
     EndFont
     BindTextureFont
@@ -249,11 +248,6 @@ impl Painter
     fileprivate mtd startFont()
     {
         discard .newCommand(.StartFont, true)
-    }
-
-    fileprivate mtd startSdfFont()
-    {
-        discard .newCommand(.StartSdfFont, true)
     }
 
     fileprivate mtd startMsdfFont()

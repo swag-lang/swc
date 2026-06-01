@@ -28,14 +28,13 @@ public struct GlyphDesc
 // Rendering technique requested when creating a Font.
 // 'Auto' is the recommended default: the actual technique is chosen at draw time
 // from the on-screen pixel size (crisp bitmap when small, MSDF when larger/zoomed).
-// 'Bitmap', 'Sdf' and 'Msdf' force a single technique.
-// A glyph cache is always one of the three concrete modes; 'Auto' only ever lives
+// 'Bitmap' and 'Msdf' force a single technique.
+// A glyph cache is always one of the two concrete modes; 'Auto' only ever lives
 // on a Font, never on a cache.
 public enum FontRenderMode
 {
     Auto
     Bitmap
-    Sdf
     Msdf
 }
 
@@ -50,7 +49,7 @@ public impl FontRenderMode
     // True if the mode is a distance field (sampled with linear filtering)
     mtd isDistanceField()->bool
     {
-        return me == .Sdf or me == .Msdf
+        return me == .Msdf
     }
 }
 
@@ -135,8 +134,6 @@ fileprivate func renderModeName(mode: FontRenderMode)->string
     {
     case Auto:
         return "auto"
-    case Sdf:
-        return "sdf"
     case Msdf:
         return "msdf"
     }
@@ -268,9 +265,6 @@ public impl Font
         case Bitmap:
             // Classic grayscale bitmap, rasterized at the exact pixel size.
             return createView(typeFace, size, size, 0, .Bitmap, .Bitmap, forceBold, forceItalic)
-        case Sdf:
-            // Single-channel SDF, size-independent reference atlas.
-            return createView(typeFace, size, RefEmSize, RefEmSpread, .Sdf, .Sdf, forceBold, forceItalic)
         case Msdf:
             // Multi-channel SDF, size-independent reference atlas.
             return createView(typeFace, size, RefEmSize, RefEmSpread, .Msdf, .Msdf, forceBold, forceItalic)
@@ -346,8 +340,6 @@ public impl GlyphCache
         var bmp: const *Bitmap
         switch .renderMode
         {
-        case Sdf:
-            bmp = assume .typeFace.renderGlyphSdf(c, .refSize, .spread, .forceBold, .forceItalic)
         case Msdf:
             bmp = assume .typeFace.renderGlyphMsdf(c, .refSize, .spread, .forceBold, .forceItalic)
         default:

@@ -149,16 +149,6 @@ public impl TypeFace
         return &.face.glyph.bitmap
     }
 
-    // Render one glyph as a signed distance field
-    mtd renderGlyphSdf(c: rune, size, spread: u32, forceBold, forceItalic = false)->const *Bitmap throw
-    {
-        .face.setPixelSize(0, size)
-        .face.loadChar(c)
-        .transform(size, 0, forceBold, forceItalic)
-        .face.renderGlyphSdf(spread)
-        return &.face.glyph.bitmap
-    }
-
     // Render one glyph as a multi-channel signed distance field
     mtd renderGlyphMsdf(c: rune, size, spread: u32, forceBold, forceItalic = false)->const *Bitmap throw
     {

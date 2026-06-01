@@ -1,5 +1,7 @@
 #global #if #command == Swag.CompilerCommand.Test
-using Swag, Core, Core.Math
+using Swag, Core, Core.Math, Win32
+
+const TestWindowStyle = WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX | WS_CLIPSIBLINGS | WS_CLIPCHILDREN
 
 // Stress the Painter polygon/path pipeline (flatten -> clean -> triangulate ->
 // fringe AA). This is the path exercised by the pixel1 example; non-convex
@@ -46,6 +48,56 @@ func buildBlobPath()->Pixel.LinePath
     result.bezierTo(cx - 168, cy - 18, cx - 28, cy + 146, cx - 160, cy + 94)
     result.close()
     return result
+}
+
+func buildBlobPath(rect: Math.Rectangle)->Pixel.LinePath
+{
+    var result: retval
+    let cx = rect.x + rect.width * 0.50
+    let cy = rect.y + rect.height * 0.52
+
+    result.start(cx - 168, cy - 18)
+    result.bezierTo(cx - 44, cy - 136, cx - 160, cy - 110, cx - 102, cy - 150)
+    result.bezierTo(cx + 156, cy - 24, cx + 30, cy - 116, cx + 152, cy - 98)
+    result.bezierTo(cx + 40, cy + 134, cx + 168, cy + 52, cx + 110, cy + 154)
+    result.bezierTo(cx - 168, cy - 18, cx - 28, cy + 146, cx - 160, cy + 94)
+    result.close()
+    return result
+}
+
+func buildTransparencyPath(rect: Math.Rectangle, variant: s32)->Pixel.LinePath
+{
+    var path: retval
+    let left  = rect.x
+    let top   = rect.y
+    let right = rect.right()
+    let bot   = rect.bottom()
+
+    switch variant
+    {
+    case 0:
+        path.start(left + 34, bot - 74)
+        path.lineTo(left + rect.width * 0.20, top + 38)
+        path.lineTo(left + rect.width * 0.44, bot - 28)
+        path.lineTo(left + rect.width * 0.68, top + 54)
+        path.lineTo(right - 36, top + rect.height * 0.45)
+
+    case 1:
+        path.start(left + 90, top + 52)
+        path.lineTo(left + rect.width * 0.32, bot - 52)
+        path.lineTo(left + rect.width * 0.54, top + 92)
+        path.lineTo(left + rect.width * 0.76, bot - 70)
+        path.lineTo(right - 86, top + 58)
+
+    case 2:
+        path.start(left + 48, top + rect.height * 0.48)
+        path.lineTo(left + rect.width * 0.24, top + 26)
+        path.lineTo(left + rect.width * 0.48, bot - 16)
+        path.lineTo(left + rect.width * 0.74, top + 84)
+        path.lineTo(right - 44, bot - 86)
+    }
+
+    return path
 }
 
 // Fill a polygon and return the number of generated vertices.
@@ -144,11 +196,102 @@ func strokeOffsetBlobCount(iterations: s32)->u64
         painter.setAntialiased(true)
         painter.fillPath(&path, Color.fromArgb(42, Argb.MediumPurple))
         painter.drawPath(&outline, pen, .Merge)
+
+        foreach v in painter.vertexBuffer do
+            @assert(v.pos.isFinite())
+
+        foreach cmd in painter.commandBuffer
+        {
+            if cmd.id == Pixel.CommandId.DrawTriangles
+            {
+                @assert(cmd.drawTriangles.count % 3 == 0)
+                @assert(cmd.drawTriangles.start + cmd.drawTriangles.count <= painter.vertexBuffer.count)
+            }
+        }
+
         total += painter.vertexBuffer.count
         painter.end()
     }
 
     return total
+}
+
+func renderBlobAlphaFrames(frames: s32)->u64 throw
+{
+    var window: Env.Window
+    try Env.createWindow(&window, {className: "PIXEL_OVERLAP_TEST_WINDOW", title: "pixel overlap test", width: 980, height: 720, style: TestWindowStyle})
+    try window.setClientSize(980, 720)
+
+    var renderer: Pixel.RenderOgl
+    let rc = try renderer.native.createContext(&window, 980, 720)
+    renderer.setCurrentContext(rc)
+    renderer.init()
+    try window.show()
+
+    var painter: Pixel.Painter
+    var rendered = 0'u64
+
+    for _ in frames
+    {
+        let rect = Math.Rectangle{46, 164, 888, 324}
+        var path = buildBlobPath(rect)
+        path.flatten(.Normal)
+        let offset = path.polygon.isClockwise ? 3.0 : -3.0
+        var outline = path.polygon.getOffset(offset, Pixel.JoinStyle.Round)
+
+        renderer.begin(rc)
+        painter.begin()
+        painter.clear(Argb.WhiteSmoke)
+        painter.setParams(.Antialiased)
+        painter.fillPath(&path, Color.fromArgb(42, Argb.MediumPurple))
+
+        var pen = Pixel.Pen.createSolid(Color.fromArgb(136, Argb.MediumPurple), 6)
+        pen.begCapStyle = .None
+        pen.endCapStyle = .None
+        pen.joinStyle   = .Round
+        painter.drawPath(&outline, pen, .Merge)
+
+        {
+            var p = buildTransparencyPath(rect, 0)
+            var transparencyPen = Pixel.Pen.createSolid(Color.fromArgb(122, Argb.Tomato), 34)
+            transparencyPen.begCapStyle = .Round
+            transparencyPen.endCapStyle = .Round
+            transparencyPen.joinStyle   = .Round
+            painter.drawPath(&p, transparencyPen)
+        }
+
+        {
+            var p = buildTransparencyPath(rect, 1)
+            var transparencyPen = Pixel.Pen.createSolid(Color.fromArgb(126, Argb.SeaGreen), 28)
+            transparencyPen.begCapStyle = .Square
+            transparencyPen.endCapStyle = .SquareAnchor
+            transparencyPen.joinStyle   = .Bevel
+            transparencyPen.capEndScaleX = 2.5
+            transparencyPen.capEndScaleY = 2.4
+            painter.drawPath(&p, transparencyPen)
+        }
+
+        {
+            var p = buildTransparencyPath(rect, 2)
+            var transparencyPen = Pixel.Pen.createSolid(Color.fromArgb(120, Argb.DeepSkyBlue), 24)
+            transparencyPen.begCapStyle = .ArrowAnchor2
+            transparencyPen.endCapStyle = .RoundAnchor
+            transparencyPen.joinStyle   = .MiterBevel
+            transparencyPen.capBegScaleX = 2.6
+            transparencyPen.capBegScaleY = 2.3
+            transparencyPen.capEndScaleX = 2.4
+            transparencyPen.capEndScaleY = 2.2
+            painter.drawPath(&p, transparencyPen)
+        }
+
+        painter.end()
+        renderer.draw(&painter)
+        renderer.end()
+        rendered += 1
+    }
+
+    renderer.native.dropContext(rc)
+    return rendered
 }
 
 // A 5-point star, antialiased and aliased, must produce geometry (no crash).
@@ -246,4 +389,9 @@ func strokeOffsetBlobCount(iterations: s32)->u64
 #test
 {
     @assert(strokeOffsetBlobCount(256) > 0)
+}
+
+#test
+{
+    @assert(assume renderBlobAlphaFrames(120) == 120)
 }

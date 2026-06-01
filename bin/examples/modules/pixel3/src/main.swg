@@ -1,17 +1,16 @@
 using Core, Pixel, Win32
 
-const W = 1320
+const W = 1080
 const H = 560
 
-// Same text rendered with the four techniques, at many sizes (small sizes first).
+// Same text rendered with the three techniques, at many sizes (small sizes first).
 const Sizes   = [8, 9, 10, 11, 12, 13, 14, 16, 18, 22, 28, 36]
 const Sample  = "Hamburg agQ 012"
 
 const ColPx     = 22.0
-const ColBitmap = 110.0
-const ColSdf    = 420.0
-const ColMsdf   = 730.0
-const ColAuto   = 1040.0
+const ColBitmap = 120.0
+const ColMsdf   = 440.0
+const ColAuto   = 760.0
 
 struct SceneLayout
 {
@@ -43,12 +42,11 @@ func loadFonts() throw
     g_HeaderFont = Font.create(g_TypeFace, 15)
 }
 
-// The four fonts for a given size (all cached after the first call).
-func fontsFor(size: u32)->{ bmp, sdf, msdf, auto: *Pixel.Font }
+// The three fonts for a given size (all cached after the first call).
+func fontsFor(size: u32)->{ bmp, msdf, auto: *Pixel.Font }
 {
     var result: retval
     result.bmp  = Font.create(g_TypeFace, size, .Bitmap)
-    result.sdf  = Font.create(g_TypeFace, size, .Sdf)
     result.msdf = Font.create(g_TypeFace, size, .Msdf)
     result.auto = Font.create(g_TypeFace, size, .Auto)
     return result
@@ -85,7 +83,6 @@ func drawScene(painter: *Pixel.Painter, layout: SceneLayout)
     // Column headers
     painter.drawString(ColPx, 16, "px", g_HeaderFont, Argb.DimGray)
     painter.drawString(ColBitmap, 16, "Bitmap", g_HeaderFont, Argb.MidnightBlue)
-    painter.drawString(ColSdf, 16, "SDF", g_HeaderFont, Argb.MidnightBlue)
     painter.drawString(ColMsdf, 16, "MSDF", g_HeaderFont, Argb.MidnightBlue)
     painter.drawString(ColAuto, 16, "Auto", g_HeaderFont, Argb.DarkGreen)
 
@@ -97,7 +94,6 @@ func drawScene(painter: *Pixel.Painter, layout: SceneLayout)
 
         painter.drawString(ColPx, y, Format.toString("%", size), g_HeaderFont, Argb.DimGray)
         painter.drawString(ColBitmap, y, Sample, fonts.bmp, Argb.Black)
-        painter.drawString(ColSdf, y, Sample, fonts.sdf, Argb.Black)
         painter.drawString(ColMsdf, y, Sample, fonts.msdf, Argb.Black)
         painter.drawString(ColAuto, y, Sample, fonts.auto, Argb.Black)
 
@@ -127,7 +123,7 @@ func onResize(_window: *Env.Window, width, height: s32)
 
 #main
 {
-    try Env.createWindow(&g_Window, {className: "PIXEL3_CLASS_NAME", title: "Pixel font rendering: Bitmap vs SDF vs MSDF vs Auto", width: W, height: H})
+    try Env.createWindow(&g_Window, {className: "PIXEL3_CLASS_NAME", title: "Pixel font rendering: Bitmap vs MSDF vs Auto", width: W, height: H})
     try g_Window.setClientSize(W, H)
     g_RC = try g_Renderer.native.createContext(&g_Window, W, H)
     g_Renderer.setCurrentContext(g_RC)

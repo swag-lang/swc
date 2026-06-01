@@ -393,8 +393,23 @@ func renderBlobAlphaFrames(frames: s32)->u64 throw
 
 #test
 {
+    let star = makeStar(100, 100, 60, 25, 5)
+    var simple = buildClosedPath(star[to])
+    simple.flatten(.Normal)
+    @assert(simple.polygon.isSimple)
+
+    var arrowPoints = [
+        Vector2{0, 20}, Vector2{70, 20}, Vector2{70, 0}, Vector2{130, 50},
+        Vector2{70, 100}, Vector2{70, 80}, Vector2{0, 80}, Vector2{18, 50},
+    ]
+    var arrow = buildClosedPath(arrowPoints)
+    arrow.flatten(.Normal)
+    @assert(arrow.polygon.isSimple)
+    @assert(fillCount(arrowPoints, true) > 0)
+
     var path = buildBlobPath()
     path.flatten(.Normal)
+    @assert(!path.polygon.isSimple)
 
     var clean = path.polygon.getClean()
     @assert(clean.count() > 0)

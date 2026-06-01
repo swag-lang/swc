@@ -2,42 +2,9 @@ using Core, Pixel, Win32
 
 const W = 980
 const H = 720
-const MaxPages = 4
+const MaxPages = 5
 
 const FixedWindowStyle = WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX | WS_CLIPSIBLINGS | WS_CLIPCHILDREN
-
-struct CapRow
-{
-    label:        string
-    begCap:       LineCapStyle
-    endCap:       LineCapStyle
-    color:        Color
-}
-
-const CapRows = [
-    CapRow{"None / None", .None, .None, Argb.SlateGray},
-    CapRow{"Round / Round", .Round, .Round, Argb.Tomato},
-    CapRow{"Square / Square", .Square, .Square, Argb.SteelBlue},
-    CapRow{"Triangle / Triangle", .Triangle, .Triangle, Argb.MediumSeaGreen},
-    CapRow{"Arrow / None", .ArrowAnchor, .None, Argb.DarkOrange},
-    CapRow{"None / Arrow 2", .None, .ArrowAnchor2, Argb.MediumPurple},
-    CapRow{"Round anchor / Square anchor", .RoundAnchor, .SquareAnchor, Argb.Goldenrod},
-]
-
-struct JoinCard
-{
-    label:        string
-    joinStyle:    JoinStyle
-    color:        Color
-}
-
-const JoinCards = [
-    JoinCard{"None", .None, Argb.Gray},
-    JoinCard{"Bevel", .Bevel, Argb.CadetBlue},
-    JoinCard{"Round", .Round, Argb.SeaGreen},
-    JoinCard{"Miter", .Miter, Argb.Crimson},
-    JoinCard{"Miter bevel", .MiterBevel, Argb.DarkOrchid},
-]
 
 var g_Window:        Env.Window
 var g_Renderer:      Pixel.RenderOgl
@@ -51,6 +18,8 @@ var g_TitleFont:     *Pixel.Font
 var g_SubTitleFont:  *Pixel.Font
 var g_LabelFont:     *Pixel.Font
 var g_HelpFont:      *Pixel.Font
+var g_FillTexture:   Texture
+var g_TileTexture:   Texture
 
 var g_Page:          s32
 var g_TestFrame:     s32
@@ -70,6 +39,71 @@ func loadFonts() throw
     g_SubTitleFont = Font.create(g_TypeFace, 18)
     g_LabelFont    = Font.create(g_TypeFace, 16)
     g_HelpFont     = Font.create(g_TypeFace, 14)
+}
+
+func buildFillBrushImage()->Image
+{
+    var img = Image.create(96, 96, .RGBA8)
+    img.fillGradient4(
+        Color.fromArgb(255, 251, 208, 150),
+        Color.fromArgb(255, 238, 144, 96),
+        Color.fromArgb(255, 84, 182, 214),
+        Color.fromArgb(255, 38, 89, 160))
+    img.visitPixels()
+    {
+        let diag0 = (x + y) % 18
+        let diag1 = (x - y + image.width * 2) % 24
+        if diag0 < 3 or diag1 < 3
+        {
+            pix[0] = cast(u8) Math.min(cast(s32) pix[0] + 22, 255)
+            pix[1] = cast(u8) Math.min(cast(s32) pix[1] + 18, 255)
+            pix[2] = cast(u8) Math.min(cast(s32) pix[2] + 28, 255)
+        }
+    }
+
+    return img
+}
+
+func buildTileBrushImage()->Image
+{
+    var img = Image.create(48, 48, .RGBA8)
+    img.fillGradient4(
+        Color.fromArgb(255, 250, 244, 214),
+        Color.fromArgb(255, 248, 215, 122),
+        Color.fromArgb(255, 242, 190, 74),
+        Color.fromArgb(255, 219, 128, 54))
+    img.visitPixels()
+    {
+        if ((x / 12 + y / 12) & 1) == 0
+        {
+            pix[0] = 255
+            pix[1] = 241
+            pix[2] = 198
+        }
+
+        if x % 12 == 0 or y % 12 == 0
+        {
+            pix[0] = 112
+            pix[1] = 66
+            pix[2] = 34
+        }
+
+        if (x + y) % 12 == 0
+        {
+            pix[0] = 182
+            pix[1] = 95
+            pix[2] = 46
+        }
+    }
+
+    return img
+}
+
+func loadBrushTextures()
+{
+    // Keep the showcase self-contained by generating brush textures on the fly.
+    g_FillTexture = g_Renderer.addImage(buildFillBrushImage())
+    g_TileTexture = g_Renderer.addImage(buildTileBrushImage())
 }
 
 func insetRect(rect: Math.Rectangle, left, top, right, bottom: f32)->Math.Rectangle
@@ -100,7 +134,7 @@ func drawPageHeader(painter: *Pixel.Painter, title, subtitle: string)
 
 func drawFooter(painter: *Pixel.Painter)
 {
-    let pageText = Format.toString("F1 : next page (%/%). Pages : caps, joins, transparence, polygons.", g_Page + 1, MaxPages)
+    let pageText = Format.toString("F1 : next page (%/%). Pages : caps, joins, transparency, polygons, brushes.", g_Page + 1, MaxPages)
     painter.drawString(28, H - 26, pageText, g_HelpFont, Argb.DimGray)
 }
 
@@ -111,66 +145,6 @@ func drawPanel(painter: *Pixel.Painter, rect: Math.Rectangle, title, subtitle: s
     painter.drawString(rect.x + 18, rect.y + 12, title, g_SubTitleFont, Argb.DarkSlateBlue)
     painter.drawString(rect.x + 18, rect.y + 36, subtitle, g_HelpFont, Argb.Gray)
     return insetRect(rect, 18, 62, 18, 18)
-}
-
-func makeCapPath(left, right, y: f32)->LinePath
-{
-    var path: retval
-    path.start(left, y)
-    path.lineTo(right, y)
-    return path
-}
-
-func drawCapRow(painter: *Pixel.Painter, rect: Math.Rectangle, row: CapRow)
-{
-    let baselineY = Math.round(rect.vertCenter())
-    let startX    = rect.x + 250
-    let endX      = rect.right() - 32
-
-    painter.fillRect(rect.x, rect.y + rect.height - 1, rect.width, 1, Color.fromArgb(30, Argb.SlateGray))
-    painter.drawString(rect.x + 8, rect.y + 18, row.label, g_LabelFont, Argb.DarkSlateGray)
-    painter.drawString(startX - 44, rect.y + 18, "start", g_HelpFont, Argb.LightSlateGray)
-    painter.drawString(endX - 16, rect.y + 18, "end", g_HelpFont, Argb.LightSlateGray)
-
-    painter.drawLine(startX, baselineY, endX, baselineY, Color.fromArgb(44, Argb.Black), 2)
-    painter.fillCircle(startX, baselineY, 3, Argb.DarkSlateGray)
-    painter.fillCircle(endX, baselineY, 3, Argb.DarkSlateGray)
-
-    var path = makeCapPath(startX, endX, baselineY)
-    var pen  = Pen.createSolid(row.color, 18)
-    pen.begCapStyle = row.begCap
-    pen.endCapStyle = row.endCap
-    pen.joinStyle   = .Round
-
-    if isAnchorCap(row.begCap)
-    {
-        pen.capBegScaleX = 2.4
-        pen.capBegScaleY = 2.3
-    }
-
-    if isAnchorCap(row.endCap)
-    {
-        pen.capEndScaleX = 2.4
-        pen.capEndScaleY = 2.3
-    }
-
-    painter.drawPath(&path, pen)
-}
-
-func drawCapsPage(painter: *Pixel.Painter)
-{
-    drawPageHeader(painter, "Pixel path drawing", "Page 1 : starts, endings and cap styles on the same straight segment.")
-
-    let body = drawPanel(painter, {28, 98, 924, 586}, "Caps and endings", "The path starts on the left, ends on the right. Only the pen changes from row to row.")
-    let rowHeight = body.height / cast(f32) @countof(CapRows)
-
-    painter.pushClippingSurfaceRect(body)
-    for i in @countof(CapRows)
-    {
-        let rowRect = Math.Rectangle{body.x, body.y + i * rowHeight, body.width, rowHeight}
-        drawCapRow(painter, rowRect, CapRows[i])
-    }
-    painter.popClippingRect()
 }
 
 func drawClosedOutline(painter: *Pixel.Painter, points: [..] Math.Vector2, pen: Pen)
@@ -235,101 +209,6 @@ func makeArrowPolygon(rect: Math.Rectangle)->Array'Math.Vector2
     return result
 }
 
-func addPolygonPath(path: *LinePath, points: [..] Math.Vector2)
-{
-    if @countof(points) < 2 do
-        return
-
-    path.start(points[0].x, points[0].y)
-    foreach pt in points where @index do
-        path.lineTo(pt.x, pt.y)
-    path.close()
-}
-
-func buildPolygonHoleList(rect: Math.Rectangle)->LinePathList
-{
-    var result: retval
-    let cx = rect.horzCenter()
-    let cy = rect.vertCenter() + 4
-
-    let outer = makeHexPolygon(cx, cy, Math.min(rect.width, rect.height) * 0.34)
-    let inner = [
-        Math.Vector2{cx, cy - 42},
-        Math.Vector2{cx + 42, cy},
-        Math.Vector2{cx, cy + 42},
-        Math.Vector2{cx - 42, cy},
-    ]
-
-    {
-        let path = result.newPath()
-        addPolygonPath(path, outer[to])
-    }
-
-    {
-        let path = result.newPath()
-        path.start(inner[0].x, inner[0].y)
-        for i in 1 to @countof(inner)
-        {
-            let idx = @countof(inner) - i
-            path.lineTo(inner[idx].x, inner[idx].y)
-        }
-        path.close()
-    }
-
-    return result
-}
-
-func makeJoinPath(rect: Math.Rectangle)->LinePath
-{
-    var path: retval
-    let left = rect.x + 20
-    let top  = rect.y + rect.height * 0.75
-    path.start(left, top)
-    path.lineTo(left + rect.width * 0.18, rect.y + rect.height * 0.18)
-    path.lineTo(left + rect.width * 0.36, rect.y + rect.height * 0.74)
-    path.lineTo(left + rect.width * 0.58, rect.y + rect.height * 0.28)
-    path.lineTo(left + rect.width * 0.78, rect.y + rect.height * 0.78)
-    path.lineTo(left + rect.width * 0.92, rect.y + rect.height * 0.24)
-    return path
-}
-
-func getJoinCardRect(index: s32)->Math.Rectangle
-{
-    if index < 3 do
-        return {28 + index * 308, 118, 288, 224}
-
-    return {182 + (index - 3) * 308, 372, 288, 224}
-}
-
-func drawJoinCard(painter: *Pixel.Painter, rect: Math.Rectangle, card: JoinCard)
-{
-    let body = drawPanel(painter, rect, card.label, "")
-    var path = makeJoinPath(body)
-
-    var guide = Pen.createSolid(Color.fromArgb(60, Argb.Black), 3)
-    guide.begCapStyle = .None
-    guide.endCapStyle = .None
-    guide.joinStyle   = .Round
-    painter.drawPath(&path, guide)
-
-    var pen = Pen.createSolid(card.color, 24)
-    pen.begCapStyle     = .None
-    pen.endCapStyle     = .None
-    pen.joinStyle       = card.joinStyle
-    pen.joinMiterLimit  = 1.7
-    painter.drawPath(&path, pen)
-}
-
-func drawJoinsPage(painter: *Pixel.Painter)
-{
-    drawPageHeader(painter, "Pixel path drawing", "Page 2 : join handling on sharp bends and reflex angles.")
-
-    for i in @countof(JoinCards)
-    {
-        drawJoinCard(painter, getJoinCardRect(i), JoinCards[i])
-    }
-}
-
 func makeTransparencyPath(rect: Math.Rectangle, variant: s32)->LinePath
 {
     var path: retval
@@ -380,148 +259,6 @@ func makeBlobPath(rect: Math.Rectangle)->LinePath
     return path
 }
 
-func drawBlobSurface(painter: *Pixel.Painter, rect: Math.Rectangle)
-{
-    var blob = makeBlobPath(rect)
-    blob.flatten(.Normal)
-    painter.fillPath(&blob, Color.fromArgb(42, Argb.MediumPurple))
-
-    let outlineOffset = blob.polygon.isClockwise ? 3.0 : -3.0
-    var outline = blob.polygon.getOffset(outlineOffset, JoinStyle.Round)
-
-    var pen = Pen.createSolid(Color.fromArgb(136, Argb.MediumPurple), 6)
-    pen.begCapStyle = .None
-    pen.endCapStyle = .None
-    pen.joinStyle   = .Round
-    painter.drawPath(&outline, pen, .Merge)
-}
-
-func drawAlphaRow(painter: *Pixel.Painter, rect: Math.Rectangle, alpha: u8, label: string)
-{
-    painter.drawString(rect.x, rect.y + 10, label, g_LabelFont, Argb.DarkSlateGray)
-
-    let pathRect = insetRect(rect, 150, 6, 16, 8)
-    painter.drawLine(pathRect.x, pathRect.vertCenter(), pathRect.right(), pathRect.vertCenter(), Color.fromArgb(24, Argb.Black), 1)
-
-    var path = makeTransparencyPath(pathRect, 0)
-    var pen  = Pen.createSolid(Color.fromArgb(alpha, Argb.DeepSkyBlue), 20)
-    pen.begCapStyle = .RoundAnchor
-    pen.endCapStyle = .ArrowAnchor
-    pen.joinStyle   = .Round
-    painter.drawPath(&path, pen)
-}
-
-func drawTransparencyPage(painter: *Pixel.Painter)
-{
-    drawPageHeader(painter, "Pixel path drawing", "Page 3 : color stacking and alpha blending on a filled surface plus overlapping strokes.")
-
-    let sceneBody = drawPanel(painter, {28, 102, 924, 404}, "Transparency and layering", "A translucent surface sits behind overlapping paths, with a border that stays outside the fill.")
-    painter.fillRoundRect(sceneBody.x, sceneBody.y, sceneBody.width, sceneBody.height, 14, 14, Color.fromArgb(255, 248, 250, 252))
-    painter.pushClippingSurfaceRect(sceneBody)
-
-    drawBlobSurface(painter, sceneBody)
-
-    {
-        var path = makeTransparencyPath(sceneBody, 0)
-        var pen  = Pen.createSolid(Color.fromArgb(122, Argb.Tomato), 34)
-        pen.begCapStyle = .Round
-        pen.endCapStyle = .Round
-        pen.joinStyle   = .Round
-        painter.drawPath(&path, pen)
-    }
-
-    {
-        var path = makeTransparencyPath(sceneBody, 1)
-        var pen  = Pen.createSolid(Color.fromArgb(126, Argb.SeaGreen), 28)
-        pen.begCapStyle = .Square
-        pen.endCapStyle = .SquareAnchor
-        pen.joinStyle   = .Bevel
-        pen.capEndScaleX = 2.5
-        pen.capEndScaleY = 2.4
-        painter.drawPath(&path, pen)
-    }
-
-    {
-        var path = makeTransparencyPath(sceneBody, 2)
-        var pen  = Pen.createSolid(Color.fromArgb(120, Argb.DeepSkyBlue), 24)
-        pen.begCapStyle = .ArrowAnchor2
-        pen.endCapStyle = .RoundAnchor
-        pen.joinStyle   = .MiterBevel
-        pen.capBegScaleX = 2.6
-        pen.capBegScaleY = 2.3
-        pen.capEndScaleX = 2.4
-        pen.capEndScaleY = 2.2
-        painter.drawPath(&path, pen)
-    }
-
-    painter.popClippingRect()
-
-    let alphaBody = drawPanel(painter, {28, 530, 924, 154}, "Opacity samples", "Same path, same geometry, different alpha values.")
-    let alphaRowHeight = alphaBody.height / 3.0
-    drawAlphaRow(painter, {alphaBody.x, alphaBody.y + 0 * alphaRowHeight, alphaBody.width, alphaRowHeight}, 64, "25% alpha")
-    drawAlphaRow(painter, {alphaBody.x, alphaBody.y + 1 * alphaRowHeight, alphaBody.width, alphaRowHeight}, 128, "50% alpha")
-    drawAlphaRow(painter, {alphaBody.x, alphaBody.y + 2 * alphaRowHeight, alphaBody.width, alphaRowHeight}, 216, "85% alpha")
-}
-
-func drawPolygonSamplesCard(painter: *Pixel.Painter, rect: Math.Rectangle, title, subtitle: string, fillColor, strokeColor: Color, points0, points1: [..] Math.Vector2)
-{
-    let body   = drawPanel(painter, rect, title, subtitle)
-    let center = body.horzCenter()
-
-    painter.drawLine(center, body.y + 14, center, body.bottom() - 14, Color.fromArgb(26, Argb.SlateGray), 1)
-
-    painter.fillPolygon(points0, Brush.createSolid(fillColor))
-    drawClosedOutline(painter, points0, Pen.createSolid(strokeColor, 4))
-
-    painter.fillPolygon(points1, Brush.createSolid(fillColor))
-    drawClosedOutline(painter, points1, Pen.createSolid(strokeColor, 4))
-}
-
-func drawPolygonHoleCard(painter: *Pixel.Painter, rect: Math.Rectangle)
-{
-    let body = drawPanel(painter, rect, "Winding and holes", "Outer ring filled, inner ring reversed to carve a hole.")
-    var list = buildPolygonHoleList(body)
-
-    painter.fillPath(&list, Color.fromArgb(214, Argb.MediumPurple))
-
-    var outlinePen = Pen.createSolid(Argb.Indigo, 4)
-    outlinePen.begCapStyle = .None
-    outlinePen.endCapStyle = .None
-    outlinePen.joinStyle   = .Round
-    painter.drawPath(&list, outlinePen)
-
-    painter.drawString(body.x + 22, body.bottom() - 42, "Counter-wound inner contour", g_HelpFont, Argb.Indigo)
-}
-
-func drawPolygonsPage(painter: *Pixel.Painter)
-{
-    drawPageHeader(painter, "Pixel polygon rendering", "Page 4 : convex fills, concave triangulation and polygon winding for holes.")
-
-    let convexRect  = Math.Rectangle{28, 110, 452, 248}
-    let concaveRect = Math.Rectangle{500, 110, 452, 248}
-    let holeRect    = Math.Rectangle{28, 386, 924, 276}
-
-    let convexBodyLeft  = insetRect(convexRect, 36, 88, 246, 26)
-    let convexBodyRight = insetRect(convexRect, 246, 88, 36, 26)
-    let concaveBodyLeft = insetRect(concaveRect, 36, 88, 246, 26)
-    let concaveBodyRight = insetRect(concaveRect, 246, 88, 36, 26)
-
-    let diamond = [
-        Math.Vector2{convexBodyLeft.horzCenter(), convexBodyLeft.y + 10},
-        Math.Vector2{convexBodyLeft.right() - 18, convexBodyLeft.vertCenter()},
-        Math.Vector2{convexBodyLeft.horzCenter(), convexBodyLeft.bottom() - 10},
-        Math.Vector2{convexBodyLeft.x + 18, convexBodyLeft.vertCenter()},
-    ]
-    let hexagon = makeHexPolygon(convexBodyRight.horzCenter(), convexBodyRight.vertCenter(), 58)
-
-    let star  = makeStarPolygon(concaveBodyLeft.horzCenter(), concaveBodyLeft.vertCenter(), 62, 26, 5)
-    let arrow = makeArrowPolygon(concaveBodyRight)
-
-    drawPolygonSamplesCard(painter, convexRect, "Convex polygons", "Direct fills with clean straight edges and sharp corners.", Argb.CadetBlue, Argb.MidnightBlue, diamond[to], hexagon[to])
-    drawPolygonSamplesCard(painter, concaveRect, "Concave polygons", "Non-convex fills go through polygon cleaning and triangulation.", Argb.Goldenrod, Argb.SaddleBrown, star[to], arrow[to])
-    drawPolygonHoleCard(painter, holeRect)
-}
-
 func drawScene(painter: *Pixel.Painter)
 {
     painter.clear(Argb.WhiteSmoke)
@@ -537,6 +274,8 @@ func drawScene(painter: *Pixel.Painter)
         drawTransparencyPage(painter)
     case 3:
         drawPolygonsPage(painter)
+    case 4:
+        drawBrushesPage(painter)
     default:
         unreachable
     }
@@ -577,13 +316,14 @@ func updateShortcuts()
 
 #main
 {
-    try Env.createWindow(&g_Window, {className: "PIXEL4_CLASS_NAME", title: "Pixel path drawing showcase", width: W, height: H, style: FixedWindowStyle})
+    try Env.createWindow(&g_Window, {className: "PIXEL4_CLASS_NAME", title: "Pixel path and brush drawing showcase", width: W, height: H, style: FixedWindowStyle})
     try g_Window.setClientSize(W, H)
     g_RC = try g_Renderer.native.createContext(&g_Window, W, H)
     g_Renderer.setCurrentContext(g_RC)
     g_Renderer.init()
 
     try loadFonts()
+    loadBrushTextures()
 
     g_Window.callbacks.onResize = &onResize
     try g_Window.show()

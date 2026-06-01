@@ -10,6 +10,7 @@ struct Polygon
     // Fill with a call to compute()
     isClockwise:     bool
     isConvex:        bool
+    isSimple:        bool
     area:            f32
     totalLen:        f32
     bvMin:           Math.Vector2
@@ -127,6 +128,7 @@ impl Polygon
         .area        = 0
         .isClockwise = false
         .isConvex    = true
+        .isSimple    = true
         .totalLen    = 0
         .points.clear()
     }
@@ -135,6 +137,39 @@ impl Polygon
     mtd add(v: Vector2)
     {
         .points.add(v)
+    }
+
+    fileprivate mtd computeIsSimple(count: u64)->bool
+    {
+        if count < 4 do
+            return true
+
+        for i in count
+        {
+            let nextI = (i + 1) % count
+            let a0    = .points[i]
+            let a1    = .points[nextI]
+            if a0.isEqualEpsilon(a1) do
+                continue
+
+            var j = i + 1
+            while j < count
+            {
+                defer j += 1
+                let nextJ = (j + 1) % count
+                if nextI == j or nextJ == i do
+                    continue
+
+                let b0 = .points[j]
+                let b1 = .points[nextJ]
+                if b0.isEqualEpsilon(b1) do
+                    continue
+                if Geometry.segSegIntersect(a0, a1, b0, b1, 0.01).yes do
+                    return false
+            }
+        }
+
+        return true
     }
 
     // Fast expand polygon by a given amount
@@ -293,6 +328,7 @@ impl Polygon
         .area        = 0
         .isClockwise = false
         .isConvex    = true
+        .isSimple    = true
         .totalLen    = 0
 
         if !.points.count do
@@ -339,6 +375,7 @@ impl Polygon
 
         if isClosed do
             .points.count += 1
+        .isSimple = .computeIsSimple(n)
         .isClockwise = .area >= 0
     }
 }

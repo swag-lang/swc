@@ -122,8 +122,17 @@ public impl Painter
         // Non convex shape: complex painting (triangulation)
         else
         {
-            var res = path.polygon.getClean()
-            .fillPath(&res, brush)
+            if path.polygon.isSimple
+            {
+                .sharedLinePathList.paths.add(path)
+                .fillPath(&.sharedLinePathList, brush)
+                .sharedLinePathList.paths.count = 0
+            }
+            else
+            {
+                var res = path.polygon.getClean()
+                .fillPath(&res, brush)
+            }
         }
     }
 

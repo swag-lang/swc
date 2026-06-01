@@ -66,6 +66,44 @@ using Swag, Core
     @assert(hasInside)
 }
 
+// The analytic rasterizer must produce true anti-aliasing: fully-outside pixels (0),
+// fully-covered interior pixels (255), and partially-covered edge pixels in between.
+#test
+{
+    var scope: FaceScope
+    scope.init()
+
+    discard catch scope.face.setPixelSize(0, 40)
+    @assert(@err == null)
+
+    discard catch scope.face.loadChar('A', .Default)
+    @assert(@err == null)
+    discard catch scope.face.renderGlyph()
+    @assert(@err == null)
+
+    let bmp = &scope.face.glyph.bitmap
+    @assert(bmp.width > 0)
+    @assert(bmp.rows > 0)
+
+    var hasZero    = false
+    var hasFull    = false
+    var hasPartial = false
+    for cast(u64) bmp.width * bmp.rows
+    {
+        let v = bmp.buffer[@index]
+        if v == 0 do
+            hasZero = true
+        elif v == 255 do
+            hasFull = true
+        else do
+            hasPartial = true
+    }
+
+    @assert(hasZero)       // background corners
+    @assert(hasFull)       // solid stems are fully covered
+    @assert(hasPartial)    // anti-aliased edges
+}
+
 #test
 {
     var scope: FaceScope

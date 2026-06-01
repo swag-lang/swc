@@ -1,5 +1,75 @@
 using Swag, Core
 
+// Accumulate the exact coverage contribution of one edge piece, already clipped to
+// a single scanline band, into the per-column 'area' and 'cover' buffers.
+//   - cover[x] : signed vertical extent of the edge inside column x (0..1 of the band)
+//   - area[x]  : that extent weighted by the edge's average x position inside the cell
+// The piece runs from (xa, ya) to (xb, yb) in pixel space with ya < yb; 's' is the
+// winding sign (+1 for an upward edge, -1 for a downward one). Final per-pixel
+// coverage is reconstructed as: running_cover + cover[x] - area[x].
+func accumulateSpan(area, cover: [*] f64, width: s32, xa, ya, xb, yb, s: f64)
+{
+    let dyTotal = yb - ya
+    if dyTotal <= 0.0 do
+        return
+
+    // Vertical sub-segment: a single column.
+    if Math.abs(xb - xa) < 1e-9
+    {
+        var cx = Math.floorS32(xa)
+        if cx < 0 do
+            cx = 0
+        if cx > width - 1 do
+            cx = width - 1
+        var xf = xa - cast(f64) cx
+        if xf < 0.0 do
+            xf = 0.0
+        elif xf > 1.0 do
+            xf = 1.0
+        cover[cx] += s * dyTotal
+        area[cx]  += s * dyTotal * xf
+        return
+    }
+
+    let xL = Math.min(xa, xb)
+    let xR = Math.max(xa, xb)
+    var cxStart = Math.floorS32(xL)
+    var cxEnd   = Math.floorS32(xR)
+    if cxEnd < 0 or cxStart > width - 1 do
+        return
+    if cxStart < 0 do
+        cxStart = 0
+    if cxEnd > width - 1 do
+        cxEnd = width - 1
+
+    // x varies linearly with y along the segment, so y at a given x is exact.
+    let invDx = 1.0 / (xb - xa)
+
+    for cx in cxStart until cxEnd + 1
+    {
+        let cxf = cast(f64) cx
+        let sx0 = Math.max(xL, cxf)
+        let sx1 = Math.min(xR, cxf + 1.0)
+        if sx1 <= sx0 do
+            continue
+
+        let ys0 = ya + (yb - ya) * (sx0 - xa) * invDx
+        let ys1 = ya + (yb - ya) * (sx1 - xa) * invDx
+        let dh  = Math.abs(ys1 - ys0)
+        if dh <= 0.0 do
+            continue
+
+        var xf = (sx0 + sx1) * 0.5 - cxf
+        if xf < 0.0 do
+            xf = 0.0
+        elif xf > 1.0 do
+            xf = 1.0
+
+        cover[cx] += s * dh
+        area[cx]  += s * dh * xf
+    }
+}
+
 func renderCurrentOutline(slot: *GlyphSlot) throw
 {
     let faceData = getSlotImpl(slot)
@@ -28,23 +98,55 @@ func renderCurrentOutline(slot: *GlyphSlot) throw
     faceData.bitmapPixels.resize(cast(u64) width * rows)
     var dst = faceData.bitmapPixels.buffer
 
+    // Per-row signed-area accumulation buffers (analytic anti-aliasing).
+    var area:  Array'f64
+    var cover: Array'f64
+    area.resize(cast(u64) width)
+    cover.resize(cast(u64) width)
+
+    let leftF = cast(f64) left
+    let topF  = cast(f64) top
+
     for py in rows
     {
+        Memory.clear(area.buffer, area.count * #sizeof(f64))
+        Memory.clear(cover.buffer, cover.count * #sizeof(f64))
+
+        // Glyph-space y band for this row (y points up; row 0 is the top).
+        let bandHi = topF - cast(f64) py
+        let bandLo = bandHi - 1.0
+
+        foreach edge in edges
+        {
+            // Horizontal edges carry no winding; skip non-overlapping ones.
+            if edge.y0 == edge.y1 do
+                continue
+            if edge.maxY <= bandLo or edge.minY >= bandHi do
+                continue
+
+            let s   = edge.y1 > edge.y0 ? 1.0 : -1.0
+            let elo = Math.max(edge.minY, bandLo)
+            let ehi = Math.min(edge.maxY, bandHi)
+            if ehi <= elo do
+                continue
+
+            let inv   = 1.0 / (edge.y1 - edge.y0)
+            let xAtLo = edge.x0 + (edge.x1 - edge.x0) * (elo - edge.y0) * inv
+            let xAtHi = edge.x0 + (edge.x1 - edge.x0) * (ehi - edge.y0) * inv
+
+            accumulateSpan(area.buffer, cover.buffer, width, xAtLo - leftF, elo, xAtHi - leftF, ehi, s)
+        }
+
+        var running: f64 = 0.0
         for px in width
         {
-            var hits = 0'u32
-            for sy in OVERSAMPLE
-            {
-                let sampleY = top - (cast(f64) py + (cast(f64) sy + 0.5) / OVERSAMPLE)
-                for sx in OVERSAMPLE
-                {
-                    let sampleX = left + cast(f64) px + (cast(f64) sx + 0.5) / OVERSAMPLE
-                    if isInside(edges.toSlice(), sampleX, sampleY) do
-                        hits += 1
-                }
-            }
+            let val = running + cover.buffer[px] - area.buffer[px]
+            running += cover.buffer[px]
 
-            dref dst = cast(u8) ((hits * 255 + (OVERSAMPLE * OVERSAMPLE) / 2) / (OVERSAMPLE * OVERSAMPLE))
+            var c = Math.abs(val)
+            if c > 1.0 do
+                c = 1.0
+            dref dst = cast(u8) (c * 255.0 + 0.5)
             dst += 1
         }
     }

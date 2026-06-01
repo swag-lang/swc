@@ -1,8 +1,10 @@
-using Core, Pixel
+using Core, Pixel, Win32
 
 const W    = 820
 const H    = 560
 const COLW = 400      // width of one column
+
+const FixedWindowStyle = WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX | WS_CLIPSIBLINGS | WS_CLIPCHILDREN
 
 // Draw the same set of figures inside a column starting at 'ox'.
 // 'aa' toggles antialiasing so the two columns can be compared side by side.
@@ -115,7 +117,8 @@ var g_RC:       Pixel.RenderingContext
 
 #main
 {
-    try Env.createWindow(&g_Window, {className: "PIXEL1_CLASS_NAME", title: "Pixel example - antialiasing comparison", width: W, height: H})
+    try Env.createWindow(&g_Window, {className: "PIXEL1_CLASS_NAME", title: "Pixel example - antialiasing comparison", width: W, height: H, style: FixedWindowStyle})
+    try g_Window.setClientSize(W, H)
     g_RC = try g_Renderer.native.createContext(&g_Window, W, H)
     g_Renderer.setCurrentContext(g_RC)
     g_Renderer.init()

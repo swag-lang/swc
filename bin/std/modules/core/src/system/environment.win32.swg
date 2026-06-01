@@ -402,6 +402,20 @@ public impl Window
         assume PostMessageA(.nativeHandle, WM_PAINT, 0, 0)
     }
 
+    mtd setClientSize(width, height: s32) throw
+    {
+        var windowRect: RECT
+        var clientRect: RECT
+        if !GetWindowRect(.nativeHandle, &windowRect) do
+            throwWinError(GetLastError())
+        if !GetClientRect(.nativeHandle, &clientRect) do
+            throwWinError(GetLastError())
+
+        let frameWidth  = (windowRect.right - windowRect.left) - (clientRect.right - clientRect.left)
+        let frameHeight = (windowRect.bottom - windowRect.top) - (clientRect.bottom - clientRect.top)
+        try MoveWindow(.nativeHandle, windowRect.left, windowRect.top, width + frameWidth, height + frameHeight, FALSE)
+    }
+
     mtd show() throw
     {
         ShowWindow(.nativeHandle, .showCommand)

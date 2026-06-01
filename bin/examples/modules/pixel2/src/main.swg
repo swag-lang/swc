@@ -1,7 +1,9 @@
-using Core, Pixel, TrueType
+using Core, Pixel, TrueType, Win32
 
 const W = 800
 const H = 480
+
+const FixedWindowStyle = WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX | WS_CLIPSIBLINGS | WS_CLIPCHILDREN
 
 var g_Window:   Env.Window
 var g_Renderer: Pixel.RenderOgl
@@ -92,7 +94,8 @@ func onResize(_window: *Env.Window, width, height: s32)
 
 #main
 {
-    try Env.createWindow(&g_Window, {className: "PIXEL2_CLASS_NAME", title: "Pixel TrueType example", width: W, height: H})
+    try Env.createWindow(&g_Window, {className: "PIXEL2_CLASS_NAME", title: "Pixel TrueType example", width: W, height: H, style: FixedWindowStyle})
+    try g_Window.setClientSize(W, H)
     g_RC = try g_Renderer.native.createContext(&g_Window, W, H)
     g_Renderer.setCurrentContext(g_RC)
     g_Renderer.init()

@@ -1,7 +1,13 @@
-using Core, Pixel
+using Core, Pixel, Win32
 
 const W = 980
 const H = 640
+
+struct SceneLayout
+{
+    scale:      f32
+    rect:       Math.Rectangle
+}
 
 var g_Window:   Env.Window
 var g_Renderer: Pixel.RenderOgl
@@ -42,6 +48,24 @@ func loadFonts() throw
     g_ZoomFont  = Font.createSdf(g_TypeFace, 28, 10)
 }
 
+func computeSceneLayout(width, height: s32)->SceneLayout
+{
+    let surfaceWidth  = Math.max(width, 1)
+    let surfaceHeight = Math.max(height, 1)
+    let scaleX        = cast(f32) surfaceWidth / cast(f32) W
+    let scaleY        = cast(f32) surfaceHeight / cast(f32) H
+
+    with var result: retval = undefined
+    {
+        .scale = Math.min(scaleX, scaleY)
+        .rect  = {0, 0, cast(f32) W * .scale, cast(f32) H * .scale}
+        .rect.x = Math.round((cast(f32) surfaceWidth - .rect.width) * 0.5)
+        .rect.y = Math.round((cast(f32) surfaceHeight - .rect.height) * 0.5)
+    }
+
+    return result
+}
+
 func drawSampleLine(painter: *Pixel.Painter, y: f32, label, text: string, font: *Pixel.Font, color: Color)
 {
     painter.drawString(42, y + 4, label, g_LabelFont, Argb.LightSlateGray)
@@ -78,22 +102,31 @@ func drawZoomSizes(painter: *Pixel.Painter)
     painter.drawString(552, 552, "The shader reconstructs the glyph edge from the distance value.", g_Sdf18Font, Argb.DarkSlateGray)
 }
 
-func drawScene(painter: *Pixel.Painter)
+func drawScene(painter: *Pixel.Painter, layout: SceneLayout)
 {
     painter.clear(Argb.GhostWhite)
     painter.setParams(.Antialiased)
+
+    painter.pushClippingSurfaceRect(layout.rect)
+    painter.pushTransform()
+    painter.scaleTransform(layout.scale)
+    painter.translateTransform(layout.rect.x, layout.rect.y)
 
     drawNativeSizes(painter)
     drawZoomSizes(painter)
 
     painter.drawStringCenter(W * 0.5, 610, "Pixel SDF font atlas", g_Sdf26Font, Argb.DimGray)
+
+    painter.popTransform()
+    painter.popClippingRect()
 }
 
 func display()
 {
+    let layout = computeSceneLayout(g_RC.width, g_RC.height)
     g_Renderer.begin(g_RC)
     g_Painter.begin()
-    drawScene(&g_Painter)
+    drawScene(&g_Painter, layout)
     g_Painter.end()
     g_Renderer.draw(&g_Painter)
     g_Renderer.end()
@@ -108,6 +141,7 @@ func onResize(_window: *Env.Window, width, height: s32)
 #main
 {
     try Env.createWindow(&g_Window, {className: "PIXEL3_CLASS_NAME", title: "Pixel SDF font rendering", width: W, height: H})
+    try g_Window.setClientSize(W, H)
     g_RC = try g_Renderer.native.createContext(&g_Window, W, H)
     g_Renderer.setCurrentContext(g_RC)
     g_Renderer.init()

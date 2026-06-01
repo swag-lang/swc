@@ -51,3 +51,19 @@ using Swag
     @assert(negativeRadLiteral.rad == -1.25)
     @assert(Math.isEqualEpsilon(negativeRadLiteral.toDegrees(), Math.toDegrees(-1.25'f32), 0.001))
 }
+
+#test
+{
+    struct Holder
+    {
+        angle: Math.Angle
+    }
+
+    let positive = Holder{angle: 10.0'deg}
+    @assert(Math.isEqualEpsilon(positive.angle.rad, Math.toRadians(10.0'f32), 0.001))
+    @assert(Math.isEqualEpsilon(positive.angle.toDegrees(), 10.0, 0.001))
+
+    let negative = Holder{angle: -12.0'deg}
+    @assert(Math.isEqualEpsilon(negative.angle.rad, Math.toRadians(-12.0'f32), 0.001))
+    @assert(Math.isEqualEpsilon(negative.angle.toDegrees(), -12.0, 0.001))
+}

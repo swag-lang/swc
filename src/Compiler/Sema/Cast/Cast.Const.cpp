@@ -3,6 +3,7 @@
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
+#include "Compiler/Sema/Helpers/SemaClone.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Symbol/Symbols.h"
 #include "Support/Math/Helpers.h"
@@ -21,6 +22,30 @@ namespace
 
     AstNodeRef makeSyntheticConstantNode(Sema& sema, const ConstantRef cstRef, const TypeRef srcTypeRef, const AstNodeRef errorNodeRef)
     {
+        UserDefinedLiteralSuffixInfo suffixInfo;
+        if (errorNodeRef.isValid() && Cast::resolveUserDefinedLiteralSuffix(sema, errorNodeRef, suffixInfo))
+        {
+            const SemaClone::CloneContext noBindings{std::span<const SemaClone::ParamBinding>{}};
+            const AstNodeRef              sourceRef = suffixInfo.exprRef.isValid() ? suffixInfo.exprRef : errorNodeRef;
+            const AstNodeRef              cloneRef  = SemaClone::cloneAst(sema, sourceRef, noBindings);
+            if (cloneRef.isValid())
+            {
+                sema.setIsValue(cloneRef);
+                sema.setType(cloneRef, srcTypeRef);
+                sema.setConstant(cloneRef, cstRef);
+
+                UserDefinedLiteralSuffixInfo clonedSuffixInfo;
+                if (Cast::resolveUserDefinedLiteralSuffix(sema, cloneRef, clonedSuffixInfo) && clonedSuffixInfo.literalRef.isValid())
+                {
+                    sema.setIsValue(clonedSuffixInfo.literalRef);
+                    sema.setType(clonedSuffixInfo.literalRef, srcTypeRef);
+                    sema.setConstant(clonedSuffixInfo.literalRef, cstRef);
+                }
+
+                return cloneRef;
+            }
+        }
+
         const TokenRef tokRef = errorNodeRef.isValid() ? Cast::userDefinedLiteralValueTokRef(sema, errorNodeRef) : sema.curNode().tokRef();
         auto [nodeRef, node]  = sema.ast().makeNode<AstNodeId::Identifier>(tokRef);
         sema.setIsValue(*node);

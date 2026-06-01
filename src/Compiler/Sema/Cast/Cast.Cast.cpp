@@ -21,6 +21,29 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    AstNodeRef unwrapStructSpecCastSourceArgRef(const Sema& sema, AstNodeRef nodeRef)
+    {
+        while (nodeRef.isValid())
+        {
+            const AstNode& node = sema.node(nodeRef);
+            if (node.is(AstNodeId::NamedArgument))
+            {
+                nodeRef = node.cast<AstNamedArgument>().nodeArgRef;
+                continue;
+            }
+
+            if (node.is(AstNodeId::InitializerExpr))
+            {
+                nodeRef = node.cast<AstInitializerExpr>().nodeExprRef;
+                continue;
+            }
+
+            return nodeRef;
+        }
+
+        return AstNodeRef::invalid();
+    }
+
     ConstantRef addValuePointerConstant(Sema& sema, TypeRef dstPointeeTypeRef, TypeInfoFlags dstFlags, uint64_t ptrValue)
     {
         const ConstantValue ptrCst = ConstantValue::makeValuePointer(sema.ctx(), dstPointeeTypeRef, ptrValue, dstFlags);
@@ -379,20 +402,21 @@ namespace
 
     AstNodeRef sourceArgRefForStructSpecCast(const Sema& sema, const SemaNodeView& view, const CastFlags castFlags)
     {
-        SWC_UNUSED(sema);
-
+        AstNodeRef sourceRef = view.nodeRef();
         if (!castFlags.has(CastFlagsE::FromExplicitNode))
-            return view.nodeRef();
+            return unwrapStructSpecCastSourceArgRef(sema, sourceRef);
 
         if (!view.node())
             return AstNodeRef::invalid();
 
         if (view.node()->is(AstNodeId::CastExpr))
-            return view.node()->cast<AstCastExpr>().nodeExprRef;
-        if (view.node()->is(AstNodeId::AutoCastExpr))
-            return view.node()->cast<AstAutoCastExpr>().nodeExprRef;
+            sourceRef = view.node()->cast<AstCastExpr>().nodeExprRef;
+        else if (view.node()->is(AstNodeId::AutoCastExpr))
+            sourceRef = view.node()->cast<AstAutoCastExpr>().nodeExprRef;
+        else
+            return AstNodeRef::invalid();
 
-        return AstNodeRef::invalid();
+        return unwrapStructSpecCastSourceArgRef(sema, sourceRef);
     }
 
     struct StructOpCastData

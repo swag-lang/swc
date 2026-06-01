@@ -153,17 +153,21 @@ namespace
             return AstNodeRef::invalid();
 
         const AstNode& node = args.sema->node(args.castRequest->errorNodeRef);
-        if (node.isNot(AstNodeId::StructLiteral))
+        SpanRef         fieldSpanRef = SpanRef::invalid();
+        if (node.is(AstNodeId::StructLiteral))
+            fieldSpanRef = node.cast<AstStructLiteral>().spanChildrenRef;
+        else if (node.is(AstNodeId::StructInitializerList))
+            fieldSpanRef = node.cast<AstStructInitializerList>().spanArgsRef;
+        else
             return AstNodeRef::invalid();
 
-        const auto& literal = node.cast<AstStructLiteral>();
-        if (literal.spanChildrenRef.isInvalid())
+        if (fieldSpanRef.isInvalid())
             return AstNodeRef::invalid();
 
-        if (args.sema->ast().spanSize(literal.spanChildrenRef) != expectedCount)
+        if (args.sema->ast().spanSize(fieldSpanRef) != expectedCount)
             return AstNodeRef::invalid();
 
-        return args.sema->ast().nthNode(literal.spanChildrenRef, fieldIndex);
+        return args.sema->ast().nthNode(fieldSpanRef, fieldIndex);
     }
 
     SourceCodeRef aggregateFieldRef(const CastStructArgs& args, size_t fieldIndex, size_t expectedCount)

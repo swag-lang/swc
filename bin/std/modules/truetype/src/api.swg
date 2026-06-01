@@ -79,6 +79,24 @@ public impl Face
         .size.metrics.maxAdvance = scale26_6(.maxAdvanceWidth, width, faceData.unitsPerEm)
     }
 
+    // Horizontal kerning between two glyphs, scaled to the current pixel size.
+    // Returns a 26.6 fixed-point value in 'x' (FreeType-style), 0 if no pair.
+    mtd getKerning(leftGlyph, rightGlyph: u32)->Vector throw
+    {
+        let faceData = getFaceImpl(me)
+        var result: retval
+        if !leftGlyph or !rightGlyph do
+            return result
+
+        let key  = (cast(u32) (leftGlyph & 0xFFFF) << 16) | cast(u32) (rightGlyph & 0xFFFF)
+        let here = faceData.kernPairs.tryFind(key)
+        if !here do
+            return result
+
+        result.x = roundDiv(cast(s64) here.value * .size.metrics.xScale, 65536)
+        return result
+    }
+
     mtd glyphIndex(charCode: rune)->u32
     {
         let faceData = cast(*FaceImpl) cast(*void) me

@@ -110,10 +110,12 @@ impl Painter
         var result: retval
         result.ascent  = Swag.F32.NegInf
         result.descent = Swag.F32.NegInf
-        foreach refr in text
+        foreach refr, i in text
         {
             result.ascent  = Math.max(result.ascent, refr.shiftY)
             result.descent = Math.max(result.descent, refr.height - refr.shiftY)
+            if i do
+                result.width += font.cache.kerning(text[i - 1].glyphIndex, refr.glyphIndex)
             result.width += refr.advanceX
         }
 
@@ -212,8 +214,12 @@ impl Painter
         // Glyph descriptors are stored at the cache reference size; scale to draw size.
         let sc = drawFont.scale() * zoom
 
-        foreach refr in arr
+        foreach refr, i in arr
         {
+            // Kern against the previous glyph before placing this one.
+            if i do
+                x += Math.round(drawFont.cache.kerning(arr[i - 1].glyphIndex, refr.glyphIndex) * sc)
+
             .setTextureFont(drawFont, refr.atlasIndex)
 
             let x1 = Math.round(x + refr.shiftX * sc)

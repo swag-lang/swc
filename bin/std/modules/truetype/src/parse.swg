@@ -179,6 +179,58 @@ func buildGlyphLocations(faceData: *FaceImpl) throw
     }
 }
 
+// Parse the legacy 'kern' table, keeping horizontal format-0 subtables only.
+// Missing or unsupported tables simply leave the kerning map empty.
+func parseKern(faceData: *FaceImpl) throw
+{
+    let rec = findTable(faceData, TAG_KERN)
+    if !rec do
+        return
+
+    let table = getSlice(faceData.fontData.toSlice(), rec.offset, rec.length)
+    if @countof(table) < 4 do
+        return
+
+    let nTables = readU16(table, 2)
+    var offset  = 4'u64
+
+    for nTables
+    {
+        if offset + 6 > @countof(table) do
+            break
+
+        let length   = readU16(table, offset + 2)
+        let coverage  = readU16(table, offset + 4)
+        let format    = coverage >> 8       // high byte: subtable format
+        let horizontal = (coverage & 0x0001) != 0
+
+        // Only horizontal format-0 pair tables; skip minimum/cross-stream variants.
+        if format == 0 and horizontal and (coverage & 0x0002) == 0
+        {
+            let nPairs   = readU16(table, offset + 6)
+            var pairOff  = offset + 14      // after nPairs/searchRange/entrySelector/rangeShift
+            for nPairs
+            {
+                if pairOff + 6 > @countof(table) do
+                    break
+                let left  = readU16(table, pairOff + 0)
+                let right = readU16(table, pairOff + 2)
+                let value = readS16(table, pairOff + 4)
+                if value != 0
+                {
+                    let key = (cast(u32) left << 16) | cast(u32) right
+                    faceData.kernPairs.add(key, value)
+                }
+                pairOff += 6
+            }
+        }
+
+        if length == 0 do
+            break
+        offset += length
+    }
+}
+
 func initFaceRecords(faceData: *FaceImpl)
 {
     faceData.face.faceCount       = 1
@@ -250,6 +302,7 @@ func parseFace(faceData: *FaceImpl) throw
     parseCMap(faceData)
     parseNames(faceData)
     parsePost(faceData)
+    parseKern(faceData)
 
     faceData.face.style = .None
     if (faceData.macStyle & 0x0001) != 0 or faceData.face.styleName.contains("Bold") do

@@ -19,6 +19,11 @@ fileprivate
     const PixelShaderFontMsdf = #include("shaders/font_msdf.frag")
 }
 
+// Exponent applied to glyph coverage in the font shaders to approximate
+// linear-space text compositing (the framebuffer blend is non-linear sRGB).
+// 1.0 = off; ~1.33 (= 1/0.75) is a mild, safe correction for dark-on-light text.
+const FontGamma = 1.0'f32 / 0.75
+
 #[Swag.Strict]
 alias TextureHandle = u64
 const InvalidTextureHandle: TextureHandle = cast() 0
@@ -97,18 +102,22 @@ fileprivate impl RenderOgl
             assume createShader(&.shaderFont, VertexShaderFont, PixelShaderFont)
             let text0 = glGetUniformLocation(cast(GLuint) .shaderFont.handle, @dataof("inTexture0"))
             let text1 = glGetUniformLocation(cast(GLuint) .shaderFont.handle, @dataof("inTexture1"))
+            let gamma = glGetUniformLocation(cast(GLuint) .shaderFont.handle, @dataof("fontGamma"))
             glUseProgram(cast(GLuint) .shaderFont.handle)
             glUniform1i(text0, 0)
             glUniform1i(text1, 1)
+            glUniform1f(gamma, FontGamma)
         }
 
         {
             assume createShader(&.shaderFontMsdf, VertexShaderFont, PixelShaderFontMsdf)
             let text0 = glGetUniformLocation(cast(GLuint) .shaderFontMsdf.handle, @dataof("inTexture0"))
             let text1 = glGetUniformLocation(cast(GLuint) .shaderFontMsdf.handle, @dataof("inTexture1"))
+            let gamma = glGetUniformLocation(cast(GLuint) .shaderFontMsdf.handle, @dataof("fontGamma"))
             glUseProgram(cast(GLuint) .shaderFontMsdf.handle)
             glUniform1i(text0, 0)
             glUniform1i(text1, 1)
+            glUniform1f(gamma, FontGamma)
         }
 
         {

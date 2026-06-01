@@ -9,6 +9,7 @@ const TAG_LOCA = imageTag('l''u32, 'o''u32, 'c''u32, 'a''u32)
 const TAG_MAXP = imageTag('m''u32, 'a''u32, 'x''u32, 'p''u32)
 const TAG_NAME = imageTag('n''u32, 'a''u32, 'm''u32, 'e''u32)
 const TAG_POST = imageTag('p''u32, 'o''u32, 's''u32, 't''u32)
+const TAG_KERN = imageTag('k''u32, 'e''u32, 'r''u32, 'n''u32)
 
 const CURVE_TAG_ON = 0x01'u8
 const OVERSAMPLE   = 4'u32
@@ -75,6 +76,10 @@ struct FaceImpl
     outlineTags:         Array'u8
     outlineContours:     Array's16
     bitmapPixels:        Array'u8
+
+    // Horizontal kerning pairs from the legacy 'kern' table (format 0).
+    // Key = (leftGlyph << 16) | rightGlyph, value = kerning in font design units.
+    kernPairs:           HashTable'(u32, s16)
 }
 
 impl FaceImpl
@@ -89,6 +94,7 @@ impl FaceImpl
         .outlineTags.clear()
         .outlineContours.clear()
         .bitmapPixels.clear()
+        .kernPairs.free()
     }
 }
 

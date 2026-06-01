@@ -8,6 +8,10 @@ in vec2     vuv1;
 uniform sampler2D   inTexture0;
 uniform sampler2D   inTexture1;
 
+// Gamma applied to glyph coverage to approximate linear-space compositing
+// (the framebuffer blend is non-linear sRGB). Counters over-heavy text edges.
+uniform float       fontGamma;
+
 out vec4 color;
 
 float median(float a, float b, float c)
@@ -29,5 +33,5 @@ void main()
     float alpha = smoothstep(-aaf, aaf, dist);
 
     color    = vcolor * texture(inTexture0, vuv0);
-    color.w *= alpha;
+    color.w *= pow(alpha, fontGamma);
 }

@@ -17,6 +17,7 @@ public struct GlyphDesc
 {
     uv:             Math.Rectangle
     atlasIndex:     s32 = -1
+    glyphIndex:     u32         // Index in the typeface, used for kerning lookups
     advanceX:       f32
     advanceY:       f32
     shiftX:         f32
@@ -85,6 +86,10 @@ public struct GlyphCache
     atlases:           Array'GlyphAtlas
     asciiRef:          [128] GlyphDesc
     unicodeRef:        HashTable'(rune, *GlyphDesc)
+
+    // Kerning between two glyph indices, in reference-size pixels (lazily filled).
+    // Key = (leftGlyphIndex << 32) | rightGlyphIndex.
+    kernRef:           HashTable'(u64, f32)
     dirty:             bool
 }
 
@@ -317,6 +322,27 @@ public impl GlyphCache
     {
         foreach k, v in .unicodeRef do
             Memory.delete(v)
+        .kernRef.free()
+    }
+
+    // Horizontal kerning between two glyphs, in reference-size pixels (lazily cached).
+    // Returns 0 when the typeface has no kerning pair for the couple.
+    mtd kerning(leftIndex, rightIndex: u32)->f32
+    {
+        if !leftIndex or !rightIndex do
+            return 0
+
+        let key  = (cast(u64) leftIndex << 32) | cast(u64) rightIndex
+        let here = .kernRef.tryFind(key)
+        if here do
+            return here.value
+
+        // 'kern' is scaled to the current pixel size, so query it at the reference size.
+        assume .typeFace.face.setPixelSize(0, .refSize)
+        let kv = assume .typeFace.face.getKerning(leftIndex, rightIndex)
+        let px = kv.x / 64.0
+        .kernRef.add(key, px)
+        return px
     }
 
     // Returns the glyph descriptor of a given rune, rendered at the reference size
@@ -410,10 +436,11 @@ public impl GlyphCache
         refr.height = bmp.rows
 
         let glyph = .typeFace.face.glyph
-        refr.advanceX = glyph.advance.x / 64.0
-        refr.advanceY = glyph.advance.y / 64.0
-        refr.shiftX   = glyph.bitmapLeft
-        refr.shiftY   = glyph.bitmapTop
+        refr.glyphIndex = glyph.index
+        refr.advanceX   = glyph.advance.x / 64.0
+        refr.advanceY   = glyph.advance.y / 64.0
+        refr.shiftX     = glyph.bitmapLeft
+        refr.shiftY     = glyph.bitmapTop
 
         // 'x' and the atlas width are measured in bytes; both numerator and
         // denominator carry the bpp factor, so the resulting uv stays correct.

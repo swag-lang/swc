@@ -139,12 +139,26 @@ public impl TypeFace
             .face.glyph.oblique()
     }
 
-    // Render one glyph
+    // Sub-pixel outline dilation that offsets the anti-aliasing thinning of small
+    // text (stem darkening). Per-side strength in 26.6, fading out as the size grows.
+    fileprivate func stemDarkenStrength(size: u32)->s32
+    {
+        const FadePx = 24.0'f32     // no darkening at or above this size
+        const MaxPx  = 0.12'f32     // per-side dilation in pixels at the smallest sizes
+        if cast(f32) size >= FadePx do
+            return 0
+        let t = (FadePx - cast(f32) size) / FadePx
+        return cast(s32) Math.round(MaxPx * t * 64.0)
+    }
+
+    // Render one glyph (crisp bitmap path): stem darkening + vertical grid-fitting.
     mtd renderGlyph(c: rune, size: u32, forceBold, forceItalic = false)->const *Bitmap throw
     {
         .face.setPixelSize(0, size)
         .face.loadChar(c)
         .transform(size, 0, forceBold, forceItalic)
+        .face.glyph.outline.embolden(stemDarkenStrength(size))
+        .face.hintVertical()
         .face.renderGlyph()
         return &.face.glyph.bitmap
     }

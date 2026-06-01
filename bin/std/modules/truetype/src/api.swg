@@ -1,5 +1,26 @@
 using Swag, Core
 
+// Piecewise-linear vertical remap used by the blue-zone hinter (all values in 26.6,
+// baseline at 0). The baseline, x-height (xh) and cap-height (ch) are anchored to
+// their snapped, whole-pixel targets (xhS, chS); other heights interpolate or shift.
+func hintMapY(y, xh, xhS, ch, chS: s32)->s32
+{
+    // No usable cap-height: single zone, uniform scale about the baseline.
+    if ch <= xh or chS <= 0 do
+        return roundDiv(cast(s64) y * xhS, xh)
+
+    if y <= xh do
+        return roundDiv(cast(s64) y * xhS, xh)
+    if y <= ch
+    {
+        let num = cast(s64) xhS * (ch - y) + cast(s64) chS * (y - xh)
+        return roundDiv(num, ch - xh)
+    }
+
+    // Above the cap-height (ascenders): translate by the cap-height correction.
+    return y + (chS - ch)
+}
+
 public impl Library
 {
     func create()->Library
@@ -125,6 +146,43 @@ public impl Face
         if renderMode != .Normal do
             fail(0x07)
         renderCurrentOutline(&.glyph)
+    }
+
+    // Vertical grid-fitting (blue zones): snap the baseline, x-height and cap-height
+    // of the currently-loaded outline to whole pixels so horizontal stems stay crisp.
+    // No-op when the face has no x-height (OS/2 missing). Apply before rendering the
+    // bitmap; it must not be used on the size-independent SDF/MSDF atlases.
+    mtd hintVertical() throw
+    {
+        let faceData = getFaceImpl(me)
+        let o        = &.glyph.outline
+        if o.pointCount <= 0 do
+            return
+        if faceData.xHeight <= 0 do
+            return
+
+        let yScale = .size.metrics.yScale
+        let xh     = roundDiv(cast(s64) faceData.xHeight * yScale, 65536)
+        if xh <= 0 do
+            return
+        let xhS = roundDiv(xh, 64) * 64
+        if xhS <= 0 do
+            return
+
+        var ch  = 0
+        var chS = 0
+        if faceData.capHeight > 0
+        {
+            ch  = roundDiv(cast(s64) faceData.capHeight * yScale, 65536)
+            chS = roundDiv(ch, 64) * 64
+        }
+
+        // Nothing to snap.
+        if xhS == xh and (ch <= xh or chS == ch) do
+            return
+
+        for cast(u32) o.pointCount do
+            o.points[@index].y = hintMapY(o.points[@index].y, xh, xhS, ch, chS)
     }
 
     mtd renderGlyphSdf(spread: u32 = 8) throw

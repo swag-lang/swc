@@ -94,6 +94,26 @@ func parsePost(faceData: *FaceImpl) throw
     faceData.face.underlineThickness = readS16(postTable, 10)
 }
 
+// Parse x-height / cap-height from OS/2 (version >= 2). Missing or older tables
+// leave them at 0, which disables vertical hinting for that face.
+func parseOS2(faceData: *FaceImpl) throw
+{
+    let rec = findTable(faceData, TAG_OS2)
+    if !rec do
+        return
+
+    let table = getSlice(faceData.fontData.toSlice(), rec.offset, rec.length)
+    if @countof(table) < 4 do
+        return
+
+    let version = readU16(table, 0)
+    if version >= 2 and @countof(table) >= 90
+    {
+        faceData.xHeight   = readS16(table, 86)
+        faceData.capHeight = readS16(table, 88)
+    }
+}
+
 func parseCMap(faceData: *FaceImpl) throw
 {
     let cmapTable = getTableSlice(faceData, TAG_CMAP, 0x92)
@@ -303,6 +323,7 @@ func parseFace(faceData: *FaceImpl) throw
     parseNames(faceData)
     parsePost(faceData)
     parseKern(faceData)
+    parseOS2(faceData)
 
     faceData.face.style = .None
     if (faceData.macStyle & 0x0001) != 0 or faceData.face.styleName.contains("Bold") do

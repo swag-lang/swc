@@ -18,6 +18,19 @@ struct Polygon
 
 impl Polygon
 {
+    fileprivate mtd appendClipperPath(path: *Clipper.ClipperPath)
+    {
+        var count = .points.count
+        if count > 1 and .points[0].distanceToSquared(.points[count - 1]) < 0.5 * 0.5 do
+            count -= 1
+
+        for i in count
+        {
+            let pt = .points[i]
+            path.add(Clipper.IntPoint{cast(s64) (pt.x * ClipperScaleCoords), cast(s64) (pt.y * ClipperScaleCoords)})
+        }
+    }
+
     fileprivate func setupGeneratedPath(path: *LinePath)
     {
         path.isPolyOnly = true
@@ -181,11 +194,12 @@ impl Polygon
         var off: Clipper.Offset
         off.arcTolerance = toler * ClipperScaleCoords
 
-        // Register path
-        var path: Clipper.ClipperPath
-        foreach pt in .points do
-            path.add(Clipper.IntPoint{cast(s64) (pt.x * ClipperScaleCoords), cast(s64) (pt.y * ClipperScaleCoords)})
-        off.addPath(path, joinType)
+        // Register simplified paths. Offsetting self-intersecting contours
+        // directly creates tiny loop fragments; Clipper expects simple input.
+        var paths: Clipper.ClipperPaths
+        .clean(&paths)
+        foreach path in paths do
+            off.addPath(path, joinType)
 
         // Compute
         off.execute(res, cast(f64) (value * ClipperScaleCoords))
@@ -233,8 +247,7 @@ impl Polygon
 
         // Register path
         var path: Clipper.ClipperPath
-        foreach pt in .points do
-            path.add(Clipper.IntPoint{cast(s64) (pt.x * ClipperScaleCoords), cast(s64) (pt.y * ClipperScaleCoords)})
+        .appendClipperPath(&path)
         trf.addPath(&path, .Subject)
 
         // Compute

@@ -1074,8 +1074,12 @@ impl Transform
 
     mtd doSimplePolygons()
     {
-        foreach outrec in .polyOuts
+        var outrecIndex = 0'u64
+        while outrecIndex < .polyOuts.count
         {
+            let outrec = .polyOuts[outrecIndex]
+            defer outrecIndex += 1
+
             var op = outrec.pts
             if !op or outrec.isOpen do
                 continue

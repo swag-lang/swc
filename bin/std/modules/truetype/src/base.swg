@@ -10,6 +10,7 @@ const TAG_MAXP = imageTag('m''u32, 'a''u32, 'x''u32, 'p''u32)
 const TAG_NAME = imageTag('n''u32, 'a''u32, 'm''u32, 'e''u32)
 const TAG_POST = imageTag('p''u32, 'o''u32, 's''u32, 't''u32)
 const TAG_KERN = imageTag('k''u32, 'e''u32, 'r''u32, 'n''u32)
+const TAG_OS2  = imageTag('O''u32, 'S''u32, '/''u32, '2''u32)
 
 const CURVE_TAG_ON = 0x01'u8
 const OVERSAMPLE   = 4'u32
@@ -71,6 +72,10 @@ struct FaceImpl
     lineGap:             s16
     macStyle:            u16
     indexToLocFormat:    s16
+
+    // Blue-zone metrics for vertical hinting, in font design units (0 = unknown).
+    xHeight:             s16
+    capHeight:           s16
 
     outlinePoints:       Array'Vector
     outlineTags:         Array'u8

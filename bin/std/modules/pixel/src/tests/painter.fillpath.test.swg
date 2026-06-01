@@ -393,5 +393,31 @@ func renderBlobAlphaFrames(frames: s32)->u64 throw
 
 #test
 {
+    var path = buildBlobPath()
+    path.flatten(.Normal)
+
+    var clean = path.polygon.getClean()
+    Console.println("blob clean count=", clean.count())
+    foreach generated, i in clean.paths do
+        Console.println("clean#", i, " pts=", generated.polygon.points.count, " bv=", generated.bvMin.x, ",", generated.bvMin.y, " -> ", generated.bvMax.x, ",", generated.bvMax.y)
+
+    let offset = path.polygon.isClockwise ? 3.0 : -3.0
+    var outline = path.polygon.getOffset(offset, Pixel.JoinStyle.Round)
+
+    Console.println("blob offset count=", outline.count())
+    foreach generated, i in outline.paths do
+        Console.println("path#", i, " pts=", generated.polygon.points.count, " bv=", generated.bvMin.x, ",", generated.bvMin.y, " -> ", generated.bvMax.x, ",", generated.bvMax.y)
+
+    @assert(outline.count() == 1)
+    let generated = outline.paths[0]
+    @assert(generated.isClosed)
+    @assert(generated.bvMin.x < path.bvMin.x)
+    @assert(generated.bvMin.y < path.bvMin.y)
+    @assert(generated.bvMax.x > path.bvMax.x)
+    @assert(generated.bvMax.y > path.bvMax.y)
+}
+
+#test
+{
     @assert(assume renderBlobAlphaFrames(120) == 120)
 }

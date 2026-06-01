@@ -14,10 +14,10 @@ func buildDetailCropImage(source: const &Image)->Image
 
 func buildPanoramaCropImage(source: const &Image)->Image
 {
-    let x = cast(s32) (cast(f32) source.width * 0.09)
-    let y = cast(s32) (cast(f32) source.height * 0.18)
-    let w = cast(s32) (cast(f32) source.width * 0.78)
-    let h = cast(s32) (cast(f32) source.height * 0.42)
+    let x = cast(s32) (cast(f32) source.width * 0.16)
+    let y = cast(s32) (cast(f32) source.height * 0.22)
+    let w = cast(s32) (cast(f32) source.width * 0.58)
+    let h = cast(s32) (cast(f32) source.height * 0.30)
 
     var result = source.toCrop(x, y, w, h)
     result.expand(12, 12, 12, 12, Color.fromArgb(255, 240, 244, 248))

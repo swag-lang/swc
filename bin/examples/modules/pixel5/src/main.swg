@@ -315,6 +315,7 @@ func updateShortcuts()
     g_Renderer.setCurrentContext(g_RC)
     g_Renderer.init()
 
+    try Jobs.setNumWorkers()
     try loadFonts()
     try loadShowcase()
 

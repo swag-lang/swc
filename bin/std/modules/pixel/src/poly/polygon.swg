@@ -18,6 +18,22 @@ struct Polygon
 
 impl Polygon
 {
+    fileprivate func setupGeneratedPath(path: *LinePath)
+    {
+        path.isPolyOnly = true
+        path.isClosed   = true
+        path.isDirty    = false
+        path.isFlatten  = true
+        path.bvMin      = path.polygon.bvMin
+        path.bvMax      = path.polygon.bvMax
+
+        if path.polygon.points.count
+        {
+            path.startPoint = path.polygon.getPoint(0)
+            path.endPoint   = path.startPoint
+        }
+    }
+
     // Get the given point
     #[Swag.Inline]
     mtd getPoint(i: u64)->&Vector2
@@ -199,10 +215,8 @@ impl Polygon
         foreach p in res
         {
             let np = result.newPath()
-            np.isPolyOnly = true
             np.polygon.storeClipperResult(p)
-            np.bvMin = np.polygon.bvMin
-            np.bvMax = np.polygon.bvMax
+            setupGeneratedPath(np)
         }
 
         return result
@@ -250,10 +264,8 @@ impl Polygon
         foreach p in res
         {
             let np = result.newPath()
-            np.isPolyOnly = true
             np.polygon.storeClipperResult(p)
-            np.bvMin = np.polygon.bvMin
-            np.bvMax = np.polygon.bvMax
+            setupGeneratedPath(np)
             if !.isClockwise do
                 break
         }

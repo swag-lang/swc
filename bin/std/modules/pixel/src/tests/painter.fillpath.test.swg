@@ -33,6 +33,21 @@ func buildClosedPath(pts: [..] Vector2)->Pixel.LinePath
     return result
 }
 
+func buildBlobPath()->Pixel.LinePath
+{
+    var result: retval
+    let cx = 320.0
+    let cy = 240.0
+
+    result.start(cx - 168, cy - 18)
+    result.bezierTo(cx - 44, cy - 136, cx - 160, cy - 110, cx - 102, cy - 150)
+    result.bezierTo(cx + 156, cy - 24, cx + 30, cy - 116, cx + 152, cy - 98)
+    result.bezierTo(cx + 40, cy + 134, cx + 168, cy + 52, cx + 110, cy + 154)
+    result.bezierTo(cx - 168, cy - 18, cx - 28, cy + 146, cx - 160, cy + 94)
+    result.close()
+    return result
+}
+
 // Fill a polygon and return the number of generated vertices.
 func fillCount(pts: [..] Vector2, aa: bool)->u64
 {
@@ -43,6 +58,97 @@ func fillCount(pts: [..] Vector2, aa: bool)->u64
     let n = painter.vertexBuffer.count
     painter.end()
     return n
+}
+
+func strokeOffsetCount(pts: [..] Vector2, offset: f32)->u64
+{
+    var path = buildClosedPath(pts)
+    path.flatten(.Normal)
+
+    var outline = path.polygon.getOffset(offset, Pixel.JoinStyle.Round)
+    @assert(outline.count() > 0)
+
+    foreach generated in outline.paths
+    {
+        @assert(generated.isPolyOnly)
+        @assert(generated.isClosed)
+        @assert(generated.startPoint.distanceToSquared(generated.endPoint) < 0.01)
+        @assert(generated.polygon.points.count >= 4)
+    }
+
+    var pen = Pixel.Pen.createSolid(Argb.MediumPurple, 6)
+    pen.begCapStyle = .None
+    pen.endCapStyle = .None
+    pen.joinStyle   = .Round
+
+    var painter: Pixel.Painter
+    painter.begin()
+    painter.setAntialiased(true)
+    painter.drawPath(&outline, pen, .Merge)
+    let n = painter.vertexBuffer.count
+    painter.end()
+    return n
+}
+
+func strokeCleanCount(pts: [..] Vector2)->u64
+{
+    var path = buildClosedPath(pts)
+    path.flatten(.Normal)
+
+    var clean = path.polygon.getClean()
+    @assert(clean.count() > 0)
+
+    foreach generated in clean.paths
+    {
+        @assert(generated.isPolyOnly)
+        @assert(generated.isClosed)
+        @assert(generated.startPoint.distanceToSquared(generated.endPoint) < 0.01)
+        @assert(generated.polygon.points.count >= 4)
+    }
+
+    var pen = Pixel.Pen.createSolid(Argb.SteelBlue, 4)
+    pen.begCapStyle = .None
+    pen.endCapStyle = .None
+    pen.joinStyle   = .Round
+
+    var painter: Pixel.Painter
+    painter.begin()
+    painter.setAntialiased(true)
+    painter.drawPath(&clean, pen, .Merge)
+    let n = painter.vertexBuffer.count
+    painter.end()
+    return n
+}
+
+func strokeOffsetBlobCount(iterations: s32)->u64
+{
+    var total = 0'u64
+
+    for _ in iterations
+    {
+        var path = buildBlobPath()
+        path.flatten(.Normal)
+
+        var outline = path.polygon.getOffset(3.0, Pixel.JoinStyle.Round)
+        @assert(outline.count() > 0)
+        foreach generated in outline.paths do
+            @assert(generated.isClosed)
+
+        var pen = Pixel.Pen.createSolid(Argb.MediumPurple, 6)
+        pen.begCapStyle = .None
+        pen.endCapStyle = .None
+        pen.joinStyle   = .Round
+
+        var painter: Pixel.Painter
+        painter.begin()
+        painter.setAntialiased(true)
+        painter.fillPath(&path, Color.fromArgb(42, Argb.MediumPurple))
+        painter.drawPath(&outline, pen, .Merge)
+        total += painter.vertexBuffer.count
+        painter.end()
+    }
+
+    return total
 }
 
 // A 5-point star, antialiased and aliased, must produce geometry (no crash).
@@ -116,4 +222,28 @@ func fillCount(pts: [..] Vector2, aa: bool)->u64
     painter.drawPath(&path, Pixel.Pen.createSolid(Argb.MidnightBlue, 4))
     @assert(painter.vertexBuffer.count > 0)
     painter.end()
+}
+
+// Paths generated from polygon offset/clean are closed contours and must be
+// drawable again without crashing.
+#test
+{
+    let star = makeStar(160, 160, 70, 28, 5)
+    @assert(strokeOffsetCount(star[to], 8) > 0)
+}
+
+#test
+{
+    var concave = [
+        Vector2{0, 0}, Vector2{110, 0}, Vector2{110, 26},
+        Vector2{46, 26}, Vector2{46, 92}, Vector2{140, 92},
+        Vector2{140, 126}, Vector2{0, 126},
+    ]
+
+    @assert(strokeCleanCount(concave) > 0)
+}
+
+#test
+{
+    @assert(strokeOffsetBlobCount(256) > 0)
 }

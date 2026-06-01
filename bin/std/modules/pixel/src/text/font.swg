@@ -25,11 +25,18 @@ public struct GlyphDesc
     height:         f32
 }
 
+// Rendering technique requested when creating a Font.
+// 'Auto' is the recommended default: the actual technique is chosen at draw time
+// from the on-screen pixel size (crisp bitmap when small, MSDF when larger/zoomed).
+// 'Bitmap', 'Sdf' and 'Msdf' force a single technique.
+// A glyph cache is always one of the three concrete modes; 'Auto' only ever lives
+// on a Font, never on a cache.
 public enum FontRenderMode
 {
+    Auto
     Bitmap
-    SignedDistanceField
-    MultiChannelSignedDistanceField
+    Sdf
+    Msdf
 }
 
 public impl FontRenderMode
@@ -37,13 +44,13 @@ public impl FontRenderMode
     // Number of bytes per pixel in the glyph atlas for this render mode
     mtd bytesPerPixel()->u32
     {
-        return me == .MultiChannelSignedDistanceField ? 3 : 1
+        return me == .Msdf ? 3 : 1
     }
 
     // True if the mode is a distance field (sampled with linear filtering)
     mtd isDistanceField()->bool
     {
-        return me == .SignedDistanceField or me == .MultiChannelSignedDistanceField
+        return me == .Sdf or me == .Msdf
     }
 }
 
@@ -51,6 +58,11 @@ public impl FontRenderMode
 // A single MSDF atlas rendered at this size serves every draw size and zoom.
 const RefEmSize:   u32 = 40
 const RefEmSpread: u32 = 8
+
+// On-screen pixel size below which an 'Auto' font rasterizes a crisp bitmap at the
+// exact pixel size; at or above it, the size-independent MSDF atlas is used (and
+// scales/zooms cleanly). MSDF degrades below this, so bitmap wins for small text.
+const AutoMsdfMinPx: f32 = 20.0
 
 // Shared glyph storage for a (typeface, style, render mode, reference size, spread).
 // All Fonts that map to the same key share this cache, so a typeface needs a single
@@ -82,6 +94,7 @@ public struct GlyphCache
 public struct Font
 {
     cache:             *GlyphCache
+    mode:              FontRenderMode      // Creation intent (may be .Auto); the cache is always concrete
     size:              u32
     forceBold:         bool
     forceItalic:       bool
@@ -120,9 +133,11 @@ fileprivate func renderModeName(mode: FontRenderMode)->string
 {
     switch mode
     {
-    case SignedDistanceField:
+    case Auto:
+        return "auto"
+    case Sdf:
         return "sdf"
-    case MultiChannelSignedDistanceField:
+    case Msdf:
         return "msdf"
     }
 
@@ -173,10 +188,10 @@ public impl Font
         return cast(f32) .size / cast(f32) .cache.refSize
     }
 
-    // The render mode of the underlying glyph cache
+    // The render mode requested at creation (may be .Auto)
     mtd const renderMode()->FontRenderMode
     {
-        return .cache.renderMode
+        return .mode
     }
 
     // Returns the glyph descriptor of a given rune (in reference-size pixels)
@@ -207,12 +222,16 @@ public impl Font
         Memory.delete(font)
     }
 
-    fileprivate func createView(typeFace: *TypeFace, size, refSize, spread: u32, renderMode: FontRenderMode, forceBold, forceItalic: bool)->*Font
+    // Builds (or returns the cached) Font view.
+    // 'atlasMode' is the concrete glyph cache mode; 'intent' is the creation mode
+    // stored on the Font (may be .Auto). Both take part in the Font key so an auto
+    // Font and an explicit MSDF Font of the same size do not collide.
+    fileprivate func createView(typeFace: *TypeFace, size, refSize, spread: u32, atlasMode, intent: FontRenderMode, forceBold, forceItalic: bool)->*Font
     {
         Debug.assert(typeFace != null)
         Debug.assert(size > 0)
 
-        let str = Format.toString("%_%_%_%_%_%_%", typeFace.fullname, size, forceBold, forceItalic, renderModeName(renderMode), spread, refSize)
+        let str = Format.toString("%_%_%_%_%_%_%_%", typeFace.fullname, size, forceBold, forceItalic, renderModeName(intent), renderModeName(atlasMode), spread, refSize)
 
         Sync.scopedLock(&g_FontLock)
 
@@ -220,11 +239,12 @@ public impl Font
         if here do
             return here.value
 
-        let cache = acquireGlyphCache(typeFace, refSize, spread, renderMode, forceBold, forceItalic)
+        let cache = acquireGlyphCache(typeFace, refSize, spread, atlasMode, forceBold, forceItalic)
 
         let font = Memory.new'Font()
         font.fullname    = str
         font.cache       = cache
+        font.mode        = intent
         font.size        = size
         font.forceBold   = forceBold
         font.forceItalic = forceItalic
@@ -240,71 +260,60 @@ public impl Font
         return font
     }
 
+    // Builds a Font for the requested creation mode (spread is internal).
+    fileprivate func createMode(typeFace: *TypeFace, size: u32, mode: FontRenderMode, forceBold, forceItalic: bool)->*Font
+    {
+        switch mode
+        {
+        case Bitmap:
+            // Classic grayscale bitmap, rasterized at the exact pixel size.
+            return createView(typeFace, size, size, 0, .Bitmap, .Bitmap, forceBold, forceItalic)
+        case Sdf:
+            // Single-channel SDF, size-independent reference atlas.
+            return createView(typeFace, size, RefEmSize, RefEmSpread, .Sdf, .Sdf, forceBold, forceItalic)
+        case Msdf:
+            // Multi-channel SDF, size-independent reference atlas.
+            return createView(typeFace, size, RefEmSize, RefEmSpread, .Msdf, .Msdf, forceBold, forceItalic)
+        }
+
+        // Auto: an MSDF reference view that substitutes a crisp bitmap at small
+        // on-screen sizes (resolved per draw, see resolveDrawFont).
+        return createView(typeFace, size, RefEmSize, RefEmSpread, .Msdf, .Auto, forceBold, forceItalic)
+    }
+
+    // Resolves the concrete Font to rasterize with for a given on-screen pixel size.
+    // Non-auto fonts return themselves. An auto Font uses the size-independent MSDF
+    // view at or above AutoMsdfMinPx, and a crisp bitmap rasterized at the exact
+    // pixel size below it.
+    func resolveDrawFont(font: *Font, effectivePx: f32)->*Font
+    {
+        if font.mode != .Auto do
+            return font
+        if effectivePx >= AutoMsdfMinPx do
+            return font
+
+        var px = cast(s32) Math.round(effectivePx)
+        px = Math.clamp(px, 1, cast(s32) AutoMsdfMinPx)
+        return createView(font.cache.typeFace, font.size, cast(u32) px, 0, .Bitmap, .Bitmap, font.forceBold, font.forceItalic)
+    }
+
     // Creates a Font of the given typeface and size.
-    // Uses a single, size-independent MSDF atlas per typeface: state of the art at any size.
-    func create(typeFace: *TypeFace, size: u32, forceBold, forceItalic = false)->*Font
+    // 'mode' selects the rendering technique; .Auto (default) gives the best quality
+    // at any on-screen size by adapting between a bitmap and MSDF at draw time.
+    func create(typeFace: *TypeFace, size: u32, mode = FontRenderMode.Auto, forceBold, forceItalic = false)->*Font
     {
-        return createView(typeFace, size, RefEmSize, RefEmSpread, .MultiChannelSignedDistanceField, forceBold, forceItalic)
+        return createMode(typeFace, size, mode, forceBold, forceItalic)
     }
 
-    // Creates a classic bitmap Font, rasterized at the exact pixel size.
-    func createBitmap(typeFace: *TypeFace, size: u32, forceBold, forceItalic = false)->*Font
-    {
-        return createView(typeFace, size, size, 0, .Bitmap, forceBold, forceItalic)
-    }
-
-    // Creates a single-channel signed distance field Font, rasterized at the given size.
-    func createSdf(typeFace: *TypeFace, size, spread: u32, forceBold, forceItalic = false)->*Font
-    {
-        Debug.assert(spread > 0)
-        return createView(typeFace, size, size, spread, .SignedDistanceField, forceBold, forceItalic)
-    }
-
-    // Creates a multi-channel signed distance field Font, rasterized at the given size.
-    func createMsdf(typeFace: *TypeFace, size, spread: u32, forceBold, forceItalic = false)->*Font
-    {
-        Debug.assert(spread > 0)
-        return createView(typeFace, size, size, spread, .MultiChannelSignedDistanceField, forceBold, forceItalic)
-    }
-
-    // Creates a Font with the given filename and size (size-independent MSDF).
-    func create(fullname: string, size: u32, forceBold, forceItalic = false)->*Font throw
+    // Creates a Font with the given filename and size.
+    // 'mode' selects the rendering technique; .Auto (default) adapts at draw time.
+    func create(fullname: string, size: u32, mode = FontRenderMode.Auto, forceBold, forceItalic = false)->*Font throw
     {
         Debug.assert(@countof(fullname) != 0)
         Debug.assert(size > 0)
 
         let typeFace = try TypeFace.load(fullname)
-        return create(typeFace, size, forceBold, forceItalic)
-    }
-
-    // Creates a classic bitmap Font with the given filename and size
-    func createBitmap(fullname: string, size: u32, forceBold, forceItalic = false)->*Font throw
-    {
-        Debug.assert(@countof(fullname) != 0)
-        Debug.assert(size > 0)
-
-        let typeFace = try TypeFace.load(fullname)
-        return createBitmap(typeFace, size, forceBold, forceItalic)
-    }
-
-    // Creates a signed distance field Font with the given filename and size
-    func createSdf(fullname: string, size, spread: u32, forceBold, forceItalic = false)->*Font throw
-    {
-        Debug.assert(@countof(fullname) != 0)
-        Debug.assert(size > 0)
-
-        let typeFace = try TypeFace.load(fullname)
-        return createSdf(typeFace, size, spread, forceBold, forceItalic)
-    }
-
-    // Creates a multi-channel signed distance field Font with the given filename and size
-    func createMsdf(fullname: string, size, spread: u32, forceBold, forceItalic = false)->*Font throw
-    {
-        Debug.assert(@countof(fullname) != 0)
-        Debug.assert(size > 0)
-
-        let typeFace = try TypeFace.load(fullname)
-        return createMsdf(typeFace, size, spread, forceBold, forceItalic)
+        return createMode(typeFace, size, mode, forceBold, forceItalic)
     }
 }
 
@@ -337,9 +346,9 @@ public impl GlyphCache
         var bmp: const *Bitmap
         switch .renderMode
         {
-        case SignedDistanceField:
+        case Sdf:
             bmp = assume .typeFace.renderGlyphSdf(c, .refSize, .spread, .forceBold, .forceItalic)
-        case MultiChannelSignedDistanceField:
+        case Msdf:
             bmp = assume .typeFace.renderGlyphMsdf(c, .refSize, .spread, .forceBold, .forceItalic)
         default:
             bmp = assume .typeFace.renderGlyph(c, .refSize, .forceBold, .forceItalic)

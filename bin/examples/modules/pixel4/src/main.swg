@@ -259,18 +259,35 @@ func makeTransparencyPath(rect: Math.Rectangle, variant: s32)->LinePath
     return path
 }
 
-func drawBlobSurface(painter: *Pixel.Painter, rect: Math.Rectangle)
+func makeBlobPath(rect: Math.Rectangle)->LinePath
 {
+    var path: retval
     let cx = rect.x + rect.width * 0.50
     let cy = rect.y + rect.height * 0.52
-    let rx = rect.width * 0.23
-    let ry = rect.height * 0.31
 
-    painter.fillEllipse(cx, cy, rx, ry, Color.fromArgb(42, Argb.MediumPurple))
+    path.start(cx - 168, cy - 18)
+    path.bezierTo(cx - 44, cy - 136, cx - 160, cy - 110, cx - 102, cy - 150)
+    path.bezierTo(cx + 156, cy - 24, cx + 30, cy - 116, cx + 152, cy - 98)
+    path.bezierTo(cx + 40, cy + 134, cx + 168, cy + 52, cx + 110, cy + 154)
+    path.bezierTo(cx - 168, cy - 18, cx - 28, cy + 146, cx - 160, cy + 94)
+    path.close()
+    return path
+}
+
+func drawBlobSurface(painter: *Pixel.Painter, rect: Math.Rectangle)
+{
+    var blob = makeBlobPath(rect)
+    painter.fillPath(&blob, Color.fromArgb(42, Argb.MediumPurple))
+
+    blob.flatten(.Normal)
+    let offset = blob.polygon.isClockwise ? 3.0 : -3.0
+    var outline = blob.polygon.getOffset(offset, JoinStyle.Round)
 
     var pen = Pen.createSolid(Color.fromArgb(136, Argb.MediumPurple), 6)
-    pen.borderPos = .Inside
-    painter.drawEllipse(cx, cy, rx, ry, pen)
+    pen.begCapStyle = .None
+    pen.endCapStyle = .None
+    pen.joinStyle   = .Round
+    painter.drawPath(&outline, pen, .Merge)
 }
 
 func drawAlphaRow(painter: *Pixel.Painter, rect: Math.Rectangle, alpha: u8, label: string)

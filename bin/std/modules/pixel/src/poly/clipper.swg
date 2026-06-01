@@ -2107,7 +2107,7 @@ impl Transform
     {
         if .currentLM == .minimaList.count or .minimaList[.currentLM].y != y do
             return false
-        dref locMin = .minimaList[.currentLM]
+        dref locMin = &.minimaList[.currentLM]
         .currentLM += 1
         return true
     }

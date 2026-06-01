@@ -152,7 +152,15 @@ impl Painter
         if .fake do
             return
 
-        let arr = getGlyphs(text, font)
+        // For an 'Auto' font, pick the concrete technique from the on-screen pixel
+        // size (font size scaled by zoom and the current transform). Other fonts
+        // resolve to themselves. Everything below rasterizes with 'drawFont' while
+        // positioning still uses the requested font's (nominal) metrics.
+        let tr      = .curState.transform
+        let trScale = Math.max(Math.sqrt(tr.m11 * tr.m11 + tr.m12 * tr.m12), Math.sqrt(tr.m21 * tr.m21 + tr.m22 * tr.m22))
+        let drawFont = Font.resolveDrawFont(font, cast(f32) font.size * zoom * trScale)
+
+        let arr = getGlyphs(text, drawFont)
         if arr.isEmpty() do
             return
 
@@ -164,11 +172,11 @@ impl Painter
         if under != .None or brush.type != .SolidColor do
             ms = measureString(text, font)
 
-        switch font.cache.renderMode
+        switch drawFont.cache.renderMode
         {
-        case SignedDistanceField:
+        case Sdf:
             .startSdfFont()
-        case MultiChannelSignedDistanceField:
+        case Msdf:
             .startMsdfFont()
         default:
             .startFont()
@@ -201,14 +209,14 @@ impl Painter
             .canSetTexture0 = true
         }
 
-        .updateFont(font)
+        .updateFont(drawFont)
 
         // Glyph descriptors are stored at the cache reference size; scale to draw size.
-        let sc = font.scale() * zoom
+        let sc = drawFont.scale() * zoom
 
         foreach refr in arr
         {
-            .setTextureFont(font, refr.atlasIndex)
+            .setTextureFont(drawFont, refr.atlasIndex)
 
             let x1 = Math.round(x + refr.shiftX * sc)
             let y1 = Math.round(y - refr.shiftY * sc)

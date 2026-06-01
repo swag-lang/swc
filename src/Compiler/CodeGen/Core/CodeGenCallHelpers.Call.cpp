@@ -167,6 +167,47 @@ namespace
         return SemaHelpers::resolveTransparentExprSourceRef(codeGen.sema(), sourceRef);
     }
 
+    TypeRef resolveUntypedVariadicArgTypeRef(CodeGen& codeGen, const CodeGenNodePayload& argPayload, AstNodeRef argRef)
+    {
+        TypeRef argTypeRef = argPayload.effectiveTypeRef(codeGen.viewType(argRef).typeRef());
+        if (argTypeRef.isValid() && !codeGen.ctx().typeMgr().get(argTypeRef).isAnyVariadic())
+            return argTypeRef;
+
+        const AstNodeRef sourceRef = resolvePreparedArgSourceRef(codeGen, argRef);
+        if (sourceRef.isInvalid())
+            return argTypeRef;
+
+        const TypeRef sourceTypeRef = codeGen.viewType(sourceRef).typeRef();
+        if (sourceTypeRef.isValid())
+            return sourceTypeRef;
+
+        const TypeRef storedSourceTypeRef = codeGen.sema().viewStored(sourceRef, SemaNodeViewPartE::Type).typeRef();
+        if (storedSourceTypeRef.isValid())
+            return storedSourceTypeRef;
+
+        return argTypeRef;
+    }
+
+    TypeRef concretizeUntypedVariadicRuntimeTypeRef(CodeGen& codeGen, TypeRef argTypeRef)
+    {
+        if (!argTypeRef.isValid())
+            return TypeRef::invalid();
+
+        const TypeInfo& argType = codeGen.ctx().typeMgr().get(argTypeRef);
+        if (argType.isIntUnsized())
+        {
+            TypeInfo::Sign sign = argType.payloadIntSign();
+            if (sign == TypeInfo::Sign::Unknown)
+                sign = TypeInfo::Sign::Signed;
+            return codeGen.typeMgr().typeInt(64, sign);
+        }
+
+        if (argType.isFloatUnsized())
+            return codeGen.typeMgr().typeF64();
+
+        return argTypeRef;
+    }
+
     std::optional<CodeGenNodePayload> resolveVariableArgumentPayload(CodeGen& codeGen, AstNodeRef argRef)
     {
         if (argRef.isInvalid())
@@ -1109,11 +1150,9 @@ namespace
                 continue;
 
             const CodeGenNodePayload& argPayload = codeGen.payload(resolvedArg.argRef);
-
-            const SemaNodeView argView = codeGen.viewType(resolvedArg.argRef);
-            SWC_ASSERT(argView.type());
-
-            const TypeRef   argTypeRef         = argPayload.effectiveTypeRef(argView.typeRef());
+            const TypeRef   wrapperTypeRef     = codeGen.viewType(resolvedArg.argRef).typeRef();
+            const TypeRef   argTypeRef         = concretizeUntypedVariadicRuntimeTypeRef(codeGen, resolveUntypedVariadicArgTypeRef(codeGen, argPayload, resolvedArg.argRef));
+            SWC_ASSERT(argTypeRef.isValid());
             const TypeInfo& argType            = ctx.typeMgr().get(argTypeRef);
             const TypeRef   resolvedArgTypeRef = ctx.typeMgr().unwrapAliasEnum(ctx, argTypeRef);
             const TypeInfo& resolvedArgType    = ctx.typeMgr().get(resolvedArgTypeRef.isValid() ? resolvedArgTypeRef : argTypeRef);
@@ -1130,7 +1169,8 @@ namespace
 
             if (!info.isAny)
             {
-                info.typeInfoCstRef = resolvedArg.typeInfoCstRef;
+                if (argTypeRef == wrapperTypeRef)
+                    info.typeInfoCstRef = resolvedArg.typeInfoCstRef;
                 if (!info.typeInfoCstRef.isValid())
                 {
                     ConstantRef  typeInfoCstRef = ConstantRef::invalid();

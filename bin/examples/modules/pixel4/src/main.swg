@@ -254,10 +254,10 @@ func buildPolygonHoleList(rect: Math.Rectangle)->LinePathList
 
     let outer = makeHexPolygon(cx, cy, Math.min(rect.width, rect.height) * 0.34)
     let inner = [
-        Math.Vector2{cx, cy - 56},
-        Math.Vector2{cx + 62, cy},
-        Math.Vector2{cx, cy + 56},
-        Math.Vector2{cx - 62, cy},
+        Math.Vector2{cx, cy - 42},
+        Math.Vector2{cx + 42, cy},
+        Math.Vector2{cx, cy + 42},
+        Math.Vector2{cx - 42, cy},
     ]
 
     {

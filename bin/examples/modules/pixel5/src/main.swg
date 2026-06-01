@@ -178,13 +178,6 @@ func getCardRect(index: s32)->Math.Rectangle
     return {28 + col * (cardWidth + gap), top + row * (cardHeight + gap), cardWidth, cardHeight}
 }
 
-func getCardSourceRect(card: const &TextureCard)->Math.Rectangle
-{
-    if card.options.sourceRect.isEmpty() do
-        return {0, 0, cast(f32) card.texture.width, cast(f32) card.texture.height}
-    return card.options.sourceRect
-}
-
 func fitTextureRect(bounds: Math.Rectangle, sourceWidth, sourceHeight: f32, angle: Math.Angle)->Math.Rectangle
 {
     let absCos        = Math.abs(Math.cos(angle.rad))
@@ -204,8 +197,10 @@ func drawCardTexture(painter: *Pixel.Painter, rect: Math.Rectangle, card: const 
     if !card.texture.isValid() do
         return
 
-    let srcRect = getCardSourceRect(card)
-    var textureRect = fitTextureRect(rect, srcRect.width, srcRect.height, card.options.angle)
+    let srcRect = card.options.sourceRect
+    let sourceWidth = srcRect.isEmpty() ? cast(f32) card.texture.width : srcRect.width
+    let sourceHeight = srcRect.isEmpty() ? cast(f32) card.texture.height : srcRect.height
+    var textureRect = fitTextureRect(rect, sourceWidth, sourceHeight, card.options.angle)
     let centerX = textureRect.horzCenter()
     let centerY = textureRect.vertCenter()
     textureRect.width *= card.options.scale
@@ -219,12 +214,18 @@ func drawCardTexture(painter: *Pixel.Painter, rect: Math.Rectangle, card: const 
     {
         painter.pushTransform()
         painter.rotateTransform(card.options.angle, textureRect.horzCenter(), textureRect.vertCenter())
-        painter.drawTexture(textureRect, srcRect, card.texture)
+        if srcRect.isEmpty() do
+            painter.drawTexture(textureRect, card.texture)
+        else do
+            painter.drawTexture(textureRect, srcRect, card.texture)
         painter.popTransform()
     }
     else
     {
-        painter.drawTexture(textureRect, srcRect, card.texture)
+        if srcRect.isEmpty() do
+            painter.drawTexture(textureRect, card.texture)
+        else do
+            painter.drawTexture(textureRect, srcRect, card.texture)
     }
 
     painter.setInterpolationMode(.Linear)

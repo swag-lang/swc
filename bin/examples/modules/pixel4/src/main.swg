@@ -2,7 +2,7 @@ using Core, Pixel, Win32
 
 const W = 980
 const H = 720
-const MaxPages = 3
+const MaxPages = 4
 
 const FixedWindowStyle = WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX | WS_CLIPSIBLINGS | WS_CLIPCHILDREN
 
@@ -100,7 +100,7 @@ func drawPageHeader(painter: *Pixel.Painter, title, subtitle: string)
 
 func drawFooter(painter: *Pixel.Painter)
 {
-    let pageText = Format.toString("F1 : next page (%/%). Pages : caps, joins, transparence.", g_Page + 1, MaxPages)
+    let pageText = Format.toString("F1 : next page (%/%). Pages : caps, joins, transparence, polygons.", g_Page + 1, MaxPages)
     painter.drawString(28, H - 26, pageText, g_HelpFont, Argb.DimGray)
 }
 
@@ -171,6 +171,112 @@ func drawCapsPage(painter: *Pixel.Painter)
         drawCapRow(painter, rowRect, CapRows[i])
     }
     painter.popClippingRect()
+}
+
+func drawClosedOutline(painter: *Pixel.Painter, points: [..] Math.Vector2, pen: Pen)
+{
+    if @countof(points) < 2 do
+        return
+
+    var path: LinePath
+    path.start(points[0].x, points[0].y)
+    foreach pt in points where @index do
+        path.lineTo(pt.x, pt.y)
+    path.close()
+    painter.drawPath(&path, pen)
+}
+
+func makeStarPolygon(cx, cy, outer, inner: f32, branches: s32)->Array'Math.Vector2
+{
+    var result: retval
+    let total = branches * 2
+    for i in total
+    {
+        var radius = inner
+        if (i & 1) == 0 do
+            radius = outer
+        let angle = -Math.ConstF32.Pi * 0.5 + cast(f32) i * (Math.ConstF32.TwoPi / cast(f32) total)
+        result.add(Math.Vector2{cx + Math.cos(angle) * radius, cy + Math.sin(angle) * radius})
+    }
+
+    return result
+}
+
+func makeHexPolygon(cx, cy, radius: f32)->Array'Math.Vector2
+{
+    var result: retval
+    for i in 6
+    {
+        let angle = Math.ConstF32.Pi / 6 + cast(f32) i * (Math.ConstF32.TwoPi / 6)
+        result.add(Math.Vector2{cx + Math.cos(angle) * radius, cy + Math.sin(angle) * radius})
+    }
+
+    return result
+}
+
+func makeArrowPolygon(rect: Math.Rectangle)->Array'Math.Vector2
+{
+    var result: retval
+    let left   = rect.x + 22
+    let top    = rect.y + 26
+    let right  = rect.right() - 26
+    let bottom = rect.bottom() - 24
+    let midY   = rect.vertCenter()
+    let stemX  = left + rect.width * 0.42
+
+    result.add(Math.Vector2{left, midY - 34})
+    result.add(Math.Vector2{stemX, midY - 34})
+    result.add(Math.Vector2{stemX, top})
+    result.add(Math.Vector2{right, midY})
+    result.add(Math.Vector2{stemX, bottom})
+    result.add(Math.Vector2{stemX, midY + 34})
+    result.add(Math.Vector2{left, midY + 34})
+    result.add(Math.Vector2{left + 28, midY})
+    return result
+}
+
+func addPolygonPath(path: *LinePath, points: [..] Math.Vector2)
+{
+    if @countof(points) < 2 do
+        return
+
+    path.start(points[0].x, points[0].y)
+    foreach pt in points where @index do
+        path.lineTo(pt.x, pt.y)
+    path.close()
+}
+
+func buildPolygonHoleList(rect: Math.Rectangle)->LinePathList
+{
+    var result: retval
+    let cx = rect.horzCenter()
+    let cy = rect.vertCenter() + 4
+
+    let outer = makeHexPolygon(cx, cy, Math.min(rect.width, rect.height) * 0.34)
+    let inner = [
+        Math.Vector2{cx, cy - 56},
+        Math.Vector2{cx + 62, cy},
+        Math.Vector2{cx, cy + 56},
+        Math.Vector2{cx - 62, cy},
+    ]
+
+    {
+        let path = result.newPath()
+        addPolygonPath(path, outer[to])
+    }
+
+    {
+        let path = result.newPath()
+        path.start(inner[0].x, inner[0].y)
+        for i in 1 to @countof(inner)
+        {
+            let idx = @countof(inner) - i
+            path.lineTo(inner[idx].x, inner[idx].y)
+        }
+        path.close()
+    }
+
+    return result
 }
 
 func makeJoinPath(rect: Math.Rectangle)->LinePath
@@ -353,6 +459,65 @@ func drawTransparencyPage(painter: *Pixel.Painter)
     drawAlphaRow(painter, {alphaBody.x, alphaBody.y + 2 * alphaRowHeight, alphaBody.width, alphaRowHeight}, 216, "85% alpha")
 }
 
+func drawPolygonSamplesCard(painter: *Pixel.Painter, rect: Math.Rectangle, title, subtitle: string, fillColor, strokeColor: Color, points0, points1: [..] Math.Vector2)
+{
+    let body   = drawPanel(painter, rect, title, subtitle)
+    let center = body.horzCenter()
+
+    painter.drawLine(center, body.y + 14, center, body.bottom() - 14, Color.fromArgb(26, Argb.SlateGray), 1)
+
+    painter.fillPolygon(points0, Brush.createSolid(fillColor))
+    drawClosedOutline(painter, points0, Pen.createSolid(strokeColor, 4))
+
+    painter.fillPolygon(points1, Brush.createSolid(fillColor))
+    drawClosedOutline(painter, points1, Pen.createSolid(strokeColor, 4))
+}
+
+func drawPolygonHoleCard(painter: *Pixel.Painter, rect: Math.Rectangle)
+{
+    let body = drawPanel(painter, rect, "Winding and holes", "Outer ring filled, inner ring reversed to carve a hole.")
+    var list = buildPolygonHoleList(body)
+
+    painter.fillPath(&list, Color.fromArgb(214, Argb.MediumPurple))
+
+    var outlinePen = Pen.createSolid(Argb.Indigo, 4)
+    outlinePen.begCapStyle = .None
+    outlinePen.endCapStyle = .None
+    outlinePen.joinStyle   = .Round
+    painter.drawPath(&list, outlinePen)
+
+    painter.drawString(body.x + 22, body.bottom() - 42, "Counter-wound inner contour", g_HelpFont, Argb.Indigo)
+}
+
+func drawPolygonsPage(painter: *Pixel.Painter)
+{
+    drawPageHeader(painter, "Pixel polygon rendering", "Page 4 : convex fills, concave triangulation and polygon winding for holes.")
+
+    let convexRect  = Math.Rectangle{28, 110, 452, 248}
+    let concaveRect = Math.Rectangle{500, 110, 452, 248}
+    let holeRect    = Math.Rectangle{28, 386, 924, 276}
+
+    let convexBodyLeft  = insetRect(convexRect, 36, 88, 246, 26)
+    let convexBodyRight = insetRect(convexRect, 246, 88, 36, 26)
+    let concaveBodyLeft = insetRect(concaveRect, 36, 88, 246, 26)
+    let concaveBodyRight = insetRect(concaveRect, 246, 88, 36, 26)
+
+    let diamond = [
+        Math.Vector2{convexBodyLeft.horzCenter(), convexBodyLeft.y + 10},
+        Math.Vector2{convexBodyLeft.right() - 18, convexBodyLeft.vertCenter()},
+        Math.Vector2{convexBodyLeft.horzCenter(), convexBodyLeft.bottom() - 10},
+        Math.Vector2{convexBodyLeft.x + 18, convexBodyLeft.vertCenter()},
+    ]
+    let hexagon = makeHexPolygon(convexBodyRight.horzCenter(), convexBodyRight.vertCenter(), 58)
+
+    let star  = makeStarPolygon(concaveBodyLeft.horzCenter(), concaveBodyLeft.vertCenter(), 62, 26, 5)
+    let arrow = makeArrowPolygon(concaveBodyRight)
+
+    drawPolygonSamplesCard(painter, convexRect, "Convex polygons", "Direct fills with clean straight edges and sharp corners.", Argb.CadetBlue, Argb.MidnightBlue, diamond[to], hexagon[to])
+    drawPolygonSamplesCard(painter, concaveRect, "Concave polygons", "Non-convex fills go through polygon cleaning and triangulation.", Argb.Goldenrod, Argb.SaddleBrown, star[to], arrow[to])
+    drawPolygonHoleCard(painter, holeRect)
+}
+
 func drawScene(painter: *Pixel.Painter)
 {
     painter.clear(Argb.WhiteSmoke)
@@ -366,6 +531,8 @@ func drawScene(painter: *Pixel.Painter)
         drawJoinsPage(painter)
     case 2:
         drawTransparencyPage(painter)
+    case 3:
+        drawPolygonsPage(painter)
     default:
         unreachable
     }

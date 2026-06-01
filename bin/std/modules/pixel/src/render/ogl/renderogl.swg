@@ -732,9 +732,10 @@ impl RenderOgl
 
         case BindTextureFont:
             let params = &cmd.textureFont
-            let filter = params.font.renderMode.isDistanceField() ? GL_LINEAR : GL_NEAREST
+            let cache  = params.font.cache
+            let filter = cache.renderMode.isDistanceField() ? GL_LINEAR : GL_NEAREST
             glActiveTexture(GL_TEXTURE1)
-            let texture = params.font.atlases[params.atlasIndex].texture.handle
+            let texture = cache.atlases[params.atlasIndex].texture.handle
             glBindTexture(GL_TEXTURE_2D, cast(GLuint) texture)
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE)
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE)
@@ -746,11 +747,11 @@ impl RenderOgl
             glBindTexture(GL_TEXTURE_2D, .whiteTexture)
 
         case UpdateFont:
-            let font = cmd.font.fontRef
-            let filter = font.renderMode.isDistanceField() ? GL_LINEAR : GL_NEAREST
-            font.dirty = false
+            let cache = cmd.font.fontRef.cache
+            let filter = cache.renderMode.isDistanceField() ? GL_LINEAR : GL_NEAREST
+            cache.dirty = false
             glActiveTexture(GL_TEXTURE1)
-            foreach &atlas in font.atlases
+            foreach &atlas in cache.atlases
             {
                 if !atlas.dirty do
                     continue

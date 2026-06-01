@@ -48,7 +48,7 @@ func fontsFor(size: u32)->{ bmp: *Pixel.Font, sdf: *Pixel.Font, msdf: *Pixel.Fon
     let spread = Math.max(2'u32, size / 4)
 
     var result: retval
-    result.bmp  = Font.create(g_TypeFace, size)
+    result.bmp  = Font.createBitmap(g_TypeFace, size)
     result.sdf  = Font.createSdf(g_TypeFace, size, spread)
     result.msdf = Font.createMsdf(g_TypeFace, size, spread)
     return result

@@ -810,7 +810,7 @@ public impl RichEditCtrl
             foreach l in .lines
             {
                 let arr     = Painter.getGlyphs(l.chars, fontR)
-                let measure = Painter.measureString(arr)
+                let measure = Painter.measureString(arr, fontR)
                 result.w = Math.max(result.h, measure.width)
             }
         }

@@ -417,7 +417,7 @@ impl Painter
 
     fileprivate mtd updateFont(fontRef: *Font)
     {
-        if !fontRef.dirty do
+        if !fontRef.cache.dirty do
             return
         let cmd = .newCommand(.UpdateFont, false)
         cmd.font.fontRef = fontRef

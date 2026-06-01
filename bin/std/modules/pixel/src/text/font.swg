@@ -47,50 +47,142 @@ public impl FontRenderMode
     }
 }
 
-public struct Font
+// Reference em size and distance-field range used by the size-independent MSDF path.
+// A single MSDF atlas rendered at this size serves every draw size and zoom.
+const RefEmSize:   u32 = 40
+const RefEmSpread: u32 = 8
+
+// Shared glyph storage for a (typeface, style, render mode, reference size, spread).
+// All Fonts that map to the same key share this cache, so a typeface needs a single
+// MSDF atlas regardless of how many sizes are used.
+public struct GlyphCache
 {
+    typeFace:          *TypeFace
+    renderMode:        FontRenderMode
+    refSize:           u32
+    spread:            u32
+    forceBold:         bool
+    forceItalic:       bool
+
+    // Metrics at the reference size, in pixels.
     ascent:            f32
     descent:           f32
     height:            f32
     underlinePos:      f32
     underlineSize:     f32
-    forceBold:         bool
-    forceItalic:       bool
 
-    fullname:          String
-    typeFace:          *TypeFace
-    size:              u32
-    renderMode:        FontRenderMode
-    sdfSpread:         u32
     atlases:           Array'GlyphAtlas
     asciiRef:          [128] GlyphDesc
     unicodeRef:        HashTable'(rune, *GlyphDesc)
     dirty:             bool
 }
 
-fileprivate var g_HashFont: HashTable'(String, *Font)
+// A Font is a lightweight view over a shared GlyphCache at a given draw size.
+// Glyph quads and metrics are scaled by size/refSize when drawn or measured.
+public struct Font
+{
+    cache:             *GlyphCache
+    size:              u32
+    forceBold:         bool
+    forceItalic:       bool
+
+    // Metrics scaled to 'size', in pixels.
+    ascent:            f32
+    descent:           f32
+    height:            f32
+    underlinePos:      f32
+    underlineSize:     f32
+
+    fullname:          String
+}
+
+fileprivate var g_HashFont:       HashTable'(String, *Font)
+fileprivate var g_HashGlyphCache: HashTable'(String, *GlyphCache)
 
 #drop
 {
     foreach k, v in g_HashFont do
         Memory.delete(v)
     g_HashFont.free()
+
+    foreach k, v in g_HashGlyphCache do
+        Memory.delete(v)
+    g_HashGlyphCache.free()
+}
+
+fileprivate func mulFix(a, b: s32)->s32
+{
+    let ab = cast(s64) a * cast(s64) b
+    return cast(s32) ((ab + 0x8000 - (ab < 0 ? 1 : 0)) >> 16)
+}
+
+fileprivate func renderModeName(mode: FontRenderMode)->string
+{
+    switch mode
+    {
+    case SignedDistanceField:
+        return "sdf"
+    case MultiChannelSignedDistanceField:
+        return "msdf"
+    }
+
+    return "bitmap"
+}
+
+fileprivate var g_FontLock: Sync.Mutex
+
+// Get or create the shared glyph cache for a (typeface, style, mode, refSize, spread).
+// Assumes g_FontLock is held.
+fileprivate func acquireGlyphCache(typeFace: *TypeFace, refSize, spread: u32, renderMode: FontRenderMode, forceBold, forceItalic: bool)->*GlyphCache
+{
+    let key = Format.toString("%_%_%_%_%_%", typeFace.fullname, refSize, forceBold, forceItalic, renderModeName(renderMode), spread)
+
+    let here = g_HashGlyphCache.tryFind(key)
+    if here do
+        return here.value
+
+    let cache = Memory.new'GlyphCache()
+    cache.typeFace    = typeFace
+    cache.renderMode  = renderMode
+    cache.refSize     = refSize
+    cache.spread      = spread
+    cache.forceBold   = forceBold
+    cache.forceItalic = forceItalic
+
+    assume typeFace.face.setPixelSize(0, refSize)
+    let metrics = &typeFace.face.size.metrics
+    cache.ascent        = metrics.ascender / 64.0
+    cache.descent       = metrics.descender / 64.0
+    cache.height        = cache.ascent - cache.descent
+    cache.underlinePos  = mulFix(cast(s32) typeFace.face.underlinePosition, metrics.yScale) / 64.0
+    cache.underlineSize = mulFix(cast(s32) typeFace.face.underlineThickness, metrics.yScale) / 64.0
+
+    g_HashGlyphCache.add(key, cache)
+    return cache
 }
 
 public impl Font
 {
-    fileprivate var lock: Sync.Mutex
-
     mtd opDrop()
     {
-        foreach k, v in .unicodeRef do
-            Memory.delete(v)
     }
 
-    fileprivate func mulFix(a, b: s32)->s32
+    // Scale factor from the shared cache reference size to this Font's draw size
+    mtd const scale()->f32
     {
-        let ab = cast(s64) a * cast(s64) b
-        return cast(s32) ((ab + 0x8000 - (ab < 0 ? 1 : 0)) >> 16)
+        return cast(f32) .size / cast(f32) .cache.refSize
+    }
+
+    // The render mode of the underlying glyph cache
+    mtd const renderMode()->FontRenderMode
+    {
+        return .cache.renderMode
+    }
+
+    // Returns the glyph descriptor of a given rune (in reference-size pixels)
+    mtd getGlyphDesc(c: rune)->const *GlyphDesc
+    {
+        return .cache.getGlyphDesc(c)
     }
 
     // Clear fileprivate caches
@@ -99,6 +191,10 @@ public impl Font
         foreach a, b in g_HashFont do
             Memory.delete(b)
         g_HashFont.clear()
+
+        foreach a, b in g_HashGlyphCache do
+            Memory.delete(b)
+        g_HashGlyphCache.clear()
     }
 
     // Release the given font
@@ -106,76 +202,72 @@ public impl Font
     {
         if !font do
             return
-        Sync.scopedLock(&lock)
+        Sync.scopedLock(&g_FontLock)
         g_HashFont.remove(font.fullname)
         Memory.delete(font)
     }
 
-    fileprivate func createWithMode(typeFace: *TypeFace, size, spread: u32, renderMode: FontRenderMode, forceBold, forceItalic: bool)->*Font
+    fileprivate func createView(typeFace: *TypeFace, size, refSize, spread: u32, renderMode: FontRenderMode, forceBold, forceItalic: bool)->*Font
     {
         Debug.assert(typeFace != null)
         Debug.assert(size > 0)
 
-        var renderName = "bitmap"
-        switch renderMode
-        {
-        case SignedDistanceField:
-            renderName = "sdf"
-        case MultiChannelSignedDistanceField:
-            renderName = "msdf"
-        }
+        let str = Format.toString("%_%_%_%_%_%_%", typeFace.fullname, size, forceBold, forceItalic, renderModeName(renderMode), spread, refSize)
 
-        let str = Format.toString("%_%_%_%_%_%", typeFace.fullname, size, forceBold, forceItalic, renderName, spread)
-
-        Sync.scopedLock(&lock)
+        Sync.scopedLock(&g_FontLock)
 
         let here = g_HashFont.tryFind(str)
         if here do
             return here.value
 
+        let cache = acquireGlyphCache(typeFace, refSize, spread, renderMode, forceBold, forceItalic)
+
         let font = Memory.new'Font()
         font.fullname    = str
-        font.typeFace    = typeFace
+        font.cache       = cache
         font.size        = size
-        font.renderMode  = renderMode
-        font.sdfSpread   = spread
         font.forceBold   = forceBold
         font.forceItalic = forceItalic
 
-        assume typeFace.face.setPixelSize(0, size)
-        let metrics = &typeFace.face.size.metrics
-        font.ascent        = metrics.ascender / 64.0
-        font.descent       = metrics.descender / 64.0
-        font.height        = font.ascent - font.descent
-        font.underlinePos  = mulFix(cast(s32) typeFace.face.underlinePosition, metrics.yScale) / 64.0
-        font.underlineSize = mulFix(cast(s32) typeFace.face.underlineThickness, metrics.yScale) / 64.0
+        let s = cast(f32) size / cast(f32) refSize
+        font.ascent        = cache.ascent * s
+        font.descent       = cache.descent * s
+        font.height        = cache.height * s
+        font.underlinePos  = cache.underlinePos * s
+        font.underlineSize = cache.underlineSize * s
 
         g_HashFont.add(str, font)
         return font
     }
 
-    // Creates a new Font of the given typeface and size
+    // Creates a Font of the given typeface and size.
+    // Uses a single, size-independent MSDF atlas per typeface: state of the art at any size.
     func create(typeFace: *TypeFace, size: u32, forceBold, forceItalic = false)->*Font
     {
-        return createWithMode(typeFace, size, 0, .Bitmap, forceBold, forceItalic)
+        return createView(typeFace, size, RefEmSize, RefEmSpread, .MultiChannelSignedDistanceField, forceBold, forceItalic)
     }
 
-    // Creates a new signed distance field Font of the given typeface and size
+    // Creates a classic bitmap Font, rasterized at the exact pixel size.
+    func createBitmap(typeFace: *TypeFace, size: u32, forceBold, forceItalic = false)->*Font
+    {
+        return createView(typeFace, size, size, 0, .Bitmap, forceBold, forceItalic)
+    }
+
+    // Creates a single-channel signed distance field Font, rasterized at the given size.
     func createSdf(typeFace: *TypeFace, size, spread: u32, forceBold, forceItalic = false)->*Font
     {
         Debug.assert(spread > 0)
-        return createWithMode(typeFace, size, spread, .SignedDistanceField, forceBold, forceItalic)
+        return createView(typeFace, size, size, spread, .SignedDistanceField, forceBold, forceItalic)
     }
 
-    // Creates a new multi-channel signed distance field Font of the given typeface and size.
-    // A single MSDF font scales cleanly to any draw size/zoom while keeping sharp corners.
+    // Creates a multi-channel signed distance field Font, rasterized at the given size.
     func createMsdf(typeFace: *TypeFace, size, spread: u32, forceBold, forceItalic = false)->*Font
     {
         Debug.assert(spread > 0)
-        return createWithMode(typeFace, size, spread, .MultiChannelSignedDistanceField, forceBold, forceItalic)
+        return createView(typeFace, size, size, spread, .MultiChannelSignedDistanceField, forceBold, forceItalic)
     }
 
-    // Creates a new Font with the given filename and size
+    // Creates a Font with the given filename and size (size-independent MSDF).
     func create(fullname: string, size: u32, forceBold, forceItalic = false)->*Font throw
     {
         Debug.assert(@countof(fullname) != 0)
@@ -185,7 +277,17 @@ public impl Font
         return create(typeFace, size, forceBold, forceItalic)
     }
 
-    // Creates a new signed distance field Font with the given filename and size
+    // Creates a classic bitmap Font with the given filename and size
+    func createBitmap(fullname: string, size: u32, forceBold, forceItalic = false)->*Font throw
+    {
+        Debug.assert(@countof(fullname) != 0)
+        Debug.assert(size > 0)
+
+        let typeFace = try TypeFace.load(fullname)
+        return createBitmap(typeFace, size, forceBold, forceItalic)
+    }
+
+    // Creates a signed distance field Font with the given filename and size
     func createSdf(fullname: string, size, spread: u32, forceBold, forceItalic = false)->*Font throw
     {
         Debug.assert(@countof(fullname) != 0)
@@ -195,7 +297,7 @@ public impl Font
         return createSdf(typeFace, size, spread, forceBold, forceItalic)
     }
 
-    // Creates a new multi-channel signed distance field Font with the given filename and size
+    // Creates a multi-channel signed distance field Font with the given filename and size
     func createMsdf(fullname: string, size, spread: u32, forceBold, forceItalic = false)->*Font throw
     {
         Debug.assert(@countof(fullname) != 0)
@@ -204,8 +306,17 @@ public impl Font
         let typeFace = try TypeFace.load(fullname)
         return createMsdf(typeFace, size, spread, forceBold, forceItalic)
     }
+}
 
-    // Returns the glyph descriptor of a given rune
+public impl GlyphCache
+{
+    mtd opDrop()
+    {
+        foreach k, v in .unicodeRef do
+            Memory.delete(v)
+    }
+
+    // Returns the glyph descriptor of a given rune, rendered at the reference size
     mtd getGlyphDesc(c: rune)->const *GlyphDesc
     {
         // Already there ?
@@ -227,11 +338,11 @@ public impl Font
         switch .renderMode
         {
         case SignedDistanceField:
-            bmp = assume .typeFace.renderGlyphSdf(c, .size, .sdfSpread, .forceBold, .forceItalic)
+            bmp = assume .typeFace.renderGlyphSdf(c, .refSize, .spread, .forceBold, .forceItalic)
         case MultiChannelSignedDistanceField:
-            bmp = assume .typeFace.renderGlyphMsdf(c, .size, .sdfSpread, .forceBold, .forceItalic)
+            bmp = assume .typeFace.renderGlyphMsdf(c, .refSize, .spread, .forceBold, .forceItalic)
         default:
-            bmp = assume .typeFace.renderGlyph(c, .size, .forceBold, .forceItalic)
+            bmp = assume .typeFace.renderGlyph(c, .refSize, .forceBold, .forceItalic)
         }
 
         // Glyph width in bytes (atlas columns are measured in bytes, rows in pixels)
@@ -259,7 +370,7 @@ public impl Font
         {
             var newAtlas: GlyphAtlas
             newAtlas.bpp    = bpp
-            let atlasSide   = Math.roundUpToPowerOf2(Math.max(.size * 4, Math.max(bmp.width, bmp.rows) * 2))
+            let atlasSide   = Math.roundUpToPowerOf2(Math.max(.refSize * 4, Math.max(bmp.width, bmp.rows) * 2))
             newAtlas.width  = atlasSide * newAtlas.bpp
             newAtlas.height = atlasSide
             newAtlas.datas.resize(cast(u64) newAtlas.width * newAtlas.height)

@@ -91,8 +91,9 @@ impl Painter
             return result
         let localFont = cast(*Font) font
         let desc = localFont.getGlyphDesc(c)
-        result.x = desc.advanceX
-        result.y = desc.shiftY + desc.height
+        let sc   = localFont.scale()
+        result.x = desc.advanceX * sc
+        result.y = (desc.shiftY + desc.height) * sc
         return result
     }
 
@@ -100,11 +101,11 @@ impl Painter
     func measureString(text: string, font: *Font)->StringMetrics
     {
         let arr = getGlyphs(text, font)
-        return measureString(arr)
+        return measureString(arr, font)
     }
 
-    // Returns the bounding rectangle of a given text, at a given position
-    func measureString(text: Array'(const *GlyphDesc))->StringMetrics
+    // Returns the bounding rectangle of a given text, scaled to the font draw size
+    func measureString(text: Array'(const *GlyphDesc), font: *Font)->StringMetrics
     {
         var result: retval
         result.ascent  = Swag.F32.NegInf
@@ -116,6 +117,10 @@ impl Painter
             result.width += refr.advanceX
         }
 
+        let sc = font.scale()
+        result.ascent  *= sc
+        result.descent *= sc
+        result.width   *= sc
         result.height = result.ascent + result.descent
         return result
     }
@@ -159,7 +164,7 @@ impl Painter
         if under != .None or brush.type != .SolidColor do
             ms = measureString(text, font)
 
-        switch font.renderMode
+        switch font.cache.renderMode
         {
         case SignedDistanceField:
             .startSdfFont()
@@ -198,59 +203,32 @@ impl Painter
 
         .updateFont(font)
 
-        if zoom == 1
+        // Glyph descriptors are stored at the cache reference size; scale to draw size.
+        let sc = font.scale() * zoom
+
+        foreach refr in arr
         {
-            foreach refr in arr
-            {
-                .setTextureFont(font, refr.atlasIndex)
+            .setTextureFont(font, refr.atlasIndex)
 
-                let x1 = Math.round(x + refr.shiftX)
-                let y1 = Math.round(y - refr.shiftY)
-                let x2 = Math.round(x + refr.shiftX + refr.width)
-                let y2 = Math.round(y - refr.shiftY + refr.height)
+            let x1 = Math.round(x + refr.shiftX * sc)
+            let y1 = Math.round(y - refr.shiftY * sc)
+            let x2 = Math.round(x + (refr.shiftX * sc) + (refr.width * sc))
+            let y2 = Math.round(y - (refr.shiftY * sc) + (refr.height * sc))
 
-                let p1 = Math.Vector2{x1, y1}
-                let p2 = Math.Vector2{x2, y1}
-                let p3 = Math.Vector2{x1, y2}
-                let p4 = Math.Vector2{x2, y2}
+            let p1 = Math.Vector2{x1, y1}
+            let p2 = Math.Vector2{x2, y1}
+            let p3 = Math.Vector2{x1, y2}
+            let p4 = Math.Vector2{x2, y2}
 
-                let uv1 = Math.Vector2{refr.uv.x, refr.uv.y}
-                let uv2 = Math.Vector2{refr.uv.x + refr.uv.width, refr.uv.y}
-                let uv3 = Math.Vector2{refr.uv.x, refr.uv.y + refr.uv.height}
-                let uv4 = Math.Vector2{refr.uv.x + refr.uv.width, refr.uv.y + refr.uv.height}
+            let uv1 = Math.Vector2{refr.uv.x, refr.uv.y}
+            let uv2 = Math.Vector2{refr.uv.x + refr.uv.width, refr.uv.y}
+            let uv3 = Math.Vector2{refr.uv.x, refr.uv.y + refr.uv.height}
+            let uv4 = Math.Vector2{refr.uv.x + refr.uv.width, refr.uv.y + refr.uv.height}
 
-                discard .pushTriangle(p1, p2, p3, uv1, uv2, uv3, brush.color)
-                discard .pushTriangle(p3, p2, p4, uv3, uv2, uv4, brush.color)
+            discard .pushTriangle(p1, p2, p3, uv1, uv2, uv3, brush.color)
+            discard .pushTriangle(p3, p2, p4, uv3, uv2, uv4, brush.color)
 
-                x += Math.round(refr.advanceX)
-            }
-        }
-        else
-        {
-            foreach refr in arr
-            {
-                .setTextureFont(font, refr.atlasIndex)
-
-                let x1 = Math.round(x + refr.shiftX * zoom)
-                let y1 = Math.round(y - refr.shiftY * zoom)
-                let x2 = Math.round(x + (refr.shiftX * zoom) + (refr.width * zoom))
-                let y2 = Math.round(y - (refr.shiftY * zoom) + (refr.height * zoom))
-
-                let p1 = Math.Vector2{x1, y1}
-                let p2 = Math.Vector2{x2, y1}
-                let p3 = Math.Vector2{x1, y2}
-                let p4 = Math.Vector2{x2, y2}
-
-                let uv1 = Math.Vector2{refr.uv.x, refr.uv.y}
-                let uv2 = Math.Vector2{refr.uv.x + refr.uv.width, refr.uv.y}
-                let uv3 = Math.Vector2{refr.uv.x, refr.uv.y + refr.uv.height}
-                let uv4 = Math.Vector2{refr.uv.x + refr.uv.width, refr.uv.y + refr.uv.height}
-
-                discard .pushTriangle(p1, p2, p3, uv1, uv2, uv3, brush.color)
-                discard .pushTriangle(p3, p2, p4, uv3, uv2, uv4, brush.color)
-
-                x += Math.round(refr.advanceX * zoom)
-            }
+            x += Math.round(refr.advanceX * sc)
         }
 
         .resetTextureFont()

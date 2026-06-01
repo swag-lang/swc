@@ -100,7 +100,7 @@ func drawPageHeader(painter: *Pixel.Painter, title, subtitle: string)
 
 func drawFooter(painter: *Pixel.Painter)
 {
-    let pageText = Format.toString("F1 : page suivante (%/%). Pages : caps, joins, transparence.", g_Page + 1, MaxPages)
+    let pageText = Format.toString("F1 : next page (%/%). Pages : caps, joins, transparence.", g_Page + 1, MaxPages)
     painter.drawString(28, H - 26, pageText, g_HelpFont, Argb.DimGray)
 }
 
@@ -113,13 +113,11 @@ func drawPanel(painter: *Pixel.Painter, rect: Math.Rectangle, title, subtitle: s
     return insetRect(rect, 18, 62, 18, 18)
 }
 
-func makeCapPath(left, right, y, amplitude: f32)->LinePath
+func makeCapPath(left, right, y: f32)->LinePath
 {
     var path: retval
-    let width = right - left
     path.start(left, y)
-    path.bezierTo(left + width * 0.50, y - amplitude, left + width * 0.18, y - amplitude, left + width * 0.34, y + amplitude)
-    path.bezierTo(right, y, left + width * 0.68, y - amplitude, left + width * 0.84, y + amplitude)
+    path.lineTo(right, y)
     return path
 }
 
@@ -138,7 +136,7 @@ func drawCapRow(painter: *Pixel.Painter, rect: Math.Rectangle, row: CapRow)
     painter.fillCircle(startX, baselineY, 3, Argb.DarkSlateGray)
     painter.fillCircle(endX, baselineY, 3, Argb.DarkSlateGray)
 
-    var path = makeCapPath(startX, endX, baselineY, rect.height * 0.32)
+    var path = makeCapPath(startX, endX, baselineY)
     var pen  = Pen.createSolid(row.color, 18)
     pen.begCapStyle = row.begCap
     pen.endCapStyle = row.endCap
@@ -161,7 +159,7 @@ func drawCapRow(painter: *Pixel.Painter, rect: Math.Rectangle, row: CapRow)
 
 func drawCapsPage(painter: *Pixel.Painter)
 {
-    drawPageHeader(painter, "Pixel path drawing", "Page 1 : starts, endings and cap styles on the same bezier ribbon.")
+    drawPageHeader(painter, "Pixel path drawing", "Page 1 : starts, endings and cap styles on the same straight segment.")
 
     let body = drawPanel(painter, {28, 98, 924, 586}, "Caps and endings", "The path starts on the left, ends on the right. Only the pen changes from row to row.")
     let rowHeight = body.height / cast(f32) @countof(CapRows)
@@ -199,7 +197,7 @@ func getJoinCardRect(index: s32)->Math.Rectangle
 
 func drawJoinCard(painter: *Pixel.Painter, rect: Math.Rectangle, card: JoinCard)
 {
-    let body = drawPanel(painter, rect, card.label, "Same polyline, same thickness, only joinStyle changes.")
+    let body = drawPanel(painter, rect, card.label, "")
     var path = makeJoinPath(body)
 
     var guide = Pen.createSolid(Color.fromArgb(60, Argb.Black), 3)
@@ -238,8 +236,10 @@ func makeTransparencyPath(rect: Math.Rectangle, variant: s32)->LinePath
     {
     case 0:
         path.start(left + 34, bot - 74)
-        path.bezierTo(left + rect.width * 0.52, top + 28, left + rect.width * 0.16, top + 34, left + rect.width * 0.34, bot - 24)
-        path.bezierTo(right - 36, top + rect.height * 0.45, left + rect.width * 0.70, top + 22, left + rect.width * 0.84, bot - 18)
+        path.lineTo(left + rect.width * 0.20, top + 38)
+        path.lineTo(left + rect.width * 0.44, bot - 28)
+        path.lineTo(left + rect.width * 0.68, top + 54)
+        path.lineTo(right - 36, top + rect.height * 0.45)
 
     case 1:
         path.start(left + 90, top + 52)
@@ -250,25 +250,12 @@ func makeTransparencyPath(rect: Math.Rectangle, variant: s32)->LinePath
 
     case 2:
         path.start(left + 48, top + rect.height * 0.48)
-        path.bezierTo(left + rect.width * 0.40, top + 34, left + rect.width * 0.18, bot - 14, left + rect.width * 0.22, top + 24)
-        path.bezierTo(right - 44, bot - 86, left + rect.width * 0.56, bot - 10, left + rect.width * 0.80, top + 80)
+        path.lineTo(left + rect.width * 0.24, top + 26)
+        path.lineTo(left + rect.width * 0.48, bot - 16)
+        path.lineTo(left + rect.width * 0.74, top + 84)
+        path.lineTo(right - 44, bot - 86)
     }
 
-    return path
-}
-
-func makeBlobPath(rect: Math.Rectangle)->LinePath
-{
-    var path: retval
-    let cx = rect.x + rect.width * 0.52
-    let cy = rect.y + rect.height * 0.50
-
-    path.start(cx - 120, cy - 24)
-    path.bezierTo(cx - 16, cy - 124, cx - 112, cy - 118, cx - 64, cy - 152)
-    path.bezierTo(cx + 124, cy - 30, cx + 56, cy - 88, cx + 132, cy - 102)
-    path.bezierTo(cx + 24, cy + 128, cx + 164, cy + 54, cx + 98, cy + 144)
-    path.bezierTo(cx - 120, cy - 24, cx - 36, cy + 148, cx - 148, cy + 82)
-    path.close()
     return path
 }
 
@@ -289,15 +276,11 @@ func drawAlphaRow(painter: *Pixel.Painter, rect: Math.Rectangle, alpha: u8, labe
 
 func drawTransparencyPage(painter: *Pixel.Painter)
 {
-    drawPageHeader(painter, "Pixel path drawing", "Page 3 : color stacking, alpha blending and filled + stroked paths.")
+    drawPageHeader(painter, "Pixel path drawing", "Page 3 : color stacking and alpha blending on overlapping stroked paths.")
 
-    let sceneBody = drawPanel(painter, {28, 102, 924, 404}, "Transparency and layering", "Semi-transparent paths keep their own caps and joins while blending together.")
+    let sceneBody = drawPanel(painter, {28, 102, 924, 404}, "Transparency and layering", "Semi-transparent paths keep their caps and joins while overlapping cleanly.")
     painter.fillRoundRect(sceneBody.x, sceneBody.y, sceneBody.width, sceneBody.height, 14, 14, Color.fromArgb(255, 248, 250, 252))
     painter.pushClippingSurfaceRect(sceneBody)
-
-    var blob = makeBlobPath(sceneBody)
-    painter.fillPath(&blob, Color.fromArgb(42, Argb.MediumPurple))
-    painter.drawPath(&blob, Pen.createSolid(Color.fromArgb(136, Argb.MediumPurple), 6))
 
     {
         var path = makeTransparencyPath(sceneBody, 0)

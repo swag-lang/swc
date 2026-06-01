@@ -515,7 +515,7 @@ impl LinePath
         for i in 1 to numSegments
         {
             let t     = stepSize * i
-            let point = Math.Curve.evaluateBezier(startPt, p1, pos, t)
+            let point = Math.Curve.evaluateBezier(startPt, pos, p1, t)
             .flattenLine(point)
         }
     }
@@ -561,7 +561,7 @@ impl LinePath
         for i in 1 to numSegments
         {
             let t     = stepSize * i
-            let point = Math.Curve.evaluateBezier(startPt, p1, p2, pos, t)
+            let point = Math.Curve.evaluateBezier(startPt, pos, p1, p2, t)
             .flattenLine(point)
         }
     }

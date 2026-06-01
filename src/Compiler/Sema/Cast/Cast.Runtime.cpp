@@ -66,9 +66,10 @@ namespace
         castRequest.setConstantFoldingResult(sema.cstMgr().addConstant(sema.ctx(), ptrCst));
     }
 
-    void setAnyPointerConstant(Sema& sema, CastRequest& castRequest, TypeRef dstPointeeTypeRef, const TypeInfo& dstType, uint64_t ptrValue)
+    void setAnyPointerConstant(Sema& sema, CastRequest& castRequest, TypeRef dstTypeRef, const TypeInfo& dstType, uint64_t ptrValue)
     {
         SWC_ASSERT(dstType.isAnyPointer());
+        const TypeRef dstPointeeTypeRef = dstType.payloadTypeRef();
 
         ConstantValue ptrCst;
         if (dstType.isBlockPointer())
@@ -76,6 +77,7 @@ namespace
         else
             ptrCst = ConstantValue::makeValuePointer(sema.ctx(), dstPointeeTypeRef, ptrValue, dstType.flags());
 
+        ptrCst.setTypeRef(dstTypeRef);
         castRequest.setConstantFoldingResult(sema.cstMgr().addConstant(sema.ctx(), ptrCst));
     }
 
@@ -312,6 +314,12 @@ Result Cast::castPointerToPointer(Sema& sema, CastRequest& castRequest, TypeRef 
             if (srcType.isConst() && !dstType.isConst() && !castRequest.flags.has(CastFlagsE::UnConst))
                 return castRequest.fail(DiagnosticId::sema_err_cannot_cast_const, srcTypeRef, dstTypeRef);
 
+            if (castRequest.isConstantFolding())
+            {
+                const ConstantValue& srcCst = sema.cstMgr().get(castRequest.constantFoldingSrc());
+                setAnyPointerConstant(sema, castRequest, dstTypeRef, dstType, pointerValueFromPointerLikeConstant(srcCst));
+            }
+
             return Result::Continue;
         }
     }
@@ -323,6 +331,12 @@ Result Cast::castPointerToPointer(Sema& sema, CastRequest& castRequest, TypeRef 
             if (srcType.isConst() && !dstType.isConst() && !castRequest.flags.has(CastFlagsE::UnConst))
                 return castRequest.fail(DiagnosticId::sema_err_cannot_cast_const, srcTypeRef, dstTypeRef);
 
+            if (castRequest.isConstantFolding())
+            {
+                const ConstantValue& srcCst = sema.cstMgr().get(castRequest.constantFoldingSrc());
+                setAnyPointerConstant(sema, castRequest, dstTypeRef, dstType, pointerValueFromPointerLikeConstant(srcCst));
+            }
+
             return Result::Continue;
         }
 
@@ -332,6 +346,12 @@ Result Cast::castPointerToPointer(Sema& sema, CastRequest& castRequest, TypeRef 
         {
             if (srcType.isConst() && !dstType.isConst() && !castRequest.flags.has(CastFlagsE::UnConst))
                 return castRequest.fail(DiagnosticId::sema_err_cannot_cast_const, srcTypeRef, dstTypeRef);
+
+            if (castRequest.isConstantFolding())
+            {
+                const ConstantValue& srcCst = sema.cstMgr().get(castRequest.constantFoldingSrc());
+                setAnyPointerConstant(sema, castRequest, dstTypeRef, dstType, pointerValueFromPointerLikeConstant(srcCst));
+            }
 
             return Result::Continue;
         }
@@ -416,7 +436,7 @@ Result Cast::castToPointer(Sema& sema, CastRequest& castRequest, TypeRef srcType
                 const ConstantValue& srcCst = sema.cstMgr().get(castRequest.constantFoldingSrc());
                 SWC_ASSERT(srcCst.isString());
                 const uint64_t ptrValue = reinterpret_cast<uint64_t>(srcCst.getString().data());
-                setAnyPointerConstant(sema, castRequest, dstPointeeTypeRef, dstType, ptrValue);
+                setAnyPointerConstant(sema, castRequest, dstTypeRef, dstType, ptrValue);
             }
 
             return Result::Continue;
@@ -466,7 +486,7 @@ Result Cast::castToPointer(Sema& sema, CastRequest& castRequest, TypeRef srcType
                 const ConstantValue& srcCst = sema.cstMgr().get(castRequest.constantFoldingSrc());
                 SWC_ASSERT(srcCst.isArray());
                 const uint64_t ptrValue = reinterpret_cast<uint64_t>(srcCst.getArray().data());
-                setAnyPointerConstant(sema, castRequest, dstElemTypeRef, dstType, ptrValue);
+                setAnyPointerConstant(sema, castRequest, dstTypeRef, dstType, ptrValue);
             }
 
             return Result::Continue;
@@ -488,7 +508,7 @@ Result Cast::castToPointer(Sema& sema, CastRequest& castRequest, TypeRef srcType
                 const ConstantValue& srcCst = sema.cstMgr().get(castRequest.constantFoldingSrc());
                 SWC_ASSERT(srcCst.isStruct());
                 const uint64_t ptrValue = reinterpret_cast<uint64_t>(srcCst.getStruct().data());
-                setAnyPointerConstant(sema, castRequest, dstElemTypeRef, dstType, ptrValue);
+                setAnyPointerConstant(sema, castRequest, dstTypeRef, dstType, ptrValue);
             }
 
             return Result::Continue;

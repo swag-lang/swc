@@ -53,6 +53,54 @@ alias BinaryStrictS32Ptr = [*] s32
     @assert(c == 8.5'f64)
 }
 
+#[Swag.Optimize(false)]
+func binaryPromotedFloatAdd(v: f32)->f64
+{
+    return v + 1.25'f64
+}
+
+#[Swag.Optimize(false)]
+func binaryNarrowedFloatLiteralMul(v: f32)->f32
+{
+    return v * 1.4247691104677813
+}
+
+#[Swag.Optimize(false)]
+func binaryPromotedFloatSource(v: f32)->f32
+{
+    return v * 0.5'f32
+}
+
+#[Swag.Optimize(false)]
+func binaryPromotedFloatCallMul(v: f32)->f64
+{
+    return binaryPromotedFloatSource(v) * 1.4247691104677813'f64
+}
+
+#test
+{
+    let value = binaryPromotedFloatAdd(42.5'f32)
+
+    #assert(#typeof(value) == f64)
+    @assert(value == 43.75'f64)
+}
+
+#test
+{
+    let value = binaryNarrowedFloatLiteralMul(2.0'f32)
+
+    #assert(#typeof(value) == f32)
+    @assert(value == 2.0'f32 * 1.4247691104677813'f32)
+}
+
+#test
+{
+    let value = binaryPromotedFloatCallMul(2.5'f32)
+
+    #assert(#typeof(value) == f64)
+    @assert(value == 1.25'f64 * 1.4247691104677813'f64)
+}
+
 // Bitwise AND, OR, XOR on u32
 #test
 {

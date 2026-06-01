@@ -194,7 +194,7 @@ SWC_DIAG_DEF(sema_err_throwable_call_requires_handler, Error, "call to throwable
 SWC_DIAG_DEF(sema_err_error_mgmt_operand_not_throwable, Error, "'{tok}' requires a throwable expression or block; [help] apply it to a call to a function declared with 'throw', or to a block that contains one")
 SWC_DIAG_DEF(sema_err_unknown_scope_name, Error, "cannot find an enclosing '#scope' named '{sym}'; [help] check the name, or add the matching enclosing scope")
 SWC_DIAG_DEF(sema_err_index_outside_loop, Error, "'@index' is used outside a loop statement; [help] use '@index' inside the loop or foreach that defines it")
-SWC_DIAG_DEF(sema_err_switch_invalid_type, Error, "cannot switch on values of type '{type}'; [help] use integer, float, bool, string, typeinfo, any, or interface values")
+SWC_DIAG_DEF(sema_err_switch_invalid_type, Error, "cannot switch on values of type '{type}'; [help] use integer, float, bool, string, pointer, typeinfo, any, or interface values")
 SWC_DIAG_DEF(sema_err_switch_dynamic_case, Error, "invalid dynamic case; [help] use a struct type, optionally followed by 'as <identifier>'")
 SWC_DIAG_DEF(sema_err_switch_case_not_const, Error, "switch case value is not constant; [help] use a compile-time constant case value")
 SWC_DIAG_DEF(sema_err_switch_case_duplicate, Error, "duplicate constant case value '{value}'; [help] remove the duplicate case, or make one case conditional with 'where'")

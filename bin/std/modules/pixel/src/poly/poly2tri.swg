@@ -1044,7 +1044,9 @@ impl Tessellate
         let node = .locateNode(point)
         Debug.assert(node.next and node.next.point, "null node")
         let newNode = .newFrontTriangle(point, node)
-        if point.x <= node.point.x + Math.ConstF64.Epsilon do
+        // Point coordinates are f32; compare with an f32 epsilon so the test stays in single
+        // precision (mixing an f64 epsilon here promotes the f32 operands to f64).
+        if point.x <= node.point.x + Math.ConstF32.Epsilon do
             .fill(node)
         .fillAdvancingFront(newNode)
         return newNode

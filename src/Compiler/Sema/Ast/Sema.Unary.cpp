@@ -3,6 +3,7 @@
 #include "Backend/Runtime.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Cast/Cast.h"
+#include "Compiler/Sema/Constant/ConstantHelpers.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Helpers/SemaCheck.h"
@@ -291,26 +292,8 @@ namespace
                !isCallLikeNode(*view.node());
     }
 
-    Result semaTakeAddress(Sema& sema, const AstUnaryExpr& node, const SemaNodeView& view)
+    TypeRef takeAddressResultTypeRef(Sema& sema, const SemaNodeView& view)
     {
-        SWC_UNUSED(node);
-        if (isFunctionAddressOperand(view))
-        {
-            const auto& symFunc = view.sym()->cast<SymbolFunction>();
-            SemaHelpers::addCurrentFunctionCallDependency(sema, &symFunc);
-
-            sema.setType(sema.curNodeRef(), view.typeRef());
-            return Result::Continue;
-        }
-
-        if (view.sym() && view.sym()->isVariable() && view.type() && !view.type()->isReference())
-        {
-            auto& symVar = view.sym()->cast<SymbolVariable>();
-            if (symVar.hasExtraFlag(SymbolVariableFlagsE::Parameter) ||
-                symVar.hasExtraFlag(SymbolVariableFlagsE::FunctionLocal))
-                symVar.addExtraFlag(SymbolVariableFlagsE::NeedsAddressableStorage);
-        }
-
         TypeRef pointeeTypeRef = view.typeRef();
         if (view.type()->isReference())
             pointeeTypeRef = view.type()->payloadTypeRef();
@@ -332,8 +315,95 @@ namespace
                 blockPointer = true;
         }
 
-        const TypeInfo& ty      = blockPointer ? TypeInfo::makeBlockPointer(pointeeTypeRef, flags) : TypeInfo::makeValuePointer(pointeeTypeRef, flags);
-        const TypeRef   typeRef = sema.typeMgr().addType(ty);
+        const TypeInfo ty = blockPointer ? TypeInfo::makeBlockPointer(pointeeTypeRef, flags) : TypeInfo::makeValuePointer(pointeeTypeRef, flags);
+        return sema.typeMgr().addType(ty);
+    }
+
+    ConstantRef makePointerConstantRef(Sema& sema, TypeRef typeRef, uint64_t ptrValue)
+    {
+        if (!typeRef.isValid())
+            return ConstantRef::invalid();
+
+        TaskContext&    ctx      = sema.ctx();
+        const TypeInfo& ptrType  = sema.typeMgr().get(typeRef);
+        ConstantValue   ptrValueCst;
+        if (ptrType.isValuePointer())
+            ptrValueCst = ConstantValue::makeValuePointer(ctx, ptrType.payloadTypeRef(), ptrValue, ptrType.flags());
+        else
+            ptrValueCst = ConstantValue::makeBlockPointer(ctx, ptrType.payloadTypeRef(), ptrValue, ptrType.flags());
+
+        ptrValueCst.setTypeRef(typeRef);
+        return sema.cstMgr().addConstant(ctx, ptrValueCst);
+    }
+
+    ConstantRef makeAddressableConstantIndexPointerRef(Sema& sema, const SemaNodeView& view, TypeRef resultTypeRef)
+    {
+        if (!view.node() || !view.node()->is(AstNodeId::IndexExpr) || !resultTypeRef.isValid())
+            return ConstantRef::invalid();
+
+        const auto&        indexExpr  = view.node()->cast<AstIndexExpr>();
+        const SemaNodeView baseView   = sema.viewTypeConstant(indexExpr.nodeExprRef);
+        const SemaNodeView indexView  = sema.viewTypeConstant(indexExpr.nodeArgRef);
+        const TypeRef      baseTypeRef = SemaHelpers::unwrapAliasRefType(sema.ctx(), baseView.typeRef());
+        if (!baseView.cst() || !indexView.cst() || !baseTypeRef.isValid())
+            return ConstantRef::invalid();
+
+        const TypeInfo& baseType = sema.typeMgr().get(baseTypeRef);
+        if (!baseType.isArray())
+            return ConstantRef::invalid();
+
+        ConstantRef indexCstRef = indexView.cstRef();
+        if (indexView.cst()->isEnumValue())
+            indexCstRef = indexView.cst()->getEnumValue();
+
+        const ConstantValue& indexCst = sema.cstMgr().get(indexCstRef);
+        if (!indexCst.isInt())
+            return ConstantRef::invalid();
+
+        const auto& indexValue = indexCst.getInt();
+        if (!indexValue.fits64() || indexValue.isNegative())
+            return ConstantRef::invalid();
+
+        const auto& dims = baseType.payloadArrayDims();
+        if (dims.empty())
+            return ConstantRef::invalid();
+
+        const uint64_t constIndex = indexValue.as64();
+        if (constIndex >= dims[0])
+            return ConstantRef::invalid();
+
+        const uint64_t stride = sema.typeMgr().get(view.typeRef()).sizeOf(sema.ctx());
+        if (stride && constIndex > std::numeric_limits<uint64_t>::max() / stride)
+            return ConstantRef::invalid();
+
+        const uint64_t baseAddress = ConstantHelpers::materializeConstantStorageAndGetAddress(sema, baseView);
+        if (!baseAddress && (constIndex || stride))
+            return ConstantRef::invalid();
+
+        return makePointerConstantRef(sema, resultTypeRef, baseAddress + constIndex * stride);
+    }
+
+    Result semaTakeAddress(Sema& sema, const AstUnaryExpr& node, const SemaNodeView& view)
+    {
+        SWC_UNUSED(node);
+        if (isFunctionAddressOperand(view))
+        {
+            const auto& symFunc = view.sym()->cast<SymbolFunction>();
+            SemaHelpers::addCurrentFunctionCallDependency(sema, &symFunc);
+
+            sema.setType(sema.curNodeRef(), view.typeRef());
+            return Result::Continue;
+        }
+
+        if (view.sym() && view.sym()->isVariable() && view.type() && !view.type()->isReference())
+        {
+            auto& symVar = view.sym()->cast<SymbolVariable>();
+            if (symVar.hasExtraFlag(SymbolVariableFlagsE::Parameter) ||
+                symVar.hasExtraFlag(SymbolVariableFlagsE::FunctionLocal))
+                symVar.addExtraFlag(SymbolVariableFlagsE::NeedsAddressableStorage);
+        }
+
+        const TypeRef typeRef = takeAddressResultTypeRef(sema, view);
         sema.setType(sema.curNodeRef(), typeRef);
 
         return Result::Continue;
@@ -470,10 +540,11 @@ Result AstUnaryExpr::semaPostNode(Sema& sema)
         sema.setType(view.nodeRef(), childTypeRef);
         sema.setIsLValue(sema.node(view.nodeRef()));
 
-        // The pointer is const because the underlying data belongs to a constant.
-        const TypeInfo& ty      = TypeInfo::makeValuePointer(childTypeRef, TypeInfoFlagsE::Const);
-        const TypeRef   typeRef = sema.typeMgr().addType(ty);
+        const TypeRef typeRef = takeAddressResultTypeRef(sema, view);
         sema.setType(sema.curNodeRef(), typeRef);
+        const ConstantRef cstRef = makeAddressableConstantIndexPointerRef(sema, view, typeRef);
+        if (cstRef.isValid())
+            sema.setConstant(sema.curNodeRef(), cstRef);
         return Result::Continue;
     }
 

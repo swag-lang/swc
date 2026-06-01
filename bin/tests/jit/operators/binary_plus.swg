@@ -54,6 +54,51 @@
 
 #test
 {
+    #[Swag.Optimize(false)]
+    func addPromotedFloat(v: f32)->f64
+    {
+        return v + 1.25'f64
+    }
+
+    const V = #run addPromotedFloat(42.5'f32)
+    #assert(#typeof(V) == f64)
+    #assert(V == 43.75'f64)
+}
+
+#test
+{
+    #[Swag.Optimize(false)]
+    func multiplyWithNarrowedLiteral(v: f32)->f32
+    {
+        return v * 1.4247691104677813
+    }
+
+    const V = #run multiplyWithNarrowedLiteral(2.0'f32)
+    #assert(#typeof(V) == f32)
+    #assert(V == 2.0'f32 * 1.4247691104677813'f32)
+}
+
+#test
+{
+    #[Swag.Optimize(false)]
+    func promotedFloatSource(v: f32)->f32
+    {
+        return v * 0.5'f32
+    }
+
+    #[Swag.Optimize(false)]
+    func multiplyPromotedCall(v: f32)->f64
+    {
+        return promotedFloatSource(v) * 1.4247691104677813'f64
+    }
+
+    const V = #run multiplyPromotedCall(2.5'f32)
+    #assert(#typeof(V) == f64)
+    #assert(V == 1.25'f64 * 1.4247691104677813'f64)
+}
+
+#test
+{
     func addManyInts(
         a0: s32, a1: s32, a2: s32, a3: s32,
         a4: s32, a5: s32, a6: s32, a7: s32,

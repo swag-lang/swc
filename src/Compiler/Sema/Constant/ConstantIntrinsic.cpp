@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "Compiler/Sema/Constant/ConstantIntrinsic.h"
 #include "Compiler/Sema/Cast/Cast.h"
-#include "Compiler/Sema/Constant/ConstantLower.h"
+#include "Compiler/Sema/Constant/ConstantHelpers.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
@@ -45,37 +45,6 @@ namespace
 
         resultCst.setTypeRef(resultTypeRef);
         sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(ctx, resultCst));
-    }
-
-    uint64_t materializeConstantAndGetAddress(Sema& sema, const SemaNodeView& view)
-    {
-        SWC_ASSERT(view.type());
-        TypeRef storageTypeRef = constantFoldStorageTypeRef(sema, view.typeRef());
-        if (view.cstRef().isValid())
-        {
-            const TypeInfo& storageType = sema.typeMgr().get(storageTypeRef);
-            if (storageType.isScalarUnsized())
-            {
-                ConstantRef concretizedCstRef = ConstantRef::invalid();
-                SWC_INTERNAL_CHECK(Cast::concretizeConstant(sema, concretizedCstRef, view.nodeRef(), view.cstRef(), TypeInfo::Sign::Unknown) == Result::Continue);
-                if (concretizedCstRef.isValid())
-                    storageTypeRef = sema.cstMgr().get(concretizedCstRef).typeRef();
-            }
-
-            storageTypeRef = SemaHelpers::deduceConcretizedAggregateLiteralType(sema, storageTypeRef, view.cstRef());
-        }
-
-        const uint64_t sizeOf = sema.typeMgr().get(storageTypeRef).sizeOf(sema.ctx());
-        if (!sizeOf)
-            return 0;
-
-        SmallVector<std::byte> storage(sizeOf);
-        const ByteSpanRW       storageSpan{storage.data(), storage.size()};
-        std::memset(storageSpan.data(), 0, storageSpan.size());
-        SWC_INTERNAL_CHECK(ConstantLower::lowerToBytes(sema, storageSpan, view.cstRef(), storageTypeRef) == Result::Continue);
-
-        const std::string_view persistentStorage = sema.cstMgr().addPayloadBuffer(asStringView(asByteSpan(storageSpan)));
-        return reinterpret_cast<uint64_t>(persistentStorage.data());
     }
 
     bool getFloatArgAsDouble(Sema& sema, AstNodeRef argRef, double& out)
@@ -285,7 +254,7 @@ void ConstantIntrinsic::tryConstantFoldDataOf(Sema& sema, TypeRef resultTypeRef,
         if (cst.isArray())
             ptrValue = reinterpret_cast<uint64_t>(cst.getArray().data());
         else if (cst.isAggregateArray())
-            ptrValue = materializeConstantAndGetAddress(sema, view);
+            ptrValue = ConstantHelpers::materializeConstantStorageAndGetAddress(sema, view);
         else
             return;
     }
@@ -309,7 +278,7 @@ void ConstantIntrinsic::tryConstantFoldDataOf(Sema& sema, TypeRef resultTypeRef,
         }
         else
         {
-            const auto* runtimeInterface = reinterpret_cast<const Runtime::Interface*>(materializeConstantAndGetAddress(sema, view));
+            const auto* runtimeInterface = reinterpret_cast<const Runtime::Interface*>(ConstantHelpers::materializeConstantStorageAndGetAddress(sema, view));
             ptrValue                     = runtimeInterface ? reinterpret_cast<uint64_t>(runtimeInterface->obj) : 0;
         }
     }

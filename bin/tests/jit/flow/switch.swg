@@ -17,6 +17,8 @@ struct SwitchAnyDerived
     extra: s32 = 20
 }
 
+const SwitchPointerValues = [11, 22, 33]
+
 #test
 {
     func switchScalar(v: s32)->s32
@@ -40,6 +42,33 @@ struct SwitchAnyDerived
     #assert(V1 == 23)
     #assert(V2 == 23)
     #assert(V3 == 90)
+}
+
+#test
+{
+    func switchPointer(v: #null const *s32)->s32
+    {
+        switch v
+        {
+            case &SwitchPointerValues[0]:
+                return 11
+            case &SwitchPointerValues[1], &SwitchPointerValues[2]:
+                return 23
+            case null:
+                return 0
+            default:
+                return 90
+        }
+    }
+
+    const V0 = #run switchPointer(&SwitchPointerValues[0])
+    const V1 = #run switchPointer(&SwitchPointerValues[1])
+    const V2 = #run switchPointer(&SwitchPointerValues[2])
+    const V3 = #run switchPointer(null)
+    #assert(V0 == 11)
+    #assert(V1 == 23)
+    #assert(V2 == 23)
+    #assert(V3 == 0)
 }
 
 #test

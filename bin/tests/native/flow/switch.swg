@@ -11,6 +11,8 @@ struct SwitchAnyDerived
     extra: s32 = 20
 }
 
+const SwitchPointerValues = [11, 22, 33]
+
 enum SwitchStrictAliasEnum : s32
 {
     A = 1,
@@ -43,6 +45,29 @@ alias StrictSwitchF32 = f32
             break
     }
     @assert(hit == 2)
+}
+
+#test
+{
+    func switchPointer(v: #null const *s32)->s32
+    {
+        switch v
+        {
+            case &SwitchPointerValues[0]:
+                return 11
+            case &SwitchPointerValues[1], &SwitchPointerValues[2]:
+                return 23
+            case null:
+                return 0
+            default:
+                return 90
+        }
+    }
+
+    @assert(switchPointer(&SwitchPointerValues[0]) == 11)
+    @assert(switchPointer(&SwitchPointerValues[1]) == 23)
+    @assert(switchPointer(&SwitchPointerValues[2]) == 23)
+    @assert(switchPointer(null) == 0)
 }
 
 #test

@@ -1,10 +1,13 @@
 #include "pch.h"
+#include "Compiler/Sema/Cast/Cast.h"
 #include "Compiler/Sema/Constant/ConstantHelpers.h"
 #include "Backend/Runtime.h"
 #include "Compiler/Sema/Constant/ConstantLower.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Constant/ConstantValue.h"
 #include "Compiler/Sema/Core/Sema.h"
+#include "Compiler/Sema/Core/SemaNodeView.h"
+#include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Compiler/Sema/Symbol/Symbol.Enum.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.Struct.h"
@@ -17,6 +20,19 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    TypeRef constantFoldStorageTypeRef(Sema& sema, TypeRef typeRef)
+    {
+        if (!typeRef.isValid())
+            return TypeRef::invalid();
+
+        const TypeInfo& typeInfo = sema.typeMgr().get(typeRef);
+        if (!typeInfo.isAlias() && !typeInfo.isEnum())
+            return typeRef;
+
+        const TypeRef storageTypeRef = typeInfo.unwrapAliasEnum(sema.ctx(), typeRef);
+        return storageTypeRef.isValid() ? storageTypeRef : typeRef;
+    }
+
     uint32_t sourceCodeLocationShardIndex(const SourceCodeRange& codeRange, const SymbolFunction* function)
     {
         uint32_t hash = Math::hash(codeRange.srcView ? codeRange.srcView->ref().get() : 0);
@@ -327,6 +343,37 @@ Result ConstantHelpers::waitStaticPayloadTypeReady(Sema& sema, TypeRef typeRef, 
 {
     std::unordered_set<TypeRef> visited;
     return waitStaticPayloadTypeReadyRec(sema, typeRef, waitNodeRef, visited);
+}
+
+uint64_t ConstantHelpers::materializeConstantStorageAndGetAddress(Sema& sema, const SemaNodeView& view)
+{
+    SWC_ASSERT(view.type());
+    TypeRef storageTypeRef = constantFoldStorageTypeRef(sema, view.typeRef());
+    if (view.cstRef().isValid())
+    {
+        const TypeInfo& storageType = sema.typeMgr().get(storageTypeRef);
+        if (storageType.isScalarUnsized())
+        {
+            ConstantRef concretizedCstRef = ConstantRef::invalid();
+            SWC_INTERNAL_CHECK(Cast::concretizeConstant(sema, concretizedCstRef, view.nodeRef(), view.cstRef(), TypeInfo::Sign::Unknown) == Result::Continue);
+            if (concretizedCstRef.isValid())
+                storageTypeRef = sema.cstMgr().get(concretizedCstRef).typeRef();
+        }
+
+        storageTypeRef = SemaHelpers::deduceConcretizedAggregateLiteralType(sema, storageTypeRef, view.cstRef());
+    }
+
+    const uint64_t sizeOf = sema.typeMgr().get(storageTypeRef).sizeOf(sema.ctx());
+    if (!sizeOf)
+        return 0;
+
+    SmallVector<std::byte> storage(sizeOf);
+    const ByteSpanRW       storageSpan{storage.data(), storage.size()};
+    std::memset(storageSpan.data(), 0, storageSpan.size());
+    SWC_INTERNAL_CHECK(ConstantLower::lowerToBytes(sema, storageSpan, view.cstRef(), storageTypeRef) == Result::Continue);
+
+    const std::string_view persistentStorage = sema.cstMgr().addPayloadBuffer(asStringView(asByteSpan(storageSpan)));
+    return reinterpret_cast<uint64_t>(persistentStorage.data());
 }
 
 ConstantRef ConstantHelpers::materializeStaticPayloadConstant(Sema& sema, TypeRef typeRef, ByteSpan payload)

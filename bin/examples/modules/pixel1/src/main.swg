@@ -39,23 +39,20 @@ func drawFigures(painter: *Pixel.Painter, ox: f32, aa: bool)
     painter.fillPolygon(tri[to], Brush.createSolid(Argb.MediumSeaGreen))
     drawClosedOutline(painter, tri[to], Pen.createSolid(Argb.DarkGreen, 4))
 
-    // NOTE: a non-convex filled shape (e.g. a 5-point star via fillPolygon) is
-    // intentionally omitted here. It currently crashes in the antialiased
-    // non-convex fill path (fillContourAA on the triangulated contour) and is to
-    // be fixed separately. Convex fills, strokes and outlines work fine.
-
-    // --- Pentagon outline: convex, many diagonal edges ---
-    var penta: [5] Math.Vector2 = undefined
+    // --- Filled 5-point star: the non-convex fill path (clean + triangulate +
+    // centered fringe AA). Alternating outer/inner radii give sharp convex tips
+    // and concave notches, the clearest showcase for non-convex antialiasing. ---
+    var star: Array'Math.Vector2
     let scx = ox + 272
     let scy = 268'f32
-    for i in 5
+    for i in 10
     {
-        let angle = -Math.ConstF32.Pi * 0.5 + cast(f32) i * (Math.ConstF32.Pi * 2 / 5)
-        penta[i].x = scx + Math.cos(angle) * 70
-        penta[i].y = scy + Math.sin(angle) * 70
+        let sr    = ((i & 1) == 0) ? 70'f32 : 28'f32
+        let angle = -Math.ConstF32.Pi * 0.5 + cast(f32) i * (Math.ConstF32.Pi * 2 / 10)
+        star.add(Math.Vector2{scx + Math.cos(angle) * sr, scy + Math.sin(angle) * sr})
     }
-    painter.fillPolygon(penta[to], Brush.createSolid(Argb.Goldenrod))
-    drawClosedOutline(painter, penta[to], Pen.createSolid(Argb.SaddleBrown, 3))
+    painter.fillPolygon(star[to], Brush.createSolid(Argb.Goldenrod))
+    drawClosedOutline(painter, star[to], Pen.createSolid(Argb.SaddleBrown, 3))
 
     // --- Diagonal thick line with round caps ---
     var pen = Pen.createSolid(Argb.MediumPurple, 12)

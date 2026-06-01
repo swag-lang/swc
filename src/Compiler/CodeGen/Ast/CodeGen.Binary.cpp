@@ -77,6 +77,43 @@ namespace
         return storedSourceTypeRef;
     }
 
+    bool isSubstitutedFloatWideningCast(CodeGen& codeGen, AstNodeRef resolvedOperandRef, const CodeGenNodePayload& operandPayload)
+    {
+        if (!resolvedOperandRef.isValid())
+            return false;
+
+        TypeRef castResultTypeRef = operandPayload.typeRef;
+        if (!castResultTypeRef.isValid())
+            castResultTypeRef = codeGen.sema().viewStored(resolvedOperandRef, SemaNodeViewPartE::Type).typeRef();
+        if (!castResultTypeRef.isValid())
+            return false;
+
+        AstNodeRef sourceRef = AstNodeRef::invalid();
+        const AstNode& resolvedOperand = codeGen.node(resolvedOperandRef);
+        if (resolvedOperand.is(AstNodeId::CastExpr))
+            sourceRef = resolvedOperand.cast<AstCastExpr>().nodeExprRef;
+        else if (resolvedOperand.is(AstNodeId::AutoCastExpr))
+            sourceRef = resolvedOperand.cast<AstAutoCastExpr>().nodeExprRef;
+        else
+            return false;
+
+        const TypeRef storedSourceTypeRef = codeGen.sema().viewStored(sourceRef, SemaNodeViewPartE::Type).typeRef();
+        if (!storedSourceTypeRef.isValid())
+            return false;
+
+        const TypeRef sourceTypeRef = codeGen.typeMgr().get(storedSourceTypeRef).unwrapAliasEnum(codeGen.ctx(), storedSourceTypeRef);
+        castResultTypeRef           = codeGen.typeMgr().get(castResultTypeRef).unwrapAliasEnum(codeGen.ctx(), castResultTypeRef);
+        if (!sourceTypeRef.isValid() || !castResultTypeRef.isValid())
+            return false;
+
+        const TypeInfo& sourceType = codeGen.typeMgr().get(sourceTypeRef);
+        const TypeInfo& resultType = codeGen.typeMgr().get(castResultTypeRef);
+        if (!sourceType.isFloat() || !resultType.isFloat())
+            return false;
+
+        return sourceType.payloadFloatBits() < resultType.payloadFloatBits();
+    }
+
     SemaNodeView resolveBinaryOperandSemanticView(CodeGen& codeGen, AstNodeRef operandRef)
     {
         const SemaNodeView semanticView = codeGen.viewType(operandRef);
@@ -93,6 +130,21 @@ namespace
 
     TypeRef resolveBinaryOperandSourceTypeRef(CodeGen& codeGen, AstNodeRef operandRef, const SemaNodeView& operandView, const CodeGenNodePayload& operandPayload)
     {
+        const AstNodeRef resolvedOperandRef = codeGen.resolvedNodeRef(operandRef);
+        if (resolvedOperandRef.isValid() &&
+            resolvedOperandRef != operandRef &&
+            isSubstitutedFloatWideningCast(codeGen, resolvedOperandRef, operandPayload))
+        {
+            if (operandPayload.typeRef.isValid())
+                return operandPayload.typeRef;
+
+            const TypeRef storedResolvedTypeRef = codeGen.sema().viewStored(resolvedOperandRef, SemaNodeViewPartE::Type).typeRef();
+            if (storedResolvedTypeRef.isValid())
+                return storedResolvedTypeRef;
+
+            return operandView.typeRef();
+        }
+
         const AstNode& operand = codeGen.node(operandRef);
         if (operand.is(AstNodeId::CastExpr))
         {

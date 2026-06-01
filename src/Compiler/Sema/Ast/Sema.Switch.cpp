@@ -79,6 +79,16 @@ namespace
         return sema.typeMgr().get(typeRef).unwrap(sema.ctx(), typeRef, TypeExpandE::Alias | TypeExpandE::Enum);
     }
 
+    bool isPointerSwitchType(Sema& sema, TypeRef typeRef)
+    {
+        const TypeRef ultimateTypeRef = switchExprUltimateTypeRef(sema, typeRef);
+        if (!ultimateTypeRef.isValid())
+            return false;
+
+        const TypeInfo& ultimateType = sema.typeMgr().get(ultimateTypeRef);
+        return ultimateType.isAnyPointer() && !ultimateType.isAnyTypeInfo(sema.ctx());
+    }
+
     Result normalizeSwitchExprTypeInfoIfNeeded(Sema& sema, AstNodeRef exprRef, SemaNodeView& exprView)
     {
         const TypeRef   initialUltimateTypeRef = switchExprUltimateTypeRef(sema, exprView.typeRef());
@@ -95,7 +105,7 @@ namespace
     {
         const TypeRef   ultimateTypeRef = switchExprUltimateTypeRef(sema, exprTypeRef);
         const TypeInfo& finalType       = sema.typeMgr().get(ultimateTypeRef);
-        if (finalType.isIntLike() || finalType.isFloat() || finalType.isBool() || finalType.isString() || finalType.isAnyTypeInfo(sema.ctx()) || finalType.isInterface() || finalType.isAny())
+        if (finalType.isIntLike() || finalType.isFloat() || finalType.isBool() || finalType.isString() || finalType.isAnyPointer() || finalType.isAnyTypeInfo(sema.ctx()) || finalType.isInterface() || finalType.isAny())
             return Result::Continue;
 
         return SemaError::raise(sema, DiagnosticId::sema_err_switch_invalid_type, exprRef);
@@ -552,6 +562,29 @@ namespace
         return Cast::cast(sema, view, switchCaseCastTypeRef(sema, switchTypeRef), CastKind::Implicit);
     }
 
+    Result validatePointerSwitchCaseType(Sema& sema, AstNodeRef caseExprRef, TypeRef switchTypeRef)
+    {
+        const TypeRef sourceTypeRef = sema.viewType(caseExprRef).typeRef();
+        if (!sourceTypeRef.isValid())
+            return Result::Continue;
+
+        const TypeRef   ultimateSourceTypeRef = switchExprUltimateTypeRef(sema, sourceTypeRef);
+        const TypeRef   ultimateSwitchTypeRef = switchExprUltimateTypeRef(sema, switchTypeRef);
+        const TypeInfo& sourceType            = sema.typeMgr().get(ultimateSourceTypeRef);
+        const TypeInfo& switchType            = sema.typeMgr().get(ultimateSwitchTypeRef);
+
+        if (sourceType.isNull())
+            return Result::Continue;
+
+        if (sourceType.isAnyPointer() &&
+            switchType.isAnyPointer() &&
+            sourceType.kind() == switchType.kind() &&
+            sourceType.payloadTypeRef() == switchType.payloadTypeRef())
+            return Result::Continue;
+
+        return SemaError::raiseCannotCast(sema, caseExprRef, sourceTypeRef, switchTypeRef);
+    }
+
     Result checkCaseExprIsConst(Sema& sema, const AstNodeRef& exprRef)
     {
         const SemaNodeView exprView = sema.viewConstant(exprRef);
@@ -563,6 +596,14 @@ namespace
     Result handleRangeCaseExpr(Sema& sema, const AstNodeRef& rangeRef, TypeRef switchTypeRef)
     {
         const AstRangeExpr& range = sema.node(rangeRef).cast<AstRangeExpr>();
+        if (isPointerSwitchType(sema, switchTypeRef))
+        {
+            if (range.nodeExprDownRef.isValid())
+                SWC_RESULT(validatePointerSwitchCaseType(sema, range.nodeExprDownRef, switchTypeRef));
+            if (range.nodeExprUpRef.isValid())
+                SWC_RESULT(validatePointerSwitchCaseType(sema, range.nodeExprUpRef, switchTypeRef));
+        }
+
         if (range.nodeExprDownRef.isValid())
             SWC_RESULT(castCaseToSwitch(sema, range.nodeExprDownRef, switchTypeRef));
         if (range.nodeExprUpRef.isValid())
@@ -707,6 +748,9 @@ Result AstSwitchCaseStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childR
     // Be sure it's a value
     SemaNodeView exprView = sema.viewTypeConstant(childRef);
     SWC_RESULT(SemaCheck::isValueOrTypeInfo(sema, exprView));
+
+    if (isPointerSwitchType(sema, switchTypeRef))
+        SWC_RESULT(validatePointerSwitchCaseType(sema, childRef, switchTypeRef));
 
     SWC_RESULT(castCaseToSwitch(sema, childRef, switchTypeRef));
     SWC_RESULT(checkCaseExprIsConst(sema, childRef));

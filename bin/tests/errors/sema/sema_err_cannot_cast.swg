@@ -1,5 +1,8 @@
 #global fileprivate
 
+const CannotCastSwitchPointerValues = [11, 22]
+const CannotCastSwitchPointerBytes  = ['x''u8, 'y''u8]
+
 #test
 {
     let c   = @compiler
@@ -102,4 +105,15 @@ func consumeCannotCastExactGrid(grid: [2, 3] s16)
     let value: any = null
     let fallback: any = true
     let resolved = value orelse fallback // swc-expected-error {{sema_err_cannot_cast}}
+}
+
+#test
+{
+    switch &CannotCastSwitchPointerValues[0]
+    {
+        case &CannotCastSwitchPointerBytes[0]: // swc-expected-error {{sema_err_cannot_cast}}
+            break
+        default:
+            break
+    }
 }

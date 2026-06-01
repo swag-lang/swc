@@ -383,13 +383,17 @@ func makeBlobPath(rect: Math.Rectangle)->LinePath
 func drawBlobSurface(painter: *Pixel.Painter, rect: Math.Rectangle)
 {
     var blob = makeBlobPath(rect)
+    blob.flatten(.Normal)
     painter.fillPath(&blob, Color.fromArgb(42, Argb.MediumPurple))
+
+    let outlineOffset = blob.polygon.isClockwise ? 3.0 : -3.0
+    var outline = blob.polygon.getOffset(outlineOffset, JoinStyle.Round)
 
     var pen = Pen.createSolid(Color.fromArgb(136, Argb.MediumPurple), 6)
     pen.begCapStyle = .None
     pen.endCapStyle = .None
     pen.joinStyle   = .Round
-    painter.drawPath(&blob, pen)
+    painter.drawPath(&outline, pen, .Merge)
 }
 
 func drawAlphaRow(painter: *Pixel.Painter, rect: Math.Rectangle, alpha: u8, label: string)

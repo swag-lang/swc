@@ -24,6 +24,10 @@ fileprivate
 // 1.0 = off; ~1.33 (= 1/0.75) is a mild, safe correction for dark-on-light text.
 const FontGamma = 1.0'f32 / 0.75
 
+// MSDF distance range in atlas texels mapped to the stored [0,1] range.
+// Must match the generator: 2 * Font.RefEmSpread (spread = 8).
+const MsdfRange = 16.0'f32
+
 #[Swag.Strict]
 alias TextureHandle = u64
 const InvalidTextureHandle: TextureHandle = cast() 0
@@ -114,10 +118,12 @@ fileprivate impl RenderOgl
             let text0 = glGetUniformLocation(cast(GLuint) .shaderFontMsdf.handle, @dataof("inTexture0"))
             let text1 = glGetUniformLocation(cast(GLuint) .shaderFontMsdf.handle, @dataof("inTexture1"))
             let gamma = glGetUniformLocation(cast(GLuint) .shaderFontMsdf.handle, @dataof("fontGamma"))
+            let range = glGetUniformLocation(cast(GLuint) .shaderFontMsdf.handle, @dataof("msdfRange"))
             glUseProgram(cast(GLuint) .shaderFontMsdf.handle)
             glUniform1i(text0, 0)
             glUniform1i(text1, 1)
             glUniform1f(gamma, FontGamma)
+            glUniform1f(range, MsdfRange)
         }
 
         {
@@ -729,14 +735,18 @@ impl RenderOgl
         case BindTextureFont:
             let params = &cmd.textureFont
             let cache  = params.font.cache
-            let filter = cache.renderMode.isDistanceField() ? GL_LINEAR : GL_NEAREST
+            // Distance-field atlases are mipmapped: trilinear minification fixes the
+            // undersampling that wrecks a minified MSDF at arbitrary scale ratios.
+            let isDF   = cache.renderMode.isDistanceField()
+            let magF   = isDF ? GL_LINEAR : GL_NEAREST
+            let minF   = isDF ? GL_LINEAR_MIPMAP_LINEAR : GL_NEAREST
             glActiveTexture(GL_TEXTURE1)
             let texture = cache.atlases[params.atlasIndex].texture.handle
             glBindTexture(GL_TEXTURE_2D, cast(GLuint) texture)
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE)
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE)
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, filter)
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, filter)
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, magF)
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, minF)
 
         case ResetTextureFont:
             glActiveTexture(GL_TEXTURE1)
@@ -744,7 +754,10 @@ impl RenderOgl
 
         case UpdateFont:
             let cache = cmd.font.fontRef.cache
-            let filter = cache.renderMode.isDistanceField() ? GL_LINEAR : GL_NEAREST
+            // Mipmapped trilinear minification for distance-field atlases (see BindTextureFont).
+            let isDF  = cache.renderMode.isDistanceField()
+            let magF  = isDF ? GL_LINEAR : GL_NEAREST
+            let minF  = isDF ? GL_LINEAR_MIPMAP_LINEAR : GL_NEAREST
             cache.dirty = false
             glActiveTexture(GL_TEXTURE1)
             foreach &atlas in cache.atlases
@@ -760,11 +773,16 @@ impl RenderOgl
                 glBindTexture(GL_TEXTURE_2D, cast(GLuint) atlas.texture.handle)
                 glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE)
                 glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE)
-                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, filter)
-                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, filter)
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, magF)
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, minF)
                 glPixelStorei(GL_UNPACK_ALIGNMENT, 1)
                 let fmt = atlas.bpp == 1 ? GL_RED : GL_RGB
                 glTexImage2D(GL_TEXTURE_2D, 0, fmt, cast(GLsizei) atlas.texture.width, cast(GLsizei) atlas.texture.height, 0, fmt, GL_UNSIGNED_BYTE, atlas.datas.buffer)
+
+                // Build the mip chain for distance-field atlases. Each glyph keeps a
+                // 'spread'-texel margin, so low mips do not bleed neighbouring glyphs.
+                if isDF do
+                    glGenerateMipmap(GL_TEXTURE_2D)
             }
 
         case ResetTexture0:

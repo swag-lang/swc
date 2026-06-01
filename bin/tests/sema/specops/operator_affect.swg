@@ -74,6 +74,32 @@ struct ConstSetVector2
     x, y: f32
 }
 
+enum ConstPaletteSource: u32
+{
+    Gray = 0xFF808080
+    Blue = 0xFF3366CC
+}
+
+struct ConstPaletteColor
+{
+    raw: u32
+}
+
+impl ConstPaletteColor
+{
+    #[Swag.ConstExpr, Swag.Implicit]
+    mtd opSet(value: ConstPaletteSource)
+    {
+        .raw = cast(u32) value
+    }
+}
+
+struct ConstPaletteCard
+{
+    label: string
+    color: ConstPaletteColor
+}
+
 impl ConstSetVector2
 {
     #[Swag.ConstExpr]
@@ -150,8 +176,17 @@ impl LiteralOverloadTarget
 }
 
 const ConstSetOne: ConstSetVector2 = 1.0
+const ConstPaletteCardOne = ConstPaletteCard{"gray", ConstPaletteSource.Gray}
+const ConstPaletteCards = [
+    ConstPaletteCard{"gray", ConstPaletteSource.Gray},
+    ConstPaletteCard{"blue", ConstPaletteSource.Blue},
+]
+const ConstPaletteColors: [2] ConstPaletteColor = [ConstPaletteSource.Gray, ConstPaletteSource.Blue]
 #assert(ConstSetOne.x == 1.0)
 #assert(ConstSetOne.y == 1.0)
+#assert(ConstPaletteCardOne.color.raw == 0xFF808080'u32)
+#assert(ConstPaletteCards[1].color.raw == 0xFF3366CC'u32)
+#assert(ConstPaletteColors[0].raw == 0xFF808080'u32)
 
 func semaTest001()
 {
@@ -240,4 +275,14 @@ func semaTest008()
     #assert(#typeof(fromFloat) == LiteralOverloadTarget)
     #assert(#typeof(castInt) == LiteralOverloadTarget)
     #assert(#typeof(castFloat) == LiteralOverloadTarget)
+}
+
+func semaTest009()
+{
+    #assert(#typeof(ConstPaletteCardOne) == ConstPaletteCard)
+    #assert(#typeof(ConstPaletteCards) == [2] ConstPaletteCard)
+    #assert(#typeof(ConstPaletteColors) == [2] ConstPaletteColor)
+    #assert(ConstPaletteCardOne.color.raw == 0xFF808080'u32)
+    #assert(ConstPaletteCards[1].color.raw == 0xFF3366CC'u32)
+    #assert(ConstPaletteColors[0].raw == 0xFF808080'u32)
 }

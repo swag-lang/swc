@@ -1,7 +1,16 @@
 using Core, Pixel, Win32
 
-const W = 980
-const H = 640
+const W = 1080
+const H = 560
+
+// Same text rendered with the three techniques, at many sizes (small sizes first).
+const Sizes   = [8, 9, 10, 11, 12, 13, 14, 16, 18, 22, 28, 36]
+const Sample  = "Hamburg agQ 012"
+
+const ColPx     = 22.0
+const ColBitmap = 120.0
+const ColSdf    = 440.0
+const ColMsdf   = 760.0
 
 struct SceneLayout
 {
@@ -16,14 +25,7 @@ var g_RC:       Pixel.RenderingContext
 
 var g_FontBytes:   Array'u8
 var g_TypeFace:    *Pixel.TypeFace
-var g_TitleFont:   *Pixel.Font
-var g_LabelFont:   *Pixel.Font
-var g_Sdf14Font:   *Pixel.Font
-var g_Sdf18Font:   *Pixel.Font
-var g_Sdf26Font:   *Pixel.Font
-var g_Sdf38Font:   *Pixel.Font
-var g_Sdf54Font:   *Pixel.Font
-var g_ZoomFont:    *Pixel.Font
+var g_HeaderFont:  *Pixel.Font
 
 func fontPath(fileName: string, loc = #callerlocation)->String
 {
@@ -35,17 +37,21 @@ func loadFonts() throw
 {
     let path = fontPath("segoeui.ttf")
 
-    g_FontBytes = File.readAllBytes(path)
-    g_TypeFace  = TypeFace.create(path, g_FontBytes.toSlice())
+    g_FontBytes  = File.readAllBytes(path)
+    g_TypeFace   = TypeFace.create(path, g_FontBytes.toSlice())
+    g_HeaderFont = Font.createMsdf(g_TypeFace, 15, 6)
+}
 
-    g_TitleFont = Font.createSdf(g_TypeFace, 42, 10)
-    g_LabelFont = Font.createSdf(g_TypeFace, 16, 6)
-    g_Sdf14Font = Font.createSdf(g_TypeFace, 14, 5)
-    g_Sdf18Font = Font.createSdf(g_TypeFace, 18, 6)
-    g_Sdf26Font = Font.createSdf(g_TypeFace, 26, 8)
-    g_Sdf38Font = Font.createSdf(g_TypeFace, 38, 10)
-    g_Sdf54Font = Font.createSdf(g_TypeFace, 54, 12)
-    g_ZoomFont  = Font.createSdf(g_TypeFace, 28, 10)
+// The three fonts for a given size (all cached after the first call).
+func fontsFor(size: u32)->{ bmp: *Pixel.Font, sdf: *Pixel.Font, msdf: *Pixel.Font }
+{
+    let spread = Math.max(2'u32, size / 4)
+
+    var result: retval
+    result.bmp  = Font.create(g_TypeFace, size)
+    result.sdf  = Font.createSdf(g_TypeFace, size, spread)
+    result.msdf = Font.createMsdf(g_TypeFace, size, spread)
+    return result
 }
 
 func computeSceneLayout(width, height: s32)->SceneLayout
@@ -66,45 +72,9 @@ func computeSceneLayout(width, height: s32)->SceneLayout
     return result
 }
 
-func drawSampleLine(painter: *Pixel.Painter, y: f32, label, text: string, font: *Pixel.Font, color: Color)
-{
-    painter.drawString(42, y + 4, label, g_LabelFont, Argb.LightSlateGray)
-    painter.drawString(154, y, text, font, color)
-}
-
-func drawZoomSample(painter: *Pixel.Painter, y: f32, label: string, zoom: f32, color: Color)
-{
-    painter.drawString(550, y + 8, label, g_LabelFont, Argb.LightSlateGray)
-    painter.drawString(652, y, "SDF", g_ZoomFont, color, .None, zoom)
-}
-
-func drawNativeSizes(painter: *Pixel.Painter)
-{
-    painter.drawString(42, 28, "SDF text rendering", g_TitleFont, Argb.MidnightBlue)
-    painter.drawString(44, 80, "Separate SDF atlases at native sizes", g_LabelFont, Argb.DimGray)
-
-    drawSampleLine(painter, 118, "14 px", "Small text stays readable: 0123456789", g_Sdf14Font, Argb.DarkSlateGray)
-    drawSampleLine(painter, 154, "18 px", "The quick brown fox jumps.", g_Sdf18Font, Argb.Black)
-    drawSampleLine(painter, 202, "26 px", "Mixed case, punctuation, accents.", g_Sdf26Font, Argb.SeaGreen)
-    drawSampleLine(painter, 270, "38 px", "Sharp curves", g_Sdf38Font, Argb.Crimson)
-    drawSampleLine(painter, 366, "54 px", "Large text", g_Sdf54Font, Argb.RoyalBlue)
-}
-
-func drawZoomSizes(painter: *Pixel.Painter)
-{
-    painter.drawString(550, 80, "Same SDF font, different draw zooms", g_LabelFont, Argb.DimGray)
-
-    drawZoomSample(painter, 120, "1.0x", 1.0, Argb.DarkSlateGray)
-    drawZoomSample(painter, 174, "1.6x", 1.6, Argb.SeaGreen)
-    drawZoomSample(painter, 256, "2.4x", 2.4, Argb.Crimson)
-    drawZoomSample(painter, 384, "3.4x", 3.4, Argb.RoyalBlue)
-
-    painter.drawString(552, 552, "The shader reconstructs the glyph edge from the distance value.", g_Sdf18Font, Argb.DarkSlateGray)
-}
-
 func drawScene(painter: *Pixel.Painter, layout: SceneLayout)
 {
-    painter.clear(Argb.GhostWhite)
+    painter.clear(Argb.White)
     painter.setParams(.Antialiased)
 
     painter.pushClippingSurfaceRect(layout.rect)
@@ -112,10 +82,25 @@ func drawScene(painter: *Pixel.Painter, layout: SceneLayout)
     painter.scaleTransform(layout.scale)
     painter.translateTransform(layout.rect.x, layout.rect.y)
 
-    drawNativeSizes(painter)
-    drawZoomSizes(painter)
+    // Column headers
+    painter.drawString(ColPx, 16, "px", g_HeaderFont, Argb.DimGray)
+    painter.drawString(ColBitmap, 16, "Bitmap", g_HeaderFont, Argb.MidnightBlue)
+    painter.drawString(ColSdf, 16, "SDF", g_HeaderFont, Argb.MidnightBlue)
+    painter.drawString(ColMsdf, 16, "MSDF", g_HeaderFont, Argb.MidnightBlue)
 
-    painter.drawStringCenter(W * 0.5, 610, "Pixel SDF font atlas", g_Sdf26Font, Argb.DimGray)
+    var y = 46.0
+    foreach size in Sizes
+    {
+        let usize = cast(u32) size
+        let fonts = fontsFor(usize)
+
+        painter.drawString(ColPx, y, Format.toString("%", size), g_HeaderFont, Argb.DimGray)
+        painter.drawString(ColBitmap, y, Sample, fonts.bmp, Argb.Black)
+        painter.drawString(ColSdf, y, Sample, fonts.sdf, Argb.Black)
+        painter.drawString(ColMsdf, y, Sample, fonts.msdf, Argb.Black)
+
+        y += cast(f32) size + 12
+    }
 
     painter.popTransform()
     painter.popClippingRect()
@@ -140,7 +125,7 @@ func onResize(_window: *Env.Window, width, height: s32)
 
 #main
 {
-    try Env.createWindow(&g_Window, {className: "PIXEL3_CLASS_NAME", title: "Pixel SDF font rendering", width: W, height: H})
+    try Env.createWindow(&g_Window, {className: "PIXEL3_CLASS_NAME", title: "Pixel font rendering: Bitmap vs SDF vs MSDF", width: W, height: H})
     try g_Window.setClientSize(W, H)
     g_RC = try g_Renderer.native.createContext(&g_Window, W, H)
     g_Renderer.setCurrentContext(g_RC)

@@ -29,6 +29,22 @@ public enum FontRenderMode
 {
     Bitmap
     SignedDistanceField
+    MultiChannelSignedDistanceField
+}
+
+public impl FontRenderMode
+{
+    // Number of bytes per pixel in the glyph atlas for this render mode
+    mtd bytesPerPixel()->u32
+    {
+        return me == .MultiChannelSignedDistanceField ? 3 : 1
+    }
+
+    // True if the mode is a distance field (sampled with linear filtering)
+    mtd isDistanceField()->bool
+    {
+        return me == .SignedDistanceField or me == .MultiChannelSignedDistanceField
+    }
 }
 
 public struct Font
@@ -100,7 +116,15 @@ public impl Font
         Debug.assert(typeFace != null)
         Debug.assert(size > 0)
 
-        let renderName = renderMode == .SignedDistanceField ? "sdf" : "bitmap"
+        var renderName = "bitmap"
+        switch renderMode
+        {
+        case SignedDistanceField:
+            renderName = "sdf"
+        case MultiChannelSignedDistanceField:
+            renderName = "msdf"
+        }
+
         let str = Format.toString("%_%_%_%_%_%", typeFace.fullname, size, forceBold, forceItalic, renderName, spread)
 
         Sync.scopedLock(&lock)
@@ -143,6 +167,14 @@ public impl Font
         return createWithMode(typeFace, size, spread, .SignedDistanceField, forceBold, forceItalic)
     }
 
+    // Creates a new multi-channel signed distance field Font of the given typeface and size.
+    // A single MSDF font scales cleanly to any draw size/zoom while keeping sharp corners.
+    func createMsdf(typeFace: *TypeFace, size, spread: u32, forceBold, forceItalic = false)->*Font
+    {
+        Debug.assert(spread > 0)
+        return createWithMode(typeFace, size, spread, .MultiChannelSignedDistanceField, forceBold, forceItalic)
+    }
+
     // Creates a new Font with the given filename and size
     func create(fullname: string, size: u32, forceBold, forceItalic = false)->*Font throw
     {
@@ -163,6 +195,16 @@ public impl Font
         return createSdf(typeFace, size, spread, forceBold, forceItalic)
     }
 
+    // Creates a new multi-channel signed distance field Font with the given filename and size
+    func createMsdf(fullname: string, size, spread: u32, forceBold, forceItalic = false)->*Font throw
+    {
+        Debug.assert(@countof(fullname) != 0)
+        Debug.assert(size > 0)
+
+        let typeFace = try TypeFace.load(fullname)
+        return createMsdf(typeFace, size, spread, forceBold, forceItalic)
+    }
+
     // Returns the glyph descriptor of a given rune
     mtd getGlyphDesc(c: rune)->const *GlyphDesc
     {
@@ -180,17 +222,26 @@ public impl Font
         }
 
         // Render the glyph
+        let bpp = .renderMode.bytesPerPixel()
         var bmp: const *Bitmap
-        if .renderMode == .SignedDistanceField do
+        switch .renderMode
+        {
+        case SignedDistanceField:
             bmp = assume .typeFace.renderGlyphSdf(c, .size, .sdfSpread, .forceBold, .forceItalic)
-        else do
+        case MultiChannelSignedDistanceField:
+            bmp = assume .typeFace.renderGlyphMsdf(c, .size, .sdfSpread, .forceBold, .forceItalic)
+        default:
             bmp = assume .typeFace.renderGlyph(c, .size, .forceBold, .forceItalic)
+        }
+
+        // Glyph width in bytes (atlas columns are measured in bytes, rows in pixels)
+        let rowBytes = bmp.width * bpp
 
         // Creates a new atlas if this is the first time, or if the last atlas is full
         var atlas = .atlases.count ? &.atlases.buffer[.atlases.count - 1] : null
         if atlas
         {
-            if atlas.curX + bmp.width > atlas.width
+            if atlas.curX + rowBytes > atlas.width
             {
                 atlas.curX = 0
                 if atlas.nextY + bmp.rows > atlas.height do
@@ -207,7 +258,7 @@ public impl Font
         if !atlas
         {
             var newAtlas: GlyphAtlas
-            newAtlas.bpp    = 1
+            newAtlas.bpp    = bpp
             let atlasSide   = Math.roundUpToPowerOf2(Math.max(.size * 4, Math.max(bmp.width, bmp.rows) * 2))
             newAtlas.width  = atlasSide * newAtlas.bpp
             newAtlas.height = atlasSide
@@ -219,7 +270,7 @@ public impl Font
 
         let x = atlas.curX
         let y = atlas.curY
-        atlas.curX += bmp.width
+        atlas.curX += rowBytes
         atlas.nextY = Math.max(atlas.nextY, atlas.curY + bmp.rows)
 
         // Copy the rendered glyph to the atlas datas
@@ -228,7 +279,7 @@ public impl Font
         var src = bmp.buffer
         for j in bmp.rows
         {
-            Memory.copy(buffer, src, cast(u64) bmp.width)
+            Memory.copy(buffer, src, cast(u64) rowBytes)
             src += bmp.pitch
             buffer -= atlas.width
         }
@@ -252,13 +303,14 @@ public impl Font
         refr.shiftX   = glyph.bitmapLeft
         refr.shiftY   = glyph.bitmapTop
 
+        // 'x' and the atlas width are measured in bytes; both numerator and
+        // denominator carry the bpp factor, so the resulting uv stays correct.
         let widthf  = cast(f32) atlas.width
         let heightf = cast(f32) atlas.height
         refr.uv.x      = x / widthf
         refr.uv.y      = y / heightf
-        refr.uv.width  = refr.width / widthf
+        refr.uv.width  = cast(f32) rowBytes / widthf
         refr.uv.height = refr.height / heightf
-        refr.width /= atlas.bpp
 
         refr.atlasIndex = cast(u32) (.atlases.count - 1)
 

@@ -159,10 +159,15 @@ impl Painter
         if under != .None or brush.type != .SolidColor do
             ms = measureString(text, font)
 
-        if font.renderMode == .SignedDistanceField do
+        switch font.renderMode
+        {
+        case SignedDistanceField:
             .startSdfFont()
-        else do
+        case MultiChannelSignedDistanceField:
+            .startMsdfFont()
+        default:
             .startFont()
+        }
 
         // Set brush main texture
         if brush.type != .SolidColor do

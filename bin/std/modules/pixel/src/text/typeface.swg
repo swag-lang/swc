@@ -159,6 +159,16 @@ public impl TypeFace
         return &.face.glyph.bitmap
     }
 
+    // Render one glyph as a multi-channel signed distance field
+    mtd renderGlyphMsdf(c: rune, size, spread: u32, forceBold, forceItalic = false)->const *Bitmap throw
+    {
+        .face.setPixelSize(0, size)
+        .face.loadChar(c)
+        .transform(size, 0, forceBold, forceItalic)
+        .face.renderGlyphMsdf(spread)
+        return &.face.glyph.bitmap
+    }
+
     // Convert a rune to its outline, at a given size
     #[Swag.Discardable]
     mtd getRuneOutline(pathList: *LinePathList, c: rune, size: u32, embolden: u32 = 0)->f32 throw

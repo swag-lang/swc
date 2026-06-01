@@ -63,6 +63,8 @@ struct Cast
     static Result  castIfNeeded(Sema& sema, SemaNodeView& view, TypeRef dstTypeRef, CastKind castKind, CastFlags castFlags = CastFlagsE::Zero, const DiagnosticArguments* errorArguments = nullptr);
     static Result  castPromote(Sema& sema, SemaNodeView& nodeLeftView, SemaNodeView& nodeRightView, CastKind castKind = CastKind::Promotion);
     static Result  emitCastFailure(Sema& sema, const CastFailure& f);
+    static Result  castConstant(Sema& sema, ConstantRef& result, CastRequest& castRequest, ConstantRef cstRef, TypeRef targetTypeRef);
+    static Result  castConstant(Sema& sema, ConstantRef& result, ConstantRef cstRef, TypeRef targetTypeRef, AstNodeRef errorNodeRef, CastKind castKind = CastKind::Implicit);
 
     static Result  promoteConstants(Sema& sema, const SemaNodeView& nodeLeftView, const SemaNodeView& nodeRightView, ConstantRef& leftCstRef, ConstantRef& rightCstRef, bool force32BitInts = false);
     static Result  concretizeConstant(Sema& sema, ConstantRef& result, AstNodeRef nodeOwnerRef, ConstantRef cstRef, TypeInfo::Sign hintSign);
@@ -120,9 +122,6 @@ private:
     static bool foldConstantFloatToFloat(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef);
     static bool foldConstantIntLikeToPointer(Sema& sema, CastRequest& castRequest, TypeRef dstTypeRef);
     static bool foldConstantPointerToIntLike(Sema& sema, CastRequest& castRequest, TypeRef dstTypeRef);
-
-    static Result  castConstant(Sema& sema, ConstantRef& result, CastRequest& castRequest, ConstantRef cstRef, TypeRef targetTypeRef);
-    static Result  castConstant(Sema& sema, ConstantRef& result, ConstantRef cstRef, TypeRef targetTypeRef, AstNodeRef errorNodeRef, CastKind castKind = CastKind::Implicit);
     static TypeRef castAllowedBothWays(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef);
     static bool    concretizeConstant(Sema& sema, ConstantRef& result, ConstantRef cstRef, TypeInfo::Sign hintSign);
     static Result  castToStruct(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef);

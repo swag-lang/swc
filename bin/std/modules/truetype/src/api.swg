@@ -113,6 +113,11 @@ public impl Face
     {
         renderCurrentOutlineSdf(&.glyph, spread)
     }
+
+    mtd renderGlyphMsdf(spread: u32 = 8) throw
+    {
+        renderCurrentOutlineMsdf(&.glyph, spread)
+    }
 }
 
 public impl Outline

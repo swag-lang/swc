@@ -112,6 +112,32 @@ struct RuntimeConstSetVector2
     x, y: f32
 }
 
+enum RuntimePaletteSource: u32
+{
+    Gray = 0xFF808080
+    Blue = 0xFF3366CC
+}
+
+struct RuntimePaletteColor
+{
+    raw: u32
+}
+
+impl RuntimePaletteColor
+{
+    #[Swag.ConstExpr, Swag.Implicit]
+    mtd opSet(value: RuntimePaletteSource)
+    {
+        .raw = cast(u32) value
+    }
+}
+
+struct RuntimePaletteCard
+{
+    label: string
+    color: RuntimePaletteColor
+}
+
 impl RuntimeConstSetVector2
 {
     #[Swag.ConstExpr]
@@ -196,8 +222,17 @@ impl RuntimeLiteralOverloadTarget
 }
 
 const RuntimeConstSetOne: RuntimeConstSetVector2 = 1.0
+const RuntimePaletteCardOne = RuntimePaletteCard{"gray", RuntimePaletteSource.Gray}
+const RuntimePaletteCards = [
+    RuntimePaletteCard{"gray", RuntimePaletteSource.Gray},
+    RuntimePaletteCard{"blue", RuntimePaletteSource.Blue},
+]
+const RuntimePaletteColors: [2] RuntimePaletteColor = [RuntimePaletteSource.Gray, RuntimePaletteSource.Blue]
 #assert(RuntimeConstSetOne.x == 1.0)
 #assert(RuntimeConstSetOne.y == 1.0)
+#assert(RuntimePaletteCardOne.color.raw == 0xFF808080'u32)
+#assert(RuntimePaletteCards[1].color.raw == 0xFF3366CC'u32)
+#assert(RuntimePaletteColors[0].raw == 0xFF808080'u32)
 
 func assertRuntimeLiteralSet(value: RuntimeLiteralSetTarget, expectedSeconds: f32)
 {
@@ -420,6 +455,16 @@ func assertRuntimeLiteralOverloadSet(value: RuntimeLiteralOverloadTarget, expect
 {
     @assert(RuntimeConstSetOne.x == 1.0)
     @assert(RuntimeConstSetOne.y == 1.0)
+}
+
+#test
+{
+    @assert(RuntimePaletteCardOne.label == "gray")
+    @assert(RuntimePaletteCardOne.color.raw == 0xFF808080'u32)
+    @assert(RuntimePaletteCards[0].color.raw == 0xFF808080'u32)
+    @assert(RuntimePaletteCards[1].color.raw == 0xFF3366CC'u32)
+    @assert(RuntimePaletteColors[0].raw == 0xFF808080'u32)
+    @assert(RuntimePaletteColors[1].raw == 0xFF3366CC'u32)
 }
 
 #test

@@ -580,9 +580,10 @@ namespace
             {
                 CastRequest castRequest{CastKind::Implicit};
                 castRequest.setConstantFoldingSrc(elemCstRef);
-                SWC_INTERNAL_CHECK(Cast::castAllowed(sema, castRequest, sema.cstMgr().get(elemCstRef).typeRef(), elemTypeRef) == Result::Continue);
-                if (castRequest.constantFoldingResult().isValid())
-                    elemCstRef = castRequest.constantFoldingResult();
+                ConstantRef castedElemCstRef = ConstantRef::invalid();
+                SWC_INTERNAL_CHECK(Cast::castConstant(sema, castedElemCstRef, castRequest, elemCstRef, elemTypeRef) == Result::Continue);
+                if (castedElemCstRef.isValid())
+                    elemCstRef = castedElemCstRef;
             }
 
             SWC_RESULT(lowerConstantToBytes(sema, subBytes(dstBytes, i * elemSize, elemSize), elemTypeRef, elemCstRef));

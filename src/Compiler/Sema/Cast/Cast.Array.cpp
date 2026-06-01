@@ -118,6 +118,9 @@ namespace
         }
 
         outRef = elemCtx.constantFoldingResult();
+        if (srcElemType != dstElemType)
+            SWC_RESULT(Cast::castConstant(*args.sema, outRef, elemCtx, valueRef, dstElemType));
+
         if (outRef.isInvalid())
             outRef = valueRef;
         return Result::Continue;

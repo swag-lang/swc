@@ -17,6 +17,7 @@ fileprivate
     const VertexShaderFont = #include("shaders/font.vert")
     const PixelShaderFont  = #include("shaders/font.frag")
     const PixelShaderFontSdf  = #include("shaders/font_sdf.frag")
+    const PixelShaderFontMsdf = #include("shaders/font_msdf.frag")
 }
 
 #[Swag.Strict]
@@ -41,6 +42,7 @@ struct RenderOgl
     shaderBlur:          ShaderBlur
     shaderFont:          ShaderFont
     shaderFontSdf:       ShaderFont
+    shaderFontMsdf:      ShaderFont
     worldTransform:      Transform2
     orthoMatrix:         Matrix4x4
     modelMatrix:         Matrix4x4
@@ -107,6 +109,15 @@ fileprivate impl RenderOgl
             let text0 = glGetUniformLocation(cast(GLuint) .shaderFontSdf.handle, @dataof("inTexture0"))
             let text1 = glGetUniformLocation(cast(GLuint) .shaderFontSdf.handle, @dataof("inTexture1"))
             glUseProgram(cast(GLuint) .shaderFontSdf.handle)
+            glUniform1i(text0, 0)
+            glUniform1i(text1, 1)
+        }
+
+        {
+            assume createShader(&.shaderFontMsdf, VertexShaderFont, PixelShaderFontMsdf)
+            let text0 = glGetUniformLocation(cast(GLuint) .shaderFontMsdf.handle, @dataof("inTexture0"))
+            let text1 = glGetUniformLocation(cast(GLuint) .shaderFontMsdf.handle, @dataof("inTexture1"))
+            glUseProgram(cast(GLuint) .shaderFontMsdf.handle)
             glUniform1i(text0, 0)
             glUniform1i(text1, 1)
         }
@@ -714,12 +725,14 @@ impl RenderOgl
             .setShader(&.shaderFont)
         case StartSdfFont:
             .setShader(&.shaderFontSdf)
+        case StartMsdfFont:
+            .setShader(&.shaderFontMsdf)
         case EndFont:
             .setShader(&.shaderAA)
 
         case BindTextureFont:
             let params = &cmd.textureFont
-            let filter = params.font.renderMode == .SignedDistanceField ? GL_LINEAR : GL_NEAREST
+            let filter = params.font.renderMode.isDistanceField() ? GL_LINEAR : GL_NEAREST
             glActiveTexture(GL_TEXTURE1)
             let texture = params.font.atlases[params.atlasIndex].texture.handle
             glBindTexture(GL_TEXTURE_2D, cast(GLuint) texture)
@@ -734,7 +747,7 @@ impl RenderOgl
 
         case UpdateFont:
             let font = cmd.font.fontRef
-            let filter = font.renderMode == .SignedDistanceField ? GL_LINEAR : GL_NEAREST
+            let filter = font.renderMode.isDistanceField() ? GL_LINEAR : GL_NEAREST
             font.dirty = false
             glActiveTexture(GL_TEXTURE1)
             foreach &atlas in font.atlases
@@ -827,7 +840,7 @@ impl RenderOgl
                     let cmd1 = dc.commandBuffer[i]
                     switch cmd1.id
                     {
-                    case Transform, StartFont, StartSdfFont, EndFont, ResetTexture0, BindTexture0, ResetTextureFont, BindTextureFont, DrawTriangles:
+                    case Transform, StartFont, StartSdfFont, StartMsdfFont, EndFont, ResetTexture0, BindTexture0, ResetTextureFont, BindTextureFont, DrawTriangles:
                         .executeCommand(dc, cmd1, cast(u64) i, width, height)
                     }
                 }

@@ -18,6 +18,16 @@ namespace
 
         return srcType.isIntLikeUnsigned();
     }
+
+    AstNodeRef makeSyntheticConstantNode(Sema& sema, const ConstantRef cstRef, const TypeRef srcTypeRef, const AstNodeRef errorNodeRef)
+    {
+        const TokenRef tokRef = errorNodeRef.isValid() ? Cast::userDefinedLiteralValueTokRef(sema, errorNodeRef) : sema.curNode().tokRef();
+        auto [nodeRef, node]  = sema.ast().makeNode<AstNodeId::Identifier>(tokRef);
+        sema.setIsValue(*node);
+        sema.setType(nodeRef, srcTypeRef);
+        sema.setConstant(nodeRef, cstRef);
+        return nodeRef;
+    }
 }
 
 void Cast::foldConstantIdentity(CastRequest& castRequest)
@@ -408,6 +418,7 @@ Result Cast::castConstant(Sema& sema, ConstantRef& result, CastRequest& castRequ
     const ConstantValue& cst        = sema.cstMgr().get(cstRef);
     const TypeRef        srcTypeRef = cst.typeRef();
     castRequest.srcConstRef         = cstRef;
+    castRequest.outConstRef         = ConstantRef::invalid();
 
     const auto res = castAllowed(sema, castRequest, srcTypeRef, targetTypeRef);
     if (res != Result::Continue)
@@ -418,6 +429,18 @@ Result Cast::castConstant(Sema& sema, ConstantRef& result, CastRequest& castRequ
     }
 
     result = castRequest.outConstRef;
+    if (result.isValid() && sema.cstMgr().get(result).typeRef() == targetTypeRef)
+        return Result::Continue;
+    if (srcTypeRef == targetTypeRef)
+    {
+        result = cstRef;
+        return Result::Continue;
+    }
+
+    const AstNodeRef syntheticNodeRef = makeSyntheticConstantNode(sema, cstRef, srcTypeRef, castRequest.errorNodeRef);
+    SemaNodeView     syntheticView(sema, syntheticNodeRef, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
+    SWC_RESULT(cast(sema, syntheticView, targetTypeRef, castRequest.kind, castRequest.flags));
+    result = syntheticView.cstRef();
     return Result::Continue;
 }
 

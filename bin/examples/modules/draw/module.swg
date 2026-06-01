@@ -1,4 +1,4 @@
-#import("gui", location: "swag@std")
+#import("pixel", location: "swag@std")
 
 #run
 {
@@ -8,5 +8,4 @@
     cfg.moduleRevision = 0
     cfg.moduleBuildNum = 0
     cfg.backendKind    = .Executable
-    cfg.ignoreInWorkspace = true
 }

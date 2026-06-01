@@ -1,8 +1,15 @@
 #global #if #os == Swag.TargetOs.Windows
-using Core, Pixel, Gui, Core.Math
+using Core, Pixel, Core.Math
 
 const W = 1024
 const H = 1024
+
+var g_Window:    Env.Window
+var g_Renderer:  Pixel.RenderOgl
+var g_Painter:   Pixel.Painter
+var g_RC:        Pixel.RenderingContext
+var g_Keyboard:  Input.Keyboard
+var g_TestFrame: s32
 
 namespace Res
 {
@@ -25,12 +32,10 @@ const MaxPages      = 8
 
 func dataPath()->String
 {
-    var dataPath = Path.getDirectoryName(#curlocation.fileName)
-    dataPath = assume Path.getDirectoryName(dataPath)
-    dataPath = assume Path.getDirectoryName(dataPath)
-    dataPath = assume Path.getDirectoryName(dataPath)
-    dataPath = assume Path.getDirectoryName(dataPath)
-    return Path.combine(dataPath, "std/tests/pixel/datas")
+    // Resources live in the example's own "data" folder (next to "src").
+    let srcDir = Path.getDirectoryName(#curlocation.fileName) orelse ""
+    let root   = Path.getDirectoryName(srcDir) orelse ""
+    return Path.combine(root, "data")
 }
 
 func imagePath(name: string)->String
@@ -416,7 +421,7 @@ func displayPage4(painter: *Pixel.Painter)
     }
 
     {
-        let fnt = assume Res.fontFam.getFont(FontFamilyStyle.Regular)
+        let fnt = Res.fontFam.getFont(FontFamilyStyle.Regular) orelse Res.fontDefault
         painter.fillCircle(100, 100, 5, Argb.Red)
         painter.drawString(100, 100, "abcdefghijkl", fnt, Argb.Black)
     }
@@ -670,105 +675,95 @@ func displayPage7(renderer: *Pixel.RenderOgl, painter: *Pixel.Painter)
     renderer.releaseRenderTarget(tgt)
 }
 
-struct MyView
+func display()
 {
-    using wnd: Wnd
+    g_Renderer.begin(g_RC)
+    g_Painter.begin()
+
+    g_Painter.setParams(g_ModeAA ? .Antialiased : .Default)
+    g_Painter.setQuality(g_PaintQuality)
+    g_Painter.pushState()
+    g_Painter.clear(Color.fromArgb(0xFFEEEEEE))
+
+    switch g_Page
+    {
+    case 0:
+        displayPage0(&g_Painter)
+    case 1:
+        displayPage1(&g_Painter)
+    case 2:
+        displayPage2(&g_Painter)
+    case 3:
+        displayPage3(&g_Painter)
+    case 4:
+        displayPage4(&g_Painter)
+    case 5:
+        displayPage5(&g_Painter)
+    case 6:
+        displayPage6(&g_Painter)
+    case 7:
+        displayPage7(&g_Renderer, &g_Painter)
+    }
+
+    g_Painter.popState()
+    g_Painter.translateTransform(10, 920)
+    g_Painter.drawString(0, 0, "F1: AA on/off  F2: Quality  F3: Pattern  F4: Change page", Res.font20, Argb.Black)
+
+    g_Painter.end()
+    g_Renderer.draw(&g_Painter)
+    g_Renderer.end()
 }
 
-impl IWnd for MyView
+func updateInput()
 {
-    mtd impl onPaintEvent(event: *PaintEvent)
+    g_Keyboard.update()
+
+    if g_Keyboard.isKeyJustPressed(Input.Key.F1) do
+        g_ModeAA = g_ModeAA ? false : true
+    if g_Keyboard.isKeyJustPressed(Input.Key.F2) do
+        g_PaintQuality = cast(PaintQuality) ((cast(u32) g_PaintQuality + 1) % 2)
+    if g_Keyboard.isKeyJustPressed(Input.Key.F3) do
+        g_Pattern = g_Pattern ? false : true
+    if g_Keyboard.isKeyJustPressed(Input.Key.F4) do
+        g_Page = (g_Page + 1) % MaxPages
+
+    // In test mode, walk through every page automatically and then exit.
+    if Env.hasArg("swag.test")
     {
-        let painter = event.bc.painter
-        painter.setParams(g_ModeAA ? .Antialiased : .Default)
-        painter.setQuality(g_PaintQuality)
-        painter.pushState()
-        painter.fillRect(.getClientRect(), Color.fromArgb(0xFFEEEEEE))
-
-        switch g_Page
+        g_TestFrame += 1
+        if g_TestFrame % 20 == 0
         {
-        case 0:
-            displayPage0(painter)
-        case 1:
-            displayPage1(painter)
-        case 2:
-            displayPage2(painter)
-        case 3:
-            displayPage3(painter)
-        case 4:
-            displayPage4(painter)
-        case 5:
-            displayPage5(painter)
-        case 6:
-            displayPage6(painter)
-        case 7:
-            displayPage7(event.bc.renderer, painter)
-        }
-
-        painter.popState()
-        painter.translateTransform(10, 920)
-        painter.drawString(0, 0, "F1: AA on/off F2: Quality F3: Pattern F4: Change page", Res.font20, Argb.Black)
-
-        if Env.hasArg("swag.test")
-        {
-            Threading.Thread.sleep(100'ms)
             g_Page = (g_Page + 1) % MaxPages
             if g_Page == 0 do
                 Env.exit(0)
-            .invalidate()
         }
     }
+}
 
-    mtd impl onKeyEvent(evt: *KeyEvent)
-    {
-        if evt.kind != .KeyPressed do
-            return
-        evt.accepted = true
-
-        switch evt.key
-        {
-        case F1:
-            g_ModeAA = g_ModeAA ? false : true
-            .invalidate()
-
-        case F2:
-            g_PaintQuality = cast(PaintQuality) ((cast(u32) g_PaintQuality + 1) % 2)
-            .invalidate()
-
-        case F3:
-            g_Pattern = g_Pattern ? false : true
-            .invalidate()
-
-        case F4:
-            if evt.modifiers & .Alt do
-                .surface.destroy()
-            else
-            {
-                g_Page = (g_Page + 1) % MaxPages
-                .invalidate()
-            }
-        }
-    }
+func onResize(_window: *Env.Window, width, height: s32)
+{
+    g_RC.width  = width
+    g_RC.height = height
 }
 
 #main
 {
-    var app: Gui.Application
-
-    let view    = Wnd.create'MyView()
-    let surface = try app.createSurface(100, 100, W, H, view: view)
+    try Env.createWindow(&g_Window, {className: "DRAW_CLASS_NAME", title: "Pixel drawing showcase", width: W, height: H})
+    try g_Window.setClientSize(W, H)
+    g_RC = try g_Renderer.native.createContext(&g_Window, W, H)
+    g_Renderer.setCurrentContext(g_RC)
+    g_Renderer.init()
 
     assume
     {
-        let rdr  = surface.app.getRenderer()
         let img0 = Image.load(imagePath("basn0g01.png"))
         var img1 = Image.load(imagePath("test.gif"))
-        Res.image0 = rdr.addImage(img0)
-        Res.image1 = rdr.addImage(img1)
-        Res.image2 = rdr.addImage(img1)
+        Res.image0 = g_Renderer.addImage(img0)
+        Res.image1 = g_Renderer.addImage(img1)
+        Res.image2 = g_Renderer.addImage(img1)
         img1.grayScale()
         img1.setAlpha(128)
-        rdr.updateTexture(Res.image2, img1.pixels.buffer)
+        g_Renderer.updateTexture(Res.image2, img1.pixels.buffer)
 
         Res.typeface    = TypeFace.load(imagePath("arial.ttf"))
         Res.fontDefault = Font.create(Res.typeface, cast(u32) ((12 * 96) / 72))
@@ -781,10 +776,18 @@ impl IWnd for MyView
         Res.fontFam.boldItalic = Font.create(imagePath("arialbi.ttf"), 20)
     }
 
-    surface.show()
-
     if Env.hasArg("swag.test") do
         g_Page = 0
 
-    app.run()
+    g_Window.callbacks.onResize = &onResize
+    try g_Window.show()
+
+    var loop: Env.WindowLoop
+    while loop.next()
+    {
+        updateInput()
+        display()
+    }
+
+    g_Renderer.native.dropContext(g_RC)
 }

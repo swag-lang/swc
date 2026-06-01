@@ -259,6 +259,20 @@ func makeTransparencyPath(rect: Math.Rectangle, variant: s32)->LinePath
     return path
 }
 
+func drawBlobSurface(painter: *Pixel.Painter, rect: Math.Rectangle)
+{
+    let cx = rect.x + rect.width * 0.50
+    let cy = rect.y + rect.height * 0.52
+    let rx = rect.width * 0.23
+    let ry = rect.height * 0.31
+
+    painter.fillEllipse(cx, cy, rx, ry, Color.fromArgb(42, Argb.MediumPurple))
+
+    var pen = Pen.createSolid(Color.fromArgb(136, Argb.MediumPurple), 6)
+    pen.borderPos = .Inside
+    painter.drawEllipse(cx, cy, rx, ry, pen)
+}
+
 func drawAlphaRow(painter: *Pixel.Painter, rect: Math.Rectangle, alpha: u8, label: string)
 {
     painter.drawString(rect.x, rect.y + 10, label, g_LabelFont, Argb.DarkSlateGray)
@@ -276,11 +290,13 @@ func drawAlphaRow(painter: *Pixel.Painter, rect: Math.Rectangle, alpha: u8, labe
 
 func drawTransparencyPage(painter: *Pixel.Painter)
 {
-    drawPageHeader(painter, "Pixel path drawing", "Page 3 : color stacking and alpha blending on overlapping stroked paths.")
+    drawPageHeader(painter, "Pixel path drawing", "Page 3 : color stacking and alpha blending on a filled surface plus overlapping strokes.")
 
-    let sceneBody = drawPanel(painter, {28, 102, 924, 404}, "Transparency and layering", "Semi-transparent paths keep their caps and joins while overlapping cleanly.")
+    let sceneBody = drawPanel(painter, {28, 102, 924, 404}, "Transparency and layering", "A translucent surface sits behind overlapping paths, with a border that stays outside the fill.")
     painter.fillRoundRect(sceneBody.x, sceneBody.y, sceneBody.width, sceneBody.height, 14, 14, Color.fromArgb(255, 248, 250, 252))
     painter.pushClippingSurfaceRect(sceneBody)
+
+    drawBlobSurface(painter, sceneBody)
 
     {
         var path = makeTransparencyPath(sceneBody, 0)

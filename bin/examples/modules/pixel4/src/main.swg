@@ -279,15 +279,11 @@ func drawBlobSurface(painter: *Pixel.Painter, rect: Math.Rectangle)
     var blob = makeBlobPath(rect)
     painter.fillPath(&blob, Color.fromArgb(42, Argb.MediumPurple))
 
-    blob.flatten(.Normal)
-    let offset = blob.polygon.isClockwise ? 3.0 : -3.0
-    var outline = blob.polygon.getOffset(offset, JoinStyle.Round)
-
     var pen = Pen.createSolid(Color.fromArgb(136, Argb.MediumPurple), 6)
     pen.begCapStyle = .None
     pen.endCapStyle = .None
     pen.joinStyle   = .Round
-    painter.drawPath(&outline, pen, .Merge)
+    painter.drawPath(&blob, pen)
 }
 
 func drawAlphaRow(painter: *Pixel.Painter, rect: Math.Rectangle, alpha: u8, label: string)

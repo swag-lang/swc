@@ -254,6 +254,8 @@ ConstantRef NodePayload::getConstantRef(const TaskContext& ctx, AstNodeRef nodeR
 
         case NodePayloadKind::SymbolRef:
         {
+            if (!hasSymbol(nodeRef))
+                break;
             const Symbol& sym = getSymbol(ctx, nodeRef);
             if (sym.isConstant())
                 return sym.cast<SymbolConstant>().cstRef();
@@ -269,6 +271,8 @@ ConstantRef NodePayload::getConstantRef(const TaskContext& ctx, AstNodeRef nodeR
 
         case NodePayloadKind::SymbolList:
         {
+            if (!hasSymbolList(nodeRef))
+                return ConstantRef::invalid();
             const auto symList = getSymbolList(nodeRef);
             if (symList.empty())
                 return ConstantRef::invalid();
@@ -392,10 +396,14 @@ TypeRef NodePayload::getTypeRef(const TaskContext& ctx, AstNodeRef nodeRef) cons
             value = TypeRef{info.ref};
             break;
         case NodePayloadKind::SymbolRef:
+            if (!hasSymbol(nodeRef))
+                return TypeRef::invalid();
             value = getSymbol(ctx, nodeRef).typeRef();
             break;
         case NodePayloadKind::SymbolList:
         {
+            if (!hasSymbolList(nodeRef))
+                return TypeRef::invalid();
             const auto symbols = getSymbolList(nodeRef);
             if (symbols.empty())
                 return TypeRef::invalid();
@@ -427,8 +435,12 @@ bool NodePayload::hasSymbol(AstNodeRef nodeRef) const
 {
     if (nodeRef.isInvalid())
         return false;
-    const AstNode& node = ast().node(nodeRef);
-    return payloadInfo(node).kind == NodePayloadKind::SymbolRef;
+    const AstNode&    node  = ast().node(nodeRef);
+    const PayloadInfo info  = payloadInfo(node);
+    if (info.kind != NodePayloadKind::SymbolRef)
+        return false;
+
+    return tryGetShard(info.shardIdx) != nullptr;
 }
 
 const Symbol& NodePayload::getSymbol(const TaskContext& ctx, AstNodeRef nodeRef) const
@@ -479,8 +491,12 @@ bool NodePayload::hasSymbolList(AstNodeRef nodeRef) const
 {
     if (nodeRef.isInvalid())
         return false;
-    const AstNode& node = ast().node(nodeRef);
-    return payloadInfo(node).kind == NodePayloadKind::SymbolList;
+    const AstNode&    node  = ast().node(nodeRef);
+    const PayloadInfo info  = payloadInfo(node);
+    if (info.kind != NodePayloadKind::SymbolList)
+        return false;
+
+    return tryGetShard(info.shardIdx) != nullptr;
 }
 
 std::span<const Symbol* const> NodePayload::getSymbolListImpl(AstNodeRef nodeRef) const

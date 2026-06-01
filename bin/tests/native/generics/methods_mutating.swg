@@ -141,6 +141,29 @@ impl FixedVec
     mtd get(index: s32)->T => .data[index]
 }
 
+// Generic struct with copy/move overloads gated by a where-constraint
+struct(T) CopyGate
+{
+    values: [2] T
+    count:  s32
+}
+
+impl CopyGate
+{
+    mtd add(value: T)
+        where T == string
+    {
+        .values[.count] = value
+        .count += 1
+    }
+
+    mtd add(value: &&T)
+    {
+        .values[.count] = #move value
+        .count += 1
+    }
+}
+
 // --- Tests ---
 
 // Basic mutation
@@ -213,6 +236,19 @@ impl FixedVec
     @assert(acc.getTotal() == 18.0)
     @assert(acc.getCount() == 3)
     @assert(acc.getAverage() == 6.0)
+}
+
+#test
+{
+    var moved: string = "beta"
+
+    var gate: CopyGate'string
+    gate.add("alpha")
+    gate.add(moveref &moved)
+
+    @assert(gate.count == 2)
+    @assert(gate.values[0] == "alpha")
+    @assert(gate.values[1] == "beta")
 }
 
 // Zip two boxes

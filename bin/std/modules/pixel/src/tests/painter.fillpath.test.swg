@@ -430,3 +430,71 @@ func renderBlobAlphaFrames(frames: s32)->u64 throw
 {
     @assert(assume renderBlobAlphaFrames(120) == 120)
 }
+
+func renderTextureBrushVariation()->bool throw
+{
+    var window: Env.Window
+    try Env.createWindow(&window, {className: "PIXEL_TEXTURE_BRUSH_TEST_WINDOW", title: "pixel texture brush test", width: 256, height: 256, style: TestWindowStyle})
+    try window.setClientSize(256, 256)
+
+    var renderer: Pixel.RenderOgl
+    let rc = try renderer.native.createContext(&window, 256, 256)
+    renderer.setCurrentContext(rc)
+    renderer.init()
+    try window.show()
+
+    var textureImage = Image.create(32, 32, .RGBA8)
+    for y in textureImage.height
+    {
+        var pix = textureImage.pixels.buffer + y * textureImage.width8
+        for x in textureImage.width
+        {
+            if x < textureImage.width / 2
+            {
+                pix[0] = 255
+                pix[1] = 80
+                pix[2] = 64
+                pix[3] = 255
+            }
+            else
+            {
+                pix[0] = 32
+                pix[1] = 120
+                pix[2] = 255
+                pix[3] = 255
+            }
+
+            pix += textureImage.bpp8
+        }
+    }
+
+    let texture = renderer.addImage(textureImage)
+    let rt      = renderer.getRenderTarget(256, 256)
+    var painter: Pixel.Painter
+
+    renderer.begin(rc)
+    painter.begin()
+    painter.bindRenderTarget(rt, true)
+    painter.clear(Argb.White)
+    painter.setParams(.Antialiased)
+    painter.fillRect(32, 32, 192, 192, Pixel.Brush.createTexture(texture))
+    painter.unbindRenderTarget()
+    painter.end()
+    renderer.draw(&painter)
+    renderer.end()
+
+    let buffer = renderer.getTexturePixels(rt.colorBuffer, .BGRA8)
+    let image  = Image.create(rt.colorBuffer.width, rt.colorBuffer.height, .BGRA8, buffer.toSlice())
+
+    renderer.releaseRenderTarget(rt)
+    renderer.native.dropContext(rc)
+
+    let left  = image.getPixelColor(80, 128)
+    let right = image.getPixelColor(176, 128)
+    return left.r != right.r or left.g != right.g or left.b != right.b
+}
+
+#test
+{
+    @assert(assume renderTextureBrushVariation())
+}

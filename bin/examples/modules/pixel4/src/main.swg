@@ -44,20 +44,34 @@ func loadFonts() throw
 func buildFillBrushImage()->Image
 {
     var img = Image.create(96, 96, .RGBA8)
-    img.fillGradient4(
-        Color.fromArgb(255, 251, 208, 150),
-        Color.fromArgb(255, 238, 144, 96),
-        Color.fromArgb(255, 84, 182, 214),
-        Color.fromArgb(255, 38, 89, 160))
-    img.visitPixels()
+    for y in img.height
     {
-        let diag0 = (x + y) % 18
-        let diag1 = (x - y + image.width * 2) % 24
-        if diag0 < 3 or diag1 < 3
+        var pix = img.pixels.buffer + y * img.width8
+        for x in img.width
         {
-            pix[0] = cast(u8) Math.min(cast(s32) pix[0] + 22, 255)
-            pix[1] = cast(u8) Math.min(cast(s32) pix[1] + 18, 255)
-            pix[2] = cast(u8) Math.min(cast(s32) pix[2] + 28, 255)
+            if ((x / 12 + y / 12) & 1) == 0
+            {
+                pix[0] = 255
+                pix[1] = 182
+                pix[2] = 76
+                pix[3] = 255
+            }
+            else
+            {
+                pix[0] = 34
+                pix[1] = 122
+                pix[2] = 255
+                pix[3] = 255
+            }
+
+            if (x - y + img.width * 2) % 24 < 4
+            {
+                pix[0] = 255
+                pix[1] = 248
+                pix[2] = 228
+            }
+
+            pix += img.bpp8
         }
     }
 
@@ -67,32 +81,34 @@ func buildFillBrushImage()->Image
 func buildTileBrushImage()->Image
 {
     var img = Image.create(48, 48, .RGBA8)
-    img.fillGradient4(
-        Color.fromArgb(255, 250, 244, 214),
-        Color.fromArgb(255, 248, 215, 122),
-        Color.fromArgb(255, 242, 190, 74),
-        Color.fromArgb(255, 219, 128, 54))
-    img.visitPixels()
+    for y in img.height
     {
-        if ((x / 12 + y / 12) & 1) == 0
+        var pix = img.pixels.buffer + y * img.width8
+        for x in img.width
         {
-            pix[0] = 255
-            pix[1] = 241
-            pix[2] = 198
-        }
+            if ((x / 8 + y / 8) & 1) == 0
+            {
+                pix[0] = 252
+                pix[1] = 238
+                pix[2] = 193
+                pix[3] = 255
+            }
+            else
+            {
+                pix[0] = 120
+                pix[1] = 64
+                pix[2] = 40
+                pix[3] = 255
+            }
 
-        if x % 12 == 0 or y % 12 == 0
-        {
-            pix[0] = 112
-            pix[1] = 66
-            pix[2] = 34
-        }
+            if x % 8 == 0 or y % 8 == 0
+            {
+                pix[0] = 26
+                pix[1] = 26
+                pix[2] = 26
+            }
 
-        if (x + y) % 12 == 0
-        {
-            pix[0] = 182
-            pix[1] = 95
-            pix[2] = 46
+            pix += img.bpp8
         }
     }
 
@@ -247,14 +263,16 @@ func makeTransparencyPath(rect: Math.Rectangle, variant: s32)->LinePath
 func makeBlobPath(rect: Math.Rectangle)->LinePath
 {
     var path: retval
-    let cx = rect.x + rect.width * 0.50
-    let cy = rect.y + rect.height * 0.52
+    let left  = rect.x
+    let top   = rect.y
+    let width = rect.width
+    let height = rect.height
 
-    path.start(cx - 168, cy - 18)
-    path.bezierTo(cx - 44, cy - 136, cx - 160, cy - 110, cx - 102, cy - 150)
-    path.bezierTo(cx + 156, cy - 24, cx + 30, cy - 116, cx + 152, cy - 98)
-    path.bezierTo(cx + 40, cy + 134, cx + 168, cy + 52, cx + 110, cy + 154)
-    path.bezierTo(cx - 168, cy - 18, cx - 28, cy + 146, cx - 160, cy + 94)
+    path.start(left + width * 0.311, top + height * 0.464)
+    path.bezierTo(left + width * 0.450, top + height * 0.100, left + width * 0.320, top + height * 0.180, left + width * 0.385, top + height * 0.057)
+    path.bezierTo(left + width * 0.676, top + height * 0.446, left + width * 0.534, top + height * 0.162, left + width * 0.671, top + height * 0.218)
+    path.bezierTo(left + width * 0.545, top + height * 0.933, left + width * 0.689, top + height * 0.680, left + width * 0.624, top + height * 0.995)
+    path.bezierTo(left + width * 0.311, top + height * 0.464, left + width * 0.468, top + height * 0.971, left + width * 0.320, top + height * 0.810)
     path.close()
     return path
 }

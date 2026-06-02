@@ -3,6 +3,7 @@ using Core, Pixel, Win32
 const W = 980
 const H = 720
 const MaxPages = 5
+const TestFramesPerPage = 30
 
 const FixedWindowStyle = WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX | WS_CLIPSIBLINGS | WS_CLIPCHILDREN
 
@@ -322,14 +323,22 @@ func updateShortcuts()
     g_Keyboard.update()
     if g_Keyboard.isKeyJustPressed(Input.Key.F1) do
         nextPage()
+}
 
-    // Exercise every page in automated example tests without user input.
-    if Env.hasArg("swag.test")
-    {
-        g_TestFrame += 1
-        if g_TestFrame % 30 == 0 do
-            nextPage()
-    }
+func updateTestMode()
+{
+    if !Env.hasArg("swag.test") do
+        return
+
+    g_TestFrame += 1
+    if g_TestFrame < TestFramesPerPage do
+        return
+
+    g_TestFrame = 0
+    if g_Page + 1 >= MaxPages do
+        Env.exit(0)
+
+    nextPage()
 }
 
 #main
@@ -347,10 +356,13 @@ func updateShortcuts()
     try g_Window.show()
 
     var loop: Env.WindowLoop
+    if Env.hasArg("swag.test") do
+        loop.maxTestFrames = cast(u32) MaxPages * cast(u32) TestFramesPerPage
     while loop.next()
     {
         updateShortcuts()
         display()
+        updateTestMode()
     }
 
     g_Renderer.native.dropContext(g_RC)

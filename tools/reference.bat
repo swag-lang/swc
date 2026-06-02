@@ -4,9 +4,14 @@ setlocal
 for %%I in ("%~f0") do set "TOOLS_DIR=%%~dpI"
 call "%TOOLS_DIR%_common.bat" :init "%TOOLS_DIR%" "%~1"
 if not "%ERRORLEVEL%"=="0" exit /b %ERRORLEVEL%
-if /I "%~1"=="dm" shift
+set "MODE_ARG="
+if /I "%~1"=="dm" (
+    set "MODE_ARG=dm"
+    shift
+)
 
 set "REFERENCE_WORKSPACE=%ROOT%\bin\reference"
+set "STD_OUTPUT_ROOT=%ROOT%\bin\std\.output"
 set "SWC_COMMAND=test"
 set "REFERENCE_ARGS="
 set "BUILD_CFG=fast-debug"
@@ -32,5 +37,6 @@ shift
 goto parse_args
 
 :run
-call "%TOOLS_DIR%_common.bat" :run_swc %SWC_COMMAND% --workspace "%REFERENCE_WORKSPACE%" --build-cfg %BUILD_CFG%%REFERENCE_ARGS%%EXTRA_ARGS%
+call "%TOOLS_DIR%std.bat" %MODE_ARG% build --build-cfg "%BUILD_CFG%" || exit /b 1
+call "%TOOLS_DIR%_common.bat" :run_swc %SWC_COMMAND% --workspace "%REFERENCE_WORKSPACE%" --build-cfg %BUILD_CFG% --import-api-dir "%STD_OUTPUT_ROOT%"%REFERENCE_ARGS%%EXTRA_ARGS%
 exit /b %ERRORLEVEL%

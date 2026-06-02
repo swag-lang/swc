@@ -512,15 +512,15 @@ void MicroRegisterAllocationPass::selectPinnedRegisters()
     // including across calls (callee-saved) and loop back-edges. Definite
     // assignment (def-before-use) is guaranteed by the front-end, matching the
     // memory-home semantics the value previously had.
-    if (!hasControlFlow_ || freeIntPersistent_.empty())
+    if (!hasControlFlow_ || (freeIntPersistent_.empty() && freeFloatPersistent_.empty()))
         return;
 
-    // Leave a margin of persistent registers for values that are live across
-    // calls (which require a callee-saved home of their own).
-    const size_t persistentAvail = freeIntPersistent_.size();
-    if (persistentAvail <= 2)
+    // Leave a margin of persistent registers (per class) for values that are
+    // live across calls and need a callee-saved home of their own.
+    const size_t maxIntPins   = freeIntPersistent_.size() > 2 ? freeIntPersistent_.size() - 2 : 0;
+    const size_t maxFloatPins = freeFloatPersistent_.size() > 2 ? freeFloatPersistent_.size() - 2 : 0;
+    if (maxIntPins == 0 && maxFloatPins == 0)
         return;
-    const size_t maxPins = persistentAvail - 2;
 
     const auto&    vregs     = denseVirtualRegs_.regs();
     const uint32_t wordCount = denseVirtualRegs_.wordCount();
@@ -551,7 +551,7 @@ void MicroRegisterAllocationPass::selectPinnedRegisters()
     for (uint32_t denseIndex = 0; denseIndex < vregs.size(); ++denseIndex)
     {
         const MicroReg vreg = vregs[denseIndex];
-        if (!vreg.isVirtualInt())
+        if (!vreg.isVirtual())
             continue;
         if (denseIndex >= usePositionsByDenseVirtual_.size())
             continue;
@@ -585,19 +585,25 @@ void MicroRegisterAllocationPass::selectPinnedRegisters()
 
     std::ranges::stable_sort(candidates, [](const PinCandidate& a, const PinCandidate& b) { return a.benefit > b.benefit; });
 
-    size_t pins = 0;
+    size_t intPins   = 0;
+    size_t floatPins = 0;
     for (const PinCandidate& cand : candidates)
     {
-        if (pins >= maxPins || freeIntPersistent_.empty())
-            break;
+        const MicroReg vreg    = vregs[cand.denseIndex];
+        const bool     isFloat = vreg.isVirtualFloat();
 
-        const MicroReg vreg = vregs[cand.denseIndex];
+        SmallVector<MicroReg>& pool    = isFloat ? freeFloatPersistent_ : freeIntPersistent_;
+        size_t&                pins    = isFloat ? floatPins : intPins;
+        const size_t           maxPins = isFloat ? maxFloatPins : maxIntPins;
+
+        if (pins >= maxPins || pool.empty())
+            continue;
 
         // Find a reserved persistent register this value is allowed to use.
         uint32_t pickIndex = std::numeric_limits<uint32_t>::max();
-        for (uint32_t i = 0; i < freeIntPersistent_.size(); ++i)
+        for (uint32_t i = 0; i < pool.size(); ++i)
         {
-            if (!isPhysRegForbiddenForVirtual(vreg, freeIntPersistent_[i]))
+            if (!isPhysRegForbiddenForVirtual(vreg, pool[i]))
             {
                 pickIndex = i;
                 break;
@@ -606,8 +612,8 @@ void MicroRegisterAllocationPass::selectPinnedRegisters()
         if (pickIndex == std::numeric_limits<uint32_t>::max())
             continue;
 
-        const MicroReg reg = freeIntPersistent_[pickIndex];
-        freeIntPersistent_.erase(freeIntPersistent_.begin() + pickIndex);
+        const MicroReg reg = pool[pickIndex];
+        pool.erase(pool.begin() + pickIndex);
 
         auto& regState   = states_[cand.denseIndex];
         regState.pinned  = true;

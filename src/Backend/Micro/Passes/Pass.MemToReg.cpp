@@ -43,12 +43,13 @@ namespace
                op == MicroInstrOpcode::LoadMemImm;
     }
 
-    bool isPromotableIntBits(MicroOpBits bits)
+    bool isPromotableBits(MicroOpBits bits)
     {
-        // b32/b64 only: 64-bit copies are full width and 32-bit writes
-        // zero-extend to the full register on x86-64, so a register copy matches
-        // the zero-extending memory load. Narrower widths (b8/b16) would leave
-        // stale upper bits and are left in memory.
+        // b32/b64 only. For integers, 64-bit copies are full width and 32-bit
+        // writes zero-extend to the full register on x86-64, so a register copy
+        // matches the zero-extending memory load (b8/b16 would leave stale upper
+        // bits). For floats, b32/b64 are the scalar single/double widths and a
+        // float register copy is full-width.
         return bits == MicroOpBits::B32 || bits == MicroOpBits::B64;
     }
 
@@ -222,12 +223,14 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
     if (bail)
         return Result::Continue;
 
-    // ---- Decide promotable offsets: consistent b32/b64 int width, has a write,
-    //      and no overlap with any other accessed slot. ----
+    // ---- Decide promotable offsets: consistent b32/b64 width, a single
+    //      register class (all-int or all-float), a write, and no overlap with
+    //      any other accessed slot. ----
     struct Promotion
     {
         uint64_t    offset;
         MicroOpBits bits;
+        bool        isFloat;
     };
     SmallVector<Promotion> promotions;
 
@@ -237,7 +240,7 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
             continue;
 
         const MicroOpBits bits       = slot.accesses[0].bits;
-        bool              consistent = isPromotableIntBits(bits);
+        bool              consistent = isPromotableBits(bits);
         for (const SlotAccess& acc : slot.accesses)
         {
             if (acc.bits != bits)
@@ -249,29 +252,63 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
         if (!consistent)
             continue;
 
-        bool intOnly = true;
+        // Determine the slot's register class from its reg-valued accesses; all
+        // must agree. Float slots may not carry a LoadMemImm (an integer
+        // immediate must not be written into a float register).
+        bool ok        = true;
+        bool classKnown = false;
+        bool isFloat   = false;
         for (const SlotAccess& acc : slot.accesses)
         {
             const MicroInstr*        inst = storage.ptr(acc.ref);
             const MicroInstrOperand* iops = inst ? inst->ops(operands) : nullptr;
             if (!iops)
             {
-                intOnly = false;
+                ok = false;
                 break;
             }
             if (inst->op == MicroInstrOpcode::LoadMemImm)
-                continue;
+                continue;   // class resolved from reg accesses
             const MicroReg valueReg = (inst->op == MicroInstrOpcode::LoadRegMem) ? iops[0].reg : iops[1].reg;
-            if (!valueReg.isAnyInt())
+            const bool     regFloat = valueReg.isAnyFloat();
+            if (!regFloat && !valueReg.isAnyInt())
             {
-                intOnly = false;
+                ok = false;
+                break;
+            }
+            if (!classKnown)
+            {
+                classKnown = true;
+                isFloat    = regFloat;
+            }
+            else if (isFloat != regFloat)
+            {
+                ok = false;   // mixed int/float view of the same slot
                 break;
             }
         }
-        if (!intOnly)
+        if (!ok || !classKnown)
             continue;
 
-        promotions.push_back({offset, bits});
+        if (isFloat)
+        {
+            // A float slot initialized via an integer immediate store can't be
+            // turned into a float register copy safely — skip it.
+            bool hasImm = false;
+            for (const SlotAccess& acc : slot.accesses)
+            {
+                const MicroInstr* inst = storage.ptr(acc.ref);
+                if (inst && inst->op == MicroInstrOpcode::LoadMemImm)
+                {
+                    hasImm = true;
+                    break;
+                }
+            }
+            if (hasImm)
+                continue;
+        }
+
+        promotions.push_back({offset, bits, isFloat});
     }
 
     if (promotions.empty())
@@ -307,22 +344,28 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
     if (promotions.empty())
         return Result::Continue;
 
-    // ---- Allocate a fresh virtual register per promoted offset. ----
-    uint32_t nextVirtualIntRegIndex = std::max<uint32_t>(1, context.builder->nextVirtualIntRegIndexHint());
+    // ---- Allocate a fresh virtual register per promoted offset (int or float). ----
+    uint32_t nextVirtualIntRegIndex   = std::max<uint32_t>(1, context.builder->nextVirtualIntRegIndexHint());
+    uint32_t nextVirtualFloatRegIndex = 1;
     for (const MicroInstr& inst : storage.view())
     {
         SmallVector<MicroInstrRegOperandRef> refs;
         inst.collectRegOperands(operands, refs, context.encoder);
         for (const auto& ref : refs)
         {
-            if (ref.reg && ref.reg->isVirtualInt() && ref.reg->index() < MicroReg::K_MAX_INDEX)
+            if (!ref.reg || ref.reg->index() >= MicroReg::K_MAX_INDEX)
+                continue;
+            if (ref.reg->isVirtualInt())
                 nextVirtualIntRegIndex = std::max(nextVirtualIntRegIndex, ref.reg->index() + 1);
+            else if (ref.reg->isVirtualFloat())
+                nextVirtualFloatRegIndex = std::max(nextVirtualFloatRegIndex, ref.reg->index() + 1);
         }
     }
 
     std::unordered_map<uint64_t, MicroReg> slotReg;
     for (const Promotion& p : promotions)
-        slotReg[p.offset] = MicroReg::virtualIntReg(nextVirtualIntRegIndex++);
+        slotReg[p.offset] = p.isFloat ? MicroReg::virtualFloatReg(nextVirtualFloatRegIndex++)
+                                      : MicroReg::virtualIntReg(nextVirtualIntRegIndex++);
 
     // ---- Rewrite all accesses to the promoted registers. ----
     for (const Promotion& p : promotions)

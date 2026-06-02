@@ -4,6 +4,7 @@ const W = 980
 const H = 720
 const MaxPages = 8
 const TestFramesPerPage = 30
+const PanelHeaderHeight = 76.0
 
 const FixedWindowStyle = WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX | WS_CLIPSIBLINGS | WS_CLIPCHILDREN
 
@@ -16,6 +17,7 @@ var g_Keyboard:      Input.Keyboard
 var g_FontBytes:     Array'u8
 var g_TypeFace:      *Pixel.TypeFace
 var g_TitleFont:     *Pixel.Font
+var g_OutlineFont:   *Pixel.Font
 var g_SubTitleFont:  *Pixel.Font
 var g_LabelFont:     *Pixel.Font
 var g_HelpFont:      *Pixel.Font
@@ -38,6 +40,7 @@ func loadFonts() throw
     g_FontBytes    = File.readAllBytes(path)
     g_TypeFace     = TypeFace.create(path, g_FontBytes.toSlice())
     g_TitleFont    = Font.create(g_TypeFace, 34)
+    g_OutlineFont  = Font.create(g_TypeFace, 84)
     g_SubTitleFont = Font.create(g_TypeFace, 18)
     g_LabelFont    = Font.create(g_TypeFace, 16)
     g_HelpFont     = Font.create(g_TypeFace, 14)
@@ -152,7 +155,7 @@ func isAnchorCap(cap: LineCapStyle)->bool
 func drawPageHeader(painter: *Pixel.Painter, title, subtitle: string)
 {
     painter.drawString(28, 22, title, g_TitleFont, Argb.MidnightBlue)
-    painter.drawString(30, 64, subtitle, g_SubTitleFont, Argb.DimGray)
+    drawWrappedText(painter, {30, 62, W - 60, 38}, subtitle, g_SubTitleFont, Argb.DimGray)
 }
 
 func drawFooter(painter: *Pixel.Painter)
@@ -166,8 +169,19 @@ func drawPanel(painter: *Pixel.Painter, rect: Math.Rectangle, title, subtitle: s
     painter.fillRoundRect(rect.x, rect.y, rect.width, rect.height, 18, 18, Argb.White)
     painter.drawRoundRect(rect.x, rect.y, rect.width, rect.height, 18, 18, Color.fromArgb(96, Argb.SlateGray), 2)
     painter.drawString(rect.x + 18, rect.y + 12, title, g_SubTitleFont, Argb.DarkSlateBlue)
-    painter.drawString(rect.x + 18, rect.y + 36, subtitle, g_HelpFont, Argb.Gray)
-    return insetRect(rect, 18, 62, 18, 18)
+    drawWrappedText(painter, {rect.x + 18, rect.y + 36, rect.width - 36, PanelHeaderHeight - 40}, subtitle, g_HelpFont, Argb.Gray)
+    return insetRect(rect, 18, PanelHeaderHeight, 18, 18)
+}
+
+func drawWrappedText(painter: *Pixel.Painter, rect: Math.Rectangle, text: string, font: *Pixel.Font, color: Color)
+{
+    var richText: RichString = text
+    var format: RichStringFormat
+    format.font.regular = font
+    format.palette[0]   = color
+    format.lineGap      = 0
+    format.flags        = .WordWrap | .Clip
+    painter.drawRichString(rect, &richText, format)
 }
 
 func drawClosedOutline(painter: *Pixel.Painter, points: [..] Math.Vector2, pen: Pen)

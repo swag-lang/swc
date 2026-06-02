@@ -8,6 +8,7 @@ const GalleryRows  = 2
 const CardsPerPage = GalleryCols * GalleryRows
 const MaxPages     = 4
 const TestFramesPerPage = 30
+const CardHeaderHeight = 68.0
 
 const FixedWindowStyle = WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX | WS_CLIPSIBLINGS | WS_CLIPCHILDREN
 
@@ -136,10 +137,21 @@ func nextPage()
     g_Page = (g_Page + 1) % MaxPages
 }
 
+func drawWrappedText(painter: *Pixel.Painter, rect: Math.Rectangle, text: string, font: *Pixel.Font, color: Color)
+{
+    var richText: RichString = text
+    var format: RichStringFormat
+    format.font.regular = font
+    format.palette[0]   = color
+    format.lineGap      = 0
+    format.flags        = .WordWrap | .Clip
+    painter.drawRichString(rect, &richText, format)
+}
+
 func drawPageHeader(painter: *Pixel.Painter, title, subtitle: string)
 {
     painter.drawString(28, 22, title, g_TitleFont, Argb.MidnightBlue)
-    painter.drawString(30, 64, subtitle, g_SubTitleFont, Argb.DimGray)
+    drawWrappedText(painter, {30, 62, W - 60, 36}, subtitle, g_SubTitleFont, Argb.DimGray)
 }
 
 func drawFooter(painter: *Pixel.Painter)
@@ -235,8 +247,9 @@ func drawCardTexture(painter: *Pixel.Painter, rect: Math.Rectangle, card: const 
 
 func drawCard(painter: *Pixel.Painter, rect: Math.Rectangle, card: const &TextureCard)
 {
-    let titleBarRect = {rect.x, rect.y, rect.width, 54}
-    let previewRect  = insetRect(rect, 14, 68, 14, 14)
+    let titleBarRect = Math.Rectangle{rect.x, rect.y, rect.width, CardHeaderHeight}
+    let previewRect  = insetRect(rect, 14, CardHeaderHeight + 14, 14, 14)
+    let subtitleRect = Math.Rectangle{rect.x + 14, rect.y + 30, rect.width - 28, CardHeaderHeight - 36}
 
     painter.fillRoundRect(rect, 18, 18, Argb.White)
     painter.drawRoundRect(rect, 18, 18, Color.fromArgb(82, Argb.SlateGray), 2)
@@ -245,7 +258,7 @@ func drawCard(painter: *Pixel.Painter, rect: Math.Rectangle, card: const &Textur
     painter.drawRoundRect(previewRect, 16, 16, Color.fromArgb(36, Argb.SlateGray), 1)
 
     painter.drawString(rect.x + 14, rect.y + 12, card.title, g_LabelFont, Argb.DarkSlateBlue)
-    painter.drawString(rect.x + 14, rect.y + 34, card.subtitle, g_HelpFont, Argb.DimGray)
+    drawWrappedText(painter, subtitleRect, card.subtitle, g_HelpFont, Argb.DimGray)
     drawCardTexture(painter, previewRect, card)
 }
 

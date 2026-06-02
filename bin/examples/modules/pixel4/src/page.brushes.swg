@@ -8,8 +8,8 @@ func drawBrushCellBackground(painter: *Pixel.Painter, rect: Math.Rectangle)
 
 func drawBrushCellLabel(painter: *Pixel.Painter, rect: Math.Rectangle, title, subtitle: string)
 {
-    painter.drawString(rect.x + 18, rect.bottom() - 44, title, g_LabelFont, Argb.DarkSlateBlue)
-    painter.drawString(rect.x + 18, rect.bottom() - 24, subtitle, g_HelpFont, Argb.DimGray)
+    painter.drawString(rect.x + 18, rect.bottom() - 48, title, g_LabelFont, Argb.DarkSlateBlue)
+    drawWrappedText(painter, {rect.x + 18, rect.bottom() - 28, rect.width - 36, 24}, subtitle, g_HelpFont, Argb.DimGray)
 }
 
 func drawFilledBrushCells(painter: *Pixel.Painter, rect: Math.Rectangle)
@@ -25,7 +25,7 @@ func drawFilledBrushCells(painter: *Pixel.Painter, rect: Math.Rectangle)
     drawBrushCellBackground(painter, rightCell)
 
     {
-        let shapeRect = insetRect(leftCell, 26, 26, 26, 74)
+        let shapeRect = insetRect(leftCell, 26, 22, 26, 82)
         let fillBrush = Brush.createTexture(g_FillTexture)
         var pen       = Pen.createHatch(.DiagonalCross, Color.fromArgb(210, Argb.MidnightBlue), 10)
         pen.borderPos = .Inside
@@ -36,19 +36,19 @@ func drawFilledBrushCells(painter: *Pixel.Painter, rect: Math.Rectangle)
     }
 
     {
-        let center    = Math.Vector2{middleCell.horzCenter(), middleCell.y + middleCell.height * 0.46}
+        let center    = Math.Vector2{middleCell.horzCenter(), middleCell.y + middleCell.height * 0.40}
         let fillBrush = Brush.createTiled(g_TileTexture)
         var pen       = Pen.createSolid(Argb.White, 16)
         pen.brush     = Brush.createTexture(g_FillTexture)
         pen.borderPos = .Inside
-        painter.fillCircle(center.x, center.y, 80, fillBrush)
-        painter.drawCircle(center.x, center.y, 80, pen)
+        painter.fillCircle(center.x, center.y, 72, fillBrush)
+        painter.drawCircle(center.x, center.y, 72, pen)
         drawBrushCellLabel(painter, middleCell, "Tiled texture fill", "Brush.createTiled + textured outline")
     }
 
     {
-        let center    = Math.Vector2{rightCell.horzCenter(), rightCell.y + rightCell.height * 0.44}
-        let star      = makeStarPolygon(center.x, center.y, 94, 42, 6)
+        let center    = Math.Vector2{rightCell.horzCenter(), rightCell.y + rightCell.height * 0.38}
+        let star      = makeStarPolygon(center.x, center.y, 82, 36, 6)
         let fillBrush = Brush.createHatch(.OutlinedDiamond, Color.fromArgb(224, Argb.DarkMagenta))
         var pen       = Pen.createSolid(Argb.White, 12)
         pen.brush     = Brush.createTiled(g_TileTexture)
@@ -72,7 +72,7 @@ func drawOutlinedBrushCells(painter: *Pixel.Painter, rect: Math.Rectangle)
     drawBrushCellBackground(painter, rightCell)
 
     {
-        let shapeRect = insetRect(leftCell, 26, 26, 26, 74)
+        let shapeRect = insetRect(leftCell, 26, 22, 26, 82)
         var pen       = Pen.createHatch(.Weave, Color.fromArgb(220, Argb.Teal), 18)
         pen.borderPos = .Inside
         pen.joinStyle = .Round
@@ -81,7 +81,7 @@ func drawOutlinedBrushCells(painter: *Pixel.Painter, rect: Math.Rectangle)
     }
 
     {
-        let shapeRect = insetRect(middleCell, 26, 26, 26, 74)
+        let shapeRect = insetRect(middleCell, 26, 22, 26, 82)
         var blob      = makeBlobPath(shapeRect)
         blob.flatten(.Normal)
         var pen       = Pen.createSolid(Argb.White, 18)
@@ -92,7 +92,7 @@ func drawOutlinedBrushCells(painter: *Pixel.Painter, rect: Math.Rectangle)
     }
 
     {
-        let body   = insetRect(rightCell, 26, 22, 26, 78)
+        let body   = insetRect(rightCell, 26, 16, 26, 82)
         let points = makeArrowPolygon(body)
         var pen    = Pen.createSolid(Argb.White, 16)
         pen.brush  = Brush.createTiled(g_TileTexture)

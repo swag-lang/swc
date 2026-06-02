@@ -63,7 +63,7 @@ func drawRenderTargetBrushCard(painter: *Pixel.Painter, rect: Math.Rectangle, te
 
         painter.fillRoundRect(leftRect, 22, 22, fillBrush)
         painter.drawRoundRect(leftRect, 22, 22, pen)
-        painter.drawString(leftRect.x + 16, leftRect.bottom() - 30, "Brush.createTexture(target.colorBuffer)", g_HelpFont, Argb.White)
+        drawWrappedText(painter, {leftRect.x + 16, leftRect.bottom() - 36, leftRect.width - 32, 28}, "Brush.createTexture(target.colorBuffer)", g_HelpFont, Argb.White)
     }
 
     {
@@ -76,7 +76,7 @@ func drawRenderTargetBrushCard(painter: *Pixel.Painter, rect: Math.Rectangle, te
 
         painter.fillPolygon(flower[to], Brush.createTiled(g_TileTexture))
         drawClosedOutline(painter, flower[to], pen)
-        painter.drawString(rightRect.x + 10, rightRect.bottom() - 30, "Textured outline from the same target", g_HelpFont, Argb.DarkSlateGray)
+        drawWrappedText(painter, {rightRect.x + 10, rightRect.bottom() - 36, rightRect.width - 20, 28}, "Textured outline from the same target", g_HelpFont, Argb.DarkSlateGray)
     }
 }
 

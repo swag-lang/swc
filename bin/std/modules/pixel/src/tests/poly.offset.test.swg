@@ -1,20 +1,14 @@
 #global #if #command == Swag.CompilerCommand.Test
 using Swag, Core
 
-func getDrawFontPath()->String
+func getOutlineFontPath()->string
 {
-    var path = Path.getDirectoryName(#curlocation.fileName) orelse ""
-    for 5 do
-        path = Path.getDirectoryName(path) orelse ""
-
-    path = Path.combine(path, "examples/modules/draw/data/arial.ttf")
-    @assert(File.exists(path))
-    return path
+    return getTestDataPath("segoeui.ttf")
 }
 
 func assertOutlineOffsetPathCount(text: string, expectedCount: u64)
 {
-    let face = assume Pixel.TypeFace.load(getDrawFontPath())
+    let face = assume Pixel.TypeFace.load(getOutlineFontPath())
 
     var paths: Pixel.LinePathList
     assume face.getStringOutline(&paths, text, 80)

@@ -465,6 +465,68 @@ namespace
         SWC_UNREACHABLE();
     }
 
+    // Compare two address-backed aggregate operands (structs/arrays) for equality by
+    // comparing their full byte content, chunk by chunk. The scalar compare path only
+    // looks at a single register-sized load, which silently ignores every field past
+    // the first machine word for aggregates larger than a register.
+    Result emitAggregateEqualsBool(CodeGen& codeGen, TokenId tokId, const CodeGenNodePayload& leftPayload, const CodeGenNodePayload& rightPayload, uint64_t sizeBytes)
+    {
+        MicroBuilder&       builder       = codeGen.builder();
+        CodeGenNodePayload& resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), codeGen.curViewType().typeRef());
+        resultPayload.reg                 = codeGen.nextVirtualIntRegister();
+
+        const bool          isEqual       = tokId == TokenId::SymEqualEqual;
+        const MicroLabelRef notEqualLabel = builder.createLabel();
+        const MicroLabelRef doneLabel     = builder.createLabel();
+
+        uint64_t offset = 0;
+        while (offset < sizeBytes)
+        {
+            const uint64_t remain = sizeBytes - offset;
+
+            MicroOpBits chunkBits;
+            uint64_t    chunkSize;
+            if (remain >= 8)
+            {
+                chunkBits = MicroOpBits::B64;
+                chunkSize = 8;
+            }
+            else if (remain >= 4)
+            {
+                chunkBits = MicroOpBits::B32;
+                chunkSize = 4;
+            }
+            else if (remain >= 2)
+            {
+                chunkBits = MicroOpBits::B16;
+                chunkSize = 2;
+            }
+            else
+            {
+                chunkBits = MicroOpBits::B8;
+                chunkSize = 1;
+            }
+
+            const MicroReg leftChunk  = codeGen.nextVirtualIntRegister();
+            const MicroReg rightChunk = codeGen.nextVirtualIntRegister();
+            builder.emitLoadRegMem(leftChunk, leftPayload.reg, static_cast<uint32_t>(offset), chunkBits);
+            builder.emitLoadRegMem(rightChunk, rightPayload.reg, static_cast<uint32_t>(offset), chunkBits);
+            builder.emitCmpRegReg(leftChunk, rightChunk, chunkBits);
+            builder.emitJumpToLabel(MicroCond::NotEqual, MicroOpBits::B32, notEqualLabel);
+
+            offset += chunkSize;
+        }
+
+        builder.emitLoadRegImm(resultPayload.reg, ApInt(isEqual ? 1 : 0, 32), MicroOpBits::B32);
+        builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, doneLabel);
+
+        builder.placeLabel(notEqualLabel);
+        builder.emitLoadRegImm(resultPayload.reg, ApInt(isEqual ? 0 : 1, 32), MicroOpBits::B32);
+
+        builder.placeLabel(doneLabel);
+        return Result::Continue;
+    }
+
     Result emitRelationalBool(CodeGen& codeGen, const AstRelationalExpr& node, TokenId tokId)
     {
         const SemaNodeView leftView  = codeGen.viewType(node.nodeLeftRef);
@@ -503,6 +565,14 @@ namespace
             return emitTypeInfoCompareBool(codeGen, tokId, leftPayload, leftOperandTypeRef, rightPayload, rightOperandTypeRef, compareTypeRef);
         if ((tokId == TokenId::SymEqualEqual || tokId == TokenId::SymBangEqual) && leftIsRuntimeTypeInfoPointer && rightIsRuntimeTypeInfoPointer)
             return emitTypeInfoCompareBool(codeGen, tokId, leftPayload, leftOperandTypeRef, rightPayload, rightOperandTypeRef, codeGen.typeMgr().typeTypeInfo());
+
+        // Aggregates (structs/arrays) wider than a machine register must be compared over
+        // their full content. The scalar path below only compares a single register-sized
+        // load, which would ignore every field beyond the first machine word.
+        if ((tokId == TokenId::SymEqualEqual || tokId == TokenId::SymBangEqual) &&
+            (compareType.isStruct() || compareType.isArray() || compareType.isAggregate()) &&
+            compareType.sizeOf(codeGen.ctx()) > sizeof(uint64_t))
+            return emitAggregateEqualsBool(codeGen, tokId, leftOperandPayload, rightOperandPayload, compareType.sizeOf(codeGen.ctx()));
 
         MicroOpBits opBits = CodeGenTypeHelpers::compareBits(compareType, codeGen.ctx());
         SWC_ASSERT(opBits != MicroOpBits::Zero);

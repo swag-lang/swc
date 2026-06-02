@@ -2,7 +2,7 @@ using Core, Pixel, Win32
 
 const W = 980
 const H = 720
-const MaxPages = 5
+const MaxPages = 8
 const TestFramesPerPage = 30
 
 const FixedWindowStyle = WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX | WS_CLIPSIBLINGS | WS_CLIPCHILDREN
@@ -21,6 +21,7 @@ var g_LabelFont:     *Pixel.Font
 var g_HelpFont:      *Pixel.Font
 var g_FillTexture:   Texture
 var g_TileTexture:   Texture
+var g_OutlineText:   LinePathList
 
 var g_Page:          s32
 var g_TestFrame:     s32
@@ -123,6 +124,11 @@ func loadBrushTextures()
     g_TileTexture = g_Renderer.addImage(buildTileBrushImage())
 }
 
+func loadTextShowcase()
+{
+    assume g_TypeFace.getStringOutline(&g_OutlineText, "PIXEL", 84)
+}
+
 func insetRect(rect: Math.Rectangle, left, top, right, bottom: f32)->Math.Rectangle
 {
     var result = rect
@@ -151,7 +157,7 @@ func drawPageHeader(painter: *Pixel.Painter, title, subtitle: string)
 
 func drawFooter(painter: *Pixel.Painter)
 {
-    let pageText = Format.toString("F1 : next page (%/%). Pages : caps, joins, transparency, polygons, brushes.", g_Page + 1, MaxPages)
+    let pageText = Format.toString("F1 : next page (%/%). Pages : caps, joins, transparency, polygons, brushes, text, compositing, render targets.", g_Page + 1, MaxPages)
     painter.drawString(28, H - 26, pageText, g_HelpFont, Argb.DimGray)
 }
 
@@ -295,6 +301,12 @@ func drawScene(painter: *Pixel.Painter)
         drawPolygonsPage(painter)
     case 4:
         drawBrushesPage(painter)
+    case 5:
+        drawTextPage(painter)
+    case 6:
+        drawCompositingPage(painter)
+    case 7:
+        drawRenderTargetPage(painter)
     default:
         unreachable
     }
@@ -351,6 +363,7 @@ func updateTestMode()
 
     try loadFonts()
     loadBrushTextures()
+    loadTextShowcase()
 
     g_Window.callbacks.onResize = &onResize
     try g_Window.show()

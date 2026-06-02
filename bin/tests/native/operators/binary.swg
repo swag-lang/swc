@@ -136,6 +136,32 @@ func binaryPromotedFloatCallMul(v: f32)->f64
     @assert(d == 0x0000_0000_0010_0000'u64)
 }
 
+#[Swag.Optimize(false)]
+func largeWrappedShiftLeftU32(value: u32, count: u32)->u32
+{
+    return value << #wrap count
+}
+
+#[Swag.Optimize(false)]
+func largeShiftRightU32(value: u32, count: u32)->u32
+{
+    return value >> count
+}
+
+#[Swag.Optimize(false)]
+func largeShiftRightS32(value: s32, count: s32)->s32
+{
+    return value >> count
+}
+
+#test
+{
+    @assert(largeWrappedShiftLeftU32(1'u32, 32'u32) == 0'u32)
+    @assert(largeShiftRightU32(0x8000_0000'u32, 32'u32) == 0'u32)
+    @assert(largeShiftRightS32(-16, 32) == -1)
+    @assert(largeShiftRightS32(16, 32) == 0)
+}
+
 // Operator precedence and parentheses
 #test
 {

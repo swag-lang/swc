@@ -187,6 +187,26 @@ namespace
         return ApInt(value, 64);
     }
 
+    void emitLargeShiftCountSelect(CodeGen& codeGen, const MicroReg valueReg, const MicroReg countReg64, const MicroReg originalReg, const MicroOpBits opBits, const uint64_t bitWidth, const bool signedRightShift)
+    {
+        MicroBuilder&     builder     = codeGen.builder();
+        const MicroOpBits moveBits    = std::max(opBits, MicroOpBits::B32);
+        const MicroReg    fallbackReg = codeGen.nextVirtualIntRegister();
+        builder.emitClearReg(fallbackReg, moveBits);
+
+        if (signedRightShift)
+        {
+            SWC_ASSERT(originalReg.isValid());
+            const MicroReg allOnesReg = codeGen.nextVirtualIntRegister();
+            builder.emitLoadRegImm(allOnesReg, ApInt(std::numeric_limits<uint64_t>::max(), 64), moveBits);
+            builder.emitCmpRegImm(originalReg, ApInt(0, 64), opBits);
+            builder.emitLoadCondRegReg(fallbackReg, allOnesReg, MicroCond::Less, moveBits);
+        }
+
+        builder.emitCmpRegImm(countReg64, ApInt(bitWidth, 64), MicroOpBits::B64);
+        builder.emitLoadCondRegReg(valueReg, fallbackReg, MicroCond::AboveOrEqual, moveBits);
+    }
+
     uint64_t maxUnsignedValue(const uint32_t bits)
     {
         if (bits >= 64)
@@ -364,14 +384,48 @@ Result CodeGenSafety::emitShiftIntLike(CodeGen& codeGen, const AstNode& node, co
     MicroBuilder&       builder       = codeGen.builder();
     const MicroOp       shiftOp       = isLeftShift ? MicroOp::ShiftLeft : (isSigned ? MicroOp::ShiftArithmeticRight : MicroOp::ShiftRight);
     const uint64_t      bitWidth      = getNumBits(opBits);
-    const MicroReg      originalReg   = codeGen.nextVirtualIntRegister();
     const MicroReg      countReg64    = widenIntRegTo64(codeGen, rightReg, operationType, opBits);
+    MicroReg            originalReg   = MicroReg::invalid();
+    if (checkOverflow || (!isLeftShift && isSigned))
+    {
+        originalReg = codeGen.nextVirtualIntRegister();
+        builder.emitLoadRegReg(originalReg, valueReg, opBits);
+    }
+
+    if (!checkOverflow)
+    {
+        MicroReg stableCountReg64 = countReg64;
+        if (stableCountReg64 == valueReg)
+        {
+            stableCountReg64 = codeGen.nextVirtualIntRegister();
+            builder.emitLoadRegReg(stableCountReg64, countReg64, MicroOpBits::B64);
+        }
+
+        MicroLabelRef doneLabel = MicroLabelRef::invalid();
+        if (isSigned)
+        {
+            const MicroLabelRef nonNegative = builder.createLabel();
+            doneLabel                       = builder.createLabel();
+            builder.emitCmpRegImm(rightReg, ApInt(0, 64), opBits);
+            builder.emitJumpToLabel(MicroCond::GreaterOrEqual, MicroOpBits::B32, nonNegative);
+            if (hasSafety)
+                SWC_RESULT(emitNegativeShiftCheck(codeGen, node));
+            builder.emitOpBinaryRegReg(valueReg, rightReg, shiftOp, opBits);
+            builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, doneLabel);
+            builder.placeLabel(nonNegative);
+        }
+
+        builder.emitOpBinaryRegReg(valueReg, rightReg, shiftOp, opBits);
+        emitLargeShiftCountSelect(codeGen, valueReg, stableCountReg64, originalReg, opBits, bitWidth, !isLeftShift && isSigned);
+        if (doneLabel.isValid())
+            builder.placeLabel(doneLabel);
+        return Result::Continue;
+    }
+
     const MicroLabelRef nonNegative   = builder.createLabel();
     const MicroLabelRef normalLabel   = builder.createLabel();
     const MicroLabelRef largeLabel    = builder.createLabel();
     const MicroLabelRef doneLabel     = builder.createLabel();
-
-    builder.emitLoadRegReg(originalReg, valueReg, opBits);
 
     if (isSigned)
     {

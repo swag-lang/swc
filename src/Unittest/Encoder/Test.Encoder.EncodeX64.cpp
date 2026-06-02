@@ -204,6 +204,9 @@ namespace
         ENCODE_CASE("set_cond_above_r8", "41 0F 97 C0", b.emitSetCondReg(R8, MicroCond::Above););
         ENCODE_CASE("set_cond_above_r8_zext", "41 0F 97 C0 45 0F B6 C0", b.emitSetCondReg(R8, MicroCond::Above); b.emitLoadZeroExtendRegReg(R8, R8, MicroOpBits::B32, MicroOpBits::B8););
         ENCODE_CASE("load_cond_reg_reg_gt", "4D 0F 4F CA", b.emitLoadCondRegReg(R9, R10, MicroCond::Greater, MicroOpBits::B64););
+        ENCODE_CASE("load_cond_reg_reg_ae", "4D 0F 43 CA", b.emitLoadCondRegReg(R9, R10, MicroCond::AboveOrEqual, MicroOpBits::B64););
+        ENCODE_CASE("load_cond_reg_reg_ae_b8_promotes_b32", "45 0F 43 CA", b.emitLoadCondRegReg(R9, R10, MicroCond::AboveOrEqual, MicroOpBits::B8););
+        ENCODE_CASE("load_cond_reg_reg_less", "4D 0F 4C CA", b.emitLoadCondRegReg(R9, R10, MicroCond::Less, MicroOpBits::B64););
         ENCODE_CASE("clear_reg_r9_b32", "45 31 C9", b.emitClearReg(R9, MicroOpBits::B32););
         ENCODE_CASE("clear_reg_r11_b64", "4D 31 DB", b.emitClearReg(R11, MicroOpBits::B64););
         ENCODE_CASE("clear_reg_xmm1_b64", "66 0F 57 C9", b.emitClearReg(XMM1, MicroOpBits::B64););

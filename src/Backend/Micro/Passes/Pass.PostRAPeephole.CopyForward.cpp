@@ -86,7 +86,6 @@ namespace PostRaPeephole
                 case MicroInstrOpcode::LoadSignedExtRegReg:
                 case MicroInstrOpcode::LoadZeroExtRegReg:
                 case MicroInstrOpcode::LoadAddrRegMem:
-                case MicroInstrOpcode::LoadCondRegReg:
                 case MicroInstrOpcode::SetCondReg:
                     return true;
                 default:

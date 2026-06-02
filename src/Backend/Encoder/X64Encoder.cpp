@@ -1737,23 +1737,55 @@ void X64Encoder::encodeLoadCondRegReg(MicroReg regDst, MicroReg regSrc, MicroCon
 
     switch (setType)
     {
+        case MicroCond::Overflow:
+            emitCpuOp(store_, 0x40);
+            break;
+        case MicroCond::NotOverflow:
+            emitCpuOp(store_, 0x41);
+            break;
         case MicroCond::Below:
             emitCpuOp(store_, 0x42);
             break;
+        case MicroCond::AboveOrEqual:
+            emitCpuOp(store_, 0x43);
+            break;
         case MicroCond::Equal:
+        case MicroCond::Zero:
             emitCpuOp(store_, 0x44);
             break;
-        case MicroCond::Greater:
-            emitCpuOp(store_, 0x4F);
+        case MicroCond::NotEqual:
+        case MicroCond::NotZero:
+            emitCpuOp(store_, 0x45);
+            break;
+        case MicroCond::BelowOrEqual:
+        case MicroCond::NotAbove:
+            emitCpuOp(store_, 0x46);
+            break;
+        case MicroCond::Above:
+            emitCpuOp(store_, 0x47);
+            break;
+        case MicroCond::Sign:
+            emitCpuOp(store_, 0x48);
+            break;
+        case MicroCond::Parity:
+        case MicroCond::EvenParity:
+            emitCpuOp(store_, 0x4A);
+            break;
+        case MicroCond::NotParity:
+        case MicroCond::NotEvenParity:
+            emitCpuOp(store_, 0x4B);
             break;
         case MicroCond::Less:
             emitCpuOp(store_, 0x4C);
             break;
-        case MicroCond::BelowOrEqual:
-            emitCpuOp(store_, 0x46);
-            break;
         case MicroCond::GreaterOrEqual:
             emitCpuOp(store_, 0x4D);
+            break;
+        case MicroCond::LessOrEqual:
+            emitCpuOp(store_, 0x4E);
+            break;
+        case MicroCond::Greater:
+            emitCpuOp(store_, 0x4F);
             break;
         default:
             SWC_UNREACHABLE();

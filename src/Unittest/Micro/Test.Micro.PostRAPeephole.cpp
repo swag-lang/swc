@@ -166,6 +166,29 @@ SWC_TEST_BEGIN(PostRAPeephole_LiveCompareForBranch_Preserved)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(PostRAPeephole_LoadCondRegRegKeepsCopyBecauseDestinationIsUseDef)
+{
+    const CallConv& conv = CallConv::get(CallConvKind::Swag);
+    MicroBuilder    builder(ctx);
+
+    builder.emitLoadRegImm(conv.intRegs[0], ApInt(1, 64), MicroOpBits::B64);
+    builder.emitLoadRegImm(conv.intRegs[2], ApInt(2, 64), MicroOpBits::B64);
+    builder.emitCmpRegImm(conv.intRegs[1], ApInt(0, 64), MicroOpBits::B64);
+    builder.emitLoadCondRegReg(conv.intRegs[0], conv.intRegs[1], MicroCond::AboveOrEqual, MicroOpBits::B64);
+    builder.emitLoadRegReg(conv.intRegs[2], conv.intRegs[0], MicroOpBits::B64);
+    builder.emitCmpRegImm(conv.intRegs[2], ApInt(0, 64), MicroOpBits::B64);
+    builder.emitRet();
+
+    SWC_RESULT(runPostRaPeepholePass(builder));
+
+    if (countOpcode(builder, MicroInstrOpcode::LoadCondRegReg) != 1)
+        return Result::Error;
+    if (countOpcode(builder, MicroInstrOpcode::LoadRegReg) != 1)
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

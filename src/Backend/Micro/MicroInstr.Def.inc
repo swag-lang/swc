@@ -419,7 +419,7 @@ SWC_MICRO_INSTR_DEF(
 SWC_MICRO_INSTR_DEF(
     LoadCondRegReg,
     MicroInstrDef{
-        .regModes              = {MicroInstrRegMode::Def, MicroInstrRegMode::Use, MicroInstrRegMode::None},
+        .regModes              = {MicroInstrRegMode::UseDef, MicroInstrRegMode::Use, MicroInstrRegMode::None},
         .special               = MicroInstrRegSpecial::None,
         .microOpIndex          = 0,
         .callConvIndex         = 0,

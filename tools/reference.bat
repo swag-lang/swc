@@ -37,6 +37,6 @@ shift
 goto parse_args
 
 :run
-call "%TOOLS_DIR%std.bat" %MODE_ARG% build --build-cfg "%BUILD_CFG%" || exit /b 1
+call "%TOOLS_DIR%std.bat" %MODE_ARG% build --build-cfg "%BUILD_CFG%"%EXTRA_ARGS% || exit /b 1
 call "%TOOLS_DIR%_common.bat" :run_swc %SWC_COMMAND% --workspace "%REFERENCE_WORKSPACE%" --build-cfg %BUILD_CFG% --import-api-dir "%STD_OUTPUT_ROOT%"%REFERENCE_ARGS%%EXTRA_ARGS%
 exit /b %ERRORLEVEL%

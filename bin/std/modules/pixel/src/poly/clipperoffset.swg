@@ -59,7 +59,7 @@ impl Offset
         var highI = path.count - 1
         if highI < 0 do
             return
-        while highI > 0 and path.buffer[0] == path.buffer[highI] do
+        while highI > 0 and path.buffer[0].x == path.buffer[highI].x and path.buffer[0].y == path.buffer[highI].y do
             highI -= 1
 
         let newNode = Memory.new'PolyNode()
@@ -67,20 +67,23 @@ impl Offset
         newNode.contour.reserve(highI + 1)
         newNode.contour.add(path.buffer[0])
 
-        var j, k: s32
+        var uniqueCount: s32 = 0
+        var lowestIdx:   s32 = 0
         for i in 1 to highI
         {
-            if newNode.contour.buffer[j] != path.buffer[i]
-            {
-                j += 1
-                newNode.contour.add(path.buffer[i])
-                let kC = newNode.contour[k]
-                if path[i].y > kC.y or (path[i].y == kC.y and path[i].x < kC.x) do
-                    k = j
-            }
+            let pt = path.buffer[i]
+            if newNode.contour.buffer[uniqueCount].x == pt.x and newNode.contour.buffer[uniqueCount].y == pt.y do
+                continue
+
+            uniqueCount += 1
+            newNode.contour.add(pt)
+
+            let lowestPt = newNode.contour[lowestIdx]
+            if pt.y > lowestPt.y or (pt.y == lowestPt.y and pt.x < lowestPt.x) do
+                lowestIdx = uniqueCount
         }
 
-        if j < 2
+        if uniqueCount < 2
         {
             Memory.delete(newNode)
             return
@@ -89,12 +92,12 @@ impl Offset
         .polyNodes.addChild(newNode)
 
         if .lowest.x < 0 do
-            .lowest = IntPoint{.polyNodes.childs.count - 1, k}
+            .lowest = IntPoint{.polyNodes.childs.count - 1, lowestIdx}
         else
         {
             let ip = .polyNodes.childs[cast(s32) .lowest.x].contour[cast(s32) .lowest.y]
-            if newNode.contour[k].y > ip.y or (newNode.contour[k].y == ip.y and newNode.contour[k].x < ip.x) do
-                .lowest = IntPoint{.polyNodes.childs.count - 1, k}
+            if newNode.contour[lowestIdx].y > ip.y or (newNode.contour[lowestIdx].y == ip.y and newNode.contour[lowestIdx].x < ip.x) do
+                .lowest = IntPoint{.polyNodes.childs.count - 1, lowestIdx}
         }
     }
 
@@ -173,7 +176,7 @@ impl Offset
     }
 
     // Calculate the unit normal vector perpendicular to the line segment from 'pt1' to 'pt2'.
-    // The normal points to the left of the line direction (counter-clockwise 90° rotation).
+    // The normal points to the left of the line direction (counter-clockwise 90Â° rotation).
     func getUnitNormal(pt1, pt2: const &IntPoint)->DoublePoint
     {
         var result: retval

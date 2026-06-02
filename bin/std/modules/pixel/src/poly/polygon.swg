@@ -19,7 +19,7 @@ struct Polygon
 
 impl Polygon
 {
-    fileprivate mtd appendClipperPath(path: *Clipper.ClipperPath)
+    moduleprivate mtd appendClipperPath(path: *Clipper.ClipperPath)
     {
         var count = .points.count
         if count > 1 and .points[0].distanceToSquared(.points[count - 1]) < 0.5 * 0.5 do
@@ -32,7 +32,7 @@ impl Polygon
         }
     }
 
-    fileprivate func setupGeneratedPath(path: *LinePath)
+    moduleprivate func setupGeneratedPath(path: *LinePath)
     {
         path.isPolyOnly = true
         path.isClosed   = true
@@ -189,7 +189,7 @@ impl Polygon
         .points = #move copy
     }
 
-    fileprivate mtd storeClipperResult(res: Clipper.ClipperPath)
+    moduleprivate mtd storeClipperResult(res: Clipper.ClipperPath)
     {
         .clear()
         if !res.count do
@@ -206,6 +206,26 @@ impl Polygon
         .add(v0)
 
         .compute()
+    }
+
+    moduleprivate mtd addOffsetInputs(off: *Clipper.Offset, joinType: Clipper.JoinType)
+    {
+        if .isSimple
+        {
+            var path: Clipper.ClipperPath
+            .appendClipperPath(&path)
+            off.addPath(path, joinType)
+        }
+        else
+        {
+            // Offset cleaned contours only when the polygon is known to be
+            // non-simple. Cleaning simple glyph outlines first can fragment
+            // inner contours into many tiny loops.
+            var paths: Clipper.ClipperPaths
+            .clean(&paths)
+            foreach path in paths do
+                off.addPath(path, joinType)
+        }
     }
 
     fileprivate mtd offset(res: *Clipper.ClipperPaths, value: f32, joinStyle: JoinStyle, toler: f32)
@@ -228,13 +248,7 @@ impl Polygon
 
         var off: Clipper.Offset
         off.arcTolerance = toler * ClipperScaleCoords
-
-        // Register simplified paths. Offsetting self-intersecting contours
-        // directly creates tiny loop fragments; Clipper expects simple input.
-        var paths: Clipper.ClipperPaths
-        .clean(&paths)
-        foreach path in paths do
-            off.addPath(path, joinType)
+        .addOffsetInputs(&off, joinType)
 
         // Compute
         off.execute(res, cast(f64) (value * ClipperScaleCoords))

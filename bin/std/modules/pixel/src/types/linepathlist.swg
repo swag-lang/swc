@@ -79,36 +79,84 @@ impl LinePathList
         if Math.isZeroEpsilon(value) do
             return
 
-        var newList: LinePathList
-
-        foreach p in .paths
+        var joinType = Clipper.JoinType.Square
+        switch joinStyle
         {
-            let v = p.polygon.isClockwise ? value : -value
+        case Round:
+            joinType = .Round
+        case Bevel:
+            joinType = .Square
+        case Miter:
+            joinType = .Miter
+        }
 
-            var res = p.polygon.getOffset(v, joinStyle, toler)
-            newList.paths.add(res.paths.toSlice())
-            res.paths.count = 0
+        var off: Clipper.Offset
+        off.arcTolerance = toler * ClipperScaleCoords
+        foreach p in .paths do
+            p.polygon.addOffsetInputs(&off, joinType)
+
+        var res: Clipper.ClipperPaths
+        off.execute(&res, cast(f64) (value * ClipperScaleCoords))
+
+        var newList: LinePathList
+        newList.bvMin = Vector2.Max
+        newList.bvMax = Vector2.NegMax
+        foreach path in res
+        {
+            let np = newList.newPath()
+            np.polygon.storeClipperResult(path)
+            np.polygon.setupGeneratedPath(np)
+            newList.bvMin = Vector2.min(newList.bvMin, np.bvMin)
+            newList.bvMax = Vector2.max(newList.bvMax, np.bvMax)
         }
 
         .clear()
         .paths = #move newList.paths
-        .clean()
+        .bvMin = newList.bvMin
+        .bvMax = newList.bvMax
     }
 
     // Clean all paths
     // They must before be flattened
     mtd clean()
     {
-        var newList: LinePathList
+        var trf: Clipper.Transform
+        foreach p in .paths
+        {
+            if p.polygon.isClockwise
+            {
+                trf.reverseOutput = false
+                break
+            }
+
+            trf.reverseOutput = true
+        }
 
         foreach p in .paths
         {
-            var res = p.polygon.getClean()
-            newList.paths.add(res.paths.toSlice())
-            res.paths.count = 0
+            var path: Clipper.ClipperPath
+            p.polygon.appendClipperPath(&path)
+            trf.addPath(&path, .Subject)
+        }
+
+        var res: Clipper.ClipperPaths
+        trf.execute(.Union, &res, .NonZero, .NonZero)
+
+        var newList: LinePathList
+        newList.bvMin = Vector2.Max
+        newList.bvMax = Vector2.NegMax
+        foreach path in res
+        {
+            let np = newList.newPath()
+            np.polygon.storeClipperResult(path)
+            np.polygon.setupGeneratedPath(np)
+            newList.bvMin = Vector2.min(newList.bvMin, np.bvMin)
+            newList.bvMax = Vector2.max(newList.bvMax, np.bvMax)
         }
 
         .clear()
         .paths = #move newList.paths
+        .bvMin = newList.bvMin
+        .bvMax = newList.bvMax
     }
 }

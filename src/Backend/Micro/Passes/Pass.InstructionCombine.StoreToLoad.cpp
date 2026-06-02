@@ -109,12 +109,29 @@ namespace InstructionCombine
 
             if (inst.op == MicroInstrOpcode::LoadRegMem && ops)
             {
+                bool forwarded = false;
                 if (!ctx.isClaimed(it.current))
-                    forwardLoad(ctx, cache, it.current, ops);
+                    forwarded = forwardLoad(ctx, cache, it.current, ops);
                 // The load redefines its destination register; any cache entry
                 // whose `src` refers to it is now stale and must be dropped
                 // before a later load could reach for it.
                 dropEntriesReferencing(cache, ops[0].reg);
+
+                // Load-to-load forwarding: record this load's result so a later
+                // load of the same slot reuses the register instead of re-reading
+                // memory. Safe under the same alias model used for stores — entries
+                // are evicted on aliasing writes, calls, control flow, and base/dst
+                // redefinition. Skip when base and destination are the same register
+                // (e.g. `r = [r + off]`), since the base no longer points at the slot.
+                if (!forwarded && ops[1].reg.isValid() && ops[1].reg != ops[0].reg)
+                {
+                    CacheEntry entry;
+                    entry.base = ops[1].reg;
+                    entry.src  = ops[0].reg;
+                    entry.bits = ops[2].opBits;
+                    entry.off  = ops[3].valueU64;
+                    cache.push_back(entry);
+                }
                 continue;
             }
 

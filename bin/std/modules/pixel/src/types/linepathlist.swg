@@ -90,24 +90,37 @@ impl LinePathList
             joinType = .Miter
         }
 
-        var off: Clipper.Offset
-        off.arcTolerance = toler * ClipperScaleCoords
-        foreach p in .paths do
-            p.polygon.addOffsetInputs(&off, joinType)
-
-        var res: Clipper.ClipperPaths
-        off.execute(&res, cast(f64) (value * ClipperScaleCoords))
-
         var newList: LinePathList
         newList.bvMin = Vector2.Max
         newList.bvMax = Vector2.NegMax
-        foreach path in res
+
+        var serial = 0
+        var i      = 0'u64
+        while i < .paths.count
         {
-            let np = newList.newPath()
-            np.polygon.storeClipperResult(path)
-            np.polygon.setupGeneratedPath(np)
-            newList.bvMin = Vector2.min(newList.bvMin, np.bvMin)
-            newList.bvMax = Vector2.max(newList.bvMax, np.bvMax)
+            serial = .paths[i].serial
+
+            var off: Clipper.Offset
+            off.arcTolerance = toler * ClipperScaleCoords
+
+            while i < .paths.count and .paths[i].serial == serial
+            {
+                .paths[i].polygon.addOffsetInputs(&off, joinType)
+                i += 1
+            }
+
+            var res: Clipper.ClipperPaths
+            off.execute(&res, cast(f64) (value * ClipperScaleCoords))
+
+            foreach path in res
+            {
+                let np = newList.newPath()
+                np.serial = serial
+                np.polygon.storeClipperResult(path)
+                np.polygon.setupGeneratedPath(np)
+                newList.bvMin = Vector2.min(newList.bvMin, np.bvMin)
+                newList.bvMax = Vector2.max(newList.bvMax, np.bvMax)
+            }
         }
 
         .clear()
@@ -120,38 +133,43 @@ impl LinePathList
     // They must before be flattened
     mtd clean()
     {
-        var trf: Clipper.Transform
-        foreach p in .paths
-        {
-            if p.polygon.isClockwise
-            {
-                trf.reverseOutput = false
-                break
-            }
-
-            trf.reverseOutput = true
-        }
-
-        foreach p in .paths
-        {
-            var path: Clipper.ClipperPath
-            p.polygon.appendClipperPath(&path)
-            trf.addPath(&path, .Subject)
-        }
-
-        var res: Clipper.ClipperPaths
-        trf.execute(.Union, &res, .NonZero, .NonZero)
-
         var newList: LinePathList
         newList.bvMin = Vector2.Max
         newList.bvMax = Vector2.NegMax
-        foreach path in res
+
+        var serial = 0
+        var i      = 0'u64
+        while i < .paths.count
         {
-            let np = newList.newPath()
-            np.polygon.storeClipperResult(path)
-            np.polygon.setupGeneratedPath(np)
-            newList.bvMin = Vector2.min(newList.bvMin, np.bvMin)
-            newList.bvMax = Vector2.max(newList.bvMax, np.bvMax)
+            serial = .paths[i].serial
+
+            var trf: Clipper.Transform
+            var hasClockwise = false
+            while i < .paths.count and .paths[i].serial == serial
+            {
+                if .paths[i].polygon.isClockwise do
+                    hasClockwise = true
+
+                var path: Clipper.ClipperPath
+                .paths[i].polygon.appendClipperPath(&path)
+                trf.addPath(&path, .Subject)
+                i += 1
+            }
+
+            trf.reverseOutput = !hasClockwise
+
+            var res: Clipper.ClipperPaths
+            trf.execute(.Union, &res, .NonZero, .NonZero)
+
+            foreach path in res
+            {
+                let np = newList.newPath()
+                np.serial = serial
+                np.polygon.storeClipperResult(path)
+                np.polygon.setupGeneratedPath(np)
+                newList.bvMin = Vector2.min(newList.bvMin, np.bvMin)
+                newList.bvMax = Vector2.max(newList.bvMax, np.bvMax)
+            }
         }
 
         .clear()

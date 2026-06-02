@@ -228,9 +228,12 @@ impl Inflate
             }
             elif distance >= length
             {
-                // Copy an already decoded sequence of bytes
-                let sl: const [..] u8 = @mkslice(dest.buffer + dest.count - distance, length)
-                dest.add(sl)
+                // Copy an already decoded sequence of bytes. The source aliases 'dest'
+                // own buffer, so a direct memory copy is used here: routing this through
+                // 'dest.add(slice)' would hit its self-aliasing guard and allocate a
+                // temporary array for every back-reference. Capacity is ensured by 'grow' above.
+                Memory.copy(dest.buffer + dest.count, dest.buffer + dest.count - distance, cast(u64) length)
+                dest.count += length
             }
             else
             {

@@ -12,6 +12,7 @@ struct MicroInstrOperand;
 
 // Structural passes
 class MicroStackAdjustNormalizePass;
+class MicroMemToRegPass;
 class MicroLegalizePass;
 class MicroRegisterAllocationPass;
 class MicroPrologEpilogPass;
@@ -66,6 +67,7 @@ private:
 
     // Structural passes
     std::unique_ptr<MicroStackAdjustNormalizePass> stackAdjustNormalizePass_;
+    std::unique_ptr<MicroMemToRegPass>             memToRegPass_;
     std::unique_ptr<MicroLegalizePass>             legalizePass_;
     std::unique_ptr<MicroRegisterAllocationPass>   regAllocPass_;
     std::unique_ptr<MicroPrologEpilogPass>         prologEpilogPass_;

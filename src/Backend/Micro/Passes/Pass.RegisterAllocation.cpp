@@ -462,6 +462,162 @@ void MicroRegisterAllocationPass::returnToFreePool(MicroReg reg)
     SWC_UNREACHABLE();
 }
 
+void MicroRegisterAllocationPass::computeLoopDepth()
+{
+    // Approximate loop-nesting depth per instruction from CFG back-edges. A
+    // back-edge is a predecessor p of instruction s with p >= s; the loop body
+    // it forms spans [s, p]. Depth is the number of such ranges covering an
+    // instruction. Used to rank pin candidates (deeper uses benefit most from
+    // staying register-resident).
+    loopDepth_.assign(instructionCount_, 0);
+    if (!hasControlFlow_ || instructionCount_ == 0)
+        return;
+
+    std::vector<int32_t> delta(static_cast<size_t>(instructionCount_) + 1, 0);
+    bool                 anyBackEdge = false;
+    for (uint32_t s = 0; s < instructionCount_; ++s)
+    {
+        for (const uint32_t p : predecessors_[s])
+        {
+            if (p >= s && p < instructionCount_)
+            {
+                ++delta[s];
+                --delta[p + 1];
+                anyBackEdge = true;
+            }
+        }
+    }
+    if (!anyBackEdge)
+        return;
+
+    int32_t running = 0;
+    for (uint32_t i = 0; i < instructionCount_; ++i)
+    {
+        running += delta[i];
+        loopDepth_[i] = running > 0 ? static_cast<uint32_t>(running) : 0;
+    }
+}
+
+void MicroRegisterAllocationPass::selectPinnedRegisters()
+{
+    // Pin the highest-value loop-carried virtual registers to reserved
+    // callee-saved registers for the entire function. A pinned value never
+    // enters the spill/flush machinery (it stays out of mappedVirtualIndices_)
+    // and its register is removed from the free pools, so it remains resident
+    // across CFG boundaries instead of being flushed to memory each iteration.
+    //
+    // Correctness: the reserved register is used by nothing else (excluded from
+    // all pools, and callee-saved registers never appear as concrete operands
+    // in the IR), so it holds exactly this value across its whole live range —
+    // including across calls (callee-saved) and loop back-edges. Definite
+    // assignment (def-before-use) is guaranteed by the front-end, matching the
+    // memory-home semantics the value previously had.
+    if (!hasControlFlow_ || freeIntPersistent_.empty())
+        return;
+
+    // Leave a margin of persistent registers for values that are live across
+    // calls (which require a callee-saved home of their own).
+    const size_t persistentAvail = freeIntPersistent_.size();
+    if (persistentAvail <= 2)
+        return;
+    const size_t maxPins = persistentAvail - 2;
+
+    const auto&    vregs     = denseVirtualRegs_.regs();
+    const uint32_t wordCount = denseVirtualRegs_.wordCount();
+
+    // Collect loop headers (instructions targeted by a back-edge).
+    SmallVector<uint32_t> loopHeaders;
+    for (uint32_t s = 0; s < instructionCount_; ++s)
+    {
+        for (const uint32_t p : predecessors_[s])
+        {
+            if (p >= s)
+            {
+                loopHeaders.push_back(s);
+                break;
+            }
+        }
+    }
+    if (loopHeaders.empty())
+        return;
+
+    struct PinCandidate
+    {
+        uint32_t denseIndex = 0;
+        uint64_t benefit    = 0;
+    };
+    SmallVector<PinCandidate> candidates;
+
+    for (uint32_t denseIndex = 0; denseIndex < vregs.size(); ++denseIndex)
+    {
+        const MicroReg vreg = vregs[denseIndex];
+        if (!vreg.isVirtualInt())
+            continue;
+        if (denseIndex >= usePositionsByDenseVirtual_.size())
+            continue;
+
+        // Loop-carried: live-in at some loop header (value crosses a back-edge).
+        bool loopCarried = false;
+        for (const uint32_t header : loopHeaders)
+        {
+            const std::span<const uint64_t> liveRow = DenseBits::row(liveInVirtualBits_, header, wordCount);
+            if (DenseBits::contains(liveRow, denseIndex))
+            {
+                loopCarried = true;
+                break;
+            }
+        }
+        if (!loopCarried)
+            continue;
+
+        // Benefit = sum over uses of (1 + loop depth at the use): values used
+        // heavily inside (deep) loops gain the most from staying resident.
+        uint64_t benefit = 0;
+        for (const uint32_t pos : usePositionsByDenseVirtual_[denseIndex])
+            benefit += 1u + (pos < loopDepth_.size() ? loopDepth_[pos] : 0u);
+        if (benefit == 0)
+            continue;
+
+        candidates.push_back({denseIndex, benefit});
+    }
+    if (candidates.empty())
+        return;
+
+    std::ranges::stable_sort(candidates, [](const PinCandidate& a, const PinCandidate& b) { return a.benefit > b.benefit; });
+
+    size_t pins = 0;
+    for (const PinCandidate& cand : candidates)
+    {
+        if (pins >= maxPins || freeIntPersistent_.empty())
+            break;
+
+        const MicroReg vreg = vregs[cand.denseIndex];
+
+        // Find a reserved persistent register this value is allowed to use.
+        uint32_t pickIndex = std::numeric_limits<uint32_t>::max();
+        for (uint32_t i = 0; i < freeIntPersistent_.size(); ++i)
+        {
+            if (!isPhysRegForbiddenForVirtual(vreg, freeIntPersistent_[i]))
+            {
+                pickIndex = i;
+                break;
+            }
+        }
+        if (pickIndex == std::numeric_limits<uint32_t>::max())
+            continue;
+
+        const MicroReg reg = freeIntPersistent_[pickIndex];
+        freeIntPersistent_.erase(freeIntPersistent_.begin() + pickIndex);
+
+        auto& regState   = states_[cand.denseIndex];
+        regState.pinned  = true;
+        regState.mapped  = false;   // never tracked by the spill machinery
+        regState.phys    = reg;
+        pinnedPhysRegs_.push_back(reg);
+        ++pins;
+    }
+}
+
 uint32_t MicroRegisterAllocationPass::distanceToNextUse(MicroReg key, uint32_t instructionIndex) const
 {
     const uint32_t denseIndex = denseVirtualRegs_.find(key);
@@ -708,6 +864,7 @@ void MicroRegisterAllocationPass::analyzeLiveness()
     }
 
     computeReachability();
+    computeLoopDepth();
 
     worklist_.clear();
     worklist_.reserve(instructionCount_);
@@ -1502,6 +1659,12 @@ MicroReg MicroRegisterAllocationPass::assignVirtReg(const AllocRequest& request,
 {
     // Reuse existing mapping when possible, otherwise allocate and load from spill on use.
     auto& regState = stateForVirtual(request.virtKey);
+
+    // Pinned values permanently live in their reserved register: no allocation,
+    // transfer, spill, or reload — every def/use simply resolves to that register.
+    if (regState.pinned)
+        return regState.phys;
+
     if (!request.isUse && tryTransferCopySource(request, forbiddenPhysRegs, stamp, stackDepth, pending, false, false, regState.phys))
         return regState.phys;
 
@@ -2100,6 +2263,8 @@ void MicroRegisterAllocationPass::clearState()
     liveInVirtualBits_.clear();
     liveInConcreteBits_.clear();
     predecessors_.clear();
+    loopDepth_.clear();
+    pinnedPhysRegs_.clear();
     reachableInstructions_.clear();
     worklist_.clear();
     inWorklist_.clear();
@@ -2143,6 +2308,7 @@ Result MicroRegisterAllocationPass::run(MicroPassContext& context)
 
     analyzeLiveness();
     setupPools();
+    selectPinnedRegisters();
     rewriteInstructions();
     flushQueuedErasures();
     insertSpillFrame();

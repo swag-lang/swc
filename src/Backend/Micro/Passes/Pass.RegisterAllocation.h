@@ -34,6 +34,11 @@ public:
         bool          dirty            = false;
         bool          rematerializable = false;
         bool          rematDefConsumed = false;
+        // Pinned values live permanently in a reserved callee-saved register for
+        // the whole function. They bypass the spill/flush machinery entirely (they
+        // are never placed in mappedVirtualIndices_) so loop-carried values stay
+        // resident across CFG boundaries instead of round-tripping through memory.
+        bool          pinned           = false;
     };
 
 private:
@@ -97,6 +102,8 @@ private:
     uint32_t         distanceToNextUse(MicroReg key, uint32_t instructionIndex) const;
     void             advanceCurrentPositionCursors(uint32_t instructionIndex);
     void             prepareInstructionData();
+    void             computeLoopDepth();
+    void             selectPinnedRegisters();
     void             computeReachability();
     void             analyzeLiveness();
     void             computeCurrentLiveOutBits(uint32_t instructionIndex);
@@ -166,6 +173,8 @@ private:
     std::vector<uint64_t>                 liveInVirtualBits_;
     std::vector<uint64_t>                 liveInConcreteBits_;
     std::vector<SmallVector<uint32_t, 2>> predecessors_;
+    std::vector<uint32_t>                 loopDepth_;
+    SmallVector<MicroReg>                 pinnedPhysRegs_;
     std::vector<uint8_t>                  reachableInstructions_;
     std::vector<uint32_t>                 worklist_;
     std::vector<uint8_t>                  inWorklist_;

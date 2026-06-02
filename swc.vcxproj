@@ -229,6 +229,7 @@
         <ClCompile Include="src\Backend\\Micro\Passes\Pass.InstructionCombine.StoreToLoad.cpp"/>
         <ClCompile Include="src\Backend\\Micro\Passes\Pass.InstructionCombine.ConstProp.cpp"/>
         <ClCompile Include="src\Backend\\Micro\Passes\Pass.Legalize.cpp"/>
+        <ClCompile Include="src\Backend\\Micro\Passes\Pass.MemToReg.cpp"/>
         <ClCompile Include="src\Backend\\Micro\Passes\Pass.PostRAPeephole.cpp"/>
         <ClCompile Include="src\Backend\\Micro\Passes\Pass.PostRAPeephole.ConstForward.cpp"/>
         <ClCompile Include="src\Backend\\Micro\Passes\Pass.PostRAPeephole.CopyForward.cpp"/>
@@ -512,6 +513,7 @@
         <ClInclude Include="src\Backend\\Micro\Passes\Pass.InstructionCombine.h"/>
         <ClInclude Include="src\Backend\\Micro\Passes\Pass.InstructionCombine.Internal.h"/>
         <ClInclude Include="src\Backend\\Micro\Passes\Pass.Legalize.h"/>
+        <ClInclude Include="src\Backend\\Micro\Passes\Pass.MemToReg.h"/>
         <ClInclude Include="src\Backend\\Micro\Passes\Pass.PreRAPeephole.h"/>
         <ClInclude Include="src\Backend\\Micro\Passes\Pass.PreRAPeephole.Internal.h"/>
         <ClInclude Include="src\Backend\\Micro\Passes\Pass.PostRAPeephole.h"/>

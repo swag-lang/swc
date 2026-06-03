@@ -450,8 +450,12 @@ Result AstAssignStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) 
         const SemaNodeView leftView = sema.viewType(nodeLeftRef);
         if (leftView.typeRef().isValid())
         {
+            TypeRef specOpBindingTypeRef = TypeRef::invalid();
+            SWC_RESULT(SemaSpecOp::resolveAssignLambdaBindingType(sema, *this, leftView, specOpBindingTypeRef));
+
             auto frame = sema.frame();
             frame.pushBindingType(leftView.typeRef());
+            frame.pushBindingType(specOpBindingTypeRef);
             sema.pushFramePopOnPostChild(frame, nodeRightRef);
         }
     }

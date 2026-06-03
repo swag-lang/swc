@@ -501,6 +501,38 @@ namespace
         return collectSpecOpCandidates(sema, ownerStruct, opId, std::span<const AstNodeRef>{}, outCandidates);
     }
 
+    bool canConsumeLambdaBinding(Sema& sema, AstNodeRef nodeRef)
+    {
+        if (nodeRef.isInvalid())
+            return false;
+
+        const AstNode& node = sema.node(nodeRef);
+        switch (node.id())
+        {
+            case AstNodeId::FunctionExpr:
+            case AstNodeId::ClosureExpr:
+                return true;
+
+            case AstNodeId::NamedArgument:
+                return canConsumeLambdaBinding(sema, node.cast<AstNamedArgument>().nodeArgRef);
+
+            case AstNodeId::ParenExpr:
+                return canConsumeLambdaBinding(sema, node.cast<AstParenExpr>().nodeExprRef);
+
+            default:
+                return false;
+        }
+    }
+
+    const SymbolVariable* assignSpecOpValueParam(const SymbolFunction& fn, AstNodeRef receiverRef)
+    {
+        const auto& params = fn.parameters();
+        const auto  index  = receiverRef.isValid() ? 1u : 0u;
+        if (index >= params.size())
+            return nullptr;
+        return params[index];
+    }
+
     void splitMutableReceiverCandidates(Sema& sema, std::span<Symbol*> inCandidates, SmallVector<Symbol*>& outMutableCandidates, SmallVector<Symbol*>& outConstCandidates)
     {
         outMutableCandidates.clear();
@@ -916,6 +948,60 @@ Result SemaSpecOp::collectSetCandidates(Sema& sema, const SymbolStruct& ownerStr
     const IdentifierRef opSetLiteralId = sema.idMgr().predefined(IdentifierManager::PredefinedName::OpSetLiteral);
     const AstNodeRef    genericArg     = makeSyntheticStringConstantArg(sema, codeRef, suffixInfo.suffix);
     return collectSpecOpCandidates(sema, ownerStruct, opSetLiteralId, std::span{&genericArg, 1}, outCandidates);
+}
+
+Result SemaSpecOp::resolveAssignLambdaBindingType(Sema& sema, const AstAssignStmt& node, const SemaNodeView& leftView, TypeRef& outBindingTypeRef)
+{
+    outBindingTypeRef = TypeRef::invalid();
+    if (!canConsumeLambdaBinding(sema, node.nodeRightRef))
+        return Result::Continue;
+
+    const Token& tok = sema.token(node.codeRef());
+    if (!isSupportedAssignSpecOp(tok.id))
+        return Result::Continue;
+
+    const SymbolStruct* ownerStruct = structSpecOpOwner(sema, leftView);
+    if (!ownerStruct)
+        return Result::Continue;
+
+    SWC_RESULT(sema.waitSemaCompleted(ownerStruct, node.codeRef()));
+
+    SmallVector<Symbol*> candidates;
+    if (tok.id == TokenId::SymEqual)
+        SWC_RESULT(collectSetCandidates(sema, *ownerStruct, node.codeRef(), node.nodeRightRef, candidates));
+    else
+        SWC_RESULT(collectAssignSpecOpCandidates(sema, *ownerStruct, node.codeRef(), tok.id, candidates));
+
+    TypeRef compareTypeRef = TypeRef::invalid();
+    for (const Symbol* candidate : candidates)
+    {
+        const auto* fn = candidate ? candidate->safeCast<SymbolFunction>() : nullptr;
+        if (!fn)
+            continue;
+
+        const SymbolVariable* param = assignSpecOpValueParam(*fn, node.nodeLeftRef);
+        if (!param || param->typeRef().isInvalid())
+            continue;
+
+        const TypeRef resolvedTypeRef = SemaHelpers::unwrapLambdaBindingType(sema.ctx(), param->typeRef());
+        if (resolvedTypeRef.isInvalid() || !sema.typeMgr().get(resolvedTypeRef).isFunction())
+            continue;
+
+        if (compareTypeRef.isInvalid())
+        {
+            outBindingTypeRef = param->typeRef();
+            compareTypeRef    = resolvedTypeRef;
+            continue;
+        }
+
+        if (compareTypeRef != resolvedTypeRef)
+        {
+            outBindingTypeRef = TypeRef::invalid();
+            return Result::Continue;
+        }
+    }
+
+    return Result::Continue;
 }
 
 Result SemaSpecOp::tryResolveAssign(Sema& sema, const AstAssignStmt& node, const SemaNodeView& leftView, bool& outHandled)

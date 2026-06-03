@@ -102,6 +102,7 @@ namespace SemaSpecOp
     Result           validateSymbol(Sema& sema, SymbolFunction& sym);
     Result           registerSymbol(Sema& sema, SymbolFunction& sym);
     Result           collectSetCandidates(Sema& sema, const SymbolStruct& ownerStruct, const SourceCodeRef& codeRef, AstNodeRef valueRef, SmallVector<Symbol*>& outCandidates);
+    Result           resolveAssignLambdaBindingType(Sema& sema, const AstAssignStmt& node, const SemaNodeView& leftView, TypeRef& outBindingTypeRef);
     Result           canResolveVisit(Sema& sema, const AstForeachStmt& node, bool& outMatched);
 
     Result tryResolveVarInitSet(Sema& sema, AstNodeRef receiverRef, AstNodeRef valueRef, bool& outHandled);

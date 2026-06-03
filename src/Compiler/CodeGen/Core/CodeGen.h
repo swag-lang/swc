@@ -114,6 +114,8 @@ public:
     const BreakContext&  currentBreakContext() const { return breakable_; }
     void                 setCurrentBreakContent(AstNodeRef nodeRef, BreakContextKind kind);
     BreakContextKind     currentBreakableKind() const { return breakable_.kind; }
+    const BreakContext&  currentContinueContext() const { return continuable_; }
+    BreakContextKind     currentContinuableKind() const { return continuable_.kind; }
     AstNodeRef           currentSwitch() const { return currentSwitch_; }
     void                 setCurrentSwitch(AstNodeRef nodeRef) { currentSwitch_ = nodeRef; }
     AstNodeRef           currentSwitchCase() const { return currentSwitchCase_; }
@@ -139,6 +141,7 @@ public:
 
 private:
     BreakContext  breakable_;
+    BreakContext  continuable_;
     AstNodeRef    currentSwitch_              = AstNodeRef::invalid();
     AstNodeRef    currentSwitchCase_          = AstNodeRef::invalid();
     MicroLabelRef currentLoopContinueLabel_   = MicroLabelRef::invalid();

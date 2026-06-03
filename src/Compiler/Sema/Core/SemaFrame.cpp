@@ -77,8 +77,14 @@ void SemaFrame::setCurrentBreakContent(AstNodeRef nodeRef, BreakContextKind kind
     breakable_.nodeRef = nodeRef;
     breakable_.kind    = kind;
 
-    // Switches and named scopes can redirect break/continue without defining a
-    // new loop index. Keep exposing the enclosing loop index inside them.
+    if (kind == BreakContextKind::Loop || kind == BreakContextKind::Scope || kind == BreakContextKind::None)
+    {
+        continuable_.nodeRef = nodeRef;
+        continuable_.kind    = kind;
+    }
+
+    // Switches and named scopes do not define a new loop index. Keep exposing
+    // the enclosing loop index inside them.
     if (kind != BreakContextKind::Switch && kind != BreakContextKind::Scope)
     {
         currentLoopIndexTypeRef_  = TypeRef::invalid();

@@ -121,6 +121,8 @@ public:
     const BreakContext& currentBreakContext() const { return breakable_; }
     void                setCurrentBreakContent(AstNodeRef nodeRef, BreakContextKind kind);
     BreakContextKind    currentBreakableKind() const { return breakable_.kind; }
+    const BreakContext& currentContinueContext() const { return continuable_; }
+    BreakContextKind    currentContinuableKind() const { return continuable_.kind; }
     AstNodeRef          currentErrorScope() const { return currentErrorScope_; }
     ErrorContextMode    currentErrorContextMode() const { return currentErrorContextMode_; }
     void                setCurrentErrorContext(AstNodeRef nodeRef, ErrorContextMode mode)
@@ -177,6 +179,7 @@ private:
     bool                                ignoreRuntimeAccess_           = false;
     bool                                ignoreRedirectedLookupSymMaps_ = false;
     BreakContext                        breakable_;
+    BreakContext                        continuable_;
     AstNodeRef                          currentErrorScope_        = AstNodeRef::invalid();
     ErrorContextMode                    currentErrorContextMode_  = ErrorContextMode::None;
     TypeRef                             currentLoopIndexTypeRef_  = TypeRef::invalid();

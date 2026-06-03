@@ -118,6 +118,20 @@ func semaTest009()
     }
 }
 
+func semaTestContinueFromSwitchCaseInLoop()
+{
+    var total: s32 = 0
+    for i in 1 to 5
+    {
+        switch i
+        {
+            case 2, 4:
+                continue
+        }
+        total += cast(s32) i
+    }
+}
+
 func semaTest010()
 {
     var a = 2

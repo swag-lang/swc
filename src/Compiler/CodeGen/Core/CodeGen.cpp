@@ -399,9 +399,15 @@ namespace
 
 void CodeGenFrame::setCurrentBreakContent(AstNodeRef nodeRef, BreakContextKind kind)
 {
-    breakable_.nodeRef          = nodeRef;
-    breakable_.kind             = kind;
-    currentLoopHasContinueJump_ = false;
+    breakable_.nodeRef = nodeRef;
+    breakable_.kind    = kind;
+
+    if (kind == BreakContextKind::Loop || kind == BreakContextKind::Scope || kind == BreakContextKind::None)
+    {
+        continuable_.nodeRef        = nodeRef;
+        continuable_.kind           = kind;
+        currentLoopHasContinueJump_ = false;
+    }
 
     if (kind != BreakContextKind::Switch && kind != BreakContextKind::Scope)
     {
@@ -1484,14 +1490,12 @@ void CodeGen::popFrame()
             }
         }
 
-        // Inline/macro expansion runs inside copied frames. If a nested inject frame records a
-        // `continue`, the enclosing inline root must forward that information back to the real
-        // loop frame so codegen keeps the loop continue path alive.
-        if ((currentFrame.hasCurrentInlineContext() || currentFrame.hasCurrentInlineBoundary()) &&
-            currentFrame.currentLoopHasContinueJump() &&
-            currentFrame.currentBreakableKind() == CodeGenFrame::BreakContextKind::Loop &&
-            parentFrame.currentBreakableKind() == currentFrame.currentBreakableKind() &&
-            parentFrame.currentBreakContext().nodeRef == currentFrame.currentBreakContext().nodeRef &&
+        // Copied frames, such as switch cases and inline expansions, can record
+        // a `continue` targeting the inherited loop context.
+        if (currentFrame.currentLoopHasContinueJump() &&
+            currentFrame.currentContinuableKind() == CodeGenFrame::BreakContextKind::Loop &&
+            parentFrame.currentContinuableKind() == currentFrame.currentContinuableKind() &&
+            parentFrame.currentContinueContext().nodeRef == currentFrame.currentContinueContext().nodeRef &&
             parentFrame.currentLoopContinueLabel() == currentFrame.currentLoopContinueLabel())
         {
             parentFrame.setCurrentLoopHasContinueJump(true);

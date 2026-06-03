@@ -667,20 +667,19 @@ Result AstForStmt::codeGenPostNode(CodeGen& codeGen)
 
 Result AstContinueStmt::codeGenPostNode(CodeGen& codeGen)
 {
-    const CodeGenFrame::BreakContextKind breakKind = codeGen.frame().currentBreakableKind();
-    if (breakKind != CodeGenFrame::BreakContextKind::Loop &&
-        breakKind != CodeGenFrame::BreakContextKind::Scope)
+    const CodeGenFrame::BreakContext& continueCtx = codeGen.frame().currentContinueContext();
+    if (continueCtx.kind != CodeGenFrame::BreakContextKind::Loop &&
+        continueCtx.kind != CodeGenFrame::BreakContextKind::Scope)
         return Result::Continue;
 
-    const AstNodeRef breakRef = codeGen.frame().currentBreakContext().nodeRef;
-    if (breakKind == CodeGenFrame::BreakContextKind::Loop)
+    if (continueCtx.kind == CodeGenFrame::BreakContextKind::Loop)
         codeGen.frame().setCurrentLoopHasContinueJump(true);
 
     const MicroLabelRef continueLabel = codeGen.frame().currentLoopContinueLabel();
     if (continueLabel == MicroLabelRef::invalid())
         return Result::Continue;
 
-    SWC_RESULT(codeGen.emitDeferredActionsUntilBreakOwner(breakRef));
+    SWC_RESULT(codeGen.emitDeferredActionsUntilBreakOwner(continueCtx.nodeRef));
     MicroBuilder& builder = codeGen.builder();
     builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, continueLabel);
     return Result::Continue;

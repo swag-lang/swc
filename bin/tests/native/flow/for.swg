@@ -608,3 +608,19 @@ func forStrictU8RefValue(value: const &ForStrictU8)->ForStrictU8
 
     @assert(sum == 10)
 }
+
+#test
+{
+    var total: s32 = 0
+    for i in 1 to 5
+    {
+        switch i
+        {
+            case 2, 4:
+                continue
+        }
+        total += cast(s32) i
+    }
+
+    @assert(total == 9)
+}

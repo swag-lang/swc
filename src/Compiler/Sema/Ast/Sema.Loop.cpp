@@ -636,11 +636,15 @@ Result AstUnreachableStmt::semaPreNode(Sema& sema)
 
 Result AstContinueStmt::semaPreNode(Sema& sema)
 {
-    if (sema.frame().currentBreakableKind() == SemaFrame::BreakContextKind::None)
-        return SemaError::raise(sema, DiagnosticId::sema_err_continue_outside_breakable, sema.curNodeRef());
-    if (sema.frame().currentBreakableKind() != SemaFrame::BreakContextKind::Loop &&
-        sema.frame().currentBreakableKind() != SemaFrame::BreakContextKind::Scope)
+    const SemaFrame::BreakContextKind continueKind = sema.frame().currentContinuableKind();
+    if (continueKind == SemaFrame::BreakContextKind::None)
+    {
+        if (sema.frame().currentBreakableKind() == SemaFrame::BreakContextKind::None)
+            return SemaError::raise(sema, DiagnosticId::sema_err_continue_outside_breakable, sema.curNodeRef());
         return SemaError::raise(sema, DiagnosticId::sema_err_continue_not_in_loop, sema.curNodeRef());
+    }
+
+    SWC_ASSERT(continueKind == SemaFrame::BreakContextKind::Loop || continueKind == SemaFrame::BreakContextKind::Scope);
     return Result::Continue;
 }
 

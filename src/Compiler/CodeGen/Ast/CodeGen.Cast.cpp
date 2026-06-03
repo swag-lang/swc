@@ -146,7 +146,7 @@ namespace
         if (!srcPayload.isAddress())
             return srcPayload.reg;
 
-        MicroReg objectReg = codeGen.nextVirtualIntRegister();
+        const MicroReg objectReg = codeGen.nextVirtualIntRegister();
         codeGen.builder().emitLoadRegMem(objectReg, srcPayload.reg, 0, MicroOpBits::B64);
         return objectReg;
     }
@@ -348,6 +348,39 @@ namespace
 
         CodeGenNodePayload& dstPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), dstTypeRef);
         dstPayload.reg                 = storageReg;
+        dstPayload.markMaterializedPointerLikeValue();
+        return true;
+    }
+
+    bool tryEmitReferenceToPointerCast(CodeGen& codeGen, const CodeGenNodePayload& srcPayload, TypeRef sourceTypeRef, TypeRef dstTypeRef)
+    {
+        const TypeManager& typeMgr               = codeGen.typeMgr();
+        const TypeRef      resolvedSourceTypeRef = unwrapAliasEnumTypeRef(typeMgr, codeGen.ctx(), sourceTypeRef);
+        const TypeRef      resolvedDstTypeRef    = unwrapAliasEnumTypeRef(typeMgr, codeGen.ctx(), dstTypeRef);
+        if (!resolvedSourceTypeRef.isValid() || !resolvedDstTypeRef.isValid())
+            return false;
+
+        const TypeInfo& sourceType = typeMgr.get(resolvedSourceTypeRef);
+        const TypeInfo& dstType    = typeMgr.get(resolvedDstTypeRef);
+        if (!sourceType.isReference() || !dstType.isAnyPointer())
+            return false;
+
+        const TypeRef sourcePointeeTypeRef = unwrapAliasEnumTypeRef(typeMgr, codeGen.ctx(), sourceType.payloadTypeRef());
+        const TypeRef dstPointeeTypeRef    = unwrapAliasEnumTypeRef(typeMgr, codeGen.ctx(), dstType.payloadTypeRef());
+        if (!sourcePointeeTypeRef.isValid() || !dstPointeeTypeRef.isValid())
+            return false;
+        if (sourcePointeeTypeRef != dstPointeeTypeRef && dstPointeeTypeRef != typeMgr.typeVoid())
+            return false;
+
+        MicroReg pointerReg = srcPayload.reg;
+        if (srcPayload.isAddress())
+        {
+            pointerReg = codeGen.nextVirtualIntRegister();
+            codeGen.builder().emitLoadRegMem(pointerReg, srcPayload.reg, 0, MicroOpBits::B64);
+        }
+
+        CodeGenNodePayload& dstPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), dstTypeRef);
+        dstPayload.reg                 = pointerReg;
         dstPayload.markMaterializedPointerLikeValue();
         return true;
     }
@@ -1396,6 +1429,9 @@ namespace
             return Result::Continue;
 
         if (tryEmitReferenceValueCast(codeGen, srcNodeRef, sourceTypeRef, dstTypeRef))
+            return Result::Continue;
+
+        if (tryEmitReferenceToPointerCast(codeGen, srcPayload, sourceTypeRef, dstTypeRef))
             return Result::Continue;
 
         if (tryEmitAddressBackedPointerLikeCast(codeGen, srcPayload, sourceTypeRef, dstTypeRef))

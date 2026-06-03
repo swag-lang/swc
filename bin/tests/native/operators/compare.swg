@@ -23,6 +23,17 @@ alias CompareStrictS32 = s32
 #[Swag.Strict]
 alias CompareStrictF32 = f32
 
+struct CompareIdentityBase
+{
+    value: s32
+}
+
+struct CompareIdentityDerived
+{
+    using base: CompareIdentityBase
+    extra: s32
+}
+
 var CompareCounter: s32
 
 func touch(flag: bool, delta: s32)->bool
@@ -117,6 +128,31 @@ func touch(flag: bool, delta: s32)->bool
     @assert(p0 == p1)
     @assert(p0 != p2)
     @assert(p2 != null)
+}
+
+// Struct references compare by identity when paired with pointers
+#test
+{
+    var base    = CompareIdentityBase{value: 10}
+    var other   = CompareIdentityBase{value: 20}
+    var derived = CompareIdentityDerived{base: {value: 30}, extra: 40}
+
+    let basePtr: *CompareIdentityBase       = &base
+    let otherPtr: *CompareIdentityBase      = &other
+    let derivedBasePtr: *CompareIdentityBase = &derived.base
+
+    var baseRef: &CompareIdentityBase       = &base
+    let otherRef: const &CompareIdentityBase = &other
+    var derivedRef: &CompareIdentityDerived = &derived
+
+    @assert(basePtr == baseRef)
+    @assert(baseRef == basePtr)
+    @assert(basePtr != otherRef)
+    @assert(otherRef != basePtr)
+    @assert(otherPtr != baseRef)
+    @assert(derivedBasePtr == derivedRef)
+    @assert(derivedRef == derivedBasePtr)
+    @assert(derivedBasePtr != baseRef)
 }
 
 func matchReferenceValue(value: const &s32)->bool

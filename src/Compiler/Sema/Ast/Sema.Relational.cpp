@@ -604,6 +604,64 @@ namespace
             SWC_RESULT(Cast::cast(sema, self, other.typeRef(), CastKind::Implicit));
             return Result::Continue;
         }
+
+        TypeRef normalizedEqualityTypeRef(Sema& sema, TypeRef typeRef)
+        {
+            if (!typeRef.isValid())
+                return TypeRef::invalid();
+
+            const TypeRef unwrappedTypeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), typeRef);
+            return unwrappedTypeRef.isValid() ? unwrappedTypeRef : typeRef;
+        }
+
+        Result equalityPointerTargetTypeRef(Sema& sema, TypeRef& outTypeRef, const SemaNodeView& pointerView, const SemaNodeView& referenceView)
+        {
+            outTypeRef = TypeRef::invalid();
+            if (!pointerView.type() || !referenceView.type())
+                return Result::Continue;
+
+            const TypeRef pointerTypeRef   = normalizedEqualityTypeRef(sema, pointerView.typeRef());
+            const TypeRef referenceTypeRef = normalizedEqualityTypeRef(sema, referenceView.typeRef());
+            if (!pointerTypeRef.isValid() || !referenceTypeRef.isValid())
+                return Result::Continue;
+
+            const TypeInfo& pointerType   = sema.typeMgr().get(pointerTypeRef);
+            const TypeInfo& referenceType = sema.typeMgr().get(referenceTypeRef);
+            if (!pointerType.isAnyPointer() || !referenceType.isReference())
+                return Result::Continue;
+
+            TypeInfoFlags targetFlags = pointerType.flags();
+            if (referenceType.isConst())
+                targetFlags.add(TypeInfoFlagsE::Const);
+
+            const TypeInfo targetType = pointerType.isBlockPointer()
+                                            ? TypeInfo::makeBlockPointer(pointerType.payloadTypeRef(), targetFlags)
+                                            : TypeInfo::makeValuePointer(pointerType.payloadTypeRef(), targetFlags);
+            const TypeRef targetTypeRef = sema.typeMgr().addType(targetType);
+
+            CastRequest castRequest(CastKind::Implicit);
+            castRequest.errorNodeRef = referenceView.nodeRef();
+            const Result result      = Cast::castAllowed(sema, castRequest, referenceView.typeRef(), targetTypeRef);
+            if (result == Result::Pause)
+                return result;
+            if (result != Result::Continue)
+                return Result::Continue;
+
+            outTypeRef = targetTypeRef;
+            return Result::Continue;
+        }
+
+        Result pointerReferenceForEquality(Sema& sema, SemaNodeView& pointerView, SemaNodeView& referenceView)
+        {
+            TypeRef targetTypeRef = TypeRef::invalid();
+            SWC_RESULT(equalityPointerTargetTypeRef(sema, targetTypeRef, pointerView, referenceView));
+            if (!targetTypeRef.isValid())
+                return Result::Continue;
+
+            SWC_RESULT(Cast::castIfNeeded(sema, pointerView, targetTypeRef, CastKind::Implicit));
+            SWC_RESULT(Cast::cast(sema, referenceView, targetTypeRef, CastKind::Implicit));
+            return Result::Continue;
+        }
     }
 
     Result promote(Sema& sema, TokenId op, const AstRelationalExpr& node, SemaNodeView& nodeLeftView, SemaNodeView& nodeRightView)
@@ -642,6 +700,8 @@ namespace
             SWC_RESULT(typeInfoForEquality(sema, nodeRightView, nodeLeftView));
             SWC_RESULT(structLiteralForEquality(sema, nodeLeftView, nodeRightView));
             SWC_RESULT(structLiteralForEquality(sema, nodeRightView, nodeLeftView));
+            SWC_RESULT(pointerReferenceForEquality(sema, nodeLeftView, nodeRightView));
+            SWC_RESULT(pointerReferenceForEquality(sema, nodeRightView, nodeLeftView));
         }
 
         return Result::Continue;

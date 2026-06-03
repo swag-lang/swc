@@ -12,6 +12,11 @@ func zeroFallbackRune(x: rune)->rune
     return x orelse 'A''rune
 }
 
+func zeroFallbackF32(x: f32)->f32
+{
+    return x orelse 3.5'f32
+}
+
 func nullStringFallback(value: string)->string
 {
     return value orelse "fallback"
@@ -40,6 +45,8 @@ func nonNullPointerWins()->bool
     @assert(zeroFallbackU32(9'u32) == 9'u32)
     @assert(zeroFallbackRune(cast(rune) 0'u32) == 'A''rune)
     @assert(zeroFallbackRune('B''rune) == 'B''rune)
+    @assert(zeroFallbackF32(0.0'f32) == 3.5'f32)
+    @assert(zeroFallbackF32(2.25'f32) == 2.25'f32)
 }
 
 #test

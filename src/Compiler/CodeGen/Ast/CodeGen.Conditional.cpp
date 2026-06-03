@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Compiler/CodeGen/Core/CodeGen.h"
 #include "Backend/Micro/MicroBuilder.h"
+#include "Compiler/CodeGen/Core/CodeGenCompareHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenTypeHelpers.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
@@ -128,7 +129,8 @@ Result AstConditionalExpr::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeR
         const SemaNodeView        condView    = codeGen.viewType(resolvedCondRef);
         const CodeGenNodePayload& condPayload = codeGen.payload(resolvedCondRef);
         const TypeRef             condTypeRef = condPayload.typeRef.isValid() ? condPayload.typeRef : condView.typeRef();
-        const MicroOpBits         condBits    = CodeGenTypeHelpers::compareBits(codeGen.typeMgr().get(condTypeRef), codeGen.ctx());
+        const TypeInfo&           condType    = codeGen.typeMgr().get(condTypeRef);
+        const MicroOpBits         condBits    = CodeGenTypeHelpers::compareBits(condType, codeGen.ctx());
         SWC_ASSERT(condBits != MicroOpBits::Zero);
 
         const MicroReg condReg = materializeTruthyOperand(codeGen, condPayload, condTypeRef);
@@ -137,8 +139,8 @@ Result AstConditionalExpr::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeR
         state.falseLabel                     = builder.createLabel();
         state.doneLabel                      = builder.createLabel();
 
-        builder.emitCmpRegImm(condReg, ApInt(0, 64), condBits);
-        builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, state.falseLabel);
+        CodeGenCompareHelpers::emitCompareRegZero(codeGen, condReg, condType, condBits);
+        CodeGenCompareHelpers::emitConditionJump(codeGen, condType, CodeGenCompareHelpers::falseyCondition(condType), state.falseLabel);
         return Result::Continue;
     }
 
@@ -215,7 +217,8 @@ Result AstNullCoalescingExpr::codeGenPostNodeChild(CodeGen& codeGen, const AstNo
         const SemaNodeView        leftView    = codeGen.viewType(resolvedLeftRef);
         const CodeGenNodePayload& leftPayload = codeGen.payload(resolvedLeftRef);
         const TypeRef             leftTypeRef = leftPayload.typeRef.isValid() ? leftPayload.typeRef : leftView.typeRef();
-        const MicroOpBits         condBits    = CodeGenTypeHelpers::compareBits(codeGen.typeMgr().get(leftTypeRef), codeGen.ctx());
+        const TypeInfo&           leftType    = codeGen.typeMgr().get(leftTypeRef);
+        const MicroOpBits         condBits    = CodeGenTypeHelpers::compareBits(leftType, codeGen.ctx());
         SWC_ASSERT(condBits != MicroOpBits::Zero);
 
         const MicroReg condReg = materializeTruthyOperand(codeGen, leftPayload, leftTypeRef);
@@ -224,8 +227,8 @@ Result AstNullCoalescingExpr::codeGenPostNodeChild(CodeGen& codeGen, const AstNo
         state.falseLabel                    = builder.createLabel();
         state.doneLabel                     = builder.createLabel();
 
-        builder.emitCmpRegImm(condReg, ApInt(0, 64), condBits);
-        builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, state.falseLabel);
+        CodeGenCompareHelpers::emitCompareRegZero(codeGen, condReg, leftType, condBits);
+        CodeGenCompareHelpers::emitConditionJump(codeGen, leftType, CodeGenCompareHelpers::falseyCondition(leftType), state.falseLabel);
 
         // When the lhs is present, null-coalescing resolves immediately and the rhs is skipped entirely.
         if (addressBacked)

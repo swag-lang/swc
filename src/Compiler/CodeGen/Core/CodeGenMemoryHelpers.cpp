@@ -3,6 +3,7 @@
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Runtime.h"
 #include "Compiler/CodeGen/Core/CodeGen.h"
+#include "Compiler/CodeGen/Core/CodeGenCompareHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenTypeHelpers.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -504,8 +505,7 @@ MicroReg CodeGenMemoryHelpers::materializeScalarPayloadForStore(CodeGen& codeGen
         if (dstType.isBool())
         {
             const MicroReg dstReg = codeGen.nextVirtualIntRegister();
-            builder.emitCmpRegImm(srcReg, ApInt(0, 64), srcOpBits);
-            builder.emitSetCondReg(dstReg, MicroCond::NotEqual);
+            CodeGenCompareHelpers::emitTruthyBool(codeGen, dstReg, srcReg, srcType, srcOpBits);
             return dstReg;
         }
 
@@ -568,11 +568,8 @@ MicroReg CodeGenMemoryHelpers::materializeScalarPayloadForStore(CodeGen& codeGen
     {
         if (dstType.isBool())
         {
-            const MicroReg zeroReg = codeGen.nextVirtualRegisterForType(srcTypeRef);
-            const MicroReg dstReg  = codeGen.nextVirtualIntRegister();
-            builder.emitClearReg(zeroReg, srcOpBits);
-            builder.emitCmpRegReg(srcReg, zeroReg, srcOpBits);
-            builder.emitSetCondReg(dstReg, MicroCond::NotEqual);
+            const MicroReg dstReg = codeGen.nextVirtualIntRegister();
+            CodeGenCompareHelpers::emitTruthyBool(codeGen, dstReg, srcReg, srcType, srcOpBits);
             return dstReg;
         }
 

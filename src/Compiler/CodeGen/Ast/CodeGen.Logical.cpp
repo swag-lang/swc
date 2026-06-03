@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Compiler/CodeGen/Core/CodeGen.h"
 #include "Backend/Micro/MicroBuilder.h"
+#include "Compiler/CodeGen/Core/CodeGenCompareHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenTypeHelpers.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
@@ -37,10 +38,8 @@ namespace
         if (operandType.isBool())
             return;
 
-        builder.emitCmpRegImm(outReg, ApInt(0, 64), operandBits);
-
         const MicroReg boolReg = codeGen.nextVirtualIntRegister();
-        builder.emitSetCondReg(boolReg, MicroCond::NotEqual);
+        CodeGenCompareHelpers::emitTruthyBool(codeGen, boolReg, outReg, operandType, operandBits);
         outReg = boolReg;
     }
 

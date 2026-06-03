@@ -3,6 +3,7 @@
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Runtime.h"
 #include "Compiler/CodeGen/Core/CodeGenCallHelpers.h"
+#include "Compiler/CodeGen/Core/CodeGenCompareHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenConstantHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenInterfaceHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenMemoryHelpers.h"
@@ -415,8 +416,7 @@ namespace
 
             if (dstType.isBool())
             {
-                builder.emitCmpRegImm(srcReg, ApInt(0, 64), srcOpBits);
-                builder.emitSetCondReg(dstPayload.reg, MicroCond::NotEqual);
+                CodeGenCompareHelpers::emitTruthyBool(codeGen, dstPayload.reg, srcReg, readType, srcOpBits);
                 return Result::Continue;
             }
 
@@ -471,6 +471,13 @@ namespace
             dstPayload.reg = codeGen.nextVirtualRegisterForType(dstTypeRef);
             builder.emitClearReg(dstPayload.reg, dstOpBits);
             builder.emitOpBinaryRegReg(dstPayload.reg, srcReg, MicroOp::ConvertFloatToFloat, srcOpBits);
+            return Result::Continue;
+        }
+
+        if (srcFloatType && dstType.isBool())
+        {
+            dstPayload.reg = codeGen.nextVirtualIntRegister();
+            CodeGenCompareHelpers::emitTruthyBool(codeGen, dstPayload.reg, srcReg, readType, srcOpBits);
             return Result::Continue;
         }
 
@@ -1621,8 +1628,7 @@ namespace
 
             if (resolvedDstType.isBool())
             {
-                builder.emitCmpRegImm(srcReg, ApInt(0, 64), srcOpBits);
-                builder.emitSetCondReg(dstPayload.reg, MicroCond::NotEqual);
+                CodeGenCompareHelpers::emitTruthyBool(codeGen, dstPayload.reg, srcReg, resolvedSrcType, srcOpBits);
                 return Result::Continue;
             }
 
@@ -1712,6 +1718,14 @@ namespace
             dstPayload.reg = codeGen.nextVirtualRegisterForType(dstTypeRef);
             builder.emitClearReg(dstPayload.reg, dstOpBits);
             builder.emitOpBinaryRegReg(dstPayload.reg, srcReg, MicroOp::ConvertFloatToFloat, srcOpBits);
+            return Result::Continue;
+        }
+
+        if (srcFloatType && resolvedDstType.isBool())
+        {
+            CodeGenNodePayload& dstPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), dstTypeRef);
+            dstPayload.reg                 = codeGen.nextVirtualIntRegister();
+            CodeGenCompareHelpers::emitTruthyBool(codeGen, dstPayload.reg, srcReg, resolvedSrcType, srcOpBits);
             return Result::Continue;
         }
 

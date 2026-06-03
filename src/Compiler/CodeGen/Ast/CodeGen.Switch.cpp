@@ -93,8 +93,8 @@ namespace
     void emitConditionTrueJump(CodeGen& codeGen, const CodeGenNodePayload& payload, TypeRef typeRef, MicroLabelRef trueLabel)
     {
         const TypeInfo&   typeInfo = codeGen.typeMgr().get(typeRef);
-        const MicroOpBits condBits = CodeGenTypeHelpers::conditionBits(typeInfo, codeGen.ctx());
-        const MicroReg    condReg  = codeGen.nextVirtualIntRegister();
+        const MicroOpBits condBits = CodeGenTypeHelpers::compareBits(typeInfo, codeGen.ctx());
+        const MicroReg    condReg  = codeGen.nextVirtualRegisterForType(typeRef);
 
         MicroBuilder& builder = codeGen.builder();
         if (payload.isAddress())
@@ -102,8 +102,8 @@ namespace
         else
             builder.emitLoadRegReg(condReg, payload.reg, condBits);
 
-        builder.emitCmpRegImm(condReg, ApInt(0, 64), condBits);
-        builder.emitJumpToLabel(MicroCond::NotEqual, MicroOpBits::B32, trueLabel);
+        CodeGenCompareHelpers::emitCompareRegZero(codeGen, condReg, typeInfo, condBits);
+        CodeGenCompareHelpers::emitConditionJump(codeGen, typeInfo, CodeGenCompareHelpers::truthyCondition(typeInfo), trueLabel);
     }
 
     SymbolFunction* runtimeStringCompareFunction(CodeGen& codeGen)

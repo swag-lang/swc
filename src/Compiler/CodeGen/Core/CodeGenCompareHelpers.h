@@ -44,6 +44,32 @@ namespace CodeGenCompareHelpers
         return compareType.isFloat() && condition.floatUnorderedMode != FloatUnorderedMode::ExcludedByPrimary;
     }
 
+    inline CompareCondition truthyCondition(const TypeInfo& compareType)
+    {
+        return {.primaryCond = MicroCond::NotEqual,
+                .floatUnorderedMode = compareType.isFloat() ? FloatUnorderedMode::AcceptUnordered : FloatUnorderedMode::ExcludedByPrimary};
+    }
+
+    inline CompareCondition falseyCondition(const TypeInfo& compareType)
+    {
+        return {.primaryCond = MicroCond::Equal,
+                .floatUnorderedMode = compareType.isFloat() ? FloatUnorderedMode::RequireOrdered : FloatUnorderedMode::ExcludedByPrimary};
+    }
+
+    inline void emitCompareRegZero(CodeGen& codeGen, MicroReg reg, const TypeInfo& compareType, MicroOpBits opBits)
+    {
+        MicroBuilder& builder = codeGen.builder();
+        if (!compareType.isFloat())
+        {
+            builder.emitCmpRegImm(reg, ApInt(0, 64), opBits);
+            return;
+        }
+
+        const MicroReg zeroReg = codeGen.nextVirtualFloatRegister();
+        builder.emitClearReg(zeroReg, opBits);
+        builder.emitCmpRegReg(reg, zeroReg, opBits);
+    }
+
     inline void emitConditionBool(CodeGen& codeGen, MicroReg dstReg, const TypeInfo& compareType, CompareCondition condition)
     {
         MicroBuilder& builder = codeGen.builder();
@@ -84,14 +110,20 @@ namespace CodeGenCompareHelpers
         builder.placeLabel(skipLabel);
     }
 
+    inline void emitTruthyBool(CodeGen& codeGen, MicroReg dstReg, MicroReg srcReg, const TypeInfo& compareType, MicroOpBits opBits)
+    {
+        emitCompareRegZero(codeGen, srcReg, compareType, opBits);
+        emitConditionBool(codeGen, dstReg, compareType, truthyCondition(compareType));
+    }
+
     inline void emitConditionFalseJump(CodeGen& codeGen, const CodeGenNodePayload& payload, TypeRef typeRef, MicroLabelRef falseLabel)
     {
         if (typeRef.isValid() && payload.typeRef.isValid() && codeGen.typeMgr().get(typeRef).isBool())
             typeRef = payload.typeRef;
 
         const TypeInfo&   typeInfo = codeGen.typeMgr().get(typeRef);
-        const MicroOpBits condBits = CodeGenTypeHelpers::conditionBits(typeInfo, codeGen.ctx());
-        const MicroReg    condReg  = codeGen.nextVirtualIntRegister();
+        const MicroOpBits condBits = CodeGenTypeHelpers::compareBits(typeInfo, codeGen.ctx());
+        const MicroReg    condReg  = codeGen.nextVirtualRegisterForType(typeRef);
         const bool        addressBackedValue = !payload.isAddress() && typeInfo.sizeOf(codeGen.ctx()) > 8;
 
         MicroBuilder& builder = codeGen.builder();
@@ -100,8 +132,8 @@ namespace CodeGenCompareHelpers
         else
             builder.emitLoadRegReg(condReg, payload.reg, condBits);
 
-        builder.emitCmpRegImm(condReg, ApInt(0, 64), condBits);
-        builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, falseLabel);
+        emitCompareRegZero(codeGen, condReg, typeInfo, condBits);
+        emitConditionJump(codeGen, typeInfo, falseyCondition(typeInfo), falseLabel);
     }
 }
 

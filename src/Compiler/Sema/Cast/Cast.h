@@ -116,6 +116,7 @@ private:
     static bool foldConstantBitCast(Sema& sema, CastRequest& castRequest, TypeRef dstTypeRef, const TypeInfo& dstType, const TypeInfo& srcType);
     static bool foldConstantBoolToIntLike(Sema& sema, CastRequest& castRequest, TypeRef dstTypeRef);
     static bool foldConstantIntLikeToBool(Sema& sema, CastRequest& castRequest);
+    static bool foldConstantFloatToBool(Sema& sema, CastRequest& castRequest);
     static bool foldConstantIntLikeToIntLike(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef);
     static bool foldConstantIntLikeToFloat(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef);
     static bool foldConstantFloatToIntLike(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef);

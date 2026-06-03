@@ -112,6 +112,19 @@ struct CondPair
 
 #test
 {
+    func ternaryCondF32(cond: f32)->s32
+    {
+        return cond ? 7 : 9
+    }
+
+    const V0 = #run ternaryCondF32(1.5'f32)
+    const V1 = #run ternaryCondF32(0.0'f32)
+    #assert(V0 == 7)
+    #assert(V1 == 9)
+}
+
+#test
+{
     func ternaryCondPointer(cond: *void)->s32
     {
         return cond ? 7 : 9

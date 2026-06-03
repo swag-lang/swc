@@ -50,6 +50,11 @@ func chooseConditionalStrictS32(flag: bool)->ConditionalStrictS32
 {
     var a = 0 ? 1 : 2
     @assert(a == 2)
+
+    var b = 0.0'f32 ? 1 : 2
+    var c = 1.5'f32 ? 1 : 2
+    @assert(b == 2)
+    @assert(c == 1)
 }
 
 

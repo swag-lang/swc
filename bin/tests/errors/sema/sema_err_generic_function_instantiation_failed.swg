@@ -42,5 +42,5 @@ func severityLike(value: bool)->u8 => 0
 
 #test
 {
-    severityLike(1.0) // swc-expected-error {{sema_err_generic_function_instantiation_failed}}
+    severityLike("high") // swc-expected-error {{sema_err_generic_function_instantiation_failed}}
 }

@@ -22,6 +22,7 @@ func semaTest001()
 }
 
 func semaTest002() { var a = 0 ? 1 : 2 }
+func semaTest005() { var a = 0.0'f32 ? 1 : 2 }
 
 namespace NC{}
 

@@ -859,7 +859,7 @@ Result Cast::castToBool(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef
     if (!srcType.isConvertibleToBool())
         return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
 
-    if (isImplicitValueBoolCastKind(castRequest.kind) && !srcType.isBool() && !srcType.isIntLike() && !srcType.isEnumFlags())
+    if (isImplicitValueBoolCastKind(castRequest.kind) && !srcType.isBool() && !srcType.isIntLike() && !srcType.isFloat() && !srcType.isEnumFlags())
         return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
 
     if (castRequest.isConstantFolding())
@@ -884,6 +884,11 @@ Result Cast::castToBool(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef
         else if (srcType.isEnumFlags())
         {
             if (!foldConstantIntLikeToBool(sema, castRequest))
+                return Result::Error;
+        }
+        else if (srcType.isFloat())
+        {
+            if (!foldConstantFloatToBool(sema, castRequest))
                 return Result::Error;
         }
         else if (srcType.isPointerLike())

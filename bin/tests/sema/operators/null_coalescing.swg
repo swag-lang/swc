@@ -20,6 +20,14 @@ const I: s32 = 7
 const J = I orelse 42
 #assert(J == 7)
 
+const K: f32 = 0.0
+const L = K orelse 4.5'f32
+#assert(L == 4.5'f32)
+
+const M: f64 = 2.25
+const N = M orelse 4.5'f64
+#assert(N == 2.25'f64)
+
 const S0: const [..] u8 = null
 const S1 = S0 orelse "abc"
 #assert(#typeof(S1) == const [..] u8)

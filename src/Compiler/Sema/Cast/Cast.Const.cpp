@@ -205,6 +205,17 @@ bool Cast::foldConstantIntLikeToBool(Sema& sema, CastRequest& castRequest)
     return true;
 }
 
+bool Cast::foldConstantFloatToBool(Sema& sema, CastRequest& castRequest)
+{
+    const TaskContext&   ctx   = sema.ctx();
+    const ConstantValue& src   = sema.cstMgr().get(castRequest.constantFoldingSrc());
+    const bool           value = !src.getFloat().isZero();
+
+    const ConstantValue result = ConstantValue::makeBool(ctx, value);
+    castRequest.setConstantFoldingResult(sema.cstMgr().addConstant(ctx, result));
+    return true;
+}
+
 bool Cast::foldConstantIntLikeToIntLike(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef)
 {
     const TaskContext& ctx = sema.ctx();

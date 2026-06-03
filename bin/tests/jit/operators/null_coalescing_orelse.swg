@@ -30,6 +30,19 @@ var GNullCoerc: s32 = 56
 
 #test
 {
+    func zeroFallbackF32(x: f32)->f32
+    {
+        return x orelse 3.5'f32
+    }
+
+    const V0 = #run zeroFallbackF32(0.0'f32)
+    const V1 = #run zeroFallbackF32(2.25'f32)
+    #assert(V0 == 3.5'f32)
+    #assert(V1 == 2.25'f32)
+}
+
+#test
+{
     func nullStringFallback(value: string)->bool
     {
         let resolved = value orelse "fallback"

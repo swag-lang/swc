@@ -154,7 +154,7 @@ public:
     bool isNumericIntLike() const noexcept { return isIntLike() || isBool(); }
     bool isNumericSigned() const noexcept { return isIntSigned(); }
     bool isPointerLike() const noexcept { return isAnyPointer() || isSlice() || isString() || isCString() || isAny() || isInterface() || isFunction() || isTypeInfo(); }
-    bool isConvertibleToBool() const noexcept { return isBool() || isPointerLike() || isIntLike() || isEnumFlags(); }
+    bool isConvertibleToBool() const noexcept { return isBool() || isPointerLike() || isIntLike() || isFloat() || isEnumFlags(); }
     bool isScalarNumeric() const noexcept { return isIntLike() || isFloat(); }
     bool isIntLikeUnsigned() const noexcept { return isCharRune() || isIntUnsigned(); }
     bool isBoolOrIntLikeUnsigned() const noexcept { return isBool() || isIntLikeUnsigned(); }

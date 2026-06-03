@@ -2,6 +2,7 @@
 #include "Compiler/CodeGen/Core/CodeGen.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Compiler/CodeGen/Core/CodeGenCallHelpers.h"
+#include "Compiler/CodeGen/Core/CodeGenCompareHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenMemoryHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenSafety.h"
 #include "Compiler/CodeGen/Core/CodeGenTypeHelpers.h"
@@ -93,10 +94,8 @@ namespace
         loadOperandToRegister(operandReg, codeGen, *info.childPayload, info.storageTypeRef, info.opBits);
 
         const CodeGenNodePayload& resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), codeGen.curViewType().typeRef());
-        MicroBuilder&             builder       = codeGen.builder();
-        builder.emitCmpRegImm(operandReg, ApInt(0, 64), info.opBits);
-        builder.emitSetCondReg(resultPayload.reg, MicroCond::Equal);
-        builder.emitLoadZeroExtendRegReg(resultPayload.reg, resultPayload.reg, MicroOpBits::B32, MicroOpBits::B8);
+        CodeGenCompareHelpers::emitCompareRegZero(codeGen, operandReg, *info.storageTypeInfo, info.opBits);
+        CodeGenCompareHelpers::emitConditionBool(codeGen, resultPayload.reg, *info.storageTypeInfo, CodeGenCompareHelpers::falseyCondition(*info.storageTypeInfo));
         return Result::Continue;
     }
 

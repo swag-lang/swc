@@ -170,3 +170,27 @@ impl IReset for Point3
     let itf = dref cast(*StrictIReset) &raw
     @assert(@kindof(itf) == Point2)
 }
+
+func setThroughInterface(itf: IReset, value: f32)
+{
+    itf.set(value)
+}
+
+#test
+{
+    var pt2: Point2
+    setThroughInterface(&pt2, 7)
+    @assert(pt2.x == 7)
+    @assert(pt2.y == 8)
+}
+
+#test
+{
+    var pt2: Point2
+    var ptr = &pt2
+    var itf = cast(IReset) ptr
+    itf.set(13)
+    @assert(pt2.x == 13)
+    @assert(pt2.y == 14)
+    @assert(@dataof(itf) == ptr)
+}

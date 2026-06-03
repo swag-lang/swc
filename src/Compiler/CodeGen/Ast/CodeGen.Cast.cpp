@@ -117,6 +117,40 @@ namespace
         return typeRef;
     }
 
+    TypeRef interfaceObjectStructTypeRef(CodeGen& codeGen, TypeRef sourceTypeRef)
+    {
+        const TypeRef resolvedSourceTypeRef = unwrapAliasEnumTypeRef(codeGen.typeMgr(), codeGen.ctx(), sourceTypeRef);
+        if (!resolvedSourceTypeRef.isValid())
+            return TypeRef::invalid();
+
+        const TypeInfo& sourceType = codeGen.typeMgr().get(resolvedSourceTypeRef);
+        if (sourceType.isStruct())
+            return resolvedSourceTypeRef;
+
+        if (!sourceType.isAnyPointer() && !sourceType.isReference() && !sourceType.isMoveReference())
+            return TypeRef::invalid();
+
+        const TypeRef objectTypeRef = unwrapAliasEnumTypeRef(codeGen.typeMgr(), codeGen.ctx(), sourceType.payloadTypeRef());
+        if (!objectTypeRef.isValid())
+            return TypeRef::invalid();
+
+        const TypeInfo& objectType = codeGen.typeMgr().get(objectTypeRef);
+        if (!objectType.isStruct())
+            return TypeRef::invalid();
+
+        return objectTypeRef;
+    }
+
+    MicroReg materializePointerLikeInterfaceObjectReg(CodeGen& codeGen, const CodeGenNodePayload& srcPayload)
+    {
+        if (!srcPayload.isAddress())
+            return srcPayload.reg;
+
+        MicroReg objectReg = codeGen.nextVirtualIntRegister();
+        codeGen.builder().emitLoadRegMem(objectReg, srcPayload.reg, 0, MicroOpBits::B64);
+        return objectReg;
+    }
+
     CodeGenNodePayload sourcePayloadForCast(CodeGen& codeGen, AstNodeRef srcNodeRef)
     {
         if (codeGen.resolvedNodeRef(srcNodeRef) == codeGen.curNodeRef())
@@ -1446,45 +1480,57 @@ namespace
             return Result::Continue;
         }
 
-        if (srcType.isStruct() && dstType.isInterface())
+        const TypeRef interfaceObjectTypeRef = interfaceObjectStructTypeRef(codeGen, sourceTypeRef);
+        if (interfaceObjectTypeRef.isValid() && dstType.isInterface())
         {
             SWC_ASSERT(castPayload && castPayload->runtimeStorageSym != nullptr);
 
-            const auto&       srcStruct = srcType.payloadSymStruct();
+            const TypeInfo&   objectType = typeMgr.get(interfaceObjectTypeRef);
+            const auto&       srcStruct  = objectType.payloadSymStruct();
             const auto&       dstItf    = dstType.payloadSymInterface();
             InterfaceCastInfo castInfo;
             const bool        hasCastInfo = resolveInterfaceCastInfo(codeGen, srcStruct, dstItf, castInfo);
             SWC_ASSERT(hasCastInfo);
             SWC_ASSERT(castInfo.implSym != nullptr);
 
-            constexpr uint64_t interfaceStorageSize  = sizeof(Runtime::Interface);
-            const uint64_t     objectStorageSize     = srcType.sizeOf(codeGen.ctx());
-            const bool         preserveSourceAddress = srcPayload.isAddress() && codeGen.sema().isLValue(srcNodeRef);
+            constexpr uint64_t interfaceStorageSize = sizeof(Runtime::Interface);
+            const bool         sourceIsPointerLike  = resolvedSrcType.isAnyPointer() || resolvedSrcType.isReference() || resolvedSrcType.isMoveReference();
 
             const MicroReg runtimeItfReg = codeGen.runtimeStorageAddressReg(codeGen.curNodeRef());
-            MicroReg       objectReg     = srcPayload.reg;
-            if (!preserveSourceAddress)
+            MicroReg       objectReg     = MicroReg::invalid();
+            if (sourceIsPointerLike)
             {
-                MicroReg objectStorageReg = codeGen.nextVirtualIntRegister();
-                builder.emitLoadRegReg(objectStorageReg, runtimeItfReg, MicroOpBits::B64);
-                builder.emitOpBinaryRegImm(objectStorageReg, ApInt(interfaceStorageSize, 64), MicroOp::Add, MicroOpBits::B64);
+                objectReg = materializePointerLikeInterfaceObjectReg(codeGen, srcPayload);
+            }
+            else
+            {
+                const uint64_t objectStorageSize     = objectType.sizeOf(codeGen.ctx());
+                const bool     preserveSourceAddress = srcPayload.isAddress() && codeGen.sema().isLValue(srcNodeRef);
 
-                if (objectStorageSize)
+                objectReg = srcPayload.reg;
+                if (!preserveSourceAddress)
                 {
-                    if (srcPayload.isAddress())
-                    {
-                        SWC_ASSERT(objectStorageSize <= std::numeric_limits<uint32_t>::max());
-                        CodeGenMemoryHelpers::emitMemCopy(codeGen, objectStorageReg, srcPayload.reg, static_cast<uint32_t>(objectStorageSize));
-                    }
-                    else
-                    {
-                        const MicroOpBits storeBits = microOpBitsFromChunkSize(static_cast<uint32_t>(objectStorageSize));
-                        SWC_ASSERT(storeBits != MicroOpBits::Zero);
-                        builder.emitLoadMemReg(objectStorageReg, 0, srcPayload.reg, storeBits);
-                    }
-                }
+                    MicroReg objectStorageReg = codeGen.nextVirtualIntRegister();
+                    builder.emitLoadRegReg(objectStorageReg, runtimeItfReg, MicroOpBits::B64);
+                    builder.emitOpBinaryRegImm(objectStorageReg, ApInt(interfaceStorageSize, 64), MicroOp::Add, MicroOpBits::B64);
 
-                objectReg = objectStorageReg;
+                    if (objectStorageSize)
+                    {
+                        if (srcPayload.isAddress())
+                        {
+                            SWC_ASSERT(objectStorageSize <= std::numeric_limits<uint32_t>::max());
+                            CodeGenMemoryHelpers::emitMemCopy(codeGen, objectStorageReg, srcPayload.reg, static_cast<uint32_t>(objectStorageSize));
+                        }
+                        else
+                        {
+                            const MicroOpBits storeBits = microOpBitsFromChunkSize(static_cast<uint32_t>(objectStorageSize));
+                            SWC_ASSERT(storeBits != MicroOpBits::Zero);
+                            builder.emitLoadMemReg(objectStorageReg, 0, srcPayload.reg, storeBits);
+                        }
+                    }
+
+                    objectReg = objectStorageReg;
+                }
             }
 
             if (castInfo.usingField)

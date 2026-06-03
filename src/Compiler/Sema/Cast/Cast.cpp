@@ -48,6 +48,18 @@ namespace
         return SemaHelpers::smallByValueArrayRuntimeStorageTypeRef(sema, srcNodeRef, srcTypeRef, srcConstRef);
     }
 
+    bool isPointerLikeInterfaceObjectSource(Sema& sema, const TypeInfo& srcType)
+    {
+        if (!srcType.isAnyPointer() && !srcType.isReference() && !srcType.isMoveReference())
+            return false;
+
+        const TypeRef objectTypeRef = sema.typeMgr().get(srcType.payloadTypeRef()).unwrapAliasEnum(sema.ctx(), srcType.payloadTypeRef());
+        if (!objectTypeRef.isValid())
+            return false;
+
+        return sema.typeMgr().get(objectTypeRef).isStruct();
+    }
+
 }
 
 TypeRef Cast::referenceValueCastTypeRef(const Sema& sema, TypeRef srcTypeRef, TypeRef dstTypeRef)
@@ -99,6 +111,13 @@ TypeRef Cast::runtimeStorageTypeRef(Sema& sema, TypeRef srcTypeRef, TypeRef dstT
             dims.push_back(interfaceStorageSize + valueStorage);
             return sema.typeMgr().addType(TypeInfo::makeArray(dims, sema.typeMgr().typeU8()));
         }
+
+        if (isPointerLikeInterfaceObjectSource(sema, srcType) && dstType.isInterface())
+        {
+            SmallVector4<uint64_t> dims;
+            dims.push_back(sizeof(Runtime::Interface));
+            return sema.typeMgr().addType(TypeInfo::makeArray(dims, sema.typeMgr().typeU8()));
+        }
     }
 
     if (dstType.isStruct())
@@ -143,6 +162,13 @@ TypeRef Cast::runtimeStorageTypeRef(Sema& sema, TypeRef srcTypeRef, TypeRef dstT
         const uint64_t         valueStorage         = srcType.sizeOf(sema.ctx());
         SmallVector4<uint64_t> dims;
         dims.push_back(interfaceStorageSize + valueStorage);
+        return sema.typeMgr().addType(TypeInfo::makeArray(dims, sema.typeMgr().typeU8()));
+    }
+
+    if (isPointerLikeInterfaceObjectSource(sema, srcType) && dstType.isInterface())
+    {
+        SmallVector4<uint64_t> dims;
+        dims.push_back(sizeof(Runtime::Interface));
         return sema.typeMgr().addType(TypeInfo::makeArray(dims, sema.typeMgr().typeU8()));
     }
 

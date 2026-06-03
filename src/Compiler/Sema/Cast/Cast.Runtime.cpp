@@ -108,6 +108,30 @@ namespace
         return typeRef;
     }
 
+    TypeRef interfaceObjectStructTypeRef(Sema& sema, TypeRef sourceTypeRef)
+    {
+        const TypeRef resolvedSourceTypeRef = unwrapAliasEnumTypeRef(sema.typeMgr(), sema.ctx(), sourceTypeRef);
+        if (!resolvedSourceTypeRef.isValid())
+            return TypeRef::invalid();
+
+        const TypeInfo& sourceType = sema.typeMgr().get(resolvedSourceTypeRef);
+        if (sourceType.isStruct())
+            return resolvedSourceTypeRef;
+
+        if (!sourceType.isAnyPointer() && !sourceType.isReference() && !sourceType.isMoveReference())
+            return TypeRef::invalid();
+
+        const TypeRef objectTypeRef = unwrapAliasEnumTypeRef(sema.typeMgr(), sema.ctx(), sourceType.payloadTypeRef());
+        if (!objectTypeRef.isValid())
+            return TypeRef::invalid();
+
+        const TypeInfo& objectType = sema.typeMgr().get(objectTypeRef);
+        if (!objectType.isStruct())
+            return TypeRef::invalid();
+
+        return objectTypeRef;
+    }
+
     Result makeTypeInfoWithoutBlocking(Sema& sema, ConstantRef& outRef, TypeRef typeRef, AstNodeRef ownerNodeRef)
     {
         const Result result = sema.cstMgr().makeTypeInfo(sema, outRef, typeRef, ownerNodeRef, ConstantManager::TypeInfoLockMode::TryLock);
@@ -975,14 +999,16 @@ Result Cast::castToInterface(Sema& sema, CastRequest& castRequest, TypeRef srcTy
         return Result::Continue;
     }
 
-    if (srcType.isStruct())
+    const TypeRef objectStructTypeRef = interfaceObjectStructTypeRef(sema, srcTypeRef);
+    if (objectStructTypeRef.isValid())
     {
-        const SymbolStruct& fromStruct = srcType.payloadSymStruct();
-        SWC_RESULT(sema.waitSemaCompleted(&srcType, castRequest.errorNodeRef));
+        const TypeInfo&     objectStructType = sema.typeMgr().get(objectStructTypeRef);
+        const SymbolStruct& fromStruct       = objectStructType.payloadSymStruct();
+        SWC_RESULT(sema.waitSemaCompleted(&objectStructType, castRequest.errorNodeRef));
         const SymbolInterface& toItf = dstType.payloadSymInterface();
         if (fromStruct.implementsInterfaceOrUsingFields(sema, toItf))
         {
-            if ((srcType.isConst() || castRequest.flags.has(CastFlagsE::ConstSource)) && !dstType.isConst() && !castRequest.flags.has(CastFlagsE::UnConst))
+            if ((srcType.isConst() || objectStructType.isConst() || castRequest.flags.has(CastFlagsE::ConstSource)) && !dstType.isConst() && !castRequest.flags.has(CastFlagsE::UnConst))
                 return castRequest.fail(DiagnosticId::sema_err_cannot_cast_const, srcTypeRef, dstTypeRef);
 
             if (castRequest.isConstantFolding())

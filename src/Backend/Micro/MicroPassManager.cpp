@@ -12,7 +12,6 @@
 #include "Backend/Micro/Passes/Pass.Emit.h"
 #include "Backend/Micro/Passes/Pass.InstructionCombine.h"
 #include "Backend/Micro/Passes/Pass.Legalize.h"
-#include "Backend/Micro/Passes/Pass.MemToReg.h"
 #include "Backend/Micro/Passes/Pass.PostRADeadCodeElim.h"
 #include "Backend/Micro/Passes/Pass.PostRAPeephole.h"
 #include "Backend/Micro/Passes/Pass.PreRAPeephole.h"
@@ -361,7 +360,6 @@ MicroPassManager::MicroPassManager()
 {
     // Structural passes
     stackAdjustNormalizePass_ = std::make_unique<MicroStackAdjustNormalizePass>();
-    memToRegPass_             = std::make_unique<MicroMemToRegPass>();
     legalizePass_             = std::make_unique<MicroLegalizePass>();
     regAllocPass_             = std::make_unique<MicroRegisterAllocationPass>();
     prologEpilogPass_         = std::make_unique<MicroPrologEpilogPass>();

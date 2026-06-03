@@ -106,6 +106,40 @@ namespace
         return prependUfcsArg && ufcsArg.isValid() ? (userArgIndex + 1) : userArgIndex;
     }
 
+    AstNodeRef applyImplicitAddressBindingPattern(Sema& sema, AstNodeRef patternRef, TypeRef argTypeRef)
+    {
+        if (patternRef.isInvalid() || !argTypeRef.isValid())
+            return patternRef;
+
+        const TypeRef   effectiveArgTypeRef = SemaGeneric::unwrapGenericDeductionType(sema.ctx(), argTypeRef);
+        const TypeInfo& argType             = sema.typeMgr().get(effectiveArgTypeRef);
+        if (argType.isPointerOrReference())
+            return patternRef;
+
+        while (patternRef.isValid())
+        {
+            const AstNode& patternNode = sema.node(patternRef);
+            if (const auto* qualifiedType = patternNode.safeCast<AstQualifiedType>())
+            {
+                patternRef = qualifiedType->nodeTypeRef;
+                continue;
+            }
+
+            if (const auto* refType = patternNode.safeCast<AstReferenceType>())
+                return refType->nodePointeeTypeRef;
+            if (const auto* moveRefType = patternNode.safeCast<AstMoveRefType>())
+                return moveRefType->nodePointeeTypeRef;
+            if (const auto* valuePtrType = patternNode.safeCast<AstValuePointerType>())
+                return valuePtrType->nodePointeeTypeRef;
+            if (const auto* blockPtrType = patternNode.safeCast<AstBlockPointerType>())
+                return blockPtrType->nodePointeeTypeRef;
+
+            return patternRef;
+        }
+
+        return patternRef;
+    }
+
     bool isVariadicTypeRef(Sema& sema, TypeRef typeRef)
     {
         if (typeRef.isInvalid())
@@ -1345,8 +1379,9 @@ namespace
 
         if (prependUfcsArg && ufcsArg.isValid() && numParams > 0)
         {
-            outMapping.paramArgs[0].argRef       = ufcsArg;
-            outMapping.paramArgs[0].callArgIndex = 0;
+            outMapping.paramArgs[0].argRef                      = ufcsArg;
+            outMapping.paramArgs[0].callArgIndex                = 0;
+            outMapping.paramArgs[0].allowImplicitAddressBinding = true;
         }
 
         bool     seenNamed = false;
@@ -1549,6 +1584,9 @@ namespace SemaGeneric
                 if (patternRef.isInvalid())
                     continue;
             }
+            if (entry.allowImplicitAddressBinding)
+                patternRef = applyImplicitAddressBindingPattern(*declSema, patternRef, argTypeRef);
+
             const Result paramResult = deduceFromTypePattern(*declSema, genericParams, ioResolvedArgs.span(), patternRef, argTypeRef, valueArgRef, entry.callArgIndex, outFailure, DeductionMode::Normal);
             if (paramResult == Result::Pause)
                 return Result::Pause;

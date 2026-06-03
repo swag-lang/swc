@@ -59,8 +59,9 @@ namespace SemaGeneric
 
     struct GenericCallArgEntry
     {
-        AstNodeRef argRef       = AstNodeRef::invalid();
-        uint32_t   callArgIndex = 0;
+        AstNodeRef argRef                      = AstNodeRef::invalid();
+        uint32_t   callArgIndex                = 0;
+        bool       allowImplicitAddressBinding = false;
     };
 
     TypeRef unwrapGenericDeductionType(TaskContext& ctx, TypeRef typeRef);

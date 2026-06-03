@@ -13,6 +13,7 @@ enum OverFlags: u8
 func overload(x: s32, e: OverA)->s32 { return 10 }
 func overload(x: f32, e: OverB)->f32 { return 20.0 }
 func withFlags(e: OverFlags)->OverFlags { return e }
+func(T) addFlagsByUfcs(flags: &T, value: T) { flags |= value }
 
 func semaTest001()
 {
@@ -43,5 +44,12 @@ func semaTest003()
 func semaTest004()
 {
     let flags = withFlags(.A | .B)
+    @assert(flags == OverFlags.A | OverFlags.B)
+}
+
+func semaTest005()
+{
+    var flags = OverFlags.A
+    flags.addFlagsByUfcs(.B)
     @assert(flags == OverFlags.A | OverFlags.B)
 }

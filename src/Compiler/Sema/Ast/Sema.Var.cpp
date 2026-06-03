@@ -931,6 +931,7 @@ namespace
         ConstantRef implicitStructCstRef   = ConstantRef::invalid();
         bool        implicitStructZeroInit = false;
         bool        implicitStructNoInit   = false;
+        bool        implicitStructPartInit = false;
         if (context.nodeInitRef.isInvalid() && !isParameter && explicitTypeRef.isValid() && explicitType && explicitType->isStruct())
         {
             if (!directSelfStructField)
@@ -940,18 +941,20 @@ namespace
                 symStruct.computeImplicitDefaultFlags(sema);
                 implicitStructZeroInit = symStruct.hasImplicitAllZeroDefault();
                 implicitStructNoInit   = symStruct.hasImplicitAllUndefinedDefault();
-                if (!implicitStructNoInit)
+                implicitStructPartInit = symStruct.hasImplicitUndefinedDefault() && !implicitStructNoInit;
+                if (!implicitStructNoInit && !implicitStructPartInit)
                     implicitStructCstRef = symStruct.resolveImplicitDefaultValueRef(sema, explicitTypeRef);
             }
         }
-        const bool hasImplicitStructInit = implicitStructZeroInit || implicitStructCstRef.isValid();
+        const bool hasImplicitStructConstInit = implicitStructZeroInit || implicitStructCstRef.isValid();
+        const bool hasImplicitStructVarInit   = hasImplicitStructConstInit || implicitStructPartInit;
 
         // Constant
         if (isConst)
         {
             if (context.nodeInitRef.isInvalid())
             {
-                if (!hasImplicitStructInit)
+                if (!hasImplicitStructConstInit)
                     return reportMissingInitializer(sema, DiagnosticId::sema_err_const_missing_init, context, symbols);
                 const ConstantRef constInitCstRef = implicitStructCstRef.isValid() ? implicitStructCstRef : sema.cstMgr().addZeroPayloadConstant(sema.ctx(), explicitTypeRef);
                 completeConst(sema, symbols, constInitCstRef, explicitTypeRef);
@@ -965,7 +968,7 @@ namespace
         }
 
         // Variable
-        if (isLet && context.nodeInitRef.isInvalid() && !hasImplicitStructInit)
+        if (isLet && context.nodeInitRef.isInvalid() && !hasImplicitStructConstInit)
             return reportMissingInitializer(sema, DiagnosticId::sema_err_let_missing_init, context, symbols);
         const bool isRefType = finalTypeRef.isValid() && sema.typeMgr().get(finalTypeRef).isReference();
         if (!isLet && !isParameter && isRefType && context.nodeInitRef.isInvalid())
@@ -1000,7 +1003,7 @@ namespace
             }
         }
 
-        if (context.nodeInitRef.isValid() || hasImplicitStructInit || implicitStructNoInit)
+        if (context.nodeInitRef.isValid() || hasImplicitStructVarInit || implicitStructNoInit)
         {
             for (Symbol* s : symbols)
             {
@@ -1012,7 +1015,7 @@ namespace
                     symVar.addExtraFlag(SymbolVariableFlagsE::ExplicitUndefined);
                 if (isCallerLocation)
                     symVar.addExtraFlag(SymbolVariableFlagsE::CallerLocationDefault);
-                if (!implicitStructNoInit || forceRetValDefaultInit)
+                if (!implicitStructNoInit || implicitStructPartInit || forceRetValDefaultInit)
                     symVar.addExtraFlag(SymbolVariableFlagsE::Initialized);
             }
         }

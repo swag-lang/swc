@@ -132,21 +132,6 @@ namespace
         castRequest.failure.addArgument(Diagnostic::ARG_VALUE, fieldName);
     }
 
-    Result failStructMissingFieldNoDefault(const CastStructArgs& ctx, const SymbolVariable& field)
-    {
-        const std::string_view fieldName = field.name(ctx.sema->ctx());
-        const Result           res       = ctx.castRequest->fail(DiagnosticId::sema_err_struct_cast_missing_field_no_default, ctx.srcTypeRef, ctx.dstTypeRef, fieldName);
-        if (ctx.srcType->isAggregateStruct())
-            ctx.castRequest->failure.addArgument(Diagnostic::ARG_WHAT, "struct literal");
-        if (field.decl())
-        {
-            const AstNodeRef declNodeRef = ctx.sema->ownerDeclNodeRef(field.srcViewRef(), field.decl());
-            if (declNodeRef.isValid())
-                setStructFieldFailureNote(*ctx.castRequest, DiagnosticId::sema_note_required_struct_field_declared_here, declNodeRef, fieldName);
-        }
-        return res;
-    }
-
     AstNodeRef aggregateFieldNodeRef(const CastStructArgs& args, size_t fieldIndex, size_t expectedCount)
     {
         if (!args.castRequest->errorNodeRef.isValid())
@@ -465,16 +450,6 @@ namespace
             dstFieldInitRefs[dstIndex] = fieldNodeRef;
         }
 
-        for (size_t i = 0; i < dstFields.size(); ++i)
-        {
-            if (dstUsed[i])
-                continue;
-            const SymbolVariable* field = dstFields[i];
-            if (!field->hasExtraFlag(SymbolVariableFlagsE::ExplicitUndefined))
-                continue;
-            return failStructMissingFieldNoDefault(args, *field);
-        }
-
         return Result::Continue;
     }
 
@@ -519,6 +494,8 @@ namespace
             const SymbolVariable* field = dstFields[i];
             if (!field)
                 continue;
+            if (field->hasExtraFlag(SymbolVariableFlagsE::ExplicitUndefined))
+                return Result::Continue;
             castedByDst[i] = field->defaultValueRef();
         }
 

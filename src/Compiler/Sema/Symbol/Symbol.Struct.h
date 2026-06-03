@@ -29,6 +29,7 @@ enum class SymbolStructFlagsE : uint8_t
     DefaultClassified   = 1 << 4,
     DefaultAllZero      = 1 << 5,
     DefaultAllUndefined = 1 << 6,
+    DefaultHasUndefined = 1 << 7,
 };
 using SymbolStructFlags = EnumFlags<SymbolStructFlagsE>;
 
@@ -74,6 +75,7 @@ public:
     void        computeImplicitDefaultFlags(Sema& sema) const;
     bool        hasImplicitAllZeroDefault() const noexcept { return hasExtraFlag(SymbolStructFlagsE::DefaultAllZero); }
     bool        hasImplicitAllUndefinedDefault() const noexcept { return hasExtraFlag(SymbolStructFlagsE::DefaultAllUndefined); }
+    bool        hasImplicitUndefinedDefault() const noexcept { return hasExtraFlag(SymbolStructFlagsE::DefaultHasUndefined); }
     ConstantRef resolveImplicitDefaultValueRef(Sema& sema, TypeRef typeRef) const;
 
     SmallVector<SymbolFunction*> getSpecOp(IdentifierRef identifierRef) const;

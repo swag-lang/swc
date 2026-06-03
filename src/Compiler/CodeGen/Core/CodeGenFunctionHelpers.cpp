@@ -10,6 +10,7 @@
 #include "Compiler/CodeGen/Core/CodeGenConstantHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenMemoryHelpers.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
+#include "Compiler/Sema/Constant/ConstantLower.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Constant/ConstantValue.h"
 #include "Compiler/Sema/Core/Sema.h"
@@ -506,7 +507,62 @@ bool CodeGenFunctionHelpers::shouldMaterializeAddressBackedValue(CodeGen& codeGe
 
 namespace
 {
-    bool emitZeroOrSparsePayloadBytes(CodeGen& codeGen, MicroReg dstAddressReg, ByteSpan rawBytes)
+    TypeRef unwrapDefaultStorageTypeRef(CodeGen& codeGen, TypeRef typeRef)
+    {
+        const TypeRef rawTypeRef = codeGen.typeMgr().get(typeRef).unwrap(codeGen.ctx(), typeRef, TypeExpandE::Alias | TypeExpandE::Enum);
+        if (rawTypeRef.isValid())
+            return rawTypeRef;
+        return typeRef;
+    }
+
+    MicroReg addressWithOffset(CodeGen& codeGen, MicroReg baseReg, uint32_t offset)
+    {
+        if (!offset)
+            return baseReg;
+
+        const MicroReg resultReg = codeGen.nextVirtualIntRegister();
+        codeGen.builder().emitLoadRegReg(resultReg, baseReg, MicroOpBits::B64);
+        codeGen.builder().emitOpBinaryRegImm(resultReg, ApInt(offset, 64), MicroOp::Add, MicroOpBits::B64);
+        return resultReg;
+    }
+
+    bool canEmitDefaultPayloadBytesInline(CodeGen& codeGen, TypeRef typeRef)
+    {
+        typeRef = unwrapDefaultStorageTypeRef(codeGen, typeRef);
+        const TypeInfo& typeInfo = codeGen.typeMgr().get(typeRef);
+
+        if (typeInfo.isBool() || typeInfo.isChar() || typeInfo.isRune() || typeInfo.isInt() || typeInfo.isFloat())
+            return true;
+
+        if (typeInfo.isArray())
+            return canEmitDefaultPayloadBytesInline(codeGen, typeInfo.payloadArrayElemTypeRef());
+
+        if (typeInfo.isAggregateStruct() || typeInfo.isAggregateArray())
+        {
+            for (const TypeRef childTypeRef : typeInfo.payloadAggregate().types)
+            {
+                if (!canEmitDefaultPayloadBytesInline(codeGen, childTypeRef))
+                    return false;
+            }
+
+            return true;
+        }
+
+        if (typeInfo.isStruct())
+        {
+            for (const SymbolVariable* field : typeInfo.payloadSymStruct().fields())
+            {
+                if (field && !canEmitDefaultPayloadBytesInline(codeGen, field->typeRef()))
+                    return false;
+            }
+
+            return true;
+        }
+
+        return false;
+    }
+
+    bool emitZeroOrSparsePayloadBytes(CodeGen& codeGen, MicroReg dstAddressReg, ByteSpan rawBytes, bool allowNonZeroStores)
     {
         if (rawBytes.empty())
             return true;
@@ -516,6 +572,8 @@ namespace
             CodeGenMemoryHelpers::emitMemZero(codeGen, dstAddressReg, static_cast<uint32_t>(rawBytes.size()));
             return true;
         }
+        if (!allowNonZeroStores)
+            return false;
 
         constexpr uint32_t sparseChunkSize  = 8;
         constexpr uint32_t sparseStoreLimit = 4;
@@ -555,6 +613,155 @@ namespace
         }
 
         return false;
+    }
+
+    Result materializeStaticDefaultPayload(CodeGen& codeGen, ConstantRef& outPayloadRef, ByteSpan& outPayloadBytes, TypeRef typeRef, ByteSpan payloadBytes)
+    {
+        outPayloadRef   = ConstantRef::invalid();
+        outPayloadBytes = {};
+
+        const TypeInfo& typeInfo = codeGen.typeMgr().get(typeRef);
+        const uint64_t  size     = typeInfo.sizeOf(codeGen.ctx());
+        SWC_ASSERT(size == payloadBytes.size());
+        SWC_ASSERT(size <= std::numeric_limits<uint32_t>::max());
+        if (!size || size != payloadBytes.size() || size > std::numeric_limits<uint32_t>::max())
+            return Result::Continue;
+
+        DataSegment& segment = codeGen.cstMgr().shardDataSegment(0);
+        uint32_t     offset  = INVALID_REF;
+        SWC_RESULT(ConstantLower::materializeStaticPayload(offset, codeGen.sema(), segment, typeRef, payloadBytes));
+        SWC_ASSERT(offset != INVALID_REF);
+
+        std::byte* storedBytes = segment.ptr<std::byte>(offset);
+        SWC_ASSERT(storedBytes);
+        if (!storedBytes)
+            return Result::Continue;
+
+        outPayloadBytes = ByteSpan{storedBytes, static_cast<size_t>(size)};
+        ConstantValue payloadCst = ConstantValue::makeStructBorrowed(codeGen.ctx(), typeRef, outPayloadBytes);
+        payloadCst.setDataSegmentRef({.shardIndex = 0, .offset = offset});
+        outPayloadRef = codeGen.cstMgr().addMaterializedPayloadConstant(payloadCst);
+        return Result::Continue;
+    }
+
+    Result emitDefaultConstantToAddress(CodeGen& codeGen, TypeRef typeRef, ConstantRef valueRef, MicroReg dstAddressReg)
+    {
+        const TypeInfo& typeInfo = codeGen.typeMgr().get(typeRef);
+        const uint32_t  size     = CodeGenFunctionHelpers::checkedTypeSizeInBytes(codeGen, typeInfo);
+        SmallVector<std::byte> payloadBytes;
+        payloadBytes.resize(size);
+        SWC_RESULT(ConstantLower::lowerToBytes(codeGen.sema(), ByteSpanRW{payloadBytes.data(), payloadBytes.size()}, valueRef, typeRef));
+        const bool canEmitInline = canEmitDefaultPayloadBytesInline(codeGen, typeRef);
+        if (emitZeroOrSparsePayloadBytes(codeGen, dstAddressReg, ByteSpan{payloadBytes.data(), payloadBytes.size()}, canEmitInline))
+            return Result::Continue;
+
+        auto storeBits = MicroOpBits::Zero;
+        if (size == 1)
+            storeBits = MicroOpBits::B8;
+        else if (size == 2)
+            storeBits = MicroOpBits::B16;
+        else if (size == 4)
+            storeBits = MicroOpBits::B32;
+        else if (size == 8)
+            storeBits = MicroOpBits::B64;
+        if (canEmitInline && storeBits != MicroOpBits::Zero)
+        {
+            uint64_t value = 0;
+            for (uint32_t i = 0; i < size; ++i)
+                value |= static_cast<uint64_t>(static_cast<uint8_t>(payloadBytes[i])) << (i * 8);
+            codeGen.builder().emitLoadMemImm(dstAddressReg, 0, ApInt(value, 64), storeBits);
+            return Result::Continue;
+        }
+
+        ConstantRef payloadRef;
+        ByteSpan    materializedPayload;
+        SWC_RESULT(materializeStaticDefaultPayload(codeGen, payloadRef, materializedPayload, typeRef, ByteSpan{payloadBytes.data(), payloadBytes.size()}));
+        SWC_ASSERT(payloadRef.isValid());
+        if (payloadRef.isInvalid())
+            return Result::Continue;
+
+        const MicroReg payloadReg = codeGen.nextVirtualIntRegister();
+        codeGen.builder().emitLoadRegPtrReloc(payloadReg, reinterpret_cast<uint64_t>(materializedPayload.data()), payloadRef);
+        CodeGenMemoryHelpers::emitMemCopy(codeGen, dstAddressReg, payloadReg, size);
+        return Result::Continue;
+    }
+
+    Result emitArrayDefaultValue(CodeGen& codeGen, TypeRef typeRef, MicroReg dstAddressReg);
+
+    Result emitImplicitDefaultValue(CodeGen& codeGen, TypeRef typeRef, MicroReg dstAddressReg)
+    {
+        typeRef = unwrapDefaultStorageTypeRef(codeGen, typeRef);
+        const TypeInfo& typeInfo = codeGen.typeMgr().get(typeRef);
+        if (typeInfo.isStruct())
+            return CodeGenFunctionHelpers::emitStructDefaultValue(codeGen, typeRef, dstAddressReg);
+        if (typeInfo.isArray())
+            return emitArrayDefaultValue(codeGen, typeRef, dstAddressReg);
+
+        const uint32_t size = CodeGenFunctionHelpers::checkedTypeSizeInBytes(codeGen, typeInfo);
+        CodeGenMemoryHelpers::emitMemZero(codeGen, dstAddressReg, size);
+        return Result::Continue;
+    }
+
+    Result emitArrayDefaultValue(CodeGen& codeGen, TypeRef typeRef, MicroReg dstAddressReg)
+    {
+        const TypeInfo& arrayType = codeGen.typeMgr().get(typeRef);
+        SWC_ASSERT(arrayType.isArray());
+
+        const TypeRef   elemTypeRef = arrayType.payloadArrayElemTypeRef();
+        const TypeInfo& elemType    = codeGen.typeMgr().get(elemTypeRef);
+        const uint32_t  elemSize    = CodeGenFunctionHelpers::checkedTypeSizeInBytes(codeGen, elemType);
+        uint64_t        elemCount   = 1;
+        for (const uint64_t dim : arrayType.payloadArrayDims())
+            elemCount *= dim;
+        if (!elemCount)
+            return Result::Continue;
+
+        SWC_ASSERT(elemCount <= std::numeric_limits<uint32_t>::max());
+        const TypeRef storageElemTypeRef = unwrapDefaultStorageTypeRef(codeGen, elemTypeRef);
+        const TypeInfo& storageElemType  = codeGen.typeMgr().get(storageElemTypeRef);
+        if (storageElemType.isStruct())
+            return CodeGenFunctionHelpers::emitStructDefaultValue(codeGen, storageElemTypeRef, dstAddressReg, static_cast<uint32_t>(elemCount));
+        if (!storageElemType.isArray())
+        {
+            const uint64_t totalSize = elemCount * elemSize;
+            SWC_ASSERT(totalSize <= std::numeric_limits<uint32_t>::max());
+            CodeGenMemoryHelpers::emitMemZero(codeGen, dstAddressReg, static_cast<uint32_t>(totalSize));
+            return Result::Continue;
+        }
+
+        for (uint64_t i = 0; i < elemCount; ++i)
+        {
+            const uint64_t offset = i * elemSize;
+            SWC_ASSERT(offset <= std::numeric_limits<uint32_t>::max());
+            const MicroReg elemAddressReg = addressWithOffset(codeGen, dstAddressReg, static_cast<uint32_t>(offset));
+            SWC_RESULT(emitArrayDefaultValue(codeGen, storageElemTypeRef, elemAddressReg));
+        }
+
+        return Result::Continue;
+    }
+
+    Result emitStructPartialDefaultValue(CodeGen& codeGen, const TypeInfo& typeInfo, MicroReg dstAddressReg)
+    {
+        for (const SymbolVariable* field : typeInfo.payloadSymStruct().fields())
+        {
+            if (!field || field->hasExtraFlag(SymbolVariableFlagsE::ExplicitUndefined))
+                continue;
+
+            const TypeRef   fieldTypeRef = field->typeRef();
+            const TypeInfo& fieldType    = codeGen.typeMgr().get(fieldTypeRef);
+            const uint32_t  fieldSize    = CodeGenFunctionHelpers::checkedTypeSizeInBytes(codeGen, fieldType);
+            if (!fieldSize)
+                continue;
+
+            const MicroReg fieldAddressReg = addressWithOffset(codeGen, dstAddressReg, field->offset());
+            const ConstantRef defaultValueRef = field->defaultValueRef();
+            if (defaultValueRef.isValid())
+                SWC_RESULT(emitDefaultConstantToAddress(codeGen, fieldTypeRef, defaultValueRef, fieldAddressReg));
+            else
+                SWC_RESULT(emitImplicitDefaultValue(codeGen, fieldTypeRef, fieldAddressReg));
+        }
+
+        return Result::Continue;
     }
 
     bool tryGetStructDefaultPayload(CodeGen& codeGen, TypeRef typeRef, ConstantRef& outSafeDefaultValueRef, ByteSpan& outPayloadBytes)
@@ -606,6 +813,8 @@ Result CodeGenFunctionHelpers::emitStructDefaultValue(CodeGen& codeGen, TypeRef 
         CodeGenMemoryHelpers::emitMemZero(codeGen, dstAddressReg, checkedTypeSizeInBytes(codeGen, typeInfo));
         return Result::Continue;
     }
+    if (symStruct.hasImplicitUndefinedDefault())
+        return emitStructPartialDefaultValue(codeGen, typeInfo, dstAddressReg);
 
     ConstantRef safeDefaultValueRef = ConstantRef::invalid();
     ByteSpan    payloadBytes;
@@ -613,7 +822,7 @@ Result CodeGenFunctionHelpers::emitStructDefaultValue(CodeGen& codeGen, TypeRef 
         return Result::Continue;
 
     SWC_ASSERT(payloadBytes.size() <= std::numeric_limits<uint32_t>::max());
-    if (emitZeroOrSparsePayloadBytes(codeGen, dstAddressReg, payloadBytes))
+    if (emitZeroOrSparsePayloadBytes(codeGen, dstAddressReg, payloadBytes, canEmitDefaultPayloadBytesInline(codeGen, typeRef)))
         return Result::Continue;
 
     const MicroReg payloadReg = codeGen.nextVirtualIntRegister();
@@ -648,6 +857,18 @@ Result CodeGenFunctionHelpers::emitStructDefaultValue(CodeGen& codeGen, TypeRef 
         const uint64_t totalSize = static_cast<uint64_t>(sizeOf) * count;
         SWC_ASSERT(totalSize <= std::numeric_limits<uint32_t>::max());
         CodeGenMemoryHelpers::emitMemZero(codeGen, dstAddressReg, static_cast<uint32_t>(totalSize));
+        return Result::Continue;
+    }
+    if (symStruct.hasImplicitUndefinedDefault())
+    {
+        for (uint32_t i = 0; i < count; ++i)
+        {
+            const uint64_t offset = static_cast<uint64_t>(sizeOf) * i;
+            SWC_ASSERT(offset <= std::numeric_limits<uint32_t>::max());
+            const MicroReg elemAddressReg = addressWithOffset(codeGen, dstAddressReg, static_cast<uint32_t>(offset));
+            SWC_RESULT(emitStructPartialDefaultValue(codeGen, typeInfo, elemAddressReg));
+        }
+
         return Result::Continue;
     }
 

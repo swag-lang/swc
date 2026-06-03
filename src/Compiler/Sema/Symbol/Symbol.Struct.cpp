@@ -178,6 +178,7 @@ namespace
     enum class ImplicitDefaultKind : uint8_t
     {
         Mixed,
+        MixedWithUndefined,
         AllZero,
         AllUndefined,
     };
@@ -185,11 +186,9 @@ namespace
     ImplicitDefaultKind classifyTypeImplicitDefault(Sema& sema, TypeRef typeRef);
     ImplicitDefaultKind classifyConstantImplicitDefault(Sema& sema, TypeRef typeRef, ConstantRef cstRef);
 
-    bool updateImplicitDefaultKindState(bool& allZero, bool& allUndefined, const ImplicitDefaultKind childKind)
+    bool implicitDefaultKindHasUndefined(const ImplicitDefaultKind kind)
     {
-        allZero &= childKind == ImplicitDefaultKind::AllZero;
-        allUndefined &= childKind == ImplicitDefaultKind::AllUndefined;
-        return allZero || allUndefined;
+        return kind == ImplicitDefaultKind::AllUndefined || kind == ImplicitDefaultKind::MixedWithUndefined;
     }
 
     ImplicitDefaultKind combineImplicitDefaultKinds(const std::span<const ImplicitDefaultKind> childKinds)
@@ -199,16 +198,20 @@ namespace
 
         bool allZero      = true;
         bool allUndefined = true;
+        bool anyUndefined = false;
         for (const ImplicitDefaultKind childKind : childKinds)
         {
-            if (!updateImplicitDefaultKindState(allZero, allUndefined, childKind))
-                return ImplicitDefaultKind::Mixed;
+            allZero &= childKind == ImplicitDefaultKind::AllZero;
+            allUndefined &= childKind == ImplicitDefaultKind::AllUndefined;
+            anyUndefined |= implicitDefaultKindHasUndefined(childKind);
         }
 
         if (allUndefined)
             return ImplicitDefaultKind::AllUndefined;
         if (allZero)
             return ImplicitDefaultKind::AllZero;
+        if (anyUndefined)
+            return ImplicitDefaultKind::MixedWithUndefined;
         return ImplicitDefaultKind::Mixed;
     }
 
@@ -348,6 +351,8 @@ namespace
                 return ImplicitDefaultKind::AllUndefined;
             if (symStruct.hasImplicitAllZeroDefault())
                 return ImplicitDefaultKind::AllZero;
+            if (symStruct.hasImplicitUndefinedDefault())
+                return ImplicitDefaultKind::MixedWithUndefined;
             return ImplicitDefaultKind::Mixed;
         }
 
@@ -781,6 +786,7 @@ void SymbolStruct::computeImplicitDefaultFlags(Sema& sema) const
 
         bool allZero      = true;
         bool allUndefined = true;
+        bool anyUndefined = false;
         for (const SymbolVariable* field : fields_)
         {
             if (!field)
@@ -802,21 +808,22 @@ void SymbolStruct::computeImplicitDefaultFlags(Sema& sema) const
 
             allZero &= fieldKind == ImplicitDefaultKind::AllZero;
             allUndefined &= fieldKind == ImplicitDefaultKind::AllUndefined;
-            if (!allZero && !allUndefined)
-                return;
+            anyUndefined |= implicitDefaultKindHasUndefined(fieldKind);
         }
 
         if (allZero)
             self->addExtraFlag(SymbolStructFlagsE::DefaultAllZero);
         if (allUndefined)
             self->addExtraFlag(SymbolStructFlagsE::DefaultAllUndefined);
+        if (anyUndefined)
+            self->addExtraFlag(SymbolStructFlagsE::DefaultHasUndefined);
     });
 }
 
 ConstantRef SymbolStruct::resolveImplicitDefaultValueRef(Sema& sema, TypeRef typeRef) const
 {
     computeImplicitDefaultFlags(sema);
-    if (hasImplicitAllUndefinedDefault())
+    if (hasImplicitUndefinedDefault())
         return ConstantRef::invalid();
     return const_cast<SymbolStruct*>(this)->computeDefaultValue(sema, typeRef);
 }

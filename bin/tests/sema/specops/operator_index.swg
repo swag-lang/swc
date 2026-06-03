@@ -89,3 +89,17 @@ func semaTest004()
     #assert(#typeof(first) == s32)
     #assert(#typeof(last) == s32)
 }
+
+#[Swag.EnumIndex]
+enum IndexedByte: u8 { Zero, One, Two }
+
+func semaTest005(flag: bool)
+{
+    var raw: u8 = IndexedByte.Two
+    let selectedByte = flag ? 0'u8 : IndexedByte.One
+    let selectedSlot = flag ? 0's32 : IndexedSlot.Second
+
+    #assert(#typeof(raw) == u8)
+    #assert(#typeof(selectedByte) == u8)
+    #assert(#typeof(selectedSlot) == s32)
+}

@@ -1123,12 +1123,12 @@ Result Cast::castToEnum(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef
 
 Result Cast::castFromEnum(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef)
 {
-    if (castRequest.kind != CastKind::Explicit)
-        return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
-
     const TypeInfo&   srcType = sema.typeMgr().get(srcTypeRef);
     const TypeInfo&   dstType = sema.typeMgr().get(dstTypeRef);
     const SymbolEnum& enumSym = srcType.payloadSymEnum();
+    const bool        allowEnumIndexImplicitCast = enumSym.attributes().hasRtFlag(RtAttributeFlagsE::EnumIndex) && dstType.isIntLike();
+    if (castRequest.kind != CastKind::Explicit && !allowEnumIndexImplicitCast)
+        return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
 
     // Only enum flags (or enums already backed by bool) can be cast to bool.
     if (dstType.isBool() && !srcType.isEnumFlags() && enumSym.underlyingTypeRef() != dstTypeRef)

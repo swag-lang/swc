@@ -3,7 +3,7 @@ using Core, Pixel
 
 struct RichEditLexerSwag
 {
-    #[Swag.Incomplete]
+    #[Swag.Incomplete, Swag.EnumIndex]
     enum Style: RichEditStyleRef
     {
         Default

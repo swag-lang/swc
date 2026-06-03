@@ -1,6 +1,7 @@
 #global fileprivate
 
 func(T) identity(value: T)->T => value
+func(T) keepDeducedType(value, low, high: T)->T => value
 func(T) doubleLeftLiteral(value: T) => 2 * value
 func(T = s32, V = s32) mixedMultiply(a: T, b: V) => a * b
 func(T = s32) defaultTypeValue()->T => 42
@@ -233,4 +234,12 @@ func semaTest018()
 {
     let value = genericDefaultAnonymousField()
     #assert(#typeof(value) == u16)
+}
+
+func semaTest019()
+{
+    let value: f32 = 0.5
+    let high: s32 = 10
+    let result = keepDeducedType(value, 0, high)
+    #assert(#typeof(result) == f32)
 }

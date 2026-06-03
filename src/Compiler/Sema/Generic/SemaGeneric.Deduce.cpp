@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Compiler/Sema/Generic/SemaGeneric.h"
+#include "Compiler/Sema/Cast/Cast.h"
 #include "Compiler/Sema/Cast/CastFailure.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
@@ -448,6 +449,17 @@ namespace
         SmallVector<SemaGeneric::GenericCallArgEntry> variadicArgs;
     };
 
+    bool canPassAsAlreadyDeducedGenericType(Sema& sema, TypeRef argTypeRef, TypeRef deducedTypeRef)
+    {
+        const TypeInfo& argType     = sema.typeMgr().get(argTypeRef);
+        const TypeInfo& deducedType = sema.typeMgr().get(deducedTypeRef);
+        if (!argType.isScalarNumeric() || !deducedType.isScalarNumeric())
+            return false;
+
+        CastRequest castRequest(CastKind::Parameter);
+        return Cast::castAllowed(sema, castRequest, argTypeRef, deducedTypeRef) == Result::Continue;
+    }
+
     bool tryBindGenericTypeParam(Sema& sema, std::span<const SemaGeneric::GenericParamDesc> params, std::span<SemaGeneric::GenericResolvedArg> resolvedArgs, IdentifierRef idRef, AstNodeRef exprRef, uint32_t callArgIndex, TypeRef typeRef, CastFailure* outFailure, DeductionMode mode)
     {
         for (size_t i = 0; i < params.size(); ++i)
@@ -480,6 +492,9 @@ namespace
             }
 
             if (!previousType.isScalarUnsized() && newType.isScalarUnsized())
+                return true;
+
+            if (canPassAsAlreadyDeducedGenericType(sema, typeRef, arg.typeRef))
                 return true;
 
             if (outFailure)

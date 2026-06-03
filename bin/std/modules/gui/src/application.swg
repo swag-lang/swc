@@ -101,8 +101,13 @@ fileprivate impl Application
         if wnd.surface.isDisabled do
             return null
         var scan = wnd
-        while scan and !scan.isEnabled() do
-            scan = scan.parent
+        while scan
+        {
+            let cur = assume scan
+            if cur.isEnabled() do
+                break
+            scan = cur.parent
+        }
         return scan
     }
 

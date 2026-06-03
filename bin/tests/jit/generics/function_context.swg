@@ -72,6 +72,16 @@ func(U) functionLocalRenamedExplicitPrefixValue()->U
     return data.item.values[2]
 }
 
+func(T) functionReturnOnlyFactory(value: s32)->T
+{
+    return cast(T) value
+}
+
+func(T) functionReturnOnlyForward(value: s32)->T
+{
+    return functionReturnOnlyFactory(value)
+}
+
 struct(T) MethodTypeShadowHolder
 {
 }
@@ -115,15 +125,18 @@ impl MethodConstShadowHolder
     let first = functionLocalImplicitRenamedBuffer'(u8, 4)()
     let tail = functionLocalRenamedPartialBox'(bool, f32)(true, 4.5)
     let explicit = functionLocalRenamedExplicitPrefixValue's64()
+    let forwarded = functionReturnOnlyForward'u16(12)
 
     #assert(#typeof(value) == u16)
     #assert(#typeof(first) == u8)
     #assert(#typeof(tail) == f32)
     #assert(#typeof(explicit) == s64)
+    #assert(#typeof(forwarded) == u16)
     @assert(value == 12'u16)
     @assert(first == 4'u8)
     @assert(tail == 4.5'f32)
     @assert(explicit == 21's64)
+    @assert(forwarded == 12'u16)
 }
 
 #test

@@ -110,6 +110,17 @@ func(U) functionLocalRenamedExplicitPrefixValue()->bool
     return #typeof(data.item.values) == #type [3] U
 }
 
+func(T) functionReturnOnlyFactory(value: s32)->T
+{
+    return cast(T) value
+}
+
+func(T) functionReturnOnlyForward(value: s32)->bool
+{
+    let result = functionReturnOnlyFactory(value)
+    return #typeof(result) == T
+}
+
 struct(T) MethodTypeShadowHolder
 {
 }
@@ -159,6 +170,7 @@ func semaTest001()
     #assert(functionLocalImplicitRenamedBuffer'(u8, 4)())
     #assert(functionLocalRenamedPartialBox'(bool, f32)())
     #assert(functionLocalRenamedExplicitPrefixValue's64())
+    #assert(functionReturnOnlyForward'u16(12))
     #assert(typeShadowHolder.localUsesMethodType'bool(true))
     #assert(constShadowHolder.localUsesMethodConst'4())
 }

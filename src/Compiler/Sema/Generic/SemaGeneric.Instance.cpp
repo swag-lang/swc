@@ -763,6 +763,8 @@ namespace SemaGeneric
         SWC_RESULT(deduceGenericFunctionArgs(sema, genericRoot, params.span(), resolvedArgs, args, ufcsArg, outFailure, outFailureArgIndex));
         if (outFailure && outFailure->diagId != DiagnosticId::None)
             return Result::Continue;
+        if (hasMissingGenericArgs(resolvedArgs.span()))
+            resolveArgsFromAmbientFunctions(sema, params.span(), resolvedArgs.span(), false);
 
         SWC_RESULT(materializeGenericArgs(*sourceSema, genericRoot, params.span(), resolvedArgs.span(), {}, errorNodeRef));
         if (hasMissingGenericArgs(resolvedArgs.span()))

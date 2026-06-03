@@ -192,6 +192,25 @@ bool Cast::foldConstantBoolToIntLike(Sema& sema, CastRequest& castRequest, TypeR
     return true;
 }
 
+bool Cast::foldConstantBoolToFloat(Sema& sema, CastRequest& castRequest, TypeRef dstTypeRef)
+{
+    const TaskContext& ctx = sema.ctx();
+
+    const TypeInfo&      dstType    = sema.typeMgr().get(dstTypeRef);
+    const ConstantValue& src        = sema.cstMgr().get(castRequest.constantFoldingSrc());
+    const uint32_t       targetBits = dstType.payloadFloatBits();
+
+    ApFloat value;
+    bool    isExact  = false;
+    bool    overflow = false;
+    value.set(ApsInt(src.getBool() ? 1 : 0, 1, true), targetBits, isExact, overflow);
+    SWC_ASSERT(!overflow);
+
+    const ConstantValue result = ConstantValue::makeFloat(ctx, value, targetBits);
+    castRequest.setConstantFoldingResult(sema.cstMgr().addConstant(ctx, result));
+    return true;
+}
+
 bool Cast::foldConstantIntLikeToBool(Sema& sema, CastRequest& castRequest)
 {
     const TaskContext&   ctx   = sema.ctx();

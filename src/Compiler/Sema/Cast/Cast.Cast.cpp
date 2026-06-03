@@ -849,6 +849,20 @@ Result Cast::castBoolToIntLike(Sema& sema, CastRequest& castRequest, TypeRef src
     return Result::Continue;
 }
 
+Result Cast::castBoolToFloat(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef)
+{
+    if (castRequest.kind != CastKind::Explicit)
+        return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
+
+    if (castRequest.isConstantFolding())
+    {
+        if (!foldConstantBoolToFloat(sema, castRequest, dstTypeRef))
+            return Result::Error;
+    }
+
+    return Result::Continue;
+}
+
 Result Cast::castToBool(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef)
 {
     if (castRequest.kind != CastKind::Explicit && !isTruthyBoolCastKind(castRequest.kind))
@@ -1087,6 +1101,8 @@ Result Cast::castToFloat(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRe
     const TypeManager& typeMgr = sema.typeMgr();
     const TypeInfo&    srcType = typeMgr.get(srcTypeRef);
 
+    if (srcType.isBool())
+        return castBoolToFloat(sema, castRequest, srcTypeRef, dstTypeRef);
     if (srcType.isFloat())
         return castFloatToFloat(sema, castRequest, srcTypeRef, dstTypeRef);
     if (srcType.isIntLike())

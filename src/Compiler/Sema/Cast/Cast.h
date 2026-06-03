@@ -85,6 +85,7 @@ private:
     static Result castIdentity(const Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef);
     static Result castBit(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef);
     static Result castBoolToIntLike(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef);
+    static Result castBoolToFloat(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef);
     static Result castToBool(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef);
     static Result castIntLikeToIntLike(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef);
     static Result castIntLikeToFloat(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef);
@@ -115,6 +116,7 @@ private:
     static void foldConstantIdentity(CastRequest& castRequest);
     static bool foldConstantBitCast(Sema& sema, CastRequest& castRequest, TypeRef dstTypeRef, const TypeInfo& dstType, const TypeInfo& srcType);
     static bool foldConstantBoolToIntLike(Sema& sema, CastRequest& castRequest, TypeRef dstTypeRef);
+    static bool foldConstantBoolToFloat(Sema& sema, CastRequest& castRequest, TypeRef dstTypeRef);
     static bool foldConstantIntLikeToBool(Sema& sema, CastRequest& castRequest);
     static bool foldConstantFloatToBool(Sema& sema, CastRequest& castRequest);
     static bool foldConstantIntLikeToIntLike(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef);

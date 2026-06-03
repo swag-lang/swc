@@ -21,6 +21,24 @@
 
 #test
 {
+    func boolToFloatCasts(flag: bool)->bool
+    {
+        let value32 = cast(f32) flag
+        let value64 = cast(f64) flag
+
+        if flag do
+            return value32 == 1.0'f32 and value64 == 1.0'f64
+        return value32 == 0.0'f32 and value64 == 0.0'f64
+    }
+
+    const TRUE_OK = #run boolToFloatCasts(true)
+    const FALSE_OK = #run boolToFloatCasts(false)
+    #assert(TRUE_OK)
+    #assert(FALSE_OK)
+}
+
+#test
+{
     func subtractMixed(value: f32, base: s32)->f32
     {
         return value - base

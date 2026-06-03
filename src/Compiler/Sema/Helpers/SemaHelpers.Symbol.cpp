@@ -995,6 +995,20 @@ namespace
         return Result::Continue;
     }
 
+    Result waitPendingStructImplSymMaps(Sema& sema, const SymbolStruct& symStruct, const SourceCodeRef& codeRef)
+    {
+        const SymbolImpl* currentImpl = sema.frame().currentImpl();
+        for (const SymbolImpl* symImpl : symStruct.impls())
+        {
+            if (!symImpl || symImpl->isIgnored() || symImpl == currentImpl)
+                continue;
+            if (!symImpl->isSemaCompleted())
+                return sema.waitSemaCompleted(symImpl, codeRef);
+        }
+
+        return Result::Continue;
+    }
+
     Result memberEnum(Sema& sema, AstNodeRef targetNodeRef, const AstMemberAccessExpr& node, const SymbolEnum& enumSym, const IdentifierRef& idRef, TokenRef tokNameRef, bool allowOverloadSet)
     {
         const SourceCodeRef codeRef{node.srcViewRef(), tokNameRef};
@@ -1051,6 +1065,9 @@ namespace
             SWC_RESULT(bindMissingCompilerDefinedMember(sema, targetNodeRef, node, handled));
             if (handled)
                 return Result::SkipChildren;
+            if (sema.compiler().pendingImplRegistrations(symStruct.idRef()) != 0)
+                return sema.waitImplRegistrations(symStruct.idRef(), codeRef);
+            SWC_RESULT(waitPendingStructImplSymMaps(sema, symStruct, codeRef));
             SWC_RESULT(tryBindUfcsFreeFunctions(sema, targetNodeRef, node, idRef, tokNameRef, allowOverloadSet, handled));
             if (handled)
                 return Result::SkipChildren;

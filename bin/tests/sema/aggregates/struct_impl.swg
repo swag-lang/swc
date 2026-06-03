@@ -19,6 +19,23 @@ impl AA
 
 #assert(AA.C == 52)
 
+#[Swag.Mixin]
+func makeImplConst(name: string, value: string)
+{
+    #ast "const " ++ name ++ " = \"" ++ value ++ "\""
+}
+
+struct ImplGeneratedMember {}
+
+impl ImplGeneratedMember
+{
+    #ast "const Direct = \"direct\""
+    makeImplConst("Generated", "generated")
+}
+
+#assert(ImplGeneratedMember.Direct == "direct")
+#assert(ImplGeneratedMember.Generated == "generated")
+
 impl AA
 {
     mtd toto() {}

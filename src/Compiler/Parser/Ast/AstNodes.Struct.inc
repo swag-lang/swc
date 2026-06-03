@@ -62,6 +62,7 @@ struct AstImpl : AstCompoundT<AstNodeId::Impl>
     Result      semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;
     Result      semaPostDeclChild(Sema& sema, const AstNodeRef& childRef) const;
     Result      semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const;
+    Result      semaPostNode(Sema& sema) const;
     AstNodeRef  semaClone(Sema& sema, const CloneContext& cloneContext) const;
     static void semaErrorCleanup(Sema& sema, AstNodeRef nodeRef);
 };

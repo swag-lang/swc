@@ -1124,6 +1124,7 @@ Result Sema::preNodeChild(AstNode& node, AstNodeRef& childRef)
         const AstNodeIdInfo& childInfo   = Ast::nodeIdInfos(child.id());
         const bool           compilerRun = isCompilerRunFunction(*this, child);
         const bool           compilerAst = isCompilerAstFunction(*this, child);
+        const bool           deferCompilerTopLevel = !curScope_->isImpl();
 
         if (!compilerAstExpansions_.empty())
         {
@@ -1132,18 +1133,18 @@ Result Sema::preNodeChild(AstNode& node, AstNodeRef& childRef)
             // Nested generated top-level blocks now receive their own decl pass before
             // the full pass reaches this point. That restores the same symbol visibility
             // contract as regular files, so their declaration jobs can stay deferred.
-            if (compilerRun || compilerAst || (!generatedTopLevelContext && childInfo.hasFlag(AstNodeIdFlagsE::SemaJob)))
+            if ((deferCompilerTopLevel && (compilerRun || compilerAst)) || (!generatedTopLevelContext && childInfo.hasFlag(AstNodeIdFlagsE::SemaJob)))
                 return Result::Continue;
         }
 
-        if (compilerRun)
+        if (deferCompilerTopLevel && compilerRun)
         {
             deferTopLevelItems_ = true;
             deferTopLevelItem(childRef, DeferredTopLevelItemKind::CompilerRun);
             return Result::SkipChildren;
         }
 
-        if (compilerAst)
+        if (deferCompilerTopLevel && compilerAst)
         {
             deferTopLevelItems_ = true;
             deferTopLevelItem(childRef, DeferredTopLevelItemKind::CompilerAst);

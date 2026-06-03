@@ -156,6 +156,15 @@ Result AstImpl::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const
     return Result::Continue;
 }
 
+Result AstImpl::semaPostNode(Sema& sema) const
+{
+    auto& symImpl = sema.curViewSymbol().sym()->cast<SymbolImpl>();
+    symImpl.setDeclared(sema.ctx());
+    symImpl.setTyped(sema.ctx());
+    symImpl.setSemaCompleted(sema.ctx());
+    return Result::Continue;
+}
+
 void AstImpl::semaErrorCleanup(Sema& sema, AstNodeRef nodeRef)
 {
     const SemaNodeView view = sema.viewSymbol(nodeRef);

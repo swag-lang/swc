@@ -199,6 +199,7 @@ namespace
 
             case AstNodeId::File:
             case AstNodeId::TopLevelBlock:
+            case AstNodeId::Impl:
                 return ParserGeneratedMode::TopLevel;
 
             default:
@@ -222,6 +223,72 @@ namespace
 
         SWC_UNUSED(ownerRef);
         return parseCompilerAstModeForNodeId(parentNode.id());
+    }
+
+    bool compilerAstParseModeFromMixinCaller(Sema& sema, ParserGeneratedMode& outMode)
+    {
+        const auto* inlinePayload = SemaHelpers::effectiveInlinePayload(sema);
+        if (!inlinePayload || !inlinePayload->sourceFunction || !inlinePayload->callerScope)
+            return false;
+        if (!inlinePayload->sourceFunction->attributes().hasRtFlag(RtAttributeFlagsE::Mixin))
+            return false;
+
+        if (inlinePayload->callerImpl)
+        {
+            outMode = ParserGeneratedMode::TopLevel;
+            return true;
+        }
+
+        for (const SemaScope* scope = inlinePayload->callerScope; scope; scope = scope->parent())
+        {
+            if (scope->isImpl())
+            {
+                outMode = ParserGeneratedMode::TopLevel;
+                return true;
+            }
+
+            const SymbolMap* symMap = scope->symMap();
+            if (symMap)
+            {
+                if (symMap->isStruct())
+                {
+                    outMode = ParserGeneratedMode::Aggregate;
+                    return true;
+                }
+
+                if (symMap->isEnum())
+                {
+                    outMode = ParserGeneratedMode::Enum;
+                    return true;
+                }
+
+                if (symMap->isImpl() || symMap->isNamespace() || symMap->isModule())
+                {
+                    outMode = ParserGeneratedMode::TopLevel;
+                    return true;
+                }
+
+                if (symMap->isFunction())
+                {
+                    outMode = ParserGeneratedMode::Embedded;
+                    return true;
+                }
+            }
+
+            if (scope->isLocal())
+            {
+                outMode = ParserGeneratedMode::Embedded;
+                return true;
+            }
+
+            if (scope->isTopLevel())
+            {
+                outMode = ParserGeneratedMode::TopLevel;
+                return true;
+            }
+        }
+
+        return false;
     }
 
     Result createCompilerAstGeneratedSource(Sema& sema, AstNodeRef ownerRef, std::string_view generatedCode, SourceView*& outSrcView, TokenRef& outStartTokRef)
@@ -263,26 +330,30 @@ namespace
         if (parseMode != ParserGeneratedMode::TopLevel)
             return Result::Continue;
 
-        Sema generatedDeclSema(sema.ctx(), sema.currentNodePayloadContext(), generatedRef, true);
-        auto generatedFrame = SemaFrame{};
-        generatedFrame.setCurrentAccess(sema.frame().currentAccess());
-        generatedFrame.setGlobalCompilerIfEnabled(sema.frame().globalCompilerIfEnabled());
-        generatedFrame.currentAttributes() = sema.frame().currentAttributes();
-        generatedFrame.setCurrentCompilerIf(sema.frame().currentCompilerIf());
-        generatedFrame.setCurrentImpl(sema.frame().currentImpl());
-        generatedFrame.setCurrentInterface(sema.frame().currentInterface());
-        for (const IdentifierRef idRef : sema.frame().nsPath())
-            generatedFrame.pushNs(idRef);
-        generatedDeclSema.frame() = generatedFrame;
-        const Result declResult   = generatedDeclSema.execResult();
+        Sema         generatedDeclSema(sema.ctx(), sema, generatedRef, true);
+        const Result declResult = generatedDeclSema.execResult();
         SWC_ASSERT(declResult != Result::Pause);
         return declResult;
+    }
+
+    bool isCurrentCompilerAstExpansionNode(Sema& sema, AstNodeRef ownerRef)
+    {
+        if (ownerRef != sema.curNodeRef())
+            return false;
+
+        const AstNode& owner = sema.node(ownerRef);
+        if (!owner.is(AstNodeId::CompilerFunc) && !owner.is(AstNodeId::CompilerShortFunc))
+            return false;
+
+        return sema.token(owner.codeRef()).id == TokenId::CompilerAst;
     }
 
     Result parseCompilerAstGenerated(Sema& sema, AstNodeRef ownerRef, std::string_view generatedCode, AstNodeRef& outGeneratedRef)
     {
         outGeneratedRef                     = AstNodeRef::invalid();
-        const ParserGeneratedMode parseMode = compilerAstParseMode(sema, ownerRef);
+        ParserGeneratedMode parseMode       = ParserGeneratedMode::Embedded;
+        if (!compilerAstParseModeFromMixinCaller(sema, parseMode))
+            parseMode = compilerAstParseMode(sema, ownerRef);
 
         SourceView* generatedSrcView = nullptr;
         TokenRef    generatedStartTokRef;
@@ -299,6 +370,8 @@ namespace
         if (!outGeneratedRef.isValid())
             return Result::Error;
 
+        if (isCurrentCompilerAstExpansionNode(sema, ownerRef))
+            sema.processCurrentPostNodePopsNow();
         SWC_RESULT(declareCompilerAstGeneratedTopLevel(sema, outGeneratedRef, parseMode));
         return Result::Continue;
     }
@@ -309,10 +382,6 @@ namespace
 
         AstNodeRef generatedRef = AstNodeRef::invalid();
         SWC_RESULT(parseCompilerAstGenerated(sema, ownerRef, generatedCode, generatedRef));
-        if (ownerRef == sema.curNodeRef() &&
-            (sema.node(ownerRef).is(AstNodeId::CompilerFunc) || sema.node(ownerRef).is(AstNodeId::CompilerShortFunc)) &&
-            sema.token(sema.node(ownerRef).codeRef()).id == TokenId::CompilerAst)
-            sema.processCurrentPostNodePopsNow();
         pushCompilerAstExpansion(sema, ownerRef, generatedCode);
         sema.deferPostNodeAction(generatedRef, popCompilerAstExpansion);
         sema.setSubstitute(ownerRef, generatedRef);

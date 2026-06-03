@@ -99,6 +99,18 @@ func multiplyUfcs(c: *UfcsComplex, other: *UfcsComplex)
     c.imag = i
 }
 
+func shadowedUfcsAdd(value: &u32, rhs: u32)
+{
+    value += rhs
+}
+
+func callShadowedUfcsAdd(shadowedUfcsAdd: u32)->u32
+{
+    var value = 1'u32
+    value.shadowedUfcsAdd(shadowedUfcsAdd)
+    return value
+}
+
 func semaTest003()
 {
     let value = false
@@ -118,4 +130,10 @@ func semaTest005()
     var c2 = UfcsComplex{4.0, 5.0}
     c1.multiplyUfcs(2.0)
     c1.multiplyUfcs(&c2)
+}
+
+func semaTest006()
+{
+    let value = callShadowedUfcsAdd(2)
+    #assert(#typeof(value) == u32)
 }

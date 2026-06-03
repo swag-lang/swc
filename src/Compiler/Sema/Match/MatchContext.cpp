@@ -134,6 +134,31 @@ void MatchContext::collectCallFallbackSymbols(SmallVector<const Symbol*>& outSym
     }
 }
 
+void MatchContext::collectCallableSymbols(SmallVector<const Symbol*>& outSymbols) const
+{
+    outSymbols.clear();
+
+    for (const CandidateSymbol& candidate : allSymbols_)
+    {
+        const Symbol* symbol = candidate.symbol;
+        if (!symbol || !symbol->isFunction())
+            continue;
+
+        bool duplicate = false;
+        for (const Symbol* existing : outSymbols)
+        {
+            if (existing == symbol)
+            {
+                duplicate = true;
+                break;
+            }
+        }
+
+        if (!duplicate)
+            outSymbols.push_back(symbol);
+    }
+}
+
 void MatchContext::addIgnoredSymbol(const Priority& priority)
 {
     if (!hasIgnoredBestPriority_ || Priority::compare(priority, ignoredBestPriority_) < 0)

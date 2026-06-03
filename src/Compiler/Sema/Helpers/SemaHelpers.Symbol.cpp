@@ -936,8 +936,17 @@ namespace
         SWC_RESULT(Match::match(sema, lookUpCxt, idRef));
 
         SmallVector<const Symbol*> callableSymbols;
-        if (!SemaSymbolLookup::filterCallCalleeCandidates(lookUpCxt.symbols().span(), callableSymbols))
+        lookUpCxt.collectCallableSymbols(callableSymbols);
+        if (callableSymbols.empty())
             return Result::Continue;
+
+        for (const Symbol* other : callableSymbols)
+        {
+            SWC_RESULT(sema.waitDeclared(other, lookUpCxt.codeRef));
+            if (other->isFunction() && other->cast<SymbolFunction>().isGenericRoot())
+                continue;
+            SWC_RESULT(sema.waitTyped(other, lookUpCxt.codeRef));
+        }
 
         SWC_RESULT(bindMatchedMemberSymbols(sema, targetNodeRef, node.nodeRightRef, true, callableSymbols.span()));
         outHandled = true;

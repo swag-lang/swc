@@ -118,6 +118,10 @@ func verifyExportAndStaticModules()
     var opaque: DepOpaque
     @assert(#sizeof(opaque) == 16)
 
+    var opaqueGenericBox: DepOpaqueGenericBox
+    opaqueGenericBox.init(7)
+    @assert(opaqueGenericBox.addSeed(35) == 42)
+
     var namespaced: DepTools.DepNamespaced
     namespaced.value = 12
     @assert(namespaced.value == 12)

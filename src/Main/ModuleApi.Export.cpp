@@ -1586,6 +1586,38 @@ namespace
         return result;
     }
 
+    bool isGeneratedModuleApiSourceFunction(TaskContext& ctx, const SymbolFunction& symbolFunction)
+    {
+        if (!symbolFunction.isPublic())
+            return false;
+        if (!symbolFunction.decl() || symbolFunction.decl()->isNot(AstNodeId::FunctionDecl))
+            return false;
+        if (symbolFunction.attributes().hasRtFlag(RtAttributeFlagsE::PlaceHolder))
+            return false;
+        if (symbolFunction.supportsPublicApiForeignExport() && supportsGeneratedModuleApiForeignFunctions(ctx.compiler()))
+            return false;
+
+        const SourceFile* sourceFile = ctx.compiler().sourceViewFile(symbolFunction);
+        if (!sourceFile || !ModuleApi::isCurrentModuleSourceFile(*sourceFile))
+            return false;
+
+        AstNodeRef declRef;
+        if (!ModuleApi::Internal::tryFindNodeRef(sourceFile->ast(), symbolFunction.decl(), declRef))
+            return false;
+        return ModuleApi::Internal::isExportedPublicDeclScope(*sourceFile, declRef, symbolFunction);
+    }
+
+    bool hasGeneratedModuleApiSourceMethod(TaskContext& ctx, const SymbolStruct& symbolStruct)
+    {
+        for (const SymbolFunction* method : symbolStruct.declaredMethods())
+        {
+            if (method && isGeneratedModuleApiSourceFunction(ctx, *method))
+                return true;
+        }
+
+        return false;
+    }
+
     void trimTrailingModuleApiWhitespace(Utf8& text)
     {
         while (!text.empty() && std::isspace(static_cast<unsigned char>(text.back())))
@@ -1935,6 +1967,9 @@ namespace
         if (root.symbol && root.symbol->isStruct() && isModuleApiOpaqueType(*root.symbol))
         {
             if (const auto* symbolStruct = root.symbol->safeCast<SymbolStruct>(); symbolStruct && symbolStruct->isGenericRoot() && !symbolStruct->isGenericInstance())
+                return buildSanitizedRootSnippet(ctx, outSnippet, root, eol);
+
+            if (const auto* symbolStruct = root.symbol->safeCast<SymbolStruct>(); symbolStruct && hasGeneratedModuleApiSourceMethod(ctx, *symbolStruct))
                 return buildSanitizedRootSnippet(ctx, outSnippet, root, eol);
 
             outSnippet = buildOpaqueTypeSnippet(ctx, root, eol);

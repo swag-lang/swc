@@ -27,6 +27,25 @@ struct DepOpaque
     opaqueTail: u32
 }
 
+#[Swag.Opaque]
+struct DepOpaqueGenericBox
+{
+    moduleprivate seed: s32
+}
+
+impl DepOpaqueGenericBox
+{
+    mtd init(seed: s32)
+    {
+        .seed = seed
+    }
+
+    mtd(T) addSeed(value: T)->T
+    {
+        return value + cast(T) .seed
+    }
+}
+
 interface IDepScore
 {
     mtd score(value: s32)->s32;

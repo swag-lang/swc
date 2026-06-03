@@ -17,6 +17,8 @@ func nullableWidening()->bool
     let text = widenNullableString("abc")
     if text == null or @countof(text) != 3 or text[1] != 'b' do
         return false
+    if text != "abc" or "abc" != text do
+        return false
 
     let values: [3] s32 = [1, 2, 3]
     let slice = widenNullableSlice(values)

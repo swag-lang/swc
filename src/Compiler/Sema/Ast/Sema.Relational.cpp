@@ -338,6 +338,12 @@ namespace
             }
         }
 
+        if (compareLeftType.isString() && compareRightType.isString() && compareLeftView.cst()->isString() && compareRightView.cst()->isString())
+        {
+            result = sema.cstMgr().cstBool(compareLeftView.cst()->getString() == compareRightView.cst()->getString());
+            return Result::Continue;
+        }
+
         if (isNullComparableConstant(sema, *compareLeftView.cst()) || isNullComparableConstant(sema, *compareRightView.cst()))
         {
             result = sema.cstMgr().cstBool(isNullComparableConstant(sema, *compareLeftView.cst()) &&
@@ -500,6 +506,8 @@ namespace
         if (compareLeftView.typeRef() == compareRightView.typeRef())
             return Result::Continue;
         if (aliasType(sema, compareLeftView).isScalarNumeric() && aliasType(sema, compareRightView).isScalarNumeric())
+            return Result::Continue;
+        if (isStringCompareOperands(sema, compareLeftView, compareRightView))
             return Result::Continue;
         if (compareLeftView.type()->isType() && compareRightView.type()->isType())
             return Result::Continue;

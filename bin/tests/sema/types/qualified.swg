@@ -116,6 +116,8 @@ func semaTest001()
 
     @assert(nullablePtr == ptr)
     @assert(nullableStrictPtr == ptr)
+    @assert(nullableText == text)
+    @assert(text == nullableText)
     @assert(nullableText != null)
     @assert(nullableStrictText != null)
     @assert(@countof(nullableText) == @countof(text))

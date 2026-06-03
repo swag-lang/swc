@@ -400,6 +400,32 @@ namespace
         return Result::Continue;
     }
 
+    Result setupExplicitInterfaceToStructPointerCastRuntime(Sema& sema, AstNodeRef nodeRef, TypeRef srcTypeRef, TypeRef dstTypeRef, CastFlags castFlags)
+    {
+        if (castFlags.has(CastFlagsE::BitCast))
+            return Result::Continue;
+        if (!castFlags.has(CastFlagsE::FromExplicitNode))
+            return Result::Continue;
+        if (!srcTypeRef.isValid() || !dstTypeRef.isValid())
+            return Result::Continue;
+
+        const TypeRef   resolvedSrcTypeRef = unwrapAliasEnumTypeRef(sema.typeMgr(), sema.ctx(), srcTypeRef);
+        const TypeInfo& srcType            = sema.typeMgr().get(resolvedSrcTypeRef);
+        if (!srcType.isInterface())
+            return Result::Continue;
+
+        const TypeRef   resolvedDstTypeRef = unwrapAliasEnumTypeRef(sema.typeMgr(), sema.ctx(), dstTypeRef);
+        const TypeInfo& dstType            = sema.typeMgr().get(resolvedDstTypeRef);
+        if (!dstType.isAnyPointer())
+            return Result::Continue;
+
+        const TypeRef dstPointeeTypeRef = unwrapAliasEnumTypeRef(sema.typeMgr(), sema.ctx(), dstType.payloadTypeRef());
+        if (!dstPointeeTypeRef.isValid() || !sema.typeMgr().get(dstPointeeTypeRef).isStruct())
+            return Result::Continue;
+
+        return SemaHelpers::attachRuntimeAsFunctionToNode(sema, nodeRef, sema.node(nodeRef).codeRef());
+    }
+
     AstNodeRef sourceArgRefForStructSpecCast(const Sema& sema, const SemaNodeView& view, const CastFlags castFlags)
     {
         AstNodeRef sourceRef = view.nodeRef();
@@ -1577,6 +1603,7 @@ Result Cast::cast(Sema& sema, SemaNodeView& view, TypeRef dstTypeRef, CastKind c
 
             SWC_RESULT(setupCastOverflowRuntimeSafety(sema, runtimeCastNodeRef, srcTypeRef, dstTypeRef, effectiveFlags));
             SWC_RESULT(setupCastFromAnyRuntime(sema, runtimeCastNodeRef, srcTypeRef, dstTypeRef, effectiveFlags));
+            SWC_RESULT(setupExplicitInterfaceToStructPointerCastRuntime(sema, runtimeCastNodeRef, srcTypeRef, dstTypeRef, effectiveFlags));
             if (structOpCastData.calledFn)
                 SWC_RESULT(finalizeRuntimeStructOpCast(sema, runtimeCastNodeRef, structOpCastData));
             else if (structSetData.calledFn)

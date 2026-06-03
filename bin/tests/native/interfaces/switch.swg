@@ -73,6 +73,18 @@ func fallbackAfterWhere(evt: IEvent)->s32
     }
 }
 
+func explicitCastOriginalAfterDynamicCase(evt: IEvent)->s32
+{
+    switch evt
+    {
+    case MouseEvent as ptr where ptr.button == 2:
+        let typed = cast(*MouseEvent) evt
+        return typed.code + typed.button
+    default:
+        return -1
+    }
+}
+
 func fallthroughToBase(evt: IEvent)->s32
 {
     switch evt
@@ -114,6 +126,7 @@ func classifyNil(evt: IEvent)->s32
     @assert(classifyEvent(cast(IEvent) key) == 2)
     @assert(classifyEvent(cast(IEvent) base) == 2)
     @assert(fallbackAfterWhere(cast(IEvent) mouse) == 10)
+    @assert(explicitCastOriginalAfterDynamicCase(cast(IEvent) mouse) == 12)
     @assert(fallthroughToBase(cast(IEvent) mouse) == 10)
     @assert(fallthroughToBase(cast(IEvent) key) == 10)
     @assert(classifyNil(empty) == 0)

@@ -408,6 +408,26 @@ Result Cast::castToPointer(Sema& sema, CastRequest& castRequest, TypeRef srcType
         return Result::Continue;
     }
 
+    if (srcType.isInterface() && castRequest.kind == CastKind::Explicit)
+    {
+        const TypeRef dstPointeeTypeRef = unwrapAliasEnumTypeRef(typeMgr, sema.ctx(), dstType.payloadTypeRef());
+        if (dstPointeeTypeRef.isValid())
+        {
+            const TypeInfo& dstPointeeType = typeMgr.get(dstPointeeTypeRef);
+            if (dstPointeeType.isStruct())
+            {
+                SWC_RESULT(sema.waitSemaCompleted(&dstPointeeType, castRequest.errorNodeRef));
+                if (dstPointeeType.payloadSymStruct().implementsInterfaceOrUsingFields(sema, srcType.payloadSymInterface()))
+                {
+                    if (srcType.isConst() && !dstType.isConst() && !castRequest.flags.has(CastFlagsE::UnConst))
+                        return castRequest.fail(DiagnosticId::sema_err_cannot_cast_const, srcTypeRef, dstTypeRef);
+
+                    return Result::Continue;
+                }
+            }
+        }
+    }
+
     if (srcType.isReference())
     {
         if (srcType.isConst() && !dstType.isConst() && !castRequest.flags.has(CastFlagsE::UnConst))

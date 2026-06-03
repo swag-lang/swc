@@ -73,6 +73,18 @@ func fallbackAfterWhere(evt: IEvent)->s32
     }
 }
 
+func explicitCastOriginalAfterDynamicCase(evt: IEvent)->s32
+{
+    switch evt
+    {
+    case MouseEvent as ptr where ptr.button == 2:
+        let typed = cast(*MouseEvent) evt
+        return typed.code + typed.button
+    default:
+        return -1
+    }
+}
+
 func fallthroughToBase(evt: IEvent)->s32
 {
     switch evt
@@ -114,6 +126,7 @@ func semaTest001()
     discard classifyEvent(cast(IEvent) key)
     discard classifyEvent(cast(IEvent) base)
     discard fallbackAfterWhere(cast(IEvent) mouse)
+    discard explicitCastOriginalAfterDynamicCase(cast(IEvent) mouse)
     discard fallthroughToBase(cast(IEvent) mouse)
     discard fallthroughToBase(cast(IEvent) key)
     discard classifyNil(empty)

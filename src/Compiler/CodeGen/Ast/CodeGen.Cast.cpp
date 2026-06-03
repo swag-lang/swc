@@ -1341,6 +1341,12 @@ namespace
         const TypeInfo& dstType = typeMgr.get(dstTypeRef);
         if (srcType.isFunction() && dstType.isFunction() && !srcType.isLambdaClosure() && dstType.isLambdaClosure())
             return emitFunctionToClosureCast(codeGen, srcNodeRef, sourceTypeRef, dstTypeRef);
+        if (resolvedSrcType.isInterface() && resolvedDstType.isAnyPointer())
+        {
+            const TypeRef dstPointeeTypeRef = unwrapAliasEnumTypeRef(typeMgr, codeGen.ctx(), resolvedDstType.payloadTypeRef());
+            if (dstPointeeTypeRef.isValid() && typeMgr.get(dstPointeeTypeRef).isStruct())
+                return emitDynamicStructCast(codeGen, srcNodeRef, dstPointeeTypeRef, false);
+        }
         if (resolvedSrcType.isAnyPointer() &&
             resolvedSrcType.payloadTypeRef() == typeMgr.typeVoid() &&
             dstType.isFunction() &&

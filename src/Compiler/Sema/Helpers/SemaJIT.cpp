@@ -560,7 +560,7 @@ namespace
         return false;
     }
 
-    bool supportsConstCallJit(Sema& sema, const SymbolFunction& calledFn)
+    bool supportsConstCallJit(Sema& sema, const SymbolFunction& calledFn, const bool forceEvaluation)
     {
         if (calledFn.attributes().hasRtFlag(RtAttributeFlagsE::Macro) || calledFn.attributes().hasRtFlag(RtAttributeFlagsE::Mixin))
             return false;
@@ -1012,7 +1012,7 @@ Result SemaJIT::runFunctionResult(Sema& sema, SymbolFunction& symFn, AstNodeRef 
     return submitJitNode(sema, nodeRef, request, payload, resultMeta, false);
 }
 
-Result SemaJIT::tryRunConstCall(Sema& sema, SymbolFunction& calledFn, AstNodeRef callRef, std::span<const ResolvedCallArgument> resolvedArgs)
+Result SemaJIT::tryRunConstCall(Sema& sema, SymbolFunction& calledFn, AstNodeRef callRef, std::span<const ResolvedCallArgument> resolvedArgs, const bool forceEvaluation)
 {
     ///////////////////////////////////////////
     // Resume path: consume deferred completion if present.
@@ -1021,29 +1021,30 @@ Result SemaJIT::tryRunConstCall(Sema& sema, SymbolFunction& calledFn, AstNodeRef
 
     ///////////////////////////////////////////
     // Eligibility and prerequisites.
-    if (sema.isRunExprContext())
+    if (sema.isRunExprContext() && !forceEvaluation)
         return Result::Continue;
     if (!sema.isOptimizeEnabled() &&
-        !sema.isConstExprRequired())
+        !sema.isConstExprRequired() &&
+        !forceEvaluation)
         return Result::Continue;
-    if (sema.viewConstant(callRef).hasConstant())
+    if (sema.viewConstant(callRef).hasConstant() && !forceEvaluation)
         return Result::Continue;
 
     const SymbolFunction* currentFn = sema.currentFunction();
     if (currentFn == &calledFn)
         return Result::Continue;
 
-    if (sema.isConstExprRequired())
+    if (sema.isConstExprRequired() || forceEvaluation)
         SWC_RESULT(sema.waitSemaCompleted(&calledFn, sema.node(callRef).codeRef()));
 
-    if (!supportsConstCallJit(sema, calledFn))
+    if (!supportsConstCallJit(sema, calledFn, forceEvaluation))
         return Result::Continue;
 
     if (hasPendingJitNode(sema, callRef))
         return waitPendingJitNode(sema, calledFn, callRef);
 
     SWC_RESULT(sema.waitSemaCompleted(&calledFn, sema.node(callRef).codeRef()));
-    if (!supportsConstCallJit(sema, calledFn))
+    if (!supportsConstCallJit(sema, calledFn, forceEvaluation))
         return Result::Continue;
 
     ///////////////////////////////////////////
@@ -1057,7 +1058,7 @@ Result SemaJIT::tryRunConstCall(Sema& sema, SymbolFunction& calledFn, AstNodeRef
     const TypeRef           exprTypeRef = calledFn.returnTypeRef();
     const JITCallResultMeta resultMeta  = computeJitCallResultMeta(sema, exprTypeRef);
     ConstCallCacheKey       cacheKey;
-    if (buildConstCallCacheKey(sema, cacheKey, calledFn, resolvedArgs, payload->jitArgs.span()))
+    if (!forceEvaluation && buildConstCallCacheKey(sema, cacheKey, calledFn, resolvedArgs, payload->jitArgs.span()))
     {
         if (const ConstantRef cachedRef = findConstCallCacheResult(sema, cacheKey); cachedRef.isValid())
         {

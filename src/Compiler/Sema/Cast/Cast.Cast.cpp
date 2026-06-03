@@ -423,6 +423,7 @@ namespace
     {
         SymbolFunction* calledFn     = nullptr;
         AstNodeRef      sourceArgRef = AstNodeRef::invalid();
+        bool            forceConstEval = false;
     };
 
     bool structOpCastBindsReferenceToValue(Sema& sema, const SymbolFunction& calledFn, AstNodeRef sourceArgRef)
@@ -461,8 +462,9 @@ namespace
 
     Result prepareStructOpCast(Sema& sema, StructOpCastData& outData, const SemaNodeView& view, const CastRequest& castRequest, CastFlags castFlags)
     {
-        outData.calledFn     = castRequest.selectedStructOpCast;
-        outData.sourceArgRef = sourceArgRefForStructSpecCast(sema, view, castFlags);
+        outData.calledFn       = castRequest.selectedStructOpCast;
+        outData.sourceArgRef   = sourceArgRefForStructSpecCast(sema, view, castFlags);
+        outData.forceConstEval = castFlags.has(CastFlagsE::ForceConstEval);
         if (!outData.calledFn || outData.sourceArgRef.isInvalid())
             return Result::Continue;
 
@@ -479,9 +481,10 @@ namespace
         SmallVector<ResolvedCallArgument> resolvedArgs;
         SWC_RESULT(buildStructOpCastResolvedArgs(sema, resolvedArgs, castData.sourceArgRef, *castData.calledFn));
 
-        SWC_RESULT(SemaJIT::tryRunConstCall(sema, *castData.calledFn, callRef, resolvedArgs.span()));
+        SWC_RESULT(SemaJIT::tryRunConstCall(sema, *castData.calledFn, callRef, resolvedArgs.span(), castData.forceConstEval));
         const SemaNodeView callView(sema, callRef, SemaNodeViewPartE::Constant);
-        if (callView.cstRef().isValid())
+        if (callView.cstRef().isValid() &&
+            sema.cstMgr().get(callView.cstRef()).typeRef() == castData.calledFn->returnTypeRef())
             outConstRef = callView.cstRef();
         return Result::Continue;
     }
@@ -1504,6 +1507,8 @@ Result Cast::cast(Sema& sema, SemaNodeView& view, TypeRef dstTypeRef, CastKind c
         StructSetCastData structSetData;
         if (!structOpCastData.calledFn)
             SWC_RESULT(prepareStructSetCast(sema, structSetData, view, dstTypeRef, effectiveKind, effectiveFlags));
+        if (structOpCastData.calledFn && castRequest.constantFoldingResult() == srcCstRef)
+            castRequest.setConstantFoldingResult(ConstantRef::invalid());
         if (structOpCastData.calledFn && castRequest.constantFoldingResult().isInvalid())
         {
             ConstantRef structOpCastConstRef = ConstantRef::invalid();
@@ -1525,6 +1530,9 @@ Result Cast::cast(Sema& sema, SemaNodeView& view, TypeRef dstTypeRef, CastKind c
 
         if (castRequest.constantFoldingResult().isInvalid())
         {
+            if (effectiveFlags.has(CastFlagsE::ForceConstEval))
+                return Result::Continue;
+
             AstNodeRef runtimeCastNodeRef = view.nodeRef();
             // A contextual cast can carry flags like `UfcsArgument` even when the
             // source is already of the requested type. Re-wrapping the same node

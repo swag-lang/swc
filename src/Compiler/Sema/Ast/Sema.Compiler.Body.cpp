@@ -333,6 +333,7 @@ namespace
         if (!compilerAstStringType(sema, ioView.typeRef()))
         {
             CastRequest castRequest(CastKind::Implicit);
+            castRequest.flags.add(CastFlagsE::ForceConstEval);
             castRequest.errorNodeRef       = ioView.nodeRef();
             const Result castAllowedResult = Cast::castAllowed(sema, castRequest, ioView.typeRef(), sema.typeMgr().typeString());
             if (castAllowedResult == Result::Pause)
@@ -347,7 +348,8 @@ namespace
                 return Result::Error;
             }
 
-            SWC_RESULT(Cast::cast(sema, ioView, sema.typeMgr().typeString(), CastKind::Implicit));
+            SWC_RESULT(Cast::cast(sema, ioView, sema.typeMgr().typeString(), CastKind::Implicit, CastFlagsE::ForceConstEval));
+            ioView = SemaNodeView(sema, ioView.nodeRef(), SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
         }
 
         if (ioView.cst() && ioView.cst()->isString())
@@ -591,13 +593,17 @@ Result AstCompilerFunc::semaPreNode(Sema& sema)
         declaredSym.setDeclared(sema.ctx());
     }
 
-    auto& sym = sema.curViewSymbol().sym()->cast<SymbolFunction>();
+    auto& sym = sema.viewStored(sema.curNodeRef(), SemaNodeViewPartE::Symbol).sym()->cast<SymbolFunction>();
     return enterCompilerBodyFunction(sema, sym, tokenId == TokenId::CompilerAst ? TypeRef::invalid() : sema.typeMgr().typeVoid());
 }
 
 Result AstCompilerFunc::semaPostNode(Sema& sema) const
 {
-    auto& sym = sema.curViewSymbol().sym()->cast<SymbolFunction>();
+    const SemaNodeView symView = sema.viewStored(sema.curNodeRef(), SemaNodeViewPartE::Symbol);
+    if (!symView.hasSymbol())
+        return Result::Continue;
+
+    auto& sym = symView.sym()->cast<SymbolFunction>();
     if (sym.isIgnored())
         return Result::Continue;
 

@@ -30,6 +30,7 @@ enum class CastFlagsE : uint32_t
     FromExplicitNode     = 1 << 5,
     LiteralSuffixConsume = 1 << 6,
     ConstSource          = 1 << 7,
+    ForceConstEval       = 1 << 8,
 };
 using CastFlags = EnumFlags<CastFlagsE>;
 

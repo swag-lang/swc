@@ -59,6 +59,20 @@ struct Vector3
     }
 }
 
+struct AstStringBox
+{
+    text: string
+}
+
+impl AstStringBox
+{
+    #[Swag.ConstExpr, Swag.Implicit]
+    mtd const opCast()->string => .text
+}
+
+#ast AstStringBox{"const GeneratedFromStringBox = 456"}
+#assert(GeneratedFromStringBox == 456)
+
 #ast "const GlobalGenerated = 123"
 #assert(GlobalGenerated == 123)
 

@@ -16,7 +16,7 @@ namespace SemaJIT
     Result runExpr(Sema& sema, SymbolFunction& symFn, AstNodeRef nodeExprRef);
     Result runExprImmediate(Sema& sema, SymbolFunction& symFn, AstNodeRef nodeExprRef);
     Result runFunctionResult(Sema& sema, SymbolFunction& symFn, AstNodeRef nodeRef);
-    Result tryRunConstCall(Sema& sema, SymbolFunction& calledFn, AstNodeRef callRef, std::span<const ResolvedCallArgument> resolvedArgs);
+    Result tryRunConstCall(Sema& sema, SymbolFunction& calledFn, AstNodeRef callRef, std::span<const ResolvedCallArgument> resolvedArgs, bool forceEvaluation = false);
     Result tryRunConstSetCall(Sema& sema, SymbolFunction& calledFn, AstNodeRef callRef, std::span<const ResolvedCallArgument> resolvedArgs, TypeRef receiverTypeRef, ConstantRef receiverInitCstRef, bool forceEvaluation = false);
 }
 

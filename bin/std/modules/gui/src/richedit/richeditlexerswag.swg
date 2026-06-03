@@ -23,7 +23,7 @@ struct RichEditLexerSwag
         Error
     }
 
-    #[Swag.Incomplete]
+    #[Swag.Incomplete, Swag.EnumIndex]
     enum State: s32
     {
         Default

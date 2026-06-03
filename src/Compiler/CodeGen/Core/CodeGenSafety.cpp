@@ -334,6 +334,17 @@ Result CodeGenSafety::emitMathCheck(CodeGen& codeGen, const AstNode& node)
     return emitRuntimeDiagnosticCall(codeGen, *panicFunction, node, DiagnosticId::safety_err_invalid_argument);
 }
 
+Result CodeGenSafety::emitAssumeCheck(CodeGen& codeGen, const AstNode& node)
+{
+    const auto* nodePayload = codeGen.loweringPayload(codeGen.curNodeRef());
+    if (!nodePayload || !nodePayload->hasRuntimeSafety(Runtime::SafetyWhat::Assume))
+        return Result::Continue;
+
+    SymbolFunction* panicFunction = runtimeSafetyPanicFunction(codeGen, nodePayload);
+    SWC_ASSERT(panicFunction != nullptr);
+    return emitRuntimePanicCall(codeGen, *panicFunction, node, "assume on null value");
+}
+
 Result CodeGenSafety::emitOverflowCheck(CodeGen& codeGen, const AstNode& node)
 {
     if (!hasOverflowRuntimeSafety(codeGen))

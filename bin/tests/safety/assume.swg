@@ -66,6 +66,19 @@ func assumeSafetyEnabled()->bool
 
 #test
 {
+    #[Swag.Safety(.Assume, true)]
+    func assumeNullableFailurePanic()->bool
+    {
+        let value: #null *s32 = null
+        let ptr = assume value // swc-expected-error {{safety_err_runtime}}
+        return ptr != null
+    }
+
+    const value = #run assumeNullableFailurePanic()
+}
+
+#test
+{
     #[Swag.Safety(.Assume, false)]
     func assumeFailureDisabled()->s32
     {

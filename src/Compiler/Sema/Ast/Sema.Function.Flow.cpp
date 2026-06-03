@@ -358,6 +358,42 @@ namespace
         return sema.typeMgr().typeVoid();
     }
 
+    TypeRef assumeNullableResultTypeRef(Sema& sema, AstNodeRef managedChildRef)
+    {
+        if (managedChildRef.isInvalid())
+            return TypeRef::invalid();
+
+        const AstNodeRef resolvedChildRef = sema.viewZero(managedChildRef).nodeRef();
+        if (resolvedChildRef.isInvalid())
+            return TypeRef::invalid();
+
+        const SemaNodeView childView = sema.viewType(resolvedChildRef);
+        if (!childView.typeRef().isValid())
+            return TypeRef::invalid();
+
+        TypeRef nullableTypeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), childView.typeRef());
+        if (nullableTypeRef.isInvalid())
+            nullableTypeRef = childView.typeRef();
+
+        const TypeInfo& nullableType = sema.typeMgr().get(nullableTypeRef);
+        if (!nullableType.isNullable())
+            return TypeRef::invalid();
+
+        TypeInfo resultType = nullableType;
+        resultType.removeFlag(TypeInfoFlagsE::Nullable);
+        return sema.typeMgr().addType(resultType);
+    }
+
+    Result setupNullableAssume(Sema& sema, AstNodeRef managedChildRef)
+    {
+        const AstNodeRef resolvedChildRef = sema.viewZero(managedChildRef).nodeRef();
+        SWC_RESULT(SemaCheck::isValue(sema, resolvedChildRef));
+
+        auto& codeGenPayload          = SemaHelpers::ensureCodeGenLoweringPayload(sema, sema.curNodeRef());
+        codeGenPayload.assumeNullable = true;
+        return SemaHelpers::setupRuntimeSafetyPanic(sema, sema.curNodeRef(), Runtime::SafetyWhat::Assume, sema.curNode().codeRef());
+    }
+
     Result semaTryCatchPreNodeCommon(Sema& sema)
     {
         ensureErrorManagementPayload(sema, sema.curNodeRef());
@@ -386,7 +422,12 @@ namespace
             return reportTryOutsideThrowableContext(sema, sema.curNodeRef());
 
         if (!payload.containsThrowable)
+        {
+            if (tokenId == TokenId::KwdAssume && assumeNullableResultTypeRef(sema, managedChildRef).isValid())
+                return setupNullableAssume(sema, managedChildRef);
+
             return reportErrorManagementOperandNotThrowable(sema, sema.curNodeRef(), managedChildRef);
+        }
 
         payload.isThrowableResult = tokenId == TokenId::KwdTry;
         if (payload.isThrowableResult)
@@ -1348,14 +1389,19 @@ Result AstTryCatchExpr::semaPostNode(Sema& sema) const
     const AstNodeRef   resolvedExprRef = sema.viewZero(nodeExprRef).nodeRef();
     const SemaNodeView exprView        = sema.viewNodeTypeConstant(resolvedExprRef);
     sema.inheritPayloadFlags(sema.curNode(), resolvedExprRef);
-    sema.setType(sema.curNodeRef(), exprView.typeRef());
-    if (exprView.cstRef().isValid())
+    TypeRef resultTypeRef = exprView.typeRef();
+    const auto* codeGenPayload = sema.loweringPayload<CodeGenLoweringPayload>(sema.curNodeRef());
+    if (codeGenPayload && codeGenPayload->assumeNullable)
+        resultTypeRef = assumeNullableResultTypeRef(sema, nodeExprRef);
+    sema.setType(sema.curNodeRef(), resultTypeRef);
+    const bool requiresNullableAssumeRuntimeCheck = codeGenPayload && codeGenPayload->assumeNullable && codeGenPayload->hasRuntimeSafety(Runtime::SafetyWhat::Assume);
+    if (exprView.cstRef().isValid() && !requiresNullableAssumeRuntimeCheck)
         sema.setConstant(sema.curNodeRef(), exprView.cstRef());
     sema.copyResolvedCallArguments(sema.curNodeRef(), resolvedExprRef);
 
     const TokenId tokenId = effectiveErrorManagementTokenId(sema, sema.token(codeRef()).id);
-    if (tokenId != TokenId::KwdTry && exprView.typeRef().isValid() && exprView.typeRef() != sema.typeMgr().typeVoid())
-        SWC_RESULT(SemaHelpers::attachRuntimeStorageIfNeeded(sema, resolvedExprRef, *this, exprView.typeRef(), "__trycatch_runtime_storage"));
+    if (tokenId != TokenId::KwdTry && resultTypeRef.isValid() && resultTypeRef != sema.typeMgr().typeVoid())
+        SWC_RESULT(SemaHelpers::attachRuntimeStorageIfNeeded(sema, resolvedExprRef, *this, resultTypeRef, "__trycatch_runtime_storage"));
 
     return Result::Continue;
 }

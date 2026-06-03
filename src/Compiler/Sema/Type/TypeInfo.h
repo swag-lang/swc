@@ -105,6 +105,7 @@ public:
     TypeRef       typeRef() const noexcept { return typeRef_; }
     bool          hasFlag(TypeInfoFlagsE flag) const noexcept { return flags_.has(flag); }
     void          addFlag(TypeInfoFlagsE flag) noexcept { flags_.add(flag); }
+    void          removeFlag(TypeInfoFlagsE flag) noexcept { flags_.remove(flag); }
     bool          isConst() const noexcept { return flags_.has(TypeInfoFlagsE::Const); }
     bool          isNullable() const noexcept { return flags_.has(TypeInfoFlagsE::Nullable); }
     bool          isAggregateStruct() const noexcept { return kind_ == TypeInfoKind::AggregateStruct; }

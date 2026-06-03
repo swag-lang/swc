@@ -19,6 +19,7 @@ struct CodeGenLoweringPayload
     AstNodeRef      throwableWrapperOwnerRef           = AstNodeRef::invalid();
     TokenId         throwableWrapperTokenId            = TokenId::Invalid;
     bool            ifVarDeclWhereUsesConditionBinding = false;
+    bool            assumeNullable                     = false;
 
     void addRuntimeSafety(Runtime::SafetyWhat what)
     {

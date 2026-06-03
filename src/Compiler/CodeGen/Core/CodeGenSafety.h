@@ -33,6 +33,7 @@ namespace CodeGenSafety
     Result emitFloatToIntCastOverflowCheck(CodeGen& codeGen, const AstNode& node, MicroReg srcReg, const TypeInfo& srcType, const TypeInfo& dstType);
     Result emitNegativeShiftCheck(CodeGen& codeGen, const AstNode& node);
     Result emitMathCheck(CodeGen& codeGen, const AstNode& node);
+    Result emitAssumeCheck(CodeGen& codeGen, const AstNode& node);
     Result emitUnaryMathDomainCheck(CodeGen& codeGen, MicroReg valueReg, const TypeInfo& floatType, Math::FoldIntrinsicUnaryFloatOp op, MicroLabelRef failLabel);
     Result emitFloatNanCheck(CodeGen& codeGen, const AstNode& node, MicroReg valueReg, const TypeInfo& floatType);
     Result emitUnaryMathIntrinsicCall(CodeGen& codeGen, const AstIntrinsicCallExpr& node, Math::FoldIntrinsicUnaryFloatOp op, MaterializeNumericOperandFn materializeOperandFn);

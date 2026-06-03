@@ -9,8 +9,8 @@
     cfg.moduleBuildNum  = #swcbuildnum
     cfg.moduleNamespace = "Gui"
     cfg.backendKind     = .StaticLibrary
-    cfg.repoPath        = "https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui"
     cfg.ignoreInWorkspace = true
+    cfg.repoPath        = "https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui"
 
     cfg.genDoc.kind            = .Api
     cfg.genDoc.outputExtension = ".php"

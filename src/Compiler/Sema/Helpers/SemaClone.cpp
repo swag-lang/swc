@@ -383,6 +383,7 @@ namespace
         if (!clonedPayload.runtimeArrayFillCstRef.isValid() && sourcePayload->runtimeArrayFillCstRef.isValid())
             clonedPayload.runtimeArrayFillCstRef = sourcePayload->runtimeArrayFillCstRef;
         clonedPayload.runtimeSafetyMask |= sourcePayload->runtimeSafetyMask;
+        clonedPayload.assumeNullable |= sourcePayload->assumeNullable;
     }
 
     // Implicit casts (created by Cast::createCast) store part of their semantic

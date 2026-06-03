@@ -616,6 +616,24 @@ func assumeSuccess()->s32
     return assume mayThrowValue(77)
 }
 
+func assumeNullablePointerSuccess()->s32
+{
+    var storage: s32 = 91
+    let maybe: #null *s32 = &storage
+    let ptr = assume maybe
+    #assert(#typeof(ptr) == *s32)
+    return dref ptr
+}
+
+func assumeNullableSliceSuccess()->s32
+{
+    var values: [3] s32 = [4, 5, 6]
+    let maybe: #null [..] s32 = values
+    let slice = assume maybe
+    #assert(#typeof(slice) == [..] s32)
+    return slice[1] + cast(s32) @countof(slice)
+}
+
 func tryCatchSuccessValue()->s32
 {
     return trycatch propagateTrySuccess()
@@ -890,4 +908,16 @@ func tryCatchSuccessValue()->s32
 {
     const V = #run assumeSuccess()
     #assert(V == 77)
+}
+
+#test
+{
+    const V = #run assumeNullablePointerSuccess()
+    #assert(V == 91)
+}
+
+#test
+{
+    const V = #run assumeNullableSliceSuccess()
+    #assert(V == 8)
 }

@@ -639,6 +639,24 @@ func errIsAsNullInfo()->ErrNullCastInfo
     return result
 }
 
+func assumeNullablePointerSuccess()->s32
+{
+    var storage: s32 = 91
+    let maybe: #null *s32 = &storage
+    let ptr = assume maybe
+    #assert(#typeof(ptr) == *s32)
+    return dref ptr
+}
+
+func assumeNullableSliceSuccess()->s32
+{
+    var values: [3] s32 = [4, 5, 6]
+    let maybe: #null [..] s32 = values
+    let slice = assume maybe
+    #assert(#typeof(slice) == [..] s32)
+    return slice[1] + cast(s32) @countof(slice)
+}
+
 #test
 {
     let value = catch propagateBareSuccess()
@@ -816,6 +834,16 @@ func errIsAsNullInfo()->ErrNullCastInfo
     let value = assume mayThrowValue(77)
     @assert(value == 77)
     @assert(@err == null)
+}
+
+#test
+{
+    @assert(assumeNullablePointerSuccess() == 91)
+}
+
+#test
+{
+    @assert(assumeNullableSliceSuccess() == 8)
 }
 
 #test

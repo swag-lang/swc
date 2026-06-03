@@ -6,6 +6,7 @@
 #include "Compiler/CodeGen/Core/CodeGenCallHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenFunctionHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenMemoryHelpers.h"
+#include "Compiler/CodeGen/Core/CodeGenSafety.h"
 #include "Compiler/CodeGen/Core/CodeGenTypeHelpers.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Constant/ConstantHelpers.h"
@@ -300,6 +301,16 @@ namespace
         return payload && payload->hasRuntimeSafety(Runtime::SafetyWhat::Assume);
     }
 
+    bool isNullableAssume(CodeGen& codeGen, AstNodeRef nodeRef)
+    {
+        const AstNodeRef resolvedNodeRef = codeGen.viewZero(nodeRef).nodeRef();
+        if (!resolvedNodeRef.isValid())
+            return false;
+
+        const auto* payload = codeGen.loweringPayload(resolvedNodeRef);
+        return payload && payload->assumeNullable;
+    }
+
     AstNodeRef resolveCodeGenErrorNodeRef(CodeGen& codeGen, AstNodeRef preferredNodeRef)
     {
         if (preferredNodeRef.isValid())
@@ -359,6 +370,51 @@ namespace
 
         const std::array args = {sourceLocPayload.reg};
         return CodeGenCallHelpers::emitRuntimeCallWithDirectArgs(codeGen, *runtimeFailedAssume, args);
+    }
+
+    MicroReg materializeNullablePresenceReg(CodeGen& codeGen, const CodeGenNodePayload& payload, TypeRef typeRef, MicroOpBits& outBits)
+    {
+        const TypeInfo& typeInfo = codeGen.typeMgr().get(typeRef);
+        const uint64_t  sizeOf   = typeInfo.sizeOf(codeGen.ctx());
+        outBits                  = sizeOf > sizeof(uint64_t) ? MicroOpBits::B64 : CodeGenTypeHelpers::compareBits(typeInfo, codeGen.ctx());
+        SWC_ASSERT(outBits != MicroOpBits::Zero);
+
+        MicroBuilder& builder   = codeGen.builder();
+        const MicroReg resultReg = codeGen.nextVirtualIntRegister();
+        if (sizeOf > sizeof(uint64_t) || payload.isAddress())
+            builder.emitLoadRegMem(resultReg, payload.reg, 0, outBits);
+        else
+            builder.emitLoadRegReg(resultReg, payload.reg, outBits);
+        return resultReg;
+    }
+
+    Result emitNullableAssumeRuntimeSafety(CodeGen& codeGen, AstNodeRef ownerRef, AstNodeRef exprRef)
+    {
+        if (!isNullableAssume(codeGen, ownerRef) || !hasAssumeRuntimeSafety(codeGen, ownerRef))
+            return Result::Continue;
+
+        const AstNodeRef resolvedExprRef = codeGen.resolvedNodeRef(exprRef);
+        if (!resolvedExprRef.isValid())
+            return raiseInternalCodeGenError(codeGen, "failed to resolve nullable assume operand", ownerRef);
+
+        TypeRef exprTypeRef = codeGen.viewType(resolvedExprRef).typeRef();
+        if (!exprTypeRef.isValid())
+            return raiseInternalCodeGenError(codeGen, "missing nullable assume operand type", ownerRef);
+
+        const TypeRef unwrappedExprTypeRef = codeGen.typeMgr().unwrapAliasEnum(codeGen.ctx(), exprTypeRef);
+        if (unwrappedExprTypeRef.isValid())
+            exprTypeRef = unwrappedExprTypeRef;
+
+        MicroOpBits                 presenceBits = MicroOpBits::Zero;
+        const CodeGenNodePayload&   exprPayload  = codeGen.payload(resolvedExprRef);
+        const MicroReg              presenceReg  = materializeNullablePresenceReg(codeGen, exprPayload, exprTypeRef, presenceBits);
+        MicroBuilder&               builder      = codeGen.builder();
+        const MicroLabelRef         presentLabel = builder.createLabel();
+        builder.emitCmpRegImm(presenceReg, ApInt(0, 64), presenceBits);
+        builder.emitJumpToLabel(MicroCond::NotEqual, MicroOpBits::B32, presentLabel);
+        SWC_RESULT(CodeGenSafety::emitAssumeCheck(codeGen, codeGen.node(ownerRef)));
+        builder.placeLabel(presentLabel);
+        return Result::Continue;
     }
 
     Result emitPayloadToAddress(CodeGen& codeGen, MicroReg dstAddressReg, const CodeGenNodePayload& srcPayload, TypeRef typeRef);
@@ -1353,6 +1409,7 @@ Result AstTryCatchExpr::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef& 
 
 Result AstTryCatchExpr::codeGenPostNode(CodeGen& codeGen) const
 {
+    SWC_RESULT(emitNullableAssumeRuntimeSafety(codeGen, codeGen.curNodeRef(), nodeExprRef));
     codeGen.inheritPayload(codeGen.curNodeRef(), nodeExprRef, codeGen.transparentPayloadTypeRef());
     return CodeGenFunctionHelpers::emitThrowableWrapperPostNode(codeGen, codeGen.curNodeRef());
 }

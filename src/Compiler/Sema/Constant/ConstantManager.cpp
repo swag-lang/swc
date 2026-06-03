@@ -114,7 +114,7 @@ ConstantRef ConstantManager::addZeroPayloadConstant(TaskContext& ctx, const Type
         storageTypeRef = unwrappedTypeRef;
 
     const TypeInfo& storageType = ctx.typeMgr().get(storageTypeRef);
-    SWC_ASSERT(storageType.isStruct() || storageType.isString() || storageType.isAny() || storageType.isInterface() || storageType.isArray());
+    SWC_ASSERT(storageType.isStruct() || storageType.isString() || storageType.isAny() || storageType.isInterface() || storageType.isArray() || (storageType.isFunction() && storageType.isLambdaClosure()));
 
     const uint64_t sizeOf = storageType.sizeOf(ctx);
     SWC_ASSERT(sizeOf && sizeOf <= std::numeric_limits<uint32_t>::max());

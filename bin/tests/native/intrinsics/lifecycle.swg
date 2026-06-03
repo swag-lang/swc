@@ -1277,6 +1277,18 @@ func intrinsicInitRuntimeCountStructInfo()->s32
     return values[0].r * 1000 + values[1].r * 100 + values[2].r * 10 + values[3].r
 }
 
+func intrinsicInitRuntimeCountClosureInfo()->s32
+{
+    var values: [3] func||()->s32
+    values[0] = func()->s32 { return 4 }
+    values[1] = func()->s32 { return 5 }
+    values[2] = func()->s32 { return 6 }
+    var start: u64 = 1
+    var count: u64 = 2
+    @init(cast([*] func||()->s32) &values[0] + start, count)
+    return values[0]() * 100 + cast(s32) (values[1] == null) * 10 + cast(s32) (values[2] == null)
+}
+
 func intrinsicFieldPointerResizeRuntimeInitInfo()->s32
 {
     var storage: [4] ResizeTracked = [ResizeTracked{9}, ResizeTracked{8}, ResizeTracked{7}, ResizeTracked{6}]
@@ -1837,6 +1849,9 @@ func intrinsicReceiverLifecycleInfo()->IntrinsicInfo
 
     let structTrace = intrinsicInitRuntimeCountStructInfo()
     @assert(structTrace == 9116)
+
+    let closureTrace = intrinsicInitRuntimeCountClosureInfo()
+    @assert(closureTrace == 411)
 }
 
 #test

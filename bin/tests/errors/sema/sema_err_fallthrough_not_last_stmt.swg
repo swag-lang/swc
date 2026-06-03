@@ -25,3 +25,35 @@
             break
     }
 }
+
+#test
+{
+    var v = 0
+    switch v
+    {
+        case 0:
+            if true
+            {
+                fallthrough // swc-expected-error {{sema_err_fallthrough_not_last_stmt}}
+                var a = 1
+            }
+        case 1:
+            break
+    }
+}
+
+#test
+{
+    var v = 0
+    switch v
+    {
+        case 0:
+            if true
+            {
+                fallthrough // swc-expected-error {{sema_err_fallthrough_not_last_stmt}}
+            }
+            var a = 1
+        case 1:
+            break
+    }
+}

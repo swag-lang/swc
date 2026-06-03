@@ -212,6 +212,26 @@ namespace
         return AstNodeRef::invalid();
     }
 
+    SpanRef fallthroughContainerSpan(const AstNode& node)
+    {
+        if (const auto* embeddedBlock = node.safeCast<AstEmbeddedBlock>())
+            return embeddedBlock->spanChildrenRef;
+        if (const auto* elseStmt = node.safeCast<AstElseStmt>())
+            return elseStmt->spanChildrenRef;
+        if (const auto* elseIfStmt = node.safeCast<AstElseIfStmt>())
+            return elseIfStmt->spanChildrenRef;
+        return SpanRef::invalid();
+    }
+
+    bool isFallthroughIfBranch(const AstNode& node, AstNodeRef childRef)
+    {
+        if (const auto* ifStmt = node.safeCast<AstIfStmt>())
+            return childRef == ifStmt->nodeIfBlockRef || childRef == ifStmt->nodeElseBlockRef;
+        if (const auto* ifVarDecl = node.safeCast<AstIfVarDecl>())
+            return childRef == ifVarDecl->nodeIfBlockRef || childRef == ifVarDecl->nodeElseBlockRef;
+        return false;
+    }
+
     AstNodeRef dynamicStructSwitchBindingIdentRef(Sema& sema, AstNodeRef nodeRef)
     {
         if (!nodeRef.isValid() || sema.node(nodeRef).isNot(AstNodeId::NamedType))
@@ -685,10 +705,42 @@ namespace
     {
         const auto& caseStmt = sema.node(caseRef).cast<AstSwitchCaseStmt>();
         const auto& caseBody = sema.node(caseStmt.nodeBodyRef).cast<AstSwitchCaseBody>();
-        if (!switchSpanContainsNodeRef(sema.ast(), caseBody.spanChildrenRef, stmtRef))
+        AstNodeRef currentRef = stmtRef;
+        for (size_t up = 0; ; ++up)
+        {
+            const AstNodeRef parentRef = sema.visit().parentNodeRef(up);
+            if (parentRef.isInvalid())
+                return SemaError::raise(sema, DiagnosticId::sema_err_fallthrough_outside_switch_case, stmtRef);
+
+            if (parentRef == caseStmt.nodeBodyRef)
+            {
+                if (!switchSpanContainsNodeRef(sema.ast(), caseBody.spanChildrenRef, currentRef))
+                    return SemaError::raise(sema, DiagnosticId::sema_err_fallthrough_outside_switch_case, stmtRef);
+                if (switchSpanNextNodeRef(sema.ast(), caseBody.spanChildrenRef, currentRef).isValid())
+                    return SemaError::raise(sema, DiagnosticId::sema_err_fallthrough_not_last_stmt, stmtRef);
+                return Result::Continue;
+            }
+
+            const AstNode& parentNode = sema.node(parentRef);
+            const SpanRef  spanRef    = fallthroughContainerSpan(parentNode);
+            if (spanRef.isValid())
+            {
+                if (!switchSpanContainsNodeRef(sema.ast(), spanRef, currentRef))
+                    return SemaError::raise(sema, DiagnosticId::sema_err_fallthrough_outside_switch_case, stmtRef);
+                if (switchSpanNextNodeRef(sema.ast(), spanRef, currentRef).isValid())
+                    return SemaError::raise(sema, DiagnosticId::sema_err_fallthrough_not_last_stmt, stmtRef);
+                currentRef = parentRef;
+                continue;
+            }
+
+            if (isFallthroughIfBranch(parentNode, currentRef))
+            {
+                currentRef = parentRef;
+                continue;
+            }
+
             return SemaError::raise(sema, DiagnosticId::sema_err_fallthrough_outside_switch_case, stmtRef);
-        if (switchSpanNextNodeRef(sema.ast(), caseBody.spanChildrenRef, stmtRef).isValid())
-            return SemaError::raise(sema, DiagnosticId::sema_err_fallthrough_not_last_stmt, stmtRef);
+        }
 
         return Result::Continue;
     }

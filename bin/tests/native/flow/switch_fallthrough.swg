@@ -70,3 +70,41 @@
     }
     @assert(hit == 1)
 }
+
+#test
+{
+    var v = 1
+    var hit = 0
+    switch v
+    {
+        case 1:
+            if v == 1
+            {
+                hit += 1
+                fallthrough
+            }
+        case 2:
+            hit += 10
+            break
+    }
+    @assert(hit == 11)
+}
+
+#test
+{
+    var v = 1
+    var hit = 0
+    switch v
+    {
+        case 1:
+            if v != 1
+            {
+                hit += 100
+                fallthrough
+            }
+        case 2:
+            hit += 10
+            break
+    }
+    @assert(hit == 0)
+}

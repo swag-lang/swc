@@ -1336,6 +1336,19 @@ namespace
         return buildInlineRoot(sema, decl, AstNodeId::FunctionBody, prefixStatements, clonedBodyRef);
     }
 
+    void setInlinePayloadRecursive(Sema& sema, AstNodeRef nodeRef, SemaInlinePayload* inlinePayload)
+    {
+        if (nodeRef.isInvalid())
+            return;
+
+        sema.setInlinePayload(nodeRef, inlinePayload);
+
+        SmallVector<AstNodeRef> children;
+        sema.node(nodeRef).collectChildrenFromAst(children, sema.ast());
+        for (const AstNodeRef childRef : children)
+            setInlinePayloadRecursive(sema, childRef, inlinePayload);
+    }
+
     void collectInlineLocalFunctionDecls(Sema& sema, AstNodeRef nodeRef, SmallVector<AstNodeRef>& outFunctionRefs)
     {
         if (nodeRef.isInvalid())
@@ -1370,7 +1383,10 @@ namespace
             if (!functionDecl)
                 continue;
 
-            sema.setInlinePayload(childRef, &inlinePayload);
+            if (const auto* existingPayload = sema.inlinePayload(childRef))
+                SWC_ASSERT(existingPayload == &inlinePayload);
+            else
+                sema.setInlinePayload(childRef, &inlinePayload);
 
             if (!sema.viewSymbol(childRef).hasSymbol())
             {
@@ -1845,6 +1861,7 @@ Result SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFun
     inlinePayload->sourceFunction      = &fn;
     inlinePayload->parentInlinePayload = sema.frame().currentInlinePayload();
     inlinePayload->callerScope         = callerScope;
+    inlinePayload->callerImpl          = sema.frame().currentImpl();
     inlinePayload->crossAstInline      = isCrossAstInline;
     inlinePayload->resultVar           = resultVar;
     inlinePayload->returnTypeRef       = returnTypeRef;
@@ -1855,6 +1872,8 @@ Result SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFun
         inlinePayload->callerBindingVars.push_back(bindingVar);
     for (TypeRef bindingType : frame.bindingTypes())
         inlinePayload->callerBindingTypes.push_back(bindingType);
+
+    setInlinePayloadRecursive(sema, inlineRootRef, inlinePayload);
 
     // Lookup-scope overrides are expression-local. A fresh inline body must start from
     // its own lexical scope so nested macro locals do not inherit a caller #inject scope.

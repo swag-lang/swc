@@ -14,6 +14,11 @@
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Compiler/Sema/Helpers/SemaRuntime.h"
 #include "Compiler/Sema/Match/MatchContext.h"
+#include "Compiler/Sema/Symbol/Symbol.Enum.h"
+#include "Compiler/Sema/Symbol/Symbol.Impl.h"
+#include "Compiler/Sema/Symbol/Symbol.Interface.h"
+#include "Compiler/Sema/Symbol/Symbol.Module.h"
+#include "Compiler/Sema/Symbol/Symbol.Struct.h"
 #include "Compiler/Sema/Type/TypeManager.h"
 #include "Compiler/SourceFile.h"
 #include "Main/Command/CommandLine.h"
@@ -103,6 +108,122 @@ namespace
         SemaNodeView view = sema.viewNodeTypeConstant(nodeRef);
         SWC_RESULT(SemaCheck::isValue(sema, view.nodeRef()));
         return Cast::cast(sema, view, sema.typeMgr().typeBool(), CastKind::BoolExpr);
+    }
+
+    void setCompilerStringConstant(Sema& sema, std::string_view value)
+    {
+        const std::string_view storedValue = sema.cstMgr().addString(sema.ctx(), value);
+        const ConstantValue    val         = ConstantValue::makeString(sema.ctx(), storedValue);
+        sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(sema.ctx(), val));
+    }
+
+    Utf8 scopedNameWithoutModule(const Sema& sema, const Symbol& symbol)
+    {
+        SmallVector8<const Symbol*> scopeChain;
+        scopeChain.push_back(&symbol);
+
+        const SymbolNamespace& moduleNamespace = sema.moduleNamespace();
+        for (const SymbolMap* map = symbol.ownerSymMap(); map; map = map->ownerSymMap())
+        {
+            if (map == &moduleNamespace)
+                break;
+            if (map->idRef().isInvalid())
+                continue;
+            scopeChain.push_back(map);
+        }
+
+        Utf8 result;
+        for (const Symbol* scope : std::ranges::reverse_view(scopeChain))
+        {
+            const std::string_view name = scope->name(sema.ctx());
+            if (name.empty())
+                continue;
+            if (!result.empty())
+                result.append(".");
+            result.append(name);
+        }
+
+        return result;
+    }
+
+    const Symbol* implTargetScopeSymbol(const SymbolImpl& symImpl)
+    {
+        if (symImpl.isForStruct())
+            return symImpl.symStruct();
+        if (symImpl.isForEnum())
+            return symImpl.symEnum();
+        return symImpl.symInterface();
+    }
+
+    Utf8 compilerScopeNameFromSymbolMap(Sema& sema, const SymbolMap& symMap)
+    {
+        if (symMap.isImpl())
+        {
+            const SymbolImpl& symImpl = symMap.cast<SymbolImpl>();
+            if (const Symbol* target = implTargetScopeSymbol(symImpl))
+                return scopedNameWithoutModule(sema, *target);
+        }
+
+        if (symMap.idRef().isValid())
+            return scopedNameWithoutModule(sema, symMap);
+
+        return {};
+    }
+
+    Utf8 compilerScopeNameFromScopeChain(Sema& sema, const SemaScope& scope)
+    {
+        for (const SemaScope* current = &scope; current; current = current->parent())
+        {
+            const SymbolMap* symMap = current->symMap();
+            if (!symMap)
+                continue;
+
+            Utf8 name = compilerScopeNameFromSymbolMap(sema, *symMap);
+            if (!name.empty())
+                return name;
+        }
+
+        return {};
+    }
+
+    Utf8 activeMixinCallerScopeName(Sema& sema)
+    {
+        const SemaInlinePayload* inlinePayload = SemaHelpers::effectiveInlinePayload(sema);
+        if (!inlinePayload || !inlinePayload->sourceFunction || !inlinePayload->callerScope)
+            return {};
+        if (!inlinePayload->sourceFunction->attributes().hasRtFlag(RtAttributeFlagsE::Mixin))
+            return {};
+
+        if (const SymbolImpl* symImpl = inlinePayload->callerImpl)
+        {
+            if (const Symbol* target = implTargetScopeSymbol(*symImpl))
+                return scopedNameWithoutModule(sema, *target);
+        }
+
+        return compilerScopeNameFromScopeChain(sema, *inlinePayload->callerScope);
+    }
+
+    Utf8 currentCompilerScopeName(Sema& sema)
+    {
+        Utf8 name = activeMixinCallerScopeName(sema);
+        if (!name.empty())
+            return name;
+
+        if (const SymbolImpl* symImpl = sema.frame().currentImpl())
+        {
+            if (const Symbol* target = implTargetScopeSymbol(*symImpl))
+                return scopedNameWithoutModule(sema, *target);
+        }
+
+        const SymbolMap* curSymMap = sema.curSymMap();
+        if (curSymMap)
+        {
+            name = compilerScopeNameFromSymbolMap(sema, *curSymMap);
+            if (!name.empty())
+                return name;
+        }
+
+        return Utf8{sema.moduleNamespace().name(sema.ctx())};
     }
 }
 
@@ -492,9 +613,17 @@ Result AstCompilerLiteral::semaPostNode(Sema& sema)
         }
 
         case TokenId::CompilerModule:
+        {
+            setCompilerStringConstant(sema, sema.moduleNamespace().name(ctx));
+            break;
+        }
+
         case TokenId::CompilerScopeName:
-            // TODO
-            SWC_INTERNAL_ERROR();
+        {
+            const Utf8 scopeName = currentCompilerScopeName(sema);
+            setCompilerStringConstant(sema, scopeName.view());
+            break;
+        }
 
         default:
             SWC_INTERNAL_ERROR();

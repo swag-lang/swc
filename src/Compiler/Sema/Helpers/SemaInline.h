@@ -7,6 +7,7 @@
 SWC_BEGIN_NAMESPACE();
 
 class Sema;
+class SymbolImpl;
 
 namespace SemaInline
 {
@@ -21,6 +22,7 @@ struct SemaInlinePayload
     const SymbolFunction*                            sourceFunction      = nullptr;
     SemaInlinePayload*                               parentInlinePayload = nullptr;
     SemaScope*                                       callerScope         = nullptr;
+    const SymbolImpl*                                callerImpl          = nullptr;
     SemaScope*                                       upLookupScope       = nullptr;
     bool                                             crossAstInline      = false;
     SymbolVariable*                                  resultVar           = nullptr;

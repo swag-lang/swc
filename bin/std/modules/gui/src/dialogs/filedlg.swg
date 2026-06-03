@@ -121,10 +121,10 @@ fileprivate impl FileDlg
 
         foreach v in .dlgOptions.shortcuts
         {
-            let c    = Env.getSpecialDirectory(v.item0)
-            var icon = .getApp().getSpecialDirectoryIcon(v.item0, true)
+            let c    = Env.getSpecialDirectory(v.type)
+            var icon = .getApp().getSpecialDirectoryIcon(v.type, true)
             icon.color       = Pixel.Argb.White
-            l                = .treeCtrl.createLine(v.item1, icon)
+            l                = .treeCtrl.createLine(v.name, icon)
             l.userData0      = cast(*void) .treePathStr.count
             l.leftTextMargin = 10
             .treePathStr.add(c)
@@ -171,7 +171,7 @@ fileprivate impl FileDlg
 
         let item   = .comboType.getSelectedItem()
         let filter = .dlgOptions.filters[cast(u64) item.userData0]
-        let tokens = Tokenize.split(filter.item1, ';''rune)
+        let tokens = Tokenize.split(filter.extensions, ';''rune)
 
         foreach &fi in .curList
         {
@@ -179,7 +179,7 @@ fileprivate impl FileDlg
 
             // Filter
             var show = true
-            if !fi.isDirectory() and @countof(filter.item1)
+            if !fi.isDirectory() and @countof(filter.extensions)
             {
                 show = false
                 foreach t in tokens
@@ -507,7 +507,7 @@ impl FileDlg
                 .addItem("Folders")
             else do
                 foreach f, idx in opt.filters do
-                    .addItem(f.item0, userData0: cast(*void) idx)
+                    .addItem(f.name, userData0: cast(*void) idx)
             .selectItem(0)
             .sigChanged += func|dlg|(c, idx)
             {
@@ -599,9 +599,9 @@ impl FileDlg
             var val = Path.combine(.curFolder, t1.toString())
 
             // Append extension if not done by the user
-            if .dlgOptions.mode != .SelectFolder and !Path.isExtension(val, fi.item1)
+            if .dlgOptions.mode != .SelectFolder and !Path.isExtension(val, fi.extensions)
             {
-                let exts = Tokenize.split(fi.item1, ';''rune)
+                let exts = Tokenize.split(fi.extensions, ';''rune)
                 val += exts[0]
             }
 

@@ -414,11 +414,6 @@ void MicroPassManager::configureDefaultPipeline(const bool optimize)
         addPreRaLoopPass(*constantFoldingPass_);
         addPreRaLoopPass(*copyEliminationPass_);
         addPreRaLoopPass(*instructionCombinePass_);
-        // Promote non-escaping scalar stack slots to virtual registers after
-        // instruction-combine has canonicalized slot addresses. The register
-        // allocator's pinning then keeps the promoted loop-carried values
-        // resident across CFG boundaries.
-        addPreRaLoopPass(*memToRegPass_);
         addPreRaLoopPass(*strengthReductionPass_);
         addPreRaLoopPass(*deadCodeEliminationPass_);
         addPreRaLoopPass(*branchSimplifyPass_);

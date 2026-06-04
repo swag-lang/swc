@@ -1289,6 +1289,8 @@ namespace
         SWC_RESULT(resolveResult);
         sema.setResolvedCallArguments(sema.curNodeRef(), resolvedArgs);
         const SemaNodeView nodeSymView = sema.curViewSymbol();
+        if (!nodeSymView.hasSymbol() && sema.viewConstant(sema.curNodeRef()).hasConstant())
+            return Result::Continue;
         SWC_ASSERT(nodeSymView.hasSymbol());
 
         auto&        calledFn   = nodeSymView.sym()->cast<SymbolFunction>();

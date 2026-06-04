@@ -64,6 +64,7 @@ public:
     Utf8                                computePublicApiSymbolName(const TaskContext& ctx) const;
     bool                                supportsGeneratedModuleApiExport() const noexcept;
     bool                                supportsPublicApiForeignExport() const noexcept;
+    bool                                usesStructuralTypeIdentity() const noexcept;
     uint32_t                            typeSignatureHash() const noexcept;
     bool                                sameTypeSignature(const SymbolFunction& otherFunc) const noexcept;
     bool                                sameTypeSignatureIgnoringClosure(const SymbolFunction& otherFunc) const noexcept;

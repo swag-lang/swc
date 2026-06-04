@@ -8,6 +8,7 @@
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
+#include "Compiler/Sema/Type/TypeGen.h"
 #include "Support/Math/Helpers.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -214,6 +215,94 @@ namespace
                 return false;
         }
     }
+
+    enum class ReflectionLifecycleOp : uint8_t
+    {
+        None,
+        HasDrop,
+        HasPostMove,
+        HasPostCopy,
+        CanCopy,
+        IsPod,
+    };
+
+    bool fullScopedNameMatchesSuffix(const SymbolFunction& selectedFn, TaskContext& ctx, const std::string_view suffix)
+    {
+        const Utf8             fullNameStorage = selectedFn.getFullScopedName(ctx);
+        const std::string_view fullName        = fullNameStorage.view();
+        if (fullName == suffix)
+            return true;
+        if (fullName.size() <= suffix.size())
+            return false;
+        return fullName.ends_with(suffix) && fullName[fullName.size() - suffix.size() - 1] == '.';
+    }
+
+    ReflectionLifecycleOp reflectionLifecycleOp(Sema& sema, const SymbolFunction& selectedFn)
+    {
+        if (selectedFn.returnTypeRef().isValid() && !sema.typeMgr().get(selectedFn.returnTypeRef()).isBool())
+            return ReflectionLifecycleOp::None;
+
+        const std::string_view name = selectedFn.name(sema.ctx());
+        if (name != "hasDrop" &&
+            name != "hasPostMove" &&
+            name != "hasPostCopy" &&
+            name != "canCopy" &&
+            name != "isPod")
+            return ReflectionLifecycleOp::None;
+
+        Utf8 expected = "Reflection.";
+        expected += name;
+        if (!fullScopedNameMatchesSuffix(selectedFn, sema.ctx(), expected.view()))
+            return ReflectionLifecycleOp::None;
+
+        if (name == "hasDrop")
+            return ReflectionLifecycleOp::HasDrop;
+        if (name == "hasPostMove")
+            return ReflectionLifecycleOp::HasPostMove;
+        if (name == "hasPostCopy")
+            return ReflectionLifecycleOp::HasPostCopy;
+        if (name == "canCopy")
+            return ReflectionLifecycleOp::CanCopy;
+        return ReflectionLifecycleOp::IsPod;
+    }
+
+    bool lifecycleFoldResult(const TypeGen::LifecycleFlags& flags, const ReflectionLifecycleOp op)
+    {
+        switch (op)
+        {
+            case ReflectionLifecycleOp::HasDrop:
+                return flags.hasDrop;
+            case ReflectionLifecycleOp::HasPostMove:
+                return flags.hasPostMove;
+            case ReflectionLifecycleOp::HasPostCopy:
+                return flags.hasPostCopy;
+            case ReflectionLifecycleOp::CanCopy:
+                return flags.canCopy;
+            case ReflectionLifecycleOp::IsPod:
+                return !flags.hasDrop && !flags.hasPostMove && !flags.hasPostCopy;
+            default:
+                SWC_UNREACHABLE();
+        }
+    }
+
+    TypeRef reflectedLifecycleTypeArg(Sema& sema, const AstNodeRef argRef)
+    {
+        if (argRef.isInvalid())
+            return TypeRef::invalid();
+
+        const SemaNodeView argView(sema, argRef, SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
+        if (!SemaHelpers::isTypeLikeTypeRef(sema.ctx(), argView.typeRef()))
+            return TypeRef::invalid();
+
+        return SemaHelpers::resolveRepresentedTypeRef(sema, argView);
+    }
+
+    void setBoolCallConstant(Sema& sema, const bool value)
+    {
+        const ConstantRef cstRef = sema.cstMgr().addConstant(sema.ctx(), ConstantValue::makeBool(sema.ctx(), value));
+        sema.setConstant(sema.curNodeRef(), cstRef);
+        sema.setFoldedTypedConst(sema.curNodeRef());
+    }
 }
 
 void ConstantIntrinsic::tryConstantFoldDataOf(Sema& sema, TypeRef resultTypeRef, const SemaNodeView& view)
@@ -288,6 +377,26 @@ void ConstantIntrinsic::tryConstantFoldDataOf(Sema& sema, TypeRef resultTypeRef,
     }
 
     setDataOfPointerConstant(sema, resultTypeRef, ptrValue);
+}
+
+Result ConstantIntrinsic::tryConstantFoldCallBeforeParameterCasts(Sema& sema, const SymbolFunction& selectedFn, std::span<AstNodeRef> args)
+{
+    const ReflectionLifecycleOp op = reflectionLifecycleOp(sema, selectedFn);
+    if (op == ReflectionLifecycleOp::None || args.size() != 1)
+        return Result::Continue;
+
+    const TypeRef typeRef = reflectedLifecycleTypeArg(sema, args[0]);
+    if (!typeRef.isValid())
+        return Result::Continue;
+
+    const TypeInfo& type = sema.typeMgr().get(typeRef);
+    const Symbol*   sym  = type.getSymbol();
+    if (sym && !sym->isTyped())
+        return Result::Continue;
+
+    const TypeGen::LifecycleFlags flags = TypeGen::lifecycleFlagsOfTypeRef(sema.ctx(), typeRef);
+    setBoolCallConstant(sema, lifecycleFoldResult(flags, op));
+    return Result::Continue;
 }
 
 Result ConstantIntrinsic::tryConstantFoldCall(Sema& sema, const SymbolFunction& selectedFn, std::span<AstNodeRef> args)

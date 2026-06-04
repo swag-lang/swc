@@ -184,15 +184,7 @@ namespace
         }
     }
 
-    struct LifecycleFlags
-    {
-        bool hasPostCopy = false;
-        bool hasPostMove = false;
-        bool hasDrop     = false;
-        bool canCopy     = true;
-    };
-
-    void mergeFieldLifecycle(LifecycleFlags& ioFlags, const LifecycleFlags& fieldFlags)
+    void mergeFieldLifecycle(TypeGen::LifecycleFlags& ioFlags, const TypeGen::LifecycleFlags& fieldFlags)
     {
         ioFlags.hasPostCopy = ioFlags.hasPostCopy || fieldFlags.hasPostCopy;
         ioFlags.hasPostMove = ioFlags.hasPostMove || fieldFlags.hasPostMove;
@@ -200,9 +192,9 @@ namespace
         ioFlags.canCopy     = ioFlags.canCopy && fieldFlags.canCopy;
     }
 
-    LifecycleFlags lifecycleFlagsOfType(TaskContext& ctx, const TypeInfo& type, std::unordered_set<TypeRef>& visiting);
+    TypeGen::LifecycleFlags lifecycleFlagsOfTypeRec(TaskContext& ctx, const TypeInfo& type, std::unordered_set<TypeRef>& visiting);
 
-    LifecycleFlags lifecycleFlagsOfTypeRef(TaskContext& ctx, TypeRef typeRef, std::unordered_set<TypeRef>& visiting)
+    TypeGen::LifecycleFlags lifecycleFlagsOfTypeRefRec(TaskContext& ctx, TypeRef typeRef, std::unordered_set<TypeRef>& visiting)
     {
         if (typeRef.isInvalid())
             return {};
@@ -210,26 +202,26 @@ namespace
         if (!visiting.insert(typeRef).second)
             return {};
 
-        const LifecycleFlags flags = lifecycleFlagsOfType(ctx, ctx.typeMgr().get(typeRef), visiting);
+        const TypeGen::LifecycleFlags flags = lifecycleFlagsOfTypeRec(ctx, ctx.typeMgr().get(typeRef), visiting);
         visiting.erase(typeRef);
         return flags;
     }
 
-    LifecycleFlags lifecycleFlagsOfFields(TaskContext& ctx, std::span<const TypeRef> fieldTypes, std::unordered_set<TypeRef>& visiting)
+    TypeGen::LifecycleFlags lifecycleFlagsOfFields(TaskContext& ctx, std::span<const TypeRef> fieldTypes, std::unordered_set<TypeRef>& visiting)
     {
-        LifecycleFlags flags;
+        TypeGen::LifecycleFlags flags;
         for (const TypeRef fieldTypeRef : fieldTypes)
-            mergeFieldLifecycle(flags, lifecycleFlagsOfTypeRef(ctx, fieldTypeRef, visiting));
+            mergeFieldLifecycle(flags, lifecycleFlagsOfTypeRefRec(ctx, fieldTypeRef, visiting));
         return flags;
     }
 
-    LifecycleFlags lifecycleFlagsOfType(TaskContext& ctx, const TypeInfo& type, std::unordered_set<TypeRef>& visiting)
+    TypeGen::LifecycleFlags lifecycleFlagsOfTypeRec(TaskContext& ctx, const TypeInfo& type, std::unordered_set<TypeRef>& visiting)
     {
         if (type.isVoid() || type.isNull() || type.isUndefined())
             return {.canCopy = false};
 
         if (type.isArray())
-            return lifecycleFlagsOfTypeRef(ctx, type.payloadArrayElemTypeRef(), visiting);
+            return lifecycleFlagsOfTypeRefRec(ctx, type.payloadArrayElemTypeRef(), visiting);
 
         if (type.isAggregateStruct() || type.isAggregateArray())
             return lifecycleFlagsOfFields(ctx, type.payloadAggregate().types, visiting);
@@ -238,11 +230,11 @@ namespace
             return {};
 
         const SymbolStruct& symStruct = type.payloadSymStruct();
-        LifecycleFlags      flags;
+        TypeGen::LifecycleFlags flags;
         for (const SymbolVariable* field : symStruct.fields())
         {
             if (field)
-                mergeFieldLifecycle(flags, lifecycleFlagsOfTypeRef(ctx, field->typeRef(), visiting));
+                mergeFieldLifecycle(flags, lifecycleFlagsOfTypeRefRec(ctx, field->typeRef(), visiting));
         }
 
         const bool hasDirectDrop     = symStruct.opDrop() != nullptr;
@@ -253,12 +245,6 @@ namespace
         flags.hasPostMove            = flags.hasPostMove || hasDirectPostMove;
         flags.canCopy                = hasDirectPostCopy || (!hasDirectDrop && flags.canCopy);
         return flags;
-    }
-
-    LifecycleFlags lifecycleFlagsOfType(TaskContext& ctx, const TypeInfo& type)
-    {
-        std::unordered_set<TypeRef> visiting;
-        return lifecycleFlagsOfType(ctx, type, visiting);
     }
 
     template<typename T>
@@ -290,7 +276,7 @@ namespace
         if (isGenericRuntimeType(type))
             addFlag(rtType, Runtime::TypeInfoFlags::Generic);
 
-        const LifecycleFlags lifecycle = lifecycleFlagsOfType(ctx, type);
+        const TypeGen::LifecycleFlags lifecycle = TypeGen::lifecycleFlagsOfType(ctx, type);
         if (lifecycle.hasPostCopy)
             addFlag(rtType, Runtime::TypeInfoFlags::HasPostCopy);
         if (lifecycle.hasPostMove)
@@ -952,6 +938,18 @@ namespace
                 entry.funcReturnTypeRef = returnTypeRef;
         }
     }
+}
+
+TypeGen::LifecycleFlags TypeGen::lifecycleFlagsOfType(TaskContext& ctx, const TypeInfo& type)
+{
+    std::unordered_set<TypeRef> visiting;
+    return lifecycleFlagsOfTypeRec(ctx, type, visiting);
+}
+
+TypeGen::LifecycleFlags TypeGen::lifecycleFlagsOfTypeRef(TaskContext& ctx, const TypeRef typeRef)
+{
+    std::unordered_set<TypeRef> visiting;
+    return lifecycleFlagsOfTypeRefRec(ctx, typeRef, visiting);
 }
 
 void TypeGen::initTypeInfoPayload(Sema& sema, DataSegment& storage, Runtime::TypeInfo& rtType, uint32_t offset, LayoutKind kind, const TypeInfo& type, TypeGenCache::Entry& entry)

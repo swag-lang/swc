@@ -3,6 +3,7 @@
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Cast/Cast.h"
 #include "Compiler/Sema/Constant/ConstantHelpers.h"
+#include "Compiler/Sema/Constant/ConstantIntrinsic.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
@@ -1666,6 +1667,11 @@ namespace
         return tryBuildCandidate(sema, *concreteFn, args, ufcsArg, mode, outCandidate, outFail);
     }
 
+    bool canDeferWhereConstraintFailure(const SymbolFunction& fn, const CastFailure& failure)
+    {
+        return failure.diagId == DiagnosticId::sema_err_function_where_not_const && fn.hasUnmaterializedGenericBody();
+    }
+
     // Try to build a candidate; if it fails, fill out why + where.
     // Evaluate a single function symbol against the provided arguments to see if it's a valid match.
     // It determines conversion ranks, UFCS usage, and handles variadic arguments.
@@ -1700,8 +1706,11 @@ namespace
         SWC_RESULT(SemaGeneric::evaluateFunctionWhereConstraints(sema, whereSatisfied, fn, &whereFailure));
         if (!whereSatisfied)
         {
-            failBadType(outFail, 0, 0, whereFailure, false);
-            return Result::Continue;
+            if (!canDeferWhereConstraintFailure(fn, whereFailure))
+            {
+                failBadType(outFail, 0, 0, whereFailure, false);
+                return Result::Continue;
+            }
         }
 
         // Rank each provided argument (excluding the variadic parameter itself when variadic)
@@ -2665,6 +2674,28 @@ namespace
 
         return Result::Continue;
     }
+
+    void collectMappedCallValueArgs(Sema& sema, SmallVector<AstNodeRef>& outArgs, const CallArgMapping& mapping)
+    {
+        outArgs.clear();
+        outArgs.reserve(mapping.paramArgs.size() + mapping.variadicArgs.size());
+
+        for (const CallArgEntry& entry : mapping.paramArgs)
+        {
+            if (entry.argRef.isInvalid())
+                outArgs.push_back(AstNodeRef::invalid());
+            else
+                outArgs.push_back(resolvedCallArgValueRef(sema, entry));
+        }
+
+        for (const CallArgEntry& entry : mapping.variadicArgs)
+        {
+            if (entry.argRef.isInvalid())
+                outArgs.push_back(AstNodeRef::invalid());
+            else
+                outArgs.push_back(resolvedCallArgValueRef(sema, entry));
+        }
+    }
 }
 
 AstNodeRef Match::resolveCallArgumentRef(Sema& sema, AstNodeRef argRef)
@@ -2807,14 +2838,27 @@ Result Match::resolveFunctionCandidates(Sema& sema, const SemaNodeView& nodeCall
     if (!buildCallArgMapping(sema, *selectedFn, args, appliedUfcsArg, mapping, mappingFail))
         return errorBadMatch(sema, nodeCallee, *selectedFn, mappingFail, args, appliedUfcsArg);
 
-    SWC_RESULT(finalizeAutoEnumArgs(sema, *selectedFn, mapping));
-    SWC_RESULT(applyParameterCasts(sema, *selectedFn, mapping, appliedUfcsArg, mode));
-    SWC_RESULT(applyTypedVariadicCasts(sema, *selectedFn, mapping));
-    SWC_RESULT(concretizeUntypedVariadicArgs(sema, *selectedFn, mapping));
-    if (outResolvedArgs)
-        SWC_RESULT(buildResolvedCallArgs(sema, *outResolvedArgs, nodeCallee, *selectedFn, mapping, appliedUfcsArg));
+    SmallVector<AstNodeRef> mappedValueArgs;
+    collectMappedCallValueArgs(sema, mappedValueArgs, mapping);
+    SWC_RESULT(ConstantIntrinsic::tryConstantFoldCallBeforeParameterCasts(sema, *selectedFn, mappedValueArgs.span()));
+    const ConstantRef preCastFoldedConst = sema.viewConstant(sema.curNodeRef()).cstRef();
+
+    if (!preCastFoldedConst.isValid())
+    {
+        SWC_RESULT(finalizeAutoEnumArgs(sema, *selectedFn, mapping));
+        SWC_RESULT(applyParameterCasts(sema, *selectedFn, mapping, appliedUfcsArg, mode));
+        SWC_RESULT(applyTypedVariadicCasts(sema, *selectedFn, mapping));
+        SWC_RESULT(concretizeUntypedVariadicArgs(sema, *selectedFn, mapping));
+        if (outResolvedArgs)
+            SWC_RESULT(buildResolvedCallArgs(sema, *outResolvedArgs, nodeCallee, *selectedFn, mapping, appliedUfcsArg));
+    }
 
     sema.setSymbol(sema.curNodeRef(), selectedFn);
+    if (preCastFoldedConst.isValid())
+    {
+        sema.setConstant(sema.curNodeRef(), preCastFoldedConst);
+        sema.setFoldedTypedConst(sema.curNodeRef());
+    }
     sema.setIsValue(sema.curNode());
     sema.unsetIsLValue(sema.curNodeRef());
     return Result::Continue;

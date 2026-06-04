@@ -457,6 +457,14 @@ namespace
         return ctx.typeMgr().addType(TypeInfo::makeFunction(const_cast<SymbolFunction*>(&symFunc), TypeInfoFlagsE::Zero));
     }
 
+    bool canReflectMethodValue(const SymbolFunction& symFunc)
+    {
+        if (symFunc.hasExtraFlag(SymbolFunctionFlagsE::WhereConstraintFailed))
+            return false;
+        const auto* decl = symFunc.decl() ? symFunc.decl()->safeCast<AstFunctionDecl>() : nullptr;
+        return !decl || decl->spanConstraintsRef.isInvalid();
+    }
+
     void materializeInlineAny(Sema& sema, const TypeGen::TypeGenCache& cache, DataSegment& storage, uint32_t baseOffset, uint32_t fieldOffset, ConstantRef valueCstRef)
     {
         Runtime::Any* dstAny = storage.ptr<Runtime::Any>(baseOffset + fieldOffset);
@@ -847,7 +855,8 @@ namespace
                 const uint32_t      elemOffset = methodsOffset + static_cast<uint32_t>(i * sizeof(Runtime::TypeValue));
                 const Utf8          methodName{symMethod->name(ctx)};
                 tv.name.length = storage.addString(elemOffset, offsetof(Runtime::TypeValue, name.ptr), methodName);
-                storage.addFunctionRelocation(elemOffset + offsetof(Runtime::TypeValue, value), symMethod);
+                if (canReflectMethodValue(*symMethod))
+                    storage.addFunctionRelocation(elemOffset + offsetof(Runtime::TypeValue, value), symMethod);
             }
         }
 

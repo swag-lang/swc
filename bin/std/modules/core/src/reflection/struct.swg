@@ -117,6 +117,36 @@ func setFieldValue(dest: *void, type: const *TypeValue, src: const *void, hardCa
 #[ConstExpr]
 func hasMethod(type: typeinfo, name: string)->bool => getMethod(type, name) != null
 
+// Returns true if values of that type can use the default '<=>' comparison.
+#[ConstExpr]
+func canCompare(type: typeinfo)->bool
+{
+    switch type.kind
+    {
+    case .Alias:
+        let typeAlias = cast(const *TypeInfoAlias) type
+        return canCompare(typeAlias.rawType)
+    case .Enum:
+        let typeEnum = cast(const *TypeInfoEnum) type
+        return canCompare(typeEnum.rawType)
+    case .Pointer:
+        return true
+    case .Native:
+        let typeNative = cast(const *TypeInfoNative) type
+        switch typeNative.nativeKind
+        {
+        case .S8, .S16, .S32, .S64, .U8, .U16, .U32, .U64, .F32, .F64, .Rune, .String:
+            return true
+        default:
+            return false
+        }
+    case .Struct:
+        return true
+    default:
+        return false
+    }
+}
+
 #[ConstExpr, Inline]
 {
     func hasDrop(type: typeinfo)->bool     => (type.flags & TypeInfoFlags.HasDrop) ? true : false

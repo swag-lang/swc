@@ -1426,7 +1426,46 @@ namespace
         return TypeRef::invalid();
     }
 
-    bool isVariadicTypeNode(Sema& sema, AstNodeRef typeNodeRef)
+    TypeRef safeNamedTypeRef(Sema& sema, const AstNamedType& namedType)
+    {
+        const SemaNodeView identView = sema.viewStored(namedType.nodeIdentRef, SemaNodeViewPartE::Type | SemaNodeViewPartE::Symbol);
+        if (identView.typeRef().isValid())
+            return identView.typeRef();
+        if (identView.sym() && identView.sym()->isType())
+            return identView.sym()->typeRef();
+
+        const auto* ident = sema.node(namedType.nodeIdentRef).safeCast<AstIdentifier>();
+        if (!ident)
+            return TypeRef::invalid();
+
+        MatchContext lookUpCxt;
+        lookUpCxt.codeRef       = ident->codeRef();
+        lookUpCxt.noWaitOnEmpty = true;
+
+        const IdentifierRef idRef = SemaHelpers::resolveIdentifier(sema, ident->codeRef());
+        if (Match::match(sema, lookUpCxt, idRef) != Result::Continue)
+            return TypeRef::invalid();
+
+        for (const Symbol* sym : lookUpCxt.symbols())
+        {
+            if (sym && sym->isType() && sym->typeRef().isValid())
+                return sym->typeRef();
+        }
+
+        return TypeRef::invalid();
+    }
+
+    bool isVariadicTypeRefOrAlias(Sema& sema, TypeRef typeRef)
+    {
+        if (typeRef.isInvalid())
+            return false;
+
+        const TypeRef unwrappedTypeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), typeRef);
+        const TypeRef effectiveTypeRef = unwrappedTypeRef.isValid() ? unwrappedTypeRef : typeRef;
+        return sema.typeMgr().get(effectiveTypeRef).isAnyVariadic();
+    }
+
+    bool isVariadicTypeNode(Sema& sema, AstNodeRef typeNodeRef, bool resolveAliases)
     {
         if (typeNodeRef.isInvalid())
             return false;
@@ -1434,14 +1473,15 @@ namespace
         const AstNode& typeNode = sema.node(typeNodeRef);
         if (typeNode.is(AstNodeId::VariadicType) || typeNode.is(AstNodeId::TypedVariadicType))
             return true;
+        if (!resolveAliases)
+        {
+            if (const auto* namedType = typeNode.safeCast<AstNamedType>())
+                return isVariadicTypeRefOrAlias(sema, safeNamedTypeRef(sema, *namedType));
+            return false;
+        }
 
         const TypeRef typeRef = typeRefFromTypeNode(sema, typeNodeRef);
-        if (typeRef.isInvalid())
-            return false;
-
-        const TypeRef unwrappedTypeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), typeRef);
-        const TypeRef effectiveTypeRef = unwrappedTypeRef.isValid() ? unwrappedTypeRef : typeRef;
-        return sema.typeMgr().get(effectiveTypeRef).isAnyVariadic();
+        return isVariadicTypeRefOrAlias(sema, typeRef);
     }
 
     void appendGenericRootCallParams(Sema& sema, AstNodeRef paramRef, SmallVector<GenericRootCallParam>& outParams)
@@ -1468,7 +1508,7 @@ namespace
         if (const auto* varDecl = paramNode->safeCast<AstSingleVarDecl>())
         {
             const AstNodeRef typeRef = varDecl->typeOrInitRef();
-            outParams.push_back({.hasDefault = varDecl->nodeInitRef.isValid(), .isVariadic = isVariadicTypeNode(sema, typeRef)});
+            outParams.push_back({.hasDefault = varDecl->nodeInitRef.isValid(), .isVariadic = isVariadicTypeNode(sema, typeRef, false)});
             return;
         }
 
@@ -1478,7 +1518,7 @@ namespace
             sema.ast().appendTokens(tokNames, multiVar->spanNamesRef);
             const AstNodeRef typeRef    = multiVar->typeOrInitRef();
             const bool       hasDefault = multiVar->nodeInitRef.isValid();
-            const bool       isVariadic = isVariadicTypeNode(sema, typeRef);
+            const bool       isVariadic = isVariadicTypeNode(sema, typeRef, false);
             for ([[maybe_unused]] const TokenRef tokNameRef : tokNames)
                 outParams.push_back({.hasDefault = hasDefault, .isVariadic = isVariadic});
             return;

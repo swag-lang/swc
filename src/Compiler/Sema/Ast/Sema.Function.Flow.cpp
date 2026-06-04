@@ -902,6 +902,21 @@ namespace
         return false;
     }
 
+    bool isLambdaBindingExpr(Sema& sema, AstNodeRef childRef)
+    {
+        if (childRef.isInvalid())
+            return false;
+
+        const AstNode& childNode = sema.node(childRef);
+        if (childNode.is(AstNodeId::FunctionExpr) || childNode.is(AstNodeId::ClosureExpr))
+            return true;
+        if (childNode.is(AstNodeId::NamedArgument))
+            return isLambdaBindingExpr(sema, childNode.cast<AstNamedArgument>().nodeArgRef);
+        if (childNode.is(AstNodeId::ParenExpr))
+            return isLambdaBindingExpr(sema, childNode.cast<AstParenExpr>().nodeExprRef);
+        return false;
+    }
+
     bool childCanConsumeContextualBinding(Sema& sema, AstNodeRef childRef)
     {
         if (childRef.isInvalid())
@@ -912,6 +927,18 @@ namespace
             return childCanConsumeContextualBinding(sema, childNode.cast<AstNamedArgument>().nodeArgRef);
 
         return SemaHelpers::canUseContextualBinding(sema, childRef);
+    }
+
+    bool isEnumContextualBindingType(Sema& sema, TypeRef typeRef)
+    {
+        if (!typeRef.isValid())
+            return false;
+
+        const TypeRef enumTypeRef = SemaHelpers::unwrapAliasRefType(sema.ctx(), typeRef);
+        if (!enumTypeRef.isValid())
+            return false;
+
+        return sema.typeMgr().get(enumTypeRef).isEnum();
     }
 
     template<typename T>
@@ -938,10 +965,16 @@ namespace
             const SymbolVariable* param        = mappedCallParameter(sema, args.span(), *fn, childRef, ufcsArg);
             if (param)
                 paramTypeRef = param->typeRef();
-            else if (fn->parameters().empty() && !fn->isGenericRoot())
-                SWC_RESULT(SemaGeneric::resolveFunctionCallParamType(sema, *fn, call.nodeExprRef, args.span(), ufcsArg, childRef, paramTypeRef));
+            else if (fn->parameters().empty() || fn->isGenericRoot())
+            {
+                if (fn->isGenericRoot() && isLambdaBindingExpr(sema, childRef))
+                    continue;
+                SWC_RESULT(SemaGeneric::resolveFunctionCallParamType(sema, *fn, call.nodeExprRef, args.span(), ufcsArg, childRef, paramTypeRef, true));
+            }
 
             if (!paramTypeRef.isValid())
+                continue;
+            if (fn->isGenericRoot() && !isEnumContextualBindingType(sema, paramTypeRef))
                 continue;
 
             if (outBindingTypeRef.isInvalid())

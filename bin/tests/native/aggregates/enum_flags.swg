@@ -91,6 +91,11 @@ func invertStrictTestFlags(value: StrictTestFlags)->StrictTestFlags
     return ~value
 }
 
+func(T) pickGenericFlags(flags: T, value: T)->T
+{
+    return flags | value
+}
+
 const RunStrictTestFlag: StrictTestFlags = #run makeStrictTestFlag()
 const RunStrictTestFlags: [2] StrictTestFlags = #run makeStrictTestFlagArray()
 
@@ -149,6 +154,15 @@ const RunStrictTestFlags: [2] StrictTestFlags = #run makeStrictTestFlagArray()
     let runtimeInverted = invertStrictTestFlags(cast(StrictTestFlags) TestFlags.C)
     #assert(#typeof(runtimeInverted) == StrictTestFlags)
     @assert((cast(u32) runtimeInverted & cast(u32) TestFlags.A) != 0)
+}
+
+#test
+{
+    let flags = TestFlags.A
+    let value = flags.pickGenericFlags(.B | .C)
+
+    #assert(#typeof(value) == TestFlags)
+    @assert(value == (TestFlags.A | TestFlags.B | TestFlags.C))
 }
 
 #test

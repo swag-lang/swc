@@ -30,6 +30,10 @@ namespace PostRaPeephole
         std::unordered_set<uint32_t> claimed;
         SmallVector<Action>          actions;
 
+        // Copy/const forwarding is only run while this is set (the first
+        // post-RA sweep). See MicroPassContext::isFirstOptimizationSweep.
+        bool allowForwarding = true;
+
         bool                     isClaimed(MicroInstrRef ref) const;
         bool                     claimAll(std::initializer_list<MicroInstrRef> refs);
         void                     emitErase(MicroInstrRef ref);
@@ -60,8 +64,10 @@ namespace PostRaPeephole
 
     bool tryEraseTrivial(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryEraseDeadCompare(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
+    bool tryReuseFlagsForCompare(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryForwardLoadRegImm(Context& ctx, MicroInstrRef defRef, const MicroInstr& defInst);
     bool tryForwardCopy(Context& ctx, MicroInstrRef copyRef, const MicroInstr& copyInst);
+    bool tryCanonicalizeZeroToClear(Context& ctx, MicroInstrRef defRef, const MicroInstr& defInst);
 }
 
 SWC_END_NAMESPACE();

@@ -64,6 +64,60 @@ namespace PostRaPeephole
             return false;
         }
 
+        // True iff `reg` is proven live at the instruction after `fromRef`: its
+        // next touch within the window is a read, with no intervening
+        // redefinition. The opposite of regDeadAfter, but deliberately
+        // conservative — barriers and an exhausted window return false (treat
+        // as "not provably live") so callers only act on certain liveness.
+        bool regUsedBeforeRedef(const Context& ctx, MicroInstrRef fromRef, MicroReg reg)
+        {
+            MicroInstrRef cur = ctx.nextRef(fromRef);
+            for (int step = 0; step < K_MAX_LIVENESS_WINDOW && cur.isValid(); ++step, cur = ctx.nextRef(cur))
+            {
+                const MicroInstr* inst = ctx.instruction(cur);
+                if (!inst)
+                    return false;
+
+                const MicroInstrUseDef useDef = inst->collectUseDef(*ctx.operands, nullptr);
+                if (regInList(useDef.uses.span(), reg))
+                    return true;
+                if (regInList(useDef.defs.span(), reg))
+                    return false;
+
+                const MicroInstrDef& info = MicroInstr::info(inst->op);
+                if (inst->op == MicroInstrOpcode::Label ||
+                    info.flags.has(MicroInstrFlagsE::TerminatorInstruction) ||
+                    info.flags.has(MicroInstrFlagsE::JumpInstruction) ||
+                    info.flags.has(MicroInstrFlagsE::IsCallInstruction))
+                    return false;
+            }
+            return false;
+        }
+
+        // True iff the CPU flags are dead at the instruction after `fromRef`:
+        // no reader observes them before they are overwritten or a barrier.
+        bool cpuFlagsDeadAfter(const Context& ctx, MicroInstrRef fromRef)
+        {
+            for (MicroInstrRef cur = ctx.nextRef(fromRef); cur.isValid(); cur = ctx.nextRef(cur))
+            {
+                const MicroInstr* inst = ctx.instruction(cur);
+                if (!inst)
+                    return false;
+
+                const MicroInstrOperand* ops = inst->ops(*ctx.operands);
+                if (instructionActuallyUsesCpuFlags(*inst, ops))
+                    return false;
+
+                const MicroInstrDef& info = MicroInstr::info(inst->op);
+                if (info.flags.has(MicroInstrFlagsE::DefinesCpuFlags) ||
+                    info.flags.has(MicroInstrFlagsE::IsCallInstruction) ||
+                    info.flags.has(MicroInstrFlagsE::TerminatorInstruction) ||
+                    info.flags.has(MicroInstrFlagsE::JumpInstruction))
+                    return true;
+            }
+            return true;
+        }
+
         struct ConsumerRewrite
         {
             MicroInstrOpcode  newOp;
@@ -164,6 +218,10 @@ namespace PostRaPeephole
 
     bool tryForwardLoadRegImm(Context& ctx, MicroInstrRef defRef, const MicroInstr& defInst)
     {
+        // Liveness here is a linear forward scan, sound only on the pristine
+        // post-RA IR. Restrict to the first sweep of the optimization loop.
+        if (!ctx.allowForwarding)
+            return false;
         if (defInst.op != MicroInstrOpcode::LoadRegImm)
             return false;
         if (ctx.isClaimed(defRef))
@@ -247,6 +305,45 @@ namespace PostRaPeephole
         const std::span rewrittenOps(rewrite.ops, rewrite.numOps);
         ctx.emitRewrite(consumerRef, rewrite.newOp, rewrittenOps);
         ctx.emitErase(defRef);
+        return true;
+    }
+
+    // Canonicalize a surviving zero materialization `LoadRegImm reg, 0` into the
+    // `ClearReg` (xor-zeroing) idiom: a couple of bytes instead of a 5-7 byte
+    // mov-immediate, and a recognized dependency breaker.
+    //
+    // Done post-RA, and only when `reg` is provably live, on purpose. xor writes
+    // CPU flags, so unlike a plain mov-immediate dead-code elimination treats it
+    // as a side effect and will never remove it. Converting a zero that is about
+    // to be eliminated would therefore *add* a dead instruction. Restricting to
+    // genuinely-live zeros (and requiring the flags to be dead) keeps this a
+    // pure code-size win with no instruction-count regression.
+    bool tryCanonicalizeZeroToClear(Context& ctx, MicroInstrRef defRef, const MicroInstr& defInst)
+    {
+        if (defInst.op != MicroInstrOpcode::LoadRegImm || ctx.isClaimed(defRef))
+            return false;
+
+        const MicroInstrOperand* ops = defInst.ops(*ctx.operands);
+        if (!ops || ops[2].hasWideImmediateValue() || ops[2].valueU64 != 0)
+            return false;
+
+        const MicroReg    dst  = ops[0].reg;
+        const MicroOpBits bits = ops[1].opBits;
+        if (!dst.isAnyInt() || bits == MicroOpBits::Zero || bits == MicroOpBits::B128)
+            return false;
+
+        if (!regUsedBeforeRedef(ctx, defRef, dst))
+            return false;
+        if (!cpuFlagsDeadAfter(ctx, defRef))
+            return false;
+
+        if (!ctx.claimAll({defRef}))
+            return false;
+
+        MicroInstrOperand clearOps[2];
+        clearOps[0].reg    = dst;
+        clearOps[1].opBits = bits;
+        ctx.emitRewrite(defRef, MicroInstrOpcode::ClearReg, std::span<const MicroInstrOperand>(clearOps, 2));
         return true;
     }
 }

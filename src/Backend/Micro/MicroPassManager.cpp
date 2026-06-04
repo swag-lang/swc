@@ -274,6 +274,39 @@ namespace
         return Result::Continue;
     }
 
+    // Best-effort fixed-point loop. Sweeps the passes until an iteration
+    // mutates nothing, or the iteration cap is hit. Unlike runLoopPasses this
+    // never fails on non-convergence: it simply stops at the cap and keeps the
+    // (always-valid) IR produced by the last sweep. Intended for post-RA
+    // cleanup passes that cascade but are not provably convergent.
+    Result runBoundedLoopPasses(MicroPassContext& context, std::span<MicroPass* const> passes, const uint32_t maxIterations, VerifyStateCache& verifyCache)
+    {
+        if (passes.empty())
+            return Result::Continue;
+
+        for (uint32_t iteration = 0; iteration < maxIterations; ++iteration)
+        {
+            // Forwarding transforms that are only sound on the freshly
+            // register-allocated IR run on the first sweep only; later sweeps
+            // are restricted to the monotonic erase/DCE cleanups.
+            context.isFirstOptimizationSweep = iteration == 0;
+
+            bool iterationMutated = false;
+            for (MicroPass* pass : passes)
+            {
+                SWC_RESULT(runPass(context, *pass, verifyCache));
+                iterationMutated = iterationMutated || context.passChanged;
+            }
+
+            if (!iterationMutated)
+                break;
+        }
+
+        context.isFirstOptimizationSweep = true;
+
+        return Result::Continue;
+    }
+
     Result runLoopPasses(MicroPassContext& context, std::span<MicroPass* const> passes, const uint32_t maxIterations, const bool buildSsa, std::string_view loopName, VerifyStateCache& verifyCache)
     {
         if (passes.empty())
@@ -473,7 +506,18 @@ Result MicroPassManager::run(MicroPassContext& context) const
     context.statsInstrAfterPostRaSetup = context.instructions->count();
 #endif
 
-    SWC_RESULT(runLinearPasses(context, postRaOptimPasses_, verifyCache));
+    // Post-RA optimization loop — peephole and dead-code elimination feed each
+    // other (a folded copy exposes a dead compare, an erased compare exposes a
+    // dead def). Sweeping repeatedly lets those cascades settle instead of
+    // stopping after a single pass.
+    //
+    // Unlike the algebraic pre-RA loop, these physical-register cleanups are
+    // not guaranteed to converge on a unique fixed point, so this is a
+    // best-effort bounded loop: stop as soon as a sweep changes nothing, and
+    // otherwise stop at the iteration cap keeping whatever (always-valid) IR
+    // the last sweep produced. No SSA is needed post-RA.
+    const uint32_t postRaMaxIterations = std::max<uint32_t>(loopIterationLimit(context, optimizationIterationLimit(context.builder->backendBuildCfg())), 1);
+    SWC_RESULT(runBoundedLoopPasses(context, postRaOptimPasses_, postRaMaxIterations, verifyCache));
 
 #if SWC_HAS_STATS
     context.statsInstrAfterPostRaOptim = context.instructions->count();

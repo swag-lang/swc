@@ -96,6 +96,10 @@ namespace PostRaPeephole
 
     bool tryForwardCopy(Context& ctx, MicroInstrRef copyRef, const MicroInstr& copyInst)
     {
+        // Liveness here is a linear forward scan, sound only on the pristine
+        // post-RA IR. Restrict to the first sweep of the optimization loop.
+        if (!ctx.allowForwarding)
+            return false;
         if (copyInst.op != MicroInstrOpcode::LoadRegReg)
             return false;
         if (ctx.isClaimed(copyRef))

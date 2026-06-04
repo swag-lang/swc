@@ -28,11 +28,13 @@ namespace
         r.add(MicroInstrOpcode::Nop, tryEraseTrivial);
         r.add(MicroInstrOpcode::LoadRegReg, tryEraseTrivial);
         r.add(MicroInstrOpcode::JumpCond, tryEraseTrivial);
+        r.add(MicroInstrOpcode::CmpRegImm, tryReuseFlagsForCompare);
         r.add(MicroInstrOpcode::CmpRegReg, tryEraseDeadCompare);
         r.add(MicroInstrOpcode::CmpRegImm, tryEraseDeadCompare);
         r.add(MicroInstrOpcode::CmpMemReg, tryEraseDeadCompare);
         r.add(MicroInstrOpcode::CmpMemImm, tryEraseDeadCompare);
         r.add(MicroInstrOpcode::LoadRegImm, tryForwardLoadRegImm);
+        r.add(MicroInstrOpcode::LoadRegImm, tryCanonicalizeZeroToClear);
         r.add(MicroInstrOpcode::LoadRegReg, tryForwardCopy);
         return r;
     }
@@ -66,9 +68,10 @@ Result MicroPostRaPeepholePass::run(MicroPassContext& context)
     SWC_ASSERT(context.operands != nullptr);
 
     Context ctx;
-    ctx.storage  = context.instructions;
-    ctx.operands = context.operands;
-    ctx.encoder  = context.encoder;
+    ctx.storage         = context.instructions;
+    ctx.operands        = context.operands;
+    ctx.encoder         = context.encoder;
+    ctx.allowForwarding = context.isFirstOptimizationSweep;
 
     runPerInstructionPatterns(ctx);
 

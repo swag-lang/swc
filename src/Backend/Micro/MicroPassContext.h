@@ -42,6 +42,13 @@ struct MicroPassContext
     size_t   printInstrCountBefore      = 0;
     bool     passChanged                = false;
 
+    // True during the first sweep of a bounded optimization loop. Post-RA
+    // forwarding transforms (copy/const forwarding) are only sound on the
+    // pristine IR straight out of register allocation, where the spill-reload
+    // and ABI-marshalling shapes they target live; they must not re-run on
+    // already-cleaned-up IR. Erase/DCE cleanups have no such restriction.
+    bool isFirstOptimizationSweep = true;
+
 #if SWC_HAS_STATS
     size_t optimizationInstrRemoved = 0;
     size_t optimizationInstrAdded   = 0;

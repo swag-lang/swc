@@ -26,6 +26,26 @@ namespace
 
         return sema.token(parentNode.codeRef()).id == TokenId::KwdAssume;
     }
+
+    void addUsingSymMapToScope(SemaScope& scope, SymbolMap* usingSymMap)
+    {
+        SWC_ASSERT(usingSymMap != nullptr);
+        for (const SymbolMap* existing : scope.usingSymMaps())
+        {
+            if (existing == usingSymMap)
+                return;
+        }
+
+        scope.addUsingSymMap(usingSymMap);
+    }
+
+    SymbolMap* usingDeclChildSymMap(Sema& sema, AstNodeRef nodeRef)
+    {
+        const SemaNodeView view = sema.viewSymbol(nodeRef);
+        SWC_ASSERT(view.sym());
+        SWC_ASSERT(view.sym()->isSymMap());
+        return view.sym()->asSymMap();
+    }
 }
 
 Result AstFile::semaPreDecl(Sema& sema) const
@@ -131,11 +151,8 @@ Result AstUsingDecl::semaPostNode(Sema& sema) const
     sema.ast().appendNodes(nodeRefs, spanChildrenRef);
     for (const auto& nodeRef : nodeRefs)
     {
-        const SemaNodeView view = sema.viewSymbol(nodeRef);
-        SWC_ASSERT(view.sym());
-        SWC_ASSERT(view.sym()->isSymMap());
-        SymbolMap* usingSymMap = view.sym()->asSymMap();
-        sema.curScope().addUsingSymMap(usingSymMap);
+        SymbolMap* usingSymMap = usingDeclChildSymMap(sema, nodeRef);
+        addUsingSymMapToScope(sema.curScope(), usingSymMap);
 
         // Qualified lookups (for example `Enum.Value`) do not walk transient lexical scopes,
         // so persist `using` imports on the owning symbol map as well.
@@ -143,6 +160,12 @@ Result AstUsingDecl::semaPostNode(Sema& sema) const
             ownerSymMap->addUsingSymMap(usingSymMap);
     }
 
+    return Result::Continue;
+}
+
+Result AstUsingDecl::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const
+{
+    addUsingSymMapToScope(sema.curScope(), usingDeclChildSymMap(sema, childRef));
     return Result::Continue;
 }
 

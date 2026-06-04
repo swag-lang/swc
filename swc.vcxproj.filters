@@ -327,6 +327,9 @@
     <ClCompile Include="src\Backend\\Micro\Passes\Pass.InstructionCombine.MemoryFold.cpp">
       <Filter>src\Backend\Micro\Passes</Filter>
     </ClCompile>
+    <ClCompile Include="src\Backend\\Micro\Passes\Pass.InstructionCombine.LoadFold.cpp">
+      <Filter>src\Backend\Micro\Passes</Filter>
+    </ClCompile>
     <ClCompile Include="src\Backend\\Micro\Passes\Pass.InstructionCombine.AddressMode.cpp">
       <Filter>src\Backend\Micro\Passes</Filter>
     </ClCompile>

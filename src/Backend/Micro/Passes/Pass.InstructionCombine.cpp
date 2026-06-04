@@ -33,6 +33,7 @@ namespace
         r.add(MicroInstrOpcode::OpBinaryRegReg, tryOpBinaryRegReg);
         r.add(MicroInstrOpcode::OpBinaryRegReg, tryFoldConstBinaryRhs);
         r.add(MicroInstrOpcode::LoadRegMem, tryMemoryFoldTriple);
+        r.add(MicroInstrOpcode::LoadRegMem, tryFoldLoadIntoRegOp);
         r.add(MicroInstrOpcode::LoadRegMem, tryFoldMemoryAddressing);
         r.add(MicroInstrOpcode::LoadMemReg, tryFoldConstStore);
         r.add(MicroInstrOpcode::LoadMemReg, tryFoldMemoryAddressing);

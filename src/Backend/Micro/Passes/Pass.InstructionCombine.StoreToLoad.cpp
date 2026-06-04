@@ -123,7 +123,10 @@ namespace InstructionCombine
                 // are evicted on aliasing writes, calls, control flow, and base/dst
                 // redefinition. Skip when base and destination are the same register
                 // (e.g. `r = [r + off]`), since the base no longer points at the slot.
-                if (!forwarded && ops[1].reg.isValid() && ops[1].reg != ops[0].reg)
+                // A claimed load will be erased or rewritten by another pattern
+                // (e.g. folded into a following ALU op), so its destination may hold
+                // no live value; caching it would forward a later load to a dead reg.
+                if (!forwarded && !ctx.isClaimed(it.current) && ops[1].reg.isValid() && ops[1].reg != ops[0].reg)
                 {
                     CacheEntry entry;
                     entry.base = ops[1].reg;

@@ -81,8 +81,19 @@ public:
         SmallVector<TypeRef>               pendingBackRefs;
     };
 
+    struct LifecycleFlags
+    {
+        bool hasPostCopy = false;
+        bool hasPostMove = false;
+        bool hasDrop     = false;
+        bool canCopy     = true;
+    };
+
     Result  makeTypeInfo(Sema& sema, DataSegment& storage, TypeRef typeRef, AstNodeRef ownerNodeRef, TypeGenResult& result, LockMode lockMode = LockMode::Wait);
     TypeRef getBackTypeRef(const void* ptr) const;
+
+    static LifecycleFlags lifecycleFlagsOfType(TaskContext& ctx, const TypeInfo& type);
+    static LifecycleFlags lifecycleFlagsOfTypeRef(TaskContext& ctx, TypeRef typeRef);
 
 private:
     enum class LayoutKind

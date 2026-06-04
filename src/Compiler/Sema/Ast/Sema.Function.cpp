@@ -870,16 +870,38 @@ namespace
         return TypeRef::invalid();
     }
 
+    void addMeParameter(Sema& sema, SymbolFunction& sym);
+    SymbolVariable* resolveBodyBindingReceiver(const Sema& sema, const SymbolFunction& sym);
+
     template<typename T>
     Result buildFunctionExprParameters(Sema& sema, const T& node, SymbolFunction& sym)
     {
-        if (!sym.parameters().empty())
-            return Result::Continue;
-
         TaskContext&            ctx             = sema.ctx();
         const SymbolFunction*   bindingFunction = resolveLambdaBindingFunction(sema);
         SmallVector<AstNodeRef> params;
         sema.ast().appendNodes(params, node.spanArgsRef);
+
+        if (sym.isMethod())
+            addMeParameter(sema, sym);
+
+        const IdentifierRef meId              = sema.idMgr().predefined(IdentifierManager::PredefinedName::Me);
+        const auto&         existingParams    = sym.parameters();
+        const bool          hasReceiverParam  = !existingParams.empty() && existingParams.front() && existingParams.front()->idRef() == meId;
+        const size_t        implicitParamSize = hasReceiverParam ? 1 : 0;
+        if (existingParams.size() > implicitParamSize)
+            return Result::Continue;
+
+        size_t bindingParamOffset = 0;
+        if (bindingFunction && hasReceiverParam)
+        {
+            const auto& bindingParams = bindingFunction->parameters();
+            if (bindingParams.size() == params.size() + 1 &&
+                bindingParams.front() &&
+                bindingParams.front()->typeRef() == existingParams.front()->typeRef())
+            {
+                bindingParamOffset = 1;
+            }
+        }
 
         for (size_t paramIndex = 0; paramIndex < params.size(); paramIndex++)
         {
@@ -888,8 +910,13 @@ namespace
             TypeRef               paramType = TypeRef::invalid();
             if (param.nodeTypeRef.isValid())
                 paramType = sema.viewType(param.nodeTypeRef).typeRef();
-            else if (bindingFunction && paramIndex < bindingFunction->parameters().size())
-                paramType = bindingFunction->parameters()[paramIndex]->typeRef();
+            else if (bindingFunction)
+            {
+                const auto& bindingParams = bindingFunction->parameters();
+                const size_t bindingIndex = paramIndex + bindingParamOffset;
+                if (bindingIndex < bindingParams.size())
+                    paramType = bindingParams[bindingIndex]->typeRef();
+            }
             else if (param.nodeDefaultValueRef.isValid())
                 SWC_RESULT(deduceLambdaParameterTypeFromDefault(sema, param.nodeDefaultValueRef, paramType));
             if (!paramType.isValid())
@@ -1342,6 +1369,8 @@ Result AstFunctionExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef)
     frame.setUpLookupScope(nullptr);
     frame.setIgnoreRuntimeAccess(false);
     frame.setCurrentErrorContext(AstNodeRef::invalid(), SemaFrame::ErrorContextMode::None);
+    if (SymbolVariable* receiver = resolveBodyBindingReceiver(sema, sym))
+        frame.pushBindingVar(receiver);
     if (sym.returnTypeRef().isValid())
         frame.pushBindingType(sym.returnTypeRef());
     sema.pushFramePopOnPostNode(frame);
@@ -1365,6 +1394,8 @@ Result AstClosureExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) 
     frame.setUpLookupScope(nullptr);
     frame.setIgnoreRuntimeAccess(false);
     frame.setCurrentErrorContext(AstNodeRef::invalid(), SemaFrame::ErrorContextMode::None);
+    if (SymbolVariable* receiver = resolveBodyBindingReceiver(sema, sym))
+        frame.pushBindingVar(receiver);
     if (sym.returnTypeRef().isValid())
         frame.pushBindingType(sym.returnTypeRef());
     sema.pushFramePopOnPostNode(frame);

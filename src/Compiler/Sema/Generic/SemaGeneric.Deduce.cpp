@@ -1667,7 +1667,7 @@ namespace SemaGeneric
         return Result::Continue;
     }
 
-    Result resolveFunctionCallParamType(Sema& sema, const SymbolFunction& function, AstNodeRef calleeRef, std::span<AstNodeRef> args, AstNodeRef ufcsArg, AstNodeRef childRef, TypeRef& outTypeRef)
+    Result resolveFunctionCallParamType(Sema& sema, const SymbolFunction& function, AstNodeRef calleeRef, std::span<AstNodeRef> args, AstNodeRef ufcsArg, AstNodeRef childRef, TypeRef& outTypeRef, bool requireCompleteGenericArgs)
     {
         outTypeRef       = TypeRef::invalid();
         const auto* decl = function.decl() ? function.decl()->safeCast<AstFunctionDecl>() : nullptr;
@@ -1730,6 +1730,8 @@ namespace SemaGeneric
             SWC_RESULT(resolveExplicitGenericArg(sema, genericParams[i], explicitGenericArgNodes[i], resolvedArgs[i]));
 
         SWC_RESULT(deduceGenericFunctionArgs(sema, function, genericParams.span(), resolvedArgs, args, ufcsArg));
+        if (requireCompleteGenericArgs && hasMissingGenericArgs(resolvedArgs.span()))
+            return Result::Continue;
 
         const Internal::ResolvedGenericBindingSource source{genericParams.span(), resolvedArgs.span()};
         SmallVector<SemaClone::ParamBinding>         bindings;

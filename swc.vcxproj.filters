@@ -393,6 +393,9 @@
     <ClCompile Include="src\Backend\\Micro\Passes\Pass.RegisterAllocation.cpp">
       <Filter>src\Backend\Micro\Passes</Filter>
     </ClCompile>
+    <ClCompile Include="src\Backend\\Micro\Passes\Pass.MemToReg.cpp">
+      <Filter>src\Backend\Micro\Passes</Filter>
+    </ClCompile>
     <ClCompile Include="src\Backend\\Micro\Passes\Pass.StackAdjustNormalize.cpp">
       <Filter>src\Backend\Micro\Passes</Filter>
     </ClCompile>
@@ -1158,6 +1161,9 @@
       <Filter>src\Backend\Micro\Passes</Filter>
     </ClInclude>
     <ClInclude Include="src\Backend\\Micro\Passes\Pass.RegisterAllocation.h">
+      <Filter>src\Backend\Micro\Passes</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Backend\\Micro\Passes\Pass.MemToReg.h">
       <Filter>src\Backend\Micro\Passes</Filter>
     </ClInclude>
     <ClInclude Include="src\Backend\\Micro\Passes\Pass.StackAdjustNormalize.h">

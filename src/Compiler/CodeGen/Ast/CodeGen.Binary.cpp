@@ -71,7 +71,7 @@ namespace
             return TypeRef::invalid();
 
         if (castResultTypeRef.isValid() &&
-            Cast::referenceValueCastTypeRef(codeGen.sema(), storedSourceTypeRef, castResultTypeRef).isValid())
+            Cast::indirectValueCastTypeRef(codeGen.sema(), storedSourceTypeRef, castResultTypeRef).isValid())
             return castResultTypeRef;
 
         return storedSourceTypeRef;

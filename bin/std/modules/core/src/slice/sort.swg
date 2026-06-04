@@ -86,6 +86,7 @@ func(T) quickSort(values: [..] T, cb: func||(T, T)->s32)
 // Sort the slice, by picking the right algorithm depending on the type and the
 // number of elements
 func(T) sort(values: [..] T, bigFirst = false)
+    where Reflection.canCompare(T)
 {
     if bigFirst do
         sort(values, func(x, y: T)->s32 => y <=> x)
@@ -106,6 +107,7 @@ func(T) sort(values: [..] T, cb: func||(T, T)->s32)
 
 // Returns true if the slice is sorted
 func(T) isSorted(values: const [..] T)->bool
+    where Reflection.canCompare(T)
 {
     return isSorted(values, func(x, y: T)->s32 => x <=> y)
 }

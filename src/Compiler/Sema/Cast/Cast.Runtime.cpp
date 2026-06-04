@@ -8,6 +8,7 @@
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
+#include "Compiler/Sema/Symbol/Symbol.Impl.h"
 #include "Compiler/Sema/Symbol/Symbols.h"
 #include "Compiler/Sema/Type/TypeGen.h"
 #include "Compiler/Sema/Type/TypeManager.h"
@@ -272,6 +273,42 @@ namespace
 
     bool sameFunctionTypeRecursive(Sema& sema, TypeRef leftTypeRef, TypeRef rightTypeRef);
 
+    TypeRef implOwnerTypeRef(const SymbolImpl& symImpl)
+    {
+        if (symImpl.isForStruct())
+            return symImpl.symStruct()->typeRef();
+        if (symImpl.isForEnum())
+            return symImpl.symEnum()->typeRef();
+
+        return TypeRef::invalid();
+    }
+
+    TypeRef methodReceiverTypeRef(Sema& sema, const SymbolFunction& func)
+    {
+        const SymbolImpl* symImpl = func.declImplContext();
+        if (!symImpl)
+            return TypeRef::invalid();
+
+        const TypeRef ownerTypeRef = implOwnerTypeRef(*symImpl);
+        if (!ownerTypeRef.isValid())
+            return TypeRef::invalid();
+
+        if (symImpl->isForEnum())
+        {
+            if (!func.isConst())
+                return ownerTypeRef;
+
+            TypeInfo typeInfo = sema.typeMgr().get(ownerTypeRef);
+            typeInfo.addFlag(TypeInfoFlagsE::Const);
+            return sema.typeMgr().addType(typeInfo);
+        }
+
+        TypeInfoFlags typeFlags = TypeInfoFlagsE::Zero;
+        if (func.isConst())
+            typeFlags.add(TypeInfoFlagsE::Const);
+        return sema.typeMgr().addType(TypeInfo::makeReference(ownerTypeRef, typeFlags));
+    }
+
     bool sameFunctionSignatureRecursive(Sema& sema, const SymbolFunction& leftFunc, const SymbolFunction& rightFunc, const bool ignoreTopLevelClosure)
     {
         if (&leftFunc == &rightFunc)
@@ -302,6 +339,56 @@ namespace
             SWC_ASSERT(leftParams[i] != nullptr);
             SWC_ASSERT(rightParams[i] != nullptr);
             if (!sameFunctionTypeRecursive(sema, leftParams[i]->typeRef(), rightParams[i]->typeRef()))
+                return false;
+        }
+
+        return true;
+    }
+
+    bool sameMethodClosureAsFunctionSignatureRecursive(Sema& sema, const SymbolFunction& methodFunc, const SymbolFunction& func)
+    {
+        if (!methodFunc.isClosure() || !func.isClosure())
+            return false;
+        if (!methodFunc.isMethod() || func.isMethod())
+            return false;
+        if (!sameFunctionTypeRecursive(sema, methodFunc.returnTypeRef(), func.returnTypeRef()))
+            return false;
+        if (methodFunc.callConvKind() != func.callConvKind())
+            return false;
+        if (methodFunc.isThrowable() != func.isThrowable())
+            return false;
+        if (methodFunc.hasVariadicParam() != func.hasVariadicParam())
+            return false;
+
+        const TypeRef receiverTypeRef = methodReceiverTypeRef(sema, methodFunc);
+        if (!receiverTypeRef.isValid())
+            return false;
+
+        const auto& methodParams = methodFunc.parameters();
+        const auto& funcParams   = func.parameters();
+        if (funcParams.empty())
+            return false;
+
+        SWC_ASSERT(funcParams[0] != nullptr);
+        if (!sameFunctionTypeRecursive(sema, receiverTypeRef, funcParams[0]->typeRef()))
+            return false;
+
+        size_t methodParamIndex = 0;
+        if (!methodParams.empty())
+        {
+            SWC_ASSERT(methodParams[0] != nullptr);
+            if (sameFunctionTypeRecursive(sema, receiverTypeRef, methodParams[0]->typeRef()))
+                methodParamIndex = 1;
+        }
+
+        if (funcParams.size() - 1 != methodParams.size() - methodParamIndex)
+            return false;
+
+        for (uint32_t i = 1; i < funcParams.size(); ++i, ++methodParamIndex)
+        {
+            SWC_ASSERT(methodParams[methodParamIndex] != nullptr);
+            SWC_ASSERT(funcParams[i] != nullptr);
+            if (!sameFunctionTypeRecursive(sema, methodParams[methodParamIndex]->typeRef(), funcParams[i]->typeRef()))
                 return false;
         }
 
@@ -767,6 +854,8 @@ Result Cast::castToFunction(Sema& sema, CastRequest& castRequest, TypeRef srcTyp
         const SymbolFunction& srcFunc = srcType.payloadSymFunction();
         const SymbolFunction& dstFunc = dstType.payloadSymFunction();
         if (sameFunctionSignatureRecursive(sema, srcFunc, dstFunc, false))
+            return Result::Continue;
+        if (sameMethodClosureAsFunctionSignatureRecursive(sema, srcFunc, dstFunc))
             return Result::Continue;
         if (!srcFunc.isClosure() && dstFunc.isClosure() && sameFunctionSignatureRecursive(sema, srcFunc, dstFunc, true))
             return Result::Continue;

@@ -32,12 +32,28 @@ struct PathOwner
     bias:   s32
 }
 
+struct MethodClosureReceiver
+{
+    base: s32
+}
+
 const GlobalBonus = 2
 var GlobalSeed = 40
 
 func addOne(value: s32)->s32 => value + 1
 func invokeUnary(cb: func||(s32)->s32, value: s32)->s32 => cb(value)
 func relayUnary(cb: func||(s32)->s32)->func||(s32)->s32 => cb
+
+impl MethodClosureReceiver
+{
+    mtd makeAdder(offset: s32)->func||(&MethodClosureReceiver, s32)->s32
+    {
+        return mtd|offset|(value: s32)->s32
+        {
+            return .base + offset + value
+        }
+    }
+}
 
 impl PathOwner
 {
@@ -409,6 +425,13 @@ func runInlineClosureCaptureRef()->s32
 {
     let factor = 3
     @assert((func|factor|(value: s32)->s32 { return value * factor })(7) == 21)
+}
+
+#test
+{
+    var receiver = MethodClosureReceiver{base: 7}
+    let cb = receiver.makeAdder(3)
+    @assert(cb(&receiver, 5) == 15)
 }
 
 #test

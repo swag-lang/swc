@@ -60,9 +60,14 @@ namespace
         return sema.typeMgr().get(objectTypeRef).isStruct();
     }
 
+    bool isByValueAggregateType(const TypeInfo& typeInfo)
+    {
+        return typeInfo.isStruct() || typeInfo.isArray() || typeInfo.isAggregate();
+    }
+
 }
 
-TypeRef Cast::referenceValueCastTypeRef(const Sema& sema, TypeRef srcTypeRef, TypeRef dstTypeRef)
+TypeRef Cast::indirectValueCastTypeRef(const Sema& sema, TypeRef srcTypeRef, TypeRef dstTypeRef)
 {
     if (!srcTypeRef.isValid() || !dstTypeRef.isValid())
         return TypeRef::invalid();
@@ -72,18 +77,35 @@ TypeRef Cast::referenceValueCastTypeRef(const Sema& sema, TypeRef srcTypeRef, Ty
     const TypeRef   srcTypeToCheck     = srcResolvedTypeRef.isValid() ? srcResolvedTypeRef : srcTypeRef;
     const TypeRef   dstTypeToCheck     = dstResolvedTypeRef.isValid() ? dstResolvedTypeRef : dstTypeRef;
     const TypeInfo& srcType            = sema.typeMgr().get(srcTypeToCheck);
-    if (!srcType.isReference())
+    const TypeInfo& dstType            = sema.typeMgr().get(dstTypeToCheck);
+
+    TypeRef valueTypeRef;
+    bool    sourceIsPointer = false;
+    if (srcType.isReference())
+    {
+        valueTypeRef = srcType.payloadTypeRef();
+    }
+    else if (srcType.isAnyPointer() && !srcType.isNullable())
+    {
+        valueTypeRef = srcType.payloadTypeRef();
+        sourceIsPointer = true;
+    }
+    else
         return TypeRef::invalid();
 
-    const TypeRef pointeeTypeRef = srcType.payloadTypeRef();
-    if (pointeeTypeRef == dstTypeRef)
-        return pointeeTypeRef;
+    if (sourceIsPointer && !isByValueAggregateType(dstType))
+        return TypeRef::invalid();
+
+    if (valueTypeRef == dstTypeRef)
+        return valueTypeRef;
 
     if (sema.typeMgr().get(dstTypeRef).isAlias())
         return TypeRef::invalid();
 
-    if (pointeeTypeRef == dstTypeToCheck)
-        return pointeeTypeRef;
+    const TypeRef valueResolvedTypeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), valueTypeRef);
+    const TypeRef valueTypeToCheck     = valueResolvedTypeRef.isValid() ? valueResolvedTypeRef : valueTypeRef;
+    if (valueTypeToCheck == dstTypeToCheck)
+        return valueTypeRef;
 
     return TypeRef::invalid();
 }
@@ -132,7 +154,7 @@ TypeRef Cast::runtimeStorageTypeRef(Sema& sema, TypeRef srcTypeRef, TypeRef dstT
     if (srcConstRef.isValid())
         return TypeRef::invalid();
 
-    if (referenceValueCastTypeRef(sema, srcTypeRef, dstTypeRef).isValid())
+    if (indirectValueCastTypeRef(sema, srcTypeRef, dstTypeRef).isValid())
         return dstTypeRef;
 
     if (dstType.isReference() && !srcType.isPointerOrReference())

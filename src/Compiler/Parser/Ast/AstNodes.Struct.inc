@@ -1160,6 +1160,7 @@ struct AstDependenciesBlock : AstCompoundT<AstNodeId::DependenciesBlock>
 // -----------------------------------------------------------------------------
 struct AstUsingDecl : AstCompoundT<AstNodeId::UsingDecl>
 {
+    Result     semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const;
     Result     semaPostNode(Sema& sema) const;
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };

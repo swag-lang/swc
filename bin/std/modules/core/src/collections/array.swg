@@ -736,12 +736,14 @@ impl Array
 
     // Sorts the array in ascending order using the default comparison operator.
     mtd sort()
+        where Reflection.canCompare(T)
     {
         Slice.sort(.toSlice(), func(x, y: T)->s32 => x <=> y)
     }
 
     // Sorts the array in descending order.
     mtd sortReverse()
+        where Reflection.canCompare(T)
     {
         Slice.sort(.toSlice(), func(x, y: T)->s32 => y <=> x)
     }

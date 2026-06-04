@@ -187,7 +187,26 @@ namespace
         const ConstantValue& leftCst     = sema.cstMgr().get(leftCstRef);
         const ConstantValue& rightCst    = sema.cstMgr().get(rightCstRef);
         const TypeInfo&      leftCstType = leftCst.type(sema.ctx());
-        const TypeInfo&      storageType = shouldKeepLeftAliasResult(nodeLeftView) ? aliasType(sema, nodeLeftView) : leftCstType;
+
+        // A shift's result type is the LEFT operand's type; the shift amount must
+        // never re-sign it. Promotion above widens the value (so e.g. `1'u16 << 16`
+        // can hold 65536) but unifies the SIGN with the count, which would turn
+        // `1's32 << someUnsignedConst` unsigned and silently make a later arithmetic
+        // `>>` a logical shift. Restore the left operand's sign while keeping the
+        // promoted width.
+        TypeRef shiftStorageRef = TypeRef::invalid();
+        if ((op == TokenId::SymLowerLower || op == TokenId::SymGreaterGreater) &&
+            !shouldKeepLeftAliasResult(nodeLeftView) &&
+            leftType.isInt() && !leftType.isIntUnsized() &&
+            leftCstType.isInt() && !leftCstType.isIntUnsized() &&
+            leftType.payloadIntSign() != leftCstType.payloadIntSign())
+        {
+            shiftStorageRef = sema.typeMgr().typeInt(leftCstType.payloadIntBits(), leftType.payloadIntSign());
+        }
+
+        const TypeInfo& storageType = shiftStorageRef.isValid()
+                                          ? sema.typeMgr().get(shiftStorageRef)
+                                          : (shouldKeepLeftAliasResult(nodeLeftView) ? aliasType(sema, nodeLeftView) : leftCstType);
 
         // Wrap and promote modifiers can only be applied to int-like values.
         if (node.modifierFlags.hasAny({AstModifierFlagsE::Wrap, AstModifierFlagsE::Promote}))

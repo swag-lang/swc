@@ -116,7 +116,7 @@ fileprivate
 
     #[Inline]
     {
-        func descale(x: s64, n: u32)->s32 => cast(s32) ((x + (1's64 << (n - 1))) >> n)
+        func descale(x: s32, n: u32)->s32 => cast(s32) ((x + (1's32 << (n - 1))) >> n)
         func clamp(i: s32)->u8            => cast(u8) ((i & cast #bit (s32) 0xFFFFFF00) ? ((~i >> 31) & 0xFF) : i)
 
         func extendSign(r: u32, s: s32)->s32
@@ -563,15 +563,15 @@ impl Decoder
                 continue
             }
 
-            var z2 = cast(s64) dataPtr[2]
-            var z3 = cast(s64) dataPtr[6]
+            var z2 = cast(s32) dataPtr[2]
+            var z3 = cast(s32) dataPtr[6]
 
             var z1   = (z2 + z3) * Fix_0_541196100
             var tmp2 = z1 + (z3 * -Fix_1_847759065)
             var tmp3 = z1 + (z2 * Fix_0_765366865)
 
-            let s0 = cast(s64) dataPtr[0]
-            let s4 = cast(s64) dataPtr[4]
+            let s0 = cast(s32) dataPtr[0]
+            let s4 = cast(s32) dataPtr[4]
 
             var tmp0 = (s0 + s4) << ConstBits
             var tmp1 = (s0 - s4) << ConstBits
@@ -581,10 +581,10 @@ impl Decoder
             let tmp11 = tmp1 + tmp2
             let tmp12 = tmp1 - tmp2
 
-            tmp0 = cast(s64) dataPtr[7]
-            tmp1 = cast(s64) dataPtr[5]
-            tmp2 = cast(s64) dataPtr[3]
-            tmp3 = cast(s64) dataPtr[1]
+            tmp0 = cast(s32) dataPtr[7]
+            tmp1 = cast(s32) dataPtr[5]
+            tmp2 = cast(s32) dataPtr[3]
+            tmp3 = cast(s32) dataPtr[1]
 
             z1 = tmp0 + tmp3
             z2 = tmp1 + tmp2
@@ -627,7 +627,7 @@ impl Decoder
         {
             if (dataPtr[8 * 1] | dataPtr[8 * 2] | dataPtr[8 * 3] | dataPtr[8 * 4] | dataPtr[8 * 5] | dataPtr[8 * 6] | dataPtr[8 * 7]) == 0
             {
-                var dcval = descale(cast(s64) dataPtr[0], Pass1Bits + 3)
+                var dcval = descale(cast(s32) dataPtr[0], Pass1Bits + 3)
                 dcval += 128
                 dcval = Math.clamp(dcval, 0, 255)
                 let dcval8 = cast(u8) dcval
@@ -646,15 +646,15 @@ impl Decoder
                 continue
             }
 
-            var z2 = cast(s64) dataPtr[8 * 2]
-            var z3 = cast(s64) dataPtr[8 * 6]
+            var z2 = cast(s32) dataPtr[8 * 2]
+            var z3 = cast(s32) dataPtr[8 * 6]
 
             var z1   = (z2 + z3) * Fix_0_541196100
             var tmp2 = z1 + (z3 * -Fix_1_847759065)
             var tmp3 = z1 + (z2 * Fix_0_765366865)
 
-            let s0 = cast(s64) dataPtr[8 * 0]
-            let s4 = cast(s64) dataPtr[8 * 4]
+            let s0 = cast(s32) dataPtr[8 * 0]
+            let s4 = cast(s32) dataPtr[8 * 4]
 
             var tmp0 = (s0 + s4) << ConstBits
             var tmp1 = (s0 - s4) << ConstBits
@@ -664,10 +664,10 @@ impl Decoder
             let tmp11 = tmp1 + tmp2
             let tmp12 = tmp1 - tmp2
 
-            tmp0 = cast(s64) dataPtr[8 * 7]
-            tmp1 = cast(s64) dataPtr[8 * 5]
-            tmp2 = cast(s64) dataPtr[8 * 3]
-            tmp3 = cast(s64) dataPtr[8 * 1]
+            tmp0 = cast(s32) dataPtr[8 * 7]
+            tmp1 = cast(s32) dataPtr[8 * 5]
+            tmp2 = cast(s32) dataPtr[8 * 3]
+            tmp3 = cast(s32) dataPtr[8 * 1]
 
             z1 = tmp0 + tmp3
             z2 = tmp1 + tmp2

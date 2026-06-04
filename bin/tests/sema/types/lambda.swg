@@ -27,6 +27,15 @@ struct RecursiveClosureField
     cb: func||(RecursiveClosureField)
 }
 
+struct(T) LambdaTypeBox
+{
+    value: T
+}
+
+var LambdaBoxA: LambdaTypeBox'func||(s32)
+var LambdaBoxB: LambdaTypeBox'func||(s32)
+#assert(#typeof(LambdaBoxA) == #typeof(LambdaBoxB))
+
 var I: func() = null
 var J: func(...) = null
 var K: func(s32...) = null

@@ -1,9 +1,17 @@
 #global fileprivate
 using Swag
 
+#[AttrUsage(AttributeUsage.Function)]
+attr MessageMarker()
+
 func MessageBatchEarly()->s32 => 3
 public func MessageBatchLate()->s32 => 11
 func MessagePlaceholderOnly(value: s32)->s32;
+
+#[MessageMarker]
+func MessageMarkedNoParam()->u32 => 1
+
+func MessagePlainNoParam()->u32 => 2
 
 struct MessageLateType
 {
@@ -46,6 +54,12 @@ var MessageSawCompilerOnlyFunction = false
 var MessageSawPlaceholderFunction = false
 
 #[Compiler]
+var MessageSawMarkedNoParam = false
+
+#[Compiler]
+var MessageSawPlainNoParam = false
+
+#[Compiler]
 var MessageEarlyFunctionCount = 0
 
 #[Compiler]
@@ -53,6 +67,12 @@ var MessageLateFunctionCount = 0
 
 #[Compiler]
 var MessagePlaceholderFunctionCount = 0
+
+#[Compiler]
+var MessageMarkedNoParamCount = 0
+
+#[Compiler]
+var MessagePlainNoParamCount = 0
 
 #[Compiler]
 var MessageLateTypeCount = 0
@@ -101,6 +121,30 @@ var MessageUnknownCountArrayCount = 0
         @assert(typeFunc.parameters[0].name == "value")
         @assert(typeFunc.parameters[0].pointedType.name == "s32")
         @assert(typeFunc.returnType.name == "s32")
+    }
+
+    if msg.name == "MessageMarkedNoParam"
+    {
+        MessageMarkedNoParamCount += 1
+        MessageSawMarkedNoParam = true
+        let typeFunc = cast(const *TypeInfoFunc) msg.type
+        @assert(@countof(typeFunc.parameters) == 0)
+        @assert(typeFunc.returnType.name == "u32")
+        var foundMarker = false
+        foreach attribute in typeFunc.attributes where attribute.type == #typeof(MessageMarker) do
+            foundMarker = true
+        @assert(foundMarker)
+    }
+
+    if msg.name == "MessagePlainNoParam"
+    {
+        MessagePlainNoParamCount += 1
+        MessageSawPlainNoParam = true
+        let typeFunc = cast(const *TypeInfoFunc) msg.type
+        @assert(@countof(typeFunc.parameters) == 0)
+        @assert(typeFunc.returnType.name == "u32")
+        foreach attribute in typeFunc.attributes do
+            @assert(attribute.type != #typeof(MessageMarker))
     }
 }
 
@@ -168,6 +212,8 @@ var MessageUnknownCountArrayCount = 0
     @assert(MessageSawEarlyFunction)
     @assert(MessageSawLateFunction)
     @assert(MessageSawPlaceholderFunction)
+    @assert(MessageSawMarkedNoParam)
+    @assert(MessageSawPlainNoParam)
     @assert(MessageSawLateType)
     @assert(MessageSawLateGlobal)
     @assert(MessageSawStrictAlias)
@@ -176,6 +222,8 @@ var MessageUnknownCountArrayCount = 0
     @assert(MessageEarlyFunctionCount == 1)
     @assert(MessageLateFunctionCount == 1)
     @assert(MessagePlaceholderFunctionCount == 1)
+    @assert(MessageMarkedNoParamCount == 1)
+    @assert(MessagePlainNoParamCount == 1)
     @assert(MessageLateTypeCount == 1)
     @assert(MessageLateGlobalCount == 1)
     @assert(MessageStrictAliasCount == 1)

@@ -61,6 +61,27 @@ namespace
             return nullptr;
         return sym;
     }
+
+    bool sameFunctionTypeInfoSignature(const SymbolFunction& lhs, const SymbolFunction& rhs) noexcept
+    {
+        if (!lhs.usesStructuralTypeIdentity() || !rhs.usesStructuralTypeIdentity())
+            return &lhs == &rhs;
+
+        if (!lhs.sameTypeSignature(rhs))
+            return false;
+
+        const auto& lhsParams = lhs.parameters();
+        const auto& rhsParams = rhs.parameters();
+        for (uint32_t i = 0; i < lhsParams.size(); ++i)
+        {
+            SWC_ASSERT(lhsParams[i] != nullptr);
+            SWC_ASSERT(rhsParams[i] != nullptr);
+            if (lhsParams[i]->idRef() != rhsParams[i]->idRef())
+                return false;
+        }
+
+        return true;
+    }
 }
 
 TypeInfo::~TypeInfo()
@@ -382,7 +403,7 @@ bool TypeInfo::operator==(const TypeInfo& other) const noexcept
         case TypeInfoKind::Alias:
             return payloadAlias_.sym == other.payloadAlias_.sym;
         case TypeInfoKind::Function:
-            return payloadFunction_.sym == other.payloadFunction_.sym;
+            return sameFunctionTypeInfoSignature(*payloadFunction_.sym, *other.payloadFunction_.sym);
 
         case TypeInfoKind::Array:
             if (payloadArray_.dims.size() != other.payloadArray_.dims.size())

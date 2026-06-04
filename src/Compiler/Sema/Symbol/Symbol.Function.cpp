@@ -655,8 +655,16 @@ bool SymbolFunction::supportsPublicApiForeignExport() const noexcept
            decl()->safeCast<AstFunctionDecl>();
 }
 
+bool SymbolFunction::usesStructuralTypeIdentity() const noexcept
+{
+    return decl() && decl()->is(AstNodeId::LambdaType);
+}
+
 uint32_t SymbolFunction::typeSignatureHash() const noexcept
 {
+    if (!usesStructuralTypeIdentity())
+        return Math::hashCombine(Math::hash(0), static_cast<uint64_t>(reinterpret_cast<uintptr_t>(this)));
+
     uint32_t h = Math::hash(returnType_.get());
     h          = Math::hashCombine(h, static_cast<uint32_t>(callConvKind_));
     h          = Math::hashCombine(h, isClosure() ? 1u : 0u);
@@ -669,6 +677,7 @@ uint32_t SymbolFunction::typeSignatureHash() const noexcept
     {
         SWC_ASSERT(param != nullptr);
         h = Math::hashCombine(h, param->typeRef().get());
+        h = Math::hashCombine(h, param->idRef().get());
     }
 
     return h;

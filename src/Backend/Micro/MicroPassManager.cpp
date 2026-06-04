@@ -18,6 +18,7 @@
 #include "Backend/Micro/Passes/Pass.PrologEpilog.h"
 #include "Backend/Micro/Passes/Pass.PrologEpilogSanitize.h"
 #include "Backend/Micro/Passes/Pass.RegisterAllocation.h"
+#include "Backend/Micro/Passes/Pass.MemToReg.h"
 #include "Backend/Micro/Passes/Pass.StackAdjustNormalize.h"
 #include "Backend/Micro/Passes/Pass.StrengthReduction.h"
 #include "Main/Global.h"
@@ -393,6 +394,7 @@ MicroPassManager::MicroPassManager()
 {
     // Structural passes
     stackAdjustNormalizePass_ = std::make_unique<MicroStackAdjustNormalizePass>();
+    memToRegPass_             = std::make_unique<MicroMemToRegPass>();
     legalizePass_             = std::make_unique<MicroLegalizePass>();
     regAllocPass_             = std::make_unique<MicroRegisterAllocationPass>();
     prologEpilogPass_         = std::make_unique<MicroPrologEpilogPass>();
@@ -442,6 +444,12 @@ void MicroPassManager::configureDefaultPipeline(const bool optimize)
     if (optimize)
     {
         addPreRaLoopPass(*preRaPeepholePass_);
+        // mem2reg promotes non-escaping, non-loop-carried scalar stack slots to
+        // virtual registers. It runs after the peephole so the frame-base
+        // computation (`mov reg, sp; add reg, C`) has been folded into a single
+        // `lea reg, [sp + C]` it can recognize; the promoted register copies are
+        // then cleaned up by copy elimination and the rest of the loop.
+        addPreRaLoopPass(*memToRegPass_);
         addPreRaLoopPass(*constantFoldingPass_);
         addPreRaLoopPass(*copyEliminationPass_);
         addPreRaLoopPass(*instructionCombinePass_);

@@ -385,14 +385,33 @@ namespace
         return true;
     }
 
-    bool tryEmitReferenceValueCast(CodeGen& codeGen, AstNodeRef srcNodeRef, TypeRef sourceTypeRef, TypeRef dstTypeRef)
+    bool tryEmitIndirectValueCast(CodeGen& codeGen, AstNodeRef srcNodeRef, TypeRef sourceTypeRef, TypeRef dstTypeRef)
     {
-        if (!Cast::referenceValueCastTypeRef(codeGen.sema(), sourceTypeRef, dstTypeRef).isValid())
+        if (!Cast::indirectValueCastTypeRef(codeGen.sema(), sourceTypeRef, dstTypeRef).isValid())
             return false;
 
-        TypeRef            readTypeRef = sourceTypeRef;
-        CodeGenNodePayload readPayload = sourcePayloadForCast(codeGen, srcNodeRef);
-        CodeGenReferenceHelpers::unwrapAliasRefPayload(codeGen, readPayload, readTypeRef);
+        TypeRef                  readTypeRef = sourceTypeRef;
+        CodeGenNodePayload       readPayload = sourcePayloadForCast(codeGen, srcNodeRef);
+        const TypeManager&       typeMgr     = codeGen.typeMgr();
+        const TypeRef            sourceTypeToCheckRef = unwrapAliasEnumTypeRef(typeMgr, codeGen.ctx(), sourceTypeRef);
+        const TypeInfo&          sourceType = typeMgr.get(sourceTypeToCheckRef.isValid() ? sourceTypeToCheckRef : sourceTypeRef);
+        if (sourceType.isAnyPointer())
+        {
+            if (readPayload.isAddress())
+            {
+                const MicroReg pointerReg = codeGen.nextVirtualIntRegister();
+                codeGen.builder().emitLoadRegMem(pointerReg, readPayload.reg, 0, MicroOpBits::B64);
+                readPayload.reg = pointerReg;
+            }
+
+            readTypeRef         = sourceType.payloadTypeRef();
+            readPayload.typeRef = readTypeRef;
+            readPayload.setIsAddress();
+        }
+        else
+        {
+            CodeGenReferenceHelpers::unwrapAliasRefPayload(codeGen, readPayload, readTypeRef);
+        }
         SWC_ASSERT(readTypeRef.isValid());
         SWC_ASSERT(!codeGen.typeMgr().get(readTypeRef).isReference());
         SWC_ASSERT(readPayload.isAddress());
@@ -1434,7 +1453,7 @@ namespace
         if (handledReferenceScalarNumericCast)
             return Result::Continue;
 
-        if (tryEmitReferenceValueCast(codeGen, srcNodeRef, sourceTypeRef, dstTypeRef))
+        if (tryEmitIndirectValueCast(codeGen, srcNodeRef, sourceTypeRef, dstTypeRef))
             return Result::Continue;
 
         if (tryEmitReferenceToPointerCast(codeGen, srcPayload, sourceTypeRef, dstTypeRef))

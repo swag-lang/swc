@@ -314,7 +314,7 @@ namespace
         return Result::Continue;
     }
 
-    ConstantRef readReferenceValueConstant(Sema& sema, ConstantRef refCstRef, TypeRef valueTypeRef)
+    ConstantRef readIndirectValueConstant(Sema& sema, ConstantRef refCstRef, TypeRef valueTypeRef)
     {
         if (refCstRef.isInvalid() || !valueTypeRef.isValid())
             return ConstantRef::invalid();
@@ -1217,16 +1217,16 @@ Result Cast::castFromUndefined(const Sema& sema, const CastRequest& castRequest,
     return Result::Continue;
 }
 
-Result Cast::castFromReference(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef)
+Result Cast::castFromIndirectValue(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef)
 {
-    const TypeRef valueTypeRef = referenceValueCastTypeRef(sema, srcTypeRef, dstTypeRef);
+    const TypeRef valueTypeRef = indirectValueCastTypeRef(sema, srcTypeRef, dstTypeRef);
     if (!valueTypeRef.isValid())
         return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
 
     if (!castRequest.isConstantFolding())
         return Result::Continue;
 
-    const ConstantRef valueCstRef = readReferenceValueConstant(sema, castRequest.constantFoldingSrc(), valueTypeRef);
+    const ConstantRef valueCstRef = readIndirectValueConstant(sema, castRequest.constantFoldingSrc(), valueTypeRef);
     if (!valueCstRef.isValid())
         return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
 
@@ -1370,7 +1370,7 @@ Result Cast::castAllowed(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRe
     const TypeManager& typeMgr = sema.typeMgr();
     const TypeInfo&    srcType = typeMgr.get(srcTypeRef);
     const TypeInfo&    dstType = typeMgr.get(dstTypeRef);
-    const TypeRef      referenceValueTypeRef = referenceValueCastTypeRef(sema, srcTypeRef, dstTypeRef);
+    const TypeRef      indirectValueTypeRef  = indirectValueCastTypeRef(sema, srcTypeRef, dstTypeRef);
 
     if (isImplicitNullableQualificationCast(srcType, dstType))
         return castAddNullableQualifier(castRequest);
@@ -1387,8 +1387,8 @@ Result Cast::castAllowed(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRe
         const bool allowAliasAnyCast          = dstType.isAny();
         const bool allowAliasNullableCast     = isImplicitNullableQualificationCast(resolvedSrcType, resolvedDstType);
         const bool allowAliasUfcsReceiverCast = castRequest.flags.has(CastFlagsE::UfcsArgument) && resolvedSrcType.isAnyPointer() && resolvedDstType.isReference();
-        const bool allowAliasReferenceValueCast = referenceValueTypeRef.isValid();
-        if (castRequest.kind != CastKind::Explicit && !allowAliasBoolCast && !allowAliasNullCast && !allowAliasAnyCast && !allowAliasNullableCast && !allowAliasUfcsReceiverCast && !allowAliasReferenceValueCast)
+        const bool allowAliasIndirectValueCast = indirectValueTypeRef.isValid();
+        if (castRequest.kind != CastKind::Explicit && !allowAliasBoolCast && !allowAliasNullCast && !allowAliasAnyCast && !allowAliasNullableCast && !allowAliasUfcsReceiverCast && !allowAliasIndirectValueCast)
             return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
     }
 
@@ -1405,8 +1405,8 @@ Result Cast::castAllowed(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRe
             return castRequest.fail(DiagnosticId::sema_err_cannot_cast_const, srcTypeRef, dstTypeRef);
         res = castToAny(sema, castRequest, srcTypeRef, dstTypeRef);
     }
-    else if (referenceValueTypeRef.isValid())
-        res = castFromReference(sema, castRequest, srcTypeRef, dstTypeRef);
+    else if (indirectValueTypeRef.isValid())
+        res = castFromIndirectValue(sema, castRequest, srcTypeRef, dstTypeRef);
     else if (srcType.isAlias())
         res = castAllowed(sema, castRequest, srcType.payloadSymAlias().underlyingTypeRef(), dstTypeRef);
     else if (srcType.isAny())

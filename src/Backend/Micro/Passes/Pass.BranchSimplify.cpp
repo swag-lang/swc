@@ -466,6 +466,132 @@ namespace
         return changed;
     }
 
+    // Logical complement of a branch condition at the CPU-flag level. The pairs
+    // are exact complements over (CF, ZF, SF, OF, PF), so flipping is valid for
+    // both integer and floating-point (unordered) comparisons. `Sign` has no
+    // representable complement in the enum, so it (and anything unexpected)
+    // reports failure and blocks the rewrite.
+    bool invertBranchCondition(MicroCond cond, MicroCond& outInverted)
+    {
+        switch (cond)
+        {
+            case MicroCond::Equal: outInverted = MicroCond::NotEqual; return true;
+            case MicroCond::NotEqual: outInverted = MicroCond::Equal; return true;
+            case MicroCond::Zero: outInverted = MicroCond::NotZero; return true;
+            case MicroCond::NotZero: outInverted = MicroCond::Zero; return true;
+            case MicroCond::Less: outInverted = MicroCond::GreaterOrEqual; return true;
+            case MicroCond::GreaterOrEqual: outInverted = MicroCond::Less; return true;
+            case MicroCond::Greater: outInverted = MicroCond::LessOrEqual; return true;
+            case MicroCond::LessOrEqual: outInverted = MicroCond::Greater; return true;
+            case MicroCond::Below: outInverted = MicroCond::AboveOrEqual; return true;
+            case MicroCond::AboveOrEqual: outInverted = MicroCond::Below; return true;
+            case MicroCond::Above: outInverted = MicroCond::BelowOrEqual; return true;
+            case MicroCond::BelowOrEqual: outInverted = MicroCond::Above; return true;
+            case MicroCond::NotAbove: outInverted = MicroCond::Above; return true;
+            case MicroCond::Overflow: outInverted = MicroCond::NotOverflow; return true;
+            case MicroCond::NotOverflow: outInverted = MicroCond::Overflow; return true;
+            case MicroCond::Parity: outInverted = MicroCond::NotParity; return true;
+            case MicroCond::NotParity: outInverted = MicroCond::Parity; return true;
+            case MicroCond::EvenParity: outInverted = MicroCond::NotEvenParity; return true;
+            case MicroCond::NotEvenParity: outInverted = MicroCond::EvenParity; return true;
+            default: return false;
+        }
+    }
+
+    // Fuse a materialized-boolean branch back onto the comparison flags that
+    // produced it:
+    //
+    //     cmp   a, b              cmp   a, b
+    //     setcc CC, Rb            (Rb left for DCE)
+    //     [zext Rb, Rb]      ->   (left for DCE)
+    //     cmp   Rb, 0            (erased)
+    //     je/jne .L              j(~CC)/j(CC) .L      ; tests a?b flags directly
+    //
+    // `setcc` and the optional widening never touch CPU flags, so once the
+    // `cmp Rb, 0` is removed the branch observes exactly the flags `setcc`
+    // consumed. Testing the boolean for zero is the logical complement of `CC`
+    // (`je`), testing for non-zero is `CC` itself (`jne`). The boolean
+    // definition is not erased here: dead-code elimination drops it on the next
+    // sweep once `Rb` has no remaining users, which keeps this rewrite free of
+    // liveness reasoning while still folding the common case.
+    //
+    // Matching is by strict program-order adjacency so the flag chain is
+    // provably uninterrupted; a copy or unrelated instruction between the
+    // setcc and the branch simply prevents the fold until earlier cleanups
+    // (copy elimination) make the sequence contiguous.
+    bool fuseMaterializedBoolBranches(MicroStorage& storage, MicroOperandStorage& operands)
+    {
+        bool changed = false;
+        for (auto it = storage.view().begin(); it != storage.view().end();)
+        {
+            const MicroInstrRef jumpRef  = it.current;
+            MicroInstr&         jumpInst = *it;
+            ++it;
+
+            if (jumpInst.op != MicroInstrOpcode::JumpCond)
+                continue;
+
+            MicroInstrOperand* jumpOps = jumpInst.ops(operands);
+            if (!jumpOps)
+                continue;
+
+            const MicroCond jumpCond = jumpOps[0].cpuCond;
+            bool            branchOnBoolZero;
+            if (jumpCond == MicroCond::Equal || jumpCond == MicroCond::Zero)
+                branchOnBoolZero = true;
+            else if (jumpCond == MicroCond::NotEqual || jumpCond == MicroCond::NotZero)
+                branchOnBoolZero = false;
+            else
+                continue;
+
+            const MicroInstrRef cmpRef = storage.findPreviousInstructionRef(jumpRef);
+            if (!cmpRef.isValid())
+                continue;
+            const MicroInstr* cmpInst = storage.ptr(cmpRef);
+            if (!cmpInst || cmpInst->op != MicroInstrOpcode::CmpRegImm)
+                continue;
+            const MicroInstrOperand* cmpOps = cmpInst->ops(operands);
+            if (!cmpOps || cmpOps[2].hasWideImmediateValue() || cmpOps[2].valueU64 != 0)
+                continue;
+
+            const MicroReg boolReg = cmpOps[0].reg;
+            if (!boolReg.isVirtual())
+                continue;
+
+            MicroInstrRef     defRef  = storage.findPreviousInstructionRef(cmpRef);
+            const MicroInstr* defInst = defRef.isValid() ? storage.ptr(defRef) : nullptr;
+            if (!defInst)
+                continue;
+
+            if (defInst->op == MicroInstrOpcode::LoadZeroExtRegReg || defInst->op == MicroInstrOpcode::LoadSignedExtRegReg)
+            {
+                const MicroInstrOperand* extOps = defInst->ops(operands);
+                if (!extOps || extOps[0].reg != boolReg || extOps[1].reg != boolReg)
+                    continue;
+                defRef  = storage.findPreviousInstructionRef(defRef);
+                defInst = defRef.isValid() ? storage.ptr(defRef) : nullptr;
+                if (!defInst)
+                    continue;
+            }
+
+            if (defInst->op != MicroInstrOpcode::SetCondReg)
+                continue;
+            const MicroInstrOperand* setOps = defInst->ops(operands);
+            if (!setOps || setOps[0].reg != boolReg)
+                continue;
+
+            const MicroCond setCond = setOps[1].cpuCond;
+            MicroCond       newCond = setCond;
+            if (branchOnBoolZero && !invertBranchCondition(setCond, newCond))
+                continue;
+
+            jumpOps[0].cpuCond = newCond;
+            changed |= storage.erase(cmpRef);
+        }
+
+        return changed;
+    }
+
     bool redirectJumpChains(MicroStorage& storage, MicroOperandStorage& operands)
     {
         ProgramLayout layout;
@@ -631,6 +757,8 @@ Result MicroBranchSimplifyPass::run(MicroPassContext& context)
     bool changed = false;
     if (ssaState && ssaState->isValid())
         changed |= foldKnownBranches(storage, operands, *ssaState, knownValues, knownFlags);
+
+    changed |= fuseMaterializedBoolBranches(storage, operands);
 
     bool structuralChanged = true;
     while (structuralChanged)

@@ -111,14 +111,11 @@ namespace
                 return promotedTypeRef;
 
             const TypeInfo& promotedType = codeGen.typeMgr().get(promotedTypeRef);
-            // Widen 32-bit numeric compares to the backend's 64-bit comparison form so arithmetic and
-            // relational lowering agree on the register representation.
-            if (promotedType.isIntLike() && promotedType.payloadIntLikeBitsOr(64) == 32)
-            {
-                const TypeInfo::Sign sign = promotedType.isIntUnsigned() ? TypeInfo::Sign::Unsigned : TypeInfo::Sign::Signed;
-                return codeGen.typeMgr().typeInt(64, sign);
-            }
-
+            // Integer compares run at their natural promoted width. An N-bit
+            // comparison reads only the low N bits, so it is correct regardless of
+            // the register's upper bits and needs no widening sign/zero-extend
+            // (which the previous 32 -> 64 widening emitted on every compare).
+            // Floats still widen f32 -> f64 for the backend's comparison form.
             if (promotedType.isFloat() && promotedType.payloadFloatBitsOr(64) == 32)
                 return codeGen.typeMgr().typeFloat(64);
 
@@ -326,34 +323,14 @@ namespace
         return Result::Continue;
     }
 
+    // Integer compares run at their natural width (see resolveCompareTypeRef);
+    // only floats are widened to the backend's f64 comparison form.
     void widenCompareRegsIfNeeded(MicroReg& leftReg, MicroReg& rightReg, CodeGen& codeGen, const TypeInfo& compareType, MicroOpBits& ioOpBits)
     {
         if (ioOpBits != MicroOpBits::B32)
             return;
 
         MicroBuilder& builder = codeGen.builder();
-        if (compareType.isIntLike())
-        {
-            constexpr auto widenedBits  = MicroOpBits::B64;
-            const MicroReg widenedLeft  = codeGen.nextVirtualIntRegister();
-            const MicroReg widenedRight = codeGen.nextVirtualIntRegister();
-            if (compareType.isIntSigned())
-            {
-                builder.emitLoadSignedExtendRegReg(widenedLeft, leftReg, widenedBits, ioOpBits);
-                builder.emitLoadSignedExtendRegReg(widenedRight, rightReg, widenedBits, ioOpBits);
-            }
-            else
-            {
-                builder.emitLoadZeroExtendRegReg(widenedLeft, leftReg, widenedBits, ioOpBits);
-                builder.emitLoadZeroExtendRegReg(widenedRight, rightReg, widenedBits, ioOpBits);
-            }
-
-            leftReg  = widenedLeft;
-            rightReg = widenedRight;
-            ioOpBits = widenedBits;
-            return;
-        }
-
         if (compareType.isFloat())
         {
             constexpr auto widenedBits  = MicroOpBits::B64;

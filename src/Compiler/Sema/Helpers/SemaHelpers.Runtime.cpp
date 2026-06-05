@@ -77,6 +77,30 @@ TypeRef SemaHelpers::borrowedAggregateArgumentRuntimeStorageTypeRef(Sema& sema, 
     return TypeRef::invalid();
 }
 
+static TypeRef referenceBoundAggregateArgumentRuntimeStorageTypeRef(Sema& sema, TypeRef paramTypeRef, AstNodeRef argRef)
+{
+    if (sema.isGlobalScope() || argRef.isInvalid() || !paramTypeRef.isValid())
+        return TypeRef::invalid();
+    if (sema.isLValue(argRef) && !sema.viewConstant(argRef).hasConstant())
+        return TypeRef::invalid();
+
+    const TypeInfo& paramType = sema.typeMgr().get(paramTypeRef);
+    if (!paramType.isReference())
+        return TypeRef::invalid();
+
+    TypeRef storageTypeRef = paramType.payloadTypeRef();
+    const TypeInfo& storageType = sema.typeMgr().get(storageTypeRef);
+    const TypeRef unwrappedStorageTypeRef = storageType.unwrap(sema.ctx(), storageTypeRef, TypeExpandE::Alias | TypeExpandE::Enum);
+    if (unwrappedStorageTypeRef.isValid())
+        storageTypeRef = unwrappedStorageTypeRef;
+
+    const TypeInfo& resolvedStorageType = sema.typeMgr().get(storageTypeRef);
+    if (resolvedStorageType.isStruct() || resolvedStorageType.isArray() || resolvedStorageType.isAggregate() || (resolvedStorageType.isFunction() && resolvedStorageType.isLambdaClosure()))
+        return storageTypeRef;
+
+    return TypeRef::invalid();
+}
+
 Result SemaHelpers::attachBorrowedAggregateArgumentRuntimeStorageIfNeeded(Sema& sema, const SymbolFunction& calledFn, TypeRef paramTypeRef, AstNodeRef argRef)
 {
     if (argRef.isInvalid())
@@ -89,7 +113,11 @@ Result SemaHelpers::attachBorrowedAggregateArgumentRuntimeStorageIfNeeded(Sema& 
     }
 
     const TypeRef storageTypeRef = borrowedAggregateArgumentRuntimeStorageTypeRef(sema, calledFn, paramTypeRef);
-    return attachRuntimeStorageIfNeeded(sema, argRef, sema.node(argRef), storageTypeRef, "__call_arg_ref_storage");
+    if (storageTypeRef.isValid())
+        return attachRuntimeStorageIfNeeded(sema, argRef, sema.node(argRef), storageTypeRef, "__call_arg_ref_storage");
+
+    const TypeRef referenceStorageTypeRef = referenceBoundAggregateArgumentRuntimeStorageTypeRef(sema, paramTypeRef, argRef);
+    return attachRuntimeStorageIfNeeded(sema, argRef, sema.node(argRef), referenceStorageTypeRef, "__call_arg_ref_storage");
 }
 
 TypeRef SemaHelpers::indirectReturnRuntimeStorageTypeRef(Sema& sema, const SymbolFunction& calledFn)

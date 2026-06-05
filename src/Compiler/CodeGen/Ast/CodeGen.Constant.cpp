@@ -9,6 +9,7 @@
 #include "Compiler/Sema/Constant/ConstantLower.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
+#include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
 
@@ -57,6 +58,157 @@ namespace
             remainingDims.push_back(dims[i]);
 
         return codeGen.typeMgr().addType(TypeInfo::makeArray(remainingDims.span(), arrayType.payloadArrayElemTypeRef(), arrayType.flags()));
+    }
+
+    AstNodeRef codeGenErrorNodeRef(CodeGen& codeGen)
+    {
+        const AstNodeRef currentNodeRef = codeGen.viewZero(codeGen.curNodeRef()).nodeRef();
+        if (currentNodeRef.isValid())
+            return currentNodeRef;
+
+        const AstNodeRef functionDeclRef = codeGen.viewZero(codeGen.function().declNodeRef()).nodeRef();
+        SWC_ASSERT(functionDeclRef.isValid());
+        return functionDeclRef;
+    }
+
+    Result raiseConstantMaterializationError(CodeGen& codeGen, std::string_view because)
+    {
+        auto diag = SemaError::report(codeGen.sema(), DiagnosticId::misc_err_internal_codegen_failure, codeGenErrorNodeRef(codeGen));
+        diag.addArgument(Diagnostic::ARG_WHAT, codeGen.function().getFullScopedName(codeGen.ctx()));
+        diag.addArgument(Diagnostic::ARG_BECAUSE, because);
+        diag.report(codeGen.ctx());
+        return Result::Error;
+    }
+
+    void emitPayloadBytesToAddress(CodeGen& codeGen, MicroReg dstReg, ByteSpan bytes)
+    {
+        MicroBuilder& builder = codeGen.builder();
+        uint32_t      offset  = 0;
+        while (offset < bytes.size())
+        {
+            const uint32_t remaining = static_cast<uint32_t>(bytes.size() - offset);
+            uint32_t       chunkSize = 1;
+            MicroOpBits    storeBits = MicroOpBits::B8;
+            if (remaining >= 8)
+            {
+                chunkSize = 8;
+                storeBits = MicroOpBits::B64;
+            }
+            else if (remaining >= 4)
+            {
+                chunkSize = 4;
+                storeBits = MicroOpBits::B32;
+            }
+            else if (remaining >= 2)
+            {
+                chunkSize = 2;
+                storeBits = MicroOpBits::B16;
+            }
+
+            uint64_t value = 0;
+            for (uint32_t i = 0; i < chunkSize; ++i)
+                value |= static_cast<uint64_t>(static_cast<uint8_t>(bytes[offset + i])) << (i * 8);
+            builder.emitLoadMemImm(dstReg, offset, ApInt(value, 64), storeBits);
+            offset += chunkSize;
+        }
+    }
+
+    bool tryRuntimeStorageAddressReg(CodeGen& codeGen, const SymbolVariable& storageSym, MicroReg& outStorageReg)
+    {
+        outStorageReg = MicroReg::invalid();
+
+        if (CodeGenFunctionHelpers::usesCallerReturnStorage(codeGen, storageSym))
+        {
+            const CodeGenNodePayload storagePayload = CodeGenFunctionHelpers::resolveCallerReturnStoragePayload(codeGen, storageSym);
+            SWC_ASSERT(storagePayload.isAddress());
+            outStorageReg = storagePayload.reg;
+            return outStorageReg.isValid();
+        }
+
+        if (storageSym.hasExtraFlag(SymbolVariableFlagsE::Parameter))
+        {
+            const CodeGenNodePayload storagePayload = CodeGenFunctionHelpers::materializeFunctionParameter(codeGen, codeGen.function(), storageSym);
+            if (!storagePayload.isAddress())
+                return false;
+
+            outStorageReg = storagePayload.reg;
+            return outStorageReg.isValid();
+        }
+
+        if (codeGen.localStackBaseReg().isValid() && (storageSym.hasExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack) || storageSym.hasExtraFlag(SymbolVariableFlagsE::FunctionLocal)))
+        {
+            const CodeGenNodePayload storagePayload = codeGen.resolveLocalStackPayload(storageSym);
+            SWC_ASSERT(storagePayload.isAddress());
+            outStorageReg = storagePayload.reg;
+            return outStorageReg.isValid();
+        }
+
+        if (storageSym.hasGlobalStorage())
+        {
+            outStorageReg = codeGen.nextVirtualIntRegister();
+            codeGen.builder().emitLoadRegDataSegmentReloc(outStorageReg, storageSym.globalStorageKind(), storageSym.offset());
+            return outStorageReg.isValid();
+        }
+
+        return false;
+    }
+
+    Result tryEmitRuntimeStorageConstant(CodeGen& codeGen, CodeGenNodePayload& payload, AstNodeRef storageNodeRef, ConstantRef cstRef, TypeRef targetTypeRef, bool& outHandled)
+    {
+        outHandled = false;
+        if (storageNodeRef.isInvalid() || payload.runtimeStorageSym == nullptr || cstRef.isInvalid())
+            return Result::Continue;
+
+        TypeRef storageTypeRef = payload.runtimeStorageSym->typeRef();
+        if (storageTypeRef.isInvalid())
+            storageTypeRef = targetTypeRef;
+        if (storageTypeRef.isInvalid())
+            return Result::Continue;
+
+        const TypeInfo& storageType = codeGen.typeMgr().get(storageTypeRef);
+        if (!storageType.isArray() && !storageType.isStruct())
+            return Result::Continue;
+
+        const uint64_t storageSize = storageType.sizeOf(codeGen.ctx());
+        SWC_ASSERT(storageSize <= std::numeric_limits<uint32_t>::max());
+        if (storageSize > std::numeric_limits<uint32_t>::max())
+            return raiseConstantMaterializationError(codeGen, "constant runtime storage is too large");
+
+        MicroReg storageReg = MicroReg::invalid();
+        if (!tryRuntimeStorageAddressReg(codeGen, *payload.runtimeStorageSym, storageReg))
+            return Result::Continue;
+
+        const ConstantRef staticCstRef = CodeGenConstantHelpers::ensureStaticPayloadConstant(codeGen, cstRef, storageTypeRef);
+        if (staticCstRef.isValid())
+        {
+            const ConstantValue& staticCst = codeGen.cstMgr().get(staticCstRef);
+            const ByteSpan staticBytes = staticCst.isArray() ? staticCst.getArray() : staticCst.getStruct();
+            SWC_ASSERT(staticBytes.size() == storageSize);
+            if (!staticBytes.empty())
+            {
+                const MicroReg staticReg = codeGen.nextVirtualIntRegister();
+                codeGen.builder().emitLoadRegPtrReloc(staticReg, reinterpret_cast<uint64_t>(staticBytes.data()), staticCstRef);
+                CodeGenMemoryHelpers::emitMemCopy(codeGen, storageReg, staticReg, static_cast<uint32_t>(storageSize));
+            }
+
+            payload.reg     = storageReg;
+            payload.typeRef = storageTypeRef;
+            payload.setIsAddress();
+            outHandled = true;
+            return Result::Continue;
+        }
+
+        SmallVector<std::byte> storageBytes;
+        storageBytes.resize(storageSize);
+        if (storageSize)
+            SWC_RESULT(ConstantLower::lowerToBytes(codeGen.sema(), ByteSpanRW{storageBytes.data(), storageBytes.size()}, cstRef, storageTypeRef));
+
+        emitPayloadBytesToAddress(codeGen, storageReg, ByteSpan{storageBytes.data(), storageBytes.size()});
+        payload.reg     = storageReg;
+        payload.typeRef = storageTypeRef;
+        payload.setIsAddress();
+        outHandled = true;
+        return Result::Continue;
     }
 
     bool computeLiteralLayout(CodeGen& codeGen, TypeRef storageTypeRef, std::span<const AstNodeRef> elementRefs, SmallVector<AggregateElementLayout>& outLayout, uint32_t& outTotalSize)
@@ -372,7 +524,7 @@ namespace
             codeGen.builder().emitLoadRegPtrImm(reg, value);
     }
 
-    Result emitConstantToPayload(CodeGen& codeGen, CodeGenNodePayload& payload, ConstantRef cstRef, const ConstantValue& cst, TypeRef targetTypeRef)
+    Result emitConstantToPayload(CodeGen& codeGen, CodeGenNodePayload& payload, ConstantRef cstRef, const ConstantValue& cst, TypeRef targetTypeRef, AstNodeRef storageNodeRef = AstNodeRef::invalid())
     {
         MicroBuilder& builder = codeGen.builder();
 
@@ -507,10 +659,16 @@ namespace
 
             case ConstantKind::Struct:
             {
+                bool handled = false;
+                SWC_RESULT(tryEmitRuntimeStorageConstant(codeGen, payload, storageNodeRef, cstRef, cst.typeRef(), handled));
+                if (handled)
+                    return Result::Continue;
+
                 ConstantRef safeCstRef = CodeGenConstantHelpers::ensureStaticPayloadConstant(codeGen, cstRef, cst.typeRef());
                 if (safeCstRef.isInvalid())
                     safeCstRef = materializeBorrowedStorageConstant(codeGen, cstRef, cst.typeRef());
-                SWC_ASSERT(safeCstRef.isValid());
+                if (safeCstRef.isInvalid())
+                    return raiseConstantMaterializationError(codeGen, "failed to materialize a struct constant payload");
                 const ConstantValue& safeCst     = codeGen.cstMgr().get(safeCstRef);
                 const ByteSpan       structBytes = safeCst.getStruct();
                 if (targetTypeRef.isValid())
@@ -533,6 +691,11 @@ namespace
 
             case ConstantKind::Array:
             {
+                bool handled = false;
+                SWC_RESULT(tryEmitRuntimeStorageConstant(codeGen, payload, storageNodeRef, cstRef, cst.typeRef(), handled));
+                if (handled)
+                    return Result::Continue;
+
                 const ByteSpan arrayBytes = cst.getArray();
                 if (targetTypeRef.isValid())
                 {
@@ -552,7 +715,8 @@ namespace
                         const TypeInfo&   elementType     = codeGen.typeMgr().get(targetType.payloadTypeRef());
                         const TypeInfo&   sourceArrayType = cst.type(codeGen.ctx());
                         const ConstantRef safeArrayCstRef = CodeGenConstantHelpers::ensureStaticPayloadConstant(codeGen, cstRef, cst.typeRef());
-                        SWC_ASSERT(safeArrayCstRef.isValid());
+                        if (safeArrayCstRef.isInvalid())
+                            return raiseConstantMaterializationError(codeGen, "failed to materialize an array constant payload");
                         const ConstantValue& safeArrayCst       = codeGen.cstMgr().get(safeArrayCstRef);
                         const ConstantRef    runtimeSliceCstRef = CodeGenConstantHelpers::materializeRuntimeBufferConstant(codeGen, targetTypeRef, safeArrayCst.getArray().data(), sliceCountFromArrayCast(codeGen, sourceArrayType, elementType));
                         SWC_ASSERT(runtimeSliceCstRef.isValid());
@@ -564,7 +728,8 @@ namespace
                 }
 
                 const ConstantRef safeCstRef = materializeBorrowedStorageConstant(codeGen, cstRef, cst.typeRef());
-                SWC_ASSERT(safeCstRef.isValid());
+                if (safeCstRef.isInvalid())
+                    return raiseConstantMaterializationError(codeGen, "failed to materialize an array constant payload");
                 const ConstantValue& safeCst = codeGen.cstMgr().get(safeCstRef);
 
                 const uint64_t storageSize = cst.type(codeGen.ctx()).sizeOf(codeGen.ctx());
@@ -581,7 +746,8 @@ namespace
                 SWC_ASSERT(sliceType.isSlice());
                 const uint64_t    elementCount    = cst.getSliceCount();
                 const ConstantRef safeArrayCstRef = CodeGenConstantHelpers::materializeStaticArrayBufferConstant(codeGen, sliceType.payloadTypeRef(), sliceBytes, elementCount);
-                SWC_ASSERT(safeArrayCstRef.isValid());
+                if (safeArrayCstRef.isInvalid())
+                    return raiseConstantMaterializationError(codeGen, "failed to materialize a slice constant payload");
                 const ConstantValue& safeArrayCst       = codeGen.cstMgr().get(safeArrayCstRef);
                 const ConstantRef    runtimeSliceCstRef = CodeGenConstantHelpers::materializeRuntimeBufferConstant(codeGen, cst.typeRef(), safeArrayCst.getArray().data(), elementCount);
                 SWC_ASSERT(runtimeSliceCstRef.isValid());
@@ -594,8 +760,14 @@ namespace
             case ConstantKind::AggregateStruct:
             case ConstantKind::AggregateArray:
             {
+                bool handled = false;
+                SWC_RESULT(tryEmitRuntimeStorageConstant(codeGen, payload, storageNodeRef, cstRef, targetTypeRef, handled));
+                if (handled)
+                    return Result::Continue;
+
                 const ConstantRef storageCstRef = materializeBorrowedStorageConstant(codeGen, cstRef, targetTypeRef);
-                SWC_ASSERT(storageCstRef.isValid());
+                if (storageCstRef.isInvalid())
+                    return raiseConstantMaterializationError(codeGen, "failed to materialize an aggregate constant payload");
                 const ConstantValue& storageCst = codeGen.cstMgr().get(storageCstRef);
 
                 if (storageCst.isArray())
@@ -743,7 +915,7 @@ Result CodeGen::emitConstant(AstNodeRef nodeRef)
     if (handled)
         return Result::SkipChildren;
 
-    SWC_RESULT(emitConstantToPayload(*this, payload, view.cstRef(), cst, view.typeRef()));
+    SWC_RESULT(emitConstantToPayload(*this, payload, view.cstRef(), cst, view.typeRef(), nodeRef));
     return Result::SkipChildren;
 }
 

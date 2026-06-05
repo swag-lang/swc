@@ -417,7 +417,10 @@ namespace
         if (ctx.state().jitEmissionError)
             return reportJitEvaluationFailure(sema, symFn);
 
-        SWC_RESULT(SymbolFunction::jitBatch(ctx, stableJitOrder));
+        const SymbolFunction* jitWaiter = sema.frame().enclosingFunction();
+        if (!jitWaiter)
+            jitWaiter = sema.currentFunction();
+        SWC_RESULT(SymbolFunction::jitBatch(ctx, stableJitOrder, jitWaiter));
 
         if (ctx.state().jitEmissionError || !symFn.jitEntryAddress())
             return reportJitEvaluationFailure(sema, symFn);

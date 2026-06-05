@@ -26,6 +26,7 @@ struct DataSegmentRelocation
     uint32_t                  targetOffset     = INVALID_REF;
     uint32_t                  targetShardIndex = INVALID_REF;
     const SymbolFunction*     targetSymbol     = nullptr;
+    bool                      allowUnresolvedFunction = false;
 };
 
 struct DataSegmentAllocation
@@ -66,7 +67,7 @@ public:
     uint32_t                                  addString(uint32_t baseOffset, uint32_t fieldOffset, const Utf8& value);
     void                                      addRelocation(uint32_t offset, uint32_t targetOffset);
     void                                      addRelocation(uint32_t offset, DataSegmentRef targetRef);
-    void                                      addFunctionRelocation(uint32_t offset, const SymbolFunction* targetSymbol);
+    void                                      addFunctionRelocation(uint32_t offset, const SymbolFunction* targetSymbol, bool allowUnresolvedFunction = false);
     std::pair<uint32_t, std::byte*>           reserveBytes(uint32_t size, uint32_t align, bool zeroInit);
     uint32_t                                  reserveBlock(uint32_t size, uint32_t align, bool zeroInit);
     Ref                                       findRef(const void* ptr) const noexcept;

@@ -428,6 +428,13 @@ namespace
         SWC_UNREACHABLE();
     }
 
+    bool waiterIsJitWait(const TaskStateKind waitKind)
+    {
+        return waitKind == TaskStateKind::SemaWaitSymJitPrepared ||
+               waitKind == TaskStateKind::SemaWaitSymJitPatched ||
+               waitKind == TaskStateKind::SemaWaitSymJitCompleted;
+    }
+
     bool hasLocalFunctionAddress(const SymbolFunction& targetFunction, const LocalFunctionAddressKind addressKind)
     {
         switch (addressKind)
@@ -468,6 +475,8 @@ namespace
         wait.codeRef      = fallbackWaitCodeRef(ctx, ownerFunction);
         wait.symbol       = &targetFunction;
         wait.waiterSymbol = ownerFunction;
+        if (waiterIsJitWait(waitKind) && wait.waiterSymbol == &targetFunction)
+            wait.waiterSymbol = nullptr;
 
         if (!useTargetFallback)
             return;
@@ -842,6 +851,17 @@ namespace
             if (!relocation.targetSymbol)
                 return Result::Error;
             SymbolFunction& targetFunction = *const_cast<SymbolFunction*>(relocation.targetSymbol);
+            if (relocation.allowUnresolvedFunction && targetFunction.hasExtraFlag(SymbolFunctionFlagsE::LazyGenericBodyRunning))
+                continue;
+            const SymbolFunction* weakBlocker = ctx.state().weakJitRelocationBlocker;
+            if (relocation.allowUnresolvedFunction &&
+                weakBlocker &&
+                weakBlocker->hasExtraFlag(SymbolFunctionFlagsE::LazyGenericBodyRunning) &&
+                !targetFunction.isCodeGenCompleted() &&
+                !targetFunction.jitWorkAddress())
+            {
+                continue;
+            }
 
             uint64_t                 targetAddress = 0;
             RelocationResolveFailure failure;
@@ -850,6 +870,8 @@ namespace
                 return Result::Pause;
             if (resolveResult != Result::Continue)
             {
+                if (relocation.allowUnresolvedFunction && failure.kind == RelocationResolveFailureKind::LocalTargetUnavailable)
+                    continue;
                 return reportRelocationFailure(ctx, relocationDiagnosticId(targetFunction.isForeign()), "<jit-constant>", failure);
             }
 

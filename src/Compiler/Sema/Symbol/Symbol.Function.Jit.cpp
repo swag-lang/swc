@@ -90,14 +90,14 @@ namespace
         return function.codeRef();
     }
 
-    void setWaitJitCompleted(TaskContext& ctx, const SymbolFunction& function)
+    void setWaitJitCompleted(TaskContext& ctx, const SymbolFunction& function, const Symbol* waiterSymbol)
     {
         TaskState& wait   = ctx.state();
         wait.kind         = TaskStateKind::SemaWaitSymJitCompleted;
         wait.nodeRef      = ctx.state().nodeRef.isValid() ? ctx.state().nodeRef : function.declNodeRef();
         wait.codeRef      = ctx.state().codeRef.isValid() ? ctx.state().codeRef : safeCodeRef(function);
         wait.symbol       = &function;
-        wait.waiterSymbol = &function;
+        wait.waiterSymbol = waiterSymbol != &function ? waiterSymbol : nullptr;
     }
 
     void setWaitJitPatched(TaskContext& ctx, const SymbolFunction& waiterFunction, const SymbolFunction& targetFunction)
@@ -111,7 +111,7 @@ namespace
         if (!wait.codeRef.isValid())
             wait.codeRef = safeCodeRef(targetFunction);
         wait.symbol       = &targetFunction;
-        wait.waiterSymbol = &waiterFunction;
+        wait.waiterSymbol = &waiterFunction != &targetFunction ? &waiterFunction : nullptr;
     }
 
     Result waitLocalCallDependenciesPatched(TaskContext& ctx, const SymbolFunction& function)
@@ -124,6 +124,8 @@ namespace
             if (!dependency || dependency == &function)
                 continue;
             if (dependency->isForeign() || dependency->isEmpty() || dependency->isAttribute())
+                continue;
+            if (dependency->hasExtraFlag(SymbolFunctionFlagsE::LazyGenericBodyRunning))
                 continue;
             if (dependency->jitPatchAddress() || dependency->jitEntryAddress())
                 continue;
@@ -409,12 +411,13 @@ Result SymbolFunction::jit(TaskContext& ctx)
     return jitBatch(ctx, jitOrder);
 }
 
-Result SymbolFunction::jitBatch(TaskContext& ctx, const std::span<SymbolFunction* const> functions)
+Result SymbolFunction::jitBatch(TaskContext& ctx, const std::span<SymbolFunction* const> functions, const Symbol* waiterSymbol)
 {
     if (ctx.state().jitEmissionError)
         return Result::Error;
 
     const SymbolFunction* pendingFunction = nullptr;
+    const auto*           weakRelocationBlocker = waiterSymbol ? waiterSymbol->safeCast<SymbolFunction>() : nullptr;
     for (SymbolFunction* function : functions)
     {
         if (ctx.state().jitEmissionError)
@@ -430,14 +433,14 @@ Result SymbolFunction::jitBatch(TaskContext& ctx, const std::span<SymbolFunction
         if (function->hasJitEntryAddress())
             continue;
 
-        JITPatchJob::schedule(ctx, *function);
+        JITPatchJob::schedule(ctx, *function, weakRelocationBlocker);
         if (!pendingFunction)
             pendingFunction = function;
     }
 
     if (pendingFunction)
     {
-        setWaitJitCompleted(ctx, *pendingFunction);
+        setWaitJitCompleted(ctx, *pendingFunction, waiterSymbol);
         return Result::Pause;
     }
 
@@ -511,6 +514,8 @@ Result SymbolFunction::jitPatch(TaskContext& ctx)
     if (hasJitEntryAddress())
         return Result::Continue;
     if (!hasJitPreparedAddress())
+        return Result::Continue;
+    if (hasJitPatchedAddress())
         return Result::Continue;
 
     auto relocations = loweredMicroCode_.codeRelocations;

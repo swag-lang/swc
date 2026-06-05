@@ -119,10 +119,10 @@ void DataSegment::addRelocation(uint32_t offset, const DataSegmentRef targetRef)
     relocationsByOffsetDirty_ = true;
 }
 
-void DataSegment::addFunctionRelocation(uint32_t offset, const SymbolFunction* targetSymbol)
+void DataSegment::addFunctionRelocation(uint32_t offset, const SymbolFunction* targetSymbol, bool allowUnresolvedFunction)
 {
     const std::unique_lock lock(mutex_);
-    relocations_.push_back({.offset = offset, .kind = DataSegmentRelocationKind::FunctionSymbol, .targetOffset = INVALID_REF, .targetShardIndex = INVALID_REF, .targetSymbol = targetSymbol});
+    relocations_.push_back({.offset = offset, .kind = DataSegmentRelocationKind::FunctionSymbol, .targetOffset = INVALID_REF, .targetShardIndex = INVALID_REF, .targetSymbol = targetSymbol, .allowUnresolvedFunction = allowUnresolvedFunction});
     relocationsByOffsetDirty_ = true;
 }
 

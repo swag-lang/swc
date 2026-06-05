@@ -642,13 +642,13 @@ namespace
         {
             const SymbolStruct& symStruct = type.payloadSymStruct();
             if (const auto* opInit = symStruct.effectiveOpInit(ctx))
-                storage.addFunctionRelocation(offset + offsetof(Runtime::TypeInfoStruct, opInit), opInit);
+                storage.addFunctionRelocation(offset + offsetof(Runtime::TypeInfoStruct, opInit), opInit, true);
             if (const auto* opDrop = symStruct.effectiveOpDrop(ctx))
-                storage.addFunctionRelocation(offset + offsetof(Runtime::TypeInfoStruct, opDrop), opDrop);
+                storage.addFunctionRelocation(offset + offsetof(Runtime::TypeInfoStruct, opDrop), opDrop, true);
             if (const auto* opPostCopy = symStruct.effectiveOpPostCopy(ctx))
-                storage.addFunctionRelocation(offset + offsetof(Runtime::TypeInfoStruct, opPostCopy), opPostCopy);
+                storage.addFunctionRelocation(offset + offsetof(Runtime::TypeInfoStruct, opPostCopy), opPostCopy, true);
             if (const auto* opPostMove = symStruct.effectiveOpPostMove(ctx))
-                storage.addFunctionRelocation(offset + offsetof(Runtime::TypeInfoStruct, opPostMove), opPostMove);
+                storage.addFunctionRelocation(offset + offsetof(Runtime::TypeInfoStruct, opPostMove), opPostMove, true);
 
             if (symStruct.isGenericInstance())
             {
@@ -842,7 +842,7 @@ namespace
                 const Utf8          methodName{symMethod->name(ctx)};
                 tv.name.length = storage.addString(elemOffset, offsetof(Runtime::TypeValue, name.ptr), methodName);
                 if (canReflectMethodValue(*symMethod))
-                    storage.addFunctionRelocation(elemOffset + offsetof(Runtime::TypeValue, value), symMethod);
+                    storage.addFunctionRelocation(elemOffset + offsetof(Runtime::TypeValue, value), symMethod, true);
             }
         }
 

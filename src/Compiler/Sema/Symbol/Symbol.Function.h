@@ -132,7 +132,7 @@ public:
     std::mutex&             lazyGenericBodyRunMutex() const noexcept { return lazyGenericBodyRunMutex_; }
     std::shared_ptr<void>*  lazyGenericBodyRunState() const noexcept;
     std::shared_ptr<void>&  ensureLazyGenericBodyRunState(const TaskContext& ctx) const noexcept;
-    static Result           jitBatch(TaskContext& ctx, std::span<SymbolFunction* const> functions);
+    static Result           jitBatch(TaskContext& ctx, std::span<SymbolFunction* const> functions, const Symbol* waiterSymbol = nullptr);
     Result                  jit(TaskContext& ctx);
     const MachineCode&      loweredCode() const noexcept { return loweredMicroCode_; }
     bool                    isGenericRoot() const noexcept { return hasExtraFlag(SymbolFunctionFlagsE::GenericRoot); }

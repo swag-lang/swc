@@ -30,15 +30,16 @@ enum class TaskStateKind : uint8_t
 
 struct TaskState
 {
-    const SymbolFunction* runJitFunction   = nullptr;
-    const SymbolFunction* codeGenFunction  = nullptr;
-    const Symbol*         symbol           = nullptr;
-    const Symbol*         waiterSymbol     = nullptr;
-    AstNodeRef            nodeRef          = AstNodeRef::invalid();
-    SourceCodeRef         codeRef          = SourceCodeRef::invalid();
-    IdentifierRef         idRef            = IdentifierRef::invalid();
-    TaskStateKind         kind             = TaskStateKind::None;
-    bool                  jitEmissionError = false;
+    const SymbolFunction* runJitFunction           = nullptr;
+    const SymbolFunction* codeGenFunction          = nullptr;
+    const SymbolFunction* weakJitRelocationBlocker = nullptr;
+    const Symbol*         symbol                   = nullptr;
+    const Symbol*         waiterSymbol             = nullptr;
+    AstNodeRef            nodeRef                  = AstNodeRef::invalid();
+    SourceCodeRef         codeRef                  = SourceCodeRef::invalid();
+    IdentifierRef         idRef                    = IdentifierRef::invalid();
+    TaskStateKind         kind                     = TaskStateKind::None;
+    bool                  jitEmissionError         = false;
 
     static const char* kindName(TaskStateKind kind);
     bool               hasPauseReason() const;

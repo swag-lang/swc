@@ -7,20 +7,24 @@
 
 SWC_BEGIN_NAMESPACE();
 
-JITPatchJob::JITPatchJob(const TaskContext& ctx, SymbolFunction& symbolFunc) :
+JITPatchJob::JITPatchJob(const TaskContext& ctx, SymbolFunction& symbolFunc, const SymbolFunction* weakRelocationBlocker) :
     Job(ctx, JobKind::JitPatch),
-    symbolFunc_(&symbolFunc)
+    symbolFunc_(&symbolFunc),
+    weakRelocationBlocker_(weakRelocationBlocker)
 {
 }
 
-bool JITPatchJob::schedule(TaskContext& ctx, SymbolFunction& symbolFunc)
+bool JITPatchJob::schedule(TaskContext& ctx, SymbolFunction& symbolFunc, const SymbolFunction* weakRelocationBlocker)
 {
     if (symbolFunc.jitEntryAddress())
         return false;
     if (!symbolFunc.tryMarkJitPatchJobScheduled())
         return false;
 
-    auto* job = heapNew<JITPatchJob>(ctx, symbolFunc);
+    if (!weakRelocationBlocker)
+        weakRelocationBlocker = ctx.state().weakJitRelocationBlocker;
+
+    auto* job = heapNew<JITPatchJob>(ctx, symbolFunc, weakRelocationBlocker);
     ctx.compiler().global().jobMgr().enqueue(*job, JobPriority::Normal, ctx.compiler().jobClientId());
     return true;
 }
@@ -29,6 +33,7 @@ JobResult JITPatchJob::exec()
 {
     SWC_ASSERT(symbolFunc_ != nullptr);
     ctx().state().setNone();
+    ctx().state().weakJitRelocationBlocker = weakRelocationBlocker_;
 
     const Result result = symbolFunc_->jitMaterialize(ctx());
     if (result == Result::Error)

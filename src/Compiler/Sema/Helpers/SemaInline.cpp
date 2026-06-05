@@ -542,6 +542,30 @@ namespace
         return true;
     }
 
+    // Calls, casts, switches and intrinsics inside an inline body are re-matched / re-derived
+    // (overload selection, argument coercions, case-type resolution) when the body is
+    // materialized, and that resolution isn't preserved across a cross-Ast inline yet. A body
+    // containing any of them stays on the previous (non cross-Ast) path. Plain operator/member
+    // bodies (the hot bit-stream accessors) are unaffected and still inline across files.
+    bool bodyHasUnsafeCrossAstConstruct(const Ast& ast, AstNodeRef nodeRef)
+    {
+        if (nodeRef.isInvalid())
+            return false;
+        const AstNode& node = ast.node(nodeRef);
+        if (node.is(AstNodeId::IntrinsicCall) || node.is(AstNodeId::IntrinsicCallVariadic) ||
+            node.is(AstNodeId::IntrinsicCallExpr) || node.is(AstNodeId::IntrinsicValue) ||
+            node.is(AstNodeId::CallExpr) || node.is(AstNodeId::CastExpr) ||
+            node.is(AstNodeId::SwitchStmt) || node.is(AstNodeId::StructLiteral) ||
+            node.is(AstNodeId::StructInitializerList) || node.is(AstNodeId::NamedType))
+            return true;
+        SmallVector<AstNodeRef> children;
+        node.collectChildrenFromAst(children, ast);
+        for (const AstNodeRef childRef : children)
+            if (bodyHasUnsafeCrossAstConstruct(ast, childRef))
+                return true;
+        return false;
+    }
+
     using AliasIdentifierArray = std::array<IdentifierRef, 10>;
     using AliasRefArray        = std::array<SourceCodeRef, 10>;
 
@@ -1780,8 +1804,23 @@ Result SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFun
     const bool isMacro          = fn.attributes().hasRtFlag(RtAttributeFlagsE::Macro);
     const bool isMixin          = fn.attributes().hasRtFlag(RtAttributeFlagsE::Mixin);
     const bool isCrossAstInline = declAst != &sema.ast();
-    if (isCrossAstInline && !isMacro && !isMixin)
+
+    // A cross-Ast (cross-file) inline materializes the callee's body into the caller's Ast.
+    // Regular inline relies on the body's identifiers already carrying their resolved symbols
+    // so cloning can preserve them (PreResolvedSymbol) instead of re-resolving by name in the
+    // caller's scope (which can't see the callee's file/module-private symbols, picks wrong
+    // overloads, and trips shadowing). That resolution only exists once the callee has been
+    // sema-completed, so wait for it before proceeding.
+    // Generic functions instantiated cross-Ast still re-bind their generic parameters and
+    // intrinsic argument matching in the caller's Ast, which isn't handled yet; keep them on
+    // the previous (no cross-Ast inline) path. The hot inline accessors are non-generic.
+    if (isCrossAstInline && !isMacro && !isMixin && (fn.isGenericInstance() || fn.isGenericRoot()))
         return Result::Continue;
+    if (isCrossAstInline && !isMacro && !isMixin && bodyHasUnsafeCrossAstConstruct(*declAst, decl->nodeBodyRef))
+        return Result::Continue;
+
+    if (isCrossAstInline && !isMacro && !isMixin)
+        SWC_RESULT(sema.waitSemaCompleted(&fn, sema.node(callRef).codeRef()));
 
     SmallVector<ResolvedCallArgument> resolvedArgs;
     sema.appendResolvedCallArguments(callRef, resolvedArgs);

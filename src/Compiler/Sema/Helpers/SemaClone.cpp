@@ -567,6 +567,26 @@ namespace
 
             copyResolvedIdentifierSymbols(sema, sourceChildRef, clonedChildRef);
         }
+
+        // A call's overload was selected against the call node, not its callee identifier, so
+        // the recursion above copied the callee's whole overload set / first overload. Override
+        // the cloned callee with the function the call actually resolved to, so the preserved
+        // body doesn't re-run (and mis-pick) overload selection in a foreign scope.
+        if (sema.node(sourceRef).is(AstNodeId::CallExpr) && sema.node(clonedRef).is(AstNodeId::CallExpr))
+        {
+            if (const Symbol* callSym = sema.viewStored(sourceRef, SemaNodeViewPartE::Symbol).sym())
+            {
+                if (callSym->safeCast<SymbolFunction>())
+                {
+                    const AstNodeRef clonedCallee = sema.node(clonedRef).cast<AstCallExpr>().nodeExprRef;
+                    if (clonedCallee.isValid() && sema.node(clonedCallee).is(AstNodeId::Identifier))
+                    {
+                        sema.setSymbol(clonedCallee, callSym);
+                        sema.node(clonedCallee).cast<AstIdentifier>().addFlag(AstIdentifierFlagsE::PreResolvedSymbol);
+                    }
+                }
+            }
+        }
     }
 
     AstNodeRef cloneExprPreservingResolvedIdentifierSymbols(Sema& sema, AstNodeRef sourceRef)
@@ -722,7 +742,16 @@ namespace
                                                 !node.codeRef().isValid() ||
                                                 sema.token(node.codeRef()).id != TokenId::Identifier)));
         if (preserveSyntheticSymbol)
+        {
             sema.setSymbol(nodeRef, storedView->sym);
+            // For a cross-Ast clone (e.g. inlining a body from another file) the cloned
+            // identifier cannot be re-resolved by name in the destination scope: the source
+            // symbol may be file/module-private, an overload that name-lookup would pick wrong,
+            // or shadowed there. Mark it pre-resolved so sema honors the carried symbol instead
+            // of re-resolving it. (Same-Ast clones can still re-resolve safely.)
+            if (crossAstSource)
+                nodePtr->addFlag(AstIdentifierFlagsE::PreResolvedSymbol);
+        }
         const bool carryResolvedTypeId = storedView &&
                                          storedView->typeRef.isValid() &&
                                          !storedView->cstRef.isValid() &&

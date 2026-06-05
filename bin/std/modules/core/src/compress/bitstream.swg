@@ -6,7 +6,7 @@ struct BitStream
 {
     stream:         const [..] u8     // Input byte stream
     curByte:        u64               // Index of current byte being processed
-    codeBuffer:     u32               // Bit buffer holding bits to be consumed
+    codeBuffer:     u64               // Bit buffer holding bits to be consumed
     numBits:        u8                // Number of bits currently in the buffer
     eof:            bool              // Flag to signal end-of-stream
 }
@@ -35,6 +35,25 @@ impl BitStream
     // Refills the bit buffer until at least 'width' bits are available
     mtd refill(width = 24'u8)
     {
+        // Fast path: a single unaligned 64-bit load refills the buffer to at least
+        // 56 bits at once, as long as 8 bytes remain so the load stays in bounds.
+        // This avoids the per-byte loop for the bulk of the stream.
+        if .numBits <= 56 and .curByte + 8 <= @countof(.stream)
+        {
+            let chunk = dref cast(const *u64) .curPtr()
+            .codeBuffer |= chunk << #wrap .numBits
+            let nbytes  = (64 - cast(u64) .numBits) >> 3
+            .curByte   += nbytes
+            .numBits   += cast(u8) (nbytes << 3)
+
+            // Zero any partial high byte brought in above 'numBits' so the invariant
+            // "bits at or above numBits are zero" holds (skip when the buffer is full).
+            if .numBits != 64 do
+                .codeBuffer &= (1'u64 << .numBits) - 1
+            return
+        }
+
+        // Slow path: byte-by-byte, used near the end of the stream.
         while .numBits <= width
         {
             // Detect and reset broken state (if buffer was empty and numBits was max)
@@ -42,7 +61,7 @@ impl BitStream
                 .numBits = 0
 
             // If buffer is already full, prevent overflow
-            if .codeBuffer >= 1'u32 << .numBits
+            if .codeBuffer >= 1'u64 << .numBits
             {
                 .numBits = 255
                 return
@@ -58,7 +77,7 @@ impl BitStream
             // Read next byte and shift it into the buffer
             let c = .stream[.curByte]
             .curByte += 1
-            .codeBuffer |= cast(u32) c << .numBits
+            .codeBuffer |= cast(u64) c << .numBits
             .numBits += 8
         }
     }
@@ -69,14 +88,14 @@ impl BitStream
     {
         if .numBits < width do
             .refill()
-        return cast(u32) (.codeBuffer & ~(0xffffffff'u64 << width))
+        return cast(u32) (.codeBuffer & ((1'u64 << width) - 1))
     }
 
     // Like peekBits, but assumes enough bits are already available
     mtd peekBitsNoRefill(width: u8)->u32
     {
         Debug.assert(.numBits >= width)
-        return cast(u32) (.codeBuffer & ~(0xffffffff'u64 << width))
+        return cast(u32) (.codeBuffer & ((1'u64 << width) - 1))
     }
 
     // Reads and consumes 'width' bits from the buffer

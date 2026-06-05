@@ -120,6 +120,12 @@ impl Decoder
         var result: retval
 
         result.header = ch
+
+        // Resync the byte cursor before any raw pointer access: the bit reader may have
+        // buffered bytes ahead of the consumed position (its refill loads several bytes at
+        // once), so rewind those back into 'curByte' so 'curPtr' is the true chunk start.
+        .stream.revert()
+
         if .stream.curPtr() + ch.length > .stream.startPtr() + .stream.size() do
             throw InvalidFormatError{"invalid chunk"}
         result.datas = @mkslice(.stream.curPtr(), ch.length)

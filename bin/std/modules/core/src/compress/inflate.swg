@@ -185,14 +185,33 @@ impl Inflate
     mtd parseBlock(repeatHt, repeatZ: *HuffmanTable, dest: *Array'u8) throw
     {
         let startBufCount = dest.count
+
+        // Hoist the output cursor into locals so the literal hot path is just a bounds
+        // check + raw store + increment, instead of a full 'dest.add' (which re-loads the
+        // array fields through the pointer and calls grow/initNewSlots for every byte).
+        // 'dest.count' is resynced before any operation that reads it (back-refs, checksum).
+        var count = dest.count
+        var buf   = dest.buffer
+        var cap   = dest.capacity
+
         for
         {
             var value = try .decode(repeatHt)
             if value < 256
             {
-                dest.add(cast(u8) value)
+                if count >= cap
+                {
+                    dest.count = count
+                    dest.grow(count + 1)
+                    buf = dest.buffer
+                    cap = dest.capacity
+                }
+                buf[count] = cast(u8) value
+                count += 1
                 continue
             }
+
+            dest.count = count
 
             // End of block. Update checksum
             if value == 256
@@ -247,6 +266,11 @@ impl Inflate
                 }
                 dest.count += length
             }
+
+            // Back-ref may have reallocated and advanced the buffer; refresh the locals.
+            count = dest.count
+            buf   = dest.buffer
+            cap   = dest.capacity
         }
     }
 

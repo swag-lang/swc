@@ -1426,6 +1426,29 @@ namespace
 
         return doneSomething;
     }
+
+    bool hasPausedLazyGenericBodyWait(const TaskContext& ctx, JobClientId clientId)
+    {
+        std::vector<Job*> jobs;
+        ctx.global().jobMgr().waitingJobs(jobs, clientId);
+
+        for (Job* job : jobs)
+        {
+            const TaskState& state    = job->ctx().state();
+            const auto*      function = state.symbol ? state.symbol->safeCast<SymbolFunction>() : nullptr;
+            if (!function)
+                continue;
+            if (function->isSemaCompleted() || function->isIgnored())
+                continue;
+            if (!function->hasExtraFlag(SymbolFunctionFlagsE::LazyGenericBody))
+                continue;
+            if (function->hasExtraFlag(SymbolFunctionFlagsE::LazyGenericBodyRunning))
+                continue;
+            return true;
+        }
+
+        return false;
+    }
 }
 
 void Sema::waitDone(TaskContext& ctx, JobClientId clientId)
@@ -1433,6 +1456,8 @@ void Sema::waitDone(TaskContext& ctx, JobClientId clientId)
     auto&             jobMgr   = ctx.global().jobMgr();
     CompilerInstance& compiler = ctx.compiler();
     SWC_DEV_LOOP_GUARD(loopGuard, 100000, "Sema::waitDone");
+    constexpr uint32_t maxPausedLazyGenericWakes = 1024;
+    uint32_t           pausedLazyGenericWakes    = 0;
 
     while (true)
     {
@@ -1442,6 +1467,7 @@ void Sema::waitDone(TaskContext& ctx, JobClientId clientId)
         if (compiler.jitExecMgr().executePendingMainThread())
         {
             SWC_DEV_LOOP_RESET(loopGuard);
+            pausedLazyGenericWakes = 0;
             jobMgr.wakeAll(clientId);
             continue;
         }
@@ -1450,6 +1476,7 @@ void Sema::waitDone(TaskContext& ctx, JobClientId clientId)
         if (compilerMessageResult == Result::Pause)
         {
             SWC_DEV_LOOP_RESET(loopGuard);
+            pausedLazyGenericWakes = 0;
             jobMgr.wakeAll(clientId);
             continue;
         }
@@ -1461,6 +1488,7 @@ void Sema::waitDone(TaskContext& ctx, JobClientId clientId)
         if (afterSemanticResult == Result::Pause)
         {
             SWC_DEV_LOOP_RESET(loopGuard);
+            pausedLazyGenericWakes = 0;
             jobMgr.wakeAll(clientId);
             continue;
         }
@@ -1471,6 +1499,7 @@ void Sema::waitDone(TaskContext& ctx, JobClientId clientId)
         if (compiler.consumeChanged())
         {
             SWC_DEV_LOOP_RESET(loopGuard);
+            pausedLazyGenericWakes = 0;
             compiler.jitExecMgr().wakeWaiting();
             jobMgr.wakeAll(clientId);
             continue;
@@ -1478,6 +1507,15 @@ void Sema::waitDone(TaskContext& ctx, JobClientId clientId)
 
         if (resolveCompilerDefined(ctx, clientId))
         {
+            SWC_DEV_LOOP_RESET(loopGuard);
+            pausedLazyGenericWakes = 0;
+            jobMgr.wakeAll(clientId);
+            continue;
+        }
+
+        if (pausedLazyGenericWakes < maxPausedLazyGenericWakes && hasPausedLazyGenericBodyWait(ctx, clientId))
+        {
+            pausedLazyGenericWakes++;
             SWC_DEV_LOOP_RESET(loopGuard);
             jobMgr.wakeAll(clientId);
             continue;

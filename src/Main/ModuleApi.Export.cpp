@@ -2708,6 +2708,56 @@ namespace
         return Result::Continue;
     }
 
+    bool isGeneratedModuleApiFile(const fs::path& path)
+    {
+        const fs::path extension = path.extension();
+        return extension == ".swg" || extension == ".deps";
+    }
+
+    Result reportModuleApiDirectoryClearError(TaskContext& ctx, const fs::path& path, const Utf8& because)
+    {
+        Diagnostic diag = Diagnostic::get(DiagnosticId::cmd_err_api_dir_clear_failed);
+        FileSystem::setDiagnosticPathAndBecause(diag, &ctx, path, because);
+        diag.report(ctx);
+        return Result::Error;
+    }
+
+    Result clearGeneratedModuleApiFiles(TaskContext& ctx, const fs::path& path)
+    {
+        if (path.empty())
+            return Result::Continue;
+
+        std::error_code ec;
+        const bool      exists = fs::exists(path, ec);
+        if (ec)
+            return reportModuleApiDirectoryClearError(ctx, path, FileSystem::normalizeSystemMessage(ec));
+        if (!exists)
+            return Result::Continue;
+
+        const bool isDirectory = fs::is_directory(path, ec);
+        if (ec)
+            return reportModuleApiDirectoryClearError(ctx, path, FileSystem::normalizeSystemMessage(ec));
+        if (!isDirectory)
+            return reportModuleApiDirectoryClearError(ctx, path, FileSystem::describePathProblem(FileSystem::PathProblem::NotDirectory));
+
+        for (fs::directory_iterator it(path, fs::directory_options::skip_permission_denied, ec), end; it != end; it.increment(ec))
+        {
+            if (ec)
+                return reportModuleApiDirectoryClearError(ctx, path, FileSystem::normalizeSystemMessage(ec));
+
+            const fs::path entryPath = it->path();
+            if (!isGeneratedModuleApiFile(entryPath))
+                continue;
+
+            std::error_code removeEc;
+            fs::remove(entryPath, removeEc);
+            if (removeEc)
+                return reportModuleApiDirectoryClearError(ctx, entryPath, FileSystem::normalizeSystemMessage(removeEc));
+        }
+
+        return Result::Continue;
+    }
+
     Result reportInvalidFolder(TaskContext& ctx, const fs::path& path, const Utf8& because)
     {
         Diagnostic diag = Diagnostic::get(DiagnosticId::cmdline_err_invalid_folder);
@@ -2763,7 +2813,7 @@ namespace ModuleApi
             return Result::Continue;
 
         SWC_RESULT(ensureModuleApiDirectory(ctx, exportApiDir));
-        SWC_RESULT(FileSystem::clearDirectoryContents(ctx, exportApiDir, DiagnosticId::cmd_err_api_dir_clear_failed));
+        SWC_RESULT(clearGeneratedModuleApiFiles(ctx, exportApiDir));
 
         std::unordered_map<Utf8, fs::path> wholeFileExportNames;
         for (const SourceFile* file : compiler.files())

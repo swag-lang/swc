@@ -26,6 +26,14 @@ using Swag, Core
     @assert(radial.gradientRadius1 == 20)
     @assert(radial.isOpaque())
 
+    let sweep = Brush.createSweepGradient(Math.Vector2{4, 6}, -90.0'deg, 270.0'deg, Argb.DeepSkyBlue, Argb.Crimson, .Repeat)
+    @assert(sweep.type == .SweepGradient)
+    @assert(sweep.gradientSpread == .Repeat)
+    @assert(sweep.gradientStart == Math.Vector2{4, 6})
+    @assert(Math.isEqualEpsilon(sweep.gradientAngle0, -Math.ConstF32.PiBy2, 0.001))
+    @assert(Math.isEqualEpsilon(sweep.gradientAngle1, Math.ConstF32.TwoPi - Math.ConstF32.PiBy2, 0.001))
+    @assert(sweep.isOpaque())
+
     let hidden = Brush.createLinearGradient(0, 0, 1, 1, Color.fromArgb(0'u8, Argb.White), Color.fromArgb(0'u8, Argb.Black))
     @assert(!hidden.hasVisibleAlpha())
 }

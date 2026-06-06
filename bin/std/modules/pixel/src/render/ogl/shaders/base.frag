@@ -8,6 +8,7 @@ uniform float gradientSpread;
 uniform vec2  gradientStart;
 uniform vec2  gradientEnd;
 uniform vec2  gradientRadius;
+uniform vec2  gradientAngles;
 uniform int   gradientCount;
 uniform float gradientOffsets[8];
 uniform vec4  gradientColors[8];
@@ -64,7 +65,16 @@ vec4 samplePaint(vec2 paintPos, vec2 uv)
         return sampleGradientStops(t);
     }
 
-    float radius = max(gradientRadius.y - gradientRadius.x, 0.000001);
-    float t      = (length(paintPos - gradientStart) - gradientRadius.x) / radius;
+    if(paintType < 4.5)
+    {
+        float radius = max(gradientRadius.y - gradientRadius.x, 0.000001);
+        float t      = (length(paintPos - gradientStart) - gradientRadius.x) / radius;
+        return sampleGradientStops(t);
+    }
+
+    float span  = gradientAngles.y - gradientAngles.x;
+    span        = abs(span) <= 0.000001 ? 6.28318530718 : span;
+    float angle = atan(paintPos.y - gradientStart.y, paintPos.x - gradientStart.x);
+    float t     = (angle - gradientAngles.x) / span;
     return sampleGradientStops(t);
 }

@@ -814,12 +814,13 @@ impl RenderOgl
             case Hatch:
                 glBindTexture(GL_TEXTURE_2D, .hatchTextures[params.hatch])
                 glUniform1i(cast(GLint) .curShader.gradientCount, 0)
-            case LinearGradient, RadialGradient:
+            case LinearGradient, RadialGradient, SweepGradient:
                 glBindTexture(GL_TEXTURE_2D, .whiteTexture)
                 glUniform1f(cast(GLint) .curShader.gradientSpread, cast(GLfloat) cast(u32) params.gradientSpread)
                 glUniform2f(cast(GLint) .curShader.gradientStart, cast(GLfloat) params.gradientStart.x, cast(GLfloat) params.gradientStart.y)
                 glUniform2f(cast(GLint) .curShader.gradientEnd, cast(GLfloat) params.gradientEnd.x, cast(GLfloat) params.gradientEnd.y)
                 glUniform2f(cast(GLint) .curShader.gradientRadius, cast(GLfloat) params.gradientRadius0, cast(GLfloat) params.gradientRadius1)
+                glUniform2f(cast(GLint) .curShader.gradientAngles, cast(GLfloat) params.gradientAngle0, cast(GLfloat) params.gradientAngle1)
                 glUniform1i(cast(GLint) .curShader.gradientCount, cast(GLint) params.gradientStopCount)
 
                 var offsets: [MaxGradientStops] f32
@@ -1039,6 +1040,7 @@ impl RenderOgl
         base.gradientStart   = cast() glGetUniformLocation(progID, @dataof("gradientStart"))
         base.gradientEnd     = cast() glGetUniformLocation(progID, @dataof("gradientEnd"))
         base.gradientRadius  = cast() glGetUniformLocation(progID, @dataof("gradientRadius"))
+        base.gradientAngles  = cast() glGetUniformLocation(progID, @dataof("gradientAngles"))
         base.gradientCount   = cast() glGetUniformLocation(progID, @dataof("gradientCount"))
         base.gradientOffsets = cast() glGetUniformLocation(progID, @dataof("gradientOffsets[0]"))
         base.gradientColors  = cast() glGetUniformLocation(progID, @dataof("gradientColors[0]"))

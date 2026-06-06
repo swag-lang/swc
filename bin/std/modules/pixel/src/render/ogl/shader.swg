@@ -25,6 +25,7 @@ struct ShaderBase
     gradientStart:   ShaderParamHandle
     gradientEnd:     ShaderParamHandle
     gradientRadius:  ShaderParamHandle
+    gradientAngles:  ShaderParamHandle
     gradientCount:   ShaderParamHandle
     gradientOffsets: ShaderParamHandle
     gradientColors:  ShaderParamHandle

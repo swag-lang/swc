@@ -19,18 +19,31 @@ func drawSpreadSample(painter: *Pixel.Painter, rect: Math.Rectangle, title: stri
 
 func drawGradientFillCard(painter: *Pixel.Painter, rect: Math.Rectangle)
 {
-    let body = drawPanel(painter, rect, "Gradient fills", "Linear and radial gradients are ordinary brushes, so every filled primitive can use them.")
-    let left = Math.Rectangle{body.x + 12, body.y + 18, body.width * 0.52, body.height - 36}
-    let right = Math.Rectangle{left.right() + 34, body.y + 18, body.width - left.width - 58, body.height - 36}
+    let body = drawPanel(painter, rect, "Gradient fills", "Linear, radial and sweep gradients are ordinary brushes, so every filled primitive can use them.")
+    let gap = 16.0
+    let itemW = (body.width - gap * 2) / 3
+    let itemH = body.height - 36
+    let left = Math.Rectangle{body.x, body.y + 18, itemW, itemH}
+    let mid = Math.Rectangle{left.right() + gap, body.y + 18, itemW, itemH}
+    let right = Math.Rectangle{mid.right() + gap, body.y + 18, itemW, itemH}
 
     let linear = makeSunsetGradient(left)
-    painter.fillRoundRect(left, 28, 28, linear)
-    painter.drawRoundRect(left, 28, 28, Color.fromArgb(100, Argb.MidnightBlue), 2)
+    painter.fillRoundRect(left, 24, 24, linear)
+    painter.drawRoundRect(left, 24, 24, Color.fromArgb(100, Argb.MidnightBlue), 2)
 
-    let center = Math.Vector2{right.horzCenter(), right.vertCenter() - 2}
-    let radial = Brush.createRadialGradient(center, Math.min(right.width, right.height) * 0.48, Argb.White, Argb.DarkMagenta)
-    painter.fillCircle(center.x, center.y, Math.min(right.width, right.height) * 0.46, radial)
-    painter.drawCircle(center.x, center.y, Math.min(right.width, right.height) * 0.46, Color.fromArgb(96, Argb.Indigo), 2)
+    let radialCenter = Math.Vector2{mid.horzCenter(), mid.vertCenter() - 2}
+    let radialRadius = Math.min(mid.width, mid.height) * 0.48
+    let radial = Brush.createRadialGradient(radialCenter, radialRadius, Argb.White, Argb.DarkMagenta)
+    painter.fillCircle(radialCenter.x, radialCenter.y, radialRadius * 0.96, radial)
+    painter.drawCircle(radialCenter.x, radialCenter.y, radialRadius * 0.96, Color.fromArgb(96, Argb.Indigo), 2)
+
+    let sweepCenter = Math.Vector2{right.horzCenter(), right.vertCenter() - 2}
+    let sweepRadius = Math.min(right.width, right.height) * 0.46
+    var sweep = Brush.createSweepGradient(sweepCenter, 0.0'deg, 360.0'deg, Argb.DeepSkyBlue, Argb.Crimson, .Repeat)
+    sweep.addGradientStop(0.33, Argb.Goldenrod)
+    sweep.addGradientStop(0.66, Argb.SeaGreen)
+    painter.fillCircle(sweepCenter.x, sweepCenter.y, sweepRadius, sweep)
+    painter.drawCircle(sweepCenter.x, sweepCenter.y, sweepRadius, Color.fromArgb(96, Argb.MidnightBlue), 2)
 }
 
 func drawGradientStrokeCard(painter: *Pixel.Painter, rect: Math.Rectangle)
@@ -69,14 +82,15 @@ func drawGradientTextCard(painter: *Pixel.Painter, rect: Math.Rectangle)
     let x = body.horzCenter() - size.width * 0.5
     let y = body.vertCenter() - g_TitleFont.height * 0.5
 
-    let brush = Brush.createLinearGradient(x, y, x + size.width, y + size.height, Argb.DeepSkyBlue, Argb.Crimson)
+    var brush = Brush.createSweepGradient(Math.Vector2{x + size.width * 0.5, y + size.height * 0.5}, 0.0'deg, 360.0'deg, Argb.DeepSkyBlue, Argb.Crimson, .Repeat)
+    brush.addGradientStop(0.45, Argb.Goldenrod)
     painter.drawString(x, y, text, g_TitleFont, brush)
-    painter.drawString(body.x + 22, body.bottom() - 28, "Brush.createLinearGradient + drawString", g_HelpFont, Argb.DimGray)
+    painter.drawString(body.x + 22, body.bottom() - 28, "Brush.createSweepGradient + drawString", g_HelpFont, Argb.DimGray)
 }
 
 func drawGradientsPage(painter: *Pixel.Painter)
 {
-    drawPageHeader(painter, "Pixel gradient paints", "Page 6 : linear, radial, repeating and mirrored gradient brushes across fills, strokes and text.")
+    drawPageHeader(painter, "Pixel gradient paints", "Page 6 : linear, radial, sweep, repeating and mirrored gradient brushes across fills, strokes and text.")
 
     drawGradientFillCard(painter, {28, 104, 452, 268})
     drawGradientStrokeCard(painter, {500, 104, 452, 268})

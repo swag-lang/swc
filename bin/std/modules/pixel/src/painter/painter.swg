@@ -136,6 +136,8 @@ struct Command
             gradientEnd:           Vector2
             gradientRadius0:       f32
             gradientRadius1:       f32
+            gradientAngle0:        f32
+            gradientAngle1:        f32
             gradientSpread:        GradientSpread = undefined
             gradientStops:         [MaxGradientStops] GradientStop
             gradientStopCount:     u8
@@ -247,6 +249,8 @@ impl Painter
         params.gradientEnd       = brush.gradientEnd
         params.gradientRadius0   = brush.gradientRadius0
         params.gradientRadius1   = brush.gradientRadius1
+        params.gradientAngle0    = brush.gradientAngle0
+        params.gradientAngle1    = brush.gradientAngle1
         params.gradientSpread    = brush.gradientSpread
         params.gradientStops     = brush.gradientStops
         params.gradientStopCount = brush.gradientStopCount

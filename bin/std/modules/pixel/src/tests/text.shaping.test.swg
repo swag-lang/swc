@@ -20,6 +20,10 @@ func makeShapingTestFont()->*Font
     @assert(shaped.glyphs[0].glyphIndex == font.glyphIndex('A'))
     @assert(shaped.glyphs[1].glyphIndex == font.glyphIndex('\u00E9''rune))
     @assert(shaped.metrics.width > 0)
+    @assert(shaped.hasInk)
+    @assert(shaped.inkBounds.width > 0)
+    @assert(shaped.inkBounds.height > 0)
+    @assert(shaped.inkBounds.x <= shaped.metrics.width)
 
     let glyphA = font.getGlyphDescByIndex(font.glyphIndex('A'))
     @assert(shaped.glyphs[0].desc == glyphA)

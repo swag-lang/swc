@@ -56,6 +56,8 @@ struct ShapedRun
     font:        *Font
     glyphs:      Array'ShapedGlyph
     metrics:     StringMetrics
+    inkBounds:   Math.Rectangle
+    hasInk:      bool
 }
 
 struct RichStringFormat
@@ -84,6 +86,19 @@ fileprivate func appendShapedGlyph(run: *ShapedRun, font: *Font, glyphIndex: u32
     if previousGlyphIndex do
         glyph.offsetX = font.cache.kerning(previousGlyphIndex, glyphIndex)
 
+    let glyphX = run.metrics.width + glyph.offsetX
+    if glyph.desc.width != 0 and glyph.desc.height != 0
+    {
+        let bounds = Math.Rectangle{glyphX + glyph.desc.shiftX, glyph.offsetY - glyph.desc.shiftY, glyph.desc.width, glyph.desc.height}
+        if run.hasInk do
+            run.inkBounds.setUnion(bounds)
+        else
+        {
+            run.inkBounds = bounds
+            run.hasInk    = true
+        }
+    }
+
     if run.glyphs.isEmpty()
     {
         run.metrics.ascent  = glyph.desc.shiftY
@@ -109,6 +124,13 @@ fileprivate func finishShapedRun(run: *ShapedRun, font: *Font)
     run.metrics.descent *= sc
     run.metrics.width   *= sc
     run.metrics.height = run.metrics.ascent + run.metrics.descent
+    if run.hasInk
+    {
+        run.inkBounds.x *= sc
+        run.inkBounds.y *= sc
+        run.inkBounds.width *= sc
+        run.inkBounds.height *= sc
+    }
 }
 
 fileprivate func snapTextPosition(value: f32, snapPixels: bool)->f32
@@ -282,8 +304,11 @@ impl Painter
         }
 
         // Set brush main texture
-        if brush.type != .SolidColor do
-            .setTexture0({x, y - shaped.metrics.ascent * zoom}, {x + shaped.metrics.width * zoom, y + shaped.metrics.height * zoom}, brush)
+        if brush.type != .SolidColor
+        {
+            let paintBounds = shaped.hasInk ? shaped.inkBounds : Math.Rectangle{0, -shaped.metrics.ascent, shaped.metrics.width, shaped.metrics.height}
+            .setTexture0({x + paintBounds.x * zoom, y + paintBounds.y * zoom}, {x + paintBounds.right() * zoom, y + paintBounds.bottom() * zoom}, brush)
+        }
         else do
             .resetTexture0()
 
@@ -318,25 +343,28 @@ impl Painter
             let glyphX = x + snapTextPosition(glyph.offsetX * sc, snapPixels)
 
             let refr = glyph.desc
-            .setTextureFont(drawFont, refr.atlasIndex)
+            if refr.width != 0 and refr.height != 0
+            {
+                .setTextureFont(drawFont, refr.atlasIndex)
 
-            let x1 = snapTextPosition(glyphX + refr.shiftX * sc, snapPixels)
-            let y1 = snapTextPosition(y + glyph.offsetY * sc - refr.shiftY * sc, snapPixels)
-            let x2 = snapTextPosition(glyphX + (refr.shiftX * sc) + (refr.width * sc), snapPixels)
-            let y2 = snapTextPosition(y + glyph.offsetY * sc - (refr.shiftY * sc) + (refr.height * sc), snapPixels)
+                let x1 = snapTextPosition(glyphX + refr.shiftX * sc, snapPixels)
+                let y1 = snapTextPosition(y + glyph.offsetY * sc - refr.shiftY * sc, snapPixels)
+                let x2 = snapTextPosition(glyphX + (refr.shiftX * sc) + (refr.width * sc), snapPixels)
+                let y2 = snapTextPosition(y + glyph.offsetY * sc - (refr.shiftY * sc) + (refr.height * sc), snapPixels)
 
-            let p1 = Math.Vector2{x1, y1}
-            let p2 = Math.Vector2{x2, y1}
-            let p3 = Math.Vector2{x1, y2}
-            let p4 = Math.Vector2{x2, y2}
+                let p1 = Math.Vector2{x1, y1}
+                let p2 = Math.Vector2{x2, y1}
+                let p3 = Math.Vector2{x1, y2}
+                let p4 = Math.Vector2{x2, y2}
 
-            let uv1 = Math.Vector2{refr.uv.x, refr.uv.y}
-            let uv2 = Math.Vector2{refr.uv.x + refr.uv.width, refr.uv.y}
-            let uv3 = Math.Vector2{refr.uv.x, refr.uv.y + refr.uv.height}
-            let uv4 = Math.Vector2{refr.uv.x + refr.uv.width, refr.uv.y + refr.uv.height}
+                let uv1 = Math.Vector2{refr.uv.x, refr.uv.y}
+                let uv2 = Math.Vector2{refr.uv.x + refr.uv.width, refr.uv.y}
+                let uv3 = Math.Vector2{refr.uv.x, refr.uv.y + refr.uv.height}
+                let uv4 = Math.Vector2{refr.uv.x + refr.uv.width, refr.uv.y + refr.uv.height}
 
-            discard .pushTriangle(p1, p2, p3, uv1, uv2, uv3, brush.color)
-            discard .pushTriangle(p3, p2, p4, uv3, uv2, uv4, brush.color)
+                discard .pushTriangle(p1, p2, p3, uv1, uv2, uv3, brush.color)
+                discard .pushTriangle(p3, p2, p4, uv3, uv2, uv4, brush.color)
+            }
 
             x = glyphX + snapTextPosition(glyph.advanceX * sc, snapPixels)
         }

@@ -16,11 +16,14 @@ func drawTextFlowCard(painter: *Pixel.Painter, rect: Math.Rectangle)
     drawTextCardSurface(painter, left, Color.fromArgb(255, 247, 249, 251))
     drawTextCardSurface(painter, right, Color.fromArgb(255, 244, 247, 252))
 
-    var story: RichString = "<b>Text layout</b> keeps styled chunks on the same baseline, wraps by shaped run width, and gives <p1>justified</p> paragraphs predictable bounds for repeated UI painting."
+    var story: RichString = "<b>Text layout</b> keeps styled chunks on the same baseline, wraps by shaped run width, and gives <p1>justified</p> paragraphs predictable bounds.\nParagraph gaps, min line height and max-line clipping keep dense UI text stable."
     var storyFmt: RichStringFormat
     storyFmt.flags         = .WordWrap | .Clip
     storyFmt.horzAlignment = .Justify
-    storyFmt.lineGap       = 4
+    storyFmt.lineGap       = 3
+    storyFmt.paragraphGap  = 5
+    storyFmt.minLineHeight = 17
+    storyFmt.maxLines      = 6
     storyFmt.font.regular  = g_HelpFont
     storyFmt.font.bold     = g_LabelFont
     storyFmt.palette[0]    = Argb.DarkSlateGray
@@ -39,6 +42,8 @@ func drawTextFlowCard(painter: *Pixel.Painter, rect: Math.Rectangle)
     labelFmt.palette[1]    = Argb.SeaGreen
     labelFmt.colorUrl      = Argb.DeepSkyBlue
     labelFmt.colorHotUrl   = Argb.Crimson
+    labelFmt.tabSize       = 6
+    labelFmt.letterSpacing = 0.4
     painter.drawRichString(insetRect(right, 12, 12, 12, 12), &labels, labelFmt)
 }
 
@@ -97,14 +102,17 @@ func drawBaselineCard(painter: *Pixel.Painter, rect: Math.Rectangle)
     painter.drawString(bigX, bigTop, big, g_TitleFont, Argb.MidnightBlue)
     painter.drawString(smallX, smallTop, small, g_HelpFont, Argb.DarkSlateGray)
 
-    var paragraph: RichString = "<b>Large</b> and regular spans\nadvance by per-line height."
+    var paragraph: RichString = "<b>Large</b> and regular spans\nadvance by per-line height.\nThis third line is intentionally clipped."
     var fmt: RichStringFormat
     fmt.flags        = .WordWrap | .Clip
     fmt.font.regular = g_HelpFont
     fmt.font.bold    = g_LabelFont
     fmt.palette[0]   = Argb.DimGray
     fmt.lineGap      = 3
-    painter.drawRichString({sample.x + 24, sample.bottom() - 56, sample.width - 48, 42}, &paragraph, fmt)
+    fmt.minLineHeight = 18
+    fmt.maxLines     = 2
+    fmt.letterSpacing = 0.3
+    painter.drawRichString({sample.x + 24, sample.bottom() - 64, sample.width - 48, 52}, &paragraph, fmt)
 }
 
 func drawOutlineTextCard(painter: *Pixel.Painter, rect: Math.Rectangle)

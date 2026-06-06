@@ -62,6 +62,7 @@ struct ShapedRun
     inkBounds:   Math.Rectangle
     hasInk:      bool
     tabSize:     u32 = DefaultTextTabSize
+    letterSpacing: f32
 }
 
 struct RichStringFormat
@@ -78,9 +79,13 @@ struct RichStringFormat
     flags:             StringFormatFlags = Default
     justifyLimit:      f32 = 2
     tabSize:           u32 = DefaultTextTabSize
+    letterSpacing:     f32
+    minLineHeight:     f32
+    paragraphGap:      s32
+    maxLines:          u32
 }
 
-fileprivate func appendShapedGlyph(run: *ShapedRun, font: *Font, glyphIndex: u32, cluster: u64, previousGlyphIndex: u32, customAdvanceX = 0.0'f32, isTab = false)
+fileprivate func appendShapedGlyph(run: *ShapedRun, font: *Font, glyphIndex: u32, cluster: u64, previousGlyphIndex: u32, customAdvanceX = 0.0'f32, isTab = false, letterSpacing = 0.0'f32)
 {
     var glyph: ShapedGlyph
     glyph.desc       = font.getGlyphDescByIndex(glyphIndex)
@@ -90,7 +95,7 @@ fileprivate func appendShapedGlyph(run: *ShapedRun, font: *Font, glyphIndex: u32
     glyph.advanceY   = glyph.desc.advanceY
     glyph.isTab      = isTab
     if previousGlyphIndex and !isTab do
-        glyph.offsetX = font.cache.kerning(previousGlyphIndex, glyphIndex)
+        glyph.offsetX = font.cache.kerning(previousGlyphIndex, glyphIndex) + letterSpacing
 
     let glyphX = run.metrics.width + glyph.offsetX
     if glyph.desc.width != 0 and glyph.desc.height != 0
@@ -167,19 +172,21 @@ impl Painter
     // Shape a single-font text run. This currently preserves the legacy one-rune
     // to one-glyph behavior, but stores glyph indexes, advances and cluster
     // positions so GSUB/GPOS, fallback and bidi can be introduced at this layer.
-    func shapeRun(text: string, font: *Font, tabSize: u32 = DefaultTextTabSize)->ShapedRun
+    func shapeRun(text: string, font: *Font, tabSize: u32 = DefaultTextTabSize, letterSpacing = 0.0'f32)->ShapedRun
     {
         Debug.assert(font != null, "invalid font")
 
         var result: retval
         result.font = font
         result.tabSize = tabSize
+        result.letterSpacing = letterSpacing
         result.glyphs.reserve(@countof(text))
 
         var count = @countof(text)
         var scan = @dataof(text)
         var byteIdx = 0'u64
         var previousGlyphIndex = 0'u32
+        let letterSpacingRef = letterSpacing / font.scale()
 
         while count
         {
@@ -196,7 +203,7 @@ impl Painter
             else
             {
                 let glyphIndex = font.glyphIndex(c)
-                appendShapedGlyph(&result, font, glyphIndex, byteIdx, previousGlyphIndex)
+                appendShapedGlyph(&result, font, glyphIndex, byteIdx, previousGlyphIndex, 0.0, false, letterSpacingRef)
                 previousGlyphIndex = glyphIndex
             }
 
@@ -219,9 +226,11 @@ impl Painter
         var result: retval
         result.font = font
         result.tabSize = run.tabSize
+        result.letterSpacing = run.letterSpacing
         result.glyphs.reserve(run.glyphs.count)
 
         var previousGlyphIndex = 0'u32
+        let letterSpacingRef = run.letterSpacing / font.scale()
         foreach glyph in run.glyphs
         {
             if glyph.isTab
@@ -231,7 +240,7 @@ impl Painter
             }
             else
             {
-                appendShapedGlyph(&result, font, glyph.glyphIndex, glyph.cluster, previousGlyphIndex)
+                appendShapedGlyph(&result, font, glyph.glyphIndex, glyph.cluster, previousGlyphIndex, 0.0, false, letterSpacingRef)
                 previousGlyphIndex = glyph.glyphIndex
             }
         }
@@ -281,9 +290,9 @@ impl Painter
     }
 
     // Returns the metrics of a given text
-    func measureString(text: string, font: *Font)->StringMetrics
+    func measureString(text: string, font: *Font, tabSize: u32 = DefaultTextTabSize, letterSpacing = 0.0'f32)->StringMetrics
     {
-        let shaped = shapeRun(text, font)
+        let shaped = shapeRun(text, font, tabSize, letterSpacing)
         return shaped.metrics
     }
 
@@ -471,6 +480,8 @@ impl Painter
         var startLine    = 0
         var lastWasSpace = false
         let defaultLineHeight = format.font.regular.height
+        foreach &resetChunk in text.chunks do
+            resetChunk.visible = false
 
         foreach &c, idx in text.chunks
         {
@@ -479,7 +490,7 @@ impl Painter
             c.font = format.font.getFont(fs)
 
             // Measure
-            c.shaped = shapeRun(c.slice, c.font, format.tabSize)
+            c.shaped = shapeRun(c.slice, c.font, format.tabSize, format.letterSpacing)
             let ms = c.shaped.metrics
             c.boundRect = {0, 0, ms.width, ms.height}
 
@@ -489,6 +500,8 @@ impl Painter
                 line.start  = startLine
                 line.end    = cast(s32) idx
                 line.height = Math.max(defaultLineHeight, Math.max(line.measure.height, line.fontAscent - line.fontDescent))
+                if format.minLineHeight > 0 do
+                    line.height = Math.max(line.height, format.minLineHeight)
                 line.hasEol = true
                 lines.add(line)
 
@@ -529,6 +542,8 @@ impl Painter
                         }
 
                         line.height = Math.max(defaultLineHeight, Math.max(line.measure.height, line.fontAscent - line.fontDescent))
+                        if format.minLineHeight > 0 do
+                            line.height = Math.max(line.height, format.minLineHeight)
                         lines.add(line)
                     }
 
@@ -582,7 +597,15 @@ impl Painter
             line.start = startLine
             line.end   = cast(s32) text.chunks.count
             line.height = Math.max(defaultLineHeight, Math.max(line.measure.height, line.fontAscent - line.fontDescent))
+            if format.minLineHeight > 0 do
+                line.height = Math.max(line.height, format.minLineHeight)
             lines.add(line)
+        }
+
+        if format.maxLines and lines.count > format.maxLines
+        {
+            lines.resize(cast(u64) format.maxLines)
+            lines[lines.count - 1].hasEol = false
         }
 
         let x = text.layoutRect.x
@@ -595,16 +618,31 @@ impl Painter
         if lines.count > 1
         {
             totalHeight = 0
-            foreach &l in lines do
+            foreach &l, idxLine in lines
+            {
                 totalHeight += l.height
-            totalHeight += cast(f32) (lines.count - 1) * format.lineGap
+                if idxLine != lines.count - 1
+                {
+                    totalHeight += cast(f32) format.lineGap
+                    if l.hasEol do
+                        totalHeight += cast(f32) format.paragraphGap
+                }
+            }
         }
         elif singleLine
         {
-            if format.flags & .DontAdaptSingleLineHeight do
+            if format.flags & .DontAdaptSingleLineHeight
+            {
                 totalHeight = defaultLineHeight
-            else do
+                if format.minLineHeight > 0 do
+                    totalHeight = Math.max(totalHeight, format.minLineHeight)
+            }
+            else
+            {
                 totalHeight = lines[0].measure.height
+                if format.minLineHeight > 0 do
+                    totalHeight = Math.max(totalHeight, format.minLineHeight)
+            }
         }
 
         switch format.vertAlignment
@@ -646,6 +684,7 @@ impl Painter
                 for idx in l.start until l.end
                 {
                     let c = &text.chunks[idx]
+                    c.visible = true
                     c.pos.x = x1
                     c.pos.y = y1 + (l.fontAscent - c.font.ascent)
 
@@ -665,7 +704,13 @@ impl Painter
                 }
             }
 
-            y += l.height + format.lineGap
+            y += l.height
+            if idxLine != lines.count - 1
+            {
+                y += cast(f32) format.lineGap
+                if l.hasEol do
+                    y += cast(f32) format.paragraphGap
+            }
         }
 
         if text.boundRect.x == Swag.F32.Max
@@ -705,7 +750,7 @@ impl Painter
         var brush = format.brush
         foreach &c in text.chunks
         {
-            if c.isEol do
+            if c.isEol or !c.visible do
                 continue
 
             if c.isHotUrl do

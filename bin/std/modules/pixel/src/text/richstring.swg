@@ -10,6 +10,7 @@ struct RichChunk
     isEol:            bool
     isUrl:            bool
     isHotUrl:         bool
+    visible:          bool
     colorIdx:         s32
 
     boundRect:        Math.Rectangle
@@ -64,6 +65,7 @@ impl RichString
         chunk.isSpace      = space
         chunk.isEol        = eol
         chunk.isUrl        = url or isUrl.back()
+        chunk.visible      = false
         chunk.colorIdx     = colorFg.back()
         chunk.under        = under.back()
         chunk.hasFontStyle = false
@@ -186,6 +188,8 @@ impl RichString
         foreach &c in .chunks
         {
             if !c.isUrl do
+                continue
+            if !c.visible do
                 continue
 
             var r = c.boundRect

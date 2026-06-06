@@ -33,6 +33,13 @@ func makeShapingTestFont()->*Font
     @assert(Math.isEqualEpsilon(measured.width, shaped.metrics.width, 0.001))
     @assert(Math.isEqualEpsilon(measured.height, shaped.metrics.height, 0.001))
 
+    let normalABC = Painter.shapeRun("ABC", font)
+    let spacedABC = Painter.shapeRun("ABC", font, 4, 1.5'f32)
+    let measuredSpacedABC = Painter.measureString("ABC", font, 4, 1.5'f32)
+    @assert(spacedABC.metrics.width > normalABC.metrics.width + 2.9)
+    @assert(Math.isEqualEpsilon(measuredSpacedABC.width, spacedABC.metrics.width, 0.001))
+    @assert(spacedABC.letterSpacing == 1.5'f32)
+
     let spaces = Painter.shapeRun("    ", font)
     let tab = Painter.shapeRun("\t", font)
     @assert(tab.glyphs.count == 1)
@@ -66,6 +73,28 @@ func makeShapingTestFont()->*Font
     @assert(richText.boundRect.height >= largeFont.height + font.height + format.lineGap)
     @assert(richText.chunks[0].pos.y < richText.chunks[richText.chunks.count - 1].pos.y)
 
+    var paragraphText: RichString = "A\nB\nC"
+    var paragraphFormat: RichStringFormat
+    paragraphFormat.font.regular = font
+    paragraphFormat.lineGap      = 2
+    paragraphFormat.paragraphGap = 7
+    paragraphFormat.minLineHeight = font.height + 6.0
+    paragraphFormat.maxLines     = 2
+
+    paragraphText.compute()
+    Painter.computeLayout({0, 0, 300, 300}, &paragraphText, paragraphFormat)
+    @assert(paragraphText.boundRect.height >= paragraphFormat.minLineHeight * 2 + cast(f32) paragraphFormat.lineGap + cast(f32) paragraphFormat.paragraphGap)
+
+    var visibleChunks = 0
+    foreach &chunk in paragraphText.chunks
+    {
+        if chunk.visible and !chunk.isEol do
+            visibleChunks += 1
+    }
+
+    @assert(visibleChunks == 2)
+    @assert(!paragraphText.chunks[paragraphText.chunks.count - 1].visible)
+
     var forced: RichString = "<b>A</b>"
     forced.compute()
     forced.chunks.clear()
@@ -98,4 +127,11 @@ func makeShapingTestFont()->*Font
     @assert(styledUrl.chunks[2].isUrl)
     @assert(styledUrl.chunks[2].colorIdx == 1)
     @assert(!styledUrl.chunks[3].isUrl)
+
+    var urlFormat: RichStringFormat
+    urlFormat.font.regular = font
+    urlFormat.font.bold    = largeFont
+    Painter.computeLayout({0, 0, 300, 100}, &styledUrl, urlFormat)
+    let hotChunk = styledUrl.getUrlChunkAt({styledUrl.chunks[1].pos.x + styledUrl.chunks[1].boundRect.width * 0.5, styledUrl.chunks[1].pos.y + styledUrl.chunks[1].boundRect.height * 0.5})
+    @assert(hotChunk != null)
 }

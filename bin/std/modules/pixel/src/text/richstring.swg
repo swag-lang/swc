@@ -63,12 +63,12 @@ impl RichString
 
         chunk.isSpace      = space
         chunk.isEol        = eol
-        chunk.isUrl        = url
+        chunk.isUrl        = url or isUrl.back()
         chunk.colorIdx     = colorFg.back()
         chunk.under        = under.back()
         chunk.hasFontStyle = false
 
-        if url do
+        if chunk.isUrl do
             .hasUrl = true
 
         if isBold.back() and isItalic.back()
@@ -222,11 +222,13 @@ impl RichString
         var byteIdx   = 0'u64
         var isBold:   Array'bool
         var isItalic: Array'bool
+        var isUrl:    Array'bool
         var colorFg:  Array'u32
         var under:    Array'UnderlineStyle
 
         isBold.add(false)
         isItalic.add(false)
+        isUrl.add(false)
         colorFg.add(0)
         under.add(UnderlineStyle.None)
 
@@ -310,11 +312,14 @@ impl RichString
 
             case Utf8.startsWith(sl, "<url>"):
                 .addChunk(byteIdx)
+                isUrl.add(true)
                 byteIdx, scan, startChunk += 5
                 count -= 5
                 handled = true
             case Utf8.startsWith(sl, "</url>"):
-                .addChunk(byteIdx, url: true)
+                .addChunk(byteIdx)
+                if isUrl.count > 1 do
+                    isUrl.removeBack()
                 byteIdx, scan, startChunk += 6
                 count -= 6
                 handled = true

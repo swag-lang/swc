@@ -87,4 +87,15 @@ func makeShapingTestFont()->*Font
 
     @assert(eolCount == 3)
     @assert(spaceCount == 0)
+
+    var styledUrl: RichString = "<url>A<b>B</b><p1>C</p></url>D"
+    styledUrl.compute()
+    @assert(styledUrl.hasUrl)
+    @assert(styledUrl.chunks.count == 4)
+    @assert(styledUrl.chunks[0].isUrl)
+    @assert(styledUrl.chunks[1].isUrl)
+    @assert(styledUrl.chunks[1].fontStyle == .Bold)
+    @assert(styledUrl.chunks[2].isUrl)
+    @assert(styledUrl.chunks[2].colorIdx == 1)
+    @assert(!styledUrl.chunks[3].isUrl)
 }

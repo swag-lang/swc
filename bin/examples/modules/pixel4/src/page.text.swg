@@ -8,7 +8,7 @@ func drawTextCardSurface(painter: *Pixel.Painter, rect: Math.Rectangle, color: C
 
 func drawTextFlowCard(painter: *Pixel.Painter, rect: Math.Rectangle)
 {
-    let body = drawPanel(painter, rect, "Rich layout", "Styled runs, alignment, justification and clipping are resolved through drawRichString.")
+    let body = drawPanel(painter, rect, "Rich layout", "Styled runs, tabs, URL spans, alignment and clipping are resolved through drawRichString.")
     let gap = 14.0
     let left = Math.Rectangle{body.x, body.y + 2, (body.width - gap) * 0.54, body.height - 4}
     let right = Math.Rectangle{left.right() + gap, body.y + 2, body.width - left.width - gap, body.height - 4}
@@ -27,7 +27,7 @@ func drawTextFlowCard(painter: *Pixel.Painter, rect: Math.Rectangle)
     storyFmt.palette[1]    = Argb.Crimson
     painter.drawRichString(insetRect(left, 16, 14, 16, 14), &story, storyFmt)
 
-    var labels: RichString = "<u>Centered panel</u>\n<p1>palette run</p>\n<url>url hit area</url>\nclipped to card"
+    var labels: RichString = "<u>Centered panel</u>\n<p1>palette run</p>\n<url><b>styled URL</b></url>\ntab\tstop"
     var labelFmt: RichStringFormat
     labelFmt.flags         = .WordWrap | .Clip
     labelFmt.horzAlignment = .Center

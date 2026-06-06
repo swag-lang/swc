@@ -622,6 +622,106 @@ namespace
         return Result::Continue;
     }
 
+    bool findStructFieldByName(const std::vector<SymbolVariable*>& fields, const IdentifierRef name, size_t& outIndex)
+    {
+        for (size_t i = 0; i < fields.size(); ++i)
+        {
+            const SymbolVariable* field = fields[i];
+            if (field && field->idRef() == name)
+            {
+                outIndex = i;
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    size_t nextPositionalStructField(const std::vector<SymbolVariable*>& fields, const std::vector<uint8_t>& assigned, size_t start)
+    {
+        while (start < fields.size() && (!fields[start] || assigned[start]))
+            ++start;
+        return start;
+    }
+
+    void mapAggregateStructValuesToFields(const TypeInfo* srcType, const std::vector<SymbolVariable*>& dstFields, const std::vector<ConstantRef>& values, std::vector<ConstantRef>& outValues)
+    {
+        outValues.assign(dstFields.size(), ConstantRef::invalid());
+        if (!srcType || !srcType->isAggregateStruct())
+        {
+            size_t valueIdx = 0;
+            for (size_t fieldIdx = 0; fieldIdx < dstFields.size() && valueIdx < values.size(); ++fieldIdx)
+            {
+                if (!dstFields[fieldIdx])
+                    continue;
+                outValues[fieldIdx] = values[valueIdx];
+                ++valueIdx;
+            }
+
+            return;
+        }
+
+        const auto& aggregate = srcType->payloadAggregate();
+        SWC_INTERNAL_CHECK(aggregate.names.size() == values.size());
+
+        std::vector<uint8_t> assigned(dstFields.size(), 0);
+        bool                 seenNamed = false;
+        size_t               nextPos   = 0;
+
+        for (size_t valueIdx = 0; valueIdx < values.size(); ++valueIdx)
+        {
+            const IdentifierRef name = aggregate.names[valueIdx];
+            size_t              fieldIdx;
+            if (name.isValid())
+            {
+                seenNamed = true;
+                SWC_INTERNAL_CHECK(findStructFieldByName(dstFields, name, fieldIdx));
+            }
+            else
+            {
+                SWC_INTERNAL_CHECK(!seenNamed);
+                fieldIdx = nextPositionalStructField(dstFields, assigned, nextPos);
+                SWC_INTERNAL_CHECK(fieldIdx < dstFields.size());
+                nextPos = fieldIdx + 1;
+            }
+
+            SWC_INTERNAL_CHECK(!assigned[fieldIdx]);
+            assigned[fieldIdx]  = 1;
+            outValues[fieldIdx] = values[valueIdx];
+        }
+    }
+
+    Result lowerAggregateStructToBytesInternal(Sema& sema, ByteSpanRW dstBytes, const TypeInfo& dstType, const TypeInfo* srcType, const std::vector<ConstantRef>& values)
+    {
+        const auto&             dstFields = dstType.payloadSymStruct().fields();
+        std::vector<ConstantRef> valuesByField;
+        mapAggregateStructValuesToFields(srcType, dstFields, values, valuesByField);
+
+        for (size_t fieldIdx = 0; fieldIdx < dstFields.size(); ++fieldIdx)
+        {
+            const SymbolVariable* field = dstFields[fieldIdx];
+            if (!field)
+                continue;
+
+            const TypeRef   fieldTypeRef = field->typeRef();
+            const TypeInfo& fieldType    = sema.typeMgr().get(fieldTypeRef);
+            const uint64_t  fieldSize    = fieldType.sizeOf(sema.ctx());
+            const uint64_t  fieldOffset  = field->offset();
+            assertByteRange(fieldOffset, fieldSize, dstBytes.size());
+
+            ConstantRef valueRef = valuesByField[fieldIdx];
+            if (valueRef.isInvalid())
+                valueRef = field->defaultValueRef();
+
+            if (valueRef.isValid())
+                SWC_RESULT(lowerConstantToBytes(sema, subBytes(dstBytes, fieldOffset, fieldSize), fieldTypeRef, valueRef));
+            else if (fieldSize)
+                zeroBytes(subBytes(dstBytes, fieldOffset, fieldSize));
+        }
+
+        return Result::Continue;
+    }
+
     Result lowerConstantToBytes(Sema& sema, ByteSpanRW dstBytes, TypeRef dstTypeRef, ConstantRef cstRef)
     {
         const ConstantValue& cst = sema.cstMgr().get(cstRef);
@@ -655,7 +755,8 @@ namespace
 
             if (cst.isAggregateStruct())
             {
-                SWC_RESULT(ConstantLower::lowerAggregateStructToBytes(sema, dstBytes, dstType, cst.getAggregateStruct()));
+                const TypeInfo& srcType = cst.type(sema.ctx());
+                SWC_RESULT(lowerAggregateStructToBytesInternal(sema, dstBytes, dstType, srcType.isAggregateStruct() ? &srcType : nullptr, cst.getAggregateStruct()));
                 return Result::Continue;
             }
 
@@ -882,38 +983,7 @@ Result ConstantLower::lowerAggregateArrayToBytes(Sema& sema, ByteSpanRW dstBytes
 
 Result ConstantLower::lowerAggregateStructToBytes(Sema& sema, ByteSpanRW dstBytes, const TypeInfo& dstType, const std::vector<ConstantRef>& values)
 {
-    const auto& dstFields = dstType.payloadSymStruct().fields();
-    size_t      valueIdx  = 0;
-
-    for (const SymbolVariable* field : dstFields)
-    {
-        if (!field)
-            continue;
-
-        const TypeRef   fieldTypeRef = field->typeRef();
-        const TypeInfo& fieldType    = sema.typeMgr().get(fieldTypeRef);
-        const uint64_t  fieldSize    = fieldType.sizeOf(sema.ctx());
-        const uint64_t  fieldOffset  = field->offset();
-        assertByteRange(fieldOffset, fieldSize, dstBytes.size());
-
-        ConstantRef valueRef = ConstantRef::invalid();
-        if (valueIdx < values.size())
-        {
-            valueRef = values[valueIdx];
-            ++valueIdx;
-        }
-        else
-        {
-            valueRef = field->defaultValueRef();
-        }
-
-        if (valueRef.isValid())
-            SWC_RESULT(lowerConstantToBytes(sema, subBytes(dstBytes, fieldOffset, fieldSize), fieldTypeRef, valueRef));
-        else if (fieldSize)
-            zeroBytes(subBytes(dstBytes, fieldOffset, fieldSize));
-    }
-
-    return Result::Continue;
+    return lowerAggregateStructToBytesInternal(sema, dstBytes, dstType, nullptr, values);
 }
 
 Result ConstantLower::materializeStaticPayload(uint32_t& outOffset, Sema& sema, DataSegment& segment, TypeRef typeRef, const ByteSpan srcBytes)

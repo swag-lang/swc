@@ -264,7 +264,7 @@ Result Cast::attachCastRuntimeStorageIfNeeded(Sema& sema, AstNodeRef castNodeRef
     return SemaHelpers::ensureRuntimeStorageDeclaredAndCompleted(sema, storageSym, storageTypeRef);
 }
 
-Result Cast::retargetLiteralRuntimeStorageIfNeeded(Sema& sema, AstNodeRef nodeRef, TypeRef srcTypeRef, TypeRef dstTypeRef)
+Result Cast::retargetLiteralRuntimeStorageIfNeeded(Sema& sema, AstNodeRef nodeRef, TypeRef srcTypeRef, TypeRef dstTypeRef, bool createIfMissing)
 {
     if (srcTypeRef.isInvalid() || dstTypeRef.isInvalid())
         return Result::Continue;
@@ -279,20 +279,25 @@ Result Cast::retargetLiteralRuntimeStorageIfNeeded(Sema& sema, AstNodeRef nodeRe
     if (!needsRetarget)
         return Result::Continue;
 
-    const auto* payload = sema.loweringPayload<CodeGenLoweringPayload>(nodeRef);
-    if (!payload || payload->runtimeStorageSym == nullptr)
-        return Result::Continue;
-
     TypeRef storageTypeRef = dstTypeRef;
     if (srcType.isAggregateArray() && dstType.isSlice())
         storageTypeRef = aggregateArraySliceStorageTypeRef(sema, srcType, dstType);
     if (storageTypeRef.isInvalid())
         return Result::Continue;
 
-    const TypeInfo& storageType = sema.typeMgr().get(storageTypeRef);
-    SWC_RESULT(sema.waitSemaCompleted(&storageType, nodeRef));
-    payload->runtimeStorageSym->setTypeRef(storageTypeRef);
-    return Result::Continue;
+    auto* payload = sema.loweringPayload<CodeGenLoweringPayload>(nodeRef);
+    if (payload && payload->runtimeStorageSym != nullptr)
+    {
+        const TypeInfo& storageType = sema.typeMgr().get(storageTypeRef);
+        SWC_RESULT(sema.waitSemaCompleted(&storageType, nodeRef));
+        payload->runtimeStorageSym->setTypeRef(storageTypeRef);
+        return Result::Continue;
+    }
+
+    if (!createIfMissing)
+        return Result::Continue;
+
+    return SemaHelpers::attachRuntimeStorageIfNeeded(sema, nodeRef, sema.node(nodeRef), storageTypeRef, "__literal_runtime_storage");
 }
 
 bool resolveDynamicStructCastSourceInfo(Sema& sema, AstNodeRef sourceRef, TypeRef sourceTypeRef, DynamicStructCastSourceInfo& outInfo)

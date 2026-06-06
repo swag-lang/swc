@@ -65,6 +65,26 @@ struct LocalVarDirectDefaultNode
     state: LocalVarState = {enabled: true, weight: 30}
 }
 
+struct LocalVarEventBase
+{
+    accepted: bool
+}
+
+struct LocalVarKeyEvent
+{
+    enum Kind
+    {
+        Pressed
+        Released
+    }
+
+    using base: LocalVarEventBase
+    kind:       Kind
+    modifiers:  s32 = 3
+    key:        s32 = undefined
+    char:       rune
+}
+
 #test
 {
     func typedStructInit()->s32
@@ -235,4 +255,23 @@ struct LocalVarDirectDefaultNode
 
     const V = #run aggregateDefaultsFromFieldDecl()
     #assert(V == 43)
+}
+
+#test
+{
+    func namedStructInitAfterUsingBase()->s32
+    {
+        var evt = LocalVarKeyEvent{kind: .Pressed}
+        evt.key = 9
+
+        if evt.kind == .Pressed and !evt.accepted
+        {
+            return evt.key + evt.modifiers
+        }
+
+        return 0
+    }
+
+    const V = #run namedStructInitAfterUsingBase()
+    #assert(V == 12)
 }

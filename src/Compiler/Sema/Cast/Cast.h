@@ -75,7 +75,7 @@ struct Cast
     static void       convertEnumToUnderlying(Sema& sema, SemaNodeView& view);
     static TypeRef    runtimeStorageTypeRef(Sema& sema, TypeRef srcTypeRef, TypeRef dstTypeRef, ConstantRef srcConstRef);
     static Result     attachCastRuntimeStorageIfNeeded(Sema& sema, AstNodeRef castNodeRef, TypeRef srcTypeRef, TypeRef dstTypeRef, ConstantRef srcConstRef);
-    static Result     retargetLiteralRuntimeStorageIfNeeded(Sema& sema, AstNodeRef nodeRef, TypeRef srcTypeRef, TypeRef dstTypeRef);
+    static Result     retargetLiteralRuntimeStorageIfNeeded(Sema& sema, AstNodeRef nodeRef, TypeRef srcTypeRef, TypeRef dstTypeRef, bool createIfMissing = false);
     static bool       resolveUserDefinedLiteralSuffix(const Sema& sema, AstNodeRef nodeRef, UserDefinedLiteralSuffixInfo& outInfo);
     static TokenRef   userDefinedLiteralValueTokRef(const Sema& sema, AstNodeRef nodeRef);
     static Result     resolveStructOpCastCandidate(Sema& sema, const SourceCodeRef& codeRef, TypeRef srcTypeRef, TypeRef dstTypeRef, CastKind castKind, SymbolFunction*& outCalledFn, AstNodeRef srcNodeRef = AstNodeRef::invalid());

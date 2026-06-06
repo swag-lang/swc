@@ -495,7 +495,10 @@ namespace
             if (!field)
                 continue;
             if (field->hasExtraFlag(SymbolVariableFlagsE::ExplicitUndefined))
+            {
+                args.castRequest->outConstRef = ConstantRef::invalid();
                 return Result::Continue;
+            }
             castedByDst[i] = field->defaultValueRef();
         }
 

@@ -413,6 +413,7 @@ impl Painter
         struct OneLine
         {
             measure:         StringMetrics
+            height:          f32
             start, end:      s32
             countSpaces:     s32
             whiteSpaces:     f32
@@ -425,6 +426,7 @@ impl Painter
 
         var startLine    = 0
         var lastWasSpace = false
+        let defaultLineHeight = format.font.regular.height
 
         foreach &c, idx in text.chunks
         {
@@ -442,13 +444,16 @@ impl Painter
             {
                 line.start  = startLine
                 line.end    = cast(s32) idx
+                line.height = Math.max(defaultLineHeight, line.measure.height)
                 line.hasEol = true
                 lines.add(line)
 
                 startLine = line.end + 1
                 line.measure.width, line.measure.height = 0
                 line.measure.ascent, line.measure.descent = 0
+                line.height = 0
                 line.countSpaces = 0
+                line.whiteSpaces = 0
                 line.hasEol      = false
                 continue
             }
@@ -478,12 +483,14 @@ impl Painter
                             line.end -= 1
                         }
 
+                        line.height = Math.max(defaultLineHeight, line.measure.height)
                         lines.add(line)
                     }
 
                     startLine = cast(s32) idx
                     line.measure.width, line.measure.height = 0
                     line.measure.ascent, line.measure.descent = 0
+                    line.height = 0
                     line.countSpaces = 0
                     line.whiteSpaces = 0
 
@@ -517,13 +524,14 @@ impl Painter
             line.measure.descent = Math.max(line.measure.descent, ms.descent)
             line.measure.height  = Math.max(line.measure.height, ms.height)
 
-            c.boundRect.height = format.font.regular.height
+            c.boundRect.height = Math.max(defaultLineHeight, ms.height)
         }
 
         if startLine != text.chunks.count
         {
             line.start = startLine
             line.end   = cast(s32) text.chunks.count
+            line.height = Math.max(defaultLineHeight, line.measure.height)
             lines.add(line)
         }
 
@@ -536,13 +544,15 @@ impl Painter
         let singleLine = lines.count == 1
         if lines.count > 1
         {
-            totalHeight = cast(f32) (lines.count * format.font.regular.height)
+            totalHeight = 0
+            foreach &l in lines do
+                totalHeight += l.height
             totalHeight += cast(f32) (lines.count - 1) * format.lineGap
         }
         elif singleLine
         {
             if format.flags & .DontAdaptSingleLineHeight do
-                totalHeight = format.font.regular.height
+                totalHeight = defaultLineHeight
             else do
                 totalHeight = lines[0].measure.height
         }
@@ -555,14 +565,15 @@ impl Painter
             y = pos.vertCenter() - (totalHeight * 0.5)
         }
 
+        // Y correction if single line
+        if singleLine and !(format.flags & .DontAdaptSingleLineHeight) do
+            y -= (format.font.regular.ascent - lines[0].measure.ascent)
+
         text.boundRect.x      = Swag.F32.Max
         text.boundRect.y      = y
         text.boundRect.width  = 0
         text.boundRect.height = totalHeight
-
-        // Y correction if single line
-        if singleLine and !(format.flags & .DontAdaptSingleLineHeight) do
-            y -= (format.font.regular.ascent - lines[0].measure.ascent)
+        var boundRight        = Swag.F32.NegInf
 
         // Layout
         foreach &l, idxLine in lines
@@ -580,15 +591,16 @@ impl Painter
                 x1 = pos.horzCenter() - l.measure.width * 0.5
             }
 
-            text.boundRect.x     = Math.min(text.boundRect.x, x1)
-            text.boundRect.width = Math.max(text.boundRect.width, l.measure.width)
-
             if l.end > l.start
             {
                 for idx in l.start until l.end
                 {
                     let c = &text.chunks[idx]
                     c.pos.x = x1
+                    c.pos.y = y1
+
+                    text.boundRect.x = Math.min(text.boundRect.x, c.pos.x)
+                    boundRight       = Math.max(boundRight, c.pos.x + c.boundRect.width)
 
                     if c.isSpace and format.horzAlignment == .Justify and idxLine != lines.count - 1 and !l.hasEol
                     {
@@ -600,12 +612,19 @@ impl Painter
                     }
                     else do
                         x1 += c.boundRect.width
-                    c.pos.y = y1
                 }
             }
 
-            y += format.font.regular.height + format.lineGap
+            y += l.height + format.lineGap
         }
+
+        if text.boundRect.x == Swag.F32.Max
+        {
+            text.boundRect.x = x
+            boundRight       = x
+        }
+
+        text.boundRect.width = boundRight - text.boundRect.x
     }
 
     // Draw a rich string.

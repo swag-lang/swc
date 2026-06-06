@@ -78,3 +78,43 @@ impl Vec2
     #assert(#typeof(r4) == f32)
     @assert(r4 == 40.0)
 }
+
+#[Swag.EnumFlags]
+enum ConflictingFlagName
+{
+    Name
+    Other
+}
+
+func(T) has(flags, value: T)->bool
+{
+    return flags & value != 0
+}
+
+func(T) add(flags: &T, value: T)
+{
+    flags |= value
+}
+
+struct ConflictingFlagOwner
+{
+}
+
+impl ConflictingFlagOwner
+{
+    attr Name(text: string)
+
+    mtd checkFlags()
+    {
+        var flags = ConflictingFlagName.Name
+        flags.add(.Other)
+        @assert(flags.has(.Name))
+        @assert(flags.has(.Other))
+    }
+}
+
+#test
+{
+    var owner: ConflictingFlagOwner
+    owner.checkFlags()
+}

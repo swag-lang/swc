@@ -67,3 +67,43 @@ func semaTest005()
     let dir: BindingDirectionAlias = .North
     #assert(#typeof(reverseDirection(dir)) == BindingDirection)
 }
+
+#[Swag.EnumFlags]
+enum ConflictingFlagName
+{
+    Name
+    Other
+}
+
+func(T) has(flags, value: T)->bool
+{
+    return flags & value != 0
+}
+
+func(T) add(flags: &T, value: T)
+{
+    flags |= value
+}
+
+struct ConflictingFlagOwner
+{
+}
+
+impl ConflictingFlagOwner
+{
+    attr Name(text: string)
+
+    mtd checkFlags()
+    {
+        var flags = ConflictingFlagName.Name
+        let hasName = flags.has(.Name)
+        flags.add(.Other)
+        let hasOther = flags.has(.Other)
+    }
+}
+
+func semaTest006()
+{
+    var owner: ConflictingFlagOwner
+    owner.checkFlags()
+}

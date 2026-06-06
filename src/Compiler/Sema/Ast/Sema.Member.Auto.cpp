@@ -311,7 +311,7 @@ namespace
         return Result::Continue;
     }
 
-    Result collectAutoMemberCandidates(Sema& sema, SmallVector4<AutoMemberCandidate>& outCandidates)
+    Result collectAutoMemberCandidates(Sema& sema, SmallVector4<AutoMemberCandidate>& outCandidates, bool preferBindingTypes)
     {
         outCandidates.clear();
 
@@ -332,7 +332,29 @@ namespace
                 autoMemberBindings.push_back(binding);
         }
 
-        uint32_t precedence = 0;
+        const auto hasEnumBindingType = [&]() {
+            for (const TypeRef bindingTypeRef : bindingTypes)
+            {
+                const TypeRef normalizedTypeRef = normalizeAutoMemberBindingType(sema.ctx(), bindingTypeRef);
+                if (normalizedTypeRef.isValid() && sema.typeMgr().get(normalizedTypeRef).isEnum())
+                    return true;
+            }
+
+            return false;
+        };
+
+        const bool bindingTypesFirst = preferBindingTypes && hasEnumBindingType();
+        uint32_t   precedence        = 0;
+
+        if (bindingTypesFirst)
+        {
+            // In call arguments, the selected/deduced parameter type is the nearest
+            // intent for `.Foo`, and should win over receiver members with the same name.
+            for (const auto& bindingType : std::ranges::reverse_view(bindingTypes))
+            {
+                SWC_RESULT(addCandidateFromType(sema, outCandidates, bindingType, nullptr, AstNodeRef::invalid(), precedence++));
+            }
+        }
 
         SWC_RESULT(addCandidateFromInlineReceiver(sema, outCandidates, precedence));
 
@@ -341,9 +363,12 @@ namespace
             SWC_RESULT(addCandidateFromType(sema, outCandidates, bindingVar->typeRef(), bindingVar, AstNodeRef::invalid(), precedence++));
         }
 
-        for (const auto& bindingType : std::ranges::reverse_view(bindingTypes))
+        if (!bindingTypesFirst)
         {
-            SWC_RESULT(addCandidateFromType(sema, outCandidates, bindingType, nullptr, AstNodeRef::invalid(), precedence++));
+            for (const auto& bindingType : std::ranges::reverse_view(bindingTypes))
+            {
+                SWC_RESULT(addCandidateFromType(sema, outCandidates, bindingType, nullptr, AstNodeRef::invalid(), precedence++));
+            }
         }
 
         for (auto& binding : std::ranges::reverse_view(autoMemberBindings))
@@ -576,8 +601,8 @@ Result AstAutoMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& c
     const IdentifierRef idRef   = sema.idMgr().addIdentifier(sema.ctx(), codeRef);
 
     SmallVector4<AutoMemberCandidate> candidates;
-    SWC_RESULT(collectAutoMemberCandidates(sema, candidates));
     const bool deferCallArgument = hasFlag(AstAutoMemberAccessExprFlagsE::CallArgument);
+    SWC_RESULT(collectAutoMemberCandidates(sema, candidates, deferCallArgument));
     if (candidates.empty())
     {
         // In a call-argument position, `.EnumValue` might need the selected overload's

@@ -103,24 +103,24 @@ impl PropertiesCtrl
         var parentLine: *ListLine
         foreach &it, idx in .prop.sections
         {
-            let str   = it.item0.label.getText()
+            let str   = it.item.label.getText()
             let naked = RichString.getNaked(str)
 
             // In the filter bar
-            if .tab and it.item1 == 0
+            if .tab and it.lvl == 0
             {
                 let tabItem = .tab.addItem(naked)
                 tabItem.userData0 = cast(*void) idx
             }
 
             // In the left pane
-            if it.item1 == 0 do
+            if it.lvl == 0 do
                 parentLine = null
 
             let line = .list.createLine(naked, parentLine: parentLine)
-            line.userData0 = it.item0
+            line.userData0 = it.item
 
-            if it.item1 == 0 do
+            if it.lvl == 0 do
                 parentLine = line
         }
     }

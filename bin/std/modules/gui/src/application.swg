@@ -445,7 +445,7 @@ fileprivate impl Application
         if .inModalLoop do
             return
         foreach p in .toDelete do
-            Memory.delete(p.item0, p.item1)
+            Memory.delete(p.ptr, p.type)
         .toDelete.clear()
     }
 
@@ -488,8 +488,9 @@ fileprivate impl Application
 
         if surface
         {
-            surface.enable()
-            .modalSurfaces.add(surface)
+            let modalSurface = assume surface
+            modalSurface.enable()
+            .modalSurfaces.add(modalSurface)
         }
 
         while !.mustQuit and !.endModal
@@ -722,8 +723,9 @@ impl Application
         let targetSurface = .getSurfaceAt(mousePos.x, mousePos.y)
         if !targetSurface do
             return null
-        targetSurface.screenToSurface(&mousePos)
-        let targetWnd = targetSurface.wnd.getWndAt(mousePos.x, mousePos.y)
+        let surface = assume targetSurface
+        surface.screenToSurface(&mousePos)
+        let targetWnd = surface.wnd.getWndAt(mousePos.x, mousePos.y)
         return targetWnd
     }
 

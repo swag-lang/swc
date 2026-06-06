@@ -414,6 +414,8 @@ impl Painter
         {
             measure:         StringMetrics
             height:          f32
+            fontAscent:      f32
+            fontDescent:     f32
             start, end:      s32
             countSpaces:     s32
             whiteSpaces:     f32
@@ -444,7 +446,7 @@ impl Painter
             {
                 line.start  = startLine
                 line.end    = cast(s32) idx
-                line.height = Math.max(defaultLineHeight, line.measure.height)
+                line.height = Math.max(defaultLineHeight, Math.max(line.measure.height, line.fontAscent - line.fontDescent))
                 line.hasEol = true
                 lines.add(line)
 
@@ -452,6 +454,7 @@ impl Painter
                 line.measure.width, line.measure.height = 0
                 line.measure.ascent, line.measure.descent = 0
                 line.height = 0
+                line.fontAscent, line.fontDescent = 0
                 line.countSpaces = 0
                 line.whiteSpaces = 0
                 line.hasEol      = false
@@ -483,7 +486,7 @@ impl Painter
                             line.end -= 1
                         }
 
-                        line.height = Math.max(defaultLineHeight, line.measure.height)
+                        line.height = Math.max(defaultLineHeight, Math.max(line.measure.height, line.fontAscent - line.fontDescent))
                         lines.add(line)
                     }
 
@@ -491,6 +494,7 @@ impl Painter
                     line.measure.width, line.measure.height = 0
                     line.measure.ascent, line.measure.descent = 0
                     line.height = 0
+                    line.fontAscent, line.fontDescent = 0
                     line.countSpaces = 0
                     line.whiteSpaces = 0
 
@@ -503,6 +507,8 @@ impl Painter
                         line.measure.ascent  = Math.max(line.measure.ascent, ms.ascent)
                         line.measure.descent = Math.max(line.measure.descent, ms.descent)
                         line.measure.height  = Math.max(line.measure.height, ms.height)
+                        line.fontAscent      = Math.max(line.fontAscent, c.font.ascent)
+                        line.fontDescent     = Math.min(line.fontDescent, c.font.descent)
                     }
 
                     continue
@@ -523,15 +529,17 @@ impl Painter
             line.measure.ascent  = Math.max(line.measure.ascent, ms.ascent)
             line.measure.descent = Math.max(line.measure.descent, ms.descent)
             line.measure.height  = Math.max(line.measure.height, ms.height)
+            line.fontAscent      = Math.max(line.fontAscent, c.font.ascent)
+            line.fontDescent     = Math.min(line.fontDescent, c.font.descent)
 
-            c.boundRect.height = Math.max(defaultLineHeight, ms.height)
+            c.boundRect.height = Math.max(c.font.height, ms.height)
         }
 
         if startLine != text.chunks.count
         {
             line.start = startLine
             line.end   = cast(s32) text.chunks.count
-            line.height = Math.max(defaultLineHeight, line.measure.height)
+            line.height = Math.max(defaultLineHeight, Math.max(line.measure.height, line.fontAscent - line.fontDescent))
             lines.add(line)
         }
 
@@ -567,7 +575,7 @@ impl Painter
 
         // Y correction if single line
         if singleLine and !(format.flags & .DontAdaptSingleLineHeight) do
-            y -= (format.font.regular.ascent - lines[0].measure.ascent)
+            y -= (lines[0].fontAscent - lines[0].measure.ascent)
 
         text.boundRect.x      = Swag.F32.Max
         text.boundRect.y      = y
@@ -597,7 +605,7 @@ impl Painter
                 {
                     let c = &text.chunks[idx]
                     c.pos.x = x1
-                    c.pos.y = y1
+                    c.pos.y = y1 + (l.fontAscent - c.font.ascent)
 
                     text.boundRect.x = Math.min(text.boundRect.x, c.pos.x)
                     boundRight       = Math.max(boundRight, c.pos.x + c.boundRect.width)

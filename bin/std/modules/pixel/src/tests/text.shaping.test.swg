@@ -39,4 +39,16 @@ func makeShapingTestFont()->*Font
     @assert(reshaped.glyphs.count == shaped.glyphs.count)
     @assert(reshaped.glyphs[0].glyphIndex == shaped.glyphs[0].glyphIndex)
     @assert(reshaped.glyphs[1].cluster == shaped.glyphs[1].cluster)
+
+    let largeFont = Font.create(font.cache.typeFace, 48, .Bitmap)
+    var richText: RichString = "<b>A</b>\nA"
+    var format: RichStringFormat
+    format.font.regular = font
+    format.font.bold    = largeFont
+    format.lineGap      = 3
+
+    richText.compute()
+    Painter.computeLayout({0, 0, 300, 300}, &richText, format)
+    @assert(richText.boundRect.height >= largeFont.height + font.height + format.lineGap)
+    @assert(richText.chunks[0].pos.y < richText.chunks[richText.chunks.count - 1].pos.y)
 }

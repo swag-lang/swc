@@ -15,6 +15,7 @@ struct RichChunk
     boundRect:        Math.Rectangle
     pos:              Math.Point
     font:             *Font
+    shaped:           ShapedRun
     under:            UnderlineStyle = None
 }
 

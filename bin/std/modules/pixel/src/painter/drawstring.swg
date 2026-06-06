@@ -40,6 +40,24 @@ struct StringMetrics
     height:      f32     // ascent + descent
 }
 
+struct ShapedGlyph
+{
+    desc:        const *GlyphDesc
+    glyphIndex:  u32
+    cluster:     u64
+    advanceX:    f32
+    advanceY:    f32
+    offsetX:     f32
+    offsetY:     f32
+}
+
+struct ShapedRun
+{
+    font:        *Font
+    glyphs:      Array'ShapedGlyph
+    metrics:     StringMetrics
+}
+
 struct RichStringFormat
 {
     font:              FontFamily
@@ -55,8 +73,104 @@ struct RichStringFormat
     justifyLimit:      f32 = 2
 }
 
+fileprivate func appendShapedGlyph(run: *ShapedRun, font: *Font, glyphIndex: u32, cluster: u64, previousGlyphIndex: u32)
+{
+    var glyph: ShapedGlyph
+    glyph.desc       = font.getGlyphDescByIndex(glyphIndex)
+    glyph.glyphIndex = glyphIndex
+    glyph.cluster    = cluster
+    glyph.advanceX   = glyph.desc.advanceX
+    glyph.advanceY   = glyph.desc.advanceY
+    if previousGlyphIndex do
+        glyph.offsetX = font.cache.kerning(previousGlyphIndex, glyphIndex)
+
+    if run.glyphs.isEmpty()
+    {
+        run.metrics.ascent  = glyph.desc.shiftY
+        run.metrics.descent = glyph.desc.height - glyph.desc.shiftY
+    }
+    else
+    {
+        run.metrics.ascent  = Math.max(run.metrics.ascent, glyph.desc.shiftY)
+        run.metrics.descent = Math.max(run.metrics.descent, glyph.desc.height - glyph.desc.shiftY)
+    }
+
+    run.metrics.width += glyph.offsetX + glyph.advanceX
+    run.glyphs.add(glyph)
+}
+
+fileprivate func finishShapedRun(run: *ShapedRun, font: *Font)
+{
+    if run.glyphs.isEmpty() do
+        return
+
+    let sc = font.scale()
+    run.metrics.ascent  *= sc
+    run.metrics.descent *= sc
+    run.metrics.width   *= sc
+    run.metrics.height = run.metrics.ascent + run.metrics.descent
+}
+
 impl Painter
 {
+    // Shape a single-font text run. This currently preserves the legacy one-rune
+    // to one-glyph behavior, but stores glyph indexes, advances and cluster
+    // positions so GSUB/GPOS, fallback and bidi can be introduced at this layer.
+    func shapeRun(text: string, font: *Font)->ShapedRun
+    {
+        Debug.assert(font != null, "invalid font")
+
+        var result: retval
+        result.font = font
+        result.glyphs.reserve(@countof(text))
+
+        var count = @countof(text)
+        var scan = @dataof(text)
+        var byteIdx = 0'u64
+        var previousGlyphIndex = 0'u32
+
+        while count
+        {
+            let sl = @mkslice(scan, count)
+            let (c, eat) = Utf8.decodeRune(sl)
+            if eat == 0 do
+                break
+
+            let glyphIndex = font.glyphIndex(c)
+            appendShapedGlyph(&result, font, glyphIndex, byteIdx, previousGlyphIndex)
+            previousGlyphIndex = glyphIndex
+
+            byteIdx += eat
+            scan += eat
+            count -= eat
+        }
+
+        finishShapedRun(&result, font)
+        return result
+    }
+
+    // Rebuild a shaped run for another concrete font cache while preserving its
+    // glyph sequence and cluster mapping.
+    func shapeRunForFont(run: *ShapedRun, font: *Font)->ShapedRun
+    {
+        Debug.assert(font != null, "invalid font")
+        Debug.assert(run.font == null or run.font.cache.typeFace == font.cache.typeFace, "cannot reuse glyph indexes with another typeface")
+
+        var result: retval
+        result.font = font
+        result.glyphs.reserve(run.glyphs.count)
+
+        var previousGlyphIndex = 0'u32
+        foreach glyph in run.glyphs
+        {
+            appendShapedGlyph(&result, font, glyph.glyphIndex, glyph.cluster, previousGlyphIndex)
+            previousGlyphIndex = glyph.glyphIndex
+        }
+
+        finishShapedRun(&result, font)
+        return result
+    }
+
     // Returns all the glyphs for a given string and font
     func getGlyphs(text: string, font: *Font)->Array'(const *GlyphDesc)
     {
@@ -100,9 +214,12 @@ impl Painter
     // Returns the metrics of a given text
     func measureString(text: string, font: *Font)->StringMetrics
     {
-        let arr = getGlyphs(text, font)
-        return measureString(arr, font)
+        let shaped = shapeRun(text, font)
+        return shaped.metrics
     }
+
+    // Returns the metrics of an already shaped text run
+    func measureString(text: *ShapedRun)->StringMetrics => text.metrics
 
     // Returns the bounding rectangle of a given text, scaled to the font draw size
     func measureString(text: Array'(const *GlyphDesc), font: *Font)->StringMetrics
@@ -125,6 +242,101 @@ impl Painter
         result.width   *= sc
         result.height = result.ascent + result.descent
         return result
+    }
+
+    // Draw an already shaped text run
+    mtd drawShapedRun(left, top: f32, shaped: *ShapedRun, font: *Font, brush: Brush, under = UnderlineStyle.None, zoom = 1.0)
+    {
+        if shaped.glyphs.isEmpty() or !brush.hasVisibleAlpha() do
+            return
+        if .fake do
+            return
+
+        let tr      = .curState.transform
+        let trScale = Math.max(Math.sqrt(tr.m11 * tr.m11 + tr.m12 * tr.m12), Math.sqrt(tr.m21 * tr.m21 + tr.m22 * tr.m22))
+        let drawFont = Font.resolveDrawFont(font, cast(f32) font.size * zoom * trScale)
+
+        var drawShape: ShapedRun
+        var runToDraw: *ShapedRun = shaped
+        if shaped.font != drawFont
+        {
+            drawShape = shapeRunForFont(shaped, drawFont)
+            runToDraw = &drawShape
+        }
+
+        var x = Math.round(left)
+        let y = Math.round(top + font.ascent * zoom)
+
+        switch drawFont.cache.renderMode
+        {
+        case Msdf:
+            .startMsdfFont()
+        default:
+            .startFont()
+        }
+
+        // Set brush main texture
+        if brush.type != .SolidColor do
+            .setTexture0({x, y - shaped.metrics.ascent * zoom}, {x + shaped.metrics.width * zoom, y + shaped.metrics.height * zoom}, brush)
+        else do
+            .resetTexture0()
+
+        // Underline
+        if under != .None
+        {
+            var pen = Pen.createSolid(brush.color, Math.max(1, Math.floor(font.underlineSize)))
+            pen.begCapStyle = .None
+            pen.endCapStyle = .None
+
+            .canSetTexture0 = false
+            switch under
+            {
+            case Strikeout:
+                let yUnder = y - (shaped.metrics.ascent * zoom / 2)
+                .drawLine(x, yUnder, x + shaped.metrics.width * zoom, yUnder, pen)
+            case Underline:
+                let yUnder = y - font.underlinePos
+                .drawLine(x, yUnder, x + shaped.metrics.width * zoom, yUnder, pen)
+            }
+
+            .canSetTexture0 = true
+        }
+
+        .updateFont(drawFont)
+
+        // Glyph descriptors are stored at the cache reference size; scale to draw size.
+        let sc = drawFont.scale() * zoom
+
+        foreach glyph in runToDraw.glyphs
+        {
+            let glyphX = x + Math.round(glyph.offsetX * sc)
+
+            let refr = glyph.desc
+            .setTextureFont(drawFont, refr.atlasIndex)
+
+            let x1 = Math.round(glyphX + refr.shiftX * sc)
+            let y1 = Math.round(y + glyph.offsetY * sc - refr.shiftY * sc)
+            let x2 = Math.round(glyphX + (refr.shiftX * sc) + (refr.width * sc))
+            let y2 = Math.round(y + glyph.offsetY * sc - (refr.shiftY * sc) + (refr.height * sc))
+
+            let p1 = Math.Vector2{x1, y1}
+            let p2 = Math.Vector2{x2, y1}
+            let p3 = Math.Vector2{x1, y2}
+            let p4 = Math.Vector2{x2, y2}
+
+            let uv1 = Math.Vector2{refr.uv.x, refr.uv.y}
+            let uv2 = Math.Vector2{refr.uv.x + refr.uv.width, refr.uv.y}
+            let uv3 = Math.Vector2{refr.uv.x, refr.uv.y + refr.uv.height}
+            let uv4 = Math.Vector2{refr.uv.x + refr.uv.width, refr.uv.y + refr.uv.height}
+
+            discard .pushTriangle(p1, p2, p3, uv1, uv2, uv3, brush.color)
+            discard .pushTriangle(p3, p2, p4, uv3, uv2, uv4, brush.color)
+
+            x = glyphX + Math.round(glyph.advanceX * sc)
+        }
+
+        .resetTextureFont()
+        .endFont()
     }
 
     // Draw a simple string (centered)
@@ -154,97 +366,8 @@ impl Painter
         if .fake do
             return
 
-        // For an 'Auto' font, pick the concrete technique from the on-screen pixel
-        // size (font size scaled by zoom and the current transform). Other fonts
-        // resolve to themselves. Everything below rasterizes with 'drawFont' while
-        // positioning still uses the requested font's (nominal) metrics.
-        let tr      = .curState.transform
-        let trScale = Math.max(Math.sqrt(tr.m11 * tr.m11 + tr.m12 * tr.m12), Math.sqrt(tr.m21 * tr.m21 + tr.m22 * tr.m22))
-        let drawFont = Font.resolveDrawFont(font, cast(f32) font.size * zoom * trScale)
-
-        let arr = getGlyphs(text, drawFont)
-        if arr.isEmpty() do
-            return
-
-        var x = Math.round(left)
-        let y = Math.round(top + font.ascent * zoom)
-
-        // Compute text extent only if necessary
-        var ms: StringMetrics = undefined
-        if under != .None or brush.type != .SolidColor do
-            ms = measureString(text, font)
-
-        switch drawFont.cache.renderMode
-        {
-        case Msdf:
-            .startMsdfFont()
-        default:
-            .startFont()
-        }
-
-        // Set brush main texture
-        if brush.type != .SolidColor do
-            .setTexture0({x, y - ms.ascent * zoom}, {x + ms.width * zoom, y + ms.height * zoom}, brush)
-        else do
-            .resetTexture0()
-
-        // Underline
-        if under != .None
-        {
-            var pen = Pen.createSolid(brush.color, Math.max(1, Math.floor(font.underlineSize)))
-            pen.begCapStyle = .None
-            pen.endCapStyle = .None
-
-            .canSetTexture0 = false
-            switch under
-            {
-            case Strikeout:
-                let yUnder = y - (ms.ascent * zoom / 2)
-                .drawLine(x, yUnder, x + ms.width * zoom, yUnder, pen)
-            case Underline:
-                let yUnder = y - font.underlinePos
-                .drawLine(x, yUnder, x + ms.width * zoom, yUnder, pen)
-            }
-
-            .canSetTexture0 = true
-        }
-
-        .updateFont(drawFont)
-
-        // Glyph descriptors are stored at the cache reference size; scale to draw size.
-        let sc = drawFont.scale() * zoom
-
-        foreach refr, i in arr
-        {
-            // Kern against the previous glyph before placing this one.
-            if i do
-                x += Math.round(drawFont.cache.kerning(arr[i - 1].glyphIndex, refr.glyphIndex) * sc)
-
-            .setTextureFont(drawFont, refr.atlasIndex)
-
-            let x1 = Math.round(x + refr.shiftX * sc)
-            let y1 = Math.round(y - refr.shiftY * sc)
-            let x2 = Math.round(x + (refr.shiftX * sc) + (refr.width * sc))
-            let y2 = Math.round(y - (refr.shiftY * sc) + (refr.height * sc))
-
-            let p1 = Math.Vector2{x1, y1}
-            let p2 = Math.Vector2{x2, y1}
-            let p3 = Math.Vector2{x1, y2}
-            let p4 = Math.Vector2{x2, y2}
-
-            let uv1 = Math.Vector2{refr.uv.x, refr.uv.y}
-            let uv2 = Math.Vector2{refr.uv.x + refr.uv.width, refr.uv.y}
-            let uv3 = Math.Vector2{refr.uv.x, refr.uv.y + refr.uv.height}
-            let uv4 = Math.Vector2{refr.uv.x + refr.uv.width, refr.uv.y + refr.uv.height}
-
-            discard .pushTriangle(p1, p2, p3, uv1, uv2, uv3, brush.color)
-            discard .pushTriangle(p3, p2, p4, uv3, uv2, uv4, brush.color)
-
-            x += Math.round(refr.advanceX * sc)
-        }
-
-        .resetTextureFont()
-        .endFont()
+        var shaped = shapeRun(text, font)
+        .drawShapedRun(left, top, &shaped, font, brush, under, zoom)
     }
 
     // Recompute the layout for a given rectangle
@@ -276,7 +399,8 @@ impl Painter
             c.font = format.font.getFont(fs)
 
             // Measure
-            let ms = measureString(c.slice, c.font)
+            c.shaped = shapeRun(c.slice, c.font)
+            let ms = c.shaped.metrics
             c.boundRect = {0, 0, ms.width, ms.height}
 
             // User eol
@@ -492,7 +616,7 @@ impl Painter
             if c.isHotUrl do
                 under = .Underline
 
-            .drawString(c.pos.x, c.pos.y, c.slice, c.font, brush, under)
+            .drawShapedRun(c.pos.x, c.pos.y, &c.shaped, c.font, brush, under)
         }
 
         // Restore clipping to its previous value

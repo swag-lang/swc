@@ -148,8 +148,14 @@ public impl TypeFace
     // Render one glyph (crisp bitmap path): stem darkening + vertical grid-fitting.
     mtd renderGlyph(c: rune, size: u32, forceBold, forceItalic = false)->const *Bitmap throw
     {
+        return try .renderGlyphByIndex(.face.glyphIndex(c), size, forceBold, forceItalic)
+    }
+
+    // Render one glyph by glyph index (crisp bitmap path): stem darkening + vertical grid-fitting.
+    mtd renderGlyphByIndex(glyphIndex: u32, size: u32, forceBold, forceItalic = false)->const *Bitmap throw
+    {
         .face.setPixelSize(0, size)
-        .face.loadChar(c)
+        .face.loadGlyph(glyphIndex)
         .transform(size, 0, forceBold, forceItalic)
         .face.glyph.outline.embolden(stemDarkenStrength(size))
         .face.hintVertical()
@@ -160,8 +166,14 @@ public impl TypeFace
     // Render one glyph as a multi-channel signed distance field
     mtd renderGlyphMsdf(c: rune, size, spread: u32, forceBold, forceItalic = false)->const *Bitmap throw
     {
+        return try .renderGlyphMsdfByIndex(.face.glyphIndex(c), size, spread, forceBold, forceItalic)
+    }
+
+    // Render one glyph by glyph index as a multi-channel signed distance field
+    mtd renderGlyphMsdfByIndex(glyphIndex: u32, size, spread: u32, forceBold, forceItalic = false)->const *Bitmap throw
+    {
         .face.setPixelSize(0, size)
-        .face.loadChar(c)
+        .face.loadGlyph(glyphIndex)
         .transform(size, 0, forceBold, forceItalic)
         .face.renderGlyphMsdf(spread)
         return &.face.glyph.bitmap

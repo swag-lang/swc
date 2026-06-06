@@ -84,8 +84,7 @@ public struct GlyphCache
     underlineSize:     f32
 
     atlases:           Array'GlyphAtlas
-    asciiRef:          [128] GlyphDesc
-    unicodeRef:        HashTable'(rune, *GlyphDesc)
+    glyphRef:          HashTable'(u32, *GlyphDesc)
 
     // Kerning between two glyph indices, in reference-size pixels (lazily filled).
     // Key = (leftGlyphIndex << 32) | rightGlyphIndex.
@@ -200,6 +199,18 @@ public impl Font
     mtd getGlyphDesc(c: rune)->const *GlyphDesc
     {
         return .cache.getGlyphDesc(c)
+    }
+
+    // Returns the glyph descriptor of a given glyph index (in reference-size pixels)
+    mtd getGlyphDescByIndex(glyphIndex: u32)->const *GlyphDesc
+    {
+        return .cache.getGlyphDescByIndex(glyphIndex)
+    }
+
+    // Returns the typeface glyph index of a rune
+    mtd glyphIndex(c: rune)->u32
+    {
+        return .cache.typeFace.face.glyphIndex(c)
     }
 
     // Clear fileprivate caches
@@ -320,8 +331,9 @@ public impl GlyphCache
 {
     mtd opDrop()
     {
-        foreach k, v in .unicodeRef do
+        foreach k, v in .glyphRef do
             Memory.delete(v)
+        .glyphRef.free()
         .kernRef.free()
     }
 
@@ -348,18 +360,15 @@ public impl GlyphCache
     // Returns the glyph descriptor of a given rune, rendered at the reference size
     mtd getGlyphDesc(c: rune)->const *GlyphDesc
     {
-        // Already there ?
-        if c < 128
-        {
-            if .asciiRef[cast(u32) c].atlasIndex >= 0 do
-                return &.asciiRef[cast(u32) c]
-        }
-        else
-        {
-            let entry = .unicodeRef.tryFind(c)
-            if entry do
-                return entry.value
-        }
+        return .getGlyphDescByIndex(.typeFace.face.glyphIndex(c))
+    }
+
+    // Returns the glyph descriptor of a given glyph index, rendered at the reference size
+    mtd getGlyphDescByIndex(glyphIndex: u32)->const *GlyphDesc
+    {
+        let entry = .glyphRef.tryFind(glyphIndex)
+        if entry do
+            return entry.value
 
         // Render the glyph
         let bpp = .renderMode.bytesPerPixel()
@@ -367,9 +376,9 @@ public impl GlyphCache
         switch .renderMode
         {
         case Msdf:
-            bmp = assume .typeFace.renderGlyphMsdf(c, .refSize, .spread, .forceBold, .forceItalic)
+            bmp = assume .typeFace.renderGlyphMsdfByIndex(glyphIndex, .refSize, .spread, .forceBold, .forceItalic)
         default:
-            bmp = assume .typeFace.renderGlyph(c, .refSize, .forceBold, .forceItalic)
+            bmp = assume .typeFace.renderGlyphByIndex(glyphIndex, .refSize, .forceBold, .forceItalic)
         }
 
         // Glyph width in bytes (atlas columns are measured in bytes, rows in pixels)
@@ -423,14 +432,8 @@ public impl GlyphCache
         }
 
         // Setup GlyphDesc
-        var refr: *GlyphDesc
-        if c < 128 do
-            refr = &.asciiRef[cast(u32) c]
-        else
-        {
-            refr = Memory.new'GlyphDesc()
-            .unicodeRef.add(c, refr)
-        }
+        let refr = Memory.new'GlyphDesc()
+        .glyphRef.add(glyphIndex, refr)
 
         refr.width  = bmp.width
         refr.height = bmp.rows

@@ -82,6 +82,67 @@ namespace
         return pointeeTypeRef;
     }
 
+    const SymbolFunction* attributeFunctionFromView(Sema& sema, const SemaNodeView& view)
+    {
+        SmallVector<Symbol*> symbols;
+        view.getSymbols(symbols);
+        if (symbols.size() == 1)
+        {
+            const Symbol* sym = symbols[0];
+            if (sym && sym->isFunction())
+            {
+                const auto& function = sym->cast<SymbolFunction>();
+                if (function.isAttribute())
+                    return &function;
+            }
+        }
+
+        if (!view.typeRef().isValid())
+            return nullptr;
+
+        const TypeInfo& type = sema.typeMgr().get(view.typeRef());
+        if (!type.isFunction())
+            return nullptr;
+
+        const auto& function = type.payloadSymFunction();
+        return function.isAttribute() ? &function : nullptr;
+    }
+
+    Result makeAttributeTypeInfoCallArgument(Sema& sema, AstNodeRef argValueRef, SemaNodeView& argView)
+    {
+        SemaNodeView          attributeView(sema, argValueRef, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant | SemaNodeViewPartE::Symbol);
+        const SymbolFunction* attribute = attributeFunctionFromView(sema, attributeView);
+        if (!attribute)
+            return Result::Continue;
+
+        const TypeRef attributeTypeRef = attributeView.typeRef().isValid() ? attributeView.typeRef() : attribute->typeRef();
+        if (!attributeTypeRef.isValid())
+            return Result::Continue;
+
+        ConstantRef cstRef;
+        SWC_RESULT(sema.cstMgr().makeTypeInfo(sema, cstRef, attributeTypeRef, attributeView.nodeRef()));
+        sema.setConstant(attributeView.nodeRef(), cstRef);
+        argView.recompute(sema, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
+        return Result::Continue;
+    }
+
+    bool isAttributeTypeInfoCallArgument(Sema& sema, AstNodeRef argRef, TypeRef paramTypeRef)
+    {
+        if (!argRef.isValid() || !paramTypeRef.isValid())
+            return false;
+
+        const TypeInfo& paramType = sema.typeMgr().get(paramTypeRef);
+        if (!paramType.isAnyTypeInfo(sema.ctx()))
+            return false;
+
+        const AstNodeRef argValueRef = Match::resolveCallArgumentValueRef(sema, argRef);
+        if (argValueRef.isInvalid())
+            return false;
+
+        const SemaNodeView attributeView(sema, argValueRef, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant | SemaNodeViewPartE::Symbol);
+        return attributeFunctionFromView(sema, attributeView) != nullptr;
+    }
+
     Result normalizeTypeInfoCallArgument(Sema& sema, AstNodeRef argValueRef, TypeRef paramTypeRef, SemaNodeView& argView)
     {
         if (!argValueRef.isValid() || !paramTypeRef.isValid())
@@ -91,7 +152,7 @@ namespace
         if (!paramType.isAnyTypeInfo(sema.ctx()))
             return Result::Continue;
         if (sema.isValue(argValueRef))
-            return Result::Continue;
+            return makeAttributeTypeInfoCallArgument(sema, argValueRef, argView);
 
         return SemaCheck::isValueOrTypeInfo(sema, argView);
     }
@@ -1748,6 +1809,9 @@ namespace
             SWC_RESULT(probeAutoEnumArg(sema, argRef, paramTy, probe, cf));
             if (probe.matched)
                 argTy = probe.typeRef;
+
+            if (isAttributeTypeInfoCallArgument(sema, argRef, paramTy))
+                argTy = paramTy;
 
             if (argTy.isInvalid())
             {

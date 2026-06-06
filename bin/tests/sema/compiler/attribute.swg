@@ -66,6 +66,21 @@ enum AttrAutoScopeFlags: u8
 }
 attr AttrAutoScopeFlag(mode: AttrAutoScopeFlags)
 
+namespace AttrTypeInfoReflection
+{
+    attr AttrTypeInfoArg()
+
+    struct ReflectedAttrTypeInfoArg
+    {
+        value: s32
+    }
+
+    func hasAttribute(type: typeinfo, attribute: typeinfo)->bool
+    {
+        return true
+    }
+}
+
 #[MatchCallFixed(1)]
 var MatchCallOk1: s32 = 0
 
@@ -85,4 +100,12 @@ func semaTest002()
 {
     #[AttrAutoScopeFlag(.A | .B)]
     var V: s32 = 0
+}
+
+func semaTest003()
+{
+    with AttrTypeInfoReflection
+    {
+        discard hasAttribute(ReflectedAttrTypeInfoArg, .AttrTypeInfoArg)
+    }
 }

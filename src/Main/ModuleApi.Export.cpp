@@ -2048,7 +2048,59 @@ namespace
         }
     };
 
-    void appendGeneratedRootsForFile(const SourceFile& file, const ModuleApiFileEntry& fileEntry, std::vector<ModuleApiGeneratedRoot>& outRoots)
+    bool sameGeneratedRoot(const ModuleApiGeneratedRoot& root, const SourceFile& file, const AstNodeRef nodeRef, std::span<const IdentifierRef> namespacePath)
+    {
+        return root.file == &file &&
+               root.nodeRef == nodeRef &&
+               sameNamespacePath(root.namespacePath, namespacePath);
+    }
+
+    void appendGeneratedRootUnique(std::vector<ModuleApiGeneratedRoot>& outRoots, ModuleApiGeneratedRoot&& root)
+    {
+        if (!root.file || root.nodeRef.isInvalid())
+            return;
+
+        for (const ModuleApiGeneratedRoot& existing : outRoots)
+        {
+            if (sameGeneratedRoot(existing, *root.file, root.nodeRef, root.namespacePath))
+                return;
+        }
+
+        outRoots.push_back(std::move(root));
+    }
+
+    void appendGeneratedGenericRootMethodRoots(TaskContext& ctx, const SymbolStruct& symbolStruct, std::vector<ModuleApiGeneratedRoot>& outRoots)
+    {
+        if (!symbolStruct.isGenericRoot() || symbolStruct.isGenericInstance())
+            return;
+
+        for (const SymbolFunction* method : symbolStruct.declaredMethods())
+        {
+            if (!method || !isGeneratedModuleApiSourceFunction(ctx, *method))
+                continue;
+
+            const SourceFile* sourceFile = ctx.compiler().sourceViewFile(*method);
+            if (!sourceFile)
+                continue;
+
+            AstNodeRef declRef;
+            if (!ModuleApi::Internal::tryFindNodeRef(sourceFile->ast(), method->decl(), declRef))
+                continue;
+
+            ModuleApiGeneratedRoot methodRoot;
+            methodRoot.file    = sourceFile;
+            methodRoot.nodeRef = ModuleApi::Internal::findExportDeclRoot(*sourceFile, declRef);
+            methodRoot.symbol  = method;
+            if (methodRoot.nodeRef.isInvalid())
+                continue;
+            if (!ModuleApi::Internal::extractPublicNamespacePath(*method, methodRoot.namespacePath))
+                continue;
+
+            appendGeneratedRootUnique(outRoots, std::move(methodRoot));
+        }
+    }
+
+    void appendGeneratedRootsForFile(TaskContext& ctx, const SourceFile& file, const ModuleApiFileEntry& fileEntry, std::vector<ModuleApiGeneratedRoot>& outRoots)
     {
         if (fileEntry.publicEntries.empty())
             return;
@@ -2057,7 +2109,11 @@ namespace
         std::ranges::stable_sort(sortedEntries, {}, ModuleApiRootSortProjection{.file = &file});
 
         for (const ModuleApiPublicEntry& publicEntry : sortedEntries)
-            outRoots.push_back({.file = &file, .nodeRef = publicEntry.rootRef, .symbol = publicEntry.symbol, .namespacePath = publicEntry.namespacePath});
+        {
+            appendGeneratedRootUnique(outRoots, {.file = &file, .nodeRef = publicEntry.rootRef, .symbol = publicEntry.symbol, .namespacePath = publicEntry.namespacePath});
+            if (const auto* symbolStruct = publicEntry.symbol ? publicEntry.symbol->safeCast<SymbolStruct>() : nullptr)
+                appendGeneratedGenericRootMethodRoots(ctx, *symbolStruct, outRoots);
+        }
     }
 
     Result buildSanitizedRootSnippet(TaskContext& ctx, Utf8& outSnippet, const ModuleApiGeneratedRoot& root, const std::string_view eol)
@@ -2806,7 +2862,7 @@ namespace ModuleApi
                 continue;
             const ModuleApiFileEntry& fileEntry = fileEntryIt->second;
 
-            appendGeneratedRootsForFile(*file, fileEntry, generatedRoots);
+            appendGeneratedRootsForFile(ctx, *file, fileEntry, generatedRoots);
         }
 
         if (!hasModuleSources)

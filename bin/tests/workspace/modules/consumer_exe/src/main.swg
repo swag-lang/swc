@@ -21,6 +21,14 @@ struct CtxSelfBufferWrapper
 
 func keepDepScore(score: IDepScore)->IDepScore => score
 
+func verifyImportedGenericRootMethodSema()
+{
+    var rng: DepSharedRng.Rng'DepSharedRng.MWC
+    let sharedRngValue = DepSharedRng.shared(&rng).nextU32()
+
+    #assert(#typeof(sharedRngValue) == u32)
+}
+
 func verifyImportedClosureCallbacks()
 {
     var unarySet: DepByteSet = {values: ['C''u8, 'A''u8, 'B''u8, 0], count: 3}

@@ -58,3 +58,29 @@ namespace DepTools
         value: s16
     }
 }
+
+namespace DepSharedRng
+{
+    struct MWC
+    {
+        value: u32 = 0x12345678
+    }
+
+    impl MWC
+    {
+        mtd nextU32()->u32 => .value
+    }
+
+    #[Swag.Opaque]
+    struct(T = MWC) Rng
+    {
+        rng: T
+    }
+
+    impl Rng
+    {
+        mtd nextU32()->u32 => 0x12345678
+    }
+
+    public func shared(rng: *Rng'MWC)->*Rng'MWC => rng
+}

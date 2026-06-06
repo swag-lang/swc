@@ -34,6 +34,17 @@ using Swag, Core
     @assert(Math.isEqualEpsilon(sweep.gradientAngle1, Math.ConstF32.TwoPi - Math.ConstF32.PiBy2, 0.001))
     @assert(sweep.isOpaque())
 
+    var tinted = sweep
+    tinted.multiplyTint(Color.fromArgb(128'u8, Argb.White))
+    @assert(tinted.color.a == 128)
+    @assert(tinted.hasVisibleAlpha())
+    @assert(!tinted.isOpaque())
+
+    var transparent = radial
+    transparent.setOpacityf(0)
+    @assert(!transparent.hasVisibleAlpha())
+    @assert(!transparent.isOpaque())
+
     let hidden = Brush.createLinearGradient(0, 0, 1, 1, Color.fromArgb(0'u8, Argb.White), Color.fromArgb(0'u8, Argb.Black))
     @assert(!hidden.hasVisibleAlpha())
 }

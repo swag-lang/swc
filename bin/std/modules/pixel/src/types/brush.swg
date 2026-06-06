@@ -56,6 +56,9 @@ impl Brush
         case SolidColor, Texture, Hatch:
             return .color.a != 0
         case LinearGradient, RadialGradient, SweepGradient:
+            if .color.a == 0 do
+                return false
+
             for i in .gradientStopCount
             {
                 if .gradientStops[i].color.a do
@@ -76,6 +79,9 @@ impl Brush
         case Texture:
             return .color.a == 255 and !.texture.pf.hasAlpha()
         case LinearGradient, RadialGradient, SweepGradient:
+            if .color.a != 255 do
+                return false
+
             for i in .gradientStopCount
             {
                 if .gradientStops[i].color.a != 255 do
@@ -110,6 +116,37 @@ impl Brush
 
         .gradientStops[insertAt] = {clamped, color}
         .gradientStopCount += 1
+    }
+
+    // Set the paint color multiplier used by textures, hatches and gradients.
+    mtd setTint(color: Color)
+    {
+        .color = color
+    }
+
+    // Multiply the current paint color multiplier.
+    mtd multiplyTint(color: Color)
+    {
+        .color = Color.multiply(.color, color)
+    }
+
+    // Set the paint opacity while preserving the current tint.
+    mtd setOpacity(alpha: u8)
+    {
+        .color = .color.withAlpha(alpha)
+    }
+
+    // Set the paint opacity while preserving the current tint.
+    mtd setOpacityf(alpha: f32)
+    {
+        .color = .color.withAlphaf(alpha)
+    }
+
+    // Multiply the current paint opacity while preserving the current tint.
+    mtd multiplyOpacity(alpha: f32)
+    {
+        let factor = Math.saturate(alpha)
+        .color = .color.withAlphaf((cast(f32) .color.a / 255.0) * factor)
     }
 
     // Returns a solid color brush

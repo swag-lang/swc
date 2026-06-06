@@ -111,6 +111,11 @@ fileprivate func finishShapedRun(run: *ShapedRun, font: *Font)
     run.metrics.height = run.metrics.ascent + run.metrics.descent
 }
 
+fileprivate func snapTextPosition(value: f32, snapPixels: bool)->f32
+{
+    return snapPixels ? Math.round(value) : value
+}
+
 impl Painter
 {
     // Shape a single-font text run. This currently preserves the legacy one-rune
@@ -255,6 +260,7 @@ impl Painter
         let tr      = .curState.transform
         let trScale = Math.max(Math.sqrt(tr.m11 * tr.m11 + tr.m12 * tr.m12), Math.sqrt(tr.m21 * tr.m21 + tr.m22 * tr.m22))
         let drawFont = Font.resolveDrawFont(font, cast(f32) font.size * zoom * trScale)
+        let snapPixels = !drawFont.cache.renderMode.isDistanceField()
 
         var drawShape: ShapedRun
         var runToDraw: *ShapedRun = shaped
@@ -264,8 +270,8 @@ impl Painter
             runToDraw = &drawShape
         }
 
-        var x = Math.round(left)
-        let y = Math.round(top + font.ascent * zoom)
+        var x = snapTextPosition(left, snapPixels)
+        let y = snapTextPosition(top + font.ascent * zoom, snapPixels)
 
         switch drawFont.cache.renderMode
         {
@@ -309,15 +315,15 @@ impl Painter
 
         foreach glyph in runToDraw.glyphs
         {
-            let glyphX = x + Math.round(glyph.offsetX * sc)
+            let glyphX = x + snapTextPosition(glyph.offsetX * sc, snapPixels)
 
             let refr = glyph.desc
             .setTextureFont(drawFont, refr.atlasIndex)
 
-            let x1 = Math.round(glyphX + refr.shiftX * sc)
-            let y1 = Math.round(y + glyph.offsetY * sc - refr.shiftY * sc)
-            let x2 = Math.round(glyphX + (refr.shiftX * sc) + (refr.width * sc))
-            let y2 = Math.round(y + glyph.offsetY * sc - (refr.shiftY * sc) + (refr.height * sc))
+            let x1 = snapTextPosition(glyphX + refr.shiftX * sc, snapPixels)
+            let y1 = snapTextPosition(y + glyph.offsetY * sc - refr.shiftY * sc, snapPixels)
+            let x2 = snapTextPosition(glyphX + (refr.shiftX * sc) + (refr.width * sc), snapPixels)
+            let y2 = snapTextPosition(y + glyph.offsetY * sc - (refr.shiftY * sc) + (refr.height * sc), snapPixels)
 
             let p1 = Math.Vector2{x1, y1}
             let p2 = Math.Vector2{x2, y1}
@@ -332,7 +338,7 @@ impl Painter
             discard .pushTriangle(p1, p2, p3, uv1, uv2, uv3, brush.color)
             discard .pushTriangle(p3, p2, p4, uv3, uv2, uv4, brush.color)
 
-            x = glyphX + Math.round(glyph.advanceX * sc)
+            x = glyphX + snapTextPosition(glyph.advanceX * sc, snapPixels)
         }
 
         .resetTextureFont()

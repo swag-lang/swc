@@ -34,7 +34,7 @@ impl TypeFace
         tf.fullname = fullname
         tf.buffer   = getDataFromHFONT(hf)
 
-        tf.face = try g_TrueType.loadFace(tf.buffer.toSlice())
+        tf.face = try Face.load(tf.buffer.toSlice())
 
         g_HashTypeFace.add(str, tf)
         return tf

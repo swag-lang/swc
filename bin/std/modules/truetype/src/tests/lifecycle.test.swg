@@ -28,35 +28,15 @@ func assertFixtureFontLoads(fileName: string, expectedStyle: StyleFlag)
 
 #test
 {
-    var library: Library
-    library.init()
-
-    discard catch library.loadFace(BrokenFontBytes)
+    discard catch Face.load(BrokenFontBytes)
     @assert(@err != null)
 
     var empty: Array'u8
-    discard catch library.loadFace(empty.toSlice())
+    discard catch Face.load(empty.toSlice())
     @assert(@err != null)
 
     let bytes = loadFontBytes()
-    discard catch library.loadFace(bytes.toSlice(), 1)
-    @assert(@err != null)
-}
-
-#test
-{
-    var library: Library
-    library.init()
-
-    discard catch library.setLcdFilter(.Default)
-    @assert(@err == null)
-
-    let weights: [5] u8 = [0x08, 0x4D, 0x56, 0x4D, 0x08]
-    discard catch library.setLcdFilterWeights(weights)
-    @assert(@err == null)
-
-    var empty: Array'u8
-    discard catch library.setLcdFilterWeights(empty.toSlice())
+    discard catch Face.load(bytes.toSlice(), 1)
     @assert(@err != null)
 }
 

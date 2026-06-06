@@ -11,7 +11,6 @@ var g_Painter:  Pixel.Painter
 var g_RC:       Pixel.RenderingContext
 
 var g_FontBytes:  Array'u8
-var g_TrueType:   Library
 var g_Face:       *Face
 var g_TypeFace:   *Pixel.TypeFace
 var g_TitleFont:  *Pixel.Font
@@ -30,8 +29,7 @@ func loadFonts() throw
     let path = fontPath("segoeui.ttf")
 
     g_FontBytes = File.readAllBytes(path)
-    g_TrueType.init()
-    g_Face = try g_TrueType.loadFace(g_FontBytes.toSlice())
+    g_Face = try Face.load(g_FontBytes.toSlice())
 
     g_FontInfo = Format.toString("% % | % glyphs | % bytes", g_Face.familyName, g_Face.styleName, g_Face.glyphCount, g_FontBytes.count)
 

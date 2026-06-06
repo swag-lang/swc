@@ -1,5 +1,128 @@
 using Swag, Core
 
+const OVERSAMPLE = 4'u32
+
+struct Edge
+{
+    x0:       f64
+    y0:       f64
+    x1:       f64
+    y1:       f64
+    minY:     f64
+    maxY:     f64
+}
+
+func quadraticFlatEnough(p0x, p0y, p1x, p1y, p2x, p2y: f64, tolerance: f64)->bool
+{
+    let dx = p0x - 2.0 * p1x + p2x
+    let dy = p0y - 2.0 * p1y + p2y
+    return dx * dx + dy * dy <= tolerance * tolerance
+}
+
+func addEdge(edges: *Array'Edge, x0, y0, x1, y1: f64)
+{
+    if Math.isEqualEpsilon(x0, x1, 0.000001) and Math.isEqualEpsilon(y0, y1, 0.000001) do
+        return
+
+    var edge: Edge
+    edge.x0   = x0
+    edge.y0   = y0
+    edge.x1   = x1
+    edge.y1   = y1
+    edge.minY = Math.min(y0, y1)
+    edge.maxY = Math.max(y0, y1)
+    edges.add(edge)
+}
+
+func flattenQuadratic(edges: *Array'Edge, x0, y0, x1, y1, x2, y2, tolerance: f64, depth: u32 = 0)
+{
+    if depth >= 12 or quadraticFlatEnough(x0, y0, x1, y1, x2, y2, tolerance)
+    {
+        addEdge(edges, x0, y0, x2, y2)
+        return
+    }
+
+    let x01  = (x0 + x1) * 0.5
+    let y01  = (y0 + y1) * 0.5
+    let x12  = (x1 + x2) * 0.5
+    let y12  = (y1 + y2) * 0.5
+    let x012 = (x01 + x12) * 0.5
+    let y012 = (y01 + y12) * 0.5
+
+    flattenQuadratic(edges, x0, y0, x01, y01, x012, y012, tolerance, depth + 1)
+    flattenQuadratic(edges, x012, y012, x12, y12, x2, y2, tolerance, depth + 1)
+}
+
+func buildEdges(outline: const *Outline)->Array'Edge
+{
+    var edges: Array'Edge
+    let commands = buildOutlineCommands(outline)
+
+    var currentX = 0.0
+    var currentY = 0.0
+    var havePos  = false
+    let tolerance = 0.20 / OVERSAMPLE
+
+    foreach cmd in commands
+    {
+        switch cmd.kind
+        {
+        case MoveTo:
+            currentX = cmd.p0.x / 64.0
+            currentY = cmd.p0.y / 64.0
+            havePos  = true
+
+        case LineTo:
+            if havePos
+            {
+                let x = cmd.p0.x / 64.0
+                let y = cmd.p0.y / 64.0
+                addEdge(&edges, currentX, currentY, x, y)
+                currentX = x
+                currentY = y
+            }
+
+        case ConicTo:
+            if havePos
+            {
+                let cx = cmd.p0.x / 64.0
+                let cy = cmd.p0.y / 64.0
+                let x  = cmd.p1.x / 64.0
+                let y  = cmd.p1.y / 64.0
+                flattenQuadratic(&edges, currentX, currentY, cx, cy, x, y, tolerance)
+                currentX = x
+                currentY = y
+            }
+        }
+    }
+
+    return edges
+}
+
+func isInside(edges: const [..] Edge, x, y: f64)->bool
+{
+    var winding = 0
+    foreach edge in edges
+    {
+        if y < edge.minY or y >= edge.maxY do
+            continue
+
+        let cross = (edge.x1 - edge.x0) * (y - edge.y0) - (x - edge.x0) * (edge.y1 - edge.y0)
+        if edge.y0 <= y and edge.y1 > y
+        {
+            if cross > 0 do
+                winding += 1
+        }
+        elif edge.y1 <= y and edge.y0 > y
+        {
+            if cross < 0 do
+                winding -= 1
+        }
+    }
+
+    return winding != 0
+}
+
 // Accumulate the exact coverage contribution of one edge piece, already clipped to
 // a single scanline band, into the per-column 'area' and 'cover' buffers.
 //   - cover[x] : signed vertical extent of the edge inside column x (0..1 of the band)
@@ -159,169 +282,4 @@ func renderCurrentOutline(slot: *GlyphSlot) throw
     slot.bitmap.grayCount    = 256
     slot.bitmapLeft         = left
     slot.bitmapTop          = top
-}
-
-func edgeDistanceSquared(edge: Edge, x, y: f64)->f64
-{
-    let vx = edge.x1 - edge.x0
-    let vy = edge.y1 - edge.y0
-    let lenSquared = vx * vx + vy * vy
-    if lenSquared <= 0.0000001
-    {
-        let dx = x - edge.x0
-        let dy = y - edge.y0
-        return dx * dx + dy * dy
-    }
-
-    let t  = Math.max(0.0, Math.min(1.0, ((x - edge.x0) * vx + (y - edge.y0) * vy) / lenSquared))
-    let px = edge.x0 + vx * t
-    let py = edge.y0 + vy * t
-    let dx = x - px
-    let dy = y - py
-    return dx * dx + dy * dy
-}
-
-func closestEdgeDistance(edges: const [..] Edge, x, y: f64)->f64
-{
-    var distSquared = Swag.F64.Max
-    foreach edge in edges do
-        distSquared = Math.min(distSquared, edgeDistanceSquared(edge, x, y))
-
-    return Math.sqrt(distSquared)
-}
-
-func renderCurrentOutlineSdf(slot: *GlyphSlot, spread: u32) throw
-{
-    let faceData = getSlotImpl(slot)
-    clearBitmap(slot)
-
-    if slot.format != .Outline do
-        fail(0x13)
-
-    if slot.outline.pointCount <= 0 do
-        return
-
-    var safeSpread = spread
-    if !safeSpread do
-        safeSpread = 1
-    safeSpread = Math.min(safeSpread, 64)
-
-    let padding = cast(s32) safeSpread
-    let bounds  = computeOutlineBounds(&slot.outline)
-    let left    = Math.floorS32(bounds.minX / 64.0) - padding
-    let right   = Math.ceilS32(bounds.maxX / 64.0) + padding
-    let bottom  = Math.floorS32(bounds.minY / 64.0) - padding
-    let top     = Math.ceilS32(bounds.maxY / 64.0) + padding
-    let width   = Math.max(0, right - left)
-    let rows    = Math.max(0, top - bottom)
-    if !width or !rows do
-        return
-
-    let edges = buildEdges(&slot.outline)
-    if !edges.count do
-        return
-
-    faceData.bitmapPixels.resize(cast(u64) width * rows)
-    var dst = faceData.bitmapPixels.buffer
-    let scale = 127.0 / cast(f64) safeSpread
-
-    for py in rows
-    {
-        for px in width
-        {
-            let sampleX = left + cast(f64) px + 0.5
-            let sampleY = top - (cast(f64) py + 0.5)
-            let distance = closestEdgeDistance(edges.toSlice(), sampleX, sampleY)
-            let signedDistance = isInside(edges.toSlice(), sampleX, sampleY) ? distance : -distance
-            let value = Math.max(0.0, Math.min(255.0, 128.0 + signedDistance * scale))
-            dref dst = cast(u8) Math.round(value)
-            dst += 1
-        }
-    }
-
-    slot.bitmap.rows         = rows
-    slot.bitmap.width        = width
-    slot.bitmap.pitch        = cast(s32) width
-    slot.bitmap.buffer       = faceData.bitmapPixels.buffer
-    slot.bitmap.pixelMode   = .Gray
-    slot.bitmap.grayCount    = 256
-    slot.bitmapLeft         = left
-    slot.bitmapTop          = top
-}
-
-func contourSignedArea(points: [..] Vector)->f64
-{
-    if @countof(points) < 3 do
-        return 0
-
-    var area: f64 = 0.0
-    for @countof(points)
-    {
-        let p0 = points[@index]
-        let p1 = points[(@index + 1) % @countof(points)]
-        area += cast(f64) p0.x * cast(f64) p1.y - cast(f64) p1.x * cast(f64) p0.y
-    }
-
-    return area * 0.5
-}
-
-func applyEmboldenToContour(points: [..] Vector, strength: f64)
-{
-    if @countof(points) < 2 or Math.isZeroEpsilon(cast(f32) strength) do
-        return
-
-    var source: Array'Vector
-    source.add(points)
-    let ccw = contourSignedArea(source.toSlice()) >= 0
-
-    for @countof(points)
-    {
-        let prev = source[(source.count + @index - 1) % source.count]
-        let cur  = source[@index]
-        let next = source[(@index + 1) % source.count]
-
-        var e0x = cast(f64) (cur.x - prev.x)
-        var e0y = cast(f64) (cur.y - prev.y)
-        var e1x = cast(f64) (next.x - cur.x)
-        var e1y = cast(f64) (next.y - cur.y)
-
-        let len0 = Math.sqrt(e0x * e0x + e0y * e0y)
-        let len1 = Math.sqrt(e1x * e1x + e1y * e1y)
-        if Math.isZeroEpsilon(cast(f32) len0)
-        {
-            e0x = e1x
-            e0y = e1y
-        }
-        if Math.isZeroEpsilon(cast(f32) len1)
-        {
-            e1x = e0x
-            e1y = e0y
-        }
-
-        let il0 = Math.isZeroEpsilon(cast(f32) len0) ? 0.0 : 1.0 / Math.max(len0, 0.0001)
-        let il1 = Math.isZeroEpsilon(cast(f32) len1) ? 0.0 : 1.0 / Math.max(len1, 0.0001)
-        let n0x = ccw ? e0y * il0 : -e0y * il0
-        let n0y = ccw ? -e0x * il0 : e0x * il0
-        let n1x = ccw ? e1y * il1 : -e1y * il1
-        let n1y = ccw ? -e1x * il1 : e1x * il1
-
-        var dirx = n0x + n1x
-        var diry = n0y + n1y
-        let dirLen = Math.sqrt(dirx * dirx + diry * diry)
-        if Math.isZeroEpsilon(cast(f32) dirLen)
-        {
-            dirx = n1x
-            diry = n1y
-        }
-        else
-        {
-            dirx /= dirLen
-            diry /= dirLen
-        }
-
-        let dot    = Math.abs(dirx * n1x + diry * n1y)
-        let miter  = dot > 0.25 ? Math.min(4.0, 1.0 / dot) : 1.0
-        points[@index].x = cast(s32) Math.round(cur.x + dirx * strength * miter)
-        points[@index].y = cast(s32) Math.round(cur.y + diry * strength * miter)
-    }
 }

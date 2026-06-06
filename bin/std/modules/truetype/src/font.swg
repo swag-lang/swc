@@ -1,5 +1,8 @@
 using Swag, Core
 
+#[ConstExpr]
+func imageTag(x1, x2, x3, x4: u32)->u32 => (x1 << 24) | (x2 << 16) | (x3 << 8) | x4
+
 const TAG_CMAP = imageTag('c''u32, 'm''u32, 'a''u32, 'p''u32)
 const TAG_GLYF = imageTag('g''u32, 'l''u32, 'y''u32, 'f''u32)
 const TAG_HEAD = imageTag('h''u32, 'e''u32, 'a''u32, 'd''u32)
@@ -11,21 +14,6 @@ const TAG_NAME = imageTag('n''u32, 'a''u32, 'm''u32, 'e''u32)
 const TAG_POST = imageTag('p''u32, 'o''u32, 's''u32, 't''u32)
 const TAG_KERN = imageTag('k''u32, 'e''u32, 'r''u32, 'n''u32)
 const TAG_OS2  = imageTag('O''u32, 'S''u32, '/''u32, '2''u32)
-
-const CURVE_TAG_ON = 0x01'u8
-const OVERSAMPLE   = 4'u32
-const MAX_RECURSE  = 16'u32
-
-const CMP_ARG_1_AND_2_ARE_WORDS    = 0x0001'u16
-const CMP_ARGS_ARE_XY_VALUES       = 0x0002'u16
-const CMP_WE_HAVE_A_SCALE          = 0x0008'u16
-const CMP_MORE_COMPONENTS          = 0x0020'u16
-const CMP_WE_HAVE_AN_XY_SCALE      = 0x0040'u16
-const CMP_WE_HAVE_A_2X2            = 0x0080'u16
-const CMP_WE_HAVE_INSTRUCTIONS     = 0x0100'u16
-
-const NAME_ID_FAMILY = 1'u16
-const NAME_ID_STYLE  = 2'u16
 
 struct TableRecord
 {
@@ -40,23 +28,8 @@ struct GlyphMetric
     leftSideBearing:     s16
 }
 
-struct DesignPoint
-{
-    x:           f64
-    y:           f64
-    onCurve:     bool
-}
-
-struct Edge
-{
-    x0:       f64
-    y0:       f64
-    x1:       f64
-    y1:       f64
-    minY:     f64
-    maxY:     f64
-}
-
+// Internal backing store for a public Face. The public Face is the first field so
+// that a *Face can be reinterpreted as a *FaceImpl and vice versa.
 struct FaceImpl
 {
     face:                Face
@@ -101,82 +74,6 @@ impl FaceImpl
         .bitmapPixels.clear()
         .kernPairs.free()
     }
-}
-
-func fail(code: u8) throw
-{
-    let msg = Errors[code]
-    throw SystemError{msg ? msg : "truetype error"}
-}
-
-func assertRange(buffer: const [..] u8, offset, length: u64) throw
-{
-    if offset + length > @countof(buffer) do
-        fail(0x03)
-}
-
-func getSlice(buffer: const [..] u8, offset, length: u64)->const [..] u8 throw
-{
-    assertRange(buffer, offset, length)
-    return @mkslice(@dataof(buffer) + offset, length)
-}
-
-func readU8(buffer: const [..] u8, offset: u64)->u8 throw
-{
-    assertRange(buffer, offset, 1)
-    return buffer[offset]
-}
-
-func readU16(buffer: const [..] u8, offset: u64)->u16 throw
-{
-    assertRange(buffer, offset, 2)
-    return cast(u16) buffer[offset] << 8 | buffer[offset + 1]
-}
-
-func readS16(buffer: const [..] u8, offset: u64)->s16 throw
-{
-    let value = readU16(buffer, offset)
-    if value <= 0x7FFF do
-        return cast(s16) value
-    return cast(s16) (cast(s32) value - 0x1_0000)
-}
-
-func readU32(buffer: const [..] u8, offset: u64)->u32 throw
-{
-    assertRange(buffer, offset, 4)
-    return cast(u32) buffer[offset] << 24 | cast(u32) buffer[offset + 1] << 16 | cast(u32) buffer[offset + 2] << 8 | buffer[offset + 3]
-}
-
-func readS32(buffer: const [..] u8, offset: u64)->s32 throw
-{
-    let value = readU32(buffer, offset)
-    if value <= 0x7FFF_FFFF do
-        return cast(s32) value
-    return cast(s32) (cast(s64) value - 0x1_0000_0000)
-}
-
-func readF2Dot14(buffer: const [..] u8, offset: u64)->f64 throw
-{
-    return readS16(buffer, offset) / 16384.0
-}
-
-func roundDiv(value, divisor: s64)->s32
-{
-    if !divisor do
-        return 0
-    if value >= 0 do
-        return cast(s32) ((value + divisor / 2) / divisor)
-    return cast(s32) -(((-value) + divisor / 2) / divisor)
-}
-
-func scaleFixed(ppem, unitsPerEm: u32)->s32
-{
-    return roundDiv(cast(s64) ppem * 64 * 65536, unitsPerEm)
-}
-
-func scale26_6(value: s32, ppem, unitsPerEm: u32)->s32
-{
-    return roundDiv(cast(s64) value * cast(s64) ppem * 64, unitsPerEm)
 }
 
 func getFaceImpl(face: *Face)->*FaceImpl throw

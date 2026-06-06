@@ -1,5 +1,16 @@
 using Swag, Core
 
+const CURVE_TAG_ON = 0x01'u8
+const MAX_RECURSE  = 16'u32
+
+const CMP_ARG_1_AND_2_ARE_WORDS    = 0x0001'u16
+const CMP_ARGS_ARE_XY_VALUES       = 0x0002'u16
+const CMP_WE_HAVE_A_SCALE          = 0x0008'u16
+const CMP_MORE_COMPONENTS          = 0x0020'u16
+const CMP_WE_HAVE_AN_XY_SCALE      = 0x0040'u16
+const CMP_WE_HAVE_A_2X2            = 0x0080'u16
+const CMP_WE_HAVE_INSTRUCTIONS     = 0x0100'u16
+
 func addScaledPoint(faceData: *FaceImpl, x, y: f64, onCurve: bool)
 {
     faceData.outlinePoints.add(Vector{x: cast(s32) Math.round(x), y: cast(s32) Math.round(y)})

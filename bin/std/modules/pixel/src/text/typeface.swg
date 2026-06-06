@@ -1,11 +1,5 @@
 using Core, TrueType
 
-var g_TrueType: Library
-#init
-{
-    g_TrueType.init()
-}
-
 public struct TypeFace
 {
     fullname:         string
@@ -94,7 +88,7 @@ public impl TypeFace
         let tf = Memory.new'TypeFace()
         tf.fullname = fullname
         tf.buffer   = bytes
-        tf.face     = try g_TrueType.loadFace(tf.buffer.toSlice())
+        tf.face     = try Face.load(tf.buffer.toSlice())
 
         g_HashTypeFace.add(fullname, tf)
         return tf
@@ -123,7 +117,7 @@ public impl TypeFace
             tf.buffer = File.readAllBytes(fullname)
         }
 
-        tf.face = try g_TrueType.loadFace(tf.buffer.toSlice())
+        tf.face = try Face.load(tf.buffer.toSlice())
 
         g_HashTypeFace.add(fullname, tf)
         return tf

@@ -1,25 +1,74 @@
 using Swag, Core
 
-func clearOutline(slot: *GlyphSlot)
+public enum OutlineCommandKind
 {
-    slot.outline.contourCount = 0
-    slot.outline.pointCount   = 0
-    slot.outline.points     = null
-    slot.outline.tags       = null
-    slot.outline.contours   = null
-    slot.outline.flags      = 0
+    MoveTo
+    LineTo
+    ConicTo
+    CubicTo
 }
 
-func clearBitmap(slot: *GlyphSlot)
+public struct OutlineCommand
 {
-    slot.bitmap.rows         = 0
-    slot.bitmap.width        = 0
-    slot.bitmap.pitch        = 0
-    slot.bitmap.buffer       = null
-    slot.bitmap.pixelMode   = .Gray
-    slot.bitmap.grayCount    = 256
-    slot.bitmapLeft         = 0
-    slot.bitmapTop          = 0
+    kind:     OutlineCommandKind
+    p0:       Vector
+    p1:       Vector
+    p2:       Vector
+}
+
+public struct Outline
+{
+    contourCount:     s16
+    pointCount:       s16
+    points:           [*] Vector
+    tags:             [*] u8
+    contours:         [*] s16
+    flags:            s32
+}
+
+public impl Outline
+{
+    mtd translate(xOffset, yOffset: s32)
+    {
+        if .pointCount <= 0 do
+            return
+
+        for cast(u32) .pointCount
+        {
+            .points[@index].x += xOffset
+            .points[@index].y += yOffset
+        }
+    }
+
+    mtd transform(matrix: Matrix)
+    {
+        if .pointCount <= 0 do
+            return
+
+        for cast(u32) .pointCount
+        {
+            let pt = .points[@index]
+            .points[@index].x = roundDiv(cast(s64) pt.x * matrix.xx + cast(s64) pt.y * matrix.xy, 65536)
+            .points[@index].y = roundDiv(cast(s64) pt.x * matrix.yx + cast(s64) pt.y * matrix.yy, 65536)
+        }
+    }
+
+    mtd embolden(strength: s32) throw
+    {
+        if .pointCount <= 0 or .contourCount <= 0 or !strength do
+            return
+
+        var start = 0'u32
+        for cast(u32) .contourCount
+        {
+            let endIdx = cast(u32) .contours[@index]
+            let slice  = @mkslice(.points + start, endIdx - start + 1)
+            applyEmboldenToContour(slice, strength)
+            start = endIdx + 1
+        }
+    }
+
+    mtd const decompose()->Array'OutlineCommand => buildOutlineCommands(me)
 }
 
 func midpoint(a, b: Vector)->Vector
@@ -110,154 +159,79 @@ func buildOutlineCommands(outline: const *Outline)->Array'OutlineCommand
     return commands
 }
 
-func quadraticFlatEnough(p0x, p0y, p1x, p1y, p2x, p2y: f64, tolerance: f64)->bool
+func contourSignedArea(points: [..] Vector)->f64
 {
-    let dx = p0x - 2.0 * p1x + p2x
-    let dy = p0y - 2.0 * p1y + p2y
-    return dx * dx + dy * dy <= tolerance * tolerance
+    if @countof(points) < 3 do
+        return 0
+
+    var area: f64 = 0.0
+    for @countof(points)
+    {
+        let p0 = points[@index]
+        let p1 = points[(@index + 1) % @countof(points)]
+        area += cast(f64) p0.x * cast(f64) p1.y - cast(f64) p1.x * cast(f64) p0.y
+    }
+
+    return area * 0.5
 }
 
-func addEdge(edges: *Array'Edge, x0, y0, x1, y1: f64)
+func applyEmboldenToContour(points: [..] Vector, strength: f64)
 {
-    if Math.isEqualEpsilon(x0, x1, 0.000001) and Math.isEqualEpsilon(y0, y1, 0.000001) do
+    if @countof(points) < 2 or Math.isZeroEpsilon(cast(f32) strength) do
         return
 
-    var edge: Edge
-    edge.x0   = x0
-    edge.y0   = y0
-    edge.x1   = x1
-    edge.y1   = y1
-    edge.minY = Math.min(y0, y1)
-    edge.maxY = Math.max(y0, y1)
-    edges.add(edge)
-}
+    var source: Array'Vector
+    source.add(points)
+    let ccw = contourSignedArea(source.toSlice()) >= 0
 
-func flattenQuadratic(edges: *Array'Edge, x0, y0, x1, y1, x2, y2, tolerance: f64, depth: u32 = 0)
-{
-    if depth >= 12 or quadraticFlatEnough(x0, y0, x1, y1, x2, y2, tolerance)
+    for @countof(points)
     {
-        addEdge(edges, x0, y0, x2, y2)
-        return
-    }
+        let prev = source[(source.count + @index - 1) % source.count]
+        let cur  = source[@index]
+        let next = source[(@index + 1) % source.count]
 
-    let x01  = (x0 + x1) * 0.5
-    let y01  = (y0 + y1) * 0.5
-    let x12  = (x1 + x2) * 0.5
-    let y12  = (y1 + y2) * 0.5
-    let x012 = (x01 + x12) * 0.5
-    let y012 = (y01 + y12) * 0.5
+        var e0x = cast(f64) (cur.x - prev.x)
+        var e0y = cast(f64) (cur.y - prev.y)
+        var e1x = cast(f64) (next.x - cur.x)
+        var e1y = cast(f64) (next.y - cur.y)
 
-    flattenQuadratic(edges, x0, y0, x01, y01, x012, y012, tolerance, depth + 1)
-    flattenQuadratic(edges, x012, y012, x12, y12, x2, y2, tolerance, depth + 1)
-}
-
-func buildEdges(outline: const *Outline)->Array'Edge
-{
-    var edges: Array'Edge
-    let commands = buildOutlineCommands(outline)
-
-    var currentX = 0.0
-    var currentY = 0.0
-    var havePos  = false
-    let tolerance = 0.20 / OVERSAMPLE
-
-    foreach cmd in commands
-    {
-        switch cmd.kind
+        let len0 = Math.sqrt(e0x * e0x + e0y * e0y)
+        let len1 = Math.sqrt(e1x * e1x + e1y * e1y)
+        if Math.isZeroEpsilon(cast(f32) len0)
         {
-        case MoveTo:
-            currentX = cmd.p0.x / 64.0
-            currentY = cmd.p0.y / 64.0
-            havePos  = true
-
-        case LineTo:
-            if havePos
-            {
-                let x = cmd.p0.x / 64.0
-                let y = cmd.p0.y / 64.0
-                addEdge(&edges, currentX, currentY, x, y)
-                currentX = x
-                currentY = y
-            }
-
-        case ConicTo:
-            if havePos
-            {
-                let cx = cmd.p0.x / 64.0
-                let cy = cmd.p0.y / 64.0
-                let x  = cmd.p1.x / 64.0
-                let y  = cmd.p1.y / 64.0
-                flattenQuadratic(&edges, currentX, currentY, cx, cy, x, y, tolerance)
-                currentX = x
-                currentY = y
-            }
+            e0x = e1x
+            e0y = e1y
         }
-    }
-
-    return edges
-}
-
-func isInside(edges: const [..] Edge, x, y: f64)->bool
-{
-    var winding = 0
-    foreach edge in edges
-    {
-        if y < edge.minY or y >= edge.maxY do
-            continue
-
-        let cross = (edge.x1 - edge.x0) * (y - edge.y0) - (x - edge.x0) * (edge.y1 - edge.y0)
-        if edge.y0 <= y and edge.y1 > y
+        if Math.isZeroEpsilon(cast(f32) len1)
         {
-            if cross > 0 do
-                winding += 1
+            e1x = e0x
+            e1y = e0y
         }
-        elif edge.y1 <= y and edge.y0 > y
+
+        let il0 = Math.isZeroEpsilon(cast(f32) len0) ? 0.0 : 1.0 / Math.max(len0, 0.0001)
+        let il1 = Math.isZeroEpsilon(cast(f32) len1) ? 0.0 : 1.0 / Math.max(len1, 0.0001)
+        let n0x = ccw ? e0y * il0 : -e0y * il0
+        let n0y = ccw ? -e0x * il0 : e0x * il0
+        let n1x = ccw ? e1y * il1 : -e1y * il1
+        let n1y = ccw ? -e1x * il1 : e1x * il1
+
+        var dirx = n0x + n1x
+        var diry = n0y + n1y
+        let dirLen = Math.sqrt(dirx * dirx + diry * diry)
+        if Math.isZeroEpsilon(cast(f32) dirLen)
         {
-            if cross < 0 do
-                winding -= 1
+            dirx = n1x
+            diry = n1y
         }
+        else
+        {
+            dirx /= dirLen
+            diry /= dirLen
+        }
+
+        let dot    = Math.abs(dirx * n1x + diry * n1y)
+        let miter  = dot > 0.25 ? Math.min(4.0, 1.0 / dot) : 1.0
+        points[@index].x = cast(s32) Math.round(cur.x + dirx * strength * miter)
+        points[@index].y = cast(s32) Math.round(cur.y + diry * strength * miter)
     }
-
-    return winding != 0
-}
-
-func computeOutlineBounds(outline: const *Outline)->{ minX: s32, minY: s32, maxX: s32, maxY: s32 }
-{
-    var result: retval
-    if !outline or outline.pointCount <= 0 do
-        return result
-
-    result.minX = Swag.S32.Max
-    result.minY = Swag.S32.Max
-    result.maxX = Swag.S32.Min
-    result.maxY = Swag.S32.Min
-
-    for cast(u32) outline.pointCount
-    {
-        let pt = outline.points[@index]
-        result.minX = Math.min(result.minX, pt.x)
-        result.minY = Math.min(result.minY, pt.y)
-        result.maxX = Math.max(result.maxX, pt.x)
-        result.maxY = Math.max(result.maxY, pt.y)
-    }
-
-    return result
-}
-
-func updateSlotMetrics(slot: *GlyphSlot)
-{
-    let bounds = computeOutlineBounds(&slot.outline)
-    if slot.outline.pointCount <= 0
-    {
-        slot.metrics = {}
-        return
-    }
-
-    slot.metrics.width        = bounds.maxX - bounds.minX
-    slot.metrics.height       = bounds.maxY - bounds.minY
-    slot.metrics.horizontalBearingX = bounds.minX
-    slot.metrics.horizontalBearingY = bounds.maxY
-    slot.metrics.verticalAdvance  = 0
-    slot.metrics.verticalBearingX = 0
-    slot.metrics.verticalBearingY = 0
 }

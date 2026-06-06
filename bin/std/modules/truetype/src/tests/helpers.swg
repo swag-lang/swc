@@ -24,23 +24,9 @@ func loadFontBytes(fileName: string = "segoeui.ttf")->Array'u8
     return bytes
 }
 
-struct LibraryScope
-{
-    library:     Library
-}
-
-impl LibraryScope
-{
-    mtd init()
-    {
-        .library.init()
-    }
-}
-
 struct FaceScope
 {
     bytes:       Array'u8
-    library:     Library
     face:        *Face
 }
 
@@ -48,10 +34,9 @@ impl FaceScope
 {
     mtd init(fileName: string = "segoeui.ttf")
     {
-        .library.init()
         .bytes = loadFontBytes(fileName)
 
-        .face = catch .library.loadFace(.bytes.toSlice())
+        .face = catch Face.load(.bytes.toSlice())
         @assert(@err == null)
         @assert(.face != null)
     }

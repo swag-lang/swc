@@ -29,17 +29,14 @@ using Swag, Core
 
 #test
 {
-    var library: Library
-    library.init()
-
-    discard catch library.loadFace(BrokenFontBytes)
+    discard catch Face.load(BrokenFontBytes)
     @assert(@err != null)
 
     var empty: Array'u8
-    discard catch library.loadFace(empty.toSlice())
+    discard catch Face.load(empty.toSlice())
     @assert(@err != null)
 
     let bytes = loadFontBytes()
-    discard catch library.loadFace(bytes.toSlice(), 1)
+    discard catch Face.load(bytes.toSlice(), 1)
     @assert(@err != null)
 }

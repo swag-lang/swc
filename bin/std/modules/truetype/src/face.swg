@@ -1,43 +1,75 @@
 using Swag, Core
 
-// Piecewise-linear vertical remap used by the blue-zone hinter (all values in 26.6,
-// baseline at 0). The baseline, x-height (xh) and cap-height (ch) are anchored to
-// their snapped, whole-pixel targets (xhS, chS); other heights interpolate or shift.
-func hintMapY(y, xh, xhS, ch, chS: s32)->s32
+#[Swag.EnumFlags]
+public enum LoadFlag
 {
-    // No usable cap-height: single zone, uniform scale about the baseline.
-    if ch <= xh or chS <= 0 do
-        return roundDiv(cast(s64) y * xhS, xh)
-
-    if y <= xh do
-        return roundDiv(cast(s64) y * xhS, xh)
-    if y <= ch
-    {
-        let num = cast(s64) xhS * (ch - y) + cast(s64) chS * (y - xh)
-        return roundDiv(num, ch - xh)
-    }
-
-    // Above the cap-height (ascenders): translate by the cap-height correction.
-    return y + (chS - ch)
+    Default                   = 0
+    NoScale
+    NoHinting
+    Render
+    NoBitmap
+    VerticalLayout
+    ForceAutoHint
+    CropBitmap
+    Pedantic
+    AdvanceOnly
+    IgnoreGlobalAdvanceWidth
+    NoRecurse
+    IgnoreTransform
+    Monochrome
+    LinearDesign
+    SBitsOnly
+    NoAutoHint
+    Color                    = 1 << 20
+    ComputeMetrics           = 1 << 21
+    BitmapMetricsOnly        = 1 << 22
 }
 
-public impl Library
+#[Swag.EnumFlags]
+public enum StyleFlag
 {
-    func create()->Library
-    {
-        var result: retval
-        result.init()
-        return result
-    }
+    None = 0
+    Italic
+    Bold
+}
 
-    mtd init()
-    {
-        .versionMajor = 2
-        .versionMinor = 0
-        .versionPatch = 0
-    }
+public enum RenderMode
+{
+    Normal = 0
+    Light
+    Mono
+    Lcd
+    LcdV
+}
 
-    mtd loadFace(bytes: const [..] u8, faceIndex: u32 = 0)->*Face throw
+public struct Face
+{
+    faceCount:            s32
+    faceIndex:            s32
+    flags:                s32
+    style:                StyleFlag
+    glyphCount:           u32
+    familyName:           String
+    styleName:            String
+    bbox:                 BBox
+    unitsPerEm:           u16
+    ascender:             s16
+    descender:            s16
+    height:               s16
+    maxAdvanceWidth:      s16
+    maxAdvanceHeight:     s16
+    underlinePosition:    s16
+    underlineThickness:   s16
+    glyph:                GlyphSlot
+    size:                 Size
+    charMap:              CharMap
+}
+
+public impl Face
+{
+    // Load a face from an in-memory font file. The returned pointer aliases an
+    // internal FaceImpl that owns a private copy of the bytes; release it with destroy().
+    func load(bytes: const [..] u8, faceIndex: u32 = 0)->*Face throw
     {
         if @countof(bytes) == 0 do
             fail(0x06)
@@ -51,21 +83,6 @@ public impl Library
         return &faceData.face
     }
 
-    mtd setLcdFilter(filter: LcdFilter) throw
-    {
-        if filter < .None or filter >= .Max do
-            fail(0x06)
-    }
-
-    mtd setLcdFilterWeights(weights: const [..] u8) throw
-    {
-        if @countof(weights) == 0 do
-            fail(0x06)
-    }
-}
-
-public impl Face
-{
     mtd destroy()
     {
         let faceData = cast(*FaceImpl) cast(*void) me
@@ -196,61 +213,23 @@ public impl Face
     }
 }
 
-public impl Outline
+// Piecewise-linear vertical remap used by the blue-zone hinter (all values in 26.6,
+// baseline at 0). The baseline, x-height (xh) and cap-height (ch) are anchored to
+// their snapped, whole-pixel targets (xhS, chS); other heights interpolate or shift.
+func hintMapY(y, xh, xhS, ch, chS: s32)->s32
 {
-    mtd translate(xOffset, yOffset: s32)
-    {
-        if .pointCount <= 0 do
-            return
+    // No usable cap-height: single zone, uniform scale about the baseline.
+    if ch <= xh or chS <= 0 do
+        return roundDiv(cast(s64) y * xhS, xh)
 
-        for cast(u32) .pointCount
-        {
-            .points[@index].x += xOffset
-            .points[@index].y += yOffset
-        }
+    if y <= xh do
+        return roundDiv(cast(s64) y * xhS, xh)
+    if y <= ch
+    {
+        let num = cast(s64) xhS * (ch - y) + cast(s64) chS * (y - xh)
+        return roundDiv(num, ch - xh)
     }
 
-    mtd transform(matrix: Matrix)
-    {
-        if .pointCount <= 0 do
-            return
-
-        for cast(u32) .pointCount
-        {
-            let pt = .points[@index]
-            .points[@index].x = roundDiv(cast(s64) pt.x * matrix.xx + cast(s64) pt.y * matrix.xy, 65536)
-            .points[@index].y = roundDiv(cast(s64) pt.x * matrix.yx + cast(s64) pt.y * matrix.yy, 65536)
-        }
-    }
-
-    mtd embolden(strength: s32) throw
-    {
-        if .pointCount <= 0 or .contourCount <= 0 or !strength do
-            return
-
-        var start = 0'u32
-        for cast(u32) .contourCount
-        {
-            let endIdx = cast(u32) .contours[@index]
-            let slice  = @mkslice(.points + start, endIdx - start + 1)
-            applyEmboldenToContour(slice, strength)
-            start = endIdx + 1
-        }
-    }
-
-    mtd const decompose()->Array'OutlineCommand => buildOutlineCommands(me)
-}
-
-public impl GlyphSlot
-{
-    mtd oblique()
-    {
-        if .outline.pointCount <= 0 do
-            return
-
-        for cast(u32) .outline.pointCount do
-            .outline.points[@index].x += cast(s32) Math.round(.outline.points[@index].y * 0.21256)
-
-        updateSlotMetrics(me)
-    }
+    // Above the cap-height (ascenders): translate by the cap-height correction.
+    return y + (chS - ch)
 }

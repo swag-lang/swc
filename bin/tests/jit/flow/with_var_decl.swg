@@ -6,6 +6,29 @@ struct JitWithVarPoint
     y: s32
 }
 
+enum JitWithDockStyle
+{
+    None
+    Center
+}
+
+struct JitWithDockBase
+{
+    dockStyle: JitWithDockStyle
+}
+
+struct JitWithDockWidget
+{
+    using base: JitWithDockBase
+    value:      s32
+}
+
+struct JitWithDockOwner
+{
+    using base: JitWithDockBase
+    widgetPtr: *JitWithDockWidget
+}
+
 func jitWithVarMakePoint(x, y: s32)->JitWithVarPoint
 {
     var result: JitWithVarPoint
@@ -70,6 +93,43 @@ func jitWithLetPointer()->s32
     return ptr.x * 100 + ptr.y
 }
 
+var JitWithDockGlobalWidget: JitWithDockWidget
+var JitWithDockGlobalOwner:  JitWithDockOwner
+
+func jitWithMakeDockWidgetPtr()->*JitWithDockWidget
+{
+    return &JitWithDockGlobalWidget
+}
+
+func jitWithMakeDockOwnerPtr()->*JitWithDockOwner
+{
+    return &JitWithDockGlobalOwner
+}
+
+func jitWithAutoUsingMemberReturnBindingConflict()->*JitWithDockOwner
+{
+    JitWithDockGlobalWidget.dockStyle = .None
+    JitWithDockGlobalWidget.value = 0
+    JitWithDockGlobalOwner.widgetPtr = null
+    let owner = jitWithMakeDockOwnerPtr()
+
+    with owner.widgetPtr = jitWithMakeDockWidgetPtr()
+    {
+        .dockStyle = .Center
+        .value = 23
+    }
+
+    return owner
+}
+
+func jitWithAutoUsingMemberReturnBindingConflictValue()->s32
+{
+    let owner = jitWithAutoUsingMemberReturnBindingConflict()
+    if owner.widgetPtr.dockStyle == .Center do
+        return owner.widgetPtr.value
+    return 0
+}
+
 #test
 {
     const value = #run jitWithAnonymous()
@@ -100,4 +160,10 @@ func jitWithLetPointer()->s32
 {
     const value = #run jitWithLetPointer()
     @assert(value == 1324)
+}
+
+#test
+{
+    const value = #run jitWithAutoUsingMemberReturnBindingConflictValue()
+    @assert(value == 23)
 }

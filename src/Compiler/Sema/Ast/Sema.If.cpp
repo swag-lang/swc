@@ -23,6 +23,22 @@ namespace
         ConstantRef maskedConditionCstRef = ConstantRef::invalid();
     };
 
+    struct IfStmtNonNullGuardPayload
+    {
+        const Symbol* thenSymbol = nullptr;
+        const Symbol* elseSymbol = nullptr;
+    };
+
+    IfStmtNonNullGuardPayload& ensureIfStmtNonNullGuardPayload(Sema& sema, AstNodeRef nodeRef)
+    {
+        if (auto* payload = sema.semaPayload<IfStmtNonNullGuardPayload>(nodeRef))
+            return *payload;
+
+        auto* payload = sema.compiler().allocate<IfStmtNonNullGuardPayload>();
+        sema.setSemaPayload(nodeRef, payload);
+        return *payload;
+    }
+
     IfVarDeclWhereSemaPayload& ensureIfVarDeclWhereSemaPayload(Sema& sema, AstNodeRef nodeRef)
     {
         if (auto* payload = sema.semaPayload<IfVarDeclWhereSemaPayload>(nodeRef))
@@ -160,6 +176,77 @@ namespace
         payload.maskedConditionSymbol = conditionSym;
         payload.maskedConditionCstRef = conditionCstRef;
         setConditionSymbolConstantRef(*conditionSym, ConstantRef::invalid());
+    }
+
+    bool isNonReassignableNullableVariable(Sema& sema, const SymbolVariable& symVar)
+    {
+        if (!symVar.hasExtraFlag(SymbolVariableFlagsE::Parameter) && !symVar.hasExtraFlag(SymbolVariableFlagsE::Let))
+            return false;
+        if (!symVar.typeRef().isValid())
+            return false;
+
+        const TypeInfo& symType = sema.typeMgr().get(symVar.typeRef());
+        if (symType.isReference())
+            return false;
+
+        TypeRef nullableTypeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), symVar.typeRef());
+        if (nullableTypeRef.isInvalid())
+            nullableTypeRef = symVar.typeRef();
+
+        return sema.typeMgr().get(nullableTypeRef).isNullable();
+    }
+
+    const Symbol* nullableGuardSymbol(Sema& sema, AstNodeRef exprRef, bool& outNonNullWhenTrue)
+    {
+        outNonNullWhenTrue = true;
+        if (exprRef.isInvalid())
+            return nullptr;
+
+        const AstNode& exprNode = sema.node(exprRef);
+        if (exprNode.is(AstNodeId::UnaryExpr) && sema.token(exprNode.codeRef()).id == TokenId::SymBang)
+        {
+            bool          childNonNullWhenTrue = true;
+            const auto&   unary                = exprNode.cast<AstUnaryExpr>();
+            const Symbol* symbol               = nullableGuardSymbol(sema, unary.nodeExprRef, childNonNullWhenTrue);
+            outNonNullWhenTrue                 = !childNonNullWhenTrue;
+            return symbol;
+        }
+
+        const SemaNodeView view = sema.viewTypeSymbol(exprRef);
+        if (!view.hasSymbol() || !view.sym() || !view.sym()->isVariable())
+            return nullptr;
+
+        const auto& symVar = view.sym()->cast<SymbolVariable>();
+        if (!isNonReassignableNullableVariable(sema, symVar))
+            return nullptr;
+
+        return view.sym();
+    }
+
+    void storeIfStmtNonNullGuard(Sema& sema, AstNodeRef ifRef, AstNodeRef conditionRef)
+    {
+        bool          nonNullWhenTrue = true;
+        const Symbol* symbol          = nullableGuardSymbol(sema, conditionRef, nonNullWhenTrue);
+        if (!symbol)
+            return;
+
+        auto& payload = ensureIfStmtNonNullGuardPayload(sema, ifRef);
+        if (nonNullWhenTrue)
+            payload.thenSymbol = symbol;
+        else
+            payload.elseSymbol = symbol;
+    }
+
+    const Symbol* ifStmtNonNullGuardSymbol(const Sema& sema, AstNodeRef ifRef, AstNodeRef childRef, AstNodeRef thenRef, AstNodeRef elseRef)
+    {
+        const auto* payload = sema.semaPayload<IfStmtNonNullGuardPayload>(ifRef);
+        if (!payload)
+            return nullptr;
+        if (childRef == thenRef)
+            return payload->thenSymbol;
+        if (childRef == elseRef)
+            return payload->elseSymbol;
+        return nullptr;
     }
 
     TypeRef normalizeWithBindingType(TaskContext& ctx, TypeRef typeRef)
@@ -359,7 +446,16 @@ namespace
 Result AstIfStmt::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const
 {
     if (childRef == nodeIfBlockRef || childRef == nodeElseBlockRef)
+    {
         sema.pushScopePopOnPostChild(SemaScopeFlagsE::Local, childRef);
+
+        if (const Symbol* nonNullSymbol = ifStmtNonNullGuardSymbol(sema, sema.curNodeRef(), childRef, nodeIfBlockRef, nodeElseBlockRef))
+        {
+            auto scopedFrame = sema.frame();
+            scopedFrame.addNonNullSymbol(nonNullSymbol);
+            sema.pushFramePopOnPostChild(scopedFrame, childRef);
+        }
+    }
 
     return Result::Continue;
 }
@@ -368,6 +464,7 @@ Result AstIfStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) cons
 {
     if (childRef == nodeConditionRef)
     {
+        storeIfStmtNonNullGuard(sema, sema.curNodeRef(), nodeConditionRef);
         SemaNodeView view = sema.viewNodeTypeConstant(nodeConditionRef);
         SWC_RESULT(SemaCheck::castToBool(sema, view));
     }

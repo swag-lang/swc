@@ -367,7 +367,9 @@ namespace
         if (resolvedChildRef.isInvalid())
             return TypeRef::invalid();
 
-        const SemaNodeView childView = sema.viewType(resolvedChildRef);
+        SemaNodeView childView = sema.viewStored(resolvedChildRef, SemaNodeViewPartE::Type);
+        if (!childView.typeRef().isValid())
+            childView = sema.viewType(resolvedChildRef);
         if (!childView.typeRef().isValid())
             return TypeRef::invalid();
 

@@ -107,3 +107,126 @@
     #assert(V1 == 72)
     #assert(V2 == 73)
 }
+
+#test
+{
+    func earlyReturnAndElif(enabled: bool, text: #null string, hasClear: bool)->s32
+    {
+        if !enabled do
+            return 1
+
+        if text != null and @countof(text)
+        {
+            if !hasClear do
+                return 2
+        }
+        elif hasClear
+        {
+            return 3
+        }
+
+        return 4
+    }
+
+    const V0 = #run earlyReturnAndElif(false, "abc", false)
+    const V1 = #run earlyReturnAndElif(true, "abc", false)
+    const V2 = #run earlyReturnAndElif(true, "", true)
+    const V3 = #run earlyReturnAndElif(true, null, false)
+    #assert(V0 == 1)
+    #assert(V1 == 2)
+    #assert(V2 == 3)
+    #assert(V3 == 4)
+}
+
+struct EarlyReturnAndElifButton
+{
+    value: s32
+}
+
+impl EarlyReturnAndElifButton
+{
+    mtd destroy()
+    {
+        .value = 0
+    }
+}
+
+struct EarlyReturnAndElifText
+{
+    length: u64
+}
+
+impl EarlyReturnAndElifText
+{
+    mtd const opCount()->u64
+    {
+        return .length
+    }
+
+    mtd const opEquals(other: string)->bool
+    {
+        return .length == @countof(other)
+    }
+}
+
+struct EarlyReturnAndElifBox
+{
+    enabled: bool
+    text:    EarlyReturnAndElifText
+    button:  *EarlyReturnAndElifButton
+    cb:      func||()
+    value:   s32
+}
+
+impl EarlyReturnAndElifBox
+{
+    mtd applyLayout()
+    {
+        .value += 10
+    }
+
+    mtd setText(text: #null string)
+    {
+        .text.length = @countof(text)
+    }
+
+    mtd showHide()
+    {
+        if !.enabled do
+            return
+
+        if .text != null and @countof(.text)
+        {
+            if !.button
+            {
+                let box = me
+                .button = &EarlyReturnAndElifGlobalButton
+                .cb     = func|box|() { box.setText(null); }
+                .applyLayout()
+            }
+        }
+        elif .button
+        {
+            .button.destroy()
+            .button = null
+            .applyLayout()
+        }
+    }
+}
+
+var EarlyReturnAndElifGlobalButton: EarlyReturnAndElifButton
+
+#test
+{
+    var box: EarlyReturnAndElifBox
+    box.enabled = true
+    box.setText("abc")
+    box.showHide()
+    @assert(box.button != null)
+    @assert(box.value == 10)
+
+    box.setText(null)
+    box.showHide()
+    @assert(box.button == null)
+    @assert(box.value == 20)
+}

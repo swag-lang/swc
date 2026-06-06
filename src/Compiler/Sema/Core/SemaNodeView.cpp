@@ -1,10 +1,32 @@
 #include "pch.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
+#include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Type/TypeManager.h"
 
 SWC_BEGIN_NAMESPACE();
+
+namespace
+{
+    TypeRef nonNullTypeRef(Sema& sema, TypeRef typeRef)
+    {
+        if (typeRef.isInvalid())
+            return TypeRef::invalid();
+
+        TypeRef nullableTypeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), typeRef);
+        if (nullableTypeRef.isInvalid())
+            nullableTypeRef = typeRef;
+
+        const TypeInfo& nullableType = sema.typeMgr().get(nullableTypeRef);
+        if (!nullableType.isNullable())
+            return TypeRef::invalid();
+
+        TypeInfo resultType = nullableType;
+        resultType.removeFlag(TypeInfoFlagsE::Nullable);
+        return sema.typeMgr().addType(resultType);
+    }
+}
 
 SemaNodeView::SemaNodeView(Sema& sema, AstNodeRef ref, SemaNodeViewPart part, SemaNodeViewResolveE mode)
 {
@@ -58,18 +80,38 @@ void SemaNodeView::compute(Sema& sema, AstNodeRef ref, SemaNodeViewPart part, Se
             cst_ = &sema.cstMgr().get(cstRef_);
     }
 
-    if (!part.has(SemaNodeViewPartE::Symbol))
-        return;
-
     const auto trySetTypeFromResolvedSymbol = [&] {
-        if (!part.has(SemaNodeViewPartE::Type) || typeRef_.isValid())
-            return;
-        if (!sym_ || (hasSymList_ && symList_.size() != 1) || !sym_->typeRef().isValid())
+        if (!part.has(SemaNodeViewPartE::Type))
             return;
 
-        typeRef_ = sym_->typeRef();
-        type_    = &sema.typeMgr().get(typeRef_);
+        const Symbol* sym = nullptr;
+        if (hasSymbol_ && (!hasSymList_ || symList_.size() == 1))
+            sym = sym_;
+
+        if (!typeRef_.isValid())
+        {
+            if (!sym || !sym->typeRef().isValid())
+                return;
+
+            typeRef_ = sym->typeRef();
+        }
+
+        if (mode_ != SemaNodeViewResolveE::Stored && sema.frame().hasNonNullSymbol(sym))
+        {
+            const TypeRef narrowedTypeRef = nonNullTypeRef(sema, typeRef_);
+            if (narrowedTypeRef.isValid())
+                typeRef_ = narrowedTypeRef;
+        }
+
+        if (!typeRef_.isValid())
+            return;
+
+        type_ = &sema.typeMgr().get(typeRef_);
     };
+
+    const bool needsResolvedSymbol = part.has(SemaNodeViewPartE::Symbol) || (part.has(SemaNodeViewPartE::Type) && mode != SemaNodeViewResolveE::Stored && sema.frame().hasNonNullSymbols());
+    if (!needsResolvedSymbol)
+        return;
 
     if (loadResolvedSymbols(sema, nodeRef_, mode))
     {

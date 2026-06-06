@@ -72,6 +72,30 @@ bool SemaFrame::isLookupSymbolHidden(const Symbol* sym) const
     return false;
 }
 
+void SemaFrame::addNonNullSymbol(const Symbol* sym)
+{
+    if (!sym)
+        return;
+
+    for (const Symbol* nonNull : nonNullSymbols_)
+        if (nonNull == sym)
+            return;
+
+    nonNullSymbols_.push_back(sym);
+}
+
+bool SemaFrame::hasNonNullSymbol(const Symbol* sym) const
+{
+    if (!sym)
+        return false;
+
+    for (const Symbol* nonNull : nonNullSymbols_)
+        if (nonNull == sym)
+            return true;
+
+    return false;
+}
+
 void SemaFrame::setCurrentBreakContent(AstNodeRef nodeRef, BreakContextKind kind)
 {
     breakable_.nodeRef = nodeRef;

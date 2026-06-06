@@ -1123,6 +1123,13 @@ namespace
             return Result::Continue;
         }
 
+        const AstNode& castNode = codeGen.node(codeGen.curNodeRef());
+        const bool     isImplicitNullableAnyStringCast = castNode.is(AstNodeId::CastExpr) &&
+                                                     !castNode.cast<AstCastExpr>().hasFlag(AstCastExprFlagsE::Explicit) &&
+                                                     resolvedSrcType.isNullable() &&
+                                                     dstType.isString() &&
+                                                     dstType.isNullable();
+
         SWC_ASSERT(srcPayload.isAddress());
 
         const auto* castPayload      = codeGen.loweringPayload(codeGen.curNodeRef());
@@ -1158,6 +1165,10 @@ namespace
                 builder.emitJumpToLabel(MicroCond::NotEqual, MicroOpBits::B32, okLabel);
                 SWC_RESULT(emitDynCastPanic(codeGen, codeGen.node(codeGen.curNodeRef())));
                 builder.placeLabel(okLabel);
+                finalValueAddrReg = asResultReg;
+            }
+            else if (isImplicitNullableAnyStringCast)
+            {
                 finalValueAddrReg = asResultReg;
             }
             else

@@ -59,6 +59,27 @@ namespace
         if (payload)
             payload->doneLabel = MicroLabelRef::invalid();
     }
+
+    bool emitLogicalRightOperandAndDone(CodeGen& codeGen, AstNodeRef nodeRef, AstNodeRef nodeRightRef)
+    {
+        LogicalExprCodeGenPayload* state = logicalExprCodeGenPayload(codeGen, nodeRef);
+        if (state == nullptr || state->doneLabel == MicroLabelRef::invalid())
+            return false;
+
+        const CodeGenNodePayload& rightPayload = codeGen.payload(nodeRightRef);
+        const SemaNodeView        rightView    = codeGen.viewType(nodeRightRef);
+        const TypeRef             rightType    = rightPayload.typeRef.isValid() ? rightPayload.typeRef : rightView.typeRef();
+
+        MicroReg rightReg;
+        materializeLogicalOperand(rightReg, codeGen, rightPayload, rightType);
+
+        // Reuse the lhs result register so both control-flow paths converge on a single payload.
+        if (state->reg != rightReg)
+            codeGen.builder().emitLoadRegReg(state->reg, rightReg, MicroOpBits::B8);
+        codeGen.builder().placeLabel(state->doneLabel);
+        eraseLogicalExprCodeGenPayload(codeGen, nodeRef);
+        return true;
+    }
 }
 
 Result AstLogicalExpr::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const
@@ -102,21 +123,8 @@ Result AstLogicalExpr::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& 
 
     if (resolvedRightRef.isValid() && resolvedChildRef == resolvedRightRef)
     {
-        const LogicalExprCodeGenPayload* state = logicalExprCodeGenPayload(codeGen, codeGen.curNodeRef());
-        SWC_ASSERT(state != nullptr);
-
-        const CodeGenNodePayload& rightPayload = codeGen.payload(nodeRightRef);
-        const SemaNodeView        rightView    = codeGen.viewType(nodeRightRef);
-        const TypeRef             rightType    = rightPayload.typeRef.isValid() ? rightPayload.typeRef : rightView.typeRef();
-
-        MicroReg rightReg;
-        materializeLogicalOperand(rightReg, codeGen, rightPayload, rightType);
-
-        // Reuse the lhs result register so both control-flow paths converge on a single payload.
-        if (state->reg != rightReg)
-            codeGen.builder().emitLoadRegReg(state->reg, rightReg, MicroOpBits::B8);
-        codeGen.builder().placeLabel(state->doneLabel);
-        eraseLogicalExprCodeGenPayload(codeGen, codeGen.curNodeRef());
+        const bool finalized = emitLogicalRightOperandAndDone(codeGen, codeGen.curNodeRef(), nodeRightRef);
+        SWC_ASSERT(finalized);
     }
 
     return Result::Continue;
@@ -124,7 +132,8 @@ Result AstLogicalExpr::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& 
 
 Result AstLogicalExpr::codeGenPostNode(CodeGen& codeGen)
 {
-    eraseLogicalExprCodeGenPayload(codeGen, codeGen.curNodeRef());
+    const auto& node = codeGen.node(codeGen.curNodeRef()).cast<AstLogicalExpr>();
+    emitLogicalRightOperandAndDone(codeGen, codeGen.curNodeRef(), node.nodeRightRef);
     return Result::Continue;
 }
 

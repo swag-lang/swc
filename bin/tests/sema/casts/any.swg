@@ -62,3 +62,14 @@ func semaTest006()
     x = AnyCompareType{}
     @assert(x == AnyCompareType)
 }
+
+func acceptNullableStringFromAny(value: #null string)
+{
+    @assert(value == "desc")
+}
+
+func semaTest007()
+{
+    var value: #null any = "desc"
+    acceptNullableStringFromAny(value)
+}

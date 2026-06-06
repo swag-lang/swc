@@ -114,10 +114,18 @@ func semaTest013()
 #[Swag.Strict]
 alias StrictHandle = const *void
 
+func strictHandleSource()->StrictHandle
+{
+    return null
+}
+
 func semaTest014()
 {
     var handle: StrictHandle = null
     #assert(#typeof(handle) == StrictHandle)
+
+    var handleFromRaw: StrictHandle = cast(const *void) strictHandleSource()
+    #assert(#typeof(handleFromRaw) == StrictHandle)
 }
 
 func semaTest015()

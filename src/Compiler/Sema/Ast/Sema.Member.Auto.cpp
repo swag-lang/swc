@@ -311,6 +311,23 @@ namespace
         return Result::Continue;
     }
 
+    Result addCandidatesFromAutoMemberBindings(Sema& sema, SmallVector4<AutoMemberCandidate>& outCandidates, std::span<const SemaScope::AutoMemberBinding> autoMemberBindings, uint32_t& precedence)
+    {
+        for (auto& binding : std::ranges::reverse_view(autoMemberBindings))
+        {
+            if (binding.typeRef.isValid())
+            {
+                SWC_RESULT(addCandidateFromType(sema, outCandidates, binding.typeRef, binding.symVar, binding.baseExprRef, precedence++));
+            }
+            else if (binding.symMap)
+            {
+                outCandidates.push_back({.symMap = binding.symMap, .symVar = binding.symVar, .baseExprRef = binding.baseExprRef, .precedence = precedence++});
+            }
+        }
+
+        return Result::Continue;
+    }
+
     Result collectAutoMemberCandidates(Sema& sema, SmallVector4<AutoMemberCandidate>& outCandidates, bool preferBindingTypes)
     {
         outCandidates.clear();
@@ -364,6 +381,9 @@ namespace
         }
 
         if (!bindingTypesFirst)
+            SWC_RESULT(addCandidatesFromAutoMemberBindings(sema, outCandidates, autoMemberBindings.span(), precedence));
+
+        if (!bindingTypesFirst)
         {
             for (const auto& bindingType : std::ranges::reverse_view(bindingTypes))
             {
@@ -371,17 +391,8 @@ namespace
             }
         }
 
-        for (auto& binding : std::ranges::reverse_view(autoMemberBindings))
-        {
-            if (binding.typeRef.isValid())
-            {
-                SWC_RESULT(addCandidateFromType(sema, outCandidates, binding.typeRef, binding.symVar, binding.baseExprRef, precedence++));
-            }
-            else if (binding.symMap)
-            {
-                outCandidates.push_back({.symMap = binding.symMap, .symVar = binding.symVar, .baseExprRef = binding.baseExprRef, .precedence = precedence++});
-            }
-        }
+        if (bindingTypesFirst)
+            SWC_RESULT(addCandidatesFromAutoMemberBindings(sema, outCandidates, autoMemberBindings.span(), precedence));
 
         // Remove exact duplicates introduced by inherited frame state.
         for (size_t i = 0; i < outCandidates.size(); ++i)

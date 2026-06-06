@@ -214,6 +214,11 @@ namespace
         }
     }
 
+    bool isImplicitNullableAnyStringCast(const TypeInfo& srcType, const TypeInfo& dstType)
+    {
+        return srcType.isAny() && srcType.isNullable() && dstType.isString() && dstType.isNullable();
+    }
+
     Result castAddNullableQualifier(CastRequest& castRequest)
     {
         if (!castRequest.isConstantFolding())
@@ -358,8 +363,6 @@ namespace
     {
         if (castFlags.has(CastFlagsE::BitCast))
             return Result::Continue;
-        if (!castFlags.has(CastFlagsE::FromExplicitNode))
-            return Result::Continue;
         if (!srcTypeRef.isValid() || !dstTypeRef.isValid())
             return Result::Continue;
 
@@ -371,6 +374,10 @@ namespace
         const TypeRef   resolvedDstTypeRef = unwrapAliasEnumTypeRef(sema.typeMgr(), sema.ctx(), dstTypeRef);
         const TypeInfo& dstType            = sema.typeMgr().get(resolvedDstTypeRef);
         if (dstType.isAny())
+            return Result::Continue;
+
+        const bool fromExplicitNode = castFlags.has(CastFlagsE::FromExplicitNode);
+        if (!fromExplicitNode && !isImplicitNullableAnyStringCast(srcType, dstType))
             return Result::Continue;
 
         const bool hasDynCastSafety     = sema.frame().currentAttributes().hasRuntimeSafety(sema.buildCfg().safetyGuards, Runtime::SafetyWhat::DynCast);
@@ -1375,6 +1382,9 @@ Result Cast::castAllowed(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRe
     if (isImplicitNullableQualificationCast(srcType, dstType))
         return castAddNullableQualifier(castRequest);
 
+    if (isImplicitNullableAnyStringCast(srcType, dstType))
+        return castFromAny(sema, castRequest, srcTypeRef, dstTypeRef);
+
     if (srcType.isAlias() || dstType.isAlias())
     {
         const TypeRef   resolvedSrcTypeRef = unwrapAliasEnumTypeRef(sema.typeMgr(), sema.ctx(), srcTypeRef);
@@ -1388,7 +1398,8 @@ Result Cast::castAllowed(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRe
         const bool allowAliasNullableCast     = isImplicitNullableQualificationCast(resolvedSrcType, resolvedDstType);
         const bool allowAliasUfcsReceiverCast = castRequest.flags.has(CastFlagsE::UfcsArgument) && resolvedSrcType.isAnyPointer() && resolvedDstType.isReference();
         const bool allowAliasIndirectValueCast = indirectValueTypeRef.isValid();
-        if (castRequest.kind != CastKind::Explicit && !allowAliasBoolCast && !allowAliasNullCast && !allowAliasAnyCast && !allowAliasNullableCast && !allowAliasUfcsReceiverCast && !allowAliasIndirectValueCast)
+        const bool allowAliasUnderlyingToStrictCast = !srcType.isAlias() && dstType.isAlias() && resolvedSrcTypeRef == resolvedDstTypeRef;
+        if (castRequest.kind != CastKind::Explicit && !allowAliasBoolCast && !allowAliasNullCast && !allowAliasAnyCast && !allowAliasNullableCast && !allowAliasUfcsReceiverCast && !allowAliasIndirectValueCast && !allowAliasUnderlyingToStrictCast)
             return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
     }
 

@@ -18,6 +18,11 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    bool isImplicitNullableAnyStringCast(const TypeInfo& srcType, const TypeInfo& dstType)
+    {
+        return srcType.isAny() && srcType.isNullable() && dstType.isString() && dstType.isNullable();
+    }
+
     uint64_t sliceCountFromArrayCast(TaskContext& ctx, const TypeInfo& srcArrayType, const TypeInfo& dstElementType)
     {
         const uint64_t dstElementSize = dstElementType.sizeOf(ctx);
@@ -1131,11 +1136,12 @@ Result Cast::castToInterface(Sema& sema, CastRequest& castRequest, TypeRef srcTy
 
 Result Cast::castFromAny(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef)
 {
-    if (castRequest.kind != CastKind::Explicit)
+    const TypeInfo& srcType = sema.typeMgr().get(srcTypeRef);
+    const TypeInfo& dstType = sema.typeMgr().get(dstTypeRef);
+    if (castRequest.kind != CastKind::Explicit && !isImplicitNullableAnyStringCast(srcType, dstType))
         return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
 
-    const TypeInfo& dstType = sema.typeMgr().get(dstTypeRef);
-    if (sema.typeMgr().get(srcTypeRef).isConst() &&
+    if (srcType.isConst() &&
         (dstType.isReference() || dstType.isMoveReference() || dstType.isAnyPointer() || dstType.isSlice() || dstType.isCString() || dstType.isInterface()) &&
         !dstType.isConst() &&
         !castRequest.flags.has(CastFlagsE::UnConst))

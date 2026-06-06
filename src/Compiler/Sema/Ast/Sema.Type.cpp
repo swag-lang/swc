@@ -55,6 +55,26 @@ namespace
     {
         return SemaHelpers::finalizeDefaultValue(sema, param.nodeDefaultValueRef, symVar);
     }
+
+    TypeRef ensureForwardNamedTypeRef(Sema& sema, Symbol& sym)
+    {
+        if (sym.typeRef().isValid())
+            return sym.typeRef();
+
+        if (sym.isStruct())
+            return SemaHelpers::ensureStructTypeRef(sema, sym.cast<SymbolStruct>());
+
+        if (sym.isInterface())
+        {
+            auto&         itf     = sym.cast<SymbolInterface>();
+            const TypeRef typeRef = sema.typeMgr().addType(TypeInfo::makeInterface(&itf));
+            itf.setTypeRef(typeRef);
+            itf.setTyped(sema.ctx());
+            return typeRef;
+        }
+
+        return TypeRef::invalid();
+    }
 }
 
 Result AstBuiltinType::semaPostNode(Sema& sema) const
@@ -412,10 +432,20 @@ Result AstNamedType::semaPostNode(Sema& sema) const
         view.recompute(sema, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Symbol);
     }
 
-    if (view.sym()->isType() && view.sym()->isTyped() && !view.typeRef().isValid())
+    if (view.sym()->isType() && !view.typeRef().isValid())
     {
-        sema.setType(nodeIdentRef, view.sym()->typeRef());
-        view.recompute(sema, SemaNodeViewPartE::Type | SemaNodeViewPartE::Symbol);
+        Symbol*       typeSym = view.sym();
+        const TypeRef typeRef = ensureForwardNamedTypeRef(sema, *typeSym);
+        if (!typeRef.isValid())
+            SWC_RESULT(sema.waitTyped(typeSym, sema.node(nodeIdentRef).codeRef()));
+        sema.setSymbol(nodeIdentRef, typeSym);
+        view.recompute(sema, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Symbol);
+    }
+
+    if (!view.sym()->isType() && !view.sym()->isTyped())
+    {
+        SWC_RESULT(sema.waitTyped(view.sym(), sema.node(nodeIdentRef).codeRef()));
+        view.recompute(sema, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Symbol);
     }
 
     if (!view.sym()->isType())

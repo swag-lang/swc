@@ -40,13 +40,6 @@ namespace
         if (state.idRef.isValid())
             return Utf8{sema.idMgr().get(state.idRef).name};
 
-        if (state.nodeRef.isValid())
-        {
-            const SemaNodeView typeView = sema.viewType(state.nodeRef);
-            if (typeView.typeRef().isValid())
-                return sema.typeMgr().get(typeView.typeRef()).toName(ctx);
-        }
-
         return "<dependency>";
     }
 
@@ -169,6 +162,7 @@ void SemaCycle::addEdge(const Symbol* from, const Symbol* to, Job* job, const Ta
     {
         nodeLoc.job     = job;
         nodeLoc.nodeRef = state.nodeRef;
+        nodeLoc.codeRef = state.codeRef;
     }
 }
 
@@ -204,8 +198,17 @@ void SemaCycle::reportCycle(const std::vector<const Symbol*>& cycle)
 
         diag.addNote(DiagnosticId::sema_note_cyclic_dependency_link);
         diag.last().addArgument(Diagnostic::ARG_TOK, next->name(*ctx_));
-        const SourceCodeRange codeRange = edgeSema->node(itEdge->second.nodeRef).codeRangeWithChildren(edgeSema->ctx(), edgeSema->ast());
-        diag.last().addSpan(codeRange, next->name(*ctx_), DiagnosticSeverity::Note);
+        const auto& loc = itEdge->second;
+        if (loc.nodeRef.isValid() && edgeSema->ast().hasNode(loc.nodeRef))
+        {
+            const SourceCodeRange codeRange = edgeSema->node(loc.nodeRef).codeRangeWithChildren(edgeSema->ctx(), edgeSema->ast());
+            diag.last().addSpan(codeRange, next->name(*ctx_), DiagnosticSeverity::Note);
+        }
+        else if (loc.codeRef.isValid())
+        {
+            const SourceView& srcView = edgeSema->srcView(loc.codeRef.srcViewRef);
+            diag.last().addSpan(srcView.tokenCodeRange(edgeSema->ctx(), loc.codeRef.tokRef), next->name(*ctx_), DiagnosticSeverity::Note);
+        }
     }
 
     diag.report(*ctx_);

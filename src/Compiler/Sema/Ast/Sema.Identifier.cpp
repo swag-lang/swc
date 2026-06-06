@@ -36,6 +36,15 @@ namespace
         return false;
     }
 
+    bool lookupCanUsePendingTypeScopeSymbol(Sema& sema, AstNodeRef parentRef)
+    {
+        if (parentRef.isInvalid())
+            return false;
+
+        const AstNode& parentNode = sema.node(parentRef);
+        return parentNode.is(AstNodeId::UsingDecl) || parentNode.is(AstNodeId::NamedType);
+    }
+
     const Symbol* resolveAliasedBaseSymbol(const Symbol* symbol)
     {
         const Symbol* current = symbol;
@@ -666,6 +675,8 @@ Result AstIdentifier::semaPostNode(Sema& sema) const
 
         MatchContext lookUpCxt;
         lookUpCxt.codeRef = codeRef();
+        if (lookupCanUsePendingTypeScopeSymbol(sema, parentRef))
+            lookUpCxt.noWaitOnPendingSymbols = true;
 
         const Result ret = Match::match(sema, lookUpCxt, idRef);
         if (ret == Result::Pause && hasFlag(AstIdentifierFlagsE::InCompilerDefined))

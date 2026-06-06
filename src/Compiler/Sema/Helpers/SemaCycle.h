@@ -21,8 +21,9 @@ private:
     {
         struct NodeLoc
         {
-            Job*       job     = nullptr;
-            AstNodeRef nodeRef = AstNodeRef::invalid();
+            Job*          job     = nullptr;
+            AstNodeRef    nodeRef = AstNodeRef::invalid();
+            SourceCodeRef codeRef = SourceCodeRef::invalid();
         };
 
         std::unordered_map<const Symbol*, std::vector<const Symbol*>> adj;

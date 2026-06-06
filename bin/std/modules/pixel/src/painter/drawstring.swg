@@ -23,6 +23,8 @@ enum UnderlineStyle
     Strikeout
 }
 
+const DefaultTextTabSize: u32 = 4
+
 #[Swag.EnumFlags]
 enum StringFormatFlags
 {
@@ -49,6 +51,7 @@ struct ShapedGlyph
     advanceY:    f32
     offsetX:     f32
     offsetY:     f32
+    isTab:       bool
 }
 
 struct ShapedRun
@@ -58,6 +61,7 @@ struct ShapedRun
     metrics:     StringMetrics
     inkBounds:   Math.Rectangle
     hasInk:      bool
+    tabSize:     u32 = DefaultTextTabSize
 }
 
 struct RichStringFormat
@@ -73,17 +77,19 @@ struct RichStringFormat
     lineGap:           s32
     flags:             StringFormatFlags = Default
     justifyLimit:      f32 = 2
+    tabSize:           u32 = DefaultTextTabSize
 }
 
-fileprivate func appendShapedGlyph(run: *ShapedRun, font: *Font, glyphIndex: u32, cluster: u64, previousGlyphIndex: u32)
+fileprivate func appendShapedGlyph(run: *ShapedRun, font: *Font, glyphIndex: u32, cluster: u64, previousGlyphIndex: u32, customAdvanceX = 0.0'f32, isTab = false)
 {
     var glyph: ShapedGlyph
     glyph.desc       = font.getGlyphDescByIndex(glyphIndex)
     glyph.glyphIndex = glyphIndex
     glyph.cluster    = cluster
-    glyph.advanceX   = glyph.desc.advanceX
+    glyph.advanceX   = isTab ? customAdvanceX : glyph.desc.advanceX
     glyph.advanceY   = glyph.desc.advanceY
-    if previousGlyphIndex do
+    glyph.isTab      = isTab
+    if previousGlyphIndex and !isTab do
         glyph.offsetX = font.cache.kerning(previousGlyphIndex, glyphIndex)
 
     let glyphX = run.metrics.width + glyph.offsetX
@@ -112,6 +118,24 @@ fileprivate func appendShapedGlyph(run: *ShapedRun, font: *Font, glyphIndex: u32
 
     run.metrics.width += glyph.offsetX + glyph.advanceX
     run.glyphs.add(glyph)
+}
+
+fileprivate func appendShapedTab(run: *ShapedRun, font: *Font, cluster: u64, tabSize: u32)
+{
+    let spaceGlyphIndex = font.glyphIndex(' ')
+    let spaceDesc       = font.getGlyphDescByIndex(spaceGlyphIndex)
+    var effectiveTabSize = tabSize
+    if !effectiveTabSize do
+        effectiveTabSize = 1
+
+    var spaceAdvance = spaceDesc.advanceX
+    if spaceAdvance <= 0 do
+        spaceAdvance = cast(f32) font.cache.refSize * 0.25
+
+    let tabWidth   = spaceAdvance * cast(f32) effectiveTabSize
+    let nextStop   = (Math.floor(run.metrics.width / tabWidth) + 1) * tabWidth
+    let tabAdvance = nextStop - run.metrics.width
+    appendShapedGlyph(run, font, spaceGlyphIndex, cluster, 0, tabAdvance, true)
 }
 
 fileprivate func finishShapedRun(run: *ShapedRun, font: *Font)
@@ -143,12 +167,13 @@ impl Painter
     // Shape a single-font text run. This currently preserves the legacy one-rune
     // to one-glyph behavior, but stores glyph indexes, advances and cluster
     // positions so GSUB/GPOS, fallback and bidi can be introduced at this layer.
-    func shapeRun(text: string, font: *Font)->ShapedRun
+    func shapeRun(text: string, font: *Font, tabSize: u32 = DefaultTextTabSize)->ShapedRun
     {
         Debug.assert(font != null, "invalid font")
 
         var result: retval
         result.font = font
+        result.tabSize = tabSize
         result.glyphs.reserve(@countof(text))
 
         var count = @countof(text)
@@ -163,9 +188,17 @@ impl Painter
             if eat == 0 do
                 break
 
-            let glyphIndex = font.glyphIndex(c)
-            appendShapedGlyph(&result, font, glyphIndex, byteIdx, previousGlyphIndex)
-            previousGlyphIndex = glyphIndex
+            if c == '\t'
+            {
+                appendShapedTab(&result, font, byteIdx, tabSize)
+                previousGlyphIndex = 0
+            }
+            else
+            {
+                let glyphIndex = font.glyphIndex(c)
+                appendShapedGlyph(&result, font, glyphIndex, byteIdx, previousGlyphIndex)
+                previousGlyphIndex = glyphIndex
+            }
 
             byteIdx += eat
             scan += eat
@@ -185,13 +218,22 @@ impl Painter
 
         var result: retval
         result.font = font
+        result.tabSize = run.tabSize
         result.glyphs.reserve(run.glyphs.count)
 
         var previousGlyphIndex = 0'u32
         foreach glyph in run.glyphs
         {
-            appendShapedGlyph(&result, font, glyph.glyphIndex, glyph.cluster, previousGlyphIndex)
-            previousGlyphIndex = glyph.glyphIndex
+            if glyph.isTab
+            {
+                appendShapedTab(&result, font, glyph.cluster, run.tabSize)
+                previousGlyphIndex = 0
+            }
+            else
+            {
+                appendShapedGlyph(&result, font, glyph.glyphIndex, glyph.cluster, previousGlyphIndex)
+                previousGlyphIndex = glyph.glyphIndex
+            }
         }
 
         finishShapedRun(&result, font)
@@ -437,7 +479,7 @@ impl Painter
             c.font = format.font.getFont(fs)
 
             // Measure
-            c.shaped = shapeRun(c.slice, c.font)
+            c.shaped = shapeRun(c.slice, c.font, format.tabSize)
             let ms = c.shaped.metrics
             c.boundRect = {0, 0, ms.width, ms.height}
 

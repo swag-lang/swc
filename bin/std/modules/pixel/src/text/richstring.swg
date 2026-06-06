@@ -204,7 +204,7 @@ impl RichString
     // will only be recomputed if it's dirty (the text has changed) or if 'force' is true.
     mtd compute(force = false)
     {
-        if !.dirty or force do
+        if !.dirty and !force do
             return
 
         .dirty  = false
@@ -327,12 +327,23 @@ impl RichString
             if eat == 0 do
                 break
 
-            if c == '\n'
+            if c == '\r' or c == '\n'
             {
                 .addChunk(byteIdx)
                 byteIdx, scan += eat
+                count -= eat
+                if c == '\r' and count
+                {
+                    sl = @mkslice(scan, count)
+                    let (next, nextEat) = Utf8.decodeRune(sl)
+                    if next == '\n'
+                    {
+                        byteIdx, scan += nextEat
+                        count -= nextEat
+                    }
+                }
+
                 .addChunk(byteIdx, eol: true)
-                count -= 1
                 continue
             }
 

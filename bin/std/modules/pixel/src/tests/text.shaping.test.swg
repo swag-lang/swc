@@ -33,12 +33,26 @@ func makeShapingTestFont()->*Font
     @assert(Math.isEqualEpsilon(measured.width, shaped.metrics.width, 0.001))
     @assert(Math.isEqualEpsilon(measured.height, shaped.metrics.height, 0.001))
 
+    let spaces = Painter.shapeRun("    ", font)
+    let tab = Painter.shapeRun("\t", font)
+    @assert(tab.glyphs.count == 1)
+    @assert(tab.glyphs[0].isTab)
+    @assert(!tab.hasInk)
+    @assert(Math.isEqualEpsilon(tab.metrics.width, spaces.metrics.width, 0.001))
+
+    var tab8 = Painter.shapeRun("\t", font, 8)
+    @assert(tab8.metrics.width > tab.metrics.width)
+
     let msdfFont = Font.create(font.cache.typeFace, 32, .Msdf)
     let reshaped = Painter.shapeRunForFont(&shaped, msdfFont)
     @assert(reshaped.font == msdfFont)
     @assert(reshaped.glyphs.count == shaped.glyphs.count)
     @assert(reshaped.glyphs[0].glyphIndex == shaped.glyphs[0].glyphIndex)
     @assert(reshaped.glyphs[1].cluster == shaped.glyphs[1].cluster)
+
+    let reshapedTab = Painter.shapeRunForFont(&tab8, msdfFont)
+    @assert(reshapedTab.tabSize == 8)
+    @assert(reshapedTab.glyphs[0].isTab)
 
     let largeFont = Font.create(font.cache.typeFace, 48, .Bitmap)
     var richText: RichString = "<b>A</b>\nA"
@@ -51,4 +65,26 @@ func makeShapingTestFont()->*Font
     Painter.computeLayout({0, 0, 300, 300}, &richText, format)
     @assert(richText.boundRect.height >= largeFont.height + font.height + format.lineGap)
     @assert(richText.chunks[0].pos.y < richText.chunks[richText.chunks.count - 1].pos.y)
+
+    var forced: RichString = "<b>A</b>"
+    forced.compute()
+    forced.chunks.clear()
+    forced.compute(true)
+    @assert(forced.chunks.count != 0)
+    @assert(forced.chunks[0].fontStyle == .Bold)
+
+    var lineBreaks: RichString = "A\r\nB\rC\nD"
+    lineBreaks.compute()
+    var eolCount = 0
+    var spaceCount = 0
+    foreach &chunk in lineBreaks.chunks
+    {
+        if chunk.isEol do
+            eolCount += 1
+        if chunk.isSpace do
+            spaceCount += 1
+    }
+
+    @assert(eolCount == 3)
+    @assert(spaceCount == 0)
 }

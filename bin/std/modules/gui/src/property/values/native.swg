@@ -260,20 +260,21 @@ impl Properties
         }
 
         refreshNative(item)
+        let prop = me
 
         if item.sliderBox
         {
-            item.sliderBox.sigChanged += mtd|item|(ed)
+            item.sliderBox.sigChanged += func|prop, item|(ed)
             {
-                .validateNative(item)
+                prop.validateNative(item)
             }
         }
         elif item.editBox
         {
-            item.editBox.sigLoseFocus += mtd|item|(ed)
+            item.editBox.sigLoseFocus += func|prop, item|(ed)
             {
                 if ed.isValid() do
-                    .validateNative(item)
+                    prop.validateNative(item)
                 else do
                     ed.restoreText()
             }

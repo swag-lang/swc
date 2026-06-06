@@ -139,6 +139,7 @@ impl Properties
     mtd constructEnumFlags(value: Swag.TypeValue, typeEnum: const *Swag.TypeInfoEnum, data: *u8, parentItem: *PropertiesItem)
     {
         let item = .addItem(value, data, parentItem)
+        let prop = me
         item.flags.add(.NoSeparator)
 
         foreach v in typeEnum.values
@@ -167,7 +168,7 @@ impl Properties
                 .flags.add(.NoSeparator)
             }
 
-            line.hookOnEvent = mtd|itemB|(hwnd, evt) { return .onItemEvent(itemB, hwnd, evt); }
+            line.hookOnEvent = func|prop, itemB|(hwnd, evt) { return prop.onItemEvent(itemB, hwnd, evt); }
 
             with let ed = CheckButton.create(line, "", {0, 0, me.gridLineHeight, 0})
             {
@@ -199,9 +200,9 @@ impl Properties
             }
 
             refreshEnumFlags(itemB)
-            itemB.checkBox.sigChanged += mtd|itemB|(ed)
+            itemB.checkBox.sigChanged += func|prop, itemB|(ed)
             {
-                .validateEnumFlags(itemB)
+                prop.validateEnumFlags(itemB)
             }
         }
     }
@@ -215,6 +216,7 @@ impl Properties
         }
 
         let item = .addItem(value, data, parentItem)
+        let prop = me
         with let ed = ComboBox.create(item.line, kind: .CheckBox)
         {
             .maxSize.x = cast() Reflection.getAttributeValue(value, me.EditSize, "size", me.sizeEditValue)
@@ -230,9 +232,9 @@ impl Properties
             ed.addItem(v.name)
 
         refreshEnum(item)
-        item.comboBox.sigChanged += mtd|item|(ed, n)
+        item.comboBox.sigChanged += func|prop, item|(ed, n)
         {
-            .validateEnum(item)
+            prop.validateEnum(item)
         }
     }
 }

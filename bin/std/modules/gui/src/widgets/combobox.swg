@@ -157,6 +157,7 @@ fileprivate impl ComboBox
 {
     mtd showPopup()
     {
+        let combo = me
         .popup                = PopupListCtrl.create(me)
         .popup.minWidthPopup  = .minWidthPopup
         .popup.maxHeightPopup = .maxHeightPopup
@@ -171,11 +172,11 @@ fileprivate impl ComboBox
                 .popup.addItem(item.name.raw, item.id, item.icon, item.userData0, item.userData1)
         }
 
-        .popup.sigSelected = mtd||(list, idx)
+        .popup.sigSelected = func|combo|(list, idx)
         {
             if idx != Swag.U32.Max do
-                .selectItem(idx)
-            .hidePopup()
+                combo.selectItem(idx)
+            combo.hidePopup()
         }
 
         let rect = .getSurfaceRect()

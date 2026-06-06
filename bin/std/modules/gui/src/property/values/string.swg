@@ -11,6 +11,7 @@ impl Properties
     mtd constructDynamicString(value: Swag.TypeValue, data: *u8, parentItem: *PropertiesItem)
     {
         let item = .addItem(value, data, parentItem)
+        let prop = me
         with let ed = EditBox.create(item.line, dref cast(*String) data)
         {
             .maxSize.x = cast() Reflection.getAttributeValue(value, me.EditSize, "size", me.sizeEditValue)
@@ -18,7 +19,7 @@ impl Properties
                 .dockStyle = .CenterKeepSizeVert
             else do
                 .anchorStyle = .X
-            .sigLoseFocus += mtd|item|(ed) { .validateDynamicString(item); }
+            .sigLoseFocus += func|prop, item|(ed) { prop.validateDynamicString(item); }
         }
 
         item.editBox = ed

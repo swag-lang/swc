@@ -6,6 +6,7 @@ impl Properties
     {
         let item = .addItem(value, data, parentItem)
         let line = Wnd.create'Wnd(item.line, {0, 0, .position.width, .getThemeMetrics().editBox_Height})
+        let prop = me
         line.dockStyle = .CenterKeepSizeVert
 
         foreach v in typeStruct.fields
@@ -22,10 +23,10 @@ impl Properties
             {
                 .dockStyle = .Left
                 .setInputF64()
-                .sigLoseFocus += mtd|dataField, item|(ed)
+                .sigLoseFocus += func|prop, dataField, item|(ed)
                 {
                     dref dataField = catch StrConv.toF32(ed.text)
-                    .hasChanged(item)
+                    prop.hasChanged(item)
                 }
             }
 

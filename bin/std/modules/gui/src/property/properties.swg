@@ -530,7 +530,8 @@ fileprivate impl Properties
                 .extendFocus = me.gridLineMargin * 0.5
         }
 
-        line.hookOnEvent = mtd|item|(wnd, evt) { return .onItemEvent(item, wnd, evt); }
+        let prop = me
+        line.hookOnEvent = func|prop, item|(wnd, evt) { return prop.onItemEvent(item, wnd, evt); }
 
         // Name
         if flags.has(.Name)

@@ -350,10 +350,11 @@ fileprivate impl EditBox
         {
             if !.clearBtn
             {
+                let edit = me
                 .clearBtn           = IconButton.create(me, .getTheme().getIcon24(ThemeIcons24.WndClose, 18), {0, 0, 24, 24})
                 .clearBtn.dockStyle = .Right
                 .clearBtn.setForm(IconButtonForm.Round)
-                .clearBtn.sigPressed += mtd||(btn) { .setText(null); }
+                .clearBtn.sigPressed += func|edit|(btn) { edit.setText(null); }
                 .applyLayout()
             }
         }

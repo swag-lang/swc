@@ -1148,10 +1148,11 @@ impl ListCtrl
             return res
         }
 
-        let cb = mtd|column, descentOrder|(a, b: *ListLine)->s32
+        let list = me
+        let cb = func|list, column, descentOrder|(a, b: *ListLine)->s32
         {
-            if .sigSort do
-                return .sigSort(a, b, column, descentOrder)
+            if list.sigSort do
+                return list.sigSort(a, b, column, descentOrder)
 
             if a.parent != b.parent
             {

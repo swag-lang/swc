@@ -16,6 +16,7 @@ impl Properties
         let width       = cast() Reflection.getAttributeValue(value, .EditSize, "size", .sizeEditValue)
         const MarginBtn = 4
         const WidthBtn  = 60
+        let prop        = me
 
         with let btn = IconButton.create(line, {}, {0, 0, WidthBtn, item.line.position.height})
         {
@@ -31,7 +32,7 @@ impl Properties
             .dockStyle = .Left
             .margin.z  = MarginBtn
             .setInputX64(0, opaque ? 0xFFFFFF : 0xFFFFFFFF)
-            .sigLoseFocus += mtd|color, item, opaque, keepAlpha|(ed)
+            .sigLoseFocus += func|prop, color, item, opaque, keepAlpha|(ed)
             {
                 var result = cast(u32) (catch StrConv.parseX64(ed.text).value & 0xFFFFFFFF)
                 if opaque do
@@ -39,7 +40,7 @@ impl Properties
                 elif keepAlpha do
                     result |= color.a << 24
                 color.argb = result
-                .hasChanged(item)
+                prop.hasChanged(item)
             }
         }
 
@@ -51,12 +52,12 @@ impl Properties
             bc.painter.fillRoundRect(pos, 5, 5, dref color)
         }
 
-        btn.sigShowPopup += mtd|color, item, opaque, keepAlpha|(btn)
+        btn.sigShowPopup += func|prop, color, item, opaque, keepAlpha|(btn)
         {
             if !btn do
                 return
             let frame = btn.createAnchorPopup(356, 382)
-            .editPopup = frame
+            prop.editPopup = frame
 
             var pal: Array'Color
             for i in 9 do
@@ -68,7 +69,7 @@ impl Properties
 
             let picker = ColorPickerCtrl.createWithPalette(frame, {8, 54}, pal, flags)
             picker.setColor(color)
-            picker.sigChanged += mtd|color, item, opaque, keepAlpha|(pk)
+            picker.sigChanged += func|prop, color, item, opaque, keepAlpha|(pk)
             {
                 var result = pk.getColor().argb
                 if opaque do
@@ -76,13 +77,13 @@ impl Properties
                 elif keepAlpha do
                     result |= color.a << 24
                 color.argb = result
-                .hasChanged(item)
+                prop.hasChanged(item)
             }
         }
 
-        btn.sigHidePopup += mtd||(btn)
+        btn.sigHidePopup += func|prop|(btn)
         {
-            .editPopup = null
+            prop.editPopup = null
         }
 
         item.sigRefresh += func|ed, btn, color, editAlpha|(item)

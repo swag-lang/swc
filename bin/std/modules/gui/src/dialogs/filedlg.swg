@@ -145,13 +145,14 @@ fileprivate impl FileDlg
             .treePathStr.add(v)
         }
 
-        .treeCtrl.sigSelChanged += mtd||(list)
+        let fileDlg = me
+        .treeCtrl.sigSelChanged += func|fileDlg|(list)
         {
             var line = list.getSelectedLine()
             if !line do
                 return
             var idx = cast(u64) line.userData0
-            .setCurFolder(.treePathStr[idx].toString())
+            fileDlg.setCurFolder(fileDlg.treePathStr[idx].toString())
         }
     }
 
@@ -209,6 +210,7 @@ fileprivate impl FileDlg
 
     mtd createFileList(view: *Wnd)
     {
+        let fileDlg = me
         with me.listCtrl = ListCtrl.createMultiColumns(view)
         {
             .selectionMode = me.dlgOptions.mode == .SelectMultiFiles ? .Multi : .Single
@@ -221,12 +223,12 @@ fileprivate impl FileDlg
             .header.form = .Transparent
             .header.style.addStyleSheetColors("headerItem_Separator $lighterMedium")
             .scrollWnd.style.addStyleSheetColors("scrollBar_Bk $view_Bk")
-            .sigKeyPressed += mtd||(list, evt)
+            .sigKeyPressed += func|fileDlg|(list, evt)
             {
                 switch evt.key
                 {
                 case Back:
-                    .folderUp()
+                    fileDlg.folderUp()
 
                 case Enter:
                     let l = list.getFocusLine()
@@ -235,16 +237,16 @@ fileprivate impl FileDlg
                     let fi = cast(const *FileInfo) l.userData0
                     if fi.isDirectory()
                     {
-                        .setCurFolder(fi.fullname)
+                        fileDlg.setCurFolder(fi.fullname)
                     }
-                    elif .dlgOptions.mode != .SelectFolder
+                    elif fileDlg.dlgOptions.mode != .SelectFolder
                     {
-                        .validateId(Dialog.BtnOk)
+                        fileDlg.validateId(Dialog.BtnOk)
                         list.setFocus()
                     }
                 }
             }
-            .sigLeftDoubleClick += mtd||(list, pt)
+            .sigLeftDoubleClick += func|fileDlg|(list, pt)
             {
                 var l = list.getSelectedLine()
                 if !l do
@@ -252,15 +254,15 @@ fileprivate impl FileDlg
                 var fi = cast(const *FileInfo) l.userData0
                 if fi.isDirectory()
                 {
-                    .setCurFolder(fi.fullname)
+                    fileDlg.setCurFolder(fi.fullname)
                 }
-                elif .dlgOptions.mode != .SelectFolder
+                elif fileDlg.dlgOptions.mode != .SelectFolder
                 {
-                    .validateId(Dialog.BtnOk)
+                    fileDlg.validateId(Dialog.BtnOk)
                     list.setFocus()
                 }
             }
-            .sigSelChanged += mtd||(list)
+            .sigSelChanged += func|fileDlg|(list)
             {
                 var sel  = list.getSelectedLines()
                 var txt: String
@@ -269,7 +271,7 @@ fileprivate impl FileDlg
                     let fi = cast(const *FileInfo) l.userData0
                     if fi.isDirectory()
                     {
-                        if .dlgOptions.mode != .SelectFolder do
+                        if fileDlg.dlgOptions.mode != .SelectFolder do
                             continue
                     }
                     else
@@ -284,7 +286,7 @@ fileprivate impl FileDlg
                 }
 
                 if !txt.isEmpty() do
-                    .editFile.setText(txt)
+                    fileDlg.editFile.setText(txt)
             }
             .sigSort = func(l1, l2, col, down)
             {
@@ -320,7 +322,8 @@ fileprivate impl FileDlg
             .surface.center(me.surface)
         }
 
-        dlg.sigPressedButton = mtd|dlg|(fdlg, btnid)
+        let curFolder = .curFolder
+        dlg.sigPressedButton = func|dlg, curFolder|(fdlg, btnid)
         {
             if btnid != Dialog.BtnOk do
                 return true
@@ -342,7 +345,7 @@ fileprivate impl FileDlg
                 return false
             }
 
-            var path = Path.combine(.curFolder, folderName.toString())
+            var path = Path.combine(curFolder, folderName.toString())
             if Directory.exists(path)
             {
                 MessageDlg.error(dlg.surface, "Folder already exists")

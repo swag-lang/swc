@@ -55,9 +55,10 @@ impl Properties
         }
 
         item.checkBox = ed
-        ed.sigChanged += mtd|item|(ed)
+        let prop = me
+        ed.sigChanged += func|prop, item|(ed)
         {
-            .validateBool(item)
+            prop.validateBool(item)
         }
 
         refreshBool(item)

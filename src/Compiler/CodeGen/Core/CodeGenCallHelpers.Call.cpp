@@ -1149,9 +1149,9 @@ namespace
             if (resolvedArg.argRef.isInvalid())
                 continue;
 
-            const CodeGenNodePayload& argPayload = codeGen.payload(resolvedArg.argRef);
-            const TypeRef   wrapperTypeRef     = codeGen.viewType(resolvedArg.argRef).typeRef();
-            const TypeRef   argTypeRef         = concretizeUntypedVariadicRuntimeTypeRef(codeGen, resolveUntypedVariadicArgTypeRef(codeGen, argPayload, resolvedArg.argRef));
+            const CodeGenNodePayload& argPayload     = codeGen.payload(resolvedArg.argRef);
+            const TypeRef             wrapperTypeRef = codeGen.viewType(resolvedArg.argRef).typeRef();
+            const TypeRef             argTypeRef     = concretizeUntypedVariadicRuntimeTypeRef(codeGen, resolveUntypedVariadicArgTypeRef(codeGen, argPayload, resolvedArg.argRef));
             SWC_ASSERT(argTypeRef.isValid());
             const TypeInfo& argType            = ctx.typeMgr().get(argTypeRef);
             const TypeRef   resolvedArgTypeRef = ctx.typeMgr().unwrapAliasEnum(ctx, argTypeRef);

@@ -38,7 +38,7 @@ public:
         // the whole function. They bypass the spill/flush machinery entirely (they
         // are never placed in mappedVirtualIndices_) so loop-carried values stay
         // resident across CFG boundaries instead of round-tripping through memory.
-        bool          pinned           = false;
+        bool pinned = false;
     };
 
 private:

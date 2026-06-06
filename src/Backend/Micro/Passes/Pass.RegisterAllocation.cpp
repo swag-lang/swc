@@ -615,10 +615,10 @@ void MicroRegisterAllocationPass::selectPinnedRegisters()
         const MicroReg reg = pool[pickIndex];
         pool.erase(pool.begin() + pickIndex);
 
-        auto& regState   = states_[cand.denseIndex];
-        regState.pinned  = true;
-        regState.mapped  = false;   // never tracked by the spill machinery
-        regState.phys    = reg;
+        auto& regState  = states_[cand.denseIndex];
+        regState.pinned = true;
+        regState.mapped = false; // never tracked by the spill machinery
+        regState.phys   = reg;
         pinnedPhysRegs_.push_back(reg);
         ++pins;
     }

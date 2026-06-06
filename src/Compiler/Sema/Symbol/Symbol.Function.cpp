@@ -663,7 +663,7 @@ bool SymbolFunction::usesStructuralTypeIdentity() const noexcept
 uint32_t SymbolFunction::typeSignatureHash() const noexcept
 {
     if (!usesStructuralTypeIdentity())
-        return Math::hashCombine(Math::hash(0), static_cast<uint64_t>(reinterpret_cast<uintptr_t>(this)));
+        return Math::hashCombine(Math::hash(0), reinterpret_cast<uintptr_t>(this));
 
     uint32_t h = Math::hash(returnType_.get());
     h          = Math::hashCombine(h, static_cast<uint32_t>(callConvKind_));

@@ -379,7 +379,7 @@ namespace
         outBits                  = sizeOf > sizeof(uint64_t) ? MicroOpBits::B64 : CodeGenTypeHelpers::compareBits(typeInfo, codeGen.ctx());
         SWC_ASSERT(outBits != MicroOpBits::Zero);
 
-        MicroBuilder& builder   = codeGen.builder();
+        MicroBuilder&  builder   = codeGen.builder();
         const MicroReg resultReg = codeGen.nextVirtualIntRegister();
         if (sizeOf > sizeof(uint64_t) || payload.isAddress())
             builder.emitLoadRegMem(resultReg, payload.reg, 0, outBits);
@@ -405,11 +405,11 @@ namespace
         if (unwrappedExprTypeRef.isValid())
             exprTypeRef = unwrappedExprTypeRef;
 
-        MicroOpBits                 presenceBits = MicroOpBits::Zero;
-        const CodeGenNodePayload&   exprPayload  = codeGen.payload(resolvedExprRef);
-        const MicroReg              presenceReg  = materializeNullablePresenceReg(codeGen, exprPayload, exprTypeRef, presenceBits);
-        MicroBuilder&               builder      = codeGen.builder();
-        const MicroLabelRef         presentLabel = builder.createLabel();
+        auto                      presenceBits = MicroOpBits::Zero;
+        const CodeGenNodePayload& exprPayload  = codeGen.payload(resolvedExprRef);
+        const MicroReg            presenceReg  = materializeNullablePresenceReg(codeGen, exprPayload, exprTypeRef, presenceBits);
+        MicroBuilder&             builder      = codeGen.builder();
+        const MicroLabelRef       presentLabel = builder.createLabel();
         builder.emitCmpRegImm(presenceReg, ApInt(0, 64), presenceBits);
         builder.emitJumpToLabel(MicroCond::NotEqual, MicroOpBits::B32, presentLabel);
         SWC_RESULT(CodeGenSafety::emitAssumeCheck(codeGen, codeGen.node(ownerRef)));
@@ -596,8 +596,8 @@ namespace
         if (!calledFunction)
             return false;
 
-        const CallConvKind                     callConvKind = calledFunction->callConvKind();
-        const CallConv&                        callConv     = CallConv::get(callConvKind);
+        const CallConvKind                     callConvKind  = calledFunction->callConvKind();
+        const CallConv&                        callConv      = CallConv::get(callConvKind);
         const ABITypeNormalize::NormalizedType normalizedRet = ABITypeNormalize::normalize(codeGen.ctx(), callConv, calledFunction->returnTypeRef(), ABITypeNormalize::Usage::Return);
         if (normalizedRet.isVoid || normalizedRet.isIndirect)
             return false;

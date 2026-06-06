@@ -870,7 +870,7 @@ namespace
         return TypeRef::invalid();
     }
 
-    void addMeParameter(Sema& sema, SymbolFunction& sym);
+    void            addMeParameter(Sema& sema, SymbolFunction& sym);
     SymbolVariable* resolveBodyBindingReceiver(const Sema& sema, const SymbolFunction& sym);
 
     template<typename T>
@@ -912,8 +912,8 @@ namespace
                 paramType = sema.viewType(param.nodeTypeRef).typeRef();
             else if (bindingFunction)
             {
-                const auto& bindingParams = bindingFunction->parameters();
-                const size_t bindingIndex = paramIndex + bindingParamOffset;
+                const auto&  bindingParams = bindingFunction->parameters();
+                const size_t bindingIndex  = paramIndex + bindingParamOffset;
                 if (bindingIndex < bindingParams.size())
                     paramType = bindingParams[bindingIndex]->typeRef();
             }

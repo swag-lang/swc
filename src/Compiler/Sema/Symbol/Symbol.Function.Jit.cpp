@@ -416,7 +416,7 @@ Result SymbolFunction::jitBatch(TaskContext& ctx, const std::span<SymbolFunction
     if (ctx.state().jitEmissionError)
         return Result::Error;
 
-    const SymbolFunction* pendingFunction = nullptr;
+    const SymbolFunction* pendingFunction       = nullptr;
     const auto*           weakRelocationBlocker = waiterSymbol ? waiterSymbol->safeCast<SymbolFunction>() : nullptr;
     for (SymbolFunction* function : functions)
     {

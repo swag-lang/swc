@@ -76,14 +76,14 @@ private:
     std::unique_ptr<MicroEmitPass>                 emitPass_;
 
     // Pre-RA optimization passes
-    std::unique_ptr<MicroPreRaPeepholePass>       preRaPeepholePass_;
-    std::unique_ptr<MicroConstantFoldingPass>     constantFoldingPass_;
-    std::unique_ptr<MicroCopyEliminationPass>     copyEliminationPass_;
-    std::unique_ptr<MicroInstructionCombinePass>  instructionCombinePass_;
-    std::unique_ptr<MicroStrengthReductionPass>   strengthReductionPass_;
+    std::unique_ptr<MicroPreRaPeepholePass>           preRaPeepholePass_;
+    std::unique_ptr<MicroConstantFoldingPass>         constantFoldingPass_;
+    std::unique_ptr<MicroCopyEliminationPass>         copyEliminationPass_;
+    std::unique_ptr<MicroInstructionCombinePass>      instructionCombinePass_;
+    std::unique_ptr<MicroStrengthReductionPass>       strengthReductionPass_;
     std::unique_ptr<MicroLoopInvariantCodeMotionPass> licmPass_;
-    std::unique_ptr<MicroDeadCodeEliminationPass> deadCodeEliminationPass_;
-    std::unique_ptr<MicroBranchSimplifyPass>      branchSimplifyPass_;
+    std::unique_ptr<MicroDeadCodeEliminationPass>     deadCodeEliminationPass_;
+    std::unique_ptr<MicroBranchSimplifyPass>          branchSimplifyPass_;
 
     // Post-RA optimization passes
     std::unique_ptr<MicroPostRaPeepholePass>     postRaPeepholePass_;

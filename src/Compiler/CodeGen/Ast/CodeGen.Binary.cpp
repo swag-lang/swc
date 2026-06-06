@@ -88,7 +88,7 @@ namespace
         if (!castResultTypeRef.isValid())
             return false;
 
-        AstNodeRef sourceRef = AstNodeRef::invalid();
+        AstNodeRef     sourceRef       = AstNodeRef::invalid();
         const AstNode& resolvedOperand = codeGen.node(resolvedOperandRef);
         if (resolvedOperand.is(AstNodeId::CastExpr))
             sourceRef = resolvedOperand.cast<AstCastExpr>().nodeExprRef;

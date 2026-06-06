@@ -87,7 +87,7 @@ TypeRef Cast::indirectValueCastTypeRef(const Sema& sema, TypeRef srcTypeRef, Typ
     }
     else if (srcType.isAnyPointer() && !srcType.isNullable())
     {
-        valueTypeRef = srcType.payloadTypeRef();
+        valueTypeRef    = srcType.payloadTypeRef();
         sourceIsPointer = true;
     }
     else

@@ -61,8 +61,8 @@ namespace
         const TypeInfo& paramType = param.type(sema.ctx());
         if (paramType.isCodeBlock() || paramType.isAnyVariadic() || paramType.isReference())
             return TypeRef::invalid();
-        const AstNode& exprNode = sema.node(exprRef);
-        const bool isCastExpr = exprNode.is(AstNodeId::CastExpr) || exprNode.is(AstNodeId::AutoCastExpr);
+        const AstNode& exprNode   = sema.node(exprRef);
+        const bool     isCastExpr = exprNode.is(AstNodeId::CastExpr) || exprNode.is(AstNodeId::AutoCastExpr);
         if (!isCastExpr && !SemaHelpers::canUseContextualBinding(sema, exprRef))
             return TypeRef::invalid();
 

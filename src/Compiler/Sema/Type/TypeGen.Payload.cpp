@@ -229,7 +229,7 @@ namespace
         if (!type.isStruct())
             return {};
 
-        const SymbolStruct& symStruct = type.payloadSymStruct();
+        const SymbolStruct&     symStruct = type.payloadSymStruct();
         TypeGen::LifecycleFlags flags;
         for (const SymbolVariable* field : symStruct.fields())
         {

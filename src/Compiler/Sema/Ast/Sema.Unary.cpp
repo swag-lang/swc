@@ -324,8 +324,8 @@ namespace
         if (!typeRef.isValid())
             return ConstantRef::invalid();
 
-        TaskContext&    ctx      = sema.ctx();
-        const TypeInfo& ptrType  = sema.typeMgr().get(typeRef);
+        TaskContext&    ctx     = sema.ctx();
+        const TypeInfo& ptrType = sema.typeMgr().get(typeRef);
         ConstantValue   ptrValueCst;
         if (ptrType.isValuePointer())
             ptrValueCst = ConstantValue::makeValuePointer(ctx, ptrType.payloadTypeRef(), ptrValue, ptrType.flags());
@@ -341,9 +341,9 @@ namespace
         if (!view.node() || !view.node()->is(AstNodeId::IndexExpr) || !resultTypeRef.isValid())
             return ConstantRef::invalid();
 
-        const auto&        indexExpr  = view.node()->cast<AstIndexExpr>();
-        const SemaNodeView baseView   = sema.viewTypeConstant(indexExpr.nodeExprRef);
-        const SemaNodeView indexView  = sema.viewTypeConstant(indexExpr.nodeArgRef);
+        const auto&        indexExpr   = view.node()->cast<AstIndexExpr>();
+        const SemaNodeView baseView    = sema.viewTypeConstant(indexExpr.nodeExprRef);
+        const SemaNodeView indexView   = sema.viewTypeConstant(indexExpr.nodeArgRef);
         const TypeRef      baseTypeRef = SemaHelpers::unwrapAliasRefType(sema.ctx(), baseView.typeRef());
         if (!baseView.cst() || !indexView.cst() || !baseTypeRef.isValid())
             return ConstantRef::invalid();

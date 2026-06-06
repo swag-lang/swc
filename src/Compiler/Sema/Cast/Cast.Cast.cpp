@@ -454,8 +454,8 @@ namespace
 
     struct StructOpCastData
     {
-        SymbolFunction* calledFn     = nullptr;
-        AstNodeRef      sourceArgRef = AstNodeRef::invalid();
+        SymbolFunction* calledFn       = nullptr;
+        AstNodeRef      sourceArgRef   = AstNodeRef::invalid();
         bool            forceConstEval = false;
     };
 
@@ -1177,9 +1177,9 @@ Result Cast::castToEnum(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef
 
 Result Cast::castFromEnum(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef)
 {
-    const TypeInfo&   srcType = sema.typeMgr().get(srcTypeRef);
-    const TypeInfo&   dstType = sema.typeMgr().get(dstTypeRef);
-    const SymbolEnum& enumSym = srcType.payloadSymEnum();
+    const TypeInfo&   srcType                    = sema.typeMgr().get(srcTypeRef);
+    const TypeInfo&   dstType                    = sema.typeMgr().get(dstTypeRef);
+    const SymbolEnum& enumSym                    = srcType.payloadSymEnum();
     const bool        allowEnumIndexImplicitCast = enumSym.attributes().hasRtFlag(RtAttributeFlagsE::EnumIndex) && dstType.isIntLike();
     if (castRequest.kind != CastKind::Explicit && !allowEnumIndexImplicitCast)
         return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
@@ -1374,10 +1374,10 @@ Result Cast::castAllowed(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRe
     if (srcTypeRef == dstTypeRef)
         return castIdentity(sema, castRequest, srcTypeRef, dstTypeRef);
 
-    const TypeManager& typeMgr = sema.typeMgr();
-    const TypeInfo&    srcType = typeMgr.get(srcTypeRef);
-    const TypeInfo&    dstType = typeMgr.get(dstTypeRef);
-    const TypeRef      indirectValueTypeRef  = indirectValueCastTypeRef(sema, srcTypeRef, dstTypeRef);
+    const TypeManager& typeMgr              = sema.typeMgr();
+    const TypeInfo&    srcType              = typeMgr.get(srcTypeRef);
+    const TypeInfo&    dstType              = typeMgr.get(dstTypeRef);
+    const TypeRef      indirectValueTypeRef = indirectValueCastTypeRef(sema, srcTypeRef, dstTypeRef);
 
     if (isImplicitNullableQualificationCast(srcType, dstType))
         return castAddNullableQualifier(castRequest);
@@ -1392,12 +1392,12 @@ Result Cast::castAllowed(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRe
         const TypeInfo& resolvedSrcType    = sema.typeMgr().get(resolvedSrcTypeRef);
         const TypeInfo& resolvedDstType    = sema.typeMgr().get(resolvedDstTypeRef);
 
-        const bool allowAliasBoolCast         = isTruthyBoolCastKind(castRequest.kind) && dstType.isBool();
-        const bool allowAliasNullCast         = resolvedSrcType.isNull() && resolvedDstType.isPointerLike();
-        const bool allowAliasAnyCast          = dstType.isAny();
-        const bool allowAliasNullableCast     = isImplicitNullableQualificationCast(resolvedSrcType, resolvedDstType);
-        const bool allowAliasUfcsReceiverCast = castRequest.flags.has(CastFlagsE::UfcsArgument) && resolvedSrcType.isAnyPointer() && resolvedDstType.isReference();
-        const bool allowAliasIndirectValueCast = indirectValueTypeRef.isValid();
+        const bool allowAliasBoolCast               = isTruthyBoolCastKind(castRequest.kind) && dstType.isBool();
+        const bool allowAliasNullCast               = resolvedSrcType.isNull() && resolvedDstType.isPointerLike();
+        const bool allowAliasAnyCast                = dstType.isAny();
+        const bool allowAliasNullableCast           = isImplicitNullableQualificationCast(resolvedSrcType, resolvedDstType);
+        const bool allowAliasUfcsReceiverCast       = castRequest.flags.has(CastFlagsE::UfcsArgument) && resolvedSrcType.isAnyPointer() && resolvedDstType.isReference();
+        const bool allowAliasIndirectValueCast      = indirectValueTypeRef.isValid();
         const bool allowAliasUnderlyingToStrictCast = !srcType.isAlias() && dstType.isAlias() && resolvedSrcTypeRef == resolvedDstTypeRef;
         if (castRequest.kind != CastKind::Explicit && !allowAliasBoolCast && !allowAliasNullCast && !allowAliasAnyCast && !allowAliasNullableCast && !allowAliasUfcsReceiverCast && !allowAliasIndirectValueCast && !allowAliasUnderlyingToStrictCast)
             return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);

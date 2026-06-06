@@ -88,7 +88,7 @@ namespace
             const bool isLea = inst.op == MicroInstrOpcode::LoadAddrRegMem && ops[1].reg == stackPointer;
             if ((isMov || isLea) && ops[0].reg.isVirtualInt())
             {
-                Cand& c  = cands[ops[0].reg];
+                Cand& c = cands[ops[0].reg];
                 if (c.defRef.isValid())
                     c.stable = false; // defined more than once: not a stable base.
                 else
@@ -142,8 +142,8 @@ namespace
         {
             if (c.stable && c.defRef.isValid() && c.baseUses > bestUses)
             {
-                best     = reg;
-                bestUses = c.baseUses;
+                best      = reg;
+                bestUses  = c.baseUses;
                 outDefRef = c.defRef;
             }
         }
@@ -173,7 +173,12 @@ namespace
         if (n == 0)
             return;
 
-        enum Color : uint8_t { White, Gray, Black };
+        enum Color : uint8_t
+        {
+            White,
+            Gray,
+            Black
+        };
         std::vector<Color>    color(n, White);
         std::vector<uint32_t> nextChild(n, 0);
         std::vector<uint32_t> stack;
@@ -186,7 +191,7 @@ namespace
             // Only start DFS from genuine entries (no predecessors) and, as a
             // fallback, from any still-unvisited node so unreachable cycles are
             // still classified conservatively.
-            color[root] = Gray;
+            color[root]     = Gray;
             nextChild[root] = 0;
             stack.push_back(root);
 
@@ -201,8 +206,8 @@ namespace
                         continue;
                     if (color[v] == White)
                     {
-                        color[v]      = Gray;
-                        nextChild[v]  = 0;
+                        color[v]     = Gray;
+                        nextChild[v] = 0;
                         stack.push_back(v);
                     }
                     else if (color[v] == Gray)
@@ -224,18 +229,18 @@ namespace
     // slot, `kill[i]` = instruction i fully overwrites it. Returns true if the
     // slot is live-in at the entry or at any back-edge target (i.e. its value
     // can survive a loop iteration) — meaning it must NOT be promoted.
-    bool slotIsLoopCarried(const MicroControlFlowGraph& cfg,
-                           const std::vector<uint8_t>&  use,
-                           const std::vector<uint8_t>&  kill,
+    bool slotIsLoopCarried(const MicroControlFlowGraph&        cfg,
+                           const std::vector<uint8_t>&         use,
+                           const std::vector<uint8_t>&         kill,
                            const std::unordered_set<uint32_t>& backEdgeTargets)
     {
-        const uint32_t n = cfg.instructionCount();
+        const uint32_t       n = cfg.instructionCount();
         std::vector<uint8_t> liveIn(n, 0);
 
         const auto succs = cfg.successors();
 
-        bool changed = true;
-        uint32_t guard = 0;
+        bool           changed  = true;
+        uint32_t       guard    = 0;
         const uint32_t maxIters = n + 4;
         while (changed && guard++ < maxIters)
         {
@@ -317,7 +322,7 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
             const MicroReg ar = ops[0].reg;
             if (!ar.isVirtualInt() || ar == frameBase)
                 badAddrReg.insert(ar);
-            else if (addrRegOffset.find(ar) != addrRegOffset.end())
+            else if (addrRegOffset.contains(ar))
                 badAddrReg.insert(ar);
             else
                 addrRegOffset[ar] = ops[3].valueU64;
@@ -325,7 +330,7 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
     }
 
     auto isTracked = [&](MicroReg reg) -> bool {
-        return reg == frameBase || addrRegOffset.find(reg) != addrRegOffset.end();
+        return reg == frameBase || addrRegOffset.contains(reg);
     };
 
     // ---- Pass 2: classify accesses; bail the whole function on any escape. ----
@@ -357,7 +362,7 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
             else
             {
                 const auto found = addrRegOffset.find(reg);
-                if (found != addrRegOffset.end() && badAddrReg.find(reg) == badAddrReg.end())
+                if (found != addrRegOffset.end() && !badAddrReg.contains(reg))
                     baseReg = reg, baseSlot = found->second + extraOffset, baseValid = true;
             }
         };

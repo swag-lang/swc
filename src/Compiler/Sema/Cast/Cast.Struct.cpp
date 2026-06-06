@@ -137,8 +137,8 @@ namespace
         if (!args.castRequest->errorNodeRef.isValid())
             return AstNodeRef::invalid();
 
-        const AstNode& node = args.sema->node(args.castRequest->errorNodeRef);
-        SpanRef         fieldSpanRef = SpanRef::invalid();
+        const AstNode& node         = args.sema->node(args.castRequest->errorNodeRef);
+        SpanRef        fieldSpanRef = SpanRef::invalid();
         if (node.is(AstNodeId::StructLiteral))
             fieldSpanRef = node.cast<AstStructLiteral>().spanChildrenRef;
         else if (node.is(AstNodeId::StructInitializerList))

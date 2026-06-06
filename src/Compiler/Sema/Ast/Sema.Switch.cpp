@@ -703,10 +703,10 @@ namespace
 
     Result validateFallthroughStatementPosition(Sema& sema, AstNodeRef caseRef, AstNodeRef stmtRef)
     {
-        const auto& caseStmt = sema.node(caseRef).cast<AstSwitchCaseStmt>();
-        const auto& caseBody = sema.node(caseStmt.nodeBodyRef).cast<AstSwitchCaseBody>();
-        AstNodeRef currentRef = stmtRef;
-        for (size_t up = 0; ; ++up)
+        const auto& caseStmt   = sema.node(caseRef).cast<AstSwitchCaseStmt>();
+        const auto& caseBody   = sema.node(caseStmt.nodeBodyRef).cast<AstSwitchCaseBody>();
+        AstNodeRef  currentRef = stmtRef;
+        for (size_t up = 0;; ++up)
         {
             const AstNodeRef parentRef = sema.visit().parentNodeRef(up);
             if (parentRef.isInvalid())

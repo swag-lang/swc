@@ -693,7 +693,7 @@ namespace
 
     Result lowerAggregateStructToBytesInternal(Sema& sema, ByteSpanRW dstBytes, const TypeInfo& dstType, const TypeInfo* srcType, const std::vector<ConstantRef>& values)
     {
-        const auto&             dstFields = dstType.payloadSymStruct().fields();
+        const auto&              dstFields = dstType.payloadSymStruct().fields();
         std::vector<ConstantRef> valuesByField;
         mapAggregateStructValuesToFields(srcType, dstFields, values, valuesByField);
 

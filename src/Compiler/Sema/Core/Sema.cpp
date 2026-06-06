@@ -1120,10 +1120,10 @@ Result Sema::preNodeChild(AstNode& node, AstNodeRef& childRef)
 
     if (curScope_->isTopLevel())
     {
-        const AstNode&       child       = ast().node(childRef);
-        const AstNodeIdInfo& childInfo   = Ast::nodeIdInfos(child.id());
-        const bool           compilerRun = isCompilerRunFunction(*this, child);
-        const bool           compilerAst = isCompilerAstFunction(*this, child);
+        const AstNode&       child                 = ast().node(childRef);
+        const AstNodeIdInfo& childInfo             = Ast::nodeIdInfos(child.id());
+        const bool           compilerRun           = isCompilerRunFunction(*this, child);
+        const bool           compilerAst           = isCompilerAstFunction(*this, child);
         const bool           deferCompilerTopLevel = !curScope_->isImpl();
 
         if (!compilerAstExpansions_.empty())

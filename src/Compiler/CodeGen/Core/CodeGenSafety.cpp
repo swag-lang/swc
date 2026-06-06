@@ -388,15 +388,15 @@ Result CodeGenSafety::emitShiftIntLike(CodeGen& codeGen, const AstNode& node, co
 {
     SWC_ASSERT(shiftTokId == TokenId::SymLowerLower || shiftTokId == TokenId::SymGreaterGreater);
 
-    const bool          isLeftShift   = shiftTokId == TokenId::SymLowerLower;
-    const bool          isSigned      = operationType.isIntLike() && !operationType.isIntLikeUnsigned();
-    const bool          hasSafety     = hasOverflowRuntimeSafety(codeGen);
-    const bool          checkOverflow = isLeftShift && hasSafety && !allowWrap;
-    MicroBuilder&       builder       = codeGen.builder();
-    const MicroOp       shiftOp       = isLeftShift ? MicroOp::ShiftLeft : (isSigned ? MicroOp::ShiftArithmeticRight : MicroOp::ShiftRight);
-    const uint64_t      bitWidth      = getNumBits(opBits);
-    const MicroReg      countReg64    = widenIntRegTo64(codeGen, rightReg, operationType, opBits);
-    MicroReg            originalReg   = MicroReg::invalid();
+    const bool     isLeftShift   = shiftTokId == TokenId::SymLowerLower;
+    const bool     isSigned      = operationType.isIntLike() && !operationType.isIntLikeUnsigned();
+    const bool     hasSafety     = hasOverflowRuntimeSafety(codeGen);
+    const bool     checkOverflow = isLeftShift && hasSafety && !allowWrap;
+    MicroBuilder&  builder       = codeGen.builder();
+    const MicroOp  shiftOp       = isLeftShift ? MicroOp::ShiftLeft : (isSigned ? MicroOp::ShiftArithmeticRight : MicroOp::ShiftRight);
+    const uint64_t bitWidth      = getNumBits(opBits);
+    const MicroReg countReg64    = widenIntRegTo64(codeGen, rightReg, operationType, opBits);
+    MicroReg       originalReg   = MicroReg::invalid();
     if (checkOverflow || (!isLeftShift && isSigned))
     {
         originalReg = codeGen.nextVirtualIntRegister();
@@ -433,10 +433,10 @@ Result CodeGenSafety::emitShiftIntLike(CodeGen& codeGen, const AstNode& node, co
         return Result::Continue;
     }
 
-    const MicroLabelRef nonNegative   = builder.createLabel();
-    const MicroLabelRef normalLabel   = builder.createLabel();
-    const MicroLabelRef largeLabel    = builder.createLabel();
-    const MicroLabelRef doneLabel     = builder.createLabel();
+    const MicroLabelRef nonNegative = builder.createLabel();
+    const MicroLabelRef normalLabel = builder.createLabel();
+    const MicroLabelRef largeLabel  = builder.createLabel();
+    const MicroLabelRef doneLabel   = builder.createLabel();
 
     if (isSigned)
     {

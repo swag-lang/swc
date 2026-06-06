@@ -105,10 +105,10 @@ public:
 
     struct InlineContext
     {
-        AstNodeRef               rootNodeRef       = AstNodeRef::invalid();
-        const SemaInlinePayload* payload           = nullptr;
-        MicroLabelRef            doneLabel         = MicroLabelRef::invalid();
-        bool                     noOuterDoneLabel  = false; // true when in local-function context
+        AstNodeRef               rootNodeRef      = AstNodeRef::invalid();
+        const SemaInlinePayload* payload          = nullptr;
+        MicroLabelRef            doneLabel        = MicroLabelRef::invalid();
+        bool                     noOuterDoneLabel = false; // true when in local-function context
     };
 
     const BreakContext&  currentBreakContext() const { return breakable_; }

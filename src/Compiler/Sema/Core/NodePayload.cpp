@@ -435,8 +435,8 @@ bool NodePayload::hasSymbol(AstNodeRef nodeRef) const
 {
     if (nodeRef.isInvalid())
         return false;
-    const AstNode&    node  = ast().node(nodeRef);
-    const PayloadInfo info  = payloadInfo(node);
+    const AstNode&    node = ast().node(nodeRef);
+    const PayloadInfo info = payloadInfo(node);
     if (info.kind != NodePayloadKind::SymbolRef)
         return false;
 
@@ -491,8 +491,8 @@ bool NodePayload::hasSymbolList(AstNodeRef nodeRef) const
 {
     if (nodeRef.isInvalid())
         return false;
-    const AstNode&    node  = ast().node(nodeRef);
-    const PayloadInfo info  = payloadInfo(node);
+    const AstNode&    node = ast().node(nodeRef);
+    const PayloadInfo info = payloadInfo(node);
     if (info.kind != NodePayloadKind::SymbolList)
         return false;
 

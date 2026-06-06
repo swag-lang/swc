@@ -124,7 +124,7 @@ namespace
 
         bool isFrame(MicroReg reg, MicroReg stackPointer) const
         {
-            return reg == stackPointer || frameDerived.count(reg);
+            return reg == stackPointer || frameDerived.contains(reg);
         }
     };
 
@@ -136,7 +136,7 @@ namespace
                                      const std::unordered_map<MicroReg, uint32_t>& defCount,
                                      const Encoder*                                encoder)
     {
-        FramePrivacy fp;
+        FramePrivacy   fp;
         const uint32_t n = static_cast<uint32_t>(instrRefs.size());
         if (!stackPointer.isValid())
         {
@@ -166,7 +166,7 @@ namespace
                     continue;
                 const MicroReg dst = ud->defs[0];
                 const MicroReg src = ud->uses[0];
-                if (!singleDefVirtual(dst) || fp.frameDerived.count(dst))
+                if (!singleDefVirtual(dst) || fp.frameDerived.contains(dst))
                     continue;
                 if (fp.isFrame(src, stackPointer))
                 {
@@ -191,7 +191,7 @@ namespace
             MicroReg explainedSrc  = MicroReg::invalid();
             MicroReg explainedDst  = MicroReg::invalid();
 
-            if (isAddressPropagation(inst->op) && ud->defs.size() == 1 && fp.frameDerived.count(ud->defs[0]))
+            if (isAddressPropagation(inst->op) && ud->defs.size() == 1 && fp.frameDerived.contains(ud->defs[0]))
             {
                 explainedSrc = ud->uses.empty() ? MicroReg::invalid() : ud->uses[0];
                 explainedDst = ud->defs[0];
@@ -209,7 +209,7 @@ namespace
                 if (!rref.reg)
                     continue;
                 const MicroReg reg = *rref.reg;
-                if (reg == stackPointer || !fp.frameDerived.count(reg))
+                if (reg == stackPointer || !fp.frameDerived.contains(reg))
                     continue;
                 if (reg == explainedBase || reg == explainedSrc || reg == explainedDst)
                     continue;
@@ -382,10 +382,10 @@ namespace
     };
 
     // Order a loop's hoist set so a producer precedes every consumer.
-    bool topoOrderHoistSet(const MicroSsaState&                 ssaState,
-                           std::span<const MicroInstrRef>       instrRefs,
-                           const std::unordered_set<uint32_t>&  hoistSet,
-                           std::vector<uint32_t>&               outOrder)
+    bool topoOrderHoistSet(const MicroSsaState&                ssaState,
+                           std::span<const MicroInstrRef>      instrRefs,
+                           const std::unordered_set<uint32_t>& hoistSet,
+                           std::vector<uint32_t>&              outOrder)
     {
         std::unordered_map<MicroReg, uint32_t> regToNode;
         for (const uint32_t i : hoistSet)
@@ -632,15 +632,15 @@ namespace
                 progress = false;
                 for (uint32_t i = 0; i < n; ++i)
                 {
-                    if (!inBody[i] || i == header || hoistSet.count(i))
+                    if (!inBody[i] || i == header || hoistSet.contains(i))
                         continue;
 
                     const MicroInstrRef ref = instrRefs[i];
-                    if (claimed.count(ref.get()))
+                    if (claimed.contains(ref.get()))
                         continue; // already moving to an inner loop's preheader
 
                     const MicroInstr* inst = storage.ptr(ref);
-                    if (!inst || !isEligibleOpcode(inst->op) || relocRefs.count(ref.get()))
+                    if (!inst || !isEligibleOpcode(inst->op) || relocRefs.contains(ref.get()))
                         continue;
 
                     const MicroInstrUseDef* useDef = ssaState->instrUseDef(ref);
@@ -657,7 +657,7 @@ namespace
                     bool allInvariant = true;
                     for (const MicroReg use : useDef->uses)
                     {
-                        if (defsInLoop.count(use) && !hoistedRegs.count(use))
+                        if (defsInLoop.contains(use) && !hoistedRegs.contains(use))
                         {
                             allInvariant = false;
                             break;
@@ -672,7 +672,7 @@ namespace
                         if (loopHasCall)
                             continue;
 
-                        const MicroReg base       = firstUseReg(*useDef);
+                        const MicroReg base        = firstUseReg(*useDef);
                         const bool     baseIsFrame = base.isValid() && frame.isFrame(base, stackPointer);
                         if (baseIsFrame)
                         {
@@ -690,7 +690,7 @@ namespace
                                 continue;
                             if (loopHasFrameStore)
                             {
-                                const auto bc          = base.isValid() ? defCount.find(base) : defCount.end();
+                                const auto bc            = base.isValid() ? defCount.find(base) : defCount.end();
                                 const bool baseSingleDef = bc != defCount.end() && bc->second == 1;
                                 if (!frame.framePrivate || !baseSingleDef)
                                     continue;
@@ -798,7 +798,7 @@ namespace
                 if (!inst)
                     continue;
                 const MicroInstrOperand* ops = inst->ops(operands);
-                Clone clone;
+                Clone                    clone;
                 clone.op       = inst->op;
                 clone.original = ref;
                 if (ops && inst->numOperands)

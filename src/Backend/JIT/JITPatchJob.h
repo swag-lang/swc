@@ -16,8 +16,8 @@ public:
     static bool schedule(TaskContext& ctx, SymbolFunction& symbolFunc, const SymbolFunction* weakRelocationBlocker = nullptr);
 
 private:
-    SymbolFunction*       symbolFunc_              = nullptr;
-    const SymbolFunction* weakRelocationBlocker_   = nullptr;
+    SymbolFunction*       symbolFunc_            = nullptr;
+    const SymbolFunction* weakRelocationBlocker_ = nullptr;
 };
 
 SWC_END_NAMESPACE();

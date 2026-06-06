@@ -1007,7 +1007,7 @@ namespace
         {
             for (Symbol* s : symbols)
             {
-                auto& symVar = s->cast<SymbolVariable>();
+                auto&      symVar                 = s->cast<SymbolVariable>();
                 const bool forceRetValDefaultInit = symVar.hasExtraFlag(SymbolVariableFlagsE::RetVal);
                 if (implicitStructNoInit && !forceRetValDefaultInit)
                     symVar.addExtraFlag(SymbolVariableFlagsE::ImplicitUndefinedInit);

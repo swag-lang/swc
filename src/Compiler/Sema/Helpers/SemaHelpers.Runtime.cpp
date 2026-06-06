@@ -88,9 +88,9 @@ static TypeRef referenceBoundAggregateArgumentRuntimeStorageTypeRef(Sema& sema, 
     if (!paramType.isReference())
         return TypeRef::invalid();
 
-    TypeRef storageTypeRef = paramType.payloadTypeRef();
-    const TypeInfo& storageType = sema.typeMgr().get(storageTypeRef);
-    const TypeRef unwrappedStorageTypeRef = storageType.unwrap(sema.ctx(), storageTypeRef, TypeExpandE::Alias | TypeExpandE::Enum);
+    TypeRef         storageTypeRef          = paramType.payloadTypeRef();
+    const TypeInfo& storageType             = sema.typeMgr().get(storageTypeRef);
+    const TypeRef   unwrappedStorageTypeRef = storageType.unwrap(sema.ctx(), storageTypeRef, TypeExpandE::Alias | TypeExpandE::Enum);
     if (unwrappedStorageTypeRef.isValid())
         storageTypeRef = unwrappedStorageTypeRef;
 

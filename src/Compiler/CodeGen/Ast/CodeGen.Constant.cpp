@@ -88,7 +88,7 @@ namespace
         {
             const uint32_t remaining = static_cast<uint32_t>(bytes.size() - offset);
             uint32_t       chunkSize = 1;
-            MicroOpBits    storeBits = MicroOpBits::B8;
+            auto           storeBits = MicroOpBits::B8;
             if (remaining >= 8)
             {
                 chunkSize = 8;
@@ -181,8 +181,8 @@ namespace
         const ConstantRef staticCstRef = CodeGenConstantHelpers::ensureStaticPayloadConstant(codeGen, cstRef, storageTypeRef);
         if (staticCstRef.isValid())
         {
-            const ConstantValue& staticCst = codeGen.cstMgr().get(staticCstRef);
-            const ByteSpan staticBytes = staticCst.isArray() ? staticCst.getArray() : staticCst.getStruct();
+            const ConstantValue& staticCst   = codeGen.cstMgr().get(staticCstRef);
+            const ByteSpan       staticBytes = staticCst.isArray() ? staticCst.getArray() : staticCst.getStruct();
             SWC_ASSERT(staticBytes.size() == storageSize);
             if (!staticBytes.empty())
             {

@@ -634,10 +634,10 @@ namespace
             if (referenceType.isConst())
                 targetFlags.add(TypeInfoFlagsE::Const);
 
-            const TypeInfo targetType = pointerType.isBlockPointer()
-                                            ? TypeInfo::makeBlockPointer(pointerType.payloadTypeRef(), targetFlags)
-                                            : TypeInfo::makeValuePointer(pointerType.payloadTypeRef(), targetFlags);
-            const TypeRef targetTypeRef = sema.typeMgr().addType(targetType);
+            const TypeInfo targetType    = pointerType.isBlockPointer()
+                                               ? TypeInfo::makeBlockPointer(pointerType.payloadTypeRef(), targetFlags)
+                                               : TypeInfo::makeValuePointer(pointerType.payloadTypeRef(), targetFlags);
+            const TypeRef  targetTypeRef = sema.typeMgr().addType(targetType);
 
             CastRequest castRequest(CastKind::Implicit);
             castRequest.errorNodeRef = referenceView.nodeRef();

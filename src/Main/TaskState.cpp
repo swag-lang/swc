@@ -116,7 +116,7 @@ bool TaskState::canPause() const
 
 void TaskState::setNone()
 {
-    kind             = TaskStateKind::None;
+    kind                     = TaskStateKind::None;
     runJitFunction           = nullptr;
     codeGenFunction          = nullptr;
     weakJitRelocationBlocker = nullptr;

@@ -390,11 +390,11 @@ namespace
         if (!Cast::indirectValueCastTypeRef(codeGen.sema(), sourceTypeRef, dstTypeRef).isValid())
             return false;
 
-        TypeRef                  readTypeRef = sourceTypeRef;
-        CodeGenNodePayload       readPayload = sourcePayloadForCast(codeGen, srcNodeRef);
-        const TypeManager&       typeMgr     = codeGen.typeMgr();
-        const TypeRef            sourceTypeToCheckRef = unwrapAliasEnumTypeRef(typeMgr, codeGen.ctx(), sourceTypeRef);
-        const TypeInfo&          sourceType = typeMgr.get(sourceTypeToCheckRef.isValid() ? sourceTypeToCheckRef : sourceTypeRef);
+        TypeRef            readTypeRef          = sourceTypeRef;
+        CodeGenNodePayload readPayload          = sourcePayloadForCast(codeGen, srcNodeRef);
+        const TypeManager& typeMgr              = codeGen.typeMgr();
+        const TypeRef      sourceTypeToCheckRef = unwrapAliasEnumTypeRef(typeMgr, codeGen.ctx(), sourceTypeRef);
+        const TypeInfo&    sourceType           = typeMgr.get(sourceTypeToCheckRef.isValid() ? sourceTypeToCheckRef : sourceTypeRef);
         if (sourceType.isAnyPointer())
         {
             if (readPayload.isAddress())
@@ -1123,7 +1123,7 @@ namespace
             return Result::Continue;
         }
 
-        const AstNode& castNode = codeGen.node(codeGen.curNodeRef());
+        const AstNode& castNode                        = codeGen.node(codeGen.curNodeRef());
         const bool     isImplicitNullableAnyStringCast = castNode.is(AstNodeId::CastExpr) &&
                                                      !castNode.cast<AstCastExpr>().hasFlag(AstCastExprFlagsE::Explicit) &&
                                                      resolvedSrcType.isNullable() &&
@@ -1559,7 +1559,7 @@ namespace
 
             const TypeInfo&   objectType = typeMgr.get(interfaceObjectTypeRef);
             const auto&       srcStruct  = objectType.payloadSymStruct();
-            const auto&       dstItf    = dstType.payloadSymInterface();
+            const auto&       dstItf     = dstType.payloadSymInterface();
             InterfaceCastInfo castInfo;
             const bool        hasCastInfo = resolveInterfaceCastInfo(codeGen, srcStruct, dstItf, castInfo);
             SWC_ASSERT(hasCastInfo);

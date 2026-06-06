@@ -1426,7 +1426,7 @@ Result AstTryCatchExpr::semaPostNode(Sema& sema) const
     const AstNodeRef   resolvedExprRef = sema.viewZero(nodeExprRef).nodeRef();
     const SemaNodeView exprView        = sema.viewNodeTypeConstant(resolvedExprRef);
     sema.inheritPayloadFlags(sema.curNode(), resolvedExprRef);
-    TypeRef resultTypeRef = exprView.typeRef();
+    TypeRef     resultTypeRef  = exprView.typeRef();
     const auto* codeGenPayload = sema.loweringPayload<CodeGenLoweringPayload>(sema.curNodeRef());
     if (codeGenPayload && codeGenPayload->assumeNullable)
         resultTypeRef = assumeNullableResultTypeRef(sema, nodeExprRef);

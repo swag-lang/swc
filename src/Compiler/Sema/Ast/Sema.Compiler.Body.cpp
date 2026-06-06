@@ -350,8 +350,8 @@ namespace
 
     Result parseCompilerAstGenerated(Sema& sema, AstNodeRef ownerRef, std::string_view generatedCode, AstNodeRef& outGeneratedRef)
     {
-        outGeneratedRef                     = AstNodeRef::invalid();
-        ParserGeneratedMode parseMode       = ParserGeneratedMode::Embedded;
+        outGeneratedRef = AstNodeRef::invalid();
+        auto parseMode  = ParserGeneratedMode::Embedded;
         if (!compilerAstParseModeFromMixinCaller(sema, parseMode))
             parseMode = compilerAstParseMode(sema, ownerRef);
 

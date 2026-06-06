@@ -705,7 +705,7 @@ namespace
         if (!moduleHandle)
         {
             const Utf8 moduleFileName = modulePath.string();
-            moduleHandle             = LoadLibraryA(moduleFileName.c_str());
+            moduleHandle              = LoadLibraryA(moduleFileName.c_str());
         }
 
         if (!moduleHandle)

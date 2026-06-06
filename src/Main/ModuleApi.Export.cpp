@@ -610,11 +610,11 @@ namespace
 
     struct ModuleApiDependencyCollector
     {
-        TaskContext&                       ctx;
-        std::vector<const Symbol*>         symbols;
-        std::unordered_set<const Symbol*>  symbolSet;
-        std::unordered_set<const Symbol*>  visitedSymbols;
-        std::unordered_set<TypeRef>        visitedTypeRefs;
+        TaskContext&                      ctx;
+        std::vector<const Symbol*>        symbols;
+        std::unordered_set<const Symbol*> symbolSet;
+        std::unordered_set<const Symbol*> visitedSymbols;
+        std::unordered_set<TypeRef>       visitedTypeRefs;
     };
 
     bool isGeneratedModuleApiTypeSymbol(const Symbol& symbol)

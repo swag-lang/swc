@@ -612,7 +612,7 @@ Result AstAutoMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& c
     const IdentifierRef idRef   = sema.idMgr().addIdentifier(sema.ctx(), codeRef);
 
     SmallVector4<AutoMemberCandidate> candidates;
-    const bool deferCallArgument = hasFlag(AstAutoMemberAccessExprFlagsE::CallArgument);
+    const bool                        deferCallArgument = hasFlag(AstAutoMemberAccessExprFlagsE::CallArgument);
     SWC_RESULT(collectAutoMemberCandidates(sema, candidates, deferCallArgument));
     if (candidates.empty())
     {

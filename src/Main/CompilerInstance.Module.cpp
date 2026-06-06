@@ -1014,32 +1014,30 @@ namespace
 
         normalizeWorkspacePaths(absoluteArtifactPaths);
 
-        fs::file_time_type earliestArtifactTime{};
-        bool               hasArtifactTime = false;
+        // Every recorded artifact must still exist, but we deliberately do not use the
+        // earliest artifact mtime as the build timestamp. Some artifacts (notably the
+        // linker-generated import library) are preserved as-is across rebuilds when their
+        // contents are unchanged, so their mtime lags far behind the actual build. Using
+        // that lagging mtime would make the module appear permanently stale.
         for (const fs::path& artifactPath : absoluteArtifactPaths)
         {
             fs::file_time_type artifactTime;
             if (!tryGetWorkspacePathWriteTime(artifactTime, artifactPath))
                 return false;
-            if (!hasArtifactTime || artifactTime < earliestArtifactTime)
-            {
-                earliestArtifactTime = artifactTime;
-                hasArtifactTime      = true;
-            }
         }
 
-        if (!hasArtifactTime)
-        {
-            const fs::path manifestPath = workspaceArtifactManifestPath(outDir);
-            if (!tryGetWorkspacePathWriteTime(earliestArtifactTime, manifestPath))
-                return false;
-        }
+        // The manifest is rewritten at the end of every successful build, so its write time
+        // reliably reflects when this module was last produced by the compiler.
+        fs::file_time_type buildTime{};
+        const fs::path     manifestPath = workspaceArtifactManifestPath(outDir);
+        if (!tryGetWorkspacePathWriteTime(buildTime, manifestPath))
+            return false;
 
-        if (hasInputTime && earliestArtifactTime < latestInputTime)
+        if (hasInputTime && buildTime < latestInputTime)
             return false;
-        if (hasDependencyTime && earliestArtifactTime < latestDependencyTime)
+        if (hasDependencyTime && buildTime < latestDependencyTime)
             return false;
-        return earliestArtifactTime >= compilerTime;
+        return buildTime >= compilerTime;
     }
 
     bool shouldTryReuseWorkspaceArtifacts(const CommandLine& cmdLine)

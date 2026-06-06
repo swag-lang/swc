@@ -741,8 +741,6 @@ namespace
 
             return SemaError::raise(sema, DiagnosticId::sema_err_fallthrough_outside_switch_case, stmtRef);
         }
-
-        return Result::Continue;
     }
 
     Result validateFallthroughHasNextCase(Sema& sema, AstNodeRef switchRef, AstNodeRef caseRef, AstNodeRef stmtRef)

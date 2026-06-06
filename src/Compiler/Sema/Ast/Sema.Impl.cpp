@@ -156,7 +156,7 @@ Result AstImpl::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const
     return Result::Continue;
 }
 
-Result AstImpl::semaPostNode(Sema& sema) const
+Result AstImpl::semaPostNode(Sema& sema)
 {
     auto& symImpl = sema.curViewSymbol().sym()->cast<SymbolImpl>();
     symImpl.setDeclared(sema.ctx());

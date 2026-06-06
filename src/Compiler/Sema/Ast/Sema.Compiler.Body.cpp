@@ -225,7 +225,7 @@ namespace
         return parseCompilerAstModeForNodeId(parentNode.id());
     }
 
-    bool compilerAstParseModeFromMixinCaller(Sema& sema, ParserGeneratedMode& outMode)
+    bool compilerAstParseModeFromMixinCaller(const Sema& sema, ParserGeneratedMode& outMode)
     {
         const auto* inlinePayload = SemaHelpers::effectiveInlinePayload(sema);
         if (!inlinePayload || !inlinePayload->sourceFunction || !inlinePayload->callerScope)

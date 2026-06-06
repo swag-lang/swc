@@ -163,7 +163,7 @@ Result AstUsingDecl::semaPostNode(Sema& sema) const
     return Result::Continue;
 }
 
-Result AstUsingDecl::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const
+Result AstUsingDecl::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef)
 {
     addUsingSymMapToScope(sema.curScope(), usingDeclChildSymMap(sema, childRef));
     return Result::Continue;

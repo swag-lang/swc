@@ -179,7 +179,7 @@ namespace
             Gray,
             Black
         };
-        std::vector<Color>    color(n, White);
+        std::vector           color(n, White);
         std::vector<uint32_t> nextChild(n, 0);
         std::vector<uint32_t> stack;
         stack.reserve(n);

@@ -349,7 +349,7 @@ namespace
                 autoMemberBindings.push_back(binding);
         }
 
-        const auto hasEnumBindingType = [&]() {
+        const auto hasEnumBindingType = [&] {
             for (const TypeRef bindingTypeRef : bindingTypes)
             {
                 const TypeRef normalizedTypeRef = normalizeAutoMemberBindingType(sema.ctx(), bindingTypeRef);

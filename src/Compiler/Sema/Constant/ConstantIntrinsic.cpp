@@ -226,7 +226,7 @@ namespace
         IsPod,
     };
 
-    bool fullScopedNameMatchesSuffix(const SymbolFunction& selectedFn, TaskContext& ctx, const std::string_view suffix)
+    bool fullScopedNameMatchesSuffix(const SymbolFunction& selectedFn, const TaskContext& ctx, const std::string_view suffix)
     {
         const Utf8             fullNameStorage = selectedFn.getFullScopedName(ctx);
         const std::string_view fullName        = fullNameStorage.view();

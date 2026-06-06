@@ -201,7 +201,7 @@ namespace
                 explainedBase = firstUseReg(*ud);
             }
 
-            MicroInstr*                          mutInst = storage.ptr(instrRefs[i]);
+            const MicroInstr*                    mutInst = storage.ptr(instrRefs[i]);
             SmallVector<MicroInstrRegOperandRef> regRefs;
             mutInst->collectRegOperands(operands, regRefs, encoder);
             for (const auto& rref : regRefs)
@@ -419,7 +419,7 @@ namespace
         for (const uint32_t i : hoistSet)
             if (indegree[i] == 0)
                 ready.push_back(i);
-        std::sort(ready.begin(), ready.end());
+        std::ranges::sort(ready);
 
         outOrder.clear();
         outOrder.reserve(hoistSet.size());
@@ -436,7 +436,7 @@ namespace
                 if (--indegree[d] == 0)
                 {
                     ready.push_back(d);
-                    std::sort(ready.begin(), ready.end());
+                    std::ranges::sort(ready);
                 }
             }
         }
@@ -529,12 +529,12 @@ namespace
 
         std::vector<NaturalLoop*> loops;
         loops.reserve(loopsByHeader.size());
-        for (auto& [header, loop] : loopsByHeader)
+        for (auto& loop : loopsByHeader | std::views::values)
         {
             collectLoopBody(cfg, loop);
             loops.push_back(&loop);
         }
-        std::sort(loops.begin(), loops.end(), [](const NaturalLoop* a, const NaturalLoop* b) {
+        std::ranges::sort(loops, [](const NaturalLoop* a, const NaturalLoop* b) {
             return a->bodySize < b->bodySize;
         });
 

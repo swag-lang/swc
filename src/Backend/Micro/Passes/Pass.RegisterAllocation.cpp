@@ -473,8 +473,8 @@ void MicroRegisterAllocationPass::computeLoopDepth()
     if (!hasControlFlow_ || instructionCount_ == 0)
         return;
 
-    std::vector<int32_t> delta(static_cast<size_t>(instructionCount_) + 1, 0);
-    bool                 anyBackEdge = false;
+    std::vector delta(static_cast<size_t>(instructionCount_) + 1, 0);
+    bool        anyBackEdge = false;
     for (uint32_t s = 0; s < instructionCount_; ++s)
     {
         for (const uint32_t p : predecessors_[s])

@@ -169,7 +169,7 @@ namespace
 
     TypeRef resolveUntypedVariadicArgTypeRef(CodeGen& codeGen, const CodeGenNodePayload& argPayload, AstNodeRef argRef)
     {
-        TypeRef argTypeRef = argPayload.effectiveTypeRef(codeGen.viewType(argRef).typeRef());
+        const TypeRef argTypeRef = argPayload.effectiveTypeRef(codeGen.viewType(argRef).typeRef());
         if (argTypeRef.isValid() && !codeGen.ctx().typeMgr().get(argTypeRef).isAnyVariadic())
             return argTypeRef;
 

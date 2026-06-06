@@ -565,6 +565,8 @@ namespace
 
     bool supportsConstCallJit(Sema& sema, const SymbolFunction& calledFn, const bool forceEvaluation)
     {
+        SWC_UNUSED(forceEvaluation);
+
         if (calledFn.attributes().hasRtFlag(RtAttributeFlagsE::Macro) || calledFn.attributes().hasRtFlag(RtAttributeFlagsE::Mixin))
             return false;
         // Throwable calls depend on the runtime error context and must preserve

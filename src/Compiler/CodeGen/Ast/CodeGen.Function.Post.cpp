@@ -590,7 +590,7 @@ namespace
         if (exprNode.isNot(AstNodeId::CallExpr) && exprNode.isNot(AstNodeId::AliasCallExpr))
             return false;
 
-        SymbolFunction* calledFunction = singleFunctionFromView(codeGen.sema().viewStored(resolvedExprRef, SemaNodeViewPartE::Symbol));
+        const SymbolFunction* calledFunction = singleFunctionFromView(codeGen.sema().viewStored(resolvedExprRef, SemaNodeViewPartE::Symbol));
         if (!calledFunction)
             calledFunction = singleFunctionFromView(codeGen.viewSymbol(resolvedExprRef));
         if (!calledFunction)

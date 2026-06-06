@@ -285,7 +285,7 @@ Result Cast::retargetLiteralRuntimeStorageIfNeeded(Sema& sema, AstNodeRef nodeRe
     if (storageTypeRef.isInvalid())
         return Result::Continue;
 
-    auto* payload = sema.loweringPayload<CodeGenLoweringPayload>(nodeRef);
+    const auto* payload = sema.loweringPayload<CodeGenLoweringPayload>(nodeRef);
     if (payload && payload->runtimeStorageSym != nullptr)
     {
         const TypeInfo& storageType = sema.typeMgr().get(storageTypeRef);

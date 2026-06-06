@@ -155,7 +155,7 @@ namespace
         return symImpl.symInterface();
     }
 
-    Utf8 compilerScopeNameFromSymbolMap(Sema& sema, const SymbolMap& symMap)
+    Utf8 compilerScopeNameFromSymbolMap(const Sema& sema, const SymbolMap& symMap)
     {
         if (symMap.isImpl())
         {

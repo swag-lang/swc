@@ -62,7 +62,7 @@ namespace
 
     bool emitLogicalRightOperandAndDone(CodeGen& codeGen, AstNodeRef nodeRef, AstNodeRef nodeRightRef)
     {
-        LogicalExprCodeGenPayload* state = logicalExprCodeGenPayload(codeGen, nodeRef);
+        const LogicalExprCodeGenPayload* state = logicalExprCodeGenPayload(codeGen, nodeRef);
         if (state == nullptr || state->doneLabel == MicroLabelRef::invalid())
             return false;
 

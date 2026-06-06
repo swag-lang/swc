@@ -17,6 +17,33 @@
 
 SWC_BEGIN_NAMESPACE();
 
+namespace
+{
+    TypeRef referenceBoundAggregateArgumentRuntimeStorageTypeRef(Sema& sema, TypeRef paramTypeRef, AstNodeRef argRef)
+    {
+        if (sema.isGlobalScope() || argRef.isInvalid() || !paramTypeRef.isValid())
+            return TypeRef::invalid();
+        if (sema.isLValue(argRef) && !sema.viewConstant(argRef).hasConstant())
+            return TypeRef::invalid();
+
+        const TypeInfo& paramType = sema.typeMgr().get(paramTypeRef);
+        if (!paramType.isReference())
+            return TypeRef::invalid();
+
+        TypeRef         storageTypeRef          = paramType.payloadTypeRef();
+        const TypeInfo& storageType             = sema.typeMgr().get(storageTypeRef);
+        const TypeRef   unwrappedStorageTypeRef = storageType.unwrap(sema.ctx(), storageTypeRef, TypeExpandE::Alias | TypeExpandE::Enum);
+        if (unwrappedStorageTypeRef.isValid())
+            storageTypeRef = unwrappedStorageTypeRef;
+
+        const TypeInfo& resolvedStorageType = sema.typeMgr().get(storageTypeRef);
+        if (resolvedStorageType.isStruct() || resolvedStorageType.isArray() || resolvedStorageType.isAggregate() || (resolvedStorageType.isFunction() && resolvedStorageType.isLambdaClosure()))
+            return storageTypeRef;
+
+        return TypeRef::invalid();
+    }
+}
+
 Result SemaHelpers::attachIndirectReturnRuntimeStorageIfNeeded(Sema& sema, AstNodeRef payloadNodeRef, const AstNode& storageNode, const SymbolFunction& calledFn, std::string_view privateName)
 {
     if (const TypeRef returnTypeRef = calledFn.returnTypeRef(); returnTypeRef.isValid())
@@ -72,30 +99,6 @@ TypeRef SemaHelpers::borrowedAggregateArgumentRuntimeStorageTypeRef(Sema& sema, 
     const CallConv&                        callConv       = CallConv::get(calledFn.callConvKind());
     const ABITypeNormalize::NormalizedType normalizedType = ABITypeNormalize::normalize(sema.ctx(), callConv, paramTypeRef, ABITypeNormalize::Usage::Argument);
     if (normalizedType.isIndirect && !normalizedType.needsIndirectCopy)
-        return storageTypeRef;
-
-    return TypeRef::invalid();
-}
-
-static TypeRef referenceBoundAggregateArgumentRuntimeStorageTypeRef(Sema& sema, TypeRef paramTypeRef, AstNodeRef argRef)
-{
-    if (sema.isGlobalScope() || argRef.isInvalid() || !paramTypeRef.isValid())
-        return TypeRef::invalid();
-    if (sema.isLValue(argRef) && !sema.viewConstant(argRef).hasConstant())
-        return TypeRef::invalid();
-
-    const TypeInfo& paramType = sema.typeMgr().get(paramTypeRef);
-    if (!paramType.isReference())
-        return TypeRef::invalid();
-
-    TypeRef         storageTypeRef          = paramType.payloadTypeRef();
-    const TypeInfo& storageType             = sema.typeMgr().get(storageTypeRef);
-    const TypeRef   unwrappedStorageTypeRef = storageType.unwrap(sema.ctx(), storageTypeRef, TypeExpandE::Alias | TypeExpandE::Enum);
-    if (unwrappedStorageTypeRef.isValid())
-        storageTypeRef = unwrappedStorageTypeRef;
-
-    const TypeInfo& resolvedStorageType = sema.typeMgr().get(storageTypeRef);
-    if (resolvedStorageType.isStruct() || resolvedStorageType.isArray() || resolvedStorageType.isAggregate() || (resolvedStorageType.isFunction() && resolvedStorageType.isLambdaClosure()))
         return storageTypeRef;
 
     return TypeRef::invalid();

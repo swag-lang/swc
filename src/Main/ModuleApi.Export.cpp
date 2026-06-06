@@ -853,8 +853,8 @@ namespace
             Done,
         };
 
-        std::vector<VisitState> visitStates(roots.size(), VisitState::Unvisited);
-        auto                    visitRoot = [&](auto&& self, const size_t index) -> void {
+        std::vector visitStates(roots.size(), VisitState::Unvisited);
+        auto        visitRoot = [&](auto&& self, const size_t index) -> void {
             switch (visitStates[index])
             {
                 case VisitState::Done:

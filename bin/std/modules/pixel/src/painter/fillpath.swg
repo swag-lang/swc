@@ -215,7 +215,7 @@ public impl Painter
     // Fill the polygon with the given 'brush'
     mtd fillPolygon(path: *LinePath, brush: Brush)
     {
-        if brush.color.a == 0 do
+        if !brush.hasVisibleAlpha() do
             return
 
         path.flatten(.curState.paintQuality)

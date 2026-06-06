@@ -20,7 +20,7 @@ impl Painter
 
     mtd drawRect(left, top, width, height: f32, pen: Pen)
     {
-        if width == 0 or height == 0 or pen.brush.color.a == 0 or pen.size == 0 do
+        if width == 0 or height == 0 or !pen.brush.hasVisibleAlpha() or pen.size == 0 do
             return
 
         var l = Math.round(left)
@@ -57,7 +57,7 @@ impl Painter
     // Draw a filled rectangle
     mtd fillRect(left, top, width, height: f32, brush: Brush)
     {
-        if width == 0 or height == 0 or brush.color.a == 0 do
+        if width == 0 or height == 0 or !brush.hasVisibleAlpha() do
             return
 
         let l = Math.round(left)
@@ -100,7 +100,7 @@ impl Painter
 
     mtd drawRoundRect(left, top, width, height: f32, radiusX, radiusY: f32, pen: Pen)
     {
-        if width == 0 or height == 0 or pen.brush.color.a == 0 or pen.size == 0 do
+        if width == 0 or height == 0 or !pen.brush.hasVisibleAlpha() or pen.size == 0 do
             return
 
         var l = Math.round(left)
@@ -143,7 +143,7 @@ impl Painter
     // Draw a filled round rectangle
     mtd fillRoundRect(left, top, width, height: f32, radiusX, radiusY: f32, brush: Brush)
     {
-        if width == 0 or height == 0 or brush.color.a == 0 do
+        if width == 0 or height == 0 or !brush.hasVisibleAlpha() do
             return
         .sharedLinePath.setRoundRect(left, top, width, height, radiusX, radiusY)
         .fillPath(&.sharedLinePath, brush)
@@ -151,7 +151,7 @@ impl Painter
 
     mtd fillRoundRect(rect: Math.Rectangle, radiusX, radiusY: f32, brush: Brush)
     {
-        if rect.width == 0 or rect.height == 0 or brush.color.a == 0 do
+        if rect.width == 0 or rect.height == 0 or !brush.hasVisibleAlpha() do
             return
         .sharedLinePath.setRoundRect(rect.x, rect.y, rect.width, rect.height, radiusX, radiusY)
         .fillPath(&.sharedLinePath, brush)

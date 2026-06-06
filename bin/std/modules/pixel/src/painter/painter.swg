@@ -132,6 +132,13 @@ struct Command
             uvMode:                UVMode = undefined
             interpolationMode:     InterpolationMode = undefined
             texture:               Texture
+            gradientStart:         Vector2
+            gradientEnd:           Vector2
+            gradientRadius0:       f32
+            gradientRadius1:       f32
+            gradientSpread:        GradientSpread = undefined
+            gradientStops:         [MaxGradientStops] GradientStop
+            gradientStopCount:     u8
         }
     }
 }
@@ -236,6 +243,13 @@ impl Painter
         params.hatch   = brush.hatch
         params.texture = brush.texture
         params.uvMode  = brush.uvMode
+        params.gradientStart     = brush.gradientStart
+        params.gradientEnd       = brush.gradientEnd
+        params.gradientRadius0   = brush.gradientRadius0
+        params.gradientRadius1   = brush.gradientRadius1
+        params.gradientSpread    = brush.gradientSpread
+        params.gradientStops     = brush.gradientStops
+        params.gradientStopCount = brush.gradientStopCount
         if brush.type == .Hatch do
             params.interpolationMode = .Pixel
         else do
@@ -420,9 +434,7 @@ impl Painter
     fileprivate mtd startOverlapMode(pen: Pen)
     {
         var alpha = false
-        if pen.brush.color.argb & 0xFF000000 != 0xFF000000 do
-            alpha = true
-        if pen.brush.type == .Texture and pen.brush.texture.pf.hasAlpha() do
+        if !pen.brush.isOpaque() do
             alpha = true
         if .curRT and .curRT.paintAlpha and .curState.paintParams & .Antialiased do
             alpha = true

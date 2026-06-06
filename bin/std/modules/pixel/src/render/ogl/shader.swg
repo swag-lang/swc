@@ -20,6 +20,14 @@ struct ShaderBase
     copyMode:        ShaderParamHandle
     textureW:        ShaderParamHandle
     textureH:        ShaderParamHandle
+    paintType:       ShaderParamHandle
+    gradientSpread:  ShaderParamHandle
+    gradientStart:   ShaderParamHandle
+    gradientEnd:     ShaderParamHandle
+    gradientRadius:  ShaderParamHandle
+    gradientCount:   ShaderParamHandle
+    gradientOffsets: ShaderParamHandle
+    gradientColors:  ShaderParamHandle
 }
 
 struct ShaderSimple

@@ -149,7 +149,7 @@ impl Painter
     // Draw a simple string
     mtd drawString(left, top: f32, text: string, font: *Font, brush: Brush, under = UnderlineStyle.None, zoom = 1.0)
     {
-        if @countof(text) == 0 or brush.color.a == 0 do
+        if @countof(text) == 0 or !brush.hasVisibleAlpha() do
             return
         if .fake do
             return

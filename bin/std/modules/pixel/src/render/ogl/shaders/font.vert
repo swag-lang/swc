@@ -4,6 +4,7 @@
 out vec4  vcolor;
 out vec2  vuv0;
 out vec2  vuv1;
+out vec2  vpaintPos;
 
 void main()
 {
@@ -16,4 +17,5 @@ void main()
     vuv0 = computeUVs(vertexPosition.xy);
     vuv1.x = uv1.x;
     vuv1.y = 1 - uv1.y;
+    vpaintPos = vertexPosition.xy;
 }

@@ -82,7 +82,7 @@ func drawRenderTargetBrushCard(painter: *Pixel.Painter, rect: Math.Rectangle, te
 
 func drawRenderTargetPage(painter: *Pixel.Painter)
 {
-    drawPageHeader(painter, "Pixel render targets", "Page 8 : offscreen drawing, texture reuse, source-rect sampling and brush reuse from a live render target.")
+    drawPageHeader(painter, "Pixel render targets", "Page 9 : offscreen drawing, texture reuse, source-rect sampling and brush reuse from a live render target.")
 
     let tgt = g_Renderer.getRenderTarget(360, 220)
     defer g_Renderer.releaseRenderTarget(tgt)

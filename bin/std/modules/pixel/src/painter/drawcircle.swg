@@ -19,7 +19,7 @@ impl Painter
 
     mtd drawArc(centerX, centerY: f32, radius: f32, startAngle, endAngle: Math.Angle, pen: Pen)
     {
-        if radius == 0 or pen.brush.color.a == 0 do
+        if radius == 0 or !pen.brush.hasVisibleAlpha() do
             return
         if Math.isZeroEpsilon(endAngle.rad - startAngle.rad) do
             return
@@ -45,7 +45,7 @@ impl Painter
     // Draw a solid circle
     mtd fillCircle(centerX, centerY: f32, radius: f32, brush: Brush)
     {
-        if radius == 0 or brush.color.a == 0 do
+        if radius == 0 or !brush.hasVisibleAlpha() do
             return
         .sharedLinePath.setEllipse(centerX, centerY, radius, radius)
         .fillPath(&.sharedLinePath, brush)
@@ -73,7 +73,7 @@ impl Painter
 
     mtd drawEllipse(centerX, centerY: f32, radiusX, radiusY: f32, pen: Pen)
     {
-        if radiusX == 0 or radiusY == 0 or pen.brush.color.a == 0 do
+        if radiusX == 0 or radiusY == 0 or !pen.brush.hasVisibleAlpha() do
             return
 
         var rX = radiusX
@@ -106,7 +106,7 @@ impl Painter
     // Draw a solid ellipse
     mtd fillEllipse(centerX, centerY: f32, radiusX, radiusY: f32, brush: Brush)
     {
-        if radiusX == 0 or radiusY == 0 or brush.color.a == 0 do
+        if radiusX == 0 or radiusY == 0 or !brush.hasVisibleAlpha() do
             return
         .sharedLinePath.setEllipseRaw(centerX, centerY, radiusX, radiusY)
         .fillPath(&.sharedLinePath, brush)

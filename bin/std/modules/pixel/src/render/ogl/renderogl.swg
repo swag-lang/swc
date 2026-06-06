@@ -786,6 +786,8 @@ impl RenderOgl
             }
 
         case ResetTexture0:
+            glUniform1f(cast(GLint) .curShader.paintType, cast(GLfloat) cast(u32) BrushType.SolidColor)
+            glUniform1i(cast(GLint) .curShader.gradientCount, 0)
             glActiveTexture(GL_TEXTURE0)
             glBindTexture(GL_TEXTURE_2D, .whiteTexture)
 
@@ -795,6 +797,7 @@ impl RenderOgl
             glUniform4fv(cast(GLint) .curShader.textureRect, 1, &params.textureRect.x)
             glUniform1f(cast(GLint) .curShader.uvMode, cast(GLfloat) params.uvMode)
             glUniform1i(cast(GLint) .curShader.copyMode, cast(GLint) (.blendingMode == .Copy))
+            glUniform1f(cast(GLint) .curShader.paintType, cast(GLfloat) cast(u32) params.type)
             glActiveTexture(GL_TEXTURE0)
 
             #[Swag.Complete]
@@ -802,12 +805,33 @@ impl RenderOgl
             {
             case SolidColor:
                 glBindTexture(GL_TEXTURE_2D, .whiteTexture)
+                glUniform1i(cast(GLint) .curShader.gradientCount, 0)
             case Texture:
                 glBindTexture(GL_TEXTURE_2D, cast(GLuint) params.texture.handle)
                 glUniform1f(cast(GLint) .curShader.textureW, cast(GLfloat) params.texture.width)
                 glUniform1f(cast(GLint) .curShader.textureH, cast(GLfloat) params.texture.height)
+                glUniform1i(cast(GLint) .curShader.gradientCount, 0)
             case Hatch:
                 glBindTexture(GL_TEXTURE_2D, .hatchTextures[params.hatch])
+                glUniform1i(cast(GLint) .curShader.gradientCount, 0)
+            case LinearGradient, RadialGradient:
+                glBindTexture(GL_TEXTURE_2D, .whiteTexture)
+                glUniform1f(cast(GLint) .curShader.gradientSpread, cast(GLfloat) cast(u32) params.gradientSpread)
+                glUniform2f(cast(GLint) .curShader.gradientStart, cast(GLfloat) params.gradientStart.x, cast(GLfloat) params.gradientStart.y)
+                glUniform2f(cast(GLint) .curShader.gradientEnd, cast(GLfloat) params.gradientEnd.x, cast(GLfloat) params.gradientEnd.y)
+                glUniform2f(cast(GLint) .curShader.gradientRadius, cast(GLfloat) params.gradientRadius0, cast(GLfloat) params.gradientRadius1)
+                glUniform1i(cast(GLint) .curShader.gradientCount, cast(GLint) params.gradientStopCount)
+
+                var offsets: [MaxGradientStops] f32
+                var colors:  [MaxGradientStops] Vector4
+                for i in params.gradientStopCount
+                {
+                    offsets[i] = params.gradientStops[i].offset
+                    colors[i]  = params.gradientStops[i].color.toVector4()
+                }
+
+                glUniform1fv(cast(GLint) .curShader.gradientOffsets, cast(GLsizei) params.gradientStopCount, &offsets[0])
+                glUniform4fv(cast(GLint) .curShader.gradientColors, cast(GLsizei) params.gradientStopCount, &colors[0].x)
             }
 
             #[Swag.Complete]
@@ -1010,5 +1034,13 @@ impl RenderOgl
         base.copyMode    = cast() glGetUniformLocation(progID, @dataof("copyMode"))
         base.textureW    = cast() glGetUniformLocation(progID, @dataof("textureW"))
         base.textureH    = cast() glGetUniformLocation(progID, @dataof("textureH"))
+        base.paintType       = cast() glGetUniformLocation(progID, @dataof("paintType"))
+        base.gradientSpread  = cast() glGetUniformLocation(progID, @dataof("gradientSpread"))
+        base.gradientStart   = cast() glGetUniformLocation(progID, @dataof("gradientStart"))
+        base.gradientEnd     = cast() glGetUniformLocation(progID, @dataof("gradientEnd"))
+        base.gradientRadius  = cast() glGetUniformLocation(progID, @dataof("gradientRadius"))
+        base.gradientCount   = cast() glGetUniformLocation(progID, @dataof("gradientCount"))
+        base.gradientOffsets = cast() glGetUniformLocation(progID, @dataof("gradientOffsets[0]"))
+        base.gradientColors  = cast() glGetUniformLocation(progID, @dataof("gradientColors[0]"))
     }
 }

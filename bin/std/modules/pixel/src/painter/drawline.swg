@@ -20,7 +20,7 @@ impl Painter
 
     mtd drawLine(startX, startY, endX, endY: f32, pen: Pen)
     {
-        if (startX == endX and startY == endY) or pen.brush.color.a == 0 or pen.size == 0 do
+        if (startX == endX and startY == endY) or !pen.brush.hasVisibleAlpha() or pen.size == 0 do
             return
         .sharedLinePath.start(startX, startY)
         .sharedLinePath.lineTo(endX, endY)
@@ -29,7 +29,7 @@ impl Painter
 
     mtd drawBezier(startX, startY, endX, endY: f32, ptX, ptY: f32, pen: Pen)
     {
-        if (startX == endX and startY == endY) or pen.brush.color.a == 0 or pen.size == 0 do
+        if (startX == endX and startY == endY) or !pen.brush.hasVisibleAlpha() or pen.size == 0 do
             return
         .sharedLinePath.start(startX, startY)
         .sharedLinePath.bezierTo(endX, endY, ptX, ptY)

@@ -1,8 +1,6 @@
 #version 330 core
 #include base
 
-uniform sampler2D inTexture0;
-
 in vec4 vcolor;
 in vec2 vuv0;
 

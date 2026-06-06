@@ -4,8 +4,8 @@
 in vec4     vcolor;
 in vec2     vuv0;
 in vec2     vuv1;
+in vec2     vpaintPos;
 
-uniform sampler2D   inTexture0;
 uniform sampler2D   inTexture1;
 
 // Gamma applied to glyph coverage to approximate linear-space compositing
@@ -52,6 +52,6 @@ void main()
               + coverageAt(vuv1 + vec2( off.x,  off.y), screenPxRange);
     a *= 0.25;
 
-    color    = vcolor * texture(inTexture0, vuv0);
+    color    = vcolor * samplePaint(vpaintPos, vuv0);
     color.w *= pow(a, fontGamma);
 }

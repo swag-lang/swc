@@ -87,7 +87,7 @@ func drawOutlineTextCard(painter: *Pixel.Painter, rect: Math.Rectangle)
 
 func drawTextPage(painter: *Pixel.Painter)
 {
-    drawPageHeader(painter, "Pixel text rendering", "Page 6 : wrapped strings, textured glyphs and vector outlines without switching away from painter primitives.")
+    drawPageHeader(painter, "Pixel text rendering", "Page 7 : wrapped strings, textured glyphs and vector outlines without switching away from painter primitives.")
     drawTextFlowCard(painter, {28, 104, 452, 280})
     drawTexturedStringCard(painter, {500, 104, 452, 280})
     drawOutlineTextCard(painter, {28, 406, 924, 258})

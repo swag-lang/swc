@@ -2,7 +2,7 @@ using Core, Pixel, Win32
 
 const W = 980
 const H = 720
-const MaxPages = 8
+const MaxPages = 9
 const TestFramesPerPage = 30
 const PanelHeaderHeight = 76.0
 
@@ -160,7 +160,7 @@ func drawPageHeader(painter: *Pixel.Painter, title, subtitle: string)
 
 func drawFooter(painter: *Pixel.Painter)
 {
-    let pageText = Format.toString("F1 : next page (%/%). Pages : caps, joins, transparency, polygons, brushes, text, compositing, render targets.", g_Page + 1, MaxPages)
+    let pageText = Format.toString("F1 : next page (%/%). Pages : caps, joins, transparency, polygons, brushes, gradients, text, compositing, render targets.", g_Page + 1, MaxPages)
     painter.drawString(28, H - 26, pageText, g_HelpFont, Argb.DimGray)
 }
 
@@ -316,10 +316,12 @@ func drawScene(painter: *Pixel.Painter)
     case 4:
         drawBrushesPage(painter)
     case 5:
-        drawTextPage(painter)
+        drawGradientsPage(painter)
     case 6:
-        drawCompositingPage(painter)
+        drawTextPage(painter)
     case 7:
+        drawCompositingPage(painter)
+    case 8:
         drawRenderTargetPage(painter)
     default:
         unreachable

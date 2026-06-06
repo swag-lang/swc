@@ -100,7 +100,7 @@ func drawPathModeCard(painter: *Pixel.Painter, rect: Math.Rectangle)
 
 func drawCompositingPage(painter: *Pixel.Painter)
 {
-    drawPageHeader(painter, "Pixel compositing", "Page 7 : clipping rectangles, clipping regions, alternate blending modes and path-list composition.")
+    drawPageHeader(painter, "Pixel compositing", "Page 8 : clipping rectangles, clipping regions, alternate blending modes and path-list composition.")
     drawClipRectCard(painter, {28, 104, 294, 262})
     drawClipRegionCard(painter, {343, 104, 294, 262})
     drawBlendCard(painter, {658, 104, 294, 262})

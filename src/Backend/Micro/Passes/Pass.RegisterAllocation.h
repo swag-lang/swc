@@ -39,6 +39,14 @@ public:
         // are never placed in mappedVirtualIndices_) so loop-carried values stay
         // resident across CFG boundaries instead of round-tripping through memory.
         bool pinned = false;
+        // Loop-carried values that could not be pinned are given a stable spill
+        // slot up front and may never be rematerialized: the value must round-trip
+        // through that one home so the reload at the loop header reads what the
+        // redefinition at the back-edge tail wrote. Without a fixed home the linear
+        // scan can let the home drift across the back-edge (header reload and tail
+        // store land in different slots), silently corrupting the accumulator.
+        // See preallocateLoopCarriedSlots.
+        bool loopCarriedHome = false;
     };
 
 private:
@@ -104,6 +112,7 @@ private:
     void             prepareInstructionData();
     void             computeLoopDepth();
     void             selectPinnedRegisters();
+    void             preallocateLoopCarriedSlots();
     void             computeReachability();
     void             analyzeLiveness();
     void             computeCurrentLiveOutBits(uint32_t instructionIndex);
@@ -202,6 +211,11 @@ private:
     const MicroControlFlowGraph*               controlFlowGraph_ = nullptr;
     std::vector<PendingInsert>                 pending_;
     std::vector<PendingInsert>                 boundaryPending_;
+    // Write-through stores for loop-carried values: queued right after the
+    // instruction that defines such a value and flushed before the next one, so
+    // the value's stable home slot always holds its latest value across the
+    // back-edge regardless of when the register mapping is later dropped.
+    std::vector<PendingInsert>                 deferredLoopCarriedStores_;
     std::unordered_map<MicroLabelRef, int64_t> labelStackDepth_;
 };
 

@@ -624,6 +624,74 @@ void MicroRegisterAllocationPass::selectPinnedRegisters()
     }
 }
 
+void MicroRegisterAllocationPass::preallocateLoopCarriedSlots()
+{
+    // A virtual register whose value is live-in at a loop header crosses the
+    // back-edge. Unless it was pinned to a register (selectPinnedRegisters), the
+    // linear scan round-trips it through memory at the loop's control-flow
+    // boundaries: it is reloaded at the header and re-spilled at the back-edge
+    // tail. Spill slots are otherwise allocated lazily, so the header reload and
+    // the tail store can end up resolving to *different* slots — the home drifts
+    // across the back-edge and the carried value (e.g. a reduction accumulator)
+    // is silently lost.
+    //
+    // Fix the home up front: give every non-pinned loop-carried value one stable
+    // slot before allocation begins, so every reload, every spill, and the
+    // boundary flush all target the same memory location. This degrades a
+    // non-pinned loop-carried value to consistent memory residence (identical to
+    // how it behaved before mem2reg promoted it); pinned values keep the register
+    // fast path. Rematerialization is left untouched: the existing multi-def
+    // guard already forbids rematerializing a value redefined across the loop,
+    // while a single-def loop-invariant constant must stay rematerializable.
+    if (!hasControlFlow_ || instructionCount_ == 0)
+        return;
+
+    const auto&    vregs     = denseVirtualRegs_.regs();
+    const uint32_t wordCount = denseVirtualRegs_.wordCount();
+
+    SmallVector<uint32_t> loopHeaders;
+    for (uint32_t s = 0; s < instructionCount_; ++s)
+    {
+        for (const uint32_t p : predecessors_[s])
+        {
+            if (p >= s)
+            {
+                loopHeaders.push_back(s);
+                break;
+            }
+        }
+    }
+    if (loopHeaders.empty())
+        return;
+
+    for (uint32_t denseIndex = 0; denseIndex < vregs.size(); ++denseIndex)
+    {
+        const MicroReg vreg = vregs[denseIndex];
+        if (!vreg.isVirtual())
+            continue;
+
+        auto& regState = states_[denseIndex];
+        if (regState.pinned)
+            continue;
+
+        bool loopCarried = false;
+        for (const uint32_t header : loopHeaders)
+        {
+            const std::span<const uint64_t> liveRow = DenseBits::row(liveInVirtualBits_, header, wordCount);
+            if (DenseBits::contains(liveRow, denseIndex))
+            {
+                loopCarried = true;
+                break;
+            }
+        }
+        if (!loopCarried)
+            continue;
+
+        regState.loopCarriedHome = true;
+        ensureSpillSlot(regState, vreg.isVirtualFloat());
+    }
+}
+
 uint32_t MicroRegisterAllocationPass::distanceToNextUse(MicroReg key, uint32_t instructionIndex) const
 {
     const uint32_t denseIndex = denseVirtualRegs_.find(key);
@@ -1862,6 +1930,7 @@ void MicroRegisterAllocationPass::rewriteInstructions()
     uint32_t idx        = 0;
     int64_t  stackDepth = 0;
     labelStackDepth_.clear();
+    deferredLoopCarriedStores_.clear();
     if (hasControlFlow_)
         labelStackDepth_.reserve(instructions_->count() / 2 + 1);
     for (auto it = instructions_->view().begin(); it != instructions_->view().end() && idx < instructionCount_; ++it)
@@ -1894,6 +1963,14 @@ void MicroRegisterAllocationPass::rewriteInstructions()
         const MicroInstrRef instructionRef = it.current;
         const bool          isCall         = instructionUseDefs_[idx].isCall;
         const bool          isTerminator   = MicroInstrInfo::isTerminatorInstruction(*it);
+
+        // Flush the write-through stores queued by the previous instruction's
+        // loop-carried defs. They land right after that instruction (before this
+        // one) so the value's home slot is updated before any boundary flush,
+        // call, or branch of the current instruction can act on it.
+        for (const auto& storeInst : deferredLoopCarriedStores_)
+            instructions_->insertSyntheticBefore(*operands_, instructionRef, storeInst.op, std::span(storeInst.ops, storeInst.numOps));
+        deferredLoopCarriedStores_.clear();
 
         bool flushBoundary = false;
         if (hasControlFlow_)
@@ -2137,6 +2214,21 @@ void MicroRegisterAllocationPass::rewriteInstructions()
                 auto& regState = stateForVirtual(request.virtKey);
                 updateRematerializationForDef(regState, request.virtKey, it.current, *it, instOps);
                 regState.dirty = true;
+
+                // Write-through a loop-carried value to its stable home right after
+                // this defining instruction. The home then always holds the latest
+                // value, so the reload at the loop header is correct no matter where
+                // the register mapping is later dropped (call clobber, concrete-reg
+                // eviction, boundary flush) — the linear, loop-unaware live-out
+                // estimate cannot be trusted to spill it at those points. Pinned
+                // values stay register-resident across the loop and are exempt.
+                if (regState.loopCarriedHome && !regState.pinned && regState.mapped && regState.hasSpill)
+                {
+                    PendingInsert storePending;
+                    queueSpillStore(storePending, physReg, regState, stackDepth);
+                    deferredLoopCarriedStores_.push_back(storePending);
+                    regState.dirty = false;
+                }
             }
         }
 
@@ -2315,6 +2407,7 @@ Result MicroRegisterAllocationPass::run(MicroPassContext& context)
     analyzeLiveness();
     setupPools();
     selectPinnedRegisters();
+    preallocateLoopCarriedSlots();
     rewriteInstructions();
     flushQueuedErasures();
     insertSpillFrame();

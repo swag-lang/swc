@@ -2,7 +2,6 @@
 #include "Backend/Micro/Passes/Pass.MemToReg.h"
 #include "Backend/ABI/CallConv.h"
 #include "Backend/Micro/MicroBuilder.h"
-#include "Backend/Micro/MicroControlFlowGraph.h"
 #include "Backend/Micro/MicroInstr.h"
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroSsaState.h"
@@ -11,17 +10,23 @@
 #include "Support/Memory/MemoryProfile.h"
 
 // mem2reg: promote non-escaping fixed-width scalar stack slots to virtual
-// registers. See the header for rationale and the loop-carried safety rule.
+// registers. See the header for rationale.
 //
 // Conservative by construction:
 //  - it only fires for slots reached exclusively as the base of a constant-
 //    offset scalar load/store, and abandons promotion for the whole function on
 //    any use of the frame base (or a frame-derived address) it cannot explain
 //    (taking a slot's address exposes the whole object, so partial reasoning is
-//    unsound);
-//  - it never promotes a slot whose value is live across a loop back-edge,
-//    since a loop-carried mutable virtual register breaks downstream register
-//    optimizations that assume a single dominating definition.
+//    unsound).
+//
+// Loop-carried slots (values live across a back-edge, e.g. reduction
+// accumulators) are promoted too. The register allocator keeps the promoted
+// value resident in a register when it can pin it, and otherwise gives it a
+// single stable spill-slot home that it writes back at every control-flow
+// boundary — so the value round-trips through one consistent location across the
+// back-edge instead of corrupting silently. See
+// MicroRegisterAllocationPass::preallocateLoopCarriedSlots and the loop-carried
+// store in flushAllMappedVirtuals.
 
 SWC_BEGIN_NAMESPACE();
 
@@ -157,129 +162,6 @@ namespace
         bool        isFloat;
     };
 
-    //===-- Loop-carried safety analysis ----------------------------------===//
-    //
-    // A promoted slot is unsafe when its value is live across a loop back-edge.
-    // We compute, on the per-instruction CFG, the set of back-edge targets, then
-    // run a standard backward liveness for each candidate slot (load = use,
-    // full-width store = kill). A slot is loop-carried iff it is live-in at the
-    // function entry or at any back-edge target.
-
-    // Iterative DFS over the per-instruction CFG; an edge to a node currently on
-    // the DFS stack is a back-edge. Records the targets of those edges.
-    void collectBackEdgeTargets(const MicroControlFlowGraph& cfg, std::unordered_set<uint32_t>& outTargets)
-    {
-        const uint32_t n = cfg.instructionCount();
-        if (n == 0)
-            return;
-
-        enum Color : uint8_t
-        {
-            White,
-            Gray,
-            Black
-        };
-        std::vector           color(n, White);
-        std::vector<uint32_t> nextChild(n, 0);
-        std::vector<uint32_t> stack;
-        stack.reserve(n);
-
-        for (uint32_t root = 0; root < n; ++root)
-        {
-            if (color[root] != White)
-                continue;
-            // Only start DFS from genuine entries (no predecessors) and, as a
-            // fallback, from any still-unvisited node so unreachable cycles are
-            // still classified conservatively.
-            color[root]     = Gray;
-            nextChild[root] = 0;
-            stack.push_back(root);
-
-            while (!stack.empty())
-            {
-                const uint32_t u    = stack.back();
-                const auto&    succ = cfg.successors(u);
-                if (nextChild[u] < succ.size())
-                {
-                    const uint32_t v = succ[nextChild[u]++];
-                    if (v >= n)
-                        continue;
-                    if (color[v] == White)
-                    {
-                        color[v]     = Gray;
-                        nextChild[v] = 0;
-                        stack.push_back(v);
-                    }
-                    else if (color[v] == Gray)
-                    {
-                        // u -> v with v on the active stack: back-edge.
-                        outTargets.insert(v);
-                    }
-                }
-                else
-                {
-                    color[u] = Black;
-                    stack.pop_back();
-                }
-            }
-        }
-    }
-
-    // Backward liveness for a single slot. `use[i]` = instruction i loads the
-    // slot, `kill[i]` = instruction i fully overwrites it. Returns true if the
-    // slot is live-in at the entry or at any back-edge target (i.e. its value
-    // can survive a loop iteration) — meaning it must NOT be promoted.
-    bool slotIsLoopCarried(const MicroControlFlowGraph&        cfg,
-                           const std::vector<uint8_t>&         use,
-                           const std::vector<uint8_t>&         kill,
-                           const std::unordered_set<uint32_t>& backEdgeTargets)
-    {
-        const uint32_t       n = cfg.instructionCount();
-        std::vector<uint8_t> liveIn(n, 0);
-
-        const auto succs = cfg.successors();
-
-        bool           changed  = true;
-        uint32_t       guard    = 0;
-        const uint32_t maxIters = n + 4;
-        while (changed && guard++ < maxIters)
-        {
-            changed = false;
-            for (uint32_t idx = n; idx-- > 0;)
-            {
-                uint8_t liveOut = 0;
-                for (const uint32_t s : succs[idx])
-                {
-                    if (s < n && liveIn[s])
-                    {
-                        liveOut = 1;
-                        break;
-                    }
-                }
-                const uint8_t newIn = use[idx] ? 1 : (kill[idx] ? 0 : liveOut);
-                if (newIn != liveIn[idx])
-                {
-                    liveIn[idx] = newIn;
-                    changed     = true;
-                }
-            }
-        }
-
-        // Entry node(s): any node with no predecessors. Live-in there means the
-        // slot is read before being written from function start.
-        const auto preds = cfg.predecessors();
-        for (uint32_t idx = 0; idx < n; ++idx)
-        {
-            if (preds[idx].empty() && liveIn[idx])
-                return true;
-        }
-        for (const uint32_t t : backEdgeTargets)
-        {
-            if (t < n && liveIn[t])
-                return true;
-        }
-        return false;
-    }
 }
 
 Result MicroMemToRegPass::run(MicroPassContext& context)
@@ -545,57 +427,13 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
     if (promotions.empty())
         return Result::Continue;
 
-    // ---- Loop-carried safety filter: drop any candidate whose value is live
-    //      across a loop back-edge (promoting it to a mutable register would
-    //      expose it to register optimizations that miscompile loop-carried
-    //      multi-def values). ----
-    {
-        const MicroControlFlowGraph& cfg = context.builder->controlFlowGraph();
-        if (!cfg.supportsDeadCodeLiveness() || cfg.hasUnsupportedControlFlowForCfgLiveness())
-            return Result::Continue; // can't prove safety: promote nothing.
-
-        const uint32_t n = cfg.instructionCount();
-        if (n == 0)
-            return Result::Continue;
-
-        // Map instruction ref -> CFG index.
-        std::unordered_map<uint32_t, uint32_t> refToIndex;
-        refToIndex.reserve(n);
-        const auto instrRefs = cfg.instructionRefs();
-        for (uint32_t i = 0; i < n; ++i)
-            refToIndex[instrRefs[i].get()] = i;
-
-        std::unordered_set<uint32_t> backEdgeTargets;
-        collectBackEdgeTargets(cfg, backEdgeTargets);
-
-        SmallVector<Promotion> safe;
-        for (const Promotion& p : promotions)
-        {
-            std::vector<uint8_t> use(n, 0);
-            std::vector<uint8_t> kill(n, 0);
-            bool                 mappingOk = true;
-            for (const SlotAccess& acc : slots[p.offset].accesses)
-            {
-                const auto found = refToIndex.find(acc.ref.get());
-                if (found == refToIndex.end())
-                {
-                    mappingOk = false;
-                    break;
-                }
-                const uint32_t idx = found->second;
-                if (acc.isWrite)
-                    kill[idx] = 1;
-                else
-                    use[idx] = 1;
-            }
-            if (!mappingOk)
-                continue; // an access we can't locate in the CFG: skip to be safe.
-
-            if (!slotIsLoopCarried(cfg, use, kill, backEdgeTargets))
-                safe.push_back(p);
-        }
-        promotions = std::move(safe);
-    }
+    // Loop-carried slots (values live across a back-edge) are promoted too: the
+    // register allocator gives every non-pinned loop-carried virtual register a
+    // stable spill-slot home and writes it back at each control-flow boundary, so
+    // a promoted accumulator round-trips through one consistent location across
+    // the back-edge instead of corrupting silently. See
+    // MicroRegisterAllocationPass::preallocateLoopCarriedSlots and the
+    // loop-carried store in flushAllMappedVirtuals.
     if (promotions.empty())
         return Result::Continue;
 

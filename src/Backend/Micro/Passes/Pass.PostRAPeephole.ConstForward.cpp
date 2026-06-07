@@ -261,6 +261,15 @@ namespace PostRaPeephole
                 if (isRedundantFallthroughJumpToNextLabel(ctx, cur, *inst, scanOps))
                     continue;
 
+                // A label is a basic-block boundary: the consumer after it may be
+                // reachable from other predecessors (e.g. a loop back-edge) where
+                // `immReg` was given a different value. Forwarding this def into it
+                // would be unsound, so confine the fold to a single block. The
+                // backward producer scan in CopyForward bails on labels for the
+                // same reason.
+                if (inst->op == MicroInstrOpcode::Label)
+                    return false;
+
                 const MicroInstrDef& scanInfo = MicroInstr::info(inst->op);
                 if (scanInfo.flags.has(MicroInstrFlagsE::TerminatorInstruction))
                     return false;

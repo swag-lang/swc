@@ -27,7 +27,7 @@ namespace CodeGenSafety
     Result emitOverflowCheck(CodeGen& codeGen, const AstNode& node);
     Result emitOverflowTrapOnFailure(CodeGen& codeGen, const AstNode& node, MicroCond successCond);
     Result emitIntArithmeticOverflowCheck(CodeGen& codeGen, const AstNode& node, TokenId binaryTokId, bool isSigned);
-    Result emitShiftIntLike(CodeGen& codeGen, const AstNode& node, MicroReg valueReg, MicroReg rightReg, const TypeInfo& operationType, MicroOpBits opBits, TokenId shiftTokId, bool allowWrap);
+    Result emitShiftIntLike(CodeGen& codeGen, const AstNode& node, AstNodeRef rightOperandRef, MicroReg valueReg, MicroReg rightReg, const TypeInfo& operationType, MicroOpBits opBits, TokenId shiftTokId, bool allowWrap);
     Result emitSignedDivOrModIntLike(CodeGen& codeGen, const AstNode& node, MicroReg leftReg, MicroReg rightReg, MicroOp op, MicroOpBits opBits, bool zeroOnOverflow);
     Result emitIntLikeCastOverflowCheck(CodeGen& codeGen, const AstNode& node, MicroReg srcReg, const TypeInfo& srcType, const TypeInfo& dstType);
     Result emitFloatToIntCastOverflowCheck(CodeGen& codeGen, const AstNode& node, MicroReg srcReg, const TypeInfo& srcType, const TypeInfo& dstType);

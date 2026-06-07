@@ -446,7 +446,7 @@ namespace
 
         if (tokId == TokenId::SymLowerLower || tokId == TokenId::SymGreaterGreater)
         {
-            SWC_RESULT(CodeGenSafety::emitShiftIntLike(codeGen, node, nodePayload.reg, rightReg, operationType, opBits, tokId, node.modifierFlags.has(AstModifierFlagsE::Wrap)));
+            SWC_RESULT(CodeGenSafety::emitShiftIntLike(codeGen, node, node.nodeRightRef, nodePayload.reg, rightReg, operationType, opBits, tokId, node.modifierFlags.has(AstModifierFlagsE::Wrap)));
         }
         else if (isSigned && (tokId == TokenId::SymSlash || tokId == TokenId::SymPercent))
         {

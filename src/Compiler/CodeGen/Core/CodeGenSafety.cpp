@@ -384,7 +384,7 @@ Result CodeGenSafety::emitIntArithmeticOverflowCheck(CodeGen& codeGen, const Ast
     }
 }
 
-Result CodeGenSafety::emitShiftIntLike(CodeGen& codeGen, const AstNode& node, const MicroReg valueReg, const MicroReg rightReg, const TypeInfo& operationType, const MicroOpBits opBits, const TokenId shiftTokId, const bool allowWrap)
+Result CodeGenSafety::emitShiftIntLike(CodeGen& codeGen, const AstNode& node, const AstNodeRef rightOperandRef, const MicroReg valueReg, const MicroReg rightReg, const TypeInfo& operationType, const MicroOpBits opBits, const TokenId shiftTokId, const bool allowWrap)
 {
     SWC_ASSERT(shiftTokId == TokenId::SymLowerLower || shiftTokId == TokenId::SymGreaterGreater);
 
@@ -395,6 +395,34 @@ Result CodeGenSafety::emitShiftIntLike(CodeGen& codeGen, const AstNode& node, co
     MicroBuilder&  builder       = codeGen.builder();
     const MicroOp  shiftOp       = isLeftShift ? MicroOp::ShiftLeft : (isSigned ? MicroOp::ShiftArithmeticRight : MicroOp::ShiftRight);
     const uint64_t bitWidth      = getNumBits(opBits);
+
+    // Constant shift amount in [0, bitWidth): the result is exactly the shift, so
+    // there is no large-count case (>= width -> 0/saturate) and no negative-count
+    // case to guard. Emit the bare shift and skip the runtime guard the general
+    // paths below produce (a materialized count + width compare + conditional
+    // move), which is provably dead for a compile-time-constant amount. The shift
+    // amount being statically non-negative also makes the signed negative-count
+    // check unnecessary. NOTE: only when checkOverflow is off — the overflow
+    // safety check inspects the *value* shifted out, which a constant amount does
+    // not make redundant.
+    if (!checkOverflow && rightOperandRef.isValid())
+    {
+        const SemaNodeView rightConstView = codeGen.viewConstant(rightOperandRef);
+        if (rightConstView.hasConstant())
+        {
+            const ConstantValue& rightConst = codeGen.cstMgr().get(rightConstView.cstRef());
+            if (rightConst.isInt())
+            {
+                const ApsInt& amount = rightConst.getInt();
+                if (!amount.isNegative() && amount.as64() < bitWidth)
+                {
+                    builder.emitOpBinaryRegReg(valueReg, rightReg, shiftOp, opBits);
+                    return Result::Continue;
+                }
+            }
+        }
+    }
+
     const MicroReg countReg64    = widenIntRegTo64(codeGen, rightReg, operationType, opBits);
     MicroReg       originalReg   = MicroReg::invalid();
     if (checkOverflow || (!isLeftShift && isSigned))

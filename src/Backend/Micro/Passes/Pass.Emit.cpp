@@ -168,6 +168,9 @@ void MicroEmitPass::encodeInstruction(const MicroPassContext& context, MicroInst
         case MicroInstrOpcode::LoadAmcRegMem:
             encoder.encodeLoadAmcRegMem(ops[0].reg, ops[3].opBits, ops[1].reg, ops[2].reg, ops[5].valueU64, ops[6].valueU64, ops[4].opBits);
             break;
+        case MicroInstrOpcode::LoadSignedExtAmcRegMem:
+            encoder.encodeLoadSignedExtendAmcRegMem(ops[0].reg, ops[1].reg, ops[2].reg, ops[5].valueU64, ops[6].valueU64, ops[3].opBits, ops[4].opBits);
+            break;
         case MicroInstrOpcode::LoadAddrAmcRegMem:
             encoder.encodeLoadAddressAmcRegMem(ops[0].reg, ops[3].opBits, ops[1].reg, ops[2].reg, ops[5].valueU64, ops[6].valueU64, ops[4].opBits);
             break;

@@ -292,6 +292,17 @@ SWC_MICRO_INSTR_DEF(
         .memOffsetOperandIndex = 0,
     })
 SWC_MICRO_INSTR_DEF(
+    LoadSignedExtAmcRegMem,
+    MicroInstrDef{
+        .regModes              = {MicroInstrRegMode::Def, MicroInstrRegMode::Use, MicroInstrRegMode::Use},
+        .special               = MicroInstrRegSpecial::None,
+        .microOpIndex          = 0,
+        .callConvIndex         = 0,
+        .flags                 = MicroInstrFlagsE::Zero,
+        .memBaseOperandIndex   = 0,
+        .memOffsetOperandIndex = 0,
+    })
+SWC_MICRO_INSTR_DEF(
     LoadAmcMemReg,
     MicroInstrDef{
         .regModes              = {MicroInstrRegMode::Use, MicroInstrRegMode::Use, MicroInstrRegMode::Use},

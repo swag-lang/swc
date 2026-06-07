@@ -38,6 +38,7 @@ namespace
         r.add(MicroInstrOpcode::LoadRegMem, tryMemoryFoldTriple);
         r.add(MicroInstrOpcode::LoadRegMem, tryFoldLoadIntoRegOp);
         r.add(MicroInstrOpcode::LoadRegMem, tryFoldMemoryAddressing);
+        r.add(MicroInstrOpcode::LoadAmcRegMem, tryFoldAmcLoadIntoSignExtend);
         r.add(MicroInstrOpcode::LoadMemReg, tryFoldConstStore);
         r.add(MicroInstrOpcode::LoadMemReg, tryFoldMemoryAddressing);
         r.add(MicroInstrOpcode::CmpRegReg, tryFoldConstCompare);

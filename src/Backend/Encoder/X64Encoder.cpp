@@ -1582,6 +1582,17 @@ void X64Encoder::encodeLoadAmcRegMem(MicroReg regDst, MicroOpBits opBitsDst, Mic
     return encodeAmcReg(store_, regDst, opBitsDst, regBase, regMul, mulValue, addValue, opBitsSrc, MicroOp::Move, false);
 }
 
+void X64Encoder::encodeLoadSignedExtendAmcRegMem(MicroReg regDst, MicroReg regBase, MicroReg regMul, uint64_t mulValue, uint64_t addValue, MicroOpBits numBitsDst, MicroOpBits numBitsSrc)
+{
+    // Indexed movsxd: load a 32-bit dword from [base + index*scale + disp] and
+    // sign-extend it into a 64-bit register. encodeAmcReg's MoveSignExtend path
+    // emits the 0x63 opcode (dword->qword), so only b32->b64 is supported; the
+    // 32-bit source width is implicit in the opcode. The base/index addressing is
+    // 64-bit on this target (no 0x67 prefix).
+    SWC_ASSERT(numBitsDst == MicroOpBits::B64 && numBitsSrc == MicroOpBits::B32);
+    return encodeAmcReg(store_, regDst, MicroOpBits::B64, regBase, regMul, mulValue, addValue, MicroOpBits::B64, MicroOp::MoveSignExtend, false);
+}
+
 void X64Encoder::encodeLoadAmcMemReg(MicroReg regBase, MicroReg regMul, uint64_t mulValue, uint64_t addValue, MicroOpBits opBitsBaseMul, MicroReg regSrc, MicroOpBits opBitsSrc)
 {
     return encodeAmcReg(store_, regSrc, opBitsSrc, regBase, regMul, mulValue, addValue, opBitsBaseMul, MicroOp::Move, true);

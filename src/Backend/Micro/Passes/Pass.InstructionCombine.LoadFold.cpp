@@ -152,6 +152,107 @@ namespace InstructionCombine
 
         return false;
     }
+
+    // Fuse an indexed 32-bit load feeding a sign-extend-to-64 into a single
+    // indexed movsxd (LoadSignedExtAmcRegMem):
+    //
+    //     LoadAmcRegMem       vt,  [base + idx*scale + disp]   (load b32)
+    //     LoadSignedExtRegReg dst, vt, b64<-b32
+    //   ->
+    //     LoadSignedExtAmcRegMem dst, [base + idx*scale + disp], b64<-b32
+    //
+    // Matches a widening reduction `acc(s64) += narrowArray[i]`. Uses the
+    // transitive-instruction use count (not raw uses.size()) so a dead loop-header
+    // phi on the element temp does not hide its single-consumer shape — local to
+    // this fold, so it does not perturb the global single-use heuristics that
+    // mem2reg promotion depends on.
+    bool tryFoldAmcLoadIntoSignExtend(Context& ctx, MicroInstrRef loadRef, const MicroInstr& loadInst)
+    {
+        if (ctx.isClaimed(loadRef) || !ctx.ssa)
+            return false;
+
+        const MicroInstrOperand* loadOps = loadInst.ops(*ctx.operands);
+        if (!loadOps)
+            return false;
+
+        // LoadAmcRegMem: [dst, base, index, loadBits, addrBits, mulValue, addValue].
+        const MicroReg    vt       = loadOps[0].reg;
+        const MicroReg    base     = loadOps[1].reg;
+        const MicroReg    index    = loadOps[2].reg;
+        const MicroOpBits loadBits = loadOps[3].opBits;
+        const MicroOpBits addrBits = loadOps[4].opBits;
+
+        // The encoder's indexed movsxd only handles a 32-bit dword load into a
+        // 64-bit register with 64-bit addressing.
+        if (loadBits != MicroOpBits::B32 || addrBits != MicroOpBits::B64)
+            return false;
+        if (!vt.isVirtualInt() || base == vt || index == vt)
+            return false;
+
+        uint32_t loadValueId = 0;
+        if (!ctx.ssa->defValue(vt, loadRef, loadValueId) || ctx.ssa->transitiveInstructionUseCount(loadValueId, 2) != 1)
+            return false;
+
+        MicroStorage::Iterator walker;
+        if (!findAnchorPosition(walker, *ctx.storage, loadRef))
+            return false;
+        ++walker;
+
+        const auto endIt = ctx.storage->view().end();
+        for (uint32_t step = 0; step < K_MAX_LOADFOLD_WINDOW && walker != endIt; ++step, ++walker)
+        {
+            const MicroInstr& w = *walker;
+
+            // Delaying the load to the extend's position must not cross an
+            // aliasing store, a call, control flow, or a redefinition of an
+            // addressing register.
+            if (isControlOrCall(w) || writesMemory(w))
+                return false;
+
+            const auto* useDef   = ctx.ssa->instrUseDef(walker.current);
+            const bool  defsAddr = useDef && (microRegSpanContains(useDef->defs, base) || microRegSpanContains(useDef->defs, index));
+            const bool  usesVt   = useDef && microRegSpanContains(useDef->uses, vt);
+            const bool  defsVt   = useDef && microRegSpanContains(useDef->defs, vt);
+
+            if (defsAddr)
+                return false;
+            if (!usesVt && !defsVt)
+                continue;
+
+            // First reference to vt must be the sign-extend.
+            if (w.op != MicroInstrOpcode::LoadSignedExtRegReg)
+                return false;
+
+            const MicroInstrOperand* wOps = w.ops(*ctx.operands);
+            if (!wOps)
+                return false;
+            const MicroReg    dstReg  = wOps[0].reg;
+            const MicroReg    srcReg  = wOps[1].reg;
+            const MicroOpBits dstBits = wOps[2].opBits;
+            const MicroOpBits srcBits = wOps[3].opBits;
+            if (srcReg != vt || dstReg == vt || dstBits != MicroOpBits::B64 || srcBits != MicroOpBits::B32)
+                return false;
+
+            const MicroInstrRef extRef = walker.current;
+            if (!ctx.claimAll({loadRef, extRef}))
+                return false;
+
+            // LoadSignedExtAmcRegMem: [dst, base, index, dstBits, srcBits, mul, add].
+            MicroInstrOperand newOps[7];
+            newOps[0].reg      = dstReg;
+            newOps[1].reg      = base;
+            newOps[2].reg      = index;
+            newOps[3].opBits   = dstBits;
+            newOps[4].opBits   = srcBits;
+            newOps[5].valueU64 = loadOps[5].valueU64;
+            newOps[6].valueU64 = loadOps[6].valueU64;
+            ctx.emitRewrite(extRef, MicroInstrOpcode::LoadSignedExtAmcRegMem, newOps, /*allocNewBlock=*/true);
+            ctx.emitErase(loadRef);
+            return true;
+        }
+
+        return false;
+    }
 }
 
 SWC_END_NAMESPACE();

@@ -12,6 +12,41 @@ namespace PreRaPeephole
             return scale == 1 || scale == 2 || scale == 4 || scale == 8;
         }
 
+        constexpr uint32_t K_MAX_ADDR_FORWARD_COPIES = 8;
+
+        // Skip forward over pure register copies (LoadRegReg) that touch none of
+        // the addressing registers, returning the first non-copy instruction —
+        // the candidate consumer for the lea. Folding the lea into that consumer
+        // (rewriting it to base+index, leaving the lea for any other uses) is
+        // sound as long as base/index hold the same value there; a copy whose
+        // destination is not addrReg/base/index cannot change that, and copies are
+        // not control-flow boundaries. Bails (returns invalid) on a copy that does
+        // write one of those registers, or after the copy budget, so the fold
+        // never reasons past an instruction it cannot fully characterise. Inspects
+        // LoadRegReg's two operands directly rather than a generic use/def query.
+        MicroInstrRef skipCopiesToConsumer(const Context& ctx, MicroInstrRef defRef, MicroReg addrReg, MicroReg inputA, MicroReg inputB)
+        {
+            MicroInstrRef cur = ctx.nextRef(defRef);
+            for (uint32_t step = 0; step < K_MAX_ADDR_FORWARD_COPIES && cur.isValid(); ++step)
+            {
+                const MicroInstr* w = ctx.instruction(cur);
+                if (!w)
+                    return MicroInstrRef::invalid();
+                if (w->op != MicroInstrOpcode::LoadRegReg)
+                    return cur; // candidate consumer.
+
+                const MicroInstrOperand* cops = w->ops(*ctx.operands);
+                if (!cops)
+                    return MicroInstrRef::invalid();
+                const MicroReg copyDst = cops[0].reg;
+                if (copyDst == addrReg || copyDst == inputA || (inputB.isValid() && copyDst == inputB))
+                    return MicroInstrRef::invalid(); // an addressing input changed.
+
+                cur = ctx.nextRef(cur);
+            }
+            return MicroInstrRef::invalid();
+        }
+
         struct ConsumerRewrite
         {
             MicroInstrOpcode  newOp                  = MicroInstrOpcode::Nop;
@@ -340,7 +375,7 @@ namespace PreRaPeephole
         if (hasVirtualForbiddenPhysRegs(ctx, addrReg) || hasVirtualForbiddenPhysRegs(ctx, baseReg))
             return false;
 
-        const MicroInstrRef consumerRef = ctx.nextRef(defRef);
+        const MicroInstrRef consumerRef = skipCopiesToConsumer(ctx, defRef, addrReg, baseReg, MicroReg::invalid());
         if (!consumerRef.isValid() || ctx.isClaimed(consumerRef))
             return false;
 
@@ -375,7 +410,7 @@ namespace PreRaPeephole
         if (hasVirtualForbiddenPhysRegs(ctx, addrReg) || hasVirtualForbiddenPhysRegs(ctx, defOps[1].reg) || hasVirtualForbiddenPhysRegs(ctx, defOps[2].reg))
             return false;
 
-        const MicroInstrRef consumerRef = ctx.nextRef(defRef);
+        const MicroInstrRef consumerRef = skipCopiesToConsumer(ctx, defRef, addrReg, defOps[1].reg, defOps[2].reg);
         if (!consumerRef.isValid() || ctx.isClaimed(consumerRef))
             return false;
 

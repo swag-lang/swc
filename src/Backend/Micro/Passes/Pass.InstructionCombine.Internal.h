@@ -76,6 +76,7 @@ namespace InstructionCombine
 
     bool tryOpBinaryRegImm(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryOpBinaryRegReg(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
+    bool tryFuseInPlaceUpdate(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryMemoryFoldTriple(Context& ctx, MicroInstrRef loadRef, const MicroInstr& loadInst);
     bool tryFoldLoadIntoRegOp(Context& ctx, MicroInstrRef loadRef, const MicroInstr& loadInst);
     bool tryFoldMemoryAddressing(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);

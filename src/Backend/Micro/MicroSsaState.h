@@ -80,6 +80,12 @@ public:
 
     ReachingDef                reachingDef(MicroReg reg, MicroInstrRef beforeInstRef) const;
     bool                       isRegUsedAfter(MicroReg reg, MicroInstrRef afterInstRef) const;
+    // Number of distinct instruction uses a value reaches, counting transitively
+    // through phis and capped at `cap`. Phi edges that lead only to dead phis
+    // (results nothing reads) contribute nothing — unlike valueInfo()->uses.size(),
+    // which counts those phantom phi inputs and over-reports the fan-out of loop
+    // scratch temporaries.
+    uint32_t                   transitiveInstructionUseCount(uint32_t valueId, uint32_t cap) const;
     const MicroInstrUseDef*    instrUseDef(MicroInstrRef instRef) const;
     bool                       defValue(MicroReg reg, MicroInstrRef instRef, uint32_t& outValueId) const;
     const ValueInfo*           valueInfo(uint32_t valueId) const;

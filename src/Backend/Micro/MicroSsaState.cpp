@@ -861,6 +861,58 @@ void MicroSsaState::appendValueUse(const uint32_t valueId, const UseSite& useSit
     valueInfos_[valueId].uses.push_back(useSite);
 }
 
+uint32_t MicroSsaState::transitiveInstructionUseCount(const uint32_t valueId, const uint32_t cap) const
+{
+    if (valueId >= valueInfoCount_ || cap == 0)
+        return 0;
+
+    if (useVisitStamps_.size() < valueInfoCount_)
+        useVisitStamps_.resize(valueInfoCount_, 0);
+    if (useVisitStamp_ == std::numeric_limits<uint32_t>::max())
+    {
+        std::ranges::fill(useVisitStamps_, 0);
+        useVisitStamp_ = 1;
+    }
+
+    const uint32_t visitStamp = useVisitStamp_++;
+    useVisitStack_.clear();
+    useVisitStack_.push_back(valueId);
+
+    uint32_t count = 0;
+    while (!useVisitStack_.empty())
+    {
+        const uint32_t currentValueId = useVisitStack_.back();
+        useVisitStack_.pop_back();
+
+        SWC_ASSERT(currentValueId < valueInfoCount_);
+        if (useVisitStamps_[currentValueId] == visitStamp)
+            continue;
+        useVisitStamps_[currentValueId] = visitStamp;
+
+        const ValueInfo& info = valueInfos_[currentValueId];
+        for (const UseSite& useSite : info.uses)
+        {
+            if (useSite.kind == UseSite::Kind::Instruction)
+            {
+                if (++count >= cap)
+                    return count;
+                continue;
+            }
+
+            if (useSite.kind != UseSite::Kind::Phi)
+                continue;
+
+            const PhiInfo* phi = phiInfo(useSite.phiIndex);
+            if (!phi || phi->resultValueId == K_INVALID_VALUE)
+                continue;
+
+            useVisitStack_.push_back(phi->resultValueId);
+        }
+    }
+
+    return count;
+}
+
 bool MicroSsaState::isValueTransitivelyUsed(const uint32_t valueId) const
 {
     if (valueId >= valueInfoCount_)

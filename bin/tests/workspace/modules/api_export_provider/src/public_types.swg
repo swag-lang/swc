@@ -14,6 +14,11 @@ struct DepPair
     right: s32
 }
 
+struct(T) DepGenericLayout
+{
+    value: T
+}
+
 union DepValue
 {
     asInt:   s32
@@ -79,6 +84,13 @@ namespace DepSharedRng
 
     impl Rng
     {
+        #[Inline]
+        func(TA) makeScratch()->Rng'TA
+        {
+            var result: retval
+            return result
+        }
+
         mtd nextU32()->u32 => 0x12345678
     }
 

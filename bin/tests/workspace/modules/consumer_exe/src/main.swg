@@ -23,9 +23,12 @@ func keepDepScore(score: IDepScore)->IDepScore => score
 
 func verifyImportedGenericRootMethodSema()
 {
+    var scratchRng = DepSharedRng.Rng.makeScratch'DepSharedRng.MWC()
+    let scratchRngValue = scratchRng.nextU32()
     var rng: DepSharedRng.Rng'DepSharedRng.MWC
     let sharedRngValue = DepSharedRng.shared(&rng).nextU32()
 
+    #assert(#typeof(scratchRngValue) == u32)
     #assert(#typeof(sharedRngValue) == u32)
 }
 
@@ -117,6 +120,10 @@ func verifyExportAndStaticModules()
     pair.left  = 2
     pair.right = 5
     @assert(pair.left + pair.right == 7)
+
+    var genericLayout: DepGenericLayout's32
+    genericLayout.value = 42
+    @assert(genericLayout.value == 42)
 
     var value = DepValue{asInt: 0x1234}
     @assert(value.asInt == 0x1234)
@@ -316,6 +323,7 @@ func verifyRuntimeContext()
 #main
 {
     verifyExportAndStaticModules()
+    verifyImportedGenericRootMethodSema()
     verifyImportedClosureCallbacks()
     verifyDllAbiCalls()
     verifyRuntimeContext()

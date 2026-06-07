@@ -336,7 +336,11 @@ namespace SemaGeneric
                 prepareGenericInstantiationContext(child, functionDeclStartSymMap(*function), functionDeclImplContext(sema, *function), functionDeclInterfaceContext(sema, *function), function->attributes());
             }
             else
+            {
                 prepareGenericInstantiationContext(child, const_cast<SymbolMap*>(root.ownerSymMap()), nullptr, nullptr, root.attributes());
+                if (root.isPublic())
+                    child.frame().setCurrentAccess(SymbolAccess::Public);
+            }
         }
 
     }

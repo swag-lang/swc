@@ -355,6 +355,34 @@ namespace
             }
         }
     }
+
+    Result declareGenericRootFunctionCandidate(Sema& sema, const SymbolFunction& sym, const SourceCodeRef& codeRef)
+    {
+        if (!sym.isGenericRoot() || sym.isDeclared())
+            return Result::Continue;
+
+        const auto* ownerImpl = sym.ownerSymMap() ? sym.ownerSymMap()->safeCast<SymbolImpl>() : nullptr;
+        const auto* ownerStruct = ownerImpl ? ownerImpl->symStruct() : nullptr;
+        if (!ownerStruct || !ownerStruct->isGenericRoot() || ownerStruct->isGenericInstance())
+            return sema.waitDeclared(&sym, codeRef);
+
+        if (!sym.decl())
+            return sema.waitDeclared(&sym, codeRef);
+
+        std::unique_ptr<Sema> declSemaHolder;
+        Sema*                 declSema = sema.tryCreateDeclSema(declSemaHolder, sym.srcViewRef(), sym.decl(), sym.declNodeRef());
+        if (!declSema)
+            declSema = &sema;
+
+        const AstNodeRef declRef = declSema->ownerDeclNodeRef(sym.srcViewRef(), sym.decl(), sym.declNodeRef());
+        if (declRef.isInvalid())
+            return sema.waitDeclared(&sym, codeRef);
+
+        SWC_RESULT(declSema->prepareFunctionSignature(declRef));
+        if (!sym.isDeclared())
+            return sema.waitDeclared(&sym, codeRef);
+        return Result::Continue;
+    }
 }
 
 Result Match::match(Sema& sema, MatchContext& lookUpCxt, IdentifierRef idRef)
@@ -374,14 +402,19 @@ Result Match::match(Sema& sema, MatchContext& lookUpCxt, IdentifierRef idRef)
 
     for (const Symbol* other : lookUpCxt.symbols())
     {
+        if (other->isFunction() && other->cast<SymbolFunction>().isGenericRoot())
+        {
+            if (!other->isDeclared() && lookUpCxt.noWaitOnPendingSymbols)
+                return Result::Continue;
+            SWC_RESULT(declareGenericRootFunctionCandidate(sema, other->cast<SymbolFunction>(), lookUpCxt.codeRef));
+            continue;
+        }
         if (!other->isDeclared())
         {
             if (lookUpCxt.noWaitOnPendingSymbols)
                 return Result::Continue;
             SWC_RESULT(sema.waitDeclared(other, lookUpCxt.codeRef));
         }
-        if (other->isFunction() && other->cast<SymbolFunction>().isGenericRoot())
-            continue;
         if (other->isStruct() && other->cast<SymbolStruct>().isGenericRoot())
             continue;
         if (!other->isTyped())

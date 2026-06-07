@@ -349,10 +349,21 @@ namespace
     {
         SmallVector<const Symbol*>        values;
         std::unordered_set<const Symbol*> set;
+        std::unordered_set<const Symbol*> validated;
 
         bool contains(const Symbol& symbol) const
         {
             return set.contains(&symbol);
+        }
+
+        bool isValidated(const Symbol& symbol) const
+        {
+            return validated.contains(&symbol);
+        }
+
+        void markValidated(const Symbol& symbol)
+        {
+            validated.insert(&symbol);
         }
 
         void push(const Symbol& symbol)
@@ -561,19 +572,24 @@ namespace
 
     Result validatePublicTypeSymbol(TaskContext& ctx, const Symbol& symbol, ModuleApiValidationStack& stack)
     {
+        if (stack.isValidated(symbol))
+            return Result::Continue;
         if (stack.contains(symbol))
             return Result::Continue;
 
         ModuleApiValidationScope validationScope(stack, symbol);
+        Result                   result = Result::Continue;
         if (const auto* symbolAlias = symbol.safeCast<SymbolAlias>())
-            return validatePublicAliasSymbol(ctx, *symbolAlias, stack);
-        if (const auto* symbolEnum = symbol.safeCast<SymbolEnum>())
-            return validatePublicEnumSymbol(ctx, *symbolEnum, stack);
-        if (const auto* symbolInterface = symbol.safeCast<SymbolInterface>())
-            return validatePublicInterfaceSymbol(ctx, *symbolInterface, stack);
-        if (const auto* symbolStruct = symbol.safeCast<SymbolStruct>())
-            return validatePublicStructSymbol(ctx, *symbolStruct, stack);
+            result = validatePublicAliasSymbol(ctx, *symbolAlias, stack);
+        else if (const auto* symbolEnum = symbol.safeCast<SymbolEnum>())
+            result = validatePublicEnumSymbol(ctx, *symbolEnum, stack);
+        else if (const auto* symbolInterface = symbol.safeCast<SymbolInterface>())
+            result = validatePublicInterfaceSymbol(ctx, *symbolInterface, stack);
+        else if (const auto* symbolStruct = symbol.safeCast<SymbolStruct>())
+            result = validatePublicStructSymbol(ctx, *symbolStruct, stack);
 
+        SWC_RESULT(result);
+        stack.markValidated(symbol);
         return Result::Continue;
     }
 
@@ -592,6 +608,8 @@ namespace
 
     Result validatePublicFunctionSymbol(TaskContext& ctx, const SymbolFunction& symbolFunction, ModuleApiValidationStack& stack)
     {
+        if (stack.isValidated(symbolFunction))
+            return Result::Continue;
         if (stack.contains(symbolFunction))
             return Result::Continue;
 
@@ -616,6 +634,7 @@ namespace
             SWC_RESULT(validateExportedTypeRef(ctx, symbolFunction, *param, usage.view(), param->typeRef(), stack));
         }
 
+        stack.markValidated(symbolFunction);
         return Result::Continue;
     }
 
@@ -2035,7 +2054,7 @@ namespace
         return !outPrefix.empty();
     }
 
-    Result buildGeneratedRootSnippet(TaskContext& ctx, const ModuleApiGeneratedRoot& root, const std::string_view eol, Utf8& outSnippet)
+    Result buildGeneratedRootSnippet(TaskContext& ctx, const ModuleApiGeneratedRoot& root, const std::string_view eol, Utf8& outSnippet, ModuleApiValidationStack& validationStack)
     {
         outSnippet.clear();
         if (!root.file)
@@ -2043,7 +2062,6 @@ namespace
 
         if (const auto* symbolFunction = root.symbol ? root.symbol->safeCast<SymbolFunction>() : nullptr)
         {
-            ModuleApiValidationStack validationStack;
             SWC_RESULT(validatePublicFunctionSymbol(ctx, *symbolFunction, validationStack));
 
             if (symbolFunction->supportsPublicApiForeignExport() && supportsGeneratedModuleApiForeignFunctions(ctx.compiler()))
@@ -2057,7 +2075,6 @@ namespace
 
         if (root.symbol && (root.symbol->isAlias() || root.symbol->isStruct() || root.symbol->isEnum() || root.symbol->isInterface()))
         {
-            ModuleApiValidationStack validationStack;
             SWC_RESULT(validatePublicTypeSymbol(ctx, *root.symbol, validationStack));
         }
 
@@ -2683,7 +2700,7 @@ namespace
             emittedPreambleLines->insert(line);
     }
 
-    bool appendForwardNamespaceDecls(TaskContext& ctx, Utf8& outContent, std::span<const ModuleApiGeneratedRoot> roots, std::string_view eol, std::unordered_set<Utf8>* emittedPreambleLines = nullptr)
+    bool appendForwardNamespaceDecls(TaskContext& ctx, Utf8& outContent, std::span<const ModuleApiGeneratedRoot> roots, std::string_view eol, ModuleApiValidationStack& validationStack, std::unordered_set<Utf8>* emittedPreambleLines = nullptr)
     {
         bool                       emitted = false;
         std::unordered_set<Utf8>   emittedPaths;
@@ -2702,7 +2719,7 @@ namespace
                 }
             }
 
-            if (buildGeneratedRootSnippet(ctx, root, eol, snippet) != Result::Continue || snippet.empty())
+            if (buildGeneratedRootSnippet(ctx, root, eol, snippet, validationStack) != Result::Continue || snippet.empty())
                 continue;
             if (!tryExtractLeadingNamespacePath(ctx, namespacePath, root.namespacePath, snippet.view()))
                 continue;
@@ -2718,7 +2735,7 @@ namespace
         return emitted;
     }
 
-    Result buildGeneratedModuleApiContent(TaskContext& ctx, std::span<const ModuleApiGeneratedRoot> roots, std::string_view moduleNamespace, std::string_view eol, Utf8& outContent)
+    Result buildGeneratedModuleApiContent(TaskContext& ctx, std::span<const ModuleApiGeneratedRoot> roots, std::string_view moduleNamespace, std::string_view eol, Utf8& outContent, ModuleApiValidationStack& validationStack)
     {
         outContent.clear();
         outContent += "#global namespace ";
@@ -2726,7 +2743,7 @@ namespace
         outContent += eol;
         outContent += "#global public";
         outContent += eol;
-        if (appendForwardNamespaceDecls(ctx, outContent, roots, eol))
+        if (appendForwardNamespaceDecls(ctx, outContent, roots, eol, validationStack))
             outContent += eol;
 
         std::vector<ModuleApiOrderedEntry>    orderedEntries;
@@ -2752,7 +2769,7 @@ namespace
             }
 
             Utf8 sanitizedSnippet;
-            SWC_RESULT(buildGeneratedRootSnippet(ctx, root, eol, sanitizedSnippet));
+            SWC_RESULT(buildGeneratedRootSnippet(ctx, root, eol, sanitizedSnippet, validationStack));
             if (sanitizedSnippet.empty())
                 continue;
 
@@ -2866,7 +2883,8 @@ namespace
         outContent += eol;
 
         std::unordered_set<Utf8> emittedPreambleLines;
-        if (appendForwardNamespaceDecls(ctx, outContent, roots, eol, &emittedPreambleLines))
+        ModuleApiValidationStack validationStack;
+        if (appendForwardNamespaceDecls(ctx, outContent, roots, eol, validationStack, &emittedPreambleLines))
             outContent += eol;
 
         size_t                   rootIndex     = 0;
@@ -2879,7 +2897,7 @@ namespace
                 ++nextIndex;
 
             Utf8 fileContent;
-            SWC_RESULT(buildGeneratedModuleApiContent(ctx, roots.subspan(rootIndex, nextIndex - rootIndex), moduleNamespace, eol, fileContent));
+            SWC_RESULT(buildGeneratedModuleApiContent(ctx, roots.subspan(rootIndex, nextIndex - rootIndex), moduleNamespace, eol, fileContent, validationStack));
             SWC_RESULT(removeGeneratedModuleApiHeader(fileContent, moduleNamespace, eol));
             trimLeadingGeneratedModulePreamble(fileContent, emittedPreambleLines, eol);
             if (!fileContent.empty())

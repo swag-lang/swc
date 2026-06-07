@@ -1113,6 +1113,11 @@ namespace
         return Result::Error;
     }
 
+    Utf8 compilerTypeFullName(Sema& sema, const TypeRef typeRef)
+    {
+        return sema.typeMgr().get(typeRef).toFullNameWithoutModule(sema.ctx(), sema.moduleNamespace());
+    }
+
     Result semaCompilerFullNameOf(Sema& sema, const AstCompilerCallOne& node)
     {
         const TaskContext& ctx      = sema.ctx();
@@ -1130,7 +1135,7 @@ namespace
         SWC_RESULT(SemaCheck::isValueOrType(sema, typedView));
         if (const TypeRef resolvedTypeRef = SemaHelpers::resolveRepresentedTypeRef(sema, typedView); resolvedTypeRef.isValid())
         {
-            const Utf8          name  = sema.typeMgr().get(resolvedTypeRef).toFullName(ctx);
+            const Utf8          name  = compilerTypeFullName(sema, resolvedTypeRef);
             const ConstantValue value = ConstantValue::makeString(ctx, name);
             sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(ctx, value));
             return Result::Continue;
@@ -1138,7 +1143,7 @@ namespace
 
         if (view.sym() && view.sym()->isType() && typedView.typeRef().isValid())
         {
-            const Utf8          name  = sema.typeMgr().get(typedView.typeRef()).toFullName(ctx);
+            const Utf8          name  = compilerTypeFullName(sema, typedView.typeRef());
             const ConstantValue value = ConstantValue::makeString(ctx, name);
             sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(ctx, value));
             return Result::Continue;

@@ -14,6 +14,25 @@ struct DepPair
     right: s32
 }
 
+struct DepShortCallTarget
+{
+}
+
+impl DepShortCallTarget
+{
+    mtd const ready()->bool => true
+}
+
+struct DepShortCallOwner
+{
+    target: DepShortCallTarget
+}
+
+impl DepShortCallOwner
+{
+    mtd const ready()->bool => .target.ready()
+}
+
 struct DepPublicWithPrivateField
 {
     publicValue: s32
@@ -90,6 +109,43 @@ namespace DepTools
     struct DepNamespaced
     {
         value: s16
+    }
+
+    interface IHash32
+    {
+        mtd const compute()->u32;
+    }
+
+    impl IHash32 for DepNamespaced
+    {
+        mtd const impl compute()->u32
+        {
+            return cast(u32) .value + 0x100'u32
+        }
+    }
+
+    #[Swag.ConstExpr]
+    func(T) hash32WithGeneratedFullName(value: T)->u32
+    {
+        #if #defined(T.IHash32) do
+            #ast "return " ++ #typeof(T).fullname ++ ".IHash32.compute(value)"
+        #else do
+            return 0
+    }
+
+    #[Swag.Mixin]
+    func depMakeGeneratedCommandId(name: string)
+    {
+        #ast "const " ++ name ++ " = \"DepTools.DepGeneratedCommandOwner." ++ name ++ "\""
+    }
+
+    struct DepGeneratedCommandOwner
+    {
+    }
+
+    impl DepGeneratedCommandOwner
+    {
+        depMakeGeneratedCommandId("GeneratedAccept")
     }
 }
 

@@ -254,9 +254,15 @@ ConstantRef NodePayload::getConstantRef(const TaskContext& ctx, AstNodeRef nodeR
 
         case NodePayloadKind::SymbolRef:
         {
-            if (!hasSymbol(nodeRef))
+            const Shard* shard = tryGetShard(info.shardIdx);
+            if (!shard)
                 break;
-            const Symbol& sym = getSymbol(ctx, nodeRef);
+
+            const Symbol* const* slot = shard->store.ptr<Symbol*>(info.ref);
+            if (!slot || !*slot)
+                break;
+
+            const Symbol& sym = **slot;
             if (sym.isConstant())
                 return sym.cast<SymbolConstant>().cstRef();
             if (sym.isEnumValue())

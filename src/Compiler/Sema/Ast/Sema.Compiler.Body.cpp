@@ -310,7 +310,11 @@ namespace
 
         SourceView& srcView = sourceFile.ast().srcView();
         if (const SourceFile* ownerFile = sema.file())
+        {
             srcView.setOwnerFileRef(ownerFile->ref());
+            if (const SymbolNamespace* moduleNamespace = ownerFile->moduleNamespace())
+                sourceFile.setModuleNamespace(*const_cast<SymbolNamespace*>(moduleNamespace));
+        }
 
         const uint64_t errorsBefore = Stats::getNumErrors();
         Lexer          lexer;

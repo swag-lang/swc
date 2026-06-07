@@ -9,6 +9,7 @@ class SymbolStruct;
 class SymbolInterface;
 class SymbolAlias;
 class SymbolFunction;
+class SymbolNamespace;
 class TaskContext;
 class TypeManager;
 class TypeInfo;
@@ -97,6 +98,8 @@ public:
     bool operator==(const TypeInfo& other) const noexcept;
     Utf8 toName(const TaskContext& ctx) const;
     Utf8 toFullName(const TaskContext& ctx) const;
+    Utf8 toFullNameWithoutModule(const TaskContext& ctx, const SymbolNamespace& moduleNamespace) const;
+    static Utf8 stripModuleQualifiersFromFullName(Utf8 fullName, std::string_view moduleNamespace);
     Utf8 toFamily(const TaskContext& ctx) const;
     Utf8 toArticleFamily(const TaskContext& ctx) const;
 

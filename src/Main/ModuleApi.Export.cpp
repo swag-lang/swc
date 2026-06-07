@@ -959,12 +959,50 @@ namespace
         return node.tokRef();
     }
 
+    TokenRef moduleApiCallExprEndTokRef(const Ast& ast, const AstNode& node)
+    {
+        if (!node.is(AstNodeId::CallExpr) || !ast.hasSourceView())
+            return TokenRef::invalid();
+
+        const TokenRef openTokRef = node.tokRef();
+        if (!openTokRef.isValid())
+            return TokenRef::invalid();
+
+        const SourceView& srcView = ast.srcView();
+        if (srcView.token(openTokRef).id != TokenId::SymLeftParen)
+            return TokenRef::invalid();
+
+        uint32_t parenBalance = 0;
+        for (uint32_t tokIndex = openTokRef.get(); tokIndex < srcView.tokens().size(); ++tokIndex)
+        {
+            const TokenId tokenId = srcView.token(TokenRef(tokIndex)).id;
+            if (tokenId == TokenId::SymLeftParen)
+                parenBalance++;
+            else if (tokenId == TokenId::SymRightParen)
+            {
+                SWC_ASSERT(parenBalance != 0);
+                parenBalance--;
+                if (!parenBalance)
+                    return TokenRef(tokIndex);
+            }
+        }
+
+        return TokenRef::invalid();
+    }
+
     TokenRef moduleApiFunctionBodyEndTokRef(const Ast& ast, const AstFunctionDecl& functionDecl)
     {
         if (!functionDecl.nodeBodyRef.isValid() || ast.isAdditionalNode(functionDecl.nodeBodyRef))
             return TokenRef::invalid();
 
         const AstNode& bodyNode        = ast.node(functionDecl.nodeBodyRef);
+        if (functionDecl.hasFlag(AstFunctionFlagsE::Short))
+        {
+            const TokenRef callEndTokRef = moduleApiCallExprEndTokRef(ast, bodyNode);
+            if (callEndTokRef.isValid())
+                return callEndTokRef;
+        }
+
         TokenRef       bodyStartTokRef = moduleApiSnippetStartTokRef(ast, bodyNode);
         if (!bodyStartTokRef.isValid())
             bodyStartTokRef = bodyNode.tokRef();
@@ -1088,7 +1126,15 @@ namespace
         return node.tokRefEnd(ast);
     }
 
-    bool tryGetModuleApiSnippetStartOffset(const SourceFile& file, AstNodeRef nodeRef, uint32_t& outStartOffset);
+    const SourceView& moduleApiNodeSourceView(TaskContext& ctx, const Ast& ast, const AstNodeRef nodeRef)
+    {
+        const AstNode& node = ast.node(nodeRef);
+        if (node.srcViewRef().isValid())
+            return ctx.compiler().srcView(node.srcViewRef());
+        return ast.srcView();
+    }
+
+    bool tryGetModuleApiSnippetStartOffset(TaskContext& ctx, const SourceFile& file, AstNodeRef nodeRef, uint32_t& outStartOffset);
 
     struct ModuleApiDelimiterBalance
     {
@@ -1185,7 +1231,7 @@ namespace
         }
     }
 
-    bool tryGetModuleApiSnippetOffsets(const SourceFile& file, const AstNodeRef nodeRef, uint32_t& outStartOffset, uint32_t& outEndOffset)
+    bool tryGetModuleApiSnippetOffsets(TaskContext& ctx, const SourceFile& file, const AstNodeRef nodeRef, uint32_t& outStartOffset, uint32_t& outEndOffset)
     {
         outStartOffset = 0;
         outEndOffset   = 0;
@@ -1204,28 +1250,29 @@ namespace
         if (!endTokRef.isValid())
             return false;
 
-        const SourceView& srcView = ast.srcView();
+        const SourceView& srcView = moduleApiNodeSourceView(ctx, ast, nodeRef);
         outStartOffset            = sourceTokenByteStart(srcView, srcView.token(startTokRef));
         outEndOffset              = sourceTokenByteEnd(srcView, srcView.token(endTokRef));
         extendModuleApiSnippetEndOffset(srcView, startTokRef, endTokRef, outEndOffset);
         return true;
     }
 
-    bool tryGetModuleApiSnippetStartOffset(const SourceFile& file, const AstNodeRef nodeRef, uint32_t& outStartOffset)
+    bool tryGetModuleApiSnippetStartOffset(TaskContext& ctx, const SourceFile& file, const AstNodeRef nodeRef, uint32_t& outStartOffset)
     {
         uint32_t endOffset = 0;
-        return tryGetModuleApiSnippetOffsets(file, nodeRef, outStartOffset, endOffset);
+        return tryGetModuleApiSnippetOffsets(ctx, file, nodeRef, outStartOffset, endOffset);
     }
 
-    bool tryGetModuleApiSnippet(const SourceFile& file, const AstNodeRef nodeRef, std::string_view& outSnippet)
+    bool tryGetModuleApiSnippet(TaskContext& ctx, const SourceFile& file, const AstNodeRef nodeRef, std::string_view& outSnippet)
     {
         outSnippet           = {};
         uint32_t startOffset = 0;
         uint32_t endOffset   = 0;
-        if (!tryGetModuleApiSnippetOffsets(file, nodeRef, startOffset, endOffset))
+        if (!tryGetModuleApiSnippetOffsets(ctx, file, nodeRef, startOffset, endOffset))
             return false;
 
-        const std::string_view source = file.sourceView();
+        const SourceView&      srcView = moduleApiNodeSourceView(ctx, file.ast(), nodeRef);
+        const std::string_view source  = srcView.stringView();
         endOffset                     = std::min(endOffset, static_cast<uint32_t>(source.size()));
         while (endOffset > startOffset && std::isspace(static_cast<unsigned char>(source[endOffset - 1])))
             endOffset--;
@@ -1248,7 +1295,7 @@ namespace
         return lhs.startOffset < rhs.startOffset;
     }
 
-    void collectModuleApiPublicStripRanges(const Ast& ast, const AstNodeRef nodeRef, std::vector<ModuleApiStripRange>& outRanges)
+    void collectModuleApiPublicStripRanges(TaskContext& ctx, const Ast& ast, const AstNodeRef nodeRef, std::vector<ModuleApiStripRange>& outRanges)
     {
         if (nodeRef.isInvalid() || ast.isAdditionalNode(nodeRef) || !ast.hasSourceView())
             return;
@@ -1256,13 +1303,13 @@ namespace
         const AstNode& node = ast.node(nodeRef);
         if (const auto* accessNode = node.safeCast<AstAccessModifier>())
         {
-            if (node.tokRef().isValid() && ast.srcView().token(node.tokRef()).id == TokenId::KwdPublic && accessNode->nodeWhatRef.isValid() && ast.hasNode(accessNode->nodeWhatRef))
+            const SourceView& srcView = moduleApiNodeSourceView(ctx, ast, nodeRef);
+            if (node.tokRef().isValid() && srcView.token(node.tokRef()).id == TokenId::KwdPublic && accessNode->nodeWhatRef.isValid() && ast.hasNode(accessNode->nodeWhatRef))
             {
                 const AstNode& childNode        = ast.node(accessNode->nodeWhatRef);
                 const TokenRef childStartTokRef = moduleApiSnippetStartTokRef(ast, childNode);
                 if (childStartTokRef.isValid())
                 {
-                    const SourceView& srcView     = ast.srcView();
                     const uint32_t    startOffset = sourceTokenByteStart(srcView, srcView.token(node.tokRef()));
                     const uint32_t    endOffset   = sourceTokenByteStart(srcView, srcView.token(childStartTokRef));
                     if (startOffset < endOffset)
@@ -1274,7 +1321,7 @@ namespace
         SmallVector<AstNodeRef> childRefs;
         node.collectChildrenFromAst(childRefs, ast);
         for (const AstNodeRef childRef : childRefs)
-            collectModuleApiPublicStripRanges(ast, childRef, outRanges);
+            collectModuleApiPublicStripRanges(ctx, ast, childRef, outRanges);
     }
 
     void normalizeModuleApiStripRanges(std::vector<ModuleApiStripRange>& ioRanges)
@@ -1334,9 +1381,9 @@ namespace
         return tokenId == TokenId::CommentLine || tokenId == TokenId::CommentBlock;
     }
 
-    std::string_view moduleApiLeadingIndentPrefix(const SourceFile& file, const uint32_t startOffset)
+    std::string_view moduleApiLeadingIndentPrefix(const SourceView& srcView, const uint32_t startOffset)
     {
-        const std::string_view source = file.sourceView();
+        const std::string_view source = srcView.stringView();
         if (startOffset >= source.size())
             return {};
 
@@ -1462,10 +1509,11 @@ namespace
         if (snippetText.empty())
             return {};
 
-        const std::string_view indentPrefixToStrip = moduleApiLeadingIndentPrefix(file, startOffset);
+        const SourceView&      snippetSrcView      = moduleApiNodeSourceView(ctx, file.ast(), nodeRef);
+        const std::string_view indentPrefixToStrip = moduleApiLeadingIndentPrefix(snippetSrcView, startOffset);
 
         std::vector<ModuleApiStripRange> stripRanges;
-        collectModuleApiPublicStripRanges(file.ast(), nodeRef, stripRanges);
+        collectModuleApiPublicStripRanges(ctx, file.ast(), nodeRef, stripRanges);
         normalizeModuleApiStripRanges(stripRanges);
         const Utf8 filteredSnippet = stripModuleApiSourceRanges(snippetText, startOffset, stripRanges);
 
@@ -1536,7 +1584,7 @@ namespace
 
         uint32_t startOffset = 0;
         uint32_t endOffset   = 0;
-        if (!tryGetModuleApiSnippetOffsets(*root.file, root.nodeRef, startOffset, endOffset))
+        if (!tryGetModuleApiSnippetOffsets(ctx, *root.file, root.nodeRef, startOffset, endOffset))
             return false;
 
         const Ast& ast = root.file->ast();
@@ -1547,9 +1595,9 @@ namespace
         if (!bodyNode.tokRef().isValid())
             return false;
 
-        const SourceView&      srcView         = ast.srcView();
+        const SourceView&      srcView         = moduleApiNodeSourceView(ctx, ast, root.nodeRef);
         const uint32_t         bodyStartOffset = sourceTokenByteStart(srcView, srcView.token(bodyNode.tokRef()));
-        const std::string_view source          = root.file->sourceView();
+        const std::string_view source          = srcView.stringView();
         if (bodyStartOffset <= startOffset || bodyStartOffset > source.size())
             return false;
 
@@ -1805,6 +1853,43 @@ namespace
         return true;
     }
 
+    bool isModuleApiTypeNameQualifierBoundary(const char c)
+    {
+        return !std::isalnum(static_cast<unsigned char>(c)) && c != '_' && c != '.';
+    }
+
+    Utf8 stripCurrentModuleTypeQualifiers(Utf8 typeName, const std::string_view moduleNamespace)
+    {
+        if (moduleNamespace.empty())
+            return typeName;
+
+        Utf8 prefix;
+        prefix += moduleNamespace;
+        prefix += ".";
+
+        size_t pos = typeName.find(prefix.view());
+        while (pos != std::string_view::npos)
+        {
+            if (pos == 0 || isModuleApiTypeNameQualifierBoundary(typeName[pos - 1]))
+            {
+                typeName.erase(pos, prefix.size());
+                pos = typeName.find(prefix.view(), pos);
+                continue;
+            }
+
+            pos = typeName.find(prefix.view(), pos + prefix.size());
+        }
+
+        return typeName;
+    }
+
+    Utf8 buildGeneratedModuleApiTypeName(TaskContext& ctx, const TypeRef typeRef)
+    {
+        const Utf8 moduleNamespace = buildModuleNamespaceName(ctx.compiler());
+        Utf8       typeName        = ctx.typeMgr().get(typeRef).toFullName(ctx);
+        return stripCurrentModuleTypeQualifiers(std::move(typeName), moduleNamespace.view());
+    }
+
     bool tryBuildFunctionDeclPrefix(TaskContext& ctx, const ModuleApiGeneratedRoot& root, const std::string_view eol, Utf8& outPrefix)
     {
         outPrefix.clear();
@@ -1814,7 +1899,7 @@ namespace
 
         uint32_t startOffset = 0;
         uint32_t endOffset   = 0;
-        if (!tryGetModuleApiSnippetOffsets(*root.file, root.nodeRef, startOffset, endOffset))
+        if (!tryGetModuleApiSnippetOffsets(ctx, *root.file, root.nodeRef, startOffset, endOffset))
             return false;
 
         if (symbolFunction->decl()->isNot(AstNodeId::FunctionDecl))
@@ -1824,7 +1909,8 @@ namespace
         if (tryFindFunctionBodyStartOffset(root, bodyStartOffset))
             endOffset = bodyStartOffset;
 
-        const std::string_view source = root.file->sourceView();
+        const SourceView&      srcView = moduleApiNodeSourceView(ctx, root.file->ast(), root.nodeRef);
+        const std::string_view source  = srcView.stringView();
         endOffset                     = std::min<uint32_t>(endOffset, static_cast<uint32_t>(source.size()));
         while (endOffset > startOffset && std::isspace(static_cast<unsigned char>(source[endOffset - 1])))
             endOffset--;
@@ -1844,7 +1930,7 @@ namespace
                 insertOffset >= startOffset &&
                 insertOffset <= endOffset)
             {
-                const Utf8 returnTypeName = ctx.typeMgr().get(symbolFunction->returnTypeRef()).toName(ctx);
+                const Utf8 returnTypeName = buildGeneratedModuleApiTypeName(ctx, symbolFunction->returnTypeRef());
                 const Utf8 insertion      = std::format("->{} ", returnTypeName.c_str());
                 rawPrefix.insert(insertOffset - startOffset, insertion);
             }
@@ -1919,13 +2005,13 @@ namespace
 
         uint32_t startOffset = 0;
         uint32_t endOffset   = 0;
-        if (!tryGetModuleApiSnippetOffsets(file, implRef, startOffset, endOffset))
+        if (!tryGetModuleApiSnippetOffsets(ctx, file, implRef, startOffset, endOffset))
             return false;
 
         const AstNode&    implNode    = ast.node(implRef);
         const TokenRef    startTokRef = moduleApiSnippetStartTokRef(ast, implNode);
         const TokenRef    endTokRef   = implNode.tokRefEnd(ast);
-        const SourceView& srcView     = ast.srcView();
+        const SourceView& srcView     = moduleApiNodeSourceView(ctx, ast, implRef);
 
         for (uint32_t tokIndex = startTokRef.get(); tokIndex <= endTokRef.get() && tokIndex < srcView.tokens().size(); ++tokIndex)
         {
@@ -1937,7 +2023,7 @@ namespace
             break;
         }
 
-        const std::string_view source = file.sourceView();
+        const std::string_view source = srcView.stringView();
         endOffset                     = std::min<uint32_t>(endOffset, static_cast<uint32_t>(source.size()));
         while (endOffset > startOffset && std::isspace(static_cast<unsigned char>(source[endOffset - 1])))
             endOffset--;
@@ -2038,11 +2124,50 @@ namespace
         return AstNodeRef::invalid();
     }
 
-    uint32_t moduleApiRootSortByte(const SourceFile& file, const AstNodeRef nodeRef)
+    const SymbolImpl* semanticImplContext(const Symbol* symbol)
+    {
+        if (!symbol)
+            return nullptr;
+
+        if (const auto* symbolFunction = symbol->safeCast<SymbolFunction>())
+            return symbolFunction->declImplContext();
+
+        const SymbolMap* ownerSymMap = symbol->ownerSymMap();
+        if (ownerSymMap && ownerSymMap->isImpl())
+            return &ownerSymMap->cast<SymbolImpl>();
+
+        return nullptr;
+    }
+
+    bool tryFindSemanticImplRef(TaskContext& ctx, const ModuleApiGeneratedRoot& root, AstNodeRef& outImplRef, const SourceFile*& outImplFile)
+    {
+        outImplRef  = AstNodeRef::invalid();
+        outImplFile = nullptr;
+
+        const SymbolImpl* symImpl = semanticImplContext(root.symbol);
+        if (!symImpl || !symImpl->decl())
+            return false;
+
+        const SourceFile* implFile = ctx.compiler().ownerSourceFile(symImpl->srcViewRef());
+        if (!implFile)
+            implFile = ctx.compiler().sourceViewFile(*symImpl);
+        if (!implFile)
+            return false;
+
+        AstNodeRef implRef;
+        if (!ModuleApi::Internal::tryFindNodeRef(implFile->ast(), symImpl->decl(), implRef))
+            return false;
+
+        outImplRef  = implRef;
+        outImplFile = implFile;
+        return true;
+    }
+
+    uint32_t moduleApiRootSortByte(TaskContext& ctx, const SourceFile& file, const AstNodeRef nodeRef)
     {
         constexpr uint32_t moduleApiInvalidByte = 0xFFFFFFFFu;
         uint32_t           startOffset          = moduleApiInvalidByte;
-        if (!tryGetModuleApiSnippetStartOffset(file, nodeRef, startOffset))
+        if (!tryGetModuleApiSnippetStartOffset(ctx, file, nodeRef, startOffset))
             return moduleApiInvalidByte;
 
         return startOffset;
@@ -2050,12 +2175,14 @@ namespace
 
     struct ModuleApiRootSortProjection
     {
+        TaskContext*      ctx  = nullptr;
         const SourceFile* file = nullptr;
 
         uint32_t operator()(const ModuleApiPublicEntry& entry) const
         {
+            SWC_ASSERT(ctx != nullptr);
             SWC_ASSERT(file != nullptr);
-            return moduleApiRootSortByte(*file, entry.rootRef);
+            return moduleApiRootSortByte(*ctx, *file, entry.rootRef);
         }
     };
 
@@ -2091,20 +2218,23 @@ namespace
                 continue;
 
             const SourceFile* sourceFile = ctx.compiler().sourceViewFile(*method);
-            if (!sourceFile)
+            const SourceFile* astFile    = ctx.compiler().ownerSourceFile(method->srcViewRef());
+            if (!astFile)
+                astFile = sourceFile;
+            if (!sourceFile || !astFile)
                 continue;
 
             AstNodeRef declRef;
-            if (!ModuleApi::Internal::tryFindNodeRef(sourceFile->ast(), method->decl(), declRef))
+            if (!ModuleApi::Internal::tryFindNodeRef(astFile->ast(), method->decl(), declRef))
                 continue;
 
             ModuleApiGeneratedRoot methodRoot;
-            methodRoot.file    = sourceFile;
-            methodRoot.nodeRef = ModuleApi::Internal::findExportDeclRoot(*sourceFile, declRef);
+            methodRoot.file    = astFile;
+            methodRoot.nodeRef = ModuleApi::Internal::findExportDeclRoot(*astFile, declRef);
             methodRoot.symbol  = method;
             if (methodRoot.nodeRef.isInvalid())
                 continue;
-            if (!ModuleApi::Internal::extractPublicNamespacePath(*method, methodRoot.namespacePath))
+            if (!ModuleApi::Internal::extractPublicNamespacePath(ctx, *astFile, declRef, *method, methodRoot.namespacePath))
                 continue;
 
             appendGeneratedRootUnique(outRoots, std::move(methodRoot));
@@ -2116,12 +2246,16 @@ namespace
         if (fileEntry.publicEntries.empty())
             return;
 
+        const SourceFile* astFile = ctx.compiler().ownerSourceFile(file.ast().srcView().ref());
+        if (!astFile)
+            astFile = &file;
+
         std::vector<ModuleApiPublicEntry> sortedEntries = fileEntry.publicEntries;
-        std::ranges::stable_sort(sortedEntries, {}, ModuleApiRootSortProjection{.file = &file});
+        std::ranges::stable_sort(sortedEntries, {}, ModuleApiRootSortProjection{.ctx = &ctx, .file = astFile});
 
         for (const ModuleApiPublicEntry& publicEntry : sortedEntries)
         {
-            appendGeneratedRootUnique(outRoots, {.file = &file, .nodeRef = publicEntry.rootRef, .symbol = publicEntry.symbol, .namespacePath = publicEntry.namespacePath});
+            appendGeneratedRootUnique(outRoots, {.file = astFile, .nodeRef = publicEntry.rootRef, .symbol = publicEntry.symbol, .namespacePath = publicEntry.namespacePath});
             if (const auto* symbolStruct = publicEntry.symbol ? publicEntry.symbol->safeCast<SymbolStruct>() : nullptr)
                 appendGeneratedGenericRootMethodRoots(ctx, *symbolStruct, outRoots);
         }
@@ -2131,12 +2265,12 @@ namespace
     {
         outSnippet.clear();
         std::string_view snippetText;
-        if (!root.file || !tryGetModuleApiSnippet(*root.file, root.nodeRef, snippetText))
+        if (!root.file || !tryGetModuleApiSnippet(ctx, *root.file, root.nodeRef, snippetText))
             return Result::Continue;
 
         uint32_t startOffset = 0;
         uint32_t endOffset   = 0;
-        if (!tryGetModuleApiSnippetOffsets(*root.file, root.nodeRef, startOffset, endOffset))
+        if (!tryGetModuleApiSnippetOffsets(ctx, *root.file, root.nodeRef, startOffset, endOffset))
             return Result::Continue;
 
         outSnippet = buildSanitizedModuleApiSnippet(ctx, *root.file, root.nodeRef, startOffset, snippetText, eol);
@@ -2343,12 +2477,12 @@ namespace
                 continue;
 
             std::string_view snippetText;
-            if (!tryGetModuleApiSnippet(file, usingRef, snippetText))
+            if (!tryGetModuleApiSnippet(ctx, file, usingRef, snippetText))
                 continue;
 
             uint32_t startOffset = 0;
             uint32_t endOffset   = 0;
-            if (!tryGetModuleApiSnippetOffsets(file, usingRef, startOffset, endOffset))
+            if (!tryGetModuleApiSnippetOffsets(ctx, file, usingRef, startOffset, endOffset))
                 continue;
 
             Utf8 sanitizedSnippet = buildSanitizedModuleApiSnippet(ctx, file, usingRef, startOffset, snippetText, eol);
@@ -2525,7 +2659,31 @@ namespace
         return !outNamespacePath.empty();
     }
 
-    bool appendForwardNamespaceDecls(TaskContext& ctx, Utf8& outContent, std::span<const ModuleApiGeneratedRoot> roots, std::string_view eol)
+    Utf8 buildForwardNamespaceDeclLine(TaskContext& ctx, std::span<const IdentifierRef> namespacePath)
+    {
+        Utf8 result;
+        result += "namespace ";
+        for (size_t i = 0; i < namespacePath.size(); ++i)
+        {
+            if (i)
+                result += ".";
+            result += ctx.idMgr().get(namespacePath[i]).name;
+        }
+
+        result += " {}";
+        return result;
+    }
+
+    void appendForwardNamespaceDeclLine(TaskContext& ctx, Utf8& outContent, std::span<const IdentifierRef> namespacePath, std::string_view eol, std::unordered_set<Utf8>* emittedPreambleLines)
+    {
+        const Utf8 line = buildForwardNamespaceDeclLine(ctx, namespacePath);
+        outContent += line;
+        outContent += eol;
+        if (emittedPreambleLines)
+            emittedPreambleLines->insert(line);
+    }
+
+    bool appendForwardNamespaceDecls(TaskContext& ctx, Utf8& outContent, std::span<const ModuleApiGeneratedRoot> roots, std::string_view eol, std::unordered_set<Utf8>* emittedPreambleLines = nullptr)
     {
         bool                       emitted = false;
         std::unordered_set<Utf8>   emittedPaths;
@@ -2539,16 +2697,7 @@ namespace
                 const Utf8 pathKey = buildNamespacePathKey(ctx, root.namespacePath);
                 if (emittedPaths.insert(pathKey).second)
                 {
-                    outContent += "namespace ";
-                    for (size_t i = 0; i < root.namespacePath.size(); ++i)
-                    {
-                        if (i)
-                            outContent += ".";
-                        outContent += ctx.idMgr().get(root.namespacePath[i]).name;
-                    }
-
-                    outContent += " {}";
-                    outContent += eol;
+                    appendForwardNamespaceDeclLine(ctx, outContent, root.namespacePath, eol, emittedPreambleLines);
                     emitted = true;
                 }
             }
@@ -2562,16 +2711,7 @@ namespace
             if (!emittedPaths.insert(pathKey).second)
                 continue;
 
-            outContent += "namespace ";
-            for (size_t i = 0; i < namespacePath.size(); ++i)
-            {
-                if (i)
-                    outContent += ".";
-                outContent += ctx.idMgr().get(namespacePath[i]).name;
-            }
-
-            outContent += " {}";
-            outContent += eol;
+            appendForwardNamespaceDeclLine(ctx, outContent, namespacePath, eol, emittedPreambleLines);
             emitted = true;
         }
 
@@ -2623,6 +2763,18 @@ namespace
                 if (tryBuildImplPrefix(ctx, *root.file, implRef, eol, implPrefix))
                 {
                     appendOrderedImplSnippet(orderedEntries, root.namespacePath, *root.file, implRef, std::move(implPrefix), std::move(sanitizedSnippet));
+                    continue;
+                }
+            }
+
+            AstNodeRef       semanticImplRef  = AstNodeRef::invalid();
+            const SourceFile* semanticImplFile = nullptr;
+            if (tryFindSemanticImplRef(ctx, root, semanticImplRef, semanticImplFile))
+            {
+                Utf8 implPrefix;
+                if (tryBuildImplPrefix(ctx, *semanticImplFile, semanticImplRef, eol, implPrefix))
+                {
+                    appendOrderedImplSnippet(orderedEntries, root.namespacePath, *semanticImplFile, semanticImplRef, std::move(implPrefix), std::move(sanitizedSnippet));
                     continue;
                 }
             }
@@ -2714,6 +2866,9 @@ namespace
         outContent += eol;
 
         std::unordered_set<Utf8> emittedPreambleLines;
+        if (appendForwardNamespaceDecls(ctx, outContent, roots, eol, &emittedPreambleLines))
+            outContent += eol;
+
         size_t                   rootIndex     = 0;
         bool                     appendedBlock = false;
         while (rootIndex < roots.size())

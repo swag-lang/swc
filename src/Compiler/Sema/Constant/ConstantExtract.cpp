@@ -5,6 +5,7 @@
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Symbol/Symbol.Enum.h"
+#include "Compiler/Sema/Symbol/Symbol.Module.h"
 #include "Compiler/Sema/Symbol/Symbol.Struct.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Compiler/Sema/Type/TypeManager.h"
@@ -62,6 +63,45 @@ namespace
 
         outCstRef = sema.cstMgr().addConstant(ctx, fieldValue);
         return Result::Continue;
+    }
+
+    bool isReflectedRuntimeTypeStringField(const TaskContext& ctx, const SymbolVariable& symVar)
+    {
+        const std::string_view fieldName = symVar.name(ctx);
+        if (fieldName != "fullname" && fieldName != "name")
+            return false;
+
+        const SymbolMap* ownerMap = symVar.ownerSymMap();
+        if (!ownerMap || !ownerMap->isStruct())
+            return false;
+
+        const std::string_view ownerName = ownerMap->name(ctx);
+        return (fieldName == "fullname" && ownerName == "TypeInfo") ||
+               (fieldName == "name" && ownerName == "TypeValue");
+    }
+
+    void stripCurrentModuleFromReflectedStringField(Sema& sema, const SymbolVariable& symVar, ConstantRef& ioCstRef)
+    {
+        if (ioCstRef.isInvalid())
+            return;
+        if (!sema.isCompilerEvalContext())
+            return;
+
+        TaskContext& ctx = sema.ctx();
+        if (!isReflectedRuntimeTypeStringField(ctx, symVar))
+            return;
+
+        const ConstantValue& value = sema.cstMgr().get(ioCstRef);
+        if (!value.isString())
+            return;
+
+        Utf8 strippedValue = TypeInfo::stripModuleQualifiersFromFullName(Utf8{value.getString()}, sema.moduleNamespace().name(ctx));
+        if (strippedValue.view() == value.getString())
+            return;
+
+        const std::string_view storedValue = sema.cstMgr().addString(ctx, strippedValue.view());
+        const ConstantValue    newValue    = ConstantValue::makeString(ctx, storedValue);
+        ioCstRef                          = sema.cstMgr().addConstant(ctx, newValue);
     }
 
     Result failStructMemberType(Sema& sema, const SymbolVariable& symVar, AstNodeRef nodeMemberRef)
@@ -154,6 +194,7 @@ namespace
         outCstRef = ConstantHelpers::materializeStaticPayloadConstant(sema, fieldTypeRef, bytes);
         if (outCstRef.isInvalid())
             return failStructMemberType(sema, symVar, nodeMemberRef);
+        stripCurrentModuleFromReflectedStringField(sema, symVar, outCstRef);
         return Result::Continue;
     }
 }

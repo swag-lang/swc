@@ -139,6 +139,8 @@ func verifyExportAndStaticModules()
     pair.left  = 2
     pair.right = 5
     @assert(pair.left + pair.right == 7)
+    var shortCallOwner: DepShortCallOwner
+    @assert(shortCallOwner.ready())
     @assert(#sizeof(DepPublicWithPrivateField) == 8)
     let publicWithPrivate = makeDepPublicWithPrivateField(41)
     @assert(publicWithPrivate.publicValue == 41)
@@ -163,6 +165,13 @@ func verifyExportAndStaticModules()
     var namespaced: DepTools.DepNamespaced
     namespaced.value = 12
     @assert(namespaced.value == 12)
+    @assert(DepTools.hash32WithGeneratedFullName(namespaced) == 0x10c'u32)
+    @assert(DepTools.DepGeneratedCommandOwner.GeneratedAccept == "DepTools.DepGeneratedCommandOwner.GeneratedAccept")
+
+    var staticInferredDepOwner: StaticInferredDepOwner
+    staticInferredDepOwner.namespaced.value = 15
+    @assert(staticInferredDepOwner.getNamespaced().value == 15)
+
     var ignoredContainer: DepIgnoredContainer
     ignoredContainer.run()
 

@@ -44,7 +44,7 @@ namespace PostRaPeephole
 
                 const MicroInstrDef& info = MicroInstr::info(inst->op);
 
-                const MicroInstrUseDef useDef = inst->collectUseDef(*ctx.operands, nullptr);
+                const MicroInstrUseDef useDef = inst->collectUseDef(*ctx.operands, ctx.encoder);
                 if (regInList(useDef.uses.span(), reg))
                     return false;
                 if (regInList(useDef.defs.span(), reg))
@@ -78,7 +78,7 @@ namespace PostRaPeephole
                 if (!inst)
                     return false;
 
-                const MicroInstrUseDef useDef = inst->collectUseDef(*ctx.operands, nullptr);
+                const MicroInstrUseDef useDef = inst->collectUseDef(*ctx.operands, ctx.encoder);
                 if (regInList(useDef.uses.span(), reg))
                     return true;
                 if (regInList(useDef.defs.span(), reg))
@@ -248,7 +248,7 @@ namespace PostRaPeephole
                 if (!inst)
                     return false;
 
-                const MicroInstrUseDef ud = inst->collectUseDef(*ctx.operands, nullptr);
+                const MicroInstrUseDef ud = inst->collectUseDef(*ctx.operands, ctx.encoder);
                 if (regInList(ud.uses.span(), immReg))
                 {
                     consumerRef = cur;

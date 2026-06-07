@@ -3,6 +3,7 @@
 #if SWC_HAS_UNITTEST
 
 #include "Backend/ABI/CallConv.h"
+#include "Backend/Encoder/X64Encoder.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroPassManager.h"
@@ -13,7 +14,7 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    Result runPostRaPeepholePass(MicroBuilder& builder)
+    Result runPostRaPeepholePass(MicroBuilder& builder, Encoder* encoder = nullptr)
     {
         MicroPostRaPeepholePass pass;
         MicroPassManager        passManager;
@@ -21,7 +22,7 @@ namespace
 
         MicroPassContext passContext;
         passContext.callConvKind = CallConvKind::Swag;
-        return builder.runPasses(passManager, nullptr, passContext);
+        return builder.runPasses(passManager, encoder, passContext);
     }
 
     uint32_t countOpcode(const MicroBuilder& builder, MicroInstrOpcode opcode)
@@ -35,6 +36,25 @@ namespace
 
         return count;
     }
+
+    bool hasLoadRegReg(const MicroBuilder& builder, MicroReg dst, MicroReg src)
+    {
+        const MicroOperandStorage& operands = builder.operands();
+        for (const MicroInstr& inst : builder.instructions().view())
+        {
+            if (inst.op != MicroInstrOpcode::LoadRegReg)
+                continue;
+
+            const MicroInstrOperand* ops = inst.ops(operands);
+            if (!ops)
+                continue;
+
+            if (ops[0].reg == dst && ops[1].reg == src)
+                return true;
+        }
+
+        return false;
+    }
 }
 
 SWC_TEST_BEGIN(PostRAPeephole_Nop_Erased)
@@ -46,6 +66,32 @@ SWC_TEST_BEGIN(PostRAPeephole_Nop_Erased)
     SWC_RESULT(runPostRaPeepholePass(builder));
 
     if (countOpcode(builder, MicroInstrOpcode::Nop) != 0)
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(PostRAPeephole_CopyForward_StopsAtEncoderImplicitDef)
+{
+    constexpr MicroReg rax = MicroReg::intReg(0);
+    constexpr MicroReg rdx = MicroReg::intReg(3);
+    constexpr MicroReg r8  = MicroReg::intReg(8);
+    constexpr MicroReg r9  = MicroReg::intReg(9);
+    constexpr MicroReg r12 = MicroReg::intReg(12);
+
+    MicroBuilder builder(ctx);
+    builder.emitLoadRegMem(r9, r12, 0, MicroOpBits::B64);
+    builder.emitLoadRegImm(rax, ApInt(7, 64), MicroOpBits::B64);
+    builder.emitLoadRegImm(r8, ApInt(11, 64), MicroOpBits::B64);
+    builder.emitOpBinaryRegReg(rax, r8, MicroOp::MultiplyUnsigned, MicroOpBits::B64);
+    builder.emitLoadRegReg(rdx, r9, MicroOpBits::B64);
+    builder.emitLoadRegMem(r9, r12, 8, MicroOpBits::B64);
+    builder.emitRet();
+
+    X64Encoder encoder(ctx);
+    SWC_RESULT(runPostRaPeepholePass(builder, &encoder));
+
+    if (!hasLoadRegReg(builder, rdx, r9))
         return Result::Error;
     return Result::Continue;
 }

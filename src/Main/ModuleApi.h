@@ -39,7 +39,7 @@ namespace ModuleApi
         AstNodeRef findExportDeclRoot(const SourceFile& file, AstNodeRef declRef);
         bool       hasExplicitPublicAccessModifier(const SourceFile& file, AstNodeRef declRef);
         bool       isExportedPublicDeclScope(const SourceFile& file, AstNodeRef declRef, const Symbol& symbol);
-        bool       extractPublicNamespacePath(const Symbol& symbol, std::vector<IdentifierRef>& outNamespacePath);
+        bool       extractPublicNamespacePath(TaskContext& ctx, const SourceFile& file, AstNodeRef declRef, const Symbol& symbol, std::vector<IdentifierRef>& outNamespacePath);
     }
 }
 

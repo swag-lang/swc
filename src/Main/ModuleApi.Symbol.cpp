@@ -59,11 +59,16 @@ namespace ModuleApi
             return;
 
         const SourceFile* sourceFile = ctx.compiler().sourceViewFile(symbol);
-        if (!sourceFile || !isCurrentModuleSourceFile(*sourceFile))
+        const SourceFile* astFile    = ctx.compiler().ownerSourceFile(symbol.srcViewRef());
+        if (!astFile)
+            astFile = sourceFile;
+        if (!sourceFile || !astFile)
+            return;
+        if (!isCurrentModuleSourceFile(*sourceFile) && !isCurrentModuleSourceFile(*astFile))
             return;
         if (!symbol.decl())
             return;
-        if (symbol.isFunction() && symbol.decl()->isNot(AstNodeId::FunctionDecl))
+        if (symbol.isFunction() && symbol.decl()->isNot(AstNodeId::FunctionDecl) && symbol.decl()->isNot(AstNodeId::AttrDecl))
             return;
         if (symbol.isFunction() && symbol.attributes().hasRtFlag(RtAttributeFlagsE::PlaceHolder))
             return;
@@ -71,25 +76,30 @@ namespace ModuleApi
             return;
 
         AstNodeRef declRef;
-        if (!Internal::tryFindNodeRef(sourceFile->ast(), symbol.decl(), declRef))
+        if (!Internal::tryFindNodeRef(astFile->ast(), symbol.decl(), declRef))
+        {
+            if (astFile->ast().hasSourceView() && symbol.srcViewRef() != astFile->ast().srcView().ref())
+                declRef = astFile->ast().tryFindNodeRef(symbol.decl());
+        }
+        if (declRef.isInvalid())
             return;
-        if (!Internal::isExportedPublicDeclScope(*sourceFile, declRef, symbol))
+        if (!Internal::isExportedPublicDeclScope(*astFile, declRef, symbol))
             return;
 
         if (symbol.isVariable())
         {
-            if (Internal::hasExplicitPublicAccessModifier(*sourceFile, declRef))
+            if (Internal::hasExplicitPublicAccessModifier(*astFile, declRef))
                 reportModuleApiPublicGlobalVariable(ctx, symbol);
             return;
         }
 
         ModuleApiPublicEntry publicEntry;
-        publicEntry.rootRef = Internal::findExportDeclRoot(*sourceFile, declRef);
+        publicEntry.rootRef = Internal::findExportDeclRoot(*astFile, declRef);
         publicEntry.symbol  = &symbol;
         if (publicEntry.rootRef.isInvalid())
             return;
 
-        if (!Internal::extractPublicNamespacePath(symbol, publicEntry.namespacePath))
+        if (!Internal::extractPublicNamespacePath(ctx, *astFile, declRef, symbol, publicEntry.namespacePath))
             return;
 
         recordPublicEntry(state, symbol.srcViewRef(), publicEntry);

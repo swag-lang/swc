@@ -48,7 +48,7 @@ namespace PostRaPeephole
                 if (!inst)
                     return false;
 
-                const MicroInstrUseDef useDef = inst->collectUseDef(*ctx.operands, nullptr);
+                const MicroInstrUseDef useDef = inst->collectUseDef(*ctx.operands, ctx.encoder);
                 if (regInList(useDef.uses.span(), reg))
                     return false;
                 if (regInList(useDef.defs.span(), reg))
@@ -131,7 +131,7 @@ namespace PostRaPeephole
                 if (!inst)
                     return false;
 
-                const MicroInstrUseDef ud = inst->collectUseDef(*ctx.operands, nullptr);
+                const MicroInstrUseDef ud = inst->collectUseDef(*ctx.operands, ctx.encoder);
 
                 // Any read or write of `dst` before the copy means `dst`
                 // carries a meaningful value there; retargeting would clobber
@@ -178,7 +178,7 @@ namespace PostRaPeephole
 
         // The producer must write exactly `src` at ops[0], with no other defs
         // and no use of `dst` anywhere in its operands.
-        const MicroInstrUseDef prevUseDef = prev->collectUseDef(*ctx.operands, nullptr);
+        const MicroInstrUseDef prevUseDef = prev->collectUseDef(*ctx.operands, ctx.encoder);
         if (prevUseDef.isCall)
             return false;
         if (prevUseDef.defs.size() != 1 || prevUseDef.defs[0] != src)

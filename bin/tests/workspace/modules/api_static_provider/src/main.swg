@@ -1,4 +1,5 @@
 #global public
+using ExportApi
 
 func depDouble(value: s32)->s32
 {
@@ -25,6 +26,11 @@ struct DepCalculator
     base: s32
 }
 
+struct StaticInferredDepOwner
+{
+    namespaced: DepTools.DepNamespaced
+}
+
 impl DepCalculator
 {
     func make(base: s32)->DepCalculator
@@ -43,4 +49,10 @@ impl DepCalculator
     }
 
     mtd const addTwice(value: s32)->s32 => .add(value) + value
+}
+
+impl StaticInferredDepOwner
+{
+    #[Swag.Inline]
+    mtd getNamespaced() => &.namespaced
 }

@@ -396,8 +396,13 @@ TypeRef NodePayload::getTypeRef(const TaskContext& ctx, AstNodeRef nodeRef) cons
     switch (kind)
     {
         case NodePayloadKind::ConstantRef:
-            value = getConstant(ctx, nodeRef).typeRef();
+        {
+            const ConstantRef cstRef = getConstantRef(ctx, nodeRef);
+            if (cstRef.isInvalid())
+                return TypeRef::invalid();
+            value = ctx.cstMgr().get(cstRef).typeRef();
             break;
+        }
         case NodePayloadKind::TypeRef:
             value = TypeRef{info.ref};
             break;

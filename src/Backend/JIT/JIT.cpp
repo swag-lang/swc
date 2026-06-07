@@ -878,6 +878,25 @@ namespace
         std::memcpy(basePtr + reloc.codeOffset, &targetAddress, sizeof(targetAddress));
     }
 
+    bool isOptionalFunctionRelocationReady(const SymbolFunction& targetFunction)
+    {
+        if (targetFunction.isForeign())
+            return true;
+        if (targetFunction.isCodeGenCompleted())
+            return true;
+        return targetFunction.jitWorkAddress() || targetFunction.jitPatchAddress() || targetFunction.jitEntryAddress();
+    }
+
+    bool shouldLeaveOptionalFunctionRelocationUnresolved(const DataSegmentRelocation& relocation, const SymbolFunction& targetFunction)
+    {
+        if (!relocation.allowUnresolvedFunction)
+            return false;
+        if (targetFunction.hasExtraFlag(SymbolFunctionFlagsE::LazyGenericBodyRunning))
+            return true;
+
+        return !isOptionalFunctionRelocationReady(targetFunction);
+    }
+
     Result patchConstantFunctionRelocationsRec(TaskContext& ctx, JITRelocationPatchContext& patchContext, const SymbolFunction* ownerFunction, const uint32_t shardIndex, const uint32_t sourceOffset)
     {
         DataSegment&          segment = ctx.compiler().cstMgr().shardDataSegment(shardIndex);
@@ -906,17 +925,8 @@ namespace
             if (!relocation.targetSymbol)
                 return Result::Error;
             SymbolFunction& targetFunction = *const_cast<SymbolFunction*>(relocation.targetSymbol);
-            if (relocation.allowUnresolvedFunction && targetFunction.hasExtraFlag(SymbolFunctionFlagsE::LazyGenericBodyRunning))
+            if (shouldLeaveOptionalFunctionRelocationUnresolved(relocation, targetFunction))
                 continue;
-            const SymbolFunction* weakBlocker = ctx.state().weakJitRelocationBlocker;
-            if (relocation.allowUnresolvedFunction &&
-                weakBlocker &&
-                weakBlocker->hasExtraFlag(SymbolFunctionFlagsE::LazyGenericBodyRunning) &&
-                !targetFunction.isCodeGenCompleted() &&
-                !targetFunction.jitWorkAddress())
-            {
-                continue;
-            }
 
             uint64_t                 targetAddress = 0;
             RelocationResolveFailure failure;

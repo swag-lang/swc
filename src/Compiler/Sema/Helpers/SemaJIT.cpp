@@ -351,6 +351,19 @@ namespace
         return prepareJitFunction(sema, *setupFn);
     }
 
+    const SymbolFunction* jitWaiterSymbol(Sema& sema)
+    {
+        const SymbolFunction* currentFn = sema.currentFunction();
+        if (currentFn && SemaRuntime::isCompilerOnlyFunction(sema, *currentFn))
+            return currentFn;
+
+        const SymbolFunction* enclosingFn = sema.frame().enclosingFunction();
+        if (enclosingFn)
+            return enclosingFn;
+
+        return currentFn;
+    }
+
     Result prepareJitFunction(Sema& sema, SymbolFunction& symFn)
     {
         SWC_RESULT(prepareJitSetupRuntimeFunction(sema, symFn));
@@ -419,10 +432,7 @@ namespace
         if (ctx.state().jitEmissionError)
             return reportJitEvaluationFailure(sema, symFn);
 
-        const SymbolFunction* jitWaiter = sema.frame().enclosingFunction();
-        if (!jitWaiter)
-            jitWaiter = sema.currentFunction();
-        SWC_RESULT(SymbolFunction::jitBatch(ctx, stableJitOrder, jitWaiter));
+        SWC_RESULT(SymbolFunction::jitBatch(ctx, stableJitOrder, jitWaiterSymbol(sema)));
 
         if (ctx.state().jitEmissionError || !symFn.jitEntryAddress())
             return reportJitEvaluationFailure(sema, symFn);

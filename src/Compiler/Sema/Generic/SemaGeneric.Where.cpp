@@ -131,6 +131,8 @@ namespace SemaGeneric
 
         GenericConstraintOutcome classifyGenericConstraintOutcome(Sema& sema, const SemaNodeView& whereView)
         {
+            if (!whereView.cstRef().isValid() && !whereView.typeRef().isValid())
+                return {.kind = GenericConstraintOutcomeKind::NotConst};
             if (!whereView.typeRef().isValid() || !whereView.type()->isBool())
                 return {.kind = GenericConstraintOutcomeKind::NotBool, .typeRef = whereView.typeRef()};
             if (!whereView.cstRef().isValid())

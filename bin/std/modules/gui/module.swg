@@ -9,5 +9,5 @@
     cfg.moduleBuildNum  = #swcbuildnum
     cfg.moduleNamespace = "Gui"
     cfg.backendKind     = .SharedLibrary
-    cfg.ignoreInWorkspace = true
+    cfg.ignoreInWorkspace = false
 }

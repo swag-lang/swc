@@ -785,8 +785,9 @@ Result CompilerInstance::ensurePatchedGlobalFunctionBindings(TaskContext& ctx)
     if (patchedGlobalFunctionBindingsVersion_.load(std::memory_order_relaxed) == lockedVersion)
         return Result::Continue;
 
+    const bool patchAllBindings = ctx.state().runJitFunction == nullptr;
     SWC_RESULT(JIT::patchGlobalFunctionVariables(ctx));
-    if (globalFunctionBindingsVersion_.load(std::memory_order_acquire) == lockedVersion)
+    if (patchAllBindings && globalFunctionBindingsVersion_.load(std::memory_order_acquire) == lockedVersion)
         patchedGlobalFunctionBindingsVersion_.store(lockedVersion, std::memory_order_release);
 
     return Result::Continue;

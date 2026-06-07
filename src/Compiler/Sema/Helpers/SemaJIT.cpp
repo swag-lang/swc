@@ -13,6 +13,7 @@
 #include "Compiler/Sema/Helpers/SemaCheck.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
+#include "Compiler/Sema/Helpers/SemaRuntime.h"
 #include "Compiler/Sema/Symbol/Symbols.h"
 #include "Main/CompilerInstance.h"
 
@@ -308,7 +309,8 @@ namespace
     {
         SmallVector<SymbolFunction*> rawOrder;
         symFn.appendJitOrder(rawOrder);
-        appendGlobalFunctionInitJitOrder(sema, rawOrder);
+        if (SemaRuntime::isRuntimeArtifactFunction(sema, symFn))
+            appendGlobalFunctionInitJitOrder(sema, rawOrder);
 
         std::unordered_set<SymbolFunction*> seen;
         out.reserve(rawOrder.size());

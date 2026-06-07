@@ -420,6 +420,15 @@ namespace
     Result buildSanitizedRootSnippet(TaskContext& ctx, Utf8& outSnippet, const ModuleApiGeneratedRoot& root, std::string_view eol);
     bool   isModuleApiDeclWrapper(const AstNode& node);
 
+    bool isAnonymousModuleApiTypeSymbol(const Symbol& symbol)
+    {
+        const auto* symbolStruct = symbol.safeCast<SymbolStruct>();
+        if (!symbolStruct || !symbolStruct->decl())
+            return false;
+
+        return symbolStruct->decl()->is(AstNodeId::AnonymousStructDecl) || symbolStruct->decl()->is(AstNodeId::AnonymousUnionDecl);
+    }
+
     Result validateTypeReferenceSymbol(TaskContext& ctx, const Symbol& ownerSymbol, const Symbol& focusSymbol, std::string_view usage, const Symbol& referencedSymbol, ModuleApiValidationStack& stack)
     {
         if (!isCurrentModuleSymbol(ctx.compiler(), referencedSymbol))
@@ -429,7 +438,12 @@ namespace
             return Result::Continue;
 
         if (!referencedSymbol.isPublic())
+        {
+            if (isAnonymousModuleApiTypeSymbol(referencedSymbol))
+                return validatePublicTypeSymbol(ctx, referencedSymbol, stack);
+
             return reportModuleApiNonPublicTypeReference(ctx, ownerSymbol, focusSymbol, usage, referencedSymbol);
+        }
 
         if (referencedSymbol.isAlias() || referencedSymbol.isStruct() || referencedSymbol.isEnum() || referencedSymbol.isInterface())
             return validatePublicTypeSymbol(ctx, referencedSymbol, stack);
@@ -521,9 +535,6 @@ namespace
         {
             if (!field || field->isIgnored())
                 continue;
-
-            if (!field->isPublic())
-                return reportModuleApiFieldNotPublic(ctx, symbolStruct, *field);
 
             if (!field->typeRef().isValid())
                 continue;

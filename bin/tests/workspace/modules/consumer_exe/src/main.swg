@@ -120,6 +120,10 @@ func verifyExportAndStaticModules()
     pair.left  = 2
     pair.right = 5
     @assert(pair.left + pair.right == 7)
+    @assert(#sizeof(DepPublicWithPrivateField) == 8)
+    let publicWithPrivate = makeDepPublicWithPrivateField(41)
+    @assert(publicWithPrivate.publicValue == 41)
+    @assert(#sizeof(DepPublicWithPrivateInlineUnion) == 12)
 
     var genericLayout: DepGenericLayout's32
     genericLayout.value = 42

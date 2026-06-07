@@ -103,6 +103,61 @@ namespace
         return !ctx.compiler().srcView(function->srcViewRef()).isRuntimeFile();
     }
 
+    void collectGlobalInitRelocationOffsets(const SymbolFunction& function, std::unordered_set<uint64_t>& outOffsets)
+    {
+        const MachineCode& code = function.loweredCode();
+        if (code.bytes.empty())
+            return;
+
+        for (const MicroRelocation& relocation : code.codeRelocations)
+        {
+            if (relocation.kind != MicroRelocation::Kind::GlobalInitAddress)
+                continue;
+
+            outOffsets.insert(relocation.targetAddress);
+        }
+    }
+
+    void collectJitGlobalInitRelocationOffsets(TaskContext& ctx, std::unordered_set<uint64_t>& outOffsets)
+    {
+        const SymbolFunction* runFunction = ctx.state().runJitFunction;
+        if (!runFunction)
+            return;
+
+        SmallVector<SymbolFunction*> functions;
+        runFunction->appendJitOrder(functions);
+
+        if (shouldUseSharedRuntimeSetup(ctx, runFunction))
+        {
+            const IdentifierRef setupIdRef = ctx.idMgr().runtimeFunction(IdentifierManager::RuntimeFunctionKind::SetupRuntime);
+            if (SymbolFunction* setupFn = ctx.compiler().runtimeFunctionSymbol(setupIdRef))
+                setupFn->appendJitOrder(functions);
+        }
+
+        std::unordered_set<const SymbolFunction*> seen;
+        for (const SymbolFunction* function : functions)
+        {
+            if (!function)
+                continue;
+            if (!seen.insert(function).second)
+                continue;
+
+            collectGlobalInitRelocationOffsets(*function, outOffsets);
+        }
+    }
+
+    bool referencesGlobalInitRange(const std::unordered_set<uint64_t>& referencedOffsets, const uint64_t offset, const uint64_t size)
+    {
+        const uint64_t endOffset = offset + std::max<uint64_t>(size, 1);
+        for (const uint64_t referencedOffset : referencedOffsets)
+        {
+            if (referencedOffset >= offset && referencedOffset < endOffset)
+                return true;
+        }
+
+        return false;
+    }
+
     Result synchronizeImportedRuntimeContexts(TaskContext& ctx)
     {
         if (!shouldUseSharedRuntimeSetup(ctx, ctx.state().runJitFunction))
@@ -985,6 +1040,12 @@ Result JIT::patchGlobalFunctionVariables(TaskContext& ctx)
     const TaskScopedContext   scopedContext(ctx);
     const auto                globals = ctx.compiler().nativeGlobalVariablesSnapshot();
     JITRelocationPatchContext patchContext;
+    const bool                patchReferencedGlobalsOnly = ctx.state().runJitFunction != nullptr;
+    std::unordered_set<uint64_t> referencedGlobalInitOffsets;
+
+    if (patchReferencedGlobalsOnly)
+        collectJitGlobalInitRelocationOffsets(ctx, referencedGlobalInitOffsets);
+
     patchContext.resolvedFunctionAddresses.reserve(globals.size());
 
     for (const SymbolVariable* symVar : globals)
@@ -1001,7 +1062,12 @@ Result JIT::patchGlobalFunctionVariables(TaskContext& ctx)
             continue;
 
         const TypeInfo& storageType = ctx.typeMgr().get(symVar->typeRef());
-        SWC_ASSERT(storageType.sizeOf(ctx) == sizeof(uint64_t));
+        const uint64_t  storageSize = storageType.sizeOf(ctx);
+        if (patchReferencedGlobalsOnly &&
+            !referencesGlobalInitRange(referencedGlobalInitOffsets, symVar->offset(), storageSize))
+            continue;
+
+        SWC_ASSERT(storageSize == sizeof(uint64_t));
 
         uint64_t                 targetAddress = 0;
         RelocationResolveFailure failure;

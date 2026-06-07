@@ -14,6 +14,35 @@ struct DepPair
     right: s32
 }
 
+struct DepPublicWithPrivateField
+{
+    publicValue: s32
+
+    moduleprivate
+    {
+        hiddenValue: s32
+    }
+}
+
+struct DepPublicWithPrivateInlineUnion
+{
+    publicValue: s32
+
+    moduleprivate
+    {
+        using bounds: union
+        {
+            signed:   { min: s32, max: s32 } = {0, 0}
+            floating: { min: f32, max: f32 } = {0, 0}
+        }
+    }
+}
+
+func makeDepPublicWithPrivateField(value: s32)->DepPublicWithPrivateField
+{
+    return {publicValue: value, hiddenValue: value + 1}
+}
+
 struct(T) DepGenericLayout
 {
     value: T

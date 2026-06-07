@@ -20,6 +20,13 @@ namespace
         std::vector<DebugInfoConstantRecord> constants;
     };
 
+    constexpr size_t COFF_RELOCATION_OVERFLOW_LIMIT = 0xFFFFu;
+
+    bool needsCoffRelocationOverflow(size_t relocationCount)
+    {
+        return relocationCount >= COFF_RELOCATION_OVERFLOW_LIMIT;
+    }
+
     Utf8 debugDataSymbolName(const TaskContext& ctx, const SymbolVariable& symbol)
     {
         Utf8 key = symbol.getFullScopedName(ctx);
@@ -566,11 +573,13 @@ Result NativeObjFileWriterCoff::flushCoffFile(const fs::path& objPath, std::vect
 
         if (!section.relocations.empty())
         {
-            if (section.relocations.size() > 0xFFFFu)
-                return builder_->reportError(DiagnosticId::cmd_err_native_too_many_coff_relocations);
+            section.hasRelocationOverflow = needsCoffRelocationOverflow(section.relocations.size());
             section.pointerToRelocations = fileOffset;
-            section.numberOfRelocations  = static_cast<uint16_t>(section.relocations.size());
-            fileOffset += static_cast<uint32_t>(section.relocations.size() * sizeof(IMAGE_RELOCATION));
+            section.numberOfRelocations  = section.hasRelocationOverflow ? static_cast<uint16_t>(COFF_RELOCATION_OVERFLOW_LIMIT) : static_cast<uint16_t>(section.relocations.size());
+
+            const size_t relocationRecordCount = section.relocations.size() + (section.hasRelocationOverflow ? 1u : 0u);
+            SWC_ASSERT(relocationRecordCount <= std::numeric_limits<uint32_t>::max() / sizeof(IMAGE_RELOCATION));
+            fileOffset += static_cast<uint32_t>(relocationRecordCount * sizeof(IMAGE_RELOCATION));
             fileOffset = Math::alignUpU32(fileOffset, 4);
         }
     }
@@ -603,6 +612,8 @@ Result NativeObjFileWriterCoff::flushCoffFile(const fs::path& objPath, std::vect
         headerSection.PointerToRelocations = section.pointerToRelocations;
         headerSection.NumberOfRelocations  = section.numberOfRelocations;
         headerSection.Characteristics      = section.data.characteristics;
+        if (section.hasRelocationOverflow)
+            headerSection.Characteristics |= IMAGE_SCN_LNK_NRELOC_OVFL;
         std::memcpy(fileData.data() + sectionHeaderOffset, &headerSection, sizeof(headerSection));
         sectionHeaderOffset += sizeof(IMAGE_SECTION_HEADER);
     }
@@ -616,6 +627,17 @@ Result NativeObjFileWriterCoff::flushCoffFile(const fs::path& objPath, std::vect
             continue;
 
         uint32_t relocOffset = section.pointerToRelocations;
+        if (section.hasRelocationOverflow)
+        {
+            const size_t relocationRecordCount = section.relocations.size() + 1;
+            SWC_ASSERT(relocationRecordCount <= std::numeric_limits<DWORD>::max());
+
+            IMAGE_RELOCATION relocRecord{};
+            relocRecord.RelocCount = static_cast<DWORD>(relocationRecordCount);
+            std::memcpy(fileData.data() + relocOffset, &relocRecord, sizeof(relocRecord));
+            relocOffset += sizeof(IMAGE_RELOCATION);
+        }
+
         for (const auto& relocation : section.relocations)
         {
             const auto it = symbolIndices.find(relocation.symbolName);

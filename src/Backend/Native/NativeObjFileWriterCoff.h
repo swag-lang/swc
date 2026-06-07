@@ -31,6 +31,7 @@ private:
         uint32_t                             pointerToRelocations = 0;
         uint16_t                             numberOfRelocations  = 0;
         uint32_t                             sizeOfRawData        = 0;
+        bool                                 hasRelocationOverflow = false;
     };
 
     struct CoffStringTable

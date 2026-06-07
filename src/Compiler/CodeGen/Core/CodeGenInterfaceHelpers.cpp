@@ -51,12 +51,12 @@ bool CodeGenInterfaceHelpers::resolveInterfaceCastInfo(CodeGen& codeGen, const S
     return false;
 }
 
-Result CodeGenInterfaceHelpers::loadInterfaceMethodTableAddress(MicroReg& outReg, CodeGen& codeGen, const InterfaceCastInfo& castInfo)
+Result CodeGenInterfaceHelpers::prepareInterfaceMethodTable(ConstantRef& outRef, CodeGen& codeGen, const InterfaceCastInfo& castInfo)
 {
     SWC_ASSERT(castInfo.implSym != nullptr);
-    ConstantRef tableCstRef = ConstantRef::invalid();
-    SWC_RESULT(castInfo.implSym->ensureInterfaceMethodTable(codeGen.sema(), tableCstRef));
-    SWC_ASSERT(tableCstRef.isValid());
+    outRef = ConstantRef::invalid();
+    SWC_RESULT(castInfo.implSym->ensureInterfaceMethodTable(codeGen.sema(), outRef));
+    SWC_ASSERT(outRef.isValid());
 
     if (const SymbolInterface* interfaceSym = castInfo.implSym->symInterface())
     {
@@ -69,11 +69,16 @@ Result CodeGenInterfaceHelpers::loadInterfaceMethodTableAddress(MicroReg& outReg
         }
     }
 
+    return Result::Continue;
+}
+
+void CodeGenInterfaceHelpers::emitLoadInterfaceMethodTableAddress(MicroReg& outReg, CodeGen& codeGen, const ConstantRef tableCstRef)
+{
+    SWC_ASSERT(tableCstRef.isValid());
     const ConstantValue& tableCst = codeGen.cstMgr().get(tableCstRef);
     SWC_ASSERT(tableCst.isArray());
     outReg = codeGen.nextVirtualIntRegister();
     codeGen.builder().emitLoadRegPtrReloc(outReg, reinterpret_cast<uint64_t>(tableCst.getArray().data()), tableCstRef);
-    return Result::Continue;
 }
 
 SWC_END_NAMESPACE();

@@ -21,6 +21,25 @@ struct CtxSelfBufferWrapper
 
 func keepDepScore(score: IDepScore)->IDepScore => score
 
+func verifyImportedInterfaceTablePreparation()
+{
+    let objectType    = #typeof(DepTableScore{})
+    let objectInfo    = cast(const *Swag.TypeInfoStruct) objectType
+    let interfaceInfo = cast(const *Swag.TypeInfoStruct) #typeof(IDepTableScore)
+    let table         = @tableof(objectInfo, interfaceInfo)
+    @assert(table != null)
+
+    var dynamicScore = @mkinterface(null, objectType, IDepTableScore)
+    let runtimeScore = cast(*Swag.Interface) &dynamicScore
+    @assert(runtimeScore != null)
+    @assert(runtimeScore.itable == table)
+    @assert(cast(const *Swag.TypeInfoStruct) dref runtimeScore.itable == objectInfo)
+
+    var concreteScore = DepTableScore{value: 32}
+    var castScore: IDepTableScore = concreteScore
+    @assert(castScore.score() == 32)
+}
+
 func verifyImportedGenericRootMethodSema()
 {
     var scratchRng = DepSharedRng.Rng.makeScratch'DepSharedRng.MWC()
@@ -327,6 +346,7 @@ func verifyRuntimeContext()
 #main
 {
     verifyExportAndStaticModules()
+    verifyImportedInterfaceTablePreparation()
     verifyImportedGenericRootMethodSema()
     verifyImportedClosureCallbacks()
     verifyDllAbiCalls()

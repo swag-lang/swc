@@ -7,6 +7,7 @@
 #include "Backend/Native/NativeArtifactBuilder.h"
 #include "Backend/Native/NativeBackendBuilder.h"
 #include "Backend/Native/NativeLinkerCoff.h"
+#include "Backend/Native/NativeObjFileWriter.h"
 #include "Backend/Runtime.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Constant/ConstantValue.h"
@@ -124,6 +125,35 @@ namespace
         const auto* begin = reinterpret_cast<const char*>(bytes.data());
         const auto* end   = begin + bytes.size();
         return std::search(begin, end, value.begin(), value.end()) != end;
+    }
+
+    std::vector<std::byte> readBinaryFile(const fs::path& path)
+    {
+        std::ifstream file(path, std::ios::binary | std::ios::ate);
+        if (!file.is_open())
+            return {};
+
+        const std::streamsize fileSize = file.tellg();
+        if (fileSize < 0)
+            return {};
+
+        std::vector<std::byte> bytes(static_cast<size_t>(fileSize));
+        file.seekg(0);
+        file.read(reinterpret_cast<char*>(bytes.data()), fileSize);
+        if (!file.good())
+            return {};
+
+        return bytes;
+    }
+
+    template<typename T>
+    bool readBinaryRecord(T& outRecord, const std::vector<std::byte>& bytes, size_t offset)
+    {
+        if (offset > bytes.size() || sizeof(T) > bytes.size() - offset)
+            return false;
+
+        std::memcpy(&outRecord, bytes.data() + offset, sizeof(T));
+        return true;
     }
 
     SymbolFunction* makeTestFunction(TaskContext& ctx, std::string_view name)
@@ -436,6 +466,70 @@ SWC_TEST_BEGIN(NativeArtifact_LinkerOutputFilterSuppressesDllImportLibraryLine)
         return Result::Error;
     if (!NativeLinkerCoff::shouldForwardLinkerOutputLine("Creating library_without_object_message", true))
         return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_FILESYSTEM_TEST_BEGIN(NativeArtifact_CoffWriterUsesExtendedRelocations)
+{
+    static constexpr uint32_t RELOCATION_COUNT = 0xFFFF;
+
+    const CommandLine commandLine = makeStandaloneNativeArtifactCmdLine("coff_writer_uses_extended_relocations", Runtime::BuildCfgBackendKind::SharedLibrary);
+    const NativeArtifactTestFixture fixture(ctx.global(), commandLine);
+
+    MachineCode code;
+    code.bytes.resize(sizeof(uint64_t), std::byte{0});
+    code.codeRelocations.reserve(RELOCATION_COUNT);
+    for (uint32_t relocationIndex = 0; relocationIndex < RELOCATION_COUNT; relocationIndex++)
+    {
+        code.codeRelocations.push_back({
+            .kind          = MicroRelocation::Kind::GlobalInitAddress,
+            .codeOffset    = 0,
+            .targetAddress = 0,
+        });
+    }
+    addNativeFunctionInfo(*fixture.nativeBuilder, *fixture.compilerCtx, code, "coff_extended_relocations");
+
+    NativeObjDescription description;
+    description.objPath = fixture.cmdLine.workDir / "coff_extended_relocations.obj";
+    description.functions.push_back(&fixture.nativeBuilder->functionInfos.back());
+    fs::create_directories(description.objPath.parent_path());
+
+    const auto objectWriter = NativeObjFileWriter::create(*fixture.nativeBuilder);
+    SWC_RESULT(objectWriter->writeObjectFile(description));
+
+    const std::vector<std::byte> objectBytes = readBinaryFile(description.objPath);
+    if (objectBytes.empty())
+        return failNativeArtifactTest("NativeArtifact_CoffWriterUsesExtendedRelocations", "object file was not written");
+
+    IMAGE_FILE_HEADER fileHeader{};
+    if (!readBinaryRecord(fileHeader, objectBytes, 0))
+        return failNativeArtifactTest("NativeArtifact_CoffWriterUsesExtendedRelocations", "missing file header");
+    if (fileHeader.NumberOfSections == 0)
+        return failNativeArtifactTest("NativeArtifact_CoffWriterUsesExtendedRelocations", "missing section header");
+
+    IMAGE_SECTION_HEADER textHeader{};
+    if (!readBinaryRecord(textHeader, objectBytes, sizeof(IMAGE_FILE_HEADER)))
+        return failNativeArtifactTest("NativeArtifact_CoffWriterUsesExtendedRelocations", "missing text section header");
+    if (std::memcmp(textHeader.Name, ".text", 5) != 0)
+        return failNativeArtifactTest("NativeArtifact_CoffWriterUsesExtendedRelocations", "first section is not .text");
+    if (textHeader.NumberOfRelocations != 0xFFFF)
+        return failNativeArtifactTest("NativeArtifact_CoffWriterUsesExtendedRelocations", "section relocation count was not saturated");
+    if ((textHeader.Characteristics & IMAGE_SCN_LNK_NRELOC_OVFL) == 0)
+        return failNativeArtifactTest("NativeArtifact_CoffWriterUsesExtendedRelocations", "extended relocation flag is missing");
+
+    IMAGE_RELOCATION overflowRecord{};
+    if (!readBinaryRecord(overflowRecord, objectBytes, textHeader.PointerToRelocations))
+        return failNativeArtifactTest("NativeArtifact_CoffWriterUsesExtendedRelocations", "missing overflow relocation record");
+    if (overflowRecord.RelocCount != RELOCATION_COUNT + 1)
+        return failNativeArtifactTest("NativeArtifact_CoffWriterUsesExtendedRelocations", "unexpected overflow relocation count");
+    if (overflowRecord.SymbolTableIndex != 0 || overflowRecord.Type != 0)
+        return failNativeArtifactTest("NativeArtifact_CoffWriterUsesExtendedRelocations", "overflow relocation record is not empty");
+
+    IMAGE_RELOCATION firstRelocation{};
+    if (!readBinaryRecord(firstRelocation, objectBytes, textHeader.PointerToRelocations + sizeof(IMAGE_RELOCATION)))
+        return failNativeArtifactTest("NativeArtifact_CoffWriterUsesExtendedRelocations", "missing first real relocation");
+    if (firstRelocation.VirtualAddress != 0 || firstRelocation.Type != IMAGE_REL_AMD64_ADDR64)
+        return failNativeArtifactTest("NativeArtifact_CoffWriterUsesExtendedRelocations", "unexpected first relocation payload");
 }
 SWC_TEST_END()
 

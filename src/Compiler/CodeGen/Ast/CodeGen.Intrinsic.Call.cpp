@@ -86,6 +86,21 @@ namespace
         InterfaceCastInfo castInfo;
     };
 
+    struct PreparedInterfaceMakeRuntimeCandidate
+    {
+        ConstantRef       objectTypeCstRef     = ConstantRef::invalid();
+        ConstantRef       interfaceTableCstRef = ConstantRef::invalid();
+        InterfaceCastInfo castInfo;
+    };
+
+    struct PreparedInterfaceTableRuntimeCandidate
+    {
+        ConstantRef       objectTypeCstRef     = ConstantRef::invalid();
+        ConstantRef       interfaceTypeCstRef  = ConstantRef::invalid();
+        ConstantRef       interfaceTableCstRef = ConstantRef::invalid();
+        InterfaceCastInfo castInfo;
+    };
+
     void collectRuntimeInterfaceSymbolsRec(const SymbolMap& symbolMap, SmallVector<const SymbolInterface*>& outSymbols, std::unordered_set<const SymbolInterface*>& seenSymbols)
     {
         std::vector<const Symbol*> symbols;
@@ -302,7 +317,16 @@ namespace
         return codeGen.viewType(nodeRef).typeRef();
     }
 
+    using CodeGenInterfaceHelpers::prepareInterfaceMethodTable;
     using CodeGenInterfaceHelpers::resolveInterfaceCastInfo;
+
+    Result prepareTypeInfoValuePointer(ConstantRef& outRef, CodeGen& codeGen, TypeRef typeRef, AstNodeRef ownerNodeRef)
+    {
+        SWC_RESULT(codeGen.cstMgr().makeTypeInfo(codeGen.sema(), outRef, typeRef, ownerNodeRef));
+        const ConstantValue& typeInfoCst = codeGen.cstMgr().get(outRef);
+        SWC_ASSERT(typeInfoCst.isValuePointer());
+        return Result::Continue;
+    }
 
     void collectMakeInterfaceRuntimeCandidatesRec(CodeGen& codeGen, const SymbolMap& symbolMap, const SymbolInterface& dstItf, SmallVector<InterfaceMakeRuntimeCandidate>& outCandidates)
     {
@@ -397,7 +421,7 @@ namespace
         return codeGen.typeMgr().get(resolvedTypeRef).unwrapAliasEnum(codeGen.ctx(), resolvedTypeRef);
     }
 
-    using CodeGenInterfaceHelpers::loadInterfaceMethodTableAddress;
+    using CodeGenInterfaceHelpers::emitLoadInterfaceMethodTableAddress;
 
     MicroReg materializeInterfaceObjectPointer(CodeGen& codeGen, const CodeGenNodePayload& objectPayload, TypeRef objectValueTypeRef, const MicroReg runtimeStorageReg, const uint64_t objectSpillOffset)
     {
@@ -433,7 +457,7 @@ namespace
         return spillReg;
     }
 
-    Result emitMakeInterfaceValue(CodeGen& codeGen, const SymbolInterface& interfaceSym, const InterfaceCastInfo& castInfo, const CodeGenNodePayload& objectPayload, TypeRef objectValueTypeRef, const MicroReg runtimeStorageReg, const uint64_t objectSpillOffset)
+    Result emitMakeInterfaceValue(CodeGen& codeGen, const SymbolInterface& interfaceSym, const InterfaceCastInfo& castInfo, ConstantRef interfaceTableCstRef, const CodeGenNodePayload& objectPayload, TypeRef objectValueTypeRef, const MicroReg runtimeStorageReg, const uint64_t objectSpillOffset)
     {
         MicroBuilder&   builder         = codeGen.builder();
         const TypeInfo& objectValueType = codeGen.typeMgr().get(objectValueTypeRef);
@@ -466,7 +490,7 @@ namespace
 
         builder.emitLoadMemReg(runtimeStorageReg, offsetof(Runtime::Interface, obj), objectReg, MicroOpBits::B64);
         MicroReg itableReg = MicroReg::invalid();
-        SWC_RESULT(loadInterfaceMethodTableAddress(itableReg, codeGen, castInfo));
+        emitLoadInterfaceMethodTableAddress(itableReg, codeGen, interfaceTableCstRef);
         builder.emitLoadMemReg(runtimeStorageReg, offsetof(Runtime::Interface, itable), itableReg, MicroOpBits::B64);
         return Result::Continue;
     }
@@ -764,17 +788,23 @@ namespace
 
         SWC_ASSERT(resultType.isInterface());
         SWC_ASSERT(interfaceSize <= std::numeric_limits<uint32_t>::max());
-        CodeGenMemoryHelpers::emitMemZero(codeGen, runtimeStorageReg, interfaceSize);
 
+        InterfaceCastInfo directCastInfo;
+        ConstantRef       directInterfaceTableCstRef = ConstantRef::invalid();
+        bool              hasDirectCastInfo          = false;
         if (objectTypeRef.isValid())
         {
             const TypeInfo& concreteObjectType = codeGen.typeMgr().get(objectTypeRef);
             if (concreteObjectType.isStruct())
             {
-                InterfaceCastInfo castInfo;
-                if (resolveInterfaceCastInfo(codeGen, concreteObjectType.payloadSymStruct(), resultType.payloadSymInterface(), castInfo))
-                    SWC_RESULT(emitMakeInterfaceValue(codeGen, resultType.payloadSymInterface(), castInfo, objectPayload, objectValueTypeRef, runtimeStorageReg, objectSpillOff));
+                hasDirectCastInfo = resolveInterfaceCastInfo(codeGen, concreteObjectType.payloadSymStruct(), resultType.payloadSymInterface(), directCastInfo);
+                if (hasDirectCastInfo)
+                    SWC_RESULT(prepareInterfaceMethodTable(directInterfaceTableCstRef, codeGen, directCastInfo));
             }
+
+            CodeGenMemoryHelpers::emitMemZero(codeGen, runtimeStorageReg, interfaceSize);
+            if (hasDirectCastInfo)
+                SWC_RESULT(emitMakeInterfaceValue(codeGen, resultType.payloadSymInterface(), directCastInfo, directInterfaceTableCstRef, objectPayload, objectValueTypeRef, runtimeStorageReg, objectSpillOff));
 
             codeGen.setPayloadAddressReg(codeGen.curNodeRef(), runtimeStorageReg, resultTypeRef);
             return Result::Continue;
@@ -784,24 +814,37 @@ namespace
         if (const SymbolModule* rootModule = codeGen.compiler().symModule())
             collectMakeInterfaceRuntimeCandidatesRec(codeGen, *rootModule, resultType.payloadSymInterface(), candidates);
 
-        if (!candidates.empty())
+        SmallVector<PreparedInterfaceMakeRuntimeCandidate> preparedCandidates;
+        preparedCandidates.reserve(candidates.size());
+        for (const auto& candidate : candidates)
+        {
+            ConstantRef objectTypeCstRef = ConstantRef::invalid();
+            SWC_RESULT(prepareTypeInfoValuePointer(objectTypeCstRef, codeGen, candidate.objectTypeRef, typeRefNode));
+
+            ConstantRef interfaceTableCstRef = ConstantRef::invalid();
+            SWC_RESULT(prepareInterfaceMethodTable(interfaceTableCstRef, codeGen, candidate.castInfo));
+
+            preparedCandidates.push_back({.objectTypeCstRef = objectTypeCstRef, .interfaceTableCstRef = interfaceTableCstRef, .castInfo = candidate.castInfo});
+        }
+
+        CodeGenMemoryHelpers::emitMemZero(codeGen, runtimeStorageReg, interfaceSize);
+
+        if (!preparedCandidates.empty())
         {
             const MicroReg      typeInfoReg = materializeIntrinsicIntArgReg(codeGen, typePayload, MicroOpBits::B64);
             const MicroLabelRef doneLabel   = builder.createLabel();
 
-            for (const auto& candidate : candidates)
+            for (const auto& candidate : preparedCandidates)
             {
-                ConstantRef typeInfoCstRef = ConstantRef::invalid();
-                SWC_RESULT(codeGen.cstMgr().makeTypeInfo(codeGen.sema(), typeInfoCstRef, candidate.objectTypeRef, typeRefNode));
-                const ConstantValue& typeInfoCst = codeGen.cstMgr().get(typeInfoCstRef);
+                const ConstantValue& typeInfoCst = codeGen.cstMgr().get(candidate.objectTypeCstRef);
                 SWC_ASSERT(typeInfoCst.isValuePointer());
 
                 const MicroLabelRef nextLabel        = builder.createLabel();
                 const MicroReg      candidateTypeReg = codeGen.nextVirtualIntRegister();
-                builder.emitLoadRegPtrReloc(candidateTypeReg, typeInfoCst.getValuePointer(), typeInfoCstRef);
+                builder.emitLoadRegPtrReloc(candidateTypeReg, typeInfoCst.getValuePointer(), candidate.objectTypeCstRef);
                 builder.emitCmpRegReg(typeInfoReg, candidateTypeReg, MicroOpBits::B64);
                 builder.emitJumpToLabel(MicroCond::NotEqual, MicroOpBits::B32, nextLabel);
-                SWC_RESULT(emitMakeInterfaceValue(codeGen, resultType.payloadSymInterface(), candidate.castInfo, objectPayload, objectValueTypeRef, runtimeStorageReg, objectSpillOff));
+                SWC_RESULT(emitMakeInterfaceValue(codeGen, resultType.payloadSymInterface(), candidate.castInfo, candidate.interfaceTableCstRef, objectPayload, objectValueTypeRef, runtimeStorageReg, objectSpillOff));
                 builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, doneLabel);
                 builder.placeLabel(nextLabel);
             }
@@ -858,52 +901,66 @@ namespace
         codeGen.ast().appendNodes(children, node.spanChildrenRef);
         SWC_ASSERT(children.size() == 2);
 
-        const MicroReg objectTypeReg    = materializeIntrinsicIntArgReg(codeGen, codeGen.payload(children[0]), MicroOpBits::B64);
-        const MicroReg interfaceTypeReg = materializeIntrinsicIntArgReg(codeGen, codeGen.payload(children[1]), MicroOpBits::B64);
-        const TypeRef  resultTypeRef    = codeGen.curViewType().typeRef();
-
-        const CodeGenNodePayload& resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), resultTypeRef);
-        MicroBuilder&             builder       = codeGen.builder();
-        builder.emitLoadRegImm(resultPayload.reg, ApInt(0, 64), MicroOpBits::B64);
+        const TypeRef resultTypeRef = codeGen.curViewType().typeRef();
 
         SmallVector<const SymbolInterface*>        interfaces;
         std::unordered_set<const SymbolInterface*> seenInterfaces;
         if (const SymbolModule* rootModule = codeGen.compiler().symModule())
             collectRuntimeInterfaceSymbolsRec(*rootModule, interfaces, seenInterfaces);
-        if (interfaces.empty())
-            return Result::Continue;
 
         SmallVector<InterfaceTableRuntimeCandidate> candidates;
-        if (const SymbolModule* rootModule = codeGen.compiler().symModule())
+        if (!interfaces.empty())
+        {
+            const SymbolModule* rootModule = codeGen.compiler().symModule();
+            SWC_ASSERT(rootModule != nullptr);
             collectTableOfRuntimeCandidatesRec(codeGen, *rootModule, interfaces.span(), candidates);
-        if (candidates.empty())
-            return Result::Continue;
+        }
 
-        const MicroLabelRef doneLabel = builder.createLabel();
+        SmallVector<PreparedInterfaceTableRuntimeCandidate> preparedCandidates;
+        preparedCandidates.reserve(candidates.size());
         for (const auto& candidate : candidates)
         {
             ConstantRef objectTypeCstRef = ConstantRef::invalid();
-            SWC_RESULT(codeGen.cstMgr().makeTypeInfo(codeGen.sema(), objectTypeCstRef, candidate.objectTypeRef, children[0]));
-            const ConstantValue& objectTypeCst = codeGen.cstMgr().get(objectTypeCstRef);
-            SWC_ASSERT(objectTypeCst.isValuePointer());
+            SWC_RESULT(prepareTypeInfoValuePointer(objectTypeCstRef, codeGen, candidate.objectTypeRef, children[0]));
 
             ConstantRef interfaceTypeCstRef = ConstantRef::invalid();
-            SWC_RESULT(codeGen.cstMgr().makeTypeInfo(codeGen.sema(), interfaceTypeCstRef, candidate.interfaceTypeRef, children[1]));
-            const ConstantValue& interfaceTypeCst = codeGen.cstMgr().get(interfaceTypeCstRef);
+            SWC_RESULT(prepareTypeInfoValuePointer(interfaceTypeCstRef, codeGen, candidate.interfaceTypeRef, children[1]));
+
+            ConstantRef interfaceTableCstRef = ConstantRef::invalid();
+            SWC_RESULT(prepareInterfaceMethodTable(interfaceTableCstRef, codeGen, candidate.castInfo));
+
+            preparedCandidates.push_back({.objectTypeCstRef = objectTypeCstRef, .interfaceTypeCstRef = interfaceTypeCstRef, .interfaceTableCstRef = interfaceTableCstRef, .castInfo = candidate.castInfo});
+        }
+
+        const CodeGenNodePayload& resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), resultTypeRef);
+        MicroBuilder&             builder       = codeGen.builder();
+        builder.emitLoadRegImm(resultPayload.reg, ApInt(0, 64), MicroOpBits::B64);
+        if (preparedCandidates.empty())
+            return Result::Continue;
+
+        const MicroReg      objectTypeReg    = materializeIntrinsicIntArgReg(codeGen, codeGen.payload(children[0]), MicroOpBits::B64);
+        const MicroReg      interfaceTypeReg = materializeIntrinsicIntArgReg(codeGen, codeGen.payload(children[1]), MicroOpBits::B64);
+        const MicroLabelRef doneLabel = builder.createLabel();
+        for (const auto& candidate : preparedCandidates)
+        {
+            const ConstantValue& objectTypeCst = codeGen.cstMgr().get(candidate.objectTypeCstRef);
+            SWC_ASSERT(objectTypeCst.isValuePointer());
+
+            const ConstantValue& interfaceTypeCst = codeGen.cstMgr().get(candidate.interfaceTypeCstRef);
             SWC_ASSERT(interfaceTypeCst.isValuePointer());
 
             const MicroLabelRef nextLabel          = builder.createLabel();
             const MicroReg      candidateObjectReg = codeGen.nextVirtualIntRegister();
             const MicroReg      candidateItfReg    = codeGen.nextVirtualIntRegister();
-            builder.emitLoadRegPtrReloc(candidateObjectReg, objectTypeCst.getValuePointer(), objectTypeCstRef);
+            builder.emitLoadRegPtrReloc(candidateObjectReg, objectTypeCst.getValuePointer(), candidate.objectTypeCstRef);
             builder.emitCmpRegReg(objectTypeReg, candidateObjectReg, MicroOpBits::B64);
             builder.emitJumpToLabel(MicroCond::NotEqual, MicroOpBits::B32, nextLabel);
-            builder.emitLoadRegPtrReloc(candidateItfReg, interfaceTypeCst.getValuePointer(), interfaceTypeCstRef);
+            builder.emitLoadRegPtrReloc(candidateItfReg, interfaceTypeCst.getValuePointer(), candidate.interfaceTypeCstRef);
             builder.emitCmpRegReg(interfaceTypeReg, candidateItfReg, MicroOpBits::B64);
             builder.emitJumpToLabel(MicroCond::NotEqual, MicroOpBits::B32, nextLabel);
 
             MicroReg tableReg = MicroReg::invalid();
-            SWC_RESULT(loadInterfaceMethodTableAddress(tableReg, codeGen, candidate.castInfo));
+            emitLoadInterfaceMethodTableAddress(tableReg, codeGen, candidate.interfaceTableCstRef);
             builder.emitLoadRegReg(resultPayload.reg, tableReg, MicroOpBits::B64);
             builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, doneLabel);
             builder.placeLabel(nextLabel);

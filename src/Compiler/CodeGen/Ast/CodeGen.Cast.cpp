@@ -82,7 +82,8 @@ namespace
         return storageTypeRef;
     }
 
-    using CodeGenInterfaceHelpers::loadInterfaceMethodTableAddress;
+    using CodeGenInterfaceHelpers::emitLoadInterfaceMethodTableAddress;
+    using CodeGenInterfaceHelpers::prepareInterfaceMethodTable;
     using CodeGenInterfaceHelpers::resolveInterfaceCastInfo;
 
     bool anyCastAsValueBits(CodeGen& codeGen, TypeRef typeRef, MicroOpBits& outBits)
@@ -1565,6 +1566,9 @@ namespace
             SWC_ASSERT(hasCastInfo);
             SWC_ASSERT(castInfo.implSym != nullptr);
 
+            ConstantRef interfaceTableCstRef = ConstantRef::invalid();
+            SWC_RESULT(prepareInterfaceMethodTable(interfaceTableCstRef, codeGen, castInfo));
+
             constexpr uint64_t interfaceStorageSize = sizeof(Runtime::Interface);
             const bool         sourceIsPointerLike  = resolvedSrcType.isAnyPointer() || resolvedSrcType.isReference() || resolvedSrcType.isMoveReference();
 
@@ -1629,7 +1633,7 @@ namespace
             builder.emitLoadMemReg(runtimeItfReg, offsetof(Runtime::Interface, obj), objectReg, MicroOpBits::B64);
 
             MicroReg itableReg = MicroReg::invalid();
-            SWC_RESULT(loadInterfaceMethodTableAddress(itableReg, codeGen, castInfo));
+            emitLoadInterfaceMethodTableAddress(itableReg, codeGen, interfaceTableCstRef);
             builder.emitLoadMemReg(runtimeItfReg, offsetof(Runtime::Interface, itable), itableReg, MicroOpBits::B64);
 
             codeGen.setPayloadAddressReg(codeGen.curNodeRef(), runtimeItfReg, dstTypeRef);

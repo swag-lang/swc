@@ -1,6 +1,7 @@
 #pragma once
 #include "Backend/Micro/MicroReg.h"
 #include "Support/Core/Result.h"
+#include "Support/Core/RefTypes.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -21,7 +22,8 @@ namespace CodeGenInterfaceHelpers
     };
 
     bool   resolveInterfaceCastInfo(CodeGen& codeGen, const SymbolStruct& srcStruct, const SymbolInterface& dstItf, InterfaceCastInfo& outInfo);
-    Result loadInterfaceMethodTableAddress(MicroReg& outReg, CodeGen& codeGen, const InterfaceCastInfo& castInfo);
+    Result prepareInterfaceMethodTable(ConstantRef& outRef, CodeGen& codeGen, const InterfaceCastInfo& castInfo);
+    void   emitLoadInterfaceMethodTableAddress(MicroReg& outReg, CodeGen& codeGen, ConstantRef tableCstRef);
 }
 
 SWC_END_NAMESPACE();

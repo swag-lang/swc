@@ -7,6 +7,7 @@
 #include "Symbol.Function.h"
 #include "Symbol.Interface.h"
 #include "Symbol.Struct.h"
+#include "Symbol.Variable.h"
 
 #include "Support/Core/DataSegment.h"
 
@@ -19,6 +20,50 @@ namespace
         SmallVector4<uint64_t> dims;
         dims.push_back(count);
         return ctx.typeMgr().addType(TypeInfo::makeArray(dims, ctx.typeMgr().typeValuePtrVoid()));
+    }
+
+    const SymbolFunction* resolveInterfaceMethodTargetRec(const TaskContext& ctx, const SymbolImpl& impl, const SymbolFunction& interfaceMethod, std::unordered_set<const SymbolStruct*>& visited)
+    {
+        if (const SymbolFunction* implMethod = impl.findFunction(interfaceMethod.idRef()))
+            return implMethod;
+
+        if (!interfaceMethod.isEmpty())
+            return &interfaceMethod;
+
+        if (!impl.isForStruct())
+            return nullptr;
+
+        const SymbolStruct* objectStruct = impl.symStruct();
+        if (!objectStruct || !visited.insert(objectStruct).second)
+            return nullptr;
+
+        const SymbolInterface* interfaceSym = impl.symInterface();
+        if (!interfaceSym)
+            return nullptr;
+
+        for (const Symbol* field : objectStruct->fields())
+        {
+            if (!field || !field->isVariable())
+                continue;
+
+            const auto& symVar = field->cast<SymbolVariable>();
+            if (!symVar.isUsingField())
+                continue;
+
+            bool                usingFieldIsPointer = false;
+            const SymbolStruct* targetStruct        = symVar.usingTargetStruct(ctx, usingFieldIsPointer);
+            if (!targetStruct || usingFieldIsPointer || symVar.offset() != 0)
+                continue;
+
+            const SymbolImpl* targetImpl = targetStruct->findInterfaceImpl(interfaceSym->idRef());
+            if (!targetImpl)
+                continue;
+
+            if (const SymbolFunction* targetMethod = resolveInterfaceMethodTargetRec(ctx, *targetImpl, interfaceMethod, visited))
+                return targetMethod;
+        }
+
+        return nullptr;
     }
 }
 
@@ -67,15 +112,10 @@ const SymbolFunction* SymbolImpl::findFunction(IdentifierRef functionIdRef) cons
     return nullptr;
 }
 
-const SymbolFunction* SymbolImpl::resolveInterfaceMethodTarget(const SymbolFunction& interfaceMethod) const
+const SymbolFunction* SymbolImpl::resolveInterfaceMethodTarget(const TaskContext& ctx, const SymbolFunction& interfaceMethod) const
 {
-    if (const SymbolFunction* implMethod = findFunction(interfaceMethod.idRef()))
-        return implMethod;
-
-    if (!interfaceMethod.isEmpty())
-        return &interfaceMethod;
-
-    return nullptr;
+    std::unordered_set<const SymbolStruct*> visited;
+    return resolveInterfaceMethodTargetRec(ctx, *this, interfaceMethod, visited);
 }
 
 std::vector<SymbolFunction*> SymbolImpl::specOps() const
@@ -136,7 +176,7 @@ Result SymbolImpl::ensureInterfaceMethodTable(Sema& sema, ConstantRef& outRef) c
     for (const SymbolFunction* interfaceMethod : methods)
     {
         SWC_ASSERT(interfaceMethod != nullptr);
-        const SymbolFunction* implMethod = resolveInterfaceMethodTarget(*interfaceMethod);
+        const SymbolFunction* implMethod = resolveInterfaceMethodTarget(ctx, *interfaceMethod);
         if (!implMethod)
         {
             // A broken impl method can be ignored after an earlier semantic error.

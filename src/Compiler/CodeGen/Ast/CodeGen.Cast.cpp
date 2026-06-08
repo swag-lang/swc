@@ -1581,7 +1581,7 @@ namespace
             else
             {
                 const uint64_t objectStorageSize     = objectType.sizeOf(codeGen.ctx());
-                const bool     preserveSourceAddress = srcPayload.isAddress() && codeGen.sema().isLValue(srcNodeRef);
+                const bool     preserveSourceAddress = srcPayload.isAddress() && codeGen.sema().isLValueStored(srcNodeRef);
 
                 objectReg = srcPayload.reg;
                 if (!preserveSourceAddress)

@@ -160,8 +160,10 @@ fileprivate impl Surface
         // Create class
         #[Swag.Global]
         var doneClass: bool
-        let className   = @dataof(Utf16.toZeroTerminated("Swag.Gui.Surface"))
-        let surfaceName = @dataof(Utf16.toZeroTerminated(result.surfaceID))
+        let className16   = Utf16.toZeroTerminated("Swag.Gui.Surface")
+        let surfaceName16 = Utf16.toZeroTerminated(result.surfaceID)
+        let className     = @dataof(className16)
+        let surfaceName   = @dataof(surfaceName16)
         if !doneClass
         {
             doneClass = true

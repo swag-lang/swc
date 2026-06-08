@@ -394,6 +394,8 @@ Result ConstantIntrinsic::tryConstantFoldCallBeforeParameterCasts(Sema& sema, co
     if (sym && !sym->isTyped())
         return Result::Continue;
 
+    SWC_RESULT(sema.waitSemaCompleted(&type, args[0]));
+
     const TypeGen::LifecycleFlags flags = TypeGen::lifecycleFlagsOfTypeRef(sema.ctx(), typeRef);
     setBoolCallConstant(sema, lifecycleFoldResult(flags, op));
     return Result::Continue;

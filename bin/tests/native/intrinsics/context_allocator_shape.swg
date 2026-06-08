@@ -20,6 +20,41 @@ func copiedContextAllocatorHasRuntimeShape()->bool
     return runtimeItf != null and runtimeItf.obj != null and runtimeItf.itable != null
 }
 
+func allocatorObject(allocator: IAllocator)->*void
+{
+    let runtimeItf = cast(const *Swag.Interface) &allocator
+    return runtimeItf.obj
+}
+
+func allocatorITable(allocator: IAllocator)->const *void
+{
+    let runtimeItf = cast(const *Swag.Interface) &allocator
+    return runtimeItf.itable
+}
+
+struct ContextTempAllocatorHolder
+{
+    allocator: IAllocator
+}
+
+func contextTempAllocatorObject()->*void
+{
+    return cast(*void) &@getcontext().tempAllocator
+}
+
+func makeContextTempAllocatorHolder()->ContextTempAllocatorHolder
+{
+    var result: ContextTempAllocatorHolder
+    result.allocator = @getcontext().tempAllocator
+    return result
+}
+
+func returnedContextTempAllocatorPreservesObject()->bool
+{
+    let holder = makeContextTempAllocatorHolder()
+    return allocatorObject(holder.allocator) == contextTempAllocatorObject() and allocatorITable(holder.allocator) != null
+}
+
 func directContextAllocatorRoundtrip()->bool
 {
     var req: AllocatorRequest
@@ -76,6 +111,7 @@ func coalescedContextAllocatorRoundtrip()->bool
     @assert(contextPointerIsPresent())
     @assert(contextAllocatorFieldHasRuntimeShape())
     @assert(copiedContextAllocatorHasRuntimeShape())
+    @assert(returnedContextTempAllocatorPreservesObject())
     @assert(directContextAllocatorRoundtrip())
     @assert(copiedContextAllocatorRoundtrip())
     @assert(coalescedContextAllocatorRoundtrip())

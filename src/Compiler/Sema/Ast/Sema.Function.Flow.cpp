@@ -1394,7 +1394,11 @@ Result AstIntrinsicCallExpr::semaPostNode(Sema& sema) const
 
     const Token& tok = sema.token(codeRef());
     if (tok.id == TokenId::IntrinsicGetContext)
+    {
+        // The intrinsic yields the current TLS context storage, not a by-value context snapshot.
+        sema.setIsLValue(sema.curNodeRef());
         SWC_RESULT(setupIntrinsicGetContextRuntimeCall(sema, *this));
+    }
     else if (tok.id == TokenId::IntrinsicSetContext)
         SWC_RESULT(setupIntrinsicSetContextRuntimeCall(sema, *this));
     else if (tok.id == TokenId::IntrinsicAssert)

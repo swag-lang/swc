@@ -1846,6 +1846,9 @@ Result CompilerInstance::runWorkspaceModule(const WorkspaceModuleBuild& moduleBu
             {
                 if (probeCompiler.buildCfg().backendKind == Runtime::BuildCfgBackendKind::Executable)
                 {
+                    if (probeCompiler.applyModuleSetupInputs(probeCtx, moduleBuild.setup) != Result::Continue)
+                        return Result::Error;
+
                     NativeBackendBuilder runBuilder(probeCompiler, true);
                     if (runBuilder.runExistingArtifact() != Result::Continue)
                         return Result::Error;

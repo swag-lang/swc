@@ -152,7 +152,15 @@ namespace
         if (!paramType.isAnyTypeInfo(sema.ctx()))
             return Result::Continue;
         if (sema.isValue(argValueRef))
+        {
+            // The argument was already lowered to a typeinfo value (e.g. by a previous overload
+            // probe, or passed directly). There is nothing left to normalize: skip the attribute
+            // function probe, which would otherwise re-resolve symbols (getSymbols) on every
+            // candidate during collection.
+            if (argView.typeRef().isValid() && sema.typeMgr().get(argView.typeRef()).isAnyTypeInfo(sema.ctx()))
+                return Result::Continue;
             return makeAttributeTypeInfoCallArgument(sema, argValueRef, argView);
+        }
 
         return SemaCheck::isValueOrTypeInfo(sema, argView);
     }

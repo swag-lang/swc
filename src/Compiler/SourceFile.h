@@ -79,7 +79,9 @@ private:
     fs::path  path_;
     FileFlags flags_ = FileFlagsE::Zero;
 
-    std::array<Utf8, 3>          formattedFileNames_;
+    mutable std::mutex           formattedFileNamesMutex_;
+    mutable std::array<Utf8, 3>  formattedFileNames_;
+    mutable std::array<bool, 3>  formattedFileNamesComputed_ = {};
     std::vector<char8_t>         content_;
     std::unique_ptr<NodePayload> nodePayloadContext_;
     std::unique_ptr<Verify>      unitTest_;

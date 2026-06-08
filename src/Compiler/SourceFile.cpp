@@ -18,10 +18,11 @@ SourceFile::SourceFile(FileRef fileRef, fs::path path, FileFlags flags) :
     path_(std::move(path)),
     flags_(flags)
 {
-    formattedFileNames_[static_cast<size_t>(FileSystem::FilePathDisplayMode::AsIs)]     = path_.string();
-    formattedFileNames_[static_cast<size_t>(FileSystem::FilePathDisplayMode::BaseName)] = path_.filename().string();
-    formattedFileNames_[static_cast<size_t>(FileSystem::FilePathDisplayMode::Absolute)] = FileSystem::normalizePath(path_).string();
-
+    // Formatted file names are computed lazily on first access: the Absolute mode resolves
+    // through fs::weakly_canonical (per-component disk syscalls), and is only ever needed
+    // when a diagnostic or file location is actually formatted, which is rare during a clean
+    // compile. Computing all three eagerly here made SourceFile construction dominate file
+    // loading when building the standard library.
     nodePayloadContext_ = std::make_unique<NodePayload>();
     unitTest_           = std::make_unique<Verify>(this);
 }
@@ -31,7 +32,16 @@ SourceFile::~SourceFile() = default;
 const Utf8& SourceFile::formattedFileName(const TaskContext* ctx) const
 {
     const auto displayMode = ctx ? ctx->cmdLine().filePathDisplay : FileSystem::FilePathDisplayMode::AsIs;
-    return formattedFileNames_[static_cast<size_t>(displayMode)];
+    const auto index       = static_cast<size_t>(displayMode);
+
+    const std::scoped_lock lock(formattedFileNamesMutex_);
+    if (!formattedFileNamesComputed_[index])
+    {
+        formattedFileNames_[index]         = FileSystem::formatFileName(ctx, path_);
+        formattedFileNamesComputed_[index] = true;
+    }
+
+    return formattedFileNames_[index];
 }
 
 Utf8 SourceFile::formatFileLocation(const TaskContext* ctx, const uint32_t line, const uint32_t column, const uint32_t columnEnd) const

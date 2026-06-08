@@ -544,7 +544,8 @@ Result NativeArtifactBuilder::prepareDataSectionsWithoutStartup(NativeRDataColle
         builder_->mergedData.bytes.resize(dataSize);
         compiler.globalInitSegment().copyToPreserveOffsets(ByteSpanRW{builder_->mergedData.bytes.data(), dataSize});
 
-        for (const auto& relocation : compiler.globalInitSegment().relocations())
+        const std::vector<DataSegmentRelocation> relocations = compiler.globalInitSegment().copyRelocations();
+        for (const auto& relocation : relocations)
         {
             NativeSectionRelocation record;
             record.offset = relocation.offset;

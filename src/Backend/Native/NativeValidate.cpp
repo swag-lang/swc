@@ -19,7 +19,7 @@ void NativeValidate::validate() const
     SWC_ASSERT(builder_ != nullptr);
     const auto& compiler = builder_->compiler();
 
-    SWC_ASSERT(compiler.globalZeroSegment().relocations().empty());
+    SWC_ASSERT(compiler.globalZeroSegment().copyRelocations().empty());
 
     for (const SymbolVariable* symbol : builder_->regularGlobals)
     {
@@ -469,41 +469,29 @@ bool NativeValidate::findDataSegmentRelocation(DataSegmentRef& outTargetRef, con
 {
     outTargetRef = {};
     SWC_ASSERT(builder_ != nullptr);
-    const auto& relocations = builder_->compiler().cstMgr().shardDataSegment(shardIndex).relocations();
-    for (const auto& relocation : relocations)
-    {
-        if (relocation.offset != offset)
-            continue;
-        if (relocation.kind != DataSegmentRelocationKind::DataSegmentOffset)
-            continue;
+    const DataSegment& segment = builder_->compiler().cstMgr().shardDataSegment(shardIndex);
+    DataSegmentRelocation relocation;
+    if (!segment.findRelocation(relocation, offset, DataSegmentRelocationKind::DataSegmentOffset))
+        return false;
 
-        outTargetRef = {
-            .shardIndex = relocation.targetShardIndex == INVALID_REF ? shardIndex : relocation.targetShardIndex,
-            .offset     = relocation.targetOffset,
-        };
-        return true;
-    }
-
-    return false;
+    outTargetRef = {
+        .shardIndex = relocation.targetShardIndex == INVALID_REF ? shardIndex : relocation.targetShardIndex,
+        .offset     = relocation.targetOffset,
+    };
+    return true;
 }
 
 bool NativeValidate::findFunctionSymbolRelocation(const SymbolFunction*& outTargetSymbol, const uint32_t shardIndex, const uint32_t offset) const
 {
     outTargetSymbol = nullptr;
     SWC_ASSERT(builder_ != nullptr);
-    const auto& relocations = builder_->compiler().cstMgr().shardDataSegment(shardIndex).relocations();
-    for (const auto& relocation : relocations)
-    {
-        if (relocation.offset != offset)
-            continue;
-        if (relocation.kind != DataSegmentRelocationKind::FunctionSymbol)
-            continue;
+    const DataSegment& segment = builder_->compiler().cstMgr().shardDataSegment(shardIndex);
+    DataSegmentRelocation relocation;
+    if (!segment.findRelocation(relocation, offset, DataSegmentRelocationKind::FunctionSymbol))
+        return false;
 
-        outTargetSymbol = relocation.targetSymbol;
-        return true;
-    }
-
-    return false;
+    outTargetSymbol = relocation.targetSymbol;
+    return true;
 }
 
 SWC_END_NAMESPACE();

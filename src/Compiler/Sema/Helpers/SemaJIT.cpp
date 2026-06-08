@@ -305,10 +305,118 @@ namespace
         }
     }
 
-    void buildJitOrderWithNativeRoots(Sema& sema, const SymbolFunction& symFn, SmallVector<SymbolFunction*>& out)
+    bool isIncludableConstantJitDependency(const SymbolFunction& fn)
+    {
+        if (fn.isIgnored())
+            return false;
+        if (fn.isForeign() || fn.isEmpty() || fn.isAttribute())
+            return false;
+        if (fn.attributes().hasRtFlag(RtAttributeFlagsE::Macro) || fn.attributes().hasRtFlag(RtAttributeFlagsE::Mixin))
+            return false;
+        if (fn.hasExtraFlag(SymbolFunctionFlagsE::LazyGenericBodyRunning))
+            return false;
+        return fn.isSemaCompleted() || fn.hasExtraFlag(SymbolFunctionFlagsE::LazyGenericBody);
+    }
+
+    bool appendConstantFunctionJitRootsInAllocation(Sema& sema, SmallVector<SymbolFunction*>& roots, std::unordered_set<SymbolFunction*>& seenFunctions, std::unordered_set<uint64_t>& visitedAllocations, uint32_t shardIndex, uint32_t sourceOffset, bool followTypeInfoStructMethods)
+    {
+        const DataSegment&    segment = sema.cstMgr().shardDataSegment(shardIndex);
+        DataSegmentAllocation allocation;
+        if (!segment.findAllocation(allocation, sourceOffset))
+            return false;
+
+        const uint64_t allocationKey = (static_cast<uint64_t>(shardIndex) << 32) | allocation.offset;
+        if (!visitedAllocations.insert(allocationKey).second)
+            return false;
+
+        bool                               changed = false;
+        std::vector<DataSegmentRelocation> relocations;
+        segment.copyRelocations(relocations, allocation.offset, allocation.size);
+        for (const DataSegmentRelocation& relocation : relocations)
+        {
+            if (relocation.kind == DataSegmentRelocationKind::FunctionSymbol)
+            {
+                SymbolFunction* target = const_cast<SymbolFunction*>(relocation.targetSymbol);
+                if (!target || !isIncludableConstantJitDependency(*target))
+                    continue;
+                if (!seenFunctions.insert(target).second)
+                    continue;
+
+                roots.push_back(target);
+                changed = true;
+                continue;
+            }
+        }
+
+        if (!followTypeInfoStructMethods || allocation.size < sizeof(Runtime::TypeInfoStruct))
+            return changed;
+
+        const auto* typeInfo = segment.ptr<Runtime::TypeInfo>(allocation.offset);
+        if (!typeInfo || typeInfo->kind != Runtime::TypeInfoKind::Struct)
+            return changed;
+
+        DataSegmentRelocation methodsRelocation;
+        if (!segment.findRelocation(methodsRelocation, allocation.offset + offsetof(Runtime::TypeInfoStruct, methods.ptr), DataSegmentRelocationKind::DataSegmentOffset))
+            return changed;
+
+        const uint32_t targetShardIndex = methodsRelocation.targetShardIndex == INVALID_REF ? shardIndex : methodsRelocation.targetShardIndex;
+        return appendConstantFunctionJitRootsInAllocation(sema, roots, seenFunctions, visitedAllocations, targetShardIndex, methodsRelocation.targetOffset, false) || changed;
+    }
+
+    bool appendConstantFunctionJitRootsFromConstant(Sema& sema, SmallVector<SymbolFunction*>& roots, std::unordered_set<SymbolFunction*>& seenFunctions, std::unordered_set<uint64_t>& visitedAllocations, const MicroRelocation& relocation)
+    {
+        if (relocation.kind != MicroRelocation::Kind::ConstantAddress)
+            return false;
+        if (!relocation.hasConstantSource())
+            return false;
+
+        return appendConstantFunctionJitRootsInAllocation(sema, roots, seenFunctions, visitedAllocations, relocation.constantShard, relocation.constantOffset, true);
+    }
+
+    bool appendConstantFunctionJitRootsFromCode(Sema& sema, SmallVector<SymbolFunction*>& roots, std::unordered_set<SymbolFunction*>& seenFunctions, std::unordered_set<uint64_t>& visitedAllocations, const MachineCode& code)
+    {
+        bool changed = false;
+        for (const MicroRelocation& relocation : code.codeRelocations)
+        {
+            changed = appendConstantFunctionJitRootsFromConstant(sema, roots, seenFunctions, visitedAllocations, relocation) || changed;
+        }
+
+        return changed;
+    }
+
+    bool appendConstantFunctionJitRoots(Sema& sema, const SymbolFunction& symFn, SmallVector<SymbolFunction*>& roots, std::span<SymbolFunction* const> functions)
+    {
+        std::unordered_set<SymbolFunction*> seenFunctions(roots.begin(), roots.end());
+        seenFunctions.insert(const_cast<SymbolFunction*>(&symFn));
+        for (SymbolFunction* function : functions)
+        {
+            if (function)
+                seenFunctions.insert(function);
+        }
+
+        bool                         changed = false;
+        std::unordered_set<uint64_t> visitedAllocations;
+        for (const SymbolFunction* function : functions)
+        {
+            if (!function)
+                continue;
+
+            changed = appendConstantFunctionJitRootsFromCode(sema, roots, seenFunctions, visitedAllocations, function->loweredCode()) || changed;
+        }
+
+        return changed;
+    }
+
+    void buildJitOrderWithNativeRoots(Sema& sema, const SymbolFunction& symFn, SmallVector<SymbolFunction*>& out, std::span<SymbolFunction* const> extraRoots = {})
     {
         SmallVector<SymbolFunction*> rawOrder;
         symFn.appendJitOrder(rawOrder);
+        for (SymbolFunction* root : extraRoots)
+        {
+            if (root)
+                root->appendJitOrder(rawOrder);
+        }
+
         if (SemaRuntime::isRuntimeArtifactFunction(sema, symFn))
             appendGlobalFunctionInitJitOrder(sema, rawOrder);
 
@@ -386,47 +494,54 @@ namespace
         // avoids a third `buildJitOrderWithNativeRoots` call after the loop that
         // would race against concurrent jobs registering new native-global-function
         // init targets between the stability check and the snapshot.
-        std::unordered_set<SymbolFunction*> knownFunctions;
-        size_t                              knownFunctionCount = 0;
-        SmallVector<SymbolFunction*>        stableJitOrder;
+        SmallVector<SymbolFunction*> constantRoots;
+        SmallVector<SymbolFunction*> stableJitOrder;
         while (true)
         {
-            SmallVector<SymbolFunction*> jitOrder;
-            buildJitOrderWithNativeRoots(sema, symFn, jitOrder);
-
-            for (SymbolFunction* function : jitOrder)
+            std::unordered_set<SymbolFunction*> knownFunctions;
+            size_t                              knownFunctionCount = 0;
+            while (true)
             {
-                knownFunctions.insert(function);
-                sema.compiler().tryEnqueueCodeGenJob(sema, *function, function->declNodeRef());
+                SmallVector<SymbolFunction*> jitOrder;
+                buildJitOrderWithNativeRoots(sema, symFn, jitOrder, constantRoots.span());
+
+                for (SymbolFunction* function : jitOrder)
+                {
+                    knownFunctions.insert(function);
+                    sema.compiler().tryEnqueueCodeGenJob(sema, *function, function->declNodeRef());
+                }
+
+                for (const SymbolFunction* function : jitOrder)
+                {
+                    SWC_RESULT(sema.waitCodeGenPreSolved(function, function->codeRef()));
+                }
+
+                SmallVector<SymbolFunction*> expandedOrder;
+                buildJitOrderWithNativeRoots(sema, symFn, expandedOrder, constantRoots.span());
+                for (SymbolFunction* function : expandedOrder)
+                {
+                    knownFunctions.insert(function);
+                }
+
+                if (knownFunctions.size() == knownFunctionCount)
+                {
+                    // Stable: save this snapshot as the definitive JIT order. All
+                    // functions it contains have had waitCodeGenPreSolved called in
+                    // a prior (or this) iteration, so it is safe to emit them next.
+                    stableJitOrder = std::move(expandedOrder);
+                    break;
+                }
+
+                knownFunctionCount = knownFunctions.size();
             }
 
-            for (const SymbolFunction* function : jitOrder)
+            for (SymbolFunction* function : stableJitOrder)
             {
-                SWC_RESULT(sema.waitCodeGenPreSolved(function, function->codeRef()));
+                SWC_RESULT(function->emit(ctx));
             }
 
-            SmallVector<SymbolFunction*> expandedOrder;
-            buildJitOrderWithNativeRoots(sema, symFn, expandedOrder);
-            for (SymbolFunction* function : expandedOrder)
-            {
-                knownFunctions.insert(function);
-            }
-
-            if (knownFunctions.size() == knownFunctionCount)
-            {
-                // Stable: save this snapshot as the definitive JIT order. All
-                // functions it contains have had waitCodeGenPreSolved called in
-                // a prior (or this) iteration, so it is safe to emit them next.
-                stableJitOrder = std::move(expandedOrder);
+            if (!appendConstantFunctionJitRoots(sema, symFn, constantRoots, stableJitOrder.span()))
                 break;
-            }
-
-            knownFunctionCount = knownFunctions.size();
-        }
-
-        for (SymbolFunction* function : stableJitOrder)
-        {
-            SWC_RESULT(function->emit(ctx));
         }
 
         if (ctx.state().jitEmissionError)

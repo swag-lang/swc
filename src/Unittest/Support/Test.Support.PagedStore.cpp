@@ -2,6 +2,7 @@
 
 #if SWC_HAS_UNITTEST
 
+#include "Support/Core/DataSegment.h"
 #include "Support/Core/PagedStore.h"
 #include "Unittest/Unittest.h"
 
@@ -47,6 +48,79 @@ SWC_TEST_BEGIN(PagedStore_CopyToPreserveOffsetsKeepsSparseLayout)
         if (out[secondRef + i] != second[i])
             return Result::Error;
     }
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(DataSegment_RelocationIndexHandlesInterleavedMonotonicAdds)
+{
+    DataSegment segment;
+
+    const uint32_t targetOffset = segment.reserveBlock(1, 1, true);
+    const uint32_t firstOffset  = segment.reserveBlock(static_cast<uint32_t>(sizeof(void*)), static_cast<uint32_t>(alignof(void*)), true);
+    segment.addRelocation(firstOffset, targetOffset);
+
+    std::vector<DataSegmentRelocation> relocations;
+    segment.copyRelocations(relocations, firstOffset, static_cast<uint32_t>(sizeof(void*)));
+    if (relocations.size() != 1 || relocations[0].offset != firstOffset)
+        return Result::Error;
+
+    const uint32_t secondOffset = segment.reserveBlock(static_cast<uint32_t>(sizeof(void*)), static_cast<uint32_t>(alignof(void*)), true);
+    segment.addRelocation(secondOffset, targetOffset);
+
+    segment.copyRelocations(relocations, firstOffset, secondOffset - firstOffset + static_cast<uint32_t>(sizeof(void*)));
+    if (relocations.size() != 2)
+        return Result::Error;
+    if (relocations[0].offset != firstOffset || relocations[1].offset != secondOffset)
+        return Result::Error;
+
+    DataSegmentRelocation relocation;
+    if (!segment.findRelocation(relocation, secondOffset, DataSegmentRelocationKind::DataSegmentOffset))
+        return Result::Error;
+    if (relocation.targetOffset != targetOffset)
+        return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(DataSegment_RelocationIndexRebuildsAfterOutOfOrderAdd)
+{
+    DataSegment segment;
+
+    const uint32_t targetOffset = segment.reserveBlock(1, 1, true);
+    segment.addRelocation(64, targetOffset);
+
+    std::vector<DataSegmentRelocation> relocations;
+    segment.copyRelocations(relocations, 0, 128);
+    if (relocations.size() != 1 || relocations[0].offset != 64)
+        return Result::Error;
+
+    segment.addRelocation(8, targetOffset);
+    segment.copyRelocations(relocations, 0, 128);
+    if (relocations.size() != 2)
+        return Result::Error;
+    if (relocations[0].offset != 8 || relocations[1].offset != 64)
+        return Result::Error;
+
+    DataSegmentRelocation relocation;
+    if (!segment.findRelocation(relocation, 8, DataSegmentRelocationKind::DataSegmentOffset))
+        return Result::Error;
+    if (relocation.targetOffset != targetOffset)
+        return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(DataSegment_FindAllocationUsesPublishedAllocations)
+{
+    DataSegment segment;
+    std::array<std::byte, 3> bytes{std::byte{1}, std::byte{2}, std::byte{3}};
+
+    const auto [span, offset] = segment.addSpan(ByteSpan{bytes.data(), bytes.size()});
+    SWC_UNUSED(span);
+
+    DataSegmentAllocation allocation;
+    if (!segment.findAllocation(allocation, offset + 1))
+        return Result::Error;
+    if (allocation.offset != offset || allocation.size != static_cast<uint32_t>(bytes.size()))
+        return Result::Error;
 }
 SWC_TEST_END()
 

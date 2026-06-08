@@ -79,14 +79,15 @@ public:
     void                                      restoreFromPreserveOffsets(ByteSpan src) const;
     std::vector<DataSegmentRelocation>        copyRelocations() const;
     void                                      copyRelocations(std::vector<DataSegmentRelocation>& outRelocations, uint32_t offset, uint32_t size) const;
+    bool                                      findRelocation(DataSegmentRelocation& outRelocation, uint32_t offset, DataSegmentRelocationKind kind) const;
     bool                                      hasRelocations(uint32_t offset, uint32_t size) const;
-    const std::vector<DataSegmentRelocation>& relocations() const { return relocations_; }
     std::mutex&                               allocationMutex(uint32_t allocationOffset) const;
     template<typename T>
     std::pair<uint32_t, T*> reserve()
     {
         std::unique_lock lock(mutex_);
         const auto [offset, ptr] = allocateStorageLocked(static_cast<uint32_t>(sizeof(T)), static_cast<uint32_t>(alignof(T)), true);
+        recordAllocation(offset, static_cast<uint32_t>(sizeof(T)), static_cast<uint32_t>(alignof(T)));
         return {offset, reinterpret_cast<T*>(ptr)};
     }
 
@@ -98,6 +99,7 @@ public:
         std::unique_lock lock(mutex_);
         const uint32_t   bytes   = static_cast<uint32_t>(sizeof(T)) * count;
         const auto [offset, ptr] = allocateStorageLocked(bytes, static_cast<uint32_t>(alignof(T)), true);
+        recordAllocation(offset, bytes, static_cast<uint32_t>(alignof(T)));
         return {offset, reinterpret_cast<T*>(ptr)};
     }
 
@@ -114,6 +116,7 @@ public:
         {
             std::construct_at(reinterpret_cast<T*>(ptr), value);
         }
+        recordAllocation(offset, static_cast<uint32_t>(sizeof(T)), static_cast<uint32_t>(alignof(T)));
         return offset;
     }
 
@@ -138,8 +141,10 @@ private:
     const std::byte*                                                       findPtrLocked(Ref ref, uint32_t size) const noexcept;
     Ref                                                                    findLargeBlockRefLocked(const void* ptr) const noexcept;
     void                                                                   copyRelocationsLocked(std::vector<DataSegmentRelocation>& outRelocations, uint32_t offset, uint32_t size) const;
+    bool                                                                   findRelocationLocked(DataSegmentRelocation& outRelocation, uint32_t offset, DataSegmentRelocationKind kind) const;
     bool                                                                   hasRelocationsLocked(uint32_t offset, uint32_t size) const;
     void                                                                   rebuildRelocationsByOffsetLocked() const;
+    void                                                                   recordRelocationIndexLocked(uint32_t index);
     void                                                                   recordAllocation(uint32_t offset, uint32_t size, uint32_t align);
     PagedStore                                                             store_;
     std::vector<LargeBlock>                                                largeBlocks_;
@@ -150,6 +155,8 @@ private:
     mutable bool                                                           relocationsByOffsetDirty_ = false;
     std::vector<DataSegmentAllocation>                                     allocations_;
     mutable std::shared_mutex                                              mutex_;
+    mutable std::shared_mutex                                              relocationsMutex_;
+    mutable std::shared_mutex                                              allocationsMutex_;
     mutable std::mutex                                                     allocationMutexesMutex_;
     mutable std::unordered_map<uint32_t, std::unique_ptr<std::mutex>>      allocationMutexes_;
 };

@@ -73,6 +73,7 @@ std::pair<ByteSpan, Ref> DataSegment::addSpan(ByteSpan value, uint32_t align)
     const auto [offset, ptr] = allocateStorageLocked(static_cast<uint32_t>(value.size()), align, false);
     if (value.data() && !value.empty())
         std::memcpy(ptr, value.data(), value.size());
+    recordAllocation(offset, static_cast<uint32_t>(value.size()), align);
     return {{ptr, value.size()}, offset};
 }
 
@@ -88,6 +89,7 @@ std::pair<std::string_view, Ref> DataSegment::addString(const Utf8& value)
 
     const auto [offset, ptr] = allocateStorageLocked(static_cast<uint32_t>(zeroTerminated.size()), alignof(std::byte), false);
     std::memcpy(ptr, zeroTerminated.data(), zeroTerminated.size());
+    recordAllocation(offset, static_cast<uint32_t>(zeroTerminated.size()), alignof(std::byte));
     const std::string_view view{reinterpret_cast<const char*>(ptr), value.size()};
     stringMap_[value] = {view, offset};
 
@@ -107,23 +109,26 @@ uint32_t DataSegment::addString(uint32_t baseOffset, uint32_t fieldOffset, const
 
 void DataSegment::addRelocation(uint32_t offset, uint32_t targetOffset)
 {
-    const std::unique_lock lock(mutex_);
+    const std::unique_lock lock(relocationsMutex_);
+    const uint32_t         relocationIndex = static_cast<uint32_t>(relocations_.size());
     relocations_.push_back({.offset = offset, .kind = DataSegmentRelocationKind::DataSegmentOffset, .targetOffset = targetOffset, .targetShardIndex = INVALID_REF, .targetSymbol = nullptr});
-    relocationsByOffsetDirty_ = true;
+    recordRelocationIndexLocked(relocationIndex);
 }
 
 void DataSegment::addRelocation(uint32_t offset, const DataSegmentRef targetRef)
 {
-    const std::unique_lock lock(mutex_);
+    const std::unique_lock lock(relocationsMutex_);
+    const uint32_t         relocationIndex = static_cast<uint32_t>(relocations_.size());
     relocations_.push_back({.offset = offset, .kind = DataSegmentRelocationKind::DataSegmentOffset, .targetOffset = targetRef.offset, .targetShardIndex = targetRef.shardIndex, .targetSymbol = nullptr});
-    relocationsByOffsetDirty_ = true;
+    recordRelocationIndexLocked(relocationIndex);
 }
 
 void DataSegment::addFunctionRelocation(uint32_t offset, const SymbolFunction* targetSymbol, bool allowUnresolvedFunction)
 {
-    const std::unique_lock lock(mutex_);
+    const std::unique_lock lock(relocationsMutex_);
+    const uint32_t         relocationIndex = static_cast<uint32_t>(relocations_.size());
     relocations_.push_back({.offset = offset, .kind = DataSegmentRelocationKind::FunctionSymbol, .targetOffset = INVALID_REF, .targetShardIndex = INVALID_REF, .targetSymbol = targetSymbol, .allowUnresolvedFunction = allowUnresolvedFunction});
-    relocationsByOffsetDirty_ = true;
+    recordRelocationIndexLocked(relocationIndex);
 }
 
 Ref DataSegment::findRef(const void* ptr) const noexcept
@@ -139,7 +144,7 @@ bool DataSegment::findAllocation(DataSegmentAllocation& outAllocation, const uin
 {
     outAllocation = {};
 
-    const std::shared_lock lock(mutex_);
+    const std::shared_lock lock(allocationsMutex_);
     if (allocations_.empty())
         return false;
 
@@ -221,7 +226,7 @@ void DataSegment::restoreFromPreserveOffsets(ByteSpan src) const
 
 std::vector<DataSegmentRelocation> DataSegment::copyRelocations() const
 {
-    const std::shared_lock lock(mutex_);
+    const std::shared_lock lock(relocationsMutex_);
     return relocations_;
 }
 
@@ -232,7 +237,7 @@ void DataSegment::copyRelocations(std::vector<DataSegmentRelocation>& outRelocat
         return;
 
     {
-        const std::shared_lock lock(mutex_);
+        const std::shared_lock lock(relocationsMutex_);
         if (!relocationsByOffsetDirty_ && relocationsByOffset_.size() == relocations_.size())
         {
             copyRelocationsLocked(outRelocations, offset, size);
@@ -240,9 +245,24 @@ void DataSegment::copyRelocations(std::vector<DataSegmentRelocation>& outRelocat
         }
     }
 
-    const std::unique_lock lock(mutex_);
+    const std::unique_lock lock(relocationsMutex_);
     rebuildRelocationsByOffsetLocked();
     copyRelocationsLocked(outRelocations, offset, size);
+}
+
+bool DataSegment::findRelocation(DataSegmentRelocation& outRelocation, const uint32_t offset, const DataSegmentRelocationKind kind) const
+{
+    outRelocation = {};
+
+    {
+        const std::shared_lock lock(relocationsMutex_);
+        if (!relocationsByOffsetDirty_ && relocationsByOffset_.size() == relocations_.size())
+            return findRelocationLocked(outRelocation, offset, kind);
+    }
+
+    const std::unique_lock lock(relocationsMutex_);
+    rebuildRelocationsByOffsetLocked();
+    return findRelocationLocked(outRelocation, offset, kind);
 }
 
 bool DataSegment::hasRelocations(const uint32_t offset, const uint32_t size) const
@@ -251,12 +271,12 @@ bool DataSegment::hasRelocations(const uint32_t offset, const uint32_t size) con
         return false;
 
     {
-        const std::shared_lock lock(mutex_);
+        const std::shared_lock lock(relocationsMutex_);
         if (!relocationsByOffsetDirty_ && relocationsByOffset_.size() == relocations_.size())
             return hasRelocationsLocked(offset, size);
     }
 
-    const std::unique_lock lock(mutex_);
+    const std::unique_lock lock(relocationsMutex_);
     rebuildRelocationsByOffsetLocked();
     return hasRelocationsLocked(offset, size);
 }
@@ -274,6 +294,26 @@ void DataSegment::copyRelocationsLocked(std::vector<DataSegmentRelocation>& outR
 
         outRelocations.push_back(relocation);
     }
+}
+
+bool DataSegment::findRelocationLocked(DataSegmentRelocation& outRelocation, const uint32_t offset, const DataSegmentRelocationKind kind) const
+{
+    const RelocationOffsetProjection projection{.relocations = &relocations_};
+    auto                             it = std::ranges::lower_bound(relocationsByOffset_, offset, {}, projection);
+    while (it != relocationsByOffset_.end())
+    {
+        const DataSegmentRelocation& relocation = relocations_[*it];
+        if (relocation.offset != offset)
+            break;
+        if (relocation.kind == kind)
+        {
+            outRelocation = relocation;
+            return true;
+        }
+        ++it;
+    }
+
+    return false;
 }
 
 bool DataSegment::hasRelocationsLocked(const uint32_t offset, const uint32_t size) const
@@ -302,7 +342,9 @@ std::pair<uint32_t, std::byte*> DataSegment::reserveBytes(uint32_t size, uint32_
         return {INVALID_REF, nullptr};
 
     const std::unique_lock lock(mutex_);
-    return allocateStorageLocked(size, align, zeroInit);
+    const auto             res = allocateStorageLocked(size, align, zeroInit);
+    recordAllocation(res.first, size, align);
+    return res;
 }
 
 uint32_t DataSegment::reserveBlock(uint32_t size, uint32_t align, bool zeroInit)
@@ -345,7 +387,6 @@ std::pair<uint32_t, std::byte*> DataSegment::allocateStorageLocked(uint32_t size
             .blockOffset = offset,
         };
         largeBlocks_.push_back(std::move(block));
-        recordAllocation(offset, size, align);
         return {offset, ptr};
     }
 
@@ -353,7 +394,6 @@ std::pair<uint32_t, std::byte*> DataSegment::allocateStorageLocked(uint32_t size
     std::byte* const               ptr = store_.ptr<std::byte>(res.second);
     if (zeroInit)
         std::memset(ptr, 0, size);
-    recordAllocation(res.second, size, align);
     return {res.second, ptr};
 }
 
@@ -414,10 +454,32 @@ void DataSegment::rebuildRelocationsByOffsetLocked() const
     relocationsByOffsetDirty_ = false;
 }
 
+void DataSegment::recordRelocationIndexLocked(uint32_t index)
+{
+    SWC_ASSERT(index + 1 == relocations_.size());
+
+    if (relocationsByOffsetDirty_ || relocationsByOffset_.size() + 1 != relocations_.size())
+    {
+        relocationsByOffsetDirty_ = true;
+        return;
+    }
+
+    const RelocationIndexLess sortRelocations{.relocations = &relocations_};
+    if (!relocationsByOffset_.empty() && sortRelocations(index, relocationsByOffset_.back()))
+    {
+        relocationsByOffsetDirty_ = true;
+        return;
+    }
+
+    relocationsByOffset_.push_back(index);
+}
+
 void DataSegment::recordAllocation(const uint32_t offset, const uint32_t size, uint32_t align)
 {
     if (!size)
         return;
+
+    const std::unique_lock lock(allocationsMutex_);
 
     if (!align)
         align = 1;

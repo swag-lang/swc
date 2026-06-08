@@ -265,6 +265,23 @@ namespace
         return !workspaceDependencyFilesHaveSameContent(srcPath, dstPath);
     }
 
+    Result ensureWorkspaceDependencyDirectory(TaskContext& ctx, std::unordered_set<fs::path>& ensuredDirs, const fs::path& dir)
+    {
+        if (dir.empty())
+            return Result::Continue;
+
+        const fs::path normalizedDir = dir.lexically_normal();
+        if (!ensuredDirs.insert(normalizedDir).second)
+            return Result::Continue;
+
+        std::error_code ec;
+        fs::create_directories(normalizedDir, ec);
+        if (ec)
+            return reportWorkspaceDependencySyncFailure(ctx, normalizedDir, FileSystem::normalizeSystemMessage(ec));
+
+        return Result::Continue;
+    }
+
     bool tryFindDependencyArtifactStem(Utf8& outStem, const fs::path& dir, std::string_view preferredStem, std::string_view extension)
     {
         outStem.clear();
@@ -334,10 +351,9 @@ namespace
         if (FileSystem::resolveExistingFolder(resolvedSrcDir, because) != Result::Continue)
             return reportWorkspaceDependencySyncFailure(ctx, resolvedSrcDir, because);
 
-        std::error_code ec;
-        fs::create_directories(normalizedDstDir, ec);
-        if (ec)
-            return reportWorkspaceDependencySyncFailure(ctx, normalizedDstDir, FileSystem::normalizeSystemMessage(ec));
+        std::error_code              ec;
+        std::unordered_set<fs::path> ensuredDirs;
+        SWC_RESULT(ensureWorkspaceDependencyDirectory(ctx, ensuredDirs, normalizedDstDir));
 
         for (fs::recursive_directory_iterator it(resolvedSrcDir, fs::directory_options::skip_permission_denied, ec), end; it != end; it.increment(ec))
         {
@@ -352,9 +368,7 @@ namespace
             ec.clear();
             if (it->is_directory(ec))
             {
-                fs::create_directories(dstPath, ec);
-                if (ec)
-                    return reportWorkspaceDependencySyncFailure(ctx, dstPath, FileSystem::normalizeSystemMessage(ec));
+                SWC_RESULT(ensureWorkspaceDependencyDirectory(ctx, ensuredDirs, dstPath));
                 continue;
             }
 
@@ -369,16 +383,12 @@ namespace
                 continue;
             }
 
-            const fs::path dstParent = dstPath.parent_path();
-            if (!dstParent.empty())
-            {
-                fs::create_directories(dstParent, ec);
-                if (ec)
-                    return reportWorkspaceDependencySyncFailure(ctx, dstParent, FileSystem::normalizeSystemMessage(ec));
-            }
-
             if (!shouldCopyWorkspaceDependencyFile(it->path(), dstPath))
                 continue;
+
+            const fs::path dstParent = dstPath.parent_path();
+            if (!dstParent.empty())
+                SWC_RESULT(ensureWorkspaceDependencyDirectory(ctx, ensuredDirs, dstParent));
 
             fs::copy_file(it->path(), dstPath, fs::copy_options::overwrite_existing, ec);
             if (ec)

@@ -20,6 +20,7 @@ enum class JobKind
     CompilerMessage,
     NativeArtifact,
     NativeObj,
+    ModuleApiExport,
 };
 
 enum class JobPriority : std::uint8_t

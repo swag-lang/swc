@@ -15,13 +15,71 @@
 #include "Main/Command/CommandLineParser.h"
 #include "Main/CompilerInstance.h"
 #include "Main/FileSystem.h"
+#include "Main/Global.h"
 #include "Main/TaskContext.h"
 #include "Support/Report/Diagnostic.h"
+#include "Support/Thread/JobManager.h"
 
 SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    // Runs `fn(workerCtx, index)` for index in [0, count) across the compiler's worker
+    // threads. Each worker carries its own TaskContext copy (so per-task state is isolated)
+    // and grabs indices via an atomic counter. Falls back to an inline loop when the job
+    // manager is single-threaded or there is a single item. The caller is responsible for
+    // ensuring `fn` only touches immutable (post-sema) data plus thread-safe services
+    // (type interning, diagnostics) and writes exclusively to its own `index` slot.
+    template<typename Fn>
+    void parallelForIndexed(TaskContext& ctx, uint32_t count, const Fn& fn)
+    {
+        if (count == 0)
+            return;
+
+        JobManager& jobMgr = ctx.global().jobMgr();
+        if (count == 1 || jobMgr.isSingleThreaded() || jobMgr.numWorkers() == 0)
+        {
+            for (uint32_t i = 0; i < count; ++i)
+                fn(ctx, i);
+            return;
+        }
+
+        class WorkerJob final : public Job
+        {
+        public:
+            WorkerJob(const TaskContext& ctx, std::atomic<uint32_t>& next, uint32_t count, const Fn& fn) :
+                Job(ctx, JobKind::ModuleApiExport),
+                next_(next),
+                count_(count),
+                fn_(fn)
+            {
+            }
+
+            JobResult exec() override
+            {
+                for (uint32_t i = next_.fetch_add(1, std::memory_order_relaxed); i < count_; i = next_.fetch_add(1, std::memory_order_relaxed))
+                    fn_(ctx(), i);
+                return JobResult::Done;
+            }
+
+        private:
+            std::atomic<uint32_t>& next_;
+            uint32_t               count_;
+            const Fn&              fn_;
+        };
+
+        const uint32_t        numWorkers = std::min(count, jobMgr.numWorkers());
+        const JobClientId     clientId   = ctx.compiler().jobClientId();
+        std::atomic<uint32_t> nextIndex{0};
+
+        std::vector<std::unique_ptr<WorkerJob>> jobs;
+        jobs.reserve(numWorkers);
+        for (uint32_t i = 0; i < numWorkers; ++i)
+            jobs.push_back(std::make_unique<WorkerJob>(ctx, nextIndex, count, fn));
+        for (auto& job : jobs)
+            jobMgr.enqueue(*job, JobPriority::Normal, clientId);
+        jobMgr.waitAll(clientId);
+    }
     bool supportsGeneratedModuleApiForeignFunctions(const CompilerInstance& compiler)
     {
         switch (compiler.buildCfg().backendKind)
@@ -2887,17 +2945,39 @@ namespace
         if (appendForwardNamespaceDecls(ctx, outContent, roots, eol, validationStack, &emittedPreambleLines))
             outContent += eol;
 
-        size_t                   rootIndex     = 0;
-        bool                     appendedBlock = false;
-        while (rootIndex < roots.size())
+        // Split the roots into per-source-file contiguous groups (cheap, sequential).
+        struct RootGroup
+        {
+            size_t start;
+            size_t count;
+        };
+        std::vector<RootGroup> groups;
+        for (size_t rootIndex = 0; rootIndex < roots.size();)
         {
             const SourceFile* sourceFile = roots[rootIndex].file;
             size_t            nextIndex  = rootIndex + 1;
             while (nextIndex < roots.size() && roots[nextIndex].file == sourceFile)
                 ++nextIndex;
+            groups.push_back({rootIndex, nextIndex - rootIndex});
+            rootIndex = nextIndex;
+        }
 
-            Utf8 fileContent;
-            SWC_RESULT(buildGeneratedModuleApiContent(ctx, roots.subspan(rootIndex, nextIndex - rootIndex), moduleNamespace, eol, fileContent, validationStack));
+        // Build each group's content in parallel. Each group uses its own validation stack;
+        // the snippet *bytes* don't depend on cross-group validation state (it only drives
+        // diagnostics), and preamble/forward-decl deduplication is handled below by the
+        // sequential merge through `emittedPreambleLines`.
+        std::vector<Utf8>   groupContents(groups.size());
+        std::vector<Result> groupResults(groups.size(), Result::Continue);
+        parallelForIndexed(ctx, static_cast<uint32_t>(groups.size()), [&](TaskContext& workerCtx, uint32_t g) {
+            ModuleApiValidationStack groupValidationStack;
+            groupResults[g] = buildGeneratedModuleApiContent(workerCtx, roots.subspan(groups[g].start, groups[g].count), moduleNamespace, eol, groupContents[g], groupValidationStack);
+        });
+
+        bool appendedBlock = false;
+        for (size_t g = 0; g < groups.size(); ++g)
+        {
+            SWC_RESULT(groupResults[g]);
+            Utf8& fileContent = groupContents[g];
             SWC_RESULT(removeGeneratedModuleApiHeader(fileContent, moduleNamespace, eol));
             trimLeadingGeneratedModulePreamble(fileContent, emittedPreambleLines, eol);
             if (!fileContent.empty())
@@ -2908,8 +2988,6 @@ namespace
                 outContent += fileContent;
                 appendedBlock = true;
             }
-
-            rootIndex = nextIndex;
         }
 
         const Utf8 tripleBreak = std::format("{}{}{}", eol, eol, eol);
@@ -3020,11 +3098,12 @@ namespace ModuleApi
         for (size_t i = 0; i < compiler.numPerThreadData(); ++i)
             mergeThreadData(collectedEntries, compiler.moduleApiPerThreadData(i));
 
-        const Utf8                          moduleNamespace  = buildModuleNamespaceName(compiler);
-        const SourceFile*                   firstSourceFile  = nullptr;
-        bool                                hasModuleSources = false;
-        std::vector<ModuleApiGeneratedRoot> generatedRoots;
+        const Utf8        moduleNamespace  = buildModuleNamespaceName(compiler);
+        const SourceFile* firstSourceFile  = nullptr;
+        bool              hasModuleSources = false;
 
+        // Cheap sequential pass: gather the module's source files and the reduction values.
+        std::vector<const SourceFile*> moduleFiles;
         for (const SourceFile* file : compiler.files())
         {
             if (!file || !isCurrentModuleSourceFile(*file))
@@ -3037,24 +3116,47 @@ namespace ModuleApi
                     firstSourceFile = file;
             }
 
-            const ModuleApiFileInfo fileInfo = analyzeModuleApiFile(*file, moduleNamespace.view());
-            if (fileInfo.wholeFileExported)
-                continue;
-
-            const auto fileEntryIt = collectedEntries.find(file->ast().srcView().ref());
-            if (fileEntryIt == collectedEntries.end())
-                continue;
-            const ModuleApiFileEntry& fileEntry = fileEntryIt->second;
-
-            appendGeneratedRootsForFile(ctx, *file, fileEntry, generatedRoots);
+            moduleFiles.push_back(file);
         }
 
         if (!hasModuleSources)
             return Result::Continue;
 
+        // Extract each file's generated roots in parallel (independent per file), then merge
+        // sequentially in file order. The merge feeds appendGeneratedRootUnique in exactly the
+        // same order as the linear path, so the deduplicated result is identical.
+        const auto&                                      entries = collectedEntries;
+        std::vector<std::vector<ModuleApiGeneratedRoot>> perFileRoots(moduleFiles.size());
+        parallelForIndexed(ctx, static_cast<uint32_t>(moduleFiles.size()), [&](TaskContext& workerCtx, uint32_t i) {
+            const SourceFile*       file     = moduleFiles[i];
+            const ModuleApiFileInfo fileInfo = analyzeModuleApiFile(*file, moduleNamespace.view());
+            if (fileInfo.wholeFileExported)
+                return;
+
+            const auto fileEntryIt = entries.find(file->ast().srcView().ref());
+            if (fileEntryIt == entries.end())
+                return;
+
+            appendGeneratedRootsForFile(workerCtx, *file, fileEntryIt->second, perFileRoots[i]);
+        });
+
+        std::vector<ModuleApiGeneratedRoot> generatedRoots;
+        for (auto& fileRoots : perFileRoots)
+            for (ModuleApiGeneratedRoot& root : fileRoots)
+                appendGeneratedRootUnique(generatedRoots, std::move(root));
+
         SWC_RESULT(ensureModuleApiDirectory(ctx, exportApiDir));
         SWC_RESULT(clearGeneratedModuleApiFiles(ctx, exportApiDir));
 
+        // Sequential pass: resolve destination paths and detect duplicate names (needs the
+        // shared name map). The expensive content build + disk write is dispatched afterwards.
+        struct WholeFileExport
+        {
+            const SourceFile* file;
+            fs::path          dstPath;
+            bool              hasModuleNamespace;
+        };
+        std::vector<WholeFileExport>       wholeExports;
         std::unordered_map<Utf8, fs::path> wholeFileExportNames;
         for (const SourceFile* file : compiler.files())
         {
@@ -3065,19 +3167,28 @@ namespace ModuleApi
             if (!fileInfo.wholeFileExported)
                 continue;
 
-            const fs::path dstPath  = (exportApiDir / file->path().filename()).lexically_normal();
-            const Utf8     fileName = dstPath.filename().string();
-            const auto     inserted = wholeFileExportNames.emplace(fileName, file->path());
+            fs::path   dstPath  = (exportApiDir / file->path().filename()).lexically_normal();
+            const Utf8 fileName = dstPath.filename().string();
+            const auto inserted = wholeFileExportNames.emplace(fileName, file->path());
             if (!inserted.second)
             {
                 const Utf8 because = std::format("duplicate exported API file name from '{}' and '{}'", inserted.first->second.string(), file->path().string());
                 return reportInvalidFolder(ctx, dstPath, because);
             }
 
-            const Utf8 content = buildExportedModuleApiContent(*file, moduleNamespace.view(), fileInfo.hasModuleNamespace);
-            if (writeModuleApiFile(ctx, dstPath, content.view()) != Result::Continue)
-                return Result::Error;
+            wholeExports.push_back({file, std::move(dstPath), fileInfo.hasModuleNamespace});
         }
+
+        // Build + write each whole-file export in parallel (each targets a distinct file).
+        std::vector<Result> wholeExportResults(wholeExports.size(), Result::Continue);
+        parallelForIndexed(ctx, static_cast<uint32_t>(wholeExports.size()), [&](TaskContext& workerCtx, uint32_t i) {
+            const WholeFileExport& we      = wholeExports[i];
+            const Utf8             content = buildExportedModuleApiContent(*we.file, moduleNamespace.view(), we.hasModuleNamespace);
+            wholeExportResults[i]          = writeModuleApiFile(workerCtx, we.dstPath, content.view());
+        });
+        for (const Result r : wholeExportResults)
+            if (r != Result::Continue)
+                return Result::Error;
 
         if (!firstSourceFile)
             return Result::Continue;

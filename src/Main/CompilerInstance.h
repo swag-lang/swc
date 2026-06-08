@@ -246,6 +246,7 @@ public:
 
     Result                   collectFiles(TaskContext& ctx);
     Result                   runModuleSetup(TaskContext& ctx);
+    Result                   prepareModuleBuildConfig(TaskContext& ctx);
     static Result            exportModuleApi(TaskContext& ctx);
     std::vector<SourceFile*> files() const;
     bool                     isModuleSetupMode() const { return moduleSetupMode_; }
@@ -343,7 +344,6 @@ private:
     Result            captureModuleSetupSnapshot(const TaskContext& ctx, const CommandLine& setupCmdLine, ModuleSetupSnapshot& outSnapshot) const;
     Result            applyModuleSetupInputs(TaskContext& ctx, const ModuleSetupSnapshot& setupSnapshot);
     static bool       isWorkspaceModuleActive(const WorkspaceModuleBuild& moduleBuild);
-    Result            applyWorkspaceModuleFilter(TaskContext& ctx, std::vector<WorkspaceModuleBuild>& modules, const std::unordered_map<Utf8, size_t>& moduleIndices) const;
     ExitCode          runWorkspace();
     Result            runWorkspaceModule(const WorkspaceModuleBuild& moduleBuild, uint32_t moduleIndex, uint32_t moduleCount) const;
     Result            flushGeneratedSourceDumps(TaskContext& ctx);

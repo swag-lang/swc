@@ -1405,48 +1405,6 @@ bool CompilerInstance::isWorkspaceModuleActive(const WorkspaceModuleBuild& modul
     return !moduleBuild.ignoreInWorkspace && !moduleBuild.filteredOut;
 }
 
-Result CompilerInstance::applyWorkspaceModuleFilter(TaskContext& ctx, std::vector<WorkspaceModuleBuild>& modules, const std::unordered_map<Utf8, size_t>& moduleIndices) const
-{
-    if (cmdLine().workspaceModuleFilter.empty())
-        return Result::Continue;
-
-    const auto it = moduleIndices.find(cmdLine().workspaceModuleFilter);
-    if (it == moduleIndices.end())
-    {
-        Diagnostic diag = Diagnostic::get(DiagnosticId::cmd_err_workspace_requested_module_missing);
-        FileSystem::setDiagnosticPath(diag, &ctx, cmdLine().workspacePath);
-        diag.addArgument(Diagnostic::ARG_SYM, cmdLine().workspaceModuleFilter);
-        diag.report(ctx);
-        return Result::Error;
-    }
-
-    std::vector         selected(modules.size(), false);
-    std::vector<size_t> stack;
-    stack.push_back(it->second);
-    while (!stack.empty())
-    {
-        const size_t moduleIndex = stack.back();
-        stack.pop_back();
-        if (selected[moduleIndex])
-            continue;
-
-        selected[moduleIndex] = true;
-        for (const Utf8& dependency : modules[moduleIndex].workspaceDependencies)
-            stack.push_back(moduleIndices.at(dependency));
-    }
-
-    for (size_t i = 0; i < modules.size(); ++i)
-        modules[i].filteredOut = !selected[i];
-
-    if (!modules[it->second].ignoreInWorkspace)
-        return Result::Continue;
-
-    Diagnostic diag = Diagnostic::get(DiagnosticId::cmd_err_workspace_requested_module_ignored);
-    diag.addArgument(Diagnostic::ARG_SYM, modules[it->second].name);
-    diag.report(ctx);
-    return Result::Error;
-}
-
 ExitCode CompilerInstance::runWorkspace()
 {
     TaskContext                 ctx(*this);
@@ -1519,8 +1477,50 @@ ExitCode CompilerInstance::runWorkspace()
     for (size_t i = 0; i < modules.size(); ++i)
         moduleIndices.emplace(modules[i].name, i);
 
-    for (WorkspaceModuleBuild& moduleBuild : modules)
+    // Running a module's setup means parsing and sema'ing its module.swg, including its
+    // #run build-configuration block on the main JIT thread. That is the dominant cost of a
+    // workspace command, so when a module filter is active we only snapshot the requested
+    // module and the transitive closure of its workspace dependencies, discovered lazily by
+    // following each module's imports as it is snapshotted. Every other module stays
+    // filtered out and is never set up.
+    const bool          hasFilter = !cmdLine().workspaceModuleFilter.empty();
+    size_t              filterTargetIndex = static_cast<size_t>(-1);
+    std::vector<size_t> snapshotOrder;
+    std::vector<bool>   snapshotQueued(modules.size(), false);
+    if (hasFilter)
     {
+        const auto it = moduleIndices.find(cmdLine().workspaceModuleFilter);
+        if (it == moduleIndices.end())
+        {
+            Diagnostic diag = Diagnostic::get(DiagnosticId::cmd_err_workspace_requested_module_missing);
+            FileSystem::setDiagnosticPath(diag, &ctx, cmdLine().workspacePath);
+            diag.addArgument(Diagnostic::ARG_SYM, cmdLine().workspaceModuleFilter);
+            diag.report(ctx);
+            return ExitCode::CompileError;
+        }
+
+        filterTargetIndex = it->second;
+        snapshotOrder.push_back(it->second);
+        snapshotQueued[it->second] = true;
+        for (size_t i = 0; i < modules.size(); ++i)
+            modules[i].filteredOut = true;
+    }
+    else
+    {
+        snapshotOrder.reserve(modules.size());
+        for (size_t i = 0; i < modules.size(); ++i)
+        {
+            snapshotOrder.push_back(i);
+            snapshotQueued[i] = true;
+        }
+    }
+
+    for (size_t cursor = 0; cursor < snapshotOrder.size(); ++cursor)
+    {
+        WorkspaceModuleBuild& moduleBuild = modules[snapshotOrder[cursor]];
+        if (hasFilter)
+            moduleBuild.filteredOut = false;
+
         CommandLine setupCmdLine = cmdLine();
         setupCmdLine.workspacePath.clear();
         setupCmdLine.modulePath     = moduleBuild.moduleDir;
@@ -1538,13 +1538,26 @@ ExitCode CompilerInstance::runWorkspace()
             if (!importRequest.location.empty())
                 continue;
 
-            if (moduleIndices.contains(importRequest.moduleName))
-                moduleBuild.workspaceDependencies.push_back(importRequest.moduleName);
+            const auto depIt = moduleIndices.find(importRequest.moduleName);
+            if (depIt == moduleIndices.end())
+                continue;
+
+            moduleBuild.workspaceDependencies.push_back(importRequest.moduleName);
+            if (hasFilter && !snapshotQueued[depIt->second])
+            {
+                snapshotQueued[depIt->second] = true;
+                snapshotOrder.push_back(depIt->second);
+            }
         }
     }
 
-    if (applyWorkspaceModuleFilter(ctx, modules, moduleIndices) != Result::Continue)
+    if (hasFilter && modules[filterTargetIndex].ignoreInWorkspace)
+    {
+        Diagnostic diag = Diagnostic::get(DiagnosticId::cmd_err_workspace_requested_module_ignored);
+        diag.addArgument(Diagnostic::ARG_SYM, modules[filterTargetIndex].name);
+        diag.report(ctx);
         return ExitCode::CompileError;
+    }
 
     for (const WorkspaceModuleBuild& moduleBuild : modules)
     {
@@ -1688,7 +1701,7 @@ Result CompilerInstance::runWorkspaceModule(const WorkspaceModuleBuild& moduleBu
         probeCompiler.workspaceModuleLogState_ = workspaceLogState;
 
         TaskContext probeCtx(probeCompiler);
-        if (probeCompiler.runModuleSetup(probeCtx) != Result::Continue)
+        if (probeCompiler.prepareModuleBuildConfig(probeCtx) != Result::Continue)
             return Result::Error;
 
         std::vector<fs::path> requiredArtifacts;
@@ -2033,6 +2046,24 @@ Result CompilerInstance::runModuleSetup(TaskContext& ctx)
     reapplyExplicitBuildCfgOverrides(buildCfg_, cmdLine());
     ownBuildCfgStrings(buildCfg_, ownedBuildCfgStrings_);
     return applyModuleSetupInputs(ctx, setupSnapshot);
+}
+
+// Adopts the module build configuration without applying its input set. This is the cheap
+// half of runModuleSetup: it makes buildCfg() (backend kind, debug info, artifact naming)
+// available so the workspace up-to-date probe can compute artifact paths, but it skips
+// applyModuleSetupInputs/processImports, which would recursively re-parse and sema every
+// transitive dependency's metadata file just to register imports the probe never uses.
+Result CompilerInstance::prepareModuleBuildConfig(TaskContext& ctx)
+{
+    SWC_RESULT(resolveModuleInputPaths(ctx));
+    if (modulePathFile_.empty() || cmdLine().moduleFilePath.empty())
+        return Result::Continue;
+
+    SWC_ASSERT(precomputedModuleSetup_ != nullptr);
+    adoptBuildCfg(precomputedModuleSetup_->buildCfg);
+    reapplyExplicitBuildCfgOverrides(buildCfg_, cmdLine());
+    ownBuildCfgStrings(buildCfg_, ownedBuildCfgStrings_);
+    return Result::Continue;
 }
 
 void CompilerInstance::appendResolvedFiles(std::vector<fs::path>& paths, FileFlags flags)

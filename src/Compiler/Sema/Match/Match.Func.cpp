@@ -1125,6 +1125,10 @@ namespace
         CastRequest castRequest(castKind);
         castRequest.flags        = castFlags;
         castRequest.errorNodeRef = argValueRef;
+        // Overload probing only needs the allow/deny + rank decision; the selected overload
+        // re-runs the real cast (with folding) in applyParameterCasts. Skip throwaway
+        // fold-result materialization (whole-value lowering, aggregate/array fold interning).
+        castRequest.probing = true;
         castRequest.setConstantFoldingSrc(argNodeView.cstRef());
         if (isUfcsArgument)
             castRequest.flags.add(CastFlagsE::UfcsArgument);

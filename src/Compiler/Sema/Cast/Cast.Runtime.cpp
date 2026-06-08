@@ -99,6 +99,7 @@ namespace
         nested.flags        = parent.flags;
         nested.errorNodeRef = parent.errorNodeRef;
         nested.errorCodeRef = parent.errorCodeRef;
+        nested.probing      = parent.probing;
         return nested;
     }
 
@@ -752,7 +753,7 @@ Result Cast::castToSlice(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRe
             }
         }
 
-        if (!castRequest.isConstantFolding())
+        if (!castRequest.materializeConstantResult())
             return Result::Continue;
 
         const ConstantValue& srcCst = sema.cstMgr().get(castRequest.constantFoldingSrc());

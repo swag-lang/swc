@@ -92,6 +92,7 @@ namespace
         elemCtx.flags        = args.castRequest->flags;
         elemCtx.errorNodeRef = location.nodeRef.isValid() ? location.nodeRef : args.castRequest->errorNodeRef;
         elemCtx.errorCodeRef = location.codeRef.isValid() ? location.codeRef : args.castRequest->errorCodeRef;
+        elemCtx.probing      = args.castRequest->probing;
         return elemCtx;
     }
 
@@ -226,7 +227,7 @@ namespace
                 SWC_RESULT(checkElemCast(args, srcTypes[i], dstSubArrayType, location, valueRef));
             }
 
-            if (!args.castRequest->isConstantFolding())
+            if (!args.castRequest->materializeConstantResult())
                 return Result::Continue;
 
             TaskContext&           ctx       = args.sema->ctx();
@@ -263,7 +264,7 @@ namespace
             SWC_RESULT(checkElemCast(args, srcTypes[i], dstElemTypeRef, location, valueRef));
         }
 
-        if (!args.castRequest->isConstantFolding())
+        if (!args.castRequest->materializeConstantResult())
             return Result::Continue;
 
         SmallVector<ConstantRef> newValues;
@@ -294,7 +295,7 @@ namespace
         const ConstantRef valueRef = args.castRequest->isConstantFolding() ? args.castRequest->constantFoldingSrc() : ConstantRef::invalid();
         SWC_RESULT(checkElemCast(args, args.srcTypeRef, leafTypeRef, {}, valueRef));
 
-        if (!args.castRequest->isConstantFolding())
+        if (!args.castRequest->materializeConstantResult())
             return Result::Continue;
 
         ConstantRef elemRef;

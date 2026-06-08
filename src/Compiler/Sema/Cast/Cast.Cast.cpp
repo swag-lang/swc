@@ -56,6 +56,7 @@ namespace
         nested.flags        = parent.flags;
         nested.errorNodeRef = parent.errorNodeRef;
         nested.errorCodeRef = parent.errorCodeRef;
+        nested.probing      = parent.probing;
         return nested;
     }
 
@@ -149,7 +150,7 @@ namespace
             }
         }
 
-        if (!castRequest.isConstantFolding())
+        if (!castRequest.materializeConstantResult())
             return Result::Continue;
 
         SmallVector<ConstantRef> srcValues;
@@ -940,7 +941,8 @@ Result Cast::castToBool(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef
         }
         else if (srcType.isPointerLike())
         {
-            SWC_RESULT(foldConstantPointerLikeToBool(sema, castRequest, srcTypeRef));
+            if (castRequest.materializeConstantResult())
+                SWC_RESULT(foldConstantPointerLikeToBool(sema, castRequest, srcTypeRef));
         }
         else
             SWC_UNREACHABLE();
@@ -1156,6 +1158,7 @@ Result Cast::castToEnum(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef
     underlyingRequest.flags        = castRequest.flags;
     underlyingRequest.errorNodeRef = castRequest.errorNodeRef;
     underlyingRequest.errorCodeRef = castRequest.errorCodeRef;
+    underlyingRequest.probing      = castRequest.probing;
     underlyingRequest.setConstantFoldingSrc(castRequest.constantFoldingSrc());
 
     const Result res = castAllowed(sema, underlyingRequest, srcTypeRef, underlyingTypeRef);
@@ -1303,7 +1306,7 @@ Result Cast::castToReference(Sema& sema, CastRequest& castRequest, TypeRef srcTy
     {
         if (dstPointeeTypeRef == srcTypeRef)
         {
-            if (castRequest.isConstantFolding())
+            if (castRequest.materializeConstantResult())
             {
                 const ConstantValue& srcCst = sema.cstMgr().get(castRequest.constantFoldingSrc());
                 SWC_ASSERT(srcCst.isStruct());
@@ -1336,7 +1339,7 @@ Result Cast::castToReference(Sema& sema, CastRequest& castRequest, TypeRef srcTy
         if (sourceIsConst && !dstType.isConst() && !castRequest.flags.has(CastFlagsE::UnConst))
             return castRequest.fail(DiagnosticId::sema_err_cannot_cast_const, srcTypeRef, dstTypeRef);
 
-        if (castRequest.isConstantFolding())
+        if (castRequest.materializeConstantResult())
         {
             const uint64_t valueSize = srcType.sizeOf(sema.ctx());
             uint64_t       ptr       = 0;

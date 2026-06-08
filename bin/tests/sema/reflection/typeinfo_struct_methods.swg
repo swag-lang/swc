@@ -8,6 +8,20 @@ alias ExportedAddFn = func(&ExportedMethodProbe, s32)->s32
 alias ExportedScaledFn = func(const &ExportedMethodProbe, s32)->s32
 alias ExportedScoreFn = func(&ExportedMethodProbe, s32)->s32
 
+struct HiddenMethodProbe
+{
+    value: s32
+}
+
+impl HiddenMethodProbe
+{
+    mtd hidden()->s32
+    {
+        return .value
+    }
+}
+
+#[Swag.ExportType(.Methods)]
 struct SimpleMethodProbe
 {
     value: s32
@@ -27,6 +41,7 @@ impl SimpleMethodProbe
     }
 }
 
+#[Swag.ExportType(.Methods)]
 struct(T) GenericMethodProbe
 {
     value: T
@@ -46,6 +61,7 @@ interface IExportedMethodScore
     mtd score(bonus: s32)->s32;
 }
 
+#[Swag.ExportType(.Methods)]
 struct ExportedMethodProbe
 {
     value: s32
@@ -90,6 +106,7 @@ impl IExportedMethodScore for ExportedMethodProbe
     }
 }
 
+const HIDDEN_INFO        = cast(const *Swag.TypeInfoStruct) #typeof(HiddenMethodProbe)
 const SIMPLE_INFO        = cast(const *Swag.TypeInfoStruct) #typeof(SimpleMethodProbe)
 const GENERIC_INFO       = cast(const *Swag.TypeInfoStruct) #typeof(GenericMethodProbe)
 const ARRAY_INFO         = cast(const *Swag.TypeInfoStruct) #typeof(GenericMethodProbe's32)
@@ -254,6 +271,7 @@ func callReflectedExportedMethods(type: typeinfo, seed: s32)->bool
 func compileTimeMethodReflectionWorks()->bool
 {
     var result = true
+    result = hasExpectedMethodReflection(#typeof(HiddenMethodProbe), 0, "") and result
     result = hasExpectedMethodReflection(#typeof(SimpleMethodProbe), 1, "ping") and result
     result = hasExpectedMethodReflection(#typeof(GenericMethodProbe), 0, "") and result
     result = hasExpectedMethodReflection(#typeof(GenericMethodProbe's32), 1, "copyFrom") and result
@@ -265,6 +283,8 @@ func compileTimeMethodReflectionWorks()->bool
 }
 
 const COMPILE_TIME_METHOD_REFLECTION_OK = #run compileTimeMethodReflectionWorks()
+
+#assert(@countof(HIDDEN_INFO.methods) == 0)
 
 #assert(@countof(SIMPLE_INFO.methods) == 1)
 #assert(SIMPLE_METHOD_INFO.name == "ping")

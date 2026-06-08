@@ -202,6 +202,7 @@ namespace
         elemCtx.flags        = args.castRequest->flags;
         elemCtx.errorNodeRef = fieldNodeRef.isValid() ? fieldNodeRef : args.castRequest->errorNodeRef;
         elemCtx.errorCodeRef = fieldRef.isValid() ? fieldRef : args.castRequest->errorCodeRef;
+        elemCtx.probing      = args.castRequest->probing;
         return elemCtx;
     }
 

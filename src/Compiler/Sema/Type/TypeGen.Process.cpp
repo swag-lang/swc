@@ -267,15 +267,18 @@ SmallVector<TypeRef> TypeGen::computeDeps(TypeManager& tm, const TaskContext& ct
                 appendAttributeDeps(deps, ctx, field->attributes());
             }
 
-            for (const SymbolFunction* method : symStruct.methods())
+            if (symStruct.exportsRuntimeMethods(ctx))
             {
-                if (!method)
-                    continue;
+                for (const SymbolFunction* method : symStruct.methods())
+                {
+                    if (!method)
+                        continue;
 
-                const TypeRef methodTypeRef = reflectedMethodTypeRef(const_cast<TaskContext&>(ctx), *method);
-                if (methodTypeRef.isValid())
-                    deps.push_back(methodTypeRef);
-                appendAttributeDeps(deps, ctx, method->attributes());
+                    const TypeRef methodTypeRef = reflectedMethodTypeRef(const_cast<TaskContext&>(ctx), *method);
+                    if (methodTypeRef.isValid())
+                        deps.push_back(methodTypeRef);
+                    appendAttributeDeps(deps, ctx, method->attributes());
+                }
             }
 
             for (const SymbolImpl* itfImpl : symStruct.interfaces())

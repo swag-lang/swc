@@ -136,8 +136,7 @@ namespace
 
     void combineSymbolBaseHash(uint32_t& h, const TaskContext& ctx, const Symbol& symbol)
     {
-        const Utf8 fullName = symbol.getFullScopedName(ctx);
-        h                   = Math::hashCombine(h, Math::hash(fullName.view()));
+        h = Math::hashCombine(h, symbol.scopedNameHash(ctx));
         if (symbol.decl())
         {
             h = Math::hashCombine(h, symbol.srcViewRef().get());

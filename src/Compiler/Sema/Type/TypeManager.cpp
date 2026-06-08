@@ -2,7 +2,9 @@
 #include "Compiler/Sema/Type/TypeManager.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Symbol/IdentifierManager.h"
+#include "Compiler/Sema/Symbol/Symbols.h"
 #include "Main/Stats.h"
+#include "Support/Math/Hash.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -51,17 +53,40 @@ namespace
 
     constexpr std::array<RuntimeTypeKind, static_cast<size_t>(IdentifierManager::PredefinedName::Count)> PREDEFINED_RUNTIME_MAP = makePredefinedRuntimeMap();
 
+    // Selects the intern shard for a type. The only requirement is that the result is a
+    // run-stable function of the type's identity (so TypeRef allocation is reproducible)
+    // and reasonably distributed; collisions are harmless because the per-stripe map keys
+    // on TypeInfo::hash()/operator==.
+    //
+    // Nominal kinds (Enum/Struct/Interface/Alias) have symbol-pointer identity, so their
+    // stable shard key is just the symbol's (memoized) scoped-name hash -- no need to walk
+    // generic args / fields recursively. Structural kinds (Function/Aggregate) must shard
+    // on their full structural hash so structurally-equal-but-distinct symbols land in the
+    // same shard and dedupe; that recursive hash is itself now allocation-free thanks to
+    // the per-symbol name-hash memoization.
     uint32_t stableShardHash(CompilerInstance* compiler, const TypeInfo& typeInfo)
     {
         if (!compiler)
             return typeInfo.hash();
 
+        const auto nominalShardHash = [&](const Symbol& sym) {
+            const TaskContext ctx(*compiler);
+            uint32_t          h = Math::hash(static_cast<uint32_t>(typeInfo.kind()));
+            h                   = Math::hashCombine(h, static_cast<uint32_t>(typeInfo.flags().get()));
+            return Math::hashCombine(h, sym.scopedNameHash(ctx));
+        };
+
         switch (typeInfo.kind())
         {
             case TypeInfoKind::Enum:
+                return nominalShardHash(typeInfo.payloadSymEnum());
             case TypeInfoKind::Struct:
+                return nominalShardHash(typeInfo.payloadSymStruct());
             case TypeInfoKind::Interface:
+                return nominalShardHash(typeInfo.payloadSymInterface());
             case TypeInfoKind::Alias:
+                return nominalShardHash(typeInfo.payloadSymAlias());
+
             case TypeInfoKind::Function:
             case TypeInfoKind::AggregateStruct:
             case TypeInfoKind::AggregateArray:

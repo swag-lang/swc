@@ -124,6 +124,7 @@ public:
     void                          publishGeneratedOperators() const noexcept { generatedOperatorsPublished_.store(true, std::memory_order_release); }
     bool                          tryMarkGeneratedLifecycleFunctions() const noexcept;
     bool                          tryMarkGeneratedOperators() const noexcept;
+    bool                          exportsRuntimeMethods(const TaskContext& ctx) const;
 
 private:
     struct GenericData;

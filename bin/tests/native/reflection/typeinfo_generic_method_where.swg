@@ -7,6 +7,7 @@ func typeCanCompare(type: typeinfo)->bool
     return type.kind != .Func and type.kind != .Lambda
 }
 
+#[Swag.ExportType(.Methods)]
 struct(T) GenericLazyMethodBox
 {
     value: s32

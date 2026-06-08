@@ -168,6 +168,12 @@ public:
     std::string_view name(const TaskContext& ctx) const;
     Utf8             getFullScopedName(const TaskContext& ctx) const;
     void             appendFullScopedName(const TaskContext& ctx, Utf8& out) const;
+
+    // Hash of the fully scoped name, memoized. The scoped name is immutable once the
+    // symbol and its owner chain are established, so this avoids rebuilding (and heap
+    // allocating) the name string on every stable type hash / addType call.
+    uint32_t scopedNameHash(const TaskContext& ctx) const;
+
     const TypeInfo&  typeInfo(const TaskContext& ctx) const;
     template<typename T>
     T* safeCast()
@@ -228,6 +234,10 @@ protected:
     SymbolKind                           kind_        = SymbolKind::Invalid;
     SymbolFlags                          flags_       = SymbolFlagsE::Zero;
     std::atomic<SymbolExtraFlagsStorage> extraFlags_  = 0;
+
+    // Memoized hash of getFullScopedName(). 0 means "not computed yet"; a real hash that
+    // happens to be 0 is stored as 1 so the sentinel stays unambiguous.
+    mutable std::atomic<uint32_t> scopedNameHash_ = 0;
 };
 
 template<typename BASE, SymbolKind K, typename E = void>

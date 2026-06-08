@@ -6,6 +6,7 @@
 #include "Compiler/Sema/Type/TypeManager.h"
 #include "Main/CompilerInstance.h"
 #include "Main/TaskContext.h"
+#include "Support/Math/Hash.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -373,6 +374,20 @@ Utf8 Symbol::getFullScopedName(const TaskContext& ctx) const
     Utf8 result;
     appendFullScopedName(ctx, result);
     return result;
+}
+
+uint32_t Symbol::scopedNameHash(const TaskContext& ctx) const
+{
+    const uint32_t cached = scopedNameHash_.load(std::memory_order_relaxed);
+    if (cached != 0)
+        return cached;
+
+    const Utf8 fullName = getFullScopedName(ctx);
+    uint32_t   h        = Math::hash(fullName.view());
+    if (h == 0)
+        h = 1;
+    scopedNameHash_.store(h, std::memory_order_relaxed);
+    return h;
 }
 
 void Symbol::appendFullScopedName(const TaskContext& ctx, Utf8& out) const

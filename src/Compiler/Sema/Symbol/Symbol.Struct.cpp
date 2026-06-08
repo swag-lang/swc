@@ -109,6 +109,11 @@ namespace
         return true;
     }
 
+    bool isSwagAttribute(const TaskContext& ctx, const AttributeInstance& attribute, const std::string_view attrName)
+    {
+        return attribute.symbol && attribute.symbol->inSwagNamespace(ctx) && attribute.symbol->name(ctx) == attrName;
+    }
+
     const SymbolFunction* registeredLifecycleFunction(const SymbolStruct& ownerStruct, const SpecOpKind kind)
     {
         switch (kind)
@@ -471,7 +476,7 @@ namespace
         outValue = 0;
         for (const AttributeInstance& attribute : attributes.attributes)
         {
-            if (!attribute.symbol || !attribute.symbol->inSwagNamespace(ctx) || attribute.symbol->name(ctx) != attrName)
+            if (!isSwagAttribute(ctx, attribute, attrName))
                 continue;
 
             for (const AttributeParamInstance& param : attribute.params)
@@ -501,7 +506,7 @@ namespace
         for (size_t i = startIndex; i < fieldAttributes.attributes.size(); ++i)
         {
             const AttributeInstance& attribute = fieldAttributes.attributes[i];
-            if (!attribute.symbol || !attribute.symbol->inSwagNamespace(ctx) || attribute.symbol->name(ctx) != "Align")
+            if (!isSwagAttribute(ctx, attribute, "Align"))
                 continue;
 
             for (const AttributeParamInstance& param : attribute.params)
@@ -531,7 +536,7 @@ namespace
         for (size_t i = startIndex; i < fieldAttributes.attributes.size(); ++i)
         {
             const AttributeInstance& attribute = fieldAttributes.attributes[i];
-            if (!attribute.symbol || !attribute.symbol->inSwagNamespace(ctx) || attribute.symbol->name(ctx) != "Offset")
+            if (!isSwagAttribute(ctx, attribute, "Offset"))
                 continue;
 
             for (const AttributeParamInstance& param : attribute.params)
@@ -666,6 +671,17 @@ std::vector<SymbolFunction*> SymbolStruct::methods() const
 
     std::ranges::sort(result, compareFunctionOrder);
     return result;
+}
+
+bool SymbolStruct::exportsRuntimeMethods(const TaskContext& ctx) const
+{
+    for (const AttributeInstance& attribute : attributes().attributes)
+    {
+        if (isSwagAttribute(ctx, attribute, "ExportType"))
+            return true;
+    }
+
+    return false;
 }
 
 void SymbolStruct::addInterface(SymbolImpl& symImpl)

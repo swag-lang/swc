@@ -714,21 +714,25 @@ namespace
             return;
         }
 
-        const auto&                        fields     = type.payloadSymStruct().fields();
-        const auto                         interfaces = type.payloadSymStruct().interfaces();
+        const SymbolStruct&                symStruct  = type.payloadSymStruct();
+        const auto&                        fields     = symStruct.fields();
+        const auto                         interfaces = symStruct.interfaces();
         std::vector<const SymbolFunction*> methods;
         SmallVector<TypeRef>               methodTypes;
-        for (const SymbolFunction* symMethod : type.payloadSymStruct().methods())
+        if (symStruct.exportsRuntimeMethods(ctx))
         {
-            if (!symMethod)
-                continue;
+            for (const SymbolFunction* symMethod : symStruct.methods())
+            {
+                if (!symMethod)
+                    continue;
 
-            const TypeRef methodTypeRef = reflectedMethodTypeRef(ctx, *symMethod);
-            if (!methodTypeRef.isValid())
-                continue;
+                const TypeRef methodTypeRef = reflectedMethodTypeRef(ctx, *symMethod);
+                if (!methodTypeRef.isValid())
+                    continue;
 
-            methods.push_back(symMethod);
-            methodTypes.push_back(methodTypeRef);
+                methods.push_back(symMethod);
+                methodTypes.push_back(methodTypeRef);
+            }
         }
         uint32_t usingCount = 0;
         for (const SymbolVariable* symField : fields)

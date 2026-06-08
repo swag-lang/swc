@@ -7,6 +7,7 @@ attr FuncMeta(label: string, arity: s32 = 0)
 attr EnumMeta(label: string)
 
 #[TypeMeta("probe", 3)]
+#[Swag.ExportType(.Methods)]
 struct ReflectionProbe
 {
     #[FieldMeta("primary", 7)]

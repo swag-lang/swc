@@ -955,7 +955,11 @@ Result AstNullLiteral::codeGenPostNode(CodeGen& codeGen)
 
 Result AstInitializerExpr::codeGenPostNode(CodeGen& codeGen) const
 {
-    codeGen.inheritPayload(codeGen.curNodeRef(), nodeExprRef, codeGen.transparentPayloadTypeRef());
+    CodeGenNodePayload& payload   = codeGen.inheritPayload(codeGen.curNodeRef(), nodeExprRef, codeGen.transparentPayloadTypeRef());
+    const SemaNodeView  view      = codeGen.curViewType();
+    const SemaNodeView  childView = codeGen.viewType(nodeExprRef);
+    if (view.type() && view.type()->isReference() && payload.isAddress() && childView.type() && !childView.type()->isReference())
+        payload.setIsValue();
     return Result::Continue;
 }
 

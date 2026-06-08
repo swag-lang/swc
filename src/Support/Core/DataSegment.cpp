@@ -133,6 +133,10 @@ void DataSegment::addFunctionRelocation(uint32_t offset, const SymbolFunction* t
 
 Ref DataSegment::findRef(const void* ptr) const noexcept
 {
+    // Fast path: with no large blocks, findRef only consults the lock-free PagedStore.
+    if (!hasLargeBlocks_.load(std::memory_order_acquire))
+        return store_.findRef(ptr);
+
     const std::shared_lock lock(mutex_);
     const Ref              ref = store_.findRef(ptr);
     if (ref != INVALID_REF)
@@ -387,6 +391,9 @@ std::pair<uint32_t, std::byte*> DataSegment::allocateStorageLocked(uint32_t size
             .blockOffset = offset,
         };
         largeBlocks_.push_back(std::move(block));
+        // Publish that large blocks now exist so lock-free readers fall back to the locked path
+        // (which consults largeBlocks_). Release pairs with the acquire load in ptr()/findRef().
+        hasLargeBlocks_.store(true, std::memory_order_release);
         return {offset, ptr};
     }
 

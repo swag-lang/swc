@@ -22,11 +22,6 @@ func sigArrayTestAdd(value: *s32)
 
     var value = 3
     SigArrayTestTotal = 0
-    signal.arr[0].fn(&value)
-    signal.arr[1].fn(&value)
-    @assert(SigArrayTestTotal == 11)
-
-    SigArrayTestTotal = 0
     signal.call(&value)
     @assert(SigArrayTestTotal == 11)
 

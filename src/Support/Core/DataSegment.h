@@ -123,6 +123,12 @@ public:
     template<class T>
     T* ptr(Ref ref) noexcept
     {
+        // Fast path: when no large blocks have ever been allocated, the data lives entirely in
+        // the underlying PagedStore, whose reads are lock-free (atomically-published page snapshot,
+        // append-only storage). This avoids touching the per-segment shared_mutex on the hot read
+        // path, which otherwise serializes against every interning add()/addSpan() on the segment.
+        if (!hasLargeBlocks_.load(std::memory_order_acquire))
+            return reinterpret_cast<T*>(store_.ptr<std::byte>(ref));
         const std::shared_lock lock(mutex_);
         return reinterpret_cast<T*>(findPtrLocked(ref, static_cast<uint32_t>(sizeof(T))));
     }
@@ -130,6 +136,8 @@ public:
     template<class T>
     const T* ptr(Ref ref) const noexcept
     {
+        if (!hasLargeBlocks_.load(std::memory_order_acquire))
+            return reinterpret_cast<const T*>(store_.ptr<std::byte>(ref));
         const std::shared_lock lock(mutex_);
         return reinterpret_cast<const T*>(findPtrLocked(ref, static_cast<uint32_t>(sizeof(T))));
     }
@@ -154,6 +162,7 @@ private:
     mutable std::vector<uint32_t>                                          relocationsByOffset_;
     mutable bool                                                           relocationsByOffsetDirty_ = false;
     std::vector<DataSegmentAllocation>                                     allocations_;
+    std::atomic<bool>                                                      hasLargeBlocks_{false};
     mutable std::shared_mutex                                              mutex_;
     mutable std::shared_mutex                                              relocationsMutex_;
     mutable std::shared_mutex                                              allocationsMutex_;

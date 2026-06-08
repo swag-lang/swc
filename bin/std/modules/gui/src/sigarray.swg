@@ -1,14 +1,9 @@
 #global public
 using Core
 
-struct(T) SigArrayEntry
-{
-    fn:     T
-}
-
 struct(T) SigArray
 {
-    arr:          Array'SigArrayEntry'T
+    arr:          Array'T
     disabled:     s32
 }
 
@@ -17,7 +12,7 @@ impl SigArray
     mtd(op: string) opAssign(fn: T)
     {
         #assert(op == "+=")
-        .arr.add({fn})
+        .arr.add(fn)
     }
 
     // Disable the calls.
@@ -37,54 +32,32 @@ impl SigArray
     mtd const isEmpty()->bool => .arr.isEmpty()
 
     // Call all registered lambdas.
-    mtd call()
+    mtd call(params: ...)
     {
         if .disabled do
             return
 
-        Debug.assert(@countof(#typeof(T).parameters) == 0)
-        for i in .arr.count
+        // Be sure the call has the right number of arguments
+        Debug.assert(@countof(params) == @countof(#typeof(T).parameters))
+
+        foreach fn in .arr
         {
-            .arr[i].fn()
-        }
-    }
+            #ast
+            {
+                var sb: StrConv.StringBuilder
+                let ts  = #typeof(T)
 
-    // Call all registered lambdas.
-    mtd(P0) call(p0: P0)
-    {
-        if .disabled do
-            return
+                sb.appendString("fn(")
+                for i in ts.parameters
+                {
+                    if i do
+                        sb.appendString(",")
+                    sb.appendFormat("cast(%) params[%]", ts.parameters[i].pointedType.fullname, i)
+                }
 
-        Debug.assert(@countof(#typeof(T).parameters) == 1)
-        for i in .arr.count
-        {
-            .arr[i].fn(p0)
-        }
-    }
-
-    // Call all registered lambdas.
-    mtd(P0, P1) call(p0: P0, p1: P1)
-    {
-        if .disabled do
-            return
-
-        Debug.assert(@countof(#typeof(T).parameters) == 2)
-        for i in .arr.count
-        {
-            .arr[i].fn(p0, p1)
-        }
-    }
-
-    // Call all registered lambdas.
-    mtd(P0, P1, P2) call(p0: P0, p1: P1, p2: P2)
-    {
-        if .disabled do
-            return
-
-        Debug.assert(@countof(#typeof(T).parameters) == 3)
-        for i in .arr.count
-        {
-            .arr[i].fn(p0, p1, p2)
+                sb.appendString(")\n")
+                return sb.toString()
+            }
         }
     }
 }

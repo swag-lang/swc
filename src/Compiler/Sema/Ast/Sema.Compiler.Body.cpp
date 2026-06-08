@@ -666,8 +666,9 @@ Result AstCompilerFunc::semaPreNode(Sema& sema)
         declaredSym.setDeclared(sema.ctx());
     }
 
-    auto& sym = sema.viewStored(sema.curNodeRef(), SemaNodeViewPartE::Symbol).sym()->cast<SymbolFunction>();
-    return enterCompilerBodyFunction(sema, sym, tokenId == TokenId::CompilerAst ? TypeRef::invalid() : sema.typeMgr().typeVoid());
+    auto&         sym           = sema.viewStored(sema.curNodeRef(), SemaNodeViewPartE::Symbol).sym()->cast<SymbolFunction>();
+    const TypeRef returnTypeRef = tokenId == TokenId::CompilerAst ? sema.typeMgr().typeString() : sema.typeMgr().typeVoid();
+    return enterCompilerBodyFunction(sema, sym, returnTypeRef);
 }
 
 Result AstCompilerFunc::semaPostNode(Sema& sema) const

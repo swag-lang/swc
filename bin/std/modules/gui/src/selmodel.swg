@@ -77,18 +77,18 @@ impl SelModel
         }
         else
         {
-            let rangeStart = .selection[isSelectedRange].start
-            let rangeEnd   = .selection[isSelectedRange].end
-            if rangeStart == rangeEnd do
+            let range = #ref .selection[isSelectedRange]
+            if range.start == range.end do
                 .selection.removeAt(cast(u64) isSelectedRange)
-            elif rangeStart == idx do
-                .selection[isSelectedRange].start += 1
-            elif rangeEnd == idx do
-                .selection[isSelectedRange].end -= 1
+            elif range.start == idx do
+                range.start += 1
+            elif range.end == idx do
+                range.end -= 1
             else
             {
-                .selection[isSelectedRange].end = idx - 1
-                .selection.add({idx + 1, rangeEnd})
+                let end = range.end
+                range.end = idx - 1
+                .selection.add({idx + 1, end})
             }
         }
     }

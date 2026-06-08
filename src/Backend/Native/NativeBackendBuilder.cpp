@@ -424,6 +424,10 @@ NativeBackendBuilder::NativeBackendBuilder(CompilerInstance& compiler, const boo
 {
 }
 
+// Defined here (not defaulted in the header) so the unique_ptr<NativeLinker> member can be destroyed
+// with the complete NativeLinker type, which is only visible in this translation unit.
+NativeBackendBuilder::~NativeBackendBuilder() = default;
+
 TaskContext& NativeBackendBuilder::ctx()
 {
     return ctx_;
@@ -570,6 +574,55 @@ Result NativeBackendBuilder::run()
         SWC_RESULT(linker->link());
     }
 
+    return runAfterLink();
+}
+
+// Builds everything up to but not including the external link, leaving a prepared link command in
+// deferredToolRun_. Mirrors run() but stops short of executing the linker so the workspace pipeline
+// can overlap the (out-of-process) link with the next module's compilation. The link is excluded
+// from the Build stage on purpose: in the deferred path it runs later, off this thread.
+Result NativeBackendBuilder::prepareForLink()
+{
+    SWC_MEM_SCOPE("Backend/Native");
+    SWC_ASSERT(compiler_ != nullptr);
+    SWC_RESULT(compiler_->ensureCompilerMessagePass(Runtime::CompilerMsgKind::PassBeforeOutput));
+    SWC_RESULT(validateTarget());
+
+    const NativeArtifactBuilder artifactBuilder(*this);
+    NativeArtifactPaths         paths;
+    artifactBuilder.queryPaths(paths);
+    compiler_->setLastArtifactLabel(paths.artifactPath.filename().empty() ? Utf8(paths.artifactPath) : Utf8(paths.artifactPath.filename()));
+    {
+        TimedActionLog::ScopedStage stage(ctx_, TimedActionLog::Stage::Build);
+        SWC_RESULT(prepare());
+        Utf8 buildStat = TimedActionLog::formatStatCount(ctx_, compiler_->nativeCodeSegment().size(), "function");
+        if (!compiler_->lastArtifactLabel().empty())
+        {
+            buildStat = TimedActionLog::joinStatItems(ctx_, {buildStat, TimedActionLog::formatStatName(ctx_, compiler_->lastArtifactLabel())});
+        }
+        stage.setStat(std::move(buildStat));
+        SWC_RESULT(artifactBuilder.build());
+        SWC_RESULT(writeObjects());
+    }
+
+    deferredLinker_ = NativeLinker::create(*this);
+    SWC_ASSERT(deferredLinker_ != nullptr);
+    deferredToolRun_ = {};
+    return deferredLinker_->prepareLink(deferredToolRun_);
+}
+
+// Foreground continuation of the deferred link: interpret the result of the background process,
+// report diagnostics/output in order, then run the artifact if this is an executable run.
+Result NativeBackendBuilder::finishDeferredLink()
+{
+    SWC_MEM_SCOPE("Backend/Native");
+    SWC_ASSERT(deferredLinker_ != nullptr);
+    SWC_RESULT(deferredLinker_->finishToolRun(deferredToolRun_));
+    return runAfterLink();
+}
+
+Result NativeBackendBuilder::runAfterLink()
+{
     if (runArtifact_ && compiler_->buildCfg().backendKind == Runtime::BuildCfgBackendKind::Executable)
         SWC_RESULT(runGeneratedArtifact());
 

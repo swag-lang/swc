@@ -12,7 +12,7 @@ public:
     static Os::WindowsToolchainDiscoveryResult queryToolchainPaths(Os::WindowsToolchainPaths& outToolchain);
     static bool                                shouldForwardLinkerOutputLine(std::string_view line, bool dll);
 
-    Result link() override;
+    Result prepareLink(NativeLinkerToolRun& outRun) override;
 
 private:
     Result                    discoverToolchain();

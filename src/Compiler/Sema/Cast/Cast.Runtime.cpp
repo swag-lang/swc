@@ -826,7 +826,9 @@ Result Cast::castFromTypeValue(Sema& sema, CastRequest& castRequest, TypeRef src
     const TypeInfo& dstType = sema.typeMgr().get(dstTypeRef);
     if (dstType.isAnyTypeInfo(sema.ctx()))
     {
-        if (castRequest.isConstantFolding())
+        // Overload probing only needs the allow/deny decision; skip materializing the
+        // TypeInfo runtime payload (the chosen overload re-runs the real cast afterwards).
+        if (castRequest.materializeConstantResult())
         {
             const auto cst = sema.cstMgr().get(castRequest.srcConstRef);
             SWC_RESULT(makeTypeInfoWithoutBlocking(sema, castRequest.outConstRef, cst.getTypeValue(), castRequest.errorNodeRef));
@@ -1005,6 +1007,12 @@ Result Cast::castToAny(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef,
         srcType                     = &typeMgr.get(anyTypeRef);
         castRequest.setConstantFoldingSrc(srcCstRef);
     }
+
+    // Overload probing only needs the allow/deny decision (casting to 'any' is allowed once the
+    // source constant concretizes above). Skip boxing the value into a runtime Any -- which would
+    // materialize the boxed type's TypeInfo -- since the chosen overload re-runs the real cast.
+    if (!castRequest.materializeConstantResult())
+        return Result::Continue;
 
     if (SemaHelpers::isTypeLikeTypeRef(ctx, anyTypeRef))
     {

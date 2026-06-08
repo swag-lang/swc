@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Main/CompilerInstance.h"
 #include "Backend/JIT/JIT.h"
+#include "Backend/Native/NativeBackendBuilder.h"
 #include "Backend/JIT/JITExecManager.h"
 #include "Backend/JIT/JITMemoryManager.h"
 #include "Backend/RuntimeName.h"
@@ -354,6 +355,16 @@ CompilerInstance::~CompilerInstance()
     // run during compiler teardown. Unregister prepared function tables before executable pages are
     // released or stale Windows unwind entries can survive into the next compiler instance.
     resetPreparedJitFunctions();
+}
+
+void CompilerInstance::setDeferredBuilder(std::unique_ptr<NativeBackendBuilder> builder)
+{
+    deferredBuilder_ = std::move(builder);
+}
+
+std::unique_ptr<NativeBackendBuilder> CompilerInstance::takeDeferredBuilder()
+{
+    return std::move(deferredBuilder_);
 }
 
 std::byte* CompilerInstance::dataSegmentAddress(const DataSegmentKind kind, const uint32_t offset)

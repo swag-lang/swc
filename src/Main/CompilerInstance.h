@@ -33,8 +33,10 @@ class Global;
 class SourceFile;
 class JITExecManager;
 class CompilerMessageTypeInfoJob;
+class NativeBackendBuilder;
 struct ModuleSetupInputApplier;
 struct CommandLine;
+struct WorkspaceModuleLink;
 
 class CompilerInstance
 {
@@ -159,6 +161,14 @@ public:
     SymbolModule*       symModule() { return symModule_; }
     const SymbolModule* symModule() const { return symModule_; }
     void                setSymModule(SymbolModule* symModule) { symModule_ = symModule; }
+
+    // When set, the native backend stops short of running the external linker and hands the prepared
+    // builder back via the deferred-builder slot, so the workspace pipeline can run the link off the
+    // main thread. See runWorkspace.
+    void                                  setDeferNativeLink(bool defer) { deferNativeLink_ = defer; }
+    bool                                  deferNativeLink() const { return deferNativeLink_; }
+    void                                  setDeferredBuilder(std::unique_ptr<NativeBackendBuilder> builder);
+    std::unique_ptr<NativeBackendBuilder> takeDeferredBuilder();
 
     void                                registerNativeCodeFunction(SymbolFunction* symbol);
     void                                registerNativeTestFunction(SymbolFunction* symbol);
@@ -345,7 +355,7 @@ private:
     Result            applyModuleSetupInputs(TaskContext& ctx, const ModuleSetupSnapshot& setupSnapshot);
     static bool       isWorkspaceModuleActive(const WorkspaceModuleBuild& moduleBuild);
     ExitCode          runWorkspace();
-    Result            runWorkspaceModule(const WorkspaceModuleBuild& moduleBuild, uint32_t moduleIndex, uint32_t moduleCount) const;
+    Result            runWorkspaceModule(const WorkspaceModuleBuild& moduleBuild, uint32_t moduleIndex, uint32_t moduleCount, std::unique_ptr<WorkspaceModuleLink>& outPending) const;
     Result            flushGeneratedSourceDumps(TaskContext& ctx);
     const SourceView* findFirstSourceViewByNormalizedPath(const Utf8& normalizedPath) const;
     const SourceView* findSourceViewByNormalizedPathAndRuntimeLine(const Utf8& normalizedPath, uint32_t runtimeLine) const;
@@ -386,6 +396,8 @@ private:
     std::unordered_set<fs::path>                       importedDependencyLinkDirSet_;
     std::vector<std::unique_ptr<Utf8>>                 ownedBuildCfgStrings_;
     const ModuleSetupSnapshot*                         precomputedModuleSetup_ = nullptr;
+    bool                                               deferNativeLink_        = false;
+    std::unique_ptr<NativeBackendBuilder>              deferredBuilder_;
     Utf8                                               lastArtifactLabel_;
     WorkspaceBuildLogState                             workspaceBuildLogState_{};
     std::optional<WorkspaceModuleLogState>             workspaceModuleLogState_;

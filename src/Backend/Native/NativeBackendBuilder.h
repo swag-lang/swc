@@ -1,4 +1,5 @@
 #pragma once
+#include "Backend/Native/NativeLinkerToolRun.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Compiler/Sema/Symbol/Symbols.h"
@@ -11,6 +12,7 @@
 SWC_BEGIN_NAMESPACE();
 
 struct MicroRelocation;
+class NativeLinker;
 
 inline constexpr auto K_R_DATA_BASE_SYMBOL = "__swc_rdata_base";
 inline constexpr auto K_DATA_BASE_SYMBOL   = "__swc_data_base";
@@ -128,6 +130,7 @@ class NativeBackendBuilder
 {
 public:
     NativeBackendBuilder(CompilerInstance& compiler, bool runArtifact);
+    ~NativeBackendBuilder();
 
     TaskContext&              ctx();
     const TaskContext&        ctx() const;
@@ -144,6 +147,15 @@ public:
     Result runExistingArtifact();
     Result prepare();
     Result writeObject(uint32_t objIndex);
+
+    // Deferred (workspace async-link) path. prepareForLink runs the full build up to but not
+    // including the external link, leaving a prepared NativeLinkerToolRun in deferredToolRun().
+    // The caller then runs NativeLinker::executeToolRun(deferredToolRun()) on a background thread,
+    // and finally calls finishDeferredLink() back on the foreground thread to report results and,
+    // for an executable run, launch the artifact.
+    Result               prepareForLink();
+    Result               finishDeferredLink();
+    NativeLinkerToolRun& deferredToolRun() { return deferredToolRun_; }
 
     Result reportError(DiagnosticId id);
 
@@ -192,11 +204,14 @@ private:
     Result validateTarget();
     Result writeObjects();
     Result runGeneratedArtifact();
+    Result runAfterLink();
 
-    TaskContext       ctx_;
-    CompilerInstance* compiler_    = nullptr;
-    bool              runArtifact_ = false;
-    DiagnosticId      lastErrorId_ = DiagnosticId::None;
+    TaskContext                   ctx_;
+    CompilerInstance*             compiler_    = nullptr;
+    bool                          runArtifact_ = false;
+    DiagnosticId                  lastErrorId_ = DiagnosticId::None;
+    std::unique_ptr<NativeLinker> deferredLinker_;
+    NativeLinkerToolRun           deferredToolRun_;
 };
 
 SWC_END_NAMESPACE();

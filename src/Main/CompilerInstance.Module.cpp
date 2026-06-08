@@ -2,6 +2,7 @@
 #include "Main/CompilerInstance.h"
 #include "Backend/Native/NativeArtifactBuilder.h"
 #include "Backend/Native/NativeBackendBuilder.h"
+#include "Backend/Native/NativeLinker.h"
 #include "Backend/RuntimeName.h"
 #include "Compiler/Lexer/SourceView.h"
 #include "Compiler/Parser/Ast/Ast.h"
@@ -26,6 +27,8 @@
 #include "Support/Report/Diagnostic.h"
 #include "Support/Report/ScopedTimedAction.h"
 #include "Support/Thread/JobManager.h"
+
+#include <future>
 
 SWC_BEGIN_NAMESPACE();
 
@@ -1405,6 +1408,77 @@ bool CompilerInstance::isWorkspaceModuleActive(const WorkspaceModuleBuild& modul
     return !moduleBuild.ignoreInWorkspace && !moduleBuild.filteredOut;
 }
 
+// A module's native link that has been launched on a background thread. The owned CommandLine,
+// CompilerInstance and NativeBackendBuilder must stay alive until the link is joined and finished:
+// the compiler is referenced (by pointer) by the builder, and the CommandLine is referenced (by
+// pointer) by the compiler. Declaration order matters for teardown: the future is joined first, then
+// the builder, then the compiler, then the CommandLine.
+struct WorkspaceModuleLink
+{
+    Utf8                                  moduleName;
+    std::unique_ptr<CommandLine>          cmdLine;
+    std::unique_ptr<CompilerInstance>     compiler;
+    std::unique_ptr<NativeBackendBuilder> builder;
+    bool                                  writeManifest = false;
+    WorkspaceArtifactManifest             manifest;
+    fs::path                              manifestPath;
+    fs::path                              outDir;
+    std::future<void>                     linkFuture;
+
+    ~WorkspaceModuleLink()
+    {
+        // Defensive join: an early/error return may drop a link without finalizing it. std::async's
+        // future also blocks on destruction, but waiting explicitly keeps teardown order obvious.
+        if (linkFuture.valid())
+            linkFuture.wait();
+    }
+};
+
+namespace
+{
+    Result collectWorkspaceModuleDependencyDirs(std::vector<fs::path>& outDirs, CompilerInstance& compiler, TaskContext& ctx, std::span<const CompilerInstance::ModuleSetupImport> imports)
+    {
+        outDirs.clear();
+        ModuleSetupInputApplier applier(compiler, ctx);
+        outDirs.reserve(imports.size() * 3);
+        for (const CompilerInstance::ModuleSetupImport& importRequest : imports)
+        {
+            ModuleSetupInputApplier::ResolvedModuleImportPaths importPaths;
+            if (applier.resolveDependencyImportDir(importPaths, importRequest, nullptr) != Result::Continue)
+                return Result::Error;
+
+            if (!importPaths.apiDir.empty())
+                outDirs.push_back(importPaths.apiDir);
+            if (!importPaths.linkDir.empty())
+                outDirs.push_back(importPaths.linkDir);
+            if (!importPaths.sharedDir.empty())
+                outDirs.push_back(importPaths.sharedDir);
+        }
+
+        normalizeWorkspacePaths(outDirs);
+        return Result::Continue;
+    }
+
+    // Foreground completion of a backgrounded module link: wait for the external linker, interpret
+    // its result and report any diagnostics in order, then record the artifact manifest now that the
+    // output exists.
+    Result finalizeWorkspaceModuleLink(WorkspaceModuleLink& link)
+    {
+        if (link.linkFuture.valid())
+            link.linkFuture.wait();
+
+        SWC_RESULT(link.builder->finishDeferredLink());
+
+        if (link.writeManifest)
+        {
+            collectWorkspaceOutputArtifacts(link.manifest.artifacts, link.outDir);
+            SWC_RESULT(writeWorkspaceArtifactManifest(link.builder->ctx(), link.manifest, link.manifestPath));
+        }
+
+        return Result::Continue;
+    }
+}
+
 ExitCode CompilerInstance::runWorkspace()
 {
     TaskContext                 ctx(*this);
@@ -1654,22 +1728,62 @@ ExitCode CompilerInstance::runWorkspace()
         }
     }
 
+    // Module compilation runs serially in dependency order, but each module's external link is
+    // launched on a background thread so it overlaps the next module's (CPU-bound) compilation
+    // instead of stalling every worker while link.exe runs. A module reads its dependencies' link
+    // artifacts while resolving imports during setup, so a pending dependency link is joined before
+    // its dependent starts. This is a depth-1 pipeline: at most one link is in flight, which bounds
+    // the extra peak memory to a single retained module compiler.
+    std::unique_ptr<WorkspaceModuleLink> pendingLink;
+
+    const auto joinPendingLink = [&]() -> Result {
+        if (!pendingLink)
+            return Result::Continue;
+        std::unique_ptr<WorkspaceModuleLink> link = std::move(pendingLink);
+        return finalizeWorkspaceModuleLink(*link);
+    };
+
     const uint32_t buildCount = static_cast<uint32_t>(buildOrder.size());
     for (uint32_t buildIndex = 0; buildIndex < buildCount; ++buildIndex)
     {
-        const size_t moduleIndex = buildOrder[buildIndex];
-        if (runWorkspaceModule(modules[moduleIndex], buildIndex + 1, buildCount) != Result::Continue)
+        const size_t                moduleIndex = buildOrder[buildIndex];
+        const WorkspaceModuleBuild& moduleBuild = modules[moduleIndex];
+
+        if (pendingLink &&
+            std::ranges::find(moduleBuild.workspaceDependencies, pendingLink->moduleName) != moduleBuild.workspaceDependencies.end() &&
+            joinPendingLink() != Result::Continue)
             return ExitCode::CompileError;
+
+        std::unique_ptr<WorkspaceModuleLink> modulePending;
+        if (runWorkspaceModule(moduleBuild, buildIndex + 1, buildCount, modulePending) != Result::Continue)
+            return ExitCode::CompileError;
+
+        if (modulePending)
+        {
+            // Drain the previous in-flight link (it overlapped this module's compilation) before
+            // launching this one, keeping the pipeline depth at one.
+            if (joinPendingLink() != Result::Continue)
+                return ExitCode::CompileError;
+
+            WorkspaceModuleLink* linkPtr = modulePending.get();
+            linkPtr->linkFuture          = std::async(std::launch::async, [linkPtr] { NativeLinker::executeToolRun(linkPtr->builder->deferredToolRun()); });
+            pendingLink                  = std::move(modulePending);
+        }
 
         workspaceBuildLogState_.builtModules++;
         workspaceStage.setStat(formatWorkspaceStageStat(ctx, workspaceBuildLogState_));
     }
 
+    if (joinPendingLink() != Result::Continue)
+        return ExitCode::CompileError;
+
     return Stats::getNumErrors() > 0 ? ExitCode::CompileError : ExitCode::Success;
 }
 
-Result CompilerInstance::runWorkspaceModule(const WorkspaceModuleBuild& moduleBuild, const uint32_t moduleIndex, const uint32_t moduleCount) const
+Result CompilerInstance::runWorkspaceModule(const WorkspaceModuleBuild& moduleBuild, const uint32_t moduleIndex, const uint32_t moduleCount, std::unique_ptr<WorkspaceModuleLink>& outPending) const
 {
+    outPending.reset();
+
     CommandLine moduleCmdLine    = cmdLine();
     moduleCmdLine.modulePath     = moduleBuild.moduleDir;
     moduleCmdLine.moduleFilePath = moduleBuild.moduleFile;
@@ -1718,24 +1832,9 @@ Result CompilerInstance::runWorkspaceModule(const WorkspaceModuleBuild& moduleBu
             probeCompiler.setLastArtifactLabel(artifactPaths.artifactPath.filename().empty() ? Utf8(artifactPaths.artifactPath) : Utf8(artifactPaths.artifactPath.filename()));
         }
 
-        ModuleSetupInputApplier probeApplier(probeCompiler, probeCtx);
-        std::vector<fs::path>   currentDependencyDirs;
-        currentDependencyDirs.reserve(moduleBuild.setup.imports.size() * 3);
-        for (const ModuleSetupImport& importRequest : moduleBuild.setup.imports)
-        {
-            ModuleSetupInputApplier::ResolvedModuleImportPaths importPaths;
-            if (probeApplier.resolveDependencyImportDir(importPaths, importRequest, nullptr) != Result::Continue)
-                return Result::Error;
-
-            if (!importPaths.apiDir.empty())
-                currentDependencyDirs.push_back(importPaths.apiDir);
-            if (!importPaths.linkDir.empty())
-                currentDependencyDirs.push_back(importPaths.linkDir);
-            if (!importPaths.sharedDir.empty())
-                currentDependencyDirs.push_back(importPaths.sharedDir);
-        }
-
-        normalizeWorkspacePaths(currentDependencyDirs);
+        std::vector<fs::path> currentDependencyDirs;
+        if (collectWorkspaceModuleDependencyDirs(currentDependencyDirs, probeCompiler, probeCtx, moduleBuild.setup.imports) != Result::Continue)
+            return Result::Error;
 
         WorkspaceArtifactManifest manifest;
         const fs::path            manifestPath = workspaceArtifactManifestPath(moduleCmdLine.outDir);
@@ -1758,43 +1857,64 @@ Result CompilerInstance::runWorkspaceModule(const WorkspaceModuleBuild& moduleBu
         }
     }
 
-    const uint64_t   errorsBefore = Stats::getNumErrors();
-    CompilerInstance moduleCompiler(global(), moduleCmdLine);
-    moduleCompiler.precomputedModuleSetup_  = &moduleBuild.setup;
-    moduleCompiler.workspaceModuleLogState_ = workspaceLogState;
+    const uint64_t errorsBefore = Stats::getNumErrors();
 
-    TaskContext                 moduleCtx(moduleCompiler);
-    TimedActionLog::ScopedStage moduleStage(moduleCtx, TimedActionLog::Stage::Module);
-    moduleCompiler.processCommand();
-    moduleStage.setStat(formatWorkspaceModuleStageStat(moduleCtx, moduleCompiler, moduleStage.delta()));
-    if (Stats::getNumErrors() != errorsBefore)
-        return Result::Error;
+    // The compiler outlives this call when its link is deferred (the builder holds a pointer to it,
+    // and the compiler holds a pointer to the CommandLine), so both are heap-owned and handed to the
+    // caller in the pending link. Native-artifact builds run only the build half here and leave a
+    // prepared link to be executed off the main thread.
+    auto moduleCmdLineOwned = std::make_unique<CommandLine>(moduleCmdLine);
+    auto moduleCompiler     = std::make_unique<CompilerInstance>(global(), *moduleCmdLineOwned);
+    moduleCompiler->precomputedModuleSetup_  = &moduleBuild.setup;
+    moduleCompiler->workspaceModuleLogState_ = workspaceLogState;
+    moduleCompiler->setDeferNativeLink(true);
 
-    if (moduleCmdLine.command != CommandKind::Test)
+    std::unique_ptr<NativeBackendBuilder> deferredBuilder;
     {
-        WorkspaceArtifactManifest manifest;
-        collectWorkspaceModuleInputs(manifest.inputs, moduleCmdLine, moduleBuild.moduleFile, moduleBuild.sourceDir, moduleBuild.setup.loadedFiles);
+        TaskContext                 moduleCtx(*moduleCompiler);
+        TimedActionLog::ScopedStage moduleStage(moduleCtx, TimedActionLog::Stage::Module);
+        moduleCompiler->processCommand();
+        moduleStage.setStat(formatWorkspaceModuleStageStat(moduleCtx, *moduleCompiler, moduleStage.delta()));
+        if (Stats::getNumErrors() != errorsBefore)
+            return Result::Error;
 
-        ModuleSetupInputApplier manifestApplier(moduleCompiler, moduleCtx);
-        manifest.dependencyDirs.reserve(moduleBuild.setup.imports.size() * 3);
-        for (const ModuleSetupImport& importRequest : moduleBuild.setup.imports)
+        deferredBuilder = moduleCompiler->takeDeferredBuilder();
+        if (!deferredBuilder)
         {
-            ModuleSetupInputApplier::ResolvedModuleImportPaths importPaths;
-            if (manifestApplier.resolveDependencyImportDir(importPaths, importRequest, nullptr) != Result::Continue)
-                return Result::Error;
+            // No external link to defer (non-native backend, or a test run): finalize synchronously,
+            // exactly as before. The artifacts, if any, were already produced by processCommand.
+            if (moduleCmdLine.command != CommandKind::Test)
+            {
+                WorkspaceArtifactManifest manifest;
+                collectWorkspaceModuleInputs(manifest.inputs, moduleCmdLine, moduleBuild.moduleFile, moduleBuild.sourceDir, moduleBuild.setup.loadedFiles);
+                if (collectWorkspaceModuleDependencyDirs(manifest.dependencyDirs, *moduleCompiler, moduleCtx, moduleBuild.setup.imports) != Result::Continue)
+                    return Result::Error;
+                collectWorkspaceOutputArtifacts(manifest.artifacts, moduleCmdLine.outDir);
+                if (writeWorkspaceArtifactManifest(moduleCtx, manifest, workspaceArtifactManifestPath(moduleCmdLine.outDir)) != Result::Continue)
+                    return Result::Error;
+            }
 
-            if (!importPaths.apiDir.empty())
-                manifest.dependencyDirs.push_back(importPaths.apiDir);
-            if (!importPaths.linkDir.empty())
-                manifest.dependencyDirs.push_back(importPaths.linkDir);
-            if (!importPaths.sharedDir.empty())
-                manifest.dependencyDirs.push_back(importPaths.sharedDir);
+            return Result::Continue;
         }
 
-        normalizeWorkspacePaths(manifest.dependencyDirs);
-        collectWorkspaceOutputArtifacts(manifest.artifacts, moduleCmdLine.outDir);
-        if (writeWorkspaceArtifactManifest(moduleCtx, manifest, workspaceArtifactManifestPath(moduleCmdLine.outDir)) != Result::Continue)
-            return Result::Error;
+        // Capture the manifest inputs now, while the compiler state is fully available; the artifact
+        // list and the manifest write happen once the background link finishes (finalizeWorkspaceModuleLink).
+        auto link           = std::make_unique<WorkspaceModuleLink>();
+        link->moduleName    = moduleBuild.name;
+        link->outDir        = moduleCmdLine.outDir;
+        link->manifestPath  = workspaceArtifactManifestPath(moduleCmdLine.outDir);
+        link->writeManifest = moduleCmdLine.command != CommandKind::Test;
+        if (link->writeManifest)
+        {
+            collectWorkspaceModuleInputs(link->manifest.inputs, moduleCmdLine, moduleBuild.moduleFile, moduleBuild.sourceDir, moduleBuild.setup.loadedFiles);
+            if (collectWorkspaceModuleDependencyDirs(link->manifest.dependencyDirs, *moduleCompiler, moduleCtx, moduleBuild.setup.imports) != Result::Continue)
+                return Result::Error;
+        }
+
+        link->builder  = std::move(deferredBuilder);
+        link->compiler = std::move(moduleCompiler);
+        link->cmdLine  = std::move(moduleCmdLineOwned);
+        outPending     = std::move(link);
     }
 
     return Result::Continue;

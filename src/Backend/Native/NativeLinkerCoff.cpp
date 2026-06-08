@@ -70,7 +70,7 @@ Result NativeLinkerCoff::discoverToolchain()
     SWC_UNREACHABLE();
 }
 
-Result NativeLinkerCoff::link()
+Result NativeLinkerCoff::prepareLink(NativeLinkerToolRun& outRun)
 {
     SWC_ASSERT(builder_ != nullptr);
     SWC_RESULT(discoverToolchain());
@@ -101,7 +101,7 @@ Result NativeLinkerCoff::link()
             SWC_UNREACHABLE();
     }
 
-    return runToolAndValidateArtifacts(*exePath, args, runOptions);
+    return prepareToolRun(outRun, *exePath, args, runOptions);
 }
 
 bool NativeLinkerCoff::shouldForwardLinkerOutputLine(const std::string_view line, const bool dll)

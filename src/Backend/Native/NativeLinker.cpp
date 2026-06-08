@@ -154,49 +154,76 @@ Os::WindowsToolchainDiscoveryResult NativeLinker::queryToolchainPaths(const Nati
     }
 }
 
-Result NativeLinker::runToolAndValidateArtifacts(const fs::path& exePath, const std::vector<Utf8>& args, const Os::ProcessRunOptions* options) const
+Result NativeLinker::link()
+{
+    NativeLinkerToolRun run;
+    SWC_RESULT(prepareLink(run));
+    executeToolRun(run);
+    return finishToolRun(run);
+}
+
+Result NativeLinker::prepareToolRun(NativeLinkerToolRun& outRun, const fs::path& exePath, const std::vector<Utf8>& args, const Os::ProcessRunOptions* options) const
 {
     SWC_ASSERT(builder_ != nullptr);
-    uint32_t              exitCode = 0;
-    std::string           toolOutput;
-    Os::ProcessRunOptions runOptions;
-    if (options)
-        runOptions = *options;
-    runOptions.capturedOutput = &toolOutput;
-    runOptions.forwardOutput  = false;
-    runOptions.logCtx         = &builder_->ctx();
+    outRun.exePath          = exePath;
+    outRun.buildDir         = builder_->buildDir;
+    outRun.outputLineFilter = options ? options->outputLineFilter : std::function<bool(std::string_view)>{};
 
-    std::vector<Utf8> toolArgs;
-    const auto*       runArgs = &args;
     if (shouldUseResponseFile(exePath, args))
     {
         const fs::path rspPath = responseFilePath(*builder_, exePath);
         SWC_RESULT(writeResponseFile(*builder_, rspPath, args));
-        toolArgs.emplace_back(std::format("@{}", Utf8(rspPath.filename())));
-        runArgs = &toolArgs;
+        outRun.runArgs.clear();
+        outRun.runArgs.emplace_back(std::format("@{}", Utf8(rspPath.filename())));
+        return Result::Continue;
     }
 
-    const auto result = Os::runProcess(exitCode, exePath, *runArgs, builder_->buildDir, &runOptions);
-    switch (result)
+    outRun.runArgs = args;
+    return Result::Continue;
+}
+
+void NativeLinker::executeToolRun(NativeLinkerToolRun& run)
+{
+    // Runs on whatever thread the caller chooses (foreground for a one-shot link, a background
+    // thread for the workspace pipeline). Touches only the self-contained run description: no
+    // compiler, builder, logger or diagnostic state is referenced here, so it is safe to overlap
+    // with other module compilation. The system error is captured immediately on this thread so
+    // finishToolRun can report it accurately even when it runs much later on another thread.
+    Os::ProcessRunOptions runOptions;
+    runOptions.capturedOutput = &run.capturedOutput;
+    runOptions.forwardOutput  = false;
+    runOptions.logCtx         = nullptr;
+
+    run.runResult   = Os::runProcess(run.exitCode, run.exePath, run.runArgs, run.buildDir, &runOptions);
+    run.systemError = Os::systemError();
+    run.executed    = true;
+}
+
+Result NativeLinker::finishToolRun(const NativeLinkerToolRun& run) const
+{
+    SWC_ASSERT(builder_ != nullptr);
+    SWC_ASSERT(run.executed);
+
+    switch (run.runResult)
     {
         case Os::ProcessRunResult::Ok:
             break;
         case Os::ProcessRunResult::StartFailed:
-            return builder_->reportError(DiagnosticId::cmd_err_native_tool_start_failed, Diagnostic::ARG_PATH, Utf8(exePath), Diagnostic::ARG_BECAUSE, Os::systemError());
+            return builder_->reportError(DiagnosticId::cmd_err_native_tool_start_failed, Diagnostic::ARG_PATH, Utf8(run.exePath), Diagnostic::ARG_BECAUSE, run.systemError);
         case Os::ProcessRunResult::WaitFailed:
-            return builder_->reportError(DiagnosticId::cmd_err_native_tool_wait_failed, Diagnostic::ARG_PATH, Utf8(exePath));
+            return builder_->reportError(DiagnosticId::cmd_err_native_tool_wait_failed, Diagnostic::ARG_PATH, Utf8(run.exePath));
         case Os::ProcessRunResult::ExitCodeFailed:
-            return builder_->reportError(DiagnosticId::cmd_err_native_tool_exit_code_failed, Diagnostic::ARG_PATH, Utf8(exePath), Diagnostic::ARG_BECAUSE, Os::systemError());
+            return builder_->reportError(DiagnosticId::cmd_err_native_tool_exit_code_failed, Diagnostic::ARG_PATH, Utf8(run.exePath), Diagnostic::ARG_BECAUSE, run.systemError);
     }
 
-    if (exitCode != 0)
+    if (run.exitCode != 0)
     {
         Diagnostic diag = Diagnostic::get(DiagnosticId::cmd_err_native_tool_failed);
-        diag.addArgument(Diagnostic::ARG_TOOL, Utf8(exePath.filename()));
-        diag.addArgument(Diagnostic::ARG_VALUE, Os::formatProcessExitCode(exitCode));
-        if (!toolOutput.empty())
+        diag.addArgument(Diagnostic::ARG_TOOL, Utf8(run.exePath.filename()));
+        diag.addArgument(Diagnostic::ARG_VALUE, Os::formatProcessExitCode(run.exitCode));
+        if (!run.capturedOutput.empty())
         {
-            std::string_view trimmedOutput = toolOutput;
+            std::string_view trimmedOutput = run.capturedOutput;
             while (!trimmedOutput.empty() && (trimmedOutput.back() == '\n' || trimmedOutput.back() == '\r'))
                 trimmedOutput.remove_suffix(1);
             diag.addArgument(Diagnostic::ARG_BECAUSE, Utf8{trimmedOutput});
@@ -207,7 +234,7 @@ Result NativeLinker::runToolAndValidateArtifacts(const fs::path& exePath, const 
         return Result::Error;
     }
 
-    replayToolOutput(&builder_->ctx(), toolOutput, runOptions.outputLineFilter);
+    replayToolOutput(&builder_->ctx(), run.capturedOutput, run.outputLineFilter);
     if (!fs::exists(builder_->artifactPath))
         return builder_->reportError(DiagnosticId::cmd_err_native_artifact_missing, Diagnostic::ARG_PATH, Utf8(builder_->artifactPath));
     if (builder_->compiler().buildCfg().backend.debugInfo &&

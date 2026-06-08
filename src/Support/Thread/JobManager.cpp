@@ -149,6 +149,76 @@ void JobManager::enqueue(Job& job, JobPriority priority, JobClientId client)
     cv_.notify_one();
 }
 
+std::optional<WaitKey> JobManager::computeWaitKey(const Job& job)
+{
+    const TaskState& st = job.ctx().state();
+    switch (st.kind)
+    {
+        // Symbol-flag waits: the producer is Symbol::set*, which wakes {symbol, kind}.
+        case TaskStateKind::SemaWaitSymDeclared:
+        case TaskStateKind::SemaWaitSymTyped:
+        case TaskStateKind::SemaWaitSymSemaCompleted:
+        case TaskStateKind::SemaWaitSymCodeGenPreSolved:
+        case TaskStateKind::SemaWaitSymCodeGenCompleted:
+            if (st.symbol)
+                return WaitKey{st.symbol, st.kind};
+            return std::nullopt;
+
+        // Everything else stays a wildcard sleeper for now (woken by the barrier wakeAll).
+        default:
+            return std::nullopt;
+    }
+}
+
+void JobManager::unregisterWaiterLocked(JobRecord* rec)
+{
+    if (!rec->registered)
+        return;
+
+    const auto range = waiters_.equal_range(rec->waitKey);
+    for (auto it = range.first; it != range.second; ++it)
+    {
+        if (it->second == rec)
+        {
+            waiters_.erase(it);
+            break;
+        }
+    }
+
+    rec->registered = false;
+}
+
+void JobManager::wake(const WaitKey& key)
+{
+    if (!key.valid())
+        return;
+
+    const std::unique_lock lk(mtx_);
+
+    const auto range = waiters_.equal_range(key);
+    if (range.first == range.second)
+        return;
+
+    bool any = false;
+    for (auto it = range.first; it != range.second;)
+    {
+        JobRecord* rec = it->second;
+        it             = waiters_.erase(it);
+        rec->registered = false;
+
+        if (rec->state != JobRecord::State::Waiting)
+            continue;
+
+        rec->state = JobRecord::State::Ready;
+        bumpClientCountLocked(rec->clientId, +1);
+        pushReady(rec, rec->priority);
+        any = true;
+    }
+
+    if (any)
+        cv_.notify_all();
+}
+
 void JobManager::waitingJobs(std::vector<Job*>& waiting, JobClientId client) const
 {
     waiting.clear();
@@ -301,6 +371,7 @@ bool JobManager::wakeAll(JobClientId client)
         std::ranges::sort(temp, {}, &JobRecord::index);
         for (JobRecord* rec : temp)
         {
+            unregisterWaiterLocked(rec);
             rec->state = JobRecord::State::Ready;
             bumpClientCountLocked(rec->clientId, +1);
             pushReady(rec, rec->priority);
@@ -317,6 +388,7 @@ bool JobManager::wakeAll(JobClientId client)
                 continue;
             if (rec->state != JobRecord::State::Waiting)
                 continue;
+            unregisterWaiterLocked(rec);
             rec->state = JobRecord::State::Ready;
             bumpClientCountLocked(rec->clientId, +1);
             pushReady(rec, rec->priority);
@@ -583,6 +655,15 @@ void JobManager::handleJobResult(JobRecord* rec, const JobResult res)
         {
             rec->state = JobRecord::State::Waiting;
             bumpClientCountLocked(rec->clientId, -1);
+
+            // Register on the precise dependency so the producer can wake it directly.
+            // Non-keyable reasons remain wildcard sleepers, woken only by the barrier.
+            if (const std::optional<WaitKey> key = computeWaitKey(*rec->job))
+            {
+                rec->waitKey    = *key;
+                rec->registered = true;
+                waiters_.emplace(*key, rec);
+            }
             break;
         }
     }

@@ -18,6 +18,11 @@ public:
 
     void enqueue(Job& job, JobPriority priority, JobClientId client = 0);
     void waitingJobs(std::vector<Job*>& waiting, JobClientId client) const;
+
+    // Dependency-driven wake: move every job parked on this exact dependency from
+    // Waiting to Ready. Cheap no-op when nobody waits on it.
+    void wake(const WaitKey& key);
+
     bool wakeAll(JobClientId client);
     void waitAll();
     void waitAll(JobClientId client);
@@ -40,9 +45,11 @@ private:
     JobRecord* popReadyForClientLocked(JobClientId client);
     bool       isDrainedLocked() const;
 
-    static JobResult executeJob(Job& job);
-    void             handleJobResult(JobRecord* rec, JobResult res);
-    void             workerLoop();
+    static JobResult        executeJob(Job& job);
+    void                    handleJobResult(JobRecord* rec, JobResult res);
+    void                    workerLoop();
+    static std::optional<WaitKey> computeWaitKey(const Job& job);
+    void                    unregisterWaiterLocked(JobRecord* rec);
 
     void shutdown() noexcept;
 
@@ -78,6 +85,10 @@ private:
 
     // All currently scheduled records (any state except free), to allow wakeAll scans.
     std::unordered_set<JobRecord*> liveRecs_;
+
+    // Sleeping jobs indexed by the exact dependency they wait on, for targeted wakeups.
+    // Only keyable sleepers appear here; non-keyable ones stay wildcard (barrier-woken).
+    std::unordered_multimap<WaitKey, JobRecord*, WaitKeyHash> waiters_;
 
     void bumpClientCountLocked(JobClientId client, int delta);
 

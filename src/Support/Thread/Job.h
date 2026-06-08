@@ -36,6 +36,28 @@ enum class JobResult : std::uint8_t
     Sleep
 };
 
+// Identifies the exact dependency a sleeping job is waiting on, so that the producer
+// satisfying that dependency can wake only the relevant jobs (instead of waking all).
+// A null target means "not keyable" (wildcard sleeper, woken only by the barrier wakeAll).
+struct WaitKey
+{
+    const void*   target = nullptr;
+    TaskStateKind kind   = TaskStateKind::None;
+
+    bool operator==(const WaitKey&) const = default;
+    bool valid() const { return target != nullptr; }
+};
+
+struct WaitKeyHash
+{
+    std::size_t operator()(const WaitKey& k) const noexcept
+    {
+        const std::size_t h1 = std::hash<const void*>{}(k.target);
+        const std::size_t h2 = static_cast<std::size_t>(k.kind);
+        return h1 ^ (h2 * 0x9E3779B97F4A7C15ull);
+    }
+};
+
 struct JobRecord
 {
     Job*        job      = nullptr;
@@ -52,6 +74,10 @@ struct JobRecord
     };
 
     State state{State::Ready};
+
+    // Dependency registration while Waiting (only set when registered in the wait registry).
+    WaitKey waitKey{};
+    bool    registered = false;
 };
 
 class Job

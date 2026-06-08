@@ -5,8 +5,10 @@
 #include "Compiler/Sema/Symbol/Symbols.h"
 #include "Compiler/Sema/Type/TypeManager.h"
 #include "Main/CompilerInstance.h"
+#include "Main/Global.h"
 #include "Main/TaskContext.h"
 #include "Support/Math/Hash.h"
+#include "Support/Thread/JobManager.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -234,6 +236,7 @@ void Symbol::setTyped(TaskContext& ctx)
         return;
     flags_.add(SymbolFlagsE::Typed);
     ctx.compiler().notifyAlive();
+    ctx.global().jobMgr().wake({this, TaskStateKind::SemaWaitSymTyped});
 }
 
 void Symbol::setSemaCompleted(TaskContext& ctx)
@@ -253,6 +256,7 @@ void Symbol::setSemaCompleted(TaskContext& ctx)
     flags_.add(SymbolFlagsE::SemaCompleted);
     ctx.compiler().onSymbolSemaCompleted(ctx, *this);
     ctx.compiler().notifyAlive();
+    ctx.global().jobMgr().wake({this, TaskStateKind::SemaWaitSymSemaCompleted});
 }
 
 void Symbol::setCodeGenCompleted(TaskContext& ctx)
@@ -261,6 +265,7 @@ void Symbol::setCodeGenCompleted(TaskContext& ctx)
         return;
     flags_.add(SymbolFlagsE::CodeGenCompleted);
     ctx.compiler().notifyAlive();
+    ctx.global().jobMgr().wake({this, TaskStateKind::SemaWaitSymCodeGenCompleted});
 }
 
 void Symbol::setCodeGenPreSolved(TaskContext& ctx)
@@ -269,6 +274,7 @@ void Symbol::setCodeGenPreSolved(TaskContext& ctx)
         return;
     flags_.add(SymbolFlagsE::CodeGenPreSolved);
     ctx.compiler().notifyAlive();
+    ctx.global().jobMgr().wake({this, TaskStateKind::SemaWaitSymCodeGenPreSolved});
 }
 
 void Symbol::setDeclared(TaskContext& ctx)
@@ -277,6 +283,7 @@ void Symbol::setDeclared(TaskContext& ctx)
         return;
     flags_.add(SymbolFlagsE::Declared);
     ctx.compiler().notifyAlive();
+    ctx.global().jobMgr().wake({this, TaskStateKind::SemaWaitSymDeclared});
 }
 
 void Symbol::setIgnored(TaskContext& ctx) noexcept

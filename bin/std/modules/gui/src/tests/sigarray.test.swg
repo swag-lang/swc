@@ -10,6 +10,12 @@ func sigArrayTestAdd(value: *s32)
     SigArrayTestTotal += 1
 }
 
+func sigArrayTestAddDelta(value: *s32, delta: s32)
+{
+    discard value
+    SigArrayTestTotal += delta
+}
+
 #test
 {
     var signal: SigArray'func||(*s32)
@@ -39,4 +45,20 @@ func sigArrayTestAdd(value: *s32)
     value = 4
     signal.call(&value)
     @assert(SigArrayTestTotal == 22)
+}
+
+#test
+{
+    var signal: SigArray'func||(*s32, s32)
+    signal += &sigArrayTestAddDelta
+    signal += func(value: *s32, delta: s32)
+    {
+        discard value
+        SigArrayTestTotal += delta * 10
+    }
+
+    var value = 5
+    SigArrayTestTotal = 0
+    signal.call(&value, 3)
+    @assert(SigArrayTestTotal == 33)
 }

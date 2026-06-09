@@ -1,20 +1,13 @@
 #include "pch.h"
 #include "Backend/Linker/CoffReader.h"
+#include "Support/Core/ByteUtils.h"
+#include "Support/Math/Helpers.h"
 #include "Support/Os/Os.h" // windows.h -> IMAGE_* definitions
 
 SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    template<typename T>
-    bool readStruct(T& out, ByteSpan bytes, size_t offset)
-    {
-        if (offset + sizeof(T) > bytes.size())
-            return false;
-        std::memcpy(&out, bytes.data() + offset, sizeof(T));
-        return true;
-    }
-
     Utf8 readStringTableName(ByteSpan bytes, size_t stringTableOffset, uint32_t nameOffset)
     {
         const size_t start = stringTableOffset + nameOffset;
@@ -33,11 +26,6 @@ namespace
         if (field == 0)
             return 1;
         return 1u << (field - 1);
-    }
-
-    uint32_t alignUp(uint32_t value, uint32_t alignment)
-    {
-        return (value + alignment - 1) & ~(alignment - 1);
     }
 
     EnumFlags<LinkSectionFlagsE> flagsFromCharacteristics(uint32_t characteristics)
@@ -90,7 +78,7 @@ bool readCoffObject(CoffObject& outObject, Utf8& outError, ByteSpan bytes)
     outObject = {};
 
     IMAGE_FILE_HEADER fileHeader{};
-    if (!readStruct(fileHeader, bytes, 0))
+    if (!ByteUtils::tryReadValue(fileHeader, bytes, 0))
     {
         outError = "truncated COFF file header";
         return false;
@@ -116,7 +104,7 @@ bool readCoffObject(CoffObject& outObject, Utf8& outError, ByteSpan bytes)
     for (size_t i = 0; i < symbolCount;)
     {
         IMAGE_SYMBOL record{};
-        if (!readStruct(record, bytes, symbolTableOffset + i * sizeof(IMAGE_SYMBOL)))
+        if (!ByteUtils::tryReadValue(record, bytes, symbolTableOffset + i * sizeof(IMAGE_SYMBOL)))
         {
             outError = "truncated COFF symbol table";
             return false;
@@ -135,7 +123,7 @@ bool readCoffObject(CoffObject& outObject, Utf8& outError, ByteSpan bytes)
     for (size_t s = 0; s < sectionCount; ++s)
     {
         IMAGE_SECTION_HEADER header{};
-        if (!readStruct(header, bytes, sectionTableOffset + s * sizeof(IMAGE_SECTION_HEADER)))
+        if (!ByteUtils::tryReadValue(header, bytes, sectionTableOffset + s * sizeof(IMAGE_SECTION_HEADER)))
         {
             outError = "truncated COFF section header";
             return false;
@@ -175,7 +163,7 @@ bool readCoffObject(CoffObject& outObject, Utf8& outError, ByteSpan bytes)
         {
             // The real count lives in the first record; skip that placeholder.
             IMAGE_RELOCATION overflow{};
-            if (!readStruct(overflow, bytes, relocOffset))
+            if (!ByteUtils::tryReadValue(overflow, bytes, relocOffset))
             {
                 outError = "truncated COFF relocation overflow record";
                 return false;
@@ -190,7 +178,7 @@ bool readCoffObject(CoffObject& outObject, Utf8& outError, ByteSpan bytes)
         for (uint32_t r = 0; r < relocCount; ++r)
         {
             IMAGE_RELOCATION reloc{};
-            if (!readStruct(reloc, bytes, relocOffset + r * sizeof(IMAGE_RELOCATION)))
+            if (!ByteUtils::tryReadValue(reloc, bytes, relocOffset + r * sizeof(IMAGE_RELOCATION)))
             {
                 outError = "truncated COFF relocation table";
                 return false;
@@ -273,14 +261,14 @@ bool mergeCoffObjectsIntoImage(LinkImage& outImage, Utf8& outError, const std::v
             uint32_t base = 0;
             if (section.isBss)
             {
-                merged.bssSize = alignUp(merged.bssSize, align);
+                merged.bssSize = Math::alignUpU32(merged.bssSize, align);
                 base           = merged.bssSize;
                 merged.bssSize += section.bssSize;
                 merged.flags.add(LinkSectionFlagsE::Uninit);
             }
             else
             {
-                base = alignUp(static_cast<uint32_t>(merged.bytes.size()), align);
+                base = Math::alignUpU32(static_cast<uint32_t>(merged.bytes.size()), align);
                 merged.bytes.resize(base, std::byte{0});
                 merged.bytes.insert(merged.bytes.end(), section.bytes.begin(), section.bytes.end());
             }

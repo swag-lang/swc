@@ -233,6 +233,7 @@ func layoutRootView()
 
 func onRootEvent(view: *Wnd, evt: IEvent)->bool
 {
+    Core.Console.print("[gui2] onRootEvent isDestroy=", evt is DestroyEvent, " isResize=", evt is ResizeEvent, "\n")
     if evt is ResizeEvent
     {
         layoutRootView()
@@ -280,7 +281,7 @@ func updateTestMode()
     g_TestFrame = 0
     if g_Page + 1 >= MaxPages
     {
-        Env.exit(0)
+        g_Surface.requestClose()
         return
     }
 

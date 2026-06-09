@@ -2,6 +2,7 @@
 #include "Main/ModuleApi.h"
 #include "Compiler/Parser/Ast/Ast.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
+#include "Compiler/Sema/Symbol/Symbol.Impl.h"
 #include "Compiler/Sema/Symbol/Symbols.h"
 #include "Compiler/SourceFile.h"
 #include "Main/CompilerInstance.h"
@@ -41,6 +42,27 @@ namespace
             existingEntry->symbol = publicEntry.symbol;
     }
 
+    // True for an `impl Interface for Struct {}` block that has no member functions (a
+    // marker interface, or one whose methods are all defaulted) and where both the struct
+    // and the interface are public. Such impls are not reconstructed from member entries,
+    // so they must be emitted on their own to preserve the implementation relationship.
+    bool isEmptyExportableInterfaceImpl(const Symbol& symbol)
+    {
+        if (!symbol.isImpl())
+            return false;
+
+        const auto* symImpl = symbol.safeCast<SymbolImpl>();
+        if (!symImpl || !symImpl->isForInterface() || !symImpl->empty())
+            return false;
+
+        const SymbolStruct*    implStruct    = symImpl->symStruct();
+        const SymbolInterface* implInterface = symImpl->symInterface();
+        if (!implStruct || !implInterface)
+            return false;
+
+        return implStruct->isPublic() && implInterface->isPublic();
+    }
+
     Result reportModuleApiPublicGlobalVariable(TaskContext& ctx, const Symbol& symbol)
     {
         Diagnostic diag = Diagnostic::get(DiagnosticId::cmd_err_api_public_global_variable, ctx.compiler().srcView(symbol.srcViewRef()).fileRef());
@@ -55,7 +77,14 @@ namespace ModuleApi
 {
     void onSymbolSemaCompleted(ModuleApiPerThreadData& state, TaskContext& ctx, const Symbol& symbol)
     {
-        if (!symbol.isPublic())
+        // An interface impl carries no Public flag of its own; it is exported only through
+        // its public member functions. A marker / default-only interface impl has none, so
+        // it would vanish from the generated module API -- losing the struct<->interface
+        // relationship across the module boundary and breaking `is`/interface casts on the
+        // consumer side. Resurrect such empty interface impls when both the implementing
+        // struct and the interface are themselves public.
+        const bool isEmptyPublicInterfaceImpl = isEmptyExportableInterfaceImpl(symbol);
+        if (!symbol.isPublic() && !isEmptyPublicInterfaceImpl)
             return;
 
         const SourceFile* sourceFile = ctx.compiler().sourceViewFile(symbol);
@@ -72,7 +101,7 @@ namespace ModuleApi
             return;
         if (symbol.isFunction() && symbol.attributes().hasRtFlag(RtAttributeFlagsE::PlaceHolder))
             return;
-        if (symbol.isImpl())
+        if (symbol.isImpl() && !isEmptyPublicInterfaceImpl)
             return;
 
         AstNodeRef declRef;

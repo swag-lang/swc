@@ -1268,6 +1268,9 @@
     <ClInclude Include="src\Support\Core\ByteSpan.h">
       <Filter>src\Support\Core</Filter>
     </ClInclude>
+    <ClInclude Include="src\Support\Core\ByteUtils.h">
+      <Filter>src\Support\Core</Filter>
+    </ClInclude>
     <ClInclude Include="src\Support\Core\DenseBits.h">
       <Filter>src\Support\Core</Filter>
     </ClInclude>

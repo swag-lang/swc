@@ -379,6 +379,29 @@ func verifyRuntimeContext()
     @setcontext(cxt)
 }
 
+var gEvtClassified: s32
+
+func onDepEvt(evt: IDepEvt)
+{
+    if evt is DepDestroyEvt do
+        gEvtClassified = 1
+    elif evt is DepResizeEvt do
+        gEvtClassified = 3
+    else do
+        gEvtClassified = -1
+}
+
+func verifyEmptyDerivedInterfaceIs()
+{
+    gEvtClassified = 0
+    depDispatchEvt(&onDepEvt, 1)
+    @assert(gEvtClassified == 1)
+
+    gEvtClassified = 0
+    depDispatchEvt(&onDepEvt, 3)
+    @assert(gEvtClassified == 3)
+}
+
 #main
 {
     verifyImportedImplicitStructDefaults()
@@ -388,4 +411,5 @@ func verifyRuntimeContext()
     verifyImportedClosureCallbacks()
     verifyDllAbiCalls()
     verifyRuntimeContext()
+    verifyEmptyDerivedInterfaceIs()
 }

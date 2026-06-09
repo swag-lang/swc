@@ -1,5 +1,7 @@
 #include "pch.h"
 #include "Backend/Linker/PeWriter.h"
+#include "Support/Core/ByteUtils.h"
+#include "Support/Math/Helpers.h"
 #include "Support/Os/Os.h" // windows.h -> IMAGE_* definitions
 
 SWC_BEGIN_NAMESPACE();
@@ -8,44 +10,6 @@ namespace
 {
     constexpr uint32_t SECTION_ALIGNMENT = 0x1000;
     constexpr uint32_t FILE_ALIGNMENT    = 0x200;
-
-    uint32_t alignUp(uint32_t value, uint32_t alignment)
-    {
-        return (value + alignment - 1) & ~(alignment - 1);
-    }
-
-    void appendBytes(std::vector<std::byte>& out, const void* data, size_t size)
-    {
-        const auto* p = static_cast<const std::byte*>(data);
-        out.insert(out.end(), p, p + size);
-    }
-
-    void appendU16(std::vector<std::byte>& out, uint16_t value) { appendBytes(out, &value, sizeof(value)); }
-    void appendU32(std::vector<std::byte>& out, uint32_t value) { appendBytes(out, &value, sizeof(value)); }
-
-    uint32_t readU32(const std::vector<std::byte>& bytes, size_t offset)
-    {
-        uint32_t value = 0;
-        std::memcpy(&value, bytes.data() + offset, sizeof(value));
-        return value;
-    }
-
-    uint64_t readU64(const std::vector<std::byte>& bytes, size_t offset)
-    {
-        uint64_t value = 0;
-        std::memcpy(&value, bytes.data() + offset, sizeof(value));
-        return value;
-    }
-
-    void writeU32(std::vector<std::byte>& bytes, size_t offset, uint32_t value)
-    {
-        std::memcpy(bytes.data() + offset, &value, sizeof(value));
-    }
-
-    void writeU64(std::vector<std::byte>& bytes, size_t offset, uint64_t value)
-    {
-        std::memcpy(bytes.data() + offset, &value, sizeof(value));
-    }
 
     uint32_t sectionCharacteristics(std::string_view name)
     {
@@ -63,7 +27,7 @@ namespace
     uint32_t peHeadersSize(uint32_t sectionCount)
     {
         const size_t headersSize = sizeof(IMAGE_DOS_HEADER) + sizeof(uint32_t) + sizeof(IMAGE_FILE_HEADER) + sizeof(IMAGE_OPTIONAL_HEADER64) + sectionCount * sizeof(IMAGE_SECTION_HEADER);
-        return alignUp(static_cast<uint32_t>(headersSize), FILE_ALIGNMENT);
+        return Math::alignUpU32(static_cast<uint32_t>(headersSize), FILE_ALIGNMENT);
     }
 
     int sectionLayoutRank(std::string_view name)
@@ -211,7 +175,7 @@ namespace
             for (const LinkImport* imp : byDll[dll])
             {
                 if (text.bytes.size() % 16 != 0)
-                    text.bytes.resize(alignUp(static_cast<uint32_t>(text.bytes.size()), 16), std::byte{0});
+                    text.bytes.resize(Math::alignUpU32(static_cast<uint32_t>(text.bytes.size()), 16), std::byte{0});
 
                 ImportThunk thunk;
                 thunk.symbolName = imp->symbolName;
@@ -271,9 +235,8 @@ namespace
                 if (imp->byOrdinal)
                     continue; // imported by ordinal: no hint/name entry
                 hintNameOffset[imp] = static_cast<uint32_t>(idata.size());
-                appendU16(idata, 0); // hint
-                appendBytes(idata, imp->importName.data(), imp->importName.size());
-                idata.push_back(std::byte{0});
+                ByteUtils::appendLE16(idata, 0); // hint
+                ByteUtils::appendCString(idata, imp->importName.view());
                 if (idata.size() % 2 != 0)
                     idata.push_back(std::byte{0});
             }
@@ -284,8 +247,7 @@ namespace
         for (const Utf8& dll : dllOrder)
         {
             dllNameOffset[dll] = static_cast<uint32_t>(idata.size());
-            appendBytes(idata, dll.data(), dll.size());
-            idata.push_back(std::byte{0});
+            ByteUtils::appendCString(idata, dll.view());
             if (idata.size() % 2 != 0)
                 idata.push_back(std::byte{0});
         }
@@ -300,14 +262,14 @@ namespace
                 if (imp->byOrdinal)
                 {
                     const uint64_t entry = 0x8000000000000000ull | imp->ordinal;
-                    writeU64(idata, iltCursor, entry);
-                    writeU64(idata, iatCursor, entry);
+                    ByteUtils::writeLE64(idata, iltCursor, entry);
+                    ByteUtils::writeLE64(idata, iatCursor, entry);
                 }
                 else
                 {
-                    writeU64(idata, iltCursor, hintNameOffset[imp]);
+                    ByteUtils::writeLE64(idata, iltCursor, hintNameOffset[imp]);
                     idataRvaFixups_.push_back(iltCursor);
-                    writeU64(idata, iatCursor, hintNameOffset[imp]);
+                    ByteUtils::writeLE64(idata, iatCursor, hintNameOffset[imp]);
                     idataRvaFixups_.push_back(iatCursor);
                 }
                 iltCursor += sizeof(uint64_t);
@@ -319,11 +281,11 @@ namespace
         for (uint32_t d = 0; d < descCount; ++d)
         {
             const uint32_t base = descTableOffset + d * sizeof(IMAGE_IMPORT_DESCRIPTOR);
-            writeU32(idata, base + 0, dllLayouts[d].iltOffset);  // OriginalFirstThunk
+            ByteUtils::writeLE32(idata, base + 0, dllLayouts[d].iltOffset); // OriginalFirstThunk
             idataRvaFixups_.push_back(base + 0);
-            writeU32(idata, base + 12, dllNameOffset[dllOrder[d]]); // Name
+            ByteUtils::writeLE32(idata, base + 12, dllNameOffset[dllOrder[d]]); // Name
             idataRvaFixups_.push_back(base + 12);
-            writeU32(idata, base + 16, dllLayouts[d].iatOffset);  // FirstThunk
+            ByteUtils::writeLE32(idata, base + 16, dllLayouts[d].iatOffset); // FirstThunk
             idataRvaFixups_.push_back(base + 16);
         }
 
@@ -385,7 +347,7 @@ namespace
         for (uint32_t i = 0; i < count; ++i)
         {
             eatSymbolFixups_.emplace_back(static_cast<uint32_t>(edata.size()), sorted[i]->symbolName);
-            appendU32(edata, 0); // filled with the exported symbol RVA after layout
+            ByteUtils::appendLE32(edata, 0); // filled with the exported symbol RVA after layout
         }
 
         const uint32_t nptOffset = static_cast<uint32_t>(edata.size());
@@ -393,40 +355,38 @@ namespace
 
         const uint32_t ordinalOffset = static_cast<uint32_t>(edata.size());
         for (uint32_t i = 0; i < count; ++i)
-            appendU16(edata, static_cast<uint16_t>(i));
+            ByteUtils::appendLE16(edata, static_cast<uint16_t>(i));
 
         // Name strings, then the module name.
         std::vector<uint32_t> nameOffsets(count);
         for (uint32_t i = 0; i < count; ++i)
         {
             nameOffsets[i] = static_cast<uint32_t>(edata.size());
-            appendBytes(edata, sorted[i]->name.data(), sorted[i]->name.size());
-            edata.push_back(std::byte{0});
+            ByteUtils::appendCString(edata, sorted[i]->name.view());
         }
         const uint32_t         dllNameOffset = static_cast<uint32_t>(edata.size());
         const std::string_view exportModule  = image_.moduleName.empty() ? std::string_view{"module.dll"} : image_.moduleName.view();
-        appendBytes(edata, exportModule.data(), exportModule.size());
-        edata.push_back(std::byte{0});
+        ByteUtils::appendCString(edata, exportModule);
 
         // Fill the name-pointer table with RVAs of the name strings (relocated after layout).
         for (uint32_t i = 0; i < count; ++i)
         {
             const uint32_t pos = nptOffset + i * sizeof(uint32_t);
-            writeU32(edata, pos, nameOffsets[i]);
+            ByteUtils::writeLE32(edata, pos, nameOffsets[i]);
             edataRvaFixups_.push_back(pos);
         }
 
         // Fill IMAGE_EXPORT_DIRECTORY.
-        writeU32(edata, 12, dllNameOffset);
+        ByteUtils::writeLE32(edata, 12, dllNameOffset);
         edataRvaFixups_.push_back(12);
-        writeU32(edata, 16, 1);     // Base ordinal
-        writeU32(edata, 20, count); // NumberOfFunctions
-        writeU32(edata, 24, count); // NumberOfNames
-        writeU32(edata, 28, eatOffset);
+        ByteUtils::writeLE32(edata, 16, 1);     // Base ordinal
+        ByteUtils::writeLE32(edata, 20, count); // NumberOfFunctions
+        ByteUtils::writeLE32(edata, 24, count); // NumberOfNames
+        ByteUtils::writeLE32(edata, 28, eatOffset);
         edataRvaFixups_.push_back(28);
-        writeU32(edata, 32, nptOffset);
+        ByteUtils::writeLE32(edata, 32, nptOffset);
         edataRvaFixups_.push_back(32);
-        writeU32(edata, 36, ordinalOffset);
+        ByteUtils::writeLE32(edata, 36, ordinalOffset);
         edataRvaFixups_.push_back(36);
 
         OutSection section;
@@ -476,7 +436,7 @@ namespace
         std::iota(order.begin(), order.end(), 0u);
         std::ranges::stable_sort(order, SectionLayoutLess{&sections_});
 
-        uint32_t rva        = alignUp(headersSize, SECTION_ALIGNMENT);
+        uint32_t rva        = Math::alignUpU32(headersSize, SECTION_ALIGNMENT);
         uint32_t fileOffset = headersSize;
         for (const uint32_t idx : order)
         {
@@ -490,10 +450,10 @@ namespace
             else
             {
                 section.fileOffset = fileOffset;
-                section.rawSize    = alignUp(static_cast<uint32_t>(section.bytes.size()), FILE_ALIGNMENT);
+                section.rawSize    = Math::alignUpU32(static_cast<uint32_t>(section.bytes.size()), FILE_ALIGNMENT);
                 fileOffset += section.rawSize;
             }
-            rva += alignUp(section.virtualSize, SECTION_ALIGNMENT);
+            rva += Math::alignUpU32(section.virtualSize, SECTION_ALIGNMENT);
         }
     }
 
@@ -522,9 +482,9 @@ namespace
                             outError = "relocation out of section bounds";
                             return false;
                         }
-                        const uint64_t inPlace = readU64(out.bytes, reloc.offset);
+                        const uint64_t inPlace = ByteUtils::readLE64(asByteSpan(out.bytes), reloc.offset);
                         const uint64_t value   = image_.imageBase + targetRva + inPlace + static_cast<uint64_t>(reloc.addend);
-                        writeU64(out.bytes, reloc.offset, value);
+                        ByteUtils::writeLE64(out.bytes, reloc.offset, value);
                         baseRelocSites_.push_back(out.rva + reloc.offset);
                         break;
                     }
@@ -535,9 +495,9 @@ namespace
                             outError = "relocation out of section bounds";
                             return false;
                         }
-                        const uint32_t inPlace = readU32(out.bytes, reloc.offset);
+                        const uint32_t inPlace = ByteUtils::readLE32(asByteSpan(out.bytes), reloc.offset);
                         const uint32_t value   = targetRva + inPlace + static_cast<uint32_t>(reloc.addend);
-                        writeU32(out.bytes, reloc.offset, value);
+                        ByteUtils::writeLE32(out.bytes, reloc.offset, value);
                         break;
                     }
                 }
@@ -562,8 +522,8 @@ namespace
             // Fix up .idata internal RVAs.
             for (const uint32_t fixup : idataRvaFixups_)
             {
-                const uint32_t rel = readU32(sections_[idataIndex_].bytes, fixup);
-                writeU32(sections_[idataIndex_].bytes, fixup, rel + idata.rva);
+                const uint32_t rel = ByteUtils::readLE32(asByteSpan(sections_[idataIndex_].bytes), fixup);
+                ByteUtils::writeLE32(sections_[idataIndex_].bytes, fixup, rel + idata.rva);
             }
 
             importDirRva_ += idata.rva;
@@ -576,8 +536,8 @@ namespace
             const OutSection& edata = sections_[edataIndex_];
             for (const uint32_t fixup : edataRvaFixups_)
             {
-                const uint32_t rel = readU32(edata.bytes, fixup);
-                writeU32(sections_[edataIndex_].bytes, fixup, rel + edata.rva);
+                const uint32_t rel = ByteUtils::readLE32(asByteSpan(edata.bytes), fixup);
+                ByteUtils::writeLE32(sections_[edataIndex_].bytes, fixup, rel + edata.rva);
             }
             for (const auto& [offset, symbolName] : eatSymbolFixups_)
             {
@@ -588,7 +548,7 @@ namespace
                     outError = std::format("exported symbol '{}' not found", symbolName);
                     return false;
                 }
-                writeU32(sections_[edataIndex_].bytes, offset, targetRva);
+                ByteUtils::writeLE32(sections_[edataIndex_].bytes, offset, targetRva);
             }
         }
 
@@ -615,15 +575,15 @@ namespace
             const bool pad      = (entryCount % 2) != 0;
             const uint32_t blockSize = sizeof(uint32_t) * 2 + (entryCount + (pad ? 1 : 0)) * sizeof(uint16_t);
 
-            appendU32(reloc, pageRva);
-            appendU32(reloc, blockSize);
+            ByteUtils::appendLE32(reloc, pageRva);
+            ByteUtils::appendLE32(reloc, blockSize);
             for (size_t k = i; k < j; ++k)
             {
                 const uint16_t entry = static_cast<uint16_t>((IMAGE_REL_BASED_DIR64 << 12) | (baseRelocSites_[k] & 0xFFF));
-                appendU16(reloc, entry);
+                ByteUtils::appendLE16(reloc, entry);
             }
             if (pad)
-                appendU16(reloc, 0);
+                ByteUtils::appendLE16(reloc, 0);
 
             i = j;
         }
@@ -655,21 +615,21 @@ namespace
             {
                 if (i == relocIndex_)
                     continue;
-                maxRvaEnd  = std::max(maxRvaEnd, sections_[i].rva + alignUp(sections_[i].virtualSize, SECTION_ALIGNMENT));
+                maxRvaEnd  = std::max(maxRvaEnd, sections_[i].rva + Math::alignUpU32(sections_[i].virtualSize, SECTION_ALIGNMENT));
                 if (!sections_[i].isBss)
                     maxFileEnd = std::max(maxFileEnd, sections_[i].fileOffset + sections_[i].rawSize);
             }
             OutSection& relocSection   = sections_[relocIndex_];
-            relocSection.rva           = alignUp(maxRvaEnd, SECTION_ALIGNMENT);
+            relocSection.rva           = Math::alignUpU32(maxRvaEnd, SECTION_ALIGNMENT);
             relocSection.fileOffset    = maxFileEnd;
-            relocSection.rawSize       = alignUp(static_cast<uint32_t>(relocSection.bytes.size()), FILE_ALIGNMENT);
+            relocSection.rawSize       = Math::alignUpU32(static_cast<uint32_t>(relocSection.bytes.size()), FILE_ALIGNMENT);
         }
 
         // Compute SizeOfImage and the entry point.
         uint32_t sizeOfImage = headersSize;
         for (const OutSection& section : sections_)
-            sizeOfImage = std::max(sizeOfImage, section.rva + alignUp(section.virtualSize, SECTION_ALIGNMENT));
-        sizeOfImage = alignUp(sizeOfImage, SECTION_ALIGNMENT);
+            sizeOfImage = std::max(sizeOfImage, section.rva + Math::alignUpU32(section.virtualSize, SECTION_ALIGNMENT));
+        sizeOfImage = Math::alignUpU32(sizeOfImage, SECTION_ALIGNMENT);
 
         uint32_t entryRva = 0;
         if (!isDll)
@@ -733,7 +693,7 @@ namespace
         // Compute sizes of code/initialized/uninitialized data for completeness.
         for (const OutSection& section : sections_)
         {
-            const uint32_t vsize = alignUp(section.virtualSize, SECTION_ALIGNMENT);
+            const uint32_t vsize = Math::alignUpU32(section.virtualSize, SECTION_ALIGNMENT);
             if (section.name == ".text")
                 opt.SizeOfCode += section.rawSize, opt.BaseOfCode = opt.BaseOfCode ? opt.BaseOfCode : section.rva;
             else if (section.isBss)

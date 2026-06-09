@@ -2112,11 +2112,45 @@ namespace
         return !outPrefix.empty();
     }
 
+    // Emit a bare `impl Interface for Struct {}` for an empty interface impl that has no
+    // member functions to reconstruct it from. The impl prefix (up to the opening brace) is
+    // taken verbatim from the source; an empty body is appended.
+    bool tryBuildEmptyInterfaceImplSnippet(TaskContext& ctx, const ModuleApiGeneratedRoot& root, const std::string_view eol, Utf8& outSnippet)
+    {
+        if (!root.file || !root.symbol)
+            return false;
+
+        const auto* symImpl = root.symbol->safeCast<SymbolImpl>();
+        if (!symImpl || !symImpl->isForInterface())
+            return false;
+
+        AstNodeRef implRef;
+        if (!ModuleApi::Internal::tryFindNodeRef(root.file->ast(), symImpl->decl(), implRef))
+            return false;
+
+        Utf8 implPrefix;
+        if (!tryBuildImplPrefix(ctx, *root.file, implRef, eol, implPrefix))
+            return false;
+
+        outSnippet = std::move(implPrefix);
+        outSnippet += eol;
+        outSnippet += "{";
+        outSnippet += eol;
+        outSnippet += "}";
+        return true;
+    }
+
     Result buildGeneratedRootSnippet(TaskContext& ctx, const ModuleApiGeneratedRoot& root, const std::string_view eol, Utf8& outSnippet, ModuleApiValidationStack& validationStack)
     {
         outSnippet.clear();
         if (!root.file)
             return Result::Continue;
+
+        if (root.symbol && root.symbol->isImpl())
+        {
+            tryBuildEmptyInterfaceImplSnippet(ctx, root, eol, outSnippet);
+            return Result::Continue;
+        }
 
         if (const auto* symbolFunction = root.symbol ? root.symbol->safeCast<SymbolFunction>() : nullptr)
         {

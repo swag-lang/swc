@@ -557,6 +557,7 @@
         <ClInclude Include="src\Main\ExitCodes.h"/>
         <ClInclude Include="src\Support\Core\AppendOnlyLookupTable.h"/>
         <ClInclude Include="src\Support\Core\ByteSpan.h"/>
+        <ClInclude Include="src\Support\Core\ByteUtils.h"/>
         <ClInclude Include="src\Support\Core\DenseBits.h"/>
         <ClInclude Include="src\Support\Core\DataSegment.h"/>
         <ClInclude Include="src\Support\Core\Flags.h"/>

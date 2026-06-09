@@ -7,6 +7,7 @@
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/SourceFile.h"
 #include "Main/FileSystem.h"
+#include "Support/Core/ByteUtils.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -233,26 +234,26 @@ Result LinkerPe::resolveSymbols(LinkImage& image, std::vector<CoffObject>& objec
 
 namespace
 {
-    void appendU32(std::vector<std::byte>& out, uint32_t value)
+    struct DebugStringTable
     {
-        for (int i = 0; i < 4; ++i)
-            out.push_back(static_cast<std::byte>((value >> (i * 8)) & 0xFF));
-    }
+        uint32_t insert(const Utf8& value)
+        {
+            if (value.empty())
+                return 0;
+            const auto it = offsets.find(value);
+            if (it != offsets.end())
+                return it->second;
 
-    uint32_t internDebugString(std::vector<std::byte>& outStrings, std::unordered_map<Utf8, uint32_t>& outStringOffsets, uint32_t blobBase, const Utf8& value)
-    {
-        if (value.empty())
-            return 0;
-        const auto it = outStringOffsets.find(value);
-        if (it != outStringOffsets.end())
-            return it->second;
-        const uint32_t offset = blobBase + static_cast<uint32_t>(outStrings.size());
-        outStringOffsets.emplace(value, offset);
-        const auto* data = reinterpret_cast<const std::byte*>(value.data());
-        outStrings.insert(outStrings.end(), data, data + value.size());
-        outStrings.push_back(std::byte{0});
-        return offset;
-    }
+            const uint32_t offset = blobBase + static_cast<uint32_t>(bytes.size());
+            offsets.emplace(value, offset);
+            ByteUtils::appendCString(bytes, value.view());
+            return offset;
+        }
+
+        uint32_t                           blobBase = 0;
+        std::vector<std::byte>             bytes;
+        std::unordered_map<Utf8, uint32_t> offsets;
+    };
 }
 
 // Emits a self-contained `.swagdbg` symbol table (function name + source location per function, keyed
@@ -295,26 +296,25 @@ void LinkerPe::buildDebugTable(LinkImage& image) const
     if (entries.empty())
         return;
 
-    // String blob with de-duplication; offsets are relative to the start of the section.
-    std::vector<std::byte>             strings;
-    std::unordered_map<Utf8, uint32_t> stringOffsets;
-    const uint32_t                     headerSize = 16;
-    const uint32_t                     entrySize  = 20;
-    const uint32_t                     blobBase   = headerSize + static_cast<uint32_t>(entries.size()) * entrySize;
+    const uint32_t headerSize = 16;
+    const uint32_t entrySize  = 20;
+
+    DebugStringTable strings;
+    strings.blobBase = headerSize + static_cast<uint32_t>(entries.size()) * entrySize;
 
     LinkSection section;
     section.name  = ".swagdbg";
     section.align = 4;
 
-    appendU32(section.bytes, 0x42445753u); // 'SWDB'
-    appendU32(section.bytes, 1);           // version
-    appendU32(section.bytes, static_cast<uint32_t>(entries.size()));
-    appendU32(section.bytes, blobBase);    // string blob start (section-relative)
+    ByteUtils::appendLE32(section.bytes, 0x42445753u); // 'SWDB'
+    ByteUtils::appendLE32(section.bytes, 1);           // version
+    ByteUtils::appendLE32(section.bytes, static_cast<uint32_t>(entries.size()));
+    ByteUtils::appendLE32(section.bytes, strings.blobBase);
 
     for (const Entry& entry : entries)
     {
-        const uint32_t nameOff = internDebugString(strings, stringOffsets, blobBase, entry.name);
-        const uint32_t fileOff = internDebugString(strings, stringOffsets, blobBase, entry.file);
+        const uint32_t nameOff = strings.insert(entry.name);
+        const uint32_t fileOff = strings.insert(entry.file);
 
         LinkReloc reloc;
         reloc.sectionIndex = static_cast<uint32_t>(image.sections.size());
@@ -323,14 +323,14 @@ void LinkerPe::buildDebugTable(LinkImage& image) const
         reloc.kind         = LinkRelocKind::Rva32;
         section.relocs.push_back(std::move(reloc));
 
-        appendU32(section.bytes, 0); // rva, filled by the writer
-        appendU32(section.bytes, entry.size);
-        appendU32(section.bytes, nameOff);
-        appendU32(section.bytes, fileOff);
-        appendU32(section.bytes, entry.line);
+        ByteUtils::appendLE32(section.bytes, 0); // rva, filled by the writer
+        ByteUtils::appendLE32(section.bytes, entry.size);
+        ByteUtils::appendLE32(section.bytes, nameOff);
+        ByteUtils::appendLE32(section.bytes, fileOff);
+        ByteUtils::appendLE32(section.bytes, entry.line);
     }
 
-    section.bytes.insert(section.bytes.end(), strings.begin(), strings.end());
+    ByteUtils::appendBytes(section.bytes, asByteSpan(strings.bytes));
     image.sections.push_back(std::move(section));
 }
 

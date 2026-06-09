@@ -2,6 +2,8 @@
 #include "Backend/Linker/Archive.h"
 #include "Backend/Linker/CoffReader.h"
 #include "Main/FileSystem.h"
+#include "Support/Core/ByteUtils.h"
+#include "Support/Math/Helpers.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -12,28 +14,6 @@ namespace
     constexpr size_t           IMPORT_HEADER_SIZE = 20;
     constexpr uint16_t         IMPORT_SIG2        = 0xFFFF;
     constexpr uint16_t         IMPORT_MACHINE_AMD64 = 0x8664;
-
-    uint16_t readU16(ByteSpan bytes, size_t offset)
-    {
-        uint16_t value = 0;
-        std::memcpy(&value, bytes.data() + offset, sizeof(value));
-        return value;
-    }
-
-    uint32_t readU32(ByteSpan bytes, size_t offset)
-    {
-        uint32_t value = 0;
-        std::memcpy(&value, bytes.data() + offset, sizeof(value));
-        return value;
-    }
-
-    // The archive symbol directory stores its counts and offsets big-endian.
-    uint32_t readBE32(ByteSpan bytes, size_t offset)
-    {
-        const auto* p = reinterpret_cast<const uint8_t*>(bytes.data() + offset);
-        return (static_cast<uint32_t>(p[0]) << 24) | (static_cast<uint32_t>(p[1]) << 16) |
-               (static_cast<uint32_t>(p[2]) << 8) | static_cast<uint32_t>(p[3]);
-    }
 
     // Member sizes are stored as a right-padded decimal ASCII string.
     bool parseMemberSize(uint32_t& outSize, ByteSpan bytes, size_t headerOffset)
@@ -53,7 +33,7 @@ namespace
 
     size_t archiveAlignedSize(size_t size)
     {
-        return size + (size & 1);
+        return static_cast<size_t>(Math::alignUpU64(size, 2));
     }
 }
 
@@ -91,7 +71,7 @@ bool Archive::load(Utf8& outError, std::vector<std::byte> bytes)
         return false;
     }
 
-    const uint32_t symbolCount = readBE32(span, dataOffset);
+    const uint32_t symbolCount = ByteUtils::readBE32(span, dataOffset);
     const size_t   offsetsAt   = dataOffset + 4;
     const size_t   namesAt     = offsetsAt + static_cast<size_t>(symbolCount) * 4;
     if (namesAt > dataOffset + memberSize)
@@ -114,7 +94,7 @@ bool Archive::load(Utf8& outError, std::vector<std::byte> bytes)
         while (nameCursor + nameLen < memberEnd && nameStart[nameLen] != '\0')
             ++nameLen;
 
-        const uint32_t memberOffset = readBE32(span, offsetsAt + static_cast<size_t>(i) * 4);
+        const uint32_t memberOffset = ByteUtils::readBE32(span, offsetsAt + static_cast<size_t>(i) * 4);
         symbolToMember_.emplace(Utf8{std::string_view{nameStart, nameLen}}, memberOffset);
         nameCursor += nameLen + 1;
     }
@@ -158,11 +138,11 @@ bool Archive::tryReadImport(ArchiveImport& outImport, Utf8& outError, uint32_t h
         return false;
     if (data.size() < IMPORT_HEADER_SIZE)
         return false;
-    if (readU16(data, 0) != 0 || readU16(data, 2) != IMPORT_SIG2)
+    if (ByteUtils::readLE16(data, 0) != 0 || ByteUtils::readLE16(data, 2) != IMPORT_SIG2)
         return false; // a regular COFF member, not a short import
 
-    const uint16_t ordinalOrHint = readU16(data, 16);
-    const uint16_t flags         = readU16(data, 18);
+    const uint16_t ordinalOrHint = ByteUtils::readLE16(data, 16);
+    const uint16_t flags         = ByteUtils::readLE16(data, 18);
     const uint16_t type          = flags & 0x3;
     const uint16_t nameType      = (flags >> 2) & 0x7;
 
@@ -189,32 +169,6 @@ bool Archive::tryReadImport(ArchiveImport& outImport, Utf8& outError, uint32_t h
 
 namespace
 {
-    void appendBE32(std::vector<std::byte>& out, uint32_t value)
-    {
-        out.push_back(static_cast<std::byte>((value >> 24) & 0xFF));
-        out.push_back(static_cast<std::byte>((value >> 16) & 0xFF));
-        out.push_back(static_cast<std::byte>((value >> 8) & 0xFF));
-        out.push_back(static_cast<std::byte>(value & 0xFF));
-    }
-
-    void appendLE16(std::vector<std::byte>& out, uint16_t value)
-    {
-        out.push_back(static_cast<std::byte>(value & 0xFF));
-        out.push_back(static_cast<std::byte>((value >> 8) & 0xFF));
-    }
-
-    void appendLE32(std::vector<std::byte>& out, uint32_t value)
-    {
-        for (int i = 0; i < 4; ++i)
-            out.push_back(static_cast<std::byte>((value >> (i * 8)) & 0xFF));
-    }
-
-    void appendString(std::vector<std::byte>& out, std::string_view text)
-    {
-        for (const char c : text)
-            out.push_back(static_cast<std::byte>(c));
-    }
-
     void appendHeaderField(std::string& outHeader, std::string_view value, size_t offset, size_t width)
     {
         std::memcpy(outHeader.data() + offset, value.data(), std::min(value.size(), width));
@@ -232,13 +186,13 @@ namespace
         appendHeaderField(header, std::to_string(dataSize), 48, 10);
         header[58] = '\x60';
         header[59] = '\n';
-        appendString(out, header);
+        ByteUtils::appendString(out, header);
     }
 
     void appendArchiveMember(std::vector<std::byte>& outBytes, std::string_view name, const std::vector<std::byte>& data)
     {
         appendMemberHeader(outBytes, name, static_cast<uint32_t>(data.size()));
-        outBytes.insert(outBytes.end(), data.begin(), data.end());
+        ByteUtils::appendBytes(outBytes, asByteSpan(data));
         if (data.size() & 1)
             outBytes.push_back(static_cast<std::byte>('\n'));
     }
@@ -270,7 +224,7 @@ namespace
             else
             {
                 nameField[i] = std::format("/{}", longNames.size());
-                appendString(longNames, name.view());
+                ByteUtils::appendString(longNames, name.view());
                 longNames.push_back(static_cast<std::byte>('\n'));
             }
         }
@@ -300,21 +254,20 @@ namespace
 
         // Linker member data: big-endian symbol count, parallel member offsets, then symbol names.
         std::vector<std::byte> linkerData;
-        appendBE32(linkerData, symbolCount);
+        ByteUtils::appendBE32(linkerData, symbolCount);
         for (const ArchiveMemberBuild& member : members)
             for (size_t s = 0; s < member.symbols.size(); ++s)
-                appendBE32(linkerData, member.headerOffset);
+                ByteUtils::appendBE32(linkerData, member.headerOffset);
         for (const ArchiveMemberBuild& member : members)
         {
             for (const Utf8& symbol : member.symbols)
             {
-                appendString(linkerData, symbol.view());
-                linkerData.push_back(std::byte{0});
+                ByteUtils::appendCString(linkerData, symbol.view());
             }
         }
 
         outBytes.clear();
-        appendString(outBytes, ARCHIVE_MAGIC);
+        ByteUtils::appendString(outBytes, ARCHIVE_MAGIC);
 
         appendArchiveMember(outBytes, "/", linkerData);
         if (hasLongNames)
@@ -370,18 +323,16 @@ bool buildImportLibrary(std::vector<std::byte>& outBytes, Utf8& outError, std::s
     {
         // A short-import record: IMPORT_OBJECT_HEADER followed by importName\0 dllName\0.
         std::vector<std::byte> data;
-        appendLE16(data, 0); // Sig1
-        appendLE16(data, IMPORT_SIG2);
-        appendLE16(data, 0); // Version
-        appendLE16(data, IMPORT_MACHINE_AMD64);
-        appendLE32(data, 0); // TimeDateStamp
-        appendLE32(data, static_cast<uint32_t>(name.size() + 1 + dllFileName.size() + 1)); // SizeOfData
-        appendLE16(data, 0); // OrdinalOrHint
-        appendLE16(data, static_cast<uint16_t>(1 << 2)); // NameType=NAME(1), Type=CODE(0)
-        appendString(data, name.view());
-        data.push_back(std::byte{0});
-        appendString(data, dllFileName);
-        data.push_back(std::byte{0});
+        ByteUtils::appendLE16(data, 0); // Sig1
+        ByteUtils::appendLE16(data, IMPORT_SIG2);
+        ByteUtils::appendLE16(data, 0); // Version
+        ByteUtils::appendLE16(data, IMPORT_MACHINE_AMD64);
+        ByteUtils::appendLE32(data, 0); // TimeDateStamp
+        ByteUtils::appendLE32(data, static_cast<uint32_t>(name.size() + 1 + dllFileName.size() + 1)); // SizeOfData
+        ByteUtils::appendLE16(data, 0); // OrdinalOrHint
+        ByteUtils::appendLE16(data, static_cast<uint16_t>(1 << 2)); // NameType=NAME(1), Type=CODE(0)
+        ByteUtils::appendCString(data, name.view());
+        ByteUtils::appendCString(data, dllFileName);
 
         ArchiveMemberBuild member;
         member.name = Utf8(dllFileName);

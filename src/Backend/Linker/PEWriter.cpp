@@ -433,7 +433,7 @@ namespace
         headersSize_                = headersSize;
 
         std::vector<uint32_t> order(sections_.size());
-        std::iota(order.begin(), order.end(), 0u);
+        std::ranges::iota(order, 0u);
         std::ranges::stable_sort(order, SectionLayoutLess{&sections_});
 
         uint32_t rva        = Math::alignUpU32(headersSize, SECTION_ALIGNMENT);
@@ -611,7 +611,7 @@ namespace
         {
             uint32_t maxRvaEnd  = headersSize;
             uint32_t maxFileEnd = headersSize;
-            for (int32_t i = 0; i < static_cast<int32_t>(sections_.size()); ++i)
+            for (int32_t i = 0; std::cmp_less(i, sections_.size()); ++i)
             {
                 if (i == relocIndex_)
                     continue;
@@ -735,7 +735,7 @@ namespace
         // Section table. The PE spec requires the section headers to be sorted by ascending virtual
         // address; the working set is kept in resolution order, so emit a virtual-address-sorted view.
         std::vector<uint32_t> headerOrder(sections_.size());
-        std::iota(headerOrder.begin(), headerOrder.end(), 0u);
+        std::ranges::iota(headerOrder, 0u);
         std::ranges::sort(headerOrder, SectionRvaLess{&sections_});
         for (const uint32_t sectionIdx : headerOrder)
         {

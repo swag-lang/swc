@@ -252,6 +252,20 @@ func onRootEvent(_view: *Wnd, evt: IEvent)->bool
         layoutRootView()
         buildPage()
     }
+    elif evt is FrameEvent
+    {
+        onFrame(_view.getApp())
+    }
+    elif evt is DestroyEvent
+    {
+        g_Surface     = null
+        g_View        = null
+        g_Title       = null
+        g_SubTitle    = null
+        g_ThemeButton = null
+        g_PageView    = null
+        g_Footer      = null
+    }
 
     return false
 }
@@ -272,7 +286,7 @@ func previousPage()
 
 func updateTestMode()
 {
-    if !Env.hasArg("swag.test") do
+    if !Env.hasArg("swag.test") or !g_Surface do
         return
 
     g_TestFrame += 1
@@ -280,8 +294,11 @@ func updateTestMode()
         return
 
     g_TestFrame = 0
-    if g_Page + 1 >= MaxPages do
-        Env.exit(0)
+    if g_Page + 1 >= MaxPages
+    {
+        g_Surface.destroy()
+        return
+    }
 
     nextPage()
 }
@@ -336,6 +353,7 @@ func createRootView()
 
     layoutRootView()
     g_View.hookOnEvent = &onRootEvent
+    app.registerFrameEvent(g_View)
 }
 
 #main
@@ -348,7 +366,6 @@ func createRootView()
     createRootView()
     buildPage()
 
-    app.sigFrame += &onFrame
     if Env.hasArg("swag.test") do
         app.maxRunFrame = cast(u32) MaxPages * cast(u32) TestFramesPerPage + 10
 

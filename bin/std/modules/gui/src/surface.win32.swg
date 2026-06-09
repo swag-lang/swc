@@ -25,6 +25,16 @@ struct NativeSurface
     topMost:          bool
 }
 
+fileprivate func postSurfaceSysCommand(surface: *Surface, kind: SysCommandEvent.Kind)
+{
+    if surface.wnd.isPendingDestroy do
+        return
+
+    let evt = Event.create'SysCommandEvent()
+    evt.kind = kind
+    surface.wnd.view.postEvent(evt)
+}
+
 fileprivate func winProc(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM)->LRESULT
 {
     // Associate pointer to surface with 'hWnd'
@@ -50,6 +60,14 @@ fileprivate func winProc(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM)-
 
         switch msg
         {
+        case WM_CLOSE:
+            postSurfaceSysCommand(surface, .Close)
+            return 0
+
+        case WM_NCDESTROY:
+            SetWindowLongPtrW(hWnd, GWLP_USERDATA, null)
+            break
+
         case WM_SYSKEYDOWN, WM_SYSKEYUP, WM_SYSCHAR:
             return 0
         case WM_KEYDOWN, WM_KEYUP:
@@ -135,11 +153,14 @@ fileprivate func winProc(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM)-
             surface.sendResizeEvent(cast(f32) LOWORD(lParam), cast(f32) HIWORD(lParam))
 
         case WM_SYSCOMMAND:
-            switch wParam
+            switch wParam & 0xFFF0
             {
+            case SC_CLOSE:
+                postSurfaceSysCommand(surface, .Close)
+                return 0
             case SC_RESTORE:
-                var evt = SysCommandEvent{kind: .Restore}
-                surface.wnd.sendEvent(&evt)
+                postSurfaceSysCommand(surface, .Restore)
+                return 0
             }
         }
     }

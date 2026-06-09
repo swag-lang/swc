@@ -759,9 +759,11 @@ impl ThemeColors
         const Gray5          = 0xFFA0A0A0     // disabled-ish strokes
         const Gray6          = 0xFFCCCCCC     // control borders
         const Gray7          = 0xFFE6E6E6     // panel fills
-        const Gray8          = 0xFFF6F6F6     // app background / views
-        const ButtonHotBk    = 0xFFE8F2FF
-        const ButtonPressedBk = 0xFFD4E7FF
+        const Gray8            = 0xFFF6F6F6     // app background / views
+        const NeutralHotBk     = 0xFFEFEFEF
+        const NeutralPressedBk = 0xFFE2E2E2
+        const AccentHotBk      = 0xFFE8F2FF
+        const AccentPressedBk  = 0xFFD4E7FF
 
         .richColor1 = Argb.Red
         .richColor2 = Argb.Green
@@ -809,10 +811,10 @@ impl ThemeColors
         .btnPush_Bk             = Transparent
         .btnPush_PressedText    = Gray1
         .btnPush_PressedBorder  = Blue
-        .btnPush_PressedBk      = ButtonPressedBk
+        .btnPush_PressedBk      = AccentPressedBk
         .btnPush_HotText        = Gray1
         .btnPush_HotBorder      = Blue
-        .btnPush_HotBk          = ButtonHotBk
+        .btnPush_HotBk          = AccentHotBk
         .btnPush_DisabledText   = Disabled
         .btnPush_DisabledBorder = Disabled
         .btnPush_DisabledBk     = Transparent
@@ -825,10 +827,10 @@ impl ThemeColors
         .btnPushFlat_Bk             = Transparent
         .btnPushFlat_PressedText    = Gray1
         .btnPushFlat_PressedBorder  = Blue
-        .btnPushFlat_PressedBk      = ButtonPressedBk
+        .btnPushFlat_PressedBk      = AccentPressedBk
         .btnPushFlat_HotText        = Gray1
         .btnPushFlat_HotBorder      = Blue
-        .btnPushFlat_HotBk          = ButtonHotBk
+        .btnPushFlat_HotBk          = AccentHotBk
 
         .btnPushDefault_DisabledText   = Disabled
         .btnPushDefault_DisabledBorder = Disabled
@@ -851,10 +853,10 @@ impl ThemeColors
         .btnIcon_DisabledBk   = Transparent
         .btnIcon_PressedIcon  = Gray1
         .btnIcon_PressedText  = Gray1
-        .btnIcon_PressedBk    = LighterBig
+        .btnIcon_PressedBk    = NeutralPressedBk
         .btnIcon_HotIcon      = Gray1
         .btnIcon_HotText      = Gray1
-        .btnIcon_HotBk        = LighterMedium
+        .btnIcon_HotBk        = NeutralHotBk
 
         .btnIcon_CheckedDisabledIcon = Disabled
         .btnIcon_CheckedDisabledText = Disabled
@@ -865,8 +867,8 @@ impl ThemeColors
         .btnIcon_CheckedIcon         = White
         .btnIcon_CheckedText         = White
         .btnIcon_CheckedDisabledBk   = Transparent
-        .btnIcon_CheckedPressedBk    = LighterBig
-        .btnIcon_CheckedHotBk        = Transparent
+        .btnIcon_CheckedPressedBk    = AccentPressedBk
+        .btnIcon_CheckedHotBk        = AccentHotBk
         .btnIcon_CheckedBk           = Transparent
         .btnIcon_CheckedMark         = Color.getLighter(Color.fromArgb(Blue), 0.2)
         .btnIcon_CheckedPressedMark  = Blue
@@ -887,21 +889,21 @@ impl ThemeColors
         .btnCheck_Mark           = Gray1
         .btnCheck_Bk             = Transparent
         .btnCheck_PressedText    = Gray1
-        .btnCheck_PressedBorder  = Gray3
-        .btnCheck_PressedMark    = Gray1
-        .btnCheck_PressedBk      = LighterBig
+        .btnCheck_PressedBorder  = Blue
+        .btnCheck_PressedMark    = Blue
+        .btnCheck_PressedBk      = AccentPressedBk
         .btnCheck_HotText        = Gray1
-        .btnCheck_HotBorder      = Gray3
-        .btnCheck_HotMark        = Gray1
-        .btnCheck_HotBk          = LighterSmall
+        .btnCheck_HotBorder      = Blue
+        .btnCheck_HotMark        = Blue
+        .btnCheck_HotBk          = AccentHotBk
         .btnCheck_DisabledText   = Disabled
         .btnCheck_DisabledBorder = Disabled
         .btnCheck_DisabledMark   = Disabled
         .btnCheck_DisabledBk     = Transparent
         .btnCheck_CheckedText    = Gray1
         .btnCheck_CheckedBk      = Transparent
-        .btnCheck_CheckedBorder  = Gray3
-        .btnCheck_CheckedMark    = Gray1
+        .btnCheck_CheckedBorder  = Blue
+        .btnCheck_CheckedMark    = Blue
 
         .toolTip_Bk     = 0xFFFFFFE0
         .toolTip_Border = 0xFFAAAAAA
@@ -912,7 +914,7 @@ impl ThemeColors
 
         .edit_Border         = Gray6
         .edit_FocusBorder    = Blue
-        .edit_HotBorder      = Gray6
+        .edit_HotBorder      = LightBlue
         .edit_DisabledBorder = Gray7
         .edit_Bk             = White
         .edit_DisabledBk     = Gray8
@@ -942,12 +944,12 @@ impl ThemeColors
         .btnToggle_OffBorder        = Gray3
         .btnToggle_OffMark          = Gray3
         .btnToggle_OffBk            = Transparent
-        .btnToggle_OffHotBorder     = Gray3
-        .btnToggle_OffHotMark       = Gray3
-        .btnToggle_OffHotBk         = LighterSmall
-        .btnToggle_OffPressedBorder = Gray3
-        .btnToggle_OffPressedMark   = Gray3
-        .btnToggle_OffPressedBk     = LighterBig
+        .btnToggle_OffHotBorder     = Blue
+        .btnToggle_OffHotMark       = Blue
+        .btnToggle_OffHotBk         = AccentHotBk
+        .btnToggle_OffPressedBorder = Blue
+        .btnToggle_OffPressedMark   = Blue
+        .btnToggle_OffPressedBk     = AccentPressedBk
         .btnToggle_OnBorder         = Blue
         .btnToggle_OnMark           = White
         .btnToggle_OnBk             = Blue
@@ -963,8 +965,8 @@ impl ThemeColors
         .slider_BkRight       = Gray7
         .slider_HilightBk     = Blue
         .slider_Mark          = Blue
-        .slider_HotMark       = White
-        .slider_PressedMark   = White
+        .slider_HotMark       = LightBlue
+        .slider_PressedMark   = Blue
         .slider_DisabledMark  = Gray5
         .slider_DisabledBk    = Gray8
         .slider_StepBk        = Color.getDarker(Color.fromArgb(Gray7), 0.08)
@@ -976,8 +978,8 @@ impl ThemeColors
         .circular_Circle         = Gray6
         .circular_DisabledCircle = Gray7
         .circular_Mark           = Blue
-        .circular_HotMark        = White
-        .circular_PressedMark    = White
+        .circular_HotMark        = LightBlue
+        .circular_PressedMark    = Blue
         .circular_DisabledMark   = Gray5
         .circular_Step           = Gray5
         .circular_DisabledStep   = Gray6
@@ -988,17 +990,17 @@ impl ThemeColors
         .tabItem_HotText                  = Gray1
         .tabItem_Text                     = Color.getDarker(Color.fromArgb(Gray1), 0.3)
         .tabItem_FlatSelected             = Blue
-        .tabItem_FlatHot                  = Gray1
+        .tabItem_FlatHot                  = AccentHotBk
         .tabItem_RoundSelected            = Gray7
-        .tabItem_RoundHot                 = Gray7
+        .tabItem_RoundHot                 = AccentHotBk
         .tabItem_ButtonSelected           = Gray7
-        .tabItem_ButtonHot                = Gray7
+        .tabItem_ButtonHot                = AccentHotBk
         .tabItem_PushButtonSelected       = Blue
         .tabItem_PushButtonSelectedText   = White
         .tabItem_PushButtonSelectedBorder = White
-        .tabItem_PushButtonHot            = Gray7
-        .tabItem_PushButtonHotText        = Gray2
-        .tabItem_PushButtonHotBorder      = Gray2
+        .tabItem_PushButtonHot            = AccentHotBk
+        .tabItem_PushButtonHotText        = Gray1
+        .tabItem_PushButtonHotBorder      = Blue
         .tabItem_PushButtonText           = Gray1
         .tabItem_PushButtonBk             = Gray8
         .tabItem_PushButtonBorder         = Gray1
@@ -1013,7 +1015,7 @@ impl ThemeColors
         .menuPopup_Separator  = Gray7
         .menuBar_Bk           = Gray7
         .menuBar_Border       = 0
-        .menuBar_SelectedBk   = 0x10000000
+        .menuBar_SelectedBk   = AccentHotBk
         .menuBar_SelectedText = Gray1
 
         .popupItem_Text         = Gray1
@@ -1031,11 +1033,11 @@ impl ThemeColors
         .scrollBar_PressedBox = Gray4
 
         .comboBox_Border           = Gray6
-        .comboBox_HotBorder        = Gray4
+        .comboBox_HotBorder        = LightBlue
         .comboBox_DisabledBorder   = Gray7
-        .comboBox_SelectedBorder   = Gray4
+        .comboBox_SelectedBorder   = Blue
         .comboBox_Bk               = White
-        .comboBox_HotBk            = Color.getDarker(Color.fromArgb(White), 0.03)
+        .comboBox_HotBk            = AccentHotBk
         .comboBox_DisabledBk       = Gray8
         .comboBox_SelectedBk       = White
         .comboBox_Text             = Gray1
@@ -1066,9 +1068,9 @@ impl ThemeColors
 
         .listItem_FocusSelectedBk   = Blue
         .listItem_FocusSelectedText = White
-        .listItem_SelectedBk        = Color.getDarker(Color.fromArgb(Gray8), 0.06)
+        .listItem_SelectedBk        = AccentPressedBk
         .listItem_SelectedText      = Gray1
-        .listItem_HotBk             = Color.getDarker(Color.fromArgb(Gray8), 0.04)
+        .listItem_HotBk             = AccentHotBk
         .listItem_DisabledText      = Gray5
         .listItem_Text              = Gray1
         .listItem_Separator         = Color.getLighter(Color.fromArgb(Gray1), 0.12)
@@ -1077,8 +1079,8 @@ impl ThemeColors
 
         .headerItem_DisabledText = Gray5
         .headerItem_HotText      = Gray1
-        .headerItem_HotBk        = 0x10000000
-        .headerItem_ClickedBk    = 0x20000000
+        .headerItem_HotBk        = AccentHotBk
+        .headerItem_ClickedBk    = AccentPressedBk
         .headerItem_Text         = Gray1
         .headerItem_Separator    = Color.getLighter(Color.fromArgb(Gray7), 0.2)
         .header_Bk               = Gray7
@@ -1110,9 +1112,9 @@ impl ThemeColors
         .embInfo_MessageBk       = 0xFFAD8F1B
         .embInfo_MessageText     = Gray5
 
-        .prop_FocusBk     = Color.getDarker(Color.fromArgb(Gray8), 0.04)
-        .prop_FocusBorder = Gray6
-        .prop_HotBk       = Color.getDarker(Color.fromArgb(Gray8), 0.02)
+        .prop_FocusBk     = AccentPressedBk
+        .prop_FocusBorder = Blue
+        .prop_HotBk       = AccentHotBk
         .prop_HotBorder   = Transparent
         .prop_GridBorder  = Gray7
         .prop_GridColumn  = Gray7

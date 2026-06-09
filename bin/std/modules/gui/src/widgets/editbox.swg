@@ -80,6 +80,7 @@ struct EditBox
         selBeg, selEnd:     u64                      // Selection start/end (byte indices)
         timerCaret:         *Timer                   // Blinking‑caret timer
         clearBtn:           *IconButton              // Optional clear button instance
+        clearBtnTextMargin: f32                      // Text margin reserved for the clear button
         visibleCaret:       bool                     // True when the caret should be visible
         posSelBeg:          f32                      // X‑position of selection start in pixels
         posSelEnd:          f32                      // X‑position of selection end in pixels
@@ -114,6 +115,8 @@ impl IWnd for EditBox
     // Renders the EditBox, including background, border, text, selection and caret.
     mtd impl onPaintEvent(evt: *PaintEvent)
     {
+        .syncClearButton()
+
         let bc      = evt.bc
         let painter = evt.bc.painter
 
@@ -340,28 +343,30 @@ impl IWnd for EditBox
 
 fileprivate impl EditBox
 {
-    // Shows or hides the clear button based on current text and flags.
-    mtd showHideClearButon()
+    // Keeps the optional clear button in sync with the current flags and text.
+    mtd syncClearButton()
     {
-        if !.editBoxFlags.has(.ClearButton) do
-            return
-
-        if .text != null and @countof(.text)
+        let mustShow = .editBoxFlags.has(.ClearButton) and .text != null and @countof(.text)
+        if !mustShow
         {
-            if !.clearBtn
+            if .clearBtn
             {
-                let edit = me
-                .clearBtn           = IconButton.create(me, .getTheme().getIcon24(ThemeIcons24.WndClose, 18), {0, 0, 24, 24})
-                .clearBtn.dockStyle = .Right
-                .clearBtn.setForm(IconButtonForm.Round)
-                .clearBtn.sigPressed += func|edit|(btn) { edit.setText(null); }
+                .clearBtn.destroy()
+                .clearBtn = null
+                .clearBtnTextMargin = 0
                 .applyLayout()
             }
+            return
         }
-        elif .clearBtn
+
+        if !.clearBtn
         {
-            .clearBtn.destroy()
-            .clearBtn = null
+            let edit = me
+            .clearBtn           = IconButton.create(me, .getTheme().getIcon24(ThemeIcons24.WndClose, 18), {0, 0, 24, 24})
+            .clearBtn.dockStyle = .Right
+            .clearBtn.setForm(IconButtonForm.Round)
+            .clearBtn.sigPressed += func|edit|(btn) { edit.setText(null); }
+            .clearBtnTextMargin = .clearBtn.position.width + .getThemeMetrics().iconText_Margin
             .applyLayout()
         }
     }
@@ -636,7 +641,7 @@ fileprivate impl EditBox
     mtd getEditRect()->Math.Rectangle
     {
         var rect = .getClientRectPadding()
-        rect.moveRight(-.rightMargin)
+        rect.moveRight(-.rightMargin - .clearBtnTextMargin)
         return rect
     }
 
@@ -882,7 +887,7 @@ fileprivate impl EditBox
     {
         .sigChanged.call(me)
         .computeCaretPos()
-        .showHideClearButon()
+        .syncClearButton()
         .invalidate()
     }
 }
@@ -891,7 +896,7 @@ impl EditBox
 {
     // Factory method that creates a new EditBox instance.
     #[Swag.Discardable]
-    func create(parent: *Wnd, content: #null string, position: Math.Rectangle = {}, id: WndId = null)->*EditBox
+    func create(parent: *Wnd, content: #null string, position: Math.Rectangle = {}, id: WndId = null, flags: EditBoxFlags = EditBoxFlags.AutoLoseFocus)->*EditBox
     {
         var pos = position
         if pos.height == 0 do
@@ -901,8 +906,9 @@ impl EditBox
 
         let res = Wnd.create'EditBox(parent, null, pos, id)
         res.setForm(.Square)
-        res.text          = content
+        res.editBoxFlags  = flags
         res.focusStrategy = .MousePressed
+        res.setText(content)
         return res
     }
 
@@ -954,7 +960,7 @@ impl EditBox
         .selBeg, .selEnd = 0
         .countRunes = 0
         .insertString(str)
-        .showHideClearButon()
+        .syncClearButton()
         .notifyChanged()
     }
 

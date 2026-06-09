@@ -46,8 +46,7 @@ impl EditCtrl
         {
             .label                   = Label.create(ctrl, name, {})
             .label.horzAlignmentText = .Right
-            .edit                    = EditBox.create(ctrl, text, {})
-            .edit.editBoxFlags       = flags
+            .edit                    = EditBox.create(ctrl, text, {}, flags: flags)
             .sendResizeEvent()
         }
 

@@ -171,6 +171,15 @@ fileprivate impl Properties
             .syncColumnLabel(item)
     }
 
+    mtd getDisclosureIconPosition(item: *PropertiesItem, r: Math.Rectangle, icon: Icon)->Math.Point
+    {
+        const OpticalTextCenterY = -2'f32
+
+        let iconX       = r.x + Math.max(.leftMargin - icon.sizeX, 0.0) * 0.5
+        let iconCenterY = item.label ? item.label.position.vertCenter() : r.vertCenter()
+        return {iconX, iconCenterY - icon.sizeY * 0.5 + OpticalTextCenterY}
+    }
+
     mtd getColumnX()->f32
     {
         return .gridColumnSize + .gridMarginColumn * 0.5
@@ -450,9 +459,8 @@ fileprivate impl Properties
         {
             let expand = .getTheme().getIcon24(item.flags.has(.Expanded) ? .Expanded : .Collapsed)
             let iconColor = item.line.isDisabled() ? colors.label_DisabledIcon : colors.label_Icon
-            let iconX = r.x + Math.max(.leftMargin - expand.sizeX, 0.0) * 0.5
-            let iconCenterY = item.label ? item.label.position.vertCenter() : r.vertCenter()
-            expand.paint(painter, iconX, iconCenterY - expand.sizeY * 0.5, iconColor)
+            let iconPos = .getDisclosureIconPosition(item, r, expand)
+            expand.paint(painter, iconPos.x, iconPos.y, iconColor)
         }
     }
 

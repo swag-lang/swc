@@ -286,12 +286,26 @@ func updateTestMode()
     nextPage()
 }
 
+func canUsePageArrows()->bool
+{
+    let focus = g_View.getFocus()
+    if !focus or focus == g_View do
+        return true
+
+    return !g_PageView.isParentOf(focus)
+}
+
 func onFrame(app: *Application)
 {
-    if app.keyb.isKeyJustPressed(.F1) or app.keyb.isKeyJustPressed(.Right) or app.keyb.isKeyJustPressed(.Down) do
+    if app.keyb.isKeyJustPressed(.F1) do
         nextPage()
-    elif app.keyb.isKeyJustPressed(.Left) or app.keyb.isKeyJustPressed(.Up) do
-        previousPage()
+    elif canUsePageArrows()
+    {
+        if app.keyb.isKeyJustPressed(.Right) or app.keyb.isKeyJustPressed(.Down) do
+            nextPage()
+        elif app.keyb.isKeyJustPressed(.Left) or app.keyb.isKeyJustPressed(.Up) do
+            previousPage()
+    }
 
     updateTestMode()
 }

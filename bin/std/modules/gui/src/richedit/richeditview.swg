@@ -301,24 +301,45 @@ impl RichEditView
         let painter = bc.painter
 
         let fontR = .ed.getFont().getFont(strStyle.fontMode)
-        if !fontR do
-            return 0
+        if !fontR or str.isEmpty() do
+            return x
 
-        let self = Painter.measureString(str, fontR)
+        var shaped = Painter.shapeRun(str, fontR)
+        let drawFont   = Font.resolveDrawFont(fontR, cast(f32) fontR.size)
+        let snapPixels = !drawFont.cache.renderMode.isDistanceField()
+
+        var drawShape: ShapedRun
+        var runToDraw = &shaped
+        if shaped.font != drawFont
+        {
+            drawShape = Painter.shapeRunForFont(&shaped, drawFont)
+            runToDraw = &drawShape
+        }
+
+        let sc = drawFont.scale()
+        let left = snapPixels ? Math.round(x) : x
+        var right = left
+        foreach glyph in runToDraw.glyphs
+        {
+            let offsetX = snapPixels ? Math.round(glyph.offsetX * sc) : glyph.offsetX * sc
+            let advanceX = snapPixels ? Math.round(glyph.advanceX * sc) : glyph.advanceX * sc
+            let glyphX = right + offsetX
+            right = glyphX + advanceX
+        }
 
         // Background rectangle
         if visible and strStyle.colBk.a
         {
             var rect: Math.Rectangle
-            rect.x      = x
+            rect.x      = left
             rect.y      = y
-            rect.width  = self.width
+            rect.width  = Math.max(right - left, 0.0)
             rect.height = .ed.getXExtent().y
             painter.fillRect(rect, strStyle.colBk)
         }
 
-        painter.drawString(x, y, str, fontR, strStyle.colFg, strStyle.underline)
-        return x + self.width
+        painter.drawShapedRun(x, y, &shaped, fontR, Brush.createSolid(strStyle.colFg), strStyle.underline)
+        return right
     }
 
     mtd paintLine(bc: *PaintContext, lineIndex: u64, py: f32, visible: bool)->f32
@@ -394,6 +415,7 @@ impl RichEditView
                     newStyle = .ed.stylesSelect[1]
                 if !newStyle.colFg.a do
                     newStyle.colFg = .ed.styles[dref pStyle].colFg
+                newStyle.fontMode  = .ed.styles[dref pStyle].fontMode
                 newStyle.underline = .ed.styles[dref pStyle].underline
             }
 

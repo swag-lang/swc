@@ -10,6 +10,8 @@ const PageBottomMargin = 58.0
 const PanelGap = 28.0
 const TopPanelHeight = 250.0
 const MinBottomPanelHeight = 190.0
+const ThemeButtonWidth = 150.0
+const HeaderGap = 18.0
 
 struct PagePanelLayout
 {
@@ -23,11 +25,13 @@ var g_Surface: *Surface
 var g_View: *Wnd
 var g_Title: *Label
 var g_SubTitle: *Label
+var g_ThemeButton: *PushButton
 var g_PageView: *Wnd
 var g_Footer: *Label
 var g_Page: s32
 var g_TestFrame: s32
 var g_Progress: *ProgressBar
+var g_DarkTheme: bool
 
 func setLabelTextStyle(label: *Label, horizontal = StringHorzAlignment.Left, vertical = StringVertAlignment.Center)
 {
@@ -139,7 +143,36 @@ func updateHeader()
 {
     g_Title.setText(Format.toString("GUI2 widget showcase - %", pageTitle(g_Page)))
     g_SubTitle.setText(pageSubtitle(g_Page))
-    g_Footer.setText(Format.toString("F1 : next page (%/%). Pages : buttons, checks, radios, edits, sliders, combos, tabs, progress.", g_Page + 1, MaxPages))
+    g_Footer.setText(Format.toString("F1/right/down : next, left/up : previous (%/%). Pages : buttons, checks, radios, edits, sliders, combos, tabs, progress.", g_Page + 1, MaxPages))
+}
+
+func updateThemeButton()
+{
+    if !g_ThemeButton do
+        return
+
+    if g_DarkTheme do
+        g_ThemeButton.name = "White theme"
+    else do
+        g_ThemeButton.name = "Black theme"
+    g_ThemeButton.invalidate()
+}
+
+func applyTheme()
+{
+    if g_DarkTheme do
+        app.theme.colors.setDark()
+    else do
+        app.theme.colors.setLight()
+
+    updateThemeButton()
+    app.themeHasChanged()
+}
+
+func toggleTheme(btn: *Button)
+{
+    g_DarkTheme = !g_DarkTheme
+    applyTheme()
 }
 
 func clearPage()
@@ -189,7 +222,10 @@ func layoutRootView()
     let pageHeight   = Math.max(rect.height - PageTop - PageBottomMargin, TopPanelHeight + PanelGap + MinBottomPanelHeight)
     let footerY      = Math.max(rect.height - 42.0, PageTop + pageHeight + 6.0)
 
-    g_Title.setPosition({RootMargin, 18, contentWidth, 34})
+    let titleWidth = Math.max(contentWidth - ThemeButtonWidth - HeaderGap, 1.0)
+
+    g_Title.setPosition({RootMargin, 18, titleWidth, 34})
+    g_ThemeButton.setPosition({RootMargin + titleWidth + HeaderGap, 18, ThemeButtonWidth, 34})
     g_SubTitle.setPosition({RootMargin + 2, 56, contentWidth - 4, 42})
     g_PageView.setPosition({RootMargin, PageTop, contentWidth, pageHeight})
     g_Footer.setPosition({RootMargin, footerY, contentWidth, 28})
@@ -212,6 +248,14 @@ func nextPage()
     buildPage()
 }
 
+func previousPage()
+{
+    g_Page -= 1
+    if g_Page < 0 do
+        g_Page = MaxPages - 1
+    buildPage()
+}
+
 func updateTestMode()
 {
     if !Env.hasArg("swag.test") do
@@ -230,8 +274,10 @@ func updateTestMode()
 
 func onFrame(app: *Application)
 {
-    if app.keyb.isKeyJustPressed(.F1) do
+    if app.keyb.isKeyJustPressed(.F1) or app.keyb.isKeyJustPressed(.Right) or app.keyb.isKeyJustPressed(.Down) do
         nextPage()
+    elif app.keyb.isKeyJustPressed(.Left) or app.keyb.isKeyJustPressed(.Up) do
+        previousPage()
 
     if g_Progress
     {
@@ -253,6 +299,11 @@ func createRootView()
 
     g_SubTitle = Label.create(g_View, "", {}, null, .WordWrap | .LightText)
     setLabelTextStyle(g_SubTitle, .Left, .Top)
+
+    g_ThemeButton = PushButton.create(g_View, "", {})
+    g_ThemeButton.form = .Flat
+    g_ThemeButton.icon = app.theme.getIcon24(ThemeIcons24.Picker, 18)
+    g_ThemeButton.sigPressed += &toggleTheme
 
     g_PageView = Wnd.create'Wnd(g_View, {})
     g_PageView.backgroundStyle = .Transparent
@@ -280,7 +331,6 @@ func createRootView()
         app.maxRunFrame = cast(u32) MaxPages * cast(u32) TestFramesPerPage + 10
 
     g_Surface.show()
-    app.theme.colors.setLight()
-    app.themeHasChanged()
+    applyTheme()
     app.run()
 }

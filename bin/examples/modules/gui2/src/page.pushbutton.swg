@@ -47,7 +47,7 @@ func createPushButtonPage(parent: *Wnd)
 
     let bottom = createPanel(parent, "Style override", "A flat button with custom colors, used as a compact visual regression target.", layout.bottom)
     {
-        let btn = PushButton.create(bottom, "Custom flat action", {22, 96, 220})
+        var btn = PushButton.create(bottom, "Custom flat action", {22, 96, 220})
         btn.form = .Flat
         btn.icon = app.theme.getIcon24(ThemeIcons24.Filter, 18)
         btn.style.addStyleSheetColors("btnPushFlat_HotBk 0xFF2F8F5B")
@@ -55,7 +55,8 @@ func createPushButtonPage(parent: *Wnd)
         btn.style.addStyleSheetColors("btnPushFlat_HotText 0xFFFFFFFF")
         btn.style.addStyleSheetColors("btnPushFlat_PressedText 0xFFFFFFFF")
 
-        discard PushButton.create(bottom, "Narrow", {270, 96, 82})
-        discard PushButton.create(bottom, "Wide command button", {380, 96, 260})
+        btn = PushButton.create(bottom, "Narrow", {270, 96, 82})
+
+        btn = PushButton.create(bottom, "Wide command button", {380, 96, 260})
     }
 }

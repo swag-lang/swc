@@ -760,6 +760,8 @@ impl ThemeColors
         const Gray6          = 0xFFCCCCCC     // control borders
         const Gray7          = 0xFFE6E6E6     // panel fills
         const Gray8          = 0xFFF6F6F6     // app background / views
+        const ButtonHotBk    = 0xFFE8F2FF
+        const ButtonPressedBk = 0xFFD4E7FF
 
         .richColor1 = Argb.Red
         .richColor2 = Argb.Green
@@ -806,11 +808,11 @@ impl ThemeColors
         .btnPush_Border         = Gray6
         .btnPush_Bk             = Transparent
         .btnPush_PressedText    = Gray1
-        .btnPush_PressedBorder  = Gray3
-        .btnPush_PressedBk      = Gray7
+        .btnPush_PressedBorder  = Blue
+        .btnPush_PressedBk      = ButtonPressedBk
         .btnPush_HotText        = Gray1
-        .btnPush_HotBorder      = Gray6
-        .btnPush_HotBk          = Gray8
+        .btnPush_HotBorder      = Blue
+        .btnPush_HotBk          = ButtonHotBk
         .btnPush_DisabledText   = Disabled
         .btnPush_DisabledBorder = Disabled
         .btnPush_DisabledBk     = Transparent
@@ -822,11 +824,11 @@ impl ThemeColors
         .btnPushFlat_Border         = Transparent
         .btnPushFlat_Bk             = Transparent
         .btnPushFlat_PressedText    = Gray1
-        .btnPushFlat_PressedBorder  = Transparent
-        .btnPushFlat_PressedBk      = Gray7
+        .btnPushFlat_PressedBorder  = Blue
+        .btnPushFlat_PressedBk      = ButtonPressedBk
         .btnPushFlat_HotText        = Gray1
-        .btnPushFlat_HotBorder      = Transparent
-        .btnPushFlat_HotBk          = Gray8
+        .btnPushFlat_HotBorder      = Blue
+        .btnPushFlat_HotBk          = ButtonHotBk
 
         .btnPushDefault_DisabledText   = Disabled
         .btnPushDefault_DisabledBorder = Disabled

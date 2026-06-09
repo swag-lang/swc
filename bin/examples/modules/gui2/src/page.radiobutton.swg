@@ -26,7 +26,8 @@ func bindRadioGroup(r0, r1, r2: *RadioButton)
 
 func createRadioButtonPage(parent: *Wnd)
 {
-    let left = createPanel(parent, "Exclusive group", "A small manual group checks the selected and unselected visual states.", {0, 0, 500, 250})
+    let layout = getPagePanelLayout(parent)
+    let left = createPanel(parent, "Exclusive group", "A small manual group checks the selected and unselected visual states.", layout.left)
     {
         let r0 = RadioButton.create(left, "Compact", {24, 90, 180})
         let r1 = RadioButton.create(left, "Comfortable", {24, 128, 180})
@@ -35,7 +36,7 @@ func createRadioButtonPage(parent: *Wnd)
         bindRadioGroup(r0, r1, r2)
     }
 
-    let right = createPanel(parent, "Alignment", "Radio buttons can also put the marker on the right side.", {528, 0, 496, 250})
+    let right = createPanel(parent, "Alignment", "Radio buttons can also put the marker on the right side.", layout.right)
     {
         var radio = RadioButton.create(right, "Marker right", {24, 90, 250})
         radio.radioButtonFlags |= .RightAlign
@@ -50,7 +51,7 @@ func createRadioButtonPage(parent: *Wnd)
         radio.disable()
     }
 
-    let bottom = createPanel(parent, "States", "Disabled and large labels are grouped here to cover text clipping and inactive rendering.", {0, 276, 1024, 248})
+    let bottom = createPanel(parent, "States", "Disabled and large labels are grouped here to cover text clipping and inactive rendering.", layout.bottom)
     {
         var radio = RadioButton.create(bottom, "Normal idle radio button", {24, 94, 250})
 

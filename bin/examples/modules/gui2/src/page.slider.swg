@@ -2,7 +2,8 @@ using Core, Gui, Pixel
 
 func createSliderPage(parent: *Wnd)
 {
-    let left = createPanel(parent, "Horizontal", "Single value sliders with continuous and stepped ranges.", {0, 0, 500, 250})
+    let layout = getPagePanelLayout(parent)
+    let left = createPanel(parent, "Horizontal", "Single value sliders with continuous and stepped ranges.", layout.left)
     {
         createCaption(left, "Continuous 0..100", 24, 88, 180)
         var slider = Slider.create(left, {24, 116, 320})
@@ -16,7 +17,7 @@ func createSliderPage(parent: *Wnd)
         slider.setValue(70)
     }
 
-    let right = createPanel(parent, "Range", "Two-handle sliders cover ordering, highlighted intervals and disabled rendering.", {528, 0, 496, 250})
+    let right = createPanel(parent, "Range", "Two-handle sliders cover ordering, highlighted intervals and disabled rendering.", layout.right)
     {
         createCaption(right, "Range -10..10", 24, 88, 180)
         var slider = Slider.create(right, {24, 116, 330}, range: true)
@@ -30,7 +31,7 @@ func createSliderPage(parent: *Wnd)
         slider.disable()
     }
 
-    let bottom = createPanel(parent, "Vertical and integer", "Vertical sliders share the same value model and step rendering.", {0, 276, 1024, 248})
+    let bottom = createPanel(parent, "Vertical and integer", "Vertical sliders share the same value model and step rendering.", layout.bottom)
     {
         createCaption(bottom, "Vertical", 24, 92, 120)
         var slider = Slider.create(bottom, {48, 126, 32, 96}, vertical: true)

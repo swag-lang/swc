@@ -2,7 +2,8 @@ using Core, Gui, Pixel
 
 func createEditBoxPage(parent: *Wnd)
 {
-    let forms = createPanel(parent, "Forms", "Square, round, flat and transparent edit boxes with placeholder notes.", {0, 0, 500, 250})
+    let layout = getPagePanelLayout(parent)
+    let forms = createPanel(parent, "Forms", "Square, round, flat and transparent edit boxes with placeholder notes.", layout.left)
     {
         var edit = EditBox.create(forms, "plain text", {24, 90, 180})
         edit.setNote("Square")
@@ -21,7 +22,7 @@ func createEditBoxPage(parent: *Wnd)
         edit.setNote("Transparent")
     }
 
-    let modes = createPanel(parent, "Input modes", "Numeric validation, max length, read-only and disabled fields.", {528, 0, 496, 250})
+    let modes = createPanel(parent, "Input modes", "Numeric validation, max length, read-only and disabled fields.", layout.right)
     {
         var edit = EditBox.create(modes, "128", {24, 90, 130})
         edit.setInputS64(-256, 256)
@@ -45,7 +46,7 @@ func createEditBoxPage(parent: *Wnd)
         edit.disable()
     }
 
-    let extras = createPanel(parent, "Extras", "Clear buttons, units and focus borders exercise the small layout details.", {0, 276, 1024, 248})
+    let extras = createPanel(parent, "Extras", "Clear buttons, units and focus borders exercise the small layout details.", layout.bottom)
     {
         var edit = EditBox.create(extras, "clear me", {24, 96, 220})
         edit.setForm(.Round)

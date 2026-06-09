@@ -13,14 +13,15 @@ func addTabSample(tab: *Tab, prefix: string)
 
 func createTabPage(parent: *Wnd)
 {
-    let left = createPanel(parent, "Flat", "Classic tabs with real child views and a framed selected page.", {0, 0, 500, 250})
+    let layout = getPagePanelLayout(parent)
+    let left = createPanel(parent, "Flat", "Classic tabs with real child views and a framed selected page.", layout.left)
     {
         let tab = Tab.create(left, {22, 88, 430, 122})
         tab.setForm(.Flat)
         addTabSample(tab, "Flat ")
     }
 
-    let right = createPanel(parent, "Round", "Fixed-width round tabs keep the selected page visible.", {528, 0, 496, 250})
+    let right = createPanel(parent, "Round", "Fixed-width round tabs keep the selected page visible.", layout.right)
     {
         let tab = Tab.create(right, {22, 88, 420, 124})
         tab.setForm(.Round)
@@ -29,7 +30,7 @@ func createTabPage(parent: *Wnd)
         tab.select(1)
     }
 
-    let bottom = createPanel(parent, "Button forms", "Button and push-button tabs are compact alternatives for tool surfaces.", {0, 276, 1024, 248})
+    let bottom = createPanel(parent, "Button forms", "Button and push-button tabs are compact alternatives for tool surfaces.", layout.bottom)
     {
         var tab = Tab.create(bottom, {24, 92, 440, 120})
         tab.setForm(.Button)

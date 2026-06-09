@@ -2,7 +2,8 @@ using Core, Gui, Pixel
 
 func createPushButtonPage(parent: *Wnd)
 {
-    let left = createPanel(parent, "Forms", "The same command rendered with the standard push button forms.", {0, 0, 500, 250})
+    let layout = getPagePanelLayout(parent)
+    let left = createPanel(parent, "Forms", "The same command rendered with the standard push button forms.", layout.left)
     {
         var btn = PushButton.create(left, "Normal", {22, 92, 150})
         btn.icon = app.theme.getIcon24(ThemeIcons24.Play, 18)
@@ -20,7 +21,7 @@ func createPushButtonPage(parent: *Wnd)
         btn.icon = app.theme.getIcon24(ThemeIcons24.Download, 18)
     }
 
-    let right = createPanel(parent, "States", "Hot/pressed states are interactive; disabled and long text variants check clipping.", {528, 0, 496, 250})
+    let right = createPanel(parent, "States", "Hot/pressed states are interactive; disabled and long text variants check clipping.", layout.right)
     {
         let status = createText(right, "No button pressed yet.", {22, 190, 430, 28})
 
@@ -44,7 +45,7 @@ func createPushButtonPage(parent: *Wnd)
         btn.cursor = Cursor.from(CursorShape.Help)
     }
 
-    let bottom = createPanel(parent, "Style override", "A flat button with custom colors, used as a compact visual regression target.", {0, 276, 1024, 248})
+    let bottom = createPanel(parent, "Style override", "A flat button with custom colors, used as a compact visual regression target.", layout.bottom)
     {
         let btn = PushButton.create(bottom, "Custom flat action", {22, 96, 220})
         btn.form = .Flat

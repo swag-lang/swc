@@ -4,6 +4,19 @@ const W = 1080
 const H = 720
 const MaxPages = 8
 const TestFramesPerPage = 35
+const RootMargin = 28.0
+const PageTop = 112.0
+const PageBottomMargin = 58.0
+const PanelGap = 28.0
+const TopPanelHeight = 250.0
+const MinBottomPanelHeight = 190.0
+
+struct PagePanelLayout
+{
+    left:   Math.Rectangle
+    right:  Math.Rectangle
+    bottom: Math.Rectangle
+}
 
 var app: Application
 var g_Surface: *Surface
@@ -53,6 +66,23 @@ func createCaption(parent: *Wnd, text: string, x, y, width: f32)
 {
     let label = createText(parent, text, {x, y, width, 24})
     label.labelFlags.add(.LightText)
+}
+
+func getPagePanelLayout(parent: *Wnd)->PagePanelLayout
+{
+    let rect         = parent.getClientRect()
+    let width        = Math.max(rect.width, 1.0)
+    let height       = Math.max(rect.height, TopPanelHeight + PanelGap + MinBottomPanelHeight)
+    let halfWidth    = (width - PanelGap) * 0.5
+    let topHeight    = Math.min(TopPanelHeight, Math.max(220.0, (height - PanelGap) * 0.48))
+    let bottomY      = topHeight + PanelGap
+    let bottomHeight = Math.max(MinBottomPanelHeight, height - bottomY)
+
+    var result: retval
+    result.left   = {0, 0, halfWidth, topHeight}
+    result.right  = {halfWidth + PanelGap, 0, width - halfWidth - PanelGap, topHeight}
+    result.bottom = {0, bottomY, width, bottomHeight}
+    return result
 }
 
 func pageTitle(page: s32)->string
@@ -149,6 +179,33 @@ func buildPage()
     g_PageView.invalidate()
 }
 
+func layoutRootView()
+{
+    if !g_View or !g_PageView do
+        return
+
+    let rect         = g_View.getClientRect()
+    let contentWidth = Math.max(rect.width - 2 * RootMargin, 1.0)
+    let pageHeight   = Math.max(rect.height - PageTop - PageBottomMargin, TopPanelHeight + PanelGap + MinBottomPanelHeight)
+    let footerY      = Math.max(rect.height - 42.0, PageTop + pageHeight + 6.0)
+
+    g_Title.setPosition({RootMargin, 18, contentWidth, 34})
+    g_SubTitle.setPosition({RootMargin + 2, 56, contentWidth - 4, 42})
+    g_PageView.setPosition({RootMargin, PageTop, contentWidth, pageHeight})
+    g_Footer.setPosition({RootMargin, footerY, contentWidth, 28})
+}
+
+func onRootEvent(view: *Wnd, evt: IEvent)->bool
+{
+    if evt is ResizeEvent
+    {
+        layoutRootView()
+        buildPage()
+    }
+
+    return false
+}
+
 func nextPage()
 {
     g_Page = (g_Page + 1) % MaxPages
@@ -190,19 +247,22 @@ func createRootView()
     g_View = g_Surface.getView()
     g_View.backgroundStyle = .View
 
-    g_Title = Label.create(g_View, "", {28, 18, W - 56, 34})
+    g_Title = Label.create(g_View, "", {})
     setLabelTextStyle(g_Title, .Left, .Center)
     g_Title.style.setFont(g_View.getTheme().createDefaultFont(28), .Regular)
 
-    g_SubTitle = Label.create(g_View, "", {30, 56, W - 60, 42}, null, .WordWrap | .LightText)
+    g_SubTitle = Label.create(g_View, "", {}, null, .WordWrap | .LightText)
     setLabelTextStyle(g_SubTitle, .Left, .Top)
 
-    g_PageView = Wnd.create'Wnd(g_View, {28, 112, W - 56, H - 170})
+    g_PageView = Wnd.create'Wnd(g_View, {})
     g_PageView.backgroundStyle = .Transparent
 
-    g_Footer = Label.create(g_View, "", {28, H - 42, W - 56, 28})
+    g_Footer = Label.create(g_View, "", {})
     setLabelTextStyle(g_Footer, .Left, .Center)
     g_Footer.labelFlags.add(.LightText)
+
+    layoutRootView()
+    g_View.hookOnEvent = &onRootEvent
 }
 
 #main

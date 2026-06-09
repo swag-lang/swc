@@ -1,5 +1,6 @@
 #pragma once
 #include "Backend/Linker/LinkImage.h"
+#include "Backend/Runtime.h"
 #include "Support/Report/Diagnostic.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -20,7 +21,8 @@ struct LinkJob
     };
 
     // Inputs (filled by prepareLink).
-    Output                output = Output::Executable;
+    Output                output   = Output::Executable;
+    Runtime::TargetOs     targetOs = Runtime::TargetOs::Windows; // selects the artifact writer
     fs::path              outputPath;
     fs::path              buildDir;
     LinkImage             image;          // Executable / SharedLibrary

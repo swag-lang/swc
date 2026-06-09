@@ -648,6 +648,7 @@
         <ClInclude Include="src\Backend\Linker\PELinker.h" />
         <ClInclude Include="src\Backend\Linker\LinkJob.h"/>
         <ClInclude Include="src\Backend\Linker\LinkImage.h"/>
+        <ClInclude Include="src\Backend\Linker\ImageWriter.h"/>
         <ClInclude Include="src\Backend\Linker\CoffReader.h"/>
         <ClInclude Include="src\Backend\Linker\Archive.h"/>
         <ClInclude Include="src\Backend\Linker\PEWriter.h" />

@@ -255,7 +255,7 @@
     <ClCompile Include="src\Backend\Linker\Linker.cpp">
       <Filter>src\Backend\Linker</Filter>
     </ClCompile>
-    <ClCompile Include="src\Backend\Linker\LinkerPe.cpp">
+    <ClCompile Include="src\Backend\Linker\PELinker.cpp">
       <Filter>src\Backend\Linker</Filter>
     </ClCompile>
     <ClCompile Include="src\Backend\Linker\CoffReader.cpp">
@@ -1526,13 +1526,16 @@
     <ClInclude Include="src\Backend\Linker\Linker.h">
       <Filter>src\Backend\Linker</Filter>
     </ClInclude>
-    <ClInclude Include="src\Backend\Linker\LinkerPe.h">
+    <ClInclude Include="src\Backend\Linker\PELinker.h">
       <Filter>src\Backend\Linker</Filter>
     </ClInclude>
     <ClInclude Include="src\Backend\Linker\LinkJob.h">
       <Filter>src\Backend\Linker</Filter>
     </ClInclude>
     <ClInclude Include="src\Backend\Linker\LinkImage.h">
+      <Filter>src\Backend\Linker</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Backend\Linker\ImageWriter.h">
       <Filter>src\Backend\Linker</Filter>
     </ClInclude>
     <ClInclude Include="src\Backend\Linker\CoffReader.h">

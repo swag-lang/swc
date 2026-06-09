@@ -135,13 +135,40 @@ fileprivate impl Properties
         return Math.clamp(size, .gridMarginColumn, maxSize)
     }
 
+    mtd isGridHeader(item: *PropertiesItem)->bool
+    {
+        return .kind == .Grid and item.flags.has(.Section | .Category)
+    }
+
+    mtd getGridHeaderLabelWidth(item: *PropertiesItem)->f32
+    {
+        var width = .edView.position.width
+        if width <= 0 do
+            width = .position.width
+        if width <= 0 do
+            width = item.line.position.width
+        return Math.max(width - item.line.margin.x - item.line.margin.z - item.label.margin.x - item.label.margin.z, 1.0)
+    }
+
+    mtd syncColumnLabel(item: *PropertiesItem)
+    {
+        if !item.label do
+            return
+
+        if .isGridHeader(item)
+        {
+            item.label.margin.z      = 0
+            item.label.paddingText.x = .leftMargin
+            item.label.position.width = .getGridHeaderLabelWidth(item)
+        }
+        else do
+            item.label.position.width = .gridColumnSize
+    }
+
     mtd syncColumnLabels()
     {
-        foreach item in .items
-        {
-            if item.label do
-                item.label.position.width = .gridColumnSize
-        }
+        foreach item in .items do
+            .syncColumnLabel(item)
     }
 
     mtd getColumnX()->f32
@@ -423,7 +450,9 @@ fileprivate impl Properties
         {
             let expand = .getTheme().getIcon24(item.flags.has(.Expanded) ? .Expanded : .Collapsed)
             let iconColor = item.line.isDisabled() ? colors.label_DisabledIcon : colors.label_Icon
-            expand.paint(painter, r.x + 2, r.vertCenter() - expand.sizeY * 0.5, iconColor)
+            let iconX = r.x + Math.max(.leftMargin - expand.sizeX, 0.0) * 0.5
+            let iconCenterY = item.label ? item.label.position.vertCenter() : r.vertCenter()
+            expand.paint(painter, iconX, iconCenterY - expand.sizeY * 0.5, iconColor)
         }
     }
 

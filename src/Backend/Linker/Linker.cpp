@@ -1,6 +1,6 @@
 #include "pch.h"
 #include "Backend/Linker/Linker.h"
-#include "Backend/Linker/Archive.h"
+#include "Backend/Linker/ImageWriter.h"
 #include "Backend/Linker/PELinker.h"
 #include "Backend/Linker/PEWriter.h"
 #include "Backend/Native/NativeBackendBuilder.h"
@@ -26,22 +26,26 @@ namespace
     }
 
     // Serialise the LinkImage (or archive the objects) and write the artifact. Runs on a background
-    // thread and so touches nothing but the self-contained job.
+    // thread and so touches nothing but the self-contained job. The target format is chosen from the
+    // job alone (set during prepareLink), so this stays usable on a detached thread.
     void executeInternalLink(LinkJob& job)
     {
+        const std::unique_ptr<ImageWriter> writer = ImageWriter::create(job.targetOs);
+        SWC_ASSERT(writer != nullptr);
+
         std::vector<std::byte> bytes;
         switch (job.output)
         {
             case LinkJob::Output::Executable:
             case LinkJob::Output::SharedLibrary:
-                if (!writePeImage(bytes, job.error, job.image))
+                if (!writer->writeImage(bytes, job.error, job.image))
                 {
                     job.ok = false;
                     return;
                 }
                 break;
             case LinkJob::Output::StaticLibrary:
-                if (!buildStaticArchive(bytes, job.error, job.archiveMembers))
+                if (!writer->buildStaticArchive(bytes, job.error, job.archiveMembers))
                 {
                     job.ok = false;
                     return;
@@ -64,7 +68,7 @@ namespace
                 exportNames.push_back(exported.name);
 
             std::vector<std::byte> libBytes;
-            buildImportLibrary(libBytes, Utf8(job.outputPath.filename()).view(), exportNames);
+            writer->buildImportLibrary(libBytes, Utf8(job.outputPath.filename()).view(), exportNames);
 
             const fs::path libPath = fs::path(job.outputPath).replace_extension(".lib");
             if (!writeJobArtifact(job, libPath, libBytes))
@@ -76,6 +80,20 @@ namespace
 
         job.ok = true;
     }
+}
+
+std::unique_ptr<ImageWriter> ImageWriter::create(const Runtime::TargetOs targetOs)
+{
+    const auto format = getNativeObjFormat(targetOs);
+    SWC_ASSERT(format.has_value());
+
+    switch (*format)
+    {
+        case NativeObjectFormat::WindowsCoff:
+            return std::make_unique<PEWriter>();
+    }
+
+    SWC_UNREACHABLE();
 }
 
 Linker::Linker(NativeBackendBuilder& builder) :

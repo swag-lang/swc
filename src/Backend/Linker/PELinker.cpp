@@ -389,6 +389,7 @@ Result PELinker::prepareLink(LinkJob& outJob)
     SWC_ASSERT(builder_ != nullptr);
     outJob.outputPath = builder_->artifactPath;
     outJob.buildDir   = builder_->buildDir;
+    outJob.targetOs   = builder_->ctx().cmdLine().targetOs;
 
     switch (builder_->compiler().buildCfg().backendKind)
     {

@@ -42,10 +42,10 @@ private:
 
 // Builds a COFF static library (`!<arch>`) from the given object files: a symbol-directory linker
 // member, a long-names member, and the object members. Returns false and fills outDiag on failure.
-bool buildStaticArchive(std::vector<std::byte>& outBytes, Diagnostic& outDiag, const std::vector<fs::path>& memberPaths);
+bool buildCoffStaticArchive(std::vector<std::byte>& outBytes, Diagnostic& outDiag, const std::vector<fs::path>& memberPaths);
 
 // Builds an import library: a COFF archive of short-import records, one per exported name, so a
 // dependent link resolves those names as by-name imports from the given DLL file.
-void buildImportLibrary(std::vector<std::byte>& outBytes, std::string_view dllFileName, const std::vector<Utf8>& exportNames);
+void buildCoffImportLibrary(std::vector<std::byte>& outBytes, std::string_view dllFileName, const std::vector<Utf8>& exportNames);
 
 SWC_END_NAMESPACE();

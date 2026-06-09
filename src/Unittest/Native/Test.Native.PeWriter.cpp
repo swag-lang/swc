@@ -53,10 +53,11 @@ SWC_FILESYSTEM_TEST_BEGIN(PeWriter_MinimalExecutableCallsExitProcess)
 
     std::vector<std::byte> peBytes;
     Diagnostic             diag;
-    if (!writePeImage(peBytes, diag, image))
+    PEWriter               writer;
+    if (!writer.writeImage(peBytes, diag, image))
     {
         const std::string_view reason = diag.elements().empty() ? std::string_view{"unknown error"} : diag.elements().front()->idName();
-        std::println(stderr, "PeWriter test: writePeImage failed: {}", reason);
+        std::println(stderr, "PeWriter test: writeImage failed: {}", reason);
         return Result::Error;
     }
 

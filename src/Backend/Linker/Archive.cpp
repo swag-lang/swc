@@ -278,7 +278,7 @@ namespace
     }
 }
 
-bool buildStaticArchive(std::vector<std::byte>& outBytes, Diagnostic& outDiag, const std::vector<fs::path>& memberPaths)
+bool buildCoffStaticArchive(std::vector<std::byte>& outBytes, Diagnostic& outDiag, const std::vector<fs::path>& memberPaths)
 {
     std::vector<ArchiveMemberBuild> members;
     members.reserve(memberPaths.size());
@@ -311,7 +311,7 @@ bool buildStaticArchive(std::vector<std::byte>& outBytes, Diagnostic& outDiag, c
     return true;
 }
 
-void buildImportLibrary(std::vector<std::byte>& outBytes, std::string_view dllFileName, const std::vector<Utf8>& exportNames)
+void buildCoffImportLibrary(std::vector<std::byte>& outBytes, std::string_view dllFileName, const std::vector<Utf8>& exportNames)
 {
     std::vector<ArchiveMemberBuild> members;
     members.reserve(exportNames.size());

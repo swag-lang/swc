@@ -3,6 +3,7 @@
 #include "Support/Core/ByteUtils.h"
 #include "Support/Math/Helpers.h"
 #include "Support/Os/Os.h"
+#include "Support/Report/Diagnostic.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -101,16 +102,16 @@ namespace
         {
         }
 
-        bool write(std::vector<std::byte>& outBytes, Utf8& outError);
+        bool write(std::vector<std::byte>& outBytes, Diagnostic& outDiag);
 
     private:
         uint32_t resolveSymbolRva(bool& outFound, const Utf8& name) const;
-        bool     buildImports(Utf8& outError);
-        bool     buildExports(const Utf8& outError);
+        bool     buildImports(Diagnostic& outDiag);
+        void     buildExports();
         void     assignLayout();
-        bool     applyRelocations(Utf8& outError);
+        bool     applyRelocations(Diagnostic& outDiag);
         void     buildBaseRelocations();
-        bool     emit(std::vector<std::byte>& outBytes, Utf8& outError);
+        bool     emit(std::vector<std::byte>& outBytes, Diagnostic& outDiag);
 
         const LinkImage&                       image_;
         std::vector<OutSection>                sections_;
@@ -151,7 +152,7 @@ namespace
         return sections_[sectionIt->second].rva + value;
     }
 
-    bool PEWriter::buildImports(Utf8& outError)
+    bool PEWriter::buildImports(Diagnostic& outDiag)
     {
         if (image_.imports.empty())
             return true;
@@ -303,7 +304,8 @@ namespace
             }
             if (!match)
             {
-                outError = std::format("internal: missing import for thunk '{}'", thunk.symbolName);
+                outDiag = Diagnostic::get(DiagnosticId::cmd_err_link_missing_import_thunk);
+                outDiag.addArgument(Diagnostic::ARG_SYM, thunk.symbolName);
                 return false;
             }
             thunk.iatSlotInIdata = iatEntryOffset[match];
@@ -326,10 +328,10 @@ namespace
         return true;
     }
 
-    bool PEWriter::buildExports(const Utf8& outError)
+    void PEWriter::buildExports()
     {
         if (image_.kind != LinkImageKind::SharedLibrary || image_.exports.empty())
-            return true;
+            return;
 
         // Export names must be sorted for the name-pointer table (the loader binary-searches it).
         std::vector<const LinkExport*> sorted;
@@ -396,9 +398,6 @@ namespace
         section.align       = 4;
         edataIndex_         = static_cast<int32_t>(sections_.size());
         sections_.push_back(std::move(section));
-
-        SWC_UNUSED(outError);
-        return true;
     }
 
     void PEWriter::assignLayout()
@@ -457,7 +456,7 @@ namespace
         }
     }
 
-    bool PEWriter::applyRelocations(Utf8& outError)
+    bool PEWriter::applyRelocations(Diagnostic& outDiag)
     {
         for (size_t imageIdx = 0; imageIdx < image_.sections.size(); ++imageIdx)
         {
@@ -469,7 +468,8 @@ namespace
                 const uint32_t targetRva = resolveSymbolRva(found, reloc.symbolName);
                 if (!found)
                 {
-                    outError = std::format("unresolved external symbol '{}'", reloc.symbolName);
+                    outDiag = Diagnostic::get(DiagnosticId::cmd_err_link_unresolved_symbol);
+                    outDiag.addArgument(Diagnostic::ARG_SYM, reloc.symbolName);
                     return false;
                 }
 
@@ -479,7 +479,7 @@ namespace
                     {
                         if (reloc.offset + sizeof(uint64_t) > out.bytes.size())
                         {
-                            outError = "relocation out of section bounds";
+                            outDiag = Diagnostic::get(DiagnosticId::cmd_err_link_reloc_out_of_bounds);
                             return false;
                         }
                         const uint64_t inPlace = ByteUtils::readLE64(asByteSpan(out.bytes), reloc.offset);
@@ -492,7 +492,7 @@ namespace
                     {
                         if (reloc.offset + sizeof(uint32_t) > out.bytes.size())
                         {
-                            outError = "relocation out of section bounds";
+                            outDiag = Diagnostic::get(DiagnosticId::cmd_err_link_reloc_out_of_bounds);
                             return false;
                         }
                         const uint32_t inPlace = ByteUtils::readLE32(asByteSpan(out.bytes), reloc.offset);
@@ -545,7 +545,8 @@ namespace
                 const uint32_t targetRva = resolveSymbolRva(found, symbolName);
                 if (!found)
                 {
-                    outError = std::format("exported symbol '{}' not found", symbolName);
+                    outDiag = Diagnostic::get(DiagnosticId::cmd_err_link_export_symbol_not_found);
+                    outDiag.addArgument(Diagnostic::ARG_SYM, symbolName);
                     return false;
                 }
                 ByteUtils::writeLE32(sections_[edataIndex_].bytes, offset, targetRva);
@@ -597,7 +598,7 @@ namespace
         sections_.push_back(std::move(relocSection));
     }
 
-    bool PEWriter::emit(std::vector<std::byte>& outBytes, Utf8& outError)
+    bool PEWriter::emit(std::vector<std::byte>& outBytes, Diagnostic& outDiag)
     {
         const bool isDll = image_.kind == LinkImageKind::SharedLibrary;
 
@@ -638,7 +639,8 @@ namespace
             entryRva   = resolveSymbolRva(found, image_.entrySymbol);
             if (!found)
             {
-                outError = std::format("entry point symbol '{}' not found", image_.entrySymbol);
+                outDiag = Diagnostic::get(DiagnosticId::cmd_err_link_entry_point_not_found);
+                outDiag.addArgument(Diagnostic::ARG_SYM, image_.entrySymbol);
                 return false;
             }
         }
@@ -771,7 +773,7 @@ namespace
         return true;
     }
 
-    bool PEWriter::write(std::vector<std::byte>& outBytes, Utf8& outError)
+    bool PEWriter::write(std::vector<std::byte>& outBytes, Diagnostic& outDiag)
     {
         // Copy image sections into the working set, recording the index map and special sections.
         sections_.reserve(image_.sections.size() + 4);
@@ -801,32 +803,31 @@ namespace
 
         if (textIndex_ < 0)
         {
-            outError = "image has no .text section";
+            outDiag = Diagnostic::get(DiagnosticId::cmd_err_link_no_text_section);
             return false;
         }
 
-        if (!buildImports(outError))
+        if (!buildImports(outDiag))
             return false;
 
-        if (!buildExports(outError))
-            return false;
+        buildExports();
 
         assignLayout();
 
         // Recompute thunk symbol values after imports were appended (already set in buildImports).
-        if (!applyRelocations(outError))
+        if (!applyRelocations(outDiag))
             return false;
 
         buildBaseRelocations();
 
-        return emit(outBytes, outError);
+        return emit(outBytes, outDiag);
     }
 }
 
-bool writePeImage(std::vector<std::byte>& outBytes, Utf8& outError, const LinkImage& image)
+bool writePeImage(std::vector<std::byte>& outBytes, Diagnostic& outDiag, const LinkImage& image)
 {
     PEWriter writer(image);
-    return writer.write(outBytes, outError);
+    return writer.write(outBytes, outDiag);
 }
 
 SWC_END_NAMESPACE();

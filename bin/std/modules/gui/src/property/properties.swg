@@ -422,7 +422,8 @@ fileprivate impl Properties
         if .kind == .Grid and item.numChilds
         {
             let expand = .getTheme().getIcon24(item.flags.has(.Expanded) ? .Expanded : .Collapsed)
-            expand.paint(painter, r.x + 2, r.vertCenter() - expand.sizeY * 0.5, Argb.White)
+            let iconColor = item.line.isDisabled() ? colors.label_DisabledIcon : colors.label_Icon
+            expand.paint(painter, r.x + 2, r.vertCenter() - expand.sizeY * 0.5, iconColor)
         }
     }
 

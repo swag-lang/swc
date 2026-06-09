@@ -158,6 +158,7 @@ public:
     LinkJob& deferredToolRun() { return deferredToolRun_; }
 
     Result reportError(DiagnosticId id);
+    Result reportError(const Diagnostic& diag);
 
     template<typename T1>
     Result reportError(DiagnosticId id, std::string_view name1, T1&& value1)
@@ -200,7 +201,6 @@ public:
     std::atomic<bool>                                                                    objWriteFailed = false;
 
 private:
-    Result reportError(const Diagnostic& diag);
     Result validateTarget();
     Result writeObjects();
     Result runGeneratedArtifact();

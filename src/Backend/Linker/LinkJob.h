@@ -1,5 +1,6 @@
 #pragma once
 #include "Backend/Linker/LinkImage.h"
+#include "Support/Report/Diagnostic.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -25,10 +26,12 @@ struct LinkJob
     LinkImage             image;          // Executable / SharedLibrary
     std::vector<fs::path> archiveMembers; // StaticLibrary: object files to archive
 
-    // Outputs (filled by executeLink).
-    bool executed = false;
-    bool ok       = false;
-    Utf8 errorText;
+    // Outputs (filled by executeLink). On failure, error carries a ready-to-report diagnostic built
+    // off the foreground thread (Diagnostic::get/addArgument touch no compiler/logger state); finishLink
+    // reports it back on the foreground thread.
+    bool       executed = false;
+    bool       ok       = false;
+    Diagnostic error;
 };
 
 SWC_END_NAMESPACE();

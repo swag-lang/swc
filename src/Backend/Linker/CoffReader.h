@@ -4,6 +4,8 @@
 
 SWC_BEGIN_NAMESPACE();
 
+class Diagnostic;
+
 // Minimal reader for the COFF object files emitted by NativeObjFileWriterCoff. It decodes just the
 // shape that the backend produces (sections, a flat external symbol table, and per-section
 // relocations), turning relocation symbol indices into names so downstream linking can work purely
@@ -40,14 +42,14 @@ struct CoffObject
     std::vector<CoffInputSymbol>  definedSymbols;
 };
 
-// Decodes a COFF object image. Returns false and fills outError on a malformed/unsupported file.
-bool readCoffObject(CoffObject& outObject, Utf8& outError, ByteSpan bytes);
+// Decodes a COFF object image. Returns false and fills outDiag on a malformed/unsupported file.
+bool readCoffObject(CoffObject& outObject, Diagnostic& outDiag, ByteSpan bytes);
 
 // Merges the given COFF objects into a single LinkImage: sections of the same name are concatenated
 // (honouring alignment and rebasing symbols/relocations), defined symbols are collected globally, and
 // CodeView debug sections (.debug$*) are dropped. Appends to outImage; the caller still fills in
-// imports, exports, the entry symbol and image options. Returns false and fills outError on an
+// imports, exports, the entry symbol and image options. Returns false and fills outDiag on an
 // unsupported relocation kind.
-bool mergeCoffObjectsIntoImage(LinkImage& outImage, Utf8& outError, const std::vector<CoffObject>& objects);
+bool mergeCoffObjectsIntoImage(LinkImage& outImage, Diagnostic& outDiag, const std::vector<CoffObject>& objects);
 
 SWC_END_NAMESPACE();

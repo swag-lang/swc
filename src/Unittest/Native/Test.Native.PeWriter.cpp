@@ -4,6 +4,7 @@
 
 #include "Backend/Linker/PeWriter.h"
 #include "Support/Os/Os.h"
+#include "Support/Report/Diagnostic.h"
 #include "Unittest/Unittest.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -51,10 +52,11 @@ SWC_FILESYSTEM_TEST_BEGIN(PeWriter_MinimalExecutableCallsExitProcess)
     image.stackReserve = 0x100000;
 
     std::vector<std::byte> peBytes;
-    Utf8                   error;
-    if (!writePeImage(peBytes, error, image))
+    Diagnostic             diag;
+    if (!writePeImage(peBytes, diag, image))
     {
-        std::println(stderr, "PeWriter test: writePeImage failed: {}", error.view());
+        const std::string_view reason = diag.elements().empty() ? std::string_view{"unknown error"} : diag.elements().front()->idName();
+        std::println(stderr, "PeWriter test: writePeImage failed: {}", reason);
         return Result::Error;
     }
 

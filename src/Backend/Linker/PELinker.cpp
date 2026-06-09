@@ -81,12 +81,12 @@ Result PELinker::readObjects(std::vector<CoffObject>& outObjects) const
         FileSystem::IoErrorInfo ioError;
         std::vector<std::byte>  bytes;
         if (FileSystem::readBinaryFile(description.objPath, bytes, ioError) != Result::Continue)
-            return builder_->reportError(DiagnosticId::cmd_err_native_link_failed, Diagnostic::ARG_BECAUSE, std::format("cannot read object '{}'", Utf8(description.objPath).view()));
+            return builder_->reportError(DiagnosticId::cmd_err_link_object_read_failed, Diagnostic::ARG_PATH, Utf8(description.objPath), Diagnostic::ARG_BECAUSE, FileSystem::describeIoFailure(ioError));
 
         CoffObject object;
-        Utf8       error;
-        if (!readCoffObject(object, error, asByteSpan(bytes)))
-            return builder_->reportError(DiagnosticId::cmd_err_native_link_failed, Diagnostic::ARG_BECAUSE, error);
+        Diagnostic diag;
+        if (!readCoffObject(object, diag, asByteSpan(bytes)))
+            return builder_->reportError(diag);
         outObjects.push_back(std::move(object));
     }
 
@@ -152,9 +152,9 @@ Result PELinker::loadArchives(std::vector<Archive>& outArchives) const
             if (FileSystem::readBinaryFile(candidate, bytes, ioError) != Result::Continue)
                 break;
 
-            Archive archive;
-            Utf8    error;
-            if (archive.load(error, std::move(bytes)))
+            Archive    archive;
+            Diagnostic diag; // a non-archive candidate is silently skipped
+            if (archive.load(diag, std::move(bytes)))
                 outArchives.push_back(std::move(archive));
             break;
         }
@@ -188,9 +188,9 @@ Result PELinker::resolveSymbols(LinkImage& image, std::vector<CoffObject>& objec
             if (memberOffset == 0)
                 continue;
 
-            Utf8          error;
+            Diagnostic    diag; // local decode failures fall through to the next archive
             ArchiveImport archiveImport;
-            if (archive.tryReadImport(archiveImport, error, memberOffset))
+            if (archive.tryReadImport(archiveImport, diag, memberOffset))
             {
                 LinkImport import;
                 import.dll        = archiveImport.dll;
@@ -204,12 +204,12 @@ Result PELinker::resolveSymbols(LinkImage& image, std::vector<CoffObject>& objec
                 break;
             }
 
-            const ByteSpan memberBytes = archive.memberData(error, memberOffset);
+            const ByteSpan memberBytes = archive.memberData(diag, memberOffset);
             if (memberBytes.empty())
                 continue;
 
             CoffObject pulled;
-            if (!readCoffObject(pulled, error, memberBytes))
+            if (!readCoffObject(pulled, diag, memberBytes))
                 continue;
 
             for (const CoffInputSymbol& sym : pulled.definedSymbols)
@@ -225,9 +225,9 @@ Result PELinker::resolveSymbols(LinkImage& image, std::vector<CoffObject>& objec
         }
     }
 
-    Utf8 error;
-    if (!mergeCoffObjectsIntoImage(image, error, objects))
-        return builder_->reportError(DiagnosticId::cmd_err_native_link_failed, Diagnostic::ARG_BECAUSE, error);
+    Diagnostic diag;
+    if (!mergeCoffObjectsIntoImage(image, diag, objects))
+        return builder_->reportError(diag);
 
     return Result::Continue;
 }

@@ -4,6 +4,7 @@
 #include "Main/FileSystem.h"
 #include "Support/Core/ByteUtils.h"
 #include "Support/Math/Helpers.h"
+#include "Support/Report/Diagnostic.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -37,7 +38,7 @@ namespace
     }
 }
 
-bool Archive::load(Utf8& outError, std::vector<std::byte> bytes)
+bool Archive::load(Diagnostic& outDiag, std::vector<std::byte> bytes)
 {
     bytes_ = std::move(bytes);
     symbolToMember_.clear();
@@ -45,7 +46,7 @@ bool Archive::load(Utf8& outError, std::vector<std::byte> bytes)
     const ByteSpan span = asByteSpan(bytes_);
     if (span.size() < ARCHIVE_MAGIC.size() || asStringView(span.subspan(0, ARCHIVE_MAGIC.size())) != ARCHIVE_MAGIC)
     {
-        outError = "not a COFF archive";
+        outDiag = Diagnostic::get(DiagnosticId::cmd_err_link_archive_bad_magic);
         return false;
     }
 
@@ -53,21 +54,21 @@ bool Archive::load(Utf8& outError, std::vector<std::byte> bytes)
     constexpr size_t firstHeader = ARCHIVE_MAGIC.size();
     if (firstHeader + MEMBER_HEADER_SIZE > span.size())
     {
-        outError = "truncated archive";
+        outDiag = Diagnostic::get(DiagnosticId::cmd_err_link_archive_truncated);
         return false;
     }
 
     uint32_t memberSize = 0;
     if (!parseMemberSize(memberSize, span, firstHeader))
     {
-        outError = "malformed archive member header";
+        outDiag = Diagnostic::get(DiagnosticId::cmd_err_link_archive_bad_member);
         return false;
     }
 
     constexpr size_t dataOffset = firstHeader + MEMBER_HEADER_SIZE;
     if (dataOffset + memberSize > span.size() || memberSize < 4)
     {
-        outError = "truncated archive linker member";
+        outDiag = Diagnostic::get(DiagnosticId::cmd_err_link_archive_truncated_linker_member);
         return false;
     }
 
@@ -76,7 +77,7 @@ bool Archive::load(Utf8& outError, std::vector<std::byte> bytes)
     const size_t     namesAt     = offsetsAt + static_cast<size_t>(symbolCount) * 4;
     if (namesAt > dataOffset + memberSize)
     {
-        outError = "malformed archive symbol index";
+        outDiag = Diagnostic::get(DiagnosticId::cmd_err_link_archive_bad_symbol_index);
         return false;
     }
 
@@ -86,7 +87,7 @@ bool Archive::load(Utf8& outError, std::vector<std::byte> bytes)
     {
         if (nameCursor >= memberEnd)
         {
-            outError = "malformed archive symbol names";
+            outDiag = Diagnostic::get(DiagnosticId::cmd_err_link_archive_bad_symbol_names);
             return false;
         }
         const auto* nameStart = reinterpret_cast<const char*>(span.data() + nameCursor);
@@ -108,32 +109,32 @@ uint32_t Archive::memberOffsetForSymbol(const Utf8& symbol) const
     return it == symbolToMember_.end() ? 0 : it->second;
 }
 
-ByteSpan Archive::memberData(Utf8& outError, uint32_t headerOffset) const
+ByteSpan Archive::memberData(Diagnostic& outDiag, uint32_t headerOffset) const
 {
     const ByteSpan span = asByteSpan(bytes_);
     if (headerOffset + MEMBER_HEADER_SIZE > span.size())
     {
-        outError = "archive member out of range";
+        outDiag = Diagnostic::get(DiagnosticId::cmd_err_link_archive_member_out_of_range);
         return {};
     }
     uint32_t memberSize = 0;
     if (!parseMemberSize(memberSize, span, headerOffset))
     {
-        outError = "malformed archive member header";
+        outDiag = Diagnostic::get(DiagnosticId::cmd_err_link_archive_bad_member);
         return {};
     }
     const size_t dataOffset = headerOffset + MEMBER_HEADER_SIZE;
     if (dataOffset + memberSize > span.size())
     {
-        outError = "truncated archive member";
+        outDiag = Diagnostic::get(DiagnosticId::cmd_err_link_archive_truncated_member);
         return {};
     }
     return span.subspan(dataOffset, memberSize);
 }
 
-bool Archive::tryReadImport(ArchiveImport& outImport, Utf8& outError, uint32_t headerOffset) const
+bool Archive::tryReadImport(ArchiveImport& outImport, Diagnostic& outDiag, uint32_t headerOffset) const
 {
-    const ByteSpan data = memberData(outError, headerOffset);
+    const ByteSpan data = memberData(outDiag, headerOffset);
     if (data.empty())
         return false;
     if (data.size() < IMPORT_HEADER_SIZE)
@@ -277,7 +278,7 @@ namespace
     }
 }
 
-bool buildStaticArchive(std::vector<std::byte>& outBytes, Utf8& outError, const std::vector<fs::path>& memberPaths)
+bool buildStaticArchive(std::vector<std::byte>& outBytes, Diagnostic& outDiag, const std::vector<fs::path>& memberPaths)
 {
     std::vector<ArchiveMemberBuild> members;
     members.reserve(memberPaths.size());
@@ -288,17 +289,15 @@ bool buildStaticArchive(std::vector<std::byte>& outBytes, Utf8& outError, const 
         std::vector<std::byte>  bytes;
         if (FileSystem::readBinaryFile(path, bytes, ioError) != Result::Continue)
         {
-            outError = std::format("cannot read object '{}'", Utf8(path).view());
+            outDiag = Diagnostic::get(DiagnosticId::cmd_err_link_object_read_failed);
+            outDiag.addArgument(Diagnostic::ARG_PATH, Utf8(path));
+            outDiag.addArgument(Diagnostic::ARG_BECAUSE, FileSystem::describeIoFailure(ioError));
             return false;
         }
 
         CoffObject object;
-        Utf8       error;
-        if (!readCoffObject(object, error, asByteSpan(bytes)))
-        {
-            outError = error;
+        if (!readCoffObject(object, outDiag, asByteSpan(bytes)))
             return false;
-        }
 
         ArchiveMemberBuild member;
         member.name = Utf8(path.filename());
@@ -312,10 +311,8 @@ bool buildStaticArchive(std::vector<std::byte>& outBytes, Utf8& outError, const 
     return true;
 }
 
-bool buildImportLibrary(std::vector<std::byte>& outBytes, const Utf8& outError, std::string_view dllFileName, const std::vector<Utf8>& exportNames)
+void buildImportLibrary(std::vector<std::byte>& outBytes, std::string_view dllFileName, const std::vector<Utf8>& exportNames)
 {
-    SWC_UNUSED(outError);
-
     std::vector<ArchiveMemberBuild> members;
     members.reserve(exportNames.size());
 
@@ -343,7 +340,6 @@ bool buildImportLibrary(std::vector<std::byte>& outBytes, const Utf8& outError, 
     }
 
     emitArchive(outBytes, members);
-    return true;
 }
 
 SWC_END_NAMESPACE();

@@ -3,6 +3,7 @@
 #include "Support/Core/ByteUtils.h"
 #include "Support/Math/Helpers.h"
 #include "Support/Os/Os.h" // windows.h -> IMAGE_* definitions
+#include "Support/Report/Diagnostic.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -73,20 +74,20 @@ namespace
     }
 }
 
-bool readCoffObject(CoffObject& outObject, Utf8& outError, ByteSpan bytes)
+bool readCoffObject(CoffObject& outObject, Diagnostic& outDiag, ByteSpan bytes)
 {
     outObject = {};
 
     IMAGE_FILE_HEADER fileHeader{};
     if (!ByteUtils::tryReadValue(fileHeader, bytes, 0))
     {
-        outError = "truncated COFF file header";
+        outDiag = Diagnostic::get(DiagnosticId::cmd_err_link_coff_truncated_header);
         return false;
     }
 
     if (fileHeader.Machine != IMAGE_FILE_MACHINE_AMD64)
     {
-        outError = "unsupported COFF machine (expected x64)";
+        outDiag = Diagnostic::get(DiagnosticId::cmd_err_link_coff_unsupported_machine);
         return false;
     }
 
@@ -106,7 +107,7 @@ bool readCoffObject(CoffObject& outObject, Utf8& outError, ByteSpan bytes)
         IMAGE_SYMBOL record{};
         if (!ByteUtils::tryReadValue(record, bytes, symbolTableOffset + i * sizeof(IMAGE_SYMBOL)))
         {
-            outError = "truncated COFF symbol table";
+            outDiag = Diagnostic::get(DiagnosticId::cmd_err_link_coff_truncated_symbols);
             return false;
         }
 
@@ -125,7 +126,7 @@ bool readCoffObject(CoffObject& outObject, Utf8& outError, ByteSpan bytes)
         IMAGE_SECTION_HEADER header{};
         if (!ByteUtils::tryReadValue(header, bytes, sectionTableOffset + s * sizeof(IMAGE_SECTION_HEADER)))
         {
-            outError = "truncated COFF section header";
+            outDiag = Diagnostic::get(DiagnosticId::cmd_err_link_coff_truncated_section);
             return false;
         }
 
@@ -146,7 +147,7 @@ bool readCoffObject(CoffObject& outObject, Utf8& outError, ByteSpan bytes)
         {
             if (header.PointerToRawData + header.SizeOfRawData > bytes.size())
             {
-                outError = "COFF section raw data out of bounds";
+                outDiag = Diagnostic::get(DiagnosticId::cmd_err_link_coff_section_out_of_bounds);
                 return false;
             }
             const auto rawBegin = bytes.begin() + header.PointerToRawData;
@@ -165,7 +166,7 @@ bool readCoffObject(CoffObject& outObject, Utf8& outError, ByteSpan bytes)
             IMAGE_RELOCATION overflow{};
             if (!ByteUtils::tryReadValue(overflow, bytes, relocOffset))
             {
-                outError = "truncated COFF relocation overflow record";
+                outDiag = Diagnostic::get(DiagnosticId::cmd_err_link_coff_truncated_reloc_overflow);
                 return false;
             }
             relocCount = overflow.RelocCount;
@@ -180,13 +181,13 @@ bool readCoffObject(CoffObject& outObject, Utf8& outError, ByteSpan bytes)
             IMAGE_RELOCATION reloc{};
             if (!ByteUtils::tryReadValue(reloc, bytes, relocOffset + r * sizeof(IMAGE_RELOCATION)))
             {
-                outError = "truncated COFF relocation table";
+                outDiag = Diagnostic::get(DiagnosticId::cmd_err_link_coff_truncated_relocs);
                 return false;
             }
 
             if (reloc.SymbolTableIndex >= recordNames.size())
             {
-                outError = "COFF relocation references an out-of-range symbol";
+                outDiag = Diagnostic::get(DiagnosticId::cmd_err_link_coff_reloc_symbol_out_of_range);
                 return false;
             }
 
@@ -217,7 +218,7 @@ bool readCoffObject(CoffObject& outObject, Utf8& outError, ByteSpan bytes)
     return true;
 }
 
-bool mergeCoffObjectsIntoImage(LinkImage& outImage, Utf8& outError, const std::vector<CoffObject>& objects)
+bool mergeCoffObjectsIntoImage(LinkImage& outImage, Diagnostic& outDiag, const std::vector<CoffObject>& objects)
 {
     std::unordered_map<Utf8, uint32_t> sectionByName; // name -> outImage.sections index
     std::unordered_set<Utf8>           definedNames;
@@ -281,7 +282,9 @@ bool mergeCoffObjectsIntoImage(LinkImage& outImage, Utf8& outError, const std::v
                 LinkRelocKind kind;
                 if (!linkRelocKindFromCoffType(kind, reloc.type))
                 {
-                    outError = std::format("unsupported COFF relocation type {} in section '{}'", reloc.type, section.name);
+                    outDiag = Diagnostic::get(DiagnosticId::cmd_err_link_coff_unsupported_reloc);
+                    outDiag.addArgument(Diagnostic::ARG_VALUE, std::to_string(reloc.type));
+                    outDiag.addArgument(Diagnostic::ARG_TARGET, section.name);
                     return false;
                 }
 

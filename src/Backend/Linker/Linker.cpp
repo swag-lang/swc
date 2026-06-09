@@ -4,23 +4,22 @@
 #include "Backend/Linker/PELinker.h"
 #include "Backend/Linker/PEWriter.h"
 #include "Backend/Native/NativeBackendBuilder.h"
+#include "Main/FileSystem.h"
 
 SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    bool writeLinkBytes(Utf8& outError, const fs::path& path, const std::vector<std::byte>& bytes)
+    // Writes the produced bytes through the shared FileSystem helper, recording a ready-to-report
+    // diagnostic on the job if the write fails (finishLink reports it on the foreground thread).
+    bool writeJobArtifact(LinkJob& job, const fs::path& path, const std::vector<std::byte>& bytes)
     {
-        std::ofstream file(path, std::ios::binary | std::ios::trunc);
-        if (!file.is_open())
+        FileSystem::IoErrorInfo ioError;
+        if (FileSystem::writeBinaryFile(path, bytes.data(), bytes.size(), ioError) != Result::Continue)
         {
-            outError = std::format("cannot open '{}' for writing", Utf8(path).view());
-            return false;
-        }
-        file.write(reinterpret_cast<const char*>(bytes.data()), static_cast<std::streamsize>(bytes.size()));
-        if (!file.good())
-        {
-            outError = std::format("cannot write '{}'", Utf8(path).view());
+            job.error = Diagnostic::get(DiagnosticId::cmd_err_link_artifact_write_failed);
+            job.error.addArgument(Diagnostic::ARG_PATH, Utf8(path));
+            job.error.addArgument(Diagnostic::ARG_BECAUSE, FileSystem::describeIoFailure(ioError));
             return false;
         }
         return true;
@@ -35,14 +34,14 @@ namespace
         {
             case LinkJob::Output::Executable:
             case LinkJob::Output::SharedLibrary:
-                if (!writePeImage(bytes, job.errorText, job.image))
+                if (!writePeImage(bytes, job.error, job.image))
                 {
                     job.ok = false;
                     return;
                 }
                 break;
             case LinkJob::Output::StaticLibrary:
-                if (!buildStaticArchive(bytes, job.errorText, job.archiveMembers))
+                if (!buildStaticArchive(bytes, job.error, job.archiveMembers))
                 {
                     job.ok = false;
                     return;
@@ -50,7 +49,7 @@ namespace
                 break;
         }
 
-        if (!writeLinkBytes(job.errorText, job.outputPath, bytes))
+        if (!writeJobArtifact(job, job.outputPath, bytes))
         {
             job.ok = false;
             return;
@@ -65,14 +64,10 @@ namespace
                 exportNames.push_back(exported.name);
 
             std::vector<std::byte> libBytes;
-            if (!buildImportLibrary(libBytes, job.errorText, Utf8(job.outputPath.filename()).view(), exportNames))
-            {
-                job.ok = false;
-                return;
-            }
+            buildImportLibrary(libBytes, Utf8(job.outputPath.filename()).view(), exportNames);
 
             const fs::path libPath = fs::path(job.outputPath).replace_extension(".lib");
-            if (!writeLinkBytes(job.errorText, libPath, libBytes))
+            if (!writeJobArtifact(job, libPath, libBytes))
             {
                 job.ok = false;
                 return;
@@ -131,7 +126,7 @@ Result Linker::finishLink(const LinkJob& job) const
     SWC_ASSERT(job.executed);
 
     if (!job.ok)
-        return builder_->reportError(DiagnosticId::cmd_err_native_link_failed, Diagnostic::ARG_BECAUSE, job.errorText);
+        return builder_->reportError(job.error);
     if (!fs::exists(builder_->artifactPath))
         return builder_->reportError(DiagnosticId::cmd_err_native_artifact_missing, Diagnostic::ARG_PATH, Utf8(builder_->artifactPath));
     return Result::Continue;

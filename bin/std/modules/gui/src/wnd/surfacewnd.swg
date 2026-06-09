@@ -261,16 +261,17 @@ impl IWnd for SurfaceWnd
             bc.painter.pushClippingRect(posClip)
             defer bc.painter.popClippingRect()
 
+            let captionTextColor = .surface.app.isActivated ? colors.wnd_CaptionText : colors.wnd_CaptionNotActivatedText
             if .icon.isValid()
             {
-                .icon.paint(bc.painter, posCaption.x, posCaption.vertCenter() - .icon.sizeY * 0.5)
+                .icon.paint(bc.painter, posCaption.x, posCaption.vertCenter() - .icon.sizeY * 0.5, captionTextColor)
                 posCaption.x += .icon.sizeX + theme.metrics.iconText_Margin
             }
 
             var sf: Pixel.RichStringFormat
             sf.vertAlignment = .Center
             sf.font          = .getFont()
-            sf.palette[0]    = .surface.app.isActivated ? colors.wnd_CaptionText : colors.wnd_CaptionNotActivatedText
+            sf.palette[0]    = captionTextColor
             bc.painter.drawRichString(posCaption, &.name, sf)
         }
     }

@@ -21,6 +21,33 @@ struct CtxSelfBufferWrapper
 
 func keepDepScore(score: IDepScore)->IDepScore => score
 
+var gImportedDefaultOuter: DepImportedDefaultOuter
+const IMPORTED_DEFAULT_OUTER: DepImportedDefaultOuter
+
+func verifyImportedImplicitStructDefaults()
+{
+    #assert(IMPORTED_DEFAULT_OUTER.required == 0)
+    #assert(IMPORTED_DEFAULT_OUTER.timing.seed == 17)
+    #assert(IMPORTED_DEFAULT_OUTER.marker == 42)
+    @assert(IMPORTED_DEFAULT_OUTER.timing.minStep > 0.0)
+    @assert(IMPORTED_DEFAULT_OUTER.timing.maxStep == 1.0)
+
+    gImportedDefaultOuter.required = 11
+    @assert(gImportedDefaultOuter.required == 11)
+    @assert(gImportedDefaultOuter.timing.minStep > 0.0)
+    @assert(gImportedDefaultOuter.timing.maxStep == 1.0)
+    @assert(gImportedDefaultOuter.timing.seed == 17)
+    @assert(gImportedDefaultOuter.marker == 42)
+
+    var localDefault: DepImportedDefaultOuter
+    localDefault.required = 13
+    @assert(localDefault.required == 13)
+    @assert(localDefault.timing.minStep > 0.0)
+    @assert(localDefault.timing.maxStep == 1.0)
+    @assert(localDefault.timing.seed == 17)
+    @assert(localDefault.marker == 42)
+}
+
 func verifyImportedInterfaceTablePreparation()
 {
     let objectType    = #typeof(DepTableScore{})
@@ -354,6 +381,7 @@ func verifyRuntimeContext()
 
 #main
 {
+    verifyImportedImplicitStructDefaults()
     verifyExportAndStaticModules()
     verifyImportedInterfaceTablePreparation()
     verifyImportedGenericRootMethodSema()

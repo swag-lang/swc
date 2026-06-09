@@ -28,6 +28,20 @@ struct DepShortCallOwner
     target: DepShortCallTarget
 }
 
+struct DepImportedDefaultInner
+{
+    minStep: f32 = 1 / 100000.0
+    maxStep: f32 = 1
+    seed:    s32 = 17
+}
+
+struct DepImportedDefaultOuter
+{
+    required: s32 = undefined
+    timing:   DepImportedDefaultInner
+    marker:   s32 = 42
+}
+
 impl DepShortCallOwner
 {
     mtd const ready()->bool => .target.ready()

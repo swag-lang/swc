@@ -77,6 +77,7 @@ public:
     bool        hasImplicitAllUndefinedDefault() const noexcept { return hasExtraFlag(SymbolStructFlagsE::DefaultAllUndefined); }
     bool        hasImplicitUndefinedDefault() const noexcept { return hasExtraFlag(SymbolStructFlagsE::DefaultHasUndefined); }
     ConstantRef resolveImplicitDefaultValueRef(Sema& sema, TypeRef typeRef) const;
+    ConstantRef resolveImplicitMaterializedDefaultValueRef(Sema& sema, TypeRef typeRef) const;
 
     SmallVector<SymbolFunction*> getSpecOp(IdentifierRef identifierRef) const;
     Result                       registerSpecOp(SymbolFunction& symFunc, SpecOpKind kind);

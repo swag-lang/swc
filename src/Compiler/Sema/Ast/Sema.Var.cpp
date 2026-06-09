@@ -953,6 +953,7 @@ namespace
                                            &explicitType->payloadSymStruct() == &fieldOwnerSymMap->cast<SymbolStruct>();
 
         ConstantRef implicitStructCstRef   = ConstantRef::invalid();
+        ConstantRef implicitStructStoreRef = ConstantRef::invalid();
         bool        implicitStructZeroInit = false;
         bool        implicitStructNoInit   = false;
         bool        implicitStructPartInit = false;
@@ -966,8 +967,10 @@ namespace
                 implicitStructZeroInit = symStruct.hasImplicitAllZeroDefault();
                 implicitStructNoInit   = symStruct.hasImplicitAllUndefinedDefault();
                 implicitStructPartInit = symStruct.hasImplicitUndefinedDefault() && !implicitStructNoInit;
-                if (!implicitStructNoInit && !implicitStructPartInit)
-                    implicitStructCstRef = symStruct.resolveImplicitDefaultValueRef(sema, explicitTypeRef);
+                if (!implicitStructNoInit)
+                    implicitStructStoreRef = symStruct.resolveImplicitMaterializedDefaultValueRef(sema, explicitTypeRef);
+                if (isConst || (!implicitStructNoInit && !implicitStructPartInit))
+                    implicitStructCstRef = symStruct.resolveImplicitMaterializedDefaultValueRef(sema, explicitTypeRef);
             }
         }
         const bool hasImplicitStructConstInit = implicitStructZeroInit || implicitStructCstRef.isValid();
@@ -1007,9 +1010,10 @@ namespace
             return SemaError::raiseExprNotConst(sema, nodeInitView.nodeRef());
 
         const ConstantRef initCstRef        = setInitInfo.handled ? ConstantRef::invalid() : (context.nodeInitRef.isValid() ? nodeInitView.cstRef() : implicitStructCstRef);
+        const ConstantRef globalInitCstRef  = setInitInfo.handled ? ConstantRef::invalid() : (context.nodeInitRef.isValid() ? nodeInitView.cstRef() : implicitStructStoreRef);
         const ConstantRef variableDefaultCf = setInitInfo.handled ? setInitInfo.defaultValueCstRef : initCstRef;
         storeLetConstants(symbols, isLet, initCstRef);
-        storeGlobalVariableConstants(symbols, initCstRef);
+        storeGlobalVariableConstants(symbols, globalInitCstRef);
         storeParameterDefaultConstants(symbols, isParameter, context.nodeInitRef.isValid() ? initCstRef : ConstantRef::invalid());
         storeVariableDefaultConstants(symbols, variableDefaultCf);
 

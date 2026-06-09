@@ -383,6 +383,8 @@ namespace
             {
                 if (!field)
                     continue;
+                if (field->hasExtraFlag(SymbolVariableFlagsE::ExplicitUndefined))
+                    continue;
 
                 const TypeRef   fieldTypeRef = field->typeRef();
                 const TypeInfo& fieldType    = sema.typeMgr().get(fieldTypeRef);
@@ -393,6 +395,8 @@ namespace
                 const ByteSpanRW fieldBytes = dstBytes.subspan(fieldOffset, fieldSize);
                 if (const ConstantRef valueRef = field->defaultValueRef(); valueRef.isValid())
                 {
+                    if (sema.cstMgr().get(valueRef).isUndefined())
+                        continue;
                     SWC_RESULT(ConstantLower::lowerToBytes(sema, fieldBytes, valueRef, fieldTypeRef));
                 }
                 else if (fieldSize)
@@ -761,9 +765,7 @@ bool SymbolStruct::tryGetFieldIndex(size_t& outIndex, const SymbolVariable& sym)
 ConstantRef SymbolStruct::computeDefaultValue(Sema& sema, TypeRef typeRef)
 {
     computeImplicitDefaultFlags(sema);
-    if (hasImplicitAllUndefinedDefault())
-        return ConstantRef::invalid();
-    if (hasImplicitAllZeroDefault())
+    if (hasImplicitAllZeroDefault() || hasImplicitAllUndefinedDefault())
         return sema.cstMgr().addZeroPayloadConstant(sema.ctx(), typeRef);
 
     std::call_once(defaultStructOnce_, [&] {
@@ -778,7 +780,7 @@ ConstantRef SymbolStruct::computeDefaultValue(Sema& sema, TypeRef typeRef)
         }
 
         SWC_ASSERT(structSize);
-        std::vector<std::byte> buffer(structSize);
+        std::vector<std::byte> buffer(structSize, std::byte{0});
         const ByteSpanRW       bytes = asByteSpan(buffer);
         SWC_INTERNAL_CHECK(lowerImplicitDefaultBytes(sema, bytes, typeRef) == Result::Continue);
         defaultStructCst_ = ConstantHelpers::materializeStaticPayloadConstant(sema, typeRef, ByteSpan{bytes.data(), bytes.size()});
@@ -841,6 +843,12 @@ ConstantRef SymbolStruct::resolveImplicitDefaultValueRef(Sema& sema, TypeRef typ
     computeImplicitDefaultFlags(sema);
     if (hasImplicitUndefinedDefault())
         return ConstantRef::invalid();
+    return const_cast<SymbolStruct*>(this)->computeDefaultValue(sema, typeRef);
+}
+
+ConstantRef SymbolStruct::resolveImplicitMaterializedDefaultValueRef(Sema& sema, TypeRef typeRef) const
+{
+    computeImplicitDefaultFlags(sema);
     return const_cast<SymbolStruct*>(this)->computeDefaultValue(sema, typeRef);
 }
 

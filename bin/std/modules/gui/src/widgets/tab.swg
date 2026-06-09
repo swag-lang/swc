@@ -191,7 +191,7 @@ impl IWnd for Tab
         if subRect do
             theme.drawSubRect(painter, labelPos, subRect, v.aniImg.cur())
         if subRectBorder do
-            theme.drawSubRect(painter, labelPos, subRectBorder, v.aniBorder.cur())
+            theme.drawSubRect(painter, labelPos, subRectBorder, v.aniBorder.cur(), false)
 
         var format: RichStringFormat
         v.aniText.apply(me, colorText)
@@ -413,11 +413,16 @@ fileprivate impl Tab
         }
 
         var x = rect.x
+        .mostRightPos = Math.round(rect.x)
         for idx in .firstVisibleIdx until cast(u32) .views.count
         {
             let v = .views[idx]
-            v.pos = x
+            let left = Math.round(x)
             x += v.width
+            let right = Math.round(x)
+            v.pos   = left
+            v.width = Math.max(right - left, .itemMinWidth)
+            .mostRightPos = right
         }
 
         .createDestroyButtonPopup()

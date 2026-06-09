@@ -9,6 +9,14 @@ struct RichEditCursor
 
 impl RichEditCtrl
 {
+    mtd getTextDrawInfo(styleIdx: RichEditStyleRef)->TextDrawInfo
+    {
+        let fontR = .getFont().getFont(.styles[styleIdx].fontMode)
+        if fontR do
+            return Painter.getTextDrawInfo(fontR)
+        return {}
+    }
+
     mtd getLineHeight()->f32
     {
         let fontR = .getFont().getFont(.styles[0].fontMode)
@@ -18,25 +26,38 @@ impl RichEditCtrl
         return Math.max(fontR.height + .lineSpacing, 1.0)
     }
 
+    mtd advanceRuneX(line: *RichEditLine, i: u64, x: f32)->f32
+    {
+        if line.chars[i] == '\t' do
+            return x + .getTabOffset(cast(s32) x)
+
+        let styleIdx = line.styles[i]
+        let info = .getTextDrawInfo(styleIdx)
+        let drawFont = info.drawFont
+        if !drawFont do
+            return x
+
+        let glyphIndex = drawFont.glyphIndex(line.chars[i])
+        let desc       = drawFont.getGlyphDescByIndex(glyphIndex)
+
+        let hasPrevRune = i and line.chars[i - 1] != '\t' and line.styles[i - 1] == styleIdx
+
+        var offsetX = 0'f32
+        if hasPrevRune
+        {
+            let prevGlyphIndex = drawFont.glyphIndex(line.chars[i - 1])
+            offsetX = drawFont.cache.kerning(prevGlyphIndex, glyphIndex)
+        }
+
+        let step = Painter.advanceTextX(x, offsetX, desc.advanceX, info, !hasPrevRune)
+        return step.rightX
+    }
+
     mtd getRuneSize(line: *RichEditLine, i: u64, x: f32)->Math.Point
     {
         var size: retval
-        let styleIdx = line.styles[i]
-        let fontR    = .getFont().getFont(.styles[styleIdx].fontMode)
-        if !fontR do
-            return size
-
-        if line.chars[i] == '\t'
-        {
-            size.x = .getTabOffset(cast(s32) x)
-            size.y = .getLineHeight()
-        }
-        else
-        {
-            size = Painter.measureRune(line.chars[i], fontR)
-            size.y = Math.max(fontR.height + .lineSpacing, 1.0)
-        }
-
+        size.x = .advanceRuneX(line, i, x) - x
+        size.y = .getLineHeight()
         return size
     }
 
@@ -49,11 +70,8 @@ impl RichEditCtrl
         result.y = line.drawingRect.bottom()
 
         result.x = .getMarginLeft()
-        for i in Math.min(cp.charPosInLine, line.length())
-        {
-            let size = .getRuneSize(line, i, result.x)
-            result.x += size.x
-        }
+        for i in Math.min(cp.charPosInLine, line.length()) do
+            result.x = .advanceRuneX(line, i, result.x)
 
         return result
     }

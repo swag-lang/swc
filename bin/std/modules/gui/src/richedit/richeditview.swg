@@ -15,6 +15,27 @@ public struct RichEditView
 
 impl IWnd for RichEditView
 {
+    mtd impl onDestroyEvent(evt: *DestroyEvent)
+    {
+        if .timerCaret
+        {
+            .surface.app.deleteTimer(.timerCaret)
+            .timerCaret = null
+        }
+
+        if .selMode
+        {
+            .selMode = false
+            if .getMouseCapture() == me do
+                .releaseMouse()
+        }
+
+        if .getFocus() == me do
+            .surface.app.keybFocusWnd = null
+
+        .ed = null
+    }
+
     mtd impl onResizeEvent(evt: *ResizeEvent)
     {
         if .ed and .ed.richEdFlags & .WordWrap do
@@ -305,8 +326,9 @@ impl RichEditView
             return x
 
         var shaped = Painter.shapeRun(str, fontR)
-        let drawFont   = Font.resolveDrawFont(fontR, cast(f32) fontR.size)
-        let snapPixels = !drawFont.cache.renderMode.isDistanceField()
+        let info       = Painter.getTextDrawInfo(fontR)
+        let drawFont   = info.drawFont
+        let snapPixels = info.snapPixels
 
         var drawShape: ShapedRun
         var runToDraw = &shaped
@@ -316,15 +338,12 @@ impl RichEditView
             runToDraw = &drawShape
         }
 
-        let sc = drawFont.scale()
         let left = snapPixels ? Math.round(x) : x
         var right = left
-        foreach glyph in runToDraw.glyphs
+        foreach glyph, idx in runToDraw.glyphs
         {
-            let offsetX = snapPixels ? Math.round(glyph.offsetX * sc) : glyph.offsetX * sc
-            let advanceX = snapPixels ? Math.round(glyph.advanceX * sc) : glyph.advanceX * sc
-            let glyphX = right + offsetX
-            right = glyphX + advanceX
+            let step = Painter.advanceTextX(right, glyph.offsetX, glyph.advanceX, info, idx == 0)
+            right = step.rightX
         }
 
         // Background rectangle

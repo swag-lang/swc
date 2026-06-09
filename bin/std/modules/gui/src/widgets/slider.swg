@@ -62,6 +62,13 @@ impl IWnd for Slider
             colorBkLeft   = colors.slider_DisabledBk
             colorBkMiddle = colors.slider_DisabledBk
             colorBkRight  = colors.slider_DisabledBk
+            if .sliderFlags.has(.HilightBar)
+            {
+                if .sliderFlags.has(.Range) do
+                    colorBkMiddle = colors.slider_DisabledHilightBk
+                else do
+                    colorBkLeft = colors.slider_DisabledHilightBk
+            }
             colorMark1    = colors.slider_DisabledMark
             colorMark2    = colors.slider_DisabledMark
         }
@@ -96,53 +103,42 @@ impl IWnd for Slider
         let posBox1 = .getPosBox1()
         let posBox2 = .getPosBox2()
 
-        var clientRect = .getClientRect()
-
         let isVertical = .sliderFlags.has(.Vertical)
-        if isVertical
-        {
-            clientRect.y += (posBox1.height * 0.5)
-            clientRect.height -= posBox1.height
-        }
-        else
-        {
-            clientRect.x += (posBox1.width * 0.5)
-            clientRect.width -= posBox1.width
-        }
+        let trackRect  = .getTrackRect()
 
         // Bar left
-        var left = clientRect
+        var left = trackRect
         if isVertical
         {
-            left.height = (clientRect.height * .value1)
+            left.height = (trackRect.height * .value1)
             theme.drawSubRect(bc.painter, left, &rects.slider_BkLeftVert, colorBkLeft)
         }
         else
         {
-            left.width = (clientRect.width * .value1)
+            left.width = (trackRect.width * .value1)
             theme.drawSubRect(bc.painter, left, &rects.slider_BkLeft, colorBkLeft)
         }
 
         // Bar right
         let valueRight = .sliderFlags.has(.Range) ? .value2 : .value1
-        var right      = clientRect
+        var right      = trackRect
         if isVertical
         {
-            right.y += (clientRect.height * valueRight)
-            right.height -= (clientRect.height * valueRight)
+            right.y += (trackRect.height * valueRight)
+            right.height -= (trackRect.height * valueRight)
             theme.drawSubRect(bc.painter, right, &rects.slider_BkRightVert, colorBkRight)
         }
         else
         {
-            right.x += (clientRect.width * valueRight)
-            right.width -= (clientRect.width * valueRight)
+            right.x += (trackRect.width * valueRight)
+            right.width -= (trackRect.width * valueRight)
             theme.drawSubRect(bc.painter, right, &rects.slider_BkRight, colorBkRight)
         }
 
         // Bar middle
         if .sliderFlags.has(.Range)
         {
-            var middle = clientRect
+            var middle = trackRect
             if isVertical
             {
                 middle.y = left.bottom()
@@ -400,16 +396,36 @@ fileprivate impl Slider
     mtd getOffsetedClientRect()->Math.Rectangle
     {
         var result: retval = .getClientRect()
+        let boxSize = .getThemeMetrics().slider_BoxSize
 
         if .sliderFlags.has(.Vertical)
         {
-            result.y += (result.width * 0.5)
-            result.height -= result.width
+            result.y += (boxSize * 0.5)
+            result.height -= boxSize
         }
         else
         {
-            result.x += (result.height * 0.5)
-            result.width -= result.height
+            result.x += (boxSize * 0.5)
+            result.width -= boxSize
+        }
+
+        return result
+    }
+
+    mtd getTrackRect()->Math.Rectangle
+    {
+        var result: retval = .getOffsetedClientRect()
+        let trackSize = .getThemeMetrics().slider_TrackSize
+
+        if .sliderFlags.has(.Vertical)
+        {
+            result.x = result.horzCenter() - (trackSize * 0.5)
+            result.width = trackSize
+        }
+        else
+        {
+            result.y = result.vertCenter() - (trackSize * 0.5)
+            result.height = trackSize
         }
 
         return result

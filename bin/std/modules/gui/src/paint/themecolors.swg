@@ -207,6 +207,7 @@ struct ThemeColors
     slider_PressedMark:                   Color
     slider_DisabledMark:                  Color
     slider_DisabledBk:                    Color
+    slider_DisabledHilightBk:             Color
     slider_StepBk:                        Color
     slider_HilightStepBk:                 Color
     slider_HotStepBk:                     Color
@@ -578,18 +579,19 @@ impl ThemeColors
         .btnToggle_OnPressedMark    = White
         .btnToggle_OnPressedBk      = Blue
 
-        .slider_BkLeft        = Gray6
-        .slider_BkMiddle      = Gray6
-        .slider_BkRight       = Gray6
-        .slider_HilightBk     = Blue
-        .slider_Mark          = Blue
-        .slider_HotMark       = White
-        .slider_PressedMark   = White
-        .slider_DisabledMark  = Gray4
-        .slider_DisabledBk    = Gray6
-        .slider_StepBk        = Color.getLighter(Color.fromArgb(Gray6), 0.1)
-        .slider_HilightStepBk = Color.getDarker(Color.fromArgb(Blue), 0.1)
-        .slider_HotStepBk     = Color.getDarker(Color.fromArgb(White), 0.3)
+        .slider_BkLeft            = Gray4
+        .slider_BkMiddle          = Gray4
+        .slider_BkRight           = Gray4
+        .slider_HilightBk         = Blue
+        .slider_Mark              = Blue
+        .slider_HotMark           = LightBlue
+        .slider_PressedMark       = White
+        .slider_DisabledMark      = Gray3
+        .slider_DisabledBk        = Gray5
+        .slider_DisabledHilightBk = Gray4
+        .slider_StepBk            = Gray3
+        .slider_HilightStepBk     = LightBlue
+        .slider_HotStepBk         = White
 
         .circular_Bk             = Transparent
         .circular_DisabledBk     = Transparent
@@ -960,18 +962,19 @@ impl ThemeColors
         .btnToggle_OnPressedMark    = White
         .btnToggle_OnPressedBk      = Blue
 
-        .slider_BkLeft        = Gray7
-        .slider_BkMiddle      = Gray7
-        .slider_BkRight       = Gray7
-        .slider_HilightBk     = Blue
-        .slider_Mark          = Blue
-        .slider_HotMark       = LightBlue
-        .slider_PressedMark   = Blue
-        .slider_DisabledMark  = Gray5
-        .slider_DisabledBk    = Gray8
-        .slider_StepBk        = Color.getDarker(Color.fromArgb(Gray7), 0.08)
-        .slider_HilightStepBk = Color.getDarker(Color.fromArgb(Blue), 0.1)
-        .slider_HotStepBk     = Color.getDarker(Color.fromArgb(Gray7), 0.2)
+        .slider_BkLeft            = Gray6
+        .slider_BkMiddle          = Gray6
+        .slider_BkRight           = Gray6
+        .slider_HilightBk         = Blue
+        .slider_Mark              = Blue
+        .slider_HotMark           = LightBlue
+        .slider_PressedMark       = Blue
+        .slider_DisabledMark      = Gray5
+        .slider_DisabledBk        = Gray7
+        .slider_DisabledHilightBk = Gray6
+        .slider_StepBk            = Color.getDarker(Color.fromArgb(Gray6), 0.08)
+        .slider_HilightStepBk     = Color.getDarker(Color.fromArgb(Blue), 0.1)
+        .slider_HotStepBk         = LightBlue
 
         .circular_Bk             = Transparent
         .circular_DisabledBk     = Transparent

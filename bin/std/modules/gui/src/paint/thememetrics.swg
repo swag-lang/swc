@@ -40,8 +40,9 @@ struct ThemeMetrics
 
     slider_Width:                          f32 = 200
     slider_Height:                         f32 = 26
+    slider_TrackSize:                      f32 = 6
     slider_BoxSize:                        f32 = 18
-    slider_StepSize:                       f32 = 8
+    slider_StepSize:                       f32 = 6
 
     circular_Size:                         f32 = 40
     circular_MarkerSize:                   f32 = 5

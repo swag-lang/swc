@@ -39,14 +39,19 @@ func createSliderPage(parent: *Wnd)
         slider.sliderFlags.add(.ShowSteps)
         slider.setValue(0.65)
 
-        createCaption(bottom, "Integer values", 150, 92, 160)
-        slider = Slider.create(bottom, {150, 126, 320})
+        createCaption(bottom, "Range", 104, 92, 120)
+        slider = Slider.create(bottom, {112, 126, 32, 96}, range: true, vertical: true)
+        slider.setMinMax(0, 1)
+        slider.setRangeValues(0.25, 0.75)
+
+        createCaption(bottom, "Integer values", 190, 92, 160)
+        slider = Slider.create(bottom, {190, 126, 300})
         slider.setMinMax(0, 255)
         slider.sliderFlags.add(.Integer)
         slider.setValue(128)
 
-        createCaption(bottom, "No highlighted bar", 520, 92, 200)
-        slider = Slider.create(bottom, {520, 126, 320})
+        createCaption(bottom, "No highlighted bar", 540, 92, 200)
+        slider = Slider.create(bottom, {540, 126, 300})
         slider.sliderFlags &= ~.HilightBar
         slider.setValue(0.35)
     }

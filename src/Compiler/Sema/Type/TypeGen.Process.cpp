@@ -2,6 +2,7 @@
 #include "Compiler/Sema/Type/TypeGen.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Core/Sema.h"
+#include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Compiler/Sema/Helpers/SemaSpecOp.h"
 #include "Compiler/Sema/Symbol/Symbol.Alias.h"
 #include "Compiler/Sema/Symbol/Symbol.Enum.h"
@@ -105,8 +106,39 @@ namespace
         return type.payloadTypeRef();
     }
 
-    void appendAttributeDeps(SmallVector<TypeRef>& deps, const TaskContext& ctx, const AttributeList& attributes)
+    void appendAttributeParamValueDeps(SmallVector<TypeRef>& deps, Sema& sema, ConstantRef valueCstRef)
     {
+        if (!valueCstRef.isValid())
+            return;
+
+        TaskContext&         ctx = sema.ctx();
+        const ConstantValue& cst = ctx.cstMgr().get(valueCstRef);
+        if (cst.isNull())
+            return;
+
+        const TypeRef valueTypeRef = cst.typeRef();
+        if (!valueTypeRef.isValid())
+            return;
+        deps.push_back(valueTypeRef);
+
+        const TypeRef boxedValueTypeRef = SemaHelpers::preciseAnyBoxedValueTypeRef(sema, valueTypeRef, valueCstRef, AstNodeRef::invalid());
+        if (boxedValueTypeRef.isValid() && boxedValueTypeRef != valueTypeRef)
+            deps.push_back(boxedValueTypeRef);
+
+        const TypeRef typeInfoValueTypeRef = boxedValueTypeRef.isValid() ? boxedValueTypeRef : valueTypeRef;
+        const TypeInfo& valueType = ctx.typeMgr().get(typeInfoValueTypeRef);
+        if (!valueType.isAnyTypeInfo(ctx) || !cst.isValuePointer())
+            return;
+
+        const auto*   typePtr        = reinterpret_cast<const void*>(cst.getValuePointer());
+        const TypeRef pointedTypeRef = ctx.typeGen().getBackTypeRef(typePtr);
+        if (pointedTypeRef.isValid())
+            deps.push_back(pointedTypeRef);
+    }
+
+    void appendAttributeDeps(SmallVector<TypeRef>& deps, Sema& sema, const AttributeList& attributes)
+    {
+        TaskContext& ctx = sema.ctx();
         for (const AttributeInstance& attribute : attributes.attributes)
         {
             if (attribute.symbol)
@@ -117,25 +149,7 @@ namespace
             }
 
             for (const AttributeParamInstance& param : attribute.params)
-            {
-                if (!param.valueCstRef.isValid())
-                    continue;
-
-                const ConstantValue& cst          = ctx.cstMgr().get(param.valueCstRef);
-                const TypeRef        valueTypeRef = cst.typeRef();
-                if (!valueTypeRef.isValid())
-                    continue;
-                deps.push_back(valueTypeRef);
-
-                const TypeInfo& valueType = ctx.typeMgr().get(valueTypeRef);
-                if (!valueType.isAnyTypeInfo(ctx) || !cst.isValuePointer())
-                    continue;
-
-                const auto*   typePtr        = reinterpret_cast<const void*>(cst.getValuePointer());
-                const TypeRef pointedTypeRef = ctx.typeGen().getBackTypeRef(typePtr);
-                if (pointedTypeRef.isValid())
-                    deps.push_back(pointedTypeRef);
-            }
+                appendAttributeParamValueDeps(deps, sema, param.valueCstRef);
         }
     }
 
@@ -191,9 +205,10 @@ namespace
 
 }
 
-SmallVector<TypeRef> TypeGen::computeDeps(TypeManager& tm, const TaskContext& ctx, const TypeInfo& type, LayoutKind kind)
+SmallVector<TypeRef> TypeGen::computeDeps(TypeManager& tm, Sema& sema, const TypeInfo& type, LayoutKind kind)
 {
     SmallVector<TypeRef> deps;
+    TaskContext&         ctx = sema.ctx();
 
     switch (kind)
     {
@@ -201,7 +216,7 @@ SmallVector<TypeRef> TypeGen::computeDeps(TypeManager& tm, const TaskContext& ct
         {
             const SymbolEnum& symEnum = type.payloadSymEnum();
             deps.push_back(symEnum.underlyingTypeRef());
-            appendAttributeDeps(deps, ctx, symEnum.attributes());
+            appendAttributeDeps(deps, sema, symEnum.attributes());
 
             std::vector<const Symbol*> symbols;
             symEnum.getAllSymbols(symbols);
@@ -209,7 +224,7 @@ SmallVector<TypeRef> TypeGen::computeDeps(TypeManager& tm, const TaskContext& ct
             {
                 const auto* enumValue = symbol ? symbol->safeCast<SymbolEnumValue>() : nullptr;
                 if (enumValue)
-                    appendAttributeDeps(deps, ctx, enumValue->attributes());
+                    appendAttributeDeps(deps, sema, enumValue->attributes());
             }
 
             break;
@@ -257,14 +272,14 @@ SmallVector<TypeRef> TypeGen::computeDeps(TypeManager& tm, const TaskContext& ct
                 if (symStruct.tryGetGenericInstanceArgs(genericArgs))
                     appendGenericArgDeps(deps, ctx, genericArgs.span());
             }
-            appendAttributeDeps(deps, ctx, symStruct.attributes());
+            appendAttributeDeps(deps, sema, symStruct.attributes());
 
             for (const SymbolVariable* field : symStruct.fields())
             {
                 if (!field)
                     continue;
                 deps.push_back(field->typeRef());
-                appendAttributeDeps(deps, ctx, field->attributes());
+                appendAttributeDeps(deps, sema, field->attributes());
             }
 
             if (symStruct.exportsRuntimeMethods(ctx))
@@ -277,7 +292,7 @@ SmallVector<TypeRef> TypeGen::computeDeps(TypeManager& tm, const TaskContext& ct
                     const TypeRef methodTypeRef = reflectedMethodTypeRef(const_cast<TaskContext&>(ctx), *method);
                     if (methodTypeRef.isValid())
                         deps.push_back(methodTypeRef);
-                    appendAttributeDeps(deps, ctx, method->attributes());
+                    appendAttributeDeps(deps, sema, method->attributes());
                 }
             }
 
@@ -294,7 +309,7 @@ SmallVector<TypeRef> TypeGen::computeDeps(TypeManager& tm, const TaskContext& ct
         {
             const SymbolFunction& symFunc = type.payloadSymFunction();
             if (!symFunc.isAttribute())
-                appendAttributeDeps(deps, ctx, symFunc.attributes());
+                appendAttributeDeps(deps, sema, symFunc.attributes());
 
             if (symFunc.isGenericInstance())
             {
@@ -315,7 +330,7 @@ SmallVector<TypeRef> TypeGen::computeDeps(TypeManager& tm, const TaskContext& ct
                 if (!param)
                     continue;
                 deps.push_back(param->typeRef());
-                appendAttributeDeps(deps, ctx, param->attributes());
+                appendAttributeDeps(deps, sema, param->attributes());
             }
 
             break;
@@ -411,7 +426,7 @@ Result TypeGen::processTypeInfo(Sema& sema, TypeGenResult& result, DataSegment& 
             initTypeInfoPayload(sema, storage, *rtBase, offset, kind, type, entry);
 
             // Compute direct dependencies required to wire this payload.
-            entry.deps = computeDeps(tm, ctx, type, kind);
+            entry.deps = computeDeps(tm, sema, type, kind);
             it         = cache.entries.emplace(key, std::move(entry)).first;
         }
 

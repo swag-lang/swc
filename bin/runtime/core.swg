@@ -20,13 +20,6 @@ func __concreteAlias(type1: typeinfo)->typeinfo
 
 func @is(toType, fromType: typeinfo)->bool
 {
-    __printString("[@is] to=")
-    if toType do __printString(toType.fullname) else do __printString("<null>")
-    __printString(" from=")
-    if fromType do __printString(fromType.fullname) else do __printString("<null>")
-    __printString(" fromKind=")
-    if fromType do __printU64(cast(u64) fromType.kind) else do __printU64(999)
-    __printString("\n")
     if @typecmp(toType, fromType, .Strict) do
         return true
     if !toType or !fromType do

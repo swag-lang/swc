@@ -73,13 +73,10 @@ namespace
 
             if (str[i] == '\r')
             {
-                result += '\r';
+                result += '\n';
                 ++i;
                 if (i < str.size() && str[i] == '\n')
-                {
-                    result += '\n';
                     ++i;
-                }
 
                 atLineStart = true;
                 continue;

@@ -14,6 +14,8 @@
 #include "Compiler/Sema/Symbol/Symbol.Struct.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Compiler/Sema/Type/TypeInfo.h"
+#include "Compiler/SourceFile.h"
+#include "Main/CompilerInstance.h"
 #include "Main/TaskContext.h"
 #include "Support/Core/DataSegment.h"
 
@@ -21,6 +23,37 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    const Symbol* namedTypeDefiningSymbol(const TypeInfo& type)
+    {
+        if (type.isStruct())
+            return &type.payloadSymStruct();
+        if (type.isEnum())
+            return &type.payloadSymEnum();
+        if (type.isInterface())
+            return &type.payloadSymInterface();
+        if (type.isAlias())
+            return &type.payloadSymAlias();
+        return nullptr;
+    }
+
+    // The runtime fullname is the cross-module identity used by `@is`/`@typecmp`
+    // (they match types by fullname). An imported-API type is regenerated locally in
+    // every importing module, but the importer wraps the imported declarations under
+    // its own module namespace (e.g. `Gui2.Gui.DestroyEvent` instead of the defining
+    // module's `Gui.DestroyEvent`). Strip that importing-module prefix so the runtime
+    // fullname stays identical across modules and cross-module type checks succeed.
+    Utf8 buildRuntimeFullName(Sema& sema, const TypeInfo& type)
+    {
+        const TaskContext& ctx = sema.ctx();
+        if (const Symbol* sym = namedTypeDefiningSymbol(type))
+        {
+            const SourceFile* sourceFile = ctx.compiler().sourceViewFile(*sym);
+            if (sourceFile && sourceFile->isImportedApi())
+                return type.toFullNameWithoutModule(ctx, sema.moduleNamespace());
+        }
+        return type.toFullName(ctx);
+    }
+
     bool canReflectTypeRef(TaskContext& ctx, TypeRef typeRef, std::unordered_set<TypeRef>& visiting);
 
     bool canReflectFunctionSignature(TaskContext& ctx, const SymbolFunction& symFunc, std::unordered_set<TypeRef>& visiting)
@@ -286,7 +319,7 @@ namespace
         if (lifecycle.canCopy)
             addFlag(rtType, Runtime::TypeInfoFlags::CanCopy);
 
-        const Utf8 fullName    = type.toFullName(ctx);
+        const Utf8 fullName    = buildRuntimeFullName(sema, type);
         const Utf8 name        = type.toName(ctx);
         rtType.fullname.length = storage.addString(offset, offsetof(Runtime::TypeInfo, fullname.ptr), fullName);
         rtType.name.length     = storage.addString(offset, offsetof(Runtime::TypeInfo, name.ptr), name);

@@ -79,6 +79,11 @@
 const Eol = #"
 "#
 
+const MultiPhysicalEol = """x
+                            y
+                            """
+#assert(MultiPhysicalEol == "x\ny\n")
+
 const MultiAlign = """this is
                      a
                      string

@@ -1,3 +1,5 @@
+#include <utility>
+
 #include "pch.h"
 #include "Backend/Linker/CoffReader.h"
 #include "Support/Core/ByteUtils.h"
@@ -202,7 +204,7 @@ bool readCoffObject(CoffObject& outObject, Utf8& outError, ByteSpan bytes)
     for (size_t i = 0; i < symbolCount; ++i)
     {
         const int32_t sectionNumber = recordSectionNumber[i];
-        if (sectionNumber <= 0 || static_cast<size_t>(sectionNumber) > sectionCount)
+        if (sectionNumber <= 0 || std::cmp_greater(sectionNumber, sectionCount))
             continue;
         if (recordNames[i].empty())
             continue;
@@ -242,9 +244,9 @@ bool mergeCoffObjectsIntoImage(LinkImage& outImage, Utf8& outError, const std::v
             if (it == sectionByName.end())
             {
                 LinkSection merged;
-                merged.name = section.name;
+                merged.name  = section.name;
                 merged.align = 1;
-                mergedIdx   = static_cast<uint32_t>(outImage.sections.size());
+                mergedIdx    = static_cast<uint32_t>(outImage.sections.size());
                 outImage.sections.push_back(std::move(merged));
                 sectionByName.emplace(section.name, mergedIdx);
             }

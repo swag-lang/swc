@@ -89,14 +89,14 @@ namespace
     struct ImportThunk
     {
         Utf8     symbolName;
-        uint32_t textOffset       = 0; // offset of the 6-byte thunk within .text
-        uint32_t iatSlotInIdata   = 0; // offset of the IAT slot within .idata
+        uint32_t textOffset     = 0; // offset of the 6-byte thunk within .text
+        uint32_t iatSlotInIdata = 0; // offset of the IAT slot within .idata
     };
 
     class PeWriter
     {
     public:
-        PeWriter(const LinkImage& image) :
+        explicit PeWriter(const LinkImage& image) :
             image_(image)
         {
         }
@@ -106,7 +106,7 @@ namespace
     private:
         uint32_t resolveSymbolRva(bool& outFound, const Utf8& name) const;
         bool     buildImports(Utf8& outError);
-        bool     buildExports(Utf8& outError);
+        bool     buildExports(const Utf8& outError);
         void     assignLayout();
         bool     applyRelocations(Utf8& outError);
         void     buildBaseRelocations();
@@ -114,19 +114,19 @@ namespace
 
         const LinkImage&                       image_;
         std::vector<OutSection>                sections_;
-        std::vector<uint32_t>                  imageToOut_; // image.sections index -> sections_ index
+        std::vector<uint32_t>                  imageToOut_;    // image.sections index -> sections_ index
         std::unordered_map<Utf8, uint32_t>     symbolSection_; // name -> sections_ index
         std::unordered_map<Utf8, uint32_t>     symbolValue_;   // name -> offset within section
         std::vector<ImportThunk>               thunks_;
         std::vector<uint32_t>                  idataRvaFixups_; // positions in .idata holding idata-relative offsets
         std::vector<uint32_t>                  baseRelocSites_; // RVAs needing IMAGE_REL_BASED_DIR64
         uint32_t                               headersSize_ = 0;
-        int32_t                                textIndex_  = -1;
-        int32_t                                idataIndex_ = -1;
-        int32_t                                edataIndex_ = -1;
-        int32_t                                relocIndex_ = -1;
-        std::vector<uint32_t>                  edataRvaFixups_;             // edata-relative offsets to relocate by edata.rva
-        std::vector<std::pair<uint32_t, Utf8>> eatSymbolFixups_;           // export address table entries -> symbol RVA
+        int32_t                                textIndex_   = -1;
+        int32_t                                idataIndex_  = -1;
+        int32_t                                edataIndex_  = -1;
+        int32_t                                relocIndex_  = -1;
+        std::vector<uint32_t>                  edataRvaFixups_;  // edata-relative offsets to relocate by edata.rva
+        std::vector<std::pair<uint32_t, Utf8>> eatSymbolFixups_; // export address table entries -> symbol RVA
         uint32_t                               importDirRva_  = 0;
         uint32_t                               importDirSize_ = 0;
         uint32_t                               iatRva_        = 0;
@@ -157,7 +157,7 @@ namespace
             return true;
 
         // Group imports by DLL, preserving first-seen order.
-        std::vector<Utf8>                      dllOrder;
+        std::vector<Utf8>                                        dllOrder;
         std::unordered_map<Utf8, std::vector<const LinkImport*>> byDll;
         for (const LinkImport& imp : image_.imports)
         {
@@ -193,7 +193,7 @@ namespace
         const uint32_t         descCount = static_cast<uint32_t>(dllOrder.size());
 
         // Reserve the import directory table (+1 null terminator).
-        const uint32_t descTableOffset = 0;
+        constexpr uint32_t descTableOffset = 0;
         idata.resize(static_cast<size_t>(descCount + 1) * sizeof(IMAGE_IMPORT_DESCRIPTOR), std::byte{0});
 
         struct DllLayout
@@ -211,8 +211,8 @@ namespace
         }
 
         // IATs (the loader patches these in place; they start as a copy of the ILT contents).
-        iatRva_ = 0; // resolved to an RVA after layout
-        const uint32_t iatStartOffset = static_cast<uint32_t>(idata.size());
+        iatRva_                                                        = 0; // resolved to an RVA after layout
+        const uint32_t                                  iatStartOffset = static_cast<uint32_t>(idata.size());
         std::unordered_map<const LinkImport*, uint32_t> iatEntryOffset;
         for (uint32_t d = 0; d < descCount; ++d)
         {
@@ -321,12 +321,12 @@ namespace
         importDirSize_ = (descCount + 1) * sizeof(IMAGE_IMPORT_DESCRIPTOR);
         iatSize_       = iatEndOffset - iatStartOffset;
         // iatStartOffset is the offset of the first IAT within .idata.
-        iatRva_        = iatStartOffset; // becomes an RVA after layout (add idata rva)
-        importDirRva_  = descTableOffset;
+        iatRva_       = iatStartOffset; // becomes an RVA after layout (add idata rva)
+        importDirRva_ = descTableOffset;
         return true;
     }
 
-    bool PeWriter::buildExports(Utf8& outError)
+    bool PeWriter::buildExports(const Utf8& outError)
     {
         if (image_.kind != LinkImageKind::SharedLibrary || image_.exports.empty())
             return true;
@@ -430,7 +430,7 @@ namespace
         // Header size (DOS header + PE signature + file header + optional header + section table).
         const uint32_t sectionCount = static_cast<uint32_t>(sections_.size()) + (willHaveReloc ? 1u : 0u);
         const uint32_t headersSize  = peHeadersSize(sectionCount);
-        headersSize_ = headersSize;
+        headersSize_                = headersSize;
 
         std::vector<uint32_t> order(sections_.size());
         std::iota(order.begin(), order.end(), 0u);
@@ -461,12 +461,12 @@ namespace
     {
         for (size_t imageIdx = 0; imageIdx < image_.sections.size(); ++imageIdx)
         {
-            const LinkSection& src     = image_.sections[imageIdx];
-            OutSection&        out     = sections_[imageToOut_[imageIdx]];
+            const LinkSection& src = image_.sections[imageIdx];
+            OutSection&        out = sections_[imageToOut_[imageIdx]];
             for (const LinkReloc& reloc : src.relocs)
             {
-                bool           found      = false;
-                const uint32_t targetRva  = resolveSymbolRva(found, reloc.symbolName);
+                bool           found     = false;
+                const uint32_t targetRva = resolveSymbolRva(found, reloc.symbolName);
                 if (!found)
                 {
                     outError = std::format("unresolved external symbol '{}'", reloc.symbolName);
@@ -511,9 +511,9 @@ namespace
             const OutSection& idata = sections_[idataIndex_];
             for (const ImportThunk& thunk : thunks_)
             {
-                const uint32_t iatRva = idata.rva + thunk.iatSlotInIdata;
-                const uint32_t site   = text.rva + thunk.textOffset;
-                const int32_t  disp   = static_cast<int32_t>(iatRva) - static_cast<int32_t>(site + 6);
+                const uint32_t iatRva                             = idata.rva + thunk.iatSlotInIdata;
+                const uint32_t site                               = text.rva + thunk.textOffset;
+                const int32_t  disp                               = static_cast<int32_t>(iatRva) - static_cast<int32_t>(site + 6);
                 sections_[textIndex_].bytes[thunk.textOffset + 0] = std::byte{0xFF};
                 sections_[textIndex_].bytes[thunk.textOffset + 1] = std::byte{0x25};
                 std::memcpy(sections_[textIndex_].bytes.data() + thunk.textOffset + 2, &disp, sizeof(disp));
@@ -571,9 +571,9 @@ namespace
             while (j < baseRelocSites_.size() && (baseRelocSites_[j] & ~0xFFFu) == pageRva)
                 ++j;
 
-            uint32_t entryCount = static_cast<uint32_t>(j - i);
-            const bool pad      = (entryCount % 2) != 0;
-            const uint32_t blockSize = sizeof(uint32_t) * 2 + (entryCount + (pad ? 1 : 0)) * sizeof(uint16_t);
+            const uint32_t entryCount = static_cast<uint32_t>(j - i);
+            const bool     pad        = (entryCount % 2) != 0;
+            const uint32_t blockSize  = sizeof(uint32_t) * 2 + (entryCount + (pad ? 1 : 0)) * sizeof(uint16_t);
 
             ByteUtils::appendLE32(reloc, pageRva);
             ByteUtils::appendLE32(reloc, blockSize);
@@ -609,20 +609,20 @@ namespace
 
         if (relocIndex_ >= 0)
         {
-            uint32_t maxRvaEnd     = headersSize;
-            uint32_t maxFileEnd    = headersSize;
+            uint32_t maxRvaEnd  = headersSize;
+            uint32_t maxFileEnd = headersSize;
             for (int32_t i = 0; i < static_cast<int32_t>(sections_.size()); ++i)
             {
                 if (i == relocIndex_)
                     continue;
-                maxRvaEnd  = std::max(maxRvaEnd, sections_[i].rva + Math::alignUpU32(sections_[i].virtualSize, SECTION_ALIGNMENT));
+                maxRvaEnd = std::max(maxRvaEnd, sections_[i].rva + Math::alignUpU32(sections_[i].virtualSize, SECTION_ALIGNMENT));
                 if (!sections_[i].isBss)
                     maxFileEnd = std::max(maxFileEnd, sections_[i].fileOffset + sections_[i].rawSize);
             }
-            OutSection& relocSection   = sections_[relocIndex_];
-            relocSection.rva           = Math::alignUpU32(maxRvaEnd, SECTION_ALIGNMENT);
-            relocSection.fileOffset    = maxFileEnd;
-            relocSection.rawSize       = Math::alignUpU32(static_cast<uint32_t>(relocSection.bytes.size()), FILE_ALIGNMENT);
+            OutSection& relocSection = sections_[relocIndex_];
+            relocSection.rva         = Math::alignUpU32(maxRvaEnd, SECTION_ALIGNMENT);
+            relocSection.fileOffset  = maxFileEnd;
+            relocSection.rawSize     = Math::alignUpU32(static_cast<uint32_t>(relocSection.bytes.size()), FILE_ALIGNMENT);
         }
 
         // Compute SizeOfImage and the entry point.
@@ -652,8 +652,8 @@ namespace
         dos.e_lfanew = sizeof(IMAGE_DOS_HEADER);
         std::memcpy(file.data(), &dos, sizeof(dos));
 
-        uint32_t cursor = sizeof(IMAGE_DOS_HEADER);
-        const uint32_t peSignature = IMAGE_NT_SIGNATURE;
+        uint32_t           cursor      = sizeof(IMAGE_DOS_HEADER);
+        constexpr uint32_t peSignature = IMAGE_NT_SIGNATURE;
         std::memcpy(file.data() + cursor, &peSignature, sizeof(peSignature));
         cursor += sizeof(peSignature);
 
@@ -670,18 +670,18 @@ namespace
         cursor += sizeof(fileHeader);
 
         IMAGE_OPTIONAL_HEADER64 opt{};
-        opt.Magic               = IMAGE_NT_OPTIONAL_HDR64_MAGIC;
-        opt.AddressOfEntryPoint = entryRva;
-        opt.ImageBase           = image_.imageBase;
-        opt.SectionAlignment    = SECTION_ALIGNMENT;
-        opt.FileAlignment       = FILE_ALIGNMENT;
+        opt.Magic                       = IMAGE_NT_OPTIONAL_HDR64_MAGIC;
+        opt.AddressOfEntryPoint         = entryRva;
+        opt.ImageBase                   = image_.imageBase;
+        opt.SectionAlignment            = SECTION_ALIGNMENT;
+        opt.FileAlignment               = FILE_ALIGNMENT;
         opt.MajorOperatingSystemVersion = 6;
         opt.MajorSubsystemVersion       = 6;
-        opt.SizeOfImage         = sizeOfImage;
-        opt.SizeOfHeaders       = headersSize;
-        opt.Subsystem           = IMAGE_SUBSYSTEM_WINDOWS_CUI;
-        opt.DllCharacteristics  = IMAGE_DLLCHARACTERISTICS_HIGH_ENTROPY_VA | IMAGE_DLLCHARACTERISTICS_NX_COMPAT |
-                                  IMAGE_DLLCHARACTERISTICS_TERMINAL_SERVER_AWARE;
+        opt.SizeOfImage                 = sizeOfImage;
+        opt.SizeOfHeaders               = headersSize;
+        opt.Subsystem                   = IMAGE_SUBSYSTEM_WINDOWS_CUI;
+        opt.DllCharacteristics          = IMAGE_DLLCHARACTERISTICS_HIGH_ENTROPY_VA | IMAGE_DLLCHARACTERISTICS_NX_COMPAT |
+                                 IMAGE_DLLCHARACTERISTICS_TERMINAL_SERVER_AWARE;
         if (!baseRelocSites_.empty())
             opt.DllCharacteristics |= IMAGE_DLLCHARACTERISTICS_DYNAMIC_BASE;
         opt.SizeOfStackReserve  = image_.stackReserve ? image_.stackReserve : 0x100000;
@@ -706,27 +706,27 @@ namespace
         if (idataIndex_ >= 0)
         {
             opt.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT].VirtualAddress = importDirRva_;
-            opt.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT].Size          = importDirSize_;
+            opt.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT].Size           = importDirSize_;
             opt.DataDirectory[IMAGE_DIRECTORY_ENTRY_IAT].VirtualAddress    = iatRva_;
-            opt.DataDirectory[IMAGE_DIRECTORY_ENTRY_IAT].Size             = iatSize_;
+            opt.DataDirectory[IMAGE_DIRECTORY_ENTRY_IAT].Size              = iatSize_;
         }
         for (const OutSection& section : sections_)
         {
             if (section.name == ".pdata")
             {
                 opt.DataDirectory[IMAGE_DIRECTORY_ENTRY_EXCEPTION].VirtualAddress = section.rva;
-                opt.DataDirectory[IMAGE_DIRECTORY_ENTRY_EXCEPTION].Size          = section.virtualSize;
+                opt.DataDirectory[IMAGE_DIRECTORY_ENTRY_EXCEPTION].Size           = section.virtualSize;
             }
             else if (section.name == ".edata")
             {
                 opt.DataDirectory[IMAGE_DIRECTORY_ENTRY_EXPORT].VirtualAddress = section.rva;
-                opt.DataDirectory[IMAGE_DIRECTORY_ENTRY_EXPORT].Size          = section.virtualSize;
+                opt.DataDirectory[IMAGE_DIRECTORY_ENTRY_EXPORT].Size           = section.virtualSize;
             }
         }
         if (relocIndex_ >= 0)
         {
             opt.DataDirectory[IMAGE_DIRECTORY_ENTRY_BASERELOC].VirtualAddress = sections_[relocIndex_].rva;
-            opt.DataDirectory[IMAGE_DIRECTORY_ENTRY_BASERELOC].Size          = sections_[relocIndex_].virtualSize;
+            opt.DataDirectory[IMAGE_DIRECTORY_ENTRY_BASERELOC].Size           = sections_[relocIndex_].virtualSize;
         }
 
         std::memcpy(file.data() + cursor, &opt, sizeof(opt));
@@ -742,11 +742,11 @@ namespace
             const OutSection&    section = sections_[sectionIdx];
             IMAGE_SECTION_HEADER header{};
             std::memcpy(header.Name, section.name.data(), std::min<size_t>(section.name.size(), IMAGE_SIZEOF_SHORT_NAME));
-            header.Misc.VirtualSize   = section.virtualSize;
-            header.VirtualAddress     = section.rva;
-            header.SizeOfRawData      = section.rawSize;
-            header.PointerToRawData   = section.isBss ? 0 : section.fileOffset;
-            header.Characteristics    = sectionCharacteristics(section.name.view());
+            header.Misc.VirtualSize = section.virtualSize;
+            header.VirtualAddress   = section.rva;
+            header.SizeOfRawData    = section.rawSize;
+            header.PointerToRawData = section.isBss ? 0 : section.fileOffset;
+            header.Characteristics  = sectionCharacteristics(section.name.view());
             std::memcpy(file.data() + cursor, &header, sizeof(header));
             cursor += sizeof(header);
         }

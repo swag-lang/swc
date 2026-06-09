@@ -13,12 +13,12 @@ SWC_BEGIN_NAMESPACE();
 
 enum class LinkSectionFlagsE : uint32_t
 {
-    Zero    = 0,
-    Code    = 1u << 0, // executable code
-    Read    = 1u << 1,
-    Write   = 1u << 2,
-    Execute = 1u << 3,
-    Uninit  = 1u << 4, // bss: no file bytes, zero-initialised at load
+    Zero      = 0,
+    Code      = 1u << 0, // executable code
+    Read      = 1u << 1,
+    Write     = 1u << 2,
+    Execute   = 1u << 3,
+    Uninit    = 1u << 4, // bss: no file bytes, zero-initialised at load
     Exception = 1u << 5, // unwind function table (.pdata)
 };
 
@@ -34,18 +34,18 @@ struct LinkReloc
     uint32_t      sectionIndex = 0; // section whose bytes are patched (index into LinkImage::sections)
     uint32_t      offset       = 0; // byte offset of the patch site within that section
     Utf8          symbolName;       // name of the target symbol
-    int64_t       addend       = 0;
-    LinkRelocKind kind         = LinkRelocKind::Abs64;
+    int64_t       addend = 0;
+    LinkRelocKind kind   = LinkRelocKind::Abs64;
 };
 
 struct LinkSection
 {
-    Utf8                          name;
-    std::vector<std::byte>        bytes;       // raw contents; empty for an uninitialised (bss) section
-    uint32_t                      bssSize = 0; // size in bytes when the Uninit flag is set
-    uint32_t                      align   = 16;
-    EnumFlags<LinkSectionFlagsE>  flags;
-    std::vector<LinkReloc>        relocs;
+    Utf8                         name;
+    std::vector<std::byte>       bytes;       // raw contents; empty for an uninitialised (bss) section
+    uint32_t                     bssSize = 0; // size in bytes when the Uninit flag is set
+    uint32_t                     align   = 16;
+    EnumFlags<LinkSectionFlagsE> flags;
+    std::vector<LinkReloc>       relocs;
 
     bool     isUninit() const { return flags.has(LinkSectionFlagsE::Uninit); }
     uint32_t virtualSize() const { return isUninit() ? bssSize : static_cast<uint32_t>(bytes.size()); }

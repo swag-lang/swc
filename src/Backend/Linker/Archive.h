@@ -44,6 +44,6 @@ bool buildStaticArchive(std::vector<std::byte>& outBytes, Utf8& outError, const 
 
 // Builds an import library: a COFF archive of short-import records, one per exported name, so a
 // dependent link resolves those names as by-name imports from the given DLL file.
-bool buildImportLibrary(std::vector<std::byte>& outBytes, Utf8& outError, std::string_view dllFileName, const std::vector<Utf8>& exportNames);
+bool buildImportLibrary(std::vector<std::byte>& outBytes, const Utf8& outError, std::string_view dllFileName, const std::vector<Utf8>& exportNames);
 
 SWC_END_NAMESPACE();

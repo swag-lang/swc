@@ -19,11 +19,11 @@ public:
     Result prepareLink(LinkJob& outJob) override;
 
 private:
-    Result buildImage(LinkImage& image);
-    Result readObjects(std::vector<CoffObject>& outObjects);
-    Result loadArchives(std::vector<Archive>& outArchives);
+    Result buildImage(LinkImage& image) const;
+    Result readObjects(std::vector<CoffObject>& outObjects) const;
+    Result loadArchives(std::vector<Archive>& outArchives) const;
     void   collectLibrarySearch(std::set<Utf8>& outLibNames, std::vector<fs::path>& outDirs) const;
-    Result resolveSymbols(LinkImage& image, std::vector<CoffObject>& objects, std::vector<Archive>& archives);
+    Result resolveSymbols(LinkImage& image, std::vector<CoffObject>& objects, std::vector<Archive>& archives) const;
     void   collectExports(LinkImage& image) const;
     void   buildDebugTable(LinkImage& image) const;
 };

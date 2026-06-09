@@ -1,9 +1,9 @@
 #include "pch.h"
 #include "Backend/Linker/LinkerPe.h"
 #include "Backend/Linker/Archive.h"
-#include "Backend/Native/NativeBackendBuilder.h"
 #include "Backend/Linker/CoffReader.h"
 #include "Backend/Micro/MachineCode.h"
+#include "Backend/Native/NativeBackendBuilder.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/SourceFile.h"
 #include "Main/FileSystem.h"
@@ -73,7 +73,7 @@ LinkerPe::LinkerPe(NativeBackendBuilder& builder) :
 {
 }
 
-Result LinkerPe::readObjects(std::vector<CoffObject>& outObjects)
+Result LinkerPe::readObjects(std::vector<CoffObject>& outObjects) const
 {
     SWC_ASSERT(builder_ != nullptr);
     for (const NativeObjDescription& description : builder_->objectDescriptions)
@@ -127,7 +127,7 @@ void LinkerPe::collectLibrarySearch(std::set<Utf8>& outLibNames, std::vector<fs:
     }
 }
 
-Result LinkerPe::loadArchives(std::vector<Archive>& outArchives)
+Result LinkerPe::loadArchives(std::vector<Archive>& outArchives) const
 {
     std::set<Utf8>        libNames;
     std::vector<fs::path> dirs;
@@ -143,7 +143,7 @@ Result LinkerPe::loadArchives(std::vector<Archive>& outArchives)
             if (!fs::exists(candidate, ec) || ec)
                 continue;
 
-            const Utf8 key = Utf8(candidate);
+            const auto key = Utf8(candidate);
             if (!loadedPaths.insert(key).second)
                 break;
 
@@ -153,7 +153,7 @@ Result LinkerPe::loadArchives(std::vector<Archive>& outArchives)
                 break;
 
             Archive archive;
-            Utf8          error;
+            Utf8    error;
             if (archive.load(error, std::move(bytes)))
                 outArchives.push_back(std::move(archive));
             break;
@@ -163,7 +163,7 @@ Result LinkerPe::loadArchives(std::vector<Archive>& outArchives)
     return Result::Continue;
 }
 
-Result LinkerPe::resolveSymbols(LinkImage& image, std::vector<CoffObject>& objects, std::vector<Archive>& archives)
+Result LinkerPe::resolveSymbols(LinkImage& image, std::vector<CoffObject>& objects, std::vector<Archive>& archives) const
 {
     std::unordered_set<Utf8> defined;
     collectDefined(defined, objects);
@@ -173,7 +173,7 @@ Result LinkerPe::resolveSymbols(LinkImage& image, std::vector<CoffObject>& objec
         collectUndefined(undefined, object, defined);
 
     std::unordered_set<Utf8> imported;
-    std::vector<Utf8>        worklist(undefined.begin(), undefined.end());
+    std::vector              worklist(undefined.begin(), undefined.end());
 
     while (!worklist.empty())
     {
@@ -296,8 +296,8 @@ void LinkerPe::buildDebugTable(LinkImage& image) const
     if (entries.empty())
         return;
 
-    const uint32_t headerSize = 16;
-    const uint32_t entrySize  = 20;
+    constexpr uint32_t headerSize = 16;
+    constexpr uint32_t entrySize  = 20;
 
     DebugStringTable strings;
     strings.blobBase = headerSize + static_cast<uint32_t>(entries.size()) * entrySize;
@@ -348,7 +348,7 @@ void LinkerPe::collectExports(LinkImage& image) const
     }
 }
 
-Result LinkerPe::buildImage(LinkImage& image)
+Result LinkerPe::buildImage(LinkImage& image) const
 {
     SWC_ASSERT(builder_ != nullptr);
 

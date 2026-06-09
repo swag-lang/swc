@@ -238,12 +238,9 @@ func onRootEvent(view: *Wnd, evt: IEvent)->bool
         layoutRootView()
         buildPage()
     }
-    elif evt is FrameEvent
-    {
-        onFrame(view.getApp())
-    }
     elif evt is DestroyEvent
     {
+        app.sigFrame.disable()
         g_Surface     = null
         g_View        = null
         g_Title       = null
@@ -283,7 +280,7 @@ func updateTestMode()
     g_TestFrame = 0
     if g_Page + 1 >= MaxPages
     {
-        g_Surface.destroy()
+        Env.exit(0)
         return
     }
 
@@ -292,6 +289,9 @@ func updateTestMode()
 
 func canUsePageArrows()->bool
 {
+    if !g_View or !g_PageView do
+        return false
+
     let focus = g_View.getFocus()
     if !focus or focus == g_View do
         return true
@@ -301,6 +301,9 @@ func canUsePageArrows()->bool
 
 func onFrame(app: *Application)
 {
+    if !g_Surface or !g_View or !g_PageView do
+        return
+
     if app.keyb.isKeyJustPressed(.F1) do
         nextPage()
     elif canUsePageArrows()
@@ -346,7 +349,6 @@ func createRootView()
 
     layoutRootView()
     g_View.hookOnEvent = &onRootEvent
-    app.registerFrameEvent(g_View)
 }
 
 #main
@@ -359,6 +361,7 @@ func createRootView()
     createRootView()
     buildPage()
 
+    app.sigFrame += &onFrame
     if Env.hasArg("swag.test") do
         app.maxRunFrame = cast(u32) MaxPages * cast(u32) TestFramesPerPage + 10
 

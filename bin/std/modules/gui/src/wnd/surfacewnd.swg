@@ -280,23 +280,20 @@ impl SurfaceWnd
 {
     func onMinimize(btn: *Button)
     {
-        let evt = Event.create'SysCommandEvent()
-        evt.kind = .Minimize
-        btn.surface.wnd.postEvent(evt)
+        btn.surface.requestMinimize()
     }
 
     func onMaximize(btn: *Button)
     {
-        let evt = Event.create'SysCommandEvent()
-        evt.kind = btn.surface.isMaximized ? .Restore : .Maximize
-        btn.surface.wnd.postEvent(evt)
+        if btn.surface.isMaximized do
+            btn.surface.requestRestore()
+        else do
+            btn.surface.requestMaximize()
     }
 
     func onClose(btn: *Button)
     {
-        let evt = Event.create'SysCommandEvent()
-        evt.kind = .Close
-        btn.surface.wnd.view.postEvent(evt)
+        btn.surface.requestClose()
     }
 
     fileprivate mtd applySurfaceFlags()
@@ -311,6 +308,7 @@ impl SurfaceWnd
             {
                 with me.minimizeBtn = IconButton.create(me, theme.getIcon24(ThemeIcons24.WndMinimize), {0, 0, 0, 0})
                 {
+                    .focusStrategy = .None
                     .sigPressed += &onMinimize
                 }
             }
@@ -327,6 +325,7 @@ impl SurfaceWnd
             {
                 with me.maximizeBtn = IconButton.create(me, theme.getIcon24(ThemeIcons24.WndMaximize), {0, 0, 0, 0})
                 {
+                    .focusStrategy = .None
                     .sigPressed += &onMaximize
                 }
             }
@@ -343,6 +342,7 @@ impl SurfaceWnd
             {
                 with me.closeBtn = IconButton.create(me, theme.getIcon24(ThemeIcons24.WndClose), {0, 0, 0, 0})
                 {
+                    .focusStrategy = .None
                     .sigPressed += &onClose
                     .style.addStyleSheetColors(#nameof(ThemeColors.btnIcon_HotBk) ++ " $" ++ #nameof(ThemeColors.wnd_BtnCloseBk))
                     .style.addStyleSheetColors(#nameof(ThemeColors.btnIcon_PressedBk) ++ " $" ++ #nameof(ThemeColors.wnd_BtnCloseHotBk))

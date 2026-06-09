@@ -13,9 +13,10 @@ const MinBottomPanelHeight = 230.0
 const ThemeButtonWidth = 152.0
 const HeaderGap = 18.0
 
-const SampleLexer = #include("../../wnd/src/view4.swg")
-const SampleWorkspace = #include("../../wnd/src/view5.swg")
-const SampleShell = #include("../../gui2/src/main.swg")
+const SourcePageLexer = #include("page.lexer.swg")
+const SourcePageStyles = #include("page.styles.swg")
+const SourcePageModes = #include("page.modes.swg")
+const SourcePageWorkspace = #include("page.workspace.swg")
 
 struct PagePanelLayout
 {
@@ -252,12 +253,9 @@ func onRootEvent(_view: *Wnd, evt: IEvent)->bool
         layoutRootView()
         buildPage()
     }
-    elif evt is FrameEvent
-    {
-        onFrame(_view.getApp())
-    }
     elif evt is DestroyEvent
     {
+        app.sigFrame.disable()
         g_Surface     = null
         g_View        = null
         g_Title       = null
@@ -296,7 +294,7 @@ func updateTestMode()
     g_TestFrame = 0
     if g_Page + 1 >= MaxPages
     {
-        g_Surface.destroy()
+        Env.exit(0)
         return
     }
 
@@ -305,6 +303,9 @@ func updateTestMode()
 
 func canUsePageArrows()->bool
 {
+    if !g_View or !g_PageView do
+        return false
+
     let focus = g_View.getFocus()
     if !focus or focus == g_View do
         return true
@@ -314,6 +315,9 @@ func canUsePageArrows()->bool
 
 func onFrame(app: *Application)
 {
+    if !g_Surface or !g_View or !g_PageView do
+        return
+
     if app.keyb.isKeyJustPressed(.F1) do
         nextPage()
     elif canUsePageArrows()
@@ -353,7 +357,6 @@ func createRootView()
 
     layoutRootView()
     g_View.hookOnEvent = &onRootEvent
-    app.registerFrameEvent(g_View)
 }
 
 #main
@@ -366,6 +369,7 @@ func createRootView()
     createRootView()
     buildPage()
 
+    app.sigFrame += &onFrame
     if Env.hasArg("swag.test") do
         app.maxRunFrame = cast(u32) MaxPages * cast(u32) TestFramesPerPage + 10
 

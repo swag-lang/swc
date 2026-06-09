@@ -1090,11 +1090,20 @@ impl Wnd
     // Get the window with the keyboard focus
     mtd getFocus()->*Wnd
     {
-        return .surface.app.keybFocusWnd
+        let surface = .surface
+        if !surface do
+            return null
+        return surface.app.keybFocusWnd
     }
 
     // Returns true if the window has the keyboard focus
-    mtd hasFocus()->bool => .surface.app.keybFocusWnd == me
+    mtd hasFocus()->bool
+    {
+        let surface = .surface
+        if !surface do
+            return false
+        return surface.app.keybFocusWnd == me
+    }
 
     // Register a keyboard shortcut
     mtd registerKeyShortcut(mdf: Input.KeyModifiers, key: Input.Key, wndId: WndId)

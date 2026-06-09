@@ -155,6 +155,12 @@ fileprivate func winProc(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM)-
         case WM_SYSCOMMAND:
             switch wParam & 0xFFF0
             {
+            case SC_MINIMIZE:
+                postSurfaceSysCommand(surface, .Minimize)
+                return 0
+            case SC_MAXIMIZE:
+                postSurfaceSysCommand(surface, .Maximize)
+                return 0
             case SC_CLOSE:
                 postSurfaceSysCommand(surface, .Close)
                 return 0
@@ -238,6 +244,26 @@ fileprivate impl Surface
 
 impl Surface
 {
+    mtd requestClose()
+    {
+        catch PostMessageW(.hWnd, WM_CLOSE, 0, 0)
+    }
+
+    mtd requestMinimize()
+    {
+        catch PostMessageW(.hWnd, WM_SYSCOMMAND, SC_MINIMIZE, 0)
+    }
+
+    mtd requestMaximize()
+    {
+        catch PostMessageW(.hWnd, WM_SYSCOMMAND, SC_MAXIMIZE, 0)
+    }
+
+    mtd requestRestore()
+    {
+        catch PostMessageW(.hWnd, WM_SYSCOMMAND, SC_RESTORE, 0)
+    }
+
     mtd applyNativeSurfaceFlags()
     {
         var exStyle = cast(u64) GetWindowLongPtrA(.hWnd, GWL_EXSTYLE)

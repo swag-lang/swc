@@ -359,7 +359,7 @@ fileprivate impl Application
             .endModal = true
 
         surface.destroyNative()
-        Memory.delete(surface)
+        .toDelete.add({surface, #typeof(dref surface)})
     }
 
     mtd unregisterWnd(wnd: *Wnd)

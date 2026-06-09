@@ -28,6 +28,9 @@
     <Filter Include="src\Backend\Native">
       <UniqueIdentifier>{D3FB39C8-C0A6-4B7F-90C2-2C9CA80D3D28}</UniqueIdentifier>
     </Filter>
+    <Filter Include="src\Backend\Linker">
+      <UniqueIdentifier>{4A1F2C9E-7B3D-4E8A-9C12-5D6F0B8A1E34}</UniqueIdentifier>
+    </Filter>
     <Filter Include="src\Unittest">
       <UniqueIdentifier>{65FDA6EC-601D-B489-7F22-D2D9C7201DF5}</UniqueIdentifier>
     </Filter>
@@ -249,11 +252,20 @@
     <ClCompile Include="src\Backend\Native\NativeBackendBuilder.cpp">
       <Filter>src\Backend\Native</Filter>
     </ClCompile>
-    <ClCompile Include="src\Backend\Native\NativeLinker.cpp">
-      <Filter>src\Backend\Native</Filter>
+    <ClCompile Include="src\Backend\Linker\Linker.cpp">
+      <Filter>src\Backend\Linker</Filter>
     </ClCompile>
-    <ClCompile Include="src\Backend\Native\NativeLinkerCoff.cpp">
-      <Filter>src\Backend\Native</Filter>
+    <ClCompile Include="src\Backend\Linker\LinkerPe.cpp">
+      <Filter>src\Backend\Linker</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Backend\Linker\CoffReader.cpp">
+      <Filter>src\Backend\Linker</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Backend\Linker\Archive.cpp">
+      <Filter>src\Backend\Linker</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Backend\Linker\PeWriter.cpp">
+      <Filter>src\Backend\Linker</Filter>
     </ClCompile>
     <ClCompile Include="src\Backend\Native\NativeObjJob.cpp">
       <Filter>src\Backend\Native</Filter>
@@ -1508,11 +1520,26 @@
     <ClInclude Include="src\Backend\Native\NativeBackendBuilder.h">
       <Filter>src\Backend\Native</Filter>
     </ClInclude>
-    <ClInclude Include="src\Backend\Native\NativeLinker.h">
-      <Filter>src\Backend\Native</Filter>
+    <ClInclude Include="src\Backend\Linker\Linker.h">
+      <Filter>src\Backend\Linker</Filter>
     </ClInclude>
-    <ClInclude Include="src\Backend\Native\NativeLinkerCoff.h">
-      <Filter>src\Backend\Native</Filter>
+    <ClInclude Include="src\Backend\Linker\LinkerPe.h">
+      <Filter>src\Backend\Linker</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Backend\Linker\LinkJob.h">
+      <Filter>src\Backend\Linker</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Backend\Linker\LinkImage.h">
+      <Filter>src\Backend\Linker</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Backend\Linker\CoffReader.h">
+      <Filter>src\Backend\Linker</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Backend\Linker\Archive.h">
+      <Filter>src\Backend\Linker</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Backend\Linker\PeWriter.h">
+      <Filter>src\Backend\Linker</Filter>
     </ClInclude>
     <ClInclude Include="src\Backend\Native\NativeObjJob.h">
       <Filter>src\Backend\Native</Filter>

@@ -1,5 +1,5 @@
 #pragma once
-#include "Backend/Native/NativeLinkImage.h"
+#include "Backend/Linker/LinkImage.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -9,7 +9,7 @@ SWC_BEGIN_NAMESPACE();
 // them into the final artifact, touching no compiler/logger/diagnostic state so it can run on a
 // background thread overlapped with other module work; finishLink() reports the result and validates
 // the artifact back on the foreground thread.
-struct NativeLinkJob
+struct LinkJob
 {
     enum class Output : uint8_t
     {

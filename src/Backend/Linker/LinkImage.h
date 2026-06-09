@@ -5,7 +5,7 @@ SWC_BEGIN_NAMESPACE();
 
 // Target-independent linker intermediate representation.
 //
-// Compiler/front-end specific code (NativeLinkerPe::prepareLink) lowers the backend output into a
+// Compiler/front-end specific code (LinkerPe::prepareLink) lowers the backend output into a
 // LinkImage: a flat set of sections, symbols, relocations, imports and exports with no knowledge of
 // the final container format. A target writer (the PE writer today, an ELF/Mach-O writer later)
 // consumes a LinkImage and produces the final image bytes. This keeps the resolution/layout model in

@@ -17,7 +17,7 @@ struct ArchiveImport
     bool     isData    = false;
 };
 
-class NativeArchive
+class Archive
 {
 public:
     // Takes ownership of the archive bytes. Returns false and fills outError on a malformed archive.

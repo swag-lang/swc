@@ -1,5 +1,5 @@
 #include "pch.h"
-#include "Backend/Native/NativePeWriter.h"
+#include "Backend/Linker/PeWriter.h"
 #include "Support/Math/Helpers.h"
 #include "Support/Os/Os.h" // windows.h -> IMAGE_* definitions
 

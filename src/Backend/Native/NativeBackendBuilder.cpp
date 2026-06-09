@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "Backend/Native/NativeBackendBuilder.h"
 #include "Backend/Native/NativeArtifactBuilder.h"
-#include "Backend/Native/NativeLinker.h"
+#include "Backend/Linker/Linker.h"
 #include "Backend/Native/NativeObjFileWriter.h"
 #include "Backend/Native/NativeObjJob.h"
 #include "Backend/Native/SymbolSort.h"
@@ -424,8 +424,8 @@ NativeBackendBuilder::NativeBackendBuilder(CompilerInstance& compiler, const boo
 {
 }
 
-// Defined here (not defaulted in the header) so the unique_ptr<NativeLinker> member can be destroyed
-// with the complete NativeLinker type, which is only visible in this translation unit.
+// Defined here (not defaulted in the header) so the unique_ptr<Linker> member can be destroyed
+// with the complete Linker type, which is only visible in this translation unit.
 NativeBackendBuilder::~NativeBackendBuilder() = default;
 
 TaskContext& NativeBackendBuilder::ctx()
@@ -569,7 +569,7 @@ Result NativeBackendBuilder::run()
         SWC_RESULT(artifactBuilder.build());
         SWC_RESULT(writeObjects());
 
-        const auto linker = NativeLinker::create(*this);
+        const auto linker = Linker::create(*this);
         SWC_ASSERT(linker != nullptr);
         SWC_RESULT(linker->link());
     }
@@ -605,7 +605,7 @@ Result NativeBackendBuilder::prepareForLink()
         SWC_RESULT(writeObjects());
     }
 
-    deferredLinker_ = NativeLinker::create(*this);
+    deferredLinker_ = Linker::create(*this);
     SWC_ASSERT(deferredLinker_ != nullptr);
     deferredToolRun_ = {};
     return deferredLinker_->prepareLink(deferredToolRun_);

@@ -2,7 +2,7 @@
 #include "Main/Command/Command.h"
 #include "Backend/Native/NativeArtifactBuilder.h"
 #include "Backend/Native/NativeBackendBuilder.h"
-#include "Backend/Native/NativeLinker.h"
+#include "Backend/Linker/Linker.h"
 #include "Backend/RuntimeName.h"
 #include "Compiler/SourceFile.h"
 #include "Format/FormatJob.h"
@@ -131,7 +131,7 @@ namespace
         NativeBackendBuilder        nativeBuilder(compiler, false);
         const NativeArtifactBuilder artifactBuilder(nativeBuilder);
         artifactBuilder.queryPaths(result.paths);
-        result.toolchainResult = NativeLinker::queryToolchainPaths(nativeBuilder, result.toolchain);
+        result.toolchainResult = Linker::queryToolchainPaths(nativeBuilder, result.toolchain);
         return result;
     }
 

@@ -2,7 +2,7 @@
 #include "Main/Command/Command.h"
 #include "Backend/Native/NativeArtifactBuilder.h"
 #include "Backend/Native/NativeBackendBuilder.h"
-#include "Backend/Native/NativeLinker.h"
+#include "Backend/Linker/Linker.h"
 #include "Backend/RuntimeName.h"
 #include "Main/Command/CommandLine.h"
 #include "Main/Command/CommandPrint.h"
@@ -131,7 +131,7 @@ namespace
         const NativeArtifactBuilder     artifactBuilder(nativeBuilder);
         NativeArtifactPaths             nativePaths;
         Os::WindowsToolchainPaths       toolchain;
-        const auto                      toolchainResult = NativeLinker::queryToolchainPaths(nativeBuilder, toolchain);
+        const auto                      toolchainResult = Linker::queryToolchainPaths(nativeBuilder, toolchain);
         std::vector<Logger::FieldEntry> entries;
 
         artifactBuilder.queryPaths(nativePaths);

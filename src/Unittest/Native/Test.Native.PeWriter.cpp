@@ -2,7 +2,7 @@
 
 #if SWC_HAS_UNITTEST
 
-#include "Backend/Native/NativePeWriter.h"
+#include "Backend/Linker/PeWriter.h"
 #include "Support/Os/Os.h"
 #include "Unittest/Unittest.h"
 

@@ -1,6 +1,6 @@
 #include "pch.h"
-#include "Backend/Native/NativeArchive.h"
-#include "Backend/Native/NativeCoffReader.h"
+#include "Backend/Linker/Archive.h"
+#include "Backend/Linker/CoffReader.h"
 #include "Main/FileSystem.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -51,7 +51,7 @@ namespace
     }
 }
 
-bool NativeArchive::load(std::vector<std::byte> bytes, Utf8& outError)
+bool Archive::load(std::vector<std::byte> bytes, Utf8& outError)
 {
     bytes_ = std::move(bytes);
     symbolToMember_.clear();
@@ -116,13 +116,13 @@ bool NativeArchive::load(std::vector<std::byte> bytes, Utf8& outError)
     return true;
 }
 
-uint32_t NativeArchive::memberOffsetForSymbol(const Utf8& symbol) const
+uint32_t Archive::memberOffsetForSymbol(const Utf8& symbol) const
 {
     const auto it = symbolToMember_.find(symbol);
     return it == symbolToMember_.end() ? 0 : it->second;
 }
 
-ByteSpan NativeArchive::memberData(uint32_t headerOffset, Utf8& outError) const
+ByteSpan Archive::memberData(uint32_t headerOffset, Utf8& outError) const
 {
     const ByteSpan span = asByteSpan(bytes_);
     if (headerOffset + MEMBER_HEADER_SIZE > span.size())
@@ -145,7 +145,7 @@ ByteSpan NativeArchive::memberData(uint32_t headerOffset, Utf8& outError) const
     return span.subspan(dataOffset, memberSize);
 }
 
-bool NativeArchive::tryReadImport(uint32_t headerOffset, ArchiveImport& outImport, Utf8& outError) const
+bool Archive::tryReadImport(uint32_t headerOffset, ArchiveImport& outImport, Utf8& outError) const
 {
     const ByteSpan data = memberData(headerOffset, outError);
     if (data.empty())

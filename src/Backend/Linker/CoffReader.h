@@ -1,5 +1,5 @@
 #pragma once
-#include "Backend/Native/NativeLinkImage.h"
+#include "Backend/Linker/LinkImage.h"
 #include "Support/Core/ByteSpan.h"
 
 SWC_BEGIN_NAMESPACE();

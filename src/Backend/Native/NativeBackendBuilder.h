@@ -1,5 +1,5 @@
 #pragma once
-#include "Backend/Native/NativeLinkJob.h"
+#include "Backend/Linker/LinkJob.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Compiler/Sema/Symbol/Symbols.h"
@@ -12,7 +12,7 @@
 SWC_BEGIN_NAMESPACE();
 
 struct MicroRelocation;
-class NativeLinker;
+class Linker;
 
 inline constexpr auto K_R_DATA_BASE_SYMBOL = "__swc_rdata_base";
 inline constexpr auto K_DATA_BASE_SYMBOL   = "__swc_data_base";
@@ -149,13 +149,13 @@ public:
     Result writeObject(uint32_t objIndex);
 
     // Deferred (workspace async-link) path. prepareForLink runs the full build up to but not
-    // including the link, leaving a prepared NativeLinkJob in deferredToolRun(). The caller then runs
-    // NativeLinker::executeLink(deferredToolRun()) on a background thread, and finally calls
+    // including the link, leaving a prepared LinkJob in deferredToolRun(). The caller then runs
+    // Linker::executeLink(deferredToolRun()) on a background thread, and finally calls
     // finishDeferredLink() back on the foreground thread to report results and, for an executable run,
     // launch the artifact.
     Result         prepareForLink();
     Result         finishDeferredLink();
-    NativeLinkJob& deferredToolRun() { return deferredToolRun_; }
+    LinkJob& deferredToolRun() { return deferredToolRun_; }
 
     Result reportError(DiagnosticId id);
 
@@ -210,8 +210,8 @@ private:
     CompilerInstance*             compiler_    = nullptr;
     bool                          runArtifact_ = false;
     DiagnosticId                  lastErrorId_ = DiagnosticId::None;
-    std::unique_ptr<NativeLinker> deferredLinker_;
-    NativeLinkJob                 deferredToolRun_;
+    std::unique_ptr<Linker> deferredLinker_;
+    LinkJob                 deferredToolRun_;
 };
 
 SWC_END_NAMESPACE();

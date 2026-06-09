@@ -2,7 +2,7 @@
 #include "Main/CompilerInstance.h"
 #include "Backend/Native/NativeArtifactBuilder.h"
 #include "Backend/Native/NativeBackendBuilder.h"
-#include "Backend/Native/NativeLinker.h"
+#include "Backend/Linker/Linker.h"
 #include "Backend/RuntimeName.h"
 #include "Compiler/Lexer/SourceView.h"
 #include "Compiler/Parser/Ast/Ast.h"
@@ -1766,7 +1766,7 @@ ExitCode CompilerInstance::runWorkspace()
                 return ExitCode::CompileError;
 
             WorkspaceModuleLink* linkPtr = modulePending.get();
-            linkPtr->linkFuture          = std::async(std::launch::async, [linkPtr] { NativeLinker::executeLink(linkPtr->builder->deferredToolRun()); });
+            linkPtr->linkFuture          = std::async(std::launch::async, [linkPtr] { Linker::executeLink(linkPtr->builder->deferredToolRun()); });
             pendingLink                  = std::move(modulePending);
         }
 

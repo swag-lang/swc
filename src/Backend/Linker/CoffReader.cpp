@@ -1,5 +1,5 @@
 #include "pch.h"
-#include "Backend/Native/NativeCoffReader.h"
+#include "Backend/Linker/CoffReader.h"
 #include "Support/Os/Os.h" // windows.h -> IMAGE_* definitions
 
 SWC_BEGIN_NAMESPACE();

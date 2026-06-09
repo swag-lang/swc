@@ -1,8 +1,8 @@
 #include "pch.h"
-#include "Backend/Native/NativeLinkerPe.h"
-#include "Backend/Native/NativeArchive.h"
+#include "Backend/Linker/LinkerPe.h"
+#include "Backend/Linker/Archive.h"
 #include "Backend/Native/NativeBackendBuilder.h"
-#include "Backend/Native/NativeCoffReader.h"
+#include "Backend/Linker/CoffReader.h"
 #include "Backend/Micro/MachineCode.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/SourceFile.h"
@@ -67,12 +67,12 @@ namespace
     }
 }
 
-NativeLinkerPe::NativeLinkerPe(NativeBackendBuilder& builder) :
-    NativeLinker(builder)
+LinkerPe::LinkerPe(NativeBackendBuilder& builder) :
+    Linker(builder)
 {
 }
 
-Result NativeLinkerPe::readObjects(std::vector<CoffObject>& outObjects)
+Result LinkerPe::readObjects(std::vector<CoffObject>& outObjects)
 {
     SWC_ASSERT(builder_ != nullptr);
     for (const NativeObjDescription& description : builder_->objectDescriptions)
@@ -92,7 +92,7 @@ Result NativeLinkerPe::readObjects(std::vector<CoffObject>& outObjects)
     return Result::Continue;
 }
 
-void NativeLinkerPe::collectLibrarySearch(std::set<Utf8>& outLibNames, std::vector<fs::path>& outDirs) const
+void LinkerPe::collectLibrarySearch(std::set<Utf8>& outLibNames, std::vector<fs::path>& outDirs) const
 {
     SWC_ASSERT(builder_ != nullptr);
 
@@ -126,7 +126,7 @@ void NativeLinkerPe::collectLibrarySearch(std::set<Utf8>& outLibNames, std::vect
     }
 }
 
-Result NativeLinkerPe::loadArchives(std::vector<NativeArchive>& outArchives)
+Result LinkerPe::loadArchives(std::vector<Archive>& outArchives)
 {
     std::set<Utf8>        libNames;
     std::vector<fs::path> dirs;
@@ -151,7 +151,7 @@ Result NativeLinkerPe::loadArchives(std::vector<NativeArchive>& outArchives)
             if (FileSystem::readBinaryFile(candidate, bytes, ioError) != Result::Continue)
                 break;
 
-            NativeArchive archive;
+            Archive archive;
             Utf8          error;
             if (archive.load(std::move(bytes), error))
                 outArchives.push_back(std::move(archive));
@@ -162,7 +162,7 @@ Result NativeLinkerPe::loadArchives(std::vector<NativeArchive>& outArchives)
     return Result::Continue;
 }
 
-Result NativeLinkerPe::resolveSymbols(std::vector<CoffObject>& objects, std::vector<NativeArchive>& archives, LinkImage& image)
+Result LinkerPe::resolveSymbols(std::vector<CoffObject>& objects, std::vector<Archive>& archives, LinkImage& image)
 {
     std::unordered_set<Utf8> defined;
     collectDefined(objects, defined);
@@ -182,7 +182,7 @@ Result NativeLinkerPe::resolveSymbols(std::vector<CoffObject>& objects, std::vec
             continue;
 
         bool resolved = false;
-        for (NativeArchive& archive : archives)
+        for (Archive& archive : archives)
         {
             const uint32_t memberOffset = archive.memberOffsetForSymbol(symbol);
             if (memberOffset == 0)
@@ -248,7 +248,7 @@ namespace
 // Emits a self-contained `.swagdbg` symbol table (function name + source location per function, keyed
 // by image-relative address) so the runtime can symbolize stack traces without a PDB or dbghelp. The
 // function addresses are written as Rva32 relocations resolved by the PE writer.
-void NativeLinkerPe::buildDebugTable(LinkImage& image) const
+void LinkerPe::buildDebugTable(LinkImage& image) const
 {
     SWC_ASSERT(builder_ != nullptr);
 
@@ -336,7 +336,7 @@ void NativeLinkerPe::buildDebugTable(LinkImage& image) const
     image.sections.push_back(std::move(section));
 }
 
-void NativeLinkerPe::collectExports(LinkImage& image) const
+void LinkerPe::collectExports(LinkImage& image) const
 {
     SWC_ASSERT(builder_ != nullptr);
     for (const NativeFunctionInfo& info : builder_->functionInfos)
@@ -350,14 +350,14 @@ void NativeLinkerPe::collectExports(LinkImage& image) const
     }
 }
 
-Result NativeLinkerPe::buildImage(LinkImage& image)
+Result LinkerPe::buildImage(LinkImage& image)
 {
     SWC_ASSERT(builder_ != nullptr);
 
     std::vector<CoffObject> objects;
     SWC_RESULT(readObjects(objects));
 
-    std::vector<NativeArchive> archives;
+    std::vector<Archive> archives;
     SWC_RESULT(loadArchives(archives));
 
     SWC_RESULT(resolveSymbols(objects, archives, image));
@@ -386,7 +386,7 @@ Result NativeLinkerPe::buildImage(LinkImage& image)
     return Result::Continue;
 }
 
-Result NativeLinkerPe::prepareLink(NativeLinkJob& outJob)
+Result LinkerPe::prepareLink(LinkJob& outJob)
 {
     SWC_ASSERT(builder_ != nullptr);
     outJob.outputPath = builder_->artifactPath;
@@ -395,13 +395,13 @@ Result NativeLinkerPe::prepareLink(NativeLinkJob& outJob)
     switch (builder_->compiler().buildCfg().backendKind)
     {
         case Runtime::BuildCfgBackendKind::Executable:
-            outJob.output = NativeLinkJob::Output::Executable;
+            outJob.output = LinkJob::Output::Executable;
             return buildImage(outJob.image);
         case Runtime::BuildCfgBackendKind::SharedLibrary:
-            outJob.output = NativeLinkJob::Output::SharedLibrary;
+            outJob.output = LinkJob::Output::SharedLibrary;
             return buildImage(outJob.image);
         case Runtime::BuildCfgBackendKind::StaticLibrary:
-            outJob.output = NativeLinkJob::Output::StaticLibrary;
+            outJob.output = LinkJob::Output::StaticLibrary;
             for (const NativeObjDescription& description : builder_->objectDescriptions)
                 outJob.archiveMembers.push_back(description.objPath);
             return Result::Continue;

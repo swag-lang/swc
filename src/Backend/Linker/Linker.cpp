@@ -1,9 +1,9 @@
 #include "pch.h"
-#include "Backend/Native/NativeLinker.h"
-#include "Backend/Native/NativeArchive.h"
+#include "Backend/Linker/Linker.h"
+#include "Backend/Linker/Archive.h"
 #include "Backend/Native/NativeBackendBuilder.h"
-#include "Backend/Native/NativeLinkerPe.h"
-#include "Backend/Native/NativePeWriter.h"
+#include "Backend/Linker/LinkerPe.h"
+#include "Backend/Linker/PeWriter.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -11,20 +11,20 @@ namespace
 {
     // Serialise the LinkImage (or archive the objects) and write the artifact. Runs on a background
     // thread and so touches nothing but the self-contained job.
-    void executeInternalLink(NativeLinkJob& job)
+    void executeInternalLink(LinkJob& job)
     {
         std::vector<std::byte> bytes;
         switch (job.output)
         {
-            case NativeLinkJob::Output::Executable:
-            case NativeLinkJob::Output::SharedLibrary:
+            case LinkJob::Output::Executable:
+            case LinkJob::Output::SharedLibrary:
                 if (!writePeImage(job.image, bytes, job.errorText))
                 {
                     job.ok = false;
                     return;
                 }
                 break;
-            case NativeLinkJob::Output::StaticLibrary:
+            case LinkJob::Output::StaticLibrary:
                 if (!buildStaticArchive(job.archiveMembers, bytes, job.errorText))
                 {
                     job.ok = false;
@@ -50,7 +50,7 @@ namespace
         file.close();
 
         // A shared library also produces an import library next to it so dependents can link by name.
-        if (job.output == NativeLinkJob::Output::SharedLibrary)
+        if (job.output == LinkJob::Output::SharedLibrary)
         {
             std::vector<Utf8> exportNames;
             exportNames.reserve(job.image.exports.size());
@@ -85,23 +85,23 @@ namespace
     }
 }
 
-NativeLinker::NativeLinker(NativeBackendBuilder& builder) :
+Linker::Linker(NativeBackendBuilder& builder) :
     builder_(&builder)
 {
 }
 
-std::unique_ptr<NativeLinker> NativeLinker::create(NativeBackendBuilder& builder)
+std::unique_ptr<Linker> Linker::create(NativeBackendBuilder& builder)
 {
     switch (builder.ctx().cmdLine().targetOs)
     {
         case Runtime::TargetOs::Windows:
-            return std::make_unique<NativeLinkerPe>(builder);
+            return std::make_unique<LinkerPe>(builder);
     }
 
     SWC_UNREACHABLE();
 }
 
-Os::WindowsToolchainDiscoveryResult NativeLinker::queryToolchainPaths(const NativeBackendBuilder& builder, Os::WindowsToolchainPaths& outToolchain)
+Os::WindowsToolchainDiscoveryResult Linker::queryToolchainPaths(const NativeBackendBuilder& builder, Os::WindowsToolchainPaths& outToolchain)
 {
     switch (builder.ctx().cmdLine().targetOs)
     {
@@ -113,21 +113,21 @@ Os::WindowsToolchainDiscoveryResult NativeLinker::queryToolchainPaths(const Nati
     }
 }
 
-Result NativeLinker::link()
+Result Linker::link()
 {
-    NativeLinkJob job;
+    LinkJob job;
     SWC_RESULT(prepareLink(job));
     executeLink(job);
     return finishLink(job);
 }
 
-void NativeLinker::executeLink(NativeLinkJob& job)
+void Linker::executeLink(LinkJob& job)
 {
     job.executed = true;
     executeInternalLink(job);
 }
 
-Result NativeLinker::finishLink(const NativeLinkJob& job) const
+Result Linker::finishLink(const LinkJob& job) const
 {
     SWC_ASSERT(builder_ != nullptr);
     SWC_ASSERT(job.executed);

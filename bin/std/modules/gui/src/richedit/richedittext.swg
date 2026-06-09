@@ -802,7 +802,6 @@ public impl RichEditCtrl
         let x = .getXExtent()
 
         result.h = cast(f32) (.lines.count * x.y)
-        result.h += cast(f32) ((.lines.count - 1) * .lineSpacing)
 
         let fontR = .getFont().getFont(.styles[0].fontMode)
         if fontR
@@ -811,7 +810,7 @@ public impl RichEditCtrl
             {
                 let arr     = Painter.getGlyphs(l.chars, fontR)
                 let measure = Painter.measureString(arr, fontR)
-                result.w = Math.max(result.h, measure.width)
+                result.w = Math.max(result.w, measure.width)
             }
         }
 

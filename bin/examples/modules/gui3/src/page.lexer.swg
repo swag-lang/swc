@@ -22,6 +22,6 @@ func createLexerPage(parent: *Wnd)
         let ed = createDocumentEditor(bottom, {20, 92, rect.width - 40, rect.height - 112}, "RichEditCtrl keeps the same selection, undo and caret engine in both forms.\n\nThis page switches to the lighter Edit form so wrapped notes feel closer to a document editor than a code viewer.\n\nTry inserting text, selecting blocks and switching themes to check how the control holds up across both palettes.")
         ed.marginLeft  = 24
         ed.marginRight = 24
-        ed.lineSpacing = 5
+        ed.lineSpacing = 2
     }
 }

@@ -21,7 +21,7 @@ func createWorkspacePage(parent: *Wnd)
     sideItem.tryPreserveSize = true
 
     let notes = createDocumentEditor(side, {}, "Design note\n\nUse the left editor for source exploration, keep short conclusions here, and reserve the lower pane for a read-only reference.\n\nThis kind of composition is where RichEditCtrl becomes really practical: one implementation, several roles.", .ShowFocusSel | .WordWrap)
-    notes.lineSpacing = 4
+    notes.lineSpacing = 2
     let noteItem = side.addPane(notes, 230)
     noteItem.tryPreserveSize = true
 

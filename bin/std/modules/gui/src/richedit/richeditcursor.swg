@@ -9,20 +9,32 @@ struct RichEditCursor
 
 impl RichEditCtrl
 {
+    mtd getLineHeight()->f32
+    {
+        let fontR = .getFont().getFont(.styles[0].fontMode)
+        if !fontR do
+            return 0
+
+        return Math.max(fontR.height + .lineSpacing, 1.0)
+    }
+
     mtd getRuneSize(line: *RichEditLine, i: u64, x: f32)->Math.Point
     {
         var size: retval
+        let styleIdx = line.styles[i]
+        let fontR    = .getFont().getFont(.styles[styleIdx].fontMode)
+        if !fontR do
+            return size
 
         if line.chars[i] == '\t'
         {
             size.x = .getTabOffset(cast(s32) x)
+            size.y = .getLineHeight()
         }
         else
         {
-            let styleIdx = line.styles[i]
-            let fontR    = .getFont().getFont(.styles[styleIdx].fontMode)
             size = Painter.measureRune(line.chars[i], fontR)
-            size.y += .lineSpacing
+            size.y = Math.max(fontR.height + .lineSpacing, 1.0)
         }
 
         return size
@@ -67,7 +79,10 @@ impl RichEditCtrl
         let fontR = .getFont().getFont(.styles[0].fontMode)
         if !fontR do
             return {}
-        return Painter.measureRune('X', fontR)
+
+        var result = Painter.measureRune('X', fontR)
+        result.y = .getLineHeight()
+        return result
     }
 
     mtd getCaretPos(cp: RichEditCursor)->Math.Rectangle

@@ -194,7 +194,7 @@ func createDocumentEditor(parent: *Wnd, rect: Math.Rectangle, text: string, flag
     let ed = createDemoEditor(parent, rect, flags, form)
     ed.marginLeft  = 18
     ed.marginRight = 18
-    ed.lineSpacing = 3
+    ed.lineSpacing = 1
     ed.setText(text)
     return ed
 }

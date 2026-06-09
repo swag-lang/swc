@@ -2,7 +2,7 @@
 #include "Backend/Linker/PEWriter.h"
 #include "Support/Core/ByteUtils.h"
 #include "Support/Math/Helpers.h"
-#include "Support/Os/Os.h" // windows.h -> IMAGE_* definitions
+#include "Support/Os/Os.h"
 
 SWC_BEGIN_NAMESPACE();
 

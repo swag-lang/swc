@@ -1,5 +1,3 @@
-#include <utility>
-
 #include "pch.h"
 #include "Backend/Linker/CoffReader.h"
 #include "Support/Core/ByteUtils.h"

@@ -8,7 +8,7 @@ func createEditBoxPage(parent: *Wnd)
         var edit = EditBox.create(forms, "plain text", {24, 90, 180})
         edit.setNote("Square")
 
-        edit = EditBox.create(forms, "search", {240, 90, 200})
+        edit = EditBox.create(forms, "", {240, 90, 200})
         edit.setForm(.Round)
         edit.icon = app.theme.getIcon24(ThemeIcons24.Search, 18)
         edit.setNote("Round search")

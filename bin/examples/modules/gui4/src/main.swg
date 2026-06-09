@@ -179,6 +179,7 @@ var g_Preview: *Wnd
 var g_ListFrame: *FrameWnd
 var g_Status: *Label
 var g_DarkTheme: bool
+var g_SectionPaneSized: bool
 var g_Appearance: Gui4Appearance
 var g_Content: Gui4Content
 var g_Layout: Gui4Layout
@@ -307,7 +308,18 @@ func addDemoStructs(ctrl: *PropertiesCtrl)
     ctrl.addStruct(g_Content, "Content")
     ctrl.addStruct(g_Layout, "Layout")
     ctrl.prop.sigChanged += &onPropertiesChanged
-    ctrl.splitter.setPaneSize(0, 160)
+}
+
+func drawPreviewText(painter: *Painter, rect: Math.Rectangle, text: string, font: *Font, color: Color, maxLines = 1'u32)
+{
+    var richText: RichString = text
+    var format: RichStringFormat
+    format.flags        = .WordWrap | .Clip
+    format.font.regular = font
+    format.palette[0]   = color
+    format.lineGap      = 2
+    format.maxLines     = maxLines
+    painter.drawRichString(rect, &richText, format)
 }
 
 func drawStateTag(painter: *Painter, rect: Math.Rectangle)
@@ -409,8 +421,10 @@ func drawPreviewBody(painter: *Painter, canvas: Math.Rectangle)
     let bodyFont = g_View.getTheme().createDefaultFont(cast(u32) (14 * g_Content.textScale))
     let x = body.x + g_Layout.contentInset.x
     let y = body.y + g_Layout.contentInset.y
-    painter.drawString(x, y, g_Content.title.toString(), titleFont, g_Appearance.text)
-    painter.drawString(x, y + 40 * g_Content.textScale, g_Content.subtitle.toString(), bodyFont, g_Appearance.text.withAlpha(220'u8))
+    let contentWidth = Math.max(body.width - g_Layout.contentInset.x - g_Layout.contentInset.width, 1.0)
+    let stateReserve = (g_Appearance.badges & PreviewBadges.StateTag) ? 124.0 : 0.0
+    drawPreviewText(painter, {x, y, Math.max(contentWidth - stateReserve, 1.0), 34 * g_Content.textScale}, g_Content.title.toString(), titleFont, g_Appearance.text)
+    drawPreviewText(painter, {x, y + 40 * g_Content.textScale, contentWidth, 42 * g_Content.textScale}, g_Content.subtitle.toString(), bodyFont, g_Appearance.text.withAlpha(220'u8), 2)
 
     drawCompletion(painter, body)
     drawActionLabels(painter, body)
@@ -443,12 +457,18 @@ func layoutRootView()
     let rightWidth = Math.max(contentWidth - InspectorWidth - SplitGap, 1.0)
     let titleWidth = Math.max(contentWidth - ThemeButtonWidth - HeaderGap, 1.0)
     let listY = HeaderHeight + PreviewHeight + SplitGap
-    let listHeight = Math.max(rect.height - listY - FooterHeight, 120.0)
+    let listHeight = Math.max(rect.height - listY - FooterHeight - RootMargin, 120.0)
 
     g_Title.setPosition({RootMargin, 18, titleWidth, 34})
     g_ThemeButton.setPosition({RootMargin + titleWidth + HeaderGap, 18, ThemeButtonWidth, 34})
     g_SubTitle.setPosition({RootMargin + 2, 56, contentWidth - 4, 36})
     g_Inspector.setPosition({RootMargin, HeaderHeight, InspectorWidth, contentHeight})
+    if !g_SectionPaneSized
+    {
+        g_Inspector.splitter.setPaneSize(0, 160)
+        g_Inspector.splitter.items[0].tryPreserveSize = true
+        g_SectionPaneSized = true
+    }
     g_PreviewFrame.setPosition({rightX, HeaderHeight, rightWidth, PreviewHeight})
     g_ListFrame.setPosition({rightX, listY, rightWidth, listHeight})
     g_Status.setPosition({RootMargin, rect.height - FooterHeight + 2, contentWidth, 28})
@@ -472,6 +492,7 @@ func onRootEvent(_view: *Wnd, evt: IEvent)->bool
         g_ListProps   = null
         g_Preview     = null
         g_Status      = null
+        g_SectionPaneSized = false
     }
 
     return false

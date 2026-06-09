@@ -15,6 +15,7 @@ impl IWnd for PropertiesView
         if !.ed or !.ed.items.count do
             return
 
+        .ed.refreshGridColumnLayout()
         .applyLayout()
 
         var lastItem: *PropertiesItem

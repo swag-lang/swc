@@ -127,6 +127,23 @@ impl IWnd for Properties
 
 fileprivate impl Properties
 {
+    mtd clampColumnSize(size: s32)->s32
+    {
+        let maxSize = cast(s32) .position.width - .gridMarginColumn - .leftMargin - .rightMargin
+        if maxSize < .gridMarginColumn do
+            return Math.max(size, .gridMarginColumn)
+        return Math.clamp(size, .gridMarginColumn, maxSize)
+    }
+
+    mtd syncColumnLabels()
+    {
+        foreach item in .items
+        {
+            if item.label do
+                item.label.position.width = .gridColumnSize
+        }
+    }
+
     mtd getColumnX()->f32
     {
         return .gridColumnSize + .gridMarginColumn * 0.5
@@ -918,15 +935,18 @@ impl Properties
         if .kind != .Grid do
             return
 
-        .gridColumnSize = Math.clamp(size, .gridMarginColumn, cast(s32) .position.width - .gridMarginColumn - .leftMargin - .rightMargin)
-        foreach item in .items
-        {
-            if !item.label do
-                continue
-            item.label.position.width = .gridColumnSize
-        }
-
+        .gridColumnSize = .clampColumnSize(size)
+        .syncColumnLabels()
         .applyLayout()
         .invalidate()
+    }
+
+    mtd refreshGridColumnLayout()
+    {
+        if .kind != .Grid do
+            return
+
+        .gridColumnSize = .clampColumnSize(.gridColumnSize)
+        .syncColumnLabels()
     }
 }

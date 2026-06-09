@@ -140,7 +140,8 @@ impl Properties
     {
         let item = .addItem(value, data, parentItem)
         let prop = me
-        item.flags.add(.NoSeparator)
+        item.flags.add(.NoSeparator | .Expanded)
+        var numChilds: u32
 
         foreach v in typeEnum.values
         {
@@ -204,12 +205,16 @@ impl Properties
             {
                 prop.validateEnumFlags(itemB)
             }
+
+            numChilds += 1
         }
+
+        item.numChilds = numChilds
     }
 
     mtd constructEnum(value: Swag.TypeValue, typeEnum: const *Swag.TypeInfoEnum, data: *u8, parentItem: *PropertiesItem)
     {
-        if Reflection.hasAttribute(typeEnum, Swag.EnumFlags)
+        if Reflection.hasAttribute(value.pointedType, Swag.EnumFlags)
         {
             .constructEnumFlags(value, typeEnum, data, parentItem)
             return

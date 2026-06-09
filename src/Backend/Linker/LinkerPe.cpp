@@ -27,7 +27,7 @@ namespace
 
     // Gathers the link library required by every foreign function referenced by a code block. The
     // dependency-module hooks are themselves foreign functions, so this also pulls in dependency libs.
-    void collectForeignLibs(const TaskContext& ctx, const MachineCode& code, std::set<Utf8>& out)
+    void collectForeignLibs(std::set<Utf8>& outLibNames, const MachineCode& code)
     {
         for (const MicroRelocation& relocation : code.codeRelocations)
         {
@@ -38,21 +38,21 @@ namespace
                 continue;
             const std::string_view moduleName = function->foreignLinkModuleName().empty() ? function->foreignModuleName() : function->foreignLinkModuleName();
             if (!moduleName.empty())
-                out.insert(normalizedLibName(moduleName));
+                outLibNames.insert(normalizedLibName(moduleName));
         }
     }
 
     // Names defined across a set of objects.
-    void collectDefined(const std::vector<CoffObject>& objects, std::unordered_set<Utf8>& defined)
+    void collectDefined(std::unordered_set<Utf8>& outDefined, const std::vector<CoffObject>& objects)
     {
         for (const CoffObject& object : objects)
             for (const CoffInputSymbol& symbol : object.definedSymbols)
-                defined.insert(symbol.name);
+                outDefined.insert(symbol.name);
     }
 
     // Reloc targets that are not (yet) defined; debug sections are dropped by the merge, so ignore
     // their relocations here too.
-    void collectUndefined(const CoffObject& object, const std::unordered_set<Utf8>& defined, std::unordered_set<Utf8>& undefined)
+    void collectUndefined(std::unordered_set<Utf8>& outUndefined, const CoffObject& object, const std::unordered_set<Utf8>& defined)
     {
         for (const CoffInputSection& section : object.sections)
         {
@@ -61,7 +61,7 @@ namespace
             for (const CoffInputReloc& reloc : section.relocs)
             {
                 if (!defined.contains(reloc.symbolName))
-                    undefined.insert(reloc.symbolName);
+                    outUndefined.insert(reloc.symbolName);
             }
         }
     }
@@ -84,7 +84,7 @@ Result LinkerPe::readObjects(std::vector<CoffObject>& outObjects)
 
         CoffObject object;
         Utf8       error;
-        if (!readCoffObject(asByteSpan(bytes), object, error))
+        if (!readCoffObject(object, error, asByteSpan(bytes)))
             return builder_->reportError(DiagnosticId::cmd_err_native_link_failed, Diagnostic::ARG_BECAUSE, error);
         outObjects.push_back(std::move(object));
     }
@@ -101,9 +101,9 @@ void LinkerPe::collectLibrarySearch(std::set<Utf8>& outLibNames, std::vector<fs:
         outLibNames.insert(normalizedLibName(library.view()));
     for (const NativeFunctionInfo& info : builder_->functionInfos)
         if (info.machineCode)
-            collectForeignLibs(builder_->ctx(), *info.machineCode, outLibNames);
+            collectForeignLibs(outLibNames, *info.machineCode);
     if (builder_->startup)
-        collectForeignLibs(builder_->ctx(), builder_->startup->code, outLibNames);
+        collectForeignLibs(outLibNames, builder_->startup->code);
 
     // Search directories: the SDK/MSVC library directories, then dependency link dirs and the folders
     // that hold imported-API artifacts.
@@ -153,7 +153,7 @@ Result LinkerPe::loadArchives(std::vector<Archive>& outArchives)
 
             Archive archive;
             Utf8          error;
-            if (archive.load(std::move(bytes), error))
+            if (archive.load(error, std::move(bytes)))
                 outArchives.push_back(std::move(archive));
             break;
         }
@@ -162,14 +162,14 @@ Result LinkerPe::loadArchives(std::vector<Archive>& outArchives)
     return Result::Continue;
 }
 
-Result LinkerPe::resolveSymbols(std::vector<CoffObject>& objects, std::vector<Archive>& archives, LinkImage& image)
+Result LinkerPe::resolveSymbols(LinkImage& image, std::vector<CoffObject>& objects, std::vector<Archive>& archives)
 {
     std::unordered_set<Utf8> defined;
-    collectDefined(objects, defined);
+    collectDefined(defined, objects);
 
     std::unordered_set<Utf8> undefined;
     for (const CoffObject& object : objects)
-        collectUndefined(object, defined, undefined);
+        collectUndefined(undefined, object, defined);
 
     std::unordered_set<Utf8> imported;
     std::vector<Utf8>        worklist(undefined.begin(), undefined.end());
@@ -181,7 +181,6 @@ Result LinkerPe::resolveSymbols(std::vector<CoffObject>& objects, std::vector<Ar
         if (defined.contains(symbol) || imported.contains(symbol))
             continue;
 
-        bool resolved = false;
         for (Archive& archive : archives)
         {
             const uint32_t memberOffset = archive.memberOffsetForSymbol(symbol);
@@ -190,7 +189,7 @@ Result LinkerPe::resolveSymbols(std::vector<CoffObject>& objects, std::vector<Ar
 
             Utf8          error;
             ArchiveImport archiveImport;
-            if (archive.tryReadImport(memberOffset, archiveImport, error))
+            if (archive.tryReadImport(archiveImport, error, memberOffset))
             {
                 LinkImport import;
                 import.dll        = archiveImport.dll;
@@ -201,36 +200,32 @@ Result LinkerPe::resolveSymbols(std::vector<CoffObject>& objects, std::vector<Ar
                 import.isData     = archiveImport.isData;
                 image.imports.push_back(std::move(import));
                 imported.insert(symbol);
-                resolved = true;
                 break;
             }
 
-            const ByteSpan memberBytes = archive.memberData(memberOffset, error);
+            const ByteSpan memberBytes = archive.memberData(error, memberOffset);
             if (memberBytes.empty())
                 continue;
 
             CoffObject pulled;
-            if (!readCoffObject(memberBytes, pulled, error))
+            if (!readCoffObject(pulled, error, memberBytes))
                 continue;
 
             for (const CoffInputSymbol& sym : pulled.definedSymbols)
                 defined.insert(sym.name);
             std::unordered_set<Utf8> newUndefined;
-            collectUndefined(pulled, defined, newUndefined);
+            collectUndefined(newUndefined, pulled, defined);
             for (const Utf8& u : newUndefined)
                 if (!imported.contains(u))
                     worklist.push_back(u);
 
             objects.push_back(std::move(pulled));
-            resolved = true;
             break;
         }
-
-        SWC_UNUSED(resolved); // unresolved symbols are reported by the PE writer during relocation
     }
 
     Utf8 error;
-    if (!mergeCoffObjectsIntoImage(objects, image, error))
+    if (!mergeCoffObjectsIntoImage(image, error, objects))
         return builder_->reportError(DiagnosticId::cmd_err_native_link_failed, Diagnostic::ARG_BECAUSE, error);
 
     return Result::Continue;
@@ -242,6 +237,21 @@ namespace
     {
         for (int i = 0; i < 4; ++i)
             out.push_back(static_cast<std::byte>((value >> (i * 8)) & 0xFF));
+    }
+
+    uint32_t internDebugString(std::vector<std::byte>& outStrings, std::unordered_map<Utf8, uint32_t>& outStringOffsets, uint32_t blobBase, const Utf8& value)
+    {
+        if (value.empty())
+            return 0;
+        const auto it = outStringOffsets.find(value);
+        if (it != outStringOffsets.end())
+            return it->second;
+        const uint32_t offset = blobBase + static_cast<uint32_t>(outStrings.size());
+        outStringOffsets.emplace(value, offset);
+        const auto* data = reinterpret_cast<const std::byte*>(value.data());
+        outStrings.insert(outStrings.end(), data, data + value.size());
+        outStrings.push_back(std::byte{0});
+        return offset;
     }
 }
 
@@ -291,18 +301,6 @@ void LinkerPe::buildDebugTable(LinkImage& image) const
     const uint32_t                     headerSize = 16;
     const uint32_t                     entrySize  = 20;
     const uint32_t                     blobBase   = headerSize + static_cast<uint32_t>(entries.size()) * entrySize;
-    const auto                         internString = [&](const Utf8& s) -> uint32_t {
-        if (s.empty())
-            return 0;
-        const auto it = stringOffsets.find(s);
-        if (it != stringOffsets.end())
-            return it->second;
-        const uint32_t offset = blobBase + static_cast<uint32_t>(strings.size());
-        stringOffsets.emplace(s, offset);
-        strings.insert(strings.end(), reinterpret_cast<const std::byte*>(s.data()), reinterpret_cast<const std::byte*>(s.data()) + s.size());
-        strings.push_back(std::byte{0});
-        return offset;
-    };
 
     LinkSection section;
     section.name  = ".swagdbg";
@@ -315,8 +313,8 @@ void LinkerPe::buildDebugTable(LinkImage& image) const
 
     for (const Entry& entry : entries)
     {
-        const uint32_t nameOff = internString(entry.name);
-        const uint32_t fileOff = internString(entry.file);
+        const uint32_t nameOff = internDebugString(strings, stringOffsets, blobBase, entry.name);
+        const uint32_t fileOff = internDebugString(strings, stringOffsets, blobBase, entry.file);
 
         LinkReloc reloc;
         reloc.sectionIndex = static_cast<uint32_t>(image.sections.size());
@@ -360,7 +358,7 @@ Result LinkerPe::buildImage(LinkImage& image)
     std::vector<Archive> archives;
     SWC_RESULT(loadArchives(archives));
 
-    SWC_RESULT(resolveSymbols(objects, archives, image));
+    SWC_RESULT(resolveSymbols(image, objects, archives));
 
     // Emit the embedded `.swagdbg` symbol table consumed by the runtime self-symbolizer.
     buildDebugTable(image);

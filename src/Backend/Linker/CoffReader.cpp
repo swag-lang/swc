@@ -7,7 +7,7 @@ SWC_BEGIN_NAMESPACE();
 namespace
 {
     template<typename T>
-    bool readStruct(ByteSpan bytes, size_t offset, T& out)
+    bool readStruct(T& out, ByteSpan bytes, size_t offset)
     {
         if (offset + sizeof(T) > bytes.size())
             return false;
@@ -56,7 +56,7 @@ namespace
         return flags;
     }
 
-    bool linkRelocKindFromCoffType(uint16_t type, LinkRelocKind& outKind)
+    bool linkRelocKindFromCoffType(LinkRelocKind& outKind, uint16_t type)
     {
         switch (type)
         {
@@ -85,12 +85,12 @@ namespace
     }
 }
 
-bool readCoffObject(ByteSpan bytes, CoffObject& outObject, Utf8& outError)
+bool readCoffObject(CoffObject& outObject, Utf8& outError, ByteSpan bytes)
 {
     outObject = {};
 
     IMAGE_FILE_HEADER fileHeader{};
-    if (!readStruct(bytes, 0, fileHeader))
+    if (!readStruct(fileHeader, bytes, 0))
     {
         outError = "truncated COFF file header";
         return false;
@@ -116,7 +116,7 @@ bool readCoffObject(ByteSpan bytes, CoffObject& outObject, Utf8& outError)
     for (size_t i = 0; i < symbolCount;)
     {
         IMAGE_SYMBOL record{};
-        if (!readStruct(bytes, symbolTableOffset + i * sizeof(IMAGE_SYMBOL), record))
+        if (!readStruct(record, bytes, symbolTableOffset + i * sizeof(IMAGE_SYMBOL)))
         {
             outError = "truncated COFF symbol table";
             return false;
@@ -135,7 +135,7 @@ bool readCoffObject(ByteSpan bytes, CoffObject& outObject, Utf8& outError)
     for (size_t s = 0; s < sectionCount; ++s)
     {
         IMAGE_SECTION_HEADER header{};
-        if (!readStruct(bytes, sectionTableOffset + s * sizeof(IMAGE_SECTION_HEADER), header))
+        if (!readStruct(header, bytes, sectionTableOffset + s * sizeof(IMAGE_SECTION_HEADER)))
         {
             outError = "truncated COFF section header";
             return false;
@@ -161,8 +161,9 @@ bool readCoffObject(ByteSpan bytes, CoffObject& outObject, Utf8& outError)
                 outError = "COFF section raw data out of bounds";
                 return false;
             }
-            section.bytes.assign(bytes.begin() + header.PointerToRawData,
-                                 bytes.begin() + header.PointerToRawData + header.SizeOfRawData);
+            const auto rawBegin = bytes.begin() + header.PointerToRawData;
+            const auto rawEnd   = rawBegin + header.SizeOfRawData;
+            section.bytes.assign(rawBegin, rawEnd);
         }
 
         if (header.NumberOfRelocations == 0 && (header.Characteristics & IMAGE_SCN_LNK_NRELOC_OVFL) == 0)
@@ -174,7 +175,7 @@ bool readCoffObject(ByteSpan bytes, CoffObject& outObject, Utf8& outError)
         {
             // The real count lives in the first record; skip that placeholder.
             IMAGE_RELOCATION overflow{};
-            if (!readStruct(bytes, relocOffset, overflow))
+            if (!readStruct(overflow, bytes, relocOffset))
             {
                 outError = "truncated COFF relocation overflow record";
                 return false;
@@ -189,7 +190,7 @@ bool readCoffObject(ByteSpan bytes, CoffObject& outObject, Utf8& outError)
         for (uint32_t r = 0; r < relocCount; ++r)
         {
             IMAGE_RELOCATION reloc{};
-            if (!readStruct(bytes, relocOffset + r * sizeof(IMAGE_RELOCATION), reloc))
+            if (!readStruct(reloc, bytes, relocOffset + r * sizeof(IMAGE_RELOCATION)))
             {
                 outError = "truncated COFF relocation table";
                 return false;
@@ -228,7 +229,7 @@ bool readCoffObject(ByteSpan bytes, CoffObject& outObject, Utf8& outError)
     return true;
 }
 
-bool mergeCoffObjectsIntoImage(const std::vector<CoffObject>& objects, LinkImage& outImage, Utf8& outError)
+bool mergeCoffObjectsIntoImage(LinkImage& outImage, Utf8& outError, const std::vector<CoffObject>& objects)
 {
     std::unordered_map<Utf8, uint32_t> sectionByName; // name -> outImage.sections index
     std::unordered_set<Utf8>           definedNames;
@@ -290,7 +291,7 @@ bool mergeCoffObjectsIntoImage(const std::vector<CoffObject>& objects, LinkImage
             for (const CoffInputReloc& reloc : section.relocs)
             {
                 LinkRelocKind kind;
-                if (!linkRelocKindFromCoffType(reloc.type, kind))
+                if (!linkRelocKindFromCoffType(kind, reloc.type))
                 {
                     outError = std::format("unsupported COFF relocation type {} in section '{}'", reloc.type, section.name);
                     return false;

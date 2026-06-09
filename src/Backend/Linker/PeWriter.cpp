@@ -1,6 +1,5 @@
 #include "pch.h"
 #include "Backend/Linker/PeWriter.h"
-#include "Support/Math/Helpers.h"
 #include "Support/Os/Os.h" // windows.h -> IMAGE_* definitions
 
 SWC_BEGIN_NAMESPACE();
@@ -23,12 +22,6 @@ namespace
 
     void appendU16(std::vector<std::byte>& out, uint16_t value) { appendBytes(out, &value, sizeof(value)); }
     void appendU32(std::vector<std::byte>& out, uint32_t value) { appendBytes(out, &value, sizeof(value)); }
-    void appendU64(std::vector<std::byte>& out, uint64_t value) { appendBytes(out, &value, sizeof(value)); }
-
-    void patchU32(std::vector<std::byte>& bytes, size_t offset, uint32_t value)
-    {
-        std::memcpy(bytes.data() + offset, &value, sizeof(value));
-    }
 
     uint32_t readU32(const std::vector<std::byte>& bytes, size_t offset)
     {
@@ -67,6 +60,25 @@ namespace
         return IMAGE_SCN_CNT_INITIALIZED_DATA | IMAGE_SCN_MEM_READ;
     }
 
+    uint32_t peHeadersSize(uint32_t sectionCount)
+    {
+        const size_t headersSize = sizeof(IMAGE_DOS_HEADER) + sizeof(uint32_t) + sizeof(IMAGE_FILE_HEADER) + sizeof(IMAGE_OPTIONAL_HEADER64) + sectionCount * sizeof(IMAGE_SECTION_HEADER);
+        return alignUp(static_cast<uint32_t>(headersSize), FILE_ALIGNMENT);
+    }
+
+    int sectionLayoutRank(std::string_view name)
+    {
+        if (name == ".text")
+            return 0;
+        if (name == ".data")
+            return 3;
+        if (name == ".bss")
+            return 4;
+        if (name == ".reloc")
+            return 5;
+        return 2;
+    }
+
     Utf8 normalizedDllName(const Utf8& dll)
     {
         if (dll.view().find('.') != std::string_view::npos)
@@ -88,6 +100,28 @@ namespace
         uint32_t               rawSize     = 0;
     };
 
+    struct SectionLayoutLess
+    {
+        const std::vector<OutSection>* sections = nullptr;
+
+        bool operator()(uint32_t left, uint32_t right) const
+        {
+            SWC_ASSERT(sections != nullptr);
+            return sectionLayoutRank((*sections)[left].name.view()) < sectionLayoutRank((*sections)[right].name.view());
+        }
+    };
+
+    struct SectionRvaLess
+    {
+        const std::vector<OutSection>* sections = nullptr;
+
+        bool operator()(uint32_t left, uint32_t right) const
+        {
+            SWC_ASSERT(sections != nullptr);
+            return (*sections)[left].rva < (*sections)[right].rva;
+        }
+    };
+
     struct ImportThunk
     {
         Utf8     symbolName;
@@ -106,7 +140,7 @@ namespace
         bool write(std::vector<std::byte>& outBytes, Utf8& outError);
 
     private:
-        uint32_t resolveSymbolRva(const Utf8& name, bool& found) const;
+        uint32_t resolveSymbolRva(bool& outFound, const Utf8& name) const;
         bool     buildImports(Utf8& outError);
         bool     buildExports(Utf8& outError);
         void     assignLayout();
@@ -135,15 +169,20 @@ namespace
         uint32_t                               iatSize_       = 0;
     };
 
-    uint32_t PeWriter::resolveSymbolRva(const Utf8& name, bool& found) const
+    bool exportNameLess(const LinkExport* left, const LinkExport* right)
+    {
+        return left->name.view() < right->name.view();
+    }
+
+    uint32_t PeWriter::resolveSymbolRva(bool& outFound, const Utf8& name) const
     {
         const auto sectionIt = symbolSection_.find(name);
         if (sectionIt == symbolSection_.end())
         {
-            found = false;
+            outFound = false;
             return 0;
         }
-        found                = true;
+        outFound             = true;
         const uint32_t value = symbolValue_.at(name);
         return sections_[sectionIt->second].rva + value;
     }
@@ -335,7 +374,7 @@ namespace
         sorted.reserve(image_.exports.size());
         for (const LinkExport& e : image_.exports)
             sorted.push_back(&e);
-        std::ranges::sort(sorted, [](const LinkExport* a, const LinkExport* b) { return a->name.view() < b->name.view(); });
+        std::ranges::sort(sorted, exportNameLess);
 
         const uint32_t count = static_cast<uint32_t>(sorted.size());
 
@@ -430,30 +469,12 @@ namespace
 
         // Header size (DOS header + PE signature + file header + optional header + section table).
         const uint32_t sectionCount = static_cast<uint32_t>(sections_.size()) + (willHaveReloc ? 1u : 0u);
-        const uint32_t headersSize  = alignUp(
-            static_cast<uint32_t>(sizeof(IMAGE_DOS_HEADER) + sizeof(uint32_t) + sizeof(IMAGE_FILE_HEADER) +
-                                  sizeof(IMAGE_OPTIONAL_HEADER64) + sectionCount * sizeof(IMAGE_SECTION_HEADER)),
-            FILE_ALIGNMENT);
+        const uint32_t headersSize  = peHeadersSize(sectionCount);
         headersSize_ = headersSize;
-
-        // Layout order: code first, then read-only data, then writable data, bss, and .reloc last.
-        auto rankOf = [](std::string_view name) -> int {
-            if (name == ".text")
-                return 0;
-            if (name == ".data")
-                return 3;
-            if (name == ".bss")
-                return 4;
-            if (name == ".reloc")
-                return 5;
-            return 2;
-        };
 
         std::vector<uint32_t> order(sections_.size());
         std::iota(order.begin(), order.end(), 0u);
-        std::ranges::stable_sort(order, [&](uint32_t a, uint32_t b) {
-            return rankOf(sections_[a].name.view()) < rankOf(sections_[b].name.view());
-        });
+        std::ranges::stable_sort(order, SectionLayoutLess{&sections_});
 
         uint32_t rva        = alignUp(headersSize, SECTION_ALIGNMENT);
         uint32_t fileOffset = headersSize;
@@ -485,7 +506,7 @@ namespace
             for (const LinkReloc& reloc : src.relocs)
             {
                 bool           found      = false;
-                const uint32_t targetRva  = resolveSymbolRva(reloc.symbolName, found);
+                const uint32_t targetRva  = resolveSymbolRva(found, reloc.symbolName);
                 if (!found)
                 {
                     outError = std::format("unresolved external symbol '{}'", reloc.symbolName);
@@ -561,7 +582,7 @@ namespace
             for (const auto& [offset, symbolName] : eatSymbolFixups_)
             {
                 bool           found     = false;
-                const uint32_t targetRva = resolveSymbolRva(symbolName, found);
+                const uint32_t targetRva = resolveSymbolRva(found, symbolName);
                 if (!found)
                 {
                     outError = std::format("exported symbol '{}' not found", symbolName);
@@ -654,7 +675,7 @@ namespace
         if (!isDll)
         {
             bool found = false;
-            entryRva   = resolveSymbolRva(image_.entrySymbol, found);
+            entryRva   = resolveSymbolRva(found, image_.entrySymbol);
             if (!found)
             {
                 outError = std::format("entry point symbol '{}' not found", image_.entrySymbol);
@@ -755,7 +776,7 @@ namespace
         // address; the working set is kept in resolution order, so emit a virtual-address-sorted view.
         std::vector<uint32_t> headerOrder(sections_.size());
         std::iota(headerOrder.begin(), headerOrder.end(), 0u);
-        std::ranges::sort(headerOrder, [&](uint32_t a, uint32_t b) { return sections_[a].rva < sections_[b].rva; });
+        std::ranges::sort(headerOrder, SectionRvaLess{&sections_});
         for (const uint32_t sectionIdx : headerOrder)
         {
             const OutSection&    section = sections_[sectionIdx];
@@ -842,7 +863,7 @@ namespace
     }
 }
 
-bool writePeImage(const LinkImage& image, std::vector<std::byte>& outBytes, Utf8& outError)
+bool writePeImage(std::vector<std::byte>& outBytes, Utf8& outError, const LinkImage& image)
 {
     PeWriter writer(image);
     return writer.write(outBytes, outError);

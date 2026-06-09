@@ -52,7 +52,7 @@ SWC_FILESYSTEM_TEST_BEGIN(PeWriter_MinimalExecutableCallsExitProcess)
 
     std::vector<std::byte> peBytes;
     Utf8                   error;
-    if (!writePeImage(image, peBytes, error))
+    if (!writePeImage(peBytes, error, image))
     {
         std::println(stderr, "PeWriter test: writePeImage failed: {}", error.view());
         return Result::Error;

@@ -9,6 +9,23 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    bool writeLinkBytes(Utf8& outError, const fs::path& path, const std::vector<std::byte>& bytes)
+    {
+        std::ofstream file(path, std::ios::binary | std::ios::trunc);
+        if (!file.is_open())
+        {
+            outError = std::format("cannot open '{}' for writing", Utf8(path).view());
+            return false;
+        }
+        file.write(reinterpret_cast<const char*>(bytes.data()), static_cast<std::streamsize>(bytes.size()));
+        if (!file.good())
+        {
+            outError = std::format("cannot write '{}'", Utf8(path).view());
+            return false;
+        }
+        return true;
+    }
+
     // Serialise the LinkImage (or archive the objects) and write the artifact. Runs on a background
     // thread and so touches nothing but the self-contained job.
     void executeInternalLink(LinkJob& job)
@@ -18,14 +35,14 @@ namespace
         {
             case LinkJob::Output::Executable:
             case LinkJob::Output::SharedLibrary:
-                if (!writePeImage(job.image, bytes, job.errorText))
+                if (!writePeImage(bytes, job.errorText, job.image))
                 {
                     job.ok = false;
                     return;
                 }
                 break;
             case LinkJob::Output::StaticLibrary:
-                if (!buildStaticArchive(job.archiveMembers, bytes, job.errorText))
+                if (!buildStaticArchive(bytes, job.errorText, job.archiveMembers))
                 {
                     job.ok = false;
                     return;
@@ -33,21 +50,11 @@ namespace
                 break;
         }
 
-        std::ofstream file(job.outputPath, std::ios::binary | std::ios::trunc);
-        if (!file.is_open())
+        if (!writeLinkBytes(job.errorText, job.outputPath, bytes))
         {
-            job.errorText = std::format("cannot open '{}' for writing", Utf8(job.outputPath).view());
-            job.ok        = false;
+            job.ok = false;
             return;
         }
-        file.write(reinterpret_cast<const char*>(bytes.data()), static_cast<std::streamsize>(bytes.size()));
-        if (!file.good())
-        {
-            job.errorText = std::format("cannot write '{}'", Utf8(job.outputPath).view());
-            job.ok        = false;
-            return;
-        }
-        file.close();
 
         // A shared library also produces an import library next to it so dependents can link by name.
         if (job.output == LinkJob::Output::SharedLibrary)
@@ -58,25 +65,16 @@ namespace
                 exportNames.push_back(exported.name);
 
             std::vector<std::byte> libBytes;
-            if (!buildImportLibrary(Utf8(job.outputPath.filename()).view(), exportNames, libBytes, job.errorText))
+            if (!buildImportLibrary(libBytes, job.errorText, Utf8(job.outputPath.filename()).view(), exportNames))
             {
                 job.ok = false;
                 return;
             }
 
             const fs::path libPath = fs::path(job.outputPath).replace_extension(".lib");
-            std::ofstream  libFile(libPath, std::ios::binary | std::ios::trunc);
-            if (!libFile.is_open())
+            if (!writeLinkBytes(job.errorText, libPath, libBytes))
             {
-                job.errorText = std::format("cannot open '{}' for writing", Utf8(libPath).view());
-                job.ok        = false;
-                return;
-            }
-            libFile.write(reinterpret_cast<const char*>(libBytes.data()), static_cast<std::streamsize>(libBytes.size()));
-            if (!libFile.good())
-            {
-                job.errorText = std::format("cannot write '{}'", Utf8(libPath).view());
-                job.ok        = false;
+                job.ok = false;
                 return;
             }
         }

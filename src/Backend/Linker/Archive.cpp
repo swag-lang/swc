@@ -11,6 +11,7 @@ namespace
     constexpr size_t           MEMBER_HEADER_SIZE = 60;
     constexpr size_t           IMPORT_HEADER_SIZE = 20;
     constexpr uint16_t         IMPORT_SIG2        = 0xFFFF;
+    constexpr uint16_t         IMPORT_MACHINE_AMD64 = 0x8664;
 
     uint16_t readU16(ByteSpan bytes, size_t offset)
     {
@@ -35,7 +36,7 @@ namespace
     }
 
     // Member sizes are stored as a right-padded decimal ASCII string.
-    bool parseMemberSize(ByteSpan bytes, size_t headerOffset, uint32_t& outSize)
+    bool parseMemberSize(uint32_t& outSize, ByteSpan bytes, size_t headerOffset)
     {
         outSize = 0;
         for (size_t i = 48; i < 58; ++i)
@@ -49,9 +50,14 @@ namespace
         }
         return true;
     }
+
+    size_t archiveAlignedSize(size_t size)
+    {
+        return size + (size & 1);
+    }
 }
 
-bool Archive::load(std::vector<std::byte> bytes, Utf8& outError)
+bool Archive::load(Utf8& outError, std::vector<std::byte> bytes)
 {
     bytes_ = std::move(bytes);
     symbolToMember_.clear();
@@ -72,7 +78,7 @@ bool Archive::load(std::vector<std::byte> bytes, Utf8& outError)
     }
 
     uint32_t memberSize = 0;
-    if (!parseMemberSize(span, firstHeader, memberSize))
+    if (!parseMemberSize(memberSize, span, firstHeader))
     {
         outError = "malformed archive member header";
         return false;
@@ -122,7 +128,7 @@ uint32_t Archive::memberOffsetForSymbol(const Utf8& symbol) const
     return it == symbolToMember_.end() ? 0 : it->second;
 }
 
-ByteSpan Archive::memberData(uint32_t headerOffset, Utf8& outError) const
+ByteSpan Archive::memberData(Utf8& outError, uint32_t headerOffset) const
 {
     const ByteSpan span = asByteSpan(bytes_);
     if (headerOffset + MEMBER_HEADER_SIZE > span.size())
@@ -131,7 +137,7 @@ ByteSpan Archive::memberData(uint32_t headerOffset, Utf8& outError) const
         return {};
     }
     uint32_t memberSize = 0;
-    if (!parseMemberSize(span, headerOffset, memberSize))
+    if (!parseMemberSize(memberSize, span, headerOffset))
     {
         outError = "malformed archive member header";
         return {};
@@ -145,9 +151,9 @@ ByteSpan Archive::memberData(uint32_t headerOffset, Utf8& outError) const
     return span.subspan(dataOffset, memberSize);
 }
 
-bool Archive::tryReadImport(uint32_t headerOffset, ArchiveImport& outImport, Utf8& outError) const
+bool Archive::tryReadImport(ArchiveImport& outImport, Utf8& outError, uint32_t headerOffset) const
 {
-    const ByteSpan data = memberData(headerOffset, outError);
+    const ByteSpan data = memberData(outError, headerOffset);
     if (data.empty())
         return false;
     if (data.size() < IMPORT_HEADER_SIZE)
@@ -191,28 +197,50 @@ namespace
         out.push_back(static_cast<std::byte>(value & 0xFF));
     }
 
+    void appendLE16(std::vector<std::byte>& out, uint16_t value)
+    {
+        out.push_back(static_cast<std::byte>(value & 0xFF));
+        out.push_back(static_cast<std::byte>((value >> 8) & 0xFF));
+    }
+
+    void appendLE32(std::vector<std::byte>& out, uint32_t value)
+    {
+        for (int i = 0; i < 4; ++i)
+            out.push_back(static_cast<std::byte>((value >> (i * 8)) & 0xFF));
+    }
+
     void appendString(std::vector<std::byte>& out, std::string_view text)
     {
         for (const char c : text)
             out.push_back(static_cast<std::byte>(c));
     }
 
+    void appendHeaderField(std::string& outHeader, std::string_view value, size_t offset, size_t width)
+    {
+        std::memcpy(outHeader.data() + offset, value.data(), std::min(value.size(), width));
+    }
+
     // Writes a 60-byte archive member header. Numeric fields are left-justified, space-padded.
     void appendMemberHeader(std::vector<std::byte>& out, std::string_view name, uint32_t dataSize)
     {
-        std::string header(60, ' ');
-        const auto place = [&](std::string_view value, size_t offset, size_t width) {
-            std::memcpy(header.data() + offset, value.data(), std::min(value.size(), width));
-        };
-        place(name, 0, 16);
-        place("0", 16, 12);  // date
-        place("0", 28, 6);   // uid
-        place("0", 34, 6);   // gid
-        place("0", 40, 8);   // mode
-        place(std::to_string(dataSize), 48, 10);
+        std::string header(MEMBER_HEADER_SIZE, ' ');
+        appendHeaderField(header, name, 0, 16);
+        appendHeaderField(header, "0", 16, 12); // date
+        appendHeaderField(header, "0", 28, 6);  // uid
+        appendHeaderField(header, "0", 34, 6);  // gid
+        appendHeaderField(header, "0", 40, 8);  // mode
+        appendHeaderField(header, std::to_string(dataSize), 48, 10);
         header[58] = '\x60';
         header[59] = '\n';
         appendString(out, header);
+    }
+
+    void appendArchiveMember(std::vector<std::byte>& outBytes, std::string_view name, const std::vector<std::byte>& data)
+    {
+        appendMemberHeader(outBytes, name, static_cast<uint32_t>(data.size()));
+        outBytes.insert(outBytes.end(), data.begin(), data.end());
+        if (data.size() & 1)
+            outBytes.push_back(static_cast<std::byte>('\n'));
     }
 
     struct ArchiveMemberBuild
@@ -225,7 +253,7 @@ namespace
 
     // Assembles a COFF archive from prepared members: the linker symbol directory, an optional
     // long-names member, then the member contents.
-    void emitArchive(std::vector<ArchiveMemberBuild>& members, std::vector<std::byte>& outBytes)
+    void emitArchive(std::vector<std::byte>& outBytes, std::vector<ArchiveMemberBuild>& members)
     {
         // Long member names (>15 chars do not fit the inline "name/" form) live in a "//" member; an
         // affected member references them with "/<decimal-offset>".
@@ -247,8 +275,6 @@ namespace
             }
         }
 
-        const auto aligned = [](size_t size) { return size + (size & 1); };
-
         uint32_t symbolCount     = 0;
         size_t   symbolNamesSize = 0;
         for (const ArchiveMemberBuild& member : members)
@@ -262,14 +288,14 @@ namespace
 
         // Compute each member header's file offset now that the leading members' sizes are known.
         size_t cursor = 8; // after "!<arch>\n"
-        cursor += 60 + aligned(linkerDataSize);
+        cursor += MEMBER_HEADER_SIZE + archiveAlignedSize(linkerDataSize);
         const bool hasLongNames = !longNames.empty();
         if (hasLongNames)
-            cursor += 60 + aligned(longNames.size());
+            cursor += MEMBER_HEADER_SIZE + archiveAlignedSize(longNames.size());
         for (ArchiveMemberBuild& member : members)
         {
             member.headerOffset = static_cast<uint32_t>(cursor);
-            cursor += 60 + aligned(member.data.size());
+            cursor += MEMBER_HEADER_SIZE + archiveAlignedSize(member.data.size());
         }
 
         // Linker member data: big-endian symbol count, parallel member offsets, then symbol names.
@@ -290,22 +316,15 @@ namespace
         outBytes.clear();
         appendString(outBytes, ARCHIVE_MAGIC);
 
-        const auto appendMember = [&](std::string_view name, const std::vector<std::byte>& data) {
-            appendMemberHeader(outBytes, name, static_cast<uint32_t>(data.size()));
-            outBytes.insert(outBytes.end(), data.begin(), data.end());
-            if (data.size() & 1)
-                outBytes.push_back(static_cast<std::byte>('\n'));
-        };
-
-        appendMember("/", linkerData);
+        appendArchiveMember(outBytes, "/", linkerData);
         if (hasLongNames)
-            appendMember("//", longNames);
+            appendArchiveMember(outBytes, "//", longNames);
         for (size_t i = 0; i < members.size(); ++i)
-            appendMember(nameField[i].view(), members[i].data);
+            appendArchiveMember(outBytes, nameField[i].view(), members[i].data);
     }
 }
 
-bool buildStaticArchive(const std::vector<fs::path>& memberPaths, std::vector<std::byte>& outBytes, Utf8& outError)
+bool buildStaticArchive(std::vector<std::byte>& outBytes, Utf8& outError, const std::vector<fs::path>& memberPaths)
 {
     std::vector<ArchiveMemberBuild> members;
     members.reserve(memberPaths.size());
@@ -322,7 +341,7 @@ bool buildStaticArchive(const std::vector<fs::path>& memberPaths, std::vector<st
 
         CoffObject object;
         Utf8       error;
-        if (!readCoffObject(asByteSpan(bytes), object, error))
+        if (!readCoffObject(object, error, asByteSpan(bytes)))
         {
             outError = error;
             return false;
@@ -336,11 +355,11 @@ bool buildStaticArchive(const std::vector<fs::path>& memberPaths, std::vector<st
         members.push_back(std::move(member));
     }
 
-    emitArchive(members, outBytes);
+    emitArchive(outBytes, members);
     return true;
 }
 
-bool buildImportLibrary(std::string_view dllFileName, const std::vector<Utf8>& exportNames, std::vector<std::byte>& outBytes, Utf8& outError)
+bool buildImportLibrary(std::vector<std::byte>& outBytes, Utf8& outError, std::string_view dllFileName, const std::vector<Utf8>& exportNames)
 {
     SWC_UNUSED(outError);
 
@@ -351,16 +370,14 @@ bool buildImportLibrary(std::string_view dllFileName, const std::vector<Utf8>& e
     {
         // A short-import record: IMPORT_OBJECT_HEADER followed by importName\0 dllName\0.
         std::vector<std::byte> data;
-        const auto             u16 = [&](uint16_t v) { data.push_back(static_cast<std::byte>(v & 0xFF)); data.push_back(static_cast<std::byte>((v >> 8) & 0xFF)); };
-        const auto             u32 = [&](uint32_t v) { for (int i = 0; i < 4; ++i) data.push_back(static_cast<std::byte>((v >> (i * 8)) & 0xFF)); };
-        u16(0);                       // Sig1
-        u16(0xFFFF);                  // Sig2
-        u16(0);                       // Version
-        u16(0x8664);                  // Machine = AMD64
-        u32(0);                       // TimeDateStamp
-        u32(static_cast<uint32_t>(name.size() + 1 + dllFileName.size() + 1)); // SizeOfData
-        u16(0);                       // OrdinalOrHint
-        u16(static_cast<uint16_t>(1 << 2)); // NameType=NAME(1), Type=CODE(0)
+        appendLE16(data, 0); // Sig1
+        appendLE16(data, IMPORT_SIG2);
+        appendLE16(data, 0); // Version
+        appendLE16(data, IMPORT_MACHINE_AMD64);
+        appendLE32(data, 0); // TimeDateStamp
+        appendLE32(data, static_cast<uint32_t>(name.size() + 1 + dllFileName.size() + 1)); // SizeOfData
+        appendLE16(data, 0); // OrdinalOrHint
+        appendLE16(data, static_cast<uint16_t>(1 << 2)); // NameType=NAME(1), Type=CODE(0)
         appendString(data, name.view());
         data.push_back(std::byte{0});
         appendString(data, dllFileName);
@@ -374,7 +391,7 @@ bool buildImportLibrary(std::string_view dllFileName, const std::vector<Utf8>& e
         members.push_back(std::move(member));
     }
 
-    emitArchive(members, outBytes);
+    emitArchive(outBytes, members);
     return true;
 }
 

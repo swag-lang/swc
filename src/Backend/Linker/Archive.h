@@ -21,17 +21,17 @@ class Archive
 {
 public:
     // Takes ownership of the archive bytes. Returns false and fills outError on a malformed archive.
-    bool load(std::vector<std::byte> bytes, Utf8& outError);
+    bool load(Utf8& outError, std::vector<std::byte> bytes);
 
     // Returns the file offset of the member header defining the given symbol, or 0 if this archive
     // does not provide it (0 is never a valid member offset because the magic occupies offset 0).
     uint32_t memberOffsetForSymbol(const Utf8& symbol) const;
 
     // Returns the raw member contents at the given member-header offset.
-    ByteSpan memberData(uint32_t headerOffset, Utf8& outError) const;
+    ByteSpan memberData(Utf8& outError, uint32_t headerOffset) const;
 
     // If the member at the given offset is a short-import record, decodes it and returns true.
-    bool tryReadImport(uint32_t headerOffset, ArchiveImport& outImport, Utf8& outError) const;
+    bool tryReadImport(ArchiveImport& outImport, Utf8& outError, uint32_t headerOffset) const;
 
 private:
     std::vector<std::byte>             bytes_;
@@ -40,10 +40,10 @@ private:
 
 // Builds a COFF static library (`!<arch>`) from the given object files: a symbol-directory linker
 // member, a long-names member, and the object members. Returns false and fills outError on failure.
-bool buildStaticArchive(const std::vector<fs::path>& memberPaths, std::vector<std::byte>& outBytes, Utf8& outError);
+bool buildStaticArchive(std::vector<std::byte>& outBytes, Utf8& outError, const std::vector<fs::path>& memberPaths);
 
 // Builds an import library: a COFF archive of short-import records, one per exported name, so a
 // dependent link resolves those names as by-name imports from the given DLL file.
-bool buildImportLibrary(std::string_view dllFileName, const std::vector<Utf8>& exportNames, std::vector<std::byte>& outBytes, Utf8& outError);
+bool buildImportLibrary(std::vector<std::byte>& outBytes, Utf8& outError, std::string_view dllFileName, const std::vector<Utf8>& exportNames);
 
 SWC_END_NAMESPACE();

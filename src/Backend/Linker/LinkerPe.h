@@ -23,7 +23,7 @@ private:
     Result readObjects(std::vector<CoffObject>& outObjects);
     Result loadArchives(std::vector<Archive>& outArchives);
     void   collectLibrarySearch(std::set<Utf8>& outLibNames, std::vector<fs::path>& outDirs) const;
-    Result resolveSymbols(std::vector<CoffObject>& objects, std::vector<Archive>& archives, LinkImage& image);
+    Result resolveSymbols(LinkImage& image, std::vector<CoffObject>& objects, std::vector<Archive>& archives);
     void   collectExports(LinkImage& image) const;
     void   buildDebugTable(LinkImage& image) const;
 };

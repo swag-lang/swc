@@ -7,6 +7,6 @@ SWC_BEGIN_NAMESPACE();
 // resolution, section layout, relocation patching, import-table/IAT synthesis and base-relocation
 // generation happen here; the result is the exact bytes to write to disk. Returns false and fills
 // outError on an unresolved symbol or a structural problem.
-bool writePeImage(const LinkImage& image, std::vector<std::byte>& outBytes, Utf8& outError);
+bool writePeImage(std::vector<std::byte>& outBytes, Utf8& outError, const LinkImage& image);
 
 SWC_END_NAMESPACE();

@@ -1,5 +1,5 @@
 #pragma once
-#include "Backend/Native/NativeLinkerToolRun.h"
+#include "Backend/Native/NativeLinkJob.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Compiler/Sema/Symbol/Symbols.h"
@@ -149,13 +149,13 @@ public:
     Result writeObject(uint32_t objIndex);
 
     // Deferred (workspace async-link) path. prepareForLink runs the full build up to but not
-    // including the external link, leaving a prepared NativeLinkerToolRun in deferredToolRun().
-    // The caller then runs NativeLinker::executeToolRun(deferredToolRun()) on a background thread,
-    // and finally calls finishDeferredLink() back on the foreground thread to report results and,
-    // for an executable run, launch the artifact.
-    Result               prepareForLink();
-    Result               finishDeferredLink();
-    NativeLinkerToolRun& deferredToolRun() { return deferredToolRun_; }
+    // including the link, leaving a prepared NativeLinkJob in deferredToolRun(). The caller then runs
+    // NativeLinker::executeLink(deferredToolRun()) on a background thread, and finally calls
+    // finishDeferredLink() back on the foreground thread to report results and, for an executable run,
+    // launch the artifact.
+    Result         prepareForLink();
+    Result         finishDeferredLink();
+    NativeLinkJob& deferredToolRun() { return deferredToolRun_; }
 
     Result reportError(DiagnosticId id);
 
@@ -211,7 +211,7 @@ private:
     bool                          runArtifact_ = false;
     DiagnosticId                  lastErrorId_ = DiagnosticId::None;
     std::unique_ptr<NativeLinker> deferredLinker_;
-    NativeLinkerToolRun           deferredToolRun_;
+    NativeLinkJob                 deferredToolRun_;
 };
 
 SWC_END_NAMESPACE();

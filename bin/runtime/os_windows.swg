@@ -1,7 +1,6 @@
 #global #if #os == Swag.TargetOs.Windows
 #foreignlib("kernel32")
 #foreignlib("user32")
-#foreignlib("dbghelp")
 #foreignlib("ucrt")
 #foreignlib("vcruntime")
 
@@ -28,75 +27,12 @@ namespace __Win32RT
     const TRUE:                BOOL = 1
     const SRWLOCK_INIT         = cast(SRWLOCK) null
 
-    struct SYMBOL_INFO
-    {
-        SizeOfStruct:     ULONG
-        TypeIndex:        ULONG           // Type Index of symbol
-        Reserved:         [2] ULONG64
-        Index:            ULONG
-        Size:             ULONG
-        ModBase:          ULONG64         // Base Address of module comtaining this symbol
-        Flags:            ULONG
-        Value:            ULONG64         // Value of symbol, ValuePresent should be 1
-        Address:          ULONG64         // Address of symbol including base address of module
-        Register:         ULONG           // register holding value or pointer to value
-        Scope:            ULONG           // scope of the symbol
-        Tag:              ULONG           // pdb classification
-        NameLen:          ULONG           // Actual length of name
-        MaxNameLen:       ULONG
-        Name:             [1] CHAR        // Name of symbol
-    }
-
-    struct SYMBOL_INFOW
-    {
-        SizeOfStruct:     ULONG
-        TypeIndex:        ULONG           // Type Index of symbol
-        Reserved:         [2] ULONG64
-        Index:            ULONG
-        Size:             ULONG
-        ModBase:          ULONG64         // Base Address of module comtaining this symbol
-        Flags:            ULONG
-        Value:            ULONG64         // Value of symbol, ValuePresent should be 1
-        Address:          ULONG64         // Address of symbol including base address of module
-        Register:         ULONG           // register holding value or pointer to value
-        Scope:            ULONG           // scope of the symbol
-        Tag:              ULONG           // pdb classification
-        NameLen:          ULONG           // Actual length of name
-        MaxNameLen:       ULONG
-        Name:             [1] WCHAR       // Name of symbol
-    }
-
-    struct IMAGEHLP_LINE64
-    {
-        SizeOfStruct:     DWORD        // set to sizeof(IMAGEHLP_LINE64)
-        Key:              *void        // fileprivate
-        LineNumber:       DWORD        // line number in file
-        FileName:         [*] CHAR     // full filename
-        Address:          ULONG64      // first instruction of line
-    }
-
-    struct IMAGEHLP_LINEW64
-    {
-        SizeOfStruct:     DWORD         // set to sizeof(IMAGEHLP_LINEW64)
-        Key:              *void         // fileprivate
-        LineNumber:       DWORD         // line number in file
-        FileName:         [*] WCHAR     // full filename
-        Address:          ULONG64       // first instruction of line
-    }
-
-    #[Swag.Foreign("DbgHelp")]
-    {
-        func SymInitialize(hProcess: HANDLE, userSearchPath: #null *CHAR, fInvadeProcess: BOOL)->BOOL;
-        func SymCleanup(hProcess: HANDLE)->BOOL;
-        func SymFromAddr(hProcess: HANDLE, address: ULONG64, displacement: *ULONG64, symbol: *SYMBOL_INFO)->BOOL;
-        func SymFromAddrW(hProcess: HANDLE, address: ULONG64, displacement: *ULONG64, symbol: *SYMBOL_INFOW)->BOOL;
-        func SymGetLineFromAddr64(hProcess: HANDLE, dwAddr: ULONG64, pdwDisplacement: *DWORD, line: *IMAGEHLP_LINE64)->BOOL;
-        func SymGetLineFromAddrW64(hProcess: HANDLE, dwAddr: ULONG64, pdwDisplacement: *DWORD, line: *IMAGEHLP_LINEW64)->BOOL;
-    }
 
     #[Swag.Foreign("kernel32")]
     {
         func RtlCaptureStackBackTrace(framesToSkip: ULONG, framesToCapture: ULONG, backTrace: **void, backTraceHash: #null *ULONG)->USHORT;
+        func GetModuleHandleA(lpModuleName: #null const *u8)->*void;
+        func GetModuleHandleExA(dwFlags: DWORD, lpModuleName: #null const *u8, phModule: **void)->BOOL;
         func GetStdHandle(nStdHandle: u32)->HANDLE;
         func WriteFile(hFile: HANDLE, lpBuffer: const *void, nNumberOfBytesToWrite: u32, lpNumberOfBytesWritten: #null *u32, lpOverlapped: #null *void)->u32;
         func GetCurrentProcess()->HANDLE;
@@ -367,58 +303,142 @@ func __captureStack(skip: u32, wh: [..] *void)->u32
     return nb
 }
 
-var __logStackTraceInitDone = false
-func __logStackTrace(wh: [..] *void, startAfter: *Swag.SourceCodeLocation = null, printNoLine = true)
+// Self-symbolization. The linker embeds a `.swagdbg` section in every image (a per-function table of
+// name + source file/line keyed by image-relative address); the runtime reads it directly, so stack
+// traces need neither a PDB nor dbghelp. A one-entry cache avoids re-parsing the PE for consecutive
+// frames in the same module.
+struct __SwagSym
+{
+    found:   bool   = false
+    hasLine: bool   = false
+    name:    string = ""
+    file:    string = ""
+    line:    u32    = 0
+}
+
+var __dbgCacheBase:    *void  = null
+var __dbgCacheSection: [*] u8 = null
+var __dbgCacheCount:   u32    = 0
+var __dbgCacheValid:   bool   = false
+
+func __peU16(p: [*] u8, off: u64)->u16 => dref cast(*u16) &p[off]
+func __peU32(p: [*] u8, off: u64)->u32 => dref cast(*u32) &p[off]
+
+func __dbgFindSection(base: *void)
+{
+    __dbgCacheBase    = base
+    __dbgCacheValid   = false
+    __dbgCacheSection = null
+    __dbgCacheCount   = 0
+    if base == null do
+        return
+
+    let b      = cast([*] u8) base
+    let ntOff  = cast(u64) __peU32(b, 0x3C)
+    let nSec   = __peU16(b, ntOff + 6)
+    let optSz  = __peU16(b, ntOff + 20)
+    var secOff = ntOff + 24 + cast(u64) optSz
+
+    let want = ".swagdbg"
+    for s in nSec
+    {
+        var match = true
+        for k in 8
+        {
+            if b[secOff + cast(u64) k] != cast(u8) want[k]
+            {
+                match = false
+                break
+            }
+        }
+
+        if match
+        {
+            let rva           = __peU32(b, secOff + 12)
+            __dbgCacheSection = cast([*] u8) &b[cast(u64) rva]
+            __dbgCacheCount   = __peU32(__dbgCacheSection, 8)
+            __dbgCacheValid   = true
+            return
+        }
+        secOff += 40
+    }
+}
+
+func __dbgStr(off: u32)->string
+{
+    if off == 0 do
+        return ""
+    let p = cast([*] u8) &__dbgCacheSection[cast(u64) off]
+    return @mkstring(p, @countof(cast(cstring) p))
+}
+
+func __symbolize(addr: *void)->__SwagSym
 {
     using __Win32RT
+    var r: __SwagSym
 
-    if !__logStackTraceInitDone
+    // GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS(4) | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT(2)
+    var h: *void = null
+    if GetModuleHandleExA(6, cast(const *u8) addr, &h) == 0 do
+        return r
+    if h != __dbgCacheBase do
+        __dbgFindSection(h)
+    if !__dbgCacheValid do
+        return r
+
+    let rva = cast(u32) (cast(u64) addr - cast(u64) h)
+    let sec = __dbgCacheSection
+    for i in __dbgCacheCount
     {
-        if !SymInitialize(GetCurrentProcess(), null, TRUE) do
-            return
-        __logStackTraceInitDone = true
+        let e     = 16 + cast(u64) i * 20
+        let erva  = __peU32(sec, e)
+        let esize = __peU32(sec, e + 4)
+        if rva >= erva and rva < erva + esize
+        {
+            r.found = true
+            r.name  = __dbgStr(__peU32(sec, e + 8))
+            let fileOff = __peU32(sec, e + 12)
+            if fileOff != 0
+            {
+                r.hasLine = true
+                r.file    = __dbgStr(fileOff)
+                r.line    = __peU32(sec, e + 16)
+            }
+            return r
+        }
     }
+    return r
+}
 
-    const SYM_LEN_NAME = 128
-    var sym:           [#sizeof(SYMBOL_INFO) + SYM_LEN_NAME * #sizeof(CHAR)] u8
-    var displacement:  ULONG64
-
-    let psym = cast(*SYMBOL_INFO) sym
-    psym.SizeOfStruct = #sizeof(SYMBOL_INFO)
-    psym.MaxNameLen   = SYM_LEN_NAME
-
-    var line: IMAGEHLP_LINE64
-    line.SizeOfStruct = #sizeof(IMAGEHLP_LINE64)
-
+func __logStackTrace(wh: [..] *void, startAfter: *Swag.SourceCodeLocation = null, printNoLine = true)
+{
     var hasStarted = false
 
     for i in wh
     {
-        let hasSymbol = SymFromAddr(GetCurrentProcess(), cast(ULONG64) cast(u64) wh[i], &displacement, psym)
-        let hasLine   = SymGetLineFromAddr64(GetCurrentProcess(), cast(ULONG64) cast(u64) wh[i], cast() &displacement, &line)
-        let fileName  = hasLine ? @mkstring(line.FileName, @countof(cast(cstring) line.FileName)) : null
-        if !hasLine and !printNoLine do
+        let info = __symbolize(wh[i])
+        if !info.hasLine and !printNoLine do
             continue
 
         // Do not print the call until a given location has been reached.
         // For DebugAllocator leaks
         if !hasStarted and startAfter
         {
-            if !hasLine or !fileName do
+            if !info.hasLine do
                 continue
-            if startAfter.lineStart + 1 != line.LineNumber do
+            if startAfter.lineStart + 1 != info.line do
                 continue
-            if @countof(fileName) != @countof(startAfter.fileName) do
+            if @countof(info.file) != @countof(startAfter.fileName) do
                 continue
 
             var samePath = true
-            for it in @countof(fileName)
+            for it in @countof(info.file)
             {
-                if fileName[it] == startAfter.fileName[it] do
+                if info.file[it] == startAfter.fileName[it] do
                     continue
-                if fileName[it] == '\\' and startAfter.fileName[it] == '/' do
+                if info.file[it] == '\\' and startAfter.fileName[it] == '/' do
                     continue
-                if fileName[it] == '/' and startAfter.fileName[it] == '\\' do
+                if info.file[it] == '/' and startAfter.fileName[it] == '\\' do
                     continue
                 samePath = false
                 break
@@ -432,16 +452,13 @@ func __logStackTrace(wh: [..] *void, startAfter: *Swag.SourceCodeLocation = null
 
         hasStarted = true
 
-        if hasSymbol
-        {
-            let symName = @mkstring(cast(const [*] u8) psym.Name, @countof(cast(cstring) psym.Name))
-            @print(symName)
-        }
+        if info.found do
+            @print(info.name)
 
-        if hasLine
+        if info.hasLine
         {
             @print(" --> ")
-            @print(fileName, ":", line.LineNumber)
+            @print(info.file, ":", info.line)
         }
 
         @print("\n")

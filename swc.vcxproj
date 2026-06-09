@@ -179,6 +179,7 @@
         <ClCompile Include="src\Unittest\Micro\Test.Micro.StackAdjustNormalize.cpp"/>
         <ClCompile Include="src\Unittest\Micro\Test.Micro.StrengthReduction.cpp"/>
         <ClCompile Include="src\Unittest\Native\Test.Native.NativeArtifact.cpp"/>
+        <ClCompile Include="src\Unittest\Native\Test.Native.PeWriter.cpp"/>
         <ClCompile Include="src\Unittest\Sema\Test.Sema.Purity.cpp"/>
         <ClCompile Include="src\Unittest\Support\Test.Support.JobManager.cpp"/>
         <ClCompile Include="src\Unittest\Support\Test.Support.AppendOnlyLookupTable.cpp"/>
@@ -199,7 +200,10 @@
         <ClCompile Include="src\Backend\Native\NativeValidate.cpp"/>
         <ClCompile Include="src\Backend\Native\NativeBackendBuilder.cpp"/>
         <ClCompile Include="src\Backend\Native\NativeLinker.cpp"/>
-        <ClCompile Include="src\Backend\Native\NativeLinkerCoff.cpp"/>
+        <ClCompile Include="src\Backend\Native\NativeLinkerPe.cpp"/>
+        <ClCompile Include="src\Backend\Native\NativeCoffReader.cpp"/>
+        <ClCompile Include="src\Backend\Native\NativeArchive.cpp"/>
+        <ClCompile Include="src\Backend\Native\NativePeWriter.cpp"/>
         <ClCompile Include="src\Backend\Native\NativeObjJob.cpp"/>
         <ClCompile Include="src\Backend\Native\NativeObjFileWriter.cpp"/>
         <ClCompile Include="src\Backend\Native\NativeObjFileWriterCoff.cpp"/>
@@ -640,7 +644,12 @@
         <ClInclude Include="src\Backend\Native\NativeValidate.h"/>
         <ClInclude Include="src\Backend\Native\NativeBackendBuilder.h"/>
         <ClInclude Include="src\Backend\Native\NativeLinker.h"/>
-        <ClInclude Include="src\Backend\Native\NativeLinkerCoff.h"/>
+        <ClInclude Include="src\Backend\Native\NativeLinkerPe.h"/>
+        <ClInclude Include="src\Backend\Native\NativeLinkJob.h"/>
+        <ClInclude Include="src\Backend\Native\NativeLinkImage.h"/>
+        <ClInclude Include="src\Backend\Native\NativeCoffReader.h"/>
+        <ClInclude Include="src\Backend\Native\NativeArchive.h"/>
+        <ClInclude Include="src\Backend\Native\NativePeWriter.h"/>
         <ClInclude Include="src\Backend\Native\NativeObjJob.h"/>
         <ClInclude Include="src\Backend\Native\NativeObjFileWriter.h"/>
         <ClInclude Include="src\Backend\Native\NativeObjFileWriterCoff.h"/>

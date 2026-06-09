@@ -6,7 +6,6 @@
 #include "Backend/Micro/MachineCode.h"
 #include "Backend/Native/NativeArtifactBuilder.h"
 #include "Backend/Native/NativeBackendBuilder.h"
-#include "Backend/Native/NativeLinkerCoff.h"
 #include "Backend/Native/NativeObjFileWriter.h"
 #include "Backend/Runtime.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
@@ -452,19 +451,6 @@ SWC_FILESYSTEM_TEST_BEGIN(NativeArtifact_RDataAllowsInteriorConstantAddresses)
     if (!containsBytes(fixture.nativeBuilder->mergedRData.bytes, referencedMarker))
         return Result::Error;
     if (fixture.nativeBuilder->mergedRData.relocations.size() != 1)
-        return Result::Error;
-}
-SWC_TEST_END()
-
-SWC_TEST_BEGIN(NativeArtifact_LinkerOutputFilterSuppressesDllImportLibraryLine)
-{
-    if (NativeLinkerCoff::shouldForwardLinkerOutputLine("   Creating library foo.lib and object foo.exp", true))
-        return Result::Error;
-    if (!NativeLinkerCoff::shouldForwardLinkerOutputLine("   Creating library foo.lib and object foo.exp", false))
-        return Result::Error;
-    if (!NativeLinkerCoff::shouldForwardLinkerOutputLine("LINK : warning LNK4098: defaultlib 'MSVCRT' conflicts with use of other libs", true))
-        return Result::Error;
-    if (!NativeLinkerCoff::shouldForwardLinkerOutputLine("Creating library_without_object_message", true))
         return Result::Error;
 }
 SWC_TEST_END()

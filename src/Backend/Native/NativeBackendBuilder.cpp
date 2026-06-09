@@ -617,7 +617,7 @@ Result NativeBackendBuilder::finishDeferredLink()
 {
     SWC_MEM_SCOPE("Backend/Native");
     SWC_ASSERT(deferredLinker_ != nullptr);
-    SWC_RESULT(deferredLinker_->finishToolRun(deferredToolRun_));
+    SWC_RESULT(deferredLinker_->finishLink(deferredToolRun_));
     return runAfterLink();
 }
 

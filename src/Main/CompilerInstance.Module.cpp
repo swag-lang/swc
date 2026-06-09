@@ -1766,7 +1766,7 @@ ExitCode CompilerInstance::runWorkspace()
                 return ExitCode::CompileError;
 
             WorkspaceModuleLink* linkPtr = modulePending.get();
-            linkPtr->linkFuture          = std::async(std::launch::async, [linkPtr] { NativeLinker::executeToolRun(linkPtr->builder->deferredToolRun()); });
+            linkPtr->linkFuture          = std::async(std::launch::async, [linkPtr] { NativeLinker::executeLink(linkPtr->builder->deferredToolRun()); });
             pendingLink                  = std::move(modulePending);
         }
 

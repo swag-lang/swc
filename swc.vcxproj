@@ -200,10 +200,10 @@
         <ClCompile Include="src\Backend\Native\NativeValidate.cpp"/>
         <ClCompile Include="src\Backend\Native\NativeBackendBuilder.cpp"/>
         <ClCompile Include="src\Backend\Linker\Linker.cpp"/>
-        <ClCompile Include="src\Backend\Linker\LinkerPe.cpp"/>
+        <ClCompile Include="src\Backend\Linker\PELinker.cpp" />
         <ClCompile Include="src\Backend\Linker\CoffReader.cpp"/>
         <ClCompile Include="src\Backend\Linker\Archive.cpp"/>
-        <ClCompile Include="src\Backend\Linker\PeWriter.cpp"/>
+        <ClCompile Include="src\Backend\Linker\PEWriter.cpp" />
         <ClCompile Include="src\Backend\Native\NativeObjJob.cpp"/>
         <ClCompile Include="src\Backend\Native\NativeObjFileWriter.cpp"/>
         <ClCompile Include="src\Backend\Native\NativeObjFileWriterCoff.cpp"/>
@@ -645,12 +645,12 @@
         <ClInclude Include="src\Backend\Native\NativeValidate.h"/>
         <ClInclude Include="src\Backend\Native\NativeBackendBuilder.h"/>
         <ClInclude Include="src\Backend\Linker\Linker.h"/>
-        <ClInclude Include="src\Backend\Linker\LinkerPe.h"/>
+        <ClInclude Include="src\Backend\Linker\PELinker.h" />
         <ClInclude Include="src\Backend\Linker\LinkJob.h"/>
         <ClInclude Include="src\Backend\Linker\LinkImage.h"/>
         <ClInclude Include="src\Backend\Linker\CoffReader.h"/>
         <ClInclude Include="src\Backend\Linker\Archive.h"/>
-        <ClInclude Include="src\Backend\Linker\PeWriter.h"/>
+        <ClInclude Include="src\Backend\Linker\PEWriter.h" />
         <ClInclude Include="src\Backend\Native\NativeObjJob.h"/>
         <ClInclude Include="src\Backend\Native\NativeObjFileWriter.h"/>
         <ClInclude Include="src\Backend\Native\NativeObjFileWriterCoff.h"/>

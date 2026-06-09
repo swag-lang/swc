@@ -1,5 +1,5 @@
 #include "pch.h"
-#include "Backend/Linker/PeWriter.h"
+#include "Backend/Linker/PEWriter.h"
 #include "Support/Core/ByteUtils.h"
 #include "Support/Math/Helpers.h"
 #include "Support/Os/Os.h" // windows.h -> IMAGE_* definitions
@@ -93,10 +93,10 @@ namespace
         uint32_t iatSlotInIdata = 0; // offset of the IAT slot within .idata
     };
 
-    class PeWriter
+    class PEWriter
     {
     public:
-        explicit PeWriter(const LinkImage& image) :
+        explicit PEWriter(const LinkImage& image) :
             image_(image)
         {
         }
@@ -138,7 +138,7 @@ namespace
         return left->name.view() < right->name.view();
     }
 
-    uint32_t PeWriter::resolveSymbolRva(bool& outFound, const Utf8& name) const
+    uint32_t PEWriter::resolveSymbolRva(bool& outFound, const Utf8& name) const
     {
         const auto sectionIt = symbolSection_.find(name);
         if (sectionIt == symbolSection_.end())
@@ -151,7 +151,7 @@ namespace
         return sections_[sectionIt->second].rva + value;
     }
 
-    bool PeWriter::buildImports(Utf8& outError)
+    bool PEWriter::buildImports(Utf8& outError)
     {
         if (image_.imports.empty())
             return true;
@@ -326,7 +326,7 @@ namespace
         return true;
     }
 
-    bool PeWriter::buildExports(const Utf8& outError)
+    bool PEWriter::buildExports(const Utf8& outError)
     {
         if (image_.kind != LinkImageKind::SharedLibrary || image_.exports.empty())
             return true;
@@ -401,7 +401,7 @@ namespace
         return true;
     }
 
-    void PeWriter::assignLayout()
+    void PEWriter::assignLayout()
     {
         // Non-bss sections grow up to here (e.g. .text gained import thunks); keep virtual sizes current.
         for (OutSection& section : sections_)
@@ -457,7 +457,7 @@ namespace
         }
     }
 
-    bool PeWriter::applyRelocations(Utf8& outError)
+    bool PEWriter::applyRelocations(Utf8& outError)
     {
         for (size_t imageIdx = 0; imageIdx < image_.sections.size(); ++imageIdx)
         {
@@ -555,7 +555,7 @@ namespace
         return true;
     }
 
-    void PeWriter::buildBaseRelocations()
+    void PEWriter::buildBaseRelocations()
     {
         if (baseRelocSites_.empty())
             return;
@@ -597,7 +597,7 @@ namespace
         sections_.push_back(std::move(relocSection));
     }
 
-    bool PeWriter::emit(std::vector<std::byte>& outBytes, Utf8& outError)
+    bool PEWriter::emit(std::vector<std::byte>& outBytes, Utf8& outError)
     {
         const bool isDll = image_.kind == LinkImageKind::SharedLibrary;
 
@@ -771,7 +771,7 @@ namespace
         return true;
     }
 
-    bool PeWriter::write(std::vector<std::byte>& outBytes, Utf8& outError)
+    bool PEWriter::write(std::vector<std::byte>& outBytes, Utf8& outError)
     {
         // Copy image sections into the working set, recording the index map and special sections.
         sections_.reserve(image_.sections.size() + 4);
@@ -825,7 +825,7 @@ namespace
 
 bool writePeImage(std::vector<std::byte>& outBytes, Utf8& outError, const LinkImage& image)
 {
-    PeWriter writer(image);
+    PEWriter writer(image);
     return writer.write(outBytes, outError);
 }
 

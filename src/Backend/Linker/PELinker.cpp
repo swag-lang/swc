@@ -1,7 +1,7 @@
 #include "pch.h"
-#include "Backend/Linker/LinkerPe.h"
 #include "Backend/Linker/Archive.h"
 #include "Backend/Linker/CoffReader.h"
+#include "Backend/Linker/PELinker.h"
 #include "Backend/Micro/MachineCode.h"
 #include "Backend/Native/NativeBackendBuilder.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
@@ -68,12 +68,12 @@ namespace
     }
 }
 
-LinkerPe::LinkerPe(NativeBackendBuilder& builder) :
+PELinker::PELinker(NativeBackendBuilder& builder) :
     Linker(builder)
 {
 }
 
-Result LinkerPe::readObjects(std::vector<CoffObject>& outObjects) const
+Result PELinker::readObjects(std::vector<CoffObject>& outObjects) const
 {
     SWC_ASSERT(builder_ != nullptr);
     for (const NativeObjDescription& description : builder_->objectDescriptions)
@@ -93,7 +93,7 @@ Result LinkerPe::readObjects(std::vector<CoffObject>& outObjects) const
     return Result::Continue;
 }
 
-void LinkerPe::collectLibrarySearch(std::set<Utf8>& outLibNames, std::vector<fs::path>& outDirs) const
+void PELinker::collectLibrarySearch(std::set<Utf8>& outLibNames, std::vector<fs::path>& outDirs) const
 {
     SWC_ASSERT(builder_ != nullptr);
 
@@ -127,7 +127,7 @@ void LinkerPe::collectLibrarySearch(std::set<Utf8>& outLibNames, std::vector<fs:
     }
 }
 
-Result LinkerPe::loadArchives(std::vector<Archive>& outArchives) const
+Result PELinker::loadArchives(std::vector<Archive>& outArchives) const
 {
     std::set<Utf8>        libNames;
     std::vector<fs::path> dirs;
@@ -163,7 +163,7 @@ Result LinkerPe::loadArchives(std::vector<Archive>& outArchives) const
     return Result::Continue;
 }
 
-Result LinkerPe::resolveSymbols(LinkImage& image, std::vector<CoffObject>& objects, std::vector<Archive>& archives) const
+Result PELinker::resolveSymbols(LinkImage& image, std::vector<CoffObject>& objects, std::vector<Archive>& archives) const
 {
     std::unordered_set<Utf8> defined;
     collectDefined(defined, objects);
@@ -259,7 +259,7 @@ namespace
 // Emits a self-contained `.swagdbg` symbol table (function name + source location per function, keyed
 // by image-relative address) so the runtime can symbolize stack traces without a PDB or dbghelp. The
 // function addresses are written as Rva32 relocations resolved by the PE writer.
-void LinkerPe::buildDebugTable(LinkImage& image) const
+void PELinker::buildDebugTable(LinkImage& image) const
 {
     SWC_ASSERT(builder_ != nullptr);
 
@@ -334,7 +334,7 @@ void LinkerPe::buildDebugTable(LinkImage& image) const
     image.sections.push_back(std::move(section));
 }
 
-void LinkerPe::collectExports(LinkImage& image) const
+void PELinker::collectExports(LinkImage& image) const
 {
     SWC_ASSERT(builder_ != nullptr);
     for (const NativeFunctionInfo& info : builder_->functionInfos)
@@ -348,7 +348,7 @@ void LinkerPe::collectExports(LinkImage& image) const
     }
 }
 
-Result LinkerPe::buildImage(LinkImage& image) const
+Result PELinker::buildImage(LinkImage& image) const
 {
     SWC_ASSERT(builder_ != nullptr);
 
@@ -384,7 +384,7 @@ Result LinkerPe::buildImage(LinkImage& image) const
     return Result::Continue;
 }
 
-Result LinkerPe::prepareLink(LinkJob& outJob)
+Result PELinker::prepareLink(LinkJob& outJob)
 {
     SWC_ASSERT(builder_ != nullptr);
     outJob.outputPath = builder_->artifactPath;

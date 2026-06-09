@@ -1,8 +1,8 @@
 #include "pch.h"
 #include "Backend/Linker/Linker.h"
 #include "Backend/Linker/Archive.h"
-#include "Backend/Linker/LinkerPe.h"
-#include "Backend/Linker/PeWriter.h"
+#include "Backend/Linker/PELinker.h"
+#include "Backend/Linker/PEWriter.h"
 #include "Backend/Native/NativeBackendBuilder.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -93,7 +93,7 @@ std::unique_ptr<Linker> Linker::create(NativeBackendBuilder& builder)
     switch (builder.ctx().cmdLine().targetOs)
     {
         case Runtime::TargetOs::Windows:
-            return std::make_unique<LinkerPe>(builder);
+            return std::make_unique<PELinker>(builder);
     }
 
     SWC_UNREACHABLE();

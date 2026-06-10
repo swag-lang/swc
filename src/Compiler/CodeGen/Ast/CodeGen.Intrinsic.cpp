@@ -530,7 +530,13 @@ namespace
             return Result::Continue;
         }
 
-        const CodeGenNodePayload& resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), resultTypeRef);
+        // The runtime element count is always a natural-width `u64` (slice/string `count`/`length`
+        // fields, or a byte scan for C strings), so type the produced value as `u64` rather than the
+        // surrounding context type. Using the context type (e.g. `bool` for `if !@countof(s)`) made the
+        // value be loaded as 64 bits but compared/consumed at the narrower width, so counts that are a
+        // multiple of 256 (low byte zero) were wrongly seen as zero. Any narrowing the context needs is
+        // handled by the normal conversion path on the consumer side.
+        const CodeGenNodePayload& resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), codeGen.typeMgr().typeU64());
         const MicroReg            baseReg       = materializeCountLikeBaseReg(codeGen, exprPayload);
         if (exprType.isCString())
         {

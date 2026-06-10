@@ -1,14 +1,14 @@
 using Core, Gui, Pixel
 
 const W = 1320
-const H = 920
+const H = 940
 const MaxPages = 5
 const TestFramesPerPage = 35
 const RootMargin = 24.0
 const PageTop = 112.0
 const PageBottomMargin = 58.0
 const PanelGap = 24.0
-const TopPanelHeight = 430.0
+const TopPanelHeight = 440.0
 const MinBottomPanelHeight = 260.0
 const ThemeButtonWidth = 152.0
 const HeaderGap = 18.0
@@ -77,7 +77,7 @@ func getPagePanelLayout(parent: *Wnd)->PagePanelLayout
     let width = Math.max(rect.width, 1.0)
     let height = Math.max(rect.height, TopPanelHeight + PanelGap + MinBottomPanelHeight)
     let halfWidth = (width - PanelGap) * 0.5
-    let topHeight = Math.min(TopPanelHeight, Math.max(390.0, (height - PanelGap) * 0.62))
+    let topHeight = Math.min(TopPanelHeight, Math.max(400.0, (height - PanelGap) * 0.62))
     let bottomY = topHeight + PanelGap
     let bottomHeight = Math.max(MinBottomPanelHeight, height - bottomY)
 
@@ -222,7 +222,8 @@ func createQuickPalette(parent: *Wnd, rect: Math.Rectangle, title: string, keepA
 
 func createModePicker(parent: *Wnd, title: string, rect: Math.Rectangle, mode: ColorPickerMode)->*ColorPicker
 {
-    createCaption(parent, title, rect.x, rect.y - 28, rect.width)
+    // Narrow pickers (vertical bars) still need a readable caption width.
+    createCaption(parent, title, rect.x, rect.y - 28, Math.max(rect.width, 64.0))
     let picker = ColorPicker.create(parent, rect)
     picker.setMode(mode)
     picker.setColor(g_Color)
@@ -314,6 +315,21 @@ func drawLiveCard(painter: *Painter, rect: Math.Rectangle, colors: *ThemeColors)
     painter.drawString(rect.x + 24, lineY + 14, Format.toString("#%{X08}", g_Color.argb), bodyFont, textColor.withAlpha(225'u8))
 }
 
+// Lay labelled swatches in a single horizontal row that fits `rect`. Used by the
+// short, wide bottom panels where a tall card would overlap or clip.
+func drawColorRow(painter: *Painter, rect: Math.Rectangle, font: *Font, colors: *ThemeColors, names: Array'string, cols: Array'Color)
+{
+    let n = Math.max(cast(f32) cols.count, 1.0)
+    let pad = 16.0
+    let sw = Math.max((rect.width - pad * (n + 1)) / n, 40.0)
+    let sh = Math.max(rect.height - 34, 24.0)
+    foreach c, i in cols
+    {
+        let x = rect.x + pad + cast(f32) i * (sw + pad)
+        drawSwatch(painter, {x, rect.y + 6, sw, sh}, names[i], c, font, colors)
+    }
+}
+
 func onLivePreviewEvent(view: *Wnd, evt: IEvent)->bool
 {
     switch evt
@@ -325,15 +341,32 @@ func onLivePreviewEvent(view: *Wnd, evt: IEvent)->bool
         let font = view.getTheme().createDefaultFont(14)
 
         painter.fillRect(rect, colors.view_Bk)
-        let card = Math.Rectangle{24, 24, Math.max(rect.width - 48, 1.0), Math.max(rect.height - 116, 120.0)}
-        drawLiveCard(painter, card, colors)
 
-        let y = card.bottom() + 28
-        let width = Math.max((rect.width - 96) / 4, 70.0)
-        drawSwatch(painter, {24, y, width, 40}, "lighter", Color.getLighter(g_Color, 0.34), font, colors)
-        drawSwatch(painter, {24 + width + 16, y, width, 40}, "darker", Color.getDarker(g_Color, 0.34), font, colors)
-        drawSwatch(painter, {24 + (width + 16) * 2, y, width, 40}, "complement", g_Color.getComplementary(), font, colors)
-        drawSwatch(painter, {24 + (width + 16) * 3, y, width, 40}, "muted", g_Color.adjustSaturation(-0.55), font, colors)
+        // Tall panel: full live card plus a derived-swatch row. Short/wide panel:
+        // a single fitted swatch row (the card needs room it does not have here).
+        if rect.height >= 300
+        {
+            let card = Math.Rectangle{24, 24, Math.max(rect.width - 48, 1.0), Math.max(rect.height - 116, 120.0)}
+            drawLiveCard(painter, card, colors)
+
+            let y = card.bottom() + 28
+            let width = Math.max((rect.width - 96) / 4, 70.0)
+            drawSwatch(painter, {24, y, width, 40}, "lighter", Color.getLighter(g_Color, 0.34), font, colors)
+            drawSwatch(painter, {24 + width + 16, y, width, 40}, "darker", Color.getDarker(g_Color, 0.34), font, colors)
+            drawSwatch(painter, {24 + (width + 16) * 2, y, width, 40}, "complement", g_Color.getComplementary(), font, colors)
+            drawSwatch(painter, {24 + (width + 16) * 3, y, width, 40}, "muted", g_Color.adjustSaturation(-0.55), font, colors)
+        }
+        else
+        {
+            var names: Array'string
+            var cols:  Array'Color
+            names.add("selected");   cols.add(g_Color)
+            names.add("lighter");    cols.add(Color.getLighter(g_Color, 0.34))
+            names.add("darker");     cols.add(Color.getDarker(g_Color, 0.34))
+            names.add("complement"); cols.add(g_Color.getComplementary())
+            names.add("muted");      cols.add(g_Color.adjustSaturation(-0.55))
+            drawColorRow(painter, rect, font, colors, names, cols)
+        }
     }
 
     return false
@@ -351,14 +384,35 @@ func onDerivedPreviewEvent(view: *Wnd, evt: IEvent)->bool
 
         painter.fillRect(rect, colors.view_Bk)
 
-        let cellW = Math.max((rect.width - 64) / 3, 88.0)
-        let cellH = 62.0
-        drawSwatch(painter, {20, 28, cellW, cellH}, "selected", g_Color, font, colors)
-        drawSwatch(painter, {36 + cellW, 28, cellW, cellH}, "analog -30", g_Color.rotateHue(-30), font, colors)
-        drawSwatch(painter, {52 + cellW * 2, 28, cellW, cellH}, "analog +30", g_Color.rotateHue(30), font, colors)
-        drawSwatch(painter, {20, 128, cellW, cellH}, "triad +120", g_Color.rotateHue(120), font, colors)
-        drawSwatch(painter, {36 + cellW, 128, cellW, cellH}, "triad -120", g_Color.rotateHue(-120), font, colors)
-        drawSwatch(painter, {52 + cellW * 2, 128, cellW, cellH}, "gray", g_Color.getGrayscale(), font, colors)
+        var names: Array'string
+        var cols:  Array'Color
+        names.add("selected");   cols.add(g_Color)
+        names.add("analog -30"); cols.add(g_Color.rotateHue(-30))
+        names.add("analog +30"); cols.add(g_Color.rotateHue(30))
+        names.add("triad +120"); cols.add(g_Color.rotateHue(120))
+        names.add("triad -120"); cols.add(g_Color.rotateHue(-120))
+        names.add("gray");       cols.add(g_Color.getGrayscale())
+
+        // Two rows of three when there is height for it, otherwise a single fitted
+        // row so the bottom row is never clipped.
+        if rect.height >= 220
+        {
+            let pad = 16.0
+            let cellW = Math.max((rect.width - pad * 4) / 3, 88.0)
+            let cellH = Math.max((rect.height - pad * 3 - 48) / 2, 50.0)
+            foreach c, i in cols
+            {
+                let col = cast(f32) (i % 3)
+                let row = cast(f32) (i / 3)
+                let x = rect.x + pad + col * (cellW + pad)
+                let y = rect.y + pad + row * (cellH + 24 + pad)
+                drawSwatch(painter, {x, y, cellW, cellH}, names[i], c, font, colors)
+            }
+        }
+        else
+        {
+            drawColorRow(painter, rect, font, colors, names, cols)
+        }
     }
 
     return false
@@ -377,20 +431,24 @@ func onContrastPreviewEvent(view: *Wnd, evt: IEvent)->bool
 
         painter.fillRect(rect, colors.view_Bk)
 
-        let left = Math.Rectangle{24, 34, Math.max((rect.width - 72) * 0.5, 120.0), Math.max(rect.height - 68, 120.0)}
-        let right = Math.Rectangle{left.right() + 24, 34, left.width, left.height}
+        let left = Math.Rectangle{24, 28, Math.max((rect.width - 72) * 0.5, 120.0), Math.max(rect.height - 56, 80.0)}
+        let right = Math.Rectangle{left.right() + 24, 28, left.width, left.height}
         let text = g_Color.getContrasting()
+
+        // Fit the body text to whatever height the card actually has.
+        let bodyTop = 50.0
+        let lines = cast(u32) Math.max((left.height - bodyTop) / 18.0, 1.0)
 
         painter.fillRoundRect(left, 18, 18, g_Color)
         painter.drawRoundRect(left, 18, 18, Color.fromArgb(80'u8, Argb.Black), 1)
-        painter.drawString(left.x + 24, left.y + 24, "Contrast pick", titleFont, text)
-        drawWrappedText(painter, {left.x + 24, left.y + 62, left.width - 48, 70}, "Foreground uses Color.getContrasting() on the selected color.", font, text.withAlpha(220'u8), 3)
+        painter.drawString(left.x + 24, left.y + 20, "Contrast pick", titleFont, text)
+        drawWrappedText(painter, {left.x + 24, left.y + bodyTop, left.width - 48, left.height - bodyTop - 12}, "Foreground uses Color.getContrasting() on the selected color.", font, text.withAlpha(220'u8), lines)
 
         painter.fillRoundRect(right, 18, 18, Brush.createHatch(.CheckBoardLarge, colors.colorPicker_BackAlpha))
         painter.fillRoundRect(right, 18, 18, g_Color.withAlpha(145'u8))
         painter.drawRoundRect(right, 18, 18, Color.fromArgb(80'u8, Argb.Black), 1)
-        painter.drawString(right.x + 24, right.y + 24, "Alpha sample", titleFont, text)
-        drawWrappedText(painter, {right.x + 24, right.y + 62, right.width - 48, 70}, "The checkerboard makes semi-transparent selections visible.", font, text.withAlpha(220'u8), 3)
+        painter.drawString(right.x + 24, right.y + 20, "Alpha sample", titleFont, text)
+        drawWrappedText(painter, {right.x + 24, right.y + bodyTop, right.width - 48, right.height - bodyTop - 12}, "The checkerboard makes semi-transparent selections visible.", font, text.withAlpha(220'u8), lines)
     }
 
     return false
@@ -408,28 +466,28 @@ func createCompositePage(parent: *Wnd)
     let layout = getPagePanelLayout(parent)
     let left = createPanel(parent, "ColorPickerCtrl with alpha", "Full control with 2D color modes, hue/alpha bars, ARGB edits and screen picker button.", layout.left)
     {
-        discard createQuickPalette(left, {24, 92, 340, 34}, "Shared presets")
-        let picker = ColorPickerCtrl.create(left, {24, 142}, .All)
+        let picker = ColorPickerCtrl.create(left, {24, 92}, .All)
         picker.setFrameForm(.Round)
         picker.setColor(g_Color)
         picker.sigChanged += func(picker)
         {
             setSelectedColor(picker.getColor(), "ColorPickerCtrl alpha")
         }
+        discard createQuickPalette(left, {400, 124, 196, 200}, "Shared presets")
     }
 
     let right = createPanel(parent, "Opaque ColorPickerCtrl", "The same composite without alpha, showing RGB-only edit behavior and mode buttons.", layout.right)
     {
-        discard createQuickPalette(right, {24, 92, 340, 34}, "Opaque presets")
         var opaque = g_Color
         opaque.a = 255
-        let picker = ColorPickerCtrl.create(right, {24, 142}, .All & ~.Alpha)
+        let picker = ColorPickerCtrl.create(right, {24, 92}, .All & ~.Alpha)
         picker.setFrameForm(.Round)
         picker.setColor(opaque)
         picker.sigChanged += func(picker)
         {
             setSelectedColor(picker.getColor(), "ColorPickerCtrl opaque")
         }
+        discard createQuickPalette(right, {400, 124, 196, 200}, "Opaque presets")
     }
 
     let bottom = createPanel(parent, "Shared selection", "All controls in this example write to one selected color so each page can be inspected independently.", layout.bottom)
@@ -448,10 +506,10 @@ func createHslModesPage(parent: *Wnd)
     let right = createPanel(parent, "Hue / lightness", "A second hue plane plus vertical bars show cursor and gradient variants.", layout.right)
     {
         discard createModePicker(right, "Hue / lightness", {24, 120, 250, 210}, .HueLightness)
-        discard createModePicker(right, "Hue vertical", {314, 120, 28, 210}, .HueVert)
-        discard createModePicker(right, "Lightness vertical", {374, 120, 28, 210}, .LightnessVert)
-        discard createModePicker(right, "Saturation vertical", {434, 120, 28, 210}, .SaturationVert)
-        discard createModePicker(right, "Alpha vertical", {494, 120, 28, 210}, .AlphaVert)
+        discard createModePicker(right, "Hue", {300, 120, 28, 210}, .HueVert)
+        discard createModePicker(right, "Light", {364, 120, 28, 210}, .LightnessVert)
+        discard createModePicker(right, "Sat", {428, 120, 28, 210}, .SaturationVert)
+        discard createModePicker(right, "Alpha", {492, 120, 28, 210}, .AlphaVert)
     }
 
     let bottom = createPanel(parent, "HSL and alpha bars", "Horizontal bars are useful in compact toolbars and property popups.", layout.bottom)
@@ -476,11 +534,10 @@ func createRgbModesPage(parent: *Wnd)
 
     let right = createPanel(parent, "Vertical channel bars", "Standalone red, green and blue pickers are available in vertical orientation.", layout.right)
     {
-        discard createModePicker(right, "Red", {92, 122, 32, 210}, .RedVert)
-        discard createModePicker(right, "Green", {188, 122, 32, 210}, .GreenVert)
-        discard createModePicker(right, "Blue", {284, 122, 32, 210}, .BlueVert)
-        discard createModePicker(right, "Alpha", {380, 122, 32, 210}, .AlphaVert)
-        discard createPreview(right, {462, 116, 126, 220}, &onLivePreviewEvent)
+        discard createModePicker(right, "Red", {120, 122, 32, 210}, .RedVert)
+        discard createModePicker(right, "Green", {250, 122, 32, 210}, .GreenVert)
+        discard createModePicker(right, "Blue", {380, 122, 32, 210}, .BlueVert)
+        discard createModePicker(right, "Alpha", {510, 122, 32, 210}, .AlphaVert)
     }
 
     let bottom = createPanel(parent, "Horizontal channel bars", "The same channel controls in a wide form with a derived-color palette underneath.", layout.bottom)
@@ -719,7 +776,7 @@ func createRootView()
 #main
 {
     let flags = SurfaceFlags.BigCaption | SurfaceFlags.MinimizeBtn | SurfaceFlags.CloseBtn | SurfaceFlags.Border
-    g_Surface = try app.createSurface(100, 100, W, H, flags)
+    g_Surface = try app.createSurface(100, 50, W, H, flags)
     g_Surface.setTitle("GUI5 color widgets")
     g_Surface.setIcon(app.theme.getIcon24(ThemeIcons24.Picker, 18))
 

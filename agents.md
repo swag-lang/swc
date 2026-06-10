@@ -9,15 +9,19 @@
 
 ### Validation Workflow
 
-- After any change:
+- After any change in the compiler (c++ files):
     1. Compile a **DevMode** build.
     2. Run `tests.bat dm`.
     3. If either step fails, fix the issue before proceeding.
-    4. Run `alltests.bat dm` (only if you have change c++ files)
+    4. Run `alltests.bat dm`
     5. Compile the **Release** build (`swc.exe`).
     6. Run `tests.bat`.
     7. If either release step fails, fix the issue before proceeding.
     8. Do not run `alltests.bat` in release mode as part of the default validation workflow.
+	
+- After any change in an example (bin/examples) without a c++ change:
+    1. Compile a **DevMode** build.
+    2. Run this example only, but in all configs : 'examples.bat dm test -m <example> -bc <config>'
 
 ---
 

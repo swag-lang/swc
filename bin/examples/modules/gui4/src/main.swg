@@ -178,7 +178,7 @@ var g_Page: s32
 var g_TestFrame: s32
 var g_DarkTheme: bool
 var g_Inspector: *PropertiesCtrl
-var g_ListCtrl: *PropertiesCtrl
+var g_ListProps: *Properties
 var g_Preview: *Wnd
 var g_StatusText: String
 var g_Appearance: Gui4Appearance
@@ -489,15 +489,29 @@ func createGridPage(parent: *Wnd)
 // filter at the top to narrow down the visible rows.
 func createListPage(parent: *Wnd)
 {
-    g_ListCtrl = PropertiesCtrl.create(parent, {}, .List, .FindBar)
-    g_ListCtrl.dockStyle = .Center
-    addDemoStructs(g_ListCtrl)
+    with let filter = EditBox.create(parent, "")
+    {
+        .icon      = parent.getTheme().getIcon24(ThemeIcons24.Search, 18)
+        .dockStyle = .Top
+        .setNote("Search")
+        .margin    = {16, 16, 16, 4}
+        .editBoxFlags.add(.ClearButton)
+        .sigChanged += func(fil) { if g_ListProps do g_ListProps.setStringFilter(fil.text); }
+    }
+
+    g_ListProps = Properties.create(parent, {}, .List)
+    g_ListProps.dockStyle = .Center
+    g_ListProps.margin.x = 16
+    g_ListProps.margin.y = 8
+    g_ListProps.margin.z = 16
+    g_ListProps.margin.w = 16
+    addDemoStructs(g_ListProps)
 }
 
 func clearPage()
 {
     g_Inspector = null
-    g_ListCtrl  = null
+    g_ListProps = null
     g_Preview   = null
 
     foreach child in g_PageView.childs do
@@ -519,6 +533,11 @@ func buildPage()
         unreachable
     }
 
+    // Force a layout pass right away so the freshly docked children (and the
+    // property rows nested inside them) are positioned deterministically. Without
+    // this the rows would only appear once an unrelated resize happened to fire,
+    // making the page look randomly empty after a page switch.
+    g_PageView.applyLayout()
     g_PageView.invalidate()
 }
 
@@ -557,7 +576,7 @@ func onRootEvent(_view: *Wnd, evt: IEvent)->bool
         g_PageView    = null
         g_Footer      = null
         g_Inspector   = null
-        g_ListCtrl    = null
+        g_ListProps   = null
         g_Preview     = null
     }
 

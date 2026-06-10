@@ -202,7 +202,12 @@ impl IWnd for EditBox
         let fontR     = .getFont().regular
         let caretPos  = .getCaretPos()
         let decalX    = Math.min(Painter.measureString("X", fontR).width * 10, clientRect.width * 0.5)
-        let sizeX     = Painter.measureString(.text, fontR).width
+        // Right-aligned text is anchored to the right edge, so it must be measured
+        // with the same pixel snapping it is drawn with, otherwise the drawn run is
+        // a touch wider than measured and the last glyph spills past the clip.
+        let sizeX     = .editBoxFlags.has(.RightAlign)
+                        ? Painter.measureStringSnapped(.text.toString(), fontR)
+                        : Painter.measureString(.text, fontR).width
         let maxDecalX = sizeX - decalX
 
         if caretPos.x - clientRect.x < .scrollPosX do
@@ -313,9 +318,14 @@ impl IWnd for EditBox
     mtd impl onTimerEvent(evt: *TimerEvent)
     {
         .visibleCaret = !.visibleCaret
-        var pos = .getCaretPos()
-        pos.inflate(1)
-        .invalidateRect(pos)
+
+        // Repaint the whole (small) edit box on each blink. Invalidating only the
+        // caret rectangle is fragile: the caret is painted inside the horizontal
+        // scroll transform (translateTransform(-scrollPosX)), so for a scrolled
+        // right-aligned box a caret-rect in widget space lands far off, and the
+        // surface unions it into a huge dirty region drawn as a black bar. A full
+        // (bounded) invalidate has no rectangle to misplace.
+        .invalidate()
     }
 
     // Handles keyboard input (navigation, edition, clipboard shortcuts, etc.).
@@ -742,7 +752,7 @@ fileprivate impl EditBox
         {
             if .editBoxFlags.has(.RightAlign)
             {
-                let sizeX = Painter.measureString(.text, fontR).width
+                let sizeX = Painter.measureStringSnapped(.text.toString(), fontR)
                 result.x = clientRect.right() - sizeX + .posSelEnd - 2
             }
             else do
@@ -777,17 +787,18 @@ fileprivate impl EditBox
         {
             var clientRect = .getEditRect()
             clientRect.x -= .getTextMarginRight()
-            let sizeX     = Painter.measureString(.text, fontR).width
+            // Hit-test against the same snapped advances the glyphs are drawn with.
+            let shaped    = Painter.shapeRun(.text.toString(), fontR)
+            let base      = clientRect.right() - Painter.measureStringSnapped(&shaped)
             var lastWidth = 0'f32
             var diff      = 0'f32
             for idx in 1 until .text.length
             {
-                let str = @mkstring(.text.buffer, idx)
-                let met = Painter.measureString(str, fontR).width
+                let met = Painter.measureStringSnapped(&shaped, idx)
                 diff = (met - lastWidth) * 0.5
-                if x <= clientRect.right() - sizeX + met
+                if x <= base + met
                 {
-                    if x < clientRect.right() - sizeX + lastWidth + diff do
+                    if x < base + lastWidth + diff do
                         return idx - 1
                     return idx
                 }
@@ -795,7 +806,7 @@ fileprivate impl EditBox
                 lastWidth = met
             }
 
-            if x < clientRect.right() - sizeX + lastWidth + diff do
+            if x < base + lastWidth + diff do
                 return .text.length - 1
         }
         else
@@ -832,6 +843,18 @@ fileprivate impl EditBox
             return
 
         let fontR = .getFont().regular
+
+        // Right-aligned carets/selection are anchored to the right edge, so measure
+        // with the same pixel snapping used to draw (see measureStringSnapped). Left
+        // alignment keeps the plain measure it always used.
+        if .editBoxFlags.has(.RightAlign)
+        {
+            let text = .text.toString()
+            .posSelBeg, .posSelEnd = Painter.measureStringSnapped(text, fontR, .selEnd)
+            if .selBeg != .selEnd do
+                .posSelBeg = Painter.measureStringSnapped(text, fontR, .selBeg)
+            return
+        }
 
         var str = @mkstring(.text.buffer, .selEnd)
         var met = Painter.measureString(str, fontR)

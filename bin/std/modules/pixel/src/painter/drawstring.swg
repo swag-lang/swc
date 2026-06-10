@@ -247,7 +247,7 @@ impl Painter
 
     // Rebuild a shaped run for another concrete font cache while preserving its
     // glyph sequence and cluster mapping.
-    func shapeRunForFont(run: *ShapedRun, font: *Font)->ShapedRun
+    func shapeRunForFont(run: const *ShapedRun, font: *Font)->ShapedRun
     {
         Debug.assert(font != null, "invalid font")
         Debug.assert(run.font == null or run.font.cache.typeFace == font.cache.typeFace, "cannot reuse glyph indexes with another typeface")
@@ -327,6 +327,45 @@ impl Painter
 
     // Returns the metrics of an already shaped text run
     func measureString(text: *ShapedRun)->StringMetrics => text.metrics
+
+    // Horizontal advance up to byte `atByte`, computed with the exact pixel
+    // snapping and draw-font resolution `drawString` uses to render `run`. Unlike
+    // `measureString().width` (which sums raw, unsnapped advances) this matches the
+    // on-screen glyph positions, so carets, selection rectangles and right-aligned
+    // anchoring line up with what is actually drawn. Default `atByte` measures the
+    // whole run.
+    func measureStringSnapped(run: const *ShapedRun, atByte: u64 = Swag.U64.Max)->f32
+    {
+        let info = getTextDrawInfo(run.font)
+
+        // drawString re-shapes onto the resolved draw font; mirror that so the
+        // advances use the same glyph metrics it will actually draw with.
+        var drawShape: ShapedRun
+        var toDraw: const *ShapedRun = run
+        if run.font != info.drawFont
+        {
+            drawShape = shapeRunForFont(run, info.drawFont)
+            toDraw    = &drawShape
+        }
+
+        var x = 0.0'f32
+        foreach glyph, idx in toDraw.glyphs
+        {
+            if glyph.cluster >= atByte do
+                break
+            let step = advanceTextX(x, glyph.offsetX, glyph.advanceX, info, idx == 0)
+            x = step.rightX
+        }
+
+        return x
+    }
+
+    // String convenience overload of `measureStringSnapped`.
+    func measureStringSnapped(text: string, font: *Font, atByte: u64 = Swag.U64.Max, tabSize: u32 = DefaultTextTabSize, letterSpacing = 0.0'f32)->f32
+    {
+        let shaped = shapeRun(text, font, tabSize, letterSpacing)
+        return measureStringSnapped(&shaped, atByte)
+    }
 
     // Returns the bounding rectangle of a given text, scaled to the font draw size
     func measureString(text: Array'(const *GlyphDesc), font: *Font)->StringMetrics

@@ -20,6 +20,14 @@ func createEditBoxPage(parent: *Wnd)
         edit = EditBox.create(forms, "transparent", {240, 140, 200})
         edit.setForm(.Transparent)
         edit.setNote("Transparent")
+
+        edit = EditBox.create(forms, "right aligned text", {24, 190, 180})
+        edit.editBoxFlags |= .RightAlign
+        edit.setNote("Right aligned")
+
+        edit = EditBox.create(forms, "0123456789", {240, 190, 200})
+        edit.editBoxFlags |= .RightAlign
+        edit.setNote("Right aligned")
     }
 
     let modes = createPanel(parent, "Input modes", "Numeric validation, max length, read-only and disabled fields.", layout.right)

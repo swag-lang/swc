@@ -8,7 +8,7 @@ const RootMargin = 28.0
 const PageTop = 112.0
 const PageBottomMargin = 58.0
 const PanelGap = 28.0
-const TopPanelHeight = 250.0
+const TopPanelHeight = 300.0
 const MinBottomPanelHeight = 190.0
 const ThemeButtonWidth = 150.0
 const HeaderGap = 18.0
@@ -78,7 +78,7 @@ func getPagePanelLayout(parent: *Wnd)->PagePanelLayout
     let width        = Math.max(rect.width, 1.0)
     let height       = Math.max(rect.height, TopPanelHeight + PanelGap + MinBottomPanelHeight)
     let halfWidth    = (width - PanelGap) * 0.5
-    let topHeight    = Math.min(TopPanelHeight, Math.max(220.0, (height - PanelGap) * 0.48))
+    let topHeight    = Math.min(TopPanelHeight, Math.max(285.0, (height - PanelGap) * 0.52))
     let bottomY      = topHeight + PanelGap
     let bottomHeight = Math.max(MinBottomPanelHeight, height - bottomY)
 

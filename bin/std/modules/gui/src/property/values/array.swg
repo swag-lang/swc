@@ -125,12 +125,13 @@ impl Properties
             prop.appendArrayValue(item)
         }
 
-        with item.editBox = EditBox.create(item.line, "")
+        with let ed = EditBox.create(item.line, "")
         {
             .dockStyle = .Left
             .setForm(.Transparent)
             .enable(false)
         }
+        item.editBox = ed
 
         setDescEditBox(item)
         item.numChilds += cast(u32) (.items.count - numItemsBefore)

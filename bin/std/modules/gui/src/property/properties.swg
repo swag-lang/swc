@@ -35,6 +35,7 @@ struct Properties
     gridLineHeight:       f32 = 35
     gridLineMargin:       s32 = 12
     gridColumnSize:       s32 = 150
+    gridColumnSizeReq:    s32 = 150   // Requested column size, re-clamped to the current width on resize
     gridMarginColumn:     s32 = 16
 
     // For list kind
@@ -973,7 +974,8 @@ impl Properties
         if .kind != .Grid do
             return
 
-        .gridColumnSize = .clampColumnSize(size)
+        .gridColumnSizeReq = size
+        .gridColumnSize    = .clampColumnSize(size)
         .syncColumnLabels()
         .applyLayout()
         .invalidate()
@@ -984,7 +986,7 @@ impl Properties
         if .kind != .Grid do
             return
 
-        .gridColumnSize = .clampColumnSize(.gridColumnSize)
+        .gridColumnSize = .clampColumnSize(.gridColumnSizeReq)
         .syncColumnLabels()
     }
 }

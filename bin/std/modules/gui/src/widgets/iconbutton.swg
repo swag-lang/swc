@@ -157,7 +157,12 @@ impl IWnd for IconButton
             colorIcon    = .isChecked ? colors.btnIcon_CheckedDisabledIcon : colors.btnIcon_DisabledIcon
             colorText    = .isChecked ? colors.btnIcon_CheckedDisabledText : colors.btnIcon_DisabledText
             colorChecked = colors.btnIcon_CheckedDisabledMark
-        case .isPressed or (.isChecked and .checkedForm == .None):
+        case (.isPressed or .isChecked) and .checkedForm == .None:
+            colorBk      = .isChecked ? colors.btnIcon_CheckedPressedBk : colors.btnIcon_PressedBk
+            colorIcon    = colors.btnIcon_PressedIcon
+            colorText    = colors.btnIcon_PressedText
+            colorChecked = colors.btnIcon_CheckedPressedMark
+        case .isPressed:
             colorBk      = .isChecked ? colors.btnIcon_CheckedPressedBk : colors.btnIcon_PressedBk
             colorIcon    = .isChecked ? colors.btnIcon_CheckedPressedIcon : colors.btnIcon_PressedIcon
             colorText    = .isChecked ? colors.btnIcon_CheckedPressedText : colors.btnIcon_PressedText

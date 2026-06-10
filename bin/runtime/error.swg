@@ -248,9 +248,11 @@ func @panic(message: string, loc: SourceCodeLocation)
     __logStackTrace(@mkslice(&arr[0], nb))
     @print("\n")
 
-    // During tests just raise an error without a dialog box
-    //if contextFlags & .Test do
-    //    __exitError()
+    foreach arg in @args
+    {
+        if @stringcmp(arg, "swag.test") do
+            __exitError()
+    }
 
     // Build message
     var str: [1024] u8

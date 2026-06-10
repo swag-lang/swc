@@ -6,8 +6,6 @@ impl Properties
     {
         let item  = .addItem(value, data, parentItem)
         let color = cast(*Color) data
-        let line  = Wnd.create'Wnd(item.line, {0, 0, .position.width, .getThemeMetrics().editBox_Height})
-        line.dockStyle = .CenterKeepSizeVert
 
         let opaque    = Reflection.hasAttribute(value, .Opaque)
         let keepAlpha = Reflection.hasAttribute(value, .KeepAlpha)
@@ -18,6 +16,16 @@ impl Properties
         const WidthBtn  = 60
         let prop        = me
 
+        // Match the other value editors: fill the value column in grid mode, but
+        // stay left-aligned at its edit size in list mode (otherwise the color row
+        // is the only one that ends up centered).
+        let line = Wnd.create'Wnd(item.line, {0, 0, width, .getThemeMetrics().editBox_Height})
+        line.maxSize.x = width
+        if .kind == .Grid do
+            line.dockStyle = .CenterKeepSizeVert
+        else do
+            line.anchorStyle = .X
+
         with let btn = IconButton.create(line, {}, {0, 0, WidthBtn, item.line.position.height})
         {
             .dockStyle   = .Left
@@ -26,8 +34,6 @@ impl Properties
             .setForm(.RoundSquare)
             .iconBtnFlags.add(.Popup | .CheckableToggle)
         }
-
-        line.maxSize.x = width
 
         with let ed = EditBox.create(line, "", {0, 0, width - MarginBtn - WidthBtn, item.line.position.height})
         {

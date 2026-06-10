@@ -9,7 +9,6 @@ const HeaderHeight = 96.0
 const FooterHeight = 34.0
 const SplitGap = 24.0
 const InspectorWidth = 560.0
-const PreviewHeight = 350.0
 const ThemeButtonWidth = 152.0
 const HeaderGap = 18.0
 
@@ -172,11 +171,13 @@ var g_View: *Wnd
 var g_Title: *Label
 var g_SubTitle: *Label
 var g_ThemeButton: *PushButton
+var g_Tab: *Tab
+var g_GridPage: *Wnd
+var g_ListPage: *Wnd
 var g_Inspector: *PropertiesCtrl
 var g_ListProps: *Properties
 var g_PreviewFrame: *FrameWnd
 var g_Preview: *Wnd
-var g_ListFrame: *FrameWnd
 var g_Status: *Label
 var g_DarkTheme: bool
 var g_SectionPaneSized: bool
@@ -453,24 +454,18 @@ func layoutRootView()
     let rect = g_View.getClientRect()
     let contentWidth = Math.max(rect.width - 2 * RootMargin, 1.0)
     let contentHeight = Math.max(rect.height - HeaderHeight - FooterHeight - RootMargin, 1.0)
-    let rightX = RootMargin + InspectorWidth + SplitGap
-    let rightWidth = Math.max(contentWidth - InspectorWidth - SplitGap, 1.0)
     let titleWidth = Math.max(contentWidth - ThemeButtonWidth - HeaderGap, 1.0)
-    let listY = HeaderHeight + PreviewHeight + SplitGap
-    let listHeight = Math.max(rect.height - listY - FooterHeight - RootMargin, 120.0)
 
     g_Title.setPosition({RootMargin, 18, titleWidth, 34})
     g_ThemeButton.setPosition({RootMargin + titleWidth + HeaderGap, 18, ThemeButtonWidth, 34})
     g_SubTitle.setPosition({RootMargin + 2, 56, contentWidth - 4, 36})
-    g_Inspector.setPosition({RootMargin, HeaderHeight, InspectorWidth, contentHeight})
+    g_Tab.setPosition({RootMargin, HeaderHeight, contentWidth, contentHeight})
     if !g_SectionPaneSized
     {
         g_Inspector.splitter.setPaneSize(0, 160)
         g_Inspector.splitter.items[0].tryPreserveSize = true
         g_SectionPaneSized = true
     }
-    g_PreviewFrame.setPosition({rightX, HeaderHeight, rightWidth, PreviewHeight})
-    g_ListFrame.setPosition({rightX, listY, rightWidth, listHeight})
     g_Status.setPosition({RootMargin, rect.height - FooterHeight + 2, contentWidth, 28})
 }
 
@@ -488,8 +483,12 @@ func onRootEvent(_view: *Wnd, evt: IEvent)->bool
         g_Title       = null
         g_SubTitle    = null
         g_ThemeButton = null
+        g_Tab         = null
+        g_GridPage    = null
+        g_ListPage    = null
         g_Inspector   = null
         g_ListProps   = null
+        g_PreviewFrame = null
         g_Preview     = null
         g_Status      = null
         g_SectionPaneSized = false
@@ -507,7 +506,7 @@ func createRootView()
     setLabelTextStyle(g_Title, .Left, .Center)
     g_Title.style.setFont(g_View.getTheme().createDefaultFont(28), .Regular)
 
-    g_SubTitle = Label.create(g_View, "Edit reflected data on the left, inspect the live result on the right, and compare the same data in list mode below.", {}, null, .WordWrap | .LightText)
+    g_SubTitle = Label.create(g_View, "Edit reflected data with the grid inspector beside the live preview, or switch to the flat option-list tab to see the same data in list mode.", {}, null, .WordWrap | .LightText)
     setLabelTextStyle(g_SubTitle, .Left, .Top)
 
     g_ThemeButton = PushButton.create(g_View, "", {})
@@ -515,21 +514,33 @@ func createRootView()
     g_ThemeButton.icon = app.theme.getIcon24(ThemeIcons24.Picker, 18)
     g_ThemeButton.sigPressed += &toggleTheme
 
-    g_Inspector = PropertiesCtrl.create(g_View, {}, .Grid, .SectionFilter | .SectionPane | .FindBar)
+    g_Tab = Tab.create(g_View, {})
+    g_Tab.setForm(.Flat)
+
+    // Page 1: grid inspector beside the live preview.
+    g_GridPage = Wnd.create'Wnd(g_Tab)
+    g_Inspector = PropertiesCtrl.create(g_GridPage, {0, 0, InspectorWidth, 10}, .Grid, .SectionFilter | .SectionPane | .FindBar)
+    g_Inspector.dockStyle  = .Left
+    g_Inspector.margin.z   = SplitGap
     addDemoStructs(g_Inspector)
 
-    g_PreviewFrame = createPanel(g_View, "Live preview", "Every value comes from the property editor, including colors, numbers, enum flags and arrays.", {})
+    g_PreviewFrame = createPanel(g_GridPage, "Live preview", "Every value comes from the property editor, including colors, numbers, enum flags and arrays.", {})
+    g_PreviewFrame.dockStyle = .Center
     g_Preview = g_PreviewFrame.view
     g_Preview.hookOnEvent = &onPreviewEvent
+    g_Tab.addItem("Grid + preview", {}, g_GridPage)
 
-    g_ListFrame = createPanel(g_View, "List mode mirror", "The same reflected structs rendered with the verbose list presentation.", {})
-    g_ListProps = Properties.create(g_ListFrame.view, {14, 86, 10, 10}, .List)
+    // Page 2: the same structs in the flat, option-style list mode. The list
+    // renders its own section headers, so it is docked straight into the page.
+    g_ListPage = Wnd.create'Wnd(g_Tab)
+    g_ListProps = Properties.create(g_ListPage, {}, .List)
     g_ListProps.dockStyle = .Center
-    g_ListProps.margin.x = 12
-    g_ListProps.margin.y = 84
-    g_ListProps.margin.z = 12
-    g_ListProps.margin.w = 12
+    g_ListProps.margin.x = 16
+    g_ListProps.margin.y = 16
+    g_ListProps.margin.z = 16
+    g_ListProps.margin.w = 16
     addDemoStructs(g_ListProps)
+    g_Tab.addItem("Option list", {}, g_ListPage)
 
     g_Status = Label.create(g_View, "Ready. Try the search box, section tabs, enum flags, color picker and action array.", {})
     setLabelTextStyle(g_Status, .Left, .Center)

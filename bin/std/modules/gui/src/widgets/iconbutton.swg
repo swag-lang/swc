@@ -536,22 +536,44 @@ impl IconButton
     // Creates a popup window linked to the button position.
     mtd createAnchorPopup(w, h: f32)->*FrameWnd
     {
-        let pos     = .getSurfaceRect()
-        let topView = .getTopView()
-        var pt      = topView.surfaceToLocal({pos.x, pos.bottom()})
-        pt.y += .getThemeMetrics().frameWnd_AnchorHeight
+        let pos          = .getSurfaceRect()
+        let topView      = .getTopView()
+        let metrics      = .getThemeMetrics()
+        let anchorHeight = metrics.frameWnd_AnchorHeight
+        let sdw          = metrics.frameWnd_SmallShadowSize
 
-        let sdw = .getThemeMetrics().frameWnd_SmallShadowSize
+        let ptTop        = topView.surfaceToLocal({pos.x, pos.y})
+        let ptBottom     = topView.surfaceToLocal({pos.x, pos.bottom()})
+        let anchorCenter = topView.surfaceToLocal({pos.horzCenter(), pos.y}).x
 
-        with let frame = Wnd.create'FrameWnd(topView, {pt.x, pt.y, w, h})
+        var anchor = FrameWndAnchor.Top
+        var x      = ptBottom.x
+        var y      = ptBottom.y + anchorHeight
+
+        let availableBelow = topView.position.height - sdw.w - y
+        let availableAbove = ptTop.y - anchorHeight - sdw.y
+        if availableBelow < h and availableAbove > availableBelow
+        {
+            anchor = .Bottom
+            y      = ptTop.y - anchorHeight - h
+        }
+
+        if x + w > topView.position.width - sdw.z do
+            x = topView.position.width - w - sdw.z
+        x = Math.max(x, sdw.x)
+
+        if y + h > topView.position.height - sdw.w do
+            y = topView.position.height - h - sdw.w
+        y = Math.max(y, sdw.y)
+
+        with let frame = Wnd.create'FrameWnd(topView, {x, y, w, h})
         {
             .owner = me
             .setFrameForm(.Round)
             .setFrameFlags(.SmallShadow)
             .style.addStyleSheetColors("frameWnd_Border $frameWnd_PopupBorder")
-            .fitPosInParent(sdw.z, sdw.w)
-            .anchor    = .Top
-            .anchorPos = pos.horzCenter() - frame.getSurfaceRect().x
+            .anchor    = anchor
+            .anchorPos = anchorCenter - .position.x
         }
 
         .popup = frame

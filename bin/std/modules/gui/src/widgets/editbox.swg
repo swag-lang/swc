@@ -683,6 +683,40 @@ fileprivate impl EditBox
         return {}
     }
 
+    // Width the box needs to fully display the widest value of its numeric input
+    // range (U64/S64/F64), measured with the current font and chrome. Returns 0 for
+    // non-numeric modes. Adapts automatically to the value range, font and theme.
+    mtd numericPreferredWidth()->f32
+    {
+        let fontR = .getFont().regular
+        if !fontR do
+            return 0
+
+        var lo, hi: String
+        switch .inputMode
+        {
+        case U64:
+            lo = Format.toString("%", .minMaxU64.min)
+            hi = Format.toString("%", .minMaxU64.max)
+        case S64:
+            lo = Format.toString("%", .minMaxS64.min)
+            hi = Format.toString("%", .minMaxS64.max)
+        case F64:
+            lo = Format.toString("%{f2}", .minMaxF64.min)
+            hi = Format.toString("%{f2}", .minMaxF64.max)
+        default:
+            return 0
+        }
+
+        let textW = Math.max(Painter.measureString(lo.toString(), fontR).width, Painter.measureString(hi.toString(), fontR).width)
+
+        // Derive the box width from the box's *actual* text area (so border, form
+        // padding, right margin, unit and clear button are all accounted for),
+        // plus one extra digit of breathing room for the caret.
+        let chrome = Math.max(.position.width - .getEditRect().width, 0.0) + .getTextMarginRight()
+        return Math.ceil(textW) + chrome + Painter.measureString("00", fontR).width
+    }
+
     // Forces the caret to become visible and restarts its blink timer.
     mtd forceVisibleCaret()
     {

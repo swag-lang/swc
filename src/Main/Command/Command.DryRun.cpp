@@ -246,10 +246,6 @@ namespace
         std::vector<Logger::FieldEntry> entries;
         uint32_t                        index       = 1;
         const Utf8                      inputCount  = Utf8Helper::countWithLabel(inputSummary.totalFiles, "input file");
-        Utf8                            objectFiles = "<object-files>";
-        if (!nativePreview.paths.buildDir.empty() && !nativePreview.paths.name.empty())
-            objectFiles = Utf8(nativePreview.paths.buildDir / std::format("{}_<NN>.obj", nativePreview.paths.name).c_str());
-
         if (cmdLine.command != CommandKind::Unittest)
             addPlanEntry(entries, index++, "Would", LogColor::BrightGreen, std::format("collect and classify {}", inputCount));
 
@@ -301,7 +297,7 @@ namespace
                     addPlanEntry(entries, index++, "Would", LogColor::BrightGreen, std::format("generate native {}", backendKindName(nativePreview.backendKind)));
                     if (cmdLine.clear)
                         addPlanEntry(entries, index++, "Would", LogColor::BrightGreen, std::format("clear native outputs under {}", Utf8(nativePreview.paths.workDir)));
-                    addPlanEntry(entries, index++, "Would", LogColor::BrightGreen, std::format("write object files matching {}", objectFiles));
+                    addPlanEntry(entries, index++, "Would", LogColor::BrightGreen, "prepare native link inputs in memory");
                     addPlanEntry(entries, index++, "Would", LogColor::BrightGreen, std::format("link {} with the integrated linker", Utf8(nativePreview.paths.artifactPath)));
                     if (cmdLine.command == CommandKind::Run && nativePreview.backendKind == Runtime::BuildCfgBackendKind::Executable)
                         addPlanEntry(entries, index, "Would", LogColor::BrightGreen, std::format("run {}", Utf8(nativePreview.paths.artifactPath)));
@@ -322,7 +318,7 @@ namespace
                     addPlanEntry(entries, index++, "May", LogColor::BrightYellow, std::format("build a native {} test artifact when eligible entry points are discovered", backendKindName(nativePreview.backendKind)));
                     if (cmdLine.clear)
                         addPlanEntry(entries, index++, "May", LogColor::BrightYellow, std::format("clear native outputs under {}", Utf8(nativePreview.paths.workDir)));
-                    addPlanEntry(entries, index++, "May", LogColor::BrightYellow, std::format("write object files matching {}", objectFiles));
+                    addPlanEntry(entries, index++, "May", LogColor::BrightYellow, "prepare native link inputs in memory");
                     addPlanEntry(entries, index++, "May", LogColor::BrightYellow, std::format("link {} with the integrated linker", Utf8(nativePreview.paths.artifactPath)));
                     if (nativePreview.mayRunArtifact)
                         addPlanEntry(entries, index++, "May", LogColor::BrightYellow, std::format("run {}", Utf8(nativePreview.paths.artifactPath)));
@@ -350,10 +346,6 @@ namespace
             return;
 
         std::vector<Logger::FieldEntry> entries;
-        Utf8                            objectFiles = "<object-files>";
-        if (!nativePreview.paths.buildDir.empty() && !nativePreview.paths.name.empty())
-            objectFiles = Utf8(nativePreview.paths.buildDir / std::format("{}_<NN>.obj", nativePreview.paths.name).c_str());
-
         addInfoEntry(entries, "Backend", backendKindName(nativePreview.backendKind), LogColor::BrightYellow);
         addInfoEntry(entries, "Work directory", nativePreview.paths.workDir);
         addInfoEntry(entries, "Build directory", nativePreview.paths.buildDir);
@@ -361,7 +353,7 @@ namespace
         addInfoEntry(entries, "Artifact path", nativePreview.paths.artifactPath);
         if (!nativePreview.paths.pdbPath.empty())
             addInfoEntry(entries, "PDB path", nativePreview.paths.pdbPath);
-        addInfoEntry(entries, "Object files", objectFiles);
+        addInfoEntry(entries, "Link inputs", "in memory (no intermediate .obj files)");
         Logger::printFieldGroup(ctx, "Native Outputs", entries, nextInfoGroupStyle(hasPrintedGroup, 24));
     }
 

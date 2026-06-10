@@ -77,6 +77,14 @@ struct LinkExport
     Utf8 symbolName; // the defined symbol it maps to
 };
 
+// A prepared object member for static archive output. The backend still gives it a stable object-like
+// name for debug records and archive member headers, but the linker owns the bytes directly.
+struct LinkArchiveMember
+{
+    Utf8                   name;
+    std::vector<std::byte> bytes;
+};
+
 enum class LinkImageKind : uint8_t
 {
     Executable,

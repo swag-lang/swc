@@ -9,6 +9,7 @@ class NativeObjFileWriterCoff final : public NativeObjFileWriter
 public:
     explicit NativeObjFileWriterCoff(NativeBackendBuilder& builder);
 
+    Result buildObjectFile(std::vector<std::byte>& outBytes, const NativeObjDescription& description) override;
     Result writeObjectFile(const NativeObjDescription& description) override;
 
 private:
@@ -68,7 +69,7 @@ private:
     void          addDefinedSymbols(const NativeObjDescription& description, const std::vector<CoffSectionBuild>& sections, const std::vector<DebugInfoDefinedSymbol>& extraSymbols, std::vector<CoffSymbolRecord>& symbols, std::unordered_map<Utf8, uint32_t>& symbolIndices) const;
     static void   addSymbolRecord(std::vector<CoffSymbolRecord>& symbols, std::unordered_map<Utf8, uint32_t>& symbolIndices, CoffSymbolRecord record);
     static void   addUndefinedSymbols(const std::vector<CoffSectionBuild>& sections, std::vector<CoffSymbolRecord>& symbols, std::unordered_map<Utf8, uint32_t>& symbolIndices);
-    Result        flushCoffFile(const fs::path& objPath, std::vector<CoffSectionBuild>& sections, const std::vector<CoffSymbolRecord>& symbols, const std::unordered_map<Utf8, uint32_t>& symbolIndices) const;
+    static Result buildCoffFile(std::vector<std::byte>& outBytes, std::vector<CoffSectionBuild>& sections, const std::vector<CoffSymbolRecord>& symbols, const std::unordered_map<Utf8, uint32_t>& symbolIndices);
 
     NativeBackendBuilder* builder_ = nullptr;
 };

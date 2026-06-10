@@ -717,9 +717,9 @@ bool PEWriter::writeImage(std::vector<std::byte>& outBytes, Diagnostic& outDiag,
     return emit(outBytes, outDiag);
 }
 
-bool PEWriter::buildStaticArchive(std::vector<std::byte>& outBytes, Diagnostic& outDiag, const std::vector<fs::path>& memberPaths)
+bool PEWriter::buildStaticArchive(std::vector<std::byte>& outBytes, Diagnostic& outDiag, const std::vector<LinkArchiveMember>& members)
 {
-    return buildCoffStaticArchive(outBytes, outDiag, memberPaths);
+    return buildCoffStaticArchive(outBytes, outDiag, members);
 }
 
 void PEWriter::buildImportLibrary(std::vector<std::byte>& outBytes, std::string_view dllFileName, const std::vector<Utf8>& exportNames)

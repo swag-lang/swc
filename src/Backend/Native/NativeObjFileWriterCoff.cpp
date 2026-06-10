@@ -6,6 +6,7 @@
 #include "Compiler/Sema/Symbol/Symbol.Constant.h"
 #include "Compiler/Sema/Symbol/Symbol.Module.h"
 #include "Compiler/SourceFile.h"
+#include "Main/FileSystem.h"
 #include "Support/Math/Hash.h"
 #include "Support/Math/Helpers.h"
 
@@ -135,8 +136,9 @@ NativeObjFileWriterCoff::NativeObjFileWriterCoff(NativeBackendBuilder& builder) 
 {
 }
 
-Result NativeObjFileWriterCoff::writeObjectFile(const NativeObjDescription& description)
+Result NativeObjFileWriterCoff::buildObjectFile(std::vector<std::byte>& outBytes, const NativeObjDescription& description)
 {
+    outBytes.clear();
     SWC_ASSERT(builder_ != nullptr);
     CoffSectionBuild textSection;
     textSection.data.name            = ".text";
@@ -292,7 +294,22 @@ Result NativeObjFileWriterCoff::writeObjectFile(const NativeObjDescription& desc
     addDefinedSymbols(description, sections, debugInfoResult.symbols, symbols, symbolIndices);
     addUndefinedSymbols(sections, symbols, symbolIndices);
 
-    return flushCoffFile(description.objPath, sections, symbols, symbolIndices);
+    return buildCoffFile(outBytes, sections, symbols, symbolIndices);
+}
+
+Result NativeObjFileWriterCoff::writeObjectFile(const NativeObjDescription& description)
+{
+    std::vector<std::byte> fileData;
+    SWC_RESULT(buildObjectFile(fileData, description));
+
+    FileSystem::IoErrorInfo ioError;
+    if (FileSystem::writeBinaryFile(description.objPath, fileData.data(), fileData.size(), ioError) == Result::Continue)
+        return Result::Continue;
+
+    if (ioError.problem == FileSystem::IoProblem::OpenWrite)
+        return builder_->reportError(DiagnosticId::cmd_err_native_obj_open_failed, Diagnostic::ARG_PATH, Utf8(description.objPath));
+
+    return builder_->reportError(DiagnosticId::cmd_err_native_obj_write_failed, Diagnostic::ARG_PATH, Utf8(description.objPath));
 }
 
 void NativeObjFileWriterCoff::appendAlignedCodeBytes(CoffSectionBuild& textSection, uint32_t& outOffset, const std::vector<std::byte>& bytes)
@@ -335,57 +352,12 @@ Result NativeObjFileWriterCoff::appendCodeRelocations(const NativeFunctionInfo& 
 
 Result NativeObjFileWriterCoff::appendSingleCodeRelocation(const uint32_t functionOffset, const Utf8& ownerName, const MicroRelocation& relocation, CoffSectionBuild& textSection, const bool allowUnresolvedSymbols) const
 {
-    const uint32_t patchOffset = functionOffset + relocation.codeOffset;
-    SWC_ASSERT(patchOffset + sizeof(uint64_t) <= textSection.data.bytes.size());
-
-    NativeSectionRelocation record;
-    record.offset = patchOffset;
-
-    switch (relocation.kind)
-    {
-        case MicroRelocation::Kind::LocalFunctionAddress:
-        case MicroRelocation::Kind::ForeignFunctionAddress:
-        {
-            const auto* target = relocation.targetSymbol ? relocation.targetSymbol->safeCast<SymbolFunction>() : nullptr;
-            SWC_ASSERT(target != nullptr);
-            SWC_RESULT(builder_->resolveFunctionSymbolName(record.symbolName, target, allowUnresolvedSymbols));
-            record.addend = 0;
-            writeU64(textSection.data.bytes, patchOffset, 0);
-            break;
-        }
-
-        case MicroRelocation::Kind::ConstantAddress:
-        {
-            DataSegmentRef sourceRef;
-            SWC_RESULT(builder_->resolveConstantSourceRef(sourceRef, ownerName, relocation));
-            uint32_t mappedOffset = 0;
-            if (!builder_->tryMapRDataSourceOffset(mappedOffset, sourceRef.shardIndex, sourceRef.offset))
-                return builder_->reportError(DiagnosticId::cmd_err_native_constant_payload_unsupported, Diagnostic::ARG_SYM, ownerName);
-
-            record.symbolName = nativeScopedSectionBaseSymbol(builder_->compiler(), K_R_DATA_BASE_SYMBOL);
-            record.addend     = mappedOffset;
-            writeU64(textSection.data.bytes, patchOffset, record.addend);
-            break;
-        }
-
-        case MicroRelocation::Kind::GlobalInitAddress:
-            record.symbolName = nativeScopedSectionBaseSymbol(builder_->compiler(), K_DATA_BASE_SYMBOL);
-            record.addend     = relocation.targetAddress;
-            writeU64(textSection.data.bytes, patchOffset, record.addend);
-            break;
-
-        case MicroRelocation::Kind::GlobalZeroAddress:
-            record.symbolName = nativeScopedSectionBaseSymbol(builder_->compiler(), K_BSS_BASE_SYMBOL);
-            record.addend     = relocation.targetAddress;
-            writeU64(textSection.data.bytes, patchOffset, record.addend);
-            break;
-
-        case MicroRelocation::Kind::CompilerAddress:
-            SWC_UNREACHABLE();
-    }
-
-    textSection.relocations.push_back(record);
-    return Result::Continue;
+    NativeCodeRelocationTarget target;
+    target.bytes                  = &textSection.data.bytes;
+    target.relocations            = &textSection.relocations;
+    target.functionOffset         = functionOffset;
+    target.allowUnresolvedSymbols = allowUnresolvedSymbols;
+    return builder_->appendCodeRelocation(target, ownerName, relocation);
 }
 
 Result NativeObjFileWriterCoff::applySectionRelocations(CoffSectionBuild& section)
@@ -547,8 +519,9 @@ void NativeObjFileWriterCoff::addUndefinedSymbols(const std::vector<CoffSectionB
     }
 }
 
-Result NativeObjFileWriterCoff::flushCoffFile(const fs::path& objPath, std::vector<CoffSectionBuild>& sections, const std::vector<CoffSymbolRecord>& symbols, const std::unordered_map<Utf8, uint32_t>& symbolIndices) const
+Result NativeObjFileWriterCoff::buildCoffFile(std::vector<std::byte>& outBytes, std::vector<CoffSectionBuild>& sections, const std::vector<CoffSymbolRecord>& symbols, const std::unordered_map<Utf8, uint32_t>& symbolIndices)
 {
+    outBytes.clear();
     CoffStringTable stringTable;
     for (const auto& symbol : symbols)
         stringTable.add(symbol.name);
@@ -589,7 +562,7 @@ Result NativeObjFileWriterCoff::flushCoffFile(const fs::path& objPath, std::vect
     const uint32_t stringTableOffset = fileOffset;
     fileOffset += stringTable.size;
 
-    std::vector fileData(fileOffset, std::byte{0});
+    outBytes.resize(fileOffset, std::byte{0});
 
     IMAGE_FILE_HEADER header{};
     header.Machine              = IMAGE_FILE_MACHINE_AMD64;
@@ -599,7 +572,7 @@ Result NativeObjFileWriterCoff::flushCoffFile(const fs::path& objPath, std::vect
     header.NumberOfSymbols      = static_cast<DWORD>(symbols.size());
     header.SizeOfOptionalHeader = 0;
     header.Characteristics      = 0;
-    std::memcpy(fileData.data(), &header, sizeof(header));
+    std::memcpy(outBytes.data(), &header, sizeof(header));
 
     uint32_t sectionHeaderOffset = sizeof(IMAGE_FILE_HEADER);
     for (const auto& section : sections)
@@ -614,14 +587,14 @@ Result NativeObjFileWriterCoff::flushCoffFile(const fs::path& objPath, std::vect
         headerSection.Characteristics      = section.data.characteristics;
         if (section.hasRelocationOverflow)
             headerSection.Characteristics |= IMAGE_SCN_LNK_NRELOC_OVFL;
-        std::memcpy(fileData.data() + sectionHeaderOffset, &headerSection, sizeof(headerSection));
+        std::memcpy(outBytes.data() + sectionHeaderOffset, &headerSection, sizeof(headerSection));
         sectionHeaderOffset += sizeof(IMAGE_SECTION_HEADER);
     }
 
     for (const auto& section : sections)
     {
         if (!section.data.bss && !section.data.bytes.empty())
-            std::memcpy(fileData.data() + section.pointerToRawData, section.data.bytes.data(), section.data.bytes.size());
+            std::memcpy(outBytes.data() + section.pointerToRawData, section.data.bytes.data(), section.data.bytes.size());
 
         if (section.relocations.empty())
             continue;
@@ -634,7 +607,7 @@ Result NativeObjFileWriterCoff::flushCoffFile(const fs::path& objPath, std::vect
 
             IMAGE_RELOCATION relocRecord{};
             relocRecord.RelocCount = static_cast<DWORD>(relocationRecordCount);
-            std::memcpy(fileData.data() + relocOffset, &relocRecord, sizeof(relocRecord));
+            std::memcpy(outBytes.data() + relocOffset, &relocRecord, sizeof(relocRecord));
             relocOffset += sizeof(IMAGE_RELOCATION);
         }
 
@@ -647,7 +620,7 @@ Result NativeObjFileWriterCoff::flushCoffFile(const fs::path& objPath, std::vect
             relocRecord.VirtualAddress   = relocation.offset;
             relocRecord.SymbolTableIndex = it->second;
             relocRecord.Type             = relocation.type;
-            std::memcpy(fileData.data() + relocOffset, &relocRecord, sizeof(relocRecord));
+            std::memcpy(outBytes.data() + relocOffset, &relocRecord, sizeof(relocRecord));
             relocOffset += sizeof(IMAGE_RELOCATION);
         }
     }
@@ -671,26 +644,18 @@ Result NativeObjFileWriterCoff::flushCoffFile(const fs::path& objPath, std::vect
         record.Type               = symbol.type;
         record.StorageClass       = symbol.storageClass;
         record.NumberOfAuxSymbols = symbol.numAuxSymbols;
-        std::memcpy(fileData.data() + symbolOffset, &record, sizeof(record));
+        std::memcpy(outBytes.data() + symbolOffset, &record, sizeof(record));
         symbolOffset += sizeof(IMAGE_SYMBOL);
     }
 
-    std::memcpy(fileData.data() + stringTableOffset, &stringTable.size, sizeof(uint32_t));
+    std::memcpy(outBytes.data() + stringTableOffset, &stringTable.size, sizeof(uint32_t));
     uint32_t stringCursor = stringTableOffset + sizeof(uint32_t);
     for (const Utf8& entry : stringTable.entries)
     {
-        std::memcpy(fileData.data() + stringCursor, entry.data(), entry.size());
+        std::memcpy(outBytes.data() + stringCursor, entry.data(), entry.size());
         stringCursor += static_cast<uint32_t>(entry.size());
-        fileData[stringCursor++] = std::byte{0};
+        outBytes[stringCursor++] = std::byte{0};
     }
-
-    std::ofstream file(objPath, std::ios::binary | std::ios::trunc);
-    if (!file.is_open())
-        return builder_->reportError(DiagnosticId::cmd_err_native_obj_open_failed, Diagnostic::ARG_PATH, Utf8(objPath));
-
-    file.write(reinterpret_cast<const char*>(fileData.data()), static_cast<std::streamsize>(fileData.size()));
-    if (!file.good())
-        return builder_->reportError(DiagnosticId::cmd_err_native_obj_write_failed, Diagnostic::ARG_PATH, Utf8(objPath));
 
     return Result::Continue;
 }

@@ -22,9 +22,9 @@ public:
     // structural problem.
     virtual bool writeImage(std::vector<std::byte>& outBytes, Diagnostic& outDiag, const LinkImage& image) = 0;
 
-    // Static library archive built from the given object files. Returns false and fills outDiag on a
-    // malformed/unreadable member.
-    virtual bool buildStaticArchive(std::vector<std::byte>& outBytes, Diagnostic& outDiag, const std::vector<fs::path>& memberPaths) = 0;
+    // Static library archive built from prepared object members. Returns false and fills outDiag on a
+    // malformed member.
+    virtual bool buildStaticArchive(std::vector<std::byte>& outBytes, Diagnostic& outDiag, const std::vector<LinkArchiveMember>& members) = 0;
 
     // Import library that accompanies a shared library so dependents can resolve its exports by name.
     virtual void buildImportLibrary(std::vector<std::byte>& outBytes, std::string_view dllFileName, const std::vector<Utf8>& exportNames) = 0;

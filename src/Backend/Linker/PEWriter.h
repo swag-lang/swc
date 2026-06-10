@@ -13,7 +13,7 @@ class PEWriter final : public ImageWriter
 {
 public:
     bool writeImage(std::vector<std::byte>& outBytes, Diagnostic& outDiag, const LinkImage& image) override;
-    bool buildStaticArchive(std::vector<std::byte>& outBytes, Diagnostic& outDiag, const std::vector<fs::path>& memberPaths) override;
+    bool buildStaticArchive(std::vector<std::byte>& outBytes, Diagnostic& outDiag, const std::vector<LinkArchiveMember>& members) override;
     void buildImportLibrary(std::vector<std::byte>& outBytes, std::string_view dllFileName, const std::vector<Utf8>& exportNames) override;
 
 private:

@@ -1,4 +1,5 @@
 #pragma once
+#include "Backend/Linker/LinkImage.h"
 #include "Support/Core/ByteSpan.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -40,9 +41,9 @@ private:
     std::unordered_map<Utf8, uint32_t> symbolToMember_;
 };
 
-// Builds a COFF static library (`!<arch>`) from the given object files: a symbol-directory linker
+// Builds a COFF static library (`!<arch>`) from prepared object members: a symbol-directory linker
 // member, a long-names member, and the object members. Returns false and fills outDiag on failure.
-bool buildCoffStaticArchive(std::vector<std::byte>& outBytes, Diagnostic& outDiag, const std::vector<fs::path>& memberPaths);
+bool buildCoffStaticArchive(std::vector<std::byte>& outBytes, Diagnostic& outDiag, const std::vector<LinkArchiveMember>& inputMembers);
 
 // Builds an import library: a COFF archive of short-import records, one per exported name, so a
 // dependent link resolves those names as by-name imports from the given DLL file.

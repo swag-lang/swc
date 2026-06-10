@@ -226,6 +226,8 @@ bool mergeCoffObjectsIntoImage(LinkImage& outImage, Diagnostic& outDiag, const s
     // Seed with any sections already present (typically none).
     for (uint32_t i = 0; i < outImage.sections.size(); ++i)
         sectionByName[outImage.sections[i].name] = i;
+    for (const LinkSymbol& symbol : outImage.symbols)
+        definedNames.insert(symbol.name);
 
     for (const CoffObject& object : objects)
     {

@@ -1,7 +1,6 @@
 #include "pch.h"
 #include "Backend/Linker/Archive.h"
 #include "Backend/Linker/CoffReader.h"
-#include "Main/FileSystem.h"
 #include "Support/Core/ByteUtils.h"
 #include "Support/Math/Helpers.h"
 #include "Support/Report/Diagnostic.h"
@@ -278,30 +277,20 @@ namespace
     }
 }
 
-bool buildCoffStaticArchive(std::vector<std::byte>& outBytes, Diagnostic& outDiag, const std::vector<fs::path>& memberPaths)
+bool buildCoffStaticArchive(std::vector<std::byte>& outBytes, Diagnostic& outDiag, const std::vector<LinkArchiveMember>& inputMembers)
 {
     std::vector<ArchiveMemberBuild> members;
-    members.reserve(memberPaths.size());
+    members.reserve(inputMembers.size());
 
-    for (const fs::path& path : memberPaths)
+    for (const LinkArchiveMember& inputMember : inputMembers)
     {
-        FileSystem::IoErrorInfo ioError;
-        std::vector<std::byte>  bytes;
-        if (FileSystem::readBinaryFile(path, bytes, ioError) != Result::Continue)
-        {
-            outDiag = Diagnostic::get(DiagnosticId::cmd_err_link_object_read_failed);
-            outDiag.addArgument(Diagnostic::ARG_PATH, Utf8(path));
-            outDiag.addArgument(Diagnostic::ARG_BECAUSE, FileSystem::describeIoFailure(ioError));
-            return false;
-        }
-
         CoffObject object;
-        if (!readCoffObject(object, outDiag, asByteSpan(bytes)))
+        if (!readCoffObject(object, outDiag, asByteSpan(inputMember.bytes)))
             return false;
 
         ArchiveMemberBuild member;
-        member.name = Utf8(path.filename());
-        member.data = std::move(bytes);
+        member.name = inputMember.name;
+        member.data = inputMember.bytes;
         for (const CoffInputSymbol& symbol : object.definedSymbols)
             member.symbols.push_back(symbol.name);
         members.push_back(std::move(member));

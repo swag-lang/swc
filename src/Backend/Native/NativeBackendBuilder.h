@@ -109,6 +109,14 @@ struct NativeSectionData
     uint32_t                             bssSize         = 0;
 };
 
+struct NativeCodeRelocationTarget
+{
+    std::vector<std::byte>*               bytes                  = nullptr;
+    std::vector<NativeSectionRelocation>* relocations            = nullptr;
+    uint32_t                              functionOffset         = 0;
+    bool                                  allowUnresolvedSymbols = false;
+};
+
 struct NativeRDataAllocationMapEntry
 {
     uint32_t sourceOffset  = 0;
@@ -120,6 +128,7 @@ struct NativeObjDescription
 {
     uint32_t                         index = 0;
     fs::path                         objPath;
+    std::vector<std::byte>           objBytes;
     std::vector<NativeFunctionInfo*> functions;
     NativeStartupInfo*               startup                = nullptr;
     bool                             includeData            = false;
@@ -141,12 +150,13 @@ public:
     const NativeFunctionInfo* tryFindFunctionInfo(const SymbolFunction& targetFunction) const noexcept;
     Result                    resolveFunctionSymbolName(Utf8& outName, const SymbolFunction* targetFunction, bool allowUnresolvedSymbols = false);
     bool                      tryMapRDataSourceOffset(uint32_t& outOffset, uint32_t shardIndex, uint32_t sourceOffset) const noexcept;
+    Result                    appendCodeRelocation(NativeCodeRelocationTarget& target, const Utf8& ownerName, const MicroRelocation& relocation);
     DiagnosticId              lastErrorId() const { return lastErrorId_; }
 
     Result run();
     Result runExistingArtifact();
     Result prepare();
-    Result writeObject(uint32_t objIndex);
+    Result buildObject(uint32_t objIndex);
 
     // Deferred (workspace async-link) path. prepareForLink runs the full build up to but not
     // including the link, leaving a prepared LinkJob in deferredToolRun(). The caller then runs
@@ -198,11 +208,11 @@ public:
     fs::path                                                                             buildDir;
     fs::path                                                                             artifactPath;
     fs::path                                                                             pdbPath;
-    std::atomic<bool>                                                                    objWriteFailed = false;
+    std::atomic<bool>                                                                    objBuildFailed = false;
 
 private:
     Result validateTarget();
-    Result writeObjects();
+    Result buildObjects();
     Result runGeneratedArtifact();
     Result runAfterLink();
 

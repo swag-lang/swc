@@ -9,6 +9,7 @@
 #include "Compiler/Sema/Type/TypeInfo.h"
 #include "Main/CompilerInstance.h"
 #include "Main/Version.h"
+#include "Support/Math/Hash.h"
 #include "Support/Math/Helpers.h"
 #include "Support/Os/Os.h"
 
@@ -1363,7 +1364,8 @@ namespace
         pdataSection.name            = ".pdata";
         pdataSection.characteristics = IMAGE_SCN_CNT_INITIALIZED_DATA | IMAGE_SCN_ALIGN_4BYTES | IMAGE_SCN_MEM_READ;
 
-        uint32_t unwindIndex = 0;
+        const uint32_t objectHash  = Math::hash(Utf8(request.objectPath).view());
+        uint32_t       unwindIndex = 0;
         for (const DebugInfoFunctionRecord& function : request.functions)
         {
             if (!function.machineCode || function.machineCode->unwindInfo.empty())
@@ -1373,7 +1375,7 @@ namespace
             const uint32_t unwindOffset = static_cast<uint32_t>(xdataSection.bytes.size());
             writeBytes(xdataSection.bytes, ByteSpan{function.machineCode->unwindInfo.data(), function.machineCode->unwindInfo.size()});
 
-            const Utf8             unwindSymbolName = std::format("__swc_unwind_{:04}", unwindIndex++);
+            const Utf8             unwindSymbolName = std::format("__swc_unwind_{:08x}_{:04}", objectHash, unwindIndex++);
             DebugInfoDefinedSymbol unwindSym;
             unwindSym.name        = unwindSymbolName;
             unwindSym.sectionName = xdataSection.name;

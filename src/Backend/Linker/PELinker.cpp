@@ -2,12 +2,14 @@
 #include "Backend/Linker/Archive.h"
 #include "Backend/Linker/CoffReader.h"
 #include "Backend/Linker/PELinker.h"
+#include "Backend/Debug/DebugInfo.h"
 #include "Backend/Micro/MachineCode.h"
 #include "Backend/Native/NativeBackendBuilder.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/SourceFile.h"
 #include "Main/FileSystem.h"
 #include "Support/Core/ByteUtils.h"
+#include "Support/Math/Helpers.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -43,7 +45,60 @@ namespace
         }
     }
 
-    // Names defined across a set of objects.
+    bool isDebugSectionName(const Utf8& name)
+    {
+        return name.view().starts_with(".debug");
+    }
+
+    uint32_t alignmentFromCharacteristics(const uint32_t characteristics)
+    {
+        const uint32_t field = (characteristics & 0x00F00000u) >> 20;
+        if (field == 0)
+            return 1;
+        return 1u << (field - 1);
+    }
+
+    EnumFlags<LinkSectionFlagsE> flagsFromCharacteristics(const uint32_t characteristics)
+    {
+        EnumFlags<LinkSectionFlagsE> flags;
+        if (characteristics & IMAGE_SCN_CNT_CODE)
+            flags.add(LinkSectionFlagsE::Code);
+        if (characteristics & IMAGE_SCN_MEM_EXECUTE)
+            flags.add(LinkSectionFlagsE::Execute);
+        if (characteristics & IMAGE_SCN_MEM_READ)
+            flags.add(LinkSectionFlagsE::Read);
+        if (characteristics & IMAGE_SCN_MEM_WRITE)
+            flags.add(LinkSectionFlagsE::Write);
+        if (characteristics & IMAGE_SCN_CNT_UNINITIALIZED_DATA)
+            flags.add(LinkSectionFlagsE::Uninit);
+        return flags;
+    }
+
+    bool linkRelocKindFromNativeType(LinkRelocKind& outKind, const uint16_t type)
+    {
+        switch (type)
+        {
+            case IMAGE_REL_AMD64_ADDR64:
+                outKind = LinkRelocKind::Abs64;
+                return true;
+            case IMAGE_REL_AMD64_ADDR32NB:
+                outKind = LinkRelocKind::Rva32;
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    void appendAlignedBytes(std::vector<std::byte>& outBytes, uint32_t& outOffset, const std::vector<std::byte>& bytes)
+    {
+        const uint32_t alignedOffset = Math::alignUpU32(static_cast<uint32_t>(outBytes.size()), 16);
+        if (outBytes.size() < alignedOffset)
+            outBytes.resize(alignedOffset, std::byte{0});
+        outOffset = alignedOffset;
+        outBytes.insert(outBytes.end(), bytes.begin(), bytes.end());
+    }
+
+    // Names defined across a set of archive objects.
     void collectDefined(std::unordered_set<Utf8>& outDefined, const std::vector<CoffObject>& objects)
     {
         for (const CoffObject& object : objects)
@@ -51,13 +106,17 @@ namespace
                 outDefined.insert(symbol.name);
     }
 
-    // Reloc targets that are not (yet) defined; debug sections are dropped by the merge, so ignore
-    // their relocations here too.
+    void collectDefined(std::unordered_set<Utf8>& outDefined, const LinkImage& image)
+    {
+        for (const LinkSymbol& symbol : image.symbols)
+            outDefined.insert(symbol.name);
+    }
+
     void collectUndefined(std::unordered_set<Utf8>& outUndefined, const CoffObject& object, const std::unordered_set<Utf8>& defined)
     {
         for (const CoffInputSection& section : object.sections)
         {
-            if (section.name.view().starts_with(".debug"))
+            if (isDebugSectionName(section.name))
                 continue;
             for (const CoffInputReloc& reloc : section.relocs)
             {
@@ -66,6 +125,257 @@ namespace
             }
         }
     }
+
+    void collectUndefined(std::unordered_set<Utf8>& outUndefined, const LinkImage& image, const std::unordered_set<Utf8>& defined)
+    {
+        for (const LinkSection& section : image.sections)
+        {
+            if (isDebugSectionName(section.name))
+                continue;
+            for (const LinkReloc& reloc : section.relocs)
+            {
+                if (!defined.contains(reloc.symbolName))
+                    outUndefined.insert(reloc.symbolName);
+            }
+        }
+    }
+
+    struct SectionPlacement
+    {
+        uint32_t index = 0;
+        uint32_t base  = 0;
+        bool     valid = false;
+    };
+
+    class NativeImageLowering
+    {
+    public:
+        NativeImageLowering(NativeBackendBuilder& builder, LinkImage& image) :
+            builder_(&builder),
+            image_(&image)
+        {
+            for (uint32_t i = 0; i < image.sections.size(); ++i)
+                sectionByName_[image.sections[i].name] = i;
+            for (const LinkSymbol& symbol : image.symbols)
+                definedNames_.insert(symbol.name);
+        }
+
+        Result appendDescription(const NativeObjDescription& description)
+        {
+            SWC_RESULT(appendTextSection(description));
+            if (description.includeData)
+                SWC_RESULT(appendDataSections());
+            return appendUnwindSections(description);
+        }
+
+    private:
+        Result appendTextSection(const NativeObjDescription& description)
+        {
+            NativeSectionData textSection;
+            textSection.name            = ".text";
+            textSection.characteristics = IMAGE_SCN_CNT_CODE | IMAGE_SCN_MEM_EXECUTE | IMAGE_SCN_MEM_READ | IMAGE_SCN_ALIGN_16BYTES;
+
+            if (description.startup)
+                appendAlignedBytes(textSection.bytes, description.startup->textOffset, description.startup->code.bytes);
+            for (NativeFunctionInfo* info : description.functions)
+                appendAlignedBytes(textSection.bytes, info->textOffset, info->machineCode->bytes);
+
+            if (description.startup)
+                SWC_RESULT(appendCodeRelocations(textSection, description.startup->textOffset, description.startup->debugName, description.startup->code, description.allowUnresolvedSymbols));
+            for (const NativeFunctionInfo* info : description.functions)
+                SWC_RESULT(appendCodeRelocations(textSection, info->textOffset, info->debugName, *info->machineCode, description.allowUnresolvedSymbols));
+
+            SectionPlacement placement;
+            SWC_RESULT(appendNativeSection(placement, textSection));
+            if (description.startup)
+                addSymbol(description.startup->symbolName, placement.index, placement.base + description.startup->textOffset);
+            for (const NativeFunctionInfo* info : description.functions)
+                addSymbol(info->symbolName, placement.index, placement.base + info->textOffset);
+            return Result::Continue;
+        }
+
+        Result appendCodeRelocations(NativeSectionData& textSection, const uint32_t functionOffset, const Utf8& ownerName, const MachineCode& code, const bool allowUnresolvedSymbols) const
+        {
+            NativeCodeRelocationTarget target;
+            target.bytes                  = &textSection.bytes;
+            target.relocations            = &textSection.relocations;
+            target.functionOffset         = functionOffset;
+            target.allowUnresolvedSymbols = allowUnresolvedSymbols;
+            for (const MicroRelocation& relocation : code.codeRelocations)
+                SWC_RESULT(builder_->appendCodeRelocation(target, ownerName, relocation));
+            return Result::Continue;
+        }
+
+        Result appendDataSections()
+        {
+            SWC_ASSERT(builder_ != nullptr);
+            if (!builder_->mergedRData.bytes.empty())
+                SWC_RESULT(appendDataSection(builder_->mergedRData, nativeScopedSectionBaseSymbol(builder_->compiler(), K_R_DATA_BASE_SYMBOL)));
+            if (!builder_->mergedData.bytes.empty())
+                SWC_RESULT(appendDataSection(builder_->mergedData, nativeScopedSectionBaseSymbol(builder_->compiler(), K_DATA_BASE_SYMBOL)));
+            if (builder_->mergedBss.bss)
+                SWC_RESULT(appendDataSection(builder_->mergedBss, nativeScopedSectionBaseSymbol(builder_->compiler(), K_BSS_BASE_SYMBOL)));
+            return Result::Continue;
+        }
+
+        Result appendDataSection(const NativeSectionData& section, const Utf8& baseSymbolName)
+        {
+            SectionPlacement placement;
+            SWC_RESULT(appendNativeSection(placement, section));
+            addSymbol(baseSymbolName, placement.index, placement.base);
+            return Result::Continue;
+        }
+
+        Result appendUnwindSections(const NativeObjDescription& description)
+        {
+            std::vector<DebugInfoFunctionRecord> debugFunctions;
+            debugFunctions.reserve(description.functions.size() + (description.startup ? 1u : 0u));
+
+            if (description.startup)
+                debugFunctions.push_back({.symbolName = description.startup->symbolName, .debugName = description.startup->debugName, .returnTypeRef = TypeRef::invalid(), .machineCode = &description.startup->code});
+            for (const NativeFunctionInfo* info : description.functions)
+                debugFunctions.push_back({.symbolName = info->symbolName, .debugName = info->debugName, .returnTypeRef = TypeRef::invalid(), .machineCode = info->machineCode});
+
+            DebugInfoObjectResult        debugInfoResult;
+            const DebugInfoObjectRequest debugInfoRequest = {
+                .ctx          = &builder_->ctx(),
+                .targetOs     = builder_->ctx().cmdLine().targetOs,
+                .objectPath   = description.objPath,
+                .functions    = debugFunctions,
+                .emitCodeView = false,
+            };
+            SWC_RESULT(DebugInfo::buildObject(debugInfoRequest, debugInfoResult));
+
+            std::unordered_map<Utf8, SectionPlacement> placements;
+            for (const NativeSectionData& section : debugInfoResult.sections)
+            {
+                if (isDebugSectionName(section.name))
+                    continue;
+
+                SectionPlacement placement;
+                SWC_RESULT(appendNativeSection(placement, section));
+                placements.emplace(section.name, placement);
+            }
+
+            for (const DebugInfoDefinedSymbol& symbol : debugInfoResult.symbols)
+            {
+                const auto it = placements.find(symbol.sectionName);
+                SWC_ASSERT(it != placements.end());
+                if (it == placements.end())
+                    continue;
+
+                addSymbol(symbol.name, it->second.index, it->second.base + symbol.value);
+            }
+
+            return Result::Continue;
+        }
+
+        Result appendNativeSection(SectionPlacement& outPlacement, const NativeSectionData& section)
+        {
+            outPlacement = {};
+            if (isDebugSectionName(section.name))
+                return Result::Continue;
+
+            uint32_t   sectionIndex = 0;
+            const auto it           = sectionByName_.find(section.name);
+            if (it == sectionByName_.end())
+            {
+                LinkSection linkSection;
+                linkSection.name  = section.name;
+                linkSection.align = 1;
+                sectionIndex      = static_cast<uint32_t>(image_->sections.size());
+                image_->sections.push_back(std::move(linkSection));
+                sectionByName_.emplace(section.name, sectionIndex);
+            }
+            else
+            {
+                sectionIndex = it->second;
+            }
+
+            LinkSection&   linkSection = image_->sections[sectionIndex];
+            const uint32_t align       = alignmentFromCharacteristics(section.characteristics);
+            linkSection.align          = std::max(linkSection.align, align);
+            linkSection.flags.add(flagsFromCharacteristics(section.characteristics));
+
+            uint32_t base = 0;
+            if (section.bss)
+            {
+                linkSection.bssSize = Math::alignUpU32(linkSection.bssSize, align);
+                base                = linkSection.bssSize;
+                linkSection.bssSize += section.bssSize;
+                linkSection.flags.add(LinkSectionFlagsE::Uninit);
+            }
+            else
+            {
+                base = Math::alignUpU32(static_cast<uint32_t>(linkSection.bytes.size()), align);
+                linkSection.bytes.resize(base, std::byte{0});
+                linkSection.bytes.insert(linkSection.bytes.end(), section.bytes.begin(), section.bytes.end());
+            }
+
+            outPlacement.index = sectionIndex;
+            outPlacement.base  = base;
+            outPlacement.valid = true;
+
+            for (const NativeSectionRelocation& relocation : section.relocations)
+                SWC_RESULT(appendRelocation(sectionIndex, base, section.name, relocation));
+            return Result::Continue;
+        }
+
+        Result appendRelocation(const uint32_t sectionIndex, const uint32_t base, const Utf8& sectionName, const NativeSectionRelocation& relocation)
+        {
+            LinkRelocKind kind;
+            if (!linkRelocKindFromNativeType(kind, relocation.type))
+            {
+                Diagnostic diag = Diagnostic::get(DiagnosticId::cmd_err_link_coff_unsupported_reloc);
+                diag.addArgument(Diagnostic::ARG_VALUE, std::to_string(relocation.type));
+                diag.addArgument(Diagnostic::ARG_TARGET, sectionName);
+                return builder_->reportError(diag);
+            }
+
+            LinkSection&   section     = image_->sections[sectionIndex];
+            const uint32_t patchOffset = base + relocation.offset;
+            switch (relocation.type)
+            {
+                case IMAGE_REL_AMD64_ADDR64:
+                    if (patchOffset + sizeof(uint64_t) > section.bytes.size())
+                        return builder_->reportError(DiagnosticId::cmd_err_link_reloc_out_of_bounds);
+                    ByteUtils::writeLE64(section.bytes, patchOffset, relocation.addend);
+                    break;
+                case IMAGE_REL_AMD64_ADDR32NB:
+                    if (patchOffset + sizeof(uint32_t) > section.bytes.size())
+                        return builder_->reportError(DiagnosticId::cmd_err_link_reloc_out_of_bounds);
+                    ByteUtils::writeLE32(section.bytes, patchOffset, static_cast<uint32_t>(relocation.addend));
+                    break;
+                default:
+                    SWC_UNREACHABLE();
+            }
+
+            LinkReloc linkReloc;
+            linkReloc.sectionIndex = sectionIndex;
+            linkReloc.offset       = patchOffset;
+            linkReloc.symbolName   = relocation.symbolName;
+            linkReloc.kind         = kind;
+            section.relocs.push_back(std::move(linkReloc));
+            return Result::Continue;
+        }
+
+        void addSymbol(const Utf8& name, const uint32_t sectionIndex, const uint32_t value)
+        {
+            if (!definedNames_.insert(name).second)
+                return;
+
+            LinkSymbol symbol;
+            symbol.name         = name;
+            symbol.sectionIndex = sectionIndex;
+            symbol.value        = value;
+            image_->symbols.push_back(std::move(symbol));
+        }
+
+        NativeBackendBuilder*              builder_ = nullptr;
+        LinkImage*                         image_   = nullptr;
+        std::unordered_map<Utf8, uint32_t> sectionByName_;
+        std::unordered_set<Utf8>           definedNames_;
+    };
 }
 
 PELinker::PELinker(NativeBackendBuilder& builder) :
@@ -73,22 +383,12 @@ PELinker::PELinker(NativeBackendBuilder& builder) :
 {
 }
 
-Result PELinker::readObjects(std::vector<CoffObject>& outObjects) const
+Result PELinker::buildNativeImage(LinkImage& image) const
 {
     SWC_ASSERT(builder_ != nullptr);
+    NativeImageLowering lowering(*builder_, image);
     for (const NativeObjDescription& description : builder_->objectDescriptions)
-    {
-        FileSystem::IoErrorInfo ioError;
-        std::vector<std::byte>  bytes;
-        if (FileSystem::readBinaryFile(description.objPath, bytes, ioError) != Result::Continue)
-            return builder_->reportError(DiagnosticId::cmd_err_link_object_read_failed, Diagnostic::ARG_PATH, Utf8(description.objPath), Diagnostic::ARG_BECAUSE, FileSystem::describeIoFailure(ioError));
-
-        CoffObject object;
-        Diagnostic diag;
-        if (!readCoffObject(object, diag, asByteSpan(bytes)))
-            return builder_->reportError(diag);
-        outObjects.push_back(std::move(object));
-    }
+        SWC_RESULT(lowering.appendDescription(description));
 
     return Result::Continue;
 }
@@ -163,16 +463,16 @@ Result PELinker::loadArchives(std::vector<Archive>& outArchives) const
     return Result::Continue;
 }
 
-Result PELinker::resolveSymbols(LinkImage& image, std::vector<CoffObject>& objects, std::vector<Archive>& archives) const
+Result PELinker::resolveSymbols(LinkImage& image, std::vector<Archive>& archives) const
 {
     std::unordered_set<Utf8> defined;
-    collectDefined(defined, objects);
+    collectDefined(defined, image);
 
     std::unordered_set<Utf8> undefined;
-    for (const CoffObject& object : objects)
-        collectUndefined(undefined, object, defined);
+    collectUndefined(undefined, image, defined);
 
     std::unordered_set<Utf8> imported;
+    std::vector<CoffObject>  pulledObjects;
     std::vector              worklist(undefined.begin(), undefined.end());
 
     while (!worklist.empty())
@@ -220,13 +520,13 @@ Result PELinker::resolveSymbols(LinkImage& image, std::vector<CoffObject>& objec
                 if (!imported.contains(u))
                     worklist.push_back(u);
 
-            objects.push_back(std::move(pulled));
+            pulledObjects.push_back(std::move(pulled));
             break;
         }
     }
 
     Diagnostic diag;
-    if (!mergeCoffObjectsIntoImage(image, diag, objects))
+    if (!mergeCoffObjectsIntoImage(image, diag, pulledObjects))
         return builder_->reportError(diag);
 
     return Result::Continue;
@@ -352,13 +652,12 @@ Result PELinker::buildImage(LinkImage& image) const
 {
     SWC_ASSERT(builder_ != nullptr);
 
-    std::vector<CoffObject> objects;
-    SWC_RESULT(readObjects(objects));
+    SWC_RESULT(buildNativeImage(image));
 
     std::vector<Archive> archives;
     SWC_RESULT(loadArchives(archives));
 
-    SWC_RESULT(resolveSymbols(image, objects, archives));
+    SWC_RESULT(resolveSymbols(image, archives));
 
     // Emit the embedded `.swagdbg` symbol table consumed by the runtime self-symbolizer.
     buildDebugTable(image);
@@ -401,8 +700,9 @@ Result PELinker::prepareLink(LinkJob& outJob)
             return buildImage(outJob.image);
         case Runtime::BuildCfgBackendKind::StaticLibrary:
             outJob.output = LinkJob::Output::StaticLibrary;
+            outJob.archiveMembers.reserve(builder_->objectDescriptions.size());
             for (const NativeObjDescription& description : builder_->objectDescriptions)
-                outJob.archiveMembers.push_back(description.objPath);
+                outJob.archiveMembers.push_back({.name = Utf8(description.objPath.filename()), .bytes = description.objBytes});
             return Result::Continue;
         case Runtime::BuildCfgBackendKind::Export:
         case Runtime::BuildCfgBackendKind::None:

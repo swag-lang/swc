@@ -27,6 +27,11 @@ namespace
         return symbol.decl() && symbol.decl()->id() == AstNodeId::CompilerFunc;
     }
 
+    void writeU64(std::vector<std::byte>& bytes, const uint32_t offset, const uint64_t value)
+    {
+        std::memcpy(bytes.data() + offset, &value, sizeof(value));
+    }
+
     Utf8 buildLocalFunctionSymbolName(const NativeBackendBuilder& builder, const NativeFunctionInfo& info, const uint32_t ordinal)
     {
         const uint32_t scopeHash = Math::hash(nativeArtifactScopeName(builder.compiler()).view());
@@ -523,6 +528,66 @@ Result NativeBackendBuilder::resolveFunctionSymbolName(Utf8& outName, const Symb
     return reportError(DiagnosticId::cmd_err_native_invalid_local_function_relocation, Diagnostic::ARG_SYM, targetFunction->getFullScopedName(ctx()));
 }
 
+Result NativeBackendBuilder::appendCodeRelocation(NativeCodeRelocationTarget& target, const Utf8& ownerName, const MicroRelocation& relocation)
+{
+    SWC_ASSERT(target.bytes != nullptr);
+    SWC_ASSERT(target.relocations != nullptr);
+    if (!target.bytes || !target.relocations)
+        return reportError(DiagnosticId::cmd_err_native_invalid_local_function_relocation, Diagnostic::ARG_SYM, ownerName);
+
+    const uint32_t patchOffset = target.functionOffset + relocation.codeOffset;
+    SWC_ASSERT(patchOffset + sizeof(uint64_t) <= target.bytes->size());
+
+    NativeSectionRelocation record;
+    record.offset = patchOffset;
+
+    switch (relocation.kind)
+    {
+        case MicroRelocation::Kind::LocalFunctionAddress:
+        case MicroRelocation::Kind::ForeignFunctionAddress:
+        {
+            const auto* targetFunction = relocation.targetSymbol ? relocation.targetSymbol->safeCast<SymbolFunction>() : nullptr;
+            SWC_ASSERT(targetFunction != nullptr);
+            SWC_RESULT(resolveFunctionSymbolName(record.symbolName, targetFunction, target.allowUnresolvedSymbols));
+            record.addend = 0;
+            writeU64(*target.bytes, patchOffset, 0);
+            break;
+        }
+
+        case MicroRelocation::Kind::ConstantAddress:
+        {
+            DataSegmentRef sourceRef;
+            SWC_RESULT(resolveConstantSourceRef(sourceRef, ownerName, relocation));
+            uint32_t mappedOffset = 0;
+            if (!tryMapRDataSourceOffset(mappedOffset, sourceRef.shardIndex, sourceRef.offset))
+                return reportError(DiagnosticId::cmd_err_native_constant_payload_unsupported, Diagnostic::ARG_SYM, ownerName);
+
+            record.symbolName = nativeScopedSectionBaseSymbol(compiler(), K_R_DATA_BASE_SYMBOL);
+            record.addend     = mappedOffset;
+            writeU64(*target.bytes, patchOffset, record.addend);
+            break;
+        }
+
+        case MicroRelocation::Kind::GlobalInitAddress:
+            record.symbolName = nativeScopedSectionBaseSymbol(compiler(), K_DATA_BASE_SYMBOL);
+            record.addend     = relocation.targetAddress;
+            writeU64(*target.bytes, patchOffset, record.addend);
+            break;
+
+        case MicroRelocation::Kind::GlobalZeroAddress:
+            record.symbolName = nativeScopedSectionBaseSymbol(compiler(), K_BSS_BASE_SYMBOL);
+            record.addend     = relocation.targetAddress;
+            writeU64(*target.bytes, patchOffset, record.addend);
+            break;
+
+        case MicroRelocation::Kind::CompilerAddress:
+            SWC_UNREACHABLE();
+    }
+
+    target.relocations->push_back(record);
+    return Result::Continue;
+}
+
 bool NativeBackendBuilder::tryMapRDataSourceOffset(uint32_t& outOffset, const uint32_t shardIndex, const uint32_t sourceOffset) const noexcept
 {
     outOffset = 0;
@@ -567,7 +632,7 @@ Result NativeBackendBuilder::run()
         }
         stage.setStat(std::move(buildStat));
         SWC_RESULT(artifactBuilder.build());
-        SWC_RESULT(writeObjects());
+        SWC_RESULT(buildObjects());
 
         const auto linker = Linker::create(*this);
         SWC_ASSERT(linker != nullptr);
@@ -602,7 +667,7 @@ Result NativeBackendBuilder::prepareForLink()
         }
         stage.setStat(std::move(buildStat));
         SWC_RESULT(artifactBuilder.build());
-        SWC_RESULT(writeObjects());
+        SWC_RESULT(buildObjects());
     }
 
     deferredLinker_ = Linker::create(*this);
@@ -720,12 +785,13 @@ Result NativeBackendBuilder::prepare()
     }
 }
 
-Result NativeBackendBuilder::writeObject(const uint32_t objIndex)
+Result NativeBackendBuilder::buildObject(const uint32_t objIndex)
 {
     SWC_ASSERT(objIndex < objectDescriptions.size());
     const auto objectWriter = NativeObjFileWriter::create(*this);
     SWC_ASSERT(objectWriter != nullptr);
-    return objectWriter->writeObjectFile(objectDescriptions[objIndex]);
+    NativeObjDescription& description = objectDescriptions[objIndex];
+    return objectWriter->buildObjectFile(description.objBytes, description);
 }
 
 Result NativeBackendBuilder::reportError(DiagnosticId id)
@@ -770,12 +836,15 @@ Result NativeBackendBuilder::validateTarget()
     return Result::Continue;
 }
 
-Result NativeBackendBuilder::writeObjects()
+Result NativeBackendBuilder::buildObjects()
 {
-    objWriteFailed.store(false, std::memory_order_release);
+    objBuildFailed.store(false, std::memory_order_release);
 
     const NativeArtifactBuilder artifactBuilder(*this);
     SWC_RESULT(artifactBuilder.prepareOutputFolders());
+
+    if (compiler_->buildCfg().backendKind != Runtime::BuildCfgBackendKind::StaticLibrary)
+        return Result::Continue;
 
     JobManager& jobMgr = ctx_.global().jobMgr();
     for (uint32_t i = 0; i < objectDescriptions.size(); ++i)
@@ -786,9 +855,9 @@ Result NativeBackendBuilder::writeObjects()
 
     jobMgr.waitAll(compiler_->jobClientId());
 #if SWC_DEV_MODE
-    jobMgr.assertNoWaitingJobs(compiler_->jobClientId(), "NativeBackendBuilder::writeObjects");
+    jobMgr.assertNoWaitingJobs(compiler_->jobClientId(), "NativeBackendBuilder::buildObjects");
 #endif
-    return objWriteFailed.load(std::memory_order_acquire) ? Result::Error : Result::Continue;
+    return objBuildFailed.load(std::memory_order_acquire) ? Result::Error : Result::Continue;
 }
 
 Result NativeBackendBuilder::runGeneratedArtifact()

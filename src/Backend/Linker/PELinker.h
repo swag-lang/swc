@@ -7,10 +7,10 @@ SWC_BEGIN_NAMESPACE();
 class Archive;
 struct CoffObject;
 
-// Integrated Windows PE linker. Reads the COFF objects the backend just wrote, resolves the remaining
-// undefined symbols against the dependency and system import/static libraries (pulling static members
-// and turning DLL imports into an import table), merges everything into a target-independent
-// LinkImage and hands it to the PE writer -- no external link.exe involved.
+// Integrated Windows PE linker. Lowers the native backend state directly into a LinkImage, resolves
+// the remaining undefined symbols against dependency and system import/static libraries (pulling
+// static members and turning DLL imports into an import table), and hands the image to the PE writer
+// -- no external link.exe or intermediate object files involved.
 class PELinker final : public Linker
 {
 public:
@@ -20,10 +20,10 @@ public:
 
 private:
     Result buildImage(LinkImage& image) const;
-    Result readObjects(std::vector<CoffObject>& outObjects) const;
+    Result buildNativeImage(LinkImage& image) const;
     Result loadArchives(std::vector<Archive>& outArchives) const;
     void   collectLibrarySearch(std::set<Utf8>& outLibNames, std::vector<fs::path>& outDirs) const;
-    Result resolveSymbols(LinkImage& image, std::vector<CoffObject>& objects, std::vector<Archive>& archives) const;
+    Result resolveSymbols(LinkImage& image, std::vector<Archive>& archives) const;
     void   collectExports(LinkImage& image) const;
     void   buildDebugTable(LinkImage& image) const;
 };

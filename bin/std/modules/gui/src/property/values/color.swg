@@ -27,10 +27,12 @@ impl Properties
             .iconBtnFlags.add(.Popup | .CheckableToggle)
         }
 
+        line.maxSize.x = width
+
         with let ed = EditBox.create(line, "", {0, 0, width - MarginBtn - WidthBtn, item.line.position.height})
         {
-            .dockStyle = .Left
-            .margin.z  = MarginBtn
+            .dockStyle = .Center
+            .margin.x  = MarginBtn
             .setInputX64(0, opaque ? 0xFFFFFF : 0xFFFFFFFF)
             .sigLoseFocus += func|prop, color, item, opaque, keepAlpha|(ed)
             {

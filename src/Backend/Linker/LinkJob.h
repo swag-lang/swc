@@ -26,7 +26,7 @@ struct LinkJob
     fs::path              outputPath;
     fs::path              buildDir;
     LinkImage             image;          // Executable / SharedLibrary
-    std::vector<fs::path> archiveMembers; // StaticLibrary: object files to archive
+    std::vector<LinkArchiveMember> archiveMembers; // StaticLibrary: prepared object members
 
     // Outputs (filled by executeLink). On failure, error carries a ready-to-report diagnostic built
     // off the foreground thread (Diagnostic::get/addArgument touch no compiler/logger state); finishLink

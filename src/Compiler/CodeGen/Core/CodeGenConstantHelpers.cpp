@@ -40,6 +40,16 @@ namespace
         return mergeRequiredShardIndex(outShardIndex, hasRequiredShard, ref.shardIndex);
     }
 
+    bool hasSourceFunctionRelocation(CodeGen& codeGen, const void* fieldPtr)
+    {
+        DataSegmentRef sourceRef;
+        if (!codeGen.cstMgr().resolveDataSegmentRef(sourceRef, fieldPtr))
+            return false;
+
+        DataSegmentRelocation relocation;
+        return codeGen.cstMgr().shardDataSegment(sourceRef.shardIndex).findRelocation(relocation, sourceRef.offset, DataSegmentRelocationKind::FunctionSymbol);
+    }
+
     bool resolveClosureStaticPayloadRequiredShardIndex(uint32_t& outShardIndex, bool& hasRequiredShard, CodeGen& codeGen, ByteSpan payload)
     {
         if (payload.size() != sizeof(Runtime::ClosureValue))
@@ -70,6 +80,9 @@ namespace
         const uint64_t sizeOf = typeInfo.sizeOf(ctx);
         if (sizeOf != payload.size())
             return false;
+
+        if (typeInfo.isTypeValue())
+            return resolveStaticPayloadRequiredShardIndex(outShardIndex, hasRequiredShard, codeGen, typeInfo.payloadTypeRef(), payload);
 
         if (typeInfo.isEnum())
             return resolveStaticPayloadRequiredShardIndex(outShardIndex, hasRequiredShard, codeGen, typeInfo.payloadSymEnum().underlyingTypeRef(), payload);
@@ -207,7 +220,10 @@ namespace
                 return false;
 
             const uint64_t rawPtr = *reinterpret_cast<const uint64_t*>(payload.data());
-            return requirePointerShardIndex(outShardIndex, hasRequiredShard, codeGen, reinterpret_cast<const void*>(rawPtr));
+            if (requirePointerShardIndex(outShardIndex, hasRequiredShard, codeGen, reinterpret_cast<const void*>(rawPtr)))
+                return true;
+
+            return hasSourceFunctionRelocation(codeGen, payload.data());
         }
 
         return false;

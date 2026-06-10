@@ -26,14 +26,16 @@ impl IWnd for SliderCtrl
         .label.setPosition(0, 0, .labelSize, rect.height)
 
         // Size the value box to its content (the formatted numeric range) so values
-        // are never clipped, but never shrink below `editSize` and keep the track
-        // usable by capping at 60% of the available width.
-        var es       = .editSize
+        // are never clipped. Prefer `editSize`, but shrink when the row is
+        // narrower and keep the track usable by capping at 60% of the available width.
+        let available = Math.max(rect.width - .labelSize, 0.0)
+        var es        = .editSize
         let adaptive = .edit.numericPreferredWidth()
         if adaptive > es do
-            es = Math.min(adaptive, Math.max((rect.width - .labelSize) * 0.6, .editSize))
+            es = Math.min(adaptive, Math.max(available * 0.6, .editSize))
+        es = Math.min(es, available)
 
-        let w = rect.width - .labelSize - es
+        let w = available - es
         .slider.setPosition(.label.position.right(), rect.vertCenter() - metrics.slider_Height / 2, w, metrics.slider_Height)
 
         .edit.setPosition(.slider.position.right(), rect.vertCenter() - metrics.editBox_Height / 2, es, metrics.editBox_Height)
@@ -79,6 +81,7 @@ impl SliderCtrl
             .edit = EditBox.create(ctrl, "", {})
             .edit.setForm(.Square)
             .edit.editBoxFlags |= .RightAlign
+            .edit.rightMargin = metrics.editBox_UnitMargin
             .edit.sigLoseFocus += func|ctrl|(edit)
             {
                 switch edit.inputMode

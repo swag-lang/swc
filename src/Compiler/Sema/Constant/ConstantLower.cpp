@@ -180,6 +180,20 @@ namespace
         return Result::Continue;
     }
 
+    bool copySourceFunctionRelocation(Sema& sema, DataSegment& segment, const uint32_t relocationOffset, const void* sourceFieldPtr)
+    {
+        DataSegmentRef sourceRef;
+        if (!sema.cstMgr().resolveDataSegmentRef(sourceRef, sourceFieldPtr))
+            return false;
+
+        DataSegmentRelocation relocation;
+        if (!sema.cstMgr().shardDataSegment(sourceRef.shardIndex).findRelocation(relocation, sourceRef.offset, DataSegmentRelocationKind::FunctionSymbol))
+            return false;
+
+        segment.addFunctionRelocation(relocationOffset, relocation.targetSymbol, relocation.allowUnresolvedFunction);
+        return true;
+    }
+
     // Lowering first builds raw runtime payloads in compiler-owned storage. Static materialization
     // then copies that payload into a segment and rewrites embedded pointers as relocations.
     Result lowerConstantToPayloadBuffer(const char*& outData, Sema& sema, ConstantRef cstRef, const TypeRef valueTypeRef)
@@ -384,8 +398,15 @@ namespace
     {
         assertRuntimePayloadSize<uint64_t>(payload.srcBytes);
 
-        auto&      dstPtr = writable<uint64_t>(payload.dstBytes);
-        const auto srcPtr = pointerFromRawAddress<const void>(readable<uint64_t>(payload.srcBytes));
+        auto&          dstPtr        = writable<uint64_t>(payload.dstBytes);
+        const uint64_t srcRawAddress = readable<uint64_t>(payload.srcBytes);
+        if (copySourceFunctionRelocation(sema, segment, payload.baseOffset, payload.srcBytes.data()))
+        {
+            dstPtr = srcRawAddress;
+            return Result::Continue;
+        }
+
+        const auto srcPtr = pointerFromRawAddress<const void>(srcRawAddress);
         return relocateSegmentAddress(dstPtr, sema, segment, payload.baseOffset, srcPtr);
     }
 
@@ -911,6 +932,9 @@ namespace
             SWC_INTERNAL_CHECK(unwrappedTypeRef.isValid());
             return materializeStaticPayloadInPlace(sema, segment, unwrappedTypeRef, payload);
         }
+
+        if (typeInfo.isTypeValue())
+            return materializeStaticPayloadInPlace(sema, segment, typeInfo.payloadTypeRef(), payload);
 
         const uint64_t sizeOf = typeInfo.sizeOf(ctx);
         SWC_INTERNAL_CHECK(sizeOf == payload.dstBytes.size());

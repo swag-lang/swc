@@ -782,14 +782,16 @@ impl Wnd
     // Resize the wnd
     mtd resize(width, height: f32, computeLayout = true)
     {
-        if .position.width == width and .position.height == height do
+        var pos = Math.Rectangle{0, 0, Math.round(width), Math.round(height)}
+        .clampSize(&pos)
+
+        if .position.width == pos.width and .position.height == pos.height do
             return
 
         var evt = ResizeEvent{}
         evt.oldSize      = {.position.width, .position.height}
-        .position.width  = Math.round(width)
-        .position.height = Math.round(height)
-        .clampSize(&.position)
+        .position.width  = pos.width
+        .position.height = pos.height
 
         .sendEvent(&evt)
 

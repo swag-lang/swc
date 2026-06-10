@@ -62,6 +62,9 @@ namespace
             return waitStaticPayloadTypeReadyRec(sema, typeInfo.payloadSymEnum().underlyingTypeRef(), waitNodeRef, visited);
         }
 
+        if (typeInfo.isTypeValue())
+            return waitStaticPayloadTypeReadyRec(sema, typeInfo.payloadTypeRef(), waitNodeRef, visited);
+
         if (typeInfo.isSlice())
             return waitStaticPayloadTypeReadyRec(sema, typeInfo.payloadTypeRef(), waitNodeRef, visited);
 
@@ -166,6 +169,16 @@ namespace
         return mergeRequiredShardIndex(outShardIndex, hasRequiredShard, ref.shardIndex);
     }
 
+    bool hasSourceFunctionRelocation(Sema& sema, const void* fieldPtr)
+    {
+        DataSegmentRef sourceRef;
+        if (!sema.cstMgr().resolveDataSegmentRef(sourceRef, fieldPtr))
+            return false;
+
+        DataSegmentRelocation relocation;
+        return sema.cstMgr().shardDataSegment(sourceRef.shardIndex).findRelocation(relocation, sourceRef.offset, DataSegmentRelocationKind::FunctionSymbol);
+    }
+
     bool resolveClosureStaticPayloadRequiredShardIndex(uint32_t& outShardIndex, bool& hasRequiredShard, Sema& sema, ByteSpan payload)
     {
         if (payload.size() != sizeof(Runtime::ClosureValue))
@@ -195,6 +208,9 @@ namespace
         const uint64_t sizeOf = typeInfo.sizeOf(ctx);
         if (sizeOf != payload.size())
             return false;
+
+        if (typeInfo.isTypeValue())
+            return resolveStaticPayloadRequiredShardIndex(outShardIndex, hasRequiredShard, sema, typeInfo.payloadTypeRef(), payload);
 
         if (typeInfo.isEnum())
             return resolveStaticPayloadRequiredShardIndex(outShardIndex, hasRequiredShard, sema, typeInfo.payloadSymEnum().underlyingTypeRef(), payload);
@@ -332,7 +348,10 @@ namespace
                 return false;
 
             const uint64_t rawPtr = *reinterpret_cast<const uint64_t*>(payload.data());
-            return requirePointerShardIndex(outShardIndex, hasRequiredShard, sema, reinterpret_cast<const void*>(rawPtr));
+            if (requirePointerShardIndex(outShardIndex, hasRequiredShard, sema, reinterpret_cast<const void*>(rawPtr)))
+                return true;
+
+            return hasSourceFunctionRelocation(sema, payload.data());
         }
 
         return false;

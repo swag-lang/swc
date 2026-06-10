@@ -3,10 +3,11 @@ using Properties
 
 const W = 1240
 const H = 820
-const TestFrames = 120
+const MaxPages = 2
+const TestFramesPerPage = 60
 const RootMargin = 24.0
-const HeaderHeight = 96.0
-const FooterHeight = 34.0
+const PageTop = 104.0
+const PageBottomMargin = 50.0
 const SplitGap = 24.0
 const InspectorWidth = 560.0
 const ThemeButtonWidth = 152.0
@@ -171,16 +172,15 @@ var g_View: *Wnd
 var g_Title: *Label
 var g_SubTitle: *Label
 var g_ThemeButton: *PushButton
-var g_Tab: *Tab
-var g_GridPage: *Wnd
-var g_ListPage: *Wnd
-var g_Inspector: *PropertiesCtrl
-var g_ListProps: *Properties
-var g_PreviewFrame: *FrameWnd
-var g_Preview: *Wnd
-var g_Status: *Label
+var g_PageView: *Wnd
+var g_Footer: *Label
+var g_Page: s32
+var g_TestFrame: s32
 var g_DarkTheme: bool
-var g_SectionPaneSized: bool
+var g_Inspector: *PropertiesCtrl
+var g_ListCtrl: *PropertiesCtrl
+var g_Preview: *Wnd
+var g_StatusText: String
 var g_Appearance: Gui4Appearance
 var g_Content: Gui4Content
 var g_Layout: Gui4Layout
@@ -244,6 +244,7 @@ func initDemoData()
 {
     g_Content.title    = "Property control"
     g_Content.subtitle = "Reflection-built editors, filters, sections, colors, vectors and arrays."
+    g_StatusText       = "Try the search box, section tabs, enum flags, color picker and action array."
 
     var action: ActionBinding
     action.label = "Apply"
@@ -262,31 +263,53 @@ func initDemoData()
     g_Layout.actions.add(action)
 }
 
-func refreshMirror(source: *Properties)
+func pageTitle(page: s32)->string
 {
-    if g_Inspector and source != g_Inspector.prop do
-        g_Inspector.prop.refresh()
-    if g_ListProps and source != g_ListProps do
-        g_ListProps.refresh()
+    switch page
+    {
+    case 0:
+        return "Grid + preview"
+    case 1:
+        return "Option list"
+    }
+
+    unreachable
+}
+
+func pageSubtitle(page: s32)->string
+{
+    switch page
+    {
+    case 0:
+        return "Edit reflected data with the grid inspector beside the live preview, including colors, numbers, enum flags and arrays."
+    case 1:
+        return "The same data in the flat, option-style list mode, with a find filter at the top to narrow down the visible rows."
+    }
+
+    unreachable
+}
+
+func updateHeader()
+{
+    g_Title.setText(Format.toString("GUI4 property control inspector - %", pageTitle(g_Page)))
+    g_SubTitle.setText(pageSubtitle(g_Page))
+    g_Footer.setText(Format.toString("F1/right/down : next, left/up : previous (%/%). %", g_Page + 1, MaxPages, g_StatusText))
 }
 
 func updateStatus(item: *PropertiesItem)
 {
-    if !g_Status do
-        return
-
     var name = item.typeValue.name
     if name == "" and item.label do
         name = RichString.getNaked(item.label.getText())
     if name == "" do
         name = "section"
 
-    g_Status.setText(Format.toString("Last change: %. Search, section tabs, grid resize and context menus are all active.", name))
+    g_StatusText = Format.toString("Last change: %.", name)
+    updateHeader()
 }
 
-func onPropertiesChanged(list: *Properties, item: *PropertiesItem)
+func onPropertiesChanged(_list: *Properties, item: *PropertiesItem)
 {
-    refreshMirror(list)
     updateStatus(item)
     if g_Preview do
         g_Preview.invalidate()
@@ -446,27 +469,75 @@ func onPreviewEvent(view: *Wnd, evt: IEvent)->bool
     return false
 }
 
+// Page 1: grid inspector beside the live preview.
+func createGridPage(parent: *Wnd)
+{
+    g_Inspector = PropertiesCtrl.create(parent, {0, 0, InspectorWidth, 10}, .Grid, .SectionFilter | .SectionPane | .FindBar)
+    g_Inspector.dockStyle  = .Left
+    g_Inspector.margin.z   = SplitGap
+    addDemoStructs(g_Inspector)
+    g_Inspector.splitter.setPaneSize(0, 160)
+    g_Inspector.splitter.items[0].tryPreserveSize = true
+
+    let frame = createPanel(parent, "Live preview", "Every value comes from the property editor, including colors, numbers, enum flags and arrays.", {})
+    frame.dockStyle = .Center
+    g_Preview = frame.view
+    g_Preview.hookOnEvent = &onPreviewEvent
+}
+
+// Page 2: the same structs in the flat, option-style list mode, with a find
+// filter at the top to narrow down the visible rows.
+func createListPage(parent: *Wnd)
+{
+    g_ListCtrl = PropertiesCtrl.create(parent, {}, .List, .FindBar)
+    g_ListCtrl.dockStyle = .Center
+    addDemoStructs(g_ListCtrl)
+}
+
+func clearPage()
+{
+    g_Inspector = null
+    g_ListCtrl  = null
+    g_Preview   = null
+
+    foreach child in g_PageView.childs do
+        child.destroy()
+}
+
+func buildPage()
+{
+    clearPage()
+    updateHeader()
+
+    switch g_Page
+    {
+    case 0:
+        createGridPage(g_PageView)
+    case 1:
+        createListPage(g_PageView)
+    default:
+        unreachable
+    }
+
+    g_PageView.invalidate()
+}
+
 func layoutRootView()
 {
-    if !g_View do
+    if !g_View or !g_PageView do
         return
 
     let rect = g_View.getClientRect()
     let contentWidth = Math.max(rect.width - 2 * RootMargin, 1.0)
-    let contentHeight = Math.max(rect.height - HeaderHeight - FooterHeight - RootMargin, 1.0)
+    let pageHeight = Math.max(rect.height - PageTop - PageBottomMargin, 1.0)
+    let footerY = Math.max(rect.height - 42.0, PageTop + pageHeight + 6.0)
     let titleWidth = Math.max(contentWidth - ThemeButtonWidth - HeaderGap, 1.0)
 
     g_Title.setPosition({RootMargin, 18, titleWidth, 34})
     g_ThemeButton.setPosition({RootMargin + titleWidth + HeaderGap, 18, ThemeButtonWidth, 34})
-    g_SubTitle.setPosition({RootMargin + 2, 56, contentWidth - 4, 36})
-    g_Tab.setPosition({RootMargin, HeaderHeight, contentWidth, contentHeight})
-    if !g_SectionPaneSized
-    {
-        g_Inspector.splitter.setPaneSize(0, 160)
-        g_Inspector.splitter.items[0].tryPreserveSize = true
-        g_SectionPaneSized = true
-    }
-    g_Status.setPosition({RootMargin, rect.height - FooterHeight + 2, contentWidth, 28})
+    g_SubTitle.setPosition({RootMargin + 2, 56, contentWidth - 4, 42})
+    g_PageView.setPosition({RootMargin, PageTop, contentWidth, pageHeight})
+    g_Footer.setPosition({RootMargin, footerY, contentWidth, 28})
 }
 
 func onRootEvent(_view: *Wnd, evt: IEvent)->bool
@@ -483,18 +554,77 @@ func onRootEvent(_view: *Wnd, evt: IEvent)->bool
         g_Title       = null
         g_SubTitle    = null
         g_ThemeButton = null
-        g_Tab         = null
-        g_GridPage    = null
-        g_ListPage    = null
+        g_PageView    = null
+        g_Footer      = null
         g_Inspector   = null
-        g_ListProps   = null
-        g_PreviewFrame = null
+        g_ListCtrl    = null
         g_Preview     = null
-        g_Status      = null
-        g_SectionPaneSized = false
     }
 
     return false
+}
+
+func nextPage()
+{
+    g_Page = (g_Page + 1) % MaxPages
+    buildPage()
+}
+
+func previousPage()
+{
+    g_Page -= 1
+    if g_Page < 0 do
+        g_Page = MaxPages - 1
+    buildPage()
+}
+
+func canUsePageArrows()->bool
+{
+    if !g_View or !g_PageView do
+        return false
+
+    let focus = g_View.getFocus()
+    if !focus or focus == g_View do
+        return true
+
+    return !g_PageView.isParentOf(focus)
+}
+
+func updateTestMode()
+{
+    if !Env.hasArg("swag.test") or !g_Surface do
+        return
+
+    g_TestFrame += 1
+    if g_TestFrame < TestFramesPerPage do
+        return
+
+    g_TestFrame = 0
+    if g_Page + 1 >= MaxPages
+    {
+        Env.exit(0)
+        return
+    }
+
+    nextPage()
+}
+
+func onFrame(app: *Application)
+{
+    if !g_Surface or !g_View or !g_PageView do
+        return
+
+    if app.keyb.isKeyJustPressed(.F1) do
+        nextPage()
+    elif canUsePageArrows()
+    {
+        if app.keyb.isKeyJustPressed(.Right) or app.keyb.isKeyJustPressed(.Down) do
+            nextPage()
+        elif app.keyb.isKeyJustPressed(.Left) or app.keyb.isKeyJustPressed(.Up) do
+            previousPage()
+    }
+
+    updateTestMode()
 }
 
 func createRootView()
@@ -502,11 +632,11 @@ func createRootView()
     g_View = g_Surface.getView()
     g_View.backgroundStyle = .View
 
-    g_Title = Label.create(g_View, "GUI4 property control inspector", {})
+    g_Title = Label.create(g_View, "", {})
     setLabelTextStyle(g_Title, .Left, .Center)
     g_Title.style.setFont(g_View.getTheme().createDefaultFont(28), .Regular)
 
-    g_SubTitle = Label.create(g_View, "Edit reflected data with the grid inspector beside the live preview, or switch to the flat option-list tab to see the same data in list mode.", {}, null, .WordWrap | .LightText)
+    g_SubTitle = Label.create(g_View, "", {}, null, .WordWrap | .LightText)
     setLabelTextStyle(g_SubTitle, .Left, .Top)
 
     g_ThemeButton = PushButton.create(g_View, "", {})
@@ -514,46 +644,15 @@ func createRootView()
     g_ThemeButton.icon = app.theme.getIcon24(ThemeIcons24.Picker, 18)
     g_ThemeButton.sigPressed += &toggleTheme
 
-    g_Tab = Tab.create(g_View, {})
-    g_Tab.setForm(.Flat)
+    g_PageView = Wnd.create'Wnd(g_View, {})
+    g_PageView.backgroundStyle = .Transparent
 
-    // Page 1: grid inspector beside the live preview.
-    g_GridPage = Wnd.create'Wnd(g_Tab)
-    g_Inspector = PropertiesCtrl.create(g_GridPage, {0, 0, InspectorWidth, 10}, .Grid, .SectionFilter | .SectionPane | .FindBar)
-    g_Inspector.dockStyle  = .Left
-    g_Inspector.margin.z   = SplitGap
-    addDemoStructs(g_Inspector)
-
-    g_PreviewFrame = createPanel(g_GridPage, "Live preview", "Every value comes from the property editor, including colors, numbers, enum flags and arrays.", {})
-    g_PreviewFrame.dockStyle = .Center
-    g_Preview = g_PreviewFrame.view
-    g_Preview.hookOnEvent = &onPreviewEvent
-    g_Tab.addItem("Grid + preview", {}, g_GridPage)
-
-    // Page 2: the same structs in the flat, option-style list mode. The list
-    // renders its own section headers, so it is docked straight into the page.
-    g_ListPage = Wnd.create'Wnd(g_Tab)
-    g_ListProps = Properties.create(g_ListPage, {}, .List)
-    g_ListProps.dockStyle = .Center
-    g_ListProps.margin.x = 16
-    g_ListProps.margin.y = 16
-    g_ListProps.margin.z = 16
-    g_ListProps.margin.w = 16
-    addDemoStructs(g_ListProps)
-    g_Tab.addItem("Option list", {}, g_ListPage)
-
-    g_Status = Label.create(g_View, "Ready. Try the search box, section tabs, enum flags, color picker and action array.", {})
-    setLabelTextStyle(g_Status, .Left, .Center)
-    g_Status.labelFlags.add(.LightText)
+    g_Footer = Label.create(g_View, "", {})
+    setLabelTextStyle(g_Footer, .Left, .Center)
+    g_Footer.labelFlags.add(.LightText)
 
     layoutRootView()
     g_View.hookOnEvent = &onRootEvent
-}
-
-func onFrame(app: *Application)
-{
-    if Env.hasArg("swag.test") and app.timing.frameCount > TestFrames do
-        Env.exit(0)
 }
 
 #main
@@ -566,11 +665,12 @@ func onFrame(app: *Application)
     g_Surface.setIcon(app.theme.getIcon24(ThemeIcons24.Options, 18))
 
     createRootView()
+    buildPage()
     applyTheme()
 
     app.sigFrame += &onFrame
     if Env.hasArg("swag.test") do
-        app.maxRunFrame = TestFrames + 10
+        app.maxRunFrame = cast(u32) MaxPages * cast(u32) TestFramesPerPage + 10
 
     g_Surface.show()
     app.run()

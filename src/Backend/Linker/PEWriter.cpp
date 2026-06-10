@@ -216,9 +216,9 @@ void PEWriter::buildImports()
     for (uint32_t d = 0; d < descCount; ++d)
     {
         const uint32_t base = descTableOffset + d * sizeof(IMAGE_IMPORT_DESCRIPTOR);
-        writeRvaFixup(idata, idataRvaFixups_, base + 0, dllLayouts[d].iltOffset);      // OriginalFirstThunk
-        writeRvaFixup(idata, idataRvaFixups_, base + 12, dllNameOffset[dllOrder[d]]);  // Name
-        writeRvaFixup(idata, idataRvaFixups_, base + 16, dllLayouts[d].iatOffset);     // FirstThunk
+        writeRvaFixup(idata, idataRvaFixups_, base + 0, dllLayouts[d].iltOffset);     // OriginalFirstThunk
+        writeRvaFixup(idata, idataRvaFixups_, base + 12, dllNameOffset[dllOrder[d]]); // Name
+        writeRvaFixup(idata, idataRvaFixups_, base + 16, dllLayouts[d].iatOffset);    // FirstThunk
     }
 
     // Record the IAT slot offset each thunk references (the import was captured when the thunk was built).
@@ -596,7 +596,11 @@ bool PEWriter::emit(std::vector<std::byte>& outBytes, Diagnostic& outDiag)
     {
         const uint32_t vsize = Math::alignUpU32(section.virtualSize, SECTION_ALIGNMENT);
         if (section.name == ".text")
-            opt.SizeOfCode += section.rawSize, opt.BaseOfCode = opt.BaseOfCode ? opt.BaseOfCode : section.rva;
+        {
+            opt.SizeOfCode += section.rawSize;
+            if (!opt.BaseOfCode)
+                opt.BaseOfCode = section.rva;
+        }
         else if (section.isBss)
             opt.SizeOfUninitializedData += vsize;
         else

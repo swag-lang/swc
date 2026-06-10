@@ -415,7 +415,13 @@ func MAKEINTRESOURCEA(val: s32) => cast(LPCSTR) cast(u64) val
 func MAKEINTRESOURCEW(val: s32) => cast(LPCWSTR) cast(u64) val
 
 const WHEEL_DELTA = 120
-func GET_WHEEL_DELTA_WPARAM(wParam: u64) => HIWORD(wParam)
+func GET_WHEEL_DELTA_WPARAM(wParam: u64)->s32
+{
+    let value = HIWORD(wParam)
+    if value <= 0x7FFF do
+        return cast(s32) value
+    return cast(s32) (cast(s64) value - 0x1_0000)
+}
 
 const IDC_ARROW       = 32512
 const IDC_IBEAM       = 32513

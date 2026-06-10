@@ -767,6 +767,33 @@ namespace
         return Result::Continue;
     }
 
+    // Emit a cross-module-stable type identity check between a runtime type info
+    // pointer and a compile-time candidate type info. Types reflected from an
+    // imported API are regenerated locally in every importing module, so the same
+    // logical type has a different `TypeInfo` pointer per module; their reflection
+    // `crc` identity stays equal (the same identity `@is`/`@typecmp` rely on).
+    // On match, falls through to the following code; otherwise jumps to mismatchLabel.
+    void emitTypeInfoIdentityMatchOrJump(CodeGen& codeGen, MicroReg runtimeTypeReg, MicroReg candidateTypeReg, MicroLabelRef matchLabel, MicroLabelRef mismatchLabel)
+    {
+        MicroBuilder& builder = codeGen.builder();
+
+        // Fast path: identical pointer (same module) is an immediate match.
+        builder.emitCmpRegReg(runtimeTypeReg, candidateTypeReg, MicroOpBits::B64);
+        builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, matchLabel);
+
+        // The candidate is a compile-time constant pointer, so it is never null; a
+        // null runtime type cannot match and must not be dereferenced for its crc.
+        builder.emitCmpRegImm(runtimeTypeReg, ApInt(0, 64), MicroOpBits::B64);
+        builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, mismatchLabel);
+
+        const MicroReg runtimeCrcReg   = codeGen.nextVirtualIntRegister();
+        const MicroReg candidateCrcReg = codeGen.nextVirtualIntRegister();
+        builder.emitLoadRegMem(runtimeCrcReg, runtimeTypeReg, offsetof(Runtime::TypeInfo, crc), MicroOpBits::B32);
+        builder.emitLoadRegMem(candidateCrcReg, candidateTypeReg, offsetof(Runtime::TypeInfo, crc), MicroOpBits::B32);
+        builder.emitCmpRegReg(runtimeCrcReg, candidateCrcReg, MicroOpBits::B32);
+        builder.emitJumpToLabel(MicroCond::NotEqual, MicroOpBits::B32, mismatchLabel);
+    }
+
     Result codeGenMakeInterface(CodeGen& codeGen, const AstIntrinsicCall& node)
     {
         SmallVector<AstNodeRef> children;
@@ -840,10 +867,11 @@ namespace
                 SWC_ASSERT(typeInfoCst.isValuePointer());
 
                 const MicroLabelRef nextLabel        = builder.createLabel();
+                const MicroLabelRef matchLabel       = builder.createLabel();
                 const MicroReg      candidateTypeReg = codeGen.nextVirtualIntRegister();
                 builder.emitLoadRegPtrReloc(candidateTypeReg, typeInfoCst.getValuePointer(), candidate.objectTypeCstRef);
-                builder.emitCmpRegReg(typeInfoReg, candidateTypeReg, MicroOpBits::B64);
-                builder.emitJumpToLabel(MicroCond::NotEqual, MicroOpBits::B32, nextLabel);
+                emitTypeInfoIdentityMatchOrJump(codeGen, typeInfoReg, candidateTypeReg, matchLabel, nextLabel);
+                builder.placeLabel(matchLabel);
                 SWC_RESULT(emitMakeInterfaceValue(codeGen, resultType.payloadSymInterface(), candidate.castInfo, candidate.interfaceTableCstRef, objectPayload, objectValueTypeRef, runtimeStorageReg, objectSpillOff));
                 builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, doneLabel);
                 builder.placeLabel(nextLabel);

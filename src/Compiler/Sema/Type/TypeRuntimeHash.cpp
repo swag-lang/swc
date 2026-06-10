@@ -3,6 +3,8 @@
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Symbol/Symbols.h"
 #include "Compiler/Sema/Type/TypeManager.h"
+#include "Compiler/SourceFile.h"
+#include "Main/CompilerInstance.h"
 #include "Support/Math/Hash.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -134,8 +136,47 @@ namespace
     uint32_t stableTypeHash(const TaskContext& ctx, TypeRef typeRef);
     uint32_t stableConstantHash(const TaskContext& ctx, ConstantRef cstRef);
 
+    // Cross-module-stable hash of a named symbol's scoped name. Imported-API
+    // declarations are regenerated locally in each importing module and wrapped
+    // under that module's namespace (the outermost scope, e.g. `Gui4.Pixel.Color`).
+    // Skip that importing-module element so the hashed name matches the defining
+    // module's `Pixel.Color`, identical in every module.
+    uint32_t canonicalScopedNameHash(const TaskContext& ctx, const Symbol& symbol)
+    {
+        Utf8 fullName = symbol.getFullScopedName(ctx);
+
+        // Imported-API declarations are wrapped under the importing module's
+        // namespace; strip it (exactly as buildRuntimeFullName does for the
+        // reflected name) so the canonical name matches the defining module.
+        const SourceFile* sourceFile = ctx.compiler().sourceViewFile(symbol);
+        if (sourceFile && sourceFile->isImportedApi())
+        {
+            const Runtime::String& moduleNs = ctx.compiler().buildCfg().moduleNamespace;
+            if (moduleNs.ptr && moduleNs.length)
+                fullName = TypeInfo::stripModuleQualifiersFromFullName(std::move(fullName), std::string_view(moduleNs.ptr, static_cast<size_t>(moduleNs.length)));
+        }
+
+        const uint32_t h = Math::hash(fullName.view());
+        return h ? h : 1;
+    }
+
     void combineSymbolBaseHash(uint32_t& h, const TaskContext& ctx, const Symbol& symbol)
     {
+        // A named symbol is identified by its canonical (module-independent) scoped
+        // name, which is identical in the defining module and every importing
+        // module. Crucially, do NOT fold in the per-compilation source location
+        // (srcViewRef/tokRef): an imported type is regenerated with different
+        // source refs in each importing module, which would make the same logical
+        // type hash differently per module and break cross-module identity used by
+        // `@is`, `@typecmp` and `@mkinterface`. The structural hash (field/generic
+        // types) still distinguishes types that share a name.
+        if (symbol.idRef().isValid())
+        {
+            h = Math::hashCombine(h, canonicalScopedNameHash(ctx, symbol));
+            return;
+        }
+
+        // Unnamed/anonymous symbols have no stable name; keep the previous identity.
         h = Math::hashCombine(h, symbol.scopedNameHash(ctx));
         if (symbol.decl())
         {

@@ -31,6 +31,14 @@ struct DepResizeEvt
 
 impl IDepEvt for DepResizeEvt {}
 
+// Cross-module type identity (typeinfo `==`, which compares the `crc`/runtimeHash
+// after the pointer fast-path) must be stable across the DLL boundary: a typeinfo
+// produced inside this DLL must compare equal to the consumer's view of the same
+// imported type. Used to fail because runtimeHash folded in the importer-prefixed
+// scoped name + per-compilation source refs.
+func depTypeOfResizeEvt()->typeinfo => #typeof(DepResizeEvt)
+func depTypeOfDestroyEvt()->typeinfo => #typeof(DepDestroyEvt)
+
 alias DepEvtCallback = func(IDepEvt)
 
 // The interface value is constructed HERE (in the DLL), passed to the consumer.

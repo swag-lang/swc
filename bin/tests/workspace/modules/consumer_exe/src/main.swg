@@ -402,6 +402,17 @@ func verifyEmptyDerivedInterfaceIs()
     @assert(gEvtClassified == 3)
 }
 
+func verifyCrossDllTypeIdentity()
+{
+    // The DLL-produced typeinfo for an imported type must compare equal to the
+    // consumer's view (stable cross-module `crc`/runtimeHash), and distinct types
+    // must stay distinct.
+    @assert(depTypeOfResizeEvt() == #typeof(DepResizeEvt))
+    @assert(depTypeOfDestroyEvt() == #typeof(DepDestroyEvt))
+    @assert(depTypeOfResizeEvt() != #typeof(DepDestroyEvt))
+    @assert(depTypeOfResizeEvt() != depTypeOfDestroyEvt())
+}
+
 #main
 {
     verifyImportedImplicitStructDefaults()
@@ -412,4 +423,5 @@ func verifyEmptyDerivedInterfaceIs()
     verifyDllAbiCalls()
     verifyRuntimeContext()
     verifyEmptyDerivedInterfaceIs()
+    verifyCrossDllTypeIdentity()
 }

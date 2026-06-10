@@ -375,13 +375,18 @@ namespace
 
         SWC_RESULT(addCandidateFromInlineReceiver(sema, outCandidates, precedence));
 
+        // A `with` block must shadow the enclosing receiver `me`. `with <var>` targets
+        // are pushed as binding vars after the receiver (so they already outrank it),
+        // but `with <member-access>`/`with <expr>` targets are auto-member bindings,
+        // which must therefore be ranked *before* the binding vars (which include `me`)
+        // so the `with` target — not the receiver — wins for an ambiguous `.member`.
+        if (!bindingTypesFirst)
+            SWC_RESULT(addCandidatesFromAutoMemberBindings(sema, outCandidates, autoMemberBindings.span(), precedence));
+
         for (const auto& bindingVar : std::ranges::reverse_view(bindingVars))
         {
             SWC_RESULT(addCandidateFromType(sema, outCandidates, bindingVar->typeRef(), bindingVar, AstNodeRef::invalid(), precedence++));
         }
-
-        if (!bindingTypesFirst)
-            SWC_RESULT(addCandidatesFromAutoMemberBindings(sema, outCandidates, autoMemberBindings.span(), precedence));
 
         if (!bindingTypesFirst)
         {

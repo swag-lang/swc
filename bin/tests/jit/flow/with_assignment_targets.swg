@@ -190,6 +190,95 @@ func jitWithMeDisambiguation()->s32
     return owner.applyShadow()
 }
 
+// A `with` block must shadow the enclosing receiver `me`, including when both the
+// `with` target's type and `me`'s type expose a method with the SAME name: inside
+// the block `.bump()` must call the with-target's method, not `me`'s. Regression:
+// member-access / pointer-field / assignment `with` targets used to lose to `me`
+// (the receiver was ranked above the auto-member binding), so `.bump()` wrongly
+// called me.bump() — e.g. the Properties color-array editor disabled the whole
+// control instead of its own edit box.
+struct JitWithPrioInner
+{
+    hits: s32
+}
+
+impl JitWithPrioInner
+{
+    mtd bump()
+    {
+        .hits += 100
+    }
+}
+
+struct JitWithPrioOwner
+{
+    inner:  JitWithPrioInner
+    pInner: *JitWithPrioInner
+    hits:   s32
+}
+
+impl JitWithPrioOwner
+{
+    mtd bump()
+    {
+        .hits += 1
+    }
+
+    // with a member-access target
+    mtd viaMember()->s32
+    {
+        with .inner { .bump() }
+        return .hits * 1000 + .inner.hits
+    }
+
+    // with a pointer member target
+    mtd viaPointer(target: *JitWithPrioInner)->s32
+    {
+        .pInner = target
+        with .pInner { .bump() }
+        return .hits * 1000 + target.hits
+    }
+
+    // with an assignment-to-member target (the array.swg shape)
+    mtd viaAssign(target: *JitWithPrioInner)->s32
+    {
+        with .pInner = target { .bump() }
+        return .hits * 1000 + target.hits
+    }
+}
+
+#test
+{
+    const value = #run
+    {
+        var owner: JitWithPrioOwner
+        return owner.viaMember()
+    }
+    @assert(value == 100)   // inner.bump ran (hits 100); me.bump did NOT (hits 0)
+}
+
+#test
+{
+    const value = #run
+    {
+        var owner:  JitWithPrioOwner
+        var target: JitWithPrioInner
+        return owner.viaPointer(&target)
+    }
+    @assert(value == 100)
+}
+
+#test
+{
+    const value = #run
+    {
+        var owner:  JitWithPrioOwner
+        var target: JitWithPrioInner
+        return owner.viaAssign(&target)
+    }
+    @assert(value == 100)
+}
+
 #test
 {
     const value = #run jitWithValueAndPointer()

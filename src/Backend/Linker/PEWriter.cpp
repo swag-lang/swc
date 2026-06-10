@@ -58,25 +58,39 @@ namespace
     {
         return left->name.view() < right->name.view();
     }
+
+    // Writes a section-relative RVA placeholder and records its position so applyRelocations can rebase
+    // it to an image RVA once the owning section's RVA is known.
+    void writeRvaFixup(std::vector<std::byte>& bytes, std::vector<uint32_t>& fixups, uint32_t offset, uint32_t value)
+    {
+        ByteUtils::writeLE32(bytes, offset, value);
+        fixups.push_back(offset);
+    }
+
+    // Adds the section RVA to every recorded fixup site, turning section-relative offsets into image RVAs.
+    void rebaseRvaFixups(std::vector<std::byte>& bytes, const std::vector<uint32_t>& fixups, uint32_t rva)
+    {
+        for (const uint32_t fixup : fixups)
+            ByteUtils::writeLE32(bytes, fixup, ByteUtils::readLE32(asByteSpan(bytes), fixup) + rva);
+    }
 }
 
 uint32_t PEWriter::resolveSymbolRva(bool& outFound, const Utf8& name) const
 {
-    const auto sectionIt = symbolSection_.find(name);
-    if (sectionIt == symbolSection_.end())
+    const auto it = symbols_.find(name);
+    if (it == symbols_.end())
     {
         outFound = false;
         return 0;
     }
-    outFound             = true;
-    const uint32_t value = symbolValue_.at(name);
-    return sections_[sectionIt->second].rva + value;
+    outFound = true;
+    return sections_[it->second.sectionIndex].rva + it->second.value;
 }
 
-bool PEWriter::buildImports(Diagnostic& outDiag)
+void PEWriter::buildImports()
 {
     if (image_->imports.empty())
-        return true;
+        return;
 
     // Group imports by DLL, preserving first-seen order.
     std::vector<Utf8>                                        dllOrder;
@@ -100,13 +114,12 @@ bool PEWriter::buildImports(Diagnostic& outDiag)
                 text.bytes.resize(Math::alignUpU32(static_cast<uint32_t>(text.bytes.size()), 16), std::byte{0});
 
             ImportThunk thunk;
-            thunk.symbolName = imp->symbolName;
+            thunk.import     = imp;
             thunk.textOffset = static_cast<uint32_t>(text.bytes.size());
             text.bytes.insert(text.bytes.end(), 6, std::byte{0}); // FF 25 <disp32>, filled after layout
             thunks_.push_back(thunk);
 
-            symbolSection_[imp->symbolName] = static_cast<uint32_t>(textIndex_);
-            symbolValue_[imp->symbolName]   = thunk.textOffset;
+            symbols_[imp->symbolName] = {static_cast<uint32_t>(textIndex_), thunk.textOffset};
         }
     }
 
@@ -203,34 +216,14 @@ bool PEWriter::buildImports(Diagnostic& outDiag)
     for (uint32_t d = 0; d < descCount; ++d)
     {
         const uint32_t base = descTableOffset + d * sizeof(IMAGE_IMPORT_DESCRIPTOR);
-        ByteUtils::writeLE32(idata, base + 0, dllLayouts[d].iltOffset); // OriginalFirstThunk
-        idataRvaFixups_.push_back(base + 0);
-        ByteUtils::writeLE32(idata, base + 12, dllNameOffset[dllOrder[d]]); // Name
-        idataRvaFixups_.push_back(base + 12);
-        ByteUtils::writeLE32(idata, base + 16, dllLayouts[d].iatOffset); // FirstThunk
-        idataRvaFixups_.push_back(base + 16);
+        writeRvaFixup(idata, idataRvaFixups_, base + 0, dllLayouts[d].iltOffset);      // OriginalFirstThunk
+        writeRvaFixup(idata, idataRvaFixups_, base + 12, dllNameOffset[dllOrder[d]]);  // Name
+        writeRvaFixup(idata, idataRvaFixups_, base + 16, dllLayouts[d].iatOffset);     // FirstThunk
     }
 
-    // Record the IAT slot offset each thunk references.
+    // Record the IAT slot offset each thunk references (the import was captured when the thunk was built).
     for (ImportThunk& thunk : thunks_)
-    {
-        const LinkImport* match = nullptr;
-        for (const LinkImport& imp : image_->imports)
-        {
-            if (imp.symbolName == thunk.symbolName)
-            {
-                match = &imp;
-                break;
-            }
-        }
-        if (!match)
-        {
-            outDiag = Diagnostic::get(DiagnosticId::cmd_err_link_missing_import_thunk);
-            outDiag.addArgument(Diagnostic::ARG_SYM, thunk.symbolName);
-            return false;
-        }
-        thunk.iatSlotInIdata = iatEntryOffset[match];
-    }
+        thunk.iatSlotInIdata = iatEntryOffset[thunk.import];
 
     OutSection idataSection;
     idataSection.name        = ".idata";
@@ -246,7 +239,6 @@ bool PEWriter::buildImports(Diagnostic& outDiag)
     // iatStartOffset is the offset of the first IAT within .idata.
     iatRva_       = iatStartOffset; // becomes an RVA after layout (add idata rva)
     importDirRva_ = descTableOffset;
-    return true;
 }
 
 void PEWriter::buildExports()
@@ -293,24 +285,16 @@ void PEWriter::buildExports()
 
     // Fill the name-pointer table with RVAs of the name strings (relocated after layout).
     for (uint32_t i = 0; i < count; ++i)
-    {
-        const uint32_t pos = nptOffset + i * sizeof(uint32_t);
-        ByteUtils::writeLE32(edata, pos, nameOffsets[i]);
-        edataRvaFixups_.push_back(pos);
-    }
+        writeRvaFixup(edata, edataRvaFixups_, nptOffset + i * sizeof(uint32_t), nameOffsets[i]);
 
     // Fill IMAGE_EXPORT_DIRECTORY.
-    ByteUtils::writeLE32(edata, 12, dllNameOffset);
-    edataRvaFixups_.push_back(12);
+    writeRvaFixup(edata, edataRvaFixups_, 12, dllNameOffset);
     ByteUtils::writeLE32(edata, 16, 1);     // Base ordinal
     ByteUtils::writeLE32(edata, 20, count); // NumberOfFunctions
     ByteUtils::writeLE32(edata, 24, count); // NumberOfNames
-    ByteUtils::writeLE32(edata, 28, eatOffset);
-    edataRvaFixups_.push_back(28);
-    ByteUtils::writeLE32(edata, 32, nptOffset);
-    edataRvaFixups_.push_back(32);
-    ByteUtils::writeLE32(edata, 36, ordinalOffset);
-    edataRvaFixups_.push_back(36);
+    writeRvaFixup(edata, edataRvaFixups_, 28, eatOffset);
+    writeRvaFixup(edata, edataRvaFixups_, 32, nptOffset);
+    writeRvaFixup(edata, edataRvaFixups_, 36, ordinalOffset);
 
     OutSection section;
     section.name        = ".edata";
@@ -443,11 +427,7 @@ bool PEWriter::applyRelocations(Diagnostic& outDiag)
         }
 
         // Fix up .idata internal RVAs.
-        for (const uint32_t fixup : idataRvaFixups_)
-        {
-            const uint32_t rel = ByteUtils::readLE32(asByteSpan(sections_[idataIndex_].bytes), fixup);
-            ByteUtils::writeLE32(sections_[idataIndex_].bytes, fixup, rel + idata.rva);
-        }
+        rebaseRvaFixups(sections_[idataIndex_].bytes, idataRvaFixups_, idata.rva);
 
         importDirRva_ += idata.rva;
         iatRva_ += idata.rva;
@@ -457,11 +437,7 @@ bool PEWriter::applyRelocations(Diagnostic& outDiag)
     if (edataIndex_ >= 0)
     {
         const OutSection& edata = sections_[edataIndex_];
-        for (const uint32_t fixup : edataRvaFixups_)
-        {
-            const uint32_t rel = ByteUtils::readLE32(asByteSpan(edata.bytes), fixup);
-            ByteUtils::writeLE32(sections_[edataIndex_].bytes, fixup, rel + edata.rva);
-        }
+        rebaseRvaFixups(sections_[edataIndex_].bytes, edataRvaFixups_, edata.rva);
         for (const auto& [offset, symbolName] : eatSymbolFixups_)
         {
             bool           found     = false;
@@ -721,10 +697,7 @@ bool PEWriter::writeImage(std::vector<std::byte>& outBytes, Diagnostic& outDiag,
     }
 
     for (const LinkSymbol& symbol : image_->symbols)
-    {
-        symbolSection_[symbol.name] = imageToOut_[symbol.sectionIndex];
-        symbolValue_[symbol.name]   = symbol.value;
-    }
+        symbols_[symbol.name] = {imageToOut_[symbol.sectionIndex], symbol.value};
 
     if (textIndex_ < 0)
     {
@@ -732,14 +705,10 @@ bool PEWriter::writeImage(std::vector<std::byte>& outBytes, Diagnostic& outDiag,
         return false;
     }
 
-    if (!buildImports(outDiag))
-        return false;
-
+    buildImports();
     buildExports();
-
     assignLayout();
 
-    // Recompute thunk symbol values after imports were appended (already set in buildImports).
     if (!applyRelocations(outDiag))
         return false;
 

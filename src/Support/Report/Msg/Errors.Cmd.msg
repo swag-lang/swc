@@ -60,7 +60,6 @@ SWC_DIAG_DEF(cmd_err_link_archive_bad_symbol_index, Error, "malformed archive sy
 SWC_DIAG_DEF(cmd_err_link_archive_bad_symbol_names, Error, "malformed archive symbol names")
 SWC_DIAG_DEF(cmd_err_link_archive_member_out_of_range, Error, "archive member out of range")
 SWC_DIAG_DEF(cmd_err_link_archive_truncated_member, Error, "truncated archive member")
-SWC_DIAG_DEF(cmd_err_link_missing_import_thunk, Error, "internal: missing import for thunk '{sym}'")
 SWC_DIAG_DEF(cmd_err_link_unresolved_symbol, Error, "unresolved external symbol '{sym}'")
 SWC_DIAG_DEF(cmd_err_link_reloc_out_of_bounds, Error, "relocation out of section bounds")
 SWC_DIAG_DEF(cmd_err_link_export_symbol_not_found, Error, "exported symbol '{sym}' not found")

@@ -31,13 +31,20 @@ private:
 
     struct ImportThunk
     {
-        Utf8     symbolName;
-        uint32_t textOffset     = 0; // offset of the 6-byte thunk within .text
-        uint32_t iatSlotInIdata = 0; // offset of the IAT slot within .idata
+        const LinkImport* import         = nullptr;
+        uint32_t          textOffset     = 0; // offset of the 6-byte thunk within .text
+        uint32_t          iatSlotInIdata = 0; // offset of the IAT slot within .idata
+    };
+
+    // Where a defined symbol lives: its section in sections_ and its byte offset within that section.
+    struct SymbolLoc
+    {
+        uint32_t sectionIndex = 0;
+        uint32_t value        = 0;
     };
 
     uint32_t resolveSymbolRva(bool& outFound, const Utf8& name) const;
-    bool     buildImports(Diagnostic& outDiag);
+    void     buildImports();
     void     buildExports();
     void     assignLayout();
     bool     applyRelocations(Diagnostic& outDiag);
@@ -46,9 +53,8 @@ private:
 
     const LinkImage*                       image_ = nullptr;
     std::vector<OutSection>                sections_;
-    std::vector<uint32_t>                  imageToOut_;    // image.sections index -> sections_ index
-    std::unordered_map<Utf8, uint32_t>     symbolSection_; // name -> sections_ index
-    std::unordered_map<Utf8, uint32_t>     symbolValue_;   // name -> offset within section
+    std::vector<uint32_t>                  imageToOut_; // image.sections index -> sections_ index
+    std::unordered_map<Utf8, SymbolLoc>    symbols_;    // name -> defining section + offset
     std::vector<ImportThunk>               thunks_;
     std::vector<uint32_t>                  idataRvaFixups_;  // positions in .idata holding idata-relative offsets
     std::vector<uint32_t>                  baseRelocSites_;  // RVAs needing IMAGE_REL_BASED_DIR64

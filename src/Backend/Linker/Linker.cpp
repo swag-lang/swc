@@ -25,39 +25,26 @@ namespace
         return true;
     }
 
-    // Serialise the LinkImage (or archive the objects) and write the artifact. Runs on a background
-    // thread and so touches nothing but the self-contained job. The target format is chosen from the
-    // job alone (set during prepareLink), so this stays usable on a detached thread.
-    void executeInternalLink(LinkJob& job)
+    // Serialises the LinkImage (or archives the objects) and writes the artifact, returning false with
+    // job.error filled on any failure. Split out so executeInternalLink records job.ok in one place.
+    bool runInternalLink(LinkJob& job, ImageWriter& writer)
     {
-        const std::unique_ptr<ImageWriter> writer = ImageWriter::create(job.targetOs);
-        SWC_ASSERT(writer != nullptr);
-
         std::vector<std::byte> bytes;
         switch (job.output)
         {
             case LinkJob::Output::Executable:
             case LinkJob::Output::SharedLibrary:
-                if (!writer->writeImage(bytes, job.error, job.image))
-                {
-                    job.ok = false;
-                    return;
-                }
+                if (!writer.writeImage(bytes, job.error, job.image))
+                    return false;
                 break;
             case LinkJob::Output::StaticLibrary:
-                if (!writer->buildStaticArchive(bytes, job.error, job.archiveMembers))
-                {
-                    job.ok = false;
-                    return;
-                }
+                if (!writer.buildStaticArchive(bytes, job.error, job.archiveMembers))
+                    return false;
                 break;
         }
 
         if (!writeJobArtifact(job, job.outputPath, bytes))
-        {
-            job.ok = false;
-            return;
-        }
+            return false;
 
         // A shared library also produces an import library next to it so dependents can link by name.
         if (job.output == LinkJob::Output::SharedLibrary)
@@ -68,17 +55,24 @@ namespace
                 exportNames.push_back(exported.name);
 
             std::vector<std::byte> libBytes;
-            writer->buildImportLibrary(libBytes, Utf8(job.outputPath.filename()).view(), exportNames);
+            writer.buildImportLibrary(libBytes, Utf8(job.outputPath.filename()).view(), exportNames);
 
             const fs::path libPath = fs::path(job.outputPath).replace_extension(".lib");
             if (!writeJobArtifact(job, libPath, libBytes))
-            {
-                job.ok = false;
-                return;
-            }
+                return false;
         }
 
-        job.ok = true;
+        return true;
+    }
+
+    // Serialise the LinkImage (or archive the objects) and write the artifact. Runs on a background
+    // thread and so touches nothing but the self-contained job. The target format is chosen from the
+    // job alone (set during prepareLink), so this stays usable on a detached thread.
+    void executeInternalLink(LinkJob& job)
+    {
+        const std::unique_ptr<ImageWriter> writer = ImageWriter::create(job.targetOs);
+        SWC_ASSERT(writer != nullptr);
+        job.ok = runInternalLink(job, *writer);
     }
 }
 

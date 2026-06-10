@@ -1827,8 +1827,10 @@ Result CompilerInstance::runWorkspaceModule(const WorkspaceModuleBuild& moduleBu
             NativeArtifactPaths         artifactPaths;
             artifactProbeBuilder.queryPaths(artifactPaths);
             requiredArtifacts.push_back(artifactPaths.artifactPath);
-            if (probeCompiler.buildCfg().backend.debugInfo && !artifactPaths.pdbPath.empty())
-                requiredArtifacts.push_back(artifactPaths.pdbPath);
+            // Note: we deliberately do not require artifactPaths.pdbPath here. Debug info is embedded
+            // directly into the PE image by the linker (see PELinker / DebugInfo::buildObject); no
+            // standalone .pdb file is ever produced, even for debug build configs. Requiring one would
+            // make every native module appear permanently stale and force a full rebuild every time.
             probeCompiler.setLastArtifactLabel(artifactPaths.artifactPath.filename().empty() ? Utf8(artifactPaths.artifactPath) : Utf8(artifactPaths.artifactPath.filename()));
         }
 

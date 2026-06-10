@@ -544,6 +544,23 @@ namespace
             MicroBuilder&           builder = codeGen.builder();
             const ScopedDebugNoStep noStep(builder, true);
             const MicroReg          closureContextReg = codeGen.nextVirtualIntRegister();
+
+            // The closure context pointer is read at every capture access, so it
+            // is live across the whole function body (including loops and calls
+            // that materialize nested closures). Keeping it in an ordinary virtual
+            // register makes RegAlloc round-trip it through the spill machinery,
+            // which can resolve a reload to a slot that was never written on the
+            // taken path. Constrain it to a persistent (callee-saved) register the
+            // same way the local stack base is handled, so it survives calls
+            // without ever entering the spill path.
+            SmallVector<MicroReg> forbiddenRegs;
+            for (const MicroReg reg : callConv.intTransientRegs)
+                forbiddenRegs.push_back(reg);
+            forbiddenRegs.push_back(callConv.stackPointer);
+            if (callConv.framePointer.isValid())
+                forbiddenRegs.push_back(callConv.framePointer);
+            builder.addVirtualRegForbiddenPhysRegs(closureContextReg, forbiddenRegs.span());
+
             builder.emitLoadRegReg(closureContextReg, callConv.intArgRegs[closureContextSlot], MicroOpBits::B64);
             codeGen.setCurrentFunctionClosureContextReg(closureContextReg);
         }

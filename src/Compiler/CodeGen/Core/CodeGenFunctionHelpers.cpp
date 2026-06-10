@@ -295,12 +295,17 @@ CodeGenNodePayload CodeGenFunctionHelpers::resolveCallerReturnStoragePayload(Cod
 
 CodeGenNodePayload CodeGenFunctionHelpers::resolveClosureCapturePayload(CodeGen& codeGen, const SymbolVariable& symVar)
 {
-    if (const CodeGenNodePayload* symbolPayload = codeGen.variablePayload(symVar))
-        return *symbolPayload;
-
     SWC_ASSERT(symVar.isClosureCapture());
     SWC_ASSERT(codeGen.currentFunctionClosureContextReg().isValid());
 
+    // Recompute the capture address from the closure context on every access
+    // instead of caching it. A cached capture address (context + offset) is a
+    // virtual register that stays live from the first to the last reference;
+    // when those references straddle loops or calls (e.g. a nested closure built
+    // when a popup opens), RegAlloc round-trips that long-lived value through the
+    // spill machinery and can reload it from a slot that was never written on the
+    // taken path. The context register itself is pinned to a persistent register,
+    // so recomputing here keeps every derived address short-lived and spill-free.
     CodeGenNodePayload capturePayload;
     capturePayload.typeRef = symVar.typeRef();
 
@@ -324,7 +329,6 @@ CodeGenNodePayload CodeGenFunctionHelpers::resolveClosureCapturePayload(CodeGen&
         capturePayload.setIsAddress();
     }
 
-    codeGen.setVariablePayload(symVar, capturePayload);
     return capturePayload;
 }
 

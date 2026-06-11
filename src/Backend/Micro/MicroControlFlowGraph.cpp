@@ -25,6 +25,7 @@ void MicroControlFlowGraph::clear()
     predecessors_.clear();
     hasUnsupportedControlFlowForCfgLiveness_ = false;
     supportsDeadCodeLiveness_                = true;
+    hasLoop_                                 = false;
 }
 
 uint64_t MicroControlFlowGraph::computeHash(const MicroStorage& storage, const MicroOperandStorage& operands)
@@ -177,12 +178,17 @@ void MicroControlFlowGraph::build(const MicroStorage& storage, const MicroOperan
             successors.push_back(static_cast<uint32_t>(instructionIndex + 1));
     }
 
-    // Build predecessors from successors.
+    // Build predecessors from successors, and detect back-edges along the way.
+    // An edge whose target index is <= its source index points backward in the
+    // instruction layout; a cycle requires at least one such edge, so this is a
+    // sound (conservative) loop-presence test.
     predecessors_.resize(instructionRefs_.size());
     for (size_t idx = 0; idx < instructionRefs_.size(); ++idx)
     {
         for (const uint32_t succIdx : successors_[idx])
         {
+            if (succIdx <= idx)
+                hasLoop_ = true;
             if (succIdx < predecessors_.size())
                 predecessors_[succIdx].push_back(static_cast<uint32_t>(idx));
         }

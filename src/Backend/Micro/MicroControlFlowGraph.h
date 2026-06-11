@@ -18,6 +18,13 @@ public:
     bool                           hasUnsupportedControlFlowForCfgLiveness() const { return hasUnsupportedControlFlowForCfgLiveness_; }
     bool                           supportsDeadCodeLiveness() const { return supportsDeadCodeLiveness_; }
 
+    // True iff the CFG contains a back-edge (a successor pointing to an
+    // earlier-or-equal instruction index). A cycle, in any linear layout of
+    // its nodes, must contain at least one such backward edge, so the absence
+    // of any back-edge proves the function is loop-free. Loop-only passes
+    // (e.g. LICM) use this to skip their dominator/loop analysis entirely.
+    bool                           hasLoop() const { return hasLoop_; }
+
 private:
     void            clear();
     void            build(const MicroStorage& storage, const MicroOperandStorage& operands);
@@ -28,6 +35,7 @@ private:
     std::vector<EdgeList>      predecessors_;
     bool                       hasUnsupportedControlFlowForCfgLiveness_ = false;
     bool                       supportsDeadCodeLiveness_                = true;
+    bool                       hasLoop_                                 = false;
 
     friend class MicroBuilder;
 };

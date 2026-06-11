@@ -102,6 +102,19 @@ private:
         SmallVector4<RegValueEntry> defValues;
         SmallVector4<uint32_t>      useRegIndices;
         SmallVector4<uint32_t>      defRegIndices;
+
+        // Incremental use/def cache. `useDef` is a pure function of the instruction's
+        // opcode and its operands' raw words (the register/mode fields; the arbitrary
+        // precision immediate never affects use/def), so across the many SSA rebuilds
+        // of one function we recompute collectUseDef only for instructions whose
+        // opcode or operand words actually changed since the previous build. The key
+        // is conservative — any change that could alter use/def also changes a word —
+        // so a stale hit is impossible. Slots are reset between builds but this cache
+        // is deliberately preserved.
+        MicroInstrOpcode            cachedOp = MicroInstrOpcode::OpBinaryRegImm;
+        uint8_t                     cachedNumOperands = 0;
+        bool                        useDefCached      = false;
+        SmallVector4<uint64_t>      cachedOperandWords;
     };
 
     struct BlockInfo

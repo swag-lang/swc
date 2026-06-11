@@ -81,7 +81,36 @@ void MicroSsaState::build(MicroBuilder& builder, MicroStorage& storage, MicroOpe
 
         const MicroInstr* inst = storage.ptr(instRef);
         SWC_ASSERT(inst != nullptr);
-        info.useDef = inst->collectUseDef(operands, encoder);
+
+        // Reuse the cached use/def when this slot still holds an instruction with the
+        // same opcode and operand words as the previous build; otherwise recompute and
+        // refresh the cache. See InstrInfo for why this key is sound.
+        const MicroInstrOperand* ops          = inst->ops(operands);
+        const uint8_t            numOperands  = inst->numOperands;
+        bool                     reuseUseDef  = info.useDefCached && info.cachedOp == inst->op && info.cachedNumOperands == numOperands && info.cachedOperandWords.size() == numOperands;
+        if (reuseUseDef)
+        {
+            for (uint8_t i = 0; i < numOperands; ++i)
+            {
+                if (info.cachedOperandWords[i] != ops[i].valueU64)
+                {
+                    reuseUseDef = false;
+                    break;
+                }
+            }
+        }
+
+        if (!reuseUseDef)
+        {
+            info.useDef = inst->collectUseDef(operands, encoder);
+
+            info.cachedOp           = inst->op;
+            info.cachedNumOperands  = numOperands;
+            info.useDefCached       = true;
+            info.cachedOperandWords.clear();
+            for (uint8_t i = 0; i < numOperands; ++i)
+                info.cachedOperandWords.push_back(ops[i].valueU64);
+        }
 
         for (const MicroReg reg : info.useDef.defs)
         {
@@ -188,7 +217,9 @@ void MicroSsaState::resetInstructionInfos(const uint32_t slotCount)
     {
         InstrInfo& info = instrInfos_[slot];
         info.instRef    = MicroInstrRef::invalid();
-        info.useDef     = {};
+        // info.useDef and the cachedOp/cachedOperandWords/useDefCached fields are kept
+        // on purpose: they form the cross-rebuild use/def cache (see InstrInfo). Only
+        // the per-build SSA bookkeeping is cleared here.
         info.defValues.clear();
         info.useRegIndices.clear();
         info.defRegIndices.clear();

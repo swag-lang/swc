@@ -834,6 +834,13 @@ Result MicroLoopInvariantCodeMotionPass::run(MicroPassContext& context)
     if (!context.builder)
         return Result::Continue;
 
+    // Loop-invariant code motion is meaningless without loops. A cheap back-edge
+    // test on the (cached) CFG lets the overwhelmingly common loop-free functions
+    // skip the SSA build, dominator-tree construction and map allocations this
+    // pass would otherwise perform every time it runs.
+    if (!context.builder->controlFlowGraph().hasLoop())
+        return Result::Continue;
+
     bool changedAny = false;
     for (uint32_t round = 0; round < K_MAX_ROUNDS; ++round)
     {

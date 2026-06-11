@@ -13,8 +13,9 @@ impl Theme
         if subRect == null or subRect.rect.isEmpty() or dstRect.isEmpty() or color.a == 0 do
             return
 
+        let oldInterpol = painter.getInterpolationMode()
         painter.setInterpolationMode(interpol)
-        defer painter.setInterpolationMode(.Linear)
+        defer painter.setInterpolationMode(oldInterpol)
 
         if subRect.corner == 0
         {

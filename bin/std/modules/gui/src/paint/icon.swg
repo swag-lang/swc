@@ -55,10 +55,13 @@ impl Icon
         srcX *= .imageList.frameSizeX
         srcY *= .imageList.frameSizeY
 
+        let oldInterpol = painter.getInterpolationMode()
         if .sizeX == .imageList.frameSizeX and .sizeY == .imageList.frameSizeY do
             painter.setInterpolationMode(InterpolationMode.Pixel)
         else do
             painter.setInterpolationMode(InterpolationMode.Linear)
+        defer painter.setInterpolationMode(oldInterpol)
+
         painter.drawTexture({x, y, .sizeX, .sizeY}, {srcX, srcY, .imageList.frameSizeX, .imageList.frameSizeY}, .imageList.texture, color)
     }
 }

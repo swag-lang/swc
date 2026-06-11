@@ -12,4 +12,8 @@ using Swag, Core
 
     painter.setAntialiased()
     @assert(painter.getParams().has(.Antialiased))
+
+    @assert(painter.getInterpolationMode() == .Pixel)
+    painter.setInterpolationMode(.Linear)
+    @assert(painter.getInterpolationMode() == .Linear)
 }

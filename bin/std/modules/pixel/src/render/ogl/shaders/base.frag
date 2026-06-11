@@ -2,6 +2,8 @@ uniform sampler2D inTexture0;
 
 uniform float textureW; // texture resolution
 uniform float textureH; // texture resolution
+uniform vec4  textureRect;
+uniform float uvMode;
 
 uniform float paintType;
 uniform float gradientSpread;
@@ -55,7 +57,16 @@ vec4 sampleGradientStops(float t)
 vec4 samplePaint(vec2 paintPos, vec2 uv)
 {
     if(paintType < 2.5)
+    {
+        if(uvMode > 0.5 && uvMode < 1.5)
+        {
+            vec2 uvMin = vec2(textureRect.x, 1.0 - textureRect.w);
+            vec2 uvMax = vec2(textureRect.z, 1.0 - textureRect.y);
+            uv = clamp(uv, uvMin, uvMax);
+        }
+
         return texture(inTexture0, uv);
+    }
 
     if(paintType < 3.5)
     {

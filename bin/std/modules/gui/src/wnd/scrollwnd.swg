@@ -276,7 +276,7 @@ public impl IWnd for ScrollWnd
             if !.isHotBarH do
                 colBk.a = 0
             .aniBkBarH.apply(me, colBk)
-            theme.drawSubRect(bc.painter, clientRect, &rects.scrollBar_BkV, .aniBkBarH.cur())
+            theme.drawSubRect(bc.painter, clientRect, &rects.scrollBar_BkH, .aniBkBarH.cur())
 
             if .needH
             {

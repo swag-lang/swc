@@ -675,6 +675,9 @@ impl Painter
         .curState.interpolationMode = mode
     }
 
+    #[Swag.Inline]
+    mtd getInterpolationMode() => .curState.interpolationMode
+
     // Set the current clipping rectangle
     mtd setClippingRect(x, y, width, height: f32)
     {

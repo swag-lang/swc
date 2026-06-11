@@ -1,18 +1,15 @@
 using Core, Gui, Pixel
 
-func createGridCell(parent: *Wnd, text: string)->*FrameWnd
+func createGridCell(parent: *Wnd, text: string, icon: ThemeIcons24)->*Label
 {
-    let frame = Wnd.create'FrameWnd(parent, {})
-    frame.setFrameForm(.Round)
-    frame.setFrameFlags(.Borders)
-    let view = frame.createView'Wnd()
-    let label = createText(view, text, {10, 8, 160, 24})
-    label.icon = app.theme.getIcon24(.Sort, 16)
+    let label = Label.create(parent, text, {0, 0, 120, 42}, null, .WordWrap)
+    label.backgroundStyle = .Window
+    label.icon = app.theme.getIcon24(icon, 16)
     label.horzAlignmentIcon = .Left
     label.horzAlignmentText = .Left
-    label.paddingText.x = 22
-    discard createHelpText(view, "span-aware cell", {10, 36, 180, 40})
-    return frame
+    label.paddingIcon = {10, 0, 0, 0}
+    label.paddingText = {34, 0, 10, 0}
+    return label
 }
 
 func createWrapTile(parent: *Wnd, text: string, icon: ThemeIcons24)
@@ -26,22 +23,24 @@ func createGridWrapPage(parent: *Wnd)
 {
     let layout = getPageLayout(parent)
 
-    let left = createPanel(parent, "GridLayoutCtrl", "Cells can span columns and rows while the grid adapts row and column sizes to its rectangle.", layout.left)
-    let grid = GridLayoutCtrl.create(left, 4, 3, {18, 92, layout.left.width - 36, layout.left.height - 112})
-    grid.gridLayoutFlags |= .AdaptColWidth | .AdaptRowHeight
+    let left = createPanel(parent, "GridLayoutCtrl", "Cells can span columns and rows while the grid recomputes direct child windows.", layout.left)
+    let grid = GridLayoutCtrl.create(left, 4, 3, {18, 92, Math.max(layout.left.width - 36, 320.0), Math.max(layout.left.height - 112, 180.0)})
+    grid.backgroundStyle = .Dialog
+    grid.gridLayoutFlags.add(.AdaptColWidth)
+    grid.gridLayoutFlags.add(.AdaptRowHeight)
     grid.spacingHorz = 10
     grid.spacingVert = 10
     grid.padding = 4
 
-    let timeline = createGridCell(grid, "Timeline")
+    let timeline = createGridCell(grid, "Timeline span 2", .Sort)
     grid.setColRowChild(timeline, 0, 0, 2, 1)
-    let preview = createGridCell(grid, "Preview")
+    let preview = createGridCell(grid, "Preview span 2x2", .Search)
     grid.setColRowChild(preview, 2, 0, 2, 2)
-    let props = createGridCell(grid, "Properties")
+    let props = createGridCell(grid, "Properties tall", .Options)
     grid.setColRowChild(props, 0, 1, 1, 2)
-    let notes = createGridCell(grid, "Notes")
+    let notes = createGridCell(grid, "Notes", .Edit)
     grid.setColRowChild(notes, 1, 1, 1, 1)
-    let logs = createGridCell(grid, "Logs")
+    let logs = createGridCell(grid, "Logs span 3", .Download)
     grid.setColRowChild(logs, 1, 2, 3, 1)
     grid.computeLayout()
 

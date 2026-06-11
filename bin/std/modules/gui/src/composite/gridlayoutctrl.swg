@@ -81,7 +81,8 @@ impl IWnd for GridLayoutCtrl
                 var idxN = 0
                 while idxC < .numColumns and .layout[idxW] == curWnd
                 {
-                    w += forcedW orelse .colSizes[idxC]
+                    let cellW = forcedW orelse .colSizes[idxC]
+                    w = w + cellW
                     idxW, idxC, idxN += 1
                 }
 
@@ -92,7 +93,8 @@ impl IWnd for GridLayoutCtrl
                 idxN = 0
                 while idxC < .numRows and .layout[idxW] == curWnd
                 {
-                    h += forcedH orelse .rowSizes[idxC]
+                    let cellH = forcedH orelse .rowSizes[idxC]
+                    h = h + cellH
                     idxW += .numColumns
                     idxC, idxN += 1
                 }
@@ -104,7 +106,8 @@ impl IWnd for GridLayoutCtrl
                 maxH = Math.max(maxH, y + h + .padding.w)
             }
 
-            y += forcedH orelse .rowSizes[j]
+            let rowH = forcedH orelse .rowSizes[j]
+            y = y + rowH
             y += .spacingVert
         }
 

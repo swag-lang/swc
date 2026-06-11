@@ -66,12 +66,24 @@ func createPane(parent: *Wnd, title, text: string)->*FrameWnd
 {
     let frame = Wnd.create'FrameWnd(parent, {})
     frame.setFrameForm(.Round)
-    frame.setFrameFlags(.Borders)
+    frame.setFrameFlags(.Zero, .Borders)
 
     let view = frame.createView'Wnd()
     discard createText(view, title, {12, 8, 220, 22})
     discard createHelpText(view, text, {12, 34, 220, 120})
     return frame
+}
+
+func refreshLayoutTree(wnd: *Wnd)
+{
+    if !wnd do
+        return
+
+    wnd.sendResizeEvent()
+    wnd.applyLayout()
+    foreach child in wnd.childs do
+        refreshLayoutTree(child)
+    wnd.invalidate()
 }
 
 func createChip(parent: *Wnd, text: string, icon: ThemeIcons24 = .Options)->*PushButton
@@ -190,6 +202,7 @@ func buildPage()
         unreachable
     }
 
+    refreshLayoutTree(g_PageView)
     g_PageView.invalidate()
 }
 

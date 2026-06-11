@@ -18,8 +18,6 @@ func createSplitterPage(parent: *Wnd)
 
     let splitRect = Math.Rectangle{18, 90, layout.full.width - 36, layout.full.height - 112}
     let rootSplit = SplitterCtrl.create(page, splitRect)
-    rootSplit.setFrameForm(.Round)
-    rootSplit.setFrameFlags(.Borders)
 
     let nav = createSplitterPane(rootSplit, "Navigator", "Preserved side pane. min 170, max 280.")
     let navItem = rootSplit.addPane(nav, 230)
@@ -39,8 +37,6 @@ func createSplitterPage(parent: *Wnd)
 
     let vertical = SplitterCtrl.create(work, {}, vertical: true)
     vertical.dockStyle = .Center
-    vertical.setFrameForm(.Round)
-    vertical.setFrameFlags(.Borders)
 
     let editor = createSplitterPane(vertical, "Document", "Center region nested inside a vertical splitter.")
     let editorItem = vertical.addPane(editor, 330)

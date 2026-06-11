@@ -28,8 +28,6 @@
 #include "Support/Report/ScopedTimedAction.h"
 #include "Support/Thread/JobManager.h"
 
-#include <future>
-
 SWC_BEGIN_NAMESPACE();
 
 namespace
@@ -1422,11 +1420,15 @@ bool CompilerInstance::isWorkspaceModuleActive(const WorkspaceModuleBuild& modul
     return !moduleBuild.ignoreInWorkspace && !moduleBuild.filteredOut;
 }
 
-// A module's native link that has been launched on a background thread. The owned CommandLine,
-// CompilerInstance and NativeBackendBuilder must stay alive until the link is joined and finished:
+// A module's native link, run as a normal job on the shared JobManager. The owned CommandLine,
+// CompilerInstance and NativeBackendBuilder must stay alive until the link job is joined and finished:
 // the compiler is referenced (by pointer) by the builder, and the CommandLine is referenced (by
-// pointer) by the compiler. Declaration order matters for teardown: the future is joined first, then
+// pointer) by the compiler. Declaration order matters for teardown: the job is drained first, then
 // the builder, then the compiler, then the CommandLine.
+//
+// The link runs on its own job client so the next module's (CPU-bound) compilation, which waits only
+// on its own client, can overlap it instead of stalling. The job object is owned here so it outlives
+// its execution and is torn down with the rest of the retained module state.
 struct WorkspaceModuleLink
 {
     Utf8                                  moduleName;
@@ -1437,14 +1439,36 @@ struct WorkspaceModuleLink
     WorkspaceArtifactManifest             manifest;
     fs::path                              manifestPath;
     fs::path                              outDir;
-    std::future<void>                     linkFuture;
+    std::unique_ptr<NativeLinkJob>        linkJob;
+    JobClientId                           linkClientId = 0;
+    bool                                  linkInFlight = false;
+
+    // Enqueue the prepared link on the shared JobManager under a fresh client, then return so the
+    // caller can move on to the next module while a worker thread runs the link.
+    void launchLink()
+    {
+        JobManager& jobMgr = builder->ctx().global().jobMgr();
+        linkClientId       = jobMgr.newClientId();
+        linkJob            = std::make_unique<NativeLinkJob>(builder->ctx(), builder->deferredToolRun());
+        linkInFlight       = true;
+        jobMgr.enqueue(*linkJob, JobPriority::Normal, linkClientId);
+    }
+
+    // Block until the link job has run to completion (a no-op if it was never launched or already
+    // joined). Required before the retained builder/compiler/cmdLine the job references are destroyed.
+    void joinLink()
+    {
+        if (!linkInFlight)
+            return;
+        builder->ctx().global().jobMgr().waitAll(linkClientId);
+        linkInFlight = false;
+    }
 
     ~WorkspaceModuleLink()
     {
-        // Defensive join: an early/error return may drop a link without finalizing it. std::async's
-        // future also blocks on destruction, but waiting explicitly keeps teardown order obvious.
-        if (linkFuture.valid())
-            linkFuture.wait();
+        // Defensive drain: an early/error return may drop a link without finalizing it. The job
+        // references this object's retained builder, so it must complete before teardown.
+        joinLink();
     }
 };
 
@@ -1473,13 +1497,11 @@ namespace
         return Result::Continue;
     }
 
-    // Foreground completion of a backgrounded module link: wait for the external linker, interpret
-    // its result and report any diagnostics in order, then record the artifact manifest now that the
-    // output exists.
+    // Foreground completion of a backgrounded module link: drain the link job, interpret its result
+    // and report any diagnostics in order, then record the artifact manifest now that the output exists.
     Result finalizeWorkspaceModuleLink(WorkspaceModuleLink& link)
     {
-        if (link.linkFuture.valid())
-            link.linkFuture.wait();
+        link.joinLink();
 
         SWC_RESULT(link.builder->finishDeferredLink());
 
@@ -1779,9 +1801,8 @@ ExitCode CompilerInstance::runWorkspace()
             if (joinPendingLink() != Result::Continue)
                 return ExitCode::CompileError;
 
-            WorkspaceModuleLink* linkPtr = modulePending.get();
-            linkPtr->linkFuture          = std::async(std::launch::async, [linkPtr] { Linker::executeLink(linkPtr->builder->deferredToolRun()); });
-            pendingLink                  = std::move(modulePending);
+            modulePending->launchLink();
+            pendingLink = std::move(modulePending);
         }
 
         workspaceBuildLogState_.builtModules++;

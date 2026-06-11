@@ -25,6 +25,8 @@ const char* Job::kindName(const JobKind kind)
             return "NativeArtifact";
         case JobKind::NativeObj:
             return "NativeObj";
+        case JobKind::NativeLink:
+            return "NativeLink";
         case JobKind::ModuleApiExport:
             return "ModuleApiExport";
         default:

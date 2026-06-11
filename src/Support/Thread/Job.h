@@ -20,6 +20,7 @@ enum class JobKind
     CompilerMessage,
     NativeArtifact,
     NativeObj,
+    NativeLink,
     ModuleApiExport,
 };
 

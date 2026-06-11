@@ -2,6 +2,7 @@
 
 #include "Backend/Linker/LinkJob.h"
 #include "Backend/Native/NativeBackendBuilder.h"
+#include "Support/Thread/Job.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -34,6 +35,31 @@ public:
 
 protected:
     NativeBackendBuilder* builder_ = nullptr;
+};
+
+// Runs executeLink() as a normal job on the shared JobManager, so a module's link overlaps the next
+// module's compilation instead of riding a one-off std::async thread. Self-contained: it only touches
+// the LinkJob, never compiler state, so it is safe on any worker thread (mirrors executeLink's contract).
+class NativeLinkJob final : public Job
+{
+public:
+    static constexpr auto K = JobKind::NativeLink;
+
+    NativeLinkJob(const TaskContext& ctx, LinkJob& job) :
+        Job(ctx, JobKind::NativeLink),
+        job_(&job)
+    {
+    }
+
+    JobResult exec() override
+    {
+        ctx().state().setNone();
+        Linker::executeLink(*job_);
+        return JobResult::Done;
+    }
+
+private:
+    LinkJob* job_ = nullptr;
 };
 
 SWC_END_NAMESPACE();

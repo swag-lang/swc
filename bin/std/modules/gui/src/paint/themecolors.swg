@@ -1085,7 +1085,7 @@ impl ThemeColors
         .headerItem_HotBk        = AccentHotBk
         .headerItem_ClickedBk    = AccentPressedBk
         .headerItem_Text         = Gray1
-        .headerItem_Separator    = Color.getLighter(Color.fromArgb(Gray7), 0.2)
+        .headerItem_Separator    = Gray6
         .header_Bk               = Gray7
 
         .splitView_TitleBk = Gray6

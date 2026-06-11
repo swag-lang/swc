@@ -56,7 +56,7 @@ enum PaintParams
 {
     Zero
     Antialiased
-    Default     = Zero
+    Default     = Antialiased
 }
 
 enum PaintQuality

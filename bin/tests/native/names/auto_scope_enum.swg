@@ -58,3 +58,33 @@ impl E
     let a = f.x == .G
     @assert(a)
 }
+
+const Recent = "Recent"
+
+enum AutoScopeConflictSortMethod
+{
+    Recent
+    FileSize
+}
+
+struct AutoScopeConflictLibrary
+{
+    sortMethod: AutoScopeConflictSortMethod
+}
+
+impl AutoScopeConflictLibrary
+{
+    mtd useConflictName()->bool
+    {
+        return .sortMethod == .Recent
+    }
+}
+
+#test
+{
+    var lib: AutoScopeConflictLibrary
+    lib.sortMethod = .Recent
+
+    @assert(lib.sortMethod == .Recent)
+    @assert(lib.useConflictName())
+}

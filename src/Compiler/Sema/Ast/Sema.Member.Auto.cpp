@@ -328,7 +328,7 @@ namespace
         return Result::Continue;
     }
 
-    Result collectAutoMemberCandidates(Sema& sema, SmallVector4<AutoMemberCandidate>& outCandidates, bool preferBindingTypes)
+    Result collectAutoMemberCandidates(Sema& sema, SmallVector4<AutoMemberCandidate>& outCandidates)
     {
         outCandidates.clear();
 
@@ -360,13 +360,13 @@ namespace
             return false;
         };
 
-        const bool bindingTypesFirst = preferBindingTypes && hasEnumBindingType();
+        const bool bindingTypesFirst = hasEnumBindingType();
         uint32_t   precedence        = 0;
 
         if (bindingTypesFirst)
         {
-            // In call arguments, the selected/deduced parameter type is the nearest
-            // intent for `.Foo`, and should win over receiver members with the same name.
+            // A contextual enum type is the nearest intent for `.Foo`, and must win
+            // over receiver members or local symbols with the same name.
             for (const auto& bindingType : std::ranges::reverse_view(bindingTypes))
             {
                 SWC_RESULT(addCandidateFromType(sema, outCandidates, bindingType, nullptr, AstNodeRef::invalid(), precedence++));
@@ -618,7 +618,7 @@ Result AstAutoMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& c
 
     SmallVector4<AutoMemberCandidate> candidates;
     const bool                        deferCallArgument = hasFlag(AstAutoMemberAccessExprFlagsE::CallArgument);
-    SWC_RESULT(collectAutoMemberCandidates(sema, candidates, deferCallArgument));
+    SWC_RESULT(collectAutoMemberCandidates(sema, candidates));
     if (candidates.empty())
     {
         // In a call-argument position, `.EnumValue` might need the selected overload's

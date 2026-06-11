@@ -375,6 +375,9 @@ impl Header
     // Get the header total width
     mtd getTotalItemsWidth()->f32
     {
+        if .items.count == 0 do
+            return .padding.x
+
         var w = .getItemPosition(cast(u32) .items.count - 1)
         w += .items.back().width
         w += .getThemeMetrics().header_Separator

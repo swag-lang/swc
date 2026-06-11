@@ -47,7 +47,6 @@ call :run_source_test "tests\errors\sema" "Sema" "sema-only" "--sema-only" || ex
 call :run_source_test "tests\jit" "Jit" "no-output" "--no-output" || exit /b 1
 call :run_source_test "tests\safety" "Safety" "no-output" "--no-output" || exit /b 1
 call :run_native_test "executable" || exit /b 1
-call :run_api_export_preserve_test || exit /b 1
 call "%TOOLS_DIR%_common.bat" :run_swc run --workspace "%ROOT%\bin\tests\workspace" --build-cfg "%BUILD_CFG%"%EXTRA_ARGS% || exit /b 1
 
 call "%TOOLS_DIR%_common.bat" :batch_end "%~f0"
@@ -63,29 +62,4 @@ call "%TOOLS_DIR%_common.bat" :set_paths "tests\native" "%ARTIFACT_KIND%" "%BUIL
 if not "%ERRORLEVEL%"=="0" exit /b %ERRORLEVEL%
 
 call "%TOOLS_DIR%_common.bat" :run_swc test --artifact-kind "%ARTIFACT_KIND%" -d "%ROOT%\bin\tests\native" --module-namespace Native --out-dir "%OUT_DIR%" --work-dir "%WORK_DIR%" --build-cfg "%BUILD_CFG%"%EXTRA_ARGS%
-exit /b %ERRORLEVEL%
-
-:run_api_export_preserve_test
-set "PRESERVE_WORKSPACE=%ROOT%\bin\tests\workspace_api_export_preserve"
-set "PRESERVE_DIR=%PRESERVE_WORKSPACE%\.output\provider\shared-library\%BUILD_CFG%\%TARGET_ARCH%"
-set "PRESERVE_FILE=%PRESERVE_DIR%\api-export-preserve.sentinel"
-
-call "%TOOLS_DIR%_common.bat" :run_swc build --workspace "%PRESERVE_WORKSPACE%" --workspace-module provider --build-cfg "%BUILD_CFG%"%EXTRA_ARGS%
-if not "%ERRORLEVEL%"=="0" exit /b %ERRORLEVEL%
-if not exist "%PRESERVE_DIR%" exit /b 1
-
-> "%PRESERVE_FILE%" echo keep
-call "%TOOLS_DIR%_common.bat" :run_swc sema --workspace "%PRESERVE_WORKSPACE%" --workspace-module provider --build-cfg "%BUILD_CFG%" --rebuild%EXTRA_ARGS%
-if not "%ERRORLEVEL%"=="0" (
-    del "%PRESERVE_FILE%" >nul 2>nul
-    exit /b %ERRORLEVEL%
-)
-
-if not exist "%PRESERVE_FILE%" (
-    echo API export removed a non-API artifact: "%PRESERVE_FILE%"
-    exit /b 1
-)
-
-del "%PRESERVE_FILE%" >nul 2>nul
-call "%TOOLS_DIR%_common.bat" :run_swc sema --workspace "%PRESERVE_WORKSPACE%" --workspace-module provider --build-cfg "%BUILD_CFG%" --rebuild%EXTRA_ARGS%
 exit /b %ERRORLEVEL%

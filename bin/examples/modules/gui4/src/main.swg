@@ -469,45 +469,6 @@ func onPreviewEvent(view: *Wnd, evt: IEvent)->bool
     return false
 }
 
-// Page 1: grid inspector beside the live preview.
-func createGridPage(parent: *Wnd)
-{
-    g_Inspector = PropertiesCtrl.create(parent, {0, 0, InspectorWidth, 10}, .Grid, .SectionFilter | .SectionPane | .FindBar)
-    g_Inspector.dockStyle  = .Left
-    g_Inspector.margin.z   = SplitGap
-    addDemoStructs(g_Inspector)
-    g_Inspector.splitter.setPaneSize(0, 160)
-    g_Inspector.splitter.items[0].tryPreserveSize = true
-
-    let frame = createPanel(parent, "Live preview", "Every value comes from the property editor, including colors, numbers, enum flags and arrays.", {})
-    frame.dockStyle = .Center
-    g_Preview = frame.view
-    g_Preview.hookOnEvent = &onPreviewEvent
-}
-
-// Page 2: the same structs in the flat, option-style list mode, with a find
-// filter at the top to narrow down the visible rows.
-func createListPage(parent: *Wnd)
-{
-    with let filter = EditBox.create(parent, "")
-    {
-        .icon      = parent.getTheme().getIcon24(ThemeIcons24.Search, 18)
-        .dockStyle = .Top
-        .setNote("Search")
-        .margin    = {16, 16, 16, 4}
-        .editBoxFlags.add(.ClearButton)
-        .sigChanged += func(fil) { if g_ListProps do g_ListProps.setStringFilter(fil.text); }
-    }
-
-    g_ListProps = Properties.create(parent, {}, .List)
-    g_ListProps.dockStyle = .Center
-    g_ListProps.margin.x = 16
-    g_ListProps.margin.y = 8
-    g_ListProps.margin.z = 16
-    g_ListProps.margin.w = 16
-    addDemoStructs(g_ListProps)
-}
-
 func clearPage()
 {
     g_Inspector = null

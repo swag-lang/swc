@@ -53,8 +53,8 @@ func onContextCanvasEvent(view: *Wnd, evt: IEvent)->bool
         painter.drawRoundRect(card, 22, 22, Color.fromArgb(70'u8, Argb.Black), 1)
         painter.drawString(card.x + 28, card.y + 28, "Right-click target", titleFont, Argb.DarkSlateGray)
         drawWrappedText(painter, {card.x + 28, card.y + 72, card.width - 56, 56}, "Right-click this panel or use the buttons to open the same context menu at different anchors.", font, Argb.DimGray, 2)
-        drawStatePill(painter, {card.x + 28, card.y + 146, 132, 34}, g_ContextPinned ? "pinned" : "unpinned", g_ContextPinned, font, colors)
-        drawStatePill(painter, {card.x + 176, card.y + 146, 132, 34}, Format.toString("delete %", boolWord(!g_ContextPinned)), !g_ContextPinned, font, colors)
+        drawStatePill(painter, {card.x + 28, card.y + 130, 132, 34}, g_ContextPinned ? "pinned" : "unpinned", g_ContextPinned, font, colors)
+        drawStatePill(painter, {card.x + 176, card.y + 130, 132, 34}, Format.toString("delete %", boolWord(!g_ContextPinned)), !g_ContextPinned, font, colors)
     }
 
     return false

@@ -400,18 +400,43 @@ func onPreviewEvent(view: *Wnd, evt: IEvent)->bool
         painter.fillRoundRect(card, 20, 20, Color.fromArgb(255, 246, 248, 250))
         painter.drawRoundRect(card, 20, 20, Color.fromArgb(70'u8, Argb.Black), 1)
 
-        painter.drawString(card.x + 24, card.y + 22, "Menu-driven workspace", titleFont, Argb.DarkSlateGray)
-        drawWrappedText(painter, {card.x + 24, card.y + 60, card.width - 48, 44}, g_StatusText, font, Argb.DimGray, 2)
+        let contentX = card.x + 24
+        let contentWidth = Math.max(card.width - 48, 1.0)
+        painter.drawString(contentX, card.y + 22, "Menu-driven workspace", titleFont, Argb.DarkSlateGray)
+        drawWrappedText(painter, {contentX, card.y + 60, contentWidth, 42}, g_StatusText, font, Argb.DimGray, 2)
 
-        let y = card.y + 126
-        drawStatePill(painter, {card.x + 24, y, 112, 34}, Format.toString("grid %", boolWord(g_ShowGrid)), g_ShowGrid, font, colors)
-        drawStatePill(painter, {card.x + 150, y, 124, 34}, Format.toString("guides %", boolWord(g_ShowGuides)), g_ShowGuides, font, colors)
-        drawStatePill(painter, {card.x + 288, y, 132, 34}, currentModeName(), true, font, colors)
-        drawStatePill(painter, {card.x + 434, y, 112, 34}, g_DocumentDirty ? "dirty" : "saved", g_DocumentDirty, font, colors)
+        let pillGap = 12.0
+        let pillHeight = 32.0
+        let pillTop = card.y + 100
+        var pillsBottom: f32
+
+        if contentWidth >= 560.0
+        {
+            let pillWidth = (contentWidth - 3 * pillGap) * 0.25
+            drawStatePill(painter, {contentX, pillTop, pillWidth, pillHeight}, Format.toString("grid %", boolWord(g_ShowGrid)), g_ShowGrid, font, colors)
+            drawStatePill(painter, {contentX + pillWidth + pillGap, pillTop, pillWidth, pillHeight}, Format.toString("guides %", boolWord(g_ShowGuides)), g_ShowGuides, font, colors)
+            drawStatePill(painter, {contentX + 2 * (pillWidth + pillGap), pillTop, pillWidth, pillHeight}, currentModeName(), true, font, colors)
+            drawStatePill(painter, {contentX + 3 * (pillWidth + pillGap), pillTop, pillWidth, pillHeight}, g_DocumentDirty ? "dirty" : "saved", g_DocumentDirty, font, colors)
+            pillsBottom = pillTop + pillHeight
+        }
+        else
+        {
+            let pillWidth = (contentWidth - pillGap) * 0.5
+            let secondX = contentX + pillWidth + pillGap
+            let secondRow = pillTop + pillHeight + 10
+            drawStatePill(painter, {contentX, pillTop, pillWidth, pillHeight}, Format.toString("grid %", boolWord(g_ShowGrid)), g_ShowGrid, font, colors)
+            drawStatePill(painter, {secondX, pillTop, pillWidth, pillHeight}, Format.toString("guides %", boolWord(g_ShowGuides)), g_ShowGuides, font, colors)
+            drawStatePill(painter, {contentX, secondRow, pillWidth, pillHeight}, currentModeName(), true, font, colors)
+            drawStatePill(painter, {secondX, secondRow, pillWidth, pillHeight}, g_DocumentDirty ? "dirty" : "saved", g_DocumentDirty, font, colors)
+            pillsBottom = secondRow + pillHeight
+        }
 
         let lineY = card.bottom() - 52
-        painter.drawLine(card.x + 24, lineY, card.right() - 24, lineY, Color.fromArgb(60'u8, Argb.Black), 1)
-        painter.drawString(card.x + 24, lineY + 16, stateSummary(), font, Argb.DimGray)
+        if lineY > pillsBottom + 12
+        {
+            painter.drawLine(contentX, lineY, contentX + contentWidth, lineY, Color.fromArgb(60'u8, Argb.Black), 1)
+            drawWrappedText(painter, {contentX, lineY + 12, contentWidth, card.bottom() - lineY - 18}, stateSummary(), font, Argb.DimGray, 1)
+        }
     }
 
     return false

@@ -22,26 +22,14 @@ namespace
         return ctx.typeMgr().addType(TypeInfo::makeArray(dims, ctx.typeMgr().typeValuePtrVoid()));
     }
 
-    const SymbolFunction* resolveInterfaceMethodTargetRec(const TaskContext& ctx, const SymbolImpl& impl, const SymbolFunction& interfaceMethod, std::unordered_set<const SymbolStruct*>& visited)
+    const SymbolFunction* resolveInterfaceMethodTargetRec(const TaskContext& ctx, const SymbolImpl& impl, const SymbolFunction& interfaceMethod, std::unordered_set<const SymbolStruct*>& visited);
+
+    const SymbolFunction* resolveInterfaceMethodTargetInUsingFieldsRec(const TaskContext& ctx, const SymbolStruct& objectStruct, const SymbolInterface& interfaceSym, const SymbolFunction& interfaceMethod, std::unordered_set<const SymbolStruct*>& visited)
     {
-        if (const SymbolFunction* implMethod = impl.findFunction(interfaceMethod.idRef()))
-            return implMethod;
-
-        if (!interfaceMethod.isEmpty())
-            return &interfaceMethod;
-
-        if (!impl.isForStruct())
+        if (!visited.insert(&objectStruct).second)
             return nullptr;
 
-        const SymbolStruct* objectStruct = impl.symStruct();
-        if (!objectStruct || !visited.insert(objectStruct).second)
-            return nullptr;
-
-        const SymbolInterface* interfaceSym = impl.symInterface();
-        if (!interfaceSym)
-            return nullptr;
-
-        for (const Symbol* field : objectStruct->fields())
+        for (const Symbol* field : objectStruct.fields())
         {
             if (!field || !field->isVariable())
                 continue;
@@ -55,15 +43,40 @@ namespace
             if (!targetStruct || usingFieldIsPointer || symVar.offset() != 0)
                 continue;
 
-            const SymbolImpl* targetImpl = targetStruct->findInterfaceImpl(interfaceSym->idRef());
-            if (!targetImpl)
-                continue;
-
-            if (const SymbolFunction* targetMethod = resolveInterfaceMethodTargetRec(ctx, *targetImpl, interfaceMethod, visited))
+            if (const SymbolImpl* targetImpl = targetStruct->findInterfaceImpl(interfaceSym.idRef()))
+            {
+                if (const SymbolFunction* targetMethod = resolveInterfaceMethodTargetRec(ctx, *targetImpl, interfaceMethod, visited))
+                    return targetMethod;
+            }
+            else if (const SymbolFunction* targetMethod = resolveInterfaceMethodTargetInUsingFieldsRec(ctx, *targetStruct, interfaceSym, interfaceMethod, visited))
+            {
                 return targetMethod;
+            }
         }
 
         return nullptr;
+    }
+
+    const SymbolFunction* resolveInterfaceMethodTargetRec(const TaskContext& ctx, const SymbolImpl& impl, const SymbolFunction& interfaceMethod, std::unordered_set<const SymbolStruct*>& visited)
+    {
+        if (const SymbolFunction* implMethod = impl.findFunction(interfaceMethod.idRef()))
+            return implMethod;
+
+        if (!interfaceMethod.isEmpty())
+            return &interfaceMethod;
+
+        if (!impl.isForStruct())
+            return nullptr;
+
+        const SymbolStruct* objectStruct = impl.symStruct();
+        if (!objectStruct)
+            return nullptr;
+
+        const SymbolInterface* interfaceSym = impl.symInterface();
+        if (!interfaceSym)
+            return nullptr;
+
+        return resolveInterfaceMethodTargetInUsingFieldsRec(ctx, *objectStruct, *interfaceSym, interfaceMethod, visited);
     }
 }
 
@@ -153,6 +166,7 @@ Result SymbolImpl::ensureInterfaceMethodTable(Sema& sema, ConstantRef& outRef) c
     SWC_ASSERT(objectStruct != nullptr);
     SWC_ASSERT(itfSym != nullptr);
     SWC_ASSERT(objectStruct->typeRef().isValid());
+    SWC_RESULT(sema.waitSemaCompleted(this, codeRef()));
     SWC_RESULT(sema.waitSemaCompleted(objectStruct, objectStruct->codeRef()));
     SWC_RESULT(sema.waitSemaCompleted(itfSym, itfSym->codeRef()));
 

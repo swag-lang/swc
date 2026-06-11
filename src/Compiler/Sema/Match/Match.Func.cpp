@@ -120,7 +120,7 @@ namespace
             return Result::Continue;
 
         ConstantRef cstRef;
-        SWC_RESULT(sema.cstMgr().makeTypeInfo(sema, cstRef, attributeTypeRef, attributeView.nodeRef()));
+        SWC_RESULT(sema.makeRuntimeTypeInfo(cstRef, attributeTypeRef, attributeView.nodeRef()));
         sema.setConstant(attributeView.nodeRef(), cstRef);
         argView.recompute(sema, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
         return Result::Continue;
@@ -2568,7 +2568,7 @@ namespace
         SWC_ASSERT(argView.typeRef().isValid());
 
         ConstantRef typeInfoCstRef = ConstantRef::invalid();
-        SWC_RESULT(sema.cstMgr().makeTypeInfo(sema, typeInfoCstRef, argView.typeRef(), outResolvedArg.argRef));
+        SWC_RESULT(sema.makeRuntimeTypeInfo(typeInfoCstRef, argView.typeRef(), outResolvedArg.argRef));
         outResolvedArg.typeInfoCstRef = typeInfoCstRef;
         return Result::Continue;
     }

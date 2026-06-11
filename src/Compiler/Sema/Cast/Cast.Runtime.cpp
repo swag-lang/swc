@@ -139,20 +139,6 @@ namespace
         return objectTypeRef;
     }
 
-    Result makeTypeInfoWithoutBlocking(Sema& sema, ConstantRef& outRef, TypeRef typeRef, AstNodeRef ownerNodeRef)
-    {
-        const Result result = sema.cstMgr().makeTypeInfo(sema, outRef, typeRef, ownerNodeRef, ConstantManager::TypeInfoLockMode::TryLock);
-        if (result != Result::Pause)
-            return result;
-
-        if (sema.ctx().state().hasPauseReason())
-            return Result::Pause;
-
-        // Type-info cache contention is transient work sharing, not a semantic dependency.
-        // Yield here so another worker can keep progressing until the shard owner publishes.
-        return sema.waitTypeInfoGeneration(ownerNodeRef);
-    }
-
     Result constantFoldPointerLikeFromValue(Sema& sema, ConstantRef srcCstRef, TypeRef srcTypeRef, TypeRef dstTypeRef, ConstantRef& outCstRef)
     {
         const TypeInfo& srcType = sema.typeMgr().get(srcTypeRef);
@@ -831,7 +817,7 @@ Result Cast::castFromTypeValue(Sema& sema, CastRequest& castRequest, TypeRef src
         if (castRequest.materializeConstantResult())
         {
             const auto cst = sema.cstMgr().get(castRequest.srcConstRef);
-            SWC_RESULT(makeTypeInfoWithoutBlocking(sema, castRequest.outConstRef, cst.getTypeValue(), castRequest.errorNodeRef));
+            SWC_RESULT(sema.makeRuntimeTypeInfo(castRequest.outConstRef, cst.getTypeValue(), castRequest.errorNodeRef));
         }
 
         return Result::Continue;
@@ -1037,7 +1023,7 @@ Result Cast::castToAny(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef,
     const bool boxedAsTypeInfo = sema.typeMgr().get(boxedAnyTypeRef).isTypeInfo();
 
     ConstantRef typeInfoCstRef = ConstantRef::invalid();
-    SWC_RESULT(makeTypeInfoWithoutBlocking(sema, typeInfoCstRef, boxedAnyTypeRef, castRequest.errorNodeRef));
+    SWC_RESULT(sema.makeRuntimeTypeInfo(typeInfoCstRef, boxedAnyTypeRef, castRequest.errorNodeRef));
     const ConstantValue& typeInfoCst = sema.cstMgr().get(typeInfoCstRef);
     SWC_ASSERT(typeInfoCst.isValuePointer());
     DataSegmentRef typeInfoRef;

@@ -157,7 +157,7 @@ Result SymbolImpl::ensureInterfaceMethodTable(Sema& sema, ConstantRef& outRef) c
     SWC_RESULT(sema.waitSemaCompleted(itfSym, itfSym->codeRef()));
 
     ConstantRef typeInfoCstRef = ConstantRef::invalid();
-    SWC_RESULT(sema.cstMgr().makeTypeInfo(sema, typeInfoCstRef, objectStruct->typeRef(), ctx.state().nodeRef));
+    SWC_RESULT(sema.makeRuntimeTypeInfo(typeInfoCstRef, objectStruct->typeRef(), ctx.state().nodeRef));
     const ConstantValue& typeInfoCst = sema.cstMgr().get(typeInfoCstRef);
     SWC_ASSERT(typeInfoCst.isValuePointer());
 

@@ -337,6 +337,7 @@ public:
     Result      waitTyped(const Symbol* symbol, const SourceCodeRef& codeRef);
     Result      waitSemaCompleted(const TypeInfo* type, AstNodeRef nodeRef);
     Result      waitTypeInfoGeneration(AstNodeRef nodeRef, const SourceCodeRef& codeRef = SourceCodeRef::invalid());
+    Result      makeRuntimeTypeInfo(ConstantRef& outRef, TypeRef typeRef, AstNodeRef ownerNodeRef);
     Result      prepareFunctionSignature(AstNodeRef functionRef);
     static void waitDone(TaskContext& ctx, JobClientId clientId);
 

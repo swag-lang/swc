@@ -952,7 +952,7 @@ namespace
             }
 
             ConstantRef typeInfoCstRef = ConstantRef::invalid();
-            SWC_RESULT(sema.cstMgr().makeTypeInfo(sema, typeInfoCstRef, view.type()->payloadTypeRef(), view.nodeRef()));
+            SWC_RESULT(sema.makeRuntimeTypeInfo(typeInfoCstRef, view.type()->payloadTypeRef(), view.nodeRef()));
 
             const ConstantValue& typeInfoCst = sema.cstMgr().get(typeInfoCstRef);
             const ConstantRef    cstRef      = sema.cstMgr().addConstant(sema.ctx(), ConstantValue::makeTypeValue(sema.ctx(), typeInfoCst.typeRef()));

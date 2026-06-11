@@ -962,6 +962,24 @@ Result Sema::waitTypeInfoGeneration(AstNodeRef nodeRef, const SourceCodeRef& cod
     return Result::Pause;
 }
 
+Result Sema::makeRuntimeTypeInfo(ConstantRef& outRef, TypeRef typeRef, AstNodeRef ownerNodeRef)
+{
+    // Try to publish the runtime type-info without parking the worker on the shard-local
+    // type-gen mutex. If another worker already owns the shard, yield cooperatively so this
+    // job can make progress elsewhere instead of blocking until the owner publishes.
+    const Result result = cstMgr().makeTypeInfo(*this, outRef, typeRef, ownerNodeRef, ConstantManager::TypeInfoLockMode::TryLock);
+    if (result != Result::Pause)
+        return result;
+
+    // An already-pending semantic wait takes precedence over the transient cache contention.
+    if (ctx().state().hasPauseReason())
+        return Result::Pause;
+
+    // Type-info cache contention is transient work sharing, not a semantic dependency.
+    // The drain loop in waitDone() keeps these waiters re-driven until the shard owner publishes.
+    return waitTypeInfoGeneration(ownerNodeRef);
+}
+
 void Sema::setVisitors()
 {
     if (declPass_)
@@ -1449,6 +1467,20 @@ namespace
 
         return false;
     }
+
+    bool hasPausedTypeInfoGenWait(const TaskContext& ctx, JobClientId clientId)
+    {
+        std::vector<Job*> jobs;
+        ctx.global().jobMgr().waitingJobs(jobs, clientId);
+
+        for (Job* job : jobs)
+        {
+            if (job->ctx().state().kind == TaskStateKind::SemaWaitTypeInfoGeneration)
+                return true;
+        }
+
+        return false;
+    }
 }
 
 void Sema::waitDone(TaskContext& ctx, JobClientId clientId)
@@ -1458,6 +1490,8 @@ void Sema::waitDone(TaskContext& ctx, JobClientId clientId)
     SWC_DEV_LOOP_GUARD(loopGuard, 100000, "Sema::waitDone");
     constexpr uint32_t maxPausedLazyGenericWakes = 1024;
     uint32_t           pausedLazyGenericWakes    = 0;
+    constexpr uint32_t maxPausedTypeInfoGenWakes = 1024;
+    uint32_t           pausedTypeInfoGenWakes    = 0;
 
     while (true)
     {
@@ -1468,6 +1502,7 @@ void Sema::waitDone(TaskContext& ctx, JobClientId clientId)
         {
             SWC_DEV_LOOP_RESET(loopGuard);
             pausedLazyGenericWakes = 0;
+            pausedTypeInfoGenWakes = 0;
             jobMgr.wakeAll(clientId);
             continue;
         }
@@ -1477,6 +1512,7 @@ void Sema::waitDone(TaskContext& ctx, JobClientId clientId)
         {
             SWC_DEV_LOOP_RESET(loopGuard);
             pausedLazyGenericWakes = 0;
+            pausedTypeInfoGenWakes = 0;
             jobMgr.wakeAll(clientId);
             continue;
         }
@@ -1489,6 +1525,7 @@ void Sema::waitDone(TaskContext& ctx, JobClientId clientId)
         {
             SWC_DEV_LOOP_RESET(loopGuard);
             pausedLazyGenericWakes = 0;
+            pausedTypeInfoGenWakes = 0;
             jobMgr.wakeAll(clientId);
             continue;
         }
@@ -1500,6 +1537,7 @@ void Sema::waitDone(TaskContext& ctx, JobClientId clientId)
         {
             SWC_DEV_LOOP_RESET(loopGuard);
             pausedLazyGenericWakes = 0;
+            pausedTypeInfoGenWakes = 0;
             compiler.jitExecMgr().wakeWaiting();
             jobMgr.wakeAll(clientId);
             continue;
@@ -1509,6 +1547,7 @@ void Sema::waitDone(TaskContext& ctx, JobClientId clientId)
         {
             SWC_DEV_LOOP_RESET(loopGuard);
             pausedLazyGenericWakes = 0;
+            pausedTypeInfoGenWakes = 0;
             jobMgr.wakeAll(clientId);
             continue;
         }
@@ -1516,6 +1555,18 @@ void Sema::waitDone(TaskContext& ctx, JobClientId clientId)
         if (pausedLazyGenericWakes < maxPausedLazyGenericWakes && hasPausedLazyGenericBodyWait(ctx, clientId))
         {
             pausedLazyGenericWakes++;
+            SWC_DEV_LOOP_RESET(loopGuard);
+            jobMgr.wakeAll(clientId);
+            continue;
+        }
+
+        // A job parked on type-info generation is waiting on transient shard-lock contention,
+        // not a semantic dependency: the owning worker publishes and clears it. Re-drive these
+        // waiters (bounded, to still surface a genuine cycle) instead of breaking out and
+        // letting SemaCycle misreport the contention as an unresolvable dependency.
+        if (pausedTypeInfoGenWakes < maxPausedTypeInfoGenWakes && hasPausedTypeInfoGenWait(ctx, clientId))
+        {
+            pausedTypeInfoGenWakes++;
             SWC_DEV_LOOP_RESET(loopGuard);
             jobMgr.wakeAll(clientId);
             continue;

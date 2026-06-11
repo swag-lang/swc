@@ -136,8 +136,11 @@ impl Theme
         painter.drawRichString(pos, name, stringFormat)
 
         // Icon
-        if icon.isValid() do
-            icon.paint(painter, name.boundRect.x - icon.sizeX - iconMargin, name.boundRect.vertCenter() - (icon.sizeY * 0.5), iconColor)
+        if icon.isValid()
+        {
+            let centerY = stringFormat.vertAlignment == .Center ? position.vertCenter() : name.boundRect.vertCenter()
+            icon.paint(painter, name.boundRect.x - icon.sizeX - iconMargin, centerY - (icon.sizeY * 0.5), iconColor)
+        }
     }
 
     mtd setTextColors(fmt: *RichStringFormat, mainColor: Color)

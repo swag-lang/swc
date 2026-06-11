@@ -15,20 +15,21 @@ struct ShaderBase
     mvp:             ShaderParamHandle
     mdl:             ShaderParamHandle
     boundRect:       ShaderParamHandle
-    textureRect:     ShaderParamHandle
-    uvMode:          ShaderParamHandle
-    copyMode:        ShaderParamHandle
-    textureW:        ShaderParamHandle
-    textureH:        ShaderParamHandle
-    paintType:       ShaderParamHandle
-    gradientSpread:  ShaderParamHandle
-    gradientStart:   ShaderParamHandle
-    gradientEnd:     ShaderParamHandle
-    gradientRadius:  ShaderParamHandle
-    gradientAngles:  ShaderParamHandle
-    gradientCount:   ShaderParamHandle
-    gradientOffsets: ShaderParamHandle
-    gradientColors:  ShaderParamHandle
+    textureRect:       ShaderParamHandle
+    uvMode:            ShaderParamHandle
+    interpolationMode: ShaderParamHandle
+    copyMode:          ShaderParamHandle
+    textureW:          ShaderParamHandle
+    textureH:          ShaderParamHandle
+    paintType:         ShaderParamHandle
+    gradientSpread:    ShaderParamHandle
+    gradientStart:     ShaderParamHandle
+    gradientEnd:       ShaderParamHandle
+    gradientRadius:    ShaderParamHandle
+    gradientAngles:    ShaderParamHandle
+    gradientCount:     ShaderParamHandle
+    gradientOffsets:   ShaderParamHandle
+    gradientColors:    ShaderParamHandle
 }
 
 struct ShaderSimple

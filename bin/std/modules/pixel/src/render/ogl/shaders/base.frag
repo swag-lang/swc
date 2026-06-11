@@ -1,9 +1,11 @@
 uniform sampler2D inTexture0;
 
+uniform vec4  boundRect;
 uniform float textureW; // texture resolution
 uniform float textureH; // texture resolution
 uniform vec4  textureRect;
 uniform float uvMode;
+uniform float interpolationMode;
 
 uniform float paintType;
 uniform float gradientSpread;
@@ -54,19 +56,76 @@ vec4 sampleGradientStops(float t)
     return gradientColors[gradientCount - 1];
 }
 
+vec2 subRectPixelMin()
+{
+    return floor(vec2(textureRect.x * textureW, textureRect.y * textureH));
+}
+
+vec2 subRectPixelMax()
+{
+    return floor(vec2(textureRect.z * textureW, textureRect.w * textureH));
+}
+
+vec2 subRectUVFromPixel(vec2 p)
+{
+    return vec2((p.x + 0.5) / textureW, 1.0 - (p.y + 0.5) / textureH);
+}
+
+vec2 subRectPixelFromPaint(vec2 paintPos)
+{
+    vec2 minP = subRectPixelMin();
+    vec2 maxP = subRectPixelMax();
+    vec2 size = max(maxP - minP + 1.0, vec2(1.0));
+    vec2 dst  = max(boundRect.zw - boundRect.xy, vec2(0.000001));
+    vec2 t    = clamp((paintPos - boundRect.xy) / dst, vec2(0.0), vec2(1.0));
+    return minP + t * size - 0.5;
+}
+
+vec4 sampleSubRectNearest(vec2 paintPos)
+{
+    vec2 minP = subRectPixelMin();
+    vec2 maxP = subRectPixelMax();
+    vec2 p    = subRectPixelFromPaint(paintPos);
+    p = clamp(floor(p + 0.5), minP, maxP);
+    return texture(inTexture0, subRectUVFromPixel(p));
+}
+
+vec4 sampleSubRectLinear(vec2 paintPos)
+{
+    vec2 minP = subRectPixelMin();
+    vec2 maxP = subRectPixelMax();
+    vec2 p    = subRectPixelFromPaint(paintPos);
+    p = clamp(p, minP, maxP);
+
+    vec2 p0 = clamp(floor(p), minP, maxP);
+    vec2 p1 = clamp(p0 + 1.0, minP, maxP);
+    vec2 f  = p - p0;
+
+    vec4 c00 = texture(inTexture0, subRectUVFromPixel(p0));
+    vec4 c10 = texture(inTexture0, subRectUVFromPixel(vec2(p1.x, p0.y)));
+    vec4 c01 = texture(inTexture0, subRectUVFromPixel(vec2(p0.x, p1.y)));
+    vec4 c11 = texture(inTexture0, subRectUVFromPixel(p1));
+
+    return mix(mix(c00, c10, f.x), mix(c01, c11, f.x), f.y);
+}
+
+vec4 sampleTexture(vec2 paintPos, vec2 uv)
+{
+    if(uvMode > 0.5 && uvMode < 1.5)
+    {
+        if(interpolationMode < 0.5)
+            return sampleSubRectNearest(paintPos);
+
+        return sampleSubRectLinear(paintPos);
+    }
+
+    return texture(inTexture0, uv);
+}
+
 vec4 samplePaint(vec2 paintPos, vec2 uv)
 {
     if(paintType < 2.5)
-    {
-        if(uvMode > 0.5 && uvMode < 1.5)
-        {
-            vec2 uvMin = vec2(textureRect.x, 1.0 - textureRect.w);
-            vec2 uvMax = vec2(textureRect.z, 1.0 - textureRect.y);
-            uv = clamp(uv, uvMin, uvMax);
-        }
-
-        return texture(inTexture0, uv);
-    }
+        return sampleTexture(paintPos, uv);
 
     if(paintType < 3.5)
     {

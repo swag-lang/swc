@@ -24,6 +24,12 @@ impl Theme
         }
 
         let cx, cy = subRect.corner
+        if dstRect.width <= subRect.rect.width and dstRect.height <= subRect.rect.height
+        {
+            painter.drawTexture(dstRect, subRect.rect, texture, color)
+            return
+        }
+
         var cxd, cyd = subRect.corner
         if cxd * 2 > dstRect.width do
             cxd = dstRect.width / 2

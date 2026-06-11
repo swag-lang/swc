@@ -190,13 +190,27 @@ public impl IWnd for MenuCtrl
             backPos.inflate(.paddingSel, 0)
             theme.drawSubRect(painter, backPos, &rects.menuPopup_HotBk, colorSel)
 
-            // Icon
             var iconPos = labelPos
             iconPos.x += metrics.menuPopup_IconMargin
+            labelPos.moveLeft(metrics.menuPopup_IconTextMargin + i.size)
+            labelPos.width -= i.size
+
+            // Text
+            var format: RichStringFormat
+            theme.setTextColors(&format, colorText)
+            format.horzAlignment = .Left
+            format.vertAlignment = .Center
+            format.flags         = .Clip
+            format.font          = .getFont()
+            painter.drawRichString(labelPos, &i.name, format)
+
+            let textCenterY = i.name.isEmpty() ? labelPos.vertCenter() : i.name.boundRect.vertCenter()
+
+            // Icon
             if i.checked or i.rg == .ExclusiveGroup
             {
                 var checkPos = iconPos
-                checkPos.y = iconPos.vertCenter() - i.size * 0.5
+                checkPos.y = textCenterY - i.size * 0.5
                 checkPos.width, checkPos.height = i.size
 
                 if i.rg == .ExclusiveGroup
@@ -211,20 +225,8 @@ public impl IWnd for MenuCtrl
             elif i.icon.isValid()
             {
                 i.icon.sizeX, i.icon.sizeY = i.size - 4
-                i.icon.paint(painter, iconPos.x, iconPos.vertCenter() - i.icon.sizeY * 0.5, colorText)
+                i.icon.paint(painter, iconPos.x, textCenterY - i.icon.sizeY * 0.5, colorText)
             }
-
-            labelPos.moveLeft(metrics.menuPopup_IconTextMargin + i.size)
-            labelPos.width -= i.size
-
-            // Text
-            var format: RichStringFormat
-            theme.setTextColors(&format, colorText)
-            format.horzAlignment = .Left
-            format.vertAlignment = .Center
-            format.flags         = .Clip
-            format.font          = .getFont()
-            painter.drawRichString(labelPos, &i.name, format)
 
             // Text right
             if !.menuCtrlFlags.has(.NoKeyShortcuts) and !i.rightName.isEmpty()
@@ -241,7 +243,7 @@ public impl IWnd for MenuCtrl
             if i.popup
             {
                 let icon = theme.getIcon24(ThemeIcons24.RightPopupArrow)
-                icon.paint(painter, labelPos.right(), labelPos.vertCenter() - icon.sizeY * 0.5, colorText)
+                icon.paint(painter, labelPos.right(), textCenterY - icon.sizeY * 0.5, colorText)
             }
         }
     }

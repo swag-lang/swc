@@ -27,7 +27,6 @@ func createTreesPage(parent: *Wnd)
     discard addSimpleTreeBranch(tree, "Build", .Options, 3)
     tree.expand(docs)
     tree.expand(assets)
-    tree.selectLine(2)
     tree.computeLayout()
 
     let right = createPanel(parent, "Tree table", "Nested rows can still carry column data and sortable headers.", layout.right)
@@ -73,6 +72,5 @@ func createTreesPage(parent: *Wnd)
     openRoot.canCheck = true
     closedRoot.canCheck = true
     stateTree.checkModel.select(openRoot.index, true)
-    stateTree.selectLine(0)
     stateTree.computeLayout()
 }

@@ -27,7 +27,6 @@ func createColumnsPage(parent: *Wnd)
         if i % 5 == 0 do
             line.canCheck = true
     }
-    files.selectLine(4)
     files.computeLayout()
 
     let right = createPanel(parent, "Sorted work queue", "Clicking headers changes sort order; the example opens on the priority column.", layout.right)
@@ -50,7 +49,6 @@ func createColumnsPage(parent: *Wnd)
         line.setItem(3, i % 2 == 0 ? "Ada" : "Mika")
     }
     queue.sort(2, false, true)
-    queue.selectLine(0)
     queue.computeLayout()
 
     let bottom = createPanel(parent, "Wide columns", "Horizontal scrolling keeps the header and list content aligned.", layout.bottom)

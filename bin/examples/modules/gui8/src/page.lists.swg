@@ -11,14 +11,8 @@ func createListsPage(parent: *Wnd)
     simple.listFlags.add(.HotTrack)
     simple.selectionMode = .Multi
     simple.iconSize = 16
-    for i in 24
-    {
-        let line = simple.createLine(Format.toString("Inbox item %", i + 1), sampleIcon(i))
-        if i == 3 or i == 8 do
-            line.colorBk = Color.getLighter(app.theme.colors.listItem_SelectedBk, 0.65)
-    }
-    simple.selectLine(2)
-    simple.selectLine(3)
+    for i in 24 do
+        discard simple.createLine(Format.toString("Inbox item %", i + 1), sampleIcon(i))
     simple.computeLayout()
 
     let right = createPanel(parent, "Virtual list", "A million logical rows filled on demand by sigVirtualFill.", layout.right)
@@ -32,7 +26,6 @@ func createListsPage(parent: *Wnd)
         line.setItem(0, Format.toString("virtual result %     cache line %", idx, idx % 64), sampleIcon(cast(s32) idx))
     }
     virtualList.setVirtualCount(1_000_000)
-    virtualList.selectLine(7)
 
     let bottom = createPanel(parent, "Checkable rows", "Rows can carry independent check state while preserving list navigation.", layout.bottom)
     let checks = ListCtrl.createSimple(bottom, {18, 92, layout.bottom.width - 36, layout.bottom.height - 112})
@@ -47,6 +40,5 @@ func createListsPage(parent: *Wnd)
         if i == 1 or i == 5 or i == 9 do
             checks.checkModel.select(line.index, true)
     }
-    checks.selectLines(4, 6)
     checks.computeLayout()
 }

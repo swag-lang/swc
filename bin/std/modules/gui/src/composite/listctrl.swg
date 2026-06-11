@@ -508,6 +508,7 @@ impl IWnd for ListView
 
         let firstIdx = .list.getFirstVisibleLineIndex()
         let lastIdx  = .list.getLastVisibleLineIndex()
+        let reserveCheckMargin = !.list.isVirtual and .list.hasVisibleCheckBoxes()
 
         // Do not display with bigs coordinates to avoid precision issues
         // So we: the scroll by hand, and draw will small coordinates
@@ -522,7 +523,7 @@ impl IWnd for ListView
             {
                 var line: ListLine
                 .list.sigVirtualFill(&line, i)
-                .paintLine(bc, i, &line, rect)
+                .paintLine(bc, i, &line, rect, line.canCheck)
                 rect.y = rect.bottom()
 
                 if .list.listFlags.has(.HorzLines) do
@@ -534,7 +535,7 @@ impl IWnd for ListView
             for i in firstIdx to lastIdx
             {
                 let line = .list.lines[i]
-                .paintLine(bc, i, line, rect)
+                .paintLine(bc, i, line, rect, reserveCheckMargin)
                 rect.y = rect.bottom()
 
                 if .list.listFlags.has(.HorzLines) do
@@ -573,7 +574,7 @@ fileprivate impl ListView
         return x
     }
 
-    mtd paintLine(bc: PaintContext, idx: u32, line: *ListLine, rect: Math.Rectangle)
+    mtd paintLine(bc: PaintContext, idx: u32, line: *ListLine, rect: Math.Rectangle, reserveCheckMargin: bool)
     {
         let painter = bc.painter
         let theme   = .getTheme()
@@ -683,34 +684,32 @@ fileprivate impl ListView
             defer painter.popClippingRect()
 
             // Checkbox
-            if idxItem == 0 and line.canCheck
+            if idxItem == 0 and reserveCheckMargin
             {
-                var subRectBorder: *ThemeImageRect
-                var subRectMark:   *ThemeImageRect
-
-                let idxLine = .list.isVirtual ? idx : line.index
-                let checked = .list.checkModel.isSelected(idxLine)
-
-                let colorBorder = colorFg
-                let colorMark   = colorFg
-
-                if checked
-                {
-                    subRectBorder = &rects.btnCheck_CheckedBorder
-                    subRectMark   = &rects.btnCheck_CheckedMark
-                }
-                else
-                {
-                    subRectBorder = &rects.btnCheck_NormalBorder
-                }
-
                 let widthCheck = Math.min(metrics.btnCheck_Size, .list.getLineHeight())
-                var posBox     = labelPos
-                posBox.height = widthCheck
-                posBox.y      = labelPos.vertCenter() - (posBox.height * 0.5)
-                posBox.width  = posBox.height
-                theme.drawSubRect(painter, posBox, subRectMark, colorMark)
-                theme.drawSubRect(painter, posBox, subRectBorder, colorBorder)
+                if line.canCheck
+                {
+                    var subRectBorder: *ThemeImageRect = &rects.btnCheck_NormalBorder
+
+                    let idxLine = .list.isVirtual ? idx : line.index
+                    let checked = .list.checkModel.isSelected(idxLine)
+
+                    let colorBorder = colorFg
+                    let colorMark   = colorFg
+
+                    if checked
+                    {
+                        subRectBorder = &rects.btnCheck_CheckedBorder
+                    }
+
+                    var posBox     = labelPos
+                    posBox.height = widthCheck
+                    posBox.y      = labelPos.vertCenter() - (posBox.height * 0.5)
+                    posBox.width  = posBox.height
+                    if checked do
+                        theme.drawSubRect(painter, posBox, &rects.btnCheck_CheckedMark, colorMark)
+                    theme.drawSubRect(painter, posBox, subRectBorder, colorBorder)
+                }
 
                 labelPos.moveLeft(widthCheck + 4)
             }
@@ -956,6 +955,20 @@ impl ListCtrl
         if .isVirtual do
             return .virtualCount
         return cast(u32) .lines.count
+    }
+
+    mtd hasVisibleCheckBoxes()->bool
+    {
+        if .isVirtual do
+            return false
+
+        foreach line in .lines
+        {
+            if line.canCheck do
+                return true
+        }
+
+        return false
     }
 
     // Add one new line

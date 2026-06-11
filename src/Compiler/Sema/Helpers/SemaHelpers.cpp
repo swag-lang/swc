@@ -43,6 +43,24 @@ namespace
                 return AstNodeRef::invalid();
         }
     }
+
+    bool isNonReassignableNullableVariable(Sema& sema, const SymbolVariable& symVar)
+    {
+        if (!symVar.hasExtraFlag(SymbolVariableFlagsE::Parameter) && !symVar.hasExtraFlag(SymbolVariableFlagsE::Let))
+            return false;
+        if (!symVar.typeRef().isValid())
+            return false;
+
+        const TypeInfo& symType = sema.typeMgr().get(symVar.typeRef());
+        if (symType.isReference())
+            return false;
+
+        TypeRef nullableTypeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), symVar.typeRef());
+        if (nullableTypeRef.isInvalid())
+            nullableTypeRef = symVar.typeRef();
+
+        return sema.typeMgr().get(nullableTypeRef).isNullable();
+    }
 }
 
 TypeRef SemaHelpers::unwrapLambdaBindingType(TaskContext& ctx, TypeRef typeRef)
@@ -235,6 +253,33 @@ AstNodeRef SemaHelpers::resolveTransparentConditionExprSourceRef(Sema& sema, Ast
     }
 
     return AstNodeRef::invalid();
+}
+
+SemaHelpers::NullableGuardInfo SemaHelpers::nullableGuardInfo(Sema& sema, AstNodeRef exprRef)
+{
+    NullableGuardInfo result;
+    if (exprRef.isInvalid())
+        return result;
+
+    const AstNode& exprNode = sema.node(exprRef);
+    if (exprNode.is(AstNodeId::UnaryExpr) && sema.token(exprNode.codeRef()).id == TokenId::SymBang)
+    {
+        const auto&       unary = exprNode.cast<AstUnaryExpr>();
+        NullableGuardInfo child = nullableGuardInfo(sema, unary.nodeExprRef);
+        child.nonNullWhenTrue   = !child.nonNullWhenTrue;
+        return child;
+    }
+
+    const SemaNodeView view = sema.viewTypeSymbol(exprRef);
+    if (!view.hasSymbol() || !view.sym() || !view.sym()->isVariable())
+        return result;
+
+    const auto& symVar = view.sym()->cast<SymbolVariable>();
+    if (!isNonReassignableNullableVariable(sema, symVar))
+        return result;
+
+    result.symbol = view.sym();
+    return result;
 }
 
 SWC_END_NAMESPACE();

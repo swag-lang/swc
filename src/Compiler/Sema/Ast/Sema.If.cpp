@@ -178,63 +178,17 @@ namespace
         setConditionSymbolConstantRef(*conditionSym, ConstantRef::invalid());
     }
 
-    bool isNonReassignableNullableVariable(Sema& sema, const SymbolVariable& symVar)
-    {
-        if (!symVar.hasExtraFlag(SymbolVariableFlagsE::Parameter) && !symVar.hasExtraFlag(SymbolVariableFlagsE::Let))
-            return false;
-        if (!symVar.typeRef().isValid())
-            return false;
-
-        const TypeInfo& symType = sema.typeMgr().get(symVar.typeRef());
-        if (symType.isReference())
-            return false;
-
-        TypeRef nullableTypeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), symVar.typeRef());
-        if (nullableTypeRef.isInvalid())
-            nullableTypeRef = symVar.typeRef();
-
-        return sema.typeMgr().get(nullableTypeRef).isNullable();
-    }
-
-    const Symbol* nullableGuardSymbol(Sema& sema, AstNodeRef exprRef, bool& outNonNullWhenTrue)
-    {
-        outNonNullWhenTrue = true;
-        if (exprRef.isInvalid())
-            return nullptr;
-
-        const AstNode& exprNode = sema.node(exprRef);
-        if (exprNode.is(AstNodeId::UnaryExpr) && sema.token(exprNode.codeRef()).id == TokenId::SymBang)
-        {
-            bool          childNonNullWhenTrue = true;
-            const auto&   unary                = exprNode.cast<AstUnaryExpr>();
-            const Symbol* symbol               = nullableGuardSymbol(sema, unary.nodeExprRef, childNonNullWhenTrue);
-            outNonNullWhenTrue                 = !childNonNullWhenTrue;
-            return symbol;
-        }
-
-        const SemaNodeView view = sema.viewTypeSymbol(exprRef);
-        if (!view.hasSymbol() || !view.sym() || !view.sym()->isVariable())
-            return nullptr;
-
-        const auto& symVar = view.sym()->cast<SymbolVariable>();
-        if (!isNonReassignableNullableVariable(sema, symVar))
-            return nullptr;
-
-        return view.sym();
-    }
-
     void storeIfStmtNonNullGuard(Sema& sema, AstNodeRef ifRef, AstNodeRef conditionRef)
     {
-        bool          nonNullWhenTrue = true;
-        const Symbol* symbol          = nullableGuardSymbol(sema, conditionRef, nonNullWhenTrue);
-        if (!symbol)
+        const SemaHelpers::NullableGuardInfo guard = SemaHelpers::nullableGuardInfo(sema, conditionRef);
+        if (!guard.symbol)
             return;
 
         auto& payload = ensureIfStmtNonNullGuardPayload(sema, ifRef);
-        if (nonNullWhenTrue)
-            payload.thenSymbol = symbol;
+        if (guard.nonNullWhenTrue)
+            payload.thenSymbol = guard.symbol;
         else
-            payload.elseSymbol = symbol;
+            payload.elseSymbol = guard.symbol;
     }
 
     const Symbol* ifStmtNonNullGuardSymbol(const Sema& sema, AstNodeRef ifRef, AstNodeRef childRef, AstNodeRef thenRef, AstNodeRef elseRef)

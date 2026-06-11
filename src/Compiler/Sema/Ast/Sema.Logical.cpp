@@ -6,6 +6,7 @@
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Helpers/SemaCheck.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
+#include "Compiler/Sema/Helpers/SemaHelpers.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -74,6 +75,36 @@ namespace
             return SemaError::raiseBinaryOperandType(sema, nodeRef, node.nodeRightRef, nodeLeftView.typeRef(), nodeRightView.typeRef());
         return Result::Continue;
     }
+
+    const Symbol* shortCircuitNonNullSymbol(Sema& sema, TokenId op, AstNodeRef leftRef)
+    {
+        const SemaHelpers::NullableGuardInfo guard = SemaHelpers::nullableGuardInfo(sema, leftRef);
+        if (!guard.symbol)
+            return nullptr;
+
+        if (op == TokenId::KwdAnd && guard.nonNullWhenTrue)
+            return guard.symbol;
+        if (op == TokenId::KwdOr && !guard.nonNullWhenTrue)
+            return guard.symbol;
+
+        return nullptr;
+    }
+}
+
+Result AstLogicalExpr::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const
+{
+    if (childRef == nodeLeftRef)
+    {
+        const TokenId op = sema.token(codeRef()).id;
+        if (const Symbol* nonNullSymbol = shortCircuitNonNullSymbol(sema, op, nodeLeftRef))
+        {
+            SemaFrame frame = sema.frame();
+            frame.addNonNullSymbol(nonNullSymbol);
+            sema.pushFramePopOnPostChild(frame, nodeRightRef);
+        }
+    }
+
+    return Result::Continue;
 }
 
 Result AstLogicalExpr::semaPostNode(Sema& sema)

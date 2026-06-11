@@ -181,3 +181,35 @@ func logicalFloatProbe(value: f32, delta: s32)->f32
     @assert(value)
     @assert(LogCounter == 11)
 }
+
+struct LogicalNullableGuardItem
+{
+    value: s32
+}
+
+impl LogicalNullableGuardItem
+{
+    mtd isExpected()->bool => .value == 17
+}
+
+func logicalNullableGuardOr(item: #null *LogicalNullableGuardItem)->bool
+{
+    return !item or item.isExpected()
+}
+
+func logicalNullableGuardAnd(item: #null *LogicalNullableGuardItem)->bool
+{
+    return item and item.isExpected()
+}
+
+#test
+{
+    var item = LogicalNullableGuardItem{value: 17}
+    let ptr: #null *LogicalNullableGuardItem = &item
+    let empty: #null *LogicalNullableGuardItem = null
+
+    @assert(logicalNullableGuardOr(empty))
+    @assert(logicalNullableGuardOr(ptr))
+    @assert(!logicalNullableGuardAnd(empty))
+    @assert(logicalNullableGuardAnd(ptr))
+}

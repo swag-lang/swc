@@ -735,6 +735,7 @@ Result AstRelationalExpr::semaPostNodeChild(Sema& sema, const AstNodeRef& childR
         const SemaNodeView nodeLeftView = sema.viewType(nodeLeftRef);
         SemaFrame          frame        = sema.frame();
         frame.pushBindingType(nodeLeftView.typeRef());
+        SemaHelpers::preferContextualAutoMemberBindingType(sema, nodeRightRef);
         sema.pushFramePopOnPostChild(frame, nodeRightRef);
     }
 

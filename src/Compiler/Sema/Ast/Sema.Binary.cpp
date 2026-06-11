@@ -597,6 +597,7 @@ Result AstBinaryExpr::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) 
         const SemaNodeView nodeLeftView = sema.viewType(nodeLeftRef);
         auto               frame        = sema.frame();
         frame.pushBindingType(nodeLeftView.typeRef());
+        SemaHelpers::preferContextualAutoMemberBindingType(sema, nodeRightRef);
         sema.pushFramePopOnPostChild(frame, nodeRightRef);
     }
 

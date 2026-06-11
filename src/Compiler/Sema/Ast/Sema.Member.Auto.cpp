@@ -328,7 +328,7 @@ namespace
         return Result::Continue;
     }
 
-    Result collectAutoMemberCandidates(Sema& sema, SmallVector4<AutoMemberCandidate>& outCandidates)
+    Result collectAutoMemberCandidates(Sema& sema, SmallVector4<AutoMemberCandidate>& outCandidates, bool preferBindingTypes)
     {
         outCandidates.clear();
 
@@ -360,15 +360,18 @@ namespace
             return false;
         };
 
-        const bool bindingTypesFirst = hasEnumBindingType();
+        const bool bindingTypesFirst = preferBindingTypes && hasEnumBindingType();
         uint32_t   precedence        = 0;
 
         if (bindingTypesFirst)
         {
-            // A contextual enum type is the nearest intent for `.Foo`, and must win
+            // A selected contextual enum type is the nearest intent for `.Foo`, and must win
             // over receiver members or local symbols with the same name.
             for (const auto& bindingType : std::ranges::reverse_view(bindingTypes))
             {
+                const TypeRef normalizedTypeRef = normalizeAutoMemberBindingType(sema.ctx(), bindingType);
+                if (normalizedTypeRef.isInvalid() || !sema.typeMgr().get(normalizedTypeRef).isEnum())
+                    continue;
                 SWC_RESULT(addCandidateFromType(sema, outCandidates, bindingType, nullptr, AstNodeRef::invalid(), precedence++));
             }
         }
@@ -397,7 +400,13 @@ namespace
         }
 
         if (bindingTypesFirst)
+        {
             SWC_RESULT(addCandidatesFromAutoMemberBindings(sema, outCandidates, autoMemberBindings.span(), precedence));
+            for (const auto& bindingType : std::ranges::reverse_view(bindingTypes))
+            {
+                SWC_RESULT(addCandidateFromType(sema, outCandidates, bindingType, nullptr, AstNodeRef::invalid(), precedence++));
+            }
+        }
 
         // Remove exact duplicates introduced by inherited frame state.
         for (size_t i = 0; i < outCandidates.size(); ++i)
@@ -617,8 +626,9 @@ Result AstAutoMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& c
     const IdentifierRef idRef   = sema.idMgr().addIdentifier(sema.ctx(), codeRef);
 
     SmallVector4<AutoMemberCandidate> candidates;
-    const bool                        deferCallArgument = hasFlag(AstAutoMemberAccessExprFlagsE::CallArgument);
-    SWC_RESULT(collectAutoMemberCandidates(sema, candidates));
+    const bool                        deferCallArgument  = hasFlag(AstAutoMemberAccessExprFlagsE::CallArgument);
+    const bool                        preferBindingTypes = deferCallArgument || hasFlag(AstAutoMemberAccessExprFlagsE::PreferBindingType);
+    SWC_RESULT(collectAutoMemberCandidates(sema, candidates, preferBindingTypes));
     if (candidates.empty())
     {
         // In a call-argument position, `.EnumValue` might need the selected overload's

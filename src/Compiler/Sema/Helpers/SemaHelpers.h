@@ -44,6 +44,7 @@ namespace SemaHelpers
     AstNodeRef               resolveTransparentExprSourceRef(Sema& sema, AstNodeRef nodeRef);
     AstNodeRef               resolveTransparentConditionExprSourceRef(Sema& sema, AstNodeRef nodeRef);
     NullableGuardInfo        nullableGuardInfo(Sema& sema, AstNodeRef exprRef);
+    void                     preferContextualAutoMemberBindingType(Sema& sema, AstNodeRef exprRef);
     TypeRef                  unwrapLambdaBindingType(TaskContext& ctx, TypeRef typeRef);
     TypeRef                  ensureStructTypeRef(Sema& sema, SymbolStruct& symStruct);
     TypeRef                  unwrapAliasRefType(TaskContext& ctx, TypeRef typeRef);

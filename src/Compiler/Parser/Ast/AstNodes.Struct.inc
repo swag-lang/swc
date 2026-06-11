@@ -812,9 +812,10 @@ struct AstStructLiteral : AstCompoundT<AstNodeId::StructLiteral>
 // -----------------------------------------------------------------------------
 enum class AstAutoMemberAccessExprFlagsE : AstNode::ParserFlags
 {
-    Zero         = 0,
-    CallCallee   = 1 << 0,
-    CallArgument = 1 << 1,
+    Zero              = 0,
+    CallCallee        = 1 << 0,
+    CallArgument      = 1 << 1,
+    PreferBindingType = 1 << 2,
 };
 
 struct AstAutoMemberAccessExpr : AstNodeT<AstNodeId::AutoMemberAccessExpr, AstAutoMemberAccessExprFlagsE>

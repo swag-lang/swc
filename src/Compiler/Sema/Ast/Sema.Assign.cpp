@@ -456,6 +456,7 @@ Result AstAssignStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) 
             auto frame = sema.frame();
             frame.pushBindingType(leftView.typeRef());
             frame.pushBindingType(specOpBindingTypeRef);
+            SemaHelpers::preferContextualAutoMemberBindingType(sema, nodeRightRef);
             sema.pushFramePopOnPostChild(frame, nodeRightRef);
         }
     }

@@ -282,4 +282,17 @@ SemaHelpers::NullableGuardInfo SemaHelpers::nullableGuardInfo(Sema& sema, AstNod
     return result;
 }
 
+void SemaHelpers::preferContextualAutoMemberBindingType(Sema& sema, AstNodeRef exprRef)
+{
+    AstNodeRef targetRef = resolveTransparentConditionExprSourceRef(sema, exprRef);
+    if (targetRef.isInvalid())
+        targetRef = exprRef;
+    if (targetRef.isInvalid())
+        return;
+
+    AstNode& targetNode = sema.node(targetRef);
+    if (targetNode.is(AstNodeId::AutoMemberAccessExpr))
+        targetNode.cast<AstAutoMemberAccessExpr>().addFlag(AstAutoMemberAccessExprFlagsE::PreferBindingType);
+}
+
 SWC_END_NAMESPACE();

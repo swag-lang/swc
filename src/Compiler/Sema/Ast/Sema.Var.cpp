@@ -1128,6 +1128,7 @@ Result AstSingleVarDecl::semaPostNodeChild(Sema& sema, const AstNodeRef& childRe
                 bindRetValRuntimeStorage ||
                 bindClosureRuntimeStorage)
                 frame.setCurrentRuntimeStorage(nodeInitRef, &sema.curViewSymbol().sym()->cast<SymbolVariable>());
+            SemaHelpers::preferContextualAutoMemberBindingType(sema, nodeInitRef);
             sema.pushFramePopOnPostChild(frame, nodeInitRef);
         }
     }
@@ -1224,6 +1225,7 @@ Result AstMultiVarDecl::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef
             const SemaNodeView nodeTypeView = sema.viewType(nodeTypeRef);
             SemaFrame          frame        = sema.frame();
             frame.pushBindingType(nodeTypeView.typeRef());
+            SemaHelpers::preferContextualAutoMemberBindingType(sema, nodeInitRef);
             sema.pushFramePopOnPostChild(frame, nodeInitRef);
         }
     }

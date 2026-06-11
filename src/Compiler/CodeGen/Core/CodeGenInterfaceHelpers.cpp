@@ -51,11 +51,17 @@ bool CodeGenInterfaceHelpers::resolveInterfaceCastInfo(CodeGen& codeGen, const S
     return false;
 }
 
-Result CodeGenInterfaceHelpers::prepareInterfaceMethodTable(ConstantRef& outRef, CodeGen& codeGen, const InterfaceCastInfo& castInfo)
+Result CodeGenInterfaceHelpers::prepareInterfaceMethodTable(ConstantRef& outRef, CodeGen& codeGen, const InterfaceCastInfo& castInfo, bool allowIncomplete)
 {
     SWC_ASSERT(castInfo.implSym != nullptr);
     outRef = ConstantRef::invalid();
-    SWC_RESULT(castInfo.implSym->ensureInterfaceMethodTable(codeGen.sema(), outRef));
+    const Result tableResult = castInfo.implSym->ensureInterfaceMethodTable(codeGen.sema(), outRef);
+    if (tableResult != Result::Continue)
+    {
+        if (allowIncomplete)
+            return Result::Continue;
+        return tableResult;
+    }
     SWC_ASSERT(outRef.isValid());
 
     if (const SymbolInterface* interfaceSym = castInfo.implSym->symInterface())
@@ -64,7 +70,17 @@ Result CodeGenInterfaceHelpers::prepareInterfaceMethodTable(ConstantRef& outRef,
         {
             SWC_ASSERT(interfaceMethod != nullptr);
             const SymbolFunction* implMethod = castInfo.implSym->resolveInterfaceMethodTarget(codeGen.ctx(), *interfaceMethod);
-            SWC_ASSERT(implMethod != nullptr);
+            if (!implMethod)
+            {
+                if (allowIncomplete)
+                {
+                    outRef = ConstantRef::invalid();
+                    return Result::Continue;
+                }
+
+                return Result::Error;
+            }
+
             codeGen.function().addCallDependency(implMethod);
         }
     }

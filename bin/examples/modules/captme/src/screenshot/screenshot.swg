@@ -60,7 +60,7 @@ func performScreenCapture(main: *MainWnd)->{ img: Image, sf: *Surface } throw
     captureWnd.main   = main
     captureWnd.cursor = Cursor.from(CursorShape.Cross)
     captureWnd.setPosition(0, 0, result.sf.position.width, result.sf.position.height)
-    captureWnd.SetCapture()
+    captureWnd.captureMouse()
 
     result.sf.setView(captureWnd)
     result.sf.show()
@@ -99,7 +99,7 @@ func performInPlaceEdit(img: Image, surface: *Surface, main: *MainWnd)->#null *C
         return capture
     }
 
-    let inPlaceWnd = InPlaceEditWnd.create(capture, main, surface.wnd)
+    let inPlaceWnd = InPlaceEditWnd.make(capture, main, surface.wnd)
     surface.setView(inPlaceWnd)
 
     inPlaceWnd.newMain.fileDlgState = main.fileDlgStateInPlace
@@ -140,7 +140,7 @@ func setGrabBounds(main: *MainWnd, captureMode: CaptureMode)->bool
         g_EndGrabX   = r.right()
         g_EndGrabY   = r.bottom()
 
-    case .Screen0 to .Screen3:
+    case .Screen0, .Screen1, .Screen2, .Screen3:
         let idx  = cast(s32) captureMode - cast(s32) CaptureMode.Screen0
         let rect = main.monitors[idx].rectReal
         g_StartGrabX = rect.x

@@ -45,6 +45,44 @@ impl FormImage
     {
         @init(&.texture, 1)
     }
+
+    mtd backCaptureMask(mask: *Image)
+    {
+        let renderer = g_App.getRenderer()
+
+        .image.visitPixels(mask)
+        {
+            var maskImg = cast(*Image) userData
+            var pix1    = maskImg.pixels.buffer + x * 4
+            pix1 += maskImg.width * y * 4
+            if !pix1[0] do
+                dref cast(*u32) pix = 0
+        }
+
+        renderer.removeTexture(&.texture)
+        .texture = g_App.getRenderer().addImage(.image)
+    }
+
+    mtd backCapture()
+    {
+        let renderer = g_App.getRenderer()
+        let x1       = cast(s32) (.x - .capture.backImagePos.x)
+        let y1       = cast(s32) (.y - .capture.backImagePos.y)
+
+        if .w > 1 and .h > 1 and .isReadyToCapture
+        {
+            .isReadyToCapture = false
+            .dirty            = false
+            .textureKind      = .kind
+            renderer.removeTexture(&.texture)
+            .image   = .capture.backImg.toCrop(x1, y1, .w, .h)
+            .texture = g_App.getRenderer().addImage(.image)
+        }
+        elif .image.isValid()
+        {
+            .texture = g_App.getRenderer().addImage(.image)
+        }
+    }
 }
 
 impl IForm for FormImage
@@ -256,44 +294,6 @@ impl IForm for FormImage
         return pp.contains(pt)
     }
 
-    mtd backCaptureMask(mask: *Image)
-    {
-        let renderer = g_App.getRenderer()
-
-        .image.visitPixels(mask)
-        {
-            var maskImg = cast(*Image) userData
-            var pix1    = maskImg.pixels.buffer + x * 4
-            pix1 += maskImg.width * y * 4
-            if !pix1[0] do
-                dref cast(*u32) pix = 0
-        }
-
-        renderer.removeTexture(&.texture)
-        .texture = g_App.getRenderer().addImage(.image)
-    }
-
-    mtd backCapture()
-    {
-        let renderer = g_App.getRenderer()
-        let x1       = cast(s32) (.x - .capture.backImagePos.x)
-        let y1       = cast(s32) (.y - .capture.backImagePos.y)
-
-        if .w > 1 and .h > 1 and .isReadyToCapture
-        {
-            .isReadyToCapture = false
-            .dirty            = false
-            .textureKind      = .kind
-            renderer.removeTexture(&.texture)
-            .image   = .capture.backImg.toCrop(x1, y1, .w, .h)
-            .texture = g_App.getRenderer().addImage(.image)
-        }
-        elif .image.isValid()
-        {
-            .texture = g_App.getRenderer().addImage(.image)
-        }
-    }
-
     mtd impl paint(painter: *Painter, cxt: FormPaintContext)
     {
         let z     = cxt.z
@@ -478,9 +478,10 @@ impl IForm for FormImage
             .paintBigBorder    = true
         }
 
-        .gizmo.sigChanged = mtd||(g, first, hitMove)
+        let form = me
+        .gizmo.sigChanged = func|form|(g, first, hitMove)
         {
-            g.apply(me, first, hitMove)
+            g.apply(form, first, hitMove)
         }
     }
 }

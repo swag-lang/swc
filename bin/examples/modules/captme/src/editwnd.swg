@@ -6,7 +6,7 @@ struct EditWnd
 
 impl EditWnd
 {
-    func create(main: *MainWnd, parent: *Wnd)->*EditWnd
+    func make(main: *MainWnd, parent: *Wnd)->*EditWnd
     {
         let scroll = Wnd.create'EditWnd(parent)
         let view   = Wnd.create'EditView(scroll)

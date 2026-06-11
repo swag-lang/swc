@@ -26,7 +26,7 @@ struct InPlaceEditWnd
 
 impl InPlaceEditWnd
 {
-    func create(capture: *Capture, main: *MainWnd, parent: *Wnd)->*InPlaceEditWnd
+    func make(capture: *Capture, main: *MainWnd, parent: *Wnd)->*InPlaceEditWnd
     {
         with let frame = createMainFrame(main, parent, capture)
         {
@@ -52,7 +52,7 @@ impl InPlaceEditWnd
             .capture = capture
             .newMain = newMain
 
-            .editWnd           = EditWnd.create(newMain, frame)
+            .editWnd           = EditWnd.make(newMain, frame)
             .editWnd.dockStyle = .Center
             newMain.editWnd    = .editWnd
 
@@ -74,6 +74,7 @@ impl InPlaceEditWnd
     {
         .actionBar                 = IconBar.create(.editWnd.editView, 24, {})
         .actionBar.backgroundStyle = .Window
+        let self                   = me
 
         let actions = [
             {"save", ThemeIcons24.Save, "Save capture as image file"},
@@ -85,7 +86,7 @@ impl InPlaceEditWnd
         foreach action in actions do
             .actionBar.addItem(theme.getIcon24(action.item1), action.item0).toolTip = action.item2
 
-        .actionBar.sigPressed += mtd||(btn) { .handleActionBarPress(btn.id); }
+        .actionBar.sigPressed += func|self|(btn) { self.handleActionBarPress(btn.id); }
     }
 
     mtd createEditBar(main: *MainWnd)
@@ -93,6 +94,7 @@ impl InPlaceEditWnd
         .editBar                 = IconBar.create(.editWnd.editView, 24, {})
         .editBar.backgroundStyle = .Window
         .editBar.setIconBarFlags(.Vertical)
+        let self = me
 
         let editTools = [
             {"draw", 7, "Free draw tool"},
@@ -106,35 +108,36 @@ impl InPlaceEditWnd
         foreach tool in editTools do
             .editBar.addCheckableItem(Icon.from(&main.icons48, tool.item1), tool.item0).toolTip = tool.item2
 
-        .editBar.sigCheckChanged += mtd||(btn) { .handleEditModeChange(btn.id); }
+        .editBar.sigCheckChanged += func|self|(btn) { self.handleEditModeChange(btn.id); }
         .createColorPicker()
     }
 
     mtd createColorPicker()
     {
         let btnColor = .editBar.addItem({}, "color")
+        let self     = me
         btnColor.iconBtnFlags.add(.Popup)
 
-        btnColor.sigPaintIcon = mtd||(btn, bc, pos, flags)
+        btnColor.sigPaintIcon = func|self|(btn, bc, pos, flags)
         {
             bc.painter.setParams(.Antialiased)
             var rect = pos
             rect.inflate(-2)
-            let color = .editMode == .Marker ? .editColorHilight : .editColor
+            let color = self.editMode == .Marker ? self.editColorHilight : self.editColor
             bc.painter.fillRoundRect(rect, 10, 10, color)
         }
 
-        btnColor.sigShowPopup += mtd||(btn)
+        btnColor.sigShowPopup += func|self|(btn)
         {
-            let color  = .editMode == .Marker ? .editColorHilight : .editColor
+            let color  = self.editMode == .Marker ? self.editColorHilight : self.editColor
             let picker = PropWnd.createColorPicker(cast(*IconButton) btn, color)
-            picker.sigChanged += mtd|picker, btn|(pk)
+            picker.sigChanged += func|self, picker, btn|(pk)
             {
-                if .editMode == .Marker do
-                    .editColorHilight = picker.getColor()
+                if self.editMode == .Marker do
+                    self.editColorHilight = picker.getColor()
                 else do
-                    .editColor = picker.getColor()
-                .updateEditMode()
+                    self.editColor = picker.getColor()
+                self.updateEditMode()
                 btn.invalidate()
             }
         }
@@ -142,7 +145,8 @@ impl InPlaceEditWnd
 
     mtd setupCapture(capture: *Capture)
     {
-        capture.gizmo.sigHasChanged = mtd||() { .moveButtons(); }
+        let self = me
+        capture.gizmo.sigHasChanged = func|self|() { self.moveButtons(); }
         .moveButtons()
         .updateEditMode()
     }
@@ -249,12 +253,9 @@ impl InPlaceEditWnd
 
     mtd updateEditBarButtons()
     {
-        with InPlaceEditMode
-        {
-            let modeMap = [
-                {"draw", .Draw}, {"line", .Line}, {"circle", .Circle}, {"rect", .Rect},
-                {"arrow", .Arrow}, {"text", .Text}, {"marker", .Marker}]
-        }
+        let modeMap = [
+            {"draw", InPlaceEditMode.Draw}, {"line", InPlaceEditMode.Line}, {"circle", InPlaceEditMode.Circle}, {"rect", InPlaceEditMode.Rect},
+            {"arrow", InPlaceEditMode.Arrow}, {"text", InPlaceEditMode.Text}, {"marker", InPlaceEditMode.Marker}]
 
         foreach m in modeMap
         {

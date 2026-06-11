@@ -26,7 +26,7 @@ var g_App: Application
     g_App.setAppIcon(img)
 
     let surface = try g_App.createSurface(0, 0, 10, 10, SurfaceFlags.OverlappedWindow, surfaceID: "Captme")
-    let mainWnd = MainWnd.create(surface.wnd)
+    let mainWnd = MainWnd.make(surface.wnd)
 
     if Env.hasArg("swag.test") do
         g_App.maxRunFrame = 100

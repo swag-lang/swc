@@ -7,8 +7,8 @@
     cfg.moduleVersion  = #swcversion
     cfg.moduleRevision = #swcrevision
     cfg.moduleBuildNum = #swcbuildnum
-    cfg.backendKind    = .Executable
+    cfg.backendKind       = .Executable
     cfg.ignoreInWorkspace = true
-    cfg.backendSubKind = .Default
-    cfg.resAppName     = "Captme"
+    cfg.backendSubKind    = .Default
+    cfg.resAppName        = "Captme"
 }

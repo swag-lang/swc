@@ -404,9 +404,10 @@ impl IForm for FormText
             .paintBigBorder    = true
         }
 
-        .gizmo.sigChanged = mtd||(g, first, hitMove)
+        let form = me
+        .gizmo.sigChanged = func|form|(g, first, hitMove)
         {
-            g.apply(me, first, hitMove)
+            g.apply(form, first, hitMove)
         }
     }
 }

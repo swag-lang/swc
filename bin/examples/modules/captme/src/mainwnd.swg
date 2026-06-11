@@ -278,10 +278,11 @@ impl MainWnd
         elif freeze and !.embInfoFreeze
         {
             .embInfoFreeze = EmbInfoCtrl.create(.editWnd.view, "Selection is freezed", .Message, flags: .Bottom)
-            .embInfoFreeze.sigOnClose += mtd||(ctrl)
+            let main = me
+            .embInfoFreeze.sigOnClose += func|main|(ctrl)
             {
-                .freezeSel     = false
-                .embInfoFreeze = null
+                main.freezeSel     = false
+                main.embInfoFreeze = null
             }
 
             let capture = assume .getCapture()
@@ -609,7 +610,7 @@ impl MainWnd
         .applyLayout()
     }
 
-    func create(parent: *Wnd)->*MainWnd
+    func make(parent: *Wnd)->*MainWnd
     {
         parent.surface.minSize = {1024, 512}
 
@@ -642,7 +643,7 @@ impl MainWnd
         res.createToolbar()
 
         // Main edit area
-        with res.editWnd = EditWnd.create(res, res)
+        with res.editWnd = EditWnd.make(res, res)
         {
             .dockStyle = .Center
             .sigScrollSizeChanged += func|res|(scroll, old, new) { res.updateZoomDisplay(); }
@@ -664,7 +665,7 @@ impl MainWnd
             .addItem({}, ActionRecentSize.RecentBig, .Checkable)
         }
 
-        with res.recentWnd = RecentWnd.create(res.recentBar, res)
+        with res.recentWnd = RecentWnd.make(res.recentBar, res)
         {
             .dockStyle = .Center
         }
@@ -677,8 +678,8 @@ impl MainWnd
             .backgroundStyle = .Window
         }
 
-        res.quickWnd = QuickWnd.create(res.quickStyleBar, res)
-        res.propWnd  = PropWnd.create(res.quickStyleBar, res)
+        res.quickWnd = QuickWnd.make(res.quickStyleBar, res)
+        res.propWnd  = PropWnd.make(res.quickStyleBar, res)
 
         with let quickPane = res.quickStyleBar.addPane(res.quickWnd, title: true)
         {
@@ -728,7 +729,7 @@ impl MainWnd
             .setTopBarHeight()
             .updateState()
             .createTopMenu()
-            .libWnd = LibraryWnd.create(res)
+            .libWnd = LibraryWnd.make(res)
             .libWnd.hide()
         }
 

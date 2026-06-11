@@ -156,14 +156,15 @@ impl LibraryWnd
     {
         if .listCtrl.getLineCount() do
             return
-        g_Library.onDeleteFile += mtd||(file)
+        let libWnd = me
+        g_Library.onDeleteFile += func|libWnd|(file)
         {
-            foreach it, i in .view.items
+            foreach it, i in libWnd.view.items
             {
                 if it.fi.fullname == file
                 {
-                    .view.selModel.select(cast() i, false)
-                    .view.items.removeAtOrdered(i)
+                    libWnd.view.selModel.select(cast() i, false)
+                    libWnd.view.items.removeAtOrdered(i)
                     break
                 }
             }
@@ -276,7 +277,7 @@ impl LibraryWnd
         .registerKeyShortcut(.Zero, .End, ActionLibSel.End)
     }
 
-    func create(parent: *MainWnd)->*LibraryWnd
+    func make(parent: *MainWnd)->*LibraryWnd
     {
         with let res = Wnd.create'LibraryWnd(parent, "captme.librarywnd")
         {

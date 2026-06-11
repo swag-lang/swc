@@ -121,7 +121,7 @@ impl MainWnd
         foreach f in forms do
             boundRects.add(f.boundRect())
 
-        var params = {capture, boundRects: boundRects.buffer, forms: &forms}
+        var params = {capture: capture, boundRects: boundRects.buffer, forms: &forms}
         undo.newImg.visitPixels(&params)
         {
             var p = cast(*#decltype(params)) userData
@@ -159,7 +159,7 @@ impl MainWnd
         foreach f in forms do
             boundRects.add(f.boundRect())
 
-        var params = {capture, boundRects: boundRects.buffer, forms: &forms}
+        var params = {capture: capture, boundRects: boundRects.buffer, forms: &forms}
         undo.newImg.visitPixels(&params)
         {
             var p = cast(*#decltype(params)) userData
@@ -257,7 +257,7 @@ impl MainWnd
             infos.add(moveref &i)
         }
 
-        var params = {capture, infos: infos.buffer, forms: &forms, masks}
+        var params = {capture: capture, infos: infos.buffer, forms: &forms, masks: masks}
         undo.newImg.visitPixels(&params)
         {
             var p = cast(*#decltype(params)) userData
@@ -336,8 +336,8 @@ impl MainWnd
                 .borderSize       = 0
                 .paintShadow      = false
                 .isReadyToCapture = true
-                .IForm.setup(capture)
-                .IForm.backCapture()
+                FormImage.IForm.setup(nf, capture)
+                nf.backCapture()
             }
 
             undo.oldForms.add(cast(IForm) nf)
@@ -351,7 +351,7 @@ impl MainWnd
         foreach f, idx in undo.oldForms
         {
             let nf = cast(*FormImage) f
-            nf.IForm.backCaptureMask(masks.buffer + idx)
+            nf.backCaptureMask(masks.buffer + idx)
         }
 
         undo = capture.newUndo(.DeleteSelection, serial)

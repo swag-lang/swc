@@ -56,8 +56,9 @@ impl RecentView
         let capture = catch Capture.load(item.file)
         if capture
         {
-            if .main.getCapture() do
-                catch .main.getCapture().save()
+            let previousCapture = .main.getCapture()
+            if previousCapture do
+                catch (assume previousCapture).save()
             view.setCapture(capture)
             if item.zoom == 0 do
                 view.zoomToFit(false)
@@ -208,7 +209,7 @@ struct RecentWnd
     using scrollWnd:     ScrollWnd
     main:                *MainWnd
     recentView:          *RecentView
-    timer:               *Timer
+    timer:               *Gui.Timer
     loadDone:            bool
 }
 
@@ -222,9 +223,13 @@ impl IWnd for RecentWnd
 
     mtd impl onTimerEvent(evt: *TimerEvent)
     {
-        let capture = .main.getCapture()
-        if capture and capture.changed
+        let maybeCapture = .main.getCapture()
+        if maybeCapture
         {
+            let capture = assume maybeCapture
+            if !capture.changed do
+                return
+
             capture.computePreview()
             let item = .recentView.items[.recentView.selected]
             .getApp().getRenderer().removeTexture(&item.preview)
@@ -243,7 +248,7 @@ impl IWnd for RecentWnd
 
 impl RecentWnd
 {
-    func create(parent: *Wnd, main: *MainWnd)->*RecentWnd
+    func make(parent: *Wnd, main: *MainWnd)->*RecentWnd
     {
         with let recent = Wnd.create'RecentWnd(parent, {0, 0, 0, PreviewHeight + RecentPadding * 2})
         {
@@ -267,23 +272,24 @@ impl RecentWnd
         if .loadDone do
             return
         .loadDone = true
+        let self = me
 
         g_Library.fill()
-        g_Library.onDeleteFile += mtd||(file)
+        g_Library.onDeleteFile += func|self|(file)
         {
-            foreach it, i in .recentView.items
+            foreach it, i in self.recentView.items
             {
                 if it.file == file
                 {
                     // Remove from recent
-                    .recentView.items.deletePtr(it)
-                    .recentView.items.removeAtOrdered(i)
+                    self.recentView.items.deletePtr(it)
+                    self.recentView.items.removeAtOrdered(i)
 
                     // Select new one
-                    if .recentView.selected == i
+                    if self.recentView.selected == i
                     {
-                        .recentView.selected = Swag.U64.Max
-                        .recentView.select(i)
+                        self.recentView.selected = Swag.U64.Max
+                        self.recentView.select(i)
                     }
 
                     break

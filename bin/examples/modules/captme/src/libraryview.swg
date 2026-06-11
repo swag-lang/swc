@@ -465,7 +465,8 @@ impl LibraryView
         // Launch thread to read all captures
         try
         {
-            .thread.init(mtd||(th: Thread) { .loadFiles(th); })
+            let view = me
+            .thread.init(func|view|(th: Thread) { view.loadFiles(th); })
             .thread.start()
         }
 

@@ -22,7 +22,7 @@ namespace CodeGenInterfaceHelpers
     };
 
     bool   resolveInterfaceCastInfo(CodeGen& codeGen, const SymbolStruct& srcStruct, const SymbolInterface& dstItf, InterfaceCastInfo& outInfo);
-    Result prepareInterfaceMethodTable(ConstantRef& outRef, CodeGen& codeGen, const InterfaceCastInfo& castInfo);
+    Result prepareInterfaceMethodTable(ConstantRef& outRef, CodeGen& codeGen, const InterfaceCastInfo& castInfo, bool allowIncomplete = false);
     void   emitLoadInterfaceMethodTableAddress(MicroReg& outReg, CodeGen& codeGen, ConstantRef tableCstRef);
 }
 

@@ -33,6 +33,120 @@ struct QuickButton
 {
     using iconBtn:     IconButton
     formItf:           IForm
+    quickWnd:          *QuickWnd
+}
+
+impl IWnd for QuickButton
+{
+    mtd impl onEvent(evt: IEvent)
+    {
+        .iconBtn.button.wnd.IWnd.onEvent(evt)
+    }
+
+    mtd impl onHookEvent(evt: IEvent)
+    {
+        .iconBtn.IWnd.onHookEvent(evt)
+    }
+
+    mtd impl onCreateEvent(evt: *CreateEvent)
+    {
+        .iconBtn.button.wnd.IWnd.onCreateEvent(evt)
+    }
+
+    mtd impl onDestroyEvent(evt: *DestroyEvent)
+    {
+        .iconBtn.IWnd.onDestroyEvent(evt)
+    }
+
+    mtd impl onStateEvent(evt: *StateEvent)
+    {
+        .iconBtn.button.wnd.IWnd.onStateEvent(evt)
+    }
+
+    mtd impl onResizeEvent(evt: *ResizeEvent)
+    {
+        .iconBtn.button.wnd.IWnd.onResizeEvent(evt)
+    }
+
+    mtd impl onPrePaintEvent(evt: *PaintEvent)
+    {
+        .iconBtn.button.wnd.IWnd.onPrePaintEvent(evt)
+    }
+
+    mtd impl onPaintEvent(evt: *PaintEvent)
+    {
+        .iconBtn.IWnd.onPaintEvent(evt)
+    }
+
+    mtd impl onPostPaintEvent(evt: *PaintEvent)
+    {
+        .iconBtn.button.wnd.IWnd.onPostPaintEvent(evt)
+    }
+
+    mtd impl onKeyEvent(evt: *KeyEvent)
+    {
+        .iconBtn.button.wnd.IWnd.onKeyEvent(evt)
+    }
+
+    mtd impl onMouseEvent(evt: *MouseEvent)
+    {
+        .iconBtn.IWnd.onMouseEvent(evt)
+    }
+
+    mtd impl onSysCommandEvent(evt: *SysCommandEvent)
+    {
+        .iconBtn.button.wnd.IWnd.onSysCommandEvent(evt)
+    }
+
+    mtd impl onSysUserEvent(evt: *SysUserEvent)
+    {
+        .iconBtn.button.wnd.IWnd.onSysUserEvent(evt)
+    }
+
+    mtd impl onThemeEvent(evt: *ThemeEvent)
+    {
+        .iconBtn.button.wnd.IWnd.onThemeEvent(evt)
+    }
+
+    mtd impl onTimerEvent(evt: *TimerEvent)
+    {
+        .iconBtn.button.wnd.IWnd.onTimerEvent(evt)
+    }
+
+    mtd impl onFocusEvent(evt: *FocusEvent)
+    {
+        .iconBtn.button.wnd.IWnd.onFocusEvent(evt)
+    }
+
+    mtd impl onCommandEvent(evt: *CommandEvent)
+    {
+        .iconBtn.button.wnd.IWnd.onCommandEvent(evt)
+    }
+
+    mtd impl onComputeStateEvent(evt: *CommandStateEvent)
+    {
+        .iconBtn.button.wnd.IWnd.onComputeStateEvent(evt)
+    }
+
+    mtd impl onApplyStateEvent(evt: *CommandStateEvent)
+    {
+        .iconBtn.IWnd.onApplyStateEvent(evt)
+    }
+
+    mtd impl onFrameEvent(evt: *FrameEvent)
+    {
+        .iconBtn.button.wnd.IWnd.onFrameEvent(evt)
+    }
+
+    mtd impl onSerializeStateEvent(evt: *SerializeStateEvent)
+    {
+        .iconBtn.button.wnd.IWnd.onSerializeStateEvent(evt)
+    }
+
+    mtd impl onNotifyEvent(evt: *NotifyEvent)
+    {
+        .iconBtn.button.wnd.IWnd.onNotifyEvent(evt)
+    }
 }
 
 struct QuickWnd
@@ -147,7 +261,7 @@ impl QuickWnd
         }
     }
 
-    func create(parent: *Wnd, main: *MainWnd)->*QuickWnd
+    func make(parent: *Wnd, main: *MainWnd)->*QuickWnd
     {
         with let quick = Wnd.create'QuickWnd(parent, {0, 0, 0, 300})
         {
@@ -694,25 +808,30 @@ impl QuickWnd
             btn.iconBtnFlags.add(.Checkable)
             btn.setForm(.RoundSquare)
             btn.formItf = it
+            btn.quickWnd = me
 
             btn.sigPaintIcon = func(btn, bc, pos, flags)
             {
                 paintForm(bc.painter, cast(*QuickButton) btn)
             }
 
-            btn.sigRightPressed += mtd||(btn)
+            btn.sigRightPressed += func(btn)
             {
                 var rect = btn.getSurfaceRect()
-                .btnPopup(btn, rect.center())
+                let quickBtn = cast(*QuickButton) btn
+                quickBtn.quickWnd.btnPopup(btn, rect.center())
             }
 
-            btn.sigCheckChanged += mtd|it|(btn)
+            btn.sigCheckChanged += func(btn)
             {
+                let quickBtn = cast(*QuickButton) btn
+                let quick    = quickBtn.quickWnd
+                let it       = quickBtn.formItf
                 if !btn.isChecked do
                     return
-                .main.updateModel(it)
+                quick.main.updateModel(it)
 
-                var capture = assume .main.getCapture()
+                var capture = assume quick.main.getCapture()
                 if capture.selection.count
                 {
                     let mdlValue = MainWnd.newFormFromForm(it)
@@ -726,8 +845,8 @@ impl QuickWnd
                     capture.selection.clear()
                 }
 
-                .updateSelection()
-                .main.updateState()
+                quick.updateSelection()
+                quick.main.updateState()
             }
         }
 
@@ -784,13 +903,15 @@ impl QuickWnd
             .layout.sendResizeEvent()
             .setScrollSize(0, .layout.resultHeight)
 
-            btn1.sigPressed += mtd|me.main|(btn)
+            let quickWnd = me
+            btn1.sigPressed += func|quickWnd|(btn)
             {
+                let main = quickWnd.main
                 let mdl = main.newFormFromModel(main.getEditMode())
                 if mdl
                 {
-                    .currentStyle.forms.add(mdl)
-                    .updateQuickStyles()
+                    quickWnd.currentStyle.forms.add(mdl)
+                    quickWnd.updateQuickStyles()
                 }
             }
         }

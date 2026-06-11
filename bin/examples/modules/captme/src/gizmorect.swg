@@ -162,7 +162,7 @@ impl GizmoRect
                 .hotAnchor = Swag.U32.Max
                 foreach c, i in .anchors where c.contains(pos)
                 {
-                    .hotAnchor = i
+                    .hotAnchor = cast(u32) i
                     break
                 }
             }

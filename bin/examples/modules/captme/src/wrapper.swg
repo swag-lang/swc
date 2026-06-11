@@ -147,7 +147,7 @@ impl MainWnd
         unreachable
     }
 
-    mtd editModeToModel(mode: EditMode)->#null IForm
+    mtd editModeToModel(mode: EditMode)->IForm
     {
         var formItf: IForm
 
@@ -181,46 +181,54 @@ impl MainWnd
         return formItf
     }
 
-    mtd newFormFromModel(mode: EditMode, clear = false)->#null IForm
+    mtd newFormFromModel(mode: EditMode, clear = false)->IForm
     {
         #[Swag.Complete]
         switch mode
         {
         case Arrow:
             let mdl = Memory.new'FormArrow()
-            mdl.IForm.copy(mdl, &.mdlFormArrow)
+            let itf = cast(IForm) mdl
+            itf.copy(mdl, &.mdlFormArrow)
             return mdl
         case Shape:
             let mdl = Memory.new'FormShape()
-            mdl.IForm.copy(mdl, &.mdlFormShape)
+            let itf = cast(IForm) mdl
+            itf.copy(mdl, &.mdlFormShape)
             return mdl
         case Image:
             let mdl = Memory.new'FormImage()
-            mdl.IForm.copy(mdl, &.mdlFormImage)
+            let itf = cast(IForm) mdl
+            itf.copy(mdl, &.mdlFormImage)
             if clear do
                 mdl.image.release()
             return mdl
         case Step:
             let mdl = Memory.new'FormStep()
-            mdl.IForm.copy(mdl, &.mdlFormStep)
+            let itf = cast(IForm) mdl
+            itf.copy(mdl, &.mdlFormStep)
             return mdl
         case Line:
             let mdl = Memory.new'FormLine()
-            mdl.IForm.copy(mdl, &.mdlFormLine)
+            let itf = cast(IForm) mdl
+            itf.copy(mdl, &.mdlFormLine)
             return mdl
         case Polygon:
             let mdl = Memory.new'FormPolygon()
-            mdl.IForm.copy(mdl, &.mdlFormPolygon)
+            let itf = cast(IForm) mdl
+            itf.copy(mdl, &.mdlFormPolygon)
             if clear do
                 mdl.points.clear()
             return mdl
         case Text:
             let mdl = Memory.new'FormText()
-            mdl.IForm.copy(mdl, &.mdlFormText)
+            let itf = cast(IForm) mdl
+            itf.copy(mdl, &.mdlFormText)
             return mdl
         case Draw:
             let mdl = Memory.new'FormDraw()
-            mdl.IForm.copy(mdl, &.mdlFormDraw)
+            let itf = cast(IForm) mdl
+            itf.copy(mdl, &.mdlFormDraw)
             if clear do
                 mdl.points.clear()
             return mdl

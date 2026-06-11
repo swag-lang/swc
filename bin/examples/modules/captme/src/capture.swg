@@ -83,15 +83,16 @@ impl Capture
     mtd setup(view: *EditView)
     {
         .editView         = view
-        .gizmo.sigChanged = mtd||(g, first, hitMove)
+        let capture       = me
+        .gizmo.sigChanged = func|capture|(g, first, hitMove)
         {
-            var undo = .newUndo(.MoveCapture)
-            undo.newPosX  = cast(s32) ((g.rect.x - g.movingRect.x) / .editView.zoom)
-            undo.newPosY  = cast(s32) ((g.rect.y - g.movingRect.y) / .editView.zoom)
-            undo.newSizeX = cast(s32) ((g.movingRect.width - g.rect.width) / .editView.zoom)
-            undo.newSizeY = cast(s32) ((g.movingRect.height - g.rect.height) / .editView.zoom)
-            .pushUndo(undo)
-            .editView.invalidate()
+            var undo = capture.newUndo(.MoveCapture)
+            undo.newPosX  = cast(s32) ((g.rect.x - g.movingRect.x) / capture.editView.zoom)
+            undo.newPosY  = cast(s32) ((g.rect.y - g.movingRect.y) / capture.editView.zoom)
+            undo.newSizeX = cast(s32) ((g.movingRect.width - g.rect.width) / capture.editView.zoom)
+            undo.newSizeY = cast(s32) ((g.movingRect.height - g.rect.height) / capture.editView.zoom)
+            capture.pushUndo(undo)
+            capture.editView.invalidate()
         }
     }
 
@@ -196,7 +197,7 @@ impl Capture
         var buf:     ConcatBuffer
         var encoder: Encoder'Write.TagBin
 
-        encoder.writeAll(&buf, dref me)
+        encoder.writeAll(&buf, dref &me)
         File.writeAllBytes(.file, buf)
     }
 
@@ -311,7 +312,7 @@ impl Capture
 
         var boundRect: Math.Rectangle
 
-        foreach &itf, idx in res
+        foreach itf, idx in res
         {
             itf.setup(me)
             let bound = itf.boundRect()
@@ -366,16 +367,19 @@ impl Capture
         boundRect.inflate(200)
 
         var clipOffset: Math.Vector2
+        var savePaintPos: Math.Rectangle
+        var saveNoClipPos: Math.Rectangle
+        var wt2, ht2, wt, ht: s32
         with let base = cast(*BaseForm) @dataof(f)
         {
-            let savePaintPos = .paintPos
+            savePaintPos = .paintPos
 
             .paintPos.x      = rect.x + (boundRect.x * zoom)
             .paintPos.y      = rect.y + (boundRect.y * zoom)
             .paintPos.width  = boundRect.width * zoom
             .paintPos.height = boundRect.height * zoom
 
-            let saveNoClipPos = .paintPos
+            saveNoClipPos = .paintPos
 
             if !quickMode and !clip.isEmpty()
             {
@@ -397,10 +401,10 @@ impl Capture
             .paintPos.height += .paintPos.y - Math.round(.paintPos.y)
             .paintPos.round()
 
-            let wt2 = cast(s32) (.paintPos.width - clipOffset.x)
-            let ht2 = cast(s32) (.paintPos.height - clipOffset.y)
-            var wt  = wt2
-            var ht  = ht2
+            wt2 = cast(s32) (.paintPos.width - clipOffset.x)
+            ht2 = cast(s32) (.paintPos.height - clipOffset.y)
+            wt  = wt2
+            ht  = ht2
         }
 
         let rt = render.getRenderTarget(wt2, ht2)

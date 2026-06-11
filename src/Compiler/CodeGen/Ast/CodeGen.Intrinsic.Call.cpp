@@ -849,7 +849,9 @@ namespace
             SWC_RESULT(prepareTypeInfoValuePointer(objectTypeCstRef, codeGen, candidate.objectTypeRef, typeRefNode));
 
             ConstantRef interfaceTableCstRef = ConstantRef::invalid();
-            SWC_RESULT(prepareInterfaceMethodTable(interfaceTableCstRef, codeGen, candidate.castInfo));
+            SWC_RESULT(prepareInterfaceMethodTable(interfaceTableCstRef, codeGen, candidate.castInfo, true));
+            if (!interfaceTableCstRef.isValid())
+                continue;
 
             preparedCandidates.push_back({.objectTypeCstRef = objectTypeCstRef, .interfaceTableCstRef = interfaceTableCstRef, .castInfo = candidate.castInfo});
         }
@@ -955,7 +957,9 @@ namespace
             SWC_RESULT(prepareTypeInfoValuePointer(interfaceTypeCstRef, codeGen, candidate.interfaceTypeRef, children[1]));
 
             ConstantRef interfaceTableCstRef = ConstantRef::invalid();
-            SWC_RESULT(prepareInterfaceMethodTable(interfaceTableCstRef, codeGen, candidate.castInfo));
+            SWC_RESULT(prepareInterfaceMethodTable(interfaceTableCstRef, codeGen, candidate.castInfo, true));
+            if (!interfaceTableCstRef.isValid())
+                continue;
 
             preparedCandidates.push_back({.objectTypeCstRef = objectTypeCstRef, .interfaceTypeCstRef = interfaceTypeCstRef, .interfaceTableCstRef = interfaceTableCstRef, .castInfo = candidate.castInfo});
         }

@@ -31,13 +31,17 @@ impl IActionUI for ActionUndo
         case DoUndo:
             evt.setFlags |= .Disabled | .Name | .Icon
             evt.name     = "Undo"
-            evt.disabled = !capture or !capture.canUndo()
+            evt.disabled = true
+            if capture do
+                evt.disabled = !(assume capture).canUndo()
             evt.icon     = main.getTheme().getIcon24(.Undo)
 
         case DoRedo:
             evt.setFlags |= .Disabled | .Name | .Icon
             evt.name     = "Redo"
-            evt.disabled = !capture or !capture.canRedo()
+            evt.disabled = true
+            if capture do
+                evt.disabled = !(assume capture).canRedo()
             evt.icon     = main.getTheme().getIcon24(.Redo)
         }
 

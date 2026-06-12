@@ -1,5 +1,5 @@
 #global #if #command == Swag.CompilerCommand.Test
-using Swag, Core
+using Swag, Core, Pixel
 
 #test
 {
@@ -26,4 +26,33 @@ using Swag, Core
 
     style.addStyleSheetMetrics("button_Margin 2")
     @assert(style.styleSheetMetrics == "button_Height 24\nbutton_Margin 2")
+}
+
+#test
+{
+    var style: ThemeStyle
+    var regular: Font
+    var bold: Font
+    var italic: Font
+
+    style.setFont(&regular, .Regular)
+    @assert(style.dirty)
+    @assert(style.font.regular == &regular)
+    @assert(style.font.getFont(.Regular) == &regular)
+    @assert(style.font.getFont(.Bold) == &regular)
+
+    style.dirty = false
+    style.setFont(&bold, .Bold)
+    style.setFont(&italic, .Italic)
+    @assert(style.dirty)
+    @assert(style.font.bold == &bold)
+    @assert(style.font.italic == &italic)
+    @assert(style.font.getFont(.BoldItalic) == &italic)
+
+    style.clearFont()
+    @assert(style.dirty)
+    @assert(style.font.regular == null)
+    @assert(style.font.bold == null)
+    @assert(style.font.italic == null)
+    @assert(style.font.boldItalic == null)
 }

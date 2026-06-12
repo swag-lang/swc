@@ -3,6 +3,7 @@
 using Swag, Core
 
 var SigArrayTestTotal: s32
+var SigArrayTestTrace: String
 
 func sigArrayTestAdd(value: *s32)
 {
@@ -14,6 +15,12 @@ func sigArrayTestAddDelta(value: *s32, delta: s32)
 {
     discard value
     SigArrayTestTotal += delta
+}
+
+func sigArrayTestAppendA(value: *s32)
+{
+    dref value += 1
+    SigArrayTestTrace += "A"
 }
 
 #test
@@ -61,4 +68,27 @@ func sigArrayTestAddDelta(value: *s32, delta: s32)
     SigArrayTestTotal = 0
     signal.call(&value, 3)
     @assert(SigArrayTestTotal == 33)
+}
+
+#test
+{
+    var signal: SigArray'func||(*s32)
+    signal += &sigArrayTestAppendA
+    signal += func(value: *s32)
+    {
+        dref value *= 3
+        SigArrayTestTrace += "B"
+    }
+    signal += func(value: *s32)
+    {
+        dref value -= 2
+        SigArrayTestTrace += "C"
+    }
+
+    var value = 4
+    SigArrayTestTrace.clear()
+    signal.call(&value)
+
+    @assert(value == 13)
+    @assert(SigArrayTestTrace == "ABC")
 }

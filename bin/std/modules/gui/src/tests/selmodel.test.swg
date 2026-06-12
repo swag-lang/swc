@@ -84,3 +84,55 @@ using Swag, Core
     @assert(visitedCount == 5)
     @assert(visitedSum == 19)
 }
+
+#test
+{
+    var model: SelModel
+
+    model.select(10, false)
+    @assert(model.isEmpty())
+
+    model.select(4, true)
+    model.select(4, true)
+    @assert(model.selection.count == 1)
+    @assert(model.selection[0].start == 4)
+    @assert(model.selection[0].end == 4)
+
+    model.select(2, 6, true)
+    @assert(model.isSelected(2))
+    @assert(model.isSelected(3))
+    @assert(model.isSelected(4))
+    @assert(model.isSelected(5))
+    @assert(model.isSelected(6))
+
+    model.select(3, 5, false)
+    @assert(model.isSelected(2))
+    @assert(!model.isSelected(3))
+    @assert(!model.isSelected(4))
+    @assert(!model.isSelected(5))
+    @assert(model.isSelected(6))
+}
+
+#test
+{
+    var model: SelModel
+    model.select(1, 2, true)
+    model.select(4, 5, true)
+    model.select(3, true)
+
+    for i in 1 to 5 do
+        @assert(model.isSelected(i))
+    @assert(!model.isSelected(0))
+    @assert(!model.isSelected(6))
+
+    var visitedCount: u32
+    var visitedSum:   u32
+    foreach idx in model
+    {
+        visitedCount += 1
+        visitedSum += idx
+    }
+
+    @assert(visitedCount == 5)
+    @assert(visitedSum == 15)
+}

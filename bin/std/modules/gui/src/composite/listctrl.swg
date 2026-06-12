@@ -1026,6 +1026,7 @@ impl ListCtrl
     {
         .lines.clear()
         .virtualCount = 0
+        .isVirtual = false
         .idxLineToIdxList.clear()
         .nextLineIndex = 0
         .focusIndex = Swag.U32.Max

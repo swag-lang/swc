@@ -601,3 +601,111 @@ func returnCopyInfo()->LifecycleInfo
     @assert(v.postCopy == 0)
     @assert(v.postMove == 1)
 }
+
+// A struct exposing a user `opSet` reachable from its own type through an implicit `opCast`, just like
+// core.String (`opCast->string` + `opSet(string)`). The raw-storage modifiers `#moveraw` and `#nodrop`
+// (without `#move`) must bypass `opSet` and write the storage bitwise: routing them through `opSet`
+// reads the uninitialized target (its buffer/allocator), which crashed Array.popBack of a heap string.
+var SetCount: u32 = 0
+
+struct Settable
+{
+    value: s32 = 0
+}
+
+impl Settable
+{
+    #[Implicit]
+    mtd const opCast()->s32 => .value
+
+    #[Implicit]
+    mtd opSet(v: s32)
+    {
+        SetCount += 1
+        .value = v
+    }
+
+    mtd opPostCopy()
+    {
+        PostCopyCount += 1
+        .value += 10
+    }
+
+    mtd opPostMove()
+    {
+        PostMoveCount += 1
+        .value += 20
+    }
+
+    mtd opDrop()
+    {
+        DropCount += 1
+    }
+}
+
+struct SettableInfo
+{
+    dst:      s32
+    sets:     u32
+    postCopy: u32
+    postMove: u32
+}
+
+func settablePlainCopy()->SettableInfo
+{
+    resetLifecycleHooks()
+    SetCount = 0
+    var dst = Settable{1}
+    var src = Settable{2}
+    dst = src
+    return {dst.value, SetCount, PostCopyCount, PostMoveCount}
+}
+
+func settableNoDropCopy()->SettableInfo
+{
+    resetLifecycleHooks()
+    SetCount = 0
+    var dst = Settable{9}
+    var src = Settable{4}
+    dst = #nodrop src
+    return {dst.value, SetCount, PostCopyCount, PostMoveCount}
+}
+
+func settableMoveRaw()->SettableInfo
+{
+    resetLifecycleHooks()
+    SetCount = 0
+    var dst = Settable{8}
+    var src = Settable{3}
+    dst = #nodrop #moveraw src
+    return {dst.value, SetCount, PostCopyCount, PostMoveCount}
+}
+
+#test
+{
+    // Plain assignment resolves the user `opSet`.
+    let v = settablePlainCopy()
+    @assert(v.sets == 1)
+    @assert(v.dst == 2)
+    @assert(v.postCopy == 0)
+}
+
+#test
+{
+    // `#nodrop` copy bypasses `opSet`: bitwise copy + opPostCopy into the uninitialized target.
+    let v = settableNoDropCopy()
+    @assert(v.sets == 0)
+    @assert(v.dst == 14)
+    @assert(v.postCopy == 1)
+    @assert(v.postMove == 0)
+}
+
+#test
+{
+    // `#nodrop #moveraw` bypasses `opSet`: raw bitwise move + opPostMove, no read of the target.
+    let v = settableMoveRaw()
+    @assert(v.sets == 0)
+    @assert(v.dst == 23)
+    @assert(v.postCopy == 0)
+    @assert(v.postMove == 1)
+}

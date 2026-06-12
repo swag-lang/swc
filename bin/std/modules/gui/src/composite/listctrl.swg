@@ -81,6 +81,7 @@ struct ListCtrl
     idxLineToIdxList:       HashTable'(u32, u32)
     selModel:               SelModel
     checkModel:             SelModel
+    nextLineIndex:          u32
     focusIndex              = Swag.U32.Max
     hotIndex                = Swag.U32.Max
     scrollWnd:              *ScrollWnd
@@ -192,7 +193,10 @@ impl IWnd for ListView
             {
                 foreach l in .list.selModel
                 {
-                    let idx = .list.idxLineToIdxList.find(l).value
+                    let res = .list.idxLineToIdxList.tryFind(l)
+                    if !res do
+                        continue
+                    let idx = res.value
                     if !.list.lines[idx].canCheck do
                         continue
                     let checked = !.list.checkModel.isSelected(l)
@@ -212,7 +216,10 @@ impl IWnd for ListView
             {
                 foreach l in .list.selModel
                 {
-                    let idx = .list.idxLineToIdxList.find(l).value
+                    let res = .list.idxLineToIdxList.tryFind(l)
+                    if !res do
+                        continue
+                    let idx = res.value
                     if !.list.lines[idx].canCheck do
                         continue
                     .list.checkModel.select(l, true)
@@ -293,8 +300,7 @@ impl IWnd for ListView
                 startSelIdx = endSelIdx
             }
 
-            for i in startSelIdx to endSelIdx do
-                .list.selectLine(i, true)
+            .list.selectLines(startSelIdx, endSelIdx)
             .list.focusIndex = endSelIdx
             .list.ensureVisibleLine(.list.focusIndex)
         }
@@ -426,7 +432,7 @@ impl IWnd for ListView
 
         if evt.kind == .MouseDoubleClick
         {
-            if idx != Swag.U32.Max do
+            if idx != Swag.U32.Max and !.list.isVirtual do
                 .list.toggleExpand(.list.lines[idx])
             let pt = .surfaceToLocal(evt.surfacePos)
             .list.sigLeftDoubleClick.call(.list, pt)
@@ -522,7 +528,7 @@ impl IWnd for ListView
             for i in firstIdx to lastIdx
             {
                 var line: ListLine
-                .list.sigVirtualFill(&line, i)
+                .list.sigVirtualFill(.list, &line, i)
                 .paintLine(bc, i, &line, rect, line.canCheck)
                 rect.y = rect.bottom()
 
@@ -909,8 +915,18 @@ impl ListCtrl
         if .selectionMode == .None or lineCount == 0 do
             return
 
-        for i in start to end
+        if .selectionMode == .Single
         {
+            .selectLine(end, select)
+            return
+        }
+
+        let idx0 = Math.min(start, end)
+        let idx1 = Math.max(start, end)
+        for i in idx0 to idx1
+        {
+            if !.isVirtual and .lines[i].separator do
+                continue
             let idxLine = .isVirtual ? i : .lines[i].index
             .selModel.select(idxLine, select)
         }
@@ -981,13 +997,16 @@ impl ListCtrl
             let line = parentLine.lines.newPtr()
             line.parent = parentLine
             line.level  = parentLine.level + 1
+            line.index  = .nextLineIndex
+            .nextLineIndex += 1
             parentLine.lines.add(line)
             return line
         }
 
         let line = .toFreeLines.newPtr()
-        line.index = cast(u32) .lines.count
-        .idxLineToIdxList.add(line.index, line.index)
+        line.index = .nextLineIndex
+        .nextLineIndex += 1
+        .idxLineToIdxList.add(line.index, cast(u32) .lines.count)
         .lines.add(line)
         .toFreeLines.add(line)
         return line
@@ -1008,6 +1027,7 @@ impl ListCtrl
         .lines.clear()
         .virtualCount = 0
         .idxLineToIdxList.clear()
+        .nextLineIndex = 0
         .focusIndex = Swag.U32.Max
         .selModel.unselectAll()
         .checkModel.unselectAll()
@@ -1053,11 +1073,11 @@ impl ListCtrl
         if lc == 0 do
             return Swag.U32.Max
 
-        var y = .listView.scrollPos.y + .scrollWnd.view.position.height
-        y -= .scrollWnd.view.padding.y
-        y -= .scrollWnd.view.padding.w
-        if y < 0 do
+        let viewRect = .listView.getClientRectPadding()
+        var y = .listView.scrollPos.y + viewRect.height
+        if y <= 0 do
             return cast(u32) (.listView.scrollPos.y / .getLineHeight())
+        y = Math.max(y - Math.ConstF32.Epsilon, 0)
         let idx = cast(u32) (y / .getLineHeight())
         if idx >= lc do
             return cast(u32) lc - 1
@@ -1067,12 +1087,22 @@ impl ListCtrl
     // Set the corresponding line visible
     mtd ensureVisibleLine(idx: u32)
     {
-        let first = .getFirstVisibleLineIndex()
-        let last  = .getLastVisibleLineIndex()
-        if idx > first and idx < last do
+        Debug.assert(idx < .getLineCount())
+
+        let lineHeight    = .getLineHeight()
+        let viewHeight    = .listView.getClientRectPadding().height
+        let lineTop       = idx * lineHeight
+        let lineBottom    = lineTop + lineHeight
+        let sc            = .scrollWnd.getScrollPos()
+        let visibleBottom = sc.y + viewHeight
+
+        if lineTop >= sc.y and lineBottom <= visibleBottom do
             return
-        let sc = .scrollWnd.getScrollPos()
-        .scrollWnd.setScrollPos(sc.x, idx * .getLineHeight())
+
+        var y = lineTop
+        if lineBottom > visibleBottom do
+            y = lineBottom - viewHeight
+        .scrollWnd.setScrollPos(sc.x, y)
     }
 
     // Returns true if the line at the given index is selected
@@ -1145,6 +1175,16 @@ impl ListCtrl
         .idxLineToIdxList.clear()
         foreach l, idx in .lines do
             .idxLineToIdxList.add(l.index, cast(u32) idx)
+    }
+
+    fileprivate mtd collectVisibleLines(result: *Array'(*ListLine), lines: [..] *ListLine)
+    {
+        foreach l in lines
+        {
+            result.add(l)
+            if l.expanded do
+                .collectVisibleLines(result, l.lines.toSlice())
+        }
     }
 
     fileprivate mtd sort(column: u32, descentOrder: bool, toSort: *Array'*ListLine)
@@ -1233,38 +1273,19 @@ impl ListCtrl
         line.expanded = true
         .sigExpand.call(me, line)
 
-        var tmp: Array'(*ListLine)
-        tmp.add(line)
-
-        // Auto sort
         if .header and .header.sortMark do
             .sort(.header.sortColumn, .header.sortMark == -1 ? true : false, &line.lines)
 
-        var cptIdxLine = cast(u32) .lines.count
-        var cptIdx     = 0'u32
-        while tmp.count
+        let res = .idxLineToIdxList.tryFind(line.index)
+        if !res do
+            return
+
+        var toInsert: Array'(*ListLine)
+        .collectVisibleLines(&toInsert, line.lines.toSlice())
+        if toInsert.count
         {
-            let toI = tmp.popBack()
-            let res = .idxLineToIdxList.tryFind(toI.index)
-            if !res do
-                continue
-            let idxInsert = res.value
-            foreach l, i in toI.lines
-            {
-                l.index = cptIdxLine
-                cptIdxLine += 1
-                .idxLineToIdxList.add(l.index, idxInsert + cptIdx + 1)
-                cptIdx += 1
-                if l.expanded do
-                    tmp.add(l)
-            }
-
-            // Update indexes after the insertion
-            for var idx = idxInsert + 1; idx < cast(u32) .lines.count; idx += 1 do
-                .idxLineToIdxList.add(.lines[idx].index, cast(u32) (idx + toI.lines.count))
-
-            // Insert at the right position
-            .lines.insertAt(cast(u64) (idxInsert + 1), toI.lines.toSlice())
+            .lines.insertAt(cast(u64) (res.value + 1), toInsert.toSlice())
+            .mapIndexes()
         }
 
         .computeLayout()
@@ -1298,14 +1319,14 @@ impl ListCtrl
         if !res do
             return
         let idxInsert = res.value
-        .lines.removeAtOrdered(cast(u64) (idxInsert + 1), cast(u64) removeCount)
-
-        // Update indexes after the insertion
-        for var idx = idxInsert + 1; idx < cast(u32) .lines.count; idx += 1 do
-            .idxLineToIdxList.add(.lines[idx].index, idx)
+        if removeCount
+        {
+            .lines.removeAtOrdered(cast(u64) (idxInsert + 1), cast(u64) removeCount)
+            .mapIndexes()
+        }
 
         // Update selection
-        if .focusIndex >= idxInsert + 1 and .focusIndex <= idxInsert + 1 + removeCount
+        if .focusIndex >= idxInsert + 1 and .focusIndex < idxInsert + 1 + removeCount
         {
             .unselectAll()
             .focusIndex = idxInsert

@@ -386,12 +386,10 @@ impl ScrollWnd
         if .position.width == 0 or .position.height == 0 do
             return
         let clientRect = .getClientRectPadding()
-        var sx         = Math.max(.scrollSize.x, clientRect.width)
-        var sy         = Math.max(.scrollSize.y, clientRect.height)
-        sx = Math.max(sx, 1)
-        sy = Math.max(sy, 1)
-
         let metrics = .getThemeMetrics()
+        let barSize = .scrollWndFlags.has(.SmallBar) ? metrics.scrollBar_SmallSize : metrics.scrollBar_NormalSize
+        var sx      = Math.max(.scrollSize.x, clientRect.width)
+        var sy      = Math.max(.scrollSize.y, clientRect.height)
 
         .showBarV, .showBarH = false
         .needH, .needV = false
@@ -406,7 +404,15 @@ impl ScrollWnd
         if .needH or .scrollWndFlags.has(.ForceHorizontal) do
             .showBarH = true
 
-        let barSize = .scrollWndFlags.has(.SmallBar) ? metrics.scrollBar_SmallSize : metrics.scrollBar_NormalSize
+        if .showBarV and .scrollSize.x > clientRect.width - barSize do
+            .needH = true
+        if .needH or .scrollWndFlags.has(.ForceHorizontal) do
+            .showBarH = true
+
+        if .showBarH and .scrollSize.y > clientRect.height - barSize do
+            .needV = true
+        if .needV or .scrollWndFlags.has(.ForceVertical) do
+            .showBarV = true
 
         .paddingZ, .paddingW = 0
         if .showBarV do
@@ -414,9 +420,14 @@ impl ScrollWnd
         if .showBarH do
             .paddingW = barSize
 
+        let viewWidth  = Math.max(clientRect.width - .paddingZ, 1)
+        let viewHeight = Math.max(clientRect.height - .paddingW, 1)
+        sx             = Math.max(.scrollSize.x, viewWidth)
+        sy             = Math.max(.scrollSize.y, viewHeight)
+
         if .showBarV
         {
-            let vh0 = clientRect.height - .paddingW
+            let vh0 = viewHeight
             var vh1 = .position.height - .paddingW
             .sizeBoxV = (vh0 / sy) * vh1
             if .sizeBoxV < metrics.scrollBar_BoxMinSize
@@ -429,13 +440,13 @@ impl ScrollWnd
             .posBoxV = .view.scrollPos.y / sy
             .posBoxV *= vh1
 
-            if .view.scrollPos.y > .scrollSize.y - clientRect.height do
-                .view.scrollPos.y = Math.max(.scrollSize.y - clientRect.height, 0)
+            if .view.scrollPos.y > .scrollSize.y - viewHeight do
+                .view.scrollPos.y = Math.max(.scrollSize.y - viewHeight, 0)
         }
 
         if .showBarH
         {
-            let vh0 = clientRect.width - .paddingZ
+            let vh0 = viewWidth
             var vh1 = .position.width - .paddingZ
             .sizeBoxH = (vh0 / sx) * vh1
             if .sizeBoxH < metrics.scrollBar_BoxMinSize
@@ -448,8 +459,8 @@ impl ScrollWnd
             .posBoxH = .view.scrollPos.x / sx
             .posBoxH *= vh1
 
-            if .view.scrollPos.x > .scrollSize.x - clientRect.width do
-                .view.scrollPos.x = Math.max(.scrollSize.x - clientRect.width, 0)
+            if .view.scrollPos.x > .scrollSize.x - viewWidth do
+                .view.scrollPos.x = Math.max(.scrollSize.x - viewWidth, 0)
         }
 
         .invalidate()

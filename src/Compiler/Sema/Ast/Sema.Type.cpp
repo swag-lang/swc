@@ -64,6 +64,14 @@ namespace
         if (sym.isStruct())
             return SemaHelpers::ensureStructTypeRef(sema, sym.cast<SymbolStruct>());
 
+        if (sym.isEnum())
+        {
+            auto&         symEnum = sym.cast<SymbolEnum>();
+            const TypeRef typeRef = sema.typeMgr().addType(TypeInfo::makeEnum(&symEnum));
+            symEnum.setTypeRef(typeRef);
+            return typeRef;
+        }
+
         if (sym.isInterface())
         {
             auto&         itf     = sym.cast<SymbolInterface>();

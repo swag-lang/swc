@@ -60,6 +60,15 @@ namespace
         return nested;
     }
 
+    Result waitEnumCompletion(Sema& sema, const CastRequest& castRequest, const TypeInfo& typeInfo)
+    {
+        if (!typeInfo.isEnum())
+            return Result::Continue;
+
+        const AstNodeRef waitNodeRef = castRequest.errorNodeRef.isValid() ? castRequest.errorNodeRef : sema.curNodeRef();
+        return sema.waitSemaCompleted(&typeInfo, waitNodeRef);
+    }
+
     TypeRef unwrapCastOverflowTypeRef(Sema& sema, TypeRef typeRef)
     {
         if (!typeRef.isValid())
@@ -826,6 +835,7 @@ Result Cast::castBit(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, T
     const TypeRef orgSrcTypeRef = srcTypeRef;
     if (isEnum)
     {
+        SWC_RESULT(waitEnumCompletion(sema, castRequest, *srcType));
         srcTypeRef = srcType->payloadSymEnum().underlyingTypeRef();
         srcType    = &typeMgr.get(srcTypeRef);
         if (castRequest.isConstantFolding())
@@ -1152,6 +1162,7 @@ Result Cast::castToEnum(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef
         return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
 
     const TypeInfo& dstType           = sema.typeMgr().get(dstTypeRef);
+    SWC_RESULT(waitEnumCompletion(sema, castRequest, dstType));
     const TypeRef   underlyingTypeRef = dstType.payloadSymEnum().underlyingTypeRef();
 
     CastRequest underlyingRequest(castRequest.kind);
@@ -1182,6 +1193,9 @@ Result Cast::castFromEnum(Sema& sema, CastRequest& castRequest, TypeRef srcTypeR
 {
     const TypeInfo&   srcType                    = sema.typeMgr().get(srcTypeRef);
     const TypeInfo&   dstType                    = sema.typeMgr().get(dstTypeRef);
+    SWC_RESULT(waitEnumCompletion(sema, castRequest, srcType));
+    SWC_RESULT(waitEnumCompletion(sema, castRequest, dstType));
+
     const SymbolEnum& enumSym                    = srcType.payloadSymEnum();
     const bool        allowEnumIndexImplicitCast = enumSym.attributes().hasRtFlag(RtAttributeFlagsE::EnumIndex) && dstType.isIntLike();
     if (castRequest.kind != CastKind::Explicit && !allowEnumIndexImplicitCast)

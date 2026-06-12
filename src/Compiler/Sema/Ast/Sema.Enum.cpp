@@ -168,9 +168,10 @@ Result AstEnumDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) con
         SWC_RESULT(validateEnumUnderlyingType(sema, sym, typeView, nodeTypeRef));
     }
 
-    const TypeRef  underlyingTypeRef = resolveEnumUnderlyingType(sema, sym, typeView);
-    const TypeInfo enumType          = TypeInfo::makeEnum(&sym);
-    const TypeRef  enumTypeRef       = sema.typeMgr().addType(enumType);
+    const TypeRef underlyingTypeRef = resolveEnumUnderlyingType(sema, sym, typeView);
+    TypeRef       enumTypeRef       = sym.typeRef();
+    if (enumTypeRef.isInvalid())
+        enumTypeRef = sema.typeMgr().addType(TypeInfo::makeEnum(&sym));
     sym.setTypeRef(enumTypeRef);
     sym.setUnderlyingTypeRef(underlyingTypeRef);
     sym.setTyped(sema.ctx());

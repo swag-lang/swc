@@ -138,7 +138,6 @@ namespace
 
     void appendAttributeDeps(SmallVector<TypeRef>& deps, Sema& sema, const AttributeList& attributes)
     {
-        TaskContext& ctx = sema.ctx();
         for (const AttributeInstance& attribute : attributes.attributes)
         {
             if (attribute.symbol)

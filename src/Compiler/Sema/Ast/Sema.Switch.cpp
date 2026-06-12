@@ -63,6 +63,16 @@ namespace
         return TypeRef::invalid();
     }
 
+    Result waitSwitchEnumCompletionIfNeeded(Sema& sema, TypeRef typeRef, AstNodeRef nodeRef)
+    {
+        const TypeRef enumTypeRef = switchEnumTypeRef(sema, typeRef);
+        if (enumTypeRef.isInvalid())
+            return Result::Continue;
+
+        const TypeInfo& enumType = sema.typeMgr().get(enumTypeRef);
+        return sema.waitSemaCompleted(&enumType, nodeRef);
+    }
+
     TypeRef switchCaseCastTypeRef(Sema& sema, TypeRef switchTypeRef)
     {
         const TypeRef enumTypeRef = switchEnumTypeRef(sema, switchTypeRef);
@@ -103,6 +113,8 @@ namespace
 
     Result validateSwitchExprType(Sema& sema, AstNodeRef exprRef, TypeRef exprTypeRef)
     {
+        SWC_RESULT(waitSwitchEnumCompletionIfNeeded(sema, exprTypeRef, exprRef));
+
         const TypeRef   ultimateTypeRef = switchExprUltimateTypeRef(sema, exprTypeRef);
         const TypeInfo& finalType       = sema.typeMgr().get(ultimateTypeRef);
         if (finalType.isIntLike() || finalType.isFloat() || finalType.isBool() || finalType.isString() || finalType.isAnyPointer() || finalType.isAnyTypeInfo(sema.ctx()) || finalType.isInterface() || finalType.isAny())
@@ -113,6 +125,8 @@ namespace
 
     Result attachSwitchExprRuntimeDependencies(Sema& sema, SwitchPayload& payload, TypeRef exprTypeRef, const SourceCodeRef& codeRef)
     {
+        SWC_RESULT(waitSwitchEnumCompletionIfNeeded(sema, exprTypeRef, sema.curNodeRef()));
+
         const TypeRef   ultimateTypeRef = switchExprUltimateTypeRef(sema, exprTypeRef);
         const TypeInfo& finalType       = sema.typeMgr().get(ultimateTypeRef);
         if (finalType.isString())

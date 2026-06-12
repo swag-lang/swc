@@ -147,8 +147,12 @@ fileprivate func winProc(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM)-
             return 0
 
         case WM_MOVE:
-            surface.position.x = LOWORD(lParam)
-            surface.position.y = HIWORD(lParam)
+            // lParam holds the client origin in screen space as *signed* 16-bit coordinates.
+            // A maximized window is positioned slightly off the work area (negative origin
+            // because of the surface shadow), so a raw LOWORD/HIWORD would wrap to a huge
+            // positive value and corrupt every screenToSurface() mouse mapping.
+            surface.position.x = GET_X_LPARAM(lParam)
+            surface.position.y = GET_Y_LPARAM(lParam)
         case WM_SIZE:
             surface.sendResizeEvent(cast(f32) LOWORD(lParam), cast(f32) HIWORD(lParam))
 

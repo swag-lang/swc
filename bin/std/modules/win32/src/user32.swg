@@ -972,8 +972,25 @@ const DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE    = cast(DPI_AWARENESS_CONTEXT) c
 const DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2 = cast(DPI_AWARENESS_CONTEXT) cast #bit (u64) -4's64
 const DPI_AWARENESS_CONTEXT_UNAWARE_GDISCALED    = cast(DPI_AWARENESS_CONTEXT) cast #bit (u64) -5's64
 
-func GET_X_LPARAM(lp: LPARAM) => cast(s32) LOWORD(lp)
-func GET_Y_LPARAM(lp: LPARAM) => cast(s32) HIWORD(lp)
+// The coordinates packed in lParam are signed 16-bit values: they can be negative on
+// multi-monitor setups or when a maximized window is positioned outside the work area.
+// Sign-extend the low/high word manually so the sign is preserved (a narrowing cast
+// would trip the overflow safety check for values above 0x7FFF).
+func GET_X_LPARAM(lp: LPARAM)->s32
+{
+    let value = LOWORD(lp)
+    if value <= 0x7FFF do
+        return cast(s32) value
+    return cast(s32) (cast(s64) value - 0x1_0000)
+}
+
+func GET_Y_LPARAM(lp: LPARAM)->s32
+{
+    let value = HIWORD(lp)
+    if value <= 0x7FFF do
+        return cast(s32) value
+    return cast(s32) (cast(s64) value - 0x1_0000)
+}
 
 #[Foreign("user32")]
 {

@@ -18,18 +18,22 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    TypeRef resolveIndexOperandTypeRef(Sema& sema, const SemaNodeView& nodeArgView)
+    Result resolveIndexOperandTypeRef(Sema& sema, TypeRef& outTypeRef, AstNodeRef nodeArgRef, const SemaNodeView& nodeArgView)
     {
-        TypeRef       indexTypeRef = nodeArgView.typeRef();
+        outTypeRef          = nodeArgView.typeRef();
         const TypeRef aliasTypeRef = nodeArgView.type()->unwrap(sema.ctx(), nodeArgView.typeRef(), TypeExpandE::Alias);
         if (aliasTypeRef.isValid())
-            indexTypeRef = aliasTypeRef;
+            outTypeRef = aliasTypeRef;
 
-        const TypeInfo& indexType = sema.typeMgr().get(indexTypeRef);
-        if (indexType.isEnum() && indexType.payloadSymEnum().attributes().hasRtFlag(RtAttributeFlagsE::EnumIndex))
-            indexTypeRef = indexType.payloadSymEnum().underlyingTypeRef();
+        const TypeInfo& indexType = sema.typeMgr().get(outTypeRef);
+        if (indexType.isEnum())
+        {
+            SWC_RESULT(sema.waitSemaCompleted(&indexType, nodeArgRef));
+            if (indexType.payloadSymEnum().attributes().hasRtFlag(RtAttributeFlagsE::EnumIndex))
+                outTypeRef = indexType.payloadSymEnum().underlyingTypeRef();
+        }
 
-        return indexTypeRef;
+        return Result::Continue;
     }
 
     ConstantRef resolveIndexOperandConstantRef(const SemaNodeView& nodeArgView)
@@ -110,7 +114,8 @@ namespace
 
     Result checkIndex(Sema& sema, AstNodeRef nodeArgRef, const SemaNodeView& nodeArgView, int64_t& constIndex, bool& hasConstIndex)
     {
-        const TypeRef   indexTypeRef = resolveIndexOperandTypeRef(sema, nodeArgView);
+        TypeRef indexTypeRef;
+        SWC_RESULT(resolveIndexOperandTypeRef(sema, indexTypeRef, nodeArgRef, nodeArgView));
         const TypeInfo* indexType    = &sema.typeMgr().get(indexTypeRef);
         if (indexType->isReference())
             indexType = &sema.typeMgr().get(indexType->payloadTypeRef());

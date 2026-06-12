@@ -95,6 +95,8 @@ impl Button
         case MouseReleased:
             if evt.button == .Left
             {
+                let notifyPressed = .isPressed and .isIn
+
                 if .isPressing or .isPressed
                 {
                     .isPressing = false
@@ -104,12 +106,12 @@ impl Button
                 if .isPressed
                 {
                     .isPressed, .isPressing = false
-                    if .isIn do
+                    if notifyPressed do
                         .sigPressed.call(me)
                     .invalidate()
                 }
 
-                return .isIn
+                return notifyPressed
             }
         }
 

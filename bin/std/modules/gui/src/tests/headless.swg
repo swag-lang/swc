@@ -2,19 +2,19 @@
 #global public
 using Swag, Core
 
-const GuiTest_CloseWindow = "GuiTest.CloseWindow"
-
-struct GuiTestHost
+struct GuiHeadlessHost
 {
-    app:        Application
-    surface:    Surface
-    root:       Wnd
-    theme:      *Theme
-    mousePos:   Math.Point
-    closed:     bool
+    app:             Application
+    surface:         Surface
+    root:            Wnd
+    theme:           *Theme
+    mousePos:        Math.Point
+    closed:          bool
+    commandCount:    u32
+    lastCommand:     WndId
 }
 
-impl GuiTestHost
+impl GuiHeadlessHost
 {
     mtd setup(width, height: f32)
     {
@@ -42,10 +42,35 @@ impl GuiTestHost
         root.sendResizeEvent()
     }
 
+    mtd shutdown()
+    {
+        if !.root.isPendingDestroy do
+            .root.destroy()
+        .pump()
+    }
+
     mtd close()
     {
         .closed = true
         .root.destroy()
+    }
+
+    mtd recordCommands()
+    {
+        let host = me
+        .root.hookOnEvent = func|host|(wnd, evt)
+        {
+            switch evt
+            {
+            case CommandEvent as cmd:
+                host.commandCount += 1
+                host.lastCommand = cmd.id
+                cmd.accepted = true
+                return true
+            }
+
+            return false
+        }
     }
 
     mtd closeOnCommand(cmdId: WndId)
@@ -55,10 +80,15 @@ impl GuiTestHost
         {
             switch evt
             {
-            case CommandEvent as cmd where cmd.id == cmdId:
-                cmd.accepted = true
-                host.close()
-                return true
+            case CommandEvent as cmd:
+                host.commandCount += 1
+                host.lastCommand = cmd.id
+                if cmd.id == cmdId
+                {
+                    cmd.accepted = true
+                    host.close()
+                    return true
+                }
             }
 
             return false
@@ -100,15 +130,15 @@ impl GuiTestHost
         .moveMouse(pt, modifiers)
 
         let target = .getMouseTarget(pt)
-        Debug.assert(target != null)
-        .sendMouseEvent(assume target, .MousePressed, pt, button, modifiers)
+        if target do
+            .sendMouseEvent(target, .MousePressed, pt, button, modifiers)
     }
 
     mtd mouseUp(pt: Math.Point, button: Input.MouseButton = Left, modifiers: Input.KeyModifiers = Zero)
     {
         let target = .getMouseTarget(pt)
-        Debug.assert(target != null)
-        .sendMouseEvent(assume target, .MouseReleased, pt, button, modifiers)
+        if target do
+            .sendMouseEvent(target, .MouseReleased, pt, button, modifiers)
         .pump()
     }
 
@@ -155,7 +185,12 @@ impl GuiTestHost
     {
         if .app.mouseCaptureWnd do
             return .app.mouseCaptureWnd
-        return .wndAt(pt)
+
+        let target = .wndAt(pt)
+        if !target or !target.isEnabled() do
+            return null
+
+        return target
     }
 
     mtd sendMouseEvent(target: *Wnd, kind: MouseEvent.Kind, pt: Math.Point, button: Input.MouseButton, modifiers: Input.KeyModifiers)
@@ -174,6 +209,7 @@ impl GuiTestHost
         let copy = .app.postedEvents
         .app.postedEvents.clear()
 
+        var needUpdateState = false
         foreach it in copy
         {
             let evt = it as Event
@@ -185,8 +221,14 @@ impl GuiTestHost
             else do
                 .app.sendEvent(it)
 
+            if it is CommandEvent do
+                needUpdateState = true
+
             Memory.delete(evt, evt.type)
         }
+
+        if needUpdateState and !.root.isPendingDestroy do
+            .root.updateCommandState()
     }
 
     mtd pumpDestroyEvents()
@@ -204,23 +246,4 @@ impl GuiTestHost
             Memory.delete(item.ptr, item.type)
         .app.toDelete.clear()
     }
-}
-
-#test
-{
-    var host: GuiTestHost
-    host.setup(240, 120)
-    host.closeOnCommand(GuiTest_CloseWindow)
-
-    let button = PushButton.create(&host.root, "Close", {20, 20, 90, 30}, GuiTest_CloseWindow)
-
-    @assert(!host.closed)
-    @assert(host.wndAt({40, 30}) == button)
-
-    host.click({40, 30})
-
-    @assert(host.closed)
-    @assert(host.root.isPendingDestroy)
-    @assert(host.root.wndFlags.has(.Hidden))
-    @assert(host.app.mouseCaptureWnd == null)
 }

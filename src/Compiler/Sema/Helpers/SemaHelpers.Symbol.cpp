@@ -896,6 +896,84 @@ namespace
         return Result::Continue;
     }
 
+    bool canBeNonNamespaceMemberAccessLeft(const Symbol& symbol)
+    {
+        return symbol.isType() || symbol.isValueExpr();
+    }
+
+    bool namespaceContainsMember(Sema& sema, const SymbolNamespace& namespaceSym, IdentifierRef idRef, const SourceCodeRef& codeRef)
+    {
+        MatchContext lookUpCxt;
+        lookUpCxt.codeRef                = codeRef;
+        lookUpCxt.symMapHint             = namespaceSym.asSymMap();
+        lookUpCxt.noWaitOnEmpty          = true;
+        lookUpCxt.noWaitOnPendingSymbols = true;
+
+        const Result result = Match::match(sema, lookUpCxt, idRef);
+        return result == Result::Continue && !lookUpCxt.empty();
+    }
+
+    Result trySelectNamespaceMemberAccessLeft(Sema& sema, AstNodeRef leftRef, SemaNodeView& leftView, IdentifierRef idRef, const SourceCodeRef& codeRef)
+    {
+        if (!leftView.hasSymbolList() || leftView.symList().size() <= 1)
+            return Result::Continue;
+
+        SmallVector<const SymbolNamespace*> namespaces;
+        for (const Symbol* symbol : leftView.symList())
+        {
+            if (!symbol)
+                continue;
+
+            if (symbol->isNamespace())
+            {
+                namespaces.push_back(&symbol->cast<SymbolNamespace>());
+                continue;
+            }
+
+            if (canBeNonNamespaceMemberAccessLeft(*symbol))
+                return Result::Continue;
+        }
+
+        if (namespaces.empty())
+            return Result::Continue;
+
+        const SymbolNamespace* selected = nullptr;
+        if (namespaces.size() == 1)
+        {
+            selected = namespaces.front();
+        }
+        else
+        {
+            for (const SymbolNamespace* namespaceSym : namespaces)
+            {
+                if (!namespaceContainsMember(sema, *namespaceSym, idRef, codeRef))
+                    continue;
+
+                if (selected)
+                    return Result::Continue;
+
+                selected = namespaceSym;
+            }
+        }
+
+        if (!selected)
+            return Result::Continue;
+
+        sema.setSymbol(leftRef, selected);
+        leftView.recompute(sema, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant | SemaNodeViewPartE::Symbol);
+        return Result::Continue;
+    }
+
+    Result reportAmbiguousMemberAccessLeft(Sema& sema, AstNodeRef leftRef, const SemaNodeView& leftView)
+    {
+        SmallVector<const Symbol*> symbols;
+        for (const Symbol* symbol : leftView.symList())
+            if (symbol)
+                symbols.push_back(symbol);
+
+        return SemaError::raiseAmbiguousSymbol(sema, leftRef, symbols.span());
+    }
+
     Result reportUnknownMemberSymbol(Sema& sema, const AstMemberAccessExpr& node, IdentifierRef idRef, TokenRef tokNameRef)
     {
         const SourceCodeRef codeRef{node.srcViewRef(), tokNameRef};
@@ -1158,6 +1236,8 @@ Result SemaHelpers::resolveMemberAccess(Sema& sema, AstNodeRef memberRef, AstMem
     const TokenRef      tokNameRef = nodeRightNameView.node()->tokRef();
     const IdentifierRef idRef      = sema.idMgr().addIdentifier(sema.ctx(), nodeRightNameView.node()->codeRef());
 
+    SWC_RESULT(trySelectNamespaceMemberAccessLeft(sema, node.nodeLeftRef, nodeLeftView, idRef, SourceCodeRef{node.srcViewRef(), tokNameRef}));
+
     // Namespace
     if (nodeLeftView.sym() && nodeLeftView.sym()->isNamespace())
         return memberNamespace(sema, memberRef, node, nodeLeftView, idRef, tokNameRef, allowOverloadSet);
@@ -1191,7 +1271,13 @@ Result SemaHelpers::resolveMemberAccess(Sema& sema, AstNodeRef memberRef, AstMem
         }
     }
 
-    SWC_ASSERT(nodeLeftView.type());
+    if (!nodeLeftView.type())
+    {
+        if (nodeLeftView.hasSymbolList() && nodeLeftView.symList().size() > 1)
+            return reportAmbiguousMemberAccessLeft(sema, node.nodeLeftRef, nodeLeftView);
+
+        SWC_ASSERT(nodeLeftView.type());
+    }
 
     // Enum
     if (const SymbolEnum* enumSym = enumSymbolFromTypeRef(sema, nodeLeftView.typeRef()))

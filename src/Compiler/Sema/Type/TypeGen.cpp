@@ -2,6 +2,9 @@
 #include "Compiler/Sema/Type/TypeGen.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Type/TypeManager.h"
+#include "Main/Global.h"
+#include "Main/TaskContext.h"
+#include "Support/Thread/JobManager.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -131,6 +134,13 @@ Result TypeGen::makeTypeInfo(Sema& sema, DataSegment& storage, TypeRef typeRef, 
 
         cache.pendingBackRefs.clear();
     }
+
+    // The type-info (and all its dependencies) is now published. Release the shard lock
+    // first, then notify every job parked on type-info generation so they re-drive at once
+    // instead of relying on the bounded barrier drain. This keeps the scheduler "alive"
+    // each time a type-info is produced and prevents an all-sleeping cycle on contention.
+    lock.unlock();
+    sema.ctx().global().jobMgr().wakeTypeInfoGeneration();
 
     return Result::Continue;
 }

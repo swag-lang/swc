@@ -287,7 +287,7 @@ impl MainWnd
 
         if Path.getExtensionLowerCase(nameFile) == ".png"
         {
-            optPng.compressionLevel = Core.Compress.Deflate.CompressionLevel.BestSpeed
+            optPng.compressionLevel = Compress.Deflate.CompressionLevel.BestSpeed
             optPng.filtering        = false
             optImg                  = optPng
         }

@@ -164,10 +164,27 @@ std::optional<WaitKey> JobManager::computeWaitKey(const Job& job)
                 return WaitKey{st.symbol, st.kind};
             return std::nullopt;
 
+        // Type-info generation: not keyable to a single producer, but every waiter shares one
+        // sentinel target so any type-info publication can wake them all (see wakeTypeInfoGeneration).
+        case TaskStateKind::SemaWaitTypeInfoGeneration:
+            return WaitKey{typeInfoGenWaitTarget(), st.kind};
+
         // Everything else stays a wildcard sleeper for now (woken by the barrier wakeAll).
         default:
             return std::nullopt;
     }
+}
+
+const void* JobManager::typeInfoGenWaitTarget()
+{
+    // Stable, process-wide non-null address used purely as a WaitKey discriminator.
+    static const char sentinel = 0;
+    return &sentinel;
+}
+
+void JobManager::wakeTypeInfoGeneration()
+{
+    wake(WaitKey{typeInfoGenWaitTarget(), TaskStateKind::SemaWaitTypeInfoGeneration});
 }
 
 void JobManager::unregisterWaiterLocked(JobRecord* rec)

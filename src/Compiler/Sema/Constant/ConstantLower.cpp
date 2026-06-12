@@ -497,7 +497,8 @@ namespace
         SWC_INTERNAL_CHECK(boxedValueTypeRef != dstTypeRef);
 
         ConstantRef typeInfoCstRef = ConstantRef::invalid();
-        SWC_RESULT(sema.cstMgr().makeTypeInfo(sema, typeInfoCstRef, boxedValueTypeRef, sema.ctx().state().nodeRef));
+        // Async path: yield the worker on shard-lock contention instead of blocking it.
+        SWC_RESULT(sema.makeRuntimeTypeInfo(typeInfoCstRef, boxedValueTypeRef, sema.ctx().state().nodeRef));
         SWC_INTERNAL_CHECK(typeInfoCstRef.isValid());
 
         const ConstantValue& typeInfoCst = sema.cstMgr().get(typeInfoCstRef);

@@ -45,6 +45,15 @@ namespace
         return parentNode.is(AstNodeId::UsingDecl) || parentNode.is(AstNodeId::NamedType);
     }
 
+    bool isMemberAccessLeftOperand(Sema& sema, AstNodeRef parentRef, AstNodeRef nodeRef)
+    {
+        if (parentRef.isInvalid())
+            return false;
+
+        const auto* parentNode = sema.node(parentRef).safeCast<AstMemberAccessExpr>();
+        return parentNode && parentNode->nodeLeftRef == nodeRef;
+    }
+
     const Symbol* resolveAliasedBaseSymbol(const Symbol* symbol)
     {
         const Symbol* current = symbol;
@@ -689,7 +698,11 @@ Result AstIdentifier::semaPostNode(Sema& sema) const
         if (pendingImplTargetIdRef.isValid())
             return sema.waitImplRegistrations(pendingImplTargetIdRef, codeRef());
 
-        SWC_RESULT(SemaSymbolLookup::bindResolvedSymbols(sema, sema.curNodeRef(), allowOverloadSet, lookUpCxt.symbols().span()));
+        const bool deferAmbiguityToMemberAccess = lookUpCxt.count() > 1 && isMemberAccessLeftOperand(sema, parentRef, sema.curNodeRef());
+        if (deferAmbiguityToMemberAccess)
+            SWC_RESULT(SemaSymbolLookup::bindSymbolList(sema, sema.curNodeRef(), false, lookUpCxt.symbols().span()));
+        else
+            SWC_RESULT(SemaSymbolLookup::bindResolvedSymbols(sema, sema.curNodeRef(), allowOverloadSet, lookUpCxt.symbols().span()));
         sym = sema.curViewSymbol().sym();
     }
     if (sym && sym->isVariable())

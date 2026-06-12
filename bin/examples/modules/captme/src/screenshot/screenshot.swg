@@ -140,7 +140,7 @@ func setGrabBounds(main: *MainWnd, captureMode: CaptureMode)->bool
         g_EndGrabX   = r.right()
         g_EndGrabY   = r.bottom()
 
-    case .Screen0, .Screen1, .Screen2, .Screen3:
+    case .Screen0 to .Screen3:
         let idx  = cast(s32) captureMode - cast(s32) CaptureMode.Screen0
         let rect = main.monitors[idx].rectReal
         g_StartGrabX = rect.x

@@ -319,6 +319,44 @@ alias StrictSwitchF32 = f32
     @assert(hit == 1)
 }
 
+enum SwitchEnumRangeMode
+{
+    None
+    Screen0
+    Screen1
+    Screen2
+    Screen3
+    Other
+}
+
+#test
+{
+    var mode = SwitchEnumRangeMode.Screen2
+    var hit = 0
+    switch mode
+    {
+        case .Screen0 to .Screen3:
+            hit = 1
+            break
+        default:
+            hit = 2
+            break
+    }
+    @assert(hit == 1)
+
+    mode = .Other
+    switch mode
+    {
+        case .Screen0 to .Screen3:
+            hit = 3
+            break
+        default:
+            hit = 4
+            break
+    }
+    @assert(hit == 4)
+}
+
 #test
 {
     var v = 2

@@ -16,6 +16,47 @@ namespace
         SWC_ASSERT(typeRef.isValid());
         return sema.typeMgr().get(typeRef);
     }
+
+    Result validateRangeBoundType(Sema& sema, AstNodeRef nodeRef, const SemaNodeView& view)
+    {
+        const TypeInfo& type = aliasType(sema, view);
+        if (type.isScalarNumeric())
+            return Result::Continue;
+        if (type.isEnum())
+            return sema.waitSemaCompleted(&type, nodeRef);
+        return SemaError::raiseInvalidRangeType(sema, nodeRef, view.typeRef());
+    }
+
+    ConstantRef rangeComparableConstantRef(Sema& sema, ConstantRef cstRef)
+    {
+        const ConstantValue& value = sema.cstMgr().get(cstRef);
+        if (value.isEnumValue())
+            return value.getEnumValue();
+        return cstRef;
+    }
+
+    bool isEnumRangeBound(Sema& sema, const SemaNodeView& view)
+    {
+        return view.typeRef().isValid() && aliasType(sema, view).isEnum();
+    }
+
+    Result validateEnumRangeBounds(Sema& sema, const SemaNodeView& nodeDownView, const SemaNodeView& nodeUpView, AstNodeRef nodeExprDownRef, AstNodeRef nodeExprUpRef)
+    {
+        const bool downIsEnum = isEnumRangeBound(sema, nodeDownView);
+        const bool upIsEnum   = isEnumRangeBound(sema, nodeUpView);
+        if (!downIsEnum && !upIsEnum)
+            return Result::Continue;
+
+        if (nodeDownView.typeRef().isValid() && !downIsEnum)
+            return SemaError::raiseInvalidRangeType(sema, nodeExprDownRef, nodeDownView.typeRef());
+        if (nodeUpView.typeRef().isValid() && !upIsEnum)
+            return SemaError::raiseInvalidRangeType(sema, nodeExprUpRef, nodeUpView.typeRef());
+
+        if (downIsEnum && upIsEnum && &aliasType(sema, nodeDownView).payloadSymEnum() != &aliasType(sema, nodeUpView).payloadSymEnum())
+            return SemaError::raiseCannotCast(sema, nodeExprUpRef, nodeUpView.typeRef(), nodeDownView.typeRef());
+
+        return Result::Continue;
+    }
 }
 
 Result AstRangeExpr::semaPostNode(Sema& sema)
@@ -28,24 +69,22 @@ Result AstRangeExpr::semaPostNode(Sema& sema)
     if (nodeUpView.nodeRef().isValid())
         SWC_RESULT(SemaCheck::isValue(sema, nodeUpView.nodeRef()));
 
+    if (nodeDownView.typeRef().isValid())
+        SWC_RESULT(validateRangeBoundType(sema, nodeExprDownRef, nodeDownView));
+    if (nodeUpView.typeRef().isValid())
+        SWC_RESULT(validateRangeBoundType(sema, nodeExprUpRef, nodeUpView));
+
+    SWC_RESULT(validateEnumRangeBounds(sema, nodeDownView, nodeUpView, nodeExprDownRef, nodeExprUpRef));
+
     TypeRef typeRef = TypeRef::invalid();
     if (!nodeDownView.typeRef().isValid() && !nodeUpView.typeRef().isValid())
         typeRef = sema.typeMgr().typeU64();
-
-    if (nodeDownView.typeRef().isValid())
-    {
-        if (!aliasType(sema, nodeDownView).isScalarNumeric())
-            return SemaError::raiseInvalidRangeType(sema, nodeExprDownRef, nodeDownView.typeRef());
+    else if (nodeDownView.typeRef().isValid())
         typeRef = nodeDownView.typeRef();
-    }
     else if (nodeUpView.typeRef().isValid())
-    {
-        if (!aliasType(sema, nodeUpView).isScalarNumeric())
-            return SemaError::raiseInvalidRangeType(sema, nodeExprUpRef, nodeUpView.typeRef());
         typeRef = nodeUpView.typeRef();
-    }
 
-    if (nodeDownView.typeRef().isValid() && nodeUpView.typeRef().isValid())
+    if (nodeDownView.typeRef().isValid() && nodeUpView.typeRef().isValid() && !isEnumRangeBound(sema, nodeDownView))
     {
         SWC_RESULT(Cast::castPromote(sema, nodeDownView, nodeUpView, CastKind::Implicit));
         typeRef = nodeDownView.typeRef();
@@ -57,8 +96,8 @@ Result AstRangeExpr::semaPostNode(Sema& sema)
 
     if (nodeDownView.cstRef().isValid() && nodeUpView.cstRef().isValid())
     {
-        ConstantRef          downCstRef = nodeDownView.cstRef();
-        ConstantRef          upCstRef   = nodeUpView.cstRef();
+        ConstantRef          downCstRef = rangeComparableConstantRef(sema, nodeDownView.cstRef());
+        ConstantRef          upCstRef   = rangeComparableConstantRef(sema, nodeUpView.cstRef());
         const ConstantValue& downCst    = sema.cstMgr().get(downCstRef);
         const ConstantValue& upCst      = sema.cstMgr().get(upCstRef);
         const bool           ok         = hasFlag(AstRangeExprFlagsE::Inclusive) ? downCst.le(upCst) : downCst.lt(upCst);

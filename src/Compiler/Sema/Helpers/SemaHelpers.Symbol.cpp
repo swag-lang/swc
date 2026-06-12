@@ -1031,22 +1031,41 @@ namespace
         return Result::SkipChildren;
     }
 
-    Result lookupScopedMember(Sema& sema, AstNodeRef targetNodeRef, const AstMemberAccessExpr& node, const SymbolMap& symMap, const IdentifierRef& idRef, TokenRef tokNameRef, bool allowOverloadSet)
+    Result matchScopedMemberSymbols(Sema& sema, SmallVector<const Symbol*>& outSymbols, const AstMemberAccessExpr& node, const SymbolMap& symMap, const IdentifierRef& idRef, TokenRef tokNameRef, bool noWaitOnEmpty)
     {
+        outSymbols.clear();
+
         MatchContext lookUpCxt;
-        lookUpCxt.codeRef    = SourceCodeRef{node.srcViewRef(), tokNameRef};
-        lookUpCxt.symMapHint = &symMap;
+        lookUpCxt.codeRef       = SourceCodeRef{node.srcViewRef(), tokNameRef};
+        lookUpCxt.symMapHint    = &symMap;
+        lookUpCxt.noWaitOnEmpty = noWaitOnEmpty;
 
         SWC_RESULT(Match::match(sema, lookUpCxt, idRef));
+        if (lookUpCxt.empty())
+            return Result::Continue;
+
+        outSymbols.reserve(lookUpCxt.count());
+        for (const Symbol* symbol : lookUpCxt.symbols())
+            outSymbols.push_back(symbol);
+        return Result::Continue;
+    }
+
+    Result lookupScopedMember(Sema& sema, AstNodeRef targetNodeRef, const AstMemberAccessExpr& node, const SymbolMap& symMap, const IdentifierRef& idRef, TokenRef tokNameRef, bool allowOverloadSet)
+    {
+        SmallVector<const Symbol*> matchedSymbols;
+        SWC_RESULT(matchScopedMemberSymbols(sema, matchedSymbols, node, symMap, idRef, tokNameRef, false));
+        if (matchedSymbols.empty())
+            return reportUnknownMemberSymbol(sema, node, idRef, tokNameRef);
+
         if (sema.node(node.nodeRightRef).is(AstNodeId::QuotedExpr) || sema.node(node.nodeRightRef).is(AstNodeId::QuotedListExpr))
         {
             const AstNodeRef calleeRef = SemaHelpers::unwrapCallCalleeRef(sema, node.nodeRightRef);
-            SWC_RESULT(SemaSymbolLookup::bindResolvedSymbols(sema, targetNodeRef, allowOverloadSet, lookUpCxt.symbols().span()));
-            SWC_RESULT(SemaSymbolLookup::bindSymbolList(sema, calleeRef, allowOverloadSet, lookUpCxt.symbols().span()));
+            SWC_RESULT(SemaSymbolLookup::bindResolvedSymbols(sema, targetNodeRef, allowOverloadSet, matchedSymbols.span()));
+            SWC_RESULT(SemaSymbolLookup::bindSymbolList(sema, calleeRef, allowOverloadSet, matchedSymbols.span()));
             sema.setSubstitute(targetNodeRef, node.nodeRightRef);
             return Result::Continue;
         }
-        SWC_RESULT(bindMatchedMemberSymbols(sema, targetNodeRef, node.nodeRightRef, allowOverloadSet, lookUpCxt.symbols().span()));
+        SWC_RESULT(bindMatchedMemberSymbols(sema, targetNodeRef, node.nodeRightRef, allowOverloadSet, matchedSymbols.span()));
         return Result::SkipChildren;
     }
 
@@ -1121,8 +1140,44 @@ namespace
         const SourceCodeRef    codeRef{node.srcViewRef(), tokNameRef};
         SWC_RESULT(sema.waitSemaCompleted(&symInterface, codeRef));
 
-        const SymbolMap& lookupMap = nodeLeftView.sym() && nodeLeftView.sym()->isImpl() ? *nodeLeftView.sym()->asSymMap() : static_cast<const SymbolMap&>(symInterface);
-        return lookupScopedMember(sema, targetNodeRef, node, lookupMap, idRef, tokNameRef, allowOverloadSet);
+        if (nodeLeftView.sym() && nodeLeftView.sym()->isImpl())
+        {
+            const auto& symImpl = nodeLeftView.sym()->cast<SymbolImpl>();
+
+            SmallVector<const Symbol*> matchedSymbols;
+            SWC_RESULT(matchScopedMemberSymbols(sema, matchedSymbols, node, symImpl, idRef, tokNameRef, true));
+            if (!matchedSymbols.empty())
+            {
+                SWC_RESULT(bindMatchedMemberSymbols(sema, targetNodeRef, node.nodeRightRef, allowOverloadSet, matchedSymbols.span()));
+                return Result::SkipChildren;
+            }
+
+            SWC_RESULT(matchScopedMemberSymbols(sema, matchedSymbols, node, symInterface, idRef, tokNameRef, true));
+            if (matchedSymbols.empty())
+                return reportUnknownMemberSymbol(sema, node, idRef, tokNameRef);
+
+            SmallVector<const Symbol*> resolvedSymbols;
+            resolvedSymbols.reserve(matchedSymbols.size());
+            for (const Symbol* symbol : matchedSymbols)
+            {
+                if (symbol && symbol->isFunction())
+                {
+                    const SymbolFunction* target = symImpl.resolveInterfaceMethodTarget(sema.ctx(), symbol->cast<SymbolFunction>());
+                    if (target)
+                    {
+                        resolvedSymbols.push_back(target);
+                        continue;
+                    }
+                }
+
+                resolvedSymbols.push_back(symbol);
+            }
+
+            SWC_RESULT(bindMatchedMemberSymbols(sema, targetNodeRef, node.nodeRightRef, allowOverloadSet, resolvedSymbols.span()));
+            return Result::SkipChildren;
+        }
+
+        return lookupScopedMember(sema, targetNodeRef, node, symInterface, idRef, tokNameRef, allowOverloadSet);
     }
 
     Result memberStruct(Sema& sema, AstNodeRef targetNodeRef, AstMemberAccessExpr& node, const SemaNodeView& nodeLeftView, const IdentifierRef& idRef, TokenRef tokNameRef, bool allowOverloadSet, const TypeInfo& typeInfo)

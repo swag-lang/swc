@@ -188,47 +188,39 @@ impl MainWnd
         {
         case Arrow:
             let mdl = Memory.new'FormArrow()
-            let itf = cast(IForm) mdl
-            itf.copy(mdl, &.mdlFormArrow)
+            mdl.IForm.copy(mdl, &.mdlFormArrow)
             return mdl
         case Shape:
             let mdl = Memory.new'FormShape()
-            let itf = cast(IForm) mdl
-            itf.copy(mdl, &.mdlFormShape)
+            mdl.IForm.copy(mdl, &.mdlFormShape)
             return mdl
         case Image:
             let mdl = Memory.new'FormImage()
-            let itf = cast(IForm) mdl
-            itf.copy(mdl, &.mdlFormImage)
+            mdl.IForm.copy(mdl, &.mdlFormImage)
             if clear do
                 mdl.image.release()
             return mdl
         case Step:
             let mdl = Memory.new'FormStep()
-            let itf = cast(IForm) mdl
-            itf.copy(mdl, &.mdlFormStep)
+            mdl.IForm.copy(mdl, &.mdlFormStep)
             return mdl
         case Line:
             let mdl = Memory.new'FormLine()
-            let itf = cast(IForm) mdl
-            itf.copy(mdl, &.mdlFormLine)
+            mdl.IForm.copy(mdl, &.mdlFormLine)
             return mdl
         case Polygon:
             let mdl = Memory.new'FormPolygon()
-            let itf = cast(IForm) mdl
-            itf.copy(mdl, &.mdlFormPolygon)
+            mdl.IForm.copy(mdl, &.mdlFormPolygon)
             if clear do
                 mdl.points.clear()
             return mdl
         case Text:
             let mdl = Memory.new'FormText()
-            let itf = cast(IForm) mdl
-            itf.copy(mdl, &.mdlFormText)
+            mdl.IForm.copy(mdl, &.mdlFormText)
             return mdl
         case Draw:
             let mdl = Memory.new'FormDraw()
-            let itf = cast(IForm) mdl
-            itf.copy(mdl, &.mdlFormDraw)
+            mdl.IForm.copy(mdl, &.mdlFormDraw)
             if clear do
                 mdl.points.clear()
             return mdl

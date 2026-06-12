@@ -234,6 +234,31 @@ namespace
 
         return Result::Continue;
     }
+
+    bool isUntypedVarInitializer(const Sema& sema, AstNodeRef nodeRef)
+    {
+        const AstNodeRef parentRef = sema.visit().parentNodeRef();
+        if (parentRef.isInvalid())
+            return false;
+
+        const AstNode& parentNode = sema.node(parentRef);
+        if (const auto* singleVar = parentNode.safeCast<AstSingleVarDecl>())
+            return !singleVar->hasFlag(AstVarDeclFlagsE::Parameter) && singleVar->nodeTypeRef.isInvalid() && singleVar->nodeInitRef == nodeRef;
+
+        if (const auto* multiVar = parentNode.safeCast<AstMultiVarDecl>())
+            return !multiVar->hasFlag(AstVarDeclFlagsE::Parameter) && multiVar->nodeTypeRef.isInvalid() && multiVar->nodeInitRef == nodeRef;
+
+        return false;
+    }
+
+    bool shouldAutoNameStructLiteralFields(const Sema& sema, AstNodeRef nodeRef)
+    {
+        if (sema.frame().bindingTypes().empty())
+            return true;
+
+        // Untyped local initializers can inherit unrelated binding types from their surrounding context.
+        return isUntypedVarInitializer(sema, nodeRef);
+    }
 }
 
 Result AstBoolLiteral::semaPreNode(Sema& sema) const
@@ -623,8 +648,7 @@ Result AstStructLiteral::semaPostNode(Sema& sema) const
 {
     SmallVector<AstNodeRef> children;
     collectChildren(children, sema.ast());
-    // Auto-name fields from identifiers only for free tuple literals (no binding type).
-    const bool autoName = sema.frame().bindingTypes().empty();
+    const bool autoName = shouldAutoNameStructLiteralFields(sema, sema.curNodeRef());
     SWC_RESULT(SemaHelpers::finalizeAggregateStruct(sema, children, autoName));
     const SemaNodeView literalView = sema.curViewNodeTypeConstant();
     return SemaHelpers::attachLiteralRuntimeStorageIfNeeded(sema, *this, literalView);

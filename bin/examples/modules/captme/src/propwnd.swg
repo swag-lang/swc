@@ -42,7 +42,7 @@ impl PropWnd
             return cast(*BaseForm) @dataof(iform)
         }
 
-        return assume (assume capture).getSelectedBaseForm()
+        return assume capture.getSelectedBaseForm()
     }
 
     mtd getSelectedFormType()->typeinfo
@@ -54,7 +54,7 @@ impl PropWnd
             return @kindof(iform)
         }
 
-        return assume (assume capture).getSelectedFormType()
+        return assume capture.getSelectedFormType()
     }
 
     mtd pushTypedValue(val: u32, type: typeinfo, name: string, first: bool, common = false)
@@ -73,15 +73,14 @@ impl PropWnd
         // Change selection
         else
         {
-            let curCapture = assume capture
             if !first do
-                curCapture.undo()
-            let undo = curCapture.newUndo(.SetTypedValue)
+                capture.undo()
+            let undo = capture.newUndo(.SetTypedValue)
             undo.valU32 = val
             if !common do
                 undo.mdlType = type
             undo.valRef = Reflection.getField(type, name)
-            curCapture.pushUndo(undo)
+            capture.pushUndo(undo)
         }
 
         .main.quickWnd.updateSelection()

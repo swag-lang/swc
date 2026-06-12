@@ -203,6 +203,70 @@ namespace
         return nullptr;
     }
 
+    bool nodeStopsLocalFlow(Sema& sema, AstNodeRef nodeRef)
+    {
+        if (nodeRef.isInvalid())
+            return false;
+
+        const AstNode& node = sema.node(nodeRef);
+        switch (node.id())
+        {
+            case AstNodeId::ReturnStmt:
+            case AstNodeId::BreakStmt:
+            case AstNodeId::ContinueStmt:
+            case AstNodeId::FallThroughStmt:
+            case AstNodeId::UnreachableStmt:
+            case AstNodeId::ThrowExpr:
+                return true;
+
+            case AstNodeId::IfStmt:
+            {
+                const auto& ifStmt = node.cast<AstIfStmt>();
+                return ifStmt.nodeElseBlockRef.isValid() && nodeStopsLocalFlow(sema, ifStmt.nodeIfBlockRef) && nodeStopsLocalFlow(sema, ifStmt.nodeElseBlockRef);
+            }
+
+            case AstNodeId::IfVarDecl:
+            {
+                const auto& ifVarDecl = node.cast<AstIfVarDecl>();
+                return ifVarDecl.nodeElseBlockRef.isValid() && nodeStopsLocalFlow(sema, ifVarDecl.nodeIfBlockRef) && nodeStopsLocalFlow(sema, ifVarDecl.nodeElseBlockRef);
+            }
+
+            case AstNodeId::EmbeddedBlock:
+            case AstNodeId::FunctionBody:
+            case AstNodeId::SwitchCaseBody:
+            case AstNodeId::ElseStmt:
+            case AstNodeId::ElseIfStmt:
+            {
+                SmallVector<AstNodeRef> children;
+                node.collectChildrenFromAst(children, sema.ast());
+                if (children.empty())
+                    return false;
+                return nodeStopsLocalFlow(sema, children.back());
+            }
+
+            default:
+                return false;
+        }
+    }
+
+    void maybePropagateIfStmtFallthroughNonNullGuard(Sema& sema, const AstIfStmt& node)
+    {
+        if (node.nodeElseBlockRef.isValid() || !nodeStopsLocalFlow(sema, node.nodeIfBlockRef))
+            return;
+
+        const auto* payload = sema.semaPayload<IfStmtNonNullGuardPayload>(sema.curNodeRef());
+        if (!payload || !payload->elseSymbol)
+            return;
+
+        const AstNodeRef parentRef = sema.visit().parentNodeRef();
+        if (parentRef.isInvalid())
+            return;
+
+        auto frame = sema.frame();
+        frame.addNonNullSymbol(payload->elseSymbol);
+        sema.pushFramePopOnPostNode(frame, parentRef);
+    }
+
     TypeRef normalizeWithBindingType(TaskContext& ctx, TypeRef typeRef)
     {
         while (typeRef.isValid())
@@ -423,6 +487,12 @@ Result AstIfStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) cons
         SWC_RESULT(SemaCheck::castToBool(sema, view));
     }
 
+    return Result::Continue;
+}
+
+Result AstIfStmt::semaPostNode(Sema& sema) const
+{
+    maybePropagateIfStmtFallthroughNonNullGuard(sema, *this);
     return Result::Continue;
 }
 

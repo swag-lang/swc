@@ -61,6 +61,33 @@ namespace
 
         return sema.typeMgr().get(nullableTypeRef).isNullable();
     }
+
+    bool isGuardImpliedByLogicalResult(const SemaHelpers::NullableGuardInfo& guard, TokenId op)
+    {
+        if (!guard.symbol)
+            return false;
+
+        if (op == TokenId::KwdAnd)
+            return guard.nonNullWhenTrue;
+        if (op == TokenId::KwdOr)
+            return !guard.nonNullWhenTrue;
+
+        return false;
+    }
+
+    SemaHelpers::NullableGuardInfo logicalNullableGuardInfo(Sema& sema, const AstLogicalExpr& logical)
+    {
+        const TokenId op = sema.token(logical.codeRef()).id;
+        const SemaHelpers::NullableGuardInfo left = SemaHelpers::nullableGuardInfo(sema, logical.nodeLeftRef);
+        if (isGuardImpliedByLogicalResult(left, op))
+            return left;
+
+        const SemaHelpers::NullableGuardInfo right = SemaHelpers::nullableGuardInfo(sema, logical.nodeRightRef);
+        if (isGuardImpliedByLogicalResult(right, op))
+            return right;
+
+        return {};
+    }
 }
 
 TypeRef SemaHelpers::unwrapLambdaBindingType(TaskContext& ctx, TypeRef typeRef)
@@ -261,6 +288,10 @@ SemaHelpers::NullableGuardInfo SemaHelpers::nullableGuardInfo(Sema& sema, AstNod
     if (exprRef.isInvalid())
         return result;
 
+    const AstNodeRef sourceRef = resolveTransparentConditionExprSourceRef(sema, exprRef);
+    if (sourceRef.isValid() && sourceRef != exprRef)
+        return nullableGuardInfo(sema, sourceRef);
+
     const AstNode& exprNode = sema.node(exprRef);
     if (exprNode.is(AstNodeId::UnaryExpr) && sema.token(exprNode.codeRef()).id == TokenId::SymBang)
     {
@@ -269,6 +300,9 @@ SemaHelpers::NullableGuardInfo SemaHelpers::nullableGuardInfo(Sema& sema, AstNod
         child.nonNullWhenTrue   = !child.nonNullWhenTrue;
         return child;
     }
+
+    if (exprNode.is(AstNodeId::LogicalExpr))
+        return logicalNullableGuardInfo(sema, exprNode.cast<AstLogicalExpr>());
 
     const SemaNodeView view = sema.viewTypeSymbol(exprRef);
     if (!view.hasSymbol() || !view.sym() || !view.sym()->isVariable())

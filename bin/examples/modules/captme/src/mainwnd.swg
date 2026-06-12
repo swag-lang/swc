@@ -610,7 +610,7 @@ impl MainWnd
         .applyLayout()
     }
 
-    func make(parent: *Wnd)->*MainWnd
+    func create(parent: *Wnd)->*MainWnd
     {
         parent.surface.minSize = {1024, 512}
 
@@ -643,7 +643,7 @@ impl MainWnd
         res.createToolbar()
 
         // Main edit area
-        with res.editWnd = EditWnd.make(res, res)
+        with res.editWnd = EditWnd.create(res, res)
         {
             .dockStyle = .Center
             .sigScrollSizeChanged += func|res|(scroll, old, new) { res.updateZoomDisplay(); }
@@ -665,7 +665,7 @@ impl MainWnd
             .addItem({}, ActionRecentSize.RecentBig, .Checkable)
         }
 
-        with res.recentWnd = RecentWnd.make(res.recentBar, res)
+        with res.recentWnd = RecentWnd.create(res.recentBar, res)
         {
             .dockStyle = .Center
         }
@@ -678,8 +678,8 @@ impl MainWnd
             .backgroundStyle = .Window
         }
 
-        res.quickWnd = QuickWnd.make(res.quickStyleBar, res)
-        res.propWnd  = PropWnd.make(res.quickStyleBar, res)
+        res.quickWnd = QuickWnd.create(res.quickStyleBar, res)
+        res.propWnd  = PropWnd.create(res.quickStyleBar, res)
 
         with let quickPane = res.quickStyleBar.addPane(res.quickWnd, title: true)
         {
@@ -729,7 +729,7 @@ impl MainWnd
             .setTopBarHeight()
             .updateState()
             .createTopMenu()
-            .libWnd = LibraryWnd.make(res)
+            .libWnd = LibraryWnd.create(res)
             .libWnd.hide()
         }
 

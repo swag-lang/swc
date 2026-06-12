@@ -277,7 +277,7 @@ impl LibraryWnd
         .registerKeyShortcut(.Zero, .End, ActionLibSel.End)
     }
 
-    func make(parent: *MainWnd)->*LibraryWnd
+    func create(parent: *MainWnd)->*LibraryWnd
     {
         with let res = Wnd.create'LibraryWnd(parent, "captme.librarywnd")
         {

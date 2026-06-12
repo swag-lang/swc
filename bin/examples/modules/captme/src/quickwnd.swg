@@ -148,7 +148,7 @@ impl QuickWnd
         }
     }
 
-    func make(parent: *Wnd, main: *MainWnd)->*QuickWnd
+    func create(parent: *Wnd, main: *MainWnd)->*QuickWnd
     {
         with let quick = Wnd.create'QuickWnd(parent, {0, 0, 0, 300})
         {

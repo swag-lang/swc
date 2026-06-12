@@ -26,7 +26,7 @@ struct InPlaceEditWnd
 
 impl InPlaceEditWnd
 {
-    func make(capture: *Capture, main: *MainWnd, parent: *Wnd)->*InPlaceEditWnd
+    func create(capture: *Capture, main: *MainWnd, parent: *Wnd)->*InPlaceEditWnd
     {
         with let frame = createMainFrame(main, parent, capture)
         {
@@ -52,7 +52,7 @@ impl InPlaceEditWnd
             .capture = capture
             .newMain = newMain
 
-            .editWnd           = EditWnd.make(newMain, frame)
+            .editWnd           = EditWnd.create(newMain, frame)
             .editWnd.dockStyle = .Center
             newMain.editWnd    = .editWnd
 

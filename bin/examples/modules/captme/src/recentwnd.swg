@@ -248,7 +248,7 @@ impl IWnd for RecentWnd
 
 impl RecentWnd
 {
-    func make(parent: *Wnd, main: *MainWnd)->*RecentWnd
+    func create(parent: *Wnd, main: *MainWnd)->*RecentWnd
     {
         with let recent = Wnd.create'RecentWnd(parent, {0, 0, 0, PreviewHeight + RecentPadding * 2})
         {

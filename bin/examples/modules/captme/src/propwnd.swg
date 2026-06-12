@@ -1401,7 +1401,7 @@ impl PropWnd
             capture.editView.setFocus()
     }
 
-    func make(parent: *Wnd, main: *MainWnd)->*PropWnd
+    func create(parent: *Wnd, main: *MainWnd)->*PropWnd
     {
         with let prop = Wnd.create'PropWnd(parent, {0, 0, 0, 300})
         {

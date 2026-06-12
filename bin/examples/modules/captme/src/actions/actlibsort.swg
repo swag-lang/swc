@@ -33,25 +33,25 @@ impl IActionUI for ActionLibSort
             evt.setFlags |= .Name | .Checked | .RenderingHint
             evt.renderingHint = .ExclusiveGroup
             evt.name          = "Write Time"
-            evt.checked       = libWnd.sortMethod == .Recent
+            evt.checked       = libWnd.sortMethod == SortMethod.Recent
 
         case FileSize:
             evt.setFlags |= .Name | .Checked | .RenderingHint
             evt.renderingHint = .ExclusiveGroup
             evt.name          = "File Size"
-            evt.checked       = libWnd.sortMethod == .FileSize
+            evt.checked       = libWnd.sortMethod == SortMethod.FileSize
 
         case Similar:
             evt.setFlags |= .Name | .Checked | .RenderingHint
             evt.renderingHint = .ExclusiveGroup
             evt.name          = "Similarity"
-            evt.checked       = libWnd.sortMethod == .Similar
+            evt.checked       = libWnd.sortMethod == SortMethod.Similar
 
         case Invert:
             evt.setFlags |= .Name | .Checked
-            if libWnd.sortMethod == .Recent do
+            if libWnd.sortMethod == SortMethod.Recent do
                 evt.name = "Oldest First"
-            elif libWnd.sortMethod == .FileSize do
+            elif libWnd.sortMethod == SortMethod.FileSize do
                 evt.name = "Smaller First"
             else
             {
@@ -73,11 +73,11 @@ impl IActionUI for ActionLibSort
         switch cxt.id
         {
         case Recent:
-            libWnd.setSortMethod(.Recent)
+            libWnd.setSortMethod(SortMethod.Recent)
         case FileSize:
-            libWnd.setSortMethod(.FileSize)
+            libWnd.setSortMethod(SortMethod.FileSize)
         case Similar:
-            libWnd.setSortMethod(.Similar)
+            libWnd.setSortMethod(SortMethod.Similar)
 
         case Invert:
             libWnd.setSortOrder(!libWnd.invertSort)

@@ -35,6 +35,72 @@ namespace
         return false;
     }
 
+    void addUsingSymMapToScope(SemaScope& scope, SymbolMap* usingSymMap)
+    {
+        SWC_ASSERT(usingSymMap != nullptr);
+        for (const SymbolMap* existing : scope.usingSymMaps())
+        {
+            if (existing == usingSymMap)
+                return;
+        }
+
+        scope.addUsingSymMap(usingSymMap);
+    }
+
+    bool isSwagUsingAttribute(const Sema& sema, const AttributeInstance& attribute)
+    {
+        if (!attribute.symbol)
+            return false;
+        return attribute.symbol->inSwagNamespace(sema.ctx()) && attribute.symbol->name(sema.ctx()) == "Using";
+    }
+
+    TypeRef attributeParamTypeValueRef(Sema& sema, const AttributeParamInstance& param)
+    {
+        if (!param.valueCstRef.isValid())
+            return TypeRef::invalid();
+
+        const ConstantValue& value = sema.cstMgr().get(param.valueCstRef);
+        if (value.isTypeValue())
+            return value.getTypeValue();
+        return sema.cstMgr().makeTypeValue(sema, param.valueCstRef);
+    }
+
+    SymbolMap* usingAttributeSymMap(Sema& sema, const AttributeParamInstance& param)
+    {
+        const TypeRef typeRef = attributeParamTypeValueRef(sema, param);
+        if (typeRef.isInvalid())
+            return nullptr;
+
+        const TypeInfo& typeInfo        = sema.typeMgr().get(typeRef);
+        const TypeRef   unwrappedTypeRef = typeInfo.unwrap(sema.ctx(), typeRef, TypeExpandE::Alias);
+        if (unwrappedTypeRef.isInvalid())
+            return nullptr;
+
+        Symbol* symbol = sema.typeMgr().get(unwrappedTypeRef).getSymbol();
+        if (!symbol || !symbol->isSymMap())
+            return nullptr;
+
+        return symbol->asSymMap();
+    }
+
+    void addSwagUsingAttributeSymMaps(Sema& sema, SemaScope& scope, const AttributeInstance& attribute)
+    {
+        if (!isSwagUsingAttribute(sema, attribute))
+            return;
+
+        for (const AttributeParamInstance& param : attribute.params)
+        {
+            if (SymbolMap* usingSymMap = usingAttributeSymMap(sema, param))
+                addUsingSymMapToScope(scope, usingSymMap);
+        }
+    }
+
+    void addSwagUsingAttributeSymMaps(Sema& sema, SemaScope& scope, const AttributeList& attributes)
+    {
+        for (const AttributeInstance& attribute : attributes.attributes)
+            addSwagUsingAttributeSymMaps(sema, scope, attribute);
+    }
+
     void printAstStage(Sema& sema, AstNodeRef nodeRef, std::string_view stageName)
     {
         const AstNode&        node     = sema.node(nodeRef);
@@ -513,6 +579,16 @@ Result AstAttributeList::semaPreNode(Sema& sema)
 
     const SemaFrame newFrame = sema.frame();
     sema.pushFramePopOnPostNode(newFrame);
+
+    const auto&  node            = sema.curNode().cast<AstAttributeList>();
+    const size_t attributesCount = sema.ast().spanSize(node.spanChildrenRef);
+    if (attributesCount)
+    {
+        const AstNodeRef lastAttributeRef = sema.ast().nthNode(node.spanChildrenRef, attributesCount - 1);
+        SemaScope*       attributeScope   = sema.pushScopePopOnPostChild(SemaScopeFlagsE::Zero, lastAttributeRef);
+        addSwagUsingAttributeSymMaps(sema, *attributeScope, sema.frame().currentAttributes());
+    }
+
     return Result::Continue;
 }
 
@@ -626,6 +702,7 @@ Result AstAttribute::semaPostNode(Sema& sema) const
     }
 
     sema.frame().currentAttributes().attributes.push_back(inst);
+    addSwagUsingAttributeSymMaps(sema, sema.curScope(), inst);
 
     return Result::Continue;
 }

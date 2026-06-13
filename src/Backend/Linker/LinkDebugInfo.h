@@ -60,13 +60,13 @@ struct LinkDebugUdt
     uint32_t typeIndex = 0;
 };
 
-// A source file referenced by line tables, with an optional MD5 of its contents so debuggers/profilers
-// can locate and verify the matching source.
+// A source file referenced by line tables, with an optional content checksum so debuggers/profilers can
+// locate and verify the matching source. checksumKind is the CodeView kind (0 = none, 1 = MD5, 3 = SHA-256).
 struct LinkDebugFile
 {
-    Utf8                    path;
-    std::array<uint8_t, 16> md5{};
-    bool                    hasChecksum = false;
+    Utf8                 path;
+    std::vector<uint8_t> checksum;        // empty when checksumKind == 0
+    uint8_t              checksumKind = 0;
 };
 
 struct LinkDebugInfo

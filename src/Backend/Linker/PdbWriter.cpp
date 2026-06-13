@@ -603,12 +603,11 @@ void PdbWriter::build(std::vector<std::byte>&             outBytes,
         {
             const LinkDebugFile& file = debugInfo.files[i];
             chksmEntryOffset[i]       = static_cast<uint32_t>(chksmContent.size());
-            appendLe32(chksmContent, fileNameOffsets[i]);                                   // offset into /names
-            chksmContent.push_back(static_cast<std::byte>(file.hasChecksum ? 16 : 0));      // checksum byte count
-            chksmContent.push_back(static_cast<std::byte>(file.hasChecksum ? 1 : 0));       // checksum kind (1 = MD5)
-            if (file.hasChecksum)
-                for (const uint8_t b : file.md5)
-                    chksmContent.push_back(static_cast<std::byte>(b));
+            appendLe32(chksmContent, fileNameOffsets[i]);                                    // offset into /names
+            chksmContent.push_back(static_cast<std::byte>(file.checksum.size()));            // checksum byte count
+            chksmContent.push_back(static_cast<std::byte>(file.checksumKind));               // checksum kind (3 = SHA-256)
+            for (const uint8_t b : file.checksum)
+                chksmContent.push_back(static_cast<std::byte>(b));
             alignTo4(chksmContent);
         }
 

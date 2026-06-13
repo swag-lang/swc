@@ -82,9 +82,9 @@ SWC_FILESYSTEM_TEST_BEGIN(Pdb_DbgHelpResolvesNamesAndLines)
     LinkDebugInfo dbg;
     dbg.enabled = true;
     LinkDebugFile dbgFile;
-    dbgFile.path        = Utf8(srcPath);
-    dbgFile.hasChecksum = true;
-    dbgFile.md5         = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16};
+    dbgFile.path         = Utf8(srcPath);
+    dbgFile.checksumKind = 3; // SHA-256
+    dbgFile.checksum.assign(32, static_cast<uint8_t>(0xAB));
     dbg.files.push_back(std::move(dbgFile));
     LinkDebugFunction fn;
     fn.symbolName  = "myFunc";

@@ -101,9 +101,14 @@ public impl EditDlg
             pos.height += height
             .surface.minSize.y += height
 
-            .richEdit.anchorStyle = .None
+            // A single-line dialog has only '.edit' (no '.richEdit'). Temporarily
+            // drop the rich edit anchor (when present) so it does not fight the
+            // resize, then restore it.
+            if .richEdit do
+                .richEdit.anchorStyle = .None
             .surface.setPosition(pos)
-            .richEdit.anchorStyle = .Height
+            if .richEdit do
+                .richEdit.anchorStyle = .Height
         }
         else
         {

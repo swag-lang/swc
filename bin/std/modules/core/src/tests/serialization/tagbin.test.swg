@@ -125,6 +125,85 @@ struct TagBinTypeInfoPayload
     payload:     typeinfo
 }
 
+public struct TagBinHookPayload
+{
+    direct:       s32
+    remapped:     s32
+    bytes:        Array'u8
+
+    #[Serialization.NoSerialize]
+    postReadSeen: bool
+}
+
+public impl Serialization.ISerialize for TagBinHookPayload
+{
+    mtd impl read(_decoder: Serialization.IDecoder)->bool throw => false
+    mtd impl write(_encoder: Serialization.IEncoder)->bool throw => false
+
+    mtd impl readElement(type: TypeValue, data: *void, decoder: Serialization.IDecoder)->bool throw
+    {
+        if type.name == "remapped"
+        {
+            if !decoder.beginField(type) do
+                return true
+            defer #noerr decoder.endField(type)
+
+            dref cast(*s32) data = decoder.readS32() - 6
+            return true
+        }
+
+        if type.name == "bytes"
+        {
+            if !decoder.beginField(type) do
+                return true
+            defer #noerr decoder.endField(type)
+
+            let raw = decoder.readBufferU8(4)
+            defer Memory.free(raw, 4)
+
+            let values = cast(*Array'u8) data
+            let rawPtr = cast([*] u8) raw
+            values.clear()
+            for i in 4 do
+                values.add(rawPtr[3 - i])
+            return true
+        }
+
+        return false
+    }
+
+    mtd impl writeElement(type: TypeValue, data: const *void, encoder: Serialization.IEncoder)->bool throw
+    {
+        if type.name == "remapped"
+        {
+            encoder.beginField(type)
+            defer #noerr encoder.endField(type)
+
+            encoder.writeS32(dref cast(const *s32) data + 10)
+            return true
+        }
+
+        if type.name == "bytes"
+        {
+            encoder.beginField(type)
+            defer #noerr encoder.endField(type)
+
+            let values = cast(const *Array'u8) data
+            encoder.writeBufferU8(values.buffer, values.count)
+            return true
+        }
+
+        return false
+    }
+
+    mtd impl postRead(data: *void, _decoder: Serialization.IDecoder) throw
+    {
+        let value = cast(*TagBinHookPayload) data
+        value.postReadSeen = true
+        value.direct += 1
+    }
+}
+
 func makeTagBinPayload()->TagBinPayload
 {
     var result: retval
@@ -419,6 +498,38 @@ func assertU32Array(values: const &Array'u32, expected: const [..] u32)->bool
     @assert(decoded.primitive == s32)
     @assert(decoded.staticArray == #typeof(#type [3] u8))
     @assert(decoded.payload == TagBinPayload)
+
+    Memory.delete(decoded)
+}
+
+#test
+{
+    var payload: TagBinHookPayload
+    let rawBytes: [4] u8 = [1, 3, 5, 7]
+
+    payload.direct   = 20
+    payload.remapped = 30
+    payload.bytes.add(rawBytes)
+
+    Reflection.registerType(#typeof(TagBinHookPayload))
+    @assert(Reflection.hasInterface(#typeof(TagBinHookPayload), Serialization.ISerialize))
+    let hookItf = @mkinterface(&payload, #typeof(TagBinHookPayload), Serialization.ISerialize)
+    @assert(hookItf != null)
+
+    let bytes = encodeTagBin(payload)
+
+    var decoder: Serialization.Decoder'Serialization.Read.TagBin
+    let decoded = catch decoder.readAll'TagBinHookPayload(bytes.toSlice())
+    @assert(@err == null)
+    @assert(decoded != null)
+    @assert(decoded.direct == 21)
+    @assert(decoded.remapped == 34)
+    @assert(decoded.bytes.count == 4)
+    @assert(decoded.bytes[0] == 7)
+    @assert(decoded.bytes[1] == 5)
+    @assert(decoded.bytes[2] == 3)
+    @assert(decoded.bytes[3] == 1)
+    @assert(decoded.postReadSeen)
 
     Memory.delete(decoded)
 }

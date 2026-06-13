@@ -391,9 +391,17 @@ impl FileBrowserCtrl
 
         .curList = catch Directory.enumerate(.curFolder, options)
 
-        let item   = .comboType.getSelectedItem()
-        let filter = .options.filters[cast(u64) item.userData0]
-        let tokens = Tokenize.split(filter.extensions, ';''rune)
+        // SelectFolder mode has no file filters (it lists folders only): avoid
+        // indexing the empty 'filters' array.
+        var filterExtensions: string
+        if me.options.mode != .SelectFolder and .options.filters.count
+        {
+            let item        = .comboType.getSelectedItem()
+            let filterIndex = cast(u64) item.userData0
+            if filterIndex < .options.filters.count do
+                filterExtensions = .options.filters[filterIndex].extensions
+        }
+        let tokens = Tokenize.split(filterExtensions, ';''rune)
 
         foreach &fi in .curList
         {
@@ -401,7 +409,7 @@ impl FileBrowserCtrl
 
             // Filter
             var show = true
-            if !fi.isDirectory() and @countof(filter.extensions)
+            if !fi.isDirectory() and @countof(filterExtensions)
             {
                 show = false
                 foreach t in tokens
@@ -454,8 +462,15 @@ impl FileBrowserCtrl
     {
         var result: retval
 
-        let item = .comboType.getSelectedItem()
-        let fi   = .options.filters[cast(u64) item.userData0]
+        // SelectFolder mode has no filters: do not index the empty 'filters' array.
+        var filterExtensions: string
+        if me.options.mode != .SelectFolder and .options.filters.count
+        {
+            let item        = .comboType.getSelectedItem()
+            let filterIndex = cast(u64) item.userData0
+            if filterIndex < .options.filters.count do
+                filterExtensions = .options.filters[filterIndex].extensions
+        }
 
         let tokens = Tokenize.split(.editFile.text, ';''rune)
         foreach t in tokens
@@ -474,9 +489,9 @@ impl FileBrowserCtrl
             var val = Path.combine(.curFolder, t1.toString())
 
             // Append extension if not done by the user
-            if .options.mode != .SelectFolder and !Path.isExtension(val, fi.extensions)
+            if .options.mode != .SelectFolder and @countof(filterExtensions) and !Path.isExtension(val, filterExtensions)
             {
-                let exts = Tokenize.split(fi.extensions, ';''rune)
+                let exts = Tokenize.split(filterExtensions, ';''rune)
                 val += exts[0]
             }
 

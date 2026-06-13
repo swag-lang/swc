@@ -59,5 +59,11 @@ using Swag, Core, File
     @assert(fb.comboType.items.count == 1)
     @assert(fb.editFile != null)
 
+    // getSelectedName must not index the (empty) filter list in SelectFolder mode.
+    fb.editFile.setText("myfolder")
+    let name     = fb.getSelectedName()
+    let fileName = assume Path.getFileName(name.toString())
+    @assert(fileName == "myfolder")
+
     host.shutdown()
 }

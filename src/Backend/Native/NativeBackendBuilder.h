@@ -150,7 +150,7 @@ public:
     const NativeFunctionInfo* tryFindFunctionInfo(const SymbolFunction& targetFunction) const noexcept;
     Result                    resolveFunctionSymbolName(Utf8& outName, const SymbolFunction* targetFunction, bool allowUnresolvedSymbols = false);
     bool                      tryMapRDataSourceOffset(uint32_t& outOffset, uint32_t shardIndex, uint32_t sourceOffset) const noexcept;
-    Result                    appendCodeRelocation(NativeCodeRelocationTarget& target, const Utf8& ownerName, const MicroRelocation& relocation);
+    Result                    appendCodeRelocation(const NativeCodeRelocationTarget& target, const Utf8& ownerName, const MicroRelocation& relocation);
     DiagnosticId              lastErrorId() const { return lastErrorId_; }
 
     Result run();

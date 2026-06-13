@@ -822,7 +822,7 @@ namespace
 
     TypeRef makeInitializerReferenceTypeRef(Sema& sema, const SemaNodeView& exprView, AstModifierFlags modifierFlags)
     {
-        TypeRef exprTypeRef = exprView.typeRef();
+        const TypeRef exprTypeRef = exprView.typeRef();
         if (!exprTypeRef.isValid())
             return exprTypeRef;
 

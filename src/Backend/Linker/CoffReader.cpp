@@ -100,7 +100,7 @@ bool readCoffObject(CoffObject& outObject, Diagnostic& outDiag, ByteSpan bytes)
     // Decode the symbol table first: relocations reference symbols by record index, and we want their
     // names. Auxiliary records keep the index space contiguous but carry no name of their own.
     std::vector<Utf8>     recordNames(symbolCount);
-    std::vector<int32_t>  recordSectionNumber(symbolCount, 0);
+    std::vector           recordSectionNumber(symbolCount, 0);
     std::vector<uint32_t> recordValue(symbolCount, 0);
     for (size_t i = 0; i < symbolCount;)
     {

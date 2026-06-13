@@ -87,7 +87,7 @@ namespace
         if (!sema.isCompilerEvalContext())
             return;
 
-        TaskContext& ctx = sema.ctx();
+        const TaskContext& ctx = sema.ctx();
         if (!isReflectedRuntimeTypeStringField(ctx, symVar))
             return;
 
@@ -95,7 +95,7 @@ namespace
         if (!value.isString())
             return;
 
-        Utf8 strippedValue = TypeInfo::stripModuleQualifiersFromFullName(Utf8{value.getString()}, sema.moduleNamespace().name(ctx));
+        const Utf8 strippedValue = TypeInfo::stripModuleQualifiersFromFullName(Utf8{value.getString()}, sema.moduleNamespace().name(ctx));
         if (strippedValue.view() == value.getString())
             return;
 

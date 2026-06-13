@@ -63,7 +63,7 @@ namespace
     // it to an image RVA once the owning section's RVA is known.
     void writeRvaFixup(std::vector<std::byte>& bytes, std::vector<uint32_t>& fixups, uint32_t offset, uint32_t value)
     {
-        ByteUtils::writeLE32(bytes, offset, value);
+        ByteUtils::writeLe32(bytes, offset, value);
         fixups.push_back(offset);
     }
 
@@ -71,7 +71,7 @@ namespace
     void rebaseRvaFixups(std::vector<std::byte>& bytes, const std::vector<uint32_t>& fixups, uint32_t rva)
     {
         for (const uint32_t fixup : fixups)
-            ByteUtils::writeLE32(bytes, fixup, ByteUtils::readLE32(asByteSpan(bytes), fixup) + rva);
+            ByteUtils::writeLe32(bytes, fixup, ByteUtils::readLe32(asByteSpan(bytes), fixup) + rva);
     }
 }
 
@@ -170,7 +170,7 @@ void PEWriter::buildImports()
             if (imp->byOrdinal)
                 continue; // imported by ordinal: no hint/name entry
             hintNameOffset[imp] = static_cast<uint32_t>(idata.size());
-            ByteUtils::appendLE16(idata, 0); // hint
+            ByteUtils::appendLe16(idata, 0); // hint
             ByteUtils::appendCString(idata, imp->importName.view());
             if (idata.size() % 2 != 0)
                 idata.push_back(std::byte{0});
@@ -197,14 +197,14 @@ void PEWriter::buildImports()
             if (imp->byOrdinal)
             {
                 const uint64_t entry = 0x8000000000000000ull | imp->ordinal;
-                ByteUtils::writeLE64(idata, iltCursor, entry);
-                ByteUtils::writeLE64(idata, iatCursor, entry);
+                ByteUtils::writeLe64(idata, iltCursor, entry);
+                ByteUtils::writeLe64(idata, iatCursor, entry);
             }
             else
             {
-                ByteUtils::writeLE64(idata, iltCursor, hintNameOffset[imp]);
+                ByteUtils::writeLe64(idata, iltCursor, hintNameOffset[imp]);
                 idataRvaFixups_.push_back(iltCursor);
-                ByteUtils::writeLE64(idata, iatCursor, hintNameOffset[imp]);
+                ByteUtils::writeLe64(idata, iatCursor, hintNameOffset[imp]);
                 idataRvaFixups_.push_back(iatCursor);
             }
             iltCursor += sizeof(uint64_t);
@@ -262,7 +262,7 @@ void PEWriter::buildExports()
     for (uint32_t i = 0; i < count; ++i)
     {
         eatSymbolFixups_.emplace_back(static_cast<uint32_t>(edata.size()), sorted[i]->symbolName);
-        ByteUtils::appendLE32(edata, 0); // filled with the exported symbol RVA after layout
+        ByteUtils::appendLe32(edata, 0); // filled with the exported symbol RVA after layout
     }
 
     const uint32_t nptOffset = static_cast<uint32_t>(edata.size());
@@ -270,7 +270,7 @@ void PEWriter::buildExports()
 
     const uint32_t ordinalOffset = static_cast<uint32_t>(edata.size());
     for (uint32_t i = 0; i < count; ++i)
-        ByteUtils::appendLE16(edata, static_cast<uint16_t>(i));
+        ByteUtils::appendLe16(edata, static_cast<uint16_t>(i));
 
     // Name strings, then the module name.
     std::vector<uint32_t> nameOffsets(count);
@@ -289,9 +289,9 @@ void PEWriter::buildExports()
 
     // Fill IMAGE_EXPORT_DIRECTORY.
     writeRvaFixup(edata, edataRvaFixups_, 12, dllNameOffset);
-    ByteUtils::writeLE32(edata, 16, 1);     // Base ordinal
-    ByteUtils::writeLE32(edata, 20, count); // NumberOfFunctions
-    ByteUtils::writeLE32(edata, 24, count); // NumberOfNames
+    ByteUtils::writeLe32(edata, 16, 1);     // Base ordinal
+    ByteUtils::writeLe32(edata, 20, count); // NumberOfFunctions
+    ByteUtils::writeLe32(edata, 24, count); // NumberOfNames
     writeRvaFixup(edata, edataRvaFixups_, 28, eatOffset);
     writeRvaFixup(edata, edataRvaFixups_, 32, nptOffset);
     writeRvaFixup(edata, edataRvaFixups_, 36, ordinalOffset);
@@ -389,9 +389,9 @@ bool PEWriter::applyRelocations(Diagnostic& outDiag)
                         outDiag = Diagnostic::get(DiagnosticId::cmd_err_link_reloc_out_of_bounds);
                         return false;
                     }
-                    const uint64_t inPlace = ByteUtils::readLE64(asByteSpan(out.bytes), reloc.offset);
+                    const uint64_t inPlace = ByteUtils::readLe64(asByteSpan(out.bytes), reloc.offset);
                     const uint64_t value   = image_->imageBase + targetRva + inPlace + static_cast<uint64_t>(reloc.addend);
-                    ByteUtils::writeLE64(out.bytes, reloc.offset, value);
+                    ByteUtils::writeLe64(out.bytes, reloc.offset, value);
                     baseRelocSites_.push_back(out.rva + reloc.offset);
                     break;
                 }
@@ -402,9 +402,9 @@ bool PEWriter::applyRelocations(Diagnostic& outDiag)
                         outDiag = Diagnostic::get(DiagnosticId::cmd_err_link_reloc_out_of_bounds);
                         return false;
                     }
-                    const uint32_t inPlace = ByteUtils::readLE32(asByteSpan(out.bytes), reloc.offset);
+                    const uint32_t inPlace = ByteUtils::readLe32(asByteSpan(out.bytes), reloc.offset);
                     const uint32_t value   = targetRva + inPlace + static_cast<uint32_t>(reloc.addend);
-                    ByteUtils::writeLE32(out.bytes, reloc.offset, value);
+                    ByteUtils::writeLe32(out.bytes, reloc.offset, value);
                     break;
                 }
             }
@@ -448,7 +448,7 @@ bool PEWriter::applyRelocations(Diagnostic& outDiag)
                 outDiag.addArgument(Diagnostic::ARG_SYM, symbolName);
                 return false;
             }
-            ByteUtils::writeLE32(sections_[edataIndex_].bytes, offset, targetRva);
+            ByteUtils::writeLe32(sections_[edataIndex_].bytes, offset, targetRva);
         }
     }
 
@@ -475,15 +475,15 @@ void PEWriter::buildBaseRelocations()
         const bool     pad        = (entryCount % 2) != 0;
         const uint32_t blockSize  = sizeof(uint32_t) * 2 + (entryCount + (pad ? 1 : 0)) * sizeof(uint16_t);
 
-        ByteUtils::appendLE32(reloc, pageRva);
-        ByteUtils::appendLE32(reloc, blockSize);
+        ByteUtils::appendLe32(reloc, pageRva);
+        ByteUtils::appendLe32(reloc, blockSize);
         for (size_t k = i; k < j; ++k)
         {
             const uint16_t entry = static_cast<uint16_t>((IMAGE_REL_BASED_DIR64 << 12) | (baseRelocSites_[k] & 0xFFF));
-            ByteUtils::appendLE16(reloc, entry);
+            ByteUtils::appendLe16(reloc, entry);
         }
         if (pad)
-            ByteUtils::appendLE16(reloc, 0);
+            ByteUtils::appendLe16(reloc, 0);
 
         i = j;
     }

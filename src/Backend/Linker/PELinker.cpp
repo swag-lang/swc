@@ -98,14 +98,6 @@ namespace
         outBytes.insert(outBytes.end(), bytes.begin(), bytes.end());
     }
 
-    // Names defined across a set of archive objects.
-    void collectDefined(std::unordered_set<Utf8>& outDefined, const std::vector<CoffObject>& objects)
-    {
-        for (const CoffObject& object : objects)
-            for (const CoffInputSymbol& symbol : object.definedSymbols)
-                outDefined.insert(symbol.name);
-    }
-
     void collectDefined(std::unordered_set<Utf8>& outDefined, const LinkImage& image)
     {
         for (const LinkSymbol& symbol : image.symbols)
@@ -321,7 +313,7 @@ namespace
             return Result::Continue;
         }
 
-        Result appendRelocation(const uint32_t sectionIndex, const uint32_t base, const Utf8& sectionName, const NativeSectionRelocation& relocation)
+        Result appendRelocation(const uint32_t sectionIndex, const uint32_t base, const Utf8& sectionName, const NativeSectionRelocation& relocation) const
         {
             LinkRelocKind kind;
             if (!linkRelocKindFromNativeType(kind, relocation.type))
@@ -339,12 +331,12 @@ namespace
                 case IMAGE_REL_AMD64_ADDR64:
                     if (patchOffset + sizeof(uint64_t) > section.bytes.size())
                         return builder_->reportError(DiagnosticId::cmd_err_link_reloc_out_of_bounds);
-                    ByteUtils::writeLE64(section.bytes, patchOffset, relocation.addend);
+                    ByteUtils::writeLe64(section.bytes, patchOffset, relocation.addend);
                     break;
                 case IMAGE_REL_AMD64_ADDR32NB:
                     if (patchOffset + sizeof(uint32_t) > section.bytes.size())
                         return builder_->reportError(DiagnosticId::cmd_err_link_reloc_out_of_bounds);
-                    ByteUtils::writeLE32(section.bytes, patchOffset, static_cast<uint32_t>(relocation.addend));
+                    ByteUtils::writeLe32(section.bytes, patchOffset, static_cast<uint32_t>(relocation.addend));
                     break;
                 default:
                     SWC_UNREACHABLE();
@@ -606,10 +598,10 @@ void PELinker::buildDebugTable(LinkImage& image) const
     section.name  = ".swagdbg";
     section.align = 4;
 
-    ByteUtils::appendLE32(section.bytes, 0x42445753u); // 'SWDB'
-    ByteUtils::appendLE32(section.bytes, 1);           // version
-    ByteUtils::appendLE32(section.bytes, static_cast<uint32_t>(entries.size()));
-    ByteUtils::appendLE32(section.bytes, strings.blobBase);
+    ByteUtils::appendLe32(section.bytes, 0x42445753u); // 'SWDB'
+    ByteUtils::appendLe32(section.bytes, 1);           // version
+    ByteUtils::appendLe32(section.bytes, static_cast<uint32_t>(entries.size()));
+    ByteUtils::appendLe32(section.bytes, strings.blobBase);
 
     for (const Entry& entry : entries)
     {
@@ -623,11 +615,11 @@ void PELinker::buildDebugTable(LinkImage& image) const
         reloc.kind         = LinkRelocKind::Rva32;
         section.relocs.push_back(std::move(reloc));
 
-        ByteUtils::appendLE32(section.bytes, 0); // rva, filled by the writer
-        ByteUtils::appendLE32(section.bytes, entry.size);
-        ByteUtils::appendLE32(section.bytes, nameOff);
-        ByteUtils::appendLE32(section.bytes, fileOff);
-        ByteUtils::appendLE32(section.bytes, entry.line);
+        ByteUtils::appendLe32(section.bytes, 0); // rva, filled by the writer
+        ByteUtils::appendLe32(section.bytes, entry.size);
+        ByteUtils::appendLe32(section.bytes, nameOff);
+        ByteUtils::appendLe32(section.bytes, fileOff);
+        ByteUtils::appendLe32(section.bytes, entry.line);
     }
 
     ByteUtils::appendBytes(section.bytes, asByteSpan(strings.bytes));

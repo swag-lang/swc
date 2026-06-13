@@ -385,7 +385,7 @@ namespace
 
     bool appendConstantFunctionJitRoots(Sema& sema, const SymbolFunction& symFn, SmallVector<SymbolFunction*>& roots, std::span<SymbolFunction* const> functions)
     {
-        std::unordered_set<SymbolFunction*> seenFunctions(roots.begin(), roots.end());
+        std::unordered_set seenFunctions(roots.begin(), roots.end());
         seenFunctions.insert(const_cast<SymbolFunction*>(&symFn));
         for (SymbolFunction* function : functions)
         {
@@ -410,7 +410,7 @@ namespace
     {
         SmallVector<SymbolFunction*> rawOrder;
         symFn.appendJitOrder(rawOrder);
-        for (SymbolFunction* root : extraRoots)
+        for (const SymbolFunction* root : extraRoots)
         {
             if (root)
                 root->appendJitOrder(rawOrder);

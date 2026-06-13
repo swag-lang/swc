@@ -528,7 +528,7 @@ Result NativeBackendBuilder::resolveFunctionSymbolName(Utf8& outName, const Symb
     return reportError(DiagnosticId::cmd_err_native_invalid_local_function_relocation, Diagnostic::ARG_SYM, targetFunction->getFullScopedName(ctx()));
 }
 
-Result NativeBackendBuilder::appendCodeRelocation(NativeCodeRelocationTarget& target, const Utf8& ownerName, const MicroRelocation& relocation)
+Result NativeBackendBuilder::appendCodeRelocation(const NativeCodeRelocationTarget& target, const Utf8& ownerName, const MicroRelocation& relocation)
 {
     SWC_ASSERT(target.bytes != nullptr);
     SWC_ASSERT(target.relocations != nullptr);

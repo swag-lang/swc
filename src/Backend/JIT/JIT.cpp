@@ -130,7 +130,7 @@ namespace
         if (shouldUseSharedRuntimeSetup(ctx, runFunction))
         {
             const IdentifierRef setupIdRef = ctx.idMgr().runtimeFunction(IdentifierManager::RuntimeFunctionKind::SetupRuntime);
-            if (SymbolFunction* setupFn = ctx.compiler().runtimeFunctionSymbol(setupIdRef))
+            if (const SymbolFunction* setupFn = ctx.compiler().runtimeFunctionSymbol(setupIdRef))
                 setupFn->appendJitOrder(functions);
         }
 

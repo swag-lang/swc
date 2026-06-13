@@ -173,6 +173,8 @@ impl Decoder
             #if T == Read.TagBin
             {
                 let objCrc = .serializer.readNative'u32()
+                if objCrc == 0 do
+                    return
                 objType = Reflection.crcToType(objCrc)
 
                 let itfCrc = .serializer.readNative'u32()

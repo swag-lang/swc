@@ -84,3 +84,82 @@ func listCtrlHeadlessSel(list: *ListCtrl)
 
     host.shutdown()
 }
+
+// Clicking a line selects it; clicking another (Single mode) moves the selection.
+#test
+{
+    var host: GuiHeadlessHost
+    host.setup(220, 320)
+    ListCtrlHeadlessSelCount = 0
+
+    let list = ListCtrl.createSimple(&host.root, {0, 0, 200, 300})
+    list.sigSelChanged += &listCtrlHeadlessSel
+    list.createLine("a")
+    list.createLine("b")
+    list.createLine("c")
+
+    let lh = list.getLineHeight()
+    let vs = list.listView.getSurfaceRect()
+
+    host.click({vs.x + 30, vs.y + lh * 0.5})
+    @assert(list.isLineSelected(0))
+    @assert(!list.isLineSelected(1))
+
+    host.click({vs.x + 30, vs.y + lh * 2 + lh * 0.5})
+    @assert(list.isLineSelected(2))
+    @assert(!list.isLineSelected(0))
+    @assert(ListCtrlHeadlessSelCount >= 2)
+
+    host.shutdown()
+}
+
+// Multi-selection: Ctrl+click toggles individual lines.
+#test
+{
+    var host: GuiHeadlessHost
+    host.setup(220, 320)
+
+    let list = ListCtrl.createSimple(&host.root, {0, 0, 200, 300})
+    list.selectionMode = .Multi
+    list.createLine("a")
+    list.createLine("b")
+    list.createLine("c")
+
+    let lh = list.getLineHeight()
+    let vs = list.listView.getSurfaceRect()
+
+    host.click({vs.x + 30, vs.y + lh * 0.5})
+    host.click({vs.x + 30, vs.y + lh * 2 + lh * 0.5}, Input.MouseButton.Left, Input.KeyModifiers.Control)
+
+    @assert(list.isLineSelected(0))
+    @assert(!list.isLineSelected(1))
+    @assert(list.isLineSelected(2))
+
+    host.shutdown()
+}
+
+// Arrow keys move the selection up and down.
+#test
+{
+    var host: GuiHeadlessHost
+    host.setup(220, 320)
+
+    let list = ListCtrl.createSimple(&host.root, {0, 0, 200, 300})
+    list.createLine("a")
+    list.createLine("b")
+    list.createLine("c")
+    host.focus(list.listView)
+
+    host.keyPress(Input.Key.Down)
+    @assert(list.isLineSelected(0))
+
+    host.keyPress(Input.Key.Down)
+    @assert(list.isLineSelected(1))
+    @assert(!list.isLineSelected(0))
+
+    host.keyPress(Input.Key.Up)
+    @assert(list.isLineSelected(0))
+    @assert(!list.isLineSelected(1))
+
+    host.shutdown()
+}

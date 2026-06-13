@@ -30,8 +30,8 @@ namespace
     // manager is single-threaded or there is a single item. The caller is responsible for
     // ensuring `fn` only touches immutable (post-sema) data plus thread-safe services
     // (type interning, diagnostics) and writes exclusively to its own `index` slot.
-    template<typename Fn>
-    void parallelForIndexed(TaskContext& ctx, uint32_t count, const Fn& fn)
+    template<typename T>
+    void parallelForIndexed(TaskContext& ctx, uint32_t count, const T& fn)
     {
         if (count == 0)
             return;
@@ -47,7 +47,7 @@ namespace
         class WorkerJob final : public Job
         {
         public:
-            WorkerJob(const TaskContext& ctx, std::atomic<uint32_t>& next, uint32_t count, const Fn& fn) :
+            WorkerJob(const TaskContext& ctx, std::atomic<uint32_t>& next, uint32_t count, const T& fn) :
                 Job(ctx, JobKind::ModuleApiExport),
                 next_(next),
                 count_(count),
@@ -65,7 +65,7 @@ namespace
         private:
             std::atomic<uint32_t>& next_;
             uint32_t               count_;
-            const Fn&              fn_;
+            const T&               fn_;
         };
 
         const uint32_t        numWorkers = std::min(count, jobMgr.numWorkers());
@@ -3000,8 +3000,8 @@ namespace
         // the snippet *bytes* don't depend on cross-group validation state (it only drives
         // diagnostics), and preamble/forward-decl deduplication is handled below by the
         // sequential merge through `emittedPreambleLines`.
-        std::vector<Utf8>   groupContents(groups.size());
-        std::vector<Result> groupResults(groups.size(), Result::Continue);
+        std::vector<Utf8> groupContents(groups.size());
+        std::vector       groupResults(groups.size(), Result::Continue);
         parallelForIndexed(ctx, static_cast<uint32_t>(groups.size()), [&](TaskContext& workerCtx, uint32_t g) {
             ModuleApiValidationStack groupValidationStack;
             groupResults[g] = buildGeneratedModuleApiContent(workerCtx, roots.subspan(groups[g].start, groups[g].count), moduleNamespace, eol, groupContents[g], groupValidationStack);
@@ -3214,7 +3214,7 @@ namespace ModuleApi
         }
 
         // Build + write each whole-file export in parallel (each targets a distinct file).
-        std::vector<Result> wholeExportResults(wholeExports.size(), Result::Continue);
+        std::vector wholeExportResults(wholeExports.size(), Result::Continue);
         parallelForIndexed(ctx, static_cast<uint32_t>(wholeExports.size()), [&](TaskContext& workerCtx, uint32_t i) {
             const WholeFileExport& we      = wholeExports[i];
             const Utf8             content = buildExportedModuleApiContent(*we.file, moduleNamespace.view(), we.hasModuleNamespace);

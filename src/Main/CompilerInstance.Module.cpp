@@ -976,38 +976,10 @@ namespace
 
     bool workspaceArtifactsAreUpToDate(const WorkspaceArtifactManifest& manifest, const fs::path& outDir, const fs::path& compilerPath, const std::span<const fs::path> currentInputs, const std::span<const fs::path> currentDependencyDirs, const std::span<const fs::path> requiredArtifacts)
     {
-        char*      dbgv = nullptr;
-        size_t     dbgn = 0;
-        const bool dbg  = _dupenv_s(&dbgv, &dbgn, "SWC_DEBUG_REUSE") == 0 && dbgv != nullptr;
-        if (dbgv)
-            std::free(dbgv);
         if (!sameWorkspacePathList(manifest.inputs, currentInputs))
-        {
-            if (dbg)
-            {
-                fprintf(stderr, "[REUSE] %s: inputs mismatch (M=%zu C=%zu)\n", Utf8(outDir).c_str(), manifest.inputs.size(), currentInputs.size());
-                const size_t n = std::min(manifest.inputs.size(), currentInputs.size());
-                for (size_t i = 0; i < n; ++i)
-                    if (manifest.inputs[i] != currentInputs[i])
-                        fprintf(stderr, "[REUSE]   [%zu] M='%s' C='%s'\n", i, Utf8(manifest.inputs[i]).c_str(), Utf8(currentInputs[i]).c_str());
-                if (manifest.inputs.size() != currentInputs.size())
-                    for (size_t i = n; i < currentInputs.size(); ++i)
-                        fprintf(stderr, "[REUSE]   +C='%s'\n", Utf8(currentInputs[i]).c_str());
-            }
             return false;
-        }
         if (!sameWorkspacePathList(manifest.dependencyDirs, currentDependencyDirs))
-        {
-            if (dbg)
-            {
-                fprintf(stderr, "[REUSE] %s: dep dirs mismatch (M=%zu C=%zu)\n", Utf8(outDir).c_str(), manifest.dependencyDirs.size(), currentDependencyDirs.size());
-                for (const auto& p : manifest.dependencyDirs)
-                    fprintf(stderr, "[REUSE]   M='%s'\n", Utf8(p).c_str());
-                for (const auto& p : currentDependencyDirs)
-                    fprintf(stderr, "[REUSE]   C='%s'\n", Utf8(p).c_str());
-            }
             return false;
-        }
 
         fs::file_time_type latestInputTime{};
         bool               hasInputTime = false;
@@ -1610,7 +1582,7 @@ ExitCode CompilerInstance::runWorkspace()
     const bool          hasFilter         = !cmdLine().workspaceModuleFilter.empty();
     size_t              filterTargetIndex = static_cast<size_t>(-1);
     std::vector<size_t> snapshotOrder;
-    std::vector<bool>   snapshotQueued(modules.size(), false);
+    std::vector         snapshotQueued(modules.size(), false);
     if (hasFilter)
     {
         const auto it = moduleIndices.find(cmdLine().workspaceModuleFilter);
@@ -1789,7 +1761,7 @@ ExitCode CompilerInstance::runWorkspace()
     const auto joinPendingLink = [&]() -> Result {
         if (!pendingLink)
             return Result::Continue;
-        std::unique_ptr<WorkspaceModuleLink> link = std::move(pendingLink);
+        const std::unique_ptr<WorkspaceModuleLink> link = std::move(pendingLink);
         return finalizeWorkspaceModuleLink(*link);
     };
 

@@ -39,21 +39,21 @@ namespace ByteUtils
         out.push_back(std::byte{0});
     }
 
-    inline uint16_t readLE16(ByteSpan bytes, size_t offset) noexcept
+    inline uint16_t readLe16(ByteSpan bytes, size_t offset) noexcept
     {
         SWC_ASSERT(containsRange(bytes, offset, sizeof(uint16_t)));
         const auto* data = reinterpret_cast<const uint8_t*>(bytes.data() + offset);
         return static_cast<uint16_t>(data[0]) | (static_cast<uint16_t>(data[1]) << 8);
     }
 
-    inline uint32_t readLE32(ByteSpan bytes, size_t offset) noexcept
+    inline uint32_t readLe32(ByteSpan bytes, size_t offset) noexcept
     {
         SWC_ASSERT(containsRange(bytes, offset, sizeof(uint32_t)));
         const auto* data = reinterpret_cast<const uint8_t*>(bytes.data() + offset);
         return static_cast<uint32_t>(data[0]) | (static_cast<uint32_t>(data[1]) << 8) | (static_cast<uint32_t>(data[2]) << 16) | (static_cast<uint32_t>(data[3]) << 24);
     }
 
-    inline uint64_t readLE64(ByteSpan bytes, size_t offset) noexcept
+    inline uint64_t readLe64(ByteSpan bytes, size_t offset) noexcept
     {
         SWC_ASSERT(containsRange(bytes, offset, sizeof(uint64_t)));
         const auto* data  = reinterpret_cast<const uint8_t*>(bytes.data() + offset);
@@ -63,50 +63,50 @@ namespace ByteUtils
         return value;
     }
 
-    inline void writeLE32(ByteSpanRW bytes, size_t offset, uint32_t value) noexcept
+    inline void writeLe32(ByteSpanRW bytes, size_t offset, uint32_t value) noexcept
     {
         SWC_ASSERT(containsRange(asByteSpan(bytes), offset, sizeof(uint32_t)));
         for (uint32_t i = 0; i < sizeof(uint32_t); ++i)
             bytes[offset + i] = static_cast<std::byte>((value >> (i * 8)) & 0xFF);
     }
 
-    inline void writeLE32(std::vector<std::byte>& bytes, size_t offset, uint32_t value) noexcept
+    inline void writeLe32(std::vector<std::byte>& bytes, size_t offset, uint32_t value) noexcept
     {
-        writeLE32(asByteSpan(bytes), offset, value);
+        writeLe32(asByteSpan(bytes), offset, value);
     }
 
-    inline void writeLE64(ByteSpanRW bytes, size_t offset, uint64_t value) noexcept
+    inline void writeLe64(ByteSpanRW bytes, size_t offset, uint64_t value) noexcept
     {
         SWC_ASSERT(containsRange(asByteSpan(bytes), offset, sizeof(uint64_t)));
         for (uint32_t i = 0; i < sizeof(uint64_t); ++i)
             bytes[offset + i] = static_cast<std::byte>((value >> (i * 8)) & 0xFF);
     }
 
-    inline void writeLE64(std::vector<std::byte>& bytes, size_t offset, uint64_t value) noexcept
+    inline void writeLe64(std::vector<std::byte>& bytes, size_t offset, uint64_t value) noexcept
     {
-        writeLE64(asByteSpan(bytes), offset, value);
+        writeLe64(asByteSpan(bytes), offset, value);
     }
 
-    inline void appendLE16(std::vector<std::byte>& out, uint16_t value)
+    inline void appendLe16(std::vector<std::byte>& out, uint16_t value)
     {
         out.push_back(static_cast<std::byte>(value & 0xFF));
         out.push_back(static_cast<std::byte>((value >> 8) & 0xFF));
     }
 
-    inline void appendLE32(std::vector<std::byte>& out, uint32_t value)
+    inline void appendLe32(std::vector<std::byte>& out, uint32_t value)
     {
         for (uint32_t i = 0; i < sizeof(uint32_t); ++i)
             out.push_back(static_cast<std::byte>((value >> (i * 8)) & 0xFF));
     }
 
-    inline uint32_t readBE32(ByteSpan bytes, size_t offset) noexcept
+    inline uint32_t readBe32(ByteSpan bytes, size_t offset) noexcept
     {
         SWC_ASSERT(containsRange(bytes, offset, sizeof(uint32_t)));
         const auto* data = reinterpret_cast<const uint8_t*>(bytes.data() + offset);
         return (static_cast<uint32_t>(data[0]) << 24) | (static_cast<uint32_t>(data[1]) << 16) | (static_cast<uint32_t>(data[2]) << 8) | static_cast<uint32_t>(data[3]);
     }
 
-    inline void appendBE32(std::vector<std::byte>& out, uint32_t value)
+    inline void appendBe32(std::vector<std::byte>& out, uint32_t value)
     {
         out.push_back(static_cast<std::byte>((value >> 24) & 0xFF));
         out.push_back(static_cast<std::byte>((value >> 16) & 0xFF));

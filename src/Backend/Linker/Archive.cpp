@@ -71,7 +71,7 @@ bool Archive::load(Diagnostic& outDiag, std::vector<std::byte> bytes)
         return false;
     }
 
-    const uint32_t   symbolCount = ByteUtils::readBE32(span, dataOffset);
+    const uint32_t   symbolCount = ByteUtils::readBe32(span, dataOffset);
     constexpr size_t offsetsAt   = dataOffset + 4;
     const size_t     namesAt     = offsetsAt + static_cast<size_t>(symbolCount) * 4;
     if (namesAt > dataOffset + memberSize)
@@ -94,7 +94,7 @@ bool Archive::load(Diagnostic& outDiag, std::vector<std::byte> bytes)
         while (nameCursor + nameLen < memberEnd && nameStart[nameLen] != '\0')
             ++nameLen;
 
-        const uint32_t memberOffset = ByteUtils::readBE32(span, offsetsAt + static_cast<size_t>(i) * 4);
+        const uint32_t memberOffset = ByteUtils::readBe32(span, offsetsAt + static_cast<size_t>(i) * 4);
         symbolToMember_.emplace(Utf8{std::string_view{nameStart, nameLen}}, memberOffset);
         nameCursor += nameLen + 1;
     }
@@ -138,11 +138,11 @@ bool Archive::tryReadImport(ArchiveImport& outImport, Diagnostic& outDiag, uint3
         return false;
     if (data.size() < IMPORT_HEADER_SIZE)
         return false;
-    if (ByteUtils::readLE16(data, 0) != 0 || ByteUtils::readLE16(data, 2) != IMPORT_SIG2)
+    if (ByteUtils::readLe16(data, 0) != 0 || ByteUtils::readLe16(data, 2) != IMPORT_SIG2)
         return false; // a regular COFF member, not a short import
 
-    const uint16_t ordinalOrHint = ByteUtils::readLE16(data, 16);
-    const uint16_t flags         = ByteUtils::readLE16(data, 18);
+    const uint16_t ordinalOrHint = ByteUtils::readLe16(data, 16);
+    const uint16_t flags         = ByteUtils::readLe16(data, 18);
     const uint16_t type          = flags & 0x3;
     const uint16_t nameType      = (flags >> 2) & 0x7;
 
@@ -254,10 +254,10 @@ namespace
 
         // Linker member data: big-endian symbol count, parallel member offsets, then symbol names.
         std::vector<std::byte> linkerData;
-        ByteUtils::appendBE32(linkerData, symbolCount);
+        ByteUtils::appendBe32(linkerData, symbolCount);
         for (const ArchiveMemberBuild& member : members)
             for (size_t s = 0; s < member.symbols.size(); ++s)
-                ByteUtils::appendBE32(linkerData, member.headerOffset);
+                ByteUtils::appendBe32(linkerData, member.headerOffset);
         for (const ArchiveMemberBuild& member : members)
         {
             for (const Utf8& symbol : member.symbols)
@@ -309,14 +309,14 @@ void buildCoffImportLibrary(std::vector<std::byte>& outBytes, std::string_view d
     {
         // A short-import record: IMPORT_OBJECT_HEADER followed by importName\0 dllName\0.
         std::vector<std::byte> data;
-        ByteUtils::appendLE16(data, 0); // Sig1
-        ByteUtils::appendLE16(data, IMPORT_SIG2);
-        ByteUtils::appendLE16(data, 0); // Version
-        ByteUtils::appendLE16(data, IMPORT_MACHINE_AMD64);
-        ByteUtils::appendLE32(data, 0);                                                               // TimeDateStamp
-        ByteUtils::appendLE32(data, static_cast<uint32_t>(name.size() + 1 + dllFileName.size() + 1)); // SizeOfData
-        ByteUtils::appendLE16(data, 0);                                                               // OrdinalOrHint
-        ByteUtils::appendLE16(data, 1 << 2);                                                          // NameType=NAME(1), Type=CODE(0)
+        ByteUtils::appendLe16(data, 0); // Sig1
+        ByteUtils::appendLe16(data, IMPORT_SIG2);
+        ByteUtils::appendLe16(data, 0); // Version
+        ByteUtils::appendLe16(data, IMPORT_MACHINE_AMD64);
+        ByteUtils::appendLe32(data, 0);                                                               // TimeDateStamp
+        ByteUtils::appendLe32(data, static_cast<uint32_t>(name.size() + 1 + dllFileName.size() + 1)); // SizeOfData
+        ByteUtils::appendLe16(data, 0);                                                               // OrdinalOrHint
+        ByteUtils::appendLe16(data, 1 << 2);                                                          // NameType=NAME(1), Type=CODE(0)
         ByteUtils::appendCString(data, name.view());
         ByteUtils::appendCString(data, dllFileName);
 

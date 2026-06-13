@@ -170,7 +170,7 @@ namespace
         return {};
     }
 
-    Utf8 compilerScopeNameFromScopeChain(Sema& sema, const SemaScope& scope)
+    Utf8 compilerScopeNameFromScopeChain(const Sema& sema, const SemaScope& scope)
     {
         for (const SemaScope* current = &scope; current; current = current->parent())
         {

@@ -239,13 +239,19 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
         auto resolveBase = [&](MicroReg reg, uint64_t extraOffset) {
             if (reg == frameBase)
             {
-                baseReg = reg, baseSlot = extraOffset, baseValid = true;
+                baseReg = reg;
+                baseSlot = extraOffset;
+                baseValid = true;
             }
             else
             {
                 const auto found = addrRegOffset.find(reg);
                 if (found != addrRegOffset.end() && !badAddrReg.contains(reg))
-                    baseReg = reg, baseSlot = found->second + extraOffset, baseValid = true;
+                {
+                    baseReg = reg;
+                    baseSlot = found->second + extraOffset;
+                    baseValid = true;
+                }
             }
         };
 
@@ -258,18 +264,27 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
                 resolveBase(ops[1].reg, ops[3].valueU64);
                 valueReg = ops[0].reg;
                 if (baseValid)
-                    pending = {ref, baseSlot, ops[2].opBits, false}, hasPending = true;
+                {
+                    pending = {ref, baseSlot, ops[2].opBits, false};
+                    hasPending = true;
+                }
                 break;
             case MicroInstrOpcode::LoadMemReg:
                 resolveBase(ops[0].reg, ops[3].valueU64);
                 valueReg = ops[1].reg;
                 if (baseValid)
-                    pending = {ref, baseSlot, ops[2].opBits, true}, hasPending = true;
+                {
+                    pending = {ref, baseSlot, ops[2].opBits, true};
+                    hasPending = true;
+                }
                 break;
             case MicroInstrOpcode::LoadMemImm:
                 resolveBase(ops[0].reg, ops[2].valueU64);
                 if (baseValid)
-                    pending = {ref, baseSlot, ops[1].opBits, true}, hasPending = true;
+                {
+                    pending = {ref, baseSlot, ops[1].opBits, true};
+                    hasPending = true;
+                }
                 break;
             default:
                 break;

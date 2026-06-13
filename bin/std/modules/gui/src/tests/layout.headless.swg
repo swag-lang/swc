@@ -46,6 +46,48 @@ using Swag, Core
     host.shutdown()
 }
 
+// StackLayoutCtrl HorzCenter centers children horizontally as a group.
+#test
+{
+    var host: GuiHeadlessHost
+    host.setup(220, 120)
+
+    let stack = StackLayoutCtrl.create(&host.root, .HorzCenter, {0, 0, 200, 100})
+    stack.spacing = 5
+    let c0 = Wnd.create'Wnd(stack, null, {0, 0, 40, 30})
+    let c1 = Wnd.create'Wnd(stack, null, {0, 0, 40, 30})
+    let c2 = Wnd.create'Wnd(stack, null, {0, 0, 40, 30})
+    stack.computeLayout()
+
+    // total = 3*40 + 2*5 = 130; start x = 200/2 - 130/2 = 35.
+    @assert(c0.position.x == 35)
+    @assert(c1.position.x == 80)
+    @assert(c2.position.x == 125)
+
+    host.shutdown()
+}
+
+// StackLayoutCtrl VertCenter centers children vertically as a group.
+#test
+{
+    var host: GuiHeadlessHost
+    host.setup(120, 220)
+
+    let stack = StackLayoutCtrl.create(&host.root, .VertCenter, {0, 0, 100, 200})
+    stack.spacing = 5
+    let c0 = Wnd.create'Wnd(stack, null, {0, 0, 40, 30})
+    let c1 = Wnd.create'Wnd(stack, null, {0, 0, 40, 30})
+    let c2 = Wnd.create'Wnd(stack, null, {0, 0, 40, 30})
+    stack.computeLayout()
+
+    // total = 3*30 + 2*5 = 100; start y = 200/2 - 100/2 = 50.
+    @assert(c0.position.y == 50)
+    @assert(c1.position.y == 85)
+    @assert(c2.position.y == 120)
+
+    host.shutdown()
+}
+
 // WrapLayoutCtrl flows fixed-size items left to right, wrapping to new rows.
 #test
 {

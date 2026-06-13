@@ -1,6 +1,5 @@
 #include "pch.h"
 #include "Support/Thread/JobManager.h"
-#include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.h"
 #include "Main/Command/CommandLine.h"
 #include "Main/Stats.h"
@@ -178,8 +177,8 @@ std::optional<WaitKey> JobManager::computeWaitKey(const Job& job)
 const void* JobManager::typeInfoGenWaitTarget()
 {
     // Stable, process-wide non-null address used purely as a WaitKey discriminator.
-    static constexpr char sentinel = 0;
-    return &sentinel;
+    static constexpr char SENTINEL = 0;
+    return &SENTINEL;
 }
 
 void JobManager::wakeTypeInfoGeneration()

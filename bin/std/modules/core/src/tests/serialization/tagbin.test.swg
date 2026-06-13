@@ -125,6 +125,30 @@ struct TagBinTypeInfoPayload
     payload:     typeinfo
 }
 
+public interface ITagBinScore
+{
+    mtd score()->s32;
+    mtd labelText()->string;
+}
+
+public struct TagBinInterfaceProbe
+{
+    value: s32
+    label: String
+}
+
+public impl ITagBinScore for TagBinInterfaceProbe
+{
+    mtd impl score()->s32 => .value + 5
+    mtd impl labelText()->string => .label.toString()
+}
+
+struct TagBinInterfacePayload
+{
+    score: ITagBinScore
+    other: s32
+}
+
 public struct TagBinHookPayload
 {
     direct:       s32
@@ -322,6 +346,17 @@ func assertU32Array(values: const &Array'u32, expected: const [..] u32)->bool
     return true
 }
 
+func releaseTagBinInterface(value: *ITagBinScore)
+{
+    let runtime = cast(*Swag.Interface) value
+    if runtime.obj
+    {
+        Memory.delete(runtime.obj, #typeof(TagBinInterfaceProbe))
+        runtime.obj    = null
+        runtime.itable = null
+    }
+}
+
 #test
 {
     var writer: Serialization.Write.TagBin
@@ -498,6 +533,53 @@ func assertU32Array(values: const &Array'u32, expected: const [..] u32)->bool
     @assert(decoded.primitive == s32)
     @assert(decoded.staticArray == #typeof(#type [3] u8))
     @assert(decoded.payload == TagBinPayload)
+
+    Memory.delete(decoded)
+}
+
+#test
+{
+    var concrete = TagBinInterfaceProbe{value: 32}
+    concrete.label = "iface"
+
+    let payload = TagBinInterfacePayload{
+        score: cast(ITagBinScore) concrete,
+        other: -11,
+    }
+
+    Reflection.registerType(#typeof(TagBinInterfaceProbe))
+    Reflection.registerType(#typeof(TagBinInterfacePayload))
+    @assert(Reflection.hasInterface(#typeof(TagBinInterfaceProbe), ITagBinScore))
+    @assert(payload.score.score() == 37)
+
+    let bytes = encodeTagBin(payload)
+
+    var decoder: Serialization.Decoder'Serialization.Read.TagBin
+    let decoded = catch decoder.readAll'TagBinInterfacePayload(bytes.toSlice())
+    @assert(@err == null)
+    @assert(decoded != null)
+    @assert(decoded.other == -11)
+    @assert(decoded.score.score() == 37)
+    @assert(decoded.score.labelText() == "iface")
+
+    releaseTagBinInterface(&decoded.score)
+    Memory.delete(decoded)
+}
+
+#test
+{
+    let payload = TagBinInterfacePayload{other: 19}
+    let bytes   = encodeTagBin(payload)
+
+    var decoder: Serialization.Decoder'Serialization.Read.TagBin
+    let decoded = catch decoder.readAll'TagBinInterfacePayload(bytes.toSlice())
+    @assert(@err == null)
+    @assert(decoded != null)
+    @assert(decoded.other == 19)
+
+    let runtime = cast(*Swag.Interface) &decoded.score
+    @assert(runtime.obj == null)
+    @assert(runtime.itable == null)
 
     Memory.delete(decoded)
 }

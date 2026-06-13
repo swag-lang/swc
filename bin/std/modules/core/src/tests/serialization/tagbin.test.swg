@@ -98,6 +98,50 @@ func(T) encodeTagBin(value: T)->String
     return buffer.toString()
 }
 
+func corruptTagBinFieldType(bytes: String, fieldName: string, typeCrc: u32)->Array'u8
+{
+    var result: retval
+    result.add(bytes.toSlice())
+
+    var stream = ByteStream.openRead(result.toSlice())
+    @assert(catch stream.readNative'u32() == Serialization.Write.TagBinSignatures.Root)
+    @assert(@err == null)
+    discard catch stream.readNative'u32()
+    @assert(@err == null)
+    @assert(catch stream.readNative'u32() == Serialization.Write.TagBinSignatures.Version)
+    @assert(@err == null)
+    discard catch stream.readNative'u32()
+    @assert(@err == null)
+    @assert(catch stream.readNative'u32() == Serialization.Write.TagBinSignatures.Fat)
+    @assert(@err == null)
+
+    let fatSeek  = catch stream.readNative'u64()
+    let fatCount = catch stream.readNative'u64()
+    @assert(@err == null)
+
+    stream.setSeek(fatSeek)
+    @assert(catch stream.readNative'u32() == Serialization.Write.TagBinSignatures.Fat)
+    @assert(@err == null)
+
+    let fieldCrc = Hash.Crc32.compute(fieldName)
+    for fatCount
+    {
+        let crc  = catch stream.readNative'u32()
+        let seek = catch stream.readNative'u64()
+        @assert(@err == null)
+        if crc == fieldCrc
+        {
+            var writer = ByteStream.openWrite(&result)
+            writer.setSeek(seek + #sizeof(u32))
+            writer.writeNative(typeCrc)
+            return result
+        }
+    }
+
+    @assert(false)
+    return result
+}
+
 func assertS32Array(values: const &Array's32, expected: const [..] s32)->bool
 {
     if values.count != @countof(expected) do
@@ -177,6 +221,22 @@ func assertCompressedBlob(values: const &Array'u8)->bool
     @assert(decoded.finalPoint.y == 5)
     @assert(assertCompressedBlob(decoded.blob))
     @assert(decoded.transient == 0)
+
+    Memory.delete(decoded)
+}
+
+#test
+{
+    let payload = makeTagBinPayload()
+    let bytes   = encodeTagBin(payload)
+    let patched = corruptTagBinFieldType(bytes, "id", 0xDEADBEEF)
+
+    var decoder: Serialization.Decoder'Serialization.Read.TagBin
+    let decoded = catch decoder.readAll'TagBinPayload(patched.toSlice())
+    @assert(@err == null)
+    @assert(decoded != null)
+    @assert(decoded.id == 17)
+    @assert(decoded.name == "tagbin")
 
     Memory.delete(decoded)
 }

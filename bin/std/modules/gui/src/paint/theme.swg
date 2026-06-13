@@ -87,6 +87,20 @@ impl Theme
             img   = assume Image.decode(DefaultSpinName, DefaultSpin)
             .spin = Memory.new'ImageList()
             .spin.set(renderer.addImage(img), 48, 48)
+        }
+
+        .setupDefaultFonts()
+    }
+
+    // Initialize only the default fonts from the embedded font data.
+    // This needs no renderer (glyph metrics are rasterized on the CPU), so it can
+    // be used for headless/offscreen text measurement. Idempotent.
+    public mtd setupDefaultFonts()
+    {
+        with me.res
+        {
+            if .defaultTypeFaceR do
+                return
 
             .defaultTypeFaceR  = assume TypeFace.create(DefaultFontRegularName, DefaultFontRegular)
             .defaultTypeFaceB  = assume TypeFace.create(DefaultFontBoldName, DefaultFontBold)

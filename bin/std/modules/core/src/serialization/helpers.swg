@@ -1,5 +1,12 @@
 #global namespace Serialization
 
+moduleprivate func getTypeValueCrc(val: Swag.TypeValue)->u32
+{
+    if val.crc do
+        return val.crc
+    return Hash.Crc32.compute(val.name)
+}
+
 // Determin if a type can be serialized by a simple copy
 public func isPodFinal(type: #null typeinfo)->{ raw: bool, sizeof: u64 }
 {

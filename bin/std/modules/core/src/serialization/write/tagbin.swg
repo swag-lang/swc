@@ -97,11 +97,11 @@ fileprivate impl TagBin
 
 impl TagBin
 {
-    // Always returns true; indicates that output is textual (overridden stub)
+    // Tagbin is a binary format.
     #[Warning("Wrn0006", WarningLevel.Disable)]
     mtd isTextual()->bool
     {
-        return true
+        return false
     }
 
     // Begins writing to a specified output buffer
@@ -168,7 +168,7 @@ impl TagBin
     }
 
     // Begins a new struct, writing versioning and section metadata
-    mtd beginStruct(structType: typeinfo, _structData: const *u8)->bool
+    mtd beginStruct(structType: typeinfo, _structData: const [*] u8)->bool
     {
         let (pod, ?) = isPodFinal(structType)
         if pod
@@ -212,12 +212,13 @@ impl TagBin
         // Register the current seek for the fat generation
         if sec.kind == .Unordered
         {
-            Debug.assert(!sec.mapSeek.contains(val.crc))
-            sec.mapSeek.add(val.crc, .output.getSeek())
+            let crcName = getTypeValueCrc(val)
+            Debug.assert(!sec.mapSeek.contains(crcName))
+            sec.mapSeek.add(crcName, .output.getSeek())
         }
 
         // Write element signature
-        .output.addNative(val.crc)
+        .output.addNative(getTypeValueCrc(val))
         .output.addNative(val.pointedType.crc)
 
         var valSig: TagBinValueFlags = .Zero

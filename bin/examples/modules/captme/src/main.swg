@@ -1,5 +1,24 @@
 var g_App: Application
 
+#premain
+{
+    Reflection.registerType(#typeof(FormArrow))
+    Reflection.registerType(#typeof(FormDraw))
+    Reflection.registerType(#typeof(FormImage))
+    Reflection.registerType(#typeof(FormLine))
+    Reflection.registerType(#typeof(FormPolygon))
+    Reflection.registerType(#typeof(FormShape))
+    Reflection.registerType(#typeof(FormText))
+
+    Reflection.registerCrcToTypeAlias(0x0A77C1A5, #typeof(FormPolygon))
+    Reflection.registerCrcToTypeAlias(0x0B61E593, #typeof(FormLine))
+    Reflection.registerCrcToTypeAlias(0xAA87EC6A, #typeof(FormDraw))
+    Reflection.registerCrcToTypeAlias(0xE0321F5E, #typeof(FormShape))
+    Reflection.registerCrcToTypeAlias(0xE1FEF6A2, #typeof(FormText))
+    Reflection.registerCrcToTypeAlias(0xE5350EB8, #typeof(FormArrow))
+    Reflection.registerCrcToTypeAlias(0xF83FE4D9, #typeof(FormImage))
+}
+
 #main
 {
     let args = Env.getArgs()

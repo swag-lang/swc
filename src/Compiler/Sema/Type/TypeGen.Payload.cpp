@@ -319,8 +319,18 @@ namespace
         if (lifecycle.canCopy)
             addFlag(rtType, Runtime::TypeInfoFlags::CanCopy);
 
-        const Utf8 fullName    = buildRuntimeFullName(sema, type);
-        const Utf8 name        = type.toName(ctx);
+        Utf8 fullName = buildRuntimeFullName(sema, type);
+        Utf8 name     = type.toName(ctx);
+        if (type.isFunction())
+        {
+            const SymbolFunction& symFunc = type.payloadSymFunction();
+            if (symFunc.isAttribute())
+            {
+                fullName = symFunc.getFullScopedName(ctx);
+                name     = Utf8{symFunc.name(ctx)};
+            }
+        }
+
         rtType.fullname.length = storage.addString(offset, offsetof(Runtime::TypeInfo, fullname.ptr), fullName);
         rtType.name.length     = storage.addString(offset, offsetof(Runtime::TypeInfo, name.ptr), name);
     }

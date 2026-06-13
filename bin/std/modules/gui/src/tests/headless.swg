@@ -20,6 +20,7 @@ impl GuiHeadlessHost
     {
         .theme = Memory.new'Theme()
         .theme.colors.setDark()
+        .theme.setupDefaultFonts()
 
         let style = Memory.new'ThemeStyleRef()
         style.theme = .theme

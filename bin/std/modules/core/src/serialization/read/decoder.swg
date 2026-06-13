@@ -1,6 +1,6 @@
 #global export
 #global namespace Serialization
-using Swag
+using Swag, Core.Errors
 
 interface IDecoder
 {
@@ -57,6 +57,52 @@ struct(T) Decoder
 
 impl Decoder
 {
+    mtd inferStructTypeForInterface(itfType: typeinfo, fieldCrcs: const [..] u32)->#null typeinfo
+    {
+        var bestType:  typeinfo
+        var bestScore: u64
+        var ambiguous: bool
+
+        foreach m in @pinfos.modules
+        {
+            foreach t in m.types
+            {
+                if !Reflection.hasInterface(t, itfType) do
+                    continue
+
+                let typeStruct = cast(const *TypeInfoStruct) t
+                var score = 0'u64
+                foreach streamCrc in fieldCrcs
+                {
+                    foreach &field in typeStruct.fields
+                    {
+                        if Hash.Crc32.compute(field.name) == streamCrc
+                        {
+                            score += 1
+                            break
+                        }
+                    }
+                }
+
+                if score == 0 do
+                    continue
+
+                if score > bestScore
+                {
+                    bestType  = t
+                    bestScore = score
+                    ambiguous = false
+                }
+                elif score == bestScore do
+                    ambiguous = true
+            }
+        }
+
+        if ambiguous do
+            return null
+        return bestType
+    }
+
     mtd readTypeValue(typedVal: TypeValue, data: [*] void) throw
     {
         discard .serializer.beginElement(typedVal)
@@ -124,12 +170,33 @@ impl Decoder
             var typeVal: TypeValue
             typeVal.pointedType = typeinfo
 
-            .readTypeValue(typeVal, &objType)
+            #if T == Read.TagBin
+            {
+                let objCrc = .serializer.readNative'u32()
+                objType = Reflection.crcToType(objCrc)
+
+                let itfCrc = .serializer.readNative'u32()
+                itfType = Reflection.crcToType(itfCrc) orelse type
+
+                if !objType
+                {
+                    var fieldCrcs: Array'u32
+                    if .serializer.peekStructFieldCrcs(&fieldCrcs) do
+                        objType = .inferStructTypeForInterface(type, fieldCrcs.toSlice())
+                }
+
+                if !objType do
+                    throw SerializationError{"unknown interface object type"}
+            }
+            #else
+            {
+                .readTypeValue(typeVal, &objType)
+                if objType do
+                    .readTypeValue(typeVal, &itfType)
+            }
 
             if objType
             {
-                .readTypeValue(typeVal, &itfType)
-
                 itf.itable = @tableof(cast(const *Swag.TypeInfoStruct) objType, cast(const *Swag.TypeInfoStruct) itfType)
 
                 typeVal.pointedType = objType
@@ -147,6 +214,7 @@ impl Decoder
             {
                 let strBuf = cast(*String) data
                 dref strBuf = #nodrop .serializer.readNative'String()
+                strBuf.opPostMove()
                 return
             }
 
@@ -194,6 +262,7 @@ impl Decoder
 
                 if !itf or !itf.readElement(field, cast([*] u8) data + field.offset, idecoder)
                 {
+                    let fieldData = cast([*] u8) data + field.offset
                     let doIt = catch .serializer.beginElement(field)
                     defer #noerr .serializer.endElement(field)
 
@@ -202,7 +271,12 @@ impl Decoder
                     if !doIt do
                         continue
 
-                    catch .readTypedContent(cast([*] u8) data + field.offset, field.pointedType)
+                    catch .readTypedContent(fieldData, field.pointedType)
+                    if @err != null and (.flags & .IgnoreStructFieldError)
+                    {
+                        Reflection.reset(fieldData, field.pointedType)
+                        continue
+                    }
                     if @err != null and !(.flags & .IgnoreStructFieldError) do
                         throw @err
                 }

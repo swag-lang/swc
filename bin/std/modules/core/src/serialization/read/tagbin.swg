@@ -242,6 +242,40 @@ fileprivate impl TagBin
 
 impl TagBin
 {
+    mtd peekStructFieldCrcs(fieldCrcs: *Array'u32)->bool throw
+    {
+        let savedSeek = .stream.getSeek()
+        defer .stream.setSeek(savedSeek)
+
+        var sig = .stream.readNative'u32()
+        if sig == Write.TagBinSignatures.UnRaw do
+            sig = .stream.readNative'u32()
+        if sig != Write.TagBinSignatures.Version do
+            return false
+
+        discard .stream.readNative'u32()
+        sig = .stream.readNative'u32()
+        if sig != Write.TagBinSignatures.Fat do
+            return false
+
+        let fatSeek  = .stream.readNative'u64()
+        var fatCount = .stream.readNative'u64()
+
+        .stream.setSeek(fatSeek)
+        sig = .stream.readNative'u32()
+        if sig != Write.TagBinSignatures.Fat do
+            return false
+
+        while fatCount
+        {
+            fieldCrcs.add(.stream.readNative'u32())
+            discard .stream.readNative'u64()
+            fatCount -= 1
+        }
+
+        return true
+    }
+
     // Initialize the deserializer with the given input byte array.
     // Sets up the fileprivate byte stream for reading from the provided data buffer.
     mtd startRead(input: const [..] u8) throw
@@ -330,7 +364,7 @@ impl TagBin
 
     // Begin reading a struct of the given 'structType'.
     // Returns false for normal struct processing, true for special handling cases.
-    mtd beginStruct(structType: typeinfo, _structData: const *u8)->bool throw
+    mtd beginStruct(structType: typeinfo, _structData: [*] u8)->bool throw
     {
         var sig = .stream.readNative'u32()
         if sig == Write.TagBinSignatures.Raw
@@ -397,7 +431,7 @@ impl TagBin
             return false
         }
 
-        var reqCrcName = val.crc
+        var reqCrcName = getTypeValueCrc(val)
         let sec        = .sections.back()
 
         // If section is raw, then we just have values without versionning
@@ -410,7 +444,7 @@ impl TagBin
         // If section is unordered, then we have a fat where each value has a descriptor
         if sec.kind == .Unordered and !sec.skipFat
         {
-            var ent = sec.mapSeek.tryFind(val.crc)
+            var ent = sec.mapSeek.tryFind(reqCrcName)
 
             // If ent is null, then we are requesting a field that does not exist
             // in the stream
@@ -488,9 +522,11 @@ impl TagBin
             // We try to find a registered type with the crc from the stream.
             let streamType = Reflection.crcToType(crcType)
 
-            // The type from the stream does not exists anymore...
+            // Older streams can contain type CRCs from a previous hash scheme.
+            // If the field name matched but the type CRC is unknown, read with
+            // the requested type and let the payload reader validate the bytes.
             if !streamType do
-                throw SerializationError{"unknown field type", field: val}
+                return true
 
             // The type exists, but we do not have a way to convert it to the requested
             // type.

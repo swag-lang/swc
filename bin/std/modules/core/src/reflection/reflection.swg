@@ -114,23 +114,66 @@ using Swag
             ptrStruct.opPostCopy(dst)
         }
     }
+
+    func reset(dst: *void, type: typeinfo)
+    {
+        if type.kind == TypeInfoKind.Struct
+        {
+            let ptrStruct = cast(const *Swag.TypeInfoStruct) type
+            if ptrStruct.opDrop do
+                ptrStruct.opDrop(dst)
+            ptrStruct.opInit(dst)
+        }
+        else do
+            Memory.clear(dst, cast(u64) type.sizeof)
+    }
 }
 
 fileprivate var g_HashCrcToType: HashTable'(u32, typeinfo)
 fileprivate var g_HashNameToType: HashTable'(string, typeinfo)
 fileprivate var g_HashLock: Sync.RWLock
 
+fileprivate func addCrcToTypeAlias(crc: u32, type: typeinfo)
+{
+    if !crc or g_HashCrcToType.contains(crc) do
+        return
+    g_HashCrcToType.add(crc, type)
+}
+
+fileprivate func registerTypeNoLock(type: typeinfo)
+{
+    g_HashCrcToType.add(type.crc, type)
+    g_HashNameToType.add(type.fullname, type)
+
+    if type.fullname != null and type.fullname != "" do
+        addCrcToTypeAlias(Hash.Crc32.compute(type.fullname), type)
+    if type.name != null and type.name != "" do
+        addCrcToTypeAlias(Hash.Crc32.compute(type.name), type)
+}
+
+func registerType(type: typeinfo)
+{
+    Sync.scopedLock(&g_HashLock)
+    registerTypeNoLock(type)
+}
+
+func registerCrcToTypeAlias(crc: u32, type: typeinfo)
+{
+    Sync.scopedLock(&g_HashLock)
+    addCrcToTypeAlias(crc, type)
+}
+
 // #premain can be called more than once if we compile/run more than one
 // module using Core at the same time. So lock !
 #premain
 {
     Sync.scopedLock(&g_HashLock)
+
     foreach m in @pinfos.modules
     {
         foreach t in m.types
         {
-            g_HashCrcToType.add(t.crc, t)
-            g_HashNameToType.add(t.fullname, t)
+            registerTypeNoLock(t)
         }
     }
 }

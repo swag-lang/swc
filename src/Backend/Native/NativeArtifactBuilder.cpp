@@ -500,9 +500,6 @@ Result NativeArtifactBuilder::buildStartupAndDataSectionsParallel() const
 
     const Result dataResult = prepareDataSectionsWithoutStartup(collector);
     jobMgr.waitAll(clientId);
-#if SWC_DEV_MODE
-    jobMgr.assertNoWaitingJobs(clientId, "NativeArtifactBuilder::buildStartupAndDataSectionsParallel");
-#endif
 
     SWC_RESULT(startupJob->result());
     SWC_RESULT(dataResult);

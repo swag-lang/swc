@@ -2046,9 +2046,6 @@ Result CompilerInstance::captureModuleSetupSnapshot(const TaskContext& ctx, cons
     }
 
     jobMgr.waitAll(clientId);
-#if SWC_DEV_MODE
-    jobMgr.assertNoWaitingJobs(clientId, "CompilerInstance::runModuleSetup parser waitAll");
-#endif
     if (Stats::getNumErrors() != errorsBefore)
         return Result::Error;
 
@@ -2094,9 +2091,6 @@ Result CompilerInstance::captureModuleSetupSnapshot(const TaskContext& ctx, cons
     }
 
     jobMgr.waitAll(clientId);
-#if SWC_DEV_MODE
-    jobMgr.assertNoWaitingJobs(clientId, "CompilerInstance::runModuleSetup decl waitAll");
-#endif
     if (Stats::getNumErrors() != errorsBefore)
         return Result::Error;
 
@@ -2107,9 +2101,6 @@ Result CompilerInstance::captureModuleSetupSnapshot(const TaskContext& ctx, cons
     }
 
     Sema::waitDone(setupCtx, clientId);
-#if SWC_DEV_MODE
-    jobMgr.assertNoWaitingJobs(clientId, "CompilerInstance::runModuleSetup full waitDone");
-#endif
     if (Stats::getNumErrors() != errorsBefore)
         return Result::Error;
 

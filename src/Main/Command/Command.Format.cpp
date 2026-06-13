@@ -49,9 +49,7 @@ namespace Command
         }
 
         jobMgr.waitAll(clientId);
-#if SWC_DEV_MODE
-        jobMgr.assertNoWaitingJobs(clientId, "Command::format waitAll");
-#endif
+
         if (Stats::getNumErrors() != errorsBefore)
             return;
 

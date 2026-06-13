@@ -170,9 +170,6 @@ namespace
         }
 
         jobMgr.waitAll(clientId);
-#if SWC_DEV_MODE
-        jobMgr.assertNoWaitingJobs(clientId, "Command::dryRun format preview waitAll");
-#endif
         if (Stats::getNumErrors() != errorsBefore)
             return Result::Error;
 

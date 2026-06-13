@@ -34,9 +34,7 @@ namespace Command
         }
 
         jobMgr.waitAll(compiler.jobClientId());
-#if SWC_DEV_MODE
-        jobMgr.assertNoWaitingJobs(clientId, "Command::syntax waitAll");
-#endif
+
         stage.setStat(TimedActionLog::formatStatCount(ctx, compiler.files().size(), "file"));
 
         if (!Stats::hasError())

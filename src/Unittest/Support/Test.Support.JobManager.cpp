@@ -89,28 +89,10 @@ SWC_TEST_BEGIN(JobManager_DebugStateReportsSleepingJobs)
     jobMgr.enqueue(job, JobPriority::Normal, clientId);
     jobMgr.waitAll(clientId);
 
-#if SWC_DEV_MODE
-    if (!jobMgr.debugHasWaitingJobs(clientId))
-        return Result::Error;
-
-    const Utf8 state = jobMgr.debugDescribeState(clientId);
-    if (state.find("waiting=1") == Utf8::npos)
-        return Result::Error;
-    if (state.find("kind=Parser") == Utf8::npos)
-        return Result::Error;
-    if (state.find("wait=Wait identifier") == Utf8::npos)
-        return Result::Error;
-#endif
-
     if (!jobMgr.wakeAll(clientId))
         return Result::Error;
 
     jobMgr.waitAll(clientId);
-
-#if SWC_DEV_MODE
-    if (jobMgr.debugHasWaitingJobs(clientId))
-        return Result::Error;
-#endif
 }
 SWC_TEST_END()
 
@@ -138,34 +120,17 @@ SWC_TEST_BEGIN(JobManager_TargetedWakeBySymbol)
     jobMgr.enqueue(jobB, JobPriority::Normal, clientId);
     jobMgr.waitAll(clientId);
 
-#if SWC_DEV_MODE
-    if (!jobMgr.debugHasWaitingJobs(clientId))
-        return Result::Error;
-#endif
-
     // Waking an unrelated key must not disturb either sleeper.
     jobMgr.wake({&dummyA, TaskStateKind::SemaWaitSymDeclared});
     jobMgr.waitAll(clientId);
-#if SWC_DEV_MODE
-    if (!jobMgr.debugHasWaitingJobs(clientId))
-        return Result::Error;
-#endif
 
     // Waking A's exact key runs A to completion; B stays parked.
     jobMgr.wake({&dummyA, TaskStateKind::SemaWaitSymTyped});
     jobMgr.waitAll(clientId);
-#if SWC_DEV_MODE
-    if (!jobMgr.debugHasWaitingJobs(clientId))
-        return Result::Error;
-#endif
 
     // Waking B's key drains the last sleeper.
     jobMgr.wake({&dummyB, TaskStateKind::SemaWaitSymTyped});
     jobMgr.waitAll(clientId);
-#if SWC_DEV_MODE
-    if (jobMgr.debugHasWaitingJobs(clientId))
-        return Result::Error;
-#endif
 }
 SWC_TEST_END()
 

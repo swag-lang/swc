@@ -34,12 +34,6 @@ public:
     void waitAll();
     void waitAll(JobClientId client);
 
-#if SWC_DEV_MODE
-    Utf8 debugDescribeState(std::optional<JobClientId> client = std::nullopt) const;
-    bool debugHasWaitingJobs(JobClientId client) const;
-    void assertNoWaitingJobs(JobClientId client, std::string_view where, std::string_view extraDetail = {}) const;
-#endif
-
     uint32_t      numWorkers() const noexcept { return static_cast<uint32_t>(workers_.size()); }
     uint32_t      randSeed() const noexcept { return randSeed_; }
     static size_t threadIndex() noexcept { return threadIndex_; }
@@ -98,11 +92,6 @@ private:
     std::unordered_multimap<WaitKey, JobRecord*, WaitKeyHash> waiters_;
 
     void bumpClientCountLocked(JobClientId client, int delta);
-
-#if SWC_DEV_MODE
-    Utf8 debugDescribeStateLocked(std::optional<JobClientId> client) const;
-    bool debugHasWaitingJobsLocked(JobClientId client) const;
-#endif
 
     struct RecordPool;
     static JobRecord* allocRecord();

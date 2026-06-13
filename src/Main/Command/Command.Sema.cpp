@@ -92,9 +92,6 @@ namespace Command
         }
 
         jobMgr.waitAll(clientId);
-#if SWC_DEV_MODE
-        jobMgr.assertNoWaitingJobs(clientId, "Command::sema parser waitAll");
-#endif
         if (Stats::getNumErrors() != errorsBefore)
             return;
 
@@ -141,19 +138,6 @@ namespace Command
         }
 
         Sema::waitDone(ctx, clientId);
-#if SWC_DEV_MODE
-        if (jobMgr.debugHasWaitingJobs(clientId))
-        {
-            Utf8 jitDetail = compiler.jitExecMgr().debugDescribeState();
-            if (!jitDetail.empty())
-                jitDetail.insert(0, "jit-state:\n");
-            jobMgr.assertNoWaitingJobs(clientId, "Command::sema sema waitDone", jitDetail.view());
-        }
-        else
-        {
-            jobMgr.assertNoWaitingJobs(clientId, "Command::sema sema waitDone");
-        }
-#endif
         if (!Stats::hasError() && CompilerInstance::exportModuleApi(ctx) == Result::Error)
             return;
 

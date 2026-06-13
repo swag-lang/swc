@@ -361,7 +361,7 @@ namespace
         if (!sym.isGenericRoot() || sym.isDeclared())
             return Result::Continue;
 
-        const auto* ownerImpl = sym.ownerSymMap() ? sym.ownerSymMap()->safeCast<SymbolImpl>() : nullptr;
+        const auto* ownerImpl   = sym.ownerSymMap() ? sym.ownerSymMap()->safeCast<SymbolImpl>() : nullptr;
         const auto* ownerStruct = ownerImpl ? ownerImpl->symStruct() : nullptr;
         if (!ownerStruct || !ownerStruct->isGenericRoot() || ownerStruct->isGenericInstance())
             return sema.waitDeclared(&sym, codeRef);

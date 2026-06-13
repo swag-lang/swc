@@ -20,7 +20,7 @@ namespace
 {
     Result resolveIndexOperandTypeRef(Sema& sema, TypeRef& outTypeRef, AstNodeRef nodeArgRef, const SemaNodeView& nodeArgView)
     {
-        outTypeRef          = nodeArgView.typeRef();
+        outTypeRef                 = nodeArgView.typeRef();
         const TypeRef aliasTypeRef = nodeArgView.type()->unwrap(sema.ctx(), nodeArgView.typeRef(), TypeExpandE::Alias);
         if (aliasTypeRef.isValid())
             outTypeRef = aliasTypeRef;
@@ -116,7 +116,7 @@ namespace
     {
         TypeRef indexTypeRef;
         SWC_RESULT(resolveIndexOperandTypeRef(sema, indexTypeRef, nodeArgRef, nodeArgView));
-        const TypeInfo* indexType    = &sema.typeMgr().get(indexTypeRef);
+        const TypeInfo* indexType = &sema.typeMgr().get(indexTypeRef);
         if (indexType->isReference())
             indexType = &sema.typeMgr().get(indexType->payloadTypeRef());
 

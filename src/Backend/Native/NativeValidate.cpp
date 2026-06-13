@@ -469,7 +469,7 @@ bool NativeValidate::findDataSegmentRelocation(DataSegmentRef& outTargetRef, con
 {
     outTargetRef = {};
     SWC_ASSERT(builder_ != nullptr);
-    const DataSegment& segment = builder_->compiler().cstMgr().shardDataSegment(shardIndex);
+    const DataSegment&    segment = builder_->compiler().cstMgr().shardDataSegment(shardIndex);
     DataSegmentRelocation relocation;
     if (!segment.findRelocation(relocation, offset, DataSegmentRelocationKind::DataSegmentOffset))
         return false;
@@ -485,7 +485,7 @@ bool NativeValidate::findFunctionSymbolRelocation(const SymbolFunction*& outTarg
 {
     outTargetSymbol = nullptr;
     SWC_ASSERT(builder_ != nullptr);
-    const DataSegment& segment = builder_->compiler().cstMgr().shardDataSegment(shardIndex);
+    const DataSegment&    segment = builder_->compiler().cstMgr().shardDataSegment(shardIndex);
     DataSegmentRelocation relocation;
     if (!segment.findRelocation(relocation, offset, DataSegmentRelocationKind::FunctionSymbol))
         return false;

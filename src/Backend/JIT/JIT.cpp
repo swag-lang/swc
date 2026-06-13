@@ -1047,10 +1047,10 @@ Result JIT::patch(TaskContext& ctx, const JITMemory& executableMemory, const std
 
 Result JIT::patchGlobalFunctionVariables(TaskContext& ctx)
 {
-    const TaskScopedContext   scopedContext(ctx);
-    const auto                globals = ctx.compiler().nativeGlobalVariablesSnapshot();
-    JITRelocationPatchContext patchContext;
-    const bool                patchReferencedGlobalsOnly = ctx.state().runJitFunction != nullptr;
+    const TaskScopedContext      scopedContext(ctx);
+    const auto                   globals = ctx.compiler().nativeGlobalVariablesSnapshot();
+    JITRelocationPatchContext    patchContext;
+    const bool                   patchReferencedGlobalsOnly = ctx.state().runJitFunction != nullptr;
     std::unordered_set<uint64_t> referencedGlobalInitOffsets;
 
     if (patchReferencedGlobalsOnly)

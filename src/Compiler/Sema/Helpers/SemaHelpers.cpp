@@ -77,7 +77,7 @@ namespace
 
     SemaHelpers::NullableGuardInfo logicalNullableGuardInfo(Sema& sema, const AstLogicalExpr& logical)
     {
-        const TokenId op = sema.token(logical.codeRef()).id;
+        const TokenId                        op   = sema.token(logical.codeRef()).id;
         const SemaHelpers::NullableGuardInfo left = SemaHelpers::nullableGuardInfo(sema, logical.nodeLeftRef);
         if (isGuardImpliedByLogicalResult(left, op))
             return left;

@@ -57,7 +57,7 @@ struct CastRequest
 
     Result fail(DiagnosticId d, TypeRef srcRef, TypeRef dstRef, std::string_view value = "", DiagnosticId note = DiagnosticId::None);
 
-    bool        isConstantFolding() const { return srcConstRef.isValid(); }
+    bool isConstantFolding() const { return srcConstRef.isValid(); }
     // Whether the folded constant *result* should actually be materialized. False while probing.
     bool        materializeConstantResult() const { return srcConstRef.isValid() && !probing; }
     ConstantRef constantFoldingSrc() const { return srcConstRef; }

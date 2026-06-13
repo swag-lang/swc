@@ -1,8 +1,8 @@
 #include "pch.h"
 #include "Main/CompilerInstance.h"
+#include "Backend/Linker/Linker.h"
 #include "Backend/Native/NativeArtifactBuilder.h"
 #include "Backend/Native/NativeBackendBuilder.h"
-#include "Backend/Linker/Linker.h"
 #include "Backend/RuntimeName.h"
 #include "Compiler/Lexer/SourceView.h"
 #include "Compiler/Parser/Ast/Ast.h"
@@ -976,22 +976,36 @@ namespace
 
     bool workspaceArtifactsAreUpToDate(const WorkspaceArtifactManifest& manifest, const fs::path& outDir, const fs::path& compilerPath, const std::span<const fs::path> currentInputs, const std::span<const fs::path> currentDependencyDirs, const std::span<const fs::path> requiredArtifacts)
     {
-        char* dbgv = nullptr; size_t dbgn = 0;
-        const bool dbg = _dupenv_s(&dbgv, &dbgn, "SWC_DEBUG_REUSE") == 0 && dbgv != nullptr;
-        if (dbgv) std::free(dbgv);
+        char*      dbgv = nullptr;
+        size_t     dbgn = 0;
+        const bool dbg  = _dupenv_s(&dbgv, &dbgn, "SWC_DEBUG_REUSE") == 0 && dbgv != nullptr;
+        if (dbgv)
+            std::free(dbgv);
         if (!sameWorkspacePathList(manifest.inputs, currentInputs))
         {
-            if (dbg) { fprintf(stderr, "[REUSE] %s: inputs mismatch (M=%zu C=%zu)\n", Utf8(outDir).c_str(), manifest.inputs.size(), currentInputs.size());
+            if (dbg)
+            {
+                fprintf(stderr, "[REUSE] %s: inputs mismatch (M=%zu C=%zu)\n", Utf8(outDir).c_str(), manifest.inputs.size(), currentInputs.size());
                 const size_t n = std::min(manifest.inputs.size(), currentInputs.size());
-                for (size_t i = 0; i < n; ++i) if (manifest.inputs[i] != currentInputs[i]) fprintf(stderr, "[REUSE]   [%zu] M='%s' C='%s'\n", i, Utf8(manifest.inputs[i]).c_str(), Utf8(currentInputs[i]).c_str());
-                if (manifest.inputs.size() != currentInputs.size()) for (size_t i = n; i < currentInputs.size(); ++i) fprintf(stderr, "[REUSE]   +C='%s'\n", Utf8(currentInputs[i]).c_str()); }
+                for (size_t i = 0; i < n; ++i)
+                    if (manifest.inputs[i] != currentInputs[i])
+                        fprintf(stderr, "[REUSE]   [%zu] M='%s' C='%s'\n", i, Utf8(manifest.inputs[i]).c_str(), Utf8(currentInputs[i]).c_str());
+                if (manifest.inputs.size() != currentInputs.size())
+                    for (size_t i = n; i < currentInputs.size(); ++i)
+                        fprintf(stderr, "[REUSE]   +C='%s'\n", Utf8(currentInputs[i]).c_str());
+            }
             return false;
         }
         if (!sameWorkspacePathList(manifest.dependencyDirs, currentDependencyDirs))
         {
-            if (dbg) { fprintf(stderr, "[REUSE] %s: dep dirs mismatch (M=%zu C=%zu)\n", Utf8(outDir).c_str(), manifest.dependencyDirs.size(), currentDependencyDirs.size());
-                for (const auto& p : manifest.dependencyDirs) fprintf(stderr, "[REUSE]   M='%s'\n", Utf8(p).c_str());
-                for (const auto& p : currentDependencyDirs) fprintf(stderr, "[REUSE]   C='%s'\n", Utf8(p).c_str()); }
+            if (dbg)
+            {
+                fprintf(stderr, "[REUSE] %s: dep dirs mismatch (M=%zu C=%zu)\n", Utf8(outDir).c_str(), manifest.dependencyDirs.size(), currentDependencyDirs.size());
+                for (const auto& p : manifest.dependencyDirs)
+                    fprintf(stderr, "[REUSE]   M='%s'\n", Utf8(p).c_str());
+                for (const auto& p : currentDependencyDirs)
+                    fprintf(stderr, "[REUSE]   C='%s'\n", Utf8(p).c_str());
+            }
             return false;
         }
 
@@ -1593,7 +1607,7 @@ ExitCode CompilerInstance::runWorkspace()
     // module and the transitive closure of its workspace dependencies, discovered lazily by
     // following each module's imports as it is snapshotted. Every other module stays
     // filtered out and is never set up.
-    const bool          hasFilter = !cmdLine().workspaceModuleFilter.empty();
+    const bool          hasFilter         = !cmdLine().workspaceModuleFilter.empty();
     size_t              filterTargetIndex = static_cast<size_t>(-1);
     std::vector<size_t> snapshotOrder;
     std::vector<bool>   snapshotQueued(modules.size(), false);
@@ -1903,8 +1917,8 @@ Result CompilerInstance::runWorkspaceModule(const WorkspaceModuleBuild& moduleBu
     // and the compiler holds a pointer to the CommandLine), so both are heap-owned and handed to the
     // caller in the pending link. Native-artifact builds run only the build half here and leave a
     // prepared link to be executed off the main thread.
-    auto moduleCmdLineOwned = std::make_unique<CommandLine>(moduleCmdLine);
-    auto moduleCompiler     = std::make_unique<CompilerInstance>(global(), *moduleCmdLineOwned);
+    auto moduleCmdLineOwned                  = std::make_unique<CommandLine>(moduleCmdLine);
+    auto moduleCompiler                      = std::make_unique<CompilerInstance>(global(), *moduleCmdLineOwned);
     moduleCompiler->precomputedModuleSetup_  = &moduleBuild.setup;
     moduleCompiler->workspaceModuleLogState_ = workspaceLogState;
     moduleCompiler->setDeferNativeLink(true);

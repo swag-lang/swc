@@ -101,7 +101,7 @@ namespace
 
         const std::string_view storedValue = sema.cstMgr().addString(ctx, strippedValue.view());
         const ConstantValue    newValue    = ConstantValue::makeString(ctx, storedValue);
-        ioCstRef                          = sema.cstMgr().addConstant(ctx, newValue);
+        ioCstRef                           = sema.cstMgr().addConstant(ctx, newValue);
     }
 
     Result failStructMemberType(Sema& sema, const SymbolVariable& symVar, AstNodeRef nodeMemberRef)

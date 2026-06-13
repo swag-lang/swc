@@ -1161,9 +1161,9 @@ Result Cast::castToEnum(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef
     if (castRequest.kind != CastKind::Explicit)
         return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
 
-    const TypeInfo& dstType           = sema.typeMgr().get(dstTypeRef);
+    const TypeInfo& dstType = sema.typeMgr().get(dstTypeRef);
     SWC_RESULT(waitEnumCompletion(sema, castRequest, dstType));
-    const TypeRef   underlyingTypeRef = dstType.payloadSymEnum().underlyingTypeRef();
+    const TypeRef underlyingTypeRef = dstType.payloadSymEnum().underlyingTypeRef();
 
     CastRequest underlyingRequest(castRequest.kind);
     underlyingRequest.flags        = castRequest.flags;
@@ -1191,8 +1191,8 @@ Result Cast::castToEnum(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef
 
 Result Cast::castFromEnum(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef)
 {
-    const TypeInfo&   srcType                    = sema.typeMgr().get(srcTypeRef);
-    const TypeInfo&   dstType                    = sema.typeMgr().get(dstTypeRef);
+    const TypeInfo& srcType = sema.typeMgr().get(srcTypeRef);
+    const TypeInfo& dstType = sema.typeMgr().get(dstTypeRef);
     SWC_RESULT(waitEnumCompletion(sema, castRequest, srcType));
     SWC_RESULT(waitEnumCompletion(sema, castRequest, dstType));
 

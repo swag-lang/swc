@@ -547,8 +547,8 @@ Result NativeObjFileWriterCoff::buildCoffFile(std::vector<std::byte>& outBytes, 
         if (!section.relocations.empty())
         {
             section.hasRelocationOverflow = needsCoffRelocationOverflow(section.relocations.size());
-            section.pointerToRelocations = fileOffset;
-            section.numberOfRelocations  = section.hasRelocationOverflow ? static_cast<uint16_t>(COFF_RELOCATION_OVERFLOW_LIMIT) : static_cast<uint16_t>(section.relocations.size());
+            section.pointerToRelocations  = fileOffset;
+            section.numberOfRelocations   = section.hasRelocationOverflow ? static_cast<uint16_t>(COFF_RELOCATION_OVERFLOW_LIMIT) : static_cast<uint16_t>(section.relocations.size());
 
             const size_t relocationRecordCount = section.relocations.size() + (section.hasRelocationOverflow ? 1u : 0u);
             SWC_ASSERT(relocationRecordCount <= std::numeric_limits<uint32_t>::max() / sizeof(IMAGE_RELOCATION));

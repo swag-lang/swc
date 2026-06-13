@@ -21,11 +21,11 @@ struct LinkJob
     };
 
     // Inputs (filled by prepareLink).
-    Output                output   = Output::Executable;
-    Runtime::TargetOs     targetOs = Runtime::TargetOs::Windows; // selects the artifact writer
-    fs::path              outputPath;
-    fs::path              buildDir;
-    LinkImage             image;          // Executable / SharedLibrary
+    Output                         output   = Output::Executable;
+    Runtime::TargetOs              targetOs = Runtime::TargetOs::Windows; // selects the artifact writer
+    fs::path                       outputPath;
+    fs::path                       buildDir;
+    LinkImage                      image;          // Executable / SharedLibrary
     std::vector<LinkArchiveMember> archiveMembers; // StaticLibrary: prepared object members
 
     // Outputs (filled by executeLink). On failure, error carries a ready-to-report diagnostic built

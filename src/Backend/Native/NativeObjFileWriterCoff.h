@@ -27,11 +27,11 @@ private:
     {
         NativeSectionData                    data;
         std::vector<NativeSectionRelocation> relocations;
-        uint16_t                             sectionNumber        = 0;
-        uint32_t                             pointerToRawData     = 0;
-        uint32_t                             pointerToRelocations = 0;
-        uint16_t                             numberOfRelocations  = 0;
-        uint32_t                             sizeOfRawData        = 0;
+        uint16_t                             sectionNumber         = 0;
+        uint32_t                             pointerToRawData      = 0;
+        uint32_t                             pointerToRelocations  = 0;
+        uint16_t                             numberOfRelocations   = 0;
+        uint32_t                             sizeOfRawData         = 0;
         bool                                 hasRelocationOverflow = false;
     };
 

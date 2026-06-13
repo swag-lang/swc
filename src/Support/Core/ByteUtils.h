@@ -56,7 +56,7 @@ namespace ByteUtils
     inline uint64_t readLE64(ByteSpan bytes, size_t offset) noexcept
     {
         SWC_ASSERT(containsRange(bytes, offset, sizeof(uint64_t)));
-        const auto* data = reinterpret_cast<const uint8_t*>(bytes.data() + offset);
+        const auto* data  = reinterpret_cast<const uint8_t*>(bytes.data() + offset);
         uint64_t    value = 0;
         for (uint32_t i = 0; i < sizeof(uint64_t); ++i)
             value |= static_cast<uint64_t>(data[i]) << (i * 8);

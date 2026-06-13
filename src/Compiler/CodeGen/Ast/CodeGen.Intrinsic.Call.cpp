@@ -972,7 +972,7 @@ namespace
 
         const MicroReg      objectTypeReg    = materializeIntrinsicIntArgReg(codeGen, codeGen.payload(children[0]), MicroOpBits::B64);
         const MicroReg      interfaceTypeReg = materializeIntrinsicIntArgReg(codeGen, codeGen.payload(children[1]), MicroOpBits::B64);
-        const MicroLabelRef doneLabel = builder.createLabel();
+        const MicroLabelRef doneLabel        = builder.createLabel();
         for (const auto& candidate : preparedCandidates)
         {
             const ConstantValue& objectTypeCst = codeGen.cstMgr().get(candidate.objectTypeCstRef);

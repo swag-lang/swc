@@ -174,7 +174,7 @@ public:
     // allocating) the name string on every stable type hash / addType call.
     uint32_t scopedNameHash(const TaskContext& ctx) const;
 
-    const TypeInfo&  typeInfo(const TaskContext& ctx) const;
+    const TypeInfo& typeInfo(const TaskContext& ctx) const;
     template<typename T>
     T* safeCast()
     {

@@ -219,7 +219,7 @@ impl TagBin
 
         // Write element signature
         .output.addNative(getTypeValueCrc(val))
-        .output.addNative(val.pointedType.crc)
+        .output.addNative(getTypeInfoCrc(val.pointedType))
 
         var valSig: TagBinValueFlags = .Zero
         if Reflection.hasAttribute(val, Compress) or Reflection.hasAttribute(val.pointedType, Compress) do

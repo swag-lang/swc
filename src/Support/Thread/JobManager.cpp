@@ -178,7 +178,7 @@ std::optional<WaitKey> JobManager::computeWaitKey(const Job& job)
 const void* JobManager::typeInfoGenWaitTarget()
 {
     // Stable, process-wide non-null address used purely as a WaitKey discriminator.
-    static const char sentinel = 0;
+    static constexpr char sentinel = 0;
     return &sentinel;
 }
 
@@ -219,8 +219,8 @@ void JobManager::wake(const WaitKey& key)
     bool any = false;
     for (auto it = range.first; it != range.second;)
     {
-        JobRecord* rec = it->second;
-        it             = waiters_.erase(it);
+        JobRecord* rec  = it->second;
+        it              = waiters_.erase(it);
         rec->registered = false;
 
         if (rec->state != JobRecord::State::Waiting)

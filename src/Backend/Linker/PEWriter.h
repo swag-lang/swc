@@ -56,8 +56,8 @@ private:
     std::vector<uint32_t>                  imageToOut_; // image.sections index -> sections_ index
     std::unordered_map<Utf8, SymbolLoc>    symbols_;    // name -> defining section + offset
     std::vector<ImportThunk>               thunks_;
-    std::vector<uint32_t>                  idataRvaFixups_;  // positions in .idata holding idata-relative offsets
-    std::vector<uint32_t>                  baseRelocSites_;  // RVAs needing IMAGE_REL_BASED_DIR64
+    std::vector<uint32_t>                  idataRvaFixups_; // positions in .idata holding idata-relative offsets
+    std::vector<uint32_t>                  baseRelocSites_; // RVAs needing IMAGE_REL_BASED_DIR64
     uint32_t                               headersSize_ = 0;
     int32_t                                textIndex_   = -1;
     int32_t                                idataIndex_  = -1;

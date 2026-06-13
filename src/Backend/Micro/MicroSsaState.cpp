@@ -85,9 +85,9 @@ void MicroSsaState::build(MicroBuilder& builder, MicroStorage& storage, MicroOpe
         // Reuse the cached use/def when this slot still holds an instruction with the
         // same opcode and operand words as the previous build; otherwise recompute and
         // refresh the cache. See InstrInfo for why this key is sound.
-        const MicroInstrOperand* ops          = inst->ops(operands);
-        const uint8_t            numOperands  = inst->numOperands;
-        bool                     reuseUseDef  = info.useDefCached && info.cachedOp == inst->op && info.cachedNumOperands == numOperands && info.cachedOperandWords.size() == numOperands;
+        const MicroInstrOperand* ops         = inst->ops(operands);
+        const uint8_t            numOperands = inst->numOperands;
+        bool                     reuseUseDef = info.useDefCached && info.cachedOp == inst->op && info.cachedNumOperands == numOperands && info.cachedOperandWords.size() == numOperands;
         if (reuseUseDef)
         {
             for (uint8_t i = 0; i < numOperands; ++i)
@@ -104,9 +104,9 @@ void MicroSsaState::build(MicroBuilder& builder, MicroStorage& storage, MicroOpe
         {
             info.useDef = inst->collectUseDef(operands, encoder);
 
-            info.cachedOp           = inst->op;
-            info.cachedNumOperands  = numOperands;
-            info.useDefCached       = true;
+            info.cachedOp          = inst->op;
+            info.cachedNumOperands = numOperands;
+            info.useDefCached      = true;
             info.cachedOperandWords.clear();
             for (uint8_t i = 0; i < numOperands; ++i)
                 info.cachedOperandWords.push_back(ops[i].valueU64);

@@ -78,8 +78,8 @@ public:
     void invalidate();
     bool isValid() const { return valid_; }
 
-    ReachingDef                reachingDef(MicroReg reg, MicroInstrRef beforeInstRef) const;
-    bool                       isRegUsedAfter(MicroReg reg, MicroInstrRef afterInstRef) const;
+    ReachingDef reachingDef(MicroReg reg, MicroInstrRef beforeInstRef) const;
+    bool        isRegUsedAfter(MicroReg reg, MicroInstrRef afterInstRef) const;
     // Number of distinct instruction uses a value reaches, counting transitively
     // through phis and capped at `cap`. Phi edges that lead only to dead phis
     // (results nothing reads) contribute nothing — unlike valueInfo()->uses.size(),
@@ -111,10 +111,10 @@ private:
         // is conservative — any change that could alter use/def also changes a word —
         // so a stale hit is impossible. Slots are reset between builds but this cache
         // is deliberately preserved.
-        MicroInstrOpcode            cachedOp = MicroInstrOpcode::OpBinaryRegImm;
-        uint8_t                     cachedNumOperands = 0;
-        bool                        useDefCached      = false;
-        SmallVector4<uint64_t>      cachedOperandWords;
+        MicroInstrOpcode       cachedOp          = MicroInstrOpcode::OpBinaryRegImm;
+        uint8_t                cachedNumOperands = 0;
+        bool                   useDefCached      = false;
+        SmallVector4<uint64_t> cachedOperandWords;
     };
 
     struct BlockInfo

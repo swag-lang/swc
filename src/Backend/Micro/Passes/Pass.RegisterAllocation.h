@@ -206,11 +206,11 @@ private:
     SmallVector<MicroReg> freeFloatTransient_;
     SmallVector<MicroReg> freeFloatPersistent_;
 
-    std::vector<VRegState>                     states_;
-    std::vector<MicroInstrRef>                 pendingErasures_;
-    const MicroControlFlowGraph*               controlFlowGraph_ = nullptr;
-    std::vector<PendingInsert>                 pending_;
-    std::vector<PendingInsert>                 boundaryPending_;
+    std::vector<VRegState>       states_;
+    std::vector<MicroInstrRef>   pendingErasures_;
+    const MicroControlFlowGraph* controlFlowGraph_ = nullptr;
+    std::vector<PendingInsert>   pending_;
+    std::vector<PendingInsert>   boundaryPending_;
     // Write-through stores for loop-carried values: queued right after the
     // instruction that defines such a value and flushed before the next one, so
     // the value's stable home slot always holds its latest value across the

@@ -1,8 +1,8 @@
 #include "pch.h"
 #include "Main/Command/Command.h"
+#include "Backend/Linker/Linker.h"
 #include "Backend/Native/NativeArtifactBuilder.h"
 #include "Backend/Native/NativeBackendBuilder.h"
-#include "Backend/Linker/Linker.h"
 #include "Backend/RuntimeName.h"
 #include "Compiler/SourceFile.h"
 #include "Format/FormatJob.h"
@@ -244,8 +244,8 @@ namespace
     {
         const CommandLine&              cmdLine = ctx.cmdLine();
         std::vector<Logger::FieldEntry> entries;
-        uint32_t                        index       = 1;
-        const Utf8                      inputCount  = Utf8Helper::countWithLabel(inputSummary.totalFiles, "input file");
+        uint32_t                        index      = 1;
+        const Utf8                      inputCount = Utf8Helper::countWithLabel(inputSummary.totalFiles, "input file");
         if (cmdLine.command != CommandKind::Unittest)
             addPlanEntry(entries, index++, "Would", LogColor::BrightGreen, std::format("collect and classify {}", inputCount));
 

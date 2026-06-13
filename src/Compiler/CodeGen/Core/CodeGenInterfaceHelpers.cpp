@@ -54,7 +54,7 @@ bool CodeGenInterfaceHelpers::resolveInterfaceCastInfo(CodeGen& codeGen, const S
 Result CodeGenInterfaceHelpers::prepareInterfaceMethodTable(ConstantRef& outRef, CodeGen& codeGen, const InterfaceCastInfo& castInfo, bool allowIncomplete)
 {
     SWC_ASSERT(castInfo.implSym != nullptr);
-    outRef = ConstantRef::invalid();
+    outRef                   = ConstantRef::invalid();
     const Result tableResult = castInfo.implSym->ensureInterfaceMethodTable(codeGen.sema(), outRef);
     if (tableResult != Result::Continue)
     {

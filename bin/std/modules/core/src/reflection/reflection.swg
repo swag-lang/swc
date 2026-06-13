@@ -140,21 +140,72 @@ fileprivate func addCrcToTypeAlias(crc: u32, type: typeinfo)
     g_HashCrcToType.add(crc, type)
 }
 
-fileprivate func registerTypeNoLock(type: typeinfo)
+fileprivate func registerTypeNoLock(type: typeinfo)->bool
 {
-    g_HashCrcToType.add(type.crc, type)
-    g_HashNameToType.add(type.fullname, type)
+    if type == null do
+        return false
+
+    if type.crc and g_HashCrcToType.contains(type.crc) do
+        return false
+    if !type.crc
+    {
+        if type.fullname != null and type.fullname != "" and g_HashNameToType.contains(type.fullname) do
+            return false
+        if (type.fullname == null or type.fullname == "") and type.name != null and type.name != "" and g_HashNameToType.contains(type.name) do
+            return false
+    }
+
+    if type.crc do
+        g_HashCrcToType.add(type.crc, type)
+
+    if type.fullname != null and type.fullname != "" and !g_HashNameToType.contains(type.fullname) do
+        g_HashNameToType.add(type.fullname, type)
+    elif (type.fullname == null or type.fullname == "") and type.name != null and type.name != "" and !g_HashNameToType.contains(type.name) do
+        g_HashNameToType.add(type.name, type)
 
     if type.fullname != null and type.fullname != "" do
         addCrcToTypeAlias(Hash.Crc32.compute(type.fullname), type)
     if type.name != null and type.name != "" do
         addCrcToTypeAlias(Hash.Crc32.compute(type.name), type)
+
+    return true
+}
+
+fileprivate func registerTypeGraphNoLock(type: typeinfo)
+{
+    if !registerTypeNoLock(type) do
+        return
+
+    switch type.kind
+    {
+    case .Alias:
+        let typeAlias = cast(const *TypeInfoAlias) type
+        registerTypeGraphNoLock(typeAlias.rawType)
+    case .Array:
+        let typeArray = cast(const *TypeInfoArray) type
+        registerTypeGraphNoLock(typeArray.pointedType)
+    case .Enum:
+        let typeEnum = cast(const *TypeInfoEnum) type
+        registerTypeGraphNoLock(typeEnum.rawType)
+    case .Pointer:
+        let typePointer = cast(const *TypeInfoPointer) type
+        registerTypeGraphNoLock(typePointer.pointedType)
+    case .Slice:
+        let typeSlice = cast(const *TypeInfoSlice) type
+        registerTypeGraphNoLock(typeSlice.pointedType)
+    case .Struct:
+        let typeStruct = cast(const *TypeInfoStruct) type
+        foreach &field in typeStruct.fields do
+            registerTypeGraphNoLock(field.pointedType)
+        foreach &generic in typeStruct.generics do
+            registerTypeGraphNoLock(generic.pointedType)
+    }
 }
 
 func registerType(type: typeinfo)
 {
     Sync.scopedLock(&g_HashLock)
-    registerTypeNoLock(type)
+    registerTypeGraphNoLock(type)
 }
 
 func registerCrcToTypeAlias(crc: u32, type: typeinfo)
@@ -169,11 +220,24 @@ func registerCrcToTypeAlias(crc: u32, type: typeinfo)
 {
     Sync.scopedLock(&g_HashLock)
 
+    registerTypeGraphNoLock(#typeof(bool))
+    registerTypeGraphNoLock(#typeof(u8))
+    registerTypeGraphNoLock(#typeof(u16))
+    registerTypeGraphNoLock(#typeof(u32))
+    registerTypeGraphNoLock(#typeof(u64))
+    registerTypeGraphNoLock(#typeof(s8))
+    registerTypeGraphNoLock(#typeof(s16))
+    registerTypeGraphNoLock(#typeof(s32))
+    registerTypeGraphNoLock(#typeof(s64))
+    registerTypeGraphNoLock(#typeof(f32))
+    registerTypeGraphNoLock(#typeof(f64))
+    registerTypeGraphNoLock(#typeof(rune))
+
     foreach m in @pinfos.modules
     {
         foreach t in m.types
         {
-            registerTypeNoLock(t)
+            registerTypeGraphNoLock(t)
         }
     }
 }

@@ -336,7 +336,7 @@ namespace
         {
             if (relocation.kind == DataSegmentRelocationKind::FunctionSymbol)
             {
-                SymbolFunction* target = const_cast<SymbolFunction*>(relocation.targetSymbol);
+                auto target = const_cast<SymbolFunction*>(relocation.targetSymbol);
                 if (!target || !isIncludableConstantJitDependency(*target))
                     continue;
                 if (!seenFunctions.insert(target).second)
@@ -344,7 +344,6 @@ namespace
 
                 roots.push_back(target);
                 changed = true;
-                continue;
             }
         }
 

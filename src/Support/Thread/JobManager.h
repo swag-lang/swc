@@ -52,11 +52,11 @@ private:
     JobRecord* popReadyForClientLocked(JobClientId client);
     bool       isDrainedLocked() const;
 
-    static JobResult        executeJob(Job& job);
-    void                    handleJobResult(JobRecord* rec, JobResult res);
-    void                    workerLoop();
+    static JobResult              executeJob(Job& job);
+    void                          handleJobResult(JobRecord* rec, JobResult res);
+    void                          workerLoop();
     static std::optional<WaitKey> computeWaitKey(const Job& job);
-    void                    unregisterWaiterLocked(JobRecord* rec);
+    void                          unregisterWaiterLocked(JobRecord* rec);
 
     void shutdown() noexcept;
 

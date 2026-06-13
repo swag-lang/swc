@@ -423,8 +423,8 @@ Result CodeGenSafety::emitShiftIntLike(CodeGen& codeGen, const AstNode& node, co
         }
     }
 
-    const MicroReg countReg64    = widenIntRegTo64(codeGen, rightReg, operationType, opBits);
-    MicroReg       originalReg   = MicroReg::invalid();
+    const MicroReg countReg64  = widenIntRegTo64(codeGen, rightReg, operationType, opBits);
+    MicroReg       originalReg = MicroReg::invalid();
     if (checkOverflow || (!isLeftShift && isSigned))
     {
         originalReg = codeGen.nextVirtualIntRegister();

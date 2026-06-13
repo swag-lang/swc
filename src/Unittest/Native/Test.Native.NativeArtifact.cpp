@@ -459,7 +459,7 @@ SWC_FILESYSTEM_TEST_BEGIN(NativeArtifact_CoffWriterUsesExtendedRelocations)
 {
     static constexpr uint32_t RELOCATION_COUNT = 0xFFFF;
 
-    const CommandLine commandLine = makeStandaloneNativeArtifactCmdLine("coff_writer_uses_extended_relocations", Runtime::BuildCfgBackendKind::SharedLibrary);
+    const CommandLine               commandLine = makeStandaloneNativeArtifactCmdLine("coff_writer_uses_extended_relocations", Runtime::BuildCfgBackendKind::SharedLibrary);
     const NativeArtifactTestFixture fixture(ctx.global(), commandLine);
 
     MachineCode code;

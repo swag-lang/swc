@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "Backend/Native/NativeBackendBuilder.h"
-#include "Backend/Native/NativeArtifactBuilder.h"
 #include "Backend/Linker/Linker.h"
+#include "Backend/Native/NativeArtifactBuilder.h"
 #include "Backend/Native/NativeObjFileWriter.h"
 #include "Backend/Native/NativeObjJob.h"
 #include "Backend/Native/SymbolSort.h"

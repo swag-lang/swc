@@ -23,7 +23,7 @@ public:
     // its nodes, must contain at least one such backward edge, so the absence
     // of any back-edge proves the function is loop-free. Loop-only passes
     // (e.g. LICM) use this to skip their dominator/loop analysis entirely.
-    bool                           hasLoop() const { return hasLoop_; }
+    bool hasLoop() const { return hasLoop_; }
 
 private:
     void            clear();

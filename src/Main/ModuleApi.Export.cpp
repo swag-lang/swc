@@ -636,7 +636,7 @@ namespace
             return Result::Continue;
 
         ModuleApiValidationScope validationScope(stack, symbol);
-        Result                   result = Result::Continue;
+        auto                     result = Result::Continue;
         if (const auto* symbolAlias = symbol.safeCast<SymbolAlias>())
             result = validatePublicAliasSymbol(ctx, *symbolAlias, stack);
         else if (const auto* symbolEnum = symbol.safeCast<SymbolEnum>())
@@ -1072,7 +1072,7 @@ namespace
         if (!functionDecl.nodeBodyRef.isValid() || ast.isAdditionalNode(functionDecl.nodeBodyRef))
             return TokenRef::invalid();
 
-        const AstNode& bodyNode        = ast.node(functionDecl.nodeBodyRef);
+        const AstNode& bodyNode = ast.node(functionDecl.nodeBodyRef);
         if (functionDecl.hasFlag(AstFunctionFlagsE::Short))
         {
             const TokenRef callEndTokRef = moduleApiCallExprEndTokRef(ast, bodyNode);
@@ -1080,7 +1080,7 @@ namespace
                 return callEndTokRef;
         }
 
-        TokenRef       bodyStartTokRef = moduleApiSnippetStartTokRef(ast, bodyNode);
+        TokenRef bodyStartTokRef = moduleApiSnippetStartTokRef(ast, bodyNode);
         if (!bodyStartTokRef.isValid())
             bodyStartTokRef = bodyNode.tokRef();
 
@@ -1350,7 +1350,7 @@ namespace
 
         const SourceView&      srcView = moduleApiNodeSourceView(ctx, file.ast(), nodeRef);
         const std::string_view source  = srcView.stringView();
-        endOffset                     = std::min(endOffset, static_cast<uint32_t>(source.size()));
+        endOffset                      = std::min(endOffset, static_cast<uint32_t>(source.size()));
         while (endOffset > startOffset && std::isspace(static_cast<unsigned char>(source[endOffset - 1])))
             endOffset--;
 
@@ -1387,8 +1387,8 @@ namespace
                 const TokenRef childStartTokRef = moduleApiSnippetStartTokRef(ast, childNode);
                 if (childStartTokRef.isValid())
                 {
-                    const uint32_t    startOffset = sourceTokenByteStart(srcView, srcView.token(node.tokRef()));
-                    const uint32_t    endOffset   = sourceTokenByteStart(srcView, srcView.token(childStartTokRef));
+                    const uint32_t startOffset = sourceTokenByteStart(srcView, srcView.token(node.tokRef()));
+                    const uint32_t endOffset   = sourceTokenByteStart(srcView, srcView.token(childStartTokRef));
                     if (startOffset < endOffset)
                         outRanges.push_back({startOffset, endOffset});
                 }
@@ -1988,7 +1988,7 @@ namespace
 
         const SourceView&      srcView = moduleApiNodeSourceView(ctx, root.file->ast(), root.nodeRef);
         const std::string_view source  = srcView.stringView();
-        endOffset                     = std::min<uint32_t>(endOffset, static_cast<uint32_t>(source.size()));
+        endOffset                      = std::min<uint32_t>(endOffset, static_cast<uint32_t>(source.size()));
         while (endOffset > startOffset && std::isspace(static_cast<unsigned char>(source[endOffset - 1])))
             endOffset--;
 
@@ -2876,7 +2876,7 @@ namespace
                 }
             }
 
-            AstNodeRef       semanticImplRef  = AstNodeRef::invalid();
+            AstNodeRef        semanticImplRef  = AstNodeRef::invalid();
             const SourceFile* semanticImplFile = nullptr;
             if (tryFindSemanticImplRef(ctx, root, semanticImplRef, semanticImplFile))
             {

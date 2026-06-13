@@ -71,7 +71,7 @@ namespace
         if (typeRef.isInvalid())
             return nullptr;
 
-        const TypeInfo& typeInfo        = sema.typeMgr().get(typeRef);
+        const TypeInfo& typeInfo         = sema.typeMgr().get(typeRef);
         const TypeRef   unwrappedTypeRef = typeInfo.unwrap(sema.ctx(), typeRef, TypeExpandE::Alias);
         if (unwrappedTypeRef.isInvalid())
             return nullptr;

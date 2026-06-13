@@ -201,7 +201,7 @@ fileprivate impl TagBin
             let toArr = cast(const *Swag.TypeInfoArray) toType
 
             // Conversion from simple value to array
-            if .canConvertType(fromType, toArr.pointedType)
+            if .canConvertType(toArr.pointedType, fromType)
             {
                 .convertValToArray = true
                 return true
@@ -213,7 +213,7 @@ fileprivate impl TagBin
             if Reflection.isStructArray(toStruct)
             {
                 // Conversion from simple value to Core.Array
-                if (!fromStruct or !Reflection.isStructArray(fromStruct)) and .canConvertType(fromType, Reflection.getStructArrayType(toStruct))
+                if (!fromStruct or !Reflection.isStructArray(fromStruct)) and .canConvertType(Reflection.getStructArrayType(toStruct), fromType)
                 {
                     .convertValToArray = true
                     return true
@@ -517,7 +517,7 @@ impl TagBin
 
         // If they do not match, we will try to convert the type from the one in the
         // stream to the requested one
-        if crcType != val.pointedType.crc
+        if crcType != getTypeInfoCrc(val.pointedType)
         {
             // We try to find a registered type with the crc from the stream.
             let streamType = Reflection.crcToType(crcType)
@@ -542,6 +542,10 @@ impl TagBin
                 if sig != Write.TagBinSignatures.Sequence do
                     throw SerializationError{"stream is corrupted", field: val}
                 discard .stream.readNative'u64()
+
+                let arraySig = .stream.readNative'u32()
+                if arraySig != Write.TagBinSignatures.Raw and arraySig != Write.TagBinSignatures.UnRaw do
+                    throw SerializationError{"stream is corrupted", field: val}
             }
         }
 

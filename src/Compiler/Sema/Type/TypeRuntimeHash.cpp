@@ -153,7 +153,7 @@ namespace
         {
             const Runtime::String& moduleNs = ctx.compiler().buildCfg().moduleNamespace;
             if (moduleNs.ptr && moduleNs.length)
-                fullName = TypeInfo::stripModuleQualifiersFromFullName(std::move(fullName), std::string_view(moduleNs.ptr, static_cast<size_t>(moduleNs.length)));
+                fullName = TypeInfo::stripModuleQualifiersFromFullName(std::move(fullName), std::string_view(moduleNs.ptr, moduleNs.length));
         }
 
         const uint32_t h = Math::hash(fullName.view());

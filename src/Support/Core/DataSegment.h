@@ -61,27 +61,27 @@ public:
         uint32_t  blockOffset = 0;
     };
 
-    std::pair<ByteSpan, Ref>                  addSpan(ByteSpan value);
-    std::pair<ByteSpan, Ref>                  addSpan(ByteSpan value, uint32_t align);
-    std::pair<std::string_view, Ref>          addString(const Utf8& value);
-    uint32_t                                  addString(uint32_t baseOffset, uint32_t fieldOffset, const Utf8& value);
-    void                                      addRelocation(uint32_t offset, uint32_t targetOffset);
-    void                                      addRelocation(uint32_t offset, DataSegmentRef targetRef);
-    void                                      addFunctionRelocation(uint32_t offset, const SymbolFunction* targetSymbol, bool allowUnresolvedFunction = false);
-    std::pair<uint32_t, std::byte*>           reserveBytes(uint32_t size, uint32_t align, bool zeroInit);
-    uint32_t                                  reserveBlock(uint32_t size, uint32_t align, bool zeroInit);
-    Ref                                       findRef(const void* ptr) const noexcept;
-    bool                                      findAllocation(DataSegmentAllocation& outAllocation, uint32_t offset) const noexcept;
-    uint32_t                                  size() const noexcept;
-    uint32_t                                  extentSize() const noexcept;
-    void                                      copyTo(ByteSpanRW dst) const;
-    void                                      copyToPreserveOffsets(ByteSpanRW dst) const;
-    void                                      restoreFromPreserveOffsets(ByteSpan src) const;
-    std::vector<DataSegmentRelocation>        copyRelocations() const;
-    void                                      copyRelocations(std::vector<DataSegmentRelocation>& outRelocations, uint32_t offset, uint32_t size) const;
-    bool                                      findRelocation(DataSegmentRelocation& outRelocation, uint32_t offset, DataSegmentRelocationKind kind) const;
-    bool                                      hasRelocations(uint32_t offset, uint32_t size) const;
-    std::mutex&                               allocationMutex(uint32_t allocationOffset) const;
+    std::pair<ByteSpan, Ref>           addSpan(ByteSpan value);
+    std::pair<ByteSpan, Ref>           addSpan(ByteSpan value, uint32_t align);
+    std::pair<std::string_view, Ref>   addString(const Utf8& value);
+    uint32_t                           addString(uint32_t baseOffset, uint32_t fieldOffset, const Utf8& value);
+    void                               addRelocation(uint32_t offset, uint32_t targetOffset);
+    void                               addRelocation(uint32_t offset, DataSegmentRef targetRef);
+    void                               addFunctionRelocation(uint32_t offset, const SymbolFunction* targetSymbol, bool allowUnresolvedFunction = false);
+    std::pair<uint32_t, std::byte*>    reserveBytes(uint32_t size, uint32_t align, bool zeroInit);
+    uint32_t                           reserveBlock(uint32_t size, uint32_t align, bool zeroInit);
+    Ref                                findRef(const void* ptr) const noexcept;
+    bool                               findAllocation(DataSegmentAllocation& outAllocation, uint32_t offset) const noexcept;
+    uint32_t                           size() const noexcept;
+    uint32_t                           extentSize() const noexcept;
+    void                               copyTo(ByteSpanRW dst) const;
+    void                               copyToPreserveOffsets(ByteSpanRW dst) const;
+    void                               restoreFromPreserveOffsets(ByteSpan src) const;
+    std::vector<DataSegmentRelocation> copyRelocations() const;
+    void                               copyRelocations(std::vector<DataSegmentRelocation>& outRelocations, uint32_t offset, uint32_t size) const;
+    bool                               findRelocation(DataSegmentRelocation& outRelocation, uint32_t offset, DataSegmentRelocationKind kind) const;
+    bool                               hasRelocations(uint32_t offset, uint32_t size) const;
+    std::mutex&                        allocationMutex(uint32_t allocationOffset) const;
     template<typename T>
     std::pair<uint32_t, T*> reserve()
     {

@@ -125,8 +125,8 @@ namespace
         if (boxedValueTypeRef.isValid() && boxedValueTypeRef != valueTypeRef)
             deps.push_back(boxedValueTypeRef);
 
-        const TypeRef typeInfoValueTypeRef = boxedValueTypeRef.isValid() ? boxedValueTypeRef : valueTypeRef;
-        const TypeInfo& valueType = ctx.typeMgr().get(typeInfoValueTypeRef);
+        const TypeRef   typeInfoValueTypeRef = boxedValueTypeRef.isValid() ? boxedValueTypeRef : valueTypeRef;
+        const TypeInfo& valueType            = ctx.typeMgr().get(typeInfoValueTypeRef);
         if (!valueType.isAnyTypeInfo(ctx) || !cst.isValuePointer())
             return;
 
@@ -288,7 +288,7 @@ SmallVector<TypeRef> TypeGen::computeDeps(TypeManager& tm, Sema& sema, const Typ
                     if (!method)
                         continue;
 
-                    const TypeRef methodTypeRef = reflectedMethodTypeRef(const_cast<TaskContext&>(ctx), *method);
+                    const TypeRef methodTypeRef = reflectedMethodTypeRef(ctx, *method);
                     if (methodTypeRef.isValid())
                         deps.push_back(methodTypeRef);
                     appendAttributeDeps(deps, sema, method->attributes());

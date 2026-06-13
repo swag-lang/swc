@@ -163,8 +163,8 @@ public:
     // Linker::executeLink(deferredToolRun()) on a background thread, and finally calls
     // finishDeferredLink() back on the foreground thread to report results and, for an executable run,
     // launch the artifact.
-    Result         prepareForLink();
-    Result         finishDeferredLink();
+    Result   prepareForLink();
+    Result   finishDeferredLink();
     LinkJob& deferredToolRun() { return deferredToolRun_; }
 
     Result reportError(DiagnosticId id);
@@ -216,10 +216,10 @@ private:
     Result runGeneratedArtifact();
     Result runAfterLink();
 
-    TaskContext                   ctx_;
-    CompilerInstance*             compiler_    = nullptr;
-    bool                          runArtifact_ = false;
-    DiagnosticId                  lastErrorId_ = DiagnosticId::None;
+    TaskContext             ctx_;
+    CompilerInstance*       compiler_    = nullptr;
+    bool                    runArtifact_ = false;
+    DiagnosticId            lastErrorId_ = DiagnosticId::None;
     std::unique_ptr<Linker> deferredLinker_;
     LinkJob                 deferredToolRun_;
 };

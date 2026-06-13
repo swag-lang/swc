@@ -7,6 +7,15 @@ moduleprivate func getTypeValueCrc(val: Swag.TypeValue)->u32
     return Hash.Crc32.compute(val.name)
 }
 
+moduleprivate func getTypeInfoCrc(type: typeinfo)->u32
+{
+    if type.crc do
+        return type.crc
+    if type.fullname != null and type.fullname != "" do
+        return Hash.Crc32.compute(type.fullname)
+    return Hash.Crc32.compute(type.name)
+}
+
 // Determin if a type can be serialized by a simple copy
 public func isPodFinal(type: #null typeinfo)->{ raw: bool, sizeof: u64 }
 {

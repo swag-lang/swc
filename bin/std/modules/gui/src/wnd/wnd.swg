@@ -728,15 +728,17 @@ impl Wnd
         let idx = Slice.findLinear(.parent.childs.toSlice(), me)
         Debug.assert(idx != Swag.U64.Max)
 
-        // Put the window at the back, or before the first topmost window
+        // Put the window at the back, or just before the first topmost window
         var idxToReplace = .parent.childs.count - 1
         if !.wndFlags.has(.TopMost)
         {
-            idxToReplace = .parent.firstTopMostIndex()
-            if idxToReplace == Swag.U64.Max do
-                return
-            idxToReplace -= 1
+            let firstTopMost = .parent.firstTopMostIndex()
+            if firstTopMost != Swag.U64.Max do
+                idxToReplace = firstTopMost - 1
         }
+
+        if idx == idxToReplace do
+            return
 
         swap(.parent.childs.buffer + idx, .parent.childs.buffer + idxToReplace)
     }
@@ -951,7 +953,7 @@ impl Wnd
             var pt = Math.Point{x - .position.x, y - .position.y}
             if !c.wndFlags.has(.NoScroll) do
                 pt += .scrollPos
-            let res = c.getWndAt(pt.x, pt.y)
+            let res = c.getWndAt(pt.x, pt.y, getDisabled, getHidden)
             if res do
                 return res
         }

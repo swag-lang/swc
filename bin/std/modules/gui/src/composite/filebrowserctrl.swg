@@ -135,8 +135,11 @@ fileprivate impl FileBrowserCtrl
             .margin.z      = 10
             .listFlags |= .HotTrack
             .backgroundStyle = .View
-            .addColumn("Name", me.options.state ? me.options.state.columnWidthName : 200)
-            .addColumn("Modified", me.options.state ? me.options.state.columnWidthModified : 150)
+            // NOTE: both branches are kept explicitly f32. A runtime conditional
+            // whose unified result is integer, fed to an f32 parameter, is currently
+            // mis-lowered to a bit-reinterpret (see reference_conditional_int_to_float_miscompile).
+            .addColumn("Name", me.options.state ? cast(f32) me.options.state.columnWidthName : 200.0)
+            .addColumn("Modified", me.options.state ? cast(f32) me.options.state.columnWidthModified : 150.0)
             .header.form = .Transparent
             .header.style.addStyleSheetColors("headerItem_Separator $lighterMedium")
             .scrollWnd.style.addStyleSheetColors("scrollBar_Bk $view_Bk")

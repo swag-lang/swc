@@ -24,6 +24,11 @@ using Swag, Core, File
     @assert(fb.listCtrl != null)
     @assert(fb.comboType.items.count == 1)
 
+    // The file list is multi-column with fixed default widths.
+    @assert(fb.listCtrl.header.items.count == 2)
+    @assert(Math.abs(fb.listCtrl.header.getItemWidth(0) - 200) < 0.5)
+    @assert(Math.abs(fb.listCtrl.header.getItemWidth(1) - 150) < 0.5)
+
     // getSelectedName combines the folder + typed name and appends the active
     // filter extension when missing.
     fb.editFile.setText("notes")
